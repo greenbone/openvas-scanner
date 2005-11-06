@@ -1,0 +1,481 @@
+
+Nessus Transfer Protocol Extensions
+
+
+These 'extensions' are band-aids for the badly designed protocol.
+Yes, I know this is getting more and more complicated, I'm sorry for that. 
+
+Nessus 1.3.x will have a new (nice) protocol
+
+
+1. The client can send additional preferences :
+------------------------------------------------------------------------------
+. ntp_opt_show_end  : the server will send the message
+	SERVER <|> FINISHED <|> hostname <|> SERVER
+
+  Each time the scan of a single host is done.	
+
+
+
+. ntp_keep_communication_alive : the server will not close the communication
+ 	after the test
+
+. ntp_short_status : change the STATUS message to a shorter one :
+
+	'action:hostname:current:max'
+	were 'action' is 'p' (portscan) or 'a' (attack)
+	     'hostname' is the current attacked host
+	     'current' is the port scanned / plugin used
+	     'max' is the limit to which 'current' is going to
+
+  The short status dramatically saves bandwidth between the server and the
+  client
+
+
+
+
+
+2. the LONG_ATTACK message...
+------------------------------------------------------------------------------
+... is an optional replacement for the ATTACK message. It allows Nessusd 
+to receive attack arguments that have undefined length (the max length 
+used to be 4000 bytes).
+
+The syntax is :
+
+CLIENT <|> LONG_ATTACK
+size
+target
+
+
+Where :
+
+	<size> is the number of bytes nessusd should allocate
+	<target> is the target (of size <size>). If strlen(target) > size,
+	then the communication will be shut.
+
+ 
+
+3. The SESSIONS messages
+------------------------------------------------------------------------------
+
+If the server sends the preference 'ntp_save_sessions', then it
+fully supports sessions saving and restoring.
+
+Note that sessions saving and restoring is considered an experimental
+feature as of Nessus 1.0.x
+
+
+A 'session' is the writing, on the server side, of all the events
+that took place during a test. So that if the server or the client
+crash, then it's possible for the user to restore a test at the
+stage he left.
+
+The following messages are implemented : (and must be sent from
+the client side)
+
+
+3.1 Retrieval of the list of sessions
+-------------------------------------
+
+
+CLIENT <|> SESSIONS_LIST <|> CLIENT
+
+returns the list of sessions, in the following format :
+
+SERVER <|> SESSIONS_LIST
+name targets
+name targets
+.
+.
+.
+<|> SERVER
+
+ie:
+SERVER <|> SESSIONS_LIST
+20000718-175930 ab.server.com
+<|> SERVER
+
+Note that 'targets' will never exceed 4000 bytes. If the original
+target selection was, say, 32Kb, then only the first 4kb will
+be transmitted by the server (this is not important, as this field
+is only designed to help the user to remember which session
+does what.
+
+
+
+3.2 Deletions of older sessions
+-------------------------------
+
+The client may ask the server to delete older sessions. The message
+is :
+
+CLIENT <|> SESSION_DELETE <|> name <|> CLIENT
+
+The server will not reply, but will send an ERROR
+message if an error occured (ie: file not found).
+
+
+3.3 Restoration of a session
+----------------------------
+
+The client may ask to continue a test where he left it, using
+the SESSION_RESTORE message :
+
+CLIENT <|> SESSION_RESTORE <|> name <|> CLIENT
+
+At this point, the server acts as if a new attack
+had been started, but instead sends to the client 
+the data it saved. The user sees the attack as if
+it was happening extremely quickly.
+
+3.4 List of detached sessions
+-----------------------------
+
+Detached sessions are sessions that are run detached from the client.
+Please read http://www.nessus.org/doc/detached_scan.html for details.
+
+The message :
+
+CLIENT <|> DETACHED_SESSIONS_LIST <|> CLIENT
+
+will make nessusd send the list of detached scans to the client. The format
+of the message is identical to the LIST_SESSIONS message, that is :
+
+SERVER <|> DETACHED_SESSIONS_LIST
+name targets
+name targets
+.
+.
+.
+<|> SERVER
+
+ie:
+
+SERVER <|> DETACHED_SESSIONS_LIST
+2421 prof.fr.nessus.org
+41001 www.nessus.org
+.
+.
+.
+<|> SERVER
+
+
+
+
+3.5 Stopping a detached session
+-------------------------------
+
+A user may want to stop a detached scan. The message which has this
+effect is the message : 
+
+CLIENT <|> DETACHED_STOP <|> name <|> CLIENT
+
+Where <name> is the name sent in a DETACHED_SESSIONS_LIST message.
+
+3.6 Options
+------------
+
+If the option 'save_session' is set to "yes", then the current
+session will be saved on disk. 
+
+If the option "save_empty_sessions" is set to "yes", and if "save_session"
+is enabled, then empty sessions will also be saved on disk.
+
+4. KB saving
+------------
+
+The following options affect the behavior of nessusd :
+save_knowledge_base
+	If set to "yes", then the KB saving module is activated
+
+only_test_hosts_whose_kb_we_have
+	If set to "yes", then nessusd will skip hosts that don't have
+	a KB attached to
+
+only_test_hosts_whose_kb_we_dont_have
+	If set to "yes", then nessusd will skip hosts that have a KB
+	attached to
+
+kb_restore
+	If set to "yes", then the KB of the tested host will be restored
+	in memory for the test
+
+kb_dont_replay_scanners
+	when kb_restore is set to "yes" and this option is set to "yes",
+	then the scanners plugins won't be launched if they have been in
+	the past
+
+kb_dont_replay_info_gathering
+	same as above, but for information gathering plugins
+
+kb_dont_replay_attacks
+	same as above, but for attack plugins
+
+kb_dont_replay_denials
+	same as above, but for DoS plugins
+
+kb_max_age 
+	maximum age of a KB (in seconds)
+
+
+5. Detached scans
+-----------------
+
+detached_scan
+
+	If set to "yes", nessusd will close the communication and
+	forward the result of the scan to /dev/null (but will fill the
+	KBs and will save its sessions)
+
+
+continuous_scan
+	
+	If set to "yes", nessusd will restart the scan from scratch
+	when completed (nessusd runs forever)
+
+delay_between_scan_loops
+
+	If "continuous_scan" is set to "yes", this value contain the
+	number of seconds to sleep between two loops
+	
+
+detached_scan_email_address 
+
+	Contains the email address to send results to. If empty, no
+	mail will be sent to anyone.
+
+
+6. Per-plugin timeout
+---------------------
+
+Starting with Nessus 1.0.7, the user has the ability to set the timeout
+of each plugin individualy. The option is :
+
+
+	timeout.<plugin_id> = <timeout>
+
+ie:
+	timeout.10246 = 12
+	timeout.10542 = -1
+
+
+
+7. Attached files : the message ATTACHED_FILE
+----------------------------------------------
+
+ATTACHED_FILE is a message that comes after the 
+PREFERENCES message. Its purpose is to allow the
+client to upload a file to the server, which will
+be used by plugins. A usage of this would be to
+upload a SSL certificate to the server so that
+security checks can be done over SSL.
+
+
+The message syntax is :
+
+CLIENT <|> ATTACHED_FILE
+name: <name>
+content: octet/stream
+bytes: %d
+(file)
+
+With '%d' being the number of bytes to read and 'content' should,
+in the future (and if requested by users) be mime-compliant.
+Today, this field is ignored and all files are treated
+as octet/stream (sent without any conversion).
+
+<name> is the name of the file. nessusd will re-assign
+a new name (to prevent clients from uploading, say, /etc/passwd).
+
+This message should be used with the plugin preference 'file'.
+Read plugins_prefs.txt for details.
+
+
+
+8. Alternative protocol negociation
+-----------------------------------
+
+The client may specify additional extensions to the NTP protocol
+while logging in. For instance:
+
+< NTP/1.2 >< md5_caching >
+
+Means that the client wants to use NTP/1.2 with the md5cache feature.
+The current options are :
+
+. md5_caching		[NOT IMPLEMENTED]
+. plugins_version
+. timestamps
+
+
+
+9. md5 caching
+------------------------------------
+
+**** This option is not implemented at this time
+
+
+If the option "md5_caching" is enabled at connection time, then :
+
+- The server sends the message PLUGINS_MD5 to the client at connection 
+  time (the replace the message PLUGIN_LIST). The format of this message
+  is the following :
+  	SERVER <|> PLUGINS_MD5 <|> md5 <|> SERVER
+	
+  where <md5> is the MD5 sum of the md5 sum of all the plugins.
+  
+  
+- The client can then ask for the list of plugins, by sending the
+  message COMPLETE_LIST, defined as below :
+  
+  	CLIENT <|> COMPLETE_LIST <|> CLIENT
+
+  The server will send the PLUGIN_LIST message.
+  If the client does not need anything, it sends the 'GO ON' message
+  to the server :
+  	CLIENT <|> GO ON <|> CLIENT
+	
+  And the server will send the PREFERENCES message and the communication
+  goes on as in MD5-less connections.
+  
+  Alternatively, the client can ask for a detailed list of md5, by sending
+  the message SEND_PLUGINS_MD5 :
+  
+  	CLIENT <|> SEND_PLUGINS_MD5 <|> CLIENT
+	
+  The server then replies with a PLUGINS_MD5 message : 
+  
+  	SERVER <|> PLUGINS_MD5
+	plugname <|> md5
+	plugname <|> md5
+	.
+	.
+	.
+	<|> SERVER
+
+
+10. Plugin upload
+----------------------------------------------------------------------------
+
+If the server allows it, the user may upload his own plugins to the server,
+which will then be stored under his home
+($prefix/var/nessus/users/<user>/plugins/)
+
+The client has to send the message ATTACHED_PLUGIN to the server
+for this to work. The syntax of the message is :
+
+CLIENT <|> ATTACHED_PLUGIN
+name: <name>
+content: octet/stream
+bytes: %d
+(file)
+
+
+Note that <name> may not contain any slash, and must have a server-approved
+suffix (.nes, .nasl)
+
+
+11. Per plugin message
+-------------------------------------------------------------------------------
+
+The message PLUGIN_INFO returns the information about one specific plugin.
+It's defined as :
+
+	CLIENT	<|> PLUGIN_INFO	<|> id <|> CLIENT
+
+With <id> being the ID of the plugin from which we want information about.
+In return, the server returns :
+
+id <|> name <|> category <|> copyright <|> description <|> summry <|> family
+
+(as in the PLUGIN_LIST message)
+
+12. plugins_version
+----------------------------------------------------------------------------
+
+If the client gives the option "plugins_version" at connection time
+(as defined in §8) then the PLUGIN_INFO message changes from :
+id <|> name <|> category <|> copyright <|> description <|> summry <|> family
+
+to
+
+id <|> name <|> category <|> copyright <|> description <|> summry <|> family <|> plugin_version
+
+
+With plugin_version being the revision tag of the current plugin
+
+
+12. plugins_cve_id
+----------------------------------------------------------------------------
+
+If the client sends the option "plugins_cve_id" at connection time
+(as defined in §8) then the PLUGIN_INFO message has the plugins CVE ID
+appended to it. Note that plugins_version takes precedence on this, so 
+if the client sends plugins_version AND plugins_cve_id, then the PLUGIN_INFO
+message becomes :
+
+
+id <|> name <|> category <|> copyright <|> description <|> summry <|> family <|> plugin_version <|> cve_id
+
+If just the option plugins_cve_id is set, then the PLUGIN_INFO message
+becomes:
+
+id <|> name <|> category <|> copyright <|> description <|> summry <|> family <|> cve_id
+
+13. plugins_bugtraq_id
+----------------------------------------------------------------------------
+
+If the client sends the option "plugins_bugtraq_id" at connection time
+(as defined in §8) then the PLUGIN_INFO message has the plugins Bugtraq ID
+appended to it. Note that plugins_version takes precedence on this, and
+the client needs to ALSO have set plugins_cve_id.
+So  if the client sends plugins_version AND plugins_bugtraq_id, 
+it MUST send plugins_cve_id and then the PLUGIN_INFO
+message becomes :
+
+
+id <|> name <|> category <|> copyright <|> description <|> summry <|> family <|> plugin_version <|> cve_id <|> bugtraq_id
+
+If just the option plugins_cve_id is set, then the PLUGIN_INFO message
+becomes:
+
+id <|> name <|> category <|> copyright <|> description <|> summry <|> family <|> cve_id <|> bugtraq_id
+
+
+
+
+14. timestamps
+------------------------------------------------------------------------------
+
+If the option 'timestamps' is enabled by the client at connection time,
+(as defined in §8) then the server will send the message :
+
+SERVER <|> TIME <|> SCAN_START <|> (time of day) <|> SERVER
+SERVER <|> TIME <|> SCAN_END <|> (time of day) <|> SERVER
+
+When the whole scan starts and ends. 
+
+and :
+SERVER <|> TIME <|> HOST_START <|> host <|> (time of day) <|> SERVER
+SERVER <|> TIME <|> HOST_END <|> host <|> (time of day) <|> SERVER
+
+To send the timestamps of the time of the scan of each host.
+
+
+
+15. Plugins dependencies
+-------------------------------------------------------------------------------
+
+If the option 'dependencies' is enabled by the client at connection time
+(as defined in §8) then the server will send the message PLUGIN_DEPENDENCIES
+after the RULES message.
+
+The format is :
+
+SERVER <|> PLUGINS_DEPENDENCIES
+pluginame1 <|> dependencie1 <|> dependencie2 <|> ...... <|>
+pluginame2 <|> dependencie1 <|> dependencie2 <|> ...... <|>
+<|> SERVER
+
+

@@ -1,0 +1,356 @@
+
+                         Nessus Transfer Protocol White Paper
+                                     version 1.1 and 1.2
+                                  
+                                  
+# Author : Renaud Deraison <deraison@cvs.nessus.org>
+#
+# Revisions :
+# 07/10/98 : 10am : first release
+# 07/10/98 :  4pm : first revision (thanks to Noam Rathaus :)
+# 07/11/98 : 11am : added preferences and changed the 'NEW_ATTACK' message
+# 07/11/98 :  2pm : added 'PLUGINS_ORDER'  (thanks to Alexis de Bernis :)
+		    updated the 'STATUS' message format
+# 07/11/98 : 10pm : added a new option : the scan_level                    
+# 07/12/98 :  1pm : corrected some minor errors
+# 07/29/98 :  3pm : added the 'STOP_WHOLE_TEST' message
+# 08/24/98 :  1pm : corrected a mistake in the messages order
+                    changed some stuff in the text to make
+                    it look like a white paper instead of
+                    a draft
+# 09/03/98 : 2pm  : corrected several spelling mistakes       
+# 09/22/98 : 5pm  : added several options
+# 01/29/99 : 3am  : Added Scan ID to HOLE and INFO messages.
+                    (Jochen Wiedmann)
+
+# 01/31/02 : 6pm  : removed scan_level and high_scan_time which are deprecated
+# 03/08/02 :      : documented the NOTE messages
+
+This paper has been written as a complement to the NTP/1.0 
+white paper. If you have never read the NTP/1.0 white paper,
+you should, or else you may not understand everything...
+
+1. Purpose of the NTP/1.1 and NTP/1.2
+
+  The purpose of the NTP 1.1 is to help to make the Nessus daemon more
+flexible than it used to be, as well as to be more specific on the 
+holes/reports found on a remote host.
+
+ + More flexible :
+
+  Nowadays, using nessusd is a pain : before you make a test, you have
+ to telnet to the nessusd machine, edit nessusd.rules to be sure it
+ matches your needs, restart the daemon, and actually start the attack...
+
+ Also, all the preferences should be defined by the client, not
+ only in nessusd.conf. Because if you want to reduce the max number
+ of threads of nessusd, it's a real pain.
+
+ + More specific :
+
+ The NTP/1.0 is TCP oriented, but a flaw can be found on a UDP port, so
+ the NTP/1.1 needs to be more specific in the reports messages.
+ So the NTP/1.1 will modify the INFO and HOLE messages to make them more
+ specifics and more accurate. NTP/1.2 extends the INFO and HOLE messages
+ again by adding the scan's ID, so that one can identify the plugin that
+ reports the message.
+
+ + More open :
+ 
+  The NTP/1.1 allow the server to send to the client an infinite* amount
+  of data, and the client can send back to the server another infinite amount
+  of data
+  
+  
+  *: we all know that in the computers world, nothing is really infinite so
+     maybe I should have put 'unlimited as long as there is memory on the 
+     server side', but please don't mess up with that :)
+  
+
+  + More fined-grained :
+  
+  NTP/1.1 defines the 'NOTE' message (which works the same as INFO and HOLE)
+  
+2. New messages
+
+21.  The "PREFERENCES" message
+
+ The NTP/1.1 provides a new message format, which is nearly the same
+ as the PLUGIN_LIST message : the PREFERENCES message.
+ 
+ This message will be sent by the server and by the client before the
+ start of a new attack.
+
+ Syntax :
+
+  entity <|> PREFERENCES <|>
+  name <|> value
+  name <|> value
+  ...
+  <|> entity
+
+ where 'entity' is either SERVER or CLIENT.
+ 
+ The current preferences are :
+  max_threads    : max number of threads. Can't be greater than the one
+                   defined in nessusd.conf
+  test_file      : the file that some plugins will attempt to obtain from the
+                   remote server (ie : /etc/passwd)
+  email          : the email of the user
+
+  ping_hosts     : ping hosts before starting to scan them. Must be 'yes' or 'no'
+
+  reverse_lookup : the IP must be reversely looked up before it's attacked
+  
+  outside_firewall: if nessusd is testing a host which is behind a firewall
+  
+  host_expansion : this is how Nessus will seek for victims. Several options
+  		   are possible : 
+                  + "none" : means that only the primary host will be tested
+                  + "dns"  : means that a AXFR request will be made to the
+                 	     DNS which is in charge of the domain name of the
+                             victim.
+                  + "nfs"  : means that Nessus will do a 'showmount' on every
+                 	     host tested, and will test the hosts that can
+                             mount the filesystems exported.
+                  + "ip"   : means that Nessus will test the entire subnet of a
+                             host. 
+	
+        	  It's possible to combine the last three options by putting
+                  a ';' between the options : 'dns;ip' is a valid option,
+                  as well as 'dns;nfs;ip'. 
+             	  'none;dns;nfs;ip' is a NONSENSE. The server will send a
+                  PREFERENCES_ERRORS message with this one, and a good client
+                  should first test such nonsense before sending them to the
+                  server.
+                  
+  port_range     : the range of ports to scan (ie : 1-1024)
+  max_hosts      : maximal number of hosts to test
+                   
+                   
+ This one will NEVER be sent to the client, but the client will have to
+ send it the the server :
+  
+  plugin_set     : the list of plugins to use (same format as it used to be (1;4;6;9)
+
+ If the client doesn't send 'plugin_set', then the server will launch all the plugins.
+
+ Note :
+   In fact, the server will send to the client the content of the file
+  nessusd.conf. If the nessusd owner decides to remove this file, the
+  server will send you the message :
+  
+     SERVER <|> PREFERENCES <|>
+     <|> PREFERENCES
+
+  Even if there is NO default preferences, the client has to upload the list
+  of 'known prefs' which is defined above.
+
+  Also, the server might send to the client bogus preferences. If this is the case,
+  the client can silently ignore them (even though it would be better to show
+  them somewhere).
+
+  Last but not least, the server can send plugins preferences. Please read the
+  'plugin_prefs' paper which is distributed with Nessus-980903 and the newest
+  versions.
+  
+  
+22. The "NEW_ATTACK" message
+
+ Since the client can now send more informations for a test to the server,
+ the "NEW_ATTACK" message is now much simpler :
+
+ It used to be :
+     entity <|> NEW_ATTACK <|> pluginlist <|> maxhosts <|> recursive \
+       <|> portrange <|> hostname <|> entity
+
+ It's now :
+
+     entity <|> NEW_ATTACK <|> hostname <|> entity
+
+  where 'hostname' can be an IP, a FQDN or a list of them
+  (ie: "www.a.com,www.b.com,www.c.com" or "host1,host2,192.68.2.1"
+  or whatever)
+
+23. The "RULES" message
+
+
+ I call "rules" the set of commands that restrict the test to
+ a set of hosts.
+ The "RULES" message is sent by the server and the client.
+ Its syntax is :
+ 
+    entity <|> RULES <|>
+    expr1;
+    expr2;
+    expr3;
+    <|> entity
+
+ where 'entity' is either SERVER or CLIENT.
+ 'expr' is the standard rules format (ie : 'n:*')
+
+24. The NOTE, INFO, HOLE messages
+
+ It used to be :
+
+    entity <|> HOLE <|> hostname <|> port:hole description <|> entity
+
+ It will now be :
+
+    entity <|> HOLE <|> hostname <|> servicename (port/protocol) <|> \
+    description <|> entity
+    (NTP 1.1)
+
+    entity <|> HOLE <|> hostname <|> servicename (port/protocol) <|> \
+    description <|> scan_id <|> entity
+    (NTP 1.2)
+   
+  or
+  
+    entity <|> HOLE <|> hostname <|> general <|> \
+    description <|> entity
+    (NTP 1.1)
+  
+    entity <|> HOLE <|> hostname <|> general <|> \
+    description <|> scan_id <|> entity
+    (NTP 1.2)
+
+
+  Where service will be a string which indicates to the user the kind of
+  service which is affected by the problem (ie :"ftp") and where protocol
+  will be "udp" or "tcp", or maybe something else.
+
+  If no servicename could be found by the server 'servicename' will be
+  "unknown"
+ 
+  the second format will be used to report an info which is not port specific.
+
+  The scan_id is the same id previously sent as part of the plugin list.
+  This allows to identify the plugin that generated a report.
+
+  The 'NOTE' message has been added and defines informative information
+  about the remote host
+
+25. The 'PREFERENCES_ERRORS' message
+
+ After the client has sent to the server a 'PREFERENCES' message, the
+ server will reply to report which preferences have invalid values.
+ The syntax of this message is very similar to 'PREFERENCES':
+
+          SERVER <|> PREFERENCES_ERRORS
+          name <|> value
+          name <|> value
+          ...
+          <|> SERVER
+
+ where 'name' is the name of the pref. item, and value is the value which
+ will be used by the server if no correction is made.
+
+ ie : 
+ a user asks a 'max_threads' value of 99999
+ the owner of the server has set in nessus.conf 'max_threads' to 15
+
+ Since 99999 > 15, the server will reply (after the PREFERENCES message
+ of the client)
+
+          SERVER <|> PREFERENCES_ERRORS
+          max_threads <|> 15
+         <|> SERVER
+
+
+ Nota :
+  The message :
+  
+          SERVER <|> PREFERENCES_ERRORS
+           <|> SERVER
+
+  means that there is no error.
+
+26. The 'PLUGINS_ORDER' message
+
+ This message is sent by the server to the client to tell it in which
+ order the plugins will be launched.
+ Syntax :
+
+        SERVER <|> PLUGINS_ORDER <|> plugins <|> SERVER
+
+  Where 'plugins' is a string showing the ids of the plugins,
+ ie : '4;8;1;5'
+
+
+27. The 'STATUS' message
+
+ This message now shows if the current is the state of the portscan
+ of the state of the plugins attacks.
+ It used to be the 'STAT' message, note that it was renamed.
+
+ Syntax :
+      SERVER <|> STATUS <|> hostname <|> action <|> status <|> SERVER
+
+ Where :
+  'hostname' is the name of the host
+  'action' is either 'portscan' or 'attack'
+  'status' is a string under the form "min/max" (ie : 12/80)
+ 
+28. The 'STOP_WHOLE_TEST' message
+
+  This message stops a whole test in a clean way : all the threads
+  are killed and the server silently dies.
+  
+  It's better to use this message rather than just closing the socket
+  between the client and the server (describing why is a little off topic)
+  
+  Syntax :
+  
+      CLIENT <|> STOP_WHOLE_TEST <|> CLIENT
+      
+      
+29. Notes
+
+ The behavior of the command RULES is not the same as PREFERENCES.
+ With the PREFERENCES message, the client can modify the prefs. of
+ the server.
+ With the rules message, it can only add new rules.
+ ie :
+
+ the client receives :
+     SERVER <|> RULES
+     n:*;
+     y:*.nessus.org;
+     <|> SERVER
+
+then it sends to the server :
+     CLIENT <|> RULES
+     N:grincheux.nessus.org;
+    <|> CLIENT
+
+ This means that during the test, the following set of rules will be applied :
+ n*;y:*.nessus.org;n:grincheux.nessus.org
+
+
+3. Using the NTP/1.1
+
+ 31. Activating the NTP/1.1 or NTP/1.2
+
+ While the client attempts to establish the communication with a server, it
+ should send the string '< NTP/1.1 >' or '< NTP/1.2 >' instead of the
+ previously used '< NTP/1.0 >' and the server will answer with the name of
+ the protocol it will use. Beware : older servers will close the connection
+ if they receive NTP/1.1, but I think the servers will be updated more often
+ than the clients...
+
+
+32. When do the messages take place.
+
+ The 'PREFERENCES' and 'RULES' message are sent by the server after the
+ 'PLUGIN_LIST' message. The client sends the 'PREFERENCES' and 'RULES'
+ message before the 'NEW_ATTACK' messages. As soon as the client sends a
+ 'PREFERENCES' message, the server will answer with a 'PREFERENCES_ERROR'
+ message (even if there is no error)
+ 
+ The 'PLUGIN_ORDER' message will be sent just after the client sends the 
+ 'NEW_ATTACK' message.
+ 
+ The 'STATUS', 'PORT', 'HOLE', 'INFO' messages come during an attack.
+
+Comments and questions go to deraison@cvs.nessus.org

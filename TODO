@@ -1,0 +1,36 @@
+$Id$
+
+What must be done :		(feel free to volunteer)
+
+
+  On the server side :
+
+  	- replace the arglists by harglists. That is, replace linked 
+	  lists by hashtables. All the functions are here, it's just
+	  a matter of search/replace thing. 
+	  Read /usr/local/include/nessus/harglsts.h for details
+	  about the harglsts
+
+	- memory leaks in plugins reload
+	  
+  On the client side :
+
+	- replace arglists by harglists too. 
+
+  	- Closed report windows don't free the mem
+
+  	- Bug in the gtk list for hosts, ports, it doesn't scrolls
+          when too much items displayed. (fixed an arbitrary limit
+	  of 500 items).
+
+  	- Bug in html_graph_output, not all services are shown in the graph.
+
+  	- Bug in the script selection, if only one script out of many
+  	  is selected and the script_category wasn't once selected it
+  	  will not be started.
+
+	- In the plugin list, show the plugins dependencies. This is not
+	  easy as it forces us to add some field in the communication
+	  between nessusd and nessus. However, the user should know that
+	  by deactivating a plugin, he will possibly break something.
+

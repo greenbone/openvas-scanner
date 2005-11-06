@@ -1,0 +1,34 @@
+#
+# XXX to be completed
+#
+
+DESCRIPTION OF THE NBE FILE FORMAT
+
+The .nbe file format was designed to facilitate the export of Nessusd reports
+to other tools.
+
+The format is the following for each line :
+
+<category>|<subnet>|<host>|[Info]
+
+Where :
+
+<category> is either "timestamps" or "results".
+
+If <category> is timestamps, then the format of [info] is :
+
+<action>|<time>|
+
+with
+
+    <action> = scan_start, scan_end, host_start or host_end
+    if action is scan_{start,end} then the fields subnet and host are empty.
+
+    If <category> is "results", then [info] is plain old .nsr, that is :
+    <port>|<plugin_id>|<category>|<report>
+    (described in the file nsr_file_format.txt)
+
+    With <port> being the port in plain text (ie: "tcpmux (1/tcp)"),
+    <plugin_id> is the ID of the plugin which generated an alert, <category>
+    is one of {Security Hole, Security Warning, Security Note} and <report>
+    is the report, with return carriages and newlines escaped as '\r' and '\n'

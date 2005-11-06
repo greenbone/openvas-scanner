@@ -1,0 +1,12 @@
+If you are upgrading from a previous version of Nessus, please
+do the following :
+
+	- delete /etc/nessusd.conf
+	- delete /usr/local/share/nessus/
+	- delete /usr/local/lib/libnessus*
+	- delete /usr/local/lib/libpcap-nessus* (if it exists)
+	- delete your ~/.nessus* files
+	
+	
+Then, configure and 'make && make install' and enjoy !		
+	

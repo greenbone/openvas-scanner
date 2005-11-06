@@ -1,0 +1,111 @@
+#!/usr/bin/make -f
+# Derived from dh_make example, and Javier's original rules file
+
+#export DH_VERBOSE=1
+export DH_COMPAT=4
+export DH_OPTIONS
+
+nes	:= $(CURDIR)/debian/nessus
+nesd	:= $(CURDIR)/debian/nessusd
+
+CFLAGS := -g -Wall
+ifneq "$(findstring noopt,$(DEB_BUILD_OPTIONS))" ""
+CFLAGS += -O0
+else
+CFLAGS += -O2
+endif
+
+build: build-stamp
+build-stamp: config.status
+	dh_testdir
+	$(MAKE)
+	touch $@
+
+config.status: configure
+	CFLAGS="$(CFLAGS)" ./configure --prefix=/usr --sysconfdir=/etc \
+          --localstatedir=/var --mandir='$${prefix}/share/man' \
+          --enable-tcpwrappers --enable-save-sessions --enable-save-kb \
+          --sharedstatedir=/var  --libdir='$${localstatedir}/lib'
+	  # For debugging
+	  # enable-debug
+
+clean:
+	dh_testdir
+	dh_testroot
+	touch nessus.tmpl
+#	[ ! -f Makefile ] || $(MAKE) rootdir=`pwd` make_bindir=`pwd`/bin distclean
+	[ ! -f Makefile ] || $(MAKE) distclean
+	-rm -f bin/nessus*
+	dh_clean build-stamp
+
+install: DH_OPTIONS=
+install: build-stamp
+	dh_testdir
+	dh_testroot
+	dh_installdebconf
+	dh_clean -k
+	$(MAKE) install prefix=$(nes)/usr sysconfdir=$(nes)/etc \
+                        localstatedir=$(nes)/var sharedstatedir=$(nes)/var
+	dh_movefiles --sourcedir=debian/nessus -pnessusd \
+          usr/sbin usr/share/man/man8 usr/bin/nessus-mkcert-client \
+	  usr/bin/nessus-fetch \
+	  usr/bin/nessus-mkrand \
+	  usr/share/man/man1/nessus-mkcert-client.1 \
+	  usr/share/man/man1/nessus-check-signature.1 \
+	  usr/share/man/man1/nessus-mkrand.1 \
+	  usr/share/man/man1/nessus-fetch.1 
+	dh_movefiles --sourcedir=debian/nessus -pnessus-dev \
+          usr/include
+	find $(nes) -type d -empty | xargs -r rmdir -p --ignore-fail-on-non-empty
+	dh_installdirs -pnessusd etc/nessus var/lib/nessus var/log/nessus var/lib/nessus/tmp
+	chmod 0640 $(nesd)/var/lib/nessus/tmp
+	dh_installdirs -pnessus usr/share/pixmaps
+	install -m 640 debian/nessusd.conf $(nesd)/etc/nessus/
+	install -m 640 nessus-services $(nesd)/etc/nessus/
+	install -m 644 debian/nessus.xpm $(nes)/usr/share/pixmaps
+	rm -f $(nes)-dev/usr/include/nessus/includes.h
+
+binary: binary-indep binary-arch
+
+binary-indep: DH_OPTIONS=-i
+binary-indep: install
+	dh_testdir
+	dh_testroot
+	dh_installdebconf
+	dh_installdocs
+	dh_installchangelogs CHANGES
+#	rm -rf $(nes)-dev/usr/share/doc/nessus-dev
+#	ln -s libnessus-dev $(nes)-dev/usr/share/doc/nessus-dev
+	dh_compress
+	dh_fixperms
+	dh_installdeb
+	dh_gencontrol
+	dh_md5sums
+	dh_builddeb
+
+binary-arch: DH_OPTIONS=-a
+binary-arch: install
+	dh_testdir
+	dh_testroot
+	dh_installdebconf
+	dh_installdocs README_SSL TODO doc/WARNING.En doc/WARNING.Fr
+	DH_OPTIONS=-pnessusd dh_installdocs TODO debian/README.Debian \
+                                            doc/WARNING.En doc/WARNING.Fr
+	#install -m644 debian/the.init.d.script $(nesd)/usr/share/doc/nessusd/
+	dh_installchangelogs CHANGES
+	dh_installmenu
+	DH_OPTIONS=-pnessusd dh_installdirs etc/logrotate.d
+	install -m644 debian/nessusd.logrotate $(nesd)/etc/logrotate.d/nessusd
+	dh_installinit -pnessusd -n -r -u stop 20 0 6 . 
+ifeq "$(findstring nostrip,$(DEB_BUILD_OPTIONS))" ""
+	dh_strip
+endif
+	dh_compress
+	dh_fixperms
+	dh_installdeb
+	dh_shlibdeps
+	dh_gencontrol
+	dh_md5sums
+	dh_builddeb
+
+.PHONY: build clean binary-indep binary-arch binary install

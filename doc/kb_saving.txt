@@ -1,0 +1,63 @@
+-------------------------------------------------------------------------------
+KNOWLEDGE BASE SAVING
+-------------------------------------------------------------------------------
+
+
+	Starting with Nessus 1.0.5, the experimentatal "kb saving" feature
+has been added.
+
+Why experimental ?
+------------------
+
+	This feature is declared as being experimental because it has not
+been tested by many persons, and its behavior may radically change between
+two releases. This feature will not be considered as being experimental
+at the next major release of Nessus (1.2)
+
+
+What is the "knowledge base" ?
+------------------------------
+
+	Each time a host is tested, a lot of information about it is gathered:
+the list of open ports, the login/password used to connect to it via SMB,
+the list of the FTP directories that are writeable, and so on...
+
+This list used to stay in memory and was shared among all the security checks
+which may contribute to it. Its role is to make the writing of a plugin easier
+and to prevent redundancy between two tests. 
+
+The problem was that after a test was done, this list would be lost.
+
+What is this feature about ?
+----------------------------
+
+	This feature saves the content of the knowledge base built for each
+host on the disk, on the server (nessusd) side.
+
+What is the purpose of saving the knowledge base ?
+--------------------------------------------------
+
+	As the KB is regenerated during each test, saving it on disk may
+seem useless. However, it may speed up the tests. For instance, once the
+list of open ports of a target is known and written on disk, it's possible
+to restart a test without having to do a port scan again. This save bandwidth
+and time, and makes the test of new security checks faster.
+
+
+But it's dangerous ! What if the configuration of the remote host changes 
+-------------------------------------------------------------------------
+between two tests ?
+-------------------
+
+Once it has been saved on disk, the knowledge base is given a date. It's
+up to you to configure nessusd to consider a knowledge base as being
+obsolete after two years, ten minutes, or two seconds.
+
+
+How do I use it ?
+-----------------
+
+See http://www.nessus.org/doc/kb_saving.html
+
+
+$Id$

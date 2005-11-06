@@ -1,0 +1,439 @@
+#!/bin/sh
+#
+# nessus-mkcert-client
+#
+# Written by Michel Arboi <arboi@alussinan.org> from nessus-mkcert
+#
+# This script is distributed under the Gnu General Public License (GPL)
+#
+
+case `echo -n` in
+\-n)	Xn=   ; Xc='\c' ;;
+*)	Xn=-n ; Xc=
+esac
+
+
+echo_no_nl ()
+{
+    echo $Xn "$*$Xc"
+}
+
+
+header()
+{
+clear
+echo "-------------------------------------------------------------------------------"
+echo "			Creation Nessus SSL client Certificate"
+echo "-------------------------------------------------------------------------------"
+echo
+}
+#
+umask 022
+
+prefix=@prefix@
+datadir=@datadir@
+sysconfdir=@sysconfdir@
+localstatedir=@localstatedir@
+sharedstatedir=@sharedstatedir@
+sbindir=@exec_prefix@/sbin
+bindir=@exec_prefix@/bin
+egdpath=@egdpath@
+is_cygwin=@is_cygwin@
+
+RANDFLAG=""
+test -n "$egdpath" && 
+{
+ RANDFLAG="-rand $egdpath"
+}
+
+PATH=$PATH:$sbindir:$bindir:/usr/ssl/bin:/usr/local/ssl/bin:/opt/ssl/bin
+
+#
+# We need openssl
+#
+case `openssl version` in 
+ OpenSSL*)
+     ;;
+ *)
+   echo "OpenSSL is not properly installed (the 'openssl' command line utility could not"
+   echo "be found (is your \$PATH set properly ?)"
+   exit 1
+esac
+     
+# Check environment
+if [ -z "$HOME" ]; then
+    echo "HOME should be defined" 1>&2; exit 1
+fi
+
+#
+# If EGD is not installed, we have to rely on other sources
+# of entropy
+# 
+test -z "$RANDFLAG" -a -z "$RANDFILE" &&
+{
+ if [ ! -r /dev/random -a ! -r /dev/urandom -a ! -r $HOME/.rnd ];
+  then
+   header
+   echo "You do not have any suitable random source"
+   echo "You will be asked to type a few random keys on your keyboard"
+   echo "to generate random bytes"
+   nessus-mkrand $HOME/.rnd 1024 
+   echo "Press [ENTER] to continue..."
+  fi
+}
+
+
+
+NESSUSPRIV="@NESSUSD_STATEDIR@/private/CA"
+NESSUSPUB="@NESSUSD_SHAREDSTATEDIR@/CA"
+
+while [ ! -d "$NESSUSPRIV" ]; do
+    echo_no_nl "Nessus server 'private' directory: "
+    read NESSUSPRIV
+done
+
+while [ ! -d "$NESSUSPUB" ]; do
+    echo_no_nl "Nessus server 'public' directory: "
+    read NESSUSPUB
+done
+
+CAKEY=$NESSUSPRIV/cakey.pem
+CACERT=$NESSUSPUB/cacert.pem
+
+[ -r $NESSUSPRIV ] || echo "WARN: $NESSUSPRIV is not readable, this script will not be able to find the server certificate (hint: are you root?)"
+
+while [ ! -f "$CAKEY" ]; do
+    echo "$CAKEY: not found or not a file"
+    echo_no_nl "Nessus CA private key: "
+    read CAKEY
+done
+
+while [ ! -f "$CACERT" ]; do
+    echo "$CACERT: not found or not a file"
+    echo_no_nl "Nessus CA certificate: "
+    read CACERT
+done
+
+for F in "$CAKEY" "$CACERT"; do 
+    if [ ! -r "$F" ]; then
+	echo "Cannot read $F" 1>&2; exit 1
+    fi
+done
+
+R=x
+while [ "$R" != "y" -a "$R" != "n" ]; do
+    echo "Do you want to register the users in the Nessus server "
+    echo_no_nl "as soon as you create their certificates ? (y/n): "
+    read R
+done
+
+if [ "$R" = "y" ]; then
+    USERSDIR=$localstatedir/lib/nessus/users
+    while [ ! -d "$USERSDIR" ]; do
+	echo "$USERSDIR: not a directory"
+	echo_no_nl "Users directory? "
+	read USERSDIR
+    done
+else
+    USERSDIR=""
+fi
+
+umask 066
+
+# Set environment
+BASEDIR=${TMPDIR-/tmp}/nessus-mkcert.$$
+mkdir $BASEDIR || exit 1
+
+
+echo "This script will now ask you the relevant information to create the SSL"
+echo "client certificates for Nessus."
+
+echo_no_nl "Client certificates life time in days [365]:"; read x
+DFL_CERT_LIFETIME=${x:-365}
+
+# Default country = France - Too bad for you, but quicker for my tests!
+if [ ! -z "$LANG" ]; then
+    DC=`echo $LANG | sed -n 's/^..*_\(..\)$/\1/p'`
+fi
+echo_no_nl "Your country (two letter code) [${DC:=FR}]: "; read x
+DFL_COUNTRY=${x:-$DC}
+echo_no_nl "Your state or province name [none]: "; read DFL_PROVINCE
+X=Paris; echo_no_nl "Your location (e.g. town) [$X]: "; read x
+DFL_LOCATION=${x:-$X}
+echo_no_nl "Your organization [none]: "; read DFL_ORGANIZATION
+echo_no_nl "Your organizational unit [none]:"; read DFL_ORGUNIT
+
+#
+
+cat <<EOF>$BASEDIR/stdC.cnf
+RANDFILE		= $HOME/.rnd
+#
+[ ca ]
+default_ca = NessusCA
+
+[ NessusCA ]
+dir		= $BASEDIR		# Where everything is kept
+certs		= \$dir			# Where the issued certs are kept
+crl_dir		= \$dir			# Where the issued crl are kept
+database	= \$dir/index.txt	# database index file.
+new_certs_dir	= \$dir			# default place for new certs.
+
+certificate	= $CACERT	 	# The CA certificate
+serial		= \$dir/serial 		# The current serial number
+crl		= \$dir/crl.pem 	# The current CRL
+private_key	= $CAKEY		# The private key
+
+x509_extensions	= usr_cert		# The extentions to add to the cert
+crl_extensions	= crl_ext
+
+default_days	= 365		# how long to certify for
+default_crl_days= 30			# how long before next CRL
+default_md	= md5			# which md to use.
+preserve	= no			# keep passed DN ordering
+
+policy		= policy_anything
+
+[ policy_anything ]
+countryName             = optional
+stateOrProvinceName     = optional
+localityName            = optional
+organizationName        = optional
+organizationalUnitName  = optional
+commonName              = supplied
+emailAddress            = optional
+
+[ req ]
+default_bits		= 1024
+distinguished_name	= req_distinguished_name
+# attributes		= req_attributes
+x509_extensions	= v3_ca	# The extentions to add to the self signed cert
+
+[ req_distinguished_name ]
+countryName			= Country Name (2 letter code)
+countryName_default		= FR
+countryName_min			= 2
+countryName_max			= 2
+
+stateOrProvinceName		= State or Province Name (full name)
+stateOrProvinceName_default	= Some-State
+
+localityName			= Locality Name (eg, city)
+
+0.organizationName		= Organization Name (eg, company)
+0.organizationName_default	= Internet Widgits Pty Ltd
+
+# we can do this but it is not needed normally :-)
+#1.organizationName		= Second Organization Name (eg, company)
+#1.organizationName_default	= World Wide Web Pty Ltd
+
+organizationalUnitName		= Organizational Unit Name (eg, section)
+#organizationalUnitName_default	=
+
+commonName			= Common Name (eg, your name or your server\'s hostname)
+commonName_max			= 64
+
+emailAddress			= Email Address
+emailAddress_max		= 40
+
+# SET-ex3			= SET extension number 3
+
+[ usr_cert ]
+# These extensions are added when 'ca' signs a request.
+# This goes against PKIX guidelines but some CAs do it and some software
+# requires this to avoid interpreting an end user certificate as a CA.
+#basicConstraints=CA:FALSE
+
+# Here are some examples of the usage of nsCertType. If it is omitted
+# the certificate can be used for anything *except* object signing.
+
+# This is OK for an SSL server.
+# nsCertType			= nsCertType
+# For normal client use this is typical
+# nsCertType = client, email
+nsCertType			= client
+
+keyUsage = nonRepudiation, digitalSignature, keyEncipherment
+
+# This will be displayed in Netscape's comment listbox.
+nsComment			= "OpenSSL Generated Certificate"
+
+# PKIX recommendations harmless if included in all certificates.
+subjectKeyIdentifier=hash
+authorityKeyIdentifier=keyid,issuer:always
+
+# This stuff is for subjectAltName and issuerAltname.
+# Import the email address.
+subjectAltName=email:copy
+
+# Copy subject details
+issuerAltName=issuer:copy
+
+#nsCaRevocationUrl		= http://www.domain.dom/ca-crl.pem
+#nsBaseUrl
+#nsRevocationUrl
+#nsRenewalUrl
+#nsCaPolicyUrl
+#nsSslServerName
+
+[ v3_ca ]
+# PKIX recommendation.
+subjectKeyIdentifier=hash
+authorityKeyIdentifier=keyid:always,issuer:always
+
+# This is what PKIX recommends but some broken software chokes on critical
+# extensions.
+basicConstraints = critical,CA:true
+# So we do this instead.
+#basicConstraints = CA:true
+
+# Key usage: this is typical for a CA certificate. However since it will
+# prevent it being used as an test self-signed certificate it is best
+# left out by default.
+keyUsage = cRLSign, keyCertSign
+nsCertType = sslCA
+EOF
+
+#
+echo 01 > $BASEDIR/serial
+touch $BASEDIR/index.txt
+
+echo "**********
+We are going to ask you some question for each client certificate
+If some question has a default answer, you can force an empty answer by 
+entering a single dot '.'
+*********"
+
+
+I=1; ANOTHER=y
+
+while [ "$ANOTHER" != "n" ]; do
+    PSEUDO=""
+    while [ -z "$PSEUDO" ]; do
+	echo_no_nl "User #$I name (e.g. Nessus username): "
+	read PSEUDO
+	CERTFILE="$BASEDIR/cert_$PSEUDO.pem"
+	KEYFILE="$BASEDIR/key_$PSEUDO.pem"
+	REQFILE="$BASEDIR/req_$PSEUDO.pem"
+	DNFILE="$USERSDIR/$PSEUDO/auth/dname" # Not wise if USERSDIR is not set
+	if [ -f "$CERTFILE" -o -f "$KEYFILE" -o -f "$DNFILE" ]; then
+	    A=""
+	    while [ -z "$A" ]; do
+		echo "Certificate, key or Nessus DN file(s) already exist."
+		echo_no_nl "Do you want to go on and overwite it/them? "
+		read A
+		if [ "$A" = "n" ]; then PSEUDO=""; fi
+	    done
+	fi
+    done
+
+    echo_no_nl "Client certificates life time in days [$DFL_CERT_LIFETIME]:"
+    read x
+    CERT_LIFETIME=${x:-$DFL_CERT_LIFETIME}
+    echo_no_nl "Country (two letter code) [$DFL_COUNTRY]: "; read x
+    COUNTRY=${x:-$DFL_COUNTRY}
+    echo_no_nl "State or province name [$DFL_PROVINCE]: "; read x
+    PROVINCE=${x:-$DFL_PROVINCE}
+    echo_no_nl "Location (e.g. town) [$DFL_LOCATION]: "; read x
+    LOCATION=${x:-$DFL_LOCATION}
+    echo_no_nl "Organization [$DFL_ORGANIZATION]: "; read x
+    ORGANIZATION=${x:-$DFL_ORGANIZATION}
+    echo_no_nl "Organization unit [$DFL_ORGUNIT]: "; read x
+    ORGUNIT=${x:-$DFL_ORGUNIT}
+    echo_no_nl "e-mail []: "; read EMAIL
+
+    # Client key
+    openssl genrsa -out $KEYFILE 1024
+
+    # Client certificate "request"
+echo "${COUNTRY:-.}
+${PROVINCE:-.}
+${LOCATION:-.}
+${ORGANIZATION:-.}
+${ORGUNIT:-.}
+$PSEUDO
+${EMAIL:-.}" | 
+    openssl req -config $BASEDIR/stdC.cnf -new -key $KEYFILE -out $REQFILE
+
+    # Sign the client certificate
+    openssl ca -config $BASEDIR/stdC.cnf -name NessusCA -batch -days $CERT_LIFETIME -in $REQFILE -out $CERTFILE
+
+    # Create export file for NessusWX
+    NWX_CERTFILE=$BASEDIR/cert_nessuswx_$PSEUDO.pem
+    cp $CERTFILE $NWX_CERTFILE
+    cat $KEYFILE >> $NWX_CERTFILE
+
+    chmod a+r $CERTFILE
+    chmod a+r $NWX_CERTFILE
+
+    if [ ! -z "$USERSDIR" ]; then
+
+        # 
+        # create the auth dir, which contains the user rules, 
+        # password or cert, and plugin acl 
+	D="$USERSDIR/$PSEUDO/auth"
+	if [ ! -d "$D" ]; then
+	    mkdir -p "$D"
+	    chmod 700 "$D"
+	fi
+
+        # 
+        # create the user auth/rules file 
+      # 
+      R="$USERSDIR/$PSEUDO/auth/rules" 
+      echo 
+      echo "User rules" 
+      echo "----------" 
+      echo "nessusd has a rules system which allows you to restrict the hosts" 
+      echo "that $login has the right to test. For instance, you may want" 
+      echo "him to be able to scan his own host only." 
+      echo 
+      echo "Please see the nessus-adduser(8) man page for the rules syntax" 
+      echo 
+      echo "Enter the rules for this user, and hit ctrl-D once you are done: " 
+
+
+      echo "(the user can have an empty rules set)" 
+      cat > $TMPDIR/rules.$$ || { 
+              echo "Error - could not write $TMPDIR/rules.$$" 
+              exit 1 
+      } 
+      cp $TMPDIR/rules.$$ "$USERSDIR/$PSEUDO/auth/rules" 
+
+      rm $TMPDIR/rules.$$ 
+
+      # 
+      # create the cert authentication file auth/dname 
+      # 
+	> $DNFILE
+	[ ! -z "$COUNTRY" -a "$COUNTRY" != "." ] &&
+	    echo_no_nl "/C=$COUNTRY" >> $DNFILE
+	[ ! -z "$PROVINCE" -a "$PROVINCE" != "." ] &&
+	    echo_no_nl "/ST=$PROVINCE" >> $DNFILE
+	[ ! -z "$LOCATION" -a "$LOCATION" != "." ] &&
+	    echo_no_nl "/L=$LOCATION" >> $DNFILE
+	[ ! -z "$ORGANIZATION" -a "$ORGANIZATION" != "." ] && 
+	    echo_no_nl "/O=$ORGANIZATION" >> $DNFILE
+	[ ! -z "$ORGUNIT" -a "$ORGUNIT" != "." ] && 
+	    echo_no_nl "/OU=$ORGUNIT" >> $DNFILE
+	echo_no_nl "/CN=$PSEUDO" >> $DNFILE
+	[ ! -z "$EMAIL" ] && echo_no_nl "/emailAddress=$EMAIL" >> $DNFILE
+
+      # 
+        # create the plugins dir, which contains the user plugins 
+        # 
+        E="$USERSDIR/$PSEUDO/plugins" 
+        if [ ! -d "$E" ]; then 
+            mkdir -p "$E" 
+            chmod 700 "$E" 
+        fi 
+        echo "User added to Nessus." 
+    fi
+
+    echo_no_nl "Another client certificate? " 
+    read ANOTHER 
+    I=`expr $I + 1` 
+done
+
+echo "Your client certificates are in $BASEDIR
+You will have to copy them by hand"
+

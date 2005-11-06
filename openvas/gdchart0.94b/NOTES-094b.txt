@@ -1,0 +1,71 @@
+GDChart v0.94b Notes
+====================
+Also see README.txt, NOTES-092b.txt and NOTES-093b.txt for more information
+
+Neither this, nor README, is meant to be a usage manual (currently none exists),
+but they, gdchart.h, gdc.h, gdcpie.h, and the sample code are good places to
+start.
+
+
+Differences from v0.93b
+=======================
+
+Through the API, if changing the GDC_BGColor [or GDCPIE_BGColor] , the rest
+of the colors will defaulted to a contrasting color (unless specifically set).
+
+Some of the options common to both PIEs and CHARTs have been moved to the
+common header file: gdc.h.
+(For reference, they also remain (externed) in the respective headers.)
+
+Function definition has been added for pie_gif().
+
+out_err() has been made generic to both PIEs and CHARTs, and can be called
+through the API.
+
+GDC_MTitleColor has been removed.
+
+NEW FEATURES
+------------
+
+ - A new STACK type has been added: GDC_STACK_LAYER.
+   GDC_STACK_DEPTH should be available for all chart types
+   DEPTH, LAYER and BESIDE should be available for BARs
+   (all other stacking should be considered unavailable, until V1.0)
+
+ - New options have been added for better control over the Y axis:
+    GDC_requested_ymin
+    GDC_requested_ymax
+    GDC_requested_yinterval
+   As long as the values to be plotted fall within the range set by 
+   requested ymin and ymax, those values will be used.
+   As long as the labes won't overwrite each other, as defined by 
+   GDC_ylabel_density, requested_yinterval will be used.
+
+ - New options have been added to give finer control over title and
+   label colors:
+    GDC_XTitleColor
+    GDC_YTitleColor
+    GDC_YTitle2Color
+    GDC_XLabelColor
+    GDC_YLabelColor
+    GDC_YLabel2Color
+
+
+BUG FIXES
+---------
+ - stacking should work except for AREA charts (GDC_STACK_DEPTH ok)
+   specifically LAYERED BAR CHARTs
+
+ - better filling on very narrow PIE slices
+
+ - scaling for GDC_STACK_SUMs
+
+ - secondary (combo) plotted values don't reach top/bottom limits of chart
+
+ - grid/label alignment
+
+ - x annotation position on BAR CHARTs
+
+ - x scatter positions on BAR CHARTs
+
+ - label line removed from annontation line if no label is given

@@ -1,0 +1,184 @@
+
+
+			Nessus Transfer Protocol White Paper
+				     version 1.0
+
+			            
+			            
+
+		
+1. What is the Nessus Transfer Protocol (NTP) ? 
+
+ The NTP is the protocol that is used for the communication between
+ nessusd (also known as the server) and a nessus client.
+ 
+ This protocol is widely explained in order to facilitate the development
+ of other clients than the 'standard' Nessus client.
+ 
+ The NTP protocol is TCP based but has nothing to do with the Network
+ Time Protocol (sorry, this is confusing)
+ 
+ 
+2. NTP typical message
+
+ A NTP message is a suite of ASCII printable characters, which does not
+ contain any line feed ('\n').
+ 
+ Every NTP message is made up of 'fields' that are delimited by the string ' <|> '
+ (note the spaces).
+ 
+ The first field always contain the name of the entity that sends it (SERVER or
+ CLIENT), and the second field always send the type of message.
+ The content of the other fields depends of the message type.
+ The last field of the message must be the same as the first field.
+ 
+ eg : SERVER <|> ERROR <|> An error occurred ! <|> SERVER
+  
+3. NTP messages types
+
+ The Nessus Transfer Protocol currently recognizes the following messages types :
+ 
+ 	ERROR 
+ 	HOLE
+	INFO
+ 	PORT
+	NEW_ATTACK
+	PLUGIN_LIST
+	STAT
+	STOP_ATTACK
+	
+ 31. The "ERROR" type
+ 
+  A NTP message declared as "ERROR" contains the description of an error that
+  occurred. Once more, there must be NO line feed ('\n') character in this
+  description.
+  The syntax for this type is :
+  entity <|> ERROR <|> error description <|> entity
+  
+  If the error is important, the server will send a 'BYE BYE' message
+  (see the end of the document)
+  
+ 32. The "HOLE" and "INFO" type
+ 
+  A NTP message declared as "HOLE" contains the description of a security hole
+  that has been found on a given host. The message contains the name of the
+  host as well as the port on which the hole was discovered.
+  The syntax for this type is :
+  
+  entity <|> HOLE <|> hostname <|> port:hole description <|> entity
+  
+  Because a hole description is very likely to contain a line feed, 
+  before being sent every '\n' character must be replaced by ';'.
+  The client will have, then, to do the reverse conversion (';' -> '\n')
+  
+  When the message is of type 'INFO', this is the same as the "HOLE" type
+  except the fact that the description is just a warning.
+  
+ 33. The "PORT" type
+ 
+  A NTP message declared as "PORT" reports that a given port is open
+  on a given host.
+  The syntax for this type is :
+  
+  entity <|> PORT <|> hostname <|> portnumber <|> entity
+  
+  
+ 34. The "NEW_ATTACK" type
+ 
+  A NTP message of type "NEW_ATTACK" launches a new attack again a given
+  host.
+  
+  The syntax of this type is :
+  
+  entity <|> NEW_ATTACK <|> pluginlist <|> maxhosts <|> recursive \
+  <|> portrange <|> hostname <|> entity
+  
+  where :
+  
+  pluginlist : is the list of plugins to use. Each plugin is designated by a number
+  (see #35 : The "PLUGIN_LIST" type), so the plugin list is a list of numbers separated
+  by a  semi-column ';' (eg : "1;39;11;3")
+  If pluginlist equals to "-1", then all the plugins will be used
+  If pluginlist equals to "0", then no plugin will be used (a simple portscanning will
+  be performed)
+  
+  maxhosts : is the maximal number of hosts to test. "-1" means 'no maximum'
+  
+  recursive : should the hostloop system be used against _every_ host ? (0:no)
+  
+  portrange : range of ports to scan (default : "1-8000")
+  
+ 35. The "PLUGIN_LIST" type 
+ 
+  A NTP message of type "PLUGIN_LIST" tells to the client the name, the id and the
+  copyright of the plugins that are installed on the server. 
+  This list *does* contain lines feed.
+  
+  The syntax is :
+  SERVER <|> PLUGIN_LIST <|>
+  id <|> name <|> category <|> copyright <|> description <|> summary <|> family
+  id <|> name <|> category <|> copyright <|> description <|> summary <|> family
+  ...
+  <|> SERVER
+  
+ 36. The "STAT" type
+ 
+  A NTP message of type STAT tells the client the current status of the portscanning
+  of a given host
+  Syntax :
+  
+  SERVER <|> STAT <|> hostname <|> port <|> SERVER
+  
+  This message is sent every 100 ports
+  
+ 37. The "STOP_ATTACK" type
+ 
+ A NTP message of type STOP_ATTACK tells the daemon to stop the test of a given
+ host. 
+ Syntax :
+ 
+ CLIENT <|> STOP_ATTACK <|> hostname <|> CLIENT
+  
+  
+4. A typical NTP session
+
+  A typical NTP session has a real simple scheme :
+  
+  the server sends :			the client answers :
+  
+  "< NTP/1.0 >"	
+  "User :"				
+  					a user name
+  "Password :"	
+  					a valid password
+  The server then sends
+  its plugin list (see 35)
+  					the client sends a new attack
+  					message (see 34)
+  the server sends various
+  messages about the status
+  of the attack (see 31,32,33)
+  
+  At any moment, the client can send the 'attack_stop' command (see 37)
+  
+  "SERVER <|> BYE <|> BYE"
+  					"anything\n" and
+  					closes the connection
+  					
+  				
+  
+  				
+  
+  
+EOF
+ 
+ 
+ 
+ 
+
+ 
+
+ 
+
+ 
+ 

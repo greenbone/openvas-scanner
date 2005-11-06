@@ -1,0 +1,66 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- ============================================================== -->
+<!-- Nessus Scan Report XML v0.2 DTD
+     Author: Loren Bandiera <lorenb@starchamber.ca>
+
+     Version History:
+     2000-11-21	v0.2		* validiation of XML scan reports against this DTD now works
+     					* added missing element scanreport	
+     					* converted all tags to lowercase
+     					* added atributes to <testedhost>, <port>, <portinfo> tags
+     					* removed the following tags:
+     						- <Hostname>
+     						- <Service>
+     						- <Number>
+     						- <Protocol>
+     						- <PortNumber>
+     						- <ServiceName>
+     					     					
+	2000-08-26	v0.1		* Initial Release
+
+     This porgram is free software; you can redistribute it and/or
+     modify it under the terms of the GNU General Public License
+     as published by the Free Software Foundation; either version 2
+     of the License, or ( at your option ) any later version. 
+
+     This program is distributed in the hope that it will be useful,
+     but WITHOUT ANY WARRANTY; without even the implied warranty of
+     MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+     GNU Library General Public License for more details.
+
+     You should have received a copy of the GNU General Public License
+     along with this program;  if not, write to the Free Software
+     Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA
+     02111-1307 --> 
+<!-- ============================================================== -->
+
+<!ELEMENT scanreport ((summary,testedhostsummary,details)+)>
+
+<!ELEMENT summary (alivehosts,securityholes,securitywarnings,securitynotes)>
+<!ELEMENT alivehosts (#PCDATA)>
+<!ELEMENT securityholes (#PCDATA)>
+<!ELEMENT securitywarnings (#PCDATA)>
+<!ELEMENT securitynotes (#PCDATA)>
+
+<!ELEMENT testedhostsummary ((testedhost)+)>
+<!ELEMENT testedhost (result)>
+<!ATTLIST testedhost hostname CDATA #REQUIRED>
+<!ELEMENT result (#PCDATA)>
+
+<!ELEMENT details ((host)+)>
+<!ELEMENT host (openports?,portsummary?)+>
+<!ATTLIST host hostname CDATA #REQUIRED>
+<!ELEMENT openports ((port)+)>
+<!ELEMENT port (info)>
+<!ATTLIST port service	CDATA #REQUIRED
+			protocol	CDATA #REQUIRED
+			portnum	CDATA #REQUIRED>
+<!ELEMENT info (#PCDATA)>
+
+<!ELEMENT portsummary ((portinfo)+)>
+<!ELEMENT portinfo (description)>
+<!ATTLIST portinfo service	CDATA #REQUIRED
+			    portnum	CDATA #REQUIRED
+			    found		CDATA #REQUIRED>
+<!ELEMENT description (#PCDATA)>
+

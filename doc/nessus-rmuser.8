@@ -1,0 +1,49 @@
+.TH NESSUS-RMUSER 8 "February 2001" "The Nessus Project" "User Manuals"
+.SH NAME
+nessus-rmuser \- removes a user from the nessusd userbase
+.sp
+.SH SYNOPSIS
+.BI nessus-rmuser\ [\| <login> \|]
+
+.SH DESCRIPTION
+
+The 
+.B Nessus Security Scanner
+comes with its own user base which contains the list of who can
+use the services of 
+.BR nessusd ,
+and what restriction (or
+.IR rules ) 
+each user has.
+
+
+.BI nessus-rmuser
+is a simple program which will remove user from the proper nessusd
+configuration files, as well as its data (saved KBs and saved sessions).
+
+.SH SEE ALSO
+
+.BR nessus-adduser (8),\  nessusd (8),\  nessus (1)
+
+.SH MORE INFORMATION ABOUT THE NESSUS PROJECT
+The canonical places where you will find more information 
+about the Nessus project are: 
+
+.RS
+.UR
+http://www.nessus.org/
+.UE
+(Official site)
+.br
+.UR
+http://cvs.nessus.org/
+.UE
+(Developers site)
+.RE
+   
+
+.SH AUTHOR
+
+.B nessus-rmuser 
+was quickly written by Renaud Deraison <deraison@cvs.nessus.org>
+

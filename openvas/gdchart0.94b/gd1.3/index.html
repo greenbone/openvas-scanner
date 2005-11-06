@@ -1,0 +1,1973 @@
+<HTML>
+<HEAD>
+<TITLE>gd 1.3</TITLE>
+</HEAD>
+<BODY>
+<H1>gd 1.3</H1>
+<H2>A graphics library for fast GIF creation</H2>
+<H2>Follow this link to the 
+<A HREF="http://www.boutell.com/gd/">latest version
+of this document</A>.</H2>
+<H3>Table of Contents</H3>
+<UL>
+<LI><A HREF="#notice">Credits and license terms</A>
+<LI><A HREF="#whatsnew1.3">What's new in version 1.3?</A>
+<LI><A HREF="#whatis">What is gd?</A>
+<LI><A HREF="#gdother">What if I want to use another programming language?</A>
+<LI><A HREF="#required">What else do I need to use gd?</A>
+<LI><A HREF="#getgd">How do I get gd?</A>
+<LI><A HREF="#buildgd">How do I build gd?</A>
+<LI><A HREF="#basics">gd basics: using gd in your program</A>
+<LI><A HREF="#webgif">webgif: a useful example</A>
+<LI><A HREF="#reference">Function and type reference by category</A>
+<LI><A HREF="#gdformat">About the additional .gd image file format</A>
+<LI><A HREF="#informing"><strong>Please</strong>
+ tell us you're using gd!</A>
+<LI><A HREF="#problems">If you have problems</A>
+<LI><A HREF="#index">Alphabetical quick index</A>
+</UL>
+<P><A HREF="http://www.boutell.com/">
+Up to the <EM>Boutell.Com, Inc. Home Page</EM></A>
+<A NAME="notice"><H3>Credits and license terms</A></H3>
+<P>
+In order to resolve any possible confusion regarding the authorship
+of gd, the following copyright statement covers all of the authors
+who have required such a statement. <em>Although his LZW compression
+code no longer appears in gd, the authors wish to thank David Rowley 
+for the original LZW-based GIF compression code, which has been removed
+due to patent concerns.</em> <strong>If you are aware of any oversights
+in this copyright notice, please contact 
+<a href="mailto:boutell@boutell.com">Thomas Boutell</a> who will be 
+pleased to correct them.</strong>
+<pre>
+COPYRIGHT STATEMENT FOLLOWS THIS LINE
+</pre>
+<blockquote>
+Portions copyright 1994, 1995, 1996, 1997, 1998, by Cold Spring
+Harbor Laboratory. Funded under Grant P41-RR02188 by the National 
+Institutes of Health.
+<P>
+Portions copyright 1996, 1997, 1998, by Boutell.Com, Inc.
+<p>
+GIF decompression code copyright 1990, 1991, 1993, by David Koblas 
+(koblas@netcom.com). 
+<p>
+Non-LZW-based GIF compression code copyright 1998, by Hutchison Avenue 
+Software Corporation (<a href="http://www.hasc.com">http://www.hasc.com/</a>, 
+info@hasc.com). 
+<p>
+<strong>Permission has been granted to copy and distribute gd in any 
+context, including a commercial application, provided that this notice 
+is present in user-accessible supporting documentation.</strong>
+<p>
+This does not affect your ownership of the derived work itself, and the intent
+is to assure proper credit for the authors of gd, not to interfere
+with your productive use of gd. If you have questions, ask. 
+"Derived works" includes all programs that utilize the library. 
+Credit must be given in user-accessible documentation.
+<p>
+Permission to use, copy, modify, and distribute this software and its 
+documentation for any purpose and without fee is hereby granted, provided 
+that the above copyright notice appear in all copies and that both that 
+copyright notice and this permission notice appear in supporting 
+documentation.  This software is provided "as is" without express or 
+implied warranty.
+<p>
+</blockquote>
+<pre>
+END OF COPYRIGHT STATEMENT
+</pre>
+<A NAME="whatis"><H3>What is gd?</H3></A>
+<P>
+gd is a graphics library. It allows your code to quickly
+draw images complete with lines, arcs, text, multiple
+colors, cut and paste from other images, and flood fills, and
+write out the result as a .GIF file. This is particularly
+useful in World Wide Web applications, where .GIF is the
+format used for inline images.
+<P>
+gd is not a paint program. 
+If you are looking for a paint program, you are looking in
+the wrong place. If you are not a programmer, you are looking
+in the wrong place.
+<P>
+gd does not provide for every possible desirable graphics
+operation. It is not necessary or desirable for gd to become
+a kitchen-sink graphics package, but version 1.3 incorporates
+most of the commonly requested features for an 8-bit 2D package.
+Support for scalable fonts, and truecolor images, JPEG and PNG
+is planned for version 2.0. Version 1.3 was released to correct
+longstanding bugs and provide an LZW-free GIF compression routine.
+<P>
+<A NAME="gdother"><H3>What if I want to use another programming
+language?</h3></A>
+<h4>Perl</h4>
+gd can also be used from Perl, courtesy of
+Lincoln Stein's
+<a href="http://www-genome.wi.mit.edu/ftp/pub/software/WWW/GD.html">
+GD.pm</a> library, which uses gd as the basis for a set of
+Perl 5.x classes. GD.pm is based on gd 1.1.1 but gd 1.2 should
+be compatible.
+<h4>Any Language</h4>
+There are, at the moment, at least three simple interpreters that
+perform gd operations. You can output the desired commands to a simple
+text file from whatever scripting language you prefer to use, then
+invoke the interpreter.
+<p>
+These packages are based on gd 1.2 as of this writing but should
+be compatible with gd 1.3 with minimal tweaking. 
+<ul>
+<li><a href="http://s27w007.pswfs.gov/tgd/">tgd</a>, by Bradley K. Sherman
+<li><a href="http://www.unimelb.edu.au/fly/fly.html">fly</a>, by Martin Gleeson
+</ul>
+<P><A NAME="whatsnew1.2"><H3>What's new in version 1.3?</H3></A>
+Version 1.3 features the following changes:
+<dl>
+<dt>Non-LZW-based GIF compression code
+<dd>
+Version 1.3 contains GIF compression code that uses simple Run Length 
+Encoding instead of LZW compression, while still retaining compatibility 
+with normal LZW-based GIF decoders (your browser will still like your GIFs).
+<strong>LZW compression is patented by Unisys. This is why there have
+been no new versions of gd for a long time. THANKS to
+Hutchison Avenue Software Corporation for contributing
+this code. THE NEW CODE PRODUCES LARGER GIFS AND IS NOT WELL
+SUITED TO PHOTOGRAPHIC IMAGES. THIS IS A LEGAL ISSUE.
+IT IS NOT A QUESTION OF TECHNICAL SKILL. PLEASE DON'T
+COMPLAIN ABOUT THE SIZE OF GIF OUTPUT. THANKS!</strong>
+<dt>8-bit fonts, and 8-bit font support
+<dd>This improves support for European languages. Thanks are due 
+to Honza Pazdziora <adelton@informatics.muni.cz> and also to 
+Jan Pazdziora <adelton@fi.muni.cz>. Also see the provided bdftogd
+Perl script if you wish to convert fixed-width X11 fonts
+to gd fonts.
+<dt>16-bit font support (no fonts provided)
+<dd>Although no such fonts are provided in the distribution, 
+fonts containing more than 256 characters should work if the 
+gdImageString16 and gdImageStringUp16 routines are used.
+<dt>Improvements to the "webgif" example/utility
+<dd>The "webgif" utility is now a slightly more useful application. Thanks to
+Brian Dowling for this code.
+<dt>Corrections to the color resolution field of GIF output
+<dd>Thanks to Bruno Aureli.
+<dt>Fixed polygon fills
+<dd>A one-line patch for the infamous polygon fill bug, courtesy
+of Jim Mason. I believe this fix is sufficient. However, if you
+find a situation where polygon fills still fail to behave properly,
+please send code that demonstrates the problem, <em>and</em> a fix if
+you have one. Verifying the fix is important.
+<dt>Row-major, not column-major
+<dd>Internally, gd now represents the array of pixels as
+an array of rows of pixels, rather than an array of columns
+of pixels. This improves the performance of compression and
+decompression routines slightly, because horizontally adjacent
+pixels are now next to each other in memory. <strong>This should
+not affect properly written gd applications, but applications that
+directly manipulate the <code>pixels</code> array will require
+changes.</strong>
+</dl>
+<A NAME="required"><H3>What else do I need to use gd?</H3></A>
+<P>
+To use gd, you will need an ANSI C compiler. <strong>All popular 
+Windows 95 and NT C compilers are ANSI C compliant.</strong> Any 
+full-ANSI-standard C compiler should be adequate. <strong>The cc 
+compiler released with SunOS 4.1.3 is not an ANSI C compiler. 
+Most Unix users who do not already have gcc should get it.
+gcc is free, ANSI compliant and a de facto industry standard.
+Ask your ISP why it is missing.</strong>
+<P>
+You will also want a GIF viewer, if you do not already have
+one for your system, since you will need a good way to check the
+results of your work. Any web browser will work, but you might
+be happier with a package like Lview Pro for Windows or
+xv for X. There are GIF viewers available for every graphics-capable
+computer out there, so consult newsgroups relevant to
+your particular system.
+<P>
+<A NAME="getgd"><H3>How do I get gd?</H3></A>
+<h4>By HTTP</h4>
+<ul>
+<li><a href="http://www.boutell.com/gd/http/gd1.3.tar.gz">Gzipped Tar File (Unix)</a>
+<li><a href="http://www.boutell.com/gd/http/gd13.zip">.ZIP File (Windows)</a>
+</ul>
+<h4>By FTP</h4>
+<ul>
+<li><a href="ftp://ftp.boutell.com/pub/boutell/gd/gd1.3.tar.gz">Gzipped Tar File (Unix)</a>
+<li><a href="ftp://ftp.boutell.com/pub/boutell/gd/gd13.zip">.ZIP File (Windows)</a>
+</ul>
+<P>
+<A NAME="buildgd"><H3>How do I build gd?</H3></A>
+<P>
+In order to build gd, you must first unpack the archive you have
+downloaded. If you are not familiar with <code>tar</code> and
+<code>gunzip</code> (Unix) or <code>ZIP</code> (Windows), please
+consult with an experienced user of your system. Sorry, we cannot
+answer questions about basic Internet skills.
+<p>
+Unpacking the archive will produce a directory called "gd1.3".
+<p>
+<h4>For Unix</h4>
+<code>cd</code> to the gd1.3 directory and examine the Makefile, which 
+you will probably need to change slightly depending on your operating
+system and your needs.
+<h4>For Windows, Mac, Et Cetera</h4>
+Create a project using your favorite programming environment.
+Copy all of the gd files to the project directory. Add <code>gd.c</code> 
+to your project. Add other source files as appropriate. Learning the
+basic skills of creating projects with your chosen C environment
+is up to you.
+<P>
+Now, to build the demonstration program, just type "make gddemo"
+if you are working in a command-line environment, or build a project
+that includes gddemo.c if you are using a graphical environment. If all 
+goes well, the program "gddemo" will be compiled and linked without incident.
+Depending on your system you may need to edit the Makefile.
+Understanding the basic techniques of compiling and linking
+programs on your system is up to you.
+<P>
+You have now built a demonstration program which shows off
+the capabilities of gd. To see it in action, type
+"gddemo".
+<P>
+gddemo should execute without incident, creating the file
+demoout.gif. (Note there is also a file named demoin.gif,
+which is provided in the package as part of the demonstration.)
+<P>
+Display demoout.gif in your GIF viewer. The image should
+be 128x128 pixels and should contain an image of the
+space shuttle with quite a lot of graphical elements drawn
+on top of it.
+<P>
+(If you are missing the demoin.gif file, the other items
+should appear anyway.)
+<P>
+Look at demoin.gif to see the original space shuttle
+image which was scaled and copied into the output image.
+<P>
+<A NAME="basics"><H3>gd basics: using gd in your program</H3></A>
+gd lets you create GIF images on the fly. To use gd in your
+program, include the file gd.h, and link with the libgd.a
+library produced by "make libgd.a", under Unix. Under other
+operating systems you will add gd.c to your own project.
+<P>
+If you want to use the provided fonts, include
+gdfontt.h, gdfonts.h, gdfontmb.h, gdfontl.h and/or gdfontg.h. If you 
+are not using the provided Makefile and/or a library-based approach, be
+sure to include the source modules as well in your
+project. (They may be too large for 16-bit memory models,
+that is, 16-bit DOS and Windows.)
+<P>
+Here is a short example program. <strong>(For a more advanced example,
+see gddemo.c, included in the distribution. gddemo.c is NOT the same program; 
+it demonstrates additional features!)</strong>
+<P>
+<PRE>
+/* Bring in gd library functions */
+#include "gd.h"
+
+/* Bring in standard I/O so we can output the GIF to a file */
+#include &lt;stdio.h&gt;
+
+int main() {
+	/* Declare the image */
+	<A HREF="#gdImagePtr">gdImagePtr</A> im;
+	/* Declare an output file */
+	FILE *out;
+	/* Declare color indexes */
+	int black;
+	int white;
+
+	/* Allocate the image: 64 pixels across by 64 pixels tall */
+	im = <A HREF="#gdImageCreate">gdImageCreate</A>(64, 64);
+
+	/* Allocate the color black (red, green and blue all minimum).
+		Since this is the first color in a new image, it will
+		be the background color. */
+	black = <A HREF="#gdImageColorAllocate">gdImageColorAllocate</A>(im, 0, 0, 0);	
+
+	/* Allocate the color white (red, green and blue all maximum). */
+	white = <A HREF="#gdImageColorAllocate">gdImageColorAllocate</A>(im, 255, 255, 255);	
+	
+	/* Draw a line from the upper left to the lower right,
+		using white color index. */
+	<A HREF="#gdImageLine">gdImageLine</A>(im, 0, 0, 63, 63, white);	
+
+	/* Open a file for writing. "wb" means "write binary", important
+		under MSDOS, harmless under Unix. */
+	out = fopen("test.gif", "wb");
+
+	/* Output the image to the disk file. */
+	<A HREF="#gdImageGif">gdImageGif</A>(im, out);	
+
+	/* Close the file. */
+	fclose(out);
+
+	/* Destroy the image in memory. */
+	<A HREF="#gdImageDestroy">gdImageDestroy</A>(im);
+}
+</PRE>
+When executed, this program creates an image, allocates
+two colors (the first color allocated becomes the background
+color), draws a diagonal line (note that 0, 0 is the upper
+left corner), writes the image to a GIF file, and
+destroys the image.
+<P>
+The above example program should
+give you an idea of how the package works.
+gd provides many additional functions, which are listed
+in the following reference chapters, complete with code
+snippets demonstrating each. There is also an
+<A HREF="#index">alphabetical index</A>. 
+<H3><A NAME="webgif">Webgif: a more powerful gd example</A></H3>
+Webgif is a simple utility program to manipulate GIFs from the
+command line. It is written for Unix and similar command-line
+systems, but should be easily adapted for other environments. 
+Webgif allows you to set transparency and interlacing and
+output interesting information about the GIF in question.
+<P>
+webgif.c is provided in the distribution. Unix users can
+simply type "make webgif" to compile the program. Type
+"webgif" with no arguments to see the available options.
+<H2><A NAME="reference">Function and type reference</A></H2>
+<UL>
+<LI><A HREF="#types">Types</A></LI>
+<LI><A HREF="#creating">Image creation, destruction, loading and saving</A></LI>
+<LI><A HREF="#drawing">Drawing, styling, brushing, tiling and 
+filling functions</A></LI>
+<LI><A HREF="#query">Query functions (not color-related)</A></LI>
+<LI><A HREF="#fonts">Font and text-handling functions</A></LI>
+<LI><A HREF="#colors">Color handling functions</A></LI>
+<LI><A HREF="#copying">Copying and resizing functions</A></LI>
+<LI><A HREF="#misc">Miscellaneous Functions</A></LI>
+<LI><A HREF="#constants">Constants</A></LI>
+</UL>
+<H3><A NAME="types">Types</A></H3>
+<DL>
+<DT><A NAME="gdImage"><code>gdImage</code><strong>(TYPE)</strong></A>
+<DD>
+The data structure in which gd stores images. <A HREF="#gdImageCreate">
+gdImageCreate</A> returns
+a pointer to this type, and the other functions expect to receive
+a pointer to this type as their first argument. You may
+read the members <code>sx</code> (size on X axis),
+<code>sy</code> (size on Y axis), <code>colorsTotal</code>
+(total colors), <code>red</code> (red component of colors;
+an array of 256 integers between 0 and 255), <code>green</code>
+(green component of colors, as above), <code>blue</code>
+(blue component of colors, as above), and <code>transparent</code>
+(index of transparent color, -1 if none); please do so
+using the macros provided. Do NOT set the members directly
+from your code; use the functions provided.
+<PRE>
+typedef struct {
+	unsigned char ** pixels;
+	int sx;
+	int sy;
+	int colorsTotal;
+	int red[gdMaxColors];
+	int green[gdMaxColors];
+	int blue[gdMaxColors]; 
+	int open[gdMaxColors];
+	int transparent;
+} gdImage;
+</PRE>
+<DT><A NAME="gdImagePtr">gdImagePtr</A> <strong>(TYPE)</strong>
+<DD>
+A pointer to an image structure. <A HREF="#gdImageCreate">gdImageCreate</A>
+returns this type, and the other functions expect it as the first
+argument.
+<DT><A NAME="gdFont">gdFont</A> <strong>(TYPE)</strong>
+<DD>
+A font structure. Used to declare the characteristics of a font.
+Plese see the files gdfontl.c and gdfontl.h for an example of the
+proper declaration of this structure. You can provide your
+own font data by providing such a structure and the associated
+pixel array. You can determine the width and height of a single
+character in a font by examining the w and h members of the
+structure. If you will not be creating your own fonts, you will
+not need to concern yourself with the rest of the components of this 
+structure.
+<PRE>
+typedef struct {
+	/* # of characters in font */
+	int nchars;
+	/* First character is numbered... (usually 32 = space) */
+	int offset;
+	/* Character width and height */
+	int w;
+	int h;
+	/* Font data; array of characters, one row after another.
+		Easily included in code, also easily loaded from
+		data files. */
+	char *data;
+} gdFont;
+</PRE>
+<DT><A NAME="gdFontPtr">gdFontPtr</A> <strong>(TYPE)</strong>
+<DD>
+A pointer to a font structure. Text-output functions expect these
+as their second argument, following the <A HREF="#gdImagePtr">
+gdImagePtr</A> argument. Two such pointers are declared in the
+provided include files gdfonts.h and gdfontl.h.
+<DT><A NAME="gdPoint">gdPoint</A> <strong>(TYPE)</strong>
+<DD>
+Represents a point in the coordinate space of the image; used
+by <A HREF="#gdImagePolygon">gdImagePolygon</A> and
+<A HREF="#gdImageFilledPolygon">gdImageFilledPolygon</A>.
+<PRE>
+typedef struct {
+        int x, y;
+} gdPoint, *gdPointPtr;
+</PRE>
+<DT><A NAME="gdPointPtr">gdPointPtr</A> <strong>(TYPE)</strong>
+<DD>
+A pointer to a <A HREF="#gdPoint">gdPoint</A> structure; passed
+as an argument to <A HREF="#gdImagePolygon">gdImagePolygon</A>
+and <A HREF="#gdImageFilledPolygon">gdImageFilledPolygon</A>.
+</DL>
+<H3><A NAME="creating">Image creation, destruction, loading and saving</A></H3>
+<DL>
+<DT><A NAME="gdImageCreate">gdImageCreate(sx, sy)</A> 
+<strong>(FUNCTION)</strong>
+<DD>
+gdImageCreate is called to create images. Invoke gdImageCreate
+with the x and y dimensions of the desired image. gdImageCreate
+returns a <A HREF="#gdImagePtr">gdImagePtr</A> to the new image, or 
+NULL if unable to
+allocate the image. The image must eventually be destroyed
+using <A HREF="#gdImageDestroy">gdImageDestroy()</A>.
+<PRE>
+... inside a function ...
+<A HREF="#gdImagePtr">gdImagePtr</A> im;
+im = gdImageCreate(64, 64);
+/* ... Use the image ... */
+<A HREF="#gdImageDestroy">gdImageDestroy</A>(im);
+</PRE>
+<DT><A NAME="gdImageCreateFromGif">gdImageCreateFromGif(FILE *in)</A> 
+<strong>(FUNCTION)</strong>
+<DD>
+gdImageCreateFromGif is called to load images from GIF format files. 
+Invoke gdImageCreateFromGif with an already opened pointer to a file 
+containing the desired image. 
+gdImageCreateFromGif
+returns a <A HREF="#gdImagePtr">gdImagePtr</A> to the new image, or NULL 
+if unable to load the image (most often because the file is corrupt or 
+does not contain a GIF image). gdImageCreateFromGif does <em>not</em>
+close the file. You can inspect the sx and sy members of the
+image to determine its size. The image must eventually be destroyed
+using <A HREF="#gdImageDestroy">gdImageDestroy()</A>.
+<PRE>
+<A HREF="#gdImagePtr">gdImagePtr</A> im;
+... inside a function ...
+FILE *in;
+in = fopen("mygif.gif", "rb");
+im = gdImageCreateFromGif(in);
+fclose(in);
+/* ... Use the image ... */
+<A HREF="#gdImageDestroy">gdImageDestroy</A>(im);
+</PRE>
+<DT><A NAME="gdImageCreateFromGd">gdImageCreateFromGd(FILE *in)</A> 
+<strong>(FUNCTION)</strong>
+<DD>
+gdImageCreateFromGd is called to load images from gd format files. 
+Invoke gdImageCreateFromGd
+with an already opened pointer to a file containing the desired image
+in the <A HREF="#gdformat">gd file format</A>, which is specific to 
+gd and intended for very fast loading. (It is <em>not</em> intended for 
+compression; for compression, use GIF.)
+gdImageCreateFromGd
+returns a <A HREF="#gdImagePtr">gdImagePtr</A> to the new image, or NULL 
+if unable to load the image (most often because the file is corrupt or 
+does not contain a gd format image). gdImageCreateFromGd does <em>not</em>
+close the file. You can inspect the sx and sy members of the
+image to determine its size. The image must eventually be destroyed
+using <A HREF="#gdImageDestroy">gdImageDestroy()</A>.
+<PRE>
+... inside a function ...
+<A HREF="#gdImagePtr">gdImagePtr</A> im;
+FILE *in;
+in = fopen("mygd.gd", "rb");
+im = gdImageCreateFromGd(in);
+fclose(in);
+/* ... Use the image ... */
+<A HREF="#gdImageDestroy">gdImageDestroy</A>(im);
+</PRE>
+<DT><A NAME="gdImageCreateFromXbm">gdImageCreateFromXbm(FILE *in)</A> 
+<strong>(FUNCTION)</strong>
+<DD>
+gdImageCreateFromXbm is called to load images from X bitmap format
+files. Invoke gdImageCreateFromXbm
+with an already opened pointer to a file containing the desired image. 
+gdImageCreateFromXbm
+returns a <A HREF="#gdImagePtr">gdImagePtr</A> to the new image, or NULL 
+if unable to load the image (most often because the file is corrupt or 
+does not contain an X bitmap format image). gdImageCreateFromXbm does 
+<em>not</em> close the file. You can inspect the sx and sy members of the
+image to determine its size. The image must eventually be destroyed
+using <A HREF="#gdImageDestroy">gdImageDestroy()</A>.
+<PRE>
+... inside a function ...
+<A HREF="#gdImagePtr">gdImagePtr</A> im;
+FILE *in;
+in = fopen("myxbm.xbm", "rb");
+im = gdImageCreateFromXbm(in);
+fclose(in);
+/* ... Use the image ... */
+<A HREF="#gdImageDestroy">gdImageDestroy</A>(im);
+</PRE>
+<DT><A NAME="gdImageDestroy">gdImageDestroy(gdImagePtr im)</A> <STRONG>(FUNCTION)</STRONG>
+<DD>gdImageDestroy is used to free the memory associated with
+an image. It is important to invoke gdImageDestroy before 
+exiting your program or assigning a new image to
+a <A HREF="#gdImagePtr">gdImagePtr</A> variable.
+<PRE>
+... inside a function ...
+<A HREF="#gdImagePtr">gdImagePtr</A> im;
+im = <A HREF="#gdImageCreate">gdImageCreate</A>(10, 10);
+/* ... Use the image ... */
+/* Now destroy it */
+<A HREF="#gdImageDestroy">gdImageDestroy</A>(im);
+</PRE>
+<DT><A NAME="gdImageGif">
+void gdImageGif(gdImagePtr im, FILE *out)</A>
+<STRONG>(FUNCTION)</STRONG> 
+<DD>
+gdImageGif outputs the specified image to the specified
+file in GIF format. The file must be open for writing. Under MSDOS,
+it is important to use "wb" as opposed to simply "w"
+as the mode when opening the file, and under Unix there
+is no penalty for doing so. gdImageGif does <em>not</em>
+close the file; your code must do so.
+<PRE>
+... inside a function ...
+<A HREF="#gdImagePtr">gdImagePtr</A> im;
+int black, white;
+FILE *out;
+/* Create the image */
+im = <A HREF="#gdImageCreate">gdImageCreate</A>(100, 100);
+/* Allocate background */
+white = <A HREF="#gdImageColorAllocate">gdImageColorAllocate</A>(im, 255, 255, 255);
+/* Allocate drawing color */
+black = <A HREF="#gdImageColorAllocate">gdImageColorAllocate</A>(im, 0, 0, 0);
+/* Draw rectangle */
+<A HREF="#gdImageRectangle">gdImageRectangle</A>(im, 0, 0, 99, 99, black);
+/* Open output file in binary mode */
+out = fopen("rect.gif", "wb");
+/* Write GIF */
+gdImageGif(im, out);
+/* Close file */
+fclose(out);
+/* Destroy image */
+<A HREF="#gdImageDestroy">gdImageDestroy</A>(im);
+</PRE>
+<DT><A NAME="gdImageGd">
+void gdImageGd(gdImagePtr im, FILE *out)</A>
+<STRONG>(FUNCTION)</STRONG> 
+<DD>
+gdImageGd outputs the specified image to the specified
+file in the <A HREF="#gdformat">gd image format</A>. The file must 
+be open for writing. Under MSDOS, it is important to use "wb" as 
+opposed to simply "w" as the mode when opening the file, and under 
+Unix there is no penalty for doing so. gdImageGif does <em>not</em>
+close the file; your code must do so.
+<P>
+The gd image format is intended for fast reads and writes of
+images your program will need frequently to build other
+images. It is <em>not</em> a compressed format, and is not intended
+for general use.
+<PRE>
+... inside a function ...
+<A HREF="#gdImagePtr">gdImagePtr</A> im;
+int black, white;
+FILE *out;
+/* Create the image */
+im = <A HREF="#gdImageCreate">gdImageCreate</A>(100, 100);
+/* Allocate background */
+white = <A HREF="#gdImageColorAllocate">gdImageColorAllocate</A>(im, 255, 255, 255);
+/* Allocate drawing color */
+black = <A HREF="#gdImageColorAllocate">gdImageColorAllocate</A>(im, 0, 0, 0);
+/* Draw rectangle */
+<A HREF="#gdImageRectangle">gdImageRectangle</A>(im, 0, 0, 99, 99, black);
+/* Open output file in binary mode */
+out = fopen("rect.gd", "wb");
+/* Write gd format file */
+gdImageGd(im, out);
+/* Close file */
+fclose(out);
+/* Destroy image */
+<A HREF="#gdImageDestroy">gdImageDestroy</A>(im);
+</PRE>
+</DL>
+<H3><A NAME="drawing">Drawing Functions</A></H3>
+<DL>
+<DT><A NAME="gdImageSetPixel">void gdImageSetPixel(gdImagePtr im, int x, int y, int color)</A> <STRONG>(FUNCTION)</STRONG> 
+<DD>gdImageSetPixel sets a pixel to a particular color index. Always use
+this function or one of the other drawing functions to access pixels;
+do not access the pixels of the <A HREF="#gdImage">gdImage</A> structure 
+directly.
+<PRE>
+... inside a function ...
+<A HREF="#gdImagePtr">gdImagePtr</A> im;
+int black;
+int white;
+im = <A HREF="#gdImageCreate">gdImageCreate</A>(100, 100);
+/* Background color (first allocated) */
+black = <A HREF="#gdImageColorAllocate">gdImageColorAllocate</A>(im, 0, 0, 0);	
+/* Allocate the color white (red, green and blue all maximum). */
+white = <A HREF="#gdImageColorAllocate">gdImageColorAllocate</A>(im, 255, 255, 255);	
+/* Set a pixel near the center. */
+gdImageSetPixel(im, 50, 50, white);
+/* ... Do something with the image, such as saving it to a file... */
+/* Destroy it */
+<A HREF="#gdImageDestroy">gdImageDestroy</A>(im);
+</PRE>
+<DT><A NAME="gdImageLine">void gdImageLine(gdImagePtr im, int x1, int y1, int x2, int y2, int color)</A>
+<STRONG>(FUNCTION)</STRONG> 
+<DD>
+gdImageLine is used to draw a line between two endpoints (x1,y1 and x2, y2).
+The line is drawn using the color index specified. Note that the color
+index can be an actual color returned by <A HREF="#gdImageColorAllocate">
+gdImageColorAllocate</A> or one of <A HREF="#gdStyled">gdStyled</A>,
+<A HREF="#gdBrushed">gdBrushed</A> or <A HREF="#gdStyledBrushed">
+gdStyledBrushed</A>.
+<PRE>
+... inside a function ...
+<A HREF="#gdImagePtr">gdImagePtr</A> im;
+int black;
+int white;
+im = <A HREF="#gdImageCreate">gdImageCreate</A>(100, 100);
+/* Background color (first allocated) */
+black = <A HREF="#gdImageColorAllocate">gdImageColorAllocate</A>(im, 0, 0, 0);	
+/* Allocate the color white (red, green and blue all maximum). */
+white = <A HREF="#gdImageColorAllocate">gdImageColorAllocate</A>(im, 255, 255, 255);	
+/* Draw a line from the upper left corner to the lower right corner. */
+gdImageLine(im, 0, 0, 99, 99, white);
+/* ... Do something with the image, such as saving it to a file... */
+/* Destroy it */
+<A HREF="#gdImageDestroy">gdImageDestroy</A>(im);
+</PRE>
+<DT><A NAME="gdImageDashedLine">void gdImageDashedLine(gdImagePtr im, int x1, int y1, int x2, int y2, int color)</A>
+<STRONG>(FUNCTION)</STRONG> 
+<DD>
+gdImageDashedLine is provided <strong>solely for backwards compatibility
+</strong> with gd 1.0. New programs should draw dashed lines using
+the normal <A HREF="#gdImageLine">gdImageLine</A> function and the
+new <A HREF="#gdImageSetStyle">gdImageSetStyle</A> function.
+<P>
+gdImageDashedLine is used to draw a dashed line between two endpoints 
+(x1,y1 and x2, y2).
+The line is drawn using the color index specified. The portions of the line
+that are not drawn are left transparent so the background is visible.
+<PRE>
+... inside a function ...
+<A HREF="#gdImagePtr">gdImagePtr</A> im;
+int black;
+int white;
+im = <A HREF="#gdImageCreate">gdImageCreate</A>(100, 100);
+/* Background color (first allocated) */
+black = <A HREF="#gdImageColorAllocate">gdImageColorAllocate</A>(im, 0, 0, 0);	
+/* Allocate the color white (red, green and blue all maximum). */
+white = <A HREF="#gdImageColorAllocate">gdImageColorAllocate</A>(im, 255, 255, 255);	
+/* Draw a dashed line from the upper left corner to the lower right corner. */
+gdImageDashedLine(im, 0, 0, 99, 99);
+/* ... Do something with the image, such as saving it to a file... */
+/* Destroy it */
+<A HREF="#gdImageDestroy">gdImageDestroy</A>(im);
+</PRE>
+<DT><A NAME="gdImagePolygon">void gdImagePolygon(gdImagePtr im, gdPointPtr points, int pointsTotal, int color)</A>
+<STRONG>(FUNCTION)</STRONG> 
+<DD>
+gdImagePolygon is used to draw a polygon with the verticies
+(at least 3) specified, using the color index specified. 
+See also <A HREF="#gdImageFilledPolygon">gdImageFilledPolygon</A>.
+<PRE>
+... inside a function ...
+<A HREF="#gdImagePtr">gdImagePtr</A> im;
+int black;
+int white;
+/* Points of polygon */
+<A HREF="#gdPoint">gdPoint</A> points[3];
+im = <A HREF="#gdImageCreate">gdImageCreate</A>(100, 100);
+/* Background color (first allocated) */
+black = <A HREF="#gdImageColorAllocate">gdImageColorAllocate</A>(im, 0, 0, 0);	
+/* Allocate the color white (red, green and blue all maximum). */
+white = <A HREF="#gdImageColorAllocate">gdImageColorAllocate</A>(im, 255, 255, 255);	
+/* Draw a triangle. */
+points[0].x = 50;
+points[0].y = 0;
+points[1].x = 99;
+points[1].y = 99;
+points[2].x = 0;
+points[2].y = 99;
+gdImagePolygon(im, points, 3, white);
+/* ... Do something with the image, such as saving it to a file... */
+/* Destroy it */
+<A HREF="#gdImageDestroy">gdImageDestroy</A>(im);
+</PRE>
+<DT><A NAME="gdImageRectangle">void gdImageRectangle(gdImagePtr im, int x1, int y1, int x2, int y2, int color)</A>
+<STRONG>(FUNCTION)</STRONG> 
+<DD>
+gdImageRectangle is used to draw a rectangle with the two corners
+(upper left first, then lower right) specified, using the
+color index specified. 
+<PRE>
+... inside a function ...
+<A HREF="#gdImagePtr">gdImagePtr</A> im;
+int black;
+int white;
+im = <A HREF="#gdImageCreate">gdImageCreate</A>(100, 100);
+/* Background color (first allocated) */
+black = <A HREF="#gdImageColorAllocate">gdImageColorAllocate</A>(im, 0, 0, 0);	
+/* Allocate the color white (red, green and blue all maximum). */
+white = <A HREF="#gdImageColorAllocate">gdImageColorAllocate</A>(im, 255, 255, 255);	
+/* Draw a rectangle occupying the central area. */
+gdImageRectangle(im, 25, 25, 74, 74, white);
+/* ... Do something with the image, such as saving it to a file... */
+/* Destroy it */
+<A HREF="#gdImageDestroy">gdImageDestroy</A>(im);
+</PRE>
+<DT><A NAME="gdImageFilledPolygon">void gdImageFilledPolygon(gdImagePtr im, gdPointPtr points, int pointsTotal, int color)</A>
+<STRONG>(FUNCTION)</STRONG> 
+<DD>
+gdImageFilledPolygon is used to fill a polygon with the verticies
+(at least 3) specified, using the color index specified. 
+See also <A HREF="#gdImageFilledPolygon">gdImagePolygon</A>.
+<PRE>
+... inside a function ...
+<A HREF="#gdImagePtr">gdImagePtr</A> im;
+int black;
+int white;
+int red;
+/* Points of polygon */
+<A HREF="#gdPoint">gdPoint</A> points[3];
+im = <A HREF="#gdImageCreate">gdImageCreate</A>(100, 100);
+/* Background color (first allocated) */
+black = <A HREF="#gdImageColorAllocate">gdImageColorAllocate</A>(im, 0, 0, 0);	
+/* Allocate the color white (red, green and blue all maximum). */
+white = <A HREF="#gdImageColorAllocate">gdImageColorAllocate</A>(im, 255, 255, 255);	
+/* Allocate the color red. */
+red = <A HREF="#gdImageColorAllocate">gdImageColorAllocate</A>(im, 255, 0, 0);	
+/* Draw a triangle. */
+points[0].x = 50;
+points[0].y = 0;
+points[1].x = 99;
+points[1].y = 99;
+points[2].x = 0;
+points[2].y = 99;
+/* Paint it in white */
+gdImageFilledPolygon(im, points, 3, white);
+/* Outline it in red; must be done second */
+<A HREF="#gdImagePolygon">gdImagePolygon</A>(im, points, 3, red);
+/* ... Do something with the image, such as saving it to a file... */
+/* Destroy it */
+<A HREF="#gdImageDestroy">gdImageDestroy</A>(im);
+</PRE>
+<DT><A NAME="gdImageFilledRectangle">void gdImageFilledRectangle(gdImagePtr im, int x1, int y1, int x2, int y2, int color)</A>
+<STRONG>(FUNCTION)</STRONG> 
+<DD>
+gdImageFilledRectangle is used to draw a solid rectangle with the two corners
+(upper left first, then lower right) specified, using the
+color index specified. 
+<PRE>
+... inside a function ...
+<A HREF="#gdImagePtr">gdImagePtr</A> im;
+int black;
+int white;
+im = <A HREF="#gdImageCreate">gdImageCreate</A>(100, 100);
+/* Background color (first allocated) */
+black = <A HREF="#gdImageColorAllocate">gdImageColorAllocate</A>(im, 0, 0, 0);	
+/* Allocate the color white (red, green and blue all maximum). */
+white = <A HREF="#gdImageColorAllocate">int gdImageColorAllocate</A>(im, 255, 255, 255);	
+/* Draw a filled rectangle occupying the central area. */
+gdImageFilledRectangle(im, 25, 25, 74, 74, white);
+/* ... Do something with the image, such as saving it to a file... */
+/* Destroy it */
+<A HREF="#gdImageDestroy">gdImageDestroy</A>(im);
+</PRE>
+<DT><A NAME="gdImageArc">void gdImageArc(gdImagePtr im, int cx, int cy, int w, int h, int s, int e, int color)</A>
+<STRONG> (FUNCTION)</STRONG> 
+<DD>
+gdImageArc is used to draw a partial ellipse centered at the given point,
+with the specified width and height in pixels. The arc begins at
+the position in degrees specified by <code>s</code> and ends at
+the position specified by <code>e</code>. The arc is drawn in
+the color specified by the last argument. A circle can be drawn
+by beginning from 0 degrees and ending at 360 degrees, with
+width and height being equal. e must be greater than s. Values greater 
+than 360 are interpreted modulo 360.
+<PRE>
+... inside a function ...
+<A HREF="#gdImagePtr">gdImagePtr</A> im;
+int black;
+int white;
+im = <A HREF="#gdImageCreate">gdImageCreate</A>(100, 50);
+/* Background color (first allocated) */
+black = <A HREF="#gdImageColorAllocate">gdImageColorAllocate</A>(im, 0, 0, 0);	
+/* Allocate the color white (red, green and blue all maximum). */
+white = <A HREF="#gdImageColorAllocate">gdImageColorAllocate</A>(im, 255, 255, 255);	
+/* Inscribe an ellipse in the image. */
+gdImageArc(im, 50, 25, 98, 48, 0, 360, white);
+/* ... Do something with the image, such as saving it to a file... */
+/* Destroy it */
+<A HREF="#gdImageDestroy">gdImageDestroy</A>(im);
+</PRE>
+<DT><A NAME="gdImageFillToBorder">void gdImageFillToBorder(gdImagePtr im, int x, int y, int border, int color)
+<STRONG> (FUNCTION)</STRONG> 
+<DD>
+gdImageFillToBorder floods a portion of the image with the specified
+<code>color</code>, beginning at the specified point and stopping at 
+the specified <code>border</code> color. For a way of flooding an
+area defined by the color of the starting point, see
+<A HREF="#gdImageFill">gdImageFill</A>.
+<P>
+The border color <em>cannot</em> be a special color
+such as <A HREF="#gdTiled">gdTiled</A>; it must be a proper
+solid color. The fill color can be, however.
+<P>
+Note that gdImageFillToBorder is recursive. It is not the most
+naive implementation possible, and the implementation is
+expected to improve, but there will always be degenerate
+cases in which the stack can become very deep. This can be
+a problem in MSDOS and MS Windows environments. (Of course,
+in a Unix or NT environment with a proper stack, this is
+not a problem at all.)
+<PRE>
+... inside a function ...
+<A HREF="#gdImagePtr">gdImagePtr</A> im;
+int black;
+int white;
+int red;
+im = <A HREF="#gdImageCreate">gdImageCreate</A>(100, 50);
+/* Background color (first allocated) */
+black = <A HREF="#gdImageColorAllocate">gdImageColorAllocate</A>(im, 0, 0, 0);	
+/* Allocate the color white (red, green and blue all maximum). */
+white = <A HREF="#gdImageColorAllocate">gdImageColorAllocate</A>(im, 255, 255, 255);	
+/* Allocate the color red. */
+red = <A HREF="#gdImageColorAllocate">gdImageColorAllocate</A>(im, 255, 0, 0);	
+/* Inscribe an ellipse in the image. */
+gdImageArc(im, 50, 25, 98, 48, 0, 360, white);
+/* Flood-fill the ellipse. Fill color is red, border color is 
+	white (ellipse). */
+gdImageFillToBorder(im, 50, 50, white, red);
+/* ... Do something with the image, such as saving it to a file... */
+/* Destroy it */
+<A HREF="#gdImageDestroy">gdImageDestroy</A>(im);
+</PRE>
+<DT><A NAME="gdImageFill">void gdImageFill(gdImagePtr im, int x, int y, int color)
+<STRONG> (FUNCTION)</STRONG> 
+<DD>
+gdImageFill floods a portion of the image with the specified
+<code>color</code>, beginning at the specified point and flooding the
+surrounding region of the same color as the starting point.
+For a way of flooding a region defined by a specific border
+color rather than by its interior color, see
+<A HREF="#gdImageFillToBorder">gdImageFillToBorder</A>.
+<P>
+The fill color can be <A HREF="#gdTiled">gdTiled</A>, resulting
+in a tile fill using another image as the tile. However,
+the tile image cannot be transparent. If the image you wish
+to fill with has a transparent color index, call
+<A HREF="#gdImageTransparent">gdImageTransparent</A> on the
+tile image and set the transparent color index to -1 
+to turn off its transparency.
+<P>
+Note that gdImageFill is recursive. It is not the most
+naive implementation possible, and the implementation is
+expected to improve, but there will always be degenerate
+cases in which the stack can become very deep. This can be
+a problem in MSDOS and MS Windows environments. (Of course,
+in a Unix or NT environment with a proper stack, this is
+not a problem at all.)
+<PRE>
+... inside a function ...
+<A HREF="#gdImagePtr">gdImagePtr</A> im;
+int black;
+int white;
+int red;
+im = <A HREF="#gdImageCreate">gdImageCreate</A>(100, 50);
+/* Background color (first allocated) */
+black = <A HREF="#gdImageColorAllocate">gdImageColorAllocate</A>(im, 0, 0, 0);	
+/* Allocate the color white (red, green and blue all maximum). */
+white = <A HREF="#gdImageColorAllocate">gdImageColorAllocate</A>(im, 255, 255, 255);	
+/* Allocate the color red. */
+red = <A HREF="#gdImageColorAllocate">gdImageColorAllocate</A>(im, 255, 0, 0);	
+/* Inscribe an ellipse in the image. */
+gdImageArc(im, 50, 25, 98, 48, 0, 360, white);
+/* Flood-fill the ellipse. Fill color is red, and will replace the
+	black interior of the ellipse. */
+gdImageFill(im, 50, 50, red);
+/* ... Do something with the image, such as saving it to a file... */
+/* Destroy it */
+<A HREF="#gdImageDestroy">gdImageDestroy</A>(im);
+</PRE>
+<DT><A NAME="gdImageSetBrush">void gdImageSetBrush(gdImagePtr im, gdImagePtr brush)</A>
+<STRONG>(FUNCTION)</STRONG> 
+<DD>
+A "brush" is an image used to draw wide, shaped strokes in another image. Just
+as a paintbrush is not a single point, a brush image need not be
+a single pixel. <em>Any</em> gd image can be used as a brush, and by
+setting the transparent color index of the brush image with
+<A HREF="#gdImageColorTransparent">gdImageColorTransparent</A>,
+a brush of any shape can be created. All line-drawing functions,
+such as <A HREF="#gdImageLine">gdImageLine</A> and
+<A HREF="#gdImagePolygon">gdImagePolygon</A>, will use the
+current brush if the special "color" <A HREF="#gdBrushed">
+gdBrushed</A> or <A HREF="#gdStyledBrushed">gdStyledBrushed</A>
+is used when calling them.
+<P>
+gdImageSetBrush is used to specify the brush to be used in a
+particular image. You can set any image to be the brush.
+If the brush image does not have the same color map as the
+first image, any colors missing from the first image
+will be allocated. If not enough colors can be allocated,
+the closest colors already available will be used. This
+allows arbitrary GIFs to be used as brush images. It also
+means, however, that you should not set a brush unless you
+will actually use it; if you set a rapid succession of
+different brush images, you can quickly fill your color map,
+and the results will not be optimal.
+<P>
+You need not take any special action when you are finished
+with a brush. As for any other image, if you will not
+be using the brush image for any further purpose,
+you should call <A HREF="#gdImageDestroy">gdImageDestroy</A>.
+You must not use the color <A HREF="#gdBrushed">gdBrushed</A>
+if the current brush has been destroyed; you can of
+course set a new brush to replace it.
+<PRE>
+... inside a function ...
+<A HREF="#gdImagePtr">gdImagePtr</A> im, brush;
+FILE *in;
+int black;
+im = <A HREF="#gdImageCreate">gdImageCreate</A>(100, 100);
+/* Open the brush GIF. For best results, portions of the
+	brush that should be transparent (ie, not part of the
+	brush shape) should have the transparent color index. */
+in = fopen("star.gif", "rb");
+brush = <A HREF="#gdImageCreateFromGif">gdImageCreateFromGif</A>(in);
+/* Background color (first allocated) */
+black = <A HREF="#gdImageColorAllocate">gdImageColorAllocate</A>(im, 0, 0, 0);	
+gdImageSetBrush(im, brush);
+/* Draw a line from the upper left corner to the lower right corner
+	using the brush. */
+<A HREF="#gdImageLine">gdImageLine</A>(im, 0, 0, 99, 99, <A HREF="#gdBrushed">gdBrushed</A>);
+/* ... Do something with the image, such as saving it to a file... */
+/* Destroy it */
+<A HREF="#gdImageDestroy">gdImageDestroy</A>(im);
+/* Destroy the brush image */
+<A HREF="#gdImageDestroy">gdImageDestroy</A>(brush);
+</PRE>
+<DT><A NAME="gdImageSetTile">void gdImageSetTile(gdImagePtr im, gdImagePtr tile)</A>
+<STRONG>(FUNCTION)</STRONG> 
+<DD>
+A "tile" is an image used to fill an area with  a repeated pattern.
+<em>Any</em> gd image can be used as a tile, and by
+setting the transparent color index of the tile image with
+<A HREF="#gdImageColorTransparent">gdImageColorTransparent</A>,
+a tile that allows certain parts of the underlying area to shine
+through can be created. All region-filling functions,
+such as <A HREF="#gdImageFill">gdImageFill</A> and
+<A HREF="#gdImageFilledPolygon">gdImageFilledPolygon</A>, will use the
+current tile if the special "color" <A HREF="#gdTiled">
+gdTiled</A> is used when calling them.
+<P>
+gdImageSetTile is used to specify the tile to be used in a
+particular image. You can set any image to be the tile.
+If the tile image does not have the same color map as the
+first image, any colors missing from the first image
+will be allocated. If not enough colors can be allocated,
+the closest colors already available will be used. This
+allows arbitrary GIFs to be used as tile images. It also
+means, however, that you should not set a tile unless you
+will actually use it; if you set a rapid succession of
+different tile images, you can quickly fill your color map,
+and the results will not be optimal.
+<P>
+You need not take any special action when you are finished
+with a tile. As for any other image, if you will not
+be using the tile image for any further purpose,
+you should call <A HREF="#gdImageDestroy">gdImageDestroy</A>.
+You must not use the color <A HREF="#gdBrushed">gdTiled</A>
+if the current tile has been destroyed; you can of
+course set a new tile to replace it.
+<PRE>
+... inside a function ...
+<A HREF="#gdImagePtr">gdImagePtr</A> im, tile;
+FILE *in;
+int black;
+im = <A HREF="#gdImageCreate">gdImageCreate</A>(100, 100);
+/* Open the tile GIF. For best results, portions of the
+	tile that should be transparent (ie, allowing the
+	background to shine through) should have the transparent 
+	color index. */
+in = fopen("star.gif", "rb");
+tile = <A HREF="#gdImageCreateFromGif">gdImageCreateFromGif</A>(in);
+/* Background color (first allocated) */
+black = <A HREF="#gdImageColorAllocate">gdImageColorAllocate</A>(im, 0, 0, 0);	
+gdImageSetTile(im, tile);
+/* Fill an area using the tile. */
+<A HREF="#gdImageFilledRectangle">gdImageFilledRectangle</A>(im, 25, 25, 75, 75, <A HREF="#gdTiled">gdTiled</A>);
+/* ... Do something with the image, such as saving it to a file... */
+/* Destroy it */
+<A HREF="#gdImageDestroy">gdImageDestroy</A>(im);
+/* Destroy the tile image */
+<A HREF="#gdImageDestroy">gdImageDestroy</A>(tile);
+</PRE>
+<DT><A NAME="gdImageSetStyle">void gdImageSetStyle(gdImagePtr im, int *style, int styleLength)</A>
+<STRONG>(FUNCTION)</STRONG> 
+<DD>
+It is often desirable to draw dashed lines, dotted lines, and other
+variations on a broken line. gdImageSetStyle can be used to set
+any desired series of colors, including a special color that
+leaves the background intact, to be repeated during the drawing
+of a line. 
+<P>
+To use gdImageSetStyle, create an array of integers and assign
+them the desired series of color values to be repeated. 
+You can assign the special color value <A HREF="#gdTransparent">
+gdTransparent</A> to indicate that the existing color should
+be left unchanged for that particular pixel (allowing a dashed
+line to be attractively drawn over an existing image). 
+<P>
+Then, to draw a line using the style, use the normal
+<A HREF="#gdImageLine">gdImageLine</A> function with the
+special color value <A HREF="#gdStyled">gdStyled</A>.
+<P>
+As of <A HREF="#whatsnew1.1.1">version 1.1.1</A>, the style
+array is copied when you set the style, so you need not
+be concerned with keeping the array around indefinitely.
+This should not break existing code that assumes styles
+are not copied.
+<P>
+You can also combine styles and brushes to draw the brush
+image at intervals instead of in a continuous stroke. 
+When creating a style for use with a brush, the
+style values are interpreted differently: zero (0) indicates
+pixels at which the brush should not be drawn, while one (1) 
+indicates pixels at which the brush should be drawn. 
+To draw a styled, brushed line, you must use the
+special color value <A HREF="#gdStyledBrushed">
+gdStyledBrushed</A>. For an example of this feature
+in use, see gddemo.c (provided in the distribution).
+<PRE>
+<A HREF="#gdImagePtr">gdImagePtr</A> im;
+int styleDotted[2], styleDashed[6];
+FILE *in;
+int black;
+int red;
+im = <A HREF="#gdImageCreate">gdImageCreate</A>(100, 100);
+/* Background color (first allocated) */
+black = <A HREF="#gdImageColorAllocate">gdImageColorAllocate</A>(im, 0, 0, 0);	
+red = <A HREF="#gdImageColorAllocate">gdImageColorAllocate</A>(im, 255, 0, 0);	
+/* Set up dotted style. Leave every other pixel alone. */
+styleDotted[0] = red;
+styleDotted[1] = gdTransparent;
+/* Set up dashed style. Three on, three off. */
+styleDashed[0] = red;
+styleDashed[1] = red;
+styleDashed[2] = red;
+styleDashed[3] = gdTransparent;
+styleDashed[4] = gdTransparent;
+styleDashed[5] = gdTransparent;
+/* Set dotted style. Note that we have to specify how many pixels are
+	in the style! */
+gdImageSetStyle(im, styleDotted, 2);
+/* Draw a line from the upper left corner to the lower right corner. */
+<A HREF="#gdImageLine">gdImageLine</A>(im, 0, 0, 99, 99, <A HREF="#gdStyled">gdStyled</A>);
+/* Now the dashed line. */
+gdImageSetStyle(im, styleDashed, 6);
+<A HREF="#gdImageLine">gdImageLine</A>(im, 0, 99, 0, 99, <A HREF="#gdStyled">gdStyled</A>);
+
+/* ... Do something with the image, such as saving it to a file ... */
+
+/* Destroy it */
+<A HREF="#gdImageDestroy">gdImageDestroy</A>(im);
+</PRE>
+</DL>
+<H3><A NAME="query">Query Functions</A></H3>
+<DL>
+<DT><A NAME="gdImageBlue">
+int gdImageBlue(gdImagePtr im, int color)</A>
+<STRONG>(MACRO)</STRONG> 
+<DD>
+gdImageBlue is a macro which returns the blue component of
+the specified color index. Use this macro rather than accessing the
+structure members directly.
+<DT><A NAME="gdImageGetPixel">int gdImageGetPixel(gdImagePtr im, int x, int y)</A>
+<STRONG>(FUNCTION)</STRONG> 
+<DD>
+gdImageGetPixel() retrieves the color index of a particular
+pixel. Always use this function to query pixels;
+do not access the pixels of the <A HREF="#gdImage">gdImage</A> structure 
+directly.
+<PRE>
+... inside a function ...
+FILE *in;
+gdImagePtr im;
+int c;
+in = fopen("mygif.gif", "rb");
+im = <A HREF="#gdImageCreateFromGif">gdImageCreateFromGif</A>(in);
+fclose(in);
+c = gdImageGetPixel(im, gdImageSX(im) / 2, gdImageSY(im) / 2);
+printf("The value of the center pixel is %d; RGB values are %d,%d,%d\n",
+	c, im->red[c], im->green[c], im->blue[c]);
+<A HREF="#gdImageDestroy">gdImageDestroy</A>(im);
+</PRE>	
+<DT><A NAME="gdImageBoundsSafe">
+int gdImageBoundsSafe(gdImagePtr im, int x, int y)</A>
+<STRONG>(FUNCTION)</STRONG> 
+<DD>
+gdImageBoundsSafe returns true (1) if the specified point is within the bounds
+of the image, false (0) if not. This function is intended primarily for 
+use by those who wish to add functions to gd. All of the gd drawing 
+functions already clip safely to the edges of the image.
+<PRE>
+... inside a function ...
+<A HREF="#gdImagePtr">gdImagePtr</A> im;
+int black;
+int white;
+im = <A HREF="#gdImageCreate">gdImageCreate</A>(100, 100);
+if (gdImageBoundsSafe(im, 50, 50)) {
+	printf("50, 50 is within the image bounds\n");
+} else {
+	printf("50, 50 is outside the image bounds\n");
+}
+<A HREF="#gdImageDestroy">gdImageDestroy</A>(im);
+</PRE>
+<DT><A NAME="gdImageGreen">
+int gdImageGreen(gdImagePtr im, int color)</A>
+<STRONG>(MACRO)</STRONG> 
+<DD>
+gdImageGreen is a macro which returns the green component of
+the specified color index. Use this macro rather than accessing the
+structure members directly.
+<DT><A NAME="gdImageRed">
+int gdImageRed(gdImagePtr im, int color)</A>
+<STRONG>(MACRO)</STRONG> 
+<DD>
+gdImageRed is a macro which returns the red component of
+the specified color index. Use this macro rather than accessing the
+structure members directly.
+<DT><A NAME="gdImageSX">
+int gdImageSX(gdImagePtr im)</A>
+<STRONG>(MACRO)</STRONG> 
+<DD>
+gdImageSX is a macro which returns the width of the image
+in pixels. Use this macro rather than accessing the
+structure members directly.
+<DT><A NAME="gdImageSY">
+int gdImageSY(gdImagePtr im)</A>
+<STRONG>(MACRO)</STRONG> 
+<DD>
+gdImageSY is a macro which returns the height of the image
+in pixels. Use this macro rather than accessing the
+structure members directly.
+</DL>
+<H3><A NAME="fonts">Fonts and text-handling functions</A></H3>
+<DL>
+<DT><A NAME="gdImageChar">
+void gdImageChar(gdImagePtr im, gdFontPtr font, int x, int y, 
+	int c, int color)</A>
+<STRONG>(FUNCTION)</STRONG> 
+<DD>
+gdImageChar is used to draw single characters on the image.
+(To draw multiple characters, use <A HREF="#gdImageString">
+gdImageString</A> or <A HREF="#gdImageString16">
+gdImageString16</A>.) The second argument is a
+pointer to a font definition structure; five fonts are
+provided with gd, gdFontTiny, gdFontSmall, gdFontMediumBold,
+gdFontLarge, and gdFontGiant. You must
+include the files "gdfontt.h", "gdfonts.h", "gdfontmb.h",
+"gdfontl.h" and "gdfontg.h" respectively
+and (if you are not using a library-based approach) link with the 
+corresponding .c files to use the provided fonts.
+The character specified by the fifth
+argument is drawn from left to right in the specified 
+color. (See <A HREF="#gdImageCharUp">gdImageCharUp</A> for a way
+of drawing vertical text.) Pixels not
+set by a particular character retain their previous color. 
+<PRE>
+#include "gd.h"
+#include "gdfontl.h"
+... inside a function ...
+<A HREF="#gdImagePtr">gdImagePtr</A> im;
+int black;
+int white;
+im = <A HREF="#gdImageCreate">gdImageCreate</A>(100, 100);
+/* Background color (first allocated) */
+black = <A HREF="#gdImageColorAllocate">gdImageColorAllocate</A>(im, 0, 0, 0);	
+/* Allocate the color white (red, green and blue all maximum). */
+white = <A HREF="#gdImageColorAllocate">gdImageColorAllocate</A>(im, 255, 255, 255);	
+/* Draw a character. */
+gdImageChar(im, gdFontLarge, 0, 0, 'Q', white);
+/* ... Do something with the image, such as saving it to a file... */
+/* Destroy it */
+<A HREF="#gdImageDestroy">gdImageDestroy</A>(im);
+</PRE>
+<DT><A NAME="gdImageCharUp">
+void gdImageCharUp(gdImagePtr im, gdFontPtr font, int x, int y, 
+int c, int color)</A>
+<STRONG>(FUNCTION)</STRONG> 
+<DD>
+gdImageCharUp is used to draw single characters on the image,
+rotated 90 degrees.
+(To draw multiple characters, use <A HREF="#gdImageStringUp">
+gdImageStringUp</A> or <A HREF="#gdImageStringUp16">
+gdImageStringUp16</A>.) The second argument is a
+pointer to a font definition structure; five fonts are
+provided with gd, gdFontTiny, gdFontSmall, gdFontMediumBold,
+gdFontLarge, and gdFontGiant. You must
+include the files "gdfontt.h", "gdfonts.h", "gdfontmb.h",
+"gdfontl.h" and "gdfontg.h" respectively
+and (if you are not using a library-based approach) link with the 
+corresponding .c files to use the provided fonts. The character specified by 
+the fifth argument is drawn 
+from bottom to top, rotated at a 90-degree angle,  in the specified 
+color.  (See <A HREF="#gdImageChar">gdImageChar</A> for a way
+of drawing horizontal text.)  Pixels not
+set by a particular character retain their previous color. 
+<PRE>
+#include "gd.h"
+#include "gdfontl.h"
+... inside a function ...
+<A HREF="#gdImagePtr">gdImagePtr</A> im;
+int black;
+int white;
+im = <A HREF="#gdImageCreate">gdImageCreate</A>(100, 100);
+/* Background color (first allocated) */
+black = <A HREF="#gdImageColorAllocate">gdImageColorAllocate</A>(im, 0, 0, 0);	
+/* Allocate the color white (red, green and blue all maximum). */
+white = <A HREF="#gdImageColorAllocate">gdImageColorAllocate</A>(im, 255, 255, 255);	
+/* Draw a character upwards so it rests against the top of the image. */
+gdImageCharUp(im, gdFontLarge, 
+	0, gdFontLarge->h, 'Q', white);
+/* ... Do something with the image, such as saving it to a file... */
+/* Destroy it */
+<A HREF="#gdImageDestroy">gdImageDestroy</A>(im);
+</PRE>
+<DT><A NAME="gdImageString">
+void gdImageString(gdImagePtr im, gdFontPtr font, int x, int y, 
+unsigned char *s, int color)</A>
+<STRONG>(FUNCTION)</STRONG> 
+<DD>
+gdImageString is used to draw multiple characters on the image.
+(To draw single characters, use <A HREF="#gdImageChar">
+gdImageChar</A>.) The second argument is a
+pointer to a font definition structure; five fonts are
+provided with gd, gdFontTiny, gdFontSmall, gdFontMediumBold,
+gdFontLarge, and gdFontGiant. You must
+include the files "gdfontt.h", "gdfonts.h", "gdfontmb.h",
+"gdfontl.h" and "gdfontg.h" respectively
+and (if you are not using a library-based approach) link with the 
+corresponding .c files to use the provided fonts.
+The null-terminated C string specified
+by the fifth argument is drawn from left to right in the specified 
+color.  (See <A HREF="#gdImageStringUp">gdImageStringUp</A> for a way
+of drawing vertical text.)  Pixels not
+set by a particular character retain their previous color. 
+<PRE>
+#include "gd.h"
+#include "gdfontl.h"
+#include &lt;string.h&gt;
+... inside a function ...
+<A HREF="#gdImagePtr">gdImagePtr</A> im;
+int black;
+int white;
+/* String to draw. */
+char *s = "Hello.";
+im = <A HREF="#gdImageCreate">gdImageCreate</A>(100, 100);
+/* Background color (first allocated) */
+black = <A HREF="#gdImageColorAllocate">gdImageColorAllocate</A>(im, 0, 0, 0);	
+/* Allocate the color white (red, green and blue all maximum). */
+white = <A HREF="#gdImageColorAllocate">gdImageColorAllocate</A>(im, 255, 255, 255);	
+/* Draw a centered string. */
+gdImageString(im, gdFontLarge,
+	im->w / 2 - (strlen(s) * gdFontLarge->w / 2),
+	im->h / 2 - gdFontLarge->h / 2,
+	s, white);
+/* ... Do something with the image, such as saving it to a file... */
+/* Destroy it */
+<A HREF="#gdImageDestroy">gdImageDestroy</A>(im);
+</PRE>
+<DT><A NAME="gdImageString16">
+void gdImageString16(gdImagePtr im, gdFontPtr font, int x, int y, 
+unsigned short *s, int color)</A>
+<STRONG>(FUNCTION)</STRONG> 
+<DD>
+gdImageString is used to draw multiple 16-bit characters on the image.
+(To draw single characters, use <A HREF="#gdImageChar">
+gdImageChar</A>.) The second argument is a
+pointer to a font definition structure; five fonts are
+provided with gd, gdFontTiny, gdFontSmall, gdFontMediumBold,
+gdFontLarge, and gdFontGiant. You must
+include the files "gdfontt.h", "gdfonts.h", "gdfontmb.h",
+"gdfontl.h" and "gdfontg.h" respectively
+and (if you are not using a library-based approach) link with the 
+corresponding .c files to use the provided fonts.
+The null-terminated string of characters represented as 16-bit unsigned 
+short integers specified by the fifth argument is drawn from left to right 
+in the specified 
+color.  (See <A HREF="#gdImageStringUp16">gdImageStringUp16</A> for a way
+of drawing vertical text.)  Pixels not
+set by a particular character retain their previous color. 
+<p>
+This function was added in gd1.3 to provide a means of rendering
+fonts with more than 256 characters for those who have them. A
+more frequently used routine is <a href="#gdImageString">gdImageString</a>.
+<DT><A NAME="gdImageStringUp">
+void gdImageStringUp(gdImagePtr im, gdFontPtr font, int x, int y, 
+unsigned char *s, int color)</A>
+<STRONG>(FUNCTION)</STRONG> 
+<DD>
+gdImageStringUp is used to draw multiple characters on the image,
+rotated 90 degrees.
+(To draw single characters, use <A HREF="#gdImageCharUp">
+gdImageCharUp</A>.) The second argument is a
+pointer to a font definition structure; five fonts are
+provided with gd, gdFontTiny, gdFontSmall, gdFontMediumBold,
+gdFontLarge, and gdFontGiant. You must
+include the files "gdfontt.h", "gdfonts.h", "gdfontmb.h",
+"gdfontl.h" and "gdfontg.h" respectively
+and (if you are not using a library-based approach) link with the 
+corresponding .c files to use the provided fonts.The null-terminated C string specified
+by the fifth argument is drawn from bottom to top (rotated
+90 degrees) in the specified color.  (See 
+<A HREF="#gdImageString">gdImageString</A> for a way
+of drawing horizontal text.)  Pixels not
+set by a particular character retain their previous color. 
+<PRE>
+#include "gd.h"
+#include "gdfontl.h"
+#include &lt;string.h&gt;
+... inside a function ...
+<A HREF="#gdImagePtr">gdImagePtr</A> im;
+int black;
+int white;
+/* String to draw. */
+char *s = "Hello.";
+im = <A HREF="#gdImageCreate">gdImageCreate</A>(100, 100);
+/* Background color (first allocated) */
+black = <A HREF="#gdImageColorAllocate">gdImageColorAllocate</A>(im, 0, 0, 0);	
+/* Allocate the color white (red, green and blue all maximum). */
+white = <A HREF="#gdImageColorAllocate">gdImageColorAllocate</A>(im, 255, 255, 255);	
+/* Draw a centered string going upwards. Axes are reversed,
+	and Y axis is decreasing as the string is drawn. */
+gdImageStringUp(im, gdFontLarge,
+	im->w / 2 - gdFontLarge->h / 2,
+	im->h / 2 + (strlen(s) * gdFontLarge->w / 2),
+	s, white);
+/* ... Do something with the image, such as saving it to a file... */
+/* Destroy it */
+<A HREF="#gdImageDestroy">gdImageDestroy</A>(im);
+</PRE>
+<DT><A NAME="gdImageStringUp16">
+void gdImageStringUp16(gdImagePtr im, gdFontPtr font, int x, int y, 
+unsigned short *s, int color)</A>
+<STRONG>(FUNCTION)</STRONG> 
+<DD>
+gdImageString is used to draw multiple 16-bit characters vertically on 
+the image. (To draw single characters, use <A HREF="#gdImageChar">
+gdImageChar</A>.) The second argument is a
+pointer to a font definition structure; five fonts are
+provided with gd, gdFontTiny, gdFontSmall, gdFontMediumBold,
+gdFontLarge, and gdFontGiant. You must
+include the files "gdfontt.h", "gdfonts.h", "gdfontmb.h",
+"gdfontl.h" and "gdfontg.h" respectively
+and (if you are not using a library-based approach) link with the 
+corresponding .c files to use the provided fonts.
+The null-terminated string of characters represented as 16-bit unsigned 
+short integers specified by the fifth argument is drawn from bottom to top
+in the specified color.  
+(See <A HREF="#gdImageStringUp16">gdImageStringUp16</A> for a way
+of drawing horizontal text.)  Pixels not
+set by a particular character retain their previous color. 
+<p>
+This function was added in gd1.3 to provide a means of rendering
+fonts with more than 256 characters for those who have them. A
+more frequently used routine is <a href="#gdImageStringUp">gdImageStringUp</a>.</DL>
+<H3><A NAME="colors">Color-handling functions</A></H3>
+<DL>
+<DT><A NAME="gdImageColorAllocate">
+int gdImageColorAllocate(gdImagePtr im, int r, int g, int b)</A>
+<STRONG>(FUNCTION)</STRONG> 
+<DD>
+gdImageColorAllocate finds the first available color index in
+the image specified, sets its RGB values to those requested
+(255 is the maximum for each),
+and returns the index of the new color table entry. When
+creating a new image, the first time you invoke this function,
+you are setting the background color for that image.
+<P>
+In the event that all <A HREF="#gdMaxColors">gdMaxColors</A> colors
+(256) have already been allocated, gdImageColorAllocate will
+return -1 to indicate failure. (This is not uncommon when
+working with existing GIF files that already use 256 colors.)
+Note that gdImageColorAllocate
+does not check for existing colors that match your request;
+see <A HREF="#gdImageColorExact">gdImageColorExact</A>
+and <A HREF="#gdImageColorClosest">gdImageColorClosest</A>
+for ways to locate existing colors that approximate the
+color desired in situations where a new color is not available.
+<PRE>
+... inside a function ...
+<A HREF="#gdImagePtr">gdImagePtr</A> im;
+int black;
+int red;
+im = <A HREF="#gdImageCreate">gdImageCreate</A>(100, 100);
+/* Background color (first allocated) */
+black = <A HREF="#gdImageColorAllocate">gdImageColorAllocate</A>(im, 0, 0, 0);	
+/* Allocate the color red. */
+red = <A HREF="#gdImageColorAllocate">gdImageColorAllocate</A>(im, 255, 0, 0);	
+/* Draw a dashed line from the upper left corner to the lower right corner. */
+gdImageDashedLine(im, 0, 0, 99, 99, red);
+/* ... Do something with the image, such as saving it to a file... */
+/* Destroy it */
+<A HREF="#gdImageDestroy">gdImageDestroy</A>(im);
+</PRE>
+<DT><A NAME="gdImageColorClosest">
+int gdImageColorClosest(gdImagePtr im, int r, int g, int b)</A>
+<STRONG>(FUNCTION)</STRONG> 
+<DD>
+gdImageColorClosest searches the colors which have been
+defined thus far in the image specified and returns the
+index of the color with RGB values closest to those of the
+request. (Closeness is determined by Euclidian distance,
+which is used to determine the distance in three-dimensional color 
+space between colors.)
+<P>
+If no colors have yet been allocated in the image,
+gdImageColorClosest returns -1.
+<P>
+This function is most useful as a backup method for choosing
+a drawing color when an image already contains
+<A HREF="#gdMaxColors">gdMaxColors</A> (256) colors and
+no more can be allocated. (This is not uncommon when
+working with existing GIF files that already use many colors.)
+See <A HREF="#gdImageColorExact">gdImageColorExact</A>
+for a method of locating exact matches only.
+<PRE>
+... inside a function ...
+<A HREF="#gdImagePtr">gdImagePtr</A> im;
+FILE *in;
+int red;
+/* Let's suppose that photo.gif is a scanned photograph with
+	many colors. */
+in = fopen("photo.gif", "rb");
+im = <A HREF="#gdImageCreateFromGif">gdImageCreateFromGif</A>(in);
+fclose(in);
+/* Try to allocate red directly */
+red = <A HREF="#gdImageColorAllocate">gdImageColorAllocate</A>(im, 255, 0, 0);	
+/* If we fail to allocate red... */
+if (red == (-1)) {
+	/* Find the <em>closest</em> color instead. */
+	red = gdImageColorClosest(im, 255, 0, 0);
+}
+/* Draw a dashed line from the upper left corner to the lower right corner */
+gdImageDashedLine(im, 0, 0, 99, 99, red);
+/* ... Do something with the image, such as saving it to a file... */
+/* Destroy it */
+<A HREF="#gdImageDestroy">gdImageDestroy</A>(im);
+</PRE>
+<DT><A NAME="gdImageColorExact">
+int gdImageColorExact(gdImagePtr im, int r, int g, int b)</A>
+<STRONG>(FUNCTION)</STRONG> 
+<DD>
+gdImageColorExact searches the colors which have been
+defined thus far in the image specified and returns the
+index of the first color with RGB values which exactly
+match those of the request. If no allocated color matches the
+request precisely, gdImageColorExact returns -1.
+See <A HREF="#gdImageColorClosest">gdImageColorClosest</A>
+for a way to find the color closest to the color requested.
+<PRE>
+... inside a function ...
+<A HREF="#gdImagePtr">gdImagePtr</A> im;
+int red;
+in = fopen("photo.gif", "rb");
+im = <A HREF="#gdImageCreateFromGif">gdImageCreateFromGif</A>(in);
+fclose(in);
+/* The image may already contain red; if it does, we'll save a slot
+	in the color table by using that color. */
+/* Try to allocate red directly */
+red = gdImageColorExact(im, 255, 0, 0);
+/* If red isn't already present... */
+if (red == (-1)) {
+	/* Second best: try to allocate it directly. */
+	red = <A HREF="#gdImageColorAllocate">gdImageColorAllocate</A>(im, 255, 0, 0);	
+	/* Out of colors, so find the <em>closest</em> color instead. */
+	red = gdImageColorClosest(im, 255, 0, 0);
+}
+/* Draw a dashed line from the upper left corner to the lower right corner */
+gdImageDashedLine(im, 0, 0, 99, 99, red);
+/* ... Do something with the image, such as saving it to a file... */
+/* Destroy it */
+<A HREF="#gdImageDestroy">gdImageDestroy</A>(im);
+</PRE>
+<DT><A NAME="gdImageColorsTotal">
+int gdImageColorsTotal(gdImagePtr im)</A>
+<STRONG>(MACRO)</STRONG> 
+<DD>
+gdImageColorsTotal is a macro which returns the number of
+colors currently allocated in the image. Use this macro
+to obtain this information; do not access the structure
+directly.
+<DT><A NAME="gdImageColorRed">
+int gdImageColorRed(gdImagePtr im, int c)</A>
+<STRONG>(MACRO)</STRONG> 
+<DD>
+gdImageColorRed is a macro which returns the red portion
+of the specified color in the image. Use this macro
+to obtain this information; do not access the structure
+directly.
+<DT><A NAME="gdImageColorGreen">
+int gdImageColorGreen(gdImagePtr im, int c)</A>
+<STRONG>(MACRO)</STRONG> 
+<DD>
+gdImageColorGreen is a macro which returns the green portion
+of the specified color in the image. Use this macro
+to obtain this information; do not access the structure
+directly.
+<DT><A NAME="gdImageColorBlue">
+int gdImageColorBlue(gdImagePtr im, int c)</A>
+<STRONG>(MACRO)</STRONG> 
+<DD>
+gdImageColorBlue is a macro which returns the green portion
+of the specified color in the image. Use this macro
+to obtain this information; do not access the structure
+directly.
+<DT><A NAME="gdImageGetInterlaced">
+int gdImageGetInterlaced(gdImagePtr im)</A>
+<STRONG>(MACRO)</STRONG> 
+<DD>
+gdImageGetInterlaced is a macro which returns true (1)
+if the image is interlaced, false (0) if not.
+Use this macro to obtain this information; do not 
+access the structure directly.
+See <A NAME="gdImageInterlace">gdImageInterlace</A> for
+a means of interlacing images.
+<DT><A NAME="gdImageGetTransparent">
+int gdImageGetTransparent(gdImagePtr im)</A>
+<STRONG>(MACRO)</STRONG> 
+<DD>
+gdImageGetTransparent is a macro which returns the 
+current transparent color index in the image.
+If there is no transparent color, gdImageGetTransparent
+returns -1. Use this macro to obtain this information; do not 
+access the structure directly.
+<DT><A NAME="gdImageColorDeallocate">
+void gdImageColorDeallocate(gdImagePtr im, int color)</A>
+<STRONG>(FUNCTION)</STRONG> 
+<DD>
+gdImageColorDeallocate marks the specified color as being
+available for reuse. It does not attempt to determine whether
+the color index is still in use in the image. After a call
+to this function, the next call to 
+<A HREF="#gdImageColorAllocate">gdImageColorAllocate</A>
+for the same image will set new RGB values for that
+color index, changing the color of any pixels which 
+have that index as a result. If multiple calls to
+gdImageColorDeallocate are made consecutively, the lowest-numbered
+index among them will be reused by the next 
+<A HREF="#gdImageColorAllocate"> gdImageColorAllocate</A> call.
+<PRE>
+... inside a function ...
+<A HREF="#gdImagePtr">gdImagePtr</A> im;
+int red, blue;
+in = fopen("photo.gif", "rb");
+im = <A HREF="#gdImageCreateFromGif">gdImageCreateFromGif</A>(in);
+fclose(in);
+/* Look for red in the color table. */
+red = gdImageColorExact(im, 255, 0, 0);
+/* If red is present... */
+if (red != (-1)) {
+	/* Deallocate it. */
+	gdImageColorDeallocate(im, red);
+	/* Allocate blue, reusing slot in table.
+		Existing red pixels will change color. */
+	blue = gdImageColorAllocate(im, 0, 0, 255);
+} 
+/* ... Do something with the image, such as saving it to a file... */
+/* Destroy it */
+<A HREF="#gdImageDestroy">gdImageDestroy</A>(im);
+</PRE>
+<DT><A NAME="gdImageColorTransparent">
+void gdImageColorTransparent(gdImagePtr im, int color)</A>
+<STRONG>(FUNCTION)</STRONG> 
+<DD>
+gdImageColorTransparent sets the transparent color index
+for the specified image to the specified index. To indicate
+that there should be <em>no</em> transparent color, invoke
+gdImageColorTransparent with a color index of -1.
+<P>
+The color index used should be an index
+allocated by <A HREF="#gdImageColorAllocate">gdImageColorAllocate</A>,
+whether explicitly invoked by your code or implicitly
+invoked by loading an image.
+In order to ensure that your image has a reasonable appearance
+when viewed by users who do not have transparent background
+capabilities, be sure to give reasonable RGB values to the
+color you allocate for use as a transparent color,
+<em>even though it will be transparent on systems
+that support transparency</em>.
+<PRE>
+... inside a function ...
+<A HREF="#gdImagePtr">gdImagePtr</A> im;
+int black;
+FILE *in, *out;
+in = fopen("photo.gif", "rb");
+im = <A HREF="#gdImageCreateFromGif">gdImageCreateFromGif</A>(in);
+fclose(in);
+/* Look for black in the color table and make it transparent. */
+black = <A HREF="#gdImageColorExact">gdImageColorExact</A>(im, 0, 0, 0);
+/* If black is present... */
+if (black != (-1)) {
+	/* Make it transparent */
+	gdImageColorTransparent(im, black);
+} 
+/* Save the newly-transparent image back to the file */
+out = fopen("photo.gif", "wb");
+<A HREF="#gdImageGif">gdImageGif</A>(im, out);
+fclose(out);
+/* Destroy it */
+<A HREF="#gdImageDestroy">gdImageDestroy</A>(im);
+</PRE>
+</DL>
+<H3><A NAME="copying">Copying and resizing functions</A></H3>
+<DL>
+<DT><A NAME="gdImageCopy">void gdImageCopy(gdImagePtr dst, gdImagePtr src, int dstX, int dstY, int srcX, int srcY, int w, int h)
+<STRONG> (FUNCTION)</STRONG> 
+<DD>
+gdImageCopy is used to copy a rectangular portion of one image to
+another image. (For a way of stretching or shrinking the image
+in the process, see <A HREF="#gdImageCopyResized">
+gdImageCopyResized</A>.)
+<P>
+The <code>dst</code> argument is the destination image to which the
+region will be copied. The <code>src</code> argument is the source
+image from which the region is copied. The <code>dstX</code>
+and <code>dstY</code> arguments specify the point in the destination
+image to which the region will be copied. The <code>srcX</code>
+and <code>srcY</code> arguments specify the upper left corner
+of the region in the source image. The <code>w</code>
+and <code>h</code> arguments specify the width and height
+of the region.
+<P>
+When you copy a region from one location in an image to another
+location in the same image, gdImageCopy will perform as expected
+unless the regions overlap, in which case the result is
+unpredictable.
+<P>
+<strong>Important note on copying between images:</strong> since 
+different images do 
+not necessarily have the same color tables, pixels are not simply set to the
+same color index values to copy them. gdImageCopy will attempt
+to find an identical RGB value in the destination image for
+each pixel in the copied portion of the source image by
+invoking <A HREF="#gdImageColorExact">gdImageColorExact</A>. If
+such a value is not found, gdImageCopy will attempt to
+allocate colors as needed using <A HREF="#gdImageColorAllocate">
+gdImageColorAllocate</A>. If both of these methods fail,
+gdImageCopy will invoke <A HREF="#gdImageColorClosest">
+gdImageColorClosest</A> to find the color in the destination
+image which most closely approximates the color of the
+pixel being copied.
+<PRE>
+... Inside a function ...
+<A HREF="#gdImagePtr">gdImagePtr</A> im_in;
+<A HREF="#gdImagePtr">gdImagePtr</A> im_out;
+int x, y;
+FILE *in;
+FILE *out;
+/* Load a small gif to tile the larger one with */
+in = fopen("small.gif", "rb");
+im_in = <A HREF="#gdImageCreateFromGif">gdImageCreateFromGif</A>(in);
+fclose(in);
+/* Make the output image four times as large on both axes */
+im_out = <A HREF="#gdImageCreate">gdImageCreate</A>(im_in->sx * 4, im_in->sy * 4); 
+/* Now tile the larger image using the smaller one */
+for (y = 0; (y < 4); y++) {
+	for (x = 0; (x < 4); x++) {
+		gdImageCopy(im_out, im_in, 
+			x * im_in->sx, y * im_in->sy,
+			0, 0,
+			im_in->sx, im_in->sy);
+	}
+}
+out = fopen("tiled.gif", "wb");
+<A HREF="#gdImageGif">gdImageGif</A>(im_out, out);
+fclose(out);
+<A HREF="#gdImageDestroy">gdImageDestroy</A>(im_in);
+<A HREF="#gdImageDestroy">gdImageDestroy</A>(im_out);
+</PRE>
+<DT><A NAME="gdImageCopyResized">void gdImageCopyResized(gdImagePtr dst, gdImagePtr src, int dstX, int dstY, int srcX, int srcY, int destW, int destH, int srcW, int srcH)
+<STRONG> (FUNCTION)</STRONG> 
+<DD>
+gdImageCopyResized is used to copy a rectangular portion of one image to
+another image. The X and Y dimensions of the original region and the
+destination region can vary, resulting in stretching or shrinking of
+the region as appropriate. (For a simpler version of this function
+which does not deal with resizing, see <A HREF="#gdImageCopy">
+gdImageCopy</A>.)
+<P>
+The <code>dst</code> argument is the destination image to which the
+region will be copied. The <code>src</code> argument is the source
+image from which the region is copied. The <code>dstX</code>
+and <code>dstY</code> arguments specify the point in the destination
+image to which the region will be copied. The <code>srcX</code>
+and <code>srcY</code> arguments specify the upper left corner
+of the region in the source image. The <code>dstW</code>
+and <code>dstH</code> arguments specify the width and height
+of the destination region. The <code>srcW</code>
+and <code>srcH</code> arguments specify the width and height
+of the source region and can differ from the destination size,
+allowing a region to be scaled during the copying process.
+<P>
+When you copy a region from one location in an image to another
+location in the same image, gdImageCopy will perform as expected
+unless the regions overlap, in which case the result is
+unpredictable. If this presents a problem, create a scratch image
+in which to keep intermediate results.
+<P>
+<strong>Important note on copying between images:</strong> since images 
+do not necessarily have the same color tables, pixels are not simply set 
+to the same color index values to copy them. gdImageCopy will attempt
+to find an identical RGB value in the destination image for
+each pixel in the copied portion of the source image by
+invoking <A HREF="#gdImageColorExact">gdImageColorExact</A>. If
+such a value is not found, gdImageCopy will attempt to
+allocate colors as needed using <A HREF="#gdImageColorAllocate">
+gdImageColorAllocate</A>. If both of these methods fail,
+gdImageCopy will invoke <A HREF="#gdImageColorClosest">
+gdImageColorClosest</A> to find the color in the destination
+image which most closely approximates the color of the
+pixel being copied.
+<PRE>
+... Inside a function ...
+<A HREF="#gdImagePtr">gdImagePtr</A> im_in;
+<A HREF="#gdImagePtr">gdImagePtr</A> im_out;
+int x, y;
+FILE *in;
+FILE *out;
+/* Load a small gif to expand in the larger one */
+in = fopen("small.gif", "rb");
+im_in = <A HREF="#gdImageCreateFromGif">gdImageCreateFromGif</A>(in);
+fclose(in);
+/* Make the output image four times as large on both axes */
+im_out = <A HREF="#gdImageCreate">gdImageCreate</A>(im_in->sx * 4, im_in->sy * 4); 
+/* Now copy the smaller image, but four times larger */
+gdImageCopyResized(im_out, im_in, 0, 0, 0, 0, 
+	im_out->sx, im_out->sy,
+	im_in->sx, im_in->sy);	 
+out = fopen("large.gif", "wb");
+<A HREF="#gdImageGif">gdImageGif</A>(im_out, out);
+fclose(out);
+<A HREF="#gdImageDestroy">gdImageDestroy</A>(im_in);
+<A HREF="#gdImageDestroy">gdImageDestroy</A>(im_out);
+</PRE>
+</DL>
+<H3><A NAME="misc">Miscellaneous Functions</A></H3>
+<DL>
+<DT><A NAME="gdImageInterlace">gdImageInterlace(gdImagePtr im, int interlace)</A> <strong>(FUNCTION)</strong>
+<DD>
+gdImageInterlace is used to determine whether an image should be stored
+in a linear fashion, in which lines will appear on the display from
+first to last, or in an interlaced fashion, in which the image
+will "fade in" over several passes. By default, images are not
+interlaced. 
+<P>
+A nonzero value for the interlace argument turns on interlace;
+a zero value turns it off. Note that interlace has no effect
+on other functions, and has no meaning unless you save the
+image in GIF format; the gd and xbm formats do not support
+interlace. 
+<P>
+When a GIF is loaded with <A HREF="#gdImageCreateFromGif">gdImageCreateFromGif
+</A>, interlace will be set according to the setting in the GIF file.
+<P>
+Note that many GIF viewers and web browsers do <em>not</em> support
+interlace. However, the interlaced GIF should still display; it
+will simply appear all at once, just as other images do.
+<PRE>
+gdImagePtr im;
+FILE *out;
+/* ... Create or load the image... */
+
+/* Now turn on interlace */
+gdImageInterlace(im, 1); 
+/* And open an output file */
+out = fopen("test.gif", "wb");
+/* And save the image */
+<A HREF="#gdImageGif">gdImageGif</A>(im, out);
+fclose(out);
+<A HREF="#gdImageDestroy">gdImageDestroy</A>(im);
+</PRE>
+</DL>
+<H3><A NAME="constants">Constants</A></H3>
+<DL>
+<DT><A NAME="gdBrushed">gdBrushed</A> <strong>(CONSTANT)</strong>
+<DD>
+Used in place of a color when invoking a line-drawing
+function such as <A HREF="#gdImageLine">gdImageLine</A>
+or <A HREF="#gdImageRectangle">gdImageRectangle</A>.
+When gdBrushed is used as the color, the brush
+image set with <A HREF="#gdImageSetBrush">gdImageSetBrush</A>
+is drawn in place of each pixel of the line (the brush is
+usually larger than one pixel, creating the effect
+of a wide paintbrush). See also
+<A HREF="#gdStyledBrushed">gdStyledBrushed</A> for a way
+to draw broken lines with a series of distinct copies of an image.
+<DT><A NAME="gdMaxColors"><code>gdMaxColors</code><strong>(CONSTANT)</strong>
+<DD>
+The constant 256. This is the maximum number of colors in a GIF file
+according to the GIF standard, and is also the maximum number of
+colors in a gd image.
+<DT><A NAME="gdStyled">gdStyled</A> <strong>(CONSTANT)</strong>
+<DD>
+Used in place of a color when invoking a line-drawing
+function such as <A HREF="#gdImageLine">gdImageLine</A>
+or <A HREF="#gdImageRectangle">gdImageRectangle</A>.
+When gdStyled is used as the color, the colors of the pixels are
+drawn successively from the style that has been
+set with <A HREF="#gdImageSetStyle">gdImageSetStyle</A>.
+If the color of a pixel is equal to 
+<A HREF="#gdTransparent">gdTransparent</A>, that pixel
+is not altered. (This mechanism is completely unrelated
+to the "transparent color" of the image itself; see
+<A HREF="#gdImageColorTransparent">gdImageColorTransparent</A>
+gdImageColorTransparent for that mechanism.) See also 
+<A NAME="#gdStyledBrushed"> gdStyledBrushed</A>.
+<DT><A NAME="gdStyledBrushed">gdStyledBrushed</A> <strong>(CONSTANT)</strong>
+<DD>
+Used in place of a color when invoking a line-drawing
+function such as <A HREF="#gdImageLine">gdImageLine</A>
+or <A HREF="#gdImageRectangle">gdImageRectangle</A>.
+When gdStyledBrushed is used as the color, the brush
+image set with <A HREF="#gdImageSetBrush">gdImageSetBrush</A>
+is drawn at each pixel of the line, providing that the
+style set with <A HREF="#gdImageSetStyle">gdImageSetStyle</A>
+contains a nonzero value (OR gdTransparent, which
+does not equal zero but is supported for consistency) 
+for the current pixel. (Pixels are drawn successively from the style as the
+line is drawn, returning to the beginning when the
+available pixels in the style are exhausted.) Note that
+this differs from the behavior of <A HREF="#gdStyled">gdStyled</A>,
+in which the values in the style are used as actual
+pixel colors, except for gdTransparent.
+<DT><A NAME="gdDashSize">gdDashSize</A> <strong>(CONSTANT)</strong>
+<DD>
+The length of a dash in a dashed line. Defined to be 4 for
+backwards compatibility with programs that use
+<A NAME="gdImageDashedLine">gdImageDashedLine</A>. New
+programs should use <A NAME="gdImageSetStyle">
+gdImageSetStyle</A> and call the standard
+<A NAME="gdImageLine">gdImageLine</A> function
+with the special "color" <A NAME="gdStyled">
+gdStyled</A> or <A NAME="gdStyledBrushed">gdStyledBrushed</A>.
+<DT><A NAME="gdTiled">gdTiled</A> <strong>(CONSTANT)</strong>
+<DD>
+Used in place of a normal color in <A HREF="#gdImageFilledRectangle">
+gdImageFilledRectangle</A>, <A HREF="#gdImageFilledPolygon">
+gdImageFilledPolygon</A>,
+<A HREF="#gdImageFill">gdImageFill</A>, and <A HREF="#gdImageFillToBorder">
+gdImageFillToBorder</A>. gdTiled selects a pixel from the
+tile image set with <A HREF="#gdImageSetTile">gdImageSetTile</A>
+in such a way as to ensure that the filled area will be
+tiled with copies of the tile image. See the discussions of
+<A HREF="#gdImageFill">gdImageFill</A> and
+<A HREF="#gdImageFillToBorder">gdImageFillToBorder</A> for special
+restrictions regarding those functions.
+<DT><A NAME="gdTransparent">gdTransparent</A> <strong>(CONSTANT)</strong>
+<DD>
+Used in place of a normal color in a style to be set with
+<A HREF="#gdImageSetStyle">gdImageSetStyle</A>. 
+gdTransparent is <strong>not</strong> the transparent
+color index of the image; for that functionality please
+see <A HREF="gdImageColorTransparent">gdImageColorTransparent</A>.
+</DL>
+<A NAME="gdformat"><H3>About the additional .gd image file format</H3></A>
+In addition to reading and writing the GIF format and reading the
+X Bitmap format, gd has the capability to read and write its
+own ".gd" format. This format is <em>not</em> intended for
+general purpose use and should never be used to distribute
+images. It is not a compressed format. Its purpose is solely to 
+allow very fast loading of images your program needs often in
+order to build other images for output. If you are experiencing
+performance problems when loading large, fixed GIF images your
+program needs to produce its output images, you may wish
+to examine the functions <A HREF="#gdImageCreateFromGd">
+gdImageCreateFromGd</A> and <A HREF="#gdImageGd">gdImageGd</A>,
+which read and write .gd format images.
+<P>
+The program "giftogd.c" is provided as a simple way of converting
+.gif files to .gd format. I emphasize again that you will not
+need to use this format unless you have a need for high-speed loading
+of a few frequently-used images in your program.
+<A NAME="informing"><H3>Please tell us you're using gd!</H3>
+When you contact us and let us know you are using gd,
+you help us justify the time spent in maintaining and improving
+it. So please let us know. If the results are publicly
+visible on the web, a URL is a wonderful thing to receive, but
+if it's not a publicly visible project, a simple note is just 
+as welcome.
+<A NAME="problems"><H3>If you have problems</H3></A>
+If you have any difficulties with gd, feel free to contact
+the author, <A HREF="http://www.boutell.com/boutell/">Thomas Boutell</A>. 
+Be sure to read this manual carefully first.
+<H3><A NAME="index">Alphabetical quick index</A></H3>
+<A HREF="#gdBrushed">gdBrushed</A> |
+<A HREF="#gdDashSize">gdDashSize</A> | 
+<A HREF="#gdFont">gdFont</A> | 
+<A HREF="#gdFontPtr">gdFontPtr</A> | 
+<A HREF="#gdImage">gdImage</A> | 
+<A HREF="#gdImageArc">gdImageArc</A> | 
+<A HREF="#gdImageBlue">gdImageBlue</A> |
+<A HREF="#gdImageBoundsSafe">gdImageBoundsSafe</A> | 
+<A HREF="#gdImageChar">gdImageChar</A> | 
+<A HREF="#gdImageCharUp">gdImageCharUp</A> | 
+<A HREF="#gdImageColorAllocate">gdImageColorAllocate</A> | 
+<A HREF="#gdImageColorClosest">gdImageColorClosest</A> | 
+<A HREF="#gdImageColorDeallocate">gdImageColorDeallocate</A> | 
+<A HREF="#gdImageColorExact">gdImageColorExact</A> | 
+<A HREF="#gdImageColorTransparent">gdImageColorTransparent</A> | 
+<A HREF="#gdImageCopy">gdImageCopy</A> | 
+<A HREF="#gdImageCopyResized">gdImageCopyResized</A> | 
+<A HREF="#gdImageCreate">gdImageCreate</A> | 
+<A HREF="#gdImageCreateFromGd">gdImageCreateFromGd</A> | 
+<A HREF="#gdImageCreateFromGif">gdImageCreateFromGif</A> | 
+<A HREF="#gdImageCreateFromXbm">gdImageCreateFromXbm</A> | 
+<A HREF="#gdImageDashedLine">gdImageDashedLine</A> | 
+<A HREF="#gdImageDestroy">gdImageDestroy</A> | 
+<A HREF="#gdImageFill">gdImageFill</A> | 
+<A HREF="#gdImageFillToBorder">gdImageFillToBorder</A> | 
+<A HREF="#gdImageFilledRectangle">gdImageFilledRectangle</A> | 
+<A HREF="#gdImageGd">gdImageGd</A> | 
+<A HREF="#gdImageGetInterlaced">gdImageGetInterlaced</A> |
+<A HREF="#gdImageGetPixel">gdImageGetPixel</A> | 
+<A HREF="#gdImageGetTransparent">gdImageGetTransparent</A> |
+<A HREF="#gdImageGif">gdImageGif</A> | 
+<A HREF="#gdImageGreen">gdImageGreen</A> |
+<A HREF="#gdImageInterlace">gdImageInterlace</A> |
+<A HREF="#gdImageLine">gdImageLine</A> | 
+<A HREF="#gdImageFilledPolygon">gdImageFilledPolygon</A> |
+<A HREF="#gdImagePolygon">gdImagePolygon</A> |
+<A HREF="#gdImagePtr">gdImagePtr</A> | 
+<A HREF="#gdImageRectangle">gdImageRectangle</A> | 
+<A HREF="#gdImageRed">gdImageRed</A> |
+<A HREF="#gdImageSetBrush">gdImageSetBrush</A> |
+<A HREF="#gdImageSetPixel">gdImageSetPixel</A> | 
+<A HREF="#gdImageSetStyle">gdImageSetStyle</A> |
+<A HREF="#gdImageSetTile">gdImageSetTile</A> |
+<A HREF="#gdImageString">gdImageString</A> | 
+<A HREF="#gdImageString16">gdImageString16</A> | 
+<A HREF="#gdImageStringUp">gdImageStringUp</A> | 
+<A HREF="#gdImageStringUp">gdImageStringUp16</A> | 
+<A HREF="#gdMaxColors">gdMaxColors</A> |
+<A HREF="#gdPoint">gdPoint</A> |
+<A HREF="#gdStyled">gdStyled</A> |
+<A HREF="#gdStyledBrushed">gdStyledBrushed</A> |
+<A HREF="#gdTiled">gdTiled</A> |
+<A HREF="#gdTransparent">gdTransparent</A>
+<P>
+<em><A HREF="http://www.boutell.com/">
+Boutell.Com, Inc.</A></em>
+</BODY>
+</HTML>

@@ -1,0 +1,16 @@
+Installing Nessus :
+
+
+If you are lazy, just type (as root) :
+
+./configure && make && make install
+
+
+Then :
+
+- create a certificate for nessusd, using nessus-mkcert(8)
+- add a user, using nessus-adduser(8)
+- start nessusd (8)
+- start nessus (1) and connect to it, as the username you specified 
+
+

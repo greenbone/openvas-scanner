@@ -1,0 +1,80 @@
+0. Introduction
+
+This is a quick note on HTTP authentication mechanisms and the way
+they are implemented by Nessus. 
+
+The standard mechanisms are:
+  1. Basic authentication
+  2. Digest authentication
+  3. X.509 client certificates
+And we may add:
+  4. NTLM authentication
+  5. HTTP login form
+  6. .NET framework
+
+1. Basic authentication
+
+When the client requests a protected page, the server answers with a
+401 code which includes a "realm". The client must send back a
+username and password valid for this realm.
+This method is insecure because the data is just base64-encoded, so
+it can be sniffed and replayed. HTTPS/SSL is good enough to protect
+the communication when a higher level of security is required.
+
+Nessus implementation is simple and limited:
+- we do not support multiple realms.
+- The base64 encoded string username:password is computed by
+  logins.nasl, stored in the KB as "http/auth" and sent with any
+  request, without waiting for the 401 code
+
+2. Digest authentication
+
+It is defined by RFC 2069. 
+The server 401 answer includes a random challenge. The client sends
+back a hash of the password and the challenge (and a few other
+things). 
+Although the data may be sniffed, it cannot be played back easily.
+
+This method is much safer, but it is implemented in different ways by
+Netscape or Internet Explorer. So there is a portability problem, and
+most servers which support it although support the basic
+authentication. 
+
+Nessus does *not* support digest authentication yet.
+
+3. X.509 client authentication
+
+This concerns HTTPS only and is done in two steps:
+a) the client certificate must be accepted by the SSL layer (signed by
+   a trusted CA, still valid...)
+b) the web server may check the DN or some other certificate fields
+   and allow or deny access according to those values.
+
+This is supported by Nessus, as you can upload a client certificate
+(it will be used by any SSL connection)
+
+4. NTLM authentication
+
+A complex brain-damaged variant of the digest authentication.
+Nessus does not support it, but we should work on it, as it is common.
+
+5. HTTP login form
+
+A classical way to connect to an application is to fill a form, and in
+reply the server returns a session ID as a cookie or inside the URL.
+
+Nessus implements a limited support:
+- only the cookie method.
+  The full cookie line is stored in the KB as http/auth/1234 (where
+  1234 is the port number), and sent back with every request.
+- Nessus first visits (GET) a "login page" and keep the "Cookie" line.
+  (some systems rejects the authentication because they test if Cookie
+   are enabled)
+- Then the form is POSTed and encoded as application/x-www-form-urlencoded
+  The Referer field is set to the "login page".
+
+6. .NET framework
+
+[TBD]
+
+(C) 2002 Michel Arboi <arboi@alussinan.org>

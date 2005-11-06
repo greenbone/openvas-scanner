@@ -1,0 +1,18 @@
+
+- We should strive to make it possible to merge the following
+  when configuring the package so that users are not shown the 
+  configuration prompt from dpkg:
+
+#
+# Added by nessus-mkcert
+#
+cert_file=/var/lib/nessus/CA/servercert.pem
+key_file=/var/lib/nessus/private/CA/serverkey.pem
+ca_file=/var/lib/nessus/CA/cacert.pem
+# If you decide to protect your private key with a password,
+# uncomment and change next line
+# pem_password=password
+# If you want to force the use of a client certificate, uncomment next line
+# force_pubkey_auth = yes
+
+

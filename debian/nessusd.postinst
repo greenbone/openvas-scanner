@@ -1,0 +1,309 @@
+#!/bin/sh -e
+# Postinst script for Nessus, written by Javier Fernandez-Sanguino
+# Uses code from nessus-mkcert, which was written by Renaud Deraison 
+# <deraison@cvs.nessus.org> and Michel Arboi <arboi@alussinan.org>
+#
+# This script is distributed under the Gnu General Public License (GPL)
+#
+
+. /usr/share/debconf/confmodule
+test $DEBIAN_SCRIPT_DEBUG && set -v -x
+
+nessus_mkcert () 
+{
+RANDFLAG=""
+PATH=/usr/sbin:/usr/bin:/bin:/sbin
+NESSUSPRIV="/var/lib/nessus/private/CA"
+NESSUSPUB="/var/lib/nessus/CA"
+if [ ! -d "$NESSUSPRIV" ]; then
+    mkdir -p "$NESSUSPRIV"
+    chmod 0700 "$NESSUSPRIV"
+    echo "$NESSUSPRIV created"
+fi
+
+if [ ! -d "$NESSUSPUB" ]; then
+    mkdir -p "$NESSUSPUB"
+    chmod a+rx "$NESSUSPUB"
+    echo "$NESSUSPUB created"
+fi
+umask 077
+# Set environment
+BASEDIR=`mktemp -d -t nessus-mkcert.XXXXXX` || { echo "$program: Cannot create temporary dir!" >&2 ; exit 1; }
+trap " [ -d \"$BASEDIR\" ] && /bin/rm -rf -- \"$BASEDIR\"" 0 1 2 3 13 15
+CAKEY=$NESSUSPRIV/cakey.pem
+CACERT=$NESSUSPUB/cacert.pem
+#
+SRVKEY=$NESSUSPRIV/serverkey.pem
+SRVREQ=$BASEDIR/serverreq.pem
+SRVCERT=$NESSUSPUB/servercert.pem
+
+# Defaults
+[ -n "$CACERT_LIFETIME" ] && CACERT_LIFETIME=1460
+[ -n "$SRVCERT_LIFETIME" ] && SRVCERT_LIFETIME=365
+
+if [ ! -z "$LANG" ]; then
+    DC=`echo $LANG | sed -n 's/^..*_\(..\)$/\1/p'`
+fi
+[ -z "$COUNTRY" ] && COUNTRY=$DC
+[ -z "$PROVINCE" ] && PROVINCE=""
+[ -z "$LOCATION" ] && LOCATION=""
+[ -z "$ORGANIZATION" ] && ORGANIZATION="Nessus Users United"
+
+cat <<EOF>$BASEDIR/std000.cnf
+RANDFILE		= $HOME/.rnd
+#
+[ ca ]
+default_ca = NessusCA
+
+[ NessusCA ]
+dir		= $BASEDIR		# Where everything is kept
+certs		= \$dir			# Where the issued certs are kept
+crl_dir		= \$dir			# Where the issued crl are kept
+database	= \$dir/index.txt	# database index file.
+new_certs_dir	= \$dir			# default place for new certs.
+
+certificate	= $CACERT	 	# The CA certificate
+serial		= \$dir/serial 		# The current serial number
+crl		= \$dir/crl.pem 	# The current CRL
+private_key	= $CAKEY		# The private key
+
+x509_extensions	= usr_cert		# The extentions to add to the cert
+crl_extensions	= crl_ext
+
+default_days	= 365		# how long to certify for
+default_crl_days= 30			# how long before next CRL
+default_md	= md5			# which md to use.
+preserve	= no			# keep passed DN ordering
+
+policy		= policy_anything
+
+[ policy_anything ]
+countryName             = optional
+stateOrProvinceName     = optional
+localityName            = optional
+organizationName        = optional
+organizationalUnitName  = optional
+commonName              = supplied
+emailAddress            = optional
+
+[ req ]
+default_bits		= 1024
+distinguished_name	= req_distinguished_name
+# attributes		= req_attributes
+x509_extensions	= v3_ca	# The extentions to add to the self signed cert
+
+[ req_distinguished_name ]
+countryName			= Country Name (2 letter code)
+countryName_default		= FR
+countryName_min			= 2
+countryName_max			= 2
+
+stateOrProvinceName		= State or Province Name (full name)
+stateOrProvinceName_default	= Some-State
+
+localityName			= Locality Name (eg, city)
+
+0.organizationName		= Organization Name (eg, company)
+0.organizationName_default	= Internet Widgits Pty Ltd
+
+# we can do this but it is not needed normally :-)
+#1.organizationName		= Second Organization Name (eg, company)
+#1.organizationName_default	= World Wide Web Pty Ltd
+
+organizationalUnitName		= Organizational Unit Name (eg, section)
+#organizationalUnitName_default	=
+
+commonName			= Common Name (eg, your name or your server\'s hostname)
+commonName_max			= 255
+
+emailAddress			= Email Address
+emailAddress_max		= 255
+
+# SET-ex3			= SET extension number 3
+
+[ usr_cert ]
+# These extensions are added when 'ca' signs a request.
+# This goes against PKIX guidelines but some CAs do it and some software
+# requires this to avoid interpreting an end user certificate as a CA.
+#basicConstraints=CA:FALSE
+
+# Here are some examples of the usage of nsCertType. If it is omitted
+# the certificate can be used for anything *except* object signing.
+
+# This is OK for an SSL server.
+# nsCertType			= nsCertType
+# For normal client use this is typical
+# nsCertType = client, email
+nsCertType			= NSCERTTYPE
+
+keyUsage = nonRepudiation, digitalSignature, keyEncipherment
+
+# This will be displayed in Netscape's comment listbox.
+nsComment			= "OpenSSL Generated Certificate"
+
+# PKIX recommendations harmless if included in all certificates.
+subjectKeyIdentifier=hash
+authorityKeyIdentifier=keyid,issuer:always
+
+# This stuff is for subjectAltName and issuerAltname.
+# Import the email address.
+subjectAltName=email:copy
+
+# Copy subject details
+issuerAltName=issuer:copy
+
+#nsCaRevocationUrl		= http://www.domain.dom/ca-crl.pem
+#nsBaseUrl
+#nsRevocationUrl
+#nsRenewalUrl
+#nsCaPolicyUrl
+#nsSslServerName
+
+[ v3_ca ]
+# PKIX recommendation.
+subjectKeyIdentifier=hash
+authorityKeyIdentifier=keyid:always,issuer:always
+
+# This is what PKIX recommends but some broken software chokes on critical
+# extensions.
+basicConstraints = critical,CA:true
+# So we do this instead.
+#basicConstraints = CA:true
+
+# Key usage: this is typical for a CA certificate. However since it will
+# prevent it being used as an test self-signed certificate it is best
+# left out by default.
+keyUsage = cRLSign, keyCertSign
+nsCertType = sslCA
+EOF
+
+#####
+
+sed 's/NSCERTTYPE/server/g' < $BASEDIR/std000.cnf > $BASEDIR/std.cnf
+sed 's/NSCERTTYPE/client/g' < $BASEDIR/std000.cnf > $BASEDIR/stdC.cnf
+hostname=`hostname`
+if [ -z "$hostname" ];
+then
+ echo "An error occured while trying to determine hostname !"
+ exit 1
+fi
+# The value for organizationalUnitName must be 64 chars or less;
+#   thus, hostname must be 36 chars or less. If it's too big,
+#   try removing domain.
+
+hostname_len=`echo $hostname| wc -c`
+
+if [ $hostname_len -gt 36 ];
+then
+  hostname=`echo $hostname | cut -d '.' -f 1`
+fi
+
+CAMAIL=ca@$hostname
+#cln CLNMAIL=nessus@$hostname
+SRVMAIL=nessusd@$hostname
+#
+# Create the root CA
+#
+
+
+echo 01 > $BASEDIR/serial
+touch $BASEDIR/index.txt
+openssl genrsa $RANDFLAG -out $CAKEY  1024 2> $BASEDIR/openssl-log
+
+
+echo "$COUNTRY
+$PROVINCE
+$LOCATION
+$ORGANIZATION
+Certification Authority for $hostname
+$hostname
+$CAMAIL" | 
+openssl req -config $BASEDIR/std.cnf -new -x509 -days $CACERT_LIFETIME -key $CAKEY -out $CACERT 2>> $BASEDIR/openssl-log
+
+# Server key
+openssl genrsa $RANDFLAG -out $SRVKEY 1024 2>> $BASEDIR/openssl-log
+
+# Server certificate "request"
+echo "$COUNTRY
+$PROVINCE
+$LOCATION
+$ORGANIZATION
+Server certificate for $hostname
+$hostname
+$SRVMAIL" | 
+openssl req -config $BASEDIR/std.cnf -new -key $SRVKEY -out $SRVREQ 2>> $BASEDIR/openssl-log
+
+# Sign the server certificate
+openssl ca -config $BASEDIR/std.cnf -name NessusCA -batch -days $SRVCERT_LIFETIME -in $SRVREQ -out $SRVCERT 2>> $BASEDIR/openssl-log
+
+chmod a+r $CACERT $SRVCERT #cln $CLNCERT
+
+CF=/etc/nessus/nessusd.conf
+egrep -v '^ *(pem_password|cert_file|key_file|ca_file|force_pubkey_auth) *=' "$CF" > "$CF.tmp"
+echo "#
+# Added by nessus-mkcert
+#
+cert_file=$SRVCERT
+key_file=$SRVKEY
+ca_file=$CACERT
+# If you decide to protect your private key with a password, 
+# uncomment and change next line
+# pem_password=password
+# If you want to force the use of a client certificate, uncomment next line
+# force_pubkey_auth = yes" >> "$CF.tmp"
+
+if [ -s "$CACERT" ] && [ -s "$CAKEY" ] && [ -s "$SRVCERT" ] && [ -s "$SRVKEY" ];
+ then
+ echo "Congratulations. Your server certificate was properly created."
+ 
+ mv -f "$CF.tmp" "$CF"
+ echo "$CF updated"
+ echo "The following files were created : "
+ echo
+ echo ". Certification authority : "
+ echo "   Certificate = $CACERT"
+ echo "   Private key = $CAKEY"
+ echo
+ echo ". Nessus Server : "
+ echo "    Certificate = $SRVCERT"
+ echo "    Private key = $SRVKEY"
+else
+ echo "An error occured while generating the certificates and/or keys !"
+fi
+
+if [ -s "$CACERT" ] && [ -s "$CAKEY" ] && [ -s "$SRVCERT" ] && [ -s "$SRVKEY" ];
+then
+ return 0
+else
+ return 1
+fi
+}
+
+if [ "$1" = "configure" ]; then
+
+  if [ ! -f /var/lib/nessus/CA/cacert.pem ] || [ ! -f /var/lib/nessus/CA/servercert.pem ]; then
+
+	db_get nessusd/califetime   || true; CACERT_LIFETIME="$RET"
+	db_get nessusd/srvlifetime  || true; SRVCERT_LIFETIME="$RET"
+	db_get nessusd/country      || true; COUNTRY="$RET"
+	db_get nessusd/province     || true; PROVINCE="$RET"
+	db_get nessusd/location     || true; LOCATION="$RET"
+	db_get nessusd/organization || true; ORGANIZATION="$RET"
+	export CACERT_LIFETIME SRVCERT_LIFETIME COUNTRY PROVINCE 
+	export LOCATION ORGANIZATION
+        nessus_mkcert
+  fi
+# Restart the Nessus daemon if running
+  if [ -x /etc/init.d/nessusd ] && \
+	  /etc/init.d/nessusd status 2>&1 >/dev/null; then
+	  /etc/init.d/nessusd restart
+  fi
+
+fi
+
+# We don't let dh_installinit touch this so we do it byhand
+update-rc.d nessusd  stop 20 0 6 . >/dev/null
+
+
+#DEBHELPER#
+

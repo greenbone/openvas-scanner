@@ -1,0 +1,94 @@
+#
+# Plugins preferences
+#
+# written by Renaud Deraison <deraison@cvs.nessus.org>
+#
+# Revisions :   
+#		19/04/01 : added types 'password' and 'file'
+#		03/01/99 : clearly stated that a client may
+#			   not take these preferences in account
+#		09/03/98 : first public release
+#
+
+
+A client MAY not take this paper in consideration and may silently
+ignore this specification, but I don't recommand it -- try to have
+as many features as possible.
+
+
+The plugins preferences idea comes from Thomas B. Bigalke <bigalke@bigfoot.de>
+
+
+  Some 'advanced' plugins will need their own preferences (ie : BruteForce
+attack plugins will need the path to a wordlist).
+
+This paper assumes that you are familiar with the NTP/1.0 and NTP/1.1 protocols.
+
+
+The preferences of the plugins are sent by the server in the 
+PREFERENCES message, among the preferences of the server, and have the 
+following format :
+
+Plugin Name[preference_type]:name <|> default value
+
+
+Where :
+
+o 'Plugin name' is the name of the plugin which needs the preferences
+o 'preference_type' is the type of the widget used by the preference
+o 'name' is the name of the preference
+o 'default_value' is the default value of the preference.
+
+
++ preference_type :
+
+preference_type is one of the following string :
+"checkbox" : means that the plugin will have two values : 'yes'
+             or no. The client should show this preference by
+             a checkbox.
+             
+"entry"    : means that the preference will have an infinity of values,
+	     since it will be shown by the client as a text entry.
+
+"password" : same as entry, but instructs the client to _not_ show
+ 	     the text typed by the user (and eventually to cipher it
+	     if storing it on disk)
+             
+"radio"    : means that the preference will have a restricted set of
+	     values, shown by the client as a set of radio buttons.
+             If selected, the 'default_value' string will have the
+             following format : 'value1;value2;value3...;valueN', and
+             the client will select the first value by default
+             
+ 
+"file"	   : means that there is an attached file in the rest of the
+	     message. The value returned by the client must be the 
+	     name of a file, as described the in the ATTACHED_FILE
+	     message.
+	     
+	     
++ default values :
+
+Depends on the value of 'preference_type' :
+
+       
+         --------------------++----------------------
+         preference_type     ||        default_value
+         ====================||======================
+         	             ||
+          checkbox           ||       'yes' or 'no'
+         ____________________||______________________
+                             ||
+           entry|password    ||         anything
+         ____________________||______________________
+                             ||
+           radio             ||   value1;value2;....
+	                     ||
+	 --------------------||----------------------
+	                     ||
+ 	   file		     ||        <none>
+	 ____________________||______________________
+         
+        
+        
+comments : mailto:deraison@cvs.nessus.org

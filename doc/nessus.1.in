@@ -1,0 +1,271 @@
+.TH NESSUS 1 "February 2003" "The Nessus Project" "Users Manuals"
+.SH NAME
+nessus \- The client part of the Nessus Security Scanner
+.SH SYNOPSIS
+.B nessus [\|-v\|] [\|-h\|] [\|-n\|] [\|-T\|
+.IB <type> \|]\ [\|-q\ [\|-pPS\|]\  "host port user password targets results\|" ]
+.P
+.B nessus -i in.[nsr|nbe] -o out.[html|xml|nsr|nbe]
+
+.SH DESCRIPTION
+The 
+.B Nessus Security Scanner
+is a security auditing tool made up of two parts: a server, and a client.
+The server,
+.B nessusd
+is in charge of the attacks, whereas the client
+.B nessus
+provides an interface to the user.
+
+.B nessus 
+is an X11 client based on the Gimp ToolKit (GTK).
+
+This man page explains how to use the client.
+
+
+.SH OPTIONS
+.TP
+.BI "-c " <config-file> ", --config-file=" <config-file>
+use another configuration file.
+
+.TP 
+.B "-n, --no-pixmaps"
+no pixmaps. This is handy if you are running nessus on a remote computer.
+
+.TP
+.B "-q, --batch-mode"
+quiet mode or batch mode.  Setting this option makes the nessus client
+expect all of the following settings.
+.RS
+.RI -p
+.RS
+ obtain list of plugins installed on the server.
+.RE
+.RI -P
+.RS
+obtain list of server and plugin preferences.
+.RE
+.RI -S
+.RS
+issue SQL output for -p and -P (experimental).
+.RE
+.RI \(bu\  host
+.RS
+is the 
+.B nessusd 
+host to whom you will connect.
+.RE
+.RI \(bu\  port
+.RS
+is the port to which you will connect on the remote 
+.B nessusd
+host.
+.RE
+.RI \(bu\  user
+.RS
+is the user name to use to connect to 
+.BR nessusd .
+.RE
+.RI \(bu\  password
+.RS
+is the password associated with this user name.
+.RE
+.RI \(bu\  targets
+.RS
+is the name of a file containing the target machines.
+.RE
+.RI \(bu\  results
+.RS
+is the name of the file where the results will be stored at the end of
+the test.
+.RE 1
+
+.TP
+.BI "-r " <report-file> ", --open-report=" <report-file>
+Using the GUI,
+.B nessus
+visualizes a report file from a previous session.  Repeating this option,
+more files are displayed.
+
+.TP
+.BI "-T " <type> ", --output-type=" <type>"
+Save the data as <type>, where <type> can be \*(lqnbe\*(rq, \*(lqhtml\*(rq,
+\*(lqhtml_graph\*(rq, \*(lqtext\*(rq, \*(lqxml\*(rq, \*(lqold-xml\*(rq,
+\*(lqtex\*(rq or \*(lqnsr\*(rq
+
+.TP
+.B "-V, --verbose"
+make the batch mode display status messages to the screen.
+
+.TP
+.B "-x, --dont-check-ssl-cert"
+do not check SSL certificates.
+
+.TP 
+.B "-v, --version"
+shows version number and quits
+
+.TP
+.B "-h, --help"
+lists the available options
+
+.SH The X11 interface
+
+The nessus client interface is divided in several panels:
+.IP "\(bu The \*(lqNessusd host\*(rq section: "
+In this section, you must enter the 
+.B nessusd 
+host to whom you will connect, as well as the port. You must also enter your 
+.B nessusd 
+user name and your password (not the one of the system). Once you are done, you
+must click on the \*(lqLog in\*(rq button, which will establish the 
+connection to the
+.B nessusd 
+host.
+.br
+Once the connection is established, 
+.B nessusd
+sends to the client the list of attacks it will perform, as well as the
+default preferences to use.
+
+.IP "\(bu The \*(lqTarget Selection\*(rq section: "
+\(bu In this section, you are required to enter the primary target. A 
+primary target
+may be a single host (e.g. prof.fr.nessus.org), an IP (e.g. 192.168.1.1), a
+subnet (e.g. 192.168.1.1/24 or prof.fr.nessus.org), or a list of hosts, 
+separated by commas (e.g. 192.168.1.1, 192.168.2.1/24, prof.fr.nessus.org, 
+joyeux.fr.nessus.org).
+.br
+
+
+\(bu You can restrict the maximum number of hosts to test using the 
+\*(lqMax Hosts\*(rq entry.
+This is a feature that prevents you from scanning too many machines;
+or accidentally scanning other machines.
+(For instance, if you only plan to test prof.fr.nessus.org and
+www.fr.nessus.org, you can safely set this entry to \*(lq2\*(rq).
+.br
+
+
+\(bu This panel also allows you to enable the \*(lqPerform a DNS zone 
+transfer\*(rq
+option. This option is dangerous and should be enabled with caution. 
+For instance, if you want to test www.nessus.org, then if this option is set,
+.B nessusd 
+will attempt to get the list of the hosts in the \*(lqnessus.org\*(rq
+domain.
+
+This option may be dangerous. For instance, if you enable it and you ask to
+test 192.168.1.1/24, then
+.B nessusd 
+will do a reverse lookup on 
+.I every
+IP, and will attempt a DNS zone transfer on every domain. That is, if 
+192.168.1.1 is www.foo.bar, and 192.168.1.10 is mail.bar.foo, then
+a DNS zone transfer will be made on the domains \*(lqfoo.bar\*(rq 
+and \*(lqbar.foo\*(rq. 
+
+
+.IP "\(bu The \*(lqPlugins\*(rq section"
+Once you have successfully logged into the remote 
+.B nessusd 
+server,
+this section is filed with the list of the attacks that the server will
+perform. This panel is divided in two parts: the plugins families, and
+the plugins themselves. If you click on the name of a plugin, then
+a dialog will appear, showing you which will be the error message
+sent by the plugin if the attack is successful.
+
+.SH Report conversion
+.P
+You can use
+.B nessus
+to do conversion between formats used for reports. Nessus can take
+any NSR or NBE reports and change them into HTML, XML, NSR or NBE reports.
+.P
+Please note that the XML report provides usually more information
+about the scan itself NSR or NBE formats do not include in the report.
+.P
+Basically, XML is a merge between the .nbe reports and the .nessusrc
+configuration file. You won't get extra verbosity or diagnosis info in
+the XML report, but you'll know which plugins (and which version of
+these plugins) have been enabled during the scan.
+.P
+For more information on the report formats please read the files
+.B nsr_file_format.txt
+and
+.B nbe_file_format.txt
+provided along with the documentation.
+
+.SH "ENVIRONMENT VARIABLES"
+.TP 
+.B HOME
+The path to the user's home directory which will hold the client
+configuration cache
+.IR .nessusrc .
+The path is refered to as
+.IR ~/ ,
+below.
+
+.TP
+.B NESSUSHOME
+If this environment variable is set, this path is used instead of the
+path defined by the 
+.B HOME
+variable.  This path is referred to as
+.IR ~/ ,
+below.
+
+% More examples should be included here (jfs)
+.SH EXAMPLES
+.P
+To run a batch scan from a cron job and publish it in a given
+web space (
+.B /var/www/html/nessus/
+) try the following:
+.P
+.B nessus -c /root/nessus/nessus.rc -T html -qx localhost 1241 batch batch1
+.B /root/nessus/target /var/www/html/nessus/results.html
+.P
+Make sure that paranoia level is
+.B not
+set in your
+.B nessus.rc
+configuration file, otherwise the scan will not work
+
+.SH FILES
+.TP 
+.I ~/.nessusrc
+is the client configuration file, which contains the options about which 
+.B nessusd
+server to connect to, which plugins to activate, and so on.  The file is 
+created automatically if it does not exist.
+
+.SH "SEE ALSO"
+.BR nessus-mkcert-client (1)
+
+.SH MORE INFORMATION ABOUT THE NESSUS PROJECT
+The canonical places where you will find more information
+about the Nessus project are:
+
+.RS
+.UR
+http://www.nessus.org/
+.UE
+(Official site)
+.br
+.UR
+http://cvs.nessus.org/
+.UE
+(Developers site)
+.RE
+
+.SH AUTHORS
+The Nessus Project was started and is being maintained by Renaud Deraison
+<deraison@cvs.nessus.org>.  The
+.B nessusd
+server is mainly Copyright (C) 1998-2001 Renaud Deraison, as well as the
+attack modules.
+
+Several other people have been kind enough to send patches and bug reports.
+Thanks to them.

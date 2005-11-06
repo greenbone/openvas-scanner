@@ -1,0 +1,148 @@
+CWARN0 = @CWALL@
+CWARN1 = $(CWARN0) -Wwrite-strings -Wshadow
+CWARN2 = $(CWARN1) -Wcast-align -Wcast-qual -Waggregate-return
+CWARN3 = $(CWARN2) -Wstrict-prototypes -Wmissing-prototypes -Wmissing-declarations
+CWARN4 = $(CWARN3) -Wconversion -Winline -Wtraditional
+CWARN  = $(CWARN0)
+
+# nessus.tmpl
+#
+# This file contains all the defines you may want to modify
+#
+
+AR=@AR@  
+SHELL = /bin/sh
+CONFIGURE_ARGS = @ac_configure_args@
+MANROFF = nroff -man
+@SET_MAKE@
+rootdir=@PWDD@
+
+# Autoconf installation directories
+prefix=@prefix@
+exec_prefix=@exec_prefix@
+bindir=@bindir@
+sbindir=@sbindir@
+libexecdir=@libexecdir@
+datadir=@datadir@
+sysconfdir=@sysconfdir@
+sharedstatedir=@sharedstatedir@
+localstatedir=@localstatedir@
+libdir=@libdir@
+includedir=@includedir@
+oldincludedir=@oldincludedir@
+infodir=@infodir@
+mandir=@mandir@
+
+srcdir=${rootdir}/src
+make_bindir=${rootdir}/bin
+libsdir=${rootdir}/libs
+top_builddir = @PWDD@
+include= -I. -I$(rootdir)/include  
+INSTALL=@INSTALL@
+INSTALL_DIR=@INSTALL_DIR@
+installuser=@installuser@
+
+# Nessus specific
+NESSUSD_CONFDIR=@NESSUSD_CONFDIR@
+NESSUSD_STATEDIR=@NESSUSD_STATEDIR@
+NESSUSD_PIDDIR=@NESSUSD_PIDDIR@
+NESSUSD_SHAREDSTATEDIR=@NESSUSD_SHAREDSTATEDIR@
+NESSUSD_DATADIR=@NESSUSD_DATADIR@
+NESSUSD_LIBDIR=@NESSUSD_LIBDIR@
+NESSUSD_LOGDIR=@NESSUSD_LOGDIR@
+
+
+NESSUSD_PLUGINS=@NESSUSD_PLUGINS@
+NESSUSD_REPORTS=@NESSUSD_REPORTS@
+
+NESSUS_DIRECTORIES="-DNESSUSD_CONFDIR=\"$(NESSUSD_CONFDIR)\"" "-DNESSUSD_STATEDIR=\"$(NESSUSD_STATEDIR)\"" "-DNESSUSD_DATADIR=\"$(NESSUSD_DATADIR)\"" "-DNESSUSD_LIBDIR=\"${NESSUSD_LIBDIR}\"" "-DNESSUSD_PLUGINS=\"${NESSUSD_PLUGINS}\"" "-DNESSUSD_REPORTS=\"${NESSUSD_REPORTS}\"" -DNESSUSD_SHAREDSTATEDIR=\"${NESSUSD_SHAREDSTATEDIR}\" -DNESSUSD_LOGDIR=\"${NESSUSD_LOGDIR}\" -DNESSUSD_PIDDIR=\"${NESSUSD_PIDDIR}\"
+
+#
+# The server / client modes do not make a lot of sense
+# as of today, as the software makes the checks (you need
+# to be root to start nessusd)
+#
+
+# 
+#
+# Server mode : (rwxrwx---)
+#
+SERVERMODE=0755
+
+# Client mode  (rwxr-xr-x)
+
+CLIENTMODE=755
+
+# Plugins mode  (rw-r--r--)
+
+PLUGINSMODE=644
+
+# Plugins directory mode (rwxr-xr-x)
+
+PLUGINSDIRMODE=755
+
+# Reports directory mode (rwxrwx---)
+
+REPORTSDIRMODE=775
+
+# X11 location
+X_LIBS=@X_LIBS@
+X_CFLAGS=@X_CFLAGS@
+
+# library path location
+RUN_LIBS=@RUN_LIBS@
+
+# Do we have to use the pthreads ?
+
+USE_PTHREADS=@use_pthreads@
+
+# Should we log the error using syslog() ?
+
+# Should we use GTK ?
+
+USE_GTK = @gtk_flags@
+
+# Build with debugging ?
+
+DEBUG = @debug_flags@
+
+USE_LIBWRAP = @uselibwrap@
+
+# Some defines you may want to modify
+NESSUS_DEFS=@DEFS@ $(USE_PTHREADS) $(DEBUG) $(USE_GTK) $(USE_LIBWRAP)
+DEFS=  
+LDFLAGS=
+
+# Your C compiler
+CC=@CC@
+NESSUSCONFIG=@NESSUSCONFIG@
+NASLCONFIG=@NASLCONFIG@
+GTKCONFIG_CFLAGS=@GTKCONFIG_CFLAGS@
+GTKCONFIG_LIBS=@GTKCONFIG_LIBS@
+GLIBCONFIG_CFLAGS=@GLIBCONFIG_CFLAGS@
+GLIBCONFIG_LIBS=@GLIBCONFIG_LIBS@
+DL_LIB=@dl_lib@
+RESOLV_LIB=@resolv_lib@
+SOCKET_LIB=@socket_lib@
+NSL_LIB=@nsl_lib@
+RPCSVC_LIB=@rpcsvc_lib@
+COMPAT_LIB=@compat_lib@
+PTHREAD_LIB=@pthread_lib@
+C_R_LIB=@c_r_lib@
+LIBWRAP=@libwrap@
+LIBS=@LIBS@
+CLIENT=@client@
+CLIENT_INSTALL=@client_install@
+NESSUS_LIB=@nessus_lib@
+
+# documentation
+MAN_NESSUS_1=@man_nessus_1@
+MAN_NESSUSD_8=@man_nessusd_8@
+
+# C compiler options
+NESSCFLAGS=@NESSCFLAGS@
+NASLCFLAGS=@NASLCFLAGS@
+NESSUS_CFLAGS=$(CWARN) $(include) $(NESSCFLAGS) $(NASLCFLAGS) $(NESSUS_DIRECTORIES)
+CFLAGS=@CFLAGS@ 
+
+LIBS=@LIBS@

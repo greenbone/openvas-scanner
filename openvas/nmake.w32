@@ -1,0 +1,131 @@
+#!nmake /f
+#
+# Makefile for the Microsoft compiler/linker
+# creates the nessus client
+#
+
+
+# most certailny, you need to adjust the following
+# parameter to the root of your gtk stuff
+GTKROOT = C:\Nessus\Src
+
+
+!include <ntwin32.mak>
+
+INSTALL_TARGET = C:\Nessus
+PRFS           = prefs_dialog
+CHRT           = gdchart0.94b
+CHLB           = $(CHRT)\gd1.3
+
+LCLINC  = -I. -I$(PRFS) -I$(CHRT) -I$(CHLB) -I..\include
+NESINC  = -I$(INSTALL_TARGET)\include \
+          -I$(INSTALL_TARGET)\include\nessus
+GTKINC  = -I$(GTKROOT)\gtk+ \
+          -I$(GTKROOT)\gtk+/gtk \
+          -I$(GTKROOT)\gtk+/gdk \
+	  -I$(GTKROOT)\gtk+\gdk\win32
+GLBINC  = -I$(GTKROOT)\glib \
+          -I$(GTKROOT)\glib\win32
+
+CC      = cl.exe
+DEFS    = $(NESINC) $(GTKINC) $(GLBINC)
+CFLAGS  = -nologo -Ox $(LCLINC) $(DEFS) $(EXFLAGS)
+
+
+
+LIBS    = nessus.lib peks.lib mpz.lib zlib.lib \
+          gtk-1.3.lib gdk-1.3.lib peks.lib \
+	  glib-1.3.lib wsock32.lib
+LIBPATH = /libpath:$(GTKROOT)\glib \
+          /libpath:$(GTKROOT)\gtk+\gdk \
+          /libpath:$(GTKROOT)\gtk+\gdk\win32 \
+          /libpath:$(GTKROOT)\gtk+\gtk \
+          /libpath:$(INSTALL_TARGET)\lib
+LDFLAGS = -nologo -map -out:nessus.exe \
+          -machine:I386 -subsystem:WINDOWS
+LD      = link.exe
+
+
+
+OBJ     =   attack.obj              auth.obj \
+              comm.obj      error_dialog.obj \
+          families.obj    monitor_dialog.obj \
+            nessus.obj            parser.obj \
+   password_dialog.obj      plugin_infos.obj \
+       preferences.obj  read_target_file.obj \
+            report.obj      latex_output.obj \
+           sighand.obj            xstuff.obj \
+      report_utils.obj       html_output.obj \
+        nsr_output.obj       text_output.obj \
+     splash_screen.obj html_graph_output.obj \
+     cli.obj                  xml_output.obj \
+    detached_index.obj
+
+XOBJ    = prefs_about.obj \
+          prefs_dialog.obj \
+          prefs_dialog_auth.obj \
+	  prefs_dialog_misc.obj \
+          prefs_dialog_plugins_prefs.obj \
+          prefs_dialog_scan_opt.obj \
+	  prefs_dialog_user.obj \
+	  prefs_plugins.obj \
+	  prefs_kb.obj \
+	  prefs_target.obj
+
+
+YOBJ    = gdc.obj price_conv.obj gdc_pie.obj \
+	  gdchart.obj gd.obj gdfontt.obj \
+	  gdfonts.obj gdfontmb.obj gdfontl.obj \
+	  gdfontg.obj
+
+# ------------------------------------------------------
+#      default rules
+# ------------------------------------------------------
+
+all: nessus.exe
+
+.c.obj:
+	$(CC) $(cvarsdll) $(CFLAGS) -c -Fo$*.obj $<
+
+{$(PRFS)\}.c.obj::
+	$(CC) $(cvarsdll) $(CFLAGS) -c $<
+
+{$(CHRT)\}.c.obj::
+	$(CC) $(cvarsdll) $(CFLAGS) -c $<
+
+{$(CHLB)\}.c.obj::
+	$(CC) $(cvarsdll) $(CFLAGS) -c $<
+
+# ------------------------------------------------------
+#      install peks stuff
+# ------------------------------------------------------
+
+install:
+
+
+# ------------------------------------------------------
+#      built the binary
+# ------------------------------------------------------
+
+nessus.exe: $(OBJ) $(XOBJ) $(YOBJ)
+	$(LD) @<<
+	$(LIBPATH)
+	$(LDFLAGS)
+	$(OBJ)
+	$(XOBJ)
+	$(YOBJ)
+	$(LIBS)
+<<
+
+# ------------------------------------------------------
+#      clean up
+# ------------------------------------------------------
+
+distclean clean::
+	-del nessus.map
+	-del nessus.exp
+	-del *.obj
+
+distclean::
+	-del nessus.exe
+

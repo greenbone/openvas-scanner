@@ -1,0 +1,82 @@
+#!nmake /f
+#
+# Makefile for the Microsoft compiler/linker
+# creates the nessus client target
+#
+# You may need to adjust the following parameter
+
+GTKROOT = C:\Nessus\Src
+
+# Experimental features 
+# EXFLAGS = -DENABLE_SAVE_TESTS -DENABLE_SAVE_KB
+
+# ------------------------------------------------------
+#      end configurable part
+# ------------------------------------------------------
+
+!include <ntwin32.mak>
+
+INSTALL_TARGET = C:\Nessus
+NESSUS         = $(INSTALL_TARGET)\bin\nessus.exe
+  
+CC      = cl.exe
+CFLAGS  = -nologo -Ox $(DEFS)
+
+# ------------------------------------------------------
+#      default rules
+# ------------------------------------------------------
+
+all: nessus\nessus.exe unbsp.exe
+
+nessus\nessus.exe: $(INSTALL_TARGET)\lib\nessus.lib
+	cd nessus
+	nmake.bat all "GTKROOT=$(GTKROOT)" "EXFLAGS=$(EXFLAGS)"
+	cd ..
+
+unbsp.exe: doc\unbsp.c
+	$(CC) $(CFLAGS) doc\unbsp.c -o $@	
+
+$(INSTALL_TARGET)\lib\nessus.lib:
+	@echo .
+	@echo -------------------------------------------
+	@echo You probably forgot to install the nessus
+	@echo libraries on $(INSTALL_TARGET)!
+	@echo -------------------------------------------
+	@echo .
+	aborting ...
+
+# ------------------------------------------------------
+#      install peks stuff
+# ------------------------------------------------------
+
+install: install-bin install-doc
+
+install-bin: nessus\nessus.exe
+	-mkdir $(INSTALL_TARGET)
+	-mkdir $(INSTALL_TARGET)\bin
+	copy nessus\nessus.exe $(INSTALL_TARGET)\bin
+
+install-doc:
+	-mkdir $(INSTALL_TARGET)\doc\nessus
+	-mkdir $(INSTALL_TARGET)\doc\nessus\core
+	copy VERSION           $(INSTALL_TARGET)\doc\nessus\core
+	copy doc\nessus.1.cat  $(INSTALL_TARGET)\doc\nessus\core
+	copy doc\nessusd.8.cat $(INSTALL_TARGET)\doc\nessus\core
+	copy README_WINDOWS    $(INSTALL_TARGET)\doc\nessus\core
+	copy UPGRADE_WINDOWS   $(INSTALL_TARGET)\doc\nessus\core
+	copy CHANGES           $(INSTALL_TARGET)\doc\nessus\core
+	copy TODO              $(INSTALL_TARGET)\doc\nessus\core
+#
+	copy unbsp.exe        $(INSTALL_TARGET)\doc\core
+
+# ------------------------------------------------------
+#      clean up
+# ------------------------------------------------------
+
+distclean::
+	-del unbsp.exe
+
+distclean clean::
+	cd nessus
+	nmake.bat $@
+	cd ..

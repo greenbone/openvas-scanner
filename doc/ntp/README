@@ -1,0 +1,11 @@
+This folder is about the Nessus Transfer Protocol (NTP -- bad acronym,
+I know).
+
+It may be of some interest to anyone who is willing to write a new
+front end to the Nessus server, but not to anyone else...
+
+
+
+Note that NTP was not well designed, and suffers from several flaws. 
+The developement of the Nessus 1.1.x series will start with a new,
+nice and clean communication protocol

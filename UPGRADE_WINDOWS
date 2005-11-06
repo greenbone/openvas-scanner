@@ -1,0 +1,35 @@
+          Copyright (c) Nessus Consulting S.A.R.L. 2000
+	               
+    Author: Jordan Hrycaj <jordan@nessus.com>
+
+   $Id$
+
+   This library is free software; you can redistribute it and/or
+   modify it under the terms of the GNU Library General Public
+   License as published by the Free Software Foundation; either
+   version 2 of the License, or (at your option) any later version.
+
+   This library is distributed in the hope that it will be useful,
+   but WITHOUT ANY WARRANTY; without even the implied warranty of
+   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+   Library General Public License for more details.
+
+   -----------------------------------------------------------------
+    Applies to Windows client only with release earlier than 1.0.7
+   -----------------------------------------------------------------
+  
+   To upgrade from a client version 1.0.6 or earlier release, rename
+   the files 
+
+	.nessus.keys  to  nessus-keys.cfg
+
+   and 
+        .nessusrc     to  nessusrc.cfg
+
+   Note that the file finder may not be aware of these files unless
+   you turn the "show all files" on in your Windows Explorer, somtimes
+   accessed (depending on your system language) as
+
+        View -> View -> Hidden files: () show all files
+--
+(jordan)

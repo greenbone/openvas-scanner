@@ -1,0 +1,66 @@
+#!/bin/sh
+#
+# nessus-rmuser
+#
+# Written by Renaud Deraison <deraison@cvs.nessus.org>
+#
+# This script is distributed under the Gnu General Public License (GPL)
+#
+
+prefix=@prefix@
+exec_prefix=@exec_prefix@
+bindir=@bindir@
+sbindir=@sbindir@
+libexecdir=@libexecdir@
+datadir=@datadir@
+sysconfdir=@sysconfdir@
+sharedstatedir=@sharedstatedir@
+localstatedir=@localstatedir@
+libdir=@libdir@
+includedir=@includedir@
+oldincludedir=@oldincludedir@
+infodir=@infodir@
+mandir=@mandir@
+is_cygwin=@is_cygwin@
+
+nessusd=@sbindir@/nessusd
+nessusd_users=@sysconfdir@/nessus/nessusd.users
+
+# check whether we have echo -n, depending
+# on the current shell, used
+case `echo -n` in
+\-n)	Xn=   ; Xc='\c' ;;
+*)	Xn=-n ; Xc=
+esac
+
+if [ -z "$is_cygwin" ];
+then
+ # make sure that we are root
+ case `id` in uid=0*) ;; *)
+    echo "only root should use nessus-rmuser"
+    exit 1
+ esac
+fi
+
+
+login=$1
+
+test -z "$1" && {
+echo $Xn "Login to remove : $Xc"
+read login
+}
+
+test -z "$login" && {
+	echo "No login entered"
+	exit 1
+	}
+
+if [ -d "$localstatedir/lib/nessus/users/$login" ];
+then
+ rm -rf "$localstatedir/lib/nessus/users/$login"
+ echo "user removed."
+else
+ echo "This user does not exist"
+fi
+
+exit 0

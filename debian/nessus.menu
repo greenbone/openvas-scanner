@@ -1,0 +1,2 @@
+?package(nessus): needs="X11" section="Apps/System" title="Nessus" command="nessus" icon="/usr/share/pixmaps/nessus.xpm"           
+

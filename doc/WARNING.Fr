@@ -1,0 +1,548 @@
+-*- Indented-Text -*-
+
+------------------------------------------------------------------------
+                     LES RISQUES LIÉS À NESSUS
+------------------------------------------------------------------------
+
+Dernière modification: $Date$
+
+0. Copyright
+
+Ce document a été rédigé par Michel Arboi <mikhail@nessus.org>
+Je permets à quiconque de le reproduire, transmettre, imprimer,
+calligraphier à la plume d'oie sur parchemin, graver dans le marbre,
+transférer sur un tee shirt, etc. pourvu qu'il ne soit pas modifié --
+et a fortiori, que ce copyright soit toujours présent.
+
+
+1. Pourquoi ce document ?
+
+On peut avoir de désagréables expériences en lançant un test Nessus 
+contre une machine fragile ou en laissant un tel outil à la portée de
+n'importe qui. 
+Certains n'ont pas vraiment compris le mode de fonctionnement de
+Nessus, ni même les risques liés à n'importe quel test dit "de
+sécurité". 
+
+
+2. Considérations légales
+
+N'étant pas juriste, je ne m'étendrai pas sur ce sujet.
+Nessus est distribué selon la GPL. Mélanie Clément-Fontaine a étudié
+cette licence http://crao.net/gpl/ mais à ma connaissance, il n'existe
+aucune jurisprudence.
+Nessus est distribué SANS AUCUNE GARANTIE, tout comme n'importe quel
+logiciel d'ailleurs. Ne venez pas vous plaindre si vous cassez une
+machine en production ; de toute façon, vous n'êtes pas plus couverts
+avec un scanner commercial.
+Mais au moins, nous vous aurons prévenus des dangers potentiels.
+
+
+3. Comment fonctionne Nessus
+
+ 3.1. Séquence des opérations
+
+a) Nessus détermine les ports ouverts 
+   - en appelant le scanner externe nmap,
+   - en appelant snmpwalk [*],
+   - en se connectant au service netstat [*] ou en exécutant netstat
+     sur la machine s'il dispose d'un accès SSH, 
+   - en utilisant un plugin interne, calqué sur un des modes de
+     fonctionnement de nmap,
+   - ou en utilisant un fichier externe, vu comme un résultat de nmap,
+     obtenu par un moyen quelconque, par exemple en convertissant la
+     sortie de la commande netstat.
+b) Ensuite le plugin "find_service" tente d'identifier ce qui tourne
+   derrière chaque port  
+   - tout d'abord en tentant des connexions SSL (TLSv1, SSLv3, SSLv2),
+     puis standard, 
+   - ensuite en envoyant diverses séquences au service et en regardant
+     les réponses
+   find_service stocke ses découvertes sous forme de "clés" dans la
+   "base de connaissance" (KB).
+c) Sur chacun des ports ouverts, Nessus tente alors diverses
+   attaques.
+   Par exemple, si un script vise les serveurs web, il sera lancé
+   contre tous les ports où tourne un serveur HTTP _ou_ HTTPS.
+
+[*] Le fait qu'une machine divulgue des informations par netstat ou
+SNMP est une faiblesse. Toutefois, on peut configurer ces services
+pour ne répondre qu'à un petit nombre de machines de supervisions,
+dont le scanner Nessus.
+
+ 3.2. Types et fonctionnements de plugins
+
+Les plugins de Nessus sont classés par famille. Ceci permet de les 
+regrouper dans l'interface graphique, mais n'a aucune influence sur le
+fonctionnement du scanner. Il existe une famille "déni de service",
+mais elle ne regroupe pas tous les scripts dangereux, seulement ceux
+dont le but premier est de tuer le système. De plus, certains scripts
+de cette famille ne sont pas dangereux : ils vérifient la présence
+d'un logiciel vulnérable à un déni de service sans le tuer.
+
+Chaque plugin a une "catégorie" :
+- ACT_INIT
+  Le script sert simplement à configurer des options et ne fait aucun
+  test.
+- ACT_SCANNER
+  Le script est un scanner de ports ou apparenté (e.g. ping).
+- ACT_SETTINGS
+  Même fonction qu'ACT_INIT, mais passe après les scanners, quand on
+  est sur que la machine répond.
+- ACT_GATHER_INFO
+  Le script récupère des informations sur le système, par exemple
+  identifie des services ou vérifie la présence d'un logiciel 
+  particulier.
+- ACT_ATTACK
+  Le script tente de percer certaines défenses, en théorie sans effet
+  pervers contre la disponibilité du système.
+- ACT_MIXED_ATTACK
+  Le script est susceptible d'avoir des effets secondaires désastreux,
+  bien que ce ne soit pas son but.
+- ACT_DESTRUCTIVE_ATTACK
+  Le script tente de perturber un service ou détruire des données.
+- ACT_DENIAL
+  Le script tente un déni de service contre un logiciel particulier.
+- ACT_KILL_HOST
+  Le script tente un déni de service contre la machine / le système
+  d'exploitation. 
+- ACT_FLOOD
+  Le script tente un déni de service par envoi massif de paquets et
+  peut perturber l'ensemble du réseau. 
+- ACT_END
+  le script se contente de compiler des information une fois que tout
+  le reste est passé.
+
+La frontière entre toutes ces catégorie est floue, et il est
+impossible de prédire a priori si un script qui vise un logiciel donné
+n'aura pas des effets dangereux contre un autre. 
+Nessus exécute en premier les scripts ACT_INIT, puis les plugins
+ACT_SCANNER, puis ACT_SETTINGS, ACT_GATHER_INFO, etc.
+
+Notes:
+- ACT_INIT, ACT_END et ACT_KILL_HOST ont été introduits en version 1.3.0
+  Avant (1.2.6), les éventuels scripts ACT_INIT étaient déclarés comme
+  ACT_SETTINGS et ACT_KILL_HOST était fusionné avec ACT_DENIAL
+- ACT_FLOOD est apparu en 2.1.0
+- avant la version 1.2.6, ACT_SETTINGS passait en tête, mais ceci
+  faisait perdre du temps lorsqu'on scannait une plage d'adresses où
+  peu de machines était vivantes. En mettant ACT_SCANNER en premier,
+  on filtre avec ping.nasl
+
+Enfin, chaque script déclare des "dépendances"
+- en terme de scripts qui ont dû tourner avant.
+  Par exemple, la plupart des scripts dépendent de "find_service".
+- en terme de ports /services ouverts
+  Par exemple, les scripts qui testent des vulnérabilités HTTP
+  déclareront dépendre du port 80 et de la clé "Services/www".
+
+Par principe, Nessus ne considère rien comme acquis. Contrairement à
+certains scanners de sécurité qui basent leurs vérifications sur les
+bannières présentées, Nessus attaque réellement les services, sauf
+dans quelques rares cas mentionnés dans le rapport, ou bien si
+l'option "safe checks" est active (voir ci-dessous).
+En conséquence :
+- Nessus est capable de détecter si une faille _censée_ être corrigée
+  dans la version N+1 d'un logiciel est toujours là.
+- Nessus peut découvrir qu'une faille dirigée contre le produit X
+  fonctionne aussi contre le produit Y.
+- Nessus a la mauvaise habitude de démolir les services codés "avec
+  les pieds" sans aucune pitié.
+
+ 3.3. Sélection des scripts
+
+L'interface graphique permet de 
+- tout sélectionner en un clic,
+- sélectionner "tout sauf les plugins dangereux".
+  Ce choix élimine les plugins de catégorie ACT_FLOOD, ACT_DENIAL,
+  ACT_KILL_HOST ou ACT_DESTRUCTIVE_ATTACK. Il fait double emploi avec
+  l'option "safe checks" et devrait disparaître à terme. 
+- sélectionner ou non chaque plugin individuellement.
+- sélectionner une famille entière.
+  Gardez à l'esprit que les scripts dangereux ne sont pas tous dans la
+  famille "déni de service" et que certains des scripts de cette
+  famille ne sont pas dangereux !
+
+ 3.4. Options importantes
+
+Trois options dans l'interface influencent la résolution des dépendances :
+- Enable dependencies at run time
+- Optimize the test
+- Consider unscanned ports as closed
+Et une quatrième modifie le comportement des scripts agressifs :
+- Safe checks
+
+   3.4.1. Enable dependencies at run time
+
+Par défaut, Nessus ne lance pas un script si ceux dont il dépend n'ont
+pas été activés. Cette option résout automatiquement les dépendances
+nécessaires. 
+
+   3.4.2. Optimize the test
+
+Par défaut, Nessus lance même les tests qui n'ont aucune chance de
+réussir, parce que le service n'a pas été identifié (il attaquera le
+port par défaut). Cette option accélère le test, au risque de rater
+quelques vulnérabilités.
+
+   3.4.3. Consider unscanned ports as closed
+
+Par défaut, Nessus considère les ports non scannés comme
+"ouverts". Cette option inverse le comportement et accélère le test. 
+Elle n'a d'effet que combinée avec "optimize the test".
+
+   3.4.4. Safe checks
+
+Cette option désactive les tests dangereux susceptibles de tuer le
+système ou un service. Nessus s'appuie si possible sur les numéros de
+version renvoyés par les bannières, par exemple.
+Si aucun indice n'est disponible, le test est tout simplement abandonné.
+
+Cette option est moins inoffensive qu'elle paraît :
+- Elle peut donner un faux sentiment de sécurité. Qu'une faille ne
+  soit pas mentionnée dans le rapport ne signifie pas qu'elle soit
+  absente du système. 
+- Si le script est mal écrit et ne vérifie pas la valeur de l'option
+  avec la fonction safe_checks(), l'attaque sera quand même lancé.
+  A priori, les scripts livrés avec Nessus sont sûrs, mais un script
+  "non officiel" ou expérimental pourrait être dangereux.
+
+NB : les scripts ACT_FLOOD, ACT_DENIAL, ACT_KILL_HOST et
+ACT_DESTRUCTIVE_ATTACK ne sont jamais lancés quand cette option est
+activée. 
+
+
+4. Comment un test de sécurité peut tuer votre système
+
+ 4.1. Politique
+
+Avant d'accabler Nessus de sordides qualificatifs, sachez que toucher
+une machine sensible en production est suicidaire. Les consultants
+sécurité sont rarement appréciés : ils sont vus soit comme des
+pirates, soit comme des cyberflics. Si la machine part en vrille au
+moment où vous commencez votre test pour une raison externe, on sera
+trop heureux de vous rendre responsable des dommages causés.
+Que vous soyez convaincu de n'avoir rien fait de mal est une chose,
+que vous sachiez convaincre le juge qui doit évaluer les
+responsabilités et le montant du préjudice subi en est une autre.
+Les arguments contractuels simplistes ne tiennent pas devant un
+tribunal, en France du moins. N'oubliez pas que le droit n'est pas une
+science exacte (en fait, ce n'est pas une science du tout :-)
+
+ 4.2. Les dangers du scan de ports
+
+- En TCP, le scanner ouvre une connexion puis la referme immédiatement
+  sans envoyer de données. 
+  Certains logiciels meurent ou partent en boucle s'ils n'arrivent pas
+  à lire de données. Contrairement à ce que certains pourraient 
+  penser, les scans furtifs "nul scan" ou "Christmas tree" présentent 
+  moins de risques car ils ne remontent pas jusqu'aux logiciels 
+  applicatifs potentiellement bugués. Ils ne marchent pas contre tous 
+  les systèmes d'exploitation, hélas.
+- En UDP, il envoie un paquet sans données.
+  Ceci est suffisant pour tuer certaines piles IP défectueuses ou un
+  logiciel mal codé.
+- dans quelques cas rares maintenant, les scans furtifs ou
+  l'identification du système par "fingerprinting" peuvent tuer la
+  pile IP. On rencontre encore des logiciels embarqués vulnérables à
+  ce genre de déni de service.
+- snmpwalk peut lui aussi être dangereux !
+
+On peut récupérer la liste des ports ouverts par la commande netstat
+puis la convertir avec la commande netstat2nmap.pl en un pseudo
+fichier nmap, lisible par Nessus. Ainsi, on n'a pas à lancer le
+scanner. Toutefois, l'intérêt de cette opération est plutôt
+d'accélérer le test que d'en limiter les risques.
+On peut aussi, à partir de la version 2.1.2, utiliser le plugin
+netstat_portscan à condition d'ouvrir le service netstat (ce qui est
+une mauvaise idée, à moins de restreindre l'accès au seul scanner
+Nessus), ou de donner un accès SSH à Nessus sur la cible. 
+
+
+ 4.3. Entreprise de démolition Nessus & Cie
+
+Certains scripts génériques sont particulièrement méchants :
+- Débordements mémoire contre divers champs / requêtes des protocoles
+  HTTP, FTP, POP3...
+- Requêtes mal formées (HTTP, FTP...)
+- Tests par saturation, inondant un service inconnu de myriades
+  d'octets.
+
+Par ailleurs, outre les effets secondaires du scanner de port,
+certains logiciels n'apprécient pas l'interrogatoire que leur fait subir
+find_service, à commencer par les multiples tentatives de connexion
+SSL. 
+
+check_ports, un plugin qui teste d'éventuels dénis de service
+provoqués par un scanner de ports ou find_service, fait l'équivalent
+d'un "nmap -sT" sur les ports supposés ouverts. Avec les risques
+(faibles) que cela comporte...
+
+Même un simple plugin de type ACT_GATHER_INFO peut tuer un service mal
+conçu. Le risque zéro n'existe pas !
+
+Notez qu'il existe un test qui pourrait réellement tenter d'effacer
+des données : http_methods.nasl. Toutefois, la partie de code
+dangereuse est désactivée en mode "safe checks".
+
+
+5. Limitation des risques
+
+Vous tenez à tester votre application sensible et en cas de problème,
+vous ne vous en prendrez qu'à vous même. En clair, vous voulez
+affirmer haut et fort votre condition d'homme libre en vous tirant
+dans le pied. Vous aimeriez bien que ça ne fasse pas trop mal...
+
+[Dans la suite, la machine cible s'appelle guinea-pig]
+
+ 5.1. Supprimez le port scan
+
+En 2.0.x :
+- Connectez-vous sur guinea-pig, lancez "netstat -a -n --inet" ou tout
+  autre commande nécessaire sur votre système pour récupérer les ports
+  IP ouverts (--inet) sous forme numérique (-n).
+- Écrivez le résultat dans un fichier nommé "guinea-pig" (il est 
+  important que ce fichier porte le nom de la machine "scannée")
+- Convertissez-le en fichier nmap par :
+  netstat2nmap guinea-pig > gp.nmap  
+- ne sélectionnez _que_ le scanner "nmap" et jetez lui gp.nmap en
+  pâture. La plage de ports "scannée" devrait être 1-65535
+
+Ou alors, à partir de la version 2.1.2 :
+- donnez un accès SSH à Nessus sur guinea-pig et n'activez que le
+  scanner netstat_portscan
+Note: pour le moment, la nouvelle version du wrapper Nmap lit les
+fichiers en format "grepable" (nmap -oG) et non "normal" (nmap -oN)
+qui sont produits par netstat2nmap. 
+
+ 5.2. Limez les dents de Nessus
+
+- Activez l'option "safe checks"
+- Activez "optimize the test".
+- Désactivez "enable dependencies at run time".
+- Supprimez les plugins que vous pensez inutiles ou dangereux.
+- Si aucun service ne s'appuie sur SSL, désactivez "test SSL services"
+  (une des "préférences" du plugin find_service)
+- désactivez check_ports.nasl
+
+ 5.3. Risques résiduels
+
+- find_service est susceptible de faire plus de dégats que le scanner
+  de ports, même sans les essais de connexions SSL.
+- des plugins ACT_GATHER_INFO peuvent avoir le même effet, mais
+  "optimize the test" réduit les risques.
+
+
+9. Nessus entre de mauvaises mains
+
+Nessus est un redoutable outil de test, capable aussi bien d'indiquer 
+aux "chapeaux blancs" les correctifs qu'ils doivent appliquer pour
+durcir leur système ou aux "chapeaux noirs" les "exploits" qu'ils
+doivent utiliser pour percer les défenses de la machine.
+
+ 9.1. Une arme en vente libre ?
+
+Je n'ai pas envie de relancer le troll^W débat "pour ou contre le full
+disclosure".
+Comme beaucoup d'outils, ce n'est pas Nessus lui même mais son
+utilisation qui peut être bonne ou mauvaise.
+
+Nessus est destiné aux "chapeaux blancs". Ses principes de conception
+ne facilitent pas la vie des pirates : il est terriblement bruyant.
+Les pirates cherchant généralement à être discrets, c'est raté.
+
+Il est possible de torturer Nessus pour le faire passer par l'un des
+nombreux proxys ouverts qui traînent sur Internet. Pour des raisons
+que vous comprendrez, j'espère, je n'ai pas envie de documenter la
+procédure :-]
+
+Quelques traces (petit extrait) :
+Dec 15 16:43:32 casserole login(pam_unix)[5888]: authentication failure; logname= uid=0 euid=0 tty=pts/17 ruser= rhost=localhost  user=root
+Dec 15 16:43:32 casserole login(pam_unix)[5886]: check pass; user unknown
+Dec 15 16:43:32 casserole login(pam_unix)[5886]: authentication failure; logname= uid=0 euid=0 tty=pts/16 ruser= rhost=localhost 
+Dec 15 16:43:34 casserole login[5880]: FAILED LOGIN 1 FROM localhost FOR backdoor, Authentication failure
+Dec 15 16:43:56 casserole fam[1354]: fd 109 message length 1312236900 bytes exceeds max of 4135.
+Dec 15 16:44:11 casserole SERVER[5930]: Dispatch_input: bad request line '< NTP/1.0 >^M'
+127.0.0.1 - - [15/Dec/2001:16:44:39 +0100] "GET http://www.nessus.org HTTP/1.0" 200 2890 "-" "-"
+127.0.0.1 - - [15/Dec/2001:17:25:44 +0100] ".`" 501 - "-" "-"
+127.0.0.1 - - [15/Dec/2001:17:25:45 +0100] "GET /cgi-bin/nessus_is_probing_this_host_2033195663 HTTP/1.1" 404 335 "-" "Mozilla/4.75 [en] (X11, U; Nessus)"
+127.0.0.1 - - [15/Dec/2001:17:29:58 +0100] "are you dead ?" 400 339 "-" "-"
+
+ 9.2. Fonctions anti NIDS
+
+La version 1.1.13 a introduit des fonctions "d'évasion", au niveau TCP
+et HTTP, qui s'appuient sur divers travaux disponibles publiquement.
+http://www.wiretrip.net/rfp/pages/whitepapers/whiskerids.html
+http://www.securityfocus.com/data/library/ids.ps
+http://rr.sans.org/intrusion/anti-ids.php
+
+Le but de ces fonctions n'est pas de permettre aux "black hats"
+d'attaquer plus facilement les systèmes ouverts sur Internet, mais aux
+"white hats" de tester les mesures de protection mises en place.
+
+L'outil freeware Snort n'est trompé par aucune de ces options, et en
+fait Nessus est perçu comme plus bruyant quand elles sont actives.
+
+ 9.3. Contrôle d'accès à Nessus
+
+Nettement plus grave, un pirate pourrait prendre le contrôle d'un
+serveur Nessus dirigé contre vos machines ou celles de vos
+clients. Nul n'est à l'abri d'un bug, mais certaines précautions
+devraient ramener le risque à un niveau acceptable :
+
+- Si le client et le serveur tournent sur la même machine, configurez
+  Nessus pour utiliser les sockets Unix. Vérifiez que le port 1241 est
+  fermé. 
+Ou bien :
+- Configurez Nessus avec les TCP wrappers et limitez l'accès aux rares
+  postes qui en ont besoin, par exemple localhost.
+- Activez l'authentification par certificats client X.509. Générez vos
+  propres certificats, n'utilisez surtout pas ceux de la "kabale
+  Nessus" ! (qui ont été supprimés du CVS depuis longtemps)
+  Le mieux est de protéger vos clés privées (serveur et client) par un
+  mot de passe solide, ce que le script nessus-mkcert ne fait
+  pas. Vous devrez mettre en place votre propre "usine à certificats".
+- Éteignez la machine qui héberge le serveur Nessus quand elle n'est
+  pas utilisée.
+
+Note: actuellement, l'authentification par certificats est
+incompatible avec les sockets Unix. 
+
+ 9.4. "Seuls les paranïaques survivent"
+
+Il a été demandé quelques fois sur la liste de diffusions comment
+mettre en oeuvre une séparation de privilèges dans Nessus.
+La réponse courte est que ceci est un troll.
+La suite du paragraphe présente la réponse longue.
+
+Avant tout, il faut se rappeler que la séparation de privilèges limite
+l'impact d'une faille en donnant un accès non privilégié à l'attaquant
+plutôt qu'un accès root.
+Dans le cas de Nessus, l'intérêt est limité : si un pirate arrive à
+prendre le contrôle du daemon nessusd sous quelque identité que ce
+soit, il pourra attaquer l'ensemble du réseau surveillé, ce qui est 
+finalement plus grave que la prise de contrôle d'une seule machine.
+
+Il est donc plus important de se focaliser sur la protection de
+l'accès à Nessusd que d'empêcher une montée de privilèges chez un
+attaquant qui aurait franchi la première ligne de défense.
+
+ 9.4.1. Les risques
+
+Trois voies permettraient théoriquement de prendre le contrôle de
+Nessusd en contournant le mécanisme d'authentification [on laisse ici
+de côté les bugs de ce mécanisme] :
+- une attaque contre le "listener" Nessus ou la couche OpenSSL mise en
+place pour la communication client / serveur. 
+- une attaque "à rebours" contre l'interpréteur NASL, provoquant par
+exemple un buffer overflow sur des données anormales.
+- une attaque "à rebours" contre les bibliothèques Nessus utilisées
+par NASL, ou les bibliothèques du système, en particulier OpenSSL qui
+est la plus complexe, donc certainement la plus fragile.
+
+ 9.4.2. Les contre-mesures génériques
+
+PaX et stack protector réduisent le risque d'exploitation réussie, les
+RBAC ou la séparation de privilèges limitent l'impact d'une attaque
+réussie. 
+
+* PaX
+
+http://pax.grsecurity.net/
+PaX est un patch noyau dont le but est de bloquer l'exploitation de
+buffer overflows, ou du moins de la compliquer le plus possible.
+PaX est incompatible avec certains programmes qui accèdent bizarrement
+à la mémoire.
+
+* gcc -fstack-protector
+
+Cette option de GCC protège le programme compilé contre les buffer
+overflows.
+
+* MAC, RBAC...
+
+Des systèmes comme SELinux ou GrSec divisent le rôle du
+super-utilisateur en plusieurs "privilèges", et contrôlent finement
+l'accès aux différents objets manipulés par le système.
+Ainsi, en cas d'exploitation réussi, un programme ne pourra pas
+exécuter des programmes ou lire des fichiers dont il n'a pas besoin
+habituellement.
+Ces systèmes sont lourds à gérer si on modifie souvent la
+configuration.
+
+* GrSecurity 
+
+Ce patch fourre-tout combine des protections génériques pour bloquer
+des attaques connues (PaX et autres) et un système de RBAC.
+
+* Séparation de privilèges
+
+Cette technique est similaire au point précédent, mais elle est
+réalisée sans patch noyau, en s'appuyant sur les mécanismes standard
+Unix. Elle est moins fine donc moins efficace, et nécessite
+souvent un travail de programmation non négligeable ; mais elle
+fonctionne sur un système non patché. 
+Le principe consiste à couper un programme en deux morceaux, et à
+laisser faire les opérations "dangereuses" (comme interpréter des
+données venant de l'extérieur) par la partie qui a abandonné les
+droits root.
+
+ 9.4.3. La sandbox NASL
+
+Nul n'est à l'abri d'une erreur, mais nous avons essayé (1) de coder
+NASL proprement en contrôlant les indices de tableaux, en donnant
+toujours une chaîne de format, etc., (2) en évitant d'appeler des
+fonctions de la libc qui ont été vulnérables sur certains systèmes ou
+n'inspirent pas confiance.
+Au pire, un serveur malveillant pourrait crasher un script NASL, par
+exemple en lui faisant consommer trop de mémoire -- Nessus se protège
+contre cela en fixant une limite à la consommation de ressources par
+les interpréteurs forkés.
+
+La seule bibliothèque complexe que nous appelons est OpenSSL,
+parce qu'il n'existe pas d'autre alternative, et parce que le
+protocole SSL étant ce qu'il est, une bibliothèque SSL sera toujours
+complexe. Il n'y a guère de solution satisfaisante, si ce n'est
+recompiler OpenSSL avec gcc -fstack-protector ou mettre PaX en place.
+
+Nota : même le protocole SSH est codé directement en NASL à partir de 
+primitives cryptographiques.
+
+ 9.4.4. Séparation du listener SSL
+
+Il est possible de séparer le listener SSL à moindre coût avec l'outil
+stunnel.
+Avec la configuration qui suit, c'est stunnel qui déchiffre le SSL
+dans un chroot, puis la connexion vers le daemon nessusd est en clair :
+- lancez "nessusd -a 127.0.0.1:1241" avec ssl_version=none dans nessusd.conf
+  En revanche, les clients devront communiquer en SSL
+  (ssl_version=tlsV1 dans .nessusrc)
+- lancez stunnel avec dans le fichier de configuration quelque chose
+  comme :
+chroot  = /chroot/stunnel	# par exemple
+client  = no
+accept  = 11.12.13.14:1241	# Remplacez par votre IP externe
+connect = 127.0.0.1:1241
+#
+setgid = nessusnobody		# par exemple
+setuid = nessusnobody
+#
+verify = 2		# Demande un certificat client
+CAfile = ...
+cert = ...
+key = ...
+CRLpath = ...
+CRLfile = ...
+
+ 9.5. Du côté du client Nessus
+
+Le client Nessus manipule aussi des données sensibles :
+- il reçoit les rapports, qui contiennent les vulnérabilités des
+machines visées. À partir de la version 2.3, le client stocke ces
+rapports.
+- le fichier ".nessusrc" contient des mots de passe d'accès à divers
+services. Ces mots de passe sont masqués dans l'interface graphique
+mais stockés en clair sur le disque. 
+Il est important de protéger l'accès à la machine qui héberge la
+partie cliente. Stocker les rapports et les fichiers nessusrc sur un
+disque chiffré peut être une bonne idée.

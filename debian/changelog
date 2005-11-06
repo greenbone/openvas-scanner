@@ -1,0 +1,597 @@
+nessus-core (2.2.5-2) unstable; urgency=low
+
+  * Migrate to libgchart-gd2 with patch provided by Matej Vela (Closes: #314315)
+  * Fix address of the FSF in debian/copyright
+  * Make the certificate generation be done through debconf to prevent
+    non-interactive installations from failing (Closes: #191925)
+  * Change debhelper build dependendy to (>= 4.1.16) as we now provide
+    gettext po debconf templates.
+  * Provided an initial Spanish translation of the debconf templates.
+
+ -- Javier Fernandez-Sanguino Pen~a <jfs@computer.org>  Sun, 18 Sep 2005 08:36:16 +0200
+
+nessus-core (2.2.5-1) unstable; urgency=low
+
+  * New upstream release
+  * Use debhelper compatibility version 4
+  * Set myself as sole maintainer, Josip has not contributed to the
+    packages in a long time.
+  * Fix bashishm in postinst
+  * Remove nessusd.conffiles as it is no longer necessary
+
+ -- Javier Fernandez-Sanguino Pen~a <jfs@computer.org>  Tue,  9 Aug 2005 19:03:07 +0200
+
+nessus-core (2.2.4-2) unstable; urgency=low
+
+  * Readded nessus-mkcert-client and doc/nessus-fetch fixes that
+    were lost in previous upload.
+
+ -- Javier Fernandez-Sanguino Pen~a <jfs@computer.org>  Thu,  5 May 2005 02:10:40 +0200
+
+nessus-core (2.2.4-1) unstable; urgency=low
+
+  * New upstream release
+
+ -- Javier Fernandez-Sanguino Pen~a <jfs@computer.org>  Tue, 26 Apr 2005 11:08:47 +0200
+
+nessus-core (2.2.3-3) unstable; urgency=low
+
+  * Big bug in nessus-mkcert-client. Thanks go to Clement Hermann
+  for noticing and providing a patch (Closes: #297993)
+
+ -- Javier Fernandez-Sanguino Pen~a <jfs@computer.org>  Fri,  4 Mar 2005 20:27:28 +0100
+
+nessus-core (2.2.3-2) unstable; urgency=low
+
+  * Fixed error message in nessusd/nessus-check-signature.c
+  * Fix location of configuration dir in doc/nessus-fetch.1
+
+ -- Javier Fernandez-Sanguino Pen~a <jfs@computer.org>  Fri, 18 Feb 2005 11:04:20 +0100
+
+nessus-core (2.2.3-1) unstable; urgency=low
+
+  * New upstream release (Closes: #287505)
+    - The upload function is no longer present in the GUI (Closes: #239638)
+    - Error messages now have a proper window (Closes: #264109)
+  * Have nessus-mkcert-client warn if the server certificates cannot
+    be read (happens when you are not root)
+  * Improved the nessus.initd so that it will check if the (expected)
+    certificates are available before running Nessusd.
+  * Make the reload action wait a little bit for the pid file to
+    be created, otherwise it will always return with an ERROR.
+  * Fixed Makefile so nessus-fetch is cleaned properly and so that
+    nessus-fetch manpage is installed with the package.
+  * Small change to nessus-fetch manpage to point admins to change
+    the configuration file in NESSUS_CONFDIR (/etc/nessusd/ in Debian)
+  * Relocate nessus-fetch, nessus-mkrand and nessus-check-signature
+    to their appropiate location, the nessusd package
+  * Added a new script (new-packages.sh) which is the one I currently use
+    to build new releases of the packages.
+  * Have the init.d script redirect all stdout to /dev/null to prevent
+    the GPL feed error warning from showing if using the init.d script
+  * Modified the postinst script so that the nessusd daemon will be
+    restarted on upgrade (if running)
+
+ -- Javier Fernandez-Sanguino Pen~a <jfs@computer.org>  Sat, 12 Feb 2005 22:37:39 +0100
+
+nessus-core (2.2.0-5) unstable; urgency=low
+
+  * Remove the mistaken comment in nessusd.conf regarding
+    nasl_no_signature_checks. I actually didn't read it properly when 
+    introducing it. Also, added comments in the README file regarding
+    local security checks.
+    This was actually fixed a while back, but not yet uploaded.
+    (Closes: #286660, #287568)
+  * The init.d script now checks if Nessus was properly started 
+    (yells otherwise). More explicitly, it will check if you've run
+    nessus-mkcerts (have ca_file in your nessusd.conf) and warn otherwise 
+    (Closes: #289703)
+  * Also added a 'status' call in the init.d file.
+  * Added a debian/TODO
+
+ -- Javier Fernandez-Sanguino Pen~a <jfs@computer.org>  Mon, 24 Jan 2005 16:48:25 +0100
+
+nessus-core (2.2.0-4) unstable; urgency=low
+
+  * Build-Depend also on libnessus 2.2.0
+
+ -- Javier Fernandez-Sanguino Pen~a <jfs@computer.org>  Fri, 19 Nov 2004 19:40:48 +0100
+
+nessus-core (2.2.0-3) unstable; urgency=low
+
+  * Now Build-Depend on libnasl 2.2.0 since NASL_ALWAYS_SIGNED is only
+    defined there (Closes: #282050)
+
+ -- Javier Fernandez-Sanguino Pen~a <jfs@computer.org>  Fri, 19 Nov 2004 18:01:53 +0100
+
+nessus-core (2.2.0-2) unstable; urgency=low
+
+  * Created /var/lib/nessus/tmp for the nessus daemon to be able to run
+    local security checks (Closes: #281471)
+  * Fixed nessusd.conf max_threads -> max_checks (Closes: #281888)
+  * Close filehandles 0, 1 and 2 when running with -D. This prevents
+    ssh sessions from being blocked (Closes: #177237)
+  * Added additional missing parameters to the default nessusd.conf 
+    file (in most cases commented out) so that the administrator can
+    adjust at will. Some of these parameters are not documented in the
+    nessusd manpage, but further information is available in Edgeo's
+    Nessus Knowledge Base at http://www.edgeos.com/nessuskb/
+
+ -- Javier Fernandez-Sanguino Pen~a <jfs@computer.org>  Fri, 19 Nov 2004 08:39:03 +0100
+
+nessus-core (2.2.0-1) unstable; urgency=low
+
+  * New upstream release
+  * Use -q in the init.d script of nessusd so it will not list all the
+    plugins that are loaded.
+
+ -- Javier Fernandez-Sanguino Pen~a <jfs@computer.org>  Sun, 14 Nov 2004 12:44:28 +0100
+
+nessus-core (2.0.12-6) unstable; urgency=low
+
+  * Fixed FTBFS due to relocation changes made in previous version,
+    modified the way the package is configured and installed in order to
+    avoid this issue in the future.  (Closes: #278760)
+  * Added a force_stop() subroutine in nessusd's rc. Since nessusd is 
+    not started by default, it will not be stopped on package upgrades
+    and the --exec option of start-stop-daemon will make it think that
+    stop is not started (when it is). To avoid this, the process is checked
+    to see if its running (reusing some of sysklogd's code) if the PIDFILE exists,
+    it is verified and it is forced to stop.
+
+ -- Javier Fernandez-Sanguino Pen~a <jfs@computer.org>  Fri, 29 Oct 2004 13:38:42 +0200
+
+nessus-core (2.0.12-5) unstable; urgency=low
+
+  * Plugins have been now relocated to /var/lib/
+  * Make the nessusd package depend on nessus-plugins 2.0.12-3 or higher
+    (that make the change described above)
+
+ -- Javier Fernandez-Sanguino Pen~a <jfs@computer.org>  Fri, 29 Oct 2004 00:22:18 +0200
+
+nessus-core (2.0.12-4) unstable; urgency=low
+
+  * Set rootdir and makebin_dir when distcleaning just in case
+    (nessus.tmpl might not be available at that point) and also
+    fixed Makefile so it will not try to execute dangerous operations
+    if variables are undefined (Closes: #274193)
+
+ -- Javier Fernandez-Sanguino Pen~a <jfs@computer.org>  Sat,  2 Oct 2004 12:05:48 +0200
+
+nessus-core (2.0.12-3) unstable; urgency=low
+
+  * Fixed purge action so that it works if /usr/lib/nessus/plugins/.desc/
+    is a symlink (Closes: #267382)
+  * Removed mentions to GTK+ 1.2 in control file (Closes: #264105)
+  * Conflict against the version in experimental since the 2.1.0 libraries
+    are not compatible but soname is the same (Closes: #260604)
+  * Remove archtable kludge from dpkg and use the more sensible approach
+    proposed by Robert Millan (Closes: #266879)
+
+ -- Javier Fernandez-Sanguino Pen~a <jfs@computer.org>  Sun, 22 Aug 2004 17:28:26 +0200
+
+nessus-core (2.0.12-2) unstable; urgency=medium
+
+  * Fixed Build-Depends requiring libgtk2.0-dev (Closes: #263970)
+
+ -- Javier Fernandez-Sanguino Pen~a <jfs@computer.org>  Fri,  6 Aug 2004 18:50:02 +0200
+
+nessus-core (2.0.12-1) unstable; urgency=low
+
+  * New upstream release (Closes: #261375)
+  * Added a default config file sourced by the init file (Closes: #260601)
+  * Fixed menu file (unquoted 'needs')
+  * Updated to Standards-Version 3.6.0 (cannot update to 3.6.1.0 until bug
+  #191925 is fixed
+
+ -- Javier Fernandez-Sanguino Pen~a <jfs@computer.org>  Wed,  4 Aug 2004 18:48:52 +0200
+
+nessus-core (2.0.10a-6) unstable; urgency=low
+
+  * Fixed typo in logrotate script spotted by Jeff McClure (Closes: #258248) 
+
+ -- Javier Fernandez-Sanguino Pen~a <jfs@computer.org>  Thu,  8 Jul 2004 16:57:59 +0200
+
+nessus-core (2.0.10a-5) unstable; urgency=low
+
+  * Check if directories exist before purging (Closes: #255058)
+
+ -- Javier Fernandez-Sanguino Pen~a <jfs@computer.org>  Sun, 20 Jun 2004 17:13:57 +0200
+
+nessus-core (2.0.10a-4) unstable; urgency=low
+
+  * Modified logrotate script in order to have all log files mode 640 since
+  they might contain sensitive information (i.e. systems that are vulnerable
+  to some attacks)
+
+ -- Javier Fernandez-Sanguino Pen~a <jfs@computer.org>  Sat,  1 May 2004 22:53:23 +0200
+
+nessus-core (2.0.10a-3) unstable; urgency=medium
+
+  * Introduced code in configure.in to detect system os and architecture
+  (based on dpkg's code) and use that to avoid -O flags when compiling
+  in arm. That should fix the build errors that are preventing the
+  package from propagating into testing. I'm reporting the bug
+  nevertheless.
+
+ -- Javier Fernandez-Sanguino Pen~a <jfs@computer.org>  Tue,  9 Mar 2004 21:03:38 +0100
+
+nessus-core (2.0.10a-2) unstable; urgency=low
+
+  * Remove /usr/lib/nessus/plugins/.desc/ on purge. 
+
+ -- Javier Fernandez-Sanguino Pen~a <jfs@computer.org>  Fri, 20 Feb 2004 13:48:04 +0100
+
+nessus-core (2.0.10a-1) unstable; urgency=low
+
+  * New upstream release (Closes: #230057)
+  * Added the init.d script to conffiles.
+  * Added the menu icon patch provided by Christian Perrier which has 
+    been waiting in the BTS for some time (Closes: #209313)
+  * Remove rc.d links on purge
+  * Now removes on purge all the var files this avoids the problem of
+    having the user purge, then reinstall and not have a valid
+    configuration (since it's missing the ca_file definition in 
+    nessusd.conf) A probable move in the future will be to
+    move all the config data created with nessus-mkcert and nessus-adduser
+    to the configuration and have nessus-mkcert add the CA file to
+    nessusd.conf if it already exists (Closes: #231097)
+
+ -- Javier Fernandez-Sanguino Pen~a <jfs@computer.org>  Tue,  3 Feb 2004 13:17:40 +0100
+
+nessus-core (2.0.9-1) unstable; urgency=low
+
+  * New Upstream release (Closes: #220001).
+  * Pid file moved to /var/run (introduced NESSUS_PIDDIR configuration
+    value) and changed all the debian/ files (init.d and logrotate) as
+    well as configure.in, nessus.tmpl and nessusd/utils.c (Closes: #178098)
+  * Moved the nessus-mkcert-client script and manpage to nessusd 
+    (Closes: #202357)
+  * Fixed nessus-mkcert-client to use emailAddress in the certificate
+    as suggested by Raul Hernandez (Closes: #223154, #223158)
+  * The init.d script is now installed but it's not enabled so Nessus
+    will not be started on startup (but will be stopped if running) 
+    in order to avoid potential security holes. This provides, however
+    an easy way for administrators to start/stop nessus (instead
+    of killing the daemon directly). So now we call update-rc.d 
+    to create the 'stop' links in the postinst and remove the links
+    in postrm. Also, the init.d script is the best way now to stop
+    the daemon (in prerm)  (Closes: #110394)
+
+ -- Javier Fernandez-Sanguino Pen~a <jfs@computer.org>  Wed, 10 Dec 2003 12:30:45 +0100
+
+nessus-core (2.0.7-1) unstable; urgency=low
+
+  *  New upstream release.
+  *  Applied patch in CVS (nessusd.c from 1.221 to 1.222) to "fix" tcpwrapper
+     support (nessusd -d doesn't show it is compiled with it)
+
+ -- Javier Fernandez-Sanguino Pen~a <jfs@computer.org>  Wed,  9 Jul 2003 09:59:27 +0200
+
+nessus-core (2.0.5-1) unstable; urgency=low
+
+  * New upstream version, closes: .
+
+ -- Josip Rodin <joy-packages@debian.org>  Sun, 18 May 2003 14:39:21 +0200
+
+nessus-core (2.0.1-2) unstable; urgency=low
+
+  * Upload of Nessus 2.x to unstable.
+  * Run nessus-mkcert in nessusd's postinst because now the daemon won't
+    even start unless you run it.
+
+ -- Josip Rodin <joy-packages@debian.org>  Wed, 19 Mar 2003 18:20:14 +0100
+
+nessus-core (2.0.1-1) experimental; urgency=low
+
+  * New upstream release. 
+
+ -- Javier Fernandez-Sanguino Pen~a <jfs@computer.org>  Mon,  3 Mar 2003 10:18:01 +0100
+
+nessus-core (2.0.0-2) unstable; urgency=low
+
+  * Recompiled with libnasl.so.2
+
+ -- Javier Fernandez-Sanguino Pen~a <jfs@computer.org>  Tue, 25 Feb 2003 18:24:17 +0100
+
+nessus-core (2.0.0-1) unstable; urgency=low
+
+  * New upstream version.
+  * Applied patch sent by Stephen Frield which fixes some autoconf issues.
+  * Updated Build-Depends (needs newer libnessus due to use of 
+  kb_get_port_state_proto)
+
+ -- Javier Fernandez-Sanguino Pen~a <jfs@computer.org>  Tue, 25 Feb 2003 10:35:24 +0100
+
+nessus-core (1.3.3-1) unstable; urgency=low
+
+  * New upstream version. 
+  * Updated Build-Depends (no longer compiles with previous versions due
+    to undefined references)
+
+ -- Javier Fernandez-Sanguino Pen~a <jfs@computer.org>  Thu, 30 Jan 2003 11:07:49 +0100
+
+nessus-core (1.3.1-1) unstable; urgency=low
+
+  * New upstream version.
+  * Build-Depends upgraded since depends on new nasl version
+  * Reapplied most of the patches from 1.2.7 (shouldn't some be submitted
+    upstream?)
+
+ -- Javier Fernandez-Sanguino Pen~a <jfs@computer.org>  Thu, 16 Jan 2003 10:49:21 +0100
+
+nessus-core (1.2.7-1) unstable; urgency=low
+
+  * New upstream version. Did testing to verify it needs libnessus 1.2.7
+    for some inc_optind symbol :/
+
+ -- Josip Rodin <jrodin@jagor.srce.hr>  Sat, 21 Dec 2002 14:38:31 +0100
+
+nessus-core (1.2.6-2) unstable; urgency=low
+
+  * Bumped the version in the libnessus-dev build-depends because of a bunch
+    of new bpf_* functions.
+
+ -- Josip Rodin <jrodin@jagor.srce.hr>  Tue, 10 Dec 2002 17:53:27 +0100
+
+nessus-core (1.2.6-1) unstable; urgency=low
+
+  * New upstream version, closes: #166646.
+  * Make the nessus-plugins dependency >= 1.2, closes: #166327.
+  * Fixed the /var/lib/nessus paths in nessus-rmuser and
+    nessus-mkcert-client, thanks to Michel Casabona, closes: #164163.
+
+ -- Josip Rodin <jrodin@jagor.srce.hr>  Sat,  7 Dec 2002 00:42:02 +0100
+
+nessus-core (1.2.5-3) unstable; urgency=low
+
+  * Fixed nessus-mkcert-client manual page, oops.
+
+ -- Josip Rodin <jrodin@jagor.srce.hr>  Mon,  2 Sep 2002 22:08:41 +0200
+
+nessus-core (1.2.5-2) unstable; urgency=low
+
+  * Added libssl-dev to the build-dependencies, closes: #159262.
+
+ -- Josip Rodin <jrodin@jagor.srce.hr>  Mon,  2 Sep 2002 21:51:03 +0200
+
+nessus-core (1.2.5-1) unstable; urgency=low
+
+  * New upstream version. Includes Simon Law's OpenSSL+GPL exception,
+    many thanks!
+  * ACKing NMU bug, closes: #156208.
+  * No longer requires -lgmp3, closes: #146595.
+  * Added Luca Andreucci's init.d script as an example, thank you.
+  * Removed seemingly no longer needed perl dependency from the nessus
+    package. <ponder>
+
+ -- Josip Rodin <jrodin@jagor.srce.hr>  Wed, 28 Aug 2002 04:57:32 +0200
+
+nessus-core (1.2.0-1) unstable; urgency=low
+
+  * New upstream version, closes: #146574.
+    The configuration details (including newly introduced nessus-mkcert)
+    are not yet hashed out completely, but hey, it's unstable, it breaks :)
+  * Used /var as sharedstatedir, can't just start using /usr/com, looks
+    silly, too.
+  * Used several patches from Simon Law <sfllaw@engmail.uwaterloo.ca>,
+    including but not limited to a manual page that was missing for
+    nessus-mkcert-client, with a few finishing touches from the upstream and
+    myself, closes: #147104.
+
+ -- Josip Rodin <jrodin@jagor.srce.hr>  Tue, 14 May 2002 18:53:41 +0200
+
+nessus-core (1.0.10-2.1) unstable; urgency=low
+
+  * Non maintainer upload
+  * Rebuilt with new libpcap to remove dependency on libpcap0, which I
+    got removed from unstable by accident. Sorry about this...
+
+ -- Torsten Landschoff <torsten@debian.org>  Sat, 10 Aug 2002 11:37:16 +0200
+
+nessus-core (1.0.10-2) unstable; urgency=low
+
+  * Moved to main. The only component of Nessus that needed non-US was
+    an encryption layer library within the libnessus package.
+
+ -- Josip Rodin <jrodin@jagor.srce.hr>  Sat, 23 Mar 2002 15:41:00 +0100
+
+nessus-core (1.0.10-1) unstable; urgency=low
+
+  * New upstream version, closes: #130747.
+  * Fixed the interference in the description :) closes: #113970.
+  * Marked /etc/logrotate.d/nessusd as a conffile.
+
+ -- Josip Rodin <jrodin@jagor.srce.hr>  Thu, 31 Jan 2002 17:46:40 +0100
+
+nessus-core (1.0.9-1) unstable; urgency=low
+
+  * New upstream release. (closes: #112793)
+  * Added myself to "Uploaders:" in debian/control.
+
+ -- Adrian Bunk <bunk@fs.tum.de>  Sat, 29 Sep 2001 12:25:28 +0200
+
+nessus-core (1.0.8-1) unstable; urgency=low
+
+  * New upstream version, closes: #100282.
+
+ -- Josip Rodin <jrodin@jagor.srce.hr>  Tue, 19 Jun 2001 23:11:35 +0200
+
+nessus-core (1.0.7a-1) unstable; urgency=low
+
+  * New upstream version.
+  * The typo in the manual page is fixed, closes: #82853.
+  * Updated build dependencies.
+  * Linked against libgmp3.
+  * Standards-Version: 3.5.0.
+  * Changed section to `non-US'.
+  * Corrected logrotate file to do an if; then; else, it looks like
+    postrotate stuff runs under set -e nowadays.
+
+ -- Josip Rodin <jrodin@jagor.srce.hr>  Mon, 12 Feb 2001 00:30:24 +0100
+
+nessus-core (1.0.6-1) unstable; urgency=low
+
+  * New upstream version, closes: #76795.
+
+ -- Josip Rodin <jrodin@jagor.srce.hr>  Tue, 21 Nov 2000 22:33:34 +0100
+
+nessus-core (1.0.5-2) unstable; urgency=low
+
+  * logrotate.d/nessusd should now restart nessusd, closes: #75954.
+
+ -- Josip Rodin <jrodin@jagor.srce.hr>  Sat,  4 Nov 2000 03:05:31 +0100
+
+nessus-core (1.0.5-1) unstable; urgency=low
+
+  * New upstream version, closes: #75670.
+  * Fixed .pid file path in nessus-adduser, closes: #71771.
+  * nessusd will remove /var/log/nessus upon purge, closes: #72022.
+  * Uses --enable-tcpwrappers --enable-save-sessions --enable-save-kb now.
+    (Added Build-Depends: libwrap-dev because of the first one)
+  * Added the `notifempty' command to the logrotate file.
+
+ -- Josip Rodin <jrodin@jagor.srce.hr>  Sun, 29 Oct 2000 15:12:42 +0100
+
+nessus-core (1.0.4-1) unstable; urgency=low
+
+  * New upstream version, closes: #66197.
+  * Removed /usr/lib/nessus/reports, useless. Moved the state/pid files back
+    to /var/lib/nessus, and left nessusd.messages file in /var/log/nessus.
+  * Standards-Version: 3.2.1:
+    + added DEB_BUILD_OPTIONS checks in debian/rules
+  * Added a README.Debian explaining how to use Nessus, thanks Andrew Shugg.
+
+ -- Josip Rodin <jrodin@jagor.srce.hr>  Sat, 26 Aug 2000 01:59:28 +0200
+
+nessus-core (1.0.0-2) unstable; urgency=low
+
+  * Create /var/{log,lib}/nessus directories in nessusd after pruning empty
+    directories, closes: #64845.
+  * Created new "nessus-dev" package to fix the porting problem, it includes
+    /usr/include/nessus/* headers previously in nessusd.
+
+ -- Josip Rodin <jrodin@jagor.srce.hr>  Mon, 29 May 2000 11:30:21 +0200
+
+nessus-core (1.0.0-1) unstable; urgency=low
+
+  * New upstream version. (closes: #60497)
+  * Moved nessus back to /usr/bin (and its manual page to /usr/share/man).
+  * New upstream utility nessus-adduser added to nessusd package.
+  * Updated default nessusd.conf with several new options.
+  * Because of GDChart, changed Nessus to link with libgd-gif1, which adds
+    Build-Depends: libgd-gif1-dev.
+  * Adding CHANGES file as the changelog means I can't link the doc
+    directories to libnessus1 anymore since they are different.
+    Sorry, closes: #59688.
+  * Now Build-Depends: libnessus-dev, libnasl-dev.
+  * Added removal of /usr/include/nessus/includes.h from nessusd build,
+    because the same file is found in libnessus-dev.
+
+ -- Josip Rodin <jrodin@jagor.srce.hr>  Sun, 28 May 2000 16:32:35 +0200
+
+nessus-core (0.99.4-2) frozen unstable; urgency=low
+
+  * Added nessus-plugins to nessusd Depends:, closes: #64361. [RC]
+  * Fixed postrm to delete proper files on purge, and made prerm stop
+    nessusd on !upgrade.
+  * Added logrotate file for nessusd.messages, otherwise the file can grow
+    indefinitely.
+  * Removed empty directories from the package, reported by David Rocher.
+  * Added Suggests: nessusd to nessus, it's logical.
+  * Added CHANGES file as the upstream changelog, which it is.
+
+ -- Josip Rodin <jrodin@jagor.srce.hr>  Fri, 19 May 2000 21:59:49 +0200
+
+nessus-core (0.99.4-1) unstable; urgency=low
+
+  * New upstream version. (closes: #54142)
+
+ -- Josip Rodin <jrodin@jagor.srce.hr>  Fri, 14 Jan 2000 02:07:28 +0100
+
+nessus-core (0.99.2-1) unstable; urgency=low
+
+  * New upstream bugfix version.
+
+ -- Josip Rodin <jrodin@jagor.srce.hr>  Mon,  3 Jan 2000 17:20:34 +0100
+
+nessus-core (0.99.1-1) unstable; urgency=low
+
+  * New upstream version.
+  * Removed the mentioning of sample.users file in the example config file,
+    closes: #50726 #50865 .
+  * Recompile against libpcap instead of libpcap-nessus.
+  * Standards-Version: 3.1.0.
+
+ -- Josip Rodin <jrodin@jagor.srce.hr>  Mon, 22 Nov 1999 01:06:59 +0100
+
+nessus-core (0.98.4-2) unstable; urgency=low
+
+  * A bunch of upstream patches kindly provided by Renaud Deraison, to
+    fix the problem with Nessus client asking for password on terminal.
+    Readjusted the menu file because of that.
+  * Moved the include files in nessusd package, and added Replaces:
+    nessus (<= 0.98.4-1) to nessusd, closes: #49414.
+  * Moved nessus binary to X11R6/bin, more logical.
+  * Various updates to debian/*.
+
+ -- Josip Rodin <jrodin@jagor.srce.hr>  Sun,  7 Nov 1999 17:56:15 +0100
+
+nessus-core (0.98.4-1) unstable; urgency=low
+
+  * New upstream version.
+
+ -- Josip Rodin <jrodin@jagor.srce.hr>  Tue,  2 Nov 1999 22:09:42 +0100
+
+nessus-core (0.98.3-1) unstable; urgency=low
+
+  * New upstream version.
+  * Nessus now split into four packages:
+    + nessus-libraries (libnessus0 and libnessus0-dev)
+    + libnasl (libnasl0 and libnasl0-dev)
+    + nessus-core (nessus and nessusd)
+    + nessus-plugins (ditto)
+
+ -- Josip Rodin <jrodin@jagor.srce.hr>  Sat,  2 Oct 1999 09:49:05 +0200
+
+nessus (0.0.alpha2-fix4-1) unstable; urgency=low
+
+  * New maintainer (thanks, Javier!).
+  * New upstream version (this number allows future 1.0 etc).
+  * Separated the binaries in two packages: the client which depends
+    on GTK+, and the server with plugins and the support libraries.
+  * Doesn't build static libraries anymore. Removed the .so symlinks.
+  * Added libtool rpath workaround and some other fixes in configure.in.
+  * Using completely new debian/* files, fully extended with debhelper.
+  * Package goes to non-US, because of the encryption libraries used.
+  * Now Policy 3.x compliant, uses FHS et al.
+  * Now uses /etc/nessus/ for config files, and /var/log/nessus/ for
+    log files. Required changes in the upstream build system
+    (configure.in, Makefile, etc).
+  * TODO: investigate whether src/libpcap/tcp_* files make much difference
+    between default libpcap.so and this custom libpcap-nessus.so.
+
+ -- Josip Rodin <jrodin@jagor.srce.hr>  Thu, 27 May 1999 19:51:20 +0200
+
+nessus (0.0.0.0.990201-2) unstable; urgency=low
+
+  * Moved plugins from /usr/share to /usr/lib (machine dependant)
+  * Fixed most lintian errors.
+  * nessusd is no longer suid.
+  * added Nessus to menu in Apps/System
+
+ -- Javier Fernandez-Sanguino Pen~a <jfs@computer.org>  Wed, 10 Mar 1999 13:36:20 +0100
+
+nessus (0.0.0.0.990201-1) unstable; urgency=low
+
+  * Updated source code to next stable version
+
+ -- Javier Fernandez-Sanguino Pen~a <jfs@computer.org>  Thu, 18 Feb 1999 11:23:49 +0100
+
+nessus (0.0.0.0.981016-1) unstable; urgency=low
+
+  * First Release
+  * Changed Makefile so install does not chown to root.
+  * Moved from /usr/local/share to /usr/share.
+
+ -- Javier Fernandez-Sanguino Pen~a <jfs@computer.org>  Mon, 28 Dec 1998 05:24:45 +0100

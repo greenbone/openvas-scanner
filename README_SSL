@@ -1,0 +1,409 @@
+-*- Indented-Text -*-
+
+   * What you should know about SSL support in Nessus 1.2 *
+
+ $Version$
+
+0. Copyright
+
+(C) 2001-2002 Michel Arboi <arboi@alussinan.org>
+I grant permission to redistribute this file, provided that it is not
+modified.
+
+
+1. What are the differences between Nessus 1.0.x and Nessus 1.2.x ?
+
+For miscellaneous reasons, libpeks (the library being used for the
+client - server communication) was removed. 
+(Have a look at the message that I posted on the nessus-devel mailing
+list for details.)
+
+Starting with Nessus 1.1.4, the communication between the nessusd server 
+and the nessus client is enciphered with TLSv1. 
+You may still disable the cipher layer when you configure & compile
+Nessus (this is the default if OpenSSL is not found), or by setting
+"ssl_version" to "NONE" in the configuration files.
+
+Note: in earlier 1.1.x versions, SSLv3 was used. You may still have
+this behaviour by setting "ssl_version" to "SSLv3".
+
+Authentication can be based upon the client certificate or the
+password.
+In fact, you will always have to enter a username & a password.
+
+
+2. What do you need?
+
+- the openSSL library - http://www.openssl.org
+  (use OpenSSL 0.9.6e. Older versions may be insecure. Versions
+   before 0.9.5 will not link)
+- a SSL server certificate & private key
+- the CA certificate
+- you may need client certificates if 'force_pubkey_auth' is set in
+  nessusd.conf 
+  There is no way to disable this for a specific user.
+
+
+3. How to install
+
+(In this chapter, $src stands for the directory where you extracted
+the sources, and $prefix the root directory installation,
+e.g. /usr/local)
+
+Once you have configure and installed Nessus (i.e. nessus-libraries,
+libnasl, nessus-core and nessus-plugins), you have three options:
+- disable encryption in the configuration files
+  Since we added this option, the insecure "Nessus kabale"
+  certificates should not be used anymore. 
+- use the mknessus-cert script
+- use your own certificates
+
+The fourth option is to configure Nessus with --disable-cipher: 
+the client/server communications will never be enciphered.
+
+
+3.0. No SSL layer - hard coded
+
+Configure nessus-libraries and nessus-core with --disable-cipher. 
+This is the default if OpenSSL is not installed.
+If it is installed, Nessus will use it to test SSL based services
+(e.g. HTTPS) however.
+
+
+3.1. Disable SSL layer in configuration files
+
+Setting "ssl_version=none" in nessusd.conf and in .nessusrc disables
+the cipher layer.
+
+This option is available in Nessus 1.2.0, and did not exist in the
+earlier 1.1.x. 
+That's why we created the INSECURE "Nessus Kabale" certificates, for
+people who would use pre-compiled packages. 
+You have no reason to use them any more. If you do not want to
+generate and install your own certificates, use clear text
+communications! 
+
+
+3.2. mknessus-cert
+
+This is much better, but not perfect, as the generated certificates
+ARE NOT PASSWORD PROTECTED.
+
+3.2.1. CA & server certificate
+
+As root,  run nessus-mkcert
+The script will ask you a few question then generate 2 certificates
+and 2 private keys:
+- the CA
+- the SSL server
+
+If you do not plan to use client certificates, you may destroy your CA
+private key, you will not need any more and this prevent some hacker
+from generating faked certificates.
+Otherwise, you'd better save the CA private key on some removable
+media, as it is NOT password protected (yes, you read it already, I
+know, but I have to insist: it is not password protected. Understood?)
+
+3.2.2. Client certificates 
+
+[TBD]
+Run nessus-mkcert-client and answer the questions.
+You'll have to copy the client certificate & key somewhere, as well as
+the std.cnf and stdC.cnf 
+Users will have to update their .nessusrc files:
+------------------------------------------------------------------
+cert_file = /path/to/e.g./cln.pem
+key_file = /path/to/e.g./clnP.pem
+------------------------------------------------------------------
+
+If I were you, I would NOT reuse those certificates for something
+else, like S/MIME.
+
+
+3.3. Your own certificates
+
+Much better. If you want to create your own certificates, you may use
+/usr/share/ssl/misc/CA.pl from OpenSSL.
+
+Here is what you should know:
+- Nessus only supports PEM files.
+- Although I only tested RSA keys, DSA keys should work as well.
+- You'd better create a "SSL server" certificate for nessusd, but we
+  do not check the usage, in fact.
+  OpenSSL may run some kind of consistency check though...
+- The behaviour of the Nessus client is described in §5 below. [TBD]
+- If "force_pubkey_auth" is set in nessusd.conf, the server will accept
+  a client certificate as long as it is signed by the CA you specified
+  in the "ca_file" parameter
+- the parameters in nessusd.conf are:
+ - force_pubkey_auth = flag ("yes"/"no"). If set, the server verifies
+		       the peer (client) certificate.  
+ - cert_file	     = path to your PEM certificate.
+ - key_file	     = path to your PEM private key.
+ - pem_password	     = the PEM password that protects your private key
+ - ca_file	     = path to your PEM CA certificate.
+ - ssl_version	     = SSL version used by the server.
+		       Allowed options are: NONE, SSLv2, SSLv3, TLSv1
+		       (the default) and SSLv23 (compatibility mode).
+		       - NONE disables the cipher layer.
+		       - if you want to use client certificates,
+			 choose SSLv3 or TLSv1. 
+
+- the parameters in the client .nessusrc are:
+ - cert_file
+ - key_file
+ - ssl_version         Allowed options are the same as the
+		       server: NONE, SSLv2, SSLv3, TLSv1, SSLv23. 
+		       However, SSLv23 will not work if the server SSL
+		       version is SSLv3 or TLSv1.
+
+Note that the pem_password protection is not great as it is stored in
+the nessusd.conf files. We shall change that later.
+
+*Please* do not ask for support on all this. We are working on a
+security scanner, not a PKI project!
+You may find the "Open Source PKI Book" interesting. Its web site is
+http://ospkibook.sourceforge.net/ 
+
+
+4. Known problems
+
+4.1. Bugs?
+
+Oh yes, there are plenty of nasty big bugs sneaking around :-\
+If you find them, e-mail me or nessus-devel.
+
+4.2. No random device
+
+On Linux or BSD, you should not have any problem with this. 
+On operating systems like Solaris without a random device
+(e.g. /dev/urandom), OpenSSL init will fail with a "PRNG not seeded"
+error. 
+Cf. http://www.openssl.org/support/faq.html#USER1
+
+There are several solutions:
+
+- install a random generator device driver
+  There is a package for Solaris, for example.
+  If this does not work, I suspect that you may have to recompile and
+  reinstall OpenSSL afterwards.
+
+- use a seed file.
+  By default, OpenSSL looks for $HOME/.rng but you may override this
+  by setting the RAND environement variable.
+  You will have to fill this seed file with enough "random" data.
+  nessus-mkrand is your friend!
+
+- install and run egd, the entropy gathering daemon
+  Unless its Unix socket path is really weird, OpenSSL is supposed
+  to use it. That's what the documentation has said for some time,
+  but unfortunately, this looks unsupported in version before 0.9.7
+  If you still have a problem with it, reconfigure nessus-libraries
+  and  nessus-core with  
+   configure --with-egd=/path/to/egd-socket
+  recompile and reinstall.
+
+4.3. SSL not available for client architecture
+
+If your server is compiled with SSL support, your client must have it
+too. The only [simple] way to enable or disable the SSL layer at will
+would be to use two TCP ports on the server (just like 80 & 443 for 
+HTTP). Maybe we should implement this...
+
+4.4 Certificate based authentication does not work on Unix sockets
+
+This is a Nessus limitation. We should fix this.
+If you compile Nessus with the Unix socket support, you have to use
+password authentication.
+
+
+5. Trust & security
+
+Note: This chapter describes some things that do not exist _yet_ or
+are not fully implemented.
+
+5.1. Theoreticall weaknesses
+
+- Fake server
+  Some hacker installs a fake Nessus server. Using it, he is able to
+  steal your username & password.
+- Man in the middle
+  Some hacker hijacks the connection between the server and the
+  client. More or less equivalent to the first attack.
+- Brute force
+  Some hacker connects to the server and tries kazillons of
+  passwords. Sooner or later, he will find a good one.
+
+5.2. The server
+
+If force_pubkey_auth is not set, the server will accept a user if:
+
+- there is a file $prefix/var/nessus/users/$user/auth/dname and the
+  user was able to present a valid certificate with a DN that matches
+  the  content of it.
+  The certificate is accepted as soon as it is signed by a trusted
+  CA. i.e., at this time, by the same CA as the server [TBD]
+
+- or there is a file $prefix/var/nessus/users/$user/auth/password and
+  the user was able to give the right password. You do not need a
+  client certificate here.
+  (this was the standard behaviour)
+
+Note: if if you present an invalid client certificate, you will be
+rejected. Remove the cert_file and key_file lines from your .nessusrc
+file if you want to switch to password authentication.
+
+
+If force_pubkey_auth is set, any user MUST present a valid
+certificate. Then the rest of the procedure is applied, depending on
+the existence of the dname or password files.
+IMHO, in this situation, any user should be identified with his DN.
+
+Note: Nessus does not handle CRL yet because OpenSSL 0.9.6 does not
+support. OpenSSL 0.9.7 should be able to check them, we'll improve
+the code at the time.
+
+5.3. The client
+
+The client has three "levels of paranoia" (see paranoia_level in
+.nessusrc)
+1. The certificate hash is matched against what was previously stored
+   in .nessusrc.cert
+   If the certificate was modified (or is brand new), nessus will ask
+   you if you accept it. Please read it *carefully* and answer "yes"
+   or "no".
+   If "no", the connection will be rejected.
+   If "yes", the certificate SHA1 hash will be stored into
+   .nessusrc.cert and nessus will never bother you again with it,
+   EVEN WHEN THE CERTIFICATE BECOMES OUT OF DATE!
+
+2. The certificate will be accepted IF AND ONLY IF it is signed by a
+   trusted CA. In .nessusrc, trusted_ca should point to the right CA 
+   file.
+   We rely entirely upon OpenSSL for all this, and the certificate
+   will be rejected as soon as it is out of date, as far as I know.
+   Use this level if you manage many servers.
+
+3. The certificate MUST be accepted by OpenSSL first, i.e. be valid
+   AND signed by a trusted CA. After that, the behaviour looks like
+   level (1)
+   This level is good for paranoid who manage several servers.
+
+
+5.4. Known weaknesses
+
+5.4.1. Server names
+
+Certificates in .nessusrc.cert (for paranoia_level = 1 or 3) are
+identified by the hostname. That is, if your machine is "gizmo" in
+"localdomain", you will get "new certificate alerts" if you connect
+to your machine by using 127.0.0.1, then "localhost", then "gizmo",
+then "gizmo.localdomain".
+This also means that you may be vulnerable to some DNS spoofing
+attack.
+Paranoia level 1 is not better or worse than the previous behaviour
+(with peks). Paranoia levels 2 or 3 are definitely better.
+
+5.4.2. Man in the middle, etc.
+
+If some nasty guy tries to hijack your connection, you will get a "new
+certificate alert" in paranoia level 1, and a SSL error in 2 or 3.
+Be careful in level 1 before you accept a new certificate!
+Once again, SSL and X.509 protects you.
+
+
+6. HNFAQ
+
+This is the "hopefully not frequently asked questions"!
+
+- My client reports a SSL error when it connects to Nessusd
+  Maybe you are using an old SSLv3 client and a new TLSv1 server.
+  Set "ssl_version=SSLv3" in nessusd.conf or use a newer client
+  software. 
+
+- I want to use an old 1.0.x client with a new 1.2.x server, or vice
+  versa. 
+  Old client/server used PEKS, new uses SSL. There is no
+  compatibility. You have to disable the cipher layer by setting
+  ssl_version=none in .nessusrc or nessusd.conf
+  
+- Wasn't it better to use SSLv3 rather than TLSv1?
+  Who knows? Maybe. We just had to change a couple of lines in the
+  the source code, we can do it in the other way
+  (note to developers: you may have to change
+   nessus_register_connection if the change is more complex)
+
+- What key lengths are used?
+  As far as I know, 128 bits for the symetric session keys.
+  nessus-mkcert generates 1024 bit asymetric RSA keys.
+
+- In my democratic country, long keys are forbidden by law.
+  Then disable the cipher layer.
+  There is probably a way to use 40 bits or 56 bits keys in
+  OpenSSL. If you find how, just tell me. <grin>
+  (I suppose that limiting the RSA key to 512 bits should do the
+  trick but I really don't care)
+
+- Should I buy a certificate at Verisign, Thawte, whoever?
+  No. And you should definitely *not* do it.
+  Considering the way Nessus on SSL works, the client would believe
+  any server certificate sold by those people (e.g. a standard HTTPS
+  certificate) and this is *insecure*.
+  If you really want to spend money, support the Nessus project!
+  If you really really want to give money to Verisign [etc.], create
+  your *own* CA and ask them to certify it. Your Nessus client should
+  only trust *your* CA, not the Verisign [etc.] root CA.
+
+- I have a PKI. May I use it?
+  Yes, of course. You should create a delegate CA for Nessus.
+
+- My private keys are stored on smartcards. Does Nessus support this?
+  Nessus will support whatever gizmo OpenSSL supports. The day OpenSSL
+  supports marble engraved X509 certificates, we'll do.
+
+- Can I connect without a password?
+  No, you need either a PEM password or a Nessus password. But that
+  should not be a problem. 
+  If you cannot remember your password, uses the client certificate
+  based authentication and do not protect your PEM key file. That way,
+  you may enter any password :-)
+
+- It would be great if I could register my client certificate the
+  first time I connect, just with PEKS.
+  Yes, but X.509 is not PEKS. X.509, SSL & PKIs are really pains in the
+  a..., but at least, they are supposed to be secure.
+  So, either you use the password authentication, which is enough for
+  most people IMHO, or you use the certificate authentication, but in
+  a way that is 100% secure and not just 99%
+
+- I cannot generate my own certificates with CA.pl
+  I said "don't ask".
+
+- I installed SSH, how do I run Nessus?
+  You need SSL, not SSH.
+
+- How does SSL works?
+  I do not know. My monkey sat in front of the computer, hit the
+  keyboard, and voila...
+  You may read RFC 2246 "The TLS Protocol Version 1.0" or OpenSSL
+  documentation.
+
+- I am a complete newbie in X.509
+  So was my monkey.
+  
+- More information? Have a look at:
+  http://www.openssl.org/docs/
+
+  RFC2246 The TLS Protocol Version 1.0. T. Dierks, C. Allen. January 1999.
+  RFC2817 Upgrading to TLS Within HTTP/1.1. R. Khare, S. Lawrence. May
+	  2000. (Updates RFC2616)
+  RFC2818 HTTP Over TLS. E. Rescorla. May 2000.
+
+  http://home.netscape.com/eng/ssl3/
+  http://www.netscape.com/eng/ssl3/ssl-toc.html
+  http://www.netscape.com/security/techbriefs/ssl.html
+  http://developer.netscape.com/docs/manuals/security/sslin/contents.htm
+  http://developer.netscape.com/tech/security/ssl/howitworks.html
+
+  http://www.cs.auckland.ac.nz/~pgut001/pubs/x509guide.txt
+  http://www.phrack.org/show.php?p=57&a=13

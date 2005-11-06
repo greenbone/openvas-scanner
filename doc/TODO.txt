@@ -1,0 +1,40 @@
+$Id$
+
+
+NESSUSD :
+---------
+
+
+- IPv6 support - this should not be too difficult. It just requires some 
+  changes in libnasl/, and in the way the targets are handled. [POSTPONED]
+
+LOGS:
+-----
+- put in the logs the fact that a test was negative or positive
+- create logs levels, in multiple files (nessusd.messages, nessusd.plugins,
+  nessusd.error, ...)
+
+REPORTS:
+--------		
+- stricter report output, to make information gathering easier
+- display the KB in the report
+
+PLUGINS :
+---------
+- script_exports() and script_imports() to make developement easier
+  and more comprehensive.
+- script_require_udp()
+- configurable find_service
+- script_severity()
+- user-defineable severity
+- script_keywords() [DONE, but unused yet]
+- easily translatable plugins [POSTPONED]
+
+NASL:
+-----
+- documentation regarding NASL and plugins developement  
+- plugins tutorial
+
+CLIENT:
+-------
+- API for report exports

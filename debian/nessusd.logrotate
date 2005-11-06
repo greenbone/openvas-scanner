@@ -1,0 +1,17 @@
+/var/log/nessus/nessusd.messages {
+  missingok
+  notifempty
+  create 640 root adm
+  daily
+  rotate 7
+  compress
+  postrotate
+    if [ -s /var/lib/nessus/nessusd.pid ]; then kill -1 `cat /var/lib/nessus/nessusd.pid`; fi
+    if [ -s /var/run/nessusd.pid ]; then kill -1 `cat /var/run/nessusd.pid`; fi
+    nesslogs=`ls /var/log/nessus/nessusd.messages.*`
+    if [ -n "$nesslogs" ]; then
+        chown root:adm $nesslogs
+        chmod 640 $nesslogs
+    fi
+  endscript
+}

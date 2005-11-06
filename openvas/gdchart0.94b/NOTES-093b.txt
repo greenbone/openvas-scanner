@@ -1,0 +1,53 @@
+GDChart v0.93b Notes
+====================
+Also see README.txt and NOTES-092b.txt for more information
+
+Neither this, nor README, is meant to be a usage manual (currently none exists),
+but they, gdchart.h, gdc.h, gdcpie.h, and the sample code are good places to start.
+
+
+Differences from v0.92b
+=======================
+
+gdc.h must be included.  Also linking with gdc.o is required.
+For charts (out_graph()), include gdchart.h; link with gdc_chart.o.
+For PIEs (pie_gif()), include gdcpie.h; link with gdc_pie.o.
+
+NEW FEATURES
+------------
+ - PIE charts!
+   (Only been tested on Linux and Solaris)
+
+ - Two new chart types have been added: GDC_COMBO_LINE_BAR and GDC_COMBO_LINE_BAR
+   (also GDC_3DCOMBO_LINE_BAR and GDC_3DCOMBO_LINE_AREA).
+
+ - newlines (NLs, '\n's, 0x0A, 10) are supported in Annotation NOTES, and GDC_title
+   (also in PIE labels and title)
+
+ - width option has been added to scatter points
+   GDC_scatter_width has been obsoleted
+
+ - 'printf' style formatting is available for the secondary Y axis (GDC_ylabel2_fmt)
+
+ - a zero 'shelf' can be added to 3D charts (GDC_0Shelf)
+
+ - values to ~10M are now supported
+
+ - grid lines are set for 'Z'axis on charts with multiple sets
+
+ - individual colors may be set for secondary plotting (COMBO charts): GDC_ExtVolColor
+
+
+BUG FIXES
+---------
+ - overwriting of 3D BARs
+
+ - scaling of multiple sets with negative values
+
+ - XPG2 compatibility (SunOS 2.4)
+
+ - Y-axis and Y2-axis labels overwriting titles and/or chart; running off end of GIF
+
+ - stacking should work except for AREA charts (GDC_STACK_DEPTH ok)
+
+ - annotation line w/o a note

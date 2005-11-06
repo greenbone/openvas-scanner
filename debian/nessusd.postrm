@@ -1,0 +1,17 @@
+#!/bin/sh
+set -e
+
+if [ "$1" = "purge" ]; then
+  for DIR in /etc/nessus /var/log/nessus /var/lib/nessus \
+	  /usr/lib/nessus/plugins/.desc/ 
+   do
+	if [ -d $DIR ] ; then
+		find $DIR -type f -o -type l | xargs rm -f 
+	fi
+  done
+  update-rc.d nessusd remove >/dev/null
+fi
+
+#DEBHELPER#
+
+exit 0

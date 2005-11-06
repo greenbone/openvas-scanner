@@ -1,0 +1,299 @@
+#!/bin/sh
+#
+# nessus-adduser
+#
+# Written by Renaud Deraison <deraison@cvs.nessus.org>
+#
+# This script is distributed under the Gnu General Public License (GPL)
+#
+
+# check whether we have echo -n, depending
+# on the current shell, used
+case `echo -n` in
+\-n)	Xn=   ; Xc='\c' ;;
+*)	Xn=-n ; Xc=
+esac
+
+
+
+
+is_cygwin=@is_cygwin@
+prefix=@prefix@
+exec_prefix=@exec_prefix@
+
+# add the nessus installation path
+PATH=@sbindir@:@bindir@:$PATH ; export PATH
+
+# make sure that we are root, if there is no id command,
+# you loose, anyway
+
+if [ -z "$is_cygwin" ];
+then
+ case `id 2>/dev/null` in 
+ uid=0*) 
+    # check the implementation
+    nessusd -g || {
+	 echo "Executing nessusd failed. Make sure your library loader is configured properly"
+        echo "and that nessusd is in your \$PATH"
+        exit 1
+	}
+    ;; 
+ *)
+    echo "only root should use nessus-adduser"
+    exit 1
+ esac
+else
+ nessusd -g
+fi
+
+
+prefix=@prefix@
+exec_prefix=@exec_prefix@
+bindir=@bindir@
+sbindir=@sbindir@
+libexecdir=@libexecdir@
+datadir=@datadir@
+sysconfdir=@sysconfdir@
+sharedstatedir=@sharedstatedir@
+localstatedir=@localstatedir@
+libdir=@libdir@
+includedir=@includedir@
+oldincludedir=@oldincludedir@
+infodir=@infodir@
+mandir=@mandir@
+
+
+PATH=$PATH:$sbindir:$bindir:/usr/ssl/bin:/usr/local/ssl/bin:/opt/ssl/bin
+
+# Test if we have MD5
+X=`echo x | openssl md5`
+if [ "$X" = "401b30e3b8b5d629635a5c613cdb7919" -o \
+     "$X" = "401B30E3B8B5D629635A5C613CDB7919" ]; then
+ MD5CMD="openssl md5"
+else
+ X=`echo x | md5sum | awk '{print $1}'`
+ if [ "$X" = "401b30e3b8b5d629635a5c613cdb7919" -o \
+      "$X" = "401B30E3B8B5D629635A5C613CDB7919" ]; then
+  MD5CMD=md5sum
+ else
+  MD5CMD=""
+ fi
+fi
+
+
+
+# find nessusd by the first path segment, ask for settings
+nessusd_conf=` nessusd -s | sed '/^config_file  *= /!d; s/^[^=]*= *//;'`
+
+# some checks
+[ -s "$nessusd_conf" ] || {
+	echo "Missing or empty configuration file \"$nessusd_conf\"!"
+	exit 2
+}
+
+# path to a temporary directory
+test -z "$TMPDIR" && {
+  	if [ -d /var/tmp ];
+	then
+	  echo "Using /var/tmp as a temporary file holder"
+	  TMPDIR=/var/tmp
+	else
+	  echo "Your \$TMPDIR variable is not set ! "
+	  echo $Xn "Enter the location to a place where I could place temporary files : [$HOME] $Xc"
+	  read TMPDIR
+	  test -z "$TMPDIR"  && TMPDIR=$HOME
+	fi  
+}
+
+
+
+
+# Here we go
+echo
+echo "Add a new nessusd user"
+echo "----------------------"
+echo
+echo
+
+prompt=${ADDUSERPROMPT-0}
+
+ok="n"
+while test "$ok" = "n";
+do
+ echo $Xn "Login : $Xc"
+ read login
+ if [ -d $localstatedir/lib/nessus/users/$login ];
+ then
+   echo "This login already exists. Choose another one"
+ else
+   ok="y"
+ fi
+done
+
+
+ok="n"
+while test "$ok" = "n";
+do
+ echo $Xn "Authentication (pass/cert) [pass] : $Xc"
+ read auth
+ test -z "$auth" && auth="pass"
+ if [ "$auth" = "pass" -o "$auth" = "cert" ]; then
+  ok=y
+ fi
+done
+
+if [ "$auth" = "cert" ]; then
+ dn=""
+ echo "Please enter User Distinguished Name:"
+ #
+ echo $Xn "Country: $Xc"
+ read x && [ -n "$x" ] && dn=$dn/C=$x
+ echo $Xn "STate: $Xc"
+ read x && [ -n "$x" ] && dn=$dn/ST=$x
+ echo $Xn "Location: $Xc"
+ read x && [ -n "$x" ] && dn=$dn/L=$x
+ echo $Xn "Organization: $Xc"
+ read x && [ -n "$x" ] && dn=$dn/O=$x
+ echo $Xn "Organizational Unit: $Xc"
+ read x && [ -n "$x" ] && dn=$dn/OU=$x
+ echo $Xn "Common Name: $Xc"
+ read x && [ -n "$x" ] && dn=$dn/CN=$x
+ echo $Xn "e-Mail: $Xc"
+ read x && [ -n "$x" ] && dn=$dn/Email=$x
+else
+askPasswd="Login password :"
+askPasswdAgain="Login password (again) :"
+sayPasswd="Password          :"
+
+ok="n"
+while test "$ok" = "n";
+do
+ echo $Xn "$askPasswd $Xc"
+ stty -echo
+ read password
+ echo
+ echo $Xn "$askPasswdAgain $Xc"
+ read password_again
+ stty echo
+ echo
+ 
+ if test -z "$password" ; then
+   echo "Your password can not be empty."
+ else
+   if [ "$password" != "$password_again" ]; then
+    echo "Passwords do not match !"
+   else
+    ok="y"
+   fi
+fi
+done
+
+fi
+
+if [ $prompt -eq 0 ] ; then
+echo 
+echo "User rules"
+echo "----------"
+
+echo "nessusd has a rules system which allows you to restrict the hosts"
+echo "that $login has the right to test. For instance, you may want"
+echo "him to be able to scan his own host only."
+echo
+echo "Please see the nessus-adduser(8) man page for the rules syntax"
+
+echo
+echo "Enter the rules for this user, and hit ctrl-D once you are done : "
+
+
+echo "(the user can have an empty rules set)"
+mkdir -m 0700 $TMPDIR/nessus-adduser.$$/ || { echo "Error - could not create $TMPDIR/nessus-adduser.$$" ; exit 1; }
+
+cat > $TMPDIR/nessus-adduser.$$/rules.$$ || {
+  	echo "Error - could not write $TMPDIR/nessus-adduser.$$/rules.$$"
+	exit 1
+}
+
+echo 
+echo
+echo "Login             : $login"
+echo "$sayPasswd ***********" 
+echo "DN                : $dn"
+echo "Rules             : "
+
+cat $TMPDIR/nessus-adduser.$$/rules.$$
+
+echo
+echo
+echo $Xn "Is that ok ? (y/n) [y] $Xc"
+
+else
+	cp /dev/null $TMPDIR/nessus-adduser.$$/rules.$$
+fi
+read ok
+
+# check for answer, default is Yes, abort on other reply
+case $ok in ''|[Yy]*);; *) 
+    rm -rf $TMPDIR/nessus-adduser.$$
+    echo Aborted
+    exit 0
+esac
+
+# add the user rules in our rules files. 
+#
+# The users file must end with the default user '*', so we add
+# our data at the TOP of the file
+
+
+
+#echo "$login:$password" > $TMPDIR/adduser.$$
+	
+
+mkdir -m 0755 -p "$localstatedir/lib/nessus/users/$login"
+
+
+
+
+
+
+#
+# Create the auth. dir, which contains the user rules,
+# password, and plugin acl
+#
+mkdir -m 0700 -p "$localstatedir/lib/nessus/users/$login/auth"
+
+#
+# Create the plugins dir, which contains the user plugins
+#
+mkdir -m 0755 -p "$localstatedir/lib/nessus/users/$login/plugins"
+
+
+
+if [ "$auth" = "pass" ]; then
+    if [ "$MD5CMD" ]; then
+    	test -c /dev/urandom &&
+	{
+	URANDOM=`dd if=/dev/urandom bs=16 count=16 2>/dev/null|$MD5CMD`
+	}
+	SEED=`(echo $SEED; date; df; ls -l; echo $URANDOM) | $MD5CMD | awk '{print $1}'`
+	H=`echo $Xn $SEED$password$Xc | $MD5CMD | awk '{print $1}'`
+	echo $H $SEED > "$localstatedir/lib/nessus/users/$login/auth/hash"
+    else
+	echo "$password" > "$localstatedir/nessus/users/$login/auth/password"
+    fi
+elif [ "$auth" = "cert" ]; then
+	echo "$dn" > "$localstatedir/lib/nessus/users/$login/auth/dname"
+fi
+
+
+
+cp $TMPDIR/nessus-adduser.$$/rules.$$ "$localstatedir/lib/nessus/users/$login/auth/rules"
+
+
+
+rm -rf $TMPDIR/nessus-adduser.$$
+
+
+
+
+
+echo "user added."

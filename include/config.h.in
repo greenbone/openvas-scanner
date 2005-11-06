@@ -1,0 +1,359 @@
+/* Nessus
+ * Copyright (C) 1998 Renaud Deraison
+ *
+ * This program is free software; you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation; either version 2 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program; if not, write to the Free Software
+ * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
+ *
+ */
+ 
+/*
+ * GENERAL CONFIGURATION
+ */
+
+ 
+/* 
+ * Socket type
+ *
+ * Nessus can handle two types of socket : AF_INET and AF_UNIX
+ *
+ * The AF_INET type allow the server and the client to be on
+ * different computers, but may create security problems (until
+ * someone volunteers to made the encryption)
+ *
+ * The AF_UNIX type is more secure, but the server and the
+ * client have to be on the same computer (this is what is used
+ * by default if you don't define 'USE_AF_INET'), and must
+ * be launched by the same user (read : same uid)
+ */
+ 
+#undef USE_AF_UNIX
+#undef AF_UNIX_PATH
+
+#ifndef USE_AF_UNIX
+#define USE_AF_INET
+#else
+#undef NESSUS_ON_SSL
+#endif
+
+/* AF_UNIX socket path (if you want to use AF_UNIX sockets) */
+#ifndef USE_AF_INET
+#ifndef AF_UNIX_PATH
+#define AF_UNIX_PATH "/var/run/nessus/nessus.sock"
+#endif
+#endif /* not def USE_AF_INET */
+
+
+/*
+ * define this if you want to see some useful debug
+ * messages comming from Nessus 
+ */
+#undef DEBUG
+
+/* more paricular debuging flags */
+#undef DEBUGMORE
+#undef ENABLE_PID_STAMP_DEBUGGING
+
+/*
+ * NESSUSD SPECIFIC CONFIGURATION
+ */
+
+
+/* miscellaneous */
+#define NESSUSD_LANGUAGE "(undefined)"
+#define NESSUSD_LOGS     NESSUSD_LOGDIR
+#define NESSUSD_LOGINS   NESSUSD_STATEDIR "/users"
+#define NESSUSD_JOBS	NESSUSD_STATEDIR  "/jobs"
+#define NESSUSD_CERTS	NESSUSD_STATEDIR "/certs"
+
+#define NESSUSD_CA	NESSUSD_SHAREDSTATEDIR "/CA"
+
+
+
+
+/* derived entries */
+#define NESSUSD_CONF     NESSUSD_CONFDIR  "/nessus/nessusd.conf"
+
+#define NESSUSD_MESSAGES NESSUSD_LOGS "/nessusd.messages"
+#define NESSUSD_DEBUGMSG NESSUSD_LOGS "/nessusd.dump"
+
+
+#define NESSUSD_DATAPOOL NESSUSD_STATEDIR "-datapool"
+#define NESSUSD_RULES    NESSUSD_DATADIR  "/nessusd.rules"
+#define NESSUSD_USERS    NESSUSD_DATADIR  "/nessusd.users"
+
+
+
+/* Definitions for client/server ecryption, activated on the C compiler
+   command line as given by the command `nessus-config --cflags` */
+#ifdef ENABLE_CRYPTO_LAYER
+
+/* seconds the server waits for the client after authentication */
+#define NESSUSD_NEGOT_TIMEOUT 600 
+
+/* the files, keys are stored in */
+#define NESSUSD_USERKEYS /* logindir */ "~/auth/nessusd.user-keys"
+#define NESSUSD_USERPWDS NESSUSD_DATADIR "/nessusd.user-pwds"
+#define NESSUSD_KEYFILE  NESSUSD_DATADIR "/nessusd.private-keys"
+
+/* The default server key file and key length */
+#define NESSUSD_KEYLENGTH    1024
+#define NESSUSD_MAXPWDFAIL   5
+#define NESSUSD_USERNAME     "nessusd"
+
+/* The default rpc cipher nessusd will be connect to (if any) */
+#define NESSUSD_RPCIPHER     "twofish/ripemd160"
+#define NESSUSD_RPCAUTH_METH  3 /* auth scheme, either 1 or 3 */
+
+/* The timeout secs when waiting for a log pipe to be established */
+#define NESSUSD_LOGPIPE     NESSUSD_DATADIR  "/nessusd.logpipe"
+#define NESSUSD_LOGPIPE_TMO 2
+
+#endif /* ENABLE_CRYPTO_LAYER */
+
+/* Obsolete: the port 3001 on which nessusd will be listening */
+#undef DEFAULT_PORT
+
+/* The default port assigned to nessus by the iana is 1241, see
+   http://www.isi.edu/in-notes/iana/assignments/port-numbers */
+#define NESIANA_PORT 1241
+
+/* The max number of client connections/sec */
+#define NESSUSD_CONNECT_RATE 4
+
+/* Block this many secs if the NESSUSD_CONNECT_RATE was exceeded */
+#define NESSUSD_CONNECT_BLOCKER 2
+
+/*
+ * How much time before closing
+ * the connection if nothing comes
+ * from the client ? (in secs)
+ */
+#define CLIENT_TIMEOUT 300
+
+/*
+ * How much time before killing
+ * a plugin ? (in secs)
+ * (if you have a slow computer or a slow
+ * network connection, set it to 320 or more)
+ */
+ 
+#define PLUGIN_TIMEOUT 320
+
+
+/* 
+ * Should we use applications for the remote harg stuff ?
+ */
+#ifdef ENABLE_RHLST
+#undef ENABLE_RHLST_APPS
+#endif
+/*
+ * Shall the server log EVERYTHING ?
+ */
+ 
+#undef LOGMORE
+
+/*
+ * Shall the server log the whole attack ?
+ */
+ 
+#undef LOG_WHOLE_ATTACK
+
+/*
+ * Host specs.
+ * 
+ * Set this if you are running OpenBSD < 2.1 or all FreeBSD or
+ * all netBSD, or BSDi < 3.0
+ *
+ * If you have run this script as root, then it should be correctly
+ * set up
+ *
+ */
+#undef BSD_BYTE_ORDERING
+
+
+/*
+ * NESSUS CLIENT SPECIFIC CONFIGURATION
+ */
+ 
+/*
+ * Build the client with GTK?
+ */
+#undef USE_GTK
+
+/*
+ * How long before closing the 
+ * connection to the server if
+ * it stays mute ?
+ */
+#define SERVER_TIMEOUT 800
+ 
+
+/*
+ * STOP ! Don't edit anything after this line !
+ */
+#ifndef _CYGWIN_
+#undef _CYGWIN_
+#endif
+
+#undef STDC_HEADERS
+#undef HAVE_GMP_H
+#undef HAVE_GMP2_GMP_H
+#undef HAVE_UNISTD_H
+#undef HAVE_ASSERT_H
+#undef HAVE_FNMATCH
+#undef HAVE_LSTAT
+#undef HAVE_MMAP
+#undef HAVE_ATEXIT
+#undef HAVE_BZERO
+#undef HAVE_BCOPY
+#undef HAVE_RAND
+#undef HAVE_POLL
+#undef HAVE_RINT
+#undef HAVE_SELECT
+#undef HAVE_SETSID
+#undef HAVE_WAITPID
+#undef HAVE_WAIT3
+#undef HAVE_WAIT4
+#undef HAVE_POLL_H
+#undef HAVE_GETTIMEOFDAY
+#undef GETTIMEOFDAY_ONE_ARGUMENT
+#undef HAVE_TIMEVAL
+#undef HAVE_GETHRTIME
+#undef HAVE_GETRUSAGE
+#undef HAVE_LONG_FILE_NAMES
+#undef HAVE_GETOPT_H
+#undef HAVE_STRING_H
+#undef HAVE_STRINGS_H
+#undef HAVE_SYS_POLL_H
+#undef HAVE_SYS_SOCKIO_H
+#undef HAVE_SYS_SOCKETIO_H
+#undef HAVE_SYS_SOCKET_H
+#undef HAVE_SYS_PARAM_H
+#undef HAVE_NETDB_H
+#undef HAVE_ARPA_INET_H
+#undef HAVE_NETINET_TCP_H
+#undef HAVE_NET_IF_H
+#undef HAVE_NETINET_TCPIP_H
+#undef HAVE_NETINET_IN_H
+#undef HAVE_NETINET_IN_SYSTM_H
+#undef HAVE_NETINET_IP_UDP_H
+#undef HAVE_NETINET_UDP_H
+#undef HAVE_NETINET_PROTOCOLS_H
+#undef HAVE_NETINET_IP_H
+#undef HAVE_NETINET_IP_ICMP_H
+#undef HAVE_NETINET_IP_TCP_H
+#undef HAVE_NETINET_PROTOCOLS_H
+#undef HAVE_DL_LIB
+#undef HAVE_SHL_LOAD
+#undef HAVE_NSCREATEOBJECTFILEIMAGEFROMFILE
+#undef HAVE_VSNPRINTF
+#undef HAVE_MKSTEMP
+#undef HAVE_SETJMP_H
+#undef HAVE_STRUCT_IP
+#undef HAVE_STRUCT_ICMP
+#undef HAVE_STRUCT_TCPHDR
+#undef HAVE_TCPHDR_TH_OFF
+#undef HAVE_TCPHDR_TH_X2_OFF
+#undef HAVE_STRUCT_UDPHDR
+#undef HAVE_BSD_STRUCT_UDPHDR
+#undef HAVE_ICMP_ICMP_LIFETIME
+#undef HAVE_SYS_WAIT_H
+#undef HAVE_SYS_STAT_H
+#undef HAVE_LIMITS_H
+#undef HAVE_VALUES_H
+#undef HAVE_STAT_H
+#undef TIME_WITH_SYS_TIME
+#undef HAVE_SYS_TIME_H
+#undef HAVE_SYS_IOCTL_H
+#undef HAVE_DIRENT_H
+#undef HAVE_SYS_NDIR_H
+#undef HAVE_SYS_DIR_H
+#undef HAVE_NDIR_H
+#undef HAVE_DL_H
+#undef HAVE_STRCHR
+#undef HAVE_MEMCPY
+#undef HAVE_MEMMOVE
+#undef HAVE_ALLOCA
+#undef HAVE_ALLOCA_H
+#undef HAVE_PTHREAD_H
+#undef HAVE_PTHREAD_CANCEL
+#undef HAVE_DLFCN_H
+#undef HAVE_FCNTL_H
+#undef HAVE_RPC_RPC_H
+#undef WORDS_BIGENDIAN
+#undef SIZEOF_UNSIGNED_INT
+#undef SIZEOF_UNSIGNED_LONG
+#undef HAVE_MEMORY_H
+#undef HAVE_ADDR2ASCII
+#undef HAVE_INET_NETA
+#undef HAVE_SYS_UN_H
+#undef HAVE_CTYPE_H
+#undef HAVE_SYS_TYPES_H
+#undef HAVE_ERRNO_H
+#undef HAVE_PWD_H
+#undef HAVE_STDLIB_H
+#undef HAVE_STDIO_H
+#undef HAVE_SYS_FILIO_H
+#undef HAVE_SYS_RESOURCE_H
+#undef HAVE_XDR_MON
+#undef HAVE_SOCKADDR_SA_LEN
+#undef HAVE_SGTTY_H
+#undef HAVE_TERMIO_H
+#undef HAVE_TERMIOS_H
+#undef HAVE_LIBUTIL_H
+#undef HAVE_DB1_DB_H
+#undef HAVE_DB_H
+#undef HAVE_SETPROCTITLE
+#undef HAVE__EXIT
+
+#undef HAVE_PTY_H
+#undef HAVE_SYS_MMAN_H
+#undef HAVE_SIGNAL_H
+#undef HAVE_PWD_H
+#undef HAVE_SETJMP_H
+#undef LINUX
+#undef FREEBSD
+#undef OPENBSD
+#undef SOLARIS
+#undef SUNOS
+#undef BSDI
+#undef IRIX
+#undef NETBSD
+
+
+#undef HAVE_INET_ATON
+#undef STUPID_SOLARIS_CHECKSUM_BUG
+#undef HAVE_STRUCT_IP_CSUM
+#undef HAVE_GETHOSTBYNAME_R
+#undef HAVE_SOLARIS_GETHOSTBYNAME_R
+#undef HAVE_SOLARIS_GETHOSTBYADDR_R
+#undef HAVE_SIGNAL_SA_RESTORER
+#undef USE_SYSLOG
+#undef USE_ZLIB_COMPRESSION
+
+
+#undef GTK_VERSION
+#undef BROKEN_PTHREAD_CLEANUP_PUSH
+
+#undef HAVE_REGEX_SUPPORT
+/*
+ * Experimental features 
+ */
+#define ENABLE_SAVE_TESTS 1
+#define ENABLE_SAVE_KB 1
+/* 
+ * Local Variables:
+ * mode: c
+ * Emd:
+ */
