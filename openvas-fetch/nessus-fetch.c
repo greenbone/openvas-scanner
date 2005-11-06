@@ -2,6 +2,7 @@
  * Nessus-Fetch
  *
  * (C) Tenable Network Security
+ * (C) Tim Brown
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 2,
@@ -29,8 +30,8 @@
 #define MAX_SIZE (40*1024*1024)
 
 
-#define WWW_NESSUS_ORG "www.nessus.org"
-#define PLUGINS_NESSUS_ORG "plugins.nessus.org" 
+#define WWW_OPENVAS_ORG "www.openvas.org"
+#define PLUGINS_OPENVAS_ORG "plugins.openvas.org" 
 
 #define SOCKET_TIMEOUT 90
 
@@ -569,7 +570,7 @@ static void update_plugins(int argc, char ** argv)
  pid_t pid;
  int e;
 
- printf("Now fetching the newest plugin set from plugins.nessus.org...\n");
+ printf("Now fetching the newest plugin set from %s...\n", PLUGINS_OPENVAS_ORG);
 
  ptr = find_in_path("nessus-update-plugins", 0);
  if ( ptr == NULL )
@@ -638,15 +639,15 @@ static int do_register( char * serial, int argc, char ** argv )
 
  load_preferences(&prefs);
  
- hostinfo = mkhostinfo(PLUGINS_NESSUS_ORG);
+ hostinfo = mkhostinfo(PLUGINS_OPENVAS_ORG);
  if ( prefs.proxy != NULL )
-  snprintf(str, sizeof(str), "https://%s/register.php?serial=%s", PLUGINS_NESSUS_ORG, serial);
+  snprintf(str, sizeof(str), "https://%s/register.php?serial=%s", PLUGINS_OPENVAS_ORG, serial);
  else
   snprintf(str, sizeof(str), "/register.php?serial=%s", serial);
 
  req = mk_http_req(plug_get_hostname(hostinfo), str, NULL, NULL);
  if ( prefs.proxy && prefs.proxy_port )
-  soc = proxy_connect_method(PLUGINS_NESSUS_ORG, HTTPS_PORT, &prefs, hostinfo);
+  soc = proxy_connect_method(PLUGINS_OPENVAS_ORG, HTTPS_PORT, &prefs, hostinfo);
  else
   soc = open_stream_connection(hostinfo, HTTPS_PORT, NESSUS_ENCAPS_TLSv1,  SOCKET_TIMEOUT);
 
@@ -900,7 +901,7 @@ void check_subscription()
   snprintf(path, sizeof(path), "/get.php?u=%s&p=%s&f=check", prefs.login, prefs.password);
 
 
-  fetch_file(NESSUS_ENCAPS_TLSv1, HTTPS_PORT, PLUGINS_NESSUS_ORG, path, NULL, NULL, NULL, &result);
+  fetch_file(NESSUS_ENCAPS_TLSv1, HTTPS_PORT, PLUGINS_OPENVAS_ORG, path, NULL, NULL, NULL, &result);
   if ( result == NULL )
 	{
 	fprintf(stderr, "An unknown network error occured while checking the plugins subscription\n");
@@ -940,7 +941,7 @@ void fetch_plugins_file(char * filename)
   char buf[1024];
   direct_feed = 1;
   snprintf(path, sizeof(path), "/get.php?u=%s&p=%s&f=%s", prefs.login, prefs.password, filename);
-  fetch_file(NESSUS_ENCAPS_TLSv1, HTTPS_PORT, PLUGINS_NESSUS_ORG, path, filename, NULL, NULL, NULL);
+  fetch_file(NESSUS_ENCAPS_TLSv1, HTTPS_PORT, PLUGINS_OPENVAS_ORG, path, filename, NULL, NULL, NULL);
   fd = open(filename, O_RDONLY);
   if ( fd < 0 ) {
 	fprintf(stderr, "Could not open %s - %s\n", filename, strerror(errno));
@@ -959,7 +960,7 @@ void fetch_plugins_file(char * filename)
  else
   {
   snprintf(path, sizeof(path), "/nasl/%s", filename);
-  fetch_file(NESSUS_ENCAPS_IP, HTTP_PORT, WWW_NESSUS_ORG, path, filename, NULL, NULL, NULL);
+  fetch_file(NESSUS_ENCAPS_IP, HTTP_PORT, WWW_OPENVAS_ORG, path, filename, NULL, NULL, NULL);
   }
 }
 

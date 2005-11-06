@@ -1,5 +1,6 @@
 /* Nessus
  * Copyright (C) 1998 - 2001 Renaud Deraison
+ * Copyright (C) 2005 Tim Brown
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 2,
@@ -450,14 +451,14 @@ void latex_conclusion(FILE * f)
  fprintf(f, "of an intrusion.\\\\\n");
  fprintf(f, "In addition to that, you must know that new security holes ");
  fprintf(f, "are found each week. That is why we recommand that you visit ");
- fprintf(f, "\\verb+http://www.nessus.org/scripts.html+, which is a page ");
+ fprintf(f, "\\verb+http://www.openvas.org/scripts.html+, which is a page ");
  fprintf(f, "that contains the test for all the holes that are published ");
  fprintf(f, "on public mailing lists such as BugTraq (see ");
  fprintf(f, "\\verb+http://www.securityfocus.com+ for details) ");
  fprintf(f, "and test the security of your network on a (at least) weekly basis ");
  fprintf(f, "with the checks that are on this page.\\\\\n");
  fprintf(f, "\\textit{This report was generated with Nessus, the open-sourced ");
- fprintf(f, "security scanner. See http://www.nessus.org for more information}");
+ fprintf(f, "security scanner. See http://www.openvas.org for more information}");
 }
 
 /***************************************************************************

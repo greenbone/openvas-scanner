@@ -1,5 +1,6 @@
 /* Nessus
  * Copyright (C) 1998 - 2001 Renaud Deraison
+ * Copyright (C) 2005 Tim Brown
  *
  *
  * This program is free software; you can redistribute it and/or modify
@@ -109,11 +110,7 @@ prefs_dialog_about(window)
  
  
  
- label = gtk_label_new("Project site : http://www.nessus.org");
- gtk_box_pack_start(GTK_BOX(vbox), label, FALSE, FALSE, 10);
- gtk_widget_show(label);
- 
- label = gtk_label_new("Mailing list : http://list.nessus.org");
+ label = gtk_label_new("Project site : http://www.openvas.org");
  gtk_box_pack_start(GTK_BOX(vbox), label, FALSE, FALSE, 10);
  gtk_widget_show(label);
  return(ctrls);
