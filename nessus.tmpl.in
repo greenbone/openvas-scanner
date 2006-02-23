@@ -98,10 +98,6 @@ USE_PTHREADS=@use_pthreads@
 
 # Should we log the error using syslog() ?
 
-# Should we use GTK ?
-
-USE_GTK = @gtk_flags@
-
 # Build with debugging ?
 
 DEBUG = @debug_flags@
@@ -109,7 +105,7 @@ DEBUG = @debug_flags@
 USE_LIBWRAP = @uselibwrap@
 
 # Some defines you may want to modify
-NESSUS_DEFS=@DEFS@ $(USE_PTHREADS) $(DEBUG) $(USE_GTK) $(USE_LIBWRAP)
+NESSUS_DEFS=@DEFS@ $(USE_PTHREADS) $(DEBUG) $(USE_LIBWRAP)
 DEFS=  
 LDFLAGS=
 
@@ -117,10 +113,6 @@ LDFLAGS=
 CC=@CC@
 NESSUSCONFIG=@NESSUSCONFIG@
 NASLCONFIG=@NASLCONFIG@
-GTKCONFIG_CFLAGS=@GTKCONFIG_CFLAGS@
-GTKCONFIG_LIBS=@GTKCONFIG_LIBS@
-GLIBCONFIG_CFLAGS=@GLIBCONFIG_CFLAGS@
-GLIBCONFIG_LIBS=@GLIBCONFIG_LIBS@
 DL_LIB=@dl_lib@
 RESOLV_LIB=@resolv_lib@
 SOCKET_LIB=@socket_lib@
