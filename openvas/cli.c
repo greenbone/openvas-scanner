@@ -40,7 +40,6 @@
 #include "parser.h"
 #include "cli.h"
 
-#undef USE_GTK
 #include "read_target_file.h"
 #include "nsr_output.h"
 #include "nbe_output.h"
@@ -367,6 +366,7 @@ cli_args_output(args, type)
     return;
   }
 
+#define _NO_PIES
 #ifndef _NO_PIES
  if(!strncmp(ftype, "html_pie", 8)||
      !strncmp(ftype, "html_graph", 10)) {

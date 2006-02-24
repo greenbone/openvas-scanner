@@ -46,11 +46,6 @@ nessus_exit(code)
 void 
 sighand_pipe()
 {
-#ifdef USE_GTK
-  if(!F_quiet_mode)
-   show_error_and_wait("Connection closed by the server (SIGPIPE caught)");
-  else
-#endif
   fprintf(stderr, "Connection closed by the server (SIGPIPE caught)\n");  
 }
 
@@ -58,10 +53,6 @@ sighand_pipe()
 void 
 sighand_alarm()
 {
-#ifdef USE_GTK
-  if(!F_quiet_mode)show_error_and_wait("Connection timed out");
-  else
-#endif
  fprintf(stderr, "Connection timed out\n");  
 }
  

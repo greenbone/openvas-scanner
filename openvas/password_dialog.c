@@ -38,15 +38,6 @@
 # include <setjmp.h>
 #endif
 
-#ifdef USE_GTK
-#include <gtk/gtk.h>
-#include "xpm/lock.xpm"
-#include "error_dialog.h"
-#include "password_dialog.h"
-#include "xstuff.h"
-static void pass_build_dialog(struct arglist *, char *);
-static void pass_dialog_callback(void *, struct arglist *);
-#endif
 #include "globals.h"
 
 /* fixing the problem when nessus is started in the background while
@@ -112,151 +103,6 @@ retrieve_tty_getpass
 #endif /* TCION */ 
 #undef BLURB
 
-#ifdef USE_GTK
-
-static void
-pass_build_dialog(ctrls, prompt)
- struct arglist * ctrls;
- char * prompt;
-{
- GtkWidget * w, * table, * entry, * ok;
- GtkStyle  * style;
- GtkWidget * pixmapwid;
- GdkPixmap * pixmap;
- GdkBitmap * mask;
- GtkWidget * hbox, * vbox, * label, *sep, *box;
- w = gtk_window_new(GTK_WINDOW_TOPLEVEL);
- gtk_window_position(GTK_WINDOW(w), GTK_WIN_POS_CENTER);
- gtk_widget_realize(w);
- 
- style = gtk_widget_get_style(w);
- pixmap = gdk_pixmap_create_from_xpm_d(w->window, &mask,
-					&style->bg[GTK_STATE_NORMAL],
-					(char **)lock_xpm);
- pixmapwid = gtk_pixmap_new(pixmap, mask);   
- 
- 
- gtk_window_set_title(GTK_WINDOW(w), "Password");
- gtk_container_border_width(GTK_CONTAINER(w), 5);
- arg_add_value(ctrls, "WINDOW", ARG_PTR, -1, w);
- 
- 
- vbox = gtk_vbox_new(FALSE, 5);
- hbox = gtk_hbox_new(FALSE, 5);
- 
- 
- 
- gtk_container_add(GTK_CONTAINER(w), hbox);
- gtk_widget_show(hbox);
- 
- gtk_box_pack_start(GTK_BOX(hbox), vbox, FALSE, FALSE, 0);
- gtk_widget_show(vbox);
- 
- gtk_box_pack_start(GTK_BOX(vbox), pixmapwid, FALSE, FALSE, 0);
- gtk_widget_show(pixmapwid);
- 
- sep = gtk_vseparator_new();
- gtk_box_pack_start(GTK_BOX(hbox), sep, FALSE, FALSE, 5);
- gtk_widget_show(sep);
- 
- vbox = gtk_vbox_new(FALSE, 5);
- gtk_box_pack_start(GTK_BOX(hbox), vbox, FALSE, FALSE, 0);
- gtk_widget_show(vbox);
- 
- box = gtk_hbox_new(FALSE, 5);
- gtk_box_pack_start(GTK_BOX(vbox), box, FALSE, FALSE, 10);
- gtk_widget_show(box);
- 
- label = gtk_label_new(prompt);
-  gtk_box_pack_start(GTK_BOX(box), label, FALSE, FALSE, 10);
- gtk_widget_show(label);
- 
- table  = gtk_table_new(2,2,TRUE);
- gtk_box_pack_start(GTK_BOX(vbox), table, FALSE, FALSE, 5);
- gtk_container_border_width(GTK_CONTAINER(table), 10);
- gtk_widget_show(table);
- 
- 
- entry = gtk_entry_new();
- gtk_entry_set_visibility(GTK_ENTRY(entry), FALSE);
- gtk_table_attach_defaults(GTK_TABLE(table), entry,0,2,0,1);
- gtk_widget_show(entry); 
- arg_add_value(ctrls, "PASSWORD", ARG_PTR, -1, entry);
- 
- ok = gtk_button_new_with_label("Ok");
- gtk_signal_connect(GTK_OBJECT(ok), "clicked", 
- 		    (GtkSignalFunc)pass_dialog_callback, 
-		    (void*)ctrls);
-		    
- gtk_table_attach_defaults(GTK_TABLE(table), ok, 1,2,1,2);
- GTK_WIDGET_SET_FLAGS(ok, GTK_CAN_DEFAULT);
- gtk_widget_grab_default(ok);
- gtk_widget_show(ok);
- gtk_widget_show(w);
- gtk_grab_add(w);
-}
-
-
-static void pass_dialog_callback(nul, ctrls)
- void * nul;
- struct arglist * ctrls;
-{
- GtkWidget * pass = (GtkWidget *)arg_get_value(ctrls, "PASSWORD");
- char * pass_str;
-
- gtk_grab_remove(arg_get_value(ctrls, "WINDOW"));
- pass_str = (char*)gtk_entry_get_text(GTK_ENTRY(pass));
- if(!pass_str || !strlen(pass_str))
- 	show_warning("You must enter a valid password");
- else {
-    	char * s = estrdup(pass_str);
-        close_window(NULL, arg_get_value(ctrls, "WINDOW"));
- 	arg_add_value(ctrls, "PASSWORD_TEXT", ARG_STRING, strlen(s), s);
-       }
-}
-
-
-char *
-pass_dialog (int unused)
-{
- struct arglist * ctrls;
- char * ret;
- 
- ctrls = emalloc(sizeof(struct arglist));
- pass_build_dialog(ctrls, "Password required : ");
- while(!arg_get_value(ctrls, "PASSWORD_TEXT"))
-  while(gtk_events_pending()){
-  	gtk_main_iteration();
-#if !defined(WIN32) && !defined(_WIN32)
-	usleep(10000);
-#endif
-	}	
- ret = estrdup(arg_get_value(ctrls, "PASSWORD_TEXT"));
- arg_free(ctrls);
- return(ret);
-}
-
-char *
-keypass_dialog (int unused)
-{
- struct arglist * ctrls;
- char * ret;
- 
- ctrls = emalloc(sizeof(struct arglist));
- pass_build_dialog(ctrls, "Pass phrase : ");
- while(!arg_get_value(ctrls, "PASSWORD_TEXT"))
-  while(gtk_events_pending()){
-    gtk_main_iteration();
-#if !defined(WIN32) && !defined(_WIN32)
-    usleep(10000);
-#endif
-  }
- ret = estrdup(arg_get_value(ctrls, "PASSWORD_TEXT"));
- arg_free(ctrls);
- return(ret);
-}
-#endif /* USE_GTK */
-
 /* non GUI password dialogue */
 char* 
 cmdline_pass
@@ -288,11 +134,7 @@ get_pwd
     /* key activation mode */
     if(F_quiet_mode)return getpass("Pass phrase: ");
     else
-#ifdef USE_GTK
-    return keypass_dialog (0);
-#else
     return getpass("Pass phrase: ");
-#endif    
   case 2:
     __created_key ++ ;
 #   ifdef FIRST_PWD_BLURB

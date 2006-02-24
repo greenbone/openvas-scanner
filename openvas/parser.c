@@ -30,7 +30,6 @@
 #include "parser.h"
 #include "auth.h"
 #include "error_dialog.h"
-#include "monitor_dialog.h"
 #include "backend.h"
 #include "globals.h"
 
@@ -279,11 +278,6 @@ parse_server_message(message, backend, humanmsg)
         if(!F_quiet_mode)
           {
            char * msg = parse_separator(t);
-#ifdef USE_GTK
-	   char * t;
-	   while((t = strchr(msg, ';')))t[0]='\n';
-           show_error(msg);
-#endif
 	   efree(&msg);
   	   return(MSG_ERROR);
   	  }

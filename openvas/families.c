@@ -27,9 +27,6 @@
  */
  
 #include <includes.h>
-#ifdef USE_GTK
-#include <gtk/gtk.h>
-#endif
 
 #include "families.h"
 #include "filter.h"
