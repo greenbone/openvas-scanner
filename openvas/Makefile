@@ -9,16 +9,12 @@ NESSUS_INCLUDE=`sh ./cflags`
 OBJS = auth.o \
        comm.o \
        sighand.o \
-       xstuff.o \
        cli.o \
        parser.o \
-       plugin_infos.o \
        preferences.o \
        families.o \
        attack.o \
        report.o \
-       report_ng.o \
-       report_save.o \
        report_utils.o \
        nsr_output.o  \
        nbe_output.o \
@@ -30,11 +26,8 @@ OBJS = auth.o \
        html_graph_output.o \
        error_dialog.o \
        password_dialog.o \
-       monitor_dialog.o \
        backend.o \
        data_mining.o \
-       netmap.o \
-       detached_index.o \
        read_target_file.o \
        regex.o \
        filter.o \
@@ -60,9 +53,6 @@ cflags :
 nessus : cflags $(OBJS) 
 	$(CC) $(LDFLAGS) $(OBJS)   -o nessus $(LIBS) 
 
-detached_index.o : cflags detached_index.c
-	$(CC) $(CFLAGS) $(NESSUS_INCLUDE) -c detached_index.c
-
 preferences.o : cflags preferences.c preferences.h
 	$(CC) $(CFLAGS) $(NESSUS_INCLUDE) -c preferences.c 
 
@@ -71,9 +61,6 @@ error_dialog.o : cflags error_dialog.c error_dialog.h
 
 families.o : cflags families.c families.h
 	$(CC) $(CFLAGS) $(NESSUS_INCLUDE) -c families.c 
-
-plugin_infos.o : cflags plugin_infos.c plugin_infos.h
-	$(CC) $(CFLAGS) $(NESSUS_INCLUDE) -c plugin_infos.c 
 
 main_window.o : cflags main_window.c main_window.h
 	$(CC) $(CFLAGS) $(NESSUS_INCLUDE) -c main_window.c 
@@ -103,10 +90,6 @@ latex_output.o : cflags latex_output.c latex_output.h
 html_graph_output.o : cflags html_graph_output.c html_graph_output.h
 	$(CC) $(CFLAGS) $(NESSUS_INCLUDE) -c html_graph_output.c 
 
-
-monitor_dialog.o : cflags monitor_dialog.c monitor_dialog.h
-	$(CC) $(CFLAGS) $(NESSUS_INCLUDE) -c monitor_dialog.c 
-	
 backend.o : cflags backend.c backend.h
 	$(CC) $(CFLAGS) $(NESSUS_INCLUDE) -c backend.c 	
 
@@ -131,13 +114,6 @@ comm.o : cflags comm.c
 report.o : cflags report.c
 	$(CC) $(CFLAGS) $(NESSUS_INCLUDE) -c report.c 
 
-report_ng.o : cflags report_ng.c
-	$(CC) $(CFLAGS) $(NESSUS_INCLUDE) -c report_ng.c 
-	
-report_save.o : cflags report_save.c
-	$(CC) $(CFLAGS) $(NESSUS_INCLUDE) -c report_save.c 	
-	
-	
 parser.o : cflags parser.c
 	$(CC) $(CFLAGS) $(NESSUS_INCLUDE) -c parser.c 
 
@@ -146,16 +122,10 @@ attack.o : cflags attack.c
 
 password_dialog.o : cflags password_dialog.c
 	$(CC) $(CFLAGS) $(NESSUS_INCLUDE) -c password_dialog.c 
-xstuff.o : cflags xstuff.c
-	$(CC) $(CFLAGS) $(NESSUS_INCLUDE) -c xstuff.c 
 cli.o : cflags cli.c cli.h
 	$(CC) $(CFLAGS) $(NESSUS_INCLUDE) -c cli.c
 read_target_file.o : cflags read_target_file.c
 	$(CC) $(CFLAGS) $(NESSUS_INCLUDE) -c read_target_file.c 
-
-
-netmap.o : cflags netmap.c 
-	$(CC) $(CFLAGS) $(NESSUS_INCLUDE) -c netmap.c 
 
 regex.o : cflags regex.c 
 	$(CC) $(CFLAGS) $(NESSUS_INCLUDE) -c regex.c 
