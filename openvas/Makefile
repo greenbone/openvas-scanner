@@ -1,9 +1,8 @@
 include ../nessus.tmpl
 
-GTKLIBS= $(GTKCONFIG_LIBS) $(GLIBCONFIG_LIBS)
-INCLUDE = ${include} $(GTKCONFIG_CFLAGS) $(GLIBCONFIG_CFLAGS)
-LIBS = `$(NESSUSCONFIG) --libs` $(X_LIBS) $(X_CFLAGS) $(GTKLIBS) \
-	$(RUN_LIBS) $(C_R_LIB) -lgdc -lm 
+INCLUDE = ${include}
+LIBS = `$(NESSUSCONFIG) --libs` $(X_LIBS) $(X_CFLAGS) \
+	$(RUN_LIBS) $(C_R_LIB) -lm -lgdc
 
 NESSUS_INCLUDE=`sh ./cflags`	
 
@@ -34,16 +33,6 @@ OBJS = auth.o \
        monitor_dialog.o \
        backend.o \
        data_mining.o \
-       prefs_dialog.o \
-       prefs_dialog_misc.o \
-       prefs_dialog_scan_opt.o \
-       prefs_dialog_user.o \
-       prefs_dialog_auth.o \
-       prefs_dialog_plugins_prefs.o \
-       prefs_plugins.o \
-       prefs_target.o \
-       prefs_about.o \
-       prefs_kb.o \
        netmap.o \
        detached_index.o \
        read_target_file.o \
@@ -76,35 +65,6 @@ detached_index.o : cflags detached_index.c
 
 preferences.o : cflags preferences.c preferences.h
 	$(CC) $(CFLAGS) $(NESSUS_INCLUDE) -c preferences.c 
-
-prefs_dialog.o : cflags prefs_dialog/prefs_dialog.c prefs_dialog/prefs_dialog.h
-	$(CC) $(CFLAGS) $(NESSUS_INCLUDE) -c prefs_dialog/prefs_dialog.c 
-
-prefs_dialog_misc.o : cflags prefs_dialog/prefs_dialog_misc.c prefs_dialog/prefs_dialog_misc.h
-	$(CC) $(CFLAGS) $(NESSUS_INCLUDE) -c prefs_dialog/prefs_dialog_misc.c 
-
-prefs_dialog_scan_opt.o : cflags prefs_dialog/prefs_dialog_scan_opt.c\
- prefs_dialog/prefs_dialog_scan_opt.h
-	$(CC) $(CFLAGS) $(NESSUS_INCLUDE) -c prefs_dialog/prefs_dialog_scan_opt.c 
-
-prefs_target.o : cflags prefs_dialog/prefs_target.c\
- prefs_dialog/prefs_target.h
-	$(CC) $(CFLAGS) $(NESSUS_INCLUDE) -c prefs_dialog/prefs_target.c 
-
-prefs_dialog_user.o : cflags prefs_dialog/prefs_dialog_user.c
-	$(CC) $(CFLAGS) $(NESSUS_INCLUDE) -c prefs_dialog/prefs_dialog_user.c 
-
-prefs_dialog_auth.o : cflags prefs_dialog/prefs_dialog_auth.c         
-	$(CC) $(CFLAGS) $(NESSUS_INCLUDE) -c prefs_dialog/prefs_dialog_auth.c 
-
-prefs_plugins.o : cflags prefs_dialog/prefs_plugins.c
-	$(CC) $(CFLAGS) $(NESSUS_INCLUDE) -c prefs_dialog/prefs_plugins.c 
-
-prefs_dialog_plugins_prefs.o : cflags prefs_dialog/prefs_dialog_plugins_prefs.c
-	$(CC) $(CFLAGS) $(NESSUS_INCLUDE) -c prefs_dialog/prefs_dialog_plugins_prefs.c 
-
-prefs_kb.o : cflags prefs_dialog/prefs_kb.c
-	$(CC) $(CFLAGS) $(NESSUS_INCLUDE) -c prefs_dialog/prefs_kb.c
 
 error_dialog.o : cflags error_dialog.c error_dialog.h
 	$(CC) $(CFLAGS) $(NESSUS_INCLUDE) -c error_dialog.c 
@@ -193,8 +153,6 @@ cli.o : cflags cli.c cli.h
 read_target_file.o : cflags read_target_file.c
 	$(CC) $(CFLAGS) $(NESSUS_INCLUDE) -c read_target_file.c 
 
-prefs_about.o : cflags prefs_dialog/prefs_about.c
-	$(CC) $(CFLAGS) $(NESSUS_INCLUDE) -c prefs_dialog/prefs_about.c 
 
 netmap.o : cflags netmap.c 
 	$(CC) $(CFLAGS) $(NESSUS_INCLUDE) -c netmap.c 
