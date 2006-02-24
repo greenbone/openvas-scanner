@@ -30,17 +30,6 @@
 #include <includes.h>
 #include "password_dialog.h"
 
-#ifdef USE_GTK
-#include <gtk/gtk.h>
-#include "xstuff.h"
-#include "error_dialog.h"
-#include "prefs_dialog/prefs_dialog.h"
-#include "prefs_dialog/prefs_dialog_plugins_prefs.h"
-#include "prefs_dialog/prefs_dialog_scan_opt.h"
-#include "prefs_dialog/prefs_target.h"
-#include "report_ng.h"
-#endif
-
 #include "read_target_file.h"
 #include "comm.h"
 #include "auth.h"
@@ -72,10 +61,6 @@
 
 #ifdef HAVE_SSL
 #include <openssl/x509v3.h>
-#endif
-
-#ifdef ENABLE_SAVE_TESTS
-#include "detached_index.h"
 #endif
 
 #ifdef USE_AF_UNIX
@@ -647,31 +632,12 @@ Please launch nessus-mkrand(1) first !");
 	if(comm_server_restores_sessions(Prefs))
 	  {
 	  Sessions = comm_get_sessions();
-#ifdef USE_GTK	  
-	  prefs_dialog_target_fill_sessions(arg_get_value(MainDialog, "TARGET"),
-	  		                    Sessions);
-#endif					    
 	 }
 
  
   	
   prefs_check_defaults(Prefs);
-#ifdef ENABLE_SAVE_TESTS
-#ifdef USE_GTK
-  if(comm_server_detached_sessions(Prefs))
-    detached_show_window(Prefs);
-#endif  
-#endif
 
-  
-#ifdef USE_GTK
-  prefs_plugins_reset(arg_get_value(MainDialog, "PLUGINS_PREFS"), Plugins,
-   			Scanners);
-#endif
-#ifdef USE_GTK
-  if(!F_quiet_mode)fill_scanner_list(arg_get_value(MainDialog, "SCAN_OPTIONS"));
-#endif	
-  
   return(NULL);
 }
 
@@ -838,10 +804,6 @@ you have deleted older versions nessus libraries from your system\n",
   Scanners = Plugins = MainDialog = NULL;
   ArgSock = NULL;
   GlobalSocket = -1;
-#ifdef USE_GTK
-  F_quiet_mode = 0;
-  F_show_pixmaps = 1;
-#endif
 
   /* provide a extra acrgc/argv vector for later use */
   xac = 1;
@@ -858,10 +820,6 @@ you have deleted older versions nessus libraries from your system\n",
       /*
        * Key options should be removed! (MA 2001-11-21)
        */
-#ifdef USE_GTK
-      {"open-report",    required_argument, 0, 'r'},   
-      {"no-pixmap",            no_argument, 0, 'n'},
-#endif
       {"batch-mode",           no_argument, 0, 'q'},
       {"make-config-file",     no_argument, 0, 'm'},
       {"config-file", 	 required_argument, 0, 'c'},
@@ -924,16 +882,6 @@ you have deleted older versions nessus libraries from your system\n",
        }
        else Alt_rcfile = estrdup(optarg);
        break;
-#ifdef USE_GTK
-    case 'n' : 
-      F_show_pixmaps = 0;
-      break;
-
-    case 'r' : 
-      xac ++ ;
-      xav = append_argv (xav, optarg) ;
-      break;
-#endif    	
 
     case 'V':
       	 opt_V++;
@@ -992,6 +940,7 @@ you have deleted older versions nessus libraries from your system\n",
  if(opt_i || opt_o)
  {
   int be;
+  preferences_init(&Prefs);
   if(!(opt_i && opt_o))
    {
     display_help("nessus");
@@ -1089,13 +1038,7 @@ you have deleted older versions nessus libraries from your system\n",
       
       F_quiet_mode = 1;
      }
-#ifdef USE_GTK     
-  else
-    {
-      init_display (&argc, &argv);
-     }
-#endif
-  
+
   /* system environment set up */
   if(!opt_m)
   {
@@ -1293,32 +1236,11 @@ you have deleted older versions nessus libraries from your system\n",
  	 arg_add_value(Prefs, "paranoia_level", ARG_INT, -1, (void*)paranoia_level);
     }
 #endif    
-#ifdef USE_GTK
-  prefs_dialog_setup (NULL, Prefs);
-  /*
-   * all the options have been taken in account... Now, the user
-   * may want us to open a previously saved file
-   */
-  for (i = 1; i < xac; i ++) {
-    int be = backend_import_report(xav[i]);
-    if(be >= 0)
-     report_tests_ng (be, 0);
-   } 
-
-
-  gtk_main();
-  close_stream_connection(GlobalSocket);
-  close_display();
-  GlobalSocket = -1;
-  return(0);
-
-#else
   printf("\nOoops ...\n\
   This nessus version has no gui support.  You need to give nessus the\n\
   arguments SERVER PORT LOGIN TRG RESULT as explained in more detail\n\
   using the --help option.\n");
   exit (1);
-#endif
 }
 
 #ifdef NESSUSNT
