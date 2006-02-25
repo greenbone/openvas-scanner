@@ -48,8 +48,6 @@
 #include "comm.h"
 #include "backend.h"
 
-#include "prefs_dialog/prefs_target.h"
-
 #define SAVE_NSR 0
 #define SAVE_HTML 1
 #define SAVE_TEXT 2
