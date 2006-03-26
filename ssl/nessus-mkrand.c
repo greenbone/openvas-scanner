@@ -36,8 +36,6 @@
  *
  */
 
-#define DEBUG 1
-
 FILE		*fp;
 
 /* 
