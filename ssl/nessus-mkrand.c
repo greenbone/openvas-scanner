@@ -25,7 +25,7 @@
  * This program generates some random data and store then to a file.
  * It is useful to OpenSSL users who do not have a /dev/urandom
  * Try something like:
- *  nessus-mkrand $HOME/.rnd 128
+ *  openvas-mkrand $HOME/.rnd 128
  * *******************************************************************
  *
  * Note: the "entropy estimator" is really crude. The first version probably
@@ -68,7 +68,7 @@ int
 usage()
 {
 
-      fprintf(stderr, "Usage: nessus-mkrand file entropy_in_bits\nNote: Data will be appended to the file\n");
+      fprintf(stderr, "Usage: openvas-mkrand file entropy_in_bits\nNote: Data will be appended to the file\n");
       exit(1);
 }
 
