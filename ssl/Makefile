@@ -1,15 +1,15 @@
 include ../nessus.tmpl
 
 
-OBJS = nessus-mkrand.o 
+OBJS = openvas-mkrand.o 
 
-all : nessus-mkrand
+all : openvas-mkrand
 
-nessus-mkrand: $(OBJS)
-	$(CC) $(OBJS) -o nessus-mkrand -lm
+openvas-mkrand: $(OBJS)
+	$(CC) $(OBJS) -o openvas-mkrand -lm
 
-nessus-mkrand.o: nessus-mkrand.c
-	$(CC) $(CFLAGS) -c nessus-mkrand.c 
+openvas-mkrand.o: openvas-mkrand.c
+	$(CC) $(CFLAGS) -c openvas-mkrand.c 
 
 clean : 
-	rm -f *.o nessus-mkrand
+	rm -f *.o openvas-mkrand
