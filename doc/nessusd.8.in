@@ -289,11 +289,6 @@ nessus.conf or nessusrc configuration files. Notice that it is recommended
 to increase this this value, if you are running a test outside your LAN 
 (i.e. to Internet hosts through an Internet connection), to over 10 seconds.
 
-.IP max_threads
-The default value is set to 15 threads, reducing that in
-nessus.conf or nessusrc configuration files.
-will eat less bandwith and also improve performance.
-
 .IP max_hosts
 Number of hosts to test at the same time (this value is set by the Nessus
 GUI client or by .nessusrc) it can be as low as you want it to be
