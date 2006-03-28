@@ -198,7 +198,7 @@ check_user(char * user, char * password, char * dname)
 		check_pass = 0;
 	    }
           if(check_pass)
-	    fprintf(stderr, "check_user: Bad DN for user %s\nGiven DN=%s\nLast tried DN=%s\n", user, dname, dnameref);
+	    log_write("check_user: Bad DN for user %s\nGiven DN=%s\nLast tried DN=%s\n", user, dname, dnameref);
 	  (void) fclose(f);
 	}
     }
