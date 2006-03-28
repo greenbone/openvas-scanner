@@ -1,0 +1,27 @@
+$Id$
+Copyright (C) 2004 Intevation GmbH
+Author: Jan-Oliver Wagner <jan@intevation.de>
+
+
+OpenVAS Message Translations
+============================
+
+Updating the message catalogs currently only works on unix-like systems
+and requires xgettext 0.14.
+There is one so-called text domains, 'openvas-scripts' which are
+the administration shell-script for the OpenVAS Server.
+
+OpenVAS Admin Scripts (text domain 'openvas-scripts')
+---------------------------------------------------
+
+Unfortunetly, for shell scripts the updating process does
+not work automatically. Even the initial preparation was
+largly handcrafted after these steps did some automatic
+extraction (sample for adduser):
+xgettext -d openvas-scripts -s -o openvas-scripts.pot -L Shell openvas-adduser.in
+msginit -l de_DE -o openvas-scripts-de.po -i openvas-scripts.pot
+
+To just install the german translation (this will automatically
+create the gmo file):
+
+	$ make install-openvas-scripts
