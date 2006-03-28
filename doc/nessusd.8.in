@@ -103,16 +103,9 @@ contains these options:
 Contains the location of the plugins folder. This is usually
 @NESSUSD_PLUGINS@, but you may change this.
 .IP logfile
-path to the logfile. You can enter 
-.I syslog
-if you want the nessusd messages to be logged via
-.B syslogd
-You may also enter
-.I stderr
+path to the logfile.
 if you want the nessusd logs to be written on stderr.
-.I Because nessusd is a sensitive program, you should keep your logs. So
-.I entering syslog is usually not a good idea and should be done only
-.I for debugging purposes
+.I Because nessusd is a sensitive program, you should keep your logs. 
 
 .IP max_hosts
 is maximum number of hosts to test at the same time which should be
