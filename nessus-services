@@ -9364,7 +9364,7 @@ cisco-aux/tty/vty-ports	6096/tcp
 cisco-aux/tty/vty-ports	6097/tcp
 cisco-aux/tty/vty-ports	6098/tcp
 cisco-aux/tty/vty-ports	6099/tcp
-synchronet-db	6100/tcp
+cllockd	6100/tcp
 synchronet-db	6100/udp
 synchronet-rtc	6101/tcp
 synchronet-rtc	6101/udp
@@ -9437,7 +9437,7 @@ ricardo-lm	6148/tcp
 ricardo-lm	6148/udp
 tal-pod	6149/tcp
 tal-pod	6149/udp
-cisco-aux/tty/vty-ports	6150/tcp
+clm_lkm	6150/tcp 
 cisco-aux/tty/vty-ports	6151/tcp
 cisco-aux/tty/vty-ports	6152/tcp
 cisco-aux/tty/vty-ports	6153/tcp
@@ -9462,9 +9462,9 @@ cisco-aux/tty/vty-ports	6171/tcp
 cisco-aux/tty/vty-ports	6172/tcp
 cisco-aux/tty/vty-ports	6173/tcp
 cisco-aux/tty/vty-ports	6174/tcp
-cisco-aux/tty/vty-ports	6175/tcp
-cisco-aux/tty/vty-ports	6176/tcp
-cisco-aux/tty/vty-ports	6177/tcp
+clm_smux	6175/tcp
+clinfo_deadman	6176/tcp 
+godm	6177/tcp
 cisco-aux/tty/vty-ports	6178/tcp
 cisco-aux/tty/vty-ports	6179/tcp
 cisco-aux/tty/vty-ports	6180/tcp
@@ -9487,7 +9487,7 @@ cisco-aux/tty/vty-ports	6196/tcp
 cisco-aux/tty/vty-ports	6197/tcp
 cisco-aux/tty/vty-ports	6198/tcp
 cisco-aux/tty/vty-ports	6199/tcp
-cisco-aux/tty/vty-ports	6200/tcp
+clm_pts	6200/tcp
 cisco-aux/tty/vty-ports	6201/tcp
 cisco-aux/tty/vty-ports	6202/tcp
 cisco-aux/tty/vty-ports	6203/tcp
@@ -9543,7 +9543,7 @@ cisco-aux/tty/vty-ports	6252/tcp
 crip	6253/tcp
 crip	6253/udp
 cisco-aux/tty/vty-ports	6254/tcp
-cisco-aux/tty/vty-ports	6255/tcp
+clm_keepalive	6255/tcp
 cisco-aux/tty/vty-ports	6256/tcp
 cisco-aux/tty/vty-ports	6257/tcp
 winmx-(old-protocol)	6257/udp
@@ -9559,7 +9559,7 @@ cisco-aux/tty/vty-ports	6266/tcp
 cisco-aux/tty/vty-ports	6267/tcp
 cisco-aux/tty/vty-ports	6268/tcp
 cisco-aux/tty/vty-ports	6269/tcp
-cisco-aux/tty/vty-ports	6270/tcp
+clsmuxpd	6270/tcp
 cisco-aux/tty/vty-ports	6271/tcp
 cisco-aux/tty/vty-ports	6272/tcp
 cisco-aux/tty/vty-ports	6273/tcp
