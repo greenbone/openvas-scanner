@@ -424,7 +424,7 @@ static int recv_chunked_encoding(int fd, char * headers, int hlen, char ** buf, 
   int e = 0;
   int l;
   l = total_len + 2 - n > SEGSIZE ? SEGSIZE : total_len + 2 - n;
-  e = read_stream_connection_min(fd, mybuf + sz + n, l, 1 );
+  e = read_stream_connection_min(fd, mybuf + sz + n, 1, l );
   if ( e <= 0 ) break;
   n += e;
   } while ( n != total_len + 2);
@@ -484,7 +484,7 @@ static char * http_recv(int fd, int * totlen, int * headerslen, int * error_code
    int readsz;
 
    readsz = (len - n)  > SEGSIZE ? SEGSIZE : (len - n);
-   e = read_stream_connection_min(fd, retbuf + headers_len + n, readsz, 1);
+   e = read_stream_connection_min(fd, retbuf + headers_len + n, 1, readsz);
    if ( e <= 0 ) break;
    else n += e;
   }
@@ -515,7 +515,7 @@ static char * http_recv(int fd, int * totlen, int * headerslen, int * error_code
    for (n = 0;; )
    {
    int e;
-   e = read_stream_connection_min(fd, buf + headers_len + n, SEGSIZE, 1 );
+   e = read_stream_connection_min(fd, buf + headers_len + n, 1, SEGSIZE );
    if ( e <= 0 ) break;
    else { len += e; n += e; }
 
