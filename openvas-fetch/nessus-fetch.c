@@ -79,6 +79,58 @@ static int block_socket(int soc)
   return 0;
 }
 
+int http_recv_headers(int soc, char ** result, int * len)
+{
+ char tmp[2048];
+ int sz = 4096;
+ int n;
+ char * buf;
+ int lines = 0;
+ int num = 0;
+ 
+ *result = NULL;
+ *len = 0;
+ 
+ buf = emalloc(sz);
+ tmp[ sizeof(tmp) - 1 ] = '\0';
+
+  for(;;)
+  {
+   n = recv_line(soc, tmp, sizeof(tmp) - 1);
+   lines ++;
+   if( n <= 0 )break;
+   
+   if(!strcmp(tmp, "\r\n")||
+      !strcmp(tmp, "\n"))break;
+   else 
+   {
+     num  += n;
+     if(num < sz)
+      strcat(buf, tmp);
+     else
+     {
+      if(sz > 1024 * 1024)
+       break;
+      else
+       sz = (sz * 2) > ( num + 1 ) ? (sz * 2) : (num + 1);
+	
+      buf = erealloc(buf, sz);
+      strcat(buf, tmp);
+      if(lines > 100)break;
+     }
+  }
+ }
+ 
+ if(num == 0)
+ {
+  efree(&buf);
+ }
+ 
+ *result = buf;
+ *len = num;
+ return 0;
+}
+
 
 
 /*-------------------------------------------------------------------------
