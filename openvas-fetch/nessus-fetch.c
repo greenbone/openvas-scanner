@@ -580,10 +580,11 @@ Connection: Close\r\n\
 Host: %s\r\n\
 Pragma: no-cache\r\n\
 User-Agent: %s\r\n\
+X-Nessus: %s\r\n\
 %s%sAccept: image/gif, image/x-xbitmap, image/jpeg, image/pjpeg, image/png, */*\r\n\
 Accept-Language: en\r\n\
 Accept-Charset: iso-8859-1,*,utf-8\r\n\r\n",
-                path, hostname, ( prefs.user_agent != NULL && prefs.user_agent[0] != '\0' ) ? prefs.user_agent : ua, proxy_auth[0] ? proxy_auth:"", auth[0] ? auth:"");
+                path, hostname, ( prefs.user_agent != NULL && prefs.user_agent[0] != '\0' ) ? prefs.user_agent : ua, nessuslib_version(), proxy_auth[0] ? proxy_auth:"", auth[0] ? auth:"");
 
   return str;
 }
