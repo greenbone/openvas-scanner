@@ -23,8 +23,6 @@
 
 #include <includes.h>
 #include <stdarg.h>
-#include <syslog.h>
-
 #include "comm.h"
 #include "utils.h"
 #include "log.h"
@@ -77,10 +75,6 @@ log_init(filename)
   	log = stderr;
 	dup2(2, 3);
 	}
-  else if(!strcmp(filename, "syslog")){
-  	openlog("nessusd", 0, LOG_DAEMON);
-	log = NULL;
-	}
   else
     {
       int fd = open(filename, O_WRONLY|O_CREAT|O_APPEND
@@ -128,7 +122,6 @@ void log_close()
   fclose(log);
   log = NULL;
  }
- else closelog();
 }
  
 
@@ -165,6 +158,5 @@ log_write(const char * str, ...)
    timestr[strlen(timestr) - 1 ] = '\0';
    fprintf(log, "[%s][%d] %s\n", timestr, getpid(), disp);
   }
-  else syslog(LOG_NOTICE, "%s", disp);
 }
 
