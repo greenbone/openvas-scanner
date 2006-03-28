@@ -1,5 +1,5 @@
 /* Nessus
- * Copyright (C) 1999 - 2003 Renaud Deraison
+ * Copyright (C) 1998 - 2006 Tenable Network Security, Inc.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 2,
@@ -37,6 +37,7 @@ static pl_class_t* nasl_plugin_init(struct arglist* prefs,
 
 
 static void nasl_thread(struct arglist *);
+
 
 /*
  *  Add *one* .nasl plugin to the plugin list
@@ -89,9 +90,15 @@ nasl_plugin_add(folder, name, plugins, preferences)
 	 
  }
  
+  if ( plugin_args == NULL ) 
+	{
+       /* Discard invalid plugins */
+	fprintf(stderr, "%s failed to load\n", name);
+	return NULL;
+	}
+
  if(plug_get_id(plugin_args) == 0)
  {
-  /* Discard invalid plugins */
   plugin_free(plugin_args);
   return NULL;
  }
@@ -186,35 +193,6 @@ nasl_thread(g_args)
  {
   close(i);
  }
-#ifdef RLIMIT_RSS
- {
- struct rlimit rlim;
- getrlimit(RLIMIT_RSS, &rlim);
- rlim.rlim_cur = 1024*1024*40;
- rlim.rlim_max = 1024*1024*40;
- setrlimit(RLIMIT_RSS, &rlim);
- }
-#endif
-
-#ifdef RLIMIT_AS
- {
- struct rlimit rlim;
- getrlimit(RLIMIT_AS, &rlim);
- rlim.rlim_cur = 1024*1024*40;
- rlim.rlim_max = 1024*1024*40;
- setrlimit(RLIMIT_AS, &rlim);
- }
-#endif
-
-#ifdef RLIMIT_DATA
- {
- struct rlimit rlim;
- getrlimit(RLIMIT_DATA, &rlim);
- rlim.rlim_cur = 1024*1024*40;
- rlim.rlim_max = 1024*1024*40;
- setrlimit(RLIMIT_DATA, &rlim);
- }
-#endif
  setproctitle("testing %s (%s)", (char*)arg_get_value(arg_get_value(args, "HOSTNAME"), "NAME"), (char*)arg_get_value(g_args, "name"));
  signal(SIGTERM, _exit);
  
