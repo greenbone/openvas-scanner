@@ -1,5 +1,5 @@
 /* Nessus
- * Copyright (C) 1999 - 2003 Renaud Deraison
+ * Copyright (C) 1998 - 2006 Tenable Network Security, Inc.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 2,
@@ -262,39 +262,7 @@ static int nes_thread(args)
  {
     close(i);
  }
-
  
-#ifdef RLIMIT_RSS
- {
- struct rlimit rlim;
- getrlimit(RLIMIT_RSS, &rlim);
- rlim.rlim_cur = 1024*1024*40;
- rlim.rlim_max = 1024*1024*40;
- setrlimit(RLIMIT_RSS, &rlim);
- }
-#endif
-
-#ifdef RLIMIT_AS
- {
- struct rlimit rlim;
- getrlimit(RLIMIT_AS, &rlim);
- rlim.rlim_cur = 1024*1024*40;
- rlim.rlim_max = 1024*1024*40;
- setrlimit(RLIMIT_AS, &rlim);
- }
-#endif
-
-#ifdef RLIMIT_DATA
- {
- struct rlimit rlim;
- getrlimit(RLIMIT_DATA, &rlim);
- rlim.rlim_cur = 1024*1024*40;
- rlim.rlim_max = 1024*1024*40;
- setrlimit(RLIMIT_DATA, &rlim);
- }
-#endif
-
-
  setproctitle("testing %s (%s)", (char*)arg_get_value(arg_get_value(args, "HOSTNAME"), "NAME"), (char*)arg_get_value(args, "name"));
  func = arg_get_value(args, "func");
  signal(SIGTERM, _exit);
