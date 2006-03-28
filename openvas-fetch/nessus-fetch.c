@@ -294,6 +294,7 @@ struct preferences {
 	char * proxy_port;
 	char * proxy_username;
 	char * proxy_password;
+	char * user_agent;
 };
 
 int proxy_connect_method(char * hostname, int port, struct preferences * prefs, struct arglist * hostinfo);
@@ -320,6 +321,8 @@ static void save_preferences( struct preferences * prefs )
 		prefs->proxy_username ? prefs->proxy_username:"",
 		prefs->proxy_password ? prefs->proxy_password : "");
 
+ if ( prefs->user_agent != NULL )
+	fprintf(fp, "user_agent=%s\n", prefs->user_agent);
 
  fclose(fp);
  chmod(path, 0600);
@@ -369,6 +372,9 @@ static int load_preferences( struct preferences * prefs )
 
  else if ( strncmp(buf, "proxy_password=", strlen("proxy_password=") ) == 0 )
  	prefs->proxy_password = shift_pref(buf, "proxy_password=");
+
+ else if ( strncmp(buf, "user_agent=", strlen("user_agent=") ) == 0 )
+ 	prefs->user_agent = shift_pref(buf, "user_agent=");
  }
 
  fclose(fp);
@@ -543,6 +549,7 @@ char * mk_http_req(const char * hostname, char * path, char * httpuser, char * h
   struct preferences prefs;
   char proxy_auth[1024];
   char auth[1024];
+  char ua[512];
 
   load_preferences(&prefs);
 
@@ -566,16 +573,17 @@ char * mk_http_req(const char * hostname, char * path, char * httpuser, char * h
  }
  else auth[0] = '\0';
 
+ snprintf(ua, sizeof(ua), "Nessus-Fetch/%s", nessuslib_version());
 
   sprintf(str, "GET %s HTTP/1.1\r\n\
 Connection: Close\r\n\
 Host: %s\r\n\
 Pragma: no-cache\r\n\
-User-Agent: Nessus-Fetch/%s\r\n\
+User-Agent: %s\r\n\
 %s%sAccept: image/gif, image/x-xbitmap, image/jpeg, image/pjpeg, image/png, */*\r\n\
 Accept-Language: en\r\n\
 Accept-Charset: iso-8859-1,*,utf-8\r\n\r\n",
-                path, hostname, nessuslib_version(), proxy_auth[0] ? proxy_auth:"", auth[0] ? auth:"");
+                path, hostname, ( prefs.user_agent != NULL && prefs.user_agent[0] != '\0' ) ? prefs.user_agent : ua, proxy_auth[0] ? proxy_auth:"", auth[0] ? auth:"");
 
   return str;
 }
