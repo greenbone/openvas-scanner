@@ -42,7 +42,7 @@ struct list {
 	};
 	
 struct plist {
-	char name[32];
+	char name[64];
 	int occurences;
 	struct plist * next;
 	struct plist * prev;
