@@ -711,7 +711,7 @@ static int do_register( char * serial, int argc, char ** argv )
   fprintf(stderr, "could not connect to %s - %s\n", plug_get_hostname(hostinfo), strerror(errno));
   exit(1);
  } 
- stream_set_buffer(soc, 65535);
+ stream_set_buffer(soc, 0);
 
  write_stream_connection(soc, req, strlen(req));
    
