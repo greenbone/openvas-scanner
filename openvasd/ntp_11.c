@@ -285,12 +285,12 @@ ntp_11_read_prefs(globals)
  struct arglist *  preferences = arg_get_value(globals, "preferences");
  int soc = (int)arg_get_value(globals, "global_socket");
  char * input;
- int input_sz = 65535;
+ int input_sz = 1024*1024;
  int n;
 
  input = emalloc(input_sz);
  for (;;) {
-   bzero(input, input_sz);
+   input[0] = '\0';
 #if defined NESSUS_ON_SSL && DEBUG_SSL > 2
    fprintf(stderr, "ntp_11_read_prefs > soc=%d\n", soc);
 #endif
