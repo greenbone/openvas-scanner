@@ -39,6 +39,8 @@
 #define SUCCESS_MSG  "@SUCCESS@"
 #define CONFIG_FILE "nessus-fetch.rc"
 
+#define SEGSIZE 1024
+
 #ifndef INADDR_NONE
 #define INADDR_NONE 0xffffffff
 #endif
@@ -368,7 +370,9 @@ static int recv_chunked_encoding(int fd, char * headers, int hlen, char ** buf, 
   n = 0;
   do {
   int e = 0;
-  e = read_stream_connection_min(fd, mybuf + sz + n, total_len + 2 - n, total_len + 2 - n );
+  int l;
+  l = total_len + 2 - n > SEGSIZE ? SEGSIZE : total_len + 2 - n;
+  e = read_stream_connection_min(fd, mybuf + sz + n, l, l );
   if ( e <= 0 ) break;
   n += e;
   } while ( n != total_len + 2);
@@ -427,7 +431,7 @@ static char * http_recv(int fd, int * totlen, int * headerslen, int * error_code
    int e;
    int readsz;
 
-   readsz = (len - n)  > 65535 ? 65535 : (len - n);
+   readsz = (len - n)  > SEGSIZE ? SEGSIZE : (len - n);
    e = read_stream_connection_min(fd, retbuf + headers_len + n, readsz, readsz);
    if ( e <= 0 ) break;
    else n += e;
@@ -450,9 +454,8 @@ static char * http_recv(int fd, int * totlen, int * headerslen, int * error_code
   }
   else
   {
-#define CHUNKSZ 16384
    int len = headers_len;
-   int bufsz = len + CHUNKSZ * 5;
+   int bufsz = len + SEGSIZE * 5;
    char * buf = emalloc( bufsz );
    int n;
    
@@ -460,11 +463,11 @@ static char * http_recv(int fd, int * totlen, int * headerslen, int * error_code
    for (n = 0;; )
    {
    int e;
-   e = read_stream_connection(fd, buf + headers_len + n, CHUNKSZ);
+   e = read_stream_connection(fd, buf + headers_len + n, SEGSIZE );
    if ( e <= 0 ) break;
    else { len += e; n += e; }
 
-   if ( len + CHUNKSZ >= bufsz )
+   if ( len + SEGSIZE >= bufsz )
 	{
 	 if ( bufsz > MAX_SIZE ) break;
 	 bufsz *= 2;
