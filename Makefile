@@ -38,6 +38,7 @@ install-bin:
 	test -d $(DESTDIR)${NESSUSD_STATEDIR}/tmp || $(INSTALL_DIR) -m 755 $(DESTDIR)${NESSUSD_STATEDIR}/tmp
 	test -d $(DESTDIR)${NESSUSD_STATEDIR}/jobs  || $(INSTALL_DIR) -m 755 $(DESTDIR)${NESSUSD_STATEDIR}/jobs
 	test -d $(DESTDIR)${NESSUSD_LOGDIR} || $(INSTALL_DIR) -m 755 $(DESTDIR)${NESSUSD_LOGDIR}
+	$(INSTALL) -c -m 0444 nessus-services $(DESTDIR)${NESSUSD_STATEDIR}/
 	$(INSTALL) -c -m 0444 include/config.h $(DESTDIR)${includedir}/nessus
 	$(INSTALL) -c -m 0444 include/ntcompat.h $(DESTDIR)${includedir}/nessus
 	$(INSTALL) -c -m 0444 include/includes.h $(DESTDIR)${includedir}/nessus
