@@ -3,7 +3,8 @@ include ../nessus.tmpl
 LIBS =  `$(NASLCONFIG) --libs` `$(NESSUSCONFIG) --libs`  \
 	$(W_STATIC)  $(W_DYNAMIC) \
 	$(DL_LIB)  \
-	$(COMPAT_LIB) $(LIBWRAP)
+	$(COMPAT_LIB) $(LIBWRAP) \
+	$(RUN_LIBS)
 NESSUS_INCLUDE=`sh ./cflags` 
 OBJS = auth.o \
        attack.o \
