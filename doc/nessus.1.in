@@ -242,7 +242,7 @@ server to connect to, which plugins to activate, and so on.  The file is
 created automatically if it does not exist.
 
 .SH "SEE ALSO"
-.BR nessus-mkcert-client (1)
+.BR openvas-mkcert-client (1)
 
 .SH MORE INFORMATION ABOUT THE NESSUS PROJECT
 The canonical places where you will find more information

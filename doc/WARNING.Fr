@@ -400,7 +400,7 @@ Ou bien :
   propres certificats, n'utilisez surtout pas ceux de la "kabale
   Nessus" ! (qui ont été supprimés du CVS depuis longtemps)
   Le mieux est de protéger vos clés privées (serveur et client) par un
-  mot de passe solide, ce que le script nessus-mkcert ne fait
+  mot de passe solide, ce que le script openvas-mkcert ne fait
   pas. Vous devrez mettre en place votre propre "usine à certificats".
 - Éteignez la machine qui héberge le serveur Nessus quand elle n'est
   pas utilisée.

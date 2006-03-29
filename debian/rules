@@ -47,10 +47,10 @@ install: build-stamp
 	$(MAKE) install prefix=$(nes)/usr sysconfdir=$(nes)/etc \
                         localstatedir=$(nes)/var sharedstatedir=$(nes)/var
 	dh_movefiles --sourcedir=debian/nessus -pnessusd \
-          usr/sbin usr/share/man/man8 usr/bin/nessus-mkcert-client \
+          usr/sbin usr/share/man/man8 usr/bin/openvas-mkcert-client \
 	  usr/bin/openvas-fetch \
 	  usr/bin/openvas-mkrand \
-	  usr/share/man/man1/nessus-mkcert-client.1 \
+	  usr/share/man/man1/openvas-mkcert-client.1 \
 	  usr/share/man/man1/nessus-check-signature.1 \
 	  usr/share/man/man1/openvas-mkrand.1 \
 	  usr/share/man/man1/openvas-fetch.1 

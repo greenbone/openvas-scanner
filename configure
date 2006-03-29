@@ -12147,7 +12147,7 @@ fi
 
 
 
-                                                            ac_config_files="$ac_config_files nessus.tmpl include/corevers.h nessus-adduser nessus-rmuser nessus-mkcert nessus-mkcert-client"
+                                                            ac_config_files="$ac_config_files nessus.tmpl include/corevers.h nessus-adduser nessus-rmuser openvas-mkcert openvas-mkcert-client"
 cat >confcache <<\_ACEOF
 # This file is a shell script that caches the results of configure
 # tests run on this system so they can be shared between configure
@@ -12677,8 +12677,8 @@ do
   "include/corevers.h" ) CONFIG_FILES="$CONFIG_FILES include/corevers.h" ;;
   "nessus-adduser" ) CONFIG_FILES="$CONFIG_FILES nessus-adduser" ;;
   "nessus-rmuser" ) CONFIG_FILES="$CONFIG_FILES nessus-rmuser" ;;
-  "nessus-mkcert" ) CONFIG_FILES="$CONFIG_FILES nessus-mkcert" ;;
-  "nessus-mkcert-client" ) CONFIG_FILES="$CONFIG_FILES nessus-mkcert-client" ;;
+  "openvas-mkcert" ) CONFIG_FILES="$CONFIG_FILES openvas-mkcert" ;;
+  "openvas-mkcert-client" ) CONFIG_FILES="$CONFIG_FILES openvas-mkcert-client" ;;
   "include/config.h" ) CONFIG_HEADERS="$CONFIG_HEADERS include/config.h" ;;
   *) { { echo "$as_me:$LINENO: error: invalid argument: $ac_config_target" >&5
 echo "$as_me: error: invalid argument: $ac_config_target" >&2;}
@@ -13336,6 +13336,6 @@ fi
 
 
 
-chmod +x nessus-adduser nessus-mkcert nessus-mkcert-client
+chmod +x nessus-adduser openvas-mkcert openvas-mkcert-client
 
 exit 0

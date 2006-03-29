@@ -1,6 +1,6 @@
 #!/bin/sh
 #
-# nessus-mkcert
+# openvas-mkcert
 #
 # Written by Renaud Deraison <deraison@cvs.nessus.org> 
 # and Michel Arboi <arboi@alussinan.org>
@@ -75,7 +75,7 @@ uid=0*)
 	}
     ;; 
 *)
-    echo "Only root can use nessus-mkcert"
+    echo "Only root can use openvas-mkcert"
     exit 1
 esac
 fi
@@ -136,7 +136,7 @@ test -z "$RANDFLAG" -a -z "$RANDFILE" &&
 umask 077
 
 # Set environment
-BASEDIR=${TMPDIR-/tmp}/nessus-mkcert.$$
+BASEDIR=${TMPDIR-/tmp}/openvas-mkcert.$$
 mkdir $BASEDIR || exit 1
 
 
@@ -412,7 +412,7 @@ chmod a+r $CACERT $SRVCERT #cln $CLNCERT
 CF=/etc/nessus/nessusd.conf
 egrep -v '^ *(pem_password|cert_file|key_file|ca_file|force_pubkey_auth) *=' "$CF" > "$CF.tmp"
 echo "#
-# Added by nessus-mkcert
+# Added by openvas-mkcert
 #
 cert_file=$SRVCERT
 key_file=$SRVKEY

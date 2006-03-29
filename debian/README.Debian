@@ -4,11 +4,11 @@
 
 How to use Nessus?
 
-  * Set up the server certificate with `nessus-mkcert'.
+  * Set up the server certificate with `openvas-mkcert'.
 
   * Set up a user with `nessus-adduser'.
 
-  * Set up the client certificate with `nessus-mkcert-client'.
+  * Set up the client certificate with `openvas-mkcert-client'.
 
   * Run `nessusd -D' in order to start the daemon.
 

@@ -372,7 +372,7 @@ Or:
   the "Nessus kabale"! (they have been removed from the CVS repository
   for a long time)
   You should also protect your server & client private keys with a
-  solid password. The nessus-mkcert script does not do this. You will
+  solid password. The openvas-mkcert script does not do this. You will
   have to set up your own "certificate factory".
 - Switch off the machine that runs the Nessus server when you are not
   using it.

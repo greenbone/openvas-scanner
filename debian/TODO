@@ -4,7 +4,7 @@
   configuration prompt from dpkg:
 
 #
-# Added by nessus-mkcert
+# Added by openvas-mkcert
 #
 cert_file=/var/lib/nessus/CA/servercert.pem
 key_file=/var/lib/nessus/private/CA/serverkey.pem

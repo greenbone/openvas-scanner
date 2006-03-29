@@ -51,8 +51,8 @@ install-bin:
 	$(INSTALL) -m $(CLIENTMODE) nessus-fetch/openvas-fetch $(DESTDIR)${bindir}
 	$(INSTALL) -m $(CLIENTMODE) nessus-adduser $(DESTDIR)${sbindir}
 	$(INSTALL) -m $(CLIENTMODE) nessus-rmuser $(DESTDIR)${sbindir}
-	$(INSTALL) -m $(CLIENTMODE) nessus-mkcert $(DESTDIR)${sbindir}
-	$(INSTALL) -m $(CLIENTMODE) nessus-mkcert-client $(DESTDIR)${bindir}
+	$(INSTALL) -m $(CLIENTMODE) openvas-mkcert $(DESTDIR)${sbindir}
+	$(INSTALL) -m $(CLIENTMODE) openvas-mkcert-client $(DESTDIR)${bindir}
 	$(INSTALL) -m $(CLIENTMODE) ssl/openvas-mkrand $(DESTDIR)${bindir}
 
 
@@ -67,9 +67,9 @@ install-man:
 	$(INSTALL) -c -m 0444 ${MAN_NESSUSD_8} $(DESTDIR)${mandir}/man8/nessusd.8
 	$(INSTALL) -c -m 0444 doc/nessus-adduser.8 $(DESTDIR)${mandir}/man8/nessus-adduser.8
 	$(INSTALL) -c -m 0444 doc/nessus-rmuser.8 $(DESTDIR)${mandir}/man8/nessus-rmuser.8
-	$(INSTALL) -c -m 0444 doc/nessus-mkcert.8 $(DESTDIR)${mandir}/man8/nessus-mkcert.8
-	$(INSTALL) -c -m 0444 doc/nessus-mkcert-client.1 \
-                              $(DESTDIR)${mandir}/man1/nessus-mkcert-client.1
+	$(INSTALL) -c -m 0444 doc/openvas-mkcert.8 $(DESTDIR)${mandir}/man8/openvas-mkcert.8
+	$(INSTALL) -c -m 0444 doc/openvas-mkcert-client.1 \
+                              $(DESTDIR)${mandir}/man1/openvas-mkcert-client.1
 	$(INSTALL) -c -m 0444 doc/openvas-mkrand.1 $(DESTDIR)${mandir}/man1/openvas-mkrand.1
 
 win32: ${MAN_NESSUS_1} ${MAN_NESSUSD_8}
@@ -122,8 +122,8 @@ distclean: clean
 	rm -f libtool config.cache config.status config.log 
 	rm -f nessus-adduser
 	rm -f nessus-rmuser
-	rm -f nessus-mkcert
-	rm -f nessus-mkcert-client
+	rm -f openvas-mkcert
+	rm -f openvas-mkcert-client
 	rm -f nessus-install-cert
 	[ -z "${MAN_NESSUS_1}" ] || rm -f ${MAN_NESSUS_1} 
 	[ -z "${MAN_NESSUSD_8}" ] || rm -f ${MAN_NESSUSD_8} 

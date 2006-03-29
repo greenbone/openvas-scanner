@@ -48,7 +48,7 @@ warn_cert_file() {
 
 check_certs() {
 	if [ -z "`grep ^ca_file /etc/nessus/nessusd.conf`" ] ; then
-		echo -n "WARN: The Nessusd configuration file does have a certificate. Have you run nessus-mkcert? (Nessusd might not start)" >&2
+		echo -n "WARN: The Nessusd configuration file does have a certificate. Have you run openvas-mkcert? (Nessusd might not start)" >&2
 	fi
 	CERTDIR=/var/lib/nessus/CA/
 	PRIVCERTDIR=/var/lib/nessus/private/CA/

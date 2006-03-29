@@ -318,7 +318,7 @@ Reducing the amount of tested part and such will reduce the amout of data
 to be transfered significantly.
 
 .SH SEE ALSO
-.BR nessus (1),\  nessus-adduser (8),\  nessus-rmuser (8),\  nessus-mkcert (8)
+.BR nessus (1),\  nessus-adduser (8),\  nessus-rmuser (8),\  openvas-mkcert (8)
 
 .SH MORE INFORMATION ABOUT THE NESSUS PROJECT
 

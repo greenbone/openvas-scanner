@@ -1,8 +1,8 @@
 #!/bin/sh
 #
-# nessus-mkcert-client
+# openvas-mkcert-client
 #
-# Written by Michel Arboi <arboi@alussinan.org> from nessus-mkcert
+# Written by Michel Arboi <arboi@alussinan.org> from openvas-mkcert
 #
 # This script is distributed under the Gnu General Public License (GPL)
 #
@@ -166,7 +166,7 @@ fi
 umask 066
 
 # Set environment
-BASEDIR=${TMPDIR-/tmp}/nessus-mkcert.$$
+BASEDIR=${TMPDIR-/tmp}/openvas-mkcert.$$
 mkdir $BASEDIR || exit 1
 
 

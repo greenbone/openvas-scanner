@@ -91,7 +91,7 @@ ARE NOT PASSWORD PROTECTED.
 
 3.2.1. CA & server certificate
 
-As root,  run nessus-mkcert
+As root,  run openvas-mkcert
 The script will ask you a few question then generate 2 certificates
 and 2 private keys:
 - the CA
@@ -107,7 +107,7 @@ know, but I have to insist: it is not password protected. Understood?)
 3.2.2. Client certificates 
 
 [TBD]
-Run nessus-mkcert-client and answer the questions.
+Run openvas-mkcert-client and answer the questions.
 You'll have to copy the client certificate & key somewhere, as well as
 the std.cnf and stdC.cnf 
 Users will have to update their .nessusrc files:
@@ -335,7 +335,7 @@ This is the "hopefully not frequently asked questions"!
 
 - What key lengths are used?
   As far as I know, 128 bits for the symetric session keys.
-  nessus-mkcert generates 1024 bit asymetric RSA keys.
+  openvas-mkcert generates 1024 bit asymetric RSA keys.
 
 - In my democratic country, long keys are forbidden by law.
   Then disable the cipher layer.

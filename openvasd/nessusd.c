@@ -680,7 +680,7 @@ main_loop()
       ca_file = preferences_get_string(g_preferences, "ca_file");
       if(ca_file == NULL)
 	{
-	  fprintf(stderr, "*** 'ca_file' is not set - did you run nessus-mkcert ?\n");
+	  fprintf(stderr, "*** 'ca_file' is not set - did you run openvas-mkcert ?\n");
 	  exit (1);
 	}
       /* We might add some verification callback here */
@@ -692,7 +692,7 @@ main_loop()
 	{
 	  if(errno == ENOENT)
 	    {
-	      fprintf(stderr, "The CA file could not be loaded. Did you run nessus-mkcert ?\n");
+	      fprintf(stderr, "The CA file could not be loaded. Did you run openvas-mkcert ?\n");
 	      exit(1);
 	    }
 	  else sslerror("SSL_CTX_load_verify_locations");
@@ -713,13 +713,13 @@ main_loop()
 
       if (cert == NULL)
 	{
-	  fprintf(stderr, "*** 'cert_file' is not set - did you run nessus-mkcert ?\n");
+	  fprintf(stderr, "*** 'cert_file' is not set - did you run openvas-mkcert ?\n");
 	  exit (1);
 	}
   
       if(key == NULL)
 	{
-	  fprintf(stderr, "*** 'key_file' is not set - did you run nessus-mkcert ?\n");
+	  fprintf(stderr, "*** 'key_file' is not set - did you run openvas-mkcert ?\n");
 	  exit (1);
 	}
    
@@ -727,7 +727,7 @@ main_loop()
 	{
 	  if(errno == ENOENT)
 	    {
-	      fprintf(stderr, "The server certificate could not be loaded. Did you run nessus-mkcert ?\n");
+	      fprintf(stderr, "The server certificate could not be loaded. Did you run openvas-mkcert ?\n");
 	      exit(1);
 	    }
 	}
@@ -737,7 +737,7 @@ main_loop()
 	  sslerror("SSL_CTX_use_PrivateKey_file");
 	  if(errno == ENOENT)
 	    {
-	      fprintf(stderr, "The server key could not be loaded. Did you run nessus-mkcert ?\n");
+	      fprintf(stderr, "The server key could not be loaded. Did you run openvas-mkcert ?\n");
 	      exit(1);
 	    }
 	}

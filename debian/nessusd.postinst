@@ -1,6 +1,6 @@
 #!/bin/sh -e
 # Postinst script for Nessus, written by Javier Fernandez-Sanguino
-# Uses code from nessus-mkcert, which was written by Renaud Deraison 
+# Uses code from openvas-mkcert, which was written by Renaud Deraison 
 # <deraison@cvs.nessus.org> and Michel Arboi <arboi@alussinan.org>
 #
 # This script is distributed under the Gnu General Public License (GPL)
@@ -28,7 +28,7 @@ if [ ! -d "$NESSUSPUB" ]; then
 fi
 umask 077
 # Set environment
-BASEDIR=`mktemp -d -t nessus-mkcert.XXXXXX` || { echo "$program: Cannot create temporary dir!" >&2 ; exit 1; }
+BASEDIR=`mktemp -d -t openvas-mkcert.XXXXXX` || { echo "$program: Cannot create temporary dir!" >&2 ; exit 1; }
 trap " [ -d \"$BASEDIR\" ] && /bin/rm -rf -- \"$BASEDIR\"" 0 1 2 3 13 15
 CAKEY=$NESSUSPRIV/cakey.pem
 CACERT=$NESSUSPUB/cacert.pem
@@ -241,7 +241,7 @@ chmod a+r $CACERT $SRVCERT #cln $CLNCERT
 CF=/etc/nessus/nessusd.conf
 egrep -v '^ *(pem_password|cert_file|key_file|ca_file|force_pubkey_auth) *=' "$CF" > "$CF.tmp"
 echo "#
-# Added by nessus-mkcert
+# Added by openvas-mkcert
 #
 cert_file=$SRVCERT
 key_file=$SRVKEY
