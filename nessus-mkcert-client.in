@@ -12,22 +12,6 @@ case `echo -n` in
 *)	Xn=-n ; Xc=
 esac
 
-
-echo_no_nl ()
-{
-    echo $Xn "$*$Xc"
-}
-
-
-header()
-{
-clear
-echo "-------------------------------------------------------------------------------"
-echo "			Creation Nessus SSL client Certificate"
-echo "-------------------------------------------------------------------------------"
-echo
-}
-#
 umask 022
 
 prefix=@prefix@
@@ -48,6 +32,52 @@ test -n "$egdpath" &&
 
 PATH=$PATH:$sbindir:$bindir:/usr/ssl/bin:/usr/local/ssl/bin:/opt/ssl/bin
 
+# check if gettext is present
+
+if [ -f /usr/bin/gettext.sh ];
+then
+
+  # initialize gettext
+
+  . gettext.sh
+  export TEXTDOMAIN=nessus-scripts
+  export TEXTDOMAINDIR=@datadir@/locale
+
+else
+
+  # define dummy functions
+
+  gettext () {
+    echo $Xn "$1" $Xc
+  }
+
+  eval_gettext () {
+    eval_gettext_var="echo $1"
+    echo $Xn `eval $eval_gettext_var` $Xc
+  }
+
+fi
+
+Bo='('
+Bc=')'
+Hash='#'
+
+echo_no_nl ()
+{
+    echo $Xn "$*$Xc"
+}
+
+
+header()
+{
+clear
+echo "-------------------------------------------------------------------------------"
+gettext "			Creation Nessus SSL Client Certificate"; echo
+echo "-------------------------------------------------------------------------------"
+echo
+}
+#
+
 #
 # We need openssl
 #
@@ -55,14 +85,13 @@ case `openssl version` in
  OpenSSL*)
      ;;
  *)
-   echo "OpenSSL is not properly installed (the 'openssl' command line utility could not"
-   echo "be found (is your \$PATH set properly ?)"
+   gettext "OpenSSL is not properly installed: The 'openssl' command line utility could not be found (is your \$PATH set properly?)"; echo
    exit 1
 esac
      
 # Check environment
 if [ -z "$HOME" ]; then
-    echo "HOME should be defined" 1>&2; exit 1
+    gettext "\$HOME should be defined." 1>&2; echo; exit 1
 fi
 
 #
@@ -74,64 +103,60 @@ test -z "$RANDFLAG" -a -z "$RANDFILE" &&
  if [ ! -r /dev/random -a ! -r /dev/urandom -a ! -r $HOME/.rnd ];
   then
    header
-   echo "You do not have any suitable random source"
-   echo "You will be asked to type a few random keys on your keyboard"
-   echo "to generate random bytes"
+   gettext "You do not have any suitable random source."; echo
+   gettext "You will be asked to type a few random keys on your keyboard to generate random bytes."; echo
    nessus-mkrand $HOME/.rnd 1024 
-   echo "Press [ENTER] to continue..."
+   gettext "Press [ENTER] to continue..."; echo
   fi
 }
 
 
 
-NESSUSPRIV="@NESSUSD_STATEDIR@/private/CA"
-NESSUSPUB="@NESSUSD_SHAREDSTATEDIR@/CA"
+NESSUSPRIV="$localstatedir/nessus/CA"
+NESSUSPUB="$sharedstatedir/nessus/CA"
 
 while [ ! -d "$NESSUSPRIV" ]; do
-    echo_no_nl "Nessus server 'private' directory: "
+    gettext "Nessus server 'private' directory: "
     read NESSUSPRIV
 done
 
 while [ ! -d "$NESSUSPUB" ]; do
-    echo_no_nl "Nessus server 'public' directory: "
+    gettext "Nessus server 'public' directory: "
     read NESSUSPUB
 done
 
 CAKEY=$NESSUSPRIV/cakey.pem
 CACERT=$NESSUSPUB/cacert.pem
 
-[ -r $NESSUSPRIV ] || echo "WARN: $NESSUSPRIV is not readable, this script will not be able to find the server certificate (hint: are you root?)"
-
 while [ ! -f "$CAKEY" ]; do
-    echo "$CAKEY: not found or not a file"
-    echo_no_nl "Nessus CA private key: "
+    eval_gettext "\$CAKEY: not found or not a file."
+    gettext "Nessus CA private key: "
     read CAKEY
 done
 
 while [ ! -f "$CACERT" ]; do
-    echo "$CACERT: not found or not a file"
-    echo_no_nl "Nessus CA certificate: "
+    eval_gettext "\$CACERT: not found or not a file."
+    gettext "Nessus CA certificate: "
     read CACERT
 done
 
 for F in "$CAKEY" "$CACERT"; do 
     if [ ! -r "$F" ]; then
-	echo "Cannot read $F" 1>&2; exit 1
+	eval_gettext "Cannot read \$F" 1>&2; echo; exit 1
     fi
 done
 
 R=x
-while [ "$R" != "y" -a "$R" != "n" ]; do
-    echo "Do you want to register the users in the Nessus server "
-    echo_no_nl "as soon as you create their certificates ? (y/n): "
+while [ "$R" != `gettext "y"` -a "$R" != `gettext "n"` ]; do
+    gettext "Do you want to register the users in the Nessus server as soon as you create their certificates? (y/n): "
     read R
 done
 
-if [ "$R" = "y" ]; then
-    USERSDIR=$localstatedir/lib/nessus/users
+if [ "$R" = `gettext "y"` ]; then
+    USERSDIR=$localstatedir/nessus/users
     while [ ! -d "$USERSDIR" ]; do
-	echo "$USERSDIR: not a directory"
-	echo_no_nl "Users directory? "
+	eval_gettext "\$USERSDIR: not a directory."; echo
+	gettext "Users directory? "
 	read USERSDIR
     done
 else
@@ -145,23 +170,24 @@ BASEDIR=${TMPDIR-/tmp}/nessus-mkcert.$$
 mkdir $BASEDIR || exit 1
 
 
-echo "This script will now ask you the relevant information to create the SSL"
-echo "client certificates for Nessus."
+gettext "This script will now ask you the relevant information to create the SSL client certificates for Nessus."; echo
 
-echo_no_nl "Client certificates life time in days [365]:"; read x
+gettext "Client certificates life time in days [365]: "; read x
 DFL_CERT_LIFETIME=${x:-365}
 
 # Default country = France - Too bad for you, but quicker for my tests!
 if [ ! -z "$LANG" ]; then
     DC=`echo $LANG | sed -n 's/^..*_\(..\)$/\1/p'`
 fi
-echo_no_nl "Your country (two letter code) [${DC:=FR}]: "; read x
+X=${DC:=FR}
+eval_gettext "Your country \${Bo}two letter code\${Bc} [\$X]: "; read x
 DFL_COUNTRY=${x:-$DC}
-echo_no_nl "Your state or province name [none]: "; read DFL_PROVINCE
-X=Paris; echo_no_nl "Your location (e.g. town) [$X]: "; read x
+gettext "Your state or province name [none]: "; read DFL_PROVINCE
+X=Paris; 
+eval_gettext "Your location \${Bo}e.g. town\${Bc} [\$X]: "; read x
 DFL_LOCATION=${x:-$X}
-echo_no_nl "Your organization [none]: "; read DFL_ORGANIZATION
-echo_no_nl "Your organizational unit [none]:"; read DFL_ORGUNIT
+gettext "Your organization [none]: "; read DFL_ORGANIZATION
+gettext "Your organizational unit [none]: "; read DFL_ORGUNIT
 
 #
 
@@ -297,19 +323,18 @@ EOF
 echo 01 > $BASEDIR/serial
 touch $BASEDIR/index.txt
 
-echo "**********
-We are going to ask you some question for each client certificate
-If some question has a default answer, you can force an empty answer by 
-entering a single dot '.'
-*********"
+echo "**********"
+gettext "We are going to ask you some question for each client certificate. "; echo
+gettext "If some question has a default answer, you can force an empty answer by entering a single dot '.'"; echo
+echo "*********"
 
 
-I=1; ANOTHER=y
+I=1; ANOTHER=`gettext "y"`
 
-while [ "$ANOTHER" != "n" ]; do
+while [ "$ANOTHER" != `gettext "n"` ]; do
     PSEUDO=""
     while [ -z "$PSEUDO" ]; do
-	echo_no_nl "User #$I name (e.g. Nessus username): "
+	eval_gettext "User \${Hash}\$I name \${Bo}e.g. Nessus username\${Bc}: "
 	read PSEUDO
 	CERTFILE="$BASEDIR/cert_$PSEUDO.pem"
 	KEYFILE="$BASEDIR/key_$PSEUDO.pem"
@@ -318,28 +343,33 @@ while [ "$ANOTHER" != "n" ]; do
 	if [ -f "$CERTFILE" -o -f "$KEYFILE" -o -f "$DNFILE" ]; then
 	    A=""
 	    while [ -z "$A" ]; do
-		echo "Certificate, key or Nessus DN file(s) already exist."
-		echo_no_nl "Do you want to go on and overwite it/them? "
+		gettext "Certificate, key or Nessus DN file(s) already exist."; echo
+		gettext "Do you want to go on and overwrite it/them? (y/n) "
 		read A
-		if [ "$A" = "n" ]; then PSEUDO=""; fi
+		if [ "$A" = `gettext "n"` ]; then PSEUDO=""; fi
 	    done
 	fi
     done
 
-    echo_no_nl "Client certificates life time in days [$DFL_CERT_LIFETIME]:"
+    eval_gettext "Client certificates life time in days [\$DFL_CERT_LIFETIME]: "
     read x
     CERT_LIFETIME=${x:-$DFL_CERT_LIFETIME}
-    echo_no_nl "Country (two letter code) [$DFL_COUNTRY]: "; read x
+    X=$DFL_COUNTRY
+    eval_gettext "Country \${Bo}two letter code\${Bc} [\$X]: "; read x
     COUNTRY=${x:-$DFL_COUNTRY}
-    echo_no_nl "State or province name [$DFL_PROVINCE]: "; read x
+    X=$DFL_PROVINCE
+    eval_gettext "State or province name [\$X]: "; read x
     PROVINCE=${x:-$DFL_PROVINCE}
-    echo_no_nl "Location (e.g. town) [$DFL_LOCATION]: "; read x
+    X=$DFL_LOCATION
+    eval_gettext "Location \${Bo}e.g. town\${Bc} [\$X]: "; read x
     LOCATION=${x:-$DFL_LOCATION}
-    echo_no_nl "Organization [$DFL_ORGANIZATION]: "; read x
+    X=$DFL_ORGANIZATION
+    eval_gettext "Organization [\$X]: "; read x
     ORGANIZATION=${x:-$DFL_ORGANIZATION}
-    echo_no_nl "Organization unit [$DFL_ORGUNIT]: "; read x
+    X=$DFL_ORGUNIT
+    eval_gettext "Organization unit [\$X]: "; read x
     ORGUNIT=${x:-$DFL_ORGUNIT}
-    echo_no_nl "e-mail []: "; read EMAIL
+    gettext "e-Mail []: "; read EMAIL
 
     # Client key
     openssl genrsa -out $KEYFILE 1024
@@ -381,25 +411,26 @@ ${EMAIL:-.}" |
       # 
       R="$USERSDIR/$PSEUDO/auth/rules" 
       echo 
-      echo "User rules" 
+      gettext "User rules"; echo 
       echo "----------" 
-      echo "nessusd has a rules system which allows you to restrict the hosts" 
-      echo "that $login has the right to test. For instance, you may want" 
-      echo "him to be able to scan his own host only." 
+      eval_gettext "nessusd has a rules system which allows you to restrict the hosts that \$login has the right to test."; echo
+      gettext "For instance, you may want him to be able to scan his own host only."; echo
       echo 
-      echo "Please see the nessus-adduser(8) man page for the rules syntax" 
+      gettext "Please see the nessus-adduser(8) man page for the rules syntax."; echo
       echo 
-      echo "Enter the rules for this user, and hit ctrl-D once you are done: " 
+      gettext "Enter the rules for this user, and hit ctrl-D once you are done:"; echo
+
+      tmpAddUserFile=$TMPDIR/rules.$$
 
 
-      echo "(the user can have an empty rules set)" 
-      cat > $TMPDIR/rules.$$ || { 
-              echo "Error - could not write $TMPDIR/rules.$$" 
+      gettext "(the user can have an empty rules set)"; echo
+      cat > $tmpAddUserFile || { 
+              echo "Error - could not write $tmpAddUserFile" 
               exit 1 
       } 
-      cp $TMPDIR/rules.$$ "$USERSDIR/$PSEUDO/auth/rules" 
+      cp $tmpAddUserFile "$USERSDIR/$PSEUDO/auth/rules" 
 
-      rm $TMPDIR/rules.$$ 
+      rm $tmpAddUserFile 
 
       # 
       # create the cert authentication file auth/dname 
@@ -426,14 +457,14 @@ ${EMAIL:-.}" |
             mkdir -p "$E" 
             chmod 700 "$E" 
         fi 
-        echo "User added to Nessus." 
+        gettext "User added to Nessus."; echo
     fi
 
-    echo_no_nl "Another client certificate? " 
+    gettext "Another client certificate? (y/n) " 
     read ANOTHER 
     I=`expr $I + 1` 
 done
 
-echo "Your client certificates are in $BASEDIR
-You will have to copy them by hand"
+eval_gettext "Your client certificates are in \$BASEDIR."; echo
+gettext "You will have to copy them by hand."; echo
 

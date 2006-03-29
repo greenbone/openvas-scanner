@@ -26,6 +26,32 @@ is_cygwin=@is_cygwin@
 nessusd=@sbindir@/nessusd
 nessusd_users=@sysconfdir@/nessus/nessusd.users
 
+# check if gettext is present
+
+if [ -f /usr/bin/gettext.sh ];
+then
+
+  # initialize gettext
+
+  . gettext.sh
+  export TEXTDOMAIN=nessus-scripts
+  export TEXTDOMAINDIR=@datadir@/locale
+
+else
+
+  # define dummy functions
+
+  gettext () {
+    echo $1
+  }
+
+  eval_gettext () {
+    echo $1
+  }
+
+fi
+
+#
 # check whether we have echo -n, depending
 # on the current shell, used
 case `echo -n` in
@@ -37,30 +63,28 @@ if [ -z "$is_cygwin" ];
 then
  # make sure that we are root
  case `id` in uid=0*) ;; *)
-    echo "only root should use nessus-rmuser"
+    gettext "Only root should use nessus-rmuser."; echo
     exit 1
  esac
 fi
 
 
-login=$1
+login="$1"
 
-test -z "$1" && {
-echo $Xn "Login to remove : $Xc"
+test -z "$login" && {
+echo $Xn "`gettext "Login to remove :"` $Xc"
 read login
 }
 
 test -z "$login" && {
-	echo "No login entered"
-	exit 1
-	}
+ gettext "No login entered"
+ exit 1
+}
 
-if [ -d "$localstatedir/lib/nessus/users/$login" ];
+if [ -d "$localstatedir/nessus/users/$login" ];
 then
- rm -rf "$localstatedir/lib/nessus/users/$login"
- echo "user removed."
+ rm -rf "$localstatedir/nessus/users/$login"
+ gettext "user removed."; echo
 else
- echo "This user does not exist"
+ gettext "user does not exist"; echo
 fi
-
-exit 0

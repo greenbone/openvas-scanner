@@ -13,26 +13,6 @@ case `echo -n` in
 *)	Xn=-n ; Xc=
 esac
 
-
-
-test "$1" = "-q" && QUIET=y
-
-
-echo_no_nl ()
-{
-    echo $Xn "$*$Xc"
-}
-
-
-header()
-{
-clear
-echo "-------------------------------------------------------------------------------"
-echo "			Creation of the Nessus SSL Certificate"
-echo "-------------------------------------------------------------------------------"
-echo
-}
-#
 umask 022
 
 prefix=@prefix@
@@ -52,14 +32,56 @@ test -n "$egdpath" &&
 }
 
 
-
-
-
 PATH=$PATH:$sbindir:$bindir:/usr/ssl/bin:/usr/local/ssl/bin:/opt/ssl/bin
 
 
+# check if gettext is present
+
+if [ -f /usr/bin/gettext.sh ];
+then
+
+  # initialize gettext
+
+  . gettext.sh
+  export TEXTDOMAIN=nessus-scripts
+  export TEXTDOMAINDIR=@datadir@/locale
+
+else
+
+  # define dummy functions
+
+  gettext () {
+    echo $Xn "$1" $Xc
+  }
+
+  eval_gettext () {
+    eval_gettext_var="echo $1"
+    echo $Xn `eval $eval_gettext_var` $Xc
+  }
+
+fi
+
+Bo='('
+Bc=')'
+
+test "$1" = "-q" && QUIET=y
 
 
+echo_no_nl ()
+{
+    echo $Xn "$*$Xc"
+}
+
+
+header()
+{
+clear
+echo    "-------------------------------------------------------------------------------"
+gettext "			Creation of the Nessus SSL Certificate"; echo
+echo    "-------------------------------------------------------------------------------"
+echo
+}
+#
 
 if [ -z "$is_cygwin" ];
 then
@@ -69,13 +91,12 @@ then
 case `id 2>/dev/null` in 
 uid=0*) 
     $sbindir/nessusd -g || {
-	echo "Executing nessusd failed. Make sure your library loader is configured properly"
-	echo "and that nessusd is in your \$PATH"
+	gettext "Executing nessusd failed. Make sure your library loader is configured properly and that nessusd is in your \$PATH."; echo
 	exit 1
 	}
     ;; 
 *)
-    echo "Only root can use nessus-mkcert"
+    gettext "Only root can use nessus-mkcert."; echo
     exit 1
 esac
 fi
@@ -87,30 +108,28 @@ case `openssl version` in
  OpenSSL*)
      ;;
  *)
-   echo "OpenSSL is not properly installed (the 'openssl' command line utility could not"
-   echo "be found (is your \$PATH set properly ?)"
+   gettext "OpenSSL is not properly installed: The 'openssl' command line utility could not be found (is your \$PATH set properly?)"; echo
    exit 1
 esac
      
-NESSUSPRIV="@NESSUSD_STATEDIR@/private/CA"
-NESSUSPUB="@NESSUSD_SHAREDSTATEDIR@/CA"
-
+NESSUSPRIV="$localstatedir/nessus/CA"
+NESSUSPUB="$sharedstatedir/nessus/CA"
 if [ ! -d "$NESSUSPRIV" ]; then
     mkdir -p "$NESSUSPRIV"
     chmod 0700 "$NESSUSPRIV"
-    echo "$NESSUSPRIV created"
+    echo "$NESSUSPRIV `gettext "created"`"
 fi
 
 if [ ! -d "$NESSUSPUB" ]; then
     mkdir -p "$NESSUSPUB"
     chmod a+rx "$NESSUSPUB"
-    echo "$NESSUSPUB created"
+    echo "$NESSUSPUB `gettext "created"`"
 fi
 
 
 # Check environment
 if [ -z "$HOME" ]; then
-    echo "HOME should be defined" 1>&2; exit 1
+    gettext "\$HOME should be defined." 1>&2; echo; exit 1
 fi
 
 
@@ -123,11 +142,10 @@ test -z "$RANDFLAG" -a -z "$RANDFILE" &&
  if [ ! -r /dev/random -a ! -r /dev/urandom -a ! -r $HOME/.rnd ];
   then
    header
-   echo "You do not have any suitable random source"
-   echo "You will be asked to type a few random keys on your keyboard"
-   echo "to generate random bytes"
+   gettext "You do not have any suitable random source."; echo
+   gettext "You will be asked to type a few random keys on your keyboard to generate random bytes."; echo
    nessus-mkrand $HOME/.rnd 1024 
-   echo "Press [ENTER] to continue..."
+   gettext "Press [ENTER] to continue..."; echo
   fi
 }
 
@@ -157,16 +175,14 @@ SRVCERT=$NESSUSPUB/servercert.pem
 if [ -z "$QUIET" ];
 then
 header
-echo "This script will now ask you the relevant information to create the SSL"
-echo "certificate of Nessus. Note that this information will *NOT* be sent to"
-echo "anybody (everything stays local), but anyone with the ability to connect to your"
-echo "Nessus daemon will be able to retrieve this information."
+gettext "This script will now ask you the relevant information to create the SSL certificate of Nessus."; echo
+gettext "Note that this information will *NOT* be sent to anybody (everything stays local), but anyone with the ability to connect to your Nessus daemon will be able to retrieve this information."; echo
 echo
 echo
 #
-echo_no_nl "CA certificate life time in days [1460]: "; read x
+gettext "CA certificate life time in days [1460]: "; read x
 CACERT_LIFETIME=${x:-1460}
-echo_no_nl "Server certificate life time in days [365]: "; read x
+gettext "Server certificate life time in days [365]: "; read x
 SRVCERT_LIFETIME=${x:-365}
 #cln echo_no_nl "Client certificate life time in days [365]:"; read x
 #cln CLNCERT_LIFETIME=${x:-365}
@@ -177,14 +193,15 @@ fi
 
 # Default country = France
 # Too bad for you, but quicker for my tests!
-echo_no_nl "Your country (two letter code) [${DC:=FR}]: "; read x
+X=${DC:=FR}
+eval_gettext "Your country \${Bo}two letter code\${Bc} [\$X]: "; read x
 COUNTRY=${x:-$DC}
 #
-echo_no_nl "Your state or province name [none]: "; read x
+gettext "Your state or province name [none]: "; read x
 PROVINCE=${x:-.}
-X=Paris; echo_no_nl "Your location (e.g. town) [$X]: "; read x
+X=Paris; eval_gettext "Your location \${Bo}e.g. town\${Bc} [\$X]: "; read x
 LOCATION=${x:-$X}
-X="Nessus Users United"; echo_no_nl "Your organization [$X]: "; read x
+X="Nessus Users United"; eval_gettext "Your organization [\$X]: "; read x
 ORGANIZATION=${x:-$X}
 # X="Test unit"; echo_no_nl "Your organization unit [$X]:"; read x
 # ORGUNIT=${x:-$X}
@@ -335,7 +352,7 @@ sed 's/NSCERTTYPE/client/g' < $BASEDIR/std000.cnf > $BASEDIR/stdC.cnf
 hostname=`hostname`
 if [ -z "$hostname" ];
 then
- echo "An error occured while trying to determine hostname !"
+ gettext "An error occured while trying to determine hostname!"; echo
  exit 1
 fi
 # The value for organizationalUnitName must be 64 chars or less;
@@ -405,7 +422,6 @@ openssl ca -config $BASEDIR/std.cnf -name NessusCA -batch -days $SRVCERT_LIFETIM
 
 ####
 
-
 chmod a+r $CACERT $SRVCERT #cln $CLNCERT
 
 
@@ -430,37 +446,36 @@ test -z "$QUIET" && header
 
 if [ -s "$CACERT" -a -s "$CAKEY" -a -s "$SRVCERT" -a -s "$SRVKEY" ];
  then
- test -z "$QUIET" && echo "Congratulations. Your server certificate was properly created."
+ test -z "$QUIET" && gettext "Congratulations. Your server certificate was properly created."; echo
  
  mv -f "$CF.tmp" "$CF"
  test -z "$QUIET" && { 
  echo
- echo "$CF updated
- "
+ eval_gettext "\$CF updated"; echo
 
  #cln echo "Your client certificates are in $BASEDIR
  #cln You will have to copy them by hand
 
- echo "The following files were created : "
+ gettext "The following files were created:"; echo
  echo
- echo ". Certification authority : "
- echo "   Certificate = $CACERT"
- echo "   Private key = $CAKEY"
+ gettext ". Certification authority:"; echo
+ eval_gettext "   Certificate = \$CACERT"; echo
+ eval_gettext "   Private key = \$CAKEY"; echo
  echo
- echo ". Nessus Server : "
- echo "    Certificate = $SRVCERT"
- echo "    Private key = $SRVKEY"
+ gettext ". Nessus Server : "; echo
+ eval_gettext "    Certificate = \$SRVCERT"; echo
+ eval_gettext "    Private key = \$SRVKEY"; echo
  #cln ***** Nessus client *****
  #cln Certificate = $CLNCERT
  #cln Private key = $CLNKEY
  }
 else
- echo "An error occured while generating the certificates and/or keys !"
+ gettext "An error occured while generating the certificates and/or keys!"; echo
  echo
- echo_no_nl "Do you want to save openssl output in a file for further analysis ? (y/n) [y] " $Xc
+ echo_no_nl "`gettext "Do you want to save openssl output in a file for further analysis? (y/n) [y] "`" $Xc
  read n < /dev/tty
- test -z "$n" -o "$n" = "y" && {
-  echo_no_nl "Where should I save this file ? [$HOME/openssl-output] "
+ test -z "$n" -o "$n" = `gettext "y"` && {
+  eval_gettext "Where should I save this file? [\$HOME/openssl-output] "
   read n < /dev/tty
   test -z "$n" && n="$HOME/openssl-output"
   cp "$BASEDIR"/openssl-log "$n"
@@ -473,7 +488,7 @@ fi
 test -z "$QUIET" &&
 {
  echo
- echo "Press [ENTER] to exit"; read x
+ gettext "Press [ENTER] to exit"; echo; read x
 }
 rm -rf "$BASEDIR"
 
