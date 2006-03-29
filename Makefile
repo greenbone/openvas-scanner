@@ -48,7 +48,7 @@ install-bin:
 	$(INSTALL) -c -m 0444 include/nessusicmp.h $(DESTDIR)${includedir}/nessus
 	$(INSTALL) -c -m 0444 include/nessustcp.h $(DESTDIR)${includedir}/nessus
 	$(INSTALL) -c -m 0444 include/nessusudp.h $(DESTDIR)${includedir}/nessus
-	$(INSTALL) -m $(CLIENTMODE) nessus-fetch/nessus-fetch $(DESTDIR)${bindir}
+	$(INSTALL) -m $(CLIENTMODE) nessus-fetch/openvas-fetch $(DESTDIR)${bindir}
 	$(INSTALL) -m $(CLIENTMODE) nessus-adduser $(DESTDIR)${sbindir}
 	$(INSTALL) -m $(CLIENTMODE) nessus-rmuser $(DESTDIR)${sbindir}
 	$(INSTALL) -m $(CLIENTMODE) nessus-mkcert $(DESTDIR)${sbindir}
@@ -62,7 +62,7 @@ install-man:
 	@test -d $(DESTDIR)${mandir}/man8 || $(INSTALL_DIR) $(DESTDIR)${mandir}/man8
 
 	$(INSTALL) -c -m 0444 ${MAN_NESSUS_1} $(DESTDIR)${mandir}/man1/nessus.1
-	$(INSTALL) -c -m 0444 doc/nessus-fetch.1 $(DESTDIR)${mandir}/man1/nessus-fetch.1
+	$(INSTALL) -c -m 0444 doc/openvas-fetch.1 $(DESTDIR)${mandir}/man1/openvas-fetch.1
 	$(INSTALL) -c -m 0444 doc/nessus-check-signature.1 $(DESTDIR)${mandir}/man1/nessus-check-signature.1
 	$(INSTALL) -c -m 0444 ${MAN_NESSUSD_8} $(DESTDIR)${mandir}/man8/nessusd.8
 	$(INSTALL) -c -m 0444 doc/nessus-adduser.8 $(DESTDIR)${mandir}/man8/nessus-adduser.8

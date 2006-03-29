@@ -1,5 +1,5 @@
 /*
- * Nessus-Fetch
+ * OpenVAS-Fetch
  *
  * (C) Tenable Network Security
  * (C) Tim Brown
@@ -20,7 +20,7 @@
  * 
  *
  *
- * nessus-fetch is a simple utility to retrieve Nessus plugins from nessus.org
+ * openvas-fetch is a simple utility to retrieve Nessus plugins from nessus.org
  * $Id$
  */
 #include <includes.h>
@@ -37,7 +37,7 @@
 
 #define ERROR_PREFIX "@ERROR@:"
 #define SUCCESS_MSG  "@SUCCESS@"
-#define CONFIG_FILE "nessus-fetch.rc"
+#define CONFIG_FILE "openvas-fetch.rc"
 
 #define SEGSIZE 1024
 
@@ -573,7 +573,7 @@ char * mk_http_req(const char * hostname, char * path, char * httpuser, char * h
  }
  else auth[0] = '\0';
 
- snprintf(ua, sizeof(ua), "Nessus-Fetch/%s", nessuslib_version());
+ snprintf(ua, sizeof(ua), "OpenVAS-Fetch/%s", nessuslib_version());
 
   sprintf(str, "GET %s HTTP/1.1\r\n\
 Connection: Close\r\n\
@@ -973,7 +973,7 @@ void check_subscription()
 	}
   if (strstr(result, SUCCESS_MSG) != NULL )
   {
-   fprintf(stderr, "nessus-fetch is properly configured to receive a direct plugin feed\n");
+   fprintf(stderr, "openvas-fetch is properly configured to receive a direct plugin feed\n");
    exit(0);
   }
   else if ( strstr(result, ERROR_PREFIX ) != NULL )
@@ -984,7 +984,7 @@ void check_subscription()
   }
  }
  else {
-   fprintf(stderr, "nessus-fetch is not configured to receive a direct plugin feed\n");
+   fprintf(stderr, "openvas-fetch is not configured to receive a direct plugin feed\n");
    exit(1);
    }
  
@@ -1031,11 +1031,11 @@ void fetch_plugins_file(char * filename)
 /*---------------------------------------------------------------------------*/
 static void usage()
 {
-   fprintf(stderr, "Usage: nessus-fetch --plugins\n");
-   fprintf(stderr, "Usage: nessus-fetch --plugins-md5\n");
-   fprintf(stderr, "Usage: nessus-fetch --register <serial>\n");
-   fprintf(stderr, "Usage: nessus-fetch --check\n");
-   fprintf(stderr, "Usage: nessus-fetch --url <url> <localfile> [<http_login> <http_password>]\n");
+   fprintf(stderr, "Usage: openvas-fetch --plugins\n");
+   fprintf(stderr, "Usage: openvas-fetch --plugins-md5\n");
+   fprintf(stderr, "Usage: openvas-fetch --register <serial>\n");
+   fprintf(stderr, "Usage: openvas-fetch --check\n");
+   fprintf(stderr, "Usage: openvas-fetch --url <url> <localfile> [<http_login> <http_password>]\n");
    exit(1);
 }
 

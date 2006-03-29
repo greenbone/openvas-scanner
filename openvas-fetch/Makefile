@@ -2,13 +2,13 @@
 
 include ../nessus.tmpl
 
-all: nessus-fetch
+all: openvas-fetch
 
-nessus-fetch: nessus-fetch.o
-	$(CC) nessus-fetch.o -o nessus-fetch $(LIBS)
+openvas-fetch: openvas-fetch.o
+	$(CC) openvas-fetch.o -o openvas-fetch $(LIBS)
 
-nessus-fetch.o: nessus-fetch.c
-	$(CC) $(NESSUS_CFLAGS) ${include} $(DEFS) $(NESSUS_DEFS) -c nessus-fetch.c
+openvas-fetch.o: openvas-fetch.c
+	$(CC) $(NESSUS_CFLAGS) ${include} $(DEFS) $(NESSUS_DEFS) -c openvas-fetch.c
 
 clean:
-	rm -f nessus-fetch nessus-fetch.o
+	rm -f openvas-fetch openvas-fetch.o

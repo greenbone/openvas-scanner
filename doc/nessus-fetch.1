@@ -1,20 +1,20 @@
 .TH NESSUS 1 "December 2004" "The Nessus Project" "Users Manuals"
 .SH NAME
-nessus-fetch \- A simple utility to retrieve plugins from www.nessus.org
+openvas-fetch \- A simple utility to retrieve plugins from www.nessus.org
 .SH SYNOPSIS
-.B nessus-fetch --plugins 
+.B openvas-fetch --plugins 
 .P
-.B nessus-fetch --plugins-md5
+.B openvas-fetch --plugins-md5
 .P
-.B nessus-fetch --register <code> 
+.B openvas-fetch --register <code> 
 .P
-.B nessus-fetch --check
+.B openvas-fetch --check
 .P
-.B nessus-fetch --url <url> <localfile> [<http_login> <http_password>]
+.B openvas-fetch --url <url> <localfile> [<http_login> <http_password>]
 .P
 
 .SH DESCRIPTION
-.B nessus-fetch
+.B openvas-fetch
 is a simple utility is used by 
 .B nessus-update-plugins
 to fetch the newest Nessus plugins from www.nessus.org and to register a Nessus installation with plugins.nessus.org. It can also be used to retrieve arbitrary files from third party servers.
@@ -29,7 +29,7 @@ is required. Please see http://plugins.nessus.org for more details on how to get
 
 .TP
 .BI "--check "
-Makes sure that nessus-fetch is properly configured to receive a direct plugin feed from plugins.nessus.org by attempting to login into the remote server with the username and password obtained with nessus-fetch --register.
+Makes sure that openvas-fetch is properly configured to receive a direct plugin feed from plugins.nessus.org by attempting to login into the remote server with the username and password obtained with nessus-fetch --register.
 Please see http://plugins.nessus.org for more details on how to get a direct plugin feed.
 
 .TP
@@ -47,8 +47,8 @@ Retrieves the file located at <url> (ie: http://www.nessus.org/index.html) and s
 
 .SH "PROXY SUPPORT"
 .P
-If you need to connect to the internet through a proxy, nessus-fetch can be configured to use one. Simply edit the file
-.B /etc/nessus/nessus-fetch.rc
+If you need to connect to the internet through a proxy, openvas-fetch can be configured to use one. Simply edit the file
+.B /etc/nessus/openvas-fetch.rc
 and add the following lines, changing the appropriate values where necessary :
 .P
 proxy=192.168.0.1
@@ -64,7 +64,7 @@ proxy_password=s3cr3t
 
 .SH "BUGS"
 
-nessus-fetch will not retrieve files bigger than 40MB.
+openvas-fetch will not retrieve files bigger than 40MB.
 
 .SH "SEE ALSO"
 .BR nessus-update-plugins (1)
@@ -79,5 +79,5 @@ http://www.nessus.org/
 .UE
 
 .SH AUTHORS
-nessus-fetch is (C) 2004 Tenable Network Security
+openvas-fetch is (C) 2004 Tenable Network Security
 
