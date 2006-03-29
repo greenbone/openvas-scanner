@@ -192,7 +192,7 @@ There are several solutions:
   By default, OpenSSL looks for $HOME/.rng but you may override this
   by setting the RAND environement variable.
   You will have to fill this seed file with enough "random" data.
-  nessus-mkrand is your friend!
+  openvas-mkrand is your friend!
 
 - install and run egd, the entropy gathering daemon
   Unless its Unix socket path is really weird, OpenSSL is supposed

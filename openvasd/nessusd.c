@@ -612,7 +612,7 @@ main_loop()
     {
       if(nessus_SSL_init(NULL) < 0)	/* Replace NULL by private random pool path */
 	{
-	  fprintf(stderr, "Could not initialize OpenSSL - please use nessus-mkrand(1) first !\n");
+	  fprintf(stderr, "Could not initialize OpenSSL - please use openvas-mkrand(1) first !\n");
 	  exit(1);
 	}
       /*

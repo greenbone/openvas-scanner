@@ -419,7 +419,7 @@ connect_to_nessusd(hostname, port, login, pass)
       if(nessus_SSL_init(NULL) < 0)
 	{
 	  return("Could not initialize the OpenSSL library !\n\
-Please launch nessus-mkrand(1) first !");
+Please launch openvas-mkrand(1) first !");
 	}
       if (ssl_mt == NULL)
 	{

@@ -126,7 +126,7 @@ test -z "$RANDFLAG" -a -z "$RANDFILE" &&
    echo "You do not have any suitable random source"
    echo "You will be asked to type a few random keys on your keyboard"
    echo "to generate random bytes"
-   nessus-mkrand $HOME/.rnd 1024 
+   openvas-mkrand $HOME/.rnd 1024 
    echo "Press [ENTER] to continue..."
   fi
 }
