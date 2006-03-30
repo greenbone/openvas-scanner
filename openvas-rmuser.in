@@ -1,6 +1,6 @@
 #!/bin/sh
 #
-# nessus-rmuser
+# openvas-rmuser
 #
 # Written by Renaud Deraison <deraison@cvs.nessus.org>
 #
@@ -63,7 +63,7 @@ if [ -z "$is_cygwin" ];
 then
  # make sure that we are root
  case `id` in uid=0*) ;; *)
-    gettext "Only root should use nessus-rmuser."; echo
+    gettext "Only root should use openvas-rmuser."; echo
     exit 1
  esac
 fi

@@ -223,7 +223,7 @@ msgstr "Login Passwort (wiederholen) :"
 msgid "Login password :"
 msgstr "Login Passwort :"
 
-#: nessus-rmuser.in:49
+#: openvas-rmuser.in:49
 msgid "Login to remove :"
 msgstr "Entfernung Benutzer :"
 
@@ -266,9 +266,9 @@ msgstr "Nur root sollte nessus-adduser ausführen."
 msgid "Only root can use openvas-mkcert."
 msgstr "Nur root sollte openvas-mkcert ausführen."
 
-#: nessus-rmuser.in:40
-msgid "Only root should use nessus-rmuser."
-msgstr "Nur root sollte nessus-rmuser ausführen."
+#: openvas-rmuser.in:40
+msgid "Only root should use openvas-rmuser."
+msgstr "Nur root sollte openvas-rmuser ausführen."
 
 #: openvas-mkcert.in:89
 msgid ""
@@ -464,7 +464,7 @@ msgstr ""
 msgid "user added."
 msgstr "Benutzer hinzugefügt."
 
-#: nessus-rmuser.in:58
+#: openvas-rmuser.in:58
 msgid "user removed."
 msgstr "Benutzer entfernt."
 

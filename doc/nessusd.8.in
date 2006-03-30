@@ -202,7 +202,7 @@ When a user attempts to log in, nessusd first checks that the directory
 @NESSUS_STATEDIR@/users/<username> exists, then hashes the password sent by the user with the random salt found in <username>/auth/hash, and compares it with the password hash stored in the same file. If the users authenticates using a certificate, then nessusd checks that the certificate has been signed by a recognized authority, and makes sure that the dname of the certificate shown by the user is the same as the one in <username>/dname.
 
 
-To remove a given user, use the command nessus-rmuser(8).
+To remove a given user, use the command openvas-rmuser(8).
 
 .SH THE RULE SET FORMAT
 
@@ -318,7 +318,7 @@ Reducing the amount of tested part and such will reduce the amout of data
 to be transfered significantly.
 
 .SH SEE ALSO
-.BR nessus (1),\  nessus-adduser (8),\  nessus-rmuser (8),\  openvas-mkcert (8)
+.BR nessus (1),\  nessus-adduser (8),\  openvas-rmuser (8),\  openvas-mkcert (8)
 
 .SH MORE INFORMATION ABOUT THE NESSUS PROJECT
 

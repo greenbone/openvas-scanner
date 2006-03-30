@@ -12147,7 +12147,7 @@ fi
 
 
 
-                                                            ac_config_files="$ac_config_files nessus.tmpl include/corevers.h nessus-adduser nessus-rmuser openvas-mkcert openvas-mkcert-client"
+                                                            ac_config_files="$ac_config_files nessus.tmpl include/corevers.h nessus-adduser openvas-rmuser openvas-mkcert openvas-mkcert-client"
 cat >confcache <<\_ACEOF
 # This file is a shell script that caches the results of configure
 # tests run on this system so they can be shared between configure
@@ -12676,7 +12676,7 @@ do
   "nessus.tmpl" ) CONFIG_FILES="$CONFIG_FILES nessus.tmpl" ;;
   "include/corevers.h" ) CONFIG_FILES="$CONFIG_FILES include/corevers.h" ;;
   "nessus-adduser" ) CONFIG_FILES="$CONFIG_FILES nessus-adduser" ;;
-  "nessus-rmuser" ) CONFIG_FILES="$CONFIG_FILES nessus-rmuser" ;;
+  "openvas-rmuser" ) CONFIG_FILES="$CONFIG_FILES openvas-rmuser" ;;
   "openvas-mkcert" ) CONFIG_FILES="$CONFIG_FILES openvas-mkcert" ;;
   "openvas-mkcert-client" ) CONFIG_FILES="$CONFIG_FILES openvas-mkcert-client" ;;
   "include/config.h" ) CONFIG_HEADERS="$CONFIG_HEADERS include/config.h" ;;
