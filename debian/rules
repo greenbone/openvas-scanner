@@ -61,7 +61,7 @@ install: build-stamp
 	chmod 0640 $(nesd)/var/lib/nessus/tmp
 	dh_installdirs -pnessus usr/share/pixmaps
 	install -m 640 debian/nessusd.conf $(nesd)/etc/nessus/
-	install -m 640 nessus-services $(nesd)/etc/nessus/
+	install -m 640 openvas-services $(nesd)/etc/nessus/
 	install -m 644 debian/nessus.xpm $(nes)/usr/share/pixmaps
 	rm -f $(nes)-dev/usr/include/nessus/includes.h
 
