@@ -6,7 +6,7 @@ How to use Nessus?
 
   * Set up the server certificate with `openvas-mkcert'.
 
-  * Set up a user with `nessus-adduser'.
+  * Set up a user with `openvas-adduser'.
 
   * Set up the client certificate with `openvas-mkcert-client'.
 
@@ -16,7 +16,7 @@ How to use Nessus?
     (or select it from the menu, it's in Apps/System submenu).
     Tell the client to connect to localhost.
     It will ask you for a username and password. Enter the user/password
-    you set up with nessus-adduser, and off you go.
+    you set up with openvas-adduser, and off you go.
 
 Nessus has a test for its daemon running, because it is a potential security
 problem, so it wouldn't seem wise to automatically start it on boot-up.

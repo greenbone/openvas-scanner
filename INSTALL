@@ -9,7 +9,7 @@ If you are lazy, just type (as root) :
 Then :
 
 - create a certificate for nessusd, using openvas-mkcert(8)
-- add a user, using nessus-adduser(8)
+- add a user, using openvas-adduser(8)
 - start nessusd (8)
 - start nessus (1) and connect to it, as the username you specified 
 

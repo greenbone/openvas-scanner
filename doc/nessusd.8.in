@@ -175,7 +175,7 @@ The other options in this file can usually be redefined by the client.
 
 .SH USERS MANAGEMENT
 
-The utility nessus-adduser(8) creates new nessusd users. Each nessusd user
+The utility openvas-adduser(8) creates new nessusd users. Each nessusd user
 is attributed a "home", in @NESSUS_STATEDIR@/users/<username>. This home contains the following directories :
 .IP auth/
 This directory contains the authentification information for this user. It might contain the file 'dname' if the user is authenticating using a certificate, or 'hash' (or 'passwd') if the user is authenticating using a password. The file 'hash' contains a MD5 hash of the user password, as well as a random seed. The file 'password' should contain the password in clear text.
@@ -318,7 +318,7 @@ Reducing the amount of tested part and such will reduce the amout of data
 to be transfered significantly.
 
 .SH SEE ALSO
-.BR nessus (1),\  nessus-adduser (8),\  openvas-rmuser (8),\  openvas-mkcert (8)
+.BR nessus (1),\  openvas-adduser (8),\  openvas-rmuser (8),\  openvas-mkcert (8)
 
 .SH MORE INFORMATION ABOUT THE NESSUS PROJECT
 

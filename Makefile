@@ -49,7 +49,7 @@ install-bin:
 	$(INSTALL) -c -m 0444 include/nessustcp.h $(DESTDIR)${includedir}/nessus
 	$(INSTALL) -c -m 0444 include/nessusudp.h $(DESTDIR)${includedir}/nessus
 	$(INSTALL) -m $(CLIENTMODE) nessus-fetch/openvas-fetch $(DESTDIR)${bindir}
-	$(INSTALL) -m $(CLIENTMODE) nessus-adduser $(DESTDIR)${sbindir}
+	$(INSTALL) -m $(CLIENTMODE) openvas-adduser $(DESTDIR)${sbindir}
 	$(INSTALL) -m $(CLIENTMODE) openvas-rmuser $(DESTDIR)${sbindir}
 	$(INSTALL) -m $(CLIENTMODE) openvas-mkcert $(DESTDIR)${sbindir}
 	$(INSTALL) -m $(CLIENTMODE) openvas-mkcert-client $(DESTDIR)${bindir}
@@ -65,7 +65,7 @@ install-man:
 	$(INSTALL) -c -m 0444 doc/openvas-fetch.1 $(DESTDIR)${mandir}/man1/openvas-fetch.1
 	$(INSTALL) -c -m 0444 doc/nessus-check-signature.1 $(DESTDIR)${mandir}/man1/nessus-check-signature.1
 	$(INSTALL) -c -m 0444 ${MAN_NESSUSD_8} $(DESTDIR)${mandir}/man8/nessusd.8
-	$(INSTALL) -c -m 0444 doc/nessus-adduser.8 $(DESTDIR)${mandir}/man8/nessus-adduser.8
+	$(INSTALL) -c -m 0444 doc/openvas-adduser.8 $(DESTDIR)${mandir}/man8/openvas-adduser.8
 	$(INSTALL) -c -m 0444 doc/openvas-rmuser.8 $(DESTDIR)${mandir}/man8/openvas-rmuser.8
 	$(INSTALL) -c -m 0444 doc/openvas-mkcert.8 $(DESTDIR)${mandir}/man8/openvas-mkcert.8
 	$(INSTALL) -c -m 0444 doc/openvas-mkcert-client.1 \
@@ -120,7 +120,7 @@ distclean: clean
 	rm -f nessus.tmpl doc/nessus.1.cat doc/nessusd.8.cat
 	[ -z "${make_bindir}" ] || rm -f $(make_bindir)/nessus* 
 	rm -f libtool config.cache config.status config.log 
-	rm -f nessus-adduser
+	rm -f openvas-adduser
 	rm -f openvas-rmuser
 	rm -f openvas-mkcert
 	rm -f openvas-mkcert-client

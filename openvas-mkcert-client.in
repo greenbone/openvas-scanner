@@ -416,7 +416,7 @@ ${EMAIL:-.}" |
       eval_gettext "nessusd has a rules system which allows you to restrict the hosts that \$login has the right to test."; echo
       gettext "For instance, you may want him to be able to scan his own host only."; echo
       echo 
-      gettext "Please see the nessus-adduser(8) man page for the rules syntax."; echo
+      gettext "Please see the openvas-adduser(8) man page for the rules syntax."; echo
       echo 
       gettext "Enter the rules for this user, and hit ctrl-D once you are done:"; echo
 

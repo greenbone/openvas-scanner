@@ -712,9 +712,9 @@ AC_SUBST(installuser)
 
 
 dnl And we put everything in the appropriate files
-AC_OUTPUT(nessus.tmpl include/corevers.h nessus-adduser openvas-rmuser openvas-mkcert openvas-mkcert-client)
+AC_OUTPUT(nessus.tmpl include/corevers.h openvas-adduser openvas-rmuser openvas-mkcert openvas-mkcert-client)
 
 
-chmod +x nessus-adduser openvas-mkcert openvas-mkcert-client
+chmod +x openvas-adduser openvas-mkcert openvas-mkcert-client
 
 exit 0

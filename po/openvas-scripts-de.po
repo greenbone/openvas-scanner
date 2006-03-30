@@ -33,7 +33,7 @@ msgstr "$CF geändert"
 msgid "$HOME should be defined."
 msgstr "$HOME sollte definiert sein."
 
-#: nessus-adduser.in:235
+#: openvas-adduser.in:235
 #, sh-format
 msgid "$sayPasswd ***********"
 msgstr "$sayPasswd ***********"
@@ -42,7 +42,7 @@ msgstr "$sayPasswd ***********"
 msgid "$USERSDIR: not a directory."
 msgstr "$USERSDIR: Kein Verzeichnis."
 
-#: nessus-adduser.in:224
+#: openvas-adduser.in:224
 msgid "(the user can have an empty rules set)"
 msgstr "(der Benutzer kann einen leeren Regelsatz haben)"
 
@@ -82,11 +82,11 @@ msgstr "   Privater Schlüssel = $CAKEY"
 msgid "    Private key = $SRVKEY"
 msgstr "    Privater Schlüssel = $SRVKEY"
 
-#: nessus-adduser.in:254
+#: openvas-adduser.in:254
 msgid "Aborted"
 msgstr "Abgebrochen"
 
-#: nessus-adduser.in:124
+#: openvas-adduser.in:124
 msgid "Add a new nessusd user"
 msgstr "Neuen nessusd Benutzer hinzufügen"
 
@@ -98,7 +98,7 @@ msgstr "Während der Erzeugung des Zerfikats und/oder Schlüssles ist ein Fehler a
 msgid "An error occured while trying to determine hostname!"
 msgstr "Während der Ermittlung des Host Namens ist ein Fehler aufgetreten!"
 
-#: nessus-adduser.in:149
+#: openvas-adduser.in:149
 msgid "Authentication (pass/cert) [pass] :"
 msgstr "Authentifizierung (pass/cert) [pass] :"
 
@@ -122,11 +122,11 @@ msgstr "Lebensdauer der Client Zertifikate in Tagen [365]: "
 msgid "Client certificates life time in days [$DFL_CERT_LIFETIME]: "
 msgstr "Lebensdauer der Client Zertifikate in Tagen [$DFL_CERT_LIFETIME]: "
 
-#: nessus-adduser.in:171
+#: openvas-adduser.in:171
 msgid "Common Name:"
 msgstr "Name:"
 
-#: nessus-adduser.in:161
+#: openvas-adduser.in:161
 msgid "Country:"
 msgstr "Land:"
 
@@ -138,7 +138,7 @@ msgstr "Land (2-buchstabige Abkürzung) [$X]"
 msgid "			Creation of the Nessus SSL Certificate"
 msgstr "                 Erzeugung des Nessus SSL Zertifikats"
 
-#: nessus-adduser.in:236
+#: openvas-adduser.in:236
 #, sh-format
 msgid "DN                : $dn"
 msgstr "DN                : $dn"
@@ -159,23 +159,23 @@ msgstr ""
 msgid "Do you want to save openssl output in a file for further analysis? (y/n) [y] "
 msgstr "Möchten Sie die openssl Ausgabe zur späteren Analyse in einer Datei speichern? (j/n) [j] "
 
-#: nessus-adduser.in:113
+#: openvas-adduser.in:113
 msgid "Enter the location to a place where I could place temporary files: [$HOME]"
 msgstr "Geben Sie einen Pfad zur Ablage temporäre Dateinen ein: [$HOME]"
 
-#: nessus-adduser.in:215
+#: openvas-adduser.in:215
 msgid "Enter the rules for this user, and hit ctrl-D once you are done:"
 msgstr "Geben Sie die Regeln für diesen Benutzer ein und beenden Sie die Eingabe mit Ctrl-D:"
 
-#: nessus-adduser.in:226
+#: openvas-adduser.in:226
 msgid "Error - could not create $tmpAddUserDir"
 msgstr "Fehler - Verzeichnis $tmpAddUserDir konnte nicht erzeugt werden."
 
-#: nessus-adduser.in:229
+#: openvas-adduser.in:229
 msgid "Error - could not write $tmpAddUserFile"
 msgstr "Fehler - in Datei $tmpAddUserFile konnte nicht geschrieben werden."
 
-#: nessus-adduser.in:47
+#: openvas-adduser.in:47
 #, sh-format
 msgid ""
 "Executing nessusd failed. Make sure your library loader is configured "
@@ -184,7 +184,7 @@ msgstr ""
 "Ausführung von nessusd fehlgeschlagen. Stellen Sie sicher, dass der Bibliotheks-Lader "
 "korrekt konfiguriert und nessusd über $PATH erreichbar ist."
 
-#: nessus-adduser.in:210
+#: openvas-adduser.in:210
 msgid "For instance, you may want him to be able to scan his own host only."
 msgstr "Z.B. könnten Sie verlangen, dass dieser nur seinen eigenen Host scannen kann."
 
@@ -193,11 +193,11 @@ msgid "If some question has a default answer, you can force an empty answer by e
 msgstr "Bei Fragen mit vorgeschlagener Standard-Antwort können Sie eine leere Antwort "
 "erzwingen, indem Sie einen einzelnen Punkt '.' eingeben."
 
-#: nessus-adduser.in:244
+#: openvas-adduser.in:244
 msgid "Is that ok? (y/n) [y] "
 msgstr "Ist das ok? (j/n) [j] "
 
-#: nessus-adduser.in:165
+#: openvas-adduser.in:165
 msgid "Location:"
 msgstr "Ort:"
 
@@ -205,21 +205,21 @@ msgstr "Ort:"
 msgid "Location ${Bo}e.g. town${Bc} [$X]: "
 msgstr "Wohnort [$X]: "
 
-#: nessus-adduser.in:134
+#: openvas-adduser.in:134
 #, sh-format
 msgid "Login :"
 msgstr "Login :"
 
-#: nessus-adduser.in:234
+#: openvas-adduser.in:234
 #, sh-format
 msgid "Login             : $login"
 msgstr "Login             : $login"
 
-#: nessus-adduser.in:176
+#: openvas-adduser.in:176
 msgid "Login password (again) :"
 msgstr "Login Passwort (wiederholen) :"
 
-#: nessus-adduser.in:175
+#: openvas-adduser.in:175
 msgid "Login password :"
 msgstr "Login Passwort :"
 
@@ -227,7 +227,7 @@ msgstr "Login Passwort :"
 msgid "Login to remove :"
 msgstr "Entfernung Benutzer :"
 
-#: nessus-adduser.in:101
+#: openvas-adduser.in:101
 #, sh-format
 msgid "Missing or empty configuration file \"$nessusd_conf\"!"
 msgstr "Konfigurationsdatei \"$nessusd_conf\" nicht verfügbar!"
@@ -258,9 +258,9 @@ msgstr ""
 "(alles bleibt lokal), aber dass jeder, der eine Verbindung zu Ihrem Nessus "
 "Daemon aufbauen kann, Zugang zu diesen Informationen hat."
 
-#: nessus-adduser.in:52
-msgid "Only root should use nessus-adduser."
-msgstr "Nur root sollte nessus-adduser ausführen."
+#: openvas-adduser.in:52
+msgid "Only root should use openvas-adduser."
+msgstr "Nur root sollte openvas-adduser ausführen."
 
 #: openvas-mkcert.in:77
 msgid "Only root can use openvas-mkcert."
@@ -278,7 +278,7 @@ msgstr ""
 "OpenSSL ist ist nicht korrekt installiert: Das 'openssl' Kommandozeilen-Tool "
 "konnte nicht gefunden werden (ist die $PATH Variable richtig gesetzt?)"
 
-#: nessus-adduser.in:167
+#: openvas-adduser.in:167
 msgid "Organization:"
 msgstr "Organisation:"
 
@@ -286,7 +286,7 @@ msgstr "Organisation:"
 msgid "Organization [$X]: "
 msgstr "Organisation [$X]: "
 
-#: nessus-adduser.in:169
+#: openvas-adduser.in:169
 msgid "Organizational Unit:"
 msgstr "Abteilung:"
 
@@ -294,21 +294,21 @@ msgstr "Abteilung:"
 msgid "Organization unit [$X]: "
 msgstr "Abteilung [$X]: "
 
-#: nessus-adduser.in:177
+#: openvas-adduser.in:177
 msgid "Password          :"
 msgstr "Passwort          :"
 
-#: nessus-adduser.in:195
+#: openvas-adduser.in:195
 msgid "Passwords do not match!"
 msgstr "Passwörter stimmmen nicht überein!"
 
-#: nessus-adduser.in:158
+#: openvas-adduser.in:158
 msgid "Please enter User Distinguished Name:"
 msgstr "Bitte geben Sie einen Benutzernamen ein:"
 
-#: nessus-adduser.in:212
-msgid "Please see the nessus-adduser(8) man page for the rules syntax."
-msgstr "Bitte lesen Sie auf der nessus-adduser(8) man page über die Regel Syntax."
+#: openvas-adduser.in:212
+msgid "Please see the openvas-adduser(8) man page for the rules syntax."
+msgstr "Bitte lesen Sie auf der openvas-adduser(8) man page über die Regel Syntax."
 
 #: openvas-mkcert.in:126
 msgid "Press [ENTER] to continue..."
@@ -318,7 +318,7 @@ msgstr "Drücken Sie [ENTER] um fortzufahren..."
 msgid "Press [ENTER] to exit"
 msgstr "Drücken Sie [ENTER] zum Beenden"
 
-#: nessus-adduser.in:237
+#: openvas-adduser.in:237
 msgid "Rules             : "
 msgstr "Regeln            : "
 
@@ -326,7 +326,7 @@ msgstr "Regeln            : "
 msgid "Server certificate life time in days [365]: "
 msgstr "Lebensdauer Server Zertifikat in Tagen [365]: "
 
-#: nessus-adduser.in:163
+#: openvas-adduser.in:163
 msgid "State:"
 msgstr "Bundesland:"
 
@@ -338,7 +338,7 @@ msgstr "Bundesland [$X]: "
 msgid "The following files were created:"
 msgstr "Die folgenden Dateien wurden erzeugt:"
 
-#: nessus-adduser.in:138
+#: openvas-adduser.in:138
 msgid "This login already exists. Choose another one."
 msgstr "Dieses Benutzerkonto existiert bereits. Bitte wählen Sie einen anderen Benutzernamen."
 
@@ -355,7 +355,7 @@ msgstr ""
 "Dieses Skript wird nun nach Informationen fragen, die zur Erzeugung der SSL Client Zertifikate "
 "für Nessus benötigt werden."
 
-#: nessus-adduser.in:206
+#: openvas-adduser.in:206
 msgid "User rules"
 msgstr "Benutzer Regeln"
 
@@ -371,7 +371,7 @@ msgstr "Benutzer zu Nessus hinzugefügt."
 msgid "Users directory? "
 msgstr "Benutzer Verzeichnis? "
 
-#: nessus-adduser.in:109
+#: openvas-adduser.in:109
 msgid "Using /var/tmp as a temporary file holder."
 msgstr "/var/tmp wird als temporärer Dateiordner verwendet."
 
@@ -393,7 +393,7 @@ msgstr ""
 "Sie werden gefragt werden, einige beliebige Tasten auf Ihrer Tastatur zu drücken, "
 "um Zufallszahlen zu erzeugen."
 
-#: nessus-adduser.in:112
+#: openvas-adduser.in:112
 #, sh-format
 msgid "Your $TMPDIR variable is not set!"
 msgstr "Die $TMPDIR Variable ist nicht gesetzt!"
@@ -426,7 +426,7 @@ msgstr "Ihre Organisation [keine]: "
 msgid "Your organizational unit [none]: "
 msgstr "Ihre Abteilung [keine]: "
 
-#: nessus-adduser.in:192
+#: openvas-adduser.in:192
 msgid "Your password can not be empty."
 msgstr "Das Passwort kann nicht leer sein."
 
@@ -434,7 +434,7 @@ msgstr "Das Passwort kann nicht leer sein."
 msgid "Your state or province name [none]: "
 msgstr "Ihr Bundesland [keins]: "
 
-#: nessus-adduser.in:251
+#: openvas-adduser.in:251
 msgid "Yy"
 msgstr "Jj"
 
@@ -442,16 +442,16 @@ msgstr "Jj"
 msgid "created"
 msgstr "erzeugt"
 
-#: nessus-adduser.in:173
+#: openvas-adduser.in:173
 msgid "e-Mail:"
 msgstr "e-Mail:"
 
-#: nessus-adduser.in:131 nessus-adduser.in:132 nessus-adduser.in:145
-#: nessus-adduser.in:146 nessus-adduser.in:179 nessus-adduser.in:180
+#: openvas-adduser.in:131 openvas-adduser.in:132 openvas-adduser.in:145
+#: openvas-adduser.in:146 openvas-adduser.in:179 openvas-adduser.in:180
 msgid "n"
 msgstr "n"
 
-#: nessus-adduser.in:209
+#: openvas-adduser.in:209
 #, sh-format
 msgid ""
 "nessusd has a rules system which allows you to restrict the hosts that "
@@ -460,7 +460,7 @@ msgstr ""
 "nessusd hat ein Regelsystem, das es Ihnen erlaubt, die Systeme zu beschränken, "
 "auf die $login zum Testen Zugriff hat."
 
-#: nessus-adduser.in:322
+#: openvas-adduser.in:322
 msgid "user added."
 msgstr "Benutzer hinzugefügt."
 
@@ -468,6 +468,6 @@ msgstr "Benutzer hinzugefügt."
 msgid "user removed."
 msgstr "Benutzer entfernt."
 
-#: nessus-adduser.in:140 nessus-adduser.in:197
+#: openvas-adduser.in:140 openvas-adduser.in:197
 msgid "y"
 msgstr "j"
