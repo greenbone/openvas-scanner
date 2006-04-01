@@ -16,8 +16,8 @@
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-#ifndef _NESSUSD_PREFERENCES_H
-#define _NESSUSD_PREFERENCES_H
+#ifndef __NESSUSD_PREFERENCES_H
+#define __NESSUSD_PREFERENCES_H
 
 int    preferences_init(char *, struct arglist **);
 int    preferences_new(char *);

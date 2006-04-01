@@ -35,7 +35,7 @@
 #include "report_utils.h"
 
 /*
- * nessusd does not convert the subnet by itself, so we create
+ * openvasd does not convert the subnet by itself, so we create
  * this record on this fly
  */
 static char *

@@ -699,7 +699,7 @@ start_attack_network:
       
       
    /*
-    * nessusd offers the ability to either test
+    * openvasd offers the ability to either test
     * only the hosts we tested in the past, or only
     * the hosts we never tested (or both, of course)
     */

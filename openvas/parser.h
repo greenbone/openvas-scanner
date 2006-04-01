@@ -51,7 +51,7 @@ void parse_host_add_data(int, char *, int);
 char * parse_plugin_symbol(char *);
 char * parse_separator(char *);
 char * parse_symbol(char *);
-void parse_nessusd_status(char *, char **, char **, char  **, int *);
-void parse_nessusd_short_status(char *, char **, char **, char  **, int *);
+void parse_openvasd_status(char *, char **, char **, char  **, int *);
+void parse_openvasd_short_status(char *, char **, char **, char  **, int *);
 
 #endif

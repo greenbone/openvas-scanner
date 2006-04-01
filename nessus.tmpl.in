@@ -60,7 +60,7 @@ NESSUS_DIRECTORIES="-DNESSUSD_CONFDIR=\"$(NESSUSD_CONFDIR)\"" "-DNESSUSD_STATEDI
 #
 # The server / client modes do not make a lot of sense
 # as of today, as the software makes the checks (you need
-# to be root to start nessusd)
+# to be root to start openvasd)
 #
 
 # 
@@ -129,7 +129,7 @@ NESSUS_LIB=@nessus_lib@
 
 # documentation
 MAN_NESSUS_1=@man_nessus_1@
-MAN_NESSUSD_8=@man_nessusd_8@
+MAN_NESSUSD_8=@man_openvasd_8@
 
 # C compiler options
 NESSCFLAGS=@NESSCFLAGS@

@@ -38,6 +38,6 @@ extern int init_directories;
 #endif
 
 
-char * connect_to_nessusd(char *, int, char *, char *);
+char * connect_to_openvasd(char *, int, char *, char *);
 
 #endif

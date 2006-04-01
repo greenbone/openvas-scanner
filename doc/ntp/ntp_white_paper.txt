@@ -10,7 +10,7 @@
 1. What is the Nessus Transfer Protocol (NTP) ? 
 
  The NTP is the protocol that is used for the communication between
- nessusd (also known as the server) and a nessus client.
+ openvasd (also known as the server) and a nessus client.
  
  This protocol is widely explained in order to facilitate the development
  of other clients than the 'standard' Nessus client.

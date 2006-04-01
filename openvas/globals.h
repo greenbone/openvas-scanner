@@ -29,7 +29,7 @@ extern int DetachedMode;
 #endif
 extern int F_show_pixmaps;
 extern int F_quiet_mode;
-extern int F_nessusd_running;
+extern int F_openvasd_running;
 extern int First_time;
 extern int ListOnly;
 

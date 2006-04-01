@@ -1,6 +1,6 @@
 .TH OpenVAS-RMUSER 8 "February 2001" "The Nessus Project" "User Manuals"
 .SH NAME
-openvas-rmuser \- removes a user from the nessusd userbase
+openvas-rmuser \- removes a user from the openvasd userbase
 .sp
 .SH SYNOPSIS
 .BI openvas-rmuser\ [\| <login> \|]
@@ -11,19 +11,19 @@ The
 .B Nessus Security Scanner
 comes with its own user base which contains the list of who can
 use the services of 
-.BR nessusd ,
+.BR openvasd ,
 and what restriction (or
 .IR rules ) 
 each user has.
 
 
 .BI openvas-rmuser
-is a simple program which will remove user from the proper nessusd
+is a simple program which will remove user from the proper openvasd
 configuration files, as well as its data (saved KBs and saved sessions).
 
 .SH SEE ALSO
 
-.BR openvas-adduser (8),\  nessusd (8),\  nessus (1)
+.BR openvas-adduser (8),\  openvasd (8),\  nessus (1)
 
 .SH MORE INFORMATION ABOUT THE NESSUS PROJECT
 The canonical places where you will find more information 

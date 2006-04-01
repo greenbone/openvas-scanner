@@ -1,0 +1,17 @@
+/var/log/nessus/openvasd.messages {
+  missingok
+  notifempty
+  create 640 root adm
+  daily
+  rotate 7
+  compress
+  postrotate
+    if [ -s /var/lib/nessus/openvasd.pid ]; then kill -1 `cat /var/lib/nessus/openvasd.pid`; fi
+    if [ -s /var/run/openvasd.pid ]; then kill -1 `cat /var/run/openvasd.pid`; fi
+    nesslogs=`ls /var/log/nessus/openvasd.messages.*`
+    if [ -n "$nesslogs" ]; then
+        chown root:adm $nesslogs
+        chmod 640 $nesslogs
+    fi
+  endscript
+}

@@ -16,7 +16,7 @@
  *
  *
  * pluginscheduler.c : 
- *  Tells nessusd which plugin should be executed now
+ *  Tells openvasd which plugin should be executed now
  *
  */
  

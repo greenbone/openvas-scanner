@@ -2,7 +2,7 @@
 DESCRIPTION OF THE NSR FILE FORMAT
 $Id$
 
-The .nsr file format was designed to facilitate the export of Nessusd reports
+The .nsr file format was designed to facilitate the export of openvasd reports
 to other tools.
 
 The format is the following for each line :

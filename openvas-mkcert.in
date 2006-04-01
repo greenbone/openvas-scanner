@@ -90,8 +90,8 @@ then
 #
 case `id 2>/dev/null` in 
 uid=0*) 
-    $sbindir/nessusd -g || {
-	gettext "Executing nessusd failed. Make sure your library loader is configured properly and that nessusd is in your \$PATH."; echo
+    $sbindir/openvasd -g || {
+	gettext "Executing openvasd failed. Make sure your library loader is configured properly and that openvasd is in your \$PATH."; echo
 	exit 1
 	}
     ;; 
@@ -368,7 +368,7 @@ fi
 
 CAMAIL=ca@$hostname
 #cln CLNMAIL=nessus@$hostname
-SRVMAIL=nessusd@$hostname
+SRVMAIL=openvasd@$hostname
 #
 # Create the root CA
 #
@@ -425,7 +425,7 @@ openssl ca -config $BASEDIR/std.cnf -name NessusCA -batch -days $SRVCERT_LIFETIM
 chmod a+r $CACERT $SRVCERT #cln $CLNCERT
 
 
-CF=@sysconfdir@/nessus/nessusd.conf
+CF=@sysconfdir@/nessus/openvasd.conf
 egrep -v '^ *(pem_password|cert_file|key_file|ca_file|force_pubkey_auth) *=' "$CF" > "$CF.tmp"
 echo "#
 # Added by openvas-mkcert

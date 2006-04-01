@@ -25,7 +25,7 @@
  * file, but you are not obligated to do so.  If you do not wish to
  * do so, delete this exception statement from your version.
  *
- * Preferences  -- maps the content of the nessusd.conf file to memory
+ * Preferences  -- maps the content of the openvasd.conf file to memory
  *
  */
  

@@ -89,7 +89,7 @@ static int restart = 0;
  * Functions prototypes
  */
 static void main_loop();
-static int init_nessusd (struct arglist *, int, int, int);
+static int init_openvasd (struct arglist *, int, int, int);
 static int init_network(int, int *, struct in_addr);
 static void server_thread (struct arglist *);
 
@@ -263,7 +263,7 @@ end_daemon_mode
   make_em_die (SIGTERM);
 }
 
-static void restart_nessusd()
+static void restart_openvasd()
 {
  char * path;
  char fpath[1024];
@@ -276,16 +276,16 @@ static void restart_nessusd()
   path = orig_argv[0];
  else 
   {
-  path = find_in_path("nessusd", 0);
+  path = find_in_path("openvasd", 0);
   if( path == NULL ) 
   {
-  	log_write("Could not re-start nessusd - not found\n");
+  	log_write("Could not re-start openvasd - not found\n");
 	_exit(1);
    }
   else {
-  	strncpy(fpath, path, sizeof(fpath) - strlen("nessusd") - 2);
+  	strncpy(fpath, path, sizeof(fpath) - strlen("openvasd") - 2);
 	strcat(fpath, "/");
-	strcat(fpath, "nessusd");
+	strcat(fpath, "openvasd");
 	path = fpath;
 	}
   }
@@ -299,7 +299,7 @@ static void
 sighup(i)
  int i;
 {
-  log_write("Caught HUP signal - reconfiguring nessusd\n");
+  log_write("Caught HUP signal - reconfiguring openvasd\n");
   restart = 1;
 }
 
@@ -746,7 +746,7 @@ main_loop()
 #endif /* NESSUS_ON_SSL */
 
 
-  log_write("nessusd %s started\n", NESSUS_FULL_VERSION);
+  log_write("openvasd %s started\n", NESSUS_FULL_VERSION);
   for(;;)
     {
       int soc;
@@ -763,7 +763,7 @@ main_loop()
       struct arglist * my_plugins, * my_preferences;
       struct nessus_rules * my_rules;
       
-      if(restart != 0) restart_nessusd(); 
+      if(restart != 0) restart_openvasd(); 
 
       wait_for_children1();
       /* prevent from an io table overflow attack against nessus */
@@ -803,7 +803,7 @@ main_loop()
        char host_name[1024];
         
       hg_get_name_from_ip(address.sin_addr, host_name, sizeof(host_name));
-      if(!(hosts_ctl("nessusd", host_name, asciiaddr, STRING_UNKNOWN)))
+      if(!(hosts_ctl("openvasd", host_name, asciiaddr, STRING_UNKNOWN)))
       {
        shutdown(soc, 2);
        close(soc);
@@ -960,7 +960,7 @@ init_network(port, sock, addr)
  * Initialize everything
  */
 static int 
-init_nessusd (options, first_pass, stop_early, be_quiet)
+init_openvasd (options, first_pass, stop_early, be_quiet)
      struct arglist * options;    
      int first_pass;
      int stop_early; /* 1: do some initialization, 2: no initialization */
@@ -1023,7 +1023,7 @@ init_nessusd (options, first_pass, stop_early, be_quiet)
    nessus_signal(SIGTERM, sighandler);
    nessus_signal(SIGINT, sighandler);
    nessus_signal(SIGHUP, sighup);
-   nessus_signal(SIGUSR1, sighandler); /* nessusd dies, not its sons */
+   nessus_signal(SIGUSR1, sighandler); /* openvasd dies, not its sons */
    nessus_signal(SIGPIPE, SIG_IGN);
   }
 
@@ -1042,10 +1042,10 @@ display_help
   (char *pname)
 {
 #ifdef USE_AF_INET
-  printf("nessusd, version %s\n", NESSUS_VERSION);
-  printf("\nusage : nessusd [-vcphdDLCR] [-a address] [ -S <ip[,ip,...]> ]\n\n");
+  printf("openvasd, version %s\n", NESSUS_VERSION);
+  printf("\nusage : openvasd [-vcphdDLCR] [-a address] [ -S <ip[,ip,...]> ]\n\n");
 #else
-  printf("\nusage : nessusd [-vchdD]\n\n");
+  printf("\nusage : openvasd [-vchdD]\n\n");
 #endif /*def USE_AF_INET */
   printf("\ta <address>    : listen on <address>\n");
   printf("\tS <ip[,ip,...]>: send packets with a source IP of <ip[,ip...]>\n");
@@ -1057,7 +1057,7 @@ display_help
   printf("\tc <filename>   : alternate configuration file to use\n");
   printf("\t\t\t (default : %s)\n", NESSUSD_CONF);
   printf("\tD              : runs in daemon mode\n");
-  printf("\td              : dumps the nessusd compilation options\n");
+  printf("\td              : dumps the openvasd compilation options\n");
   printf("\tq              : quiet (do not issue any message to stdout)\n");
 }
 
@@ -1219,7 +1219,7 @@ you have deleted older versions of libnasl from your system\n",
 	  break;
 
 	case 'v' :
-	  print_error("nessusd (%s) %s for %s\n(C) 1998 - 2004 Renaud Deraison <deraison@nessus.org>\n\n", 
+	  print_error("openvasd (%s) %s for %s\n(C) 1998 - 2004 Renaud Deraison <deraison@nessus.org>\n\n", 
 		 PROGNAME,NESSUS_VERSION, NESS_OS_NAME);
 	  DO_EXIT(0);
 	  break;
@@ -1273,7 +1273,7 @@ you have deleted older versions of libnasl from your system\n",
 #ifndef _CYGWIN_
   if(getuid())
   {
-     fprintf(stderr, "Only root should start nessusd.\n");
+     fprintf(stderr, "Only root should start openvasd.\n");
      exit(0);
   }
 #endif
@@ -1292,7 +1292,7 @@ you have deleted older versions of libnasl from your system\n",
   arg_add_value(options, "config_file", ARG_STRING, strlen(config_file), config_file);
   arg_add_value(options, "addr", ARG_PTR, -1, &addr);
   
-  init_nessusd (options, 1, exit_early, be_quiet);
+  init_openvasd (options, 1, exit_early, be_quiet);
   g_options = options;
   g_iana_socket = (int)arg_get_value(options, "isck");
   g_plugins = arg_get_value(options, "plugins");
@@ -1310,9 +1310,9 @@ you have deleted older versions of libnasl from your system\n",
 
 #ifdef NESSUSNT
   /*
-   * Just tell to the user that nessusd is running in background
+   * Just tell to the user that openvasd is running in background
    */
-  create_thread(print_error, "nessusd is now running in background", 0);
+  create_thread(print_error, "openvasd is now running in background", 0);
   main_loop();
 #else
   if(do_fork)

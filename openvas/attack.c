@@ -105,7 +105,7 @@ restore_attack(session_name, preferences)
 /*
  * attack_host 
  *
- * This functions sends to the server (nessusd) the order
+ * This functions sends to the server (openvasd) the order
  * to start a new attack.
  *
  * Params :

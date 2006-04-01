@@ -83,15 +83,15 @@
 
 
 /* derived entries */
-#define NESSUSD_CONF     NESSUSD_CONFDIR  "/nessus/nessusd.conf"
+#define NESSUSD_CONF     NESSUSD_CONFDIR  "/nessus/openvasd.conf"
 
-#define NESSUSD_MESSAGES NESSUSD_LOGS "/nessusd.messages"
-#define NESSUSD_DEBUGMSG NESSUSD_LOGS "/nessusd.dump"
+#define NESSUSD_MESSAGES NESSUSD_LOGS "/openvasd.messages"
+#define NESSUSD_DEBUGMSG NESSUSD_LOGS "/openvasd.dump"
 
 
 #define NESSUSD_DATAPOOL NESSUSD_STATEDIR "-datapool"
-#define NESSUSD_RULES    NESSUSD_DATADIR  "/nessusd.rules"
-#define NESSUSD_USERS    NESSUSD_DATADIR  "/nessusd.users"
+#define NESSUSD_RULES    NESSUSD_DATADIR  "/openvasd.rules"
+#define NESSUSD_USERS    NESSUSD_DATADIR  "/openvasd.users"
 
 
 
@@ -103,26 +103,26 @@
 #define NESSUSD_NEGOT_TIMEOUT 600 
 
 /* the files, keys are stored in */
-#define NESSUSD_USERKEYS /* logindir */ "~/auth/nessusd.user-keys"
-#define NESSUSD_USERPWDS NESSUSD_DATADIR "/nessusd.user-pwds"
-#define NESSUSD_KEYFILE  NESSUSD_DATADIR "/nessusd.private-keys"
+#define NESSUSD_USERKEYS /* logindir */ "~/auth/openvasd.user-keys"
+#define NESSUSD_USERPWDS NESSUSD_DATADIR "/openvasd.user-pwds"
+#define NESSUSD_KEYFILE  NESSUSD_DATADIR "/openvasd.private-keys"
 
 /* The default server key file and key length */
 #define NESSUSD_KEYLENGTH    1024
 #define NESSUSD_MAXPWDFAIL   5
-#define NESSUSD_USERNAME     "nessusd"
+#define NESSUSD_USERNAME     "openvasd"
 
-/* The default rpc cipher nessusd will be connect to (if any) */
+/* The default rpc cipher openvasd will be connect to (if any) */
 #define NESSUSD_RPCIPHER     "twofish/ripemd160"
 #define NESSUSD_RPCAUTH_METH  3 /* auth scheme, either 1 or 3 */
 
 /* The timeout secs when waiting for a log pipe to be established */
-#define NESSUSD_LOGPIPE     NESSUSD_DATADIR  "/nessusd.logpipe"
+#define NESSUSD_LOGPIPE     NESSUSD_DATADIR  "/openvasd.logpipe"
 #define NESSUSD_LOGPIPE_TMO 2
 
 #endif /* ENABLE_CRYPTO_LAYER */
 
-/* Obsolete: the port 3001 on which nessusd will be listening */
+/* Obsolete: the port 3001 on which openvasd will be listening */
 /* #undef DEFAULT_PORT */
 
 /* The default port assigned to nessus by the iana is 1241, see

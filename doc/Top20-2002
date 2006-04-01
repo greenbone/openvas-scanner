@@ -68,7 +68,7 @@ begin(SERVER_PREFS)
 end(SERVER_PREFS)
 
 begin(SERVER_INFO)
- server_info_nessusd_version = 1.2.6
+ server_info_openvasd_version = 1.2.6
  server_info_libnasl_version = 1.2.6
  server_info_libnessus_version = 1.2.6
  server_info_thread_manager = fork

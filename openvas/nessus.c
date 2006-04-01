@@ -104,7 +104,7 @@ char * stored_pwd = NULL;
 int DontCheckServerCert = 0;
 int F_show_pixmaps;
 int F_quiet_mode;
-int F_nessusd_running;
+int F_openvasd_running;
 int First_time = 0;
 int ListOnly = 0;
 
@@ -308,15 +308,15 @@ set_server_cert_hash(sname, hash)
 
 
 /*
- * connect_to_nessusd
+ * connect_to_openvasd
  *
  * This function establishes the connection between
- * nessus and nessusd, logs in and reads the plugin
+ * nessus and openvasd, logs in and reads the plugin
  * list from the server.
  *
  */
 char *
-connect_to_nessusd(hostname, port, login, pass)
+connect_to_openvasd(hostname, port, login, pass)
 	char * hostname;
 	int port;
 	char * login;
@@ -347,16 +347,16 @@ connect_to_nessusd(hostname, port, login, pass)
 #endif
 
   init_globals();
-  if(arg_get_type(Prefs, "nessusd_host")>=0)
-   arg_set_value(Prefs, "nessusd_host", strlen(hostname), strdup(hostname));
+  if(arg_get_type(Prefs, "openvasd_host")>=0)
+   arg_set_value(Prefs, "openvasd_host", strlen(hostname), strdup(hostname));
   else
-   arg_add_value(Prefs, "nessusd_host", ARG_STRING, strlen(hostname),
+   arg_add_value(Prefs, "openvasd_host", ARG_STRING, strlen(hostname),
    		strdup(hostname));
 			
-  if(arg_get_type(Prefs, "nessusd_user")>=0)
-   arg_set_value(Prefs, "nessusd_user", strlen(login), strdup(login));
+  if(arg_get_type(Prefs, "openvasd_user")>=0)
+   arg_set_value(Prefs, "openvasd_user", strlen(login), strdup(login));
   else
-   arg_add_value(Prefs, "nessusd_user", ARG_STRING, strlen(login),
+   arg_add_value(Prefs, "openvasd_user", ARG_STRING, strlen(login),
    		strdup(login));		
 
 #ifdef CLN_AUTH_SRV
@@ -686,8 +686,8 @@ display_help
  
  printf("The batch mode (-q) arguments are :\n");
 #ifdef USE_AF_INET
- printf("\thost     : nessusd host\n");
- printf("\tport     : nessusd host port\n");
+ printf("\thost     : openvasd host\n");
+ printf("\tport     : openvasd host port\n");
 #endif
  printf("\tuser     : user name\n");
  printf("\tpass     : password\n");
@@ -1129,9 +1129,9 @@ you have deleted older versions nessus libraries from your system\n",
     if(list_prefs)
     {
      First_time = 0;
-     if(cli_connect_to_nessusd(cli) < 0)
+     if(cli_connect_to_openvasd(cli) < 0)
      {
-      fprintf(stderr, "Could not connect to nessusd\n");
+      fprintf(stderr, "Could not connect to openvasd\n");
       exit(1);
      }
     if(sqlize_output)
@@ -1144,9 +1144,9 @@ you have deleted older versions nessus libraries from your system\n",
     if(list_plugins)
     {
      First_time = 0;
-     if(cli_connect_to_nessusd(cli) < 0)
+     if(cli_connect_to_openvasd(cli) < 0)
       {
-       fprintf(stderr, "Could not connect to nessusd\n");
+       fprintf(stderr, "Could not connect to openvasd\n");
        exit(1);
        }
       if(sqlize_output)
@@ -1188,7 +1188,7 @@ you have deleted older versions nessus libraries from your system\n",
     
     
     /* login now */
-    if((cli_connect_to_nessusd(cli))<0)
+    if((cli_connect_to_openvasd(cli))<0)
 	nessus_exit(1);
 #ifdef ENABLE_SAVE_TESTS
     if(list_sessions){
@@ -1220,7 +1220,7 @@ you have deleted older versions nessus libraries from your system\n",
     nessus_exit(0);
   }
  
-  F_nessusd_running = 0;
+  F_openvasd_running = 0;
   
   /*
    * Set up the main window

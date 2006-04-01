@@ -34,7 +34,7 @@
 #include "globals.h"
 
 /*
- * nessusd does not convert the subnet by itself, so we create
+ * openvasd does not convert the subnet by itself, so we create
  * this record on this fly
  */
  
@@ -355,7 +355,7 @@ parse_server_message(message, backend, humanmsg)
  *
  */
 void 
-parse_nessusd_status(servmsg, host, action, current, max)
+parse_openvasd_status(servmsg, host, action, current, max)
 	char * servmsg;
 	char ** host;
         char ** action;
@@ -402,7 +402,7 @@ parse_nessusd_status(servmsg, host, action, current, max)
 }
 
 void
-parse_nessusd_short_status(msg, host, action, current, max)
+parse_openvasd_short_status(msg, host, action, current, max)
 	char * msg;
 	char ** host;
 	char ** action;

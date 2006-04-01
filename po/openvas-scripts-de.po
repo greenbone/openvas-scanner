@@ -87,8 +87,8 @@ msgid "Aborted"
 msgstr "Abgebrochen"
 
 #: openvas-adduser.in:124
-msgid "Add a new nessusd user"
-msgstr "Neuen nessusd Benutzer hinzufügen"
+msgid "Add a new openvasd user"
+msgstr "Neuen openvasd Benutzer hinzufügen"
 
 #: openvas-mkcert.in:456
 msgid "An error occured while generating the certificates and/or keys!"
@@ -178,11 +178,11 @@ msgstr "Fehler - in Datei $tmpAddUserFile konnte nicht geschrieben werden."
 #: openvas-adduser.in:47
 #, sh-format
 msgid ""
-"Executing nessusd failed. Make sure your library loader is configured "
-"properly and that nessusd is in your $PATH."
+"Executing openvasd failed. Make sure your library loader is configured "
+"properly and that openvasd is in your $PATH."
 msgstr "" 
-"Ausführung von nessusd fehlgeschlagen. Stellen Sie sicher, dass der Bibliotheks-Lader "
-"korrekt konfiguriert und nessusd über $PATH erreichbar ist."
+"Ausführung von openvasd fehlgeschlagen. Stellen Sie sicher, dass der Bibliotheks-Lader "
+"korrekt konfiguriert und openvasd über $PATH erreichbar ist."
 
 #: openvas-adduser.in:210
 msgid "For instance, you may want him to be able to scan his own host only."
@@ -229,8 +229,8 @@ msgstr "Entfernung Benutzer :"
 
 #: openvas-adduser.in:101
 #, sh-format
-msgid "Missing or empty configuration file \"$nessusd_conf\"!"
-msgstr "Konfigurationsdatei \"$nessusd_conf\" nicht verfügbar!"
+msgid "Missing or empty configuration file \"$openvasd_conf\"!"
+msgstr "Konfigurationsdatei \"$openvasd_conf\" nicht verfügbar!"
 
 #: openvas-mkcert-client.in:109
 msgid "Nessus CA certificate: "
@@ -454,10 +454,10 @@ msgstr "n"
 #: openvas-adduser.in:209
 #, sh-format
 msgid ""
-"nessusd has a rules system which allows you to restrict the hosts that "
+"openvasd has a rules system which allows you to restrict the hosts that "
 "$login has the right to test."
 msgstr "" 
-"nessusd hat ein Regelsystem, das es Ihnen erlaubt, die Systeme zu beschränken, "
+"openvasd hat ein Regelsystem, das es Ihnen erlaubt, die Systeme zu beschränken, "
 "auf die $login zum Testen Zugriff hat."
 
 #: openvas-adduser.in:322

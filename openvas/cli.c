@@ -175,7 +175,7 @@ cli_test_monitor(cli)
     { 
        if(!is_server_present(GlobalSocket))
        {
-       fprintf(stderr, "nessus: nessusd abruptly shut the communication down - the test may be incomplete\n");
+       fprintf(stderr, "nessus: openvasd abruptly shut the communication down - the test may be incomplete\n");
        finished = 1;
        }
        continue;
@@ -195,7 +195,7 @@ cli_test_monitor(cli)
 			   int max;
 			   char * plug = NULL;
 			  
-			   parse_nessusd_short_status(&(buf[2]), &hostname, &action, &current, &max);
+			   parse_openvasd_short_status(&(buf[2]), &hostname, &action, &current, &max);
 			   if(cli->plugins_order_table)
 			   {
 			    plug = harg_get_string(cli->plugins_order_table, current);
@@ -215,7 +215,7 @@ cli_test_monitor(cli)
 			   char* current;
 			   int max;
 
-			   parse_nessusd_status(buf, &hostname, &action, &current, &max);
+			   parse_openvasd_status(buf, &hostname, &action, &current, &max);
 			   printf("%s|%s|%s|%d|foo\n", action,hostname,current,max); 
 			   efree(&hostname);
 			   efree(&action);	   
@@ -410,13 +410,13 @@ cli_args_output(args, type)
  * Auditing now
  *--------------------------------------------------------*/
  
-int cli_connect_to_nessusd(cli)
+int cli_connect_to_openvasd(cli)
  struct cli_args * cli;
 {
  /*ENABLE_CRYPTO_LAYER*/
  char * pwd = cli->password;
  char * err;
- err = connect_to_nessusd(cli->server,
+ err = connect_to_openvasd(cli->server,
  				 cli->port,
 				 cli->login,
 				 pwd);
@@ -745,7 +745,7 @@ cli_list_sessions(cli)
 {
  hargwalk * hw;
  if(!comm_server_restores_sessions(Prefs))
-  printf("** The remote nessusd server does not support session-saving\n");
+  printf("** The remote openvasd server does not support session-saving\n");
  else
   {
    char * key;

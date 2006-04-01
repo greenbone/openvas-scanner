@@ -200,7 +200,7 @@ fi
 
 CAMAIL=ca@$hostname
 #cln CLNMAIL=nessus@$hostname
-SRVMAIL=nessusd@$hostname
+SRVMAIL=openvasd@$hostname
 #
 # Create the root CA
 #
@@ -238,7 +238,7 @@ openssl ca -config $BASEDIR/std.cnf -name NessusCA -batch -days $SRVCERT_LIFETIM
 
 chmod a+r $CACERT $SRVCERT #cln $CLNCERT
 
-CF=/etc/nessus/nessusd.conf
+CF=/etc/nessus/openvasd.conf
 egrep -v '^ *(pem_password|cert_file|key_file|ca_file|force_pubkey_auth) *=' "$CF" > "$CF.tmp"
 echo "#
 # Added by openvas-mkcert
@@ -294,15 +294,15 @@ if [ "$1" = "configure" ]; then
         nessus_mkcert
   fi
 # Restart the Nessus daemon if running
-  if [ -x /etc/init.d/nessusd ] && \
-	  /etc/init.d/nessusd status 2>&1 >/dev/null; then
-	  /etc/init.d/nessusd restart
+  if [ -x /etc/init.d/openvasd ] && \
+	  /etc/init.d/openvasd status 2>&1 >/dev/null; then
+	  /etc/init.d/openvasd restart
   fi
 
 fi
 
 # We don't let dh_installinit touch this so we do it byhand
-update-rc.d nessusd  stop 20 0 6 . >/dev/null
+update-rc.d openvasd  stop 20 0 6 . >/dev/null
 
 
 #DEBHELPER#

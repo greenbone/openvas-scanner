@@ -12,7 +12,7 @@ The
 .B Nessus Security Scanner
 is a security auditing tool made up of two parts: a server, and a client.
 The server,
-.B nessusd
+.B openvasd
 is in charge of the attacks, whereas the client
 .B nessus
 provides an interface to the user.
@@ -52,19 +52,19 @@ issue SQL output for -p and -P (experimental).
 .RI \(bu\  host
 .RS
 is the 
-.B nessusd 
+.B openvasd 
 host to whom you will connect.
 .RE
 .RI \(bu\  port
 .RS
 is the port to which you will connect on the remote 
-.B nessusd
+.B openvasd
 host.
 .RE
 .RI \(bu\  user
 .RS
 is the user name to use to connect to 
-.BR nessusd .
+.BR openvasd .
 .RE
 .RI \(bu\  password
 .RS
@@ -112,19 +112,19 @@ lists the available options
 .SH The X11 interface
 
 The nessus client interface is divided in several panels:
-.IP "\(bu The \*(lqNessusd host\*(rq section: "
+.IP "\(bu The \*(lqopenvasd host\*(rq section: "
 In this section, you must enter the 
-.B nessusd 
+.B openvasd 
 host to whom you will connect, as well as the port. You must also enter your 
-.B nessusd 
+.B openvasd 
 user name and your password (not the one of the system). Once you are done, you
 must click on the \*(lqLog in\*(rq button, which will establish the 
 connection to the
-.B nessusd 
+.B openvasd 
 host.
 .br
 Once the connection is established, 
-.B nessusd
+.B openvasd
 sends to the client the list of attacks it will perform, as well as the
 default preferences to use.
 
@@ -151,13 +151,13 @@ www.fr.nessus.org, you can safely set this entry to \*(lq2\*(rq).
 transfer\*(rq
 option. This option is dangerous and should be enabled with caution. 
 For instance, if you want to test www.nessus.org, then if this option is set,
-.B nessusd 
+.B openvasd 
 will attempt to get the list of the hosts in the \*(lqnessus.org\*(rq
 domain.
 
 This option may be dangerous. For instance, if you enable it and you ask to
 test 192.168.1.1/24, then
-.B nessusd 
+.B openvasd 
 will do a reverse lookup on 
 .I every
 IP, and will attempt a DNS zone transfer on every domain. That is, if 
@@ -168,7 +168,7 @@ and \*(lqbar.foo\*(rq.
 
 .IP "\(bu The \*(lqPlugins\*(rq section"
 Once you have successfully logged into the remote 
-.B nessusd 
+.B openvasd 
 server,
 this section is filed with the list of the attacks that the server will
 perform. This panel is divided in two parts: the plugins families, and
@@ -237,7 +237,7 @@ configuration file, otherwise the scan will not work
 .TP 
 .I ~/.nessusrc
 is the client configuration file, which contains the options about which 
-.B nessusd
+.B openvasd
 server to connect to, which plugins to activate, and so on.  The file is 
 created automatically if it does not exist.
 
@@ -263,7 +263,7 @@ http://cvs.nessus.org/
 .SH AUTHORS
 The Nessus Project was started and is being maintained by Renaud Deraison
 <deraison@cvs.nessus.org>.  The
-.B nessusd
+.B openvasd
 server is mainly Copyright (C) 1998-2001 Renaud Deraison, as well as the
 attack modules.
 

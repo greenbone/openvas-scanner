@@ -392,17 +392,17 @@ First, we must remind that privilege separation limits the
 consequences of a flaw by giving the cracker a non privileged access
 instead of a root access.
 In the case of Nessus, the gain is limited: if a cracker can control
-the nessusd daemon under any user identity, he will be able to attack
+the openvasd daemon under any user identity, he will be able to attack
 the whole scanned network, which might be more dangerous than just
 controlling one machine.
 
-Therefore, we should  focus on the protection of the nessusd
+Therefore, we should  focus on the protection of the openvasd
 access rather than block a privilege increase once an attacker has
 pierced the first defence line.
 
  9.4.1. Risks
 
-In theory, three ways would allow to control Nessusd by getting around
+In theory, three ways would allow to control openvasd by getting around
 the authentication mechanism [we ignore here potential bugs in this
 mechanism] : 
 - an attack against the Nessus listener or the OpenSSL layer which is
@@ -481,8 +481,8 @@ cryptographic C functions.
 One can easily separate the SSL listener from the core daemon with
 stunnel.
 With this configuration, stunnel decrypts SSL data in a chroot jail,
-then connects in clear text to the nessusd daemon:
-- run "nessusd -a 127.0.0.1:1241" with "ssl_version=none" in "nessusd.conf"
+then connects in clear text to the openvasd daemon:
+- run "openvasd -a 127.0.0.1:1241" with "ssl_version=none" in "openvasd.conf"
   The client software must use SSL however
   (ssl_version=tlsV1 in .nessusrc)
 - run stunnel with a configuration file like that:

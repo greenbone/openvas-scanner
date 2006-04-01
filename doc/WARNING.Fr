@@ -419,18 +419,18 @@ Avant tout, il faut se rappeler que la séparation de privilèges limite
 l'impact d'une faille en donnant un accès non privilégié à l'attaquant
 plutôt qu'un accès root.
 Dans le cas de Nessus, l'intérêt est limité : si un pirate arrive à
-prendre le contrôle du daemon nessusd sous quelque identité que ce
+prendre le contrôle du daemon openvasd sous quelque identité que ce
 soit, il pourra attaquer l'ensemble du réseau surveillé, ce qui est 
 finalement plus grave que la prise de contrôle d'une seule machine.
 
 Il est donc plus important de se focaliser sur la protection de
-l'accès à Nessusd que d'empêcher une montée de privilèges chez un
+l'accès à openvasd que d'empêcher une montée de privilèges chez un
 attaquant qui aurait franchi la première ligne de défense.
 
  9.4.1. Les risques
 
 Trois voies permettraient théoriquement de prendre le contrôle de
-Nessusd en contournant le mécanisme d'authentification [on laisse ici
+openvasd en contournant le mécanisme d'authentification [on laisse ici
 de côté les bugs de ce mécanisme] :
 - une attaque contre le "listener" Nessus ou la couche OpenSSL mise en
 place pour la communication client / serveur. 
@@ -513,8 +513,8 @@ primitives cryptographiques.
 Il est possible de séparer le listener SSL à moindre coût avec l'outil
 stunnel.
 Avec la configuration qui suit, c'est stunnel qui déchiffre le SSL
-dans un chroot, puis la connexion vers le daemon nessusd est en clair :
-- lancez "nessusd -a 127.0.0.1:1241" avec ssl_version=none dans nessusd.conf
+dans un chroot, puis la connexion vers le daemon openvasd est en clair :
+- lancez "openvasd -a 127.0.0.1:1241" avec ssl_version=none dans openvasd.conf
   En revanche, les clients devront communiquer en SSL
   (ssl_version=tlsV1 dans .nessusrc)
 - lancez stunnel avec dans le fichier de configuration quelque chose

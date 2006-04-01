@@ -1,6 +1,6 @@
 .TH OpenVAS-ADDUSER 8 "April 2000" "The Nessus Project" "User Manuals"
 .SH NAME
-openvas-adduser \- add a user in the nessusd userbase
+openvas-adduser \- add a user in the openvasd userbase
 .sp
 .SH SYNOPSIS
 .BI openvas-adduser
@@ -11,32 +11,32 @@ The
 .B Nessus Security Scanner
 comes with its own user base which contains the list of who can
 use the services of 
-.BR nessusd ,
+.BR openvasd ,
 and what restriction (or
 .IR rules )
 each user has.
 
 .B openvas-adduser
 is a simple program which will add a user in the proper 
-.B nessusd
+.B openvasd
 configuration files, and will send a signal to 
-.B nessusd
+.B openvasd
 if it is running to notify it of the changes.
 
 The program is straightforward and asks for the following items:
 .IP "\(bu Login"
 the login name of the 
-.B nessusd 
+.B openvasd 
 user to add
 
 .IP "\(bu Password"
 the password that the user will use to connect to 
-.B nessusd
+.B openvasd
 
 .IP "\(bu Authentification type"
 the authentification method the client will use. The recommended
 method is \*(lqcipher\*(rq. However, if you compiled 
-.B nessusd 
+.B openvasd 
 without the 
 cipher support or if you are using a Nessus client which does not
 support the cipher layer, you'll have to use \*(lqplaintext\*(rq
@@ -94,7 +94,7 @@ The keyword
 .I client_ip
 has been defined, and is replaced at run time by the IP address
 of the 
-.B nessusd 
+.B openvasd 
 user. For instance, if you want your users to be able
 to only be able to scan the system they come from, then you want
 them to have the following ruleset:
@@ -105,7 +105,7 @@ default deny
 .RE
 
 .SH SEE ALSO
-.BR openvas-rmuser (8),\  nessusd (8),\  nessus (1)
+.BR openvas-rmuser (8),\  openvasd (8),\  nessus (1)
 
 .SH MORE INFORMATION ABOUT THE NESSUS PROJECT
 The canonical places where you will find more information 

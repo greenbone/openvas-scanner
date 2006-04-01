@@ -37,7 +37,7 @@ Nessus 1.3.x will have a new (nice) protocol
 
 2. the LONG_ATTACK message...
 ------------------------------------------------------------------------------
-... is an optional replacement for the ATTACK message. It allows Nessusd 
+... is an optional replacement for the ATTACK message. It allows openvasd 
 to receive attack arguments that have undefined length (the max length 
 used to be 4000 bytes).
 
@@ -50,7 +50,7 @@ target
 
 Where :
 
-	<size> is the number of bytes nessusd should allocate
+	<size> is the number of bytes openvasd should allocate
 	<target> is the target (of size <size>). If strlen(target) > size,
 	then the communication will be shut.
 
@@ -139,7 +139,7 @@ The message :
 
 CLIENT <|> DETACHED_SESSIONS_LIST <|> CLIENT
 
-will make nessusd send the list of detached scans to the client. The format
+will make openvasd send the list of detached scans to the client. The format
 of the message is identical to the LIST_SESSIONS message, that is :
 
 SERVER <|> DETACHED_SESSIONS_LIST
@@ -185,16 +185,16 @@ is enabled, then empty sessions will also be saved on disk.
 4. KB saving
 ------------
 
-The following options affect the behavior of nessusd :
+The following options affect the behavior of openvasd :
 save_knowledge_base
 	If set to "yes", then the KB saving module is activated
 
 only_test_hosts_whose_kb_we_have
-	If set to "yes", then nessusd will skip hosts that don't have
+	If set to "yes", then openvasd will skip hosts that don't have
 	a KB attached to
 
 only_test_hosts_whose_kb_we_dont_have
-	If set to "yes", then nessusd will skip hosts that have a KB
+	If set to "yes", then openvasd will skip hosts that have a KB
 	attached to
 
 kb_restore
@@ -224,15 +224,15 @@ kb_max_age
 
 detached_scan
 
-	If set to "yes", nessusd will close the communication and
+	If set to "yes", openvasd will close the communication and
 	forward the result of the scan to /dev/null (but will fill the
 	KBs and will save its sessions)
 
 
 continuous_scan
 	
-	If set to "yes", nessusd will restart the scan from scratch
-	when completed (nessusd runs forever)
+	If set to "yes", openvasd will restart the scan from scratch
+	when completed (openvasd runs forever)
 
 delay_between_scan_loops
 
@@ -285,7 +285,7 @@ in the future (and if requested by users) be mime-compliant.
 Today, this field is ignored and all files are treated
 as octet/stream (sent without any conversion).
 
-<name> is the name of the file. nessusd will re-assign
+<name> is the name of the file. openvasd will re-assign
 a new name (to prevent clients from uploading, say, /etc/passwd).
 
 This message should be used with the plugin preference 'file'.

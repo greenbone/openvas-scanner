@@ -36,7 +36,7 @@
 /*
  * auth_check_user() :
  *
- * Checks if a user has the right to use nessusd,
+ * Checks if a user has the right to use openvasd,
  * and return its permissions
  */
 struct nessus_rules * 

@@ -6,7 +6,7 @@ export DH_COMPAT=4
 export DH_OPTIONS
 
 nes	:= $(CURDIR)/debian/nessus
-nesd	:= $(CURDIR)/debian/nessusd
+nesd	:= $(CURDIR)/openvasd
 
 CFLAGS := -g -Wall
 ifneq "$(findstring noopt,$(DEB_BUILD_OPTIONS))" ""
@@ -60,7 +60,7 @@ install: build-stamp
 	dh_installdirs -pnessusd etc/nessus var/lib/nessus var/log/nessus var/lib/nessus/tmp
 	chmod 0640 $(nesd)/var/lib/nessus/tmp
 	dh_installdirs -pnessus usr/share/pixmaps
-	install -m 640 debian/nessusd.conf $(nesd)/etc/nessus/
+	install -m 640 debian/openvasd.conf $(nesd)/etc/nessus/
 	install -m 640 openvas-services $(nesd)/etc/nessus/
 	install -m 644 debian/nessus.xpm $(nes)/usr/share/pixmaps
 	rm -f $(nes)-dev/usr/include/nessus/includes.h
@@ -91,12 +91,12 @@ binary-arch: install
 	dh_installdocs README_SSL TODO doc/WARNING.En doc/WARNING.Fr
 	DH_OPTIONS=-pnessusd dh_installdocs TODO debian/README.Debian \
                                             doc/WARNING.En doc/WARNING.Fr
-	#install -m644 debian/the.init.d.script $(nesd)/usr/share/doc/nessusd/
+	#install -m644 debian/the.init.d.script $(nesd)/usr/share/doc/openvasd/
 	dh_installchangelogs CHANGES
 	dh_installmenu
 	DH_OPTIONS=-pnessusd dh_installdirs etc/logrotate.d
-	install -m644 debian/nessusd.logrotate $(nesd)/etc/logrotate.d/nessusd
-	dh_installinit -pnessusd -n -r -u stop 20 0 6 . 
+	install -m644 debian/openvasd.logrotate $(nesd)/etc/logrotate.d/openvasd
+	dh_installinit -popenvasd -n -r -u stop 20 0 6 . 
 ifeq "$(findstring nostrip,$(DEB_BUILD_OPTIONS))" ""
 	dh_strip
 endif

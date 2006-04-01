@@ -311,7 +311,7 @@ ac_includes_default="\
 # include <unistd.h>
 #endif"
 
-ac_subst_vars='SHELL PATH_SEPARATOR PACKAGE_NAME PACKAGE_TARNAME PACKAGE_VERSION PACKAGE_STRING PACKAGE_BUGREPORT exec_prefix prefix program_transform_name bindir sbindir libexecdir datadir sysconfdir sharedstatedir localstatedir libdir includedir oldincludedir infodir mandir build_alias host_alias target_alias DEFS ECHO_C ECHO_N ECHO_T LIBS build build_cpu build_vendor build_os host host_cpu host_vendor host_os CC CFLAGS LDFLAGS CPPFLAGS ac_ct_CC EXEEXT OBJEXT SET_MAKE INSTALL_PROGRAM INSTALL_SCRIPT INSTALL_DATA NESSUSCONFIG NASLCONFIG CPP EGREP ALLOCA X_CFLAGS X_PRE_LIBS X_LIBS X_EXTRA_LIBS AR PWD PWDD NESSCFLAGS NASLCFLAGS CWALL NESSUS_MAJOR NESSUS_MINOR NESSUS_PATCH NESSUS_RC NESSUS_DATE NESS_COMPILER NESS_OS_NAME NESS_OS_VERSION NESSUSD_CONFDIR NESSUSD_STATEDIR NESSUSD_PIDDIR NESSUSD_SHAREDSTATEDIR NESSUSD_DATADIR NESSUSD_LIBDIR NESSUSD_PLUGINS NESSUSD_LOGDIR NESSUSD_REPORTS INSTALL_DIR INSTALL RUN_LIBS resolv_lib socket_lib nsl_lib ssl_lib pthread_lib debug_flags nessus_lib man_nessus_1 man_nessusd_8 dl_lib libwrap uselibwrap client client_install use_pthreads rpcsvc_lib compat_lib c_r_lib ac_configure_args egdpath is_cygwin installuser LIBOBJS LTLIBOBJS'
+ac_subst_vars='SHELL PATH_SEPARATOR PACKAGE_NAME PACKAGE_TARNAME PACKAGE_VERSION PACKAGE_STRING PACKAGE_BUGREPORT exec_prefix prefix program_transform_name bindir sbindir libexecdir datadir sysconfdir sharedstatedir localstatedir libdir includedir oldincludedir infodir mandir build_alias host_alias target_alias DEFS ECHO_C ECHO_N ECHO_T LIBS build build_cpu build_vendor build_os host host_cpu host_vendor host_os CC CFLAGS LDFLAGS CPPFLAGS ac_ct_CC EXEEXT OBJEXT SET_MAKE INSTALL_PROGRAM INSTALL_SCRIPT INSTALL_DATA NESSUSCONFIG NASLCONFIG CPP EGREP ALLOCA X_CFLAGS X_PRE_LIBS X_LIBS X_EXTRA_LIBS AR PWD PWDD NESSCFLAGS NASLCFLAGS CWALL NESSUS_MAJOR NESSUS_MINOR NESSUS_PATCH NESSUS_RC NESSUS_DATE NESS_COMPILER NESS_OS_NAME NESS_OS_VERSION NESSUSD_CONFDIR NESSUSD_STATEDIR NESSUSD_PIDDIR NESSUSD_SHAREDSTATEDIR NESSUSD_DATADIR NESSUSD_LIBDIR NESSUSD_PLUGINS NESSUSD_LOGDIR NESSUSD_REPORTS INSTALL_DIR INSTALL RUN_LIBS resolv_lib socket_lib nsl_lib ssl_lib pthread_lib debug_flags nessus_lib man_nessus_1 man_openvasd_8 dl_lib libwrap uselibwrap client client_install use_pthreads rpcsvc_lib compat_lib c_r_lib ac_configure_args egdpath is_cygwin installuser LIBOBJS LTLIBOBJS'
 ac_subst_files=''
 
 # Initialize some variables set by options.
@@ -12045,7 +12045,7 @@ NESSUSD_REPORTS='${NESSUSD_LOGDIR}/reports'
 #AC_DEFINE(NESSUSD_PLUGINS,   "${libdir}/nessus/plugins")
 #AC_DEFINE(NESSUSD_REPORTS,   "${libdir}/nessus/reports")
 man_nessus_1=doc/nessus.1
-man_nessusd_8=doc/nessusd.8
+man_openvasd_8=doc/openvasd.8
 
 cat >>confdefs.h <<_ACEOF
 #define NESSUSD_LANGUAGE "${lang}"
@@ -12826,7 +12826,7 @@ s,@pthread_lib@,$pthread_lib,;t t
 s,@debug_flags@,$debug_flags,;t t
 s,@nessus_lib@,$nessus_lib,;t t
 s,@man_nessus_1@,$man_nessus_1,;t t
-s,@man_nessusd_8@,$man_nessusd_8,;t t
+s,@man_openvasd_8@,$man_openvasd_8,;t t
 s,@dl_lib@,$dl_lib,;t t
 s,@libwrap@,$libwrap,;t t
 s,@uselibwrap@,$uselibwrap,;t t

@@ -1,4 +1,4 @@
-# nessusd translation to spanish
+# openvasd translation to spanish
 # Copyright (C) 2005 Software in the Public Interest, SPI Inc.
 # This file is distributed under the same license as the XXXX package.
 #
@@ -31,7 +31,7 @@
 #
 msgid ""
 msgstr ""
-"Project-Id-Version: nessusd\n"
+"Project-Id-Version: openvasd\n"
 "Report-Msgid-Bugs-To: jfs@computer.org\n"
 "POT-Creation-Date: 2005-09-18 12:12+0200\n"
 "PO-Revision-Date: 2005-09-18 12:11+0200\n"
@@ -42,13 +42,13 @@ msgstr ""
 
 #. Type: note
 #. Description
-#: ../nessusd.templates:3
+#: ../openvasd.templates:3
 msgid "Nessus Daemon certificate generation"
 msgstr "Generación de certificado para el demonio de Nessus"
 
 #. Type: note
 #. Description
-#: ../nessusd.templates:3
+#: ../openvasd.templates:3
 msgid ""
 "You will need to provide the relevant information to create an SSL "
 "certificate for your Nessus Daemon. Note that this information will *NOT* be "
@@ -62,13 +62,13 @@ msgstr ""
 
 #. Type: string
 #. Description
-#: ../nessusd.templates:14
+#: ../openvasd.templates:14
 msgid "CA certificate life time in days"
 msgstr "Tiempo de vida en días del certificado de CA"
 
 #. Type: string
 #. Description
-#: ../nessusd.templates:14
+#: ../openvasd.templates:14
 msgid ""
 "Provide the life time of the Certificate Authority used to generate the "
 "Nessus Daemon certificate."
@@ -78,13 +78,13 @@ msgstr ""
 
 #. Type: string
 #. Description
-#: ../nessusd.templates:21
+#: ../openvasd.templates:21
 msgid "Server certificate life time in days"
 msgstr "Tiempo de vida en días del certificado del servidor"
 
 #. Type: string
 #. Description
-#: ../nessusd.templates:21
+#: ../openvasd.templates:21
 #, fuzzy
 msgid ""
 "Provide the life time of the Nessus Server certificate. Notice that the "
@@ -102,48 +102,48 @@ msgstr ""
 
 #. Type: string
 #. Description
-#: ../nessusd.templates:30
+#: ../openvasd.templates:30
 msgid "Your country (two letter code)"
 msgstr "Su país (código de dos letras)"
 
 #. Type: string
 #. Description
-#: ../nessusd.templates:30
+#: ../openvasd.templates:30
 msgid "Enter your country's two letter code."
 msgstr "Introduzca el código de dos letras de su país."
 
 #. Type: string
 #. Description
-#: ../nessusd.templates:35
+#: ../openvasd.templates:35
 msgid "Your state or province"
 msgstr "Su provincia o estado"
 
 #. Type: string
 #. Description
-#: ../nessusd.templates:35
+#: ../openvasd.templates:35
 msgid "Enter the state or provice you reside in."
 msgstr "Introduzca el nombre del estado o de la provincida donde reside."
 
 #. Type: string
 #. Description
-#: ../nessusd.templates:40
+#: ../openvasd.templates:40
 msgid "Your location"
 msgstr "Su localización"
 
 #. Type: string
 #. Description
-#: ../nessusd.templates:40
+#: ../openvasd.templates:40
 msgid "Enter your location (e.g. town)."
 msgstr "Introduzca su localización (p. ej. su ciudad)."
 
 #. Type: string
 #. Description
-#: ../nessusd.templates:46
+#: ../openvasd.templates:46
 msgid "Your organisation"
 msgstr "Su organización"
 
 #. Type: string
 #. Description
-#: ../nessusd.templates:46
+#: ../openvasd.templates:46
 msgid "Enter the name of your organization or company."
 msgstr "Introduzca el nombre de su organizació o compañía."

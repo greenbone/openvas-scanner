@@ -16,7 +16,7 @@
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
  *
- * Plugin upload : the client may upload its own plugins to nessusd.
+ * Plugin upload : the client may upload its own plugins to openvasd.
  * This module implements the correct functions to do so.
  *
  *

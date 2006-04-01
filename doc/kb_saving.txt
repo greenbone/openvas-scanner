@@ -32,7 +32,7 @@ What is this feature about ?
 ----------------------------
 
 	This feature saves the content of the knowledge base built for each
-host on the disk, on the server (nessusd) side.
+host on the disk, on the server (openvasd) side.
 
 What is the purpose of saving the knowledge base ?
 --------------------------------------------------
@@ -50,7 +50,7 @@ between two tests ?
 -------------------
 
 Once it has been saved on disk, the knowledge base is given a date. It's
-up to you to configure nessusd to consider a knowledge base as being
+up to you to configure openvasd to consider a knowledge base as being
 obsolete after two years, ten minutes, or two seconds.
 
 

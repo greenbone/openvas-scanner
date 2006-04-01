@@ -650,7 +650,7 @@ NESSUSD_REPORTS='${NESSUSD_LOGDIR}/reports'
 #AC_DEFINE(NESSUSD_PLUGINS,   "${libdir}/nessus/plugins")
 #AC_DEFINE(NESSUSD_REPORTS,   "${libdir}/nessus/reports")
 man_nessus_1=doc/nessus.1
-man_nessusd_8=doc/nessusd.8
+man_openvasd_8=doc/openvasd.8
 
 AC_DEFINE_UNQUOTED(NESSUSD_LANGUAGE,  "${lang}")
 
@@ -692,7 +692,7 @@ AC_SUBST(pthread_lib)
 AC_SUBST(debug_flags)
 AC_SUBST(nessus_lib)
 AC_SUBST(man_nessus_1)
-AC_SUBST(man_nessusd_8)
+AC_SUBST(man_openvasd_8)
 AC_SUBST(dl_lib)
 AC_SUBST(libwrap)
 AC_SUBST(uselibwrap)

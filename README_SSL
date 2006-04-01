@@ -18,7 +18,7 @@ client - server communication) was removed.
 (Have a look at the message that I posted on the nessus-devel mailing
 list for details.)
 
-Starting with Nessus 1.1.4, the communication between the nessusd server 
+Starting with Nessus 1.1.4, the communication between the openvasd server 
 and the nessus client is enciphered with TLSv1. 
 You may still disable the cipher layer when you configure & compile
 Nessus (this is the default if OpenSSL is not found), or by setting
@@ -40,7 +40,7 @@ In fact, you will always have to enter a username & a password.
 - a SSL server certificate & private key
 - the CA certificate
 - you may need client certificates if 'force_pubkey_auth' is set in
-  nessusd.conf 
+  openvasd.conf 
   There is no way to disable this for a specific user.
 
 
@@ -72,7 +72,7 @@ If it is installed, Nessus will use it to test SSL based services
 
 3.1. Disable SSL layer in configuration files
 
-Setting "ssl_version=none" in nessusd.conf and in .nessusrc disables
+Setting "ssl_version=none" in openvasd.conf and in .nessusrc disables
 the cipher layer.
 
 This option is available in Nessus 1.2.0, and did not exist in the
@@ -128,14 +128,14 @@ Much better. If you want to create your own certificates, you may use
 Here is what you should know:
 - Nessus only supports PEM files.
 - Although I only tested RSA keys, DSA keys should work as well.
-- You'd better create a "SSL server" certificate for nessusd, but we
+- You'd better create a "SSL server" certificate for openvasd, but we
   do not check the usage, in fact.
   OpenSSL may run some kind of consistency check though...
 - The behaviour of the Nessus client is described in §5 below. [TBD]
-- If "force_pubkey_auth" is set in nessusd.conf, the server will accept
+- If "force_pubkey_auth" is set in openvasd.conf, the server will accept
   a client certificate as long as it is signed by the CA you specified
   in the "ca_file" parameter
-- the parameters in nessusd.conf are:
+- the parameters in openvasd.conf are:
  - force_pubkey_auth = flag ("yes"/"no"). If set, the server verifies
 		       the peer (client) certificate.  
  - cert_file	     = path to your PEM certificate.
@@ -158,7 +158,7 @@ Here is what you should know:
 		       version is SSLv3 or TLSv1.
 
 Note that the pem_password protection is not great as it is stored in
-the nessusd.conf files. We shall change that later.
+the openvasd.conf files. We shall change that later.
 
 *Please* do not ask for support on all this. We are working on a
 security scanner, not a PKI project!
@@ -316,16 +316,16 @@ Once again, SSL and X.509 protects you.
 
 This is the "hopefully not frequently asked questions"!
 
-- My client reports a SSL error when it connects to Nessusd
+- My client reports a SSL error when it connects to openvasd
   Maybe you are using an old SSLv3 client and a new TLSv1 server.
-  Set "ssl_version=SSLv3" in nessusd.conf or use a newer client
+  Set "ssl_version=SSLv3" in openvasd.conf or use a newer client
   software. 
 
 - I want to use an old 1.0.x client with a new 1.2.x server, or vice
   versa. 
   Old client/server used PEKS, new uses SSL. There is no
   compatibility. You have to disable the cipher layer by setting
-  ssl_version=none in .nessusrc or nessusd.conf
+  ssl_version=none in .nessusrc or openvasd.conf
   
 - Wasn't it better to use SSLv3 rather than TLSv1?
   Who knows? Maybe. We just had to change a couple of lines in the

@@ -18,13 +18,13 @@ msgstr ""
 
 #. Type: note
 #. Description
-#: ../nessusd.templates:3
+#: ../openvasd.templates:3
 msgid "Nessus Daemon certificate generation"
 msgstr ""
 
 #. Type: note
 #. Description
-#: ../nessusd.templates:3
+#: ../openvasd.templates:3
 msgid ""
 "You will need to provide the relevant information to create an SSL "
 "certificate for your Nessus Daemon. Note that this information will *NOT* be "
@@ -34,13 +34,13 @@ msgstr ""
 
 #. Type: string
 #. Description
-#: ../nessusd.templates:14
+#: ../openvasd.templates:14
 msgid "CA certificate life time in days"
 msgstr ""
 
 #. Type: string
 #. Description
-#: ../nessusd.templates:14
+#: ../openvasd.templates:14
 msgid ""
 "Provide the life time of the Certificate Authority used to generate the "
 "Nessus Daemon certificate."
@@ -48,65 +48,65 @@ msgstr ""
 
 #. Type: string
 #. Description
-#: ../nessusd.templates:21
+#: ../openvasd.templates:21
 msgid "Server certificate life time in days"
 msgstr ""
 
 #. Type: string
 #. Description
-#: ../nessusd.templates:21
+#: ../openvasd.templates:21
 msgid ""
 "Provide the life time of the Nessus Server certificate. Notice that the "
 "Nessus clients will not connect to servers with expired certificates so set "
 "this value for as long as you want this installation to last. You can always "
 "regenerate this certificate later by removing the certificate file stored "
-"in /var/lib/nessusd/CA/ and running 'openvas-mkcert'"
+"in /var/lib/openvasd/CA/ and running 'openvas-mkcert'"
 msgstr ""
 
 #. Type: string
 #. Description
-#: ../nessusd.templates:30
+#: ../openvasd.templates:30
 msgid "Your country (two letter code)"
 msgstr ""
 
 #. Type: string
 #. Description
-#: ../nessusd.templates:30
+#: ../openvasd.templates:30
 msgid "Enter your country's two letter code."
 msgstr ""
 
 #. Type: string
 #. Description
-#: ../nessusd.templates:35
+#: ../openvasd.templates:35
 msgid "Your state or province"
 msgstr ""
 
 #. Type: string
 #. Description
-#: ../nessusd.templates:35
+#: ../openvasd.templates:35
 msgid "Enter the state or provice you reside in."
 msgstr ""
 
 #. Type: string
 #. Description
-#: ../nessusd.templates:40
+#: ../openvasd.templates:40
 msgid "Your location"
 msgstr ""
 
 #. Type: string
 #. Description
-#: ../nessusd.templates:40
+#: ../openvasd.templates:40
 msgid "Enter your location (e.g. town)."
 msgstr ""
 
 #. Type: string
 #. Description
-#: ../nessusd.templates:46
+#: ../openvasd.templates:46
 msgid "Your organisation"
 msgstr ""
 
 #. Type: string
 #. Description
-#: ../nessusd.templates:46
+#: ../openvasd.templates:46
 msgid "Enter the name of your organization or company."
 msgstr ""

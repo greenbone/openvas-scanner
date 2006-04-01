@@ -444,7 +444,7 @@ save_tests_delete(globals, session)
 
 /*--------------------------------------------------------
 
-  Set up nessusd so that we are ready to replay a test
+  Set up openvasd so that we are ready to replay a test
   
  ---------------------------------------------------------*/
 int

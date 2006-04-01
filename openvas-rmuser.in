@@ -23,8 +23,8 @@ infodir=@infodir@
 mandir=@mandir@
 is_cygwin=@is_cygwin@
 
-nessusd=@sbindir@/nessusd
-nessusd_users=@sysconfdir@/nessus/nessusd.users
+openvasd=@sbindir@/openvasd
+openvasd_users=@sysconfdir@/nessus/openvasd.users
 
 # check if gettext is present
 

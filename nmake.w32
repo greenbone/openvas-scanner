@@ -61,7 +61,7 @@ install-doc:
 	-mkdir $(INSTALL_TARGET)\doc\nessus\core
 	copy VERSION           $(INSTALL_TARGET)\doc\nessus\core
 	copy doc\nessus.1.cat  $(INSTALL_TARGET)\doc\nessus\core
-	copy doc\nessusd.8.cat $(INSTALL_TARGET)\doc\nessus\core
+	copy doc\openvasd.8.cat $(INSTALL_TARGET)\doc\nessus\core
 	copy README_WINDOWS    $(INSTALL_TARGET)\doc\nessus\core
 	copy UPGRADE_WINDOWS   $(INSTALL_TARGET)\doc\nessus\core
 	copy CHANGES           $(INSTALL_TARGET)\doc\nessus\core

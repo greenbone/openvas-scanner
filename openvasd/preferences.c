@@ -15,7 +15,7 @@
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
  *
- * Preferences  -- maps the content of the nessusd.conf file to memory
+ * Preferences  -- maps the content of the openvasd.conf file to memory
  *
  */
  
@@ -70,7 +70,7 @@ int preferences_new(char * name)
  fprintf(fd, "max_hosts = 30\n\n");
  fprintf(fd, "# Maximum number of simultaneous checks against each host tested : \n");
  fprintf(fd, "max_checks = 10\n\n");
- fprintf(fd, "# Niceness. If set to 'yes', nessusd will renice itself to 10.\n");
+ fprintf(fd, "# Niceness. If set to 'yes', openvasd will renice itself to 10.\n");
  fprintf(fd, "be_nice = no\n\n");
 
 

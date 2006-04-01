@@ -11,8 +11,8 @@ NESSUSD :
 LOGS:
 -----
 - put in the logs the fact that a test was negative or positive
-- create logs levels, in multiple files (nessusd.messages, nessusd.plugins,
-  nessusd.error, ...)
+- create logs levels, in multiple files (openvasd.messages, openvasd.plugins,
+  openvasd.error, ...)
 
 REPORTS:
 --------		

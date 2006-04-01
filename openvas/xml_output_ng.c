@@ -191,7 +191,7 @@ xml_info_host (int be, FILE* fd, int indent, struct arglist * t)
   if (t)
   {
    xml_fprintf_element (
-    fd, indent+1, "name", (char *) arg_get_value (t, "nessusd_host")); 
+    fd, indent+1, "name", (char *) arg_get_value (t, "openvasd_host")); 
   }
  }
  else
@@ -237,23 +237,23 @@ struct arglist * t)
 } /* xml_info_date */
 
 static void
-xml_info_nessusd (int be, FILE* fd, int indent, struct arglist * t)
+xml_info_openvasd (int be, FILE* fd, int indent, struct arglist * t)
 {
  if (t)
  {
-  xml_fprintf (fd, indent, "<nessusd>\n");
-  xml_fprintf_element (fd, indent+1, "version", (char *) arg_get_value (t, "server_info_nessusd_version"));
+  xml_fprintf (fd, indent, "<openvasd>\n");
+  xml_fprintf_element (fd, indent+1, "version", (char *) arg_get_value (t, "server_info_openvasd_version"));
   xml_fprintf_element (fd, indent+1, "libnasl", (char *) arg_get_value (t, "server_info_libnasl_version"));
   xml_fprintf_element (fd, indent+1, "libnessus", (char *) arg_get_value (t, "server_info_libnessus_version"));
   xml_fprintf_element (fd, indent+1, "thread", (char *) arg_get_value (t, "server_info_thread_manager"));
-  xml_fprintf (fd, indent, "</nessusd>\n");
+  xml_fprintf (fd, indent, "</openvasd>\n");
  } else {
-  show_error("xml_output: No nessusd informations.\n");
-  xml_fprintf (fd, indent, "<nessusd>\n");
+  show_error("xml_output: No openvasd informations.\n");
+  xml_fprintf (fd, indent, "<openvasd>\n");
   xml_fprintf (fd, indent+1, "<!-- no version information found -->\n");
-  xml_fprintf (fd, indent, "</nessusd>\n");
+  xml_fprintf (fd, indent, "</openvasd>\n");
  }
-} /* xml_info_nessusd */
+} /* xml_info_openvasd */
 
 static void
 xml_info (int be, FILE* fd, int indent)
@@ -264,7 +264,7 @@ xml_info (int be, FILE* fd, int indent)
  if (t)
  {
   xml_fprintf (fd, 2, "<info>\n");
-   xml_info_nessusd(be, fd, indent+1, t);
+   xml_info_openvasd(be, fd, indent+1, t);
    xml_info_host(be, fd, indent+1, t);
    xml_info_date(be, fd, indent+1, t);
   xml_fprintf (fd, 2, "</info>\n\n");

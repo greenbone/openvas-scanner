@@ -53,7 +53,7 @@ struct running {
  * plugins per host
  */	
 #define MAX_PROCESSES 32
-#undef VERBOSE_LOGGING	/* This really fills your nessusd.messages */
+#undef VERBOSE_LOGGING	/* This really fills your openvasd.messages */
 
 #undef DEBUG_CONFLICTS
 static void read_running_processes();

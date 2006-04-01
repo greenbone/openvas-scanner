@@ -25,7 +25,7 @@ OBJS = auth.o \
        nasl_plugins.o \
        nes_plugins.o \
        plugs_req.o \
-       nessusd.o \
+       openvasd.o \
        save_tests.o \
        save_kb.o \
        detached.o \
@@ -38,23 +38,23 @@ OBJS = auth.o \
        pluginscheduler.o \
        shared_socket.o 
 
-all : ${make_bindir}/nessusd ${make_bindir}/nessus-check-signature
+all : ${make_bindir}/openvasd ${make_bindir}/nessus-check-signature
 
 cflags : ../nessus.tmpl
 	@echo "$(NESSUS_CFLAGS) ${include} $(DEFS) $(NESSUS_DEFS)"  | sed 's/\"/\\\"/g' > cflags.tmp
 	@echo "echo \"`cat cflags.tmp`\"" > cflags
 	@rm cflags.tmp
 	@chmod +x cflags
-${make_bindir}/nessusd : nessusd
+${make_bindir}/openvasd : openvasd
 	test -d ${make_bindir} || mkdir ${make_bindir}
-	cp nessusd ${make_bindir}/nessusd
+	cp openvasd ${make_bindir}/openvasd
 
 ${make_bindir}/nessus-check-signature: nessus-check-signature
 	test -d ${make_bindir} || mkdir ${make_bindir}
 	cp nessus-check-signature ${make_bindir}/nessus-check-signature
 
-nessusd : cflags $(OBJS)
-	$(CC) $(LDFLAGS) $(NESSUS_INCLUDE) $(OBJS)  -o nessusd $(LIBS)
+openvasd : cflags $(OBJS)
+	$(CC) $(LDFLAGS) $(NESSUS_INCLUDE) $(OBJS)  -o openvasd $(LIBS)
 
 nessus-check-signature : cflags nessus-check-signature.o
 	$(CC) $(LDFLAGS) $(NESSUS_INCLUDE) nessus-check-signature.o  -o nessus-check-signature $(LIBS)
@@ -77,8 +77,8 @@ preferences.o : cflags preferences.c preferences.h
 pluginload.o : cflags pluginload.h pluginload.c
 	$(CC) $(CFLAGS) $(NESSUS_INCLUDE) -c pluginload.c 
 
-nessusd.o : cflags nessusd.c 
-	$(CC) $(CFLAGS) $(NESSUS_INCLUDE) -c nessusd.c 
+openvasd.o : cflags openvasd.c 
+	$(CC) $(CFLAGS) $(NESSUS_INCLUDE) -c openvasd.c 
 
 auth.o : cflags auth.c auth.h
 	$(CC) $(CFLAGS) $(NESSUS_INCLUDE) -c auth.c 
@@ -157,5 +157,5 @@ hosts.o : cflags hosts.c
 shared_socket.o : cflags shared_socket.c
 	$(CC) $(CFLAGS) $(NESSUS_INCLUDE) -c shared_socket.c
 clean :
-	rm -f *.o nessusd nessus-check-signature *~ cflags
+	rm -f *.o openvasd nessus-check-signature *~ cflags
 

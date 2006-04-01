@@ -39,7 +39,7 @@ void cli_args_output(struct cli_args *, char* type);
 
 void cli_args_cipher(struct cli_args *,char*);
 
-int cli_connect_to_nessusd(struct cli_args*);
+int cli_connect_to_openvasd(struct cli_args*);
 
 int cli_test_network(struct cli_args*);
 void cli_report(struct cli_args*);

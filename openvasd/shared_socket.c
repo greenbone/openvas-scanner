@@ -34,7 +34,7 @@ struct shared_fd {
 static struct shared_fd shared_fd[MAX_SHARED_SOCKETS];
 
 /* Remove a socket from the shared_fd table */
-static int nessusd_shared_socket_close(int idx)
+static int openvasd_shared_socket_close(int idx)
 {
  if ( idx < 0 || idx >= MAX_SHARED_SOCKETS )
 	return -1;
@@ -45,7 +45,7 @@ static int nessusd_shared_socket_close(int idx)
  return 0;
 }
 
-static int nessusd_shared_socket_register ( int soc, nthread_t pid,  char * buf )
+static int openvasd_shared_socket_register ( int soc, nthread_t pid,  char * buf )
 {
  int fd = 0;
  int i;
@@ -100,7 +100,7 @@ static int nessusd_shared_socket_register ( int soc, nthread_t pid,  char * buf 
  return 0;
 }
 
-static int nessusd_shared_socket_acquire( int soc, nthread_t pid, char * buf )
+static int openvasd_shared_socket_acquire( int soc, nthread_t pid, char * buf )
 {
  int i;
  for ( i = 0 ; i < MAX_SHARED_SOCKETS ; i ++ )
@@ -119,7 +119,7 @@ static int nessusd_shared_socket_acquire( int soc, nthread_t pid, char * buf )
 		 if ( is_socket_connected(shared_fd[i].fd) == 0 )
 		  {
 	            log_write("shared_socket: socket %s lost connection to its peer - destroying this entry\n", buf);
-		    nessusd_shared_socket_close(i);
+		    openvasd_shared_socket_close(i);
  		    internal_send(soc, NULL, INTERNAL_COMM_MSG_SHARED_SOCKET|INTERNAL_COMM_SHARED_SOCKET_ERROR);
 		    return 0; /* Not really an error in itself */
 		  }
@@ -142,7 +142,7 @@ static int nessusd_shared_socket_acquire( int soc, nthread_t pid, char * buf )
  return -1;
 }
 
-static int nessusd_shared_socket_release( int soc, nthread_t pid, char * buf )
+static int openvasd_shared_socket_release( int soc, nthread_t pid, char * buf )
 {
  int i;
  for ( i = 0; i < MAX_SHARED_SOCKETS ; i ++ )
@@ -170,7 +170,7 @@ static int nessusd_shared_socket_release( int soc, nthread_t pid, char * buf )
 
 
 
-static int nessusd_shared_socket_destroy( int soc, nthread_t pid, char * buf )
+static int openvasd_shared_socket_destroy( int soc, nthread_t pid, char * buf )
 {
  int i;
  for ( i = 0; i < MAX_SHARED_SOCKETS ; i ++ )
@@ -180,7 +180,7 @@ static int nessusd_shared_socket_destroy( int soc, nthread_t pid, char * buf )
    if ( shared_fd[i].current_user == 0 ||
         shared_fd[i].current_user == pid )
       {
-       nessusd_shared_socket_close(i);
+       openvasd_shared_socket_close(i);
        log_write("shared_socket: %d destroyed socket %s\n", pid, buf);
        return 0;
       }
@@ -233,16 +233,16 @@ int shared_socket_cleanup_process( nthread_t process )
 int shared_socket_process( int soc, nthread_t pid, char * buf, int message )
 {
  if ( message & INTERNAL_COMM_SHARED_SOCKET_REGISTER )
-	return nessusd_shared_socket_register(soc, pid, buf);
+	return openvasd_shared_socket_register(soc, pid, buf);
   
  if ( message & INTERNAL_COMM_SHARED_SOCKET_ACQUIRE )
-	return nessusd_shared_socket_acquire(soc, pid, buf);
+	return openvasd_shared_socket_acquire(soc, pid, buf);
 
  if ( message & INTERNAL_COMM_SHARED_SOCKET_RELEASE )
-	return nessusd_shared_socket_release(soc, pid,  buf);
+	return openvasd_shared_socket_release(soc, pid,  buf);
 
  if ( message & INTERNAL_COMM_SHARED_SOCKET_DESTROY )
-	return nessusd_shared_socket_destroy(soc, pid, buf);
+	return openvasd_shared_socket_destroy(soc, pid, buf);
 
  return -1; /* Unknown message */
 }

@@ -76,14 +76,14 @@
 /* The default server key file and key length */
 #define NESSUSD_KEYLENGTH 1024
 #define NESSUSD_MAXPWDFAIL   5
-#define NESSUSD_USERNAME  "nessusd"
+#define NESSUSD_USERNAME  "openvasd"
 
-/* The default rpc cipher nessusd will be connect to (if any) */
+/* The default rpc cipher openvasd will be connect to (if any) */
 #define NESSUSD_RPCIPHER     "twofish/ripemd160"
 #define NESSUSD_RPCAUTH_METH 3 /* auth scheme, either 1 or 3 */
 
 /*
- * The default port on which nessusd
+ * The default port on which openvasd
  * will be listenning
  */
 #define DEFAULT_PORT 3001

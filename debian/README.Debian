@@ -10,7 +10,7 @@ How to use Nessus?
 
   * Set up the client certificate with `openvas-mkcert-client'.
 
-  * Run `nessusd -D' in order to start the daemon.
+  * Run `openvasd -D' in order to start the daemon.
 
   * Change back from root to normal user, run X and start `nessus'
     (or select it from the menu, it's in Apps/System submenu).
@@ -21,15 +21,15 @@ How to use Nessus?
 Nessus has a test for its daemon running, because it is a potential security
 problem, so it wouldn't seem wise to automatically start it on boot-up.
 
-An init script for nessusd is provided in the file the.init.d.script,
+An init script for openvasd is provided in the file the.init.d.script,
 courtesy of Luca Andreucci <andrew@andrew.org> and others.
 
-Remember to `killall nessusd' (as root) after you finish with `nessus'.
+Remember to `killall openvasd' (as root) after you finish with `nessus'.
 
 Debian defaults
 ---------------
 
-Before you change Debian's nessusd.conf file consider this:
+Before you change Debian's openvasd.conf file consider this:
 
 0.- signature checks (nasl_no_signature_check) only apply to "trusted"
 plugins, and those are the plugins that do remote local security checks 

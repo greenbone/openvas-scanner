@@ -8,20 +8,20 @@ Standards-Version: 3.5.10
 Package: nessus
 Architecture: any
 Depends: ${shlibs:Depends}
-Suggests: nessusd (= ${Source-Version})
+Suggests: openvasd (= ${Source-Version})
 Description: Remote network security auditor, the client
  The Nessus Security Scanner is a security auditing tool. It makes
  possible to test security modules in an attempt to find vulnerable
  spots that should be fixed.
  .
  It is made up of two parts: a server, and a client. The server/daemon,
- nessusd, is in charge of the attacks, whereas the client, nessus,
+ openvasd, is in charge of the attacks, whereas the client, nessus,
  provides the user a nice X11/GTK+ interface.
  .
  This package contains the GTK+ client, which exists in other
  forms and on other platforms, too.
 
-Package: nessusd
+Package: openvasd
 Architecture: any
 Depends: ${shlibs:Depends}, nessus-plugins (>= 2.0.12-3), openssl
 Suggests: nessus (= ${Source-Version})
@@ -33,23 +33,23 @@ Description: Remote network security auditor, the server
  spots that should be fixed.
  .
  It is made up of two parts: a server, and a client. The server/daemon,
- nessusd, is in charge of the attacks, whereas the client, nessus,
+ openvasd, is in charge of the attacks, whereas the client, nessus,
  provides the user a nice X11/GTK+ interface.
  .
- This package contains the nessusd server, which must be run as root.
+ This package contains the openvasd server, which must be run as root.
 
 Package: nessus-dev
 Section: devel
 Architecture: all
 Recommends: libnessus-dev, libnasl-dev
-Replaces: nessusd (<< 1.0.0-2)
+Replaces: openvasd (<< 1.0.0-2)
 Description: Nessus development header files
  The Nessus Security Scanner is a security auditing tool. It makes
  possible to test security modules in an attempt to find vulnerable
  spots that should be fixed.
  .
  It is made up of two parts: a server, and a client. The server/daemon,
- nessusd, is in charge of the attacks, whereas the client, nessus,
+ openvasd, is in charge of the attacks, whereas the client, nessus,
  provides the user a nice X11/GTK+ interface.
  .
  This package contains nessus-core header files, needed to build some

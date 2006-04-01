@@ -38,13 +38,13 @@ holes/reports found on a remote host.
 
  + More flexible :
 
-  Nowadays, using nessusd is a pain : before you make a test, you have
- to telnet to the nessusd machine, edit nessusd.rules to be sure it
+  Nowadays, using openvasd is a pain : before you make a test, you have
+ to telnet to the openvasd machine, edit openvasd.rules to be sure it
  matches your needs, restart the daemon, and actually start the attack...
 
  Also, all the preferences should be defined by the client, not
- only in nessusd.conf. Because if you want to reduce the max number
- of threads of nessusd, it's a real pain.
+ only in openvasd.conf. Because if you want to reduce the max number
+ of threads of openvasd, it's a real pain.
 
  + More specific :
 
@@ -93,7 +93,7 @@ holes/reports found on a remote host.
  
  The current preferences are :
   max_threads    : max number of threads. Can't be greater than the one
-                   defined in nessusd.conf
+                   defined in openvasd.conf
   test_file      : the file that some plugins will attempt to obtain from the
                    remote server (ie : /etc/passwd)
   email          : the email of the user
@@ -102,7 +102,7 @@ holes/reports found on a remote host.
 
   reverse_lookup : the IP must be reversely looked up before it's attacked
   
-  outside_firewall: if nessusd is testing a host which is behind a firewall
+  outside_firewall: if openvasd is testing a host which is behind a firewall
   
   host_expansion : this is how Nessus will seek for victims. Several options
   		   are possible : 
@@ -137,7 +137,7 @@ holes/reports found on a remote host.
 
  Note :
    In fact, the server will send to the client the content of the file
-  nessusd.conf. If the nessusd owner decides to remove this file, the
+  openvasd.conf. If the openvasd owner decides to remove this file, the
   server will send you the message :
   
      SERVER <|> PREFERENCES <|>

@@ -12,16 +12,16 @@ nessus.tmpl: nessus.tmpl.in configure VERSION
 install: all $(CLIENT_INSTALL) install-bin install-man
 	@echo
 	@echo ' --------------------------------------------------------------'
-	@echo ' nessus-core has been sucessfully installed. '
+	@echo ' openvas-core has been sucessfully installed. '
 	@echo " Make sure that $(bindir) and $(sbindir) are in your PATH before"
 	@echo " you continue."
-	@echo " nessusd has been installed into $(sbindir)"
+	@echo " openvasd has been installed into $(sbindir)"
 	@echo ' --------------------------------------------------------------'
 	@echo
 
 install-bin:
 	test -d $(DESTDIR)${sbindir} || $(INSTALL_DIR) -m 755 $(DESTDIR)${sbindir}
-	$(INSTALL) -m $(SERVERMODE)  ${make_bindir}/nessusd $(DESTDIR)${sbindir}
+	$(INSTALL) -m $(SERVERMODE)  ${make_bindir}/openvasd $(DESTDIR)${sbindir}
 	$(INSTALL) -m $(SERVERMODE) ${make_bindir}/nessus-check-signature $(DESTDIR)${sbindir}
 	test -d $(DESTDIR)${sysconfdir} || $(INSTALL_DIR) -m 755 $(DESTDIR)${sysconfdir}
 	test -d $(DESTDIR)${sysconfdir}/nessus || $(INSTALL_DIR) -m 755 $(DESTDIR)${sysconfdir}/nessus	
@@ -64,7 +64,7 @@ install-man:
 	$(INSTALL) -c -m 0444 ${MAN_NESSUS_1} $(DESTDIR)${mandir}/man1/nessus.1
 	$(INSTALL) -c -m 0444 doc/openvas-fetch.1 $(DESTDIR)${mandir}/man1/openvas-fetch.1
 	$(INSTALL) -c -m 0444 doc/nessus-check-signature.1 $(DESTDIR)${mandir}/man1/nessus-check-signature.1
-	$(INSTALL) -c -m 0444 ${MAN_NESSUSD_8} $(DESTDIR)${mandir}/man8/nessusd.8
+	$(INSTALL) -c -m 0444 ${MAN_NESSUSD_8} $(DESTDIR)${mandir}/man8/openvasd.8
 	$(INSTALL) -c -m 0444 doc/openvas-adduser.8 $(DESTDIR)${mandir}/man8/openvas-adduser.8
 	$(INSTALL) -c -m 0444 doc/openvas-rmuser.8 $(DESTDIR)${mandir}/man8/openvas-rmuser.8
 	$(INSTALL) -c -m 0444 doc/openvas-mkcert.8 $(DESTDIR)${mandir}/man8/openvas-mkcert.8
@@ -74,7 +74,7 @@ install-man:
 
 win32: ${MAN_NESSUS_1} ${MAN_NESSUSD_8}
 	$(MANROFF) ${MAN_NESSUS_1}  > doc/nessus.1.cat
-	$(MANROFF) ${MAN_NESSUSD_8} > doc/nessusd.8.cat
+	$(MANROFF) ${MAN_NESSUSD_8} > doc/openvasd.8.cat
 	@echo
 	@echo ' --------------------------------------------------------------'
 	@echo '    Go ahead and move the nessus-core tree to a windows'
@@ -117,7 +117,7 @@ clean:
 
 distclean: clean
 	[ -z "${rootdir}" ] || rm -f ${rootdir}/include/config.h ${rootdir}/include/corevers.h 
-	rm -f nessus.tmpl doc/nessus.1.cat doc/nessusd.8.cat
+	rm -f nessus.tmpl doc/nessus.1.cat doc/openvasd.8.cat
 	[ -z "${make_bindir}" ] || rm -f $(make_bindir)/nessus* 
 	rm -f libtool config.cache config.status config.log 
 	rm -f openvas-adduser
@@ -140,10 +140,10 @@ distcheck:
 	find . -type f | sed -e 's/^.\///' -e '/~$$/d' -e '/CVS/d' \
 			     -e '/\.o$$/d' -e '/^nessus.tmpl$$/d' \
 			     -e '/^libtool$$/d' \
-			     -e '/^nessusd\/OBJ\/nessusd$$/d' \
+			     -e '/^openvasd\/OBJ\/openvasd$$/d' \
 			     -e '/^nessus\/OBJ\/nessus$$/d' \
 			     -e '/^bin\/nessus$$/d' \
-			     -e '/^bin\/nessusd$$/d' \
+			     -e '/^bin\/openvasd$$/d' \
 			     -e '/^config\.cache$$/d' \
 			     -e '/^config\.log$$/d' \
 			     -e '/^config\.status$$/d' \

@@ -9,7 +9,7 @@ if [ "$1" = "purge" ]; then
 		find $DIR -type f -o -type l | xargs rm -f 
 	fi
   done
-  update-rc.d nessusd remove >/dev/null
+  update-rc.d openvasd remove >/dev/null
 fi
 
 #DEBHELPER#

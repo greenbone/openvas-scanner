@@ -156,7 +156,7 @@ get_max_hosts_number(globals, preferences)
 	}
     else if(max_hosts > g_max_hosts && preferences_user_is_admin(globals, preferences) <= 0)
      {
-     	log_write("Client tried to raise the maximum hosts number - %d. Using %d. Change 'max_hosts' in nessusd.conf if \
+     	log_write("Client tried to raise the maximum hosts number - %d. Using %d. Change 'max_hosts' in openvasd.conf if \
 you believe this is incorrect\n",
 			max_hosts, g_max_hosts);
 	max_hosts = g_max_hosts;
@@ -187,7 +187,7 @@ get_max_checks_number(globals, preferences)
 	}
     else if(max_checks > g_max_checks && preferences_user_is_admin(globals, preferences) <= 0)
      {
-     	log_write("Client tried to raise the maximum checks number - %d. Using %d. Change 'max_checks' in nessusd.conf if \
+     	log_write("Client tried to raise the maximum checks number - %d. Using %d. Change 'max_checks' in openvasd.conf if \
 you believe this is incorrect\n",
 			max_checks, g_max_checks);
 	max_checks = g_max_checks;
@@ -322,9 +322,9 @@ void
 create_pid_file()
 {
  FILE * f;
- char * fname = malloc(strlen(NESSUSD_PIDDIR) + strlen("/nessusd.pid") + 1);
+ char * fname = malloc(strlen(NESSUSD_PIDDIR) + strlen("/openvasd.pid") + 1);
  strcpy(fname, NESSUSD_PIDDIR);
- strcat(fname, "/nessusd.pid");
+ strcat(fname, "/openvasd.pid");
  
  f = fopen(fname, "w");
  if(!f)
@@ -341,9 +341,9 @@ fprintf(stderr, "'%s'\n", fname);
 void
 delete_pid_file()
 {
- char * fname = malloc(strlen(NESSUSD_PIDDIR) + strlen("/nessusd.pid") + 1);
+ char * fname = malloc(strlen(NESSUSD_PIDDIR) + strlen("/openvasd.pid") + 1);
  strcpy(fname, NESSUSD_PIDDIR);
- strcat(fname, "/nessusd.pid");
+ strcat(fname, "/openvasd.pid");
  unlink(fname);
  free(fname);
 }
