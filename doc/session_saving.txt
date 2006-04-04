@@ -26,7 +26,7 @@ details).
 How to make it work ?
 ---------------------
 
-./configure --enable-save-sessions, in nessus-core, then :
+./configure --enable-save-sessions, in openvas-core, then :
 make
 make install
 

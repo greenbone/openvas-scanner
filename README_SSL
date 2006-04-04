@@ -51,7 +51,7 @@ the sources, and $prefix the root directory installation,
 e.g. /usr/local)
 
 Once you have configure and installed Nessus (i.e. nessus-libraries,
-libnasl, nessus-core and nessus-plugins), you have three options:
+libnasl, openvas-core and nessus-plugins), you have three options:
 - disable encryption in the configuration files
   Since we added this option, the insecure "Nessus kabale"
   certificates should not be used anymore. 
@@ -64,7 +64,7 @@ the client/server communications will never be enciphered.
 
 3.0. No SSL layer - hard coded
 
-Configure nessus-libraries and nessus-core with --disable-cipher. 
+Configure nessus-libraries and openvas-core with --disable-cipher. 
 This is the default if OpenSSL is not installed.
 If it is installed, Nessus will use it to test SSL based services
 (e.g. HTTPS) however.
@@ -199,7 +199,7 @@ There are several solutions:
   to use it. That's what the documentation has said for some time,
   but unfortunately, this looks unsupported in version before 0.9.7
   If you still have a problem with it, reconfigure nessus-libraries
-  and  nessus-core with  
+  and  openvas-core with  
    configure --with-egd=/path/to/egd-socket
   recompile and reinstall.
 

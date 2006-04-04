@@ -11,7 +11,7 @@ RELEASE=$1
 	exit 1
 }
 
-FILES="libnasl nessus-core nessus-libraries nessus-plugins"
+FILES="libnasl openvas-core nessus-libraries nessus-plugins"
 # URL should be one of the available
 #at http://www.nessus.org/nessus_2_0.html
 URL="http://ftp.gwdg.de/pub/linux/misc/nessus"

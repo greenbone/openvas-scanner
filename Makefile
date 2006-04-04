@@ -77,7 +77,7 @@ win32: ${MAN_NESSUS_1} ${MAN_NESSUSD_8}
 	$(MANROFF) ${MAN_NESSUSD_8} > doc/openvasd.8.cat
 	@echo
 	@echo ' --------------------------------------------------------------'
-	@echo '    Go ahead and move the nessus-core tree to a windows'
+	@echo '    Go ahead and move the openvas-core tree to a windows'
 	@echo '    box where it can be compiled using nmake.bat'
 	@echo ' --------------------------------------------------------------'
 	@echo
@@ -131,10 +131,10 @@ distclean: clean
 dist:
 	version="`date +%Y%m%d`"; \
 	cd ..; \
-	tar cf nessus-core-$${version}.tar \
-		`cat nessus-core/MANIFEST | sed 's/^/nessus-core\//'`; \
-	rm -f nessus-core-$${version}.tar.gz; \
-	gzip -9 nessus-core-$${version}.tar
+	tar cf openvas-core-$${version}.tar \
+		`cat openvas-core/MANIFEST | sed 's/^/openvas-core\//'`; \
+	rm -f openvas-core-$${version}.tar.gz; \
+	gzip -9 openvas-core-$${version}.tar
 
 distcheck:
 	find . -type f | sed -e 's/^.\///' -e '/~$$/d' -e '/CVS/d' \

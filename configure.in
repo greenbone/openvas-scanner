@@ -101,7 +101,7 @@ AC_PATH_PROG(NESSUSCONFIG, nessus-config,,$XPATH)
 test "x$NESSUSCONFIG" = x && AC_ERROR(""
 ""
 "*** nessus-libraries is not installed ! You need to install it before you"
-"compile nessus-core."
+"compile openvas-core."
 "Get it at ftp://ftp.nessus.org/pub/nessus/")
 
 AC_PATH_PROG(NASLCONFIG, nasl-config,,$XPATH)
@@ -109,7 +109,7 @@ AC_PATH_PROG(NASLCONFIG, nasl-config,,$XPATH)
 test "x$NASLCONFIG" = x &&  AC_ERROR(""
 ""
 "*** libnasl is not installed ! You need to install it before you "
-"compile nessus-core."
+"compile openvas-core."
 ""
 "Get it at ftp:/ftp.nessus.org/pub/nessus/")
 

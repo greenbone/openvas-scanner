@@ -2564,12 +2564,12 @@ fi
 test "x$NESSUSCONFIG" = x && { { echo "$as_me:$LINENO: error: \"\"
 \"\"
 \"*** nessus-libraries is not installed ! You need to install it before you\"
-\"compile nessus-core.\"
+\"compile openvas-core.\"
 \"Get it at ftp://ftp.nessus.org/pub/nessus/\"" >&5
 echo "$as_me: error: \"\"
 \"\"
 \"*** nessus-libraries is not installed ! You need to install it before you\"
-\"compile nessus-core.\"
+\"compile openvas-core.\"
 \"Get it at ftp://ftp.nessus.org/pub/nessus/\"" >&2;}
    { (exit 1); exit 1; }; }
 
@@ -2616,13 +2616,13 @@ fi
 test "x$NASLCONFIG" = x &&  { { echo "$as_me:$LINENO: error: \"\"
 \"\"
 \"*** libnasl is not installed ! You need to install it before you \"
-\"compile nessus-core.\"
+\"compile openvas-core.\"
 \"\"
 \"Get it at ftp:/ftp.nessus.org/pub/nessus/\"" >&5
 echo "$as_me: error: \"\"
 \"\"
 \"*** libnasl is not installed ! You need to install it before you \"
-\"compile nessus-core.\"
+\"compile openvas-core.\"
 \"\"
 \"Get it at ftp:/ftp.nessus.org/pub/nessus/\"" >&2;}
    { (exit 1); exit 1; }; }

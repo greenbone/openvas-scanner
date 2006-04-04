@@ -20,7 +20,7 @@ DOWNLOAD=$MIRROR/nessus-$VERSION/src
 #   exit 1
 #fi
 
-for package in libnasl nessus-core nessus-libraries nessus-plugins-GPL; do
+for package in libnasl openvas-core nessus-libraries nessus-plugins-GPL; do
 	if [ ! -f ${package}_${VERSION}.orig.tar.gz ]
 	then 
 		wget -nv -nH -nd  $DOWNLOAD/${package}-${VERSION}.tar.gz
@@ -58,7 +58,7 @@ date=`date +%D | sed -e 's/\//-/g'`
 patchlog="patch-$date.txt"
 [ -f "$patchlog" ] && rm -f $patchlog
 
-for package in nessus-libraries nessus-core libnasl nessus-plugins; do 
+for package in nessus-libraries openvas-core libnasl nessus-plugins; do 
 	if [ -d $package ] ; then
 	mv $package $package-$VERSION
 	newpatch=`ls --sort=t $package*diff.gz 2>/dev/null|head -1` 
@@ -80,5 +80,5 @@ done
 # 1.- libnessus 
 # 2.- libnasl
 # 3.- nessus-plugins (depends 1)
-# 4.- nessus-core (depends 1-2)
+# 4.- openvas-core (depends 1-2)
 
