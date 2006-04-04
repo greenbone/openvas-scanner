@@ -95,7 +95,7 @@
 
 
 /* Definitions for client/server ecryption, activated on the C compiler
-   command line as given by the command `nessus-config --cflags` */
+   command line as given by the command `openvas-config --cflags` */
 #ifdef ENABLE_CRYPTO_LAYER
 
 /* seconds the server waits for the client after authentication */
