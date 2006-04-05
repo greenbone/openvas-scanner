@@ -34,7 +34,3 @@ NASL:
 -----
 - documentation regarding NASL and plugins developement  
 - plugins tutorial
-
-CLIENT:
--------
-- API for report exports
