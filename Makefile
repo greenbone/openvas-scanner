@@ -71,16 +71,6 @@ install-man:
                               $(DESTDIR)${mandir}/man1/openvas-mkcert-client.1
 	$(INSTALL) -c -m 0444 doc/openvas-mkrand.1 $(DESTDIR)${mandir}/man1/openvas-mkrand.1
 
-win32: ${MAN_NESSUS_1} ${MAN_NESSUSD_8}
-	$(MANROFF) ${MAN_NESSUS_1}  > doc/nessus.1.cat
-	$(MANROFF) ${MAN_NESSUSD_8} > doc/openvasd.8.cat
-	@echo
-	@echo ' --------------------------------------------------------------'
-	@echo '    Go ahead and move the openvas-core tree to a windows'
-	@echo '    box where it can be compiled using nmake.bat'
-	@echo ' --------------------------------------------------------------'
-	@echo
-
 server : 
 	cd nessusd && $(MAKE)
 
