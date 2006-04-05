@@ -609,11 +609,6 @@ AC_MSG_CHECKING([whether struct sigaction has sa_restorer])
 
 	
 
-# XXX: not sure what this is good for:
-client=client
-client_install=client-install
-
-
 
 lang=$enable_language
 
@@ -696,8 +691,6 @@ AC_SUBST(man_openvasd_8)
 AC_SUBST(dl_lib)
 AC_SUBST(libwrap)
 AC_SUBST(uselibwrap)
-AC_SUBST(client)
-AC_SUBST(client_install)
 AC_SUBST(use_pthreads)
 AC_SUBST(rpcsvc_lib)
 AC_SUBST(compat_lib)

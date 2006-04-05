@@ -69,10 +69,6 @@ NESSUS_DIRECTORIES="-DNESSUSD_CONFDIR=\"$(NESSUSD_CONFDIR)\"" "-DNESSUSD_STATEDI
 #
 SERVERMODE=0755
 
-# Client mode  (rwxr-xr-x)
-
-CLIENTMODE=755
-
 # Plugins mode  (rw-r--r--)
 
 PLUGINSMODE=644
@@ -123,8 +119,6 @@ PTHREAD_LIB=@pthread_lib@
 C_R_LIB=@c_r_lib@
 LIBWRAP=@libwrap@
 LIBS=@LIBS@
-CLIENT=@client@
-CLIENT_INSTALL=@client_install@
 NESSUS_LIB=@nessus_lib@
 
 # documentation

@@ -12,13 +12,3 @@ What must be done :		(feel free to volunteer)
 	  about the harglsts
 
 	- memory leaks in plugins reload
-	  
-  On the client side :
-
-	- replace arglists by harglists too. 
-
-  	- Bug in html_graph_output, not all services are shown in the graph.
-
-  	- Bug in the script selection, if only one script out of many
-  	  is selected and the script_category wasn't once selected it
-  	  will not be started.

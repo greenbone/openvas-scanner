@@ -2,14 +2,14 @@ include nessus.tmpl
 
 ALLDEPS = nessus.tmpl
 
-all: $(ALLDEPS) $(CLIENT) server sslstuff doc fetchtool
+all: $(ALLDEPS) server sslstuff doc fetchtool
 
 
 nessus.tmpl: nessus.tmpl.in configure VERSION
 	$(SHELL) configure $(CONFIGURE_ARGS)
 	touch $@
 
-install: all $(CLIENT_INSTALL) install-bin install-man
+install: all install-bin install-man
 	@echo
 	@echo ' --------------------------------------------------------------'
 	@echo ' openvas-core has been sucessfully installed. '
@@ -48,12 +48,12 @@ install-bin:
 	$(INSTALL) -c -m 0444 include/nessusicmp.h $(DESTDIR)${includedir}/nessus
 	$(INSTALL) -c -m 0444 include/nessustcp.h $(DESTDIR)${includedir}/nessus
 	$(INSTALL) -c -m 0444 include/nessusudp.h $(DESTDIR)${includedir}/nessus
-	$(INSTALL) -m $(CLIENTMODE) nessus-fetch/openvas-fetch $(DESTDIR)${bindir}
-	$(INSTALL) -m $(CLIENTMODE) openvas-adduser $(DESTDIR)${sbindir}
-	$(INSTALL) -m $(CLIENTMODE) openvas-rmuser $(DESTDIR)${sbindir}
-	$(INSTALL) -m $(CLIENTMODE) openvas-mkcert $(DESTDIR)${sbindir}
-	$(INSTALL) -m $(CLIENTMODE) openvas-mkcert-client $(DESTDIR)${bindir}
-	$(INSTALL) -m $(CLIENTMODE) ssl/openvas-mkrand $(DESTDIR)${bindir}
+	$(INSTALL) -m 755 nessus-fetch/openvas-fetch $(DESTDIR)${bindir}
+	$(INSTALL) -m 755 openvas-adduser $(DESTDIR)${sbindir}
+	$(INSTALL) -m 755 openvas-rmuser $(DESTDIR)${sbindir}
+	$(INSTALL) -m 755 openvas-mkcert $(DESTDIR)${sbindir}
+	$(INSTALL) -m 755 openvas-mkcert-client $(DESTDIR)${bindir}
+	$(INSTALL) -m 755 ssl/openvas-mkrand $(DESTDIR)${bindir}
 
 
 install-man:
@@ -61,7 +61,6 @@ install-man:
 	@test -d $(DESTDIR)${mandir}/man1 || $(INSTALL_DIR) $(DESTDIR)${mandir}/man1
 	@test -d $(DESTDIR)${mandir}/man8 || $(INSTALL_DIR) $(DESTDIR)${mandir}/man8
 
-	$(INSTALL) -c -m 0444 ${MAN_NESSUS_1} $(DESTDIR)${mandir}/man1/nessus.1
 	$(INSTALL) -c -m 0444 doc/openvas-fetch.1 $(DESTDIR)${mandir}/man1/openvas-fetch.1
 	$(INSTALL) -c -m 0444 doc/nessus-check-signature.1 $(DESTDIR)${mandir}/man1/nessus-check-signature.1
 	$(INSTALL) -c -m 0444 ${MAN_NESSUSD_8} $(DESTDIR)${mandir}/man8/openvasd.8
@@ -82,13 +81,6 @@ win32: ${MAN_NESSUS_1} ${MAN_NESSUSD_8}
 	@echo ' --------------------------------------------------------------'
 	@echo
 
-client-install : client
-	test -d $(DESTDIR)${bindir} || $(INSTALL_DIR) -m 755 $(DESTDIR)${bindir}
-	$(INSTALL) -m $(CLIENTMODE) ${make_bindir}/nessus $(DESTDIR)${bindir}
-
-client : 
-	cd nessus && $(MAKE)
-
 server : 
 	cd nessusd && $(MAKE)
 
@@ -100,17 +92,13 @@ fetchtool:
 	cd nessus-fetch && $(MAKE)
 
 
-doc : $(MAN_NESSUS_1) $(MAN_NESSUSD_8)
-
-$(MAN_NESSUS_1) : $(MAN_NESSUS_1).in
-	@sed -e 's?@NESSUSD_CONFDIR@?${NESSUSD_CONFDIR}?g;s?@NESSUSD_DATADIR@?${NESSUSD_DATADIR}?g;s?@NESSUSD_PLUGINS@?${NESSUSD_PLUGINS}?g;' $(MAN_NESSUS_1).in  >$(MAN_NESSUS_1)
+doc : $(MAN_NESSUSD_8)
 
 $(MAN_NESSUSD_8) : $(MAN_NESSUSD_8).in
 	@sed -e 's?@NESSUSD_CONFDIR@?${NESSUSD_CONFDIR}?g;s?@NESSUSD_DATADIR@?${NESSUSD_DATADIR}?g;s?@NESSUSD_PLUGINS@?${NESSUSD_PLUGINS}?g;' $(MAN_NESSUSD_8).in  >$(MAN_NESSUSD_8)
 
 
 clean:
-	cd nessus && $(MAKE) clean
 	cd nessus-fetch && $(MAKE) clean
 	cd nessusd && $(MAKE) clean
 	cd ssl && $(MAKE) clean
@@ -125,7 +113,6 @@ distclean: clean
 	rm -f openvas-mkcert
 	rm -f openvas-mkcert-client
 	rm -f nessus-install-cert
-	[ -z "${MAN_NESSUS_1}" ] || rm -f ${MAN_NESSUS_1} 
 	[ -z "${MAN_NESSUSD_8}" ] || rm -f ${MAN_NESSUSD_8} 
 
 dist:
@@ -141,8 +128,6 @@ distcheck:
 			     -e '/\.o$$/d' -e '/^nessus.tmpl$$/d' \
 			     -e '/^libtool$$/d' \
 			     -e '/^openvasd\/OBJ\/openvasd$$/d' \
-			     -e '/^nessus\/OBJ\/nessus$$/d' \
-			     -e '/^bin\/nessus$$/d' \
 			     -e '/^bin\/openvasd$$/d' \
 			     -e '/^config\.cache$$/d' \
 			     -e '/^config\.log$$/d' \
