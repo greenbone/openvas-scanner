@@ -1699,8 +1699,8 @@ nmsd	1239/tcp
 nmsd	1239/udp
 instantia	1240/tcp
 instantia	1240/udp
-nessus	1241/tcp
-nessus	1241/udp
+nessus|openvas	1241/tcp
+nessus|openvas	1241/udp
 nmasoverip	1242/tcp
 nmasoverip	1242/udp
 serialgateway	1243/tcp

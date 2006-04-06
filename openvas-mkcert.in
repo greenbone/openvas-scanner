@@ -77,7 +77,7 @@ header()
 {
 clear
 echo    "-------------------------------------------------------------------------------"
-gettext "			Creation of the Nessus SSL Certificate"; echo
+gettext "			Creation of the OpenVAS SSL Certificate"; echo
 echo    "-------------------------------------------------------------------------------"
 echo
 }
@@ -175,8 +175,8 @@ SRVCERT=$NESSUSPUB/servercert.pem
 if [ -z "$QUIET" ];
 then
 header
-gettext "This script will now ask you the relevant information to create the SSL certificate of Nessus."; echo
-gettext "Note that this information will *NOT* be sent to anybody (everything stays local), but anyone with the ability to connect to your Nessus daemon will be able to retrieve this information."; echo
+gettext "This script will now ask you the relevant information to create the SSL certificate of OpenVAS."; echo
+gettext "Note that this information will *NOT* be sent to anybody (everything stays local), but anyone with the ability to connect to your OpenVAS daemon will be able to retrieve this information."; echo
 echo
 echo
 #
@@ -201,7 +201,7 @@ gettext "Your state or province name [none]: "; read x
 PROVINCE=${x:-.}
 X=Paris; eval_gettext "Your location \${Bo}e.g. town\${Bc} [\$X]: "; read x
 LOCATION=${x:-$X}
-X="Nessus Users United"; eval_gettext "Your organization [\$X]: "; read x
+X="OpenVAS Users United"; eval_gettext "Your organization [\$X]: "; read x
 ORGANIZATION=${x:-$X}
 # X="Test unit"; echo_no_nl "Your organization unit [$X]:"; read x
 # ORGUNIT=${x:-$X}
@@ -213,7 +213,7 @@ SRVCERT_LIFETIME="365"
 COUNTRY="FR"
 PROVINCE="none"
 LOCATION="Paris"
-ORGANIZATION="Nessus Users United"
+ORGANIZATION="OpenVAS Users United"
 fi
 
 
@@ -221,9 +221,9 @@ cat <<EOF>$BASEDIR/std000.cnf
 RANDFILE		= $HOME/.rnd
 #
 [ ca ]
-default_ca = NessusCA
+default_ca = OpenVASCA
 
-[ NessusCA ]
+[ OpenVASCA ]
 dir		= $BASEDIR		# Where everything is kept
 certs		= \$dir			# Where the issued certs are kept
 crl_dir		= \$dir			# Where the issued crl are kept
@@ -402,7 +402,7 @@ $SRVMAIL" |
 openssl req -config $BASEDIR/std.cnf -new -key $SRVKEY -out $SRVREQ 2>> $BASEDIR/openssl-log
 
 # Sign the server certificate
-openssl ca -config $BASEDIR/std.cnf -name NessusCA -batch -days $SRVCERT_LIFETIME -in $SRVREQ -out $SRVCERT 2>> $BASEDIR/openssl-log
+openssl ca -config $BASEDIR/std.cnf -name OpenVASCA -batch -days $SRVCERT_LIFETIME -in $SRVREQ -out $SRVCERT 2>> $BASEDIR/openssl-log
 
 #cln # Client key
 #cln openssl genrsa -out $CLNKEY 1024
@@ -418,7 +418,7 @@ openssl ca -config $BASEDIR/std.cnf -name NessusCA -batch -days $SRVCERT_LIFETIM
 #cln openssl req -config $BASEDIR/stdC.cnf -new -key $CLNKEY -out $CLNREQ
 
 #cln # Sign the client certificate
-#cln openssl ca -config $BASEDIR/stdC.cnf -name NessusCA -batch -days $CLNCERT_LIFETIME -in $CLNREQ -out $CLNCERT
+#cln openssl ca -config $BASEDIR/stdC.cnf -name OpenVASCA -batch -days $CLNCERT_LIFETIME -in $CLNREQ -out $CLNCERT
 
 ####
 
@@ -462,10 +462,10 @@ if [ -s "$CACERT" -a -s "$CAKEY" -a -s "$SRVCERT" -a -s "$SRVKEY" ];
  eval_gettext "   Certificate = \$CACERT"; echo
  eval_gettext "   Private key = \$CAKEY"; echo
  echo
- gettext ". Nessus Server : "; echo
+ gettext ". OpenVAS Server : "; echo
  eval_gettext "    Certificate = \$SRVCERT"; echo
  eval_gettext "    Private key = \$SRVKEY"; echo
- #cln ***** Nessus client *****
+ #cln ***** OpenVAS client *****
  #cln Certificate = $CLNCERT
  #cln Private key = $CLNKEY
  }

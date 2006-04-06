@@ -5,7 +5,7 @@ CWARN3 = $(CWARN2) -Wstrict-prototypes -Wmissing-prototypes -Wmissing-declaratio
 CWARN4 = $(CWARN3) -Wconversion -Winline -Wtraditional
 CWARN  = $(CWARN0)
 
-# nessus.tmpl
+# openvas.tmpl
 #
 # This file contains all the defines you may want to modify
 #
@@ -42,7 +42,7 @@ INSTALL=@INSTALL@
 INSTALL_DIR=@INSTALL_DIR@
 installuser=@installuser@
 
-# Nessus specific
+# OpenVAS specific
 NESSUSD_CONFDIR=@NESSUSD_CONFDIR@
 NESSUSD_STATEDIR=@NESSUSD_STATEDIR@
 NESSUSD_PIDDIR=@NESSUSD_PIDDIR@

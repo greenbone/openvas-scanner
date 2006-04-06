@@ -1,5 +1,5 @@
 dnl
-dnl autoconf script for Nessus
+dnl autoconf script for OpenVAS
 dnl
 
 dnl
@@ -269,10 +269,10 @@ int main()
   re_compile_pattern(".*nessus.*", strlen(".*nessus.*"), &pb);
   re_compile_fastmap(&pb);
   return re_search(&pb, 
-  		"i use nessus everyday",
-		strlen("i use nessus everyday"),
+  		"i use openvas everyday",
+		strlen("i use openvas everyday"),
 		0, 
-  		strlen("i use nessus everyday"),
+  		strlen("i use openvas everyday"),
 		&regs);
 }
 ], [AC_MSG_RESULT([yes]);AC_DEFINE(HAVE_REGEX_SUPPORT)],[AC_MSG_RESULT([no])])
@@ -705,7 +705,7 @@ AC_SUBST(installuser)
 
 
 dnl And we put everything in the appropriate files
-AC_OUTPUT(nessus.tmpl include/corevers.h openvas-adduser openvas-rmuser openvas-mkcert openvas-mkcert-client)
+AC_OUTPUT(openvas.tmpl include/corevers.h openvas-adduser openvas-rmuser openvas-mkcert openvas-mkcert-client)
 
 
 chmod +x openvas-adduser openvas-mkcert openvas-mkcert-client

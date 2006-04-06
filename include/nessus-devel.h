@@ -1,5 +1,5 @@
 /*
- * Nessus Development Header
+ * OpenVAS Development Header
  */
 
 #ifndef NESSUSNT

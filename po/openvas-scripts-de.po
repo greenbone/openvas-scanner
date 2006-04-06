@@ -59,8 +59,8 @@ msgid "Congratulations. Your server certificate was properly created."
 msgstr "Gratulation. Ihr Server Zertifikat wurde erfolgreich erzeugt."
  
 #: openvas-mkcert.in:448
-msgid ". Nessus Server : "
-msgstr ". Nessus Server : "
+msgid ". OpenVAS Server : "
+msgstr ". OpenVAS Server : "
 
 #: openvas-mkcert.in:445
 msgid "   Certificate = $CACERT"
@@ -71,8 +71,8 @@ msgid "    Certificate = $SRVCERT"
 msgstr "    Zertifikat = $SRVCERT"
 
 #: openvas-mkcert-client.in:26
-msgid "			Creation Nessus SSL Client Certificate"
-msgstr "			Erzeugung Nessus SSL Client Zertifikat"
+msgid "			Creation OpenVAS SSL Client Certificate"
+msgstr "			Erzeugung OpenVAS SSL Client Zertifikat"
 
 #: openvas-mkcert.in:446
 msgid "   Private key = $CAKEY"
@@ -111,8 +111,8 @@ msgid "Cannot read $F"
 msgstr "Datei $F kann nicht gelesen werden."
 
 #: openvas-mkcert-client.in:317
-msgid "Certificate, key or Nessus DN file(s) already exist."
-msgstr "Zertifikat, Schlüssel oder Nessus DN Datei(en) existieren bereits."
+msgid "Certificate, key or OpenVAS DN file(s) already exist."
+msgstr "Zertifikat, Schlüssel oder OpenVAS DN Datei(en) existieren bereits."
 
 #: openvas-mkcert-client.in:146
 msgid "Client certificates life time in days [365]: "
@@ -135,8 +135,8 @@ msgid "Country ${Bo}two letter code${Bc} [$X]: "
 msgstr "Land (2-buchstabige Abkürzung) [$X]"
 
 #: openvas-mkcert.in:31
-msgid "			Creation of the Nessus SSL Certificate"
-msgstr "                 Erzeugung des Nessus SSL Zertifikats"
+msgid "			Creation of the OpenVAS SSL Certificate"
+msgstr "                 Erzeugung des OpenVAS SSL Zertifikats"
 
 #: openvas-adduser.in:236
 #, sh-format
@@ -149,10 +149,10 @@ msgstr "Wollen Sie fortsetzen und diese überschreiben? (j/n) "
 
 #: openvas-mkcert-client.in:121
 msgid ""
-"Do you want to register the users in the Nessus server as soon "
+"Do you want to register the users in the OpenVAS server as soon "
 "as you create their certificates? (y/n): "
 msgstr ""
-"Wollen Sie die Benutzer beim Nessus Server registrieren, sobald deren "
+"Wollen Sie die Benutzer beim OpenVAS Server registrieren, sobald deren "
 "Zertifikate erzeugt sind? (j/n): "
 
 #: openvas-mkcert.in:458
@@ -233,29 +233,29 @@ msgid "Missing or empty configuration file \"$openvasd_conf\"!"
 msgstr "Konfigurationsdatei \"$openvasd_conf\" nicht verfügbar!"
 
 #: openvas-mkcert-client.in:109
-msgid "Nessus CA certificate: "
-msgstr "Nessus CA Zertifikat: "
+msgid "OpenVAS CA certificate: "
+msgstr "OpenVAS CA Zertifikat: "
 
 #: openvas-mkcert-client.in:103
-msgid "Nessus CA private key: "
-msgstr "Nessus CA privater Schlüssel: "
+msgid "OpenVAS CA private key: "
+msgstr "OpenVAS CA privater Schlüssel: "
 
 #: openvas-mkcert-client.in:89
-msgid "Nessus server 'private' directory: "
-msgstr "Nessus Server 'private' Verzeichnis: "
+msgid "OpenVAS server 'private' directory: "
+msgstr "OpenVAS Server 'private' Verzeichnis: "
 
 #: openvas-mkcert-client.in:94
-msgid "Nessus server 'public' directory: "
-msgstr "Nessus Server 'public' Verzeichnis: "
+msgid "OpenVAS server 'public' directory: "
+msgstr "OpenVAS Server 'public' Verzeichnis: "
 
 #: openvas-mkcert.in:160
 msgid ""
 "Note that this information will *NOT* be sent to anybody (everything "
-"stays local), but anyone with the ability to connect to your Nessus daemon "
+"stays local), but anyone with the ability to connect to your OpenVAS daemon "
 "will be able to retrieve this information."
 msgstr ""
 "Bitte beachten Sie, dass diese Informationen an *NIEMANDEN* gesendent werden "
-"(alles bleibt lokal), aber dass jeder, der eine Verbindung zu Ihrem Nessus "
+"(alles bleibt lokal), aber dass jeder, der eine Verbindung zu Ihrem OpenVAS "
 "Daemon aufbauen kann, Zugang zu diesen Informationen hat."
 
 #: openvas-adduser.in:52
@@ -343,29 +343,29 @@ msgid "This login already exists. Choose another one."
 msgstr "Dieses Benutzerkonto existiert bereits. Bitte wählen Sie einen anderen Benutzernamen."
 
 #: openvas-mkcert.in:159
-msgid "This script will now ask you the relevant information to create the SSL certificate of Nessus."
+msgid "This script will now ask you the relevant information to create the SSL certificate of OpenVAS."
 msgstr "Dieses Skript wird nun nach Informationen fragen, die zur Erzeugung des SSL Zertifikats "
-"für Nessus benötigt werden."
+"für OpenVAS benötigt werden."
 
 #: openvas-mkcert-client.in:144
 msgid ""
 "This script will now ask you the relevant information to create the SSL client "
-"certificates for Nessus."
+"certificates for OpenVAS."
 msgstr ""
 "Dieses Skript wird nun nach Informationen fragen, die zur Erzeugung der SSL Client Zertifikate "
-"für Nessus benötigt werden."
+"für OpenVAS benötigt werden."
 
 #: openvas-adduser.in:206
 msgid "User rules"
 msgstr "Benutzer Regeln"
 
 #: openvas-mkcert-client.in:129
-msgid "User ${Hash}$I name ${Bo}e.g. Nessus username${Bc}: "
-msgstr "Benutzer #$I Name (e.g. Nessus Benutzername): "
+msgid "User ${Hash}$I name ${Bo}e.g. OpenVAS username${Bc}: "
+msgstr "Benutzer #$I Name (e.g. OpenVAS Benutzername): "
 
 #: openvas-mkcert-client.in:441
-msgid "User added to Nessus."
-msgstr "Benutzer zu Nessus hinzugefügt."
+msgid "User added to OpenVAS."
+msgstr "Benutzer zu OpenVAS hinzugefügt."
 
 #: openvas-mkcert-client.in:129
 msgid "Users directory? "

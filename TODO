@@ -12,3 +12,7 @@ What must be done :		(feel free to volunteer)
 	  about the harglsts
 
 	- memory leaks in plugins reload
+	- Need to fix url in "debian/download-release.sh line ~18. 
+	  Do we need debian/new-packages.sh at the moment? 
+	  (Maybe adapt it to work for openvas) 
+	- Fix the plugin feed instructions in doc/openvas-fetch.1

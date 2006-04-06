@@ -72,7 +72,7 @@ header()
 {
 clear
 echo "-------------------------------------------------------------------------------"
-gettext "			Creation Nessus SSL Client Certificate"; echo
+gettext "			Creation OpenVAS SSL Client Certificate"; echo
 echo "-------------------------------------------------------------------------------"
 echo
 }
@@ -116,12 +116,12 @@ NESSUSPRIV="$localstatedir/nessus/CA"
 NESSUSPUB="$sharedstatedir/nessus/CA"
 
 while [ ! -d "$NESSUSPRIV" ]; do
-    gettext "Nessus server 'private' directory: "
+    gettext "OpenVAS server 'private' directory: "
     read NESSUSPRIV
 done
 
 while [ ! -d "$NESSUSPUB" ]; do
-    gettext "Nessus server 'public' directory: "
+    gettext "OpenVAS server 'public' directory: "
     read NESSUSPUB
 done
 
@@ -130,13 +130,13 @@ CACERT=$NESSUSPUB/cacert.pem
 
 while [ ! -f "$CAKEY" ]; do
     eval_gettext "\$CAKEY: not found or not a file."
-    gettext "Nessus CA private key: "
+    gettext "OpenVAS CA private key: "
     read CAKEY
 done
 
 while [ ! -f "$CACERT" ]; do
     eval_gettext "\$CACERT: not found or not a file."
-    gettext "Nessus CA certificate: "
+    gettext "OpenVAS CA certificate: "
     read CACERT
 done
 
@@ -148,7 +148,7 @@ done
 
 R=x
 while [ "$R" != `gettext "y"` -a "$R" != `gettext "n"` ]; do
-    gettext "Do you want to register the users in the Nessus server as soon as you create their certificates? (y/n): "
+    gettext "Do you want to register the users in the OpenVAS server as soon as you create their certificates? (y/n): "
     read R
 done
 
@@ -170,7 +170,7 @@ BASEDIR=${TMPDIR-/tmp}/openvas-mkcert.$$
 mkdir $BASEDIR || exit 1
 
 
-gettext "This script will now ask you the relevant information to create the SSL client certificates for Nessus."; echo
+gettext "This script will now ask you the relevant information to create the SSL client certificates for OpenVAS."; echo
 
 gettext "Client certificates life time in days [365]: "; read x
 DFL_CERT_LIFETIME=${x:-365}
@@ -195,9 +195,9 @@ cat <<EOF>$BASEDIR/stdC.cnf
 RANDFILE		= $HOME/.rnd
 #
 [ ca ]
-default_ca = NessusCA
+default_ca = OpenVASCA
 
-[ NessusCA ]
+[ OpenVASCA ]
 dir		= $BASEDIR		# Where everything is kept
 certs		= \$dir			# Where the issued certs are kept
 crl_dir		= \$dir			# Where the issued crl are kept
@@ -334,7 +334,7 @@ I=1; ANOTHER=`gettext "y"`
 while [ "$ANOTHER" != `gettext "n"` ]; do
     PSEUDO=""
     while [ -z "$PSEUDO" ]; do
-	eval_gettext "User \${Hash}\$I name \${Bo}e.g. Nessus username\${Bc}: "
+	eval_gettext "User \${Hash}\$I name \${Bo}e.g. OpenVAS username\${Bc}: "
 	read PSEUDO
 	CERTFILE="$BASEDIR/cert_$PSEUDO.pem"
 	KEYFILE="$BASEDIR/key_$PSEUDO.pem"
@@ -343,7 +343,7 @@ while [ "$ANOTHER" != `gettext "n"` ]; do
 	if [ -f "$CERTFILE" -o -f "$KEYFILE" -o -f "$DNFILE" ]; then
 	    A=""
 	    while [ -z "$A" ]; do
-		gettext "Certificate, key or Nessus DN file(s) already exist."; echo
+		gettext "Certificate, key or OpenVAS DN file(s) already exist."; echo
 		gettext "Do you want to go on and overwrite it/them? (y/n) "
 		read A
 		if [ "$A" = `gettext "n"` ]; then PSEUDO=""; fi
@@ -385,9 +385,9 @@ ${EMAIL:-.}" |
     openssl req -config $BASEDIR/stdC.cnf -new -key $KEYFILE -out $REQFILE
 
     # Sign the client certificate
-    openssl ca -config $BASEDIR/stdC.cnf -name NessusCA -batch -days $CERT_LIFETIME -in $REQFILE -out $CERTFILE
+    openssl ca -config $BASEDIR/stdC.cnf -name OpenVASCA -batch -days $CERT_LIFETIME -in $REQFILE -out $CERTFILE
 
-    # Create export file for NessusWX
+    # Create export file for OpenVASWX
     NWX_CERTFILE=$BASEDIR/cert_nessuswx_$PSEUDO.pem
     cp $CERTFILE $NWX_CERTFILE
     cat $KEYFILE >> $NWX_CERTFILE
@@ -457,7 +457,7 @@ ${EMAIL:-.}" |
             mkdir -p "$E" 
             chmod 700 "$E" 
         fi 
-        gettext "User added to Nessus."; echo
+        gettext "User added to OpenVAS."; echo
     fi
 
     gettext "Another client certificate? (y/n) " 

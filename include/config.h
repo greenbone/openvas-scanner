@@ -1,5 +1,5 @@
 /* include/config.h.  Generated automatically by configure.  */
-/* Nessus
+/* OpenVAS
  * Copyright (C) 1998 Renaud Deraison
  *
  * This program is free software; you can redistribute it and/or modify
@@ -26,7 +26,7 @@
 /* 
  * Socket type
  *
- * Nessus can handle two types of socket : AF_INET and AF_UNIX
+ * OpenVAS can handle two types of socket : AF_INET and AF_UNIX
  *
  * The AF_INET type allow the server and the client to be on
  * different computers, but may create security problems (until
@@ -57,7 +57,7 @@
 
 /*
  * define this if you want to see some useful debug
- * messages comming from Nessus 
+ * messages comming from OpenVAS
  */
 /* #undef DEBUG */
 
@@ -125,7 +125,7 @@
 /* Obsolete: the port 3001 on which openvasd will be listening */
 /* #undef DEFAULT_PORT */
 
-/* The default port assigned to nessus by the iana is 1241, see
+/* The default port assigned to openvas by the iana is 1241, see
    http://www.isi.edu/in-notes/iana/assignments/port-numbers */
 #define NESIANA_PORT 1241
 

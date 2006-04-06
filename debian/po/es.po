@@ -43,22 +43,22 @@ msgstr ""
 #. Type: note
 #. Description
 #: ../openvasd.templates:3
-msgid "Nessus Daemon certificate generation"
-msgstr "Generación de certificado para el demonio de Nessus"
+msgid "OpenVAS Daemon certificate generation"
+msgstr "Generación de certificado para el demonio de OpenVAS"
 
 #. Type: note
 #. Description
 #: ../openvasd.templates:3
 msgid ""
 "You will need to provide the relevant information to create an SSL "
-"certificate for your Nessus Daemon. Note that this information will *NOT* be "
+"certificate for your OpenVAS Daemon. Note that this information will *NOT* be "
 "sent to echo anybody (everything stays local), but anyone  with the ability "
-"to connect to your Nessus daemon will be able to retrieve this information."
+"to connect to your OpenVAS daemon will be able to retrieve this information."
 msgstr ""
 "Debe introducir la información necesaria para crear un certificado SSL para "
-"su demonio de Nessus. Tenga en cuenta que esta información NO se enviará a "
+"su demonio de OpenVAS. Tenga en cuenta que esta información NO se enviará a "
 "ninguna parte (sólo estará disponible localmente), pero cualquiera que pueda "
-"conectarse de forma remota con su demonio de Nessus podrá obtenerla."
+"conectarse de forma remota con su demonio de OpenVAS podrá obtenerla."
 
 #. Type: string
 #. Description
@@ -71,10 +71,10 @@ msgstr "Tiempo de vida en días del certificado de CA"
 #: ../openvasd.templates:14
 msgid ""
 "Provide the life time of the Certificate Authority used to generate the "
-"Nessus Daemon certificate."
+"OpenVAS Daemon certificate."
 msgstr ""
 "Introduzca el tiempo de vida de la Autoridad de Certificación que se utiliza "
-"para generar el certificado del demonio de Nessus."
+"para generar el certificado del demonio de OpenVAS."
 
 #. Type: string
 #. Description
@@ -87,14 +87,14 @@ msgstr "Tiempo de vida en días del certificado del servidor"
 #: ../openvasd.templates:21
 #, fuzzy
 msgid ""
-"Provide the life time of the Nessus Server certificate. Notice that the "
-"Nessus clients will not connect to servers with expired certificates so set "
+"Provide the life time of the OpenVAS Server certificate. Notice that the "
+"OpenVAS clients will not connect to servers with expired certificates so set "
 "this value for as long as you want this installation to last. You can always "
 "regenerate this certificate later by removing the certificate file stored "
 "in /var/lib/nessusd/CA/ and running 'openvas-mkcert'"
 msgstr ""
-"Introduzca el tiempo de vida del certificado del servidor de Nessus. Tenga "
-"en cuenta que los clientes de Nessus no se conectarán a un servidor cuyo "
+"Introduzca el tiempo de vida del certificado del servidor de OpenVAS. Tenga "
+"en cuenta que los clientes de OpenVAS no se conectarán a un servidor cuyo "
 "certificado haya expirado así que fije este valor en función del tiempo que "
 "será válida la instalación. Siempre puede regenera este certificado más "
 "adelante eliminado el el fichero de certificado en /var/lib/nessus/CA/ y "

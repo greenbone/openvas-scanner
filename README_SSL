@@ -1,6 +1,6 @@
 -*- Indented-Text -*-
 
-   * What you should know about SSL support in Nessus 1.2 *
+   * What you should know about SSL support in OpenVAS *
 
  $Version$
 
@@ -11,17 +11,17 @@ I grant permission to redistribute this file, provided that it is not
 modified.
 
 
-1. What are the differences between Nessus 1.0.x and Nessus 1.2.x ?
+1. What are the differences between OpenVAS 1.0.x and OpenVAS 1.2.x ?
 
 For miscellaneous reasons, libpeks (the library being used for the
 client - server communication) was removed. 
-(Have a look at the message that I posted on the nessus-devel mailing
+(Have a look at the message that I posted on the openvas-devel mailing
 list for details.)
 
-Starting with Nessus 1.1.4, the communication between the openvasd server 
+Starting with OpenVAS 1.1.4, the communication between the openvasd server 
 and the nessus client is enciphered with TLSv1. 
 You may still disable the cipher layer when you configure & compile
-Nessus (this is the default if OpenSSL is not found), or by setting
+OpenVAS (this is the default if OpenSSL is not found), or by setting
 "ssl_version" to "NONE" in the configuration files.
 
 Note: in earlier 1.1.x versions, SSLv3 was used. You may still have
@@ -50,15 +50,15 @@ In fact, you will always have to enter a username & a password.
 the sources, and $prefix the root directory installation,
 e.g. /usr/local)
 
-Once you have configure and installed Nessus (i.e. nessus-libraries,
+Once you have configure and installed OpenVAS (i.e. nessus-libraries,
 libnasl, openvas-core and nessus-plugins), you have three options:
 - disable encryption in the configuration files
-  Since we added this option, the insecure "Nessus kabale"
+  Since we added this option, the insecure "OpenVAS kabale"
   certificates should not be used anymore. 
 - use the mknessus-cert script
 - use your own certificates
 
-The fourth option is to configure Nessus with --disable-cipher: 
+The fourth option is to configure OpenVAS with --disable-cipher: 
 the client/server communications will never be enciphered.
 
 
@@ -66,7 +66,7 @@ the client/server communications will never be enciphered.
 
 Configure nessus-libraries and openvas-core with --disable-cipher. 
 This is the default if OpenSSL is not installed.
-If it is installed, Nessus will use it to test SSL based services
+If it is installed, OpenVAS will use it to test SSL based services
 (e.g. HTTPS) however.
 
 
@@ -75,9 +75,9 @@ If it is installed, Nessus will use it to test SSL based services
 Setting "ssl_version=none" in openvasd.conf and in .nessusrc disables
 the cipher layer.
 
-This option is available in Nessus 1.2.0, and did not exist in the
+This option is available in OpenVAS 1.2.0, and did not exist in the
 earlier 1.1.x. 
-That's why we created the INSECURE "Nessus Kabale" certificates, for
+That's why we created the INSECURE "OpenVAS Kabale" certificates, for
 people who would use pre-compiled packages. 
 You have no reason to use them any more. If you do not want to
 generate and install your own certificates, use clear text
@@ -126,12 +126,12 @@ Much better. If you want to create your own certificates, you may use
 /usr/share/ssl/misc/CA.pl from OpenSSL.
 
 Here is what you should know:
-- Nessus only supports PEM files.
+- OpenVAS only supports PEM files.
 - Although I only tested RSA keys, DSA keys should work as well.
 - You'd better create a "SSL server" certificate for openvasd, but we
   do not check the usage, in fact.
   OpenSSL may run some kind of consistency check though...
-- The behaviour of the Nessus client is described in §5 below. [TBD]
+- The behaviour of the OpenVAS client is described in §5 below. [TBD]
 - If "force_pubkey_auth" is set in openvasd.conf, the server will accept
   a client certificate as long as it is signed by the CA you specified
   in the "ca_file" parameter
@@ -171,7 +171,7 @@ http://ospkibook.sourceforge.net/
 4.1. Bugs?
 
 Oh yes, there are plenty of nasty big bugs sneaking around :-\
-If you find them, e-mail me or nessus-devel.
+If you find them, e-mail me or openvas-devel.
 
 4.2. No random device
 
@@ -212,8 +212,8 @@ HTTP). Maybe we should implement this...
 
 4.4 Certificate based authentication does not work on Unix sockets
 
-This is a Nessus limitation. We should fix this.
-If you compile Nessus with the Unix socket support, you have to use
+This is a OpenVAS limitation. We should fix this.
+If you compile OpenVAS with the Unix socket support, you have to use
 password authentication.
 
 
@@ -225,7 +225,7 @@ are not fully implemented.
 5.1. Theoreticall weaknesses
 
 - Fake server
-  Some hacker installs a fake Nessus server. Using it, he is able to
+  Some hacker installs a fake OpenVAS server. Using it, he is able to
   steal your username & password.
 - Man in the middle
   Some hacker hijacks the connection between the server and the
@@ -259,7 +259,7 @@ certificate. Then the rest of the procedure is applied, depending on
 the existence of the dname or password files.
 IMHO, in this situation, any user should be identified with his DN.
 
-Note: Nessus does not handle CRL yet because OpenSSL 0.9.6 does not
+Note: OpenVAS does not handle CRL yet because OpenSSL 0.9.6 does not
 support. OpenSSL 0.9.7 should be able to check them, we'll improve
 the code at the time.
 
@@ -346,23 +346,23 @@ This is the "hopefully not frequently asked questions"!
 
 - Should I buy a certificate at Verisign, Thawte, whoever?
   No. And you should definitely *not* do it.
-  Considering the way Nessus on SSL works, the client would believe
+  Considering the way OpenVAS on SSL works, the client would believe
   any server certificate sold by those people (e.g. a standard HTTPS
   certificate) and this is *insecure*.
-  If you really want to spend money, support the Nessus project!
+  If you really want to spend money, support the OpenVAS project!
   If you really really want to give money to Verisign [etc.], create
-  your *own* CA and ask them to certify it. Your Nessus client should
+  your *own* CA and ask them to certify it. Your OpenVAS client should
   only trust *your* CA, not the Verisign [etc.] root CA.
 
 - I have a PKI. May I use it?
-  Yes, of course. You should create a delegate CA for Nessus.
+  Yes, of course. You should create a delegate CA for OpenVAS.
 
-- My private keys are stored on smartcards. Does Nessus support this?
-  Nessus will support whatever gizmo OpenSSL supports. The day OpenSSL
+- My private keys are stored on smartcards. Does OpenVAS support this?
+  OpenVAS will support whatever gizmo OpenSSL supports. The day OpenSSL
   supports marble engraved X509 certificates, we'll do.
 
 - Can I connect without a password?
-  No, you need either a PEM password or a Nessus password. But that
+  No, you need either a PEM password or a OpenVAS password. But that
   should not be a problem. 
   If you cannot remember your password, uses the client certificate
   based authentication and do not protect your PEM key file. That way,
@@ -379,7 +379,7 @@ This is the "hopefully not frequently asked questions"!
 - I cannot generate my own certificates with CA.pl
   I said "don't ask".
 
-- I installed SSH, how do I run Nessus?
+- I installed SSH, how do I run OpenVAS?
   You need SSL, not SSH.
 
 - How does SSL works?

@@ -5,17 +5,17 @@ Maintainer: Javier Fernandez-Sanguino Pen~a <jfs@computer.org>
 Build-Depends: debhelper (>= 4.1.16), xlibs-dev, libnessus-dev (>= 2.2.3), libnasl-dev (>= 2.2.3), libgmp3-dev, libz-dev, libpcap0.8-dev | libpcap-dev, libglib1.2-dev, libglib2.0-dev, libgtk2.0-dev, libgdchart-gd2-noxpm-dev, libwrap-dev, libssl-dev
 Standards-Version: 3.5.10
 
-Package: nessus
+Package: openvas
 Architecture: any
 Depends: ${shlibs:Depends}
 Suggests: openvasd (= ${Source-Version})
 Description: Remote network security auditor, the client
- The Nessus Security Scanner is a security auditing tool. It makes
+ The OpenVAS Security Scanner is a security auditing tool. It makes
  possible to test security modules in an attempt to find vulnerable
  spots that should be fixed.
  .
  It is made up of two parts: a server, and a client. The server/daemon,
- openvasd, is in charge of the attacks, whereas the client, nessus,
+ openvasd, is in charge of the attacks, whereas the client, openvas,
  provides the user a nice X11/GTK+ interface.
  .
  This package contains the GTK+ client, which exists in other
@@ -24,32 +24,32 @@ Description: Remote network security auditor, the client
 Package: openvasd
 Architecture: any
 Depends: ${shlibs:Depends}, nessus-plugins (>= 2.0.12-3), openssl
-Suggests: nessus (= ${Source-Version})
-Replaces: nessus (<= 0.98.4-1)
-Conflicts: nessus (<= 2.0.7-1), libnessus2 (<< 2.1.0), libnasl2 (<< 2.1.0)
+Suggests: openvas (= ${Source-Version})
+Replaces: openvas (<= 0.98.4-1)
+Conflicts: openvas (<= 2.0.7-1), libnessus2 (<< 2.1.0), libnasl2 (<< 2.1.0)
 Description: Remote network security auditor, the server
- The Nessus Security Scanner is a security auditing tool. It makes
+ The OpenVAS Security Scanner is a security auditing tool. It makes
  possible to test security modules in an attempt to find vulnerable
  spots that should be fixed.
  .
  It is made up of two parts: a server, and a client. The server/daemon,
- openvasd, is in charge of the attacks, whereas the client, nessus,
+ openvasd, is in charge of the attacks, whereas the client, openvas,
  provides the user a nice X11/GTK+ interface.
  .
  This package contains the openvasd server, which must be run as root.
 
-Package: nessus-dev
+Package: openvas-dev
 Section: devel
 Architecture: all
 Recommends: libnessus-dev, libnasl-dev
 Replaces: openvasd (<< 1.0.0-2)
-Description: Nessus development header files
- The Nessus Security Scanner is a security auditing tool. It makes
+Description: OpenVAS development header files
+ The OpenVAS Security Scanner is a security auditing tool. It makes
  possible to test security modules in an attempt to find vulnerable
  spots that should be fixed.
  .
  It is made up of two parts: a server, and a client. The server/daemon,
- openvasd, is in charge of the attacks, whereas the client, nessus,
+ openvasd, is in charge of the attacks, whereas the client, openvas,
  provides the user a nice X11/GTK+ interface.
  .
  This package contains openvas-core header files, needed to build some

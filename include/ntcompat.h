@@ -6,7 +6,7 @@
  * (c) 1998 Renaud Deraison <deraison@worldnet.fr>
  *
  * ntcompat.h : redefinition of several system calls to provide
- *              NT compatibility to Nessus
+ *              NT compatibility to OpenVAS
  *
  */
 

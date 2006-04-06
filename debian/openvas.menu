@@ -1,2 +1,2 @@
-?package(nessus): needs="X11" section="Apps/System" title="Nessus" command="nessus" icon="/usr/share/pixmaps/nessus.xpm"           
+?package(openvas): needs="X11" section="Apps/System" title="OpenVAS" command="openvas" icon="/usr/share/pixmaps/openvas.xpm"           
 

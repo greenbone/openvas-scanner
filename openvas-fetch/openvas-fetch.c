@@ -20,7 +20,7 @@
  * 
  *
  *
- * openvas-fetch is a simple utility to retrieve Nessus plugins from nessus.org
+ * openvas-fetch is a simple utility to retrieve Nessus plugins from plugins.openvas.org
  * $Id$
  */
 #include <includes.h>
@@ -684,7 +684,7 @@ static void update_plugins(int argc, char ** argv)
 
  
  printf("Your Nessus installation is now up-to-date.\nMake sure to call regularly use the command 'nessus-update-plugins' to stay up-to-date\n");
- printf("To automate the update process, please visit <http://www.nessus.org/documentation/index.php?doc=cron>\n");
+ printf("To automate the update process, please visit <http://www.openvas.org/documentation/index.php?doc=cron>\n");
  printf("\n");
  
  exit(0);

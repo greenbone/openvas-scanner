@@ -18,28 +18,28 @@ since.
 
 1. Why this document?
 
-One can have a very bad experience by launching a Nessus test against a
+One can have a very bad experience by launching a OpenVAS test against a
 fragile machine or by giving anybody access to such a tool.
-Some do not really understand how Nessus works, or even the risks of
+Some do not really understand how OpenVAS works, or even the risks of
 any "security test".
 
 
 2. Legal matter
 
 I am not a lawyer, so I will not be long.
-Nessus is distributed according to the GPL.  This may be incompatible
+OpenVAS is distributed according to the GPL.  This may be incompatible
 in part with your local law.
-Nessus is distributed WITHOUT ANY WARRANTY, as any software. Do not
+OpenVAS is distributed WITHOUT ANY WARRANTY, as any software. Do not
 complain if you break a production machine; besides, you have no
 warranty with a commercial scanner.
 At least we warned you!
 
 
-3. How Nessus works
+3. How OpenVAS works
 
  3.1. Timing of operations
 
-a) Nessus looks for open ports
+a) OpenVAS looks for open ports
    - by calling the external scanner nmap,
    - by calling snmpwalk [*]
    - by connecting to the netstat service [*] or by running netstat on
@@ -54,17 +54,17 @@ b) Then, the "find_service" plugin tries to identify what runs behind
    - then by sending miscellaneous sequences to the service and
      looking at the answers.
    find_service stores its finding as "keys" in the "knowledge base" (KB).
-c) Nessus then tries miscellaneous attacks on every open port.
+c) OpenVAS then tries miscellaneous attacks on every open port.
    For example, if a scripts targets web servers, it will be launched
    against every port where a HTTP or HTTPS server has been found.
 
 [*] The fact that a machine leaks information through netstat or SNMP
 is a weakness. However, those services can be configured to answer
-only to a restricted set of machines, including the Nessus scanner.
+only to a restricted set of machines, including the OpenVAS scanner.
 
  3.2. Plugin types
 
-Nessus plugins are organised into "families".  They can be grouped in
+OpenVAS plugins are organised into "families".  They can be grouped in
 the graphical interface, but this does not change the scanner
 work.  There is a "denial of service" family, but all dangerous scripts
 are not there; only those which goal is to kill the system. More over,
@@ -103,7 +103,7 @@ Each plugin has a "category":
 The border between those categories is fuzzy, and it is impossible to
 say in advance if a script that targets a specific software will not
 have dangerous effects on another one.
-Nessus first launches the ACT_INIT scripts, then the ACT_SCANNER
+OpenVAS first launches the ACT_INIT scripts, then the ACT_SCANNER
 plugins, then ACT_SETTINGS, ACT_GATHER_INFO, etc. 
 
 Notes: 
@@ -122,17 +122,17 @@ Last, each script may declare "dependencies"
   e.g., scripts that test HTTP weaknesses will depend upon port 80 and
   the "Services/www" key.
 
-A basic principle is that Nessus does not consider any piece of
+A basic principle is that OpenVAS does not consider any piece of
 information as reliable.  Some security scanners rely on the banners;
-Nessus really attacks the services but in rare cases that are
+OpenVAS really attacks the services but in rare cases that are
 mentioned in the report, or if the "safe checks" option is enabled
 (read below).
 So:
-- Nessus is able to verify if a flaw that is _supposed_ to be fixed in
+- OpenVAS is able to verify if a flaw that is _supposed_ to be fixed in
   version N+1 of some software is still present.
-- Nessus may discover that an attack against software "X" also works
+- OpenVAS may discover that an attack against software "X" also works
   against software "Y".
-- Nessus demolishes *BAD* (broken as designed) services without mercy.
+- OpenVAS demolishes *BAD* (broken as designed) services without mercy.
 
 
  3.3. Scripts selection
@@ -159,27 +159,27 @@ And a fourth one changes the behaviour of aggressive scripts:
 
    3.4.1. Enable dependencies at run time
 
-By default, Nessus does not launch a script if those upon which it
+By default, OpenVAS does not launch a script if those upon which it
 depends on were not enabled.  This option automatically enables the needed
 dependencies.
 
    3.4.2. Optimize the test
 
-By default, Nessus launches a test even if it has no chance of
+By default, OpenVAS launches a test even if it has no chance of
 success, because the service was not identified (the default port will
 be attacked).  This option speeds the test up, but you may miss a few
 weaknesses.
 
    3.4.3. Consider unscanned ports as closed
 
-By default, Nessus considers that unscanned ports are "open". This
+By default, OpenVAS considers that unscanned ports are "open". This
 option inverts the behaviour and speeds the test up.
 It is useful only with "optimize the test".
 
    3.4.4. Safe checks
 
 This option disables the dangerous script that may kill the system or
-some service.  Nessus then relies upon the version numbers in banners,
+some service.  OpenVAS then relies upon the version numbers in banners,
 for example.  If no clue is available, the test is simply dropped.
 
 This option is more dangerous that it looks:
@@ -187,7 +187,7 @@ This option is more dangerous that it looks:
   the report does not mean it is not there.
 - If the script was badly written and does not check the option with
   the safe_checks() function, the attack will be launched.
-  Scripts delivered with Nessus are supposed to be safe, but a
+  Scripts delivered with OpenVAS are supposed to be safe, but a
   "unofficial" or experimental script might be dangerous.
 
 Note that ACT_FLOOD, ACT_DENIAL, ACT_KILL_HOST and
@@ -198,7 +198,7 @@ ACT_DESTRUCTIVE_ATTACK scripts are never run when this option is on.
 
  4.1. Politics
 
-Before you start giving bad names to Nessus, please know that touching
+Before you start giving bad names to OpenVAS, please know that touching
 a sensitive production machine is suicidal.  Security consultants are
 rarely loved: they are seen either as hackers, or cybercops.
 If a machine runs mad for any reason at the very moment when you start
@@ -231,14 +231,14 @@ at all :-)
 
 You can get the list of open ports with the netstat command and
 convert it with netstat2nmap.pl into a fake nmap file that can be read
-by Nessus.  So you do not need to run a scanner. However, the main
+by OpenVAS.  So you do not need to run a scanner. However, the main
 point in this is to speed the test up, rather than limit the risk.
 Starting from version 2.1.2, one can use the netstat_portscan plugin,
 if the netstat service is running (this is a bad idea, unless the
-access is restricted to the Nessus scanner IP) or if Nessus has an SSH
+access is restricted to the OpenVAS scanner IP) or if OpenVAS has an SSH
 access to the target.
 
- 4.3. Nessus demolition company
+ 4.3. OpenVAS demolition company
 
 Some generic scripts are really nasty:
 - Buffer overflows against miscellaneous fields or requests in HTTP,
@@ -286,13 +286,13 @@ In version 2.0.x:
   "scanned" port range should be 1-65535
 
 Or in version 2.1.2 or later (including 2.2.x):
- - give Nessus an SSH access to guinea-pig and only enable
+ - give OpenVAS an SSH access to guinea-pig and only enable
    netstat_portscan
 Note: currently, the new Nmap wrapper only reads "grepable" output
 (nmap -oG), not the "normal" (netstat -oN) format which is produced by
 netstat2nmap. 
 
- 5.2. Remove Nessus' teeth
+ 5.2. Remove OpenVAS' teeth
 
 - Enable the "safe checks" option.
 - Enable "optimize the test".
@@ -309,22 +309,22 @@ netstat2nmap.
   "optimize the test" reduces the risks.
 
 
-9. Nessus between the wrong hands
+9. OpenVAS between the wrong hands
 
-Nessus is a terrible test tool, able to point patches to "white hats"
+OpenVAS is a terrible test tool, able to point patches to "white hats"
 as well as "exploits" to "black hats".
 
  9.1. A weapon for sale?
 
 I do not want to launch the troll^W debate again "for / against full
 disclosure".
-Like many tools, Nessus itself is not good or bad; it's in the way you use it.
+Like many tools, OpenVAS itself is not good or bad; it's in the way you use it.
 
-Nessus was made for "white hats".  Its design choices are not great
+OpenVAS was made for "white hats".  Its design choices are not great
 for crackers: it is very noisy.  Crackers do not want to be seen, in
 general...
 
-You can torture Nessus so that it uses one of the many open proxies on
+You can torture OpenVAS so that it uses one of the many open proxies on
 Internet.  For reasons that you will easily understand, I hope, I will
 not document this trick :-]
 
@@ -337,7 +337,7 @@ Dec 15 16:43:56 casserole fam[1354]: fd 109 message length 1312236900 bytes exce
 Dec 15 16:44:11 casserole SERVER[5930]: Dispatch_input: bad request line '< NTP/1.0 >^M'
 127.0.0.1 - - [15/Dec/2001:16:44:39 +0100] "GET http://www.nessus.org HTTP/1.0" 200 2890 "-" "-"
 127.0.0.1 - - [15/Dec/2001:17:25:44 +0100] ".`" 501 - "-" "-"
-127.0.0.1 - - [15/Dec/2001:17:25:45 +0100] "GET /cgi-bin/nessus_is_probing_this_host_2033195663 HTTP/1.1" 404 335 "-" "Mozilla/4.75 [en] (X11, U; Nessus)"
+127.0.0.1 - - [15/Dec/2001:17:25:45 +0100] "GET /cgi-bin/nessus_is_probing_this_host_2033195663 HTTP/1.1" 404 335 "-" "Mozilla/4.75 [en] (X11, U; OpenVAS)"
 127.0.0.1 - - [15/Dec/2001:17:29:58 +0100] "are you dead ?" 400 339 "-" "-"
 
  9.2. Anti NIDS functions
@@ -353,28 +353,28 @@ systems on Internet more easily, but to allow "white hats" to tests
 the protection devices.
 
 The Snort freeware tool is not deceived by any option, and in fact
-Nessus is even more noisy when they are enabled.
+OpenVAS is even more noisy when they are enabled.
 
- 9.3. Access control to Nessus
+ 9.3. Access control to OpenVAS
 
-A cracker may take control of a Nessus server pointed to your
+A cracker may take control of a OpenVAS server pointed to your
 machines, or the machines of one of your customers. Although we cannot
 guarantee there is no bug, a couple of precautions should reduce the
 risk to an reasonable level:
 
 - If the client and the server run on the same machine, configure
-  Nessus to use Unix sockets. Verify that port 1241 is closed.
+  OpenVAS to use Unix sockets. Verify that port 1241 is closed.
 Or:
-- Configure Nessus with the TCP wrappers and limit the access to a few
+- Configure OpenVAS with the TCP wrappers and limit the access to a few
   workstations, e.g. localhost.
 - Enable the strong authentication (X.509 client
   certificates). Generate your own certificates, do not use those from
-  the "Nessus kabale"! (they have been removed from the CVS repository
+  the "OpenVAS kabale"! (they have been removed from the CVS repository
   for a long time)
   You should also protect your server & client private keys with a
   solid password. The openvas-mkcert script does not do this. You will
   have to set up your own "certificate factory".
-- Switch off the machine that runs the Nessus server when you are not
+- Switch off the machine that runs the OpenVAS server when you are not
   using it.
 
 Note: currently, certificate based authentication is incompatible with
@@ -384,14 +384,14 @@ Unix sockets.
 
 
 It was asked some times on the mailing lists how privilege separation
-can be implemented with Nessus.
+can be implemented with OpenVAS.
 The short answer is that this question is a troll.
 The long answer follows.
 
 First, we must remind that privilege separation limits the
 consequences of a flaw by giving the cracker a non privileged access
 instead of a root access.
-In the case of Nessus, the gain is limited: if a cracker can control
+In the case of OpenVAS, the gain is limited: if a cracker can control
 the openvasd daemon under any user identity, he will be able to attack
 the whole scanned network, which might be more dangerous than just
 controlling one machine.
@@ -405,7 +405,7 @@ pierced the first defence line.
 In theory, three ways would allow to control openvasd by getting around
 the authentication mechanism [we ignore here potential bugs in this
 mechanism] : 
-- an attack against the Nessus listener or the OpenSSL layer which is
+- an attack against the OpenVAS listener or the OpenSSL layer which is
 used for the client / server communication.
 - a "reverse attack" against the NASL interpretor, for example a
 buffer overflow on reading abnormal data.
@@ -464,7 +464,7 @@ implement clean code in NASL: we control array indexes, we always use
 a format string, etc., (2) we avoid some libc functions that have been
 flawed on some systems or that we do not trust. 
 At worst, a malicious server could crash a NASL script by using too
-much memory for example -- Nessus is protected against this by setting
+much memory for example -- OpenVAS is protected against this by setting
 a limit to resource consumption by child processes.
 
 We call only one complex library that we are calling is OpenSSL
@@ -504,7 +504,7 @@ CRLfile = ...
 
  9.5. On the Nesuss client side
 
-The Nessus client also handles sensitive data: 
+The OpenVAS client also handles sensitive data: 
 - it receives reports which contain vulnerabilities on the target
 machines. Starting with version 2.3, the Unix GTK client stores those
 reports.

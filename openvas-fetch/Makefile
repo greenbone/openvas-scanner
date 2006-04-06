@@ -1,6 +1,6 @@
 
 
-include ../nessus.tmpl
+include ../openvas.tmpl
 
 all: openvas-fetch
 

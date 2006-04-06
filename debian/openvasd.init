@@ -18,7 +18,7 @@ DODTIME=5
 DAEMON=/usr/sbin/openvasd
 PIDFILE=/var/run/openvasd.pid
 NAME=openvasd
-LABEL="Nessus daemon"
+LABEL="OpenVAS daemon"
 
 test -x $DAEMON || exit 0
 
@@ -43,12 +43,12 @@ running()
 
 warn_cert_file() {
 	echo -n "WARN: The (expected) certificate file $1 is not available." >&2
-	echo -n "The Nessus server might not start up." >&2
+	echo -n "The OpenVAS server might not start up." >&2
 }
 
 check_certs() {
 	if [ -z "`grep ^ca_file /etc/nessus/openvasd.conf`" ] ; then
-		echo -n "WARN: The openvasd configuration file does have a certificate. Have you run openvas-mkcert? (Nessusd might not start)" >&2
+		echo -n "WARN: The openvasd configuration file does have a certificate. Have you run openvas-mkcert? (OpenVASd might not start)" >&2
 	fi
 	CERTDIR=/var/lib/nessus/CA/
 	PRIVCERTDIR=/var/lib/nessus/private/CA/
@@ -60,9 +60,9 @@ check_certs() {
 	done
 }
 
-nessus_start() {
+openvas_start() {
 	if [ ! -r /etc/nessus/openvasd.conf ] ; then
-		echo -n "ERROR: Cannot read nessus configuration file, are you root?" >&2
+		echo -n "ERROR: Cannot read openvasd configuration file, are you root?" >&2
 		return 1
 	fi
 	check_certs
@@ -94,7 +94,7 @@ force_stop() {
 case "$1" in
   start)
     echo -n "Starting $LABEL: "
-    if nessus_start && running ;  then
+    if openvas_start && running ;  then
 	    echo "openvasd."
     else
     	    echo "ERROR."
@@ -121,7 +121,7 @@ case "$1" in
     if running; then
         force_stop
     fi
-    if nessus_start && running ;  then
+    if openvas_start && running ;  then
 	    echo "openvasd."
     else
     	    echo "ERROR."

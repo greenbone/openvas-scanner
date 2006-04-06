@@ -1,4 +1,4 @@
-include ../nessus.tmpl
+include ../openvas.tmpl
 
 
 OBJS = openvas-mkrand.o 

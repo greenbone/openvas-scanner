@@ -1,4 +1,4 @@
-/* Nessus
+/* OpenVAS
  * Copyright (C) 1998 Renaud Deraison
  *
  * This program is free software; you can redistribute it and/or modify
@@ -21,7 +21,7 @@
 #define NESS_OS_NAME    "Linux"
 #define NESS_OS_VERSION "2.6.13"
 
-#define PROGNAME        "Nessus"
+#define PROGNAME        "OpenVAS"
 #define NESSUS_VERSION  "2.2.5"
 #define NESSUS_FULL_VERSION  "2.2.5."
 

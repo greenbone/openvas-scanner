@@ -1,4 +1,4 @@
-If you are upgrading from a previous version of Nessus, please
+If you are upgrading from a previous version of OpenVAS, please
 do the following :
 
 	- delete /etc/openvasd.conf

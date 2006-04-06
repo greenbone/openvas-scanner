@@ -1,11 +1,11 @@
-include nessus.tmpl
+include openvas.tmpl
 
-ALLDEPS = nessus.tmpl
+ALLDEPS = openvas.tmpl
 
 all: $(ALLDEPS) server sslstuff doc fetchtool
 
 
-nessus.tmpl: nessus.tmpl.in configure VERSION
+openvas.tmpl: openvas.tmpl.in configure VERSION
 	$(SHELL) configure $(CONFIGURE_ARGS)
 	touch $@
 
@@ -22,7 +22,7 @@ install: all install-bin install-man
 install-bin:
 	test -d $(DESTDIR)${sbindir} || $(INSTALL_DIR) -m 755 $(DESTDIR)${sbindir}
 	$(INSTALL) -m $(SERVERMODE)  ${make_bindir}/openvasd $(DESTDIR)${sbindir}
-	$(INSTALL) -m $(SERVERMODE) ${make_bindir}/nessus-check-signature $(DESTDIR)${sbindir}
+	$(INSTALL) -m $(SERVERMODE) ${make_bindir}/openvas-check-signature $(DESTDIR)${sbindir}
 	test -d $(DESTDIR)${sysconfdir} || $(INSTALL_DIR) -m 755 $(DESTDIR)${sysconfdir}
 	test -d $(DESTDIR)${sysconfdir}/nessus || $(INSTALL_DIR) -m 755 $(DESTDIR)${sysconfdir}/nessus	
 	test -d $(DESTDIR)${NESSUSD_DATADIR} || \
@@ -62,12 +62,12 @@ install-man:
 	@test -d $(DESTDIR)${mandir}/man8 || $(INSTALL_DIR) $(DESTDIR)${mandir}/man8
 
 	$(INSTALL) -c -m 0444 doc/openvas-fetch.1 $(DESTDIR)${mandir}/man1/openvas-fetch.1
-	$(INSTALL) -c -m 0444 doc/nessus-check-signature.1 $(DESTDIR)${mandir}/man1/nessus-check-signature.1
+	$(INSTALL) -c -m 0444 doc/openvas-check-signature.1 $(DESTDIR)${mandir}/man1/openvas-check-signature.1
 	$(INSTALL) -c -m 0444 ${MAN_NESSUSD_8} $(DESTDIR)${mandir}/man8/openvasd.8
 	$(INSTALL) -c -m 0444 doc/openvas-adduser.8 $(DESTDIR)${mandir}/man8/openvas-adduser.8
 	$(INSTALL) -c -m 0444 doc/openvas-rmuser.8 $(DESTDIR)${mandir}/man8/openvas-rmuser.8
 	$(INSTALL) -c -m 0444 doc/openvas-mkcert.8 $(DESTDIR)${mandir}/man8/openvas-mkcert.8
-	$(INSTALL) -c -m 0444 doc/openvas-mkcert-client.1 \
+#	$(INSTALL) -c -m 0444 doc/openvas-mkcert-client.1 \
                               $(DESTDIR)${mandir}/man1/openvas-mkcert-client.1
 	$(INSTALL) -c -m 0444 doc/openvas-mkrand.1 $(DESTDIR)${mandir}/man1/openvas-mkrand.1
 
@@ -95,7 +95,7 @@ clean:
 
 distclean: clean
 	[ -z "${rootdir}" ] || rm -f ${rootdir}/include/config.h ${rootdir}/include/corevers.h 
-	rm -f nessus.tmpl doc/nessus.1.cat doc/openvasd.8.cat
+	rm -f openvas.tmpl doc/nessus.1.cat doc/openvasd.8.cat
 	[ -z "${make_bindir}" ] || rm -f $(make_bindir)/nessus* 
 	rm -f libtool config.cache config.status config.log 
 	rm -f openvas-adduser
@@ -115,7 +115,7 @@ dist:
 
 distcheck:
 	find . -type f | sed -e 's/^.\///' -e '/~$$/d' -e '/CVS/d' \
-			     -e '/\.o$$/d' -e '/^nessus.tmpl$$/d' \
+			     -e '/\.o$$/d' -e '/^openvas.tmpl$$/d' \
 			     -e '/^libtool$$/d' \
 			     -e '/^openvasd\/OBJ\/openvasd$$/d' \
 			     -e '/^bin\/openvasd$$/d' \

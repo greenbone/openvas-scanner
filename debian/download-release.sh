@@ -1,6 +1,6 @@
 #!/bin/sh
 # Useful script to download all the orig.tar.gz files of 
-# a given Nessus release
+# a given OpenVAS release
 #
 # (c) 2003 Javier Fernandez-Sanguino
 
@@ -14,6 +14,7 @@ RELEASE=$1
 FILES="libnasl openvas-core nessus-libraries nessus-plugins"
 # URL should be one of the available
 #at http://www.nessus.org/nessus_2_0.html
+###Bad Url Needs o point to correct openvas archive###
 URL="http://ftp.gwdg.de/pub/linux/misc/nessus"
 
 for file in $FILES; do

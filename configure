@@ -2521,8 +2521,8 @@ fi;
 
 
 
-# Extract the first word of "openvas-config", so it can be a program name with args.
-set dummy openvas-config; ac_word=$2
+# Extract the first word of "nessus-config", so it can be a program name with args.
+set dummy nessus-config; ac_word=$2
 echo "$as_me:$LINENO: checking for $ac_word" >&5
 echo $ECHO_N "checking for $ac_word... $ECHO_C" >&6
 if test "${ac_cv_path_NESSUSCONFIG+set}" = set; then
@@ -7674,10 +7674,10 @@ int main()
   re_compile_pattern(".*nessus.*", strlen(".*nessus.*"), &pb);
   re_compile_fastmap(&pb);
   return re_search(&pb,
-  		"i use nessus everyday",
-		strlen("i use nessus everyday"),
+  		"i use openvas everyday",
+		strlen("i use openvas everyday"),
 		0,
-  		strlen("i use nessus everyday"),
+  		strlen("i use openvas everyday"),
 		&regs);
 }
 
@@ -12147,7 +12147,7 @@ fi
 
 
 
-                                                            ac_config_files="$ac_config_files nessus.tmpl include/corevers.h openvas-adduser openvas-rmuser openvas-mkcert openvas-mkcert-client"
+                                                            ac_config_files="$ac_config_files openvas.tmpl include/corevers.h openvas-adduser openvas-rmuser openvas-mkcert openvas-mkcert-client"
 cat >confcache <<\_ACEOF
 # This file is a shell script that caches the results of configure
 # tests run on this system so they can be shared between configure
@@ -12673,7 +12673,7 @@ for ac_config_target in $ac_config_targets
 do
   case "$ac_config_target" in
   # Handling of arguments.
-  "nessus.tmpl" ) CONFIG_FILES="$CONFIG_FILES nessus.tmpl" ;;
+  "openvas.tmpl" ) CONFIG_FILES="$CONFIG_FILES openvas.tmpl" ;;
   "include/corevers.h" ) CONFIG_FILES="$CONFIG_FILES include/corevers.h" ;;
   "openvas-adduser" ) CONFIG_FILES="$CONFIG_FILES openvas-adduser" ;;
   "openvas-rmuser" ) CONFIG_FILES="$CONFIG_FILES openvas-rmuser" ;;

@@ -1,18 +1,18 @@
-.TH NESSUSD 8 "February 2004" "The Nessus Project" "User Manuals"
+.TH NESSUSD 8 "February 2004" "The OpenVAS Project" "User Manuals"
 .SH NAME
-openvasd \- The server part of the Nessus Security Scanner
+openvasd \- The server part of the OpenVAS Security Scanner
 .SH SYNOPSIS
 .BI "openvasd [\|-v\|] [\|-h\|]  [\|-c " config-file\| "] [\|-S " ip[,ip2,...]\| "] [\|-a " address\| 
 .BI "] [\|-p " port-number\| "] [\|-D\|] [\|-d\|] [\|-R\|] [\|-P\|] [\|-q\|]"
 
 .SH DESCRIPTION
 The 
-.B Nessus Security Scanner
+.B OpenVAS Security Scanner
 is a security auditing tool made up of two parts: a server, and a client.
 The server,
 .BR openvasd
 is in charge of the attacks, while the client 
-.BR nessus
+.BR openvas
 interfaces with the user.
 
 
@@ -42,9 +42,9 @@ want people on the outside to connect to your
 
 .TP
 .BI "-S " <ip[,ip2,...]> ", --src-ip=" <ip[,ip2,...]>
-Force the source IP of the connections established by Nessus to
+Force the source IP of the connections established by OpenVAS to
 .I <ip>
-\. Note that you can not set arbitrary addresses here, as most Nessus
+\. Note that you can not set arbitrary addresses here, as most OpenVAS
 checks need to fully establish a connection to the remote host. This
 option is only useful if you have a multi-homed machine with multiple
 public IP addresses that you would like to use instead of the default
@@ -156,7 +156,7 @@ This is the maximum lifetime, in seconds of a plugin. It may happen that some pl
 Most of the time, openvasd attempts to reproduce an exceptional condition to detemermine if the remote services are vulnerable to certain flaws. This includes the reproduction of buffer overflows or format strings, which may make the remote server crash. If you set this option to 'yes', openvasd will disable the plugins which have the potential to crash the remote services, and will at the same time make several checks rely on the banner of the service tested instead of its behavior towards a certain input. This reduces false positives and makes openvasd nicer towards your network, however this may make you miss important vulnerabilities (as a vulnerability affecting a given service may also affect another one).
 
 .IP auto_enable_dependencies
-Nessus plugins use the result of each other to execute their job. For instance, a plugin which logs into the remote SMB registry will need the results of the plugin which finds the SMB name of the remote host and the results of the plugin which attempts to log into the remote host. If you want to only select a subset of the plugins availaible, tracking the dependencies can quickly become tiresome. If you set this option to 'yes', openvasd will automatically enable the plugins that are depended on.
+OpenVAS plugins use the result of each other to execute their job. For instance, a plugin which logs into the remote SMB registry will need the results of the plugin which finds the SMB name of the remote host and the results of the plugin which attempts to log into the remote host. If you want to only select a subset of the plugins availaible, tracking the dependencies can quickly become tiresome. If you set this option to 'yes', openvasd will automatically enable the plugins that are depended on.
 
 .IP use_mac_addr
 Set this option to 'yes' if you are testing your local network and each local host has a dynamic IP address (affected by DHCP or BOOTP), and all the tested hosts will be referred to by their MAC address.
@@ -165,7 +165,7 @@ Set this option to 'yes' if you are testing your local network and each local ho
 Set this option to 'yes' if you want to let openvasd users upload their own plugins. Note that the plugins they will upload will end up in their openvasd home directory, so they won't be shared among users (except if the user who uploads the plugins is the one declared in the option 'admin_user'
 
 .IP admin_user
-The user listed in this option will upload his plugins into the global nessus plugins directory, and they will be shared by every other users
+The user listed in this option will upload his plugins into the global openvas plugins directory, and they will be shared by every other users
 
 
 .IP rules
@@ -267,44 +267,44 @@ default reject
 
 .SH NETWORK USAGE
 
-Bear in mind that Nessus can be quite network intensive. Even if the
-Nessus developers have taken every effor to avoid packet loss (including
+Bear in mind that OpenVAS can be quite network intensive. Even if the
+OpenVAS developers have taken every effor to avoid packet loss (including
 transparently resending UDP packets, waiting for data to be received
 in TCP connections, etc.) so bandwith use should always be closely monitored, 
 with current server hardware, bandwith is usually the bottleneck in 
-a Nessus scan. It might not became too aparent in the final reports,
+a OpenVAS scan. It might not became too aparent in the final reports,
 scanners will still run, holes might be detected, but you will risk to
-run into \fIfalse negatives\fR (i.e. Nessus will not report a security
+run into \fIfalse negatives\fR (i.e. OpenVAS will not report a security
 hole that is present in a remote host)
 
-Users might need to tune Nessus configuration if running the server in
+Users might need to tune OpenVAS configuration if running the server in
 low bandwith conditions (\fIlow\fR being 'less bandwith that the one your
 hardware system can produce) or otherwise will get erratic results. There are
 several parameters that can be modified to reduce network load:
 
 .IP checks_read_timeout
-(Introduced in Nessus 0.99.4) The default value is set to 5 seconds, that can
+(Introduced in OpenVAS 0.99.4) The default value is set to 5 seconds, that can
 (should) be increased if network bandwith is low in the
-nessus.conf or nessusrc configuration files. Notice that it is recommended
+openvas.conf or nessusrc configuration files. Notice that it is recommended
 to increase this this value, if you are running a test outside your LAN 
 (i.e. to Internet hosts through an Internet connection), to over 10 seconds.
 
 .IP max_hosts
-Number of hosts to test at the same time (this value is set by the Nessus
+Number of hosts to test at the same time (this value is set by the OpenVAS
 GUI client or by .nessusrc) it can be as low as you want it to be
 (obviously 1 is the minimum)
 
 .IP max_checks
 Number of checkst to test at the same time (this value is also set by 
-the Nessus GUI client or by .nessusrc ) it can be as low as you want it
+the OpenVAS GUI client or by .nessusrc ) it can be as low as you want it
 to be and it will also reduce network load and improve performance
 (obviously 1 is the minimum)
-Notice that the Nessus server will spawn max_hosts * max_checks processes.
+Notice that the OpenVAS server will spawn max_hosts * max_checks processes.
 
 Other options might be using the QoS features offered by your server
 operating system or your network to improve the bandwith use.
 
-It is not easy to give a bandwith estimate for a Nessus run, you will
+It is not easy to give a bandwith estimate for a OpenVAS run, you will
 probably need to make your own counts. However, assuming you test 65536 
 TCP ports. This will require at least a single packet per port that is 
 at least 40 bytes large. Add 14 bytes for the ethernet header and you 
@@ -318,26 +318,26 @@ Reducing the amount of tested part and such will reduce the amout of data
 to be transfered significantly.
 
 .SH SEE ALSO
-.BR nessus (1),\  openvas-adduser (8),\  openvas-rmuser (8),\  openvas-mkcert (8)
+.BR openvas (1),\  openvas-adduser (8),\  openvas-rmuser (8),\  openvas-mkcert (8)
 
 .SH MORE INFORMATION ABOUT THE NESSUS PROJECT
 
 The canonical places where you will find more information 
-about the Nessus project are: 
+about the OpenVAS project are: 
 
 .RS
 .UR
-http://www.nessus.org/
+http://www.openvas.org/
 .UE
 (Official site)
 .br
 .UR
-http://cvs.nessus.org/
+http://cvs.openvas.org/
 .UE
 (Developers site)
 .br
 .UR
-http://list.nessus.org/
+http://www.openvas.org/doku.php?id=mailing_lists
 .UE
 (Mailing lists)
 .RE

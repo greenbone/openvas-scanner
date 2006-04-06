@@ -1,7 +1,7 @@
 # Handcrafted to just get the scripts gmo installed.
 # 2006-03-29 Jan-Oliver Wagner <jan@intevation.de>
 
-include ../nessus.tmpl
+include ../openvas.tmpl
 
 datadir = ${prefix}/share
 localedir = $(datadir)/locale

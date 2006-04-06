@@ -1,5 +1,5 @@
 #!/bin/sh -e
-# Postinst script for Nessus, written by Javier Fernandez-Sanguino
+# Postinst script for OpenVAS, written by Javier Fernandez-Sanguino
 # Uses code from openvas-mkcert, which was written by Renaud Deraison 
 # <deraison@cvs.nessus.org> and Michel Arboi <arboi@alussinan.org>
 #
@@ -9,7 +9,7 @@
 . /usr/share/debconf/confmodule
 test $DEBIAN_SCRIPT_DEBUG && set -v -x
 
-nessus_mkcert () 
+openvas_mkcert () 
 {
 RANDFLAG=""
 PATH=/usr/sbin:/usr/bin:/bin:/sbin
@@ -47,15 +47,15 @@ fi
 [ -z "$COUNTRY" ] && COUNTRY=$DC
 [ -z "$PROVINCE" ] && PROVINCE=""
 [ -z "$LOCATION" ] && LOCATION=""
-[ -z "$ORGANIZATION" ] && ORGANIZATION="Nessus Users United"
+[ -z "$ORGANIZATION" ] && ORGANIZATION="OpenVAS Users United"
 
 cat <<EOF>$BASEDIR/std000.cnf
 RANDFILE		= $HOME/.rnd
 #
 [ ca ]
-default_ca = NessusCA
+default_ca = OpenVASCA
 
-[ NessusCA ]
+[ OpenVASCA ]
 dir		= $BASEDIR		# Where everything is kept
 certs		= \$dir			# Where the issued certs are kept
 crl_dir		= \$dir			# Where the issued crl are kept
@@ -234,7 +234,7 @@ $SRVMAIL" |
 openssl req -config $BASEDIR/std.cnf -new -key $SRVKEY -out $SRVREQ 2>> $BASEDIR/openssl-log
 
 # Sign the server certificate
-openssl ca -config $BASEDIR/std.cnf -name NessusCA -batch -days $SRVCERT_LIFETIME -in $SRVREQ -out $SRVCERT 2>> $BASEDIR/openssl-log
+openssl ca -config $BASEDIR/std.cnf -name OpenVASCA -batch -days $SRVCERT_LIFETIME -in $SRVREQ -out $SRVCERT 2>> $BASEDIR/openssl-log
 
 chmod a+r $CACERT $SRVCERT #cln $CLNCERT
 
@@ -264,7 +264,7 @@ if [ -s "$CACERT" ] && [ -s "$CAKEY" ] && [ -s "$SRVCERT" ] && [ -s "$SRVKEY" ];
  echo "   Certificate = $CACERT"
  echo "   Private key = $CAKEY"
  echo
- echo ". Nessus Server : "
+ echo ". OpenVAS Server : "
  echo "    Certificate = $SRVCERT"
  echo "    Private key = $SRVKEY"
 else
@@ -291,9 +291,9 @@ if [ "$1" = "configure" ]; then
 	db_get nessusd/organization || true; ORGANIZATION="$RET"
 	export CACERT_LIFETIME SRVCERT_LIFETIME COUNTRY PROVINCE 
 	export LOCATION ORGANIZATION
-        nessus_mkcert
+        openvas_mkcert
   fi
-# Restart the Nessus daemon if running
+# Restart the OpenVAS daemon if running
   if [ -x /etc/init.d/openvasd ] && \
 	  /etc/init.d/openvasd status 2>&1 >/dev/null; then
 	  /etc/init.d/openvasd restart

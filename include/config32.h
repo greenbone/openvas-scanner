@@ -1,4 +1,4 @@
-/* Nessus
+/* OpenVAS
  * Copyright (C) 1998 - 1999 Renaud Deraison
  *
  * This program is free software; you can redistribute it and/or modify
@@ -25,7 +25,7 @@
 /* 
  * Socket type
  *
- * Nessus can handle two types of socket : AF_INET and AF_UNIX
+ * OpenVAS can handle two types of socket : AF_INET and AF_UNIX
  *
  * The AF_INET type allow the server and the client to be on
  * different computers, but may create security problems (until
@@ -51,7 +51,7 @@
 
 /*
  * define this if you want to see some useful debug
- * messages comming from Nessus 
+ * messages comming from OpenVAS 
  */
 #undef DEBUG
 
@@ -155,6 +155,6 @@
 #define NESS_OS_NAME    "Windows 95/98/NT"
 #define NESS_OS_VERSION "(unknown)"
 
-#define PROGNAME "Nessus"
+#define PROGNAME "OpenVAS"
 #define NESSUS_VERSION "0.98.4"
 

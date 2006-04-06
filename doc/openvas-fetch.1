@@ -1,6 +1,6 @@
-.TH NESSUS 1 "December 2004" "The Nessus Project" "Users Manuals"
+.TH OpenVAS 1 "December 2004" "The OpenVAS Project" "Users Manuals"
 .SH NAME
-openvas-fetch \- A simple utility to retrieve plugins from www.nessus.org
+openvas-fetch \- A simple utility to retrieve plugins from www.openvas.org
 .SH SYNOPSIS
 .B openvas-fetch --plugins 
 .P
@@ -17,32 +17,32 @@ openvas-fetch \- A simple utility to retrieve plugins from www.nessus.org
 .B openvas-fetch
 is a simple utility is used by 
 .B nessus-update-plugins
-to fetch the newest Nessus plugins from www.nessus.org and to register a Nessus installation with plugins.nessus.org. It can also be used to retrieve arbitrary files from third party servers.
+to fetch the newest OpenVAS plugins from www.openvas.org and to register a OpenVAS installation with plugins.openvas.org. It can also be used to retrieve arbitrary files from third party servers.
 
 
 .SH OPTIONS
 .TP
 .BI "--register <code> "
-Register the current Nessus installation to http://plugins.nessus.org. Registering entitles you to receive a complete feed of the newest Nessus plugins. To register, an
+Register the current OpenVAS installation to http://plugins.openvas.org. Registering entitles you to receive a complete feed of the newest OpenVAS plugins. To register, an
 .B activation code
-is required. Please see http://plugins.nessus.org for more details on how to get such a code.
+is required. Please see http://plugins.openvas.org for more details on how to get such a code.
 
 .TP
 .BI "--check "
-Makes sure that openvas-fetch is properly configured to receive a direct plugin feed from plugins.nessus.org by attempting to login into the remote server with the username and password obtained with nessus-fetch --register.
-Please see http://plugins.nessus.org for more details on how to get a direct plugin feed.
+Makes sure that openvas-fetch is properly configured to receive a direct plugin feed from plugins.openvas.org by attempting to login into the remote server with the username and password obtained with nessus-fetch --register.
+Please see http://plugins.openvas.org for more details on how to get a direct plugin feed.
 
 .TP
 .BI "--plugins-md5"
-Obtains the MD5 of the remote plugin archive. Depending if the user registered or not, the file will be fetched from www.nessus.org or plugins.nessus.org. A file named 'all-2.0.tar.gz.md5' will be created in the current working directory.
+Obtains the MD5 of the remote plugin archive. Depending if the user registered or not, the file will be fetched from www.openvas.org or plugins.openvas.org. A file named 'all-2.0.tar.gz.md5' will be created in the current working directory.
 
 .TP
 .B "--plugins"
-Obtains the newest Nessus plugins from www.nessus.org or plugins.nessus.org, as well as their signature file. The files 'all-2.0.tar.gz' and 'all-2.0.tar.gz.sig' will be created in the current working directory.
+Obtains the newest OpenVAS plugins from www.openvas.org or plugins.openvas.org, as well as their signature file. The files 'all-2.0.tar.gz' and 'all-2.0.tar.gz.sig' will be created in the current working directory.
 
 .TP 
 .B "--url <url> <localfile> [<http_login> <http_password>]
-Retrieves the file located at <url> (ie: http://www.nessus.org/index.html) and stores in in <localfile>. An optional http login and passwords can be provided if the remote server requires Basic authentication.
+Retrieves the file located at <url> (ie: http://www.openvas.org/index.html) and stores in in <localfile>. An optional http login and passwords can be provided if the remote server requires Basic authentication.
 
 
 .SH "PROXY SUPPORT"
@@ -69,13 +69,13 @@ openvas-fetch will not retrieve files bigger than 40MB.
 .SH "SEE ALSO"
 .BR nessus-update-plugins (1)
 
-.SH MORE INFORMATION ABOUT THE NESSUS PROJECT
+.SH MORE INFORMATION ABOUT THE OpenVAS PROJECT
 The canonical place where you will find more information
-about the Nessus project is :
+about the OpenVAS project is :
 
 .RS
 .UR
-http://www.nessus.org/
+http://www.openvas.org/
 .UE
 
 .SH AUTHORS

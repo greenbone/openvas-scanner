@@ -32,10 +32,10 @@ config.status: configure
 clean:
 	dh_testdir
 	dh_testroot
-	touch nessus.tmpl
+	touch openvas.tmpl
 #	[ ! -f Makefile ] || $(MAKE) rootdir=`pwd` make_bindir=`pwd`/bin distclean
 	[ ! -f Makefile ] || $(MAKE) distclean
-	-rm -f bin/nessus*
+	-rm -f bin/openvas*
 	dh_clean build-stamp
 
 install: DH_OPTIONS=
@@ -51,7 +51,7 @@ install: build-stamp
 	  usr/bin/openvas-fetch \
 	  usr/bin/openvas-mkrand \
 	  usr/share/man/man1/openvas-mkcert-client.1 \
-	  usr/share/man/man1/nessus-check-signature.1 \
+	  usr/share/man/man1/openvas-check-signature.1 \
 	  usr/share/man/man1/openvas-mkrand.1 \
 	  usr/share/man/man1/openvas-fetch.1 
 	dh_movefiles --sourcedir=debian/nessus -pnessus-dev \
@@ -62,7 +62,7 @@ install: build-stamp
 	dh_installdirs -pnessus usr/share/pixmaps
 	install -m 640 debian/openvasd.conf $(nesd)/etc/nessus/
 	install -m 640 openvas-services $(nesd)/etc/nessus/
-	install -m 644 debian/nessus.xpm $(nes)/usr/share/pixmaps
+	install -m 644 debian/openvas.xpm $(nes)/usr/share/pixmaps
 	rm -f $(nes)-dev/usr/include/nessus/includes.h
 
 binary: binary-indep binary-arch

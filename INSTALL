@@ -1,4 +1,4 @@
-Installing Nessus :
+Installing OpenVAS :
 
 
 If you are lazy, just type (as root) :
@@ -11,6 +11,6 @@ Then :
 - create a certificate for openvasd, using openvas-mkcert(8)
 - add a user, using openvas-adduser(8)
 - start openvasd (8)
-- start nessus (1) and connect to it, as the username you specified 
+- start openvas (1) and connect to it, as the username you specified 
 
 

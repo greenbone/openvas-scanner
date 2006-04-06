@@ -3,7 +3,7 @@ SESSIONS SAVING
 -------------------------------------------------------------------------------
 
 
-	Starting with Nessus 1.0.4, the experimental "sessions saving"
+	Starting with OpenVAS 1.0.4, the experimental "sessions saving"
 feature has been added.
 
 Why experimental ?
@@ -12,7 +12,7 @@ Why experimental ?
 	Mainly because it has not been tested by many people, so we can
 expect it to generate bugs reports or user panics.
 This feature will be enabled by default at the next major release of 
-Nessus (1.2)
+OpenVAS (1.2)
 
 What is it ?
 ------------
@@ -50,7 +50,7 @@ data saved. Suppose you are testing 200 hosts, 8 hosts at a time,
 and that a power failure occurs when you are testings the hosts
 #100, 101, 102, ... 108. If you ask to openvasd to restore your session,
 you'll test _again_ these eight hosts (but not the 99 hosts that you
-already tested). So, if you only use Nessus to test your localhost,
+already tested). So, if you only use OpenVAS to test your localhost,
 this feature is less interesting.
 
 . If you change your plugin set, then the new tests will be done
@@ -64,7 +64,7 @@ All your report are saved on the server side, in
   ${prefix}/var/nessus/<username>/
 
 But you should not handle the files there directly. Instead, you should use
-the Nessus client to do this job.
+the OpenVAS client to do this job.
 
 
 

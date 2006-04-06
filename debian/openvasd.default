@@ -1,5 +1,5 @@
 # Additional options for the daemon
-# -q prevents Nessus from listing all the plugins it loads
+# -q prevents openvasd from listing all the plugins it loads
 # DAEMONOPTS="-q"
 
 # Time to wait for the daemon to die before restarting it

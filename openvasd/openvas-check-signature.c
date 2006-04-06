@@ -207,7 +207,7 @@ int main(int argc, char ** argv)
  int do_sign = 0; 
  if ( argc != 3 )
  {
-  fprintf(stderr, "Usage: nessus-check-signature [-S] filename [signaturefile]\n");
+  fprintf(stderr, "Usage: openvas-check-signature [-S] filename [signaturefile]\n");
   exit(1);
  }
 
@@ -234,7 +234,7 @@ int main(int argc, char ** argv)
 #else
 int main()
 {
- printf("nessus-check-signature: OpenSSL support has been disabled\n");
+ printf("openvas-check-signature: OpenSSL support has been disabled\n");
  exit(0);
 }
 #endif

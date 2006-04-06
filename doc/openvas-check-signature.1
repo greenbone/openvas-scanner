@@ -1,23 +1,23 @@
-.TH NESSUS 1 "February 2005" "The Nessus Project" "Users Manuals"
+.TH OpenVAS 1 "February 2005" "The OpenVAS Project" "Users Manuals"
 .SH NAME
-nessus-check-signature \- A simple utility to check (or generate) the signature of plugins retrieved from www.nessus.org
+openvas-check-signature \- A simple utility to check (or generate) the signature of plugins retrieved from www.openvas.org
 .SH SYNOPSIS
-.B nessus-check-signature [-S] filename [signaturefile]
+.B openvas-check-signature [-S] filename [signaturefile]
 .P
 
 .SH DESCRIPTION
-.B nessus-check-signature
+.B openvas-check-signature
 is a simple utility used by 
 .B nessus-update-plugins
-to check the signatures of the Nessus plugins downloaded from 
-www.nessus.org. When executed and provided both an archive and a
+to check the signatures of the OpenVAS plugins downloaded from 
+www.openvas.org. When executed and provided both an archive and a
 signaturefile it will verify if the file matches the signature 
 and if the signature matches the 
-.B nessus_org.pem
+.B openvas_org.pem
 certificate.
 
 It can also generate the signatures for the plugins distributed by
-www.nessus.org but you will, obviously, need the private certificate
+www.openvas.org but you will, obviously, need the private certificate
 file to do so. You can, however, customise the code to use an
 alternate certificate file and generate plugins distributions files for
 third party servers.
@@ -27,19 +27,19 @@ third party servers.
 .TP
 .BI -S
 Sign the archive instead of checking the signature. 
-.B nessus-check-signature
+.B openvas-check-signature
 will check for the private certificate key
-.B nessus_org.priv.pem
+.B openvas_org.priv.pem
 and will generate a \fB.sig\fR file with the file signature.
 
 .SH EXAMPLE
-To check the signature for all the plugins downloaded from the Nessus
+To check the signature for all the plugins downloaded from the OpenVAS
 servers use:
 
-.B nessus-check-signature all-2.0.tar.gz all-2.0.sig
+.B openvas-check-signature all-2.0.tar.gz all-2.0.sig
 
 .SH EXIT VALUES
-.B nessus-check-signature
+.B openvas-check-signature
 will return with a 0 value if the signature matches and will return
 with an error value (1) if the signature does not match or if any
 other error is found.
@@ -47,17 +47,17 @@ other error is found.
 .SH "SEE ALSO"
 .BR nessus-update-plugins (1), openvas-fetch (1)
 
-.SH MORE INFORMATION ABOUT THE NESSUS PROJECT
+.SH MORE INFORMATION ABOUT THE OpenVAS PROJECT
 The canonical place where you will find more information
-about the Nessus project is :
+about the OpenVAS project is :
 
 .RS
 .UR
-http://www.nessus.org/
+http://www.openvas.org/
 .UE
 
 .SH AUTHORS
-nessus-check-signature is (C) 2004 Tenable Network Security
+openvas-check-signature is (C) 2004 Tenable Network Security
 .PP
 This manpage was written by Javier Fernandez-Sanguino for the Debian
 distribution, and is distributed under the GPL.
