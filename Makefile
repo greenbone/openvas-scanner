@@ -29,8 +29,6 @@ install-bin:
 		$(INSTALL_DIR) -m $(PLUGINSDIRMODE) $(DESTDIR)${NESSUSD_DATADIR}
 	test -d $(DESTDIR)$(NESSUSD_PLUGINS) || \
 		$(INSTALL_DIR) -m $(PLUGINSDIRMODE) $(DESTDIR)$(NESSUSD_PLUGINS)
-	test -d $(DESTDIR)${includedir} || $(INSTALL_DIR) -m 755 $(DESTDIR)${includedir}
-	test -d $(DESTDIR)${includedir}/nessus || $(INSTALL_DIR) -m 755 $(DESTDIR)${includedir}/nessus
 	test -d $(DESTDIR)${localstatedir} || $(INSTALL_DIR) -m 755 $(DESTDIR)${localstatedir}
 	test -d $(DESTDIR)${NESSUSD_STATEDIR} || $(INSTALL_DIR) -m 755 $(DESTDIR)${NESSUSD_STATEDIR}
 	test -d $(DESTDIR)${NESSUSD_STATEDIR}/users || $(INSTALL_DIR) -m 755 $(DESTDIR)${NESSUSD_STATEDIR}/users
@@ -39,15 +37,6 @@ install-bin:
 	test -d $(DESTDIR)${NESSUSD_STATEDIR}/jobs  || $(INSTALL_DIR) -m 755 $(DESTDIR)${NESSUSD_STATEDIR}/jobs
 	test -d $(DESTDIR)${NESSUSD_LOGDIR} || $(INSTALL_DIR) -m 755 $(DESTDIR)${NESSUSD_LOGDIR}
 	$(INSTALL) -c -m 0444 openvas-services $(DESTDIR)${NESSUSD_STATEDIR}/
-	$(INSTALL) -c -m 0444 include/config.h $(DESTDIR)${includedir}/nessus
-	$(INSTALL) -c -m 0444 include/ntcompat.h $(DESTDIR)${includedir}/nessus
-	$(INSTALL) -c -m 0444 include/includes.h $(DESTDIR)${includedir}/nessus
-	$(INSTALL) -c -m 0444 include/nessus-devel.h $(DESTDIR)${includedir}/nessus
-	$(INSTALL) -c -m 0444 include/nessusraw.h $(DESTDIR)${includedir}/nessus
-	$(INSTALL) -c -m 0444 include/nessusip.h $(DESTDIR)${includedir}/nessus
-	$(INSTALL) -c -m 0444 include/nessusicmp.h $(DESTDIR)${includedir}/nessus
-	$(INSTALL) -c -m 0444 include/nessustcp.h $(DESTDIR)${includedir}/nessus
-	$(INSTALL) -c -m 0444 include/nessusudp.h $(DESTDIR)${includedir}/nessus
 	$(INSTALL) -m 755 nessus-fetch/openvas-fetch $(DESTDIR)${bindir}
 	$(INSTALL) -m 755 openvas-adduser $(DESTDIR)${sbindir}
 	$(INSTALL) -m 755 openvas-rmuser $(DESTDIR)${sbindir}
