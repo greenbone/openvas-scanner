@@ -20,7 +20,7 @@
  * 
  *
  *
- * openvas-fetch is a simple utility to retrieve Nessus plugins from plugins.openvas.org
+ * openvas-fetch is a simple utility to retrieve OpenVAS plugins from plugins.openvas.org
  * $Id$
  */
 #include <includes.h>
@@ -580,7 +580,7 @@ Connection: Close\r\n\
 Host: %s\r\n\
 Pragma: no-cache\r\n\
 User-Agent: %s\r\n\
-X-Nessus: %s\r\n\
+X-OpenVAS: %s\r\n\
 %s%sAccept: image/gif, image/x-xbitmap, image/jpeg, image/pjpeg, image/png, */*\r\n\
 Accept-Language: en\r\n\
 Accept-Charset: iso-8859-1,*,utf-8\r\n\r\n",
@@ -630,24 +630,24 @@ static void update_plugins(int argc, char ** argv)
 {
  char * ptr;
  char path[1024];
- char * my_argv[] = { "nessus-update-plugins", NULL };
+ char * my_argv[] = { "openvas-update-plugins", NULL };
  pid_t pid;
  int e;
 
  printf("Now fetching the newest plugin set from %s...\n", PLUGINS_OPENVAS_ORG);
 
- ptr = find_in_path("nessus-update-plugins", 0);
+ ptr = find_in_path("openvas-update-plugins", 0);
  if ( ptr == NULL )
  {
-  strncpy(path, argv[0], sizeof(path) - strlen("nessus-update-plugins") );
-  path[sizeof(path) - strlen("nessus-update-plugins") ] = '\0';
+  strncpy(path, argv[0], sizeof(path) - strlen("openvas-update-plugins") );
+  path[sizeof(path) - strlen("openvas-update-plugins") ] = '\0';
   if ( path[0] == '/' ) 
 	{
 	 ptr = strstr(path, "/bin/");
 	 if ( ptr != NULL )
          {
 	  ptr[0] = '\0';
-	  strncat(path, "/sbin/nessus-update-plugins", sizeof(path) - strlen(path) - 1);
+	  strncat(path, "/sbin/openvas-update-plugins", sizeof(path) - strlen(path) - 1);
 	  path[sizeof(path) - 1] = '\0';
 	  ptr = &(path[0]);
          }
@@ -656,13 +656,13 @@ static void update_plugins(int argc, char ** argv)
  }
  else 
   {
-  snprintf(path, sizeof(path), "%s/nessus-update-plugins", ptr);
+  snprintf(path, sizeof(path), "%s/openvas-update-plugins", ptr);
   ptr = &(path[0]);
   }
 
  if ( ptr == NULL )
  {
-  fprintf(stderr, "nessus-update-plugins could not be found in your $PATH\n");
+  fprintf(stderr, "openvas-update-plugins could not be found in your $PATH\n");
   exit(1);
  }
  pid = fork();
@@ -683,7 +683,7 @@ static void update_plugins(int argc, char ** argv)
     } while ( e < 0 && errno == EINTR );
 
  
- printf("Your Nessus installation is now up-to-date.\nMake sure to call regularly use the command 'nessus-update-plugins' to stay up-to-date\n");
+ printf("Your OpenVAS installation is now up-to-date.\nMake sure to call regularly use the command 'openvas-update-plugins' to stay up-to-date\n");
  printf("To automate the update process, please visit <http://www.openvas.org/documentation/index.php?doc=cron>\n");
  printf("\n");
  

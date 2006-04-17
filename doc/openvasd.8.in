@@ -1,4 +1,4 @@
-.TH NESSUSD 8 "February 2004" "The OpenVAS Project" "User Manuals"
+.TH OpenVASD 8 "February 2004" "The OpenVAS Project" "User Manuals"
 .SH NAME
 openvasd \- The server part of the OpenVAS Security Scanner
 .SH SYNOPSIS
@@ -320,7 +320,7 @@ to be transfered significantly.
 .SH SEE ALSO
 .BR openvas (1),\  openvas-adduser (8),\  openvas-rmuser (8),\  openvas-mkcert (8)
 
-.SH MORE INFORMATION ABOUT THE NESSUS PROJECT
+.SH MORE INFORMATION ABOUT THE OpenVAS PROJECT
 
 The canonical places where you will find more information 
 about the OpenVAS project are: 

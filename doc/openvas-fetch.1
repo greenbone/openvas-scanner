@@ -16,7 +16,7 @@ openvas-fetch \- A simple utility to retrieve plugins from www.openvas.org
 .SH DESCRIPTION
 .B openvas-fetch
 is a simple utility is used by 
-.B nessus-update-plugins
+.B openvas-update-plugins
 to fetch the newest OpenVAS plugins from www.openvas.org and to register a OpenVAS installation with plugins.openvas.org. It can also be used to retrieve arbitrary files from third party servers.
 
 
@@ -29,7 +29,7 @@ is required. Please see http://plugins.openvas.org for more details on how to ge
 
 .TP
 .BI "--check "
-Makes sure that openvas-fetch is properly configured to receive a direct plugin feed from plugins.openvas.org by attempting to login into the remote server with the username and password obtained with nessus-fetch --register.
+Makes sure that openvas-fetch is properly configured to receive a direct plugin feed from plugins.openvas.org by attempting to login into the remote server with the username and password obtained with openvas-fetch --register.
 Please see http://plugins.openvas.org for more details on how to get a direct plugin feed.
 
 .TP
@@ -67,7 +67,7 @@ proxy_password=s3cr3t
 openvas-fetch will not retrieve files bigger than 40MB.
 
 .SH "SEE ALSO"
-.BR nessus-update-plugins (1)
+.BR openvas-update-plugins (1)
 
 .SH MORE INFORMATION ABOUT THE OpenVAS PROJECT
 The canonical place where you will find more information

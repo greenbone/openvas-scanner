@@ -18,7 +18,7 @@ What is it ?
 ------------
 
 	"Session savings" allows you to make an audit without fearing
-any problems (power outage, crash of the nessus client, and so on...),
+any problems (power outage, crash of the openvas client, and so on...),
 because if any problem occurs, you know that you can reboot your server
 and continue the test where you left it (nearly - see the limitations for
 details).
