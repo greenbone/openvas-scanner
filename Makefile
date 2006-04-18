@@ -12,7 +12,7 @@ openvas.tmpl: openvas.tmpl.in configure VERSION
 install: all install-bin install-man
 	@echo
 	@echo ' --------------------------------------------------------------'
-	@echo ' openvas-core has been sucessfully installed. '
+	@echo ' openvas-server has been sucessfully installed. '
 	@echo " Make sure that $(bindir) and $(sbindir) are in your PATH before"
 	@echo " you continue."
 	@echo " openvasd has been installed into $(sbindir)"
@@ -24,7 +24,7 @@ install-bin:
 	$(INSTALL) -m $(SERVERMODE)  ${make_bindir}/openvasd $(DESTDIR)${sbindir}
 	$(INSTALL) -m $(SERVERMODE) ${make_bindir}/openvas-check-signature $(DESTDIR)${sbindir}
 	test -d $(DESTDIR)${sysconfdir} || $(INSTALL_DIR) -m 755 $(DESTDIR)${sysconfdir}
-	test -d $(DESTDIR)${sysconfdir}/nessus || $(INSTALL_DIR) -m 755 $(DESTDIR)${sysconfdir}/nessus	
+	test -d $(DESTDIR)${sysconfdir}/openvas || $(INSTALL_DIR) -m 755 $(DESTDIR)${sysconfdir}/openvas	
 	test -d $(DESTDIR)${NESSUSD_DATADIR} || \
 		$(INSTALL_DIR) -m $(PLUGINSDIRMODE) $(DESTDIR)${NESSUSD_DATADIR}
 	test -d $(DESTDIR)$(NESSUSD_PLUGINS) || \
@@ -37,7 +37,7 @@ install-bin:
 	test -d $(DESTDIR)${NESSUSD_STATEDIR}/jobs  || $(INSTALL_DIR) -m 755 $(DESTDIR)${NESSUSD_STATEDIR}/jobs
 	test -d $(DESTDIR)${NESSUSD_LOGDIR} || $(INSTALL_DIR) -m 755 $(DESTDIR)${NESSUSD_LOGDIR}
 	$(INSTALL) -c -m 0444 openvas-services $(DESTDIR)${NESSUSD_STATEDIR}/
-	$(INSTALL) -m 755 nessus-fetch/openvas-fetch $(DESTDIR)${bindir}
+	$(INSTALL) -m 755 openvas-fetch/openvas-fetch $(DESTDIR)${bindir}
 	$(INSTALL) -m 755 openvas-adduser $(DESTDIR)${sbindir}
 	$(INSTALL) -m 755 openvas-rmuser $(DESTDIR)${sbindir}
 	$(INSTALL) -m 755 openvas-mkcert $(DESTDIR)${sbindir}
@@ -61,14 +61,14 @@ install-man:
 	$(INSTALL) -c -m 0444 doc/openvas-mkrand.1 $(DESTDIR)${mandir}/man1/openvas-mkrand.1
 
 server : 
-	cd nessusd && $(MAKE)
+	cd openvasd && $(MAKE)
 
 sslstuff : 
 	cd ssl && $(MAKE)
 
 
 fetchtool:
-	cd nessus-fetch && $(MAKE)
+	cd openvas-fetch && $(MAKE)
 
 
 doc : $(MAN_NESSUSD_8)
@@ -78,29 +78,29 @@ $(MAN_NESSUSD_8) : $(MAN_NESSUSD_8).in
 
 
 clean:
-	cd nessus-fetch && $(MAKE) clean
-	cd nessusd && $(MAKE) clean
+	cd openvas-fetch && $(MAKE) clean
+	cd openvasd && $(MAKE) clean
 	cd ssl && $(MAKE) clean
 
 distclean: clean
 	[ -z "${rootdir}" ] || rm -f ${rootdir}/include/config.h ${rootdir}/include/corevers.h 
-	rm -f openvas.tmpl doc/nessus.1.cat doc/openvasd.8.cat
-	[ -z "${make_bindir}" ] || rm -f $(make_bindir)/nessus* 
+	rm -f openvas.tmpl doc/openvas.1.cat doc/openvasd.8.cat
+	[ -z "${make_bindir}" ] || rm -f $(make_bindir)/openvas* 
 	rm -f libtool config.cache config.status config.log 
 	rm -f openvas-adduser
 	rm -f openvas-rmuser
 	rm -f openvas-mkcert
 	rm -f openvas-mkcert-client
-	rm -f nessus-install-cert
+	rm -f openvas-install-cert
 	[ -z "${MAN_NESSUSD_8}" ] || rm -f ${MAN_NESSUSD_8} 
 
 dist:
 	version="`date +%Y%m%d`"; \
 	cd ..; \
-	tar cf openvas-core-$${version}.tar \
-		`cat openvas-core/MANIFEST | sed 's/^/openvas-core\//'`; \
-	rm -f openvas-core-$${version}.tar.gz; \
-	gzip -9 openvas-core-$${version}.tar
+	tar cf openvas-server-$${version}.tar \
+		`cat openvas-server/MANIFEST | sed 's/^/openvas-server\//'`; \
+	rm -f openvas-server-$${version}.tar.gz; \
+	gzip -9 openvas-server-$${version}.tar
 
 distcheck:
 	find . -type f | sed -e 's/^.\///' -e '/~$$/d' -e '/CVS/d' \
