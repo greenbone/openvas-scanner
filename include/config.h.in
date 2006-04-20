@@ -181,19 +181,6 @@
  */
 #undef BSD_BYTE_ORDERING
 
-
-/*
- * NESSUS CLIENT SPECIFIC CONFIGURATION
- */
- 
-/*
- * How long before closing the 
- * connection to the server if
- * it stays mute ?
- */
-#define SERVER_TIMEOUT 800
- 
-
 /*
  * STOP ! Don't edit anything after this line !
  */
