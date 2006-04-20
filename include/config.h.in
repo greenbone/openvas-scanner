@@ -187,11 +187,6 @@
  */
  
 /*
- * Build the client with GTK?
- */
-#undef USE_GTK
-
-/*
  * How long before closing the 
  * connection to the server if
  * it stays mute ?
