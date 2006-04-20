@@ -973,7 +973,7 @@ void check_subscription()
 	}
   if (strstr(result, SUCCESS_MSG) != NULL )
   {
-   fprintf(stderr, "openvas-fetch is properly configured to receive a direct plugin feed\n");
+   fprintf(stderr, "openvas-fetch is properly configured to receive a plugin feed\n");
    exit(0);
   }
   else if ( strstr(result, ERROR_PREFIX ) != NULL )
@@ -984,7 +984,7 @@ void check_subscription()
   }
  }
  else {
-   fprintf(stderr, "openvas-fetch is not configured to receive a direct plugin feed\n");
+   fprintf(stderr, "openvas-fetch is not configured to receive a plugin feed\n");
    exit(1);
    }
  
