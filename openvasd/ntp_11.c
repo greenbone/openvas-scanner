@@ -23,7 +23,7 @@
 #include <includes.h>
 #include <corevers.h>
 #ifdef USE_AF_UNIX
-#undef NESSUS_ON_SSL
+#undef OPENVAS_ON_SSL
 #endif
 
 
@@ -122,8 +122,8 @@ int ntp_11_parse_input(globals, input)
 	efree(&orig);
 	return 1;
 	}
-  if(!strcmp(input, "NESSUS_VERSION")) {
-	auth_printf(globals, "SERVER <|> NESSUS_VERSION <|> %s <|> SERVER\n", NESSUS_VERSION);
+  if(!strcmp(input, "OPENVAS_VERSION")) {
+	auth_printf(globals, "SERVER <|> OPENVAS_VERSION <|> %s <|> SERVER\n", OPENVAS_VERSION);
 	return 1;
 	}
   if(!strcmp(input, "ATTACHED_FILE")) {
@@ -291,7 +291,7 @@ ntp_11_read_prefs(globals)
  input = emalloc(input_sz);
  for (;;) {
    input[0] = '\0';
-#if defined NESSUS_ON_SSL && DEBUG_SSL > 2
+#if defined OPENVAS_ON_SSL && DEBUG_SSL > 2
    fprintf(stderr, "ntp_11_read_prefs > soc=%d\n", soc);
 #endif
    n = recv_line (soc, input, input_sz - 1);

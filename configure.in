@@ -18,10 +18,10 @@ AC_REVISION($Revision$)dnl
 dnl version stuff -- jordan
 save_IFS="${IFS}"
 IFS=.
-read NESSUS_MAJOR NESSUS_MINOR NESSUS_PATCH NESSUS_RC <VERSION
+read OPENVAS_MAJOR OPENVAS_MINOR OPENVAS_PATCH OPENVAS_RC <VERSION
 IFS="${save_IFS}"
-NESSUS_DATE=\"`date '+%b %d, %Y'`\"
-expr 0 + $NESSUS_MAJOR + $NESSUS_MINOR + $NESSUS_PATCH + 0 >/dev/null ||
+OPENVAS_DATE=\"`date '+%b %d, %Y'`\"
+expr 0 + $OPENVAS_MAJOR + $OPENVAS_MINOR + $OPENVAS_PATCH + 0 >/dev/null ||
 AC_MSG_ERROR([ *** Panic: Corrupt version file])
 
 test "x$prefix" != "xNONE" || prefix=/usr/local
@@ -96,9 +96,9 @@ AC_ARG_ENABLE(tcpwrappers,[  --enable-tcpwrappers	  use the libwrap.a library],
 
 
 
-AC_PATH_PROG(NESSUSCONFIG, nessus-config,,$XPATH)
+AC_PATH_PROG(OPENVASCONFIG, nessus-config,,$XPATH)
 
-test "x$NESSUSCONFIG" = x && AC_ERROR(""
+test "x$OPENVASCONFIG" = x && AC_ERROR(""
 ""
 "*** nessus-libraries is not installed ! You need to install it before you"
 "compile openvas-core."
@@ -127,10 +127,10 @@ test "x$enable_unix_socket" != "x" -a "x$enable_unix_socket" != "xyes" &&
 
 
 dnl only vanilla sed can handle long substitution lines
-NESSCFLAGS="`$NESSUSCONFIG --cflags`"
+OVSCFLAGS="`$OPENVASCONFIG --cflags`"
 NASLCFLAGS="`$NASLCONFIG --cflags`"
 
-egdpath="`$NESSUSCONFIG --egd`"
+egdpath="`$OPENVASCONFIG --egd`"
 dnl Check if we are running arm, if so, remove all -OX flags
 dnl (since optimisation does not work on arm... yet, jfs)
 dnl Note: the three [ are needed since autoconf somehow strips [[ to [
@@ -138,7 +138,7 @@ if test "x$host_cpu" = "xarm"; then
 	CFLAGS="`echo $CFLAGS | sed 's/-O[[[:digit:]]]//g' `"
 fi
 saveCFLAGS="$CFLAGS"
-CFLAGS="$CFLAGS $NESSCFLAGS $NASLCFLAGS"
+CFLAGS="$CFLAGS $OVSCFLAGS $NASLCFLAGS"
 
 dnl Check for several headers
 AC_HEADER_STDC
@@ -411,7 +411,7 @@ AC_CHECK_LIB(dl, dlopen, [dl_lib="-ldl" ; AC_DEFINE(HAVE_DL_LIB)])
 AC_CHECK_FUNCS(shl_load)
 AC_CHECK_FUNCS(NSCreateObjectFileImageFromFile)
 
-LIBS=`$NESSUSCONFIG --libs`
+LIBS=`$OPENVASCONFIG --libs`
 
 AC_CHECK_LIB(nessus, nessuslib_pthreads_enabled, use_pthreads="-DUSE_PTHREADS -DTHREADS -D_REENTRANT")
 
@@ -482,14 +482,14 @@ dnl end section using pthreads
 }
 
 dnl dnl Our defines
-dnl AC_DEFINE_UNQUOTED(NESS_COMPILER, "`$CC -v 2>&1 | tail -1`")
-dnl AC_DEFINE_UNQUOTED(NESS_OS_NAME, "`uname -s`")
-dnl AC_DEFINE_UNQUOTED(NESS_OS_VERSION, "`uname -r`")
+dnl AC_DEFINE_UNQUOTED(OVS_COMPILER, "`$CC -v 2>&1 | tail -1`")
+dnl AC_DEFINE_UNQUOTED(OVS_OS_NAME, "`uname -s`")
+dnl AC_DEFINE_UNQUOTED(OVS_OS_VERSION, "`uname -r`")
 
 dnl version defines have been extracted to a separate file
-NESS_COMPILER="`$CC -v 2>&1 | tail -1 2>/dev/null`"
-NESS_OS_NAME="`uname -s`"
-NESS_OS_VERSION="`uname -r`"
+OVS_COMPILER="`$CC -v 2>&1 | tail -1 2>/dev/null`"
+OVS_OS_NAME="`uname -s`"
+OVS_OS_VERSION="`uname -r`"
 test "$use_pthreads" = "" && unset pthread_lib
 
 
@@ -621,16 +621,16 @@ dnl AC_CONFIG_SUBDIRS(src/libpcap) -- not used, anymore
 dnl
 dnl Final step : substitute what we want to
 
-NESSUSD_CONFDIR='${sysconfdir}'
-NESSUSD_STATEDIR='${localstatedir}/lib/nessus'
-NESSUSD_PIDDIR='${localstatedir}/run'
-NESSUSD_SHAREDSTATEDIR='${sharedstatedir}/lib/nessus'
-NESSUSD_DATADIR='${sysconfdir}/nessus'
-NESSUSD_LIBDIR='${libdir}/nessus'
-NESSUSD_LOGDIR='${localstatedir}/log/nessus'
+OPENVASD_CONFDIR='${sysconfdir}'
+OPENVASD_STATEDIR='${localstatedir}/lib/nessus'
+OPENVASD_PIDDIR='${localstatedir}/run'
+OPENVASD_SHAREDSTATEDIR='${sharedstatedir}/lib/nessus'
+OPENVASD_DATADIR='${sysconfdir}/nessus'
+OPENVASD_LIBDIR='${libdir}/nessus'
+OPENVASD_LOGDIR='${localstatedir}/log/nessus'
 
-NESSUSD_PLUGINS='${NESSUSD_LIBDIR}/plugins'
-NESSUSD_REPORTS='${NESSUSD_LOGDIR}/reports'
+OPENVASD_PLUGINS='${OPENVASD_LIBDIR}/plugins'
+OPENVASD_REPORTS='${OPENVASD_LOGDIR}/reports'
 
  
 # The following directories are now passed into the compile
@@ -638,43 +638,43 @@ NESSUSD_REPORTS='${NESSUSD_LOGDIR}/reports'
 # Thus we only need to set these once and all the quoting and 
 # everything works okay.
 #
-#AC_DEFINE_UNQUOTED(NESSUSD_CONFDIR,   "${sysconfdir}")
-#AC_DEFINE(NESSUSD_STATEDIR,  "${localstatedir}/nessus'")
-#AC_DEFINE(NESSUSD_DATADIR,   "'${sysconfdir}/nessus")
-#AC_DEFINE(NESSUSD_LIBDIR,    "${libdir}/nessus")
-#AC_DEFINE(NESSUSD_PLUGINS,   "${libdir}/nessus/plugins")
-#AC_DEFINE(NESSUSD_REPORTS,   "${libdir}/nessus/reports")
+#AC_DEFINE_UNQUOTED(OPENVASD_CONFDIR,   "${sysconfdir}")
+#AC_DEFINE(OPENVASD_STATEDIR,  "${localstatedir}/nessus'")
+#AC_DEFINE(OPENVASD_DATADIR,   "'${sysconfdir}/nessus")
+#AC_DEFINE(OPENVASD_LIBDIR,    "${libdir}/nessus")
+#AC_DEFINE(OPENVASD_PLUGINS,   "${libdir}/nessus/plugins")
+#AC_DEFINE(OPENVASD_REPORTS,   "${libdir}/nessus/reports")
 man_nessus_1=doc/nessus.1
 man_openvasd_8=doc/openvasd.8
 
-AC_DEFINE_UNQUOTED(NESSUSD_LANGUAGE,  "${lang}")
+AC_DEFINE_UNQUOTED(OPENVASD_LANGUAGE,  "${lang}")
 
 AC_PATH_PROG(AR, ar)
 AC_SUBST(AR)
 AC_SUBST(PWD)
 AC_SUBST(PWDD)
 AC_SUBST(CFLAGS)
-AC_SUBST(NESSCFLAGS)
+AC_SUBST(OVSCFLAGS)
 AC_SUBST(NASLCFLAGS)
 AC_SUBST(CWALL)
-AC_SUBST(NESSUS_MAJOR)
-AC_SUBST(NESSUS_MINOR)
-AC_SUBST(NESSUS_PATCH)
-AC_SUBST(NESSUS_RC)
-AC_SUBST(NESSUS_DATE)
-AC_SUBST(NESS_COMPILER)
-AC_SUBST(NESS_OS_NAME)
-AC_SUBST(NESS_OS_VERSION)
-AC_SUBST(NESSUSD_CONFDIR)
-AC_SUBST(NESSUSD_STATEDIR)
-AC_SUBST(NESSUSD_PIDDIR)
-AC_SUBST(NESSUSD_SHAREDSTATEDIR)
-AC_SUBST(NESSUSD_DATADIR)
-AC_SUBST(NESSUSD_LIBDIR)
-AC_SUBST(NESSUSD_PLUGINS)
-AC_SUBST(NESSUSD_LOGDIR)
-AC_SUBST(NESSUSD_REPORTS)
-AC_SUBST(NESSUSD_LOGDIR)
+AC_SUBST(OPENVAS_MAJOR)
+AC_SUBST(OPENVAS_MINOR)
+AC_SUBST(OPENVAS_PATCH)
+AC_SUBST(OPENVAS_RC)
+AC_SUBST(OPENVAS_DATE)
+AC_SUBST(OVS_COMPILER)
+AC_SUBST(OVS_OS_NAME)
+AC_SUBST(OVS_OS_VERSION)
+AC_SUBST(OPENVASD_CONFDIR)
+AC_SUBST(OPENVASD_STATEDIR)
+AC_SUBST(OPENVASD_PIDDIR)
+AC_SUBST(OPENVASD_SHAREDSTATEDIR)
+AC_SUBST(OPENVASD_DATADIR)
+AC_SUBST(OPENVASD_LIBDIR)
+AC_SUBST(OPENVASD_PLUGINS)
+AC_SUBST(OPENVASD_LOGDIR)
+AC_SUBST(OPENVASD_REPORTS)
+AC_SUBST(OPENVASD_LOGDIR)
 AC_SUBST(CWALL)
 AC_SUBST(INSTALL_DIR)
 AC_SUBST(INSTALL)
@@ -696,7 +696,7 @@ AC_SUBST(rpcsvc_lib)
 AC_SUBST(compat_lib)
 AC_SUBST(c_r_lib)
 AC_SUBST(datadir)
-AC_SUBST(NESSUSCONFIG)
+AC_SUBST(OPENVASCONFIG)
 AC_SUBST(NASLCONFIG)
 AC_SUBST(ac_configure_args)
 AC_SUBST(egdpath)

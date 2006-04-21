@@ -39,8 +39,8 @@ user_home(globals)
  if(!user)
   return NULL;
  
- ret = emalloc(strlen(NESSUSD_LOGINS) + strlen(user) + 2);
- sprintf(ret, "%s/%s", NESSUSD_LOGINS, user);
+ ret = emalloc(strlen(OPENVASD_LOGINS) + strlen(user) + 2);
+ sprintf(ret, "%s/%s", OPENVASD_LOGINS, user);
  
  return ret;
 }
@@ -162,8 +162,8 @@ check_user(char * user, char * password, char * dname)
   int	check_pass = 1;
 
 
-#ifdef NESSUS_MAX_USERNAME_LEN
-  if (strlen(user) >=  NESSUS_MAX_USERNAME_LEN)
+#ifdef OPENVAS_MAX_USERNAME_LEN
+  if (strlen(user) >=  OPENVAS_MAX_USERNAME_LEN)
     return BAD_LOGIN_ATTEMPT;
 #endif
 
@@ -183,7 +183,7 @@ check_user(char * user, char * password, char * dname)
   
   if (dname != NULL && *dname != '\0')
     {
-      snprintf(fname, sizeof(fname), "%s/%s/auth/dname", NESSUSD_LOGINS, user);
+      snprintf(fname, sizeof(fname), "%s/%s/auth/dname", OPENVASD_LOGINS, user);
       if ((f = fopen(fname, "r")) == NULL)
 	perror(fname);
       else
@@ -208,7 +208,7 @@ check_user(char * user, char * password, char * dname)
    char orig[255];
    char	*p;
 
-   snprintf(fname, sizeof(fname), "%s/%s/auth/hash", NESSUSD_LOGINS, user);
+   snprintf(fname, sizeof(fname), "%s/%s/auth/hash", OPENVASD_LOGINS, user);
    if ((f = fopen(fname, "r")) != NULL)
      {
        char	seed[512], h1[MD5_DIGEST_LENGTH], h2[MD5_DIGEST_LENGTH];
@@ -259,7 +259,7 @@ check_user(char * user, char * password, char * dname)
      }
    else
      {
-   snprintf(fname, sizeof(fname), "%s/%s/auth/password", NESSUSD_LOGINS, user);
+   snprintf(fname, sizeof(fname), "%s/%s/auth/password", OPENVASD_LOGINS, user);
    if ((f = fopen(fname, "r")) == NULL)
      return BAD_LOGIN_ATTEMPT;
    
@@ -272,7 +272,7 @@ check_user(char * user, char * password, char * dname)
      }
   }
  
- snprintf(fname, sizeof(fname), "%s/%s/auth/rules", NESSUSD_LOGINS, user);
+ snprintf(fname, sizeof(fname), "%s/%s/auth/rules", OPENVASD_LOGINS, user);
  if ((f = fopen(fname, "r")) == NULL)
    perror(fname);
 

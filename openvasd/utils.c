@@ -256,7 +256,7 @@ int
 is_symlink(name)
  char * name;
 {
-#ifndef NESSUSNT
+#ifndef OPENVASNT
  struct stat sb;
  if(stat(name, &sb))return(0);
  return(S_ISLNK(sb.st_mode));
@@ -322,8 +322,8 @@ void
 create_pid_file()
 {
  FILE * f;
- char * fname = malloc(strlen(NESSUSD_PIDDIR) + strlen("/openvasd.pid") + 1);
- strcpy(fname, NESSUSD_PIDDIR);
+ char * fname = malloc(strlen(OPENVASD_PIDDIR) + strlen("/openvasd.pid") + 1);
+ strcpy(fname, OPENVASD_PIDDIR);
  strcat(fname, "/openvasd.pid");
  
  f = fopen(fname, "w");
@@ -341,8 +341,8 @@ fprintf(stderr, "'%s'\n", fname);
 void
 delete_pid_file()
 {
- char * fname = malloc(strlen(NESSUSD_PIDDIR) + strlen("/openvasd.pid") + 1);
- strcpy(fname, NESSUSD_PIDDIR);
+ char * fname = malloc(strlen(OPENVASD_PIDDIR) + strlen("/openvasd.pid") + 1);
+ strcpy(fname, OPENVASD_PIDDIR);
  strcat(fname, "/openvasd.pid");
  unlink(fname);
  free(fname);
@@ -357,16 +357,16 @@ delete_pid_file()
 char*
 temp_file_name()
 {
- char* ret = emalloc(strlen(NESSUSD_STATEDIR)+ strlen("tmp/") + strlen("tmp") + 40);
+ char* ret = emalloc(strlen(OPENVASD_STATEDIR)+ strlen("tmp/") + strlen("tmp") + 40);
  int fd = - 1;
  do {
  if(fd > 0){
  	if(close(fd) < 0)
 	 perror("close ");
 	}
- sprintf(ret, "%s/tmp", NESSUSD_STATEDIR);
+ sprintf(ret, "%s/tmp", OPENVASD_STATEDIR);
  mkdir(ret, 0700);
- sprintf(ret, "%s/tmp/tmp.%d-%d", NESSUSD_STATEDIR, getpid(), rand()%1024);
+ sprintf(ret, "%s/tmp/tmp.%d-%d", OPENVASD_STATEDIR, getpid(), rand()%1024);
  fd = open(ret, O_RDONLY);
  } 
   while (fd >= 0);

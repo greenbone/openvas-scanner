@@ -44,7 +44,7 @@
 #ifndef USE_AF_UNIX
 #define USE_AF_INET
 #else
-/* #undef NESSUS_ON_SSL */
+/* #undef OPENVAS_ON_SSL */
 #endif
 
 /* AF_UNIX socket path (if you want to use AF_UNIX sockets) */
@@ -66,32 +66,32 @@
 /* #undef ENABLE_PID_STAMP_DEBUGGING */
 
 /*
- * NESSUSD SPECIFIC CONFIGURATION
+ * OPENVASD SPECIFIC CONFIGURATION
  */
 
 
 /* miscellaneous */
-#define NESSUSD_LANGUAGE "english"
-#define NESSUSD_LOGS     NESSUSD_LOGDIR
-#define NESSUSD_LOGINS   NESSUSD_STATEDIR "/users"
-#define NESSUSD_JOBS	NESSUSD_STATEDIR  "/jobs"
-#define NESSUSD_CERTS	NESSUSD_STATEDIR "/certs"
+#define OPENVASD_LANGUAGE "english"
+#define OPENVASD_LOGS     OPENVASD_LOGDIR
+#define OPENVASD_LOGINS   OPENVASD_STATEDIR "/users"
+#define OPENVASD_JOBS	OPENVASD_STATEDIR  "/jobs"
+#define OPENVASD_CERTS	OPENVASD_STATEDIR "/certs"
 
-#define NESSUSD_CA	NESSUSD_SHAREDSTATEDIR "/CA"
+#define OPENVASD_CA	OPENVASD_SHAREDSTATEDIR "/CA"
 
 
 
 
 /* derived entries */
-#define NESSUSD_CONF     NESSUSD_CONFDIR  "/nessus/openvasd.conf"
+#define OPENVASD_CONF     OPENVASD_CONFDIR  "/nessus/openvasd.conf"
 
-#define NESSUSD_MESSAGES NESSUSD_LOGS "/openvasd.messages"
-#define NESSUSD_DEBUGMSG NESSUSD_LOGS "/openvasd.dump"
+#define OPENVASD_MESSAGES OPENVASD_LOGS "/openvasd.messages"
+#define OPENVASD_DEBUGMSG OPENVASD_LOGS "/openvasd.dump"
 
 
-#define NESSUSD_DATAPOOL NESSUSD_STATEDIR "-datapool"
-#define NESSUSD_RULES    NESSUSD_DATADIR  "/openvasd.rules"
-#define NESSUSD_USERS    NESSUSD_DATADIR  "/openvasd.users"
+#define OPENVASD_DATAPOOL OPENVASD_STATEDIR "-datapool"
+#define OPENVASD_RULES    OPENVASD_DATADIR  "/openvasd.rules"
+#define OPENVASD_USERS    OPENVASD_DATADIR  "/openvasd.users"
 
 
 
@@ -100,25 +100,25 @@
 #ifdef ENABLE_CRYPTO_LAYER
 
 /* seconds the server waits for the client after authentication */
-#define NESSUSD_NEGOT_TIMEOUT 600 
+#define OPENVASD_NEGOT_TIMEOUT 600 
 
 /* the files, keys are stored in */
-#define NESSUSD_USERKEYS /* logindir */ "~/auth/openvasd.user-keys"
-#define NESSUSD_USERPWDS NESSUSD_DATADIR "/openvasd.user-pwds"
-#define NESSUSD_KEYFILE  NESSUSD_DATADIR "/openvasd.private-keys"
+#define OPENVASD_USERKEYS /* logindir */ "~/auth/openvasd.user-keys"
+#define OPENVASD_USERPWDS OPENVASD_DATADIR "/openvasd.user-pwds"
+#define OPENVASD_KEYFILE  OPENVASD_DATADIR "/openvasd.private-keys"
 
 /* The default server key file and key length */
-#define NESSUSD_KEYLENGTH    1024
-#define NESSUSD_MAXPWDFAIL   5
-#define NESSUSD_USERNAME     "openvasd"
+#define OPENVASD_KEYLENGTH    1024
+#define OPENVASD_MAXPWDFAIL   5
+#define OPENVASD_USERNAME     "openvasd"
 
 /* The default rpc cipher openvasd will be connect to (if any) */
-#define NESSUSD_RPCIPHER     "twofish/ripemd160"
-#define NESSUSD_RPCAUTH_METH  3 /* auth scheme, either 1 or 3 */
+#define OPENVASD_RPCIPHER     "twofish/ripemd160"
+#define OPENVASD_RPCAUTH_METH  3 /* auth scheme, either 1 or 3 */
 
 /* The timeout secs when waiting for a log pipe to be established */
-#define NESSUSD_LOGPIPE     NESSUSD_DATADIR  "/openvasd.logpipe"
-#define NESSUSD_LOGPIPE_TMO 2
+#define OPENVASD_LOGPIPE     OPENVASD_DATADIR  "/openvasd.logpipe"
+#define OPENVASD_LOGPIPE_TMO 2
 
 #endif /* ENABLE_CRYPTO_LAYER */
 
@@ -130,10 +130,10 @@
 #define NESIANA_PORT 1241
 
 /* The max number of client connections/sec */
-#define NESSUSD_CONNECT_RATE 4
+#define OPENVASD_CONNECT_RATE 4
 
-/* Block this many secs if the NESSUSD_CONNECT_RATE was exceeded */
-#define NESSUSD_CONNECT_BLOCKER 2
+/* Block this many secs if the OPENVASD_CONNECT_RATE was exceeded */
+#define OPENVASD_CONNECT_BLOCKER 2
 
 /*
  * How much time before closing
@@ -184,7 +184,7 @@
 
 
 /*
- * NESSUS CLIENT SPECIFIC CONFIGURATION
+ * OPENVAS CLIENT SPECIFIC CONFIGURATION
  */
  
 /*

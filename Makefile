@@ -25,18 +25,18 @@ install-bin:
 	$(INSTALL) -m $(SERVERMODE) ${make_bindir}/openvas-check-signature $(DESTDIR)${sbindir}
 	test -d $(DESTDIR)${sysconfdir} || $(INSTALL_DIR) -m 755 $(DESTDIR)${sysconfdir}
 	test -d $(DESTDIR)${sysconfdir}/openvas || $(INSTALL_DIR) -m 755 $(DESTDIR)${sysconfdir}/openvas	
-	test -d $(DESTDIR)${NESSUSD_DATADIR} || \
-		$(INSTALL_DIR) -m $(PLUGINSDIRMODE) $(DESTDIR)${NESSUSD_DATADIR}
-	test -d $(DESTDIR)$(NESSUSD_PLUGINS) || \
-		$(INSTALL_DIR) -m $(PLUGINSDIRMODE) $(DESTDIR)$(NESSUSD_PLUGINS)
+	test -d $(DESTDIR)${OPENVASD_DATADIR} || \
+		$(INSTALL_DIR) -m $(PLUGINSDIRMODE) $(DESTDIR)${OPENVASD_DATADIR}
+	test -d $(DESTDIR)$(OPENVASD_PLUGINS) || \
+		$(INSTALL_DIR) -m $(PLUGINSDIRMODE) $(DESTDIR)$(OPENVASD_PLUGINS)
 	test -d $(DESTDIR)${localstatedir} || $(INSTALL_DIR) -m 755 $(DESTDIR)${localstatedir}
-	test -d $(DESTDIR)${NESSUSD_STATEDIR} || $(INSTALL_DIR) -m 755 $(DESTDIR)${NESSUSD_STATEDIR}
-	test -d $(DESTDIR)${NESSUSD_STATEDIR}/users || $(INSTALL_DIR) -m 755 $(DESTDIR)${NESSUSD_STATEDIR}/users
-	test -d $(DESTDIR)${NESSUSD_STATEDIR}/logs  || $(INSTALL_DIR) -m 755 $(DESTDIR)${NESSUSD_STATEDIR}/logs
-	test -d $(DESTDIR)${NESSUSD_STATEDIR}/tmp || $(INSTALL_DIR) -m 755 $(DESTDIR)${NESSUSD_STATEDIR}/tmp
-	test -d $(DESTDIR)${NESSUSD_STATEDIR}/jobs  || $(INSTALL_DIR) -m 755 $(DESTDIR)${NESSUSD_STATEDIR}/jobs
-	test -d $(DESTDIR)${NESSUSD_LOGDIR} || $(INSTALL_DIR) -m 755 $(DESTDIR)${NESSUSD_LOGDIR}
-	$(INSTALL) -c -m 0444 openvas-services $(DESTDIR)${NESSUSD_STATEDIR}/
+	test -d $(DESTDIR)${OPENVASD_STATEDIR} || $(INSTALL_DIR) -m 755 $(DESTDIR)${OPENVASD_STATEDIR}
+	test -d $(DESTDIR)${OPENVASD_STATEDIR}/users || $(INSTALL_DIR) -m 755 $(DESTDIR)${OPENVASD_STATEDIR}/users
+	test -d $(DESTDIR)${OPENVASD_STATEDIR}/logs  || $(INSTALL_DIR) -m 755 $(DESTDIR)${OPENVASD_STATEDIR}/logs
+	test -d $(DESTDIR)${OPENVASD_STATEDIR}/tmp || $(INSTALL_DIR) -m 755 $(DESTDIR)${OPENVASD_STATEDIR}/tmp
+	test -d $(DESTDIR)${OPENVASD_STATEDIR}/jobs  || $(INSTALL_DIR) -m 755 $(DESTDIR)${OPENVASD_STATEDIR}/jobs
+	test -d $(DESTDIR)${OPENVASD_LOGDIR} || $(INSTALL_DIR) -m 755 $(DESTDIR)${OPENVASD_LOGDIR}
+	$(INSTALL) -c -m 0444 openvas-services $(DESTDIR)${OPENVASD_STATEDIR}/
 	$(INSTALL) -m 755 openvas-fetch/openvas-fetch $(DESTDIR)${bindir}
 	$(INSTALL) -m 755 openvas-adduser $(DESTDIR)${sbindir}
 	$(INSTALL) -m 755 openvas-rmuser $(DESTDIR)${sbindir}
@@ -52,7 +52,7 @@ install-man:
 
 	$(INSTALL) -c -m 0444 doc/openvas-fetch.1 $(DESTDIR)${mandir}/man1/openvas-fetch.1
 	$(INSTALL) -c -m 0444 doc/openvas-check-signature.1 $(DESTDIR)${mandir}/man1/openvas-check-signature.1
-	$(INSTALL) -c -m 0444 ${MAN_NESSUSD_8} $(DESTDIR)${mandir}/man8/openvasd.8
+	$(INSTALL) -c -m 0444 ${MAN_OPENVASD_8} $(DESTDIR)${mandir}/man8/openvasd.8
 	$(INSTALL) -c -m 0444 doc/openvas-adduser.8 $(DESTDIR)${mandir}/man8/openvas-adduser.8
 	$(INSTALL) -c -m 0444 doc/openvas-rmuser.8 $(DESTDIR)${mandir}/man8/openvas-rmuser.8
 	$(INSTALL) -c -m 0444 doc/openvas-mkcert.8 $(DESTDIR)${mandir}/man8/openvas-mkcert.8
@@ -71,10 +71,10 @@ fetchtool:
 	cd openvas-fetch && $(MAKE)
 
 
-doc : $(MAN_NESSUSD_8)
+doc : $(MAN_OPENVASD_8)
 
-$(MAN_NESSUSD_8) : $(MAN_NESSUSD_8).in
-	@sed -e 's?@NESSUSD_CONFDIR@?${NESSUSD_CONFDIR}?g;s?@NESSUSD_DATADIR@?${NESSUSD_DATADIR}?g;s?@NESSUSD_PLUGINS@?${NESSUSD_PLUGINS}?g;' $(MAN_NESSUSD_8).in  >$(MAN_NESSUSD_8)
+$(MAN_OPENVASD_8) : $(MAN_OPENVASD_8).in
+	@sed -e 's?@OPENVASD_CONFDIR@?${OPENVASD_CONFDIR}?g;s?@OPENVASD_DATADIR@?${OPENVASD_DATADIR}?g;s?@OPENVASD_PLUGINS@?${OPENVASD_PLUGINS}?g;' $(MAN_OPENVASD_8).in  >$(MAN_OPENVASD_8)
 
 
 clean:
@@ -92,7 +92,7 @@ distclean: clean
 	rm -f openvas-mkcert
 	rm -f openvas-mkcert-client
 	rm -f openvas-install-cert
-	[ -z "${MAN_NESSUSD_8}" ] || rm -f ${MAN_NESSUSD_8} 
+	[ -z "${MAN_OPENVASD_8}" ] || rm -f ${MAN_OPENVASD_8} 
 
 dist:
 	version="`date +%Y%m%d`"; \

@@ -33,7 +33,7 @@ rules_get_fname(preferences)
 {
   char * t;
   if((t=arg_get_value(preferences, "rules")))return(t);
-  else return(NESSUSD_RULES);
+  else return(OPENVASD_RULES);
 }
 
 struct nessus_rules *

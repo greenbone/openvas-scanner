@@ -37,7 +37,7 @@
 int generate_signature(char * filename)
 {
  RSA * rsa = NULL;
- FILE * fp = fopen(NESSUSD_STATEDIR "/openvas_org.priv.pem", "r");
+ FILE * fp = fopen(OPENVASD_STATEDIR "/openvas_org.priv.pem", "r");
  unsigned char  * result;
  unsigned int len;
  int i;
@@ -117,7 +117,7 @@ int verify_signature(char * filename, char * signature)
 {
  unsigned char md[SHA_DIGEST_LENGTH+1];
  RSA * rsa = NULL;
- FILE * fp = fopen(NESSUSD_STATEDIR "/openvas_org.pem", "r");
+ FILE * fp = fopen(OPENVASD_STATEDIR "/openvas_org.pem", "r");
 
  char sig[16384];
  unsigned char bin_sig[8192];
@@ -135,7 +135,7 @@ int verify_signature(char * filename, char * signature)
 
  if ( fp == NULL )
  {
-  fprintf(stderr, "Open %s/openvas_org.pem : %s\n", NESSUSD_STATEDIR, strerror(errno));
+  fprintf(stderr, "Open %s/openvas_org.pem : %s\n", OPENVASD_STATEDIR, strerror(errno));
   return -1;
  }
 

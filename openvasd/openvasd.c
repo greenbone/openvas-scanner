@@ -22,7 +22,7 @@
 #include <nasl.h>
 
 #ifdef USE_AF_UNIX
-#undef NESSUS_ON_SSL
+#undef OPENVAS_ON_SSL
 #endif
 
 #ifdef USE_LIBWRAP
@@ -225,7 +225,7 @@ start_daemon_mode
 
   /* provide a dump file to collect stdout and stderr */
   if ((s = arg_get_value (g_preferences, "dumpfile")) == 0)
-    s = NESSUSD_DEBUGMSG ;
+    s = OPENVASD_DEBUGMSG ;
   /* setting "-" denotes terminal mode */
   if (strcmp(s, "-") == 0)
     return;
@@ -308,7 +308,7 @@ sighup(i)
 /*
  * SSL context may be kept once it is inited.
  */
-#ifdef NESSUS_ON_SSL
+#ifdef OPENVAS_ON_SSL
 static SSL_METHOD	*ssl_mt = NULL;
 static SSL_CTX		*ssl_ctx = NULL;
 #endif
@@ -327,7 +327,7 @@ server_thread(globals)
  ntp_caps* caps;
  int e;
  int opt = 1;
-#ifdef NESSUS_ON_SSL
+#ifdef OPENVAS_ON_SSL
  SSL		*ssl = NULL;
  X509		*cert = NULL;
  int 		ret, bad = 0;
@@ -356,7 +356,7 @@ if(preferences_benice(prefs))nice(10);
 #if 1
  /* To let some time to attach a debugger to the child process */
  {
-   char	* p = getenv("NESSUS_WAIT_AFTER_FORK");
+   char	* p = getenv("OPENVAS_WAIT_AFTER_FORK");
    int	x = p == NULL ? 0 : atoi(p);
    if (x > 0)
      fprintf(stderr, "server_thread is starting. Sleeping %d s. PID = %d\n",
@@ -371,7 +371,7 @@ if(preferences_benice(prefs))nice(10);
   */
  close (g_iana_socket);
  
-#ifdef NESSUS_ON_SSL
+#ifdef OPENVAS_ON_SSL
  if (ssl_ctx != NULL)		/* ssl_ver !=  "NONE" */
    {
      if ((ssl = SSL_new(ssl_ctx)) == NULL)
@@ -538,13 +538,13 @@ wait :
 
  /* kill left overs */
  end_daemon_mode();
-#ifndef NESSUSNT
+#ifndef OPENVASNT
  /*arg_free(globals); */
 #endif
  EXIT(0);
 }
 
-#ifdef NESSUS_ON_SSL
+#ifdef OPENVAS_ON_SSL
 static int
 verify_callback(preverify_ok, ctx)
      int		preverify_ok;
@@ -582,7 +582,7 @@ verify_callback(preverify_ok, ctx)
 static void 
 main_loop()
 {
-#ifdef NESSUS_ON_SSL
+#ifdef OPENVAS_ON_SSL
   char		*cert, *key, *passwd, *ca_file, *s, *ssl_ver;
   char		*ssl_cipher_list;
   int		verify_mode;
@@ -601,7 +601,7 @@ main_loop()
 
   nessus_init_random();
 
-#ifdef NESSUS_ON_SSL
+#ifdef OPENVAS_ON_SSL
 #define SSL_VER_DEF_NAME	"TLSv1"
 #define SSL_VER_DEF_METH	TLSv1_server_method
   ssl_ver = preferences_get_string(g_preferences, "ssl_version");
@@ -743,10 +743,10 @@ main_loop()
 	}
     } /* ssl_ver != "NONE" */
      
-#endif /* NESSUS_ON_SSL */
+#endif /* OPENVAS_ON_SSL */
 
 
-  log_write("openvasd %s started\n", NESSUS_FULL_VERSION);
+  log_write("openvasd %s started\n", OPENVAS_FULL_VERSION);
   for(;;)
     {
       int soc;
@@ -772,8 +772,8 @@ main_loop()
 
 	/* did we reach the max nums of connect/secs ? */
 	if (last == now) {
-	  if (++ count > NESSUSD_CONNECT_RATE) {
-	    sleep (NESSUSD_CONNECT_BLOCKER);
+	  if (++ count > OPENVASD_CONNECT_RATE) {
+	    sleep (OPENVASD_CONNECT_BLOCKER);
 	    last = 0 ;
 	  }
 	} else {
@@ -784,7 +784,7 @@ main_loop()
 	if (old_addr != 0) {
 	  /* detect whether sombody logs in more than once in a row */
 	  if (strcmp (old_addr, asciiaddr) == 0 &&
-	      now < last + NESSUSD_CONNECT_RATE) {
+	      now < last + OPENVASD_CONNECT_RATE) {
 	    sleep (1);
 	  }
 	  efree (&old_addr);
@@ -883,7 +883,7 @@ init_network(port, sock, addr)
      int * sock;
      struct in_addr addr;
 {
-#ifndef NESSUSNT
+#ifndef OPENVASNT
   int option = 1;
 #endif
 
@@ -895,7 +895,7 @@ init_network(port, sock, addr)
 #endif
 
 
-#ifdef NESSUSNT
+#ifdef OPENVASNT
     WORD wVersionRequested;
     WSADATA wsaData;
     int err;
@@ -930,7 +930,7 @@ init_network(port, sock, addr)
   unlink(name);
 #endif
 
-#ifndef NESSUSNT
+#ifndef OPENVASNT
   setsockopt(*sock, SOL_SOCKET, SO_REUSEADDR, &option, sizeof(int));
 #endif
   if(bind(*sock, (struct sockaddr *)(&address), sizeof(address))==-1)
@@ -1042,7 +1042,7 @@ display_help
   (char *pname)
 {
 #ifdef USE_AF_INET
-  printf("openvasd, version %s\n", NESSUS_VERSION);
+  printf("openvasd, version %s\n", OPENVAS_VERSION);
   printf("\nusage : openvasd [-vcphdDLCR] [-a address] [ -S <ip[,ip,...]> ]\n\n");
 #else
   printf("\nusage : openvasd [-vchdD]\n\n");
@@ -1055,7 +1055,7 @@ display_help
   printf("\tp <number>     : use port number <number>\n");
 #endif /* USE_AF_INET */
   printf("\tc <filename>   : alternate configuration file to use\n");
-  printf("\t\t\t (default : %s)\n", NESSUSD_CONF);
+  printf("\t\t\t (default : %s)\n", OPENVASD_CONF);
   printf("\tD              : runs in daemon mode\n");
   printf("\td              : dumps the openvasd compilation options\n");
   printf("\tq              : quiet (do not issue any message to stdout)\n");
@@ -1100,7 +1100,7 @@ main(int argc, char * argv[], char * envp[])
  initsetproctitle(argc, argv, envp);
 
   if ((myself = strrchr (*argv, '/')) == 0
-#if defined(NESSUSNT) || defined(_CYGWIN_)
+#if defined(OPENVASNT) || defined(_CYGWIN_)
       && (myself = strrchr (*argv, '\\')) == 0
 #endif
       ) myself = *argv ;
@@ -1114,28 +1114,28 @@ main(int argc, char * argv[], char * envp[])
    */
 
 
-  if(version_check(NESSUS_VERSION, nessuslib_version())>0)
+  if(version_check(OPENVAS_VERSION, nessuslib_version())>0)
   {
   /*
    fprintf(stderr, 
 "Error : we are linked against nessus-libraries %s. \n\
 Install nessus-libraries %s or make sure that\n\
 you have deleted older versions nessus libraries from your system\n",
-	nessuslib_version(), NESSUS_VERSION);
+	nessuslib_version(), OPENVAS_VERSION);
    exit (1);
    */
    fprintf(stderr, "Linked against nessus-libraries %s\n", nessuslib_version());
   }
 
 
-  if(version_check(NESSUS_VERSION, nasl_version())>0)
+  if(version_check(OPENVAS_VERSION, nasl_version())>0)
   {
   /*
    fprintf(stderr, 
 "Error : we are linked against libnasl %s. \n\
 Install libnasl %s or make sure that\n\
 you have deleted older versions of libnasl from your system\n",
-	nasl_version(), NESSUS_VERSION);
+	nasl_version(), OPENVAS_VERSION);
    exit (1);
    */
    fprintf(stderr, "Linked against libnasl %s\n", nasl_version());
@@ -1148,7 +1148,7 @@ you have deleted older versions of libnasl from your system\n",
   /* pull in library symbols - otherwise abort */
   nessuslib_pthreads_enabled ();
 #endif
-#ifndef NESSUSNT
+#ifndef OPENVASNT
 
   for (;;) {
     int option_index = 0;
@@ -1185,7 +1185,7 @@ you have deleted older versions of libnasl from your system\n",
 	  print_specs = 1;
 	  exit_early  = 2; /* no cipher initialization */
 	  {
-	    char *s = getenv ("NESSUSUSER");
+	    char *s = getenv ("OPENVASUSER");
 	    if (s != 0)
 	      arg_add_value(options, "user",ARG_STRING,strlen(s),s);
 	  }
@@ -1220,7 +1220,7 @@ you have deleted older versions of libnasl from your system\n",
 
 	case 'v' :
 	  print_error("openvasd (%s) %s for %s\n(C) 1998 - 2004 Renaud Deraison <deraison@nessus.org>\n\n", 
-		 PROGNAME,NESSUS_VERSION, NESS_OS_NAME);
+		 PROGNAME,OPENVAS_VERSION, OVS_OS_NAME);
 	  DO_EXIT(0);
 	  break;
 	case 'c' : 
@@ -1235,8 +1235,8 @@ you have deleted older versions of libnasl from your system\n",
 	  socket_source_init(src_addrs);
 	  break;
        case 'd' :
-           printf("This is Nessus %s for %s %s\n", NESSUS_VERSION, NESS_OS_NAME, NESS_OS_VERSION);
-           printf("compiled with %s\n", NESS_COMPILER);
+           printf("This is Nessus %s for %s %s\n", OPENVAS_VERSION, OVS_OS_NAME, OVS_OS_VERSION);
+           printf("compiled with %s\n", OVS_COMPILER);
            printf("Current setup :\n");
 	   printf("\tnasl                           : %s\n", nasl_version());
 	   printf("\tlibnessus                      : %s\n", nessuslib_version());
@@ -1247,7 +1247,7 @@ you have deleted older versions of libnasl from your system\n",
 #else
 	   printf("\tSSL support                    : disabled\n");
 #endif
-#ifdef NESSUS_ON_SSL
+#ifdef OPENVAS_ON_SSL
 	   printf("\tSSL is used for client / server communication\n");
 #else
 	   printf("\tClient - Server communication is in CLEAR TEXT!\n");
@@ -1284,8 +1284,8 @@ you have deleted older versions of libnasl from your system\n",
   if(iana_port == -1)iana_port = NESIANA_PORT;
   if(!config_file)
     {
-      config_file = emalloc(strlen(NESSUSD_CONF)+1);
-      strncpy(config_file, NESSUSD_CONF, strlen(NESSUSD_CONF));
+      config_file = emalloc(strlen(OPENVASD_CONF)+1);
+      strncpy(config_file, OPENVASD_CONF, strlen(OPENVASD_CONF));
     }
 
   arg_add_value(options, "iana_port", ARG_INT, sizeof(int), (void *)iana_port);
@@ -1308,7 +1308,7 @@ you have deleted older versions of libnasl from your system\n",
 
   nessus_init_svc();
 
-#ifdef NESSUSNT
+#ifdef OPENVASNT
   /*
    * Just tell to the user that openvasd is running in background
    */

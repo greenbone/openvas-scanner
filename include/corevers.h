@@ -17,13 +17,13 @@
  *
  */
 
-#define NESS_COMPILER   "gcc version 4.0.3 20051023 (prerelease) (Debian 4.0.2-3)"
-#define NESS_OS_NAME    "Linux"
-#define NESS_OS_VERSION "2.6.13"
+#define OVS_COMPILER   "gcc version 4.0.3 20051023 (prerelease) (Debian 4.0.2-3)"
+#define OVS_OS_NAME    "Linux"
+#define OVS_OS_VERSION "2.6.13"
 
 #define PROGNAME        "OpenVAS"
-#define NESSUS_VERSION  "2.2.5"
-#define NESSUS_FULL_VERSION  "2.2.5."
+#define OPENVAS_VERSION  "2.2.5"
+#define OPENVAS_FULL_VERSION  "2.2.5."
 
 #ifndef GTK_VERSION
 #define GTK_VERSION     26

@@ -186,7 +186,7 @@ ntp_caps* comm_init(soc)
   /*ENABLE_CRYPTO_LAYER*/
   else
     {
-#ifndef NESSUS_ON_SSL
+#ifndef OPENVAS_ON_SSL
       shutdown(soc, 2);
 #endif
       EXIT(0);
@@ -452,14 +452,14 @@ comm_send_preferences(globals)
 #ifdef ENABLE_SAVE_TESTS
  auth_printf(globals, "ntp_save_sessions <|> yes\n");
  auth_printf(globals, "ntp_detached_sessions <|> yes\n");
- auth_printf(globals, "server_info_openvasd_version <|> %s\n", NESSUS_VERSION);
+ auth_printf(globals, "server_info_openvasd_version <|> %s\n", OPENVAS_VERSION);
  auth_printf(globals, "server_info_libnasl_version <|> %s\n", nasl_version());
  auth_printf(globals, "server_info_libnessus_version <|> %s\n", nessuslib_version());
 #ifdef USE_FORK_THREADS
   auth_printf(globals, "server_info_thread_manager <|> fork\n");
 #endif
-  auth_printf(globals, "server_info_os <|> %s\n", NESS_OS_NAME);
-  auth_printf(globals, "server_info_os_version <|> %s\n", NESS_OS_VERSION);
+  auth_printf(globals, "server_info_os <|> %s\n", OVS_OS_NAME);
+  auth_printf(globals, "server_info_os_version <|> %s\n", OVS_OS_VERSION);
 #endif
   auth_printf(globals, "<|> SERVER\n");
 }

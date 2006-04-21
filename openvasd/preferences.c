@@ -27,7 +27,7 @@
 #include "hosts_gatherer.h"
 
 #ifdef USE_AF_UNIX
-#undef NESSUS_ON_SSL
+#undef OPENVAS_ON_SSL
 #endif
 
 
@@ -65,7 +65,7 @@ int preferences_new(char * name)
  fprintf(fd, "# Configuration file of the Nessus Security Scanner\n\n\n\n");
  fprintf(fd, "# Every line starting with a '#' is a comment\n\n");
  fprintf(fd, "# Path to the security checks folder : \n");
- fprintf(fd, "plugins_folder = %s\n\n", NESSUSD_PLUGINS);
+ fprintf(fd, "plugins_folder = %s\n\n", OPENVASD_PLUGINS);
  fprintf(fd, "# Maximum number of simultaneous hosts tested : \n");
  fprintf(fd, "max_hosts = 30\n\n");
  fprintf(fd, "# Maximum number of simultaneous checks against each host tested : \n");
@@ -75,17 +75,17 @@ int preferences_new(char * name)
 
 
  fprintf(fd, "# Log file : \n");
- fprintf(fd, "logfile = %s\n\n", NESSUSD_MESSAGES);
+ fprintf(fd, "logfile = %s\n\n", OPENVASD_MESSAGES);
  fprintf(fd, "# Shall we log every details of the attack ?\n");
  fprintf(fd, "log_whole_attack = yes\n\n");
  fprintf(fd, "# Log the name of the plugins that are loaded by the server ?\n");
  fprintf(fd, "log_plugins_name_at_load = no\n\n");
  fprintf(fd, "# Dump file for debugging output, use `-' for stdout\n");
- fprintf(fd, "dumpfile = %s\n\n", NESSUSD_DEBUGMSG);
+ fprintf(fd, "dumpfile = %s\n\n", OPENVASD_DEBUGMSG);
  fprintf(fd, "# Rules file : \n");
- fprintf(fd, "rules = %s\n\n", NESSUSD_RULES);
+ fprintf(fd, "rules = %s\n\n", OPENVASD_RULES);
  fprintf(fd, "# Users database : \n");
- fprintf(fd, "users = %s\n\n", NESSUSD_USERS);
+ fprintf(fd, "users = %s\n\n", OPENVASD_USERS);
  fprintf(fd, "# CGI paths to check for (cgi-bin:/cgi-aws:/ can do)\n");
  fprintf(fd, "cgi_path = /cgi-bin:/scripts\n\n");
  fprintf(fd, "# Range of the ports the port scanners will scan : \n");
@@ -95,7 +95,7 @@ int preferences_new(char * name)
  fprintf(fd, "# Optimize the test (recommanded) : \n");
  fprintf(fd, "optimize_test = yes\n\n");
  fprintf(fd, "# Language of the plugins :\n");
- fprintf(fd, "language = %s\n\n", NESSUSD_LANGUAGE);
+ fprintf(fd, "language = %s\n\n", OPENVASD_LANGUAGE);
 
  fprintf(fd, "\n\n# Optimization : \n");
  fprintf(fd, "# Read timeout for the sockets of the tests : \n");
@@ -169,7 +169,7 @@ int preferences_process(filename,prefs)
       {
         check_symlink(filename);
 	if(!(fd = fopen(filename, "r"))) {
-#ifndef NESSUSNT
+#ifndef OPENVASNT
 	 if(errno == EACCES)
 	 {
 	  print_error(
@@ -924,7 +924,7 @@ preferences_silent_dependencies(preferences)
 }
 
 
-#ifdef NESSUS_ON_SSL
+#ifdef OPENVAS_ON_SSL
 char *
 preferences_get_string(preferences, name)
  struct arglist * preferences;

@@ -311,7 +311,7 @@ ac_includes_default="\
 # include <unistd.h>
 #endif"
 
-ac_subst_vars='SHELL PATH_SEPARATOR PACKAGE_NAME PACKAGE_TARNAME PACKAGE_VERSION PACKAGE_STRING PACKAGE_BUGREPORT exec_prefix prefix program_transform_name bindir sbindir libexecdir datadir sysconfdir sharedstatedir localstatedir libdir includedir oldincludedir infodir mandir build_alias host_alias target_alias DEFS ECHO_C ECHO_N ECHO_T LIBS build build_cpu build_vendor build_os host host_cpu host_vendor host_os CC CFLAGS LDFLAGS CPPFLAGS ac_ct_CC EXEEXT OBJEXT SET_MAKE INSTALL_PROGRAM INSTALL_SCRIPT INSTALL_DATA NESSUSCONFIG NASLCONFIG CPP EGREP ALLOCA X_CFLAGS X_PRE_LIBS X_LIBS X_EXTRA_LIBS AR PWD PWDD NESSCFLAGS NASLCFLAGS CWALL NESSUS_MAJOR NESSUS_MINOR NESSUS_PATCH NESSUS_RC NESSUS_DATE NESS_COMPILER NESS_OS_NAME NESS_OS_VERSION NESSUSD_CONFDIR NESSUSD_STATEDIR NESSUSD_PIDDIR NESSUSD_SHAREDSTATEDIR NESSUSD_DATADIR NESSUSD_LIBDIR NESSUSD_PLUGINS NESSUSD_LOGDIR NESSUSD_REPORTS INSTALL_DIR INSTALL RUN_LIBS resolv_lib socket_lib nsl_lib ssl_lib pthread_lib debug_flags nessus_lib man_nessus_1 man_openvasd_8 dl_lib libwrap uselibwrap client client_install use_pthreads rpcsvc_lib compat_lib c_r_lib ac_configure_args egdpath is_cygwin installuser LIBOBJS LTLIBOBJS'
+ac_subst_vars='SHELL PATH_SEPARATOR PACKAGE_NAME PACKAGE_TARNAME PACKAGE_VERSION PACKAGE_STRING PACKAGE_BUGREPORT exec_prefix prefix program_transform_name bindir sbindir libexecdir datadir sysconfdir sharedstatedir localstatedir libdir includedir oldincludedir infodir mandir build_alias host_alias target_alias DEFS ECHO_C ECHO_N ECHO_T LIBS build build_cpu build_vendor build_os host host_cpu host_vendor host_os CC CFLAGS LDFLAGS CPPFLAGS ac_ct_CC EXEEXT OBJEXT SET_MAKE INSTALL_PROGRAM INSTALL_SCRIPT INSTALL_DATA OPENVASCONFIG NASLCONFIG CPP EGREP ALLOCA X_CFLAGS X_PRE_LIBS X_LIBS X_EXTRA_LIBS AR PWD PWDD OVSCFLAGS NASLCFLAGS CWALL OPENVAS_MAJOR OPENVAS_MINOR OPENVAS_PATCH OPENVAS_RC OPENVAS_DATE OVS_COMPILER OVS_OS_NAME OVS_OS_VERSION OPENVASD_CONFDIR OPENVASD_STATEDIR OPENVASD_PIDDIR OPENVASD_SHAREDSTATEDIR OPENVASD_DATADIR OPENVASD_LIBDIR OPENVASD_PLUGINS OPENVASD_LOGDIR OPENVASD_REPORTS INSTALL_DIR INSTALL RUN_LIBS resolv_lib socket_lib nsl_lib ssl_lib pthread_lib debug_flags nessus_lib man_nessus_1 man_openvasd_8 dl_lib libwrap uselibwrap client client_install use_pthreads rpcsvc_lib compat_lib c_r_lib ac_configure_args egdpath is_cygwin installuser LIBOBJS LTLIBOBJS'
 ac_subst_files=''
 
 # Initialize some variables set by options.
@@ -1312,10 +1312,10 @@ ac_compiler_gnu=$ac_cv_c_compiler_gnu
 
 save_IFS="${IFS}"
 IFS=.
-read NESSUS_MAJOR NESSUS_MINOR NESSUS_PATCH NESSUS_RC <VERSION
+read OPENVAS_MAJOR OPENVAS_MINOR OPENVAS_PATCH OPENVAS_RC <VERSION
 IFS="${save_IFS}"
-NESSUS_DATE=\"`date '+%b %d, %Y'`\"
-expr 0 + $NESSUS_MAJOR + $NESSUS_MINOR + $NESSUS_PATCH + 0 >/dev/null ||
+OPENVAS_DATE=\"`date '+%b %d, %Y'`\"
+expr 0 + $OPENVAS_MAJOR + $OPENVAS_MINOR + $OPENVAS_PATCH + 0 >/dev/null ||
 { { echo "$as_me:$LINENO: error:  *** Panic: Corrupt version file" >&5
 echo "$as_me: error:  *** Panic: Corrupt version file" >&2;}
    { (exit 1); exit 1; }; }
@@ -2525,12 +2525,12 @@ fi;
 set dummy nessus-config; ac_word=$2
 echo "$as_me:$LINENO: checking for $ac_word" >&5
 echo $ECHO_N "checking for $ac_word... $ECHO_C" >&6
-if test "${ac_cv_path_NESSUSCONFIG+set}" = set; then
+if test "${ac_cv_path_OPENVASCONFIG+set}" = set; then
   echo $ECHO_N "(cached) $ECHO_C" >&6
 else
-  case $NESSUSCONFIG in
+  case $OPENVASCONFIG in
   [\\/]* | ?:[\\/]*)
-  ac_cv_path_NESSUSCONFIG="$NESSUSCONFIG" # Let the user override the test with a path.
+  ac_cv_path_OPENVASCONFIG="$OPENVASCONFIG" # Let the user override the test with a path.
   ;;
   *)
   as_save_IFS=$IFS; IFS=$PATH_SEPARATOR
@@ -2540,7 +2540,7 @@ do
   test -z "$as_dir" && as_dir=.
   for ac_exec_ext in '' $ac_executable_extensions; do
   if $as_executable_p "$as_dir/$ac_word$ac_exec_ext"; then
-    ac_cv_path_NESSUSCONFIG="$as_dir/$ac_word$ac_exec_ext"
+    ac_cv_path_OPENVASCONFIG="$as_dir/$ac_word$ac_exec_ext"
     echo "$as_me:$LINENO: found $as_dir/$ac_word$ac_exec_ext" >&5
     break 2
   fi
@@ -2550,18 +2550,18 @@ done
   ;;
 esac
 fi
-NESSUSCONFIG=$ac_cv_path_NESSUSCONFIG
+OPENVASCONFIG=$ac_cv_path_OPENVASCONFIG
 
-if test -n "$NESSUSCONFIG"; then
-  echo "$as_me:$LINENO: result: $NESSUSCONFIG" >&5
-echo "${ECHO_T}$NESSUSCONFIG" >&6
+if test -n "$OPENVASCONFIG"; then
+  echo "$as_me:$LINENO: result: $OPENVASCONFIG" >&5
+echo "${ECHO_T}$OPENVASCONFIG" >&6
 else
   echo "$as_me:$LINENO: result: no" >&5
 echo "${ECHO_T}no" >&6
 fi
 
 
-test "x$NESSUSCONFIG" = x && { { echo "$as_me:$LINENO: error: \"\"
+test "x$OPENVASCONFIG" = x && { { echo "$as_me:$LINENO: error: \"\"
 \"\"
 \"*** nessus-libraries is not installed ! You need to install it before you\"
 \"compile openvas-core.\"
@@ -2649,15 +2649,15 @@ _ACEOF
 
 
 
-NESSCFLAGS="`$NESSUSCONFIG --cflags`"
+OVSCFLAGS="`$OPENVASCONFIG --cflags`"
 NASLCFLAGS="`$NASLCONFIG --cflags`"
 
-egdpath="`$NESSUSCONFIG --egd`"
+egdpath="`$OPENVASCONFIG --egd`"
 if test "x$host_cpu" = "xarm"; then
 	CFLAGS="`echo $CFLAGS | sed 's/-O[[:digit:]]//g' `"
 fi
 saveCFLAGS="$CFLAGS"
-CFLAGS="$CFLAGS $NESSCFLAGS $NASLCFLAGS"
+CFLAGS="$CFLAGS $OVSCFLAGS $NASLCFLAGS"
 
 
 ac_ext=c
@@ -10758,7 +10758,7 @@ fi
 done
 
 
-LIBS=`$NESSUSCONFIG --libs`
+LIBS=`$OPENVASCONFIG --libs`
 
 echo "$as_me:$LINENO: checking for nessuslib_pthreads_enabled in -lnessus" >&5
 echo $ECHO_N "checking for nessuslib_pthreads_enabled in -lnessus... $ECHO_C" >&6
@@ -11724,9 +11724,9 @@ _ACEOF
 }
 
 
-NESS_COMPILER="`$CC -v 2>&1 | tail -1 2>/dev/null`"
-NESS_OS_NAME="`uname -s`"
-NESS_OS_VERSION="`uname -r`"
+OVS_COMPILER="`$CC -v 2>&1 | tail -1 2>/dev/null`"
+OVS_OS_NAME="`uname -s`"
+OVS_OS_VERSION="`uname -r`"
 test "$use_pthreads" = "" && unset pthread_lib
 
 
@@ -12021,16 +12021,16 @@ lang=$enable_language
 CFLAGS="$saveCFLAGS"
 
 
-NESSUSD_CONFDIR='${sysconfdir}'
-NESSUSD_STATEDIR='${localstatedir}/lib/nessus'
-NESSUSD_PIDDIR='${localstatedir}/run'
-NESSUSD_SHAREDSTATEDIR='${sharedstatedir}/lib/nessus'
-NESSUSD_DATADIR='${sysconfdir}/nessus'
-NESSUSD_LIBDIR='${libdir}/nessus'
-NESSUSD_LOGDIR='${localstatedir}/log/nessus'
+OPENVASD_CONFDIR='${sysconfdir}'
+OPENVASD_STATEDIR='${localstatedir}/lib/nessus'
+OPENVASD_PIDDIR='${localstatedir}/run'
+OPENVASD_SHAREDSTATEDIR='${sharedstatedir}/lib/nessus'
+OPENVASD_DATADIR='${sysconfdir}/nessus'
+OPENVASD_LIBDIR='${libdir}/nessus'
+OPENVASD_LOGDIR='${localstatedir}/log/nessus'
 
-NESSUSD_PLUGINS='${NESSUSD_LIBDIR}/plugins'
-NESSUSD_REPORTS='${NESSUSD_LOGDIR}/reports'
+OPENVASD_PLUGINS='${OPENVASD_LIBDIR}/plugins'
+OPENVASD_REPORTS='${OPENVASD_LOGDIR}/reports'
 
 
 # The following directories are now passed into the compile
@@ -12038,17 +12038,17 @@ NESSUSD_REPORTS='${NESSUSD_LOGDIR}/reports'
 # Thus we only need to set these once and all the quoting and
 # everything works okay.
 #
-#AC_DEFINE_UNQUOTED(NESSUSD_CONFDIR,   "${sysconfdir}")
-#AC_DEFINE(NESSUSD_STATEDIR,  "${localstatedir}/nessus'")
-#AC_DEFINE(NESSUSD_DATADIR,   "'${sysconfdir}/nessus")
-#AC_DEFINE(NESSUSD_LIBDIR,    "${libdir}/nessus")
-#AC_DEFINE(NESSUSD_PLUGINS,   "${libdir}/nessus/plugins")
-#AC_DEFINE(NESSUSD_REPORTS,   "${libdir}/nessus/reports")
+#AC_DEFINE_UNQUOTED(OPENVASD_CONFDIR,   "${sysconfdir}")
+#AC_DEFINE(OPENVASD_STATEDIR,  "${localstatedir}/nessus'")
+#AC_DEFINE(OPENVASD_DATADIR,   "'${sysconfdir}/nessus")
+#AC_DEFINE(OPENVASD_LIBDIR,    "${libdir}/nessus")
+#AC_DEFINE(OPENVASD_PLUGINS,   "${libdir}/nessus/plugins")
+#AC_DEFINE(OPENVASD_REPORTS,   "${libdir}/nessus/reports")
 man_nessus_1=doc/nessus.1
 man_openvasd_8=doc/openvasd.8
 
 cat >>confdefs.h <<_ACEOF
-#define NESSUSD_LANGUAGE "${lang}"
+#define OPENVASD_LANGUAGE "${lang}"
 _ACEOF
 
 
@@ -12783,7 +12783,7 @@ s,@SET_MAKE@,$SET_MAKE,;t t
 s,@INSTALL_PROGRAM@,$INSTALL_PROGRAM,;t t
 s,@INSTALL_SCRIPT@,$INSTALL_SCRIPT,;t t
 s,@INSTALL_DATA@,$INSTALL_DATA,;t t
-s,@NESSUSCONFIG@,$NESSUSCONFIG,;t t
+s,@OPENVASCONFIG@,$OPENVASCONFIG,;t t
 s,@NASLCONFIG@,$NASLCONFIG,;t t
 s,@CPP@,$CPP,;t t
 s,@EGREP@,$EGREP,;t t
@@ -12795,26 +12795,26 @@ s,@X_EXTRA_LIBS@,$X_EXTRA_LIBS,;t t
 s,@AR@,$AR,;t t
 s,@PWD@,$PWD,;t t
 s,@PWDD@,$PWDD,;t t
-s,@NESSCFLAGS@,$NESSCFLAGS,;t t
+s,@OVSCFLAGS@,$OVSCFLAGS,;t t
 s,@NASLCFLAGS@,$NASLCFLAGS,;t t
 s,@CWALL@,$CWALL,;t t
-s,@NESSUS_MAJOR@,$NESSUS_MAJOR,;t t
-s,@NESSUS_MINOR@,$NESSUS_MINOR,;t t
-s,@NESSUS_PATCH@,$NESSUS_PATCH,;t t
-s,@NESSUS_RC@,$NESSUS_RC,;t t
-s,@NESSUS_DATE@,$NESSUS_DATE,;t t
-s,@NESS_COMPILER@,$NESS_COMPILER,;t t
-s,@NESS_OS_NAME@,$NESS_OS_NAME,;t t
-s,@NESS_OS_VERSION@,$NESS_OS_VERSION,;t t
-s,@NESSUSD_CONFDIR@,$NESSUSD_CONFDIR,;t t
-s,@NESSUSD_STATEDIR@,$NESSUSD_STATEDIR,;t t
-s,@NESSUSD_PIDDIR@,$NESSUSD_PIDDIR,;t t
-s,@NESSUSD_SHAREDSTATEDIR@,$NESSUSD_SHAREDSTATEDIR,;t t
-s,@NESSUSD_DATADIR@,$NESSUSD_DATADIR,;t t
-s,@NESSUSD_LIBDIR@,$NESSUSD_LIBDIR,;t t
-s,@NESSUSD_PLUGINS@,$NESSUSD_PLUGINS,;t t
-s,@NESSUSD_LOGDIR@,$NESSUSD_LOGDIR,;t t
-s,@NESSUSD_REPORTS@,$NESSUSD_REPORTS,;t t
+s,@OPENVAS_MAJOR@,$OPENVAS_MAJOR,;t t
+s,@OPENVAS_MINOR@,$OPENVAS_MINOR,;t t
+s,@OPENVAS_PATCH@,$OPENVAS_PATCH,;t t
+s,@OPENVAS_RC@,$OPENVAS_RC,;t t
+s,@OPENVAS_DATE@,$OPENVAS_DATE,;t t
+s,@OVS_COMPILER@,$OVS_COMPILER,;t t
+s,@OVS_OS_NAME@,$OVS_OS_NAME,;t t
+s,@OVS_OS_VERSION@,$OVS_OS_VERSION,;t t
+s,@OPENVASD_CONFDIR@,$OPENVASD_CONFDIR,;t t
+s,@OPENVASD_STATEDIR@,$OPENVASD_STATEDIR,;t t
+s,@OPENVASD_PIDDIR@,$OPENVASD_PIDDIR,;t t
+s,@OPENVASD_SHAREDSTATEDIR@,$OPENVASD_SHAREDSTATEDIR,;t t
+s,@OPENVASD_DATADIR@,$OPENVASD_DATADIR,;t t
+s,@OPENVASD_LIBDIR@,$OPENVASD_LIBDIR,;t t
+s,@OPENVASD_PLUGINS@,$OPENVASD_PLUGINS,;t t
+s,@OPENVASD_LOGDIR@,$OPENVASD_LOGDIR,;t t
+s,@OPENVASD_REPORTS@,$OPENVASD_REPORTS,;t t
 s,@INSTALL_DIR@,$INSTALL_DIR,;t t
 s,@INSTALL@,$INSTALL,;t t
 s,@RUN_LIBS@,$RUN_LIBS,;t t
