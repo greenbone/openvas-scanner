@@ -1,4 +1,4 @@
-/* Nessus
+/* OpenVAS
  * Copyright (C) 1998 - 2004 Renaud Deraison
  *
  *
@@ -51,9 +51,9 @@ user_home(globals)
  * the name of the next user
  */
 void 
-users_add_rule(struct nessus_rules * rules, char * rule)
+users_add_rule(struct openvas_rules * rules, char * rule)
 {
-  struct nessus_rules * start = rules;
+  struct openvas_rules * start = rules;
   int def = rules->def;
   char * t = rule;
   int len;
@@ -131,8 +131,8 @@ users_add_rule(struct nessus_rules * rules, char * rule)
 /*
  * Reads the rules file
  */
-static struct nessus_rules * 
-users_read_rules(struct nessus_rules * rules,  FILE * f,char * buffer,
+static struct openvas_rules * 
+users_read_rules(struct openvas_rules * rules,  FILE * f,char * buffer,
 			int len)
 {
   char *t = buffer;
@@ -152,10 +152,10 @@ users_read_rules(struct nessus_rules * rules,  FILE * f,char * buffer,
 # define MD5_DIGEST_LENGTH	16
 #endif
 
-struct nessus_rules * 
+struct openvas_rules * 
 check_user(char * user, char * password, char * dname)
 {
-  struct nessus_rules* ret = NULL;
+  struct openvas_rules* ret = NULL;
   char * buf;
   FILE * f;
   char	fname[MAXPATHLEN];

@@ -1,4 +1,4 @@
-/* Nessus
+/* OpenVAS
  * Copyright (C) 1998 Renaud Deraison
  *
  * This program is free software; you can redistribute it and/or modify
@@ -22,7 +22,7 @@
 #include "users.h"
 
 extern char *per_user_pfx;
-extern struct nessus_rules * auth_check_user(struct arglist *, char *, char*);
+extern struct openvas_rules * auth_check_user(struct arglist *, char *, char*);
 extern int user_lookup (const char *uname);
 
 #endif

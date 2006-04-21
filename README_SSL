@@ -19,7 +19,7 @@ client - server communication) was removed.
 list for details.)
 
 Starting with OpenVAS 1.1.4, the communication between the openvasd server 
-and the nessus client is enciphered with TLSv1. 
+and the openvas client is enciphered with TLSv1. 
 You may still disable the cipher layer when you configure & compile
 OpenVAS (this is the default if OpenSSL is not found), or by setting
 "ssl_version" to "NONE" in the configuration files.
@@ -51,11 +51,11 @@ the sources, and $prefix the root directory installation,
 e.g. /usr/local)
 
 Once you have configure and installed OpenVAS (i.e. nessus-libraries,
-libnasl, openvas-core and nessus-plugins), you have three options:
+libnasl, openvas-core and openvas-plugins), you have three options:
 - disable encryption in the configuration files
   Since we added this option, the insecure "OpenVAS kabale"
   certificates should not be used anymore. 
-- use the mknessus-cert script
+- use the mkopenvas-cert script
 - use your own certificates
 
 The fourth option is to configure OpenVAS with --disable-cipher: 
@@ -84,7 +84,7 @@ generate and install your own certificates, use clear text
 communications! 
 
 
-3.2. mknessus-cert
+3.2. mkopenvas-cert
 
 This is much better, but not perfect, as the generated certificates
 ARE NOT PASSWORD PROTECTED.
@@ -269,12 +269,12 @@ The client has three "levels of paranoia" (see paranoia_level in
 .nessusrc)
 1. The certificate hash is matched against what was previously stored
    in .nessusrc.cert
-   If the certificate was modified (or is brand new), nessus will ask
+   If the certificate was modified (or is brand new), openvas will ask
    you if you accept it. Please read it *carefully* and answer "yes"
    or "no".
    If "no", the connection will be rejected.
    If "yes", the certificate SHA1 hash will be stored into
-   .nessusrc.cert and nessus will never bother you again with it,
+   .nessusrc.cert and openvas will never bother you again with it,
    EVEN WHEN THE CERTIFICATE BECOMES OUT OF DATE!
 
 2. The certificate will be accepted IF AND ONLY IF it is signed by a

@@ -112,18 +112,18 @@ case `openssl version` in
    exit 1
 esac
      
-NESSUSPRIV="$localstatedir/openvas/CA"
-NESSUSPUB="$sharedstatedir/openvas/CA"
-if [ ! -d "$NESSUSPRIV" ]; then
-    mkdir -p "$NESSUSPRIV"
-    chmod 0700 "$NESSUSPRIV"
-    echo "$NESSUSPRIV `gettext "created"`"
+OPENVASPRIV="$localstatedir/openvas/CA"
+OPENVASPUB="$sharedstatedir/openvas/CA"
+if [ ! -d "$OPENVASPRIV" ]; then
+    mkdir -p "$OPENVASPRIV"
+    chmod 0700 "$OPENVASPRIV"
+    echo "$OPENVASPRIV `gettext "created"`"
 fi
 
-if [ ! -d "$NESSUSPUB" ]; then
-    mkdir -p "$NESSUSPUB"
-    chmod a+rx "$NESSUSPUB"
-    echo "$NESSUSPUB `gettext "created"`"
+if [ ! -d "$OPENVASPUB" ]; then
+    mkdir -p "$OPENVASPUB"
+    chmod a+rx "$OPENVASPUB"
+    echo "$OPENVASPUB `gettext "created"`"
 fi
 
 
@@ -158,12 +158,12 @@ BASEDIR=${TMPDIR-/tmp}/openvas-mkcert.$$
 mkdir $BASEDIR || exit 1
 
 
-CAKEY=$NESSUSPRIV/cakey.pem
-CACERT=$NESSUSPUB/cacert.pem
+CAKEY=$OPENVASPRIV/cakey.pem
+CACERT=$OPENVASPUB/cacert.pem
 #
-SRVKEY=$NESSUSPRIV/serverkey.pem
+SRVKEY=$OPENVASPRIV/serverkey.pem
 SRVREQ=$BASEDIR/serverreq.pem
-SRVCERT=$NESSUSPUB/servercert.pem
+SRVCERT=$OPENVASPUB/servercert.pem
 #
 
 # The client part will be implemented later on...

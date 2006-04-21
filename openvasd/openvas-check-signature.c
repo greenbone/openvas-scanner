@@ -1,4 +1,4 @@
-/* Nessus
+/* OpenVAS
  * Copyright (C) 1998 - 2004 Renaud Deraison
  * Copyright (C) 2005 Tim Brown
  *

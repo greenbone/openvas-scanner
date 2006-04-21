@@ -24,7 +24,7 @@ misconfigurations that affects them.
 .TP 
 .BI "-c " <config-file> ", --config-file=" <config-file>
 Use the alternate configuration file instead of 
-.I @NESSUSD_CONFDIR@/openvas/openvasd.conf
+.I @OPENVASD_CONFDIR@/openvas/openvasd.conf
 
 .TP 
 .BI "-a " <address> ", --listen=" <address>
@@ -96,12 +96,12 @@ Show a summary of the commands
 The default 
 .B openvasd 
 configuration file,
-.I @NESSUSD_CONFDIR@/openvas/openvasd.conf
+.I @OPENVASD_CONFDIR@/openvas/openvasd.conf
 contains these options:
 
 .IP plugins_folder
 Contains the location of the plugins folder. This is usually
-@NESSUSD_PLUGINS@, but you may change this.
+@OPENVASD_PLUGINS@, but you may change this.
 .IP logfile
 path to the logfile.
 if you want the openvasd logs to be written on stderr.
@@ -176,7 +176,7 @@ The other options in this file can usually be redefined by the client.
 .SH USERS MANAGEMENT
 
 The utility openvas-adduser(8) creates new openvasd users. Each openvasd user
-is attributed a "home", in @NESSUS_STATEDIR@/users/<username>. This home contains the following directories :
+is attributed a "home", in @OPENVAS_STATEDIR@/users/<username>. This home contains the following directories :
 .IP auth/
 This directory contains the authentification information for this user. It might contain the file 'dname' if the user is authenticating using a certificate, or 'hash' (or 'passwd') if the user is authenticating using a password. The file 'hash' contains a MD5 hash of the user password, as well as a random seed. The file 'password' should contain the password in clear text.
 
@@ -199,7 +199,7 @@ This directory contains the plugins this user uploaded.
 
 
 When a user attempts to log in, openvasd first checks that the directory
-@NESSUS_STATEDIR@/users/<username> exists, then hashes the password sent by the user with the random salt found in <username>/auth/hash, and compares it with the password hash stored in the same file. If the users authenticates using a certificate, then openvasd checks that the certificate has been signed by a recognized authority, and makes sure that the dname of the certificate shown by the user is the same as the one in <username>/dname.
+@OPENVAS_STATEDIR@/users/<username> exists, then hashes the password sent by the user with the random salt found in <username>/auth/hash, and compares it with the password hash stored in the same file. If the users authenticates using a certificate, then openvasd checks that the certificate has been signed by a recognized authority, and makes sure that the dname of the certificate shown by the user is the same as the one in <username>/dname.
 
 
 To remove a given user, use the command openvas-rmuser(8).

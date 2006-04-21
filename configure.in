@@ -266,7 +266,7 @@ int main()
   pb.fastmap = fastmap;
   pb.translate = 0;
   re_set_syntax(RE_SYNTAX_POSIX_EGREP);
-  re_compile_pattern(".*nessus.*", strlen(".*nessus.*"), &pb);
+  re_compile_pattern(".*openvas.*", strlen(".*openvas.*"), &pb);
   re_compile_fastmap(&pb);
   return re_search(&pb, 
   		"i use openvas everyday",
@@ -644,7 +644,7 @@ OPENVASD_REPORTS='${OPENVASD_LOGDIR}/reports'
 #AC_DEFINE(OPENVASD_LIBDIR,    "${libdir}/openvas")
 #AC_DEFINE(OPENVASD_PLUGINS,   "${libdir}/openvas/plugins")
 #AC_DEFINE(OPENVASD_REPORTS,   "${libdir}/openvas/reports")
-man_nessus_1=doc/nessus.1
+man_openvas_1=doc/openvas.1
 man_openvasd_8=doc/openvasd.8
 
 AC_DEFINE_UNQUOTED(OPENVASD_LANGUAGE,  "${lang}")
@@ -686,7 +686,7 @@ AC_SUBST(ssl_lib)
 AC_SUBST(pthread_lib)
 AC_SUBST(debug_flags)
 AC_SUBST(nessus_lib)
-AC_SUBST(man_nessus_1)
+AC_SUBST(man_openvas_1)
 AC_SUBST(man_openvasd_8)
 AC_SUBST(dl_lib)
 AC_SUBST(libwrap)

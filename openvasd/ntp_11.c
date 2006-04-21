@@ -1,4 +1,4 @@
-/* Nessus
+/* OpenVAS
  * Copyright (C) 1998 - 2004 Renaud Deraison
  *
  * This program is free software; you can redistribute it and/or modify
@@ -15,7 +15,7 @@
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
  *
- * Nessus Communication Manager -- it manages the Nessus Transfer Protocol, 
+ * OpenVAS Communication Manager -- it manages the OpenVAS Transfer Protocol, 
  * version 1.1 and 1.2
  *
  */ 
@@ -385,8 +385,8 @@ static int
 ntp_11_rules(globals)
  struct arglist * globals;
 {
- struct nessus_rules * user_rules = emalloc(sizeof(*user_rules));
- struct nessus_rules * rules = arg_get_value(globals, "rules");
+ struct openvas_rules * user_rules = emalloc(sizeof(*user_rules));
+ struct openvas_rules * rules = arg_get_value(globals, "rules");
  char * buffer;
  int finished = 0;
  struct sockaddr_in * soca;

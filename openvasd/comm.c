@@ -1,4 +1,4 @@
-/* Nessus
+/* OpenVAS
  * Copyright (C) 1998 - 2004 Renaud Deraison
  *
  * This program is free software; you can redistribute it and/or modify
@@ -15,7 +15,7 @@
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
  *
- * Nessus Communication Manager -- it manages the NTP Protocol, version 1.0 and 1.1
+ * OpenVAS Communication Manager -- it manages the NTP Protocol, version 1.0 and 1.1
  *
  */ 
  
@@ -390,7 +390,7 @@ comm_send_rules(globals)
  
  auth_printf(globals, "SERVER <|> RULES <|>\n");
 #ifdef USELESS_AS_OF_NOW
- struct nessus_rules * rules = arg_get_value(globals, "rules");
+ struct openvas_rules * rules = arg_get_value(globals, "rules");
  while(rules && rules->next)
  {
   char c = 0;

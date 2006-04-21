@@ -1,4 +1,4 @@
-/* Nessus
+/* OpenVAS
  * Copyright (C) 1998 - 2004 Renaud Deraison
  *
  * This program is free software; you can redistribute it and/or modify
@@ -196,7 +196,7 @@ plugins_reload_from_dir(preferences, plugins, folder, be_quiet)
    */
 
   if ( be_quiet == 0 ) {
-	printf("Loading the Nessus plugins...");
+	printf("Loading the OpenVAS plugins...");
 	fflush(stdout);
 	}
   while((name = files_walk(files, &idx)) != NULL) {

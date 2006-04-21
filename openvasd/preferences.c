@@ -1,4 +1,4 @@
-/* Nessus
+/* OpenVAS
  * Copyright (C) 1998 - 2004 Renaud Deraison
  *
  * This program is free software; you can redistribute it and/or modify
@@ -62,7 +62,7 @@ int preferences_new(char * name)
 
   fd = fdopen(f, "w");
   
- fprintf(fd, "# Configuration file of the Nessus Security Scanner\n\n\n\n");
+ fprintf(fd, "# Configuration file of the OpenVAS Security Scanner\n\n\n\n");
  fprintf(fd, "# Every line starting with a '#' is a comment\n\n");
  fprintf(fd, "# Path to the security checks folder : \n");
  fprintf(fd, "plugins_folder = %s\n\n", OPENVASD_PLUGINS);
@@ -89,7 +89,7 @@ int preferences_new(char * name)
  fprintf(fd, "# CGI paths to check for (cgi-bin:/cgi-aws:/ can do)\n");
  fprintf(fd, "cgi_path = /cgi-bin:/scripts\n\n");
  fprintf(fd, "# Range of the ports the port scanners will scan : \n");
- fprintf(fd, "# 'default' means that Nessus will scan ports found in its\n");
+ fprintf(fd, "# 'default' means that OpenVAS will scan ports found in its\n");
  fprintf(fd, "# services file.\n");
  fprintf(fd, "port_range = default\n\n");
  fprintf(fd, "# Optimize the test (recommanded) : \n");
@@ -138,7 +138,7 @@ int preferences_new(char * name)
  fprintf(fd, "admin_user = root\n");
  
  fprintf(fd, "\n\n");
- fprintf(fd, "# If this option is set, Nessus will not scan a network incrementally\n");
+ fprintf(fd, "# If this option is set, OpenVAS will not scan a network incrementally\n");
  fprintf(fd, "# (10.0.0.1, then 10.0.0.2, 10.0.0.3 and so on..) but will attempt to\n");
  fprintf(fd, "# slice the workload throughout the whole network (ie: it will scan\n");
  fprintf(fd, "# 10.0.0.1, then 10.0.0.127, then 10.0.0.2, then 10.0.0.128 and so on...\n");
@@ -173,7 +173,7 @@ int preferences_process(filename,prefs)
 	 if(errno == EACCES)
 	 {
 	  print_error(
-	  	"The Nessus daemon doesn't have the right to read %s\n", filename);
+	  	"The OpenVAS daemon doesn't have the right to read %s\n", filename);
 	  DO_EXIT(1);
 	 }
 #endif

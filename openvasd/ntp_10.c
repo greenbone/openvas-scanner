@@ -1,4 +1,4 @@
-/* Nessus
+/* OpenVAS
  * Copyright (C) 1998 - 2004 Renaud Deraison
  *
  * This program is free software; you can redistribute it and/or modify
@@ -15,7 +15,7 @@
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
  *
- * Nessus Communication Manager -- it manages the NTP Protocol, version 1.0
+ * OpenVAS Communication Manager -- it manages the NTP Protocol, version 1.0
  *
  */ 
  

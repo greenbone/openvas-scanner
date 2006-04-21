@@ -1,4 +1,4 @@
-/* Nessus
+/* OpenVAS
  * Copyright (C) 1998 - 2004 Renaud Deraison
  *
  * This program is free software; you can redistribute it and/or modify
@@ -36,12 +36,12 @@ rules_get_fname(preferences)
   else return(OPENVASD_RULES);
 }
 
-struct nessus_rules *
+struct openvas_rules *
 rules_new(preferences)
   struct arglist * preferences;
 {
   char * filename = rules_get_fname(preferences);
-  struct nessus_rules * nr = emalloc(sizeof(*nr));
+  struct openvas_rules * nr = emalloc(sizeof(*nr));
   FILE * f;
   nr->rule = RULES_ACCEPT;
   
@@ -51,7 +51,7 @@ rules_new(preferences)
      return nr;
   }
      
-  fprintf(f, "#\n# Nessus rules\n#\n\n");
+  fprintf(f, "#\n# OpenVAS rules\n#\n\n");
   fprintf(f, "# Syntax : accept|reject address/netmask\n");
   fprintf(f, "\n# Accept to test anything : \n");
   fprintf(f, "default accept\n");
@@ -61,7 +61,7 @@ rules_new(preferences)
 
 
 int rules_init_aux(rules,file, buffer, len,def) 
-  struct nessus_rules * rules;
+  struct openvas_rules * rules;
   FILE * file;
   char * buffer;
   int len;
@@ -156,10 +156,10 @@ int rules_init_aux(rules,file, buffer, len,def)
 
 void
 rules_init(rules, preferences)
-  struct nessus_rules ** rules;
+  struct openvas_rules ** rules;
   struct arglist * preferences;
 {
- struct nessus_rules * nr = emalloc(sizeof(*nr));
+ struct openvas_rules * nr = emalloc(sizeof(*nr));
  char * filename = rules_get_fname(preferences);
  FILE * f = fopen(filename, "r");
  int def = RULES_ACCEPT;
@@ -179,9 +179,9 @@ rules_init(rules, preferences)
  fclose(f);
 }
 
-struct nessus_rules *
+struct openvas_rules *
 rules_dup_aux(s, r)
-  struct nessus_rules * s, *r;
+  struct openvas_rules * s, *r;
 {
   printf("rules_dup called - does not work\n");
   if(!s->next)return r;
@@ -196,20 +196,20 @@ rules_dup_aux(s, r)
     return rules_dup_aux(s->next,r->next);
   }
 }
-struct nessus_rules *
-rules_dup(struct nessus_rules *s)
+struct openvas_rules *
+rules_dup(struct openvas_rules *s)
 {
-  struct nessus_rules * r = emalloc(sizeof(*r));
+  struct openvas_rules * r = emalloc(sizeof(*r));
   return rules_dup_aux(s, r);
 }
 
 
 
-struct nessus_rules *
-rules_cat(struct nessus_rules * a, 
-    	struct nessus_rules * b)
+struct openvas_rules *
+rules_cat(struct openvas_rules * a, 
+    	struct openvas_rules * b)
 {
- struct nessus_rules * s = a;
+ struct openvas_rules * s = a;
  if(a)
    while(a->next != NULL && a->next->next != NULL)
    	a=a->next;
@@ -225,7 +225,7 @@ rules_cat(struct nessus_rules * a,
 }
 
 
-void rules_set_client_ip(struct nessus_rules * r, struct in_addr client)
+void rules_set_client_ip(struct openvas_rules * r, struct in_addr client)
 {
  if(!r)
   return;
@@ -236,7 +236,7 @@ void rules_set_client_ip(struct nessus_rules * r, struct in_addr client)
    rules_set_client_ip(r->next, client);
   }
 }
-void rules_set_def(struct nessus_rules * r, int def)
+void rules_set_def(struct openvas_rules * r, int def)
 {
   if(!r)return;
   else {
@@ -245,13 +245,13 @@ void rules_set_def(struct nessus_rules * r, int def)
   }
 }
  
-void rules_add(struct nessus_rules **rules, 
-		struct nessus_rules **user, 
+void rules_add(struct openvas_rules **rules, 
+		struct openvas_rules **user, 
 		char * username)
 {
-  struct nessus_rules * accept_rules = emalloc(sizeof(**rules));
-  struct nessus_rules * reject_rules = emalloc(sizeof(**rules));
-  struct nessus_rules * t, *o, *p;
+  struct openvas_rules * accept_rules = emalloc(sizeof(**rules));
+  struct openvas_rules * reject_rules = emalloc(sizeof(**rules));
+  struct openvas_rules * t, *o, *p;
   int def = (*rules)->def;
   
   if(!def)def = RULES_ACCEPT;
@@ -321,7 +321,7 @@ void rules_add(struct nessus_rules **rules,
 
 #ifdef DEBUG_RULES
 void
-rules_dump(struct nessus_rules * rules)
+rules_dump(struct openvas_rules * rules)
 {
   if(!rules->next)return;
   printf("%d %c%s/%d (def %d)\n", rules->rule, rules->not?'!':' ', inet_ntoa(rules->ip), rules->mask,
@@ -330,7 +330,7 @@ rules_dump(struct nessus_rules * rules)
 }
 #endif
 
-int get_host_rules(struct nessus_rules * rules, struct in_addr addr, int netmask)
+int get_host_rules(struct openvas_rules * rules, struct in_addr addr, int netmask)
 {
   struct in_addr backup;
   
@@ -364,11 +364,11 @@ int get_host_rules(struct nessus_rules * rules, struct in_addr addr, int netmask
 
 void
 rules_free(rules)
- struct nessus_rules * rules;
+ struct openvas_rules * rules;
 {
  while(rules != NULL)
  {
-  struct nessus_rules * next = rules->next;
+  struct openvas_rules * next = rules->next;
   efree(&rules);
   rules = next;
  }  

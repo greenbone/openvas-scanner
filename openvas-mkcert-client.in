@@ -112,21 +112,21 @@ test -z "$RANDFLAG" -a -z "$RANDFILE" &&
 
 
 
-NESSUSPRIV="$localstatedir/openvas/CA"
-NESSUSPUB="$sharedstatedir/openvas/CA"
+OPENVASPRIV="$localstatedir/openvas/CA"
+OPENVASPUB="$sharedstatedir/openvas/CA"
 
-while [ ! -d "$NESSUSPRIV" ]; do
+while [ ! -d "$OPENVASPRIV" ]; do
     gettext "OpenVAS server 'private' directory: "
-    read NESSUSPRIV
+    read OPENVASPRIV
 done
 
-while [ ! -d "$NESSUSPUB" ]; do
+while [ ! -d "$OPENVASPUB" ]; do
     gettext "OpenVAS server 'public' directory: "
-    read NESSUSPUB
+    read OPENVASPUB
 done
 
-CAKEY=$NESSUSPRIV/cakey.pem
-CACERT=$NESSUSPUB/cacert.pem
+CAKEY=$OPENVASPRIV/cakey.pem
+CACERT=$OPENVASPUB/cacert.pem
 
 while [ ! -f "$CAKEY" ]; do
     eval_gettext "\$CAKEY: not found or not a file."

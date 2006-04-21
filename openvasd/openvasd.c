@@ -1,4 +1,4 @@
-/* Nessus
+/* OpenVAS
  * Copyright (C) 1998 - 2004 Renaud Deraison
  *
  * This program is free software; you can redistribute it and/or modify
@@ -78,7 +78,7 @@ pid_t nasl_server_pid;
 int g_iana_socket;
 struct arglist * g_plugins;
 struct arglist * g_preferences;
-struct nessus_rules * g_rules;
+struct openvas_rules * g_rules;
 
 
 static char * orig_argv[64];
@@ -321,9 +321,9 @@ server_thread(globals)
  struct arglist * plugins = arg_get_value(globals, "plugins");
  struct arglist * prefs = arg_get_value (globals, "preferences") ;
  int soc = (int)arg_get_value(globals, "global_socket");
- struct nessus_rules* perms;
+ struct openvas_rules* perms;
  char * asciiaddr;
- struct nessus_rules * rules = arg_get_value(globals, "rules");
+ struct openvas_rules * rules = arg_get_value(globals, "rules");
  ntp_caps* caps;
  int e;
  int opt = 1;
@@ -761,7 +761,7 @@ main_loop()
 #endif
       struct arglist * globals;
       struct arglist * my_plugins, * my_preferences;
-      struct nessus_rules * my_rules;
+      struct openvas_rules * my_rules;
       
       if(restart != 0) restart_openvasd(); 
 
@@ -969,7 +969,7 @@ init_openvasd (options, first_pass, stop_early, be_quiet)
   int  isck = -1;
   struct arglist * plugins = NULL;
   struct arglist * preferences = NULL;
-  struct nessus_rules * rules = NULL;
+  struct openvas_rules * rules = NULL;
   int iana_port = (int)arg_get_value(options, "iana_port");
   char * config_file = arg_get_value(options, "config_file");
   struct in_addr * addr = arg_get_value(options, "addr");
@@ -1110,7 +1110,7 @@ main(int argc, char * argv[], char * envp[])
 
   
   /*
-   * Version check - disabled during the developement of Nessus 1.2
+   * Version check - disabled during the developement of OpenVAS 1.2
    */
 
 
@@ -1235,7 +1235,7 @@ you have deleted older versions of libnasl from your system\n",
 	  socket_source_init(src_addrs);
 	  break;
        case 'd' :
-           printf("This is Nessus %s for %s %s\n", OPENVAS_VERSION, OVS_OS_NAME, OVS_OS_VERSION);
+           printf("This is OpenVAS %s for %s %s\n", OPENVAS_VERSION, OVS_OS_NAME, OVS_OS_VERSION);
            printf("compiled with %s\n", OVS_COMPILER);
            printf("Current setup :\n");
 	   printf("\tnasl                           : %s\n", nasl_version());

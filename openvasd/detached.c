@@ -1,4 +1,4 @@
-/* Nessus
+/* OpenVAS
  * Copyright (C) 1998 - 2004 Renaud Deraison
  *
  *
@@ -299,9 +299,9 @@ file needed for detached scan (%s) - aborting <|> SERVER\n", strerror(errno));
    }
    bzero(hostname, 256);
    gethostname(hostname, 255);
-   fprintf(fl, "From: Nessus Daemon <root@%s>\n", hostname);
-   fprintf(fl, "To: Nessus User <%s>\n", email);
-   fprintf(fl, "Subject: Nessus Scan (%s)\n\n", today);
+   fprintf(fl, "From: OpenVAS Daemon <root@%s>\n", hostname);
+   fprintf(fl, "To: OpenVAS User <%s>\n", email);
+   fprintf(fl, "Subject: OpenVAS Scan (%s)\n\n", today);
    fflush(fl);
    efree(&today); 
    efree(&hostname);

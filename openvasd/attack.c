@@ -1,4 +1,4 @@
-/* Nessus
+/* OpenVAS
  * Copyright (C) 1998 - 2004 Renaud Deraison
  *
  * This program is free software; you can redistribute it and/or modify
@@ -533,7 +533,7 @@ attack_network(globals)
   struct arglist * preferences  = NULL;
   struct arglist * plugins      = NULL;
   ntp_caps* caps		= NULL;
-  struct nessus_rules *rules	= NULL;
+  struct openvas_rules *rules	= NULL;
   struct arglist * rejected_hosts =  NULL;
   int restoring    = 0;
   harglst * tested = NULL;

@@ -492,8 +492,8 @@ client  = no
 accept  = 11.12.13.14:1241	# Put your external IP here
 connect = 127.0.0.1:1241
 #
-setgid = nessusnobody		# For example
-setuid = nessusnobody
+setgid = openvasnobody		# For example
+setuid = openvasnobody
 #
 verify = 2		# Asks for a client certificate
 CAfile = ...

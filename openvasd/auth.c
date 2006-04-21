@@ -1,4 +1,4 @@
-/* Nessus
+/* OpenVAS
  * Copyright (C) 1998 - 2004 Renaud Deraison
  *
  * This program is free software; you can redistribute it and/or modify
@@ -39,7 +39,7 @@
  * Checks if a user has the right to use openvasd,
  * and return its permissions
  */
-struct nessus_rules * 
+struct openvas_rules * 
 auth_check_user(globals, from, dname)
    struct arglist * globals;
    char * from;
@@ -47,7 +47,7 @@ auth_check_user(globals, from, dname)
 {
   char * buf_user, * buf_password;
   int free_buf_user = 1;
-  struct nessus_rules * permissions;
+  struct openvas_rules * permissions;
 
  
   {

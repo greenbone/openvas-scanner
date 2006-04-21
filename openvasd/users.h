@@ -1,4 +1,4 @@
-/* Nessus
+/* OpenVAS
  * Copyright (C) 1998 Renaud Deraison
  *
  * This program is free software; you can redistribute it and/or modify
@@ -21,11 +21,11 @@
 
 
 
-#define BAD_LOGIN_ATTEMPT (struct nessus_rules*)(-1)
+#define BAD_LOGIN_ATTEMPT (struct openvas_rules*)(-1)
 #define NESSUS_MAX_USERNAME_LEN	32 /* Including the ending nul byte! */
 
 char * user_home(struct arglist*);
 
-struct nessus_rules * check_user(char * , char *, char*);
-void users_add_rule(struct nessus_rules *, char *);
+struct openvas_rules * check_user(char * , char *, char*);
+void users_add_rule(struct openvas_rules *, char *);
 #endif
