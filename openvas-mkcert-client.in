@@ -112,8 +112,8 @@ test -z "$RANDFLAG" -a -z "$RANDFILE" &&
 
 
 
-NESSUSPRIV="$localstatedir/nessus/CA"
-NESSUSPUB="$sharedstatedir/nessus/CA"
+NESSUSPRIV="$localstatedir/openvas/CA"
+NESSUSPUB="$sharedstatedir/openvas/CA"
 
 while [ ! -d "$NESSUSPRIV" ]; do
     gettext "OpenVAS server 'private' directory: "
@@ -153,7 +153,7 @@ while [ "$R" != `gettext "y"` -a "$R" != `gettext "n"` ]; do
 done
 
 if [ "$R" = `gettext "y"` ]; then
-    USERSDIR=$localstatedir/nessus/users
+    USERSDIR=$localstatedir/openvas/users
     while [ ! -d "$USERSDIR" ]; do
 	eval_gettext "\$USERSDIR: not a directory."; echo
 	gettext "Users directory? "

@@ -8,7 +8,7 @@ What must be done :		(feel free to volunteer)
   	- replace the arglists by harglists. That is, replace linked 
 	  lists by hashtables. All the functions are here, it's just
 	  a matter of search/replace thing. 
-	  Read /usr/local/include/nessus/harglsts.h for details
+	  Read /usr/local/include/openvas/harglsts.h for details
 	  about the harglsts
 
 	- memory leaks in plugins reload

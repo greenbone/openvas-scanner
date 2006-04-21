@@ -24,7 +24,7 @@ mandir=@mandir@
 is_cygwin=@is_cygwin@
 
 openvasd=@sbindir@/openvasd
-openvasd_users=@sysconfdir@/nessus/openvasd.users
+openvasd_users=@sysconfdir@/openvas/openvasd.users
 
 # check if gettext is present
 
@@ -81,9 +81,9 @@ test -z "$login" && {
  exit 1
 }
 
-if [ -d "$localstatedir/nessus/users/$login" ];
+if [ -d "$localstatedir/openvas/users/$login" ];
 then
- rm -rf "$localstatedir/nessus/users/$login"
+ rm -rf "$localstatedir/openvas/users/$login"
  gettext "user removed."; echo
 else
  gettext "user does not exist"; echo

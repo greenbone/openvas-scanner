@@ -66,7 +66,7 @@ filter_odd_name(name)
 /*-----------------------------------------------------------------
  
   Name of the directory which contains the sessions of the current
-  user (/path/to/var/nessus/<username>/kbs/)
+  user (/path/to/var/openvas/<username>/kbs/)
   
 ------------------------------------------------------------------*/ 
 static char *
@@ -121,7 +121,7 @@ kb_mkdir(dir)
 /*----------------------------------------------------------------
 
  From <hostname>, return 
- /path/to/var/nessus/<username>/kb/<hostname>
+ /path/to/var/openvas/<username>/kb/<hostname>
 
 ------------------------------------------------------------------*/
 static char*

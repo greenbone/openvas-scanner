@@ -238,13 +238,13 @@ are not fully implemented.
 
 If force_pubkey_auth is not set, the server will accept a user if:
 
-- there is a file $prefix/var/nessus/users/$user/auth/dname and the
+- there is a file $prefix/var/openvas/users/$user/auth/dname and the
   user was able to present a valid certificate with a DN that matches
   the  content of it.
   The certificate is accepted as soon as it is signed by a trusted
   CA. i.e., at this time, by the same CA as the server [TBD]
 
-- or there is a file $prefix/var/nessus/users/$user/auth/password and
+- or there is a file $prefix/var/openvas/users/$user/auth/password and
   the user was able to give the right password. You do not need a
   client certificate here.
   (this was the standard behaviour)

@@ -12022,12 +12022,12 @@ CFLAGS="$saveCFLAGS"
 
 
 OPENVASD_CONFDIR='${sysconfdir}'
-OPENVASD_STATEDIR='${localstatedir}/lib/nessus'
+OPENVASD_STATEDIR='${localstatedir}/lib/openvas'
 OPENVASD_PIDDIR='${localstatedir}/run'
-OPENVASD_SHAREDSTATEDIR='${sharedstatedir}/lib/nessus'
-OPENVASD_DATADIR='${sysconfdir}/nessus'
-OPENVASD_LIBDIR='${libdir}/nessus'
-OPENVASD_LOGDIR='${localstatedir}/log/nessus'
+OPENVASD_SHAREDSTATEDIR='${sharedstatedir}/lib/openvas'
+OPENVASD_DATADIR='${sysconfdir}/openvas'
+OPENVASD_LIBDIR='${libdir}/openvas'
+OPENVASD_LOGDIR='${localstatedir}/log/openvas'
 
 OPENVASD_PLUGINS='${OPENVASD_LIBDIR}/plugins'
 OPENVASD_REPORTS='${OPENVASD_LOGDIR}/reports'
@@ -12039,11 +12039,11 @@ OPENVASD_REPORTS='${OPENVASD_LOGDIR}/reports'
 # everything works okay.
 #
 #AC_DEFINE_UNQUOTED(OPENVASD_CONFDIR,   "${sysconfdir}")
-#AC_DEFINE(OPENVASD_STATEDIR,  "${localstatedir}/nessus'")
-#AC_DEFINE(OPENVASD_DATADIR,   "'${sysconfdir}/nessus")
-#AC_DEFINE(OPENVASD_LIBDIR,    "${libdir}/nessus")
-#AC_DEFINE(OPENVASD_PLUGINS,   "${libdir}/nessus/plugins")
-#AC_DEFINE(OPENVASD_REPORTS,   "${libdir}/nessus/reports")
+#AC_DEFINE(OPENVASD_STATEDIR,  "${localstatedir}/opanvas'")
+#AC_DEFINE(OPENVASD_DATADIR,   "'${sysconfdir}/openvas")
+#AC_DEFINE(OPENVASD_LIBDIR,    "${libdir}/openvas")
+#AC_DEFINE(OPENVASD_PLUGINS,   "${libdir}/openvas/plugins")
+#AC_DEFINE(OPENVASD_REPORTS,   "${libdir}/openvas/reports")
 man_nessus_1=doc/nessus.1
 man_openvasd_8=doc/openvasd.8
 

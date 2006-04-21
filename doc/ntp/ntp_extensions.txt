@@ -360,7 +360,7 @@ If the option "md5_caching" is enabled at connection time, then :
 
 If the server allows it, the user may upload his own plugins to the server,
 which will then be stored under his home
-($prefix/var/nessus/users/<user>/plugins/)
+($prefix/var/openvas/users/<user>/plugins/)
 
 The client has to send the message ATTACHED_PLUGIN to the server
 for this to work. The syntax of the message is :

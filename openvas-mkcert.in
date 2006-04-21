@@ -112,8 +112,8 @@ case `openssl version` in
    exit 1
 esac
      
-NESSUSPRIV="$localstatedir/nessus/CA"
-NESSUSPUB="$sharedstatedir/nessus/CA"
+NESSUSPRIV="$localstatedir/openvas/CA"
+NESSUSPUB="$sharedstatedir/openvas/CA"
 if [ ! -d "$NESSUSPRIV" ]; then
     mkdir -p "$NESSUSPRIV"
     chmod 0700 "$NESSUSPRIV"
@@ -425,7 +425,7 @@ openssl ca -config $BASEDIR/std.cnf -name OpenVASCA -batch -days $SRVCERT_LIFETI
 chmod a+r $CACERT $SRVCERT #cln $CLNCERT
 
 
-CF=@sysconfdir@/nessus/openvasd.conf
+CF=@sysconfdir@/openvas/openvasd.conf
 egrep -v '^ *(pem_password|cert_file|key_file|ca_file|force_pubkey_auth) *=' "$CF" > "$CF.tmp"
 echo "#
 # Added by openvas-mkcert

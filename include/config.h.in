@@ -49,7 +49,7 @@
 /* AF_UNIX socket path (if you want to use AF_UNIX sockets) */
 #ifndef USE_AF_INET
 #ifndef AF_UNIX_PATH
-#define AF_UNIX_PATH "/var/run/nessus/nessus.sock"
+#define AF_UNIX_PATH "/var/run/openvas/openvas.sock"
 #endif
 #endif /* not def USE_AF_INET */
 
@@ -82,7 +82,7 @@
 
 
 /* derived entries */
-#define OPENVASD_CONF     OPENVASD_CONFDIR  "/nessus/openvasd.conf"
+#define OPENVASD_CONF     OPENVASD_CONFDIR  "/openvas/openvasd.conf"
 
 #define OPENVASD_MESSAGES OPENVASD_LOGS "/openvasd.messages"
 #define OPENVASD_DEBUGMSG OPENVASD_LOGS "/openvasd.dump"

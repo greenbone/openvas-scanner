@@ -305,7 +305,7 @@ static void save_preferences( struct preferences * prefs )
  FILE *fp;
  char path[1024];
 
- snprintf(path, sizeof(path), "%s/nessus/%s", OPENVASD_CONFDIR, CONFIG_FILE);
+ snprintf(path, sizeof(path), "%s/openvas/%s", OPENVASD_CONFDIR, CONFIG_FILE);
  fp = fopen(path, "w");
  if ( fp == NULL )
  {
@@ -345,7 +345,7 @@ static int load_preferences( struct preferences * prefs )
 
  bzero(prefs, sizeof(*prefs));
 
- snprintf(path, sizeof(path), "%s/nessus/%s", OPENVASD_CONFDIR, CONFIG_FILE);
+ snprintf(path, sizeof(path), "%s/openvas/%s", OPENVASD_CONFDIR, CONFIG_FILE);
  fp = fopen(path, "r");
  if ( fp == NULL )
   return -1;

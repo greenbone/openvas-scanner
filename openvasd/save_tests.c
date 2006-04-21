@@ -40,7 +40,7 @@
 /*-----------------------------------------------------------------
  
   Name of the directory which contains the sessions of the current
-  user (/path/to/var/nessus/<username>/sessions)
+  user (/path/to/var/openvas/<username>/sessions)
   
 ------------------------------------------------------------------*/ 
 static char *
@@ -86,7 +86,7 @@ session_mkdir(dir)
 /*----------------------------------------------------------------
 
  From <session>, return 
- /path/to/var/nessus/<username>/sessions/<session>-<suffix>
+ /path/to/var/openvas/<username>/sessions/<session>-<suffix>
 
 ------------------------------------------------------------------*/
 static char*

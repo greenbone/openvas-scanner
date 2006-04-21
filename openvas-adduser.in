@@ -22,7 +22,7 @@ is_cygwin=@is_cygwin@
 prefix=@prefix@
 exec_prefix=@exec_prefix@
 
-# add the nessus installation path
+# add the openvas installation path
 PATH=@sbindir@:@bindir@:$PATH ; export PATH
 
 # check if gettext is present
@@ -149,7 +149,7 @@ while test "$ok" = `gettext "n"`;
 do
  echo $Xn "`gettext "Login :"` $Xc"
  read login
- if [ -d $localstatedir/nessus/users/$login ];
+ if [ -d $localstatedir/openvas/users/$login ];
  then
    gettext "This login already exists. Choose another one."; echo
  else
@@ -279,9 +279,9 @@ esac
 #echo "$login:$password" > $TMPDIR/adduser.$$
 	
 
-chmod 0700 "$localstatedir/nessus/"
-mkdir -p "$localstatedir/nessus/users/$login"
-chmod 0700 "$localstatedir/nessus/users/$login"
+chmod 0700 "$localstatedir/openvas/"
+mkdir -p "$localstatedir/openvas/users/$login"
+chmod 0700 "$localstatedir/openvas/users/$login"
 
 
 
@@ -292,14 +292,14 @@ chmod 0700 "$localstatedir/nessus/users/$login"
 # Create the auth. dir, which contains the user rules,
 # password, and plugin acl
 #
-mkdir -p "$localstatedir/nessus/users/$login/auth"
-chmod 0700 "$localstatedir/nessus/users/$login/auth"
+mkdir -p "$localstatedir/openvas/users/$login/auth"
+chmod 0700 "$localstatedir/openvas/users/$login/auth"
 
 #
 # Create the plugins dir, which contains the user plugins
 #
-mkdir -p "$localstatedir/nessus/users/$login/plugins"
-chmod 0700 "$localstatedir/nessus/users/$login/plugins"
+mkdir -p "$localstatedir/openvas/users/$login/plugins"
+chmod 0700 "$localstatedir/openvas/users/$login/plugins"
 
 
 
@@ -311,17 +311,17 @@ if [ "$auth" = "pass" ]; then
 	}
 	SEED=`(echo $SEED; date; df; ls -l; echo $URANDOM) | $MD5CMD | awk '{print $1}'`
 	H=`echo $Xn $SEED$password$Xc | $MD5CMD | awk '{print $1}'`
-	echo $H $SEED > "$localstatedir/nessus/users/$login/auth/hash"
+	echo $H $SEED > "$localstatedir/openvas/users/$login/auth/hash"
     else
-	echo "$password" > "$localstatedir/nessus/users/$login/auth/password"
+	echo "$password" > "$localstatedir/openvas/users/$login/auth/password"
     fi
 elif [ "$auth" = "cert" ]; then
-	echo "$dn" > "$localstatedir/nessus/users/$login/auth/dname"
+	echo "$dn" > "$localstatedir/openvas/users/$login/auth/dname"
 fi
 
 
 
-cp $tmpAddUserFile "$localstatedir/nessus/users/$login/auth/rules"
+cp $tmpAddUserFile "$localstatedir/openvas/users/$login/auth/rules"
 
 
 
