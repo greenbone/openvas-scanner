@@ -61,7 +61,7 @@ Files
 -----
 
 All your report are saved on the server side, in 
-  ${prefix}/var/nessus/<username>/
+  ${prefix}/var/openvas/<username>/
 
 But you should not handle the files there directly. Instead, you should use
 the OpenVAS client to do this job.

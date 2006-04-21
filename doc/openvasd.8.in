@@ -24,7 +24,7 @@ misconfigurations that affects them.
 .TP 
 .BI "-c " <config-file> ", --config-file=" <config-file>
 Use the alternate configuration file instead of 
-.I @NESSUSD_CONFDIR@/nessus/openvasd.conf
+.I @NESSUSD_CONFDIR@/openvas/openvasd.conf
 
 .TP 
 .BI "-a " <address> ", --listen=" <address>
@@ -96,7 +96,7 @@ Show a summary of the commands
 The default 
 .B openvasd 
 configuration file,
-.I @NESSUSD_CONFDIR@/nessus/openvasd.conf
+.I @NESSUSD_CONFDIR@/openvas/openvasd.conf
 contains these options:
 
 .IP plugins_folder

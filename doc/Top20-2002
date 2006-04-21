@@ -36,7 +36,7 @@ begin(SERVER_PREFS)
  port_range = 1-1500
  optimize_test = no
  language = english
- per_user_base = /n/NESSUS_1_2_5//var/nessus/users
+ per_user_base = /n/NESSUS_1_2_5//var/openvas/users
  checks_read_timeout = 15
  delay_between_tests = 1
  non_simult_ports = 139
