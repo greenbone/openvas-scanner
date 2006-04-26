@@ -102,11 +102,8 @@ typedef void * ext_library_t;
 #ifndef __STDC__
 #define __STDC__ 1
 #endif
-#ifndef USE_GTK
-/* so we are not on the nessus client */
 #define getpid(x) GetCurrentProcessId(x)
 #define close(x)  closesocket(x)
-#endif /* USE_GTK */
 #define ioctl(x,y,z) ioctlsocket(x,y,z)
 #define signal(x,y)
 #define alarm(x)
