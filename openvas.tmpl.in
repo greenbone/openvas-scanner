@@ -109,6 +109,7 @@ LDFLAGS=
 CC=@CC@
 OPENVASCONFIG=@OPENVASCONFIG@
 NASLCONFIG=@NASLCONFIG@
+# libraries
 DL_LIB=@dl_lib@
 RESOLV_LIB=@resolv_lib@
 SOCKET_LIB=@socket_lib@
@@ -122,7 +123,6 @@ LIBS=@LIBS@
 OPENVAS_LIB=@nessus_lib@
 
 # documentation
-MAN_OPENVAS_1=@man_openvas_1@
 MAN_OPENVASD_8=@man_openvasd_8@
 
 # C compiler options
