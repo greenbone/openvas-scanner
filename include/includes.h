@@ -261,7 +261,7 @@
 #include <ntcompat.h>
 #include <harglists.h>
 #include <libnessus.h>
-#include <nessus-devel.h>
+#include <openvas-devel.h>
 
 #ifdef HAVE_SHL_LOAD	/* I love HPUX (jh) */
 #undef dlopen
