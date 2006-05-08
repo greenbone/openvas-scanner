@@ -1,0 +1,48 @@
+#!/bin/sh
+#
+# OpenVAS Server configuration script
+#
+
+
+PREFIX=@prefix@
+INCLUDEDIR=$PREFIX/include
+VERSION=@version@
+
+
+usage()
+{
+ echo "Usage : openvasd-config [ --cflags | --version ]"
+ exit $1
+}
+
+
+test $# -gt 0 || usage 1
+
+
+# check whether we have echo -n, depending
+# on the current shell, used
+case `echo -n` in
+\-n)	Xn=   ; Xc='\c' ;;
+*)	Xn=-n ; Xc=
+esac
+
+while test $# -gt 0; do
+ case "$1" in
+	--version)
+		echo $VERSION
+		exit 0
+		;;
+	--cflags)
+		echo $Xn "-I$DESTDIR$INCLUDEDIR/openvas $Xc"
+		;;
+	--help | -h)
+		usage 0
+		;;
+	*)
+		usage 1
+		;;
+ esac
+ shift
+done
+
+echo 	

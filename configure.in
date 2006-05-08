@@ -705,9 +705,9 @@ AC_SUBST(installuser)
 
 
 dnl And we put everything in the appropriate files
-AC_OUTPUT(openvas.tmpl include/corevers.h openvas-adduser openvas-rmuser openvas-mkcert openvas-mkcert-client)
+AC_OUTPUT(openvas.tmpl include/corevers.h openvas-adduser openvas-rmuser openvas-mkcert openvas-mkcert-client openvasd-config)
 
 
-chmod +x openvas-adduser openvas-mkcert openvas-mkcert-client
+chmod +x openvas-adduser openvas-mkcert openvas-mkcert-client openvasd-config
 
 exit 0
