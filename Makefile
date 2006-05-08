@@ -36,13 +36,24 @@ install-bin:
 	test -d $(DESTDIR)${OPENVASD_STATEDIR}/tmp || $(INSTALL_DIR) -m 755 $(DESTDIR)${OPENVASD_STATEDIR}/tmp
 	test -d $(DESTDIR)${OPENVASD_STATEDIR}/jobs  || $(INSTALL_DIR) -m 755 $(DESTDIR)${OPENVASD_STATEDIR}/jobs
 	test -d $(DESTDIR)${OPENVASD_LOGDIR} || $(INSTALL_DIR) -m 755 $(DESTDIR)${OPENVASD_LOGDIR}
+	test -d $(DESTDIR)${includedir}/openvas || $(INSTALL_DIR) -m 755 $(DESTDIR)${includedir}/openvas
 	$(INSTALL) -c -m 0444 openvas-services $(DESTDIR)${OPENVASD_STATEDIR}/
 	$(INSTALL) -m 755 openvas-fetch/openvas-fetch $(DESTDIR)${bindir}
 	$(INSTALL) -m 755 openvas-adduser $(DESTDIR)${sbindir}
 	$(INSTALL) -m 755 openvas-rmuser $(DESTDIR)${sbindir}
 	$(INSTALL) -m 755 openvas-mkcert $(DESTDIR)${sbindir}
 	$(INSTALL) -m 755 openvas-mkcert-client $(DESTDIR)${bindir}
+	$(INSTALL) -m 755 openvasd-config $(DESTDIR)${bindir}
 	$(INSTALL) -m 755 ssl/openvas-mkrand $(DESTDIR)${bindir}
+	$(INSTALL) -c -m 0444 include/includes.h $(DESTDIR)${includedir}/openvas
+	$(INSTALL) -c -m 0444 include/openvas-devel.h $(DESTDIR)${includedir}/openvas
+	$(INSTALL) -c -m 0444 include/config.h $(DESTDIR)${includedir}/openvas
+	$(INSTALL) -c -m 0444 include/ntcompat.h $(DESTDIR)${includedir}/openvas
+	$(INSTALL) -c -m 0444 include/nessusraw.h $(DESTDIR)${includedir}/openvas
+	$(INSTALL) -c -m 0444 include/nessusip.h $(DESTDIR)${includedir}/openvas
+	$(INSTALL) -c -m 0444 include/nessusicmp.h $(DESTDIR)${includedir}/openvas
+	$(INSTALL) -c -m 0444 include/nessustcp.h $(DESTDIR)${includedir}/openvas
+	$(INSTALL) -c -m 0444 include/nessusudp.h $(DESTDIR)${includedir}/openvas
 
 
 install-man:
