@@ -106,7 +106,7 @@ distclean: clean
 	[ -z "${MAN_OPENVASD_8}" ] || rm -f ${MAN_OPENVASD_8} 
 
 dist:
-	version="`date +%Y%m%d`"; \
+	version="`cat VERSION`"; \
 	cd ..; \
 	tar cf openvas-server-$${version}.tar \
 		`cat openvas-server/MANIFEST | sed 's/^/openvas-server\//'`; \
