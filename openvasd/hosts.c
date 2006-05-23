@@ -1,22 +1,29 @@
 /* OpenVAS
- * Copyright (C) 1998 - 2004 Renaud Deraison
- *
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License version 2,
- * as published by the Free Software Foundation
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
- *
- *
- * $Id$
- */
+* $Id$
+* Description: Basically creates a new process for each tested host.
+*
+* Authors: - Laban Mwangi <labeneator@gmail.com> (initial version)
+*
+* Copyright:
+* Portions Copyright (C) 2006 Software in the Public Interest, Inc.
+* Based on work Copyright (C) 1998 - 2006 Tenable Network Security, Inc.
+*
+* This program is free software; you can redistribute it and/or modify
+* it under the terms of the GNU General Public License version 2,
+* as published by the Free Software Foundation
+*
+* This program is distributed in the hope that it will be useful,
+* but WITHOUT ANY WARRANTY; without even the implied warranty of
+* MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+* GNU General Public License for more details.
+*
+* You should have received a copy of the GNU General Public License
+* along with this program; if not, write to the Free Software
+* Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA 02110-1301 USA.
+*
+*
+*/
+
 
 #include <includes.h>
 #include "utils.h"
@@ -38,12 +45,9 @@ struct host {
 	};
 
 
-
-
 static struct host * hosts = NULL;
 static int    g_soc = -1;
 static int    g_max_hosts = 15;
-
 
 
 static void sigchld_handler(int sig)
@@ -97,7 +101,6 @@ static int forward(struct arglist * globals, int in, int out)
   		save_tests_write_data(globals, estrdup(buf));		
   }
 
-
   	
   if ( out > 0 ) 
    for ( n = 0; n < len ; )
@@ -127,7 +130,6 @@ static void forward_all(struct arglist * globals, int in, int out)
 /*-------------------------------------------------------------------*/
 
 
-
 static struct host * host_rm(struct arglist * globals, struct host * hosts, struct host * h)
 {
  struct arglist * preferences = arg_get_value(globals, "preferences");
@@ -139,7 +141,6 @@ static struct host * host_rm(struct arglist * globals, struct host * hosts, stru
  if( preferences_save_session(preferences) != 0 )
    	save_tests_host_done(globals, h->name);
 	
-
 	
  close(h->soc);
  if(h->psoc != 0)close(h->psoc);
@@ -259,12 +260,6 @@ void hosts_stop_all()
 }
 /*-----------------------------------------------------------------*/
 
-
-
-
-
-
-
 static int hosts_read_data(struct arglist * globals)
 {
  fd_set rd;
@@ -273,8 +268,6 @@ static int hosts_read_data(struct arglist * globals)
  struct host * h = hosts;
  int e;
  int ret = 0;
- 
-	
  
  waitpid(-1, NULL, WNOHANG);
 
@@ -345,10 +338,6 @@ static int hosts_read_client(struct arglist * globals)
  if(rsoc == -1)
     return -1;
 
-
-
-
- 
  FD_ZERO(&rd);
  FD_SET(rsoc, &rd);
 
@@ -395,7 +384,3 @@ int hosts_read(struct arglist * globals)
  hosts_read_data(globals);
  return 0;
 }
-
-
-
-

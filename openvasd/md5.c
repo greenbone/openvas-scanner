@@ -1,23 +1,31 @@
 /* OpenVAS
- * Copyright (C) 1998 - 2004 Renaud Deraison
- *
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation; either version 2 of the License, or
- * (at your option) any later version.
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
- *
- *
- * This module implements a set of MD5 functions.
- *
+* $Id$
+* Description: Implements a set of MD5 functions
+*
+* Authors: - Laban Mwangi <labeneator@gmail.com> (initial version)
+*
+* Copyright:
+* Portions Copyright (C) 2006 Software in the Public Interest, Inc.
+* Based on work Copyright (C) 1998 - 2006 Tenable Network Security, Inc.
+*
+* This program is free software; you can redistribute it and/or modify
+* it under the terms of the GNU General Public License version 2,
+* as published by the Free Software Foundation
+*
+* This program is distributed in the hope that it will be useful,
+* but WITHOUT ANY WARRANTY; without even the implied warranty of
+* MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+* GNU General Public License for more details.
+*
+* You should have received a copy of the GNU General Public License
+* along with this program; if not, write to the Free Software
+* Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA 02110-1301 USA.
+*
+*
+*/
+
+ 
+/*
  * Internally, we use either OpenSSL's MD5, or a copy of what is in the libpeks
  * depending on the user configuration. We don't use the libpeks as the user
  * may not be linked to it.
@@ -25,7 +33,6 @@
  */
 
 #include <includes.h>
-
 
 #ifdef HAVE_SSL
 #include <openssl/md5.h>

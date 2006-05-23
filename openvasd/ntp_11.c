@@ -1,31 +1,36 @@
 /* OpenVAS
- * Copyright (C) 1998 - 2004 Renaud Deraison
- *
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License version 2,
- * as published by the Free Software Foundation
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
- *
- *
- * OpenVAS Communication Manager -- it manages the OpenVAS Transfer Protocol, 
- * version 1.1 and 1.2
- *
- */ 
+* $Id$
+* Description: OpenVAS Communication Manager; it manages the OpenVAS Transfer Protocol,
+* version 1.1 and 1.2.
+*
+* Authors: - Laban Mwangi <labeneator@gmail.com> (initial version)
+*
+* Copyright:
+* Portions Copyright (C) 2006 Software in the Public Interest, Inc.
+* Based on work Copyright (C) 1998 - 2006 Tenable Network Security, Inc.
+*
+* This program is free software; you can redistribute it and/or modify
+* it under the terms of the GNU General Public License version 2,
+* as published by the Free Software Foundation
+*
+* This program is distributed in the hope that it will be useful,
+* but WITHOUT ANY WARRANTY; without even the implied warranty of
+* MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+* GNU General Public License for more details.
+*
+* You should have received a copy of the GNU General Public License
+* along with this program; if not, write to the Free Software
+* Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA 02110-1301 USA.
+*
+*
+*/
+
  
 #include <includes.h>
 #include <corevers.h>
 #ifdef USE_AF_UNIX
 #undef OPENVAS_ON_SSL
 #endif
-
 
 #include "ntp.h"
 #include "ntp_11.h"
