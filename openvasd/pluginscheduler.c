@@ -2,7 +2,7 @@
 * $Id$
 * Description: Tells openvasd which plugin should be executed next.
 *
-* Authors: - Laban Mwangi <labanm@openvas.org> (initial work)
+* Authors: - Laban Mwangi <labeneator@gmail.com> (initial work)
 *
 * Copyright:
 * Portions Copyright (C) 2006 Software in the Public Interest, Inc.

@@ -2,7 +2,7 @@
 * $Id$
 * Description: Loads plugins from disk into memory.
 *
-* Authors: - Laban Mwangi <labaneator@gmail.com> (initial version)
+* Authors: - Laban Mwangi <labeneator@gmail.com> (initial version)
 *
 * Copyright:
 * Portions Copyright (C) 2006 Software in the Public Interest, Inc.

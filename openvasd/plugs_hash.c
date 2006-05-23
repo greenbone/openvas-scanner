@@ -2,7 +2,7 @@
 * $Id$
 * Description: Calculates hash values of plugins, calculates the hash value of all hashes.
 *
-* Authors: - Laban Mwangi <labaneator@gmail.com> (initial version)
+* Authors: - Laban Mwangi <labeneator@gmail.com> (initial version)
 *
 * Copyright:
 * Portions Copyright (C) 2006 Software in the Public Interest, Inc.
