@@ -23,8 +23,6 @@
 *
 *
 */
-OpenVAS Communication Manager -- it manages the OpenVAS Transfer Protocol,
- * version 1.1 and 1.2
  
 #include <includes.h>
 #include "ntp.h"
