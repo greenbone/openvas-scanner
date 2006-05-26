@@ -107,10 +107,11 @@ distclean: clean
 
 dist:
 	version="`cat VERSION`"; \
-	cd ..; \
-	tar cf openvas-server-$${version}.tar \
-		`cat openvas-server/MANIFEST | sed 's/^/openvas-server\//'`; \
-	rm -f openvas-server-$${version}.tar.gz; \
+	rm -rf openvas-server-$${version}* ; \
+	mkdir openvas-server-$${version} ; \
+	tar cf openvas-server-$${version}/x.tar `cat MANIFEST`; \
+	( cd openvas-server-$${version} ; tar xf x.tar ; rm -f x.tar ) ; \
+	tar cf openvas-server-$${version}.tar openvas-server-$${version} ; \
 	gzip -9 openvas-server-$${version}.tar
 
 distcheck:
