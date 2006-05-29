@@ -1,6 +1,8 @@
 /* OpenVAS
-* $Id$
-* Description: Loads plugins from disk into memory.
+* $Id $
+* Description: attack.c header.
+*
+* Authors: - Renaud Deraison <deraison@nessus.org> (Initial work)
 *
 * Copyright:
 * Portions Copyright (C) 2006 Software in the Public Interest, Inc.
@@ -25,7 +27,6 @@
 
 #ifndef __NESSUS_ATTACK_H__
 #define __NESSUS_ATTACK_H__
-
 
 int attack_network(struct arglist *);
 

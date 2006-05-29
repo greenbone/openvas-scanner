@@ -2,7 +2,7 @@
 * $Id$
 * Description: Compiles old-style OpenVAS plugins, implemented as shared libraries.
 *
-* Authors: - Laban Mwangi <labeneator@gmail.com> (initial version)
+* Authors: - Renaud Dereaison <deraison@nessus.org>  (initial version)
 *
 * Copyright:
 * Portions Copyright (C) 2006 Software in the Public Interest, Inc.

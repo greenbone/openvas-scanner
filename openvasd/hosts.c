@@ -2,7 +2,7 @@
 * $Id$
 * Description: Basically creates a new process for each tested host.
 *
-* Authors: - Laban Mwangi <labeneator@gmail.com> (initial version)
+* Authors: - Renaud deraison <deraison@nessus.org> (initial version)
 *
 * Copyright:
 * Portions Copyright (C) 2006 Software in the Public Interest, Inc.

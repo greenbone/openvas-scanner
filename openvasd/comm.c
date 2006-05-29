@@ -2,7 +2,7 @@
 * $Id$
 * Description: Communication manager; it manages the NTP Protocol version 1.0 and 1.1.
 *
-* Authors: - Laban Mwangi <labeneator@gmail.com> (initial version)
+* Authors: - Renaud Deraison <deraison@nessus.org> (initial version)
 *
 * Copyright:
 * Portions Copyright (C) 2006 Software in the Public Interest, Inc.

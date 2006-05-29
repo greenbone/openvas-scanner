@@ -2,7 +2,7 @@
 * $Id$
 * Description: Implements a set of MD5 functions
 *
-* Authors: - Laban Mwangi <labeneator@gmail.com> (initial version)
+* Authors: - Renaud Deraison <deraison@nessus.org> (initial version)
 *
 * Copyright:
 * Portions Copyright (C) 2006 Software in the Public Interest, Inc.

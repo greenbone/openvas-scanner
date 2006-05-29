@@ -1,5 +1,8 @@
 /* OpenVAS
-* $Id$
+* $Id $
+* Description: detached.c header. 
+*
+* Authors: - Renaud Deraison <deraison@nessus.org> (Initial work)
 *
 * Copyright:
 * Portions Copyright (C) 2006 Software in the Public Interest, Inc.
@@ -20,6 +23,7 @@
 *
 *
 */
+
 
 #ifndef NESSUSD_DETACHED_H__
 #define NESSUSD_DETACHED_H__

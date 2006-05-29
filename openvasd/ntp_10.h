@@ -1,5 +1,8 @@
 /* OpenVAS
-* $Id$
+* $Id $
+* Description:  ntp_10.c header.
+*
+* Authors: - Renaud Deraison <deraison@nessus.org> (Initial work)
 *
 * Copyright:
 * Portions Copyright (C) 2006 Software in the Public Interest, Inc.
@@ -20,6 +23,7 @@
 *
 *
 */
+
 
 #ifndef _NESSUSD_NTP_10_H
 #define _NESSUSD_NTP_10_H
