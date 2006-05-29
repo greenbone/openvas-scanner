@@ -2,7 +2,9 @@
 * $Id$
 * Description: Loads the preferences set in openvasd.conf into the memory. 
 *
-* Authors: - Laban Mwangi <labeneator@gmail.com> (initial version)
+* Authors:
+* Renaud Deraison (intial version)
+* Laban Mwangi <labeneator@gmail.com> (renaming nessus to openvas)
 *
 * Copyright:
 * Portions Copyright (C) 2006 Software in the Public Interest, Inc.
@@ -81,8 +83,8 @@ int preferences_new(char * name)
 
  fprintf(fd, "# Log file : \n");
  fprintf(fd, "logfile = %s\n\n", OPENVASD_MESSAGES);
- fprintf(fd, "# Shall we log every details of the attack ?\n");
- fprintf(fd, "log_whole_attack = yes\n\n");
+ fprintf(fd, "# Shall we log every details of the attack ? (disk intensive)\n");
+ fprintf(fd, "log_whole_attack = no\n\n");
  fprintf(fd, "# Log the name of the plugins that are loaded by the server ?\n");
  fprintf(fd, "log_plugins_name_at_load = no\n\n");
  fprintf(fd, "# Dump file for debugging output, use `-' for stdout\n");

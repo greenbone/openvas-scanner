@@ -2,7 +2,8 @@
 * $Id$
 * Description: Compiles old-style OpenVAS plugins, implemented as shared libraries.
 *
-* Authors: - Renaud Dereaison <deraison@nessus.org>  (initial version)
+* Authors:
+* Renaud Deraison (initial version)
 *
 * Copyright:
 * Portions Copyright (C) 2006 Software in the Public Interest, Inc.
@@ -217,7 +218,10 @@ nes_plugin_launch(globals, plugin, hostinfos, preferences, kb, name)
  
  ptr = LOAD_LIBRARY(name);
  if( ptr == NULL)
+	{
+    	log_write("Couldn't load %s - %s\n", name, LIB_LAST_ERROR());
  	return -1;
+	}
 	
 	
  func = (plugin_run_t)LOAD_FUNCTION(ptr, "plugin_run");

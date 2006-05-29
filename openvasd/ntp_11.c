@@ -3,7 +3,9 @@
 * Description: OpenVAS Communication Manager; it manages the OpenVAS Transfer Protocol,
 * version 1.1 and 1.2.
 *
-* Authors: - Laban Mwangi <labeneator@gmail.com> (initial version)
+* Authors:
+* Renaud Deraison (initial version)
+* Laban Mwangi <labeneator@gmail.com> (renaming nessus to openavs)
 *
 * Copyright:
 * Portions Copyright (C) 2006 Software in the Public Interest, Inc.
@@ -980,6 +982,9 @@ ntp_1x_send_dependencies(globals)
    if(strlen(fname) + strlen(buf) + 6 > buf_size)
    {
     buf_size *= 2;
+    if(strlen(fname) + strlen(buf) + 6 > buf_size)
+    	buf_size = strlen(fname) + strlen(buf) + 6;
+
     buf = erealloc(buf, buf_size);
    }
    strncat(buf, fname, buf_size);

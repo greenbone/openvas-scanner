@@ -2,7 +2,9 @@
 * $Id$
 * Description: Tells openvasd which plugin should be executed next.
 *
-* Authors: - Laban Mwangi <labeneator@gmail.com> (initial work)
+* Authors:
+* Renaud Deraison (intial version)
+* Laban Mwangi <labeneator@gmail.com> (renaming nessus to openvas)
 *
 * Copyright:
 * Portions Copyright (C) 2006 Software in the Public Interest, Inc.
@@ -664,7 +666,9 @@ plugins_scheduler_t plugins_scheduler_init(struct arglist * plugins, int autoloa
   struct list * l = ret->list[i];
   while (l != NULL )
   {
-   if(plug_get_launch(l->plugin->arglist->value) == LAUNCH_DISABLED)
+   if(plug_get_launch(l->plugin->arglist->value) == LAUNCH_DISABLED && 
+      plug_get_category(l->plugin->arglist->value) != ACT_INIT &&
+      plug_get_category(l->plugin->arglist->value) != ACT_SETTINGS )
    {
     struct list * old = l->next;
 
@@ -706,7 +710,7 @@ struct scheduler_plugin * plugins_scheduler_next(plugins_scheduler_t h)
  l = h->list[category];
  
  /*
-  * Scanners (and DoS) must not be run in parrallel
+  * Scanners (and DoS) must not be run in parallel
   */
 
  if((category == ACT_SCANNER) ||
@@ -806,7 +810,8 @@ struct scheduler_plugin * plugins_scheduler_next(plugins_scheduler_t h)
   
   /* Could not find anything */
   if((category == ACT_SCANNER ||
-     category == ACT_INIT) && flag != 0)
+     category == ACT_INIT || 
+     category == ACT_SETTINGS) && flag != 0)
      {
       pluginlaunch_wait_for_free_process();
       flag = 0;

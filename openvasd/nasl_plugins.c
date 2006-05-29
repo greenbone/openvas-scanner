@@ -2,7 +2,8 @@
 * $Id$
 * Description: Launches NASL plugins.
 *
-* Authors: - Renaud Deraison <deraison@nessus.org> (initial version)
+* Authors:
+* Renaud Deraison (initial version)
 *
 * Copyright:
 * Portions Copyright (C) 2006 Software in the Public Interest, Inc.
@@ -198,6 +199,35 @@ nasl_thread(g_args)
  {
   close(i);
  }
+ #ifdef RLIMIT_RSS	 
+  {	 
+  struct rlimit rlim;	 
+  getrlimit(RLIMIT_RSS, &rlim);	 
+  rlim.rlim_cur = 1024*1024*512;	 
+  rlim.rlim_max = 1024*1024*512;	 
+  setrlimit(RLIMIT_RSS, &rlim);	 
+  }	 
+ #endif	 
+ 	 
+ #ifdef RLIMIT_AS	 
+  {	 
+  struct rlimit rlim;	 
+  getrlimit(RLIMIT_AS, &rlim);	 
+  rlim.rlim_cur = 1024*1024*512;	 
+  rlim.rlim_max = 1024*1024*512;	 
+  setrlimit(RLIMIT_AS, &rlim);	 
+  }	 
+ #endif	 
+ 	 
+ #ifdef RLIMIT_DATA	 
+  {	 
+  struct rlimit rlim;	 
+  getrlimit(RLIMIT_DATA, &rlim);	 
+  rlim.rlim_cur = 1024*1024*512;	 
+  rlim.rlim_max = 1024*1024*512;	 
+  setrlimit(RLIMIT_DATA, &rlim);	 
+  }	 
+ #endif
  setproctitle("testing %s (%s)", (char*)arg_get_value(arg_get_value(args, "HOSTNAME"), "NAME"), (char*)arg_get_value(g_args, "name"));
  signal(SIGTERM, _exit);
  
