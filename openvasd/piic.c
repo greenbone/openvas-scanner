@@ -2,7 +2,10 @@
 * $Id$
 * Description: Reads from plugin output pipe, writes to arglist.
 *
-* Authors: - Laban Mwangi <labeneator@gmail.com> (initial version)
+* Authors: - Renaud Deraison <deraison@nessus.org> (Original pre-fork develoment)
+*          - Tim Brown <mailto:timb@openvas.org> (Initial fork)
+*          - Laban Mwangi <mailto:labanm@openvas.org> (Renaming work)
+*          - Tarik El-Yassem <mailto:tarik@openvas.org> (Headers section)
 *
 * Copyright:
 * Portions Copyright (C) 2006 Software in the Public Interest, Inc.
@@ -23,7 +26,8 @@
 *
 *
 */
- 
+
+
 #include <includes.h>
 #include "log.h"
 #include "save_kb.h"

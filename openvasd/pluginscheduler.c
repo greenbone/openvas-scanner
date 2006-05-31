@@ -2,9 +2,10 @@
 * $Id$
 * Description: Tells openvasd which plugin should be executed next.
 *
-* Authors:
-* Renaud Deraison (intial version)
-* Laban Mwangi <labeneator@gmail.com> (renaming nessus to openvas)
+* Authors: - Renaud Deraison <deraison@nessus.org> (Original pre-fork develoment)
+*          - Tim Brown <mailto:timb@openvas.org> (Initial fork)
+*          - Laban Mwangi <mailto:labanm@openvas.org> (Renaming work)
+*          - Tarik El-Yassem <mailto:tarik@openvas.org> (Headers section)
 *
 * Copyright:
 * Portions Copyright (C) 2006 Software in the Public Interest, Inc.
@@ -24,8 +25,9 @@
 * Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA 02110-1301 USA.
 *
 *
-*/ 
- 
+*/
+
+
 #include <includes.h>
 #define IN_SCHEDULER_CODE 1
 #include "pluginscheduler.h"
