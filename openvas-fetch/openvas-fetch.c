@@ -1,34 +1,38 @@
-/*
- * OpenVAS-Fetch
- *
- * (C) Tenable Network Security
- * (C) Tim Brown
- *
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License version 2,
- * as published by the Free Software Foundation
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITOVS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
- *
- * 
- *
- *
- * openvas-fetch is a simple utility to retrieve OpenVAS plugins from plugins.openvas.org
- * $Id$
- */
+/* OpenVAS
+* $Id$
+* Description: simple utility to retrieve OpenVAS plugins from plugins.openvas.org.
+*
+* Authors: - Renaud Deraison <deraison@nessus.org> (Original pre-fork develoment)
+*          - Tim Brown <mailto:timb@openvas.org> (Initial fork)
+*          - Laban Mwangi <mailto:labanm@openvas.org> (Renaming work)
+*          - Tarik El-Yassem <mailto:tarik@openvas.org> (Headers section)
+*
+* Copyright:
+* Portions Copyright (C) 2006 Software in the Public Interest, Inc.
+* Based on work Copyright (C) 1998 - 2006 Tenable Network Security, Inc.
+*
+* This program is free software; you can redistribute it and/or modify
+* it under the terms of the GNU General Public License version 2,
+* as published by the Free Software Foundation
+*
+* This program is distributed in the hope that it will be useful,
+* but WITHOUT ANY WARRANTY; without even the implied warranty of
+* MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+* GNU General Public License for more details.
+*
+* You should have received a copy of the GNU General Public License
+* along with this program; if not, write to the Free Software
+* Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA 02110-1301 USA.
+*
+*
+*/
+
+
 #include <includes.h>
 
 #define HTTP_PORT 80
 #define HTTPS_PORT 443
 #define MAX_SIZE (40*1024*1024)
-
 
 #define WWW_OPENVAS_ORG "www.openvas.org"
 #define PLUGINS_OPENVAS_ORG "plugins.openvas.org" 
@@ -44,7 +48,6 @@
 #ifndef INADDR_NONE
 #define INADDR_NONE 0xffffffff
 #endif
-
 
 
 static int unblock_socket(int soc)
