@@ -1,0 +1,13 @@
+Installing OpenVAS
+------------------------
+
+1. Grab and install nessus-libraries and libnasl from nessus (http://www.nessus.org/download/index.php). Please follow the instructions that come with these files. The order of installation matters since libnasl depends on nessus-libraries, so start with nessus-libraries.
+2. Grab openvas-server and openvas-plugins from www.openvas.org
+3. Compile openvas-server using the usual configure, make and make install procedure.
+4. Compile openvas-plugins using the usual configure, make and make install procedure.*
+5. As a privileged user run openvas-mkcert
+6. As a privileged user run openvas-adduser
+7. Run openvasd
+8. Use a client like nessj (http://reason.sourceforge.net/). Connect and have fun!
+
+*You May need to install LIBNET from http://www.packetfactory.net/libnet/
