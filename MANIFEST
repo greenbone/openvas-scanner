@@ -5,12 +5,10 @@ config.sub
 configure
 configure.in
 COPYING
-COPYING.OpenSSL
 doc/HTTP_authentication.txt
 doc/kb_entries.txt
 doc/kb_saving.txt
 doc/nbe_file_format.txt
-doc/nsr.dtd
 doc/nsr_file_format.txt
 doc/ntp/ntp_extensions.txt
 doc/ntp/ntp_white_paper_11.txt
@@ -24,10 +22,10 @@ doc/openvas-fetch.1
 doc/openvas-mkcert.8
 doc/openvas-mkrand.1
 doc/openvas-rmuser.8
+doc/README.INSTALL
 doc/session_saving.txt
+doc/stubheader.txt
 doc/TODO.txt
-doc/Top20-2002
-doc/Top20-2003
 doc/unbsp.c
 doc/WARNING.En
 doc/WARNING.Fr
