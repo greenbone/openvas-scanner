@@ -85,6 +85,15 @@ install-bin:
 	$(INSTALL) -c -m 0444 include/nessustcp.h $(DESTDIR)${includedir}/openvas
 	$(INSTALL) -c -m 0444 include/nessusudp.h $(DESTDIR)${includedir}/openvas
 	$(INSTALL) -c -m 0444 openvas-services $(DESTDIR)${OPENVASD_STATEDIR}/
+	# The following copy of openvas-services into nessus-services
+	# is done due to the fact that the path to this file is
+	# hardcoded in nessus-libraries. So, in case nessus-libraries
+	# is used, this is mandatory - openvasd would not start otherwise.
+	# However, openvas and nessus may mutually overwrite the nesssus-services
+	# file - the latest install wins.
+	test -d $(DESTDIR)${OPENVASD_STATEDIR}/../../nessus || $(INSTALL_DIR) -m 755 $(DESTDIR)${OPENVASD_STATEDIR}/../../nessus
+	$(INSTALL) -c -m 0444 openvas-services $(DESTDIR)${OPENVASD_STATEDIR}/../../nessus/nessus-services
+
 
 
 install-man:
