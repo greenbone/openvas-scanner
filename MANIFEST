@@ -46,6 +46,7 @@ INSTALL
 Makefile
 MANIFEST
 openvas-adduser.in
+openvas-services
 openvasd/attack.c
 openvasd/attack.h
 openvasd/auth.c
