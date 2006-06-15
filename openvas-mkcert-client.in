@@ -40,7 +40,7 @@ umask 022
 prefix=@prefix@
 datadir=@datadir@
 sysconfdir=@sysconfdir@
-localstatedir=@localstatedir@
+localstatedir=@localstatedir@/lib
 sharedstatedir=@sharedstatedir@
 sbindir=@exec_prefix@/sbin
 bindir=@exec_prefix@/bin
