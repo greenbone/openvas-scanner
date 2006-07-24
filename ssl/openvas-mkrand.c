@@ -34,32 +34,19 @@
 #include <math.h>
 #include <sys/time.h>
 #include <signal.h>
-
+#include <termios.h>
 
 FILE		*fp;
-
-/* 
- * Ugly but portable
- */
-
-int 
-setup_tty()
-{
-
-	return !system("stty -icanon") && !system("stty -echo");
-}
-
-int
-restore_tty()
-{
-	return !system("stty echo") && !system("stty icanon");
-}
 
 void
 sighand(sig)
 	int sig;
 {
-	restore_tty();
+	struct termios reset;
+	int ttyfd = fileno(stdin);
+	tcgetattr(ttyfd, &reset);
+	reset.c_lflag &= ~ECHO; /* disable echo */
+	tcsetattr(ttyfd, TCSAFLUSH, &reset);
  	if(fp)fclose(fp);
 	exit(1);
 }
@@ -83,6 +70,8 @@ main(argc, argv)
   struct timeval	tictac;
   unsigned char		c, *p;
   int		count[256][256], sum[256];
+  int		ttyfd = fileno(stdin);
+  struct termios	orig, new;
   char *	out = NULL;
 
   signal(SIGTERM, sighand);
@@ -129,9 +118,11 @@ main(argc, argv)
 	count[i][j] = 0;
     }
 
-  fprintf(stderr, "Now please enter random characters\n");
-
-  setup_tty();
+  fprintf(stderr, "Now please enter random characters and press ^D on completion\n");
+  tcgetattr(ttyfd, &orig);
+  new = orig;
+  new.c_lflag &= ~ECHO; /* disable echo */
+  tcsetattr(ttyfd, TCSAFLUSH, &new);
   prec = 0;
   e = 0.0;
   i = 0;
@@ -139,10 +130,10 @@ main(argc, argv)
     {
       gettimeofday(&tictac, NULL);
       if ((x = getchar()) == EOF)
-	{
-	  perror("getchar");
-	  break;
-	}
+        {
+          perror("getchar");
+          break;
+        }
 
       c = x;
       for (j = 0, p = (unsigned char*)&tictac; j < sizeof(tictac); j ++)
@@ -172,7 +163,7 @@ main(argc, argv)
       fputs(".", stdout);
       fflush(stdout);
     }
-  restore_tty();
+  tcsetattr(ttyfd, TCSAFLUSH, &orig);
 #ifdef DEBUG
   fprintf(stderr, "Estimated entropy = %g bits (= %d bytes)\n",
 	  e, (int) (e / 8));
