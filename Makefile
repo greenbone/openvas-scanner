@@ -77,8 +77,8 @@ install-bin:
 	$(INSTALL) -m 755 openvas-mkcert-client $(DESTDIR)${bindir}/openvas-mkcert-client
 	$(INSTALL) -m 755 openvasd-config $(DESTDIR)${bindir}/openvasd-config
 	$(INSTALL) -m 755 ssl/openvas-mkrand $(DESTDIR)${bindir}/openvas-mkrand
-	$(INSTALL) -m $(SERVERMODE)  ${make_bindir}/openvasd $(DESTDIR)${sbindir}/openvasd
-	$(INSTALL) -m $(SERVERMODE)  ${make_bindir}/openvas-check-signature $(DESTDIR)${sbindir}/openvas-check-signature
+	$(INSTALL) -m $(SERVERMODE) openvasd/openvasd $(DESTDIR)${sbindir}/openvasd
+	$(INSTALL) -m $(SERVERMODE) openvasd/openvas-check-signature $(DESTDIR)${sbindir}/openvas-check-signature
 	$(INSTALL) -m 755 openvas-adduser $(DESTDIR)${sbindir}/openvas-adduser
 	$(INSTALL) -m 755 openvas-rmuser $(DESTDIR)${sbindir}/openvas-rmuser
 	$(INSTALL) -m 755 openvas-mkcert $(DESTDIR)${sbindir}/openvas-mkcert

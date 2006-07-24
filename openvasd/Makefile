@@ -38,20 +38,13 @@ OBJS = auth.o \
        pluginscheduler.o \
        shared_socket.o 
 
-all : ${make_bindir}/openvasd ${make_bindir}/openvas-check-signature
+all : openvasd openvas-check-signature
 
 cflags : ../openvas.tmpl
 	@echo "$(OPENVAS_CFLAGS) ${include} $(DEFS) $(OPENVAS_DEFS)"  | sed 's/\"/\\\"/g' > cflags.tmp
 	@echo "echo \"`cat cflags.tmp`\"" > cflags
 	@rm cflags.tmp
 	@chmod +x cflags
-${make_bindir}/openvasd : openvasd
-	test -d ${make_bindir} || mkdir ${make_bindir}
-	cp openvasd ${make_bindir}/openvasd
-
-${make_bindir}/openvas-check-signature: openvas-check-signature
-	test -d ${make_bindir} || mkdir ${make_bindir}
-	cp openvas-check-signature ${make_bindir}/openvas-check-signature
 
 openvasd : cflags $(OBJS)
 	$(CC) $(LDFLAGS) $(OPENVAS_INCLUDE) $(OBJS)  -o openvasd $(LIBS)

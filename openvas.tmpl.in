@@ -34,7 +34,6 @@ infodir=@infodir@
 mandir=@mandir@
 
 srcdir=${rootdir}/src
-make_bindir=${rootdir}/bin
 libsdir=${rootdir}/libs
 top_builddir = @PWDD@
 include= -I. -I$(rootdir)/include  

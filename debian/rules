@@ -33,7 +33,7 @@ clean:
 	dh_testdir
 	dh_testroot
 	touch openvas.tmpl
-#	[ ! -f Makefile ] || $(MAKE) rootdir=`pwd` make_bindir=`pwd`/bin distclean
+#	[ ! -f Makefile ] || $(MAKE) rootdir=`pwd` distclean
 	[ ! -f Makefile ] || $(MAKE) distclean
 	-rm -f bin/openvas*
 	dh_clean build-stamp
