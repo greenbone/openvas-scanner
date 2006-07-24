@@ -76,7 +76,7 @@ else
 
   eval_gettext () {
     eval_gettext_var="echo $1"
-    echo $Xn `eval $eval_gettext_var` $Xc
+    echo $Xn "`eval $eval_gettext_var`" $Xc
   }
 
 fi
