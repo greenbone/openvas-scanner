@@ -32,7 +32,7 @@ include openvas.tmpl
 
 ALLDEPS = openvas.tmpl
 
-all: $(ALLDEPS) server sslstuff doc fetchtool
+all: $(ALLDEPS) server sslstuff doc
 
 
 openvas.tmpl: openvas.tmpl.in configure VERSION
@@ -73,7 +73,6 @@ install-bin:
 	@test -d $(DESTDIR)${sharedstatedir} || $(INSTALL_DIR) -m 755 $(DESTDIR)${sharedstatedir}
 	@test -d $(DESTDIR)${sharedstatedir}/openvas || $(INSTALL_DIR) -m 755 $(DESTDIR)${sharedstatedir}/openvas
 	@test -d $(DESTDIR)${sharedstatedir}/openvas/CA || $(INSTALL_DIR) -m 755 $(DESTDIR)${sharedstatedir}/openvas/CA
-	$(INSTALL) -m 755 openvas-fetch/openvas-fetch $(DESTDIR)${bindir}/openvas-fetch
 	$(INSTALL) -m 755 openvas-mkcert-client $(DESTDIR)${bindir}/openvas-mkcert-client
 	$(INSTALL) -m 755 openvasd-config $(DESTDIR)${bindir}/openvasd-config
 	$(INSTALL) -m 755 ssl/openvas-mkrand $(DESTDIR)${bindir}/openvas-mkrand
@@ -107,7 +106,6 @@ install-man:
 	@test -d $(DESTDIR)${mandir} || $(INSTALL_DIR) -m 755 $(DESTDIR)${mandir}
 	@test -d $(DESTDIR)${mandir}/man1 || $(INSTALL_DIR) -m 755 $(DESTDIR)${mandir}/man1
 	@test -d $(DESTDIR)${mandir}/man8 || $(INSTALL_DIR) -m 755 $(DESTDIR)${mandir}/man8
-	$(INSTALL) -c -m 0444 doc/openvas-fetch.1 $(DESTDIR)${mandir}/man1/openvas-fetch.1
 	$(INSTALL) -c -m 0444 doc/openvas-check-signature.1 $(DESTDIR)${mandir}/man1/openvas-check-signature.1
 	$(INSTALL) -c -m 0444 doc/openvas-mkrand.1 $(DESTDIR)${mandir}/man1/openvas-mkrand.1
 	$(INSTALL) -c -m 0444 doc/openvasd.8 $(DESTDIR)${mandir}/man8/openvasd.8
@@ -123,10 +121,6 @@ sslstuff :
 	cd ssl && $(MAKE)
 
 
-fetchtool:
-	cd openvas-fetch && $(MAKE)
-
-
 doc : $(MAN_OPENVASD_8)
 
 $(MAN_OPENVASD_8) : $(MAN_OPENVASD_8).in
@@ -134,7 +128,6 @@ $(MAN_OPENVASD_8) : $(MAN_OPENVASD_8).in
 
 
 clean:
-	cd openvas-fetch && $(MAKE) clean
 	cd openvasd && $(MAKE) clean
 	cd ssl && $(MAKE) clean
 

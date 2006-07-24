@@ -18,7 +18,6 @@ doc/ntp/README
 doc/openvas-adduser.8
 doc/openvas-check-signature.1
 doc/openvasd.8.in
-doc/openvas-fetch.1
 doc/openvas-mkcert.8
 doc/openvas-mkrand.1
 doc/openvas-rmuser.8
@@ -111,8 +110,6 @@ openvasd/users.c
 openvasd/users.h
 openvasd/utils.c
 openvasd/utils.h
-openvas-fetch/Makefile
-openvas-fetch/openvas-fetch.c
 openvas-mkcert-client.in
 openvas-mkcert.in
 openvas-rmuser.in
