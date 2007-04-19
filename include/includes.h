@@ -34,16 +34,9 @@
  * OpenVAS system includes 
  */
 
-#ifdef _CYGWIN_
-#undef _WIN32
-#endif
 
 
-#ifdef _WIN32
-#include "config.w32"
-#else
 #include "config.h"
-#endif
 
 #ifdef HAVE_SHL_LOAD	/* I love HPUX (jh) */
 #define dlopen  __forget_dlopen_4a_moment

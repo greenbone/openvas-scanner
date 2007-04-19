@@ -40,11 +40,7 @@ void
 set_pname
   (char *s)
 {
-  if ((pname = (char*)strrchr (s, '/')) == 0 
-#     ifdef _WIN32
-      && (pname = (char*)strrchr (s, '\\')) == 0 
-#     endif
-      )
+  if ((pname = (char*)strrchr (s, '/')) == 0)
     pname = s ;
   else
     ++ pname ;
