@@ -33,7 +33,7 @@ while test $# -gt 0; do
 		exit 0
 		;;
 	--cflags)
-		echo $Xn "-I$DESTDIR$INCLUDEDIR/openvas $Xc"
+		echo $Xn "-I$INCLUDEDIR/openvas $Xc"
 		;;
 	--help | -h)
 		usage 0

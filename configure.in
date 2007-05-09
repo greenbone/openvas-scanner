@@ -93,7 +93,7 @@ test "x$enable_syslog" = "xno" && unset enable_syslog
 nessus_lib=-lnessus
 
 dnl extending the search path for AC_PATH_PROG when searching for config scripts
-XPATH="$DESTDIR$prefix/bin:$PATH"
+XPATH="$prefix/bin:$PATH"
 	
 
 dnl User options
