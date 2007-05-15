@@ -177,14 +177,12 @@ int preferences_process(filename,prefs)
       {
         check_symlink(filename);
 	if(!(fd = fopen(filename, "r"))) {
-#ifndef OPENVASNT
 	 if(errno == EACCES)
 	 {
 	  print_error(
 	  	"The OpenVAS daemon doesn't have the right to read %s\n", filename);
 	  DO_EXIT(1);
 	 }
-#endif
 
 #ifdef DEBUG
 	  print_error("Couldn't find any prefs file... Creating a new one...\n");

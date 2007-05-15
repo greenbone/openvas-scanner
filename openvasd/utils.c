@@ -259,13 +259,9 @@ int
 is_symlink(name)
  char * name;
 {
-#ifndef OPENVASNT
  struct stat sb;
  if(stat(name, &sb))return(0);
  return(S_ISLNK(sb.st_mode));
-#else
- return(0);
-#endif
 }
 
 void check_symlink(name)

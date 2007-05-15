@@ -549,9 +549,6 @@ wait :
 
  /* kill left overs */
  end_daemon_mode();
-#ifndef OPENVASNT
- /*arg_free(globals); */
-#endif
  EXIT(0);
 }
 
@@ -834,8 +831,7 @@ main_loop()
        * duplicate everything so that the threads don't share the
        * same variables.
        *
-       * Useless when fork is used, necessary for the pthreads and
-       * the NT threads
+       * Useless when fork is used, necessary for the pthreads 
        *
        * MA: you cannot share an open SSL connection through fork/multithread
        * The SSL connection shall be open _after_ the fork
@@ -894,9 +890,7 @@ init_network(port, sock, addr)
      int * sock;
      struct in_addr addr;
 {
-#ifndef OPENVASNT
   int option = 1;
-#endif
 
 #ifdef USE_AF_INET
   struct sockaddr_in address;
@@ -905,16 +899,6 @@ init_network(port, sock, addr)
   char * name = AF_UNIX_PATH;
 #endif
 
-
-#ifdef OPENVASNT
-    WORD wVersionRequested;
-    WSADATA wsaData;
-    int err;
-    
-    wVersionRequested = MAKEWORD( 2, 0 );
-    err = WSAStartup( wVersionRequested, &wsaData );
-    if(err){print_error("Could not initialize WinSock !");DO_EXIT(0);}
-#endif
 
 #ifdef USE_AF_INET
   if((*sock = socket(AF_INET, SOCK_STREAM, 0))==-1)
@@ -941,9 +925,7 @@ init_network(port, sock, addr)
   unlink(name);
 #endif
 
-#ifndef OPENVASNT
   setsockopt(*sock, SOL_SOCKET, SO_REUSEADDR, &option, sizeof(int));
-#endif
   if(bind(*sock, (struct sockaddr *)(&address), sizeof(address))==-1)
     {
       fprintf(stderr, "bind() failed : %s\n", strerror(errno));      
@@ -1110,11 +1092,8 @@ main(int argc, char * argv[], char * envp[])
 
  initsetproctitle(argc, argv, envp);
 
-  if ((myself = strrchr (*argv, '/')) == 0
-#if defined(OPENVASNT) || defined(_CYGWIN_)
-      && (myself = strrchr (*argv, '\\')) == 0
-#endif
-      ) myself = *argv ;
+  if ((myself = strrchr (*argv, '/')) == 0) 
+  	myself = *argv ;
   else
     myself ++ ;
 
@@ -1159,7 +1138,6 @@ you have deleted older versions of libnasl from your system\n",
   /* pull in library symbols - otherwise abort */
   nessuslib_pthreads_enabled ();
 #endif
-#ifndef OPENVASNT
 
   for (;;) {
     int option_index = 0;
@@ -1272,7 +1250,6 @@ you have deleted older versions of libnasl from your system\n",
 	   DO_EXIT(0);
 	   break;
 	}
-#endif
   } /* end options */
 
 #if 0
@@ -1281,13 +1258,11 @@ you have deleted older versions of libnasl from your system\n",
 #endif
 
 
-#ifndef _CYGWIN_
   if(getuid())
   {
      fprintf(stderr, "Only root should start openvasd.\n");
      exit(0);
   }
-#endif
   if(exit_early == 0)
     bpf_server_pid = bpf_server();
 
@@ -1319,13 +1294,6 @@ you have deleted older versions of libnasl from your system\n",
 
   nessus_init_svc();
 
-#ifdef OPENVASNT
-  /*
-   * Just tell to the user that openvasd is running in background
-   */
-  create_thread(print_error, "openvasd is now running in background", 0);
-  main_loop();
-#else
   if(do_fork)
   {  	
    /* 
@@ -1352,7 +1320,6 @@ you have deleted older versions of libnasl from your system\n",
   	create_pid_file();
   	main_loop();
 	}
-#endif
   DO_EXIT(0);
   return(0);
 }
