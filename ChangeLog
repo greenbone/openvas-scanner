@@ -1,5 +1,9 @@
 2007-05-23  Jan-Oliver Wagner <jan-oliver.wagner@intevation.de>
 
+	* configure: Updated.
+
+2007-05-23  Jan-Oliver Wagner <jan-oliver.wagner@intevation.de>
+
 	* configure.in, openvas.tmpl.in, openvasd/Makefile: Replace
 	use of nessus-libraries and libnasl by openvas-libraries
 	and openvas-libnasl. This includes name change of the respective
