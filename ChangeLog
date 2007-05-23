@@ -1,3 +1,12 @@
+2007-05-23  Jan-Oliver Wagner <jan-oliver.wagner@intevation.de>
+
+	* configure.in, openvas.tmpl.in, openvasd/Makefile: Replace
+	use of nessus-libraries and libnasl by openvas-libraries
+	and openvas-libnasl. This includes name change of the respective
+	variables for the respective config scripts.
+
+	* VERSION: Set back to 0.9.0. OpenVAS wasn't that far yet.
+
 2007-05-09  Jan-Oliver Wagner <jan-oliver.wagner@intevation.de>
 
 	* openvasd-config.in, configure.in, Makefile: Removed

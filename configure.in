@@ -125,23 +125,19 @@ AC_ARG_ENABLE(tcpwrappers,[  --enable-tcpwrappers	  use the libwrap.a library],
 
 
 
-AC_PATH_PROG(OPENVASCONFIG, nessus-config,,$XPATH)
+AC_PATH_PROG(LIBOPENVASCONFIG, libopenvas-config,,$XPATH)
 
-test "x$OPENVASCONFIG" = x && AC_ERROR(""
+test "x$LIBOPENVASCONFIG" = x && AC_ERROR(""
 ""
-"*** nessus-libraries is not installed ! You need to install it before you"
-"compile openvas-core."
-"Get it at ftp://ftp.nessus.org/pub/nessus/")
+"*** openvas-libraries is not installed ! You need to install it before you"
+"compile openvas-server.")
 
-AC_PATH_PROG(NASLCONFIG, nasl-config,,$XPATH)
+AC_PATH_PROG(OPENVASLIBNASLCONFIG, openvas-libnasl-config,,$XPATH)
 
-test "x$NASLCONFIG" = x &&  AC_ERROR(""
+test "x$OPENVASLIBNASLCONFIG" = x &&  AC_ERROR(""
 ""
-"*** libnasl is not installed ! You need to install it before you "
-"compile openvas-core."
-""
-"Get it at ftp:/ftp.nessus.org/pub/nessus/")
-
+"*** openvas-libnasl is not installed ! You need to install it before you "
+"compile openvas-server.")
 
 
 AC_ARG_ENABLE(unix-socket,[  --enable-unix-socket[=/path]	use a unix socket for client server communication],	  
@@ -156,10 +152,10 @@ test "x$enable_unix_socket" != "x" -a "x$enable_unix_socket" != "xyes" &&
 
 
 dnl only vanilla sed can handle long substitution lines
-OVSCFLAGS="`$OPENVASCONFIG --cflags | sed 's/NESSUS_ON_SSL/OPENVAS_ON_SSL/'`"
-NASLCFLAGS="`$NASLCONFIG --cflags`"
+OVSCFLAGS="`$LIBOPENVASCONFIG --cflags | sed 's/NESSUS_ON_SSL/OPENVAS_ON_SSL/'`"
+NASLCFLAGS="`$OPENVASLIBNASLCONFIG --cflags`"
 
-egdpath="`$OPENVASCONFIG --egd`"
+egdpath="`$LIBOPENVASCONFIG --egd`"
 dnl Check if we are running arm, if so, remove all -OX flags
 dnl (since optimisation does not work on arm... yet, jfs)
 dnl Note: the three [ are needed since autoconf somehow strips [[ to [
@@ -440,7 +436,7 @@ AC_CHECK_LIB(dl, dlopen, [dl_lib="-ldl" ; AC_DEFINE(HAVE_DL_LIB)])
 AC_CHECK_FUNCS(shl_load)
 AC_CHECK_FUNCS(NSCreateObjectFileImageFromFile)
 
-LIBS=`$OPENVASCONFIG --libs`
+LIBS=`$LIBOPENVASCONFIG --libs`
 
 AC_CHECK_LIB(nessus, nessuslib_pthreads_enabled, use_pthreads="-DUSE_PTHREADS -DTHREADS -D_REENTRANT")
 
@@ -725,8 +721,8 @@ AC_SUBST(rpcsvc_lib)
 AC_SUBST(compat_lib)
 AC_SUBST(c_r_lib)
 AC_SUBST(datadir)
-AC_SUBST(OPENVASCONFIG)
-AC_SUBST(NASLCONFIG)
+AC_SUBST(LIBOPENVASCONFIG)
+AC_SUBST(OPENVASLIBNASLCONFIG)
 AC_SUBST(ac_configure_args)
 AC_SUBST(egdpath)
 AC_SUBST(is_cygwin)
