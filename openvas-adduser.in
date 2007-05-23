@@ -41,7 +41,6 @@ esac
 
 umask 066
 
-is_cygwin=@is_cygwin@
 prefix=@prefix@
 exec_prefix=@exec_prefix@
 
@@ -77,23 +76,18 @@ fi
 # make sure that we are root, if there is no id command,
 # you loose, anyway
 
-if [ -z "$is_cygwin" ];
-then
- case `id 2>/dev/null` in 
- uid=0*) 
-    # check the implementation
-    openvasd -g || {
-        gettext "Executing openvasd failed. Make sure your library loader is configured properly and that openvasd is in your \$PATH."; echo
-        exit 1
-	}
-    ;; 
- *)
-    gettext "Only root should use openvas-adduser."; echo
-    exit 1
- esac
-else
- openvasd -g
-fi
+case `id 2>/dev/null` in
+uid=0*) 
+   # check the implementation
+   openvasd -g || {
+       gettext "Executing openvasd failed. Make sure your library loader is configured properly and that openvasd is in your \$PATH."; echo
+       exit 1
+   }
+   ;; 
+*)
+   gettext "Only root should use openvas-adduser."; echo
+   exit 1
+esac
 
 
 prefix=@prefix@

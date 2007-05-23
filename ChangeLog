@@ -1,5 +1,10 @@
 2007-05-23  Jan-Oliver Wagner <jan-oliver.wagner@intevation.de>
 
+	* configure.in, openvas-adduser.in, openvas-rmuser.in,
+	openvas-mkcert.in, openvas-mkcert-client.in: Remove Cygwin stuff.
+
+2007-05-23  Jan-Oliver Wagner <jan-oliver.wagner@intevation.de>
+
 	* configure: Updated.
 
 2007-05-23  Jan-Oliver Wagner <jan-oliver.wagner@intevation.de>

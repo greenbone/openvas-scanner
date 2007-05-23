@@ -44,7 +44,6 @@ includedir=@includedir@
 oldincludedir=@oldincludedir@
 infodir=@infodir@
 mandir=@mandir@
-is_cygwin=@is_cygwin@
 
 openvasd=@sbindir@/openvasd
 openvasd_users=@sysconfdir@/openvas/openvasd.users
@@ -82,14 +81,11 @@ case `echo -n` in
 *)	Xn=-n ; Xc=
 esac
 
-if [ -z "$is_cygwin" ];
-then
- # make sure that we are root
- case `id` in uid=0*) ;; *)
-    gettext "Only root should use openvas-rmuser."; echo
-    exit 1
- esac
-fi
+# make sure that we are root
+case `id` in uid=0*) ;; *)
+   gettext "Only root should use openvas-rmuser."; echo
+   exit 1
+esac
 
 
 login="$1"

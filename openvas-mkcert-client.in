@@ -45,7 +45,6 @@ sharedstatedir=@sharedstatedir@
 sbindir=@exec_prefix@/sbin
 bindir=@exec_prefix@/bin
 egdpath=@egdpath@
-is_cygwin=@is_cygwin@
 
 RANDFLAG=""
 test -n "$egdpath" && 
