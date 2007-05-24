@@ -279,7 +279,7 @@
 #include <pcap.h>
 #include <threadcompat.h>
 #include <harglists.h>
-#include <libnessus.h>
+#include <libopenvas.h>
 #include <openvas-devel.h>
 
 #ifdef HAVE_SHL_LOAD	/* I love HPUX (jh) */

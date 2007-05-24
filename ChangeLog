@@ -1,5 +1,12 @@
 2007-05-25  Jan-Oliver Wagner <jan-oliver.wagner@intevation.de>
 
+	* include/threadcompat.h: Fix names and description to reflect
+	thread as subject.
+
+	* include/includes.h: Replace libnessus.h by libopenvas.h.
+
+2007-05-25  Jan-Oliver Wagner <jan-oliver.wagner@intevation.de>
+
 	* include/ntcompat.h: Removed. Renamed to threadcompat.h
 	because in fact it is about threads.
 

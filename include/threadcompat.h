@@ -1,6 +1,6 @@
 /* OpenVAS
 * $Id$
-* Description: Defines for Windows NT compatibility.
+* Description: Defines for Thread compatibility.
 *
 * Authors: - Renaud Deraison <deraison@nessus.org> (Original pre-fork develoment)
 *          - Tim Brown <mailto:timb@openvas.org> (Initial fork)
@@ -28,15 +28,8 @@
 */
 
 
-#ifndef NESSUS_NT_COMPAT__
-#define NESSUS_NT_COMPAT__
- 
-/*
- * ntcompat.h : redefinition of several system calls to provide
- *              NT compatibility to OpenVAS
- *
- */
-
+#ifndef NESSUS_THREAD_COMPAT__
+#define NESSUS_THREAD_COMPAT__
 
 /*
  * Thread management
@@ -101,4 +94,4 @@ typedef void * ext_library_t;
 #define LIB_LAST_ERROR dlerror
 #define CLOSE_LIBRARY(x) dlclose(x)
 
-#endif /* defined(NESSUS_NT_COMPAT_H) */
+#endif /* defined(NESSUS_THREAD_COMPAT_H) */
