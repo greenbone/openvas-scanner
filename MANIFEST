@@ -38,7 +38,7 @@ include/nessusip.h
 include/nessusraw.h
 include/nessustcp.h
 include/nessusudp.h
-include/ntcompat.h
+include/threadcompat.h
 include/openvas-devel.h
 install-sh
 INSTALL

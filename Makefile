@@ -85,7 +85,7 @@ install-bin:
 	$(INSTALL) -c -m 0444 include/includes.h ${includedir}/openvas/includes.h
 	$(INSTALL) -c -m 0444 include/openvas-devel.h ${includedir}/openvas/openvas-devel.h
 	$(INSTALL) -c -m 0444 include/config.h ${includedir}/openvas/config.h
-	$(INSTALL) -c -m 0444 include/ntcompat.h ${includedir}/openvas/ntcompat.h
+	$(INSTALL) -c -m 0444 include/threadcompat.h ${includedir}/openvas/threadcompat.h
 	$(INSTALL) -c -m 0444 include/nessusraw.h ${includedir}/openvas/nessusraw.h
 	$(INSTALL) -c -m 0444 include/nessusip.h ${includedir}/openvas/nessusip.h
 	$(INSTALL) -c -m 0444 include/nessusicmp.h ${includedir}/openvas/nessusicmp.h

@@ -1,5 +1,15 @@
 2007-05-25  Jan-Oliver Wagner <jan-oliver.wagner@intevation.de>
 
+	* include/ntcompat.h: Removed. Renamed to threadcompat.h
+	because in fact it is about threads.
+
+	* include/threadcompat.h: New. Previous ntcompat.h.
+
+	* Makefile, MANIFEST, include/includes.h: Renamed ntcompat.h
+	to threadcompat.h
+
+2007-05-25  Jan-Oliver Wagner <jan-oliver.wagner@intevation.de>
+
 	* include/ntcompat.h: Remove now useless emtpy defines for
 	PlugExport, DllExport, DllImport and ExtFunc. Remove
 	alias print_error for printf which was not used strictly

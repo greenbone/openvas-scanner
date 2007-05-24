@@ -277,7 +277,7 @@
 #endif
 
 #include <pcap.h>
-#include <ntcompat.h>
+#include <threadcompat.h>
 #include <harglists.h>
 #include <libnessus.h>
 #include <openvas-devel.h>
