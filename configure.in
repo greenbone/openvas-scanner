@@ -129,9 +129,7 @@ test "x$enable_unix_socket" != "x" -a "x$enable_unix_socket" != "xyes" &&
  }
 
 
-
-dnl only vanilla sed can handle long substitution lines
-OVSCFLAGS="`$LIBOPENVASCONFIG --cflags | sed 's/NESSUS_ON_SSL/OPENVAS_ON_SSL/'`"
+OVSCFLAGS="`$LIBOPENVASCONFIG --cflags`"
 NASLCFLAGS="`$OPENVASLIBNASLCONFIG --cflags`"
 
 egdpath="`$LIBOPENVASCONFIG --egd`"

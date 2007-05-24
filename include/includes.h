@@ -229,12 +229,8 @@
  *
  */
 
-#ifdef NESSUSNT
-#define USE_NT_THREADS
-#else
 #ifndef USE_PTHREADS
 #define USE_FORK_THREADS
-#endif
 #endif
 
 #ifdef USE_PTHREADS

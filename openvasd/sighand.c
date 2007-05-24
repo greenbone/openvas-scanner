@@ -30,7 +30,6 @@
 
 #include <includes.h>
 
-#ifndef NESSUSNT
 #include "log.h"
 #include "auth.h"
 #include "sighand.h"
@@ -221,6 +220,3 @@ void sighand_segv()
  make_em_die (SIGTERM);
  _EXIT(0);
 }
-
-
-#endif /* not defined(NESSUSNT) */

@@ -37,24 +37,12 @@
  *
  */
 
-#ifdef NESSUSNT
-#include <windows.h>
-#endif
-
 
 /*
  * Thread management
  */
  
 typedef int(*thread_func_t)(void *);
-
-#ifdef USE_NT_THREADS
-typedef HANDLE nthread_t;
-#define EXIT(x) ExitThread(x)
-#define _EXIT(x) ExitThread(x)
-#define DO_EXIT(x) exit(x)
-#define TERMINATE_THREAD(x) TerminateThread(x,0)
-#endif /* US_NT_THREADS */
 
 #ifdef USE_FORK_THREADS
 typedef int nthread_t;
@@ -101,13 +89,6 @@ struct thread_args {
 /*
  * External libraries management
  */
-#ifdef NESSUSNT
-typedef HMODULE ext_library_t;
-#define LOAD_FUNCTION(x,y) GetProcAddress(x,y)
-#define LOAD_LIBRARY(x) LoadLibrary(x)
-#define LIB_LAST_ERROR WSAGetLastError
-#define CLOSE_LIBRARY(x) FreeLibrary(x)
-#else
 typedef void * ext_library_t;
 #define LOAD_FUNCTION(x,y) dlsym(x,y)
 
@@ -119,56 +100,13 @@ typedef void * ext_library_t;
 
 #define LIB_LAST_ERROR dlerror
 #define CLOSE_LIBRARY(x) dlclose(x)
-#endif /* defined(NESSUSNT) */
 
 
-/*
- * Misc. functions
- */
-#ifdef NESSUSNT
-#ifndef __STDC__
-#define __STDC__ 1
-#endif
-#define getpid(x) GetCurrentProcessId(x)
-#define close(x)  closesocket(x)
-#define ioctl(x,y,z) ioctlsocket(x,y,z)
-#define signal(x,y)
-#define alarm(x)
-#define chmod(x,y)
-#define getopt(x,y,z) EOF
-typedef unsigned int u_int32_t;
-typedef unsigned short n_short;
-typedef unsigned short u_short;
-typedef unsigned short u_int16_t;
-typedef unsigned long n_time;
-#define ICMP_ECHO 8
-#define ICMP_ECHOREPLY 0
-#endif /* defined(NESSUSNT) */
-
-#ifndef NESSUSNT
 #define print_error printf
-#endif
-
-
-
-#ifdef NESSUSNT
-#define DllExport __declspec (dllexport)
-#define DllImport __declspec  (dllimport)
-#define PlugExport DllExport
-
-#ifdef EXPORTING
-#define ExtFunc DllExport
-#else
-#define ExtFunc DllImport
-#endif /* defined(EXPORTING) */
-
-#else /* !NESSUSNT */
 
 #define PlugExport
 #define DllExport
 #define DllImport
 #define ExtFunc
-
-#endif /* defined(NESSUSNT) */
 
 #endif /* defined(NESSUS_NT_COMPAT_H) */

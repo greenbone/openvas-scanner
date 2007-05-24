@@ -1,3 +1,14 @@
+2007-05-25  Jan-Oliver Wagner <jan-oliver.wagner@intevation.de>
+
+	* include/includes.h, include/openvas-devel.h, openvasd/sighand.c:
+	Remove any consideration of NESSUSNT.
+
+	* include/ntcompat.h: Remove any consideration of NESSUSNT and
+	USE_NT_THREADS.
+
+	* configure.in: Removed handlung for SSL presence, because
+	it is now mandatory.
+
 2007-05-23  Jan-Oliver Wagner <jan-oliver.wagner@intevation.de>
 
 	* configure.in, openvas-adduser.in, openvas-rmuser.in,
