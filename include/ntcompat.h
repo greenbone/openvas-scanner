@@ -101,12 +101,4 @@ typedef void * ext_library_t;
 #define LIB_LAST_ERROR dlerror
 #define CLOSE_LIBRARY(x) dlclose(x)
 
-
-#define print_error printf
-
-#define PlugExport
-#define DllExport
-#define DllImport
-#define ExtFunc
-
 #endif /* defined(NESSUS_NT_COMPAT_H) */

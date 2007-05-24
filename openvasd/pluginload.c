@@ -170,14 +170,14 @@ plugins_reload_from_dir(preferences, plugins, folder, be_quiet)
 #ifdef DEBUG
       log_write("%s:%d : folder == NULL\n", __FILE__, __LINE__);
 #endif
-      print_error("could not determine the value of <plugins_folder>. Check %s\n",
+      printf("could not determine the value of <plugins_folder>. Check %s\n",
       	(char *)arg_get_value(preferences, "config_file"));
       return plugins;
     }
 
   if((dir = opendir(folder)) == NULL)
     {
-      print_error("Couldn't open the directory called \"%s\" - %s\nCheck %s\n", 
+      printf("Couldn't open the directory called \"%s\" - %s\nCheck %s\n", 
       		   folder,
 		   strerror(errno),
       		   (char *)arg_get_value(preferences, "config_file"));

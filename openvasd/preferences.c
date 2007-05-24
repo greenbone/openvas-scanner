@@ -179,16 +179,16 @@ int preferences_process(filename,prefs)
 	if(!(fd = fopen(filename, "r"))) {
 	 if(errno == EACCES)
 	 {
-	  print_error(
+	  printf(
 	  	"The OpenVAS daemon doesn't have the right to read %s\n", filename);
 	  DO_EXIT(1);
 	 }
 
 #ifdef DEBUG
-	  print_error("Couldn't find any prefs file... Creating a new one...\n");
+	  printf("Couldn't find any prefs file... Creating a new one...\n");
 #endif 
 	  if(preferences_new(filename)){
-	    print_error("Error creating %s\n", filename);
+	    printf("Error creating %s\n", filename);
 	    exit(1);
 	    arg_add_value(prefs, "plugins_folder", ARG_STRING,
 			  strlen("./plugins"), "./plugins");
@@ -198,7 +198,7 @@ int preferences_process(filename,prefs)
 	    if(!(fd = fopen(filename, "r")))
 	      {
 	        perror("preferences_process():open ");
-		print_error("Could not open %s -- now quitting\n", filename);
+		printf("Could not open %s -- now quitting\n", filename);
 		DO_EXIT(2);
 	      }
 	}

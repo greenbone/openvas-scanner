@@ -91,7 +91,7 @@ log_init(filename)
       if(fd < 0)
       {
        perror("log_init():open ");
-       print_error("Could not open the logfile, using stderr\n");
+       printf("Could not open the logfile, using stderr\n");
        log = stderr;
       }
       

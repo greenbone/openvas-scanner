@@ -1208,7 +1208,7 @@ you have deleted older versions of libnasl from your system\n",
 	  break;
 
 	case 'v' :
-	  print_error("openvasd (%s) %s for %s\n(C) 1998 - 2004 Renaud Deraison <deraison@nessus.org>\n\n", 
+	  printf("openvasd (%s) %s for %s\n(C) 1998 - 2004 Renaud Deraison <deraison@nessus.org>\n\n", 
 		 PROGNAME,OPENVAS_VERSION, OVS_OS_NAME);
 	  DO_EXIT(0);
 	  break;
