@@ -28,14 +28,10 @@
 */
 
 
-#define OVS_COMPILER   "gcc version 4.0.3 20051023 (prerelease) (Debian 4.0.2-3)"
+#define OVS_COMPILER   "gcc version 3.3.5 (Debian 1:3.3.5-13)"
 #define OVS_OS_NAME    "Linux"
-#define OVS_OS_VERSION "2.6.13"
+#define OVS_OS_VERSION "2.6.18.1-id1-k8-1"
 
 #define PROGNAME        "OpenVAS"
-#define OPENVAS_VERSION  "2.2.5"
-#define OPENVAS_FULL_VERSION  "2.2.5."
-
-#ifndef GTK_VERSION
-#define GTK_VERSION     26
-#endif
+#define OPENVAS_VERSION  "0.9.0"
+#define OPENVAS_FULL_VERSION  "0.9.0.SVN"

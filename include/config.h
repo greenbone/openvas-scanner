@@ -1,6 +1,7 @@
+/* include/config.h.  Generated automatically by configure.  */
 /* OpenVAS
 * $Id$
-* Description: header that provides general configuration settings.
+* Description: Provides general configuration settings.
 *
 * Authors: - Renaud Deraison <deraison@nessus.org> (Original pre-fork develoment)
 *          - Tim Brown <mailto:timb@openvas.org> (Initial fork)
@@ -26,7 +27,6 @@
 *
 *
 */
-
 
  
 /*
@@ -68,7 +68,7 @@
 
 /*
  * define this if you want to see some useful debug
- * messages comming from OpenVAS
+ * messages comming from OpenVAS 
  */
 /* #undef DEBUG */
 
@@ -136,7 +136,7 @@
 /* Obsolete: the port 3001 on which openvasd will be listening */
 /* #undef DEFAULT_PORT */
 
-/* The default port assigned to openvas by the iana is 1241, see
+/* The default port assigned to nessus by the iana is 1241, see
    http://www.isi.edu/in-notes/iana/assignments/port-numbers */
 #define NESIANA_PORT 1241
 
@@ -192,24 +192,6 @@
  *
  */
 /* #undef BSD_BYTE_ORDERING */
-
-
-/*
- * OPENVAS CLIENT SPECIFIC CONFIGURATION
- */
- 
-/*
- * Build the client with GTK?
- */
-#define USE_GTK 1
-
-/*
- * How long before closing the 
- * connection to the server if
- * it stays mute ?
- */
-#define SERVER_TIMEOUT 800
- 
 
 /*
  * STOP ! Don't edit anything after this line !
@@ -355,7 +337,7 @@
 /* #undef USE_ZLIB_COMPRESSION */
 
 
-#define GTK_VERSION 26
+/* #undef GTK_VERSION */
 /* #undef BROKEN_PTHREAD_CLEANUP_PUSH */
 
 #define HAVE_REGEX_SUPPORT 1

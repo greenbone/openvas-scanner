@@ -1,5 +1,9 @@
 2007-05-25  Jan-Oliver Wagner <jan-oliver.wagner@intevation.de>
 
+	* configure, include/config.h, include/corevers.h: Updated.
+
+2007-05-25  Jan-Oliver Wagner <jan-oliver.wagner@intevation.de>
+
 	* include/threadcompat.h: Fix names and description to reflect
 	thread as subject.
 
