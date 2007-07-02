@@ -70,7 +70,7 @@ file_hash(fname)
  if(content &&
     (content != MAP_FAILED))
    {
-     char digest[16];
+     unsigned char digest[16];
      gcry_md_hash_buffer(GCRY_MD_MD5, digest, content, len);
      char * ret = md5sum_hex(digest);
      munmap(content, len);
@@ -144,7 +144,7 @@ plugins_hash(globals)
  char *dir  = arg_get_value(preferences, "plugins_folder");
  char *uhome;
  gcry_md_hd_t ctx;
- char * digest;
+ unsigned char * digest;
  char * ret;
  
  gcry_md_open(&ctx, GCRY_MD_MD5, 0);

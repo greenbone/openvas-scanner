@@ -1,5 +1,11 @@
 2007-07-02  Bernhard Herzog  <bh@intevation.de>
 
+	* openvasd/plugs_hash.c (file_hash, plugins_hash): Use unsigned
+	char (pointer/array) to hold the digest to avoid warnings about
+	type mismatch.
+
+2007-07-02  Bernhard Herzog  <bh@intevation.de>
+
 	* openvasd/md5.c, openvasd/md5.c: removed. no longer needed.
 
 	* openvasd/Makefile: md5.c has been removed.
