@@ -29,9 +29,27 @@
 
 
 #include <includes.h>
-#include "./md5.h"
+#include <gcrypt.h>
 #include "users.h"
 #include "log.h"
+
+/*
+ * Creates an emalloc'ed string with a hexadecimal representation of the
+ * binary md5sum md.
+ */
+char *
+md5sum_hex(const unsigned char* md)
+{
+  char * ret = emalloc(33);
+  int i;
+
+  for (i = 0; i < 16; i++)
+    {
+      snprintf(ret + i * 2, 3, "%02x", md[i]);
+    }
+
+  return ret;
+}
 
 char *
 file_hash(fname)
@@ -51,12 +69,14 @@ file_hash(fname)
  content = mmap(NULL,len, PROT_READ, MAP_SHARED,fd, 0);
  if(content &&
     (content != MAP_FAILED))
-    {
-     char * ret = md5sum(content, len);
+   {
+     char digest[16];
+     gcry_md_hash_buffer(GCRY_MD_MD5, digest, content, len);
+     char * ret = md5sum_hex(digest);
      munmap(content, len);
      close(fd);
      return ret;
-    }
+   }
  return NULL;
 }
 
@@ -65,9 +85,7 @@ file_hash(fname)
  * Returns a hash of each plugin hash
  */
 static void
-dir_plugins_hash(ctx, dirname)
- md5_ctx * ctx;
- char * dirname;
+dir_plugins_hash(gcry_md_hd_t ctx, char * dirname)
 {
  DIR * dir;
  struct dirent * dp;
@@ -106,7 +124,7 @@ dir_plugins_hash(ctx, dirname)
    tmp = file_hash(fullname);
    if(tmp != NULL)
     { 
-    md5update(ctx, tmp, strlen(tmp));
+      gcry_md_write(ctx, tmp, strlen(tmp));
     efree(&tmp);
    }
   }
@@ -125,10 +143,12 @@ plugins_hash(globals)
  struct arglist * preferences = arg_get_value(globals,"preferences");
  char *dir  = arg_get_value(preferences, "plugins_folder");
  char *uhome;
- md5_ctx * ctx;
+ gcry_md_hd_t ctx;
+ char * digest;
  char * ret;
  
- ctx = md5init();
+ gcry_md_open(&ctx, GCRY_MD_MD5, 0);
+ /* FIXME: check for error return from gcry_md_open */
  dir_plugins_hash(ctx, dir);
  uhome = user_home(globals);
  dir = emalloc(strlen(uhome) + strlen("/plugins") + 1);
@@ -136,8 +156,9 @@ plugins_hash(globals)
  efree(&uhome);
  dir_plugins_hash(ctx, dir);
  efree(&dir);
- ret = md5final(ctx);
- md5free(ctx);
+ digest = gcry_md_read(ctx, GCRY_MD_MD5);
+ ret = md5sum_hex(digest);
+ gcry_md_close(ctx);
  return ret;
 }
 

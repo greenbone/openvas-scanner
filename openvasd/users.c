@@ -29,13 +29,10 @@
 
 
 #include <includes.h>
+#include <gcrypt.h>
 #include "log.h"
 #include "users.h"
 #include "rules.h"
-#include "md5.h"
-#ifdef HAVE_SSL
-#include <openssl/md5.h>
-#endif
 
 char *
 user_home(globals)
@@ -259,7 +256,7 @@ check_user(char * user, char * password, char * dname)
             
        strncpy(p, password, n);
 
-       MD5((unsigned char*)seed, strlen(seed), (unsigned char*)h2);
+       gcry_md_hash_buffer(GCRY_MD_MD5, h2, seed, strlen(seed));
        if (memcmp(h1, h2, MD5_DIGEST_LENGTH) != 0)
 	 {
 	   return BAD_LOGIN_ATTEMPT;

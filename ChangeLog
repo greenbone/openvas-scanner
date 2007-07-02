@@ -1,5 +1,15 @@
 2007-07-02  Bernhard Herzog  <bh@intevation.de>
 
+	* openvasd/users.c remove includes of openssl headers.
+	(check_user): Use libgcrypt to compute md5 sums.
+
+	* openvasd/plugs_hash.c (md5sum_hex): New function to convert a
+	binary md5 sum to hexadecimal.
+	(file_hash, dir_plugins_hash, plugins_hash): Use libgcrypt to
+	compute md5 sums.
+
+2007-07-02  Bernhard Herzog  <bh@intevation.de>
+
 	* openvasd/openvasd.c: Use the libopenvas ssl abstraction instead
 	of openssl. As a consequence the ssl_cipher_list config option is
 	no longer supported.
