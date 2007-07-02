@@ -1,5 +1,13 @@
 2007-07-02  Bernhard Herzog  <bh@intevation.de>
 
+	* openvasd/md5.c, openvasd/md5.c: removed. no longer needed.
+
+	* openvasd/Makefile: md5.c has been removed.
+
+	* openvasd/comm.c: Do not included md5.h.  it wasn't needed anyway
+
+2007-07-02  Bernhard Herzog  <bh@intevation.de>
+
 	* openvasd/users.c remove includes of openssl headers.
 	(check_user): Use libgcrypt to compute md5 sums.
 

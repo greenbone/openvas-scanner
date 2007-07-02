@@ -41,7 +41,6 @@
 #include "log.h"
 #include "plugs_hash.h"
 #include "utils.h"
-#include "md5.h"
 #include "nasl.h"
 #ifdef ENABLE_SAVE_KB
 #include "detached.h"

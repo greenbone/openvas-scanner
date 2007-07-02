@@ -32,7 +32,6 @@ OBJS = auth.o \
        pluginlaunch.o \
        locks.o \
        dirutils.o \
-       md5.o \
        plugs_hash.o \
        pluginupload.o \
        pluginscheduler.o \
@@ -131,9 +130,6 @@ locks.o : cflags locks.c
 dirutils.o : cflags dirutils.c 
 	$(CC) $(CFLAGS) $(OPENVAS_INCLUDE) -c dirutils.c
 
-
-md5.o : cflags md5.c 
-	$(CC) $(CFLAGS) $(OPENVAS_INCLUDE) -c md5.c
 
 plugs_hash.o : cflags plugs_hash.c 
 	$(CC) $(CFLAGS) $(OPENVAS_INCLUDE) -c plugs_hash.c
