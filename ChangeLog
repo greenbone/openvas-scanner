@@ -1,5 +1,18 @@
 2007-07-02  Bernhard Herzog  <bh@intevation.de>
 
+	* openvasd/openvasd.c: Use the libopenvas ssl abstraction instead
+	of openssl. As a consequence the ssl_cipher_list config option is
+	no longer supported.
+	(ssl_mt, ssl_ctx): Removed.
+	(ovas_server_ctx): Introduced instead of ssl_mt and ssl_ctx
+	(server_thread): Use the libopenvas ssl abstraction instead of
+	openssl.
+	(verify_callback): removed. verification is done in libopenvas.
+	(main_loop): Use the libopenvas ssl abstraction instead of
+	openssl.
+
+2007-07-02  Bernhard Herzog  <bh@intevation.de>
+
 	* openvasd/preferences.c: Always compile in
 	preferences_get_string, i.e. do not depend on OPENVAS_ON_SSL being
 	defined.

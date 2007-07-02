@@ -65,10 +65,6 @@ int allow_severity = LOG_NOTICE;
 #include "pluginlaunch.h"
 #include "hosts_gatherer.h"
 
-#ifdef HAVE_SSL
-#include <openssl/err.h>
-#endif
-
 
 #ifndef HAVE_SETSID
 #define setsid() setpgrp()
@@ -319,14 +315,10 @@ sighup(i)
 /*
  * SSL context may be kept once it is inited.
  */
-#ifdef OPENVAS_ON_SSL
-static SSL_METHOD	*ssl_mt = NULL;
-static SSL_CTX		*ssl_ctx = NULL;
-#endif
+static ovas_server_context_t ovas_server_ctx = NULL;
 
-static void 
-server_thread(globals)
- struct arglist * globals;
+static void
+server_thread(struct arglist * globals)
 {
  struct sockaddr_in * address = arg_get_value(globals, "client_address");
  struct arglist * plugins = arg_get_value(globals, "plugins");
@@ -338,13 +330,7 @@ server_thread(globals)
  ntp_caps* caps;
  int e;
  int opt = 1;
-#ifdef OPENVAS_ON_SSL
- SSL		*ssl = NULL;
- X509		*cert = NULL;
- int 		ret, bad = 0;
-#else
- const void	*ssl = NULL;
-#endif
+
  char		x509_dname[256];
  int		soc2 = -1;
  
@@ -382,64 +368,20 @@ if(preferences_benice(prefs))nice(10);
   */
  close (g_iana_socket);
  
-#ifdef OPENVAS_ON_SSL
- if (ssl_ctx != NULL)		/* ssl_ver !=  "NONE" */
+ if (ovas_server_ctx != NULL)		/* ssl_ver !=  "NONE" */
    {
-     if ((ssl = SSL_new(ssl_ctx)) == NULL)
-       {
-# if DEBUG_SSL > 0
-	 sslerror("SSL_new");
-# endif
-	 bad ++;
-       }
-     else if(! (ret = SSL_set_fd(ssl, soc)))
-       {
-# if DEBUG_SSL > 0
-	 errcode = SSL_get_error(ssl, ret);
-	 sslerror2("SSL_set_fd", errcode);
-# endif
-	 bad ++;
-       }
-     else if ((ret = SSL_accept(ssl)) <= 0)
-       {
-#if DEBUG_SSL > 0
-	 sslerror("SSL_accept");
-#endif
-	 bad ++;
-       }
+     soc2 = ovas_server_context_attach(ovas_server_ctx, soc);
+     if (soc2 < 0)
+       goto shutdown_and_exit;
 
-     if (bad)
-       {
-	 if (ssl)
-	   SSL_free(ssl);
-	 goto	shutdown_and_exit;
-       }
-      
-     if ((cert = SSL_get_peer_certificate(ssl)) != NULL)
-       {
-# if DEBUG_SSL > 8
-	 nessus_print_SSL_certificate(cert);
-#endif
-	 X509_NAME_oneline(X509_get_subject_name(cert),
-			   x509_dname, sizeof(x509_dname));
-# if DEBUG_SSL > 1
-	 fprintf(stderr, "Peer DN = %s\n", x509_dname);
-# endif
-       }
-# if DEBUG_SSL > 1
-     else
-       fprintf(stderr, "No peer certificate\n");
-# endif
+     /* FIXME: The pre-gnutls code optionally printed information about
+      * the peer's certificate at this point.
+      */
    }
-#endif
-	
+
  setsockopt(soc, SOL_SOCKET, SO_KEEPALIVE, &opt, sizeof(opt));
-  
- if ((soc2 = nessus_register_connection(soc, (void*)ssl)) < 0)
-   goto	shutdown_and_exit;
- else
-   /* arg_set_value *replaces* an existing value, but it shouldn't fail here */
-   (void) arg_set_value(globals, "global_socket", -1, (void *)soc2);
+ /* arg_set_value *replaces* an existing value, but it shouldn't fail here */
+ (void) arg_set_value(globals, "global_socket", -1, (void *)soc2);
 
 #ifdef HAVE_ADDR2ASCII
  asciiaddr = emalloc(20);
@@ -552,49 +494,12 @@ wait :
  EXIT(0);
 }
 
-#ifdef OPENVAS_ON_SSL
-static int
-verify_callback(preverify_ok, ctx)
-     int		preverify_ok;
-     X509_STORE_CTX	*ctx;
-{
-#if DEBUG_SSL > 0
-  char    buf[256];
-  X509   *err_cert;
-  int     err, depth;
-  void	*mydata;
-
-  sslerror("");
-  err = X509_STORE_CTX_get_error(ctx);
-  ERR_error_string(err, buf);
-  fprintf(stderr, "V> err=%d:%s\n", err, buf);
-
-  depth = X509_STORE_CTX_get_error_depth(ctx);
-  fprintf(stderr, "V> depth=%d\n", depth);
-
-  fprintf(stderr, "verify_callback: preverify_ok=%d\n", preverify_ok);
-
-  if (! preverify_ok)
-    {
-      err = X509_STORE_CTX_get_error(ctx);
-      ERR_error_string(err, buf);
-      printf("verify_callback:num=%d:%s::%s\n", err, buf, 
-	     X509_verify_cert_error_string(err));
-    }
-#endif
-  return preverify_ok;
-}
-
-#endif
 
 static void 
 main_loop()
 {
-#ifdef OPENVAS_ON_SSL
   char		*cert, *key, *passwd, *ca_file, *s, *ssl_ver;
-  char		*ssl_cipher_list;
-  int		verify_mode;
-#endif
+  int force_pubkey_auth;
   char *old_addr = 0, *asciiaddr = 0;
   time_t last = 0;
   int count = 0;
@@ -609,18 +514,17 @@ main_loop()
 
   nessus_init_random();
 
-#ifdef OPENVAS_ON_SSL
 #define SSL_VER_DEF_NAME	"TLSv1"
-#define SSL_VER_DEF_METH	TLSv1_server_method
+#define SSL_VER_DEF_ENCAPS	NESSUS_ENCAPS_TLSv1
   ssl_ver = preferences_get_string(g_preferences, "ssl_version");
   if (ssl_ver == NULL || *ssl_ver == '\0')
     ssl_ver = SSL_VER_DEF_NAME;
     
   if (strcasecmp(ssl_ver, "NONE") != 0)
     {
-      if(nessus_SSL_init(NULL) < 0)	/* Replace NULL by private random pool path */
+      if (nessus_SSL_init(NULL) < 0)
 	{
-	  fprintf(stderr, "Could not initialize OpenSSL - please use openvas-mkrand(1) first !\n");
+	  fprintf(stderr, "Could not initialize openvas SSL!\n");
 	  exit(1);
 	}
       /*
@@ -628,130 +532,65 @@ main_loop()
        * we initialize ssl_ctx only once
        */
 
-      if (ssl_mt == NULL)
+      if (ovas_server_ctx == NULL)
 	{
+	  int encaps = -1;
+
 	  if (strcasecmp(ssl_ver, "SSLv2") == 0)
-	    ssl_mt = SSLv2_server_method();
+	    {
+	      fprintf(stderr, "SSL version 2 is not supported anymore!\n");
+	      exit(1);
+	    }
 	  else if (strcasecmp(ssl_ver, "SSLv3") == 0)
-	    ssl_mt = SSLv3_server_method();
+	    encaps = NESSUS_ENCAPS_SSLv3;
 	  else if (strcasecmp(ssl_ver, "SSLv23") == 0)
-	    ssl_mt = SSLv23_server_method();
+	    encaps = NESSUS_ENCAPS_SSLv23;
 	  else if (strcasecmp(ssl_ver, "TLSv1") == 0)
-	    ssl_mt = TLSv1_server_method();
+	    encaps = NESSUS_ENCAPS_TLSv1;
 	  else
 	    {
 	      fprintf(stderr, "Unknown SSL version \"%s\"\nSwitching to default " SSL_VER_DEF_NAME "\n", ssl_ver);
-	      ssl_ver = SSL_VER_DEF_NAME;
-	      ssl_mt = SSL_VER_DEF_METH();
+	      encaps = SSL_VER_DEF_ENCAPS;
 	    }
-	  if (ssl_mt == NULL)
+
+
+	  ca_file = preferences_get_string(g_preferences, "ca_file");
+	  if (ca_file == NULL)
 	    {
-	      char	s[32];
-	      snprintf(s, sizeof(s), "%s_server_method", ssl_ver);
-	      sslerror(s);
-	      return;
-	    }
-	}
-
-      if (ssl_ctx == NULL)
-	if ((ssl_ctx = SSL_CTX_new(ssl_mt)) == NULL)
-	  {
-#if DEBUG_SSL > 0
-	    sslerror("SSL_CTX_new");
-#endif
-	    return;
-	  }
-
-      if (SSL_CTX_set_options(ssl_ctx, SSL_OP_ALL) < 0)
-	sslerror("SSL_CTX_set_options(SSL_OP_ALL)");
-
-#define NOEXP_CIPHER_LIST "EDH-RSA-DES-CBC3-SHA:EDH-DSS-DES-CBC3-SHA:DES-CBC3-SHA:DES-CBC3-MD5:DHE-DSS-RC4-SHA:IDEA-CBC-SHA:RC4-SHA:RC4-MD5:IDEA-CBC-MD5:RC2-CBC-MD5:RC4-MD5:RC4-64-MD5:EDH-RSA-DES-CBC-SHA:EDH-DSS-DES-CBC-SHA:DES-CBC-SHA:DES-CBC-MD5"
-#define STRONG_CIPHER_LIST "EDH-RSA-DES-CBC3-SHA:EDH-DSS-DES-CBC3-SHA:DES-CBC3-SHA:DES-CBC3-MD5:DHE-DSS-RC4-SHA:IDEA-CBC-SHA:RC4-SHA:RC4-MD5:IDEA-CBC-MD5:RC2-CBC-MD5:RC4-MD5"
-#define EDH_CIPHER_LIST "EDH-RSA-DES-CBC3-SHA:EDH-DSS-DES-CBC3-SHA:DHE-DSS-RC4-SHA"
-      ssl_cipher_list = preferences_get_string(g_preferences, "ssl_cipher_list");
-      if (ssl_cipher_list != NULL && *ssl_cipher_list != '\0' )
-	{
-	  /* Three pre-defined values - Otherwise, we are suppose 
-	   * to enter a cipher list*/
-	  if (strcmp(ssl_cipher_list, "noexp") == 0)
-	    ssl_cipher_list = NOEXP_CIPHER_LIST;
-	  else if (strcmp(ssl_cipher_list, "strong") == 0)
-	    ssl_cipher_list = STRONG_CIPHER_LIST;
-	  /* Can anybody make EDH work? */
-	  else if (strcmp(ssl_cipher_list, "edh") == 0)
-	    ssl_cipher_list = EDH_CIPHER_LIST;
-
-	  if (! SSL_CTX_set_cipher_list(ssl_ctx, ssl_cipher_list))
-	    sslerror("SSL_CTX_set_cipher_list");
-	}
-
-      ca_file = preferences_get_string(g_preferences, "ca_file");
-      if(ca_file == NULL)
-	{
-	  fprintf(stderr, "*** 'ca_file' is not set - did you run openvas-mkcert ?\n");
-	  exit (1);
-	}
-      /* We might add some verification callback here */
-#if 0
-      if (SSL_CTX_set_default_verify_paths(ssl_ctx) <= 0)
-	sslerror("SSL_CTX_set_default_verify_paths");
-#endif
-      if (! SSL_CTX_load_verify_locations(ssl_ctx, ca_file, NULL))
-	{
-	  if(errno == ENOENT)
-	    {
-	      fprintf(stderr, "The CA file could not be loaded. Did you run openvas-mkcert ?\n");
+	      fprintf(stderr,
+		      "*** 'ca_file' is not set - did you run openvas-mkcert?\n");
 	      exit(1);
 	    }
-	  else sslerror("SSL_CTX_load_verify_locations");
-	}
-      if ((s = arg_get_value (g_preferences, "force_pubkey_auth")) != NULL
-	  && *s != '\0' && strcmp(s, "no") != 0)
-	verify_mode = SSL_VERIFY_PEER|SSL_VERIFY_FAIL_IF_NO_PEER_CERT;
-      else
-	verify_mode = SSL_VERIFY_PEER;
-      SSL_CTX_set_verify(ssl_ctx, verify_mode,  verify_callback); 
 
-      passwd = preferences_get_string(g_preferences, "pem_password");
-      if (passwd != NULL)
-	nessus_install_passwd_cb(ssl_ctx, passwd);
+	  passwd = preferences_get_string(g_preferences, "pem_password");
+	  cert = preferences_get_string(g_preferences, "cert_file");
+	  key = preferences_get_string(g_preferences, "key_file");
+
+	  if (cert == NULL)
+	    {
+	      fprintf(stderr,
+		      "*** 'cert_file' is not set - did you run openvas-mkcert?\n");
+	      exit (1);
+	    }
   
-      cert = preferences_get_string(g_preferences, "cert_file");
-      key = preferences_get_string(g_preferences, "key_file");
-
-      if (cert == NULL)
-	{
-	  fprintf(stderr, "*** 'cert_file' is not set - did you run openvas-mkcert ?\n");
-	  exit (1);
-	}
-  
-      if(key == NULL)
-	{
-	  fprintf(stderr, "*** 'key_file' is not set - did you run openvas-mkcert ?\n");
-	  exit (1);
-	}
-   
-      if(SSL_CTX_use_certificate_file(ssl_ctx, cert, SSL_FILETYPE_PEM) == 0)
-	{
-	  if(errno == ENOENT)
+	  if (key == NULL)
 	    {
-	      fprintf(stderr, "The server certificate could not be loaded. Did you run openvas-mkcert ?\n");
-	      exit(1);
+	      fprintf(stderr,
+		      "*** 'key_file' is not set - did you run openvas-mkcert?\n");
+	      exit (1);
 	    }
-	}
-   
-      if(SSL_CTX_use_PrivateKey_file(ssl_ctx, key, SSL_FILETYPE_PEM) == 0)
-	{
-	  sslerror("SSL_CTX_use_PrivateKey_file");
-	  if(errno == ENOENT)
+
+	  s = arg_get_value(g_preferences, "force_pubkey_auth");
+	  force_pubkey_auth = s != NULL && strcmp(s, "no") != 0;
+	  ovas_server_ctx = ovas_server_context_new(encaps, cert, key, passwd,
+						    ca_file, force_pubkey_auth);
+	  if (!ovas_server_ctx)
 	    {
-	      fprintf(stderr, "The server key could not be loaded. Did you run openvas-mkcert ?\n");
-	      exit(1);
+	      fprintf(stderr, "Could not create ovas_server_ctx\n");
+	      exit (1);
 	    }
 	}
     } /* ssl_ver != "NONE" */
-     
-#endif /* OPENVAS_ON_SSL */
 
 
   log_write("openvasd %s started\n", OPENVAS_FULL_VERSION);
