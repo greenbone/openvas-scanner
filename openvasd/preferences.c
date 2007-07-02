@@ -930,7 +930,6 @@ preferences_silent_dependencies(preferences)
 }
 
 
-#ifdef OPENVAS_ON_SSL
 char *
 preferences_get_string(preferences, name)
  struct arglist * preferences;
@@ -943,8 +942,6 @@ preferences_get_string(preferences, name)
  else
   return NULL;
 }
-
-#endif
 
 
 void

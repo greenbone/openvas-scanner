@@ -1,3 +1,9 @@
+2007-07-02  Bernhard Herzog  <bh@intevation.de>
+
+	* openvasd/preferences.c: Always compile in
+	preferences_get_string, i.e. do not depend on OPENVAS_ON_SSL being
+	defined.
+
 2007-06-22  Bernhard Herzog  <bh@intevation.de>
 
 	* include/config.h, include/corevers.h: Removed from SVN because
