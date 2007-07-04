@@ -133,8 +133,10 @@ dir_plugins_hash(gcry_md_hd_t ctx, char * dirname)
 
 
 /*
- * returns the hash of the hashes of the plugins in the
- * plugins dir + plugins in the user home dir
+ * returns the hash of the hashes of the plugins in the plugins dir +
+ * plugins in the user home dir.  Returns NULL in case of severe errors
+ * (for instance if libgrypt cannot initialize the md5 message digest
+ * object).
  */
 char * 
 plugins_hash(globals)
@@ -144,10 +146,18 @@ plugins_hash(globals)
  char *dir  = arg_get_value(preferences, "plugins_folder");
  char *uhome;
  gcry_md_hd_t ctx;
+ gcry_error_t err;
  unsigned char * digest;
  char * ret;
- 
- gcry_md_open(&ctx, GCRY_MD_MD5, 0);
+
+ err = gcry_md_open(&ctx, GCRY_MD_MD5, 0);
+ if (err)
+   {
+     log_write("plugins_hash(): gcry_md_open failed: %s/%s\n",
+	       gcry_strsource(err), gcry_strerror(err));
+     return NULL;
+   }
+
  /* FIXME: check for error return from gcry_md_open */
  dir_plugins_hash(ctx, dir);
  uhome = user_home(globals);

@@ -627,6 +627,12 @@ comm_send_md5_plugins(globals)
  char buf[2048];
 
  md5 = plugins_hash(globals);
+ if (md5 == NULL)
+   {
+     /* This should only happen in severe circumstances */
+     log_write("comm_send_md5_plugins: could not determine plugins hash\n");
+     return;
+   }
  auth_printf(globals, "SERVER <|> PLUGINS_MD5 <|> %s <|> SERVER\n", md5);
  efree(&md5); 
 

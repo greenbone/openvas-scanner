@@ -1,3 +1,11 @@
+2007-07-04  Bernhard Herzog  <bh@intevation.de>
+
+	* openvasd/plugs_hash.c (plugins_hash): Handle errors from
+	gcry_md_open.  plugins_hash may return NULL now.
+
+	* openvasd/comm.c (comm_send_md5_plugins): Handle case where
+	plugins_hash returns NULL.
+
 2007-07-02  Bernhard Herzog  <bh@intevation.de>
 
 	* openvasd/plugs_hash.c (file_hash, plugins_hash): Use unsigned
