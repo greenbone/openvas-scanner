@@ -1,5 +1,9 @@
 2007-07-18  Bernhard Herzog  <bh@intevation.de>
 
+	* include/includes.h: Remove openssl includes
+
+2007-07-18  Bernhard Herzog  <bh@intevation.de>
+
 	* openvasd/openvas-check-signature.c: Use GnuTLS instead of
 	OpenSSL.  See comments in the file for things that could be done
 	better.

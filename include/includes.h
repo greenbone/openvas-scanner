@@ -212,11 +212,6 @@
 #include <limits.h>
 #endif
 
-#ifdef HAVE_SSL
-#include <openssl/ssl.h>
-#include <openssl/x509.h>
-#endif 
-
 /*
  * Threads management
  *
