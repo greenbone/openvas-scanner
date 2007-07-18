@@ -1,3 +1,17 @@
+2007-07-18  Bernhard Herzog  <bh@intevation.de>
+
+	* openvasd/openvas-check-signature.c: Use GnuTLS instead of
+	OpenSSL.  See comments in the file for things that could be done
+	better.
+	(print_tls_error, map_file, hexdecode): New.  Helper functions.
+	(generate_signature, verify_signature): Use GnuTLS instead of
+	OpenSSL.  Also, both functions now have an additional parameter
+	for the keyfile/certfile to use so that their filenames are no
+	longer hard wired.
+	(main): Add command line arguments to specifiy the key or
+	certificat to use when signing or verifying.  Pass those filenames
+	to generate_signature and verify_signature.
+
 2007-07-04  Bernhard Herzog  <bh@intevation.de>
 
 	* openvasd/plugs_hash.c (plugins_hash): Handle errors from
