@@ -1,16 +1,18 @@
 Installing OpenVAS :
 
+ATTENTION: The description has not been reworked
+so far.
 
-If you are lazy, just type (as root) :
+
+The usual sequence of 
 
 ./configure && make && make install
 
+works in principle.
 
 Then :
 
 - create a certificate for openvasd, using openvas-mkcert(8)
 - add a user, using openvas-adduser(8)
 - start openvasd (8)
-- start openvas (1) and connect to it, as the username you specified 
-
-
+- start openvas-client and connect to it, as the username you specified 
