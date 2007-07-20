@@ -1,5 +1,4 @@
 /* OpenVAS
-l
 * $Id$
 * Description: Runs the OpenVAS-server.
 *
@@ -1069,12 +1068,6 @@ you have deleted older versions of libnasl from your system\n",
 	   printf("\tnasl                           : %s\n", nasl_version());
 	   printf("\tlibnessus                      : %s\n", nessuslib_version());
 
-
-#ifdef HAVE_SSL
-	   printf("\tSSL support                    : enabled\n");
-#else
-	   printf("\tSSL support                    : disabled\n");
-#endif
 #ifdef OPENVAS_ON_SSL
 	   printf("\tSSL is used for client / server communication\n");
 #else

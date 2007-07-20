@@ -1,3 +1,12 @@
+2007-07-20  Jan-Oliver Wagner <jan-oliver.wagner@intevation.de>
+
+	* openvasd/openvasd.c (main): Removed HAVE_SSL remains.
+
+	* Makefile: Removed installation of "nessus-services". This module
+	does not need to care about libdir (creation removed)
+
+	* TODO: cleaned a bit.
+
 2007-07-18  Bernhard Herzog  <bh@intevation.de>
 
 	* include/includes.h: Remove openssl includes

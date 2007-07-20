@@ -1,18 +1,14 @@
-$Id$
 
-What must be done :		(feel free to volunteer)
+Some old entries:
 
+- replace the arglists by harglists. That is, replace linked 
+  lists by hashtables. All the functions are here, it's just
+  a matter of search/replace thing. 
+  Read /usr/local/include/openvas/harglsts.h for details
+  about the harglsts
 
-  On the server side :
-
-  	- replace the arglists by harglists. That is, replace linked 
-	  lists by hashtables. All the functions are here, it's just
-	  a matter of search/replace thing. 
-	  Read /usr/local/include/openvas/harglsts.h for details
-	  about the harglsts
-
-	- memory leaks in plugins reload
-	- Need to fix url in "debian/download-release.sh line ~18. 
-	  Do we need debian/new-packages.sh at the moment? 
-	  (Maybe adapt it to work for openvas) 
-	- Fix the plugin feed instructions in doc/openvas-fetch.1
+- memory leaks in plugins reload
+- Need to fix url in "debian/download-release.sh line ~18. 
+  Do we need debian/new-packages.sh at the moment? 
+  (Maybe adapt it to work for openvas) 
+- Fix the plugin feed instructions in doc/openvas-fetch.1

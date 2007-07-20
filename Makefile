@@ -54,9 +54,6 @@ install-bin:
 	@test -d ${sbindir} || $(INSTALL_DIR) -m 755 ${sbindir}
 	@test -d ${sysconfdir} || $(INSTALL_DIR) -m 755 ${sysconfdir}
 	@test -d ${sysconfdir}/openvas || $(INSTALL_DIR) -m 755 ${sysconfdir}/openvas
-	@test -d ${libdir} || $(INSTALL_DIR) -m 755 ${libdir}
-	@test -d ${libdir}/openvas || $(INSTALL_DIR) -m 755 ${libdir}/openvas
-	@test -d ${libdir}/openvas/plugins || $(INSTALL_DIR) -m 755 ${libdir}/openvas/plugins
 	@test -d ${localstatedir} || $(INSTALL_DIR) -m 755 ${localstatedir}
 	@test -d ${localstatedir}/lib || $(INSTALL_DIR) -m 755 ${localstatedir}/lib
 	@test -d ${localstatedir}/lib/openvas || $(INSTALL_DIR) -m 755 ${localstatedir}/lib/openvas
@@ -91,14 +88,6 @@ install-bin:
 	$(INSTALL) -c -m 0444 include/nessusicmp.h ${includedir}/openvas/nessusicmp.h
 	$(INSTALL) -c -m 0444 include/nessustcp.h ${includedir}/openvas/nessustcp.h
 	$(INSTALL) -c -m 0444 include/nessusudp.h ${includedir}/openvas/nessusudp.h
-	# The following copy of openvas-services into nessus-services
-	# is done due to the fact that the path to this file is
-	# hardcoded in nessus-libraries. So, in case nessus-libraries
-	# is used, this is mandatory - openvasd would not start otherwise.
-	# However, openvas and nessus may mutually overwrite the nesssus-services
-	# file - the latest install wins.
-	@test -d ${localstatedir}/nessus || $(INSTALL_DIR) -m 755 ${localstatedir}/nessus
-	$(INSTALL) -c -m 0444 openvas-services ${localstatedir}/nessus/nessus-services
 
 
 install-man:
