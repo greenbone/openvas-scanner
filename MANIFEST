@@ -64,8 +64,6 @@ openvasd/locks.h
 openvasd/log.c
 openvasd/log.h
 openvasd/Makefile
-openvasd/md5.c
-openvasd/md5.h
 openvasd/nasl_plugins.c
 openvasd/nes_plugins.c
 openvasd/nsp.h

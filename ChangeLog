@@ -1,3 +1,7 @@
+2007-07-21  Jan-Oliver Wagner <jan-oliver.wagner@intevation.de>
+
+	* MANIFEST: updated.
+
 2007-07-20  Jan-Oliver Wagner <jan-oliver.wagner@intevation.de>
 
 	Remove support for Unix Sockets for communication between client and
