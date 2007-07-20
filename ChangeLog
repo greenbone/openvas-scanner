@@ -1,5 +1,9 @@
 2007-07-20  Jan-Oliver Wagner <jan-oliver.wagner@intevation.de>
 
+	* CHANGES: Updated with some notes.
+
+2007-07-20  Jan-Oliver Wagner <jan-oliver.wagner@intevation.de>
+
 	* openvasd/openvasd.c (main): Removed HAVE_SSL remains.
 
 	* Makefile: Removed installation of "nessus-services". This module

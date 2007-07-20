@@ -1,7 +1,22 @@
+openvas-server 0.9.0 (XX.XX.2007)
 
-ChangeLog for nessus-core, nessus-libraries, nessus-plugins, libnasl
+The first initial release of openvas-server
+after the fork from Nessus 2.2.x.
 
-$Id$
+Main changes are:
+
+* Removed the client from this package.
+* Replace OpenSSL by GNU/TLS (therefore it is allowed now to distribute
+  binary packages with SSL-support)
+* SSL now mandatory.
+* Many cleanups of ancient remains (still many to come)
+* Removed various W32-specific elements, because W32 isn't
+  a taget system anyway.
+* Lots of renaming to avoid conflicts with parallel
+  Nessus installation
+
+
+Old Changes information from the Nessus times:
 
 2.2.5 :
 
