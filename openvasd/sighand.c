@@ -190,10 +190,6 @@ void sighandler(sign)
  
  log_write("received the %s signal\n",sig);
  
-#ifndef USE_AF_INET
-  unlink(AF_UNIX_PATH);
-#endif
-
 
  if(murderer)
   make_em_die(sign);

@@ -31,9 +31,6 @@
  
 #include <includes.h>
 #include <corevers.h>
-#ifdef USE_AF_UNIX
-#undef OPENVAS_ON_SSL
-#endif
 
 #include "ntp.h"
 #include "ntp_11.h"
@@ -299,7 +296,7 @@ ntp_11_read_prefs(globals)
  input = emalloc(input_sz);
  for (;;) {
    input[0] = '\0';
-#if defined OPENVAS_ON_SSL && DEBUG_SSL > 2
+#if DEBUG_SSL > 2
    fprintf(stderr, "ntp_11_read_prefs > soc=%d\n", soc);
 #endif
    n = recv_line (soc, input, input_sz - 1);

@@ -31,10 +31,6 @@
 #include <harglists.h>
 #include <nasl.h>
 
-#ifdef USE_AF_UNIX
-#undef OPENVAS_ON_SSL
-#endif
-
 #ifdef USE_LIBWRAP
 #include <tcpd.h>
 #include <syslog.h>
@@ -596,15 +592,10 @@ main_loop()
   for(;;)
     {
       int soc;
-#ifdef USE_AF_INET
       unsigned int lg_address = sizeof(struct sockaddr_in);
       struct sockaddr_in address;
       struct sockaddr_in * p_addr;
-#else
-      unsigned int lg_address = sizeof(struct sockaddr_un);
-      struct sockaddr_un address;
-      struct sockaddr_un * p_addr;
-#endif
+
       struct arglist * globals;
       struct arglist * my_plugins, * my_preferences;
       struct openvas_rules * my_rules;
@@ -642,7 +633,7 @@ main_loop()
 
       soc = accept(g_iana_socket, (struct sockaddr *)(&address), &lg_address);
       if(soc == -1)continue;
-#ifdef USE_AF_INET
+
       asciiaddr = estrdup(inet_ntoa(address.sin_addr));
 #ifdef USE_LIBWRAP      
       {
@@ -659,9 +650,6 @@ main_loop()
       }
 #endif      
       log_write("connection from %s\n", (char *)asciiaddr);
-#else
-      log_write("got local connection\n");
-#endif
 
       /* efree(&asciiaddr); */
 
@@ -689,17 +677,11 @@ main_loop()
           
       my_rules = /*rules_dup*/(g_rules);
       
-     
-#ifdef USE_AF_INET 
+
       p_addr = emalloc(sizeof(struct sockaddr_in));
       *p_addr = address;
       arg_add_value(globals, "client_address", ARG_PTR, -1, p_addr);
-#else
-      p_addr = emalloc(sizeof(struct sockaddr_un));
-      *p_addr = address;
-      arg_add_value(globals, "client_address", ARG_PTR, -1, p_addr);
-#endif
-      
+
       arg_add_value(globals, "rules", ARG_PTR, -1, my_rules);
       
       /* we do not want to create an io thread, yet so the last argument is -1 */
@@ -730,15 +712,8 @@ init_network(port, sock, addr)
 {
   int option = 1;
 
-#ifdef USE_AF_INET
   struct sockaddr_in address;
-#else
-  struct sockaddr_un address;
-  char * name = AF_UNIX_PATH;
-#endif
 
-
-#ifdef USE_AF_INET
   if((*sock = socket(AF_INET, SOCK_STREAM, 0))==-1)
     {
 	int ec = errno;
@@ -749,33 +724,13 @@ init_network(port, sock, addr)
   address.sin_family = AF_INET;
   address.sin_addr = addr;
   address.sin_port = htons((unsigned short)port);
-#else
-
-  if((*sock = socket(AF_UNIX, SOCK_STREAM,0))==-1)
-    {
-	int ec = errno;
-      log_write("socket(AF_UNIX): %s (errno = %d)\n", strerror(ec), ec);
-     DO_EXIT(1);
-   }
-  bzero(&address, sizeof(struct sockaddr_un));
-  address.sun_family = AF_UNIX;
-  bcopy(name, address.sun_path, strlen(name));
-  unlink(name);
-#endif
 
   setsockopt(*sock, SOL_SOCKET, SO_REUSEADDR, &option, sizeof(int));
   if(bind(*sock, (struct sockaddr *)(&address), sizeof(address))==-1)
     {
       fprintf(stderr, "bind() failed : %s\n", strerror(errno));      
-#ifdef USE_AF_UNIX
-      fprintf(stderr, "(make sure %s does not exist)\n", name);
-#endif
       DO_EXIT(1);
     }
-
-#ifdef USE_AF_UNIX
-   chmod(name, 0777);
-#endif 
 
   if(listen(*sock, 10)==-1)
     {
@@ -872,19 +827,13 @@ static void
 display_help 
   (char *pname)
 {
-#ifdef USE_AF_INET
   printf("openvasd, version %s\n", OPENVAS_VERSION);
   printf("\nusage : openvasd [-vcphdDLCR] [-a address] [ -S <ip[,ip,...]> ]\n\n");
-#else
-  printf("\nusage : openvasd [-vchdD]\n\n");
-#endif /*def USE_AF_INET */
   printf("\ta <address>    : listen on <address>\n");
   printf("\tS <ip[,ip,...]>: send packets with a source IP of <ip[,ip...]>\n");
   printf("\tv              : shows version number\n");
   printf("\th              : shows this help\n");
-#ifdef USE_AF_INET
   printf("\tp <number>     : use port number <number>\n");
-#endif /* USE_AF_INET */
   printf("\tc <filename>   : alternate configuration file to use\n");
   printf("\t\t\t (default : %s)\n", OPENVASD_CONF);
   printf("\tD              : runs in daemon mode\n");
@@ -1068,11 +1017,7 @@ you have deleted older versions of libnasl from your system\n",
 	   printf("\tnasl                           : %s\n", nasl_version());
 	   printf("\tlibnessus                      : %s\n", nessuslib_version());
 
-#ifdef OPENVAS_ON_SSL
 	   printf("\tSSL is used for client / server communication\n");
-#else
-	   printf("\tClient - Server communication is in CLEAR TEXT!\n");
-#endif
 
 	   printf("\tRunning as euid                : %d\n", geteuid());
 #ifdef USE_LIBWRAP

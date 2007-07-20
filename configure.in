@@ -38,7 +38,6 @@ dnl --enable-release
 dnl --enable-debug
 dnl --enable-pthreads 	(experimental dont use dont use dont use!)
 dnl --enable-syslog
-dnl --enable-unix-socket
 
 
 AC_INIT(.root-dir)
@@ -117,16 +116,6 @@ test "x$OPENVASLIBNASLCONFIG" = x &&  AC_ERROR(""
 ""
 "*** openvas-libnasl is not installed ! You need to install it before you "
 "compile openvas-server.")
-
-
-AC_ARG_ENABLE(unix-socket,[  --enable-unix-socket[=/path]	use a unix socket for client server communication],	  
-	AC_DEFINE(USE_AF_UNIX))
-
-
-test "x$enable_unix_socket" != "x" -a "x$enable_unix_socket" != "xyes" &&
- {
- AC_DEFINE_UNQUOTED(AF_UNIX_PATH, "$enable_unix_socket")
- }
 
 
 OVSCFLAGS="`$LIBOPENVASCONFIG --cflags`"

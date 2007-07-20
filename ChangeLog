@@ -1,5 +1,28 @@
 2007-07-20  Jan-Oliver Wagner <jan-oliver.wagner@intevation.de>
 
+	Remove support for Unix Sockets for communication between client and
+	server. Since SSL support is present, this is not needed anymore for
+	security reasons. Considerable performance loss is not expected, only
+	at first connection time it might be faster with unix sockets (which
+	is not really for sure since the loopback device is also very fast).
+	Also, the implementation is suboptimal anyway because it works
+	as compile-time option. It is very easy to select between a
+	unix domain socket and inet socket at runtime.
+
+	* configure.in: Removed unix-socket handling.
+
+	* configure: updated.
+
+	* include/config.h.in, openvasd/sighand.c, openvasd/preferences.c,
+	openvasd/openvasd.c, openvasd/ntp_11.c, openvasd/hosts.c:
+	Removed any handling of unix
+	sockets (this also removes any occurance of USE_AF_UNIX,
+	OPENVAS_ON_SSL, AF_UNIX_PATH, USE_AF_INET, AD_UNIX)
+
+	* openvasd/comm.c: Remove handling for non-SSL conncetions.
+
+2007-07-20  Jan-Oliver Wagner <jan-oliver.wagner@intevation.de>
+
 	* CHANGES: Updated with some notes.
 
 2007-07-20  Jan-Oliver Wagner <jan-oliver.wagner@intevation.de>

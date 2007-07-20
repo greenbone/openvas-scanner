@@ -187,9 +187,6 @@ ntp_caps* comm_init(soc)
   /*ENABLE_CRYPTO_LAYER*/
   else
     {
-#ifndef OPENVAS_ON_SSL
-      shutdown(soc, 2);
-#endif
       EXIT(0);
     }
   log_write("Client requested protocol version %d.\n", caps->ntp_version);

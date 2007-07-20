@@ -34,10 +34,6 @@
 #include "utils.h"
 #include "hosts_gatherer.h"
 
-#ifdef USE_AF_UNIX
-#undef OPENVAS_ON_SSL
-#endif
-
 
 #define inited(x) ((x) >= 0)
 

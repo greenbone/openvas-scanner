@@ -32,39 +32,6 @@
  * GENERAL CONFIGURATION
  */
 
- 
-/* 
- * Socket type
- *
- * OpenVAS can handle two types of socket : AF_INET and AF_UNIX
- *
- * The AF_INET type allow the server and the client to be on
- * different computers, but may create security problems (until
- * someone volunteers to made the encryption)
- *
- * The AF_UNIX type is more secure, but the server and the
- * client have to be on the same computer (this is what is used
- * by default if you don't define 'USE_AF_INET'), and must
- * be launched by the same user (read : same uid)
- */
- 
-#undef USE_AF_UNIX
-#undef AF_UNIX_PATH
-
-#ifndef USE_AF_UNIX
-#define USE_AF_INET
-#else
-#undef OPENVAS_ON_SSL
-#endif
-
-/* AF_UNIX socket path (if you want to use AF_UNIX sockets) */
-#ifndef USE_AF_INET
-#ifndef AF_UNIX_PATH
-#define AF_UNIX_PATH "/var/run/openvas/openvas.sock"
-#endif
-#endif /* not def USE_AF_INET */
-
-
 /*
  * define this if you want to see some useful debug
  * messages comming from OpenVAS 
