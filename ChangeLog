@@ -1,3 +1,9 @@
+2007-07-25  Jan-Oliver Wagner <jan-oliver.wagner@intevation.de>
+
+	* openvasd/preferences.c (preferences_new): Defaulting
+	nasl_no_signature_checks to yes, because the signatures
+	are currently not present.
+
 2007-07-21  Jan-Oliver Wagner <jan-oliver.wagner@intevation.de>
 
 	* INSTALL: just slight correction and attached a warning

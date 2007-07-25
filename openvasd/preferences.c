@@ -149,7 +149,7 @@ int preferences_new(char * name)
  fprintf(fd, "slice_network_addresses = no\n\n");
  
  fprintf(fd, "# Should consider all the NASL scripts as being signed ? (unsafe if set to 'yes')\n");
- fprintf(fd, "nasl_no_signature_check = no\n\n");
+ fprintf(fd, "nasl_no_signature_check = yes\n\n");
  fprintf(fd, "#end.\n");
  
   fclose(fd);
