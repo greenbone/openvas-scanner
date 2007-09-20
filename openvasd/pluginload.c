@@ -126,6 +126,27 @@ plugins_init(preferences, be_quiet)
  return plugins_reload(preferences, emalloc(sizeof(struct arglist)), be_quiet);
 }
 
+static void
+init_plugin_classes(struct arglist * preferences)
+{
+  if (plugin_classes == NULL)
+    {
+      pl_class_t ** cl_pptr = &plugin_classes;
+      pl_class_t * cl_ptr;
+      int i;
+      pl_class_t* classes[] = {&nes_plugin_class, &nasl_plugin_class, NULL};
+
+      for (i = 0; (cl_ptr = classes[i]); ++i)
+	{
+	  if ((*cl_ptr->pl_init)(preferences, NULL))
+	    {
+	      *cl_pptr = cl_ptr;
+	      cl_ptr->pl_next = NULL;
+	      cl_pptr = &cl_ptr->pl_next;
+	    }
+	}
+    }
+}
 
 
 static struct arglist * 
@@ -141,30 +162,9 @@ plugins_reload_from_dir(preferences, plugins, folder, be_quiet)
   char * name;
   int idx = 0;
   int n = 0, total = 0, num_files = 0;
-  
-  if( plugin_classes == NULL){
-   pl_class_t ** cl_pptr = &plugin_classes;
-   pl_class_t * cl_ptr;
-   int i;
-   pl_class_t*  pl_init_classes[] = {
-   			&nes_plugin_class,
-			&nasl_plugin_class,
-#ifdef PERL_PLUGINS
-			&perl_plugin_class,
-#endif
-			NULL 
-		};
-		
-  for (i = 0;  (cl_ptr = pl_init_classes[i]);  ++i) {
-	    if ((*cl_ptr->pl_init)(preferences, NULL)) {
-	        *cl_pptr = cl_ptr;
-		cl_ptr->pl_next = NULL;
-		cl_pptr = &cl_ptr->pl_next;
-	    }
-	}
-    }
-  
-  
+
+  init_plugin_classes(preferences);
+
   if( folder == NULL)
     {
 #ifdef DEBUG

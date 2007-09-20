@@ -1,3 +1,10 @@
+2007-09-20  Bernhard Herzog  <bh@intevation.de>
+
+	* openvasd/pluginload.c (init_plugin_classes)
+	(plugins_reload_from_dir): Refactor the initialization of the
+	plugin classes to from plugins_reload_from_dir into the new
+	function init_plugin_classes
+
 2007-07-27  Jan-Oliver Wagner <jan-oliver.wagner@intevation.de>
 
 	Doing the 0.9.0 release.
