@@ -1,3 +1,7 @@
+2007-10-09  Jan-Oliver Wagner <jan-oliver.wagner@intevation.de>
+
+	* MANIFEST: updated.
+
 2007-10-08  Bernhard Herzog  <bh@intevation.de>
 
 	* openvasd/hosts_gatherer.h: Removed.  Use the one installed by

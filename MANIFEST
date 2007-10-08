@@ -57,7 +57,6 @@ openvasd/detached.c
 openvasd/detached.h
 openvasd/dirutils.c
 openvasd/hosts.c
-openvasd/hosts_gatherer.h
 openvasd/hosts.h
 openvasd/locks.c
 openvasd/locks.h
