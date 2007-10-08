@@ -1,3 +1,16 @@
+2007-10-08  Bernhard Herzog  <bh@intevation.de>
+
+	* openvasd/hosts_gatherer.h: Removed.  Use the one installed by
+	openvas-libraries instead.
+
+	* attack.c: #include <hg_utils.h> and move the
+	hosts_gatherer.h include because it now comes from outside of
+	openvasd.
+
+	* openvasd/openvasd.c, openvasd/preferences.c: Move the
+	hosts_gatherer.h include because it now comes from outside of
+	openvasd.
+
 2007-09-20  Bernhard Herzog  <bh@intevation.de>
 
 	* openvasd/pluginload.c (init_plugin_classes)

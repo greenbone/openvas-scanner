@@ -29,9 +29,11 @@
 
  
 #include <includes.h>
+#include <hosts_gatherer.h>
+#include <hg_utils.h>
+
 #include "attack.h"
 #include "log.h"
-#include "hosts_gatherer.h"
 #include "sighand.h"
 #include "rules.h"
 #include "auth.h"

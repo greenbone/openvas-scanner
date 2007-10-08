@@ -28,11 +28,12 @@
 */
  
 #include <includes.h>
+#include <hosts_gatherer.h>
+
 #include "comm.h"
 #include "preferences.h"
 #include "log.h"
 #include "utils.h"
-#include "hosts_gatherer.h"
 
 
 #define inited(x) ((x) >= 0)

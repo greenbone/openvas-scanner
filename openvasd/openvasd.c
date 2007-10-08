@@ -30,6 +30,7 @@
 #include <includes.h>
 #include <harglists.h>
 #include <nasl.h>
+#include <hosts_gatherer.h>
 
 #ifdef USE_LIBWRAP
 #include <tcpd.h>
@@ -42,6 +43,7 @@ int allow_severity = LOG_NOTICE;
 
 
 #include <getopt.h>
+
 #include "pluginload.h"
 #include "preferences.h"
 #include "auth.h"
@@ -58,7 +60,6 @@ int allow_severity = LOG_NOTICE;
 #include "corevers.h"
 #include "pluginscheduler.h"
 #include "pluginlaunch.h"
-#include "hosts_gatherer.h"
 
 
 #ifndef HAVE_SETSID
