@@ -1,5 +1,11 @@
 2007-10-17  Jan-Oliver Wagner <jan-oliver.wagner@intevation.de>
 
+	Post release version bump.
+
+	* VERSION: Set to 0.9.2.SVN
+
+2007-10-17  Jan-Oliver Wagner <jan-oliver.wagner@intevation.de>
+
 	Doing the 0.9.1 release.
 
 	* VERSION: Set to 0.9.1.
