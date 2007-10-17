@@ -119,7 +119,6 @@ PTHREAD_LIB=@pthread_lib@
 C_R_LIB=@c_r_lib@
 LIBWRAP=@libwrap@
 LIBS=@LIBS@
-OPENVAS_LIB=@nessus_lib@
 
 # documentation
 MAN_OPENVASD_8=@man_openvasd_8@

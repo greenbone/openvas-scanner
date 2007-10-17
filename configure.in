@@ -78,8 +78,6 @@ test "x$enable_syslog" = "x" && enable_syslog="yes";
 test "x$enable_syslog" = "xno" && unset enable_syslog
 
 
-nessus_lib=-lnessus
-
 dnl extending the search path for AC_PATH_PROG when searching for config scripts
 XPATH="$prefix/bin:$PATH"
 	
@@ -757,7 +755,6 @@ AC_SUBST(nsl_lib)
 AC_SUBST(ssl_lib)
 AC_SUBST(pthread_lib)
 AC_SUBST(debug_flags)
-AC_SUBST(nessus_lib)
 AC_SUBST(man_openvas_1)
 AC_SUBST(man_openvasd_8)
 AC_SUBST(dl_lib)
