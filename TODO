@@ -1,7 +1,5 @@
 2007-10-15  Jan-Oliver Wagner <jan-oliver.wagner@intevation.de>
 
-	* Add Minimum version check for openvas-libraries and openvas-libnasl
-
 	* Analyse/discuss in detail whether it makes send to keep the feature to
 	upload plugins. It looks like a serious security problem to allow this.
 
