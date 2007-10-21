@@ -1,3 +1,8 @@
+2007-10-21  Jan-Oliver Wagner <jan-oliver.wagner@intevation.de>
+
+	* README_SSL, doc/WARNING.En, doc/WARNING.Fr: Removed due
+	to phrases that render the text files non-free.
+
 2007-10-17  Jan-Oliver Wagner <jan-oliver.wagner@intevation.de>
 
 	Post release version bump.
