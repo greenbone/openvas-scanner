@@ -1,3 +1,7 @@
+2007-11-05  Jan-Oliver Wagner <jan-oliver.wagner@intevation.de>
+
+	* Makefile: Added creation of gnupg subdirectory under sysconfdir/openvas.
+
 2007-10-26  Jan-Oliver Wagner <jan-oliver.wagner@intevation.de>
 
 	* MANIFEST: updated.

@@ -54,6 +54,7 @@ install-bin:
 	@test -d ${sbindir} || $(INSTALL_DIR) -m 755 ${sbindir}
 	@test -d ${sysconfdir} || $(INSTALL_DIR) -m 755 ${sysconfdir}
 	@test -d ${sysconfdir}/openvas || $(INSTALL_DIR) -m 755 ${sysconfdir}/openvas
+	@test -d ${sysconfdir}/openvas/gnupg || $(INSTALL_DIR) -m 755 ${sysconfdir}/openvas/gnupg
 	@test -d ${localstatedir} || $(INSTALL_DIR) -m 755 ${localstatedir}
 	@test -d ${localstatedir}/lib || $(INSTALL_DIR) -m 755 ${localstatedir}/lib
 	@test -d ${localstatedir}/lib/openvas || $(INSTALL_DIR) -m 755 ${localstatedir}/lib/openvas
