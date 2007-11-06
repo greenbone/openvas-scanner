@@ -1,3 +1,15 @@
+2007-11-06  Jan-Oliver Wagner <jan-oliver.wagner@intevation.de>
+
+	* openvasd-config.in: Added header.
+
+	* configure.in: Added header and fixed version setting as used
+	for openvas-config.
+
+	* include/corevers.h.in: Adapt parameter names according to changes
+	in configure.in
+
+	* configure: updated.
+
 2007-11-05  Jan-Oliver Wagner <jan-oliver.wagner@intevation.de>
 
 	* Makefile: Added creation of gnupg subdirectory under sysconfdir/openvas.
