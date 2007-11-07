@@ -1,3 +1,11 @@
+2007-11-07  Jan-Oliver Wagner <jan-oliver.wagner@intevation.de>
+
+	Doing the 0.9.2 release.
+
+	* VERSION: Set to 0.9.2.
+
+	* CHANGES: Updated.
+
 2007-11-06  Jan-Oliver Wagner <jan-oliver.wagner@intevation.de>
 
 	* openvasd-config.in: Added header.

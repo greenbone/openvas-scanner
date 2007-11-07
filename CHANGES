@@ -1,3 +1,17 @@
+openvas-server 0.9.2 (2007-11-07)
+
+Legal and minor technical fixes release.
+
+Main changes are:
+
+* Fixed tool "openvas-config" to output correct version
+  of OpenVAS server (openvasd)
+* During  installation routine, now a "gnupg" directory
+  is created where the other configuration files of
+  OpenVAS are located. This is the place for feed certificates.
+* Removed some non-free documents (README_SSL, doc/WARNING.En
+  and doc/WARNING.Fr).
+
 openvas-server 0.9.1 (2007-10-17)
 
 Minor cleanup release.
