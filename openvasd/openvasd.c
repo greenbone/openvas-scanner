@@ -885,42 +885,6 @@ main(int argc, char * argv[], char * envp[])
   else
     myself ++ ;
 
-
-  
-  /*
-   * Version check - disabled during the developement of OpenVAS 1.2
-   */
-
-
-  if(version_check(OPENVAS_VERSION, nessuslib_version())>0)
-  {
-  /*
-   fprintf(stderr, 
-"Error : we are linked against nessus-libraries %s. \n\
-Install nessus-libraries %s or make sure that\n\
-you have deleted older versions nessus libraries from your system\n",
-	nessuslib_version(), OPENVAS_VERSION);
-   exit (1);
-   */
-   fprintf(stderr, "Linked against nessus-libraries %s\n", nessuslib_version());
-  }
-
-
-  if(version_check(OPENVAS_VERSION, nasl_version())>0)
-  {
-  /*
-   fprintf(stderr, 
-"Error : we are linked against libnasl %s. \n\
-Install libnasl %s or make sure that\n\
-you have deleted older versions of libnasl from your system\n",
-	nasl_version(), OPENVAS_VERSION);
-   exit (1);
-   */
-   fprintf(stderr, "Linked against libnasl %s\n", nasl_version());
-  }
-  
-  
-
   addr.s_addr = htonl(INADDR_ANY);
 #ifdef USE_PTHREADS
   /* pull in library symbols - otherwise abort */
@@ -1015,8 +979,8 @@ you have deleted older versions of libnasl from your system\n",
            printf("This is OpenVAS %s for %s %s\n", OPENVAS_VERSION, OVS_OS_NAME, OVS_OS_VERSION);
            printf("compiled with %s\n", OVS_COMPILER);
            printf("Current setup :\n");
-	   printf("\tnasl                           : %s\n", nasl_version());
-	   printf("\tlibnessus                      : %s\n", nessuslib_version());
+	   printf("\topenvas-libnasl                : %s\n", nasl_version());
+	   printf("\topenvas-libraries              : %s\n", nessuslib_version());
 
 	   printf("\tSSL is used for client / server communication\n");
 
@@ -1029,12 +993,6 @@ you have deleted older versions of libnasl from your system\n",
 	   break;
 	}
   } /* end options */
-
-#if 0
-  task_loop (); /* DBUG DEBUG DEBUG */
-  exit (0);     /* DBUG DEBUG DEBUG */
-#endif
-
 
   if(getuid())
   {
