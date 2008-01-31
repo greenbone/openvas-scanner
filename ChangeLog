@@ -1,3 +1,13 @@
+2008-01-31  Jan-Oliver Wagner <jan-oliver.wagner@intevation.de>
+
+	* doc/stubheader.txt: Removed. The stub headers are mangaged centralized
+	in the "doc" module of OpenVAS SVN.
+
+	* TODO: Removed an ancient entry about a fetch script that
+	isn't part of this module.
+
+	* MANIFEST: updated.
+
 2007-11-24  Jan-Oliver Wagner <jan-oliver.wagner@intevation.de>
 
 	* openvasd/openvasd.c (main): Removed useless version check

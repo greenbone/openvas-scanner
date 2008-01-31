@@ -23,7 +23,6 @@ doc/openvas-mkrand.1
 doc/openvas-rmuser.8
 doc/README.INSTALL
 doc/session_saving.txt
-doc/stubheader.txt
 doc/TODO.txt
 doc/unbsp.c
 include/config.h
