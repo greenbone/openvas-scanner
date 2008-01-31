@@ -1,3 +1,21 @@
+openvas-server 1.0.0 (2008-31-01)
+
+First stable release with only minimal changes
+compared to latest 0.9 version.
+No problems or any sort of issues have been
+reported for over two months now.
+This release is done basically
+to reach the mentally important version 1.0,
+there is no technical need to replace openvas-server
+for a running installation.
+
+Main changes are:
+
+* configure: improved check for gpgme version
+* Minor cleanups in package files.
+* openvasd does not do any (useless) version check
+  for -libraries and -libnasl anymore.
+
 openvas-server 0.9.2 (2007-11-07)
 
 Legal and minor technical fixes release.
