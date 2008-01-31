@@ -1,5 +1,11 @@
 2008-01-31  Jan-Oliver Wagner <jan-oliver.wagner@intevation.de>
 
+	Post release version bump.
+
+	* VERSION: Set to 1.0.1.SVN
+
+2008-01-31  Jan-Oliver Wagner <jan-oliver.wagner@intevation.de>
+
 	Doing the 1.0.0 release.
 
 	* VERSION: Set to 1.0.0.
