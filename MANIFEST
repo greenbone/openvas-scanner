@@ -114,5 +114,4 @@ po/README
 ssl/Makefile
 ssl/openvas-mkrand.c
 TODO
-UPGRADE_README
 VERSION

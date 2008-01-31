@@ -1,5 +1,12 @@
 2008-01-31  Jan-Oliver Wagner <jan-oliver.wagner@intevation.de>
 
+	* UPGRADE_README: Removed. Nowadays such information are not relevant
+	anymore.
+
+	* MANIFEST: updated.
+
+2008-01-31  Jan-Oliver Wagner <jan-oliver.wagner@intevation.de>
+
 	* doc/stubheader.txt: Removed. The stub headers are mangaged centralized
 	in the "doc" module of OpenVAS SVN.
 
