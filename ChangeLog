@@ -1,3 +1,8 @@
+2008-02-11  Jan-Oliver Wagner <jan-oliver.wagner@intevation.de>
+
+	* CHANGES: Removed one item for 1.0.0 about gpgme, because
+	it did not belong there.
+
 2008-01-31  Jan-Oliver Wagner <jan-oliver.wagner@intevation.de>
 
 	Post release version bump.

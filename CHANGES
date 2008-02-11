@@ -11,7 +11,6 @@ for a running installation.
 
 Main changes are:
 
-* configure: improved check for gpgme version
 * Minor cleanups in package files.
 * openvasd does not do any (useless) version check
   for -libraries and -libnasl anymore.
