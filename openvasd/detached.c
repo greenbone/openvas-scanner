@@ -292,7 +292,8 @@ detached_setup_mail_file(globals, email)
    
   tmpname = temp_file_name();  
   fl = fopen(tmpname, "w");
-  chmod(tmpname, 0600);
+  if (fchmod(fl, S_IRUSR|S_IWUSR) != 0)
+   perror("fchmod() error on tmp file");
   if(!fl)
     {
      log_write("user %s : could not create file '%s' (%s) - aborting", 
@@ -421,8 +422,9 @@ detached_new_session(globals, target)
  {
   write(f, target, strlen(target));
   fsync(f);
+  if (fchmod(f, S_IRUSR|S_IWUSR) != 0)
+    perror("fchmod() error on tmp file");
   close(f);
-  chmod(fname, 0600); 
   efree(&fname);
   return getpid();
  }
