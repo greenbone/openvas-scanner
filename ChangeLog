@@ -3,6 +3,11 @@
 	* openvasd/Makefile: Fixed bug preventing parallel builds under
 	Gentoo.
 
+2008-02-16  Laban Mwangi <labeneator@gmail.com>
+
+	* openvasd/detached.c(detached_setup_mail_file): Fixing flawfinder l5
+	warnings.
+
 2008-02-11  Jan-Oliver Wagner <jan-oliver.wagner@intevation.de>
 
 	* CHANGES: Removed one item for 1.0.0 about gpgme, because
