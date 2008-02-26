@@ -79,7 +79,7 @@ int preferences_new(char * name)
  fprintf(fd, "be_nice = no\n\n");
 
 
- fprintf(fd, "# Log file : \n");
+ fprintf(fd, "# Log file (or 'syslog') : \n");
  fprintf(fd, "logfile = %s\n\n", OPENVASD_MESSAGES);
  fprintf(fd, "# Shall we log every details of the attack ? (disk intensive)\n");
  fprintf(fd, "log_whole_attack = no\n\n");

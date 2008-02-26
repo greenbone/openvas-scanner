@@ -223,6 +223,10 @@ static void hash_link_destroy(struct hash * h)
  }
 
  efree(&h->dependencies_ptr);
+ arg_free_all(h->plugin->required_ports);
+ arg_free_all(h->plugin->required_udp_ports);
+ arg_free_all(h->plugin->required_keys);
+ arg_free_all(h->plugin->excluded_keys);
  efree(&h->plugin);
  
  if( h->ports != NULL )
@@ -283,9 +287,7 @@ static int hash_add(struct hash * h, char * name, struct scheduler_plugin * plug
    l->num_deps ++;
    al = al->next;
   }
-#if 0
   arg_free_all(deps);
-#endif
  }
  
  if( ports == NULL )
@@ -308,6 +310,7 @@ static int hash_add(struct hash * h, char * name, struct scheduler_plugin * plug
     l->ports[i++] = cache_inc(al->name);
     al = al->next;
    }
+   arg_free_all(ports);
   }
  return 0;
 }

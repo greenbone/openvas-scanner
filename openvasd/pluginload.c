@@ -170,7 +170,7 @@ plugins_reload_from_dir(preferences, plugins, folder, be_quiet)
 #ifdef DEBUG
       log_write("%s:%d : folder == NULL\n", __FILE__, __LINE__);
 #endif
-      printf("could not determine the value of <plugins_folder>. Check %s\n",
+      printf("Could not determine the value of <plugins_folder>. Check %s\n",
       	(char *)arg_get_value(preferences, "config_file"));
       return plugins;
     }

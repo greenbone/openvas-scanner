@@ -1,3 +1,13 @@
+2008-02-26  Tim Brown <timb@nth-dimension.org.uk>
+
+	* openvasd/log.c, openvasd/preferences.c, doc/openvasd.8.in: Now
+	supports syslog as per Nessus 2.3.1.
+	* openvasd/log.c: Fixed possible NULL pointer exception.
+	* openvasd/pluginload.c: Fixed typo in error message.
+	* openvas-server/openvasd/comm.c: Removed unused variable.
+	* openvas-server/openvasd/pluginscheduler.c: Fixed memory leaks as
+	per Nessus 2.3.1.
+
 2008-02-17  Tim Brown <timb@nth-dimension.org.uk>
 
 	* openvasd/Makefile: Fixed bug preventing parallel builds under

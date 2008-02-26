@@ -103,7 +103,12 @@ contains these options:
 Contains the location of the plugins folder. This is usually
 @OPENVASD_PLUGINS@, but you may change this.
 .IP logfile
-path to the logfile.
+path to the logfile. You can enter
+.I syslog
+if you want the nessusd messages to be logged via
+.B syslogd
+You may also enter
+.I stderr
 if you want the openvasd logs to be written on stderr.
 .I Because openvasd is a sensitive program, you should keep your logs. 
 

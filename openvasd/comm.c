@@ -391,7 +391,6 @@ comm_send_rules(globals)
  struct openvas_rules * rules = arg_get_value(globals, "rules");
  while(rules && rules->next)
  {
-  char c = 0;
   if(rules->rule == RULES_ACCEPT)
      auth_printf(globals, "accept %c%s/%d\n",  rules->not?'!':'', 
      				            inet_ntoa(rules->ip),
