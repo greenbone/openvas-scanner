@@ -50,58 +50,58 @@ install: all install-bin install-man
 	@echo
 
 install-bin:
-	@test -d ${bindir} || $(INSTALL_DIR) -m 755 ${bindir}
-	@test -d ${sbindir} || $(INSTALL_DIR) -m 755 ${sbindir}
-	@test -d ${sysconfdir} || $(INSTALL_DIR) -m 755 ${sysconfdir}
-	@test -d ${sysconfdir}/openvas || $(INSTALL_DIR) -m 755 ${sysconfdir}/openvas
-	@test -d ${sysconfdir}/openvas/gnupg || $(INSTALL_DIR) -m 755 ${sysconfdir}/openvas/gnupg
-	@test -d ${localstatedir} || $(INSTALL_DIR) -m 755 ${localstatedir}
-	@test -d ${localstatedir}/lib || $(INSTALL_DIR) -m 755 ${localstatedir}/lib
-	@test -d ${localstatedir}/lib/openvas || $(INSTALL_DIR) -m 755 ${localstatedir}/lib/openvas
-	@test -d ${localstatedir}/lib/openvas/users || $(INSTALL_DIR) -m 755 ${localstatedir}/lib/openvas/users
-	@test -d ${localstatedir}/lib/openvas/logs || $(INSTALL_DIR) -m 755 ${localstatedir}/lib/openvas/logs
-	@test -d ${localstatedir}/lib/openvas/tmp || $(INSTALL_DIR) -m 755 ${localstatedir}/lib/openvas/tmp
-	@test -d ${localstatedir}/lib/openvas/jobs || $(INSTALL_DIR) -m 755 ${localstatedir}/lib/openvas/jobs
-	@test -d ${localstatedir}/lib/openvas/CA || $(INSTALL_DIR) -m 755 ${localstatedir}/lib/openvas/CA
-	@test -d ${localstatedir}/log || $(INSTALL_DIR) -m 755 ${localstatedir}/log
-	@test -d ${localstatedir}/log/openvas || $(INSTALL_DIR) -m 755 ${localstatedir}/log/openvas
-	@test -d ${localstatedir}/run || $(INSTALL_DIR) -m 755 ${localstatedir}/run
-	@test -d ${includedir} || $(INSTALL_DIR) -m 755 ${includedir}
-	@test -d ${includedir}/openvas || $(INSTALL_DIR) -m 755 ${includedir}/openvas
-	@test -d ${sharedstatedir} || $(INSTALL_DIR) -m 755 ${sharedstatedir}
-	@test -d ${sharedstatedir}/openvas || $(INSTALL_DIR) -m 755 ${sharedstatedir}/openvas
-	@test -d ${sharedstatedir}/openvas/CA || $(INSTALL_DIR) -m 755 ${sharedstatedir}/openvas/CA
-	$(INSTALL) -m 755 openvas-mkcert-client ${bindir}/openvas-mkcert-client
-	$(INSTALL) -m 755 openvasd-config ${bindir}/openvasd-config
-	$(INSTALL) -m 755 ssl/openvas-mkrand ${bindir}/openvas-mkrand
-	$(INSTALL) -m $(SERVERMODE) openvasd/openvasd ${sbindir}/openvasd
-	$(INSTALL) -m $(SERVERMODE) openvasd/openvas-check-signature ${sbindir}/openvas-check-signature
-	$(INSTALL) -m 755 openvas-adduser ${sbindir}/openvas-adduser
-	$(INSTALL) -m 755 openvas-rmuser ${sbindir}/openvas-rmuser
-	$(INSTALL) -m 755 openvas-mkcert ${sbindir}/openvas-mkcert
-	$(INSTALL) -c -m 0444 openvas-services ${localstatedir}/lib/openvas/openvas-services
-	$(INSTALL) -c -m 0444 include/includes.h ${includedir}/openvas/includes.h
-	$(INSTALL) -c -m 0444 include/openvas-devel.h ${includedir}/openvas/openvas-devel.h
-	$(INSTALL) -c -m 0444 include/config.h ${includedir}/openvas/config.h
-	$(INSTALL) -c -m 0444 include/threadcompat.h ${includedir}/openvas/threadcompat.h
-	$(INSTALL) -c -m 0444 include/nessusraw.h ${includedir}/openvas/nessusraw.h
-	$(INSTALL) -c -m 0444 include/nessusip.h ${includedir}/openvas/nessusip.h
-	$(INSTALL) -c -m 0444 include/nessusicmp.h ${includedir}/openvas/nessusicmp.h
-	$(INSTALL) -c -m 0444 include/nessustcp.h ${includedir}/openvas/nessustcp.h
-	$(INSTALL) -c -m 0444 include/nessusudp.h ${includedir}/openvas/nessusudp.h
+	@test -d $(DESTDIR)${bindir} || $(INSTALL_DIR) -m 755 $(DESTDIR)${bindir}
+	@test -d $(DESTDIR)${sbindir} || $(INSTALL_DIR) -m 755 $(DESTDIR)${sbindir}
+	@test -d $(DESTDIR)${sysconfdir} || $(INSTALL_DIR) -m 755 $(DESTDIR)${sysconfdir}
+	@test -d $(DESTDIR)${sysconfdir}/openvas || $(INSTALL_DIR) -m 755 $(DESTDIR)${sysconfdir}/openvas
+	@test -d $(DESTDIR)${sysconfdir}/openvas/gnupg || $(INSTALL_DIR) -m 755 $(DESTDIR)${sysconfdir}/openvas/gnupg
+	@test -d $(DESTDIR)${localstatedir} || $(INSTALL_DIR) -m 755 $(DESTDIR)${localstatedir}
+	@test -d $(DESTDIR)${localstatedir}/lib || $(INSTALL_DIR) -m 755 $(DESTDIR)${localstatedir}/lib
+	@test -d $(DESTDIR)${localstatedir}/lib/openvas || $(INSTALL_DIR) -m 755 $(DESTDIR)${localstatedir}/lib/openvas
+	@test -d $(DESTDIR)${localstatedir}/lib/openvas/users || $(INSTALL_DIR) -m 755 $(DESTDIR)${localstatedir}/lib/openvas/users
+	@test -d $(DESTDIR)${localstatedir}/lib/openvas/logs || $(INSTALL_DIR) -m 755 $(DESTDIR)${localstatedir}/lib/openvas/logs
+	@test -d $(DESTDIR)${localstatedir}/lib/openvas/tmp || $(INSTALL_DIR) -m 755 $(DESTDIR)${localstatedir}/lib/openvas/tmp
+	@test -d $(DESTDIR)${localstatedir}/lib/openvas/jobs || $(INSTALL_DIR) -m 755 $(DESTDIR)${localstatedir}/lib/openvas/jobs
+	@test -d $(DESTDIR)${localstatedir}/lib/openvas/CA || $(INSTALL_DIR) -m 755 $(DESTDIR)${localstatedir}/lib/openvas/CA
+	@test -d $(DESTDIR)${localstatedir}/log || $(INSTALL_DIR) -m 755 $(DESTDIR)${localstatedir}/log
+	@test -d $(DESTDIR)${localstatedir}/log/openvas || $(INSTALL_DIR) -m 755 $(DESTDIR)${localstatedir}/log/openvas
+	@test -d $(DESTDIR)${localstatedir}/run || $(INSTALL_DIR) -m 755 $(DESTDIR)${localstatedir}/run
+	@test -d $(DESTDIR)${includedir} || $(INSTALL_DIR) -m 755 $(DESTDIR)${includedir}
+	@test -d $(DESTDIR)${includedir}/openvas || $(INSTALL_DIR) -m 755 $(DESTDIR)${includedir}/openvas
+	@test -d $(DESTDIR)${sharedstatedir} || $(INSTALL_DIR) -m 755 $(DESTDIR)${sharedstatedir}
+	@test -d $(DESTDIR)${sharedstatedir}/openvas || $(INSTALL_DIR) -m 755 $(DESTDIR)${sharedstatedir}/openvas
+	@test -d $(DESTDIR)${sharedstatedir}/openvas/CA || $(INSTALL_DIR) -m 755 $(DESTDIR)${sharedstatedir}/openvas/CA
+	$(INSTALL) -m 755 openvas-mkcert-client $(DESTDIR)${bindir}/openvas-mkcert-client
+	$(INSTALL) -m 755 openvasd-config $(DESTDIR)${bindir}/openvasd-config
+	$(INSTALL) -m 755 ssl/openvas-mkrand $(DESTDIR)${bindir}/openvas-mkrand
+	$(INSTALL) -m $(SERVERMODE) openvasd/openvasd $(DESTDIR)${sbindir}/openvasd
+	$(INSTALL) -m $(SERVERMODE) openvasd/openvas-check-signature $(DESTDIR)${sbindir}/openvas-check-signature
+	$(INSTALL) -m 755 openvas-adduser $(DESTDIR)${sbindir}/openvas-adduser
+	$(INSTALL) -m 755 openvas-rmuser $(DESTDIR)${sbindir}/openvas-rmuser
+	$(INSTALL) -m 755 openvas-mkcert $(DESTDIR)${sbindir}/openvas-mkcert
+	$(INSTALL) -c -m 0444 openvas-services $(DESTDIR)${localstatedir}/lib/openvas/openvas-services
+	$(INSTALL) -c -m 0444 include/includes.h $(DESTDIR)${includedir}/openvas/includes.h
+	$(INSTALL) -c -m 0444 include/openvas-devel.h $(DESTDIR)${includedir}/openvas/openvas-devel.h
+	$(INSTALL) -c -m 0444 include/config.h $(DESTDIR)${includedir}/openvas/config.h
+	$(INSTALL) -c -m 0444 include/threadcompat.h $(DESTDIR)${includedir}/openvas/threadcompat.h
+	$(INSTALL) -c -m 0444 include/nessusraw.h $(DESTDIR)${includedir}/openvas/nessusraw.h
+	$(INSTALL) -c -m 0444 include/nessusip.h $(DESTDIR)${includedir}/openvas/nessusip.h
+	$(INSTALL) -c -m 0444 include/nessusicmp.h $(DESTDIR)${includedir}/openvas/nessusicmp.h
+	$(INSTALL) -c -m 0444 include/nessustcp.h $(DESTDIR)${includedir}/openvas/nessustcp.h
+	$(INSTALL) -c -m 0444 include/nessusudp.h $(DESTDIR)${includedir}/openvas/nessusudp.h
 
 
 install-man:
 	@echo installing man pages ...
-	@test -d ${mandir} || $(INSTALL_DIR) -m 755 ${mandir}
-	@test -d ${mandir}/man1 || $(INSTALL_DIR) -m 755 ${mandir}/man1
-	@test -d ${mandir}/man8 || $(INSTALL_DIR) -m 755 ${mandir}/man8
-	$(INSTALL) -c -m 0444 doc/openvas-check-signature.1 ${mandir}/man1/openvas-check-signature.1
-	$(INSTALL) -c -m 0444 doc/openvas-mkrand.1 ${mandir}/man1/openvas-mkrand.1
-	$(INSTALL) -c -m 0444 doc/openvasd.8 ${mandir}/man8/openvasd.8
-	$(INSTALL) -c -m 0444 doc/openvas-adduser.8 ${mandir}/man8/openvas-adduser.8
-	$(INSTALL) -c -m 0444 doc/openvas-rmuser.8 ${mandir}/man8/openvas-rmuser.8
-	$(INSTALL) -c -m 0444 doc/openvas-mkcert.8 ${mandir}/man8/openvas-mkcert.8
+	@test -d $(DESTDIR)${mandir} || $(INSTALL_DIR) -m 755 $(DESTDIR)${mandir}
+	@test -d $(DESTDIR)${mandir}/man1 || $(INSTALL_DIR) -m 755 $(DESTDIR)${mandir}/man1
+	@test -d $(DESTDIR)${mandir}/man8 || $(INSTALL_DIR) -m 755 $(DESTDIR)${mandir}/man8
+	$(INSTALL) -c -m 0444 doc/openvas-check-signature.1 $(DESTDIR)${mandir}/man1/openvas-check-signature.1
+	$(INSTALL) -c -m 0444 doc/openvas-mkrand.1 $(DESTDIR)${mandir}/man1/openvas-mkrand.1
+	$(INSTALL) -c -m 0444 doc/openvasd.8 $(DESTDIR)${mandir}/man8/openvasd.8
+	$(INSTALL) -c -m 0444 doc/openvas-adduser.8 $(DESTDIR)${mandir}/man8/openvas-adduser.8
+	$(INSTALL) -c -m 0444 doc/openvas-rmuser.8 $(DESTDIR)${mandir}/man8/openvas-rmuser.8
+	$(INSTALL) -c -m 0444 doc/openvas-mkcert.8 $(DESTDIR)${mandir}/man8/openvas-mkcert.8
 
 
 server : 
