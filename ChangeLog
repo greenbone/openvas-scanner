@@ -1,5 +1,12 @@
 2008-04-16  Jan-Oliver Wagner <jan-oliver.wagner@intevation.de>
 
+	* packaging: New. Directory for packaging files.
+	* packaging/opensuse: New. Directory for OpenSUSE RPM files.
+	* packaging/opensuse/openvas-server-1.0.0-1.suse102.openvas.spec,
+	packaging/opensuse/openvas-server-1.0.0-Makefile.diff: New.
+
+2008-04-16  Jan-Oliver Wagner <jan-oliver.wagner@intevation.de>
+
 	* Makefile: Add missing DESTDIR for install targets.
 
 2008-02-26  Tim Brown <timb@nth-dimension.org.uk>
