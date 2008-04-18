@@ -1,3 +1,12 @@
+2008-04-18  Jan-Oliver Wagner <jan-oliver.wagner@intevation.de>
+
+	* packaging/fedora: New. Directory for Fedora RPM files.
+
+	* packaging/fedora/openvas-server-1.0.0-1.fc8.openvas.spec,
+	packaging/fedora/openvas-server-1.0.0-Makefile.diff: New.
+
+	* MANIFEST: updated.
+
 2008-04-16  Jan-Oliver Wagner <jan-oliver.wagner@intevation.de>
 
 	* packaging: New. Directory for packaging files.
