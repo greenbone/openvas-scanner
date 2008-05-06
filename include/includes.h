@@ -275,7 +275,7 @@
 #include <threadcompat.h>
 #include <harglists.h>
 #include <libopenvas.h>
-#include <openvas-devel.h>
+#include <ntp.h>
 
 #ifdef HAVE_SHL_LOAD	/* I love HPUX (jh) */
 #undef dlopen

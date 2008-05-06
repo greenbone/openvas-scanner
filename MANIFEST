@@ -36,7 +36,6 @@ include/nessusraw.h
 include/nessustcp.h
 include/nessusudp.h
 include/threadcompat.h
-include/openvas-devel.h
 install-sh
 INSTALL
 Makefile
@@ -67,7 +66,6 @@ openvasd/ntp_10.c
 openvasd/ntp_10.h
 openvasd/ntp_11.c
 openvasd/ntp_11.h
-openvasd/ntp.h
 openvasd/openvas-check-signature.c
 openvasd/openvasd.c
 openvasd/parser.c

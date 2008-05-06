@@ -81,7 +81,6 @@ install-bin:
 	$(INSTALL) -m 755 openvas-mkcert $(DESTDIR)${sbindir}/openvas-mkcert
 	$(INSTALL) -c -m 0444 openvas-services $(DESTDIR)${localstatedir}/lib/openvas/openvas-services
 	$(INSTALL) -c -m 0444 include/includes.h $(DESTDIR)${includedir}/openvas/includes.h
-	$(INSTALL) -c -m 0444 include/openvas-devel.h $(DESTDIR)${includedir}/openvas/openvas-devel.h
 	$(INSTALL) -c -m 0444 include/config.h $(DESTDIR)${includedir}/openvas/config.h
 	$(INSTALL) -c -m 0444 include/threadcompat.h $(DESTDIR)${includedir}/openvas/threadcompat.h
 	$(INSTALL) -c -m 0444 include/nessusraw.h $(DESTDIR)${includedir}/openvas/nessusraw.h

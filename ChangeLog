@@ -1,3 +1,23 @@
+2008-05-06  Jan-Oliver Wagner <jan-oliver.wagner@intevation.de>
+
+	* openvasd/ntp.h: Removed. The contents is now in "ntp.h" of
+	the openvas-libraries module.
+
+	* include/openvas-devel.h: Removed. The content was redundant
+	anyway (error prone!) and now is only in ntp.h of module
+	openvas-libraries.
+
+	* include/includes.h: Instead of openvas-devel.h now include ntp.h.
+
+	* configure.in: Raised minimum required version of openvas-libraries
+	from 1.0.0 to 1.0.2.
+
+	* Makefile: Don't install openvas-devel.h anymore.
+
+	* MANIFEST: Updated.
+
+	* configure: Updated.
+
 2008-04-18  Jan-Oliver Wagner <jan-oliver.wagner@intevation.de>
 
 	* packaging/fedora: New. Directory for Fedora RPM files.
