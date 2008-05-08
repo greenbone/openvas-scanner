@@ -1,3 +1,10 @@
+2008-05-08  Bernhard Herzog  <bh@intevation.de>
+
+	* openvasd/pluginupload.c (plugin_recv): Always discard the
+	uploaded data and reject the plugin upload.  This change removes
+	support for plugin upload without changing the protocol
+	(plugins_homedir): Removed. No longer used.
+
 2008-05-06  Jan-Oliver Wagner <jan-oliver.wagner@intevation.de>
 
 	* openvasd/ntp.h: Removed. The contents is now in "ntp.h" of
