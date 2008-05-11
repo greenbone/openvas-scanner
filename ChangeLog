@@ -1,6 +1,7 @@
 2008-05-11  Tim Brown  <timb@nth-dimension.org.uk>
 
 	* debian: Removed as it will be replaced with packaging/debian.
+	* packaging/debian: Debian packaging files.
 
 2008-05-08  Bernhard Herzog  <bh@intevation.de>
 

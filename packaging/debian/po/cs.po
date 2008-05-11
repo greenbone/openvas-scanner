@@ -1,0 +1,122 @@
+# SOME DESCRIPTIVE TITLE.
+# Copyright (C) YEAR THE PACKAGE'S COPYRIGHT HOLDER
+# This file is distributed under the same license as the PACKAGE package.
+# FIRST AUTHOR <EMAIL@ADDRESS>, YEAR.
+#
+msgid ""
+msgstr ""
+"Project-Id-Version: nessus-core\n"
+"Report-Msgid-Bugs-To: jfs@computer.org\n"
+"POT-Creation-Date: 2005-09-18 12:12+0200\n"
+"PO-Revision-Date: 2005-10-22 16:25+0200\n"
+"Last-Translator: Miroslav Kure <kurem@debian.cz>\n"
+"Language-Team: Czech <debian-l10n-czech@lists.debian.org>\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+
+#. Type: note
+#. Description
+#: ../nessusd.templates:3
+msgid "Nessus Daemon certificate generation"
+msgstr "Vytvoření certifikátů pro daemon Nessus"
+
+#. Type: note
+#. Description
+#: ../nessusd.templates:3
+msgid ""
+"You will need to provide the relevant information to create an SSL "
+"certificate for your Nessus Daemon. Note that this information will *NOT* be "
+"sent to echo anybody (everything stays local), but anyone  with the ability "
+"to connect to your Nessus daemon will be able to retrieve this information."
+msgstr ""
+"Nyní budete muset zadat potřebné informace pro vytvoření SSL certifikátu "
+"pro Nessus. Tyto informace se nebudou nikam vysílat (zůstávají na "
+"počítači), ovšem kdokoliv, kdo se může připojit k daemonu Nessus, může "
+"také získat tyto informace."
+
+#. Type: string
+#. Description
+#: ../nessusd.templates:14
+msgid "CA certificate life time in days"
+msgstr "Platnost CA certifikátu (ve dnech)"
+
+#. Type: string
+#. Description
+#: ../nessusd.templates:14
+msgid ""
+"Provide the life time of the Certificate Authority used to generate the "
+"Nessus Daemon certificate."
+msgstr ""
+"Zadejte délku platnosti certifikační autority, která se použije pro "
+"vytvoření certifikátu pro daemon Nessus."
+
+#. Type: string
+#. Description
+#: ../nessusd.templates:21
+msgid "Server certificate life time in days"
+msgstr "Platnost serverového certifikátu (ve dnech)"
+
+#. Type: string
+#. Description
+#: ../nessusd.templates:21
+msgid ""
+"Provide the life time of the Nessus Server certificate. Notice that the "
+"Nessus clients will not connect to servers with expired certificates so set "
+"this value for as long as you want this installation to last. You can always "
+"regenerate this certificate later by removing the certificate file stored "
+"in /var/lib/nessusd/CA/ and running 'nessus-mkcert'"
+msgstr ""
+"Zadejte délku platnosti serverového certifikátu pro Nessus. Nessus klienti "
+"se odmítnou připojit k serverům s propadlými certifikáty, takže tuto hodnotu "
+"nastavte dostatečně velkou, aby pokryla zamýšlené používání této instalace. "
+"Certifikát můžete kdykoliv později přegenerovat tak, že odstraníte soubor "
+"ve /var/lib/nessusd/CA/ a spustíte příkaz 'nessus-mkcert'"
+
+#. Type: string
+#. Description
+#: ../nessusd.templates:30
+msgid "Your country (two letter code)"
+msgstr "Stát (dvoupísmenný kód)"
+
+#. Type: string
+#. Description
+#: ../nessusd.templates:30
+msgid "Enter your country's two letter code."
+msgstr "Zadejte dvoupísmenný kód vašeho státu."
+
+#. Type: string
+#. Description
+#: ../nessusd.templates:35
+msgid "Your state or province"
+msgstr "Území nebo provincie"
+
+#. Type: string
+#. Description
+#: ../nessusd.templates:35
+msgid "Enter the state or provice you reside in."
+msgstr "Zadejte název regionu, území nebo provincie, kde žijete."
+
+#. Type: string
+#. Description
+#: ../nessusd.templates:40
+msgid "Your location"
+msgstr "Místo"
+
+#. Type: string
+#. Description
+#: ../nessusd.templates:40
+msgid "Enter your location (e.g. town)."
+msgstr "Zadejte jméno města nebo vesnice, kde žijete."
+
+#. Type: string
+#. Description
+#: ../nessusd.templates:46
+msgid "Your organisation"
+msgstr "Organizace"
+
+#. Type: string
+#. Description
+#: ../nessusd.templates:46
+msgid "Enter the name of your organization or company."
+msgstr "Zadejte jméno společnosti nebo organizace."

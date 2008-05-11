@@ -1,0 +1,137 @@
+# translation of nessus-core_2.2.7-2_templates.po to Dutch
+#
+# This file is distributed under the same license as the nessus-core package.
+# Please see debian/copyright.
+#
+#    Translators, if you are not familiar with the PO format, gettext
+#    documentation is worth reading, especially sections dedicated to
+#    this format, e.g. by running:
+#         info -n '(gettext)PO Files'
+#         info -n '(gettext)Header Entry'
+#    Some information specific to po-debconf are available at
+#            /usr/share/doc/po-debconf/README-trans
+#         or http://www.debian.org/intl/l10n/po-debconf/README-trans#
+#    Developers do not need to manually edit POT or PO files.
+#
+#This is an unofficial translation
+# Kurt De Bree <kdebree(AT)telenet(DOT)be>, 2006.
+#
+msgid ""
+msgstr ""
+"Project-Id-Version: nessus-core_2.2.7-2_templates\n"
+"Report-Msgid-Bugs-To: jfs@computer.org\n"
+"POT-Creation-Date: 2005-09-18 12:12+0200\n"
+"PO-Revision-Date: 2006-05-11 18:34+0200\n"
+"Last-Translator: Kurt De Bree <kdebree(AT)telenet(DOT)be>\n"
+"Language-Team: Dutch <debian-l10n-dutch@lists.debian.org>\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"X-Generator: KBabel 1.11.1\n"
+
+#. Type: note
+#. Description
+#: ../nessusd.templates:3
+msgid "Nessus Daemon certificate generation"
+msgstr "Generatie van het certificaat voor de Nessus-achtergronddienst"
+
+#. Type: note
+#. Description
+#: ../nessusd.templates:3
+msgid ""
+"You will need to provide the relevant information to create an SSL "
+"certificate for your Nessus Daemon. Note that this information will *NOT* be "
+"sent to echo anybody (everything stays local), but anyone  with the ability "
+"to connect to your Nessus daemon will be able to retrieve this information."
+msgstr ""
+"De relevante informatie om een SSL-certificaat voor uw Nessus-achtergronddienst "
+"aan te maken is enkel beschikbaar als u deze verstrekt. Belangrijke opmerking "
+"hierbij is dat deze informatie NIET rondgestuurd wordt, maar wel opvraagbaar is "
+"door iedereen die een verbinding kan maken met uw Nessus-achtergronddienst "
+"(alle deze informatie wordt dus enkel lokaal opgeslagen)."
+
+#. Type: string
+#. Description
+#: ../nessusd.templates:14
+msgid "CA certificate life time in days"
+msgstr "Levensduur van het CA-certificaat (in dagen)"
+
+#. Type: string
+#. Description
+#: ../nessusd.templates:14
+msgid ""
+"Provide the life time of the Certificate Authority used to generate the "
+"Nessus Daemon certificate."
+msgstr ""
+"Wat is de levensduur van de certificaatautoriteit die wordt gebruikt om "
+"het Nessus-achtergronddienstcertificaat te genereren?"
+
+#. Type: string
+#. Description
+#: ../nessusd.templates:21
+msgid "Server certificate life time in days"
+msgstr "Wat is de levensduur van het servercertificaat (in dagen)?"
+
+#. Type: string
+#. Description
+#: ../nessusd.templates:21
+msgid ""
+"Provide the life time of the Nessus Server certificate. Notice that the "
+"Nessus clients will not connect to servers with expired certificates so set "
+"this value for as long as you want this installation to last. You can always "
+"regenerate this certificate later by removing the certificate file stored "
+"in /var/lib/nessusd/CA/ and running 'nessus-mkcert'"
+msgstr ""
+"Wat is de levensduur van het Nessus-servercertificaat? Merk op dat de "
+"Nessus-cliënten geen verbinding zullen maken naar servers met vervallen "
+"certificaten, dus stel deze waarde in naargelang de levensduur van deze "
+"installatie. U kunt later dit certificaat regenereren door het certificaatbestand, "
+"opgeslagen in /var/lib/nessusd/CA/, te verwijderen en 'nessus-mkcert' uit te voeren."
+
+#. Type: string
+#. Description
+#: ../nessusd.templates:30
+msgid "Your country (two letter code)"
+msgstr "Uw landcode (tweeletterige code)"
+
+#. Type: string
+#. Description
+#: ../nessusd.templates:30
+msgid "Enter your country's two letter code."
+msgstr "Wat is de tweeletterige code van uw land?"
+
+#. Type: string
+#. Description
+#: ../nessusd.templates:35
+msgid "Your state or province"
+msgstr "Uw staat of provincie"
+
+#. Type: string
+#. Description
+#: ../nessusd.templates:35
+msgid "Enter the state or provice you reside in."
+msgstr "In welke staat of provincie verblijft u?"
+
+#. Type: string
+#. Description
+#: ../nessusd.templates:40
+msgid "Your location"
+msgstr "Uw locatie"
+
+#. Type: string
+#. Description
+#: ../nessusd.templates:40
+msgid "Enter your location (e.g. town)."
+msgstr "Wat is uw locatie (bv. stad)?"
+
+#. Type: string
+#. Description
+#: ../nessusd.templates:46
+msgid "Your organisation"
+msgstr "Uw organisatie"
+
+#. Type: string
+#. Description
+#: ../nessusd.templates:46
+msgid "Enter the name of your organization or company."
+msgstr "Wat is de naam van uw organisatie of bedrijf?"

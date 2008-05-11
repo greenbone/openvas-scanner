@@ -1,0 +1,103 @@
+This package was debianized by Tim Brown <timb@nth-dimension.org.uk> on
+Sun, 11 May 2008 12:39:48 +0100.
+
+It was downloaded from http://www.openvas.org/
+
+Upstream Author: OpenVAS <openvas-devel@wald.intevation.org>
+
+Copyright: 
+
+ - OpenVAS server:
+     * Portions Copyright (C) 2006 Software in the Public Interest, Inc.
+     * Based on work Copyright (C) 1998 - 2006 Tenable Network Security, Inc.
+     * Copyright (C) 1998 - 2004 Renaud Deraison <deraison@nessus.org>
+     * Based on work Copyright (C) 2001 Michel Arboi [ssl]
+
+ - OpenVAS documentation:
+     * Copyright (C) 2004 Tenable Network Security
+     * Copyright (C) mjh-EDV Beratung, 1996-1999
+
+ - Include files
+     * Portions Copyright (C) 2006 Software in the Public Interest, Inc.
+     * Based on work Copyright (C) 1998 - 2006 Tenable Network Security, Inc.
+
+Other copyrights:
+
+ - Autoconf:
+    Copyright (C) 1992, 1993, 1994, 1995, 1996, 1997, 1998, 1999,
+    2000, 2001, 2002, 2003, 2004, 2005, 2006 Free Software Foundation,
+    Inc.
+
+Authors:
+
+ - OpenVAS server:
+     * Renaud Deraison
+     * Michael Arboi [ssl]
+     * Alexis de Bernis
+     * Axel Nennker
+     * Beirne Kornarksi
+     * Benoit Brodard
+     * Boris Wolf
+     * Brian
+     * Christoph Puppe
+     * Cyril Leclerc
+     * Devin Kowatch
+     * Dion Stempfley
+     * Erik Anderson
+     * Frank Migge
+     * Gabriel L. Somlo
+     * Georges Dagousset
+     * Guillaume Valadon
+     * H D Moore
+     * Iouri Pletnev
+     * Isaac Dawson
+     * Javier Fernandez-Sanguino
+     * Jay
+     * Jenni Scott
+     * Jordan Hrycaj
+     * Jordan Hrycaj
+     * Julien Bordet
+     * Laurent FACQ
+     * Loren Bandiera
+     * Michael Scheidell
+     * Michael Slifcak
+     * Michel Arboi
+     * Michel Scheidell
+     * Nicolas Dubee
+     * Nicolas Pouvesle
+     * Pasi Eronen
+     * Pavel Kankovky
+     * Pavel Kankovsky
+     * Peter Gr�ndl
+     * Renaud Deraison
+     * Rodolfo Baader
+     * Simon Law
+     * Stephen Friedl
+     * Xueyong Zhi
+     * Zorgon
+
+License:
+
+    This package is free software; you can redistribute it and/or modify
+    it under the terms of the GNU General Public License as published by
+    the Free Software Foundation; either version 2 of the License, or
+    (at your option) any later version.
+ 
+    This package is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+    GNU General Public License for more details.
+ 
+    You should have received a copy of the GNU General Public License
+    along with this package; if not, write to the Free Software
+    Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301 USA
+
+On Debian systems, the complete text of the GNU General
+Public License can be found in `/usr/share/common-licenses/GPL'.
+
+The Debian packaging is (C) 2008, Tim Brown <timb@nth-dimension.org.uk> and
+is licensed under the GPL, see above. Portions of the Debian packing are
+heavily based on the packaging of nessusd which includes scripts written by
+Miquel van Smoorenburg <miquels@drinkel.ow.org>, Ian Murdock
+<imurdock@gnu.ai.mit.edu>, Luca Andreucci <andrew@andrew.org> and Javier
+Fernandez-Sanguino Pe�a <jfs@debian.org> which is licensed under the GPL.

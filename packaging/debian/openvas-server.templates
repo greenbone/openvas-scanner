@@ -1,0 +1,48 @@
+Template: openvas-server/certificate
+Type: note
+_Description: OpenVAS daemon certificate generation
+ You will need to provide the relevant information to create an SSL
+ certificate for your OpenVAS daemon. Note that this information will
+ *NOT* be sent to echo anybody (everything stays local), but anyone 
+ with the ability to connect to your OpenVAS daemon will be able to
+ retrieve this information.
+
+
+Template: openvas-server/califetime
+Type: string
+Default: 1460
+_Description: CA certificate life time in days
+ Provide the life time of the Certificate Authority used to generate
+ the OpenVAS daemon certificate.
+
+Template: openvas-server/srvlifetime
+Type: string
+Default: 365
+_Description: Server certificate life time in days
+ Provide the life time of the OpenVAS daemon certificate. Notice that the
+ OpenVAS clients will not connect to servers with expired certificates
+ so set this value for as long as you want this installation to last.
+ You can always regenerate this certificate later by removing the certificate
+ file stored in /var/lib/openvas/CA/ and running 'openvas-mkcert'
+
+Template: openvas-server/country
+Type: string
+_Description: Your country (two letter code)
+ Enter your country's two letter code.
+
+Template: openvas-server/province
+Type: string
+_Description: Your state or province
+ Enter the state or provice you reside in.
+
+Template: openvas-server/location
+Type: string
+_Description: Your location
+ Enter your location (e.g. town).
+
+Template: openvas-server/organization
+Type: string
+Default: OpenVAS
+_Description: Your organisation
+ Enter the name of your organization or company.
+
