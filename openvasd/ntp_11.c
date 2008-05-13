@@ -136,6 +136,8 @@ int ntp_11_parse_input(globals, input)
 	efree(&orig);
 	return 1;
 	}
+  /* XXX: This command should be entirely removed for protocol
+   * newer than NTP 11 */
   if(!strcmp(input, "ATTACHED_PLUGIN")) {
   	plugin_recv(globals);
 	return 1;
@@ -171,12 +173,6 @@ int ntp_11_parse_input(globals, input)
 	efree(&orig);
         return 1;
         }
-  if(!strcmp(input, "HUP_FATHER")) {
-	  	if(preferences_user_is_admin(globals, arg_get_value(globals,
-		"preferences")))
-			kill(getppid(), SIGHUP);
-		return 1;
-  }
   if(!strcmp(input, "NEW_ATTACK")){
 	  	int n = ntp_11_new_attack(globals, orig);
 		efree(&orig);
@@ -341,9 +337,6 @@ ntp_11_read_prefs(globals)
 	 !strcmp(pref, "cert_file")	    ||
 	 !strcmp(pref, "be_nice")	    ||
 	 !strcmp(pref, "log_plugins_name_at_load") ||
-	 !strcmp(pref, "plugin_upload")     ||
-	 !strcmp(pref, "plugin_upload_suffixes") ||
-	 !strcmp(pref, "admin_user") ||
          !strcmp(pref, "nasl_no_signature_check"))
       	continue;
       

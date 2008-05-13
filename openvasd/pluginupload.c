@@ -1,6 +1,9 @@
 /* OpenVAS
 * $Id$
-* Description: Provides somekind of remote plugin upload service.
+* Description: Provides somekind of remote plugin upload service
+*              ATTENTION: this feature is deprecated.
+*              This module just remains to give clients
+*              that try to upload plugins a denial answer.
 *
 * Authors: - Renaud Deraison <deraison@nessus.org> (Original pre-fork develoment)
 *          - Tim Brown <mailto:timb@openvas.org> (Initial fork)
@@ -27,6 +30,8 @@
 *
 */
 
+/* XXX: This module can be deleted once a new protocol version
+ * drops the upload feature. */
 
 #include <includes.h>
 #include "preferences.h"

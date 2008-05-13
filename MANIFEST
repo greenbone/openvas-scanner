@@ -105,6 +105,7 @@ openvas-mkcert-client.in
 openvas-mkcert.in
 openvas-rmuser.in
 openvas.tmpl.in
+packaging/debian/
 packaging/fedora/
 po/Makefile
 po/openvas-scripts-de.po

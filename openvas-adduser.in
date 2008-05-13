@@ -41,9 +41,6 @@ esac
 
 umask 066
 
-prefix=@prefix@
-exec_prefix=@exec_prefix@
-
 # add the openvas installation path
 PATH=@sbindir@:@bindir@:$PATH ; export PATH
 
@@ -89,22 +86,10 @@ uid=0*)
    exit 1
 esac
 
-
-prefix=@prefix@
-exec_prefix=@exec_prefix@
 bindir=@bindir@
 sbindir=@sbindir@
-libexecdir=@libexecdir@
 datadir=@datadir@
-sysconfdir=@sysconfdir@
-sharedstatedir=@sharedstatedir@
 localstatedir=@localstatedir@/lib
-libdir=@libdir@
-includedir=@includedir@
-oldincludedir=@oldincludedir@
-infodir=@infodir@
-mandir=@mandir@
-
 
 PATH=$PATH:$sbindir:$bindir:/usr/ssl/bin:/usr/local/ssl/bin:/opt/ssl/bin
 
@@ -311,13 +296,6 @@ chmod 0700 "$localstatedir/openvas/users/$login"
 #
 mkdir -p "$localstatedir/openvas/users/$login/auth"
 chmod 0700 "$localstatedir/openvas/users/$login/auth"
-
-#
-# Create the plugins dir, which contains the user plugins
-#
-mkdir -p "$localstatedir/openvas/users/$login/plugins"
-chmod 0700 "$localstatedir/openvas/users/$login/plugins"
-
 
 
 if [ "$auth" = "pass" ]; then

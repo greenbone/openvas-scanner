@@ -56,9 +56,6 @@ int    preferences_save_session(struct arglist*);
 int    preferences_save_empty_sessions(struct arglist*);
 #endif
 
-int    preferences_upload_enabled(struct arglist *);
-int    preferences_upload_suffixes(struct arglist *, char*);
-
 #ifdef ENABLE_SAVE_KB
 int    preferences_continuous_scan(struct arglist *);
 int    preferences_delay_between_scans(struct arglist *);
@@ -67,7 +64,6 @@ char * preferences_detached_scan_email(struct arglist *);
 #endif
 
 void  preferences_reset_cache();
-int   preferences_user_is_admin(struct arglist* , struct arglist *);
 int   preferences_silent_dependencies(struct arglist*);
 int  preferences_nasl_no_signature_check(struct arglist * );
 

@@ -135,13 +135,7 @@ int preferences_new(char * name)
  fprintf(fd, "kb_dont_replay_denials = no\n");
  fprintf(fd, "kb_max_age = 864000\n");
  fprintf(fd, "#--- end of the KB section\n\n");
- fprintf(fd, "# Can users upload their plugins ?\n");
- fprintf(fd, "plugin_upload = no\n");
- fprintf(fd, "# Suffixes of the plugins the user can upload :\n");
- fprintf(fd, "plugin_upload_suffixes = .nasl, .inc\n");
- fprintf(fd, "# Name of the user who can remotely update the plugins\n");
- fprintf(fd, "admin_user = root\n");
- 
+
  fprintf(fd, "\n\n");
  fprintf(fd, "# If this option is set, OpenVAS will not scan a network incrementally\n");
  fprintf(fd, "# (10.0.0.1, then 10.0.0.2, 10.0.0.3 and so on..) but will attempt to\n");
@@ -637,81 +631,6 @@ if(!preferences)
 }
 
 int
-preferences_upload_enabled(preferences)
- struct arglist * preferences;
-{
- static int yes = -1;
- char * value;
-
- if(!preferences)
-  {
-   yes = -1;
-   return -1;
-  }
-  
-  
- if(yes >= 0)
-  return yes;
- 
- value = arg_get_value(preferences, "plugin_upload");
- if(value && !strcmp(value, "yes"))
- 	yes = 1;
- else
- 	yes = 0;
- 
- return yes;
-}
-
-int
-preferences_upload_suffixes(preferences, fname)
- struct arglist * preferences;
- char * fname;
-{
- char * list = arg_get_value(preferences, "plugin_upload_suffixes");
- char * fsuffix; 
- char * delme;
-
- if(!list)
-  return 0;
- else
-  delme = list = estrdup(list);
-  
- fsuffix = strrchr(fname, '.');
- if(!fsuffix)
-  return 0;
-
- 
- for(;;)
- {
-  char * t = strchr(list, ',');
-  int len;
-  if(t)
-   t[0]='\0';
-  
-  len = strlen(list);
-  while(list[len - 1] == ' ')
-  {
-  	list[len - 1]='\0';
-	len --;
-  }
-  
-  while(list[0]==' ')list++;
-  if(!strcmp(list, fsuffix))
-  {
-   efree(&delme);
-   return 1;
-  }
- 
- if(t)list = &(t[1]);
- else break;
- }
- log_write("user attempted to upload %s\n", fname);
- efree(&delme);
- return 0;
-}
-
-
-int
 preferences_nasl_no_signature_check(preferences)
  struct arglist * preferences;
 {
@@ -853,39 +772,6 @@ preferences_delay_between_scans(preferences)
  return delay;
 }
 
-
-int
-preferences_user_is_admin(globals, preferences)
- struct arglist * globals;
- struct arglist * preferences;
-{ 
- static int yes = -1;
- char * pref;
- static char * user;
- 
- if(!user)
-  user = (char*)arg_get_value(globals, "user");
- 
- if(!preferences)
-  {
-   yes = -1;
-   return -1;
-  }
-  
-  
- if(yes >= 0)
-  return yes;
- 
- pref = arg_get_value(preferences, "admin_user");
- if((!pref) || strcmp(pref, user))
-   yes = 0;
- else
-   yes = 1;
- 
- return yes;
-}
-
-
 char *
 preferences_detached_scan_email(preferences)
  struct arglist * preferences;
@@ -958,7 +844,6 @@ preferences_reset_cache()
  preferences_use_mac_addr(NULL);
  preferences_save_session(NULL);
  preferences_save_empty_sessions(NULL);
- preferences_upload_enabled(NULL);
  preferences_continuous_scan(NULL);
  preferences_delay_between_scans(NULL);
  preferences_detached_scan(NULL);

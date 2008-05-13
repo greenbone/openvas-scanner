@@ -440,7 +440,6 @@ comm_send_preferences(globals)
 	 strcmp(prefs->name, "cert_file")	  &&
 	 strcmp(prefs->name, "be_nice")		  &&
 	 strcmp(prefs->name, "log_plugins_name_at_load") &&
-	 strcmp(prefs->name, "admin_user") &&
 	 strcmp(prefs->name, "nasl_no_signature_check")	)  
     		auth_printf(globals, "%s <|> %s\n", prefs->name, (const char *) prefs->value);
   }

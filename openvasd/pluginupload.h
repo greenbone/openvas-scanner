@@ -31,5 +31,8 @@
 #ifndef __NESSUS_PLUGINUPLOAD_H__
 #define __NESSUS_PLUGINUPLOAD_H__
 
+/* XXX: This module can be deleted once a new protocol version
+ * drops the upload feature (ATTACHED_PLUGINS). */
+
 int plugin_recv(struct arglist*);
 #endif

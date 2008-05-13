@@ -1,3 +1,42 @@
+2008-05-12  Jan-Oliver Wagner <jan-oliver.wagner@intevation.de>
+
+	Second step for Change Request #4 (Remove plugin upload feature),
+	http://www.openvas.org/openvas-cr-4.html
+
+	* MANIFEST: Added packaging/debian
+
+	* openvasd/pluginupload.c, openvasd/pluginupload.h: Added
+	note about when this module can be removed.
+
+	* openvasd/ntp_11.c (ntp_11_read_prefs): remove
+	consideration of system preferences "admin_user",
+	"plugin_upload" and "plugin_upload_suffixes".
+	(ntp_11_parse_input): Remove undocumented protocol
+	command "HUP_FATHER".
+
+	* openvasd/preferences.c (preferences_new):
+	Removed write defaults for these system preferences:
+	"admin_user", "plugin_upload" and "plugin_upload_suffixes".
+	(preferences_upload_enabled, preferences_upload_suffixes,
+	preferences_user_is_admin): Removed.
+	(preferences_reset_cache): Removed call of
+	preferences_upload_enabled.
+
+	* openvasd/preferences.h: Removed protos for
+	preferences_user_is_admin, preferences_upload_enabled
+	and preferences_upload_suffixes.
+
+	* openvasd/comm.c (comm_send_preferences): No need of
+	exception for "admin_user" any more.
+
+	* openvasd/utils.c (get_max_hosts_number, get_max_checks_number): Removed
+	allowance of overridung max_checks and max_hosts when
+	being defined a admin user.
+
+	* openvas-adduser.in: Removed the creation of the users
+	plugins directory.
+	Also removed any unused variable setttings via configure.
+
 2008-05-11  Tim Brown  <timb@nth-dimension.org.uk>
 
 	* debian: Removed as it will be replaced with packaging/debian.
@@ -5,6 +44,9 @@
 	* doc/unbsp.c: Removed as no longer used.
 
 2008-05-08  Bernhard Herzog  <bh@intevation.de>
+
+	First step for Change Request #4 (Remove plugin upload feature),
+	http://www.openvas.org/openvas-cr-4.html
 
 	* openvasd/pluginupload.c (plugin_recv): Always discard the
 	uploaded data and reject the plugin upload.  This change removes
