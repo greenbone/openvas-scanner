@@ -1,3 +1,10 @@
+2008-06-17  Jan-Oliver Wagner <jan-oliver.wagner@intevation.de>
+
+	* doc/kb_saving.txt: Changed some history naming back from
+	OpenVAS to Nessus (probably a search-replace mistake).
+	Also removed a documentation URL to nessus.org where
+	the page has been removed meanwhile.
+
 2008-05-12  Jan-Oliver Wagner <jan-oliver.wagner@intevation.de>
 
 	Second step for Change Request #4 (Remove plugin upload feature),

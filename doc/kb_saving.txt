@@ -3,7 +3,7 @@ KNOWLEDGE BASE SAVING
 -------------------------------------------------------------------------------
 
 
-	Starting with OpenVAS 1.0.5, the experimentatal "kb saving" feature
+	Starting with Nessus 1.0.5, the experimentatal "kb saving" feature
 has been added.
 
 Why experimental ?
@@ -12,7 +12,7 @@ Why experimental ?
 	This feature is declared as being experimental because it has not
 been tested by many persons, and its behavior may radically change between
 two releases. This feature will not be considered as being experimental
-at the next major release of OpenVAS (1.2)
+at the next major release of Nessus (1.2)
 
 
 What is the "knowledge base" ?
@@ -52,12 +52,5 @@ between two tests ?
 Once it has been saved on disk, the knowledge base is given a date. It's
 up to you to configure openvasd to consider a knowledge base as being
 obsolete after two years, ten minutes, or two seconds.
-
-
-How do I use it ?
------------------
-
-See http://www.nessus.org/doc/kb_saving.html
-
 
 $Id$
