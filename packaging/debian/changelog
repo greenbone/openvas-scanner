@@ -1,3 +1,10 @@
+openvas-server (1.0.0-2) unstable; urgency=low
+
+  * Minor updates to control file, fixed Section, Priority and Build-Depends
+  directives
+
+ -- Tim Brown <timb@nth-dimension.org.uk>  Thu, 19 June 2008 00:00:15 +0100
+
 openvas-server (1.0.0-1) unstable; urgency=low
 
   * Initial release

@@ -1,3 +1,8 @@
+2008-06-19  Tim Brown <timb@nth-dimension.org.uk>
+
+	* packaging/debian/control: Minor updates to control file, fixed
+	Section, Priority and Build-Depends directives.
+
 2008-06-17  Jan-Oliver Wagner <jan-oliver.wagner@intevation.de>
 
 	* doc/kb_saving.txt: Changed some history naming back from

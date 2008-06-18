@@ -1,9 +1,9 @@
 Source: openvas-server
-Section: net
-Priority: extra
+Section: admin
+Priority: optional
 Maintainer: Tim Brown <timb@nth-dimension.org.uk>
 Uploaders: Javier Fernandez-Sanguino Pen~a <jfs@debian.org>
-Build-Depends: debhelper (>= 6), autotools-dev, libgcrypt11, libgnutls26, libopenvas1, libopenvasnasl1, libpcap0.8, libwrap0-dev
+Build-Depends: debhelper (>= 6), autotools-dev, libgcrypt11-dev, libgnutls-dev, libopenvas1-dev, libopenvasnasl1-dev, libpcap0.8-dev, libwrap0-dev
 Standards-Version: 3.7.3
 Homepage: http://www.openvas.org/
 
