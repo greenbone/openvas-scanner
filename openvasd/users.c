@@ -123,7 +123,7 @@ users_add_rule(struct openvas_rules * rules, char * rule)
 	*/
      log_write("User entered an invalid netmask - %s/%d\n",
 	 	inet_ntoa(rules->ip), rules->mask);
-     bzero(&rules, sizeof(*rules));
+     bzero(rules, sizeof(*rules));
    }
    else rules->next = emalloc(sizeof(*rules));
 #ifdef DEBUG_RULES 
