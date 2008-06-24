@@ -1,0 +1,63 @@
+  OpenVAS Transport Protocol Specification 1.0
+  
+  Authors:
+    Michael Wiegand <michael.wiegand@intevation.de>
+  
+PURPOSE
+  This document describes OTP, the protocol used for communication between the
+  server and client modules of the Open Vulnerability Assessment System
+  (OpenVAS).
+  
+STATUS
+  This document is currently a draft; it does not describe the complete protocol
+  yet, but only the changes between the Nessus Transport Protocol, version 1.2
+  and the OpenVAS Transport Protocol, version 1.0. For more information on NTP
+  please refer to the NTP specification for the time being.
+  
+INTRODUCTION
+  The OpenVAS project is a fork of the Nessus project. Because of this, the
+  initial protocol used for client-server communication was the Nessus
+  Transport Protocol (NTP). In order to address the shortcomings of NTP and to
+  facilitate further improvements in the OpenVAS modules it became necessary to
+  make changes to the protocol. Since NTP was specified by the Nessus project
+  and changes to NTP by the Nessus project are to be expected, a decision was
+  made to switch to a new protocol to avoid collisions with future protocol
+  specifications by the Nessus project and to avoid confusion with other
+  well-established protocols.
+  
+GENERAL CONSIDERATIONS
+  The initial specification of the OpenVAS Transport Protocol (OTP) is very
+  close to the NTP implementation in the last versions available under the GNU
+  General Public License (GPL). The changes between NTP 1.2 -- the last NTP
+  version used by OpenVAS -- and OTP 1.0 are explained in the CHANGES section
+  below.
+  
+CHANGES
+  This section describes the changes between NTP 1.2 and OTP 1.0.
+  
+  Plug-in upload:
+  Section 10 of the NTP Extensions describes the ATTACHED_PLUGIN message type.
+  Using this message type, it was possible for a client to upload a plug-in to a
+  server. Due to security considerations described in the OpenVAS change request
+  #4 [1], this message type has been removed from the protocol.
+  
+  Version information:
+  The undocumented NESSUS_VERSION message type has been replaced with the
+  OPENVAS_VERSION message type. When an OPENVAS_VERSION message is issued by the
+  client, the server is expected to respond with a message containing the
+  current server version.
+  
+  New message types:
+  In addition to the existing message types HOLE, INFO and NOTE two new message
+  types have been added to the protocol: DEBUG and LOG. Their purpose is to give
+  clients more control about the verbosity of the messages they receive from the
+  server.
+  
+  Session handling:
+  Experimental support for handling server-side sessions and detached scans as
+  described in sections 3 and 5 of the NTP Extensions has been removed from OTP
+  as the functionality concerned has been removed from OpenVAS-Server due to
+  design decisions.
+  
+REFERENCES
+  [1] http://www.openvas.org/openvas-cr-4.html
