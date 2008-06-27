@@ -27,8 +27,11 @@
 # it under the terms of the GNU General Public License version 2,
 # as published by the Free Software Foundation
 
-PREFIX=@prefix@
-INCLUDEDIR=$PREFIX/include
+# these two are necessary to suffice the replacements
+# for libdir and includedir
+prefix=@prefix@
+
+INCLUDEDIR=@includedir@
 VERSION=@version@
 
 

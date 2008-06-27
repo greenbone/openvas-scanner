@@ -1,3 +1,9 @@
+2008-06-27  Jan-Oliver Wagner <jan-oliver.wagner@intevation.de>
+
+	* openvasd-config.in: fix variable replacement problem.
+	Original problem report and initial patch supplied by
+	Ales Nosek.
+
 2008-06-24  Michael Wiegand <michael.wiegand@intevation.de>
 
 	Added a first draft of the OTP specification.
