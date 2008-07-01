@@ -417,7 +417,7 @@ detached_new_session(globals, target)
  char * target;
 {
  char * fname = detached_fname(globals);
- int f = open(fname, O_CREAT|O_WRONLY|O_TRUNC);
+ int f = open(fname, O_CREAT|O_WRONLY|O_TRUNC, S_IRUSR|S_IWUSR);
  if(f >= 0)
  {
   write(f, target, strlen(target));

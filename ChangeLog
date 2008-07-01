@@ -1,3 +1,11 @@
+2008-07-01  Jan-Oliver Wagner <jan-oliver.wagner@intevation.de>
+
+	* MANIFEST: Updated.
+
+	* openvasd/detached.c (detached_new_session): Fixed wrong use of system
+	call "open" (if O_CREAT is applied, the command needs specification of
+	access flags).
+
 2008-06-27  Jan-Oliver Wagner <jan-oliver.wagner@intevation.de>
 
 	* openvasd-config.in: fix variable replacement problem.
