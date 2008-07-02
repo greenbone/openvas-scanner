@@ -1,3 +1,8 @@
+2008-07-02  Michael Wiegand <michael.wiegand@intevation.de>
+
+	* openvasd/openvasd.c (main): Updated version and copyright information
+	to make them consistent with OpenVAS-Client.
+
 2008-07-02  Jan Wagner <waja@cyconet.org>
 
 	Split off -dev package for Debian packaging.

@@ -960,8 +960,10 @@ main(int argc, char * argv[], char * envp[])
 	  break;
 
 	case 'v' :
-	  printf("openvasd (%s) %s for %s\n(C) 1998 - 2004 Renaud Deraison <deraison@nessus.org>\n\n", 
-		 PROGNAME,OPENVAS_VERSION, OVS_OS_NAME);
+          printf("openvasd (%s) %s for %s\n\n", PROGNAME, OPENVAS_VERSION, OVS_OS_NAME);
+          printf("Nessusd origin: (C) 1998 - 2004 Renaud Deraison <deraison@nessus.org>\n");
+          printf("New code since openvasd: (C) 2007, 2008 Intevation GmbH\n");
+          printf ("\n");
 	  DO_EXIT(0);
 	  break;
 	case 'c' : 
