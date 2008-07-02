@@ -1,5 +1,12 @@
 2008-07-02  Michael Wiegand <michael.wiegand@intevation.de>
 
+	* configure.in: Raised minimum required version of openvas-libnasl
+	from 0.9.1 to 1.0.1.
+
+	* configure: Updated.
+
+2008-07-02  Michael Wiegand <michael.wiegand@intevation.de>
+
 	* openvasd/openvasd.c (main): Updated version and copyright information
 	to make them consistent with OpenVAS-Client.
 
