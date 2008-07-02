@@ -1,6 +1,5 @@
 usr/bin
 usr/sbin
-usr/include/openvas
 var/lib/openvas
 var/lib/openvas/CA
 var/lib/openvas/private/CA

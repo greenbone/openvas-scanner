@@ -1,7 +1,11 @@
 openvas-server (1.0.0-2) unstable; urgency=low
 
+  [ Tim Brown ]
   * Minor updates to control file, fixed Section, Priority and Build-Depends
   directives
+
+  [ Jan Wagner ]
+  * split out -dev package 
 
  -- Tim Brown <timb@nth-dimension.org.uk>  Thu, 19 June 2008 00:00:15 +0100
 

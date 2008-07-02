@@ -65,6 +65,8 @@ install: build
 	# Add here commands to install the package into debian/openvas-server.
 	$(MAKE) prefix=$(CURDIR)/debian/openvas-server/usr sysconfdir=$(CURDIR)/debian/openvas-server/etc localstatedir=$(CURDIR)/debian/openvas-server/var sharedstatedir=$(CURDIR)/debian/openvas-server/var install
 	install -m 640 debian/openvasd.conf debian/openvas-server/etc/openvas
+	mv $(CURDIR)/debian/openvas-server/usr/include/openvas/* $(CURDIR)/debian/openvas-server-dev/usr/include/openvas/
+	mv $(CURDIR)/debian/openvas-server/usr/bin/openvasd-config $(CURDIR)/debian/openvas-server-dev/usr/bin/
 
 
 # Build architecture-independent files here.

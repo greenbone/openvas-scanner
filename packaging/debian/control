@@ -7,6 +7,20 @@ Build-Depends: debhelper (>= 6), autotools-dev, libgcrypt11-dev, libgnutls-dev, 
 Standards-Version: 3.7.3
 Homepage: http://www.openvas.org/
 
+Package: openvas-server-dev
+Architecture: any
+Depends: ${shlibs:Depends}, ${misc:Depends}
+Description: OpenVAS server static libraries and headers
+ The OpenVAS Security Scanner is a security auditing tool. It makes
+ possible to test security modules in an attempt to find vulnerable
+ spots that should be fixed.
+ .
+ It is made up of two parts: a server, and a client. The server/daemon,
+ openvasd, is in charge of the attacks, whereas the client,
+ OpenVAS-Client, provides the user a nice X11/GTK+ interface.
+ .
+ This package contains the required static libraries, headers of the server.
+
 Package: openvas-server
 Architecture: any
 Depends: ${shlibs:Depends}, ${misc:Depends}
