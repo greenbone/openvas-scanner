@@ -1,3 +1,17 @@
+2008-07-02  Jan Wagner <waja@cyconet.org>
+
+	Split off -dev package for Debian packaging.
+
+	* packaging/debian/openvas-server-dev.dirs,
+	packaging/debian/openvas-server.dirs,
+	packaging/debian/openvas-server.docs: Added.
+
+	* packaging/debian/dirs, packaging/debian/docs: Removed.
+
+	* packaging/debian/changelog, packaging/debian/control,
+	packaging/debian/rules: Added documentation and handling for -dev
+	Package.
+
 2008-07-01  Jan-Oliver Wagner <jan-oliver.wagner@intevation.de>
 
 	* MANIFEST: Updated.
