@@ -6,8 +6,8 @@
 msgid ""
 msgstr ""
 "Project-Id-Version: nessus-core 2.2.8\n"
-"Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2007-02-25 04:32+0100\n"
+"Report-Msgid-Bugs-To: openvas-server@packages.debian.org\n"
+"POT-Creation-Date: 2008-06-19 23:17+0100\n"
 "PO-Revision-Date: 2007-03-11 09:58+0100\n"
 "Last-Translator: Pedro Ribeiro <p.m42.ribeiro@gmail.com>\n"
 "Language-Team: Portuguese <traduz@debianpt.org>\n"
@@ -17,106 +17,114 @@ msgstr ""
 
 #. Type: note
 #. Description
-#: ../nessusd.templates:1001
-msgid "Nessus Daemon certificate generation"
-msgstr "Geração de certificados para o Nessus Daemon"
+#: ../openvas-server.templates:1001
+msgid "OpenVAS daemon certificate generation"
+msgstr "Geração de certificados para o OpenVAS daemon"
 
 #. Type: note
 #. Description
-#: ../nessusd.templates:1001
+#: ../openvas-server.templates:1001
 msgid ""
 "You will need to provide the relevant information to create an SSL "
-"certificate for your Nessus Daemon. Note that this information will *NOT* be "
-"sent to echo anybody (everything stays local), but anyone  with the ability "
-"to connect to your Nessus daemon will be able to retrieve this information."
+"certificate for your OpenVAS daemon. Note that this information will *NOT* "
+"be sent to echo anybody (everything stays local), but anyone  with the "
+"ability to connect to your OpenVAS daemon will be able to retrieve this "
+"information."
 msgstr ""
 "Vai precisar de indicar a informação relevante para criar um certificado SSL "
-"para o seu Nessus Daemon. Note que esta informação *NÃO* irá ser enviada a "
+"para o seu OpenVAS daemon. Note que esta informação *NÃO* irá ser enviada a "
 "ninguém (tudo fica no sistema local), mas todos com possibilidade de ligação "
-"ao seu daemon Nessus podem ler esta informação."
+"ao seu daemon OpenVAS podem ler esta informação."
 
 #. Type: string
 #. Description
-#: ../nessusd.templates:2001
+#: ../openvas-server.templates:2001
 msgid "CA certificate life time in days"
 msgstr "Tempo de vida do certificado CA em dias"
 
 #. Type: string
 #. Description
-#: ../nessusd.templates:2001
+#: ../openvas-server.templates:2001
 msgid ""
 "Provide the life time of the Certificate Authority used to generate the "
-"Nessus Daemon certificate."
+"OpenVAS daemon certificate."
 msgstr ""
 "Indique o tempo de vida da Autoridade de Certificados (CA) usado para gerar "
-"o certificado do Nessus Daemon."
+"o certificado do OpenVAS daemon."
 
 #. Type: string
 #. Description
-#: ../nessusd.templates:3001
+#: ../openvas-server.templates:3001
 msgid "Server certificate life time in days"
 msgstr "Tempo de vida do certificado de servidor em dias"
 
 #. Type: string
 #. Description
-#: ../nessusd.templates:3001
+#: ../openvas-server.templates:3001
+#, fuzzy
+#| msgid ""
+#| "Provide the life time of the OpenVAS Server certificate. Notice that the "
+#| "OpenVAS clients will not connect to servers with expired certificates so "
+#| "set this value for as long as you want this installation to last. You can "
+#| "always regenerate this certificate later by removing the certificate file "
+#| "stored in /var/lib/nessusd/CA/ and running 'nessus-mkcert'"
 msgid ""
-"Provide the life time of the Nessus Server certificate. Notice that the "
-"Nessus clients will not connect to servers with expired certificates so set "
+"Provide the life time of the OpenVAS daemon certificate. Notice that the "
+"OpenVAS clients will not connect to servers with expired certificates so set "
 "this value for as long as you want this installation to last. You can always "
 "regenerate this certificate later by removing the certificate file stored "
-"in /var/lib/nessusd/CA/ and running 'nessus-mkcert'"
+"in /var/lib/openvas/CA/ and running 'openvas-mkcert'"
 msgstr ""
-"Indique o tempo de vida do certificado do Servidor Nessus. Note que os "
-"clientes Nessus não irão ligar-se a servidores com certificados expirados "
+"Indique o tempo de vida do certificado do Servidor OpenVAS. Note que os "
+"clientes OpenVAS não irão ligar-se a servidores com certificados expirados "
 "portanto defina este valor para o duração desta instalação. Pode sempre "
 "regenerar este certificado mais tarde removendo o ficheiro de certificados "
 "de /var/lib/nessusd/CA/ e executando `nessus-mkcert'"
 
 #. Type: string
 #. Description
-#: ../nessusd.templates:4001
+#: ../openvas-server.templates:4001
 msgid "Your country (two letter code)"
 msgstr "O código do seu país (duas letras)"
 
 #. Type: string
 #. Description
-#: ../nessusd.templates:4001
+#: ../openvas-server.templates:4001
 msgid "Enter your country's two letter code."
 msgstr "Indique o código de duas letras do seu país"
 
 #. Type: string
 #. Description
-#: ../nessusd.templates:5001
+#: ../openvas-server.templates:5001
 msgid "Your state or province"
 msgstr "O seu estado ou província"
 
 #. Type: string
 #. Description
-#: ../nessusd.templates:5001
+#: ../openvas-server.templates:5001
 msgid "Enter the state or provice you reside in."
 msgstr "Indique o seu estado ou província de residência."
 
 #. Type: string
 #. Description
-#: ../nessusd.templates:6001
+#: ../openvas-server.templates:6001
 msgid "Your location"
 msgstr "A sua localização"
 
 #. Type: string
 #. Description
-#: ../nessusd.templates:6001
+#: ../openvas-server.templates:6001
 msgid "Enter your location (e.g. town)."
 msgstr "Indique a sua localização (e.g. cidade)"
 
 #. Type: string
 #. Description
-#: ../nessusd.templates:7001
+#: ../openvas-server.templates:7001
 msgid "Your organisation"
 msgstr "A sua organização"
 
 #. Type: string
 #. Description
-#: ../nessusd.templates:7001
+#: ../openvas-server.templates:7001
 msgid "Enter the name of your organization or company."
 msgstr "Indique o nome da sua organização ou empresa."

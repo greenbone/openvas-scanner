@@ -6,8 +6,8 @@
 msgid ""
 msgstr ""
 "Project-Id-Version: nessus-core\n"
-"Report-Msgid-Bugs-To: jfs@computer.org\n"
-"POT-Creation-Date: 2005-09-18 12:12+0200\n"
+"Report-Msgid-Bugs-To: openvas-server@packages.debian.org\n"
+"POT-Creation-Date: 2008-06-19 23:17+0100\n"
 "PO-Revision-Date: 2005-10-22 16:25+0200\n"
 "Last-Translator: Miroslav Kure <kurem@debian.cz>\n"
 "Language-Team: Czech <debian-l10n-czech@lists.debian.org>\n"
@@ -17,57 +17,65 @@ msgstr ""
 
 #. Type: note
 #. Description
-#: ../nessusd.templates:3
-msgid "Nessus Daemon certificate generation"
-msgstr "Vytvoření certifikátů pro daemon Nessus"
+#: ../openvas-server.templates:1001
+msgid "OpenVAS daemon certificate generation"
+msgstr "Vytvoření certifikátů pro daemon OpenVAS"
 
 #. Type: note
 #. Description
-#: ../nessusd.templates:3
+#: ../openvas-server.templates:1001
 msgid ""
 "You will need to provide the relevant information to create an SSL "
-"certificate for your Nessus Daemon. Note that this information will *NOT* be "
-"sent to echo anybody (everything stays local), but anyone  with the ability "
-"to connect to your Nessus daemon will be able to retrieve this information."
+"certificate for your OpenVAS daemon. Note that this information will *NOT* "
+"be sent to echo anybody (everything stays local), but anyone  with the "
+"ability to connect to your OpenVAS daemon will be able to retrieve this "
+"information."
 msgstr ""
-"Nyní budete muset zadat potřebné informace pro vytvoření SSL certifikátu "
-"pro Nessus. Tyto informace se nebudou nikam vysílat (zůstávají na "
-"počítači), ovšem kdokoliv, kdo se může připojit k daemonu Nessus, může "
-"také získat tyto informace."
+"Nyní budete muset zadat potřebné informace pro vytvoření SSL certifikátu pro "
+"OpenVAS. Tyto informace se nebudou nikam vysílat (zůstávají na počítači), "
+"ovšem kdokoliv, kdo se může připojit k daemonu OpenVAS, může také získat "
+"tyto informace."
 
 #. Type: string
 #. Description
-#: ../nessusd.templates:14
+#: ../openvas-server.templates:2001
 msgid "CA certificate life time in days"
 msgstr "Platnost CA certifikátu (ve dnech)"
 
 #. Type: string
 #. Description
-#: ../nessusd.templates:14
+#: ../openvas-server.templates:2001
 msgid ""
 "Provide the life time of the Certificate Authority used to generate the "
-"Nessus Daemon certificate."
+"OpenVAS daemon certificate."
 msgstr ""
 "Zadejte délku platnosti certifikační autority, která se použije pro "
-"vytvoření certifikátu pro daemon Nessus."
+"vytvoření certifikátu pro daemon OpenVAS."
 
 #. Type: string
 #. Description
-#: ../nessusd.templates:21
+#: ../openvas-server.templates:3001
 msgid "Server certificate life time in days"
 msgstr "Platnost serverového certifikátu (ve dnech)"
 
 #. Type: string
 #. Description
-#: ../nessusd.templates:21
+#: ../openvas-server.templates:3001
+#, fuzzy
+#| msgid ""
+#| "Provide the life time of the OpenVAS Server certificate. Notice that the "
+#| "OpenVAS clients will not connect to servers with expired certificates so "
+#| "set this value for as long as you want this installation to last. You can "
+#| "always regenerate this certificate later by removing the certificate file "
+#| "stored in /var/lib/nessusd/CA/ and running 'nessus-mkcert'"
 msgid ""
-"Provide the life time of the Nessus Server certificate. Notice that the "
-"Nessus clients will not connect to servers with expired certificates so set "
+"Provide the life time of the OpenVAS daemon certificate. Notice that the "
+"OpenVAS clients will not connect to servers with expired certificates so set "
 "this value for as long as you want this installation to last. You can always "
 "regenerate this certificate later by removing the certificate file stored "
-"in /var/lib/nessusd/CA/ and running 'nessus-mkcert'"
+"in /var/lib/openvas/CA/ and running 'openvas-mkcert'"
 msgstr ""
-"Zadejte délku platnosti serverového certifikátu pro Nessus. Nessus klienti "
+"Zadejte délku platnosti serverového certifikátu pro OpenVAS. OpenVAS klienti "
 "se odmítnou připojit k serverům s propadlými certifikáty, takže tuto hodnotu "
 "nastavte dostatečně velkou, aby pokryla zamýšlené používání této instalace. "
 "Certifikát můžete kdykoliv později přegenerovat tak, že odstraníte soubor "
@@ -75,48 +83,48 @@ msgstr ""
 
 #. Type: string
 #. Description
-#: ../nessusd.templates:30
+#: ../openvas-server.templates:4001
 msgid "Your country (two letter code)"
 msgstr "Stát (dvoupísmenný kód)"
 
 #. Type: string
 #. Description
-#: ../nessusd.templates:30
+#: ../openvas-server.templates:4001
 msgid "Enter your country's two letter code."
 msgstr "Zadejte dvoupísmenný kód vašeho státu."
 
 #. Type: string
 #. Description
-#: ../nessusd.templates:35
+#: ../openvas-server.templates:5001
 msgid "Your state or province"
 msgstr "Území nebo provincie"
 
 #. Type: string
 #. Description
-#: ../nessusd.templates:35
+#: ../openvas-server.templates:5001
 msgid "Enter the state or provice you reside in."
 msgstr "Zadejte název regionu, území nebo provincie, kde žijete."
 
 #. Type: string
 #. Description
-#: ../nessusd.templates:40
+#: ../openvas-server.templates:6001
 msgid "Your location"
 msgstr "Místo"
 
 #. Type: string
 #. Description
-#: ../nessusd.templates:40
+#: ../openvas-server.templates:6001
 msgid "Enter your location (e.g. town)."
 msgstr "Zadejte jméno města nebo vesnice, kde žijete."
 
 #. Type: string
 #. Description
-#: ../nessusd.templates:46
+#: ../openvas-server.templates:7001
 msgid "Your organisation"
 msgstr "Organizace"
 
 #. Type: string
 #. Description
-#: ../nessusd.templates:46
+#: ../openvas-server.templates:7001
 msgid "Enter the name of your organization or company."
 msgstr "Zadejte jméno společnosti nebo organizace."

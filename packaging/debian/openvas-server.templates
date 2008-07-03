@@ -11,14 +11,14 @@ _Description: OpenVAS daemon certificate generation
 Template: openvas-server/califetime
 Type: string
 Default: 1460
-_Description: CA certificate life time in days
+_Description: CA certificate life time in days:
  Provide the life time of the Certificate Authority used to generate
  the OpenVAS daemon certificate.
 
 Template: openvas-server/srvlifetime
 Type: string
 Default: 365
-_Description: Server certificate life time in days
+_Description: Server certificate life time in days:
  Provide the life time of the OpenVAS daemon certificate. Notice that the
  OpenVAS clients will not connect to servers with expired certificates
  so set this value for as long as you want this installation to last.
@@ -27,22 +27,22 @@ _Description: Server certificate life time in days
 
 Template: openvas-server/country
 Type: string
-_Description: Your country (two letter code)
+_Description: Your country (two letter code):
  Enter your country's two letter code.
 
 Template: openvas-server/province
 Type: string
-_Description: Your state or province
+_Description: Your state or province:
  Enter the state or provice you reside in.
 
 Template: openvas-server/location
 Type: string
-_Description: Your location
+_Description: Your location:
  Enter your location (e.g. town).
 
 Template: openvas-server/organization
 Type: string
 Default: OpenVAS
-_Description: Your organisation
+_Description: Your organisation:
  Enter the name of your organization or company.
 

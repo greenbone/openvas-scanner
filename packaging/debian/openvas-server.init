@@ -7,16 +7,20 @@
 # Modified for nessusd by Luca Andreucci <andrew@andrew.org>
 # Further changes by Javier Fernandez-Sanguino <jfs@debian.org> for the 
 # Debian GNU/Linux distribution
-# Even more changes for Debian GNU/Linux openvas-server package
+# Even more changes for Debian GNU/Linux openvas-server package by
+# Tim Brown <timb@nth-dimension.org.uk>
 #
 ### BEGIN INIT INFO
 # Provides:          openvas-server
 # Required-Start:    $remote_fs
 # Required-Stop:     $remote_fs
-# Default-Start:
+# Should-Start:      
+# Should-Stop:       
+# Default-Start:     
 # Default-Stop:      0 6
+# Short-Description: Start and stop the OpenVAS daemon
+# Description:       Controls the main OpenVAS daemon "openvasd".
 ### END INIT INFO
-
 
 # daemon options (-D implied, not needed)
 DAEMONOPTS="-q"

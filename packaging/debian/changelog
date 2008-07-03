@@ -1,11 +1,16 @@
+openvas-server (1.0.0-3) unstable; urgency=low
+
+  * Fixed po files [ Tim Brown ]
+  * Modified init info in openvas-server.init to include descriptions [ Tim
+    Brown ]
+  * Split out -dev packages [ Jan Wagner ]
+
+ -- Tim Brown <timb@nth-dimension.org.uk>  Thu, 03 Jul 2008 10:47:38 +0100
+
 openvas-server (1.0.0-2) unstable; urgency=low
 
-  [ Tim Brown ]
   * Minor updates to control file, fixed Section, Priority and Build-Depends
   directives
-
-  [ Jan Wagner ]
-  * split out -dev package 
 
  -- Tim Brown <timb@nth-dimension.org.uk>  Thu, 19 June 2008 00:00:15 +0100
 

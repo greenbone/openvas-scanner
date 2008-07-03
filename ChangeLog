@@ -1,3 +1,13 @@
+2008-07-03  Tim Brown <timb@nth-dimension.org.uk>
+
+	* packaging/debian/control, packaging/debian/openvas-server.templates, 
+	packaging/debian/po/*: Fixed po files.
+
+	* packaging/debian/openvas-server.init: Modified init info in
+	openvas-server.init to include descriptions.
+
+	* packaging/debian/changelog: Updated.
+
 2008-07-03  Michael Wiegand <michael.wiegand@intevation.de>
 
 	* doc/otp/otp_specification_10.txt: Made OTP specification more specific
