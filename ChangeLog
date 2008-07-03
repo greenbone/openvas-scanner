@@ -1,3 +1,8 @@
+2008-07-03  Michael Wiegand <michael.wiegand@intevation.de>
+
+	* doc/otp/otp_specification_10.txt: Made OTP specification more specific
+	regarding the removal of session handling.
+
 2008-07-02  Michael Wiegand <michael.wiegand@intevation.de>
 
 	* configure.in: Raised minimum required version of openvas-libnasl

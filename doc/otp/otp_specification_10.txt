@@ -57,7 +57,12 @@ CHANGES
   Experimental support for handling server-side sessions and detached scans as
   described in sections 3 and 5 of the NTP Extensions has been removed from OTP
   as the functionality concerned has been removed from OpenVAS-Server due to
-  design decisions.
+  design decisions. This means the following message types have been removed
+  from the protocol: SESSIONS_LIST, SESSION_DELETE, SESSION_RESTORE,
+  DETACHED_SESSIONS_LIST, DETACHED_STOP. The following preferences have been
+  removed from the protocol as well: ntp_save_sessions, save_session,
+  save_empty_sessions, detached_scan, continuous_scan, delay_between_scan_loops,
+  detached_scan_email_address.
   
 REFERENCES
   [1] http://www.openvas.org/openvas-cr-4.html
