@@ -1,5 +1,11 @@
 2008-07-03  Michael Wiegand <michael.wiegand@intevation.de>
 
+	Post release version bump.
+
+	* VERSION: Set to 1.0.2.SVN
+
+2008-07-03  Michael Wiegand <michael.wiegand@intevation.de>
+
 	Doing the 1.0.1 release.
 
 	* VERSION: Set to 1.0.1.
