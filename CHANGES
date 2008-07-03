@@ -1,4 +1,38 @@
-openvas-server 1.0.0 (2008-31-01)
+openvas-server 1.0.1 (2008-07-03)
+
+This release contains new and improved packaging files for various distributions
+as well as bug fixes and cleanups. It also adds syslog support to openvas-server
+and contains a first draft for the upcoming OpenVAS Transport Protocol.
+
+Please note that this version requires openvas-libraries 1.0.2 or newer and
+openvas-libnasl 1.0.1 or newer.
+
+Please be aware that the plugin upload feature has been disabled in
+openvas-server due to security concerns as described in
+http://www.openvas.org/openvas-cr-4.html . This functionality is now deprecated
+and will be removed in future versions of openvas-server. If your existing
+installation depends on this feature, we recommend that you do not update to 
+1.0.1.
+
+* Added syslog support to openvasd logging facility.
+* Fixed memory leaks in plugin scheduler.
+* Added and improved packaging files for Debian, OpenSUSE and Fedora.
+* Changed version requirements for openvas-libraries from 0.9.2 to 1.0.2 due to
+  API extension for OpenVAS OIDs.
+* Changed version requirements for openvas-libnasl from 0.9.1 to 1.0.1 due to
+  API extension for OpenVAS OIDs.
+* Disabled plugin upload feature due to security concerns.
+* Fixed possible buffer overflow in user authentication.
+* Fixed a configuration issue that broke the build process on certain 64bit
+  installations.
+* Added a first draft of the specification for the upcoming OpenVAS Transport
+  Protocol.
+* Various code cleanups.
+
+Many thanks to everyone who has contributed to this release: Bernhard Herzog,
+Jan Wagner, Jan-Oliver Wagner, Michael Wiegand and others.
+
+openvas-server 1.0.0 (2008-01-31)
 
 First stable release with only minimal changes
 compared to latest 0.9 version.

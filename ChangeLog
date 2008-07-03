@@ -1,3 +1,11 @@
+2008-07-03  Michael Wiegand <michael.wiegand@intevation.de>
+
+	Doing the 1.0.1 release.
+
+	* VERSION: Set to 1.0.1.
+
+	* CHANGES: Updated.
+
 2008-07-03  Tim Brown <timb@nth-dimension.org.uk>
 
 	* packaging/debian/control, packaging/debian/openvas-server.templates, 
