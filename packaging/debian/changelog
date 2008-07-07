@@ -6,6 +6,7 @@ openvas-server (1.0.0-3) unstable; urgency=low
 
   [ Jan Wagner ]
   * Split out -dev packages
+  * remove traces of Nesses from openvasd.conf
 
  -- Tim Brown <timb@nth-dimension.org.uk>  Thu, 03 Jul 2008 10:47:38 +0100
 

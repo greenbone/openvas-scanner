@@ -1,6 +1,6 @@
 2008-07-07  Jan Wagner <waja@cyconet.org>
 
-	* packaging/debian/openvasd.conf:
+	* packaging/debian/openvasd.conf,packaging/debian/changelog:
 	removed traces of Nessus in favour of OpenVAS
 
 2008-07-07  Michael Wiegand <michael.wiegand@intevation.de>
