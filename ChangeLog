@@ -1,4 +1,5 @@
-2008-07-07  Tim Brown <timb@nth-dimension.org.uk>
+2008-07-31  Tim Brown <timb@nth-dimension.org.uk>
+
 	* openvas-adduser.in: Now sets prefix, execprefix during build.
 
 2008-07-07  Jan Wagner <waja@cyconet.org>
