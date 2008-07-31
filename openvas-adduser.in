@@ -41,6 +41,9 @@ esac
 
 umask 066
 
+prefix=@prefix@
+exec_prefix=@exec_prefix@
+
 # add the openvas installation path
 PATH=@sbindir@:@bindir@:$PATH ; export PATH
 
