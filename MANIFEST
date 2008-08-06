@@ -77,8 +77,6 @@ openvasd/pluginload.c
 openvasd/pluginload.h
 openvasd/pluginscheduler.c
 openvasd/pluginscheduler.h
-openvasd/pluginupload.c
-openvasd/pluginupload.h
 openvasd/plugs_hash.c
 openvasd/plugs_hash.h
 openvasd/plugs_req.c

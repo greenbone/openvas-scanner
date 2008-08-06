@@ -33,7 +33,6 @@ OBJS = auth.o \
        locks.o \
        dirutils.o \
        plugs_hash.o \
-       pluginupload.o \
        pluginscheduler.o \
        shared_socket.o 
 
@@ -127,9 +126,6 @@ dirutils.o : dirutils.c
 
 plugs_hash.o : plugs_hash.c 
 	$(CC) $(OPENVAS_CFLAGS) $(OPENVAS_INCLUDE) -c plugs_hash.c
-
-pluginupload.o : pluginupload.c
-	$(CC) $(OPENVAS_CFLAGS) $(OPENVAS_INCLUDE) -c pluginupload.c
 
 pluginscheduler.o : pluginscheduler.c
 	$(CC) $(OPENVAS_CFLAGS) $(OPENVAS_INCLUDE) -c pluginscheduler.c

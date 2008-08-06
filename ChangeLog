@@ -1,3 +1,28 @@
+2008-08-07  Jan-Oliver Wagner <jan-oliver.wagner@intevation.de>
+
+	Final step of Change Request #4,
+	http://www.openvas.org/openvas-cr-4.html :
+	Remove plugin upload feature
+
+	* openvasd/pluginupload.c, openvasd/pluginupload.h: Removed.
+
+	* openvasd/Makefile: Removed handling of module pluginupload.
+
+	* openvasd/ntp_11.c: (ntp_11_parse_input): Removed command
+	ATTACHED_PLUGIN from protocol.
+
+	* doc/openvasd.8.in: Removed documentation of "plugin_upload".
+
+	* doc/ntp/ntp_extensions.txt: Removed description of
+	ATTACHED_PLUGIN.
+
+	* MANIFEST: Updated.
+
+2008-08-06  Jan-Oliver Wagner <jan-oliver.wagner@intevation.de>
+
+	Branching of 1.0 series happened. The present file
+	described trunk developments.
+
 2008-07-31  Tim Brown <timb@nth-dimension.org.uk>
 
 	* openvas-adduser.in: Now sets prefix, execprefix during build.

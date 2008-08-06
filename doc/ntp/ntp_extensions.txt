@@ -355,27 +355,6 @@ If the option "md5_caching" is enabled at connection time, then :
 	<|> SERVER
 
 
-10. Plugin upload
-----------------------------------------------------------------------------
-
-If the server allows it, the user may upload his own plugins to the server,
-which will then be stored under his home
-($prefix/var/openvas/users/<user>/plugins/)
-
-The client has to send the message ATTACHED_PLUGIN to the server
-for this to work. The syntax of the message is :
-
-CLIENT <|> ATTACHED_PLUGIN
-name: <name>
-content: octet/stream
-bytes: %d
-(file)
-
-
-Note that <name> may not contain any slash, and must have a server-approved
-suffix (.nes, .nasl)
-
-
 11. Per plugin message
 -------------------------------------------------------------------------------
 

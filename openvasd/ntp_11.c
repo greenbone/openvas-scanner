@@ -40,7 +40,6 @@
 #include "log.h"
 #include "users.h"
 #include "utils.h"
-#include "pluginupload.h"
 #include "save_tests.h"
 #include "detached.h"
 #include "preferences.h"
@@ -134,12 +133,6 @@ int ntp_11_parse_input(globals, input)
   if(!strcmp(input, "ATTACHED_FILE")) {
   	ntp_11_recv_file(globals);
 	efree(&orig);
-	return 1;
-	}
-  /* XXX: This command should be entirely removed for protocol
-   * newer than NTP 11 */
-  if(!strcmp(input, "ATTACHED_PLUGIN")) {
-  	plugin_recv(globals);
 	return 1;
 	}
   if(!strcmp(input, "PLUGIN_INFO")) {

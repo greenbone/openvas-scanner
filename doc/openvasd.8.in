@@ -166,9 +166,6 @@ OpenVAS plugins use the result of each other to execute their job. For instance,
 .IP use_mac_addr
 Set this option to 'yes' if you are testing your local network and each local host has a dynamic IP address (affected by DHCP or BOOTP), and all the tested hosts will be referred to by their MAC address.
 
-.IP plugin_upload
-Set this option to 'yes' if you want to let openvasd users upload their own plugins. Note that the plugins they will upload will end up in their openvasd home directory, so they won't be shared among users (except if the user who uploads the plugins is the one declared in the option 'admin_user'
-
 .IP admin_user
 The user listed in this option will upload his plugins into the global openvas plugins directory, and they will be shared by every other users
 
