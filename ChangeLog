@@ -1,3 +1,9 @@
+2008-08-08  Jan-Oliver Wagner <jan-oliver.wagner@intevation.de>
+
+	* VERSION: Set to 1.1.0.SVN to reflect that the 1.0 development
+	has been branched and the development here lead to a next
+	major release.
+
 2008-08-07  Jan-Oliver Wagner <jan-oliver.wagner@intevation.de>
 
 	Final step of Change Request #4,
