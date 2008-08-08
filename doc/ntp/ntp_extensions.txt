@@ -1,4 +1,12 @@
 
+ATTENTION:
+  Currently the specification document for OTP 1.0
+  is established. Any feature clearified and added to
+  ../otp/otp_specification_10.txt is removed here.
+  The new specification for OTP is finished once the ntp
+  documentation files are empty.
+
+
 Nessus Transfer Protocol Extensions
 
 
@@ -189,40 +197,6 @@ ie:
 	timeout.10246 = 12
 	timeout.10542 = -1
 
-
-
-7. Attached files : the message ATTACHED_FILE
-----------------------------------------------
-
-ATTACHED_FILE is a message that comes after the 
-PREFERENCES message. Its purpose is to allow the
-client to upload a file to the server, which will
-be used by plugins. A usage of this would be to
-upload a SSL certificate to the server so that
-security checks can be done over SSL.
-
-
-The message syntax is :
-
-CLIENT <|> ATTACHED_FILE
-name: <name>
-content: octet/stream
-bytes: %d
-(file)
-
-With '%d' being the number of bytes to read and 'content' should,
-in the future (and if requested by users) be mime-compliant.
-Today, this field is ignored and all files are treated
-as octet/stream (sent without any conversion).
-
-<name> is the name of the file. openvasd will re-assign
-a new name (to prevent clients from uploading, say, /etc/passwd).
-
-This message should be used with the plugin preference 'file'.
-Read plugins_prefs.txt for details.
-
-
-
 8. Alternative protocol negociation
 -----------------------------------
 
@@ -235,9 +209,6 @@ Means that the client wants to use NTP/1.2 with the md5cache feature.
 The current options are :
 
 . md5_caching		[NOT IMPLEMENTED]
-. plugins_version
-. timestamps
-
 
 
 9. md5 caching
@@ -283,108 +254,3 @@ If the option "md5_caching" is enabled at connection time, then :
 	.
 	.
 	<|> SERVER
-
-
-11. Per plugin message
--------------------------------------------------------------------------------
-
-The message PLUGIN_INFO returns the information about one specific plugin.
-It's defined as :
-
-	CLIENT	<|> PLUGIN_INFO	<|> id <|> CLIENT
-
-With <id> being the ID of the plugin from which we want information about.
-In return, the server returns :
-
-id <|> name <|> category <|> copyright <|> description <|> summry <|> family
-
-(as in the PLUGIN_LIST message)
-
-12. plugins_version
-----------------------------------------------------------------------------
-
-If the client gives the option "plugins_version" at connection time
-(as defined in §8) then the PLUGIN_INFO message changes from :
-id <|> name <|> category <|> copyright <|> description <|> summry <|> family
-
-to
-
-id <|> name <|> category <|> copyright <|> description <|> summry <|> family <|> plugin_version
-
-
-With plugin_version being the revision tag of the current plugin
-
-
-12. plugins_cve_id
-----------------------------------------------------------------------------
-
-If the client sends the option "plugins_cve_id" at connection time
-(as defined in §8) then the PLUGIN_INFO message has the plugins CVE ID
-appended to it. Note that plugins_version takes precedence on this, so 
-if the client sends plugins_version AND plugins_cve_id, then the PLUGIN_INFO
-message becomes :
-
-
-id <|> name <|> category <|> copyright <|> description <|> summry <|> family <|> plugin_version <|> cve_id
-
-If just the option plugins_cve_id is set, then the PLUGIN_INFO message
-becomes:
-
-id <|> name <|> category <|> copyright <|> description <|> summry <|> family <|> cve_id
-
-13. plugins_bugtraq_id
-----------------------------------------------------------------------------
-
-If the client sends the option "plugins_bugtraq_id" at connection time
-(as defined in §8) then the PLUGIN_INFO message has the plugins Bugtraq ID
-appended to it. Note that plugins_version takes precedence on this, and
-the client needs to ALSO have set plugins_cve_id.
-So  if the client sends plugins_version AND plugins_bugtraq_id, 
-it MUST send plugins_cve_id and then the PLUGIN_INFO
-message becomes :
-
-
-id <|> name <|> category <|> copyright <|> description <|> summry <|> family <|> plugin_version <|> cve_id <|> bugtraq_id
-
-If just the option plugins_cve_id is set, then the PLUGIN_INFO message
-becomes:
-
-id <|> name <|> category <|> copyright <|> description <|> summry <|> family <|> cve_id <|> bugtraq_id
-
-
-
-
-14. timestamps
-------------------------------------------------------------------------------
-
-If the option 'timestamps' is enabled by the client at connection time,
-(as defined in §8) then the server will send the message :
-
-SERVER <|> TIME <|> SCAN_START <|> (time of day) <|> SERVER
-SERVER <|> TIME <|> SCAN_END <|> (time of day) <|> SERVER
-
-When the whole scan starts and ends. 
-
-and :
-SERVER <|> TIME <|> HOST_START <|> host <|> (time of day) <|> SERVER
-SERVER <|> TIME <|> HOST_END <|> host <|> (time of day) <|> SERVER
-
-To send the timestamps of the time of the scan of each host.
-
-
-
-15. Plugins dependencies
--------------------------------------------------------------------------------
-
-If the option 'dependencies' is enabled by the client at connection time
-(as defined in §8) then the server will send the message PLUGIN_DEPENDENCIES
-after the RULES message.
-
-The format is :
-
-SERVER <|> PLUGINS_DEPENDENCIES
-pluginame1 <|> dependencie1 <|> dependencie2 <|> ...... <|>
-pluginame2 <|> dependencie1 <|> dependencie2 <|> ...... <|>
-<|> SERVER
-
-

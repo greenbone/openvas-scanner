@@ -345,7 +345,11 @@ plugin_send_infos(globals, id)
   }
   plugins = plugins->next;
   }
-  
+
+  /* XXX: This code looks like it will fail for the
+   * last plugin in the list: info will no be send
+   * because next ist NULL.
+   */
   if(plugins->next)
   {
    send_plug_info(globals, plugins);

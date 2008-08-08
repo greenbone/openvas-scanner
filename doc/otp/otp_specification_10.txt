@@ -1,19 +1,20 @@
   OpenVAS Transport Protocol Specification 1.0
-  
+
   Authors:
     Michael Wiegand <michael.wiegand@intevation.de>
-  
+    Jan-Oliver Wagner <jan-oliver.wagner@intevation.de>
+
 PURPOSE
   This document describes OTP, the protocol used for communication between the
   server and client modules of the Open Vulnerability Assessment System
   (OpenVAS).
-  
+
 STATUS
   This document is currently a draft; it does not describe the complete protocol
   yet, but only the changes between the Nessus Transport Protocol, version 1.2
   and the OpenVAS Transport Protocol, version 1.0. For more information on NTP
   please refer to the NTP specification for the time being.
-  
+
 INTRODUCTION
   The OpenVAS project is a fork of the Nessus project. Because of this, the
   initial protocol used for client-server communication was the Nessus
@@ -24,45 +25,257 @@ INTRODUCTION
   made to switch to a new protocol to avoid collisions with future protocol
   specifications by the Nessus project and to avoid confusion with other
   well-established protocols.
-  
+
 GENERAL CONSIDERATIONS
   The initial specification of the OpenVAS Transport Protocol (OTP) is very
   close to the NTP implementation in the last versions available under the GNU
   General Public License (GPL). The changes between NTP 1.2 -- the last NTP
   version used by OpenVAS -- and OTP 1.0 are explained in the CHANGES section
   below.
-  
+
 CHANGES
   This section describes the changes between NTP 1.2 and OTP 1.0.
-  
+
   Plug-in upload:
   Section 10 of the NTP Extensions describes the ATTACHED_PLUGIN message type.
   Using this message type, it was possible for a client to upload a plug-in to a
   server. Due to security considerations described in the OpenVAS change request
   #4 [1], this message type has been removed from the protocol.
-  
+
   Version information:
   The undocumented NESSUS_VERSION message type has been replaced with the
   OPENVAS_VERSION message type. When an OPENVAS_VERSION message is issued by the
   client, the server is expected to respond with a message containing the
   current server version.
-  
+
   New message types:
   In addition to the existing message types HOLE, INFO and NOTE two new message
   types have been added to the protocol: DEBUG and LOG. Their purpose is to give
   clients more control about the verbosity of the messages they receive from the
   server.
-  
-  Session handling:
-  Experimental support for handling server-side sessions and detached scans as
-  described in sections 3 and 5 of the NTP Extensions has been removed from OTP
-  as the functionality concerned has been removed from OpenVAS-Server due to
-  design decisions. This means the following message types have been removed
-  from the protocol: SESSIONS_LIST, SESSION_DELETE, SESSION_RESTORE,
-  DETACHED_SESSIONS_LIST, DETACHED_STOP. The following preferences have been
-  removed from the protocol as well: ntp_save_sessions, save_session,
-  save_empty_sessions, detached_scan, continuous_scan, delay_between_scan_loops,
-  detached_scan_email_address.
-  
+
+
+PROTOCOL INITIALIZER AND PROTOCOL FEATURES
+
+    Description:
+
+      The client start the protocol with a initializer of
+      the protocol version followed by parameters switching
+      on various features. Available protocol features are:
+
+        dependencies       (server will use command PLUGINS_DEPENDENCIES)
+        timestamps         (server will use command TIME)
+        plugins_version    (server will add revision to plugin information)
+        plugins_cve_id     (server will add cve id to plugin information)
+        plugins_bugtraq_id (server will add bugtraq id to plugin information)
+
+    Syntax:
+
+      < OTP/1.0 >< protocol_feature1 protocol_feature2 ... >
+
+PROTOCOL COMMANDS
+
+  ATTACHED_FILE
+
+    Description:
+
+      This command corresponds to the plugin preferences
+      type "file". It follows the command PREFERENCES
+      to upload the specified files from client to server.
+
+    Syntax:
+
+      CLIENT <|> ATTACHED_FILE
+      name: file_name
+      content: octet/stream
+      bytes: file_length
+      file_content
+
+      where
+        file_name:    the path and name of the file.
+                      It is a identifier to reference the file
+                      in the plugin preferences.
+        file_length:  the number of bytes that will follow after the newline
+        file_content: the actual file as byte stream.
+
+  HOLE
+
+    Description:
+
+      With this command the server reports a identified
+      problem of class "security hole".
+
+    Syntax:
+
+    SERVER <|> HOLE <|> host <|> service_name (port_number/protocol_type) <|> description <|> oid <|> SERVER
+
+    where
+      host: the target system
+      service_name: the name of the service (like in /etc/services)
+      port_number: the port number the problem relates to or "general".
+      protocol_type: "tcp" or "udp".
+      description: the problem description where newlines have been
+                   replaced by semicolons.
+      oid: the OID of the NVT that identified the problem.
+
+  INFO
+
+    Description:
+
+      With this command the server reports a identified
+      problem of class "security info".
+
+    Syntax:
+
+    SERVER <|> INFO <|> host <|> service_name (port_number/protocol_type) <|> description <|> oid <|> SERVER
+
+    where
+      host: the target system
+      service_name: the name of the service (like in /etc/services)
+      port_number: the port number the problem relates to or "general".
+      protocol_type: "tcp" or "udp".
+      description: the problem description where newlines have been
+                   replaced by semicolons.
+      oid: the OID of the NVT that identified the problem.
+
+  NOTE
+
+    Description:
+
+      With this command the server reports a identified
+      problem of class "security note".
+
+    Syntax:
+
+    SERVER <|> NOTE <|> host <|> service_name (port_number/protocol_type) <|> description <|> oid <|> SERVER
+
+    where
+      host: the target system
+      service_name: the name of the service (like in /etc/services)
+      port_number: the port number the problem relates to or "general".
+      protocol_type: "tcp" or "udp".
+      description: the problem description where newlines have been
+                   replaced by semicolons.
+      oid: the OID of the NVT that identified the problem.
+
+  PLUGINS_DEPENDENCIES
+
+    Description:
+
+      The PLUGINS_DEPENDENCIES messages are send after the RULES messages
+      in case the protocol feature "dependencies" was set during protocol
+      initialization.
+
+    Syntax:
+
+      SERVER <|> PLUGINS_DEPENDENCIES
+      plugin_1_name <|> dependency1 <|> dependency2 <|> ... <|>
+      plugin_2_name <|> dependency1 <|> dependency2 <|> ... <|>
+      ...
+      <|> SERVER
+
+  PLUGIN_INFO
+
+    Description:
+
+      This command is issued by the client to request
+      information of the NVT specified by its oid.
+
+    Syntax:
+
+      CLIENT <|> PLUGIN_INFO <|> oid <|> CLIENT
+
+      The server answers with this line (analogous to PLUGIN_LIST command):
+
+      oid <|> name <|> category <|> copyright <|> description <|> summary <|> family
+
+      The following extensions are appended in the given order:
+
+      In case protocol feature "plugins_version" is selected, the respective
+      plugin_version is appended to the line:
+
+      oid <|> name <|> category <|> copyright <|> description <|> summary <|> family <|> plugin_version
+
+      In case protocol feature "plugins_cve_id" is selected, the respective
+      cve_id is appended to the line, e.g.:
+
+      oid <|> name <|> category <|> copyright <|> description <|> summary <|> family <|> plugin_version <|> cve_id
+
+      In case protocol feature "plugins_bugtraq_id" is selected, the respective
+      bugtraq_id is appended to the line, e.g.:
+
+      oid <|> name <|> category <|> copyright <|> description <|> summary <|> family <|> plugin_version <|> cve_id <|> bugtraq_id
+
+      In case no plugin with OID=oid is found, the server will not answer at all.
+
+  PLUGIN_LIST
+
+    Description:
+
+      With this command the server sends detailed information about
+      the available NVTs.
+
+    Syntax:
+
+      SERVER <|> PLUGIN_LIST <|>
+      oid <|> name <|> category <|> copyright <|> description <|> summary <|> family
+      oid <|> name <|> category <|> copyright <|> description <|> summary <|> family
+      ...
+      <|> SERVER
+
+      Additional information might be apended according to some procotol features.
+      Please refer to the description of the PLUGIN_INFO command for details.
+
+  STAT
+
+    Description:
+
+      With this command, the server informs the client about
+      the progress of the port scan for target system "host".
+      "port" is the currently scanned port number.
+      The command with an interval of 100 ports.
+
+    Syntax:
+
+      SERVER <|> STAT <|> host <|> port <|> SERVER
+
+  STOP_ATTACK
+
+    Description:
+
+      With this command, the client tells the server to stop
+      scanning target "host".
+
+    Syntax:
+
+      CLIENT <|> STOP_ATTACK <|> host <|> CLIENT
+
+  TIME
+
+    Description:
+
+      The TIME messages will be send by the server
+      in case the protocol feature "timestamps" was set during protocol
+      initialization.
+
+    Syntax:
+
+      After completion of scanning a target host the server sends:
+
+      SERVER <|> TIME <|> HOST_START <|> host <|> time_string <|> SERVER
+      SERVER <|> TIME <|> HOST_END <|> host <|> time_string <|> SERVER
+
+      or, in case STOP_ATTACK was issued by the client:
+
+      SERVER <|> TIME <|> HOST_START <|> host <|> time_string <|> SERVER
+      SERVER <|> TIME <|> HOST_INTERRUPTED <|> host <|> time_string <|> SERVER
+
+      After completion of the whole scan the server sends:
+
+      SERVER <|> TIME <|> SCAN_START <|> time_string <|> SERVER
+      SERVER <|> TIME <|> SCAN_END <|> time_string  <|> SERVER
+
+      where time_string is of the form "Wed Jun 30 21:49:08 1993".
+
 REFERENCES
   [1] http://www.openvas.org/openvas-cr-4.html

@@ -1,5 +1,19 @@
 2008-08-08  Jan-Oliver Wagner <jan-oliver.wagner@intevation.de>
 
+	Started clean documentation of OTP.
+
+	* doc/otp/otp_specification_10.txt: Extended with various
+	protocol command documentation.
+
+	* doc/ntp/ntp_extensions.txt, doc/ntp/ntp_white_paper.txt:
+	Removed those elements which are documented cleanly
+	in otp_specification_10.txt
+
+	* openvasd/comm.c (plugin_send_infos): Added comment
+	hinting at a potential bug.
+
+2008-08-08  Jan-Oliver Wagner <jan-oliver.wagner@intevation.de>
+
 	Patch for Change Request #15:
 	http://www.openvas.org/openvas-cr-15.html
 	(OpenVAS Server: Remove features for detached scans)
