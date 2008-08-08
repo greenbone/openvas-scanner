@@ -41,7 +41,6 @@
 #include "users.h"
 #include "utils.h"
 #include "save_tests.h"
-#include "detached.h"
 #include "preferences.h"
 #include "hosts.h"
 
@@ -67,9 +66,6 @@ static int ntp_11_recv_file(struct arglist*);
 static int ntp_11_list_sessions(struct arglist*);
 static int ntp_11_delete_session(struct arglist*, char*);
 static int ntp_11_restore_session(struct arglist*, char*);
-
-static int ntp_11_list_detached_sessions(struct arglist *, char *);
-static int ntp_11_stop_detached_session(struct arglist*, char*);
 #endif
 /*
  * Parses the input sent by the client before
@@ -120,12 +116,8 @@ int ntp_11_parse_input(globals, input)
 	 efree(&orig);
 	 return n;
 	}
-	
-  if(!strcmp(input, "STOP_DETACHED")) {
-  	ntp_11_stop_detached_session(globals, orig);
-	efree(&orig);
-	return 1;
-	}
+#endif
+
   if(!strcmp(input, "OPENVAS_VERSION")) {
 	auth_printf(globals, "SERVER <|> OPENVAS_VERSION <|> %s <|> SERVER\n", OPENVAS_VERSION);
 	return 1;
@@ -145,12 +137,7 @@ int ntp_11_parse_input(globals, input)
   	plugin_send_infos(globals, atoi(s));
 	return 1;
 	}
-  if(!strcmp(input, "DETACHED_SESSIONS_LIST")) {
-  	ntp_11_list_detached_sessions(globals, orig);
-	efree(&orig);
-	return 1;
-	}
-#endif
+
   if(!strcmp(input, "LONG_ATTACK")){
   	int code = ntp_11_long_attack(globals, orig);
 	efree(&orig);
@@ -622,76 +609,6 @@ extract_session_key_from_session_msg(globals, orig)
  return strdup(t);
  
 }
-
-
-static int
-extract_detached_session_key_from_session_msg(globals, orig)
- struct arglist * globals;
- char * orig;
-{
- char * t;
- int i, len;
-
- t = strrchr(orig, '<');
- if(!t)return -1;
- t[0] = 0;
- 
- t = strrchr(orig, '>');
- if(!t)return -1;
-
- t++;
- while(t[0]==' ')t++;
- len = strlen(t);
- while(t[len-1]==' ')
- {
-  t[len-1]=0;
-  len --;
- }
- /*
-  * Sanity check. All detached sessions name are under the form
-  * of a pid.
-  */
- for(i=0;i<len;i++)
-  if(!isdigit(t[i])){
-  	log_write("user %s : supplied an incorrect detached session name (%s)",
-			(char*)arg_get_value(globals, "user"),
-			t);
-  	return -1;
-	}
- return atoi(t);
-}
-
-
-
-static int
-ntp_11_stop_detached_session(globals, orig)
- struct arglist * globals;
- char * orig;
-{
- int session = 0;
- int ret;
- 
- session = extract_detached_session_key_from_session_msg(globals, orig);
- if(session < 0)return -1;
- log_write("user %s : stopping session %d",
- 		(char*)arg_get_value(globals, "user"),
-		session);
-		
- ret = detached_delete_session(globals, session);
- return 0;
-}
-
-static int
-ntp_11_list_detached_sessions(globals, orig)
- struct arglist * globals;
- char * orig;
-{
- auth_printf(globals, "SERVER <|> DETACHED_SESSIONS_LIST\n");
- detached_send_sessions(globals);
- auth_printf(globals, "<|> SERVER\n");
- return 0;
-}
-
 
 static int
 ntp_11_delete_session(globals, orig)

@@ -32,7 +32,6 @@
 #include "utils.h"
 #include "log.h"
 #include "preferences.h"
-#include "detached.h"
 #include "save_kb.h"
 #include "save_tests.h"
 #include "hosts.h"
@@ -97,9 +96,6 @@ static int forward(struct arglist * globals, int in, int out)
   
   if(preferences != NULL)
   {
-  if(preferences_detached_scan(preferences) != 0)
-		detached_copy_data(globals, estrdup(buf), len);
-		
   if(preferences_save_session(preferences) != 0)
   		save_tests_write_data(globals, estrdup(buf));		
   }

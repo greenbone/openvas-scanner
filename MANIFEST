@@ -48,8 +48,6 @@ openvasd/auth.h
 openvasd/comm.c
 openvasd/comm.h
 openvasd-config.in
-openvasd/detached.c
-openvasd/detached.h
 openvasd/dirutils.c
 openvasd/hosts.c
 openvasd/hosts.h

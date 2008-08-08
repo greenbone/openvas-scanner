@@ -1,5 +1,49 @@
 2008-08-08  Jan-Oliver Wagner <jan-oliver.wagner@intevation.de>
 
+	Patch for Change Request #15:
+	http://www.openvas.org/openvas-cr-15.html
+	(OpenVAS Server: Remove features for detached scans)
+
+	* openvasd/ntp_11.c: Don't include detached.h anymore.
+	(ntp_11_stop_detached_session, ntp_11_list_detached_sessions,
+	extract_detached_session_key_from_session_msg): Removed.
+	(ntp_11_parse_input): Removed handling of STOP_DETACHED and DETACHED_SESSIONS_LIST.
+	(ntp_11_parse_input): Fixed anyway-misplaced ENABLE_SAVE_TESTS conditional.
+
+	* openvasd/preferences.c (preferences_detached_scan, preferences_detached_scan_email,
+	preferences_continuous_scan, preferences_delay_between_scans): Removed.
+	(preferences_reset_cache): Removed initializing of detached params.
+
+	* openvasd/preferences.h: Removed protos for preferences_detached_scan,
+	preferences_detached_scan_email, preferences_delay_between_scans and
+	preferences_continuous_scan.
+
+	* openvasd/attack.c: Removed include for detached.h.
+	(attack_network): Removed handling of "detached" and "continous".
+	(attack_sigterm, arg_addset_value): Removed.
+
+	* openvasd/hosts.c: Removed include for detached.h.
+	(forward): Removed handling for detached scans.
+
+	* Makefile: Don't handle detached module.
+
+	* doc/ntp/ntp_extensions.txt: Removed documentation about the
+	detached functionality.
+
+	* openvasd/utils.c: Removed include for detached.h. It wasn't
+	required anyway.
+
+	* openvasd/comm.c: Removed include for detached.h. It wasn't
+	required anyway.
+	(comm_send_preferences): Don't send settings for ntp_detached_sessions
+	anymore.
+
+	* openvasd/detached.c, openvasd/detached.h: Removed.
+
+	* MANIFEST: Updated.
+
+2008-08-08  Jan-Oliver Wagner <jan-oliver.wagner@intevation.de>
+
 	* VERSION: Set to 1.1.0.SVN to reflect that the 1.0 development
 	has been branched and the development here lead to a next
 	major release.

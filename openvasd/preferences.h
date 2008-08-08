@@ -57,10 +57,7 @@ int    preferences_save_empty_sessions(struct arglist*);
 #endif
 
 #ifdef ENABLE_SAVE_KB
-int    preferences_continuous_scan(struct arglist *);
 int    preferences_delay_between_scans(struct arglist *);
-int    preferences_detached_scan(struct arglist *);
-char * preferences_detached_scan_email(struct arglist *);
 #endif
 
 void  preferences_reset_cache();

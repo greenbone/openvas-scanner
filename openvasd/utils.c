@@ -35,7 +35,6 @@
 #include "ntp_11.h"
 #include "utils.h"
 #include "preferences.h"
-#include "detached.h"
 #include "save_tests.h"
 #include "pluginscheduler.h"
 

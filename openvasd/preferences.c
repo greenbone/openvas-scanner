@@ -658,61 +658,6 @@ preferences_nasl_no_signature_check(preferences)
 }
 
 int
-preferences_detached_scan(preferences)
- struct arglist * preferences;
-{
- static int yes = -1;
- char * pref;
- 
- if(!preferences)
-  {
-   yes = -1;
-   return -1;
-  }
-  
-  
- if(yes >= 0)
-  return yes;
-  
-  
- pref = arg_get_value(preferences, "detached_scan");
- if(pref && !strcmp(pref, "yes"))
-   yes = 1;
- else
-   yes = 0;
-
- return yes;
-}
-
-
-int
-preferences_continuous_scan(preferences)
- struct arglist * preferences;
-{ 
- static int yes = -1;
- char * pref;
- 
- if(!preferences)
-  {
-   yes = -1;
-   return -1;
-  }
-  
-  
- if(yes >= 0)
-  return yes;
- 
- pref = arg_get_value(preferences, "continuous_scan");
- if(pref && !strcmp(pref, "yes"))
-   yes = 1;
- else
-   yes = 0;
- 
- return yes;
-}
-
-
-int
 preferences_report_killed_plugins(preferences)
  struct arglist * preferences;
 { 
@@ -737,53 +682,6 @@ preferences_report_killed_plugins(preferences)
  
  return yes;
 }
-
-int
-preferences_delay_between_scans(preferences)
- struct arglist * preferences;
-{
- static int delay = -1;
- char * pref;
- 
- if(!preferences)
-  {
-   delay = -1;
-   return -1;
-  }
-  
-  
- if(delay >= 0)
-  return delay;
-  
- pref = arg_get_value(preferences, "delay_between_scan_loops"); 
- if(pref)
- {
-  if(atoi(pref)){
-  	delay = atoi(pref);
-	return delay;
-	}
-  else
-   if(!strcmp(pref, "0")){
-   	delay = 0;
-   	return delay;
-	}
- }
- delay = 3600;
- return delay;
-}
-
-char *
-preferences_detached_scan_email(preferences)
- struct arglist * preferences;
-{
- char * pref = arg_get_value(preferences, "detached_scan_email_address");
-
- if(pref && pref[0] != '\0' && strcmp(pref, "no"))
-  return pref;
- else
-  return NULL;
-}
-
 
 int
 preferences_silent_dependencies(preferences)
@@ -844,9 +742,5 @@ preferences_reset_cache()
  preferences_use_mac_addr(NULL);
  preferences_save_session(NULL);
  preferences_save_empty_sessions(NULL);
- preferences_continuous_scan(NULL);
- preferences_delay_between_scans(NULL);
- preferences_detached_scan(NULL);
- preferences_detached_scan_email(NULL);
  preferences_silent_dependencies(NULL);
 }

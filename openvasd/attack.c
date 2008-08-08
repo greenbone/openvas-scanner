@@ -46,7 +46,6 @@
 #include "pluginload.h"
 #include "save_tests.h"
 #include "save_kb.h"
-#include "detached.h"
 
 #include "pluginscheduler.h"
 #include "pluginlaunch.h"
@@ -91,29 +90,6 @@ fork_sleep(int n)
  }
 }
  
-
-static void
-attack_sigterm()
-{
- hosts_stop_all();
- wait_for_children1();
-}
-
-
-static void 
-arg_addset_value(arg, name, type, len, value)
- struct arglist *arg;
- char * name;
- int type, len;
- void * value;
-{
- if(arg_get_type(arg, name) < 0)
-  arg_add_value(arg, name, type, len, value);
- else
-  arg_set_value(arg, name, len, value);
-}
-
-
 
 /*-------------------------------------------------------
 
@@ -548,8 +524,6 @@ attack_network(globals)
   int restoring    = 0;
   harglst * tested = NULL;
   int  save_session= 0;  
-  int continuous   = 0;
-  int detached     = 0;
   int return_code = 0;
   char * port_range;
   plugins_scheduler_t sched;
@@ -563,48 +537,9 @@ attack_network(globals)
 
   host_ip.s_addr = 0;
   preferences    = arg_get_value(globals, "preferences");
-  detached = preferences_detached_scan(preferences);
-  if(detached)
-  {
-   char *email;
-   
-   detached_new_session(globals, arg_get_value(preferences, "TARGET"));
-   arg_addset_value(preferences, "ntp_keep_communication_alive", ARG_STRING, 0, NULL);
-   
-   /* 
-    * Tell the client that the scan is finished (actually, we will
-    * work hard to test the network, but this lazy client has the right
-    * to get some rest...
-    */
-   log_write("user %s : running a detached scan\n", (char*)arg_get_value(globals, "user"));
-   global_socket = (int)arg_get_value(globals, "global_socket");
-   comm_terminate(globals);
-   close_stream_connection(global_socket);
-   global_socket = -1;
-   arg_set_value(globals, "global_socket", sizeof(int), (void*)global_socket);
-   
-   nessus_signal(SIGTERM, attack_sigterm);
-   
-start_attack_network:
-   if((email = preferences_detached_scan_email(preferences)))
-   {
-    /*
-     * The user wants to receive the results by e-mail.
-     */
-    if(detached_setup_mail_file(globals, email))
-    {
-     /*
-      * Could not create the file to store our data
-      */
-     close_stream_connection(global_socket);
-     return -1;
-    }
-   }
-   else arg_addset_value(globals, "detached_scan_email_address", ARG_STRING, 0, NULL);
-  }  
+
   num_tested = 0;
 
-  
   global_socket  = (int)arg_get_value(globals, "global_socket");
  
   plugins        = arg_get_value(globals, "plugins");
@@ -612,14 +547,8 @@ start_attack_network:
   rules          = arg_get_value(globals, "rules");
   rejected_hosts = emalloc(sizeof(struct arglist));
   
-  if(detached)
-    continuous = preferences_continuous_scan(preferences);
-  
   save_session = preferences_save_session(preferences);
-  if(continuous)
-   restoring = 0;
-  else
-   restoring = ((int)arg_get_value(globals, "RESTORE-SESSION") == 1);
+  restoring = ((int)arg_get_value(globals, "RESTORE-SESSION") == 1);
    
   if(restoring)tested = arg_get_value(globals, "TESTED_HOSTS");
   if(save_session)save_tests_init(globals);  
@@ -902,26 +831,9 @@ stop:
   
   arg_free_all(rejected_hosts);
   plugins_scheduler_free(sched);
-  if(detached)
-  {
-   if(preferences_detached_scan_email(preferences))
-    detached_send_email(globals);
-  }
-  
-  if(continuous){
-  	sleep(preferences_delay_between_scans(preferences));
-	plugins = plugins_reload(preferences, plugins, 1);
-	arg_set_value(globals, "plugins", -1, plugins);
-  	goto start_attack_network;
-	}
-  else if(detached)detached_end_session(globals);	
-
 
   gettimeofday(&now, NULL);
   log_write("Total time to scan all hosts : %ld seconds\n", now.tv_sec - then.tv_sec);
   
   return return_code;
 }
-
-   
- 

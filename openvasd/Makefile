@@ -28,7 +28,6 @@ OBJS = auth.o \
        openvasd.o \
        save_tests.o \
        save_kb.o \
-       detached.o \
        pluginlaunch.o \
        locks.o \
        dirutils.o \
@@ -109,9 +108,6 @@ save_tests.o : save_tests.c save_tests.h
 
 save_kb.o : save_kb.c save_kb.h
 	$(CC) $(OPENVAS_CFLAGS) $(OPENVAS_INCLUDE) -c save_kb.c
-
-detached.o : detached.c detached.h
-	$(CC) $(OPENVAS_CFLAGS) $(OPENVAS_INCLUDE) -c detached.c
 
 pluginlaunch.o : pluginlaunch.c
 	$(CC) $(OPENVAS_CFLAGS) $(OPENVAS_INCLUDE) -c pluginlaunch.c

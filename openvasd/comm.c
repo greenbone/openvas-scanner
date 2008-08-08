@@ -42,9 +42,6 @@
 #include "plugs_hash.h"
 #include "utils.h"
 #include "nasl.h"
-#ifdef ENABLE_SAVE_KB
-#include "detached.h"
-#endif
 
 #ifndef FALSE
 #define FALSE 0
@@ -447,7 +444,6 @@ comm_send_preferences(globals)
  }
 #ifdef ENABLE_SAVE_TESTS
  auth_printf(globals, "ntp_save_sessions <|> yes\n");
- auth_printf(globals, "ntp_detached_sessions <|> yes\n");
  auth_printf(globals, "server_info_openvasd_version <|> %s\n", OPENVAS_VERSION);
  auth_printf(globals, "server_info_libnasl_version <|> %s\n", nasl_version());
  auth_printf(globals, "server_info_libnessus_version <|> %s\n", nessuslib_version());

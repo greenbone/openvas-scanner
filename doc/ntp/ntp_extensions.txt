@@ -129,49 +129,6 @@ had been started, but instead sends to the client
 the data it saved. The user sees the attack as if
 it was happening extremely quickly.
 
-3.4 List of detached sessions
------------------------------
-
-Detached sessions are sessions that are run detached from the client.
-Please read http://www.nessus.org/doc/detached_scan.html for details.
-
-The message :
-
-CLIENT <|> DETACHED_SESSIONS_LIST <|> CLIENT
-
-will make openvasd send the list of detached scans to the client. The format
-of the message is identical to the LIST_SESSIONS message, that is :
-
-SERVER <|> DETACHED_SESSIONS_LIST
-name targets
-name targets
-.
-.
-.
-<|> SERVER
-
-ie:
-
-SERVER <|> DETACHED_SESSIONS_LIST
-2421 prof.fr.nessus.org
-41001 www.nessus.org
-.
-.
-.
-<|> SERVER
-
-
-
-
-3.5 Stopping a detached session
--------------------------------
-
-A user may want to stop a detached scan. The message which has this
-effect is the message : 
-
-CLIENT <|> DETACHED_STOP <|> name <|> CLIENT
-
-Where <name> is the name sent in a DETACHED_SESSIONS_LIST message.
 
 3.6 Options
 ------------
@@ -217,33 +174,6 @@ kb_dont_replay_denials
 
 kb_max_age 
 	maximum age of a KB (in seconds)
-
-
-5. Detached scans
------------------
-
-detached_scan
-
-	If set to "yes", openvasd will close the communication and
-	forward the result of the scan to /dev/null (but will fill the
-	KBs and will save its sessions)
-
-
-continuous_scan
-	
-	If set to "yes", openvasd will restart the scan from scratch
-	when completed (openvasd runs forever)
-
-delay_between_scan_loops
-
-	If "continuous_scan" is set to "yes", this value contain the
-	number of seconds to sleep between two loops
-	
-
-detached_scan_email_address 
-
-	Contains the email address to send results to. If empty, no
-	mail will be sent to anyone.
 
 
 6. Per-plugin timeout
