@@ -1,3 +1,9 @@
+ATTENTION:
+  Currently the specification document for OTP 1.0
+  is established. Any feature clearified and added to
+  ../otp/otp_specification_10.txt is removed here.
+  The new specification for OTP is finished once the ntp
+  documentation files are empty.
 
                          Nessus Transfer Protocol White Paper
                                      version 1.1 and 1.2
@@ -153,24 +159,6 @@ holes/reports found on a remote host.
   Last but not least, the server can send plugins preferences. Please read the
   'plugin_prefs' paper which is distributed with Nessus-980903 and the newest
   versions.
-  
-  
-22. The "NEW_ATTACK" message
-
- Since the client can now send more informations for a test to the server,
- the "NEW_ATTACK" message is now much simpler :
-
- It used to be :
-     entity <|> NEW_ATTACK <|> pluginlist <|> maxhosts <|> recursive \
-       <|> portrange <|> hostname <|> entity
-
- It's now :
-
-     entity <|> NEW_ATTACK <|> hostname <|> entity
-
-  where 'hostname' can be an IP, a FQDN or a list of them
-  (ie: "www.a.com,www.b.com,www.c.com" or "host1,host2,192.68.2.1"
-  or whatever)
 
 23. The "RULES" message
 

@@ -1,3 +1,16 @@
+2008-08-10  Jan-Oliver Wagner <jan-oliver.wagner@intevation.de>
+
+	* doc/ntp/ntp_white_paper.txt: Removed. It does not contain
+	any information not covered by otp_specification_10.txt.
+
+	* doc/ntp/ntp_white_paper_11.txt: Removed those elements
+	which are documented cleanly in otp_specification_10.txt
+
+	* doc/otp/otp_specification_10.txt: Extended with various
+	protocol command documentation.
+
+	* MANIFEST: Updated.
+
 2008-08-08  Jan-Oliver Wagner <jan-oliver.wagner@intevation.de>
 
 	Started clean documentation of OTP.

@@ -4,16 +4,16 @@
     Michael Wiegand <michael.wiegand@intevation.de>
     Jan-Oliver Wagner <jan-oliver.wagner@intevation.de>
 
-PURPOSE
+ABOUT THIS DOCUMENT
   This document describes OTP, the protocol used for communication between the
   server and client modules of the Open Vulnerability Assessment System
   (OpenVAS).
 
 STATUS
   This document is currently a draft; it does not describe the complete protocol
-  yet, but only the changes between the Nessus Transport Protocol, version 1.2
-  and the OpenVAS Transport Protocol, version 1.0. For more information on NTP
-  please refer to the NTP specification for the time being.
+  yet but is still close to the Nessus Transport Protocol, version 1.2.
+
+  Apart from this the documentation itself is not complete yet.
 
 INTRODUCTION
   The OpenVAS project is a fork of the Nessus project. Because of this, the
@@ -29,9 +29,7 @@ INTRODUCTION
 GENERAL CONSIDERATIONS
   The initial specification of the OpenVAS Transport Protocol (OTP) is very
   close to the NTP implementation in the last versions available under the GNU
-  General Public License (GPL). The changes between NTP 1.2 -- the last NTP
-  version used by OpenVAS -- and OTP 1.0 are explained in the CHANGES section
-  below.
+  General Public License (GPL).
 
 CHANGES
   This section describes the changes between NTP 1.2 and OTP 1.0.
@@ -54,6 +52,20 @@ CHANGES
   clients more control about the verbosity of the messages they receive from the
   server.
 
+  Detached scans:
+  This functionality has been dropped due to design decisions.
+  This means the following commands have been removed
+  from the protocol: DETACHED_SESSIONS_LIST and DETACHED_STOP.
+  The following preferences have been removed from the protocol as
+  well: detached_scan, continuous_scan, delay_between_scan_loops,
+  detached_scan_email_address.
+
+GENERAL ASPECTS OF PROTOCOL
+
+  The OTP protocol is text-based, human readable and line-oriented.
+
+  Each line is made of fields separated by "<|>. The first fields indicates
+  whether it is a command send by client or by server ("CLIENT" vs. "SERVER").
 
 PROTOCOL INITIALIZER AND PROTOCOL FEATURES
 
@@ -72,6 +84,8 @@ PROTOCOL INITIALIZER AND PROTOCOL FEATURES
     Syntax:
 
       < OTP/1.0 >< protocol_feature1 protocol_feature2 ... >
+      User : user_name
+      Password : user_password
 
 PROTOCOL COMMANDS
 
@@ -97,6 +111,18 @@ PROTOCOL COMMANDS
                       in the plugin preferences.
         file_length:  the number of bytes that will follow after the newline
         file_content: the actual file as byte stream.
+
+  ERROR
+
+    Description:
+
+      In case of problems the server sends an error message with this
+      command. In case of unrecoverable problems, the server will then
+      close connection with BYE command.
+
+    Syntax:
+
+      SERVER <|> ERROR <|> error description <|> SERVER
 
   HOLE
 
@@ -137,6 +163,17 @@ PROTOCOL COMMANDS
       description: the problem description where newlines have been
                    replaced by semicolons.
       oid: the OID of the NVT that identified the problem.
+
+  NEW_ATTACK
+
+    Description:
+
+      With this command the client requests the server to attack target
+      system(s) "host". "host" is one or many (comma-separated) IP or FQDN.
+
+    Syntax:
+
+      CLIENT <|> NEW_ATTACK <|> host <|> CLIENT
 
   NOTE
 
@@ -225,6 +262,17 @@ PROTOCOL COMMANDS
 
       Additional information might be apended according to some procotol features.
       Please refer to the description of the PLUGIN_INFO command for details.
+
+  PORT
+
+    Description:
+
+      With this command the server reports on open port
+      "port_number" on target system "host".
+
+    Syntax:
+
+      SERVER <|> PORT <|> host <|> port_number <|> SERVER
 
   STAT
 

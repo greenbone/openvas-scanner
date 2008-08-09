@@ -12,7 +12,6 @@ doc/nbe_file_format.txt
 doc/nsr_file_format.txt
 doc/ntp/ntp_extensions.txt
 doc/ntp/ntp_white_paper_11.txt
-doc/ntp/ntp_white_paper.txt
 doc/ntp/plugin_prefs.txt
 doc/ntp/README
 doc/openvas-adduser.8
