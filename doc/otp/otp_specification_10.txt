@@ -60,6 +60,10 @@ CHANGES
   well: detached_scan, continuous_scan, delay_between_scan_loops,
   detached_scan_email_address.
 
+  Plugin order information:
+  The server command PLUGINS_ORDER was defined for NTP 1.2 but not
+  implemented in the server.
+
 GENERAL ASPECTS OF PROTOCOL
 
   The OTP protocol is text-based, human readable and line-oriented.
@@ -130,15 +134,18 @@ PROTOCOL COMMANDS
 
       With this command the server reports a identified
       problem of class "security hole".
+      The "general" version is applied if no port relates to the hole.
 
     Syntax:
 
     SERVER <|> HOLE <|> host <|> service_name (port_number/protocol_type) <|> description <|> oid <|> SERVER
 
+    SERVER <|> HOLE <|> host <|> general <|> description <|> oid <|> SERVER
+
     where
       host: the target system
       service_name: the name of the service (like in /etc/services)
-      port_number: the port number the problem relates to or "general".
+      port_number: the port number the problem relates to.
       protocol_type: "tcp" or "udp".
       description: the problem description where newlines have been
                    replaced by semicolons.
@@ -150,15 +157,18 @@ PROTOCOL COMMANDS
 
       With this command the server reports a identified
       problem of class "security info".
+      The "general" version is applied if no port relates to the info.
 
     Syntax:
 
     SERVER <|> INFO <|> host <|> service_name (port_number/protocol_type) <|> description <|> oid <|> SERVER
 
+    SERVER <|> INFO <|> host <|> general <|> description <|> oid <|> SERVER
+
     where
       host: the target system
       service_name: the name of the service (like in /etc/services)
-      port_number: the port number the problem relates to or "general".
+      port_number: the port number the problem relates to.
       protocol_type: "tcp" or "udp".
       description: the problem description where newlines have been
                    replaced by semicolons.
@@ -171,6 +181,9 @@ PROTOCOL COMMANDS
       With this command the client requests the server to attack target
       system(s) "host". "host" is one or many (comma-separated) IP or FQDN.
 
+      Before the client sends NEW_ATTACK, the commands PREFERENCES and
+      RULES should be applied.
+
     Syntax:
 
       CLIENT <|> NEW_ATTACK <|> host <|> CLIENT
@@ -181,15 +194,18 @@ PROTOCOL COMMANDS
 
       With this command the server reports a identified
       problem of class "security note".
+      The "general" version is applied if no port relates to the note.
 
     Syntax:
 
     SERVER <|> NOTE <|> host <|> service_name (port_number/protocol_type) <|> description <|> oid <|> SERVER
 
+    SERVER <|> NOTE <|> host <|> general <|> description <|> oid <|> SERVER
+
     where
       host: the target system
       service_name: the name of the service (like in /etc/services)
-      port_number: the port number the problem relates to or "general".
+      port_number: the port number the problem relates to
       protocol_type: "tcp" or "udp".
       description: the problem description where newlines have been
                    replaced by semicolons.
@@ -252,6 +268,8 @@ PROTOCOL COMMANDS
       With this command the server sends detailed information about
       the available NVTs.
 
+      The server will send PREFERENCES and RULES right after this command.
+
     Syntax:
 
       SERVER <|> PLUGIN_LIST <|>
@@ -274,18 +292,97 @@ PROTOCOL COMMANDS
 
       SERVER <|> PORT <|> host <|> port_number <|> SERVER
 
-  STAT
+  PREFERENCES
+
+    Description:
+
+      With this command the values for the preferences are
+      communicated. The server uses the commands to inform
+      about defaults, the client uses the command to send
+      the user selections. The server answers with PREFERENCES_ERROR.
+
+      Available preferences:
+      max_threads, test_file, email, ping_hosts, reverse_lookup,
+      outside_firewall, host_expansion, port_range, max_hosts.
+      And only sent by CLIENT: plugin_set (empty means all NVTs).
+
+    Syntax:
+
+      SERVER <|> PREFERENCES <|>
+      pref_name <|> value
+      pref_name <|> value
+      pref_name <|> value
+      ...
+      <|> SERVER
+
+      CLIENT <|> PREFERENCES <|>
+      pref_name <|> value
+      pref_name <|> value
+      pref_name <|> value
+      ...
+      <|> CLIENT
+
+  PREFERENCES_ERRORS
+
+    Description:
+
+      With this command the server reports problems with the
+      parameters set by the client. It follows immediately
+      the PREFERENCES command of the client.
+
+      Each "pref_name" occuring in this list was not accepted
+      by the server. The server will apply "default_value" instead.
+
+      In case no "pref_name" is reported with this command,
+      all preferences where accepted.
+
+    Syntax:
+
+      SERVER <|> PREFERENCES_ERRORS
+      pref_name <|> default_value
+      pref_name <|> default_value
+      pref_name <|> default_value
+      ...
+      <|> SERVER
+
+  RULES
+
+    Description:
+
+      Rules define restrictions for target systems.
+      Client-side rules self-restrict target host patterns,
+      server-side rules are just for information to the client.
+      These rule sets are independent of each other.
+
+    Syntax:
+
+      SERVER <|> RULES <|>
+      rule_1;
+      rule_2;
+      rule_3;
+      ...
+      <|> SERVER
+
+      CLIENT <|> RULES <|>
+      rule_1;
+      rule_2;
+      rule_3;
+      ...
+      <|> CLIENT
+
+  STATUS
 
     Description:
 
       With this command, the server informs the client about
-      the progress of the port scan for target system "host".
-      "port" is the currently scanned port number.
-      The command with an interval of 100 ports.
+      the progress of the scan for target system "host".
+      "attack_state" is either "portscan" or "attack".
+      current is the currently processed port and max
+      the last port number to be tested.
 
     Syntax:
 
-      SERVER <|> STAT <|> host <|> port <|> SERVER
+      SERVER <|> STATUS <|> host <|> attack_state <|> current/max <|> SERVER
 
   STOP_ATTACK
 
@@ -297,6 +394,17 @@ PROTOCOL COMMANDS
     Syntax:
 
       CLIENT <|> STOP_ATTACK <|> host <|> CLIENT
+
+  STOP_WHOLE_TEST
+
+    Description:
+
+      With this command the client tells to stop
+      the currently running test.
+
+    Syntax:
+
+      CLIENT <|> STOP_WHOLE_TEST <|> CLIENT
 
   TIME
 
