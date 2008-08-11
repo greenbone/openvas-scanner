@@ -41,8 +41,8 @@ int allow_severity = LOG_NOTICE;
 
 #endif
 
+#include <glib.h>
 
-#include <getopt.h>
 
 #include "pluginload.h"
 #include "preferences.h"
@@ -823,65 +823,36 @@ init_openvasd (options, first_pass, stop_early, be_quiet)
    return(0);
 }
 
-
-static void 
-display_help 
-  (char *pname)
-{
-  printf("openvasd, version %s\n", OPENVAS_VERSION);
-  printf("\nusage : openvasd [-vcphdDLCR] [-a address] [ -S <ip[,ip,...]> ]\n\n");
-  printf("\ta <address>    : listen on <address>\n");
-  printf("\tS <ip[,ip,...]>: send packets with a source IP of <ip[,ip...]>\n");
-  printf("\tv              : shows version number\n");
-  printf("\th              : shows this help\n");
-  printf("\tp <number>     : use port number <number>\n");
-  printf("\tc <filename>   : alternate configuration file to use\n");
-  printf("\t\t\t (default : %s)\n", OPENVASD_CONF);
-  printf("\tD              : runs in daemon mode\n");
-  printf("\td              : dumps the openvasd compilation options\n");
-  printf("\tq              : quiet (do not issue any message to stdout)\n");
-}
-
-
 int 
 main(int argc, char * argv[], char * envp[])
 {
   int exit_early = 0;
   int iana_port = -1;
-  char * config_file = NULL;
   char * myself;
-  int do_fork = 0;
   struct in_addr addr; 
   struct in_addr * src_addrs = NULL;
   struct arglist * options = emalloc(sizeof(struct arglist));
-  int print_specs = 0;
   int i;
   int be_quiet = 0;
   int flag = 0;
- 
- if(argc > 64)
-	{
-	printf("Too many args\n");
-	exit(1);
-	}
 
- bzero(orig_argv, sizeof(orig_argv));
- for(i=0;i<argc;i++)
- {
-	if ( strcmp(argv[i], "-q") == 0 ||
-	     strcmp(argv[i], "--quiet") == 0 ) flag ++;
-	orig_argv[i] = estrdup(argv[i]);
- }
+  bzero(orig_argv, sizeof(orig_argv));
+  for(i=0; i < argc; i++)
+  {
+    if (strcmp(argv[i], "-q") == 0 || strcmp(argv[i], "--quiet") == 0)
+      flag ++;
+    orig_argv[i] = estrdup(argv[i]);
+  }
 
- if ( flag == 0 )
- {
-	orig_argv[argc] = estrdup("-q");
- }
+  if (flag == 0)
+  {
+    orig_argv[argc] = estrdup("-q");
+  }
 
- initsetproctitle(argc, argv, envp);
+  initsetproctitle(argc, argv, envp);
 
   if ((myself = strrchr (*argv, '/')) == 0) 
-  	myself = *argv ;
+    myself = *argv ;
   else
     myself ++ ;
 
@@ -891,110 +862,111 @@ main(int argc, char * argv[], char * envp[])
   nessuslib_pthreads_enabled ();
 #endif
 
-  for (;;) {
-    int option_index = 0;
-    static struct option long_options[] =
+  static gboolean display_version = FALSE;
+  static gboolean do_fork = FALSE;
+  static gchar *address = NULL;
+  static gchar *src_ip = NULL;
+  static gchar *port = NULL;
+  static gchar *config_file = NULL;
+  static gboolean quiet = FALSE;
+  static gboolean dump_cfg = FALSE;
+  static gboolean print_specs = FALSE;
+  static gboolean gen_config = FALSE;
+  GError *error = NULL;
+  GOptionContext *option_context;
+  static GOptionEntry entries[] = 
+  {
+    { "version", 'v', 0, G_OPTION_ARG_NONE, &display_version, "Display version information", NULL },
+    { "background", 'D', 0, G_OPTION_ARG_NONE, &do_fork, "Run in daemon mode", NULL },
+    { "listen", 'a', 0, G_OPTION_ARG_STRING, &address, "Listen on <address>", "<address>" },
+    { "src-ip", 'S', 0, G_OPTION_ARG_STRING, &src_ip, "Send packets with a source IP of <ip[,ip...]>", "<ip[,ip...]>" },
+    { "port", 'p', 0, G_OPTION_ARG_STRING, &port, "Use port number <number>", "<number>" },
+    { "config-file", 'c', 0, G_OPTION_ARG_FILENAME, &config_file, "Configuration file", "<.rcfile>" },
+    { "dump-cfg", 'd', 0, G_OPTION_ARG_NONE, &dump_cfg, "Dump the openvasd compilation options", NULL },
+    { "quiet", 'q', 0, G_OPTION_ARG_NONE, &quiet, "Quiet (do not issue any messages to stdout)", NULL },
+    { "cfg-specs", 's', G_OPTION_FLAG_HIDDEN, G_OPTION_ARG_NONE, &print_specs, "", NULL },
+    { "gen-config", 'g', G_OPTION_FLAG_HIDDEN, G_OPTION_ARG_NONE, &gen_config, "", NULL },
+    { NULL }
+  };
+
+  option_context = g_option_context_new("- server for the OpenVAS security scanner");
+  g_option_context_add_main_entries(option_context, entries, NULL);
+  if (!g_option_context_parse(option_context, &argc, &argv, &error))
+  {
+    g_print("%s\n\n", error->message);
+    exit (0);
+  }
+
+  if (quiet)
+    be_quiet = 1;
+
+  if (gen_config)
+    exit_early = 1; /* allow cipher initalization */
+
+  if (print_specs)
+  {
+    exit_early  = 2; /* no cipher initialization */
+      char *s = getenv ("OPENVASUSER");
+      if (s != 0)
+        arg_add_value(options, "user", ARG_STRING, strlen(s), s);
+  }
+
+  if (address != NULL)
+  {
+    if (!inet_aton(address, &addr))
     {
-      {"help",                 no_argument, 0, 'h'},
-      {"version",              no_argument, 0, 'v'},
-      {"background",           no_argument, 0, 'D'}, 
-      {"dump-cfg",             no_argument, 0, 'd'}, 
-      {"cfg-specs",            no_argument, 0, 's'}, 
-      {"listen",         required_argument, 0, 'a'}, 
-      {"port",           required_argument, 0, 'p'}, 
-      {"config-file",    required_argument, 0, 'c'}, 
-      {"gen-config",           no_argument, 0, 'g'}, 
-      {"src-ip",	 required_argument, 0, 'S'},
-      {"quiet",	 	no_argument, 0, 'q'},
-      {0, 0, 0, 0}
-    };
+      printf("Invalid IP address.\n");
+      printf("Please use %s --help for more information.\n", myself);
+      DO_EXIT(0);
+    }
+  }
 
-    if ((i = getopt_long 
-	 (argc, argv, "Dhvgc:dsa:p:S:RPq", 
-	  long_options, &option_index)) == EOF) break;
-    else
-      switch(i)
-	{
-	case 'q' :
-	  be_quiet = 1;
-	  break;
-        case 'g' :
-	  exit_early  = 1; /* allow cipher initalization */
-          break;
+  if (port != NULL)
+  {
+    iana_port = atoi(port);
+    if ((iana_port <= 0) || (iana_port >= 65536))
+    {
+      printf("Invalid port specification.\n");
+      printf("Please use %s --help for more information.\n", myself);
+      DO_EXIT(1);
+    }
+  }
 
-        case 's' :
-	  print_specs = 1;
-	  exit_early  = 2; /* no cipher initialization */
-	  {
-	    char *s = getenv ("OPENVASUSER");
-	    if (s != 0)
-	      arg_add_value(options, "user",ARG_STRING,strlen(s),s);
-	  }
-          break;
+  if (display_version)
+  {
+    printf("openvasd (%s) %s for %s\n\n", PROGNAME, OPENVAS_VERSION, OVS_OS_NAME);
+    printf("Nessusd origin: (C) 1998 - 2004 Renaud Deraison <deraison@nessus.org>\n");
+    printf("New code since openvasd: (C) 2007, 2008 Intevation GmbH\n");
+    printf("\n");
+    DO_EXIT(0);
+  }
 
-        case 'a' :
-          if(!optarg){display_help(myself);DO_EXIT(0);}
-          if(!inet_aton(optarg, &addr)){display_help(myself);DO_EXIT(0);}
-          break;
-          
-	case 'p' :
-	  if(!optarg){display_help(myself);DO_EXIT(0);}
-	  iana_port = atoi(optarg);
-	  if((iana_port<=0)||(iana_port>=65536))
-	    {
-	      printf("Invalid port specification\n");
-	      display_help(myself);
-	      DO_EXIT(1);
-	    }
-	  break;
+  if (config_file != NULL)
+  {
+    arg_add_value (options, "acc_hint", ARG_INT, sizeof(int), (void*)1);
+  }
 
-	case 'D' : 
-	  do_fork++;
-	  break;
-	  
-	case 'h' :
-	case '?' : /* getopt: error */
-	case ':' : /* getopt: missing parameter */
-	  display_help(myself);
-	  DO_EXIT(0);
-	  break;
+  if (src_ip != NULL)
+  {
+    src_addrs = (struct in_addr* )convert_ip_addresses(src_ip);
+    socket_source_init(src_addrs);
+  }
 
-	case 'v' :
-          printf("openvasd (%s) %s for %s\n\n", PROGNAME, OPENVAS_VERSION, OVS_OS_NAME);
-          printf("Nessusd origin: (C) 1998 - 2004 Renaud Deraison <deraison@nessus.org>\n");
-          printf("New code since openvasd: (C) 2007, 2008 Intevation GmbH\n");
-          printf ("\n");
-	  DO_EXIT(0);
-	  break;
-	case 'c' : 
-	  if(!optarg){display_help(myself);DO_EXIT(1);}
-	  config_file = emalloc(strlen(optarg)+1);
-	  strncpy(config_file, optarg, strlen(optarg));
-	  arg_add_value (options, "acc_hint", ARG_INT, sizeof(int), (void*)1);
-	  break;
-       case 'S':
-	  if( optarg == NULL ) { display_help(myself); EXIT(0); }
-	  src_addrs = (struct in_addr* )convert_ip_addresses(optarg);
-	  socket_source_init(src_addrs);
-	  break;
-       case 'd' :
-           printf("This is OpenVAS %s for %s %s\n", OPENVAS_VERSION, OVS_OS_NAME, OVS_OS_VERSION);
-           printf("compiled with %s\n", OVS_COMPILER);
-           printf("Current setup :\n");
-	   printf("\topenvas-libnasl                : %s\n", nasl_version());
-	   printf("\topenvas-libraries              : %s\n", nessuslib_version());
-
-	   printf("\tSSL is used for client / server communication\n");
-
-	   printf("\tRunning as euid                : %d\n", geteuid());
+  if (dump_cfg)
+  {
+    printf("This is OpenVAS %s for %s %s\n", OPENVAS_VERSION, OVS_OS_NAME, OVS_OS_VERSION);
+    printf("compiled with %s\n", OVS_COMPILER);
+    printf("Current setup :\n");
+    printf("\topenvas-libnasl                : %s\n", nasl_version());
+    printf("\topenvas-libraries              : %s\n", nessuslib_version());
+    printf("\tSSL is used for client / server communication\n");
+    printf("\tRunning as euid                : %d\n", geteuid());
 #ifdef USE_LIBWRAP
-	   printf("\tCompiled with tcpwrappers support\n");
+    printf("\tCompiled with tcpwrappers support\n");
 #endif
-           printf("\n\nInclude these infos in your bug reports\n");
-	   DO_EXIT(0);
-	   break;
-	}
-  } /* end options */
+    printf("\n\nInclude these infos in your bug reports\n");
+    DO_EXIT(0);
+  }
 
   if(getuid())
   {
@@ -1006,23 +978,22 @@ main(int argc, char * argv[], char * envp[])
 
 
   if(iana_port == -1)iana_port = NESIANA_PORT;
-  if(!config_file)
-    {
-      config_file = emalloc(strlen(OPENVASD_CONF)+1);
-      strncpy(config_file, OPENVASD_CONF, strlen(OPENVASD_CONF));
-    }
+  if (!config_file)
+  {
+    config_file = emalloc(strlen(OPENVASD_CONF) + 1);
+    strncpy(config_file, OPENVASD_CONF, strlen(OPENVASD_CONF));
+  }
 
   arg_add_value(options, "iana_port", ARG_INT, sizeof(int), (void *)iana_port);
   arg_add_value(options, "config_file", ARG_STRING, strlen(config_file), config_file);
   arg_add_value(options, "addr", ARG_PTR, -1, &addr);
-  
+
   init_openvasd (options, 1, exit_early, be_quiet);
   g_options = options;
   g_iana_socket = (int)arg_get_value(options, "isck");
   g_plugins = arg_get_value(options, "plugins");
   g_preferences = arg_get_value(options, "preferences");
   g_rules = arg_get_value(options, "rules");
-
 
   /* special treatment */
   if (print_specs)
@@ -1033,31 +1004,30 @@ main(int argc, char * argv[], char * envp[])
   nessus_init_svc();
 
   if(do_fork)
-  {  	
-   /* 
+  {
+    /*
     * Close stdin, stdout and stderr 
     */
-   i = open("/dev/null", O_RDONLY, 0640); 
-   if ( dup2(i, STDIN_FILENO) != STDIN_FILENO ) {
-	   fprintf(stderr, "Could not redirect stdin to /dev/null: %s\n", strerror(errno));
-   }
-   if ( dup2(i, STDOUT_FILENO) != STDOUT_FILENO ) {
-	   fprintf(stderr, "Could not redirect stdout to /dev/null: %s\n", strerror(errno));
-   }
-   if ( dup2(i, STDERR_FILENO) != STDERR_FILENO ) {
-	   fprintf(stderr, "Could not redirect stderr to /dev/null: %s\n", strerror(errno));
-   }
-   close(i);
-   if(!fork()){
-        setsid();
-	create_pid_file();
-   	main_loop();
-	}
+    i = open("/dev/null", O_RDONLY, 0640); 
+    if (dup2(i, STDIN_FILENO) != STDIN_FILENO)
+      fprintf(stderr, "Could not redirect stdin to /dev/null: %s\n", strerror(errno));
+    if (dup2(i, STDOUT_FILENO) != STDOUT_FILENO)
+      fprintf(stderr, "Could not redirect stdout to /dev/null: %s\n", strerror(errno));
+    if (dup2(i, STDERR_FILENO) != STDERR_FILENO)
+      fprintf(stderr, "Could not redirect stderr to /dev/null: %s\n", strerror(errno));
+    close(i);
+    if(!fork())
+    {
+      setsid();
+      create_pid_file();
+      main_loop();
+    }
   }
-  else {
-  	create_pid_file();
-  	main_loop();
-	}
+  else
+  {
+    create_pid_file();
+    main_loop();
+  }
   DO_EXIT(0);
   return(0);
 }

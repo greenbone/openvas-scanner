@@ -1,3 +1,21 @@
+2008-08-11  Michael Wiegand <michael.wiegand@intevation.de>
+
+	First step for change request #9 (Make OpenVAS use (and depend on) glib)
+	(http://www.openvas.org/openvas-cr-9.html)
+
+	* openvasd/openvasd.c: Replaced getopt command line parsing with glib
+	command line parsing.
+
+	* openvasd/Makefile: Include Libs and Cflags for glib.
+
+	* configure: Regenerated.
+
+	* configure.in: Added check for glib, removed check for getopt.
+
+	* openvas.tmpl.in: Added support for glib.
+
+	* aclocal.m4: Added support for pkg-config.
+
 2008-08-11  Jan-Oliver Wagner <jan-oliver.wagner@intevation.de>
 
 	Continued consolidation of protocol documentation.
