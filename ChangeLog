@@ -1,3 +1,8 @@
+2008-08-21  Michael Wiegand <michael.wiegand@intevation.de>
+
+	* openvasd/pluginscheduler.c: Fixed a memory management issue that
+	resulted in a crash during scans.
+
 2008-08-11  Michael Wiegand <michael.wiegand@intevation.de>
 
 	First step for change request #9 (Make OpenVAS use (and depend on) glib)

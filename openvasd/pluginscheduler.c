@@ -287,7 +287,6 @@ static int hash_add(struct hash * h, char * name, struct scheduler_plugin * plug
    l->num_deps ++;
    al = al->next;
   }
-  arg_free_all(deps);
  }
  
  if( ports == NULL )
@@ -310,7 +309,6 @@ static int hash_add(struct hash * h, char * name, struct scheduler_plugin * plug
     l->ports[i++] = cache_inc(al->name);
     al = al->next;
    }
-   arg_free_all(ports);
   }
  return 0;
 }
