@@ -5,7 +5,7 @@ LIBS =  `$(OPENVASLIBNASLCONFIG) --libs` `$(LIBOPENVASCONFIG) --libs`  \
 	$(DL_LIB)  \
 	$(COMPAT_LIB) $(LIBWRAP) $(GLIB_LIBS) \
 	$(RUN_LIBS)
-OPENVAS_INCLUDE=$(NESSUS_OPENVAS_CFLAGS) $(include) $(GLIB_CFLAGS) $(DEFS)
+OPENVAS_INCLUDE=$(include) $(GLIB_CFLAGS) $(DEFS)
 OBJS = auth.o \
        attack.o \
        comm.o \
