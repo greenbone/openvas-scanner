@@ -1,3 +1,13 @@
+openvas-server (1.0.1-1) unstable; urgency=low
+
+  * New upstream release 
+  * Manually update the debian po files (change 'nessus-mkcert' to
+    'openvas-mkcert') and unfuzzy the modified string in all languages.
+  * Adjust Build-Depends to make it depend on libopenvas1-dev (>= 1.0.2)
+    and libopenvasnasl1-dev (>= 1.0.1)
+
+ -- Javier Fernandez-Sanguino Pen~a <jfs@debian.org>  Fri, 22 Aug 2008 01:28:13 +0200
+
 openvas-server (1.0.0-3) unstable; urgency=low
 
   [ Tim Brown ]
@@ -7,10 +17,6 @@ openvas-server (1.0.0-3) unstable; urgency=low
   [ Jan Wagner ]
   * Split out -dev packages
   * remove traces of Nesses from openvasd.conf
-
-  [ Javier Fernandez-Sanguino ]
-  * Manually update the debian po files (change 'nessus-mkcert' to
-    'openvas-mkcert') and unfuzzy the modified string in all languages.
 
  -- Tim Brown <timb@nth-dimension.org.uk>  Thu, 03 Jul 2008 10:47:38 +0100
 
