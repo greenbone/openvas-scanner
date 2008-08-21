@@ -61,13 +61,6 @@ msgstr "Platnost serverového certifikátu (ve dnech)"
 #. Type: string
 #. Description
 #: ../openvas-server.templates:3001
-#, fuzzy
-#| msgid ""
-#| "Provide the life time of the OpenVAS Server certificate. Notice that the "
-#| "OpenVAS clients will not connect to servers with expired certificates so "
-#| "set this value for as long as you want this installation to last. You can "
-#| "always regenerate this certificate later by removing the certificate file "
-#| "stored in /var/lib/nessusd/CA/ and running 'nessus-mkcert'"
 msgid ""
 "Provide the life time of the OpenVAS daemon certificate. Notice that the "
 "OpenVAS clients will not connect to servers with expired certificates so set "
@@ -79,7 +72,7 @@ msgstr ""
 "se odmítnou připojit k serverům s propadlými certifikáty, takže tuto hodnotu "
 "nastavte dostatečně velkou, aby pokryla zamýšlené používání této instalace. "
 "Certifikát můžete kdykoliv později přegenerovat tak, že odstraníte soubor "
-"ve /var/lib/nessusd/CA/ a spustíte příkaz 'nessus-mkcert'"
+"ve /var/lib/nessusd/CA/ a spustíte příkaz 'openvas-mkcert'"
 
 #. Type: string
 #. Description

@@ -64,13 +64,6 @@ msgstr "Gültigkeitsdauer des Server-Zertifikats in Tagen:"
 #. Type: string
 #. Description
 #: ../openvas-server.templates:3001
-#, fuzzy
-#| msgid ""
-#| "Provide the life time of the OpenVAS Server certificate. Notice that the "
-#| "OpenVAS clients will not connect to servers with expired certificates so "
-#| "set this value for as long as you want this installation to last. You can "
-#| "always regenerate this certificate later by removing the certificate file "
-#| "stored in /var/lib/nessusd/CA/ and running 'nessus-mkcert'"
 msgid ""
 "Provide the life time of the OpenVAS daemon certificate. Notice that the "
 "OpenVAS clients will not connect to servers with expired certificates so set "
@@ -83,7 +76,7 @@ msgstr ""
 "Zertifikat verbinden. Setzen Sie einen Wert für die gesamte Dauer ein, für "
 "die diese Installation bestehen soll. Sie können dieses Zertifikat jederzeit "
 "neu generieren, indem Sie das Zertifikat, das in /var/lib/nessusd/CA/ "
-"gespeichert ist, löschen und nessus-mkcert ausführen."
+"gespeichert ist, löschen und openvas-mkcert ausführen."
 
 #. Type: string
 #. Description

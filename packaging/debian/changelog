@@ -8,6 +8,10 @@ openvas-server (1.0.0-3) unstable; urgency=low
   * Split out -dev packages
   * remove traces of Nesses from openvasd.conf
 
+  [ Javier Fernandez-Sanguino ]
+  * Manually update the debian po files (change 'nessus-mkcert' to
+    'openvas-mkcert') and unfuzzy the modified string in all languages.
+
  -- Tim Brown <timb@nth-dimension.org.uk>  Thu, 03 Jul 2008 10:47:38 +0100
 
 openvas-server (1.0.0-2) unstable; urgency=low
