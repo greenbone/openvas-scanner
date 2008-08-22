@@ -107,3 +107,5 @@ then
 else
  gettext "user does not exist"; echo
 fi
+
+exit 0
