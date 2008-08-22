@@ -131,8 +131,8 @@ case `openssl version` in
    exit 1
 esac
      
-OPENVASPRIV="$localstatedir/openvas/CA"
-OPENVASPUB="$sharedstatedir/openvas/CA"
+OPENVASPRIV="@OPENVASD_STATEDIR@/private/CA"
+OPENVASPUB="@OPENVASD_SHAREDSTATEDIR@/CA"
 if [ ! -d "$OPENVASPRIV" ]; then
     mkdir -p "$OPENVASPRIV"
     chmod 0700 "$OPENVASPRIV"
