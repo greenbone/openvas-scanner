@@ -56,21 +56,16 @@ install-bin:
 	@test -d $(DESTDIR)${sysconfdir}/openvas || $(INSTALL_DIR) -m 755 $(DESTDIR)${sysconfdir}/openvas
 	@test -d $(DESTDIR)${sysconfdir}/openvas/gnupg || $(INSTALL_DIR) -m 755 $(DESTDIR)${sysconfdir}/openvas/gnupg
 	@test -d $(DESTDIR)${localstatedir} || $(INSTALL_DIR) -m 755 $(DESTDIR)${localstatedir}
-	@test -d $(DESTDIR)${localstatedir}/lib || $(INSTALL_DIR) -m 755 $(DESTDIR)${localstatedir}/lib
-	@test -d $(DESTDIR)${localstatedir}/lib/openvas || $(INSTALL_DIR) -m 755 $(DESTDIR)${localstatedir}/lib/openvas
-	@test -d $(DESTDIR)${localstatedir}/lib/openvas/users || $(INSTALL_DIR) -m 755 $(DESTDIR)${localstatedir}/lib/openvas/users
-	@test -d $(DESTDIR)${localstatedir}/lib/openvas/logs || $(INSTALL_DIR) -m 755 $(DESTDIR)${localstatedir}/lib/openvas/logs
-	@test -d $(DESTDIR)${localstatedir}/lib/openvas/tmp || $(INSTALL_DIR) -m 755 $(DESTDIR)${localstatedir}/lib/openvas/tmp
-	@test -d $(DESTDIR)${localstatedir}/lib/openvas/jobs || $(INSTALL_DIR) -m 755 $(DESTDIR)${localstatedir}/lib/openvas/jobs
-	@test -d $(DESTDIR)${localstatedir}/lib/openvas/CA || $(INSTALL_DIR) -m 755 $(DESTDIR)${localstatedir}/lib/openvas/CA
-	@test -d $(DESTDIR)${localstatedir}/log || $(INSTALL_DIR) -m 755 $(DESTDIR)${localstatedir}/log
-	@test -d $(DESTDIR)${localstatedir}/log/openvas || $(INSTALL_DIR) -m 755 $(DESTDIR)${localstatedir}/log/openvas
+	@test -d $(DESTDIR)${OPENVASD_STATEDIR} || $(INSTALL_DIR) -m 755 $(DESTDIR)${OPENVASD_STATEDIR}
+	@test -d $(DESTDIR)${OPENVASD_STATEDIR}/users || $(INSTALL_DIR) -m 755 $(DESTDIR)${OPENVASD_STATEDIR}/users
+	@test -d $(DESTDIR)${OPENVASD_STATEDIR}/logs  || $(INSTALL_DIR) -m 755 $(DESTDIR)${OPENVASD_STATEDIR}/logs
+	@test -d $(DESTDIR)${OPENVASD_STATEDIR}/tmp || $(INSTALL_DIR) -m 755 $(DESTDIR)${OPENVASD_STATEDIR}/tmp
+	@test -d $(DESTDIR)${OPENVASD_STATEDIR}/jobs  || $(INSTALL_DIR) -m 755 $(DESTDIR)${OPENVASD_STATEDIR}/jobs
+	@test -d $(DESTDIR)${OPENVASD_STATEDIR}/CA || $(INSTALL_DIR) -m 755 $(DESTDIR)${OPENVASD_STATEDIR}/CA
+	@test -d $(DESTDIR)${OPENVASD_LOGDIR} || $(INSTALL_DIR) -m 755 $(DESTDIR)${OPENVASD_LOGDIR}
 	@test -d $(DESTDIR)${localstatedir}/run || $(INSTALL_DIR) -m 755 $(DESTDIR)${localstatedir}/run
 	@test -d $(DESTDIR)${includedir} || $(INSTALL_DIR) -m 755 $(DESTDIR)${includedir}
 	@test -d $(DESTDIR)${includedir}/openvas || $(INSTALL_DIR) -m 755 $(DESTDIR)${includedir}/openvas
-	@test -d $(DESTDIR)${sharedstatedir} || $(INSTALL_DIR) -m 755 $(DESTDIR)${sharedstatedir}
-	@test -d $(DESTDIR)${sharedstatedir}/openvas || $(INSTALL_DIR) -m 755 $(DESTDIR)${sharedstatedir}/openvas
-	@test -d $(DESTDIR)${sharedstatedir}/openvas/CA || $(INSTALL_DIR) -m 755 $(DESTDIR)${sharedstatedir}/openvas/CA
 	$(INSTALL) -m 755 openvas-mkcert-client $(DESTDIR)${bindir}/openvas-mkcert-client
 	$(INSTALL) -m 755 openvasd-config $(DESTDIR)${bindir}/openvasd-config
 	$(INSTALL) -m 755 ssl/openvas-mkrand $(DESTDIR)${bindir}/openvas-mkrand
@@ -79,7 +74,7 @@ install-bin:
 	$(INSTALL) -m 755 openvas-adduser $(DESTDIR)${sbindir}/openvas-adduser
 	$(INSTALL) -m 755 openvas-rmuser $(DESTDIR)${sbindir}/openvas-rmuser
 	$(INSTALL) -m 755 openvas-mkcert $(DESTDIR)${sbindir}/openvas-mkcert
-	$(INSTALL) -c -m 0444 openvas-services $(DESTDIR)${localstatedir}/lib/openvas/openvas-services
+	$(INSTALL) -c -m 0444 openvas-services  $(DESTDIR)${OPENVASD_STATEDIR}/openvas-services
 	$(INSTALL) -c -m 0444 include/includes.h $(DESTDIR)${includedir}/openvas/includes.h
 	$(INSTALL) -c -m 0444 include/config.h $(DESTDIR)${includedir}/openvas/config.h
 	$(INSTALL) -c -m 0444 include/threadcompat.h $(DESTDIR)${includedir}/openvas/threadcompat.h
