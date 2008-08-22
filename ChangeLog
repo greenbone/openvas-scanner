@@ -1,7 +1,14 @@
+2008-08-22  Michael Wiegand <michael.wiegand@intevation.de>
+
+	* openvasd/pluginscheduler.c (hash_link_destroy): Fixed another instance
+	of the memory management issue that resulted in a crash during scans.
+	
+	* openvas-adduser.in: Re-added missing prefix variables.
+
 2008-08-21  Michael Wiegand <michael.wiegand@intevation.de>
 
-	* openvasd/pluginscheduler.c: Fixed a memory management issue that
-	resulted in a crash during scans.
+	* openvasd/pluginscheduler.c (hash_add): Fixed a memory management issue
+	that resulted in a crash during scans.
 
 2008-08-11  Michael Wiegand <michael.wiegand@intevation.de>
 
