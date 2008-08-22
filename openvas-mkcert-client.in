@@ -150,6 +150,8 @@ done
 CAKEY=$OPENVASPRIV/cakey.pem
 CACERT=$OPENVASPUB/cacert.pem
 
+[ -r "$CAKEY" ] || echo "WARN: $CAKEY is not readable, this script will not be able to find the server certificate (hint: are you root?)"
+
 while [ ! -f "$CAKEY" ]; do
     eval_gettext "\$CAKEY: not found or not a file."
     gettext "OpenVAS CA private key: "
