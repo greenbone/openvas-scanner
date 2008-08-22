@@ -101,6 +101,7 @@ install-man:
 	$(INSTALL) -c -m 0444 doc/openvas-adduser.8 $(DESTDIR)${mandir}/man8/openvas-adduser.8
 	$(INSTALL) -c -m 0444 doc/openvas-rmuser.8 $(DESTDIR)${mandir}/man8/openvas-rmuser.8
 	$(INSTALL) -c -m 0444 doc/openvas-mkcert.8 $(DESTDIR)${mandir}/man8/openvas-mkcert.8
+	$(INSTALL) -c -m 0444 doc/openvas-mkcert-client.1 $(DESTDIR)${mandir}/man1/openvas-mkcert-client.1
 
 
 server : 
