@@ -89,7 +89,7 @@ esac
 bindir=@bindir@
 sbindir=@sbindir@
 datadir=@datadir@
-localstatedir=@localstatedir@/lib
+localstatedir=@localstatedir@
 
 PATH=$PATH:$sbindir:$bindir:/usr/ssl/bin:/usr/local/ssl/bin:/opt/ssl/bin
 
@@ -281,9 +281,9 @@ esac
 #echo "$login:$password" > $TMPDIR/adduser.$$
 	
 
-chmod 0700 "$localstatedir/openvas/"
-mkdir -p "$localstatedir/openvas/users/$login"
-chmod 0700 "$localstatedir/openvas/users/$login"
+chmod 0700 "$localstatedir/lib/openvas/"
+mkdir -p "$localstatedir/lib/openvas/users/$login"
+chmod 0700 "$localstatedir/lib/openvas/users/$login"
 
 
 
@@ -294,8 +294,14 @@ chmod 0700 "$localstatedir/openvas/users/$login"
 # Create the auth. dir, which contains the user rules,
 # password, and plugin acl
 #
-mkdir -p "$localstatedir/openvas/users/$login/auth"
-chmod 0700 "$localstatedir/openvas/users/$login/auth"
+mkdir -p "$localstatedir/lib/openvas/users/$login/auth"
+chmod 0700 "$localstatedir/lib/openvas/users/$login/auth"
+
+#
+# Create the plugins dir, which contains the user plugins
+#
+mkdir -p "$localstatedir/lib/openvas/users/$login/plugins"
+chmod 0700 "$localstatedir/lib/openvas/users/$login/plugins"
 
 
 if [ "$auth" = "pass" ]; then
@@ -306,17 +312,17 @@ if [ "$auth" = "pass" ]; then
 	}
 	SEED=`(echo $SEED; date; df; ls -l; echo $URANDOM) | $MD5CMD | awk '{print $1}'`
 	H=`echo $Xn $SEED$password$Xc | $MD5CMD | awk '{print $1}'`
-	echo $H $SEED > "$localstatedir/openvas/users/$login/auth/hash"
+	echo $H $SEED > "$localstatedir/lib/openvas/users/$login/auth/hash"
     else
-	echo "$password" > "$localstatedir/openvas/users/$login/auth/password"
+	echo "$password" > "$localstatedir/lib/openvas/users/$login/auth/password"
     fi
 elif [ "$auth" = "cert" ]; then
-	echo "$dn" > "$localstatedir/openvas/users/$login/auth/dname"
+	echo "$dn" > "$localstatedir/lib/openvas/users/$login/auth/dname"
 fi
 
 
 
-cp $tmpAddUserFile "$localstatedir/openvas/users/$login/auth/rules"
+cp $tmpAddUserFile "$localstatedir/lib/openvas/users/$login/auth/rules"
 
 
 
