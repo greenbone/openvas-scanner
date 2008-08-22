@@ -41,9 +41,6 @@ esac
 
 umask 066
 
-prefix=@prefix@
-exec_prefix=@exec_prefix@
-
 # add the openvas installation path
 PATH=@sbindir@:@bindir@:$PATH ; export PATH
 
@@ -154,7 +151,7 @@ while test "$ok" = `gettext "n"`;
 do
  echo $Xn "`gettext "Login :"` $Xc"
  read login
- if [ -d $localstatedir/openvas/users/$login ];
+ if [ -d $localstatedir/lib/openvas/users/$login ];
  then
    gettext "This login already exists. Choose another one."; echo
  else
