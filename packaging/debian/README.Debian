@@ -3,22 +3,49 @@
                               +--------------+
 
 How to use OpenVAS?
+-------------------
 
-  * Set up the server certificate with `openvas-mkcert'.
+As the root user:
+
+  * Check that you have proper SSL certificates at /var/lib/openvas/CA,
+    if the directory is empty set up the server certificate with
+    `openvas-mkcert'. (Note: certificates are generated automatically
+    when the openvas-server package is installed)
 
   * Set up a user with `openvas-adduser'.
 
-  * Set up the client certificate with `openvas-mkcert-client'.
+    - If you wish to setup certificate-based authentication: set up the client
+      certificate with `openvas-mkcert-client' and save the private key.
 
-  * Run `openvasd -D' in order to start the daemon.
+  * Run either '/etc/init.d/openvas-server start' or `openvasd -D' in order to
+  * start the daemon.
 
-  * Change back from root to normal user, run X and start the OpenVAS-Client
-    program (you need to have the openvas-client package installed)
+As a normal user in either the system were OpenVAS (the server) is installed:
 
-    Tell the client to connect to localhost.
+  *  If using certificates for authentication, copy over the private
+     key generated before to your HOME directory.
 
-    It will ask you for a username and password. Enter the user/password
-    you set up with openvas-adduser, and off you go.
+  * In an X session start the OpenVAS-Client program (you need to have the
+    `openvas-client' package installed the system you are workin on) 
+    by executing `openvas-client' from a shell or from your Desktop's 
+    menu (it should be available at Applications --> System tools)
+
+  * Setup a connection to the machine where OpenVAS (the server) is 
+    running. If you are running both in the same machine select 'localhost'. If
+    you are running the server in a different system:
+
+       - verify that there are no firewall rules blocking the client from
+         connecting to the OpenVAS server (TCP port 4391)
+       - verify that the TCP wrappers configuration (/etc/hosts.{allow,deny})
+         allow the client to connect to the server (be careful if 
+         'ALL: PARANOID' is defined in /etc/hosts.deny and the client has no
+         reverse name resolution)
+
+  * Depending on how you setup the user using `openvas-adduser' you have
+    to either use a username/password or select the private key of the
+    certificate generate using 'openvas-mkcert-client'
+
+  * Setup a test security analysis run against a server.
 
 OpenVAS has a test to detect if the program itself is running, because it is a
 potential security problem, so it wouldn't seem wise to automatically start it
