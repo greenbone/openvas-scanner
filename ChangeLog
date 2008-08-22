@@ -2,8 +2,101 @@
 
 	* openvasd/pluginscheduler.c (hash_link_destroy): Fixed another instance
 	of the memory management issue that resulted in a crash during scans.
-	
+
 	* openvas-adduser.in: Re-added missing prefix variables.
+
+2008-08-22  Javier Fernandez-Sanguino <jfs@debian.org>
+
+	* packaging/debian/README.Debian: Updated and fixed some content.
+
+2008-08-22  Javier Fernandez-Sanguino <jfs@debian.org>
+
+	* packaging/debian/README.Debian: Adjust the name of the init.d file.
+
+2008-08-22  Javier Fernandez-Sanguino <jfs@debian.org>
+
+	* packaging/debian/README.Debian: Rebranding and changes to reflect the
+	changes in OpenVAS.
+
+2008-08-22  Javier Fernandez-Sanguino <jfs@debian.org>
+
+	* packaging/debian/README.Debian: Restore the notes for users.
+
+2008-08-22  Javier Fernandez-Sanguino <jfs@debian.org>
+
+	* Makefile: Proper use of OPENVASD_STATEDIR in the Makefile, since using
+	localstatedir does not make sense when we already have a definition
+	(that can be overriden by the user if needed).
+
+2008-08-22  Javier Fernandez-Sanguino <jfs@debian.org>
+
+	Added a manpage for openvas-mkcert-client similar to the one written for
+	Nessus.
+
+	* doc/openvas-mkcert-client.1: Added.
+
+	* Makefile: Updated.
+
+2008-08-22  Javier Fernandez-Sanguino <jfs@debian.org>
+
+	* openvas-rmuser.in: Exit without error if no errors exist.
+
+2008-08-22  Javier Fernandez-Sanguino <jfs@debian.org>
+
+	* openvas-rmuser.in: Final fix for localstatedir definitions.
+
+2008-08-22  Javier Fernandez-Sanguino <jfs@debian.org>
+
+	* openvas-adduser.in: Retain proper definition of localstatedir,
+	reverting the change in r150 and fixing properly the definition in the
+	usage in the script. Changing $localstatedir to other thing different
+	from @localstatedir@ is confusing and error prone!
+
+2008-08-22  Javier Fernandez-Sanguino <jfs@debian.org>
+
+	* openvas-adduser.in: Should use /var/lib/openvas instead of
+	/var/openvas.
+
+2008-08-22  Javier Fernandez-Sanguino <jfs@debian.org>
+
+	* openvas-mkcert.in: Use the proper definitions to setup the location
+	of the private and public CA keys.
+
+2008-08-22  Javier Fernandez-Sanguino <jfs@debian.org>
+
+	* openvas-mkcert-client.in: Have nessus-mkcert-client warn if the server
+	certificates cannot be read (happens when you are not root). Based on
+	patch included in Debian since nessus-core 2.2.3-1, in February 2002.
+
+2008-08-22  Javier Fernandez-Sanguino <jfs@debian.org>
+
+	* openvas-mkcert-client.in: Proper fix for the FHS issue, the "fix"
+	introduced in release 150 actually made this script use /var/openvas/CA
+	for some of the keys when it should be using /var/lib/openvas/CA instead
+	(/var/openvas is not a FHS directory). This fix is based in the patch
+	introduced in Debian for nessus-core (since, at least 1.2.6, 6 years
+	ago).
+
+2008-08-22  Javier Fernandez-Sanguino <jfs@debian.org>
+
+	* openvasd/Makefile: Remove undefined variable.
+
+2008-08-22  Javier Fernandez-Sanguino <jfs@debian.org>
+
+	* packaging/debian/changelog, packaging/debian/control: Prepare for
+	packaging of 1.0.1 version.
+
+2008-08-22  Javier Fernandez-Sanguino <jfs@debian.org>
+
+	* packaging/debian/po/cs.po, packaging/debian/po/de.po,
+	packaging/debian/po/es.po, packaging/debian/po/fr.po,
+	packaging/debian/po/gl.po, packaging/debian/po/nl.po
+	packaging/debian/po/pt.po, packaging/debian/po/pt_BR.po,
+	packaging/debian/po/sv.po: Manually update the debian po files (change
+	'nessus-mkcert' to 'openvas-mkcert') and unfuzzy the modified string in
+	all languages.
+
+	* packaging/debian/changelog: Updated.
 
 2008-08-21  Michael Wiegand <michael.wiegand@intevation.de>
 
