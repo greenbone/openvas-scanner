@@ -40,7 +40,7 @@ umask 022
 prefix=@prefix@
 datadir=@datadir@
 sysconfdir=@sysconfdir@
-localstatedir=@localstatedir@/lib
+localstatedir=@localstatedir@
 sharedstatedir=@sharedstatedir@
 sbindir=@exec_prefix@/sbin
 bindir=@exec_prefix@/bin
@@ -134,8 +134,8 @@ test -z "$RANDFLAG" -a -z "$RANDFILE" &&
 
 
 
-OPENVASPRIV="$localstatedir/openvas/CA"
-OPENVASPUB="$sharedstatedir/openvas/CA"
+OPENVASPRIV="@OPENVAS_STATEDIR@/private/CA"
+OPENVASPUB="@OPENVAS_SHAREDSTATEDIR@/CA"
 
 while [ ! -d "$OPENVASPRIV" ]; do
     gettext "OpenVAS server 'private' directory: "
@@ -175,7 +175,7 @@ while [ "$R" != `gettext "y"` -a "$R" != `gettext "n"` ]; do
 done
 
 if [ "$R" = `gettext "y"` ]; then
-    USERSDIR=$localstatedir/openvas/users
+    USERSDIR=$localstatedir/lib/openvas/users
     while [ ! -d "$USERSDIR" ]; do
 	eval_gettext "\$USERSDIR: not a directory."; echo
 	gettext "Users directory? "
