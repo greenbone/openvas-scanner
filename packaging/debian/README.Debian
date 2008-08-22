@@ -26,23 +26,23 @@ on boot-up.
 
 Remember to `killall openvasd' (as root) after you finish with `openvasd'.
 
-The package installs an init script for openvasd at /etc/init.d/openvasd,
+The package installs an init script for openvasd at /etc/init.d/openvas-server,
 courtesy of Luca Andreucci <andrew@andrew.org> and others. By default, this
 init script will not be run when the system starts up, it is only configured
 to stop openvasd when the system stops (to prevent it from being killed and 
 give it a chance to stop graciously)
 
 If you want to use that init script to start up ness you just have to 
-execute '/etc/init.d/openvasd start' and you are done.
+execute '/etc/init.d/openvas-server start' and you are done.
 
 If you want to have the init-scripts run on system startup then either run:
 
-# update-rc.d -f remove openvasd
-# update-rc.d openvasd defaults
+# update-rc.d -f remove openvas-server
+# update-rc.d openvas-server defaults
 
 or run:
 
-# for rc in 3 4 5 ; do  cd /etc/rc${rc}.d/ && ln -s ../init.d/openvasd S20openvasd;  done
+# for rc in 3 4 5 ; do  cd /etc/rc${rc}.d/ && ln -s ../init.d/openvas-server S20openvas-server;  done
 
 to setup the symbolic links properly.
 
