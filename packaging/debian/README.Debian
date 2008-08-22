@@ -1,0 +1,85 @@
+
+                              Nessus in Debian
+                              +--------------+
+
+How to use Nessus?
+
+  * Set up the server certificate with `nessus-mkcert'.
+
+  * Set up a user with `nessus-adduser'.
+
+  * Set up the client certificate with `nessus-mkcert-client'.
+
+  * Run `nessusd -D' in order to start the daemon.
+
+  * Change back from root to normal user, run X and start `nessus'
+    (or select it from the menu, it's in Apps/System submenu).
+    Tell the client to connect to localhost.
+    It will ask you for a username and password. Enter the user/password
+    you set up with nessus-adduser, and off you go.
+
+Nessus has a test to detect if the program itself is running, because it is a
+potential security problem, so it wouldn't seem wise to automatically start it
+on boot-up.
+
+
+Remember to `killall nessusd' (as root) after you finish with `nessus'.
+
+The package installs an init script for nessusd at /etc/init.d/nessusd,
+courtesy of Luca Andreucci <andrew@andrew.org> and others. By default, this
+init script will not be run when the system starts up, it is only configured
+to stop nessusd when the system stops (to prevent it from being killed and 
+give it a chance to stop graciously)
+
+If you want to use that init script to start up ness you just have to 
+execute '/etc/init.d/nessusd start' and you are done.
+
+If you want to have the init-scripts run on system startup then either run:
+
+# update-rc.d -f remove nessusd
+# update-rc.d nessusd defaults
+
+or run:
+
+# for rc in 3 4 5 ; do  cd /etc/rc${rc}.d/ && ln -s ../init.d/nessusd S20nessusd;  done
+
+to setup the symbolic links properly.
+
+
+Debian defaults
+---------------
+
+Before you change Debian's nessusd.conf file consider this:
+
+0.- signature checks (nasl_no_signature_check) only apply to "trusted"
+plugins, and those are the plugins that do remote local security checks 
+(through SSH connections that need to be preconfigured by the nessus admin)
+
+1.- you shouldn't give access to the Nessus daemon to users you don't trust,
+or allow them to upload plugins. Giving access to users is equivalent to 
+allowing them to launch remote attacks to any system your nessus server is 
+connected to. If you have local security checks it's equivalente to granting 
+them SSH access to the remote hosts you have configured (if any)
+
+2.- The default configuration does _not_ allow plugin uploads
+
+3.- The nessus-plugins package does _not_ automatically run 
+nessus-update-plugins, you have to do this manually. Review the plugins
+retrieved by this before you run your Nessus server
+
+4- you should review the plugins you download using nessus-update-plugins
+_always_. Nessus-update-plugins (in releases prior to 2.2.2) does not check 
+the GPG signature of the files retrieved, just the MD5 sum. So a man in 
+the middle attack could provide you with forged plugins. In this event,
+even if you had nasl_no_signature_check set to 'no' the nessus server 
+would still load these rogue plugins _if_ they are not local security checks.
+
+5- Be careful when setting up remote SSH access so that Nessus can run
+local security checks since you are (effectively) given console access
+to remote servers. Always use a non-root account for this.
+
+
+-------------------------------
+Mon, 24 Jan 2005 16:55:23 +0100
+Javier Fernandez-Sanguino
+
