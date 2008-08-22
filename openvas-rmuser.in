@@ -38,7 +38,7 @@ libexecdir=@libexecdir@
 datadir=@datadir@
 sysconfdir=@sysconfdir@
 sharedstatedir=@sharedstatedir@
-localstatedir=@localstatedir@/lib
+localstatedir=@localstatedir@
 libdir=@libdir@
 includedir=@includedir@
 oldincludedir=@oldincludedir@
@@ -100,9 +100,9 @@ test -z "$login" && {
  exit 1
 }
 
-if [ -d "$localstatedir/openvas/users/$login" ];
+if [ -d "$localstatedir/lib/openvas/users/$login" ];
 then
- rm -rf "$localstatedir/openvas/users/$login"
+ rm -rf "$localstatedir/lib/openvas/users/$login"
  gettext "user removed."; echo
 else
  gettext "user does not exist"; echo
