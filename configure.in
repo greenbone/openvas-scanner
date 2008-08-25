@@ -699,7 +699,7 @@ dnl Final step : substitute what we want to
 OPENVASD_CONFDIR='${sysconfdir}'
 OPENVASD_STATEDIR='${localstatedir}/lib/openvas'
 OPENVASD_PIDDIR='${localstatedir}/run'
-OPENVASD_SHAREDSTATEDIR='${sharedstatedir}/lib/openvas'
+OPENVASD_SHAREDSTATEDIR='${localstatedir}/lib/openvas'
 OPENVASD_DATADIR='${sysconfdir}/openvas'
 OPENVASD_LIBDIR='${libdir}/openvas'
 OPENVASD_LOGDIR='${localstatedir}/log/openvas'

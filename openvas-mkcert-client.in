@@ -134,8 +134,8 @@ test -z "$RANDFLAG" -a -z "$RANDFILE" &&
 
 
 
-OPENVASPRIV="@OPENVAS_STATEDIR@/private/CA"
-OPENVASPUB="@OPENVAS_SHAREDSTATEDIR@/CA"
+OPENVASPRIV="@OPENVASD_STATEDIR@/private/CA"
+OPENVASPUB="@OPENVASD_SHAREDSTATEDIR@/CA"
 
 while [ ! -d "$OPENVASPRIV" ]; do
     gettext "OpenVAS server 'private' directory: "

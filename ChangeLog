@@ -1,3 +1,17 @@
+2008-08-25  Michael Wiegand <michael.wiegand@intevation.de>
+
+	Fixes to path names used in server scripts.
+
+	* openvas-mkcert-client.in: Corrected variable names.
+
+	* configure.in: Changed OPENVASD_SHAREDSTATEDIR to use $localstatedir to
+	avoid the use of the /com hierarchy.
+
+	* configure: Updated.
+
+	* openvas-mkcert.in: Retain proper definition of $localstatedir, removed
+	duplicate "/lib/".
+
 2008-08-22  Michael Wiegand <michael.wiegand@intevation.de>
 
 	* openvasd/pluginscheduler.c (hash_link_destroy): Fixed another instance

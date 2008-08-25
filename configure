@@ -534,7 +534,7 @@ else
 fi
 
 
-# From configure.in Revision: 1008 
+# From configure.in Revision: 1128 
 NEED_OPENVASLIBS_VERSION=1.0.2
 NEED_OPENVASLIBNASL_VERSION=1.0.1
 
@@ -5494,7 +5494,7 @@ CFLAGS="$saveCFLAGS"
 OPENVASD_CONFDIR='${sysconfdir}'
 OPENVASD_STATEDIR='${localstatedir}/lib/openvas'
 OPENVASD_PIDDIR='${localstatedir}/run'
-OPENVASD_SHAREDSTATEDIR='${sharedstatedir}/lib/openvas'
+OPENVASD_SHAREDSTATEDIR='${localstatedir}/lib/openvas'
 OPENVASD_DATADIR='${sysconfdir}/openvas'
 OPENVASD_LIBDIR='${libdir}/openvas'
 OPENVASD_LOGDIR='${localstatedir}/log/openvas'
