@@ -1,5 +1,9 @@
 2008-08-25  Michael Wiegand <michael.wiegand@intevation.de>
 
+	* MANIFEST: Updated to include doc/openvas-mkcert-client.1.
+
+2008-08-25  Michael Wiegand <michael.wiegand@intevation.de>
+
 	Fixes to path names used in server scripts.
 
 	* openvas-mkcert-client.in: Corrected variable names.

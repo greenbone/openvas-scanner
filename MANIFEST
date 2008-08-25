@@ -18,6 +18,7 @@ doc/openvas-adduser.8
 doc/openvas-check-signature.1
 doc/openvasd.8.in
 doc/openvas-mkcert.8
+doc/openvas-mkcert-client.1
 doc/openvas-mkrand.1
 doc/openvas-rmuser.8
 doc/otp/otp_specification_10.txt
