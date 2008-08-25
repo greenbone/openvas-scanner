@@ -31,7 +31,7 @@
 #ifndef _NESSUSD_USERS_H
 #define _NESSUSD_USERS_H
 #define BAD_LOGIN_ATTEMPT (struct openvas_rules*)(-1)
-#define NESSUS_MAX_USERNAME_LEN	32 /* Including the ending nul byte! */
+#define OPENVAS_MAX_USERNAME_LEN	32 /* Including the ending nul byte! */
 
 char * user_home(struct arglist*);
 
