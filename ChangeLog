@@ -1,3 +1,13 @@
+2008-08-27  Jan-Oliver Wagner <jan-oliver.wagner@intevation.de>
+
+	Continued consolidation of protocol documentation.
+
+	* doc/otp/otp_specification_10.txt: Extended and improved
+	protocol documentation.
+
+	* doc/ntp/ntp_extensions.txt:  Removed elements
+	that are ported now covered by otp_specification_10.txt.
+
 2008-08-25  Michael Wiegand <michael.wiegand@intevation.de>
 
 	* openvasd/users.h: Corrected #define.

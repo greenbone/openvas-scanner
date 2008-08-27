@@ -16,54 +16,6 @@ Yes, I know this is getting more and more complicated, I'm sorry for that.
 Nessus 1.3.x will have a new (nice) protocol
 
 
-1. The client can send additional preferences :
-------------------------------------------------------------------------------
-. ntp_opt_show_end  : the server will send the message
-	SERVER <|> FINISHED <|> hostname <|> SERVER
-
-  Each time the scan of a single host is done.	
-
-
-
-. ntp_keep_communication_alive : the server will not close the communication
- 	after the test
-
-. ntp_short_status : change the STATUS message to a shorter one :
-
-	'action:hostname:current:max'
-	were 'action' is 'p' (portscan) or 'a' (attack)
-	     'hostname' is the current attacked host
-	     'current' is the port scanned / plugin used
-	     'max' is the limit to which 'current' is going to
-
-  The short status dramatically saves bandwidth between the server and the
-  client
-
-
-
-
-
-2. the LONG_ATTACK message...
-------------------------------------------------------------------------------
-... is an optional replacement for the ATTACK message. It allows openvasd 
-to receive attack arguments that have undefined length (the max length 
-used to be 4000 bytes).
-
-The syntax is :
-
-CLIENT <|> LONG_ATTACK
-size
-target
-
-
-Where :
-
-	<size> is the number of bytes openvasd should allocate
-	<target> is the target (of size <size>). If strlen(target) > size,
-	then the communication will be shut.
-
- 
-
 3. The SESSIONS messages
 ------------------------------------------------------------------------------
 

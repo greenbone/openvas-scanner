@@ -62,7 +62,13 @@ CHANGES
 
   Plugin order information:
   The server command PLUGINS_ORDER was defined for NTP 1.2 but not
-  implemented in the server.
+  implemented in the server. This command has been removed from the protocol.
+
+  Starting a scan:
+  NTP offered two ways of starting a scan, NEW_ATTACK and LONG_ATTACK.
+  The latter allowed arbitray long list of targets while the first
+  was limited to 4000 bytes. The OpenVAS-Client (and so did NessusClient)
+  used only LONG_ATTACK anyway.
 
 GENERAL ASPECTS OF PROTOCOL
 
@@ -128,6 +134,19 @@ PROTOCOL COMMANDS
 
       SERVER <|> ERROR <|> error description <|> SERVER
 
+  FINISHED
+
+    Description:
+
+      The server will send this information each time when a scan
+      of a single host is finished.
+      This will only be done if requested by the client via setting
+      the prefences option "ntp_opt_show_end".
+
+    Syntax:
+
+      SERVER <|> FINISHED <|> host <|> SERVER
+
   HOLE
 
     Description:
@@ -174,19 +193,24 @@ PROTOCOL COMMANDS
                    replaced by semicolons.
       oid: the OID of the NVT that identified the problem.
 
-  NEW_ATTACK
+  LONG_ATTACK
 
     Description:
 
       With this command the client requests the server to attack target
-      system(s) "host". "host" is one or many (comma-separated) IP or FQDN.
+      system(s) "hosts". "hosts" is one or many (comma-separated) IP or FQDN.
 
-      Before the client sends NEW_ATTACK, the commands PREFERENCES and
+      "length" is the number of bytes of "hosts". In case this does not match,
+      the server will close connection.
+
+      Before the client sends LONG_ATTACK, the commands PREFERENCES and
       RULES should be applied.
 
     Syntax:
 
-      CLIENT <|> NEW_ATTACK <|> host <|> CLIENT
+      CLIENT <|> LONG_ATTACK
+      length
+      hosts
 
   NOTE
 
@@ -304,7 +328,13 @@ PROTOCOL COMMANDS
       Available preferences:
       max_threads, test_file, email, ping_hosts, reverse_lookup,
       outside_firewall, host_expansion, port_range, max_hosts.
-      And only sent by CLIENT: plugin_set (empty means all NVTs).
+      And only sent by CLIENT:
+      plugin_set:                   empty means all NVTs
+      ntp_opt_show_end:             Tell server to send FINISHED messages
+      ntp_keep_communication_alive: Tell server to keep the connection even
+                                    after a scan was finished.
+      ntp_short_status:             Tell server send shorter STATUS message in order
+                                    to save band width.
 
     Syntax:
 
@@ -376,13 +406,20 @@ PROTOCOL COMMANDS
 
       With this command, the server informs the client about
       the progress of the scan for target system "host".
-      "attack_state" is either "portscan" or "attack".
-      current is the currently processed port and max
+      "attack_state" is either "portscan" or "attack" (or just
+      "p" and "a" in case the client has set preferences
+      option "ntp_short_status").
+      "current" is the currently processed port and "max"
       the last port number to be tested.
 
     Syntax:
 
       SERVER <|> STATUS <|> host <|> attack_state <|> current/max <|> SERVER
+
+      In case the client has set "ntp_short_status":
+
+      SERVER <|> STATUS <|> attack_state:host:current:max <|> SERVER
+
 
   STOP_ATTACK
 
