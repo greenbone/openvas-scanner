@@ -90,6 +90,7 @@ PROTOCOL INITIALIZER AND PROTOCOL FEATURES
         plugins_version    (server will add revision to plugin information)
         plugins_cve_id     (server will add cve id to plugin information)
         plugins_bugtraq_id (server will add bugtraq id to plugin information)
+        md5_caching        (server will use the MD5 caching feature)
 
     Syntax:
 
@@ -122,6 +123,24 @@ PROTOCOL COMMANDS
         file_length:  the number of bytes that will follow after the newline
         file_content: the actual file as byte stream.
 
+  COMPLETE_LIST
+
+    Description:
+
+      This command can be used by the client in case the protocol
+      feature "md5_caching" was selected by the client.
+
+      It usually follows the PLUGINS_MD5 commands of the server
+      in case the server side md5sum is not equal to the md5sum
+      of the client side cached NVTs. Alternatively, the client
+      can use the command SEND_PLUGINS_MD5.
+
+      The server will answer with command PLUGIN_LIST.
+
+    Syntax:
+
+      CLIENT <|> COMPLETE_LIST <|> CLIENT
+
   ERROR
 
     Description:
@@ -146,6 +165,25 @@ PROTOCOL COMMANDS
     Syntax:
 
       SERVER <|> FINISHED <|> host <|> SERVER
+
+  GO ON
+
+    Description:
+
+      This command can be used by the client in case the protocol
+      feature "md5_caching" was selected by the client.
+
+      It usually follows the PLUGINS_MD5 commands of the server
+      in case the server side md5sum is equal to the md5sum
+      of the client side cached NVTs.
+
+      The server will answer with command PREFERENCES and
+      communication will continue as it would have been without
+      md5_caching feature.
+
+    Syntax:
+
+      CLIENT <|> GO ON <|> CLIENT
 
   HOLE
 
@@ -251,6 +289,32 @@ PROTOCOL COMMANDS
       ...
       <|> SERVER
 
+  PLUGINS_MD5
+
+    Description:
+
+      Attention: This command occurs in two ways.
+
+      1. This command replaces PLUGIN_LIST command in case the protocol
+         feature "md5_caching" was selected by the client.
+
+         "md5sum" is the MD5 sum over all NVTs.
+
+      2. This command follows the SEND_PLUGINS_MD5 command of the client
+         and delivers the md5sums for each NVT.
+
+    Syntax:
+
+      1.
+      SERVER <|> PLUGINS_MD5 <|> md5sum <|> SERVER
+
+      2.
+      SERVER <|> PLUGINS_MD5
+      nvt_name1 <|> md5sum1
+      nvt_name2 <|> md5sum2
+      ...
+      <|> SERVER
+
   PLUGIN_INFO
 
     Description:
@@ -326,15 +390,49 @@ PROTOCOL COMMANDS
       the user selections. The server answers with PREFERENCES_ERROR.
 
       Available preferences:
-      max_threads, test_file, email, ping_hosts, reverse_lookup,
-      outside_firewall, host_expansion, port_range, max_hosts.
-      And only sent by CLIENT:
+      max_threads:
+      test_file:
+      email:
+      ping_hosts:
+      reverse_lookup:
+      outside_firewall:
+      host_expansion:
+      port_range:
+      max_hosts:
+      save_knowledge_base:
+        Activates KB saving when set to "yes"
+      only_test_hosts_whose_kb_we_have:
+        Only scans host for which the KB is filled when set to "yes"
+      only_test_hosts_whose_kb_we_dont_have:
+        Only scans host for which the KB is empty when set to "yes"
+      kb_restore:
+        Restore the KB contents for tested hosts when when set to "yes".
+      kb_dont_replay_scanners:
+        Don't run scanners in case in case kb_restore is set to "yes"
+        and there is contents in the KB when set to "yes".
+      kb_dont_replay_info_gathering:
+        Don't run gatherers in case in case kb_restore is set to "yes"
+        and there is contents in the KB when set to "yes".
+      kb_dont_replay_attacks:
+        Don't run attack scripts in case in case kb_restore is set to "yes"
+        and there is contents in the KB when set to "yes".
+      kb_dont_replay_denials:
+        Don't run DoS attack scripts in case in case kb_restore is set to "yes"
+        and there is contents in the KB when set to "yes".
+      kb_max_age:
+        This sets the maximum age (in seconds) of a KB until
+        it gets disregarded.
+      timeout.<nvt_id> = <timeout>
+        Set the timeout <timeout> for NVT <nvt_id>. Timeout of "-1"
+        means no specific timeout.
+
+      Only sent by CLIENT:
       plugin_set:                   empty means all NVTs
       ntp_opt_show_end:             Tell server to send FINISHED messages
       ntp_keep_communication_alive: Tell server to keep the connection even
                                     after a scan was finished.
-      ntp_short_status:             Tell server send shorter STATUS message in order
-                                    to save band width.
+      ntp_short_status:             Tell server send shorter STATUS message in
+                                    order to save band width.
 
     Syntax:
 
@@ -399,6 +497,24 @@ PROTOCOL COMMANDS
       rule_3;
       ...
       <|> CLIENT
+
+  SEND_PLUGINS_MD5
+
+    Description:
+
+      This command can be used by the client in case the protocol
+      feature "md5_caching" was selected by the client.
+
+      It usually follows the PLUGINS_MD5 commands of the server
+      in case the server side md5sum is not equal to the md5sum
+      of the client side cached NVTs. Alternatively, the client
+      can use the command COMPLETE_LIST.
+
+      The server will answer with command PLUGINS_MD5.
+
+    Syntax:
+
+      CLIENT <|> SEND_PLUGINS_MD5 <|> CLIENT
 
   STATUS
 
