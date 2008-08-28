@@ -1,5 +1,19 @@
 2008-08-28  Jan-Oliver Wagner <jan-oliver.wagner@intevation.de>
 
+	First step of consolidating the protocol documentation
+	finished.
+
+	* doc/otp/otp_specification_10.txt: Extended and improved
+	protocol documentation.
+
+	* doc/ntp/plugin_prefs.txt, doc/ntp/ntp_extensions.txt,
+	doc/ntp/README: Removed. All relevant information are now
+	covered by otp_specification_10.txt.
+
+	* MANIFEST: Updated.
+
+2008-08-28  Jan-Oliver Wagner <jan-oliver.wagner@intevation.de>
+
 	Continued consolidation of protocol documentation.
 
 	* doc/otp/otp_specification_10.txt: Extended and improved

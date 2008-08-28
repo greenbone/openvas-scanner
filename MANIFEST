@@ -10,10 +10,6 @@ doc/kb_entries.txt
 doc/kb_saving.txt
 doc/nbe_file_format.txt
 doc/nsr_file_format.txt
-doc/ntp/ntp_extensions.txt
-doc/ntp/ntp_white_paper_11.txt
-doc/ntp/plugin_prefs.txt
-doc/ntp/README
 doc/openvas-adduser.8
 doc/openvas-check-signature.1
 doc/openvasd.8.in

@@ -389,10 +389,21 @@ PROTOCOL COMMANDS
       about defaults, the client uses the command to send
       the user selections. The server answers with PREFERENCES_ERROR.
 
+      Note that besides some general preferences, the syntax definition
+      describes also per-NVT preferences and its special way of applying these.
+
       Available preferences:
+      ntp_save_sessions:
+        If set to "yes", the server will support server-side saving of
+        scan sessions and these commands will be available: SESSIONS_LIST,
+        SESSION_DELETE and SESSION_RESTORE.
+      save_session:
+        If set to yes, the server will save the scan as a session.
+      save_empty_sessions:
+        Only considered if save_session is set to "yes".
+        If set to "yes" even emtpy scans will be saved a session.
       max_threads:
       test_file:
-      email:
       ping_hosts:
       reverse_lookup:
       outside_firewall:
@@ -449,6 +460,31 @@ PROTOCOL COMMANDS
       pref_name <|> value
       ...
       <|> CLIENT
+
+      For preference of individual NVTs these lines can occur inside the list:
+
+      nvt_name[pref_type]:pref_name <|> value
+
+      where
+        nvt_name:  This references the NVT for which the preferences are set
+        pref_type: Defines the variable type of the preference which ultimately
+                   determines the widget type in the client GUI.
+        pref_name: This references the Preference and at the same time is used as
+                   the visible string for the user in the GUI.
+        value:     The default value for this preference when sent by SERVER,
+                   the user selected value if send by CLIENT
+
+      and pref_type is one of these:
+        checkbox: value is "yes" or "no"
+        entry:    value is a text string
+        password: value is a text string but should not be shown in GUI or
+                  in cleartext in local files
+        radio:    value is a list of semicolon-separated options when sent by SERVER
+                  and only the user-selected option name when sent by CLIENT
+        file:     value is "<none>" when sent by SERVER and a file path when sent
+                  by CLIENT. The client has to submit the file under the very same
+                  path name using the command ATTACHED_FILE.
+
 
   PREFERENCES_ERRORS
 
@@ -515,6 +551,59 @@ PROTOCOL COMMANDS
     Syntax:
 
       CLIENT <|> SEND_PLUGINS_MD5 <|> CLIENT
+
+  SESSIONS_LIST
+
+    Description:
+
+      The CLIENT request with this command the list of sessions
+      stored on the server side for the logged in user.
+
+      The SERVER will answer with the same command and provide
+      the list of sessions. The session names are derived from
+      time stamps. The hosts are the targets applied for the
+      respective session. The hosts are just there to help identify
+      the sessions. It is cut after 4000 bytes of length.
+
+    Syntax:
+
+      CLIENT <|> SESSIONS_LIST <|> CLIENT
+
+      SERVER <|> SESSIONS_LIST
+      session_name1 hosts1
+      session_name2 hosts2
+      ...
+      <|> SERVER
+
+  SESSION_DELETE
+
+    Description:
+
+      With this command the client deletes the session identified
+      with "session_name" from the server-side storage.
+      The server will not answer in case of success, else
+      it will answer with an ERROR command.
+
+    Syntax:
+
+      CLIENT <|> SESSION_DELETE <|> session_name <|> CLIENT
+
+
+  SESSION_RESTORE
+
+    Description:
+
+      With this command the client tells the server to pick up
+      again the session identified with "session_name".
+      The server will act as if a LONG_ATTACK command has issued
+      and will send all results that were collected so far for this
+      session immediately (and naturally rapidley) and then
+      continue the scan where it stopped.
+
+    Syntax:
+
+      CLIENT <|> SESSION_RESTORE <|> session_name <|> CLIENT
+
 
   STATUS
 
