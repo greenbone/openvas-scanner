@@ -1,5 +1,18 @@
 2008-08-28  Jan-Oliver Wagner <jan-oliver.wagner@intevation.de>
 
+	Cleanup (flaten) doc directory.
+
+	* doc/ntp/: Removed. It was empty now.
+
+	* doc/otp/otp_specification_10.txt: Removed. Moved one
+	directory level up.
+
+	* doc/otp_specification_10.txt: Moved here from  otp/ directory.
+
+	* doc/otp/: Removed. It was empty now.
+
+2008-08-28  Jan-Oliver Wagner <jan-oliver.wagner@intevation.de>
+
 	First step of consolidating the protocol documentation
 	finished.
 
