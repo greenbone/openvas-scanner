@@ -1,3 +1,9 @@
+2008-08-29  Jan-Oliver Wagner <jan-oliver.wagner@intevation.de>
+
+	* doc/kb_entries.txt: Removed those entries that could be
+	integrated into openvas-compendium. Ordered the rest alpabetically
+	and attached a big hint about the status of these information.
+
 2008-08-29  Michael Wiegand <michael.wiegand@intevation.de>
 
 	Adding preliminary support for OVAL definitions. First step for change

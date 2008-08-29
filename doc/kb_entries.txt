@@ -1,16 +1,45 @@
 $Id$
-(to be completed & improved)
 
-The following KB entry are declared :
+ATTENTION: THIS LIST OF ENTRIES SEEMS TO NOT OCCUR (SET) in OPENVAS NVTS!
+
+This means that these entries are probably set by proprietary scripts
+or are hopelessly outdated.
+
 
 Name			Value		Meaning
 -----------------------------------------------------------------------------
-Amanda/running		1		Amanda is running on the remote host
-Host/dead		1		The remote host is dead
-Host/scanned		1		The remote host has been portscanned
-Host/firewall		(firewall name)	The remote host is a firewall
+
+cfingerd/version	<version>	Version of the remote cfingerd
+
+finger/.@host		1		Fingering "." gives away the list of users
+finger/0@host		1		Fingering "0" gives away the list of users
+finger/active		1		The finger service works properly
+finger/search.**@host	1		Fingering ".**" gives the list of users
+finger/user@host1@host2 1		Finger can be used as a relay
+
+ftp/anonymous		1		Anonymous FTP is enabled
+ftp/ncftpd		1		The remote server is NcFTPd
+ftp/no_mkdir		1		The remote server prevents the use of MKD
+ftp/overflow		1		The remote server can be overflown
+ftp/overflow_method	<cmd>		Command vulnerable to an overflow
+ftp/pftp_login_problem	1		The remote pftp server allows " "/" " to log in
+ftp/root_via_cwd	1		Wu-FTPd allows the becoming of root via CWD
+ftp/root_via_site_exec	1		Wu-FTPd allows the becoming of root using SITE EXEC
+ftp/wftp_login_problem	1		WFTP allows any login
+ftp/writeable_dir	<dir>		Name of a user-writeable dir
+ftp/wu_ftpd_overflow	1		Wu-FTPd vulnerable to an overflow
+
+http/10			1		HTTP/1.0 is spoken here
+http/11			1		HTTP/1.1 is spoken here
+
 Proxy/usage		1		The remote proxy can be used
 RPC/NIS/domain		domainname	NIS domain
+
+rpc/bootparamd		1		Bootparamd is present
+rpc/portmap		1		Portmap is reachable
+
+rsh/active		1		rsh is working properly
+
 SMB/Users/Enumerated	1		The SMB users have been enumerated (through sid2user or via SNMP)
 SMB/Win2K/ServicePack	<ServicePack>	ServicePack applied on the remote W2K server
 SMB/WinNT4/ServicePack	<ServicePack>	ServicePack applied on the remote WNT4
@@ -19,31 +48,16 @@ SMB/browse		<BrowseList>	Browse list of the remote host
 SMB/domain_sid		<SID>		SID of the host's domain
 SMB/login		<login>		Login to use for the tests
 SMB/password		<password>	Password that goes with the login
-SMB/name		<name>		NetBIOS name of the remote host
 SMB/registry_access	 1		We can access to the remote registry
 SMB/registry_full_access 1		We can access any value in the remote registry
-SMB/samba		 1		The remote SMB server is running Samba
 SMB/shares		 <shares>	List of shares exported by the remote server
 SMB/svcs		<svcs>		Services run by the remote server
-SMB/workgroup		<workgroup>	Name of the remote host workgroup/domain
 SMB/Users/<num>		<username>	Name of SMB users 
 SMB/ValidUsers/<num>/Login	<username>	Name of a (working) SMB user
 SMB/ValidUsers/<num>/Password	<passwd>	Password of a valid SMB user
 
-
-
-SNMP/community		<community>	Name of a valid SNMP community
 Sawmill/method		<string>	Is Sawmill running as a CGI or in standalone mode ?
 Sawmill/readline	<string>	Sawmill can read the first line of any remote file
-SMTP/wrapped		1		The remote sendmail is wrapped
-SMTP/microsoft_esmtp_5 1		The remote SMTP server is MS SMTP 5
-SMTP/postfix		1		The remote SMTP server is Postfix
-SMTP/qmail		1		The remote SMTP server is qmail
-SMTP/sendmail		1		The remote SMTP server is Sendmail
-SMTP/vrfy		1		The remote SMTP server accepts VRFY requests
-SMTP/expn		1		The remote SMTP server acceps EXPN requests
-SMTP/spam		1		The remote SMTP server is an open relay
-
 
 Services/nntp		<port>		Port of the remote NNTP server
 Services/swat		<port>		Port of the remore SWAT server
@@ -64,55 +78,9 @@ Services/telnet		<port>		Port of the remote telnet server
 Services/netbus		<port>		Port of the remote netbus server
 Services/linuxconf	<port>		Port of the remote linuxconf server
 Services/napster	<port>		Port of the remote napster client
-Services/unknown	<port>		Port of unknown service(s)
 
-finger/.@host		1		Fingering "." gives away the list of users
-finger/0@host		1		Fingering "0" gives away the list of users
-finger/active		1		The finger service works properly
-finger/search.**@host	1		Fingering ".**" gives the list of users
-finger/user@host1@host2 1		Finger can be used as a relay
-
-bind/version		<version>	Version of the remote BIND server
-cfingerd/version	<version>	Version of the remote cfingerd
-
-
-ftp/anonymous		1		Anonymous FTP is enabled
-ftp/login		<login>		Login to use when connecting to ftp
-ftp/password		<passwd>	Password to use when connecting to ftp
-ftp/fw1ftpd		1		The remote server is FW/1 FTPd
-ftp/msftpd		1		The remote server is IIS FTPd
-ftp/ncftpd		1		The remote server is NcFTPd
-ftp/no_mkdir		1		The remote server prevents the use of MKD
-ftp/overflow		1		The remote server can be overflown
-ftp/overflow_method	<cmd>		Command vulnerable to an overflow
-ftp/pftp_login_problem	1		The remote pftp server allows " "/" " to log in
-ftp/root_via_cwd	1		Wu-FTPd allows the becoming of root via CWD
-ftp/root_via_site_exec	1		Wu-FTPd allows the becoming of root using SITE EXEC
-ftp/wftp_login_problem	1		WFTP allows any login
-ftp/writeable_dir	<dir>		Name of a user-writeable dir
-ftp/wu_ftpd_overflow	1		Wu-FTPd vulnerable to an overflow
-
-
-
-http/auth		<auth>		login to use when doing HTTP requests
-http/password		<pass>		pass to use when doing HTTP requests
-http/10			1		HTTP/1.0 is spoken here
-http/11			1		HTTP/1.1 is spoken here
-
-imap/login		<login>		Imap login to use
-imap/password		<pass>		Imap password to use
-
-
-
-rpc/bootparamd		1		Bootparamd is present
-rpc/portmap		1		Portmap is reachable
-
-
-rsh/active		1		rsh is working properly
-
+SMTP/vrfy		1		The remote SMTP server accepts VRFY requests
+SMTP/expn		1		The remote SMTP server acceps EXPN requests
+SMTP/spam		1		The remote SMTP server is an open relay
 
 www/<port>/content/cgi/<num>	<cginame>	CGI of the remote server
-www/apache		1		The remote server is running Apache
-www/cern		1		The remote server is running CERN httpd
-www/domino		1		The remote server is running domino
-
