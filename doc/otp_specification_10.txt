@@ -273,6 +273,21 @@ PROTOCOL COMMANDS
                    replaced by semicolons.
       oid: the OID of the NVT that identified the problem.
 
+  OPENVAS_VERSION
+
+    Description:
+
+      With this command the client asks the server to send
+      its version.
+
+      The server will answer as shown in the syntax.
+
+    Syntax:
+
+      CLIENT <|> OPENVAS_VERSION <|> CLIENT
+
+      SERVER <|> OPENVAS_VERSION <|> version <|> SERVER
+
   PLUGINS_DEPENDENCIES
 
     Description:

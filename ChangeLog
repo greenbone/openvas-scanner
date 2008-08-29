@@ -1,3 +1,22 @@
+2008-08-30  Jan-Oliver Wagner <jan-oliver.wagner@intevation.de>
+
+	Start the otp 1.0 module with a first simple method.
+
+	* doc/otp_specification_10.txt: Added documentation
+	of OPENVAS_VERSION command.
+
+	* openvasd/otp_1_0.h, openvasd/otp_1_0.c: New. This module will
+	implements OTP 1.0 and initially contains
+	otp_1_0_server_openvas_version().
+
+	* openvasd/Makefile: Handle module otp_1_0.
+
+	* openvasd/ntp_11.c (ntp_11_parse_input): Call
+	otp_1_0_server_openvas_version() instead of sending
+	text on its own.
+
+	* MANIFEST: updated.
+
 2008-08-29  Jan-Oliver Wagner <jan-oliver.wagner@intevation.de>
 
 	* doc/kb_entries.txt: Removed those entries that could be

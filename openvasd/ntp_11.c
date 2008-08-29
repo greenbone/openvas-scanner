@@ -34,6 +34,7 @@
 
 #include "ntp.h"
 #include "ntp_11.h"
+#include "otp_1_0.h"
 #include "comm.h"
 #include "auth.h"
 #include "rules.h"
@@ -119,9 +120,10 @@ int ntp_11_parse_input(globals, input)
 #endif
 
   if(!strcmp(input, "OPENVAS_VERSION")) {
-	auth_printf(globals, "SERVER <|> OPENVAS_VERSION <|> %s <|> SERVER\n", OPENVAS_VERSION);
-	return 1;
-	}
+    otp_1_0_server_openvas_version(globals);
+    return 1;
+  }
+
   if(!strcmp(input, "ATTACHED_FILE")) {
   	ntp_11_recv_file(globals);
 	efree(&orig);
