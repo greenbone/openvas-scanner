@@ -49,4 +49,5 @@ typedef struct pl_class_s {
 
 extern pl_class_t nes_plugin_class;
 extern pl_class_t nasl_plugin_class;
+extern pl_class_t oval_plugin_class;
 #endif

@@ -134,7 +134,7 @@ init_plugin_classes(struct arglist * preferences)
       pl_class_t ** cl_pptr = &plugin_classes;
       pl_class_t * cl_ptr;
       int i;
-      pl_class_t* classes[] = {&nes_plugin_class, &nasl_plugin_class, NULL};
+      pl_class_t* classes[] = {&nes_plugin_class, &nasl_plugin_class, &oval_plugin_class, NULL};
 
       for (i = 0; (cl_ptr = classes[i]); ++i)
 	{

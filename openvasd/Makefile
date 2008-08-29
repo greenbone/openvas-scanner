@@ -24,6 +24,7 @@ OBJS = auth.o \
        pluginload.o \
        nasl_plugins.o \
        nes_plugins.o \
+       oval_plugins.o \
        plugs_req.o \
        openvasd.o \
        save_tests.o \
@@ -99,6 +100,9 @@ nasl_plugins.o : nasl_plugins.c
 
 nes_plugins.o : nes_plugins.c
 	$(CC) $(OPENVAS_CFLAGS) $(OPENVAS_INCLUDE) -c nes_plugins.c 
+
+oval_plugins.o : oval_plugins.c
+	$(CC) $(OPENVAS_CFLAGS) $(OPENVAS_INCLUDE) -c oval_plugins.c 
 
 plugs_req.o : plugs_req.c
 	$(CC) $(OPENVAS_CFLAGS) $(OPENVAS_INCLUDE) -c plugs_req.c 

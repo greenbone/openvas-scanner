@@ -61,6 +61,7 @@ openvasd/ntp_11.c
 openvasd/ntp_11.h
 openvasd/openvas-check-signature.c
 openvasd/openvasd.c
+openvasd/oval_plugins.c
 openvasd/parser.c
 openvasd/parser.h
 openvasd/piic.c

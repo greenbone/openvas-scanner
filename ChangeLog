@@ -1,3 +1,23 @@
+2008-08-29  Michael Wiegand <michael.wiegand@intevation.de>
+
+	Adding preliminary support for OVAL definitions. First step for change
+	request #13 (Integrating the OVAL interpreter ovaldi into OpenVAS
+	Server) (http://www.openvas.org/openvas-cr-13.html)
+
+	* openvasd/oval_plugins.c: New. Supports a new class of plugins, namely
+	vulnerability definitions in OVAL, the Open Vulnerability and
+	Assessment Language. Only loading the definitions is supported as of
+	this revision.
+
+	* openvasd/Makefile: Updated.
+
+	* openvasd/pluginload.c(init_plugin_classes): Added new
+	oval_plugin_class.
+
+	* openvasd/pluginload.h: Added new oval_plugin_class.
+
+	* MANIFEST: Updated.
+
 2008-08-28  Jan-Oliver Wagner <jan-oliver.wagner@intevation.de>
 
 	Cleanup (flaten) doc directory.
