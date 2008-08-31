@@ -26,6 +26,24 @@
 #ifndef _OTP_1_0_H
 #define _OTP_1_0_H
 
+typedef enum {
+  CREQ_UNKNOWN,
+  CREQ_ATTACHED_FILE,
+  CREQ_LONG_ATTACK,
+  CREQ_NEW_ATTACK,
+  CREQ_OPENVAS_VERSION,
+  CREQ_PLUGIN_INFO,
+  CREQ_PREFERENCES,
+  CREQ_RULES,
+  CREQ_SESSIONS_LIST,
+  CREQ_SESSION_DELETE,
+  CREQ_SESSION_RESTORE,
+  CREQ_STOP_ATTACK,
+  CREQ_STOP_WHOLE_TEST
+} client_request_t;
+
+client_request_t otp_1_0_get_client_request(char *);
+
 void otp_1_0_server_openvas_version(struct arglist *);
 
 #endif

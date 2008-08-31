@@ -79,6 +79,7 @@ int ntp_11_parse_input(globals, input)
  char * str;
  int input_len = strlen(input);
  char * orig = emalloc(input_len + 1);
+ int result = 1; /* default return value is 1 */
 
  strncpy(orig, input, input_len);
  
@@ -99,92 +100,88 @@ int ntp_11_parse_input(globals, input)
 
   if(input[strlen(input) - 1] == '\n')
 	input[strlen(input) - 1] = '\0';
-  
+
+  switch(otp_1_0_get_client_request(input)) {
+    case CREQ_ATTACHED_FILE:
+      ntp_11_recv_file(globals);
+      break;
+
+    case CREQ_LONG_ATTACK:
+      result = ntp_11_long_attack(globals, orig);
+      break;
+
+    case CREQ_NEW_ATTACK:
+      result = ntp_11_new_attack(globals, orig);
+      break;
+
+    case CREQ_OPENVAS_VERSION:
+      otp_1_0_server_openvas_version(globals);
+      break;
+
+    case CREQ_PLUGIN_INFO: {
+      char * t, *s;
+      t = strstr(&(str[1]), " <|> ");
+      if( t == NULL ) {
+        result = -1;
+        break;
+      }
+      s = t + 5;
+      plugin_send_infos(globals, atoi(s));
+      break;
+      }
+
+    case CREQ_PREFERENCES:
+      ntp_11_prefs(globals);
+      break;
+
+    case CREQ_RULES:
+      ntp_11_rules(globals);
+      break;
+
 #ifdef ENABLE_SAVE_TESTS
-  if(!strcmp(input, "SESSIONS_LIST")){
-  	ntp_11_list_sessions(globals);
-	efree(&orig);
-	return 1;
-	}
-  if(!strcmp(input, "SESSION_DELETE")) {
-  	ntp_11_delete_session(globals, orig);
-	efree(&orig);
-	return 1;
-	}
-	
-  if(!strcmp(input, "SESSION_RESTORE")) {
-  	 int n = ntp_11_restore_session(globals, orig);
-	 efree(&orig);
-	 return n;
-	}
+    case CREQ_SESSIONS_LIST:
+      ntp_11_list_sessions(globals);
+      break;
+
+    case CREQ_SESSION_DELETE:
+      ntp_11_delete_session(globals, orig);
+      break;
+
+    case CREQ_SESSION_RESTORE:
+      result = ntp_11_restore_session(globals, orig);
+      break;
 #endif
 
-  if(!strcmp(input, "OPENVAS_VERSION")) {
-    otp_1_0_server_openvas_version(globals);
-    return 1;
+    case CREQ_STOP_WHOLE_TEST:
+      log_write("Stopping the whole test (requested by client)");
+      hosts_stop_all();
+      result = NTP_STOP_WHOLE_TEST;
+      break;
+
+    case CREQ_STOP_ATTACK: {
+      char * t, *s;
+      char * user = (char*)arg_get_value(globals, "user");
+      s = str + 5;	
+      t = strstr(s, " <|> ");
+      if(t == NULL) {
+        result = -1;
+        break;
+      }
+      t[0] = '\0';
+      log_write("user %s : stopping attack against %s\n",  user, s);
+      hosts_stop_host(globals, s);
+      ntp_1x_timestamp_host_scan_interrupted(globals, s);
+      ntp_11_show_end(globals, s, 0);
+      break;
+      }
+
+    case CREQ_UNKNOWN:
+      break;
   }
-
-  if(!strcmp(input, "ATTACHED_FILE")) {
-  	ntp_11_recv_file(globals);
-	efree(&orig);
-	return 1;
-	}
-  if(!strcmp(input, "PLUGIN_INFO")) {
-  	char * t, *s;
-	t = strstr(&(str[1]), " <|> ");
-	if( t == NULL )
-		return -1;
-
-	s = t + 5;
-  	plugin_send_infos(globals, atoi(s));
-	return 1;
-	}
-
-  if(!strcmp(input, "LONG_ATTACK")){
-  	int code = ntp_11_long_attack(globals, orig);
-	efree(&orig);
-	return code;
-	}
-  if(!strcmp(input, "PREFERENCES")){
-  	ntp_11_prefs(globals);
-	efree(&orig);
-        return 1;
-        }
-  if(!strcmp(input, "RULES")){
-  	ntp_11_rules(globals);
-	efree(&orig);
-        return 1;
-        }
-  if(!strcmp(input, "NEW_ATTACK")){
-	  	int n = ntp_11_new_attack(globals, orig);
-		efree(&orig);
-		return n;
-  }
-  if(!strcmp(input, "STOP_WHOLE_TEST")){
-  		log_write("Stopping the whole test (requested by client)");
-		hosts_stop_all();
-		efree(&orig);
-		return NTP_STOP_WHOLE_TEST;
-		}
-  if(!strcmp(input, "STOP_ATTACK")) {
-  		char * t, *s;
-		char * user = (char*)arg_get_value(globals, "user");
-		s = str + 5;	
-		t = strstr(s, " <|> ");
-		if(t == NULL)
-		 return -1;
-		t[0] = '\0';
-		log_write("user %s : stopping attack against %s\n",  user, s);
-		hosts_stop_host(globals, s);
-		ntp_1x_timestamp_host_scan_interrupted(globals, s);
-		ntp_11_show_end(globals, s, 0);
-		}
-		
-  efree(&orig);
-  return 1;
  }
+
  efree(&orig);
- return 1;
+ return(result);
 }
 
 static int 

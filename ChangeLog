@@ -1,3 +1,14 @@
+2008-08-31  Jan-Oliver Wagner <jan-oliver.wagner@intevation.de>
+
+	* openvasd/otp_1_0.c (otp_1_0_get_client_request): New method.
+
+	* openvasd/otp_1_0.h: Added proto for
+	otp_1_0_get_client_request and added client_request_t.
+
+	* openvasd/ntp_11.c (ntp_11_parse_input): Reorganized
+	parsing into a switch-case design. This simplified the code
+	and several memory leaks were eliminated.
+
 2008-08-30  Jan-Oliver Wagner <jan-oliver.wagner@intevation.de>
 
 	Start the otp 1.0 module with a first simple method.

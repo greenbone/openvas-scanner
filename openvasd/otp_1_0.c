@@ -23,7 +23,34 @@
 *
 */
 
+#include <string.h>
+
 #include <corevers.h>
+#include <network.h>
+
+#include "otp_1_0.h"
+
+/* Find the enum identifier for the client request which is given
+ * as string.
+ */
+client_request_t otp_1_0_get_client_request(str)
+  char * str;
+{
+  if (!strcmp(str, "ATTACHED_FILE")) return(CREQ_ATTACHED_FILE);
+  if (!strcmp(str, "LONG_ATTACK")) return(CREQ_LONG_ATTACK);
+  if (!strcmp(str, "NEW_ATTACK")) return(CREQ_NEW_ATTACK);
+  if (!strcmp(str, "OPENVAS_VERSION")) return(CREQ_OPENVAS_VERSION);
+  if (!strcmp(str, "PLUGIN_INFO")) return(CREQ_PLUGIN_INFO);
+  if (!strcmp(str, "PREFERENCES")) return(CREQ_PREFERENCES);
+  if (!strcmp(str, "RULES")) return(CREQ_RULES);
+  if (!strcmp(str, "SESSIONS_LIST")) return(CREQ_SESSIONS_LIST);
+  if (!strcmp(str, "SESSION_DELETE")) return(CREQ_SESSION_DELETE);
+  if (!strcmp(str, "SESSION_RESTORE")) return(CREQ_SESSION_RESTORE);
+  if (!strcmp(str, "STOP_ATTACK")) return(CREQ_STOP_ATTACK);
+  if (!strcmp(str, "STOP_WHOLE_TEST")) return(CREQ_STOP_WHOLE_TEST);
+
+  return(CREQ_UNKNOWN);
+}
 
 /* Send server response OPENVAS_VERSION
  */
