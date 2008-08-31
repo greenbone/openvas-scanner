@@ -59,7 +59,6 @@ static int ntp_11_prefs(struct arglist *);
 static int ntp_11_read_prefs(struct arglist *);
 static void ntp_11_send_prefs_errors(struct arglist *);
 static int ntp_11_rules(struct arglist *);
-static int ntp_11_new_attack(struct arglist *, char *);
 static int ntp_11_long_attack(struct arglist *, char *);
 static int ntp_11_recv_file(struct arglist*);
 
@@ -108,10 +107,6 @@ int ntp_11_parse_input(globals, input)
 
     case CREQ_LONG_ATTACK:
       result = ntp_11_long_attack(globals, orig);
-      break;
-
-    case CREQ_NEW_ATTACK:
-      result = ntp_11_new_attack(globals, orig);
       break;
 
     case CREQ_OPENVAS_VERSION:
@@ -396,50 +391,6 @@ ntp_11_rules(globals)
  arg_set_value(globals, "rules", -1, rules);
  return(0);
 }
-
-
-
-static int ntp_11_new_attack(globals, input)
-        struct arglist * globals;
-	char * input;
-	
-{
- char * target = emalloc(strlen(input)+1);
- char * clean_target;
- char * plugin_set;
- struct arglist * preferences = arg_get_value(globals, "preferences");
- int len;
- 
- sscanf(input, "CLIENT <|> NEW_ATTACK <|> %s <|> CLIENT\n", target);
- if(target[0] == '\0'){
-  efree(&target);
-  return(1);
- }
- len = strlen(target);
- clean_target = emalloc(len+1);
- strncpy(clean_target, target, len);
- plugin_set = arg_get_value(preferences, "plugin_set");
- if(!plugin_set || plugin_set[0] == '\0')
- {
-  if(plugin_set != NULL)
-   efree(&plugin_set);
-  
-  plugin_set = emalloc(3);
-  sprintf(plugin_set, "-1");
-  if( arg_get_value(preferences, "plugin_set") == NULL ) 
-   arg_add_value(preferences, "plugin_set", ARG_STRING, strlen(plugin_set), plugin_set);
-  else
-   arg_set_value(preferences, "plugin_set", strlen(plugin_set), plugin_set);
- }
- comm_setup_plugins(globals, plugin_set);
- if(arg_get_value(preferences, "TARGET"))
-  arg_set_value(preferences, "TARGET", strlen(clean_target), clean_target);
- else
-  arg_add_value(preferences, "TARGET", ARG_STRING, strlen(clean_target), clean_target);
- efree(&target);
- return(0);
-}
-
 
 void 
 ntp_11_show_end(globals, name, internal)

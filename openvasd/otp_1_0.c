@@ -38,7 +38,6 @@ client_request_t otp_1_0_get_client_request(str)
 {
   if (!strcmp(str, "ATTACHED_FILE")) return(CREQ_ATTACHED_FILE);
   if (!strcmp(str, "LONG_ATTACK")) return(CREQ_LONG_ATTACK);
-  if (!strcmp(str, "NEW_ATTACK")) return(CREQ_NEW_ATTACK);
   if (!strcmp(str, "OPENVAS_VERSION")) return(CREQ_OPENVAS_VERSION);
   if (!strcmp(str, "PLUGIN_INFO")) return(CREQ_PLUGIN_INFO);
   if (!strcmp(str, "PREFERENCES")) return(CREQ_PREFERENCES);

@@ -1,5 +1,16 @@
 2008-08-31  Jan-Oliver Wagner <jan-oliver.wagner@intevation.de>
 
+	Remove NEW_ATTACK command.
+
+	* openvasd/ntp_11.c (ntp_11_new_attack): Removed.
+
+	* openvasd/otp_1_0.c (otp_1_0_get_client_request): Removed
+	NEW_ATTACK handling.
+
+	* openvasd/otp_1_0.h: Removed CREQ_NEW_ATTACK.
+
+2008-08-31  Jan-Oliver Wagner <jan-oliver.wagner@intevation.de>
+
 	* openvasd/otp_1_0.c (otp_1_0_get_client_request): New method.
 
 	* openvasd/otp_1_0.h: Added proto for
