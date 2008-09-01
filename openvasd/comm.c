@@ -113,13 +113,6 @@ extract_extensions(caps, banner)
    */
   else if(!strcmp(t, "dns"))
     caps->dns = 1;
-    
-  /*
-   * We show the plugins dependencies through the use
-   * of the DEPENDENCIES message
-   */
-  else if(!strcmp(t, "dependencies"))
-    caps->dependencies = 1;
 
   /* 
    * Immediately jump to the wait order

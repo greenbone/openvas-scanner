@@ -442,8 +442,7 @@ if(preferences_benice(prefs))nice(10);
    if(caps->ntp_11){
        comm_send_preferences(globals);
        comm_send_rules(globals);
-       if(caps->dependencies)
-       		ntp_1x_send_dependencies(globals);
+       ntp_1x_send_dependencies(globals);
        }
    }
    else if(caps->md5_caching)

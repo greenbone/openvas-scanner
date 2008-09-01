@@ -70,6 +70,10 @@ CHANGES
   was limited to 4000 bytes. The OpenVAS-Client (and so did NessusClient)
   used only LONG_ATTACK anyway.
 
+  Protocol extensions:
+  These protocol extensions have been made standard of the OTP
+  protocol: "dependencies".
+
 GENERAL ASPECTS OF PROTOCOL
 
   The OTP protocol is text-based, human readable and line-oriented.
@@ -85,7 +89,6 @@ PROTOCOL INITIALIZER AND PROTOCOL FEATURES
       the protocol version followed by parameters switching
       on various features. Available protocol features are:
 
-        dependencies       (server will use command PLUGINS_DEPENDENCIES)
         timestamps         (server will use command TIME)
         plugins_version    (server will add revision to plugin information)
         plugins_cve_id     (server will add cve id to plugin information)
@@ -292,9 +295,7 @@ PROTOCOL COMMANDS
 
     Description:
 
-      The PLUGINS_DEPENDENCIES messages are send after the RULES messages
-      in case the protocol feature "dependencies" was set during protocol
-      initialization.
+      The PLUGINS_DEPENDENCIES messages are send after the RULES messages.
 
     Syntax:
 

@@ -1,3 +1,15 @@
+2008-09-01  Jan-Oliver Wagner <jan-oliver.wagner@intevation.de>
+
+	Making protocol extension "dependencies" standard.
+
+	* openvasd/comm.c (extract_extensions): Removed handling
+	of "dependencies" extension.
+
+	* openvasd/openvasd.c (server_thread): Always send dependencies.
+
+	* doc/otp_specification_10.txt: Updated to described
+	that protocol extension dependencies has been made standard.
+
 2008-08-31  Jan-Oliver Wagner <jan-oliver.wagner@intevation.de>
 
 	Remove NEW_ATTACK command.
