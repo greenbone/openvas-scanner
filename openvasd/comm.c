@@ -80,32 +80,13 @@ extract_extensions(caps, banner)
    
   else if(!strcmp(t, "md5_by_name"))
    caps->md5_by_name = 1;
-  
-  /*
-   * We send the plugins versions to the client
-   */
-  else if(!strcmp(t, "plugins_version"))
-   caps->plugins_version = 1;
-   
-  /* 
-   * We send the CVE id 
-   */
-  else if(!strcmp(t, "plugins_cve_id"))
-   caps->plugins_cve_id = 1;
-   
-  /*
-   * We send the Bugtraq ID
-   */
-  else if(!strcmp(t, "plugins_bugtraq_id"))
-   caps->plugins_bugtraq_id = 1;
-   
-  else if(!strcmp(t, "plugins_xrefs"))
-   caps->plugins_xrefs = 1; 
- 
+
+  caps->plugins_xrefs = 1;
+
   /*
    * We send timestamps to the client
    */
-  else if(!strcmp(t, "timestamps"))
+  if(!strcmp(t, "timestamps"))
    caps->timestamps = 1;
 
   /*
@@ -219,8 +200,7 @@ send_plug_info(globals, plugins)
   char * t;
   const char *a, *b, *d, *e = NULL;
   char * desc = NULL;
-  ntp_caps * caps = arg_get_value(globals, "ntp_caps");
-  
+
       args = plugins->value;
       if(plug_get_id(args) == 0)
         plug_set_id(args, i);
@@ -234,12 +214,9 @@ send_plug_info(globals, plugins)
       j = plug_get_category(args);
       if(j >= CAT_MAX || j < ACT_FIRST)	j = CAT_MAX - 1;
 
-      if(caps->plugins_version)
-       {
-       e = plug_get_version(args);
-       if(!e)e = "?";
-       }
-       
+      e = plug_get_version(args);
+      if(!e)e = "?";
+
       if ((a = plug_get_name(args)) == NULL      ||
 	  (b = plug_get_copyright(args)) == NULL ||
 	  desc == NULL 			         ||
@@ -275,38 +252,31 @@ send_plug_info(globals, plugins)
 		  categories[j],
 		  b, desc, d,
 		  plug_get_family(args));
-     
-      if(caps->plugins_version != 0)
-        {
-       	 strcat(str, " <|> ");
-	 strcat(str,  e);  
-	}
-	
-     if(caps->plugins_cve_id)
+
+     strcat(str, " <|> ");
+     strcat(str,  e);
+
      {
-        char * id = plug_get_cve_id(args);
-	if(id == NULL)id = "NOCVE";
-     	strcat(str, " <|> ");
-	strcat(str, id);
+       char * id = plug_get_cve_id(args);
+       if(id == NULL)id = "NOCVE";
+       strcat(str, " <|> ");
+       strcat(str, id);
      }
-     
-     if(caps->plugins_bugtraq_id)
+
      {
        char * bid = plug_get_bugtraq_id(args);
        if(bid == NULL)bid = "NOBID";
        strcat(str, " <|> ");
        strcat(str, bid);
      }
-     
-     if(caps->plugins_xrefs)
+
      {
        char * xref = plug_get_xref(args);
        if(xref == NULL)xref = "NOXREF";
        strcat(str, " <|> ");
        strcat(str, xref);
      }
-	
-		  
+
       auth_printf(globals, "%s\n", str);	
       efree(&str);	  
       }

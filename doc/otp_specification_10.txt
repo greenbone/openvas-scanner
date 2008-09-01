@@ -72,7 +72,8 @@ CHANGES
 
   Protocol extensions:
   These protocol extensions have been made standard of the OTP
-  protocol: "dependencies".
+  protocol: "dependencies", "plugins_version", "plugins_cve_id",
+  "plugins_bugtraq_id" and "plugins_xrefs".
 
 GENERAL ASPECTS OF PROTOCOL
 
@@ -90,9 +91,6 @@ PROTOCOL INITIALIZER AND PROTOCOL FEATURES
       on various features. Available protocol features are:
 
         timestamps         (server will use command TIME)
-        plugins_version    (server will add revision to plugin information)
-        plugins_cve_id     (server will add cve id to plugin information)
-        plugins_bugtraq_id (server will add bugtraq id to plugin information)
         md5_caching        (server will use the MD5 caching feature)
 
     Syntax:
@@ -344,24 +342,7 @@ PROTOCOL COMMANDS
 
       The server answers with this line (analogous to PLUGIN_LIST command):
 
-      oid <|> name <|> category <|> copyright <|> description <|> summary <|> family
-
-      The following extensions are appended in the given order:
-
-      In case protocol feature "plugins_version" is selected, the respective
-      plugin_version is appended to the line:
-
-      oid <|> name <|> category <|> copyright <|> description <|> summary <|> family <|> plugin_version
-
-      In case protocol feature "plugins_cve_id" is selected, the respective
-      cve_id is appended to the line, e.g.:
-
-      oid <|> name <|> category <|> copyright <|> description <|> summary <|> family <|> plugin_version <|> cve_id
-
-      In case protocol feature "plugins_bugtraq_id" is selected, the respective
-      bugtraq_id is appended to the line, e.g.:
-
-      oid <|> name <|> category <|> copyright <|> description <|> summary <|> family <|> plugin_version <|> cve_id <|> bugtraq_id
+      oid <|> name <|> category <|> copyright <|> description <|> summary <|> family <|> plugin_version <|> cve_id <|> bugtraq_id <|> xrefs
 
       In case no plugin with OID=oid is found, the server will not answer at all.
 
@@ -374,16 +355,16 @@ PROTOCOL COMMANDS
 
       The server will send PREFERENCES and RULES right after this command.
 
+      The client might request individual NVT information via PLUGIN_INFO
+      command.
+
     Syntax:
 
       SERVER <|> PLUGIN_LIST <|>
-      oid <|> name <|> category <|> copyright <|> description <|> summary <|> family
-      oid <|> name <|> category <|> copyright <|> description <|> summary <|> family
+      oid <|> name <|> category <|> copyright <|> description <|> summary <|> family <|> plugin_version <|> cve_id <|> bugtraq_id <|> xrefs
+      oid <|> name <|> category <|> copyright <|> description <|> summary <|> family <|> plugin_version <|> cve_id <|> bugtraq_id <|> xrefs
       ...
       <|> SERVER
-
-      Additional information might be apended according to some procotol features.
-      Please refer to the description of the PLUGIN_INFO command for details.
 
   PORT
 

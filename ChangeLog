@@ -1,5 +1,20 @@
 2008-09-01  Jan-Oliver Wagner <jan-oliver.wagner@intevation.de>
 
+	Making protocol extension "plugins_version", "plugins_cve_id",
+	"plugins_bugtraq_id" and "plugins_xrefs" standard.
+
+	* openvasd/comm.c (extract_extensions): Removed handling
+	of "plugins_version" "plugins_cve_id", "plugins_bugtraq_id"
+	and "plugins_xrefs" extension.
+	(send_plug_info): Always send NVT version, CVE ID, Bugtraq ID
+	and cross references.
+
+	* doc/otp_specification_10.txt: Updated to described
+	that protocol extension "plugins_version", "plugins_cve_id",
+	plugins_bugtraq_id" and "plugins_xrefs" have been made standard.
+
+2008-09-01  Jan-Oliver Wagner <jan-oliver.wagner@intevation.de>
+
 	Making protocol extension "dependencies" standard.
 
 	* openvasd/comm.c (extract_extensions): Removed handling
