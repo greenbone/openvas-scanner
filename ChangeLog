@@ -1,3 +1,9 @@
+2008-09-02  Michael Wiegand <michael.wiegand@intevation.de>
+
+	* openvas-services: Fixed changes from rev 83 that caused the server to
+	not report the appropriate port for the service when an open port 1241
+	was detected.
+
 2008-09-01  Jan-Oliver Wagner <jan-oliver.wagner@intevation.de>
 
 	Making protocol extension "plugins_version", "plugins_cve_id",
