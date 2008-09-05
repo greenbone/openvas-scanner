@@ -72,8 +72,8 @@ CHANGES
 
   Protocol extensions:
   These protocol extensions have been made standard of the OTP
-  protocol: "dependencies", "plugins_version", "plugins_cve_id",
-  "plugins_bugtraq_id" and "plugins_xrefs".
+  protocol: "timestamps", "dependencies", "plugins_version",
+  "plugins_cve_id", "plugins_bugtraq_id" and "plugins_xrefs".
 
 GENERAL ASPECTS OF PROTOCOL
 
@@ -90,7 +90,6 @@ PROTOCOL INITIALIZER AND PROTOCOL FEATURES
       the protocol version followed by parameters switching
       on various features. Available protocol features are:
 
-        timestamps         (server will use command TIME)
         md5_caching        (server will use the MD5 caching feature)
 
     Syntax:
@@ -649,9 +648,8 @@ PROTOCOL COMMANDS
 
     Description:
 
-      The TIME messages will be send by the server
-      in case the protocol feature "timestamps" was set during protocol
-      initialization.
+      The TIME messages are sent by the server to inform
+      about the duration of scanning a host and of the whole scan.
 
     Syntax:
 

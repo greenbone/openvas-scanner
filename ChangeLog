@@ -1,3 +1,17 @@
+2008-09-05  Jan-Oliver Wagner <jan-oliver.wagner@intevation.de>
+
+	Making protocol extension "timestamps" standard.
+
+	* openvasd/ntp_11.c (__ntp_1x_timestamp_scan,
+	__ntp_1x_timestamp_scan_host): Removed conditional
+	for timestamps.
+
+	* openvasd/comm.c (extract_extensions): Removed conditional
+	for "timestamps", it is standard now.
+
+	* doc/otp_specification_10.txt: Updated to described
+	that protocol extension "timestamps" has been made standard.
+
 2008-09-02  Michael Wiegand <michael.wiegand@intevation.de>
 
 	* openvas-services: Fixed changes from rev 83 that caused the server to

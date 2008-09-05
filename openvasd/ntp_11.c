@@ -618,9 +618,6 @@ __ntp_1x_timestamp_scan(globals, msg)
  struct arglist * globals;
  char * msg;
 {
- ntp_caps * caps = arg_get_value(globals, "ntp_caps");
- if(caps->timestamps)
-  {
   char timestr[1024];
   char * tmp;
   time_t t;
@@ -635,7 +632,6 @@ __ntp_1x_timestamp_scan(globals, msg)
 	   timestr[len - 1 ] = '\0';
 
   auth_printf(globals, "SERVER <|> TIME <|> %s <|> %s <|> SERVER\n",msg, timestr);
-  }
   return 0;
 }
 
@@ -646,9 +642,6 @@ __ntp_1x_timestamp_scan_host(globals, msg, host)
  char * msg;
  char * host;
 {
- ntp_caps * caps = arg_get_value(globals, "ntp_caps");
- if(caps->timestamps)
-  {
   char timestr[1024];
   char * tmp;
   time_t t;
@@ -669,7 +662,7 @@ __ntp_1x_timestamp_scan_host(globals, msg, host)
    snprintf(buf, sizeof(buf), "SERVER <|> TIME <|> %s <|> %s <|> %s <|> SERVER\n", msg, host, timestr);
    
    internal_send(soc, buf, INTERNAL_COMM_MSG_TYPE_DATA); 
-  }
+
   return 0;
 }
 

@@ -82,12 +82,7 @@ extract_extensions(caps, banner)
    caps->md5_by_name = 1;
 
   caps->plugins_xrefs = 1;
-
-  /*
-   * We send timestamps to the client
-   */
-  if(!strcmp(t, "timestamps"))
-   caps->timestamps = 1;
+  caps->timestamps = 1;
 
   /*
    * We send the name of the host AND its IP
