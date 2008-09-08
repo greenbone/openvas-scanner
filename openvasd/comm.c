@@ -87,7 +87,7 @@ extract_extensions(caps, banner)
   /*
    * We send the name of the host AND its IP
    */
-  else if(!strcmp(t, "dns"))
+  if(!strcmp(t, "dns"))
     caps->dns = 1;
 
   /* 

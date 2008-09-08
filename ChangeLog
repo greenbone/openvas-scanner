@@ -1,3 +1,8 @@
+2008-09-02  Michael Wiegand <michael.wiegand@intevation.de>
+
+	* openvasd/comm.c (extract_extensions): Removed superfluous else that
+	broke compilation.
+
 2008-09-05  Jan-Oliver Wagner <jan-oliver.wagner@intevation.de>
 
 	Making protocol extension "timestamps" standard.
