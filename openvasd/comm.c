@@ -178,16 +178,14 @@ comm_terminate(globals)
 
 
 /*
- * Sends the list of plugins that the server
- * could load to the client, using the 
- * NTP format
+ * Sends a plugin info.
  */
 void 
 send_plug_info(globals, plugins)
  struct arglist * globals;
  struct arglist * plugins;
 {
-  int i=1,j;
+  int j;
   static const char * categories[] =
     {"init", "scanner", "settings" , "infos", "attack", "mixed", "destructive_attack", "denial", "kill_host", "flood", "end", "unknown" };
 #define CAT_MAX	(sizeof(categories) / sizeof(categories[0]))
@@ -196,10 +194,13 @@ send_plug_info(globals, plugins)
   const char *a, *b, *d, *e = NULL;
   char * desc = NULL;
 
-      args = plugins->value;
-      if(plug_get_id(args) == 0)
-        plug_set_id(args, i);
-       
+  args = plugins->value;
+
+  if (! plug_get_oid(args)) {
+    log_write ("NVT without OID found. Will not be sent.\n");
+    return;
+  }
+
       t = plug_get_description(args);
       
       if(t != NULL){
@@ -223,27 +224,27 @@ send_plug_info(globals, plugins)
       {
        char * str;
        if(strchr(a, '\n') != NULL ){
-       	fprintf(stderr, "ERROR - %d %s\n", plug_get_id(args), a);
+       	fprintf(stderr, "ERROR - %s %s\n", plug_get_oid(args), a);
 	}
 	
 	if(strchr(b, '\n') != NULL ){
-       	fprintf(stderr, "ERROR - %d %s\n", plug_get_id(args), b);
+       	fprintf(stderr, "ERROR - %s %s\n", plug_get_oid(args), b);
 	
 	}
 	
 	if(strchr(desc, '\n') != NULL ){
-       	fprintf(stderr, "ERROR - %d %s\n", plug_get_id(args), desc);
+       	fprintf(stderr, "ERROR - %s %s\n", plug_get_oid(args), desc);
 	
 	}
 	
 	if(strchr(d, '\n')){
-       	fprintf(stderr, "ERROR - %d %s\n", plug_get_id(args), d);
+       	fprintf(stderr, "ERROR - %s %s\n", plug_get_oid(args), d);
 	}
 	
        str = emalloc(strlen(a) + strlen(b) + strlen(desc) + strlen(d) +
       		  strlen(plug_get_family(args))+ 1024);
-       sprintf(str, "%d <|> %s <|> %s <|> %s <|> %s <|> %s <|> %s",
-      		  plug_get_id(args), a,
+       sprintf(str, "%s <|> %s <|> %s <|> %s <|> %s <|> %s <|> %s",
+               plug_get_oid(args), a,
 		  categories[j],
 		  b, desc, d,
 		  plug_get_family(args));
@@ -282,13 +283,13 @@ send_plug_info(globals, plugins)
 
 
 void
-plugin_send_infos(globals, id)
+plugin_send_infos(globals, oid)
  struct arglist * globals;
- int id;
+ char * oid;
 {
  struct arglist * plugins = arg_get_value(globals, "plugins");
 
- if(!id)
+ if(!oid)
   return;
  if(!plugins)
   return;
@@ -296,11 +297,7 @@ plugin_send_infos(globals, id)
  while(plugins->next)
  {
   struct arglist * args = plugins->value;
-  if(args)
-  {
-   int p_id = plug_get_id(args);
-   if(p_id == id)break;
-  }
+  if (args && !strcmp(oid, plug_get_oid(args))) break;
   plugins = plugins->next;
   }
 
@@ -611,7 +608,7 @@ comm_send_md5_plugins(globals)
 	t = strchr(s, ' ');
 	if(!t)continue;
 	t[0] = '\0';
-	plugin_send_infos(globals, atoi(s));
+	plugin_send_infos(globals, s);
    }
   else break;
  }

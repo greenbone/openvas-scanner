@@ -1,3 +1,22 @@
+2008-09-05  Jan-Oliver Wagner <jan-oliver.wagner@intevation.de>
+
+	Make the command PLUGIN_LIST send OIDs instead of old IDs.
+	Make the PLUGIN_INFO command be interpreted with OIDs
+	instead of IDs.
+
+	* openvasd/comm.c (send_plug_info): Changed behaviour
+	that in case there is no OID, the plugin is not sent
+	and instead a log message is issued. Previously the ID "1"
+	was applied.
+	Send OID instead of old ID.
+	(plugin_send_infos): Now takes char * oid as second parameter
+	instead of int id.
+
+	* openvasd/comm.h: Changed proto for plugin_send_infos accordingly.
+
+	* openvasd/ntp_11.c (ntp_11_parse_input): Call plugin_send_infos
+	with its new API.
+
 2008-09-09  Michael Wiegand <michael.wiegand@intevation.de>
 
 	Adding preliminary support for OVAL definitions. Second step for change

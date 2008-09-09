@@ -40,6 +40,6 @@ void comm_wait_order(struct arglist *);
 void comm_setup_plugins(struct arglist *, char *);
 void client_handler();
 void comm_send_md5_plugins(struct arglist*);
-void plugin_send_infos(struct arglist*, int);
+void plugin_send_infos(struct arglist*, char *);
 
 #endif

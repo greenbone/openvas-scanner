@@ -121,7 +121,7 @@ int ntp_11_parse_input(globals, input)
         break;
       }
       s = t + 5;
-      plugin_send_infos(globals, atoi(s));
+      plugin_send_infos(globals, s);
       break;
       }
 
