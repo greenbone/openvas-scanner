@@ -1,4 +1,13 @@
-2008-09-02  Michael Wiegand <michael.wiegand@intevation.de>
+2008-09-09  Michael Wiegand <michael.wiegand@intevation.de>
+
+	Adding preliminary support for OVAL definitions. Second step for change
+	request #13 (Integrating the OVAL interpreter ovaldi into OpenVAS
+	Server) (http://www.openvas.org/openvas-cr-13.html)
+
+	* openvasd/oval_plugins.c: First usable proof-of-concept integration of
+	OVAL definitions into OpenVAS.
+
+2008-09-08  Michael Wiegand <michael.wiegand@intevation.de>
 
 	* openvasd/comm.c (extract_extensions): Removed superfluous else that
 	broke compilation.
