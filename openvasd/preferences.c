@@ -454,14 +454,14 @@ preferences_plugins_timeout(preferences)
 
 
 int
-preferences_plugin_timeout(preferences, id)
+preferences_plugin_timeout(preferences, oid)
  struct arglist * preferences;
- int id;
+ char * oid;
 {
  int ret = 0;
- char * pref_name = emalloc(strlen("timeout.") + 40);
+ char * pref_name = emalloc(strlen("timeout.") + 100);
  
- sprintf(pref_name, "timeout.%d", id);
+ sprintf(pref_name, "timeout.%s", oid);
  if(arg_get_type(preferences, pref_name) == ARG_STRING)
  {
   int to = atoi(arg_get_value(preferences, pref_name));

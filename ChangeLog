@@ -1,3 +1,15 @@
+2008-09-10  Michael Wiegand <michael.wiegand@intevation.de>
+
+	Make the plugin timeout settings use OID instead of ID.
+
+	* openvasd/preferences.c (preferences_plugin_timeout): Changed to use
+	OIDs.
+
+	* openvasd/preferences.h: Adjusted function declaration.
+
+	* openvasd/pluginlaunch.c (plugin_launch): Call
+	preferences_plugin_timeout with OID instead of ID.
+
 2008-09-05  Jan-Oliver Wagner <jan-oliver.wagner@intevation.de>
 
 	Make the command PLUGIN_LIST send OIDs instead of old IDs.

@@ -43,7 +43,7 @@ int    preferences_optimize_test(struct arglist *);
 int    preferences_ntp_show_end(struct arglist *);
 int    preferences_log_plugins_at_load(struct arglist *);
 int    preferences_plugins_timeout(struct arglist *);
-int    preferences_plugin_timeout(struct arglist *, int);
+int    preferences_plugin_timeout(struct arglist *, char*);
 int    preferences_benice(struct arglist*);
 char * preferences_get_string(struct arglist*, char*);
 int    preferences_autoload_dependencies(struct arglist*);

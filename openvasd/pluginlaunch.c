@@ -430,7 +430,7 @@ plugin_launch(globals, sched, plugin, hostinfos, preferences, kb, name, launcher
  processes[p].sched   = sched;
  processes[p].name    = plugin->arglist->name;
  processes[p].launch_status = plug_get_launch(plugin->arglist->value);
- processes[p].timeout = preferences_plugin_timeout(preferences, plug_get_id(plugin->arglist->value));
+ processes[p].timeout = preferences_plugin_timeout(preferences, plug_get_oid(plugin->arglist->value));
  if( processes[p].timeout == 0)
    processes[p].timeout = plugin->timeout;
 
