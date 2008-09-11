@@ -33,7 +33,7 @@ the administration shell-script for the OpenVAS Server.
 OpenVAS Admin Scripts (text domain 'openvas-scripts')
 ---------------------------------------------------
 
-Unfortunetly, for shell scripts the updating process does
+Unfortunately, for shell scripts the updating process does
 not work automatically. Even the initial preparation was
 largly handcrafted after these steps did some automatic
 extraction (sample for adduser):
