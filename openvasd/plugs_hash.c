@@ -188,9 +188,9 @@ static void plugins_send_md5_byid(globals)
  {
   struct arglist * args = plugins->value;
   char * fname = plug_get_path(args);
-  int id = plug_get_id(args);
+  char * oid = plug_get_oid(args);
   char * md5   = file_hash(fname);
-  auth_printf(globals, "%d <|> %s\n", id, md5);
+  auth_printf(globals, "%s <|> %s\n", oid, md5);
   efree(&md5);
   plugins = plugins->next;
  }
@@ -240,12 +240,6 @@ static void plugins_send_md5_byname(struct arglist * globals)
 
 void plugins_send_md5(struct arglist * globals)
 {
- ntp_caps * caps = arg_get_value(globals, "ntp_caps");
- if( caps == NULL )
-  return;
- if(caps->md5_by_name)
-	plugins_send_md5_byname(globals);
- else
 	plugins_send_md5_byid(globals);
 }
 

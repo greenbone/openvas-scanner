@@ -1,3 +1,22 @@
+2008-09-15  Michael Wiegand <michael.wiegand@intevation.de>
+
+	Fixes to re-enable plugin loading after the OID changes. Please note
+	that the selection of the plugins chosen by the user at the start of a
+	new scan is _very_ slow at the moment since the plugin retrieval
+	function is not yet optimized.
+
+	* openvasd/nasl_plugins.c (nasl_plugin_launch): Call
+	preferences_plugin_timeout with OID instead of ID.
+
+	* openvasd/plugs_hash.c (plugins_send_md5_byid): Send OID instead of ID
+	when sending MD5 hashes for plugin. (plugins_send_md5): Removed
+	handling of obsolete md5_by_name capability.
+
+	* openvasd/comm.c: Added new get_plug_by_oid function to retrieve
+	plugins based on OID. Note that this makes plugin selection _very_ slow
+	at the moment since the ID based optimized retrieval could no longer be
+	used. (comm_setup_plugins) Changed to parse and use OIDs instead of IDs.
+
 2008-09-10  Michael Wiegand <michael.wiegand@intevation.de>
 
 	Make the plugin timeout settings use OID instead of ID.

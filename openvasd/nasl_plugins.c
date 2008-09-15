@@ -157,7 +157,7 @@ nasl_plugin_launch(globals, plugin, hostinfos, preferences, kb, name)
  arg_add_value(d, "preferences", ARG_STRING, -1, preferences);
  
  category = plug_get_category(plugin); 
- timeout = preferences_plugin_timeout(preferences, plug_get_id(plugin));
+ timeout = preferences_plugin_timeout(preferences, plug_get_oid(plugin));
  if( timeout == 0 )
  {
   if(category == ACT_SCANNER)

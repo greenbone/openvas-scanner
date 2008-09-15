@@ -498,6 +498,17 @@ static struct arglist * get_plug_by_id(struct arglist ** array, int id, int num_
  return _get_plug_by_id(array, id, 0, num_plugins, num_plugins); 
 }
 
+static struct arglist * get_plug_by_oid(struct arglist * plugins, char * oid)
+{
+  while(plugins != NULL)
+  {
+    if (!strcmp(plug_get_oid(plugins->value), oid)) return plugins;
+    plugins = plugins->next;
+  }
+
+  return NULL;
+}
+
 /*-------------------------------------------------------------------------------*/
 
 
@@ -512,6 +523,7 @@ void comm_setup_plugins( struct arglist * globals, char * list )
   struct arglist * p = plugins;
   struct arglist ** array;
   char * t;
+  char * oid;
   int i;
   int enable = 0;
   
@@ -526,15 +538,13 @@ void comm_setup_plugins( struct arglist * globals, char * list )
      plug_set_launch(p->value, enable);
      p = p->next;
     }
-
+    
   if ( num_plugins == 0 || enable != 0  )
 	return;
-
   
-
   /* Store the plugins in an array for quick access */
   p = plugins;
-  i = 0;
+/*  i = 0;
   array = emalloc ( num_plugins * sizeof(struct arglist ** ));
   while ( p->next != NULL ) 
   {
@@ -542,31 +552,26 @@ void comm_setup_plugins( struct arglist * globals, char * list )
    p = p->next;
   }
  
-  qsort( array, num_plugins, sizeof(struct arglist * ), qsort_cmp);
+  qsort( array, num_plugins, sizeof(struct arglist * ), qsort_cmp);*/
  
   t = list;
-  while ( t[0] == ';' ) t ++;
+  oid = strtok(t, ";");
 
   /* Read the list provided by the user and enable the plugins accordingly */
-  for ( ;; )
+  while (oid != NULL)
+  {
+    p = get_plug_by_oid(plugins, oid);
+    if(p != NULL)
     {
-       id = atoi(t);
-       if ( id != 0 )
-	{
-         p = get_plug_by_id(array, id, num_plugins);
-         if ( p != NULL ) plug_set_launch(p->value, LAUNCH_RUN);
-#ifdef DEBUG
-	 else printf("PLUGIN ID %d NOT FOUND!!!\n", id);
-#endif
-	}
-
-	t = strchr(t + 1, ';');
-	if ( t != NULL ) t ++;
-	else break;
+      plug_set_launch(p->value, LAUNCH_RUN);
     }
+#ifdef DEBUG
+    else log_write("PLUGIN ID %s NOT FOUND!!!\n", oid);
+#endif
+    oid = strtok(NULL, ";");
+  }
 
-
-  efree(&array);
+//   efree(&array);
 }
 
 void
