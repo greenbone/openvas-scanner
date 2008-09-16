@@ -1,3 +1,14 @@
+2008-09-16  Michael Wiegand <michael.wiegand@intevation.de>
+
+	Optimized plugin selection with OIDs. Selection is now considerably
+	faster.
+
+	* openvasd/comm.c: (qsort_cmp) Comparator now compares OIDs instead of
+	IDs. (_get_plug_by_id) Removed. (_get_plug_by_oid) Adapted from
+	_get_plug_by_id to use OIDs. (get_plug_by_id) Removed. (get_plug_by_oid)
+	Adapted from get_plug_by_id to use OIDs. (comm_setup_plugins) Re-enabled
+	plugin sorting.
+
 2008-09-15  Michael Wiegand <michael.wiegand@intevation.de>
 
 	Fixes to re-enable plugin loading after the OID changes. Please note

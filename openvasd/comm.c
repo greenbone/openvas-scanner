@@ -459,54 +459,40 @@ static int qsort_cmp( const void * a, const void * b )
  struct arglist ** plugin_a = (struct arglist**) a;
  struct arglist ** plugin_b = (struct arglist**) b;
 
- int id_a = plug_get_id((*plugin_a)->value);
- int id_b = plug_get_id((*plugin_b)->value);
-
- return id_a - id_b;
+ return(strcmp(plug_get_oid((*plugin_a)->value), plug_get_oid((*plugin_b)->value)));
 }
 
-static struct arglist * _get_plug_by_id(struct arglist ** array, int id, int start, int end, int rend )
+static struct arglist * _get_plug_by_oid(struct arglist ** array, char * oid, int start, int end, int rend )
 {
   int mid;
-  int plugin_id;
+  char * plugin_oid;
 
   if ( start >= rend ) 
-	return NULL;
+    return NULL;
 
   if ( start == end )
   {
-  plugin_id = plug_get_id(array[start]->value);
-   if ( plugin_id == id ) 
-        return array[start];
-   else 
-        return NULL;
+    plugin_oid = plug_get_oid(array[start]->value);
+    if (strcmp(plugin_oid, oid) == 0 )
+      return array[start];
+    else 
+      return NULL;
   }
 
   mid = ( start + end ) / 2;
-  plugin_id = plug_get_id(array[mid]->value);
-  if ( plugin_id > id ) 
-	return _get_plug_by_id(array, id, start, mid, rend );
-  else if ( plugin_id < id )
-	return _get_plug_by_id(array, id, mid + 1, end, rend );
+  plugin_oid = plug_get_oid(array[mid]->value);
+  if ( strcmp(plugin_oid, oid) > 0 ) 
+    return _get_plug_by_oid(array, oid, start, mid, rend );
+  else if ( strcmp(plugin_oid, oid) < 0 )
+    return _get_plug_by_oid(array, oid, mid + 1, end, rend );
 
   return array[mid];
 }
 
 
-static struct arglist * get_plug_by_id(struct arglist ** array, int id, int num_plugins )
+static struct arglist * get_plug_by_oid(struct arglist ** array, char * oid, int num_plugins )
 {
- return _get_plug_by_id(array, id, 0, num_plugins, num_plugins); 
-}
-
-static struct arglist * get_plug_by_oid(struct arglist * plugins, char * oid)
-{
-  while(plugins != NULL)
-  {
-    if (!strcmp(plug_get_oid(plugins->value), oid)) return plugins;
-    plugins = plugins->next;
-  }
-
-  return NULL;
+  return _get_plug_by_oid(array, oid, 0, num_plugins, num_plugins);
 }
 
 /*-------------------------------------------------------------------------------*/
@@ -517,7 +503,6 @@ static struct arglist * get_plug_by_oid(struct arglist * plugins, char * oid)
  */
 void comm_setup_plugins( struct arglist * globals, char * list )
 {
-  int id;
   int num_plugins=0;
   struct arglist * plugins = arg_get_value(globals, "plugins");
   struct arglist * p = plugins;
@@ -544,15 +529,15 @@ void comm_setup_plugins( struct arglist * globals, char * list )
   
   /* Store the plugins in an array for quick access */
   p = plugins;
-/*  i = 0;
+  i = 0;
   array = emalloc ( num_plugins * sizeof(struct arglist ** ));
   while ( p->next != NULL ) 
   {
    array[i++] = p;
    p = p->next;
   }
- 
-  qsort( array, num_plugins, sizeof(struct arglist * ), qsort_cmp);*/
+
+  qsort( array, num_plugins, sizeof(struct arglist * ), qsort_cmp);
  
   t = list;
   oid = strtok(t, ";");
@@ -560,18 +545,16 @@ void comm_setup_plugins( struct arglist * globals, char * list )
   /* Read the list provided by the user and enable the plugins accordingly */
   while (oid != NULL)
   {
-    p = get_plug_by_oid(plugins, oid);
+    p = get_plug_by_oid(array, oid, num_plugins);
     if(p != NULL)
-    {
       plug_set_launch(p->value, LAUNCH_RUN);
-    }
 #ifdef DEBUG
     else log_write("PLUGIN ID %s NOT FOUND!!!\n", oid);
 #endif
     oid = strtok(NULL, ";");
   }
 
-//   efree(&array);
+  efree(&array);
 }
 
 void
