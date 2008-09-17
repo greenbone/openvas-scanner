@@ -431,22 +431,13 @@ if(preferences_benice(prefs))nice(10);
 
    arg_set_value(globals, "plugins", -1, plugins);
 
-   if(!caps->fast_login)
+   comm_send_md5_plugins(globals);
+   if(caps->ntp_11)
    {
-    if(!caps->md5_caching)
-     comm_send_pluginlist(globals);
-    else
-     comm_send_md5_plugins(globals);
-   
-   
-   if(caps->ntp_11){
        comm_send_preferences(globals);
        comm_send_rules(globals);
        ntp_1x_send_dependencies(globals);
-       }
    }
-   else if(caps->md5_caching)
-	   comm_send_md5_plugins(globals);
 
    /* become process group leader and the like ... */
    start_daemon_mode();

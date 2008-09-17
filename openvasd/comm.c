@@ -50,58 +50,6 @@
 #define TRUE (!FALSE)
 #endif
 
-void
-extract_extensions(caps, banner)
- ntp_caps * caps;
- char * banner;
-{
- char * t;
- t = strchr(&(banner[1]), '<');
- if(!t)
-  return;
- 
- t++;
- if ( *t == '\0' ) return;
- t++;
- if ( *t == '\0' ) return;
- 
- for(;;)
- {
-  char * n = strchr(t, ' ');
-  if(!n)
-   return;
-  n[0] = '\0';
-  
-  /*
-   * MD5 caching of the plugins on the client side
-   */
-  if(!strcmp(t, "md5_caching"))
-   caps->md5_caching = 1;
-   
-  else if(!strcmp(t, "md5_by_name"))
-   caps->md5_by_name = 1;
-
-  caps->plugins_xrefs = 1;
-  caps->timestamps = 1;
-
-  /*
-   * We send the name of the host AND its IP
-   */
-  if(!strcmp(t, "dns"))
-    caps->dns = 1;
-
-  /* 
-   * Immediately jump to the wait order
-   */
-  else if(!strcmp(t, "fast_login"))
-    caps->fast_login = 1;
-    
-  n[0] = ' ';
-  t = &(n[1]);
-  if(!t[0])break;
-  if(t[0] == '>')break;
- }
-}
 
 /*
  * comm_init() :
@@ -122,40 +70,23 @@ ntp_caps* comm_init(soc)
    EXIT(0);
    
   buf[sizeof(buf) - 1] = '\0';
-  extract_extensions(caps, buf);
-  if(!strncmp(buf, "< NTP/1.0 >", 11))
-    {
-      caps->ntp_version = NTP_10;
-      caps->ciphered = FALSE;
-      caps->ntp_11 = FALSE;
-      caps->scan_ids = FALSE;
-      caps->pubkey_auth = FALSE;
-      nsend(soc, "< NTP/1.0 >\n",12,0);
-    }
-  else if(!strncmp(buf, "< NTP/1.1 >", 11))
-    {
-      caps->ntp_version = NTP_11;
-      caps->ciphered = FALSE;
-      caps->ntp_11 = TRUE;
-      caps->scan_ids = FALSE;
-      caps->pubkey_auth = FALSE;
-      nsend(soc, "< NTP/1.1 >\n", 12, 0);
-    }  
-  else if(!strncmp(buf, "< NTP/1.2 >", 11))
+  if(!strncmp(buf, "< OTP/1.0 >", 11))
     {
       caps->ntp_version = NTP_12;
       caps->ciphered = FALSE;
       caps->ntp_11 = TRUE;
       caps->scan_ids = TRUE;
       caps->pubkey_auth = FALSE;
-      nsend(soc, "< NTP/1.2 >\n", 12, 0);
+      caps->plugins_xrefs = TRUE;
+      caps->timestamps = FALSE;
+      nsend(soc, "< OTP/1.0 >\n", 12, 0);
     }
   /*ENABLE_CRYPTO_LAYER*/
   else
     {
       EXIT(0);
     }
-  log_write("Client requested protocol version %d.\n", caps->ntp_version);
+  log_write("Client requested protocol %s.\n", buf);
   return(caps);
 }
 
