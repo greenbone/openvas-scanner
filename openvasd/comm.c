@@ -225,21 +225,16 @@ plugin_send_infos(globals, oid)
  if(!plugins)
   return;
 
- while(plugins->next)
+ while(plugins)
  {
   struct arglist * args = plugins->value;
-  if (args && !strcmp(oid, plug_get_oid(args))) break;
-  plugins = plugins->next;
-  }
-
-  /* XXX: This code looks like it will fail for the
-   * last plugin in the list: info will no be send
-   * because next ist NULL.
-   */
-  if(plugins->next)
+  if (args && !strcmp(oid, plug_get_oid(args)))
   {
-   send_plug_info(globals, plugins);
+    send_plug_info(globals, plugins);
+    return;
   }
+  plugins = plugins->next;
+ }
 }
 
 

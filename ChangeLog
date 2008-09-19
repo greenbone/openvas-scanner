@@ -1,3 +1,13 @@
+2008-09-19  Michael Wiegand <michael.wiegand@intevation.de>
+
+	* openvasd/ntp_11.c (ntp_11_prefs, ntp_11_send_prefs_errors): Removed
+	support for PREFERENCES	ERROR message type as it was never properly
+	implemented and is now obsolete.
+
+	* openvasd/comm.c (plugin_send_infos): Tidied up plugin search code,
+	fixed possible bug where an plugin would have not been found if it was
+	the last plugin in the list.
+
 2008-09-17  Michael Wiegand <michael.wiegand@intevation.de>
 
 	Changed communication protocol to use OTP exclusively now. Removed the

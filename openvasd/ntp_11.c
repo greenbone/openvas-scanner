@@ -243,7 +243,6 @@ static int ntp_11_prefs(globals)
  char * value;
 
  problem = ntp_11_read_prefs(globals);
- if(!problem)ntp_11_send_prefs_errors(globals);
  caps = arg_get_value(globals, "ntp_caps");
  prefs = arg_get_value(globals, "preferences");
  value = arg_get_value(prefs, "ntp_escape_crlf");
@@ -341,17 +340,6 @@ ntp_11_read_prefs(globals)
  efree(&input);
  return(0);
 }
-
-
-static void ntp_11_send_prefs_errors(globals)
- struct arglist * globals;
-{
- /* not implemented yet */
- auth_printf(globals, "SERVER <|> PREFERENCES_ERRORS <|>\n");
- auth_printf(globals, "<|> SERVER\n");
-}
-
-
 
 static int 
 ntp_11_rules(globals)
