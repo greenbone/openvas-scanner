@@ -55,9 +55,7 @@
 #endif
 
 
-static int ntp_11_prefs(struct arglist *);
 static int ntp_11_read_prefs(struct arglist *);
-static void ntp_11_send_prefs_errors(struct arglist *);
 static int ntp_11_rules(struct arglist *);
 static int ntp_11_long_attack(struct arglist *, char *);
 static int ntp_11_recv_file(struct arglist*);
@@ -126,7 +124,7 @@ int ntp_11_parse_input(globals, input)
       }
 
     case CREQ_PREFERENCES:
-      ntp_11_prefs(globals);
+      ntp_11_read_prefs(globals);
       break;
 
     case CREQ_RULES:
@@ -234,23 +232,6 @@ ntp_11_long_attack(globals, orig)
   arg_add_value(preferences, "TARGET", ARG_STRING, strlen(target), target);
  return 0;
 } 
-static int ntp_11_prefs(globals)
- struct arglist * globals;
-{
- int problem;
- ntp_caps * caps;
- struct arglist * prefs;
- char * value;
-
- problem = ntp_11_read_prefs(globals);
- caps = arg_get_value(globals, "ntp_caps");
- prefs = arg_get_value(globals, "preferences");
- value = arg_get_value(prefs, "ntp_escape_crlf");
- if(value)caps->escape_crlf = 1;
- return(problem);
-}
-
-
 
 static int 
 ntp_11_read_prefs(globals)

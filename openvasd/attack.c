@@ -518,7 +518,6 @@ attack_network(globals)
   int global_socket		= -1;
   struct arglist * preferences  = NULL;
   struct arglist * plugins      = NULL;
-  ntp_caps* caps		= NULL;
   struct openvas_rules *rules	= NULL;
   struct arglist * rejected_hosts =  NULL;
   int restoring    = 0;
@@ -543,7 +542,6 @@ attack_network(globals)
   global_socket  = (int)arg_get_value(globals, "global_socket");
  
   plugins        = arg_get_value(globals, "plugins");
-  caps           = arg_get_value(globals, "ntp_caps");
   rules          = arg_get_value(globals, "rules");
   rejected_hosts = emalloc(sizeof(struct arglist));
   

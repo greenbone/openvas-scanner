@@ -1,7 +1,21 @@
+2008-09-22  Jan-Oliver Wagner <jan-oliver.wagner@intevation.de>
+
+	* openvasd/ntp_11.c (ntp_11_parse_input): Replaced call of ntp_11_prefs()
+	by calling ntp_11_read_prefs() for PREFERENCES command. ntp_11_prefs
+	does nothing relevant except calling ntp_11_read_prefs.
+	(ntp_11_prefs): Removed. It only handled escape_crlf which is fixed to
+	true for OTP.
+
+	* openvasd/attack.c (attack_network): Removed retrieval of ntp_caps as
+	these are not used here anyway.
+
+	* openvasd/comm.c (comm_init): Removed any consideration of ntpcaps
+	element "plugins_xrefs", "timestamps" and "ciphered".
+
 2008-09-19  Michael Wiegand <michael.wiegand@intevation.de>
 
 	* openvasd/ntp_11.c (ntp_11_prefs, ntp_11_send_prefs_errors): Removed
-	support for PREFERENCES	ERROR message type as it was never properly
+	support for PREFERENCES ERROR message type as it was never properly
 	implemented and is now obsolete.
 
 	* openvasd/comm.c (plugin_send_infos): Tidied up plugin search code,

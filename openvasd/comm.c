@@ -72,13 +72,10 @@ ntp_caps* comm_init(soc)
   buf[sizeof(buf) - 1] = '\0';
   if(!strncmp(buf, "< OTP/1.0 >", 11))
     {
-      caps->ntp_version = NTP_12;
-      caps->ciphered = FALSE;
+      caps->ntp_version = OTP_10;
       caps->ntp_11 = TRUE;
       caps->scan_ids = TRUE;
       caps->pubkey_auth = FALSE;
-      caps->plugins_xrefs = TRUE;
-      caps->timestamps = FALSE;
       nsend(soc, "< OTP/1.0 >\n", 12, 0);
     }
   /*ENABLE_CRYPTO_LAYER*/
