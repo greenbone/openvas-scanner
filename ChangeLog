@@ -1,5 +1,10 @@
 2008-09-23  Jan-Oliver Wagner <jan-oliver.wagner@intevation.de>
 
+	* openvasd/comm.c (comm_init):  Removed setting of scan_ids
+	and pubkey_auth.
+
+2008-09-23  Jan-Oliver Wagner <jan-oliver.wagner@intevation.de>
+
 	* openvasd/openvasd.c (server_thread): Removed
 	conditional for ntp_11, because this is standard for otp.
 

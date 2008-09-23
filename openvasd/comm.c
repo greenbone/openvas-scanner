@@ -72,8 +72,6 @@ ntp_caps* comm_init(soc)
   if(!strncmp(buf, "< OTP/1.0 >", 11))
     {
       caps->ntp_version = OTP_10;
-      caps->scan_ids = TRUE;
-      caps->pubkey_auth = FALSE;
       nsend(soc, "< OTP/1.0 >\n", 12, 0);
     }
   /*ENABLE_CRYPTO_LAYER*/
