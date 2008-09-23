@@ -1,3 +1,18 @@
+2008-09-23  Jan-Oliver Wagner <jan-oliver.wagner@intevation.de>
+
+	* openvasd/openvasd.c (server_thread): Removed
+	conditional for ntp_11, because this is standard for otp.
+
+	* openvasd/comm.c (comm_init):  Removed setting of ntp_11.
+	(comm_wait_order): Removed conditional for ntp_11, because
+	this is standard for otp.
+
+	* openvasd/Makefile: Removed module ntp_10.
+
+	* openvasd/ntp_10.h, openvasd/ntp_10.c: Removed. The only
+	method defined there is not needed anymore since no ntp_10
+	fallback does make sense with otp.
+
 2008-09-22  Jan-Oliver Wagner <jan-oliver.wagner@intevation.de>
 
 	* openvasd/ntp_11.c (ntp_11_parse_input): Replaced call of ntp_11_prefs()

@@ -432,12 +432,9 @@ if(preferences_benice(prefs))nice(10);
    arg_set_value(globals, "plugins", -1, plugins);
 
    comm_send_md5_plugins(globals);
-   if(caps->ntp_11)
-   {
-       comm_send_preferences(globals);
-       comm_send_rules(globals);
-       ntp_1x_send_dependencies(globals);
-   }
+   comm_send_preferences(globals);
+   comm_send_rules(globals);
+   ntp_1x_send_dependencies(globals);
 
    /* become process group leader and the like ... */
    start_daemon_mode();

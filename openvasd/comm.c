@@ -36,7 +36,6 @@
 #include "comm.h" 
 #include "sighand.h"
 #include "ntp.h"
-#include "ntp_10.h"
 #include "ntp_11.h"
 #include "log.h"
 #include "plugs_hash.h"
@@ -73,7 +72,6 @@ ntp_caps* comm_init(soc)
   if(!strncmp(buf, "< OTP/1.0 >", 11))
     {
       caps->ntp_version = OTP_10;
-      caps->ntp_11 = TRUE;
       caps->scan_ids = TRUE;
       caps->pubkey_auth = FALSE;
       nsend(soc, "< OTP/1.0 >\n", 12, 0);
@@ -349,7 +347,6 @@ void
 comm_wait_order(globals)
 	struct arglist * globals;
 {
-  ntp_caps* caps = arg_get_value(globals, "ntp_caps");
   int soc        = (int)arg_get_value(globals, "global_socket");
 
   for (;;) {
@@ -364,15 +361,9 @@ comm_wait_order(globals)
     if (str [0] == '\0') {
       if(!is_client_present(soc)) EXIT(0);
     }
-   
-    if(caps->ntp_11) {
-      if (ntp_11_parse_input (globals, str) == 0) break ;
-      continue ;
-    }
-    if (ntp_10_parse_input (globals, str) == 0) break ;
-    
-  }
 
+    if (ntp_11_parse_input (globals, str) == 0) break ;
+  }
 }
 
 

@@ -15,7 +15,6 @@ OBJS = auth.o \
        processes.o \
        users.o \
        utils.o \
-       ntp_10.o \
        ntp_11.o \
        otp_1_0.o \
        parser.o \
@@ -83,9 +82,6 @@ log.o : log.c log.h
 
 sighand.o : sighand.c sighand.h
 	$(CC) $(OPENVAS_CFLAGS) $(OPENVAS_INCLUDE) -c sighand.c 
-
-ntp_10.o  : ntp_10.c ntp_10.h
-	$(CC) $(OPENVAS_CFLAGS) $(OPENVAS_INCLUDE) -c ntp_10.c 
 
 ntp_11.o  : ntp_11.c ntp_11.h
 	$(CC) $(OPENVAS_CFLAGS) $(OPENVAS_INCLUDE) -c ntp_11.c 
