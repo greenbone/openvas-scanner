@@ -65,61 +65,61 @@ int init_directories() {
 	home_dir = strdup(p);
 	buf = malloc(4096);
 
-	sprintf(buf, "%s/etc", home_dir); 
+	snprintf(buf, 4096, "%s/etc", home_dir); 
 	OPENVASD_CONFDIR = strdup(buf);
 
-	sprintf(buf, "%s/var/openvas", home_dir); 
+	snprintf(buf, 4096, "%s/var/openvas", home_dir); 
 	OPENVASD_STATEDIR = strdup(buf);
 
-	sprintf(buf, "%s/etc/openvas", home_dir); 
+	snprintf(buf, 4096, "%s/etc/openvas", home_dir); 
 	OPENVASD_DATADIR = strdup(buf);
 
-	sprintf(buf, "%s/lib/openvas", home_dir); 
+	snprintf(buf, 4096, "%s/lib/openvas", home_dir); 
 	OPENVASD_LIBDIR = strdup(buf);
 
-	sprintf(buf, "%s/lib/openvas/plugins", home_dir); 
+	snprintf(buf, 4096, "%s/lib/openvas/plugins", home_dir); 
 	OPENVASD_PLUGINS = strdup(buf);
 
-	sprintf(buf, "%s/lib/openvas/reports", home_dir); 
+	snprintf(buf, 4096, "%s/lib/openvas/reports", home_dir); 
 	OPENVASD_REPORTS = strdup(buf);
 
-	sprintf(buf, "%s/logs", OPENVASD_STATEDIR); 
+	snprintf(buf, 4096, "%s/logs", OPENVASD_STATEDIR); 
 	OPENVASD_LOGS = strdup(buf);
 
-	sprintf(buf, "%s/users", OPENVASD_STATEDIR); 
+	snprintf(buf, 4096, "%s/users", OPENVASD_STATEDIR); 
 	OPENVASD_LOGINS = strdup(buf);
 
-	sprintf(buf, "%s/jobs", OPENVASD_STATEDIR); 
+	snprintf(buf, 4096, "%s/jobs", OPENVASD_STATEDIR); 
 	OPENVASD_JOBS = strdup(buf);
 
-	sprintf(buf, "%s/openvas/openvasd.conf", OPENVASD_CONFDIR); 
+	snprintf(buf, 4096, "%s/openvas/openvasd.conf", OPENVASD_CONFDIR); 
 	OPENVASD_CONF = strdup(buf);
 
-	sprintf(buf, "%s/-datapool", OPENVASD_STATEDIR); 
+	snprintf(buf, 4096, "%s/-datapool", OPENVASD_STATEDIR); 
 	OPENVASD_DATAPOOL = strdup(buf);
 
-	sprintf(buf, "%s/openvasd.rules", OPENVASD_DATADIR); 
+	snprintf(buf, 4096, "%s/openvasd.rules", OPENVASD_DATADIR); 
 	OPENVASD_RULES = strdup(buf);
 
-	sprintf(buf, "%s/openvasd.users", OPENVASD_DATADIR); 
+	snprintf(buf, 4096, "%s/openvasd.users", OPENVASD_DATADIR); 
 	OPENVASD_USERS = strdup(buf);
 
-	sprintf(buf, "%s/openvasd.user-pwds", OPENVASD_DATADIR); 
+	snprintf(buf, 4096, "%s/openvasd.user-pwds", OPENVASD_DATADIR); 
 	OPENVASD_USERPWDS = strdup(buf);
 
-	sprintf(buf, "%s/openvasd.private-keys", OPENVASD_DATADIR); 
+	snprintf(buf, 4096, "%s/openvasd.private-keys", OPENVASD_DATADIR); 
 	OPENVASD_KEYFILE = strdup(buf);
 
-	sprintf(buf, "%s/openvasd.logpipe", OPENVASD_DATADIR); 
+	snprintf(buf, 4096, "%s/openvasd.logpipe", OPENVASD_DATADIR); 
 	OPENVASD_LOGPIPE = strdup(buf);
 
-	sprintf(buf, "%s/openvasd.messages", OPENVASD_LOGS); 
+	snprintf(buf, 4096, "%s/openvasd.messages", OPENVASD_LOGS); 
 	OPENVASD_MESSAGES = strdup(buf);
 
-	sprintf(buf, "%s/openvasd.dump", OPENVASD_LOGS); 
+	snprintf(buf, 4096, "%s/openvasd.dump", OPENVASD_LOGS); 
 	OPENVASD_DEBUGMSG = strdup(buf);
 
-	sprintf(buf, "%s/auth/openvasd.user-keys", OPENVASD_DATADIR);
+	snprintf(buf, 4096, "%s/auth/openvasd.user-keys", OPENVASD_DATADIR);
 	OPENVASD_USERKEYS = strdup(buf);
 
 	free(buf);

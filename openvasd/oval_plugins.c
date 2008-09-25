@@ -291,7 +291,7 @@ void ovaldi_launch(struct arglist * g_args)
   sc_file = fopen(sc_filename, "w");
   if(sc_file == NULL)
   {
-    sprintf(result_string, "Could not launch ovaldi for OVAL definition %s: Could not create SC file.\n\n", basename);
+    snprintf(result_string, 256, "Could not launch ovaldi for OVAL definition %s: Could not create SC file.\n\n", basename);
     post_note(g_args, 0, result_string);
     efree(&sc_filename);
   }
@@ -331,7 +331,7 @@ void ovaldi_launch(struct arglist * g_args)
     if(kb_item_get_str(kb, "ssh/login/release") == NULL)
     {
       log_write("Could not identify release, not collecting package information.\n");
-      sprintf(result_string, "Could not collect remote package information for OVAL definition %s: Result may be incomplete.\n\n", basename);
+      snprintf(result_string, 256, "Could not collect remote package information for OVAL definition %s: Result may be incomplete.\n\n", basename);
       post_note(g_args, 0, result_string);
 
     }
@@ -441,7 +441,7 @@ void ovaldi_launch(struct arglist * g_args)
 
     if(!g_file_get_contents(results_filename, &filebuffer, &length, NULL))
     {
-      sprintf(result_string,
+      snprintf(result_string, 256,
               "Could not return results for OVAL definition %s: Results file not found.\n\n",
               basename);
       post_note(g_args, 0, result_string);
@@ -453,13 +453,13 @@ void ovaldi_launch(struct arglist * g_args)
       g_markup_parse_context_parse(context, filebuffer, length, NULL);
       g_free(filebuffer);
       g_markup_parse_context_free(context);
-      sprintf(result_string, "The OVAL definition %s returned the following result: %s\n\n", basename, result);
+      snprintf(result_string, 256, "The OVAL definition %s returned the following result: %s\n\n", basename, result);
       post_note(g_args, 0, result_string);
     }
   }
   else
   {
-    sprintf(result_string, "Could not launch ovaldi for OVAL definition %s: Launch failed. (Is ovaldi in your PATH?)\n\n", basename);
+    snprintf(result_string, 256, "Could not launch ovaldi for OVAL definition %s: Launch failed. (Is ovaldi in your PATH?)\n\n", basename);
     post_note(g_args, 0, result_string);
     log_write("Could not launch ovaldi!\n");
   }
