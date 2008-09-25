@@ -53,6 +53,14 @@ gboolean in_results = FALSE;
 gboolean in_results_definition = FALSE;
 gchar * result;
 
+void child_setup (gpointer user_data) {
+  // TODO: ovaldi should run with as few privileges as possible. To do this, this
+  // setup function for the ovaldi child, which will be called between fork()
+  // and exec(), should setuid to a configurable, non-privileged user. This user
+  // has to be able to read the SC file and the selected definitions and to
+  // write to /tmp/.
+}
+
 void start_element (GMarkupParseContext *context, const gchar *element_name,
                     const gchar **attribute_names,
                     const gchar **attribute_values, gpointer user_data,
@@ -418,7 +426,7 @@ void ovaldi_launch(struct arglist * g_args)
   argv[8] = NULL;
 //   log_write("Launching ovaldi with: %s\n", g_strjoinv(" ", argv));
 
-  if(g_spawn_sync(NULL, argv, NULL, 0, NULL, NULL, NULL, NULL, NULL, NULL))
+  if(g_spawn_sync(NULL, argv, NULL, 0, child_setup, NULL, NULL, NULL, NULL, NULL))
   {
     GMarkupParser parser; 
     GMarkupParseContext *context = NULL;
