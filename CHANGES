@@ -1,3 +1,42 @@
+openvas-server 2.0-beta1 (2008-09-25)
+
+This release is a first beta version of the upcoming 2.0 release of OpenVAS.
+It introduces support for the cleaned up and improved OpenVAS Transport Protocol
+(OTP, replacing NTP), the new OpenVAS NVT OID scheme and support for the Open
+Vulnerability and Assessment Language (OVAL).
+The protocol cleanup also removed some features that were considered unsecure,
+unneeded or wrongly placed.
+
+OpenVAS 2.0 will introduce a full set of new modules for OpenVAS Server
+(openvas-libraries, openvas-libnasl and openvas-server) and a new
+OpenVAS-Client. The only  module OpenVAS 1.0 and OpenVAS 2.0 will  share is
+openvas-plugins. This means that the OpenVAS NVT Feed is compatible with both
+generations of OpenVAS.
+
+However, in case you plan to try out the new generation of OpenVAS, you should
+install it separately from OpenVAS 1.0 installation. Instructions on how to do
+this will be added to the OpenVAS homepage after all relevant modules are
+released as 2.0-beta1. A separate announcement will officially start the beta
+testing phase for OpenVAS 2.0.
+
+Main changes in this release (compared to release 1.0.1):
+
+* Updated packaging files for Debian.
+* Support for plugin upload has been removed from OpenVAS-Server.
+* Support for detached scans has been removed from OpenVAS-Server.
+* Switch from Nessus Transport Protocol 1.2 to OpenVAS Transport Protocol (OTP) 1.0.
+* New command line parsing implementation for openvasd (internal change).
+* Fix for memory management issues in plugin scheduler that resulted in aborted
+  scan sessions under certain circumstances.
+* Updated scripts for user management; this fixes issues with new users being
+  unable to login under certain circumstances.
+* Initial support for OVAL definitions.
+* Updated documentation.
+* Switch from Nessus plugin IDs to NVT OIDs (internal change, also applies for OTP)
+
+Many thanks to everyone who has contributed to this release: Tim Brown, Javier
+Fernandez-Sanguino, Jan Wagner, Jan-Oliver Wagner and Michael Wiegand
+
 openvas-server 1.0.1 (2008-07-03)
 
 This release contains new and improved packaging files for various distributions

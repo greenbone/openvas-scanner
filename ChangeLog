@@ -1,5 +1,13 @@
 2008-09-25  Michael Wiegand <michael.wiegand@intevation.de>
 
+	Doing the 2.0-beta1 release.
+
+	* VERSION: Set to 2.0.0.beta1
+
+	* CHANGES: Updated.
+
+2008-09-25  Michael Wiegand <michael.wiegand@intevation.de>
+
 	* openvasd/oval_plugins.c (ovaldi_launch), openvasd/dirutils.c
 	(init_directories): Changed unsafe uses of sprintf to use snprintf with
 	the correct buffer sizes.
