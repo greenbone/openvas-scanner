@@ -1,5 +1,11 @@
 2008-09-25  Michael Wiegand <michael.wiegand@intevation.de>
 
+	Post release version bump.
+
+	* VERSION: Set to 2.0.0.beta2.SVN
+
+2008-09-25  Michael Wiegand <michael.wiegand@intevation.de>
+
 	Doing the 2.0-beta1 release.
 
 	* VERSION: Set to 2.0.0.beta1
