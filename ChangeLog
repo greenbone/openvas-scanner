@@ -1,5 +1,9 @@
 2008-09-25  Michael Wiegand <michael.wiegand@intevation.de>
 
+	* MANIFEST: Updated.
+
+2008-09-25  Michael Wiegand <michael.wiegand@intevation.de>
+
 	* openvasd/oval_plugins.c: Added notice regarding running ovaldi with
 	reduced privileges.
 

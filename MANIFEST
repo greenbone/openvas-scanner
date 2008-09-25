@@ -17,7 +17,7 @@ doc/openvas-mkcert.8
 doc/openvas-mkcert-client.1
 doc/openvas-mkrand.1
 doc/openvas-rmuser.8
-doc/otp/otp_specification_10.txt
+doc/otp_specification_10.txt
 doc/session_saving.txt
 doc/TODO.txt
 include/config.h
@@ -55,8 +55,6 @@ openvasd/Makefile
 openvasd/nasl_plugins.c
 openvasd/nes_plugins.c
 openvasd/nsp.h
-openvasd/ntp_10.c
-openvasd/ntp_10.h
 openvasd/ntp_11.c
 openvasd/ntp_11.h
 openvasd/openvas-check-signature.c
