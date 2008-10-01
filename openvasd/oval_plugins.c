@@ -187,12 +187,7 @@ struct arglist * oval_plugin_add(char * folder, char * name,
 
     args = emalloc(sizeof(struct arglist));
 
-    // NOTE: Due to the way OIDs/IDs are assigned right now, this does lead to
-    // an incorrect OID being set and reported to the client. This is due to
-    // restrictions in NTP and will likely change once the switch to OTP is
-    // complete.
     plug_set_oid(args, oid);
-    plug_set_id(args, (int)id); // <- Overwrites OID with Legacy OID
 
     plug_set_version(args, version);
     plug_set_name(args, title, NULL);
