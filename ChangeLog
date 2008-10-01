@@ -1,3 +1,10 @@
+2008-10-01  Michael Wiegand <michael.wiegand@intevation.de>
+
+	* doc/otp_specification_10.txt: Removed; the specification for OTP has
+	been updated and moved to the OpenVAS compendium.
+
+	* MANIFEST: Updated.
+
 2008-09-25  Michael Wiegand <michael.wiegand@intevation.de>
 
 	Post release version bump.
