@@ -5,7 +5,7 @@
 	* configure, configure.in: GLIB needs to be quoted when we pass it to
 	PKG_CHECK_MODULES in configure.in, otherwise m4 tries to expand it.
 
-	* Makefile.in: Now makes $localstatedir/openvas/private/CA
+	* Makefile: Now makes $localstatedir/openvas/private/CA
 
 2008-10-01  Michael Wiegand <michael.wiegand@intevation.de>
 
