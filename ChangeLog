@@ -1,3 +1,10 @@
+2008-10-12  Tim Brown <timb@nth-dimension.org.uk>
+
+	* configure: Refreshed auto* (autoconf) as ./configure was barfing.
+
+	* configure, configure.in: GLIB needs to be quoted when we pass it to
+	PKG_CHECK_MODULES in configure.in, otherwise m4 tries to expand it.
+
 2008-10-01  Michael Wiegand <michael.wiegand@intevation.de>
 
 	* openvasd/oval_plugins.c: Changed to set OIDs exclusively; setting IDs

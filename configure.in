@@ -198,7 +198,8 @@ Minimum required is $NEED_OPENVASLIBNASL_VERSION .
 )
 fi
 
-PKG_CHECK_MODULES(GLIB, glib-2.0 >= 2.2.0, HAVE_GLIB="yes", AC_MSG_ERROR("glib not found"))
+dnl GLIB needs to be quoted in the next line otherwise m4 tries to expand it#
+PKG_CHECK_MODULES([GLIB], glib-2.0 >= 2.2.0, HAVE_GLIB="yes", AC_MSG_ERROR("glib not found"))
 AC_SUBST(GLIB_CFLAGS)
 AC_SUBST(GLIB_LIBS)
 
