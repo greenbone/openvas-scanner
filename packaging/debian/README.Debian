@@ -1,6 +1,6 @@
 
                               OpenVAS in Debian
-                              +--------------+
+                              +---------------+
 
 How to use OpenVAS?
 -------------------
@@ -59,7 +59,7 @@ init script will not be run when the system starts up, it is only configured
 to stop openvasd when the system stops (to prevent it from being killed and 
 give it a chance to stop graciously)
 
-If you want to use that init script to start up ness you just have to 
+If you want to use that init script to start up openvasd you just have to 
 execute '/etc/init.d/openvas-server start' and you are done.
 
 If you want to have the init-scripts run on system startup then either run:
@@ -90,18 +90,19 @@ allowing them to launch remote attacks to any system your OpenVAS server is
 connected to. If you have local security checks it's equivalente to granting 
 them SSH access to the remote hosts you have configured (if any)
 
-2.- The default configuration does _not_ allow plugin uploads
-
-3.- The openvas-plugins package does _not_ automatically run 
+2.- The openvas-plugins package does _not_ automatically run 
 openvas-update-plugins, you have to do this manually. Review the plugins
 retrieved by this before you run your OpenVAS server
 
-5- Be careful when setting up remote SSH access so that OpenVAS can run
+3.- Be careful when setting up remote SSH access so that OpenVAS can run
 local security checks since you are (effectively) given console access
 to remote servers. Always use a non-root account for this.
 
--------------------------------
-Fri, 22 Aug 2008 03:18:34 +0200
+4.- Also be aware that by default openvasd only listens on port 1241 on
+127.0.0.1. If you wish to change this, then check out /etc/default/openvas-server.
 
-Javier Fernandez-Sanguino <jfs_AT_debian.org>
+-------------------------------
+Sun, 12 Oct 2008 12:54:51 +0100
+
+Tim Brown <timb@nth-dimension.org.uk>
 

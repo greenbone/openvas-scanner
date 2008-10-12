@@ -31,7 +31,7 @@ endif
 ifneq "$(wildcard /usr/share/misc/config.guess)" ""
 	cp -f /usr/share/misc/config.guess config.guess
 endif
-	./configure $(CROSS) --prefix=/usr --sysconfdir=/etc --localstatedir=/var --mandir=\$${prefix}/share/man --infodir=\$${prefix}/share/info --sharedstatedir=/var --libdir=\$${localstatedir}/lib --enable-tcpwrappers --enable-save-sessions --enable-save-kb CFLAGS="$(CFLAGS)" LDFLAGS="-Wl,-z,defs"
+	./configure $(CROSS) --prefix=/usr --sysconfdir=/etc --localstatedir=/var --mandir=\$${prefix}/share/man --infodir=\$${prefix}/share/info --enable-tcpwrappers --enable-save-sessions --enable-save-kb CFLAGS="$(CFLAGS)" LDFLAGS="-Wl,-z,defs"
 
 
 build: build-stamp
@@ -51,6 +51,7 @@ clean:
 	rm -f build-stamp 
 
 	# Add here commands to clean up after the build process.
+	touch openvas.tmpl
 	[ ! -f Makefile ] || $(MAKE) distclean
 	rm -f config.sub config.guess
 
@@ -62,12 +63,9 @@ install: build
 	dh_clean -k 
 	dh_installdirs
 
-	# Add here commands to install the package into debian/openvas-server.
-	$(MAKE) prefix=$(CURDIR)/debian/openvas-server/usr sysconfdir=$(CURDIR)/debian/openvas-server/etc localstatedir=$(CURDIR)/debian/openvas-server/var sharedstatedir=$(CURDIR)/debian/openvas-server/var install
-	install -m 640 debian/openvasd.conf debian/openvas-server/etc/openvas
-	mv $(CURDIR)/debian/openvas-server/usr/include/openvas/* $(CURDIR)/debian/openvas-server-dev/usr/include/openvas/
-	mv $(CURDIR)/debian/openvas-server/usr/bin/openvasd-config $(CURDIR)/debian/openvas-server-dev/usr/bin/
-
+	# Add here commands to install the package into debian/tmp
+	$(MAKE) prefix=$(CURDIR)/debian/tmp/usr sysconfdir=$(CURDIR)/debian/tmp/etc localstatedir=$(CURDIR)/debian/tmp/var install
+	install -m 640 debian/openvasd.conf debian/tmp/etc/openvas
 
 # Build architecture-independent files here.
 binary-indep: build install
@@ -79,12 +77,12 @@ binary-arch: build install
 	dh_testroot
 	dh_installchangelogs CHANGES
 	dh_installdocs
-	dh_installexamples
-	dh_install
+	dh_install --sourcedir=debian/tmp
+	( cd debian/openvas-server-dev/usr/share/doc/ ; rm -rf openvas-server-dev; ln -s openvas-server openvas-server-dev; )
 	dh_installdebconf	
 	dh_installlogrotate
 	dh_installinit -n -r -u stop 20 0 6 .
-	dh_installman
+	dh_installman --sourcedir=debian/tmp
 	dh_link
 	dh_strip
 	dh_compress

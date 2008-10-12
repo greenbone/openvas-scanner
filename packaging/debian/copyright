@@ -21,6 +21,13 @@ Copyright:
      * Portions Copyright (C) 2006 Software in the Public Interest, Inc.
      * Based on work Copyright (C) 1998 - 2006 Tenable Network Security, Inc.
 
+  - Translations:
+     * Copyright (C) 2006 Matthias Julius [de]
+     * Copyright (C) 1998 - 2005 Renaud Deraison [fr]
+     * Copyright (C) 2005 Software in the Public Interest, SPI Inc [es]
+     * Copyright (C) 2007 Pedro Ribeiro <p.m42.ribeiro@gmail.com> [pt]
+     * Copyright (C) 1998 - 2006 Tenable Network Security, Inc [cs, pt_BR, sv]
+
 Other copyrights:
 
  - Autoconf:
@@ -37,6 +44,7 @@ Authors:
      * Axel Nennker
      * Beirne Kornarksi
      * Benoit Brodard
+     * Bernhard Herzog
      * Boris Wolf
      * Brian
      * Christoph Puppe
@@ -51,10 +59,11 @@ Authors:
      * H D Moore
      * Iouri Pletnev
      * Isaac Dawson
+     * Jan Wagner
+     * Jan-Oliver Wagner
      * Javier Fernandez-Sanguino
      * Jay
      * Jenni Scott
-     * Jordan Hrycaj
      * Jordan Hrycaj
      * Julien Bordet
      * Laurent FACQ
@@ -63,6 +72,7 @@ Authors:
      * Michael Slifcak
      * Michel Arboi
      * Michel Scheidell
+     * Michael Wiegand
      * Nicolas Dubee
      * Nicolas Pouvesle
      * Pasi Eronen
@@ -73,6 +83,7 @@ Authors:
      * Rodolfo Baader
      * Simon Law
      * Stephen Friedl
+     * Tim Brown
      * Xueyong Zhi
      * Zorgon
 

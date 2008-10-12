@@ -1,25 +1,13 @@
 Source: openvas-server
 Section: admin
 Priority: optional
-Maintainer: Tim Brown <timb@nth-dimension.org.uk>
-Uploaders: Javier Fernandez-Sanguino Pen~a <jfs@debian.org>
-Build-Depends: debhelper (>= 6), autotools-dev, libgcrypt11-dev, libgnutls-dev, libopenvas1-dev (>= 1.0.2), libopenvasnasl1-dev (>= 1.0.1), libpcap0.8-dev, libwrap0-dev, po-debconf
-Standards-Version: 3.7.3
+Maintainer: Debian OpenVAS Maintainers <openvas-distro-deb@wald.intevation.org>
+Uploaders: Tim Brown <timb@nth-dimension.org.uk>, Javier Fernandez-Sanguino Pen~a <jfs@debian.org>, Jan Wagner <waja@cyconet.org>
+Build-Depends: debhelper (>= 6), autotools-dev, libgcrypt11-dev, libgnutls-dev, libopenvas2-dev (>= 2.0.0), libopenvasnasl2-dev (>= 2.0.0), libpcap0.8-dev, libwrap0-dev, po-debconf
 Homepage: http://www.openvas.org/
-
-Package: openvas-server-dev
-Architecture: any
-Depends: ${shlibs:Depends}, ${misc:Depends}
-Description: OpenVAS server static libraries and headers
- The OpenVAS Security Scanner is a security auditing tool. It makes
- possible to test security modules in an attempt to find vulnerable
- spots that should be fixed.
- .
- It is made up of two parts: a server, and a client. The server/daemon,
- openvasd, is in charge of the attacks, whereas the client,
- OpenVAS-Client, provides the user a nice X11/GTK+ interface.
- .
- This package contains the required static libraries, headers of the server.
+Vcs-Browser: http://wald.intevation.org/plugins/scmsvn/viewcvs.php/trunk/openvas-server/packaging/debian/?root=openvas
+Vcs-Svn: https://svn.wald.intevation.org/svn/openvas/trunk/openvas-server/packaging/debian/
+Standards-Version: 3.8.0
 
 Package: openvas-server
 Architecture: any
@@ -34,3 +22,17 @@ Description: Remote network security auditor, the server
  OpenVAS-Client, provides the user a nice X11/GTK+ interface.
  .
  This package contains the server.
+
+Package: openvas-server-dev
+Architecture: any
+Depends: openvas-server (= ${binary:Version}) ${shlibs:Depends}, ${misc:Depends}
+Description: OpenVAS server static libraries and headers
+ The OpenVAS Security Scanner is a security auditing tool. It makes
+ possible to test security modules in an attempt to find vulnerable
+ spots that should be fixed.
+ .
+ It is made up of two parts: a server, and a client. The server/daemon,
+ openvasd, is in charge of the attacks, whereas the client,
+ OpenVAS-Client, provides the user a nice X11/GTK+ interface.
+ .
+ This package contains the required static libraries, headers of the server.

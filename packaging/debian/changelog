@@ -1,3 +1,15 @@
+openvas-server (2.0.0.beta1-1) unstable; urgency=low
+
+  * New upstream release
+  * Updated copyright with details of translators
+  * Adjusted dependencies to use libopenvas2-dev and libopenvasnasl2-dev
+  * Updated standards version
+  * Changed defaults so that it listens on 1241 on 127.0.0.1 by default
+  * Updated README.Debian
+  * Cleaned up the rules
+
+ -- Tim Brown <timb@nth-dimension.org.uk>  Sun, 12 Oct 2008 12:50:27 +0100
+
 openvas-server (1.0.1-1) unstable; urgency=low
 
   * New upstream release 

@@ -7,6 +7,20 @@
 
 	* Makefile: Now makes $localstatedir/openvas/private/CA
 
+	* packaging/debian/changelog: Updated.
+
+	* packaging/debian/copyright: Updated with details of translators.
+
+	* packaging/debian/rules: Cleaned up.
+
+	* packaging/debian/README.Debian: Updated.
+
+	* packaging/debian/control: Updated standards version. Adjusted
+	dependencies to use libopenvas2-dev and libopenvasnasl2-dev.
+
+	* packaging/debian/openvas-server.default: Changed defaults so that it
+	listens on 1241 on 127.0.0.1 by default.
+
 2008-10-01  Michael Wiegand <michael.wiegand@intevation.de>
 
 	* openvasd/oval_plugins.c: Changed to set OIDs exclusively; setting IDs
