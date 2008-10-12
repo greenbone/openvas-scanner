@@ -62,6 +62,8 @@ install-bin:
 	@test -d $(DESTDIR)${OPENVASD_STATEDIR}/tmp || $(INSTALL_DIR) -m 755 $(DESTDIR)${OPENVASD_STATEDIR}/tmp
 	@test -d $(DESTDIR)${OPENVASD_STATEDIR}/jobs  || $(INSTALL_DIR) -m 755 $(DESTDIR)${OPENVASD_STATEDIR}/jobs
 	@test -d $(DESTDIR)${OPENVASD_STATEDIR}/CA || $(INSTALL_DIR) -m 755 $(DESTDIR)${OPENVASD_STATEDIR}/CA
+	@test -d $(DESTDIR)${OPENVASD_STATEDIR}/private || $(INSTALL_DIR) -m 700 $(DESTDIR)${OPENVASD_STATEDIR}/private
+	@test -d $(DESTDIR)${OPENVASD_STATEDIR}/private/CA || $(INSTALL_DIR) -m 700 $(DESTDIR)${OPENVASD_STATEDIR}/private/CA
 	@test -d $(DESTDIR)${OPENVASD_LOGDIR} || $(INSTALL_DIR) -m 755 $(DESTDIR)${OPENVASD_LOGDIR}
 	@test -d $(DESTDIR)${localstatedir}/run || $(INSTALL_DIR) -m 755 $(DESTDIR)${localstatedir}/run
 	@test -d $(DESTDIR)${includedir} || $(INSTALL_DIR) -m 755 $(DESTDIR)${includedir}
