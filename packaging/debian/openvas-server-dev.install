@@ -1,2 +1,3 @@
 usr/bin/openvasd-config
 usr/include/openvas/*
+usr/share/man/man1/openvasd-config.1

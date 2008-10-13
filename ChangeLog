@@ -21,6 +21,11 @@
 	* packaging/debian/openvas-server.default: Changed defaults so that it
 	listens on 1241 on 127.0.0.1 by default.
 
+	* doc/openvasd-config.1: Added to keep lintian quiet.
+
+	* packaging/debian/openvas-server-dev.dirs, openvas-server-dev.install,
+	Makefile: Updated.
+
 2008-10-01  Michael Wiegand <michael.wiegand@intevation.de>
 
 	* openvasd/oval_plugins.c: Changed to set OIDs exclusively; setting IDs

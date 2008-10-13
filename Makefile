@@ -92,6 +92,7 @@ install-man:
 	@test -d $(DESTDIR)${mandir} || $(INSTALL_DIR) -m 755 $(DESTDIR)${mandir}
 	@test -d $(DESTDIR)${mandir}/man1 || $(INSTALL_DIR) -m 755 $(DESTDIR)${mandir}/man1
 	@test -d $(DESTDIR)${mandir}/man8 || $(INSTALL_DIR) -m 755 $(DESTDIR)${mandir}/man8
+	$(INSTALL) -c -m 0444 doc/openvasd-config.1 $(DESTDIR)${mandir}/man1/openvasd-config.1
 	$(INSTALL) -c -m 0444 doc/openvas-check-signature.1 $(DESTDIR)${mandir}/man1/openvas-check-signature.1
 	$(INSTALL) -c -m 0444 doc/openvas-mkrand.1 $(DESTDIR)${mandir}/man1/openvas-mkrand.1
 	$(INSTALL) -c -m 0444 doc/openvasd.8 $(DESTDIR)${mandir}/man8/openvasd.8
