@@ -53,7 +53,6 @@ openvasd/log.h
 openvasd/Makefile
 openvasd/nasl_plugins.c
 openvasd/nes_plugins.c
-openvasd/nsp.h
 openvasd/ntp_11.c
 openvasd/ntp_11.h
 openvasd/openvas-check-signature.c

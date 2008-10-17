@@ -1,3 +1,9 @@
+2008-10-17  Felix Wolfsteller <felix.wolfsteller@intevation.de>
+
+	* openvasd/nsp.h: Removed. Contained include guard and gpl only.
+
+	* Manifest: Updated (removed openvasd/nsp.h).
+
 2008-10-12  Tim Brown <timb@nth-dimension.org.uk>
 
 	* configure: Refreshed auto* (aclocal && autoconf) as ./configure was barfing.
