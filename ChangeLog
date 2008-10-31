@@ -1,3 +1,8 @@
+2008-10-31  Felix Wolfsteller <felix.wolfsteller@intevation.de>
+
+	* openvasd/nasl_plugins.c (nasl_plugin_add): Replaced obsolete ID check
+	 by OID check (might have excluded id-less scripts), added comment.
+
 2008-10-17  Felix Wolfsteller <felix.wolfsteller@intevation.de>
 
 	* openvasd/nsp.h: Removed. Contained include guard and gpl only.

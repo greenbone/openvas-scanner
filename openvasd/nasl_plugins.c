@@ -47,15 +47,19 @@ static pl_class_t* nasl_plugin_init(struct arglist* prefs,
 static void nasl_thread(struct arglist *);
 
 
-/*
- *  Add *one* .nasl plugin to the plugin list
+/** 
+ * Add *one* .nasl plugin to the plugin list and return the pointer to it.
+ * The plugin is first attempted to be loaded from the cache (.desc) calling
+ * load_store_plugin. If that fails, it is parsed (via execute_nasl_script).
+ * @param folder Path to the plugin folder.
+ * @param name File-name of the plugin.
+ * @param plugins The arglist that the plugin shall be added to.
+ * @param preferences The plugins preferences.
+ * @return Pointer to the plugin (as arglist). NULL in case of errors.
  */
 static struct arglist *
-nasl_plugin_add(folder, name, plugins, preferences)
-     char * folder;
-     char * name;
-     struct arglist * plugins;
-     struct arglist * preferences;
+nasl_plugin_add(char* folder, char* name, struct arglist* plugins, 
+               struct arglist* preferences)
 {
  char fullname[PATH_MAX+1];
  struct arglist *plugin_args;
@@ -90,7 +94,7 @@ nasl_plugin_add(folder, name, plugins, preferences)
    return NULL;
   }
  plug_set_path(plugin_args, fullname);
- if(plug_get_id(plugin_args) > 0)
+ if(plug_get_oid(plugin_args) != NULL)
 	{
  	 store_plugin(plugin_args, name);
  	 plugin_args = store_load_plugin(folder, name, preferences);
@@ -105,7 +109,7 @@ nasl_plugin_add(folder, name, plugins, preferences)
 	return NULL;
 	}
 
- if(plug_get_id(plugin_args) == 0)
+ if(plug_get_oid(plugin_args) == NULL)
  {
   plugin_free(plugin_args);
   return NULL;
