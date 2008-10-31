@@ -37,6 +37,7 @@ client_request_t otp_1_0_get_client_request(str)
   char * str;
 {
   if (!strcmp(str, "ATTACHED_FILE")) return(CREQ_ATTACHED_FILE);
+  if (!strcmp(str, "CERTIFICATES")) return(CREQ_CERTIFICATES);
   if (!strcmp(str, "LONG_ATTACK")) return(CREQ_LONG_ATTACK);
   if (!strcmp(str, "OPENVAS_VERSION")) return(CREQ_OPENVAS_VERSION);
   if (!strcmp(str, "PLUGIN_INFO")) return(CREQ_PLUGIN_INFO);
@@ -59,4 +60,16 @@ void otp_1_0_server_openvas_version(globals)
   auth_printf(globals,
               "SERVER <|> OPENVAS_VERSION <|> %s <|> SERVER\n",
               OPENVAS_VERSION);
+}
+
+/* Send server response to certificate request by client.
+ */
+void otp_1_0_server_send_certificates(struct arglist* globals)
+{
+  auth_printf(globals,
+              "SERVER <|> CERTIFICATES\n");
+  // while ... certificates
+// TODO: felix CR#17 implement certificate sending here 
+  auth_printf(globals, "%s\n","certificates");
+  auth_printf(globals, "<|> SERVER\n");
 }

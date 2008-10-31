@@ -80,34 +80,40 @@ nasl_plugin_add(char* folder, char* name, struct arglist* plugins,
  if(arg_get_type(preferences, "language")>=0)
   lang = arg_get_value(preferences, "language");
 
+ /* FIXME: felix Signature information and checks (no sig file, preferences, 
+  renewed sig file) should be done and extracted here (atm done in 
+  store_load_plugin). */
  plugin_args = store_load_plugin(folder, name, preferences);
  if ( plugin_args == NULL )
  {
- plugin_args = emalloc(sizeof(struct arglist));
- arg_add_value(plugin_args, "preferences", ARG_ARGLIST, -1, (void*)preferences);
+   plugin_args = emalloc(sizeof(struct arglist));
+   arg_add_value(plugin_args, "preferences", ARG_ARGLIST, -1, (void*)preferences);
  
- if(execute_nasl_script(plugin_args, fullname, cache_dir, nasl_mode) < 0)
+   if(execute_nasl_script(plugin_args, fullname, cache_dir, nasl_mode) < 0)
    {
    printf("%s could not be loaded\n", fullname);
    arg_set_value(plugin_args, "preferences", -1, NULL);
    arg_free_all(plugin_args);
    return NULL;
-  }
- plug_set_path(plugin_args, fullname);
- if(plug_get_oid(plugin_args) != NULL)
-	{
- 	 store_plugin(plugin_args, name);
- 	 plugin_args = store_load_plugin(folder, name, preferences);
- 	}
-	 
+   }
+
+   plug_set_path(plugin_args, fullname);
+
+   plug_set_sign_key_ids( plugin_args, "dummy_key_id_string");
+   
+   if(plug_get_oid(plugin_args) != NULL)
+   {
+   store_plugin(plugin_args, name);
+   plugin_args = store_load_plugin(folder, name, preferences);
+   }
  }
  
-  if ( plugin_args == NULL ) 
-	{
-       /* Discard invalid plugins */
-	fprintf(stderr, "%s failed to load\n", name);
-	return NULL;
-	}
+ if ( plugin_args == NULL ) 
+ {
+  /* Discard invalid plugins */
+  fprintf(stderr, "%s failed to load\n", name);
+  return NULL;
+ }
 
  if(plug_get_oid(plugin_args) == NULL)
  {

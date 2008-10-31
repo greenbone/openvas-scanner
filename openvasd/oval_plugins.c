@@ -197,6 +197,8 @@ struct arglist * oval_plugin_add(char * folder, char * name,
 
     store_plugin(args, name);
     args = store_load_plugin(folder, name, preferences);
+
+    // FIXME: felix get the signers key ids here (analog to nasl_plugins)
   }
 
   if(args != NULL)
@@ -211,8 +213,6 @@ struct arglist * oval_plugin_add(char * folder, char * name,
     }
   }
   return args;
-
-  return NULL;
 }
 
 /*

@@ -1,3 +1,40 @@
+2008-10-31  Felix Wolfsteller <felix.wolfstelller@intevation.de>
+
+	Steps to an implementation of Change Request #17 
+	(http://www.openvas.org/openvas-cr-17.html - "Make NVT signatures 
+	available to OpenVAS-Client").
+	Uses the new field "sign_key_ids" of plugin-structures and the .desc 
+	store. Until soon, just a dummy- string will be used and eventually
+	transmitted by the server.
+
+	IMPORTANT: Breaks compatibility and renders old server .desc- cache 
+	files useless. You will need an openvas-libraries revision >= 1654 in 
+	order to compile and a client of revision >= 1654 in order to work with 
+	the server. There might be problems with transmitting OVAL plugins to 
+	the client.
+
+	* openvasd/nasl_plugins.c (nasl_plugin_add) : Set a dummy key_ids-
+	string, improved readability (a bit).
+
+	* openvasd/pluginload.c: Typo in comment fixed.
+
+	* openvasd/oval_plugins.c: Stated a FIXME and removed unreachable NULL
+	return.
+
+	* openvasd/otp_1_0.h: Added CREQ_CERTIFICATES symbol.
+
+	* openvasd/otp_1_0.c (otp_1_0_get_client_request,
+	otp_1_0_server_send_certificates): Added CREQ_CERTIFICATES parsing and 
+	a method stub to send the certificates.
+
+	* openvasd/otp_1_0.c (ntp_11_parse_input): Handling of 
+	CREQ_CERTIFICATES added.
+
+	* openvasd/comm.c (send_plug_info): Sends the additional key_ids field.
+
+	* openvasd/comm.c (comm_setup_plugins): Comment and use of symbol 
+	instead of numeral.
+
 2008-10-31  Felix Wolfsteller <felix.wolfsteller@intevation.de>
 
 	* openvasd/nasl_plugins.c (nasl_plugin_add): Replaced obsolete ID check

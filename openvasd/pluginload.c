@@ -200,7 +200,7 @@ plugins_reload_from_dir(preferences, plugins, folder, be_quiet)
   closedir(dir);
   
   /*
-   * Add the the plugins
+   * Add the plugins
    */
 
   if ( be_quiet == 0 ) {

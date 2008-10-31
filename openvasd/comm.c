@@ -197,12 +197,19 @@ send_plug_info(globals, plugins)
        strcat(str, xref);
      }
 
+     {
+        char * sign_keys = plug_get_sign_key_ids(args);
+        strcat(str, " <|> ");
+        if(sign_keys != NULL)
+          strcat(str, sign_keys);
+     }
+
+      //log_write("Server sends plug like this: %s\n",str);
       auth_printf(globals, "%s\n", str);	
       efree(&str);	  
       }
       
       if(desc != NULL)efree(&desc);
-    
 }
 
 
@@ -411,7 +418,11 @@ static struct arglist * get_plug_by_oid(struct arglist ** array, char * oid, int
 
 
 /* 
- * Enable the plugins which have been selected by the user 
+ * Enable the plugins which have been selected by the user, or all if 
+ * list == NULL or list == "-1;";
+ * @param globals The Global context to retrieve plugins from.
+ * @param list A user (client) defined semicolon delimited list, of plugin(oids)
+ *             that shall be enabled. If NULL or "-1;" all plugins are enabled!
  */
 void comm_setup_plugins( struct arglist * globals, char * list )
 {
@@ -422,7 +433,7 @@ void comm_setup_plugins( struct arglist * globals, char * list )
   char * t;
   char * oid;
   int i;
-  int enable = 0;
+  int enable = LAUNCH_DISABLED;
   
   if ( p == NULL ) return;
   if ( list == NULL ) list = "-1;";
