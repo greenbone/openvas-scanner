@@ -1,4 +1,9 @@
-2008-11-5  Felix Wolfsteller <felix.wolfstelller@intevation.de>
+2008-11-05  Michael Wiegand <michael.wiegand@intevation.de>
+
+	* openvasd/attack.c (launch_plugin): Use OIDs instead of IDs when
+	logging information about NVT execution to KB.
+
+2008-11-05  Felix Wolfsteller <felix.wolfstelller@intevation.de>
 
 	Work on Change Request #17 (http://www.openvas.org/openvas-cr-17.html - 
 	"OTP: Make NVT signatures available to OpenVAS-Client").
@@ -13,7 +18,6 @@
 	the cerrtificate sending.
 
 	* openvasd/comm.d (send_plug_info): increased size of buffer to send pl.
-
 
 2008-11-04  Michael Wiegand <michael.wiegand@intevation.de>
 

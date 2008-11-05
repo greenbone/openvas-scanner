@@ -208,10 +208,10 @@ launch_plugin(globals, sched, plugin, hostname, cur_plug, num_plugs, hostinfos, 
 
     if(save_kb(globals))
     {
-     int id = plug_get_id(args);
-     char asc_id[30];
+     char * oid = plug_get_oid(args);
+     char asc_id[100];
 	 
-     snprintf(asc_id, sizeof(asc_id), "Launched/%d", id);
+     snprintf(asc_id, sizeof(asc_id), "Launched/%s", oid);
      if(kb_item_get_int(kb, asc_id) > 0 &&
 	    !save_kb_replay_check(globals, category))
 	  {
