@@ -166,7 +166,7 @@ send_plug_info(globals, plugins)
 	}
 	
        str = emalloc(strlen(a) + strlen(b) + strlen(desc) + strlen(d) +
-      		  strlen(plug_get_family(args))+ 1024);
+      		  strlen(plug_get_family(args))+ 1024 + 128);
        sprintf(str, "%s <|> %s <|> %s <|> %s <|> %s <|> %s <|> %s",
                plug_get_oid(args), a,
 		  categories[j],
@@ -204,7 +204,6 @@ send_plug_info(globals, plugins)
           strcat(str, sign_keys);
      }
 
-      //log_write("Server sends plug like this: %s\n",str);
       auth_printf(globals, "%s\n", str);	
       efree(&str);	  
       }

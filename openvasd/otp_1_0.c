@@ -29,6 +29,7 @@
 #include <network.h>
 
 #include "otp_1_0.h"
+#include <gpgme.h>
 
 /* Find the enum identifier for the client request which is given
  * as string.
@@ -66,10 +67,42 @@ void otp_1_0_server_openvas_version(globals)
  */
 void otp_1_0_server_send_certificates(struct arglist* globals)
 {
-  auth_printf(globals,
-              "SERVER <|> CERTIFICATES\n");
-  // while ... certificates
-// TODO: felix CR#17 implement certificate sending here 
-  auth_printf(globals, "%s\n","certificates");
+  auth_printf(globals, "SERVER <|> CERTIFICATES\n");
+  // TODO: felix CR#17 - implement certificate sending here 
+  
+  // Certificate retrieval
+  // Send dummystrings, basically 
+  gpgme_error_t err;
+  gpgme_ctx_t ctx = init_openvas_gpgme_ctx();
+
+  err = gpgme_op_keylist_ext_start(ctx, NULL, 0, 0);
+  if (err)
+    {
+       log_write("otp_1_0_send_certificates: trouble finding gpgme keys.\n");
+    }
+
+  while (!err)
+    {
+       gpgme_key_t key;
+       err = gpgme_op_keylist_next (ctx, &key);
+       if (err)
+          break;
+       log_write ("keyinfo  %s, %d, %s fpr: %s sk %s, ot %c\n", key->issuer_name, key->secret, key->uids->name, key->subkeys->fpr, key->subkeys->keyid, key->owner_trust);//, key.name, key.email);
+       auth_printf(globals, "%s <|> %s <|> %s <|> %d \n", key->subkeys->fpr,
+                                     key->uids->name, "untrusted", 0); //+ asci armored key
+       gpgme_key_release (key);
+    }
+
+  if (!err)
+    {
+    if (gpg_err_code (err) != GPG_ERR_EOF)
+      {
+        log_write("otp_1_0_send_certificates: gpgme can not list keys: %s\n", gpgme_strerror (err));
+      }
+    }
+
+  gpgme_release(&ctx);
+  // certificate retrieval end
+
   auth_printf(globals, "<|> SERVER\n");
 }

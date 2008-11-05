@@ -1,3 +1,20 @@
+2008-11-5  Felix Wolfsteller <felix.wolfstelller@intevation.de>
+
+	Work on Change Request #17 (http://www.openvas.org/openvas-cr-17.html - 
+	"OTP: Make NVT signatures available to OpenVAS-Client").
+	Replaced sending of dummy certificate key oids by "real" fingerprints.
+	Sends dummy certificate information.
+
+	* openvasd/nasl_plugins.c (nasl_plugin_add): Replaced the dummy string 
+	for certificate fingerprints by real value from store / certificate 
+	file, corrected behaviour for missing signature files.
+
+	* openvasd/otp_1_0.c: Added gpgme dependency and a dummy strings for 
+	the cerrtificate sending.
+
+	* openvasd/comm.d (send_plug_info): increased size of buffer to send pl.
+
+
 2008-11-04  Michael Wiegand <michael.wiegand@intevation.de>
 
 	* configure.in: Updated version requirements for -libraries and
