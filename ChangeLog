@@ -1,3 +1,8 @@
+2008-11-06  Michael Wiegand <michael.wiegand@intevation.de>
+
+	* openvasd/oval_plugins.c (ovaldi_launch): Added G_SPAWN_SEARCH_PATH
+	flag to g_spawn_sync call.
+
 2008-11-05  Michael Wiegand <michael.wiegand@intevation.de>
 
 	* openvasd/attack.c (launch_plugin): Use OIDs instead of IDs when

@@ -421,7 +421,7 @@ void ovaldi_launch(struct arglist * g_args)
   argv[8] = NULL;
 //   log_write("Launching ovaldi with: %s\n", g_strjoinv(" ", argv));
 
-  if(g_spawn_sync(NULL, argv, NULL, 0, child_setup, NULL, NULL, NULL, NULL, NULL))
+  if(g_spawn_sync(NULL, argv, NULL, G_SPAWN_SEARCH_PATH, child_setup, NULL, NULL, NULL, NULL, NULL))
   {
     GMarkupParser parser; 
     GMarkupParseContext *context = NULL;
