@@ -1,3 +1,9 @@
+2008-11-6  Felix Wolfsteller <felix.wolfstelller@intevation.de>
+	
+	* openvasd/otp_1_0.c (otp_1_0_server_send_certificates): Fixed bug 
+	(wrong type released) that caused definite server crash.
+
+
 2008-11-06  Michael Wiegand <michael.wiegand@intevation.de>
 
 	* openvasd/oval_plugins.c (ovaldi_launch): Added G_SPAWN_SEARCH_PATH

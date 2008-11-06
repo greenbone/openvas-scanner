@@ -101,7 +101,7 @@ void otp_1_0_server_send_certificates(struct arglist* globals)
       }
     }
 
-  gpgme_release(&ctx);
+  gpgme_release(ctx);
   // certificate retrieval end
 
   auth_printf(globals, "<|> SERVER\n");
