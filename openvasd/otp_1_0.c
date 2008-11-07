@@ -69,7 +69,7 @@ void otp_1_0_server_send_certificates(struct arglist* globals)
 {
   auth_printf(globals, "SERVER <|> CERTIFICATES\n");
   // TODO: felix CR#17 - implement certificate sending here 
-  
+  // Need a -D_FILE_OFFSET_BITS=64 in order to read key files
   // Certificate retrieval
   // Send dummystrings, basically 
   gpgme_error_t err;
@@ -78,7 +78,7 @@ void otp_1_0_server_send_certificates(struct arglist* globals)
   err = gpgme_op_keylist_ext_start(ctx, NULL, 0, 0);
   if (err)
     {
-       log_write("otp_1_0_send_certificates: trouble finding gpgme keys.\n");
+       log_write("otp_1_0_send_certificates: gpgme key listing error: %s.\n", strerror(err));
     }
 
   while (!err)
@@ -87,9 +87,11 @@ void otp_1_0_server_send_certificates(struct arglist* globals)
        err = gpgme_op_keylist_next (ctx, &key);
        if (err)
           break;
-       log_write ("keyinfo  %s, %d, %s fpr: %s sk %s, ot %c\n", key->issuer_name, key->secret, key->uids->name, key->subkeys->fpr, key->subkeys->keyid, key->owner_trust);//, key.name, key.email);
-       auth_printf(globals, "%s <|> %s <|> %s <|> %d \n", key->subkeys->fpr,
-                                     key->uids->name, "untrusted", 0); //+ asci armored key
+       auth_printf(globals, "%s <|> %s <|> %s <|> %d <|> %s\n",
+                              key->subkeys->fpr,
+                                     key->uids->name, "untrusted",
+                                                  8, // key size
+                                                    "dummykey");
        gpgme_key_release (key);
     }
 
@@ -100,9 +102,8 @@ void otp_1_0_server_send_certificates(struct arglist* globals)
         log_write("otp_1_0_send_certificates: gpgme can not list keys: %s\n", gpgme_strerror (err));
       }
     }
-
+  
   gpgme_release(ctx);
-  // certificate retrieval end
-
+  // Certificate retrieval end
   auth_printf(globals, "<|> SERVER\n");
 }

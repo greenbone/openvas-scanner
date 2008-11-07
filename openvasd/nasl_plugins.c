@@ -89,16 +89,13 @@ nasl_plugin_add(char* folder, char* name, struct arglist* plugins,
    if(preferences_nasl_no_signature_check(preferences) == 0 && sign_fprs == NULL)
    {
     printf("%s: nvt is not signed and thus ignored\n", fullname);
-    //efree(&sign_fprs);
     return NULL;
    }
    else if(sign_fprs == NULL)
    {
-    printf("%s seems to be not signed at all!\n", fullname);
     sign_fprs = "";
    }
 
-   printf("%s is signed by: %s!\n", fullname, sign_fprs);
   
    plugin_args = emalloc(sizeof(struct arglist));
    arg_add_value(plugin_args, "preferences", ARG_ARGLIST, -1, (void*)preferences);

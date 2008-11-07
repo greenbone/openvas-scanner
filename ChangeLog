@@ -1,4 +1,18 @@
-2008-11-6  Felix Wolfsteller <felix.wolfstelller@intevation.de>
+2008-11-07  Felix Wolfsteller <felix.wolfstelller@intevation.de>
+
+	* openvasd/nasl_plugins: Removed printfs.
+
+	* openvasd/otp_1_0.c (otp_1_0_server_send_certificates): Extended dummy
+	string, slightly better error msg.
+
+	* oopenvasd/oval_plugins.c (oval_plugin_add): Check certificates, add
+	fingerprint string.
+
+	* oopenvasd/oval_plugins.c (oval_plugin_launch): TODO added to avoid
+	execution of unsigned plugins, if server preference is set.
+
+
+2008-11-06  Felix Wolfsteller <felix.wolfstelller@intevation.de>
 	
 	* openvasd/otp_1_0.c (otp_1_0_server_send_certificates): Fixed bug 
 	(wrong type released) that caused definite server crash.

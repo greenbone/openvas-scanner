@@ -163,10 +163,30 @@ struct arglist * oval_plugin_add(char * folder, char * name,
   guint length = 0;
 
   snprintf(fullname, sizeof(fullname), "%s/%s", folder, name);
+
+  if ( preferences_nasl_no_signature_check(preferences) == 0 
+       && nasl_verify_signature( fullname) != 0)
+  {
+    log_write("%s: signature of nvt could not been verified/ is missing.");
+    return NULL;
+  }
+
   args = store_load_plugin(folder, name, preferences);
 
   if(args == NULL)
   {
+    char* sign_fprs = nasl_extract_signature_fprs( fullname );
+    // If server accepts signed plugins only, discard if signature file missing.
+    if(preferences_nasl_no_signature_check(preferences) == 0 && sign_fprs == NULL)
+    {
+      printf("%s: nvt is not signed and thus ignored\n", fullname);
+      return NULL;
+    }
+    else if(sign_fprs == NULL)
+    {
+      sign_fprs = "";
+    }
+
     // Parse plugin properties into arglist
     parser.start_element = start_element;
     parser.end_element = end_element;
@@ -195,10 +215,10 @@ struct arglist * oval_plugin_add(char * folder, char * name,
     plug_set_category(args, ACT_END);
     plug_set_family(args, "OVAL definitions", NULL);
 
+    plug_set_sign_key_ids(args, sign_fprs);
+
     store_plugin(args, name);
     args = store_load_plugin(folder, name, preferences);
-
-    // FIXME: felix get the signers key ids here (analog to nasl_plugins)
   }
 
   if(args != NULL)
@@ -228,6 +248,12 @@ int oval_plugin_launch(struct arglist * globals, struct arglist * plugin,
   arg_add_value(plugin, "name", ARG_STRING, strlen(name), name);
   arg_set_value(plugin, "preferences", -1, preferences);
   arg_add_value(plugin, "key", ARG_PTR, -1, kb);
+
+  // TODO felix get preferences from global context and check the signature.
+  // Otherwise a client can start unsigned oval plugins even if the server
+  // preference is set to "no"!
+  // if( nasl_verify_signature( arg_get_value(g_args, "name")) )
+  //  post_log( g_args, 0, "Attempt to start signed oval plugin.");
 
   module = create_process((process_func_t)oval_thread, plugin);
   return module;
