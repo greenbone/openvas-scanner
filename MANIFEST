@@ -11,7 +11,6 @@ doc/kb_saving.txt
 doc/nbe_file_format.txt
 doc/nsr_file_format.txt
 doc/openvas-adduser.8
-doc/openvas-check-signature.1
 doc/openvasd.8.in
 doc/openvas-mkcert.8
 doc/openvas-mkcert-client.1
@@ -55,7 +54,6 @@ openvasd/nasl_plugins.c
 openvasd/nes_plugins.c
 openvasd/ntp_11.c
 openvasd/ntp_11.h
-openvasd/openvas-check-signature.c
 openvasd/openvasd.c
 openvasd/otp_1_0.c
 openvasd/otp_1_0.h

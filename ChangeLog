@@ -1,3 +1,23 @@
+2008-11-10  Michael Wiegand <michael.wiegand@intevation.de>
+
+	Removed openvas-check-signature since signature verification can now be
+	done with existing third-party tools like gnupg. Additionally,
+	openvas-check-signature was the last executable to depend on the local
+	copies of getopt which is no longer provided by openvas-libraries.
+
+	* openvasd/openvas-check-signature.c: Removed.
+
+	* openvasd/Makefile: Removed handling of openvas-check-signature.
+
+	* include/config.h.in: Removed obsolete getopt defines.
+
+	* doc/openvas-check-signature.1: Removed documentation of
+	openvas-check-signature.
+
+	* MANIFEST: Updated.
+
+	* Makefile: Updated.
+
 2008-11-07  Felix Wolfsteller <felix.wolfstelller@intevation.de>
 
 	* openvasd/nasl_plugins: Removed printfs.

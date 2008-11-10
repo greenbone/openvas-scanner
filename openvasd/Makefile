@@ -36,16 +36,10 @@ OBJS = auth.o \
        pluginscheduler.o \
        shared_socket.o 
 
-all : openvasd openvas-check-signature
+all : openvasd
 
 openvasd : $(OBJS)
 	$(CC) $(LDFLAGS) $(OPENVAS_INCLUDE) $(OBJS)  -o openvasd $(LIBS)
-
-openvas-check-signature : openvas-check-signature.o
-	$(CC) $(LDFLAGS) $(OPENVAS_INCLUDE) openvas-check-signature.o  -o openvas-check-signature $(LIBS)
-
-openvas-check-signature.o: openvas-check-signature.c
-	$(CC) $(OPENVAS_CFLAGS) $(OPENVAS_INCLUDE) -c openvas-check-signature.c 
 
 users.o : users.c users.h
 	$(CC) $(OPENVAS_CFLAGS) $(OPENVAS_INCLUDE) -c users.c 
@@ -136,5 +130,5 @@ hosts.o : hosts.c
 shared_socket.o : shared_socket.c
 	$(CC) $(OPENVAS_CFLAGS) $(OPENVAS_INCLUDE) -c shared_socket.c
 clean :
-	rm -f *.o openvasd openvas-check-signature *~
+	rm -f openvasd *.o *~
 
