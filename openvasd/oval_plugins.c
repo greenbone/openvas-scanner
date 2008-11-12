@@ -54,11 +54,45 @@ gboolean in_results_definition = FALSE;
 gchar * result;
 
 void child_setup (gpointer user_data) {
-  // TODO: ovaldi should run with as few privileges as possible. To do this, this
-  // setup function for the ovaldi child, which will be called between fork()
-  // and exec(), should setuid to a configurable, non-privileged user. This user
-  // has to be able to read the SC file and the selected definitions and to
-  // write to /tmp/.
+  // This function is called by the forked child just before it is executed. We
+  // try to drop our root privileges and setuid to nobody to minimize the
+  // risk of running an untrusted ovaldi.
+  // NB: The current implementation is somewhat linux-specific and may not work
+  // on other platforms.
+
+  struct passwd * nobody_pw = NULL;
+
+  if(getuid() == 0)
+  {
+    log_write("oval_plugins.c: Running as root, trying to drop privileges.\n");
+    if((nobody_pw = getpwnam("nobody")))
+    {
+      if(setgid(nobody_pw->pw_gid) == 0)
+      {
+        log_write("oval_plugins.c: Successfully dropped group privileges.\n");
+      }
+      else
+      {
+        log_write("oval_plugins.c: WARNING: Could not drop group privileges!\n");
+      }
+      if(setuid(nobody_pw->pw_uid) == 0)
+      {
+        log_write("oval_plugins.c: Successfully dropped user privileges.\n");
+      }
+      else
+      {
+        log_write("oval_plugins.c: WARNING: Could not drop group privileges!\n");
+      }
+    }
+    else
+    {
+      log_write("oval_plugins.c: WARNING: Could not drop privileges; unable to get uid and gid for user nobody!\n");
+    }
+  }
+  else
+  {
+    log_write("oval_plugins.c: WARNING: Did not attempt to drop privileges since we do not seem to be running as root.\n");
+  }
 }
 
 void start_element (GMarkupParseContext *context, const gchar *element_name,
@@ -397,20 +431,22 @@ void ovaldi_launch(struct arglist * g_args)
         if(packages_str)
         {
           gchar ** package = g_strsplit(packages_str, ";", 0);
-          int j = 0;
+          int j = 1;
           char keyid[17];
           keyid[16] = '\0';
-          char * package_name;
-          char * package_version;
-          char * package_release;
+          gchar * package_name;
+          gchar * package_version;
+          gchar * package_release;
           while(package[j] != NULL)
           {
             gchar * pgpsig = strncpy(keyid, package[j] + strlen(package[j]) - 16, 16);
-            package_name = strtok(package[j], "~");
-            package_version = strtok(NULL, "~");
-            package_release = strtok(NULL, "~");
-            if(package_name)
+            g_strchug(package[j]);
+            gchar ** package_data = g_strsplit(package[j], "~", 0);
+            if(package_data[0])
             {
+              package_name = package_data[0];
+              package_version = package_data[1];
+              package_release = package_data[2];
               fprintf(sc_file, "\t\t<rpminfo_item id=\"%d\" xmlns=\"http://oval.mitre.org/XMLSchema/oval-system-characteristics-5#linux\">\n", i);
               fprintf(sc_file, "\t\t\t<name>%s</name>\n", package_name);
               fprintf(sc_file, "\t\t\t<arch/>\n");
@@ -420,9 +456,10 @@ void ovaldi_launch(struct arglist * g_args)
               fprintf(sc_file, "\t\t\t<evr/>\n");
               fprintf(sc_file, "\t\t\t<signature_keyid>%s</signature_keyid>\n", pgpsig);
               fprintf(sc_file, "\t\t</rpminfo_item>\n");
+              i++;
             }
-            i++;
             j++;
+            g_strfreev(package_data);
           }
           g_strfreev(package);
         }

@@ -1,3 +1,9 @@
+2008-11-12  Michael Wiegand <michael.wiegand@intevation.de>
+
+	* openvasd/oval_plugins.c: (child_setup) Implemented privilege dropping
+	before calling ovaldi. (ovaldi_launch) Improved parsing of RPM package
+	list.
+
 2008-11-10  Michael Wiegand <michael.wiegand@intevation.de>
 
 	* configure.in: Include version requirements in glib error string as
