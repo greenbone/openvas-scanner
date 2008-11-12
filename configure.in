@@ -42,6 +42,7 @@ dnl --enable-syslog
 
 AC_INIT(.root-dir)
 AC_REVISION($Revision$)dnl
+AC_PREREQ(2.50)
 
 NEED_OPENVASLIBS_VERSION=2.0.0
 NEED_OPENVASLIBNASL_VERSION=2.0.0
