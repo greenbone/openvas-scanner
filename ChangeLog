@@ -1,3 +1,29 @@
+2008-11-12  Felix Wolfsteller <felix.wolfsteller@intevation.de>
+
+	Work on Change Request #17 (http://www.openvas.org/openvas-cr-17.html -
+	"OTP: Make NVT signatures available to OpenVAS-Client").
+	Certificate information sending functionality improved. Sends real 
+	information, not dummystrings.
+
+	ATTENTION: needs openvas-libnasl rev. 1702 to compile smoothly.
+
+	* configure.in : Macros for gpgme public key support added.
+
+	* include/config.h.in : undef _FILE_OFFSET_BITS for AC_SYS_LARGEFILE
+
+	* configure : regenerated.
+
+	* openvasd/otp_1_0.h : proto added.
+
+	* openvasd/otp_1_0.c (otp_1_0_server_send_certificates) : nasl, glib 
+	includes. Does send real information, not dummystrings.
+
+	* openvasd/ntp_11.c : removed interpretation of a void return.
+
+	* openvasd/oval_plugins.c : Includes ordered and missing ones added.
+
+	* ChangeLog : shamefully changed typos with my own email adress.
+
 2008-11-12  Michael Wiegand <michael.wiegand@intevation.de>
 
 	* configure.in: Added AC_PREREQ directive to tell autoconf to generate
@@ -38,7 +64,7 @@
 
 	* Makefile: Updated.
 
-2008-11-07  Felix Wolfsteller <felix.wolfstelller@intevation.de>
+2008-11-07  Felix Wolfsteller <felix.wolfsteller@intevation.de>
 
 	* openvasd/nasl_plugins: Removed printfs.
 
@@ -52,7 +78,7 @@
 	execution of unsigned plugins, if server preference is set.
 
 
-2008-11-06  Felix Wolfsteller <felix.wolfstelller@intevation.de>
+2008-11-06  Felix Wolfsteller <felix.wolfsteller@intevation.de>
 	
 	* openvasd/otp_1_0.c (otp_1_0_server_send_certificates): Fixed bug 
 	(wrong type released) that caused definite server crash.
@@ -68,7 +94,7 @@
 	* openvasd/attack.c (launch_plugin): Use OIDs instead of IDs when
 	logging information about NVT execution to KB.
 
-2008-11-05  Felix Wolfsteller <felix.wolfstelller@intevation.de>
+2008-11-05  Felix Wolfsteller <felix.wolfsteller@intevation.de>
 
 	Work on Change Request #17 (http://www.openvas.org/openvas-cr-17.html - 
 	"OTP: Make NVT signatures available to OpenVAS-Client").
@@ -89,7 +115,7 @@
 	* configure.in: Updated version requirements for -libraries and
 	-libnasl.
 
-2008-10-31  Felix Wolfsteller <felix.wolfstelller@intevation.de>
+2008-10-31  Felix Wolfsteller <felix.wolfsteller@intevation.de>
 
 	Steps to an implementation of Change Request #17 
 	(http://www.openvas.org/openvas-cr-17.html - "Make NVT signatures 

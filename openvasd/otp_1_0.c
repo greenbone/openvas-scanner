@@ -23,13 +23,19 @@
 *
 */
 
+#include <includes.h>
+
 #include <string.h>
 
 #include <corevers.h>
 #include <network.h>
 
+#include <nasl.h>
+
 #include "otp_1_0.h"
+
 #include <gpgme.h>
+#include <glib.h>
 
 /* Find the enum identifier for the client request which is given
  * as string.
@@ -63,47 +69,38 @@ void otp_1_0_server_openvas_version(globals)
               OPENVAS_VERSION);
 }
 
-/* Send server response to certificate request by client.
+
+/**
+ * Send server response to certificate request by client.
  */
 void otp_1_0_server_send_certificates(struct arglist* globals)
 {
   auth_printf(globals, "SERVER <|> CERTIFICATES\n");
-  // TODO: felix CR#17 - implement certificate sending here 
-  // Need a -D_FILE_OFFSET_BITS=64 in order to read key files
-  // Certificate retrieval
-  // Send dummystrings, basically 
-  gpgme_error_t err;
-  gpgme_ctx_t ctx = init_openvas_gpgme_ctx();
 
-  err = gpgme_op_keylist_ext_start(ctx, NULL, 0, 0);
-  if (err)
-    {
-       log_write("otp_1_0_send_certificates: gpgme key listing error: %s.\n", strerror(err));
-    }
+  GSList* certificates = nasl_get_all_certificates();
+  GSList* cert_list_elem = g_slist_nth(certificates, 0);
 
-  while (!err)
+  // Iterate over certificates
+  while(cert_list_elem != NULL)
     {
-       gpgme_key_t key;
-       err = gpgme_op_keylist_next (ctx, &key);
-       if (err)
-          break;
-       auth_printf(globals, "%s <|> %s <|> %s <|> %d <|> %s\n",
-                              key->subkeys->fpr,
-                                     key->uids->name, "untrusted",
-                                                  8, // key size
-                                                    "dummykey");
-       gpgme_key_release (key);
-    }
+      openvas_certificate* cert = cert_list_elem->data;
+      
+      // Replace newlines by semicolons
+      char* pos = cert->full_public_key;
+      while(pos[0] != '\0')
+        {
+        if(pos[0] == '\n') pos[0] = ';';
+        pos++;
+        }
 
-  if (!err)
-    {
-    if (gpg_err_code (err) != GPG_ERR_EOF)
-      {
-        log_write("otp_1_0_send_certificates: gpgme can not list keys: %s\n", gpgme_strerror (err));
-      }
+      char* trustlevel = (cert->trusted == TRUE)? "trusted" : "notrust";
+      cert_list_elem = g_slist_next(cert_list_elem);
+      auth_printf(globals, "%s <|> %s <|> %s <|> %d <|> %s\n", cert->fpr,
+                              cert->ownername, trustlevel,
+                              strlen(cert->full_public_key),
+                              cert->full_public_key);
     }
-  
-  gpgme_release(ctx);
-  // Certificate retrieval end
+  // Releases
+
   auth_printf(globals, "<|> SERVER\n");
 }

@@ -159,6 +159,12 @@
  */
 #undef BSD_BYTE_ORDERING
 
+
+/*
+ * Set by AC_SYS_LARGEFILE, needed for gpgme key retrieval
+ */
+#undef _FILE_OFFSET_BITS
+
 /*
  * STOP ! Don't edit anything after this line !
  */

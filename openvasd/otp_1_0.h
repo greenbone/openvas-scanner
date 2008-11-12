@@ -46,4 +46,6 @@ client_request_t otp_1_0_get_client_request(char *);
 
 void otp_1_0_server_openvas_version(struct arglist *);
 
+void otp_1_0_server_send_certificates(struct arglist* globals);
+
 #endif

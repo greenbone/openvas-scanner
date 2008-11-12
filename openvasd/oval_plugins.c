@@ -30,11 +30,14 @@
  */
 
 #include <includes.h>
-#include "pluginload.h"
-#include "log.h"
+#include <nasl.h>
 #include <glib.h>
-#include "processes.h"
 #include "corevers.h"
+#include "log.h"
+#include "pluginload.h"
+#include "preferences.h"
+#include "processes.h"
+
 
 static void oval_thread(struct arglist *);
 void ovaldi_launch(struct arglist * g_args);
@@ -201,7 +204,7 @@ struct arglist * oval_plugin_add(char * folder, char * name,
   if ( preferences_nasl_no_signature_check(preferences) == 0 
        && nasl_verify_signature( fullname) != 0)
   {
-    log_write("%s: signature of nvt could not been verified/ is missing.");
+    log_write("%s: signature of nvt could not been verified/ is missing.", fullname);
     return NULL;
   }
 
@@ -283,10 +286,8 @@ int oval_plugin_launch(struct arglist * globals, struct arglist * plugin,
   arg_set_value(plugin, "preferences", -1, preferences);
   arg_add_value(plugin, "key", ARG_PTR, -1, kb);
 
-  // TODO felix get preferences from global context and check the signature.
-  // Otherwise a client can start unsigned oval plugins even if the server
-  // preference is set to "no"!
-  // if( nasl_verify_signature( arg_get_value(g_args, "name")) )
+  // TODO felix get Preferences from global context and check the signature
+  //if(  nasl_verify_signature( arg_get_value(g_args, "name")) )
   //  post_log( g_args, 0, "Attempt to start signed oval plugin.");
 
   module = create_process((process_func_t)oval_thread, plugin);
@@ -484,7 +485,7 @@ void ovaldi_launch(struct arglist * g_args)
   argv[8] = NULL;
 //   log_write("Launching ovaldi with: %s\n", g_strjoinv(" ", argv));
 
-  if(g_spawn_sync(NULL, argv, NULL, G_SPAWN_SEARCH_PATH, child_setup, NULL, NULL, NULL, NULL, NULL))
+  if(g_spawn_sync(NULL, argv, NULL, 0, child_setup, NULL, NULL, NULL, NULL, NULL))
   {
     GMarkupParser parser; 
     GMarkupParseContext *context = NULL;

@@ -88,6 +88,7 @@ int ntp_11_parse_input(globals, input)
 	}
 
  str[0] = '\0';
+
  if( strcmp(input, "CLIENT") == 0 )
  {
   input = str + 5;
@@ -108,7 +109,7 @@ int ntp_11_parse_input(globals, input)
       break;
 
     case CREQ_CERTIFICATES:
-      result = otp_1_0_server_send_certificates(globals);
+      otp_1_0_server_send_certificates(globals);
       break;
 
     case CREQ_OPENVAS_VERSION:
