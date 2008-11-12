@@ -32,6 +32,8 @@
 #include <includes.h>
 #include <corevers.h>
 
+#include <glib.h>
+
 #include "ntp.h"
 #include "ntp_11.h"
 #include "otp_1_0.h"
@@ -188,7 +190,7 @@ ntp_11_long_attack(globals, orig)
  char * orig;
 {
  struct arglist * preferences = arg_get_value(globals, "preferences");
- int soc = (int)arg_get_value(globals, "global_socket");
+ int soc = GPOINTER_TO_SIZE(arg_get_value(globals, "global_socket"));
  char input[16384];
  int size;
  char * target;
@@ -243,7 +245,7 @@ ntp_11_read_prefs(globals)
  struct arglist * globals;
 {
  struct arglist *  preferences = arg_get_value(globals, "preferences");
- int soc = (int)arg_get_value(globals, "global_socket");
+ int soc = GPOINTER_TO_SIZE(arg_get_value(globals, "global_socket"));
  char * input;
  int input_sz = 1024*1024;
  int n;
@@ -372,7 +374,7 @@ ntp_11_show_end(globals, name, internal)
  char * name;
  int internal;
 { 
- int soc = (int)arg_get_value( globals, "global_socket");
+ int soc = GPOINTER_TO_SIZE(arg_get_value( globals, "global_socket"));
  char buf[1024];
  snprintf(buf, sizeof(buf), "SERVER <|> FINISHED <|> %s <|> SERVER\n", name);
  if ( internal )
@@ -410,7 +412,7 @@ int
 ntp_11_recv_file(globals)
  struct arglist * globals;
 {
- int soc = (int)arg_get_value(globals, "global_socket");
+ int soc = GPOINTER_TO_SIZE(arg_get_value(globals, "global_socket"));
  char input[4096];
  char * origname, * localname = temp_file_name();
  int n;
@@ -631,7 +633,7 @@ __ntp_1x_timestamp_scan_host(globals, msg, host)
   if( timestr[len - 1 ] == '\n' )
 	   timestr[len - 1 ] = '\0';
 
-   soc = (int)arg_get_value(globals, "global_socket");
+   soc = GPOINTER_TO_SIZE(arg_get_value(globals, "global_socket"));
    
    snprintf(buf, sizeof(buf), "SERVER <|> TIME <|> %s <|> %s <|> %s <|> SERVER\n", msg, host, timestr);
    

@@ -29,6 +29,9 @@
 
  
 #include <includes.h>
+
+#include <glib.h>
+
 #include <hosts_gatherer.h>
 #include <hg_utils.h>
 
@@ -456,8 +459,8 @@ attack_start(args)
  /*
   * Options regarding the communication with our father
   */
- nessus_deregister_connection((int)arg_get_value(globals, "global_socket"));
- arg_set_value(globals, "global_socket", -1, (void*)thread_socket);
+ nessus_deregister_connection(GPOINTER_TO_SIZE(arg_get_value(globals, "global_socket")));
+ arg_set_value(globals, "global_socket", -1, GSIZE_TO_POINTER(thread_socket));
  
  /*
   * Wait for the server to confirm it read our data
@@ -539,14 +542,14 @@ attack_network(globals)
 
   num_tested = 0;
 
-  global_socket  = (int)arg_get_value(globals, "global_socket");
+  global_socket  = GPOINTER_TO_SIZE(arg_get_value(globals, "global_socket"));
  
   plugins        = arg_get_value(globals, "plugins");
   rules          = arg_get_value(globals, "rules");
   rejected_hosts = emalloc(sizeof(struct arglist));
   
   save_session = preferences_save_session(preferences);
-  restoring = ((int)arg_get_value(globals, "RESTORE-SESSION") == 1);
+  restoring = (GPOINTER_TO_SIZE(arg_get_value(globals, "RESTORE-SESSION")) == 1);
    
   if(restoring)tested = arg_get_value(globals, "TESTED_HOSTS");
   if(save_session)save_tests_init(globals);  

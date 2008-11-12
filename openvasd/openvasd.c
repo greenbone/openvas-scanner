@@ -319,7 +319,7 @@ server_thread(struct arglist * globals)
  struct sockaddr_in * address = arg_get_value(globals, "client_address");
  struct arglist * plugins = arg_get_value(globals, "plugins");
  struct arglist * prefs = arg_get_value (globals, "preferences") ;
- int soc = (int)arg_get_value(globals, "global_socket");
+ int soc = GPOINTER_TO_SIZE(arg_get_value(globals, "global_socket"));
  struct openvas_rules* perms;
  char * asciiaddr;
  struct openvas_rules * rules = arg_get_value(globals, "rules");
@@ -377,7 +377,7 @@ if(preferences_benice(prefs))nice(10);
 
  setsockopt(soc, SOL_SOCKET, SO_KEEPALIVE, &opt, sizeof(opt));
  /* arg_set_value *replaces* an existing value, but it shouldn't fail here */
- (void) arg_set_value(globals, "global_socket", -1, (void *)soc2);
+ (void) arg_set_value(globals, "global_socket", -1, GSIZE_TO_POINTER(soc2));
 
 #ifdef HAVE_ADDR2ASCII
  asciiaddr = emalloc(20);
@@ -651,20 +651,15 @@ main_loop()
        * The SSL connection shall be open _after_ the fork
        */
       globals = emalloc(sizeof(struct arglist));
-      arg_add_value(globals, "global_socket", ARG_INT, -1, (void *)soc);
-     
+      arg_add_value(globals, "global_socket", ARG_INT, -1, GSIZE_TO_POINTER(soc));
 
-      
-   
       my_plugins = g_plugins;
       arg_add_value(globals, "plugins", ARG_ARGLIST, -1, my_plugins);
-      
-     
+
       my_preferences = g_preferences;
       arg_add_value(globals, "preferences", ARG_ARGLIST, -1, my_preferences);
-          
-      my_rules = /*rules_dup*/(g_rules);
       
+      my_rules = /*rules_dup*/(g_rules);
 
       p_addr = emalloc(sizeof(struct sockaddr_in));
       *p_addr = address;
@@ -744,7 +739,7 @@ init_openvasd (options, first_pass, stop_early, be_quiet)
   struct arglist * plugins = NULL;
   struct arglist * preferences = NULL;
   struct openvas_rules * rules = NULL;
-  int iana_port = (int)arg_get_value(options, "iana_port");
+  int iana_port = GPOINTER_TO_SIZE(arg_get_value(options, "iana_port"));
   char * config_file = arg_get_value(options, "config_file");
   struct in_addr * addr = arg_get_value(options, "addr");
   char * str;
@@ -801,8 +796,7 @@ init_openvasd (options, first_pass, stop_early, be_quiet)
    nessus_signal(SIGPIPE, SIG_IGN);
   }
 
-
-   arg_replace_value(options, "isck", ARG_INT, sizeof(int),(void *)isck);
+   arg_replace_value(options, "isck", ARG_INT, sizeof(gpointer), GSIZE_TO_POINTER(isck));
    arg_replace_value(options, "plugins", ARG_ARGLIST, -1, plugins);
    arg_replace_value(options, "rules", ARG_PTR, -1, rules);
    arg_replace_value(options, "preferences", ARG_ARGLIST, -1, preferences);
@@ -971,13 +965,13 @@ main(int argc, char * argv[], char * envp[])
     strncpy(config_file, OPENVASD_CONF, strlen(OPENVASD_CONF));
   }
 
-  arg_add_value(options, "iana_port", ARG_INT, sizeof(int), (void *)iana_port);
+  arg_add_value(options, "iana_port", ARG_INT, sizeof(gpointer), GSIZE_TO_POINTER(iana_port));
   arg_add_value(options, "config_file", ARG_STRING, strlen(config_file), config_file);
   arg_add_value(options, "addr", ARG_PTR, -1, &addr);
 
   init_openvasd (options, 1, exit_early, be_quiet);
   g_options = options;
-  g_iana_socket = (int)arg_get_value(options, "isck");
+  g_iana_socket = GPOINTER_TO_SIZE(arg_get_value(options, "isck"));
   g_plugins = arg_get_value(options, "plugins");
   g_preferences = arg_get_value(options, "preferences");
   g_rules = arg_get_value(options, "rules");

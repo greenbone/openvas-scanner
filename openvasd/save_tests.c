@@ -27,8 +27,10 @@
 *
 */
 
-
 #include <includes.h>
+
+#include <glib.h>
+
 #include "log.h"
 #include "comm.h"
 #include "users.h"
@@ -221,10 +223,10 @@ save_tests_init(globals)
   log_write("user %s : session will be saved as %s", user, index_fname);
   if(arg_get_value(globals, "save_tests_index"))
   {
-   arg_set_value(globals, "save_tests_index", sizeof(int), (void*)index);
+   arg_set_value(globals, "save_tests_index", sizeof(gpointer), GSIZE_TO_POINTER(index));
   }
   else
-   arg_add_value(globals, "save_tests_index", ARG_INT, sizeof(int), (void*)index);
+   arg_add_value(globals, "save_tests_index", ARG_INT, sizeof(gpointer), GSIZE_TO_POINTER(index));
  
   if(arg_get_value(globals, "save_tests_index_fname"))
   {
@@ -270,10 +272,10 @@ save_tests_init(globals)
 		 
   if(arg_get_value(globals, "save_tests_data"))
    {
-    arg_set_value(globals, "save_tests_data", sizeof(int), (void*)data);
+    arg_set_value(globals, "save_tests_data", sizeof(gpointer), GSIZE_TO_POINTER(data));
     }
   else
-   arg_add_value(globals, "save_tests_data", ARG_INT, sizeof(int), (void*)data);
+   arg_add_value(globals, "save_tests_data", ARG_INT, sizeof(gpointer), GSIZE_TO_POINTER(data));
  }
  
 bye :
@@ -293,8 +295,8 @@ void
 save_tests_close(globals)
  struct arglist* globals;
 {
- int f1 = (int)arg_get_value(globals, "save_tests_index");
- int f2 = (int)arg_get_value(globals, "save_tests_data");
+ int f1 = GPOINTER_TO_SIZE(arg_get_value(globals, "save_tests_index"));
+ int f2 = GPOINTER_TO_SIZE(arg_get_value(globals, "save_tests_data"));
  char * index_fname = arg_get_value(globals, "save_tests_index_fname");
  char * data_fname  = arg_get_value(globals, "save_tests_data_fname");
 
@@ -316,7 +318,7 @@ save_tests_write_data(globals, data)
  struct arglist * globals;
  char * data;
 {
- int f = (int)arg_get_value(globals, "save_tests_data");
+ int f = GPOINTER_TO_SIZE(arg_get_value(globals, "save_tests_data"));
  int e, len, n = 0;
  
  if(!f)
@@ -351,7 +353,7 @@ save_tests_host_done(globals, host)
  struct arglist * globals;
  char * host;
 {
- int f = (int)arg_get_value(globals, "save_tests_index");
+ int f = GPOINTER_TO_SIZE(arg_get_value(globals, "save_tests_index"));
  char * d;
  int len, n = 0, e;
  

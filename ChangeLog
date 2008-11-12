@@ -1,3 +1,12 @@
+2008-11-12  Michael Wiegand <michael.wiegand@intevation.de>
+
+	Applying patch provided by Stjepan Gros to improve 64-bit cleanliness.
+
+	* openvasd/nasl_plugins.c, openvasd/ntp_11.c, openvasd/attack.c,
+	openvasd/save_kb.c, openvasd/openvasd.c, openvasd/nes_plugins.c,
+	openvasd/pluginload.c, openvasd/save_tests.c, openvasd/comm.c,
+	openvasd/pluginscheduler.c: 32/64-bit cleanups, introduced glib.
+
 2008-11-12  Felix Wolfsteller <felix.wolfsteller@intevation.de>
 
 	Work on Change Request #17 (http://www.openvas.org/openvas-cr-17.html -

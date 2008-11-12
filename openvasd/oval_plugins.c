@@ -300,7 +300,7 @@ int oval_plugin_launch(struct arglist * globals, struct arglist * plugin,
 static void oval_thread(struct arglist * g_args)
 {
   struct arglist * args = arg_get_value(g_args, "args");
-  int soc = (int)arg_get_value(g_args, "SOCKET");
+  int soc = GPOINTER_TO_SIZE(arg_get_value(g_args, "SOCKET"));
   struct arglist * globals = arg_get_value(args, "globals");
 
   soc = dup2(soc, 4);
@@ -309,8 +309,8 @@ static void oval_thread(struct arglist * g_args)
     log_write("oval_thread: dup2() failed ! - can not launch the plugin\n");
     return;
   }
-  arg_set_value(args, "SOCKET", sizeof(int), (void*)soc);
-  arg_set_value(globals, "global_socket", sizeof(int), (void*)soc);
+  arg_set_value(args, "SOCKET", sizeof(gpointer), GSIZE_TO_POINTER(soc));
+  arg_set_value(globals, "global_socket", sizeof(gpointer), GSIZE_TO_POINTER(soc));
 
   setproctitle("testing %s (%s)",
                (char*)arg_get_value(arg_get_value(args, "HOSTNAME"), "NAME"),

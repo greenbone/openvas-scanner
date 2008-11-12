@@ -27,8 +27,10 @@
 *
 */ 
 
-
 #include <includes.h>
+
+#include <glib.h>
+
 #include "utils.h"
 #include "pluginload.h"
 #include "log.h"
@@ -278,17 +280,16 @@ void
 plugin_set_socket(struct arglist * plugin, int soc)
 {
  if(arg_get_value(plugin, "SOCKET") != NULL)
-  arg_set_value(plugin, "SOCKET", sizeof(int), (void*)soc);
+  arg_set_value(plugin, "SOCKET", sizeof(gpointer), GSIZE_TO_POINTER(soc));
  else
-  arg_add_value(plugin, "SOCKET", ARG_INT, sizeof(int), (void *)soc);
+  arg_add_value(plugin, "SOCKET", ARG_INT, sizeof(gpointer), GSIZE_TO_POINTER(soc));
 }
 
 int
 plugin_get_socket(struct arglist * plugin)
 {
-  return (int)arg_get_value(plugin, "SOCKET");
+  return GPOINTER_TO_SIZE(arg_get_value(plugin, "SOCKET"));
 }
-
 
 
 void plugin_unlink(plugin)

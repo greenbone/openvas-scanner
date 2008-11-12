@@ -28,6 +28,9 @@
 */
 
 #include <includes.h>
+
+#include <glib.h>
+
 #include "pluginload.h"
 #include "plugs_hash.h"
 #include "processes.h"
@@ -251,7 +254,7 @@ nes_plugin_launch(globals, plugin, hostinfos, preferences, kb, name)
 static int nes_thread(args)
  struct arglist * args;
 {
- int soc = (int)arg_get_value(args, "SOCKET");
+ int soc = GPOINTER_TO_SIZE(arg_get_value(args, "SOCKET"));
  struct arglist * globals = arg_get_value(args, "globals");
  int i;
  plugin_run_t func;
@@ -267,8 +270,8 @@ static int nes_thread(args)
  }
  /* XXX ugly hack */
  
- arg_set_value(globals, "global_socket", sizeof(int), (void*)soc);
- arg_set_value(args, "SOCKET", sizeof(int), (void*)soc);
+ arg_set_value(globals, "global_socket", sizeof(gpointer), GSIZE_TO_POINTER(soc));
+ arg_set_value(args, "SOCKET", sizeof(gpointer), GSIZE_TO_POINTER(soc));
  for(i=5;i<getdtablesize();i++)
  {
     close(i);

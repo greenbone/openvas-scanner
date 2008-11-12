@@ -28,6 +28,9 @@
 */
 
 #include <includes.h>
+
+#include <glib.h>
+
 #include <nasl.h>
 #include "pluginload.h"
 #include "plugs_hash.h"
@@ -201,7 +204,7 @@ nasl_thread(g_args)
  struct arglist * globals = arg_get_value(args, "globals");
  struct arglist * preferences = arg_get_value(g_args, "preferences");
  char * name = arg_get_value(g_args, "name");
- int soc = (int)arg_get_value(args, "SOCKET");
+ int soc = GPOINTER_TO_SIZE(arg_get_value(args, "SOCKET"));
  int i;
  char cache_dir[PATH_MAX + 1];
  char * t;
@@ -216,8 +219,8 @@ nasl_thread(g_args)
   log_write("dup2() failed ! - can not launch the plugin\n");
   return;
  }
- arg_set_value(args, "SOCKET", sizeof(int), (void*)soc);
- arg_set_value(globals, "global_socket", sizeof(int), (void*)soc);
+ arg_set_value(args, "SOCKET", sizeof(gpointer), GSIZE_TO_POINTER(soc));
+ arg_set_value(globals, "global_socket", sizeof(gpointer), GSIZE_TO_POINTER(soc));
  for(i=5;i<getdtablesize();i++)
  {
   close(i);

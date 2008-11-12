@@ -26,11 +26,13 @@
 *
 *
 */  
-
  
 #include <includes.h>
 #include <corevers.h>
 #include <stdarg.h>
+
+#include <glib.h>
+
 #include "auth.h"
 #include "rules.h"
 #include "comm.h" 
@@ -351,7 +353,7 @@ void
 comm_wait_order(globals)
 	struct arglist * globals;
 {
-  int soc        = (int)arg_get_value(globals, "global_socket");
+  int soc        = GPOINTER_TO_SIZE(arg_get_value(globals, "global_socket"));
 
   for (;;) {
     static char str [2048] ;

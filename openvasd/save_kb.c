@@ -27,8 +27,10 @@
 *
 */
 
-
 #include <includes.h>
+
+#include <glib.h>
+
 #include "log.h"
 #include "comm.h"
 #include "users.h"
@@ -201,7 +203,7 @@ save_kb_entry_present_already(globals, hostname, name, value)
   char* req;
   int ret;
    
-  fd = (int)arg_get_value(globals, "save_kb");
+  fd = GPOINTER_TO_SIZE(arg_get_value(globals, "save_kb"));
   if(fd <= 0)
    return -1;
  
@@ -234,7 +236,7 @@ save_kb_rm_entry_value(globals, hostname, name, value)
   char * req;
   
    
-  fd = (int)arg_get_value(globals, "save_kb");
+  fd = GPOINTER_TO_SIZE(arg_get_value(globals, "save_kb"));
   if(fd <= 0)
    return -1;
   
@@ -333,7 +335,7 @@ save_kb_write(globals, hostname, name, value, type)
     !value)
  	return -1;
 	
- fd = (int)arg_get_value(globals, "save_kb");
+ fd = GPOINTER_TO_SIZE(arg_get_value(globals, "save_kb"));
  if(fd <= 0)
   {
   log_write("user %s : Can not find KB fd for %s\n", (char*)arg_get_value(globals, "user"), hostname);
@@ -439,9 +441,9 @@ save_kb_new(globals, hostname)
   file_lock(fname);
   log_write("user %s : new KB will be saved as %s", user, fname);
   if(arg_get_value(globals, "save_kb"))
-    arg_set_value(globals, "save_kb", sizeof(int), (void*)f); 
+    arg_set_value(globals, "save_kb", sizeof(gpointer), GSIZE_TO_POINTER(f)); 
   else
-    arg_add_value(globals, "save_kb", ARG_INT, sizeof(int),(void*)f);
+    arg_add_value(globals, "save_kb", ARG_INT, sizeof(gpointer),GSIZE_TO_POINTER(f));
  }
  return 0;
 }
@@ -452,7 +454,7 @@ save_kb_close(globals, hostname)
  struct arglist * globals;
  char * hostname;
 {
- int fd = (int)arg_get_value(globals, "save_kb");
+ int fd = GPOINTER_TO_SIZE(arg_get_value(globals, "save_kb"));
  char* fname = kb_fname(globals, hostname);
  if(fd > 0)close(fd);
  file_unlock(fname);
@@ -724,9 +726,9 @@ save_kb_load_kb(globals, hostname)
  {
   lseek(fd, 0, SEEK_END);
   if(arg_get_value(globals, "save_kb"))
-     arg_set_value(globals, "save_kb", ARG_INT, (void*)fd);
+     arg_set_value(globals, "save_kb", ARG_INT, GSIZE_TO_POINTER(fd));
   else
-    arg_add_value(globals, "save_kb", ARG_INT, sizeof(int), (void*)fd);
+    arg_add_value(globals, "save_kb", ARG_INT, sizeof(gpointer), GSIZE_TO_POINTER(fd));
  }
  else log_write("user %s : ERROR - %s\n", (char*)arg_get_value(globals, "user"), strerror(errno));
  return kb;

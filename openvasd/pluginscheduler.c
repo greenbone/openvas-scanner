@@ -29,6 +29,9 @@
 
 
 #include <includes.h>
+
+#include <glib.h>
+
 #define IN_SCHEDULER_CODE 1
 #include "pluginscheduler.h"
 #include "pluginload.h"
@@ -738,15 +741,15 @@ struct scheduler_plugin * plugins_scheduler_next(plugins_scheduler_t h)
     {
      struct scheduler_plugin * p = plugin_next_unrun_dependencie(h, deps_ptr, 0);
      
-     switch((int)p)
+     switch(GPOINTER_TO_SIZE(p))
      {
-      case (int)NULL :
+      case GPOINTER_TO_SIZE(NULL) :
       	scheduler_mark_running_ports(h, l->plugin);
         plugin_set_running_state(h, l->plugin, PLUGIN_STATUS_RUNNING);
         return l->plugin;
 
 	 break;
-     case (int)PLUG_RUNNING:
+     case GPOINTER_TO_SIZE(PLUG_RUNNING) :
         {
      	/* One of the dependencie is still running  -  we write down its category */
 	if(l->plugin->category < running_category)
