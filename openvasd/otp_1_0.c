@@ -99,8 +99,12 @@ void otp_1_0_server_send_certificates(struct arglist* globals)
                               cert->ownername, trustlevel,
                               strlen(cert->full_public_key),
                               cert->full_public_key);
+      // Release each element
+      openvas_certificate_free(cert);
     }
-  // Releases
-
+  
+  // Release list
+  g_slist_free(certificates);
+  
   auth_printf(globals, "<|> SERVER\n");
 }

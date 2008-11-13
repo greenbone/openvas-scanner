@@ -1,3 +1,8 @@
+2008-11-13  Felix Wolfsteller <felix.wolfsteller@intevation.de>
+
+	* openvasd/otp_1_0.c (otp_1_0_server_send_certificates) : closed mem 
+	leak.
+
 2008-11-12  Michael Wiegand <michael.wiegand@intevation.de>
 
 	Applying patch provided by Stjepan Gros to improve 64-bit cleanliness.
