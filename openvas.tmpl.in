@@ -23,6 +23,7 @@ exec_prefix=@exec_prefix@
 bindir=@bindir@
 sbindir=@sbindir@
 libexecdir=@libexecdir@
+datarootdir=@datarootdir@
 datadir=@datadir@
 sysconfdir=@sysconfdir@
 sharedstatedir=@sharedstatedir@

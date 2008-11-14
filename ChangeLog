@@ -1,5 +1,12 @@
 2008-11-14  Michael Wiegand <michael.wiegand@intevation.de>
 
+	* openvas.tmpl.in, openvas-adduser.in, openvas-mkcert-client.in,
+	openvas-rmuser.in: Added datarootdir to remove configure warning and to
+	be compatible with autoconf 2.60 (see
+	http://www.gnu.org/software/libtool/manual/autoconf/Changed-Directory-Variables.html).
+
+2008-11-14  Michael Wiegand <michael.wiegand@intevation.de>
+
 	Applying patch provided by Stjepan Gros to update Makefile target and
 	to improve code readability.
 

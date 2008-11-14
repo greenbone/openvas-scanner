@@ -38,6 +38,7 @@ esac
 umask 022
 
 prefix=@prefix@
+datarootdir=@datarootdir@
 datadir=@datadir@
 sysconfdir=@sysconfdir@
 localstatedir=@localstatedir@

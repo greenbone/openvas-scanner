@@ -91,6 +91,7 @@ esac
 
 bindir=@bindir@
 sbindir=@sbindir@
+datarootdir=@datarootdir@
 datadir=@datadir@
 localstatedir=@localstatedir@
 
