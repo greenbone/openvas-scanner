@@ -1,3 +1,36 @@
+openvas-server 2.0-beta2 (2008-11-14)
+
+This release is the second beta version of the upcoming 2.0 release of OpenVAS.
+It contains improved 64-bit compatibility, improved OVAL support, support for
+transferring NVT signature information to the client and various improvements.
+
+This release is intended to contain all features intended for the final OpenVAS
+2.0 release. Users are encouraged to test this release and to report bugs to the
+OpenVAS bug tracker located at http://bugs.openvas.org/ .
+
+If you have used the 2.0-beta1 release, we recommend that you update all your
+OpenVAS modules (openvas-libraries, openvas-libnasl, openvas-server and
+openvas-client) to 2.0-beta2.
+
+If you are currently using the stable 1.0.x branch and want to take part in the
+beta phase for 2.0, we recommend that you install 2.0-beta2 separately from your
+OpenVAS 1.0 installation. Instructions on how to do this are available from the
+OpenVAS website.
+
+Main changes since 2.0-beta1:
+* 64-bit compatibility has been considerably improved.
+* Debian packaging files have been updated.
+* Support for transfering NVT signature information to the client has been added.
+* Certificate checking has been improved.
+* OVAL support has been improved.
+* The obsolete openvas-check-signature tool has been removed.
+* Bugfixes.
+* Various code cleanups.
+
+Many thanks to everyone who has contributed to this release: Tim Brown, Stjepan
+Gros, Michael Wiegand and Felix Wolfsteller.
+
+
 openvas-server 2.0-beta1 (2008-09-25)
 
 This release is a first beta version of the upcoming 2.0 release of OpenVAS.

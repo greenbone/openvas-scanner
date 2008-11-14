@@ -12,6 +12,7 @@ doc/nbe_file_format.txt
 doc/nsr_file_format.txt
 doc/openvas-adduser.8
 doc/openvasd.8.in
+doc/openvasd-config.1
 doc/openvas-mkcert.8
 doc/openvas-mkcert-client.1
 doc/openvas-mkrand.1
