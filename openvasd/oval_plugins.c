@@ -197,7 +197,7 @@ struct arglist * oval_plugin_add(char * folder, char * name,
   GMarkupParser parser; 
   GMarkupParseContext *context = NULL;
   gchar *filebuffer = NULL;
-  guint length = 0;
+  gsize length = 0;
 
   snprintf(fullname, sizeof(fullname), "%s/%s", folder, name);
 
@@ -335,7 +335,7 @@ void ovaldi_launch(struct arglist * g_args)
   struct tm *tmp;
   char timestr[20];
   struct arglist * args = arg_get_value(g_args, "args");
-  struct kbitem ** kb = arg_get_value(g_args, "key");
+  struct kb_item ** kb = arg_get_value(g_args, "key");
   gchar * basename = g_strrstr(g_strdup((char*)arg_get_value(g_args, "name")), "/") + 1;
   gchar * result_string = emalloc(256);
   gchar * folder = g_strndup((char*)arg_get_value(g_args, "name"), strlen((char*)arg_get_value(g_args, "name")) - strlen(basename));
@@ -490,7 +490,7 @@ void ovaldi_launch(struct arglist * g_args)
     GMarkupParser parser; 
     GMarkupParseContext *context = NULL;
     gchar *filebuffer = NULL;
-    guint length = 0;
+    gsize length = 0;
 
     parser.start_element = start_element;
     parser.end_element = end_element;

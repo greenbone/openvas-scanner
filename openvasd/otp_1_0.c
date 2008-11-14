@@ -97,7 +97,7 @@ void otp_1_0_server_send_certificates(struct arglist* globals)
       cert_list_elem = g_slist_next(cert_list_elem);
       auth_printf(globals, "%s <|> %s <|> %s <|> %d <|> %s\n", cert->fpr,
                               cert->ownername, trustlevel,
-                              strlen(cert->full_public_key),
+                              (int)strlen(cert->full_public_key),
                               cert->full_public_key);
       // Release each element
       openvas_certificate_free(cert);

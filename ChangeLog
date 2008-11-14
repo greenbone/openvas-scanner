@@ -1,5 +1,15 @@
 2008-11-14  Michael Wiegand <michael.wiegand@intevation.de>
 
+	Applying patch provided by Stjepan Gros to eliminate compiler warnings.
+
+	* openvasd/oval_plugins.c (oval_plugin_add, ovaldi_launch): Minor
+	reformattings, changes to eliminate compiler warnings.
+
+	* openvasd/otp_1_0.c (otp_1_0_server_send_certificates): Casting to
+	eliminate compiler warning.
+
+2008-11-14  Michael Wiegand <michael.wiegand@intevation.de>
+
 	* openvasd/oval_plugins.c (ovaldi_launch): Re-added G_SPAWN_SEARCH_PATH
 	flag to g_spawn_sync call since it was lost in rev 1703.
 
