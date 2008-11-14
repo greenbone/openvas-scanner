@@ -1,3 +1,8 @@
+2008-11-14  Michael Wiegand <michael.wiegand@intevation.de>
+
+	* openvasd/oval_plugins.c (ovaldi_launch): Re-added G_SPAWN_SEARCH_PATH
+	flag to g_spawn_sync call since it was lost in rev 1703.
+
 2008-11-13  Felix Wolfsteller <felix.wolfsteller@intevation.de>
 
 	* openvasd/otp_1_0.c (otp_1_0_server_send_certificates) : closed mem 
