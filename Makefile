@@ -127,6 +127,7 @@ distclean: clean
 	rm -f openvas-mkcert
 	rm -f openvas-mkcert-client
 	rm -f openvas-install-cert
+	rm -f openvasd-config
 	[ -z "${MAN_OPENVASD_8}" ] || rm -f ${MAN_OPENVASD_8} 
 
 dist:

@@ -1,5 +1,15 @@
 2008-11-14  Michael Wiegand <michael.wiegand@intevation.de>
 
+	Applying patch provided by Stjepan Gros to update Makefile target and
+	to improve code readability.
+
+	* openvasd/openvasd.c (init_openvasd): Minor reformattings.
+
+	* openvasd/Makefile: Remove openvasd-config when distclean target
+	is invoked.
+
+2008-11-14  Michael Wiegand <michael.wiegand@intevation.de>
+
 	Applying patch provided by Stjepan Gros to eliminate compiler warnings.
 
 	* openvasd/oval_plugins.c (oval_plugin_add, ovaldi_launch): Minor

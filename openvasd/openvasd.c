@@ -747,15 +747,15 @@ init_openvasd (options, first_pass, stop_early, be_quiet)
   preferences_init(config_file, &preferences);
   
   if((str = arg_get_value(preferences, "max_hosts")) != NULL)
-   {
+  {
     g_max_hosts = atoi(str);
     if( g_max_hosts <= 0 ) g_max_hosts = 15;
-   } 
+  } 
    
   if((str = arg_get_value(preferences, "max_checks")) != NULL)
   {
-   g_max_checks = atoi(str);
-   if( g_max_checks <= 0 )g_max_checks = 10;
+    g_max_checks = atoi(str);
+    if( g_max_checks <= 0 )g_max_checks = 10;
   }
   
   
@@ -770,38 +770,40 @@ init_openvasd (options, first_pass, stop_early, be_quiet)
 
 
   if ( stop_early == 0 ) {
-   char * dir;
+    char * dir;
 
-   dir = arg_get_value(preferences, "plugins_folder");
+    dir = arg_get_value(preferences, "plugins_folder");
 
     store_init_sys(arg_get_value(preferences, "plugins_folder"));
     plugins = plugins_init(preferences, be_quiet);
 
 #ifdef ENABLE_PLUGIN_SERVER
-    if ( recompile_all != 0 ) exit(0); /* Done */
+    if ( recompile_all != 0 )
+      exit(0); /* Done */
 #endif
 
 
-    if( first_pass != 0 )init_network(iana_port, &isck, *addr);
+    if ( first_pass != 0 )
+      init_network(iana_port, &isck, *addr);
   }
   
   if(first_pass && !stop_early)
   {
-   nessus_signal(SIGSEGV, sighandler);
-   nessus_signal(SIGCHLD, sighand_chld);
-   nessus_signal(SIGTERM, sighandler);
-   nessus_signal(SIGINT, sighandler);
-   nessus_signal(SIGHUP, sighup);
-   nessus_signal(SIGUSR1, sighandler); /* openvasd dies, not its sons */
-   nessus_signal(SIGPIPE, SIG_IGN);
+    nessus_signal(SIGSEGV, sighandler);
+    nessus_signal(SIGCHLD, sighand_chld);
+    nessus_signal(SIGTERM, sighandler);
+    nessus_signal(SIGINT, sighandler);
+    nessus_signal(SIGHUP, sighup);
+    nessus_signal(SIGUSR1, sighandler); /* openvasd dies, not its sons */
+    nessus_signal(SIGPIPE, SIG_IGN);
   }
 
-   arg_replace_value(options, "isck", ARG_INT, sizeof(gpointer), GSIZE_TO_POINTER(isck));
-   arg_replace_value(options, "plugins", ARG_ARGLIST, -1, plugins);
-   arg_replace_value(options, "rules", ARG_PTR, -1, rules);
-   arg_replace_value(options, "preferences", ARG_ARGLIST, -1, preferences);
+  arg_replace_value(options, "isck", ARG_INT, sizeof(gpointer), GSIZE_TO_POINTER(isck));
+  arg_replace_value(options, "plugins", ARG_ARGLIST, -1, plugins);
+  arg_replace_value(options, "rules", ARG_PTR, -1, rules);
+  arg_replace_value(options, "preferences", ARG_ARGLIST, -1, preferences);
 
-   return(0);
+  return(0);
 }
 
 int 
