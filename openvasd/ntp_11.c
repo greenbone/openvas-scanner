@@ -240,6 +240,11 @@ ntp_11_long_attack(globals, orig)
  return 0;
 } 
 
+/**
+ * Reads in prefs sent by client.
+ * @param globals The global arglist (containing server preferences).
+ * @return Always 0.
+ */
 static int 
 ntp_11_read_prefs(globals)
  struct arglist * globals;

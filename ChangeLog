@@ -1,3 +1,10 @@
+2008-11-17  Felix Wolfsteller <felix.wolfsteller@intevation.de>
+
+	* openvasd/ntp_11.c: comment added.
+
+	* openvasd/comm.c (comm_send_preferences): Comment, sending 
+	nasl_no_signature_check as server pref to client.
+
 2008-11-14  Michael Wiegand <michael.wiegand@intevation.de>
 
 	Post release version bump.

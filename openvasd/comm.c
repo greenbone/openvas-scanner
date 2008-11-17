@@ -288,8 +288,9 @@ comm_send_rules(globals)
  auth_printf(globals, "<|> SERVER\n");
 }
 
-/*
- * Sends the preferences of the server
+/**
+ * Sends the preferences of the server.
+ * @param globals The global arglist with a "preferences" sub-arglist.
  */
 void
 comm_send_preferences(globals)
@@ -322,9 +323,8 @@ comm_send_preferences(globals)
 	 strcmp(prefs->name, "key_file")	  &&
 	 strcmp(prefs->name, "cert_file")	  &&
 	 strcmp(prefs->name, "be_nice")		  &&
-	 strcmp(prefs->name, "log_plugins_name_at_load") &&
-	 strcmp(prefs->name, "nasl_no_signature_check")	)  
-    		auth_printf(globals, "%s <|> %s\n", prefs->name, (const char *) prefs->value);
+	 strcmp(prefs->name, "log_plugins_name_at_load"))
+    	     auth_printf(globals, "%s <|> %s\n", prefs->name, (const char *) prefs->value);
   }
   prefs = prefs->next;
  }
