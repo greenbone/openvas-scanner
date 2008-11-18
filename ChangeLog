@@ -1,3 +1,13 @@
+2008-11-18  Michael Wiegand <michael.wiegand@intevation.de>
+
+	Fixing version requirements for glib as pointed out by atomicturtle.
+
+	* configure.in: Updated glib requirements to >= 2.6.0
+
+	* configure: Regenerated.
+
+	* aclocal.m4: Regenerated to update PKG_CHECK_MODULES.
+
 2008-11-17  Felix Wolfsteller <felix.wolfsteller@intevation.de>
 
 	* openvasd/ntp_11.c: comment added.
