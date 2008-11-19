@@ -1,4 +1,10 @@
-2008-11-19  Joey Schulze  <joey@infodrom.org>
+2008-11-19  Tim Brown <timb@nth-dimension.org.uk>
+
+	* packaging/debian/changelog: Updated.
+
+	* packaging/debian/control: Adjusted dependencies to use beta2 versions of the libraries.
+
+2008-11-19  Joey Schulze <joey@infodrom.org>
 
 	* packaging/debian/openvas-server.install: Removed reference to
 	openvas-check-signature.1 that was removed

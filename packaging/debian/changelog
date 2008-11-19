@@ -1,3 +1,11 @@
+openvas-server (2.0.0.beta2-1) UNRELEASED; urgency=low
+
+  * New upstream release
+  * Adjusted dependencies to use beta2 versions of the libraries
+  * Removed reference to openvas-check-signature.1 that was removed
+
+ -- Tim Brown <timb@nth-dimension.org.uk>  Sat, 15 Nov 2008 17:29:08 +0000
+
 openvas-server (2.0.0.beta1-1) UNRELEASED; urgency=low
 
   * New upstream release
