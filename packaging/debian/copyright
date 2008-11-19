@@ -8,6 +8,7 @@ Upstream Author: OpenVAS <openvas-devel@wald.intevation.org>
 Copyright: 
 
  - OpenVAS server:
+     * Copyright (C) 2007, 2008 Intevation GmbH
      * Portions Copyright (C) 2006 Software in the Public Interest, Inc.
      * Based on work Copyright (C) 1998 - 2006 Tenable Network Security, Inc.
      * Copyright (C) 1998 - 2004 Renaud Deraison <deraison@nessus.org>
