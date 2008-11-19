@@ -1,3 +1,8 @@
+2008-11-19  Joey Schulze  <joey@infodrom.org>
+
+	* packaging/debian/openvas-server.install: Removed reference to
+	openvas-check-signature.1 that was removed
+
 2008-11-19  Michael Wiegand <michael.wiegand@intevation.de>
 
 	* packaging/debian/copyright: Added missing Intevation copyright.
