@@ -1,3 +1,13 @@
+2008-11-21  Joey Schulze <joey@infodrom.org>
+
+	Sync with Debian packaging as uploaded to ftp-master
+	
+	* packaging/debian/control: Adjust uploaders, add section for
+	openvas-server and -dev
+
+	* packaging/debian/changelog: Add changelog records for versions
+	1.0.2-1, 1.0.2-2 and 1.0.2-3 
+
 2008-11-19  Tim Brown <timb@nth-dimension.org.uk>
 
 	* packaging/debian/changelog: Updated.

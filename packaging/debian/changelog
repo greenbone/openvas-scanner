@@ -18,6 +18,41 @@ openvas-server (2.0.0.beta1-1) UNRELEASED; urgency=low
 
  -- Tim Brown <timb@nth-dimension.org.uk>  Sun, 12 Oct 2008 12:50:27 +0100
 
+openvas-server (1.0.2-3) unstable; urgency=low
+
+  * Set Debian OpenVAS Maintainers <openvas-distro-deb@wald> as maintainer
+  * Add Jan Wagner, Tim Brown and me to Uploaders
+  * Bump Standards-Version
+  * Remove openvas-plugins from Dependencies
+  * Add versioned dependency against openvas-server to openvas-server-dev
+  * Add section net to openvas-server
+  * Clear recommends for -dev package
+  * Re-upload with full source
+
+ -- Joey Schulze <joey@infodrom.org>  Fri, 21 Nov 2008 22:39:36 +0100
+
+openvas-server (1.0.2-2) unstable; urgency=low
+
+  * Add Intevation GmbH to debian/copyright since some of the changes
+    in openvasd.c are (c) by them. This fixes the reason this package
+    was REJECTED by the ftpmasters.
+  * Fix package's version.
+  * Add openvas.tmpl to the files to check for in debian/rules
+
+ -- Javier Fernandez-Sanguino Pen~a <jfs@debian.org>  Mon, 27 Oct 2008 01:25:06 +0100
+
+openvas-server (1.0.2-1) unstable; urgency=low
+
+  * New upstream release.
+    - Upstream includes fixes introduced in previous package version
+    - Fixes also a SIGSEGV when scanning with the server
+  * Add a README.Debian file describing notes for users based on Nessus'
+    README but with an updated content and some other adjustments.
+  * Reorder the packages in debian/control so that openvas-server
+    is the main package
+
+ -- Javier Fernandez-Sanguino Pen~a <jfs@debian.org>  Thu, 11 Sep 2008 20:28:43 +0200
+
 openvas-server (1.0.1-1) unstable; urgency=low
 
   * New upstream release 
