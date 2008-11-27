@@ -1,3 +1,9 @@
+2008-11-27  Joey Schulze <joey@infodrom.org>
+
+	* packaging/debian/openvas-server.postinst: Corrected server
+	restart (init file was renamed from openvasd to openvas-server
+	some revisions earlier)
+
 2008-11-21  Joey Schulze <joey@infodrom.org>
 
 	Sync with Debian packaging as uploaded to ftp-master

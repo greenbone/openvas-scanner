@@ -316,12 +316,12 @@ if [ "$1" = "configure" ]; then
 
 # Restart the OpenVAS daemon if running
 
-  if [ -x /etc/init.d/openvasd ] && \
-	  /etc/init.d/openvasd status 2>&1 >/dev/null; then
+  if [ -x /etc/init.d/openvas-server ] && \
+	  /etc/init.d/openvas-server status 2>&1 >/dev/null; then
         	if which invoke-rc.d >/dev/null 2>&1; then
-	                invoke-rc.d openvasd restart
+	                invoke-rc.d openvas-server restart
 		else
-		  	/etc/init.d/openvasd restart
+		  	/etc/init.d/openvas-server restart
 		fi
   fi
 
