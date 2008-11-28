@@ -1,3 +1,7 @@
+2008-11-28  Joey Schulze <joey@infodrom.org>
+
+	* packaging/debian/openvasd.conf: Disable signature check
+
 2008-11-27  Joey Schulze <joey@infodrom.org>
 
 	* packaging/debian/openvas-server.postinst: Corrected server
