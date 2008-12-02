@@ -52,8 +52,7 @@
 #endif
 
 
-/*
- * comm_init() :
+/**
  * Initializes the communication between the
  * server (us) and the client.
  */
@@ -86,7 +85,7 @@ ntp_caps* comm_init(soc)
 }
 
 
-/*
+/**
  * This function must be called at the end
  * of a session. 
  */
@@ -103,7 +102,7 @@ comm_terminate(globals)
 }
 
 
-/*
+/**
  * Sends a plugin info.
  */
 void 
@@ -194,6 +193,7 @@ send_plug_info(globals, plugins)
 
      {
        char * xref = plug_get_xref(args);
+       printf("BUGME: xref = %s (%d)\n", xref, strlen(xref));
        if(xref == NULL)xref = "NOXREF";
        strcat(str, " <|> ");
        strcat(str, xref);
@@ -213,7 +213,12 @@ send_plug_info(globals, plugins)
       if(desc != NULL)efree(&desc);
 }
 
-
+/**
+ * Sends the plugin info for a single plugin.
+ * @param globals The global arglist holding all plugins.
+ * @param oid OID of the plugin to send.
+ * @see send_plug_info
+ */
 void
 plugin_send_infos(globals, oid)
  struct arglist * globals;
@@ -240,10 +245,12 @@ plugin_send_infos(globals, oid)
 
 
 
-/*
+/**
  * Sends the list of plugins that the server
- * could load to the client, using the 
- * NTP format
+ * could load to the client, using the
+ * OTP format (calls send_plug_info for each).
+ * @param globals The global arglist.
+ * @see send_plug_info
  */
 void 
 comm_send_pluginlist(globals)
@@ -261,7 +268,7 @@ comm_send_pluginlist(globals)
   auth_printf(globals, "<|> SERVER\n");
 }
 
-/*
+/**
  * Sends the rules of the user
  */
 void
@@ -343,7 +350,7 @@ comm_send_preferences(globals)
 }
 
 
-/*
+/**
  * This function waits for the attack order
  * of the client
  * Meanwhile, it processes all the messages the client could
@@ -374,6 +381,11 @@ comm_wait_order(globals)
 
 
 /*-------------------------------------------------------------------------------*/
+/**
+ * Q-Sort comparison function.
+ * @param a An arglist** to compare against b.
+ * @param b An arglist** to compare against a.
+ */
 static int qsort_cmp( const void * a, const void * b )
 {
  struct arglist ** plugin_a = (struct arglist**) a;
@@ -382,6 +394,11 @@ static int qsort_cmp( const void * a, const void * b )
  return(strcmp(plug_get_oid((*plugin_a)->value), plug_get_oid((*plugin_b)->value)));
 }
 
+/**
+ * Retrieves a plugin defined by its OID from a range within a sorted plugin 
+ * array.
+ * Recursively defined, uses divide and conquer approach.
+ */
 static struct arglist * _get_plug_by_oid(struct arglist ** array, char * oid, int start, int end, int rend )
 {
   int mid;
@@ -409,7 +426,9 @@ static struct arglist * _get_plug_by_oid(struct arglist ** array, char * oid, in
   return array[mid];
 }
 
-
+/**
+ * Retrieves a plugin defined by its OID from a plugin arrray.
+ */
 static struct arglist * get_plug_by_oid(struct arglist ** array, char * oid, int num_plugins )
 {
   return _get_plug_by_oid(array, oid, 0, num_plugins, num_plugins);
@@ -418,7 +437,7 @@ static struct arglist * get_plug_by_oid(struct arglist ** array, char * oid, int
 /*-------------------------------------------------------------------------------*/
 
 
-/* 
+/**
  * Enable the plugins which have been selected by the user, or all if 
  * list == NULL or list == "-1;";
  * @param globals The Global context to retrieve plugins from.
@@ -481,6 +500,9 @@ void comm_setup_plugins( struct arglist * globals, char * list )
   efree(&array);
 }
 
+/**
+ * Send the OTP PLUGINS_MD5 command
+ */
 void
 comm_send_md5_plugins(globals)
  struct arglist * globals;

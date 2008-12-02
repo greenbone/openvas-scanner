@@ -1,3 +1,7 @@
+2008-12-02  Felix Wolfsteller <felix.wolfsteller@intevation.de>
+
+	* openvasd/comm.c : Comments added.
+
 2008-11-28  Joey Schulze <joey@infodrom.org>
 
 	* packaging/debian/openvasd.conf: Disable signature check
