@@ -179,31 +179,31 @@ send_plug_info(globals, plugins)
 
      {
        char * id = plug_get_cve_id(args);
-       if(id == NULL)id = "NOCVE";
+       if(id == NULL || strcmp(id, "") == 0 ) id = "NOCVE";
        strcat(str, " <|> ");
        strcat(str, id);
      }
 
      {
        char * bid = plug_get_bugtraq_id(args);
-       if(bid == NULL)bid = "NOBID";
+       if(bid == NULL || strcmp(bid, "") == 0) bid = "NOBID";
        strcat(str, " <|> ");
        strcat(str, bid);
      }
 
      {
        char * xref = plug_get_xref(args);
-       printf("BUGME: xref = %s (%d)\n", xref, strlen(xref));
-       if(xref == NULL)xref = "NOXREF";
+       if(xref == NULL || strcmp(xref, "") == 0) xref = "NOXREF";
        strcat(str, " <|> ");
        strcat(str, xref);
      }
 
      {
-        char * sign_keys = plug_get_sign_key_ids(args);
-        strcat(str, " <|> ");
-        if(sign_keys != NULL)
-          strcat(str, sign_keys);
+       char * sign_keys = plug_get_sign_key_ids(args);
+       if(sign_keys == NULL || strcmp(sign_keys, "") == 0)
+         sign_keys = "NOSIGNKEYS";
+       strcat(str, " <|> ");
+       strcat(str, sign_keys);
      }
 
       auth_printf(globals, "%s\n", str);	
