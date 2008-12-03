@@ -206,6 +206,14 @@ send_plug_info(globals, plugins)
        strcat(str, sign_keys);
      }
 
+     {
+       char * tag = plug_get_tag(args);
+       if(tag == NULL || strcmp(tag, "") == 0)
+         tag = "NOTAG";
+       strcat(str, " <|> ");
+       strcat(str, tag);
+     }
+
       auth_printf(globals, "%s\n", str);	
       efree(&str);	  
       }

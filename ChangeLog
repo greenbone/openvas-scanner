@@ -1,3 +1,11 @@
+2008-12-03  Michael Wiegand <michael.wiegand@intevation.de>
+
+	Implementing CR #22 (New script_tag Command,
+	http://www.openvas.org/openvas-cr-22.html).
+
+	* openvasd/comm.c (send_plug_info): Added support for sending NVT tags
+	to client.
+
 2008-12-02  Felix Wolfsteller <felix.wolfsteller@intevation.de>
 
 	* openvasd/comm.c : Repaired sending NOXREF, NOCVE, NOBID, NOSIGNKEY if
