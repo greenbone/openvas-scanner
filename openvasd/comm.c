@@ -118,6 +118,7 @@ send_plug_info(globals, plugins)
   char * t;
   const char *a, *b, *d, *e = NULL;
   char * desc = NULL;
+  unsigned int mem_size = 0;
 
   args = plugins->value;
 
@@ -165,53 +166,62 @@ send_plug_info(globals, plugins)
 	if(strchr(d, '\n')){
        	fprintf(stderr, "ERROR - %s %s\n", plug_get_oid(args), d);
 	}
+
+  mem_size = strlen(a) +                         /* Name */
+             strlen(b) +                         /* Copyright */
+             strlen(desc) +                      /* Description */
+             strlen(d) +                         /* Summary */
+             strlen(e) +                         /* Version */
+             strlen(plug_get_family(args)) +     /* Family */
+             7170 +                              /* CVEs + BIDs + XREFs + Tags + Keys */
+             100;                                 /* Separators etc. */
+
 	
-       str = emalloc(strlen(a) + strlen(b) + strlen(desc) + strlen(d) +
-      		  strlen(plug_get_family(args))+ 1024 + 128);
-       sprintf(str, "%s <|> %s <|> %s <|> %s <|> %s <|> %s <|> %s",
+       str = emalloc(mem_size);
+       snprintf(str, mem_size, "%s <|> %s <|> %s <|> %s <|> %s <|> %s <|> %s", /* RATS: ignore */
                plug_get_oid(args), a,
 		  categories[j],
 		  b, desc, d,
 		  plug_get_family(args));
 
-     strcat(str, " <|> ");
-     strcat(str,  e);
+     strcat(str, " <|> "); /* RATS: ignore */
+     strcat(str,  e); /* RATS: ignore */
 
      {
        char * id = plug_get_cve_id(args);
        if(id == NULL || strcmp(id, "") == 0 ) id = "NOCVE";
-       strcat(str, " <|> ");
-       strcat(str, id);
+       strcat(str, " <|> "); /* RATS: ignore */
+       strcat(str, id); /* RATS: ignore */
      }
 
      {
        char * bid = plug_get_bugtraq_id(args);
        if(bid == NULL || strcmp(bid, "") == 0) bid = "NOBID";
-       strcat(str, " <|> ");
-       strcat(str, bid);
+       strcat(str, " <|> "); /* RATS: ignore */
+       strcat(str, bid); /* RATS: ignore */
      }
 
      {
        char * xref = plug_get_xref(args);
        if(xref == NULL || strcmp(xref, "") == 0) xref = "NOXREF";
-       strcat(str, " <|> ");
-       strcat(str, xref);
+       strcat(str, " <|> "); /* RATS: ignore */
+       strcat(str, xref); /* RATS: ignore */
      }
 
      {
        char * sign_keys = plug_get_sign_key_ids(args);
        if(sign_keys == NULL || strcmp(sign_keys, "") == 0)
          sign_keys = "NOSIGNKEYS";
-       strcat(str, " <|> ");
-       strcat(str, sign_keys);
+       strcat(str, " <|> "); /* RATS: ignore */
+       strcat(str, sign_keys); /* RATS: ignore */
      }
 
      {
        char * tag = plug_get_tag(args);
        if(tag == NULL || strcmp(tag, "") == 0)
          tag = "NOTAG";
-       strcat(str, " <|> ");
-       strcat(str, tag);
+       strcat(str, " <|> "); /* RATS: ignore */
+       strcat(str, tag); /* RATS: ignore */
      }
 
       auth_printf(globals, "%s\n", str);	

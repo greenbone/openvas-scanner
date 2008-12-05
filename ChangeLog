@@ -1,3 +1,14 @@
+2008-12-05  Michael Wiegand <michael.wiegand@intevation.de>
+
+	* openvasd/comm.c (send_plug_info): Fixed insufficient memory
+	allocation which could have caused a buffer overflow when trying to
+	assemble the plugin_info string for NVTs with long CVEs, BIDs, XRefs
+	and Tags. Made memory allocation more transparent. Ignore strcat
+	warnings since enough memory is allocated beforehand now. Ignore
+	snprintf warning since systems able to compile and run will most likely
+	not use libc4.[45], where snprintf usage is a potential security
+	issue.
+
 2008-12-03  Michael Wiegand <michael.wiegand@intevation.de>
 
 	Implementing CR #22 (New script_tag Command,
