@@ -1,5 +1,11 @@
 2008-12-05  Michael Wiegand <michael.wiegand@intevation.de>
 
+	Post release version bump.
+
+	* VERSION: Set to 2.0.0.rc2.SVN.
+
+2008-12-05  Michael Wiegand <michael.wiegand@intevation.de>
+
 	Preparing the openvas-server 2.0-rc1 release.
 
 	* CHANGES: Updated.
