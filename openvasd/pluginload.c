@@ -53,7 +53,7 @@ struct files ** files_init()
 {
  struct files ** ret;
  int i;
- srand(MAX_FILES);
+ srand(MAX_FILES); /* RATS: ignore */	
  ret = emalloc(sizeof(*ret) * (MAX_FILES + 1));
  for(i=0;i<MAX_FILES;i++)
  	ret[i] = NULL;
@@ -107,7 +107,7 @@ void files_close(struct files ** files)
   if(files[i])printf("Warning, forgot some files!!\n");
  
  efree(&files);
- srand(time(NULL));
+ srand(time(NULL)); /* RATS: ignore */
 }
 
 

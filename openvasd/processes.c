@@ -103,7 +103,7 @@ create_process(function, argument)
   nessus_signal(SIGUSR2, SIG_IGN);
   nessus_signal(SIGCHLD, sighand_chld);
   nessus_signal(SIGSEGV, sighand_segv);	/* Comment this line out to dump a core and debug openvasd */
-  srand48(getpid() + getppid() + (long)time(NULL));
+  srand48(getpid() + getppid() + (long)time(NULL)); /* RATS: ignore */
   (*function)(argument);
   EXIT(0);
  }
