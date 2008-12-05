@@ -1,5 +1,13 @@
 2008-12-05  Michael Wiegand <michael.wiegand@intevation.de>
 
+	Preparing the openvas-server 2.0-rc1 release.
+
+	* CHANGES: Updated.
+
+	* VERSION: Set to 2.0.0.rc1.
+
+2008-12-05  Michael Wiegand <michael.wiegand@intevation.de>
+
 	* openvasd/processes.c (create_process): Ignore warning about srand48
 	not being random enough; it is random enough for our purposes.
 

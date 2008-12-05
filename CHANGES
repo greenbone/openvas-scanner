@@ -1,3 +1,31 @@
+openvas-server 2.0-rc1 (2008-12-05)
+
+This release is the first release candidate for the upcoming 2.0 release of OpenVAS.
+
+Unless serious bugs are discovered, this release candidate will become the final
+OpenVAS 2.0 release. Users are encouraged to test this release and to report
+bugs to the OpenVAS bug tracker located at http://bugs.openvas.org/ .
+
+If you have used the 2.0-beta2 release, we recommend that you update all your
+OpenVAS modules (openvas-libraries, openvas-libnasl, openvas-server and
+openvas-client) to 2.0-rc1.
+
+If you are currently using the stable 1.0.x branch and want to take part in
+testing this release candidate, we recommend that you install 2.0-rc1 separately
+from your OpenVAS 1.0 installation. Instructions on how to do this are available
+from the OpenVAS website.
+
+Main changes since 2.0-beta2:
+* Support for the new script_tag command in NASL scripts has been added.
+* Code quality has been improved, a potential buffer overflow due to
+  insufficient memory allocation has been fixed.
+* Debian packaging files have been updated.
+* Minor bugfixes.
+
+Many thanks to everyone who has contributed to this release: Tim Brown, Joey
+Schulze, Felix Wolfsteller and Michael Wiegand.
+
+
 openvas-server 2.0-beta2 (2008-11-14)
 
 This release is the second beta version of the upcoming 2.0 release of OpenVAS.
