@@ -1,3 +1,7 @@
+2008-12-13  Joey Schulze <joey@infodrom.org>
+
+	* packaging/debian/copyright: Reworked copyright file
+
 2008-12-05  Michael Wiegand <michael.wiegand@intevation.de>
 
 	Post release version bump.

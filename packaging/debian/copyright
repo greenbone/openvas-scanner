@@ -1,18 +1,21 @@
-This package was debianized by Tim Brown <timb@nth-dimension.org.uk> on
-Sun, 11 May 2008 12:39:48 +0100.
+This is the prepackaged version of the Open Vulnerability Assessment
+System server for Debian GNU/Linux from sources obtained from:
 
-It was downloaded from http://www.openvas.org/
+  http://www.openvas.org/
 
-Upstream Author: OpenVAS <openvas-devel@wald.intevation.org>
+This software has been packaged for Debian by
+  * Tim Brown <timb@nth-dimension.org.uk>
+  * Javier Fernandez-Sanguino Pen~a <jfs@debian.org>
+  * Joey Schulze <joey@infodrom.org>
 
 Copyright: 
 
  - OpenVAS server:
-     * Copyright (C) 2007, 2008 Intevation GmbH
      * Portions Copyright (C) 2006 Software in the Public Interest, Inc.
      * Based on work Copyright (C) 1998 - 2006 Tenable Network Security, Inc.
      * Copyright (C) 1998 - 2004 Renaud Deraison <deraison@nessus.org>
      * Based on work Copyright (C) 2001 Michel Arboi [ssl]
+     * Portions Copyright (C) 2007, 2008 Intevation GmbH
 
  - OpenVAS documentation:
      * Copyright (C) 2004 Tenable Network Security
@@ -22,12 +25,17 @@ Copyright:
      * Portions Copyright (C) 2006 Software in the Public Interest, Inc.
      * Based on work Copyright (C) 1998 - 2006 Tenable Network Security, Inc.
 
-  - Translations:
-     * Copyright (C) 2006 Matthias Julius [de]
-     * Copyright (C) 1998 - 2005 Renaud Deraison [fr]
-     * Copyright (C) 2005 Software in the Public Interest, SPI Inc [es]
-     * Copyright (C) 2007 Pedro Ribeiro <p.m42.ribeiro@gmail.com> [pt]
-     * Copyright (C) 1998 - 2006 Tenable Network Security, Inc [cs, pt_BR, sv]
+ - Translations
+     * Boris Wolf
+     * Miroslav Kure
+     * Matthias Julius
+     * Javier Fernandez-Sanguino
+     * Christophe Masson
+     * Jacobo Tarrio
+     * Kurt De Bree
+     * Pedro Ribeiro
+     * Eder L. Marques
+     * Daniel Nylander
 
 Other copyrights:
 
@@ -45,7 +53,6 @@ Authors:
      * Axel Nennker
      * Beirne Kornarksi
      * Benoit Brodard
-     * Bernhard Herzog
      * Boris Wolf
      * Brian
      * Christoph Puppe
@@ -60,8 +67,6 @@ Authors:
      * H D Moore
      * Iouri Pletnev
      * Isaac Dawson
-     * Jan Wagner
-     * Jan-Oliver Wagner
      * Javier Fernandez-Sanguino
      * Jay
      * Jenni Scott
@@ -73,7 +78,6 @@ Authors:
      * Michael Slifcak
      * Michel Arboi
      * Michel Scheidell
-     * Michael Wiegand
      * Nicolas Dubee
      * Nicolas Pouvesle
      * Pasi Eronen
@@ -84,17 +88,15 @@ Authors:
      * Rodolfo Baader
      * Simon Law
      * Stephen Friedl
-     * Tim Brown
      * Xueyong Zhi
      * Zorgon
 
 License:
 
-    This package is free software; you can redistribute it and/or modify
-    it under the terms of the GNU General Public License as published by
-    the Free Software Foundation; either version 2 of the License, or
-    (at your option) any later version.
- 
+    This program is free software; you can redistribute it and/or modify
+    it under the terms of the GNU General Public License version 2,
+    as published by the Free Software Foundation
+
     This package is distributed in the hope that it will be useful,
     but WITHOUT ANY WARRANTY; without even the implied warranty of
     MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
@@ -107,9 +109,16 @@ License:
 On Debian systems, the complete text of the GNU General
 Public License can be found in `/usr/share/common-licenses/GPL'.
 
-The Debian packaging is (C) 2008, Tim Brown <timb@nth-dimension.org.uk> and
-is licensed under the GPL, see above. Portions of the Debian packing are
-heavily based on the packaging of nessusd which includes scripts written by
-Miquel van Smoorenburg <miquels@drinkel.ow.org>, Ian Murdock
-<imurdock@gnu.ai.mit.edu>, Luca Andreucci <andrew@andrew.org> and Javier
-Fernandez-Sanguino Pe�a <jfs@debian.org> which is licensed under the GPL.
+The Debian packaging is licensed under the GPL, see above, and
+  (c) 2008, Tim Brown <timb@nth-dimension.org.uk>
+  (c) 2008, Javier Fernandez-Sanguino Pen~a <jfs@debian.org>
+  (c) 2008, Joey Schulze <joey@infodrom.org>
+
+Portions of the Debian packing are heavily based on the packaging of
+nessusd which includes scripts which is licensed under the GPL written
+by
+  * Miquel van Smoorenburg <miquels@drinkel.ow.org>
+  * Ian Murdock <imurdock@gnu.ai.mit.edu>
+  * Luca Andreucci <andrew@andrew.org>
+  * Javier Fernandez-Sanguino Pen~a <jfs@debian.org>
+
