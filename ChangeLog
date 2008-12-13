@@ -1,5 +1,8 @@
 2008-12-13  Joey Schulze <joey@infodrom.org>
 
+	* packaging/debian/openvas-server.prerm: Add switch to make script
+	fail in case of errors
+	
 	* packaging/debian/openvas-server.postinst: Switch shell to bash
 	to be compliant with bashisms
 
