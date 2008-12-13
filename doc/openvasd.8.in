@@ -44,7 +44,7 @@ want people on the outside to connect to your
 .BI "-S " <ip[,ip2,...]> ", --src-ip=" <ip[,ip2,...]>
 Force the source IP of the connections established by OpenVAS to
 .I <ip>
-\. Note that you can not set arbitrary addresses here, as most OpenVAS
+.\" Note that you can not set arbitrary addresses here, as most OpenVAS
 checks need to fully establish a connection to the remote host. This
 option is only useful if you have a multi-homed machine with multiple
 public IP addresses that you would like to use instead of the default

@@ -1,5 +1,7 @@
 2008-12-13  Joey Schulze <joey@infodrom.org>
 
+	* doc/openvasd.8.in: Fix broken comment
+
 	* packaging/debian/openvas-server.prerm: Add switch to make script
 	fail in case of errors
 	
