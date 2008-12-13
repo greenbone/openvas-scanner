@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: openvas-server@packages.debian.org\n"
-"POT-Creation-Date: 2008-06-19 23:17+0100\n"
+"POT-Creation-Date: 2008-12-13 17:15+0100\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -36,7 +36,7 @@ msgstr ""
 #. Type: string
 #. Description
 #: ../openvas-server.templates:2001
-msgid "CA certificate life time in days"
+msgid "CA certificate life time in days:"
 msgstr ""
 
 #. Type: string
@@ -50,7 +50,7 @@ msgstr ""
 #. Type: string
 #. Description
 #: ../openvas-server.templates:3001
-msgid "Server certificate life time in days"
+msgid "Server certificate life time in days:"
 msgstr ""
 
 #. Type: string
@@ -67,7 +67,7 @@ msgstr ""
 #. Type: string
 #. Description
 #: ../openvas-server.templates:4001
-msgid "Your country (two letter code)"
+msgid "Your country (two letter code):"
 msgstr ""
 
 #. Type: string
@@ -79,7 +79,7 @@ msgstr ""
 #. Type: string
 #. Description
 #: ../openvas-server.templates:5001
-msgid "Your state or province"
+msgid "Your state or province:"
 msgstr ""
 
 #. Type: string
@@ -91,7 +91,7 @@ msgstr ""
 #. Type: string
 #. Description
 #: ../openvas-server.templates:6001
-msgid "Your location"
+msgid "Your location:"
 msgstr ""
 
 #. Type: string
@@ -103,7 +103,7 @@ msgstr ""
 #. Type: string
 #. Description
 #: ../openvas-server.templates:7001
-msgid "Your organisation"
+msgid "Your organisation:"
 msgstr ""
 
 #. Type: string

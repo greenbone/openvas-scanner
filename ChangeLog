@@ -4,8 +4,9 @@
 	packaging/debian/po/es.po, packaging/debian/po/fr.po,
 	packaging/debian/po/gl.po, packaging/debian/po/nl.po,
 	packaging/debian/po/pt.po, packaging/debian/po/pt_BR.po,
-	packaging/debian/po/sv.po: Updated PO files after debconf-updatepo
-	and adjusting new fuzzy translations
+	packaging/debian/po/sv.po, packaging/debian/po/templates.pot:
+	Updated PO files after debconf-updatepo and adjusting new fuzzy
+	translations
 
 	* doc/openvasd.8.in: Fix broken comment
 
