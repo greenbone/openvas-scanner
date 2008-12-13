@@ -1,5 +1,8 @@
 2008-12-13  Joey Schulze <joey@infodrom.org>
 
+	* packaging/debian/changelog: Added changelog entry from the
+	recently uploaded Debian package
+
 	* packaging/debian/po/de.po, packaging/debian/po/cs.po,
 	packaging/debian/po/es.po, packaging/debian/po/fr.po,
 	packaging/debian/po/gl.po, packaging/debian/po/nl.po,

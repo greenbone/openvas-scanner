@@ -18,6 +18,22 @@ openvas-server (2.0.0.beta1-1) UNRELEASED; urgency=low
 
  -- Tim Brown <timb@nth-dimension.org.uk>  Sun, 12 Oct 2008 12:50:27 +0100
 
+openvas-server (1.0.2-4) unstable; urgency=low
+
+  * Corrected server restart in postinst
+  * Disable signature check in openvasd.conf
+    (nasl_no_signature_check = yes)
+  * Reworked copyright file:
+    . Improved packaging log/copyright notes
+    . Added list of translators
+    . Adjusted GPL version to v2 which is stated in source files
+    . Improved list of packagers and packaging contributors
+  * Updated PO files after debconf-updatepo and adjusting new fuzzy
+    translations
+  * Corrected comment in openvasd(8) manpage
+
+ -- Joey Schulze <joey@infodrom.org>  Sat, 13 Dec 2008 16:46:40 +0100
+
 openvas-server (1.0.2-3) unstable; urgency=low
 
   * Set Debian OpenVAS Maintainers <openvas-distro-deb@wald> as maintainer
