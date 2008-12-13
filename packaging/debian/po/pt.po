@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: nessus-core 2.2.8\n"
 "Report-Msgid-Bugs-To: openvas-server@packages.debian.org\n"
-"POT-Creation-Date: 2008-06-19 23:17+0100\n"
+"POT-Creation-Date: 2008-12-13 17:15+0100\n"
 "PO-Revision-Date: 2007-03-11 09:58+0100\n"
 "Last-Translator: Pedro Ribeiro <p.m42.ribeiro@gmail.com>\n"
 "Language-Team: Portuguese <traduz@debianpt.org>\n"
@@ -39,8 +39,8 @@ msgstr ""
 #. Type: string
 #. Description
 #: ../openvas-server.templates:2001
-msgid "CA certificate life time in days"
-msgstr "Tempo de vida do certificado CA em dias"
+msgid "CA certificate life time in days:"
+msgstr "Tempo de vida do certificado CA em dias:"
 
 #. Type: string
 #. Description
@@ -55,8 +55,8 @@ msgstr ""
 #. Type: string
 #. Description
 #: ../openvas-server.templates:3001
-msgid "Server certificate life time in days"
-msgstr "Tempo de vida do certificado de servidor em dias"
+msgid "Server certificate life time in days:"
+msgstr "Tempo de vida do certificado de servidor em dias:"
 
 #. Type: string
 #. Description
@@ -77,8 +77,8 @@ msgstr ""
 #. Type: string
 #. Description
 #: ../openvas-server.templates:4001
-msgid "Your country (two letter code)"
-msgstr "O código do seu país (duas letras)"
+msgid "Your country (two letter code):"
+msgstr "O código do seu país (duas letras):"
 
 #. Type: string
 #. Description
@@ -89,8 +89,8 @@ msgstr "Indique o código de duas letras do seu país"
 #. Type: string
 #. Description
 #: ../openvas-server.templates:5001
-msgid "Your state or province"
-msgstr "O seu estado ou província"
+msgid "Your state or province:"
+msgstr "O seu estado ou província:"
 
 #. Type: string
 #. Description
@@ -101,8 +101,8 @@ msgstr "Indique o seu estado ou província de residência."
 #. Type: string
 #. Description
 #: ../openvas-server.templates:6001
-msgid "Your location"
-msgstr "A sua localização"
+msgid "Your location:"
+msgstr "A sua localização:"
 
 #. Type: string
 #. Description
@@ -113,8 +113,9 @@ msgstr "Indique a sua localização (e.g. cidade)"
 #. Type: string
 #. Description
 #: ../openvas-server.templates:7001
-msgid "Your organisation"
-msgstr "A sua organização"
+
+msgid "Your organisation:"
+msgstr "A sua organização:"
 
 #. Type: string
 #. Description

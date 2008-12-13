@@ -33,7 +33,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: nessusd\n"
 "Report-Msgid-Bugs-To: openvas-server@packages.debian.org\n"
-"POT-Creation-Date: 2008-06-19 23:17+0100\n"
+"POT-Creation-Date: 2008-12-13 17:15+0100\n"
 "PO-Revision-Date: 2005-09-18 12:11+0200\n"
 "Last-Translator: Javier Fernandez-Sanguino <jfs@computer.org>\n"
 "Language-Team: Debian Spanish <debian-l10n-spanish@lists.debian.org>\n"
@@ -65,8 +65,8 @@ msgstr ""
 #. Type: string
 #. Description
 #: ../openvas-server.templates:2001
-msgid "CA certificate life time in days"
-msgstr "Tiempo de vida en días del certificado de CA"
+msgid "CA certificate life time in days:"
+msgstr "Tiempo de vida en días del certificado de CA:"
 
 #. Type: string
 #. Description
@@ -81,8 +81,8 @@ msgstr ""
 #. Type: string
 #. Description
 #: ../openvas-server.templates:3001
-msgid "Server certificate life time in days"
-msgstr "Tiempo de vida en días del certificado del servidor"
+msgid "Server certificate life time in days:"
+msgstr "Tiempo de vida en días del certificado del servidor:"
 
 #. Type: string
 #. Description
@@ -104,8 +104,8 @@ msgstr ""
 #. Type: string
 #. Description
 #: ../openvas-server.templates:4001
-msgid "Your country (two letter code)"
-msgstr "Su país (código de dos letras)"
+msgid "Your country (two letter code):"
+msgstr "Su país (código de dos letras):"
 
 #. Type: string
 #. Description
@@ -116,8 +116,8 @@ msgstr "Introduzca el código de dos letras de su país."
 #. Type: string
 #. Description
 #: ../openvas-server.templates:5001
-msgid "Your state or province"
-msgstr "Su provincia o estado"
+msgid "Your state or province:"
+msgstr "Su provincia o estado:"
 
 #. Type: string
 #. Description
@@ -128,8 +128,8 @@ msgstr "Introduzca el nombre del estado o de la provincida donde reside."
 #. Type: string
 #. Description
 #: ../openvas-server.templates:6001
-msgid "Your location"
-msgstr "Su localización"
+msgid "Your location:"
+msgstr "Su localización:"
 
 #. Type: string
 #. Description
@@ -140,8 +140,8 @@ msgstr "Introduzca su localización (p. ej. su ciudad)."
 #. Type: string
 #. Description
 #: ../openvas-server.templates:7001
-msgid "Your organisation"
-msgstr "Su organización"
+msgid "Your organisation:"
+msgstr "Su organización:"
 
 #. Type: string
 #. Description

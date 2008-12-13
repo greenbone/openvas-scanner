@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: nessus-core 2.2.5-2\n"
 "Report-Msgid-Bugs-To: openvas-server@packages.debian.org\n"
-"POT-Creation-Date: 2008-06-19 23:17+0100\n"
+"POT-Creation-Date: 2008-12-13 17:15+0100\n"
 "PO-Revision-Date: 2005-10-02 13:28+0200\n"
 "Last-Translator: Christophe Masson <chrs.masson@tiscali.fr>\n"
 "Language-Team: French <debian-l10n-french@lists.debian.org>\n"
@@ -39,7 +39,7 @@ msgstr ""
 #. Type: string
 #. Description
 #: ../openvas-server.templates:2001
-msgid "CA certificate life time in days"
+msgid "CA certificate life time in days:"
 msgstr ""
 "Durée de validité, en jours, du certificat de l'autorité de certification :"
 
@@ -56,7 +56,7 @@ msgstr ""
 #. Type: string
 #. Description
 #: ../openvas-server.templates:3001
-msgid "Server certificate life time in days"
+msgid "Server certificate life time in days:"
 msgstr "Durée de validité, en jours, du certificat du serveur :"
 
 #. Type: string
@@ -80,7 +80,7 @@ msgstr ""
 #. Type: string
 #. Description
 #: ../openvas-server.templates:4001
-msgid "Your country (two letter code)"
+msgid "Your country (two letter code):"
 msgstr "Pays (code à deux lettres) :"
 
 #. Type: string
@@ -92,7 +92,7 @@ msgstr "Veuillez indiquer le code à deux lettres de votre pays."
 #. Type: string
 #. Description
 #: ../openvas-server.templates:5001
-msgid "Your state or province"
+msgid "Your state or province:"
 msgstr "État ou province :"
 
 #. Type: string
@@ -105,7 +105,7 @@ msgstr ""
 #. Type: string
 #. Description
 #: ../openvas-server.templates:6001
-msgid "Your location"
+msgid "Your location:"
 msgstr "Localisation du serveur :"
 
 #. Type: string
@@ -119,7 +119,7 @@ msgstr ""
 #. Type: string
 #. Description
 #: ../openvas-server.templates:7001
-msgid "Your organisation"
+msgid "Your organisation:"
 msgstr "Organisation :"
 
 #. Type: string

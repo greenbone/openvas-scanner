@@ -20,7 +20,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: nessus-core_2.2.7-2_templates\n"
 "Report-Msgid-Bugs-To: openvas-server@packages.debian.org\n"
-"POT-Creation-Date: 2008-06-19 23:17+0100\n"
+"POT-Creation-Date: 2008-12-13 17:15+0100\n"
 "PO-Revision-Date: 2006-05-11 18:34+0200\n"
 "Last-Translator: Kurt De Bree <kdebree(AT)telenet(DOT)be>\n"
 "Language-Team: Dutch <debian-l10n-dutch@lists.debian.org>\n"
@@ -55,7 +55,9 @@ msgstr ""
 #. Type: string
 #. Description
 #: ../openvas-server.templates:2001
-msgid "CA certificate life time in days"
+#, fuzzy
+#| msgid "CA certificate life time in days"
+msgid "CA certificate life time in days:"
 msgstr "Levensduur van het CA-certificaat (in dagen)"
 
 #. Type: string
@@ -71,7 +73,9 @@ msgstr ""
 #. Type: string
 #. Description
 #: ../openvas-server.templates:3001
-msgid "Server certificate life time in days"
+#, fuzzy
+#| msgid "Server certificate life time in days"
+msgid "Server certificate life time in days:"
 msgstr "Wat is de levensduur van het servercertificaat (in dagen)?"
 
 #. Type: string
@@ -94,7 +98,9 @@ msgstr ""
 #. Type: string
 #. Description
 #: ../openvas-server.templates:4001
-msgid "Your country (two letter code)"
+#, fuzzy
+#| msgid "Your country (two letter code)"
+msgid "Your country (two letter code):"
 msgstr "Uw landcode (tweeletterige code)"
 
 #. Type: string
@@ -106,7 +112,9 @@ msgstr "Wat is de tweeletterige code van uw land?"
 #. Type: string
 #. Description
 #: ../openvas-server.templates:5001
-msgid "Your state or province"
+#, fuzzy
+#| msgid "Your state or province"
+msgid "Your state or province:"
 msgstr "Uw staat of provincie"
 
 #. Type: string
@@ -118,7 +126,9 @@ msgstr "In welke staat of provincie verblijft u?"
 #. Type: string
 #. Description
 #: ../openvas-server.templates:6001
-msgid "Your location"
+#, fuzzy
+#| msgid "Your location"
+msgid "Your location:"
 msgstr "Uw locatie"
 
 #. Type: string
@@ -130,7 +140,9 @@ msgstr "Wat is uw locatie (bv. stad)?"
 #. Type: string
 #. Description
 #: ../openvas-server.templates:7001
-msgid "Your organisation"
+#, fuzzy
+#| msgid "Your organisation"
+msgid "Your organisation:"
 msgstr "Uw organisatie"
 
 #. Type: string

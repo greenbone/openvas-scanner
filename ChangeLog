@@ -1,5 +1,12 @@
 2008-12-13  Joey Schulze <joey@infodrom.org>
 
+	* packaging/debian/po/de.po, packaging/debian/po/cs.po,
+	packaging/debian/po/es.po, packaging/debian/po/fr.po,
+	packaging/debian/po/gl.po, packaging/debian/po/nl.po,
+	packaging/debian/po/pt.po, packaging/debian/po/pt_BR.po,
+	packaging/debian/po/sv.po: Updated PO files after debconf-updatepo
+	and adjusting new fuzzy translations
+
 	* doc/openvasd.8.in: Fix broken comment
 
 	* packaging/debian/openvas-server.prerm: Add switch to make script
