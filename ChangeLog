@@ -1,5 +1,8 @@
 2008-12-13  Joey Schulze <joey@infodrom.org>
 
+	* packaging/debian/openvas-server.postinst: Switch shell to bash
+	to be compliant with bashisms
+
 	* packaging/debian/copyright: Reworked copyright file
 
 2008-12-05  Michael Wiegand <michael.wiegand@intevation.de>

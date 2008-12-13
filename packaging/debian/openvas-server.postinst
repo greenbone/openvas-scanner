@@ -1,10 +1,12 @@
-#!/bin/sh -e
+#! /bin/bash
+
 # Postinst script for OpenVAS, written by Javier Fernandez-Sanguino
 # Uses code from openvas-mkcert, which was written by Renaud Deraison 
 # <deraison@cvs.nessus.org> and Michel Arboi <arboi@alussinan.org>
 #
 # This script is distributed under the Gnu General Public License (GPL)
 #
+set -e
 
 . /usr/share/debconf/confmodule
 test $DEBIAN_SCRIPT_DEBUG && set -v -x
