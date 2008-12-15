@@ -777,12 +777,6 @@ init_openvasd (options, first_pass, stop_early, be_quiet)
     store_init_sys(arg_get_value(preferences, "plugins_folder"));
     plugins = plugins_init(preferences, be_quiet);
 
-#ifdef ENABLE_PLUGIN_SERVER
-    if ( recompile_all != 0 )
-      exit(0); /* Done */
-#endif
-
-
     if ( first_pass != 0 )
       init_network(iana_port, &isck, *addr);
   }

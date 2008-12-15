@@ -1,3 +1,9 @@
+2008-12-15  Jan-Oliver Wagner <jan-oliver.wagner@intevation.de>
+
+	* openvasd/openvasd.c (init_openvasd): Removed code
+	path for condition ENABLE_PLUGIN_SERVER which was
+	never true and thus never executed.
+
 2008-12-13  Joey Schulze <joey@infodrom.org>
 
 	* packaging/debian/changelog: Added changelog entry from the
