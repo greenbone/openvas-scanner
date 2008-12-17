@@ -1,3 +1,38 @@
+openvas-server 2.0.0 (2008-12-17)
+
+This is the 2.0.0 release of OpenVAS.
+
+If you have used the 2.0-beta1, -beta2 or -rc1 release, we recommend that you
+update all your OpenVAS modules (openvas-libraries, openvas-libnasl,
+openvas-server and openvas-client) to 2.0.0.
+
+If you are currently using the 1.0.x branch and want to evaluate OpenVAS
+2.0.0, we recommend that you install 2.0.0 separately from your OpenVAS 1.0
+installation. Instructions on how to do this are available from the OpenVAS
+website.
+
+Main changes since 2.0-rc1:
+* Debian packaging files have been updated.
+* Obsolete code relating to the ENABLE_PLUGIN_SERVER has been removed.
+* The build environment has been updated.
+
+Main changes since 1.0.1:
+* Support for the new script_tag command in NASL scripts has been added.
+* 64-bit compatibility has been considerably improved.
+* Support for transfering NVT signature information to the client has been added.
+* Certificate checking has been improved.
+* The obsolete openvas-check-signature tool has been removed.
+* Support for plugin upload has been removed from OpenVAS-Server.
+* Support for detached scans has been removed from OpenVAS-Server.
+* Switch from Nessus Transfer Protocol 1.2 to OpenVAS Transfer Protocol (OTP) 1.0.
+* Support for OVAL definitions has been added.
+* Switch from Nessus plugin IDs to NVT OIDs.
+
+Many thanks to everyone who has contributed to this release: Tim Brown, Javier
+Fernandez-Sanguino, Stjepan Gros, Joey Schulze, Jan Wagner, Jan-Oliver Wagner,
+Michael Wiegand and Felix Wolfsteller.
+
+
 openvas-server 2.0-rc1 (2008-12-05)
 
 This release is the first release candidate for the upcoming 2.0 release of OpenVAS.

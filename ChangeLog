@@ -1,3 +1,11 @@
+2008-12-17  Michael Wiegand <michael.wiegand@intevation.de>
+
+	Preparing the openvas-server 2.0.0 release.
+
+	* CHANGES: Updated.
+
+	* VERSION: Set to 2.0.0.
+
 2008-12-16  Michael Wiegand <michael.wiegand@intevation.de>
 
 	Updated build environment to use an up-to-date libtool version.
