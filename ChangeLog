@@ -1,3 +1,7 @@
+2008-12-18  Tim Brown <timb@nth-dimension.org.uk>
+
+	* openvas.tmpl.in: Honour CFLAGS.
+
 2008-12-17  Michael Wiegand <michael.wiegand@intevation.de>
 
 	Post release version bump.
