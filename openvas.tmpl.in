@@ -103,7 +103,7 @@ USE_LIBWRAP = @uselibwrap@
 # Some defines you may want to modify
 OPENVAS_DEFS=@DEFS@ $(USE_PTHREADS) $(DEBUG) $(USE_LIBWRAP)
 DEFS=  
-LDFLAGS=
+LDFLAGS=@LDFLAGS@
 
 # Your C compiler
 CC=@CC@

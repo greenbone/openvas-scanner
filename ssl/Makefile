@@ -36,7 +36,7 @@ OBJS = openvas-mkrand.o
 all : openvas-mkrand
 
 openvas-mkrand: $(OBJS)
-	$(CC) $(OBJS) -o openvas-mkrand -lm
+	$(CC) $(LDFLAGS) $(OBJS) -o openvas-mkrand -lm
 
 openvas-mkrand.o: openvas-mkrand.c
 	$(CC) $(CFLAGS) -c openvas-mkrand.c 
