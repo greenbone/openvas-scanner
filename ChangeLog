@@ -1,6 +1,11 @@
+2008-12-23  Michael Wiegand <michael.wiegand@intevation.de>
+
+	* packaging/debian/po/sv.po: Updated Swedish translation as suggested by
+	Martin Bagge.
+
 2008-12-20  Tim Brown <timb@nth-dimension.org.uk>
 
-	openvas.tmpl.in, ssl/Makefile: Honour LDFLAGS.
+	* openvas.tmpl.in, ssl/Makefile: Honour LDFLAGS.
 
 2008-12-18  Tim Brown <timb@nth-dimension.org.uk>
 

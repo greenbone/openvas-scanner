@@ -9,8 +9,8 @@ msgstr ""
 "Project-Id-Version: nessus-core 2.2.5-2\n"
 "Report-Msgid-Bugs-To: openvas-server@packages.debian.org\n"
 "POT-Creation-Date: 2008-12-13 17:15+0100\n"
-"PO-Revision-Date: 2005-09-28 21:28-0700\n"
-"Last-Translator: Daniel Nylander <po@danielnylander.se>\n"
+"PO-Revision-Date: 2008-12-16 13:57+0100\n"
+"Last-Translator: Martin Bagge <brother@bsnet.se>\n"
 "Language-Team: Swedish <sv@li.org>\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=iso-8859-1\n"
@@ -20,7 +20,7 @@ msgstr ""
 #. Description
 #: ../openvas-server.templates:1001
 msgid "OpenVAS daemon certificate generation"
-msgstr "Generering av certifikat för OpenVAS daemon"
+msgstr "Skapar certifikat för OpenVAStjänsten"
 
 #. Type: note
 #. Description
@@ -40,10 +40,8 @@ msgstr ""
 #. Type: string
 #. Description
 #: ../openvas-server.templates:2001
-#, fuzzy
-#| msgid "CA certificate life time in days"
 msgid "CA certificate life time in days:"
-msgstr "Livstid för CA certifikat (i antal dagar)"
+msgstr "Livstid för CA-certifikat i antal dagar:"
 
 #. Type: string
 #. Description
@@ -58,10 +56,8 @@ msgstr ""
 #. Type: string
 #. Description
 #: ../openvas-server.templates:3001
-#, fuzzy
-#| msgid "Server certificate life time in days"
 msgid "Server certificate life time in days:"
-msgstr "Livstid för Server certifikat (i antal dagar)"
+msgstr "Livstid för servercertifikat i antal dagar:"
 
 #. Type: string
 #. Description
@@ -82,10 +78,8 @@ msgstr ""
 #. Type: string
 #. Description
 #: ../openvas-server.templates:4001
-#, fuzzy
-#| msgid "Your country (two letter code)"
 msgid "Your country (two letter code):"
-msgstr "Din landskod (två bokstäver)"
+msgstr "Din landskod (två bokstäver):"
 
 #. Type: string
 #. Description
@@ -96,10 +90,8 @@ msgstr "Ange landskoden för ditt land."
 #. Type: string
 #. Description
 #: ../openvas-server.templates:5001
-#, fuzzy
-#| msgid "Your state or province"
 msgid "Your state or province:"
-msgstr "Din provins/län"
+msgstr "Ditt landskap/län (inte precist tillämpligt i Sverige):"
 
 #. Type: string
 #. Description
@@ -110,10 +102,8 @@ msgstr "Ange provins eller län du befinner dig i."
 #. Type: string
 #. Description
 #: ../openvas-server.templates:6001
-#, fuzzy
-#| msgid "Your location"
 msgid "Your location:"
-msgstr "Din plats/stad"
+msgstr "Din plats/stad:"
 
 #. Type: string
 #. Description
@@ -124,10 +114,8 @@ msgstr "Ange var du befinner dig (exempelvis stad)."
 #. Type: string
 #. Description
 #: ../openvas-server.templates:7001
-#, fuzzy
-#| msgid "Your organisation"
 msgid "Your organisation:"
-msgstr "Din organisation/företag"
+msgstr "Organisation:"
 
 #. Type: string
 #. Description
