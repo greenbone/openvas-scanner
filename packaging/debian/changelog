@@ -18,6 +18,12 @@ openvas-server (2.0.0.beta1-1) UNRELEASED; urgency=low
 
  -- Tim Brown <timb@nth-dimension.org.uk>  Sun, 12 Oct 2008 12:50:27 +0100
 
+openvas-server (1.0.2-5) unstable; urgency=low
+
+  * Updated Swedish Debconf translation by Martin Bagge
+
+ -- Joey Schulze <joey@infodrom.org>  Fri, 26 Dec 2008 21:14:57 +0100
+
 openvas-server (1.0.2-4) unstable; urgency=low
 
   * Corrected server restart in postinst

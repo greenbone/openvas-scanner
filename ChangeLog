@@ -1,3 +1,9 @@
+2008-12-26  Joey Schulze <joey@infodrom.org>
+
+	* packaging/debian/copyright: Added Martin Bagge as new translator
+
+	* packaging/debian/changelog: Import changelog from 1.0.2-5
+
 2008-12-23  Michael Wiegand <michael.wiegand@intevation.de>
 
 	* packaging/debian/po/sv.po: Updated Swedish translation as suggested by
