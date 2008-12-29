@@ -34,14 +34,15 @@
 
 #include "otp_1_0.h"
 
-#include <gpgme.h>
 #include <glib.h>
 
-/* Find the enum identifier for the client request which is given
+/**
+ * Find the enum identifier for the client request which is given
  * as string.
+ * @param str Enum identifier of OTP command (a client_request_t).
+ * @see client_request_t
  */
-client_request_t otp_1_0_get_client_request(str)
-  char * str;
+client_request_t otp_1_0_get_client_request(char* str)
 {
   if (!strcmp(str, "ATTACHED_FILE")) return(CREQ_ATTACHED_FILE);
   if (!strcmp(str, "CERTIFICATES")) return(CREQ_CERTIFICATES);
@@ -59,7 +60,8 @@ client_request_t otp_1_0_get_client_request(str)
   return(CREQ_UNKNOWN);
 }
 
-/* Send server response OPENVAS_VERSION
+/**
+ * Send server response OPENVAS_VERSION
  */
 void otp_1_0_server_openvas_version(globals)
   struct arglist * globals;
