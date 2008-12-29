@@ -1,7 +1,13 @@
 2008-12-29  Felix Wolfsteller <felix.wolfsteller@intevation.de>
 
-	* nessusd/otp_1_0.c: Applied patch from Hanno Böck to remove unwanted
+	* openvasd/otp_1_0.c: Applied patch from Hanno Böck to remove unwanted
 	gpgme.h include.
+	
+	* openvasd/otp_1_0.c (client_request_t otp_1_0_get_client_request):
+	Documented, removed K&R header.
+	
+	* openvasd/otp_1_0.c (otp_1_0_server_openvas_version): Double starred
+	comment.
 
 2008-12-26  Joey Schulze <joey@infodrom.org>
 
