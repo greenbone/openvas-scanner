@@ -1,5 +1,9 @@
 2008-12-30  Felix Wolfsteller <felix.wolfsteller@intevation.de>
 
+	* openvasd/attack.c: Replaced K&R header, added comment to attack_host.
+	
+2008-12-30  Felix Wolfsteller <felix.wolfsteller@intevation.de>
+
 	* openvasd/attack.c: Transformed comments to Javadoc style.
 
 2008-12-29  Felix Wolfsteller <felix.wolfsteller@intevation.de>

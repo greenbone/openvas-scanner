@@ -62,6 +62,10 @@
 
 extern u_short * getpts(char *, int *);
 
+/**
+ * Bundles information about target(s), configuration (globals arglist) and 
+ * scheduler.
+ */
 struct attack_start_args {
         struct arglist * globals;
         struct in_addr hostip;
@@ -99,10 +103,7 @@ fork_sleep(int n)
  * the plugins from an hostname and its ip	
  */
 static struct arglist * 
-attack_init_hostinfos(mac, hostname, ip)
-     char * mac;
-     char * hostname;
-    struct in_addr * ip;
+attack_init_hostinfos (char * mac, char * hostname, struct in_addr * ip)
 {
   struct arglist * hostinfos;
   struct in_addr addr;
@@ -134,8 +135,7 @@ attack_init_hostinfos(mac, hostname, ip)
  * Return our user name
  */
 static char *
-attack_user_name(globals)
- struct arglist * globals;
+attack_user_name (struct arglist * globals)
 {
  static char * user;
  if(!user)
@@ -144,17 +144,18 @@ attack_user_name(globals)
  return user;
 }
 
-
+/**
+ * Launches a nvt. Respects safe check preference (i.e. does not try destructive
+ * nvt if save_checks is yes). Does not launch a plugin twice if !save_kb_replay.
+ * 
+ * @return ERR_HOST_DEAD if host died, ERR_CANT_FORK if forking failed, 
+ *         0 otherwise.
+ */
 static int
-launch_plugin(globals, sched, plugin, hostname, cur_plug, num_plugs, hostinfos, kb, new_kb)
- struct arglist * globals;
- plugins_scheduler_t * sched;
- struct scheduler_plugin * plugin;
- char * hostname;
- int *cur_plug, num_plugs;
- struct arglist * hostinfos;
- struct kb_item ** kb;
- int new_kb;
+launch_plugin (struct arglist * globals, plugins_scheduler_t * sched,
+               struct scheduler_plugin * plugin, char * hostname,
+               int * cur_plug, int num_plugs, struct arglist * hostinfos, 
+               struct kb_item ** kb, int new_kb)
 {
   struct arglist * preferences = arg_get_value(globals,"preferences");
   struct arglist * args = plugin->arglist->value;
@@ -299,14 +300,9 @@ launch_plugin(globals, sched, plugin, hostname, cur_plug, num_plugs, hostinfos, 
  * Attack _one_ host
  */
 static void 
-attack_host      (globals, hostinfos, hostname,  sched) 
-     
-     struct arglist * globals;
-     struct arglist * hostinfos;
-     char * hostname;
-     plugins_scheduler_t sched;
+attack_host (struct arglist * globals, struct arglist * hostinfos, 
+             char * hostname, plugins_scheduler_t sched) 
 { 
-
   /*
    * Used for the status
    */
@@ -412,8 +408,7 @@ host_died:
  * attack_host()
  */
 static void
-attack_start(args)
-  struct attack_start_args * args;
+attack_start (struct attack_start_args * args)
 {
  struct arglist * globals = args->globals;
  char * hostname = args->hostname;
@@ -495,8 +490,7 @@ attack_start(args)
  * This function attacks a whole network
  */
 int 
-attack_network(globals)
-    struct arglist * globals;
+attack_network(struct arglist * globals)
 {
   int max_hosts			= 0;
   int num_tested		= 0;
