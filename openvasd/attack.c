@@ -94,12 +94,10 @@ fork_sleep(int n)
 }
  
 
-/*-------------------------------------------------------
-
-	Init. an arglist which can be used by 
-	the plugins from an hostname and its ip
-	
---------------------------------------------------------*/	
+/**
+ * Init. an arglist which can be used by 
+ * the plugins from an hostname and its ip	
+ */
 static struct arglist * 
 attack_init_hostinfos(mac, hostname, ip)
      char * mac;
@@ -132,12 +130,9 @@ attack_init_hostinfos(mac, hostname, ip)
   return(hostinfos);
 }
 
-/*--------------------------------------------------------
-	
-		 Return our user name
- 
- ---------------------------------------------------------*/
- 
+/**
+ * Return our user name
+ */
 static char *
 attack_user_name(globals)
  struct arglist * globals;
@@ -300,11 +295,9 @@ launch_plugin(globals, sched, plugin, hostname, cur_plug, num_plugs, hostinfos, 
       return 0;
 }
 
-/*--------------------------------------------------------
-	
-	          Attack _one_ host
-
-----------------------------------------------------------*/	
+/**
+ * Attack _one_ host
+ */
 static void 
 attack_host      (globals, hostinfos, hostname,  sched) 
      
@@ -414,12 +407,10 @@ host_died:
   if(new_kb)save_kb_close(globals, hostname);
 }
 
-/*-----------------------------------------------------------------
-
-  attack_start : set up some data and jump into
-  attack_host()
-
- -----------------------------------------------------------------*/
+/**
+ * attack_start : set up some data and jump into
+ * attack_host()
+ */
 static void
 attack_start(args)
   struct attack_start_args * args;
@@ -500,11 +491,9 @@ attack_start(args)
 ********************************************************/
 
 
-/*------------------------------------------------
-
-   This function attacks a whole network
- 		
- -----------------------------------------------*/
+/**
+ * This function attacks a whole network
+ */
 int 
 attack_network(globals)
     struct arglist * globals;

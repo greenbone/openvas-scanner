@@ -1,3 +1,7 @@
+2008-12-30  Felix Wolfsteller <felix.wolfsteller@intevation.de>
+
+	* openvasd/attack.c: Transformed comments to Javadoc style.
+
 2008-12-29  Felix Wolfsteller <felix.wolfsteller@intevation.de>
 
 	* openvasd/otp_1_0.c: Applied patch from Hanno Böck to remove unwanted
