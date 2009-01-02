@@ -408,8 +408,6 @@ if(preferences_benice(prefs))nice(10);
    goto shutdown_and_exit;
  }
   else {
-     char * uhome ;
-     char * phome;
    efree(&asciiaddr);
    if(perms){
      	rules_add(&rules, &perms, NULL);
@@ -420,13 +418,7 @@ if(preferences_benice(prefs))nice(10);
 #endif	
 	arg_set_value(globals, "rules", -1, rules);
    }
-   
-   uhome = user_home(globals);
-   phome = emalloc(strlen(uhome) + strlen("plugins") + 2);
-   sprintf(phome, "%s/plugins", uhome);
-   store_init_user(phome);
-   efree(&uhome);
-   efree(&phome);
+
    plugins = plugins_reload_user(globals, prefs, plugins);
 
    arg_set_value(globals, "plugins", -1, plugins);

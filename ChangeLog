@@ -1,3 +1,13 @@
+2009-01-02  Jan-Oliver Wagner <jan-oliver.wagner@intevation.de>
+
+	* openvasd/openvasd.c (server_thread): Removed initialization
+	of user-specific store (which happened after the fork) and
+	lead to create of directory ".desc" in the
+	/var/lib/openvas/users/USER/plugins.
+	This code are remains of the unsecure feature of plugin
+	upload. Apart from this, the OpenVAS Server should eventually
+	not be responisble anymore for user-specific data storage.
+
 2009-01-02  Michael Wiegand <michael.wiegand@intevation.de>
 
 	* include/config.h.in, openvasd/openvasd.c: Changed
