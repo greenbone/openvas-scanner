@@ -59,7 +59,7 @@ NICs with these IP addresses set.
 .TP 
 .BI "-p " <port-number> ", --port=" <port-number>
 Tell the server to listen on connection on the port <port-number> rather
-than listening on port 1241 (default).
+than listening on port 9390 (default).
 
 .TP 
 .B "-D, --background"

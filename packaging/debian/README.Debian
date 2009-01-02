@@ -98,7 +98,7 @@ retrieved by this before you run your OpenVAS server
 local security checks since you are (effectively) given console access
 to remote servers. Always use a non-root account for this.
 
-4.- Also be aware that by default openvasd only listens on port 1241 on
+4.- Also be aware that by default openvasd only listens on port 9390 on
 127.0.0.1. If you wish to change this, then check out /etc/default/openvas-server.
 
 -------------------------------

@@ -1,5 +1,26 @@
 2009-01-02  Michael Wiegand <michael.wiegand@intevation.de>
 
+	Modified openvasd to use the freshly allocated IANA port 9390 instead of
+	the Nessus port 1241.
+
+	* include/config.h.in: Removed NESIANA_PORT define, added
+	OPENVASD_IANA_OTP_PORT define. Updated IANA URL.
+
+	* openvasd/openvasd.c: Changed to use OPENVASD_IANA_OTP_PORT, fixed
+	references to port 1241 in comment.
+
+	* doc/openvasd.8.in: Mention that the default port is now 9390.
+
+	* openvas-services: Added otp on port 9390 to the list of known
+	services.
+
+	* packaging/debian/openvas-server.default: Changed Debian defaults to
+	9390.
+
+	* packaging/debian/README.Debian: Mention that the default port in 9390.
+
+2009-01-02  Michael Wiegand <michael.wiegand@intevation.de>
+
 	* ltmain.sh: Removed since libtool is not used in the build process.
 
 	* Makefile: Removed obsolete references to libtool.

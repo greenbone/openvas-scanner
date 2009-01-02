@@ -102,9 +102,9 @@
 /* Obsolete: the port 3001 on which openvasd will be listening */
 #undef DEFAULT_PORT
 
-/* The default port assigned to nessus by the iana is 1241, see
-   http://www.isi.edu/in-notes/iana/assignments/port-numbers */
-#define NESIANA_PORT 1241
+/* The default port assigned to OpenVAS for OTP by the iana is 9390, see
+   http://www.iana.org/assignments/port-numbers */
+#define OPENVASD_IANA_OTP_PORT 9390
 
 /* The max number of client connections/sec */
 #define OPENVASD_CONNECT_RATE 4

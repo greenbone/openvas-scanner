@@ -8117,6 +8117,8 @@ mandelspawn	9359/udp
 logitech-messenger	9370/udp
 fjdmimgr	9374/tcp
 fjdmimgr	9374/udp
+otp	9390/tcp
+otp	9390/udp
 fjinvmgr	9396/tcp
 fjinvmgr	9396/udp
 mpidcagt	9397/tcp
