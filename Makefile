@@ -121,7 +121,7 @@ distclean: clean
 	[ -z "${rootdir}" ] || rm -f ${rootdir}/include/config.h ${rootdir}/include/corevers.h 
 	rm -f openvas.tmpl doc/openvas.1.cat doc/openvasd.8.cat
 	[ -z "${make_bindir}" ] || rm -f $(make_bindir)/openvas* 
-	rm -f libtool config.cache config.status config.log 
+	rm -f config.cache config.status config.log 
 	rm -f openvas-adduser
 	rm -f openvas-rmuser
 	rm -f openvas-mkcert
@@ -142,7 +142,6 @@ dist:
 distcheck:
 	find . -type f | sed -e 's/^.\///' -e '/~$$/d' -e '/CVS/d' \
 			     -e '/\.o$$/d' -e '/^openvas.tmpl$$/d' \
-			     -e '/^libtool$$/d' \
 			     -e '/^openvasd\/OBJ\/openvasd$$/d' \
 			     -e '/^bin\/openvasd$$/d' \
 			     -e '/^config\.cache$$/d' \

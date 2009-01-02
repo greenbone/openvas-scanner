@@ -1,3 +1,9 @@
+2009-01-02  Michael Wiegand <michael.wiegand@intevation.de>
+
+	* ltmain.sh: Removed since libtool is not used in the build process.
+
+	* Makefile: Removed obsolete references to libtool.
+
 2008-12-30  Felix Wolfsteller <felix.wolfsteller@intevation.de>
 
 	* openvasd/attack.c: Replaced K&R header, added comment to attack_host.
