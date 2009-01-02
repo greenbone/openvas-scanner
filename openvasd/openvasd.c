@@ -683,7 +683,7 @@ main_loop()
 /*
  * Initialization of the network : 
  * we setup the socket that will listen for incoming connections on port <port>
- * on address <addr> (which are set to OPENVASD_IANA_OTP_PORT and INADDR_ANY by
+ * on address <addr> (which are set to OPENVAS_IANA_OTP_PORT and INADDR_ANY by
  * default)
  */ 
 static int 
@@ -953,7 +953,7 @@ main(int argc, char * argv[], char * envp[])
     bpf_server_pid = bpf_server();
 
 
-  if(iana_port == -1)iana_port = OPENVASD_IANA_OTP_PORT;
+  if(iana_port == -1)iana_port = OPENVAS_IANA_OTP_PORT;
   if (!config_file)
   {
     config_file = emalloc(strlen(OPENVASD_CONF) + 1);

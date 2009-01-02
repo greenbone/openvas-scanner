@@ -1,5 +1,10 @@
 2009-01-02  Michael Wiegand <michael.wiegand@intevation.de>
 
+	* include/config.h.in, openvasd/openvasd.c: Changed
+	OPENVASD_IANA_OTP_PORT to OPENVAS_IANA_OTP_PORT.
+
+2009-01-02  Michael Wiegand <michael.wiegand@intevation.de>
+
 	Modified openvasd to use the freshly allocated IANA port 9390 instead of
 	the Nessus port 1241.
 
