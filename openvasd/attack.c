@@ -147,7 +147,7 @@ attack_user_name (struct arglist * globals)
 /**
  * Launches a nvt. Respects safe check preference (i.e. does not try destructive
  * nvt if save_checks is yes). Does not launch a plugin twice if !save_kb_replay.
- * 
+ *
  * @return ERR_HOST_DEAD if host died, ERR_CANT_FORK if forking failed, 
  *         0 otherwise.
  */
@@ -163,137 +163,119 @@ launch_plugin (struct arglist * globals, plugins_scheduler_t * sched,
   int optimize = preferences_optimize_test(preferences);
   int category = plugin->category;
   static int last_status = 0;
-      
+
   strncpy(name, plug_get_path(args), sizeof(name) - 1);
   name[sizeof(name) - 1 ] = '\0';
 
-  if(plug_get_launch(args) != LAUNCH_DISABLED || 
-     category == ACT_INIT ||
-    (category == ACT_SETTINGS)) /* can we launch it ? */
-  {
-   char * error;
-   
-   pl_class_t * cl_ptr = arg_get_value(args, "PLUGIN_CLASS");
-   
-  
-  if(preferences_safe_checks_enabled(preferences) && 
-  	(category == ACT_DESTRUCTIVE_ATTACK ||
-	 category == ACT_KILL_HOST ||
-	 category == ACT_FLOOD ||
-	 category == ACT_DENIAL))
-	 	{
-		if(preferences_log_whole_attack(preferences))
-		  log_write("user %s : Not launching %s against %s %s (this is not an error)\n",
-	       			attack_user_name(globals),
-				plugin->arglist->name, 
-				hostname, 
-				"because safe checks are enabled");
-		plugin_set_running_state(sched, plugin, PLUGIN_STATUS_DONE);
-		return 0;
-		}
-
-   (*cur_plug) ++;
-   if ( ( *cur_plug * 100 ) / num_plugs  >= last_status )
-   {
-    last_status = (*cur_plug * 100 ) / num_plugs  + 2;
-    if ( comm_send_status(globals, hostname, "attack", *cur_plug, num_plugs) < 0 )
+  if (plug_get_launch(args) != LAUNCH_DISABLED
+      || category == ACT_INIT
+      || category == ACT_SETTINGS) /* can we launch it ? */
     {
-     /* Could not send our status back to our father -> exit */
-     pluginlaunch_stop();
-     return ERR_HOST_DEAD;
-    }
-   }
+      char * error;
 
+      pl_class_t * cl_ptr = arg_get_value(args, "PLUGIN_CLASS");
 
-    if(save_kb(globals))
-    {
-     char * oid = plug_get_oid(args);
-     char asc_id[100];
-	 
-     snprintf(asc_id, sizeof(asc_id), "Launched/%s", oid);
-     if(kb_item_get_int(kb, asc_id) > 0 &&
-	    !save_kb_replay_check(globals, category))
-	  {
-	   /* 
-	    * XXX determine here if we should skip
-	    * ACT_SCANNER, ACT_GATHER_INFO, ACT_ATTACK and ACT_DENIAL
-	    */
-	   if(preferences_log_whole_attack(preferences))
-	    log_write("user %s : Not launching %s against %s %s (this is not an error)\n",
-	       			attack_user_name(globals),
-				plugin->arglist->name, 
-				hostname, 
-				"because it has already been launched in the past");
-	   plugin_set_running_state(sched, plugin, PLUGIN_STATUS_DONE);			
-	   return 0;
-	  }
-	  else {
-                kb_item_add_int(kb, asc_id, 1);
-		save_kb_write_int(globals, hostname, asc_id,  1);
-		}
-       }	     
-	
-	
-	 
-	 if(!optimize || !(error = requirements_plugin(kb, plugin, preferences)))
-	 {
-	  int pid;
-	
-	 /*
-	  * Start the plugin
-	  */
-	 pid = plugin_launch(globals,sched, plugin, hostinfos, preferences, kb, name, cl_ptr);
-	 if(pid  < 0)	
-	 	{
-		plugin_set_running_state(sched, plugin, PLUGIN_STATUS_UNRUN);
-		return ERR_CANT_FORK;
-		}
-		 
-	 if(preferences_log_whole_attack(preferences))
-	 	log_write("user %s : launching %s against %s [%d]\n", 
-	 				attack_user_name(globals),
-					plugin->arglist->name, 
-					hostname,
-					pid);
-					
-	 	     
-	 /*
-	  * Stop the test if the host is 'dead'
-	  */	 
-        if(kb_item_get_int(kb, "Host/dead") > 0 ||
-	   kb_item_get_int(kb, "Host/ping_failed") > 0)
-	{
-	  log_write("user %s : The remote host (%s) is dead\n",
-	  				attack_user_name(globals),
-	  				hostname);
-	  pluginlaunch_stop();		
-	  if(new_kb)save_kb_close(globals, hostname);	
-	  if(kb_item_get_int(kb, "Host/ping_failed") > 0)
-	  {
-	   save_kb_restore_backup(globals, hostname);
-	  }
-	  
-	  plugin_set_running_state(sched, plugin, PLUGIN_STATUS_DONE);				
-	  return ERR_HOST_DEAD;
-	}
-       }
-       
-       else /* requirements_plugin() failed */
-	  {
-	   plugin_set_running_state(sched, plugin, PLUGIN_STATUS_DONE);
-	   if(preferences_log_whole_attack(preferences))
-	    log_write("user %s : Not launching %s against %s %s (this is not an error)\n",
-	       			attack_user_name(globals),
-				plugin->arglist->name, 
-				hostname, 
-				error);
-	
-	  }
-      } /* if(plugins->launch) */
-      else    
-       plugin_set_running_state(sched, plugin, PLUGIN_STATUS_DONE);
-       
-      return 0;
+      if(preferences_safe_checks_enabled(preferences) && 
+         (category == ACT_DESTRUCTIVE_ATTACK ||
+          category == ACT_KILL_HOST ||
+          category == ACT_FLOOD ||
+          category == ACT_DENIAL))
+        {
+          if (preferences_log_whole_attack(preferences))
+            log_write("user %s : Not launching %s against %s %s (this is not an error)\n",
+                      attack_user_name(globals), plugin->arglist->name,  hostname, 
+                      "because safe checks are enabled");
+          plugin_set_running_state(sched, plugin, PLUGIN_STATUS_DONE);
+          return 0;
+        }
+
+      (*cur_plug) ++;
+      if ( ( *cur_plug * 100 ) / num_plugs  >= last_status )
+        {
+          last_status = (*cur_plug * 100 ) / num_plugs  + 2;
+          if ( comm_send_status(globals, hostname, "attack", *cur_plug, num_plugs) < 0 )
+            {
+            /* Could not send our status back to our father -> exit */
+            pluginlaunch_stop();
+            return ERR_HOST_DEAD;
+            }
+        }
+
+      if(save_kb(globals))
+        {
+          char * oid = plug_get_oid(args);
+          char asc_id[100];
+
+          snprintf(asc_id, sizeof(asc_id), "Launched/%s", oid);
+
+          if(kb_item_get_int(kb, asc_id) > 0 &&
+             !save_kb_replay_check(globals, category))
+            {
+              /* XXX determine here if we should skip ACT_SCANNER, ACT_GATHER_INFO,
+                ACT_ATTACK and ACT_DENIAL */
+              if(preferences_log_whole_attack(preferences))
+                log_write("user %s : Not launching %s against %s %s (this is not an error)\n",
+                          attack_user_name(globals), plugin->arglist->name, hostname,
+                          "because it has already been launched in the past");
+              plugin_set_running_state(sched, plugin, PLUGIN_STATUS_DONE);
+              return 0;
+            }
+          else
+            {
+              kb_item_add_int(kb, asc_id, 1);
+              save_kb_write_int(globals, hostname, asc_id,  1);
+            }
+          }
+
+      if(!optimize || !(error = requirements_plugin(kb, plugin, preferences)))
+        {
+          int pid;
+
+          /* Start the plugin */
+          pid = plugin_launch(globals, sched, plugin, hostinfos, preferences, kb,
+                              name, cl_ptr);
+          if(pid  < 0)
+            {
+              plugin_set_running_state(sched, plugin, PLUGIN_STATUS_UNRUN);
+              return ERR_CANT_FORK;
+            }
+
+          if(preferences_log_whole_attack(preferences))
+            log_write("user %s : launching %s against %s [%d]\n", 
+                      attack_user_name(globals), plugin->arglist->name, hostname,
+                      pid);
+
+          /* Stop the test if the host is 'dead' */
+          if(kb_item_get_int(kb, "Host/dead") > 0 ||
+            kb_item_get_int(kb, "Host/ping_failed") > 0)
+            {
+              log_write("user %s : The remote host (%s) is dead\n",
+                        attack_user_name(globals), hostname);
+              pluginlaunch_stop();
+
+              if(new_kb)
+                save_kb_close(globals, hostname);
+
+              if(kb_item_get_int(kb, "Host/ping_failed") > 0)
+                save_kb_restore_backup(globals, hostname);
+
+              plugin_set_running_state(sched, plugin, PLUGIN_STATUS_DONE);
+              return ERR_HOST_DEAD;
+            }
+        }
+      else /* requirements_plugin() failed */
+        {
+          plugin_set_running_state(sched, plugin, PLUGIN_STATUS_DONE);
+          if(preferences_log_whole_attack(preferences))
+            log_write("user %s : Not launching %s against %s %s (this is not an error)\n",
+                      attack_user_name(globals), plugin->arglist->name,
+                      hostname, error);
+        }
+    } /* if(plugins->launch) */
+  else
+    plugin_set_running_state(sched, plugin, PLUGIN_STATUS_DONE);
+
+  return 0;
 }
 
 /**
@@ -489,26 +471,26 @@ attack_start (struct attack_start_args * args)
 /**
  * This function attacks a whole network
  */
-int 
+int
 attack_network(struct arglist * globals)
 {
-  int max_hosts			= 0;
-  int num_tested		= 0;
-  int host_pending		= 0;
+  int max_hosts                 = 0;
+  int num_tested                = 0;
+  int host_pending              = 0;
   char hostname[1024];
   char * hostlist;
   struct in_addr host_ip;
-  int hg_flags			= 0;
+  int hg_flags                  = 0;
   int hg_res;
   struct hg_globals * hg_globals = NULL;
-  int global_socket		= -1;
+  int global_socket             = -1;
   struct arglist * preferences  = NULL;
   struct arglist * plugins      = NULL;
-  struct openvas_rules *rules	= NULL;
+  struct openvas_rules *rules   = NULL;
   struct arglist * rejected_hosts =  NULL;
   int restoring    = 0;
   harglst * tested = NULL;
-  int  save_session= 0;  
+  int  save_session= 0;
   int return_code = 0;
   char * port_range;
   plugins_scheduler_t sched;
@@ -526,298 +508,289 @@ attack_network(struct arglist * globals)
   num_tested = 0;
 
   global_socket  = GPOINTER_TO_SIZE(arg_get_value(globals, "global_socket"));
- 
+
   plugins        = arg_get_value(globals, "plugins");
   rules          = arg_get_value(globals, "rules");
   rejected_hosts = emalloc(sizeof(struct arglist));
-  
+
   save_session = preferences_save_session(preferences);
   restoring = (GPOINTER_TO_SIZE(arg_get_value(globals, "RESTORE-SESSION")) == 1);
-   
-  if(restoring)tested = arg_get_value(globals, "TESTED_HOSTS");
-  if(save_session)save_tests_init(globals);  
+
+  if (restoring) tested = arg_get_value(globals, "TESTED_HOSTS");
+  if (save_session) save_tests_init(globals);  
 
 
+  /* Init and check Target List */
   hostlist = arg_get_value(preferences, "TARGET");
-  if( hostlist == NULL ){
-  	log_write("%s : TARGET not set ?!", 
-			attack_user_name(globals));
-	EXIT(1);
-	}		
-  
-  
+  if ( hostlist == NULL )
+    {
+      log_write ("%s : TARGET not set ?!", attack_user_name(globals) );
+      EXIT(1);
+    }
+
+  /* Init and check Port Range */
   port_range = arg_get_value(preferences, "port_range");
-  if( port_range == NULL ||
-      port_range[0] == '\0' )
-      	port_range = "1-15000";
-  
+  if( port_range == NULL || port_range[0] == '\0' )
+    port_range = "1-15000";
+
   if( strcmp(port_range, "-1") != 0 )
-  {
-   unsigned short * ports;
-   ports = (unsigned short*)getpts(port_range, NULL);
-   if( ports == NULL){
-   	auth_printf(globals, "SERVER <|> ERROR <|> E001 - Invalid port range <|> SERVER\n");
-	return -1; 
-	}
-  }
+    {
+      unsigned short * ports;
+      ports = (unsigned short*) getpts (port_range, NULL);
+      if( ports == NULL)
+        {
+          auth_printf(globals, "SERVER <|> ERROR <|> E001 - Invalid port range <|> SERVER\n");
+          return -1;
+        }
+    }
+
   /*
    * Initialization of the attack
    */
   sched  = plugins_scheduler_init(plugins,  preferences_autoload_dependencies(preferences), preferences_silent_dependencies(preferences) ); 
-  
-  
+
   hg_flags = preferences_get_host_expansion(preferences);
   max_hosts = get_max_hosts_number(globals, preferences);
-  
-  
+
+
   if( restoring == 0)
-  {
-  int max_checks  = get_max_checks_number(globals, preferences);
-  log_write("user %s starts a new scan. Target(s) : %s, with max_hosts = %d and max_checks = %d\n",
-			 attack_user_name(globals), 
-			 hostlist,
-			 max_hosts, 
-			 max_checks);
-  }
+    {
+      int max_checks  = get_max_checks_number(globals, preferences);
+      log_write("user %s starts a new scan. Target(s) : %s, with max_hosts = %d and max_checks = %d\n",
+                attack_user_name(globals), hostlist, max_hosts, max_checks);
+    }
   else
-  {
-   int max_checks  = get_max_checks_number(globals, preferences);
-   log_write("user %s restores session %s, with max_hosts = %d and max_checks = %d\n",
-   			attack_user_name(globals),
-			(char*)arg_get_value(globals, "RESTORE-SESSION-KEY"),
-			max_hosts,
-			max_checks);
-			
-   save_tests_playback(globals, arg_get_value(globals, "RESTORE-SESSION-KEY"),tested);
-  }
-  
-  			 
-  /* 
+    {
+      int max_checks  = get_max_checks_number(globals, preferences);
+      log_write("user %s restores session %s, with max_hosts = %d and max_checks = %d\n",
+                attack_user_name(globals),
+                (char*)arg_get_value(globals, "RESTORE-SESSION-KEY"),
+                max_hosts, max_checks);
+
+      save_tests_playback(globals, arg_get_value(globals, "RESTORE-SESSION-KEY"),tested);
+    }
+
+  /*
    * Initialize the hosts_gatherer library 
    */
   if ( preferences_get_slice_network_addresses ( preferences ) != 0 )
-  	hg_flags |= HG_DISTRIBUTE;
-				  
+    hg_flags |= HG_DISTRIBUTE;
+
   hg_globals = hg_init(hostlist, hg_flags);
   hg_res = hg_next_host(hg_globals, &host_ip, hostname, sizeof(hostname));
   if( tested != NULL )
-   while(hg_res >= 0 && 
-         harg_get_int( tested, hostname ) != 0 )
-	 		{
-			hg_res = hg_next_host(hg_globals, &host_ip, hostname, sizeof(hostname));
-			}
-			
-			
+    {
+      while(hg_res >= 0 && harg_get_int( tested, hostname ) != 0 )
+        {
+          hg_res = hg_next_host(hg_globals, &host_ip, hostname, sizeof(hostname));
+        }
+    }
+
   if( hg_res < 0 )
-   goto stop;
-   
-   hosts_init(global_socket, max_hosts);
+    goto stop;
+
+  hosts_init(global_socket, max_hosts);
+
   /*
    * Start the attack !
    */
-   
-   while( hg_res >= 0 )
+  while( hg_res >= 0 )
     {
       nthread_t pid;
-      
-      
-   /*
-    * openvasd offers the ability to either test
-    * only the hosts we tested in the past, or only
-    * the hosts we never tested (or both, of course)
-    */
-   if(save_kb(globals))
-    {
-    if(save_kb_pref_tested_hosts_only(globals))
-    {
-    if(!save_kb_exists(globals, hostname))
-     {
-      log_write("user %s : not testing %s because it has never been tested before\n",
-      		 attack_user_name(globals), 
-		 hostname);
-      hg_res = hg_next_host(hg_globals, &host_ip, hostname, sizeof(hostname));
-      if( tested != NULL )
-      {
-        while(hg_res >= 0 &&  harg_get_int( tested, hostname ) != 0 )
-	 		hg_res = hg_next_host(hg_globals, &host_ip, hostname, sizeof(hostname));
-      }			
-      continue;
-     }
-   }
-   else if(save_kb_pref_untested_hosts_only(globals))
-   {
-    /* XXX */
-    if(save_kb_exists(globals, hostname))
-    {
-     log_write("user %s : not testing %s because it has already been tested before\n", 
-     			attack_user_name(globals), 
-			hostname);
-     hg_res = hg_next_host(hg_globals, &host_ip, hostname, sizeof(hostname));
-     if( tested != NULL )
-      {
-        while(hg_res >= 0 &&  harg_get_int( tested, hostname ) != 0 )
-	 		hg_res = hg_next_host(hg_globals, &host_ip, hostname, sizeof(hostname));
-      }	
-     continue;
-    }
-   }
-  }
+
+     /* openvasd offers the ability to either test
+      * only the hosts we tested in the past, or only
+      * the hosts we never tested (or both, of course) */
+      if(save_kb(globals))
+        {
+          if(save_kb_pref_tested_hosts_only(globals))
+            {
+              if(!save_kb_exists(globals, hostname))
+                {
+                  log_write("user %s : not testing %s because it has never been tested before\n",
+                            attack_user_name(globals), hostname);
+                  hg_res = hg_next_host(hg_globals, &host_ip, hostname, sizeof(hostname));
+
+                  if( tested != NULL )
+                    {
+                      while(hg_res >= 0 &&  harg_get_int( tested, hostname ) != 0 )
+                        hg_res = hg_next_host(hg_globals, &host_ip, hostname, sizeof(hostname));
+                    }
+                  continue;
+                }
+            }
+          else if(save_kb_pref_untested_hosts_only(globals))
+            {
+              /* XXX */
+              if(save_kb_exists(globals, hostname))
+                {
+                  log_write("user %s : not testing %s because it has already been tested before\n",
+                                  attack_user_name(globals), hostname);
+                  hg_res = hg_next_host(hg_globals, &host_ip, hostname, sizeof(hostname));
+                  if( tested != NULL )
+                    {
+                      while(hg_res >= 0 &&  harg_get_int( tested, hostname ) != 0 )
+                        hg_res = hg_next_host(hg_globals, &host_ip, hostname, sizeof(hostname));
+                    }
+                  continue;
+                }
+            }
+        }
 
       host_pending = 0 ;
-      if(CAN_TEST(get_host_rules(rules, host_ip,32)) == 0) /* do we have the right to test this host ? */ 
-      {
-       log_write("user %s : rejected attempt to scan %s", 
-			attack_user_name(globals), hostname);
-       arg_add_value(rejected_hosts, hostname, ARG_INT, sizeof(int), (void*)1);	
-      }
+      /* Do we have the right to test this host ? */
+      if(CAN_TEST(get_host_rules(rules, host_ip,32)) == 0)
+        {
+          log_write("user %s : rejected attempt to scan %s",
+                    attack_user_name(globals), hostname);
+          arg_add_value(rejected_hosts, hostname, ARG_INT, sizeof(int), (void*)1);
+        }
       else
-      {
-        struct attack_start_args args;
-	int s;
-	char * MAC = NULL;
-	int mac_err = -1;
+        { // We have the right to test this host
+          struct attack_start_args args;
+          int s;
+          char * MAC = NULL;
+          int mac_err = -1;
 
-	
-	
-	if(preferences_use_mac_addr(preferences) &&
-	   is_local_ip(host_ip))
-	{
-	 mac_err = get_mac_addr(host_ip, &MAC);
-	 if(mac_err > 0)
-	 {
-	  /* remote host is down */
-	  hg_res = hg_next_host(hg_globals, &host_ip, hostname, sizeof(hostname));
-	  if( tested != NULL )
-	  {
-   		while(hg_res >= 0 && harg_get_int( tested, hostname ) != 0 )
-	 		hg_res = hg_next_host(hg_globals, &host_ip, hostname, sizeof(hostname));
-	  }		
-	  continue;
-	 }
-	}
-	
-	s = hosts_new(globals, hostname);
-	if(s < 0)goto scan_stop;
-	 
-         
+          if(preferences_use_mac_addr(preferences) && is_local_ip(host_ip))
+            {
+              mac_err = get_mac_addr(host_ip, &MAC);
+              if(mac_err > 0)
+                {
+                /* remote host is down */
+                  hg_res = hg_next_host(hg_globals, &host_ip, hostname, sizeof(hostname));
+                  if( tested != NULL )
+                    {
+                      while(hg_res >= 0 && harg_get_int( tested, hostname ) != 0 )
+                        hg_res = hg_next_host(hg_globals, &host_ip, hostname, sizeof(hostname));
+                    }
+                  continue;
+                }
+            }
 
-	args.globals = globals;
-	strncpy(args.hostname, hostname, sizeof(args.hostname) - 1);
-	args.hostname[sizeof(args.hostname) - 1] = '\0';
-        args.hostip.s_addr = host_ip.s_addr;
-        args.host_mac_addr = MAC;
-        args.sched = sched;
-        args.thread_socket = s;
-   
-forkagain:        
-	pid = create_process((process_func_t)attack_start, &args); 
-	if(pid < 0)
-	 {
-          fork_retries ++;
-          if(fork_retries > MAX_FORK_RETRIES)
-          {
-	  log_write("fork() failed - %s. %s won't be tested\n", strerror(errno), hostname);
-	  /*
-	   * forking failed - we go to the wait queue
-	   */
-	  efree(&MAC);
-          goto stop;
-          }
-          log_write("fork() failed - sleeping %d seconds and trying again...\n", fork_retries);
-          fork_sleep(fork_retries);
-          goto forkagain;
-	 }
+          s = hosts_new(globals, hostname);
+          if(s < 0) goto scan_stop;
 
-        hosts_set_pid(hostname, pid);
-	log_write("user %s : testing %s (%s) [%d]\n", attack_user_name(globals), hostname, inet_ntoa(args.hostip), pid);
-        if(MAC != NULL)efree(&MAC);
-	} 
-	
-        
-       num_tested++;
-       hg_res = hg_next_host(hg_globals, &host_ip, hostname, sizeof(hostname));
-       if(tested != NULL)
-         {
-	 while(hg_res >= 0 &&
-	       harg_get_int(tested, hostname))
-		{
-		hg_res = hg_next_host(hg_globals, &host_ip, hostname, sizeof(hostname));
-		}
-	}
-     }
- 
-   
-    
+          args.globals = globals;
+          strncpy(args.hostname, hostname, sizeof(args.hostname) - 1);
+          args.hostname[sizeof(args.hostname) - 1] = '\0';
+          args.hostip.s_addr = host_ip.s_addr;
+          args.host_mac_addr = MAC;
+          args.sched = sched;
+          args.thread_socket = s;
+
+forkagain:
+          pid = create_process( (process_func_t) attack_start, &args); 
+          if(pid < 0)
+            {
+              fork_retries ++;
+              if(fork_retries > MAX_FORK_RETRIES)
+                {
+                  /*
+                  * forking failed - we go to the wait queue
+                  */
+                  log_write("fork() failed - %s. %s won't be tested\n",
+                            strerror(errno), hostname);
+                  efree(&MAC);
+                  goto stop;
+                }
+
+              log_write("fork() failed - sleeping %d seconds and trying again...\n", fork_retries);
+              fork_sleep(fork_retries);
+              goto forkagain;
+            }
+
+          hosts_set_pid(hostname, pid);
+          log_write("user %s : testing %s (%s) [%d]\n", attack_user_name(globals), hostname, inet_ntoa(args.hostip), pid);
+          if(MAC != NULL)
+            efree(&MAC);
+        }
+
+      num_tested++;
+      hg_res = hg_next_host(hg_globals, &host_ip, hostname, sizeof(hostname));
+      if(tested != NULL)
+        {
+          while(hg_res >= 0 && harg_get_int(tested, hostname))
+            {
+              hg_res = hg_next_host(hg_globals, &host_ip, hostname, sizeof(hostname));
+            }
+        }
+    }
 
   /*
    * Every host is being tested... We have to wait for the threads
    * to terminate
    */
-  
-  while(hosts_read(globals) == 0);
+  while(hosts_read(globals) == 0)
+    ;
+
   log_write("user %s : test complete", attack_user_name(globals));
-scan_stop:    
-   /*
+
+scan_stop:
+    /*
      * Delete the files uploaded by the user, if any
      */
     files = arg_get_value(globals, "files_translation");
     if(files)
-    {
-     hw  = harg_walk_init(files);
-     while((key = (char*)harg_walk_next(hw)))
       {
-      unlink(harg_get_string(files, key));
-      }
-    }
- 
-  if(rejected_hosts && rejected_hosts->next)
-   {
-     char * banner = emalloc(4001);
-     int length = 0;
-
-     sprintf(banner, "SERVER <|> ERROR <|> E002 - These hosts could not be tested because you are not allowed to do so :;");
-     length = strlen(banner);
-
-     while(rejected_hosts->next && (length < (4000-3)))
-	{
-	  int n;
-	  n = strlen(rejected_hosts->name);
-	  if(length + n + 1 >= 4000)
-	  {
-	    n = 4000 - length  - 2;
-	  }
-	  strncat(banner, rejected_hosts->name, n);
-	  strncat(banner, ";", 1);
-	  length+=n+1;
-	  rejected_hosts = rejected_hosts->next;
-	}
-      if( rejected_hosts->next != NULL )
-       strcat(banner, "...");
-       
-     auth_printf(globals, "%s\n", banner);
-   }
-	
-stop:
-  if(save_session){
-  	save_tests_close(globals);
-	if(!preferences_save_empty_sessions(preferences))
-	{
-	 if(save_tests_empty(globals))
+        hw  = harg_walk_init(files);
+        while((key = (char*) harg_walk_next(hw)))
           {
-            log_write("user %s : Nothing interesting found - deleting the session\n",
-    		(char*)arg_get_value(globals, "user"));
-             save_tests_delete_current(globals);
-	  }
+           unlink(harg_get_string(files, key));
+          }
+      }
+
+    if(rejected_hosts && rejected_hosts->next)
+      {
+        char * banner = emalloc(4001);
+        int length = 0;
+
+        sprintf(banner, "SERVER <|> ERROR <|> E002 - These hosts could not be tested because you are not allowed to do so :;");
+        length = strlen(banner);
+
+        while(rejected_hosts->next && (length < (4000-3)))
+          {
+            int n;
+            n = strlen(rejected_hosts->name);
+            if(length + n + 1 >= 4000)
+              {
+                n = 4000 - length  - 2;
+              }
+
+            strncat(banner, rejected_hosts->name, n);
+            strncat(banner, ";", 1);
+            length+=n+1;
+            rejected_hosts = rejected_hosts->next;
+          }
+
+        if( rejected_hosts->next != NULL )
+          strcat(banner, "...");
+
+        auth_printf(globals, "%s\n", banner);
+      }
+
+stop:
+  if(save_session)
+    {
+      save_tests_close(globals);
+      if(!preferences_save_empty_sessions(preferences))
+        {
+          if(save_tests_empty(globals))
+            {
+              log_write("user %s : Nothing interesting found - deleting the session\n",
+                        (char*)arg_get_value(globals, "user"));
+              save_tests_delete_current(globals);
+            }
         }
-   }
-  
+    }
+
   hg_cleanup(hg_globals);
-  
+
   arg_free_all(rejected_hosts);
   plugins_scheduler_free(sched);
 
   gettimeofday(&now, NULL);
   log_write("Total time to scan all hosts : %ld seconds\n", now.tv_sec - then.tv_sec);
-  
+
   return return_code;
 }

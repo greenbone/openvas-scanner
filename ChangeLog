@@ -1,3 +1,8 @@
+2009-01-05  Felix Wolfsteller <felix.wolfsteller@intevation.de>
+
+	* openvasd/attack.c (attack_network, launch_plugin) : Replaced tabs by
+	spaces, repaired indentation & newlines, ready for refactoring.
+
 2009-01-02  Jan-Oliver Wagner <jan-oliver.wagner@intevation.de>
 
 	* openvasd/openvasd.c (server_thread): Removed initialization
@@ -39,6 +44,10 @@
 	* ltmain.sh: Removed since libtool is not used in the build process.
 
 	* Makefile: Removed obsolete references to libtool.
+
+2008-12-30  Felix Wolfsteller <felix.wolfsteller@intevation.de>
+
+        * openvasd/attack.c: Replaced K&R header, added comment to attack_host.
 
 2008-12-30  Felix Wolfsteller <felix.wolfsteller@intevation.de>
 
