@@ -1,5 +1,12 @@
 2009-01-07  Felix Wolfsteller <felix.wolfsteller@intevation.de>
 
+	* openvasd/attack.c (attack_host, attack_start): Reformatted.
+	
+	* openvasd/attack.c (attack_network): Remoded local unused variable
+	return_code, added comment.
+
+2009-01-07  Felix Wolfsteller <felix.wolfsteller@intevation.de>
+
 	Comment style transformed to JavaDoc style, duplicate code found and
 	TODOs added.
 

@@ -284,7 +284,7 @@ launch_plugin (struct arglist * globals, plugins_scheduler_t * sched,
 static void 
 attack_host (struct arglist * globals, struct arglist * hostinfos, 
              char * hostname, plugins_scheduler_t sched) 
-{ 
+{
   /*
    * Used for the status
    */
@@ -294,34 +294,34 @@ attack_host (struct arglist * globals, struct arglist * hostinfos,
   struct kb_item ** kb;
   int new_kb = 0;
   int kb_restored = 0;
- int forks_retry = 0;
- struct arglist * plugins = arg_get_value(globals, "plugins");
- struct arglist * tmp;
+  int forks_retry = 0;
+  struct arglist * plugins = arg_get_value(globals, "plugins");
+  struct arglist * tmp;
  
   setproctitle("testing %s", (char*)arg_get_value(hostinfos, "NAME"));
   
-  if(save_kb(globals))
-  {
-   if( save_kb_exists(globals, hostname) != 0 && 
-       save_kb_pref_restore(globals) != 0 )
-     {
-      save_kb_backup(globals, hostname);
-      kb = save_kb_load_kb(globals, hostname);
-      kb_restored = 1; 
-     }
-   else 
+  if (save_kb(globals))
     {
-     save_kb_new(globals, hostname);
-     kb = kb_new();
-     new_kb = 1;
+      if (save_kb_exists(globals, hostname) != 0 && 
+          save_kb_pref_restore(globals) != 0 )
+        {
+          save_kb_backup(globals, hostname);
+          kb = save_kb_load_kb(globals, hostname);
+          kb_restored = 1; 
+        }
+      else 
+        {
+          save_kb_new(globals, hostname);
+          kb = kb_new();
+          new_kb = 1;
+        }
+    
+      arg_add_value(globals, "CURRENTLY_TESTED_HOST", ARG_STRING, strlen(hostname), hostname);
     }
-
-  arg_add_value(globals, "CURRENTLY_TESTED_HOST", ARG_STRING, strlen(hostname), hostname);
- }
- else kb = kb_new();
+  else kb = kb_new();
   
 
- num_plugs = get_active_plugins_number(plugins);
+  num_plugs = get_active_plugins_number(plugins);
   
   tmp = emalloc(sizeof(struct arglist));
   arg_add_value(tmp, "HOSTNAME", ARG_ARGLIST, -1, hostinfos);
@@ -331,58 +331,64 @@ attack_host (struct arglist * globals, struct arglist * hostinfos,
   pluginlaunch_init(globals);
   
    
-   for(;;)
-   {
-    struct scheduler_plugin * plugin;
-    pid_t parent;
-    
-    /*
-     * Check that our father is still alive 
-     */
-    parent = getppid();
-    if(parent <= 1 || process_alive(parent) == 0 )
+  for(;;)
     {
-     pluginlaunch_stop();
-     return;
-    }
-     
-    plugin = plugins_scheduler_next(sched);
-    if(plugin != NULL && plugin != PLUG_RUNNING)
-    { 
-      int e;
- again:        
-      if((e = launch_plugin( globals, sched, plugin, hostname, &cur_plug, num_plugs, hostinfos, kb, new_kb))  < 0)
-		    {
-		     /*
-		      * Remote host died
-		      */
-		     if(e == ERR_HOST_DEAD)
-		     	goto host_died;
-		     else if(e == ERR_CANT_FORK )
-		     {
-		      if(forks_retry < MAX_FORK_RETRIES)
-		      {
-		       forks_retry++;
-		       log_write("fork() failed - sleeping %d seconds (%s)", forks_retry, strerror(errno));
-		       fork_sleep(forks_retry);
-		       goto again;
-		      }
-		      else {
-		      	log_write("fork() failed too many times - aborting");
-			goto host_died;
-			}
-		     }
-		    }
+      struct scheduler_plugin * plugin;
+      pid_t parent;
+      
+      /*
+      * Check that our father is still alive 
+      */
+      parent = getppid();
+      if (parent <= 1 || process_alive(parent) == 0 )
+        {
+          pluginlaunch_stop();
+          return;
+        }
+      
+      plugin = plugins_scheduler_next(sched);
+      if (plugin != NULL && plugin != PLUG_RUNNING)
+        {
+          int e;
+
+again:
+          if((e = launch_plugin( globals, sched, plugin, hostname, &cur_plug, num_plugs, hostinfos, kb, new_kb))  < 0)
+            {
+              /*
+               * Remote host died
+               */
+              if(e == ERR_HOST_DEAD)
+                  goto host_died;
+              else if (e == ERR_CANT_FORK )
+                {
+                  if (forks_retry < MAX_FORK_RETRIES)
+                    {
+                      forks_retry++;
+                      log_write("fork() failed - sleeping %d seconds (%s)", forks_retry, strerror(errno));
+                      fork_sleep(forks_retry);
+                      goto again;
+                    }
+                  else
+                    {
+                      log_write("fork() failed too many times - aborting");
+                      goto host_died;
+                    }
+                }
+            }
+        }
+      else if(plugin == NULL) break;
+      else pluginlaunch_wait_for_free_process();
       }
-     else if(plugin == NULL) break;
-     else pluginlaunch_wait_for_free_process();
-    }
+      
   pluginlaunch_wait();
+
 host_died: 
   arg_free(tmp); 
   pluginlaunch_stop();
   plugins_scheduler_free(sched);
-  if(new_kb)save_kb_close(globals, hostname);
+  
+  if (new_kb)
+    save_kb_close(globals, hostname);
 }
 
 /**
@@ -392,55 +398,52 @@ host_died:
 static void
 attack_start (struct attack_start_args * args)
 {
- struct arglist * globals = args->globals;
- char * hostname = args->hostname;
- char * mac = args->host_mac_addr;
- struct arglist * plugs = arg_get_value(globals, "plugins");
- struct in_addr * hostip = &(args->hostip);
- struct arglist * hostinfos;
- 
- struct arglist * preferences = arg_get_value(globals,"preferences");
- char * non_simult = arg_get_value(preferences, "non_simult_ports");
- int thread_socket = args->thread_socket;
- int soc;
- struct timeval then, now;
- plugins_scheduler_t sched = args->sched;
- int i;
-
-
- thread_socket = dup2(thread_socket, 4);
- for(i=5;i<getdtablesize();i++)
- {
-  close(i);
- }
-
-
- gettimeofday(&then, NULL);
-
-
- if( non_simult == NULL )
- 	{
-        non_simult = estrdup("139, 445");
- 	arg_add_value(preferences, "non_simult_ports", ARG_STRING, strlen(non_simult), non_simult);
-	}
- arg_add_value(preferences, "non_simult_ports_list", ARG_ARGLIST, -1, (void*)list2arglist(non_simult));
- /*
-  * Options regarding the communication with our father
-  */
- nessus_deregister_connection(GPOINTER_TO_SIZE(arg_get_value(globals, "global_socket")));
- arg_set_value(globals, "global_socket", -1, GSIZE_TO_POINTER(thread_socket));
- 
- /*
-  * Wait for the server to confirm it read our data
-  * (prevents client desynch)
-  */
- arg_add_value(globals, "confirm", ARG_INT, sizeof(int), (void*)1);
- 
- soc = thread_socket;
- hostinfos = attack_init_hostinfos(mac, hostname,hostip);
- if(mac)
-  hostname = mac;
+  struct arglist * globals = args->globals;
+  char * hostname = args->hostname;
+  char * mac = args->host_mac_addr;
+  struct arglist * plugs = arg_get_value(globals, "plugins");
+  struct in_addr * hostip = &(args->hostip);
+  struct arglist * hostinfos;
   
+  struct arglist * preferences = arg_get_value(globals,"preferences");
+  char * non_simult = arg_get_value(preferences, "non_simult_ports");
+  int thread_socket = args->thread_socket;
+  int soc;
+  struct timeval then, now;
+  plugins_scheduler_t sched = args->sched;
+  int i;
+  
+  thread_socket = dup2(thread_socket, 4);
+  for (i=5; i<getdtablesize(); i++)
+    {
+      close(i);
+    }
+
+  gettimeofday(&then, NULL);
+
+  if( non_simult == NULL )
+    {
+      non_simult = estrdup("139, 445");
+      arg_add_value(preferences, "non_simult_ports", ARG_STRING, strlen(non_simult), non_simult);
+    }
+  arg_add_value(preferences, "non_simult_ports_list", ARG_ARGLIST, -1, (void*)list2arglist(non_simult));
+
+  /*
+   * Options regarding the communication with our father
+   */
+  nessus_deregister_connection(GPOINTER_TO_SIZE(arg_get_value(globals, "global_socket")));
+  arg_set_value(globals, "global_socket", -1, GSIZE_TO_POINTER(thread_socket));
+
+  /*
+   * Wait for the server to confirm it read our data
+   * (prevents client desynch)
+   */
+  arg_add_value(globals, "confirm", ARG_INT, sizeof(int), (void*)1);
+
+  soc = thread_socket;
+  hostinfos = attack_init_hostinfos(mac, hostname,hostip);
+  if(mac)
+    hostname = mac;
 
   plugins_set_socket(plugs, soc);
   ntp_1x_timestamp_host_scan_starts(globals, hostname);
@@ -449,15 +452,16 @@ attack_start (struct attack_start_args * args)
   ntp_1x_timestamp_host_scan_ends(globals, hostname);
   gettimeofday(&now, NULL);
   if(now.tv_usec < then.tv_usec)
-  {
-   then.tv_sec ++;
-   now.tv_usec += 1000000;
-  }
+    {
+      then.tv_sec ++;
+      now.tv_usec += 1000000;
+    }
+
   log_write("Finished testing %s. Time : %ld.%.2ld secs\n",
-  		hostname,
-  		(long)(now.tv_sec - then.tv_sec),
-		(long)((now.tv_usec - then.tv_usec) / 10000));
-  shutdown(soc, 2);		
+            hostname,
+            (long)(now.tv_sec - then.tv_sec),
+            (long)((now.tv_usec - then.tv_usec) / 10000));
+  shutdown(soc, 2);
   close(soc);
 }
 
@@ -470,6 +474,8 @@ attack_start (struct attack_start_args * args)
 
 /**
  * This function attacks a whole network
+ *
+ * @return 0 if success, -1 on error.
  */
 int
 attack_network(struct arglist * globals)
@@ -491,7 +497,6 @@ attack_network(struct arglist * globals)
   int restoring    = 0;
   harglst * tested = NULL;
   int  save_session= 0;
-  int return_code = 0;
   char * port_range;
   plugins_scheduler_t sched;
   int fork_retries = 0;
@@ -625,11 +630,12 @@ attack_network(struct arglist * globals)
               if(save_kb_exists(globals, hostname))
                 {
                   log_write("user %s : not testing %s because it has already been tested before\n",
-                                  attack_user_name(globals), hostname);
+                            attack_user_name(globals), hostname);
                   hg_res = hg_next_host(hg_globals, &host_ip, hostname, sizeof(hostname));
+                  // If some hosts were tested already, jump over them.
                   if( tested != NULL )
                     {
-                      while(hg_res >= 0 &&  harg_get_int( tested, hostname ) != 0 )
+                      while(hg_res >= 0 && harg_get_int( tested, hostname ) != 0 )
                         hg_res = hg_next_host(hg_globals, &host_ip, hostname, sizeof(hostname));
                     }
                   continue;
@@ -792,5 +798,5 @@ stop:
   gettimeofday(&now, NULL);
   log_write("Total time to scan all hosts : %ld seconds\n", now.tv_sec - then.tv_sec);
 
-  return return_code;
+  return 0;
 }
