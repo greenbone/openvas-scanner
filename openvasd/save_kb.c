@@ -46,14 +46,20 @@
 
 #include "save_kb.h"
 
-
+/** @TODO seems there is some code duplicate in save_tests.c */
 
 /*=========================================================================
 
 			Private functions
 			
 ===========================================================================*/
-
+/**
+ * @brief Replaces slashes in name by underscores.
+ * 
+ * @param name String in which slashes will be replaced by underscores.
+ * 
+ * @return Pointer to the parameter name string.
+ */
 static char *
 filter_odd_name(name)
  char * name;
@@ -72,12 +78,10 @@ filter_odd_name(name)
 }
 
 
-/*-----------------------------------------------------------------
- 
-  Name of the directory which contains the sessions of the current
-  user (/path/to/var/openvas/<username>/kbs/)
-  
-------------------------------------------------------------------*/ 
+/**
+ * Returns name of the directory which contains the sessions of the current
+ * user (/path/to/var/openvas/<username>/kbs/)
+ */
 static char *
 kb_dirname(globals)
  struct arglist * globals;
@@ -89,15 +93,11 @@ kb_dirname(globals)
  return(dir);
 }
 
-/*----------------------------------------------------------------
-
- Create a kb directory. 
- XXXXX does not check for the existence of a directory and does
- not check any error
- 
-------------------------------------------------------------------*/
-
-
+/**
+ * Create a kb directory.
+ * XXXXX does not check for the existence of a directory and does
+ * not check any error
+ */
 static int
 kb_mkdir(dir)
  char * dir;
@@ -127,12 +127,9 @@ kb_mkdir(dir)
 }
 
 
-/*----------------------------------------------------------------
-
- From <hostname>, return 
- /path/to/var/openvas/<username>/kb/<hostname>
-
-------------------------------------------------------------------*/
+/**
+ * From <hostname>, return /path/to/var/openvas/<username>/kb/<hostname> .
+ */
 static char*
 kb_fname(globals, hostname)
  struct arglist * globals;
@@ -155,7 +152,6 @@ kb_fname(globals, hostname)
 /*
  * mmap() tends to sometimes act weirdly
  */
-
 static char*
 map_file(file)
  int file;
@@ -316,7 +312,7 @@ save_kb_rm_entry(globals, hostname, name)
  *	SentData/...
  *	Launched/...
  *
- * We don't want to save /tmp/...
+ * Ignores any items starting with /tmp/, NIDS/ or Settings/
  */	
 static int
 save_kb_write(globals, hostname, name, value, type)
@@ -392,17 +388,14 @@ save_kb_write(globals, hostname, name, value, type)
 	
  =======================================================================*/
 
-/*------------------------------------------------------------------
-  
-   Initialize a new KB that will be saved
-   
-   The indexes of all the opened KB are in a hashlist in 
-   globals, saved under the name "save_kb". This makes no sense
-   at this time, as the test of each host is done in a separate
-   process, but this allows us to regroup easily these in
-   the future
-   
- -------------------------------------------------------------------*/
+/**
+ * Initialize a new KB that will be saved
+ * The indexes of all the opened KB are in a hashlist in 
+ * globals, saved under the name "save_kb". This makes no sense
+ * at this time, as the test of each host is done in a separate
+ * process, but this allows us to regroup easily these in
+ * the future.
+ */
 int
 save_kb_new(globals, hostname)
  struct arglist * globals;
@@ -461,7 +454,7 @@ save_kb_close(globals, hostname)
  efree(&fname);
 }
 
-/*
+/**
  * Returns <1> if we already saved a KB for this host,
  * less than <max_age> seconds ago. If <max_age> is
  * equal to zero, then the age is not taken in account
@@ -522,7 +515,7 @@ save_kb_write_int(globals, hostname, name, value)
 
 
 
-/*
+/**
  * Restores a copy of the knowledge base
  */
 int
@@ -546,10 +539,10 @@ save_kb_restore_backup(globals, hostname)
  }
  return 0;
 }
-/*
+
+/**
  * Makes a copy of the knowledge base
  */
-
 int
 save_kb_backup(globals, hostname)
  struct arglist * globals;
@@ -620,11 +613,11 @@ failed1:
 }
 
 
-/*
- * Restores a previously saved knowledge base
+/**
+ * @brief Restores a previously saved knowledge base
  *
  * The KB entry 'Host/dead' is ignored, as well as all the 
- * entries starting by '/tmp/'
+ * entries starting with '/tmp/'.
  */
 struct kb_item ** 
 save_kb_load_kb(globals, hostname)
@@ -740,8 +733,8 @@ save_kb_load_kb(globals, hostname)
  *-------------------------------------------------------------------*/
 
 
-/* 
- * Returns <1> if the user wants us the save the knowledge base
+/**
+ * Returns <1> if the user wants us the save the knowledge base.
  */
 int save_kb(globals)
  struct arglist * globals;
@@ -764,9 +757,9 @@ int save_kb(globals)
  return 0;
 }
 
-/*
+/**
  * Returns <1> if we should only test hosts whose knowledge base we
- * already have
+ * already have.
  */
 int save_kb_pref_tested_hosts_only(globals)
  struct arglist * globals;
@@ -781,8 +774,8 @@ int save_kb_pref_tested_hosts_only(globals)
  return 0;
 }
 
-/*
- * Returns <1> if we should only test hosts whose kb we DO NOT have
+/**
+ * Returns <1> if we should only test hosts whose kb we DO NOT have.
  */
 int save_kb_pref_untested_hosts_only(globals)
  struct arglist * globals;
@@ -797,8 +790,8 @@ int save_kb_pref_untested_hosts_only(globals)
  return 0;
 }
 
-/*
- * Returns <1> if we should restore the KB for the tests
+/**
+ * Returns <1> if we should restore the KB for the tests.
  */
 int save_kb_pref_restore(globals)
  struct arglist * globals;
@@ -813,8 +806,8 @@ int save_kb_pref_restore(globals)
  return 0;
 }
 
-/*
- * Return <1> if this type of plugin can be executed
+/**
+ * Return <1> if this type of plugin can be executed.
  */
 int save_kb_replay_check(globals, type)
  struct arglist * globals;
@@ -852,7 +845,7 @@ int save_kb_replay_check(globals, type)
  return 1;
 }
 
-/*
+/**
  * Returns the max. age of the KB, in seconds, as set
  * by the user
  */
@@ -869,7 +862,7 @@ save_kb_max_age(globals)
 }
 
 
-/*
+/**
  * Differential scans
  *
  *
@@ -886,7 +879,6 @@ save_kb_max_age(globals)
  * TODO :
  *    Add 'DataSent/PluginID/Num' entries
  */
-
 int
 diff_scan(globals)
  struct arglist * globals;

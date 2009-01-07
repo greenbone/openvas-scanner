@@ -1,3 +1,13 @@
+2009-01-07  Felix Wolfsteller <felix.wolfsteller@intevation.de>
+
+	Comment style transformed to JavaDoc style, duplicate code found and
+	TODOs added.
+
+	* openvasd/save_kb.c: Transformed comments to JavaDoc style, minor
+	improvements, added note about code duplicates in save_tests.c.
+	
+	* openvasd/save_tests.c: Added note about code duplicate in save_kb.c.
+
 2009-01-05  Felix Wolfsteller <felix.wolfsteller@intevation.de>
 
 	* openvasd/attack.c (attack_network, launch_plugin) : Replaced tabs by
