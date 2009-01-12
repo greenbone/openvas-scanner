@@ -1,5 +1,10 @@
 2009-01-07  Felix Wolfsteller <felix.wolfsteller@intevation.de>
 
+	* openvasd/attack.c (attack_host): Removed local unused variable
+	kb_restored.
+
+2009-01-07  Felix Wolfsteller <felix.wolfsteller@intevation.de>
+
 	* openvasd/attack.c (attack_host, attack_start): Reformatted.
 	
 	* openvasd/attack.c (attack_network): Remoded local unused variable

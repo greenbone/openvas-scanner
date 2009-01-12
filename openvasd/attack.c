@@ -148,6 +148,8 @@ attack_user_name (struct arglist * globals)
  * Launches a nvt. Respects safe check preference (i.e. does not try destructive
  * nvt if save_checks is yes). Does not launch a plugin twice if !save_kb_replay.
  *
+ * @param new_kb  If TRUE, kb is new and shall be saved.
+ * 
  * @return ERR_HOST_DEAD if host died, ERR_CANT_FORK if forking failed, 
  *         0 otherwise.
  */
@@ -155,7 +157,7 @@ static int
 launch_plugin (struct arglist * globals, plugins_scheduler_t * sched,
                struct scheduler_plugin * plugin, char * hostname,
                int * cur_plug, int num_plugs, struct arglist * hostinfos, 
-               struct kb_item ** kb, int new_kb)
+               struct kb_item ** kb, gboolean new_kb)
 {
   struct arglist * preferences = arg_get_value(globals,"preferences");
   struct arglist * args = plugin->arglist->value;
@@ -253,7 +255,7 @@ launch_plugin (struct arglist * globals, plugins_scheduler_t * sched,
                         attack_user_name(globals), hostname);
               pluginlaunch_stop();
 
-              if(new_kb)
+              if(new_kb == TRUE)
                 save_kb_close(globals, hostname);
 
               if(kb_item_get_int(kb, "Host/ping_failed") > 0)
@@ -278,6 +280,52 @@ launch_plugin (struct arglist * globals, plugins_scheduler_t * sched,
   return 0;
 }
 
+// TODO eventually to be moved to libopenvas kb.c 
+/**
+ * @brief Inits or loads the knowledge base for a single host.
+ * 
+ * @param globals     Global preference arglist.
+ * @param hostname    Name of the host.
+ * @param new_kb[out] TRUE if the kb is new and shall be saved.
+ * 
+ * @return A knowledge base.
+ */
+static struct kb_item**
+init_host_kb (struct arglist* globals, char* hostname, gboolean* new_kb)
+{
+  struct kb_item** kb;
+  (*new_kb) = FALSE;
+  
+  // Check if kb should be saved.
+  if (save_kb (globals))
+    {
+
+      // Check if a saved kb exists and we shall restore it.
+      if (save_kb_exists (globals, hostname) != 0 && 
+          save_kb_pref_restore (globals) != 0 )
+        {
+          save_kb_backup (globals, hostname);
+          kb = save_kb_load_kb (globals, hostname);
+        }
+      else 
+        {
+          // We shall not or cannot restore.
+          save_kb_new (globals, hostname);
+          kb = kb_new ();
+          (*new_kb) = TRUE;
+        }
+
+      arg_add_value (globals, "CURRENTLY_TESTED_HOST", ARG_STRING,
+                     strlen (hostname), hostname);
+    }
+  else /* save_kb(globals) */
+    {
+      kb = kb_new ();
+    }
+
+  return kb;
+}
+
 /**
  * Attack _one_ host
  */
@@ -292,34 +340,14 @@ attack_host (struct arglist * globals, struct arglist * hostinfos,
   int cur_plug = 1;
   
   struct kb_item ** kb;
-  int new_kb = 0;
-  int kb_restored = 0;
+  gboolean new_kb = FALSE;
   int forks_retry = 0;
   struct arglist * plugins = arg_get_value(globals, "plugins");
   struct arglist * tmp;
  
   setproctitle("testing %s", (char*)arg_get_value(hostinfos, "NAME"));
   
-  if (save_kb(globals))
-    {
-      if (save_kb_exists(globals, hostname) != 0 && 
-          save_kb_pref_restore(globals) != 0 )
-        {
-          save_kb_backup(globals, hostname);
-          kb = save_kb_load_kb(globals, hostname);
-          kb_restored = 1; 
-        }
-      else 
-        {
-          save_kb_new(globals, hostname);
-          kb = kb_new();
-          new_kb = 1;
-        }
-    
-      arg_add_value(globals, "CURRENTLY_TESTED_HOST", ARG_STRING, strlen(hostname), hostname);
-    }
-  else kb = kb_new();
-  
+  kb = init_host_kb (globals, hostname, &new_kb);
 
   num_plugs = get_active_plugins_number(plugins);
   
@@ -387,7 +415,7 @@ host_died:
   pluginlaunch_stop();
   plugins_scheduler_free(sched);
   
-  if (new_kb)
+  if (new_kb == TRUE)
     save_kb_close(globals, hostname);
 }
 
