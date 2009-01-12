@@ -1,3 +1,16 @@
+2009-01-12  Felix Wolfsteller <felix.wolfsteller@intevation.de>
+
+	Refactoring attack method.
+
+	* openvasd/attack.c (launch_plugin): Changed int to gboolean parameter,
+	doc.
+	
+	* openvasd/attack.c (init_host_kb): New method, extracted from
+	attack_host, comments, documentation.
+	
+	* openvasd/attack.c (attack_host): Changed new_kb to be gboolean,
+	extracted init_host_kb function.
+
 2009-01-07  Felix Wolfsteller <felix.wolfsteller@intevation.de>
 
 	* openvasd/attack.c (attack_host): Removed local unused variable
