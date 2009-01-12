@@ -1,3 +1,15 @@
+2009-01-12  Jan-Oliver Wagner <jan-oliver.wagner@intevation.de>
+
+	* openvasd/openvasd.c (main): Removed exit-upon-nonroot,
+	because there is no reason why only root should start
+	the server. It works well except for those
+	operation where root privileges are needed.
+	In cases where privileges are not sufficient, the
+	log file will contain respective notes.
+
+	* openvas-mkcert.in, openvas-adduser.in: Don't have
+	it mandatory to be root.
+
 2009-01-12  Felix Wolfsteller <felix.wolfsteller@intevation.de>
 
 	Refactoring attack method.

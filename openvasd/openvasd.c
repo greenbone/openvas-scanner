@@ -936,11 +936,6 @@ main(int argc, char * argv[], char * envp[])
     DO_EXIT(0);
   }
 
-  if(getuid())
-  {
-     fprintf(stderr, "Only root should start openvasd.\n");
-     exit(0);
-  }
   if(exit_early == 0)
     bpf_server_pid = bpf_server();
 

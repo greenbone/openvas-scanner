@@ -106,20 +106,10 @@ echo
 }
 #
 
-#
-# We need root priv
-#
-case `id 2>/dev/null` in 
-uid=0*) 
-    $sbindir/openvasd -g || {
+$sbindir/openvasd -g || {
 	gettext "Executing openvasd failed. Make sure your library loader is configured properly and that openvasd is in your \$PATH."; echo
 	exit 1
 	}
-    ;; 
-*)
-    gettext "Only root can use openvas-mkcert."; echo
-    exit 1
-esac
 
 #
 # We need openssl
