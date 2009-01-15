@@ -12,7 +12,7 @@ Standards-Version: 3.8.0
 Package: openvas-server
 Section: net
 Architecture: any
-Depends: ${shlibs:Depends}, ${misc:Depends}, openvas-plugins
+Depends: ${shlibs:Depends}, ${misc:Depends}
 Suggests: openvas-client
 Description: Remote network security auditor, the server
  The OpenVAS Security Scanner is a security auditing tool. It makes
