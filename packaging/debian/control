@@ -29,7 +29,7 @@ Package: openvas-server-dev
 Section: devel
 Architecture: any
 Depends: openvas-server (= ${binary:Version}), ${shlibs:Depends}, ${misc:Depends}
-+Recommends: libopenvas1-dev, libopenvasnasl1-dev
+Recommends: libopenvas2-dev, libopenvasnasl2-dev
 Description: OpenVAS server static libraries and headers
  The OpenVAS Security Scanner is a security auditing tool. It makes
  possible to test security modules in an attempt to find vulnerable
