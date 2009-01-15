@@ -1,3 +1,8 @@
+2009-01-15  Michael Wiegand <michael.wiegand@intevation.de>
+
+	* openvasd-config.in: Added support for retrieving the sysconfdir and
+	libdir of an OpenVAS installation.
+
 2009-01-12  Jan-Oliver Wagner <jan-oliver.wagner@intevation.de>
 
 	* openvasd/openvasd.c (main): Removed exit-upon-nonroot,

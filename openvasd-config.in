@@ -27,17 +27,18 @@
 # it under the terms of the GNU General Public License version 2,
 # as published by the Free Software Foundation
 
-# these two are necessary to suffice the replacements
-# for libdir and includedir
+# these two are necessary for sysconfdir, libdir and includedir
 prefix=@prefix@
+exec_prefix=@exec_prefix@
 
 INCLUDEDIR=@includedir@
 VERSION=@version@
-
+SYSCONFDIR=@sysconfdir@
+LIBDIR=@libdir@
 
 usage()
 {
- echo "Usage : openvasd-config [ --cflags | --version ]"
+ echo "Usage : openvasd-config [ --cflags | --version | --sysconfdir | --libdir ]"
  exit $1
 }
 
@@ -60,6 +61,14 @@ while test $# -gt 0; do
 		;;
 	--cflags)
 		echo $Xn "-I$INCLUDEDIR/openvas $Xc"
+		;;
+	--sysconfdir)
+		echo $SYSCONFDIR
+		exit 0
+		;;
+	--libdir)
+		echo $LIBDIR
+		exit 0
 		;;
 	--help | -h)
 		usage 0
