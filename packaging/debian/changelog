@@ -82,6 +82,22 @@ openvas-server (1.0.1-1) unstable; urgency=low
     'openvas-mkcert') and unfuzzy the modified string in all languages.
   * Adjust Build-Depends to make it depend on libopenvas1-dev (>= 1.0.2)
     and libopenvasnasl1-dev (>= 1.0.1)
+  * Fix the location of the runtime directory to /var/run/openvas to
+    be FHS compliant (it was /var/openvas).
+  * Fix wrong references in source code and documentation to /var/openvas
+    when it should be /var/lib/openvas
+  * Fix the main Makefile openvas-mkcert-client.in, openvas-mkcert.in,
+    openvas-user.in and openvas-rmuser.in to use the proper statedirectory
+    definitions.
+  * Restore the openvas-mkcert-client manpage that was lost in openvas
+  [ Debian specific ]
+  * debian/rules: 
+     - Define CFLAGS and LDFLAGS before the call to configure, not afterwards
+     as this confuses the configure script
+     - Remove the usr/include directory from openvas-server so as to
+       not distribute an empty directory
+  * debian/control: Add openvas-plugins as a Dependency, add the same
+    Suggests: and Recommends: to the packages as the nessus-core package had.
 
  -- Javier Fernandez-Sanguino Pen~a <jfs@debian.org>  Fri, 22 Aug 2008 01:28:13 +0200
 
