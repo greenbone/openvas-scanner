@@ -38,7 +38,9 @@ msgstr ""
 #. Type: string
 #. Description
 #: ../openvas-server.templates:2001
-msgid "CA certificate life time in days"
+#, fuzzy
+#| msgid "CA certificate life time in days"
+msgid "CA certificate life time in days:"
 msgstr "Duración do certificado da CA en días"
 
 #. Type: string
