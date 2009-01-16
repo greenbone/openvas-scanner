@@ -67,9 +67,9 @@ static int ntp_11_list_sessions(struct arglist*);
 static int ntp_11_delete_session(struct arglist*, char*);
 static int ntp_11_restore_session(struct arglist*, char*);
 #endif
-/*
- * Parses the input sent by the client before
- * the NEW_ATTACK message.
+
+/**
+ * @brief Parses the input sent by the client before the NEW_ATTACK message.
  */
 int ntp_11_parse_input(globals, input)
    struct arglist * globals;
@@ -241,7 +241,8 @@ ntp_11_long_attack(globals, orig)
 } 
 
 /**
- * Reads in prefs sent by client.
+ * @brief Reads in "server" prefs sent by client.
+ * 
  * @param globals The global arglist (containing server preferences).
  * @return Always 0.
  */
@@ -413,93 +414,95 @@ files_add_translation(globals, remotename, localname)
 
 
 
+/**
+ * @brief Receive a file sent by the client.
+ * 
+ * @return 0 if successful, -1 in case of errors.
+ */
 int
-ntp_11_recv_file(globals)
- struct arglist * globals;
+ntp_11_recv_file (struct arglist* globals)
 {
- int soc = GPOINTER_TO_SIZE(arg_get_value(globals, "global_socket"));
- char input[4096];
- char * origname, * localname = temp_file_name();
- int n;
- long bytes = 0;
- long tot = 0;
- int fd;
- 
+  int soc = GPOINTER_TO_SIZE(arg_get_value(globals, "global_socket"));
+  char input[4096];
+  char * origname, * localname = temp_file_name();
+  int n;
+  long bytes = 0;
+  long tot = 0;
+  int fd;
+
 #if 0
  fprintf(stderr, "ntp_11_recv_file\n");
 #endif
- n = recv_line(soc, input, sizeof(input) - 1);
- if(n <= 0)
-  return -1;
-  
- if( strncmp(input, "name: ", strlen("name: ")) == 0 )
- {
-  origname = estrdup(input + sizeof("name: ")-1);
-  if(origname[strlen(origname) - 1] == '\n')
-   origname[strlen(origname) - 1] = '\0';
- }
- else 
-   return -1;
- 
- n = recv_line(soc, input, sizeof(input) - 1);
- if(n <= 0)
-  return -1;
- /* XXX content: message. Ignored for the moment */
- 
- n = recv_line(soc, input, sizeof(input) - 1);
- if(n <= 0)
 
-  return -1;
-  
- if( strncmp(input, "bytes: ", sizeof("bytes: ")-1) == 0 )
- {
-  char * t = input + sizeof("bytes: ")-1;
-  bytes = atol(t);
- }
- else 
-  return -1;
-  
- /*
-  * Ok. We now know that we have to read <bytes> bytes from the
-  * remote socket.
-  */
-  
+  n = recv_line(soc, input, sizeof(input) - 1);
+  if (n <= 0)
+    return -1;
+
+  if ( strncmp(input, "name: ", strlen("name: ")) == 0 )
+    {
+      origname = estrdup(input + sizeof("name: ")-1);
+      if(origname[strlen(origname) - 1] == '\n')
+      origname[strlen(origname) - 1] = '\0';
+    }
+  else
+    return -1;
+
+  n = recv_line(soc, input, sizeof(input) - 1);
+  if (n <= 0)
+    return -1;
+  /* XXX content: message. Ignored for the moment */
+
+  n = recv_line (soc, input, sizeof(input) - 1);
+  if (n <= 0)
+    return -1;
+
+  if ( strncmp(input, "bytes: ", sizeof("bytes: ")-1) == 0 )
+    {
+      char * t = input + sizeof("bytes: ")-1;
+      bytes = atol(t);
+    }
+  else
+    return -1;
+
+  /* We now know that we have to read <bytes> bytes from the remote socket. */
+
   fd = open(localname, O_CREAT|O_WRONLY|O_TRUNC, 0600);
-  if(fd < 0)
-  {
-   perror("ntp_11_recv_file: open() ");
-   return -1;
-  }
+  if (fd < 0)
+    {
+      perror ("ntp_11_recv_file: open() ");
+      return -1;
+    }
+
 #if 0
   fprintf(stderr, "ntp_11_recv_file: localname=%s\n", localname);
 #endif  
-  while(tot < bytes)
-  {
-   bzero(input, sizeof(input));
-   n = nrecv(soc, input, MIN(sizeof(input)-1, bytes - tot), 0);
-   if(n  < 0)
-   {
-     char	s[80];
-     sprintf(s, "11_recv_file: nrecv(%d)", soc);
-    perror(s);
-    break;
-   }
-   else
-   {
-    write(fd, input, n);
-    tot += n;
-   }
-  }
-  /*
-   * Add the fact that what the remote client calls
-   * <filename> is actually <localname> here
-   */
-  auth_printf(globals, "SERVER <|> FILE_ACCEPTED <|> SERVER\n"); 
-  files_add_translation(globals, origname, localname);
-  efree(&localname);
-  close(fd);
+
+  while (tot < bytes)
+    {
+      bzero (input, sizeof(input));
+      n = nrecv (soc, input, MIN(sizeof(input)-1, bytes - tot), 0);
+      if (n  < 0)
+        {
+          char s[80];
+          sprintf (s, "11_recv_file: nrecv(%d)", soc);
+          perror (s);
+          break;
+        }
+      else
+        {
+          write (fd, input, n);
+          tot += n;
+        }
+    }
+  /* Add the fact that what the remote client calls <filename> is actually 
+   * <localname> here. */
+  auth_printf (globals, "SERVER <|> FILE_ACCEPTED <|> SERVER\n"); 
+  files_add_translation (globals, origname, localname);
+  efree (&localname);
+  close (fd);
   return 0;
 }
+
 #ifdef ENABLE_SAVE_TESTS
 static char*
 extract_session_key_from_session_msg(globals, orig)
