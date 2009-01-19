@@ -1,3 +1,7 @@
+2009-01-19  Michael Wiegand <michael.wiegand@intevation.de>
+
+	* Makefile: Fixed permissions for openvas/gnupg directory.
+
 2009-01-16  Felix Wolfsteller <felix.wolfsteller@intevation.de>
 
 	Cosmetics (reformatted ntp_11_recv_file, docs).

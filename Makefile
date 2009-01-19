@@ -54,7 +54,7 @@ install-bin:
 	@test -d $(DESTDIR)${sbindir} || $(INSTALL_DIR) -m 755 $(DESTDIR)${sbindir}
 	@test -d $(DESTDIR)${sysconfdir} || $(INSTALL_DIR) -m 755 $(DESTDIR)${sysconfdir}
 	@test -d $(DESTDIR)${sysconfdir}/openvas || $(INSTALL_DIR) -m 755 $(DESTDIR)${sysconfdir}/openvas
-	@test -d $(DESTDIR)${sysconfdir}/openvas/gnupg || $(INSTALL_DIR) -m 755 $(DESTDIR)${sysconfdir}/openvas/gnupg
+	@test -d $(DESTDIR)${sysconfdir}/openvas/gnupg || $(INSTALL_DIR) -m 700 $(DESTDIR)${sysconfdir}/openvas/gnupg
 	@test -d $(DESTDIR)${localstatedir} || $(INSTALL_DIR) -m 755 $(DESTDIR)${localstatedir}
 	@test -d $(DESTDIR)${OPENVASD_STATEDIR} || $(INSTALL_DIR) -m 755 $(DESTDIR)${OPENVASD_STATEDIR}
 	@test -d $(DESTDIR)${OPENVASD_STATEDIR}/users || $(INSTALL_DIR) -m 755 $(DESTDIR)${OPENVASD_STATEDIR}/users
