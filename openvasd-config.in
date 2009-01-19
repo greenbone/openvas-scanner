@@ -35,10 +35,11 @@ INCLUDEDIR=@includedir@
 VERSION=@version@
 SYSCONFDIR=@sysconfdir@
 LIBDIR=@libdir@
+SBINDIR=@sbindir@
 
 usage()
 {
- echo "Usage : openvasd-config [ --cflags | --version | --sysconfdir | --libdir ]"
+ echo "Usage : openvasd-config [ --cflags | --version | --sysconfdir | --libdir | --sbindir ]"
  exit $1
 }
 
@@ -68,6 +69,10 @@ while test $# -gt 0; do
 		;;
 	--libdir)
 		echo $LIBDIR
+		exit 0
+		;;
+	--sbindir)
+		echo $SBINDIR
 		exit 0
 		;;
 	--help | -h)
