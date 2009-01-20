@@ -51,42 +51,30 @@ openvasd_users=@sysconfdir@/openvas/openvasd.users
 
 # check if gettext is present
 
-if [ -f /usr/bin/gettext.sh ];
+GETTEXT=`command -v gettext.sh`
+if (( $? ));
 then
-
-  # initialize gettext
-
-  . gettext.sh
-  export TEXTDOMAIN=nessus-scripts
-  export TEXTDOMAINDIR=@datadir@/locale
-
-else
 
   # define dummy functions
 
   gettext () {
-    echo $1
+    echo $Xn "$1" $Xc
   }
 
   eval_gettext () {
-    echo $1
+    eval_gettext_var="echo $1"
+    echo $Xn `eval $eval_gettext_var` $Xc
   }
 
+else
+
+  # initialize gettext
+
+  . $GETTEXT
+  export TEXTDOMAIN=nessus-scripts
+  export TEXTDOMAINDIR=@datadir@/locale
+
 fi
-
-#
-# check whether we have echo -n, depending
-# on the current shell, used
-case `echo -n` in
-\-n)	Xn=   ; Xc='\c' ;;
-*)	Xn=-n ; Xc=
-esac
-
-# make sure that we are root
-case `id` in uid=0*) ;; *)
-   gettext "Only root should use openvas-rmuser."; echo
-   exit 1
-esac
 
 
 login="$1"

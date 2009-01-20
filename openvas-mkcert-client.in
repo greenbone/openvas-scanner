@@ -57,16 +57,9 @@ PATH=$PATH:$sbindir:$bindir:/usr/ssl/bin:/usr/local/ssl/bin:/opt/ssl/bin
 
 # check if gettext is present
 
-if [ -f /usr/bin/gettext.sh ];
+GETTEXT=`command -v gettext.sh`
+if (( $? ));
 then
-
-  # initialize gettext
-
-  . gettext.sh
-  export TEXTDOMAIN=nessus-scripts
-  export TEXTDOMAINDIR=@datadir@/locale
-
-else
 
   # define dummy functions
 
@@ -76,10 +69,19 @@ else
 
   eval_gettext () {
     eval_gettext_var="echo $1"
-    echo $Xn "`eval $eval_gettext_var`" $Xc
+    echo $Xn `eval $eval_gettext_var` $Xc
   }
 
+else
+
+  # initialize gettext
+
+  . $GETTEXT
+  export TEXTDOMAIN=nessus-scripts
+  export TEXTDOMAINDIR=@datadir@/locale
+
 fi
+
 
 Bo='('
 Bc=')'

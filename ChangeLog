@@ -1,3 +1,10 @@
+2009-01-20  Michael Wiegand <michael.wiegand@intevation.de>
+
+	* openvas-adduser.in, openvas-mkcert.in, openvas-mkcert-client.in,
+	openvas-rmuser.in: Make gettext usage more robust; previous versions
+	expected gettext.sh to be in /usr/bin which is not always the case. This
+	resolves bug #860 (http://bugs.openvas.org/).
+
 2009-01-19  Michael Wiegand <michael.wiegand@intevation.de>
 
 	* openvasd-config.in: Added support for retrieving the sbindir of an
