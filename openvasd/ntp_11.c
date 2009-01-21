@@ -391,12 +391,20 @@ ntp_11_show_end(globals, name, internal)
 	auth_printf(globals, "%s", buf);
 }
 
-
+/**
+ * @brief Adds a 'translation' entry for a file sent by the client.
+ * 
+ * Files sent by the client are stored temporarily at server side.
+ * In order to access these files, their original paths ('local' to the client)
+ * can be 'translated' into the file paths of the temporary files on server side.
+ * 
+ * @param globals    Global arglist.
+ * @param remotename Path to file as referenced by the client.
+ * @param remotename Path to file as referenced by the server.
+ */
 static void
-files_add_translation(globals, remotename, localname)
- struct arglist * globals;
- char * remotename;
- char * localname;
+files_add_translation (struct arglist* globals, char * remotename, 
+                       char * localname)
 {
  harglst * trans = arg_get_value(globals, "files_translation");
 #if 0

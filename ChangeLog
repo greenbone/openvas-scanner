@@ -1,5 +1,10 @@
 2009-01-20  Felix Wolfsteller <felix.wolfsteller@intevation.de>
 
+	* openvasd/ntp_11.c (files_add_translation): Commented, replaced K&R
+	function declaration.
+
+2009-01-20  Felix Wolfsteller <felix.wolfsteller@intevation.de>
+
 	Parses the files that the client might sent if a plugin with a 'special'
 	preference (PREF_SSH_CREDENTIALS) requested it.
 	!Note that you need a recent openvas-libraries install to be able to
