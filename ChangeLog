@@ -1,5 +1,17 @@
 2009-01-20  Felix Wolfsteller <felix.wolfsteller@intevation.de>
 
+	When the knowledge base for a host is initialized, look up any ssh
+	credentials information (that should be accessible if a nvt with a
+	PREF_SSH_CREDENTIALS preference was available to the client and the user
+	did specify the information).
+
+	* openvasd/attack.c (init_host_kb): Comment added, empty newline removed.
+	Looks up the hostname and user-defined login- account for the current
+	host. Then adds "Secret/SSH/*" entries with this information to the
+	knowledge base of the current host.
+
+2009-01-20  Felix Wolfsteller <felix.wolfsteller@intevation.de>
+
 	* openvasd/ntp_11.c (files_add_translation): Commented, replaced K&R
 	function declaration.
 

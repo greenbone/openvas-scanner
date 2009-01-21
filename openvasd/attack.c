@@ -46,6 +46,7 @@
 #include "preferences.h"
 #include "ntp.h"
 #include "ntp_11.h"
+#include "openvas_ssh_login.h"
 #include "pluginload.h"
 #include "save_tests.h"
 #include "save_kb.h"
@@ -284,6 +285,9 @@ launch_plugin (struct arglist * globals, plugins_scheduler_t * sched,
 /**
  * @brief Inits or loads the knowledge base for a single host.
  * 
+ * Fills the knowledge base with host-specific login information for local
+ * checks.
+ * 
  * @param globals     Global preference arglist.
  * @param hostname    Name of the host.
  * @param new_kb[out] TRUE if the kb is new and shall be saved.
@@ -295,11 +299,14 @@ init_host_kb (struct arglist* globals, char* hostname, gboolean* new_kb)
 {
   struct kb_item** kb;
   (*new_kb) = FALSE;
+  GHashTable* map_host_login_names = NULL;
+  GHashTable* map_loginname_login  = NULL;
+  char* accountname        = NULL;
+  openvas_ssh_login* login = NULL;
   
   // Check if kb should be saved.
   if (save_kb (globals))
     {
-
       // Check if a saved kb exists and we shall restore it.
       if (save_kb_exists (globals, hostname) != 0 && 
           save_kb_pref_restore (globals) != 0 )
@@ -322,6 +329,37 @@ init_host_kb (struct arglist* globals, char* hostname, gboolean* new_kb)
     {
       kb = kb_new ();
     }
+
+  // Add local check (SSH)- related knowledge base items
+  map_host_login_names = arg_get_value (globals, "MAP_HOST_SSHLOGIN_NAME");
+  map_loginname_login  = arg_get_value (globals, "MAP_NAME_SSHLOGIN");
+  
+  if (map_host_login_names != NULL && map_loginname_login != NULL)
+    {
+      // Look up the user assigned name for this login
+      accountname = g_hash_table_lookup (map_host_login_names, hostname);
+
+      // No login- account name for this host found? Then done.
+      if (accountname == NULL)
+        return kb;
+
+      login = g_hash_table_lookup (map_loginname_login, accountname);
+
+      // No login information for this login-account found? Strange, but done.
+      if (login == NULL)
+        return kb;
+
+      // Fill knowledge base with host specific login information
+      if (login->username)
+        kb_item_set_str (kb, "Secret/SSH/login", login->username);
+      if (login->public_key_path)
+        kb_item_set_str (kb, "Secret/SSH/publickey", login->public_key_path);
+      if (login->private_key_path)
+        kb_item_set_str (kb, "Secret/SSH/privatekey", login->private_key_path);
+      if (login->ssh_key_passphrase)
+        kb_item_set_str (kb, "Secret/SSH/passphrase", login->ssh_key_passphrase);
+    }
+  // else no .logins or .host_logins file found -> nothing to do
 
   return kb;
 }
