@@ -1,3 +1,23 @@
+2009-01-20  Felix Wolfsteller <felix.wolfsteller@intevation.de>
+
+	Parses the files that the client might sent if a plugin with a 'special'
+	preference (PREF_SSH_CREDENTIALS) requested it.
+	!Note that you need a recent openvas-libraries install to be able to
+	compile!
+
+	* openvasd/ntp_11.c (build_global_host_sshlogins_map): New.
+	Parses the .host_logins file sent by the client and stores the mapping
+	of user-defined login-account names to hostnames in the global arglist
+	for later (per-host) lookup.
+	
+	* openvasd/ntp_11.c (build_global_sshlogin_info_map): New.
+	Parses the .logins file sent by the client and stores the mapping of
+	user-defined login-account names to openvas_ssh_login structs for later
+	lookup and extraction of per-host login information.
+	
+	* openvasd/ntp_11.c (ntp_11_recv_file): Commented, calls the new methods
+	accordingly if a file with the appropriate name has been received.
+
 2009-01-20  Michael Wiegand <michael.wiegand@intevation.de>
 
 	* openvas-adduser.in, openvas-mkcert.in, openvas-mkcert-client.in,
