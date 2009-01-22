@@ -53,7 +53,7 @@ static void nasl_thread(struct arglist *);
 /** 
  * Add *one* .nasl plugin to the plugin list and return the pointer to it.
  * The plugin is first attempted to be loaded from the cache (.desc) calling
- * load_store_plugin. If that fails, it is parsed (via execute_nasl_script).
+ * load_store_plugin. If that fails, it is parsed (via exec_nasl_script).
  * @param folder Path to the plugin folder.
  * @param name File-name of the plugin.
  * @param plugins The arglist that the plugin shall be added to.
@@ -68,12 +68,10 @@ nasl_plugin_add(char* folder, char* name, struct arglist* plugins,
  struct arglist *plugin_args;
  struct arglist * prev_plugin = NULL;
  char * lang = "english";
- char cache_dir[PATH_MAX+1];
  int nasl_mode;
  nasl_mode = NASL_EXEC_DESCR;
 
  snprintf(fullname, sizeof(fullname), "%s/%s", folder, name);
- snprintf(cache_dir, sizeof(fullname), "%s/.bin", folder);
 
  if ( preferences_nasl_no_signature_check(preferences) > 0 )
   {
@@ -103,7 +101,7 @@ nasl_plugin_add(char* folder, char* name, struct arglist* plugins,
    plugin_args = emalloc(sizeof(struct arglist));
    arg_add_value(plugin_args, "preferences", ARG_ARGLIST, -1, (void*)preferences);
    
-   if(execute_nasl_script(plugin_args, fullname, cache_dir, nasl_mode) < 0)
+   if(exec_nasl_script(plugin_args, fullname, nasl_mode) < 0)
    {
     printf("%s could not be loaded\n", fullname);
     arg_set_value(plugin_args, "preferences", -1, NULL);
@@ -206,8 +204,6 @@ nasl_thread(g_args)
  char * name = arg_get_value(g_args, "name");
  int soc = GPOINTER_TO_SIZE(arg_get_value(args, "SOCKET"));
  int i;
- char cache_dir[PATH_MAX + 1];
- char * t;
  int nasl_mode;
  
  
@@ -257,20 +253,11 @@ nasl_thread(g_args)
  setproctitle("testing %s (%s)", (char*)arg_get_value(arg_get_value(args, "HOSTNAME"), "NAME"), (char*)arg_get_value(g_args, "name"));
  signal(SIGTERM, _exit);
  
- t = strrchr(name, '/');
- if ( t != NULL )
- {
-  t[0] = '\0';
-  snprintf(cache_dir, sizeof(cache_dir), "%s/.bin", name);
-  t[0] = '/';
- } 
- else cache_dir[0] = '\0';
-
  nasl_mode = NASL_EXEC_DONT_CLEANUP;
  if ( preferences_nasl_no_signature_check(preferences) > 0 )
 	nasl_mode |= NASL_ALWAYS_SIGNED;
 
- execute_nasl_script(args, name, cache_dir[0] ? cache_dir:NULL, nasl_mode);
+ exec_nasl_script(args, name, nasl_mode);
  internal_send(soc, NULL, INTERNAL_COMM_MSG_TYPE_CTRL | INTERNAL_COMM_CTRL_FINISHED);
 }
 

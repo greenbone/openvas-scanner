@@ -1,5 +1,11 @@
 2009-01-22  Jan-Oliver Wagner <jan-oliver.wagner@intevation.de>
 
+	* openvasd/nasl_plugins.c (nasl_plugin_add, nasl_thread):
+	Use exec_nasl_script instead of execute_nasl_script.
+	Subsequently, remove any handling of the unneeded cache_dir.
+
+2009-01-22  Jan-Oliver Wagner <jan-oliver.wagner@intevation.de>
+
 	* configure.in: Upgraded dependency for openvas-libraries
 	and openvas-libnasl both to 2.0.1
 
