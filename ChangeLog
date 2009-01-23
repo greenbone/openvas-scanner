@@ -1,3 +1,11 @@
+2009-01-23  Felix Wolfsteller <felix.wolfsteller@intevation.de>
+
+	When the knowledge base for a host is initialized, look up the "Default"
+	value for an ssh-account if no specific found.
+
+	* openvasd/attack.c (init_host_kb): Looks up the account- name for the
+	"Default" host, if none for hostname was found.
+
 2009-01-23  Jan-Oliver Wagner <jan-oliver.wagner@intevation.de>
 
 	Removing unused and unneeded module "dirutils.c".

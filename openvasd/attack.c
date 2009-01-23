@@ -286,7 +286,8 @@ launch_plugin (struct arglist * globals, plugins_scheduler_t * sched,
  * @brief Inits or loads the knowledge base for a single host.
  * 
  * Fills the knowledge base with host-specific login information for local
- * checks.
+ * checks. If no specific login information were found, uses 'Default' if it 
+ * exists.
  * 
  * @param globals     Global preference arglist.
  * @param hostname    Name of the host.
@@ -339,9 +340,14 @@ init_host_kb (struct arglist* globals, char* hostname, gboolean* new_kb)
       // Look up the user assigned name for this login
       accountname = g_hash_table_lookup (map_host_login_names, hostname);
 
-      // No login- account name for this host found? Then done.
+      // No login- account name for this host found? Try "Default".
       if (accountname == NULL)
-        return kb;
+        {
+          accountname = g_hash_table_lookup (map_host_login_names, "Default");
+          // If none under 'Default' either, done.
+          if (accountname == NULL)
+            return kb;
+        }
 
       login = g_hash_table_lookup (map_loginname_login, accountname);
 
