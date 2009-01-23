@@ -761,11 +761,9 @@ init_openvasd (options, first_pass, stop_early, be_quiet)
 
 
   if ( stop_early == 0 ) {
-    char * dir;
+    if (store_init(arg_get_value(preferences, "cache_folder")) != 0)
+      store_init_sys(arg_get_value(preferences, "plugins_folder"));
 
-    dir = arg_get_value(preferences, "plugins_folder");
-
-    store_init_sys(arg_get_value(preferences, "plugins_folder"));
     plugins = plugins_init(preferences, be_quiet);
 
     if ( first_pass != 0 )

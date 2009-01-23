@@ -1,3 +1,34 @@
+2009-01-23  Jan-Oliver Wagner <jan-oliver.wagner@intevation.de>
+
+	Implement feature to allow to specify a specific
+	directory for the .desc cache files. Defaults
+	to /var/cache/openvas.
+	No write access should be allowed to /lib/openvas/plugins
+	eventually.
+	However, compatibility is kept with older versions of
+	openvasd.conf: In the absense of cache_folder definition
+	in openvasd.conf, the old style is applied.
+
+	It is highly recommended to specific "cache_folder"
+	in openvasd.conf and remove old cache ("plugins_folder"/.desc).
+
+	This change was derived from patches from Stjepan Gros.
+
+	* openvasd/preferences.c (preferences_new): Added "cache_folder"
+	with default.
+
+	* configure.in, openvas.tmpl.in: add handling of OPENVASD_CACHE.
+
+	* Makefile: Create configure cache dir during install
+
+	* configure: updated.
+
+2009-01-23  Jan-Oliver Wagner <jan-oliver.wagner@intevation.de>
+
+	* openvasd/openvasd.c (init_openvasd): First try "cache_folder"
+	preference for cache folder. Fall back to old
+	folder (plugins_folder/.desc).
+
 2009-01-22  Jan-Oliver Wagner <jan-oliver.wagner@intevation.de>
 
 	* openvasd/nasl_plugins.c (nasl_plugin_add, nasl_thread):

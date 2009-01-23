@@ -68,6 +68,7 @@ install-bin:
 	@test -d $(DESTDIR)${localstatedir}/run || $(INSTALL_DIR) -m 755 $(DESTDIR)${localstatedir}/run
 	@test -d $(DESTDIR)${includedir} || $(INSTALL_DIR) -m 755 $(DESTDIR)${includedir}
 	@test -d $(DESTDIR)${includedir}/openvas || $(INSTALL_DIR) -m 755 $(DESTDIR)${includedir}/openvas
+	@test -d $(DESTDIR)${OPENVASD_CACHE} || $(INSTALL_DIR) -m 755 $(DESTDIR)${OPENVASD_CACHE}
 	$(INSTALL) -m 755 openvas-mkcert-client $(DESTDIR)${bindir}/openvas-mkcert-client
 	$(INSTALL) -m 755 openvasd-config $(DESTDIR)${bindir}/openvasd-config
 	$(INSTALL) -m 755 ssl/openvas-mkrand $(DESTDIR)${bindir}/openvas-mkrand

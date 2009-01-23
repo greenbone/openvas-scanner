@@ -69,8 +69,13 @@ int preferences_new(char * name)
   
  fprintf(fd, "# Configuration file of the OpenVAS Security Scanner\n\n\n\n");
  fprintf(fd, "# Every line starting with a '#' is a comment\n\n");
+
  fprintf(fd, "# Path to the security checks folder : \n");
  fprintf(fd, "plugins_folder = %s\n\n", OPENVASD_PLUGINS);
+
+ fprintf(fd, "# Path to OpenVAS caching folder: \n");
+ fprintf(fd, "cache_folder = %s\n\n", OPENVASD_CACHE);
+
  fprintf(fd, "# Maximum number of simultaneous hosts tested : \n");
  fprintf(fd, "max_hosts = 30\n\n");
  fprintf(fd, "# Maximum number of simultaneous checks against each host tested : \n");
