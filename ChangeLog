@@ -1,5 +1,15 @@
 2009-01-23  Jan-Oliver Wagner <jan-oliver.wagner@intevation.de>
 
+	Removing unused and unneeded module "dirutils.c".
+
+	* openvasd/dirutils.c: Removed.
+
+	* openvasd/Makefile: Removed handling for dirutils.
+
+	* MANIFEST: Updated.
+
+2009-01-23  Jan-Oliver Wagner <jan-oliver.wagner@intevation.de>
+
 	Implement feature to allow to specify a specific
 	directory for the .desc cache files. Defaults
 	to /var/cache/openvas.
