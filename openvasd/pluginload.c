@@ -260,22 +260,6 @@ plugins_reload(preferences, plugins, be_quiet)
  return plugins_reload_from_dir(preferences, plugins, arg_get_value(preferences, "plugins_folder"), be_quiet);
 }
 
-struct arglist *
-plugins_reload_user(globals, preferences, plugins)
- struct arglist * globals;
- struct arglist * preferences;
- struct arglist * plugins;
-{
- char * home = user_home(globals);
- char * plugdir = emalloc(strlen(home) + strlen("plugins") + 2);
- struct arglist * ret;
- sprintf(plugdir, "%s/plugins", home);
- efree(&home);
- ret = plugins_reload_from_dir(preferences, plugins, plugdir, 1);
- efree(&plugdir);
- return ret;
-}
-
 void 
 plugin_set_socket(struct arglist * plugin, int soc)
 {

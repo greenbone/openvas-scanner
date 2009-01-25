@@ -419,8 +419,6 @@ if(preferences_benice(prefs))nice(10);
 	arg_set_value(globals, "rules", -1, rules);
    }
 
-   plugins = plugins_reload_user(globals, prefs, plugins);
-
    arg_set_value(globals, "plugins", -1, plugins);
 
    comm_send_md5_plugins(globals);

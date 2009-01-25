@@ -1,3 +1,15 @@
+2009-01-25  Jan-Oliver Wagner <jan-oliver.wagner@intevation.de>
+
+	* openvasd/openvasd.c (server_thread): Removed calling
+	of plugins_reload_user. Per-user plugins are not a feature
+	anymore.
+
+	* openvasd/pluginload.c (plugins_reload_user): Removed. This
+	function was a remainder from the plugin-upload feature which
+	has been removed.
+
+	* openvasd/pluginload.h: Removed proto accordingly.
+
 2009-01-23  Felix Wolfsteller <felix.wolfsteller@intevation.de>
 
 	When the knowledge base for a host is initialized, look up the "Default"
