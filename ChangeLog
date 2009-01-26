@@ -1,5 +1,12 @@
 2009-01-25  Jan-Oliver Wagner <jan-oliver.wagner@intevation.de>
 
+	* openvasd/pluginload.c (plugins_reload_from_dir): Instead
+	of homebrew "struct files", now uses glibs' GSList.
+	(struct files, MAXFILES, files_init, files_add, files_walk,
+	files_close): Removed.
+
+2009-01-25  Jan-Oliver Wagner <jan-oliver.wagner@intevation.de>
+
 	* openvasd/openvasd.c (server_thread): Removed calling
 	of plugins_reload_user. Per-user plugins are not a feature
 	anymore.

@@ -39,81 +39,6 @@
 
 static pl_class_t* plugin_classes = NULL;
 
-
-struct files {
-	char * fname;
-	struct files * next;
-	};
-	
-
-#define MAX_FILES 5731
-
-
-struct files ** files_init()
-{
- struct files ** ret;
- int i;
- srand(MAX_FILES); /* RATS: ignore */	
- ret = emalloc(sizeof(*ret) * (MAX_FILES + 1));
- for(i=0;i<MAX_FILES;i++)
- 	ret[i] = NULL;
- return ret;
-}
-
-void files_add(struct files ** files, char * fname)
-{
- struct files * f;
- int idx;
-
- f = emalloc(sizeof(*f));
- idx = rand() % MAX_FILES;
- f->fname = estrdup(fname);
- f->next = files[idx];
- files[idx] = f;
-}
-
-char * files_walk(struct files ** files, int * idx)
-{
- int i = *idx;
- struct files * myfile;
- static char ret[1024];
- 
- while(files[i] == NULL)
- {
-  i ++;
-  if(i >= MAX_FILES)break;
- }
- 
- if(files[i] == NULL)
-  return NULL;
-
- *idx = i;
- 
- myfile = files[i];
- files[i] = myfile->next;
- strncpy(ret, myfile->fname, sizeof(ret) - 1);
- ret[sizeof(ret) - 1] = '\0';
- 
-
- efree(&myfile->fname);
- efree(&myfile);
- return ret;
-}
-
-void files_close(struct files ** files)
-{
- int i;
- for(i=0;i<MAX_FILES;i++)
-  if(files[i])printf("Warning, forgot some files!!\n");
- 
- efree(&files);
- srand(time(NULL)); /* RATS: ignore */
-}
-
-
-
-
-
 /*
  * main function for loading all the
  * plugins that are in folder <folder>
@@ -160,9 +85,8 @@ plugins_reload_from_dir(preferences, plugins, folder, be_quiet)
 {
   DIR * dir;
   struct dirent * dp;
-  struct files ** files;
+  GSList * files = NULL, * f;
   char * name;
-  int idx = 0;
   int n = 0, total = 0, num_files = 0;
 
   init_plugin_classes(preferences);
@@ -188,12 +112,11 @@ plugins_reload_from_dir(preferences, plugins, folder, be_quiet)
     }
  
  
-  files = files_init();
   while( (dp = readdir(dir)) != NULL )
   {
    if(dp->d_name[0] != '.')
 	{
-   	files_add(files, dp->d_name);
+   	files = g_slist_prepend(files, g_strdup(dp->d_name));
 	num_files ++;
 	}
   }
@@ -209,7 +132,9 @@ plugins_reload_from_dir(preferences, plugins, folder, be_quiet)
 	printf("Loading the OpenVAS plugins...");
 	fflush(stdout);
 	}
-  while((name = files_walk(files, &idx)) != NULL) {
+  f = files;
+  while (f != NULL) {
+    name = f->data;
 	int len = strlen(name);
 	pl_class_t * cl_ptr = plugin_classes;
 	
@@ -239,14 +164,15 @@ plugins_reload_from_dir(preferences, plugins, folder, be_quiet)
 	}
 	cl_ptr = cl_ptr->pl_next;
       }
+      g_free(f->data);
+      f = g_slist_next(f);
     }
     
-  files_close(files);  
+  g_slist_free(files);  
 
   if ( be_quiet == 0 )
 	  printf("\rAll plugins loaded                                   \n");
    
- 
   return plugins;
 }
 
