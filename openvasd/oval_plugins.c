@@ -252,6 +252,8 @@ struct arglist * oval_plugin_add(char * folder, char * name,
     plug_set_category(args, ACT_END);
     plug_set_family(args, "OVAL definitions", NULL);
 
+    plug_set_path(args, g_build_filename(folder, name, NULL));
+
     plug_set_sign_key_ids(args, sign_fprs);
 
     store_plugin(args, name);
