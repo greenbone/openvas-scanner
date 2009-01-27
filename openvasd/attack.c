@@ -355,15 +355,45 @@ init_host_kb (struct arglist* globals, char* hostname, gboolean* new_kb)
       if (login == NULL)
         return kb;
 
+      // Get the translation table (remotefilepath -> localfilepath)
+      harglst* transl = arg_get_value(globals, "files_translation");
+      if (transl == NULL)
+        return kb;
+      
       // Fill knowledge base with host specific login information
       if (login->username)
         kb_item_set_str (kb, "Secret/SSH/login", login->username);
-      if (login->public_key_path)
-        kb_item_set_str (kb, "Secret/SSH/publickey", login->public_key_path);
-      if (login->private_key_path)
-        kb_item_set_str (kb, "Secret/SSH/privatekey", login->private_key_path);
+      
       if (login->ssh_key_passphrase)
         kb_item_set_str (kb, "Secret/SSH/passphrase", login->ssh_key_passphrase);
+      
+      // For the key-files: translate the path and set file content to kb
+      if (login->public_key_path)
+        {
+          const char* translated_path = harg_get_string(transl, 
+                                                        login->public_key_path);
+          gchar* contents;
+          GError* error = NULL;
+          if (translated_path && 
+              g_file_get_contents (translated_path, &contents, NULL, &error))
+            {
+              kb_item_set_str (kb, "Secret/SSH/publickey", contents);
+            }
+          if (error != NULL) g_error_free(error);
+        }
+      if (login->private_key_path)
+        {
+          const char* translated_path = harg_get_string(transl, 
+                                                        login->private_key_path);
+          gchar* contents;
+          GError* error = NULL;
+          if (translated_path && 
+              g_file_get_contents (translated_path, &contents, NULL, &error))
+            {
+              kb_item_set_str (kb, "Secret/SSH/privatekey", contents);
+            }
+          if (error != NULL) g_error_free(error);
+        }
     }
   // else no .logins or .host_logins file found -> nothing to do
 

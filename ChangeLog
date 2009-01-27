@@ -1,3 +1,11 @@
+2009-01-27  Felix Wolfsteller <felix.wolfsteller@intevation.de>
+
+	Fixed SSH key file insertion into per-target knowledge- base.
+	Scripts require the actually file content, not only the path.
+
+	* openvasd/attack.c (init_host_kb): Does not set filename but file-
+	contents in the knowledge base.
+
 2009-01-27  Michael Wiegand <michael.wiegand@intevation.de>
 
 	* openvasd/oval_plugins.c (oval_plugin_add): Add missing path to cache
