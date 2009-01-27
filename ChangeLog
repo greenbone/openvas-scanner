@@ -1,3 +1,17 @@
+2009-01-27  Jan-Oliver Wagner <jan-oliver.wagner@intevation.de>
+
+	Introduce a new collection method for NVTs in the
+	plugins folder. Now, it is recursed into subdirectories.
+	As a side effect, the counting of NVTs is ow fixed: The correct
+	total number of NVTs is shown during cache-building.
+
+	* openvasd/pluginload.c (collect_nvts): Collects all files
+	in a directory and recurses into subdirectories.
+	(plugins_reload_from_dir): Use collect_nvts() instead
+	of doing it on its own with glibc API.
+	Also use g_str_has_suffix() for determining the plugin type
+	instead of doing it on its own with glibc string commands.
+
 2009-01-27  Felix Wolfsteller <felix.wolfsteller@intevation.de>
 
 	Fixed SSH key file insertion into per-target knowledge- base.

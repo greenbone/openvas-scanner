@@ -75,6 +75,55 @@ init_plugin_classes(struct arglist * preferences)
     }
 }
 
+/**
+ * @brief Collects all NVT files in a directory and recurses into subdirs.
+ *
+ * @param folder The main directory from where to descend and collect.
+ *
+ * @param subdir A subdirectory to consider for the collection: "folder/subdir"
+ *               is thus the effective directory to descend from. "subdir"
+ *               can be "" to make "folder" the effective start.
+ *
+ * @param files  A list that is extended with all found files. If it
+ *               is NULL, a new list is created automatically.
+ *
+ * @return Parameter "files", extended with all the NVT files found in
+ *         "folder" and its subdirectories. Not added are directory names.
+ *         NVT files are identified by the defined filename suffixes.
+ */
+GSList * collect_nvts(const char * folder, const char * subdir, GSList * files) {
+  GDir * dir;
+  const gchar * fname, * path;
+
+  if (folder == NULL) return files;
+
+  dir = g_dir_open(folder, 0, NULL);
+  if (dir == NULL) return files;
+
+  fname = g_dir_read_name(dir);
+  while (fname) {
+    path = g_build_filename(folder, fname, NULL);
+    if (g_file_test(path, G_FILE_TEST_IS_DIR ))
+      files = collect_nvts(g_build_filename(folder, fname, NULL),
+                           g_build_filename(folder, subdir, fname, NULL),
+                           files);
+    else {
+      pl_class_t * cl_ptr = plugin_classes;
+      while(cl_ptr) {
+        if (g_str_has_suffix(fname, cl_ptr->extension)) {
+          files = g_slist_prepend(files, g_build_filename(subdir, fname, NULL));
+          break;
+        }
+        cl_ptr = cl_ptr->pl_next;
+      }
+    }
+    fname = g_dir_read_name(dir);
+  }
+
+  g_dir_close(dir);
+  return files;
+}
+
 
 static struct arglist * 
 plugins_reload_from_dir(preferences, plugins, folder, be_quiet)
@@ -83,8 +132,6 @@ plugins_reload_from_dir(preferences, plugins, folder, be_quiet)
  char * folder;
  int be_quiet;
 {
-  DIR * dir;
-  struct dirent * dp;
   GSList * files = NULL, * f;
   char * name;
   int n = 0, total = 0, num_files = 0;
@@ -101,28 +148,8 @@ plugins_reload_from_dir(preferences, plugins, folder, be_quiet)
       return plugins;
     }
 
-  if((dir = opendir(folder)) == NULL)
-    {
-      printf("Couldn't open the directory called \"%s\" - %s\nCheck %s\n", 
-      		   folder,
-		   strerror(errno),
-      		   (char *)arg_get_value(preferences, "config_file"));
-		   
-      return plugins;
-    }
- 
- 
-  while( (dp = readdir(dir)) != NULL )
-  {
-   if(dp->d_name[0] != '.')
-	{
-   	files = g_slist_prepend(files, g_strdup(dp->d_name));
-	num_files ++;
-	}
-  }
-  
-  rewinddir(dir);
-  closedir(dir);
+  files = collect_nvts(folder, "", files);
+  num_files = g_slist_length(files);
   
   /*
    * Add the plugins
@@ -135,9 +162,7 @@ plugins_reload_from_dir(preferences, plugins, folder, be_quiet)
   f = files;
   while (f != NULL) {
     name = f->data;
-	int len = strlen(name);
 	pl_class_t * cl_ptr = plugin_classes;
-	
 
 	n ++;
 	total ++;
@@ -152,8 +177,7 @@ plugins_reload_from_dir(preferences, plugins, folder, be_quiet)
 	if(preferences_log_plugins_at_load(preferences))
 	 log_write("Loading %s\n", name);
 	while(cl_ptr) {
-         int elen = strlen(cl_ptr->extension);
-	 if((len > elen) && !strcmp(cl_ptr->extension, name+len-elen)) {
+         if (g_str_has_suffix(name, cl_ptr->extension)) {
 	 	struct arglist * pl = (*cl_ptr->pl_add)(folder, name,plugins,
 							preferences);
    		if(pl) {
@@ -172,7 +196,7 @@ plugins_reload_from_dir(preferences, plugins, folder, be_quiet)
 
   if ( be_quiet == 0 )
 	  printf("\rAll plugins loaded                                   \n");
-   
+
   return plugins;
 }
 
