@@ -1,5 +1,10 @@
 2009-01-27  Jan-Oliver Wagner <jan-oliver.wagner@intevation.de>
 
+	* openvasd/pluginload.c (collect_nvts): Fixed a bug: Now
+	subdir paths are correctly assembled and stored.
+
+2009-01-27  Jan-Oliver Wagner <jan-oliver.wagner@intevation.de>
+
 	Introduce a new collection method for NVTs in the
 	plugins folder. Now, it is recursed into subdirectories.
 	As a side effect, the counting of NVTs is ow fixed: The correct

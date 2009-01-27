@@ -105,7 +105,7 @@ GSList * collect_nvts(const char * folder, const char * subdir, GSList * files) 
     path = g_build_filename(folder, fname, NULL);
     if (g_file_test(path, G_FILE_TEST_IS_DIR ))
       files = collect_nvts(g_build_filename(folder, fname, NULL),
-                           g_build_filename(folder, subdir, fname, NULL),
+                           g_build_filename(subdir, fname, NULL),
                            files);
     else {
       pl_class_t * cl_ptr = plugin_classes;
