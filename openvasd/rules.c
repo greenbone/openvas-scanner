@@ -34,14 +34,16 @@
 #include "utils.h"
 #include "rules.h"
 #include "log.h"
-static char * rules_get_fname(struct arglist *);
 
-/*
- * Returns the name of the rules file
+/**
+ * @brief Returns the name of the rules file.
+ * 
+ * @param preferences Preference- arglist (where rules are hooked in).
+ * 
+ * @return Filename of rules file.
  */
 static char *
-rules_get_fname(preferences)
-  struct arglist * preferences;
+rules_get_fname (struct arglist* preferences)
 {
   char * t;
   if((t=arg_get_value(preferences, "rules")))return(t);
@@ -342,41 +344,46 @@ rules_dump(struct openvas_rules * rules)
 }
 #endif
 
-int get_host_rules(struct openvas_rules * rules, struct in_addr addr, int netmask)
+int
+get_host_rules (struct openvas_rules * rules, struct in_addr addr,
+                int netmask)
 {
   struct in_addr backup;
-  
-  if(!rules)
-  {
-     fprintf(stderr, "???? no rules - this is likely to be a bug\n");
-     fprintf(stderr, "Please report in to bugs@cvs.nessus.org\n");
-     return RULES_ACCEPT;
-  }
-  if(!rules->next)return rules->def;
+
+  if (!rules)
+    {
+      fprintf(stderr, "???? no rules - this is likely to be a bug\n");
+      fprintf(stderr, "Please report at bugs.openvas.org\n");
+      return RULES_ACCEPT;
+    }
+  if (!rules->next)
+    return rules->def;
+
   backup.s_addr = addr.s_addr;
-  if(rules->mask > 0)
-  {
-  addr.s_addr = ntohl(addr.s_addr) >> (32 - rules->mask);
-  addr.s_addr = htonl(addr.s_addr << (32 - rules->mask));
-  }
+  if (rules->mask > 0)
+    {
+      addr.s_addr = ntohl(addr.s_addr) >> (32 - rules->mask);
+      addr.s_addr = htonl(addr.s_addr << (32 - rules->mask));
+    }
   else addr.s_addr = 0;
 
   if(rules->not)
-   {
-   if(addr.s_addr != rules->ip.s_addr)return(rules->rule);
-   }
+    {
+      if (addr.s_addr != rules->ip.s_addr)
+        return(rules->rule);
+    }
   else
-  {
-   if(addr.s_addr == rules->ip.s_addr){
-	return(rules->rule);
-   }
-  }
-  return get_host_rules(rules->next, backup, netmask);
+    {
+      if (addr.s_addr == rules->ip.s_addr)
+        {
+          return(rules->rule);
+        }
+    }
+  return get_host_rules (rules->next, backup, netmask);
 }
 
 void
-rules_free(rules)
- struct openvas_rules * rules;
+rules_free (struct openvas_rules* rules)
 {
  while(rules != NULL)
  {
