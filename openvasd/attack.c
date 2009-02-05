@@ -100,8 +100,19 @@ fork_sleep(int n)
  
 
 /**
- * Init. an arglist which can be used by 
- * the plugins from an hostname and its ip	
+ * @brief Inits an arglist which can be used by the plugins.
+ * 
+ * The arglist will have following keys and (type, value):
+ *  - FQDN (string, Fully qualified domain name, e.g. host.domain.net)
+ *  - NAME (string, The hostname parameter)
+ *  - MAC  (string, The mac parameter if non-NULL)
+ *  - IP   (*in_adrr, The ip parameter)
+ * 
+ * @param mac      MAC- adress of host or NULL.
+ * @param hostname Hostname to be set.
+ * @param ip       in_adress struct to be set.
+ * 
+ * @return A 'hostinfo' arglist.
  */
 static struct arglist * 
 attack_init_hostinfos (char * mac, char * hostname, struct in_addr * ip)
@@ -281,30 +292,116 @@ launch_plugin (struct arglist * globals, plugins_scheduler_t * sched,
   return 0;
 }
 
+
+/**
+ * @brief Insert ssh login information for one host in its kb.
+ * 
+ * If a map hosts --> sshlogins is defined, searches for an entry of the
+ * hostname. If none is found, falls back to the Default definition. If that
+ * fails, too, nothing is done.
+ * 
+ * @param kb       hostname's knowledge base to insert SSH credentials to.
+ * @param globals  Global arglist where the mapping can be found.
+ * @param hostname Name of the host of interest.
+ */
+static void
+fill_host_kb_ssh_credentials (struct kb_item** kb, struct arglist* globals,
+                              char* hostname)
+{
+  GHashTable* map_host_login_names = NULL;
+  GHashTable* map_loginname_login  = NULL;
+  char* accountname        = NULL;
+  openvas_ssh_login* login = NULL;
+  
+  map_host_login_names = arg_get_value (globals, "MAP_HOST_SSHLOGIN_NAME");
+  map_loginname_login  = arg_get_value (globals, "MAP_NAME_SSHLOGIN");
+  
+  if (map_host_login_names == NULL || map_loginname_login == NULL)
+    return;
+
+  // Look up the user assigned name for the login assigned to this host.
+  accountname = g_hash_table_lookup (map_host_login_names, hostname);
+
+  // No login- account name for this host found? Seach if any pattern matches.
+  // TODO
+  
+  // No login- account name for this host found? Try "Default".
+  if (accountname == NULL)
+    {
+      accountname = g_hash_table_lookup (map_host_login_names, "Default");
+      // If none under 'Default' either, done.
+      if (accountname == NULL)
+        return;
+    }
+
+  login = g_hash_table_lookup (map_loginname_login, accountname);
+
+  // No login information for this login-account found? Strange, but so be it.
+  if (login == NULL)
+    return;
+
+  // Get the translation table (remotefilepath -> localfilepath)
+  harglst* transl = arg_get_value(globals, "files_translation");
+  if (transl == NULL)
+    return;
+
+  // Fill knowledge base with host specific login information
+  if (login->username)
+    kb_item_set_str (kb, "Secret/SSH/login", login->username);
+
+  if (login->ssh_key_passphrase)
+    kb_item_set_str (kb, "Secret/SSH/passphrase", login->ssh_key_passphrase);
+
+  // For the key-files: translate the path and set file content to kb
+  if (login->public_key_path)
+    {
+      const char* translated_path = harg_get_string(transl, 
+                                                    login->public_key_path);
+      gchar* contents;
+      GError* error = NULL;
+      if (translated_path && 
+          g_file_get_contents (translated_path, &contents, NULL, &error))
+        {
+          kb_item_set_str (kb, "Secret/SSH/publickey", contents);
+        }
+      if (error != NULL) g_error_free(error);
+    }
+  if (login->private_key_path)
+    {
+      const char* translated_path = harg_get_string(transl, 
+                                                    login->private_key_path);
+      gchar* contents;
+      GError* error = NULL;
+      if (translated_path && 
+          g_file_get_contents (translated_path, &contents, NULL, &error))
+        {
+          kb_item_set_str (kb, "Secret/SSH/privatekey", contents);
+        }
+      if (error != NULL) g_error_free(error);
+    }
+}
+
 // TODO eventually to be moved to libopenvas kb.c 
 /**
  * @brief Inits or loads the knowledge base for a single host.
  * 
  * Fills the knowledge base with host-specific login information for local
- * checks. If no specific login information were found, uses 'Default' if it 
- * exists.
+ * checks if defined.
  * 
  * @param globals     Global preference arglist.
  * @param hostname    Name of the host.
  * @param new_kb[out] TRUE if the kb is new and shall be saved.
  * 
  * @return A knowledge base.
+ * 
+ * @see fill_host_kb_ssh_credentials
  */
 static struct kb_item**
 init_host_kb (struct arglist* globals, char* hostname, gboolean* new_kb)
 {
   struct kb_item** kb;
   (*new_kb) = FALSE;
-  GHashTable* map_host_login_names = NULL;
-  GHashTable* map_loginname_login  = NULL;
-  char* accountname        = NULL;
-  openvas_ssh_login* login = NULL;
-  
+
   // Check if kb should be saved.
   if (save_kb (globals))
     {
@@ -332,70 +429,7 @@ init_host_kb (struct arglist* globals, char* hostname, gboolean* new_kb)
     }
 
   // Add local check (SSH)- related knowledge base items
-  map_host_login_names = arg_get_value (globals, "MAP_HOST_SSHLOGIN_NAME");
-  map_loginname_login  = arg_get_value (globals, "MAP_NAME_SSHLOGIN");
-  
-  if (map_host_login_names != NULL && map_loginname_login != NULL)
-    {
-      // Look up the user assigned name for this login
-      accountname = g_hash_table_lookup (map_host_login_names, hostname);
-
-      // No login- account name for this host found? Try "Default".
-      if (accountname == NULL)
-        {
-          accountname = g_hash_table_lookup (map_host_login_names, "Default");
-          // If none under 'Default' either, done.
-          if (accountname == NULL)
-            return kb;
-        }
-
-      login = g_hash_table_lookup (map_loginname_login, accountname);
-
-      // No login information for this login-account found? Strange, but done.
-      if (login == NULL)
-        return kb;
-
-      // Get the translation table (remotefilepath -> localfilepath)
-      harglst* transl = arg_get_value(globals, "files_translation");
-      if (transl == NULL)
-        return kb;
-      
-      // Fill knowledge base with host specific login information
-      if (login->username)
-        kb_item_set_str (kb, "Secret/SSH/login", login->username);
-      
-      if (login->ssh_key_passphrase)
-        kb_item_set_str (kb, "Secret/SSH/passphrase", login->ssh_key_passphrase);
-      
-      // For the key-files: translate the path and set file content to kb
-      if (login->public_key_path)
-        {
-          const char* translated_path = harg_get_string(transl, 
-                                                        login->public_key_path);
-          gchar* contents;
-          GError* error = NULL;
-          if (translated_path && 
-              g_file_get_contents (translated_path, &contents, NULL, &error))
-            {
-              kb_item_set_str (kb, "Secret/SSH/publickey", contents);
-            }
-          if (error != NULL) g_error_free(error);
-        }
-      if (login->private_key_path)
-        {
-          const char* translated_path = harg_get_string(transl, 
-                                                        login->private_key_path);
-          gchar* contents;
-          GError* error = NULL;
-          if (translated_path && 
-              g_file_get_contents (translated_path, &contents, NULL, &error))
-            {
-              kb_item_set_str (kb, "Secret/SSH/privatekey", contents);
-            }
-          if (error != NULL) g_error_free(error);
-        }
-    }
-  // else no .logins or .host_logins file found -> nothing to do
+  fill_host_kb_ssh_credentials (kb, globals, hostname);
 
   return kb;
 }
@@ -407,9 +441,7 @@ static void
 attack_host (struct arglist * globals, struct arglist * hostinfos, 
              char * hostname, plugins_scheduler_t sched) 
 {
-  /*
-   * Used for the status
-   */
+  /* Used for the status */
   int num_plugs = 0;
   int cur_plug = 1;
   
@@ -543,14 +575,20 @@ attack_start (struct attack_start_args * args)
   arg_add_value(globals, "confirm", ARG_INT, sizeof(int), (void*)1);
 
   soc = thread_socket;
-  hostinfos = attack_init_hostinfos(mac, hostname,hostip);
+  hostinfos = attack_init_hostinfos (mac, hostname, hostip);
   if(mac)
     hostname = mac;
 
   plugins_set_socket(plugs, soc);
   ntp_1x_timestamp_host_scan_starts(globals, hostname);
-  attack_host(globals, hostinfos, hostname, sched);
-  if(preferences_ntp_show_end(preferences))ntp_11_show_end(globals, hostname, 1);
+  
+  // Start scan
+  attack_host (globals, hostinfos, hostname, sched);
+  
+  // Calculate duration, clean up
+  if(preferences_ntp_show_end(preferences))
+    ntp_11_show_end(globals, hostname, 1);
+  
   ntp_1x_timestamp_host_scan_ends(globals, hostname);
   gettimeofday(&now, NULL);
   if(now.tv_usec < then.tv_usec)

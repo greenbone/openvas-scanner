@@ -1,3 +1,19 @@
+2009-02-05  Felix Wolfsteller <felix.wolfsteller@intevation.de>
+
+	Refactoring and documentation in attack.c. Minor formatting changes.
+	In preparation of pattern definitions for hostname --> sshlogin mapping.
+	(CR #20, http://www.openvas.org/openvas-cr-20.html)
+	
+	* openvasd/attack.c (attack_init_hostinfos): Documented.
+	
+	* openvasd/attack.c (fill_host_kb_ssh_credentials): New, extracted from
+	init_host_kb.
+	
+	* openvasd/attack.c (init_host_kb): Adjusted to call new method
+	fill_host_kb_ssh_credentials.
+	
+	* openvasd/attack.c (attack_host): Minor formatting changes.
+	
 2009-02-02  Felix Wolfsteller <felix.wolfsteller@intevation.de>
 
 	Cosmetics in the rules module.
