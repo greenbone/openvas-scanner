@@ -1,5 +1,19 @@
 2009-02-05  Felix Wolfsteller <felix.wolfsteller@intevation.de>
 
+	Basic support for glob-style pattern definitions within the 
+	hostname --> sshlogin mapping.
+	(CR #20, http://www.openvas.org/openvas-cr-20.html)
+	
+	* openvasd/attack.c (is_pattern): New, copied from clients
+	nvt_pref_sshlogin, TRUE if string contains '*' or '?'.
+	
+	* openvasd/attack.c (pattern_matches): New, GHashTable- find- predicate.
+	
+	* openvasd/attack.c (fill_host_kb_ssh_credentials): Now tries if any
+	pattern matches the hostname before falling back to Default login.
+
+2009-02-05  Felix Wolfsteller <felix.wolfsteller@intevation.de>
+
 	Refactoring and documentation in attack.c. Minor formatting changes.
 	In preparation of pattern definitions for hostname --> sshlogin mapping.
 	(CR #20, http://www.openvas.org/openvas-cr-20.html)

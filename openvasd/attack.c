@@ -292,12 +292,52 @@ launch_plugin (struct arglist * globals, plugins_scheduler_t * sched,
   return 0;
 }
 
+/**
+ * @brief Returns true if str contains at least one '*' or '?'.
+ * 
+ * @param str String that is understood to be a hostname or pattern.
+ * 
+ * @return TRUE if str is understood to be a pattern (contains at least one '?'
+ *         or '*').
+ */
+static gboolean
+is_pattern (const char* str)
+{
+  // NOTE This function was copied from openvas-client/nvt_pref_sshlogin.c
+  return ( str != NULL
+           &&  (strchr (str, '*') != NULL || strchr (str, '?') != NULL)
+         );
+}
+
+/**
+ * @brief Predicate for a g_hash_table_find, true if pattern [key] matches
+ * @brief hostname [userdata].
+ * 
+ * @param key_pattern Key of a hashtable (callback), interpreted to be a pattern
+ *                    to match hostname against.
+ * @param value_login Value of a hashtable (callback).
+ * @param hostname    Userdata, hostname to match pattern against.
+ * 
+ * @return TRUE if key_pattern (glob-style, ? and * allowed) matches hostname.
+ */
+static gboolean
+pattern_matches (char* key_pattern, char* value_login, char* hostname)
+{
+  if (is_pattern (key_pattern) == FALSE)
+    return FALSE;
+
+  if (g_pattern_match_simple (key_pattern, hostname) == TRUE)
+    return TRUE;
+
+  return FALSE;
+}
 
 /**
  * @brief Insert ssh login information for one host in its kb.
  * 
  * If a map hosts --> sshlogins is defined, searches for an entry of the
- * hostname. If none is found, falls back to the Default definition. If that
+ * hostname. If none is found, tries if any user-defined pattern matches.
+ * If no pattern matches, falls back to the Default definition. If that
  * fails, too, nothing is done.
  * 
  * @param kb       hostname's knowledge base to insert SSH credentials to.
@@ -323,9 +363,13 @@ fill_host_kb_ssh_credentials (struct kb_item** kb, struct arglist* globals,
   accountname = g_hash_table_lookup (map_host_login_names, hostname);
 
   // No login- account name for this host found? Seach if any pattern matches.
-  // TODO
+  if (accountname == NULL)
+    {
+      accountname = g_hash_table_find (map_host_login_names,
+                                       (GHRFunc) pattern_matches, hostname);
+    }
   
-  // No login- account name for this host found? Try "Default".
+  // No pattern matching this host found? Try "Default".
   if (accountname == NULL)
     {
       accountname = g_hash_table_lookup (map_host_login_names, "Default");
