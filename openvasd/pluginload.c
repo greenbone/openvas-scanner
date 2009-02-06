@@ -36,6 +36,7 @@
 #include "log.h"
 #include "preferences.h"
 #include "users.h"
+#include "nasl.h"
 
 static pl_class_t* plugin_classes = NULL;
 
@@ -135,6 +136,10 @@ plugins_reload_from_dir(preferences, plugins, folder, be_quiet)
   GSList * files = NULL, * f;
   char * name;
   int n = 0, total = 0, num_files = 0;
+
+  add_nasl_inc_dir(""); // for absolute and relative paths
+  // TODO: split up the string using ":" as separator and add all elements
+  add_nasl_inc_dir(arg_get_value(preferences, "include_folders"));
 
   init_plugin_classes(preferences);
 

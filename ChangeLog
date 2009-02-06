@@ -1,3 +1,13 @@
+2009-02-06  Jan-Oliver Wagner <jan-oliver.wagner@intevation.de>
+
+	* openvasd/preferences.c (preferences_new): Added default for
+	config parameter "include_folders". It is set
+	to the plugins_folder to be compatible by default
+	with older version of openvasd.
+
+	* openvasd/pluginload.c: Added include for nasl.h.
+	(plugins_reload_from_dir): Initialize include paths.
+
 2009-02-05  Felix Wolfsteller <felix.wolfsteller@intevation.de>
 
 	Basic support for glob-style pattern definitions within the 

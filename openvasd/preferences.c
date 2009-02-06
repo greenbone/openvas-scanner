@@ -76,6 +76,11 @@ int preferences_new(char * name)
  fprintf(fd, "# Path to OpenVAS caching folder: \n");
  fprintf(fd, "cache_folder = %s\n\n", OPENVASD_CACHE);
 
+ fprintf(fd, "# Path to OpenVAS include directories: \n");
+ fprintf(fd, "# (multiple entries are separated with colon ':')\n");
+ // Default value is the same directory as the root for  the NVTs
+ fprintf(fd, "include_folders = %s\n\n", OPENVASD_PLUGINS);
+
  fprintf(fd, "# Maximum number of simultaneous hosts tested : \n");
  fprintf(fd, "max_hosts = 30\n\n");
  fprintf(fd, "# Maximum number of simultaneous checks against each host tested : \n");
