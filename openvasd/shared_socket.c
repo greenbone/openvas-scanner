@@ -32,6 +32,14 @@
 #include "utils.h"
 #include "log.h"
 
+/**
+ * @brief Maximum number of shared sockets.
+ */
+#define MAX_SHARED_SOCKETS 16
+
+/**
+ * Shared socket struct.
+ */
 struct shared_fd {
 	nthread_t current_user;
 	nthread_t creator;
@@ -40,13 +48,18 @@ struct shared_fd {
 	char * name;
 	};
 
-
-#define MAX_SHARED_SOCKETS 16
-
+/**
+ * @brief Static array of shared sockets.
+ */
 static struct shared_fd shared_fd[MAX_SHARED_SOCKETS];
 
-/* Remove a socket from the shared_fd table */
-static int openvasd_shared_socket_close(int idx)
+/**
+ * @brief Remove a socket from the shared_fd table
+ * 
+ * @return -1 if socket index out of bounds, 0 otherwise.
+ */
+static int
+openvasd_shared_socket_close (int idx)
 {
  if ( idx < 0 || idx >= MAX_SHARED_SOCKETS )
 	return -1;
@@ -57,7 +70,11 @@ static int openvasd_shared_socket_close(int idx)
  return 0;
 }
 
-static int openvasd_shared_socket_register ( int soc, nthread_t pid,  char * buf )
+/**
+ * @return 0 in case of success, -1 in case of error (then writes log message).
+ */
+static int
+openvasd_shared_socket_register ( int soc, nthread_t pid,  char * buf )
 {
  int fd = 0;
  int i;
@@ -112,49 +129,51 @@ static int openvasd_shared_socket_register ( int soc, nthread_t pid,  char * buf
  return 0;
 }
 
-static int openvasd_shared_socket_acquire( int soc, nthread_t pid, char * buf )
+static int
+openvasd_shared_socket_acquire (int soc, nthread_t pid, char * buf)
 {
- int i;
- for ( i = 0 ; i < MAX_SHARED_SOCKETS ; i ++ )
- {
-  if ( shared_fd[i].name != NULL && strcmp(shared_fd[i].name, buf) == 0 )
-	{
-	 if ( shared_fd[i].current_user != 0 )
-		{
-	         log_write("shared_socket: %s is busy (locked by %d)\n", buf, shared_fd[i].current_user);
-		 /* Send a SOCKET_BUSY message */
-		 internal_send(soc, NULL, INTERNAL_COMM_MSG_SHARED_SOCKET|INTERNAL_COMM_SHARED_SOCKET_BUSY);
-	 	 return 0;
-		}
-	  else
-		{
-		 if ( is_socket_connected(shared_fd[i].fd) == 0 )
-		  {
-	            log_write("shared_socket: socket %s lost connection to its peer - destroying this entry\n", buf);
-		    openvasd_shared_socket_close(i);
- 		    internal_send(soc, NULL, INTERNAL_COMM_MSG_SHARED_SOCKET|INTERNAL_COMM_SHARED_SOCKET_ERROR);
-		    return 0; /* Not really an error in itself */
-		  }
-                 else
-                  {
-	           log_write("shared_socket: %s now locked by %d\n", buf, pid);
-		   shared_fd[i].current_user = pid;
-		   shared_fd[i].lock_time    = time(NULL);
-		   /* Send the socket itself */
-		   internal_send(soc, NULL, INTERNAL_COMM_MSG_SHARED_SOCKET|INTERNAL_COMM_SHARED_SOCKET_DORECVMSG);
-	 	   send_fd(soc, shared_fd[i].fd);
-		   return 0;
-		  }
-		}
-	}
- }
+  int i;
+  for ( i = 0 ; i < MAX_SHARED_SOCKETS ; i ++ )
+    {
+      if ( shared_fd[i].name != NULL && strcmp(shared_fd[i].name, buf) == 0 )
+        {
+          if ( shared_fd[i].current_user != 0 )
+            {
+              log_write("shared_socket: %s is busy (locked by %d)\n", buf, shared_fd[i].current_user);
+              /* Send a SOCKET_BUSY message */
+              internal_send(soc, NULL, INTERNAL_COMM_MSG_SHARED_SOCKET|INTERNAL_COMM_SHARED_SOCKET_BUSY);
+              return 0;
+            }
+          else
+            {
+              if ( is_socket_connected(shared_fd[i].fd) == 0 )
+                {
+                  log_write("shared_socket: socket %s lost connection to its peer - destroying this entry\n", buf);
+                  openvasd_shared_socket_close(i);
+                  internal_send(soc, NULL, INTERNAL_COMM_MSG_SHARED_SOCKET|INTERNAL_COMM_SHARED_SOCKET_ERROR);
+                  return 0; /* Not really an error in itself */
+                }
+              else
+                {
+                  log_write("shared_socket: %s now locked by %d\n", buf, pid);
+                  shared_fd[i].current_user = pid;
+                  shared_fd[i].lock_time    = time(NULL);
+                  /* Send the socket itself */
+                  internal_send(soc, NULL, INTERNAL_COMM_MSG_SHARED_SOCKET|INTERNAL_COMM_SHARED_SOCKET_DORECVMSG);
+                  send_fd(soc, shared_fd[i].fd);
+                  return 0;
+                }
+            }
+        }
+    }
 
  internal_send(soc, NULL, INTERNAL_COMM_MSG_SHARED_SOCKET|INTERNAL_COMM_SHARED_SOCKET_ERROR);
  log_write("shared_socket: %s is unknown\n", buf);
  return -1;
 }
 
-static int openvasd_shared_socket_release( int soc, nthread_t pid, char * buf )
+static int
+openvasd_shared_socket_release (int soc, nthread_t pid, char * buf)
 {
  int i;
  for ( i = 0; i < MAX_SHARED_SOCKETS ; i ++ )
@@ -178,11 +197,12 @@ static int openvasd_shared_socket_release( int soc, nthread_t pid, char * buf )
 }
 
 
-
-
-
-
-static int openvasd_shared_socket_destroy( int soc, nthread_t pid, char * buf )
+/**
+ * @return 0 if socked was closed by this function, -1 otherwise (e.g. socket
+ *         unknown).
+ */
+static int
+openvasd_shared_socket_destroy ( int soc, nthread_t pid, char * buf )
 {
  int i;
  for ( i = 0; i < MAX_SHARED_SOCKETS ; i ++ )
@@ -202,15 +222,22 @@ static int openvasd_shared_socket_destroy( int soc, nthread_t pid, char * buf )
  return -1;
 }
 
-
-int shared_socket_init()
+/**
+ * @return Always 0.
+ */
+int
+shared_socket_init ()
 {
  bzero(&shared_fd, sizeof( shared_fd ) );
  return 0;
 }
 
 
-int shared_socket_close()
+/**
+ * @return Always 0.
+ */
+int
+shared_socket_close ()
 {
  int i;
  for ( i = 0; i < MAX_SHARED_SOCKETS ; i ++ )
@@ -226,8 +253,11 @@ int shared_socket_close()
  return 0;
 }
 
-
-int shared_socket_cleanup_process( nthread_t process )
+/**
+ * @return Always 0.
+ */
+int
+shared_socket_cleanup_process ( nthread_t process )
 {
  int i;
  for ( i = 0; i < MAX_SHARED_SOCKETS ; i ++ )
@@ -242,7 +272,17 @@ int shared_socket_cleanup_process( nthread_t process )
  return 0;
 }
 
-int shared_socket_process( int soc, nthread_t pid, char * buf, int message )
+/**
+ * @param message One of INTERNAL_COMM_SHARED_SOCKET_REGISTER,
+ *                INTERNAL_COMM_SHARED_SOCKET_ACQUIRE,
+ *                INTERNAL_COMM_SHARED_SOCKET_RELEASE or
+ *                INTERNAL_COMM_SHARED_SOCKET_RELEASE
+ *                (defined in libopenvas/plugutils.h).
+ * 
+ * @return -1 if message is unknown.
+ */
+int
+shared_socket_process ( int soc, nthread_t pid, char * buf, int message )
 {
  if ( message & INTERNAL_COMM_SHARED_SOCKET_REGISTER )
 	return openvasd_shared_socket_register(soc, pid, buf);
@@ -258,7 +298,3 @@ int shared_socket_process( int soc, nthread_t pid, char * buf, int message )
 
  return -1; /* Unknown message */
 }
-
-
-
-
