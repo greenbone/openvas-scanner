@@ -1,3 +1,8 @@
+2009-02-10  Michael Wiegand <michael.wiegand@intevation.de>
+
+	* openvasd/pluginload.c (plugins_reload_from_dir): Add support for
+	multiple, colon-separated include_folders in the preferences.
+
 2009-02-10  Tim Brown <timb@nth-dimension.org.uk>
 
 	* packaging/debian/control, packaging/debian/changelog,

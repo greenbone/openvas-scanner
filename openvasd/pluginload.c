@@ -135,11 +135,25 @@ plugins_reload_from_dir(preferences, plugins, folder, be_quiet)
 {
   GSList * files = NULL, * f;
   char * name;
+  gchar * pref_include_folders;
+  gchar ** include_folders;
   int n = 0, total = 0, num_files = 0;
+  int i = 0;
+  int result = 0;
 
-  add_nasl_inc_dir(""); // for absolute and relative paths
-  // TODO: split up the string using ":" as separator and add all elements
-  add_nasl_inc_dir(arg_get_value(preferences, "include_folders"));
+  add_nasl_inc_dir (""); // for absolute and relative paths
+  
+  pref_include_folders = arg_get_value (preferences, "include_folders");
+  include_folders = g_strsplit (pref_include_folders, ":", 0);
+
+  for (i = 0; i < g_strv_length(include_folders); i++)
+    {
+      result = add_nasl_inc_dir (include_folders[i]);
+      if (result < 0)
+        printf ("Could not add %s to the list of include folders.\nMake sure %s exists and is a directory.\n", include_folders[i], include_folders[i]);
+    }
+
+  g_strfreev (include_folders);
 
   init_plugin_classes(preferences);
 
