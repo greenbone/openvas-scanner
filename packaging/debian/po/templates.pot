@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: openvas-server@packages.debian.org\n"
-"POT-Creation-Date: 2008-12-13 17:15+0100\n"
+"POT-Creation-Date: 2009-02-08 07:35+0100\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -18,96 +18,109 @@ msgstr ""
 
 #. Type: note
 #. Description
-#: ../openvas-server.templates:1001
+#: ../openvas-server.templates:2001
 msgid "OpenVAS daemon certificate generation"
 msgstr ""
 
 #. Type: note
 #. Description
-#: ../openvas-server.templates:1001
+#: ../openvas-server.templates:2001
 msgid ""
 "You will need to provide the relevant information to create an SSL "
-"certificate for your OpenVAS daemon. Note that this information will *NOT* "
-"be sent to echo anybody (everything stays local), but anyone  with the "
-"ability to connect to your OpenVAS daemon will be able to retrieve this "
-"information."
-msgstr ""
-
-#. Type: string
-#. Description
-#: ../openvas-server.templates:2001
-msgid "CA certificate life time in days:"
-msgstr ""
-
-#. Type: string
-#. Description
-#: ../openvas-server.templates:2001
-msgid ""
-"Provide the life time of the Certificate Authority used to generate the "
-"OpenVAS daemon certificate."
+"certificate for your OpenVAS daemon. Note that this information will remain "
+"local to this system, but anyone with the ability to connect to your OpenVAS "
+"daemon will be able to see it."
 msgstr ""
 
 #. Type: string
 #. Description
 #: ../openvas-server.templates:3001
-msgid "Server certificate life time in days:"
+msgid "Certificate authority certificate lifetime (days):"
 msgstr ""
 
 #. Type: string
 #. Description
 #: ../openvas-server.templates:3001
 msgid ""
-"Provide the life time of the OpenVAS daemon certificate. Notice that the "
-"OpenVAS clients will not connect to servers with expired certificates so set "
-"this value for as long as you want this installation to last. You can always "
-"regenerate this certificate later by removing the certificate file stored "
-"in /var/lib/openvas/CA/ and running 'openvas-mkcert'"
+"Please choose the lifetime of the Certificate Authority certificate that "
+"will be used to generate the OpenVAS daemon certificate."
 msgstr ""
 
 #. Type: string
 #. Description
 #: ../openvas-server.templates:4001
-msgid "Your country (two letter code):"
+msgid "Server certificate lifetime (days):"
 msgstr ""
 
 #. Type: string
 #. Description
 #: ../openvas-server.templates:4001
-msgid "Enter your country's two letter code."
+msgid "Please choose the lifetime of the OpenVAS daemon certificate."
+msgstr ""
+
+#. Type: string
+#. Description
+#: ../openvas-server.templates:4001
+msgid ""
+"OpenVAS clients will not connect to servers with expired certificates, so "
+"you should choose a duration longer than the time you plan to run this "
+"server."
+msgstr ""
+
+#. Type: string
+#. Description
+#: ../openvas-server.templates:4001
+msgid ""
+"This certificate can be regenerated later by removing the certificate file "
+"stored in /var/lib/openvas/CA/ and running \"openvas-mkcert\"."
 msgstr ""
 
 #. Type: string
 #. Description
 #: ../openvas-server.templates:5001
-msgid "Your state or province:"
+msgid "Country (two-letter code):"
 msgstr ""
 
 #. Type: string
 #. Description
 #: ../openvas-server.templates:5001
-msgid "Enter the state or provice you reside in."
+msgid ""
+"Please enter the two-letter code for the country where this server resides."
 msgstr ""
 
 #. Type: string
 #. Description
 #: ../openvas-server.templates:6001
-msgid "Your location:"
+msgid "State or province:"
 msgstr ""
 
 #. Type: string
 #. Description
 #: ../openvas-server.templates:6001
-msgid "Enter your location (e.g. town)."
+msgid "Please enter the state or province where this server resides."
 msgstr ""
 
 #. Type: string
 #. Description
 #: ../openvas-server.templates:7001
-msgid "Your organisation:"
+msgid "Location:"
 msgstr ""
 
 #. Type: string
 #. Description
 #: ../openvas-server.templates:7001
-msgid "Enter the name of your organization or company."
+msgid ""
+"Please enter the location (town, for example) where this server resides."
+msgstr ""
+
+#. Type: string
+#. Description
+#: ../openvas-server.templates:8001
+msgid "Organization:"
+msgstr ""
+
+#. Type: string
+#. Description
+#: ../openvas-server.templates:8001
+msgid "Please enter the name of the organization this server belongs to."
 msgstr ""

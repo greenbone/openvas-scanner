@@ -1,124 +1,159 @@
-# Swedish translation of nessus-core.
-# Copyright (C) 2005 THE nessus-core'S COPYRIGHT HOLDER
-# This file is distributed under the same license as the nessus-core package.
+# Swedish translation of debconf template for openvas-server.
+# Copyright (C) 2009 THE nessus-core'S COPYRIGHT HOLDER
+# This file is distributed under the same license as the openvas-server package.
+#
 # Daniel Nylander <po@danielnylander.se>, 2005.
-#
-#
+# Martin Bagge <brother@bsnet.se>, 2009.
 msgid ""
 msgstr ""
-"Project-Id-Version: nessus-core 2.2.5-2\n"
+"Project-Id-Version: nopenvas-server\n"
 "Report-Msgid-Bugs-To: openvas-server@packages.debian.org\n"
-"POT-Creation-Date: 2008-12-13 17:15+0100\n"
-"PO-Revision-Date: 2008-12-16 13:57+0100\n"
+"POT-Creation-Date: 2009-01-22 07:14+0100\n"
+"PO-Revision-Date: 2009-01-28 10:55+0100\n"
 "Last-Translator: Martin Bagge <brother@bsnet.se>\n"
-"Language-Team: Swedish <sv@li.org>\n"
+"Language-Team: Swedish <debian-l10n-swedish@lists.debian.org>\n"
 "MIME-Version: 1.0\n"
-"Content-Type: text/plain; charset=iso-8859-1\n"
+"Content-Type: text/plain; charset=utf-8\n"
 "Content-Transfer-Encoding: 8bit\n"
+"X-Poedit-Language: Swedish\n"
 
 #. Type: note
 #. Description
-#: ../openvas-server.templates:1001
+#: ../openvas-server.templates:2001
 msgid "OpenVAS daemon certificate generation"
-msgstr "Skapar certifikat fˆr OpenVAStj‰nsten"
+msgstr "Skapa certifikat f√∂r OpenVAS-tj√§nsten"
 
 #. Type: note
 #. Description
-#: ../openvas-server.templates:1001
+#: ../openvas-server.templates:2001
 msgid ""
 "You will need to provide the relevant information to create an SSL "
-"certificate for your OpenVAS daemon. Note that this information will *NOT* "
-"be sent to echo anybody (everything stays local), but anyone  with the "
-"ability to connect to your OpenVAS daemon will be able to retrieve this "
-"information."
+"certificate for your OpenVAS daemon. Note that this information will remain "
+"local to this system, but anyone with the ability to connect to your "
+"OpenVAS daemon will be able to see it."
 msgstr ""
-"Du behˆver ange relevant information fˆr att skapa ett SSL-certifikat fˆr "
-"din OpenVAS daemon. Notera att denna information *INTE* kommer att visas "
-"publikt (allt stannar lokalt). Dock finns mˆjligheten att personer som kan "
-"koppla upp sig mot din OpenVAS daemon ‰ven kan ta fram denna information."
-
-#. Type: string
-#. Description
-#: ../openvas-server.templates:2001
-msgid "CA certificate life time in days:"
-msgstr "Livstid fˆr CA-certifikat i antal dagar:"
-
-#. Type: string
-#. Description
-#: ../openvas-server.templates:2001
-msgid ""
-"Provide the life time of the Certificate Authority used to generate the "
-"OpenVAS daemon certificate."
-msgstr ""
-"Ange livstiden fˆr Certificate Authority som anv‰nds fˆr att generera "
-"certifikatet till OpenVAS daemon."
+"Du beh√∂ver ange relevant information f√∂r att skapa ett SSL-certifikat f√∂r "
+"OpenVAS-tj√§nsten. Informationen kommer att behandla lokalt i systemet men "
+"den som kan ansluta till servern kan l√§sa det."
 
 #. Type: string
 #. Description
 #: ../openvas-server.templates:3001
-msgid "Server certificate life time in days:"
-msgstr "Livstid fˆr servercertifikat i antal dagar:"
+msgid "Certificate authority certificate lifetime (days):"
+msgstr "Livstid f√∂r certifikatutf√§rdarens certifikat (antal dagar):"
 
 #. Type: string
 #. Description
 #: ../openvas-server.templates:3001
 msgid ""
-"Provide the life time of the OpenVAS daemon certificate. Notice that the "
-"OpenVAS clients will not connect to servers with expired certificates so set "
-"this value for as long as you want this installation to last. You can always "
-"regenerate this certificate later by removing the certificate file stored "
-"in /var/lib/openvas/CA/ and running 'openvas-mkcert'"
+"Please choose the lifetime of the Certificate Authority certificate that "
+"will be used to generate the OpenVAS daemon certificate."
 msgstr ""
-"Ange livstiden fˆr OpenVAS Server certifikatet. Notera att OpenVAS klienter "
-"inte kan koppla upp sig mot servrar med fˆrfallna certifikat sÂ s‰tt detta "
-"datum sÂ l‰nge du t‰nker anv‰nda denna installation. Du kan alltid Âterskapa "
-"detta certifikat senare genom att radera certifikatfilen som lagrats i /var/"
-"lib/nessusd/CA/ och kˆra kommandot 'openvas-mkcert'."
+"Ange livstiden f√∂r certifikatutf√§rdarens certifikat som anv√§nds f√∂r att "
+"generera certifikatet till OpenVAS-tj√§nsten."
 
 #. Type: string
 #. Description
 #: ../openvas-server.templates:4001
-msgid "Your country (two letter code):"
-msgstr "Din landskod (tvÂ bokst‰ver):"
+msgid "Server certificate lifetime (days):"
+msgstr "Livstid f√∂r servercertifikat (antal dagar)"
 
 #. Type: string
 #. Description
 #: ../openvas-server.templates:4001
-msgid "Enter your country's two letter code."
-msgstr "Ange landskoden fˆr ditt land."
+msgid "Please choose the lifetime of the OpenVAS daemon certificate."
+msgstr "Ange livstiden f√∂r certifikatet som anv√§nds av OpenVAS-tj√§nsten."
+
+#. Type: string
+#. Description
+#: ../openvas-server.templates:4001
+msgid ""
+"OpenVAS clients will not connect to servers with expired certificates, so "
+"you should choose a duration longer than the time you plan to run this "
+"server."
+msgstr ""
+"OpenVAS-klienter kan inte ansluta till servrar d√§r certifikaten har g√•tt ut, "
+"du ska d√§rf√∂r v√§lja ett tidsintervall som √§r l√§ngre √§n den planerade "
+"livsl√§ngden f√∂r servern."
+
+#. Type: string
+#. Description
+#: ../openvas-server.templates:4001
+msgid ""
+"This certificate can be regenerated later by removing the certificate file "
+"stored in /var/lib/openvas/CA/ and running \"openvas-mkcert\"."
+msgstr ""
+"Certifikatet kan skapas senare genom att radera certifikatfilen i /var/lib/"
+"openvas/CA/ och sedan k√∂ra kommandot \"openvas-mkcert\"."
 
 #. Type: string
 #. Description
 #: ../openvas-server.templates:5001
-msgid "Your state or province:"
-msgstr "Ditt landskap/l‰n (inte precist till‰mpligt i Sverige):"
+msgid "Country (two-letter code):"
+msgstr "Landskod (tv√• bokst√§ver):"
 
 #. Type: string
 #. Description
 #: ../openvas-server.templates:5001
-msgid "Enter the state or provice you reside in."
-msgstr "Ange provins eller l‰n du befinner dig i."
+msgid ""
+"Please enter the two-letter code for the country where this server resides."
+msgstr "Ange den tv√• tecken l√•nga koden f√∂r landet d√§r servern h√∂r hemma."
 
 #. Type: string
 #. Description
 #: ../openvas-server.templates:6001
-msgid "Your location:"
-msgstr "Din plats/stad:"
+msgid "State or province:"
+msgstr "Provins/l√§n:"
 
 #. Type: string
 #. Description
 #: ../openvas-server.templates:6001
-msgid "Enter your location (e.g. town)."
-msgstr "Ange var du befinner dig (exempelvis stad)."
+msgid "Please enter the state or province where this server resides."
+msgstr "Ange provins eller l√§n d√§r servern √§r bel√§gen."
 
 #. Type: string
 #. Description
 #: ../openvas-server.templates:7001
-msgid "Your organisation:"
-msgstr "Organisation:"
+msgid "Location:"
+msgstr "Plats/stad:"
 
 #. Type: string
 #. Description
 #: ../openvas-server.templates:7001
-msgid "Enter the name of your organization or company."
-msgstr "Ange namnet pÂ din organisation eller fˆretag."
+msgid ""
+"Please enter the location (town, for example) where this server resides."
+msgstr "Ange var servern √§r bel√§gen (exempelvis stad):"
+
+#. Type: string
+#. Description
+#: ../openvas-server.templates:8001
+msgid "Organization:"
+msgstr "Organisation/f√∂retag:"
+
+#. Type: string
+#. Description
+#: ../openvas-server.templates:8001
+msgid "Please enter the name of the organization this server belongs to."
+msgstr "Ange namnet p√• organisationen eller f√∂retaget som servern tillh√∂r."
+
+#~ msgid "CA certificate life time in days"
+#~ msgstr "Livstid f√∂r CA certifikat (i antal dagar)"
+
+#~ msgid ""
+#~ "Provide the life time of the OpenVAS daemon certificate. Notice that the "
+#~ "OpenVAS clients will not connect to servers with expired certificates so "
+#~ "set this value for as long as you want this installation to last. You can "
+#~ "always regenerate this certificate later by removing the certificate file "
+#~ "stored in /var/lib/openvas/CA/ and running 'openvas-mkcert'"
+#~ msgstr ""
+#~ "Ange livstiden f√∂r OpenVAS Server certifikatet. Notera att OpenVAS "
+#~ "klienter inte kan koppla upp sig mot servrar med f√∂rfallna certifikat s√• "
+#~ "s√§tt detta datum s√• l√§nge du t√§nker anv√§nda denna installation. Du kan "
+#~ "alltid √•terskapa detta certifikat senare genom att radera certifikatfilen "
+#~ "som lagrats i /var/lib/nessusd/CA/ och k√∂ra kommandot 'openvas-mkcert'."
+
+#~ msgid "Enter your country's two letter code."
+#~ msgstr "Ange landskoden f√∂r ditt land."
+
+#~ msgid "Enter your location (e.g. town)."
+#~ msgstr "Ange var du befinner dig (exempelvis stad)."

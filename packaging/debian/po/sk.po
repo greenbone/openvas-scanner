@@ -1,16 +1,16 @@
-# Portuguese translation for openvas-server debconf messages.
-# Copyright (C) 2007 Pedro Ribeiro <p.m42.ribeiro@gmail.com>
+# Slovak debconf translation of openvas-server
+# Copyright (C) YEAR THE PACKAGE'S COPYRIGHT HOLDER
 # This file is distributed under the same license as the openvas-server package.
-# Pedro Ribeiro <p.m42.ribeiro@gmail.com>, 2008
+# Ivan Masár <helix84@centrum.sk>, 2009.
 #
 msgid ""
 msgstr ""
-"Project-Id-Version: openvas-server 2.0.0-2\n"
+"Project-Id-Version: openvas-server\n"
 "Report-Msgid-Bugs-To: openvas-server@packages.debian.org\n"
 "POT-Creation-Date: 2009-01-22 07:14+0100\n"
-"PO-Revision-Date: 2009-01-22 22:19+0000\n"
-"Last-Translator: Pedro Ribeiro <p.m42.ribeiro@gmail.com>\n"
-"Language-Team: Portuguese <traduz@debianpt.org>\n"
+"PO-Revision-Date: 2009-02-07 09:34+0100\n"
+"Last-Translator: Ivan Masár <helix84@centrum.sk>\n"
+"Language-Team: LANGUAGE <LL@li.org>\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=utf-8\n"
 "Content-Transfer-Encoding: 8bit\n"
@@ -19,7 +19,7 @@ msgstr ""
 #. Description
 #: ../openvas-server.templates:2001
 msgid "OpenVAS daemon certificate generation"
-msgstr "Geração de certificados para o OpenVAS daemon"
+msgstr "Vytvorenie certifikátu OpenVAS démona"
 
 #. Type: note
 #. Description
@@ -30,16 +30,16 @@ msgid ""
 "local to this system, but anyone with the ability to connect to your "
 "OpenVAS daemon will be able to see it."
 msgstr ""
-"Vai precisar de indicar a informação relevante para criar um certificado SSL "
-"para o seu OpenVAS daemon. Note que esta informação irá permanecer neste "
-"sistema, mas qualquer um com possibilidade de ligação ao seu daemon OpenVAS "
-"poderão lê-la."
+"Budete musieť poskytnúť informácie potrebné na vytvorenie SSL certifikátu "
+"vášho OpenVAS démona. Pamätajte, že tieto informácie zostanú uložené lokálne "
+"na vašom systéme, ale každý kto bude mať prístup k vášmu OpenVAS démonu "
+"dokáže tieto informácie získať."
 
 #. Type: string
 #. Description
 #: ../openvas-server.templates:3001
 msgid "Certificate authority certificate lifetime (days):"
-msgstr "Tempo de vida do certificado da autoridade de certificados (dias):"
+msgstr "Životnosť autoritného certifikátu (v dňoch):"
 
 #. Type: string
 #. Description
@@ -48,20 +48,20 @@ msgid ""
 "Please choose the lifetime of the Certificate Authority certificate that "
 "will be used to generate the OpenVAS daemon certificate."
 msgstr ""
-"Escolha, por favor, o tempo de vida do certificado da Autoridade de "
-"Certificados (CA) usado para gerar o certificado do OpenVAS daemon."
+"Prosím, vyberte životnosť certifikátu Certifikačnej autority, ktorá sa "
+"použije na vytvorenie certifikátu OpenVAS démona."
 
 #. Type: string
 #. Description
 #: ../openvas-server.templates:4001
 msgid "Server certificate lifetime (days):"
-msgstr "Tempo de vida do certificado de servidor (dias):"
+msgstr "Životnosť certifikátu servera (v dňoch):"
 
 #. Type: string
 #. Description
 #: ../openvas-server.templates:4001
 msgid "Please choose the lifetime of the OpenVAS daemon certificate."
-msgstr "Por favor, escolha o tempo de vida do certificado do OpenVAS daemon."
+msgstr "Prosím, vyberte životnosť certifikátu OpenVAS démona."
 
 #. Type: string
 #. Description
@@ -71,9 +71,8 @@ msgid ""
 "you should choose a duration longer than the time you plan to run this "
 "server."
 msgstr ""
-"Os clientes OpenVAS não se ligarão a servidores com certificados caducados, "
-"portanto deve escolher uma duração maior que o tempo previsto de operação "
-"deste servidor."
+"OpenVAS klienti sa nepripoja k serverom, ktorých certifikát vypršal, takže "
+"by ste mali zvoliť obdobie dlhšie ako plánovaná prevádzka tohto servera."
 
 #. Type: string
 #. Description
@@ -82,14 +81,14 @@ msgid ""
 "This certificate can be regenerated later by removing the certificate file "
 "stored in /var/lib/openvas/CA/ and running \"openvas-mkcert\"."
 msgstr ""
-"Este certificado pode ser regenerado posteriormente ao remover o ficheiro de "
-"certificado guardado em /var/lib/openvas/CA/ e executando \"openvas-mkcert\"."
+"Tento certifikát je možné znova vytvoriť  tak, že odstránitesúbor uložený v "
+"adresári /var/lib/openvas/CA/ a spustíte „openvas-mkcert“."
 
 #. Type: string
 #. Description
 #: ../openvas-server.templates:5001
 msgid "Country (two-letter code):"
-msgstr "País (código de duas letras):"
+msgstr "Krajina (dvojpísmenový kód):"
 
 #. Type: string
 #. Description
@@ -97,51 +96,48 @@ msgstr "País (código de duas letras):"
 msgid ""
 "Please enter the two-letter code for the country where this server resides."
 msgstr ""
-"Indique, por favor, o código de duas letras do país onde está localizado "
-"este servidor."
+"Prosím, zadajte dvojpísmenový kód krajiny, kde sa tento server nachádza."
 
 #. Type: string
 #. Description
 #: ../openvas-server.templates:6001
 msgid "State or province:"
-msgstr "Estado ou província:"
+msgstr "Región:"
 
 #. Type: string
 #. Description
 #: ../openvas-server.templates:6001
 msgid "Please enter the state or province where this server resides."
-msgstr "Indique o estado ou província onde se encontra este servidor."
+msgstr "Prosím, zadajte región, v ktorom sa nachádza tento server."
 
 #. Type: string
 #. Description
 #: ../openvas-server.templates:7001
 msgid "Location:"
-msgstr "Localização:"
+msgstr "Lokalita:"
 
 #. Type: string
 #. Description
 #: ../openvas-server.templates:7001
 msgid ""
 "Please enter the location (town, for example) where this server resides."
-msgstr ""
-"Indique, por favor, a localização (cidade, por exemplo) onde se encontra "
-"este servidor."
+msgstr "Prosím, zadajte lokalitu (napr. mesto), kde sa tento server nachádza."
 
 #. Type: string
 #. Description
 #: ../openvas-server.templates:8001
 msgid "Organization:"
-msgstr "Organização:"
+msgstr "Organizácia:"
 
 #. Type: string
 #. Description
 #: ../openvas-server.templates:8001
 msgid "Please enter the name of the organization this server belongs to."
 msgstr ""
-"Indique, por favor, o nome da organização a que este servidor pertence."
+"Zadajte názov organizácie alebo spoločnosti, ktorej patrí tento server."
 
-#~ msgid "CA certificate life time in days"
-#~ msgstr "Tempo de vida do certificado CA em dias"
+#~ msgid "CA certificate life time in days:"
+#~ msgstr "Životnosť certifikátu CA v dňoch:"
 
 #~ msgid ""
 #~ "Provide the life time of the OpenVAS daemon certificate. Notice that the "
@@ -150,14 +146,14 @@ msgstr ""
 #~ "always regenerate this certificate later by removing the certificate file "
 #~ "stored in /var/lib/openvas/CA/ and running 'openvas-mkcert'"
 #~ msgstr ""
-#~ "Indique o tempo de vida do certificado do Servidor OpenVAS. Note que os "
-#~ "clientes OpenVAS não irão ligar-se a servidores com certificados "
-#~ "expirados portanto defina este valor para o duração desta instalação. "
-#~ "Pode sempre regenerar este certificado mais tarde removendo o ficheiro de "
-#~ "certificados de /var/lib/nessusd/CA/ e executando `openvas-mkcert'"
+#~ "Zadajte životnosť certifikátu OpenVAS démona. Pamätajte, že OpenVAS "
+#~ "klienti sa nebudú môcť pripojiť k serverom, ktorým vypršala životnosť "
+#~ "certifikátu, takže nastavte túto hodnotu na dostatočne dlhú dobu. "
+#~ "Kedykoľvek môžete tento certifikát znova vytoviť tak, že odstránite súbor "
+#~ "certifikátu uložený v /var/lib/openvas/CA/ a spustíte „openvas-mkcert“."
 
 #~ msgid "Enter your country's two letter code."
-#~ msgstr "Indique o código de duas letras do seu país"
+#~ msgstr "Zadajte dvojpísmenový kód vašej krajiny."
 
 #~ msgid "Enter your location (e.g. town)."
-#~ msgstr "Indique a sua localização (e.g. cidade)"
+#~ msgstr "Zadajte svoju lokalitu (napr. mesto)."

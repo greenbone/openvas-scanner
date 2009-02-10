@@ -14,29 +14,30 @@ Section: net
 Architecture: any
 Depends: ${shlibs:Depends}, ${misc:Depends}
 Suggests: openvas-client
-Description: Remote network security auditor, the server
- The OpenVAS Security Scanner is a security auditing tool. It makes
- possible to test security modules in an attempt to find vulnerable
- spots that should be fixed.
+Description: remote network security auditor - server
+ The Open Vulnerability Assessment System is a modular security auditing
+ tool, used for testing remote systems for vulnerabilities that should be
+ fixed.
  .
  It is made up of two parts: a server, and a client. The server/daemon,
  openvasd, is in charge of the attacks, whereas the client,
- OpenVAS-Client, provides the user a nice X11/GTK+ interface.
+ OpenVAS-Client, provides an X11/GTK+ user interface.
  .
- This package contains the server.
+ This package provides the server.
 
 Package: openvas-server-dev
 Section: devel
 Architecture: any
 Depends: openvas-server (= ${binary:Version}), ${shlibs:Depends}, ${misc:Depends}
 Recommends: libopenvas2-dev, libopenvasnasl2-dev
-Description: OpenVAS server static libraries and headers
- The OpenVAS Security Scanner is a security auditing tool. It makes
- possible to test security modules in an attempt to find vulnerable
- spots that should be fixed.
+Description: remote network security auditor - static libraries and headers
+ The Open Vulnerability Assessment System is a modular security auditing
+ tool, used for testing remote systems for vulnerabilities that should be
+ fixed.
  .
  It is made up of two parts: a server, and a client. The server/daemon,
  openvasd, is in charge of the attacks, whereas the client,
- OpenVAS-Client, provides the user a nice X11/GTK+ interface.
+ OpenVAS-Client, provides an X11/GTK+ user interface.
  .
- This package contains the required static libraries, headers of the server.
+ This package provides the static libraries and headers required for
+ compiling the server.

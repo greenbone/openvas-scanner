@@ -1,16 +1,36 @@
+openvas-server (2.0.0-3) UNRELEASED; urgency=low
+
+  * Debconf templates and debian/control reviewed by the debian-l10n-
+    english team as part of the Smith review project. Closes: #512170
+  * Fix extra space in debconf templates. Closes: #514451
+  * [Debconf translation updates]
+  * Swedish. Closes: #512667
+  * Galician. Closes: #512683
+  * Basque. Closes: #512752
+  * Portuguese. Closes: #512790
+  * Swedish. Closes: #512667
+  * Czech. Closes: #513712
+  * Vietnamese. Closes: #513809
+  * Russian. Closes: #514047
+  * French. Closes: #514312
+  * Slovak. Closes: #514381
+  * German. Closes: #514450
+
+ -- Christian Perrier <bubulle@debian.org>  Sun, 18 Jan 2009 09:26:25 +0100
+
 openvas-server (2.0.0-2) unstable; urgency=low
 
   * Brown paper bag release: Restore changes introduced from 1.0.2-2 which were
-    missing in the previous package.
+    missing in the previous package
   * Remove the openvas-plugins dependency as it is not currently in the archive. Users have
     to manually download the plugins currently. This will be restored once openvas-plugins
-    is in the archive.
+    is in the archive
   
  -- Javier Fernandez-Sanguino Pen~a <jfs@debian.org>  Sun, 04 Jan 2009 13:13:21 +0100
    
 openvas-server (2.0.0-1) unstable; urgency=low
 
-  * New upstream release.
+  * New upstream release
 
  -- Javier Fernandez-Sanguino Pen~a <jfs@debian.org>  Fri, 02 Jan 2009 01:38:47 +0100
 

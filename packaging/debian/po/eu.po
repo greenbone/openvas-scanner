@@ -1,28 +1,26 @@
-# translation of gl.po_[OBlEzb].po to galician
-# Galician translation of nessus-core's debconf templates
-# This file is distributed under the same license as the nessus-core package.
+# translation of openvas-server-eu.po to Euskara
+# Copyright (C) YEAR THE PACKAGE'S COPYRIGHT HOLDER
+# This file is distributed under the same license as the PACKAGE package.
 #
-# Jacobo Tarrio <jtarrio@debian.org>, 2007.
-# mvillarino <mvillarino@users.sourceforge.net>, 2009.
+# Piarres Beobide <pi@beobide.net>, 2009.
 msgid ""
 msgstr ""
-"Project-Id-Version: gl.po_[OBlEzb]\n"
+"Project-Id-Version: openvas-server-eu\n"
 "Report-Msgid-Bugs-To: openvas-server@packages.debian.org\n"
 "POT-Creation-Date: 2009-01-22 07:14+0100\n"
-"PO-Revision-Date: 2009-01-22 20:26+0100\n"
-"Last-Translator: mvillarino <mvillarino@users.sourceforge.net>\n"
-"Language-Team: galician <proxecto@trasno.net>\n"
+"PO-Revision-Date: 2009-01-23 12:52+0100\n"
+"Last-Translator: Piarres Beobide <pi@beobide.net>\n"
+"Language-Team: Euskara <debian-l10n-basque@lists.debian.org>\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
 "X-Generator: KBabel 1.11.4\n"
-"Plural-Forms: nplurals=2; plural=n != 1;\n"
 
 #. Type: note
 #. Description
 #: ../openvas-server.templates:2001
 msgid "OpenVAS daemon certificate generation"
-msgstr "Xeración do certificado do servidor OpenVAS"
+msgstr "OpenVAS deabru ziurtagiri sortzea"
 
 #. Type: note
 #. Description
@@ -33,16 +31,16 @@ msgid ""
 "local to this system, but anyone with the ability to connect to your "
 "OpenVAS daemon will be able to see it."
 msgstr ""
-"Háselle solicitar a información relevante para crear un certificado SSL para "
-"o seu servidor OpenVAS. Teña en conta que esta información é local, non será "
-"enviada fora do sistema, pero calquera que teña a capacidade de se conectar "
-"ao seu servidor OpenVAS ha poder vela."
+"Zure OpenVAS deabruarentzat SSL ziurtagiri bat sortzeko beharrezko "
+"informazioa ezarri beharko duzu. Kontutan izan informazio hau nahiz zure "
+"zerbitzarian gordetzen den zure OpenVAS deabrura konektatzeko gai den "
+"edonork ikusi ahal izango duela."
 
 #. Type: string
 #. Description
 #: ../openvas-server.templates:3001
 msgid "Certificate authority certificate lifetime (days):"
-msgstr "Validez do certificado da autoridade de certificación (días):"
+msgstr "Ziurtagiri autoritate ziurtagiri iraupen-muga (egun):"
 
 #. Type: string
 #. Description
@@ -51,20 +49,20 @@ msgid ""
 "Please choose the lifetime of the Certificate Authority certificate that "
 "will be used to generate the OpenVAS daemon certificate."
 msgstr ""
-"Indique a duración do certificado da Autoridade Certificadora que se "
-"empregará para xerar o certificado do servidor OpenVAS."
+"Mesedez hautatu OpenVAS deabru ziurtagiria sortzeko erabiliko den Ziurtagiri "
+"Autoritate ziurtagiriaren iraupen-muga."
 
 #. Type: string
 #. Description
 #: ../openvas-server.templates:4001
 msgid "Server certificate lifetime (days):"
-msgstr "Validez do certificado do servidor (días):"
+msgstr "Zerbitzari ziurtagiri iraupen-muga (egun):"
 
 #. Type: string
 #. Description
 #: ../openvas-server.templates:4001
 msgid "Please choose the lifetime of the OpenVAS daemon certificate."
-msgstr "Indique a duración do certificado do servidor OpenVAS."
+msgstr "Mesedez hautatu OpenVAS deabru ziurtagiriaren iraupen muga."
 
 #. Type: string
 #. Description
@@ -74,9 +72,9 @@ msgid ""
 "you should choose a duration longer than the time you plan to run this "
 "server."
 msgstr ""
-"Os clientes de OpenVAS non se han conectar a servidores que teñan o caducado "
-"o certificado, polo que debería escoller unha data de caducidade maior do "
-"tempo que teña previsto executar este servidor."
+"OpenVAS bezeroak ezingo dira konektatu behin ziurtagiria iraungitzen denean, "
+"beraz zerbitzaria hau erabiltzea pentsatzen duzuna baino denbora luzeago bat "
+"hautatu beharko zenuke."
 
 #. Type: string
 #. Description
@@ -85,56 +83,55 @@ msgid ""
 "This certificate can be regenerated later by removing the certificate file "
 "stored in /var/lib/openvas/CA/ and running \"openvas-mkcert\"."
 msgstr ""
-"Pode xerar de novo este certificado en calquera outro momento eliminando o "
-"ficheiro do certificado, que está gardado en /var/lib/openvas/CA/ e "
-"executando «openvas-mkcert»."
+"Ziurtagiri hau beranduago birsortu daiteke /var/lib/openvas/CA/ direktorioan "
+"dagoen ziurtagiri fitxategia ezabatuaz eta \"openvas-mkcert\" exekutatuaz."
 
 #. Type: string
 #. Description
 #: ../openvas-server.templates:5001
 msgid "Country (two-letter code):"
-msgstr "País (código de dúas letras):"
+msgstr "Estatua (bi letratako kodea)"
 
 #. Type: string
 #. Description
 #: ../openvas-server.templates:5001
 msgid ""
 "Please enter the two-letter code for the country where this server resides."
-msgstr "Indique o código de dúas letras do país onde reside este servidor."
+msgstr "Mesedez idatzi zerbitzaria dagoen estatuko bi letretako kodea."
 
 #. Type: string
 #. Description
 #: ../openvas-server.templates:6001
 msgid "State or province:"
-msgstr "Estado ou provincia:"
+msgstr "Eremu edo probintzia:"
 
 #. Type: string
 #. Description
 #: ../openvas-server.templates:6001
 msgid "Please enter the state or province where this server resides."
-msgstr "Indique o estado ou provincia onde reside este servidor."
+msgstr "Mesedez idatzi zerbitzaria dagoen eremu edo probintzia."
 
 #. Type: string
 #. Description
 #: ../openvas-server.templates:7001
 msgid "Location:"
-msgstr "Lugar:"
+msgstr "Kokalekua:"
 
 #. Type: string
 #. Description
 #: ../openvas-server.templates:7001
 msgid ""
 "Please enter the location (town, for example) where this server resides."
-msgstr "Indique o lugar (por exemplo, a vila), onde reside o servidor."
+msgstr "Mesedez idatzi zerbitzaria dagoen kokalekua (herria adibidez)."
 
 #. Type: string
 #. Description
 #: ../openvas-server.templates:8001
 msgid "Organization:"
-msgstr "Organización:"
+msgstr "Erakundea:"
 
 #. Type: string
 #. Description
 #: ../openvas-server.templates:8001
 msgid "Please enter the name of the organization this server belongs to."
-msgstr "Indique o nome da organización ou empresa á que pertence o servidor."
+msgstr "Mesedez idatzi zerbitzari honen erakundea."

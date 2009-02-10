@@ -20,7 +20,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: nessus-core_2.2.7-2_templates\n"
 "Report-Msgid-Bugs-To: openvas-server@packages.debian.org\n"
-"POT-Creation-Date: 2008-12-13 17:15+0100\n"
+"POT-Creation-Date: 2009-01-22 07:14+0100\n"
 "PO-Revision-Date: 2006-05-11 18:34+0200\n"
 "Last-Translator: Kurt De Bree <kdebree(AT)telenet(DOT)be>\n"
 "Language-Team: Dutch <debian-l10n-dutch@lists.debian.org>\n"
@@ -31,19 +31,25 @@ msgstr ""
 
 #. Type: note
 #. Description
-#: ../openvas-server.templates:1001
+#: ../openvas-server.templates:2001
 msgid "OpenVAS daemon certificate generation"
 msgstr "Generatie van het certificaat voor de OpenVAS-achtergronddienst"
 
 #. Type: note
 #. Description
-#: ../openvas-server.templates:1001
+#: ../openvas-server.templates:2001
+#, fuzzy
+#| msgid ""
+#| "You will need to provide the relevant information to create an SSL "
+#| "certificate for your OpenVAS daemon. Note that this information will "
+#| "*NOT* be sent to echo anybody (everything stays local), but anyone with "
+#| "the ability to connect to your OpenVAS daemon will be able to retrieve "
+#| "this information."
 msgid ""
 "You will need to provide the relevant information to create an SSL "
-"certificate for your OpenVAS daemon. Note that this information will *NOT* "
-"be sent to echo anybody (everything stays local), but anyone  with the "
-"ability to connect to your OpenVAS daemon will be able to retrieve this "
-"information."
+"certificate for your OpenVAS daemon. Note that this information will remain "
+"local to this system, but anyone with the ability to connect to your "
+"OpenVAS daemon will be able to see it."
 msgstr ""
 "De relevante informatie om een SSL-certificaat voor uw OpenVAS-"
 "achtergronddienst aan te maken is enkel beschikbaar als u deze verstrekt. "
@@ -54,99 +60,144 @@ msgstr ""
 
 #. Type: string
 #. Description
-#: ../openvas-server.templates:2001
+#: ../openvas-server.templates:3001
 #, fuzzy
-#| msgid "CA certificate life time in days"
-msgid "CA certificate life time in days:"
-msgstr "Levensduur van het CA-certificaat (in dagen)"
+#| msgid "Server certificate life time in days"
+msgid "Certificate authority certificate lifetime (days):"
+msgstr "Wat is de levensduur van het servercertificaat (in dagen)?"
 
 #. Type: string
 #. Description
-#: ../openvas-server.templates:2001
+#: ../openvas-server.templates:3001
+#, fuzzy
+#| msgid ""
+#| "Provide the life time of the Certificate Authority used to generate the "
+#| "OpenVAS daemon certificate."
 msgid ""
-"Provide the life time of the Certificate Authority used to generate the "
-"OpenVAS daemon certificate."
+"Please choose the lifetime of the Certificate Authority certificate that "
+"will be used to generate the OpenVAS daemon certificate."
 msgstr ""
 "Wat is de levensduur van de certificaatautoriteit die wordt gebruikt om het "
 "OpenVAS-achtergronddienstcertificaat te genereren?"
 
 #. Type: string
 #. Description
-#: ../openvas-server.templates:3001
+#: ../openvas-server.templates:4001
 #, fuzzy
 #| msgid "Server certificate life time in days"
-msgid "Server certificate life time in days:"
+msgid "Server certificate lifetime (days):"
 msgstr "Wat is de levensduur van het servercertificaat (in dagen)?"
 
 #. Type: string
 #. Description
-#: ../openvas-server.templates:3001
-msgid ""
-"Provide the life time of the OpenVAS daemon certificate. Notice that the "
-"OpenVAS clients will not connect to servers with expired certificates so set "
-"this value for as long as you want this installation to last. You can always "
-"regenerate this certificate later by removing the certificate file stored "
-"in /var/lib/openvas/CA/ and running 'openvas-mkcert'"
+#: ../openvas-server.templates:4001
+#, fuzzy
+#| msgid ""
+#| "Provide the life time of the Certificate Authority used to generate the "
+#| "OpenVAS daemon certificate."
+msgid "Please choose the lifetime of the OpenVAS daemon certificate."
 msgstr ""
-"Wat is de levensduur van het OpenVAS-servercertificaat? Merk op dat de "
-"OpenVAS-cliënten geen verbinding zullen maken naar servers met vervallen "
-"certificaten, dus stel deze waarde in naargelang de levensduur van deze "
-"installatie. U kunt later dit certificaat regenereren door het "
-"certificaatbestand, opgeslagen in /var/lib/nessusd/CA/, te verwijderen en "
-"'openvas-mkcert' uit te voeren."
+"Wat is de levensduur van de certificaatautoriteit die wordt gebruikt om het "
+"OpenVAS-achtergronddienstcertificaat te genereren?"
 
 #. Type: string
 #. Description
 #: ../openvas-server.templates:4001
+msgid ""
+"OpenVAS clients will not connect to servers with expired certificates, so "
+"you should choose a duration longer than the time you plan to run this "
+"server."
+msgstr ""
+
+#. Type: string
+#. Description
+#: ../openvas-server.templates:4001
+msgid ""
+"This certificate can be regenerated later by removing the certificate file "
+"stored in /var/lib/openvas/CA/ and running \"openvas-mkcert\"."
+msgstr ""
+
+#. Type: string
+#. Description
+#: ../openvas-server.templates:5001
 #, fuzzy
 #| msgid "Your country (two letter code)"
-msgid "Your country (two letter code):"
+msgid "Country (two-letter code):"
 msgstr "Uw landcode (tweeletterige code)"
 
 #. Type: string
 #. Description
-#: ../openvas-server.templates:4001
-msgid "Enter your country's two letter code."
-msgstr "Wat is de tweeletterige code van uw land?"
+#: ../openvas-server.templates:5001
+msgid ""
+"Please enter the two-letter code for the country where this server resides."
+msgstr ""
 
 #. Type: string
 #. Description
-#: ../openvas-server.templates:5001
+#: ../openvas-server.templates:6001
 #, fuzzy
 #| msgid "Your state or province"
-msgid "Your state or province:"
+msgid "State or province:"
 msgstr "Uw staat of provincie"
 
 #. Type: string
 #. Description
-#: ../openvas-server.templates:5001
-msgid "Enter the state or provice you reside in."
+#: ../openvas-server.templates:6001
+#, fuzzy
+#| msgid "Enter the state or provice you reside in."
+msgid "Please enter the state or province where this server resides."
 msgstr "In welke staat of provincie verblijft u?"
 
 #. Type: string
 #. Description
-#: ../openvas-server.templates:6001
+#: ../openvas-server.templates:7001
 #, fuzzy
 #| msgid "Your location"
-msgid "Your location:"
+msgid "Location:"
 msgstr "Uw locatie"
 
 #. Type: string
 #. Description
-#: ../openvas-server.templates:6001
-msgid "Enter your location (e.g. town)."
-msgstr "Wat is uw locatie (bv. stad)?"
+#: ../openvas-server.templates:7001
+msgid ""
+"Please enter the location (town, for example) where this server resides."
+msgstr ""
 
 #. Type: string
 #. Description
-#: ../openvas-server.templates:7001
+#: ../openvas-server.templates:8001
 #, fuzzy
 #| msgid "Your organisation"
-msgid "Your organisation:"
+msgid "Organization:"
 msgstr "Uw organisatie"
 
 #. Type: string
 #. Description
-#: ../openvas-server.templates:7001
-msgid "Enter the name of your organization or company."
+#: ../openvas-server.templates:8001
+#, fuzzy
+#| msgid "Enter the name of your organization or company."
+msgid "Please enter the name of the organization this server belongs to."
 msgstr "Wat is de naam van uw organisatie of bedrijf?"
+
+#~ msgid "CA certificate life time in days"
+#~ msgstr "Levensduur van het CA-certificaat (in dagen)"
+
+#~ msgid ""
+#~ "Provide the life time of the OpenVAS daemon certificate. Notice that the "
+#~ "OpenVAS clients will not connect to servers with expired certificates so "
+#~ "set this value for as long as you want this installation to last. You can "
+#~ "always regenerate this certificate later by removing the certificate file "
+#~ "stored in /var/lib/openvas/CA/ and running 'openvas-mkcert'"
+#~ msgstr ""
+#~ "Wat is de levensduur van het OpenVAS-servercertificaat? Merk op dat de "
+#~ "OpenVAS-cliënten geen verbinding zullen maken naar servers met vervallen "
+#~ "certificaten, dus stel deze waarde in naargelang de levensduur van deze "
+#~ "installatie. U kunt later dit certificaat regenereren door het "
+#~ "certificaatbestand, opgeslagen in /var/lib/nessusd/CA/, te verwijderen en "
+#~ "'openvas-mkcert' uit te voeren."
+
+#~ msgid "Enter your country's two letter code."
+#~ msgstr "Wat is de tweeletterige code van uw land?"
+
+#~ msgid "Enter your location (e.g. town)."
+#~ msgstr "Wat is uw locatie (bv. stad)?"

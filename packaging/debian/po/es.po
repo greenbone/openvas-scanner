@@ -33,7 +33,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: nessusd\n"
 "Report-Msgid-Bugs-To: openvas-server@packages.debian.org\n"
-"POT-Creation-Date: 2008-12-13 17:15+0100\n"
+"POT-Creation-Date: 2009-01-22 07:14+0100\n"
 "PO-Revision-Date: 2005-09-18 12:11+0200\n"
 "Last-Translator: Javier Fernandez-Sanguino <jfs@computer.org>\n"
 "Language-Team: Debian Spanish <debian-l10n-spanish@lists.debian.org>\n"
@@ -43,19 +43,25 @@ msgstr ""
 
 #. Type: note
 #. Description
-#: ../openvas-server.templates:1001
+#: ../openvas-server.templates:2001
 msgid "OpenVAS daemon certificate generation"
 msgstr "Generación de certificado para el demonio de OpenVAS"
 
 #. Type: note
 #. Description
-#: ../openvas-server.templates:1001
+#: ../openvas-server.templates:2001
+#, fuzzy
+#| msgid ""
+#| "You will need to provide the relevant information to create an SSL "
+#| "certificate for your OpenVAS daemon. Note that this information will "
+#| "*NOT* be sent to echo anybody (everything stays local), but anyone with "
+#| "the ability to connect to your OpenVAS daemon will be able to retrieve "
+#| "this information."
 msgid ""
 "You will need to provide the relevant information to create an SSL "
-"certificate for your OpenVAS daemon. Note that this information will *NOT* "
-"be sent to echo anybody (everything stays local), but anyone  with the "
-"ability to connect to your OpenVAS daemon will be able to retrieve this "
-"information."
+"certificate for your OpenVAS daemon. Note that this information will remain "
+"local to this system, but anyone with the ability to connect to your "
+"OpenVAS daemon will be able to see it."
 msgstr ""
 "Debe introducir la información necesaria para crear un certificado SSL para "
 "su demonio de OpenVAS. Tenga en cuenta que esta información NO se enviará a "
@@ -64,87 +70,144 @@ msgstr ""
 
 #. Type: string
 #. Description
-#: ../openvas-server.templates:2001
-msgid "CA certificate life time in days:"
-msgstr "Tiempo de vida en días del certificado de CA:"
+#: ../openvas-server.templates:3001
+#, fuzzy
+#| msgid "Server certificate life time in days"
+msgid "Certificate authority certificate lifetime (days):"
+msgstr "Tiempo de vida en días del certificado del servidor"
 
 #. Type: string
 #. Description
-#: ../openvas-server.templates:2001
+#: ../openvas-server.templates:3001
+#, fuzzy
+#| msgid ""
+#| "Provide the life time of the Certificate Authority used to generate the "
+#| "OpenVAS daemon certificate."
 msgid ""
-"Provide the life time of the Certificate Authority used to generate the "
-"OpenVAS daemon certificate."
+"Please choose the lifetime of the Certificate Authority certificate that "
+"will be used to generate the OpenVAS daemon certificate."
 msgstr ""
 "Introduzca el tiempo de vida de la Autoridad de Certificación que se utiliza "
 "para generar el certificado del demonio de OpenVAS."
 
 #. Type: string
 #. Description
-#: ../openvas-server.templates:3001
-msgid "Server certificate life time in days:"
-msgstr "Tiempo de vida en días del certificado del servidor:"
+#: ../openvas-server.templates:4001
+#, fuzzy
+#| msgid "Server certificate life time in days"
+msgid "Server certificate lifetime (days):"
+msgstr "Tiempo de vida en días del certificado del servidor"
 
 #. Type: string
 #. Description
-#: ../openvas-server.templates:3001
-msgid ""
-"Provide the life time of the OpenVAS daemon certificate. Notice that the "
-"OpenVAS clients will not connect to servers with expired certificates so set "
-"this value for as long as you want this installation to last. You can always "
-"regenerate this certificate later by removing the certificate file stored "
-"in /var/lib/openvas/CA/ and running 'openvas-mkcert'"
+#: ../openvas-server.templates:4001
+#, fuzzy
+#| msgid ""
+#| "Provide the life time of the Certificate Authority used to generate the "
+#| "OpenVAS daemon certificate."
+msgid "Please choose the lifetime of the OpenVAS daemon certificate."
 msgstr ""
-"Introduzca el tiempo de vida del certificado del servidor de OpenVAS. Tenga "
-"en cuenta que los clientes de OpenVAS no se conectarán a un servidor cuyo "
-"certificado haya expirado así que fije este valor en función del tiempo que "
-"será válida la instalación. Siempre puede regenera este certificado más "
-"adelante eliminado el el fichero de certificado en /var/lib/nessus/CA/ y "
-"ejecutando «openvas-mkcert»."
+"Introduzca el tiempo de vida de la Autoridad de Certificación que se utiliza "
+"para generar el certificado del demonio de OpenVAS."
 
 #. Type: string
 #. Description
 #: ../openvas-server.templates:4001
-msgid "Your country (two letter code):"
-msgstr "Su país (código de dos letras):"
+msgid ""
+"OpenVAS clients will not connect to servers with expired certificates, so "
+"you should choose a duration longer than the time you plan to run this "
+"server."
+msgstr ""
 
 #. Type: string
 #. Description
 #: ../openvas-server.templates:4001
-msgid "Enter your country's two letter code."
-msgstr "Introduzca el código de dos letras de su país."
+msgid ""
+"This certificate can be regenerated later by removing the certificate file "
+"stored in /var/lib/openvas/CA/ and running \"openvas-mkcert\"."
+msgstr ""
 
 #. Type: string
 #. Description
 #: ../openvas-server.templates:5001
-msgid "Your state or province:"
-msgstr "Su provincia o estado:"
+#, fuzzy
+#| msgid "Your country (two letter code)"
+msgid "Country (two-letter code):"
+msgstr "Su país (código de dos letras)"
 
 #. Type: string
 #. Description
 #: ../openvas-server.templates:5001
-msgid "Enter the state or provice you reside in."
+msgid ""
+"Please enter the two-letter code for the country where this server resides."
+msgstr ""
+
+#. Type: string
+#. Description
+#: ../openvas-server.templates:6001
+#, fuzzy
+#| msgid "Your state or province"
+msgid "State or province:"
+msgstr "Su provincia o estado"
+
+#. Type: string
+#. Description
+#: ../openvas-server.templates:6001
+#, fuzzy
+#| msgid "Enter the state or provice you reside in."
+msgid "Please enter the state or province where this server resides."
 msgstr "Introduzca el nombre del estado o de la provincida donde reside."
 
 #. Type: string
 #. Description
-#: ../openvas-server.templates:6001
-msgid "Your location:"
-msgstr "Su localización:"
-
-#. Type: string
-#. Description
-#: ../openvas-server.templates:6001
-msgid "Enter your location (e.g. town)."
-msgstr "Introduzca su localización (p. ej. su ciudad)."
+#: ../openvas-server.templates:7001
+#, fuzzy
+#| msgid "Your location"
+msgid "Location:"
+msgstr "Su localización"
 
 #. Type: string
 #. Description
 #: ../openvas-server.templates:7001
-msgid "Your organisation:"
-msgstr "Su organización:"
+msgid ""
+"Please enter the location (town, for example) where this server resides."
+msgstr ""
 
 #. Type: string
 #. Description
-#: ../openvas-server.templates:7001
-msgid "Enter the name of your organization or company."
+#: ../openvas-server.templates:8001
+#, fuzzy
+#| msgid "Your organisation"
+msgid "Organization:"
+msgstr "Su organización"
+
+#. Type: string
+#. Description
+#: ../openvas-server.templates:8001
+#, fuzzy
+#| msgid "Enter the name of your organization or company."
+msgid "Please enter the name of the organization this server belongs to."
 msgstr "Introduzca el nombre de su organizació o compañía."
+
+#~ msgid "CA certificate life time in days"
+#~ msgstr "Tiempo de vida en días del certificado de CA"
+
+#~ msgid ""
+#~ "Provide the life time of the OpenVAS daemon certificate. Notice that the "
+#~ "OpenVAS clients will not connect to servers with expired certificates so "
+#~ "set this value for as long as you want this installation to last. You can "
+#~ "always regenerate this certificate later by removing the certificate file "
+#~ "stored in /var/lib/openvas/CA/ and running 'openvas-mkcert'"
+#~ msgstr ""
+#~ "Introduzca el tiempo de vida del certificado del servidor de OpenVAS. "
+#~ "Tenga en cuenta que los clientes de OpenVAS no se conectarán a un "
+#~ "servidor cuyo certificado haya expirado así que fije este valor en "
+#~ "función del tiempo que será válida la instalación. Siempre puede regenera "
+#~ "este certificado más adelante eliminado el el fichero de certificado en /"
+#~ "var/lib/nessus/CA/ y ejecutando «openvas-mkcert»."
+
+#~ msgid "Enter your country's two letter code."
+#~ msgstr "Introduzca el código de dos letras de su país."
+
+#~ msgid "Enter your location (e.g. town)."
+#~ msgstr "Introduzca su localización (p. ej. su ciudad)."

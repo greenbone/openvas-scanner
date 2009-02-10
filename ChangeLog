@@ -1,3 +1,16 @@
+2009-02-10  Tim Brown <timb@nth-dimension.org.uk>
+
+	* packaging/debian/control, packaging/debian/changelog,
+	packaging/debian/openvas-server.templates, packaging/debian/po/gl.po,
+	packaging/debian/po/cs.po, packaging/debian/po/pt_BR.po,
+	packaging/debian/po/es.po, packaging/debian/po/fr.po,
+	packaging/debian/po/eu.po, packaging/debian/po/nl.po,
+	packaging/debian/po/sk.po, packaging/debian/po/vi.po,
+	packaging/debian/po/templates.pot, packaging/debian/po/pt.po,
+	packaging/debian/po/ru.po, packaging/debian/po/sv.po,
+	packaging/debian/po/de.po: Updated following translation efforts
+	by debian-l10n-english team as part of the Smith review project.
+
 2009-02-09  Felix Wolfsteller <felix.wolfsteller@intevation.de>
 
 	Documentation and reformatting of shared_socket module.
