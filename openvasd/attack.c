@@ -25,9 +25,8 @@
 * Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA 02110-1301 USA.
 *
 *
-*/ 
+*/
 
- 
 #include <includes.h>
 
 #include <glib.h>
@@ -323,9 +322,11 @@ is_pattern (const char* str)
 static gboolean
 pattern_matches (char* key_pattern, char* value_login, char* hostname)
 {
+  printf ("SSH-DEBUG: Testing if %s is pattern\n", key_pattern);
   if (is_pattern (key_pattern) == FALSE)
     return FALSE;
 
+  printf ("SSH-DEBUG: Testing Pattern %s against %s\n", key_pattern, hostname);
   if (g_pattern_match_simple (key_pattern, hostname) == TRUE)
     return TRUE;
 
@@ -357,32 +358,54 @@ fill_host_kb_ssh_credentials (struct kb_item** kb, struct arglist* globals,
   map_loginname_login  = arg_get_value (globals, "MAP_NAME_SSHLOGIN");
   
   if (map_host_login_names == NULL || map_loginname_login == NULL)
-    return;
+    {
+      printf("SSH-DEBUG: Not setting login information for local checks at %s : No mapping found.\n", hostname);
+      return;
+    }
 
-  // Look up the user assigned name for the login assigned to this host.
+  // Look up the user assigned name for the login assigned explicitely to this host.
   accountname = g_hash_table_lookup (map_host_login_names, hostname);
 
+  // Try to fetch login struct
+  if (accountname != NULL)
+    login = g_hash_table_lookup (map_loginname_login, accountname);
+  
   // No login- account name for this host found? Seach if any pattern matches.
-  if (accountname == NULL)
+  if (accountname == NULL || login == NULL)
     {
+      printf ("SSH-DEBUG: Trying to match patterns for login at %s\n", hostname);
       accountname = g_hash_table_find (map_host_login_names,
                                        (GHRFunc) pattern_matches, hostname);
+      // Try to fetch login struct
+      if (accountname != NULL)
+        login = g_hash_table_lookup (map_loginname_login, accountname);
     }
-  
+
   // No pattern matching this host found? Try "Default".
-  if (accountname == NULL)
+  if (accountname == NULL || login == NULL)
     {
+      printf ("SSH-DEBUG: Trying Default- account for local checks at %s\n", hostname);
       accountname = g_hash_table_lookup (map_host_login_names, "Default");
+
       // If none under 'Default' either, done.
       if (accountname == NULL)
-        return;
+        {
+          printf("SSH-DEBUG: Not setting login information for local checks at %s: No even Default account found.\n", hostname);
+          return;
+        }
+      else
+        {
+          login = g_hash_table_lookup (map_loginname_login, accountname);
+            // No login information for this login-account found? Strange, but so be it.
+          if (login == NULL)
+            {
+              printf("SSH-DEBUG: Could not find info for accountname '%s' for local checks at %s.\n", accountname, hostname);
+              return;
+            }
+        }
     }
 
-  login = g_hash_table_lookup (map_loginname_login, accountname);
-
-  // No login information for this login-account found? Strange, but so be it.
-  if (login == NULL)
-    return;
+  printf("SSH-DEBUG: Resolving infos of account '%s' for local checks at %s.\n", accountname, hostname);
 
   // Get the translation table (remotefilepath -> localfilepath)
   harglst* transl = arg_get_value(globals, "files_translation");
@@ -423,9 +446,11 @@ fill_host_kb_ssh_credentials (struct kb_item** kb, struct arglist* globals,
         }
       if (error != NULL) g_error_free(error);
     }
+  
+  printf("SSH-DEBUG: Resolved account name %s for local tests at %s\n", accountname, hostname);
 }
 
-// TODO eventually to be moved to libopenvas kb.c 
+// TODO eventually to be moved to libopenvas kb.c
 /**
  * @brief Inits or loads the knowledge base for a single host.
  * 

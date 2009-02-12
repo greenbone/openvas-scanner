@@ -1,5 +1,15 @@
 2009-02-12  Felix Wolfsteller <felix.wolfsteller@intevation.de>
 
+	Repaired resolution of Default or pattern- defined logins per host,
+	printf Debug- messages.
+	
+	* openvasd/attack.c (fill_host_kb_ssh_credentials): Check if login
+	is registered under keys before resolution, debug messages.
+	
+	* openvasd/attack.c (pattern_matches): printf debug messages.
+
+2009-02-12  Felix Wolfsteller <felix.wolfsteller@intevation.de>
+
 	Resolved bug when per-target ssh login information was already added in
 	an arglist, has to be set be become replaced.
 
