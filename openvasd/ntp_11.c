@@ -439,9 +439,12 @@ build_global_host_sshlogins_map (struct arglist* globals, char* filepath)
 {
   // Deserialize the hashtable that mapped login-account names to host names.
   GHashTable* map_host_sshlogin_name = hash_table_file_read (filepath);
-  // Index it in the arglist
-  if (map_host_sshlogin_name!= NULL)
+  // Add or replace it in the arglist
+  if (map_host_sshlogin_name!= NULL
+      && arg_get_value (globals, "MAP_HOST_SSHLOGIN_NAME") == NULL)
     arg_add_value (globals, "MAP_HOST_SSHLOGIN_NAME", ARG_PTR, -1, map_host_sshlogin_name);
+  else if (map_host_sshlogin_name!= NULL)
+    arg_set_value (globals, "MAP_HOST_SSHLOGIN_NAME", -1, map_host_sshlogin_name);
 }
 
 /**
@@ -462,9 +465,11 @@ build_global_sshlogin_info_map (struct arglist* globals, char* filepath)
 {
   // Read the file, build map of names->structs
   GHashTable* ssh_logins = openvas_ssh_login_file_read (filepath, FALSE);
-  // Add, if not-empty
-  if (ssh_logins != NULL)
+  // Add/ Replace, if not-empty
+  if (ssh_logins != NULL && arg_get_value (globals, "MAP_NAME_SSHLOGIN") == NULL)
     arg_add_value (globals, "MAP_NAME_SSHLOGIN", ARG_PTR, -1, ssh_logins);
+  else if (ssh_logins != NULL)
+    arg_set_value (globals, "MAP_NAME_SSHLOGIN", -1, ssh_logins);
 }
 
 

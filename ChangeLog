@@ -1,3 +1,12 @@
+2009-02-12  Felix Wolfsteller <felix.wolfsteller@intevation.de>
+
+	Resolved bug when per-target ssh login information was already added in
+	an arglist, has to be set be become replaced.
+
+	* openvasd/ntp_11.c (build_global_sshlogin_info_map,
+	build_global_host_sshlogins_map): If value alread found in arglist
+	replace it.
+
 2009-02-10  Michael Wiegand <michael.wiegand@intevation.de>
 
 	* openvasd/pluginload.c (plugins_reload_from_dir): Add support for
