@@ -150,3 +150,15 @@ distcheck:
 			     -e '/^config\.status$$/d' \
 			     -e '/^include\/config\.h$$/d' \
 		| sort | diff -cb - MANIFEST
+
+# Generates basic code documentation (placed in doc/generated)
+doc :
+	doxygen doc/Doxyfile
+
+# Generates more extensive code documentation with graphs 
+# (placed in doc/generated) and builts doc/generated/latex/refman.pdf
+doc-full:
+	doxygen doc/Doxyfile_full
+	if [ -d doc/generated/latex ]; then make -C doc/generated/latex; fi
+
+.PHONY: doc
