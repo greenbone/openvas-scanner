@@ -1,5 +1,9 @@
 2009-02-13  Felix Wolfsteller <felix.wolfsteller@intevation.de>
 
+	* openvasd/openvasd.c: In mainpage doc, corrected section name.
+
+2009-02-13  Felix Wolfsteller <felix.wolfsteller@intevation.de>
+
 	* openvasd/openvasd.c: Added mainpage directive for code documentation.
 	Included README and LICENSE files in the mainpage.
 

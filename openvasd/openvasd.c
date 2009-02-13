@@ -32,7 +32,7 @@
  * @section Introduction
  * @verbinclude README
  *
- * @section License Information
+ * @section license License Information
  * @verbinclude COPYING
  */
 
