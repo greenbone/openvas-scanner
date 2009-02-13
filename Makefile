@@ -32,7 +32,7 @@ include openvas.tmpl
 
 ALLDEPS = openvas.tmpl
 
-all: $(ALLDEPS) server sslstuff doc
+all: $(ALLDEPS) server sslstuff man
 
 
 openvas.tmpl: openvas.tmpl.in configure VERSION
@@ -108,7 +108,7 @@ sslstuff :
 	cd ssl && $(MAKE)
 
 
-doc : $(MAN_OPENVASD_8)
+man : $(MAN_OPENVASD_8)
 
 $(MAN_OPENVASD_8) : $(MAN_OPENVASD_8).in
 	@sed -e 's?@OPENVASD_CONFDIR@?${OPENVASD_CONFDIR}?g;s?@OPENVASD_DATADIR@?${OPENVASD_DATADIR}?g;s?@OPENVASD_PLUGINS@?${OPENVASD_PLUGINS}?g;' $(MAN_OPENVASD_8).in  >$(MAN_OPENVASD_8)

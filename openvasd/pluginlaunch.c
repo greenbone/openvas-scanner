@@ -320,8 +320,12 @@ read_running_processes()
    if(processes[i].pid > 0 )
    {
     flag ++;
-    if(FD_ISSET(processes[i].internal_soc, &rd) != 0 )
-	  process_internal_msg(i);
+    if(FD_ISSET(processes[i].internal_soc, &rd) != 0 ) {
+      int result = process_internal_msg(i);
+      if (result)
+        log_write("process_internal_msg for %s returned %d\n",
+                  processes[i].name, result);
+    }
    }
  }
 

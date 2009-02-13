@@ -279,7 +279,8 @@ shared_socket_cleanup_process ( nthread_t process )
  *                INTERNAL_COMM_SHARED_SOCKET_RELEASE
  *                (defined in libopenvas/plugutils.h).
  * 
- * @return -1 if message is unknown.
+ * @return -1 if message did not work out in some way (usually something
+ *            will occur in the log file about shared sockets then).
  */
 int
 shared_socket_process ( int soc, nthread_t pid, char * buf, int message )

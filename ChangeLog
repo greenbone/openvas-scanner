@@ -1,3 +1,17 @@
+2009-02-13  Jan-Oliver Wagner <jan-oliver.wagner@intevation.de>
+
+	* openvasd/pluginscheduler.c (hash_fill_deps): Improved
+	warning message to avoid misinterpretation.
+
+	* openvasd/shared_socket.c (shared_socket_process): Improved
+	documentation.
+
+	* openvasd/pluginlaunch.c (read_running_processes): Write a
+	log entry in case of process_internal_msg fails.
+
+	* Makefile: Renamed old target "doc" to "man" to avoid
+	having two targets "doc".
+
 2009-02-12  Jan-Oliver Wagner <jan-oliver.wagner@intevation.de>
 
 	* doc/Doxyfile, doc/Doxyfile_full: New. Directives for

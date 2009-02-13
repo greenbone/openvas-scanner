@@ -355,7 +355,7 @@ static void hash_fill_deps(struct hash * h, struct hash * l )
 	if ( d != NULL )
 	 l->dependencies_ptr[j++] = d;
         else
-          log_write("%s depends on %s which could not be found\n", l->plugin->arglist->name, l->dependencies[i]);
+          log_write("scheduler: %s depends on %s which could not be found, thus this dependency is not considered for execution sequence\n", l->plugin->arglist->name, l->dependencies[i]);
 	}
    l->dependencies_ptr[j] = NULL;
   }
