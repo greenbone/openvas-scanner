@@ -1,5 +1,16 @@
 2009-02-13  Felix Wolfsteller <felix.wolfsteller@intevation.de>
 
+	Replaced outdated INSTALL by slightly more verbose README.
+
+	* INSTALL: Removed. Information was few and outdated. Superseded by
+	README.
+	
+	* README: New. Contains installation and set-up instructions.
+	
+	* MANIFEST: Updated (-INSTALL +README).
+
+2009-02-13  Felix Wolfsteller <felix.wolfsteller@intevation.de>
+
 	Format and doc in openvasd module.
 
 	* openvasd/openvasd.c: Transformed function headers, replaced static

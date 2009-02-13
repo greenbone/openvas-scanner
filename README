@@ -1,0 +1,84 @@
+openvas-server
+==============
+
+This is the server module for the Open Vulnerability Assessment System
+(OpenVAS).
+
+For more information, please refer to the OpenVAS website available at
+http://www.openvas.org/.
+
+Please see the file COPYING for the license information.
+
+Please refer to the instructions provided below if you want to install
+openvas-server. If you are not familiar or comfortable with the procedure
+described below, we recommend that you use a binary package provided by your
+distribution. Information regarding available binary packages is available from
+the OpenVAS website.
+
+If you have any question or suggestions, please feel free to use the mailing
+list and the IRC chat to contact the OpenVAS developers.
+
+Please use the OpenVAS bug tracker located at http://bugs.openvas.org/ to report
+bugs.
+
+
+Compiling openvas-server
+------------------------
+
+Before compiling openvas-server make sure that you installed openvas-libraries
+and openvas-libnasl.
+
+Run
+
+$ ./configure
+
+to set up the compilation envoironment.
+During configuration, error messages may show up if openvas-libraries,
+openvas-libnasl or other libraries and applications needed to compile
+openvas-server are not present on your system or do not meet the version
+requirements.
+In this case, resolve the issues reported and run configure again.
+
+If you want to install openvas-server into a different hierarchy, you may
+want to use the prefix option during configuration:
+
+$ ./configure --prefix=/opt/openvas
+
+More information about the configuration options is available through the help
+option:
+
+$ ./configure --help
+
+Once you have configured openvas-server successfully, you can start the
+compilation by executing the following command:
+
+$ make
+
+To install openvas-server, you can use the following command:
+
+$ make install
+
+Please note that you may have to execute this command as root, especially if you
+have specified a prefix for which your user does not have full permissions.
+
+Setting up openvas-server
+-------------------------
+Setting up an openvas-server requires following steps.
+
+1) Create a certificate for the openvas-server daemon openvasd, using openvas-mkcert(8).
+2) Add user(s), using openvas-adduser(8). User- accounts will be needed to
+connect to the server with a Client.
+3) Start openvasd. The most important command-line options are -p <portnumber> and
+-D to run in daemon mode. Invoke openvasd --help to find out about others.
+4) If you want to test your setup, start an openvas-client and connect to the
+server. You will need username and password as specified in step 2.
+5) If you do not have plugins (NVTs) installed, consider using the plugin feed.
+More information can be found on the OpenVAS- website.
+6) If you installed new plugins make sure that the paths in
+($PREFIX)/etc/openvas/openvasd.conf are set up correctly and restart openvasd.
+
+If you encounter problems it can be helpful to inspect and make copies of
+($PREFIX)/var/log/openvasd.messages and ($PREFIX)/var/log/openvasd.dump .
+Provide extracts of these files when contacting the mailinglists, people in
+the IRC channel #openvas or reporting a bug on the openvas bugtracker
+(http://bugs.openvas.org) and it will be appreciated.
