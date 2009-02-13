@@ -1,3 +1,8 @@
+2009-02-13  Michael Wiegand <michael.wiegand@intevation.de>
+
+	* openvasd/pluginload.c (plugins_reload_from_dir): Don't try to split
+	include_folders if there is no such preference. 
+
 2009-02-13  Jan-Oliver Wagner <jan-oliver.wagner@intevation.de>
 
 	* openvasd/pluginscheduler.c (hash_fill_deps): Improved
