@@ -26,6 +26,21 @@
 *
 */
 
+/**
+ * @mainpage
+ *
+ * @section Introduction
+ * @verbinclude README
+ *
+ * @section License Information
+ * @verbinclude COPYING
+ */
+
+/**
+ * @file
+ * OpenVAS Server main module, runs the server.
+ */
+
 #include <includes.h>
 #include <harglists.h>
 #include <nasl.h>
