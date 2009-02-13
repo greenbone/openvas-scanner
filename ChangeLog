@@ -1,3 +1,10 @@
+2009-02-13  Felix Wolfsteller <felix.wolfsteller@intevation.de>
+
+	Format and doc in openvasd module.
+
+	* openvasd/openvasd.c: Transformed function headers, replaced static
+	var from middle of file to beginning of file, transformed comments.
+
 2009-02-13  Michael Wiegand <michael.wiegand@intevation.de>
 
 	* openvasd/pluginload.c (plugins_reload_from_dir): Don't try to split

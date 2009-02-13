@@ -24,8 +24,7 @@
 * along with this program; if not, write to the Free Software
 * Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA 02110-1301 USA.
 *
-*
-*/ 
+*/
 
 #include <includes.h>
 #include <harglists.h>
@@ -68,7 +67,8 @@ int allow_severity = LOG_NOTICE;
 
 extern char * nasl_version();
 extern char * nessuslib_version();
-/*
+
+/**
  * Globals that should not be touched
  */
 int g_max_hosts = 15;
@@ -87,6 +87,11 @@ struct openvas_rules * g_rules;
 static char * orig_argv[64];
 static int restart = 0;
 
+/**
+ * SSL context may be kept once it is inited.
+ */
+static ovas_server_context_t ovas_server_ctx = NULL;
+
 
 /*
  * Functions prototypes
@@ -99,7 +104,8 @@ static void server_thread (struct arglist *);
 
 
 
-static struct in_addr * convert_ip_addresses(char * ips)
+static struct in_addr*
+convert_ip_addresses (char * ips)
 {
  char * t;
  struct in_addr addr;
@@ -151,24 +157,17 @@ static struct in_addr * convert_ip_addresses(char * ips)
    num_allocated ++;
    ret = erealloc(ret, (num_allocated + 1) * sizeof(struct in_addr));
   }
- 
- 
- 
+
  ret[num].s_addr = 0;
  ret = erealloc(ret, ( num + 1 ) * sizeof(struct in_addr));
  efree(&orig);
  return ret;
-} 
-  
-  
-  
-
+}
 
 
 
 static void
-dump_cfg_specs
-  (struct arglist *prefs)
+dump_cfg_specs (struct arglist *prefs)
 {
  while(prefs && prefs->next)
  {
@@ -193,8 +192,7 @@ arg_replace_value(arglist, name, type, length, value)
 
 
 static void
-start_daemon_mode
-  (void)
+start_daemon_mode (void)
 {
   char *s;
   int fd;
@@ -258,15 +256,14 @@ start_daemon_mode
 
 
 static void
-end_daemon_mode
-  (void)
+end_daemon_mode (void)
 {
-
   /* clean up all processes the process group */
   make_em_die (SIGTERM);
 }
 
-static void restart_openvasd()
+static void
+restart_openvasd ()
 {
  char * path;
  char fpath[1024];
@@ -307,14 +304,8 @@ sighup(i)
 }
 
 
-
-/*
- * SSL context may be kept once it is inited.
- */
-static ovas_server_context_t ovas_server_ctx = NULL;
-
 static void
-server_thread(struct arglist * globals)
+server_thread (struct arglist * globals)
 {
  struct sockaddr_in * address = arg_get_value(globals, "client_address");
  struct arglist * plugins = arg_get_value(globals, "plugins");
@@ -468,8 +459,8 @@ wait :
 }
 
 
-static void 
-main_loop()
+static void
+main_loop ()
 {
   char		*cert, *key, *passwd, *ca_file, *s, *ssl_ver;
   int force_pubkey_auth;
@@ -670,17 +661,20 @@ main_loop()
 }
 
 
-/*
+/**
  * Initialization of the network : 
- * we setup the socket that will listen for incoming connections on port <port>
- * on address <addr> (which are set to OPENVAS_IANA_OTP_PORT and INADDR_ANY by
- * default)
- */ 
+ * we setup the socket that will listen for incoming connections on port \<port\>
+ * on address \<addr\> (which are set to OPENVAS_IANA_OTP_PORT and INADDR_ANY by
+ * default).
+ * 
+ * @param port Port on which to listen.
+ * @param[out] sock Socket to be initialized.
+ * @param addr Adress.
+ * 
+ * @return 0 on success. Exit(1)s on failure.
+ */
 static int 
-init_network(port, sock, addr)
-     int port;
-     int * sock;
-     struct in_addr addr;
+init_network (int port, int* sock, struct in_addr addr)
 {
   int option = 1;
 
@@ -714,15 +708,14 @@ init_network(port, sock, addr)
   return(0);
 }
 
-/*
+/**
  * Initialize everything
+ * 
+ * @param stop_early 1: do some initialization, 2: no initialization.
  */
 static int 
-init_openvasd (options, first_pass, stop_early, be_quiet)
-     struct arglist * options;    
-     int first_pass;
-     int stop_early; /* 1: do some initialization, 2: no initialization */
-     int be_quiet;
+init_openvasd (struct arglist * options, int first_pass, int stop_early,
+               int be_quiet)
 {
   int  isck = -1;
   struct arglist * plugins = NULL;
