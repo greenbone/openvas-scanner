@@ -106,7 +106,7 @@ int preferences_new(char * name)
  fprintf(fd, "# 'default' means that OpenVAS will scan ports found in its\n");
  fprintf(fd, "# services file.\n");
  fprintf(fd, "port_range = default\n\n");
- fprintf(fd, "# Optimize the test (recommanded) : \n");
+ fprintf(fd, "# Optimize the test (recommended) : \n");
  fprintf(fd, "optimize_test = yes\n\n");
  fprintf(fd, "# Language of the plugins :\n");
  fprintf(fd, "language = %s\n\n", OPENVASD_LANGUAGE);
@@ -147,9 +147,9 @@ int preferences_new(char * name)
 
  fprintf(fd, "\n\n");
  fprintf(fd, "# If this option is set, OpenVAS will not scan a network incrementally\n");
- fprintf(fd, "# (10.0.0.1, then 10.0.0.2, 10.0.0.3 and so on..) but will attempt to\n");
- fprintf(fd, "# slice the workload throughout the whole network (ie: it will scan\n");
- fprintf(fd, "# 10.0.0.1, then 10.0.0.127, then 10.0.0.2, then 10.0.0.128 and so on...\n");
+ fprintf(fd, "# (10.0.0.1, then 10.0.0.2, 10.0.0.3 and so on) but will attempt to\n");
+ fprintf(fd, "# slice the workload throughout the whole network (i.e. it will scan\n");
+ fprintf(fd, "# 10.0.0.1, then 10.0.0.127, then 10.0.0.2, then 10.0.0.128 and so on)\n");
  fprintf(fd, "slice_network_addresses = no\n\n");
  
  fprintf(fd, "# Should consider all the NASL scripts as being signed ? (unsafe if set to 'yes')\n");

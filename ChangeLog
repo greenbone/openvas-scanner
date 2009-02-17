@@ -1,5 +1,10 @@
 2009-02-17  Michael Wiegand <michael.wiegand@intevation.de>
 
+	* openvasd/preferences.c (preferences_new): Fixed minor spelling errors
+	in comments of newly created preferences files.
+
+2009-02-17  Michael Wiegand <michael.wiegand@intevation.de>
+
 	Post release version bump.
 
 	* VERSION: Set to 2.0.2.SVN.
