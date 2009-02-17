@@ -1,5 +1,13 @@
 2009-02-17  Michael Wiegand <michael.wiegand@intevation.de>
 
+	Post release version bump.
+
+	* VERSION: Set to 2.0.2.SVN.
+
+	* doc/Doxyfile, doc/Doxyfile_full: Set PROJECT_NUMBER to 2.0.2.SVN.
+
+2009-02-17  Michael Wiegand <michael.wiegand@intevation.de>
+
 	Preparing the openvas-server 2.0.1 release.
 
 	* CHANGES: Updated.
