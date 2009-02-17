@@ -1,3 +1,17 @@
+2009-02-17  Michael Wiegand <michael.wiegand@intevation.de>
+
+	Preparing the openvas-server 2.0.1 release.
+
+	* CHANGES: Updated.
+
+	* README: Extended instructions for server setup.
+
+	* ChangeLog: Tidied.
+
+	* VERSION: Set to 2.0.1.
+
+	* doc/Doxyfile, doc/Doxyfile_full: Set PROJECT_NUMBER to 2.0.1.
+
 2009-02-17  Felix Wolfsteller <felix.wolfsteller@intevation.de>
 
 	Minor documentation added / transformed into agreed format.
@@ -459,7 +473,7 @@
 
 2008-12-30  Felix Wolfsteller <felix.wolfsteller@intevation.de>
 
-        * openvasd/attack.c: Replaced K&R header, added comment to attack_host.
+	* openvasd/attack.c: Replaced K&R header, added comment to attack_host.
 
 2008-12-30  Felix Wolfsteller <felix.wolfsteller@intevation.de>
 

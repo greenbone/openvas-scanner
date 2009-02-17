@@ -1,3 +1,83 @@
+openvas-server 2.0.1 (2009-02-17)
+
+This is the first maintenance release of the openvas-server module for the
+Open Vulnerability Assessment System (OpenVAS) 2.0-series.
+
+It fixes some issues discovered after the release of openvas-server
+2.0.0 and introduces support for new features. Thanks to the continuing
+audit of the code, a number of obsolete, unused and/or unnecessary functions
+were identified and removed.
+
+Effects when installing this version:
+
+* Dependencies: openvas-server 2.0.1 requires openvas-libraries 2.0.1 and
+openvas-libnasl 2.0.1. You need to install these prior to openvas-server 2.0.1.
+
+* Cache files: Effects of openvas-libraries 2.0.1 are changes in the
+cache file management. With 2.0.1 release of openvas-server it is
+possible to specify a new location for the cache folder. If you will
+use a new location, then the effects described for openvas-libraries
+do not apply anymore (see also below regarding cache folder).
+
+* New default port of the server: Please be aware that openvas-server
+now listens on port 9390 by default since this port has recently been allocated
+by IANA for the Openvas Transport Protocol (OTP). If you want to continue to
+use the old port 1241, you have to specify the port you want openvasd to
+listen on, for example by starting the server with "openvasd -p 1241".
+If you don't specify this, it might happen that at next boot of your
+system (or other restart of openvasd), the service is available
+at a new port and you need to update the connection information
+in your OpenVAS-Client.
+
+Main changes since 2.0.0:
+
+* Support for sub-directories in plugins_folder in accordance with
+  Change Request #24 (http://www.openvas.org/openvas-cr-24.html).
+* Established automated source code documentation. HTML-Version is available
+  under http://www.openvas.org/src-doc/openvas-server/current/index.html
+* Openvas-server now uses the IANA-assigned port 9390 for communication
+  with the client.
+* It is now possible to start openvas-server without root privileges. Note that
+  a number of NVTs which rely on operations requiring root privileges (like
+  packet forgery) will not work under these circumstances.
+* The openvasd-config script now returns the values for sysconfdir, libdir and
+  sbindir set at compile time.
+* The new server preference "cache_folder" allows you to define the location
+  of the cache ($plugins_folder/.desc in previous versions). The default value
+  for this preference is /var/cache/openvas for new OpenVAS installations.
+  Existing installations need to add cache_folder = /var/cache/openvas
+  manually to openvasd.conf and make sure the directory exists.
+* The new server preference "include_folders" allows you to specify
+  search paths for the NASL include directive. This aids the use of
+  subdirectories for plugins. The default value for this preference is
+  $plugins_folder to be compatible with the old "flat" (all in one directory)
+  structure.
+* Initial support for per-target SSH credentials settings has been added. Please
+  note that you will need a new client (>= 2.0.2) and a new ssh_authorization.nasl file to
+  use this feature.
+* Having a directory structure in $plugins_folder is now supported. openvasd
+  will recurse through the subdirectories in $plugins_folder.
+
+Note: The OpenVAS NVT feed will not use the new features for subdirectories and
+include paths as long as the OpenVAS 1.0.x and OpenVAS 2.0.0 releases are
+supported. An exception might be OVAL support.
+
+Bugfixes:
+
+* The usage of the gettext support tool in support scripts like openvas-adduser
+  did expect gettext.sh to be in /usr/bin, which prevented the scripts from
+  working correctly on systems where this was not the case. The gettext usage
+  has been made more robust. (Solves: #860)
+* During startup, openvasd will now show the correct total number of plugins
+  and not count signatures and other files anymore.
+* The obsolete user-specific cache (.desc in
+  /var/lib/openvas/users/USER/plugins/) is not created anymore.
+
+Many thanks to everyone who has contributed to this release: Tim Brown,
+Stjepan Gros (for subdirs feature), Joey Schulze, Jan-Oliver Wagner,
+Felix Wolfsteller and Michael Wiegand.
+
+
 openvas-server 2.0.0 (2008-12-17)
 
 This is the 2.0.0 release of OpenVAS.

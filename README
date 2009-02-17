@@ -15,6 +15,10 @@ described below, we recommend that you use a binary package provided by your
 distribution. Information regarding available binary packages is available from
 the OpenVAS website.
 
+Note that you will need the openvas-libraries and openvas-libnasl modules to
+compile openvas-server. Further information about these modules is available
+from the OpenVAS website as well.
+
 If you have any question or suggestions, please feel free to use the mailing
 list and the IRC chat to contact the OpenVAS developers.
 
@@ -32,7 +36,7 @@ Run
 
 $ ./configure
 
-to set up the compilation envoironment.
+to set up the compilation environment.
 During configuration, error messages may show up if openvas-libraries,
 openvas-libnasl or other libraries and applications needed to compile
 openvas-server are not present on your system or do not meet the version
@@ -63,22 +67,61 @@ have specified a prefix for which your user does not have full permissions.
 
 Setting up openvas-server
 -------------------------
-Setting up an openvas-server requires following steps.
 
-1) Create a certificate for the openvas-server daemon openvasd, using openvas-mkcert(8).
-2) Add user(s), using openvas-adduser(8). User- accounts will be needed to
-connect to the server with a Client.
-3) Start openvasd. The most important command-line options are -p <portnumber> and
--D to run in daemon mode. Invoke openvasd --help to find out about others.
-4) If you want to test your setup, start an openvas-client and connect to the
-server. You will need username and password as specified in step 2.
-5) If you do not have plugins (NVTs) installed, consider using the plugin feed.
-More information can be found on the OpenVAS- website.
-6) If you installed new plugins make sure that the paths in
-($PREFIX)/etc/openvas/openvasd.conf are set up correctly and restart openvasd.
+NOTE: This is only a very concise guide to setting up an openvas-server. Please
+refer to the OpenVAS compendium available at http://www.openvas.org/compendium/
+for more detailed information.
 
-If you encounter problems it can be helpful to inspect and make copies of
-($PREFIX)/var/log/openvasd.messages and ($PREFIX)/var/log/openvasd.dump .
-Provide extracts of these files when contacting the mailinglists, people in
-the IRC channel #openvas or reporting a bug on the openvas bugtracker
-(http://bugs.openvas.org) and it will be appreciated.
+Setting up an openvas-server requires the following steps:
+
+1) The server and the client module of OpenVAS communicate through an SSL
+   connection. In order to establish this connection, the server needs to have
+   an SSL certificate it can present to the client to prove its identity. You
+   can interactively create this certificate by using the following command:
+
+   $ openvas-mkcert
+
+   This command will guide you through the certificate creation and place the
+   certificates in the correct locations on your system.
+
+2) You need to create at least one user on the openvas-server to be able to
+   login with openvas-client. This can be done through the following command:
+
+   $ openvas-adduser
+
+   The command will guide you through the user creation and allow you to specify
+   a name and authentication method for the user and to define rules restricting
+   the usagen of the server by this user. For more details on rules please
+   refer to the OpenVAS compendium available through the OpenVAS website.
+
+3) You can launch openvas-server using the following command:
+
+   $ openvasd
+
+   Please note that although you can start openvasd as a user without elevated
+   privileges, it is recommended that you start openvasd as root since a number
+   of Network Vulnerability Tests (NVTs) require root privileges to perform
+   certain operations like packet forgery. If you run openvasd as a user without
+   permission to perform these operations, your scan results are very likely to
+   be incomplete.
+
+4) Once the server has started, you can use the OpenVAS-Client to connect to
+   your server using the username and credentials you specified in step 2.
+   Please refer to the documentation for the openvas-client module for more
+   information.
+
+NVTs are available through the openvas-plugins module and through NVT feeds.
+Since the update cycle for the openvas-plugins module is quite long, it will
+only offer a base coverage and may not detect recently discovered
+vulnerabilities. NVT feeds are usually updated a few times per week and offer a
+more up-to-date coverage.
+Please visit the OpenVAS website for more information on available NVT feeds and
+instructions for integrating feeds into your server installation.
+
+If you encounter problems, the files /var/log/openvas/openvasd.messages and
+/var/log/openvas/openvasd.dump may contain useful information. (The exact
+location of these files may differ depending on your distribution and
+installation method.) Please have these files ready when contacting the OpenVAS
+developers through the OpenVAS mailing list or the online chat or submitting bug
+reports at http://bugs.openvas.org/ as they may help to pinpoint the source of
+your issue.
