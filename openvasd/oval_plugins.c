@@ -176,7 +176,7 @@ void end_element (GMarkupParseContext *context, const gchar *element_name,
     in_results_definition = FALSE;
 }
 
-/*
+/**
  *  Initialize the plugin class
  */
 pl_class_t* oval_plugin_init(struct arglist* prefs, struct arglist* args)
@@ -184,8 +184,8 @@ pl_class_t* oval_plugin_init(struct arglist* prefs, struct arglist* args)
     return &oval_plugin_class;
 }
 
-/*
- * add *one* OVAL definition to the server list
+/**
+ * Add *one* OVAL definition to the server list
  */
 struct arglist * oval_plugin_add(char * folder, char * name,
                                  struct arglist * plugins,
@@ -274,7 +274,7 @@ struct arglist * oval_plugin_add(char * folder, char * name,
   return args;
 }
 
-/*
+/**
  * Launch an OVAL plugin
  */
 int oval_plugin_launch(struct arglist * globals, struct arglist * plugin,
@@ -296,7 +296,7 @@ int oval_plugin_launch(struct arglist * globals, struct arglist * plugin,
   return module;
 }
 
-/*
+/**
  * Create a thread for the OVAL plugin
  */
 static void oval_thread(struct arglist * g_args)
@@ -323,7 +323,7 @@ static void oval_thread(struct arglist * g_args)
   internal_send(soc, NULL, INTERNAL_COMM_MSG_TYPE_CTRL | INTERNAL_COMM_CTRL_FINISHED);
 }
 
-/*
+/**
  * This function will generate an OVAL system characteristics document from the
  * data available in the knowledge base (KB), run ovaldi and return the results
  * to the client.

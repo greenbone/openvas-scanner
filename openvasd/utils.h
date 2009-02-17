@@ -34,8 +34,8 @@
 struct attack_atom
 {
  char * name;
- int soc;  /* public socket  */
- int psoc; /* private socket */
+ int soc;  /**< public socket  */
+ int psoc; /**< private socket */
  struct attack_atom * next;
 };
 struct arglist * sort_plugins_by_type(struct arglist *);

@@ -41,17 +41,17 @@
 extern int g_max_hosts;
 extern int g_max_checks;
 
-/*
- * version check (for libraries)
+/**
+ * @brief Library version check.
  *
  * Returns 0  if versions are equal
  * Returns 1 if the fist version is newer than the second 
  * Return -1 if the first version is older than the second
  *
+ * @return 0 if versions are equal, 1 if a newer than b, -1 if b newer than a.
  */
 int 
-version_check(a,b)
- char * a, *b;
+version_check (char* a, char* b)
 {
  int int_a, int_b;
  
@@ -72,18 +72,17 @@ version_check(a,b)
 }
 
 
-/*
- * Returns <1> if the two arglists have a name in common
+/**
+ * @brief Returns 1 if the two arglists have a name in common.
+ *
+ * @return 0 if l1 and l2 have a name in common, 0 otherwise.
  */
 int
 common(l1, l2)
  struct arglist * l1, *l2;
 {
  if(!l1 || !l2)
-  {
-#ifdef DEBUG_FUNC_COMMON
-   printf("common(): l1 =%d, l2 = %d\n", l1, l2);
-#endif   
+ {
   return 0;
  }
  while( l1->next != NULL )
@@ -98,9 +97,10 @@ common(l1, l2)
  }
  return 0;
 }
-/*
+
+/**
  * Converts a user comma delimited input (1,2,3) into an
- * arglist
+ * arglist.
  */
 struct arglist *
 list2arglist(list)
@@ -138,8 +138,8 @@ list2arglist(list)
  
 
 
-/* 
- * Get the max number of hosts to test at the same time
+/**
+ * Get the max number of hosts to test at the same time.
  */
 int 
 get_max_hosts_number(globals, preferences)
@@ -168,7 +168,7 @@ you believe this is incorrect\n",
   return(max_hosts);
 }
 
-/* 
+/**
  * Get the max number of plugins to launch against the remote
  * host at the same time
  */
@@ -200,7 +200,7 @@ you believe this is incorrect\n",
 }
 
 
-/*
+/**
  * Returns the number of plugins that will be launched
  */
 int 
@@ -273,10 +273,10 @@ void check_symlink(name)
  }
 }
 
-/*
+/**
  * Converts a hostnames arglist 
  * to a space delimited lists of hosts
- * in one string
+ * in one string and returns it.
  */
 char * 
 hosts_arglist_to_string(hosts)
@@ -347,7 +347,7 @@ delete_pid_file()
 }
 
 
-/*
+/**
  * Returns a name suitable for a temporary file. 
  * This function ensures that this name is not taken
  * already.
@@ -375,12 +375,9 @@ temp_file_name()
  
  
 
-/*---------------------------------------------------------------------
-
-	Determines if a process is alive - as reliably as we can
-
------------------------------------------------------------------------*/
-
+/**
+ * Determines if a process is alive - as reliably as we can
+ */
 int 
 process_alive(pid)
  pid_t pid;
@@ -397,11 +394,11 @@ process_alive(pid)
 }
 
 
-
-/*--------------------------------------------------------------------
- Determines if a BSD socket is still connected. Returns 0 if the socket
- is NOT connected, 1 otherwise
- *--------------------------------------------------------------------*/
+/**
+ * Determines if a BSD socket is still connected. Returns 0 if the socket
+ * is NOT connected, 1 otherwise.
+ * @return 0 if the BSD socket is not connected, 1 otherwise.
+ */
 int 
 is_socket_connected(soc)
 	int soc;
@@ -430,17 +427,10 @@ again:
 }
 
 
-
-/*---------------------------------------------------------------------
-
-	Determines if the client is still connected
-
-	Returns <1> if the client is here
-		<0> if it's not
-
------------------------------------------------------------------------*/
-
-
+/**
+ * Determines if the client is still connected.
+ * @return 1 if the client is here, 0 if it's not.
+ */
 int 
 is_client_present(soc)
 	int soc;

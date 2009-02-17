@@ -38,11 +38,23 @@ int  plugin_get_socket(struct arglist * );
 void plugins_set_socket(struct arglist *, int);
 void plugin_free(struct arglist *);
 void plugins_free(struct arglist *);
+
+/**
+ * Class of a NVT (implemented as list).
+ * Currently three classes do exist: nes_plugin_class, nasl_plugin_class and
+ * oval_plugin_class.
+ * Holds the extension string and pointers to init, add and launch-functions.
+ */
 typedef struct pl_class_s {
+    /** Pointer to next class in list. */
     struct pl_class_s* pl_next;
+    /** File extension for this NVT class (e.g. ".nasl"). */
     const char* extension;
+    /** Pointer to init function */
     struct pl_class_s* (*pl_init)(struct arglist*, struct arglist*);
+    /** Pointer to add function */
     struct arglist* (*pl_add)(char*, char*, struct arglist*, struct arglist*);
+    /** Pointer to launch function */
     int (*pl_launch)(struct arglist*, struct arglist *, struct arglist*, struct arglist*, struct kb_item **, char *);
 } pl_class_t;
 

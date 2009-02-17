@@ -1,9 +1,19 @@
 2009-02-17  Felix Wolfsteller <felix.wolfsteller@intevation.de>
 
-	Repaired timeout- setting from clients preference arglist.
+	Minor documentation added / transformed into agreed format.
+	K&R function declarations replaced.
+	
+	* openvasd/nasl_plugins.c, openvasd/utils.c, openvasd/utils.h,
+	openvasd/shared_socket.c, openvasd/oval_plugins.c, openvasd/pluginload.h
+	: Replaced some K&R function declarations, reformatted or added minor
+	documentation blocks.
+	
+	* ChangeLog: Fixed misleading and wrong entry of last commit.
 
-	* openvasd/preferences.c (preferences_plugin_timeout): Use oid as a
-	string, not int. Use g_strdup_printf instead of malloc + printf.
+2009-02-17  Felix Wolfsteller <felix.wolfsteller@intevation.de>
+
+	* openvasd/preferences.c (preferences_plugin_timeout): Use 
+	g_strdup_printf instead of malloc + printf.
 
 2009-02-17  Felix Wolfsteller <felix.wolfsteller@intevation.de>
 

@@ -27,6 +27,12 @@
 *
 */
 
+/**
+ * @file
+ * Manage shared sockets.
+ * Inter-process communication and its message types are found in
+ * pluginlaunch.c and openvas-libraries/plugutils.h .
+ */
 
 #include <includes.h>
 #include "utils.h"

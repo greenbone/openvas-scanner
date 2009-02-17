@@ -147,7 +147,7 @@ nasl_plugin_add(char* folder, char* name, struct arglist* plugins,
  return plugin_args;
 }
 
-/*
+/**
  * Launch a NASL plugin
  */
 int
@@ -261,7 +261,9 @@ nasl_thread(g_args)
  internal_send(soc, NULL, INTERNAL_COMM_MSG_TYPE_CTRL | INTERNAL_COMM_CTRL_FINISHED);
 }
 
-
+/**
+ * The NASL NVT class.
+ */
 pl_class_t nasl_plugin_class = {
     NULL,
     ".nasl",
