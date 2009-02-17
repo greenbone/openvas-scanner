@@ -30,6 +30,7 @@
 #include <includes.h>
 #include <hosts_gatherer.h>
 
+#include "glib.h"
 #include "comm.h"
 #include "preferences.h"
 #include "log.h"
@@ -38,12 +39,10 @@
 
 #define inited(x) ((x) >= 0)
 
-/* 
- * Initializes the preferences structure 
+/**
+ * @brief Initializes the preferences structure 
  */
-int preferences_init(config_file, prefs)
-	char * config_file;
-	struct arglist ** prefs;
+int preferences_init (char * config_file, struct arglist ** prefs)
 {
   int result;
   *prefs = emalloc(sizeof(struct arglist));
@@ -51,9 +50,9 @@ int preferences_init(config_file, prefs)
   return(result);
 }
 
- 
-/*
- * Creates a new preferences file
+
+/**
+ * @brief Creates a new preferences file.
  */
 int preferences_new(char * name)
 {
@@ -163,13 +162,10 @@ int preferences_new(char * name)
 }
 
 
-/*
- * Copies the content of the prefs file to
- * a special arglist
+/**
+ * @brief Copies the content of the prefs file to a special arglist.
  */
-int preferences_process(filename,prefs)
-     char * filename;
-     struct arglist * prefs;
+int preferences_process (char * filename, struct arglist * prefs)
 {
   FILE * fd;
   char buffer[1024];
@@ -302,8 +298,8 @@ int preferences_get_slice_network_addresses(preferences)
 }
 
 
-int preferences_get_checks_read_timeout(preferences)
- struct arglist *preferences;
+int
+preferences_get_checks_read_timeout (struct arglist *preferences)
 {
  char * pref;
  static int ret = -1;
@@ -433,13 +429,13 @@ preferences_ntp_show_end(preferences)
  return yes;
 }
 
+
 int
-preferences_plugins_timeout(preferences)
- struct arglist * preferences;
+preferences_plugins_timeout (struct arglist * preferences)
 {
  static int to = -1;
  char * pref;
- 
+
  if(!preferences)
   {
    to = -1;
@@ -463,22 +459,30 @@ preferences_plugins_timeout(preferences)
 }
 
 
+/**
+ * @brief Returns the timeout defined by the client or 0 if none was set.
+ * 
+ * @param preferences Preferences arglist.
+ * @param oid         OID of NVT to ask timeout value of.
+ * 
+ * @return 0 if no timeout for the NVT oid was found, timeout in seconds
+ *         otherwise.
+ */
 int
-preferences_plugin_timeout(preferences, oid)
- struct arglist * preferences;
- char * oid;
+preferences_plugin_timeout (struct arglist * preferences, char * oid)
 {
- int ret = 0;
- char * pref_name = emalloc(strlen("timeout.") + 100);
- 
- sprintf(pref_name, "timeout.%s", oid);
- if(arg_get_type(preferences, pref_name) == ARG_STRING)
- {
-  int to = atoi(arg_get_value(preferences, pref_name));
-  if(to)ret = to;
- }
- efree(&pref_name);
- return ret;
+  int ret = 0;
+  char * pref_name = emalloc (strlen ("timeout.") + 100);
+
+  sprintf(pref_name, "timeout.%s", oid);
+  if (arg_get_type (preferences, pref_name) == ARG_STRING)
+    {
+      int to = atoi (arg_get_value (preferences, pref_name));
+      if (to)ret = to;
+    }
+
+  efree (&pref_name);
+  return ret;
 }
 
 int

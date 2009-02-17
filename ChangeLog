@@ -1,3 +1,10 @@
+2009-02-17  Felix Wolfsteller <felix.wolfsteller@intevation.de>
+
+	* openvasd/preferences.c: Partly reformatted and doc
+
+	* openvasd/preferences.c (preferences_plugin_timeout): (fully)
+	reformatted + doc.
+
 2009-02-13  Felix Wolfsteller <felix.wolfsteller@intevation.de>
 
 	* openvasd/openvasd.c: In mainpage doc, corrected section name.
