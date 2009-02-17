@@ -1,5 +1,12 @@
 2009-02-17  Felix Wolfsteller <felix.wolfsteller@intevation.de>
 
+	Repaired timeout- setting from clients preference arglist.
+
+	* openvasd/preferences.c (preferences_plugin_timeout): Use oid as a
+	string, not int. Use g_strdup_printf instead of malloc + printf.
+
+2009-02-17  Felix Wolfsteller <felix.wolfsteller@intevation.de>
+
 	* openvasd/preferences.c: Partly reformatted and doc
 
 	* openvasd/preferences.c (preferences_plugin_timeout): (fully)

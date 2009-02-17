@@ -472,13 +472,12 @@ int
 preferences_plugin_timeout (struct arglist * preferences, char * oid)
 {
   int ret = 0;
-  char * pref_name = emalloc (strlen ("timeout.") + 100);
+  char * pref_name = g_strdup_printf ("timeout.%s", oid);
 
-  sprintf(pref_name, "timeout.%s", oid);
   if (arg_get_type (preferences, pref_name) == ARG_STRING)
     {
       int to = atoi (arg_get_value (preferences, pref_name));
-      if (to)ret = to;
+      if (to) ret = to;
     }
 
   efree (&pref_name);
