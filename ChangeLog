@@ -1,5 +1,14 @@
 2009-02-19  Felix Wolfsteller <felix.wolfsteller@intevation.de>
 
+	Set default value for Silent Dependencies to 'No'. Naive users otherwise
+	might miss some security issues due to suppression of messages coming
+	from the server through NVTs that other NVTs just depend on.
+
+	* openvasd/preferences.d: Set default value for silent_dependencies
+	to 'no'.
+
+2009-02-19  Felix Wolfsteller <felix.wolfsteller@intevation.de>
+
 	* openvasd/preferences.d: Documentation and minor formatting.
 	Added a FIXME about possible conflict with a new scan overiding
 	preference values of running scans.

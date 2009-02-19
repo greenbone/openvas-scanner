@@ -141,7 +141,7 @@ int preferences_new(char * name)
  fprintf(fd, "\n\n# Automatically activate the plugins that are depended on\n");
  fprintf(fd, "auto_enable_dependencies = yes\n");
  fprintf(fd, "\n\n# Do not echo data from plugins which have been automatically enabled\n");
- fprintf(fd, "silent_dependencies = yes\n");
+ fprintf(fd, "silent_dependencies = no\n");
  fprintf(fd, "\n\n# Designate hosts by MAC address, not IP address (useful for DHCP networks)\n");
  fprintf(fd, "use_mac_addr = no\n");
  
