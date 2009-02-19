@@ -1,3 +1,9 @@
+2009-02-19  Felix Wolfsteller <felix.wolfsteller@intevation.de>
+
+	* openvasd/preferences.d: Documentation and minor formatting.
+	Added a FIXME about possible conflict with a new scan overiding
+	preference values of running scans.
+
 2009-02-17  Michael Wiegand <michael.wiegand@intevation.de>
 
 	* openvasd/preferences.c (preferences_new): Fixed minor spelling errors

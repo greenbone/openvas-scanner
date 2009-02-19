@@ -26,7 +26,24 @@
 *
 *
 */
- 
+
+/** @file
+ * 'Server' Preference related functions (some of them scan-related).
+ * 
+ * All the preference getter- functions for pseudo boolean values work in the
+ * same fashion.
+ * The static 'yes' value is initialized only the first time the function is
+ * called. If then preferences != NULL, the arglist is queried, otherwise the
+ * value keeps being or is resetted to -1.
+ * On subsequent calls where preferences != NULL, the arglist does not have
+ * to be queried anymore.
+ * Resetting this "cache"s is possible by calling preferences_reset_cache.
+ * 
+ * FIXME: Bacause of the static nature of the cache, the start of a new scan
+ * with different 'server' preference values might override the values for a
+ * already running scan, isnt it?
+ */
+
 #include <includes.h>
 #include <hosts_gatherer.h>
 
@@ -106,7 +123,7 @@ int preferences_new(char * name)
  fprintf(fd, "# 'default' means that OpenVAS will scan ports found in its\n");
  fprintf(fd, "# services file.\n");
  fprintf(fd, "port_range = default\n\n");
- fprintf(fd, "# Optimize the test (recommended) : \n");
+ fprintf(fd, "# Optimize the test (recommanded) : \n");
  fprintf(fd, "optimize_test = yes\n\n");
  fprintf(fd, "# Language of the plugins :\n");
  fprintf(fd, "language = %s\n\n", OPENVASD_LANGUAGE);
@@ -147,9 +164,9 @@ int preferences_new(char * name)
 
  fprintf(fd, "\n\n");
  fprintf(fd, "# If this option is set, OpenVAS will not scan a network incrementally\n");
- fprintf(fd, "# (10.0.0.1, then 10.0.0.2, 10.0.0.3 and so on) but will attempt to\n");
- fprintf(fd, "# slice the workload throughout the whole network (i.e. it will scan\n");
- fprintf(fd, "# 10.0.0.1, then 10.0.0.127, then 10.0.0.2, then 10.0.0.128 and so on)\n");
+ fprintf(fd, "# (10.0.0.1, then 10.0.0.2, 10.0.0.3 and so on..) but will attempt to\n");
+ fprintf(fd, "# slice the workload throughout the whole network (ie: it will scan\n");
+ fprintf(fd, "# 10.0.0.1, then 10.0.0.127, then 10.0.0.2, then 10.0.0.128 and so on...\n");
  fprintf(fd, "slice_network_addresses = no\n\n");
  
  fprintf(fd, "# Should consider all the NASL scripts as being signed ? (unsafe if set to 'yes')\n");
@@ -322,7 +339,6 @@ preferences_get_checks_read_timeout (struct arglist *preferences)
  else ret = 15;
  return ret;
 }
-
 
 int preferences_log_whole_attack(preferences)
  struct arglist * preferences;
@@ -697,8 +713,7 @@ preferences_report_killed_plugins(preferences)
 }
 
 int
-preferences_silent_dependencies(preferences)
- struct arglist * preferences;
+preferences_silent_dependencies (struct arglist * preferences)
 {
  static int yes = -1;
  char * pref;
@@ -738,6 +753,13 @@ preferences_get_string(preferences, name)
 }
 
 
+/**
+ * @brief Resets the preference caches.
+ * 
+ * Subsequent calls to the pseudo-boolean preference getters like
+ * preferences_silent_dependencies will query a given arglist once and refill
+ * the caches.
+ */
 void
 preferences_reset_cache()
 {
