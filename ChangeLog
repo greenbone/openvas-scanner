@@ -1,3 +1,16 @@
+2009-02-24  Michael Wiegand <michael.wiegand@intevation.de>
+
+	Added support for parsing multiple definitions per OVAL file, made XML
+	parsing more robust. Please note that the usefulness of this change is
+	limited at the moment, since support for multiple results and updated
+	ovaldi support is not yet present in the code, but expected to arrive
+	shortly.
+
+	* oval_plugins.c: (start_element, text, end_element) Made XML parsing
+	more stateful and robust. (text) Fix to remove superflous whitespaces
+	in definition titles. (ovaldi_launch) Temporarily included dummy
+	values in OVAL system_info element for testing.
+
 2009-02-19  Felix Wolfsteller <felix.wolfsteller@intevation.de>
 
 	Set default value for Silent Dependencies to 'No'. Naive users otherwise

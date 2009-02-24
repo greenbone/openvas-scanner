@@ -44,16 +44,44 @@ void ovaldi_launch(struct arglist * g_args);
 
 // TODO: A better way to store the results of the XML parser would be to use the
 // user_data pointer provided by the glib XML parser.
-gchar * id;
-gchar * oid;
-gchar * version;
-gchar * description;
-gchar * title;
-gboolean in_description = FALSE;
-gboolean in_definition = FALSE;
-gboolean in_title = FALSE;
-gboolean in_results = FALSE;
-gboolean in_results_definition = FALSE;
+
+/**
+ * @brief Structure for plugin information.
+ */
+typedef struct
+{
+  gchar * id;
+  gchar * oid;
+  gchar * version;
+  gchar * description;
+  gchar * title;
+} oval_plugin_t;
+
+oval_plugin_t * current_plugin;
+
+GSList * plugin_list = NULL;
+
+/**
+ * @brief Possible states during XML parsing.
+ */
+typedef enum
+{
+  DESCRIPTION,
+  DEFINITION,
+  TITLE,
+  RESULTS,
+  RESULTS_DEFINITION,
+  TOP
+} state_t;
+
+state_t parser_state = TOP;
+
+void
+set_parser_state (state_t state)
+{
+  parser_state = state;
+}
+
 gchar * result;
 
 void child_setup (gpointer user_data) {
@@ -106,74 +134,125 @@ void start_element (GMarkupParseContext *context, const gchar *element_name,
   const gchar **name_cursor = attribute_names;
   const gchar **value_cursor = attribute_values;
 
-  if(!in_results && strcmp(element_name, "definition") == 0)
-  {
-    in_definition = TRUE;
-    while(*name_cursor)
+  switch (parser_state)
     {
-      if (strcmp (*name_cursor, "id") == 0)
-      {
-        id = g_strrstr(g_strdup(*value_cursor), ":") + 1;
-        // TODO: This currently assigns only IDs in the range intended for
-        // RedHat security advisories.
-        oid = g_strconcat("1.3.6.1.4.1.25623.1.2.2312.", id, NULL);
-      }
-      if (strcmp (*name_cursor, "version") == 0)
-        version = g_strdup(*value_cursor);
-      name_cursor++;
-      value_cursor++;
+    case TOP:
+      if(strcmp(element_name, "definition") == 0)
+        {
+          set_parser_state (DEFINITION);
+          current_plugin = g_malloc (sizeof(oval_plugin_t));
+          while(*name_cursor)
+            {
+              if (strcmp (*name_cursor, "id") == 0)
+                {
+                  current_plugin->id = g_strrstr(g_strdup(*value_cursor), ":") + 1;
+                  // TODO: This currently assigns only IDs in the range intended for
+                  // RedHat security advisories.
+                  current_plugin->oid = g_strconcat("1.3.6.1.4.1.25623.1.2.2312.", current_plugin->id, NULL);
+                }
+              if (strcmp (*name_cursor, "version") == 0)
+                current_plugin->version = g_strdup(*value_cursor);
+              name_cursor++;
+              value_cursor++;
+            }
+        }
+
+      if(strcmp(element_name, "results") == 0)
+        set_parser_state (RESULTS);
+      break;
+    case DEFINITION:
+      if(strcmp(element_name, "description") == 0)
+        set_parser_state (DESCRIPTION);
+
+      if(strcmp(element_name, "title") == 0)
+        set_parser_state (TITLE);
+      break;
+
+    case RESULTS:
+      if(strcmp(element_name, "definition") == 0)
+        {
+          set_parser_state (RESULTS_DEFINITION);
+          while(*name_cursor)
+            {
+              if (strcmp (*name_cursor, "result") == 0)
+                // TODO: Implement parsing of multiple results per results
+                // file. 
+                result = g_strdup(*value_cursor);
+              name_cursor++;
+              value_cursor++;
+            }
+        }
+      break;
+    default:
+      break;
     }
-  }
-
-  if(strcmp(element_name, "description") == 0)
-    in_description = TRUE;
-
-  if(strcmp(element_name, "title") == 0)
-    in_title = TRUE;
-
-  if(strcmp(element_name, "results") == 0)
-    in_results = TRUE;
-
-  if(in_results && strcmp(element_name, "definition") == 0)
-  {
-    in_results_definition = TRUE;
-    while(*name_cursor)
-    {
-      if (strcmp (*name_cursor, "result") == 0)
-        result = g_strdup(*value_cursor);
-
-      name_cursor++;
-      value_cursor++;
-    }
-  }
 }
 
 void text(GMarkupParseContext *context, const gchar *text, gsize text_len,
           gpointer user_data, GError **error)
 {
-  if (in_description)
-  {
-    // NOTE: This currently cuts off descriptions longer than the maximum length
-    // specified in libopenvas/store_internal.h
-    description = g_strndup(text, 3190);
-  }
-  if (in_title)
-  {
-    title = g_strndup(text, text_len);
-    g_strdelimit(title, "\n", ' ');
-  }
+  switch (parser_state)
+    {
+    case DESCRIPTION:
+      // NOTE: This currently cuts off descriptions longer than the maximum length
+      // specified in libopenvas/store_internal.h
+      current_plugin->description = g_strndup(text, 3190);
+      break;
+    case TITLE:
+        {
+          int i;
+          gchar **title_split = g_strsplit(text, "\n", 0);
+          if (g_strv_length (title_split) > 1)
+            {
+              for (i = 0; i < g_strv_length (title_split); i++)
+                {
+                  g_strstrip (title_split[i]);
+                }
+              current_plugin->title = g_strjoinv(" ", title_split);
+            }
+          else
+            {
+              current_plugin->title = g_strdup(title_split[0]);
+            }
+          g_strfreev (title_split);
+        }
+      break;
+    default:
+      break;
+    }
 }
 
 void end_element (GMarkupParseContext *context, const gchar *element_name,
                   gpointer user_data, GError **error)
 {
-  in_description = FALSE;
-  in_definition = FALSE;
-  in_title = FALSE;
-  if(strcmp(element_name, "results") == 0)
-    in_results = FALSE;
-  if(in_results && strcmp(element_name, "definition") == 0)
-    in_results_definition = FALSE;
+  switch (parser_state)
+    {
+    case DESCRIPTION:
+      if(strcmp(element_name, "description") == 0)
+        set_parser_state (DEFINITION);
+      break;
+    case DEFINITION:
+      if(strcmp(element_name, "definition") == 0)
+        {
+          plugin_list = g_slist_append (plugin_list, current_plugin);
+          set_parser_state (TOP);
+        }
+      break;
+    case TITLE:
+      if(strcmp(element_name, "title") == 0)
+        set_parser_state (DEFINITION);
+      break;
+    case RESULTS:
+      if(strcmp(element_name, "results") == 0)
+        set_parser_state (TOP);
+      break;
+    case RESULTS_DEFINITION:
+      if(strcmp(element_name, "definition") == 0)
+        set_parser_state (RESULTS);
+      break;
+    default:
+      break;
+    }
 }
 
 /**
@@ -198,6 +277,16 @@ struct arglist * oval_plugin_add(char * folder, char * name,
   GMarkupParseContext *context = NULL;
   gchar *filebuffer = NULL;
   gsize length = 0;
+  gchar * title = NULL;
+  gchar * descriptions = NULL;
+  gchar * description = NULL;
+  int i;
+
+  if (plugin_list != NULL)
+  {
+    g_slist_free (plugin_list);
+    plugin_list = NULL;
+  }
 
   snprintf(fullname, sizeof(fullname), "%s/%s", folder, name);
 
@@ -242,11 +331,48 @@ struct arglist * oval_plugin_add(char * folder, char * name,
     g_free(filebuffer);
     g_markup_parse_context_free(context);
 
+    if (g_slist_length(plugin_list) == 0)
+      {
+        log_write("oval_plugin_add: Empty plugin_list, no definitions found in %s!", fullname);
+        return NULL;
+      }
+
+    oval_plugin_t * first_plugin = g_slist_nth_data (plugin_list, 0);
+    if (g_slist_length(plugin_list) > 1)
+      {
+        gchar ** title_array;
+        title_array = g_malloc0((g_slist_length(plugin_list) + 1) * sizeof(gchar *));
+
+        for (i = 0; i < g_slist_length(plugin_list); i++)
+          {
+            oval_plugin_t * plug = g_slist_nth_data (plugin_list, i);
+            title_array[i] = g_strdup_printf("%s\n", plug->title);
+          }
+        title_array[i] = NULL;
+        descriptions = g_strjoinv (NULL, title_array);
+        if (strlen(descriptions) > 3100)
+          {
+            description = g_strconcat("This OVAL file contains the following definitions:\n", g_strndup (descriptions, 3100), "\n(list cut due to memory limitations)", NULL);
+          }
+        else
+          {
+            description = g_strconcat("This OVAL file contains the following definitions:\n", g_strdup (descriptions), NULL);
+          }
+        g_free (descriptions);
+        g_strfreev (title_array);
+        title = g_strdup_printf("%s (%d OVAL definitions)", name, g_slist_length(plugin_list));
+      }
+    else
+      {
+        description = first_plugin->description;
+        title = first_plugin->title;
+      }
+
+
     args = emalloc(sizeof(struct arglist));
 
-    plug_set_oid(args, oid);
-
-    plug_set_version(args, version);
+    plug_set_oid(args, g_strdup(first_plugin->oid));
+    plug_set_version(args, first_plugin->version);
     plug_set_name(args, title, NULL);
     plug_set_description(args, description, NULL);
     plug_set_category(args, ACT_END);
@@ -362,8 +488,10 @@ void ovaldi_launch(struct arglist * g_args)
     tmp = localtime(&t);
     strftime(timestr, sizeof(timestr), "%FT%T", tmp);
     fprintf(sc_file, "\t<generator>\n\t\t<oval:product_name>%s</oval:product_name>\n\t\t<oval:product_version>%s</oval:product_version>\n\t\t<oval:schema_version>5.4</oval:schema_version>\n\t\t<oval:timestamp>%s</oval:timestamp>\n\t\t<vendor>The OpenVAS Project</vendor>\n\t</generator>\n\n", PROGNAME, OPENVAS_FULL_VERSION, timestr);
-    
-    fprintf(sc_file, "\t<system_info>\n\t\t<os_name></os_name>\n\t\t<os_version></os_version>\n\t\t<architecture></architecture>\n\t\t<primary_host_name>%s</primary_host_name>\n\t\t<interfaces>\n\t\t\t<interface>\n\t\t\t\t<interface_name></interface_name>\n\t\t\t\t<ip_address></ip_address>\n\t\t\t\t<mac_address></mac_address>\n\t\t\t</interface>\n\t\t</interfaces>\n\t</system_info>\n\n", (char*)arg_get_value(arg_get_value(args, "HOSTNAME"), "NAME"));
+
+    // TODO: Replace dummy values with real values; inserted dummy value since
+    // ovaldi does not like empty elements here.
+    fprintf(sc_file, "\t<system_info>\n\t\t<os_name>dummy</os_name>\n\t\t<os_version>dummy</os_version>\n\t\t<architecture>dummy</architecture>\n\t\t<primary_host_name>dummy</primary_host_name>\n\t\t<interfaces>\n\t\t\t<interface>\n\t\t\t\t<interface_name>dummy</interface_name>\n\t\t\t\t<ip_address>dummy</ip_address>\n\t\t\t\t<mac_address>dummy</mac_address>\n\t\t\t</interface>\n\t\t</interfaces>\n\t</system_info>\n\n");
     fprintf(sc_file, "\t<system_data>\n");
 
     int i = 1;
@@ -484,6 +612,7 @@ void ovaldi_launch(struct arglist * g_args)
   argv[5] = g_strdup(sc_filename);
   argv[6] = g_strdup("-r");  // Store the scan results where we can parse them
   argv[7] = g_strdup(results_filename);
+  // TODO: XSD location
   argv[8] = NULL;
 //   log_write("Launching ovaldi with: %s\n", g_strjoinv(" ", argv));
 
