@@ -90,15 +90,9 @@ filter_odd_name (char * name)
  * @return Path to knowledge base directory for current user, has to be freed
  *         using g_free.
  */
-static char *
+static gchar *
 kb_dirname (struct arglist * globals)
 {
- char * home = user_home(globals);
- char * dir  = emalloc(strlen(home) + strlen("kbs") + 2);
- sprintf(dir, "%s/kbs", home);
- efree(&home);
- return(dir);
-
   return g_build_filename (user_home (globals), "kbs", NULL);
 }
 
@@ -136,12 +130,12 @@ kb_mkdir (char * dir)
 
 
 /**
- * From <hostname>, return /path/to/var/lib/openvas/<username>/kb/<hostname> .
+ * From <hostname>, return /path/to/var/lib/openvas/<username>/kbs/<hostname> .
  */
 static char*
 kb_fname (struct arglist* globals, char* hostname)
 {
- char * dir = kb_dirname(globals);
+ gchar * dir = kb_dirname(globals);
  char * ret;
  char * hn = strdup(hostname);
  
@@ -149,7 +143,7 @@ kb_fname (struct arglist* globals, char* hostname)
  
  ret = emalloc(strlen(dir) + strlen(hn) + 2);
  sprintf(ret, "%s/%s", dir, hn);
- efree (dir);
+ g_free (dir);
  efree(&hn);
  return ret;
 }

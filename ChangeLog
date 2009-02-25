@@ -1,5 +1,14 @@
 2009-02-25  Felix Wolfsteller <felix.wolfsteller@intevation.de>
 
+	* openvasd/save_kb.c (kb_dirname): use GLibs build_filename (code was
+	already accidentially commited in last commit but not accessible) and
+	return gchar instead of manual path construction and char*.
+
+	* openvasd/save_kb.c (kb_fname): respect new return type of kb_dirname,
+	free by g_free, corrected comment.
+
+2009-02-25  Felix Wolfsteller <felix.wolfsteller@intevation.de>
+
 	More Reformatting and documentation for save_kb module, enabled
 	doc generation for ENABLE_SAVE_KB guarded code parts.
 
