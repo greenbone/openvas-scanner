@@ -1,3 +1,13 @@
+2009-02-25  Michael Wiegand <michael.wiegand@intevation.de>
+
+	Added support for parsing multiple results per OVAL result file, made
+	call to ovaldi compatible to ovaldi 5.5.x.
+
+	* oval_plugins.c: (start_element, end_element) Added support for
+	multiple results. (ovaldi_launch) Added support for communicating
+	multiple results to client. Improved result string handling. Free
+	memory we no longer need.
+
 2009-02-24  Michael Wiegand <michael.wiegand@intevation.de>
 
 	Added support for parsing multiple definitions per OVAL file, made XML

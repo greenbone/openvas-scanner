@@ -62,6 +62,19 @@ oval_plugin_t * current_plugin;
 GSList * plugin_list = NULL;
 
 /**
+ * @brief Structure for result information.
+ */
+typedef struct
+{
+  gchar * definition_id;
+  gchar * result;
+} oval_result_t;
+
+oval_result_t * current_result;
+
+GSList * result_list = NULL;
+
+/**
  * @brief Possible states during XML parsing.
  */
 typedef enum
@@ -172,12 +185,17 @@ void start_element (GMarkupParseContext *context, const gchar *element_name,
       if(strcmp(element_name, "definition") == 0)
         {
           set_parser_state (RESULTS_DEFINITION);
+          current_result = g_malloc (sizeof (oval_result_t));
           while(*name_cursor)
             {
+              if (strcmp (*name_cursor, "definition_id") == 0)
+                {
+                  current_result->definition_id = g_strdup (*value_cursor);
+                }
               if (strcmp (*name_cursor, "result") == 0)
-                // TODO: Implement parsing of multiple results per results
-                // file. 
-                result = g_strdup(*value_cursor);
+                {
+                  current_result->result = g_strdup (*value_cursor);
+                }
               name_cursor++;
               value_cursor++;
             }
@@ -248,7 +266,10 @@ void end_element (GMarkupParseContext *context, const gchar *element_name,
       break;
     case RESULTS_DEFINITION:
       if(strcmp(element_name, "definition") == 0)
-        set_parser_state (RESULTS);
+        {
+          result_list = g_slist_append (result_list, current_result);
+          set_parser_state (RESULTS);
+        }
       break;
     default:
       break;
@@ -462,10 +483,10 @@ void ovaldi_launch(struct arglist * g_args)
   time_t t;
   struct tm *tmp;
   char timestr[20];
-  struct arglist * args = arg_get_value(g_args, "args");
+  // struct arglist * args = arg_get_value(g_args, "args");
   struct kb_item ** kb = arg_get_value(g_args, "key");
   gchar * basename = g_strrstr(g_strdup((char*)arg_get_value(g_args, "name")), "/") + 1;
-  gchar * result_string = emalloc(256);
+  gchar * result_string = NULL;
   gchar * folder = g_strndup((char*)arg_get_value(g_args, "name"), strlen((char*)arg_get_value(g_args, "name")) - strlen(basename));
 
   sc_filename = g_strconcat(folder, "sc-out.xml", NULL);
@@ -475,7 +496,7 @@ void ovaldi_launch(struct arglist * g_args)
   sc_file = fopen(sc_filename, "w");
   if(sc_file == NULL)
   {
-    snprintf(result_string, 256, "Could not launch ovaldi for OVAL definition %s: Could not create SC file.\n\n", basename);
+    result_string = g_strdup_printf ("Could not launch ovaldi for OVAL definition %s: Could not create SC file.\n\n", basename);
     post_note(g_args, 0, result_string);
     efree(&sc_filename);
   }
@@ -517,7 +538,7 @@ void ovaldi_launch(struct arglist * g_args)
     if(kb_item_get_str(kb, "ssh/login/release") == NULL)
     {
       log_write("Could not identify release, not collecting package information.\n");
-      snprintf(result_string, 256, "Could not collect remote package information for OVAL definition %s: Result may be incomplete.\n\n", basename);
+      result_string = g_strdup_printf ("Could not collect remote package information for OVAL definition %s: Result may be incomplete.\n\n", basename);
       post_note(g_args, 0, result_string);
 
     }
@@ -603,7 +624,7 @@ void ovaldi_launch(struct arglist * g_args)
   if(sc_file != NULL)
     fclose(sc_file);
 
-  gchar ** argv = (gchar **)g_malloc (9 * sizeof (gchar *));
+  gchar ** argv = (gchar **)g_malloc (11 * sizeof (gchar *));
   argv[0] = g_strdup("ovaldi");
   argv[1] = g_strdup("-m");  // Do not check OVAL MD5 signature
   argv[2] = g_strdup("-o");  // Request the use of _this_ plugin
@@ -612,8 +633,9 @@ void ovaldi_launch(struct arglist * g_args)
   argv[5] = g_strdup(sc_filename);
   argv[6] = g_strdup("-r");  // Store the scan results where we can parse them
   argv[7] = g_strdup(results_filename);
-  // TODO: XSD location
-  argv[8] = NULL;
+  argv[8] = g_strdup ("-a");  // Path to the directory that contains the OVAL schema
+  argv[9] = g_strdup (folder);
+  argv[10] = NULL;
 //   log_write("Launching ovaldi with: %s\n", g_strjoinv(" ", argv));
 
   if(g_spawn_sync(NULL, argv, NULL, G_SPAWN_SEARCH_PATH, child_setup, NULL, NULL, NULL, NULL, NULL))
@@ -622,6 +644,7 @@ void ovaldi_launch(struct arglist * g_args)
     GMarkupParseContext *context = NULL;
     gchar *filebuffer = NULL;
     gsize length = 0;
+    int i;
 
     parser.start_element = start_element;
     parser.end_element = end_element;
@@ -631,9 +654,9 @@ void ovaldi_launch(struct arglist * g_args)
 
     if(!g_file_get_contents(results_filename, &filebuffer, &length, NULL))
     {
-      snprintf(result_string, 256,
-              "Could not return results for OVAL definition %s: Results file not found.\n\n",
-              basename);
+      result_string = g_strdup_printf (
+          "Could not return results for OVAL definition %s: Results file not found.\n\n",
+          basename);
       post_note(g_args, 0, result_string);
       log_write("Results file %s not found!\n", results_filename);
     }
@@ -643,16 +666,43 @@ void ovaldi_launch(struct arglist * g_args)
       g_markup_parse_context_parse(context, filebuffer, length, NULL);
       g_free(filebuffer);
       g_markup_parse_context_free(context);
-      snprintf(result_string, 256, "The OVAL definition %s returned the following result: %s\n\n", basename, result);
+
+      if (g_slist_length (result_list) == 0)
+      {
+        log_write ("oval_result_add: Empty result_list, no results found in %s!", basename);
+      }
+
+      oval_result_t * first_result = g_slist_nth_data (result_list, 0);
+      if (g_slist_length(result_list) > 1)
+        {
+          gchar ** result_array;
+          result_array = g_malloc0 ((g_slist_length (result_list) + 1) * sizeof (gchar *));
+
+          for (i = 0; i < g_slist_length(result_list); i++)
+            {
+              oval_result_t * res = g_slist_nth_data (result_list, i);
+              result_array[i] = g_strdup_printf ("The OVAL definition %s returned the following result: %s\n", res->definition_id, res->result);
+            }
+          result_array[i] = NULL;
+          result_string = g_strjoinv (NULL, result_array);
+          g_strfreev (result_array);
+        }
+      else
+        {
+          result_string = g_strdup_printf ("The OVAL definition %s returned the following result: %s\n\n", first_result->definition_id, first_result->result);
+        }
+
       post_note(g_args, 0, result_string);
     }
   }
   else
   {
-    snprintf(result_string, 256, "Could not launch ovaldi for OVAL definition %s: Launch failed. (Is ovaldi in your PATH?)\n\n", basename);
+    result_string = g_strdup_printf ("Could not launch ovaldi for OVAL definition %s: Launch failed. (Is ovaldi in your PATH?)\n\n", basename);
     post_note(g_args, 0, result_string);
     log_write("Could not launch ovaldi!\n");
   }
+  g_strfreev (argv);
+  g_free (result_string);
 }
 
 pl_class_t oval_plugin_class = {
