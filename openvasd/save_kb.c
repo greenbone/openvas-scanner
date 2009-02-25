@@ -27,6 +27,18 @@
 *
 */
 
+/**
+ * @file
+ * With the appropriate preferences, Knowledge bases will be saved and loaded.
+ * This has not only importance for debugging, but could also allow differential
+ * scans and information gain other than vulnerabilities of targets.
+ * @see diff_scan
+ * 
+ * Knowledge base backups are (if the appropriate preferences are set) saved
+ * under (PREFIX)var/lib/openvas/users/(USERNAME)/kbs/(HOSTNAME) ,
+ * where strings in brackets have to be replaced by the respective value.
+ */
+
 #include <includes.h>
 
 #include <glib.h>
@@ -37,12 +49,9 @@
 #include "locks.h"
 #ifdef ENABLE_SAVE_KB
 
-
-
 #ifndef MAP_FAILED
 #define MAP_FAILED (void*)(-1)
 #endif
-
 
 #include "save_kb.h"
 
@@ -61,17 +70,13 @@
  * @return Pointer to the parameter name string.
  */
 static char *
-filter_odd_name(name)
- char * name;
-{ 
+filter_odd_name (char * name)
+{
  char * ret = name;
  while(name[0])
  {
-  /*
-   * A host name should never contain any slash. But we never
-   * know
-   */
-  if(name[0]=='/')name[0]='_';  
+  /* A host name should never contain any slash. But we never  know */
+  if(name[0]=='/')name[0]='_';
   name++;
  }
  return ret;
@@ -80,17 +85,21 @@ filter_odd_name(name)
 
 /**
  * Returns name of the directory which contains the sessions of the current
- * user (/path/to/var/openvas/<username>/kbs/)
+ * user (/path/to/var/lib/openvas/<username>/kbs/).
+ * 
+ * @return Path to knowledge base directory for current user, has to be freed
+ *         using g_free.
  */
 static char *
-kb_dirname(globals)
- struct arglist * globals;
+kb_dirname (struct arglist * globals)
 {
  char * home = user_home(globals);
  char * dir  = emalloc(strlen(home) + strlen("kbs") + 2);
  sprintf(dir, "%s/kbs", home);
  efree(&home);
  return(dir);
+
+  return g_build_filename (user_home (globals), "kbs", NULL);
 }
 
 /**
@@ -99,8 +108,7 @@ kb_dirname(globals)
  * not check any error
  */
 static int
-kb_mkdir(dir)
- char * dir;
+kb_mkdir (char * dir)
 {
  char *t;
  int ret = 0;
@@ -128,12 +136,10 @@ kb_mkdir(dir)
 
 
 /**
- * From <hostname>, return /path/to/var/openvas/<username>/kb/<hostname> .
+ * From <hostname>, return /path/to/var/lib/openvas/<username>/kb/<hostname> .
  */
 static char*
-kb_fname(globals, hostname)
- struct arglist * globals;
- char * hostname;
+kb_fname (struct arglist* globals, char* hostname)
 {
  char * dir = kb_dirname(globals);
  char * ret;
@@ -143,7 +149,7 @@ kb_fname(globals, hostname)
  
  ret = emalloc(strlen(dir) + strlen(hn) + 2);
  sprintf(ret, "%s/%s", dir, hn);
- efree(&dir);
+ efree (dir);
  efree(&hn);
  return ret;
 }
@@ -153,8 +159,7 @@ kb_fname(globals, hostname)
  * mmap() tends to sometimes act weirdly
  */
 static char*
-map_file(file)
- int file;
+map_file (int file)
 {
  struct stat st;
  char *ret;
@@ -188,11 +193,8 @@ map_file(file)
 }
  
 static int
-save_kb_entry_present_already(globals, hostname, name, value)
- struct arglist * globals;
- char * hostname;
- char * name;
- char * value;
+save_kb_entry_present_already (struct arglist * globals, char * hostname,
+                               char* name, char* value)
 {
   char * buf;
   int fd;
@@ -220,11 +222,8 @@ save_kb_entry_present_already(globals, hostname, name, value)
 } 
  
 static int
-save_kb_rm_entry_value(globals, hostname, name, value)
- struct arglist * globals;
- char * hostname;
- char * name;
- char * value;
+save_kb_rm_entry_value (struct arglist* globals, char* hostname, char* name,
+                        char* value)
 {
   char * buf;
   char * t;
@@ -303,7 +302,7 @@ save_kb_rm_entry(globals, hostname, name)
  return save_kb_rm_entry_value(globals, hostname, name, NULL);
 }
  
-/*
+/**
  * Write data
  *
  * We want to avoid duplicates for :
@@ -313,12 +312,10 @@ save_kb_rm_entry(globals, hostname, name)
  *	Launched/...
  *
  * Ignores any items starting with /tmp/, NIDS/ or Settings/
- */	
+ */
 static int
-save_kb_write(globals, hostname, name, value, type)
- struct arglist * globals;
- char * hostname, * name, * value;
- int type;
+save_kb_write (struct arglist * globals, char* hostname, char* name,
+               char* value, int type)
 {
  int fd;
  char * str;
@@ -379,9 +376,6 @@ save_kb_write(globals, hostname, name, value, type)
 }
 
 
-
-
-
 /*======================================================================
 
 	                 Public functions
@@ -389,7 +383,8 @@ save_kb_write(globals, hostname, name, value, type)
  =======================================================================*/
 
 /**
- * Initialize a new KB that will be saved
+ * @brief Initialize a new KB that will be saved.
+ * 
  * The indexes of all the opened KB are in a hashlist in 
  * globals, saved under the name "save_kb". This makes no sense
  * at this time, as the test of each host is done in a separate
@@ -397,10 +392,8 @@ save_kb_write(globals, hostname, name, value, type)
  * the future.
  */
 int
-save_kb_new(globals, hostname)
- struct arglist * globals;
- char * hostname;
-{ 
+save_kb_new (struct arglist * globals, char * hostname)
+{
  char * fname;
  char * dir;
  char * user = arg_get_value(globals, "user");
@@ -443,9 +436,7 @@ save_kb_new(globals, hostname)
 
 
 void
-save_kb_close(globals, hostname)
- struct arglist * globals;
- char * hostname;
+save_kb_close (struct arglist * globals, char * hostname)
 {
  int fd = GPOINTER_TO_SIZE(arg_get_value(globals, "save_kb"));
  char* fname = kb_fname(globals, hostname);
@@ -461,9 +452,7 @@ save_kb_close(globals, hostname)
  * (returns true if a knowledge base exists)
  */
 int
-save_kb_exists(globals, hostname)
- struct arglist * globals;
- char * hostname;
+save_kb_exists (struct arglist * globals, char * hostname)
 {
  char * fname = kb_fname(globals, hostname);
  FILE *f;
@@ -484,9 +473,8 @@ save_kb_exists(globals, hostname)
 
 
 int
-save_kb_write_str(globals, hostname, name, value)
- struct arglist * globals;
- char * hostname, * name, * value;
+save_kb_write_str (struct arglist * globals, char * hostname, char* name, 
+                   char* value)
 {
  char * newvalue  = addslashes(value);
  int e;
@@ -498,10 +486,8 @@ save_kb_write_str(globals, hostname, name, value)
 
 
 int
-save_kb_write_int(globals, hostname, name, value)
- struct arglist * globals;
- char * hostname, * name;
- int value;
+save_kb_write_int (struct arglist * globals, char* hostname, char* name,
+                   int value)
 {
  static char asc_value[25];
  int e;
@@ -513,15 +499,11 @@ save_kb_write_int(globals, hostname, name, value)
 
 
 
-
-
 /**
- * Restores a copy of the knowledge base
+ * @brief Restores a copy of the knowledge base
  */
 int
-save_kb_restore_backup(globals, hostname)
- struct arglist * globals;
- char*hostname;
+save_kb_restore_backup (struct arglist * globals, char* hostname)
 {
  char * fname = kb_fname(globals, hostname);
  char * bakname;
@@ -541,12 +523,10 @@ save_kb_restore_backup(globals, hostname)
 }
 
 /**
- * Makes a copy of the knowledge base
+ * @brief Makes a copy of the knowledge base
  */
 int
-save_kb_backup(globals, hostname)
- struct arglist * globals;
- char* hostname;
+save_kb_backup (struct arglist * globals, char* hostname)
 {
  char * fname = kb_fname(globals, hostname);
  char * newname = NULL;
@@ -614,15 +594,13 @@ failed1:
 
 
 /**
- * @brief Restores a previously saved knowledge base
+ * @brief Restores a previously saved knowledge base.
  *
  * The KB entry 'Host/dead' is ignored, as well as all the 
  * entries starting with '/tmp/'.
  */
 struct kb_item ** 
-save_kb_load_kb(globals, hostname)
- struct arglist * globals;
- char * hostname;
+save_kb_load_kb (struct arglist * globals, char* hostname)
 {
  char * fname = kb_fname(globals, hostname);
  FILE * f;
@@ -734,10 +712,10 @@ save_kb_load_kb(globals, hostname)
 
 
 /**
- * Returns <1> if the user wants us the save the knowledge base.
+ * @return 1 if the user wants us the save the knowledge base.
  */
-int save_kb(globals)
- struct arglist * globals;
+int
+save_kb (struct arglist * globals)
 {
  struct arglist * preferences;
  char * value;
@@ -758,12 +736,11 @@ int save_kb(globals)
 }
 
 /**
- * Returns <1> if we should only test hosts whose knowledge base we
- * already have.
+ * @return 1 if we should only test hosts whose knowledge base we already have.
  */
-int save_kb_pref_tested_hosts_only(globals)
- struct arglist * globals;
-{ 
+int
+save_kb_pref_tested_hosts_only (struct arglist * globals)
+{
  struct arglist * preferences = arg_get_value(globals, "preferences");
  char * value;
  
@@ -775,11 +752,11 @@ int save_kb_pref_tested_hosts_only(globals)
 }
 
 /**
- * Returns <1> if we should only test hosts whose kb we DO NOT have.
+ * @return 1 if we should only test hosts whose kb we DO NOT have.
  */
 int save_kb_pref_untested_hosts_only(globals)
  struct arglist * globals;
-{ 
+{
  struct arglist * preferences = arg_get_value(globals, "preferences");
  char * value;
  
@@ -791,11 +768,11 @@ int save_kb_pref_untested_hosts_only(globals)
 }
 
 /**
- * Returns <1> if we should restore the KB for the tests.
+ * @return 1 if we should restore the KB for the tests.
  */
-int save_kb_pref_restore(globals)
- struct arglist * globals;
-{ 
+int
+save_kb_pref_restore (struct arglist * globals)
+{
  struct arglist * preferences = arg_get_value(globals, "preferences");
  char * value;
  
@@ -807,11 +784,10 @@ int save_kb_pref_restore(globals)
 }
 
 /**
- * Return <1> if this type of plugin can be executed.
+ * @return 1 if this type of plugin can be executed.
  */
-int save_kb_replay_check(globals, type)
- struct arglist * globals;
- int type;
+int
+save_kb_replay_check (struct arglist * globals, int type)
 {
  struct arglist * preferences = arg_get_value(globals, "preferences");
  char * name = NULL;
@@ -846,12 +822,10 @@ int save_kb_replay_check(globals, type)
 }
 
 /**
- * Returns the max. age of the KB, in seconds, as set
- * by the user
+ * @return Tthe max. age of the KB, in seconds, as set by the user.
  */
-long 
-save_kb_max_age(globals)
- struct arglist * globals;
+long
+save_kb_max_age (struct arglist * globals)
 {
  struct arglist * prefs = arg_get_value(globals, "preferences");
  long ret = atol(arg_get_value(prefs, "kb_max_age"));
@@ -880,8 +854,7 @@ save_kb_max_age(globals)
  *    Add 'DataSent/PluginID/Num' entries
  */
 int
-diff_scan(globals)
- struct arglist * globals;
+diff_scan (struct arglist * globals)
 {
  struct arglist * prefs = arg_get_value(globals, "preferences");
  char * v = arg_get_value(prefs, "diff_scan");
@@ -894,10 +867,9 @@ diff_scan(globals)
 
 
 void
-diff_scan_enable(pluginargs)
- struct arglist * pluginargs;
+diff_scan_enable (struct arglist * pluginargs)
 {
  arg_add_value(pluginargs, "DIFF_SCAN", ARG_INT, sizeof(int), (void*)1);
 }
 
-#endif
+#endif /* ENABLE_SAVE_KB */

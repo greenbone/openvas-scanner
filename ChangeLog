@@ -1,3 +1,13 @@
+2009-02-25  Felix Wolfsteller <felix.wolfsteller@intevation.de>
+
+	More Reformatting and documentation for save_kb module, enabled
+	doc generation for ENABLE_SAVE_KB guarded code parts.
+
+	* openvasd/save_kb.c: Documentation and reformatting works.
+	
+	* doc/Doxyfile, doc/Doxyfile_full: Use a PREDEFINE for ENABLE_SAVE_KB
+	to generate more documentation.
+	
 2009-02-25  Michael Wiegand <michael.wiegand@intevation.de>
 
 	Added support for parsing multiple results per OVAL result file, made
