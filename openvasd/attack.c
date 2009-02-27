@@ -416,6 +416,9 @@ fill_host_kb_ssh_credentials (struct kb_item** kb, struct arglist* globals,
   if (login->username)
     kb_item_set_str (kb, "Secret/SSH/login", login->username);
 
+  if (login->userpassword)
+    kb_item_set_str (kb, "Secret/SSH/password", login->userpassword);
+
   if (login->ssh_key_passphrase)
     kb_item_set_str (kb, "Secret/SSH/passphrase", login->ssh_key_passphrase);
 

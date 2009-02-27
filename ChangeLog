@@ -1,3 +1,15 @@
+2009-02-27  Felix Wolfsteller <felix.wolfsteller@intevation.de>
+
+	Support for per-host password based local checks. Yet ignored because
+	ssh_func.inc will always try the key-based method.
+	
+	NOTE: You need the latest version of openvas-libraries to compile and
+	the latest Client + the ssh_authorization.nasl that was sent to
+	openvas-devel to test.
+
+	* openvasd/attack.c (fill_host_kb_ssh_credentials): Set password in kb
+	if specified.
+
 2009-02-25  Felix Wolfsteller <felix.wolfsteller@intevation.de>
 
 	* openvasd/save_kb.c (kb_dirname): use GLibs build_filename (code was
