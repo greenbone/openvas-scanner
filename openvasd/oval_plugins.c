@@ -99,6 +99,9 @@ typedef enum
   TOP
 } state_t;
 
+/**
+ * @brief The current parser state during XML parsing.
+ */
 state_t parser_state = TOP;
 
 /**
@@ -112,8 +115,6 @@ set_parser_state (state_t state)
   parser_state = state;
 }
 
-gchar * result;
-
 /**
  * @brief Prepares the launch of an external executable by dropping privileges.
  *
@@ -126,7 +127,7 @@ gchar * result;
  * @param user_data Pointer to additional data passed by glib; currently unused.
  */
 void
-child_setup (gpointer user_data)
+drop_privileges (gpointer user_data)
 {
   struct passwd * nobody_pw = NULL;
 
@@ -686,7 +687,7 @@ ovaldi_launch (struct arglist * g_args)
   argv[10] = NULL;
   //   log_write ("Launching ovaldi with: %s\n", g_strjoinv (" ", argv));
 
-  if (g_spawn_sync (NULL, argv, NULL, G_SPAWN_SEARCH_PATH, child_setup, NULL,
+  if (g_spawn_sync (NULL, argv, NULL, G_SPAWN_SEARCH_PATH, drop_privileges, NULL,
                     NULL, NULL, NULL, NULL))
     {
       GMarkupParser parser; 

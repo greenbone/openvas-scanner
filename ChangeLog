@@ -1,5 +1,11 @@
 2009-03-02  Michael Wiegand <michael.wiegand@intevation.de>
 
+	* openvasd/oval_plugins.c: Code cleanup. Renamed child_setup to
+	drop_privileges to make the function intention more clear. Removed
+	superfluous result variable.
+
+2009-03-02  Michael Wiegand <michael.wiegand@intevation.de>
+
 	* openvasd/oval_plugins.c: Beautification commit, no code changes.
 	Made indentation consistent with the coding style, added
 	documentation.
