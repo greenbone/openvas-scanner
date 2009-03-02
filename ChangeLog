@@ -1,3 +1,9 @@
+2009-03-02  Michael Wiegand <michael.wiegand@intevation.de>
+
+	* openvasd/oval_plugins.c: Beautification commit, no code changes.
+	Made indentation consistent with the coding style, added
+	documentation.
+
 2009-02-27  Felix Wolfsteller <felix.wolfsteller@intevation.de>
 
 	Support for per-host password based local checks. Yet ignored because

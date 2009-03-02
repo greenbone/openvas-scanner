@@ -39,8 +39,8 @@
 #include "processes.h"
 
 
-static void oval_thread(struct arglist *);
-void ovaldi_launch(struct arglist * g_args);
+static void oval_thread (struct arglist *);
+void ovaldi_launch (struct arglist * g_args);
 
 // TODO: A better way to store the results of the XML parser would be to use the
 // user_data pointer provided by the glib XML parser.
@@ -57,8 +57,14 @@ typedef struct
   gchar * title;
 } oval_plugin_t;
 
+/**
+ * @brief The current plugin/definition when parsing definitions.
+ */
 oval_plugin_t * current_plugin;
 
+/**
+ * @brief The list of plugins/definitions.
+ */
 GSList * plugin_list = NULL;
 
 /**
@@ -70,8 +76,14 @@ typedef struct
   gchar * result;
 } oval_result_t;
 
+/**
+ * @brief The current result when parsing results.
+ */
 oval_result_t * current_result;
 
+/**
+ * @brief The list of results.
+ */
 GSList * result_list = NULL;
 
 /**
@@ -89,6 +101,11 @@ typedef enum
 
 state_t parser_state = TOP;
 
+/**
+ * @brief Sets the internal state during XML parsing.
+ *
+ * @param state The state to be set.
+ */
 void
 set_parser_state (state_t state)
 {
@@ -97,199 +114,218 @@ set_parser_state (state_t state)
 
 gchar * result;
 
-void child_setup (gpointer user_data) {
-  // This function is called by the forked child just before it is executed. We
-  // try to drop our root privileges and setuid to nobody to minimize the
-  // risk of running an untrusted ovaldi.
-  // NB: The current implementation is somewhat linux-specific and may not work
-  // on other platforms.
-
+/**
+ * @brief Prepares the launch of an external executable by dropping privileges.
+ *
+ * This function is called by the forked child just before it is executed. We
+ * try to drop our root privileges and setuid to nobody to minimize the risk of
+ * running an untrusted executable, in this case ovaldi.  NB: The current
+ * implementation is somewhat linux-specific and may not work on other
+ * platforms.
+ * 
+ * @param user_data Pointer to additional data passed by glib; currently unused.
+ */
+void
+child_setup (gpointer user_data)
+{
   struct passwd * nobody_pw = NULL;
 
-  if(getuid() == 0)
-  {
-    log_write("oval_plugins.c: Running as root, trying to drop privileges.\n");
-    if((nobody_pw = getpwnam("nobody")))
+  if (getuid () == 0)
     {
-      if(setgid(nobody_pw->pw_gid) == 0)
-      {
-        log_write("oval_plugins.c: Successfully dropped group privileges.\n");
-      }
+      log_write ("oval_plugins.c: Running as root, trying to drop privileges.\n");
+      if ((nobody_pw = getpwnam ("nobody")))
+        {
+          if (setgid (nobody_pw->pw_gid) == 0)
+            {
+              log_write ("oval_plugins.c: Successfully dropped group privileges.\n");
+            }
+          else
+            {
+              log_write ("oval_plugins.c: WARNING: Could not drop group privileges!\n");
+            }
+          if (setuid (nobody_pw->pw_uid) == 0)
+            {
+              log_write ("oval_plugins.c: Successfully dropped user privileges.\n");
+            }
+          else
+            {
+              log_write ("oval_plugins.c: WARNING: Could not drop group privileges!\n");
+            }
+        }
       else
-      {
-        log_write("oval_plugins.c: WARNING: Could not drop group privileges!\n");
-      }
-      if(setuid(nobody_pw->pw_uid) == 0)
-      {
-        log_write("oval_plugins.c: Successfully dropped user privileges.\n");
-      }
-      else
-      {
-        log_write("oval_plugins.c: WARNING: Could not drop group privileges!\n");
-      }
+        {
+          log_write ("oval_plugins.c: WARNING: Could not drop privileges; unable to get uid and gid for user nobody!\n");
+        }
     }
-    else
-    {
-      log_write("oval_plugins.c: WARNING: Could not drop privileges; unable to get uid and gid for user nobody!\n");
-    }
-  }
   else
-  {
-    log_write("oval_plugins.c: WARNING: Did not attempt to drop privileges since we do not seem to be running as root.\n");
-  }
+    {
+      log_write ("oval_plugins.c: WARNING: Did not attempt to drop privileges since we do not seem to be running as root.\n");
+    }
 }
 
-void start_element (GMarkupParseContext *context, const gchar *element_name,
-                    const gchar **attribute_names,
-                    const gchar **attribute_values, gpointer user_data,
-                    GError **error)
+/**
+ * @brief This function handles the opening tag of an XML element. 
+ */
+void
+start_element (GMarkupParseContext *context, const gchar *element_name,
+               const gchar **attribute_names, const gchar **attribute_values,
+               gpointer user_data, GError **error)
 {
   const gchar **name_cursor = attribute_names;
   const gchar **value_cursor = attribute_values;
 
   switch (parser_state)
     {
-    case TOP:
-      if(strcmp(element_name, "definition") == 0)
-        {
-          set_parser_state (DEFINITION);
-          current_plugin = g_malloc (sizeof(oval_plugin_t));
-          while(*name_cursor)
-            {
-              if (strcmp (*name_cursor, "id") == 0)
-                {
-                  current_plugin->id = g_strrstr(g_strdup(*value_cursor), ":") + 1;
-                  // TODO: This currently assigns only IDs in the range intended for
-                  // RedHat security advisories.
-                  current_plugin->oid = g_strconcat("1.3.6.1.4.1.25623.1.2.2312.", current_plugin->id, NULL);
-                }
-              if (strcmp (*name_cursor, "version") == 0)
-                current_plugin->version = g_strdup(*value_cursor);
-              name_cursor++;
-              value_cursor++;
-            }
-        }
-
-      if(strcmp(element_name, "results") == 0)
-        set_parser_state (RESULTS);
-      break;
-    case DEFINITION:
-      if(strcmp(element_name, "description") == 0)
-        set_parser_state (DESCRIPTION);
-
-      if(strcmp(element_name, "title") == 0)
-        set_parser_state (TITLE);
-      break;
-
-    case RESULTS:
-      if(strcmp(element_name, "definition") == 0)
-        {
-          set_parser_state (RESULTS_DEFINITION);
-          current_result = g_malloc (sizeof (oval_result_t));
-          while(*name_cursor)
-            {
-              if (strcmp (*name_cursor, "definition_id") == 0)
-                {
-                  current_result->definition_id = g_strdup (*value_cursor);
-                }
-              if (strcmp (*name_cursor, "result") == 0)
-                {
-                  current_result->result = g_strdup (*value_cursor);
-                }
-              name_cursor++;
-              value_cursor++;
-            }
-        }
-      break;
-    default:
-      break;
-    }
-}
-
-void text(GMarkupParseContext *context, const gchar *text, gsize text_len,
-          gpointer user_data, GError **error)
-{
-  switch (parser_state)
-    {
-    case DESCRIPTION:
-      // NOTE: This currently cuts off descriptions longer than the maximum length
-      // specified in libopenvas/store_internal.h
-      current_plugin->description = g_strndup(text, 3190);
-      break;
-    case TITLE:
-        {
-          int i;
-          gchar **title_split = g_strsplit(text, "\n", 0);
-          if (g_strv_length (title_split) > 1)
-            {
-              for (i = 0; i < g_strv_length (title_split); i++)
-                {
-                  g_strstrip (title_split[i]);
-                }
-              current_plugin->title = g_strjoinv(" ", title_split);
-            }
-          else
-            {
-              current_plugin->title = g_strdup(title_split[0]);
-            }
-          g_strfreev (title_split);
-        }
-      break;
-    default:
-      break;
-    }
-}
-
-void end_element (GMarkupParseContext *context, const gchar *element_name,
-                  gpointer user_data, GError **error)
-{
-  switch (parser_state)
-    {
-    case DESCRIPTION:
-      if(strcmp(element_name, "description") == 0)
-        set_parser_state (DEFINITION);
-      break;
-    case DEFINITION:
-      if(strcmp(element_name, "definition") == 0)
-        {
-          plugin_list = g_slist_append (plugin_list, current_plugin);
-          set_parser_state (TOP);
-        }
-      break;
-    case TITLE:
-      if(strcmp(element_name, "title") == 0)
-        set_parser_state (DEFINITION);
-      break;
-    case RESULTS:
-      if(strcmp(element_name, "results") == 0)
-        set_parser_state (TOP);
-      break;
-    case RESULTS_DEFINITION:
-      if(strcmp(element_name, "definition") == 0)
-        {
-          result_list = g_slist_append (result_list, current_result);
+      case TOP:
+        if (strcmp (element_name, "definition") == 0)
+          {
+            set_parser_state (DEFINITION);
+            current_plugin = g_malloc (sizeof (oval_plugin_t));
+            while (*name_cursor)
+              {
+                if (strcmp (*name_cursor, "id") == 0)
+                  {
+                    current_plugin->id = g_strrstr (g_strdup (*value_cursor), ":") + 1;
+                    // TODO: This currently assigns only IDs in the range intended for
+                    // RedHat security advisories.
+                    current_plugin->oid = g_strconcat ("1.3.6.1.4.1.25623.1.2.2312.",
+                                                       current_plugin->id, NULL);
+                  }
+                if (strcmp (*name_cursor, "version") == 0)
+                  current_plugin->version = g_strdup (*value_cursor);
+                name_cursor++;
+                value_cursor++;
+              }
+          }
+        if (strcmp (element_name, "results") == 0)
           set_parser_state (RESULTS);
-        }
-      break;
-    default:
-      break;
+        break;
+      case DEFINITION:
+        if (strcmp (element_name, "description") == 0)
+          set_parser_state (DESCRIPTION);
+        if (strcmp (element_name, "title") == 0)
+          set_parser_state (TITLE);
+        break;
+      case RESULTS:
+        if (strcmp (element_name, "definition") == 0)
+          {
+            set_parser_state (RESULTS_DEFINITION);
+            current_result = g_malloc (sizeof (oval_result_t));
+            while (*name_cursor)
+              {
+                if (strcmp (*name_cursor, "definition_id") == 0)
+                  {
+                    current_result->definition_id = g_strdup (*value_cursor);
+                  }
+                if (strcmp (*name_cursor, "result") == 0)
+                  {
+                    current_result->result = g_strdup (*value_cursor);
+                  }
+                name_cursor++;
+                value_cursor++;
+              }
+          }
+        break;
+      default:
+        break;
     }
 }
 
 /**
- *  Initialize the plugin class
+ * @brief This function handles the text content of an XML element.
+ *
  */
-pl_class_t* oval_plugin_init(struct arglist* prefs, struct arglist* args)
+void
+text (GMarkupParseContext *context, const gchar *text, gsize text_len,
+      gpointer user_data, GError **error)
 {
-    return &oval_plugin_class;
+  switch (parser_state)
+    {
+      case DESCRIPTION:
+        // NOTE: This currently cuts off descriptions longer than the maximum
+        // length specified in libopenvas/store_internal.h
+        current_plugin->description = g_strndup (text, 3190);
+        break;
+      case TITLE:
+          {
+            int i;
+            gchar **title_split = g_strsplit (text, "\n", 0);
+            if (g_strv_length (title_split) > 1)
+              {
+                for (i = 0; i < g_strv_length (title_split); i++)
+                  {
+                    g_strstrip (title_split[i]);
+                  }
+                current_plugin->title = g_strjoinv (" ", title_split);
+              }
+            else
+              {
+                current_plugin->title = g_strdup (title_split[0]);
+              }
+            g_strfreev (title_split);
+          }
+        break;
+      default:
+        break;
+    }
 }
 
 /**
- * Add *one* OVAL definition to the server list
+ * @brief This function handles the closing tag of an XML element.
  */
-struct arglist * oval_plugin_add(char * folder, char * name,
-                                 struct arglist * plugins,
-                                 struct arglist * preferences)
+void
+end_element (GMarkupParseContext *context, const gchar *element_name,
+             gpointer user_data, GError **error)
+{
+  switch (parser_state)
+    {
+      case DESCRIPTION:
+        if (strcmp (element_name, "description") == 0)
+          set_parser_state (DEFINITION);
+        break;
+      case DEFINITION:
+        if (strcmp (element_name, "definition") == 0)
+          {
+            plugin_list = g_slist_append (plugin_list, current_plugin);
+            set_parser_state (TOP);
+          }
+        break;
+      case TITLE:
+        if (strcmp (element_name, "title") == 0)
+          set_parser_state (DEFINITION);
+        break;
+      case RESULTS:
+        if (strcmp (element_name, "results") == 0)
+          set_parser_state (TOP);
+        break;
+      case RESULTS_DEFINITION:
+        if (strcmp (element_name, "definition") == 0)
+          {
+            result_list = g_slist_append (result_list, current_result);
+            set_parser_state (RESULTS);
+          }
+        break;
+      default:
+        break;
+    }
+}
+
+/**
+ * @brief Initialize the plugin class.
+ */
+pl_class_t*
+oval_plugin_init (struct arglist* prefs, struct arglist* args)
+{
+  return &oval_plugin_class;
+}
+
+/**
+ * @brief Add a single OVAL definition file to the list of available NVTs.
+ */
+struct arglist *
+oval_plugin_add (char * folder, char * name,
+                 struct arglist * plugins,
+                 struct arglist * preferences)
 {
   char fullname[PATH_MAX+1];
   struct arglist * args = NULL;
@@ -304,178 +340,188 @@ struct arglist * oval_plugin_add(char * folder, char * name,
   int i;
 
   if (plugin_list != NULL)
-  {
-    g_slist_free (plugin_list);
-    plugin_list = NULL;
-  }
-
-  snprintf(fullname, sizeof(fullname), "%s/%s", folder, name);
-
-  if ( preferences_nasl_no_signature_check(preferences) == 0 
-       && nasl_verify_signature( fullname) != 0)
-  {
-    log_write("%s: signature of nvt could not been verified/ is missing.", fullname);
-    return NULL;
-  }
-
-  args = store_load_plugin(folder, name, preferences);
-
-  if(args == NULL)
-  {
-    char* sign_fprs = nasl_extract_signature_fprs( fullname );
-    // If server accepts signed plugins only, discard if signature file missing.
-    if(preferences_nasl_no_signature_check(preferences) == 0 && sign_fprs == NULL)
     {
-      printf("%s: nvt is not signed and thus ignored\n", fullname);
-      return NULL;
-    }
-    else if(sign_fprs == NULL)
-    {
-      sign_fprs = "";
+      g_slist_free (plugin_list);
+      plugin_list = NULL;
     }
 
-    // Parse plugin properties into arglist
-    parser.start_element = start_element;
-    parser.end_element = end_element;
-    parser.text = text;
-    parser.passthrough = NULL;
-    parser.error = NULL;
+  snprintf (fullname, sizeof (fullname), "%s/%s", folder, name);
 
-    if(!g_file_get_contents(fullname, &filebuffer, &length, NULL))
+  if (preferences_nasl_no_signature_check (preferences) == 0 
+      && nasl_verify_signature (fullname) != 0)
     {
-      log_write("oval_plugin_add: File %s not found", fullname);
+      log_write("%s: signature of nvt could not been verified/ is missing.",
+                fullname);
       return NULL;
     }
 
-    context = g_markup_parse_context_new(&parser, 0, NULL, NULL);
-    g_markup_parse_context_parse(context, filebuffer, length, NULL);
-    g_free(filebuffer);
-    g_markup_parse_context_free(context);
+  args = store_load_plugin (folder, name, preferences);
 
-    if (g_slist_length(plugin_list) == 0)
-      {
-        log_write("oval_plugin_add: Empty plugin_list, no definitions found in %s!", fullname);
-        return NULL;
-      }
-
-    oval_plugin_t * first_plugin = g_slist_nth_data (plugin_list, 0);
-    if (g_slist_length(plugin_list) > 1)
-      {
-        gchar ** title_array;
-        title_array = g_malloc0((g_slist_length(plugin_list) + 1) * sizeof(gchar *));
-
-        for (i = 0; i < g_slist_length(plugin_list); i++)
-          {
-            oval_plugin_t * plug = g_slist_nth_data (plugin_list, i);
-            title_array[i] = g_strdup_printf("%s\n", plug->title);
-          }
-        title_array[i] = NULL;
-        descriptions = g_strjoinv (NULL, title_array);
-        if (strlen(descriptions) > 3100)
-          {
-            description = g_strconcat("This OVAL file contains the following definitions:\n", g_strndup (descriptions, 3100), "\n(list cut due to memory limitations)", NULL);
-          }
-        else
-          {
-            description = g_strconcat("This OVAL file contains the following definitions:\n", g_strdup (descriptions), NULL);
-          }
-        g_free (descriptions);
-        g_strfreev (title_array);
-        title = g_strdup_printf("%s (%d OVAL definitions)", name, g_slist_length(plugin_list));
-      }
-    else
-      {
-        description = first_plugin->description;
-        title = first_plugin->title;
-      }
-
-
-    args = emalloc(sizeof(struct arglist));
-
-    plug_set_oid(args, g_strdup(first_plugin->oid));
-    plug_set_version(args, first_plugin->version);
-    plug_set_name(args, title, NULL);
-    plug_set_description(args, description, NULL);
-    plug_set_category(args, ACT_END);
-    plug_set_family(args, "OVAL definitions", NULL);
-
-    plug_set_path(args, g_build_filename(folder, name, NULL));
-
-    plug_set_sign_key_ids(args, sign_fprs);
-
-    store_plugin(args, name);
-    args = store_load_plugin(folder, name, preferences);
-  }
-
-  if(args != NULL)
-  {
-    prev_plugin = arg_get_value(plugins, name);
-    if(prev_plugin == NULL)
-      arg_add_value(plugins, name, ARG_ARGLIST, -1, args);
-    else
+  if (args == NULL)
     {
-      plugin_free(prev_plugin);
-      arg_set_value(plugins, name, -1, args);
+      char* sign_fprs = nasl_extract_signature_fprs (fullname );
+      // If server accepts signed plugins only, discard if signature file missing.
+      if (preferences_nasl_no_signature_check (preferences) == 0 
+          && sign_fprs == NULL)
+        {
+          printf ("%s: nvt is not signed and thus ignored\n", fullname);
+          return NULL;
+        }
+      else if (sign_fprs == NULL)
+        {
+          sign_fprs = "";
+        }
+
+      parser.start_element = start_element;
+      parser.end_element = end_element;
+      parser.text = text;
+      parser.passthrough = NULL;
+      parser.error = NULL;
+
+      if (!g_file_get_contents (fullname, &filebuffer, &length, NULL))
+        {
+          log_write ("oval_plugin_add: File %s not found", fullname);
+          return NULL;
+        }
+
+      context = g_markup_parse_context_new (&parser, 0, NULL, NULL);
+      g_markup_parse_context_parse (context, filebuffer, length, NULL);
+      g_free (filebuffer);
+      g_markup_parse_context_free (context);
+
+      if (g_slist_length (plugin_list) == 0)
+        {
+          log_write ("oval_plugin_add: Empty plugin_list, no definitions found in %s!",
+                     fullname);
+          return NULL;
+        }
+
+      oval_plugin_t * first_plugin = g_slist_nth_data  (plugin_list, 0);
+      if (g_slist_length (plugin_list) > 1)
+        {
+          gchar ** title_array;
+          title_array = g_malloc0 ((g_slist_length (plugin_list) + 1) * sizeof (gchar *));
+
+          for (i = 0; i < g_slist_length (plugin_list); i++)
+            {
+              oval_plugin_t * plug = g_slist_nth_data (plugin_list, i);
+              title_array[i] = g_strdup_printf ("%s\n", plug->title);
+            }
+          title_array[i] = NULL;
+          descriptions = g_strjoinv (NULL, title_array);
+          if (strlen (descriptions) > 3100)
+            {
+              description = g_strconcat ("This OVAL file contains the following definitions:\n",
+                                         g_strndup (descriptions, 3100),
+                                         "\n(list cut due to memory limitations)", NULL);
+            }
+          else
+            {
+              description = g_strconcat ("This OVAL file contains the following definitions:\n",
+                                         g_strdup (descriptions), NULL);
+            }
+          g_free (descriptions);
+          g_strfreev (title_array);
+          title = g_strdup_printf ("%s (%d OVAL definitions)", name,
+                                   g_slist_length (plugin_list));
+        }
+      else
+        {
+          description = first_plugin->description;
+          title = first_plugin->title;
+        }
+
+      args = emalloc (sizeof (struct arglist));
+
+      plug_set_oid (args, g_strdup (first_plugin->oid));
+      plug_set_version (args, first_plugin->version);
+      plug_set_name (args, title, NULL);
+      plug_set_description (args, description, NULL);
+      plug_set_category (args, ACT_END);
+      plug_set_family (args, "OVAL definitions", NULL);
+
+      plug_set_path (args, g_build_filename (folder, name, NULL));
+
+      plug_set_sign_key_ids (args, sign_fprs);
+
+      store_plugin (args, name);
+      args = store_load_plugin (folder, name, preferences);
     }
-  }
+
+  if (args != NULL)
+    {
+      prev_plugin = arg_get_value (plugins, name);
+      if (prev_plugin == NULL)
+        arg_add_value (plugins, name, ARG_ARGLIST, -1, args);
+      else
+        {
+          plugin_free (prev_plugin);
+          arg_set_value (plugins, name, -1, args);
+        }
+    }
   return args;
 }
 
 /**
- * Launch an OVAL plugin
+ * @brief Launches an OVAL plugin.
  */
-int oval_plugin_launch(struct arglist * globals, struct arglist * plugin,
-                       struct arglist * hostinfos, struct arglist * preferences,
-                       struct kb_item ** kb, char * name)
+int
+oval_plugin_launch (struct arglist * globals, struct arglist * plugin,
+                    struct arglist * hostinfos, struct arglist * preferences,
+                    struct kb_item ** kb, char * name)
 {
   nthread_t module;
-  arg_add_value(plugin, "globals", ARG_ARGLIST, -1, globals);
-  arg_add_value(plugin, "HOSTNAME", ARG_ARGLIST, -1, hostinfos);
-  arg_add_value(plugin, "name", ARG_STRING, strlen(name), name);
-  arg_set_value(plugin, "preferences", -1, preferences);
-  arg_add_value(plugin, "key", ARG_PTR, -1, kb);
+  arg_add_value (plugin, "globals", ARG_ARGLIST, -1, globals);
+  arg_add_value (plugin, "HOSTNAME", ARG_ARGLIST, -1, hostinfos);
+  arg_add_value (plugin, "name", ARG_STRING, strlen (name), name);
+  arg_set_value (plugin, "preferences", -1, preferences);
+  arg_add_value (plugin, "key", ARG_PTR, -1, kb);
 
   // TODO felix get Preferences from global context and check the signature
-  //if(  nasl_verify_signature( arg_get_value(g_args, "name")) )
-  //  post_log( g_args, 0, "Attempt to start signed oval plugin.");
+  //if (nasl_verify_signature (arg_get_value (g_args, "name")))
+  //  post_log (g_args, 0, "Attempt to start signed oval plugin.");
 
-  module = create_process((process_func_t)oval_thread, plugin);
+  module = create_process ((process_func_t)oval_thread, plugin);
   return module;
 }
 
 /**
- * Create a thread for the OVAL plugin
+ * @brief Creates a thread for an OVAL plugin.
  */
-static void oval_thread(struct arglist * g_args)
+static void
+oval_thread (struct arglist * g_args)
 {
-  struct arglist * args = arg_get_value(g_args, "args");
-  int soc = GPOINTER_TO_SIZE(arg_get_value(g_args, "SOCKET"));
-  struct arglist * globals = arg_get_value(args, "globals");
+  struct arglist * args = arg_get_value (g_args, "args");
+  int soc = GPOINTER_TO_SIZE (arg_get_value (g_args, "SOCKET"));
+  struct arglist * globals = arg_get_value (args, "globals");
 
-  soc = dup2(soc, 4);
-  if(soc < 0)
-  {
-    log_write("oval_thread: dup2() failed ! - can not launch the plugin\n");
-    return;
-  }
-  arg_set_value(args, "SOCKET", sizeof(gpointer), GSIZE_TO_POINTER(soc));
-  arg_set_value(globals, "global_socket", sizeof(gpointer), GSIZE_TO_POINTER(soc));
+  soc = dup2 (soc, 4);
+  if (soc < 0)
+    {
+      log_write ("oval_thread: dup2() failed ! - can not launch the plugin\n");
+      return;
+    }
+  arg_set_value (args, "SOCKET", sizeof (gpointer), GSIZE_TO_POINTER (soc));
+  arg_set_value (globals, "global_socket", sizeof (gpointer), GSIZE_TO_POINTER (soc));
 
-  setproctitle("testing %s (%s)",
-               (char*)arg_get_value(arg_get_value(args, "HOSTNAME"), "NAME"),
-               (char*)arg_get_value(g_args, "name"));
-  signal(SIGTERM, _exit);
+  setproctitle ("testing %s (%s)",
+                (char*) arg_get_value (arg_get_value (args, "HOSTNAME"), "NAME"),
+                (char*) arg_get_value (g_args, "name"));
+  signal (SIGTERM, _exit);
 
-  ovaldi_launch(g_args);
-  internal_send(soc, NULL, INTERNAL_COMM_MSG_TYPE_CTRL | INTERNAL_COMM_CTRL_FINISHED);
+  ovaldi_launch (g_args);
+  internal_send (soc, NULL, INTERNAL_COMM_MSG_TYPE_CTRL | INTERNAL_COMM_CTRL_FINISHED);
 }
 
 /**
+ * @brief Launches ovaldi.
+ *
  * This function will generate an OVAL system characteristics document from the
  * data available in the knowledge base (KB), run ovaldi and return the results
  * to the client.
  */
-void ovaldi_launch(struct arglist * g_args)
+void
+ovaldi_launch (struct arglist * g_args)
 {
   gchar * sc_filename;
   gchar * results_filename;
@@ -483,232 +529,237 @@ void ovaldi_launch(struct arglist * g_args)
   time_t t;
   struct tm *tmp;
   char timestr[20];
-  // struct arglist * args = arg_get_value(g_args, "args");
-  struct kb_item ** kb = arg_get_value(g_args, "key");
-  gchar * basename = g_strrstr(g_strdup((char*)arg_get_value(g_args, "name")), "/") + 1;
+  // struct arglist * args = arg_get_value (g_args, "args");
+  struct kb_item ** kb = arg_get_value (g_args, "key");
+  gchar * basename = g_strrstr (g_strdup ((char*) arg_get_value (g_args, "name")), "/") + 1;
   gchar * result_string = NULL;
-  gchar * folder = g_strndup((char*)arg_get_value(g_args, "name"), strlen((char*)arg_get_value(g_args, "name")) - strlen(basename));
+  gchar * folder = g_strndup ((char*) arg_get_value (g_args, "name"),
+                              strlen ((char*) arg_get_value (g_args, "name")) - strlen (basename));
 
-  sc_filename = g_strconcat(folder, "sc-out.xml", NULL);
-  log_write("SC Filename: %s\n", sc_filename);
+  sc_filename = g_strconcat (folder, "sc-out.xml", NULL);
+  log_write ("SC Filename: %s\n", sc_filename);
   results_filename = "/tmp/results.xml";
 
-  sc_file = fopen(sc_filename, "w");
-  if(sc_file == NULL)
-  {
-    result_string = g_strdup_printf ("Could not launch ovaldi for OVAL definition %s: Could not create SC file.\n\n", basename);
-    post_note(g_args, 0, result_string);
-    efree(&sc_filename);
-  }
+  sc_file = fopen (sc_filename, "w");
+  if (sc_file == NULL)
+    {
+      result_string = g_strdup_printf ("Could not launch ovaldi for OVAL definition %s: Could not create SC file.\n\n",
+                                       basename);
+      post_note (g_args, 0, result_string);
+      efree (&sc_filename);
+    }
   else
-  {
-    fprintf(sc_file, "<?xml version=\"1.0\" encoding=\"UTF-8\" standalone=\"no\" ?>\n");
-    fprintf(sc_file, "<oval_system_characteristics xmlns=\"http://oval.mitre.org/XMLSchema/oval-system-characteristics-5\" xmlns:linux-sc=\"http://oval.mitre.org/XMLSchema/oval-system-characteristics-5#linux\" xmlns:oval=\"http://oval.mitre.org/XMLSchema/oval-common-5\" xmlns:oval-sc=\"http://oval.mitre.org/XMLSchema/oval-system-characteristics-5\" xmlns:unix-sc=\"http://oval.mitre.org/XMLSchema/oval-system-characteristics-5#unix\" xmlns:xsi=\"http://www.w3.org/2001/XMLSchema-instance\" xsi:schemaLocation=\"http://oval.mitre.org/XMLSchema/oval-system-characteristics-5 oval-system-characteristics-schema.xsd http://oval.mitre.org/XMLSchema/oval-common-5 oval-common-schema.xsd http://oval.mitre.org/XMLSchema/oval-system-characteristics-5#unix unix-system-characteristics-schema.xsd http://oval.mitre.org/XMLSchema/oval-system-characteristics-5#linux linux-system-characteristics-schema.xsd\">\n\n");
-    
-    t = time(NULL);
-    tmp = localtime(&t);
-    strftime(timestr, sizeof(timestr), "%FT%T", tmp);
-    fprintf(sc_file, "\t<generator>\n\t\t<oval:product_name>%s</oval:product_name>\n\t\t<oval:product_version>%s</oval:product_version>\n\t\t<oval:schema_version>5.4</oval:schema_version>\n\t\t<oval:timestamp>%s</oval:timestamp>\n\t\t<vendor>The OpenVAS Project</vendor>\n\t</generator>\n\n", PROGNAME, OPENVAS_FULL_VERSION, timestr);
-
-    // TODO: Replace dummy values with real values; inserted dummy value since
-    // ovaldi does not like empty elements here.
-    fprintf(sc_file, "\t<system_info>\n\t\t<os_name>dummy</os_name>\n\t\t<os_version>dummy</os_version>\n\t\t<architecture>dummy</architecture>\n\t\t<primary_host_name>dummy</primary_host_name>\n\t\t<interfaces>\n\t\t\t<interface>\n\t\t\t\t<interface_name>dummy</interface_name>\n\t\t\t\t<ip_address>dummy</ip_address>\n\t\t\t\t<mac_address>dummy</mac_address>\n\t\t\t</interface>\n\t\t</interfaces>\n\t</system_info>\n\n");
-    fprintf(sc_file, "\t<system_data>\n");
-
-    int i = 1;
-
-    // Get the open TCP ports from the KB and build <inetlisteningserver_item>
-    struct kb_item * res = kb_item_get_pattern(kb, "Ports/tcp/*");
-
-    while(res)
     {
-      fprintf(sc_file, "\t\t<inetlisteningserver_item id=\"%d\" xmlns=\"http://oval.mitre.org/XMLSchema/oval-system-characteristics-5#linux\">\n", i);
-      fprintf(sc_file, "\t\t\t<protocol>tcp</protocol>\n");
-      fprintf(sc_file, "\t\t\t<local_address/>\n");
-      fprintf(sc_file, "\t\t\t<local_port>%s</local_port>\n", g_strrstr(res->name, "/") + 1);
-      fprintf(sc_file, "\t\t\t<local_full_address/>\n\t\t\t<program_name/>\n\t\t\t<foreign_address/>\n\t\t\t<foreign_port/>\n\t\t\t<foreign_full_address/>\n\t\t\t<pid/>\n\t\t\t<user_id/>\n");
-      fprintf(sc_file, "\t\t</inetlisteningserver_item>\n");
-      i++;
-      res = res->next;
-    }
+      fprintf (sc_file, "<?xml version=\"1.0\" encoding=\"UTF-8\" standalone=\"no\" ?>\n");
+      fprintf (sc_file, "<oval_system_characteristics xmlns=\"http://oval.mitre.org/XMLSchema/oval-system-characteristics-5\" xmlns:linux-sc=\"http://oval.mitre.org/XMLSchema/oval-system-characteristics-5#linux\" xmlns:oval=\"http://oval.mitre.org/XMLSchema/oval-common-5\" xmlns:oval-sc=\"http://oval.mitre.org/XMLSchema/oval-system-characteristics-5\" xmlns:unix-sc=\"http://oval.mitre.org/XMLSchema/oval-system-characteristics-5#unix\" xmlns:xsi=\"http://www.w3.org/2001/XMLSchema-instance\" xsi:schemaLocation=\"http://oval.mitre.org/XMLSchema/oval-system-characteristics-5 oval-system-characteristics-schema.xsd http://oval.mitre.org/XMLSchema/oval-common-5 oval-common-schema.xsd http://oval.mitre.org/XMLSchema/oval-system-characteristics-5#unix unix-system-characteristics-schema.xsd http://oval.mitre.org/XMLSchema/oval-system-characteristics-5#linux linux-system-characteristics-schema.xsd\">\n\n");
 
-    // Test if ssh/login/release is present in the KB; this means that an
-    // information gathering plugin has collected release and possibly package
-    // information from the remote system.
-    if(kb_item_get_str(kb, "ssh/login/release") == NULL)
-    {
-      log_write("Could not identify release, not collecting package information.\n");
-      result_string = g_strdup_printf ("Could not collect remote package information for OVAL definition %s: Result may be incomplete.\n\n", basename);
-      post_note(g_args, 0, result_string);
+      t = time (NULL);
+      tmp = localtime (&t);
+      strftime (timestr, sizeof (timestr), "%FT%T", tmp);
+      fprintf (sc_file, "\t<generator>\n\t\t<oval:product_name>%s</oval:product_name>\n\t\t<oval:product_version>%s</oval:product_version>\n\t\t<oval:schema_version>5.4</oval:schema_version>\n\t\t<oval:timestamp>%s</oval:timestamp>\n\t\t<vendor>The OpenVAS Project</vendor>\n\t</generator>\n\n", PROGNAME, OPENVAS_FULL_VERSION, timestr);
 
-    }
-    else
-    {
-      // TODO: Right now, every plugin needs to parse the package data in the KB
-      // by itself and dependent on the detected release since they are not
-      // stored in a structured way by the collecting plugin.
-      if(strstr(kb_item_get_str(kb, "ssh/login/release"), "DEB") != NULL)
-      {
-        log_write("Detected Debian package information\n");
-        char * packages_str = kb_item_get_str(kb, "ssh/login/packages");
+      // TODO: Replace dummy values with real values; inserted dummy value
+      // since ovaldi does not like empty elements here.
+      fprintf (sc_file, "\t<system_info>\n\t\t<os_name>dummy</os_name>\n\t\t<os_version>dummy</os_version>\n\t\t<architecture>dummy</architecture>\n\t\t<primary_host_name>dummy</primary_host_name>\n\t\t<interfaces>\n\t\t\t<interface>\n\t\t\t\t<interface_name>dummy</interface_name>\n\t\t\t\t<ip_address>dummy</ip_address>\n\t\t\t\t<mac_address>dummy</mac_address>\n\t\t\t</interface>\n\t\t</interfaces>\n\t</system_info>\n\n");
+      fprintf (sc_file, "\t<system_data>\n");
 
-        if(packages_str)
+      int i = 1;
+
+      // Get the open TCP ports from the KB and build <inetlisteningserver_item>
+      struct kb_item * res = kb_item_get_pattern (kb, "Ports/tcp/*");
+
+      while (res)
         {
-          gchar ** package = g_strsplit(packages_str, "\n", 0);
-          int j = 5;
-          while(package[j] != NULL)
-          {
-            strtok(package[j], " ");
-            fprintf(sc_file, "\t\t<dpkginfo_item id=\"%d\" xmlns=\"http://oval.mitre.org/XMLSchema/oval-system-characteristics-5#linux\">\n", i);
-            fprintf(sc_file, "\t\t\t<name>%s</name>\n", strtok(NULL, " "));
-            fprintf(sc_file, "\t\t\t<arch/>\n");
-            fprintf(sc_file, "\t\t\t<epoch/>\n");
-            fprintf(sc_file, "\t\t\t<release/>\n");
-            fprintf(sc_file, "\t\t\t<version>%s</version>\n", strtok(NULL, " "));
-            fprintf(sc_file, "\t\t\t<evr/>\n");
-            fprintf(sc_file, "\t\t</dpkginfo_item>\n");
-            i++;
-            j++;
-          }
-          g_strfreev(package);
+          fprintf (sc_file, "\t\t<inetlisteningserver_item id=\"%d\" xmlns=\"http://oval.mitre.org/XMLSchema/oval-system-characteristics-5#linux\">\n", i);
+          fprintf (sc_file, "\t\t\t<protocol>tcp</protocol>\n");
+          fprintf (sc_file, "\t\t\t<local_address/>\n");
+          fprintf (sc_file, "\t\t\t<local_port>%s</local_port>\n", g_strrstr (res->name, "/") + 1);
+          fprintf (sc_file, "\t\t\t<local_full_address/>\n\t\t\t<program_name/>\n\t\t\t<foreign_address/>\n\t\t\t<foreign_port/>\n\t\t\t<foreign_full_address/>\n\t\t\t<pid/>\n\t\t\t<user_id/>\n");
+          fprintf (sc_file, "\t\t</inetlisteningserver_item>\n");
+          i++;
+          res = res->next;
         }
-      }
 
-      // NOTE: This parser should work for other RPM-based distributions as well.
-      if(strstr(kb_item_get_str(kb, "ssh/login/release"), "RH") != NULL)
-      {
-        log_write("Detected RedHat package information\n");
-        char * packages_str = kb_item_get_str(kb, "ssh/login/rpms");
-
-        if(packages_str)
+      // Test if ssh/login/release is present in the KB; this means that an
+      // information gathering plugin has collected release and possibly package
+      // information from the remote system.
+      if (kb_item_get_str (kb, "ssh/login/release") == NULL)
         {
-          gchar ** package = g_strsplit(packages_str, ";", 0);
-          int j = 1;
-          char keyid[17];
-          keyid[16] = '\0';
-          gchar * package_name;
-          gchar * package_version;
-          gchar * package_release;
-          while(package[j] != NULL)
-          {
-            gchar * pgpsig = strncpy(keyid, package[j] + strlen(package[j]) - 16, 16);
-            g_strchug(package[j]);
-            gchar ** package_data = g_strsplit(package[j], "~", 0);
-            if(package_data[0])
-            {
-              package_name = package_data[0];
-              package_version = package_data[1];
-              package_release = package_data[2];
-              fprintf(sc_file, "\t\t<rpminfo_item id=\"%d\" xmlns=\"http://oval.mitre.org/XMLSchema/oval-system-characteristics-5#linux\">\n", i);
-              fprintf(sc_file, "\t\t\t<name>%s</name>\n", package_name);
-              fprintf(sc_file, "\t\t\t<arch/>\n");
-              fprintf(sc_file, "\t\t\t<epoch/>\n");
-              fprintf(sc_file, "\t\t\t<release>%s</release>\n", package_release);
-              fprintf(sc_file, "\t\t\t<version>%s</version>\n", package_version);
-              fprintf(sc_file, "\t\t\t<evr/>\n");
-              fprintf(sc_file, "\t\t\t<signature_keyid>%s</signature_keyid>\n", pgpsig);
-              fprintf(sc_file, "\t\t</rpminfo_item>\n");
-              i++;
-            }
-            j++;
-            g_strfreev(package_data);
-          }
-          g_strfreev(package);
-        }
-      }
-    }
+          log_write ("Could not identify release, not collecting package information.\n");
+          result_string = g_strdup_printf ("Could not collect remote package information for OVAL definition %s: Result may be incomplete.\n\n", basename);
+          post_note (g_args, 0, result_string);
 
-    fprintf(sc_file, "\t</system_data>\n\n");
-    fprintf(sc_file, "</oval_system_characteristics>\n");
-  }
-  if(sc_file != NULL)
-    fclose(sc_file);
-
-  gchar ** argv = (gchar **)g_malloc (11 * sizeof (gchar *));
-  argv[0] = g_strdup("ovaldi");
-  argv[1] = g_strdup("-m");  // Do not check OVAL MD5 signature
-  argv[2] = g_strdup("-o");  // Request the use of _this_ plugin
-  argv[3] = g_strdup((char*)arg_get_value(g_args, "name"));
-  argv[4] = g_strdup("-i");  // Request the use of the system characteristics retrieved from the KB
-  argv[5] = g_strdup(sc_filename);
-  argv[6] = g_strdup("-r");  // Store the scan results where we can parse them
-  argv[7] = g_strdup(results_filename);
-  argv[8] = g_strdup ("-a");  // Path to the directory that contains the OVAL schema
-  argv[9] = g_strdup (folder);
-  argv[10] = NULL;
-//   log_write("Launching ovaldi with: %s\n", g_strjoinv(" ", argv));
-
-  if(g_spawn_sync(NULL, argv, NULL, G_SPAWN_SEARCH_PATH, child_setup, NULL, NULL, NULL, NULL, NULL))
-  {
-    GMarkupParser parser; 
-    GMarkupParseContext *context = NULL;
-    gchar *filebuffer = NULL;
-    gsize length = 0;
-    int i;
-
-    parser.start_element = start_element;
-    parser.end_element = end_element;
-    parser.text = text;
-    parser.passthrough = NULL;
-    parser.error = NULL;
-
-    if(!g_file_get_contents(results_filename, &filebuffer, &length, NULL))
-    {
-      result_string = g_strdup_printf (
-          "Could not return results for OVAL definition %s: Results file not found.\n\n",
-          basename);
-      post_note(g_args, 0, result_string);
-      log_write("Results file %s not found!\n", results_filename);
-    }
-    else
-    {
-      context = g_markup_parse_context_new(&parser, 0, NULL, NULL);
-      g_markup_parse_context_parse(context, filebuffer, length, NULL);
-      g_free(filebuffer);
-      g_markup_parse_context_free(context);
-
-      if (g_slist_length (result_list) == 0)
-      {
-        log_write ("oval_result_add: Empty result_list, no results found in %s!", basename);
-      }
-
-      oval_result_t * first_result = g_slist_nth_data (result_list, 0);
-      if (g_slist_length(result_list) > 1)
-        {
-          gchar ** result_array;
-          result_array = g_malloc0 ((g_slist_length (result_list) + 1) * sizeof (gchar *));
-
-          for (i = 0; i < g_slist_length(result_list); i++)
-            {
-              oval_result_t * res = g_slist_nth_data (result_list, i);
-              result_array[i] = g_strdup_printf ("The OVAL definition %s returned the following result: %s\n", res->definition_id, res->result);
-            }
-          result_array[i] = NULL;
-          result_string = g_strjoinv (NULL, result_array);
-          g_strfreev (result_array);
         }
       else
         {
-          result_string = g_strdup_printf ("The OVAL definition %s returned the following result: %s\n\n", first_result->definition_id, first_result->result);
+          // TODO: Right now, every plugin needs to parse the package data in the KB
+          // by itself and dependent on the detected release since they are not
+          // stored in a structured way by the collecting plugin.
+          if (strstr (kb_item_get_str (kb, "ssh/login/release"), "DEB") != NULL)
+            {
+              log_write ("Detected Debian package information\n");
+              char * packages_str = kb_item_get_str (kb, "ssh/login/packages");
+
+              if (packages_str)
+                {
+                  gchar ** package = g_strsplit (packages_str, "\n", 0);
+                  int j = 5;
+                  while (package[j] != NULL)
+                    {
+                      strtok (package[j], " ");
+                      fprintf (sc_file, "\t\t<dpkginfo_item id=\"%d\" xmlns=\"http://oval.mitre.org/XMLSchema/oval-system-characteristics-5#linux\">\n", i);
+                      fprintf (sc_file, "\t\t\t<name>%s</name>\n", strtok (NULL, " "));
+                      fprintf (sc_file, "\t\t\t<arch/>\n");
+                      fprintf (sc_file, "\t\t\t<epoch/>\n");
+                      fprintf (sc_file, "\t\t\t<release/>\n");
+                      fprintf (sc_file, "\t\t\t<version>%s</version>\n", strtok (NULL, " "));
+                      fprintf (sc_file, "\t\t\t<evr/>\n");
+                      fprintf (sc_file, "\t\t</dpkginfo_item>\n");
+                      i++;
+                      j++;
+                    }
+                  g_strfreev (package);
+                }
+            }
+
+          // NOTE: This parser should work for other RPM-based distributions as well.
+          if (strstr (kb_item_get_str (kb, "ssh/login/release"), "RH") != NULL)
+            {
+              log_write ("Detected RedHat package information\n");
+              char * packages_str = kb_item_get_str (kb, "ssh/login/rpms");
+
+              if (packages_str)
+                {
+                  gchar ** package = g_strsplit (packages_str, ";", 0);
+                  int j = 1;
+                  char keyid[17];
+                  keyid[16] = '\0';
+                  gchar * package_name;
+                  gchar * package_version;
+                  gchar * package_release;
+                  while (package[j] != NULL)
+                    {
+                      gchar * pgpsig = strncpy (keyid, package[j] + strlen (package[j]) - 16, 16);
+                      g_strchug (package[j]);
+                      gchar ** package_data = g_strsplit (package[j], "~", 0);
+                      if (package_data[0])
+                        {
+                          package_name = package_data[0];
+                          package_version = package_data[1];
+                          package_release = package_data[2];
+                          fprintf (sc_file, "\t\t<rpminfo_item id=\"%d\" xmlns=\"http://oval.mitre.org/XMLSchema/oval-system-characteristics-5#linux\">\n", i);
+                          fprintf (sc_file, "\t\t\t<name>%s</name>\n", package_name);
+                          fprintf (sc_file, "\t\t\t<arch/>\n");
+                          fprintf (sc_file, "\t\t\t<epoch/>\n");
+                          fprintf (sc_file, "\t\t\t<release>%s</release>\n", package_release);
+                          fprintf (sc_file, "\t\t\t<version>%s</version>\n", package_version);
+                          fprintf (sc_file, "\t\t\t<evr/>\n");
+                          fprintf (sc_file, "\t\t\t<signature_keyid>%s</signature_keyid>\n", pgpsig);
+                          fprintf (sc_file, "\t\t</rpminfo_item>\n");
+                          i++;
+                        }
+                      j++;
+                      g_strfreev (package_data);
+                    }
+                  g_strfreev (package);
+                }
+            }
         }
 
-      post_note(g_args, 0, result_string);
+      fprintf (sc_file, "\t</system_data>\n\n");
+      fprintf (sc_file, "</oval_system_characteristics>\n");
     }
-  }
+  if (sc_file != NULL)
+    fclose (sc_file);
+
+  gchar ** argv = (gchar **) g_malloc (11 * sizeof (gchar *));
+  argv[0] = g_strdup ("ovaldi");
+  argv[1] = g_strdup ("-m");  // Do not check OVAL MD5 signature
+  argv[2] = g_strdup ("-o");  // Request the use of _this_ plugin
+  argv[3] = g_strdup ((char*) arg_get_value (g_args, "name"));
+  argv[4] = g_strdup ("-i");  // Request the use of the system characteristics retrieved from the KB
+  argv[5] = g_strdup (sc_filename);
+  argv[6] = g_strdup ("-r");  // Store the scan results where we can parse them
+  argv[7] = g_strdup (results_filename);
+  argv[8] = g_strdup ("-a");  // Path to the directory that contains the OVAL schema
+  argv[9] = g_strdup (folder);
+  argv[10] = NULL;
+  //   log_write ("Launching ovaldi with: %s\n", g_strjoinv (" ", argv));
+
+  if (g_spawn_sync (NULL, argv, NULL, G_SPAWN_SEARCH_PATH, child_setup, NULL,
+                    NULL, NULL, NULL, NULL))
+    {
+      GMarkupParser parser; 
+      GMarkupParseContext *context = NULL;
+      gchar *filebuffer = NULL;
+      gsize length = 0;
+      int i;
+
+      parser.start_element = start_element;
+      parser.end_element = end_element;
+      parser.text = text;
+      parser.passthrough = NULL;
+      parser.error = NULL;
+
+      if (!g_file_get_contents (results_filename, &filebuffer, &length, NULL))
+        {
+          result_string = g_strdup_printf ("Could not return results for OVAL definition %s: Results file not found.\n\n",
+                                           basename);
+          post_note (g_args, 0, result_string);
+          log_write ("Results file %s not found!\n", results_filename);
+        }
+      else
+        {
+          context = g_markup_parse_context_new (&parser, 0, NULL, NULL);
+          g_markup_parse_context_parse (context, filebuffer, length, NULL);
+          g_free (filebuffer);
+          g_markup_parse_context_free (context);
+
+          if (g_slist_length (result_list) == 0)
+            {
+              log_write ("oval_result_add: Empty result_list, no results found in %s!", basename);
+            }
+
+          oval_result_t * first_result = g_slist_nth_data (result_list, 0);
+          if (g_slist_length (result_list) > 1)
+            {
+              gchar ** result_array;
+              result_array = g_malloc0 ((g_slist_length (result_list) + 1) * sizeof (gchar *));
+
+              for (i = 0; i < g_slist_length (result_list); i++)
+                {
+                  oval_result_t * res = g_slist_nth_data (result_list, i);
+                  result_array[i] = g_strdup_printf ("The OVAL definition %s returned the following result: %s\n",
+                                                     res->definition_id, res->result);
+                }
+              result_array[i] = NULL;
+              result_string = g_strjoinv (NULL, result_array);
+              g_strfreev (result_array);
+            }
+          else
+            {
+              result_string = g_strdup_printf ("The OVAL definition %s returned the following result: %s\n\n",
+                                               first_result->definition_id, first_result->result);
+            }
+
+          post_note (g_args, 0, result_string);
+        }
+    }
   else
-  {
-    result_string = g_strdup_printf ("Could not launch ovaldi for OVAL definition %s: Launch failed. (Is ovaldi in your PATH?)\n\n", basename);
-    post_note(g_args, 0, result_string);
-    log_write("Could not launch ovaldi!\n");
-  }
+    {
+      result_string = g_strdup_printf ("Could not launch ovaldi for OVAL definition %s: Launch failed. (Is ovaldi in your PATH?)\n\n",
+                                       basename);
+      post_note (g_args, 0, result_string);
+      log_write ("Could not launch ovaldi!\n");
+    }
   g_strfreev (argv);
   g_free (result_string);
 }
 
 pl_class_t oval_plugin_class = {
-    NULL,
-    ".oval",
-    oval_plugin_init,
-    oval_plugin_add,
-    oval_plugin_launch,
+  NULL,
+  ".oval",
+  oval_plugin_init,
+  oval_plugin_add,
+  oval_plugin_launch,
 };
