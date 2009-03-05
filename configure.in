@@ -661,8 +661,6 @@ case "$host" in
   *-linux*)
     linux=yes
     AC_DEFINE(LINUX)
-    AC_DEFINE(PCAP_TIMEOUT_IGNORED)  # libpcap doesn't even LOOK at
-                                     # the timeout you give it under Linux
     ;;
   *-freebsd*)
     AC_DEFINE(FREEBSD)

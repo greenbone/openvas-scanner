@@ -1,3 +1,8 @@
+2008-04-05  Vlatko Kosturjak <kost@linux.hr>
+
+	* configure, configure.in: Removal of  PCAP_TIMEOUT_IGNORED which
+	is not used any more in the source
+
 2009-03-05  Felix Wolfsteller <felix.wolfsteller@intevation.de>
 
 	Increased the required openvas-libraries version (2.0.2), for updated
