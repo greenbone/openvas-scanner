@@ -1,3 +1,10 @@
+2009-03-05  Felix Wolfsteller <felix.wolfsteller@intevation.de>
+
+	Increased the required openvas-libraries version (2.0.2), for updated
+	ssh_login datastructure.
+
+	* configure.in: Increased required openvas-libraries version to 2.0.2.
+
 2009-03-02  Michael Wiegand <michael.wiegand@intevation.de>
 
 	* openvasd/oval_plugins.c: Code cleanup. Renamed child_setup to
