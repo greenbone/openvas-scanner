@@ -1,4 +1,17 @@
-2008-04-05  Vlatko Kosturjak <kost@linux.hr>
+2009-03-18  Michael Wiegand <michael.wiegand@intevation.de>
+
+	* openvasd/oval_plugins.c (ovaldi_launch): Added initial support for
+	FDCC checks in the form of support for creating user_items and sid_items
+	based on data collected via WMI; note that this is just an early proof
+	of concept and contains a number of hacks. oval_plugins.c now uses the
+	GString functionality provided by glib to construct the
+	collected_objects and system_data elements to account for relations
+	between child elements of those elements. Furthermore, oval_plugins.c
+	will now attempt to remove stale result files before running ovaldi to
+	prevent the reporting of incorrect results when ovaldi failed to
+	construct a result file.
+
+2008-03-05  Vlatko Kosturjak <kost@linux.hr>
 
 	* configure, configure.in: Removal of  PCAP_TIMEOUT_IGNORED which
 	is not used any more in the source

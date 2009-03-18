@@ -32,6 +32,7 @@
 #include <includes.h>
 #include <nasl.h>
 #include <glib.h>
+#include <glib/gstdio.h>
 #include "corevers.h"
 #include "log.h"
 #include "pluginload.h"
@@ -541,6 +542,12 @@ ovaldi_launch (struct arglist * g_args)
   log_write ("SC Filename: %s\n", sc_filename);
   results_filename = "/tmp/results.xml";
 
+  if (g_file_test (results_filename, G_FILE_TEST_EXISTS))
+    {
+      log_write ("Found existing results file in %s, deleting it to avoid conflicts.", results_filename);
+      g_unlink (results_filename);
+    }
+
   sc_file = fopen (sc_filename, "w");
   if (sc_file == NULL)
     {
@@ -552,7 +559,7 @@ ovaldi_launch (struct arglist * g_args)
   else
     {
       fprintf (sc_file, "<?xml version=\"1.0\" encoding=\"UTF-8\" standalone=\"no\" ?>\n");
-      fprintf (sc_file, "<oval_system_characteristics xmlns=\"http://oval.mitre.org/XMLSchema/oval-system-characteristics-5\" xmlns:linux-sc=\"http://oval.mitre.org/XMLSchema/oval-system-characteristics-5#linux\" xmlns:oval=\"http://oval.mitre.org/XMLSchema/oval-common-5\" xmlns:oval-sc=\"http://oval.mitre.org/XMLSchema/oval-system-characteristics-5\" xmlns:unix-sc=\"http://oval.mitre.org/XMLSchema/oval-system-characteristics-5#unix\" xmlns:xsi=\"http://www.w3.org/2001/XMLSchema-instance\" xsi:schemaLocation=\"http://oval.mitre.org/XMLSchema/oval-system-characteristics-5 oval-system-characteristics-schema.xsd http://oval.mitre.org/XMLSchema/oval-common-5 oval-common-schema.xsd http://oval.mitre.org/XMLSchema/oval-system-characteristics-5#unix unix-system-characteristics-schema.xsd http://oval.mitre.org/XMLSchema/oval-system-characteristics-5#linux linux-system-characteristics-schema.xsd\">\n\n");
+    fprintf(sc_file, "<oval_system_characteristics xmlns=\"http://oval.mitre.org/XMLSchema/oval-system-characteristics-5\" xmlns:linux-sc=\"http://oval.mitre.org/XMLSchema/oval-system-characteristics-5#linux\" xmlns:oval=\"http://oval.mitre.org/XMLSchema/oval-common-5\" xmlns:oval-sc=\"http://oval.mitre.org/XMLSchema/oval-system-characteristics-5\" xmlns:unix-sc=\"http://oval.mitre.org/XMLSchema/oval-system-characteristics-5#unix\" xmlns:xsi=\"http://www.w3.org/2001/XMLSchema-instance\" xsi:schemaLocation=\"http://oval.mitre.org/XMLSchema/oval-system-characteristics-5 oval-system-characteristics-schema.xsd http://oval.mitre.org/XMLSchema/oval-common-5 oval-common-schema.xsd http://oval.mitre.org/XMLSchema/oval-system-characteristics-5#unix unix-system-characteristics-schema.xsd http://oval.mitre.org/XMLSchema/oval-system-characteristics-5#linux linux-system-characteristics-schema.xsd http://oval.mitre.org/XMLSchema/oval-system-characteristics-5#windows windows-system-characteristics-schema.xsd http://oval.mitre.org/XMLSchema/oval-system-characteristics-5#independent independent-system-characteristics-schema.xsd\">\n\n");
 
       t = time (NULL);
       tmp = localtime (&t);
@@ -562,7 +569,9 @@ ovaldi_launch (struct arglist * g_args)
       // TODO: Replace dummy values with real values; inserted dummy value
       // since ovaldi does not like empty elements here.
       fprintf (sc_file, "\t<system_info>\n\t\t<os_name>dummy</os_name>\n\t\t<os_version>dummy</os_version>\n\t\t<architecture>dummy</architecture>\n\t\t<primary_host_name>dummy</primary_host_name>\n\t\t<interfaces>\n\t\t\t<interface>\n\t\t\t\t<interface_name>dummy</interface_name>\n\t\t\t\t<ip_address>dummy</ip_address>\n\t\t\t\t<mac_address>dummy</mac_address>\n\t\t\t</interface>\n\t\t</interfaces>\n\t</system_info>\n\n");
-      fprintf (sc_file, "\t<system_data>\n");
+
+      GString *system_data = g_string_new ("\t<system_data>\n");
+      GString *collected_objects= g_string_new ("\t<collected_objects>\n");
 
       int i = 1;
 
@@ -571,16 +580,168 @@ ovaldi_launch (struct arglist * g_args)
 
       while (res)
         {
-          fprintf (sc_file, "\t\t<inetlisteningserver_item id=\"%d\" xmlns=\"http://oval.mitre.org/XMLSchema/oval-system-characteristics-5#linux\">\n", i);
-          fprintf (sc_file, "\t\t\t<protocol>tcp</protocol>\n");
-          fprintf (sc_file, "\t\t\t<local_address/>\n");
-          fprintf (sc_file, "\t\t\t<local_port>%s</local_port>\n", g_strrstr (res->name, "/") + 1);
-          fprintf (sc_file, "\t\t\t<local_full_address/>\n\t\t\t<program_name/>\n\t\t\t<foreign_address/>\n\t\t\t<foreign_port/>\n\t\t\t<foreign_full_address/>\n\t\t\t<pid/>\n\t\t\t<user_id/>\n");
-          fprintf (sc_file, "\t\t</inetlisteningserver_item>\n");
+          g_string_append_printf (system_data, "\t\t<inetlisteningserver_item id=\"%d\" xmlns=\"http://oval.mitre.org/XMLSchema/oval-system-characteristics-5#linux\">\n", i);
+          g_string_append_printf (system_data, "\t\t\t<protocol>tcp</protocol>\n");
+          g_string_append_printf (system_data, "\t\t\t<local_address/>\n");
+          g_string_append_printf (system_data, "\t\t\t<local_port>%s</local_port>\n", g_strrstr (res->name, "/") + 1);
+          g_string_append_printf (system_data, "\t\t\t<local_full_address/>\n\t\t\t<program_name/>\n\t\t\t<foreign_address/>\n\t\t\t<foreign_port/>\n\t\t\t<foreign_full_address/>\n\t\t\t<pid/>\n\t\t\t<user_id/>\n");
+          g_string_append_printf (system_data, "\t\t</inetlisteningserver_item>\n");
           i++;
           res = res->next;
         }
 
+      // Collect user_items
+      gchar *users = kb_item_get_str(kb, "USER_SID/USERS");
+      if (users == NULL)
+        {
+          log_write ("Did not find USER_SID/USERS!");
+        }
+      else
+        {
+          log_write ("Found USER_SID/USERS: %s", users);
+          gchar **user_array = g_strsplit (users, ",", 0);
+          if (g_strv_length (user_array) > 0)
+            {
+              int k;
+              for (k = 0; k < g_strv_length (user_array); k++)
+                {
+                  gchar *username = user_array[k];
+                  gchar *result = kb_item_get_str(kb, g_strconcat ("USER_SID/", username,
+                                                                   NULL)); 
+                  if (result == NULL)
+                    {
+                      log_write ("Could not get a kb_item for USER_SID/%s.", username);
+                    }
+                  else
+                    {
+                      log_write ("Got a kb_item for USER_SID/%s: %s", username,
+                                 result);
+                      gboolean enabled = FALSE;
+                      gchar **groups = NULL;
+                      gchar **items = g_strsplit (result, ",", 0);
+                      if (g_ascii_strcasecmp (items[1], " Enabled") == 0)
+                        {
+                          log_write ("%s is enabled.", username);
+                          enabled = TRUE;
+                        }
+                      else
+                        {
+                          if (g_ascii_strcasecmp (items[1], " Disabled") == 0)
+                            {
+                              log_write ("%s is disabled.", username);
+                              enabled = FALSE;
+                            }
+                          else
+                            {
+                              log_write ("%s is neither enabled nor disabled???", username);
+                            }
+                        }
+                      if (g_strv_length (items) > 2)
+                        {
+                          int j;
+                          groups = g_malloc0 ((g_strv_length (items) - 1) * sizeof (gchar *));
+                          for (j = 2; j < g_strv_length (items); j++)
+                            {
+                              log_write ("%s is in group %s.", username, items[j]);
+                              groups[j - 2] = g_strdup (items[j]);
+                              g_strstrip (groups[j - 2]);
+                            }
+                          groups[j - 2] = NULL;
+                        }
+
+                      g_string_append_printf (system_data, "\t\t<user_item id=\"%d\" xmlns=\"http://oval.mitre.org/XMLSchema/oval-system-characteristics-5#windows\">\n", i);
+                      g_string_append_printf (system_data, "\t\t\t<user>%s</user>\n", username);
+                      // Workaround for PoC to create a collected_objects that
+                      // will make ovaldi happy
+                      if (g_ascii_strcasecmp (username, "Administrator") == 0)
+                        {
+                          g_string_append_printf (collected_objects, "\t\t<object flag=\"complete\" id=\"oval:gov.nist.fdcc.xp:obj:60221\" version=\"1\">\n");
+                          g_string_append_printf (collected_objects, "\t\t\t<reference item_ref=\"%d\"/>\n", i);
+                          g_string_append_printf (collected_objects, "\t\t</object>\n");
+                        }
+                      if (enabled == TRUE)
+                        {
+                          g_string_append_printf (system_data, "\t\t\t<enabled datatype=\"boolean\">true</enabled>\n");
+                        }
+                      else
+                        {
+                          g_string_append_printf (system_data, "\t\t\t<enabled datatype=\"boolean\">false</enabled>\n");
+                        }
+                      if (groups != NULL)
+                        {
+                          int j;
+                          for (j = 0; j < g_strv_length (groups); j++)
+                            {
+                              g_string_append_printf (system_data, "\t\t\t<group>%s</group>\n",
+                                       groups[j]);
+                            }
+                        }
+                      g_string_append_printf (system_data, "\t\t</user_item>\n");
+                      i++;
+                    }
+                }
+            }
+        }
+
+      // Collect sid_items
+      gchar *sid_item_users = kb_item_get_str(kb, "SID_ITEM/USERS");
+      if (sid_item_users == NULL)
+        {
+          log_write ("Did not find SID_ITEM/USERS!");
+        }
+      else
+        {
+          log_write ("Found SID_ITEM/USERS: %s", sid_item_users);
+          gchar **user_array = g_strsplit (sid_item_users, ",", 0);
+          if (g_strv_length (user_array) > 0)
+            {
+              int k;
+              for (k = 0; k < g_strv_length (user_array); k++)
+                {
+                  gchar *username = user_array[k];
+                  gchar *result = kb_item_get_str(kb, g_strconcat ("SID_ITEM/", username,
+                                                                   NULL)); 
+                  if (result == NULL)
+                    {
+                      log_write ("Could not get a kb_item for SID_ITEM/%s.", username);
+                    }
+                  else
+                    {
+                      log_write ("Got a kb_item for SID_ITEM/%s: %s", username,
+                                 result);
+                      gchar **items = g_strsplit (result, ",", 0);
+                      if (g_strv_length (items) == 3)
+                        {
+                          g_string_append_printf (system_data, "\t\t<sid_item id=\"%d\" xmlns=\"http://oval.mitre.org/XMLSchema/oval-system-characteristics-5#windows\">\n", i);
+                          g_string_append_printf (system_data, "\t\t\t<trustee_name>%s</trustee_name>\n", g_strstrip (items[0]));
+                          g_string_append_printf (system_data, "\t\t\t<trustee_sid>%s</trustee_sid>\n", g_strstrip (items[1]));
+                          g_string_append_printf (system_data, "\t\t\t<trustee_domain>%s</trustee_domain>\n", g_strstrip (items[2]));
+                          g_string_append_printf (system_data, "\t\t</sid_item>\n");
+                          // Workaround for PoC to create a collected_objects that
+                          // will make ovaldi happy
+                          if (g_ascii_strcasecmp (items[0], "Administrator") == 0)
+                            {
+                              g_string_append_printf (collected_objects, "\t\t<object flag=\"complete\" id=\"oval:gov.nist.fdcc.xp:obj:12\" version=\"1\">\n");
+                              g_string_append_printf (collected_objects, "\t\t\t<reference item_ref=\"%d\"/>\n", i);
+                              g_string_append_printf (collected_objects, "\t\t</object>\n");
+                            }
+                          if (g_ascii_strcasecmp (items[0], "Gast") == 0)
+                            {
+                              g_string_append_printf (collected_objects, "\t\t<object flag=\"complete\" id=\"oval:gov.nist.fdcc.xp:obj:6\" version=\"1\">\n");
+                              g_string_append_printf (collected_objects, "\t\t\t<reference item_ref=\"%d\"/>\n", i);
+                              g_string_append_printf (collected_objects, "\t\t</object>\n");
+                            }
+                          i++;
+                        }
+                      else
+                        {
+                          log_write ("Expected 3 items in SID_ITEM, but found %d!", g_strv_length (items));
+                        }
+
+                    }
+                }
+            }
+        }
       // Test if ssh/login/release is present in the KB; this means that an
       // information gathering plugin has collected release and possibly package
       // information from the remote system.
@@ -608,14 +769,14 @@ ovaldi_launch (struct arglist * g_args)
                   while (package[j] != NULL)
                     {
                       strtok (package[j], " ");
-                      fprintf (sc_file, "\t\t<dpkginfo_item id=\"%d\" xmlns=\"http://oval.mitre.org/XMLSchema/oval-system-characteristics-5#linux\">\n", i);
-                      fprintf (sc_file, "\t\t\t<name>%s</name>\n", strtok (NULL, " "));
-                      fprintf (sc_file, "\t\t\t<arch/>\n");
-                      fprintf (sc_file, "\t\t\t<epoch/>\n");
-                      fprintf (sc_file, "\t\t\t<release/>\n");
-                      fprintf (sc_file, "\t\t\t<version>%s</version>\n", strtok (NULL, " "));
-                      fprintf (sc_file, "\t\t\t<evr/>\n");
-                      fprintf (sc_file, "\t\t</dpkginfo_item>\n");
+                      g_string_append_printf (system_data, "\t\t<dpkginfo_item id=\"%d\" xmlns=\"http://oval.mitre.org/XMLSchema/oval-system-characteristics-5#linux\">\n", i);
+                      g_string_append_printf (system_data, "\t\t\t<name>%s</name>\n", strtok (NULL, " "));
+                      g_string_append_printf (system_data, "\t\t\t<arch/>\n");
+                      g_string_append_printf (system_data, "\t\t\t<epoch/>\n");
+                      g_string_append_printf (system_data, "\t\t\t<release/>\n");
+                      g_string_append_printf (system_data, "\t\t\t<version>%s</version>\n", strtok (NULL, " "));
+                      g_string_append_printf (system_data, "\t\t\t<evr/>\n");
+                      g_string_append_printf (system_data, "\t\t</dpkginfo_item>\n");
                       i++;
                       j++;
                     }
@@ -648,15 +809,15 @@ ovaldi_launch (struct arglist * g_args)
                           package_name = package_data[0];
                           package_version = package_data[1];
                           package_release = package_data[2];
-                          fprintf (sc_file, "\t\t<rpminfo_item id=\"%d\" xmlns=\"http://oval.mitre.org/XMLSchema/oval-system-characteristics-5#linux\">\n", i);
-                          fprintf (sc_file, "\t\t\t<name>%s</name>\n", package_name);
-                          fprintf (sc_file, "\t\t\t<arch/>\n");
-                          fprintf (sc_file, "\t\t\t<epoch/>\n");
-                          fprintf (sc_file, "\t\t\t<release>%s</release>\n", package_release);
-                          fprintf (sc_file, "\t\t\t<version>%s</version>\n", package_version);
-                          fprintf (sc_file, "\t\t\t<evr/>\n");
-                          fprintf (sc_file, "\t\t\t<signature_keyid>%s</signature_keyid>\n", pgpsig);
-                          fprintf (sc_file, "\t\t</rpminfo_item>\n");
+                          g_string_append_printf (system_data, "\t\t<rpminfo_item id=\"%d\" xmlns=\"http://oval.mitre.org/XMLSchema/oval-system-characteristics-5#linux\">\n", i);
+                          g_string_append_printf (system_data, "\t\t\t<name>%s</name>\n", package_name);
+                          g_string_append_printf (system_data, "\t\t\t<arch/>\n");
+                          g_string_append_printf (system_data, "\t\t\t<epoch/>\n");
+                          g_string_append_printf (system_data, "\t\t\t<release>%s</release>\n", package_release);
+                          g_string_append_printf (system_data, "\t\t\t<version>%s</version>\n", package_version);
+                          g_string_append_printf (system_data, "\t\t\t<evr/>\n");
+                          g_string_append_printf (system_data, "\t\t\t<signature_keyid>%s</signature_keyid>\n", pgpsig);
+                          g_string_append_printf (system_data, "\t\t</rpminfo_item>\n");
                           i++;
                         }
                       j++;
@@ -667,8 +828,14 @@ ovaldi_launch (struct arglist * g_args)
             }
         }
 
-      fprintf (sc_file, "\t</system_data>\n\n");
+      g_string_append_printf (system_data, "\t</system_data>\n\n");
+      g_string_append_printf (collected_objects, "\t</collected_objects>\n\n");
+
+      fprintf (sc_file, collected_objects->str);
+      fprintf (sc_file, system_data->str);
       fprintf (sc_file, "</oval_system_characteristics>\n");
+      g_string_free (collected_objects, TRUE);
+      g_string_free (system_data, TRUE);
     }
   if (sc_file != NULL)
     fclose (sc_file);
