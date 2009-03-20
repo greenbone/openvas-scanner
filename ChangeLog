@@ -1,3 +1,10 @@
+2009-03-20  Michael Wiegand <michael.wiegand@intevation.de>
+
+	* openvasd/pluginscheduler.c (hash_fill_deps): Improved searching for
+	dependencies: If plugin some_path/x.nasl has a dependency on y.nasl
+	which can not be found, hash_fill_deps will now make attempt to find the
+	dependency in some_path/y.nasl.
+
 2009-03-18  Michael Wiegand <michael.wiegand@intevation.de>
 
 	* openvasd/oval_plugins.c (ovaldi_launch): Added initial support for

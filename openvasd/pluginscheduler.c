@@ -355,10 +355,29 @@ static void hash_fill_deps(struct hash * h, struct hash * l )
 	if ( d != NULL )
 	 l->dependencies_ptr[j++] = d;
         else
-          log_write("scheduler: %s depends on %s which could not be found, thus this dependency is not considered for execution sequence\n", l->plugin->arglist->name, l->dependencies[i]);
-	}
-   l->dependencies_ptr[j] = NULL;
+          {
+            gchar *path = g_path_get_dirname (l->plugin->arglist->name);
+            if (g_ascii_strcasecmp (path, ".") != 0)
+              {
+                gchar *dep_with_path = g_build_filename (path, l->dependencies[i], NULL);
+                log_write ("scheduler: dependency %s not found, trying %s",
+                           l->dependencies[i], dep_with_path);
+                d = _hash_get (h, dep_with_path);
+                g_free (dep_with_path);
+              }
+            g_free (path);
+            if (d != NULL)
+              {
+                l->dependencies_ptr[j++] = d;
+              }
+            else
+              {
+                log_write("scheduler: %s depends on %s which could not be found, thus this dependency is not considered for execution sequence\n", l->plugin->arglist->name, l->dependencies[i]);
+              }
+          }
   }
+  l->dependencies_ptr[j] = NULL;
+ }
 }
 
 /*----------------------------------------------------------------------*/
