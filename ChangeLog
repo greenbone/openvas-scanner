@@ -1,5 +1,11 @@
 2009-04-01  Felix Wolfsteller <felix.wolfsteller@intevation.de>
 
+	Cosmetics, reformatting, doc in nasl_plugins module.
+
+	* openvasd/nasl_plugins.c: Cosmetics, doc, reformatting.
+
+2009-04-01  Felix Wolfsteller <felix.wolfsteller@intevation.de>
+
 	Added todos and fixmes in openvasd module, reformatting, doc.
 
 	* openvasd/openvasd.c: Cosmetics, doc, reformatting, todos and fixmes.
