@@ -50,6 +50,7 @@
 #include <tcpd.h>
 #include <syslog.h>
 
+// FIXME: These are not needed, are they?
 int deny_severity = LOG_WARNING;
 int allow_severity = LOG_NOTICE;
 
@@ -86,6 +87,7 @@ extern char * nessuslib_version();
 /**
  * Globals that should not be touched
  */
+// TODO rename (g_ suggest owned by glib)
 int g_max_hosts = 15;
 int g_max_checks  = 10;
 struct arglist * g_options = NULL;
@@ -93,6 +95,7 @@ struct arglist * g_options = NULL;
 pid_t bpf_server_pid;
 pid_t nasl_server_pid;
 
+// TODO rename (g_ suggest owned by glib)
 int g_iana_socket;
 struct arglist * g_plugins;
 struct arglist * g_preferences;
@@ -118,7 +121,6 @@ static void server_thread (struct arglist *);
 
 
 
-
 static struct in_addr*
 convert_ip_addresses (char * ips)
 {
@@ -128,12 +130,11 @@ convert_ip_addresses (char * ips)
  int num = 0;
  int num_allocated = 256;
  char * orig;
- 
+
  ips = orig = estrdup(ips);
- 
+
  ret = emalloc((num_allocated + 1) * sizeof(struct in_addr));
- 
- 
+
  while ( ( t = strchr(ips, ',')) != NULL )
  {
   t[0] = '\0';
@@ -184,25 +185,21 @@ convert_ip_addresses (char * ips)
 static void
 dump_cfg_specs (struct arglist *prefs)
 {
- while(prefs && prefs->next)
- {
-	 printf("%s = %s\n", prefs->name, (char*)prefs->value);
-	 prefs = prefs->next;
- }
+  while (prefs && prefs->next)
+    {
+      printf ("%s = %s\n", prefs->name, (char*)prefs->value);
+      prefs = prefs->next;
+    }
 }
 
 static void
-arg_replace_value(arglist, name, type, length, value)
- struct arglist * arglist;
- char * name;
- int type;
- int length;
- void * value;
+arg_replace_value (struct arglist * arglist, char * name, int type, int length,
+                   void * value)
 {
- if(arg_get_type(arglist, name)<0)
-  arg_add_value(arglist, name, type, length, value);
- else  
-  arg_set_value(arglist, name, length, value);
+  if(arg_get_type(arglist, name)<0)
+    arg_add_value(arglist, name, type, length, value);
+  else
+    arg_set_value(arglist, name, length, value);
 }
 
 
@@ -224,12 +221,12 @@ start_daemon_mode (void)
 
   if ((fd = open ("/dev/tty", O_RDWR)) >= 0) {
     /* detach from any controlling terminal */
-#ifdef TIOCNOTTY    
+#ifdef TIOCNOTTY
     ioctl (fd, TIOCNOTTY) ;
 #endif
     close (fd);
   }
-  
+
   /* no input, anymore: provide an empty-file substitute */
   if ((fd = open ("/dev/null", O_RDONLY)) < 0) {
     log_write ("Cannot open /dev/null (%s) -- aborting\n",strerror (errno));
@@ -289,10 +286,10 @@ restart_openvasd ()
  {
   if(strchr(orig_argv[0], '/') != NULL )
   path = orig_argv[0];
- else 
+ else
   {
   path = find_in_path("openvasd", 0);
-  if( path == NULL ) 
+  if (path == NULL)
   {
   	log_write("Could not re-start openvasd - not found\n");
 	_exit(1);
@@ -311,8 +308,7 @@ restart_openvasd ()
 }
 
 static void
-sighup(i)
- int i;
+sighup (int i)
 {
   log_write("Caught HUP signal - reconfiguring openvasd\n");
   restart = 1;
@@ -364,13 +360,10 @@ if(preferences_benice(prefs))nice(10);
  }
 #endif
 
-	
- /*
-  * Close the server thread - it is useless for us now
-  */
+ /* Close the server thread - it is useless for us now */
  close (g_iana_socket);
- 
- if (ovas_server_ctx != NULL)		/* ssl_ver !=  "NONE" */
+
+ if (ovas_server_ctx != NULL) /* ssl_ver !=  "NONE" */
    {
      soc2 = ovas_server_context_attach(ovas_server_ctx, soc);
      if (soc2 < 0)
@@ -407,10 +400,10 @@ if(preferences_benice(prefs))nice(10);
  if(((perms = auth_check_user(globals, asciiaddr, x509_dname))==BAD_LOGIN_ATTEMPT)||
    !perms)
  {
-   auth_printf(globals, "Bad login attempt !\n"); 
-   log_write("bad login attempt from %s\n", 
+   auth_printf(globals, "Bad login attempt !\n");
+   log_write("bad login attempt from %s\n",
 			asciiaddr);
-   efree(&asciiaddr);			
+   efree(&asciiaddr);	
    goto shutdown_and_exit;
  }
   else {
@@ -434,13 +427,13 @@ if(preferences_benice(prefs))nice(10);
 
    /* become process group leader and the like ... */
    start_daemon_mode();
-wait :   
+wait :
 #ifdef ENABLE_SAVE_TESTS
    if(arg_get_value(globals, "RESTORE-SESSION"))
      arg_set_value(globals, "RESTORE-SESSION", sizeof(int),(void*)2);
    else
      arg_add_value(globals, "RESTORE-SESSION", ARG_INT, sizeof(int),(void*)2); 
-#endif       
+#endif
    comm_wait_order(globals);
    preferences_reset_cache();
    plugins_set_ntp_caps(plugins, arg_get_value(globals, "ntp_caps"));
@@ -449,14 +442,14 @@ wait :
    e = attack_network(globals);
    ntp_1x_timestamp_scan_ends(globals);
    if(e < 0)
-   	EXIT(0);
+    EXIT(0);
    comm_terminate(globals);
    if(arg_get_value(prefs, "ntp_keep_communication_alive"))
     {
    	log_write("user %s : Kept alive connection",
 			(char*)arg_get_value(globals, "user"));
    	goto wait;
-    } 
+    }
   }
 
  shutdown_and_exit:
@@ -468,7 +461,7 @@ wait :
  close(soc);
    }
 
- /* kill left overs */
+ /* Kill left overs */
  end_daemon_mode();
  EXIT(0);
 }
@@ -477,12 +470,12 @@ wait :
 static void
 main_loop ()
 {
-  char		*cert, *key, *passwd, *ca_file, *s, *ssl_ver;
+  char *cert, *key, *passwd, *ca_file, *s, *ssl_ver;
   int force_pubkey_auth;
   char *old_addr = 0, *asciiaddr = 0;
   time_t last = 0;
   int count = 0;
-  
+
   setproctitle("waiting for incoming connections");
   /* catch dead children */
   nessus_signal(SIGCHLD, sighand_chld);
@@ -498,7 +491,7 @@ main_loop ()
   ssl_ver = preferences_get_string(g_preferences, "ssl_version");
   if (ssl_ver == NULL || *ssl_ver == '\0')
     ssl_ver = SSL_VER_DEF_NAME;
-    
+
   if (strcasecmp(ssl_ver, "NONE") != 0)
     {
       if (nessus_SSL_init(NULL) < 0)
@@ -506,11 +499,9 @@ main_loop ()
 	  fprintf(stderr, "Could not initialize openvas SSL!\n");
 	  exit(1);
 	}
-      /*
-       * In case the code is changed and main_loop is called several time, 
-       * we initialize ssl_ctx only once
-       */
 
+      /* In case the code is changed and main_loop is called several time,
+       * we initialize ssl_ctx only once */
       if (ovas_server_ctx == NULL)
 	{
 	  int encaps = -1;
@@ -583,8 +574,8 @@ main_loop ()
       struct arglist * globals;
       struct arglist * my_plugins, * my_preferences;
       struct openvas_rules * my_rules;
-      
-      if(restart != 0) restart_openvasd(); 
+
+      if (restart != 0) restart_openvasd ();
 
       wait_for_children1();
       /* prevent from an io table overflow attack against nessus */
@@ -592,16 +583,20 @@ main_loop ()
 	time_t now = time (0);
 
 	/* did we reach the max nums of connect/secs ? */
-	if (last == now) {
-	  if (++ count > OPENVASD_CONNECT_RATE) {
-	    sleep (OPENVASD_CONNECT_BLOCKER);
-	    last = 0 ;
-	  }
-	} else {
-	  count = 0 ;
-	  last = now ;
-	}
-	
+	if (last == now)
+          {
+            if (++ count > OPENVASD_CONNECT_RATE)
+              {
+                sleep (OPENVASD_CONNECT_BLOCKER);
+                last = 0 ;
+              }
+          }
+        else
+          {
+            count = 0 ;
+            last = now ;
+          }
+
 	if (old_addr != 0) {
 	  /* detect whether sombody logs in more than once in a row */
 	  if (strcmp (old_addr, asciiaddr) == 0 &&
@@ -612,28 +607,28 @@ main_loop ()
 	  old_addr = 0 ; /* currently done by efree, as well */
 	}
       }
-      old_addr = asciiaddr ;
-      asciiaddr = 0 ;
+      old_addr = asciiaddr;
+      asciiaddr = 0;
 
-      soc = accept(g_iana_socket, (struct sockaddr *)(&address), &lg_address);
-      if(soc == -1)continue;
+      soc = accept (g_iana_socket, (struct sockaddr *)(&address), &lg_address);
+      if (soc == -1) continue;
 
       asciiaddr = estrdup(inet_ntoa(address.sin_addr));
-#ifdef USE_LIBWRAP      
+#ifdef USE_LIBWRAP
       {
        char host_name[1024];
-        
+
       hg_get_name_from_ip(address.sin_addr, host_name, sizeof(host_name));
-      if(!(hosts_ctl("openvasd", host_name, asciiaddr, STRING_UNKNOWN)))
-      {
-       shutdown(soc, 2);
-       close(soc);
-       log_write("Connection from %s rejected by libwrap", asciiaddr);
-       continue;
+      if (!(hosts_ctl("openvasd", host_name, asciiaddr, STRING_UNKNOWN)))
+        {
+          shutdown (soc, 2);
+          close (soc);
+          log_write ("Connection from %s rejected by libwrap", asciiaddr);
+          continue;
+        }
       }
-      }
-#endif      
-      log_write("connection from %s\n", (char *)asciiaddr);
+#endif
+      log_write ("connection from %s\n", (char *)asciiaddr);
 
       /* efree(&asciiaddr); */
 
@@ -654,22 +649,21 @@ main_loop ()
 
       my_preferences = g_preferences;
       arg_add_value(globals, "preferences", ARG_ARGLIST, -1, my_preferences);
-      
+
       my_rules = /*rules_dup*/(g_rules);
 
       p_addr = emalloc(sizeof(struct sockaddr_in));
       *p_addr = address;
       arg_add_value(globals, "client_address", ARG_PTR, -1, p_addr);
 
-      arg_add_value(globals, "rules", ARG_PTR, -1, my_rules);
-      
+      arg_add_value (globals, "rules", ARG_PTR, -1, my_rules);
+
       /* we do not want to create an io thread, yet so the last argument is -1 */
-  
-      if(create_process((process_func_t)server_thread, globals) < 0)
-      {
-        log_write("Could not fork - client won't be served");
-	sleep (2);
-      }
+      if (create_process((process_func_t)server_thread, globals) < 0)
+        {
+          log_write ("Could not fork - client won't be served");
+          sleep (2);
+        }
       close(soc);
       arg_free(globals);
     }
@@ -677,7 +671,7 @@ main_loop ()
 
 
 /**
- * Initialization of the network : 
+ * Initialization of the network :
  * we setup the socket that will listen for incoming connections on port \<port\>
  * on address \<addr\> (which are set to OPENVAS_IANA_OTP_PORT and INADDR_ANY by
  * default).
@@ -688,16 +682,16 @@ main_loop ()
  * 
  * @return 0 on success. Exit(1)s on failure.
  */
-static int 
+static int
 init_network (int port, int* sock, struct in_addr addr)
 {
   int option = 1;
 
   struct sockaddr_in address;
 
-  if((*sock = socket(AF_INET, SOCK_STREAM, 0))==-1)
+  if ((*sock = socket(AF_INET, SOCK_STREAM, 0))==-1)
     {
-	int ec = errno;
+      int ec = errno;
       log_write("socket(AF_INET): %s (errno = %d)\n", strerror(ec), ec);
       DO_EXIT(1);
     }
@@ -724,11 +718,11 @@ init_network (int port, int* sock, struct in_addr addr)
 }
 
 /**
- * Initialize everything
+ * @brief Initialize everything.
  * 
  * @param stop_early 1: do some initialization, 2: no initialization.
  */
-static int 
+static int
 init_openvasd (struct arglist * options, int first_pass, int stop_early,
                int be_quiet)
 {
@@ -740,86 +734,90 @@ init_openvasd (struct arglist * options, int first_pass, int stop_early,
   char * config_file = arg_get_value(options, "config_file");
   struct in_addr * addr = arg_get_value(options, "addr");
   char * str;
-  
+
   preferences_init(config_file, &preferences);
-  
+
   if((str = arg_get_value(preferences, "max_hosts")) != NULL)
-  {
-    g_max_hosts = atoi(str);
-    if( g_max_hosts <= 0 ) g_max_hosts = 15;
-  } 
-   
+    {
+      g_max_hosts = atoi (str);
+      if (g_max_hosts <= 0)
+        g_max_hosts = 15;
+    }
+
   if((str = arg_get_value(preferences, "max_checks")) != NULL)
-  {
-    g_max_checks = atoi(str);
-    if( g_max_checks <= 0 )g_max_checks = 10;
-  }
-  
-  
-  
-  arg_add_value(preferences, "config_file", ARG_STRING, strlen(config_file), estrdup(config_file));
-  log_init(arg_get_value(preferences, "logfile"));
-  
+    {
+      g_max_checks = atoi(str);
+      if (g_max_checks <= 0)
+        g_max_checks = 10;
+    }
+
+  arg_add_value (preferences, "config_file", ARG_STRING, strlen(config_file), estrdup(config_file));
+  log_init (arg_get_value(preferences, "logfile"));
+
   rules_init(&rules, preferences);
 #ifdef DEBUG_RULES
   rules_dump(rules);
 #endif
 
 
-  if ( stop_early == 0 ) {
-    if (store_init(arg_get_value(preferences, "cache_folder")) != 0)
-      store_init_sys(arg_get_value(preferences, "plugins_folder"));
+  if (stop_early == 0)
+    {
+      if (store_init (arg_get_value(preferences, "cache_folder")) != 0)
+        store_init_sys (arg_get_value(preferences, "plugins_folder"));
 
-    plugins = plugins_init(preferences, be_quiet);
+      plugins = plugins_init (preferences, be_quiet);
 
-    if ( first_pass != 0 )
-      init_network(iana_port, &isck, *addr);
-  }
-  
-  if(first_pass && !stop_early)
-  {
-    nessus_signal(SIGSEGV, sighandler);
-    nessus_signal(SIGCHLD, sighand_chld);
-    nessus_signal(SIGTERM, sighandler);
-    nessus_signal(SIGINT, sighandler);
-    nessus_signal(SIGHUP, sighup);
-    nessus_signal(SIGUSR1, sighandler); /* openvasd dies, not its sons */
-    nessus_signal(SIGPIPE, SIG_IGN);
-  }
+      if (first_pass != 0)
+        init_network(iana_port, &isck, *addr);
+    }
 
-  arg_replace_value(options, "isck", ARG_INT, sizeof(gpointer), GSIZE_TO_POINTER(isck));
-  arg_replace_value(options, "plugins", ARG_ARGLIST, -1, plugins);
-  arg_replace_value(options, "rules", ARG_PTR, -1, rules);
-  arg_replace_value(options, "preferences", ARG_ARGLIST, -1, preferences);
+  if (first_pass && !stop_early)
+    {
+      nessus_signal (SIGSEGV, sighandler);
+      nessus_signal (SIGCHLD, sighand_chld);
+      nessus_signal (SIGTERM, sighandler);
+      nessus_signal (SIGINT, sighandler);
+      nessus_signal (SIGHUP, sighup);
+      nessus_signal (SIGUSR1, sighandler); /* openvasd dies, not its sons */
+      nessus_signal (SIGPIPE, SIG_IGN);
+    }
+
+  arg_replace_value (options, "isck", ARG_INT, sizeof(gpointer), GSIZE_TO_POINTER(isck));
+  arg_replace_value (options, "plugins", ARG_ARGLIST, -1, plugins);
+  arg_replace_value (options, "rules", ARG_PTR, -1, rules);
+  arg_replace_value (options, "preferences", ARG_ARGLIST, -1, preferences);
 
   return(0);
 }
 
-int 
-main(int argc, char * argv[], char * envp[])
+/**
+ * @brief openvasd.
+ * @param argc Argument count.
+ * @param argv Argument vector.
+ */
+int
+main (int argc, char * argv[], char * envp[])
 {
   int exit_early = 0;
-  int iana_port = -1;
+  int iana_port  = -1;
   char * myself;
-  struct in_addr addr; 
+  struct in_addr addr;
   struct in_addr * src_addrs = NULL;
   struct arglist * options = emalloc(sizeof(struct arglist));
   int i;
   int be_quiet = 0;
-  int flag = 0;
+  int flag     = 0;
 
   bzero(orig_argv, sizeof(orig_argv));
   for(i=0; i < argc; i++)
-  {
-    if (strcmp(argv[i], "-q") == 0 || strcmp(argv[i], "--quiet") == 0)
-      flag ++;
-    orig_argv[i] = estrdup(argv[i]);
-  }
+    {
+      if (strcmp(argv[i], "-q") == 0 || strcmp(argv[i], "--quiet") == 0)
+        flag ++;
+      orig_argv[i] = estrdup(argv[i]);
+    }
 
   if (flag == 0)
-  {
     orig_argv[argc] = estrdup("-q");
-  }
 
   initsetproctitle(argc, argv, envp);
 
@@ -846,7 +844,7 @@ main(int argc, char * argv[], char * envp[])
   static gboolean gen_config = FALSE;
   GError *error = NULL;
   GOptionContext *option_context;
-  static GOptionEntry entries[] = 
+  static GOptionEntry entries[] =
   {
     { "version", 'v', 0, G_OPTION_ARG_NONE, &display_version, "Display version information", NULL },
     { "background", 'D', 0, G_OPTION_ARG_NONE, &do_fork, "Run in daemon mode", NULL },
@@ -914,15 +912,13 @@ main(int argc, char * argv[], char * envp[])
   }
 
   if (config_file != NULL)
-  {
     arg_add_value (options, "acc_hint", ARG_INT, sizeof(int), (void*)1);
-  }
 
   if (src_ip != NULL)
-  {
-    src_addrs = (struct in_addr* )convert_ip_addresses(src_ip);
-    socket_source_init(src_addrs);
-  }
+    {
+      src_addrs = (struct in_addr* )convert_ip_addresses(src_ip);
+      socket_source_init(src_addrs);
+    }
 
   if (dump_cfg)
   {
@@ -943,13 +939,14 @@ main(int argc, char * argv[], char * envp[])
   if(exit_early == 0)
     bpf_server_pid = bpf_server();
 
+  if(iana_port == -1)
+    iana_port = OPENVAS_IANA_OTP_PORT;
 
-  if(iana_port == -1)iana_port = OPENVAS_IANA_OTP_PORT;
   if (!config_file)
-  {
-    config_file = emalloc(strlen(OPENVASD_CONF) + 1);
-    strncpy(config_file, OPENVASD_CONF, strlen(OPENVASD_CONF));
-  }
+    {
+      config_file = emalloc(strlen(OPENVASD_CONF) + 1);
+      strncpy(config_file, OPENVASD_CONF, strlen(OPENVASD_CONF));
+    }
 
   arg_add_value(options, "iana_port", ARG_INT, sizeof(gpointer), GSIZE_TO_POINTER(iana_port));
   arg_add_value(options, "config_file", ARG_STRING, strlen(config_file), config_file);
@@ -971,30 +968,29 @@ main(int argc, char * argv[], char * envp[])
   nessus_init_svc();
 
   if(do_fork)
-  {
-    /*
-    * Close stdin, stdout and stderr 
-    */
-    i = open("/dev/null", O_RDONLY, 0640); 
-    if (dup2(i, STDIN_FILENO) != STDIN_FILENO)
-      fprintf(stderr, "Could not redirect stdin to /dev/null: %s\n", strerror(errno));
-    if (dup2(i, STDOUT_FILENO) != STDOUT_FILENO)
-      fprintf(stderr, "Could not redirect stdout to /dev/null: %s\n", strerror(errno));
-    if (dup2(i, STDERR_FILENO) != STDERR_FILENO)
-      fprintf(stderr, "Could not redirect stderr to /dev/null: %s\n", strerror(errno));
-    close(i);
-    if(!fork())
     {
-      setsid();
+      /* Close stdin, stdout and stderr */
+      i = open("/dev/null", O_RDONLY, 0640);
+      if (dup2(i, STDIN_FILENO) != STDIN_FILENO)
+        fprintf(stderr, "Could not redirect stdin to /dev/null: %s\n", strerror(errno));
+      if (dup2(i, STDOUT_FILENO) != STDOUT_FILENO)
+        fprintf(stderr, "Could not redirect stdout to /dev/null: %s\n", strerror(errno));
+      if (dup2(i, STDERR_FILENO) != STDERR_FILENO)
+        fprintf(stderr, "Could not redirect stderr to /dev/null: %s\n", strerror(errno));
+      close(i);
+      exit ();
+      if(!fork())
+        {
+          setsid();
+          create_pid_file();
+          main_loop();
+        }
+    }
+  else
+    {
       create_pid_file();
       main_loop();
     }
-  }
-  else
-  {
-    create_pid_file();
-    main_loop();
-  }
   DO_EXIT(0);
   return(0);
 }

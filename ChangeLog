@@ -1,3 +1,9 @@
+2009-04-01  Felix Wolfsteller <felix.wolfsteller@intevation.de>
+
+	Added todos and fixmes in openvasd module, reformatting, doc.
+
+	* openvasd/openvasd.c: Cosmetics, doc, reformatting, todos and fixmes.
+
 2009-03-20  Michael Wiegand <michael.wiegand@intevation.de>
 
 	* openvasd/pluginscheduler.c (hash_fill_deps): Improved searching for
