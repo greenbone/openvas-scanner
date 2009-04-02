@@ -978,7 +978,6 @@ main (int argc, char * argv[], char * envp[])
       if (dup2(i, STDERR_FILENO) != STDERR_FILENO)
         fprintf(stderr, "Could not redirect stderr to /dev/null: %s\n", strerror(errno));
       close(i);
-      exit ();
       if(!fork())
         {
           setsid();
