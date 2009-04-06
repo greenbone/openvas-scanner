@@ -23,9 +23,11 @@
 * You should have received a copy of the GNU General Public License
 * along with this program; if not, write to the Free Software
 * Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA 02110-1301 USA.
-*
-*
 */
+
+/**
+ * @brief The nasl - plugin class. Loads or launches nasl- plugins.
+ */
 
 #include <includes.h>
 
@@ -37,8 +39,14 @@
 #include "preferences.h"
 #include "processes.h"
 #include "log.h"
-/*
- *  Initialize the nasl system
+
+/**
+ * @brief Initialize the nasl system.
+ * 
+ * @param prefs Ignored
+ * @param nasl  Ignored
+ * 
+ * @return nasl_plugin_class struct.
  */
 static pl_class_t* nasl_plugin_init (struct arglist* prefs,
                                      struct arglist* nasl)
@@ -56,11 +64,15 @@ static void nasl_thread(struct arglist *);
  * The plugin is first attempted to be loaded from the cache (.desc) calling
  * store_load_plugin. If that fails, it is parsed (via exec_nasl_script) and
  * added to the store.
+ * If a plugin with the same (file)name is already present in the plugins
+ * arglist, it will be replaced.
  *
- * @param folder Path to the plugin folder.
- * @param name File-name of the plugin.
- * @param plugins The arglist that the plugin shall be added to.
+ * @param folder  Path to the plugin folder.
+ * @param name    File-name of the plugin (will be used as key in plugins).
+ * @param plugins The arglist that the plugin shall be added to (with parameter
+ *                name as the key).
  * @param preferences The plugins preferences.
+ *
  * @return Pointer to the plugin (as arglist). NULL in case of errors.
  */
 static struct arglist *
@@ -137,6 +149,7 @@ nasl_plugin_add (char* folder, char* name, struct arglist* plugins,
   plug_set_launch (plugin_args, LAUNCH_DISABLED);
   prev_plugin = arg_get_value (plugins, name);
 
+  // Was a plugin with the same filename already loaded? If so, remove it.
   if (prev_plugin == NULL)
     arg_add_value (plugins, name, ARG_ARGLIST, -1, plugin_args);
   else
@@ -245,12 +258,12 @@ nasl_thread (struct arglist * g_args)
   setrlimit (RLIMIT_DATA, &rlim);
   }
  #endif
- setproctitle("testing %s (%s)", (char*)arg_get_value(arg_get_value(args, "HOSTNAME"), "NAME"), (char*)arg_get_value(g_args, "name"));
- signal(SIGTERM, _exit);
+ setproctitle ("testing %s (%s)", (char*)arg_get_value(arg_get_value(args, "HOSTNAME"), "NAME"), (char*)arg_get_value(g_args, "name"));
+ signal (SIGTERM, _exit);
 
  nasl_mode = NASL_EXEC_DONT_CLEANUP;
- if ( preferences_nasl_no_signature_check(preferences) > 0 )
-	nasl_mode |= NASL_ALWAYS_SIGNED;
+ if (preferences_nasl_no_signature_check(preferences) > 0 )
+     nasl_mode |= NASL_ALWAYS_SIGNED;
 
  exec_nasl_script(args, name, nasl_mode);
  internal_send(soc, NULL, INTERNAL_COMM_MSG_TYPE_CTRL | INTERNAL_COMM_CTRL_FINISHED);
@@ -258,7 +271,7 @@ nasl_thread (struct arglist * g_args)
 
 /**
  * @brief The NASL NVT class.
- * 
+ *
  * @ref pl_class_s
  */
 pl_class_t nasl_plugin_class = {
