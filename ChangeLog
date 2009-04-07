@@ -1,3 +1,13 @@
+2009-04-07  Felix Wolfsteller <felix.wolfsteller@intevation.de>
+
+	Print message to stderr when a nasl script could not be cached.
+	This happens in cases where exit() is called prior to the description.
+	As a consequence of that non-happening description parse, the nvt might
+	not be visible to the client.
+
+	* openvasd/nasl_plugins.c (nasl_plugin_add): Be loud when a script could
+	not be added to the cache.
+
 2009-04-06  Felix Wolfsteller <felix.wolfsteller@intevation.de>
 
 	* openvasd/nasl_plugins.c: Minor reformatting, doc.

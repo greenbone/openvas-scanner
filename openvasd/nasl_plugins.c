@@ -131,6 +131,9 @@ nasl_plugin_add (char* folder, char* name, struct arglist* plugins,
           store_plugin (plugin_args, name);
           plugin_args = store_load_plugin (folder, name, preferences);
         }
+      else
+        // Most likely an exit was hit before the description could be parsed.
+        fprintf(stderr, "%s could not be added to the cache and is likely to stay invisible to the client.", name);
     }
 
   if (plugin_args == NULL)
