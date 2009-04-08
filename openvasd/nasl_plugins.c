@@ -133,7 +133,7 @@ nasl_plugin_add (char* folder, char* name, struct arglist* plugins,
         }
       else
         // Most likely an exit was hit before the description could be parsed.
-        fprintf(stderr, "%s could not be added to the cache and is likely to stay invisible to the client.", name);
+        fprintf(stderr, "\r%s could not be added to the cache and is likely to stay invisible to the client.\n", name);
     }
 
   if (plugin_args == NULL)

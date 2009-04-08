@@ -1,3 +1,8 @@
+2009-04-08  Michael Wiegand <michael.wiegand@intevation.de>
+
+	* openvasd/nasl_plugins.c (nasl_plugin_add): Added carriage return and
+	newline to message to improve readability.
+
 2009-04-07  Felix Wolfsteller <felix.wolfsteller@intevation.de>
 
 	Print message to stderr when a nasl script could not be cached.
