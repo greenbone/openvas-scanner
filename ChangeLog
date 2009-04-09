@@ -1,5 +1,11 @@
 2009-04-09  Felix Wolfsteller <felix.wolfsteller@intevation.de>
 
+	Reformatting and doc in comm module.
+	
+	* openvasd/comm.c: Reformatting, doc.
+
+2009-04-09  Felix Wolfsteller <felix.wolfsteller@intevation.de>
+
 	Renamed variables starting with 'g_', as it suggest GLib ownership.
 	
 	* openvasd/openvasd.c, openvasd/utils.c: Renamed variables starting

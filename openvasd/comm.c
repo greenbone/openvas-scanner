@@ -53,12 +53,12 @@
 
 
 /**
- * Initializes the communication between the
+ * @brief Initializes the communication between the
  * server (us) and the client.
  */
-ntp_caps* comm_init(soc)
-     int soc;
-{  
+ntp_caps*
+comm_init (int soc)
+{
   char buf[1024];
   ntp_caps* caps = emalloc(sizeof(ntp_caps));
   int n;
@@ -68,7 +68,7 @@ ntp_caps* comm_init(soc)
   n = recv_line(soc, buf, sizeof(buf) - 1);
   if(n <= 0) 
    EXIT(0);
-   
+
   buf[sizeof(buf) - 1] = '\0';
   if(!strncmp(buf, "< OTP/1.0 >", 11))
     {
@@ -86,12 +86,10 @@ ntp_caps* comm_init(soc)
 
 
 /**
- * This function must be called at the end
- * of a session. 
+ * @brief This function must be called at the end of a session.
  */
 void 
-comm_terminate(globals)
- struct arglist * globals;
+comm_terminate (struct arglist * globals)
 {
   auth_printf(globals, "SERVER <|> BYE <|> BYE <|> SERVER\n");
   /*
@@ -103,12 +101,10 @@ comm_terminate(globals)
 
 
 /**
- * Sends a plugin info.
+ * @brief Sends a plugin info.
  */
-void 
-send_plug_info(globals, plugins)
- struct arglist * globals;
- struct arglist * plugins;
+void
+send_plug_info (struct arglist * globals, struct arglist * plugins)
 {
   int j;
   static const char * categories[] =
@@ -227,20 +223,18 @@ send_plug_info(globals, plugins)
       auth_printf(globals, "%s\n", str);	
       efree(&str);	  
       }
-      
+
       if(desc != NULL)efree(&desc);
 }
 
 /**
- * Sends the plugin info for a single plugin.
+ * @brief Sends the plugin info for a single plugin.
  * @param globals The global arglist holding all plugins.
  * @param oid OID of the plugin to send.
  * @see send_plug_info
  */
 void
-plugin_send_infos(globals, oid)
- struct arglist * globals;
- char * oid;
+plugin_send_infos (struct arglist * globals, char * oid)
 {
  struct arglist * plugins = arg_get_value(globals, "plugins");
 
@@ -262,21 +256,17 @@ plugin_send_infos(globals, oid)
 }
 
 
-
 /**
- * Sends the list of plugins that the server
- * could load to the client, using the
- * OTP format (calls send_plug_info for each).
+ * @brief Sends the list of plugins that the server could load to the client,
+ * @brief using the OTP format (calls send_plug_info for each).
  * @param globals The global arglist.
  * @see send_plug_info
  */
-void 
-comm_send_pluginlist(globals)
- struct arglist * globals;
+void
+comm_send_pluginlist (struct arglist * globals)
 {
   struct arglist * plugins = arg_get_value(globals, "plugins");
- 
-  
+
   auth_printf(globals, "SERVER <|> PLUGIN_LIST <|>\n");
   while(plugins && plugins->next)
     {
@@ -287,13 +277,11 @@ comm_send_pluginlist(globals)
 }
 
 /**
- * Sends the rules of the user
+ * @brief Sends the rules of the user.
  */
 void
-comm_send_rules(globals)
- struct arglist * globals;
+comm_send_rules (struct arglist * globals)
 {
- 
  auth_printf(globals, "SERVER <|> RULES <|>\n");
 #ifdef USELESS_AS_OF_NOW
  struct openvas_rules * rules = arg_get_value(globals, "rules");
@@ -314,12 +302,11 @@ comm_send_rules(globals)
 }
 
 /**
- * Sends the preferences of the server.
+ * @brief Sends the preferences of the server.
  * @param globals The global arglist with a "preferences" sub-arglist.
  */
 void
-comm_send_preferences(globals)
- struct arglist * globals;
+comm_send_preferences (struct arglist * globals)
 {
  struct arglist * prefs = arg_get_value(globals, "preferences");
  
@@ -369,34 +356,32 @@ comm_send_preferences(globals)
 
 
 /**
- * This function waits for the attack order
- * of the client
- * Meanwhile, it processes all the messages the client could
- * send
+ * @brief This function waits for the attack order of the client.
+ * Meanwhile, it processes all the messages the client could send.
  */
 void
-comm_wait_order(globals)
-	struct arglist * globals;
+comm_wait_order (struct arglist * globals)
 {
-  int soc        = GPOINTER_TO_SIZE(arg_get_value(globals, "global_socket"));
+  int soc = GPOINTER_TO_SIZE(arg_get_value(globals, "global_socket"));
 
-  for (;;) {
-    static char str [2048] ;
-    int n;
-   
-    n = recv_line (soc, str, sizeof (str)-1);
-    if(n < 0){
-    	log_write("Client closed the communication\n");
-	EXIT(0);
-	}
-    if (str [0] == '\0') {
-      if(!is_client_present(soc)) EXIT(0);
+  for (;;)
+    {
+      static char str [2048];
+      int n;
+
+      n = recv_line (soc, str, sizeof (str)-1);
+      if(n < 0)
+        {
+          log_write ("Client closed the communication\n");
+          EXIT(0);
+        }
+      if (str [0] == '\0')
+        if (!is_client_present(soc)) EXIT(0);
+
+      if (ntp_11_parse_input (globals, str) == 0)
+        break;
     }
-
-    if (ntp_11_parse_input (globals, str) == 0) break ;
-  }
 }
-
 
 /*-------------------------------------------------------------------------------*/
 /**
@@ -445,7 +430,7 @@ static struct arglist * _get_plug_by_oid(struct arglist ** array, char * oid, in
 }
 
 /**
- * Retrieves a plugin defined by its OID from a plugin arrray.
+ * @brief Retrieves a plugin defined by its OID from a plugin arrray.
  */
 static struct arglist * get_plug_by_oid(struct arglist ** array, char * oid, int num_plugins )
 {
@@ -462,7 +447,8 @@ static struct arglist * get_plug_by_oid(struct arglist ** array, char * oid, int
  * @param list A user (client) defined semicolon delimited list, of plugin(oids)
  *             that shall be enabled. If NULL or "-1;" all plugins are enabled!
  */
-void comm_setup_plugins( struct arglist * globals, char * list )
+void
+comm_setup_plugins (struct arglist * globals, char * list)
 {
   int num_plugins=0;
   struct arglist * plugins = arg_get_value(globals, "plugins");
@@ -484,10 +470,10 @@ void comm_setup_plugins( struct arglist * globals, char * list )
      plug_set_launch(p->value, enable);
      p = p->next;
     }
-    
+
   if ( num_plugins == 0 || enable != 0  )
 	return;
-  
+
   /* Store the plugins in an array for quick access */
   p = plugins;
   i = 0;
@@ -519,11 +505,10 @@ void comm_setup_plugins( struct arglist * globals, char * list )
 }
 
 /**
- * Send the OTP PLUGINS_MD5 command
+ * @brief Send the OTP PLUGINS_MD5 command.
  */
 void
-comm_send_md5_plugins(globals)
- struct arglist * globals;
+comm_send_md5_plugins (struct arglist * globals)
 {
  char * md5;
  char buf[2048];
@@ -545,7 +530,7 @@ comm_send_md5_plugins(globals)
  auth_gets(globals, buf, sizeof(buf)  - 1);
  if(strstr(buf, "COMPLETE_LIST"))
    comm_send_pluginlist(globals);
- else  
+ else
    if(strstr(buf, "SEND_PLUGINS_MD5")) {
 	plugins_send_md5(globals);
 	}
@@ -565,4 +550,3 @@ comm_send_md5_plugins(globals)
   else break;
  }
 }
-
