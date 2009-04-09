@@ -38,8 +38,8 @@
 #include "save_tests.h"
 #include "pluginscheduler.h"
 
-extern int g_max_hosts;
-extern int g_max_checks;
+extern int global_max_hosts;
+extern int global_max_checks;
 
 /**
  * @brief Library version check.
@@ -154,17 +154,17 @@ get_max_hosts_number(globals, preferences)
 	{
 	  log_write("Error ! max_hosts = %d -- check %s\n", 
 		    max_hosts, (char *)arg_get_value(preferences, "config_file"));
-	  max_hosts = g_max_hosts;
+	  max_hosts = global_max_hosts;
 	}
-    else if(max_hosts > g_max_hosts)
+    else if(max_hosts > global_max_hosts)
      {
      	log_write("Client tried to raise the maximum hosts number - %d. Using %d. Change 'max_hosts' in openvasd.conf if \
 you believe this is incorrect\n",
-			max_hosts, g_max_hosts);
-	max_hosts = g_max_hosts;
+			max_hosts, global_max_hosts);
+	max_hosts = global_max_hosts;
      }
     }
-  else max_hosts = g_max_hosts;
+  else max_hosts = global_max_hosts;
   return(max_hosts);
 }
 
@@ -185,17 +185,17 @@ get_max_checks_number(globals, preferences)
 	{
 	  log_write("Error ! max_hosts = %d -- check %s\n", 
 		    max_checks, (char *)arg_get_value(preferences, "config_file"));
-	  max_checks = g_max_checks;
+	  max_checks = global_max_checks;
 	}
-    else if(max_checks > g_max_checks)
+    else if(max_checks > global_max_checks)
      {
      	log_write("Client tried to raise the maximum checks number - %d. Using %d. Change 'max_checks' in openvasd.conf if \
 you believe this is incorrect\n",
-			max_checks, g_max_checks);
-	max_checks = g_max_checks;
+			max_checks, global_max_checks);
+	max_checks = global_max_checks;
      }
     }
-  else max_checks = g_max_checks;
+  else max_checks = global_max_checks;
   return(max_checks);
 }
 

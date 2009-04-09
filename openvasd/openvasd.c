@@ -85,21 +85,19 @@ extern char * nasl_version();
 extern char * nessuslib_version();
 
 /**
- * Globals that should not be touched
+ * Globals that should not be touched (used in utils module).
  */
-// TODO rename (g_ suggest owned by glib)
-int g_max_hosts = 15;
-int g_max_checks  = 10;
+int global_max_hosts = 15;
+int global_max_checks  = 10;
 struct arglist * g_options = NULL;
 
 pid_t bpf_server_pid;
 pid_t nasl_server_pid;
 
-// TODO rename (g_ suggest owned by glib)
-int g_iana_socket;
-struct arglist * g_plugins;
-struct arglist * g_preferences;
-struct openvas_rules * g_rules;
+int global_iana_socket;
+struct arglist * global_plugins;
+struct arglist * global_preferences;
+struct openvas_rules * global_rules;
 
 
 static char * orig_argv[64];
@@ -211,7 +209,7 @@ start_daemon_mode (void)
 
 
   /* do not block the listener port for sub sequent servers */
-  close (g_iana_socket);
+  close (global_iana_socket);
 
   /* become process group leader */
   if (setsid () < 0) {
@@ -237,7 +235,7 @@ start_daemon_mode (void)
   close (fd);
 
   /* provide a dump file to collect stdout and stderr */
-  if ((s = arg_get_value (g_preferences, "dumpfile")) == 0)
+  if ((s = arg_get_value (global_preferences, "dumpfile")) == 0)
     s = OPENVASD_DEBUGMSG ;
   /* setting "-" denotes terminal mode */
   if (strcmp(s, "-") == 0)
@@ -280,7 +278,7 @@ restart_openvasd ()
  char * path;
  char fpath[1024];
 
- close(g_iana_socket);
+ close(global_iana_socket);
  delete_pid_file();
  if(fork () == 0)
  {
@@ -318,9 +316,9 @@ sighup (int i)
 static void
 server_thread (struct arglist * globals)
 {
- struct sockaddr_in * address = arg_get_value(globals, "client_address");
- struct arglist * plugins = arg_get_value(globals, "plugins");
- struct arglist * prefs = arg_get_value (globals, "preferences") ;
+ struct sockaddr_in * address = arg_get_value (globals, "client_address");
+ struct arglist * plugins     = arg_get_value (globals, "plugins");
+ struct arglist * prefs       = arg_get_value (globals, "preferences") ;
  int soc = GPOINTER_TO_SIZE(arg_get_value(globals, "global_socket"));
  struct openvas_rules* perms;
  char * asciiaddr;
@@ -361,7 +359,7 @@ if(preferences_benice(prefs))nice(10);
 #endif
 
  /* Close the server thread - it is useless for us now */
- close (g_iana_socket);
+ close (global_iana_socket);
 
  if (ovas_server_ctx != NULL) /* ssl_ver !=  "NONE" */
    {
@@ -418,7 +416,7 @@ if(preferences_benice(prefs))nice(10);
 	arg_set_value(globals, "rules", -1, rules);
    }
 
-   arg_set_value(globals, "plugins", -1, plugins);
+   arg_set_value (globals, "plugins", -1, plugins);
 
    comm_send_md5_plugins(globals);
    comm_send_preferences(globals);
@@ -488,7 +486,7 @@ main_loop ()
 
 #define SSL_VER_DEF_NAME	"TLSv1"
 #define SSL_VER_DEF_ENCAPS	NESSUS_ENCAPS_TLSv1
-  ssl_ver = preferences_get_string(g_preferences, "ssl_version");
+  ssl_ver = preferences_get_string (global_preferences, "ssl_version");
   if (ssl_ver == NULL || *ssl_ver == '\0')
     ssl_ver = SSL_VER_DEF_NAME;
 
@@ -524,7 +522,7 @@ main_loop ()
 	    }
 
 
-	  ca_file = preferences_get_string(g_preferences, "ca_file");
+	  ca_file = preferences_get_string (global_preferences, "ca_file");
 	  if (ca_file == NULL)
 	    {
 	      fprintf(stderr,
@@ -532,9 +530,9 @@ main_loop ()
 	      exit(1);
 	    }
 
-	  passwd = preferences_get_string(g_preferences, "pem_password");
-	  cert = preferences_get_string(g_preferences, "cert_file");
-	  key = preferences_get_string(g_preferences, "key_file");
+	  passwd = preferences_get_string (global_preferences, "pem_password");
+	  cert   = preferences_get_string (global_preferences, "cert_file");
+	  key    = preferences_get_string (global_preferences, "key_file");
 
 	  if (cert == NULL)
 	    {
@@ -550,7 +548,7 @@ main_loop ()
 	      exit (1);
 	    }
 
-	  s = arg_get_value(g_preferences, "force_pubkey_auth");
+          s = arg_get_value (global_preferences, "force_pubkey_auth");
 	  force_pubkey_auth = s != NULL && strcmp(s, "no") != 0;
 	  ovas_server_ctx = ovas_server_context_new(encaps, cert, key, passwd,
 						    ca_file, force_pubkey_auth);
@@ -578,11 +576,11 @@ main_loop ()
       if (restart != 0) restart_openvasd ();
 
       wait_for_children1();
-      /* prevent from an io table overflow attack against nessus */
+      /* Prevent from an io table overflow attack against nessus */
       if (asciiaddr != 0) {
-	time_t now = time (0);
+        time_t now = time (0);
 
-	/* did we reach the max nums of connect/secs ? */
+	/* Did we reach the max nums of connect/secs ? */
 	if (last == now)
           {
             if (++ count > OPENVASD_CONNECT_RATE)
@@ -610,7 +608,7 @@ main_loop ()
       old_addr = asciiaddr;
       asciiaddr = 0;
 
-      soc = accept (g_iana_socket, (struct sockaddr *)(&address), &lg_address);
+      soc = accept (global_iana_socket, (struct sockaddr *)(&address), &lg_address);
       if (soc == -1) continue;
 
       asciiaddr = estrdup(inet_ntoa(address.sin_addr));
@@ -632,25 +630,27 @@ main_loop ()
 
       /* efree(&asciiaddr); */
 
-      /* 
-       * duplicate everything so that the threads don't share the
+/* FIXME: Find out whether following comment is still valid.
+          Especially, I do not see where the arglists are duplicated with
+          arg_add_value and TYPE != ARG_STRUCT, just pointers are copied, imho.
+ */
+      /* Duplicate everything so that the threads don't share the
        * same variables.
        *
-       * Useless when fork is used, necessary for the pthreads 
+       * Useless when fork is used, necessary for the pthreads.
        *
        * MA: you cannot share an open SSL connection through fork/multithread
-       * The SSL connection shall be open _after_ the fork
-       */
+       * The SSL connection shall be open _after_ the fork */
       globals = emalloc(sizeof(struct arglist));
-      arg_add_value(globals, "global_socket", ARG_INT, -1, GSIZE_TO_POINTER(soc));
+      arg_add_value (globals, "global_socket", ARG_INT, -1, GSIZE_TO_POINTER(soc));
 
-      my_plugins = g_plugins;
+      my_plugins = global_plugins;
       arg_add_value(globals, "plugins", ARG_ARGLIST, -1, my_plugins);
 
-      my_preferences = g_preferences;
+      my_preferences = global_preferences;
       arg_add_value(globals, "preferences", ARG_ARGLIST, -1, my_preferences);
 
-      my_rules = /*rules_dup*/(g_rules);
+      my_rules = /*rules_dup*/(global_rules);
 
       p_addr = emalloc(sizeof(struct sockaddr_in));
       *p_addr = address;
@@ -727,28 +727,28 @@ init_openvasd (struct arglist * options, int first_pass, int stop_early,
                int be_quiet)
 {
   int  isck = -1;
-  struct arglist * plugins = NULL;
+  struct arglist * plugins     = NULL;
   struct arglist * preferences = NULL;
   struct openvas_rules * rules = NULL;
   int iana_port = GPOINTER_TO_SIZE(arg_get_value(options, "iana_port"));
-  char * config_file = arg_get_value(options, "config_file");
-  struct in_addr * addr = arg_get_value(options, "addr");
+  char * config_file    = arg_get_value (options, "config_file");
+  struct in_addr * addr = arg_get_value (options, "addr");
   char * str;
 
   preferences_init(config_file, &preferences);
 
-  if((str = arg_get_value(preferences, "max_hosts")) != NULL)
+  if ((str = arg_get_value (preferences, "max_hosts")) != NULL)
     {
-      g_max_hosts = atoi (str);
-      if (g_max_hosts <= 0)
-        g_max_hosts = 15;
+      global_max_hosts = atoi (str);
+      if (global_max_hosts <= 0)
+        global_max_hosts = 15;
     }
 
-  if((str = arg_get_value(preferences, "max_checks")) != NULL)
+  if ((str = arg_get_value(preferences, "max_checks")) != NULL)
     {
-      g_max_checks = atoi(str);
-      if (g_max_checks <= 0)
-        g_max_checks = 10;
+      global_max_checks = atoi(str);
+      if (global_max_checks <= 0)
+        global_max_checks = 10;
     }
 
   arg_add_value (preferences, "config_file", ARG_STRING, strlen(config_file), estrdup(config_file));
@@ -794,6 +794,7 @@ init_openvasd (struct arglist * options, int first_pass, int stop_early,
  * @brief openvasd.
  * @param argc Argument count.
  * @param argv Argument vector.
+ * @param envp Used by setproctitle.
  */
 int
 main (int argc, char * argv[], char * envp[])
@@ -819,7 +820,7 @@ main (int argc, char * argv[], char * envp[])
   if (flag == 0)
     orig_argv[argc] = estrdup("-q");
 
-  initsetproctitle(argc, argv, envp);
+  initsetproctitle (argc, argv, envp);
 
   if ((myself = strrchr (*argv, '/')) == 0) 
     myself = *argv ;
@@ -846,16 +847,24 @@ main (int argc, char * argv[], char * envp[])
   GOptionContext *option_context;
   static GOptionEntry entries[] =
   {
-    { "version", 'v', 0, G_OPTION_ARG_NONE, &display_version, "Display version information", NULL },
-    { "background", 'D', 0, G_OPTION_ARG_NONE, &do_fork, "Run in daemon mode", NULL },
-    { "listen", 'a', 0, G_OPTION_ARG_STRING, &address, "Listen on <address>", "<address>" },
-    { "src-ip", 'S', 0, G_OPTION_ARG_STRING, &src_ip, "Send packets with a source IP of <ip[,ip...]>", "<ip[,ip...]>" },
-    { "port", 'p', 0, G_OPTION_ARG_STRING, &port, "Use port number <number>", "<number>" },
-    { "config-file", 'c', 0, G_OPTION_ARG_FILENAME, &config_file, "Configuration file", "<.rcfile>" },
-    { "dump-cfg", 'd', 0, G_OPTION_ARG_NONE, &dump_cfg, "Dump the openvasd compilation options", NULL },
-    { "quiet", 'q', 0, G_OPTION_ARG_NONE, &quiet, "Quiet (do not issue any messages to stdout)", NULL },
-    { "cfg-specs", 's', G_OPTION_FLAG_HIDDEN, G_OPTION_ARG_NONE, &print_specs, "", NULL },
-    { "gen-config", 'g', G_OPTION_FLAG_HIDDEN, G_OPTION_ARG_NONE, &gen_config, "", NULL },
+    { "version",    'v', 0,  G_OPTION_ARG_NONE, &display_version,
+                             "Display version information", NULL },
+    { "background", 'D', 0,  G_OPTION_ARG_NONE, &do_fork,
+                             "Run in daemon mode", NULL },
+    { "listen",     'a', 0,  G_OPTION_ARG_STRING, &address,
+                             "Listen on <address>", "<address>" },
+    { "src-ip",     'S', 0,  G_OPTION_ARG_STRING, &src_ip,
+                             "Send packets with a source IP of <ip[,ip...]>", "<ip[,ip...]>" },
+    { "port",       'p', 0,  G_OPTION_ARG_STRING, &port,
+                             "Use port number <number>", "<number>" },
+    { "config-file", 'c', 0, G_OPTION_ARG_FILENAME, &config_file,
+                             "Configuration file", "<.rcfile>" },
+    { "dump-cfg",   'd', 0,  G_OPTION_ARG_NONE, &dump_cfg,
+                             "Dump the openvasd compilation options", NULL },
+    { "quiet",      'q', 0,  G_OPTION_ARG_NONE, &quiet,
+                             "Quiet (do not issue any messages to stdout)", NULL },
+    { "cfg-specs",  's',     G_OPTION_FLAG_HIDDEN, G_OPTION_ARG_NONE, &print_specs, "", NULL },
+    { "gen-config", 'g',     G_OPTION_FLAG_HIDDEN, G_OPTION_ARG_NONE, &gen_config, "", NULL },
     { NULL }
   };
 
@@ -954,14 +963,14 @@ main (int argc, char * argv[], char * envp[])
 
   init_openvasd (options, 1, exit_early, be_quiet);
   g_options = options;
-  g_iana_socket = GPOINTER_TO_SIZE(arg_get_value(options, "isck"));
-  g_plugins = arg_get_value(options, "plugins");
-  g_preferences = arg_get_value(options, "preferences");
-  g_rules = arg_get_value(options, "rules");
+  global_iana_socket = GPOINTER_TO_SIZE (arg_get_value(options, "isck"));
+  global_plugins     = arg_get_value (options, "plugins");
+  global_preferences = arg_get_value (options, "preferences");
+  global_rules       = arg_get_value (options, "rules");
 
   /* special treatment */
   if (print_specs)
-    dump_cfg_specs (g_preferences) ;
+    dump_cfg_specs (global_preferences) ;
   if (exit_early)
     exit (0);
 

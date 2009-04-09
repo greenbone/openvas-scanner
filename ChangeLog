@@ -1,3 +1,10 @@
+2009-04-09  Felix Wolfsteller <felix.wolfsteller@intevation.de>
+
+	Renamed variables starting with 'g_', as it suggest GLib ownership.
+	
+	* openvasd/openvasd.c, openvasd/utils.c: Renamed variables starting
+	with 'g_'.
+
 2009-04-08  Felix Wolfsteller <felix.wolfsteller@intevation.de>
 
 	Reformatting in pluginlaunch module.
