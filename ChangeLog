@@ -1,3 +1,7 @@
+2009-04-09  Michael Wiegand <michael.wiegand@intevation.de>
+
+	* MANIFEST: Added missing ChangeLog.
+
 2009-04-09  Felix Wolfsteller <felix.wolfsteller@intevation.de>
 
 	Reformatting and doc in comm module.
