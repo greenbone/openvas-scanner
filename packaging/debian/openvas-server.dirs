@@ -9,3 +9,4 @@ var/lib/openvas/CA
 var/lib/openvas/private/CA
 var/log/openvas
 etc/openvas
+etc/openvas/gnupg

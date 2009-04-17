@@ -1,3 +1,27 @@
+2009-04-17  Michael Wiegand <michael.wiegand@intevation.de>
+
+	Updated Debian packaging files.
+
+	* packaging/debian/openvas-server.dirs: Added etc/openvas/gnupg to the
+	list of directories to be created.
+
+	* packaging/debian/control: Updated build dependencies. Added dependency
+	to openssl since it is need by the Debian post-inst script.
+
+	* packaging/debian/openvas-server.install: Added usr/bin/openvasd-config
+	to the list of files of to be installed. It was formerly installed with
+	openvas-server-dev but is needed by some third party tools.
+
+	* packaging/debian/openvas-server-dev.install: Removed
+	usr/bin/openvasd-config from the list of files to be installed (see
+	above).
+
+	* packaging/debian/openvas-server.default: Changed the default to make
+	openvasd listen on external interfaces as well.
+
+	* packaging/debian/openvasd.conf: Updated with new preferences for the
+	2.0.x series and fixed wrong entry for dumpfile.
+
 2009-04-09  Michael Wiegand <michael.wiegand@intevation.de>
 
 	* MANIFEST: Added missing ChangeLog.
