@@ -1,5 +1,10 @@
 2009-04-20  Michael Wiegand <michael.wiegand@intevation.de>
 
+	* packaging/debian/openvas-server.dirs: Added var/cache/openvas to the
+	list of directories to be created.
+
+2009-04-20  Michael Wiegand <michael.wiegand@intevation.de>
+
 	* packaging/debian/control, packaging/debian/compat: Adjusting debhelper
 	dependency and compatibility level to be consistent with the other
 	modules and to allow Debian Etch packages to be built.
