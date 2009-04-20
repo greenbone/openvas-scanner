@@ -3,7 +3,7 @@ Section: admin
 Priority: optional
 Maintainer: Debian OpenVAS Maintainers <openvas-distro-deb@wald.intevation.org>
 Uploaders: Tim Brown <timb@nth-dimension.org.uk>, Javier Fernandez-Sanguino Pen~a <jfs@debian.org>, Jan Wagner <waja@cyconet.org>, Joey Schulze <joey@infodrom.org>
-Build-Depends: debhelper (>= 6), autotools-dev, libgcrypt11-dev, libglib2.0-dev, libgnutls-dev, libopenvas2-dev (>= 2.0.1), libopenvasnasl2-dev (>= 2.0.1), libpcap0.8-dev, libwrap0-dev, pkg-config, po-debconf
+Build-Depends: debhelper (>= 5), autotools-dev, libgcrypt11-dev, libglib2.0-dev, libgnutls-dev, libopenvas2-dev (>= 2.0.1), libopenvasnasl2-dev (>= 2.0.1), libpcap-dev, libwrap0-dev, pkg-config, po-debconf
 Homepage: http://www.openvas.org/
 Vcs-Browser: http://wald.intevation.org/plugins/scmsvn/viewcvs.php/trunk/openvas-server/packaging/debian/?root=openvas
 Vcs-Svn: https://svn.wald.intevation.org/svn/openvas/trunk/openvas-server/packaging/debian/
