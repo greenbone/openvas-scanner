@@ -292,13 +292,6 @@ chmod 0700 "$localstatedir/lib/openvas/users/$login"
 mkdir -p "$localstatedir/lib/openvas/users/$login/auth"
 chmod 0700 "$localstatedir/lib/openvas/users/$login/auth"
 
-#
-# Create the plugins dir, which contains the user plugins
-#
-mkdir -p "$localstatedir/lib/openvas/users/$login/plugins"
-chmod 0700 "$localstatedir/lib/openvas/users/$login/plugins"
-
-
 if [ "$auth" = "pass" ]; then
     if [ "$MD5CMD" ]; then
     	test -c /dev/urandom &&
