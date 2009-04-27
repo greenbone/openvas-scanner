@@ -1,3 +1,8 @@
+2009-04-27  Michael Wiegand <michael.wiegand@intevation.de>
+
+	* openvasd/plugs_hash.c (plugins_hash): Remove handling of obsolete
+	"plugins" directory in the user_home directory.
+
 2009-04-20  Michael Wiegand <michael.wiegand@intevation.de>
 
 	* openvas-adduser.in: Stop openvas-adduser from creating the now
