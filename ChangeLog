@@ -1,3 +1,7 @@
+2009-05-05  Jan Wagner <waja@cyconet.org>
+
+	* packaging/debian/changelog: reengineered Michaels changes :P
+
 2009-04-27  Michael Wiegand <michael.wiegand@intevation.de>
 
 	* openvasd/plugs_hash.c (plugins_hash): Remove handling of obsolete

@@ -1,5 +1,6 @@
-openvas-server (2.0.0-3) UNRELEASED; urgency=low
+openvas-server (2.0.1-1) UNRELEASED; urgency=low
 
+  [ Christian Perrier ]
   * Debconf templates and debian/control reviewed by the debian-l10n-
     english team as part of the Smith review project. Closes: #512170
   * Fix extra space in debconf templates. Closes: #514451
@@ -16,6 +17,19 @@ openvas-server (2.0.0-3) UNRELEASED; urgency=low
   * Slovak. Closes: #514381
   * German. Closes: #514450
 
+  [ Michael Wiegand ]
+  * Lower compat to 5
+  * Adjust dependencies: debhelper (>= 5), libopenvas2-dev (>= 2.0.1),
+    libopenvasnasl2-dev (>= 2.0.1), libpcap-dev
+  * Add openssl to Depends (Closes: #526971), thanks to Torbjörn Wictorin for
+    reporting
+  * Adjust package descriptions
+  * Updated openvasd.conf with new preferences for the 2.0.x series and fixed
+    wrong entry for dumpfile.
+  * Changed the default to make openvasd listen on external interfaces as well.
+  * Moved /usr/bin/openvasd-config to openvas-server
+  * Creating /etc/openvas/gnupg and /var/cache/openvas
+
  -- Christian Perrier <bubulle@debian.org>  Sun, 18 Jan 2009 09:26:25 +0100
 
 openvas-server (2.0.0-2) unstable; urgency=low
@@ -25,9 +39,9 @@ openvas-server (2.0.0-2) unstable; urgency=low
   * Remove the openvas-plugins dependency as it is not currently in the archive. Users have
     to manually download the plugins currently. This will be restored once openvas-plugins
     is in the archive
-  
+
  -- Javier Fernandez-Sanguino Pen~a <jfs@debian.org>  Sun, 04 Jan 2009 13:13:21 +0100
-   
+
 openvas-server (2.0.0-1) unstable; urgency=low
 
   * New upstream release
