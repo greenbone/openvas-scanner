@@ -1,0 +1,123 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<html><head>
+<title>#520063 - [INTL:ja] please add Japanese po-debconf template translation (ja.po) - Debian Bug report logs</title>
+<meta http-equiv="Content-Type" content="text/html;charset=utf-8">
+<link rel="stylesheet" href="/css/bugs.css" type="text/css">
+
+<script type="text/javascript">
+<!--
+function toggle_infmessages()
+{
+        allDivs=document.getElementsByTagName("div");
+        for (var i = 0 ; i < allDivs.length ; i++ )
+        {
+                if (allDivs[i].className == "infmessage")
+                {
+                        allDivs[i].style.display=(allDivs[i].style.display == 'none' | allDivs[i].style.display == '') ? 'block' : 'none';
+                }
+        }
+}
+-->
+</script>
+</head>
+<body>
+<h1>Debian Bug report logs - 
+<a href="mailto:520063@bugs.debian.org">#520063</a><br/>
+[INTL:ja] please add Japanese po-debconf template translation (ja.po)</h1>
+<div class="versiongraph"><a href="version.cgi?info=1;absolute=0;collapse=1;found=openvas-server%2F2.0.0-2;package=openvas-server"><img alt="version graph" src="version.cgi?width=2;absolute=0;collapse=1;height=2;found=openvas-server%2F2.0.0-2;package=openvas-server"></a></div>
+<div class="pkginfo">
+  <p>Package:
+     <a class="submitter" href="pkgreport.cgi?package=openvas-server">openvas-server</a>;
+Maintainer for <a href="pkgreport.cgi?package=openvas-server">openvas-server</a> is <a href="pkgreport.cgi?maint=openvas-distro-deb%40wald.intevation.org">Debian OpenVAS Maintainers &lt;openvas-distro-deb@wald.intevation.org&gt;</a>; Source for <a href="pkgreport.cgi?package=openvas-server">openvas-server</a> is <a href="pkgreport.cgi?src=openvas-server">openvas-server</a>. </p>
+</div>
+
+<div class="buginfo">
+  <p>Reported by: <a href="pkgreport.cgi?submitter=henrich%40debian.or.jp">&quot;Hideki Yamane \(Debian-JP\)&quot; &lt;henrich@debian.or.jp&gt;</a></p>
+  <p>Date: Tue, 17 Mar 2009 06:18:01 UTC</p>
+
+<p>Severity: wishlist</p>
+<p>Tags: l10n, patch</p>
+
+<p>Found in version openvas-server/2.0.0-2</p>
+
+
+
+</div>
+
+<p><a href="mailto:520063@bugs.debian.org">Reply</a> or <a href="mailto:520063-subscribe@bugs.debian.org">subscribe</a> to this bug.</p>
+<p><a href="javascript:toggle_infmessages();">Toggle useless messages</a></p><div class="msgreceived"><p>View this report as an <a href="bugreport.cgi?mbox=yes;bug=520063">mbox folder</a>, <a href="bugreport.cgi?mbox=yes;bug=520063;mboxstatus=yes">status mbox</a>, <a href="bugreport.cgi?mboxmaint=yes;mbox=yes;bug=520063">maintainer mbox</a></p></div>
+
+<div class="infmessage"><hr>
+<a name="1"></a>
+<!-- time:1237270683 -->
+<strong>Report forwarded</strong>
+to <code>debian-bugs-dist@lists.debian.org, Debian OpenVAS Maintainers &lt;openvas-distro-deb@wald.intevation.org&gt;</code>:<br>
+<code>Bug#520063</code>; Package <code>openvas-server</code>.
+ (Tue, 17 Mar 2009 06:18:03 GMT) <a href="bugreport.cgi?msg=2;bug=520063">Full text</a> and <a href="bugreport.cgi?msg=2;mbox=yes;bug=520063">rfc822 format</a> available.</div>
+
+<div class="infmessage"><hr>
+<a name="3"></a>
+<!-- time:1237270683 -->
+<strong>Acknowledgement sent</strong>
+to <code>&quot;Hideki Yamane \(Debian-JP\)&quot; &lt;henrich@debian.or.jp&gt;</code>:<br>
+New Bug report received and forwarded.  Copy sent to <code>Debian OpenVAS Maintainers &lt;openvas-distro-deb@wald.intevation.org&gt;</code>.
+ (Tue, 17 Mar 2009 06:18:03 GMT) <a href="bugreport.cgi?msg=4;bug=520063">Full text</a> and <a href="bugreport.cgi?msg=4;mbox=yes;bug=520063">rfc822 format</a> available.</div>
+
+<hr><p class="msgreceived"><a name="5"></a><a name="msg5"></a><a href="#5">Message #5</a> received at submit@bugs.debian.org (<a href="bugreport.cgi?msg=5;bug=520063">full text</a>, <a href="bugreport.cgi?msg=5;mbox=yes;bug=520063">mbox</a>):</p>
+<pre class="headers">
+<b>From:</b> &quot;Hideki Yamane \(Debian-JP\)&quot; &lt;henrich@debian.or.jp&gt;
+<b>To:</b> Debian Bug Tracking System &lt;submit@bugs.debian.org&gt;
+<b>Subject:</b> [INTL:ja] please add Japanese po-debconf template translation (ja.po)
+<b>Date:</b> Tue, 17 Mar 2009 15:14:45 +0900
+</pre>
+<pre class="mime">[<a href="bugreport.cgi?msg=5;att=0;bug=520063">Message part 1</a> (text/plain, inline)]</pre>
+<pre class="message">Package: openvas-server
+Version: 2.0.0-2
+Severity: wishlist
+Tags: patch l10n
+
+-----BEGIN PGP SIGNED MESSAGE-----
+Hash: SHA1
+
+Dear openvas-server maintainer,
+
+ Here&#39;s Japanese po-debconf template translation (ja.po) file that 
+ reviewed by several Japanese Debian developers and users.
+
+ Could you apply it, please?
+
+- --
+Regards,
+
+ Hideki Yamane     henrich @ debian.or.jp
+ <a href="http://wiki.debian.org/HidekiYamane">http://wiki.debian.org/HidekiYamane</a>
+
+
+
+-----BEGIN PGP SIGNATURE-----
+Version: GnuPG v1.4.9 (GNU/Linux)
+
+iEYEARECAAYFAkm/P9AACgkQIu0hy8THJktt3gCeILD6O2qDz45NWbG3kBKpzs3o
+zH4Ani6drtd6HJpht7nEuqtxtM32/Ok2
+=t/bm
+-----END PGP SIGNATURE-----
+</pre>
+<pre class="mime">[<a href="bugreport.cgi?msg=5;filename=ja.po;att=1;bug=520063">ja.po</a> (text/plain, attachment)]</pre>
+
+<hr>
+<p class="msgreceived">Send a report that <a href="http://bugs.debian.org/cgi-bin/bugspam.cgi?bug=520063">this bug log contains spam</a>.</p>
+<hr>
+<ADDRESS>Debian bug tracking system administrator &lt;<A HREF="mailto:owner@bugs.debian.org">owner@bugs.debian.org</A>&gt;.
+Last modified:
+<!--timestamp-->Sun May 10 09:58:21 2009<!--end timestamp-->; 
+Machine Name:
+<!--machinename-->rietz.debian.org<!--machinename-->
+<P>
+<A HREF="http://www.debian.org/Bugs/">Debian Bug tracking system</A><BR>
+Copyright (C) 1999 Darren O. Benham,
+1997,2003 nCipher Corporation Ltd,
+1994-97 Ian Jackson.
+</ADDRESS>
+
+</body>
+</html>
