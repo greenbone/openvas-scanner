@@ -6,10 +6,11 @@
 # - Initial translation
 #       Javier Fernandez-Sanguino , 2005
 # - Update
-#       Javier Fernandez-Sanguino , 2007
+#       Javier Fernandez-Sanguino , 2007, 2009
+#        Noel David Torres Taño , 2009
 #
 #
-#  Traductores, si no conoce el formato PO, merece la pena leer la 
+#  Traductores, si no conocen el formato PO, merece la pena leer la 
 #  documentación de gettext, especialmente las secciones dedicadas a este
 #  formato, por ejemplo ejecutando:
 #         info -n '(gettext)PO Files'
@@ -33,7 +34,7 @@
 #
 msgid ""
 msgstr ""
-"Project-Id-Version: nessusd\n"
+"Project-Id-Version: openvas-server\n"
 "Report-Msgid-Bugs-To: openvas-server@packages.debian.org\n"
 "POT-Creation-Date: 2009-01-22 07:14+0100\n"
 "PO-Revision-Date: 2009-05-10 11:44+0200\n"
@@ -48,17 +49,11 @@ msgstr ""
 #. Description
 #: ../openvas-server.templates:2001
 msgid "OpenVAS daemon certificate generation"
-msgstr "Generación de certificado para el demonio de OpenVAS"
+msgstr "Generación del certificado para el demonio de OpenVAS"
 
 #. Type: note
 #. Description
 #: ../openvas-server.templates:2001
-#| msgid ""
-#| "You will need to provide the relevant information to create an SSL "
-#| "certificate for your OpenVAS daemon. Note that this information will "
-#| "*NOT* be sent to echo anybody (everything stays local), but anyone with "
-#| "the ability to connect to your OpenVAS daemon will be able to retrieve "
-#| "this information."
 msgid ""
 "You will need to provide the relevant information to create an SSL "
 "certificate for your OpenVAS daemon. Note that this information will remain "
@@ -71,7 +66,7 @@ msgstr "Debe introducir la información necesaria para crear un certificado SSL p
 #: ../openvas-server.templates:3001
 #| msgid "Server certificate life time in days"
 msgid "Certificate authority certificate lifetime (days):"
-msgstr "Tiempo de vida del certificado del servidor (días):"
+msgstr "Caducidad del certificado de la Autoridad de Certificación (en días):"
 
 #. Type: string
 #. Description
@@ -82,23 +77,20 @@ msgstr "Tiempo de vida del certificado del servidor (días):"
 msgid ""
 "Please choose the lifetime of the Certificate Authority certificate that "
 "will be used to generate the OpenVAS daemon certificate."
-msgstr "Introduzca el tiempo de vida del certificado de la Autoridad de Certificación que se utiliza para generar el certificado del demonio de OpenVAS."
+msgstr "Introduzca la caducidad del certificado de la Autoridad de Certificación que se utilizará para generar el certificado del demonio de OpenVAS."
 
 #. Type: string
 #. Description
 #: ../openvas-server.templates:4001
 #| msgid "Server certificate life time in days"
 msgid "Server certificate lifetime (days):"
-msgstr "Tiempo de vida del certificado del servidor (días):"
+msgstr "Caducidad del certificado del servidor (en días):"
 
 #. Type: string
 #. Description
 #: ../openvas-server.templates:4001
-#| msgid ""
-#| "Provide the life time of the Certificate Authority used to generate the "
-#| "OpenVAS daemon certificate."
 msgid "Please choose the lifetime of the OpenVAS daemon certificate."
-msgstr "Introduzca el tiempo de vida del certificado del demonio de OpenVAS."
+msgstr "Introduzca la caducidad del certificado del demonio de OpenVAS."
 
 #. Type: string
 #. Description
@@ -107,7 +99,7 @@ msgid ""
 "OpenVAS clients will not connect to servers with expired certificates, so "
 "you should choose a duration longer than the time you plan to run this "
 "server."
-msgstr "Los clientes de OpenVAS no podrán conectarse a los servidores que utilicen certificados expirados. Por ello, debería escoger una duración mayor que el tiempo durante el que quiere mantener este servidor."
+msgstr "Los clientes de OpenVAS no se conectarán a los servidores que utilicen certificados caducados. Por ello, debería escoger una duración mayor que el tiempo durante el cual prevé tener este servidor funcionando."
 
 #. Type: string
 #. Description
@@ -115,49 +107,46 @@ msgstr "Los clientes de OpenVAS no podrán conectarse a los servidores que utilic
 msgid ""
 "This certificate can be regenerated later by removing the certificate file "
 "stored in /var/lib/openvas/CA/ and running \"openvas-mkcert\"."
-msgstr "Puede regenerar este certificado más adelante borrando el fichero de certificados almacenado en «/var/lib/openvas/CA/» y ejecutando «openvas-mkcert»."
+msgstr "Este certificado puede crearse más adelante borrando el fichero del certificado almacenado en «/var/lib/openvas/CA/» y ejecutando «openvas-mkcert»."
 
 #. Type: string
 #. Description
 #: ../openvas-server.templates:5001
-#| msgid "Your country (two letter code)"
 msgid "Country (two-letter code):"
-msgstr "Su país (código de dos letras):"
+msgstr "País (código de dos letras):"
 
 #. Type: string
 #. Description
 #: ../openvas-server.templates:5001
 msgid ""
 "Please enter the two-letter code for the country where this server resides."
-msgstr "Introduzca el código de dos letras del país donde reside el servidor."
+msgstr "Introduzca el código de dos letras del país donde se encuentra ubicado el servidor."
 
 #. Type: string
 #. Description
 #: ../openvas-server.templates:6001
-#| msgid "Your state or province"
 msgid "State or province:"
-msgstr "Su provincia o estado:"
+msgstr "Provincia o estado:"
 
 #. Type: string
 #. Description
 #: ../openvas-server.templates:6001
-#| msgid "Enter the state or provice you reside in."
 msgid "Please enter the state or province where this server resides."
-msgstr "Introduzca el nombre del estado o de la provincia el servidor reside."
+msgstr "Introduzca el nombre del estado o de la provincia donde se encuentra ubicado el servidor."
 
 #. Type: string
 #. Description
 #: ../openvas-server.templates:7001
 #| msgid "Your location"
 msgid "Location:"
-msgstr "Localización:"
+msgstr "Ubicación:"
 
 #. Type: string
 #. Description
 #: ../openvas-server.templates:7001
 msgid ""
 "Please enter the location (town, for example) where this server resides."
-msgstr "Introduzca la localización (p. ej. su ciudad) donde reside el servidor."
+msgstr "Introduzca la ubicación (por ejemplo, la ciudad) donde se encuentra ubicado el servidor."
 
 #. Type: string
 #. Description
