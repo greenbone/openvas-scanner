@@ -1,9 +1,10 @@
-openvas-server (2.0.1-2) UNRELEASED; urgency=low
+openvas-server (2.0.1-2) unstable; urgency=low
 
-  [Javier Fernandez-Sanguino]
   * Updated Spanish translation
+  * Add Japanese translation, it is, however, out of date since the templates
+    have changed (Closes: 520063)
 
- -- Jan Wagner <waja@cyconet.org>  Sat, 09 May 2009 16:36:31 +0200
+ -- Javier Fernandez-Sanguino <jfs@debian.org>  Sun, 10 May 2009 11:59:42 +0200
 
 openvas-server (2.0.1-1) unstable; urgency=low
 
@@ -19,7 +20,7 @@ openvas-server (2.0.1-1) unstable; urgency=low
   * Swedish. Closes: #512667
   * Galician. Closes: #512683
   * Basque. Closes: #512752
-  * Portuguese. Closes: #512790
+  * Portuguese. Closes: #512790, #511271
   * Swedish. Closes: #512667
   * Czech. Closes: #513712
   * Vietnamese. Closes: #513809
