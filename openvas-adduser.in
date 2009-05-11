@@ -100,7 +100,9 @@ else
       "$X" = "401B30E3B8B5D629635A5C613CDB7919" ]; then
   MD5CMD=md5sum
  else
-  MD5CMD=""
+  gettext "No MD5 algorithm found in the current path!"; echo
+  gettext "Please make sure either openssl or md5sum is available!"; echo
+  exit 1
  fi
 fi
 
@@ -293,7 +295,6 @@ mkdir -p "$localstatedir/lib/openvas/users/$login/auth"
 chmod 0700 "$localstatedir/lib/openvas/users/$login/auth"
 
 if [ "$auth" = "pass" ]; then
-    if [ "$MD5CMD" ]; then
     	test -c /dev/urandom &&
 	{
 	URANDOM=`dd if=/dev/urandom bs=16 count=16 2>/dev/null|$MD5CMD`
@@ -301,9 +302,6 @@ if [ "$auth" = "pass" ]; then
 	SEED=`(echo $SEED; date; df; ls -l; echo $URANDOM) | $MD5CMD | awk '{print $1}'`
 	H=`echo $Xn $SEED$password$Xc | $MD5CMD | awk '{print $1}'`
 	echo $H $SEED > "$localstatedir/lib/openvas/users/$login/auth/hash"
-    else
-	echo "$password" > "$localstatedir/lib/openvas/users/$login/auth/password"
-    fi
 elif [ "$auth" = "cert" ]; then
 	echo "$dn" > "$localstatedir/lib/openvas/users/$login/auth/dname"
 fi

@@ -1,3 +1,18 @@
+2009-05-11  Michael Wiegand <michael.wiegand@intevation.de>
+
+	Implementing the first part of Change Request #31: Remove support for
+	plaintext password storage (http://www.openvas.org/openvas-cr-31.html).
+
+	* openvasd/users.c (check_user): openvasd will now display a warning
+	message on both stderr and the logfile when it encounters a password
+	stored in plaintext.
+
+	* openvas-adduser.in: Adding users without a working md5 algorithm is no
+	longer possible. Added an exit 1 in case no algorithm is found, removed
+	now obsolete reference to plaintext storage when storing credentials.
+
+	* doc/openvas-adduser.8: Updated, removed obsolete parts.
+
 2009-05-05  Jan Wagner <waja@cyconet.org>
 
 	* packaging/debian/changelog: reengineered Michaels changes :P
