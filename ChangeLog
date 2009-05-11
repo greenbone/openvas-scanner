@@ -1,5 +1,10 @@
 2009-05-11  Michael Wiegand <michael.wiegand@intevation.de>
 
+	* openvasd/plugs_hash.c (plugins_hash): Remove obsolete variable
+	declaration for "uhome".
+
+2009-05-11  Michael Wiegand <michael.wiegand@intevation.de>
+
 	Implementing the first part of Change Request #31: Remove support for
 	plaintext password storage (http://www.openvas.org/openvas-cr-31.html).
 

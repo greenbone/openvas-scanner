@@ -143,7 +143,6 @@ plugins_hash(globals)
 {
  struct arglist * preferences = arg_get_value(globals,"preferences");
  char *dir  = arg_get_value(preferences, "plugins_folder");
- char *uhome;
  gcry_md_hd_t ctx;
  gcry_error_t err;
  unsigned char * digest;
