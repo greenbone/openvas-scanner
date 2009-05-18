@@ -1,3 +1,8 @@
+2009-05-18  Michael Wiegand <michael.wiegand@intevation.de>
+
+	* packaging/debian/openvas-server.init (check_certs): Fixed error
+	message when there is no ca_file setting in the openvasd.conf.
+
 2009-05-11  Michael Wiegand <michael.wiegand@intevation.de>
 
 	* openvasd/plugs_hash.c (plugins_hash): Remove obsolete variable

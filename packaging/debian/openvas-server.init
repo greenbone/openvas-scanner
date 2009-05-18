@@ -62,7 +62,7 @@ warn_cert_file() {
 
 check_certs() {
 	if [ -z "`grep ^ca_file /etc/openvas/openvasd.conf`" ] ; then
-		echo -n "WARN: The openvasd configuration file does have a certificate. Have you run openvas-mkcert? (openvasd might not start)" >&2
+		echo -n "WARN: The openvasd configuration file does not contain certificate settings. Have you run openvas-mkcert? (openvasd might not start)" >&2
 	fi
 	CERTDIR=/var/lib/openvas/CA/
 	PRIVCERTDIR=/var/lib/openvas/private/CA/
