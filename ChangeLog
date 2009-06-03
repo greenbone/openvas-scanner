@@ -1,5 +1,13 @@
 2009-06-03  Michael Wiegand <michael.wiegand@intevation.de>
 
+	Post branch version bump.
+
+	* VERSION: Set to 2.1.0.SVN.
+
+	* doc/Doxyfile, doc/Doxyfile_full: Updated PROJECT_NUMBER.
+
+2009-06-03  Michael Wiegand <michael.wiegand@intevation.de>
+
 	Post release version bump.
 
 	* VERSION: Set to 2.0.3.SVN.
