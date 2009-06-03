@@ -23,7 +23,7 @@ PROJECT_NAME           = "OpenVAS Server"
 # This could be handy for archiving the generated documentation or 
 # if some version control system is used.
 
-PROJECT_NUMBER         = 2.0.2.SVN
+PROJECT_NUMBER         = 2.0.2
 
 # The OUTPUT_DIRECTORY tag is used to specify the (relative or absolute) 
 # base path where the generated documentation will be put. 

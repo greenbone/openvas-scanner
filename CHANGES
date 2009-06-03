@@ -1,3 +1,42 @@
+openvas-server 2.0.2 (2009-06-03)
+
+This is the second maintenance release of the openvas-server module for the
+Open Vulnerability Assessment System (OpenVAS) 2.0-series.
+
+It fixes some issues discovered after the release of openvas-server
+2.0.1 and introduces support for new features. Thanks to the continuing
+audit of the code, a number of obsolete, unused and/or unnecessary functions
+were identified and removed.
+
+Effects when installing this version:
+
+* The option "Silent dependencies" is now "off" by default. Previously it was
+  set to "on", openvas-client >= 2.0.2 has already switched to "off" per
+  default. Note that this may result in larger reports.
+
+* Dependencies: openvas-server 2.0.2 requires openvas-libraries 2.0.2 and
+  openvas-libnasl 2.0.1. You need to install these prior to openvas-server 2.0.2.
+
+* The openvas-adduser script will no longer allow passwords in plaintext for new
+  users. This means that the openvas-adduser script will refuse to add a new
+  user if neither openssl nor md5sums is available.
+
+Main changes since 2.0.1:
+
+* OVAL support has been improved and now supports multiple definitions and
+  results in one file.
+* Support for per-host password based local checks has been added.
+* Debian packaging files have been updated.
+* Dependency searching has been improved to work better with subdirectories.
+* openvas-server will now generate a warning if a NVT could not be cached.
+* The openvas-adduser script will no longer create the now obsolete "plugins"
+  directory in the user directory.
+
+
+Many thanks to everyone who has contributed to this release: Vlatko Kosturjak,
+Jan Wagner, Felix Wolfsteller and Michael Wiegand.
+
+
 openvas-server 2.0.1 (2009-02-17)
 
 This is the first maintenance release of the openvas-server module for the
