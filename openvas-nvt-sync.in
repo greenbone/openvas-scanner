@@ -1,0 +1,116 @@
+#!/bin/bash
+#
+# OpenVAS
+# $Id$
+# Description: Synchronize with with NVT feed.
+# This shell script synchronizes the local set of
+# OpenVAS Network Vulerability Tests (NVTs) and
+# associated includefiles with a given upstream
+# feed of updated or new files.
+#
+# Authors:
+# Lukas Grunwald <l.grunwald@dn-systems.de>
+# Jan-Oliver Wagner <jan-oliver.wagner@intevation.de>
+#
+# Copyright DN-Systems Enterprise Internet Solutions GmbH 2007
+#
+# This program is free software; you can redistribute it and/or modify
+# it under the terms of the GNU General Public License version 2,
+# as published by the Free Software Foundation
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program; if not, write to the Free Software
+# Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA 02110-1301 USA.
+
+prefix=@prefix@
+exec_prefix=@exec_prefix@
+sysconfdir=@sysconfdir@
+libdir=@libdir@
+localstatedir=@localstatedir@
+
+# these locations should be correct if standard ./configure had
+# been applied.
+NVT_DIR="$libdir/openvas/plugins"
+
+# The URL of the plugin feed
+FEED=rsync://rsync.openvas.org:/nvt-feed
+# An alternative syntax which might work if the above doesn't:
+#FEED=rsync@rsync.openvas.org::nvt-feed
+
+findcmd()
+{
+  CMD=$1
+  SRCH=/usr/bin:/usr/ucb:/usr/sbin
+  SAVEIFS=$IFS
+  IFS=:
+  set $SRCH
+  IFS=$SAVEIFS
+  for dir
+    do
+      [ -x $dir/$CMD ] && {
+                echo $dir/$CMD
+                return
+                }
+   done
+}
+
+chk_system_tools(){
+echo "Searching for required system tools ..."
+
+RSYNC=`findcmd rsync`
+MD5SUM=`findcmd md5sum`
+
+if [ -z "$RSYNC" ]; then
+  echo "Error: RSYNC not found";
+  exit -1
+fi
+
+if [ -z "$MD5SUM" ]; then
+  echo "Error: MD5SUM not found";
+  exit -1
+fi
+}
+
+sync_nvts (){
+  echo "Synchonizing NVTs via RSYNC ..."
+
+  mkdir -p "$NVT_DIR"
+  eval "rsync -ltvrP \"$FEED\" \"$NVT_DIR\""
+  if [ $? -ne 0 ] ; then
+    echo "Error: rsync failed. Your NVT collection might be broken now."
+    exit 1
+  fi
+  eval "cd \"$NVT_DIR\" ; md5sum -c --status \"$NVT_DIR/md5sums\""
+  if [ $? -ne 0 ] ; then
+    echo "Error: md5sums not correct. Your NVT collection might be broken now."
+    echo "Please try this for details: cd \"$NVT_DIR\" ; md5sum -c \"$NVT_DIR/md5sums\" | less"
+    exit 1
+  fi
+
+  echo "Synchronization successful."
+}
+
+# TODO: This does only sometimes work (if proper start/stop daemon was used)
+# It should be made verbose and robust so that the user will know whether
+# openvasd was restarted successfully or whether a failure occured.
+restart_openvasd (){
+  test -f @localstatedir@/run/openvasd.pid && {
+    pid=`cat @localstatedir@/run/openvasd.pid`
+    kill -1 $pid 2>/dev/null
+  }
+}
+
+echo "OpenVAS NVT Sync $Release$"
+echo " "
+echo "Configured NVT Feed: $FEED"
+echo "Synchronized into: $NVT_DIR"
+echo " "
+
+chk_system_tools
+sync_nvts
+restart_openvasd

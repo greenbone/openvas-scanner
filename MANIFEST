@@ -94,6 +94,7 @@ openvasd/utils.c
 openvasd/utils.h
 openvas-mkcert-client.in
 openvas-mkcert.in
+openvas-nvt-sync.in
 openvas-rmuser.in
 openvas.tmpl.in
 packaging/debian/

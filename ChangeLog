@@ -1,3 +1,20 @@
+2009-06-10  Jan-Oliver Wagner <jan-oliver.wagner@intevation.de>
+
+	Move the sync-script for the OpenVAS NVT Feed from
+	openvas-plugins module here.
+	This is part of Change Request #32
+	(http://www.openvas.org/openvas-cr-32.html,
+	"Discontinuing the tarball releases of openvas-plugins")
+
+	* openvas-nvt-sync.in: New. Moved here from
+	openvas-plugins module.
+
+	* configure.in, Makefile: Added handling for openvas-nvt-sync.
+
+	* configure: Updatd.
+
+	* MANIFEST: Updated.
+
 2009-06-03  Michael Wiegand <michael.wiegand@intevation.de>
 
 	Post branch version bump.

@@ -69,6 +69,7 @@ install-bin:
 	@test -d $(DESTDIR)${includedir} || $(INSTALL_DIR) -m 755 $(DESTDIR)${includedir}
 	@test -d $(DESTDIR)${includedir}/openvas || $(INSTALL_DIR) -m 755 $(DESTDIR)${includedir}/openvas
 	@test -d $(DESTDIR)${OPENVASD_CACHE} || $(INSTALL_DIR) -m 755 $(DESTDIR)${OPENVASD_CACHE}
+	$(INSTALL) -m 755 openvas-nvt-sync $(DESTDIR)${sbindir}
 	$(INSTALL) -m 755 openvas-mkcert-client $(DESTDIR)${bindir}/openvas-mkcert-client
 	$(INSTALL) -m 755 openvasd-config $(DESTDIR)${bindir}/openvasd-config
 	$(INSTALL) -m 755 ssl/openvas-mkrand $(DESTDIR)${bindir}/openvas-mkrand
@@ -123,6 +124,7 @@ distclean: clean
 	rm -f openvas.tmpl doc/openvas.1.cat doc/openvasd.8.cat
 	[ -z "${make_bindir}" ] || rm -f $(make_bindir)/openvas* 
 	rm -f config.cache config.status config.log 
+	rm -f openvas-nvt-sync
 	rm -f openvas-adduser
 	rm -f openvas-rmuser
 	rm -f openvas-mkcert
