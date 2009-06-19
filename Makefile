@@ -32,14 +32,14 @@ include openvas.tmpl
 
 ALLDEPS = openvas.tmpl
 
-all: $(ALLDEPS) server sslstuff man
+all: $(ALLDEPS) server sslstuff man # mknvts
 
 
 openvas.tmpl: openvas.tmpl.in configure VERSION
 	$(SHELL) configure $(CONFIGURE_ARGS)
 	touch $@
 
-install: all install-bin install-man
+install: all install-bin install-man # install-nvts
 	@echo
 	@echo ' --------------------------------------------------------------'
 	@echo ' openvas-server has been sucessfully installed. '
@@ -101,6 +101,15 @@ install-man:
 	$(INSTALL) -c -m 0444 doc/openvas-mkcert.8 $(DESTDIR)${mandir}/man8/openvas-mkcert.8
 	$(INSTALL) -c -m 0444 doc/openvas-mkcert-client.1 $(DESTDIR)${mandir}/man1/openvas-mkcert-client.1
 
+install-nvts:
+	test -d $(DESTDIR)${libdir}/openvas || $(INSTALL_DIR) -m 755 \
+		$(DESTDIR)${libdir}/openvas
+	test -d $(DESTDIR)${libdir}/openvas/plugins || $(INSTALL_DIR) -m 755 \
+		$(DESTDIR)${libdir}/openvas/plugins
+	for plugins in bin/*.nes; do \
+	$(INSTALL) -m 555 $$plugins \
+		$(DESTDIR)${libdir}/openvas/plugins; \
+	done
 
 server : 
 	cd openvasd && $(MAKE)
@@ -108,6 +117,8 @@ server :
 sslstuff : 
 	cd ssl && $(MAKE)
 
+mknvts:
+	cd cnvts && ./make_world
 
 man : $(MAN_OPENVASD_8)
 
@@ -118,6 +129,7 @@ $(MAN_OPENVASD_8) : $(MAN_OPENVASD_8).in
 clean:
 	cd openvasd && $(MAKE) clean
 	cd ssl && $(MAKE) clean
+	cd cnvts && ./make_world clean
 
 distclean: clean
 	[ -z "${rootdir}" ] || rm -f ${rootdir}/include/config.h ${rootdir}/include/corevers.h 

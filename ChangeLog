@@ -1,5 +1,11 @@
 2009-06-19  Jan-Oliver Wagner <jan-oliver.wagner@intevation.de>
 
+	* Makefile: Add targets for handling the cnvts
+	and hook  them in except for all- and install-target
+	- since the c-nvts do not build yet.
+
+2009-06-19  Jan-Oliver Wagner <jan-oliver.wagner@intevation.de>
+
 	Move the remaining C-NVTs from openvas-plugins
 	module here.
 	This is part of Change Request #32
