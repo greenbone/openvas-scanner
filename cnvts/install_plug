@@ -1,0 +1,40 @@
+#!/bin/sh
+#
+# Some systems have their librairies named <name>.so.0.0.0 and
+# <name>.so.0 and some other systems have their librairies called
+# <name>.so.0.0. We just pick the right one...
+#
+if [ -f .libs/lib$1.so.0 ];then
+test -d $2/bin/ || mkdir $2/bin/
+cp .libs/lib$1.so.0 $2/bin/$1.nes
+cp .libs/lib$1.so.0 $1.nes
+else
+if [ -f .libs/lib$1.so.0.0 ];then
+test -d $2/bin|| mkdir $2/bin
+cp .libs/lib$1.so.0.0 $2/bin/$1.nes
+cp .libs/lib$1.so.0.0 $1.nes
+else
+if [ -f .libs/lib$1.so.1.0 ];then
+test -d $2/bin|| mkdir $2/bin
+cp .libs/lib$1.so.1.0 $2/bin/$1.nes
+cp .libs/lib$1.so.1.0 $1.nes
+else if [ -f .libs/lib$1.sl.0.0 ]; then		# HP/UX
+test -d $2/bin|| mkdir $2/bin
+cp .libs/lib$1.sl.0.0 $2/bin/$1.nes
+cp .libs/lib$1.sl.0.0 $1.nes
+else
+if [ -f .libs/$1.so.0.0.0 ];then		# Digital UNIX
+test -d $2/bin || mkdir $2/bin
+cp .libs/$1.so.0.0.0 $2/bin/$1.nes
+cp .libs/lib$1.so.0.0.0 $1.nes
+else
+if [ -f .libs/lib$1.0.0.0.dylib ]; then 		# Darwin
+test -d $2/bin || mkdir $2/bin
+cp .libs/lib$1.0.0.0.dylib $2/bin/$1.nes
+cp .libs/lib$1.0.0.0.dylib $1.nes
+fi
+fi
+fi
+fi
+fi
+fi
