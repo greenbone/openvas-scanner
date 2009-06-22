@@ -135,32 +135,35 @@ send_plug_info (struct arglist * globals, struct arglist * plugins)
       e = plug_get_version(args);
       if(!e)e = "?";
 
-      if ((a = plug_get_name(args)) == NULL      ||
-	  (b = plug_get_copyright(args)) == NULL ||
-	  desc == NULL 			         ||
-	  (d = plug_get_summary(args)) == NULL) {
-	if (a == 0)
-	  a = "unknown NAME" ;
-	log_write ("Inconsistent data: %s - not applying this plugin\n", a);
-      } else
-      {
+      a = NULL;
+      if ((a = plug_get_name(args)) == NULL)
+        log_write ("Inconsistent data (no name): %s - not applying this plugin\n", plug_get_oid(args));
+      else if ((b = plug_get_copyright(args)) == NULL)
+        log_write ("Inconsistent data (no copyright): %s - not applying this plugin\n", a ? a : plug_get_oid(args));
+      else if (desc == NULL)
+        log_write ("Inconsistent data (no desc): %s - not applying this plugin\n", a ? a : plug_get_oid(args));
+      else if ((d = plug_get_summary(args)) == NULL)
+        log_write ("Inconsistent data (no summary): %s - not applying this plugin\n", a ? a : plug_get_oid(args));
+      else {
        char * str;
+        a = "Unknown NAME";
+
        if(strchr(a, '\n') != NULL ){
-       	fprintf(stderr, "ERROR - %s %s\n", plug_get_oid(args), a);
+       	fprintf(stderr, "ERROR (newline in name) - %s %s\n", plug_get_oid(args), a);
 	}
 	
 	if(strchr(b, '\n') != NULL ){
-       	fprintf(stderr, "ERROR - %s %s\n", plug_get_oid(args), b);
+       	fprintf(stderr, "ERROR (newline in copyright)- %s %s\n", plug_get_oid(args), b);
 	
 	}
 	
 	if(strchr(desc, '\n') != NULL ){
-       	fprintf(stderr, "ERROR - %s %s\n", plug_get_oid(args), desc);
+       	fprintf(stderr, "ERROR (newline in desc) - %s %s\n", plug_get_oid(args), desc);
 	
 	}
 	
 	if(strchr(d, '\n')){
-       	fprintf(stderr, "ERROR - %s %s\n", plug_get_oid(args), d);
+       	fprintf(stderr, "ERROR (newline in summary) - %s %s\n", plug_get_oid(args), d);
 	}
 
   mem_size = strlen(a) +                         /* Name */

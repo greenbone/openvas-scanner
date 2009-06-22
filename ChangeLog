@@ -1,3 +1,8 @@
+2009-06-22  Jan-Oliver Wagner <jan-oliver.wagner@intevation.de>
+
+	* openvasd/comm.c (send_plug_info): More verbose error
+	reports about inconsistent data to allow easier debugging.
+
 2009-06-19  Jan-Oliver Wagner <jan-oliver.wagner@intevation.de>
 
 	* Makefile: Add targets for handling the cnvts
