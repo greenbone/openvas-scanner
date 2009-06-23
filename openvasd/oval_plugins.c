@@ -56,6 +56,7 @@ typedef struct
   gchar * version;
   gchar * description;
   gchar * title;
+  gchar * copyright;
 } oval_plugin_t;
 
 /**
@@ -95,6 +96,7 @@ typedef enum
   DESCRIPTION,
   DEFINITION,
   TITLE,
+  RIGHTS,
   RESULTS,
   RESULTS_DEFINITION,
   TOP
@@ -207,6 +209,8 @@ start_element (GMarkupParseContext *context, const gchar *element_name,
           set_parser_state (DESCRIPTION);
         if (strcmp (element_name, "title") == 0)
           set_parser_state (TITLE);
+        if (strcmp (element_name, "rights") == 0)
+          set_parser_state (RIGHTS);
         break;
       case RESULTS:
         if (strcmp (element_name, "definition") == 0)
@@ -267,6 +271,9 @@ text (GMarkupParseContext *context, const gchar *text, gsize text_len,
             g_strfreev (title_split);
           }
         break;
+      case RIGHTS:
+        current_plugin->copyright = g_strdup (text);
+        break;
       default:
         break;
     }
@@ -294,6 +301,10 @@ end_element (GMarkupParseContext *context, const gchar *element_name,
         break;
       case TITLE:
         if (strcmp (element_name, "title") == 0)
+          set_parser_state (DEFINITION);
+        break;
+      case RIGHTS:
+        if (strcmp (element_name, "rights") == 0)
           set_parser_state (DEFINITION);
         break;
       case RESULTS:
@@ -339,6 +350,7 @@ oval_plugin_add (char * folder, char * name,
   gchar * title = NULL;
   gchar * descriptions = NULL;
   gchar * description = NULL;
+  gchar * copyright = NULL;
   int i;
 
   if (plugin_list != NULL)
@@ -426,11 +438,16 @@ oval_plugin_add (char * folder, char * name,
           g_strfreev (title_array);
           title = g_strdup_printf ("%s (%d OVAL definitions)", name,
                                    g_slist_length (plugin_list));
+          // @TODO: We take the copyright of the first definition advisory for
+          // the entire collection for now. Ultimately we will need to go
+          // through all definitions and collect the copyrights.
+          copyright = first_plugin->copyright;
         }
       else
         {
           description = first_plugin->description;
           title = first_plugin->title;
+          copyright = first_plugin->copyright;
         }
 
       args = emalloc (sizeof (struct arglist));
@@ -438,6 +455,8 @@ oval_plugin_add (char * folder, char * name,
       plug_set_oid (args, g_strdup (first_plugin->oid));
       plug_set_version (args, first_plugin->version);
       plug_set_name (args, title, NULL);
+      plug_set_summary (args, title, NULL);
+      plug_set_copyright (args, first_plugin->copyright, NULL);
       plug_set_description (args, description, NULL);
       plug_set_category (args, ACT_END);
       plug_set_family (args, "OVAL definitions", NULL);

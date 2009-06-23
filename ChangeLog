@@ -1,3 +1,12 @@
+2009-06-23  Michael Wiegand <michael.wiegand@intevation.de>
+
+	* openvasd/oval_plugins.c: Making sure the copyright and summary is
+	correctly set for OVAL plugins.
+	(start_element, text, end_element): Add support for parsing "rights"
+	element.
+	(oval_plugin_add): Set copyright and summary when adding OVAL plugins
+	to the cache.
+
 2009-06-23  Jan-Oliver Wagner <jan-oliver.wagner@intevation.de>
 
 	* openvasd/comm.c (send_plug_info): Fixed a but regarding setting
