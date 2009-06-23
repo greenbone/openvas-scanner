@@ -137,14 +137,12 @@ send_plug_info (struct arglist * globals, struct arglist * plugins)
       e = plug_get_version(args);
       if(!e)e = "?";
 
-      a = NULL;
       if ((a = plug_get_name(args)) == NULL) {
         log_write ("Inconsistent data (no name): %s - not applying this plugin\n", plug_get_oid(args));
         a = "Unknown NAME";
         ignored = 1;
       }
 
-      b = NULL;
       if ((b = plug_get_copyright(args)) == NULL) {
         log_write ("Inconsistent data (no copyright): %s - not applying this plugin\n", a ? a : plug_get_oid(args));
         b = "Unknown COPYRIGHT";
@@ -156,7 +154,6 @@ send_plug_info (struct arglist * globals, struct arglist * plugins)
         ignored = 1;
       }
 
-      d = NULL;
       if ((d = plug_get_summary(args)) == NULL) {
         log_write ("Inconsistent data (no summary): %s - not applying this plugin\n", a ? a : plug_get_oid(args));
         d = "Unknown SUMMARY";
@@ -174,7 +171,7 @@ send_plug_info (struct arglist * globals, struct arglist * plugins)
 	
 	}
 	
-	if(strchr(desc, '\n') != NULL ){
+	if(desc && strchr(desc, '\n') != NULL ){
        	fprintf(stderr, "ERROR (newline in desc) - %s %s\n", plug_get_oid(args), desc);
         ignored = 1;
 	

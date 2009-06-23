@@ -1,3 +1,8 @@
+2009-06-23  Jan-Oliver Wagner <jan-oliver.wagner@greenbone.net>
+
+	* openvasd/comm.c (send_plug_info): Fixed a bug regarding missing
+	desc. Removed unnecessary NULL setting.
+
 2009-06-23  Michael Wiegand <michael.wiegand@intevation.de>
 
 	* openvasd/oval_plugins.c: Making sure the copyright and summary is
@@ -9,7 +14,7 @@
 
 2009-06-23  Jan-Oliver Wagner <jan-oliver.wagner@intevation.de>
 
-	* openvasd/comm.c (send_plug_info): Fixed a but regarding setting
+	* openvasd/comm.c (send_plug_info): Fixed a bug regarding setting
 	a placeholder name. Also improved error reporting to inform
 	about as many problems as possible already during the first run.
 
