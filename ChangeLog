@@ -1,3 +1,9 @@
+2009-06-23  Jan-Oliver Wagner <jan-oliver.wagner@intevation.de>
+
+	* openvasd/comm.c (send_plug_info): Fixed a but regarding setting
+	a placeholder name. Also improved error reporting to inform
+	about as many problems as possible already during the first run.
+
 2009-06-23  Michael Wiegand <michael.wiegand@intevation.de>
 
 	* openvasd/oval_plugins.c (ovaldi_launch): Make sure collected_objects

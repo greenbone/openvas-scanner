@@ -115,6 +115,8 @@ send_plug_info (struct arglist * globals, struct arglist * plugins)
   const char *a, *b, *d, *e = NULL;
   char * desc = NULL;
   unsigned int mem_size = 0;
+  char * str;
+  int ignored = 0;
 
   args = plugins->value;
 
@@ -136,36 +138,54 @@ send_plug_info (struct arglist * globals, struct arglist * plugins)
       if(!e)e = "?";
 
       a = NULL;
-      if ((a = plug_get_name(args)) == NULL)
+      if ((a = plug_get_name(args)) == NULL) {
         log_write ("Inconsistent data (no name): %s - not applying this plugin\n", plug_get_oid(args));
-      else if ((b = plug_get_copyright(args)) == NULL)
-        log_write ("Inconsistent data (no copyright): %s - not applying this plugin\n", a ? a : plug_get_oid(args));
-      else if (desc == NULL)
-        log_write ("Inconsistent data (no desc): %s - not applying this plugin\n", a ? a : plug_get_oid(args));
-      else if ((d = plug_get_summary(args)) == NULL)
-        log_write ("Inconsistent data (no summary): %s - not applying this plugin\n", a ? a : plug_get_oid(args));
-      else {
-       char * str;
         a = "Unknown NAME";
+        ignored = 1;
+      }
+
+      b = NULL;
+      if ((b = plug_get_copyright(args)) == NULL) {
+        log_write ("Inconsistent data (no copyright): %s - not applying this plugin\n", a ? a : plug_get_oid(args));
+        b = "Unknown COPYRIGHT";
+        ignored = 1;
+      }
+
+      if (desc == NULL) {
+        log_write ("Inconsistent data (no desc): %s - not applying this plugin\n", a ? a : plug_get_oid(args));
+        ignored = 1;
+      }
+
+      d = NULL;
+      if ((d = plug_get_summary(args)) == NULL) {
+        log_write ("Inconsistent data (no summary): %s - not applying this plugin\n", a ? a : plug_get_oid(args));
+        d = "Unknown SUMMARY";
+        ignored = 1;
+      }
 
        if(strchr(a, '\n') != NULL ){
        	fprintf(stderr, "ERROR (newline in name) - %s %s\n", plug_get_oid(args), a);
+        ignored = 1;
 	}
 	
 	if(strchr(b, '\n') != NULL ){
        	fprintf(stderr, "ERROR (newline in copyright)- %s %s\n", plug_get_oid(args), b);
+        ignored = 1;
 	
 	}
 	
 	if(strchr(desc, '\n') != NULL ){
        	fprintf(stderr, "ERROR (newline in desc) - %s %s\n", plug_get_oid(args), desc);
+        ignored = 1;
 	
 	}
 	
 	if(strchr(d, '\n')){
        	fprintf(stderr, "ERROR (newline in summary) - %s %s\n", plug_get_oid(args), d);
+        ignored = 1;
 	}
 
+  if (! ignored) {
   mem_size = strlen(a) +                         /* Name */
              strlen(b) +                         /* Copyright */
              strlen(desc) +                      /* Description */
