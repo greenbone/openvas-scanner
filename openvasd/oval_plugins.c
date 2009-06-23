@@ -572,6 +572,7 @@ ovaldi_launch (struct arglist * g_args)
 
       GString *system_data = g_string_new ("\t<system_data>\n");
       GString *collected_objects= g_string_new ("\t<collected_objects>\n");
+      gboolean collected = FALSE;
 
       int i = 1;
 
@@ -658,6 +659,7 @@ ovaldi_launch (struct arglist * g_args)
                           g_string_append_printf (collected_objects, "\t\t<object flag=\"complete\" id=\"oval:gov.nist.fdcc.xp:obj:60221\" version=\"1\">\n");
                           g_string_append_printf (collected_objects, "\t\t\t<reference item_ref=\"%d\"/>\n", i);
                           g_string_append_printf (collected_objects, "\t\t</object>\n");
+                          collected = TRUE;
                         }
                       if (enabled == TRUE)
                         {
@@ -724,12 +726,14 @@ ovaldi_launch (struct arglist * g_args)
                               g_string_append_printf (collected_objects, "\t\t<object flag=\"complete\" id=\"oval:gov.nist.fdcc.xp:obj:12\" version=\"1\">\n");
                               g_string_append_printf (collected_objects, "\t\t\t<reference item_ref=\"%d\"/>\n", i);
                               g_string_append_printf (collected_objects, "\t\t</object>\n");
+                              collected = TRUE;
                             }
                           if (g_ascii_strcasecmp (items[0], "Gast") == 0)
                             {
                               g_string_append_printf (collected_objects, "\t\t<object flag=\"complete\" id=\"oval:gov.nist.fdcc.xp:obj:6\" version=\"1\">\n");
                               g_string_append_printf (collected_objects, "\t\t\t<reference item_ref=\"%d\"/>\n", i);
                               g_string_append_printf (collected_objects, "\t\t</object>\n");
+                              collected = TRUE;
                             }
                           i++;
                         }
@@ -831,7 +835,11 @@ ovaldi_launch (struct arglist * g_args)
       g_string_append_printf (system_data, "\t</system_data>\n\n");
       g_string_append_printf (collected_objects, "\t</collected_objects>\n\n");
 
-      fprintf (sc_file, collected_objects->str);
+      if (collected == TRUE)
+        {
+          fprintf (sc_file, collected_objects->str);
+        }
+
       fprintf (sc_file, system_data->str);
       fprintf (sc_file, "</oval_system_characteristics>\n");
       g_string_free (collected_objects, TRUE);
