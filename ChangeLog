@@ -1,5 +1,10 @@
 2009-06-26  Jan-Oliver Wagner <jan-oliver.wagner@greenbone.net>
 
+	* openvasd/openvasd.c (init_openvasd): Don't use the
+	deprecated method store_init_sys.
+
+2009-06-26  Jan-Oliver Wagner <jan-oliver.wagner@greenbone.net>
+
 	* openvasd/preferences.c (preferences_new): Removed creation
 	of parameter "language".
 

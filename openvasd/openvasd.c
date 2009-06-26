@@ -763,7 +763,7 @@ init_openvasd (struct arglist * options, int first_pass, int stop_early,
   if (stop_early == 0)
     {
       if (store_init (arg_get_value(preferences, "cache_folder")) != 0)
-        store_init_sys (arg_get_value(preferences, "plugins_folder"));
+        store_init (arg_get_value(preferences, "plugins_folder"));
 
       plugins = plugins_init (preferences, be_quiet);
 
