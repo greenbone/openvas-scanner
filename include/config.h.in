@@ -48,7 +48,6 @@
 
 
 /* miscellaneous */
-#define OPENVASD_LANGUAGE "(undefined)"
 #define OPENVASD_LOGS     OPENVASD_LOGDIR
 #define OPENVASD_LOGINS   OPENVASD_STATEDIR "/users"
 #define OPENVASD_JOBS	OPENVASD_STATEDIR  "/jobs"

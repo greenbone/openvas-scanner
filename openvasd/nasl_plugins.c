@@ -82,7 +82,6 @@ nasl_plugin_add (char* folder, char* name, struct arglist* plugins,
   char fullname[PATH_MAX+1];
   struct arglist * plugin_args;
   struct arglist * prev_plugin = NULL;
-  char * lang = "english";
   int nasl_mode;
   nasl_mode = NASL_EXEC_DESCR;
 
@@ -92,9 +91,6 @@ nasl_plugin_add (char* folder, char* name, struct arglist* plugins,
     {
       nasl_mode |= NASL_ALWAYS_SIGNED;
     }
-
-  if (arg_get_type (preferences, "language") >= 0)
-    lang = arg_get_value (preferences, "language");
 
   plugin_args = store_load_plugin (folder, name, preferences);
   if (plugin_args == NULL)

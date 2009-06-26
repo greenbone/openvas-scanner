@@ -727,8 +727,6 @@ OPENVASD_REPORTS='${OPENVASD_LOGDIR}/reports'
 man_openvas_1=doc/openvas.1
 man_openvasd_8=doc/openvasd.8
 
-AC_DEFINE_UNQUOTED(OPENVASD_LANGUAGE,  "${lang}")
-
 AC_PATH_PROG(AR, ar)
 AC_SUBST(AR)
 AC_SUBST(PWD)

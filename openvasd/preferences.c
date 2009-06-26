@@ -125,8 +125,6 @@ int preferences_new(char * name)
  fprintf(fd, "port_range = default\n\n");
  fprintf(fd, "# Optimize the test (recommanded) : \n");
  fprintf(fd, "optimize_test = yes\n\n");
- fprintf(fd, "# Language of the plugins :\n");
- fprintf(fd, "language = %s\n\n", OPENVASD_LANGUAGE);
 
  fprintf(fd, "\n\n# Optimization : \n");
  fprintf(fd, "# Read timeout for the sockets of the tests : \n");
