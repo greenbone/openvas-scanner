@@ -454,12 +454,12 @@ oval_plugin_add (char * folder, char * name,
 
       plug_set_oid (args, g_strdup (first_plugin->oid));
       plug_set_version (args, first_plugin->version);
-      plug_set_name (args, title, NULL);
-      plug_set_summary (args, title, NULL);
-      plug_set_copyright (args, first_plugin->copyright, NULL);
-      plug_set_description (args, description, NULL);
+      plug_set_name (args, title);
+      plug_set_summary (args, title);
+      plug_set_copyright (args, first_plugin->copyright);
+      plug_set_description (args, description);
       plug_set_category (args, ACT_END);
-      plug_set_family (args, "OVAL definitions", NULL);
+      plug_set_family (args, "OVAL definitions");
 
       plug_set_path (args, g_build_filename (folder, name, NULL));
 
