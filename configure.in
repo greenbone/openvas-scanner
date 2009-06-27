@@ -75,7 +75,6 @@ INSTALL_DIR="$INSTALL -d"
 test -n "$GCC" && CWALL="-Wall"
 
 
-test "x$enable_language" = x && enable_language="english"
 test "x$enable_syslog" = "x" && enable_syslog="yes";
 test "x$enable_syslog" = "xno" && unset enable_syslog
 
@@ -687,11 +686,6 @@ AC_MSG_CHECKING([whether struct sigaction has sa_restorer])
 	test "x$signal_sa_restorer" = "xyes" && AC_DEFINE(HAVE_SIGNAL_SA_RESTORER)
 
 	
-
-
-lang=$enable_language
-
-
 dnl only vanilla sed can handle long substitution lines
 CFLAGS="$saveCFLAGS"
 

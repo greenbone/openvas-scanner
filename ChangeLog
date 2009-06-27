@@ -1,5 +1,11 @@
 2009-06-27  Jan-Oliver Wagner <jan-oliver.wagner@greenbone.net>
 
+	* configure.in: Removed handling of language setting.
+
+	* configure: updated.
+
+2009-06-27  Jan-Oliver Wagner <jan-oliver.wagner@greenbone.net>
+
 	* openvasd/oval_plugin.c (oval_plugin_add): Adapated
 	calls of plug_set_* functions to API change. 
 
