@@ -1,5 +1,10 @@
 2009-06-29  Jan-Oliver Wagner <jan-oliver.wagner@greenbone.net>
 
+	* cnvts/find_service/find_service.c(plugin_do_run): Resolved ambigious 'else'
+	and signedness warning.
+
+2009-06-29  Jan-Oliver Wagner <jan-oliver.wagner@greenbone.net>
+
 	* cnvts/synscan/synscan.c (extracttcp, extractsport, issynack, find_rtt,
 	sendpacket, scan, plugin_run): Removed unused variable(s).
 

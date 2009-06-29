@@ -1990,11 +1990,12 @@ plugin_do_run(desc, h, test_ssl)
 				} else {
 					snprintf(kb, sizeof(kb), "/tmp/NoBanner/%d", port);
 					p = plug_get_key(desc, kb, &type);
-					if (p != NULL)
+					if (p != NULL) {
 						if (type == ARG_INT)
 							no_banner_grabbed = GPOINTER_TO_SIZE(p);
 						else if (type == ARG_STRING)
 							no_banner_grabbed = atoi((char *) p);
+					}
 #ifdef DEBUG
 					fprintf(stderr, "find_service(%s): no banner on port %d according to KB\n", inet_ntoa(*p_ip), port);
 #endif
@@ -2365,8 +2366,8 @@ plugin_do_run(desc, h, test_ssl)
 					else if (strncmp(line, "220 ", 4) == 0 &&
 						 strstr(line, "interscan version") != NULL)
 						mark_interscan_viruswall(desc, port, origline, trp);
-					else if (strlen(banner) > 1 && banner[0] == '~' && banner[strlen((char *) banner) - 1] == '~' &&
-					strchr((char *) banner, '}') != NULL)
+					else if ((strlen((char *)banner) > 1) && (banner[0] == '~') && (banner[strlen((char *) banner) - 1] == '~') &&
+					(strchr((char *) banner, '}') != NULL))
 						mark_ppp_daemon(desc, port, origline, trp);
 					else if (strstr((char *) banner, "Hello, this is zebra ") != NULL)
 						mark_zebra_server(desc, port, origline, trp);
