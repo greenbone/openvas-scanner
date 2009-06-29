@@ -189,7 +189,10 @@ banner_grab(const struct in_addr *pia, const char* portrange,
   int			s, tcpproto, pass;
   struct protoent	*proto;
   fd_set		rfs, wfs, efs;
-  struct timeval	timeout, ti, ti1;
+  struct timeval	timeout, ti;
+#if DEBUG > 0
+  struct timeval	ti1;
+#endif
   struct sockaddr_in	sa;
   int			port = 23;
   int			imax, i, j, scanned_ports, x, opt;
@@ -202,7 +205,10 @@ banner_grab(const struct in_addr *pia, const char* portrange,
   int			dropped_nb, timeout_nb, dropped_flag = 0;
   int			old_filtered = -1, old_opened = -1;
   int			open_ports_nb, closed_ports_nb;
-  int			untested_ports_nb, total_ports_nb, done_ports_nb;
+  int			untested_ports_nb, total_ports_nb;
+#if DEBUG > 1
+  int			done_ports_nb;
+#endif
   int			scanned_port_nb;
   int			cnx_max[3], rtt_max[3], rtt_min[3], ping_rtt = 0;
 #if defined COMPUTE_RTT
@@ -259,7 +265,7 @@ banner_grab(const struct in_addr *pia, const char* portrange,
 
   {
     char	*p, *q;
-    int		po1, po2;
+    int		po1, po2 = 0;
     p = (char*)portrange;
     untested_ports_nb = 0;
 
@@ -782,7 +788,7 @@ banner_grab(const struct in_addr *pia, const char* portrange,
 #endif
 	      for (i = 0; i < open_sock_nb; i ++)
 		{
-		  if (sockets[i].fd > 0)
+		  if (sockets[i].fd > 0) {
 		    if (FD_ISSET(sockets[i].fd, &wfs))
 		      {
 			opt = 0; optsz = sizeof(opt);
@@ -927,6 +933,7 @@ banner_grab(const struct in_addr *pia, const char* portrange,
 			sockets[i].fd = -1;
 			sockets[i].state = GRAB_SOCKET_UNUSED;
 		      }
+		  }
 		}
 	    }
 
@@ -1064,8 +1071,8 @@ banner_grab(const struct in_addr *pia, const char* portrange,
       fprintf(stderr, "openvas_tcp_scanner(%s): pass #%d ran in %d s - filtered_ports_nb=%d closed_ports_nb=%d open_ports_nb=%d\n", inet_ntoa(*pia), pass, diff_time1, filtered_ports_nb, closed_ports_nb, open_ports_nb);
 #endif
       if (dropped_flag ||
-	  pass == 1 && filtered_ports_nb > 10 && closed_ports_nb > 10 ||
-	  pass > 1 && filtered_ports_nb > 0)
+	  (pass == 1 && filtered_ports_nb > 10 && closed_ports_nb > 10) ||
+	  (pass > 1 && filtered_ports_nb > 0))
 	{
 	  if (doublecheck_flag && rst_rate_limit_flag && open_ports_nb == old_opened)
 	    {
@@ -1265,12 +1272,15 @@ banner_grab(const struct in_addr *pia, const char* portrange,
   return 0;
 }
 
+#if defined STANDALONE
 static int
 read_sysctl_maxsysfd()
 {
   int		cur_sys_fd = 0, max_sys_fd = 0;
   FILE		*fp;
+#ifndef DEBUG
   int		stderr_fd = -1, devnull_fd= -1;
+#endif
 
   if (find_in_path("sysctl", 0) == NULL) return -1;
 
@@ -1364,7 +1374,7 @@ compute_min_max_cnx(int max_hosts, int max_checks, int safe_checks,
 
     if (maxloadavg >= 0.0)
       {
-	int	x = max_cnx;
+	// int	x = max_cnx;
 	max_cnx /= (1.0 + maxloadavg);
 	// debug_printf(NULL, 1, "max_cnx reduced from %d to %d because of maxloadavg=%f\n", x, max_cnx, maxloadavg);
       }
@@ -1405,6 +1415,7 @@ compute_min_max_cnx(int max_hosts, int max_checks, int safe_checks,
   *pmin = min_cnx;
   *pmax = max_cnx;
 }
+#endif
 
 #if !defined STANDALONE
 int plugin_run(struct arglist * desc)

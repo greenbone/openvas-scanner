@@ -1,5 +1,13 @@
 2009-06-29  Jan-Oliver Wagner <jan-oliver.wagner@greenbone.net>
 
+	* cnvts/openvas_tcp_scanner/openvas_tcp_scanner.c (banner_grab,
+	read_sysctl_maxsysfd): Resolved unused variables.
+	(compute_min_max_cnx, read_sysctl_maxsysfd): Consider only if needed.
+	(banner_grab): Resolving ambigious 'else'. Resolve 'parentheses around &&
+	within ||'. Resolve missing initialization.
+
+2009-06-29  Jan-Oliver Wagner <jan-oliver.wagner@greenbone.net>
+
 	* cnvts/find_service/find_service.c(plugin_do_run): Resolved ambigious 'else'
 	and signedness warning.
 
