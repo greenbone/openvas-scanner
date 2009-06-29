@@ -1,5 +1,10 @@
 2009-06-29  Michael Wiegand <michael.wiegand@intevation.de>
 
+	* cnvts/synscan/synscan.c (plugin_init): Adapted calls of plug_set_*
+	functions to API change.
+
+2009-06-29  Michael Wiegand <michael.wiegand@intevation.de>
+
 	* cnvts/openvas_tcp_scanner/openvas_tcp_scanner.c (plugin_init):
 	Adapted calls of plug_set_* functions to API change.
 

@@ -683,13 +683,13 @@ plugin_init(struct arglist * desc)
 
 
 
-	plug_set_name(desc, EN_NAME, NULL);
-	plug_set_summary(desc, EN_SUMMARY, NULL);
-	plug_set_description(desc, EN_DESC, NULL);
+	plug_set_name(desc, EN_NAME);
+	plug_set_summary(desc, EN_SUMMARY);
+	plug_set_description(desc, EN_DESC);
 
-	plug_set_copyright(desc, COPYRIGHT, NULL);
+	plug_set_copyright(desc, COPYRIGHT);
 	plug_set_category(desc, ACT_SCANNER);
-	plug_set_family(desc, EN_FAMILY, NULL);
+	plug_set_family(desc, EN_FAMILY);
 
 	/* 	commented out dependency on proprietary plugin, once when
  		we implement it, we can uncomment it */
