@@ -12,7 +12,6 @@
 #include <glib.h>
 
 #define EN_NAME "Services"
-#define FR_NAME "Services"
 
 #define EN_FAMILY "Service detection"
 
@@ -23,19 +22,9 @@ another port than 80 and set the results in the plugins\n\
 knowledge base.\n\n\
 Risk factor : None"
 
-#define FR_DESC "Ce plugin tente de deviner quels\n\
-services tournent sur quels ports.\n\
-Par exemple, il cherche si un serveur\n\
-web tourne sur un port autre que le 80\n\
-et il stocke ses résultats dans la\n\
-base de connaissance des plugins.\n\n\
-Facteur de risque : Aucun"
-
 #define EN_COPY "Written by Renaud Deraison <deraison@cvs.nessus.org>"
-#define FR_COPY "Ecrit par Renaud Deraison <deraison@cvs.nessus.org>"
 
 #define EN_SUMM "Find what is listening on which port"
-#define FR_SUMM "Détermine ce qui écoute sur quel port"
 
 
 #ifdef HAVE_SSL
@@ -61,26 +50,19 @@ plugin_init(desc)
 	plug_set_id(desc, 10330);
 	plug_set_version(desc, "$Revision: 1852 $");
 
-	plug_set_name(desc, FR_NAME, "francais");
-	plug_set_name(desc, EN_NAME, NULL);
+	plug_set_name(desc, EN_NAME);
 
 
 	plug_set_category(desc, ACT_GATHER_INFO);
 
 
-#ifdef FR_FAMILY
-	plug_set_family(desc, FR_FAMILY, "francais");
-#endif
-	plug_set_family(desc, EN_FAMILY, NULL);
+	plug_set_family(desc, EN_FAMILY);
 
-	plug_set_description(desc, FR_DESC, "francais");
-	plug_set_description(desc, EN_DESC, NULL);
+	plug_set_description(desc, EN_DESC);
 
-	plug_set_summary(desc, FR_SUMM, "francais");
-	plug_set_summary(desc, EN_SUMM, NULL);
+	plug_set_summary(desc, EN_SUMM);
 
-	plug_set_copyright(desc, FR_COPY, "francais");
-	plug_set_copyright(desc, EN_COPY, NULL);
+	plug_set_copyright(desc, EN_COPY);
 	add_plugin_preference(desc, NUM_CHILDREN, PREF_ENTRY, "6");
 	add_plugin_preference(desc, CNX_TIMEOUT_PREF, PREF_ENTRY, "5");
 	add_plugin_preference(desc, RW_TIMEOUT_PREF, PREF_ENTRY, "5");
