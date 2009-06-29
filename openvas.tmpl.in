@@ -124,6 +124,8 @@ C_R_LIB=@c_r_lib@
 LIBWRAP=@libwrap@
 LIBS=@LIBS@
 
+LIBTOOL=$(SHELL) ${rootdir}/libtool
+
 # documentation
 MAN_OPENVASD_8=@man_openvasd_8@
 

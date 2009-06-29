@@ -1,5 +1,7 @@
 include ../../openvas.tmpl
 
+OPENVAS_INCLUDE=$(include) $(GLIB_CFLAGS) $(OPENVAS_CFLAGS)
+
 PLUGNAME=openvas_tcp_scanner
 
 # If you compile this plugin with -DSTATISTICS or -DCOMPUTE_RTT, 
@@ -7,8 +9,8 @@ PLUGNAME=openvas_tcp_scanner
 
 all : $(PLUGNAME).nes
 $(PLUGNAME).nes : $(PLUGNAME).c 
-	$(LIBTOOL) --mode=compile --tag CC $(CC) $(DEFS) $(include) -c  $(PLUGNAME).c
-	$(LIBTOOL) --mode=link --tag CC $(CC) $(DEFS) $(LDFLAGS) -o lib$(PLUGNAME).la $(PLUGNAME).lo $(LIBS) -lm $(LIBUTIL) \
+	$(LIBTOOL) --mode=compile --tag CC $(CC) $(OPENVAS_INCLUDE) -c  $(PLUGNAME).c
+	$(LIBTOOL) --mode=link --tag CC $(CC) $(OPENVAS_INCLUDE) $(LDFLAGS) -o lib$(PLUGNAME).la $(PLUGNAME).lo $(LIBS) $(GLIB_LIBS) -lm $(LIBUTIL) \
 	-rpath $(rootdir)/bin/plugins
 	../install_plug $(PLUGNAME) $(rootdir)
 clean :

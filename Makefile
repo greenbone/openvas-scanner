@@ -32,7 +32,7 @@ include openvas.tmpl
 
 ALLDEPS = openvas.tmpl
 
-all: $(ALLDEPS) server sslstuff man # mknvts
+all: $(ALLDEPS) server sslstuff man mknvts
 
 
 openvas.tmpl: openvas.tmpl.in configure VERSION

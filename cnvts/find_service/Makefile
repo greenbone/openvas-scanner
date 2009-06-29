@@ -1,11 +1,13 @@
 include ../../openvas.tmpl
 
+OPENVAS_INCLUDE=$(include) $(GLIB_CFLAGS) $(OPENVAS_CFLAGS)
+
 PLUGNAME=find_service
 
 all : $(PLUGNAME).nes
 $(PLUGNAME).nes : $(PLUGNAME).c
-	$(LIBTOOL) --mode=compile --tag CC $(CC) $(DEFS) $(include) -c  $(PLUGNAME).c
-	$(LIBTOOL) --mode=link --tag CC $(CC) $(DEFS) $(LDFLAGS) -o lib$(PLUGNAME).la $(PLUGNAME).lo $(LIBS) \
+	$(LIBTOOL) --mode=compile --tag CC $(CC) $(OPENVAS_INCLUDE) -c  $(PLUGNAME).c
+	$(LIBTOOL) --mode=link --tag CC $(CC) $(OPENVAS_INCLUDE) $(LDFLAGS) -o lib$(PLUGNAME).la $(PLUGNAME).lo $(LIBS) $(GLIB_LIBS) \
 	-rpath $(rootdir)/bin/plugins
 	../install_plug $(PLUGNAME) $(rootdir)
 clean :

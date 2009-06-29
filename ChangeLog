@@ -1,5 +1,40 @@
 2009-06-29  Michael Wiegand <michael.wiegand@intevation.de>
 
+	Re-enabled compilation of legacy C-based plugins. Done in accordance
+	with CR #32: "Discontinuing the tarball releases of openvas-plugins"
+	(http://www.openvas.org/openvas-cr-32.html). This included adding
+	libtool support to openvas-server.
+
+	* configure.in: Make configure libtool-aware.
+
+	* configure: Regenerated.
+
+	* ltmain.sh: Added libtool support script.
+
+	* Makefile: Enabled compilation of CNVTs.
+
+	* aclocal.m4: Regenerated to add libtool support.
+
+	* openvas.tmpl.in: Define libtool location to expose it to the CNVT
+	Makefiles.
+
+	* cnvts/3com_hub/Makefile: Fixed to integrate into openvas-server build
+	environment in order to re-enable compilation.
+
+	* cnvts/find_service/Makefile: Fixed to integrate into openvas-server
+	build environment in order to re-enable compilation.
+
+	* cnvts/openvas_tcp_scanner/Makefile: Fixed to integrate into
+	openvas-server build environment in order to re-enable compilation.
+
+	* cnvts/ssl_ciphers/Makefile: Fixed to integrate into openvas-server
+	build environment in order to re-enable compilation.
+
+	* cnvts/synscan/Makefile: Fixed to integrate into openvas-server build
+	environment in order to re-enable compilation.
+
+2009-06-29  Michael Wiegand <michael.wiegand@intevation.de>
+
 	* cnvts/synscan/synscan.c (plugin_init): Adapted calls of plug_set_*
 	functions to API change.
 
