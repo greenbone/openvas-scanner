@@ -39,7 +39,7 @@ openvas.tmpl: openvas.tmpl.in configure VERSION
 	$(SHELL) configure $(CONFIGURE_ARGS)
 	touch $@
 
-install: all install-bin install-man # install-nvts
+install: all install-bin install-man install-nvts
 	@echo
 	@echo ' --------------------------------------------------------------'
 	@echo ' openvas-server has been sucessfully installed. '
