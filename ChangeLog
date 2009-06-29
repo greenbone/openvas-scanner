@@ -1,7 +1,12 @@
 2009-06-29  Michael Wiegand <michael.wiegand@intevation.de>
 
+	* cnvts/openvas_tcp_scanner/openvas_tcp_scanner.c (plugin_init):
+	Adapted calls of plug_set_* functions to API change.
+
+2009-06-29  Michael Wiegand <michael.wiegand@intevation.de>
+
 	* cnvts/find_service/find_service.c: Removed obsolete French defines.
-	(plugin_init): Adapated calls of plug_set_* functions to API change.
+	(plugin_init): Adapted calls of plug_set_* functions to API change.
 
 2009-06-27  Jan-Oliver Wagner <jan-oliver.wagner@greenbone.net>
 

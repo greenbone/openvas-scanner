@@ -63,8 +63,8 @@ int plugin_init(struct arglist * desc)
  plug_set_version(desc, "$Revision: 1741 $");
    
          
- plug_set_name(desc, "OpenVAS TCP scanner", NULL);
- plug_set_summary(desc, "Look for open TCP ports & services banners", NULL);
+ plug_set_name(desc, "OpenVAS TCP scanner");
+ plug_set_summary(desc, "Look for open TCP ports & services banners");
  plug_set_description(desc, "\
 This plugin is a classical TCP port scanner\n\
 It shall be reasonably quick even against a firewalled target.\n\
@@ -74,12 +74,11 @@ for the service identification plugins\n\
 \n\
 Note that TCP scanners are more intrusive than \n\
 SYN (half open) scanners\
-", NULL);
+");
  
- plug_set_copyright(desc, "(C) 2004 Michel Arboi <mikhail@nessus.org>", NULL);
+ plug_set_copyright(desc, "(C) 2004 Michel Arboi <mikhail@nessus.org>");
  plug_set_category(desc, ACT_SCANNER);
- plug_set_family(desc, "Scanners de ports", "francais");
- plug_set_family(desc, "Port scanners", NULL);
+ plug_set_family(desc, "Port scanners");
 
  /* 	commented out dependency on proprietary plugin, once when
 	 we implement it, we can uncomment it */
