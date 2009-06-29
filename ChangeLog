@@ -1,3 +1,8 @@
+2009-06-29  Jan-Oliver Wagner <jan-oliver.wagner@greenbone.net>
+
+	* cnvts/synscan/synscan.c (extracttcp, extractsport, issynack, find_rtt,
+	sendpacket, scan, plugin_run): Removed unused variable(s).
+
 2009-06-29  Michael Wiegand <michael.wiegand@intevation.de>
 
 	Re-enabled compilation of legacy C-based plugins. Done in accordance

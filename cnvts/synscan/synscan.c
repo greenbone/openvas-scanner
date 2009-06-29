@@ -295,7 +295,6 @@ struct tcphdr * extracttcp(char * pkt, int len)
 {
  struct ip * ip;
 	struct tcphdr  *tcp;
-	unsigned long   ret;
  
  ip = (struct ip*)pkt;
  if(ip->ip_hl * 4 + sizeof(struct tcphdr) > len)
@@ -323,7 +322,6 @@ unsigned short
 extractsport(char *pkt, int len)
 {
 	struct tcphdr  *tcp = extracttcp(pkt, len);
- unsigned long   ret;
  if(tcp == NULL)return 0;
  
 	return ntohs(tcp->th_sport);
@@ -333,7 +331,6 @@ int
 issynack(char *pkt, int len)
 {
 	struct tcphdr  *tcp = extracttcp(pkt, len); 
-	unsigned long   ret;
  
  if(tcp == NULL)return 0;
 
@@ -430,7 +427,6 @@ find_rtt(struct in_addr dst, unsigned long *rtt)
 		char           *pkt = mktcp(src, magic, dst, ports[i], ack, TH_SYN);
 		int             e;
 		struct timeval  tv = {1, 0};
-		int             err = 0;
 		unsigned short  p = ports[i];
 
 #if DEBUG > 1
@@ -555,7 +551,6 @@ sendpacket(int soc, int bpf, int skip, struct in_addr dst, struct in_addr src, i
 		}
 	}
 	if (sniff != 0) {
-		struct timeval  t, n;
 again:
 		res = (char *) bpf_next_tv(bpf, &len, &rtt_tv);
 		if (res != NULL) {
@@ -598,7 +593,6 @@ scan(struct arglist * env, struct in_addr dst, unsigned long rtt)
 	int             i;
 	struct sockaddr_in soca;
 	struct list    *packets = NULL;
-	struct timeval  rtt_tv = timeval(htonl(ntohl(rtt) / 2));
 	struct arglist *globals = arg_get_value(env, "globals");
 	struct arglist *hostinfos = arg_get_value(env, "HOSTNAME");
 	char           *hname = arg_get_value(hostinfos, "NAME");
@@ -623,7 +617,6 @@ scan(struct arglist * env, struct in_addr dst, unsigned long rtt)
 
 
 	for (i = 0; i < num ; i += 2) {
-		int             retry = 0;
    	  	if (i % 100 == 0)
                         comm_send_status(globals, hname, "portscan", i, num);
 
@@ -702,7 +695,6 @@ plugin_init(struct arglist * desc)
 int
 plugin_run(struct arglist * env)
 {
-	int             ret = maketime();
 	unsigned long   rtt;
 	struct in_addr *dst = plug_get_host_ip(env);
 	struct timeval  tv;
