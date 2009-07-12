@@ -81,12 +81,14 @@ int
 common(l1, l2)
  struct arglist * l1, *l2;
 {
+ struct arglist* l2_start = l2;
  if(!l1 || !l2)
  {
   return 0;
  }
  while( l1->next != NULL )
  {
+  l2 = l2_start;
   while( l2->next != NULL )
   {
    if(strcmp(l1->name, l2->name) == 0)

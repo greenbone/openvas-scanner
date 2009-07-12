@@ -1,3 +1,13 @@
+2009-04-09  Felix Wolfsteller <felix.wolfsteller@intevation.de>
+
+	First part of fixing bug #779.
+	Result of collaborative effort of Chandra, Thomas Reinke, Jan-Oliver
+	Wagner, Michael Wiegand, Felix Wolfsteller.
+	
+	* openvasd/utils.c (common):
+	Fixed. In a list comparison, after the first pass no further
+	comparisons were done. Keeping pointer to start of list.
+
 2009-06-29  Jan-Oliver Wagner <jan-oliver.wagner@greenbone.net>
 
 	* Makefile: Activate installation of C-NVTs.
@@ -276,7 +286,7 @@
 2009-04-09  Felix Wolfsteller <felix.wolfsteller@intevation.de>
 
 	Reformatting and doc in comm module.
-	
+
 	* openvasd/comm.c: Reformatting, doc.
 
 2009-04-09  Felix Wolfsteller <felix.wolfsteller@intevation.de>
