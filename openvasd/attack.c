@@ -240,7 +240,8 @@ launch_plugin (struct arglist * globals, plugins_scheduler_t * sched,
             }
           }
 
-      if(!optimize || !(error = requirements_plugin(kb, plugin, preferences)))
+      if((!optimize || !(error = requirements_plugin(kb, plugin, preferences)))
+         && mandatory_requirements_met(kb, plugin))
         {
           int pid;
 

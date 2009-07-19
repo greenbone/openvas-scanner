@@ -38,6 +38,7 @@ struct scheduler_plugin {
 	struct arglist * required_ports;
 	struct arglist * required_udp_ports;
 	struct arglist * required_keys;
+	struct arglist * mandatory_keys;
 	struct arglist * excluded_keys;
 	struct arglist * arglist;
 	struct hash   *  parent_hash;

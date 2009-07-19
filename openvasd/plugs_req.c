@@ -201,6 +201,23 @@ requirements_common_ports(plugin1, plugin2)
  return ret;
 }
 
+/**
+ * @brief Check whether mandatory requirements for plugin are met.
+ *
+ * @param kb     The arglist knowledge base with all keys.
+ *
+ * @param plugin The arglist plugin.
+ *
+ * @return 0 if all mandatory requirements for the plugin are
+ *         met. 1 if it is not the case.
+ */
+int mandatory_requirements_met(struct kb_item ** kb,
+                               struct scheduler_plugin * plugin)
+{
+  if(key_missing(kb, plugin->mandatory_keys)) return 1;
+  
+  return 0;
+}
 
 /*-------------------------------------------------------
 

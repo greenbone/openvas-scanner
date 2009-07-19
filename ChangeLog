@@ -1,4 +1,22 @@
-2009-04-09  Felix Wolfsteller <felix.wolfsteller@intevation.de>
+2009-07-19  Jan-Oliver Wagner <jan-oliver.wagner@greenbone.net>
+
+	Add handling for mandatory_keys. This is part of
+	implementing Change Request #39,
+	http://www.openvas.org/openvas-cr-39.html.
+
+	* openvasd/pluginscheduler.h (struct scheduler_plugin): Added
+	element for mandatory_keys.
+
+	* openvasd/plugs_req.c (mandatory_requirements_met): New.
+	Checks whether mandatory requirments (so far only KB keys).
+
+	* openvasd/plugs_req.h: Added proto for mandatory_requirements_met.
+
+	* openvasd/attack.c (launch_plugin): Take care the plugin
+	in only launched if mandatory requirements are met. This
+	esentially means regardless of flag optmize flag set.
+
+2009-07-09  Felix Wolfsteller <felix.wolfsteller@intevation.de>
 
 	First part of fixing bug #779.
 	Result of collaborative effort of Chandra, Thomas Reinke, Jan-Oliver
