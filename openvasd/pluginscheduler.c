@@ -642,6 +642,7 @@ plugins_scheduler_t plugins_scheduler_init(struct arglist * plugins, int autoloa
   scheduler_plugin->required_ports = plug_get_required_ports(arg->value);
   scheduler_plugin->required_udp_ports = plug_get_required_udp_ports(arg->value);
   scheduler_plugin->required_keys = plug_get_required_keys(arg->value);
+  scheduler_plugin->mandatory_keys = plug_get_mandatory_keys(arg->value);
   scheduler_plugin->excluded_keys = plug_get_excluded_keys(arg->value);
  
 

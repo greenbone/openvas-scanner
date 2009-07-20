@@ -208,15 +208,15 @@ requirements_common_ports(plugin1, plugin2)
  *
  * @param plugin The arglist plugin.
  *
- * @return 0 if all mandatory requirements for the plugin are
- *         met. 1 if it is not the case.
+ * @return 1 if all mandatory requirements for the plugin are
+ *         met. 0 if it is not the case.
  */
 int mandatory_requirements_met(struct kb_item ** kb,
                                struct scheduler_plugin * plugin)
 {
-  if(key_missing(kb, plugin->mandatory_keys)) return 1;
+  if(key_missing(kb, plugin->mandatory_keys)) return 0;
   
-  return 0;
+  return 1;
 }
 
 /*-------------------------------------------------------
