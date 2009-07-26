@@ -1,8 +1,7 @@
 #! /bin/sh /usr/share/dpatch/dpatch-run
-## 10_bashism.dpatch by  <waja@>
+## 10_bashism.dpatch by Jan Wagner <waja@cyconet.org>
 ##
-## All lines beginning with `## DP:' are a description of the patch.
-## DP: No description.
+## DP: remove bashism from some shell scripts
 
 @DPATCH@
 diff -urNad openvas-server-2.0.2~/openvas-adduser.in openvas-server-2.0.2/openvas-adduser.in

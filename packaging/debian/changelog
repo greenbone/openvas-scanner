@@ -14,6 +14,7 @@ openvas-server (2.0.2-1) unstable; urgency=low
   * add it.po, thanks to Vincenzo Campanella (Closes: #513361)
   * updates ja.po, thanks to Hideki Yamane (Closes: #538253)
   * add dpatch infrastructure
+  * add 10_bashism.dpatch to get rid of bashism in upstream shell scripts
 
  -- Javier Fernandez-Sanguino Pen~a <jfs@debian.org>  Sun, 26 Jul 2009 13:48:58 +0200
 
