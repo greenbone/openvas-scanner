@@ -66,6 +66,7 @@ install: build
 	# Add here commands to install the package into debian/tmp
 	$(MAKE) prefix=$(CURDIR)/debian/tmp/usr sysconfdir=$(CURDIR)/debian/tmp/etc localstatedir=$(CURDIR)/debian/tmp/var install
 	install -m 640 debian/openvasd.conf debian/tmp/etc/openvas
+	checkbashisms $(CURDIR)/debian/tmp/usr/*bin/openvas-* || true
 
 # Build architecture-independent files here.
 binary-indep: build install
