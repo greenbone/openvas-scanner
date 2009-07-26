@@ -9,9 +9,12 @@ openvas-server (2.0.2-1) unstable; urgency=low
   * New upstream release
   * Bump Standards-Version to 3.8.2, no changes needed
   * removing absolute path calling rm in postinst
-  * add checkbashisms check for /usr/*bin/openvas-* and add devscripts as build-dep
+  * add checkbashisms check for /usr/*bin/openvas-* and add devscripts as
+    build-dep
+  * add it.po, thanks to Vincenzo Campanella (Closes: #513361)
+  * updates ja.po, thanks to Hideki Yamane (Closes: #538253)
 
- -- Javier Fernandez-Sanguino Pen~a <jfs@debian.org>  Sun, 10 May 2009 19:02:47 +0200
+ -- Javier Fernandez-Sanguino Pen~a <jfs@debian.org>  Sun, 26 Jul 2009 13:48:58 +0200
 
 openvas-server (2.0.1-2) unstable; urgency=low
 

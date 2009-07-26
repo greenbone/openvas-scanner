@@ -4,10 +4,10 @@
 # 
 msgid ""
 msgstr ""
-"Project-Id-Version: openvas-server 2.0.0-2\n"
+"Project-Id-Version: openvas-server 2.0.1-3\n"
 "Report-Msgid-Bugs-To: openvas-server@packages.debian.org\n"
 "POT-Creation-Date: 2009-02-08 07:35+0100\n"
-"PO-Revision-Date: 2009-03-17 06:26+0900\n"
+"PO-Revision-Date: 2009-07-24 20:26+0900\n"
 "Last-Translator: Hideki Yamane (Debian-JP) <henrich@debian.or.jp>\n"
 "Language-Team: Japanese <debian-japanese@lists.debian.org>\n"
 "MIME-Version: 1.0\n"
@@ -23,13 +23,6 @@ msgstr "OpenVAS デーモン用証明書の生成"
 #. Type: note
 #. Description
 #: ../openvas-server.templates:2001
-#, fuzzy
-#| msgid ""
-#| "You will need to provide the relevant information to create an SSL "
-#| "certificate for your OpenVAS daemon. Note that this information will "
-#| "*NOT* be sent to echo anybody (everything stays local), but anyone  with "
-#| "the ability to connect to your OpenVAS daemon will be able to retrieve "
-#| "this information."
 msgid ""
 "You will need to provide the relevant information to create an SSL "
 "certificate for your OpenVAS daemon. Note that this information will remain "
@@ -37,50 +30,37 @@ msgid ""
 "daemon will be able to see it."
 msgstr ""
 "OpenVAS デーモン用の SSL 証明書を生成するのに必要な関連情報を入力する必要があ"
-"ります。注意：この情報は「誰にも送られません」(すべてローカルにあります)が、"
-"OpenVAS デーモンに接続可能な者であれば誰でも閲覧できます。"
+"ります。注意：この情報はこのシステムのローカルにあることになりますが、OpenVAS "
+"デーモンに接続可能な者であれば誰でも閲覧できます。"
 
 #. Type: string
 #. Description
 #: ../openvas-server.templates:3001
-#, fuzzy
-#| msgid "Server certificate life time in days:"
 msgid "Certificate authority certificate lifetime (days):"
-msgstr "サーバ証明書の有効期間日数:"
+msgstr "認証局の認証期間 (日数):"
 
 #. Type: string
 #. Description
 #: ../openvas-server.templates:3001
-#, fuzzy
-#| msgid ""
-#| "Provide the life time of the Certificate Authority used to generate the "
-#| "OpenVAS daemon certificate."
 msgid ""
 "Please choose the lifetime of the Certificate Authority certificate that "
 "will be used to generate the OpenVAS daemon certificate."
 msgstr ""
-"OpenVAS デーモンの証明書を生成する際に認証局が使用する有効期間を入力してくだ"
+"OpenVAS デーモンの証明書を生成する際に認証局が認証する期間を指定してくだ"
 "さい。"
 
 #. Type: string
 #. Description
 #: ../openvas-server.templates:4001
-#, fuzzy
-#| msgid "Server certificate life time in days:"
 msgid "Server certificate lifetime (days):"
-msgstr "サーバ証明書の有効期間日数:"
+msgstr "サーバ証明書の有効期間 (日数):"
 
 #. Type: string
 #. Description
 #: ../openvas-server.templates:4001
-#, fuzzy
-#| msgid ""
-#| "Provide the life time of the Certificate Authority used to generate the "
-#| "OpenVAS daemon certificate."
 msgid "Please choose the lifetime of the OpenVAS daemon certificate."
 msgstr ""
-"OpenVAS デーモンの証明書を生成する際に認証局が使用する有効期間を入力してくだ"
-"さい。"
+"OpenVAS デーモンの証明書の有効期間を指定してください。"
 
 #. Type: string
 #. Description
@@ -90,6 +70,8 @@ msgid ""
 "you should choose a duration longer than the time you plan to run this "
 "server."
 msgstr ""
+"OpenVAS クライアントは証明期間が切れたサーバには接続しないので、このサーバ"
+"を運用する予定期間より長めの期間を指定する必要があります。"
 
 #. Type: string
 #. Description
@@ -98,12 +80,12 @@ msgid ""
 "This certificate can be regenerated later by removing the certificate file "
 "stored in /var/lib/openvas/CA/ and running \"openvas-mkcert\"."
 msgstr ""
+"/var/lib/openvas/CA/ に保存されている証明書ファイルを削除して「openvas-mkcert」"
+"を実行すれば、後でもこの証明書を再生成できます。"
 
 #. Type: string
 #. Description
 #: ../openvas-server.templates:5001
-#, fuzzy
-#| msgid "Your country (two letter code):"
 msgid "Country (two-letter code):"
 msgstr "国名 (アルファベット二文字のコード):"
 
@@ -113,28 +95,23 @@ msgstr "国名 (アルファベット二文字のコード):"
 msgid ""
 "Please enter the two-letter code for the country where this server resides."
 msgstr ""
+"このサーバが存在している国の国別コード (二文字) を入力してください。"
 
 #. Type: string
 #. Description
 #: ../openvas-server.templates:6001
-#, fuzzy
-#| msgid "Your state or province:"
 msgid "State or province:"
 msgstr "都道府県名:"
 
 #. Type: string
 #. Description
 #: ../openvas-server.templates:6001
-#, fuzzy
-#| msgid "Enter the state or provice you reside in."
 msgid "Please enter the state or province where this server resides."
-msgstr "このサーバが所在する都道府県名を入力してください。"
+msgstr "このサーバが存在している都道府県名を入力してください。"
 
 #. Type: string
 #. Description
 #: ../openvas-server.templates:7001
-#, fuzzy
-#| msgid "Your location:"
 msgid "Location:"
 msgstr "地域名:"
 
@@ -143,42 +120,18 @@ msgstr "地域名:"
 #: ../openvas-server.templates:7001
 msgid ""
 "Please enter the location (town, for example) where this server resides."
-msgstr ""
+msgstr "このサーバが存在している地域名 (例えば街の名前) を入力してください。"
 
 #. Type: string
 #. Description
 #: ../openvas-server.templates:8001
-#, fuzzy
-#| msgid "Your organisation:"
 msgid "Organization:"
 msgstr "組織名:"
 
 #. Type: string
 #. Description
 #: ../openvas-server.templates:8001
-#, fuzzy
-#| msgid "Enter the name of your organization or company."
 msgid "Please enter the name of the organization this server belongs to."
 msgstr "このサーバが所属する組織や会社の名前を入力してください。"
 
-#~ msgid "CA certificate life time in days:"
-#~ msgstr "認証局の証明有効期間日数:"
 
-#~ msgid ""
-#~ "Provide the life time of the OpenVAS daemon certificate. Notice that the "
-#~ "OpenVAS clients will not connect to servers with expired certificates so "
-#~ "set this value for as long as you want this installation to last. You can "
-#~ "always regenerate this certificate later by removing the certificate file "
-#~ "stored in /var/lib/openvas/CA/ and running 'openvas-mkcert'"
-#~ msgstr ""
-#~ "OpenVAS デーモンの証明書の有効期間を入力してください。OpenVAS クライアント"
-#~ "は証明期間が切れたサーバには接続しないので、今回のインストール時からなるべ"
-#~ "く長い期間の値を入力するように注意してください。/var/lib/openvas/CA/ に保"
-#~ "存されている証明書ファイルを削除して、'openvas-mkcert' を実行すれば、後か"
-#~ "らいつでもこの証明書を再生成できます。"
-
-#~ msgid "Enter your country's two letter code."
-#~ msgstr "国名をアルファベット二文字のコードで入力してください。"
-
-#~ msgid "Enter your location (e.g. town)."
-#~ msgstr "地域の名前を入力してください (町名など)。"
