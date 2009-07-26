@@ -20,9 +20,9 @@ else
 CROSS= --build $(DEB_BUILD_GNU_TYPE)
 endif
 
+include /usr/share/dpatch/dpatch.make
 
-
-config.status: configure
+config.status: patch-stamp configure
 	dh_testdir
 	# Add here commands to configure the package.
 ifneq "$(wildcard /usr/share/misc/config.sub)" ""
@@ -45,7 +45,7 @@ build-stamp:  config.status
 
 	touch $@
 
-clean: 
+clean: unpatch
 	dh_testdir
 	dh_testroot
 	rm -f build-stamp 

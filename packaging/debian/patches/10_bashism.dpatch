@@ -1,0 +1,55 @@
+#! /bin/sh /usr/share/dpatch/dpatch-run
+## 10_bashism.dpatch by  <waja@>
+##
+## All lines beginning with `## DP:' are a description of the patch.
+## DP: No description.
+
+@DPATCH@
+diff -urNad openvas-server-2.0.2~/openvas-adduser.in openvas-server-2.0.2/openvas-adduser.in
+--- openvas-server-2.0.2~/openvas-adduser.in	2009-05-11 11:05:29.000000000 +0200
++++ openvas-server-2.0.2/openvas-adduser.in	2009-07-26 19:35:22.000000000 +0200
+@@ -50,7 +50,7 @@
+ # check if gettext is present
+ 
+ GETTEXT=`command -v gettext.sh`
+-if (( $? ));
++if $(( $? ));
+ then
+ 
+   # define dummy functions
+diff -urNad openvas-server-2.0.2~/openvas-mkcert-client.in openvas-server-2.0.2/openvas-mkcert-client.in
+--- openvas-server-2.0.2~/openvas-mkcert-client.in	2009-01-20 12:21:59.000000000 +0100
++++ openvas-server-2.0.2/openvas-mkcert-client.in	2009-07-26 19:31:55.000000000 +0200
+@@ -58,7 +58,7 @@
+ # check if gettext is present
+ 
+ GETTEXT=`command -v gettext.sh`
+-if (( $? ));
++if $(( $? ));
+ then
+ 
+   # define dummy functions
+diff -urNad openvas-server-2.0.2~/openvas-mkcert.in openvas-server-2.0.2/openvas-mkcert.in
+--- openvas-server-2.0.2~/openvas-mkcert.in	2009-01-20 12:21:59.000000000 +0100
++++ openvas-server-2.0.2/openvas-mkcert.in	2009-07-26 19:33:42.000000000 +0200
+@@ -60,7 +60,7 @@
+ # check if gettext is present
+ 
+ GETTEXT=`command -v gettext.sh`
+-if (( $? ));
++if $(( $? ));
+ then
+ 
+   # define dummy functions
+diff -urNad openvas-server-2.0.2~/openvas-rmuser.in openvas-server-2.0.2/openvas-rmuser.in
+--- openvas-server-2.0.2~/openvas-rmuser.in	2009-01-20 12:21:59.000000000 +0100
++++ openvas-server-2.0.2/openvas-rmuser.in	2009-07-26 19:37:06.000000000 +0200
+@@ -52,7 +52,7 @@
+ # check if gettext is present
+ 
+ GETTEXT=`command -v gettext.sh`
+-if (( $? ));
++if $(( $? ));
+ then
+ 
+   # define dummy functions
