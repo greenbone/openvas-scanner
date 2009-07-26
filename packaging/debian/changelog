@@ -8,6 +8,7 @@ openvas-server (2.0.2-1) unstable; urgency=low
   [ Jan Wagner ]
   * New upstream release
   * Bump Standards-Version to 3.8.2, no changes needed
+  * removing absolute path calling rm in postinst
 
  -- Javier Fernandez-Sanguino Pen~a <jfs@debian.org>  Sun, 10 May 2009 19:02:47 +0200
 

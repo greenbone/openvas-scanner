@@ -39,7 +39,7 @@ if [ ! -d "$OPENVASPUB" ]; then
 fi
 # Set environment
 BASEDIR=`mktemp -d -t openvas-mkcert.XXXXXX` || { echo "$program: Cannot create temporary dir!" >&2 ; exit 1; }
-trap " [ -d \"$BASEDIR\" ] && /bin/rm -rf -- \"$BASEDIR\"" 0 1 2 3 13 15
+trap " [ -d \"$BASEDIR\" ] && rm -rf -- \"$BASEDIR\"" 0 1 2 3 13 15
 SRVREQ=$BASEDIR/serverreq.pem
 
 # Defaults
