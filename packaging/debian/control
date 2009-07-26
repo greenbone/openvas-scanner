@@ -7,7 +7,7 @@ Build-Depends: debhelper (>= 5), autotools-dev, libgcrypt11-dev, libglib2.0-dev,
 Homepage: http://www.openvas.org/
 Vcs-Browser: http://wald.intevation.org/plugins/scmsvn/viewcvs.php/trunk/openvas-server/packaging/debian/?root=openvas
 Vcs-Svn: https://svn.wald.intevation.org/svn/openvas/trunk/openvas-server/packaging/debian/
-Standards-Version: 3.8.0
+Standards-Version: 3.8.2
 
 Package: openvas-server
 Section: net
