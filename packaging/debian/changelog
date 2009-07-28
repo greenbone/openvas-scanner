@@ -11,6 +11,7 @@ openvas-server (2.0.2-1) unstable; urgency=low
   * add dpatch infrastructure
   * add 10_bashism.dpatch to get rid of bashism in upstream shell scripts,
     thanks to Raphael Geissert (Closes: #530156)
+  * relicense packaging to GPL-3
 
   [ Javier Fernandez-Sanguino Pen~a ]
   * Minor changes to the Spanish translation, it was missing the
