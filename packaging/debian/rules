@@ -66,7 +66,12 @@ install: build
 	# Add here commands to install the package into debian/tmp
 	$(MAKE) prefix=$(CURDIR)/debian/tmp/usr sysconfdir=$(CURDIR)/debian/tmp/etc localstatedir=$(CURDIR)/debian/tmp/var install
 	install -m 640 debian/openvasd.conf debian/tmp/etc/openvas
-	checkbashisms $(CURDIR)/debian/tmp/usr/*bin/openvas-* || true
+	for file in $(CURDIR)/debian/tmp/usr/*bin/openvas-* ; do \
+		if file $$file | grep -q "POSIX shell script"; then \
+			echo "Checking $$file for bashisms..." ; \
+			checkbashisms $$file || true  ; \
+		fi ; \
+	done
 
 # Build architecture-independent files here.
 binary-indep: build install
@@ -83,7 +88,7 @@ binary-arch: build install
 	dh_installdebconf	
 	dh_installlogrotate
 	dh_installinit -n -r -u stop 20 0 6 .
-	dh_installman --sourcedir=debian/tmp
+	dh_installman
 	dh_link
 	dh_strip
 	dh_compress
