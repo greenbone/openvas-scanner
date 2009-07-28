@@ -110,7 +110,7 @@ License:
 On Debian systems, the complete text of the GNU General
 Public License version 2 can be found in `/usr/share/common-licenses/GPL-2'.
 
-The Debian packaging is licensed under the GPL-3, see above, and
+The Debian packaging is licensed under the GPL-3, and
   (c) 2008, Tim Brown <timb@nth-dimension.org.uk>
   (c) 2008, Javier Fernandez-Sanguino Pen~a <jfs@debian.org>
   (c) 2008, Joey Schulze <joey@infodrom.org>
@@ -126,4 +126,3 @@ by
   * Ian Murdock <imurdock@gnu.ai.mit.edu>
   * Luca Andreucci <andrew@andrew.org>
   * Javier Fernandez-Sanguino Pen~a <jfs@debian.org>
-
