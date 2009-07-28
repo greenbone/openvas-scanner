@@ -13,7 +13,8 @@ Package: openvas-server
 Section: net
 Architecture: any
 Depends: ${shlibs:Depends}, ${misc:Depends}, openssl
-Suggests: openvas-client
+Recommends: rsync, nmap, smbclient
+Suggests: openvas-client, snmp, pnscan, strobe, ike-scan
 Description: remote network security auditor - server
  The Open Vulnerability Assessment System is a modular security auditing
  tool, used for testing remote systems for vulnerabilities that should be
