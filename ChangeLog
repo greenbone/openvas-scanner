@@ -1,3 +1,10 @@
+2009-07-29  Jan-Oliver Wagner <jan-oliver.wagner@greenbone.net>
+
+	* openvasd/oval_plugins.c (oval_plugin_add): Setting a
+	dependency and mandatory key for any OVAL file.
+	This prevent OpenVAS to try to run OVAL files
+	if no adequate ovaldi is present.
+
 2009-07-28  Jan Wagner <waja@cyconet.org>
 
 	* packaging/debian/changelog, packaging/debian/control,

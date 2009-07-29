@@ -458,6 +458,8 @@ oval_plugin_add (char * folder, char * name,
       plug_set_summary (args, title);
       plug_set_copyright (args, first_plugin->copyright);
       plug_set_description (args, description);
+      plug_set_dep (args, "toolcheck.nasl");
+      plug_mandatory_key (args, "Tools/Present/ovaldi");
       plug_set_category (args, ACT_END);
       plug_set_family (args, "OVAL definitions");
 
