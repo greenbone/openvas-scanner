@@ -19,24 +19,28 @@ openvas-server (2.0.2-1) unstable; urgency=low
     Noel David Torres.
   * Small fix in the error message in the init.d script when complaining that
     there is no ca_file defined.
-  * New patch (11_openvas-nvt-sync.dpatch) to include upstream's openvas-nvt-sync
-    that was previously in openvas-plugins package. This enables admins to update
-    their OpenVAS plugins without the need for a separate plugin which, anyway,
-    upstream is not going to provide see Change Request #32
-    (http://www.openvas.org/openvas-cr-32.html, "Discontinuing the tarball
-    releases of openvas-plugins") (Closes: #534846, #532937)
+  * New patch (11_openvas-nvt-sync.dpatch) to include upstream's
+    openvas-nvt-sync that was previously in openvas-plugins package. This
+    enables admins to update their OpenVAS plugins without the need for a
+    separate plugin which, anyway, upstream is not going to provide see
+    Change Request #32 (http://www.openvas.org/openvas-cr-32.html,
+    "Discontinuing the tarball releases of openvas-plugins")
+    (Closes: #534846, #532937)
   * Add 12_openvas_nvt-sync-var.dpatch to get the plugins into /var
-  * Add the following packages to Recommends: as they are needed by some NASL script:
+  * Add the following packages to Recommends: as they are needed by some
+    NASL script:
   - nmap - so the server can do portscans
   - smbclient - to retrieve information from "other" environments
-  * Add the following packages to Suggests: as they are needed by some NASL script:
+  * Add the following packages to Suggests: as they are needed by some
+    NASL script:
   - snmp - snmpwalk is used in the snmpwalk_portscan.nasl NASL script
   - pnscan - used by the pnscan.nasl NASL script
   - strobe - used by the portscan-strobe.nasl NASL script
   - ike-scan - used by the ike-scan.nasl NASL script
 
   [ Both ]
-  * add debian/watch to detect when a new version is available at wald.intevation.org
+  * add debian/watch to detect when a new version is available at
+    wald.intevation.org
 
  -- Jan Wagner <waja@cyconet.org>  Tue, 28 Jul 2009 02:08:44 +0200
 
