@@ -15,16 +15,7 @@
 #endif
 
 #define EN_NAME "SSL ciphers"
-#define FR_NAME "Chiffres SSL"
 
-/*
-#define EN_DESC "\
-This plugin connects to a SSL server, and\n\
-checks its certificate and the available ciphers.\n\
-Weak (export version) ciphers are reported, as well as \n\
-self signed certificates or certificates signed by unknown\n\
-CAs."
-*/
 #define EN_DESC "\
 This plugin connects to a SSL server, and\n\
 checks its certificate and the available (shared) SSLv2 ciphers.\n\
@@ -43,7 +34,6 @@ int plugin_init(desc)
   plug_set_id(desc, 10863);
   plug_set_version(desc, "$Revision: 1852 $");
  
-  plug_set_name(desc, FR_NAME, "francais");
   plug_set_name(desc, EN_NAME, NULL);
   
   plug_set_description(desc, EN_DESC, NULL);
