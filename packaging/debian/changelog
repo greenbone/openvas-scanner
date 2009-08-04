@@ -1,3 +1,9 @@
+openvas-server (2.0.2-3) UNRELEASED; urgency=low
+
+  * NOT RELEASED YET
+
+ -- Jan Wagner <waja@cyconet.org>  Tue, 04 Aug 2009 13:20:04 +0200
+
 openvas-server (2.0.2-2) unstable; urgency=low
 
   * really add the watch file
