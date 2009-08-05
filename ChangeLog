@@ -1,3 +1,52 @@
+2009-08-05  Felix Wolfsteller <felix.wolfsteller@intevation.de>
+
+	* debian,
+	debian/openvas-server.dirs,
+	debian/control,
+	debian/openvas-server.init,
+	debian/compat,
+	debian/openvas-server.config,
+	debian/openvas-server.install,
+	debian/patches,
+	debian/patches/12_openvas_nvt-sync-var.dpatch,
+	debian/patches/10_bashism.dpatch,
+	debian/patches/00list,
+	debian/patches/11_openvas-nvt-sync.dpatch,
+	debian/changelog,
+	debian/rules,
+	debian/openvas-server-dev.dirs,
+	debian/openvas-server-dev.install,
+	debian/openvas-server.postinst,
+	debian/openvas-server.default,
+	debian/openvas-server.postrm,
+	debian/openvas-server.prerm,
+	debian/openvasd.conf,
+	debian/openvas-server.docs,
+	debian/copyright,
+	debian/openvas-server.templates,
+	debian/po,
+	debian/po/gl.po,
+	debian/po/cs.po,
+	debian/po/pt_BR.po,
+	debian/po/es.po,
+	debian/po/fr.po,
+	debian/po/nl.po,
+	debian/po/eu.po,
+	debian/po/it.po,
+	debian/po/POTFILES.in,
+	debian/po/sk.po,
+	debian/po/vi.po,
+	debian/po/templates.pot,
+	debian/po/pt.po,
+	debian/po/ru.po,
+	debian/po/de.po,
+	debian/po/sv.po,
+	debian/po/ja.po,
+	debian/openvas-server.logrotate,
+	debian/README.Debian:
+	Removed.
+	Was moved to /openvas-packaging/openvas-server/debian/trunk.
+
 2009-08-03  Jan-Oliver Wagner <jan-oliver.wagner@greenbone.net>
 
 	* cnvts/ssl_ciphers/ssl_ciphers.c: Removed setting

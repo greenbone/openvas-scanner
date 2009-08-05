@@ -1,7 +1,0 @@
-# Additional options for the daemon
-# -q prevents OpenVAS server from listing all the plugins it loads
-DAEMONOPTS="-q -p 9390"
-
-# Time to wait for the daemon to die before restarting it
-# (in seconds)
-# DODTIME=5
