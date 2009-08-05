@@ -1,3 +1,0 @@
-version=3
-http://wald.intevation.org/frs/?group_id=29  \
-	/frs/download.php/.*/openvas-server-(.*).tar.gz

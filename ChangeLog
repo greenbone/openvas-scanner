@@ -1,5 +1,11 @@
 2009-08-05  Felix Wolfsteller <felix.wolfsteller@intevation.de>
 
+	* packaging/debian/watch,
+	packaging/debian/changelog:
+	Removed/moved to /openvas-packaging/openvas-server/debian/trunk.
+
+2009-08-05  Felix Wolfsteller <felix.wolfsteller@intevation.de>
+
 	* debian,
 	debian/openvas-server.dirs,
 	debian/control,
