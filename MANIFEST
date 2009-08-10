@@ -1,8 +1,6 @@
 .root-dir
 ChangeLog
 CHANGES
-cnvts/3com_hub/3com_hub.c
-cnvts/3com_hub/Makefile
 cnvts/find_service/find_service.c
 cnvts/find_service/Makefile
 cnvts/install_plug
