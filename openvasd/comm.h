@@ -1,6 +1,6 @@
 /* OpenVAS
 * $Id$
-* Description: auth.c header.
+* Description: comm.c header.
 *
 * Authors: - Renaud Deraison <deraison@nessus.org> (Original pre-fork develoment)
 *          - Tim Brown <mailto:timb@openvas.org> (Initial fork)
@@ -26,7 +26,6 @@
 *
 *
 */
-
 
 #ifndef _NESSUSD_COMM_H
 #define _NESSUSD_COMM_H

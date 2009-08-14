@@ -1,5 +1,15 @@
-2009-08-10 Vlatko Kosturjak <kost@linux.hr>
-	* cnvts/3com_hub/Makefile, cnvts/3com_hub/3com_hub.c:
+2009-08-14  Felix Wolfsteller <felix.wolfsteller@intevation.de>
+
+	* openvasd/comm.h:
+	Whitespace removal, corrected filename in comment.
+	
+	* ChangeLog:
+	Minor reformatting.
+
+2009-08-10  Vlatko Kosturjak <kost@linux.hr>
+
+	* cnvts/3com_hub/Makefile,
+	cnvts/3com_hub/3com_hub.c:
 	removal of 3com_hub C plugin.  Plugin did not work (return 
 	function at the beginning of plugin) and it is superseeded by
 	scripts/remote-net-hub-3com.nasl
