@@ -1,5 +1,13 @@
 2009-08-14  Felix Wolfsteller <felix.wolfsteller@intevation.de>
 
+	* openvasd/parser.c:
+	Added TODO because of code duplication in client.
+	Added TODO about possible code improvement.
+	Reformatted, added documentation.
+	Removed number of calls to strlen.
+
+2009-08-14  Felix Wolfsteller <felix.wolfsteller@intevation.de>
+
 	* openvasd/attack.c,
 	openvasd/comm.c,
 	openvasd/hosts.c:
