@@ -27,7 +27,6 @@
 *
 */
 
-
 #include <includes.h>
 #include "utils.h"
 #include "log.h"
@@ -37,6 +36,9 @@
 #include "hosts.h"
 #include "ntp_11.h"
 
+/**
+ * @brief Host information, implementet as doubly linked List.
+ */
 struct host {
 	char * name;
 	int soc;
@@ -45,6 +47,8 @@ struct host {
 	struct host * next;
 	struct host * prev;
 	};
+/** @TODO struct hosts could be stripped down and put in a g_list, or,
+ *        as a g_hash_table (name -> [soc,psoc,pid]), see hosts_get.*/
 
 
 static struct host * hosts = NULL;
@@ -76,7 +80,6 @@ static int forward(struct arglist * globals, int in, int out)
  int n;
  int len;
  int type;
- 
 
  if ( internal_recv(in, &buf, &bufsz, &type) < 0 )
 	return -1;
@@ -93,14 +96,13 @@ static int forward(struct arglist * globals, int in, int out)
  }
 
   len = strlen(buf);
-  
+
   if(preferences != NULL)
   {
   if(preferences_save_session(preferences) != 0)
   		save_tests_write_data(globals, estrdup(buf));		
   }
 
-  	
   if ( out > 0 ) 
    for ( n = 0; n < len ; )
    {
@@ -132,8 +134,7 @@ static void forward_all(struct arglist * globals, int in, int out)
 static struct host * host_rm(struct arglist * globals, struct host * hosts, struct host * h)
 {
  struct arglist * preferences = arg_get_value(globals, "preferences");
-    
-    
+
  if(h->pid != 0)waitpid(h->pid, NULL, WNOHANG);
  forward_all(globals, h->soc, g_soc);
  
@@ -151,8 +152,7 @@ static struct host * host_rm(struct arglist * globals, struct host * hosts, stru
  	h->prev->next = h->next;
  else
  	hosts = h->next;
-	
-	
+
  efree(&h->name);
  efree(&h);
  return hosts;
@@ -160,17 +160,25 @@ static struct host * host_rm(struct arglist * globals, struct host * hosts, stru
 
 /*-----------------------------------------------------------------*/
 
-static int hosts_num()
+/**
+ * @brief Returns the number of entries in the global hosts list.
+ */
+static int
+hosts_num()
 {
  struct host * h = hosts;
  int num;
- 
- for(num = 0; h != NULL ; num++, h = h->next);
- 
+
+ for (num = 0; h != NULL ; num++, h = h->next);
+
  return num;
 }
 
-static struct host * hosts_get(char * name)
+/**
+ * @brief Retrieves a host specified by its name from the global host list.
+ */
+static struct host *
+hosts_get(char * name)
 {
  struct host * h = hosts;
  while ( h != NULL )
@@ -205,7 +213,7 @@ int hosts_new(struct arglist * globals, char * name)
  
  if(socketpair(AF_UNIX, SOCK_STREAM, 0, soc) < 0)
   return -1;
-  
+
  h = emalloc(sizeof(struct host)); 
  h->name = estrdup(name);
  h->pid  = 0;
@@ -296,7 +304,7 @@ static int hosts_read_data(struct arglist * globals)
   tv.tv_sec = 0;
   tv.tv_usec = 10000;
   e = select(max + 1, &rd, NULL, NULL, &tv);
-  
+
   if(e < 0 && errno == EINTR)continue;
   else break;
  }
@@ -319,8 +327,11 @@ static int hosts_read_data(struct arglist * globals)
  return ret;
 }
 
-
-static int hosts_read_client(struct arglist * globals)
+/**
+ * Returns -1 if no socket, error or client asked to stop tests, 0 otherwise.
+ */
+static int
+hosts_read_client(struct arglist * globals)
 {
  char buf[4096];
  struct timeval tv;
@@ -364,22 +375,24 @@ static int hosts_read_client(struct arglist * globals)
  return 0;
 }
 
-
-int hosts_read(struct arglist * globals)
+/**
+ * @brief Returns -1 if client asked to stop all tests or connection was lost or error.
+ *        0 otherwise.
+ */
+int
+hosts_read(struct arglist * globals)
 {
- 
- if(hosts_read_client(globals) < 0)
-  {
-  hosts_stop_all();
-  log_write("Client abruptly closed the communication");
-  return -1;
-  }
-  
-  
- if( hosts == NULL )
-  return -1; 
- 
-  
- hosts_read_data(globals);
- return 0;
+  if (hosts_read_client (globals) < 0)
+    {
+      hosts_stop_all ();
+      log_write ("Client abruptly closed the communication");
+      return -1;
+    }
+
+  if ( hosts == NULL )
+    return -1; 
+
+  hosts_read_data (globals);
+
+  return 0;
 }

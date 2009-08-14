@@ -1,5 +1,20 @@
 2009-08-14  Felix Wolfsteller <felix.wolfsteller@intevation.de>
 
+	* openvasd/attack.c,
+	openvasd/comm.c,
+	openvasd/hosts.c:
+	Cosmetics.
+	
+	* openvasd/comm.c (qsort_cmp):
+	Added TODO regarding sorting mechanisms (consolidate, improve function
+	naming).
+	
+	* openvasd/hosts.c (struct host):
+	Added TODO, as this struct could be stripped down and put in a list or
+	hashtable.
+
+2009-08-14  Felix Wolfsteller <felix.wolfsteller@intevation.de>
+
 	* openvasd/comm.h:
 	Whitespace removal, corrected filename in comment.
 	

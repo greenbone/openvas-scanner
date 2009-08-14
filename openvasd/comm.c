@@ -25,8 +25,8 @@
 * Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA 02110-1301 USA.
 *
 *
-*/  
- 
+*/
+
 #include <includes.h>
 #include <corevers.h>
 #include <stdarg.h>
@@ -80,7 +80,7 @@ comm_init (int soc)
     {
       EXIT(0);
     }
-  log_write("Client requested protocol %s.\n", buf);
+  log_write ("Client requested protocol %s.\n", buf);
   return(caps);
 }
 
@@ -88,10 +88,10 @@ comm_init (int soc)
 /**
  * @brief This function must be called at the end of a session.
  */
-void 
+void
 comm_terminate (struct arglist * globals)
 {
-  auth_printf(globals, "SERVER <|> BYE <|> BYE <|> SERVER\n");
+  auth_printf (globals, "SERVER <|> BYE <|> BYE <|> SERVER\n");
   /*
   auth_gets(globals, buf, 199);
   if(!strlen(buf))EXIT(0);
@@ -120,22 +120,28 @@ send_plug_info (struct arglist * globals, struct arglist * plugins)
 
   args = plugins->value;
 
-  if (! plug_get_oid(args)) {
-    log_write ("NVT without OID found. Will not be sent.\n");
-    return;
-  }
+  if (! plug_get_oid(args))
+    {
+      log_write ("NVT without OID found. Will not be sent.\n");
+      return;
+    }
 
-      t = plug_get_description(args);
-      
-      if(t != NULL){
-      		desc = t = estrdup(t);
-      		while((t=strchr(t,'\n')))t[0]=';';
-		}
-      j = plug_get_category(args);
-      if(j >= CAT_MAX || j < ACT_FIRST)	j = CAT_MAX - 1;
+  t = plug_get_description(args);
 
-      e = plug_get_version(args);
-      if(!e)e = "?";
+  if (t != NULL)
+    {
+      desc = t = estrdup(t);
+      while ((t=strchr(t,'\n')))
+        t[0]=';';
+    }
+
+  j = plug_get_category(args);
+  if (j >= CAT_MAX || j < ACT_FIRST)
+    j = CAT_MAX - 1;
+
+  e = plug_get_version (args);
+  if (!e)
+    e = "?";
 
       if ((a = plug_get_name(args)) == NULL) {
         log_write ("Inconsistent data (no name): %s - not applying this plugin\n", plug_get_oid(args));
@@ -192,7 +198,6 @@ send_plug_info (struct arglist * globals, struct arglist * plugins)
              7170 +                              /* CVEs + BIDs + XREFs + Tags + Keys */
              100;                                 /* Separators etc. */
 
-	
        str = emalloc(mem_size);
        snprintf(str, mem_size, "%s <|> %s <|> %s <|> %s <|> %s <|> %s <|> %s", /* RATS: ignore */
                plug_get_oid(args), a,
@@ -241,7 +246,7 @@ send_plug_info (struct arglist * globals, struct arglist * plugins)
      }
 
       auth_printf(globals, "%s\n", str);	
-      efree(&str);	  
+      efree(&str);
       }
 
       if(desc != NULL)efree(&desc);
@@ -329,7 +334,7 @@ void
 comm_send_preferences (struct arglist * globals)
 {
  struct arglist * prefs = arg_get_value(globals, "preferences");
- 
+
  /* We have to be backward compatible with the NTP/1.0 */
  auth_printf(globals, "SERVER <|> PREFERENCES <|>\n");
 
@@ -404,17 +409,22 @@ comm_wait_order (struct arglist * globals)
 }
 
 /*-------------------------------------------------------------------------------*/
+
+/** @TODO Consolidate sorting mechanisms spread over the openvas project.
+ *        Rename function (qsort_oid?). */
+
 /**
  * Q-Sort comparison function.
  * @param a An arglist** to compare against b.
  * @param b An arglist** to compare against a.
  */
-static int qsort_cmp( const void * a, const void * b )
+static int
+qsort_cmp (const void * a, const void * b)
 {
  struct arglist ** plugin_a = (struct arglist**) a;
  struct arglist ** plugin_b = (struct arglist**) b;
 
- return(strcmp(plug_get_oid((*plugin_a)->value), plug_get_oid((*plugin_b)->value)));
+ return (strcmp(plug_get_oid((*plugin_a)->value), plug_get_oid((*plugin_b)->value)));
 }
 
 /**
@@ -478,7 +488,7 @@ comm_setup_plugins (struct arglist * globals, char * list)
   char * oid;
   int i;
   int enable = LAUNCH_DISABLED;
-  
+
   if ( p == NULL ) return;
   if ( list == NULL ) list = "-1;";
 
@@ -491,8 +501,8 @@ comm_setup_plugins (struct arglist * globals, char * list)
      p = p->next;
     }
 
-  if ( num_plugins == 0 || enable != 0  )
-	return;
+  if (num_plugins == 0 || enable != 0)
+    return;
 
   /* Store the plugins in an array for quick access */
   p = plugins;
@@ -504,8 +514,8 @@ comm_setup_plugins (struct arglist * globals, char * list)
    p = p->next;
   }
 
-  qsort( array, num_plugins, sizeof(struct arglist * ), qsort_cmp);
- 
+  qsort (array, num_plugins, sizeof(struct arglist * ), qsort_cmp);
+
   t = list;
   oid = strtok(t, ";");
 

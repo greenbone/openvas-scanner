@@ -83,7 +83,7 @@ struct attack_start_args {
 ********************************************************/
 
 
-static void 
+static void
 fork_sleep(int n)
 {
  time_t then, now;
@@ -96,7 +96,7 @@ fork_sleep(int n)
    now = time(NULL);
  }
 }
- 
+
 
 /**
  * @brief Inits an arglist which can be used by the plugins.
@@ -113,32 +113,31 @@ fork_sleep(int n)
  * 
  * @return A 'hostinfo' arglist.
  */
-static struct arglist * 
+static struct arglist *
 attack_init_hostinfos (char * mac, char * hostname, struct in_addr * ip)
 {
   struct arglist * hostinfos;
   struct in_addr addr;
-  
-  hostinfos = emalloc(sizeof(struct arglist));
-  if(inet_aton(hostname, &addr) != 0)
-  {
-   char f[1024];
-   hg_get_name_from_ip(addr, f, sizeof(f));
-   arg_add_value(hostinfos, "FQDN", ARG_STRING, strlen(f), estrdup(f));
-  }
+
+  hostinfos = emalloc (sizeof(struct arglist));
+  if (inet_aton(hostname, &addr) != 0)
+    {
+      char f[1024];
+      hg_get_name_from_ip (addr, f, sizeof(f));
+      arg_add_value (hostinfos, "FQDN", ARG_STRING, strlen(f), estrdup(f));
+    }
   else
-   arg_add_value(hostinfos, "FQDN", ARG_STRING, strlen(hostname), estrdup(hostname));
-   
-   
+   arg_add_value (hostinfos, "FQDN", ARG_STRING, strlen(hostname), estrdup(hostname));
+
   if(mac)
-  {
-  	arg_add_value(hostinfos, "NAME", ARG_STRING, strlen(mac), mac);
-	arg_add_value(hostinfos, "MAC", ARG_STRING, strlen(mac), mac);
-  }
+    {
+      arg_add_value (hostinfos, "NAME", ARG_STRING, strlen(mac), mac);
+      arg_add_value (hostinfos, "MAC", ARG_STRING, strlen(mac), mac);
+    }
   else
-  	arg_add_value(hostinfos, "NAME", ARG_STRING, strlen(hostname), estrdup(hostname));
-	
-  arg_add_value(hostinfos, "IP", ARG_PTR, sizeof(struct in_addr), ip);
+      arg_add_value (hostinfos, "NAME", ARG_STRING, strlen(hostname), estrdup(hostname));
+
+  arg_add_value (hostinfos, "IP", ARG_PTR, sizeof(struct in_addr), ip);
   return(hostinfos);
 }
 
@@ -156,11 +155,13 @@ attack_user_name (struct arglist * globals)
 }
 
 /**
- * Launches a nvt. Respects safe check preference (i.e. does not try destructive
- * nvt if save_checks is yes). Does not launch a plugin twice if !save_kb_replay.
+ * @brief Launches a nvt. Respects safe check preference (i.e. does not try
+ * @brief destructive nvt if save_checks is yes).
+ *
+ * Does not launch a plugin twice if !save_kb_replay.
  *
  * @param new_kb  If TRUE, kb is new and shall be saved.
- * 
+ *
  * @return ERR_HOST_DEAD if host died, ERR_CANT_FORK if forking failed, 
  *         0 otherwise.
  */
@@ -255,7 +256,7 @@ launch_plugin (struct arglist * globals, plugins_scheduler_t * sched,
             }
 
           if(preferences_log_whole_attack(preferences))
-            log_write("user %s : launching %s against %s [%d]\n", 
+            log_write("user %s : launching %s against %s [%d]\n",
                       attack_user_name(globals), plugin->arglist->name, hostname,
                       pid);
 
@@ -611,7 +612,7 @@ attack_start (struct attack_start_args * args)
   struct arglist * plugs = arg_get_value(globals, "plugins");
   struct in_addr * hostip = &(args->hostip);
   struct arglist * hostinfos;
-  
+
   struct arglist * preferences = arg_get_value(globals,"preferences");
   char * non_simult = arg_get_value(preferences, "non_simult_ports");
   int thread_socket = args->thread_socket;
@@ -619,7 +620,7 @@ attack_start (struct attack_start_args * args)
   struct timeval then, now;
   plugins_scheduler_t sched = args->sched;
   int i;
-  
+
   thread_socket = dup2(thread_socket, 4);
   for (i=5; i<getdtablesize(); i++)
     {
@@ -628,23 +629,19 @@ attack_start (struct attack_start_args * args)
 
   gettimeofday(&then, NULL);
 
-  if( non_simult == NULL )
+  if (non_simult == NULL)
     {
       non_simult = estrdup("139, 445");
       arg_add_value(preferences, "non_simult_ports", ARG_STRING, strlen(non_simult), non_simult);
     }
   arg_add_value(preferences, "non_simult_ports_list", ARG_ARGLIST, -1, (void*)list2arglist(non_simult));
 
-  /*
-   * Options regarding the communication with our father
-   */
+  /* Options regarding the communication with our parent */
   nessus_deregister_connection(GPOINTER_TO_SIZE(arg_get_value(globals, "global_socket")));
   arg_set_value(globals, "global_socket", -1, GSIZE_TO_POINTER(thread_socket));
 
-  /*
-   * Wait for the server to confirm it read our data
-   * (prevents client desynch)
-   */
+  /* Wait for the server to confirm it read our data
+   * (prevents client desynch) */
   arg_add_value(globals, "confirm", ARG_INT, sizeof(int), (void*)1);
 
   soc = thread_socket;
@@ -654,14 +651,14 @@ attack_start (struct attack_start_args * args)
 
   plugins_set_socket(plugs, soc);
   ntp_1x_timestamp_host_scan_starts(globals, hostname);
-  
+
   // Start scan
   attack_host (globals, hostinfos, hostname, sched);
-  
+
   // Calculate duration, clean up
   if(preferences_ntp_show_end(preferences))
     ntp_11_show_end(globals, hostname, 1);
-  
+
   ntp_1x_timestamp_host_scan_ends(globals, hostname);
   gettimeofday(&now, NULL);
   if(now.tv_usec < then.tv_usec)
