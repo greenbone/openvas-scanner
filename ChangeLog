@@ -1,5 +1,11 @@
 2009-08-19  Felix Wolfsteller <felix.wolfsteller@intevation.de>
 
+	* configure.in, configure: Raised the required versions of
+	openvas-libnasl (2.0.2) and openvas-libraries (2.0.4) and regenerated
+	configure.
+
+2009-08-19  Felix Wolfsteller <felix.wolfsteller@intevation.de>
+
 	Backported from branches, revision 4581.
 
 	* openvasd/attack.c (launch_plugin):
