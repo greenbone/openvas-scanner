@@ -52,7 +52,7 @@ openvasd_users=@sysconfdir@/openvas/openvasd.users
 # check if gettext is present
 
 GETTEXT=`command -v gettext.sh`
-if (( $? ));
+if [ $? -ne 0 ];
 then
 
   # define dummy functions

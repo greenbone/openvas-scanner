@@ -1,3 +1,7 @@
+2009-08-19  Tim Brown <timb@nth-dimension.org.uk>
+
+	* openvas-adduser.in, openvas-rmuser.in: Fixed bashism.
+
 2009-08-19  Felix Wolfsteller <felix.wolfsteller@intevation.de>
 
 	* configure.in, configure: Raised the required versions of
