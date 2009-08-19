@@ -241,8 +241,15 @@ launch_plugin (struct arglist * globals, plugins_scheduler_t * sched,
             }
           }
 
-      if((!optimize || !(error = requirements_plugin(kb, plugin, preferences)))
-         && mandatory_requirements_met(kb, plugin))
+      // Do not launch NVT if mandatory key is missing (e.g. an important tool
+      // was not found)
+      if (mandatory_requirements_met(kb, plugin))
+        error = NULL;
+      else
+        error = "because a mandatory key is missing";
+
+      if (!error
+          && (!optimize || !(error = requirements_plugin (kb, plugin, preferences))))
         {
           int pid;
 
