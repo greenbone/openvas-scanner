@@ -40,7 +40,7 @@ all : openvasd
 openvasd : $(OBJS)
 	$(CC) $(LDFLAGS) $(OPENVAS_INCLUDE) $(OBJS)  -o openvasd $(LIBS)
 
-users.o : users.c users.h
+users.o : users.c users.h rules.h
 	$(CC) $(OPENVAS_CFLAGS) $(OPENVAS_INCLUDE) -c users.c 
 
 processes.o : processes.c processes.h
@@ -55,7 +55,7 @@ preferences.o : preferences.c preferences.h
 pluginload.o : pluginload.h pluginload.c
 	$(CC) $(OPENVAS_CFLAGS) $(OPENVAS_INCLUDE) -c pluginload.c 
 
-openvasd.o : openvasd.c 
+openvasd.o : openvasd.c rules.h
 	$(CC) $(OPENVAS_CFLAGS) $(OPENVAS_INCLUDE) -c openvasd.c 
 
 auth.o : auth.c auth.h
@@ -76,7 +76,7 @@ log.o : log.c log.h
 sighand.o : sighand.c sighand.h
 	$(CC) $(OPENVAS_CFLAGS) $(OPENVAS_INCLUDE) -c sighand.c 
 
-ntp_11.o  : ntp_11.c ntp_11.h
+ntp_11.o  : ntp_11.c ntp_11.h rules.h
 	$(CC) $(OPENVAS_CFLAGS) $(OPENVAS_INCLUDE) -c ntp_11.c 
 
 otp_1_0.o: otp_1_0.c otp_1_0.h

@@ -346,6 +346,7 @@ ntp_11_rules(globals)
  char * buffer;
  int finished = 0;
  struct sockaddr_in * soca;
+ inaddrs_t addrs;
  
  buffer = emalloc(4096); 
  while(!finished)
@@ -371,7 +372,8 @@ ntp_11_rules(globals)
  rules_add(&rules, &user_rules, arg_get_value(globals, "user"));
  rules_free(user_rules);
  soca = arg_get_value(globals, "client_address");
- rules_set_client_ip(rules, soca->sin_addr);
+ addrs.ip = soca->sin_addr;
+ rules_set_client_ip(rules, &addrs, AF_INET);
  arg_set_value(globals, "rules", -1, rules);
  return(0);
 }

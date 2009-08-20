@@ -98,7 +98,7 @@ users_add_rule(struct openvas_rules * rules, char * rule)
   }
   
   
-  if(!(inet_aton(rule,&rules->ip))) 
+  if(!(inet_aton(rule,&rules->inaddrs.ip)))
 	 {
 	  if(strcmp(rule, "client_ip"))
 	  {
@@ -109,7 +109,7 @@ users_add_rule(struct openvas_rules * rules, char * rule)
 	  else
 	  {
 	   rules->client_ip = 1;
-	   rules->ip.s_addr = -1;
+	   rules->inaddrs.ip.s_addr = -1;
 	   }
 	 }
 	  else rules->client_ip = 0;
@@ -122,7 +122,7 @@ users_add_rule(struct openvas_rules * rules, char * rule)
 	a bogus netmask. Just ignore this rule
 	*/
      log_write("User entered an invalid netmask - %s/%d\n",
-	 	inet_ntoa(rules->ip), rules->mask);
+	 	inet_ntoa(rules->inaddrs.ip), rules->mask);
      bzero(rules, sizeof(*rules));
    }
    else rules->next = emalloc(sizeof(*rules));
