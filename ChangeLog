@@ -1,5 +1,14 @@
 2009-08-20  Jan-Oliver Wagner <jan-oliver.wagner@greenbone.net>
 
+	* openvasd/openvasd.c (init_network): Changed API from "in_addr"
+	to using "addrinfo". Added support for IPv6.
+	(server_thread): Added support for IPv6.
+	(main_loop): Added support for IPv6.
+	(init_openvasd): Adapt structures (in_addr to addrinfo).
+	(main): Added support for IPv6.
+
+2009-08-20  Jan-Oliver Wagner <jan-oliver.wagner@greenbone.net>
+
 	* openvasd/Makefile: Added missing dependency for modules "users",
 	"ntp_11" and "openvasd".
 

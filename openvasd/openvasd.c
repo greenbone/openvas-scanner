@@ -114,7 +114,7 @@ static ovas_server_context_t ovas_server_ctx = NULL;
  */
 static void main_loop();
 static int init_openvasd (struct arglist *, int, int, int);
-static int init_network(int, int *, struct in_addr);
+static int init_network(int, int *, struct addrinfo);
 static void server_thread (struct arglist *);
 
 
@@ -316,16 +316,20 @@ sighup (int i)
 static void
 server_thread (struct arglist * globals)
 {
- struct sockaddr_in * address = arg_get_value (globals, "client_address");
  struct arglist * plugins     = arg_get_value (globals, "plugins");
  struct arglist * prefs       = arg_get_value (globals, "preferences") ;
  int soc = GPOINTER_TO_SIZE(arg_get_value(globals, "global_socket"));
+ int family = GPOINTER_TO_SIZE(arg_get_value(globals, "family"));
  struct openvas_rules* perms;
  char * asciiaddr;
  struct openvas_rules * rules = arg_get_value(globals, "rules");
  ntp_caps* caps;
  int e;
  int opt = 1;
+ void *addr = arg_get_value (globals, "client_address");
+ struct sockaddr_in *saddr;
+ struct sockaddr_in6 *s6addr;
+ inaddrs_t addrs;
 
  char		x509_dname[256];
  int		soc2 = -1;
@@ -336,7 +340,18 @@ server_thread (struct arglist * globals)
  ioctl(soc, FIONBIO, &off);
 #endif
 
- setproctitle("serving %s", inet_ntoa(address->sin_addr));
+ asciiaddr = emalloc(INET6_ADDRSTRLEN);
+ if(family == AF_INET)
+ {
+   saddr = (struct sockaddr_in *)addr;
+   setproctitle("serving %s", inet_ntoa(saddr->sin_addr));
+ }
+ else
+ {
+   s6addr = (struct sockaddr_in6 *)addr;
+   setproctitle("serving %s", inet_ntop(AF_INET6,&s6addr->sin6_addr,asciiaddr,sizeof(asciiaddr)));
+ }
+ efree(&asciiaddr);
 
  *x509_dname = '\0';
  
@@ -377,13 +392,20 @@ if(preferences_benice(prefs))nice(10);
  (void) arg_set_value(globals, "global_socket", -1, GSIZE_TO_POINTER(soc2));
 
 #ifdef HAVE_ADDR2ASCII
- asciiaddr = emalloc(20);
- addr2ascii(AF_INET, &address->sin_addr, sizeof(struct in_addr), asciiaddr);
+ if(family == AF_INET)
+  addr2ascii(AF_INET, &saddr->sin_addr, sizeof(struct in_addr), asciiaddr);
 #elif defined(HAVE_INET_NETA)
- asciiaddr = emalloc(20);
- inet_neta(ntohl(address->sin_addr.s_addr), asciiaddr, 20);
+ if(family == AF_INET)
+  inet_neta(ntohl(saddr->sin_addr.s_addr), asciiaddr, 20);
 #else
- asciiaddr = estrdup(inet_ntoa(address->sin_addr));
+ if(family == AF_INET)
+  asciiaddr = estrdup(inet_ntoa(saddr->sin_addr));
+ else
+ {
+   char *addrstr = emalloc(INET6_ADDRSTRLEN);
+   asciiaddr = estrdup(inet_ntop(AF_INET6,&s6addr->sin6_addr,addrstr,sizeof(addrstr)));
+   efree(&addrstr);
+ }
 #endif
  caps = comm_init(soc2);
  if(!caps)
@@ -408,9 +430,18 @@ if(preferences_benice(prefs))nice(10);
    efree(&asciiaddr);
    if(perms){
      	rules_add(&rules, &perms, NULL);
-	rules_set_client_ip(rules, address->sin_addr);
+  if(family == AF_INET)
+  {
+    addrs.ip.s_addr = saddr->sin_addr.s_addr;
+    rules_set_client_ip(rules, &addrs, family);
+  }
+  else
+  {
+    memcpy(&addrs.ip6,&s6addr,sizeof(struct in6_addr));
+	  rules_set_client_ip(rules, &addrs, family);
+  }
 #ifdef DEBUG_RULES
-	printf("Rules have been added : \n");
+  printf("Rules have been added : \n");
 	rules_dump(rules);
 #endif	
 	arg_set_value(globals, "rules", -1, rules);
@@ -565,9 +596,11 @@ main_loop ()
   for(;;)
     {
       int soc;
-      unsigned int lg_address = sizeof(struct sockaddr_in);
-      struct sockaddr_in address;
-      struct sockaddr_in * p_addr;
+      int family;
+      unsigned int lg_address = sizeof(struct sockaddr_in6);
+      struct sockaddr_in6 address;
+      struct sockaddr_in6 * p_addr;
+      struct sockaddr_in *saddr;
 
       struct arglist * globals;
       struct arglist * my_plugins, * my_preferences;
@@ -611,13 +644,52 @@ main_loop ()
       soc = accept (global_iana_socket, (struct sockaddr *)(&address), &lg_address);
       if (soc == -1) continue;
 
-      asciiaddr = estrdup(inet_ntoa(address.sin_addr));
+      family = address.sin6_family;
+      asciiaddr = (char *)emalloc(INET6_ADDRSTRLEN);
+      if(family == AF_INET)
+      {
+        saddr = (struct sockaddr_in *)&address;
+        if(inet_ntop(AF_INET, &saddr->sin_addr, asciiaddr, INET6_ADDRSTRLEN) != NULL)
+        {
+          log_write("Family is %d ascii address is %s\n",address.sin6_family,asciiaddr);
+        }
+        else
+        {
+          EXIT(0);
+        }
+      }
+      else
+      {
+        if(inet_ntop(AF_INET6, &address.sin6_addr, asciiaddr, INET6_ADDRSTRLEN) != NULL)
+        {
+          log_write("Family is %d ascii address is %s\n",address.sin6_family,asciiaddr);
+        }
+        else
+        {
+           EXIT(0);
+        }
+      }
 #ifdef USE_LIBWRAP
       {
-       char host_name[1024];
+        char host_name[1024];
+        struct addrinfo hints;
+        struct addrinfo *saddr;
 
-      hg_get_name_from_ip(address.sin_addr, host_name, sizeof(host_name));
-      if (!(hosts_ctl("openvasd", host_name, asciiaddr, STRING_UNKNOWN)))
+        memset(&hints, 0, sizeof(hints));
+        hints.ai_socktype = SOCK_STREAM;
+        hints.ai_protocol = IPPROTO_TCP;
+        hints.ai_flags = AI_NUMERICHOST;
+        if(family == AF_INET)
+          ret = getaddrinfo(saddr, NULL, &hints, &mysaddr);
+        else
+          ret = getaddrinfo(address, NULL, &hints, &mysaddr);
+        if(ret)
+        {
+          continue;
+        }
+        memcpy(host_name, saddr->ai_cannonname,strlen(saddr->ai_cannonname));
+        freeaddrinfo(mysaddr);
+        if (!(hosts_ctl("openvasd", host_name, asciiaddr, STRING_UNKNOWN)))
         {
           shutdown (soc, 2);
           close (soc);
@@ -652,9 +724,10 @@ main_loop ()
 
       my_rules = /*rules_dup*/(global_rules);
 
-      p_addr = emalloc(sizeof(struct sockaddr_in));
-      *p_addr = address;
+      p_addr = emalloc(sizeof(struct sockaddr_in6));
+      memcpy(p_addr,&address,sizeof(address));
       arg_add_value(globals, "client_address", ARG_PTR, -1, p_addr);
+      arg_add_value(globals, "family", ARG_INT, -1, GSIZE_TO_POINTER(family));
 
       arg_add_value (globals, "rules", ARG_PTR, -1, my_rules);
 
@@ -683,25 +756,23 @@ main_loop ()
  * @return 0 on success. Exit(1)s on failure.
  */
 static int
-init_network (int port, int* sock, struct in_addr addr)
+init_network (int port, int* sock, struct addrinfo addr)
 {
   int option = 1;
 
-  struct sockaddr_in address;
-
-  if ((*sock = socket(AF_INET, SOCK_STREAM, 0))==-1)
+  if(addr.ai_family == AF_INET)
+    ((struct sockaddr_in *)(addr.ai_addr))->sin_port = htons(port);
+  else
+    ((struct sockaddr_in6 *)(addr.ai_addr))->sin6_port = htons(port);
+  if ((*sock = socket(addr.ai_family, SOCK_STREAM, 0))==-1)
     {
       int ec = errno;
       log_write("socket(AF_INET): %s (errno = %d)\n", strerror(ec), ec);
       DO_EXIT(1);
     }
-  bzero(&address, sizeof(struct sockaddr_in));
-  address.sin_family = AF_INET;
-  address.sin_addr = addr;
-  address.sin_port = htons((unsigned short)port);
 
   setsockopt(*sock, SOL_SOCKET, SO_REUSEADDR, &option, sizeof(int));
-  if(bind(*sock, (struct sockaddr *)(&address), sizeof(address))==-1)
+  if(bind(*sock, (struct sockaddr *)(addr.ai_addr), addr.ai_addrlen)==-1)
     {
       fprintf(stderr, "bind() failed : %s\n", strerror(errno));      
       DO_EXIT(1);
@@ -732,7 +803,7 @@ init_openvasd (struct arglist * options, int first_pass, int stop_early,
   struct openvas_rules * rules = NULL;
   int iana_port = GPOINTER_TO_SIZE(arg_get_value(options, "iana_port"));
   char * config_file    = arg_get_value (options, "config_file");
-  struct in_addr * addr = arg_get_value (options, "addr");
+  struct addrinfo * addr = arg_get_value (options, "addr");
   char * str;
 
   preferences_init(config_file, &preferences);
@@ -802,12 +873,16 @@ main (int argc, char * argv[], char * envp[])
   int exit_early = 0;
   int iana_port  = -1;
   char * myself;
-  struct in_addr addr;
   struct in_addr * src_addrs = NULL;
   struct arglist * options = emalloc(sizeof(struct arglist));
   int i;
   int be_quiet = 0;
   int flag     = 0;
+  struct addrinfo *mysaddr;
+  struct addrinfo hints;
+  struct addrinfo ai;
+  struct sockaddr_in saddr;
+  struct sockaddr_in6 s6addr;
 
   bzero(orig_argv, sizeof(orig_argv));
   for(i=0; i < argc; i++)
@@ -827,7 +902,6 @@ main (int argc, char * argv[], char * envp[])
   else
     myself ++ ;
 
-  addr.s_addr = htonl(INADDR_ANY);
 #ifdef USE_PTHREADS
   /* pull in library symbols - otherwise abort */
   nessuslib_pthreads_enabled ();
@@ -892,12 +966,41 @@ main (int argc, char * argv[], char * envp[])
 
   if (address != NULL)
   {
-    if (!inet_aton(address, &addr))
+    memset(&hints, 0, sizeof(hints));
+    hints.ai_socktype = SOCK_STREAM;
+    hints.ai_protocol = IPPROTO_TCP;
+    hints.ai_flags = AI_NUMERICHOST;
+    if(getaddrinfo(address, NULL, &hints, &mysaddr))
     {
       printf("Invalid IP address.\n");
       printf("Please use %s --help for more information.\n", myself);
       DO_EXIT(0);
     }
+    /* deep copy */
+    ai.ai_family = mysaddr->ai_family;
+    if(ai.ai_family == AF_INET)
+    {
+      memcpy(&saddr,mysaddr->ai_addr, mysaddr->ai_addrlen);
+      ai.ai_addr = (struct sockaddr *)&saddr;
+    }
+    else
+    {
+      memcpy(&s6addr,mysaddr->ai_addr, mysaddr->ai_addrlen);
+      ai.ai_addr = (struct sockaddr *)&s6addr;
+    }
+    ai.ai_family = mysaddr->ai_family;
+    ai.ai_protocol = mysaddr->ai_protocol;
+    ai.ai_socktype = mysaddr->ai_socktype;
+    ai.ai_addrlen = mysaddr->ai_addrlen;
+    freeaddrinfo(mysaddr);
+  }
+  else
+  {
+    /*Warning: Not filling all the fields*/
+    s6addr.sin6_addr = in6addr_any;
+    s6addr.sin6_family = ai.ai_family = AF_INET6;
+    ai.ai_addrlen = sizeof(s6addr);
+    ai.ai_addr = (struct sockaddr *)&s6addr;
   }
 
   if (port != NULL)
@@ -959,7 +1062,7 @@ main (int argc, char * argv[], char * envp[])
 
   arg_add_value(options, "iana_port", ARG_INT, sizeof(gpointer), GSIZE_TO_POINTER(iana_port));
   arg_add_value(options, "config_file", ARG_STRING, strlen(config_file), config_file);
-  arg_add_value(options, "addr", ARG_PTR, -1, &addr);
+  arg_add_value(options, "addr", ARG_PTR, -1, &ai);
 
   init_openvasd (options, 1, exit_early, be_quiet);
   g_options = options;
