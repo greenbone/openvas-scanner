@@ -721,6 +721,7 @@ attack_network(struct arglist * globals)
   hargwalk * hw;
   char * key;
   struct timeval then, now;
+  inaddrs_t addrs;
 
   gettimeofday(&then, NULL);
 
@@ -861,8 +862,11 @@ attack_network(struct arglist * globals)
         }
 
       host_pending = 0 ;
+
+      addrs.ip.s_addr = host_ip.s_addr;
+
       /* Do we have the right to test this host ? */
-      if(CAN_TEST(get_host_rules(rules, host_ip,32)) == 0)
+      if(CAN_TEST(get_host_rules(rules, addrs)) == 0)
         {
           log_write("user %s : rejected attempt to scan %s",
                     attack_user_name(globals), hostname);

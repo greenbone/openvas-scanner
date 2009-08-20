@@ -35,6 +35,86 @@
 #include "rules.h"
 #include "log.h"
 
+static int rules_validateandgetipaddr(char *ip, int family, struct sockaddr *sa, int numeric)
+{
+  struct addrinfo hints;
+  struct addrinfo *ai;
+  int retval;
+
+  memset(&hints, 0, sizeof(hints));
+  switch(family)
+  {
+    case AF_INET:
+      hints.ai_family = AF_INET;
+      break;
+    case AF_INET6:
+      hints.ai_family = AF_INET6;
+      break;
+    default:
+      return -1;
+  }
+  if(numeric)
+    hints.ai_flags = AI_NUMERICHOST;
+
+  retval = getaddrinfo(ip, NULL, &hints, &ai);
+  if(!retval)
+  {
+    if(family == AF_INET)
+    {
+      memcpy(sa, ai->ai_addr, sizeof(struct sockaddr_in));
+    }
+    else
+    {
+      memcpy(sa, &((struct sockaddr_in6 *)(ai->ai_addr))->sin6_addr, sizeof(struct sockaddr_in6));
+    }
+    freeaddrinfo(ai);
+    return 0;
+  }
+  return -1;
+}
+
+static void rules_ipv6addrmask(struct in6_addr *in6addr, int mask)
+{
+  int wordmask;
+  int word;
+  uint32_t *ptr;
+  uint32_t addr;
+
+  word = mask / 32;
+  wordmask = mask % 32;
+  ptr = (uint32_t *)in6addr;
+  switch(word)
+  {
+    case 0:
+      ptr[1] = ptr[2] = ptr[3] = 0;
+      addr = ptr[0];
+      addr = ntohl(addr) >> (32 - wordmask);
+      addr = htonl(addr << (32 - wordmask));
+      ptr[0] = addr;
+      break;
+    case 1:
+      ptr[2] = ptr[3] = 0;
+      addr = ptr[1];
+      addr = ntohl(addr) >> (32 - wordmask);
+      addr = htonl(addr << (32 - wordmask));
+      ptr[1] = addr;
+      break;
+    case 2:
+      ptr[3] = 0;
+      addr = ptr[2];
+      addr = ntohl(addr) >> (32 - wordmask);
+      addr = htonl(addr << (32 - wordmask));
+      ptr[2] = addr;
+      break;
+    case 3:
+      addr = ptr[3];
+      addr = ntohl(addr) >> (32 - wordmask);
+      addr = htonl(addr << (32 - wordmask));
+      ptr[3] = addr;
+      break;
+  }
+}
+
 /**
  * @brief Returns the name of the rules file.
  * 
@@ -74,99 +154,137 @@ rules_new(preferences)
 }
 
 
-int rules_init_aux(rules,file, buffer, len,def) 
-  struct openvas_rules * rules;
-  FILE * file;
-  char * buffer;
-  int len;
-  int def;
+int rules_init_aux(struct openvas_rules * rules, FILE * file,
+                   char * buffer, int len, int def)
 {
- buffer[0] = buffer[len - 1 ] = '\0';
- 
- if(!(fgets(buffer, len - 1, file))){
-   	rules->next = NULL;
-	return def;
- }
- else {
-   char *t = buffer;
-   char *v;
-   int t_len;
-   if(t[strlen(t)-1]=='\n')t[strlen(t)-1]='\0';
-   while((t[0]==' ')||(t[0]=='\t'))t++;
-   if((t[0]=='#')||t[0] == '\0')return rules_init_aux(rules,file, buffer, len,def);
-   v = strchr(t, ' ');
-   if( v == NULL ){
-      printf("Parse error in the rules file : %s\n", 
-	  			buffer);
-      return rules_init_aux(rules, file, buffer, len, def);
-   }
-   else
-   {
-     if(!strncmp(t, "accept", 6))
-       rules->rule = RULES_ACCEPT;
-     else if(!strncmp(t, "default", 7)){
-       	if(!strncmp(t+8, "accept", 6))def = RULES_ACCEPT;
-	else def = RULES_REJECT;
-	return rules_init_aux(rules, file, buffer, len, def);
-     }
-     else if((!strncmp(t, "reject", 6))||
-	     (!strncmp(t, "deny", 4)))rules->rule = RULES_REJECT;
-     else {
-       	   printf("Parse error in the rules file : %s\n",
-	 			buffer);
-	   return rules_init_aux(rules, file, buffer, len,def);
-     }
-     t = v+sizeof(char);
-     v = strchr(t, '/');
-     if(v)v[0]='\0';
-     if(t[0]=='!'){
-       	rules->not = 1;
-        t++;
-     }
-     else rules->not = 0;
-     t_len = strlen(t);
-     while(t[t_len-1]==' ')
-     {
-      t[t_len-1]='\0';
-      t_len --;
-     }
-     if(!(inet_aton(t,&rules->ip))) 
-	 {
-	  if(strcmp(t, "client_ip"))
-	  {
-	  printf("Parse error in the rules file : '%s' is not a valid IP\n",
-	      			t);
-	  return rules_init_aux(rules, file, buffer, len,def);
-	  }
-	  else
-	  {
-	   rules->ip.s_addr = -1;
-	   rules->client_ip = 1;
-	  }
-	 }
-	 else rules->client_ip = 0;
-	 
-     if(v)rules->mask = atoi(v+sizeof(char));
-     else rules->mask = 32;
-     if(rules->mask < 0 || rules->mask > 32)
-     {
-       printf("Error in the rules file. %s is not a valid cidr netmask\n",
-	   			v+sizeof(char));
-       EXIT(1);
+  struct sockaddr_in saddr;
+  struct sockaddr_in6 s6addr;
 
-     }
-     if(rules->mask > 0)
-     {
-     rules->ip.s_addr = ntohl(rules->ip.s_addr) >> (32 - rules->mask);
-     rules->ip.s_addr = htonl(rules->ip.s_addr << (32 - rules->mask));
-     }
-     else rules->ip.s_addr = 0;
-     rules->next = emalloc(sizeof(*rules));
-   }
- }
- return rules_init_aux(rules->next, file, buffer, len, def);
+  while(1)
+  {
+    buffer[0] = buffer[len - 1 ] = '\0';
+    if(!(fgets(buffer, len - 1, file)))
+    {
+      rules->next = NULL;
+      return def;
+    }
+    else
+    {
+      char *t = buffer;
+      char *v;
+      int t_len;
+      if(t[strlen(t)-1]=='\n')t[strlen(t)-1]='\0';
+      while((t[0]==' ')||(t[0]=='\t'))t++;
+      if((t[0]=='#')||t[0] == '\0')
+        continue;
+      v = strchr(t, ' ');
+      if( v == NULL ){
+        printf("Parse error in the rules file : %s\n", 
+            buffer);
+        continue;
+      }
+      else
+      {
+        if(!strncmp(t, "accept", 6))
+          rules->rule = RULES_ACCEPT;
+        else if(!strncmp(t, "default", 7)){
+          if(!strncmp(t+8, "accept", 6))def = RULES_ACCEPT;
+          else def = RULES_REJECT;
+          continue;
+        }
+        else if((!strncmp(t, "reject", 6))||
+            (!strncmp(t, "deny", 4)))rules->rule = RULES_REJECT;
+        else {
+          printf("Parse error in the rules file : %s\n",
+              buffer);
+          continue;
+        }
+        t = v+sizeof(char);
+        v = strchr(t, '/');
+        if(v)v[0]='\0';
+        if(t[0]=='!'){
+          rules->not = 1;
+          t++;
+        }
+        else rules->not = 0;
+        t_len = strlen(t);
+        while(t[t_len-1]==' ')
+        {
+          t[t_len-1]='\0';
+          t_len --;
+        }
+
+        if(!rules_validateandgetipaddr(t, AF_INET, (struct sockaddr *)&saddr ,1))
+        {
+          rules->inaddrs.ip.s_addr = saddr.sin_addr.s_addr;
+          rules->family = AF_INET;
+          rules->client_ip = 0;
+        }
+        else if(!rules_validateandgetipaddr(t, AF_INET6, (struct sockaddr *)&s6addr ,1))
+        {
+          memcpy(&rules->inaddrs.ip6, &s6addr, sizeof(struct sockaddr_in6));
+          rules->family = AF_INET6;
+          rules->client_ip = 0;
+        }
+        else
+        {
+          if(strcmp(t, "client_ip"))
+          {
+            printf("Parse error in the rules file : '%s' is not a valid IP\n",
+                t);
+            continue;
+          }
+          else
+          {
+            rules->client_ip = 1;
+          }
+        }
+
+        if(v)
+          rules->mask = atoi(v+sizeof(char));
+        else
+          rules->mask = rules->family == AF_INET ? 32 : 128;
+
+        if(rules->family == AF_INET)
+        {
+          if(rules->mask < 0 || rules->mask > 32)
+          {
+            printf("Error in the rules file. %s is not a valid cidr netmask\n",
+                v+sizeof(char));
+            EXIT(1);
+          }
+          if(rules->mask > 0)
+          {
+            rules->inaddrs.ip.s_addr = ntohl(rules->inaddrs.ip.s_addr) >> (32 - rules->mask);
+            rules->inaddrs.ip.s_addr = htonl(rules->inaddrs.ip.s_addr << (32 - rules->mask));                                                                                            ;
+          }
+          else
+            rules->inaddrs.ip.s_addr = 0;
+        }
+        else
+        {
+          if(rules->mask < 0 || rules->mask > 128)
+          {
+            printf("Error in the rules file. %s is not a valid cidr netmask\n",
+                v+sizeof(char));
+            EXIT(1);
+          }
+          if(rules->mask > 0)
+            rules_ipv6addrmask(&rules->inaddrs.ip6, rules->mask);
+          else
+          {
+            rules->inaddrs.ip6.s6_addr32[0] = 0;
+            rules->inaddrs.ip6.s6_addr32[1] = 0;
+            rules->inaddrs.ip6.s6_addr32[2] = 0;
+            rules->inaddrs.ip6.s6_addr32[3] = 0;
+          }
+        }
+        rules->next = emalloc(sizeof(*rules));
+        rules = rules->next;
+      }
+    }
+  }
 }
-      
 
 void
 rules_init(rules, preferences)
@@ -194,32 +312,6 @@ rules_init(rules, preferences)
 }
 
 struct openvas_rules *
-rules_dup_aux(s, r)
-  struct openvas_rules * s, *r;
-{
-  printf("rules_dup called - does not work\n");
-  if(!s->next)return r;
-  else
-  {
-    r->ip.s_addr = s->ip.s_addr;
-    r->mask = s->mask;
-    r->rule = s->rule;
-    r->not = s->not;
-    r->def  = s->def;
-    r->next = emalloc(sizeof(*r));
-    return rules_dup_aux(s->next,r->next);
-  }
-}
-struct openvas_rules *
-rules_dup(struct openvas_rules *s)
-{
-  struct openvas_rules * r = emalloc(sizeof(*r));
-  return rules_dup_aux(s, r);
-}
-
-
-
-struct openvas_rules *
 rules_cat(struct openvas_rules * a, 
     	struct openvas_rules * b)
 {
@@ -239,17 +331,25 @@ rules_cat(struct openvas_rules * a,
 }
 
 
-void rules_set_client_ip(struct openvas_rules * r, struct in_addr client)
+void rules_set_client_ip(struct openvas_rules * r, inaddrs_t *addrs, int family)
 {
- if(!r)
-  return;
- else 
+  while(r)
   {
-   if(r->client_ip)
-      r->ip = client;
-   rules_set_client_ip(r->next, client);
+    if(r->client_ip)
+    {
+      if(family == AF_INET)
+      {
+        r->inaddrs.ip.s_addr = addrs->ip.s_addr;
+      }
+      else
+      {
+        memcpy(&r->inaddrs.ip6,&addrs->ip6,sizeof(struct in6_addr));
+      }
+    }
+    r = r->next;
   }
 }
+
 void rules_set_def(struct openvas_rules * r, int def)
 {
   if(!r)return;
@@ -291,7 +391,13 @@ void rules_add(struct openvas_rules **rules,
     {
       if(!username)
       {
-      accept_rules->ip.s_addr = t->ip.s_addr;
+      if(t->family == AF_INET)
+        accept_rules->inaddrs.ip.s_addr = t->inaddrs.ip.s_addr;
+      else
+      {
+        memcpy(&accept_rules->inaddrs.ip6, &t->inaddrs.ip6, sizeof(struct in6_addr));
+      }
+      accept_rules->family = t->family;
       accept_rules->client_ip = t->client_ip;
       accept_rules->mask = t->mask;
       accept_rules->rule = t->rule;
@@ -302,12 +408,18 @@ void rules_add(struct openvas_rules **rules,
       else
       {
        log_write("user %s : attempted to gain more rights by adding accept %s/%d",
-       		username, inet_ntoa(t->ip), t->mask);
+       		username, inet_ntoa(t->inaddrs.ip), t->mask);
       }
     }
     else
     {
-      reject_rules->ip.s_addr = t->ip.s_addr;
+      if(t->family == AF_INET)
+        reject_rules->inaddrs.ip.s_addr = t->inaddrs.ip.s_addr;
+      else
+      {
+        memcpy(&reject_rules->inaddrs.ip6, &t->inaddrs.ip6, sizeof(struct in6_addr));
+      }
+      reject_rules->family = t->family;
       reject_rules->client_ip = t->client_ip;
       reject_rules->mask = t->mask;
       reject_rules->rule = t->rule;
@@ -327,7 +439,7 @@ void rules_add(struct openvas_rules **rules,
 
   rules_set_def(*rules, def);
    
-#ifdef DEBUG_RULES 
+#ifdef DEBUG_RULES
   printf("After rules_cat : \n");
   rules_dump(*rules);
 #endif
@@ -337,49 +449,106 @@ void rules_add(struct openvas_rules **rules,
 void
 rules_dump(struct openvas_rules * rules)
 {
-  if(!rules->next)return;
-  printf("%d %c%s/%d (def %d)\n", rules->rule, rules->not?'!':' ', inet_ntoa(rules->ip), rules->mask,
-      				rules->def);
-  rules_dump(rules->next);
+  struct openvas_rules *r;
+  char buf[INET6_ADDRSTRLEN];
+  r = rules;
+  while(r)
+  {
+    if(r->family == AF_INET)
+      printf("%d %c%s/%d (def %d)\n", r->rule, r->not?'!':' ', inet_ntop(r->family, &r->inaddrs.ip, buf,sizeof(buf)), r->mask,
+          r->def);
+    else
+      printf("%d %c%s/%d (def %d)\n", r->rule, r->not?'!':' ', inet_ntop(r->family, &r->inaddrs.ip6, buf,sizeof(buf)), r->mask,
+          r->def);
+    r = r->next;
+  }
 }
 #endif
 
 int
-get_host_rules (struct openvas_rules * rules, struct in_addr addr,
-                int netmask)
+get_host_rules (struct openvas_rules * rules, inaddrs_t addr)
 {
-  struct in_addr backup;
+  struct in_addr  tstaddr;
+  struct in6_addr tstaddr6;
+
+  tstaddr.s_addr = 0;
 
   if (!rules)
-    {
-      fprintf(stderr, "???? no rules - this is likely to be a bug\n");
-      fprintf(stderr, "Please report at bugs.openvas.org\n");
-      return RULES_ACCEPT;
-    }
-  if (!rules->next)
-    return rules->def;
+  {
+    fprintf(stderr, "???? no rules - this is likely to be a bug\n");
+    fprintf(stderr, "Please report at bugs.openvas.org\n");
+    return RULES_ACCEPT;
+  }
 
-  backup.s_addr = addr.s_addr;
-  if (rules->mask > 0)
-    {
-      addr.s_addr = ntohl(addr.s_addr) >> (32 - rules->mask);
-      addr.s_addr = htonl(addr.s_addr << (32 - rules->mask));
-    }
-  else addr.s_addr = 0;
+  while(rules)
+  {
+    if (!rules->next)
+      return rules->def;
 
-  if(rules->not)
+    if(rules->family == AF_INET)
     {
-      if (addr.s_addr != rules->ip.s_addr)
-        return(rules->rule);
-    }
-  else
-    {
-      if (addr.s_addr == rules->ip.s_addr)
+      tstaddr.s_addr = addr.ip.s_addr;
+      if (rules->mask > 0)
+      {
+        tstaddr.s_addr = ntohl(tstaddr.s_addr) >> (32 - rules->mask);
+        tstaddr.s_addr = htonl(tstaddr.s_addr << (32 - rules->mask));
+      }
+      else tstaddr.s_addr = 0;
+
+      if(rules->not)
+      {
+        if (tstaddr.s_addr != rules->inaddrs.ip.s_addr)
+          return(rules->rule);
+      }
+      else
+      {
+        if (tstaddr.s_addr == rules->inaddrs.ip.s_addr)
         {
           return(rules->rule);
         }
+      }
     }
-  return get_host_rules (rules->next, backup, netmask);
+    else
+    {
+      /* Check whether ipv6 address can be scanned */
+      memcpy(&tstaddr6, &addr.ip6, sizeof(struct in6_addr));
+      if (rules->mask > 0)
+        rules_ipv6addrmask(&tstaddr6, rules->mask);
+      else
+      {
+        tstaddr6.s6_addr32[0] = 0;
+        tstaddr6.s6_addr32[1] = 0;
+        tstaddr6.s6_addr32[2] = 0;
+        tstaddr6.s6_addr32[3] = 0;
+      }
+      if(rules->not)
+      {
+        /* If not equal return rules->rule*/
+        if( tstaddr6.s6_addr32[0] != rules->inaddrs.ip6.s6_addr32[0] || \
+            tstaddr6.s6_addr32[1] != rules->inaddrs.ip6.s6_addr32[1] || \
+            tstaddr6.s6_addr32[2] != rules->inaddrs.ip6.s6_addr32[2] || \
+            tstaddr6.s6_addr32[3] != rules->inaddrs.ip6.s6_addr32[3]    \
+          )
+          return(rules->rule);
+      }
+      else
+      {
+        /* If equal return rules->rule*/
+        if( tstaddr6.s6_addr32[0] == rules->inaddrs.ip6.s6_addr32[0] && \
+            tstaddr6.s6_addr32[1] == rules->inaddrs.ip6.s6_addr32[1] && \
+            tstaddr6.s6_addr32[2] == rules->inaddrs.ip6.s6_addr32[2] && \
+            tstaddr6.s6_addr32[3] == rules->inaddrs.ip6.s6_addr32[3]    \
+          )
+        if (tstaddr.s_addr == rules->inaddrs.ip.s_addr)
+        {
+          return(rules->rule);
+        }
+      }
+    }
+    rules = rules->next;
+  }
+  fprintf(stderr, "Rules check ended: May be bug? Please report\n");
+  return RULES_ACCEPT;
 }
 
 void
@@ -392,4 +561,3 @@ rules_free (struct openvas_rules* rules)
   rules = next;
  }  
 }
-

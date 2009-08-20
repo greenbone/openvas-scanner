@@ -1,3 +1,30 @@
+2009-08-20  Jan-Oliver Wagner <jan-oliver.wagner@greenbone.net>
+
+	Initializing implementation for IPv6 support.
+	This corresponds to Change Request #27,
+	http://www.openvas.org/openvas-cr-27.html
+	Most work done by Srinivasa NL <nl.srinivas@gmail.com>.
+
+	* openvasd/rules.h: Added type "inaddrs_t" as union to hold
+	either IPv6 or IPv4 address.
+	(struct openvas_rules): Adapted to above and added family.
+	Adpated protos according to new type.
+
+	* openvasd/rules.c (rules_validateandgetipaddr, rules_ipv6addrmask): New.
+	(rules_init_aux): Mostly rewritten to support IPv6 addresses.
+	(rules_dup_aux, rules_dup): Removed. These functions are never used.
+	(rules_set_client_ip): API changed (family added). Now supports IPv6.
+	(rules_add): Added support of IPv6.
+	(rules_dump): Added support of IPv6.
+	(get_host_rules): Removed recursion decision. Added support of IPv6.
+
+	* openvasd/attack.c (attack_network): Adapt to new API for considerung
+	also IPv6 addesses when checking for access rules.
+
+2009-08-10 Vlatko Kosturjak <kost@linux.hr>
+
+	* cnvts/3com_hub/Makefile, cnvts/3com_hub/3com_hub.c:
+
 2009-08-19  Tim Brown <timb@nth-dimension.org.uk>
 
 	* openvas-adduser.in, openvas-rmuser.in: Fixed bashism.

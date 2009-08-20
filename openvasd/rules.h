@@ -34,9 +34,16 @@
 /**
  * Representation of a chain of rules.
  */
+typedef union inaddrs
+{
+  struct in_addr  ip;
+  struct in6_addr ip6;
+} inaddrs_t;
+
 struct openvas_rules
 {
-  struct in_addr ip;
+  inaddrs_t inaddrs;
+  int    family;
   int client_ip; /**< If set to 1, then 'ip' will be replaced by the client ip
                       when appropriate. */
   int mask;
@@ -55,7 +62,7 @@ void rules_add(struct openvas_rules **, struct openvas_rules **, char*);
 struct openvas_rules * rules_parse(char * , struct openvas_rules *, int);
 struct openvas_rules * rules_dup(struct openvas_rules *);
 void rules_set_def(struct openvas_rules *, int);
-void rules_set_client_ip(struct openvas_rules *, struct in_addr);
-int get_host_rules(struct openvas_rules *, struct in_addr, int);
+void rules_set_client_ip(struct openvas_rules *, inaddrs_t *, int family);
+int get_host_rules(struct openvas_rules *, inaddrs_t inaddrs);
 
 #endif
