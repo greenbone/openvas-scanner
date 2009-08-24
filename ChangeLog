@@ -1,5 +1,12 @@
 2009-08-24  Jan-Oliver Wagner <jan-oliver.wagner@greenbone.net>
 
+	* TODO: Updated. Plugin upload is removed (CR#4). Cache needed
+	for the time being. No need to migrate from arlist to harglist
+	because the whole arglist is to be removed eventually (as
+	discussed on OpenVAS DevCon2. Debian has been mostly redone anyway.
+
+2009-08-24  Jan-Oliver Wagner <jan-oliver.wagner@greenbone.net>
+
 	Moved header files from include/ to the synscan C-NVT because
 	this is the only one that uses these includes.
 
