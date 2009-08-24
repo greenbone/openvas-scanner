@@ -78,15 +78,6 @@ install-bin:
 	$(INSTALL) -m 755 openvas-rmuser $(DESTDIR)${sbindir}/openvas-rmuser
 	$(INSTALL) -m 755 openvas-mkcert $(DESTDIR)${sbindir}/openvas-mkcert
 	$(INSTALL) -c -m 0444 openvas-services  $(DESTDIR)${OPENVASD_STATEDIR}/openvas-services
-	$(INSTALL) -c -m 0444 include/includes.h $(DESTDIR)${includedir}/openvas/includes.h
-	$(INSTALL) -c -m 0444 include/config.h $(DESTDIR)${includedir}/openvas/config.h
-	$(INSTALL) -c -m 0444 include/threadcompat.h $(DESTDIR)${includedir}/openvas/threadcompat.h
-	$(INSTALL) -c -m 0444 include/nessusraw.h $(DESTDIR)${includedir}/openvas/nessusraw.h
-	$(INSTALL) -c -m 0444 include/nessusip.h $(DESTDIR)${includedir}/openvas/nessusip.h
-	$(INSTALL) -c -m 0444 include/nessusicmp.h $(DESTDIR)${includedir}/openvas/nessusicmp.h
-	$(INSTALL) -c -m 0444 include/nessustcp.h $(DESTDIR)${includedir}/openvas/nessustcp.h
-	$(INSTALL) -c -m 0444 include/nessusudp.h $(DESTDIR)${includedir}/openvas/nessusudp.h
-
 
 install-man:
 	@echo installing man pages ...
