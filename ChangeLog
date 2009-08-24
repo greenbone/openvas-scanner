@@ -1,5 +1,18 @@
 2009-08-24  Jan-Oliver Wagner <jan-oliver.wagner@greenbone.net>
 
+	Moved header files from include/ to the synscan C-NVT because
+	this is the only one that uses these includes.
+
+	* include/nessusicmp.h: Moved to cnvts/synscan/nessusicmp.h
+	* include/nessusip.h: Moved to cnvts/synscan/nessusip.h
+	* include/nessusudp.h: Moved to cnvts/synscan/nessusudp.h
+	* include/nessusraw.h: Moved to cnvts/synscan/nessusraw.h
+	* include/nessustcp.h: Moved to cnvts/synscan/nessustcp.h
+
+	* MANIFEST: Updated.
+
+2009-08-24  Jan-Oliver Wagner <jan-oliver.wagner@greenbone.net>
+
 	* Makefile: Don't install any header files anymore. The only
 	code that was using these was in former openvas-plugins and
 	is now part of openvas-server.
