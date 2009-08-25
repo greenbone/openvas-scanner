@@ -858,10 +858,10 @@ ovaldi_launch (struct arglist * g_args)
 
       if (collected == TRUE)
         {
-          fprintf (sc_file, collected_objects->str);
+          fprintf (sc_file, "%s", collected_objects->str);
         }
 
-      fprintf (sc_file, system_data->str);
+      fprintf (sc_file, "%s", system_data->str);
       fprintf (sc_file, "</oval_system_characteristics>\n");
       g_string_free (collected_objects, TRUE);
       g_string_free (system_data, TRUE);

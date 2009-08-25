@@ -1,3 +1,8 @@
+2009-08-28  Tim Brown <timb@openvas.org>
+
+	* openvasd/oval_plugins.c: Further format string fixes from Stephan
+	Kleine.
+
 2009-08-25  Michael Wiegand <michael.wiegand@intevation.de>
 
 	* openvasd/openvasd.c (main): Added commandline option to expose the
