@@ -917,6 +917,7 @@ main (int argc, char * argv[], char * envp[])
   static gboolean dump_cfg = FALSE;
   static gboolean print_specs = FALSE;
   static gboolean gen_config = FALSE;
+  static gboolean print_sysconfdir = FALSE;
   GError *error = NULL;
   GOptionContext *option_context;
   static GOptionEntry entries[] =
@@ -939,6 +940,8 @@ main (int argc, char * argv[], char * envp[])
                              "Quiet (do not issue any messages to stdout)", NULL },
     { "cfg-specs",  's',     G_OPTION_FLAG_HIDDEN, G_OPTION_ARG_NONE, &print_specs, "", NULL },
     { "gen-config", 'g',     G_OPTION_FLAG_HIDDEN, G_OPTION_ARG_NONE, &gen_config, "", NULL },
+    { "sysconfdir", 'y', 0,  G_OPTION_ARG_NONE, &print_sysconfdir,
+                             "Print system configuration directory (set at compile time)", NULL },
     { NULL }
   };
 
@@ -949,6 +952,12 @@ main (int argc, char * argv[], char * envp[])
     g_print("%s\n\n", error->message);
     exit (0);
   }
+
+  if (print_sysconfdir)
+    {
+      g_print ("%s\n", OPENVASD_CONFDIR);
+      exit (0);
+    }
 
   if (quiet)
     be_quiet = 1;

@@ -1,3 +1,8 @@
+2009-08-25  Michael Wiegand <michael.wiegand@intevation.de>
+
+	* openvasd/openvasd.c (main): Added commandline option to expose the
+	system configuration directory value as set during configure.
+
 2009-08-24  Jan-Oliver Wagner <jan-oliver.wagner@greenbone.net>
 
 	* TODO: Updated. Plugin upload is removed (CR#4). Cache needed
