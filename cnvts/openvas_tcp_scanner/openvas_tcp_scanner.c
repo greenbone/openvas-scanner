@@ -177,7 +177,7 @@ double_check_std_ports(unsigned char* ports_states)
 }
 
 static int
-banner_grab(const struct in_addr *pia, const char* portrange, 
+banner_grab(const struct in6_addr *pia, const char* portrange, 
 	    const int read_timeout,
 	    int		min_cnx,
 	    int		max_cnx,
@@ -194,6 +194,9 @@ banner_grab(const struct in_addr *pia, const char* portrange,
   struct timeval	ti1;
 #endif
   struct sockaddr_in	sa;
+  struct sockaddr_in6	sa6;
+  int len;
+  int retval;
   int			port = 23;
   int			imax, i, j, scanned_ports, x, opt;
   unsigned int		optsz;
@@ -405,7 +408,14 @@ banner_grab(const struct in_addr *pia, const char* portrange,
 #if DEBUG > 2
 	      fprintf(stderr, "openvas_tcp_scanner: Trying %s:%d\n", inet_ntoa(*pia), port);
 #endif
-	      s = socket(PF_INET, SOCK_STREAM, tcpproto);
+        if(IN6_IS_ADDR_V4MAPPED(pia))
+        {
+	        s = socket(PF_INET, SOCK_STREAM, tcpproto);
+        }
+        else
+        {
+	        s = socket(PF_INET6, SOCK_STREAM, tcpproto);
+        }
 	      if (s < 0)
 		{
 		  if (errno == ENFILE) /* File table overflow */
@@ -492,11 +502,23 @@ banner_grab(const struct in_addr *pia, const char* portrange,
 	      if (setsockopt(s, SOL_IP, IP_TOS, &x, sizeof(x)) < 0)
 		perror("setsockopt(IP_TOS");
 #endif
-	      sa.sin_addr = *pia;
-	      sa.sin_family = AF_INET;
-	      sa.sin_port = htons(port);
-
-	      if (connect(s, (struct sockaddr*)&sa, sizeof(sa)) < 0)
+        if(IN6_IS_ADDR_V4MAPPED(pia))
+        {
+          sa.sin_addr.s_addr = pia->s6_addr32[3];
+          sa.sin_family = AF_INET;
+          sa.sin_port = htons(port);
+          len = sizeof(struct sockaddr_in);
+	        retval = connect(s, (struct sockaddr*)&sa, len);
+        }
+        else
+        {
+          memcpy(&sa6.sin6_addr, pia, sizeof(struct sockaddr_in6));
+          sa6.sin6_family = AF_INET6;
+          sa6.sin6_port = htons(port);
+          len = sizeof(struct sockaddr_in6);
+	        retval = connect(s, (struct sockaddr*)&sa6, len);
+        }
+	      if (retval < 0)
 		{
 		  switch (errno)
 		    {
@@ -606,7 +628,7 @@ banner_grab(const struct in_addr *pia, const char* portrange,
 		      FD_SET(sockets[i].fd, &wfs);
 		      break;
 		    default:
-#if 1
+#if 0
 		      fprintf(stderr, "openvas_tcp_scanner(%s): Bad status %d - s=%d\n", inet_ntoa(*pia), sockets[i].state, sockets[i].fd);
 #endif
 		      break;
@@ -1197,8 +1219,8 @@ banner_grab(const struct in_addr *pia, const char* portrange,
   if (pass > MAX_PASS_NB)
     {
       pass --;
-      fprintf(stderr, "openvas_tcp_scanner(%s): gave up after %d pass\n",
-	      inet_ntoa(*pia), pass);
+      /*fprintf(stderr, "openvas_tcp_scanner(%s): gave up after %d pass\n",
+	      inet_ntoa(*pia), pass);*/
       filtered_ports_nb = old_filtered;
     }
 

@@ -68,7 +68,7 @@ extern u_short * getpts(char *, int *);
  */
 struct attack_start_args {
         struct arglist * globals;
-        struct in_addr hostip;
+        struct in6_addr hostip;
         char * host_mac_addr;
         plugins_scheduler_t sched;
         int thread_socket;
@@ -114,16 +114,16 @@ fork_sleep(int n)
  * @return A 'hostinfo' arglist.
  */
 static struct arglist *
-attack_init_hostinfos (char * mac, char * hostname, struct in_addr * ip)
+attack_init_hostinfos (char * mac, char * hostname, struct in6_addr * ip)
 {
   struct arglist * hostinfos;
-  struct in_addr addr;
+  struct in6_addr addr;
 
   hostinfos = emalloc (sizeof(struct arglist));
-  if (inet_aton(hostname, &addr) != 0)
+  if(!hg_valid_ip_addr(hostname))
     {
       char f[1024];
-      hg_get_name_from_ip (addr, f, sizeof(f));
+      hg_get_name_from_ip (&addr, f, sizeof(f));
       arg_add_value (hostinfos, "FQDN", ARG_STRING, strlen(f), estrdup(f));
     }
   else
@@ -137,7 +137,7 @@ attack_init_hostinfos (char * mac, char * hostname, struct in_addr * ip)
   else
       arg_add_value (hostinfos, "NAME", ARG_STRING, strlen(hostname), estrdup(hostname));
 
-  arg_add_value (hostinfos, "IP", ARG_PTR, sizeof(struct in_addr), ip);
+  arg_add_value (hostinfos, "IP", ARG_PTR, sizeof(struct in6_addr), ip);
   return(hostinfos);
 }
 
@@ -617,7 +617,7 @@ attack_start (struct attack_start_args * args)
   char * hostname = args->hostname;
   char * mac = args->host_mac_addr;
   struct arglist * plugs = arg_get_value(globals, "plugins");
-  struct in_addr * hostip = &(args->hostip);
+  struct in6_addr * hostip = &(args->hostip);
   struct arglist * hostinfos;
 
   struct arglist * preferences = arg_get_value(globals,"preferences");
@@ -702,7 +702,7 @@ attack_network(struct arglist * globals)
   int host_pending              = 0;
   char hostname[1024];
   char * hostlist;
-  struct in_addr host_ip;
+  struct in6_addr host_ip;
   int hg_flags                  = 0;
   int hg_res;
   struct hg_globals * hg_globals = NULL;
@@ -722,10 +722,11 @@ attack_network(struct arglist * globals)
   char * key;
   struct timeval then, now;
   inaddrs_t addrs;
+  char buffer[INET6_ADDRSTRLEN];
 
   gettimeofday(&then, NULL);
 
-  host_ip.s_addr = 0;
+  host_ip = in6addr_any;
   preferences    = arg_get_value(globals, "preferences");
 
   num_tested = 0;
@@ -862,9 +863,7 @@ attack_network(struct arglist * globals)
         }
 
       host_pending = 0 ;
-
-      addrs.ip.s_addr = host_ip.s_addr;
-
+      memcpy(&addrs.ip6, &host_ip, sizeof(struct in6_addr));
       /* Do we have the right to test this host ? */
       if(CAN_TEST(get_host_rules(rules, addrs)) == 0)
         {
@@ -878,10 +877,12 @@ attack_network(struct arglist * globals)
           int s;
           char * MAC = NULL;
           int mac_err = -1;
+          struct in_addr addr;
 
-          if(preferences_use_mac_addr(preferences) && is_local_ip(host_ip))
+          addr.s_addr = host_ip.s6_addr32[3];
+          if(preferences_use_mac_addr(preferences) && is_local_ip(addr))
             {
-              mac_err = get_mac_addr(host_ip, &MAC);
+              mac_err = get_mac_addr(addr, &MAC);
               if(mac_err > 0)
                 {
                 /* remote host is down */
@@ -901,7 +902,7 @@ attack_network(struct arglist * globals)
           args.globals = globals;
           strncpy(args.hostname, hostname, sizeof(args.hostname) - 1);
           args.hostname[sizeof(args.hostname) - 1] = '\0';
-          args.hostip.s_addr = host_ip.s_addr;
+          memcpy(&args.hostip, &host_ip, sizeof(struct in6_addr));
           args.host_mac_addr = MAC;
           args.sched = sched;
           args.thread_socket = s;
@@ -928,7 +929,7 @@ forkagain:
             }
 
           hosts_set_pid(hostname, pid);
-          log_write("user %s : testing %s (%s) [%d]\n", attack_user_name(globals), hostname, inet_ntoa(args.hostip), pid);
+          log_write("user %s : testing %s (%s) [%d]\n", attack_user_name(globals), hostname, inet_ntop(AF_INET6, &args.hostip, buffer, sizeof(buffer)), pid);
           if(MAC != NULL)
             efree(&MAC);
         }

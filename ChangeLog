@@ -1,3 +1,16 @@
+2009-08-27  Chandrashekhar B <bchandra@secpod.com>
+
+	Some more changes to move openvasd server to support ipv6
+	and a bug fix in checking rules.
+	Coding by Srinivasa NL <nl.srinivas@gmail.com>.
+
+	* openvasd/attack.c: Added support for ipv6. Uses latest library
+	function, hg_get_name_from_ip.
+	* cnvts/openvas_tcp_scanner/openvas_tcp_scanner.c: Added support
+	for ipv6. Open ipv4 or ipv6 socket depending on target type.
+	* openvasd/rules.c :(get_host_rules) Resolved a bug while assigning
+	and comparing ip addresses.
+
 2009-08-28  Tim Brown <timb@openvas.org>
 
 	* openvasd/oval_plugins.c: Further format string fixes from Stephan

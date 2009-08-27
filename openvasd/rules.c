@@ -487,7 +487,7 @@ get_host_rules (struct openvas_rules * rules, inaddrs_t addr)
 
     if(rules->family == AF_INET)
     {
-      tstaddr.s_addr = addr.ip.s_addr;
+      tstaddr.s_addr = addr.ip6.s6_addr32[3];
       if (rules->mask > 0)
       {
         tstaddr.s_addr = ntohl(tstaddr.s_addr) >> (32 - rules->mask);
@@ -539,10 +539,7 @@ get_host_rules (struct openvas_rules * rules, inaddrs_t addr)
             tstaddr6.s6_addr32[2] == rules->inaddrs.ip6.s6_addr32[2] && \
             tstaddr6.s6_addr32[3] == rules->inaddrs.ip6.s6_addr32[3]    \
           )
-        if (tstaddr.s_addr == rules->inaddrs.ip.s_addr)
-        {
           return(rules->rule);
-        }
       }
     }
     rules = rules->next;
