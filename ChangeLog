@@ -4,11 +4,12 @@
 	and a bug fix in checking rules.
 	Coding by Srinivasa NL <nl.srinivas@gmail.com>.
 
-	* openvasd/attack.c: Added support for ipv6. Uses latest library
+	* openvasd/attack.c (struct attack_start_args, attack_init_hostinfos,
+	attack_start, attack_network): Added support for ipv6. Uses latest library
 	function, hg_get_name_from_ip.
-	* cnvts/openvas_tcp_scanner/openvas_tcp_scanner.c: Added support
-	for ipv6. Open ipv4 or ipv6 socket depending on target type.
-	* openvasd/rules.c :(get_host_rules) Resolved a bug while assigning
+	* cnvts/openvas_tcp_scanner/openvas_tcp_scanner.c (banner_grab): Added
+	support for ipv6. Open ipv4 or ipv6 socket depending on target type.
+	* openvasd/rules.c (get_host_rules): Resolved a bug while assigning
 	and comparing ip addresses.
 
 2009-08-28  Tim Brown <timb@openvas.org>
