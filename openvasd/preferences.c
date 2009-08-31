@@ -123,7 +123,7 @@ int preferences_new(char * name)
  fprintf(fd, "# 'default' means that OpenVAS will scan ports found in its\n");
  fprintf(fd, "# services file.\n");
  fprintf(fd, "port_range = default\n\n");
- fprintf(fd, "# Optimize the test (recommanded) : \n");
+ fprintf(fd, "# Optimize the test (recommended) : \n");
  fprintf(fd, "optimize_test = yes\n\n");
 
  fprintf(fd, "\n\n# Optimization : \n");

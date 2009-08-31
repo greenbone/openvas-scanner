@@ -1,3 +1,7 @@
+2009-08-31  Jan-Oliver Wagner <jan-oliver.wagner@greenbone.net>
+
+	* openvasd/preferences.c (preferences_new): Fixed typo.
+
 2009-08-27  Chandrashekhar B <bchandra@secpod.com>
 
 	Some more changes to move openvasd server to support ipv6
