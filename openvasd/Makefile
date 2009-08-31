@@ -1,6 +1,6 @@
 include ../openvas.tmpl
 
-LIBS =  `$(OPENVASLIBNASLCONFIG) --libs` `$(LIBOPENVASCONFIG) --libs`  \
+LIBS =  `$(LIBOPENVASCONFIG) --libs`  \
 	$(W_STATIC)  $(W_DYNAMIC) \
 	$(DL_LIB)  \
 	$(COMPAT_LIB) $(LIBWRAP) $(GLIB_LIBS) \

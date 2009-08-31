@@ -45,7 +45,6 @@ AC_REVISION($Revision$)dnl
 AC_PREREQ(2.50)
 
 NEED_OPENVASLIBS_VERSION=2.0.4
-NEED_OPENVASLIBNASL_VERSION=2.0.2
 
 dnl version stuff -- jordan
 save_IFS="${IFS}"
@@ -101,8 +100,6 @@ AC_ARG_ENABLE(syslog,[  --enable-syslog	  log messages via syslog()],
 
 AC_ARG_ENABLE(tcpwrappers,[  --enable-tcpwrappers	  use the libwrap.a library],
         test "$enable_tcpwrappers" = "yes" && libwrap="-lwrap")
-	
-	
 
 
 
@@ -153,51 +150,6 @@ Minimum required is $NEED_OPENVASLIBS_VERSION .
 fi
 
 
-AC_PATH_PROG(OPENVASLIBNASLCONFIG, openvas-libnasl-config,,$XPATH)
-
-test "x$OPENVASLIBNASLCONFIG" = x &&  AC_ERROR(""
-""
-"*** openvas-libnasl is not installed ! You need to install it before you "
-"compile openvas-server.")
-
-OPENVASLIBNASL_VERSION=`$OPENVASLIBNASLCONFIG --version`
-
-OPENVASLIBNASL_MAJOR=`echo $OPENVASLIBNASL_VERSION | \
-               sed 's/\([[0-9]]*\)\.\([[0-9]]*\)\.\([[0-9]]*\)/\1/'`
-OPENVASLIBNASL_MINOR=`echo $OPENVASLIBNASL_VERSION | \
-               sed 's/\([[0-9]]*\)\.\([[0-9]]*\)\.\([[0-9]]*\)/\2/'`
-OPENVASLIBNASL_PATCH=`echo $OPENVASLIBNASL_VERSION | \
-               sed 's/\([[0-9]]*\)\.\([[0-9]]*\)\.\([[0-9]]*\)/\3/'`
-REQ_OPENVASLIBNASL_MAJOR=`echo $NEED_OPENVASLIBNASL_VERSION | \
-               sed 's/\([[0-9]]*\)\.\([[0-9]]*\)\.\([[0-9]]*\)/\1/'`
-REQ_OPENVASLIBNASL_MINOR=`echo $NEED_OPENVASLIBNASL_VERSION | \
-               sed 's/\([[0-9]]*\)\.\([[0-9]]*\)\.\([[0-9]]*\)/\2/'`
-REQ_OPENVASLIBNASL_PATCH=`echo $NEED_OPENVASLIBNASL_VERSION | \
-               sed 's/\([[0-9]]*\)\.\([[0-9]]*\)\.\([[0-9]]*\)/\3/'`
-
-
-ok=no
-if test "$OPENVASLIBNASL_MAJOR" -gt "$REQ_OPENVASLIBNASL_MAJOR"; then
-  ok=yes
-else
-  if test "$OPENVASLIBNASL_MAJOR" -eq "$REQ_OPENVASLIBNASL_MAJOR"; then
-    if test "$OPENVASLIBNASL_MINOR" -gt "$REQ_OPENVASLIBNASL_MINOR"; then
-      ok=yes
-    else
-      if test "$OPENVASLIBNASL_MINOR" -eq "$REQ_OPENVASLIBNASL_MINOR"; then
-        if test "$OPENVASLIBNASL_PATCH" -ge "$REQ_OPENVASLIBNASL_PATCH"; then
-          ok=yes
-        fi
-      fi
-    fi
-  fi
-fi
-if test $ok = no; then
-AC_ERROR(
-openvas-libnasl $OPENVASLIBNASL_VERSION too old.
-Minimum required is $NEED_OPENVASLIBNASL_VERSION .
-)
-fi
 
 dnl GLIB needs to be quoted in the next line otherwise m4 tries to expand it#
 PKG_CHECK_MODULES([GLIB], glib-2.0 >= 2.6.0, HAVE_GLIB="yes", AC_MSG_ERROR("glib >= 2.6.0 not found"))
@@ -771,7 +723,6 @@ AC_SUBST(compat_lib)
 AC_SUBST(c_r_lib)
 AC_SUBST(datadir)
 AC_SUBST(LIBOPENVASCONFIG)
-AC_SUBST(OPENVASLIBNASLCONFIG)
 AC_SUBST(ac_configure_args)
 AC_SUBST(egdpath)
 AC_SUBST(installuser)

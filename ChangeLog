@@ -1,3 +1,8 @@
+2009-08-31  Felix Wolfsteller <felix.wolfsteller@intevation.de>
+
+	* configure.in, openvasd/Makefile: Removed libnasl dependence (is
+	pulled in via libraries).
+
 2009-08-31  Jan-Oliver Wagner <jan-oliver.wagner@greenbone.net>
 
 	* openvasd/preferences.c (preferences_new): Fixed typo.
