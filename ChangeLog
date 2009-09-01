@@ -1,3 +1,7 @@
+2009-09-01  Felix Wolfsteller <felix.wolfsteller@intevation.de>
+
+	* configure: Regenerated.
+
 2009-08-31  Felix Wolfsteller <felix.wolfsteller@intevation.de>
 
 	* configure.in, openvasd/Makefile: Removed libnasl dependence (is
