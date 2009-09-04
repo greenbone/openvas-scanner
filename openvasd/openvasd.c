@@ -523,7 +523,7 @@ main_loop ()
 
   if (strcasecmp(ssl_ver, "NONE") != 0)
     {
-      if (nessus_SSL_init(NULL) < 0)
+      if (openvas_SSL_init() < 0)
 	{
 	  fprintf(stderr, "Could not initialize openvas SSL!\n");
 	  exit(1);
