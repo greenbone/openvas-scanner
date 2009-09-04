@@ -1,5 +1,10 @@
 2009-09-04  Jan-Oliver Wagner <jan-oliver.wagner@greenbone.net>
 
+	* doc/openvasd.8.in: Removed note on "admin_user": This functionality
+	does not exist anymore.
+
+2009-09-04  Jan-Oliver Wagner <jan-oliver.wagner@greenbone.net>
+
 	* openvasd/openvad.c (main_loop): Adjusted call API for SSL initialization.
 
 2009-09-01  Felix Wolfsteller <felix.wolfsteller@intevation.de>

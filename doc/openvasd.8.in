@@ -166,10 +166,6 @@ OpenVAS plugins use the result of each other to execute their job. For instance,
 .IP use_mac_addr
 Set this option to 'yes' if you are testing your local network and each local host has a dynamic IP address (affected by DHCP or BOOTP), and all the tested hosts will be referred to by their MAC address.
 
-.IP admin_user
-The user listed in this option will upload his plugins into the global openvas plugins directory, and they will be shared by every other users
-
-
 .IP rules
 path to the rules database
 
