@@ -1,3 +1,23 @@
+2009-09-08  Felix Wolfsteller <felix.wolfsteller@intevation.de>
+
+	Fixed broken build and reduced code base by:
+	Replacing/merged pluginschedulers name cache by arglists ones. Note that
+	the latter is considerably smaller and might thus lead to more
+	collisions and decreased performance, but improves maintainability and
+	memory imprint.
+
+	* openvasd/pluginscheduler.c (struct name_cache, cache_init,
+	cache_get_name, cache_add_name, cache_inc, cache_dec): Removed, are
+	linked with openvas-libraries.
+
+	* openvasd/pluginscheduler.c (HASH_MAX): Decreased to value found in
+	openvas-libraries/misc/arglists.c.
+
+	* openvasd/pluginscheduler.c (mkhash): Replaced by implementation found
+	in openvas-libraries/misc/arglists.c .
+
+	* openvasd/pluginscheduler.c: include arglists.h, added TODO.
+
 2009-09-04  Jan-Oliver Wagner <jan-oliver.wagner@greenbone.net>
 
 	* doc/openvasd.8.in: Removed note on "admin_user": This functionality

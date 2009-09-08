@@ -33,6 +33,8 @@
 #include <glib.h>
 
 #define IN_SCHEDULER_CODE 1
+
+#include "arglists.h"
 #include "pluginscheduler.h"
 #include "pluginload.h"
 #include "pluginlaunch.h"
@@ -40,7 +42,21 @@
 #include "log.h"
 
 
-#define HASH_MAX 9973
+/** @TODO
+ * The pluginscheduler uses a name cache for NVTs, depedencies and ports, as
+ * they are referenced by strings (names or OIDs). To remove duplicate code, the
+ * pluginscheduler was changed to share the name cache with the arglists.
+ * But the cache of the arglist is much smaller. It should be evaluated whether
+ * this influenced the performance (memory imprint should be smaller), and
+ * whether the string references could not be replaced e.g. by pointers to NVTi
+ * structs.
+ */
+
+/** @TODO
+ * This important module needs documentation and comments.
+ */
+
+#define HASH_MAX 2713
 
 
 /*-----------------------------------------------------------------------------*/
@@ -63,132 +79,10 @@ void plugin_set_running_state(plugins_scheduler_t shed, struct scheduler_plugin 
 
 static unsigned int mkhash(char * name)
 {
-  int i;
-  unsigned int h = 0;
-  
-  for(i=0; name[i] != '\0' ;i++)
-   h += name[i]; 
-   
- 
-  return h % HASH_MAX;
+  return g_str_hash (name) % HASH_MAX;
 }
 
 /*------------------------------------------------------------------------------*/
-
-
-struct name_cache {
-	char * name;
-	int occurences;
-	struct name_cache * next;
-	struct name_cache * prev;
-	};
-
-static struct name_cache cache[HASH_MAX + 1];
-static int cache_inited = 0;
-
-static void cache_init()
-{
- bzero(cache, sizeof(cache));
- cache_inited = 1;
-}
-
-static struct name_cache * 
-cache_get_name(name)
- char * name;
-{
- struct name_cache * nc;
- unsigned int h;
- 
- if(cache_inited == 0)cache_init();
- 
- if(!name)
-  return NULL;
-  
- h = mkhash(name);
- nc = cache[h].next;
- 
- 
- while(nc != NULL)
- {
-  if(nc->name != NULL && 
-    !strcmp(nc->name, name))return nc;
-  else 
-  	nc = nc->next;
- }
- return NULL;
-}
-
-static struct name_cache *
-cache_add_name(name)
- char * name;
-{
- struct name_cache * nc;
- unsigned int h;
- 
- if(name == NULL)
-  return NULL;
- 
- h = mkhash(name);
- 
- 
- 
- nc = emalloc(sizeof(struct name_cache));
- nc->name = estrdup(name);
- nc->occurences = 1;
- nc->next = cache[h].next;
- nc->prev = NULL;
- if ( cache[h].next != NULL )
-  cache[h].next->prev = nc;
-
- cache[h].next = nc;
- 
- return nc;
-}
-
-static char *
-cache_inc(name)
- char * name;
-{
- struct name_cache * nc = cache_get_name(name);
- if(nc != NULL)
-  nc->occurences ++;
- else
-   nc = cache_add_name(name);  
- return nc->name;
-}
-
-static void 
-cache_dec(name)
- char * name;
-{
- struct name_cache* nc;
-
- if( name == NULL )
-  return;
-
- nc  = cache_get_name(name);
- if( nc == NULL )
- {
-  return;
- }
- 
- nc->occurences --;
- if( nc->occurences == 0 )
-  {
-    unsigned int h = mkhash(name);
-    efree(&nc->name);
-
-    if( nc->next != NULL)
-     nc->next->prev = nc->prev;
-     
-    if( nc->prev != NULL )
-     nc->prev->next = nc->next;
-    else
-     cache[h].next = nc->next;
-
-    efree(&nc);
-  }
-}
 
 
 
@@ -197,8 +91,6 @@ cache_dec(name)
  * A minimalist HASH stucture
  *
  *---------------------------------------------------------------------------*/
-
-	
 
 static struct hash * hash_init()
 {
