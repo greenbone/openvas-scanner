@@ -310,22 +310,22 @@ save_tests_close(globals)
 
 
 
-/*------------------------------------------------------------------
-  
-   Write <data> in our current session
- 
- -------------------------------------------------------------------*/
-void 
-save_tests_write_data(globals, data)
- struct arglist * globals;
- char * data;
+/**
+ * @brief Write \ref data in our current session.
+ *
+ * @param data Data to write. Attention, will be freed within this function if
+ *             successfull!
+ */
+void
+save_tests_write_data (struct arglist * globals, char * data)
 {
  int f = GPOINTER_TO_SIZE(arg_get_value(globals, "save_tests_data"));
  int e, len, n = 0;
- 
- if(!f)
+
+ /** @TODO Shouldnt we free 'data' here? */
+ if (!f)
   return;
-  
+
  len = strlen(data);
  while(n < len)
  {
@@ -338,7 +338,7 @@ save_tests_write_data(globals, data)
 	close(f);
 	arg_set_value(globals, "save_tests_data", sizeof(int), 0);
 	break;
-       }	
+       }
  }
  efree(&data);
  fsync(f);
@@ -358,14 +358,14 @@ save_tests_host_done(globals, host)
  int f = GPOINTER_TO_SIZE(arg_get_value(globals, "save_tests_index"));
  char * d;
  int len, n = 0, e;
- 
+
  if(!f)
   return;
-  
+
  d = emalloc(strlen(host) + 2);
  strcat(d, host);
  strcat(d, "\n");
- 
+
  len = strlen(d);
  while(n < len)
  {
@@ -386,41 +386,37 @@ save_tests_host_done(globals, host)
 
 
 
-
-/*----------------------------------------------------------
-
-  Send a session back to our client
-  
- -----------------------------------------------------------*/ 
+/**
+ * @brief Sends a session back to our client.
+ */
 void
-save_tests_playback(globals, session, tested_hosts)
- struct arglist * globals;
- char * session;
- harglst * tested_hosts;
+save_tests_playback (struct arglist * globals, char * session,
+                     harglst * tested_hosts)
 {
- char buf[8192];
- FILE * f;
- char * data_fname = session_fname(globals, session, "data");
- 
- f = fopen(data_fname, "r");
- if(f)
- {
-  while(fgets(buf, sizeof(buf)-1, f))
-  {
-   char * host = extract_hostname(buf);
-   if(!host || harg_get_int(tested_hosts, host))
-   {
-   auth_printf(globals, "%s", buf);
-   save_tests_write_data(globals, estrdup(buf));
-   if(strstr(buf, "FINISHED"))
-     save_tests_host_done(globals, host);
-  /* usleep(5000); */ /* let the client process the data */
-   }
-   if(host)free(host);
-   bzero(buf, sizeof(buf));
-  }
-  fclose(f);
- }
+  char buf[8192];
+  FILE * f;
+  char * data_fname = session_fname (globals, session, "data");
+
+  f = fopen (data_fname, "r");
+  if (f)
+    {
+      while(fgets(buf, sizeof(buf)-1, f))
+        {
+          char * host = extract_hostname (buf);
+          if (!host || harg_get_int (tested_hosts, host))
+            {
+              auth_printf (globals, "%s", buf);
+              save_tests_write_data (globals, estrdup(buf));
+              if (strstr(buf, "FINISHED"))
+                save_tests_host_done (globals, host);
+              /* usleep(5000); */ /* let the client process the data */
+            }
+          if (host)
+            free(host);
+          bzero(buf, sizeof(buf));
+        }
+      fclose (f);
+    }
 }
 
 

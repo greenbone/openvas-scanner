@@ -1,5 +1,12 @@
 2009-09-10  Felix Wolfsteller <felix.wolfsteller@intevation.de>
 
+	* openvasd/save_tests.c (save_tests_write_data): Minor reformatting,
+	added todo about possible mem leak, documentation.
+
+	* openvasd/save_tests.c (save_tests_playback): Reformatted.
+
+2009-09-10  Felix Wolfsteller <felix.wolfsteller@intevation.de>
+
 	* doc/Doxyfile, doc/Doxyfile_full: Added alias to generate todo list
 	from both lower and uppercase @TODOs.
 
