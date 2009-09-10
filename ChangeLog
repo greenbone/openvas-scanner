@@ -1,3 +1,8 @@
+2009-09-10  Felix Wolfsteller <felix.wolfsteller@intevation.de>
+
+	* doc/Doxyfile, doc/Doxyfile_full: Added alias to generate todo list
+	from both lower and uppercase @TODOs.
+
 2009-09-08  Felix Wolfsteller <felix.wolfsteller@intevation.de>
 
 	Fixed broken build and reduced code base by:
