@@ -1,3 +1,19 @@
+2009-09-11  Jan-Oliver Wagner <jan-oliver.wagner@greenbone.net>
+
+	Adapt Scanner to changes in API of store.
+
+	* openvasd/openvasd.c (init_openvasd): Use new
+	API of store_init.
+
+	* openvasd/nasl_plugins.c (nasl_plugin_add): Use
+	new API of store_load_plugin.
+
+	* openvasd/nes_plugins.c (nes_plugin_add): Use
+	new API of store_load_plugin.
+
+	* openvasd/oval_plugins.c (oval_plugin_add): Use
+	new API of store_load_plugin.
+
 2009-09-10  Felix Wolfsteller <felix.wolfsteller@intevation.de>
 
 	* openvasd/save_tests.c (save_tests_write_data): Minor reformatting,

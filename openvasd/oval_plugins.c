@@ -369,7 +369,7 @@ oval_plugin_add (char * folder, char * name,
       return NULL;
     }
 
-  args = store_load_plugin (folder, name, preferences);
+  args = store_load_plugin (name, preferences);
 
   if (args == NULL)
     {
@@ -468,7 +468,7 @@ oval_plugin_add (char * folder, char * name,
       plug_set_sign_key_ids (args, sign_fprs);
 
       store_plugin (args, name);
-      args = store_load_plugin (folder, name, preferences);
+      args = store_load_plugin (name, preferences);
     }
 
   if (args != NULL)

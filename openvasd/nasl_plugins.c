@@ -92,7 +92,7 @@ nasl_plugin_add (char* folder, char* name, struct arglist* plugins,
       nasl_mode |= NASL_ALWAYS_SIGNED;
     }
 
-  plugin_args = store_load_plugin (folder, name, preferences);
+  plugin_args = store_load_plugin (name, preferences);
   if (plugin_args == NULL)
     {
       char* sign_fprs = nasl_extract_signature_fprs (fullname);
@@ -125,7 +125,7 @@ nasl_plugin_add (char* folder, char* name, struct arglist* plugins,
       if (plug_get_oid (plugin_args) != NULL)
         {
           store_plugin (plugin_args, name);
-          plugin_args = store_load_plugin (folder, name, preferences);
+          plugin_args = store_load_plugin (name, preferences);
         }
       else
         // Most likely an exit was hit before the description could be parsed.

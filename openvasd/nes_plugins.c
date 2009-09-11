@@ -156,7 +156,7 @@ nes_plugin_add(folder, name, plugins, preferences)
  
  snprintf(fullname, sizeof(fullname), "%s/%s", folder, name);
  
- args = store_load_plugin(folder, name, preferences);
+ args = store_load_plugin(name, preferences);
  if( args == NULL )
  {
   if((ptr = LOAD_LIBRARY(fullname))== NULL){
@@ -176,7 +176,7 @@ nes_plugin_add(folder, name, plugins, preferences)
 	{  
 	 plug_set_path(args, fullname);
 	 store_plugin(args, name); 
- 	 args = store_load_plugin(folder, name, preferences);
+ 	 args = store_load_plugin(name, preferences);
 	}
 	else
 	{

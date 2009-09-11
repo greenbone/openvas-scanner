@@ -833,8 +833,13 @@ init_openvasd (struct arglist * options, int first_pass, int stop_early,
 
   if (stop_early == 0)
     {
-      if (store_init (arg_get_value(preferences, "cache_folder")) != 0)
-        store_init (arg_get_value(preferences, "plugins_folder"));
+      // TODO: It is better to have cache_folder mandatory.
+      // Anything else will call for trouble (cache files
+      // mix up with source NVT files)
+      if (store_init (arg_get_value(preferences, "cache_folder"),
+                      arg_get_value(preferences, "plugins_folder")) != 0)
+        store_init (arg_get_value(preferences, "plugins_folder"),
+                    arg_get_value(preferences, "plugins_folder"));
 
       plugins = plugins_init (preferences, be_quiet);
 
