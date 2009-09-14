@@ -1,3 +1,8 @@
+2009-09-14  Felix Wolfsteller <felix.wolfsteller@intevation.de>
+
+	* openvasd/save_tests.c: Added TODOS, removed K&R headers, documentation
+	, further cosmetics.
+
 2009-09-11  Jan-Oliver Wagner <jan-oliver.wagner@greenbone.net>
 
 	Adapt Scanner to changes in API of store.

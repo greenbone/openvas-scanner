@@ -39,24 +39,22 @@
 
 #include "save_tests.h"
 
-/** @TODO seems there is some code duplicate in save_kb.c */
+/** @todo seems there is some code duplicate in save_kb.c */
 
 /*================================================================
 	
 	              Private functions
 
  =================================================================*/
- 
-/*-----------------------------------------------------------------
- 
-  Name of the directory which contains the sessions of the current
-  user (/path/to/var/openvas/<username>/sessions)
-  
-------------------------------------------------------------------*/ 
+
+/**
+ * @brief Name of the directory which contains the sessions of the current
+ *        user (/path/to/var/openvas/<username>/sessions)
+ */
 static char *
-session_dirname(globals)
- struct arglist * globals;
+session_dirname (struct arglist * globals)
 {
+ /** @todo use glib */
  char * home = user_home(globals);
  char * dir;
  dir = emalloc(strlen(home) + strlen("sessions") + 2);
@@ -66,18 +64,13 @@ session_dirname(globals)
 }
 
 
-/*----------------------------------------------------------------
-
- Create a session directory. 
- XXXXX does not check for the existence of a directory and does
- not check any error
- 
-------------------------------------------------------------------*/
-
-
+/**
+ * @brief Create a session directory.
+ * @todo Does not check for the existence of a directory and does not check any
+ *       error
+ */
 static int
-session_mkdir(dir)
- char * dir;
+session_mkdir (char * dir)
 {
  char *t = strchr(dir+1, '/');
  while(t)
@@ -90,25 +83,17 @@ session_mkdir(dir)
  mkdir(dir, 0700);
  return 0;
 }
- 
 
-	
-/*----------------------------------------------------------------
 
- From <session>, return 
- /path/to/var/openvas/<username>/sessions/<session>-<suffix>
-
-------------------------------------------------------------------*/
+/**
+ * @brief From \ref session, return  /path/to/var/openvas/\ref username/sessions/\ref session-\ref suffix
+ */
 static char*
-session_fname(globals, session, suffix)
- struct arglist * globals;
- char * session;
- char * suffix;
+session_fname (struct arglist* globals, char* session, char* suffix)
 {
- char * dir = session_dirname(globals);
+ char * dir = session_dirname (globals);
  char * ret;
-
- 
+ /** @todo use glib function to create file path. */
  ret = emalloc(strlen(dir) + strlen(session) + strlen(suffix) + 10);
  sprintf(ret, "%s/%s-%s", dir, session, suffix);
  efree(&dir);
@@ -117,23 +102,19 @@ session_fname(globals, session, suffix)
 
 
 
-
-/*------------------------------------------------------------------
-
-  Extract the hostname contained in one line of the data sent
-  to the client
-  
---------------------------------------------------------------------*/
+/**
+ * @brief Extract the hostname contained in one line of the data sent to the
+ *        client.
+ */
 static char*
-extract_hostname(line)
- char * line;
+extract_hostname (char* line)
 {
  char * ret = NULL;
  if(!strncmp(line, "s:", 2))
  {
   char * t = &(line[4]);
   char * e;
-  
+
   e = strchr(t, ':');
   if(e)
   {
@@ -171,15 +152,12 @@ extract_hostname(line)
  =======================================================================*/	
 
 
-/*------------------------------------------------------------------
-  
-   Initialize a new session that will be saved
-   
- -------------------------------------------------------------------*/
+/**
+ * @brief Initialize a new session that will be saved.
+ */
 int
-save_tests_init(globals)
- struct arglist * globals;
-{ 
+save_tests_init (struct arglist * globals)
+{
  char * index_fname;
  char * data_fname;
  char * user = arg_get_value(globals, "user");
@@ -200,8 +178,7 @@ save_tests_init(globals)
   * Session id : <year><month><day>-<hour><minute><second>
   */
  strftime(asctime, 2048, "%Y%m%d-%H%M%S", lt);
- 
- 
+
  dir = session_dirname(globals);
  session_mkdir(dir);
  efree(&dir);
@@ -237,12 +214,12 @@ save_tests_init(globals)
    arg_set_value(globals, "save_tests_index_fname", strlen(index_fname), estrdup(index_fname));
   }
   else
-   arg_add_value(globals, 
-   		 "save_tests_index_fname", 
-		 ARG_STRING, 
+   arg_add_value(globals,
+   		 "save_tests_index_fname",
+		 ARG_STRING,
 		 strlen(index_fname),
    		 estrdup(index_fname));
-		 
+
   write(index, target, strlen(target));
   write(index, "\n", 1);
  }
@@ -279,7 +256,7 @@ save_tests_init(globals)
   else
    arg_add_value(globals, "save_tests_data", ARG_INT, sizeof(gpointer), GSIZE_TO_POINTER(data));
  }
- 
+
 bye :
  efree(&data_fname);
  efree(&index_fname);
@@ -288,14 +265,11 @@ bye :
 }
 
 
-/*-------------------------------------------------------------------
-
-   Stop the saving of the current session
-   
- --------------------------------------------------------------------*/
+/**
+ * @brief Stop the saving of the current session.
+ */
 void
-save_tests_close(globals)
- struct arglist* globals;
+save_tests_close (struct arglist* globals)
 {
  int f1 = GPOINTER_TO_SIZE(arg_get_value(globals, "save_tests_index"));
  int f2 = GPOINTER_TO_SIZE(arg_get_value(globals, "save_tests_data"));
@@ -307,7 +281,6 @@ save_tests_close(globals)
  if(index_fname)file_unlock(index_fname);
  if(data_fname)file_unlock(data_fname);
 }
-
 
 
 /**
@@ -322,7 +295,7 @@ save_tests_write_data (struct arglist * globals, char * data)
  int f = GPOINTER_TO_SIZE(arg_get_value(globals, "save_tests_data"));
  int e, len, n = 0;
 
- /** @TODO Shouldnt we free 'data' here? */
+ /** @todo Shouldnt we free 'data' here? */
  if (!f)
   return;
 
@@ -345,15 +318,11 @@ save_tests_write_data (struct arglist * globals, char * data)
 }
 
 
-/*---------------------------------------------------------------
-
-  Mark in our session that <host> has been tested
-  
- ----------------------------------------------------------------*/
+/**
+ * @brief Mark in our session that \ref host has been tested.
+ */
 void
-save_tests_host_done(globals, host)
- struct arglist * globals;
- char * host;
+save_tests_host_done (struct arglist * globals, char* host)
 {
  int f = GPOINTER_TO_SIZE(arg_get_value(globals, "save_tests_index"));
  char * d;
@@ -386,10 +355,12 @@ save_tests_host_done(globals, host)
 
 
 
+
 /**
  * @brief Sends a session back to our client.
  */
 void
+
 save_tests_playback (struct arglist * globals, char * session,
                      harglst * tested_hosts)
 {
@@ -420,43 +391,36 @@ save_tests_playback (struct arglist * globals, char * session,
 }
 
 
-/*-------------------------------------------------------
-
-   Delete the session <session>
-   
- --------------------------------------------------------*/
+/**
+ * @brief Delete the session \ref session.
+ */
 int
-save_tests_delete(globals, session)
- struct arglist * globals;
- char * session;
+save_tests_delete (struct arglist *globals, char * session)
 {
- char * data, * index;
- int ret = 0;
- 
- data  = session_fname(globals, session, "data");
- index = session_fname(globals, session, "index"); 
- 
- ret = unlink(index);
- if(!ret)
-  ret = unlink(data);
- else
-   unlink(data);
-  
- efree(&index);
- efree(&data);
- return ret;
+  char * data, * index;
+  int ret = 0;
+
+  data  = session_fname (globals, session, "data");
+  index = session_fname (globals, session, "index"); 
+
+  ret = unlink (index);
+  if (!ret)
+    ret = unlink (data);
+  else
+    unlink (data);
+
+  efree (&index);
+  efree (&data);
+
+  return ret;
 }
 
 
-/*--------------------------------------------------------
-
-  Set up openvasd so that we are ready to replay a test
-  
- ---------------------------------------------------------*/
+/**
+ * @brief Set up openvasd so that we are ready to replay a test.
+ */
 int
-save_tests_setup_playback(globals, session)
- struct arglist* globals;
- char * session;
+save_tests_setup_playback (struct arglist* globals, char * session)
 {
  harglst * tested;
  struct stat st;
@@ -482,10 +446,8 @@ save_tests_setup_playback(globals, session)
   arg_set_value(globals, "RESTORE-SESSION-KEY", strlen(session), session);
  else
   arg_add_value(globals, "RESTORE-SESSION-KEY", ARG_STRING, strlen(session), session);
- 
- 
- 
- 
+
+
  if(fd < 0)
   {
   log_write("user %s : can not restore session - %s not found", 
@@ -514,7 +476,7 @@ save_tests_setup_playback(globals, session)
 
  buf = emalloc(4096);
  tested = harg_create(length);
- 
+
  /*
   * Populate our harglst with the names of the
   * hosts that have been completely tested
@@ -527,7 +489,7 @@ save_tests_setup_playback(globals, session)
  }
  efree(&buf);
  fclose(f);
- 
+
  /*
   * Set the global variables accordingly
   */
@@ -535,13 +497,13 @@ save_tests_setup_playback(globals, session)
   arg_set_value(globals, "TESTED_HOSTS", -1, tested);
  else
   arg_add_value(globals, "TESTED_HOSTS", ARG_PTR, -1, tested);
-  
+
   prefs = arg_get_value(globals, "preferences");
  if(arg_get_value(prefs, "TARGET"))
   arg_set_value(prefs, "TARGET", strlen(target), target);
  else
   arg_add_value(prefs, "TARGET", ARG_STRING, strlen(target), target);
-  
+
   plugin_set = arg_get_value(prefs, "plugin_set");
  if( plugin_set == NULL || plugin_set[0] == '\0' )
  {
@@ -553,23 +515,21 @@ save_tests_setup_playback(globals, session)
 }
 
 
-/*------------------------------------------------------------------
-
-   Send the list of sessions to the client
-   
- -------------------------------------------------------------------*/
-
-int 
-save_tests_send_list(globals)
- struct arglist * globals;
+/**
+ * @brief Send the list of sessions to the client.
+ */
+int
+save_tests_send_list (struct arglist * globals)
 {
  char * dirname;
  DIR * d;
  struct dirent * dp;
  char s[4000];
- 
- dirname = session_dirname(globals);
- 
+
+ dirname = session_dirname (globals);
+
+ /** @todo Use glib functions for directory traversal and for file/path
+  *        operations like g_build_filename */
  d = opendir(dirname);
  if(d)
  {
@@ -581,7 +541,7 @@ save_tests_send_list(globals)
    {
     FILE * f;
     char * fullname;
-    
+
     fullname = emalloc(strlen(dirname) + strlen(name) + 2);
     strcat(fullname, dirname);
     strcat(fullname, "/");
@@ -606,21 +566,18 @@ save_tests_send_list(globals)
   }
  closedir(d);
  }
- 
+
  efree(&dirname);
  return 0;
- 
 }
 
 
-/*----------------------------------------------------------------*
- *  Returns <0> if anything worth (note, info or hole) has been   *
- *  sent to the client                                            *
- *----------------------------------------------------------------*/
- 
+/**
+ * @brief Returns <0> if anything worth (note, info or hole) has been sent to
+ *        the client.
+ */
 int
-save_tests_empty(globals)
- struct arglist* globals;
+save_tests_empty (struct arglist* globals)
 {
  char * data_fname  = arg_get_value(globals, "save_tests_data_fname");
  FILE * f;
@@ -630,7 +587,7 @@ save_tests_empty(globals)
  char buf[4096];
 #endif
  int worth = 0;
- 
+
  f = fopen(data_fname, "r");
  if(!f)
  {
@@ -668,13 +625,11 @@ save_tests_empty(globals)
  }
 }
 
-/*----------------------------------------------------------------*
- * Delete the current session                                     *
- *----------------------------------------------------------------*/
- 
+/**
+ * @brief Delete the current session.
+ */
 int
-save_tests_delete_current(globals)
- struct arglist * globals;
+save_tests_delete_current (struct arglist * globals)
 {
  char * index_fname = arg_get_value(globals, "save_tests_index_fname");
  char * data_fname  = arg_get_value(globals, "save_tests_data_fname");
@@ -684,7 +639,5 @@ save_tests_delete_current(globals)
  unlink(data_fname);
  return 0;
 }
- 
- 
-#endif /* ENABLE_SAVE_TESTS */
 
+#endif /* ENABLE_SAVE_TESTS */
