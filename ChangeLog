@@ -1,5 +1,12 @@
 2009-09-14  Felix Wolfsteller <felix.wolfsteller@intevation.de>
 
+	* openvasd/openvasd.c: Cosmetics.
+
+	* openvasd/openvasd.c (init_network): Print error message to stderr and
+	not only to log if socket acquiration failed.
+
+2009-09-14  Felix Wolfsteller <felix.wolfsteller@intevation.de>
+
 	* openvasd/save_tests.c: Added TODOS, removed K&R headers, documentation
 	, further cosmetics.
 

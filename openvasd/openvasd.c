@@ -333,8 +333,8 @@ server_thread (struct arglist * globals)
 
  char		x509_dname[256];
  int		soc2 = -1;
- 
- 
+
+
 #ifdef USE_PTHREADS
  int off = 0;
  ioctl(soc, FIONBIO, &off);
@@ -351,15 +351,14 @@ server_thread (struct arglist * globals)
    s6addr = (struct sockaddr_in6 *)addr;
    setproctitle("serving %s", inet_ntop(AF_INET6,&s6addr->sin6_addr,asciiaddr,sizeof(asciiaddr)));
  }
- efree(&asciiaddr);
+ efree (&asciiaddr);
 
  *x509_dname = '\0';
- 
- /*
-  * Everyone runs with a nicelevel of 10
-  */
-if(preferences_benice(prefs))nice(10); 
-  	
+
+ /* Everyone runs with a nicelevel of 10 */
+ if (preferences_benice(prefs))
+   nice(10);
+
  nessus_signal(SIGCHLD, sighand_chld);
 #if 1
  /* To let some time to attach a debugger to the child process */
@@ -404,7 +403,7 @@ if(preferences_benice(prefs))nice(10);
  {
    char *addrstr = emalloc(INET6_ADDRSTRLEN);
    asciiaddr = estrdup(inet_ntop(AF_INET6,&s6addr->sin6_addr,addrstr,sizeof(addrstr)));
-   efree(&addrstr);
+   efree (&addrstr);
  }
 #endif
  caps = comm_init(soc2);
@@ -416,18 +415,18 @@ if(preferences_benice(prefs))nice(10);
  }
  arg_add_value(globals, "ntp_caps", ARG_STRUCT, sizeof(*caps), caps);
 
- 
+
  if(((perms = auth_check_user(globals, asciiaddr, x509_dname))==BAD_LOGIN_ATTEMPT)||
    !perms)
  {
    auth_printf(globals, "Bad login attempt !\n");
    log_write("bad login attempt from %s\n",
 			asciiaddr);
-   efree(&asciiaddr);	
+   efree (&asciiaddr);
    goto shutdown_and_exit;
  }
   else {
-   efree(&asciiaddr);
+   efree (&asciiaddr);
    if(perms){
      	rules_add(&rules, &perms, NULL);
   if(family == AF_INET)
@@ -454,7 +453,7 @@ if(preferences_benice(prefs))nice(10);
    comm_send_rules(globals);
    ntp_1x_send_dependencies(globals);
 
-   /* become process group leader and the like ... */
+   /* Become process group leader and the like ... */
    start_daemon_mode();
 wait :
 #ifdef ENABLE_SAVE_TESTS
@@ -463,12 +462,12 @@ wait :
    else
      arg_add_value(globals, "RESTORE-SESSION", ARG_INT, sizeof(int),(void*)2); 
 #endif
-   comm_wait_order(globals);
-   preferences_reset_cache();
-   plugins_set_ntp_caps(plugins, arg_get_value(globals, "ntp_caps"));
-   rules = arg_get_value(globals, "rules");
-   ntp_1x_timestamp_scan_starts(globals);
-   e = attack_network(globals);
+   comm_wait_order (globals);
+   preferences_reset_cache ();
+   plugins_set_ntp_caps (plugins, arg_get_value(globals, "ntp_caps"));
+   rules = arg_get_value (globals, "rules");
+   ntp_1x_timestamp_scan_starts (globals);
+   e = attack_network (globals);
    ntp_1x_timestamp_scan_ends(globals);
    if(e < 0)
     EXIT(0);
@@ -768,19 +767,20 @@ init_network (int port, int* sock, struct addrinfo addr)
     {
       int ec = errno;
       log_write("socket(AF_INET): %s (errno = %d)\n", strerror(ec), ec);
+      fprintf (stderr, "socket() failed : %s\n", strerror(ec));
       DO_EXIT(1);
     }
 
   setsockopt(*sock, SOL_SOCKET, SO_REUSEADDR, &option, sizeof(int));
   if(bind(*sock, (struct sockaddr *)(addr.ai_addr), addr.ai_addrlen)==-1)
     {
-      fprintf(stderr, "bind() failed : %s\n", strerror(errno));      
+      fprintf(stderr, "bind() failed : %s\n", strerror(errno));
       DO_EXIT(1);
     }
 
   if(listen(*sock, 10)==-1)
     {
-      fprintf(stderr, "listen() failed : %s\n", strerror(errno));      
+      fprintf(stderr, "listen() failed : %s\n", strerror(errno));
       shutdown(*sock, 2);
       close(*sock);
       DO_EXIT(1);
@@ -1032,7 +1032,7 @@ main (int argc, char * argv[], char * envp[])
   {
     printf("openvasd (%s) %s for %s\n\n", PROGNAME, OPENVAS_VERSION, OVS_OS_NAME);
     printf("Nessusd origin: (C) 1998 - 2004 Renaud Deraison <deraison@nessus.org>\n");
-    printf("New code since openvasd: (C) 2007, 2008 Intevation GmbH\n");
+    printf("New code since openvasd: (C) 2007, 2008, 2009 Intevation GmbH\n");
     printf("\n");
     DO_EXIT(0);
   }
@@ -1093,6 +1093,7 @@ main (int argc, char * argv[], char * envp[])
 
   nessus_init_svc();
 
+  // Daemon mode:
   if(do_fork)
     {
       /* Close stdin, stdout and stderr */
