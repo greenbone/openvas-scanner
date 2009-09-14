@@ -913,7 +913,7 @@ main (int argc, char * argv[], char * envp[])
 #endif
 
   static gboolean display_version = FALSE;
-  static gboolean do_fork = FALSE;
+  static gboolean dont_fork = FALSE;
   static gchar *address = NULL;
   static gchar *src_ip = NULL;
   static gchar *port = NULL;
@@ -929,8 +929,8 @@ main (int argc, char * argv[], char * envp[])
   {
     { "version",    'v', 0,  G_OPTION_ARG_NONE, &display_version,
                              "Display version information", NULL },
-    { "background", 'D', 0,  G_OPTION_ARG_NONE, &do_fork,
-                             "Run in daemon mode", NULL },
+    { "foreground", 'f', 0,  G_OPTION_ARG_NONE, &dont_fork,
+                             "Do not run in daemon mode but stay in foreground", NULL },
     { "listen",     'a', 0,  G_OPTION_ARG_STRING, &address,
                              "Listen on <address>", "<address>" },
     { "src-ip",     'S', 0,  G_OPTION_ARG_STRING, &src_ip,
@@ -1094,7 +1094,7 @@ main (int argc, char * argv[], char * envp[])
   nessus_init_svc();
 
   // Daemon mode:
-  if(do_fork)
+  if(dont_fork == FALSE)
     {
       /* Close stdin, stdout and stderr */
       i = open("/dev/null", O_RDONLY, 0640);

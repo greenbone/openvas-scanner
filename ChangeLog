@@ -1,5 +1,16 @@
 2009-09-14  Felix Wolfsteller <felix.wolfsteller@intevation.de>
 
+	Changed default behavior: openvasd now by default runs in background.
+	New option -f (--foreground) has to be specified to keep it in
+	foreground.
+
+	* openvasd/openvasd.c (main): Changed default behavior, openvasd now
+	backgrounds by default.
+
+	* doc/openvasd.8.in: Document change in manpage.
+
+2009-09-14  Felix Wolfsteller <felix.wolfsteller@intevation.de>
+
 	* openvasd/openvasd.c: Cosmetics.
 
 	* openvasd/openvasd.c (init_network): Print error message to stderr and

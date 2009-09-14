@@ -18,7 +18,8 @@ interfaces with the user.
 
 .BR openvasd
 inspect the remote hosts and attempts to list all the vulnerabilities and common
-misconfigurations that affects them.
+misconfigurations that affects them. Note that openvasd will run in daemon mode
+by default (unless you specify -f as an option).
 
 .SH OPTIONS
 .TP 
@@ -62,8 +63,8 @@ Tell the server to listen on connection on the port <port-number> rather
 than listening on port 9390 (default).
 
 .TP 
-.B "-D, --background"
-Make the server run in background (daemon mode)
+.B "-f, --foreground"
+Make the server stay in foreground (non-daemon mode)
 
 .TP 
 .B "-q, --quiet"
