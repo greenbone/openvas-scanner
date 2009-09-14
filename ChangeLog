@@ -1,5 +1,11 @@
 2009-09-14  Felix Wolfsteller <felix.wolfsteller@intevation.de>
 
+	* doc/openvasd.8.in: Removed sections about non-implemented options,
+	updated links to project information (removing the link a former
+	existing mailing list overview page).
+
+2009-09-14  Felix Wolfsteller <felix.wolfsteller@intevation.de>
+
 	Changed default behavior: openvasd now by default runs in background.
 	New option -f (--foreground) has to be specified to keep it in
 	foreground.

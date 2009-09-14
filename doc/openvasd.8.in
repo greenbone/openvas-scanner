@@ -79,16 +79,6 @@ Make the server dumps its compilation options
 Writes the version number and exits
 
 .TP
-.B "-R, --recompile"
-Compiles every .nasl plugin as a binary file and exits.
-
-.TP
-.B "-P, --no-plugin-server"
-By default, openvasd starts a 
-.B plugin server
-which is in charge of pre-loading every compiled plugin in memory and distribute them among all the openvasd processes. As a result, loading a plugin in memory becomes a very inexpensive operation, at the expense of wasting ~ 40 megs of memory to pre-load them all in binary form. By specifying the -P option, it is possible to disable this functionnality and save this amount of memory.
-
-.TP
 .B "-h, --help"
 Show a summary of the commands
 
@@ -331,14 +321,14 @@ http://www.openvas.org/
 (Official site)
 .br
 .UR
-http://cvs.openvas.org/
+http://wald.intevation.org/projects/openvas/
 .UE
 (Developers site)
 .br
 .UR
-http://www.openvas.org/doku.php?id=mailing_lists
+http://bugs.openvas.org
 .UE
-(Mailing lists)
+(Bug Tracker)
 .RE
 	
 .SH AUTHORS
