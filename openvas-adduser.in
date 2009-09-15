@@ -69,7 +69,7 @@ else
   # initialize gettext
 
   . $GETTEXT
-  export TEXTDOMAIN=nessus-scripts
+  export TEXTDOMAIN=openvas-scripts
   export TEXTDOMAINDIR=@datadir@/locale
 
 fi

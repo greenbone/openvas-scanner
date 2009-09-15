@@ -1,3 +1,9 @@
+2009-09-15  Jan-Oliver Wagner <jan-oliver.wagner@greenbone.net>
+
+	* openvas-adduser.in, openvas-mkcert-client.in, openvas-mkcert.in,
+	openvas-rmuser.in: Renamed text domain from nessus-scripts to
+	openvas-scripts.
+
 2009-09-14  Felix Wolfsteller <felix.wolfsteller@intevation.de>
 
 	* doc/openvasd.8.in: Removed sections about non-implemented options,
