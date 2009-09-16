@@ -1,3 +1,8 @@
+2009-09-16  Michael Wiegand <michael.wiegand@intevation.de>
+
+	* openvas-mkcert.in: Replace usage of MD5 as certificate signature
+	algorithm with SHA1.
+
 2009-09-15  Jan-Oliver Wagner <jan-oliver.wagner@greenbone.net>
 
 	* openvas-adduser.in, openvas-mkcert-client.in, openvas-mkcert.in,
