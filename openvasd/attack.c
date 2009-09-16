@@ -644,7 +644,7 @@ attack_start (struct attack_start_args * args)
   arg_add_value(preferences, "non_simult_ports_list", ARG_ARGLIST, -1, (void*)list2arglist(non_simult));
 
   /* Options regarding the communication with our parent */
-  nessus_deregister_connection(GPOINTER_TO_SIZE(arg_get_value(globals, "global_socket")));
+  openvas_deregister_connection(GPOINTER_TO_SIZE(arg_get_value(globals, "global_socket")));
   arg_set_value(globals, "global_socket", -1, GSIZE_TO_POINTER(thread_socket));
 
   /* Wait for the server to confirm it read our data

@@ -1,3 +1,11 @@
+2009-09-16  Jan-Oliver Wagner <jan-oliver.wagner@greenbone.net>
+
+	* openvasd/sighand.h, openvasd/processes.c, openvasd/openvasd.c,
+	openvasd/attack.c, openvasd/comm.c, openvasd/sighand.c,
+	openvasd/utils.c, openvasd/hosts.c, openvasd/pluginlaunch.c,
+	openvasd/save_kb.c, openvasd/parser.c: Replaced "nessus" by
+	"openvas" in function names.
+
 2009-09-16  Michael Wiegand <michael.wiegand@intevation.de>
 
 	* openvas-mkcert.in: Replace usage of MD5 as certificate signature

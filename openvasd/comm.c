@@ -369,7 +369,7 @@ comm_send_preferences (struct arglist * globals)
  auth_printf(globals, "ntp_save_sessions <|> yes\n");
  auth_printf(globals, "server_info_openvasd_version <|> %s\n", OPENVAS_VERSION);
  auth_printf(globals, "server_info_libnasl_version <|> %s\n", nasl_version());
- auth_printf(globals, "server_info_libnessus_version <|> %s\n", nessuslib_version());
+ auth_printf(globals, "server_info_libnessus_version <|> %s\n", openvaslib_version());
 #ifdef USE_FORK_THREADS
   auth_printf(globals, "server_info_thread_manager <|> fork\n");
 #endif

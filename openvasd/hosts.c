@@ -344,7 +344,7 @@ hosts_read_client(struct arglist * globals)
     return 0;
 
 
- rsoc = nessus_get_socket_from_connection(g_soc);
+ rsoc = openvas_get_socket_from_connection(g_soc);
  if(rsoc == -1)
     return -1;
 

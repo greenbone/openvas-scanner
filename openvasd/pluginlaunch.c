@@ -372,7 +372,7 @@ pluginlaunch_init (struct arglist * globals)
 		
  num_running_processes = 0;
  bzero(&(processes), sizeof(processes));
- nessus_signal(SIGTERM, process_mgr_sighand_term);
+ openvas_signal(SIGTERM, process_mgr_sighand_term);
 }
 
 void
@@ -413,7 +413,7 @@ pluginlaunch_stop()
 	 }
  }
  shared_socket_close();
- nessus_signal(SIGTERM, _exit);
+ openvas_signal(SIGTERM, _exit);
 }
 
 

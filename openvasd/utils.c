@@ -452,7 +452,7 @@ again:
 	
 	if( e > 0 )
 	{
-		int len = data_left(nessus_get_socket_from_connection(soc));
+		int len = data_left(openvas_get_socket_from_connection(soc));
 		if(!len){
 			log_write("Communication closed by client\n");
 			return 0;

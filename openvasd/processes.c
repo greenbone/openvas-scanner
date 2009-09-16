@@ -95,14 +95,14 @@ create_process(function, argument)
  if (pid == 0)
  { 
   process_son = 0;
-  nessus_signal(SIGHUP, SIG_IGN);
-  nessus_signal(SIGTERM, pr_sigterm);
-  nessus_signal(SIGINT, pr_sigterm);
-  nessus_signal(SIGPIPE, SIG_IGN);
-  nessus_signal(SIGUSR1, SIG_IGN);
-  nessus_signal(SIGUSR2, SIG_IGN);
-  nessus_signal(SIGCHLD, sighand_chld);
-  nessus_signal(SIGSEGV, sighand_segv);	/* Comment this line out to dump a core and debug openvasd */
+  openvas_signal(SIGHUP, SIG_IGN);
+  openvas_signal(SIGTERM, pr_sigterm);
+  openvas_signal(SIGINT, pr_sigterm);
+  openvas_signal(SIGPIPE, SIG_IGN);
+  openvas_signal(SIGUSR1, SIG_IGN);
+  openvas_signal(SIGUSR2, SIG_IGN);
+  openvas_signal(SIGCHLD, sighand_chld);
+  openvas_signal(SIGSEGV, sighand_segv);	/* Comment this line out to dump a core and debug openvasd */
   srand48(getpid() + getppid() + (long)time(NULL)); /* RATS: ignore */
   (*function)(argument);
   EXIT(0);

@@ -835,12 +835,12 @@ save_kb_max_age (struct arglist * globals)
  *
  *
  * The idea of a differential scan is to only show the user what
- * has changed in the report. To do this, libnessus relies on the content
+ * has changed in the report. To do this, libopenvas relies on the content
  * of the Success/... and Failures/... KB entries that record if a test 
  * was sucessful or failed in the past.
  *
  * Note that the KB now contain the full text of the messages sent 
- * back to the client, so libnessus will be able to determine if a message
+ * back to the client, so libopenvas will be able to determine if a message
  * has changed or not (such as a newer FTP version for instance).
  *
  *

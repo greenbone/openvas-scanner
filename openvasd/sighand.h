@@ -31,7 +31,7 @@
 #ifndef _NESSUSD_SIGHAND_H
 #define _NESSUSD_SIGHAND_H
 
-extern void (*nessus_signal(int signum, void (*handler)(int)))(int);
+extern void (*openvas_signal(int signum, void (*handler)(int)))(int);
 extern void sighand_pipe();
 extern void sighand_chld();
 extern void sighand_alarm();

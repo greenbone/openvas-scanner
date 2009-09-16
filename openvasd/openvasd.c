@@ -82,7 +82,7 @@ int allow_severity = LOG_NOTICE;
 #endif
 
 extern char * nasl_version();
-extern char * nessuslib_version();
+extern char * openvaslib_version();
 
 /**
  * Globals that should not be touched (used in utils module).
@@ -359,7 +359,7 @@ server_thread (struct arglist * globals)
  if (preferences_benice(prefs))
    nice(10);
 
- nessus_signal(SIGCHLD, sighand_chld);
+ openvas_signal(SIGCHLD, sighand_chld);
 #if 1
  /* To let some time to attach a debugger to the child process */
  {
@@ -506,13 +506,13 @@ main_loop ()
 
   setproctitle("waiting for incoming connections");
   /* catch dead children */
-  nessus_signal(SIGCHLD, sighand_chld);
+  openvas_signal(SIGCHLD, sighand_chld);
 
 #if DEBUG_SSL > 1
   fprintf(stderr, "**** in main_loop ****\n");
 #endif
 
-  nessus_init_random();
+  openvas_init_random();
 
 #define SSL_VER_DEF_NAME	"TLSv1"
 #define SSL_VER_DEF_ENCAPS	NESSUS_ENCAPS_TLSv1
@@ -608,7 +608,7 @@ main_loop ()
       if (restart != 0) restart_openvasd ();
 
       wait_for_children1();
-      /* Prevent from an io table overflow attack against nessus */
+      /* Prevent from an io table overflow attack against openvas */
       if (asciiaddr != 0) {
         time_t now = time (0);
 
@@ -849,13 +849,13 @@ init_openvasd (struct arglist * options, int first_pass, int stop_early,
 
   if (first_pass && !stop_early)
     {
-      nessus_signal (SIGSEGV, sighandler);
-      nessus_signal (SIGCHLD, sighand_chld);
-      nessus_signal (SIGTERM, sighandler);
-      nessus_signal (SIGINT, sighandler);
-      nessus_signal (SIGHUP, sighup);
-      nessus_signal (SIGUSR1, sighandler); /* openvasd dies, not its sons */
-      nessus_signal (SIGPIPE, SIG_IGN);
+      openvas_signal (SIGSEGV, sighandler);
+      openvas_signal (SIGCHLD, sighand_chld);
+      openvas_signal (SIGTERM, sighandler);
+      openvas_signal (SIGINT, sighandler);
+      openvas_signal (SIGHUP, sighup);
+      openvas_signal (SIGUSR1, sighandler); /* openvasd dies, not its sons */
+      openvas_signal (SIGPIPE, SIG_IGN);
     }
 
   arg_replace_value (options, "isck", ARG_INT, sizeof(gpointer), GSIZE_TO_POINTER(isck));
@@ -909,7 +909,7 @@ main (int argc, char * argv[], char * envp[])
 
 #ifdef USE_PTHREADS
   /* pull in library symbols - otherwise abort */
-  nessuslib_pthreads_enabled ();
+  openvaslib_pthreads_enabled ();
 #endif
 
   static gboolean display_version = FALSE;
@@ -1052,7 +1052,7 @@ main (int argc, char * argv[], char * envp[])
     printf("compiled with %s\n", OVS_COMPILER);
     printf("Current setup :\n");
     printf("\topenvas-libnasl                : %s\n", nasl_version());
-    printf("\topenvas-libraries              : %s\n", nessuslib_version());
+    printf("\topenvas-libraries              : %s\n", openvaslib_version());
     printf("\tSSL is used for client / server communication\n");
     printf("\tRunning as euid                : %d\n", geteuid());
 #ifdef USE_LIBWRAP
@@ -1091,7 +1091,7 @@ main (int argc, char * argv[], char * envp[])
   if (exit_early)
     exit (0);
 
-  nessus_init_svc();
+  openvas_init_svc();
 
   // Daemon mode:
   if(dont_fork == FALSE)

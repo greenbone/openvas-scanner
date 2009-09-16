@@ -114,7 +114,7 @@ make_em_die
  *  Replacement for the signal() function, written
  *  by Sagi Zeevi <sagiz@yahoo.com>
  */
-void (*nessus_signal(int signum, void (*handler)(int)))(int)
+void (*openvas_signal(int signum, void (*handler)(int)))(int)
 {
   struct sigaction saNew,saOld;
 
