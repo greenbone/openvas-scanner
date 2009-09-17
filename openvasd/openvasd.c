@@ -503,6 +503,7 @@ main_loop ()
   char *old_addr = 0, *asciiaddr = 0;
   time_t last = 0;
   int count = 0;
+  struct addrinfo * ai = arg_get_value (g_options, "addr");
 
   setproctitle("waiting for incoming connections");
   /* catch dead children */
@@ -596,8 +597,9 @@ main_loop ()
     {
       int soc;
       int family;
-      unsigned int lg_address = sizeof(struct sockaddr_in6);
-      struct sockaddr_in6 address;
+      unsigned int lg_address;
+      struct sockaddr_in  address;
+      struct sockaddr_in6 address6;
       struct sockaddr_in6 * p_addr;
       struct sockaddr_in *saddr;
 
@@ -640,17 +642,29 @@ main_loop ()
       old_addr = asciiaddr;
       asciiaddr = 0;
 
-      soc = accept (global_iana_socket, (struct sockaddr *)(&address), &lg_address);
-      if (soc == -1) continue;
+      if(ai->ai_family == AF_INET)
+      {
+        lg_address = sizeof(struct sockaddr_in);
+        soc = accept (global_iana_socket, (struct sockaddr *)(&address), &lg_address);
+      }
+      else
+      {
+        lg_address = sizeof(struct sockaddr_in6);
+        soc = accept (global_iana_socket, (struct sockaddr *)(&address6), &lg_address);
+      }
+      if (soc == -1)
+      {
+        continue;
+      }
 
-      family = address.sin6_family;
+      family = ai->ai_family;
       asciiaddr = (char *)emalloc(INET6_ADDRSTRLEN);
       if(family == AF_INET)
       {
         saddr = (struct sockaddr_in *)&address;
         if(inet_ntop(AF_INET, &saddr->sin_addr, asciiaddr, INET6_ADDRSTRLEN) != NULL)
         {
-          log_write("Family is %d ascii address is %s\n",address.sin6_family,asciiaddr);
+          log_write("Family is %d ascii address is %s\n",address.sin_family,asciiaddr);
         }
         else
         {
@@ -659,9 +673,9 @@ main_loop ()
       }
       else
       {
-        if(inet_ntop(AF_INET6, &address.sin6_addr, asciiaddr, INET6_ADDRSTRLEN) != NULL)
+        if(inet_ntop(AF_INET6, &address6.sin6_addr, asciiaddr, INET6_ADDRSTRLEN) != NULL)
         {
-          log_write("Family is %d ascii address is %s\n",address.sin6_family,asciiaddr);
+          log_write("Family is %d ascii address is %s\n",address6.sin6_family,asciiaddr);
         }
         else
         {
@@ -724,7 +738,10 @@ main_loop ()
       my_rules = /*rules_dup*/(global_rules);
 
       p_addr = emalloc(sizeof(struct sockaddr_in6));
-      memcpy(p_addr,&address,sizeof(address));
+      if(ai->ai_family == AF_INET)
+        memcpy(p_addr,&address,sizeof(address));
+      else
+        memcpy(p_addr,&address6,sizeof(address6));
       arg_add_value(globals, "client_address", ARG_PTR, -1, p_addr);
       arg_add_value(globals, "family", ARG_INT, -1, GSIZE_TO_POINTER(family));
 
@@ -767,7 +784,7 @@ init_network (int port, int* sock, struct addrinfo addr)
     {
       int ec = errno;
       log_write("socket(AF_INET): %s (errno = %d)\n", strerror(ec), ec);
-      fprintf (stderr, "socket() failed : %s\n", strerror(ec));
+      fprintf (stderr, "socket() failed :  %s\n", strerror(ec));
       DO_EXIT(1);
     }
 
@@ -1010,11 +1027,28 @@ main (int argc, char * argv[], char * envp[])
   }
   else
   {
-    /*Warning: Not filling all the fields*/
-    s6addr.sin6_addr = in6addr_any;
-    s6addr.sin6_family = ai.ai_family = AF_INET6;
-    ai.ai_addrlen = sizeof(s6addr);
-    ai.ai_addr = (struct sockaddr *)&s6addr;
+    int tmpsock;
+    tmpsock = socket(AF_INET6, SOCK_STREAM, 0);
+    if(tmpsock == -1 && errno == EAFNOSUPPORT)
+    {
+      /* No ipv6 support. Try ipv4*/
+      /*Warning: Not filling all the fields*/
+      saddr.sin_addr.s_addr = INADDR_ANY;
+      saddr.sin_family = ai.ai_family = AF_INET;
+      ai.ai_addrlen = sizeof(saddr);
+      ai.ai_addr = (struct sockaddr *)&saddr;
+    }
+    else
+    {
+      /* we will stick to ipv6 */
+      if(tmpsock > 0)
+        close(tmpsock);
+      /*Warning: Not filling all the fields*/
+      s6addr.sin6_addr = in6addr_any;
+      s6addr.sin6_family = ai.ai_family = AF_INET6;
+      ai.ai_addrlen = sizeof(s6addr);
+      ai.ai_addr = (struct sockaddr *)&s6addr;
+    }
   }
 
   if (port != NULL)
