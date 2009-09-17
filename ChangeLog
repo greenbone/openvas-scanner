@@ -1,13 +1,12 @@
 2009-09-17  Chandrashekhar B <bchandra@secpod.com>
 
+	These changes support kernels that might not have ipv6
+	module loaded. Coding by Srinivasa NL <nl.srinivas@gmail.com>.
+
 	* openvasd/openvasd.c (main): Initialize "ai" with saddr or s6addr
 	to wild card address depending on ipv6 availablilty.
-
-	* openvasd/openvasd.c (main_loop): wait for ipv4 only client or
+	(main_loop): wait for ipv4 only client or
 	ipv4/ipv6 client depending on what address the server is bound to.
-
-	The above changes are done to support kernels that might not have ipv6
-	module loaded. Coding by Srinivasa NL <nl.srinivas@gmail.com>.
 
 2009-09-16  Jan-Oliver Wagner <jan-oliver.wagner@greenbone.net>
 
