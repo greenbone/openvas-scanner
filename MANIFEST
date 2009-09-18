@@ -9,11 +9,11 @@ cnvts/openvas_tcp_scanner/Makefile
 cnvts/openvas_tcp_scanner/openvas_tcp_scanner.c
 cnvts/ssl_ciphers/Makefile
 cnvts/ssl_ciphers/ssl_ciphers.c
-cnvts/synscan/nessusicmp.h
-cnvts/synscan/nessusip.h
-cnvts/synscan/nessusraw.h
-cnvts/synscan/nessustcp.h
-cnvts/synscan/nessusudp.h
+cnvts/synscan/openvasicmp.h
+cnvts/synscan/openvasip.h
+cnvts/synscan/openvasraw.h
+cnvts/synscan/openvastcp.h
+cnvts/synscan/openvasudp.h
 cnvts/synscan/Makefile
 cnvts/synscan/synscan.c
 config.guess

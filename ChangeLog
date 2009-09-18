@@ -1,5 +1,9 @@
 2009-09-18  Felix Wolfsteller <felix.wolfsteller@intevation.de>
 
+	* MANIFEST: Updated as filenames were changed.
+
+2009-09-18  Felix Wolfsteller <felix.wolfsteller@intevation.de>
+
 	* cnvt/synscan/openvasicmp.h, cnvt/synscan/openvasip.h,
 	cnvt/synscan/openvasraw.h, cnvt/synscan/openvastcp.h,
 	cnvt/synscan/openvasudp.h: Adjusted include guards and includes to new
