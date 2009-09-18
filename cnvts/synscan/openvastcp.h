@@ -27,9 +27,12 @@
 *
 */
 
+/** @todo A similar file exists in openvas-libraries/nasl/, but prefixed 'nasl'
+ *        instead of 'openvas'. If resolution of cnvts proceeds slowly,
+ *        consider removal. */
 
-#ifndef NESSUS_TCP_H__
-#define NESSUS_TCP_H__
+#ifndef OPENVASTCP_H__
+#define OPENVASTCP_H__
 
 #ifdef HAVE_NETINET_TCP_H
 #include <netinet/tcp.h>
@@ -94,4 +97,5 @@ struct tcphdr {
 #ifndef TH_FLAGS
 #define TH_FLAGS (TH_FIN|TH_SYN|TH_RST|TH_ACK|TH_URG)
 #endif
-#endif
+
+#endif /* OPENVASTCP_H__ */

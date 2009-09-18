@@ -27,9 +27,12 @@
 *
 */
 
+/** @todo A similar file exists in openvas-libraries/nasl/, but prefixed 'nasl'
+ *        instead of 'openvas'. If resolution of cnvts proceeds slowly,
+ *        consider removal. */
 
-#ifndef NESSUS_ICMP_H
-#define NESSUS_ICMP_H
+#ifndef OPENVASICMP_H
+#define OPENVASICMP_H
 
 #ifdef HAVE_NETINET_IP_ICMP_H
 #include <netinet/ip_icmp.h>

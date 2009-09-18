@@ -27,9 +27,12 @@
 *
 */
 
+/** @todo A similar file exists in openvas-libraries/nasl/, but prefixed 'nasl'
+ *        instead of 'openvas'. If resolution of cnvts proceeds slowly,
+ *        consider removal. */
 
-#ifndef NESSUS_UDP_H__
-#define NESSUS_UDP_H__
+#ifndef OPENVASUDP_H__
+#define OPENVASUDP_H__
 
 #ifdef HAVE_NETINET_UDP_H
 #include <netinet/udp.h>
@@ -52,4 +55,4 @@ struct udphdr {
 #define uh_sum check
 #endif
 
-#endif
+#endif /* OPENVASUDP_H__ */

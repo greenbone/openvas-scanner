@@ -1,5 +1,12 @@
 2009-09-18  Felix Wolfsteller <felix.wolfsteller@intevation.de>
 
+	* cnvt/synscan/openvasicmp.h, cnvt/synscan/openvasip.h,
+	cnvt/synscan/openvasraw.h, cnvt/synscan/openvastcp.h,
+	cnvt/synscan/openvasudp.h: Adjusted include guards and includes to new
+	filenames, added todos (code duplicate in openvas-libraries/nasl).
+
+2009-09-18  Felix Wolfsteller <felix.wolfsteller@intevation.de>
+
 	First part of renaming files (nessus->openvas) in the synscan c-nvt.
 
 	* cnvt/synscan/nessusicmp.h, cnvt/synscan/nessusip.h,

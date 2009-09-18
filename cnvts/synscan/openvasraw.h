@@ -27,9 +27,12 @@
 *
 */
 
+/** @todo A similar file exists in openvas-libraries/nasl/, but prefixed 'nasl'
+ *        instead of 'openvas'. If resolution of cnvts proceeds slowly,
+ *        consider removal. */
 
-#ifndef NESSUS_RAW_H
-#define NESSUS_RAW_H
+#ifndef OPENVASRAW_H
+#define OPENVASRAW_H
 #ifdef __linux__
 #ifndef __BSD_SOURCE
 #define __BSD_SOURCE
@@ -44,11 +47,12 @@
 #endif
 #endif
 
-#include <nessusip.h>
-#include <nessustcp.h>
-#include <nessusudp.h>
-#include <nessusicmp.h>
+#include <openvasip.h>
+#include <openvastcp.h>
+#include <openvasudp.h>
+#include <openvasicmp.h>
 
 int tcp_ping_host(struct in_addr);
 long tcp_timing(struct in_addr, int num_probes, unsigned int port);
+
 #endif

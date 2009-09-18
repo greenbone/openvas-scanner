@@ -27,8 +27,11 @@
 *
 */
 
+/** @todo A similar file exists in openvas-libraries/nasl/, but prefixed 'nasl'
+ *        instead of 'openvas'. If resolution of cnvts proceeds slowly,
+ *        consider removal. */
 
-#ifndef NESSUS_IP_H__
+#ifndef OPENVASIP_H__
 #ifdef HAVE_NETINET_IP_H
 #include <netinet/ip.h>
 #endif
@@ -65,4 +68,4 @@ struct ip {
 #ifdef HAVE_STRUCT_IP_CSUM
 #define ip_sum ip_csum
 #endif
-#endif
+#endif /* OPENVASIP_H__ */
