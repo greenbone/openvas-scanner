@@ -1,3 +1,15 @@
+2009-09-18  Felix Wolfsteller <felix.wolfsteller@intevation.de>
+
+	First part of renaming files (nessus->openvas) in the synscan c-nvt.
+
+	* cnvt/synscan/nessusicmp.h, cnvt/synscan/nessusip.h,
+	cnvt/synscan/nessusraw.h, cnvt/synscan/nessustcp.h,
+	cnvt/synscan/nessusudp.h, cnvt/synscan/openvasicmp.h,
+	cnvt/synscan/openvasip.h, cnvt/synscan/openvasraw.h,
+	cnvt/synscan/openvastcp.h, cnvt/synscan/openvasudp.h: Moved.
+
+	* cnvt/synscan/synscan.c: Adjusted include.
+
 2009-09-17  Chandrashekhar B <bchandra@secpod.com>
 
 	These changes support kernels that might not have ipv6

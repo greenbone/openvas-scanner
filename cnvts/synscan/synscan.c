@@ -1,7 +1,7 @@
 #define _BSD_SOURCE 1
 
 #include <includes.h>
-#include <nessusraw.h>
+#include <openvasraw.h>
 
 
 
