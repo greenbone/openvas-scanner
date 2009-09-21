@@ -49,12 +49,12 @@ NEED_OPENVASLIBS_VERSION=2.0.4
 dnl version stuff -- jordan
 save_IFS="${IFS}"
 IFS=.
-read OPENVASD_MAJOR OPENVASD_MINOR OPENVASD_PATCH OPENVASD_RC <VERSION
+read OPENVASSD_MAJOR OPENVASSD_MINOR OPENVASSD_PATCH OPENVASSD_RC <VERSION
 IFS="${save_IFS}"
-OPENVASD_DATE=\"`date '+%b %d, %Y'`\"
-expr 0 + $OPENVASD_MAJOR + $OPENVASD_MINOR + $OPENVASD_PATCH + 0 >/dev/null ||
+OPENVASSD_DATE=\"`date '+%b %d, %Y'`\"
+expr 0 + $OPENVASSD_MAJOR + $OPENVASSD_MINOR + $OPENVASSD_PATCH + 0 >/dev/null ||
 AC_MSG_ERROR([ *** Panic: Corrupt version file])
-version=$OPENVASD_MAJOR.$OPENVASD_MINOR.$OPENVASD_PATCH
+version=$OPENVASSD_MAJOR.$OPENVASSD_MINOR.$OPENVASSD_PATCH
 
 test "x$prefix" != "xNONE" || prefix=/usr/local
 
@@ -90,7 +90,7 @@ AC_ARG_ENABLE(release,[  --enable-release	  set the compiler flags to -O6],
 
 AC_ARG_ENABLE(debug,[  --enable-debug	  set the compiler flags to -g],[
 	CFLAGS="-g"; debug_flags="-DDEBUG"])
-	      
+
 AC_ARG_ENABLE(install,[  --enable-install=user	  for debugging, install as non-root user],
 	installuser=$enable_install)
 : ${installuser:=root}
@@ -108,7 +108,7 @@ AC_PATH_PROG(LIBOPENVASCONFIG, libopenvas-config,,$XPATH)
 test "x$LIBOPENVASCONFIG" = x && AC_ERROR(""
 ""
 "*** openvas-libraries is not installed ! You need to install it before you"
-"compile openvas-server.")
+"compile openvas-scanner.")
 
 OPENVASLIBS_VERSION=`$LIBOPENVASCONFIG --version`
 
@@ -647,32 +647,32 @@ dnl AC_CONFIG_SUBDIRS(src/libpcap) -- not used, anymore
 dnl
 dnl Final step : substitute what we want to
 
-OPENVASD_CONFDIR='${sysconfdir}'
-OPENVASD_STATEDIR='${localstatedir}/lib/openvas'
-OPENVASD_PIDDIR='${localstatedir}/run'
-OPENVASD_SHAREDSTATEDIR='${localstatedir}/lib/openvas'
-OPENVASD_DATADIR='${sysconfdir}/openvas'
-OPENVASD_LIBDIR='${libdir}/openvas'
-OPENVASD_LOGDIR='${localstatedir}/log/openvas'
+OPENVASSD_CONFDIR='${sysconfdir}'
+OPENVASSD_STATEDIR='${localstatedir}/lib/openvas'
+OPENVASSD_PIDDIR='${localstatedir}/run'
+OPENVASSD_SHAREDSTATEDIR='${localstatedir}/lib/openvas'
+OPENVASSD_DATADIR='${sysconfdir}/openvas'
+OPENVASSD_LIBDIR='${libdir}/openvas'
+OPENVASSD_LOGDIR='${localstatedir}/log/openvas'
 
-OPENVASD_PLUGINS='${OPENVASD_LIBDIR}/plugins'
-OPENVASD_CACHE='${localstatedir}/cache/openvas'
-OPENVASD_REPORTS='${OPENVASD_LOGDIR}/reports'
+OPENVASSD_PLUGINS='${OPENVASSD_LIBDIR}/plugins'
+OPENVASSD_CACHE='${localstatedir}/cache/openvas'
+OPENVASSD_REPORTS='${OPENVASSD_LOGDIR}/reports'
 
- 
+
 # The following directories are now passed into the compile
 # by the makefile instead of setting at the time configure is run.
 # Thus we only need to set these once and all the quoting and 
 # everything works okay.
 #
-#AC_DEFINE_UNQUOTED(OPENVASD_CONFDIR,   "${sysconfdir}")
-#AC_DEFINE(OPENVASD_STATEDIR,  "${localstatedir}/openvas'")
-#AC_DEFINE(OPENVASD_DATADIR,   "'${sysconfdir}/openvas")
-#AC_DEFINE(OPENVASD_LIBDIR,    "${libdir}/openvas")
-#AC_DEFINE(OPENVASD_PLUGINS,   "${libdir}/openvas/plugins")
-#AC_DEFINE(OPENVASD_REPORTS,   "${libdir}/openvas/reports")
+#AC_DEFINE_UNQUOTED(OPENVASSD_CONFDIR,   "${sysconfdir}")
+#AC_DEFINE(OPENVASSD_STATEDIR,  "${localstatedir}/openvas'")
+#AC_DEFINE(OPENVASSD_DATADIR,   "'${sysconfdir}/openvas")
+#AC_DEFINE(OPENVASSD_LIBDIR,    "${libdir}/openvas")
+#AC_DEFINE(OPENVASSD_PLUGINS,   "${libdir}/openvas/plugins")
+#AC_DEFINE(OPENVASSD_REPORTS,   "${libdir}/openvas/reports")
 man_openvas_1=doc/openvas.1
-man_openvasd_8=doc/openvasd.8
+man_openvassd_8=doc/openvassd.8
 
 AC_PATH_PROG(AR, ar)
 AC_SUBST(AR)
@@ -683,25 +683,25 @@ AC_SUBST(OVSCFLAGS)
 AC_SUBST(NASLCFLAGS)
 AC_SUBST(CWALL)
 AC_SUBST(version)
-AC_SUBST(OPENVASD_MAJOR)
-AC_SUBST(OPENVASD_MINOR)
-AC_SUBST(OPENVASD_PATCH)
-AC_SUBST(OPENVASD_RC)
-AC_SUBST(OPENVASD_DATE)
+AC_SUBST(OPENVASSD_MAJOR)
+AC_SUBST(OPENVASSD_MINOR)
+AC_SUBST(OPENVASSD_PATCH)
+AC_SUBST(OPENVASSD_RC)
+AC_SUBST(OPENVASSD_DATE)
 AC_SUBST(OVS_COMPILER)
 AC_SUBST(OVS_OS_NAME)
 AC_SUBST(OVS_OS_VERSION)
-AC_SUBST(OPENVASD_CONFDIR)
-AC_SUBST(OPENVASD_STATEDIR)
-AC_SUBST(OPENVASD_PIDDIR)
-AC_SUBST(OPENVASD_SHAREDSTATEDIR)
-AC_SUBST(OPENVASD_DATADIR)
-AC_SUBST(OPENVASD_LIBDIR)
-AC_SUBST(OPENVASD_PLUGINS)
-AC_SUBST(OPENVASD_CACHE)
-AC_SUBST(OPENVASD_LOGDIR)
-AC_SUBST(OPENVASD_REPORTS)
-AC_SUBST(OPENVASD_LOGDIR)
+AC_SUBST(OPENVASSD_CONFDIR)
+AC_SUBST(OPENVASSD_STATEDIR)
+AC_SUBST(OPENVASSD_PIDDIR)
+AC_SUBST(OPENVASSD_SHAREDSTATEDIR)
+AC_SUBST(OPENVASSD_DATADIR)
+AC_SUBST(OPENVASSD_LIBDIR)
+AC_SUBST(OPENVASSD_PLUGINS)
+AC_SUBST(OPENVASSD_CACHE)
+AC_SUBST(OPENVASSD_LOGDIR)
+AC_SUBST(OPENVASSD_REPORTS)
+AC_SUBST(OPENVASSD_LOGDIR)
 AC_SUBST(CWALL)
 AC_SUBST(INSTALL_DIR)
 AC_SUBST(INSTALL)
@@ -713,7 +713,7 @@ AC_SUBST(ssl_lib)
 AC_SUBST(pthread_lib)
 AC_SUBST(debug_flags)
 AC_SUBST(man_openvas_1)
-AC_SUBST(man_openvasd_8)
+AC_SUBST(man_openvassd_8)
 AC_SUBST(dl_lib)
 AC_SUBST(libwrap)
 AC_SUBST(uselibwrap)

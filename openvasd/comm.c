@@ -53,8 +53,7 @@
 
 
 /**
- * @brief Initializes the communication between the
- * server (us) and the client.
+ * @brief Initializes the communication between the scanner (us) and the client.
  */
 ntp_caps*
 comm_init (int soc)
@@ -282,7 +281,7 @@ plugin_send_infos (struct arglist * globals, char * oid)
 
 
 /**
- * @brief Sends the list of plugins that the server could load to the client,
+ * @brief Sends the list of plugins that the scanner could load to the client,
  * @brief using the OTP format (calls send_plug_info for each).
  * @param globals The global arglist.
  * @see send_plug_info
@@ -327,7 +326,7 @@ comm_send_rules (struct arglist * globals)
 }
 
 /**
- * @brief Sends the preferences of the server.
+ * @brief Sends the preferences of the scanner.
  * @param globals The global arglist with a "preferences" sub-arglist.
  */
 void
@@ -343,7 +342,7 @@ comm_send_preferences (struct arglist * globals)
   if (prefs->type == ARG_STRING) 
    {
      /*
-      * No need to send openvasd-specific preferences
+      * No need to send openvassd-specific preferences
       */
      if( strcmp(prefs->name, "logfile")           &&
          strcmp(prefs->name, "config_file")       &&
@@ -367,7 +366,7 @@ comm_send_preferences (struct arglist * globals)
  }
 #ifdef ENABLE_SAVE_TESTS
  auth_printf(globals, "ntp_save_sessions <|> yes\n");
- auth_printf(globals, "server_info_openvasd_version <|> %s\n", OPENVAS_VERSION);
+ auth_printf(globals, "server_info_openvassd_version <|> %s\n", OPENVAS_VERSION);
  auth_printf(globals, "server_info_libnasl_version <|> %s\n", nasl_version());
  auth_printf(globals, "server_info_libnessus_version <|> %s\n", openvaslib_version());
 #ifdef USE_FORK_THREADS
@@ -551,7 +550,7 @@ comm_send_md5_plugins (struct arglist * globals)
      return;
    }
  auth_printf(globals, "SERVER <|> PLUGINS_MD5 <|> %s <|> SERVER\n", md5);
- efree(&md5); 
+ efree (&md5);
 
 
  for(;;)

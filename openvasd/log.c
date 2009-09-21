@@ -70,19 +70,18 @@ void rotate_log_file(const char * filename)
 }
 
 
-/* 
- * initialization of the log file
+/**
+ * @brief Initialization of the log file.
  */
-void 
-log_init(filename)
-  const char * filename;
+void
+log_init (const char * filename)
 {
   if((!filename)||(!strcmp(filename, "stderr"))){
   	log = stderr;
 	dup2(2, 3);
 	}
   else if(!strcmp(filename, "syslog")){
-	openlog("openvasd", 0, LOG_DAEMON);
+	openlog ("openvassd", 0, LOG_DAEMON);
 	log = NULL;
 	}
 

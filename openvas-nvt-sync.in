@@ -97,10 +97,10 @@ sync_nvts (){
 
 # TODO: This does only sometimes work (if proper start/stop daemon was used)
 # It should be made verbose and robust so that the user will know whether
-# openvasd was restarted successfully or whether a failure occured.
-restart_openvasd (){
-  test -f @localstatedir@/run/openvasd.pid && {
-    pid=`cat @localstatedir@/run/openvasd.pid`
+# openvassd was restarted successfully or whether a failure occured.
+restart_openvassd (){
+  test -f @localstatedir@/run/openvassd.pid && {
+    pid=`cat @localstatedir@/run/openvassd.pid`
     kill -1 $pid 2>/dev/null
   }
 }
@@ -113,4 +113,4 @@ echo " "
 
 chk_system_tools
 sync_nvts
-restart_openvasd
+restart_openvassd

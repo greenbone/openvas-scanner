@@ -32,7 +32,7 @@ What is this feature about ?
 ----------------------------
 
 	This feature saves the content of the knowledge base built for each
-host on the disk, on the server (openvasd) side.
+host on the disk, on the scanner (openvassd) side.
 
 What is the purpose of saving the knowledge base ?
 --------------------------------------------------

@@ -1,6 +1,6 @@
 /* OpenVAS
 * $Id$
-* Description: Loads the preferences set in openvasd.conf into the memory. 
+* Description: Loads the preferences set in openvassd.conf into the memory.
 *
 * Authors: - Renaud Deraison <deraison@nessus.org> (Original pre-fork develoment)
 *          - Tim Brown <mailto:timb@openvas.org> (Initial fork)
@@ -87,36 +87,36 @@ int preferences_new(char * name)
  fprintf(fd, "# Every line starting with a '#' is a comment\n\n");
 
  fprintf(fd, "# Path to the security checks folder : \n");
- fprintf(fd, "plugins_folder = %s\n\n", OPENVASD_PLUGINS);
+ fprintf(fd, "plugins_folder = %s\n\n", OPENVASSD_PLUGINS);
 
  fprintf(fd, "# Path to OpenVAS caching folder: \n");
- fprintf(fd, "cache_folder = %s\n\n", OPENVASD_CACHE);
+ fprintf(fd, "cache_folder = %s\n\n", OPENVASSD_CACHE);
 
  fprintf(fd, "# Path to OpenVAS include directories: \n");
  fprintf(fd, "# (multiple entries are separated with colon ':')\n");
  // Default value is the same directory as the root for  the NVTs
- fprintf(fd, "include_folders = %s\n\n", OPENVASD_PLUGINS);
+ fprintf(fd, "include_folders = %s\n\n", OPENVASSD_PLUGINS);
 
  fprintf(fd, "# Maximum number of simultaneous hosts tested : \n");
  fprintf(fd, "max_hosts = 30\n\n");
  fprintf(fd, "# Maximum number of simultaneous checks against each host tested : \n");
  fprintf(fd, "max_checks = 10\n\n");
- fprintf(fd, "# Niceness. If set to 'yes', openvasd will renice itself to 10.\n");
+ fprintf(fd, "# Niceness. If set to 'yes', openvassd will renice itself to 10.\n");
  fprintf(fd, "be_nice = no\n\n");
 
 
  fprintf(fd, "# Log file (or 'syslog') : \n");
- fprintf(fd, "logfile = %s\n\n", OPENVASD_MESSAGES);
+ fprintf(fd, "logfile = %s\n\n", OPENVASSD_MESSAGES);
  fprintf(fd, "# Shall we log every details of the attack ? (disk intensive)\n");
  fprintf(fd, "log_whole_attack = no\n\n");
  fprintf(fd, "# Log the name of the plugins that are loaded by the server ?\n");
  fprintf(fd, "log_plugins_name_at_load = no\n\n");
  fprintf(fd, "# Dump file for debugging output, use `-' for stdout\n");
- fprintf(fd, "dumpfile = %s\n\n", OPENVASD_DEBUGMSG);
+ fprintf(fd, "dumpfile = %s\n\n", OPENVASSD_DEBUGMSG);
  fprintf(fd, "# Rules file : \n");
- fprintf(fd, "rules = %s\n\n", OPENVASD_RULES);
+ fprintf(fd, "rules = %s\n\n", OPENVASSD_RULES);
  fprintf(fd, "# Users database : \n");
- fprintf(fd, "users = %s\n\n", OPENVASD_USERS);
+ fprintf(fd, "users = %s\n\n", OPENVASSD_USERS);
  fprintf(fd, "# CGI paths to check for (cgi-bin:/cgi-aws:/ can do)\n");
  fprintf(fd, "cgi_path = /cgi-bin:/scripts\n\n");
  fprintf(fd, "# Range of the ports the port scanners will scan : \n");

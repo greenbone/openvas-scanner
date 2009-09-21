@@ -1,3 +1,21 @@
+2009-09-21  Felix Wolfsteller <felix.wolfsteller@intevation.de>
+
+	First steps of renaming openvasd to openvassd, openvas-server to
+	openvas-scanner.
+
+	* configure.in, Makefile, openvas-adduser.in, openvasd-config.in,
+	openvas-mkcert-client.in, openvas-mkcert.in, openvas-nvt-sync.in,
+	openvas-rmuser.in, openvas.tmpl.in, README, doc/Doxyfile,
+	doc/Doxyfile_full, doc/kb_saving.txt, doc/openvasd.8.in,
+	doc/openvas-mkcert.8, doc/openvas-mkrand.1, session_saving.txt: Renamed
+	openvasd to openvassd, server to scanner.
+
+	* openvasd/auth.c, openvasd/comm.c, openvasd/log.c, openvasd/openvasd.c
+	openvasd/pluginscheduler.c, openvasd/preferences.c, openvasd/rules.c,
+	openvasd/save_tests.c, openvasd/shared_socket.c, openvasd/users.c,
+	openvasd/utils.c, cnvts/synscan/synscan.c, include/config.h.in: Renamed
+	openvasd to openvassd in source, comments and output.
+
 2009-09-21  Jan-Oliver Wagner <jan-oliver.wagner@greenbone.net>
 
 	* openvasd/utils.h, openvasd/users.h, openvasd/sighand.h,

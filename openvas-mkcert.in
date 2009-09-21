@@ -107,8 +107,8 @@ echo
 }
 #
 
-$sbindir/openvasd -g || {
-	gettext "Executing openvasd failed. Make sure your library loader is configured properly and that openvasd is in your \$PATH."; echo
+$sbindir/openvassd -g || {
+	gettext "Executing openvassd failed. Make sure your library loader is configured properly and that openvassd is in your \$PATH."; echo
 	exit 1
 	}
 
@@ -123,8 +123,8 @@ case `openssl version` in
    exit 1
 esac
      
-OPENVASPRIV="@OPENVASD_STATEDIR@/private/CA"
-OPENVASPUB="@OPENVASD_SHAREDSTATEDIR@/CA"
+OPENVASPRIV="@OPENVASSD_STATEDIR@/private/CA"
+OPENVASPUB="@OPENVASSD_SHAREDSTATEDIR@/CA"
 if [ ! -d "$OPENVASPRIV" ]; then
     mkdir -p "$OPENVASPRIV"
     chmod 0700 "$OPENVASPRIV"
@@ -379,7 +379,7 @@ fi
 
 CAMAIL=ca@$hostname
 #cln CLNMAIL=nessus@$hostname
-SRVMAIL=openvasd@$hostname
+SRVMAIL=openvassd@$hostname
 #
 # Create the root CA
 #
@@ -436,7 +436,7 @@ openssl ca -config $BASEDIR/std.cnf -name OpenVASCA -batch -days $SRVCERT_LIFETI
 chmod a+r $CACERT $SRVCERT #cln $CLNCERT
 
 
-CF=@sysconfdir@/openvas/openvasd.conf
+CF=@sysconfdir@/openvas/openvassd.conf
 egrep -v '^ *(pem_password|cert_file|key_file|ca_file|force_pubkey_auth) *=' "$CF" > "$CF.tmp"
 echo "#
 # Added by openvas-mkcert

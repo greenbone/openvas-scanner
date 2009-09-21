@@ -75,8 +75,8 @@ else
 fi
 
 # check the implementation
-openvasd -g || {
-    gettext "Executing openvasd failed. Make sure your library loader is configured properly and that openvasd is in your \$PATH."; echo
+openvassd -g || {
+    gettext "Executing openvassd failed. Make sure your library loader is configured properly and that openvassd is in your \$PATH."; echo
     exit 1
    }
 
@@ -108,12 +108,12 @@ fi
 
 
 
-# find openvasd by the first path segment, ask for settings
-openvasd_conf=` openvasd -s | sed '/^config_file  *= /!d; s/^[^=]*= *//;'`
+# find openvassd by the first path segment, ask for settings
+openvassd_conf=` openvassd -s | sed '/^config_file  *= /!d; s/^[^=]*= *//;'`
 	
 # some checks
-[ -s "$openvasd_conf" ] || {
-	eval_gettext "Missing or empty configuration file \"\$openvasd_conf\"!"; echo
+[ -s "$openvassd_conf" ] || {
+	eval_gettext "Missing or empty configuration file \"\$openvassd_conf\"!"; echo
 	exit 2
 }
 
@@ -136,7 +136,7 @@ test -z "$TMPDIR" && {
 
 # Here we go
 echo
-gettext "Add a new openvasd user"; echo
+gettext "Add a new openvassd user"; echo
 echo "---------------------------------"
 echo
 echo
@@ -221,7 +221,7 @@ echo
 gettext "User rules"; echo
 echo "---------------"
 
-eval_gettext "openvasd has a rules system which allows you to restrict the hosts that \$login has the right to test."; echo
+eval_gettext "openvassd has a rules system which allows you to restrict the hosts that \$login has the right to test."; echo
 gettext "For instance, you may want him to be able to scan his own host only."; echo
 echo
 gettext "Please see the openvas-adduser(8) man page for the rules syntax."; echo

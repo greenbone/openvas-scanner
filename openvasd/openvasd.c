@@ -1,6 +1,6 @@
 /* OpenVAS
 * $Id$
-* Description: Runs the OpenVAS-server.
+* Description: Runs the OpenVAS-scanner.
 *
 * Authors: - Renaud Deraison <deraison@nessus.org> (Original pre-fork develoment)
 *          - Tim Brown <mailto:timb@openvas.org> (Initial fork)
@@ -38,7 +38,7 @@
 
 /**
  * @file
- * OpenVAS Server main module, runs the server.
+ * OpenVAS Scanner main module, runs the scanner.
  */
 
 #include <includes.h>
@@ -106,16 +106,16 @@ static int restart = 0;
 /**
  * SSL context may be kept once it is inited.
  */
-static ovas_server_context_t ovas_server_ctx = NULL;
+static ovas_scanner_context_t ovas_scanner_ctx = NULL;
 
 
 /*
  * Functions prototypes
  */
 static void main_loop();
-static int init_openvasd (struct arglist *, int, int, int);
+static int init_openvassd (struct arglist *, int, int, int);
 static int init_network(int, int *, struct addrinfo);
-static void server_thread (struct arglist *);
+static void scanner_thread (struct arglist *);
 
 
 
@@ -208,7 +208,7 @@ start_daemon_mode (void)
   int fd;
 
 
-  /* do not block the listener port for sub sequent servers */
+  /* do not block the listener port for subsequent scanners */
   close (global_iana_socket);
 
   /* become process group leader */
@@ -236,7 +236,7 @@ start_daemon_mode (void)
 
   /* provide a dump file to collect stdout and stderr */
   if ((s = arg_get_value (global_preferences, "dumpfile")) == 0)
-    s = OPENVASD_DEBUGMSG ;
+    s = OPENVASSD_DEBUGMSG ;
   /* setting "-" denotes terminal mode */
   if (strcmp(s, "-") == 0)
     return;
@@ -273,7 +273,7 @@ end_daemon_mode (void)
 }
 
 static void
-restart_openvasd ()
+restart_openvassd ()
 {
  char * path;
  char fpath[1024];
@@ -286,16 +286,16 @@ restart_openvasd ()
   path = orig_argv[0];
  else
   {
-  path = find_in_path("openvasd", 0);
+  path = find_in_path("openvassd", 0);
   if (path == NULL)
   {
-  	log_write("Could not re-start openvasd - not found\n");
+  	log_write("Could not re-start openvassd - not found\n");
 	_exit(1);
    }
   else {
-  	strncpy(fpath, path, sizeof(fpath) - strlen("openvasd") - 2);
+  	strncpy(fpath, path, sizeof(fpath) - strlen("openvassd") - 2);
 	strcat(fpath, "/");
-	strcat(fpath, "openvasd");
+	strcat(fpath, "openvassd");
 	path = fpath;
 	}
   }
@@ -308,13 +308,13 @@ restart_openvasd ()
 static void
 sighup (int i)
 {
-  log_write("Caught HUP signal - reconfiguring openvasd\n");
+  log_write("Caught HUP signal - reconfiguring openvassd\n");
   restart = 1;
 }
 
 
 static void
-server_thread (struct arglist * globals)
+scanner_thread (struct arglist * globals)
 {
  struct arglist * plugins     = arg_get_value (globals, "plugins");
  struct arglist * prefs       = arg_get_value (globals, "preferences") ;
@@ -366,18 +366,18 @@ server_thread (struct arglist * globals)
    char	* p = getenv("OPENVAS_WAIT_AFTER_FORK");
    int	x = p == NULL ? 0 : atoi(p);
    if (x > 0)
-     fprintf(stderr, "server_thread is starting. Sleeping %d s. PID = %d\n",
+     fprintf(stderr, "scanner_thread is starting. Sleeping %d s. PID = %d\n",
 	     x, getpid());
    sleep(x);
  }
 #endif
 
- /* Close the server thread - it is useless for us now */
+ /* Close the scanner thread - it is useless for us now */
  close (global_iana_socket);
 
- if (ovas_server_ctx != NULL) /* ssl_ver !=  "NONE" */
+ if (ovas_scanner_ctx != NULL) /* ssl_ver !=  "NONE" */
    {
-     soc2 = ovas_server_context_attach(ovas_server_ctx, soc);
+     soc2 = ovas_scanner_context_attach (ovas_scanner_ctx, soc);
      if (soc2 < 0)
        goto shutdown_and_exit;
 
@@ -531,7 +531,7 @@ main_loop ()
 
       /* In case the code is changed and main_loop is called several time,
        * we initialize ssl_ctx only once */
-      if (ovas_server_ctx == NULL)
+      if (ovas_scanner_ctx == NULL)
 	{
 	  int encaps = -1;
 
@@ -581,18 +581,19 @@ main_loop ()
 
           s = arg_get_value (global_preferences, "force_pubkey_auth");
 	  force_pubkey_auth = s != NULL && strcmp(s, "no") != 0;
-	  ovas_server_ctx = ovas_server_context_new(encaps, cert, key, passwd,
-						    ca_file, force_pubkey_auth);
-	  if (!ovas_server_ctx)
+	  ovas_scanner_ctx = ovas_scanner_context_new (encaps, cert, key,
+                                                       passwd, ca_file,
+                                                       force_pubkey_auth);
+	  if (!ovas_scanner_ctx)
 	    {
-	      fprintf(stderr, "Could not create ovas_server_ctx\n");
+	      fprintf(stderr, "Could not create ovas_scanner_ctx\n");
 	      exit (1);
 	    }
 	}
     } /* ssl_ver != "NONE" */
 
 
-  log_write("openvasd %s started\n", OPENVAS_FULL_VERSION);
+  log_write("openvassd %s started\n", OPENVAS_FULL_VERSION);
   for(;;)
     {
       int soc;
@@ -607,7 +608,7 @@ main_loop ()
       struct arglist * my_plugins, * my_preferences;
       struct openvas_rules * my_rules;
 
-      if (restart != 0) restart_openvasd ();
+      if (restart != 0) restart_openvassd ();
 
       wait_for_children1();
       /* Prevent from an io table overflow attack against openvas */
@@ -617,9 +618,9 @@ main_loop ()
 	/* Did we reach the max nums of connect/secs ? */
 	if (last == now)
           {
-            if (++ count > OPENVASD_CONNECT_RATE)
+            if (++ count > OPENVASSD_CONNECT_RATE)
               {
-                sleep (OPENVASD_CONNECT_BLOCKER);
+                sleep (OPENVASSD_CONNECT_BLOCKER);
                 last = 0 ;
               }
           }
@@ -632,7 +633,7 @@ main_loop ()
 	if (old_addr != 0) {
 	  /* detect whether sombody logs in more than once in a row */
 	  if (strcmp (old_addr, asciiaddr) == 0 &&
-	      now < last + OPENVASD_CONNECT_RATE) {
+	      now < last + OPENVASSD_CONNECT_RATE) {
 	    sleep (1);
 	  }
 	  efree (&old_addr);
@@ -702,7 +703,7 @@ main_loop ()
         }
         memcpy(host_name, saddr->ai_cannonname,strlen(saddr->ai_cannonname));
         freeaddrinfo(mysaddr);
-        if (!(hosts_ctl("openvasd", host_name, asciiaddr, STRING_UNKNOWN)))
+        if (!(hosts_ctl("openvassd", host_name, asciiaddr, STRING_UNKNOWN)))
         {
           shutdown (soc, 2);
           close (soc);
@@ -748,7 +749,7 @@ main_loop ()
       arg_add_value (globals, "rules", ARG_PTR, -1, my_rules);
 
       /* we do not want to create an io thread, yet so the last argument is -1 */
-      if (create_process((process_func_t)server_thread, globals) < 0)
+      if (create_process((process_func_t) scanner_thread, globals) < 0)
         {
           log_write ("Could not fork - client won't be served");
           sleep (2);
@@ -784,20 +785,20 @@ init_network (int port, int* sock, struct addrinfo addr)
     {
       int ec = errno;
       log_write("socket(AF_INET): %s (errno = %d)\n", strerror(ec), ec);
-      fprintf (stderr, "socket() failed :  %s\n", strerror(ec));
+      fprintf (stderr, "socket() failed : %s\n", strerror (ec));
       DO_EXIT(1);
     }
 
   setsockopt(*sock, SOL_SOCKET, SO_REUSEADDR, &option, sizeof(int));
   if(bind(*sock, (struct sockaddr *)(addr.ai_addr), addr.ai_addrlen)==-1)
     {
-      fprintf(stderr, "bind() failed : %s\n", strerror(errno));
+      fprintf (stderr, "bind() failed : %s\n", strerror (errno));
       DO_EXIT(1);
     }
 
   if(listen(*sock, 10)==-1)
     {
-      fprintf(stderr, "listen() failed : %s\n", strerror(errno));
+      fprintf (stderr, "listen() failed : %s\n", strerror (errno));
       shutdown(*sock, 2);
       close(*sock);
       DO_EXIT(1);
@@ -811,7 +812,7 @@ init_network (int port, int* sock, struct addrinfo addr)
  * @param stop_early 1: do some initialization, 2: no initialization.
  */
 static int
-init_openvasd (struct arglist * options, int first_pass, int stop_early,
+init_openvassd (struct arglist * options, int first_pass, int stop_early,
                int be_quiet)
 {
   int  isck = -1;
@@ -871,7 +872,7 @@ init_openvasd (struct arglist * options, int first_pass, int stop_early,
       openvas_signal (SIGTERM, sighandler);
       openvas_signal (SIGINT, sighandler);
       openvas_signal (SIGHUP, sighup);
-      openvas_signal (SIGUSR1, sighandler); /* openvasd dies, not its sons */
+      openvas_signal (SIGUSR1, sighandler); /* openvassd dies, not its sons */
       openvas_signal (SIGPIPE, SIG_IGN);
     }
 
@@ -884,7 +885,7 @@ init_openvasd (struct arglist * options, int first_pass, int stop_early,
 }
 
 /**
- * @brief openvasd.
+ * @brief openvassd.
  * @param argc Argument count.
  * @param argv Argument vector.
  * @param envp Used by setproctitle.
@@ -957,7 +958,7 @@ main (int argc, char * argv[], char * envp[])
     { "config-file", 'c', 0, G_OPTION_ARG_FILENAME, &config_file,
                              "Configuration file", "<.rcfile>" },
     { "dump-cfg",   'd', 0,  G_OPTION_ARG_NONE, &dump_cfg,
-                             "Dump the openvasd compilation options", NULL },
+                             "Dump the openvassd compilation options", NULL },
     { "quiet",      'q', 0,  G_OPTION_ARG_NONE, &quiet,
                              "Quiet (do not issue any messages to stdout)", NULL },
     { "cfg-specs",  's',     G_OPTION_FLAG_HIDDEN, G_OPTION_ARG_NONE, &print_specs, "", NULL },
@@ -967,7 +968,8 @@ main (int argc, char * argv[], char * envp[])
     { NULL }
   };
 
-  option_context = g_option_context_new("- server for the OpenVAS security scanner");
+  option_context = g_option_context_new ("- 'server' for the OpenVAS security "
+                                         "scanner");
   g_option_context_add_main_entries(option_context, entries, NULL);
   if (!g_option_context_parse(option_context, &argc, &argv, &error))
   {
@@ -977,7 +979,7 @@ main (int argc, char * argv[], char * envp[])
 
   if (print_sysconfdir)
     {
-      g_print ("%s\n", OPENVASD_CONFDIR);
+      g_print ("%s\n", OPENVASSD_CONFDIR);
       exit (0);
     }
 
@@ -1064,9 +1066,9 @@ main (int argc, char * argv[], char * envp[])
 
   if (display_version)
   {
-    printf("openvasd (%s) %s for %s\n\n", PROGNAME, OPENVAS_VERSION, OVS_OS_NAME);
+    printf("openvassd (%s) %s for %s\n\n", PROGNAME, OPENVAS_VERSION, OVS_OS_NAME);
     printf("Nessusd origin: (C) 1998 - 2004 Renaud Deraison <deraison@nessus.org>\n");
-    printf("New code since openvasd: (C) 2007, 2008, 2009 Intevation GmbH\n");
+    printf("New code since openvassd: (C) 2007, 2008, 2009 Intevation GmbH\n");
     printf("\n");
     DO_EXIT(0);
   }
@@ -1087,7 +1089,7 @@ main (int argc, char * argv[], char * envp[])
     printf("Current setup :\n");
     printf("\topenvas-libnasl                : %s\n", nasl_version());
     printf("\topenvas-libraries              : %s\n", openvaslib_version());
-    printf("\tSSL is used for client / server communication\n");
+    printf("\tSSL is used for client / scanner communication\n");
     printf("\tRunning as euid                : %d\n", geteuid());
 #ifdef USE_LIBWRAP
     printf("\tCompiled with tcpwrappers support\n");
@@ -1104,15 +1106,15 @@ main (int argc, char * argv[], char * envp[])
 
   if (!config_file)
     {
-      config_file = emalloc(strlen(OPENVASD_CONF) + 1);
-      strncpy(config_file, OPENVASD_CONF, strlen(OPENVASD_CONF));
+      config_file = emalloc(strlen(OPENVASSD_CONF) + 1);
+      strncpy(config_file, OPENVASSD_CONF, strlen(OPENVASSD_CONF));
     }
 
   arg_add_value(options, "iana_port", ARG_INT, sizeof(gpointer), GSIZE_TO_POINTER(iana_port));
   arg_add_value(options, "config_file", ARG_STRING, strlen(config_file), config_file);
   arg_add_value(options, "addr", ARG_PTR, -1, &ai);
 
-  init_openvasd (options, 1, exit_early, be_quiet);
+  init_openvassd (options, 1, exit_early, be_quiet);
   g_options = options;
   global_iana_socket = GPOINTER_TO_SIZE (arg_get_value(options, "isck"));
   global_plugins     = arg_get_value (options, "plugins");

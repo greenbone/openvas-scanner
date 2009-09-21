@@ -160,7 +160,7 @@ get_max_hosts_number(globals, preferences)
 	}
     else if(max_hosts > global_max_hosts)
      {
-     	log_write("Client tried to raise the maximum hosts number - %d. Using %d. Change 'max_hosts' in openvasd.conf if \
+     	log_write("Client tried to raise the maximum hosts number - %d. Using %d. Change 'max_hosts' in openvassd.conf if \
 you believe this is incorrect\n",
 			max_hosts, global_max_hosts);
 	max_hosts = global_max_hosts;
@@ -191,7 +191,7 @@ get_max_checks_number(globals, preferences)
 	}
     else if(max_checks > global_max_checks)
      {
-     	log_write("Client tried to raise the maximum checks number - %d. Using %d. Change 'max_checks' in openvasd.conf if \
+     	log_write("Client tried to raise the maximum checks number - %d. Using %d. Change 'max_checks' in openvassd.conf if \
 you believe this is incorrect\n",
 			max_checks, global_max_checks);
 	max_checks = global_max_checks;
@@ -322,10 +322,10 @@ void
 create_pid_file()
 {
  FILE * f;
- char * fname = malloc(strlen(OPENVASD_PIDDIR) + strlen("/openvasd.pid") + 1);
- strcpy(fname, OPENVASD_PIDDIR);
- strcat(fname, "/openvasd.pid");
- 
+ char * fname = malloc(strlen(OPENVASSD_PIDDIR) + strlen("/openvassd.pid") + 1);
+ strcpy(fname, OPENVASSD_PIDDIR);
+ strcat(fname, "/openvassd.pid");
+
  f = fopen(fname, "w");
  if(!f)
  {
@@ -341,9 +341,9 @@ fprintf(stderr, "'%s'\n", fname);
 void
 delete_pid_file()
 {
- char * fname = malloc(strlen(OPENVASD_PIDDIR) + strlen("/openvasd.pid") + 1);
- strcpy(fname, OPENVASD_PIDDIR);
- strcat(fname, "/openvasd.pid");
+ char * fname = malloc(strlen(OPENVASSD_PIDDIR) + strlen("/openvassd.pid") + 1);
+ strcpy(fname, OPENVASSD_PIDDIR);
+ strcat(fname, "/openvassd.pid");
  unlink(fname);
  free(fname);
 }
@@ -354,21 +354,22 @@ delete_pid_file()
  * This function ensures that this name is not taken
  * already.
  */
+/** @todo consider using glib functions */
 char*
 temp_file_name()
 {
- char* ret = emalloc(strlen(OPENVASD_STATEDIR)+ strlen("tmp/") + strlen("tmp") + 40);
+ char* ret = emalloc(strlen(OPENVASSD_STATEDIR)+ strlen("tmp/") + strlen("tmp") + 40);
  int fd = - 1;
  do {
  if(fd > 0){
  	if(close(fd) < 0)
 	 perror("close ");
 	}
- sprintf(ret, "%s/tmp", OPENVASD_STATEDIR);
+ sprintf(ret, "%s/tmp", OPENVASSD_STATEDIR);
  mkdir(ret, 0700);
- sprintf(ret, "%s/tmp/tmp.%d-%d", OPENVASD_STATEDIR, getpid(), rand()%1024);
+ sprintf(ret, "%s/tmp/tmp.%d-%d", OPENVASSD_STATEDIR, getpid(), rand()%1024);
  fd = open(ret, O_RDONLY);
- } 
+ }
   while (fd >= 0);
   
  return ret;

@@ -137,8 +137,8 @@ test -z "$RANDFLAG" -a -z "$RANDFILE" &&
 
 
 
-OPENVASPRIV="@OPENVASD_STATEDIR@/private/CA"
-OPENVASPUB="@OPENVASD_SHAREDSTATEDIR@/CA"
+OPENVASPRIV="@OPENVASSD_STATEDIR@/private/CA"
+OPENVASPUB="@OPENVASSD_SHAREDSTATEDIR@/CA"
 
 while [ ! -d "$OPENVASPRIV" ]; do
     gettext "OpenVAS server 'private' directory: "
@@ -440,7 +440,7 @@ ${EMAIL:-.}" |
       echo 
       gettext "User rules"; echo 
       echo "----------" 
-      eval_gettext "openvasd has a rules system which allows you to restrict the hosts that \$login has the right to test."; echo
+      eval_gettext "openvassd has a rules system which allows you to restrict the hosts that \$login has the right to test."; echo
       gettext "For instance, you may want him to be able to scan his own host only."; echo
       echo 
       gettext "Please see the openvas-adduser(8) man page for the rules syntax."; echo

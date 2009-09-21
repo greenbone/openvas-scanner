@@ -1,6 +1,6 @@
 .TH OpenVASD 8 "February 2004" "The OpenVAS Project" "User Manuals"
 .SH NAME
-openvasd \- The server part of the OpenVAS Security Scanner
+openvasd \- The 'scanner' part of the OpenVAS Security Scanner
 .SH SYNOPSIS
 .BI "openvasd [\|-v\|] [\|-h\|]  [\|-c " config-file\| "] [\|-S " ip[,ip2,...]\| "] [\|-a " address\| 
 .BI "] [\|-p " port-number\| "] [\|-D\|] [\|-d\|] [\|-R\|] [\|-P\|] [\|-q\|]"
@@ -8,9 +8,9 @@ openvasd \- The server part of the OpenVAS Security Scanner
 .SH DESCRIPTION
 The 
 .B OpenVAS Security Scanner
-is a security auditing tool made up of two parts: a server, and a client.
-The server,
-.BR openvasd
+is a security auditing tool made up of two parts: a scanner and a client.
+The scanner,
+.BR openvassd
 is in charge of the attacks, while the client 
 .BR openvas
 interfaces with the user.
@@ -29,7 +29,7 @@ Use the alternate configuration file instead of
 
 .TP 
 .BI "-a " <address> ", --listen=" <address>
-Tell the server to only listen to connections on the address
+Tell the scanner to only listen to connections on the address
 .I <address>
 which is an IP, not a machine name. For instance, 
 "openvasd -a 192.168.1.1"
@@ -59,20 +59,20 @@ NICs with these IP addresses set.
 
 .TP 
 .BI "-p " <port-number> ", --port=" <port-number>
-Tell the server to listen on connection on the port <port-number> rather
+Tell the scanner to listen on connection on the port <port-number> rather
 than listening on port 9390 (default).
 
 .TP 
 .B "-f, --foreground"
-Make the server stay in foreground (non-daemon mode)
+Make the scanner stay in foreground (non-daemon mode)
 
 .TP 
 .B "-q, --quiet"
-Prevent the server from printing the loading status of the plugins at startup
+Prevent the scanner from printing the loading status of the plugins at startup
 
 .TP 
 .B "-d, --dump-cfg"
-Make the server dumps its compilation options
+Make the scanner dumps its compilation options
 
 .TP 
 .B "-v, --version"
@@ -266,7 +266,7 @@ scanners will still run, holes might be detected, but you will risk to
 run into \fIfalse negatives\fR (i.e. OpenVAS will not report a security
 hole that is present in a remote host)
 
-Users might need to tune OpenVAS configuration if running the server in
+Users might need to tune OpenVAS configuration if running the scanner in
 low bandwith conditions (\fIlow\fR being 'less bandwith that the one your
 hardware system can produce) or otherwise will get erratic results. There are
 several parameters that can be modified to reduce network load:
@@ -288,7 +288,7 @@ Number of checkst to test at the same time (this value is also set by
 the OpenVAS GUI client or by .nessusrc ) it can be as low as you want it
 to be and it will also reduce network load and improve performance
 (obviously 1 is the minimum)
-Notice that the OpenVAS server will spawn max_hosts * max_checks processes.
+Notice that the OpenVAS scanner will spawn max_hosts * max_checks processes.
 
 Other options might be using the QoS features offered by your server
 operating system or your network to improve the bandwith use.

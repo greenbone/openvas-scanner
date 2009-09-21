@@ -1,6 +1,6 @@
 .TH OpenVAS-MKCERT 8 "September 2001" "The OpenVAS Project" "User Manuals"
 .SH NAME
-openvas-mkcert \- Creates a server certificate
+openvas-mkcert \- Creates a scanner certificate
 .sp
 .SH SYNOPSIS
 .BI openvas-mkcert  
@@ -10,14 +10,14 @@ openvas-mkcert \- Creates a server certificate
 
 The 
 .B OpenVAS Security Scanner
-protects the communication between the client and the server by using SSL. SSL
-requires the server to present a certificate to the client, and the client can
-optionally present a certificate to the server.
+protects the communication between the client and the scanner by using SSL. SSL
+requires the scanner to present a certificate to the client, and the client can
+optionally present a certificate to the scanner.
 
 This script
 .B openvas-mkcert
 creates a certificate authority (if none exists already) and generates the
-server certificate.
+scanner certificate.
 
 .SH OPTIONS
 

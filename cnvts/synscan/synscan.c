@@ -659,7 +659,7 @@ scan(struct arglist * env, struct in_addr dst, unsigned long rtt)
 #define EN_DESC "\n\
 This plugins performs a supposedly fast SYN port scan\n\
 It does so by computing the RTT (round trip time) of the packets\n\
-coming back and forth between the openvasd host and the target,\n\
+coming back and forth between the openvassd host and the target,\n\
 then it uses that to quicky send SYN packets to the remote host\n"
 
 

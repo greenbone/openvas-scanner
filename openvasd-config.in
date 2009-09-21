@@ -2,7 +2,7 @@
 
 # OpenVAS
 # $Id$
-# Description: Configuration script for openvas-server
+# Description: Configuration script for openvas-scanner
 #
 # Authors:
 # Renaud Deraison <deraison@nessus.org> (Original pre-fork development)
@@ -39,7 +39,7 @@ SBINDIR=@sbindir@
 
 usage()
 {
- echo "Usage : openvasd-config [ --cflags | --version | --sysconfdir | --libdir | --sbindir ]"
+ echo "Usage : openvassd-config [ --cflags | --version | --sysconfdir | --libdir | --sbindir ]"
  exit $1
 }
 

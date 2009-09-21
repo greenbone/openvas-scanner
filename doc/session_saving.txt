@@ -19,7 +19,7 @@ What is it ?
 
 	"Session savings" allows you to make an audit without fearing
 any problems (power outage, crash of the openvas client, and so on...),
-because if any problem occurs, you know that you can reboot your server
+because if any problem occurs, you know that you can reboot your scanner
 and continue the test where you left it (nearly - see the limitations for
 details).
 
@@ -38,8 +38,8 @@ ever read them) or restore the sessions.
 If you chose to restore a session, then your client acts as if the test
 was occuring in fast forward mode.
 
-Note that each user has his own sessions, so if you share your openvasd
-server with other people, they won't see your sessions, and you won't see
+Note that each user has his own sessions, so if you share your openvassd
+scanner with other people, they won't see your sessions, and you won't see
 theirs.
 
 Limitations
@@ -60,7 +60,7 @@ with your new plugin set, but the old results won't change.
 Files
 -----
 
-All your report are saved on the server side, in 
+All your report are saved on the scanner side, in 
   ${prefix}/var/openvas/<username>/
 
 But you should not handle the files there directly. Instead, you should use

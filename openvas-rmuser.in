@@ -46,8 +46,8 @@ oldincludedir=@oldincludedir@
 infodir=@infodir@
 mandir=@mandir@
 
-openvasd=@sbindir@/openvasd
-openvasd_users=@sysconfdir@/openvas/openvasd.users
+openvassd=@sbindir@/openvassd
+openvassd_users=@sysconfdir@/openvas/openvassd.users
 
 # check if gettext is present
 

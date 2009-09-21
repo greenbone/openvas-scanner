@@ -43,62 +43,62 @@
 #undef ENABLE_PID_STAMP_DEBUGGING
 
 /*
- * OPENVASD SPECIFIC CONFIGURATION
+ * OPENVASSD SPECIFIC CONFIGURATION
  */
 
 
 /* miscellaneous */
-#define OPENVASD_LOGS     OPENVASD_LOGDIR
-#define OPENVASD_LOGINS   OPENVASD_STATEDIR "/users"
-#define OPENVASD_JOBS	OPENVASD_STATEDIR  "/jobs"
-#define OPENVASD_CERTS	OPENVASD_STATEDIR "/certs"
+#define OPENVASSD_LOGS     OPENVASSD_LOGDIR
+#define OPENVASSD_LOGINS   OPENVASSD_STATEDIR "/users"
+#define OPENVASSD_JOBS	OPENVASSD_STATEDIR  "/jobs"
+#define OPENVASSD_CERTS	OPENVASSD_STATEDIR "/certs"
 
-#define OPENVASD_CA	OPENVASD_SHAREDSTATEDIR "/CA"
+#define OPENVASSD_CA	OPENVASSD_SHAREDSTATEDIR "/CA"
 
 
 
 
 /* derived entries */
-#define OPENVASD_CONF     OPENVASD_CONFDIR  "/openvas/openvasd.conf"
+#define OPENVASSD_CONF     OPENVASSD_CONFDIR  "/openvas/openvassd.conf"
 
-#define OPENVASD_MESSAGES OPENVASD_LOGS "/openvasd.messages"
-#define OPENVASD_DEBUGMSG OPENVASD_LOGS "/openvasd.dump"
-
-
-#define OPENVASD_DATAPOOL OPENVASD_STATEDIR "-datapool"
-#define OPENVASD_RULES    OPENVASD_DATADIR  "/openvasd.rules"
-#define OPENVASD_USERS    OPENVASD_DATADIR  "/openvasd.users"
+#define OPENVASSD_MESSAGES OPENVASSD_LOGS "/openvassd.messages"
+#define OPENVASSD_DEBUGMSG OPENVASSD_LOGS "/openvassd.dump"
 
 
+#define OPENVASSD_DATAPOOL OPENVASSD_STATEDIR "-datapool"
+#define OPENVASSD_RULES    OPENVASSD_DATADIR  "/openvassd.rules"
+#define OPENVASSD_USERS    OPENVASSD_DATADIR  "/openvassd.users"
 
-/* Definitions for client/server ecryption, activated on the C compiler
+
+
+/* Definitions for client/scanner ecryption, activated on the C compiler
    command line as given by the command `openvas-config --cflags` */
 #ifdef ENABLE_CRYPTO_LAYER
 
-/* seconds the server waits for the client after authentication */
-#define OPENVASD_NEGOT_TIMEOUT 600 
+/* seconds the scanner waits for the client after authentication */
+#define OPENVASSD_NEGOT_TIMEOUT 600 
 
 /* the files, keys are stored in */
-#define OPENVASD_USERKEYS /* logindir */ "~/auth/openvasd.user-keys"
-#define OPENVASD_USERPWDS OPENVASD_DATADIR "/openvasd.user-pwds"
-#define OPENVASD_KEYFILE  OPENVASD_DATADIR "/openvasd.private-keys"
+#define OPENVASSD_USERKEYS /* logindir */ "~/auth/openvassd.user-keys"
+#define OPENVASSD_USERPWDS OPENVASSD_DATADIR "/openvassd.user-pwds"
+#define OPENVASSD_KEYFILE  OPENVASSD_DATADIR "/openvassd.private-keys"
 
-/* The default server key file and key length */
-#define OPENVASD_KEYLENGTH    1024
-#define OPENVASD_MAXPWDFAIL   5
-#define OPENVASD_USERNAME     "openvasd"
+/* The default scanner key file and key length */
+#define OPENVASSD_KEYLENGTH    1024
+#define OPENVASSD_MAXPWDFAIL   5
+#define OPENVASSD_USERNAME     "openvassd"
 
-/* The default rpc cipher openvasd will be connect to (if any) */
-#define OPENVASD_RPCIPHER     "twofish/ripemd160"
-#define OPENVASD_RPCAUTH_METH  3 /* auth scheme, either 1 or 3 */
+/* The default rpc cipher openvassd will be connect to (if any) */
+#define OPENVASSD_RPCIPHER     "twofish/ripemd160"
+#define OPENVASSD_RPCAUTH_METH  3 /* auth scheme, either 1 or 3 */
 
 /* The timeout secs when waiting for a log pipe to be established */
-#define OPENVASD_LOGPIPE     OPENVASD_DATADIR  "/openvasd.logpipe"
-#define OPENVASD_LOGPIPE_TMO 2
+#define OPENVASSD_LOGPIPE     OPENVASSD_DATADIR  "/openvassd.logpipe"
+#define OPENVASSD_LOGPIPE_TMO 2
 
 #endif /* ENABLE_CRYPTO_LAYER */
 
-/* Obsolete: the port 3001 on which openvasd will be listening */
+/* Obsolete: the port 3001 on which openvassd will be listening */
 #undef DEFAULT_PORT
 
 /* The default port assigned to OpenVAS for OTP by the iana is 9390, see
@@ -106,10 +106,10 @@
 #define OPENVAS_IANA_OTP_PORT 9390
 
 /* The max number of client connections/sec */
-#define OPENVASD_CONNECT_RATE 4
+#define OPENVASSD_CONNECT_RATE 4
 
-/* Block this many secs if the OPENVASD_CONNECT_RATE was exceeded */
-#define OPENVASD_CONNECT_BLOCKER 2
+/* Block this many secs if the OPENVASSD_CONNECT_RATE was exceeded */
+#define OPENVASSD_CONNECT_BLOCKER 2
 
 /*
  * How much time before closing
@@ -134,16 +134,15 @@
 #ifdef ENABLE_RHLST
 #undef ENABLE_RHLST_APPS
 #endif
+
 /*
- * Shall the server log EVERYTHING ?
+ * Shall the scanner log EVERYTHING ?
  */
- 
 #undef LOGMORE
 
 /*
- * Shall the server log the whole attack ?
+ * Shall the scannerlog the whole attack ?
  */
- 
 #undef LOG_WHOLE_ATTACK
 
 /*

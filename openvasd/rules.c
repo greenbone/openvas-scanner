@@ -127,7 +127,7 @@ rules_get_fname (struct arglist* preferences)
 {
   char * t;
   if((t=arg_get_value(preferences, "rules")))return(t);
-  else return(OPENVASD_RULES);
+  else return (OPENVASSD_RULES);
 }
 
 struct openvas_rules *

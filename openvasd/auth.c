@@ -35,18 +35,24 @@
 
 
 #include <includes.h>
+
 #include <stdarg.h>
-#include "rules.h"
-#include "comm.h"
+
+#include <openvas/arglists.h>
+#include <openvas/system.h>
+#include <openvas/network.h>
+
 #include "auth.h"
+#include "comm.h"
 #include "log.h"
+#include "rules.h"
 #include "sighand.h"
 
 
 /*
  * auth_check_user() :
  *
- * Checks if a user has the right to use openvasd,
+ * Checks if a user has the right to use openvassd,
  * and return its permissions
  */
 struct openvas_rules * 

@@ -24,15 +24,13 @@
 # along with this program; if not, write to the Free Software
 # Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA 02110-1301 USA.
 #
-#
-#
 
 
 include openvas.tmpl
 
 ALLDEPS = openvas.tmpl
 
-all: $(ALLDEPS) server sslstuff man mknvts
+all: $(ALLDEPS) scanner sslstuff man mknvts
 
 
 openvas.tmpl: openvas.tmpl.in configure VERSION
@@ -42,10 +40,10 @@ openvas.tmpl: openvas.tmpl.in configure VERSION
 install: all install-bin install-man install-nvts
 	@echo
 	@echo ' --------------------------------------------------------------'
-	@echo ' openvas-server has been sucessfully installed. '
+	@echo ' openvas-scanner has been sucessfully installed. '
 	@echo " Make sure that $(bindir) and $(sbindir) are in your PATH before"
 	@echo " you continue."
-	@echo " openvasd has been installed into $(sbindir)"
+	@echo " openvassd has been installed into $(sbindir)"
 	@echo ' --------------------------------------------------------------'
 	@echo
 
@@ -56,37 +54,37 @@ install-bin:
 	@test -d $(DESTDIR)${sysconfdir}/openvas || $(INSTALL_DIR) -m 755 $(DESTDIR)${sysconfdir}/openvas
 	@test -d $(DESTDIR)${sysconfdir}/openvas/gnupg || $(INSTALL_DIR) -m 700 $(DESTDIR)${sysconfdir}/openvas/gnupg
 	@test -d $(DESTDIR)${localstatedir} || $(INSTALL_DIR) -m 755 $(DESTDIR)${localstatedir}
-	@test -d $(DESTDIR)${OPENVASD_STATEDIR} || $(INSTALL_DIR) -m 755 $(DESTDIR)${OPENVASD_STATEDIR}
-	@test -d $(DESTDIR)${OPENVASD_STATEDIR}/users || $(INSTALL_DIR) -m 755 $(DESTDIR)${OPENVASD_STATEDIR}/users
-	@test -d $(DESTDIR)${OPENVASD_STATEDIR}/logs  || $(INSTALL_DIR) -m 755 $(DESTDIR)${OPENVASD_STATEDIR}/logs
-	@test -d $(DESTDIR)${OPENVASD_STATEDIR}/tmp || $(INSTALL_DIR) -m 755 $(DESTDIR)${OPENVASD_STATEDIR}/tmp
-	@test -d $(DESTDIR)${OPENVASD_STATEDIR}/jobs  || $(INSTALL_DIR) -m 755 $(DESTDIR)${OPENVASD_STATEDIR}/jobs
-	@test -d $(DESTDIR)${OPENVASD_STATEDIR}/CA || $(INSTALL_DIR) -m 755 $(DESTDIR)${OPENVASD_STATEDIR}/CA
-	@test -d $(DESTDIR)${OPENVASD_STATEDIR}/private || $(INSTALL_DIR) -m 700 $(DESTDIR)${OPENVASD_STATEDIR}/private
-	@test -d $(DESTDIR)${OPENVASD_STATEDIR}/private/CA || $(INSTALL_DIR) -m 700 $(DESTDIR)${OPENVASD_STATEDIR}/private/CA
-	@test -d $(DESTDIR)${OPENVASD_LOGDIR} || $(INSTALL_DIR) -m 755 $(DESTDIR)${OPENVASD_LOGDIR}
+	@test -d $(DESTDIR)${OPENVASSD_STATEDIR} || $(INSTALL_DIR) -m 755 $(DESTDIR)${OPENVASSD_STATEDIR}
+	@test -d $(DESTDIR)${OPENVASSD_STATEDIR}/users || $(INSTALL_DIR) -m 755 $(DESTDIR)${OPENVASSD_STATEDIR}/users
+	@test -d $(DESTDIR)${OPENVASSD_STATEDIR}/logs  || $(INSTALL_DIR) -m 755 $(DESTDIR)${OPENVASSD_STATEDIR}/logs
+	@test -d $(DESTDIR)${OPENVASSD_STATEDIR}/tmp || $(INSTALL_DIR) -m 755 $(DESTDIR)${OPENVASSD_STATEDIR}/tmp
+	@test -d $(DESTDIR)${OPENVASSD_STATEDIR}/jobs  || $(INSTALL_DIR) -m 755 $(DESTDIR)${OPENVASSD_STATEDIR}/jobs
+	@test -d $(DESTDIR)${OPENVASSD_STATEDIR}/CA || $(INSTALL_DIR) -m 755 $(DESTDIR)${OPENVASSD_STATEDIR}/CA
+	@test -d $(DESTDIR)${OPENVASSD_STATEDIR}/private || $(INSTALL_DIR) -m 700 $(DESTDIR)${OPENVASSD_STATEDIR}/private
+	@test -d $(DESTDIR)${OPENVASSD_STATEDIR}/private/CA || $(INSTALL_DIR) -m 700 $(DESTDIR)${OPENVASSD_STATEDIR}/private/CA
+	@test -d $(DESTDIR)${OPENVASSD_LOGDIR} || $(INSTALL_DIR) -m 755 $(DESTDIR)${OPENVASSD_LOGDIR}
 	@test -d $(DESTDIR)${localstatedir}/run || $(INSTALL_DIR) -m 755 $(DESTDIR)${localstatedir}/run
 	@test -d $(DESTDIR)${includedir} || $(INSTALL_DIR) -m 755 $(DESTDIR)${includedir}
 	@test -d $(DESTDIR)${includedir}/openvas || $(INSTALL_DIR) -m 755 $(DESTDIR)${includedir}/openvas
-	@test -d $(DESTDIR)${OPENVASD_CACHE} || $(INSTALL_DIR) -m 755 $(DESTDIR)${OPENVASD_CACHE}
+	@test -d $(DESTDIR)${OPENVASSD_CACHE} || $(INSTALL_DIR) -m 755 $(DESTDIR)${OPENVASSD_CACHE}
 	$(INSTALL) -m 755 openvas-nvt-sync $(DESTDIR)${sbindir}
 	$(INSTALL) -m 755 openvas-mkcert-client $(DESTDIR)${bindir}/openvas-mkcert-client
-	$(INSTALL) -m 755 openvasd-config $(DESTDIR)${bindir}/openvasd-config
+	$(INSTALL) -m 755 openvassd-config $(DESTDIR)${bindir}/openvassd-config
 	$(INSTALL) -m 755 ssl/openvas-mkrand $(DESTDIR)${bindir}/openvas-mkrand
-	$(INSTALL) -m $(SERVERMODE) openvasd/openvasd $(DESTDIR)${sbindir}/openvasd
+	$(INSTALL) -m $(SERVERMODE) openvasd/openvassd $(DESTDIR)${sbindir}/openvassd
 	$(INSTALL) -m 755 openvas-adduser $(DESTDIR)${sbindir}/openvas-adduser
 	$(INSTALL) -m 755 openvas-rmuser $(DESTDIR)${sbindir}/openvas-rmuser
 	$(INSTALL) -m 755 openvas-mkcert $(DESTDIR)${sbindir}/openvas-mkcert
-	$(INSTALL) -c -m 0444 openvas-services  $(DESTDIR)${OPENVASD_STATEDIR}/openvas-services
+	$(INSTALL) -c -m 0444 openvas-services  $(DESTDIR)${OPENVASSD_STATEDIR}/openvas-services
 
 install-man:
 	@echo installing man pages ...
 	@test -d $(DESTDIR)${mandir} || $(INSTALL_DIR) -m 755 $(DESTDIR)${mandir}
 	@test -d $(DESTDIR)${mandir}/man1 || $(INSTALL_DIR) -m 755 $(DESTDIR)${mandir}/man1
 	@test -d $(DESTDIR)${mandir}/man8 || $(INSTALL_DIR) -m 755 $(DESTDIR)${mandir}/man8
-	$(INSTALL) -c -m 0444 doc/openvasd-config.1 $(DESTDIR)${mandir}/man1/openvasd-config.1
+	$(INSTALL) -c -m 0444 doc/openvassd-config.1 $(DESTDIR)${mandir}/man1/openvassd-config.1
 	$(INSTALL) -c -m 0444 doc/openvas-mkrand.1 $(DESTDIR)${mandir}/man1/openvas-mkrand.1
-	$(INSTALL) -c -m 0444 doc/openvasd.8 $(DESTDIR)${mandir}/man8/openvasd.8
+	$(INSTALL) -c -m 0444 doc/openvassd.8 $(DESTDIR)${mandir}/man8/openvassd.8
 	$(INSTALL) -c -m 0444 doc/openvas-adduser.8 $(DESTDIR)${mandir}/man8/openvas-adduser.8
 	$(INSTALL) -c -m 0444 doc/openvas-rmuser.8 $(DESTDIR)${mandir}/man8/openvas-rmuser.8
 	$(INSTALL) -c -m 0444 doc/openvas-mkcert.8 $(DESTDIR)${mandir}/man8/openvas-mkcert.8
@@ -102,19 +100,19 @@ install-nvts:
 		$(DESTDIR)${libdir}/openvas/plugins; \
 	done
 
-server : 
+scanner :
 	cd openvasd && $(MAKE)
 
-sslstuff : 
+sslstuff :
 	cd ssl && $(MAKE)
 
 mknvts:
 	cd cnvts && ./make_world
 
-man : $(MAN_OPENVASD_8)
+man : $(MAN_OPENVASSD_8)
 
-$(MAN_OPENVASD_8) : $(MAN_OPENVASD_8).in
-	@sed -e 's?@OPENVASD_CONFDIR@?${OPENVASD_CONFDIR}?g;s?@OPENVASD_DATADIR@?${OPENVASD_DATADIR}?g;s?@OPENVASD_PLUGINS@?${OPENVASD_PLUGINS}?g;' $(MAN_OPENVASD_8).in  >$(MAN_OPENVASD_8)
+$(MAN_OPENVASSD_8) : $(MAN_OPENVASSD_8).in
+	@sed -e 's?@OPENVASSD_CONFDIR@?${OPENVASSD_CONFDIR}?g;s?@OPENVASSD_DATADIR@?${OPENVASSD_DATADIR}?g;s?@OPENVASSD_PLUGINS@?${OPENVASSD_PLUGINS}?g;' $(MAN_OPENVASSD_8).in  >$(MAN_OPENVASSD_8)
 
 
 clean:
@@ -123,18 +121,18 @@ clean:
 	cd cnvts && ./make_world clean
 
 distclean: clean
-	[ -z "${rootdir}" ] || rm -f ${rootdir}/include/config.h ${rootdir}/include/corevers.h 
-	rm -f openvas.tmpl doc/openvas.1.cat doc/openvasd.8.cat
-	[ -z "${make_bindir}" ] || rm -f $(make_bindir)/openvas* 
-	rm -f config.cache config.status config.log 
+	[ -z "${rootdir}" ] || rm -f ${rootdir}/include/config.h ${rootdir}/include/corevers.h
+	rm -f openvas.tmpl doc/openvas.1.cat doc/openvassd.8.cat
+	[ -z "${make_bindir}" ] || rm -f $(make_bindir)/openvas*
+	rm -f config.cache config.status config.log
 	rm -f openvas-nvt-sync
 	rm -f openvas-adduser
 	rm -f openvas-rmuser
 	rm -f openvas-mkcert
 	rm -f openvas-mkcert-client
 	rm -f openvas-install-cert
-	rm -f openvasd-config
-	[ -z "${MAN_OPENVASD_8}" ] || rm -f ${MAN_OPENVASD_8} 
+	rm -f openvassd-config
+	[ -z "${MAN_OPENVASSD_8}" ] || rm -f ${MAN_OPENVASSD_8}
 
 dist:
 	version="`cat VERSION`"; \
@@ -149,7 +147,7 @@ distcheck:
 	find . -type f | sed -e 's/^.\///' -e '/~$$/d' -e '/CVS/d' \
 			     -e '/\.o$$/d' -e '/^openvas.tmpl$$/d' \
 			     -e '/^openvasd\/OBJ\/openvasd$$/d' \
-			     -e '/^bin\/openvasd$$/d' \
+			     -e '/^bin\/openvassd$$/d' \
 			     -e '/^config\.cache$$/d' \
 			     -e '/^config\.log$$/d' \
 			     -e '/^config\.status$$/d' \
