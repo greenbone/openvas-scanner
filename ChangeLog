@@ -1,3 +1,21 @@
+2009-09-22  Jan-Oliver Wagner <jan-oliver.wagner@greenbone.net>
+
+	* doc/openvas-nvt-sync.8: New. man page for the sync
+	script. Written and contributed by Javier Fernández-Sanguino Peña.
+
+	* doc/openvassd-config.1: Removed. The corresponding is not
+	part of this package anymore.
+
+	* doc/kb_saving.txt: Removed. This information is part of the
+	regular documentation since a long time.
+
+	* Makefile: Don't install openvassd-config.8 anymore. Install
+	openvas-nvt-sync.8.
+
+	* doc/TODO.txt: Cleaned a little bit.
+
+	* MANIFEST: Updated.
+
 2009-09-21  Felix Wolfsteller <felix.wolfsteller@intevation.de>
 
 	* configure.in, openvasd/save_tests.c, openvasd/pluginlaunch.c,

@@ -1,0 +1,62 @@
+.\"                                      Hey, EMACS: -*- nroff -*-
+.TH OPENVAS-NVT-SYNC 8 "September 2009" "The OpenVAS Project" "User Manuals"
+.SH NAME
+openvas-nvt-sync \- updates the OpenVAS security checks 
+.SH SYNOPSIS
+.B openvas-nvt-sync 
+.SH DESCRIPTION
+The 
+.B OpenVAS Security Scanner
+performs several security checks, each of them being coded as an external
+plugin coded in NASL. As new security holes are published every day, new
+plugins appear on the OpenVAS site (www.openvas.org)
+.br
+The script 
+.B openvas-nvt-sync
+will fetch all the newest security checks for you and install them at the proper
+location. Once this is done you will need to restart openvas-scanner(8)
+so that it loads them and uses them for new security scans.
+
+.br
+.B openvas-nvt-sync
+uses rsync(1) and  md5sum(1) to do its job. In order to download the
+new plugins the machine where the script runs needs to have
+access to rsync.openvas.org using the rsync protocol (TCP/UDP port 873).
+
+If you are behind a web proxy you can configure rsync to use it through the
+use of the RSYNC_PROXY environment variable. For more information see
+rsync(1).
+
+.SH SECURITY NOTES
+.B openvas-nvt-sync 
+uses rsync(1) to retrieve the archive of the new plugins. The scripts
+provided by the OpenVAS project might 
+.B not be signed
+\. Consequently, if somewhere where to poison your DNS server and force this
+script to retrieve NASL plugins on another site he would force
+your OpenVAS server to execute NASL scripts when running security tests.
+Even if this might not do much harm (see the NASL reference guide
+for more information on that subject) you should be very careful
+when doing this.
+
+.SH SEE ALSO
+For more information see:
+.BR rsync(1),
+.BR openvassd(8)
+.BR openvas-client(1).
+.br
+There is more information available at
+.B /usr/share/doc/openvas-plugins
+on Debian systems.
+.PP
+You can find additional information about the OpenVAS project in
+http://www.openvas.org 
+			
+.SH AUTHOR
+This manual page was written by
+Javier Fern\['a]ndez-Sanguino Pe\[~n]a <jfs@debian.org>
+for the Debian GNU/Linux system (but may be used on other systems).
+.PP
+The 
+.B openvas-nvt-sync
+script was written by DN-Systems Enterprise Internet Solutions GmbH.

@@ -25,15 +25,14 @@ doc/Doxyfile
 doc/Doxyfile_full
 doc/HTTP_authentication.txt
 doc/kb_entries.txt
-doc/kb_saving.txt
 doc/nbe_file_format.txt
 doc/nsr_file_format.txt
 doc/openvas-adduser.8
-doc/openvasd.8.in
-doc/openvasd-config.1
+doc/openvassd.8.in
 doc/openvas-mkcert.8
 doc/openvas-mkcert-client.1
 doc/openvas-mkrand.1
+doc/openvas-nvt-sync.8
 doc/openvas-rmuser.8
 doc/session_saving.txt
 doc/TODO.txt

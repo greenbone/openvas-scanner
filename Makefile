@@ -85,6 +85,7 @@ install-man:
 	$(INSTALL) -c -m 0444 doc/openvassd-config.1 $(DESTDIR)${mandir}/man1/openvassd-config.1
 	$(INSTALL) -c -m 0444 doc/openvas-mkrand.1 $(DESTDIR)${mandir}/man1/openvas-mkrand.1
 	$(INSTALL) -c -m 0444 doc/openvassd.8 $(DESTDIR)${mandir}/man8/openvassd.8
+	$(INSTALL) -c -m 0444 doc/openvas-nvt-sync.8 $(DESTDIR)${mandir}/man8/openvas-nvt-sync.8
 	$(INSTALL) -c -m 0444 doc/openvas-adduser.8 $(DESTDIR)${mandir}/man8/openvas-adduser.8
 	$(INSTALL) -c -m 0444 doc/openvas-rmuser.8 $(DESTDIR)${mandir}/man8/openvas-rmuser.8
 	$(INSTALL) -c -m 0444 doc/openvas-mkcert.8 $(DESTDIR)${mandir}/man8/openvas-mkcert.8
