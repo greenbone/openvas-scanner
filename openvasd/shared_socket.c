@@ -65,7 +65,7 @@ static struct shared_fd shared_fd[MAX_SHARED_SOCKETS];
  * @return -1 if socket index out of bounds, 0 otherwise.
  */
 static int
-openvasd_shared_socket_close (int idx)
+openvassd_shared_socket_close (int idx)
 {
  if ( idx < 0 || idx >= MAX_SHARED_SOCKETS )
 	return -1;
@@ -80,7 +80,7 @@ openvasd_shared_socket_close (int idx)
  * @return 0 in case of success, -1 in case of error (then writes log message).
  */
 static int
-openvasd_shared_socket_register ( int soc, nthread_t pid,  char * buf )
+openvassd_shared_socket_register ( int soc, nthread_t pid,  char * buf )
 {
  int fd = 0;
  int i;
@@ -136,7 +136,7 @@ openvasd_shared_socket_register ( int soc, nthread_t pid,  char * buf )
 }
 
 static int
-openvasd_shared_socket_acquire (int soc, nthread_t pid, char * buf)
+openvassd_shared_socket_acquire (int soc, nthread_t pid, char * buf)
 {
   int i;
   for ( i = 0 ; i < MAX_SHARED_SOCKETS ; i ++ )
@@ -155,7 +155,7 @@ openvasd_shared_socket_acquire (int soc, nthread_t pid, char * buf)
               if ( is_socket_connected(shared_fd[i].fd) == 0 )
                 {
                   log_write("shared_socket: socket %s lost connection to its peer - destroying this entry\n", buf);
-                  openvasd_shared_socket_close(i);
+                  openvassd_shared_socket_close(i);
                   internal_send(soc, NULL, INTERNAL_COMM_MSG_SHARED_SOCKET|INTERNAL_COMM_SHARED_SOCKET_ERROR);
                   return 0; /* Not really an error in itself */
                 }
@@ -179,7 +179,7 @@ openvasd_shared_socket_acquire (int soc, nthread_t pid, char * buf)
 }
 
 static int
-openvasd_shared_socket_release (int soc, nthread_t pid, char * buf)
+openvassd_shared_socket_release (int soc, nthread_t pid, char * buf)
 {
  int i;
  for ( i = 0; i < MAX_SHARED_SOCKETS ; i ++ )
@@ -208,7 +208,7 @@ openvasd_shared_socket_release (int soc, nthread_t pid, char * buf)
  *         unknown).
  */
 static int
-openvasd_shared_socket_destroy ( int soc, nthread_t pid, char * buf )
+openvassd_shared_socket_destroy ( int soc, nthread_t pid, char * buf )
 {
  int i;
  for ( i = 0; i < MAX_SHARED_SOCKETS ; i ++ )
@@ -218,7 +218,7 @@ openvasd_shared_socket_destroy ( int soc, nthread_t pid, char * buf )
    if ( shared_fd[i].current_user == 0 ||
         shared_fd[i].current_user == pid )
       {
-       openvasd_shared_socket_close(i);
+       openvassd_shared_socket_close(i);
        log_write("shared_socket: %d destroyed socket %s\n", pid, buf);
        return 0;
       }
@@ -292,16 +292,16 @@ int
 shared_socket_process ( int soc, nthread_t pid, char * buf, int message )
 {
  if ( message & INTERNAL_COMM_SHARED_SOCKET_REGISTER )
-	return openvasd_shared_socket_register(soc, pid, buf);
+	return openvassd_shared_socket_register(soc, pid, buf);
   
  if ( message & INTERNAL_COMM_SHARED_SOCKET_ACQUIRE )
-	return openvasd_shared_socket_acquire(soc, pid, buf);
+	return openvassd_shared_socket_acquire(soc, pid, buf);
 
  if ( message & INTERNAL_COMM_SHARED_SOCKET_RELEASE )
-	return openvasd_shared_socket_release(soc, pid,  buf);
+	return openvassd_shared_socket_release(soc, pid,  buf);
 
  if ( message & INTERNAL_COMM_SHARED_SOCKET_DESTROY )
-	return openvasd_shared_socket_destroy(soc, pid, buf);
+	return openvassd_shared_socket_destroy(soc, pid, buf);
 
  return -1; /* Unknown message */
 }

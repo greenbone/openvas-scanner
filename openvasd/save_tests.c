@@ -417,7 +417,7 @@ save_tests_delete (struct arglist *globals, char * session)
 
 
 /**
- * @brief Set up openvasd so that we are ready to replay a test.
+ * @brief Set up openvassd so that we are ready to replay a test.
  */
 int
 save_tests_setup_playback (struct arglist* globals, char * session)

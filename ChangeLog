@@ -1,5 +1,11 @@
 2009-09-21  Felix Wolfsteller <felix.wolfsteller@intevation.de>
 
+	* configure.in, openvasd/save_tests.c, openvasd/pluginlaunch.c,
+	openvasd/shared_socket.c, openvasd/users.c: Replaced occurances of
+	openvasd by openvassd.
+
+2009-09-21  Felix Wolfsteller <felix.wolfsteller@intevation.de>
+
 	* openvasd-config.in, openvassd-config.in: Moved file.
 
 	* doc/openvasd.8.in, doc/openvassd.8,in: Moved.
