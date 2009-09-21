@@ -1,6 +1,6 @@
 .TH OpenVAS-ADDUSER 8 "May 2009" "The OpenVAS Project" "User Manuals"
 .SH NAME
-openvas-adduser \- add a user in the openvasd userbase
+openvas-adduser \- add a user in the openvassd userbase
 .sp
 .SH SYNOPSIS
 .BI openvas-adduser
@@ -11,25 +11,25 @@ The
 .B OpenVAS Security Scanner
 comes with its own user base which contains the list of who can
 use the services of 
-.BR openvasd ,
+.BR openvassd ,
 and what restriction (or
 .IR rules )
 each user has.
 
 .B openvas-adduser
 is a simple program which will add a user to the
-.B openvasd
+.B openvassd
 userbase.
 
 The program is straightforward and asks for the following items:
 .IP "\(bu Login"
 the login name of the 
-.B openvasd 
+.B openvassd 
 user to add
 
 .IP "\(bu Password"
 the password that the user will use to connect to 
-.B openvasd
+.B openvassd
 
 .IP "\(bu Rules"
 the set of rules to apply to the user. See below.
@@ -84,7 +84,7 @@ The keyword
 .I client_ip
 has been defined, and is replaced at run time by the IP address
 of the 
-.B openvasd 
+.B openvassd 
 user. For instance, if you want your users to be able
 to only be able to scan the system they come from, then you want
 them to have the following ruleset:
@@ -95,7 +95,7 @@ default deny
 .RE
 
 .SH SEE ALSO
-.BR openvas-rmuser (8),\  openvasd (8)
+.BR openvas-rmuser (8),\  openvassd (8)
 
 .SH MORE INFORMATION ABOUT THE OpenVAS PROJECT
 The canonical places where you will find more information 

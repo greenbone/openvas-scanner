@@ -1,8 +1,8 @@
-.TH OpenVASD 8 "February 2004" "The OpenVAS Project" "User Manuals"
+.TH OpenVASSD 8 "February 2004" "The OpenVAS Project" "User Manuals"
 .SH NAME
-openvasd \- The 'scanner' part of the OpenVAS Security Scanner
+openvassd \- The 'scanner' part of the OpenVAS Security Scanner
 .SH SYNOPSIS
-.BI "openvasd [\|-v\|] [\|-h\|]  [\|-c " config-file\| "] [\|-S " ip[,ip2,...]\| "] [\|-a " address\| 
+.BI "openvassd [\|-v\|] [\|-h\|]  [\|-c " config-file\| "] [\|-S " ip[,ip2,...]\| "] [\|-a " address\| 
 .BI "] [\|-p " port-number\| "] [\|-D\|] [\|-d\|] [\|-R\|] [\|-P\|] [\|-q\|]"
 
 .SH DESCRIPTION
@@ -16,30 +16,30 @@ is in charge of the attacks, while the client
 interfaces with the user.
 
 
-.BR openvasd
+.BR openvassd
 inspect the remote hosts and attempts to list all the vulnerabilities and common
-misconfigurations that affects them. Note that openvasd will run in daemon mode
+misconfigurations that affects them. Note that openvassd will run in daemon mode
 by default (unless you specify -f as an option).
 
 .SH OPTIONS
 .TP 
 .BI "-c " <config-file> ", --config-file=" <config-file>
 Use the alternate configuration file instead of 
-.I @OPENVASD_CONFDIR@/openvas/openvasd.conf
+.I @OPENVASSD_CONFDIR@/openvas/openvassd.conf
 
 .TP 
 .BI "-a " <address> ", --listen=" <address>
 Tell the scanner to only listen to connections on the address
 .I <address>
 which is an IP, not a machine name. For instance, 
-"openvasd -a 192.168.1.1"
+"openvassd -a 192.168.1.1"
 will make 
-.B openvasd
+.B openvassd
 only listen to requests going to 
 .I 192.168.1.1
-This option is useful if you are running openvasd on a gateway and if you don't
+This option is useful if you are running openvassd on a gateway and if you don't
 want people on the outside to connect to your 
-.BR openvasd .
+.BR openvassd .
 
 .TP
 .BI "-S " <ip[,ip2,...]> ", --src-ip=" <ip[,ip2,...]>
@@ -50,11 +50,11 @@ checks need to fully establish a connection to the remote host. This
 option is only useful if you have a multi-homed machine with multiple
 public IP addresses that you would like to use instead of the default
 one. Example :
-.BR "openvasd -S 192.168.1.1,192.168.1.2,192.168.1.3,192.168.1.4"
+.BR "openvassd -S 192.168.1.1,192.168.1.2,192.168.1.3,192.168.1.4"
 will make 
-.B openvasd
+.B openvassd
 establish connections with a source IP of one among those listed above.
-For this setup to work, the host running openvasd should have multiple
+For this setup to work, the host running openvassd should have multiple
 NICs with these IP addresses set.
 
 .TP 
@@ -85,14 +85,14 @@ Show a summary of the commands
 .SH THE CONFIGURATION FILE 
 
 The default 
-.B openvasd 
+.B openvassd 
 configuration file,
-.I @OPENVASD_CONFDIR@/openvas/openvasd.conf
+.I @OPENVASSD_CONFDIR@/openvas/openvassd.conf
 contains these options:
 
 .IP plugins_folder
 Contains the location of the plugins folder. This is usually
-@OPENVASD_PLUGINS@, but you may change this.
+@OPENVASSD_PLUGINS@, but you may change this.
 .IP logfile
 path to the logfile. You can enter
 .I syslog
@@ -100,8 +100,8 @@ if you want the nessusd messages to be logged via
 .B syslogd
 You may also enter
 .I stderr
-if you want the openvasd logs to be written on stderr.
-.I Because openvasd is a sensitive program, you should keep your logs. 
+if you want the openvassd logs to be written on stderr.
+.I Because openvassd is a sensitive program, you should keep your logs. 
 
 .IP max_hosts
 is maximum number of hosts to test at the same time which should be
@@ -117,42 +117,42 @@ x
 so you need to find a balance between these two options. Note that launching too many plugins at the same time may disable the remote host, either temporarily (ie: inetd closes its ports) or definitely (the remote host crash because it is asked to do too many things at the same time), so be careful.
 
 .IP be_nice
-If this option is set to 'yes', then each child forked by openvasd will
-nice(2) itself to a very low priority. This may speed up your scan as the main openvasd process will be able to continue to spew processes, and this garantees that openvasd does not deprives other important processes from their resources.
+If this option is set to 'yes', then each child forked by openvassd will
+nice(2) itself to a very low priority. This may speed up your scan as the main openvassd process will be able to continue to spew processes, and this garantees that openvassd does not deprives other important processes from their resources.
 
 .IP log_whole_attack
-If this option is set to 'yes', openvasd will store the name, pid, date and target of each plugin launched. This is helpful for monitoring and debugging purpose, however this option might make openvasd fill your disk rather quickly. 
+If this option is set to 'yes', openvassd will store the name, pid, date and target of each plugin launched. This is helpful for monitoring and debugging purpose, however this option might make openvassd fill your disk rather quickly. 
 
 .IP log_plugins_name_at_load
-If this option is set to 'yes', openvasd will log the name of each plugin being loaded at startup, or each time it receives the HUP signal.
+If this option is set to 'yes', openvassd will log the name of each plugin being loaded at startup, or each time it receives the HUP signal.
 
 .IP dumpfile
 Some plugins might issue messages, most of the time to inform you that something went wrong. If you want to read these messages, set this value to a given file name. If you want to save space, set this option value to /dev/null
 
 .IP cgi_path
-By default, openvasd looks for default CGIs in /cgi-bin and /scripts. You may
+By default, openvassd looks for default CGIs in /cgi-bin and /scripts. You may
 change these to something else to reflect the policy of your site. The syntax of this option is the same as the shell $PATH variable: path1:path2:...
 
 .IP port_range
-This is the default range of ports that the scanner plugins will probe. The syntax of this option is flexible, it can be a single range ("1-1500"), several ports ("21,23,80"), several ranges of ports ("1-1500,32000-33000"). Note that you can specify UDP and TCP ports by prefixing each range by T or U. For instance, the following range will make openvasd scan UDP ports 1 to 1024 and TCP ports 1 to 65535 : "T:1-65535,U:1-1024".
+This is the default range of ports that the scanner plugins will probe. The syntax of this option is flexible, it can be a single range ("1-1500"), several ports ("21,23,80"), several ranges of ports ("1-1500,32000-33000"). Note that you can specify UDP and TCP ports by prefixing each range by T or U. For instance, the following range will make openvassd scan UDP ports 1 to 1024 and TCP ports 1 to 65535 : "T:1-65535,U:1-1024".
 
 .IP optimize_test
-By default, openvasd does not trust the remote host banners. It means that it will check a webserver claiming to be IIS for Apache flaws, and so on. This behavior might generate false positive and will slow the scan down somehow. If you are sure the banners of the remote host have not been tampered with, you can safely enable this option, which will force the plugins to perform their job only against the services they have been designed to check.
+By default, openvassd does not trust the remote host banners. It means that it will check a webserver claiming to be IIS for Apache flaws, and so on. This behavior might generate false positive and will slow the scan down somehow. If you are sure the banners of the remote host have not been tampered with, you can safely enable this option, which will force the plugins to perform their job only against the services they have been designed to check.
 
 .IP checks_read_timeout
-Number of seconds that the security checks will wait for when doing a recv(). You should increase this value if you are running openvasd across a slow network slink (testing a host via a dialup connection for instance)
+Number of seconds that the security checks will wait for when doing a recv(). You should increase this value if you are running openvassd across a slow network slink (testing a host via a dialup connection for instance)
 
 .IP non_simult_ports
-Some services (in particular SMB) do not appreciate multiple connections at the same time coming from the same host. This option allows you to prevent openvasd to make two connections on the same given ports at the same time. The syntax of this option is "port1[, port2....]". Note that you can use the KB notation of openvasd to designate a service formaly. Ex: "139, Services/www", will prevent openvasd from making two connections at the same time on port 139 and on every port which hosts a web server.
+Some services (in particular SMB) do not appreciate multiple connections at the same time coming from the same host. This option allows you to prevent openvassd to make two connections on the same given ports at the same time. The syntax of this option is "port1[, port2....]". Note that you can use the KB notation of openvassd to designate a service formaly. Ex: "139, Services/www", will prevent openvassd from making two connections at the same time on port 139 and on every port which hosts a web server.
 
 .IP plugins_timeout
 This is the maximum lifetime, in seconds of a plugin. It may happen that some plugins are slow because of the way they are written or the way the remote server behaves. This option allows you to make sure your scan is never caught in an endless loop because of a non-finishing plugin.
 
 .IP safe_checks
-Most of the time, openvasd attempts to reproduce an exceptional condition to detemermine if the remote services are vulnerable to certain flaws. This includes the reproduction of buffer overflows or format strings, which may make the remote server crash. If you set this option to 'yes', openvasd will disable the plugins which have the potential to crash the remote services, and will at the same time make several checks rely on the banner of the service tested instead of its behavior towards a certain input. This reduces false positives and makes openvasd nicer towards your network, however this may make you miss important vulnerabilities (as a vulnerability affecting a given service may also affect another one).
+Most of the time, openvassd attempts to reproduce an exceptional condition to detemermine if the remote services are vulnerable to certain flaws. This includes the reproduction of buffer overflows or format strings, which may make the remote server crash. If you set this option to 'yes', openvassd will disable the plugins which have the potential to crash the remote services, and will at the same time make several checks rely on the banner of the service tested instead of its behavior towards a certain input. This reduces false positives and makes openvassd nicer towards your network, however this may make you miss important vulnerabilities (as a vulnerability affecting a given service may also affect another one).
 
 .IP auto_enable_dependencies
-OpenVAS plugins use the result of each other to execute their job. For instance, a plugin which logs into the remote SMB registry will need the results of the plugin which finds the SMB name of the remote host and the results of the plugin which attempts to log into the remote host. If you want to only select a subset of the plugins availaible, tracking the dependencies can quickly become tiresome. If you set this option to 'yes', openvasd will automatically enable the plugins that are depended on.
+OpenVAS plugins use the result of each other to execute their job. For instance, a plugin which logs into the remote SMB registry will need the results of the plugin which finds the SMB name of the remote host and the results of the plugin which attempts to log into the remote host. If you want to only select a subset of the plugins availaible, tracking the dependencies can quickly become tiresome. If you set this option to 'yes', openvassd will automatically enable the plugins that are depended on.
 
 .IP use_mac_addr
 Set this option to 'yes' if you are testing your local network and each local host has a dynamic IP address (affected by DHCP or BOOTP), and all the tested hosts will be referred to by their MAC address.
@@ -164,7 +164,7 @@ The other options in this file can usually be redefined by the client.
 
 .SH USERS MANAGEMENT
 
-The utility openvas-adduser(8) creates new openvasd users. Each openvasd user
+The utility openvas-adduser(8) creates new openvassd users. Each openvassd user
 is attributed a "home", in @OPENVAS_STATEDIR@/users/<username>. This home contains the following directories :
 .IP auth/
 This directory contains the authentification information for this user. It might contain the file 'dname' if the user is authenticating using a certificate, or 'hash' (or 'passwd') if the user is authenticating using a password. The file 'hash' contains a MD5 hash of the user password, as well as a random seed. The file 'password' should contain the password in clear text.
@@ -187,8 +187,8 @@ This directory contains the plugins this user uploaded.
 
 
 
-When a user attempts to log in, openvasd first checks that the directory
-@OPENVAS_STATEDIR@/users/<username> exists, then hashes the password sent by the user with the random salt found in <username>/auth/hash, and compares it with the password hash stored in the same file. If the users authenticates using a certificate, then openvasd checks that the certificate has been signed by a recognized authority, and makes sure that the dname of the certificate shown by the user is the same as the one in <username>/dname.
+When a user attempts to log in, openvassd first checks that the directory
+@OPENVAS_STATEDIR@/users/<username> exists, then hashes the password sent by the user with the random salt found in <username>/auth/hash, and compares it with the password hash stored in the same file. If the users authenticates using a certificate, then openvassd checks that the certificate has been signed by a recognized authority, and makes sure that the dname of the certificate shown by the user is the same as the one in <username>/dname.
 
 
 To remove a given user, use the command openvas-rmuser(8).
@@ -333,4 +333,4 @@ http://bugs.openvas.org
 	
 .SH AUTHORS
 
-openvasd was written by Renaud Deraison <deraison@cvs.nessus.org>
+openvassd was written by Renaud Deraison <deraison@cvs.nessus.org>

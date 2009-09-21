@@ -50,7 +50,7 @@ between two tests ?
 -------------------
 
 Once it has been saved on disk, the knowledge base is given a date. It's
-up to you to configure openvasd to consider a knowledge base as being
+up to you to configure openvassd to consider a knowledge base as being
 obsolete after two years, ten minutes, or two seconds.
 
 $Id$
