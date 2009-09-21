@@ -28,8 +28,8 @@
 */
 
 
-#ifndef _NESSUSD_NTP_11_H
-#define _NESSUSD_NTP_11_H
+#ifndef _OPENVAS_NTP_11_H
+#define _OPENVAS_NTP_11_H
 #define NTP_STOP_WHOLE_TEST 2
 
 int ntp_11_parse_input(struct arglist *, char *);

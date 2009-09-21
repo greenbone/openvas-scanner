@@ -142,10 +142,10 @@ my_socket_close(int s)
 static int std_port(int port)
 {
   const char	*name;
-  extern char*	nessus_get_svc_name();
+  extern char*	openvas_get_svc_name();
 
   if (port < 1 || port > 65535) return 0;
-  name = nessus_get_svc_name(port, NULL);
+  name = openvas_get_svc_name(port, NULL);
   if  (name == NULL || strcmp(name, "unknown") == 0)
     return 0;
 #if DEBUG > 2

@@ -1,3 +1,18 @@
+2009-09-21  Jan-Oliver Wagner <jan-oliver.wagner@greenbone.net>
+
+	* openvasd/utils.h, openvasd/users.h, openvasd/sighand.h,
+	openvasd/processes.h, openvasd/preferences.h,
+	openvasd/plugs_hash.h, openvasd/pluginload.h,
+	openvasd/piic.h, openvasd/parser.h, openvasd/openvasd.c,
+	openvasd/ntp_11.h, openvasd/log.h, openvasd/locks.h,
+	openvasd/comm.h, openvasd/auth.h, openvasd/attack.h,
+	cnvts/ssl_ciphers/ssl_ciphers.c,
+	cnvts/find_service/find_service.c:
+	Replaced "NESSUS" by "OPENVAS".
+
+	* cnvts/openvas_tcp_scanner/openvas_tcp_scanner.c: Adjusted
+	API calls due to name change nessus to openvas.
+
 2009-09-18  Felix Wolfsteller <felix.wolfsteller@intevation.de>
 
 	* MANIFEST: Updated as filenames were changed.

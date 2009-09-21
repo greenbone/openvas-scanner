@@ -29,8 +29,8 @@
 
 
 
-#ifndef _NESSUSD_LOG_H
-#define _NESSUSD_LOG_H
+#ifndef _OPENVAS_LOG_H
+#define _OPENVAS_LOG_H
 
 void log_init(const char *);
 void log_close(void);

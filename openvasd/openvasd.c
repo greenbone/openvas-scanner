@@ -516,7 +516,7 @@ main_loop ()
   openvas_init_random();
 
 #define SSL_VER_DEF_NAME	"TLSv1"
-#define SSL_VER_DEF_ENCAPS	NESSUS_ENCAPS_TLSv1
+#define SSL_VER_DEF_ENCAPS	OPENVAS_ENCAPS_TLSv1
   ssl_ver = preferences_get_string (global_preferences, "ssl_version");
   if (ssl_ver == NULL || *ssl_ver == '\0')
     ssl_ver = SSL_VER_DEF_NAME;
@@ -541,11 +541,11 @@ main_loop ()
 	      exit(1);
 	    }
 	  else if (strcasecmp(ssl_ver, "SSLv3") == 0)
-	    encaps = NESSUS_ENCAPS_SSLv3;
+	    encaps = OPENVAS_ENCAPS_SSLv3;
 	  else if (strcasecmp(ssl_ver, "SSLv23") == 0)
-	    encaps = NESSUS_ENCAPS_SSLv23;
+	    encaps = OPENVAS_ENCAPS_SSLv23;
 	  else if (strcasecmp(ssl_ver, "TLSv1") == 0)
-	    encaps = NESSUS_ENCAPS_TLSv1;
+	    encaps = OPENVAS_ENCAPS_TLSv1;
 	  else
 	    {
 	      fprintf(stderr, "Unknown SSL version \"%s\"\nSwitching to default " SSL_VER_DEF_NAME "\n", ssl_ver);

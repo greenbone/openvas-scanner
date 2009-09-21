@@ -28,8 +28,8 @@
 */
 
 
-#ifndef __NESSUS_ATTACK_H__
-#define __NESSUS_ATTACK_H__
+#ifndef __OPENVAS_ATTACK_H__
+#define __OPENVAS_ATTACK_H__
 
 int attack_network(struct arglist *);
 

@@ -28,8 +28,8 @@
 */
 
 
-#ifndef _NESSUSD_USERS_H
-#define _NESSUSD_USERS_H
+#ifndef _OPENVAS_USERS_H
+#define _OPENVAS_USERS_H
 #define BAD_LOGIN_ATTEMPT (struct openvas_rules*)(-1)
 #define OPENVAS_MAX_USERNAME_LEN	32 /* Including the ending nul byte! */
 

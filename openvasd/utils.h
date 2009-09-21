@@ -28,8 +28,8 @@
 */
 
 
-#ifndef _NESSUSD_UTILS_H
-#define _NESSUSD_UTILS_H
+#ifndef _OPENVAS_UTILS_H
+#define _OPENVAS_UTILS_H
 
 struct attack_atom
 {

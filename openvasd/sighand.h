@@ -28,8 +28,8 @@
 */
 
 
-#ifndef _NESSUSD_SIGHAND_H
-#define _NESSUSD_SIGHAND_H
+#ifndef _OPENVAS_SIGHAND_H
+#define _OPENVAS_SIGHAND_H
 
 extern void (*openvas_signal(int signum, void (*handler)(int)))(int);
 extern void sighand_pipe();

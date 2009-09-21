@@ -27,8 +27,8 @@
 *
 */
 
-#ifndef _NESSUSD_COMM_H
-#define _NESSUSD_COMM_H
+#ifndef _OPENVAS_COMM_H
+#define _OPENVAS_COMM_H
 
 ntp_caps* comm_init(int);
 void comm_terminate(struct arglist *);

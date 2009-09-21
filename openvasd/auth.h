@@ -25,8 +25,8 @@
 */
 
 
-#ifndef _NESSUSD_AUTH_H
-#define _NESSUSD_AUTH_H
+#ifndef _OPENVAS_AUTH_H
+#define _OPENVAS_AUTH_H
 
 #include "users.h"
 

@@ -109,7 +109,7 @@ int plugin_run(env)
   trp0 = plug_get_port_transport(env, port);
   trp0_name = (char*)get_encaps_name(trp0);
 
-  for (trp = NESSUS_ENCAPS_SSLv2; trp <=  NESSUS_ENCAPS_TLSv1; trp ++)
+  for (trp = OPENVAS_ENCAPS_SSLv2; trp <=  OPENVAS_ENCAPS_TLSv1; trp ++)
     {
       if (cnx >= 0)
 	{
@@ -119,10 +119,10 @@ int plugin_run(env)
 
       if ((cnx = open_stream_connection(env, port, trp, -2)) < 0)
 	{
-	  rejected[trp - NESSUS_ENCAPS_SSLv2]  = 1;
+	  rejected[trp - OPENVAS_ENCAPS_SSLv2]  = 1;
 	  continue;
 	}
-      rejected[trp - NESSUS_ENCAPS_SSLv2]  = 0;
+      rejected[trp - OPENVAS_ENCAPS_SSLv2]  = 0;
 
       if ((ssl = (SSL*)stream_get_ssl(cnx)) == NULL)
 	continue;
@@ -151,7 +151,7 @@ int plugin_run(env)
 	    }
 	}
 
-      if (trp != NESSUS_ENCAPS_SSLv2)
+      if (trp != OPENVAS_ENCAPS_SSLv2)
 	continue;
 
 #define HEREIS	"Here is the list of available SSLv2 ciphers:\n"
@@ -263,10 +263,10 @@ or http://httpd.apache.org/docs-2.0/mod/mod_ssl.html#sslciphersuite",
   prep = rep;
   *prep = '\0';
 
-  if (! rejected[trp0 - NESSUS_ENCAPS_SSLv2])
+  if (! rejected[trp0 - OPENVAS_ENCAPS_SSLv2])
     {
-      for (trp = NESSUS_ENCAPS_SSLv2; trp <= NESSUS_ENCAPS_TLSv1; trp ++)
-	if (rejected[trp - NESSUS_ENCAPS_SSLv2])
+      for (trp = OPENVAS_ENCAPS_SSLv2; trp <= OPENVAS_ENCAPS_TLSv1; trp ++)
+	if (rejected[trp - OPENVAS_ENCAPS_SSLv2])
 	  {
 	    snprintf(prep, sizeof(rep), "This %s server does not accept %s connections.\n",
 		    trp0_name, get_encaps_name(trp));
@@ -275,8 +275,8 @@ or http://httpd.apache.org/docs-2.0/mod/mod_ssl.html#sslciphersuite",
 	  }
     }
 
-  for (trp = NESSUS_ENCAPS_SSLv2; trp <= NESSUS_ENCAPS_TLSv1; trp ++)
-    if (trp != trp0 && ! rejected[trp - NESSUS_ENCAPS_SSLv2])
+  for (trp = OPENVAS_ENCAPS_SSLv2; trp <= OPENVAS_ENCAPS_TLSv1; trp ++)
+    if (trp != trp0 && ! rejected[trp - OPENVAS_ENCAPS_SSLv2])
       {
 	snprintf(prep, sizeof(rep), "This %s server also accepts %s connections.\n",
 		trp0_name, get_encaps_name(trp));

@@ -28,8 +28,8 @@
 */
 
 
-#ifndef _NESSUSD_PLUGINLOAD_H
-#define _NESSUSD_PLUGINLOAD_H
+#ifndef _OPENVAS_PLUGINLOAD_H
+#define _OPENVAS_PLUGINLOAD_H
 
 struct arglist * plugins_init(struct arglist *, int);
 struct arglist * plugins_reload(struct arglist *, struct arglist *, int);

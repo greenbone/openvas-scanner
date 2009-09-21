@@ -28,8 +28,8 @@
 */
 
 
-#ifndef NESSUSD_PLUGS_HASH_H__
-#define NESSUSD_PLUGS_HASH_H__
+#ifndef OPENVAS_PLUGS_HASH_H__
+#define OPENVAS_PLUGS_HASH_H__
 
 char * file_hash(char *);
 char * plugins_hash(struct arglist *);

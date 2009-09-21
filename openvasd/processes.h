@@ -28,8 +28,8 @@
 */
 
 
-#ifndef _NESSUSD_THREADS_H
-#define _NESSUSD_THREADS_H
+#ifndef _OPENVAS_THREADS_H
+#define _OPENVAS_THREADS_H
 
 typedef int(*process_func_t)(void *);
 pid_t create_process(process_func_t, void *);

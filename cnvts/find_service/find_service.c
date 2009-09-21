@@ -1925,7 +1925,7 @@ plugin_do_run(desc, h, test_ssl)
 				fprintf(stderr, "find_service(%s): banner is known on port %d - will not open a new connection\n", inet_ntoa(*p_ip), port);
 #endif
 				cnx = -1;
-				trp = NESSUS_ENCAPS_IP;
+				trp = OPENVAS_ENCAPS_IP;
 			} else {
 #ifdef DEBUG
 				fprintf(stderr, "find_service(%s): banner is unknown on port %d - connecting...\n", inet_ntoa(*p_ip), port);
@@ -1938,7 +1938,7 @@ plugin_do_run(desc, h, test_ssl)
 					diff_tv /= 1000;	/* Now in milliseconds */
 				} else {
 					(void) gettimeofday(&tv1, NULL);
-					trp = NESSUS_ENCAPS_IP;
+					trp = OPENVAS_ENCAPS_IP;
 					cnx = open_stream_connection(desc, port, trp, cnx_timeout2);
 					(void) gettimeofday(&tv2, NULL);
 					diff_tv = DIFFTV1000(tv2, tv1);
@@ -2002,7 +2002,7 @@ plugin_do_run(desc, h, test_ssl)
 
 					if (!no_banner_grabbed) {
 #ifdef SMART_TCP_RW
-						if (trp == NESSUS_ENCAPS_IP && realfd >= 0) {
+						if (trp == OPENVAS_ENCAPS_IP && realfd >= 0) {
 					select_again:
 							FD_ZERO(&rfds);
 							FD_ZERO(&wfds);
@@ -2436,7 +2436,7 @@ plugin_do_run(desc, h, test_ssl)
 #endif
 					unindentified_service = 1;
 #define TESTSTRING	"OpenVAS Wrap Test"
-					if (trp == NESSUS_ENCAPS_IP && wrap_timeout > 0)
+					if (trp == OPENVAS_ENCAPS_IP && wrap_timeout > 0)
 #if 0
 						if (write_stream_connection(cnx, TESTSTRING, sizeof(TESTSTRING) - 1) <= 0)
 #endif
@@ -2454,7 +2454,7 @@ plugin_do_run(desc, h, test_ssl)
 					maybe_wrapped = 0;
 
 				if (maybe_wrapped	/* && trp ==
-							 * NESSUS_ENCAPS_IP &&
+							 * OPENVAS_ENCAPS_IP &&
 				        wrap_timeout > 0 */ ) {
 					int             nfd, fd, x, flag = 0;
 					char            b;
@@ -2462,7 +2462,7 @@ plugin_do_run(desc, h, test_ssl)
 #ifdef DEBUG
 					fprintf(stderr, "find_service(%s): potentially wrapped service on port %d\n", inet_ntoa(*p_ip), port);
 #endif
-					nfd = open_stream_connection(desc, port, NESSUS_ENCAPS_IP, cnx_timeout2);
+					nfd = open_stream_connection(desc, port, OPENVAS_ENCAPS_IP, cnx_timeout2);
 					if (nfd >= 0) {
 						fd = nessus_get_socket_from_connection(nfd);
 #if 0

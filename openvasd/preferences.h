@@ -28,8 +28,8 @@
 */
 
 
-#ifndef __NESSUSD_PREFERENCES_H
-#define __NESSUSD_PREFERENCES_H
+#ifndef __OPENVAS_PREFERENCES_H
+#define __OPENVAS_PREFERENCES_H
 
 int    preferences_init(char *, struct arglist **);
 int    preferences_new(char *);
