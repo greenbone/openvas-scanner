@@ -1068,7 +1068,7 @@ main (int argc, char * argv[], char * envp[])
   {
     printf("openvassd (%s) %s for %s\n\n", PROGNAME, OPENVAS_VERSION, OVS_OS_NAME);
     printf("Nessusd origin: (C) 1998 - 2004 Renaud Deraison <deraison@nessus.org>\n");
-    printf("New code since openvassd: (C) 2007, 2008, 2009 Intevation GmbH\n");
+    printf("Most new code since openvassd: (C) 2009 Greenbone Networks GmbH\n");
     printf("\n");
     DO_EXIT(0);
   }
