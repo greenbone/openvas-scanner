@@ -1,3 +1,9 @@
+2009-09-22  Jan-Oliver Wagner <jan-oliver.wagner@greenbone.net>
+
+	* cnvts/find_service/find_service.c (plugin_do_run): Adapted to API
+	change (nessus_get_socket_from_connection ->
+	openvas_get_socket_from_connection).
+
 2009-09-22  Felix Wolfsteller <felix.wolfsteller@intevation.de>
 
 	* Makefile: Renamed openvas-server to openvas-scanner.

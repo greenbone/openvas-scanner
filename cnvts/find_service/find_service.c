@@ -1950,7 +1950,7 @@ plugin_do_run(desc, h, test_ssl)
 				int             realfd = -1;
 
 				if (cnx >= 0) {
-					realfd = nessus_get_socket_from_connection(cnx);
+					realfd = openvas_get_socket_from_connection(cnx);
 					snprintf(k, sizeof(k), "FindService/CnxTime1000/%d", port);
 					plug_replace_key(desc, k, ARG_INT, GSIZE_TO_POINTER(diff_tv));
 					snprintf(k, sizeof(k), "FindService/CnxTime/%d", port);
@@ -2464,7 +2464,7 @@ plugin_do_run(desc, h, test_ssl)
 #endif
 					nfd = open_stream_connection(desc, port, OPENVAS_ENCAPS_IP, cnx_timeout2);
 					if (nfd >= 0) {
-						fd = nessus_get_socket_from_connection(nfd);
+						fd = openvas_get_socket_from_connection(nfd);
 #if 0
 						fprintf(stderr, "open_stream_connection(port=%d) succeeded\n", port);
 #endif
