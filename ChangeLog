@@ -1,5 +1,17 @@
 2009-09-22  Jan-Oliver Wagner <jan-oliver.wagner@greenbone.net>
 
+	* packaging/fedora/openvas-server-1.0.0-1.fc8.openvas.spec,
+	packaging/fedora/openvas-server-1.0.0-Makefile.diff, packaging/fedora/,
+	packaging/opensuse/openvas-server-1.0.0-1.suse102.openvas.spec,
+	packaging/opensuse/openvas-server-1.0.0-Makefile.diff,
+	packaging/opensuse/, packaging/debian/, packaging/: Removed. These
+	files for packagig are very outdated. The packaging is now managed
+	separately.
+
+	* MANIFEST: Updated.
+
+2009-09-22  Jan-Oliver Wagner <jan-oliver.wagner@greenbone.net>
+
 	* openvasd/openvasd.c, openvasd/otp_1_0.c, openvasd/otp_1_0.h,
 	openvasd/oval_plugins.c: Copyright transfer from Intevation
 	to Greenbone.

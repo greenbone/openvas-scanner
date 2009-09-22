@@ -105,9 +105,6 @@ openvas-mkcert.in
 openvas-nvt-sync.in
 openvas-rmuser.in
 openvas.tmpl.in
-packaging/debian/
-packaging/fedora/
-packaging/opensuse/
 po/Makefile
 po/openvas-scripts-de.po
 po/README
