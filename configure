@@ -27969,7 +27969,7 @@ fi
 
 
 
-ac_config_files="$ac_config_files openvas.tmpl include/corevers.h openvas-adduser openvas-rmuser openvas-mkcert openvas-mkcert-client openvassd-config openvas-nvt-sync"
+ac_config_files="$ac_config_files openvas.tmpl include/corevers.h openvas-adduser openvas-rmuser openvas-mkcert openvas-mkcert-client openvas-nvt-sync"
 
 cat >confcache <<\_ACEOF
 # This file is a shell script that caches the results of configure
@@ -28531,7 +28531,6 @@ do
     "openvas-rmuser") CONFIG_FILES="$CONFIG_FILES openvas-rmuser" ;;
     "openvas-mkcert") CONFIG_FILES="$CONFIG_FILES openvas-mkcert" ;;
     "openvas-mkcert-client") CONFIG_FILES="$CONFIG_FILES openvas-mkcert-client" ;;
-    "openvassd-config") CONFIG_FILES="$CONFIG_FILES openvassd-config" ;;
     "openvas-nvt-sync") CONFIG_FILES="$CONFIG_FILES openvas-nvt-sync" ;;
 
   *) { { echo "$as_me:$LINENO: error: invalid argument: $ac_config_target" >&5
