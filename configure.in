@@ -44,7 +44,7 @@ AC_INIT(.root-dir)
 AC_REVISION($Revision$)dnl
 AC_PREREQ(2.50)
 
-NEED_OPENVASLIBS_VERSION=2.0.4
+NEED_OPENVASLIBS_VERSION=3.0.0
 
 dnl version stuff -- jordan
 save_IFS="${IFS}"
@@ -152,7 +152,7 @@ fi
 
 
 dnl GLIB needs to be quoted in the next line otherwise m4 tries to expand it#
-PKG_CHECK_MODULES([GLIB], glib-2.0 >= 2.6.0, HAVE_GLIB="yes", AC_MSG_ERROR("glib >= 2.6.0 not found"))
+PKG_CHECK_MODULES([GLIB], glib-2.0 >= 2.12.0, HAVE_GLIB="yes", AC_MSG_ERROR("glib >= 2.12.0 not found"))
 AC_SUBST(GLIB_CFLAGS)
 AC_SUBST(GLIB_LIBS)
 

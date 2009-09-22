@@ -21,3 +21,7 @@ PLUGINS :
 - user-defineable severity
 - script_keywords() [DONE, but unused yet]
 - easily translatable plugins [POSTPONED]
+
+Some old entries:
+
+- memory leaks in plugins reload

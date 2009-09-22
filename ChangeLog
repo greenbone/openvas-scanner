@@ -1,3 +1,16 @@
+2009-09-22  Jan-Oliver Wagner <jan-oliver.wagner@greenbone.net>
+
+	* doc/TODO.txt: Added contents of toplevel TODO file.
+
+	* TODO: Removed.
+
+	* configure.in: Upgraded required openvas-libraries version to 3.0.0.
+	Upgraded required glib from 2.6 to 2.12.
+
+	* configure: Updated.
+
+	* MANIFEST: Updated.
+
 2009-09-22  Felix Wolfsteller <felix.wolfsteller@intevation.de>
 
 	* configure.in: Removed seconf reference to openvassd-config.
