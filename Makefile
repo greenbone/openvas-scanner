@@ -69,7 +69,6 @@ install-bin:
 	@test -d $(DESTDIR)${OPENVASSD_CACHE} || $(INSTALL_DIR) -m 755 $(DESTDIR)${OPENVASSD_CACHE}
 	$(INSTALL) -m 755 openvas-nvt-sync $(DESTDIR)${sbindir}
 	$(INSTALL) -m 755 openvas-mkcert-client $(DESTDIR)${bindir}/openvas-mkcert-client
-	$(INSTALL) -m 755 openvassd-config $(DESTDIR)${bindir}/openvassd-config
 	$(INSTALL) -m 755 ssl/openvas-mkrand $(DESTDIR)${bindir}/openvas-mkrand
 	$(INSTALL) -m $(SERVERMODE) openvasd/openvassd $(DESTDIR)${sbindir}/openvassd
 	$(INSTALL) -m 755 openvas-adduser $(DESTDIR)${sbindir}/openvas-adduser
@@ -82,7 +81,6 @@ install-man:
 	@test -d $(DESTDIR)${mandir} || $(INSTALL_DIR) -m 755 $(DESTDIR)${mandir}
 	@test -d $(DESTDIR)${mandir}/man1 || $(INSTALL_DIR) -m 755 $(DESTDIR)${mandir}/man1
 	@test -d $(DESTDIR)${mandir}/man8 || $(INSTALL_DIR) -m 755 $(DESTDIR)${mandir}/man8
-	$(INSTALL) -c -m 0444 doc/openvassd-config.1 $(DESTDIR)${mandir}/man1/openvassd-config.1
 	$(INSTALL) -c -m 0444 doc/openvas-mkrand.1 $(DESTDIR)${mandir}/man1/openvas-mkrand.1
 	$(INSTALL) -c -m 0444 doc/openvassd.8 $(DESTDIR)${mandir}/man8/openvassd.8
 	$(INSTALL) -c -m 0444 doc/openvas-nvt-sync.8 $(DESTDIR)${mandir}/man8/openvas-nvt-sync.8
@@ -132,7 +130,6 @@ distclean: clean
 	rm -f openvas-mkcert
 	rm -f openvas-mkcert-client
 	rm -f openvas-install-cert
-	rm -f openvassd-config
 	[ -z "${MAN_OPENVASSD_8}" ] || rm -f ${MAN_OPENVASSD_8}
 
 dist:

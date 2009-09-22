@@ -53,7 +53,6 @@ openvasd/auth.c
 openvasd/auth.h
 openvasd/comm.c
 openvasd/comm.h
-openvasd-config.in
 openvasd/hosts.c
 openvasd/hosts.h
 openvasd/locks.c
