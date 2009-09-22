@@ -137,12 +137,12 @@ distclean: clean
 
 dist:
 	version="`cat VERSION`"; \
-	rm -rf openvas-server-$${version}* ; \
-	mkdir openvas-server-$${version} ; \
-	tar cf openvas-server-$${version}/x.tar `cat MANIFEST`; \
-	( cd openvas-server-$${version} ; tar xf x.tar ; rm -f x.tar ) ; \
-	tar cf openvas-server-$${version}.tar openvas-server-$${version} ; \
-	gzip -9 openvas-server-$${version}.tar
+	rm -rf openvas-scanner-$${version}* ; \
+	mkdir openvas-scanner-$${version} ; \
+	tar cf openvas-scanner-$${version}/x.tar `cat MANIFEST`; \
+	( cd openvas-scanner-$${version} ; tar xf x.tar ; rm -f x.tar ) ; \
+	tar cf openvas-scanner-$${version}.tar openvas-scanner-$${version} ; \
+	gzip -9 openvas-scanner-$${version}.tar
 
 distcheck:
 	find . -type f | sed -e 's/^.\///' -e '/~$$/d' -e '/CVS/d' \

@@ -35,10 +35,10 @@ OBJS = auth.o \
        pluginscheduler.o \
        shared_socket.o 
 
-all : openvasd
+all : openvassd
 
-openvasd : $(OBJS)
-	$(CC) $(LDFLAGS) $(OPENVAS_INCLUDE) $(OBJS)  -o openvasd $(LIBS)
+openvassd : $(OBJS)
+	$(CC) $(LDFLAGS) $(OPENVAS_INCLUDE) $(OBJS)  -o openvassd $(LIBS)
 
 users.o : users.c users.h rules.h
 	$(CC) $(OPENVAS_CFLAGS) $(OPENVAS_INCLUDE) -c users.c 
@@ -125,5 +125,5 @@ hosts.o : hosts.c
 shared_socket.o : shared_socket.c
 	$(CC) $(OPENVAS_CFLAGS) $(OPENVAS_INCLUDE) -c shared_socket.c
 clean :
-	rm -f openvasd *.o *~
+	rm -f openvassd *.o *~
 
