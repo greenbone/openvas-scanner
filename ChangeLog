@@ -1,4 +1,12 @@
-2009-09-22  Jan-Oliver Wagner <jan-oliver.wagner@greenbone.net>
+2009-09-22  Felix Wolfsteller <felix.wolfsteller@intevation.de>
+
+	* configure.in: Removed seconf reference to openvassd-config.
+
+	* configure: Regenerated.
+
+	* ChangeLog: Fixed identity theft.
+
+2009-09-22  Felix Wolfsteller <felix.wolfsteller@intevation.de>
 
 	* configure.in: Removed reference to openvassd-config.
 
