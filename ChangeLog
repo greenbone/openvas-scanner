@@ -1,5 +1,13 @@
 2009-09-23  Jan-Oliver Wagner <jan-oliver.wagner@greenbone.net>
 
+	Post-release version bump.
+
+	* VERSION: Set to 3.0.0.beta2.SVN.
+
+	* doc/Doxyfile, doc/Doxyfile_full: Updated PROJECT_NUMBER.
+
+2009-09-23  Jan-Oliver Wagner <jan-oliver.wagner@greenbone.net>
+
 	Preparing the openvas-scanner 3.0.0-beta1 release.
 
 	* VERSION: Set to 3.0.0.beta1
