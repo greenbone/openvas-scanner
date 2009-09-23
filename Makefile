@@ -70,7 +70,7 @@ install-bin:
 	$(INSTALL) -m 755 openvas-nvt-sync $(DESTDIR)${sbindir}
 	$(INSTALL) -m 755 openvas-mkcert-client $(DESTDIR)${bindir}/openvas-mkcert-client
 	$(INSTALL) -m 755 ssl/openvas-mkrand $(DESTDIR)${bindir}/openvas-mkrand
-	$(INSTALL) -m $(SERVERMODE) openvasd/openvassd $(DESTDIR)${sbindir}/openvassd
+	$(INSTALL) -m $(SERVERMODE) openvassd/openvassd $(DESTDIR)${sbindir}/openvassd
 	$(INSTALL) -m 755 openvas-adduser $(DESTDIR)${sbindir}/openvas-adduser
 	$(INSTALL) -m 755 openvas-rmuser $(DESTDIR)${sbindir}/openvas-rmuser
 	$(INSTALL) -m 755 openvas-mkcert $(DESTDIR)${sbindir}/openvas-mkcert
@@ -100,7 +100,7 @@ install-nvts:
 	done
 
 scanner :
-	cd openvasd && $(MAKE)
+	cd openvassd && $(MAKE)
 
 sslstuff :
 	cd ssl && $(MAKE)
@@ -115,7 +115,7 @@ $(MAN_OPENVASSD_8) : $(MAN_OPENVASSD_8).in
 
 
 clean:
-	cd openvasd && $(MAKE) clean
+	cd openvassd && $(MAKE) clean
 	cd ssl && $(MAKE) clean
 	cd cnvts && ./make_world clean
 
@@ -144,7 +144,7 @@ dist:
 distcheck:
 	find . -type f | sed -e 's/^.\///' -e '/~$$/d' -e '/CVS/d' \
 			     -e '/\.o$$/d' -e '/^openvas.tmpl$$/d' \
-			     -e '/^openvasd\/OBJ\/openvasd$$/d' \
+			     -e '/^openvassd\/OBJ\/openvassd$$/d' \
 			     -e '/^bin\/openvassd$$/d' \
 			     -e '/^config\.cache$$/d' \
 			     -e '/^config\.log$$/d' \
