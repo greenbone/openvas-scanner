@@ -96,7 +96,7 @@ Contains the location of the plugins folder. This is usually
 .IP logfile
 path to the logfile. You can enter
 .I syslog
-if you want the nessusd messages to be logged via
+if you want the openvassd messages to be logged via
 .B syslogd
 You may also enter
 .I stderr
@@ -274,18 +274,18 @@ several parameters that can be modified to reduce network load:
 .IP checks_read_timeout
 (Introduced in OpenVAS 0.99.4) The default value is set to 5 seconds, that can
 (should) be increased if network bandwith is low in the
-openvas.conf or nessusrc configuration files. Notice that it is recommended
+openvassd.conf or openvasrc configuration files. Notice that it is recommended
 to increase this this value, if you are running a test outside your LAN 
 (i.e. to Internet hosts through an Internet connection), to over 10 seconds.
 
 .IP max_hosts
 Number of hosts to test at the same time (this value is set by the OpenVAS
-GUI client or by .nessusrc) it can be as low as you want it to be
+GUI client or by .openvasrc) it can be as low as you want it to be
 (obviously 1 is the minimum)
 
 .IP max_checks
 Number of checkst to test at the same time (this value is also set by 
-the OpenVAS GUI client or by .nessusrc ) it can be as low as you want it
+the OpenVAS GUI client or by .openvasrc ) it can be as low as you want it
 to be and it will also reduce network load and improve performance
 (obviously 1 is the minimum)
 Notice that the OpenVAS scanner will spawn max_hosts * max_checks processes.

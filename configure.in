@@ -419,7 +419,7 @@ AC_PATH_XTRA
 PWDD=`pwd`	
 AC_SYS_LONG_FILE_NAMES
 
-dnl need support libs before checking nessuslib_phtreads_enabled
+dnl need support libs before checking openvaslib_pthreads_enabled
 AC_HAVE_LIBRARY(rpcsvc, rpcsvc_lib="-lrpcsvc")   
 AC_CHECK_LIB(rpcsvc, xdr_mon, AC_DEFINE(HAVE_XDR_MON))
 
@@ -446,7 +446,7 @@ AC_CHECK_FUNCS(NSCreateObjectFileImageFromFile)
 
 LIBS=`$LIBOPENVASCONFIG --libs`
 
-AC_CHECK_LIB(nessus, nessuslib_pthreads_enabled, use_pthreads="-DUSE_PTHREADS -DTHREADS -D_REENTRANT")
+AC_CHECK_LIB(openvasmisc, openvaslib_pthreads_enabled, use_pthreads="-DUSE_PTHREADS -DTHREADS -D_REENTRANT")
 
 test "$use_pthreads" && {
 	AC_CHECK_HEADERS(pthread.h)

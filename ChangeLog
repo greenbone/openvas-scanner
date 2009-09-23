@@ -1,3 +1,11 @@
+2009-09-23  Felix Wolfsteller <felix.wolfsteller@intevation.de>
+
+	* doc/openvassd.8.in: Replaced nessus by openvas.
+
+	* configure.in: Corrected check for pthreads_enabled.
+
+	* configure: Regenerated.
+
 2009-09-22  Jan-Oliver Wagner <jan-oliver.wagner@greenbone.net>
 
 	* packaging/fedora/openvas-server-1.0.0-1.fc8.openvas.spec,
