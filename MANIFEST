@@ -43,6 +43,7 @@ include/corevers.h.in
 include/includes.h
 include/threadcompat.h
 install-sh
+ltmain.sh
 Makefile
 MANIFEST
 openvas-adduser.in
