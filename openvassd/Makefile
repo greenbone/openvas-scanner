@@ -26,7 +26,7 @@ OBJS = auth.o \
        nes_plugins.o \
        oval_plugins.o \
        plugs_req.o \
-       openvasd.o \
+       openvassd.o \
        save_tests.o \
        save_kb.o \
        pluginlaunch.o \
@@ -55,8 +55,8 @@ preferences.o : preferences.c preferences.h
 pluginload.o : pluginload.h pluginload.c
 	$(CC) $(OPENVAS_CFLAGS) $(OPENVAS_INCLUDE) -c pluginload.c 
 
-openvasd.o : openvasd.c rules.h
-	$(CC) $(OPENVAS_CFLAGS) $(OPENVAS_INCLUDE) -c openvasd.c 
+openvassd.o : openvassd.c rules.h
+	$(CC) $(OPENVAS_CFLAGS) $(OPENVAS_INCLUDE) -c openvassd.c 
 
 auth.o : auth.c auth.h
 	$(CC) $(OPENVAS_CFLAGS) $(OPENVAS_INCLUDE) -c auth.c 

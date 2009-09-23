@@ -822,7 +822,7 @@ attack_network(struct arglist * globals)
     {
       nthread_t pid;
 
-     /* openvasd offers the ability to either test
+     /* openvassd offers the ability to either test
       * only the hosts we tested in the past, or only
       * the hosts we never tested (or both, of course) */
       if(save_kb(globals))

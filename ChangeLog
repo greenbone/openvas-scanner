@@ -1,5 +1,20 @@
 2009-09-23  Felix Wolfsteller <felix.wolfsteller@intevation.de>
 
+	* openvassd/openvasd.c: (re)moved.
+
+	* openvassd/openvassd.c: Moved from openvassd/openvasd.c.
+
+	* openvasd/Makefile, MANIFEST: Adjusted.
+
+	* openvassd/attack.c, openvassd/parser.c, openvassd/pluginlaunch.c,
+	openvassd/processes.c: Adjusted comments.
+
+	* doc/Doxyfile, doc/Doxyfile_full: Adjusted paths.
+
+	* doc/session_saving.txt, doc/openvas-mkcert-client.1: Adjusted
+
+2009-09-23  Felix Wolfsteller <felix.wolfsteller@intevation.de>
+
 	Moved folder openvasd to openvassd.
 
 	* openvasd, openvassd: Moved folder from openvasd to openvassd.

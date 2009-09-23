@@ -29,8 +29,8 @@
 
 #include <includes.h>
 
-/** @TODO Contents of this file is duplicate in openvas-server/openvasd/parser.c
- *        and openvas-client/nessus/parser.c . Move to libraries and merge, once
+/** @TODO Contents of this file is duplicate in openvas-scanner/openvassd/parser.c
+ *        and openvas-client/openvas/parser.c . Move to libraries and merge, once
  *        openvas-client depends on libraries. */
 
 /**

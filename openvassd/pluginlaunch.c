@@ -363,7 +363,7 @@ pluginlaunch_init (struct arglist * globals)
  
  if(max_running_processes >= MAX_PROCESSES)
  {
-  log_write("max_checks (%d) > MAX_PROCESSES (%d) - modify openvas-core/openvasd/pluginlaunch.c\n",
+  log_write("max_checks (%d) > MAX_PROCESSES (%d) - modify openvas-scanner/openvassd/pluginlaunch.c\n",
   			max_running_processes,
 			MAX_PROCESSES);
    max_running_processes = MAX_PROCESSES - 1;

@@ -102,7 +102,7 @@ create_process(function, argument)
   openvas_signal(SIGUSR1, SIG_IGN);
   openvas_signal(SIGUSR2, SIG_IGN);
   openvas_signal(SIGCHLD, sighand_chld);
-  openvas_signal(SIGSEGV, sighand_segv);	/* Comment this line out to dump a core and debug openvasd */
+  openvas_signal(SIGSEGV, sighand_segv);	/* Comment this line out to dump a core and debug openvassd */
   srand48(getpid() + getppid() + (long)time(NULL)); /* RATS: ignore */
   (*function)(argument);
   EXIT(0);

@@ -48,7 +48,7 @@ Limitations
 . Only the host whose test has been finished will have their
 data saved. Suppose you are testing 200 hosts, 8 hosts at a time,
 and that a power failure occurs when you are testings the hosts
-#100, 101, 102, ... 108. If you ask to openvasd to restore your session,
+#100, 101, 102, ... 108. If you ask to openvassd to restore your session,
 you'll test _again_ these eight hosts (but not the 99 hosts that you
 already tested). So, if you only use OpenVAS to test your localhost,
 this feature is less interesting.

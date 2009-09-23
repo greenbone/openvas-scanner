@@ -64,7 +64,7 @@ openvassd/nasl_plugins.c
 openvassd/nes_plugins.c
 openvassd/ntp_11.c
 openvassd/ntp_11.h
-openvassd/openvasd.c
+openvassd/openvassd.c
 openvassd/otp_1_0.c
 openvassd/otp_1_0.h
 openvassd/oval_plugins.c
