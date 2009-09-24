@@ -157,7 +157,6 @@ AC_SUBST(GLIB_CFLAGS)
 AC_SUBST(GLIB_LIBS)
 
 OVSCFLAGS="`$LIBOPENVASCONFIG --cflags`"
-NASLCFLAGS="`$OPENVASLIBNASLCONFIG --cflags`"
 
 egdpath="`$LIBOPENVASCONFIG --egd`"
 dnl Check if we are running arm, if so, remove all -OX flags
@@ -167,7 +166,7 @@ if test "x$host_cpu" = "xarm"; then
 	CFLAGS="`echo $CFLAGS | sed 's/-O[[[:digit:]]]//g' `"
 fi
 saveCFLAGS="$CFLAGS"
-CFLAGS="$CFLAGS $OVSCFLAGS $NASLCFLAGS"
+CFLAGS="$CFLAGS $OVSCFLAGS"
 
 dnl Check for several headers
 AC_HEADER_STDC
@@ -446,7 +445,7 @@ AC_CHECK_FUNCS(NSCreateObjectFileImageFromFile)
 
 LIBS=`$LIBOPENVASCONFIG --libs`
 
-AC_CHECK_LIB(openvasmisc, openvaslib_pthreads_enabled, use_pthreads="-DUSE_PTHREADS -DTHREADS -D_REENTRANT")
+AC_CHECK_LIB(openvas_misc, openvaslib_pthreads_enabled, use_pthreads="-DUSE_PTHREADS -DTHREADS -D_REENTRANT")
 
 test "$use_pthreads" && {
 	AC_CHECK_HEADERS(pthread.h)
@@ -680,7 +679,6 @@ AC_SUBST(PWD)
 AC_SUBST(PWDD)
 AC_SUBST(CFLAGS)
 AC_SUBST(OVSCFLAGS)
-AC_SUBST(NASLCFLAGS)
 AC_SUBST(CWALL)
 AC_SUBST(version)
 AC_SUBST(OPENVASSD_MAJOR)
