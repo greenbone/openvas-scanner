@@ -30,7 +30,7 @@
 #include <corevers.h>
 #include <network.h>
 
-#include <nasl.h> /* for nasl_get_all_certifcates */
+#include <openvas/nasl/nasl.h> /* for nasl_get_all_certifcates */
 #include <openvas/base/certificate.h> /* for certificate_t */
 
 #include "otp_1_0.h"

@@ -33,7 +33,8 @@
 
 #include <glib.h>
 
-#include <nasl.h>
+#include <openvas/nasl/nasl.h>
+
 #include "pluginload.h"
 #include "plugs_hash.h"
 #include "preferences.h"

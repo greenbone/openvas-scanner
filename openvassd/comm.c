@@ -42,7 +42,7 @@
 #include "log.h"
 #include "plugs_hash.h"
 #include "utils.h"
-#include "nasl.h"
+#include <openvas/nasl/nasl.h>
 
 #ifndef FALSE
 #define FALSE 0

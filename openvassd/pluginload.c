@@ -29,6 +29,8 @@
 
 #include <includes.h>
 
+#include <openvas/nasl/nasl.h>
+
 #include <glib.h>
 
 #include "utils.h"
@@ -36,7 +38,6 @@
 #include "log.h"
 #include "preferences.h"
 #include "users.h"
-#include "nasl.h"
 
 static pl_class_t* plugin_classes = NULL;
 

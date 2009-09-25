@@ -30,7 +30,9 @@
  */
 
 #include <includes.h>
-#include <nasl.h>
+
+#include <openvas/nasl/nasl.h>
+
 #include <glib.h>
 #include <glib/gstdio.h>
 #include "corevers.h"
