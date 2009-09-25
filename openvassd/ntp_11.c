@@ -394,23 +394,21 @@ ntp_11_show_end (struct arglist*  globals, char * name, int internal)
  * @param remotename Path to file as referenced by the server.
  */
 static void
-files_add_translation (struct arglist* globals, char * remotename,
-                       char * localname)
+files_add_translation (struct arglist* globals, const char * remotename,
+                       const char * localname)
 {
-  harglst * trans = arg_get_value (globals, "files_translation");
+  GHashTable * trans = arg_get_value (globals, "files_translation");
 #if 0
   fprintf (stderr, "files_add_translation: R=%s\tL=%s\n", remotename, localname);
 #endif
+  // Register the mapping table if none there yet
   if (trans == NULL)
     {
-      trans = harg_create (10);
+      trans = g_hash_table_new_full (g_str_hash, g_str_equal, g_free, g_free);
       arg_add_value (globals, "files_translation", ARG_PTR, -1, trans);
     }
 
-  if (harg_get_string(trans, remotename) == NULL)
-    harg_add_string(trans, remotename, localname);
-  else
-    harg_set_string (trans, remotename, localname);
+  g_hash_table_insert (trans,g_strdup (remotename), g_strdup (localname));
 }
 
 /**

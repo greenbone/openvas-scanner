@@ -42,7 +42,7 @@
  */
 
 #include <includes.h>
-#include <harglists.h>
+
 #include <openvas/nasl/nasl.h>
 #include <openvas/hg/hosts_gatherer.h>
 

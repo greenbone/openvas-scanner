@@ -273,7 +273,6 @@
 
 #include <pcap.h>
 #include <threadcompat.h>
-#include <harglists.h>
 #include <libopenvas.h>
 #include <ntp.h>
 

@@ -360,6 +360,7 @@ fill_host_kb_ssh_credentials (struct kb_item** kb, struct arglist* globals,
 {
   GHashTable* map_host_login_names = NULL;
   GHashTable* map_loginname_login  = NULL;
+  GHashTable* file_translation     = NULL;
   char* accountname        = NULL;
   openvas_ssh_login* login = NULL;
 
@@ -417,8 +418,8 @@ fill_host_kb_ssh_credentials (struct kb_item** kb, struct arglist* globals,
   printf("SSH-DEBUG: Resolving infos of account '%s' for local checks at %s.\n", accountname, hostname);
 
   // Get the translation table (remotefilepath -> localfilepath)
-  harglst* transl = arg_get_value(globals, "files_translation");
-  if (transl == NULL)
+  file_translation = arg_get_value(globals, "files_translation");
+  if (file_translation == NULL)
     return;
 
   // Fill knowledge base with host specific login information
@@ -434,8 +435,8 @@ fill_host_kb_ssh_credentials (struct kb_item** kb, struct arglist* globals,
   // For the key-files: translate the path and set file content to kb
   if (login->public_key_path)
     {
-      const char* translated_path = harg_get_string(transl, 
-                                                    login->public_key_path);
+      const char* translated_path = g_hash_table_lookup (file_translation,
+                                                        login->public_key_path);
       gchar* contents;
       GError* error = NULL;
       if (translated_path && 
@@ -447,8 +448,8 @@ fill_host_kb_ssh_credentials (struct kb_item** kb, struct arglist* globals,
     }
   if (login->private_key_path)
     {
-      const char* translated_path = harg_get_string(transl, 
-                                                    login->private_key_path);
+      const char* translated_path = g_hash_table_lookup (file_translation,
+                                                       login->private_key_path);
       gchar* contents;
       GError* error = NULL;
       if (translated_path && 
@@ -677,6 +678,21 @@ attack_start (struct attack_start_args * args)
   close(soc);
 }
 
+/**
+ * @brief Remove a file that was uploaded by the user, as callback for
+ * @brief g_hash_table_foreach.
+ *
+ * @param key     Key of the hashtable.
+ * @param value   Value of the hashtable (will attempt to unlink file at this
+ *                path).
+ * @param ignored data-pointer (ignored).
+ */
+static void
+unlink_name_mapped_file (gchar* key, gchar* value, gpointer ignored)
+{
+  unlink (value);
+}
+
 /*******************************************************
 
 		PUBLIC FUNCTIONS
@@ -712,8 +728,7 @@ attack_network(struct arglist * globals)
   char * port_range;
   plugins_scheduler_t sched;
   int fork_retries = 0;
-  harglst * files;
-  hargwalk * hw;
+  GHashTable* files;
   char * key;
   struct timeval then, now;
   inaddrs_t addrs;
@@ -953,15 +968,9 @@ forkagain:
 
 scan_stop:
     /* Delete the files uploaded by the user, if any */
-    files = arg_get_value(globals, "files_translation");
-    if(files)
-      {
-        hw  = harg_walk_init(files);
-        while((key = (char*) harg_walk_next(hw)))
-          {
-           unlink(harg_get_string(files, key));
-          }
-      }
+    files = arg_get_value (globals, "files_translation");
+    if (files)
+      g_hash_table_foreach (files, (GHFunc) unlink_name_mapped_file, NULL);
 
     if(rejected_hosts && rejected_hosts->next)
       {

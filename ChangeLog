@@ -1,5 +1,26 @@
 2009-09-25  Felix Wolfsteller <felix.wolfsteller@intevation.de>
 
+	Remove usages of harglist from scanner.
+
+	* include/includes.h, openvassd/openvassd.c: Removed include of
+	harglists.h
+
+	* openvassd/attack.c (fill_host_kb_ssh_credentials)
+	(attack_network): Use GHashTable instead of harglist.
+	(unlink_name_mapped_file): New, used as callback in a
+	g_hash_table_foreach.
+
+	* openvassd/ntp_11.c (files_add_translation): Use GHashTable instead
+	of harglist.
+
+2009-09-25  Felix Wolfsteller <felix.wolfsteller@intevation.de>
+
+	* openvassd/comm.c, openvassd/nasl_plugins.c, openvassd/otp_1_0.c,
+	openvassd/oval_plugins.c, openvassd/pluginload.c: Adjusted includes
+	(openvas-libraries/nasl headers get installed to openvas/nasl now.)
+
+2009-09-25  Felix Wolfsteller <felix.wolfsteller@intevation.de>
+
 	* openvassd/ntp_11.c (files_add_translation): Reformatted.
 
 	* openvassd/attack.c: Minor cosmetics.
