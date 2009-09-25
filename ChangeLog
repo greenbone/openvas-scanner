@@ -1,5 +1,9 @@
 2009-09-25  Felix Wolfsteller <felix.wolfsteller@intevation.de>
 
+	* openvassd/ntp_11.c: Cosmetics, replaced K&R function decls.
+
+2009-09-25  Felix Wolfsteller <felix.wolfsteller@intevation.de>
+
 	* openvassd/openvassd.c: Adjusted includes (openvas-libraries/nasl
 	headers get installed to openvas/nasl now.)
 

@@ -24,11 +24,8 @@
 * You should have received a copy of the GNU General Public License
 * along with this program; if not, write to the Free Software
 * Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA 02110-1301 USA.
-*
-*
 */
 
- 
 #include <includes.h>
 #include <corevers.h>
 
@@ -55,7 +52,7 @@
 
 
 #ifndef DEBUG_SSL
-# define DEBUG_SSL	1
+#define DEBUG_SSL 1
 #endif
 
 
@@ -73,9 +70,8 @@ static int ntp_11_restore_session(struct arglist*, char*);
 /**
  * @brief Parses the input sent by the client before the NEW_ATTACK message.
  */
-int ntp_11_parse_input(globals, input)
-   struct arglist * globals;
-   char * input;
+int
+ntp_11_parse_input (struct arglist * globals, char * input)
 {
  char * str;
  int input_len = strlen(input);
@@ -83,13 +79,13 @@ int ntp_11_parse_input(globals, input)
  int result = 1; /* default return value is 1 */
 
  strncpy(orig, input, input_len);
- 
+
  str = strstr(input, " <|> ");
- if( str == NULL )
-	{
- 	efree(&orig);
-	return 1;
-	}
+  if (str == NULL)
+    {
+      efree (&orig);
+      return 1;
+    }
 
  str[0] = '\0';
 
@@ -186,10 +182,8 @@ int ntp_11_parse_input(globals, input)
  return(result);
 }
 
-static int 
-ntp_11_long_attack(globals, orig)
- struct arglist * globals;
- char * orig;
+static int
+ntp_11_long_attack (struct arglist * globals, char * orig)
 {
  struct arglist * preferences = arg_get_value(globals, "preferences");
  int soc = GPOINTER_TO_SIZE(arg_get_value(globals, "global_socket"));
@@ -198,11 +192,11 @@ ntp_11_long_attack(globals, orig)
  char * target;
  char * plugin_set;
  int n;
- 
+
   n = recv_line(soc, input, sizeof(input) - 1);
   if(n <= 0)
    return -1;
-   
+
 #if DEBUGMORE
   printf("long_attack :%s\n", input);
 #endif
@@ -210,7 +204,7 @@ ntp_11_long_attack(globals, orig)
    return 1; 
   size = atoi(input);
   target = emalloc(size+1);
-  
+
   n = 0;
   while(n < size)
   {
@@ -229,7 +223,7 @@ ntp_11_long_attack(globals, orig)
   else
    arg_set_value(preferences, "plugin_set", strlen(plugin_set), plugin_set);
  }
- 
+
  comm_setup_plugins(globals, plugin_set);
  if(arg_get_value(preferences, "TARGET"))
   {
@@ -240,7 +234,7 @@ ntp_11_long_attack(globals, orig)
  else
   arg_add_value(preferences, "TARGET", ARG_STRING, strlen(target), target);
  return 0;
-} 
+}
 
 /**
  * @brief Reads in "server" prefs sent by client.
@@ -248,9 +242,8 @@ ntp_11_long_attack(globals, orig)
  * @param globals The global arglist (containing server preferences).
  * @return Always 0.
  */
-static int 
-ntp_11_read_prefs(globals)
- struct arglist * globals;
+static int
+ntp_11_read_prefs (struct arglist * globals)
 {
  struct arglist *  preferences = arg_get_value(globals, "preferences");
  int soc = GPOINTER_TO_SIZE(arg_get_value(globals, "global_socket"));
@@ -274,7 +267,7 @@ ntp_11_read_prefs(globals)
   if(strstr(input, "<|> CLIENT") != NULL ) /* finished = 1; */
     break ;
   /* else */
-  
+
   {
    char * pref;
    char * value;
@@ -285,7 +278,7 @@ ntp_11_read_prefs(globals)
     if(v)
     { v-=1;
       v[0] = 0;
-    
+
       value = v + 5;
       /*
        * "system" prefs can't be changed
@@ -308,13 +301,13 @@ ntp_11_read_prefs(globals)
 	 !strcmp(pref, "log_plugins_name_at_load") ||
          !strcmp(pref, "nasl_no_signature_check"))
       	continue;
-      
+
       old = arg_get_value(preferences, pref);
-#ifdef DEBUGMORE     
+#ifdef DEBUGMORE
       printf("%s - %s (old : %s)\n", pref, value, old);
-#endif     
+#endif
       if ( value[0] != '\0' )value[strlen(value)-1]='\0';
-    
+
       if( old != NULL )
       {
        if( strcmp(old, value) != 0 )
@@ -337,9 +330,8 @@ ntp_11_read_prefs(globals)
  return(0);
 }
 
-static int 
-ntp_11_rules(globals)
- struct arglist * globals;
+static int
+ntp_11_rules (struct arglist * globals)
 {
  struct openvas_rules * user_rules = emalloc(sizeof(*user_rules));
  struct openvas_rules * rules = arg_get_value(globals, "rules");
@@ -347,7 +339,7 @@ ntp_11_rules(globals)
  int finished = 0;
  struct sockaddr_in * soca;
  inaddrs_t addrs;
- 
+
  buffer = emalloc(4096); 
  while(!finished)
  {
@@ -360,7 +352,7 @@ ntp_11_rules(globals)
 
   if( strstr(buffer, "<|> CLIENT") != NULL )
 	finished = 1;
-  else 
+  else
   {
 #ifdef DEBUG_RULES
     printf("User adds %s\n", buffer);
@@ -378,12 +370,9 @@ ntp_11_rules(globals)
  return(0);
 }
 
-void 
-ntp_11_show_end(globals, name, internal)
- struct arglist*  globals;
- char * name;
- int internal;
-{ 
+void
+ntp_11_show_end (struct arglist*  globals, char * name, int internal)
+{
  int soc = GPOINTER_TO_SIZE(arg_get_value( globals, "global_socket"));
  char buf[1024];
  snprintf(buf, sizeof(buf), "SERVER <|> FINISHED <|> %s <|> SERVER\n", name);
@@ -395,17 +384,17 @@ ntp_11_show_end(globals, name, internal)
 
 /**
  * @brief Adds a 'translation' entry for a file sent by the client.
- * 
+ *
  * Files sent by the client are stored temporarily at server side.
  * In order to access these files, their original paths ('local' to the client)
  * can be 'translated' into the file paths of the temporary files on server side.
- * 
+ *
  * @param globals    Global arglist.
  * @param remotename Path to file as referenced by the client.
  * @param remotename Path to file as referenced by the server.
  */
 static void
-files_add_translation (struct arglist* globals, char * remotename, 
+files_add_translation (struct arglist* globals, char * remotename,
                        char * localname)
 {
  harglst * trans = arg_get_value(globals, "files_translation");
@@ -417,7 +406,7 @@ files_add_translation (struct arglist* globals, char * remotename,
   trans = harg_create(10);
   arg_add_value(globals, "files_translation", ARG_PTR, -1, trans);
  }
- 
+
  if( harg_get_string(trans, remotename) == NULL )
  	harg_add_string(trans, remotename, localname);
  else
@@ -451,14 +440,14 @@ build_global_host_sshlogins_map (struct arglist* globals, char* filepath)
 
 /**
  * @brief Reads a ssh login file with mapping that was sent by the client.
- * 
+ *
  * The file (local to the client called '.logins') is used to create a
  * GHashTable that maps openvas_ssh_login structs to the user-defined names for
  * login-accounts.
- * 
+ *
  * If successful, the map is available under the key "MAP_NAME_SSHLOGIN".
- * For it 
- * 
+ * For it
+ *
  * @param globals  Global arglist to add the map to.
  * @param filepath Path to the file '.logins' as translated.
  */
@@ -477,13 +466,13 @@ build_global_sshlogin_info_map (struct arglist* globals, char* filepath)
 
 /**
  * @brief Receive a file sent by the client.
- * 
+ *
  * Two files receive an extra treatment: <br>
- *  - The .logins file sent by a client is used to build a store for login 
+ *  - The .logins file sent by a client is used to build a store for login
  * information.
  *  - The .host_sshlogins file sent by the client is used to map keys to
  * hostnames.
- * 
+ *
  * @return 0 if successful, -1 in case of errors.
  */
 int
@@ -565,7 +554,7 @@ ntp_11_recv_file (struct arglist* globals)
   /* Add the fact that what the remote client calls <filename> is actually 
    * <localname> here. */
   files_add_translation (globals, origname, localname);
-  
+
   close (fd);
 
   // Check for files that are handled in a special manner access per-host
@@ -583,15 +572,13 @@ ntp_11_recv_file (struct arglist* globals)
   efree (&localname);
   g_free (origname);
   g_free (origname_file);
-  
+
   return 0;
 }
 
 #ifdef ENABLE_SAVE_TESTS
 static char*
-extract_session_key_from_session_msg(globals, orig)
- struct arglist * globals;
- char * orig;
+extract_session_key_from_session_msg (struct arglist * globals, char* orig)
 {
  char * t;
  int i, len;
@@ -599,7 +586,7 @@ extract_session_key_from_session_msg(globals, orig)
  t = strrchr(orig, '<');
  if(!t)return NULL;
  t[0] = 0;
- 
+
  t = strrchr(orig, '>');
  if(!t)return NULL;
 
@@ -610,7 +597,7 @@ extract_session_key_from_session_msg(globals, orig)
   {
  	t[len-1]= '\0';
 	len --;
-  } 
+  }
  /*
   * Sanity check. All sessions name are under the form
   * <year><month><day>-<hour><minute><second>
@@ -625,20 +612,17 @@ extract_session_key_from_session_msg(globals, orig)
   	return NULL;
 	}
  return strdup(t);
- 
 }
 
 static int
-ntp_11_delete_session(globals, orig)
- struct arglist * globals;
- char * orig;
+ntp_11_delete_session (struct arglist * globals, char * orig)
 {
  char * session = NULL;
  int ret;
- 
+
  session = extract_session_key_from_session_msg(globals, orig);
  if(!session)return -1;
-  
+
  ret = save_tests_delete(globals, session);
  efree(&session);
 
@@ -647,23 +631,20 @@ ntp_11_delete_session(globals, orig)
 
 
 static int
-ntp_11_restore_session(globals, orig)
- struct arglist * globals;
- char * orig;
+ntp_11_restore_session (struct arglist * globals, char * orig)
 {
  char * session;
- 
+
  session = extract_session_key_from_session_msg(globals, orig);
  if(!session)return -1;
- 
+
  save_tests_setup_playback(globals, session);
  efree(&session);
  return 0;
 }
 
-static int 
-ntp_11_list_sessions(globals)
- struct arglist * globals;
+static int
+ntp_11_list_sessions (struct arglist * globals)
 {
  auth_printf(globals, "SERVER <|> SESSIONS_LIST\n");
  save_tests_send_list(globals);
@@ -677,20 +658,18 @@ ntp_11_list_sessions(globals)
 /*----------------------------------------------------------
 
    Communication protocol: timestamps
- 
+
  ----------------------------------------------------------*/
 
 
 static int
-__ntp_1x_timestamp_scan(globals, msg)
- struct arglist * globals;
- char * msg;
+__ntp_1x_timestamp_scan (struct arglist * globals, char * msg)
 {
   char timestr[1024];
   char * tmp;
   time_t t;
   int len;
-  
+
   t = time(NULL);
   tmp = ctime(&t);
   timestr[sizeof ( timestr ) - 1 ] = '\0';
@@ -705,10 +684,7 @@ __ntp_1x_timestamp_scan(globals, msg)
 
 
 static int
-__ntp_1x_timestamp_scan_host(globals, msg, host)
- struct arglist * globals;
- char * msg;
- char * host;
+__ntp_1x_timestamp_scan_host (struct arglist * globals, char * msg, char * host)
 {
   char timestr[1024];
   char * tmp;
@@ -716,7 +692,7 @@ __ntp_1x_timestamp_scan_host(globals, msg, host)
   int len;
   char buf[1024];
   int soc;
-  
+
   t = time(NULL);
   tmp = ctime(&t);
   timestr [ sizeof(timestr) - 1] = '\0';
@@ -726,51 +702,41 @@ __ntp_1x_timestamp_scan_host(globals, msg, host)
 	   timestr[len - 1 ] = '\0';
 
    soc = GPOINTER_TO_SIZE(arg_get_value(globals, "global_socket"));
-   
+
    snprintf(buf, sizeof(buf), "SERVER <|> TIME <|> %s <|> %s <|> %s <|> SERVER\n", msg, host, timestr);
-   
+
    internal_send(soc, buf, INTERNAL_COMM_MSG_TYPE_DATA); 
 
   return 0;
 }
 
 
-
 int
-ntp_1x_timestamp_scan_starts(globals)
- struct arglist * globals;
+ntp_1x_timestamp_scan_starts (struct arglist * globals)
 {
  return __ntp_1x_timestamp_scan(globals, "SCAN_START");
 }
 
 int
-ntp_1x_timestamp_scan_ends(globals)
- struct arglist * globals;
+ntp_1x_timestamp_scan_ends (struct arglist * globals)
 {
  return __ntp_1x_timestamp_scan(globals, "SCAN_END");
 }
 
 int
-ntp_1x_timestamp_host_scan_starts(globals, host)
- struct arglist * globals;
- char * host;
+ntp_1x_timestamp_host_scan_starts (struct arglist * globals, char * host)
 {
  return __ntp_1x_timestamp_scan_host(globals, "HOST_START", host);
 }
- 
 
 int
-ntp_1x_timestamp_host_scan_ends(globals, host)
-	struct arglist * globals;
-	char * host;
+ntp_1x_timestamp_host_scan_ends (struct arglist * globals, char * host)
 {
  return __ntp_1x_timestamp_scan_host(globals, "HOST_END", host);
 }
 
 int
-ntp_1x_timestamp_host_scan_interrupted(globals, host)
-	struct arglist * globals;
-	char * host;
+ntp_1x_timestamp_host_scan_interrupted (struct arglist * globals, char * host)
 {
  return __ntp_1x_timestamp_scan_host(globals, "HOST_INTERRUPTED", host);
 }
@@ -780,7 +746,8 @@ ntp_1x_timestamp_host_scan_interrupted(globals, host)
 
 
 /*--------------------------------------------------------------------------------------------*/
-static int qsort_cmp( const void * a, const void * b )
+static int
+qsort_cmp (const void * a, const void * b)
 {
  struct arglist ** plugin_a, ** plugin_b;
 
@@ -791,7 +758,8 @@ static int qsort_cmp( const void * a, const void * b )
 }
 
 
-static char * _find_plugin(struct arglist ** array, char * fname, int start, int end, int rend )
+static char*
+_find_plugin (struct arglist ** array, char * fname, int start, int end, int rend)
 {
  int mid;
  struct arglist * plugin;
@@ -823,15 +791,15 @@ static char * _find_plugin(struct arglist ** array, char * fname, int start, int
 
 
 
-static char * find_plugin(struct arglist ** array, char * fname, int num_plugins )
+static char*
+find_plugin (struct arglist ** array, char * fname, int num_plugins)
 {
  return _find_plugin ( array, fname, 0, num_plugins, num_plugins);
 }
 
 
-int 
-ntp_1x_send_dependencies(globals)
- 	struct arglist * globals;
+int
+ntp_1x_send_dependencies (struct arglist * globals)
 {
  struct arglist * p = arg_get_value(globals, "plugins");
  struct arglist * plugins = p;
@@ -847,7 +815,7 @@ ntp_1x_send_dependencies(globals)
   fprintf(stderr, "%s:%d: no plugins\n", __FILE__, __LINE__);
   return -1;
  }
- 
+
  while ( p->next != NULL ) 
  {
    num_plugins ++;
@@ -864,23 +832,23 @@ ntp_1x_send_dependencies(globals)
  }
 
  qsort ( array, num_plugins, sizeof(struct arglist *), qsort_cmp);
- 
+
  auth_printf(globals, "SERVER <|> PLUGINS_DEPENDENCIES\n");
-  
+
  buf = emalloc(buf_size);
- 
+
  while(plugins->next)
  {
   struct arglist * args = plugins->value;
   struct arglist * d, * deps;
   if(!args)
 	goto nxt;
-  
+
   d = deps = plug_get_deps(args);
   if(deps == NULL )
     goto nxt;
-	
- 
+
+
   strncat(buf, plug_get_name(args), buf_size);
   strncat(buf, " <|> ", buf_size);
   while(deps->next)
@@ -906,10 +874,10 @@ ntp_1x_send_dependencies(globals)
 #if 0
   arg_free_all(d);
 #endif
-  
+
   auth_printf(globals, "%s\n", buf);
-   
-  nxt: 
+
+  nxt:
   	bzero(buf, buf_size);
   	plugins = plugins->next;
  }
