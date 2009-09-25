@@ -43,7 +43,7 @@
 
 #include <includes.h>
 #include <harglists.h>
-#include <nasl.h>
+#include <openvas/nasl/nasl.h>
 #include <openvas/hg/hosts_gatherer.h>
 
 #ifdef USE_LIBWRAP

@@ -1,5 +1,10 @@
 2009-09-25  Felix Wolfsteller <felix.wolfsteller@intevation.de>
 
+	* openvassd/openvassd.c: Adjusted includes (openvas-libraries/nasl
+	headers get installed to openvas/nasl now.)
+
+2009-09-25  Felix Wolfsteller <felix.wolfsteller@intevation.de>
+
 	* openvassd/attack.c, openvassd/openvassd.c, openvassd/preferences.c:
 	Adjusted includes (openvas-libraries/hg headers get installed to
 	openvas/hg now.)
