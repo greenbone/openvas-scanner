@@ -31,8 +31,8 @@
 
 #include <glib.h>
 
-#include <hosts_gatherer.h>
-#include <hg_utils.h>
+#include <openvas/hg/hosts_gatherer.h>
+#include <openvas/hg/hg_utils.h>
 
 #include "attack.h"
 #include "log.h"

@@ -45,7 +45,7 @@
  */
 
 #include <includes.h>
-#include <hosts_gatherer.h>
+#include <openvas/hg/hosts_gatherer.h>
 
 #include "glib.h"
 #include "comm.h"

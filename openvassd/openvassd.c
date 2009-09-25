@@ -44,7 +44,7 @@
 #include <includes.h>
 #include <harglists.h>
 #include <nasl.h>
-#include <hosts_gatherer.h>
+#include <openvas/hg/hosts_gatherer.h>
 
 #ifdef USE_LIBWRAP
 #include <tcpd.h>
