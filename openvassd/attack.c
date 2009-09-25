@@ -23,8 +23,6 @@
 * You should have received a copy of the GNU General Public License
 * along with this program; if not, write to the Free Software
 * Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA 02110-1301 USA.
-*
-*
 */
 
 #include <includes.h>
@@ -87,7 +85,7 @@ static void
 fork_sleep(int n)
 {
  time_t then, now;
- 
+
  now = then = time(NULL);
  while(now - then < n )
  {
@@ -106,11 +104,11 @@ fork_sleep(int n)
  *  - NAME (string, The hostname parameter)
  *  - MAC  (string, The mac parameter if non-NULL)
  *  - IP   (*in_adrr, The ip parameter)
- * 
+ *
  * @param mac      MAC- adress of host or NULL.
  * @param hostname Hostname to be set.
  * @param ip       in_adress struct to be set.
- * 
+ *
  * @return A 'hostinfo' arglist.
  */
 static struct arglist *
@@ -142,7 +140,9 @@ attack_init_hostinfos (char * mac, char * hostname, struct in6_addr * ip)
 }
 
 /**
- * Return our user name
+ * @brief Return our user name.
+ *
+ * @return Our user name.
  */
 static char *
 attack_user_name (struct arglist * globals)
@@ -150,7 +150,7 @@ attack_user_name (struct arglist * globals)
  static char * user;
  if(!user)
    user = (char*)arg_get_value(globals, "user");
-  
+
  return user;
 }
 
@@ -302,9 +302,9 @@ launch_plugin (struct arglist * globals, plugins_scheduler_t * sched,
 
 /**
  * @brief Returns true if str contains at least one '*' or '?'.
- * 
+ *
  * @param str String that is understood to be a hostname or pattern.
- * 
+ *
  * @return TRUE if str is understood to be a pattern (contains at least one '?'
  *         or '*').
  */
@@ -320,12 +320,12 @@ is_pattern (const char* str)
 /**
  * @brief Predicate for a g_hash_table_find, true if pattern [key] matches
  * @brief hostname [userdata].
- * 
+ *
  * @param key_pattern Key of a hashtable (callback), interpreted to be a pattern
  *                    to match hostname against.
  * @param value_login Value of a hashtable (callback).
  * @param hostname    Userdata, hostname to match pattern against.
- * 
+ *
  * @return TRUE if key_pattern (glob-style, ? and * allowed) matches hostname.
  */
 static gboolean
@@ -344,12 +344,12 @@ pattern_matches (char* key_pattern, char* value_login, char* hostname)
 
 /**
  * @brief Insert ssh login information for one host in its kb.
- * 
+ *
  * If a map hosts --> sshlogins is defined, searches for an entry of the
  * hostname. If none is found, tries if any user-defined pattern matches.
  * If no pattern matches, falls back to the Default definition. If that
  * fails, too, nothing is done.
- * 
+ *
  * @param kb       hostname's knowledge base to insert SSH credentials to.
  * @param globals  Global arglist where the mapping can be found.
  * @param hostname Name of the host of interest.
@@ -362,10 +362,10 @@ fill_host_kb_ssh_credentials (struct kb_item** kb, struct arglist* globals,
   GHashTable* map_loginname_login  = NULL;
   char* accountname        = NULL;
   openvas_ssh_login* login = NULL;
-  
+
   map_host_login_names = arg_get_value (globals, "MAP_HOST_SSHLOGIN_NAME");
   map_loginname_login  = arg_get_value (globals, "MAP_NAME_SSHLOGIN");
-  
+
   if (map_host_login_names == NULL || map_loginname_login == NULL)
     {
       printf("SSH-DEBUG: Not setting login information for local checks at %s : No mapping found.\n", hostname);
@@ -378,7 +378,7 @@ fill_host_kb_ssh_credentials (struct kb_item** kb, struct arglist* globals,
   // Try to fetch login struct
   if (accountname != NULL)
     login = g_hash_table_lookup (map_loginname_login, accountname);
-  
+
   // No login- account name for this host found? Seach if any pattern matches.
   if (accountname == NULL || login == NULL)
     {
@@ -458,23 +458,23 @@ fill_host_kb_ssh_credentials (struct kb_item** kb, struct arglist* globals,
         }
       if (error != NULL) g_error_free(error);
     }
-  
+
   printf("SSH-DEBUG: Resolved account name %s for local tests at %s\n", accountname, hostname);
 }
 
 // TODO eventually to be moved to libopenvas kb.c
 /**
  * @brief Inits or loads the knowledge base for a single host.
- * 
+ *
  * Fills the knowledge base with host-specific login information for local
  * checks if defined.
- * 
+ *
  * @param globals     Global preference arglist.
  * @param hostname    Name of the host.
  * @param new_kb[out] TRUE if the kb is new and shall be saved.
- * 
+ *
  * @return A knowledge base.
- * 
+ *
  * @see fill_host_kb_ssh_credentials
  */
 static struct kb_item**
@@ -518,49 +518,45 @@ init_host_kb (struct arglist* globals, char* hostname, gboolean* new_kb)
 /**
  * Attack _one_ host
  */
-static void 
-attack_host (struct arglist * globals, struct arglist * hostinfos, 
-             char * hostname, plugins_scheduler_t sched) 
+static void
+attack_host (struct arglist * globals, struct arglist * hostinfos,
+             char * hostname, plugins_scheduler_t sched)
 {
   /* Used for the status */
   int num_plugs = 0;
   int cur_plug = 1;
-  
+
   struct kb_item ** kb;
   gboolean new_kb = FALSE;
   int forks_retry = 0;
   struct arglist * plugins = arg_get_value(globals, "plugins");
   struct arglist * tmp;
- 
+
   setproctitle("testing %s", (char*)arg_get_value(hostinfos, "NAME"));
-  
+
   kb = init_host_kb (globals, hostname, &new_kb);
 
   num_plugs = get_active_plugins_number(plugins);
-  
+
   tmp = emalloc(sizeof(struct arglist));
   arg_add_value(tmp, "HOSTNAME", ARG_ARGLIST, -1, hostinfos);
-  
-    
+
   /* launch the plugins */
   pluginlaunch_init(globals);
-  
-   
+
   for(;;)
     {
       struct scheduler_plugin * plugin;
       pid_t parent;
-      
-      /*
-      * Check that our father is still alive 
-      */
+
+      /* Check that our father is still alive */
       parent = getppid();
       if (parent <= 1 || process_alive(parent) == 0 )
         {
           pluginlaunch_stop();
           return;
         }
-      
+
       plugin = plugins_scheduler_next(sched);
       if (plugin != NULL && plugin != PLUG_RUNNING)
         {
@@ -594,21 +590,20 @@ again:
       else if(plugin == NULL) break;
       else pluginlaunch_wait_for_free_process();
       }
-      
+
   pluginlaunch_wait();
 
-host_died: 
-  arg_free(tmp); 
+host_died:
+  arg_free(tmp);
   pluginlaunch_stop();
   plugins_scheduler_free(sched);
-  
+
   if (new_kb == TRUE)
     save_kb_close(globals, hostname);
 }
 
 /**
- * attack_start : set up some data and jump into
- * attack_host()
+ * @brief Set up some data and jump into attack_host()
  */
 static void
 attack_start (struct attack_start_args * args)
@@ -957,9 +952,7 @@ forkagain:
   log_write("user %s : test complete", attack_user_name(globals));
 
 scan_stop:
-    /*
-     * Delete the files uploaded by the user, if any
-     */
+    /* Delete the files uploaded by the user, if any */
     files = arg_get_value(globals, "files_translation");
     if(files)
       {

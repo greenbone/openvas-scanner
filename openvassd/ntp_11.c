@@ -397,20 +397,20 @@ static void
 files_add_translation (struct arglist* globals, char * remotename,
                        char * localname)
 {
- harglst * trans = arg_get_value(globals, "files_translation");
+  harglst * trans = arg_get_value (globals, "files_translation");
 #if 0
- fprintf(stderr, "files_add_translation: R=%s\tL=%s\n", remotename, localname);
+  fprintf (stderr, "files_add_translation: R=%s\tL=%s\n", remotename, localname);
 #endif
- if( trans == NULL )
- {
-  trans = harg_create(10);
-  arg_add_value(globals, "files_translation", ARG_PTR, -1, trans);
- }
+  if (trans == NULL)
+    {
+      trans = harg_create (10);
+      arg_add_value (globals, "files_translation", ARG_PTR, -1, trans);
+    }
 
- if( harg_get_string(trans, remotename) == NULL )
- 	harg_add_string(trans, remotename, localname);
- else
- 	harg_set_string(trans, remotename, localname);
+  if (harg_get_string(trans, remotename) == NULL)
+    harg_add_string(trans, remotename, localname);
+  else
+    harg_set_string (trans, remotename, localname);
 }
 
 /**
