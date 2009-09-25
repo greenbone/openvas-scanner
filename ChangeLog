@@ -1,5 +1,15 @@
 2009-09-25  Felix Wolfsteller <felix.wolfsteller@intevation.de>
 
+	* openvassd/attack.c (attack_network): Replaced harglist by GHashTable.
+
+	* openvassd/save_tests.c (save_tests_playback,
+	save_tests_setup_playback): Replaced harglst by GHashTable.
+
+	* openvassd/save_tests.h (save_tests_playback): Changed signature, take
+	GHashTable instead of harglst.
+
+2009-09-25  Felix Wolfsteller <felix.wolfsteller@intevation.de>
+
 	* openvassd/otp_1_0.c: Minor cosmetics.
 
 2009-09-25  Felix Wolfsteller <felix.wolfsteller@intevation.de>

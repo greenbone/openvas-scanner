@@ -360,9 +360,8 @@ save_tests_host_done (struct arglist * globals, char* host)
  * @brief Sends a session back to our client.
  */
 void
-
 save_tests_playback (struct arglist * globals, char * session,
-                     harglst * tested_hosts)
+                     GHashTable * tested_hosts)
 {
   char buf[8192];
   FILE * f;
@@ -374,7 +373,7 @@ save_tests_playback (struct arglist * globals, char * session,
       while(fgets(buf, sizeof(buf)-1, f))
         {
           char * host = extract_hostname (buf);
-          if (!host || harg_get_int (tested_hosts, host))
+          if (!host || g_hash_table_lookup (tested_hosts, host))
             {
               auth_printf (globals, "%s", buf);
               save_tests_write_data (globals, estrdup(buf));
@@ -422,7 +421,7 @@ save_tests_delete (struct arglist *globals, char * session)
 int
 save_tests_setup_playback (struct arglist* globals, char * session)
 {
- harglst * tested;
+ GHashTable * tested;
  struct stat st;
  int length = 0;
  char * buf;
@@ -475,7 +474,7 @@ save_tests_setup_playback (struct arglist* globals, char * session)
  if(target[strlen(target)-1]=='\n')target[strlen(target)-1]='\0';
 
  buf = emalloc(4096);
- tested = harg_create(length);
+ tested = g_hash_table_new_full (g_str_hash, g_str_equal, g_free, NULL);
 
  /*
   * Populate our harglst with the names of the
@@ -483,10 +482,12 @@ save_tests_setup_playback (struct arglist* globals, char * session)
   */
  while(fgets(buf, 4095, f))
  {
-  if(buf[strlen(buf)-1]=='\n')buf[strlen(buf)-1]=0;
-  harg_add_int(tested, buf, 1);
+  if (buf[strlen(buf)-1] == '\n')
+    buf[strlen(buf)-1] = 0;
+  g_hash_table_insert (tested, g_strdup (buf), GINT_TO_POINTER (1));
   bzero(buf, 4096);
  }
+
  efree(&buf);
  fclose(f);
 

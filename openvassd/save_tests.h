@@ -23,13 +23,13 @@
 * You should have received a copy of the GNU General Public License
 * along with this program; if not, write to the Free Software
 * Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA 02110-1301 USA.
-*
-*
 */
 
 
 #ifndef SAVE_TESTS_H__
 #define SAVE_TESTS_H__
+
+#include <glib.h>
 
 int save_tests_init(struct arglist *);
 void save_tests_close(struct arglist*);
@@ -37,7 +37,7 @@ void save_tests_close(struct arglist*);
 void save_tests_write_data(struct arglist *, char *);
 void save_tests_host_done(struct arglist*, char*);
 
-void save_tests_playback(struct arglist *, char *, harglst*);
+void save_tests_playback(struct arglist *, char *, GHashTable *);
 int save_tests_setup_playback(struct arglist *, char *);
 
 int save_tests_delete(struct arglist*, char *);

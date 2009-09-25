@@ -712,7 +712,7 @@ attack_network(struct arglist * globals)
   struct openvas_rules *rules   = NULL;
   struct arglist * rejected_hosts =  NULL;
   int restoring    = 0;
-  harglst * tested = NULL;
+  GHashTable * tested = NULL;
   int  save_session= 0;
   char * port_range;
   plugins_scheduler_t sched;
@@ -740,8 +740,8 @@ attack_network(struct arglist * globals)
   save_session = preferences_save_session(preferences);
   restoring = (GPOINTER_TO_SIZE(arg_get_value(globals, "RESTORE-SESSION")) == 1);
 
-  if (restoring) tested = arg_get_value(globals, "TESTED_HOSTS");
-  if (save_session) save_tests_init(globals);  
+  if (restoring) tested = arg_get_value (globals, "TESTED_HOSTS");
+  if (save_session) save_tests_init(globals);
 
 
   /* Init and check Target List */
@@ -791,7 +791,9 @@ attack_network(struct arglist * globals)
                 (char*)arg_get_value(globals, "RESTORE-SESSION-KEY"),
                 max_hosts, max_checks);
 
-      save_tests_playback(globals, arg_get_value(globals, "RESTORE-SESSION-KEY"),tested);
+      save_tests_playback (globals,
+                           arg_get_value(globals, "RESTORE-SESSION-KEY"),
+                           tested);
     }
 
   /*
@@ -802,9 +804,9 @@ attack_network(struct arglist * globals)
 
   hg_globals = hg_init(hostlist, hg_flags);
   hg_res = hg_next_host(hg_globals, &host_ip, hostname, sizeof(hostname));
-  if( tested != NULL )
+  if (tested != NULL)
     {
-      while(hg_res >= 0 && harg_get_int( tested, hostname ) != 0 )
+      while (hg_res >= 0 && g_hash_table_lookup (tested, hostname) != 0 )
         {
           hg_res = hg_next_host(hg_globals, &host_ip, hostname, sizeof(hostname));
         }
@@ -835,9 +837,9 @@ attack_network(struct arglist * globals)
                             attack_user_name(globals), hostname);
                   hg_res = hg_next_host(hg_globals, &host_ip, hostname, sizeof(hostname));
 
-                  if( tested != NULL )
+                  if (tested != NULL)
                     {
-                      while(hg_res >= 0 &&  harg_get_int( tested, hostname ) != 0 )
+                      while (hg_res >= 0 && g_hash_table_lookup (tested, hostname) != 0 )
                         hg_res = hg_next_host(hg_globals, &host_ip, hostname, sizeof(hostname));
                     }
                   continue;
@@ -852,9 +854,9 @@ attack_network(struct arglist * globals)
                             attack_user_name(globals), hostname);
                   hg_res = hg_next_host(hg_globals, &host_ip, hostname, sizeof(hostname));
                   // If some hosts were tested already, jump over them.
-                  if( tested != NULL )
+                  if (tested != NULL)
                     {
-                      while(hg_res >= 0 && harg_get_int( tested, hostname ) != 0 )
+                      while (hg_res >= 0 && g_hash_table_lookup (tested, hostname) != 0 )
                         hg_res = hg_next_host(hg_globals, &host_ip, hostname, sizeof(hostname));
                     }
                   continue;
@@ -887,9 +889,9 @@ attack_network(struct arglist * globals)
                 {
                 /* remote host is down */
                   hg_res = hg_next_host(hg_globals, &host_ip, hostname, sizeof(hostname));
-                  if( tested != NULL )
+                  if (tested != NULL)
                     {
-                      while(hg_res >= 0 && harg_get_int( tested, hostname ) != 0 )
+                      while (hg_res >= 0 && g_hash_table_lookup (tested, hostname) != 0 )
                         hg_res = hg_next_host(hg_globals, &host_ip, hostname, sizeof(hostname));
                     }
                   continue;
@@ -936,9 +938,9 @@ forkagain:
 
       num_tested++;
       hg_res = hg_next_host(hg_globals, &host_ip, hostname, sizeof(hostname));
-      if(tested != NULL)
+      if (tested != NULL)
         {
-          while(hg_res >= 0 && harg_get_int(tested, hostname))
+          while (hg_res >= 0 && g_hash_table_lookup (tested, hostname))
             {
               hg_res = hg_next_host(hg_globals, &host_ip, hostname, sizeof(hostname));
             }
