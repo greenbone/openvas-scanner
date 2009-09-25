@@ -30,7 +30,8 @@
 #include <corevers.h>
 #include <network.h>
 
-#include <nasl.h>
+#include <nasl.h> /* for nasl_get_all_certifcates */
+#include <openvas/base/certificate.h> /* for certificate_t */
 
 #include "otp_1_0.h"
 
@@ -79,16 +80,17 @@ void otp_1_0_server_send_certificates(struct arglist* globals)
 {
   auth_printf(globals, "SERVER <|> CERTIFICATES\n");
 
+  /** @todo base/certificates.c offers certificates (list) functionality. */
   GSList* certificates = nasl_get_all_certificates();
   GSList* cert_list_elem = g_slist_nth(certificates, 0);
 
   // Iterate over certificates
   while(cert_list_elem != NULL)
     {
-      openvas_certificate* cert = cert_list_elem->data;
+      certificate_t* cert = cert_list_elem->data;
       
       // Replace newlines by semicolons
-      char* pos = cert->full_public_key;
+      gchar* pos = cert->public_key;
       while(pos[0] != '\0')
         {
         if(pos[0] == '\n') pos[0] = ';';
@@ -97,12 +99,12 @@ void otp_1_0_server_send_certificates(struct arglist* globals)
 
       char* trustlevel = (cert->trusted == TRUE)? "trusted" : "notrust";
       cert_list_elem = g_slist_next(cert_list_elem);
-      auth_printf(globals, "%s <|> %s <|> %s <|> %d <|> %s\n", cert->fpr,
-                              cert->ownername, trustlevel,
-                              (int)strlen(cert->full_public_key),
-                              cert->full_public_key);
+      auth_printf(globals, "%s <|> %s <|> %s <|> %d <|> %s\n", cert->fingerprint,
+                              cert->owner, trustlevel,
+                              (int)strlen(cert->public_key),
+                              cert->public_key);
       // Release each element
-      openvas_certificate_free(cert);
+      certificate_free (cert);
     }
   
   // Release list
