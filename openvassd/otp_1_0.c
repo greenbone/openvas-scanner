@@ -38,12 +38,14 @@
 #include <glib.h>
 
 /**
- * Find the enum identifier for the client request which is given
- * as string.
+ * @brief Find the enum identifier for the client request which is given
+ * @brief as string.
+ *
  * @param str Enum identifier of OTP command (a client_request_t).
  * @see client_request_t
  */
-client_request_t otp_1_0_get_client_request(char* str)
+client_request_t
+otp_1_0_get_client_request (char* str)
 {
   if (!strcmp(str, "ATTACHED_FILE")) return(CREQ_ATTACHED_FILE);
   if (!strcmp(str, "CERTIFICATES")) return(CREQ_CERTIFICATES);
@@ -62,21 +64,21 @@ client_request_t otp_1_0_get_client_request(char* str)
 }
 
 /**
- * Send server response OPENVAS_VERSION
+ * @brief Send server response OPENVAS_VERSION.
  */
-void otp_1_0_server_openvas_version(globals)
-  struct arglist * globals;
+void
+otp_1_0_server_openvas_version (struct arglist * globals)
 {
-  auth_printf(globals,
-              "SERVER <|> OPENVAS_VERSION <|> %s <|> SERVER\n",
-              OPENVAS_VERSION);
+  auth_printf (globals, "SERVER <|> OPENVAS_VERSION <|> %s <|> SERVER\n",
+               OPENVAS_VERSION);
 }
 
 
 /**
- * Send server response to certificate request by client.
+ * @brief Send server response to certificate request by client.
  */
-void otp_1_0_server_send_certificates(struct arglist* globals)
+void
+otp_1_0_server_send_certificates (struct arglist* globals)
 {
   auth_printf(globals, "SERVER <|> CERTIFICATES\n");
 
@@ -88,7 +90,7 @@ void otp_1_0_server_send_certificates(struct arglist* globals)
   while(cert_list_elem != NULL)
     {
       certificate_t* cert = cert_list_elem->data;
-      
+
       // Replace newlines by semicolons
       gchar* pos = cert->public_key;
       while(pos[0] != '\0')
@@ -106,9 +108,9 @@ void otp_1_0_server_send_certificates(struct arglist* globals)
       // Release each element
       certificate_free (cert);
     }
-  
+
   // Release list
   g_slist_free(certificates);
-  
+
   auth_printf(globals, "<|> SERVER\n");
 }

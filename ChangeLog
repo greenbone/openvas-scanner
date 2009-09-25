@@ -1,5 +1,9 @@
 2009-09-25  Felix Wolfsteller <felix.wolfsteller@intevation.de>
 
+	* openvassd/otp_1_0.c: Minor cosmetics.
+
+2009-09-25  Felix Wolfsteller <felix.wolfsteller@intevation.de>
+
 	* openvassd/otp_1_0.c: Adjusted includes.
 	(otp_1_0_server_send_certificates): Switch from
 	openvas-libraries/base/openvas_certificate to
