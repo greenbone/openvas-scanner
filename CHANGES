@@ -3,7 +3,7 @@ openvas-scanner 3.0.0-beta2 (2009-09-28)
 This release is the second beta version of openvas-scanner
 leading up to the upcoming 3.0 release of OpenVAS.
 Apart from the name change from openvas-server to
-openvas-scanner, and platform-dependent NTSs as
+openvas-scanner, the platform-dependent NVTs as
 well as the OpenVAS NVT Feed synchronisation script
 are now integrated.
 

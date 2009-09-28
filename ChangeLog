@@ -1,5 +1,11 @@
 2009-09-28  Jan-Oliver Wagner <jan-oliver.wagner@greenbone.net>
 
+	Last minute fix.
+
+	* CHANGES: Fix a broken sentence.
+
+2009-09-28  Jan-Oliver Wagner <jan-oliver.wagner@greenbone.net>
+
 	Preparing the openvas-scanner 3.0.0-beta2 release.
 
 	* VERSION: Set to 3.0.0.beta2
