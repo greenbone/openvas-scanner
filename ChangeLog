@@ -1,5 +1,13 @@
 2009-09-28  Jan-Oliver Wagner <jan-oliver.wagner@greenbone.net>
 
+	Post-release version bump.
+
+	* VERSION: Set to 3.0.0.beta3.SVN.
+
+	* doc/Doxyfile, doc/Doxyfile_full: Updated PROJECT_NUMBER.
+
+2009-09-28  Jan-Oliver Wagner <jan-oliver.wagner@greenbone.net>
+
 	Last minute fix.
 
 	* CHANGES: Fix a broken sentence.
