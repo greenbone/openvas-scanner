@@ -31,10 +31,12 @@
 
 #include <includes.h>
 
-#include "libopenvas.h"
-
-#include <openvas/nvt_categories.h> /* for ACT_END */
 #include <openvas/nasl/nasl.h>
+#include <openvas/network.h> /* for internal_send */
+#include <openvas/nvt_categories.h> /* for ACT_END */
+#include <openvas/plugutils.h> /* for plug_set_oid */
+#include <openvas/store.h> /* for store_load_plugin */
+#include <openvas/system.h> /* for emalloc */
 
 #include <glib.h>
 #include <glib/gstdio.h>
@@ -43,6 +45,7 @@
 #include "pluginload.h"
 #include "preferences.h"
 #include "processes.h"
+#include "proctitle.h" /* for setproctitle */
 
 
 static void oval_thread (struct arglist *);

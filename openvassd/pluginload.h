@@ -42,6 +42,17 @@ void plugins_set_socket(struct arglist *, int);
 void plugin_free(struct arglist *);
 void plugins_free(struct arglist *);
 
+
+/**
+ * Plugin standard function template to init a plugin (nasl/nes/oval).
+ */
+typedef int(*plugin_init_t)(struct arglist *);
+/**
+ * Plugin standard function template to run a plugin (nasl/nes/oval).
+ */
+typedef int(*plugin_run_t)(struct arglist *);
+
+
 /**
  * Class of a NVT (implemented as list).
  * Currently three classes do exist: nes_plugin_class, nasl_plugin_class and

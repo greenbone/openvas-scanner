@@ -9,11 +9,12 @@
 
 #include <includes.h>
 
-#include "libopenvas.h"
-
 #include <openvas/arglists.h> /* for struct arglist */
+#include <openvas/kb.h> /* for plug_get_oldstyle_kb */
+#include <openvas/network.h> /* for get_encaps_through */
 #include <openvas/nvt_categories.h> /* for ACT_SCANNER */
 #include <openvas/plugutils.h> /* for OPENVAS_ENCAPS_IP */
+#include <openvas/system.h> /* for efree */
 
 #include <glib.h>
 
@@ -48,6 +49,13 @@ Risk factor : None"
 
 #define NUM_CHILDREN		"Number of connections done in parallel : "
 
+/* Plugin preference types (influence gui in client) */
+#define PREF_CHECKBOX "checkbox"
+#define PREF_ENTRY "entry"
+#define PREF_RADIO "radio"
+#define PREF_PASSWORD "password"
+#define PREF_FILE "file"
+/*#define PREF_SSH_CREDENTIALS "sshcredentials"*/
 
 int 
 plugin_init(desc)

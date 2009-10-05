@@ -29,14 +29,18 @@
 
 #include <includes.h>
 
-#include "libopenvas.h"
-
 #include <glib.h>
+
+#include <openvas/network.h> /* for internal_send */
+#include <openvas/plugutils.h> /* for plug_set_path */
+#include <openvas/store.h> /* for store_load_plugin */
+#include <openvas/system.h> /* for emalloc */
 
 #include "pluginload.h"
 #include "pluginscheduler.h" /* for LAUNCH_DISABLED */
 #include "plugs_hash.h"
 #include "processes.h"
+#include "proctitle.h" /* for setproctitle */
 #include "log.h"
 #include "preferences.h"
 

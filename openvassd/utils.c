@@ -29,7 +29,9 @@
 
 #include <includes.h>
 
-#include "libopenvas.h"
+#include <openvas/network.h> /* for stream_zero */
+#include <openvas/plugutils.h> /* for plug_get_launch */
+#include <openvas/system.h> /* for emalloc */
 
 #include "log.h"
 #include "ntp.h"

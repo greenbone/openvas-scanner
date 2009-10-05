@@ -1,5 +1,19 @@
 2009-10-05  Felix Wolfsteller <felix.wolfsteller@intevation.de>
 
+	Removed dependence on libopenvas.h.
+
+	* cnvts/find_service/find_service.c: Added includes and defines that
+	previously were in libopenvas.h.
+	
+	* openvassd/pluginload.h: Added function typedefs that were previously
+	in libopenvas.h.
+
+	* openvassd/nes_plugins.c, openvassd/openvassd.c,
+	openvassd/oval_plugins.c, openvassd/utils.c: Removed libopenvas-include,
+	added missing includes.
+
+2009-10-05  Felix Wolfsteller <felix.wolfsteller@intevation.de>
+
 	* cnvts/synscan/synscan.c, openvassd/save_tests.c,
 	openvassd/nasl_plugins.c: Added missing includes.
 

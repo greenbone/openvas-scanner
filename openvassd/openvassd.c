@@ -43,10 +43,16 @@
 
 #include <includes.h>
 
+#include <openvas/bpf_share.h> /* for bpf_server */
 #include <openvas/nasl/nasl.h>
+#include <openvas/network.h> /* for auth_printf */
 #include <openvas/hg/hosts_gatherer.h>
+#include <openvas/plugutils.h> /* for find_in_path */
+#include <openvas/store.h> /* for store_init */
+#include <openvas/system.h> /* for estrdup */
+#include <openvas/rand.h> /* for openvas_init_random */
 
-#include "libopenvas.h"
+#include "proctitle.h" /* for setproctitle.h */
 
 #ifdef USE_LIBWRAP
 #include <tcpd.h>
