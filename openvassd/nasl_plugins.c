@@ -45,6 +45,7 @@
 #include "plugs_hash.h"
 #include "preferences.h"
 #include "processes.h"
+#include "proctitle.h" /* for setproctitle */
 #include "log.h"
 
 /**

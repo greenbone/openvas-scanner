@@ -1,5 +1,10 @@
 2009-10-05  Felix Wolfsteller <felix.wolfsteller@intevation.de>
 
+	* cnvts/synscan/synscan.c, openvassd/save_tests.c,
+	openvassd/nasl_plugins.c: Added missing includes.
+
+2009-10-05  Felix Wolfsteller <felix.wolfsteller@intevation.de>
+
 	* openvassd/plugs_hash.c, openvassd/oval_plugins.c: Added includes.
 
 	* ChangeLog: Corrected.

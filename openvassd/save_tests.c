@@ -29,6 +29,7 @@
 
 #include <includes.h>
 
+#include <openvas/network.h> /* for auth_printf */
 #include <openvas/system.h> /* for emalloc */
 
 #include <glib.h>
