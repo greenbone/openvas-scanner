@@ -273,8 +273,6 @@
 
 #include <pcap.h>
 #include <threadcompat.h>
-#include <libopenvas.h>
-#include <ntp.h>
 
 #ifdef HAVE_SHL_LOAD	/* I love HPUX (jh) */
 #undef dlopen

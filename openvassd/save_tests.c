@@ -29,6 +29,8 @@
 
 #include <includes.h>
 
+#include <openvas/system.h> /* for emalloc */
+
 #include <glib.h>
 
 #include "log.h"

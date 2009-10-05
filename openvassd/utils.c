@@ -29,6 +29,8 @@
 
 #include <includes.h>
 
+#include "libopenvas.h"
+
 #include "log.h"
 #include "ntp.h"
 #include "auth.h"

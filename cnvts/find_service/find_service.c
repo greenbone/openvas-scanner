@@ -9,6 +9,12 @@
 
 #include <includes.h>
 
+#include "libopenvas.h"
+
+#include <openvas/arglists.h> /* for struct arglist */
+#include <openvas/nvt_categories.h> /* for ACT_SCANNER */
+#include <openvas/plugutils.h> /* for OPENVAS_ENCAPS_IP */
+
 #include <glib.h>
 
 #define EN_NAME "Services"

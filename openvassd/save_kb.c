@@ -43,6 +43,11 @@
 
 #include <glib.h>
 
+#include <openvas/nvt_categories.h> /* for ACT_SCANNER */
+#include <openvas/kb.h> /* for kb_new */
+#include <openvas/plugutils.h> /* for addslashes.h */
+#include <openvas/system.h> /* for estrdup */
+
 #include "log.h"
 #include "comm.h"
 #include "users.h"

@@ -19,6 +19,11 @@
 
 #include <glib.h>
 
+#include <openvas/arglists.h> /* for struct arglist */
+#include <openvas/nvt_categories.h> /* for ACT_SCANNER */
+#include <openvas/plugutils.h> /* for find_in_path */
+#include <openvas/system.h> /* for efree */
+
 #ifdef LINUX
 #include <netinet/tcp.h>
 #include <netinet/ip.h>

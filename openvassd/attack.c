@@ -31,27 +31,34 @@
 
 #include <openvas/hg/hosts_gatherer.h>
 #include <openvas/hg/hg_utils.h>
+#include <openvas/kb.h> /* for kb_new */
+#include <openvas/network.h> /* for auth_printf */
+#include <openvas/nvt_categories.h> /* for ACT_INIT */
+#include <openvas/pcap_openvas.h> /* for is_local_ip */
+#include <openvas/plugutils.h> /* for plug_get_path */
+#include <openvas/proctitle.h> /* for setproctitle */
+#include <openvas/system.h> /* for emalloc */
 
 #include "attack.h"
-#include "log.h"
-#include "sighand.h"
-#include "rules.h"
 #include "auth.h"
-#include "processes.h"
-#include "comm.h" 
-#include "utils.h"
-#include "preferences.h"
+#include "comm.h"
+#include "hosts.h"
+#include "log.h"
 #include "ntp.h"
 #include "ntp_11.h"
 #include "openvas_ssh_login.h"
+#include "pluginlaunch.h"
 #include "pluginload.h"
+#include "pluginscheduler.h"
+#include "plugs_req.h"
+#include "preferences.h"
+#include "processes.h"
+#include "rules.h"
 #include "save_tests.h"
 #include "save_kb.h"
+#include "sighand.h"
+#include "utils.h"
 
-#include "pluginscheduler.h"
-#include "pluginlaunch.h"
-#include "plugs_req.h"
-#include "hosts.h"
 
 #define ERR_HOST_DEAD -1
 #define ERR_CANT_FORK -2
@@ -729,7 +736,6 @@ attack_network(struct arglist * globals)
   plugins_scheduler_t sched;
   int fork_retries = 0;
   GHashTable* files;
-  char * key;
   struct timeval then, now;
   inaddrs_t addrs;
   char buffer[INET6_ADDRSTRLEN];

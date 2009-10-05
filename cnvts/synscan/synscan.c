@@ -3,9 +3,15 @@
 #include <includes.h>
 #include <openvasraw.h>
 
+#include <openvas/arglists.h> /* for struct arglist */
+#include <openvas/bpf_share.h> /* for bpf_open_live */
+#include <openvas/nvt_categories.h> /* for ACT_SCANNER */
+#include <openvas/pcap_openvas.h> /* for get_datalink_size */
+#include <openvas/plugutils.h> /* for scanner_add_port */
+#include <openvas/system.h> /* for efree */
 
 
-#undef DEBUG 
+#undef DEBUG
 #undef SHOW_RETRIES
 #undef SHOW_RTT_REMOVAL
 

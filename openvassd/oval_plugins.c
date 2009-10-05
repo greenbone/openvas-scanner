@@ -31,6 +31,8 @@
 
 #include <includes.h>
 
+#include "libopenvas.h"
+
 #include <openvas/nasl/nasl.h>
 
 #include <glib.h>

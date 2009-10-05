@@ -1,5 +1,23 @@
 2009-10-05  Felix Wolfsteller <felix.wolfsteller@intevation.de>
 
+	Towards removal of libopenvas.h.
+
+	* openvassd/attack.c
+	(attack_network): Removed unused variable.
+
+	* cnvts/find_service/find_service.c, cnvts/openvas_tcp_scanner.c,
+	cnvts/synscan/synscan.c: Cleaned up/added includes.
+
+	* include/includes.h: Removed include of libopenvas.h and ntp.h.
+
+	* openvassd/openvassd.c, openvassd/oval_plugins.c, openvassd/utils.c:
+	Added include of libopenvas.h where not yet resolved.
+
+	* openvassd/plugs_req.c: Added include.
+	(requirements_common_ports): Corrected typo from last commit.
+
+2009-10-05  Felix Wolfsteller <felix.wolfsteller@intevation.de>
+
 	* openvassd/pluginscheduler.c, openvassd/plugs_req.c,
 	openvassd/save_kb.c, openvassd/save_tests.c, openvassd/utils.c,
 	openvassd/piic.c: Cosmetics, doc, todos added.

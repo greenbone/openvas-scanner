@@ -30,6 +30,11 @@
 
 #include <includes.h>
 
+#include <openvas/kb.h> /* for kb_item_set_int */
+#include <openvas/network.h> /* for internal_recv */
+#include <openvas/plugutils.h> /* for INTERNAL_COMM_MSG_TYPE_KB */
+#include <openvas/system.h> /* for efree */
+
 #include "log.h"
 #include "save_kb.h"
 #include "utils.h"

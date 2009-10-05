@@ -30,6 +30,8 @@
 
 #include <includes.h>
 
+#include <openvas/system.h> /* for emalloc */
+
 #include "pluginscheduler.h"
 #include "plugs_req.h"
 
@@ -147,7 +149,7 @@ key_present (struct kb_item ** kb, struct arglist * keys)
  */
 struct arglist *
 requirements_common_ports (struct scheduler_plugin * plugin1,
-                           struct scheduler_plugin * plugin1)
+                           struct scheduler_plugin * plugin2)
 {
  struct arglist * ret = NULL;
  struct arglist * req1;

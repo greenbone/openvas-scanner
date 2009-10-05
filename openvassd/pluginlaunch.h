@@ -27,9 +27,11 @@
 *
 */
 
-
 #ifndef __PLUGINLAUNCH_H__
 #define __PLUGINLAUNCH_H__
+
+#include "pluginload.h" /* for struct pl_class_t */
+#include "pluginscheduler.h" /* for struct plugins_scheduler_t */
 
 void pluginlaunch_init(struct arglist * );
 void pluginlaunch_wait();

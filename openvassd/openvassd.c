@@ -46,6 +46,8 @@
 #include <openvas/nasl/nasl.h>
 #include <openvas/hg/hosts_gatherer.h>
 
+#include "libopenvas.h"
+
 #ifdef USE_LIBWRAP
 #include <tcpd.h>
 #include <syslog.h>
