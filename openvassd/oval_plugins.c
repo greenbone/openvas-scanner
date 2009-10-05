@@ -33,6 +33,7 @@
 
 #include "libopenvas.h"
 
+#include <openvas/nvt_categories.h> /* for ACT_END */
 #include <openvas/nasl/nasl.h>
 
 #include <glib.h>

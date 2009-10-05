@@ -31,6 +31,7 @@
 #include <includes.h>
 
 #include <openvas/network.h> /* for auth_printf */
+#include <openvas/plugutils.h> /* for plug_get_path */
 #include <openvas/share_fd.h> /* for send_fd */
 #include <openvas/system.h> /* for efree */
 
