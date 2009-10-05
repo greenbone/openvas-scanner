@@ -30,6 +30,7 @@
 #include <includes.h>
 
 #include <openvas/nasl/nasl.h>
+#include <openvas/system.h> /* for emalloc */
 
 #include <glib.h>
 

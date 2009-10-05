@@ -31,6 +31,9 @@
 #ifndef _OPENVAS_PLUGINLOAD_H
 #define _OPENVAS_PLUGINLOAD_H
 
+#include <openvas/arglists.h> /* for struct arglist */
+#include <openvas/kb.h> /* for struct kb_item */
+
 struct arglist * plugins_init(struct arglist *, int);
 struct arglist * plugins_reload(struct arglist *, struct arglist *, int);
 void plugin_set_socket(struct arglist *, int);

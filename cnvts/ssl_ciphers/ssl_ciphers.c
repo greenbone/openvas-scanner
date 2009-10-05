@@ -6,8 +6,10 @@
  *
  * This plugin was written by Michel Arboi <arboi@alussinan.org>
  */
- 
+
 #include "includes.h"
+
+#include <openvas/system.h> /* for emalloc */
 
 #ifndef ssl_get_cipher_by_char
 #define ssl_get_cipher_by_char(ssl,ptr) \

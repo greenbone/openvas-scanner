@@ -31,6 +31,15 @@
 #ifndef PLUGINSCHEDULER_H
 #define PLUGINSCHEDULER_H
 
+/**
+ * @brief States of scheduler_plugin.
+ *
+ * @todo Consider creating an enumeration.
+ */
+#define LAUNCH_DISABLED 0
+#define LAUNCH_RUN      1
+#define LAUNCH_SILENT   2
+
 struct scheduler_plugin {
 	int running_state;
 	int category;

@@ -33,16 +33,24 @@
 
 #include <glib.h>
 
+#include <openvas/nasl/nasl.h>
+#include <openvas/nvt_categories.h> /* for ACT_FIRST */
+
 #include "auth.h"
-#include "rules.h"
-#include "comm.h" 
-#include "sighand.h"
+
+#include "comm.h"
+#include "network.h" /* for recv_line */
 #include "ntp.h"
 #include "ntp_11.h"
 #include "log.h"
 #include "plugs_hash.h"
+#include "pluginscheduler.h" /* for define LAUNCH_DISABLED */
+#include "plugutils.h" /* for plug_get_oid */
+#include "rules.h"
+#include "sighand.h"
+#include "system.h" /* for emalloc */
 #include "utils.h"
-#include <openvas/nasl/nasl.h>
+
 
 #ifndef FALSE
 #define FALSE 0

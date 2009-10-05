@@ -28,6 +28,9 @@
 */
 
 #include <includes.h>
+
+#include <openvas/system.h> /* for efree */
+
 #include "utils.h"
 #include "log.h"
 

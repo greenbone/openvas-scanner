@@ -31,6 +31,10 @@
 
 #include <glib.h>
 
+#include <openvas/network.h> /* for recv_line */
+#include <openvas/plugutils.h> /* for plug_get_name */
+#include <openvas/system.h> /* for emalloc */
+
 #include "ntp.h"
 #include "ntp_11.h"
 #include "otp_1_0.h"

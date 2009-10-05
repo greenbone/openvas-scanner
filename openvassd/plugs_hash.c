@@ -29,6 +29,11 @@
 
 
 #include <includes.h>
+
+#include <openvas/network.h> /* for auth_printf */
+#include <openvas/share_fd.h> /* for send_fd */
+#include <openvas/system.h> /* for efree */
+
 #include <gcrypt.h>
 #include "users.h"
 #include "log.h"

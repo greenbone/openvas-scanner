@@ -28,6 +28,11 @@
 */
 
 #include <includes.h>
+
+#include <openvas/network.h> /* for internal_recv */
+#include <openvas/plugutils.h> /* for INTERNAL_COMM_MSG_TYPE_CTRL */
+#include <openvas/system.h> /* for estrdup */
+
 #include "utils.h"
 #include "log.h"
 #include "preferences.h"

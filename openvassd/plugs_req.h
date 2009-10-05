@@ -31,6 +31,9 @@
 #ifndef PLUGINS_REQUIREMENTS_H__
 #define PLUGINS_REQUIREMENTS_H__
 
+#include <openvas/kb.h> /* for struct kb_item */
+#include <openvas/arglists.h> /* for struct arglist */
+
 char * requirements_plugin(struct kb_item **, 
                            struct scheduler_plugin *, 
 			   struct arglist *);

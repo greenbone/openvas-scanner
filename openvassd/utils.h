@@ -31,6 +31,9 @@
 #ifndef _OPENVAS_UTILS_H
 #define _OPENVAS_UTILS_H
 
+#include "ntp.h" /* for struct ntp_caps */
+#include <openvas/arglists.h> /* for struct arglist */
+
 struct attack_atom
 {
  char * name;

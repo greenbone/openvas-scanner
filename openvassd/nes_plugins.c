@@ -29,9 +29,12 @@
 
 #include <includes.h>
 
+#include "libopenvas.h"
+
 #include <glib.h>
 
 #include "pluginload.h"
+#include "pluginscheduler.h" /* for LAUNCH_DISABLED */
 #include "plugs_hash.h"
 #include "processes.h"
 #include "log.h"

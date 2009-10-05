@@ -29,6 +29,9 @@
 
 
 #include <includes.h>
+
+#include <openvas/system.h> /* for efree */
+
 #include <pwd.h>
 #include "comm.h"
 #include "utils.h"

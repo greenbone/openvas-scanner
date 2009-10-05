@@ -34,8 +34,14 @@
 #include <glib.h>
 
 #include <openvas/nasl/nasl.h>
+#include <openvas/network.h> /* for internal_send */
+#include <openvas/nvt_categories.h> /* for ACT_SCANNER */
+#include <openvas/plugutils.h> /* for INTERNAL_COMM_CTRL_FINISHED */
+#include <openvas/store.h> /* for store_plugin */
+#include <openvas/system.h> /* for emalloc */
 
 #include "pluginload.h"
+#include "pluginscheduler.h" /* for LAUNCH_DISABLED */
 #include "plugs_hash.h"
 #include "preferences.h"
 #include "processes.h"

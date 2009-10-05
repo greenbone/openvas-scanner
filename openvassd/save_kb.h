@@ -31,6 +31,8 @@
 #ifndef SAVE_KB_H__
 #define SAVE_KB_H__
 
+#include <openvas/arglists.h> /* for struct arglist */
+
 int save_kb_new(struct arglist*, char *);
 void save_kb_close(struct arglist*, char*);
 
