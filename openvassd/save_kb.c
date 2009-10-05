@@ -33,7 +33,7 @@
  * This has not only importance for debugging, but could also allow differential
  * scans and information gain other than vulnerabilities of targets.
  * @see diff_scan
- * 
+ *
  * Knowledge base backups are (if the appropriate preferences are set) saved
  * under (PREFIX)var/lib/openvas/users/(USERNAME)/kbs/(HOSTNAME) ,
  * where strings in brackets have to be replaced by the respective value.
@@ -63,10 +63,10 @@
 			
 ===========================================================================*/
 /**
- * @brief Replaces slashes in name by underscores.
- * 
+ * @brief Replaces slashes in name by underscores (in-place).
+ *
  * @param name String in which slashes will be replaced by underscores.
- * 
+ *
  * @return Pointer to the parameter name string.
  */
 static char *
@@ -106,7 +106,7 @@ kb_mkdir (char * dir)
 {
  char *t;
  int ret = 0;
- 
+
  dir = estrdup(dir);
  t = strchr(dir+1, '/');
  while(t)
@@ -116,8 +116,7 @@ kb_mkdir (char * dir)
   t[0] = '/';
   t = strchr(t+1, '/');
  }
- 
- 
+
  if ((ret = mkdir(dir, 0700)) < 0) {
   if(errno != EEXIST)
     log_write("mkdir(%s) failed : %s\n", dir, strerror(errno));
@@ -130,7 +129,10 @@ kb_mkdir (char * dir)
 
 
 /**
- * From <hostname>, return /path/to/var/lib/openvas/<username>/kbs/<hostname> .
+ * @brief Returns file name where the kb for scan of a host can be saved/read
+ * @brief from.
+ *
+ * From \<hostname\>, return /path/to/var/lib/openvas/\<username\>/kbs/\<hostname\> .
  */
 static char*
 kb_fname (struct arglist* globals, char* hostname)
@@ -138,9 +140,10 @@ kb_fname (struct arglist* globals, char* hostname)
  gchar * dir = kb_dirname(globals);
  char * ret;
  char * hn = strdup(hostname);
- 
- hn = filter_odd_name(hn);
- 
+
+ hn = filter_odd_name (hn);
+
+ /** @todo use glibs *build_path functions */
  ret = emalloc(strlen(dir) + strlen(hn) + 2);
  sprintf(ret, "%s/%s", dir, hn);
  g_free (dir);
@@ -159,13 +162,13 @@ map_file (int file)
  char *ret;
  int i = 0;
  int len;
- 
+
  bzero(&st, sizeof(st));
  fstat(file, &st);
  len = (int)st.st_size;
  if ( len == 0 )
  	return NULL;
-	
+
  lseek(file, 0, SEEK_SET);
  ret = emalloc(len + 1);
  while(i < len )
@@ -181,11 +184,11 @@ map_file (int file)
 	return NULL;
      }
  }
- 
+
  lseek(file, len, SEEK_SET);
  return ret;
 }
- 
+
 static int
 save_kb_entry_present_already (struct arglist * globals, char * hostname,
                                char* name, char* value)
@@ -194,11 +197,11 @@ save_kb_entry_present_already (struct arglist * globals, char * hostname,
   int fd;
   char* req;
   int ret;
-   
+
   fd = GPOINTER_TO_SIZE(arg_get_value(globals, "save_kb"));
   if(fd <= 0)
    return -1;
- 
+
   buf = map_file(fd);
   if(buf)
   {
@@ -213,8 +216,8 @@ save_kb_entry_present_already (struct arglist * globals, char * hostname,
    return ret;
   }
  return -1;
-} 
- 
+}
+
 static int
 save_kb_rm_entry_value (struct arglist* globals, char* hostname, char* name,
                         char* value)
@@ -223,34 +226,34 @@ save_kb_rm_entry_value (struct arglist* globals, char* hostname, char* name,
   char * t;
   int fd;
   char * req;
-  
-   
+
+
   fd = GPOINTER_TO_SIZE(arg_get_value(globals, "save_kb"));
   if(fd <= 0)
    return -1;
-  
+
   buf = map_file(fd);
   if(buf)
   {
    if(value)
-   { 
+   {
     req = emalloc(strlen(name) + strlen(value) + 2);
     sprintf(req, "%s=%s", name, value);
    }
-   else 
+   else
     req = estrdup(name);
-    
+
    t = strstr(buf, req);
    if(t)
    {
     char * end;
-       
+
      while(t[0] != '\n')
      {
        if(t == buf)break;
        else t--;
      }
-       
+
      if(t[0] == '\n')t++;
      end = strchr(t, '\n');
      t[0] = '\0';
@@ -263,18 +266,18 @@ save_kb_rm_entry_value (struct arglist* globals, char* hostname, char* name,
        {
         log_write("lseek() failed - %s\n", strerror(errno));
        }
-       
+
      if((ftruncate(fd, 0))<0)
        {
         log_write("ftruncate() failed - %s\n", strerror(errno));
        }
-       
-      
+
+
      if(write(fd, buf, strlen(buf)) < 0)
        {
         log_write("write() failed - %s\n", strerror(errno));
        }
-     
+
      if(end){
        	if((write(fd, end, strlen(end)))<0)
 	  log_write("write() failed - %s\n", strerror(errno));
@@ -288,85 +291,90 @@ save_kb_rm_entry_value (struct arglist* globals, char* hostname, char* name,
 }
 
 static int
-save_kb_rm_entry(globals, hostname, name)
- struct arglist * globals;
- char * hostname;
- char * name;
+save_kb_rm_entry (struct arglist * globals, char * hostname, char * name)
 {
  return save_kb_rm_entry_value(globals, hostname, name, NULL);
 }
- 
+
 /**
- * Write data
+ * @brief Writes an entry to a knowledge base file.
  *
- * We want to avoid duplicates for :
+ * The entry will look like:
+ * 1254307384 1 Banner/22=SSH-2.0-OpenSSH_5.1p1 Debian-5\r\n
+ * where the first value is a timestamp, the second item is the \ref type,
+ * and the string before the equalsign in the third item is the key for the
+ * knowledge base and the rest the value for that key.
  *
- * 	Successful/...
- *	SentData/...
- *	Launched/...
+ * Duplicates for keys starting with:
+ *   Successful/...
+ *   SentData/...
+ *   Launched/...
+ * are not created (existing values are removed first).
+ * Any items starting with /tmp/, NIDS/ or Settings/ are not written to the file
+ * but rather ignored.
  *
- * Ignores any items starting with /tmp/, NIDS/ or Settings/
+ * @param name Key of the kb-item.
+ * @return -1 if invalid file handle to write to or any parameter is NULL, 0
+ *         otherwise.
  */
 static int
 save_kb_write (struct arglist * globals, char* hostname, char* name,
                char* value, int type)
 {
- int fd;
- char * str;
- int e;
- struct timeval now;
+  int fd;
+  char * str;
+  int e;
+  struct timeval now;
 
- if(!globals  ||
-    !hostname || 
-    !name     || 
-    !value)
- 	return -1;
-	
- fd = GPOINTER_TO_SIZE(arg_get_value(globals, "save_kb"));
- if(fd <= 0)
-  {
-  log_write("user %s : Can not find KB fd for %s\n", (char*)arg_get_value(globals, "user"), hostname);
-  return -1;
-  }
- 
+  if (!globals || !hostname || !name || !value)
+    return -1;
 
- /*
-  * Don't save temporary KB entries
-  */
- if(!strncmp(name, "/tmp/", 4) ||
-    !strncmp(name, "NIDS/", 5) ||
-    !strncmp(name, "Settings/", 9))
-   	return 0;
-
- /* Don't save sensitive information */
- if (strncmp(name, "Secret/", 7) == 0)
-   return 0;
-
- /*
-  * Avoid duplicates for these families
-  */
- if(!strncmp(name, "Success/", strlen("Success/"))   ||
-    !strncmp(name, "Launched/", strlen("Launched/")) ||
-    !strncmp(name, "SentData/", strlen("SentData/")))
+  fd = GPOINTER_TO_SIZE (arg_get_value(globals, "save_kb"));
+  if (fd <= 0)
     {
-     save_kb_rm_entry(globals, hostname, name);
+      log_write ("user %s : Can not find KB fd for %s\n",
+                 (char*) arg_get_value (globals, "user"), hostname);
+      return -1;
     }
- 
- if(save_kb_entry_present_already(globals, hostname, name, value))
- {
-  save_kb_rm_entry_value(globals, hostname, name, value);
- }
-   
- str = emalloc(strlen(name) + strlen(value) + 25);
- gettimeofday(&now, NULL);
- sprintf(str, "%ld %d %s=%s\n", (long)now.tv_sec, type, name, value);
- e = write(fd, str, strlen(str));
- if(e < 0)
- {
-  log_write("user %s : write kb error - %s\n", (char*)arg_get_value(globals, "user"), strerror(errno));
- }
- efree(&str);
- return 0;
+
+  /* Skip temporary KB entries */
+  if (!strncmp (name, "/tmp/", 4) ||
+      !strncmp (name, "NIDS/", 5) ||
+      !strncmp (name, "Settings/", 9))
+    return 0;
+
+  /* Don't save sensitive information */
+  if (strncmp (name, "Secret/", 7) == 0)
+    return 0;
+
+  /* Avoid duplicates for these families */
+  if (!strncmp (name, "Success/", strlen ("Success/"))   ||
+      !strncmp (name, "Launched/", strlen ("Launched/")) ||
+      !strncmp (name, "SentData/", strlen ("SentData/")))
+    {
+      save_kb_rm_entry (globals, hostname, name);
+    }
+
+  if (save_kb_entry_present_already (globals, hostname, name, value))
+    {
+      save_kb_rm_entry_value (globals, hostname, name, value);
+    }
+
+  str = emalloc (strlen (name) + strlen (value) + 25);
+  gettimeofday (&now, NULL);
+  sprintf (str, "%ld %d %s=%s\n", (long) now.tv_sec, type, name, value);
+
+  /** @todo Fix a bug (most probably race condition). Although following write
+   * call does return > 0, sometimes the content never reaches the file,
+   * especially for big amount of data in value (e.g. big file contents) */
+  e = write (fd, str, strlen (str));
+  if (e < 0)
+    {
+      log_write ("user %s : write kb error - %s\n",
+                (char*) arg_get_value (globals, "user"), strerror (errno));
+   }
+  efree (&str);
+  return 0;
 }
 
 
@@ -378,8 +386,8 @@ save_kb_write (struct arglist * globals, char* hostname, char* name,
 
 /**
  * @brief Initialize a new KB that will be saved.
- * 
- * The indexes of all the opened KB are in a hashlist in 
+ *
+ * The indices of all the opened KB are in a hashlist in 
  * globals, saved under the name "save_kb". This makes no sense
  * at this time, as the test of each host is done in a separate
  * process, but this allows us to regroup easily these in
@@ -399,9 +407,9 @@ save_kb_new (struct arglist * globals, char * hostname)
  dir = kb_dirname(globals);
  kb_mkdir(dir);
  efree(&dir);
- 
+
  fname = kb_fname(globals, hostname);
- 
+
  if(file_locked(fname))
  {
   efree(&fname);
@@ -440,17 +448,16 @@ save_kb_close (struct arglist * globals, char * hostname)
 }
 
 /**
- * Returns <1> if we already saved a KB for this host,
- * less than <max_age> seconds ago. If <max_age> is
- * equal to zero, then the age is not taken in account
- * (returns true if a knowledge base exists)
+ * @return 1 if we already saved a KB for this host, less than \<max_age\>
+ *         seconds ago. If \<max_age\> equals zero, then the age is not taken in
+ *         account (returns true if a knowledge base exists).
  */
 int
 save_kb_exists (struct arglist * globals, char * hostname)
 {
  char * fname = kb_fname(globals, hostname);
  FILE *f;
- 
+
  if(file_locked(fname))
  {
   efree(&fname);
@@ -467,12 +474,12 @@ save_kb_exists (struct arglist * globals, char * hostname)
 
 
 int
-save_kb_write_str (struct arglist * globals, char * hostname, char* name, 
+save_kb_write_str (struct arglist * globals, char * hostname, char* name,
                    char* value)
 {
  char * newvalue  = addslashes(value);
  int e;
- 
+
  e = save_kb_write(globals, hostname, name, newvalue, ARG_STRING);
  efree(&newvalue);
  return e;
@@ -502,11 +509,11 @@ save_kb_restore_backup (struct arglist * globals, char* hostname)
  char * fname = kb_fname(globals, hostname);
  char * bakname;
  int fd;
- 
+
  bakname = emalloc(strlen(fname) + 5);
  strcat(bakname, fname);
  strcat(bakname, ".bak");
- 
+
  unlink(fname);
  if((fd = open(bakname, O_RDONLY)) >= 0)
  {
@@ -525,27 +532,26 @@ save_kb_backup (struct arglist * globals, char* hostname)
  char * fname = kb_fname(globals, hostname);
  char * newname = NULL;
  int fd_src = -1, fd_dst = -1;
- 
- 
+
  if(file_locked(fname))
   {
    log_write("%s is locked\n", fname);
    goto failed1;
   }
- 
+
  file_lock(fname);
- 
+
  newname = emalloc(strlen(fname) + 5);
  strcat(newname, fname);
  strcat(newname, ".bak");
- 
+
  if((fd_src = open(fname, O_RDONLY)) >= 0)
  {
   char buf[4096];
   int n;
   fd_dst = open(newname, O_WRONLY|O_CREAT|O_TRUNC, 0640);
   if(fd_dst < 0)
-  { 
+  {
    log_write("save_kb_backup failed : %s", strerror(errno));
    close(fd_src);
    goto failed;
@@ -565,13 +571,13 @@ save_kb_backup (struct arglist * globals, char* hostname)
      goto failed;
      }
      m+=e;
-    } 
+    }
     bzero(buf, sizeof(buf));
    }
   }
-  else 
+  else
     log_write("save_kb_backup failed : %s\n", strerror(errno));
-    
+
   close(fd_src);
   close(fd_dst);
   efree(&newname);
@@ -580,7 +586,7 @@ save_kb_backup (struct arglist * globals, char* hostname)
   return 0;
 failed:
   file_unlock(fname);
-failed1:  
+failed1:
   efree(&fname);
   efree(&newname);
   return -1;
@@ -602,7 +608,7 @@ save_kb_load_kb (struct arglist * globals, char* hostname)
  struct kb_item ** kb;
  char buf[4096];
  long max_age = save_kb_max_age(globals);
- 
+
  if(file_locked(fname))
  {
   efree(&fname);
@@ -617,52 +623,55 @@ save_kb_load_kb (struct arglist * globals, char* hostname)
   }
  bzero(buf, sizeof(buf));
  fgets(buf, sizeof(buf) - 1, f);
- 
+
  kb  = kb_new();
- /*
-  * Ignore the date
-  */
- bzero(buf, sizeof(buf)); 
- 
+
+ /* Ignore the date */
+ bzero(buf, sizeof(buf));
+
  while(fgets(buf, sizeof(buf) - 1, f))
  {
   int type;
   char * name, * value, *t;
   struct timeval then, now;
-  
+
   buf[strlen(buf)-1]='\0'; /* chomp(buf) */
   t = strchr(buf, ' ');
-  if(!t)continue;
-  
+  if (!t)
+    continue;
+
   t[0] = '\0';
-  
+
   then.tv_sec = atol(buf);
   t[0] = ' ';t++;
   type = atoi(t);
   t = strchr(t, ' ');
-  if(!t)
-	  continue;
+  if (!t)
+    continue;
+
   t[0] = ' ';t++;
   name = t;
   t = strchr(name, '=');
-  if(!t)continue;
+  if (!t)
+    continue;
+
   t[0] = '\0';
   name = strdup(name);
   t[0] = ' ';
   t++;
   value = strdup(t);
-  
+
   if(strcmp(name, "Host/dead") && strncmp(name, "/tmp/", 4) &&
      strcmp(name, "Host/ping_failed"))
   {
    gettimeofday(&now, NULL);
    if(now.tv_sec - then.tv_sec > max_age)
    {
-    /* 
+    /*
     log_write("discarding %s because it's too old\n",
     		name,
     		(now.tv_sec - then.tv_sec));
-     */		
+     */
    }
    else
    {
@@ -681,7 +690,7 @@ save_kb_load_kb (struct arglist * globals, char* hostname)
   bzero(buf, sizeof(buf));
  }
  fclose(f);
- 
+
  /*
   * Re-open the file
   */
@@ -707,26 +716,29 @@ save_kb_load_kb (struct arglist * globals, char* hostname)
 
 /**
  * @return 1 if the user wants us the save the knowledge base.
+ * @todo This operation is possibly executed often (with every kb modification).
+ *       Evaluate wether the preference can change during a scan, consider the
+ *       use of a static variable.
  */
 int
 save_kb (struct arglist * globals)
 {
- struct arglist * preferences;
- char * value;
- 
- if(!globals)
+  struct arglist * preferences;
+  char * value;
+
+  if (!globals)
+    return 0;
+
+  preferences = arg_get_value (globals, "preferences");
+  if (!preferences)
+    return 0;
+
+  value = arg_get_value (preferences, "save_knowledge_base");
+
+  if (value && !strcmp (value, "yes"))
+    return 1;
+
   return 0;
-  
- preferences = arg_get_value(globals, "preferences");
- if(!preferences)
-  return 0;
-  
- value = arg_get_value(preferences, "save_knowledge_base");
- 
- if(value && !strcmp(value, "yes"))
-  return 1;
- 
- return 0;
 }
 
 /**
@@ -737,11 +749,11 @@ save_kb_pref_tested_hosts_only (struct arglist * globals)
 {
  struct arglist * preferences = arg_get_value(globals, "preferences");
  char * value;
- 
+
  value = arg_get_value(preferences, "only_test_hosts_whose_kb_we_have");
  if(value && !strcmp(value, "yes"))
   return 1;
- 
+
  return 0;
 }
 
@@ -753,11 +765,11 @@ int save_kb_pref_untested_hosts_only(globals)
 {
  struct arglist * preferences = arg_get_value(globals, "preferences");
  char * value;
- 
+
  value = arg_get_value(preferences, "only_test_hosts_whose_kb_we_dont_have");
  if(value && !strcmp(value, "yes"))
   return 1;
- 
+
  return 0;
 }
 
@@ -769,11 +781,11 @@ save_kb_pref_restore (struct arglist * globals)
 {
  struct arglist * preferences = arg_get_value(globals, "preferences");
  char * value;
- 
+
  value = arg_get_value(preferences, "kb_restore");
  if(value && !strcmp(value, "yes"))
   return 1;
- 
+
  return 0;
 }
 
@@ -806,7 +818,7 @@ save_kb_replay_check (struct arglist * globals, int type)
 	break;
   /* ACT_SETTINGS and ACT_INIT should always be executed */
  }
- 
+
  if(name)
  {
   value = arg_get_value(preferences, name);

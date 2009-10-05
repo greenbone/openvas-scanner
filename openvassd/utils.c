@@ -26,8 +26,9 @@
 *
 *
 */
- 
+
 #include <includes.h>
+
 #include "log.h"
 #include "ntp.h"
 #include "auth.h"
@@ -203,32 +204,29 @@ you believe this is incorrect\n",
 
 
 /**
- * Returns the number of plugins that will be launched
+ * @brief Returns the number of plugins that will be launched.
  */
-int 
-get_active_plugins_number(plugins)
- struct arglist *  plugins;
+int
+get_active_plugins_number (struct arglist *  plugins)
 {
   int num = 0;
-  
+
   if(plugins != NULL)
    while(plugins->next != NULL)
    {
-    if(plug_get_launch(plugins->value) != LAUNCH_DISABLED )num++;
+    if (plug_get_launch(plugins->value) != LAUNCH_DISABLED)
+      num++;
     plugins = plugins->next;
    }
-   
-   
+
  return num;
 }
 
 
 
 
-void 
-plugins_set_ntp_caps(plugins, caps)
- struct arglist * plugins;
- ntp_caps* caps;
+void
+plugins_set_ntp_caps (struct arglist * plugins, ntp_caps* caps)
 {
  if(!caps || !plugins)return;
  while(plugins->next)
@@ -238,7 +236,7 @@ plugins_set_ntp_caps(plugins, caps)
    v = plugins->value;
   else 
    v = NULL;
-  
+
   if( v != NULL ){
 	struct ntp_caps * old = arg_get_value(v, "NTP_CAPS");
 	if ( old != NULL )
@@ -257,19 +255,18 @@ plugins_set_ntp_caps(plugins, caps)
 
 
 int
-is_symlink(name)
- char * name;
+is_symlink (char * name)
 {
  struct stat sb;
  if(stat(name, &sb))return(0);
  return(S_ISLNK(sb.st_mode));
 }
 
-void check_symlink(name)
- char * name;
+void
+check_symlink (char * name)
 {
- if(is_symlink(name))
- { 
+ if (is_symlink(name))
+ {
   fprintf(stderr, "The file %s is a symlink -- can't continue\n", name);
   DO_EXIT(0);
  }
@@ -280,9 +277,8 @@ void check_symlink(name)
  * to a space delimited lists of hosts
  * in one string and returns it.
  */
-char * 
-hosts_arglist_to_string(hosts)
- struct arglist * hosts;
+char *
+hosts_arglist_to_string (struct arglist * hosts)
 {
  int num_hosts = 0;
  struct arglist * start = hosts;
@@ -296,12 +292,12 @@ hosts_arglist_to_string(hosts)
     hosts_len+=strlen(hosts->value);
   }
   hosts = hosts->next;
- }       
-  
+ }
+
  ret = emalloc(hosts_len + 2 * num_hosts + 1);
- 
+
  hosts = start;
- 
+
  while(hosts && hosts->next) {
   if(hosts->value){
    strcat(ret, hosts->value);
@@ -310,7 +306,7 @@ hosts_arglist_to_string(hosts)
   hosts = hosts->next;
  }
 return(ret);
-} 
+}
 
 /*-----------------------------------------------------------------
 
@@ -318,8 +314,9 @@ return(ret);
 		
 -------------------------------------------------------------------*/
 
+/** @todo use glib functions to create the path */
 void
-create_pid_file()
+create_pid_file ()
 {
  FILE * f;
  char * fname = malloc(strlen(OPENVASSD_PIDDIR) + strlen("/openvassd.pid") + 1);
@@ -338,8 +335,9 @@ fprintf(stderr, "'%s'\n", fname);
  free(fname);
 }
 
+/** @todo use glib functions to create the path */
 void
-delete_pid_file()
+delete_pid_file ()
 {
  char * fname = malloc(strlen(OPENVASSD_PIDDIR) + strlen("/openvassd.pid") + 1);
  strcpy(fname, OPENVASSD_PIDDIR);
@@ -371,7 +369,7 @@ temp_file_name()
  fd = open(ret, O_RDONLY);
  }
   while (fd >= 0);
-  
+
  return ret;
 }
 
@@ -381,19 +379,17 @@ temp_file_name()
 /**
  * Determines if a process is alive - as reliably as we can
  */
-int 
-process_alive(pid)
- pid_t pid;
+int
+process_alive (pid_t pid)
 {
- int i, ret;
- if( pid == 0 ) 
+  int i, ret;
+  if (pid == 0)
   return 0;
- 
- for(i=0,ret=1;(i<10) && (ret > 0);i++)
-   ret = waitpid(pid, NULL, WNOHANG);
-   
-   
- return kill(pid, 0) == 0;
+
+  for (i = 0,ret = 1;(i < 10) && (ret > 0) ; i++)
+   ret = waitpid (pid, NULL, WNOHANG);
+
+  return kill (pid, 0) == 0;
 }
 
 

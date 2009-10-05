@@ -104,10 +104,10 @@ static void hash_link_destroy(struct hash * h)
  int i;
  if(h == NULL)
   return;
-  
+
  if(h->next != NULL)
   hash_link_destroy(h->next);
- 
+
  if( h->dependencies != NULL )
  {
   for(i=0;h->dependencies[i] != NULL;i++)
@@ -119,7 +119,7 @@ static void hash_link_destroy(struct hash * h)
 
  efree(&h->dependencies_ptr);
  efree(&h->plugin);
- 
+
  if( h->ports != NULL )
  {
   for(i=0;h->ports[i] != NULL;i++)
@@ -128,14 +128,15 @@ static void hash_link_destroy(struct hash * h)
   }
   efree(&h->ports);
  }
- 
+
  efree(&h);
 }
 
-static void hash_destroy(struct hash * h)
+static void
+hash_destroy (struct hash * h)
 {
  int i;
- 
+
  for(i=0;i<HASH_MAX;i++)
   {
   hash_link_destroy(h[i].next);
@@ -144,21 +145,22 @@ static void hash_destroy(struct hash * h)
 }
 
 
-static int hash_add(struct hash * h, char * name, struct scheduler_plugin * plugin)
+static int
+hash_add (struct hash * h, char * name, struct scheduler_plugin * plugin)
 {
  struct hash * l = emalloc(sizeof(struct hash));
  unsigned int idx = mkhash(name);
  struct arglist * deps = plug_get_deps(plugin->arglist->value);
  struct arglist * ports = plug_get_required_ports(plugin->arglist->value);
  int num_deps = 0;
- 
+
  l->plugin = plugin;
  l->plugin->parent_hash = l;
  l->name   = name;
  l->next = h[idx].next;
  h[idx].next = l;
  l->dependencies_ptr = NULL;
- 
+
  if( deps == NULL )
   l->dependencies = NULL;
  else
@@ -166,7 +168,7 @@ static int hash_add(struct hash * h, char * name, struct scheduler_plugin * plug
   struct arglist * al = deps;
   int i = 0;
   while (al->next)
-  { 
+  {
    num_deps ++;
    al = al->next;
   }
@@ -179,7 +181,7 @@ static int hash_add(struct hash * h, char * name, struct scheduler_plugin * plug
    al = al->next;
   }
  }
- 
+
  if( ports == NULL )
   l->ports = NULL;
  else
@@ -192,7 +194,7 @@ static int hash_add(struct hash * h, char * name, struct scheduler_plugin * plug
     num_ports ++;
     al = al->next;
    }
-   
+
    l->ports = emalloc((num_ports + 1) * sizeof(char*));
    al = ports;
    while (al->next != NULL )
@@ -207,7 +209,8 @@ static int hash_add(struct hash * h, char * name, struct scheduler_plugin * plug
 
 
 
-static struct hash * _hash_get(struct hash * h, char * name)
+static struct hash *
+_hash_get (struct hash * h, char * name)
 {
  unsigned int idx = mkhash(name);
  struct hash * l = h[idx].next;
@@ -222,20 +225,22 @@ static struct hash * _hash_get(struct hash * h, char * name)
 }
 
 
-static struct hash ** hash_get_deps_ptr(struct hash * h, char * name)
+static struct hash **
+hash_get_deps_ptr (struct hash * h, char * name)
 {
  struct hash * l = _hash_get(h, name);
- 
+
  if( l == NULL )
   return NULL;
- 
+
  if( l->dependencies_ptr == NULL )
   return NULL;
- 
+
  return l->dependencies_ptr;
 }
 
-static void hash_fill_deps(struct hash * h, struct hash * l )
+static void
+hash_fill_deps (struct hash * h, struct hash * l )
 {
  int i, j = 0;
  if ( l->num_deps != 0 )
@@ -320,7 +325,7 @@ void scheduler_mark_running_ports(plugins_scheduler_t sched, struct scheduler_pl
    pl->prev = NULL;
    sched->plist = pl;
   }
- } 
+ }
 }
 
 void scheduler_rm_running_ports(plugins_scheduler_t sched, struct scheduler_plugin * plugin)
@@ -328,18 +333,15 @@ void scheduler_rm_running_ports(plugins_scheduler_t sched, struct scheduler_plug
  char ** ports; 
  int i;
 
- 
  ports = plugin->parent_hash->ports;
 
- 
  if( ports == NULL )
   return;
- 
+
  for (i = 0 ; ports[i] != NULL ; i ++ )
  {
   struct plist * pl = pl_get(sched->plist, ports[i]);
- 
-	
+
   if( pl != NULL )
   {
    pl->occurences --;
@@ -347,7 +349,7 @@ void scheduler_rm_running_ports(plugins_scheduler_t sched, struct scheduler_plug
    {
     if( pl->next != NULL )
      pl->next->prev = pl->prev;
-    
+
     if( pl->prev != NULL )
      pl->prev->next = pl->next;
     else
@@ -373,20 +375,19 @@ int scheduler_plugin_score(plugins_scheduler_t sched, struct scheduler_plugin * 
  char ** ports = hash_get_ports(sched->hash, plugin->arglist->name);
  int i;
  int score = 0;
- 
+
  if( ports == NULL ) 
   return 0;
- 
 
  for (i = 0; ports[i] != NULL; i ++)
  {
   struct plist * pl = pl_get(sched->plist, ports[i]);
   if(pl != NULL)
-  { 
+  {
    if(pl->occurences > score)
    	score = pl->occurences;
   }
- } 
+ }
  return score;
 }
 
@@ -408,7 +409,10 @@ void scheduler_plugin_best_score(plugins_scheduler_t sched, int *bscore, struct 
 
 
 
-struct scheduler_plugin * plugin_next_unrun_dependencie(plugins_scheduler_t sched, struct hash ** dependencies_ptr, int already_in_dependencie)
+struct scheduler_plugin *
+plugin_next_unrun_dependencie (plugins_scheduler_t sched,
+                               struct hash ** dependencies_ptr,
+                               int already_in_dependencie)
 {
  int flag = 0;
  int counter = 0;
@@ -416,7 +420,7 @@ struct scheduler_plugin * plugin_next_unrun_dependencie(plugins_scheduler_t sche
  
  if(dependencies_ptr == NULL)
   return NULL;
-  
+
  for(i=0;dependencies_ptr[i] != NULL;i++)
   {
    struct scheduler_plugin * plugin = dependencies_ptr[i]->plugin;
@@ -437,7 +441,7 @@ struct scheduler_plugin * plugin_next_unrun_dependencie(plugins_scheduler_t sche
 	 ret = plugin_next_unrun_dependencie(sched, deps_ptr, 1);
 	 if(ret == NULL)
 		return plugin;
-	 else 
+	 else
 	 	if( ret == PLUG_RUNNING )
 			flag ++;
 		else
@@ -456,7 +460,7 @@ struct scheduler_plugin * plugin_next_unrun_dependencie(plugins_scheduler_t sche
    }
   }
  }
-  
+
   if(flag == 0)
   	return NULL;
   else
@@ -468,7 +472,10 @@ struct scheduler_plugin * plugin_next_unrun_dependencie(plugins_scheduler_t sche
 /*
  * Enables a plugin and its dependencies
  */
-static void enable_plugin_and_dependencies(plugins_scheduler_t shed, struct arglist * plugin, char * name, int silent)
+static void
+enable_plugin_and_dependencies (plugins_scheduler_t shed,
+                                struct arglist * plugin,
+                                char * name, int silent)
 {
  struct hash ** deps_ptr;
  int i;
@@ -486,7 +493,7 @@ static void enable_plugin_and_dependencies(plugins_scheduler_t shed, struct argl
   else
    plug_set_launch(plugin, LAUNCH_SILENT);
  }
- 
+
  if(deps_ptr != NULL)
  {
    for(i=0;deps_ptr[i] != NULL;i++)
@@ -506,17 +513,13 @@ plugins_scheduler_t plugins_scheduler_init(struct arglist * plugins, int autoloa
  struct arglist * arg;
  int i;
  struct hash * l;
- 
- 
- 
- 
+
+
  if(plugins == NULL)
   return NULL;
- 
- 
- /*
-  * Fill our lists
-  */
+
+
+  /* Fill our lists */
   ret->hash = hash_init();
   arg = plugins;
   while(arg->next != NULL)
@@ -524,7 +527,7 @@ plugins_scheduler_t plugins_scheduler_init(struct arglist * plugins, int autoloa
   struct scheduler_plugin * scheduler_plugin;
   struct list * dup;
   int category =  plug_get_category(arg->value);
-  
+
   scheduler_plugin = emalloc ( sizeof(struct scheduler_plugin) ) ;
   scheduler_plugin->arglist  = arg;
   scheduler_plugin->running_state  = PLUGIN_STATUS_UNRUN;
@@ -551,8 +554,8 @@ plugins_scheduler_t plugins_scheduler_init(struct arglist * plugins, int autoloa
   hash_add(ret->hash, arg->name, scheduler_plugin);
   arg = arg->next;
   }
- 
- 
+
+
  for ( i = 0 ; i < HASH_MAX ; i ++ )
  {
   l = &ret->hash[i];
@@ -572,8 +575,8 @@ plugins_scheduler_t plugins_scheduler_init(struct arglist * plugins, int autoloa
    arg = arg->next;
   }
  }
- 
- 
+
+
  /* Now, remove the plugins that won't be launched */
  for(i= ACT_FIRST ; i <= ACT_LAST ; i++)
  {
@@ -602,31 +605,30 @@ plugins_scheduler_t plugins_scheduler_init(struct arglist * plugins, int autoloa
     l = l->next;
    }
   }
- 
+
  return ret;
 }
 
 
 
-struct scheduler_plugin * plugins_scheduler_next(plugins_scheduler_t h)
+struct scheduler_plugin *
+plugins_scheduler_next (plugins_scheduler_t h)
 {
- 
  struct list * l;
  int category;
  int running_category = ACT_LAST;
  int flag = 0;
- 
+
  if(h == NULL)
   return NULL;
- 
+
  for(category = ACT_FIRST;category<=ACT_LAST;category++)
  {
  l = h->list[category];
- 
+
  /*
   * Scanners (and DoS) must not be run in parallel
   */
-
  if((category == ACT_SCANNER) ||
     (category == ACT_KILL_HOST) ||
     (category == ACT_FLOOD) ||
@@ -634,25 +636,23 @@ struct scheduler_plugin * plugins_scheduler_next(plugins_scheduler_t h)
     pluginlaunch_disable_parrallel_checks();
  else
     pluginlaunch_enable_parrallel_checks();
-  
-      
+
  while(l != NULL)
  {
    int state;
-  
+
   state = plugin_get_running_state(l->plugin);
- 
-  
+
   switch(state)
   {
    case PLUGIN_STATUS_UNRUN:
     {
     struct hash ** deps_ptr = l->plugin->parent_hash->dependencies_ptr;
-    
+
     if(deps_ptr != NULL)
     {
      struct scheduler_plugin * p = plugin_next_unrun_dependencie(h, deps_ptr, 0);
-     
+
      switch(GPOINTER_TO_SIZE(p))
      {
       case GPOINTER_TO_SIZE(NULL) :
@@ -706,8 +706,7 @@ struct scheduler_plugin * plugins_scheduler_next(plugins_scheduler_t h)
 	  l->prev->next = l->next;
 	 else
 	  h->list[category] = l->next;
-	  
-	 
+
 	 if(l->next != NULL)
 	  l->next->prev = l->prev;
 
@@ -718,10 +717,10 @@ struct scheduler_plugin * plugins_scheduler_next(plugins_scheduler_t h)
 	}
 	break;
     }
-  l = l->next; 
+  l = l->next;
   }
 
-  
+
   /* Could not find anything */
   if((category == ACT_SCANNER ||
      category == ACT_INIT || 
@@ -731,19 +730,20 @@ struct scheduler_plugin * plugins_scheduler_next(plugins_scheduler_t h)
       flag = 0;
       category --;
      }
-     
+
    if(category + 1 >= ACT_DENIAL && flag && running_category < ACT_DENIAL)
-	{ 
-   	return PLUG_RUNNING;  
+	{
+   	return PLUG_RUNNING;
 	}
  }
- 
+
 
  return flag != 0 ? PLUG_RUNNING : NULL;
 }
 
 
-void list_destroy(struct list * list)
+void
+list_destroy (struct list * list)
 {
  while(list != NULL)
  {
@@ -754,7 +754,8 @@ void list_destroy(struct list * list)
 }
 
 
-void plugins_scheduler_free(plugins_scheduler_t sched)
+void
+plugins_scheduler_free (plugins_scheduler_t sched)
 {
  int i;
  hash_destroy(sched->hash);
@@ -762,6 +763,3 @@ void plugins_scheduler_free(plugins_scheduler_t sched)
  	list_destroy(sched->list[i]);	
  efree(&sched);
 }
-
-
-

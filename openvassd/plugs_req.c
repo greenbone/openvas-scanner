@@ -27,8 +27,9 @@
 *
 */
 
- 
+
 #include <includes.h>
+
 #include "pluginscheduler.h"
 #include "plugs_req.h"
 
@@ -37,55 +38,48 @@
  		   Private Functions
 	
 ***********************************************************/
- 
+
 extern int kb_get_port_state_proto(struct kb_item **, struct arglist*, int, char*);
- 
+
 /*---------------------------------------------------------
 
   Returns whether a port in a port list is closed or not
  
  ----------------------------------------------------------*/
 static int
-get_closed_ports(kb, ports, preferences)
-   struct kb_item ** kb;
-   struct arglist * ports;
-   struct arglist * preferences;
+get_closed_ports (struct kb_item ** kb, struct arglist * ports,
+                  struct arglist * preferences)
 {
 
   if(ports == NULL)
    return -1;
-  
+
   while(ports->next != NULL)
   {
-   int iport = atoi(ports->name);			
+   int iport = atoi(ports->name);
    if(iport != 0)
    	{
       	if( kb_get_port_state_proto(kb, preferences, iport, "tcp") != 0 )
 		return iport;
 	}
-      else 
+      else
         {
-        
       	if( kb_item_get_int(kb, ports->name) > 0 )
 		return 1; /* should be the actual value indeed ! */
-	}   
+	}
     ports = ports->next;
   }
   return 0; /* found nothing */
 }
 
 
-/*-----------------------------------------------------------
-
-  Returns whether a port in a port list is closed or not
- 
- ------------------------------------------------------------*/
+/**
+ * @brief Returns whether a port in a port list is closed or not.
+ */
 static int
-get_closed_udp_ports(kb, ports, preferences)
-   struct kb_item ** kb;
-   struct arglist * ports;
-   struct arglist * preferences;
-{   
+get_closed_udp_ports (struct kb_item ** kb, struct arglist * ports,
+                      struct arglist * preferences)
+{
   if( ports == NULL )
   	return -1;
   else while( ports->next != NULL)
@@ -98,16 +92,11 @@ get_closed_udp_ports(kb, ports, preferences)
 }
 
 
-/*-----------------------------------------------------------
-            
-	     Returns the name of the first key
-	     which is not in <kb>
-	    
- -----------------------------------------------------------*/
-static char * 
-key_missing(kb, keys)
-  struct kb_item ** kb;
-  struct arglist * keys;
+/**
+ * @brief Returns the name of the first key which is not \ref kb.
+ */
+static char *
+key_missing (struct kb_item ** kb, struct arglist * keys)
 {
  if(kb == NULL || keys == NULL )
     return NULL;
@@ -123,14 +112,11 @@ key_missing(kb, keys)
  return NULL;
 }
 
-/*-----------------------------------------------------------
-            
-	    The opposite of the previous function
-	    
- -----------------------------------------------------------*/
-static char * key_present(kb, keys)
- struct kb_item ** kb;
- struct arglist * keys;
+/**
+ * @brief The opposite of the previous function (\ref key_missing).
+ */
+static char *
+key_present (struct kb_item ** kb, struct arglist * keys)
 {
  if( kb == NULL || keys == NULL )
     return NULL;
@@ -144,7 +130,7 @@ static char * key_present(kb, keys)
    }
  }
  return NULL;
-} 
+}
 
 /**********************************************************
  
@@ -155,24 +141,21 @@ static char * key_present(kb, keys)
 
 
 
-/*------------------------------------------------------
-
-  Returns <port> if the lists of the required ports between
-  plugin 1 and plugin 2 have at least one port in common
- 
- 
- ------------------------------------------------------*/
-struct arglist * 
-requirements_common_ports(plugin1, plugin2)
- struct scheduler_plugin * plugin1, *plugin2;
+/**
+ * @brief Returns \<port\> if the lists of the required ports between
+ * @brief plugin 1 and plugin 2 have at least one port in common.
+ */
+struct arglist *
+requirements_common_ports (struct scheduler_plugin * plugin1,
+                           struct scheduler_plugin * plugin1)
 {
  struct arglist * ret = NULL;
  struct arglist * req1;
  struct arglist * req2;
- 
- 
+
+
  if(!plugin1 || !plugin2) return 0;
- 
+
  req1 = plugin1->required_ports;
  if ( req1 == NULL )
 	return 0;
@@ -180,7 +163,7 @@ requirements_common_ports(plugin1, plugin2)
  req2 = plugin2->required_ports;
  if ( req2 == NULL )
 	return 0;
- 
+
  while(req1->next != NULL)
  {
   struct arglist * r = req2;
@@ -193,7 +176,7 @@ requirements_common_ports(plugin1, plugin2)
        if(!ret)ret = emalloc(sizeof(struct arglist));
        arg_add_value(ret, r->name, ARG_INT, 0,(void*)1);
        }
-   }  
+   }
    r = r->next;
   }
   req1 = req1->next;
@@ -215,25 +198,18 @@ int mandatory_requirements_met(struct kb_item ** kb,
                                struct scheduler_plugin * plugin)
 {
   if(key_missing(kb, plugin->mandatory_keys)) return 0;
-  
+
   return 1;
 }
 
-/*-------------------------------------------------------
-
-	Determine if the plugin requirements are
-	met.
-
-	Returns NULL is everything is ok, or else
-	returns an error message
-
----------------------------------------------------------*/
-
+/**
+ * @brief Determine if the plugin requirements are met.
+ *
+ * @return Returns NULL is everything is ok, else an error message.
+ */
 char *
-requirements_plugin(kb, plugin, preferences)
- struct kb_item ** kb;
- struct scheduler_plugin * plugin;
- struct arglist * preferences;
+requirements_plugin (struct kb_item ** kb, struct scheduler_plugin * plugin,
+                     struct arglist * preferences)
 {
   static char error[64];
   char * missing;
@@ -244,14 +220,14 @@ requirements_plugin(kb, plugin, preferences)
   /*
    * Check wether the good ports are open
    */
-  error[sizeof(error) - 1] = '\0';  
+  error[sizeof(error) - 1] = '\0';
   tcp = plugin->required_ports;
   if(tcp != NULL && (get_closed_ports(kb, tcp , preferences)) == 0)
      {
       strncpy(error, "none of the required tcp ports are open", sizeof(error) - 1);
       return error;
      }
-      
+
    udp = plugin->required_udp_ports;
    if(udp != NULL && (get_closed_udp_ports(kb, udp , preferences)) == 0)
       {
@@ -271,7 +247,7 @@ requirements_plugin(kb, plugin, preferences)
      snprintf(error,sizeof(error), "because the key %s is missing", missing);
      return error;
   }
-  
+
   if (opti != NULL && (strcmp(opti, "required_keys") == 0 || atoi(opti) == 2))
      return NULL;
 

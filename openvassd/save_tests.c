@@ -173,7 +173,7 @@ save_tests_init (struct arglist * globals)
  asctime = emalloc(2048); 
  t = time(NULL);
  lt = localtime(&t);
- 
+
  /*
   * Session id : <year><month><day>-<hour><minute><second>
   */
@@ -182,10 +182,10 @@ save_tests_init (struct arglist * globals)
  dir = session_dirname(globals);
  session_mkdir(dir);
  efree(&dir);
- 
+
  index_fname = session_fname(globals, asctime, "index");
  data_fname  = session_fname(globals, asctime, "data");
- 
+
  index = open(index_fname, O_CREAT|O_WRONLY|O_EXCL, 0600);
  file_lock(index_fname);
  if(index < 0)
@@ -198,7 +198,7 @@ save_tests_init (struct arglist * globals)
  {
   struct arglist * prefs = arg_get_value(globals, "preferences");
   char * target = arg_get_value(prefs, "TARGET");
-  
+
   log_write("user %s : session will be saved as %s", user, index_fname);
   if(arg_get_value(globals, "save_tests_index"))
   {
@@ -206,7 +206,7 @@ save_tests_init (struct arglist * globals)
   }
   else
    arg_add_value(globals, "save_tests_index", ARG_INT, sizeof(gpointer), GSIZE_TO_POINTER(index));
- 
+
   if(arg_get_value(globals, "save_tests_index_fname"))
   {
    char * s = arg_get_value(globals, "save_tests_index_fname");
@@ -223,7 +223,7 @@ save_tests_init (struct arglist * globals)
   write(index, target, strlen(target));
   write(index, "\n", 1);
  }
- 
+
  data = open(data_fname, O_CREAT|O_WRONLY|O_EXCL, 0600);
  file_lock(data_fname);
  if(data <  0)
@@ -454,20 +454,17 @@ save_tests_setup_playback (struct arglist* globals, char * session)
 		session);
   return -1;
   }
- 
+
  stat(index, &st);
  len = (int)st.st_size;
- 
- /*
-  * Get the first line of our file, which contains the 
-  * list of hosts to test
-  */
+
+ /* Get the first line of our file, which contains the list of hosts to test */
  buf = mmap(NULL, len, PROT_READ, MAP_PRIVATE, fd, 0);
  t = buf;
  while(t[length] && t[length]!='\n')length++;
  munmap(buf, len);
  close(fd);
- 
+
  target = emalloc(length+3);
  f = fopen(index, "r");
  fgets(target, length+2, f);
@@ -476,10 +473,8 @@ save_tests_setup_playback (struct arglist* globals, char * session)
  buf = emalloc(4096);
  tested = g_hash_table_new_full (g_str_hash, g_str_equal, g_free, NULL);
 
- /*
-  * Populate our harglst with the names of the
-  * hosts that have been completely tested
-  */
+ /* Populate our hashtable with the names of the hosts that have been completely
+  * tested */
  while(fgets(buf, 4095, f))
  {
   if (buf[strlen(buf)-1] == '\n')
@@ -491,9 +486,7 @@ save_tests_setup_playback (struct arglist* globals, char * session)
  efree(&buf);
  fclose(f);
 
- /*
-  * Set the global variables accordingly
-  */
+ /* Set the global variables accordingly */
   if(arg_get_value(globals, "TESTED_HOSTS")) 
   arg_set_value(globals, "TESTED_HOSTS", -1, tested);
  else

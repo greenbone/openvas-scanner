@@ -1,3 +1,25 @@
+2009-10-05  Felix Wolfsteller <felix.wolfsteller@intevation.de>
+
+	* openvassd/pluginscheduler.c, openvassd/plugs_req.c,
+	openvassd/save_kb.c, openvassd/save_tests.c, openvassd/utils.c,
+	openvassd/piic.c: Cosmetics, doc, todos added.
+
+	* ChangeLog: corrected with last entry.
+
+2009-10-05  Felix Wolfsteller <felix.wolfsteller@intevation.de>
+
+	Towards removal of libopenvas.h.
+
+	* openvassd/utils.h, openvassd/users.c, openvassd/users.h,
+	openvassd/shared_socket.c, openvassd/save_kb.h, openvassd/rules.c,
+	openvassd/preferences.c, openvassd/plugs_req.h,, openvassd/plugs_hash.c,
+	openvassd/pluginscheduler.h, openvassd/pluginload.h,
+	openvassd/pluginload.c, openvassd/pluginlaunch.c, openvassd/parser.c,
+	openvassd/ntp_11.h, openvassd/ntp_11.c, openvassd/nes_plugins.c,
+	openvassd/nasl_plugins.c, openvassd/locks.c, openvassd/hosts.c,
+	openvassd/comm.h, openvassd/comm.c, cnvts/ssl_ciphers/ssl_ciphers.c:
+	Added/cleaned up includes.
+
 2009-09-28  Jan-Oliver Wagner <jan-oliver.wagner@greenbone.net>
 
 	Post-release version bump.
