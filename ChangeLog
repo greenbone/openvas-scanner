@@ -1,3 +1,13 @@
+2009-10-06  Michael Wiegand <michael.wiegand@intevation.de>
+
+	Preparing the openvas-scanner 3.0.0-beta3 release.
+
+	* VERSION: Set to 3.0.0.beta3
+
+	* doc/Doxyfile, doc/Doxyfile_full: Updated PROJECT_NUMBER.
+
+	* CHANGES: Updated.
+
 2009-10-05  Felix Wolfsteller <felix.wolfsteller@intevation.de>
 
 	Removed dependence on libopenvas.h.
