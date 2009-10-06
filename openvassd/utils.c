@@ -330,8 +330,9 @@ create_pid_file ()
  f = fopen(fname, "w");
  if(!f)
  {
-fprintf(stderr, "'%s'\n", fname);
+  fprintf(stderr, "'%s'\n", fname);
   perror("create_pid_file() : open ");
+  free(fname);
   return;
  }
  fprintf(f, "%d\n", getpid());
@@ -356,7 +357,7 @@ delete_pid_file ()
  * This function ensures that this name is not taken
  * already.
  */
-/** @todo consider using glib functions */
+/** @todo consider using glib functions, the current code is subject to a TOCTOU race condition */
 char*
 temp_file_name()
 {
@@ -365,7 +366,7 @@ temp_file_name()
  do {
  if(fd > 0){
  	if(close(fd) < 0)
-	 perror("close ");
+	 perror("close");
 	}
  sprintf(ret, "%s/tmp", OPENVASSD_STATEDIR);
  mkdir(ret, 0700);
@@ -373,6 +374,8 @@ temp_file_name()
  fd = open(ret, O_RDONLY);
  }
   while (fd >= 0);
+ if(close(fd) < 0)
+  perror("close");
 
  return ret;
 }

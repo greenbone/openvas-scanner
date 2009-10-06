@@ -1,3 +1,9 @@
+2009-10-06  Tim Brown <timb@openvas.org>
+
+	* openvassd/utils.c: Fixed memory leak, typos and resource leak. Also added
+	todo for TOCTOU race condition on temp_file_name() (details sent to
+	openvas-devel@).
+
 2009-10-06  Michael Wiegand <michael.wiegand@intevation.de>
 
 	Post-release version bump.
