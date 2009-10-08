@@ -93,6 +93,10 @@ otp_1_0_server_send_certificates (struct arglist* globals)
 
       // Replace newlines by semicolons
       gchar* pos = cert->public_key;
+      /** @todo This will segfault if the public key could not be retrieved.
+       * A solution would be to check if cert->public_key is NULL and try to
+       * recover if it is.
+       */
       while(pos[0] != '\0')
         {
         if(pos[0] == '\n') pos[0] = ';';

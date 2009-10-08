@@ -1,3 +1,8 @@
+2009-10-08  Michael Wiegand <michael.wiegand@intevation.de>
+
+	* openvassd/otp_1_0.c (otp_1_0_server_send_certificates): Added todo
+	for segfault on nonexistent public key.
+
 2009-10-06  Tim Brown <timb@openvas.org>
 
 	* openvassd/utils.c: Fixed memory leak, typos and resource leak. Also added
