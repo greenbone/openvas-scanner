@@ -204,13 +204,13 @@ fi
 
 # Default country = France
 # Too bad for you, but quicker for my tests!
-X=${DC:=FR}
+X=${DC:=DE}
 eval_gettext "Your country \${Bo}two letter code\${Bc} [\$X]: "; read x
 COUNTRY=${x:-$DC}
 #
 gettext "Your state or province name [none]: "; read x
 PROVINCE=${x:-.}
-X=Paris; eval_gettext "Your location \${Bo}e.g. town\${Bc} [\$X]: "; read x
+X=Berlin; eval_gettext "Your location \${Bo}e.g. town\${Bc} [\$X]: "; read x
 LOCATION=${x:-$X}
 X="OpenVAS Users United"; eval_gettext "Your organization [\$X]: "; read x
 ORGANIZATION=${x:-$X}
@@ -221,9 +221,9 @@ ORGANIZATION=${x:-$X}
 else 
 CACERT_LIFETIME="1460"
 SRVCERT_LIFETIME="365"
-COUNTRY="FR"
+COUNTRY="DE"
 PROVINCE="none"
-LOCATION="Paris"
+LOCATION="Berlin"
 ORGANIZATION="OpenVAS Users United"
 fi
 
@@ -273,7 +273,7 @@ x509_extensions	= v3_ca	# The extentions to add to the self signed cert
 
 [ req_distinguished_name ]
 countryName			= Country Name (2 letter code)
-countryName_default		= FR
+countryName_default		= DE
 countryName_min			= 2
 countryName_max			= 2
 

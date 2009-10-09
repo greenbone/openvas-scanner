@@ -1,3 +1,8 @@
+2009-10-09  Jan-Oliver Wagner <jan-oliver.wagner@greenbone.net>
+
+	* openvas-mkcert-client.in, openvas-mkcert.in: Changed Paris to Berlin
+	for the default.
+
 2009-10-08  Michael Wiegand <michael.wiegand@intevation.de>
 
 	* openvassd/otp_1_0.c (otp_1_0_server_send_certificates): Added todo

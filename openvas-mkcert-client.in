@@ -206,11 +206,11 @@ DFL_CERT_LIFETIME=${x:-365}
 if [ ! -z "$LANG" ]; then
     DC=`echo $LANG | sed -n 's/^..*_\(..\)$/\1/p'`
 fi
-X=${DC:=FR}
+X=${DC:=DE}
 eval_gettext "Your country \${Bo}two letter code\${Bc} [\$X]: "; read x
 DFL_COUNTRY=${x:-$DC}
 gettext "Your state or province name [none]: "; read DFL_PROVINCE
-X=Paris; 
+X=Berlin; 
 eval_gettext "Your location \${Bo}e.g. town\${Bc} [\$X]: "; read x
 DFL_LOCATION=${x:-$X}
 gettext "Your organization [none]: "; read DFL_ORGANIZATION
@@ -263,7 +263,7 @@ x509_extensions	= v3_ca	# The extentions to add to the self signed cert
 
 [ req_distinguished_name ]
 countryName			= Country Name (2 letter code)
-countryName_default		= FR
+countryName_default		= DE
 countryName_min			= 2
 countryName_max			= 2
 
