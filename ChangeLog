@@ -1,3 +1,9 @@
+2009-10-12  Michael Wiegand <michael.wiegand@intevation.de>
+
+	* openvassd/openvassd.c (main): Made command line options more
+	consistent with other modules and coding standards. Short option for
+	--version is now -V (was -v).
+
 2009-10-09  Jan-Oliver Wagner <jan-oliver.wagner@greenbone.net>
 
 	* openvas-mkcert-client.in, openvas-mkcert.in: Changed Paris to Berlin

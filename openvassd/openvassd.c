@@ -953,7 +953,7 @@ main (int argc, char * argv[], char * envp[])
   GOptionContext *option_context;
   static GOptionEntry entries[] =
   {
-    { "version",    'v', 0,  G_OPTION_ARG_NONE, &display_version,
+    { "version",    'V', 0,  G_OPTION_ARG_NONE, &display_version,
                              "Display version information", NULL },
     { "foreground", 'f', 0,  G_OPTION_ARG_NONE, &dont_fork,
                              "Do not run in daemon mode but stay in foreground", NULL },
