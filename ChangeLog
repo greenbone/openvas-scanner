@@ -1,5 +1,11 @@
 2009-10-13  Jan-Oliver Wagner <jan-oliver.wagner@greenbone.net>
 
+	* openvassd/plugs_hash.c (plugins_send_md5_byname): Removed. This
+	function is not used anyway. It uses names to identify NVTs which
+	are not required to be unique. Instead, OID is used.
+
+2009-10-13  Jan-Oliver Wagner <jan-oliver.wagner@greenbone.net>
+
 	* openvassd/openvassd.c: Added missing include. Resolves
 	compiler warning.
 

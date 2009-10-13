@@ -195,47 +195,6 @@ static void plugins_send_md5_byid(globals)
  auth_printf(globals, "<|> SERVER\n");
 }
 
-
-static void plugins_send_md5_byname(struct arglist * globals)
-{ 
- struct arglist * preferences = arg_get_value(globals,"preferences");
- char * dirname  = arg_get_value(preferences, "plugins_folder");
- DIR * dir;
- struct dirent * dp;
-
- if( dirname == NULL )
-	return;
-
- dir = opendir(dirname);
- if( dir == NULL )
-	return;
-
- auth_printf(globals, "SERVER <|> PLUGINS_MD5\n");
- while ( (dp = readdir(dir)) != NULL )
- {
-  char fullname[PATH_MAX + 1];
-  char * tmp;
-
-  if(dp->d_name[0] == '.')
-	continue;
-
-  if(strlen(dirname) + strlen(dp->d_name) > (sizeof(fullname) - 2))
-	continue;
-
-  snprintf(fullname, sizeof(fullname), "%s/%s", dirname, dp->d_name);
-  tmp = file_hash(fullname);
-  if( tmp != NULL )
-   {
-    auth_printf(globals, "%s <|> %s\n", dp->d_name, tmp);
-    efree(&tmp);
-   }
- }
- closedir(dir);
- auth_printf(globals, "<|> SERVER\n");
-}
-
-
-
 void plugins_send_md5(struct arglist * globals)
 {
 	plugins_send_md5_byid(globals);
