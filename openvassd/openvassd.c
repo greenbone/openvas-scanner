@@ -336,7 +336,7 @@ scanner_thread (struct arglist * globals)
  int e;
  int opt = 1;
  void *addr = arg_get_value (globals, "client_address");
- struct sockaddr_in *saddr;
+ struct sockaddr_in *saddr = NULL;
  struct sockaddr_in6 *s6addr;
  inaddrs_t addrs;
 
