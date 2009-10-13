@@ -1,3 +1,7 @@
+2009-10-13  Matthew Mundell <matthew.mundell@intevation.de>
+
+	* openvassd/comm.c, ChangeLog: Flush trailing whitespace.
+
 2009-10-12  Michael Wiegand <michael.wiegand@intevation.de>
 
 	* openvassd/openvassd.c (main): Made command line options more
@@ -44,7 +48,7 @@
 
 	* cnvts/find_service/find_service.c: Added includes and defines that
 	previously were in libopenvas.h.
-	
+
 	* openvassd/pluginload.h: Added function typedefs that were previously
 	in libopenvas.h.
 
@@ -645,7 +649,7 @@
 2009-08-19  Tim Brown <timb@nth-dimension.org.uk>
 
 	* openvas-adduser.in, openvas-rmuser.in: Fixed bashism.
-	
+
 	* openvas-mkcert.in, openvas-mkcert-client.in: Fixed bashism.
 
 2009-08-19  Felix Wolfsteller <felix.wolfsteller@intevation.de>
@@ -675,11 +679,11 @@
 	openvasd/comm.c,
 	openvasd/hosts.c:
 	Cosmetics.
-	
+
 	* openvasd/comm.c (qsort_cmp):
 	Added TODO regarding sorting mechanisms (consolidate, improve function
 	naming).
-	
+
 	* openvasd/hosts.c (struct host):
 	Added TODO, as this struct could be stripped down and put in a list or
 	hashtable.
@@ -688,7 +692,7 @@
 
 	* openvasd/comm.h:
 	Whitespace removal, corrected filename in comment.
-	
+
 	* ChangeLog:
 	Minor reformatting.
 
@@ -696,7 +700,7 @@
 
 	* cnvts/3com_hub/Makefile,
 	cnvts/3com_hub/3com_hub.c:
-	removal of 3com_hub C plugin.  Plugin did not work (return 
+	removal of 3com_hub C plugin.  Plugin did not work (return
 	function at the beginning of plugin) and it is superseeded by
 	scripts/remote-net-hub-3com.nasl
 
@@ -849,7 +853,7 @@
 	First part of fixing bug #779.
 	Result of collaborative effort of Chandra, Thomas Reinke, Jan-Oliver
 	Wagner, Michael Wiegand, Felix Wolfsteller.
-	
+
 	* openvasd/utils.c (common):
 	Fixed. In a list comparison, after the first pass no further
 	comparisons were done. Keeping pointer to start of list.
@@ -935,7 +939,7 @@
 2009-06-27  Jan-Oliver Wagner <jan-oliver.wagner@greenbone.net>
 
 	* openvasd/oval_plugin.c (oval_plugin_add): Adapated
-	calls of plug_set_* functions to API change. 
+	calls of plug_set_* functions to API change.
 
 2009-06-26  Jan-Oliver Wagner <jan-oliver.wagner@greenbone.net>
 
@@ -1138,7 +1142,7 @@
 2009-04-09  Felix Wolfsteller <felix.wolfsteller@intevation.de>
 
 	Renamed variables starting with 'g_', as it suggest GLib ownership.
-	
+
 	* openvasd/openvasd.c, openvasd/utils.c: Renamed variables starting
 	with 'g_'.
 
@@ -1233,7 +1237,7 @@
 
 	Support for per-host password based local checks. Yet ignored because
 	ssh_func.inc will always try the key-based method.
-	
+
 	NOTE: You need the latest version of openvas-libraries to compile and
 	the latest Client + the ssh_authorization.nasl that was sent to
 	openvas-devel to test.
@@ -1256,10 +1260,10 @@
 	doc generation for ENABLE_SAVE_KB guarded code parts.
 
 	* openvasd/save_kb.c: Documentation and reformatting works.
-	
+
 	* doc/Doxyfile, doc/Doxyfile_full: Use a PREDEFINE for ENABLE_SAVE_KB
 	to generate more documentation.
-	
+
 2009-02-25  Michael Wiegand <michael.wiegand@intevation.de>
 
 	Added support for parsing multiple results per OVAL result file, made
@@ -1329,17 +1333,17 @@
 
 	Minor documentation added / transformed into agreed format.
 	K&R function declarations replaced.
-	
+
 	* openvasd/nasl_plugins.c, openvasd/utils.c, openvasd/utils.h,
 	openvasd/shared_socket.c, openvasd/oval_plugins.c, openvasd/pluginload.h
 	: Replaced some K&R function declarations, reformatted or added minor
 	documentation blocks.
-	
+
 	* ChangeLog: Fixed misleading and wrong entry of last commit.
 
 2009-02-17  Felix Wolfsteller <felix.wolfsteller@intevation.de>
 
-	* openvasd/preferences.c (preferences_plugin_timeout): Use 
+	* openvasd/preferences.c (preferences_plugin_timeout): Use
 	g_strdup_printf instead of malloc + printf.
 
 2009-02-17  Felix Wolfsteller <felix.wolfsteller@intevation.de>
@@ -1364,9 +1368,9 @@
 
 	* INSTALL: Removed. Information was few and outdated. Superseded by
 	README.
-	
+
 	* README: New. Contains installation and set-up instructions.
-	
+
 	* MANIFEST: Updated (-INSTALL +README).
 
 2009-02-13  Felix Wolfsteller <felix.wolfsteller@intevation.de>
@@ -1379,7 +1383,7 @@
 2009-02-13  Michael Wiegand <michael.wiegand@intevation.de>
 
 	* openvasd/pluginload.c (plugins_reload_from_dir): Don't try to split
-	include_folders if there is no such preference. 
+	include_folders if there is no such preference.
 
 2009-02-13  Jan-Oliver Wagner <jan-oliver.wagner@intevation.de>
 
@@ -1408,10 +1412,10 @@
 
 	Repaired resolution of Default or pattern- defined logins per host,
 	printf Debug- messages.
-	
+
 	* openvasd/attack.c (fill_host_kb_ssh_credentials): Check if login
 	is registered under keys before resolution, debug messages.
-	
+
 	* openvasd/attack.c (pattern_matches): printf debug messages.
 
 2009-02-12  Felix Wolfsteller <felix.wolfsteller@intevation.de>
@@ -1444,10 +1448,10 @@
 2009-02-09  Felix Wolfsteller <felix.wolfsteller@intevation.de>
 
 	Documentation and reformatting of shared_socket module.
-	
+
 	* openvasd/shared_socket.c: Donated return types in function
 	declarations an own line, removed whitespaces, minor documentation.
-	
+
 	* openvasd/shared_socket.c (openvasd_shared_socket_acquire):
 	Reformatted.
 
@@ -1463,15 +1467,15 @@
 
 2009-02-05  Felix Wolfsteller <felix.wolfsteller@intevation.de>
 
-	Basic support for glob-style pattern definitions within the 
+	Basic support for glob-style pattern definitions within the
 	hostname --> sshlogin mapping.
 	(CR #20, http://www.openvas.org/openvas-cr-20.html)
-	
+
 	* openvasd/attack.c (is_pattern): New, copied from clients
 	nvt_pref_sshlogin, TRUE if string contains '*' or '?'.
-	
+
 	* openvasd/attack.c (pattern_matches): New, GHashTable- find- predicate.
-	
+
 	* openvasd/attack.c (fill_host_kb_ssh_credentials): Now tries if any
 	pattern matches the hostname before falling back to Default login.
 
@@ -1480,29 +1484,29 @@
 	Refactoring and documentation in attack.c. Minor formatting changes.
 	In preparation of pattern definitions for hostname --> sshlogin mapping.
 	(CR #20, http://www.openvas.org/openvas-cr-20.html)
-	
+
 	* openvasd/attack.c (attack_init_hostinfos): Documented.
-	
+
 	* openvasd/attack.c (fill_host_kb_ssh_credentials): New, extracted from
 	init_host_kb.
-	
+
 	* openvasd/attack.c (init_host_kb): Adjusted to call new method
 	fill_host_kb_ssh_credentials.
-	
+
 	* openvasd/attack.c (attack_host): Minor formatting changes.
-	
+
 2009-02-02  Felix Wolfsteller <felix.wolfsteller@intevation.de>
 
 	Cosmetics in the rules module.
 
 	* openvasd/rules.h: Documentation and formatting of rules struct.
-	
+
 	* openvasd/rules.c (rules_get_fname): Removed unneeded forward decl.
 	Documentation, K&R func decl. replaced.
-	
+
 	* openvasd/rules.c (get_host_rules): K&R func decl. replaced.,
 	indentation.
-	
+
 	* openvasd/rules.c (rules_free): K&R func decl. replaced.
 
 2009-01-27  Jan-Oliver Wagner <jan-oliver.wagner@intevation.de>
@@ -1644,12 +1648,12 @@
 	Parses the .host_logins file sent by the client and stores the mapping
 	of user-defined login-account names to hostnames in the global arglist
 	for later (per-host) lookup.
-	
+
 	* openvasd/ntp_11.c (build_global_sshlogin_info_map): New.
 	Parses the .logins file sent by the client and stores the mapping of
 	user-defined login-account names to openvas_ssh_login structs for later
 	lookup and extraction of per-host login information.
-	
+
 	* openvasd/ntp_11.c (ntp_11_recv_file): Commented, calls the new methods
 	accordingly if a file with the appropriate name has been received.
 
@@ -1672,11 +1676,11 @@
 2009-01-16  Felix Wolfsteller <felix.wolfsteller@intevation.de>
 
 	Cosmetics (reformatted ntp_11_recv_file, docs).
-	
+
 	* openvasd/ntp_11.c (ntp_11_recv_file): Reformatted.
-	
+
 	* openvasd/ntp_11.c: Tiny doc improvements.
-	
+
 2009-01-15  Michael Wiegand <michael.wiegand@intevation.de>
 
 	* openvasd-config.in: Added support for retrieving the sysconfdir and
@@ -1697,9 +1701,9 @@
 2009-01-12  Felix Wolfsteller <felix.wolfsteller@intevation.de>
 
 	Cosmetics (reformatted ntp_11_recv_file, docs).
-	
+
 	* openvasd/ntp_11.c (ntp_11_recv_file): Reformatted.
-	
+
 	* openvasd/ntp_11.c: Reformatted.
 
 2009-01-12  Felix Wolfsteller <felix.wolfsteller@intevation.de>
@@ -1708,10 +1712,10 @@
 
 	* openvasd/attack.c (launch_plugin): Changed int to gboolean parameter,
 	doc.
-	
+
 	* openvasd/attack.c (init_host_kb): New method, extracted from
 	attack_host, comments, documentation.
-	
+
 	* openvasd/attack.c (attack_host): Changed new_kb to be gboolean,
 	extracted init_host_kb function.
 
@@ -1723,7 +1727,7 @@
 2009-01-07  Felix Wolfsteller <felix.wolfsteller@intevation.de>
 
 	* openvasd/attack.c (attack_host, attack_start): Reformatted.
-	
+
 	* openvasd/attack.c (attack_network): Remoded local unused variable
 	return_code, added comment.
 
@@ -1734,7 +1738,7 @@
 
 	* openvasd/save_kb.c: Transformed comments to JavaDoc style, minor
 	improvements, added note about code duplicates in save_tests.c.
-	
+
 	* openvasd/save_tests.c: Added note about code duplicate in save_kb.c.
 
 2009-01-05  Felix Wolfsteller <felix.wolfsteller@intevation.de>
@@ -1791,7 +1795,7 @@
 2008-12-30  Felix Wolfsteller <felix.wolfsteller@intevation.de>
 
 	* openvasd/attack.c: Replaced K&R header, added comment to attack_host.
-	
+
 2008-12-30  Felix Wolfsteller <felix.wolfsteller@intevation.de>
 
 	* openvasd/attack.c: Transformed comments to Javadoc style.
@@ -1800,10 +1804,10 @@
 
 	* openvasd/otp_1_0.c: Applied patch from Hanno Böck to remove unwanted
 	gpgme.h include.
-	
+
 	* openvasd/otp_1_0.c (client_request_t otp_1_0_get_client_request):
 	Documented, removed K&R header.
-	
+
 	* openvasd/otp_1_0.c (otp_1_0_server_openvas_version): Double starred
 	comment.
 
@@ -1869,7 +1873,7 @@
 
 	* packaging/debian/openvas-server.prerm: Add switch to make script
 	fail in case of errors
-	
+
 	* packaging/debian/openvas-server.postinst: Switch shell to bash
 	to be compliant with bashisms
 
@@ -1938,12 +1942,12 @@
 2008-11-21  Joey Schulze <joey@infodrom.org>
 
 	Sync with Debian packaging as uploaded to ftp-master
-	
+
 	* packaging/debian/control: Adjust uploaders, add section for
 	openvas-server and -dev
 
 	* packaging/debian/changelog: Add changelog records for versions
-	1.0.2-1, 1.0.2-2 and 1.0.2-3 
+	1.0.2-1, 1.0.2-2 and 1.0.2-3
 
 2008-11-19  Tim Brown <timb@nth-dimension.org.uk>
 
@@ -1974,7 +1978,7 @@
 
 	* openvasd/ntp_11.c: comment added.
 
-	* openvasd/comm.c (comm_send_preferences): Comment, sending 
+	* openvasd/comm.c (comm_send_preferences): Comment, sending
 	nasl_no_signature_check as server pref to client.
 
 2008-11-14  Michael Wiegand <michael.wiegand@intevation.de>
@@ -2027,7 +2031,7 @@
 
 2008-11-13  Felix Wolfsteller <felix.wolfsteller@intevation.de>
 
-	* openvasd/otp_1_0.c (otp_1_0_server_send_certificates) : closed mem 
+	* openvasd/otp_1_0.c (otp_1_0_server_send_certificates) : closed mem
 	leak.
 
 2008-11-12  Michael Wiegand <michael.wiegand@intevation.de>
@@ -2043,7 +2047,7 @@
 
 	Work on Change Request #17 (http://www.openvas.org/openvas-cr-17.html -
 	"OTP: Make NVT signatures available to OpenVAS-Client").
-	Certificate information sending functionality improved. Sends real 
+	Certificate information sending functionality improved. Sends real
 	information, not dummystrings.
 
 	ATTENTION: needs openvas-libnasl rev. 1702 to compile smoothly.
@@ -2056,7 +2060,7 @@
 
 	* openvasd/otp_1_0.h : proto added.
 
-	* openvasd/otp_1_0.c (otp_1_0_server_send_certificates) : nasl, glib 
+	* openvasd/otp_1_0.c (otp_1_0_server_send_certificates) : nasl, glib
 	includes. Does send real information, not dummystrings.
 
 	* openvasd/ntp_11.c : removed interpretation of a void return.
@@ -2120,8 +2124,8 @@
 
 
 2008-11-06  Felix Wolfsteller <felix.wolfsteller@intevation.de>
-	
-	* openvasd/otp_1_0.c (otp_1_0_server_send_certificates): Fixed bug 
+
+	* openvasd/otp_1_0.c (otp_1_0_server_send_certificates): Fixed bug
 	(wrong type released) that caused definite server crash.
 
 
@@ -2137,16 +2141,16 @@
 
 2008-11-05  Felix Wolfsteller <felix.wolfsteller@intevation.de>
 
-	Work on Change Request #17 (http://www.openvas.org/openvas-cr-17.html - 
+	Work on Change Request #17 (http://www.openvas.org/openvas-cr-17.html -
 	"OTP: Make NVT signatures available to OpenVAS-Client").
 	Replaced sending of dummy certificate key oids by "real" fingerprints.
 	Sends dummy certificate information.
 
-	* openvasd/nasl_plugins.c (nasl_plugin_add): Replaced the dummy string 
-	for certificate fingerprints by real value from store / certificate 
+	* openvasd/nasl_plugins.c (nasl_plugin_add): Replaced the dummy string
+	for certificate fingerprints by real value from store / certificate
 	file, corrected behaviour for missing signature files.
 
-	* openvasd/otp_1_0.c: Added gpgme dependency and a dummy strings for 
+	* openvasd/otp_1_0.c: Added gpgme dependency and a dummy strings for
 	the cerrtificate sending.
 
 	* openvasd/comm.d (send_plug_info): increased size of buffer to send pl.
@@ -2158,17 +2162,17 @@
 
 2008-10-31  Felix Wolfsteller <felix.wolfsteller@intevation.de>
 
-	Steps to an implementation of Change Request #17 
-	(http://www.openvas.org/openvas-cr-17.html - "Make NVT signatures 
+	Steps to an implementation of Change Request #17
+	(http://www.openvas.org/openvas-cr-17.html - "Make NVT signatures
 	available to OpenVAS-Client").
-	Uses the new field "sign_key_ids" of plugin-structures and the .desc 
+	Uses the new field "sign_key_ids" of plugin-structures and the .desc
 	store. Until soon, just a dummy- string will be used and eventually
 	transmitted by the server.
 
-	IMPORTANT: Breaks compatibility and renders old server .desc- cache 
-	files useless. You will need an openvas-libraries revision >= 1654 in 
-	order to compile and a client of revision >= 1654 in order to work with 
-	the server. There might be problems with transmitting OVAL plugins to 
+	IMPORTANT: Breaks compatibility and renders old server .desc- cache
+	files useless. You will need an openvas-libraries revision >= 1654 in
+	order to compile and a client of revision >= 1654 in order to work with
+	the server. There might be problems with transmitting OVAL plugins to
 	the client.
 
 	* openvasd/nasl_plugins.c (nasl_plugin_add) : Set a dummy key_ids-
@@ -2182,15 +2186,15 @@
 	* openvasd/otp_1_0.h: Added CREQ_CERTIFICATES symbol.
 
 	* openvasd/otp_1_0.c (otp_1_0_get_client_request,
-	otp_1_0_server_send_certificates): Added CREQ_CERTIFICATES parsing and 
+	otp_1_0_server_send_certificates): Added CREQ_CERTIFICATES parsing and
 	a method stub to send the certificates.
 
-	* openvasd/otp_1_0.c (ntp_11_parse_input): Handling of 
+	* openvasd/otp_1_0.c (ntp_11_parse_input): Handling of
 	CREQ_CERTIFICATES added.
 
 	* openvasd/comm.c (send_plug_info): Sends the additional key_ids field.
 
-	* openvasd/comm.c (comm_setup_plugins): Comment and use of symbol 
+	* openvasd/comm.c (comm_setup_plugins): Comment and use of symbol
 	instead of numeral.
 
 2008-10-31  Felix Wolfsteller <felix.wolfsteller@intevation.de>
@@ -2862,7 +2866,7 @@
 
 2008-07-03  Tim Brown <timb@nth-dimension.org.uk>
 
-	* packaging/debian/control, packaging/debian/openvas-server.templates, 
+	* packaging/debian/control, packaging/debian/openvas-server.templates,
 	packaging/debian/po/*: Fixed po files.
 
 	* packaging/debian/openvas-server.init: Modified init info in
@@ -2918,9 +2922,9 @@
 2008-06-24  Michael Wiegand <michael.wiegand@intevation.de>
 
 	Added a first draft of the OTP specification.
-	
+
 	* doc/otp/: Added.
-	
+
 	* doc/otp/otp_specification_10.txt: Added.
 
 2008-06-20  Jan-Oliver Wagner <jan-oliver.wagner@intevation.de>

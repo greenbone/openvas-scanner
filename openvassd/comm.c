@@ -73,7 +73,7 @@ comm_init (int soc)
   /* We must read the version of the NTP the client
      wants us to use */
   n = recv_line(soc, buf, sizeof(buf) - 1);
-  if(n <= 0) 
+  if(n <= 0)
    EXIT(0);
 
   buf[sizeof(buf) - 1] = '\0';
@@ -102,7 +102,7 @@ comm_terminate (struct arglist * globals)
   /*
   auth_gets(globals, buf, 199);
   if(!strlen(buf))EXIT(0);
-  efree(&buf); 
+  efree(&buf);
   */
 }
 
@@ -177,19 +177,19 @@ send_plug_info (struct arglist * globals, struct arglist * plugins)
        	fprintf(stderr, "ERROR (newline in name) - %s %s\n", plug_get_oid(args), a);
         ignored = 1;
 	}
-	
+
 	if(strchr(b, '\n') != NULL ){
        	fprintf(stderr, "ERROR (newline in copyright)- %s %s\n", plug_get_oid(args), b);
         ignored = 1;
-	
+
 	}
-	
+
 	if(desc && strchr(desc, '\n') != NULL ){
        	fprintf(stderr, "ERROR (newline in desc) - %s %s\n", plug_get_oid(args), desc);
         ignored = 1;
-	
+
 	}
-	
+
 	if(strchr(d, '\n')){
        	fprintf(stderr, "ERROR (newline in summary) - %s %s\n", plug_get_oid(args), d);
         ignored = 1;
@@ -252,7 +252,7 @@ send_plug_info (struct arglist * globals, struct arglist * plugins)
        strcat(str, tag); /* RATS: ignore */
      }
 
-      auth_printf(globals, "%s\n", str);	
+      auth_printf(globals, "%s\n", str);
       efree(&str);
       }
 
@@ -320,11 +320,11 @@ comm_send_rules (struct arglist * globals)
  while(rules && rules->next)
  {
   if(rules->rule == RULES_ACCEPT)
-     auth_printf(globals, "accept %c%s/%d\n",  rules->not?'!':'', 
+     auth_printf(globals, "accept %c%s/%d\n",  rules->not?'!':'',
      				            inet_ntoa(rules->ip),
 	 				    rules->mask);
   else
-      auth_printf(globals, "reject %c%s/%d\n", rules->not?'!':'', 
+      auth_printf(globals, "reject %c%s/%d\n", rules->not?'!':'',
       				             inet_ntoa(rules->ip),
 	  				    rules->mask);
   rules = rules->next;
@@ -347,7 +347,7 @@ comm_send_preferences (struct arglist * globals)
 
  while(prefs && prefs->next)
  {
-  if (prefs->type == ARG_STRING) 
+  if (prefs->type == ARG_STRING)
    {
      /*
       * No need to send openvassd-specific preferences
@@ -435,7 +435,7 @@ qsort_cmp (const void * a, const void * b)
 }
 
 /**
- * Retrieves a plugin defined by its OID from a range within a sorted plugin 
+ * Retrieves a plugin defined by its OID from a range within a sorted plugin
  * array.
  * Recursively defined, uses divide and conquer approach.
  */
@@ -444,7 +444,7 @@ static struct arglist * _get_plug_by_oid(struct arglist ** array, char * oid, in
   int mid;
   char * plugin_oid;
 
-  if ( start >= rend ) 
+  if ( start >= rend )
     return NULL;
 
   if ( start == end )
@@ -452,13 +452,13 @@ static struct arglist * _get_plug_by_oid(struct arglist ** array, char * oid, in
     plugin_oid = plug_get_oid(array[start]->value);
     if (strcmp(plugin_oid, oid) == 0 )
       return array[start];
-    else 
+    else
       return NULL;
   }
 
   mid = ( start + end ) / 2;
   plugin_oid = plug_get_oid(array[mid]->value);
-  if ( strcmp(plugin_oid, oid) > 0 ) 
+  if ( strcmp(plugin_oid, oid) > 0 )
     return _get_plug_by_oid(array, oid, start, mid, rend );
   else if ( strcmp(plugin_oid, oid) < 0 )
     return _get_plug_by_oid(array, oid, mid + 1, end, rend );
@@ -478,7 +478,7 @@ static struct arglist * get_plug_by_oid(struct arglist ** array, char * oid, int
 
 
 /**
- * Enable the plugins which have been selected by the user, or all if 
+ * Enable the plugins which have been selected by the user, or all if
  * list == NULL or list == "-1;";
  * @param globals The Global context to retrieve plugins from.
  * @param list A user (client) defined semicolon delimited list, of plugin(oids)
@@ -515,7 +515,7 @@ comm_setup_plugins (struct arglist * globals, char * list)
   p = plugins;
   i = 0;
   array = emalloc ( num_plugins * sizeof(struct arglist ** ));
-  while ( p->next != NULL ) 
+  while ( p->next != NULL )
   {
    array[i++] = p;
    p = p->next;
