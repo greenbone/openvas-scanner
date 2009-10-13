@@ -1,5 +1,9 @@
 2009-10-13  Matthew Mundell <matthew.mundell@intevation.de>
 
+	* openvassd/comm.c: Replace category name list with ACT_STRING_LIST_ALL.
+
+2009-10-13  Matthew Mundell <matthew.mundell@intevation.de>
+
 	* openvassd/comm.c, ChangeLog: Flush trailing whitespace.
 
 2009-10-12  Michael Wiegand <michael.wiegand@intevation.de>

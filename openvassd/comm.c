@@ -115,7 +115,7 @@ send_plug_info (struct arglist * globals, struct arglist * plugins)
 {
   int j;
   static const char * categories[] =
-    {"init", "scanner", "settings" , "infos", "attack", "mixed", "destructive_attack", "denial", "kill_host", "flood", "end", "unknown" };
+    { ACT_STRING_LIST_ALL };
 #define CAT_MAX	(sizeof(categories) / sizeof(categories[0]))
   struct arglist * args;
   char * t;
