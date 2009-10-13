@@ -1,5 +1,10 @@
 2009-10-13  Jan-Oliver Wagner <jan-oliver.wagner@greenbone.net>
 
+	* openvassd/openvassd.c: Added missing include. Resolves
+	compiler warning.
+
+2009-10-13  Jan-Oliver Wagner <jan-oliver.wagner@greenbone.net>
+
 	* openvassd/attack.c: Added missing include. Resolves compiler warning.
 
 2009-10-13  Jan-Oliver Wagner <jan-oliver.wagner@greenbone.net>
