@@ -170,12 +170,10 @@ plugins_hash(globals)
  return ret;
 }
 
-
-static void plugins_send_md5_byid(globals)
- struct arglist * globals;
+void
+plugins_send_md5 (struct arglist * globals)
 {
  struct arglist * plugins = arg_get_value(globals, "plugins");
-
 
  auth_printf(globals, "SERVER <|> PLUGINS_MD5\n");
  
@@ -194,11 +192,3 @@ static void plugins_send_md5_byid(globals)
  }
  auth_printf(globals, "<|> SERVER\n");
 }
-
-void plugins_send_md5(struct arglist * globals)
-{
-	plugins_send_md5_byid(globals);
-}
-
- 
-

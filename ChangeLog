@@ -1,5 +1,11 @@
 2009-10-13  Jan-Oliver Wagner <jan-oliver.wagner@greenbone.net>
 
+	* openvassd/plugs_hash.c (plugins_send_md5_byid): Renamed to
+	plugins_send_md5. This removes the unnecessary layer. Now
+	always send by oid.
+
+2009-10-13  Jan-Oliver Wagner <jan-oliver.wagner@greenbone.net>
+
 	* openvassd/plugs_hash.c (plugins_send_md5_byname): Removed. This
 	function is not used anyway. It uses names to identify NVTs which
 	are not required to be unique. Instead, OID is used.
