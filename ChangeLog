@@ -1,3 +1,10 @@
+2009-10-13  Jan-Oliver Wagner <jan-oliver.wagner@greenbone.net>
+
+	* openvassd/openvassd.c (scanner_thread): Removed handling
+	of SSL version being set to "none". This does not make sense
+	to handle. If none is specified, now the scanner will fall back
+	to its default as done before for any unknown SSL identifier.
+
 2009-10-13  Matthew Mundell <matthew.mundell@intevation.de>
 
 	* openvassd/comm.c: Replace category name list with ACT_STRING_LIST_ALL.

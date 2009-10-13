@@ -383,8 +383,6 @@ scanner_thread (struct arglist * globals)
  /* Close the scanner thread - it is useless for us now */
  close (global_iana_socket);
 
- if (ovas_scanner_ctx != NULL) /* ssl_ver !=  "NONE" */
-   {
      soc2 = ovas_scanner_context_attach (ovas_scanner_ctx, soc);
      if (soc2 < 0)
        goto shutdown_and_exit;
@@ -392,7 +390,6 @@ scanner_thread (struct arglist * globals)
      /* FIXME: The pre-gnutls code optionally printed information about
       * the peer's certificate at this point.
       */
-   }
 
  setsockopt(soc, SOL_SOCKET, SO_KEEPALIVE, &opt, sizeof(opt));
  /* arg_set_value *replaces* an existing value, but it shouldn't fail here */
@@ -529,8 +526,6 @@ main_loop ()
   if (ssl_ver == NULL || *ssl_ver == '\0')
     ssl_ver = SSL_VER_DEF_NAME;
 
-  if (strcasecmp(ssl_ver, "NONE") != 0)
-    {
       if (openvas_SSL_init() < 0)
 	{
 	  fprintf(stderr, "Could not initialize openvas SSL!\n");
@@ -598,8 +593,6 @@ main_loop ()
 	      exit (1);
 	    }
 	}
-    } /* ssl_ver != "NONE" */
-
 
   log_write("openvassd %s started\n", OPENVAS_FULL_VERSION);
   for(;;)
