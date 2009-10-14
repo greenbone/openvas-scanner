@@ -1,3 +1,9 @@
+2009-10-14 Srinivas NL <nl.srinivas@gmail.com>
+
+	* cnvts/synscan/synscan.c: Temporary fix to remove compilation
+	warning. Will be fixed properly once pcap is modified to handle
+	ipv6
+
 2009-10-14  Felix Wolfsteller <felix.wolfsteller@intevation.de>
 
 	* openvassd/openvassd.c, openvassd/attack.c: Corrected includes.

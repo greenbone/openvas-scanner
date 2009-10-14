@@ -703,9 +703,15 @@ int
 plugin_run(struct arglist * env)
 {
 	unsigned long   rtt;
-	struct in_addr *dst = plug_get_host_ip(env);
+  struct in6_addr *dst6 = plug_get_host_ip(env);
+  struct in_addr *dst;
+  struct in_addr inaddr;
 	struct timeval  tv;
 
+  if(IN6_IS_ADDR_V4MAPPED(dst6) == 0)
+    return 0;
+  inaddr.s_addr = dst6->s6_addr32[3];
+  dst = &inaddr;
 
       if ( islocalhost(dst) ) return 0;
 
