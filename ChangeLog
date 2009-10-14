@@ -1,3 +1,7 @@
+2009-10-14  Felix Wolfsteller <felix.wolfsteller@intevation.de>
+
+	* openvassd/openvassd.c, openvassd/attack.c: Corrected includes.
+
 2009-10-14  Jan-Oliver Wagner <jan-oliver.wagner@greenbone.net>
 
 	* openvassd/openvassd.c (scanner_thread): Add NULL initialization

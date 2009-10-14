@@ -38,7 +38,7 @@
 #include <openvas/plugutils.h> /* for plug_get_path */
 #include <openvas/proctitle.h> /* for setproctitle */
 #include <openvas/system.h> /* for emalloc */
-#include <openvas/misc/scanners_utils.h> /* for comm_send_status */
+#include <openvas/scanners_utils.h> /* for comm_send_status */
 
 #include "attack.h"
 #include "auth.h"
