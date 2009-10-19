@@ -1,3 +1,54 @@
+openvas-scanner 3.0.0-beta4 (2009-10-19)
+
+This release is the fourth beta version of openvas-scanner
+leading up to the upcoming 3.0 release of OpenVAS.
+Apart from the name change from openvas-server to
+openvas-scanner, the platform-dependent NVTs as
+well as the OpenVAS NVT Feed synchronisation script
+are now integrated.
+
+OpenVAS 3.0 will introduce a new architecture where openvas-libraries
+now includes openvas-libnasl as well as redundant code from openvas-client
+and where openvas-server is renamed to openvas-scanner and includes any
+platform-dependent elements of openvas-plugins. As a result of this,
+the source code will shrink, though new features will be added. Also,
+for running the scanner now only 2 modules are required (instead of 4
+as for OpenVAS 2.0).
+
+New features of OpenVAS include support for IPv6 and WMI-Clients.
+Version 3.0 prepares the new OpenVAS Manager and OpenVAS Administrator
+as optional extension. This combination leverages the vulnerability
+scanner to a comprehensive vulnerability management solution.
+
+The "beta" releases are intended to allow testing of the upcoming
+3.0 series. It should be kept separate from OpenVAS 2.0 installations
+and not be used in a production environment.
+
+Many thanks to everyone who has contributed to the 3.0.0 release:
+Chandrashekhar B, Tim Brown, Javier Fernández-Sanguino Peña,
+Vlatko Kosturjak, Matthew Mundell, Srinivasa NL, Jan Wagner,
+Jan-Oliver Wagner, Michael Wiegand and Felix Wolfsteller.
+
+Main changes compared to 2.0.x:
+
+* IPv6 support
+* Integration of platform dependent NVTs from openvas-plugins
+* Integration of openvas-nvt-sync script
+* Renamed daemon from openvasd to openvassd
+* glib dependency raised from 2.6 to 2.12
+* openvasd-config removed as no other packages require this
+  package for building.
+* For the same reason, no header files are installed anymore
+
+Main changes compared to 3.0.0-beta3:
+
+* A number of resource and memory leaks have been identified and fixed.
+* Command line options have been updated.
+* Old and obsolete code has been identified and removed.
+* Adjustments for the API changes that happened from
+  openvas-libraries 3.0.0-beta3 to 3.0.0-beta4.
+
+
 openvas-scanner 3.0.0-beta3 (2009-10-06)
 
 This release is the third beta version of openvas-scanner
