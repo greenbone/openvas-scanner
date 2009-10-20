@@ -1,5 +1,9 @@
 2009-10-20  Jan-Oliver Wagner <jan-oliver.wagner@greenbone.net>
 
+	* openvassd/comm.c: replace ntp.h by otp.h.
+
+2009-10-20  Jan-Oliver Wagner <jan-oliver.wagner@greenbone.net>
+
 	Removing remains of old ntp_caps.
 
 	* openvassd/utils.c (plugins_set_ntp_caps): Removed.

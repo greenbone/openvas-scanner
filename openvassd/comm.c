@@ -40,7 +40,7 @@
 
 #include "comm.h"
 #include "network.h" /* for recv_line */
-#include "ntp.h" /* for OTP_10 */
+#include "otp.h" /* for OTP_10 */
 #include "ntp_11.h"
 #include "log.h"
 #include "plugs_hash.h"
