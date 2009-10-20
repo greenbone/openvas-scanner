@@ -40,7 +40,7 @@
 
 #include "comm.h"
 #include "network.h" /* for recv_line */
-#include "ntp.h"
+#include "ntp.h" /* for OTP_10 */
 #include "ntp_11.h"
 #include "log.h"
 #include "plugs_hash.h"
@@ -63,14 +63,14 @@
 /**
  * @brief Initializes the communication between the scanner (us) and the client.
  */
-ntp_caps*
+int
 comm_init (int soc)
 {
   char buf[1024];
-  ntp_caps* caps = emalloc(sizeof(ntp_caps));
+  int version = 0;
   int n;
 
-  /* We must read the version of the NTP the client
+  /* We must read the version of the OTP the client
      wants us to use */
   n = recv_line(soc, buf, sizeof(buf) - 1);
   if(n <= 0)
@@ -79,16 +79,15 @@ comm_init (int soc)
   buf[sizeof(buf) - 1] = '\0';
   if(!strncmp(buf, "< OTP/1.0 >", 11))
     {
-      caps->ntp_version = OTP_10;
+      version = OTP_10;
       nsend(soc, "< OTP/1.0 >\n", 12, 0);
     }
-  /*ENABLE_CRYPTO_LAYER*/
   else
     {
       EXIT(0);
     }
   log_write ("Client requested protocol %s.\n", buf);
-  return(caps);
+  return(version);
 }
 
 

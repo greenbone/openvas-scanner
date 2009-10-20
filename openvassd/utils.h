@@ -31,7 +31,6 @@
 #ifndef _OPENVAS_UTILS_H
 #define _OPENVAS_UTILS_H
 
-#include "ntp.h" /* for struct ntp_caps */
 #include <openvas/arglists.h> /* for struct arglist */
 
 struct attack_atom
@@ -45,7 +44,6 @@ struct arglist * sort_plugins_by_type(struct arglist *);
 int get_max_hosts_number(struct arglist *, struct arglist *);
 int get_max_checks_number(struct arglist *, struct arglist *);
 int get_active_plugins_number(struct arglist *);
-void plugins_set_ntp_caps(struct arglist *, ntp_caps*);
 void send_plugin_order(struct arglist *, struct arglist *);
 int check_threads_input(struct attack_atom **, int, struct arglist *);
 int is_symlink(char *);

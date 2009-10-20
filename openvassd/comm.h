@@ -30,10 +30,9 @@
 #ifndef _OPENVAS_COMM_H
 #define _OPENVAS_COMM_H
 
-#include "ntp.h" /* for struct ntp_caps */
 #include <openvas/arglists.h> /* for struct arglist */
 
-ntp_caps* comm_init(int);
+int comm_init(int);
 void comm_terminate(struct arglist *);
 void comm_send_pluginlist(struct arglist *);
 void comm_send_preferences(struct arglist *);

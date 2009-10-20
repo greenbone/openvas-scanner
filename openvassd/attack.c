@@ -45,7 +45,6 @@
 #include "comm.h"
 #include "hosts.h"
 #include "log.h"
-#include "ntp.h"
 #include "ntp_11.h"
 #include "openvas_ssh_login.h"
 #include "pluginlaunch.h"

@@ -1,3 +1,23 @@
+2009-10-20  Jan-Oliver Wagner <jan-oliver.wagner@greenbone.net>
+
+	Removing remains of old ntp_caps.
+
+	* openvassd/utils.c (plugins_set_ntp_caps): Removed.
+
+	* openvassd/utils.h: Removed proto accordingly.
+
+	* openvassd/openvassd.c (scanner_thread): Removed call to
+	set global ntp_caps. Removed call of plugins_set_ntp_caps
+	which initalized the plugins with the gobal ntp_caps.
+
+	* openvassd/comm.c (comm_init): changed return value from
+	ntp_caps to just int, specifiying the protocol version.
+
+	* openvassd/comm.h: Adjusted proto accordingly.
+
+	* openvassd/attack.c, openvassd/utils.c, openvassd/ntp_11.c:
+	Removed unnecessary include of ntp.h. 
+
 2009-10-19  Michael Wiegand <michael.wiegand@intevation.de>
 
 	Post-release version bump.

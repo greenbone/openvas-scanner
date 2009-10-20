@@ -34,7 +34,6 @@
 #include <openvas/system.h> /* for emalloc */
 
 #include "log.h"
-#include "ntp.h"
 #include "auth.h"
 #include "comm.h"
 #include "ntp_11.h"
@@ -225,35 +224,6 @@ get_active_plugins_number (struct arglist *  plugins)
 
  return num;
 }
-
-
-
-
-void
-plugins_set_ntp_caps (struct arglist * plugins, ntp_caps* caps)
-{
- if(!caps || !plugins)return;
- while(plugins->next)
- {
-  struct arglist * v;
-  if( plugins->value != NULL )
-   v = plugins->value;
-  else 
-   v = NULL;
-
-  if( v != NULL ){
-	struct ntp_caps * old = arg_get_value(v, "NTP_CAPS");
-	if ( old != NULL )
-		arg_set_value(v, "NTP_CAPS", sizeof(*caps), caps);
-	else
-		arg_add_value(v, "NTP_CAPS", ARG_STRUCT, sizeof(*caps), caps);
-	}
-
-  plugins = plugins->next;
- }
-}
-
-
 
 /*--------------------------------------------------------------------*/
 

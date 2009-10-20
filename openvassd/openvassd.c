@@ -78,7 +78,6 @@ int allow_severity = LOG_NOTICE;
 #include "log.h"
 #include "processes.h"
 #include "users.h"
-#include "ntp.h"
 #include "ntp_11.h"
 #include "utils.h"
 #include "corevers.h"
@@ -332,7 +331,7 @@ scanner_thread (struct arglist * globals)
  struct openvas_rules* perms;
  char * asciiaddr;
  struct openvas_rules * rules = arg_get_value(globals, "rules");
- ntp_caps* caps;
+ int protocol_version;
  int e;
  int opt = 1;
  void *addr = arg_get_value (globals, "client_address");
@@ -412,15 +411,13 @@ scanner_thread (struct arglist * globals)
    efree (&addrstr);
  }
 #endif
- caps = comm_init(soc2);
- if(!caps)
+ protocol_version = comm_init(soc2);
+ if(!protocol_version)
  {
   log_write("New connection timeout -- closing the socket\n");
   close_stream_connection(soc);
   EXIT(0);
  }
- arg_add_value(globals, "ntp_caps", ARG_STRUCT, sizeof(*caps), caps);
-
 
  if(((perms = auth_check_user(globals, asciiaddr, x509_dname))==BAD_LOGIN_ATTEMPT)||
    !perms)
@@ -470,7 +467,6 @@ wait :
 #endif
    comm_wait_order (globals);
    preferences_reset_cache ();
-   plugins_set_ntp_caps (plugins, arg_get_value(globals, "ntp_caps"));
    rules = arg_get_value (globals, "rules");
    ntp_1x_timestamp_scan_starts (globals);
    e = attack_network (globals);
