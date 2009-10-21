@@ -57,8 +57,6 @@ void attack_atom_insert(struct attack_atom **, char *, int, int);
 void attack_atom_remove(struct attack_atom **, char *);
 
 
-void create_pid_file();
-void delete_pid_file();
 char*temp_file_name();
 int version_check(char *, char*);
 

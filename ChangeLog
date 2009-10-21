@@ -1,3 +1,14 @@
+2009-10-21  Jan-Oliver Wagner <jan-oliver.wagner@greenbone.net>
+
+	* openvassd/openvassd.c (restart_openvassd, main): Use new
+	pidfile management.
+
+	* openvassd/sighand.c (sighandler): Use new pidfile management.
+
+	* openvassd/utils.c (create_pid_file, delete_pid_file): Removed.
+
+	* openvassd/utils.h: Removed protos accordingly.
+
 2009-10-20  Jan-Oliver Wagner <jan-oliver.wagner@greenbone.net>
 
 	* openvassd/comm.c: replace ntp.h by otp.h.

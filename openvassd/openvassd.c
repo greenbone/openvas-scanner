@@ -287,7 +287,7 @@ restart_openvassd ()
  char fpath[1024];
 
  close(global_iana_socket);
- delete_pid_file();
+ pidfile_remove("openvassd");
  if(fork () == 0)
  {
   if(strchr(orig_argv[0], '/') != NULL )
@@ -1142,13 +1142,13 @@ main (int argc, char * argv[], char * envp[])
       if(!fork())
         {
           setsid();
-          create_pid_file();
+          pidfile_create("openvassd");
           main_loop();
         }
     }
   else
     {
-      create_pid_file();
+      pidfile_create("openvassd");
       main_loop();
     }
   DO_EXIT(0);

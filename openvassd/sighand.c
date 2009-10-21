@@ -45,6 +45,8 @@
 #include <sys/resource.h>
 #endif
 
+#include <openvas/base/pidfile.h>
+
 extern pid_t bpf_server_pid;
 extern pid_t nasl_server_pid;
 
@@ -165,15 +167,15 @@ void sighandler(sign)
   case SIGTERM:
   	sig = "TERM";
 	murderer++;
-	delete_pid_file();
+	pidfile_remove("openvassd");
   	break;
   case SIGUSR1 :
  	sig = "USR1";
-	delete_pid_file();
+	pidfile_remove("openvassd");
  	break;
   case SIGINT :
   	sig = "INT";
-	delete_pid_file();
+	pidfile_remove("openvassd");
 	murderer++;
 	break;
   case SIGSEGV :
@@ -194,12 +196,8 @@ void sighandler(sign)
  if(murderer)
   make_em_die(sign);
   
- 
- 
-  
  _EXIT(0);
 }
-
 
 
 void sighand_segv()

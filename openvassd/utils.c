@@ -282,46 +282,6 @@ hosts_arglist_to_string (struct arglist * hosts)
 return(ret);
 }
 
-/*-----------------------------------------------------------------
-
-		pid file management
-		
--------------------------------------------------------------------*/
-
-/** @todo use glib functions to create the path */
-void
-create_pid_file ()
-{
- FILE * f;
- char * fname = malloc(strlen(OPENVASSD_PIDDIR) + strlen("/openvassd.pid") + 1);
- strcpy(fname, OPENVASSD_PIDDIR);
- strcat(fname, "/openvassd.pid");
-
- f = fopen(fname, "w");
- if(!f)
- {
-  fprintf(stderr, "'%s'\n", fname);
-  perror("create_pid_file() : open ");
-  free(fname);
-  return;
- }
- fprintf(f, "%d\n", getpid());
- fclose(f);
- free(fname);
-}
-
-/** @todo use glib functions to create the path */
-void
-delete_pid_file ()
-{
- char * fname = malloc(strlen(OPENVASSD_PIDDIR) + strlen("/openvassd.pid") + 1);
- strcpy(fname, OPENVASSD_PIDDIR);
- strcat(fname, "/openvassd.pid");
- unlink(fname);
- free(fname);
-}
-
-
 /**
  * Returns a name suitable for a temporary file. 
  * This function ensures that this name is not taken
