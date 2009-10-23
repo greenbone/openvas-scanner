@@ -52,6 +52,7 @@
 #include <openvas/system.h> /* for estrdup */
 #include <openvas/rand.h> /* for openvas_init_random */
 #include <openvas/services1.h> /* for openvas_init_svc */
+#include <openvas/base/pidfile.h> /* for pidfile_remove */
 
 #include "proctitle.h" /* for setproctitle.h */
 

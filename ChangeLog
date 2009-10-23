@@ -1,3 +1,7 @@
+2009-10-23  Jan-Oliver Wagner <jan-oliver.wagner@greenbone.net>
+
+	* openvassd/openvassd.c: Add missing include.
+
 2009-10-21  Jan-Oliver Wagner <jan-oliver.wagner@greenbone.net>
 
 	* openvassd/openvassd.c (restart_openvassd, main): Use new
