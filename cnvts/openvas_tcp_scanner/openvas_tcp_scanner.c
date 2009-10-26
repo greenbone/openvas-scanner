@@ -85,9 +85,7 @@ SYN (half open) scanners\
  plug_set_category(desc, ACT_SCANNER);
  plug_set_family(desc, "Port scanners");
 
- /* 	commented out dependency on proprietary plugin, once when
-	 we implement it, we can uncomment it */
- /* plug_set_dep(desc, "ping_host.nasl"); */
+ plug_set_dep(desc, "ping_host.nasl");
  return(0);
 }
 #endif 
