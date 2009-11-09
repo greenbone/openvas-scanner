@@ -34,12 +34,10 @@ Risk factor : None"
 #define EN_SUMM "Find what is listening on which port"
 
 
-#ifdef HAVE_SSL
 #define CERT_FILE "SSL certificate : "
 #define KEY_FILE  "SSL private key : "
 #define PEM_PASS "PEM password : "
 #define CA_FILE	"CA file : "
-#endif
 #define CNX_TIMEOUT_PREF	"Network connection timeout : "
 #define RW_TIMEOUT_PREF		"Network read/write timeout : "
 #ifdef DETECT_WRAPPED_SVC
@@ -84,7 +82,6 @@ plugin_init(desc)
 	add_plugin_preference(desc, WRAP_TIMEOUT_PREF, PREF_ENTRY, "2");
 #endif
 
-#ifdef HAVE_SSL
 	add_plugin_preference(desc, CERT_FILE, PREF_FILE, "");
 	add_plugin_preference(desc, KEY_FILE, PREF_FILE, "");
 	add_plugin_preference(desc, PEM_PASS, PREF_PASSWORD, "");
@@ -92,7 +89,6 @@ plugin_init(desc)
 
 #define TEST_SSL_PREF	"Test SSL based services"
 	add_plugin_preference(desc, TEST_SSL_PREF, PREF_RADIO, "Known SSL ports;All;None");
-#endif
 	plug_set_timeout(desc, PLUGIN_TIMEOUT * 4);
 	return (0);
 }
@@ -1978,7 +1974,6 @@ plugin_do_run(desc, h, test_ssl)
 				plug_set_port_transport(desc, port, trp);
 				(void) stream_set_timeout(port, rw_timeout2);
 
-#ifdef HAVE_SSL
 				if (IS_ENCAPS_SSL(trp)) {
 					char            report[160];
 					snprintf(report, sizeof(report), "A %s server answered on this port\n",
@@ -1986,8 +1981,6 @@ plugin_do_run(desc, h, test_ssl)
 					post_note(desc, port, report);
 					plug_set_key(desc, "Transport/SSL", ARG_INT, (void *) port);
 				}
-#endif
-
 
 #define HTTP_GET	"GET / HTTP/1.0\r\n\r\n"
 
@@ -2658,7 +2651,6 @@ plugin_run(desc)
 	struct arglist *globals = arg_get_value(desc, "globals");
 	int             one_true_pipe = GPOINTER_TO_SIZE(arg_get_value(globals, "global_socket"));
 	int             test_ssl = 0;
-#ifdef HAVE_SSL
 	char           *key = get_plugin_preference(desc, KEY_FILE);
 	char           *cert = get_plugin_preference(desc, CERT_FILE);
 	char           *pempass = get_plugin_preference(desc, PEM_PASS);
@@ -2701,8 +2693,6 @@ plugin_run(desc)
 		plug_set_ssl_pem_password(desc, pempass);
 	if (cafile != NULL)
 		plug_set_ssl_CA_file(desc, cafile);
-#endif				/* HAVE_SSL */
-
 
 
 	signal(SIGTERM, sigterm);
