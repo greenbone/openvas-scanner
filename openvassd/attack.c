@@ -34,7 +34,7 @@
 #include <openvas/kb.h> /* for kb_new */
 #include <openvas/network.h> /* for auth_printf */
 #include <openvas/nvt_categories.h> /* for ACT_INIT */
-#include <openvas/pcap_openvas.h> /* for is_local_ip */
+#include <openvas/pcap_openvas.h> /* for v6_is_local_ip */
 #include <openvas/plugutils.h> /* for plug_get_path */
 #include <openvas/proctitle.h> /* for setproctitle */
 #include <openvas/system.h> /* for emalloc */
@@ -898,9 +898,9 @@ attack_network(struct arglist * globals)
           struct in_addr addr;
 
           addr.s_addr = host_ip.s6_addr32[3];
-          if(preferences_use_mac_addr(preferences) && is_local_ip(addr))
+          if(preferences_use_mac_addr(preferences) && v6_is_local_ip(&host_ip))
             {
-              mac_err = get_mac_addr(addr, &MAC);
+              mac_err = v6_get_mac_addr(&host_ip, &MAC);
               if(mac_err > 0)
                 {
                 /* remote host is down */
