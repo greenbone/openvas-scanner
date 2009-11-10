@@ -69,10 +69,11 @@ struct thread_args {
 #define _EXIT(x) EXIT(x)
 #define DO_EXIT(x) exit(x)
 
+/** @todo Remove duplicates (openvas-client/include/ntcompat.h) */
 #ifdef HAVE_PTHREAD_CANCEL
 #define TERMINATE_THREAD(x) {pthread_cancel(x->thread);pthread_detach(x->thread);}
 #else
-#warning "Your system lacks pthread_cancel() ! Using the pthreads is not recommanded"
+#warning "Your system lacks pthread_cancel() ! Using the pthreads is not recommended"
 #define TERMINATE_THREAD(x)
 #endif /* HAVE_PTHREAD_CANCEL */
 #endif /* USE_PTHREADS */

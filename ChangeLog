@@ -1,3 +1,10 @@
+2009-11-10  Felix Wolfsteller <felix.wolfsteller@intevation.de>
+
+	Resolved typos lead to by Ryan Schmidt.
+
+	* include/threadcompat.h: Replaced "recommand" by "recommend", added
+	todo about duplicate code.
+
 2009-11-10  Chandrashekhar B <bchandra@secpod.com>
 
 	* openvassd/attack.c (attack_network): Use new
