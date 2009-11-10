@@ -4,10 +4,6 @@
 	functions from pcap to get MAC address and check
 	whether target belongs to localnet.
 
-	* openvassd/attack.c (attack_network): Use new
-	functions from pcap to get MAC address and check
-	whether target belongs to localnet.
-
 	Coding by Srinivasa NL <nl.srinivas@gmail.com>.
 
 2009-11-10  Felix Wolfsteller <felix.wolfsteller@intevation.de>
