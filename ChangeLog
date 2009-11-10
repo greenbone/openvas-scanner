@@ -1,3 +1,9 @@
+2009-11-10  Felix Wolfsteller <felix.wolfsteller@intevation.de>
+
+	* openvassd/utils.c (temp_file_name): Doc, added comment about toctou
+	race condition and why its not totally straight-forward to replace by
+	glib functions.
+
 2009-11-09  Michael Meyer <michael.meyer@intevation.de>
 
 	* cnvts/find_service/find_service.c:

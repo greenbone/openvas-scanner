@@ -283,11 +283,19 @@ return(ret);
 }
 
 /**
- * Returns a name suitable for a temporary file. 
+ * @brief Returns a name for a temporary file.
+ *
  * This function ensures that this name is not taken
  * already.
  */
-/** @todo consider using glib functions, the current code is subject to a TOCTOU race condition */
+/** @todo Consider reworking, the current code is subject to a TOCTOU race
+ *        condition.
+ *        Problem is that these temporary files are used to store user-uploaded
+ *        content and are needed by child processes, where the content is read
+ *        in again.
+ *        In between, file names are stored in a GHashTable ('translation').
+ *        Maybe this hashtable should instead carry the (uploaded) file itself.
+ */
 char*
 temp_file_name()
 {
