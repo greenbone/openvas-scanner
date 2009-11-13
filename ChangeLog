@@ -1,3 +1,8 @@
+2009-11-13  Felix Wolfsteller <felix.wolfsteller@intevation.de>
+
+	* openvassd/pluginlaunch.c: Cosmetics and added TODO (and howto) about
+	sending log messages in case of killing NVTs due to timeout.
+
 2009-11-10  Felix Wolfsteller <felix.wolfsteller@intevation.de>
 
 	Resolved typos lead to by Ryan Schmidt.

@@ -186,28 +186,33 @@ process_mgr_sighand_term (int sig)
 static void
 update_running_processes()
 {
- int i;
- struct timeval now;
- int log_whole = 1;
- 
- for(i=0;(processes[i].globals == NULL) && i < MAX_PROCESSES; i ++) ;
- 
- if(i < MAX_PROCESSES)
-  {
-  struct arglist * prefs = arg_get_value(processes[i].globals, "preferences");
-  log_whole = preferences_log_whole_attack(prefs);
-  }
- 
- gettimeofday(&now, NULL);
- 
- if(num_running_processes == 0)
-  return;
-  
+  int i;
+  struct timeval now;
+  int log_whole = 1;
+
+  // Set i to first non-NULL process
+  for (i = 0 ; (processes[i].globals == NULL) && i < MAX_PROCESSES; i++)
+    ;
+
+  if (i < MAX_PROCESSES)
+    {
+      struct arglist * prefs = arg_get_value (processes[i].globals, "preferences");
+      log_whole = preferences_log_whole_attack (prefs);
+    }
+
+  gettimeofday (&now, NULL);
+
+  if (num_running_processes == 0)
+    return;
+
  for(i=0;i<MAX_PROCESSES;i++)
  {
   if (processes[i].pid > 0)
     {
       // If process dead or timed out
+      /** @todo communicate, e.g. send log message. Stub:
+       * internal_send (processes[i].upstream_soc, "SERVER <|> LOG <|> hostname <|> general/tcp <|> NVT was killed due to timeout (of %d seconds). <|> OID <|> SERVER\n", INTERNAL_COMM_MSG_TYPE_DATA);
+       */
       if (processes[i].alive == 0 ||
           (processes[i].timeout > 0 && ((now.tv_sec - processes[i].start.tv_sec) > processes[i].timeout)))
          {
@@ -216,9 +221,9 @@ update_running_processes()
               if(log_whole)
                 log_write ("%s (pid %d) is slow to finish - killing it\n",
                            processes[i].name, processes[i].pid);
-	       terminate_process(processes[i].pid);
-	       processes[i].alive = 0;
-	     }
+              terminate_process (processes[i].pid);
+              processes[i].alive = 0;
+            }
           else
             {
               struct timeval old_now = now;
@@ -240,7 +245,7 @@ update_running_processes()
              }
    num_running_processes--;
    plugin_set_running_state(processes[i].sched, processes[i].plugin, PLUGIN_STATUS_DONE);
-   
+
    close(processes[i].internal_soc);
    shared_socket_cleanup_process(processes[i].pid);
    bzero(&(processes[i]), sizeof(processes[i]));
