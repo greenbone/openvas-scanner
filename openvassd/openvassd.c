@@ -126,65 +126,109 @@ static int init_openvassd (struct arglist *, int, int, int);
 static int init_network(int, int *, struct addrinfo);
 static void scanner_thread (struct arglist *);
 
-
-
-static struct in_addr*
-convert_ip_addresses (char * ips)
+static struct in6_addr*
+convert_ip_addresses (char * ips, int family)
 {
- char * t;
- struct in_addr addr;
- struct in_addr * ret;
- int num = 0;
- int num_allocated = 256;
- char * orig;
+  char * t;
+  struct in_addr addr;
+  struct in6_addr addr6;
+  struct in6_addr * ret;
+  int num = 0;
+  int num_allocated = 256;
+  char * orig;
 
- ips = orig = estrdup(ips);
+  ips = orig = estrdup(ips);
 
- ret = emalloc((num_allocated + 1) * sizeof(struct in_addr));
+  ret = emalloc((num_allocated + 1) * sizeof(struct in6_addr));
 
- while ( ( t = strchr(ips, ',')) != NULL )
- {
-  t[0] = '\0';
-  while (ips[0] == ' ')ips ++;
-  if( inet_aton(ips, &addr) ==  0) 
+  while ( ( t = strchr(ips, ',')) != NULL )
   {
-   fprintf(stderr, "Could not convert %s\n", ips);
+    t[0] = '\0';
+    while (ips[0] == ' ')ips ++;
+    if(family == AF_INET)
+    {
+      if( inet_aton(ips, &addr) ==  0)
+      {
+#ifdef DEBUG
+        fprintf(stderr, "Could not convert %s,may be ipv6 address\n", ips);
+#endif
+      }
+      else
+      {
+        ret[num].s6_addr32[0] = 0;
+        ret[num].s6_addr32[1] = 0;
+        ret[num].s6_addr32[2] = htonl(0xffff);
+        ret[num].s6_addr32[3] = addr.s_addr;
+        num ++;
+      }
+    }
+    else
+    {
+      if( inet_pton(AF_INET6, ips, &addr6) ==  0)
+      {
+#ifdef DEBUG
+        fprintf(stderr, "Could not convert %s,may be ipv6 address\n", ips);
+#endif
+      }
+      else
+      {
+        memcpy(&ret[num],&addr6,sizeof(struct in6_addr));
+        num++;
+      }
+    }
+
+    if( num >= num_allocated )
+    {
+      num_allocated *= 2;
+      ret = erealloc(ret, (num_allocated + 1) * sizeof(struct in6_addr));
+    }
+
+    ips = t + 1;
+  }
+
+  while(ips[0] == ' ')ips++;
+
+  if(family == AF_INET)
+  {
+    if( inet_aton(ips, &addr) ==  0)
+    {
+#ifdef DEBUG
+      fprintf(stderr, "Could not convert %s\n,may be ipv6 address", ips);
+#endif
+    }
+    else
+    {
+        ret[num].s6_addr32[0] = 0;
+        ret[num].s6_addr32[1] = 0;
+        ret[num].s6_addr32[2] = htonl(0xffff);
+        ret[num].s6_addr32[3] = addr.s_addr;
+      num ++;
+    }
   }
   else
   {
-   ret[num] = addr;
-   num ++;
+    if( inet_pton(AF_INET6, ips, &addr6) ==  0)
+    {
+#ifdef DEBUG
+      fprintf(stderr, "Could not convert %s,may be ipv4 address\n", ips);
+#endif
+    }
+    else
+    {
+      memcpy(&ret[num],&addr6,sizeof(struct in6_addr));
+      num++;
+    }
   }
-  
   if( num >= num_allocated )
   {
-   num_allocated *= 2;
-   ret = erealloc(ret, (num_allocated + 1) * sizeof(struct in_addr));
-  }
-  
-  ips = t + 1;
- }
- 
- while(ips[0] == ' ')ips++;
- 
- if( inet_aton(ips, &addr) ==  0) 
-  {
-   fprintf(stderr, "Could not convert %s\n", ips);
-  }
-  else {
-   ret[num] = addr;
-   num ++;
-   }
-  if( num >= num_allocated )
-  {
-   num_allocated ++;
-   ret = erealloc(ret, (num_allocated + 1) * sizeof(struct in_addr));
+    num_allocated ++;
+    ret = erealloc(ret, (num_allocated + 1) * sizeof(struct in_addr));
   }
 
- ret[num].s_addr = 0;
- ret = erealloc(ret, ( num + 1 ) * sizeof(struct in_addr));
- efree(&orig);
- return ret;
+  efree(&orig);
+  if(num == 0)
+    return NULL;
+  return ret;
 }
 
 
@@ -895,7 +939,7 @@ main (int argc, char * argv[], char * envp[])
   int exit_early = 0;
   int iana_port  = -1;
   char * myself;
-  struct in_addr * src_addrs = NULL;
+  struct  in6_addr * src_addrs = NULL;
   struct arglist * options = emalloc(sizeof(struct arglist));
   int i;
   int be_quiet = 0;
@@ -1077,8 +1121,16 @@ main (int argc, char * argv[], char * envp[])
 
   if (src_ip != NULL)
     {
-      src_addrs = (struct in_addr* )convert_ip_addresses(src_ip);
-      socket_source_init(src_addrs);
+      src_addrs = convert_ip_addresses(src_ip,AF_INET);
+      if (src_addrs != NULL)
+      {
+        socket_source_init(src_addrs, AF_INET);
+      }
+      src_addrs = convert_ip_addresses(src_ip,AF_INET6);
+      if (src_addrs != NULL)
+      {
+        socket_source_init(src_addrs, AF_INET6);
+      }
     }
 
   if (dump_cfg)

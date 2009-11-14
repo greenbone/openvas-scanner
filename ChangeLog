@@ -1,3 +1,12 @@
+2009-11-14  Srinivas NL <nl.srinivas@gmail.com>
+
+	* openvassd/openvassd.c (convert_ip_addresses): Modified to handle
+	both ipv4 and ipv6 addresses. It will parse values of -S option and
+	return either a list of ipv4 or ipv6 addresses.
+
+	* openvassd/openvassd.c (main): Calls convert_ip_addresses twice
+	passing values of -S option to get lists of ipv4 and ipv6 addresses.
+
 2009-11-13  Felix Wolfsteller <felix.wolfsteller@intevation.de>
 
 	* openvassd/pluginlaunch.c: Cosmetics and added TODO (and howto) about
