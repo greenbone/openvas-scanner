@@ -355,6 +355,10 @@ comm_send_preferences (struct arglist * globals)
          strcmp(prefs->name, "config_file")       &&
          strcmp(prefs->name, "plugins_folder")    &&
 	 strcmp(prefs->name, "dumpfile")          &&
+         /* TODO: users is deprecated since 3.0. It may still
+            be around in the config files though.
+            Same is likely the case for various other
+            preferences in this list here. */ 
 	 strcmp(prefs->name, "users")             &&
 	 strcmp(prefs->name, "rules")             &&
 	 strncmp(prefs->name, "peks_", 5)         &&

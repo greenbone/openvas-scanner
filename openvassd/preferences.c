@@ -117,8 +117,6 @@ int preferences_new(char * name)
  fprintf(fd, "dumpfile = %s\n\n", OPENVASSD_DEBUGMSG);
  fprintf(fd, "# Rules file : \n");
  fprintf(fd, "rules = %s\n\n", OPENVASSD_RULES);
- fprintf(fd, "# Users database : \n");
- fprintf(fd, "users = %s\n\n", OPENVASSD_USERS);
  fprintf(fd, "# CGI paths to check for (cgi-bin:/cgi-aws:/ can do)\n");
  fprintf(fd, "cgi_path = /cgi-bin:/scripts\n\n");
  fprintf(fd, "# Range of the ports the port scanners will scan : \n");

@@ -1,3 +1,16 @@
+2009-11-15  Jan-Oliver Wagner <jan-oliver.wagner@greenbone.net>
+
+	* openvas-rmuser.in: Removed unused variables openvassd_users,
+	openvassd, mandir, infodir, oldincludedir, includedir.
+
+	* include/config.h.in (OPENVASSD_USERS): Removed macro.
+
+	* openvassd/preferences.c (preferences_new): Removed creation
+	of entry "users".
+
+	* openvassd/comm.c (comm_send_preferences): Marked "users"
+	as deprectated and added a more general TODO for similar cases.
+
 2009-11-14  Srinivas NL <nl.srinivas@gmail.com>
 
 	* openvassd/openvassd.c (convert_ip_addresses): Modified to handle

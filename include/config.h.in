@@ -67,8 +67,6 @@
 
 #define OPENVASSD_DATAPOOL OPENVASSD_STATEDIR "-datapool"
 #define OPENVASSD_RULES    OPENVASSD_DATADIR  "/openvassd.rules"
-#define OPENVASSD_USERS    OPENVASSD_DATADIR  "/openvassd.users"
-
 
 
 /* Definitions for client/scanner ecryption, activated on the C compiler
