@@ -1,3 +1,9 @@
+2009-11-23  Chandrashekhar B <bchandra@secpod.com>
+
+	* openvassd/attack.c (attack_init_hostinfos): Call hg_get_name_from_ip()
+	with the correct IP argument. Host name was resolving to a wrong random
+	looking address. Fixed by Srinivas NL <nl.srinivas@gmail.com>.
+
 2009-11-15  Jan-Oliver Wagner <jan-oliver.wagner@greenbone.net>
 
 	* openvas-rmuser.in: Removed unused variables openvassd_users,

@@ -128,7 +128,7 @@ attack_init_hostinfos (char * mac, char * hostname, struct in6_addr * ip)
   if(!hg_valid_ip_addr(hostname))
     {
       char f[1024];
-      hg_get_name_from_ip (&addr, f, sizeof(f));
+      hg_get_name_from_ip (ip, f, sizeof(f));
       arg_add_value (hostinfos, "FQDN", ARG_STRING, strlen(f), estrdup(f));
     }
   else
