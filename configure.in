@@ -425,7 +425,9 @@ AC_CHECK_LIB(rpcsvc, xdr_mon, AC_DEFINE(HAVE_XDR_MON))
 
 AC_CHECK_LIB(compat, lfind, compat_lib="-lcompat")
 
-
+dnl Check for libpcap
+AC_CHECK_LIB(pcap, pcap_version, LIBS="-lpcap $LIBS",
+  AC_MSG_ERROR(you need to install pcap library with development files))
 
 test -n "$resolv_lib" && (AC_CHECK_LIB(resolv, inet_neta, AC_DEFINE(HAVE_INET_NETA)))
 
