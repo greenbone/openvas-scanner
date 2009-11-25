@@ -1,3 +1,8 @@
+2009-11-25  Chandrashekhar B <bchandra@secpod.com>
+
+	* cnvts/openvas_tcp_scanner/openvas_tcp_scanner.c: Fixed a possible
+	overflow.
+
 2009-11-25  Felix Wolfsteller <felix.wolfsteller@intevation.de>
 
 	* openvassd/attack.c, openvassd/plugs_req.c, openvassd/preferences.c,

@@ -515,7 +515,7 @@ banner_grab(const struct in6_addr *pia, const char* portrange,
         }
         else
         {
-          memcpy(&sa6.sin6_addr, pia, sizeof(struct sockaddr_in6));
+          memcpy(&sa6.sin6_addr, pia, sizeof(struct in6_addr));
           sa6.sin6_family = AF_INET6;
           sa6.sin6_port = htons(port);
           len = sizeof(struct sockaddr_in6);
