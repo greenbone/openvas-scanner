@@ -1,3 +1,11 @@
+2009-11-25  Felix Wolfsteller <felix.wolfsteller@intevation.de>
+
+	* openvassd/attack.c, openvassd/plugs_req.c, openvassd/preferences.c,
+	openvassd/processes.c, openvassd/processes.h, openvassd/sighand.c,
+	openvassd/users.c, openvassd/auth.c: Minor cosmetics.
+	openvassd/attack.c (attack_init_hostinfos): Removed not used local
+	variable.
+
 2009-11-23  Michael Wiegand <michael.wiegand@intevation.de>
 
 	Post-release version bump.

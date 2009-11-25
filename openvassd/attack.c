@@ -122,7 +122,6 @@ static struct arglist *
 attack_init_hostinfos (char * mac, char * hostname, struct in6_addr * ip)
 {
   struct arglist * hostinfos;
-  struct in6_addr addr;
 
   hostinfos = emalloc (sizeof(struct arglist));
   if(!hg_valid_ip_addr(hostname))
@@ -524,7 +523,7 @@ init_host_kb (struct arglist* globals, char* hostname, gboolean* new_kb)
 }
 
 /**
- * Attack _one_ host
+ * @brief Attack one host.
  */
 static void
 attack_host (struct arglist * globals, struct arglist * hostinfos,
@@ -708,12 +707,12 @@ unlink_name_mapped_file (gchar* key, gchar* value, gpointer ignored)
 
 
 /**
- * This function attacks a whole network
+ * @brief Attack a whole network.
  *
  * @return 0 if success, -1 on error.
  */
 int
-attack_network(struct arglist * globals)
+attack_network (struct arglist * globals)
 {
   int max_hosts                 = 0;
   int num_tested                = 0;

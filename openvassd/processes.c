@@ -27,7 +27,6 @@
 *
 */
 
- 
 #include <includes.h>
 #include <setjmp.h>
 #include "processes.h"
@@ -48,26 +47,24 @@ void sighand_process_term(int sig)
 }
 
 
-
 static void pr_sigterm(int sig)
 {
  _exit(0);
 }
 
 
-
-int terminate_process(pid_t pid)
+int
+terminate_process (pid_t pid)
 {
  int ret;
- 
+
  if(pid <= 0 )
    	return 0;
 
-
  ret = kill(pid, SIGTERM);
- 
+
  if( ret == 0 )
- { 
+ {
   usleep(1000);
   if (waitpid(pid, NULL, WNOHANG) >= 0 )
    	kill(pid, SIGKILL);
@@ -76,24 +73,18 @@ int terminate_process(pid_t pid)
 }
 
 
-
-
-/*
- * Create a thread
+/**
+ * @brief Create a new process (fork).
  */
 pid_t
-create_process(function, argument)
-  process_func_t function;
-  void * argument;
+create_process (process_func_t function, void * argument)
 {
  int pid;
-
- 
 
  pid = fork();
 
  if (pid == 0)
- { 
+ {
   process_son = 0;
   openvas_signal(SIGHUP, SIG_IGN);
   openvas_signal(SIGTERM, pr_sigterm);
@@ -107,11 +98,8 @@ create_process(function, argument)
   (*function)(argument);
   EXIT(0);
  }
- if(pid < 0)
- 	log_write("Error : could not fork ! Error : %s\n", strerror(errno));
+  if (pid < 0)
+    log_write ("Error : could not fork ! Error : %s\n", strerror (errno));
  process_son = pid;
  return pid;
-} 
-
-
-
+}

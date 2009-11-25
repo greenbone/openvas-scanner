@@ -23,10 +23,7 @@
 * You should have received a copy of the GNU General Public License
 * along with this program; if not, write to the Free Software
 * Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA 02110-1301 USA.
-*
-*
 */
-
 
 #include <includes.h>
 
@@ -38,8 +35,7 @@
 #include "rules.h"
 
 char *
-user_home(globals)
- struct arglist * globals;
+user_home (struct arglist * globals)
 {
  char * user = arg_get_value(globals, "user");
  char * ret;
@@ -55,11 +51,10 @@ user_home(globals)
 }
 
 
-/*
- * Add the rules to the current user, and return 
- * the name of the next user
+/**
+ * @brief Add rules to the current user, and return the name of the next user.
  */
-void 
+void
 users_add_rule(struct openvas_rules * rules, char * rule)
 {
   struct openvas_rules * start = rules;
@@ -77,7 +72,7 @@ users_add_rule(struct openvas_rules * rules, char * rule)
    rules_set_def(start, def);
    return;
  }
-     
+
  if(!strncmp(t, "accept", 6))
        rules->rule = RULES_ACCEPT;
  else rules->rule = RULES_REJECT;
@@ -92,16 +87,16 @@ users_add_rule(struct openvas_rules * rules, char * rule)
     rule+=sizeof(char);
   }
   else rules->not = 0;
-  
+
   len = strlen(rule);
-  
+
   while(rule[len-1]==' ')
   {
    rule[len-1]='\0';
    len --;
   }
-  
-  
+
+
   if(!(inet_aton(rule,&rules->inaddrs.ip)))
 	 {
 	  if(strcmp(rule, "client_ip"))
@@ -132,25 +127,27 @@ users_add_rule(struct openvas_rules * rules, char * rule)
    else rules->next = emalloc(sizeof(*rules));
 #ifdef DEBUG_RULES 
    printf("Added rule %s/%d\n",inet_ntoa(rules->ip), rules->mask); 
-#endif   
+#endif
  }
 }
 
 
-/*
- * Reads the rules file
+/**
+ * @brief Reads the rules file.
  */
-static struct openvas_rules * 
-users_read_rules(struct openvas_rules * rules,  FILE * f,char * buffer,
-			int len)
+static struct openvas_rules *
+users_read_rules (struct openvas_rules * rules,  FILE * f, char * buffer,
+                  int len)
 {
   char *t = buffer;
   bzero(buffer, len);
   if(!fgets(buffer, len, f))return rules;
   t[strlen(t)-1]='\0';
-  while((t[0]==' ')||(t[0]=='\t'))t+=sizeof(char);
-  if(t[0]=='#'||t[0] == '\0')return users_read_rules(rules, f, buffer,
-  						   len);
+  while ((t[0] == ' ') || (t[0] == '\t'))
+    t += sizeof(char);
+
+  if (t[0] == '#' || t[0] == '\0')
+    return users_read_rules (rules, f, buffer, len);
 
    users_add_rule(rules, t);
    return users_read_rules(rules, f, buffer, len);
@@ -189,7 +186,7 @@ check_user(char * user, char * password, char * dname)
   if( strstr(user, "..") != NULL ||
        strchr(user, '/') != NULL )
    return BAD_LOGIN_ATTEMPT;
-  
+
   if (dname != NULL && *dname != '\0')
     {
       snprintf(fname, sizeof(fname), "%s/%s/auth/dname", OPENVASSD_LOGINS, user);
@@ -249,15 +246,15 @@ check_user(char * user, char * password, char * dname)
 	   }
 	 else
 	   h1[i] = x;
-           
+
        n = sizeof (seed) - 1;
-       
+
        for (p = seed; *p != '\0' && *p != '\n' && *p != '\r'; p ++, n -- )
 	 ;
-         
+
        if ( n < strlen(password) )
             return BAD_LOGIN_ATTEMPT;
-            
+
        strncpy(p, password, n);
 
        gcry_md_hash_buffer(GCRY_MD_MD5, h2, seed, strlen(seed));
@@ -271,7 +268,7 @@ check_user(char * user, char * password, char * dname)
    snprintf(fname, sizeof(fname), "%s/%s/auth/password", OPENVASSD_LOGINS, user);
    if ((f = fopen(fname, "r")) == NULL)
      return BAD_LOGIN_ATTEMPT;
-   
+
    fprintf (stderr, "\n===========================================================\n");
    fprintf (stderr, "WARNING! Plaintext password found in:\n");
    fprintf (stderr, "  %s\n", fname);
@@ -305,18 +302,16 @@ check_user(char * user, char * password, char * dname)
  if ((f = fopen(fname, "r")) == NULL)
    perror(fname);
 
- if ( f == NULL ) return BAD_LOGIN_ATTEMPT;
- 
-  
+  if (f == NULL)
+    return BAD_LOGIN_ATTEMPT;
+
+
  buf = emalloc(1024);
  ret = emalloc(sizeof(*ret));
  ret = users_read_rules(ret, f, buf, 1024);
- 
+
  fclose(f);
  efree(&buf);
- 
+
  return ret;
 }
- 
- 
- 

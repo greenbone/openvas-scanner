@@ -417,7 +417,7 @@ preferences_log_plugins_at_load(preferences)
 
   return yes;
 }
-int   
+int
 preferences_ntp_show_end(preferences)
  struct arglist * preferences;
 {

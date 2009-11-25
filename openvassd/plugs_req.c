@@ -23,8 +23,6 @@
 * You should have received a copy of the GNU General Public License
 * along with this program; if not, write to the Free Software
 * Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA 02110-1301 USA.
-*
-*
 */
 
 
@@ -43,16 +41,15 @@
 
 extern int kb_get_port_state_proto(struct kb_item **, struct arglist*, int, char*);
 
-/*---------------------------------------------------------
-
-  Returns whether a port in a port list is closed or not
- 
- ----------------------------------------------------------*/
+/**
+ * @brief Returns whether a port in a port list is closed or not.
+ *
+ * @return Whether a port in a port list is closed or not.
+ */
 static int
 get_closed_ports (struct kb_item ** kb, struct arglist * ports,
                   struct arglist * preferences)
 {
-
   if(ports == NULL)
    return -1;
 
@@ -82,14 +79,16 @@ static int
 get_closed_udp_ports (struct kb_item ** kb, struct arglist * ports,
                       struct arglist * preferences)
 {
-  if( ports == NULL )
-  	return -1;
-  else while( ports->next != NULL)
-  {
-      int iport = atoi(ports->name);				
-      if(kb_get_port_state_proto(kb, preferences, iport, "udp"))return iport;
+  if (ports == NULL)
+    return -1;
+
+  while (ports->next != NULL)
+    {
+      int iport = atoi (ports->name);
+      if (kb_get_port_state_proto (kb, preferences, iport, "udp"))
+        return iport;
       ports = ports->next;
-  }
+    }
   return 0; /* found nothing */
 }
 
@@ -141,8 +140,6 @@ key_present (struct kb_item ** kb, struct arglist * keys)
 ***********************************************************/	
 
 
-
-
 /**
  * @brief Returns \<port\> if the lists of the required ports between
  * @brief plugin 1 and plugin 2 have at least one port in common.
@@ -151,12 +148,12 @@ struct arglist *
 requirements_common_ports (struct scheduler_plugin * plugin1,
                            struct scheduler_plugin * plugin2)
 {
- struct arglist * ret = NULL;
- struct arglist * req1;
- struct arglist * req2;
+  struct arglist * ret = NULL;
+  struct arglist * req1;
+  struct arglist * req2;
 
-
- if(!plugin1 || !plugin2) return 0;
+  if (!plugin1 || !plugin2)
+    return 0;
 
  req1 = plugin1->required_ports;
  if ( req1 == NULL )

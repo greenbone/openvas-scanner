@@ -25,7 +25,7 @@
 * Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA 02110-1301 USA.
 *
 *
-*/ 
+*/
 
 /*
  * This authentification scheme is BADLY written, and will NOT
@@ -49,17 +49,12 @@
 #include "sighand.h"
 
 
-/*
- * auth_check_user() :
- *
- * Checks if a user has the right to use openvassd,
- * and return its permissions
+/**
+ * @brief Checks if a user has the right to use openvassd and return its
+ * @brief permissions.
  */
-struct openvas_rules * 
-auth_check_user(globals, from, dname)
-   struct arglist * globals;
-   char * from;
-   char * dname;
+struct openvas_rules *
+auth_check_user (struct arglist* globals, char* from, char* dname)
 {
   char * buf_user, * buf_password;
   int free_buf_user = 1;
@@ -69,24 +64,23 @@ auth_check_user(globals, from, dname)
 
     buf_user = emalloc(255);
     buf_password = emalloc(255);
-  
+
     auth_printf(globals,"User : ");
     auth_gets(globals, buf_user, 254);
     if( buf_user[0] == '\0' ) {
 		EXIT(0);
     }
-  
+
     auth_printf(globals, "Password : ");
     auth_gets(globals, buf_password, 254);
     if( buf_password[0] == '\0' ) {
 	EXIT(0);
     }
-  
+
     l = strlen(buf_user);
     if (l  &&  buf_user[l - 1] == '\n')buf_user[--l] = '\0';
     if (l  &&  buf_user[l - 1] == '\r')buf_user[--l] = '\0';
-    
-  
+
     l = strlen(buf_password);
     if (l  &&  buf_password[l - 1] == '\n')buf_password[--l] = '\0';
     if (l  &&  buf_password[l - 1] == '\r')buf_password[--l] = '\0';
@@ -108,5 +102,3 @@ auth_check_user(globals, from, dname)
   efree(&buf_password);
   return(permissions);
 }
-
-
