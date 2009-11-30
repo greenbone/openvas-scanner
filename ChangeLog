@@ -1,3 +1,16 @@
+2009-11-30  Chandrashekhar B <bchandra@secpod.com>
+
+	* cnvts/synscan/synscan.c (rawsocket): IPv6 enabling.
+	(extractack): IPv6 enabling.
+	(extractsport): IPv6 enabling.
+	(issynack): IPv6 enabling.
+	(scan): IPv6 enabling.
+	(sendpacket): IPv6 enabling.
+	(v6_openbpf): Added new.
+	(v6_extracttcp): Added new.
+	(mktcpv6): Added new.
+	(v6_sendpacket): Added new.
+
 2009-11-25  Chandrashekhar B <bchandra@secpod.com>
 
 	* cnvts/openvas_tcp_scanner/openvas_tcp_scanner.c: Fixed a possible
