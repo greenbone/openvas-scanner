@@ -11,6 +11,8 @@
 	(mktcpv6): Added new.
 	(v6_sendpacket): Added new.
 
+	Coding by Srinivas NL <nl.srinivas@gmail.com> and Chandrashekhar B.
+
 2009-11-25  Chandrashekhar B <bchandra@secpod.com>
 
 	* cnvts/openvas_tcp_scanner/openvas_tcp_scanner.c: Fixed a possible
