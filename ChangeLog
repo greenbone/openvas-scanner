@@ -1,3 +1,17 @@
+2009-12-02  Michael Wiegand <michael.wiegand@intevation.de>
+
+	Made logging less verbose by wrapping a number of debugging messages in
+	an #ifdef DEBUG.
+
+	* openvassd/auth.c (auth_check_user): Only log successful logins when
+	DEBUG is defined.
+
+	* openvassd/comm.c (comm_init): Only log the protocol version requested
+	by the client when DEBUG is defined.
+
+	* openvassd/openvassd.c (main_loop): Only log debug messages about the
+	connection when DEBUG is defined.
+
 2009-11-30  Chandrashekhar B <bchandra@secpod.com>
 
 	* cnvts/synscan/synscan.c (rawsocket): IPv6 enabling.

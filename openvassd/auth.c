@@ -92,7 +92,9 @@ auth_check_user (struct arglist* globals, char* from, char* dname)
 	char* user = emalloc(strlen(buf_user)+1);
 	strncpy(user, buf_user, strlen(buf_user));
 
+#ifdef DEBUG
 	log_write("successful login of %s from %s\n", buf_user, from);
+#endif
 	if(arg_get_value(globals, "user"))
 	 arg_set_value(globals, "user", strlen(user), user);
 	else

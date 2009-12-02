@@ -708,7 +708,9 @@ main_loop ()
         saddr = (struct sockaddr_in *)&address;
         if(inet_ntop(AF_INET, &saddr->sin_addr, asciiaddr, INET6_ADDRSTRLEN) != NULL)
         {
+#ifdef DEBUG
           log_write("Family is %d ascii address is %s\n",address.sin_family,asciiaddr);
+#endif
         }
         else
         {
@@ -719,7 +721,9 @@ main_loop ()
       {
         if(inet_ntop(AF_INET6, &address6.sin6_addr, asciiaddr, INET6_ADDRSTRLEN) != NULL)
         {
+#ifdef DEBUG
           log_write("Family is %d ascii address is %s\n",address6.sin6_family,asciiaddr);
+#endif
         }
         else
         {
@@ -755,7 +759,9 @@ main_loop ()
         }
       }
 #endif
+#ifdef DEBUG
       log_write ("connection from %s\n", (char *)asciiaddr);
+#endif
 
       /* efree(&asciiaddr); */
 

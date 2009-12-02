@@ -86,7 +86,9 @@ comm_init (int soc)
     {
       EXIT(0);
     }
+#ifdef DEBUG
   log_write ("Client requested protocol %s.\n", buf);
+#endif
   return(version);
 }
 
