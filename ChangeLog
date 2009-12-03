@@ -1,3 +1,8 @@
+2009-12-03  Chandrashekhar B <bchandra@secpod.com>
+
+	* cnvts/openvas_tcp_scanner/openvas_tcp_scanner.c,
+	cnvts/synscan/synscan.c: Fixed compiler warnings.
+
 2009-12-03  Michael Wiegand <michael.wiegand@intevation.de>
 
 	* openvas-nvt-sync.in: Added support for upcoming synchronization

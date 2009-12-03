@@ -1450,7 +1450,7 @@ int plugin_run(struct arglist * desc)
   struct arglist * hostinfos = arg_get_value(desc, "HOSTNAME");
   char * port_range = arg_get_value(preferences, "port_range");
   char * p;
-  struct in_addr *p_addr;
+  struct in6_addr *p_addr;
   int	timeout = 0, max_cnx, min_cnx, safe_checks = 0, x;
 
   p = arg_get_value(preferences, "safe_checks");

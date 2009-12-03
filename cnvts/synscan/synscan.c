@@ -741,6 +741,8 @@ scan(struct arglist * env, struct in6_addr *dst6, unsigned long rtt)
   unsigned short *ports;
   int family;
 
+  dst.s_addr = 0;
+
   if(IN6_IS_ADDR_V4MAPPED(dst6))
   {
     family = AF_INET;
