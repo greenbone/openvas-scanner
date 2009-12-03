@@ -42,6 +42,14 @@ FEED=rsync://rsync.openvas.org:/nvt-feed
 # An alternative syntax which might work if the above doesn't:
 #FEED=rsync@rsync.openvas.org::nvt-feed
 
+# Script and feed information which will be made available to user through
+# command line options and automated tools.
+SCRIPT_NAME="openvas-nvt-sync"
+VERSION=@version@
+FEED_NAME="OpenVAS NVT Feed"
+FEED_PROVIDER="The OpenVAS Project"
+RESTRICTED=0
+
 findcmd()
 {
   CMD=$1
@@ -105,12 +113,61 @@ restart_openvassd (){
   }
 }
 
-echo "OpenVAS NVT Sync $Release$"
+do_self_test ()
+{
+  RSYNC_AVAIL=`command -v rsync`
+  if [[ -z $RSYNC_AVAIL ]] ; then
+    SELFTEST_FAIL=1
+    echo "The rsync binary could not be found." 1>&2
+  fi
+  MD5SUM_AVAIL=`command -v md5sum`
+  if [[ -z $MD5SUM_AVAIL ]] ; then
+    SELFTEST_FAIL=1
+    echo "The md5sum binary could not be found." 1>&2
+  fi
+  eval "rsync -nqltvrP \"$FEED/md5sums\" \"$NVT_DIR\""
+  if [ $? -ne 0 ] ; then
+    SELFTEST_FAIL=1
+    echo "Error: rsync failed." 1>&2
+  fi
+}
+
+do_describe ()
+{
+  echo "This script synchronizes an NVT collection with the $FEED_NAME."
+  echo "The $FEED_NAME is provided by $FEED_PROVIDER."
+}
+
+while test $# -gt 0; do
+ case "$1" in
+        --version)
+                echo $VERSION
+                exit 0
+                ;;
+        --identify)
+                echo "NVTSYNC|$SCRIPT_NAME|$VERSION|$FEED_NAME|$RESTRICTED|NVTSYNC"
+                exit 0
+                ;;
+        --selftest)
+                SELFTEST_FAIL=0
+                do_self_test
+                exit $SELFTEST_FAIL
+                ;;
+        --describe)
+                do_describe
+                exit 0
+                ;;
+ esac
+ shift
+done
+
+do_describe
 echo " "
-echo "Configured NVT Feed: $FEED"
-echo "Synchronized into: $NVT_DIR"
+echo "Synchronizing into $NVT_DIR"
 echo " "
 
 chk_system_tools
 sync_nvts
 restart_openvassd
+
+exit 0

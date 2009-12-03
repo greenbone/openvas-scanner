@@ -1,3 +1,8 @@
+2009-12-03  Michael Wiegand <michael.wiegand@intevation.de>
+
+	* openvas-nvt-sync.in: Added support for upcoming synchronization
+	script API.
+
 2009-12-02  Michael Wiegand <michael.wiegand@intevation.de>
 
 	Made logging less verbose by wrapping a number of debugging messages in
