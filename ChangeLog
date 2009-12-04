@@ -1,3 +1,7 @@
+2009-12-04  Jan-Oliver Wagner <jan-oliver.wagner@greenbone.net>
+
+	* openvas-nvt-sync.in: Added URL of feed home page.
+
 2009-12-03  Chandrashekhar B <bchandra@secpod.com>
 
 	* cnvts/openvas_tcp_scanner/openvas_tcp_scanner.c,

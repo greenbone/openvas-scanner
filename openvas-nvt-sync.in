@@ -48,6 +48,7 @@ SCRIPT_NAME="openvas-nvt-sync"
 VERSION=@version@
 FEED_NAME="OpenVAS NVT Feed"
 FEED_PROVIDER="The OpenVAS Project"
+FEED_HOME="http://www.openvas.org/openvas-nvt-feed.html"
 RESTRICTED=0
 
 findcmd()
@@ -134,8 +135,9 @@ do_self_test ()
 
 do_describe ()
 {
-  echo "This script synchronizes an NVT collection with the $FEED_NAME."
-  echo "The $FEED_NAME is provided by $FEED_PROVIDER."
+  echo "This script synchronizes an NVT collection with the '$FEED_NAME'."
+  echo "The '$FEED_NAME' is provided by '$FEED_PROVIDER'."
+  echo "Online information about this feed: '$FEED_HOME'."
 }
 
 while test $# -gt 0; do
