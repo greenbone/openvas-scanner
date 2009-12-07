@@ -1,3 +1,58 @@
+openvas-scanner 3.0.0-rc1 (2009-12-07)
+
+This release is the first release candidate of openvas-scanner
+leading up to the upcoming 3.0 release of OpenVAS.
+Apart from the name change from openvas-server to
+openvas-scanner, the platform-dependent NVTs as
+well as the OpenVAS NVT Feed synchronisation script
+are now integrated.
+
+OpenVAS 3.0 will introduce a new architecture where openvas-libraries
+now includes openvas-libnasl as well as redundant code from openvas-client
+and where openvas-server is renamed to openvas-scanner and includes any
+platform-dependent elements of openvas-plugins. As a result of this,
+the source code will shrink, though new features will be added. Also,
+for running the scanner now only 2 modules are required (instead of 4
+as for OpenVAS 2.0).
+
+New features of OpenVAS include support for IPv6 and WMI-Clients.
+Version 3.0 prepares the new OpenVAS Manager and OpenVAS Administrator
+as optional extension. This combination leverages the vulnerability
+scanner to a comprehensive vulnerability management solution.
+
+The "release candidate" releases are intended to allow testing of the upcoming
+3.0 series. It should be kept separate from OpenVAS 2.0 installations
+and not be used in a production environment.
+
+Unless serious bugs are discovered, this release candidate will become the final
+OpenVAS 3.0 release. Users are encouraged to test this release and to report
+bugs to the OpenVAS bug tracker located at http://bugs.openvas.org/ .
+
+Many thanks to everyone who has contributed to the 3.0.0 release:
+Chandrashekhar B, Tim Brown, Javier Fernández-Sanguino Peña,
+Vlatko Kosturjak, Matthew Mundell, Srinivasa NL, Jan Wagner,
+Jan-Oliver Wagner, Michael Wiegand and Felix Wolfsteller.
+
+Main changes compared to 2.0.x:
+
+* IPv6 support
+* Integration of platform dependent NVTs from openvas-plugins
+* Integration of openvas-nvt-sync script
+* Renamed daemon from openvasd to openvassd
+* glib dependency raised from 2.6 to 2.12
+* openvasd-config removed as no other packages require this
+  package for building.
+* For the same reason, no header files are installed anymore
+
+Main changes compared to 3.0.0-beta6:
+
+* IPv6 support has been improved.
+* Support for the upcoming synchronization script API has been added to
+  openvas-nvt-sync.
+* The amount of debug messages in the log files when not compiled in debug
+  mode has been reduced.
+
+
 openvas-scanner 3.0.0-beta6 (2009-11-23)
 
 This release is the sixth beta version of openvas-scanner
