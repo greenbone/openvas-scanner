@@ -297,25 +297,26 @@ return(ret);
  *        Maybe this hashtable should instead carry the (uploaded) file itself.
  */
 char*
-temp_file_name()
+temp_file_name ()
 {
- char* ret = emalloc(strlen(OPENVASSD_STATEDIR)+ strlen("tmp/") + strlen("tmp") + 40);
- int fd = - 1;
- do {
- if(fd > 0){
- 	if(close(fd) < 0)
-	 perror("close");
-	}
- sprintf(ret, "%s/tmp", OPENVASSD_STATEDIR);
- mkdir(ret, 0700);
- sprintf(ret, "%s/tmp/tmp.%d-%d", OPENVASSD_STATEDIR, getpid(), rand()%1024);
- fd = open(ret, O_RDONLY);
- }
-  while (fd >= 0);
- if(close(fd) < 0)
-  perror("close");
+  char* ret = emalloc (strlen (OPENVASSD_STATEDIR) + strlen ("tmp/")
+                       + strlen ("tmp") + 40);
+  int fd = - 1;
+  do {
+    if (fd > 0 && close (fd) < 0)
+      perror("close");
 
- return ret;
+    sprintf (ret, "%s/tmp", OPENVASSD_STATEDIR);
+    mkdir (ret, 0700);
+    sprintf (ret, "%s/tmp/tmp.%d-%d", OPENVASSD_STATEDIR, getpid (),
+                  rand () % 1024);
+    fd = open (ret, O_RDONLY);
+   } while (fd >= 0);
+
+  if (close (fd) < 0)
+    perror ("close");
+
+  return ret;
 }
 
  

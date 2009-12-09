@@ -1,3 +1,9 @@
+2009-12-09  Felix Wolfsteller <felix.wolfsteller@intevation.de>
+
+	* openvassd/ntp_11.c: Cosmetics.
+
+	* openvassd/utils.c (temp_file_name): Reformatted.
+
 2009-12-07  Michael Wiegand <michael.wiegand@intevation.de>
 
 	Post-release version bump.

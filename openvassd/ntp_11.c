@@ -96,15 +96,15 @@ ntp_11_parse_input (struct arglist * globals, char * input)
  {
   input = str + 5;
   str = strchr(input, ' ');
-  if(str != NULL )
-	str[0] = '\0';
+  if (str != NULL )
+    str[0] = '\0';
 
-  if(input[strlen(input) - 1] == '\n')
-	input[strlen(input) - 1] = '\0';
+  if (input[strlen(input) - 1] == '\n')
+    input[strlen(input) - 1] = '\0';
 
   switch(otp_1_0_get_client_request(input)) {
     case CREQ_ATTACHED_FILE:
-      ntp_11_recv_file(globals);
+      ntp_11_recv_file (globals);
       break;
 
     case CREQ_LONG_ATTACK:
@@ -112,11 +112,11 @@ ntp_11_parse_input (struct arglist * globals, char * input)
       break;
 
     case CREQ_CERTIFICATES:
-      otp_1_0_server_send_certificates(globals);
+      otp_1_0_server_send_certificates (globals);
       break;
 
     case CREQ_OPENVAS_VERSION:
-      otp_1_0_server_openvas_version(globals);
+      otp_1_0_server_openvas_version (globals);
       break;
 
     case CREQ_PLUGIN_INFO: {
@@ -172,7 +172,7 @@ ntp_11_parse_input (struct arglist * globals, char * input)
       log_write("user %s : stopping attack against %s\n",  user, s);
       hosts_stop_host(globals, s);
       ntp_1x_timestamp_host_scan_interrupted(globals, s);
-      ntp_11_show_end(globals, s, 0);
+      ntp_11_show_end (globals, s, 0);
       break;
       }
 
@@ -376,13 +376,13 @@ ntp_11_rules (struct arglist * globals)
 void
 ntp_11_show_end (struct arglist*  globals, char * name, int internal)
 {
- int soc = GPOINTER_TO_SIZE(arg_get_value( globals, "global_socket"));
- char buf[1024];
- snprintf(buf, sizeof(buf), "SERVER <|> FINISHED <|> %s <|> SERVER\n", name);
- if ( internal )
- 	internal_send(soc, buf, INTERNAL_COMM_MSG_TYPE_DATA);
- else
-	auth_printf(globals, "%s", buf);
+  int soc = GPOINTER_TO_SIZE (arg_get_value (globals, "global_socket"));
+  char buf[1024];
+  snprintf (buf, sizeof (buf), "SERVER <|> FINISHED <|> %s <|> SERVER\n", name);
+  if (internal)
+    internal_send (soc, buf, INTERNAL_COMM_MSG_TYPE_DATA);
+  else
+    auth_printf (globals, "%s", buf);
 }
 
 /**
@@ -416,13 +416,13 @@ files_add_translation (struct arglist* globals, const char * remotename,
 
 /**
  * @brief Reads in a hashtable from file that maps login-account names to host
- *        names.
- * 
+ * @brief names.
+ *
  * On client side the file is known as .host_logins (if defined, found in each
  * task directory).
  * The GHashTable will be available through the (global) arglist under the key
  * "MAP_HOST_SSHLOGIN_NAME".
- * 
+ *
  * @param globals  Arglist to add the GHashTable to.
  * @param filepath Path to file with serialized GHashTable.
  */
@@ -488,10 +488,10 @@ ntp_11_recv_file (struct arglist* globals)
   int fd;
 
 #if 0
- fprintf(stderr, "ntp_11_recv_file\n");
+  fprintf (stderr, "ntp_11_recv_file\n");
 #endif
 
-  n = recv_line(soc, input, sizeof(input) - 1);
+  n = recv_line (soc, input, sizeof(input) - 1);
   if (n <= 0)
     return -1;
 
@@ -523,7 +523,7 @@ ntp_11_recv_file (struct arglist* globals)
 
   /* We now know that we have to read <bytes> bytes from the remote socket. */
 
-  fd = open(localname, O_CREAT|O_WRONLY|O_TRUNC, 0600);
+  fd = open (localname, O_CREAT|O_WRONLY|O_TRUNC, 0600);
   if (fd < 0)
     {
       perror ("ntp_11_recv_file: open() ");
@@ -532,7 +532,7 @@ ntp_11_recv_file (struct arglist* globals)
 
 #if 0
   fprintf(stderr, "ntp_11_recv_file: localname=%s\n", localname);
-#endif  
+#endif
 
   while (tot < bytes)
     {
@@ -551,8 +551,8 @@ ntp_11_recv_file (struct arglist* globals)
           tot += n;
         }
     }
-  auth_printf (globals, "SERVER <|> FILE_ACCEPTED <|> SERVER\n"); 
-  /* Add the fact that what the remote client calls <filename> is actually 
+  auth_printf (globals, "SERVER <|> FILE_ACCEPTED <|> SERVER\n");
+  /* Add the fact that what the remote client calls <filename> is actually
    * <localname> here. */
   files_add_translation (globals, origname, localname);
 
