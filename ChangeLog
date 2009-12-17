@@ -1,3 +1,9 @@
+2009-12-17  Michael Wiegand <michael.wiegand@intevation.de>
+
+	* openvassd/preferences.c (preferences_new): Added group name so the
+	openvassd.conf complies with the key file specification (see
+	http://freedesktop.org/Standards/desktop-entry-spec).
+
 2009-12-09  Felix Wolfsteller <felix.wolfsteller@intevation.de>
 
 	* openvassd/ntp_11.c: Cosmetics.

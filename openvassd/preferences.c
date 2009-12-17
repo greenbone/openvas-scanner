@@ -88,6 +88,8 @@ int preferences_new(char * name)
  fprintf(fd, "# Configuration file of the OpenVAS Security Scanner\n\n\n\n");
  fprintf(fd, "# Every line starting with a '#' is a comment\n\n");
 
+ fprintf(fd, "[Misc]\n\n");
+
  fprintf(fd, "# Path to the security checks folder : \n");
  fprintf(fd, "plugins_folder = %s\n\n", OPENVASSD_PLUGINS);
 
