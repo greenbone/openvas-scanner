@@ -28,10 +28,9 @@ struct pseudohdr {
 	struct tcphdr   tcpheader;
 };
 
-static int 
-in_cksum(p, n)
-	u_short        *p;
-	int             n;
+
+static int
+in_cksum (u_short *p, int n)
 {
 	register u_short answer;
 	register unsigned long sum = 0;
@@ -54,8 +53,7 @@ in_cksum(p, n)
 }
 
 
-
-unsigned long 
+unsigned long
 maketime()
 {
 	struct timeval  tv;
@@ -67,13 +65,12 @@ maketime()
 
 	ret = ((tv.tv_sec & 0x0000000F) << 28) | (((tv.tv_usec) & 0xFFFFFFF0) >> 4);
 
-
 	return htonl(ret);
 }
 
 
-struct timeval 
-timeval(unsigned long val)
+struct timeval
+timeval (unsigned long val)
 {
 	struct timeval  ret;
 	unsigned int h, l;
@@ -82,7 +79,7 @@ timeval(unsigned long val)
 
 	h = ( val & 0xF0000000 ) >> 28;
 	l = ( val & 0x0FFFFFFF)  << 4;
-     
+
 	ret.tv_sec = h;
 	ret.tv_usec = l;
 	while ( ret.tv_usec >= 1000000 ) 
@@ -99,13 +96,8 @@ timeval(unsigned long val)
 }
 
 
-
-
-
-
-
-unsigned long 
-compute_rtt(unsigned long then)
+unsigned long
+compute_rtt (unsigned long then)
 {
 	unsigned long   now = maketime();
 	unsigned long   res;
@@ -126,8 +118,8 @@ compute_rtt(unsigned long then)
 }
 
 
-int 
-packetdead(unsigned long then, unsigned long rtt)
+int
+packetdead (unsigned long then, unsigned long rtt)
 {
 	unsigned long   now = maketime();
 
@@ -145,7 +137,8 @@ packetdead(unsigned long then, unsigned long rtt)
 }
 
 
-int rawsocket(int family)
+int
+rawsocket (int family)
 {
   int soc;
   int opt = 1;
@@ -181,8 +174,8 @@ int rawsocket(int family)
 }
 
 
-int 
-openbpf(struct in_addr dst, struct in_addr * src, int magic)
+int
+openbpf (struct in_addr dst, struct in_addr * src, int magic)
 {
 	char           *iface;
 	char            filter[255];
@@ -194,8 +187,9 @@ openbpf(struct in_addr dst, struct in_addr * src, int magic)
 	return bpf;
 }
 
-int 
-v6_openbpf(struct in6_addr *dst, struct in6_addr * src, int magic)
+
+int
+v6_openbpf (struct in6_addr *dst, struct in6_addr * src, int magic)
 {
   char *iface;
   char filter[255];
@@ -213,6 +207,7 @@ v6_openbpf(struct in6_addr *dst, struct in6_addr * src, int magic)
 }
 /*----------------------------------------------------------------------------*/
 
+
 struct list {
 	unsigned short  dport;
 	unsigned long   when;
@@ -221,8 +216,9 @@ struct list {
 	struct list    *next;
 };
 
-struct list    *
-get_packet(struct list * l, unsigned short dport)
+
+struct list*
+get_packet (struct list * l, unsigned short dport)
 {
 	while (l != NULL) {
 		if (l->dport == dport)
@@ -234,7 +230,7 @@ get_packet(struct list * l, unsigned short dport)
 }
 
 
-struct list    *
+struct list*
 add_packet(struct list * l, unsigned short dport, unsigned long ack)
 {
 	struct list    *ret;
@@ -263,9 +259,8 @@ add_packet(struct list * l, unsigned short dport, unsigned long ack)
 }
 
 
-
-struct list    *
-rm_packet(struct list * l, unsigned short dport)
+struct list*
+rm_packet (struct list * l, unsigned short dport)
 {
 	struct list    *ret = l;
 	struct list    *p = get_packet(l, dport);
@@ -288,8 +283,8 @@ rm_packet(struct list * l, unsigned short dport)
 	return ret;
 }
 
-struct list    *
-rm_dead_packets(struct list * l, unsigned long rtt, int *retry)
+struct list*
+rm_dead_packets (struct list * l, unsigned long rtt, int *retry)
 {
 	struct list    *ret = l;
 	struct list    *p = l;
@@ -329,28 +324,31 @@ rm_dead_packets(struct list * l, unsigned long rtt, int *retry)
 /*-----------------------------------------------------------------------------*/
 
 
-struct tcphdr * extracttcp(char * pkt, int len)
+struct tcphdr *
+extracttcp (char * pkt, int len)
 {
  struct ip * ip;
         struct tcphdr  *tcp;
- 
+
  ip = (struct ip*)pkt;
  if(ip->ip_hl * 4 + sizeof(struct tcphdr) > len)
   return NULL;
-  
+
  tcp = (struct tcphdr*)(pkt + ip->ip_hl * 4);
  return tcp;
 }
 
-struct tcphdr * v6_extracttcp(char * pkt, int len)
+struct tcphdr *
+v6_extracttcp (char * pkt, int len)
 {
   struct tcphdr  *tcp;
   tcp = (struct tcphdr*)(pkt + 40);
   return tcp;
 }
 
-unsigned long 
-extractack(char *pkt, int len, int family)
+
+unsigned long
+extractack (char *pkt, int len, int family)
 {
  unsigned long   ret;
  struct tcphdr *tcp;
@@ -367,8 +365,8 @@ extractack(char *pkt, int len, int family)
 }
 
 
-unsigned short 
-extractsport(char *pkt, int len, int family)
+unsigned short
+extractsport (char *pkt, int len, int family)
 {
   struct tcphdr *tcp;
 
@@ -382,8 +380,8 @@ extractsport(char *pkt, int len, int family)
 	return ntohs(tcp->th_sport);
 }
 
-int 
-issynack(char *pkt, int len, int family)
+int
+issynack (char *pkt, int len, int family)
 {
   struct tcphdr *tcp;
 
@@ -397,8 +395,8 @@ issynack(char *pkt, int len, int family)
 	return tcp->th_flags == (TH_SYN | TH_ACK);
 }
 
-char           *
-mktcp(struct in_addr src, int sport, struct in_addr dst, int dport, unsigned long th_ack, unsigned char flag)
+char*
+mktcp (struct in_addr src, int sport, struct in_addr dst, int dport, unsigned long th_ack, unsigned char flag)
 {
 	static char     pkt[sizeof(struct ip) + sizeof(struct tcphdr)];
 	struct ip      *ip;
@@ -445,7 +443,7 @@ mktcp(struct in_addr src, int sport, struct in_addr dst, int dport, unsigned lon
 }
 
 char *
-mktcpv6(struct in6_addr *src, int sport, struct in6_addr *dst, int dport, unsigned long th_ack, unsigned char flag)
+mktcpv6 (struct in6_addr *src, int sport, struct in6_addr *dst, int dport, unsigned long th_ack, unsigned char flag)
 {
   static char pkt[sizeof(struct tcphdr)];
   struct tcphdr  *tcp;
@@ -465,8 +463,8 @@ mktcpv6(struct in6_addr *src, int sport, struct in6_addr *dst, int dport, unsign
 }
 /*--------------------------------------------------------------------*/
 
-int 
-find_rtt(struct in_addr dst, unsigned long *rtt)
+int
+find_rtt (struct in_addr dst, unsigned long *rtt)
 {
 	int             soc;
 	unsigned short  ports[] = {21, 22, 34, 25, 53, 79, 80, 110, 113, 135, 139, 143, 264, 389, 443, 993, 1454, 1723, 3389, 8080, 0};
@@ -595,15 +593,17 @@ find_rtt(struct in_addr dst, unsigned long *rtt)
 }
 
 
-struct list    *
-sendpacket(int soc, int bpf, int skip, struct in_addr dst, struct in_addr src, int dport, int magic, struct list * packets, unsigned long * rtt, int sniff, struct arglist * env)
+struct list*
+sendpacket (int soc, int bpf, int skip, struct in_addr dst, struct in_addr src,
+            int dport, int magic, struct list * packets, unsigned long * rtt,
+            int sniff, struct arglist * env)
 {
 	unsigned long   ack = maketime();
 	char           *pkt = mktcp(src, magic, dst, dport, ack, TH_SYN);
 	int             len;
 	char           *res;
 	struct sockaddr_in soca;
-  	struct timeval rtt_tv = timeval(*rtt);
+	struct timeval rtt_tv = timeval(*rtt);
 	int family = AF_INET;
 
 	bzero(&soca, sizeof(soca));
@@ -663,7 +663,10 @@ again:
 }
 
 struct list *
-v6_sendpacket(int soc, int bpf, int skip, struct in6_addr *dst, struct in6_addr *src, int dport, int magic, struct list * packets, unsigned long * rtt, int sniff, struct arglist * env)
+v6_sendpacket (int soc, int bpf, int skip, struct in6_addr *dst,
+               struct in6_addr *src, int dport, int magic,
+               struct list * packets, unsigned long * rtt, int sniff,
+               struct arglist * env)
 {
   unsigned long ack = maketime();
   char *pkt = mktcpv6(src, magic, dst, dport, ack, TH_SYN);
@@ -720,8 +723,11 @@ v6_sendpacket(int soc, int bpf, int skip, struct in6_addr *dst, struct in6_addr 
 }
 
 
-int 
-scan(struct arglist * env, struct in6_addr *dst6, unsigned long rtt)
+/**
+ * @return -1 if the socket could not be opened (error), 0 otherwise.
+ */
+int
+scan (struct arglist * env, struct in6_addr *dst6, unsigned long rtt)
 {
   int             num;
   int             soc;
@@ -733,95 +739,104 @@ scan(struct arglist * env, struct in6_addr *dst6, unsigned long rtt)
   int             skip;
   int             i;
   struct list    *packets = NULL;
-  struct arglist *globals = arg_get_value(env, "globals");
-  struct arglist *hostinfos = arg_get_value(env, "HOSTNAME");
-  char           *hname = arg_get_value(hostinfos, "NAME");
+  struct arglist *globals = arg_get_value (env, "globals");
+  struct arglist *hostinfos = arg_get_value (env, "HOSTNAME");
+  char           *hname = arg_get_value (hostinfos, "NAME");
   int             retry;
-  char           *range = get_preference(env, "port_range");
+  char           *range = get_preference (env, "port_range");
   unsigned short *ports;
   int family;
 
   dst.s_addr = 0;
 
   if(IN6_IS_ADDR_V4MAPPED(dst6))
-  {
-    family = AF_INET;
-    dst.s_addr = dst6->s6_addr32[3];
-    soc = rawsocket(AF_INET);
-  }
+    {
+      family = AF_INET;
+      dst.s_addr = dst6->s6_addr32[3];
+      soc = rawsocket (AF_INET);
+    }
   else
-  {
-    family = AF_INET6;
-    soc = rawsocket(AF_INET6);
-  }
+    {
+      family = AF_INET6;
+      soc = rawsocket (AF_INET6);
+    }
 #ifdef DEBUG
-  printf("===> port range = %s\n", range);
+  printf ("===> port range = %s\n", range);
 #endif
 
-  ports = (unsigned short *) getpts(range, &num);
+  ports = (unsigned short *) getpts (range, &num);
 
   if (soc < 0)
-  {
-    printf("error opeining raw socket\n");
-    return -1;
-  }
-
-  if(family == AF_INET)
-    bpf = openbpf(dst, &src, magic);
-  else
-    bpf = v6_openbpf(dst6, &src6, magic);
-  skip = get_datalink_size(bpf_datalink(bpf));
-
-  for (i = 0; i < num ; i += 2) {
-    if (i % 100 == 0)
-      comm_send_status(globals, hname, "portscan", i, num);
-
-    if(family == AF_INET)
-      packets = sendpacket(soc, bpf, skip, dst, src, ports[i], magic, packets, &rtt, 0, env);
-    else
-      packets = v6_sendpacket(soc, bpf, skip, dst6, &src6, ports[i], magic, packets, &rtt, 0, env);
-    if ( i + 1 < num )
     {
-      if(family == AF_INET)
-        packets = sendpacket(soc, bpf, skip, dst, src, ports[i + 1], magic, packets, &rtt, 1, env);
-      else
-        packets = v6_sendpacket(soc, bpf, skip, dst6, &src6, ports[i + 1], magic, packets, &rtt, 1, env);
+      printf ("error opeining raw socket\n");
+      return -1;
     }
-  }
+
+  if (family == AF_INET)
+    bpf = openbpf (dst, &src, magic);
+  else
+    bpf = v6_openbpf (dst6, &src6, magic);
+  skip = get_datalink_size (bpf_datalink (bpf));
+
+  for (i = 0; i < num ; i += 2)
+    {
+      if (i % 100 == 0)
+        comm_send_status (globals, hname, "portscan", i, num);
+
+      if (family == AF_INET)
+        packets = sendpacket (soc, bpf, skip, dst, src, ports[i], magic,
+                              packets, &rtt, 0, env);
+      else
+        packets = v6_sendpacket (soc, bpf, skip, dst6, &src6, ports[i], magic,
+                                 packets, &rtt, 0, env);
+      if (i + 1 < num)
+        {
+          if (family == AF_INET)
+            packets = sendpacket (soc, bpf, skip, dst, src, ports[i + 1],
+                                  magic, packets, &rtt, 1, env);
+          else
+            packets = v6_sendpacket (soc, bpf, skip, dst6, &src6, ports[i + 1],
+                                     magic, packets, &rtt, 1, env);
+        }
+    }
 
 #ifdef DEBUG
-  printf("Done with the sending\n");
+  printf ("Done with the sending\n");
 #endif
 
-  /* How to do this for ipv6. This causes much scan delay for IPv6*/
-  if(family == AF_INET)
+  /** @TODO How to do this for ipv6? This causes much scan delay for IPv6. */
+  if (family == AF_INET)
   {
-    while (packets != NULL) {
-      i = 0;
-      retry = 0;
-      packets = rm_dead_packets(packets, rtt, &retry);
-      while (retry != 0 && i < 2) {
-        packets = sendpacket(soc, bpf, skip, dst, src, retry, magic, packets, &rtt, 0, env);
-        packets = rm_dead_packets(packets, rtt, &retry);
-        i++;
+    while (packets != NULL)
+      {
+        i = 0;
+        retry = 0;
+        packets = rm_dead_packets (packets, rtt, &retry);
+        while (retry != 0 && i < 2)
+          {
+            packets = sendpacket (soc, bpf, skip, dst, src, retry, magic,
+                                  packets, &rtt, 0, env);
+            packets = rm_dead_packets (packets, rtt, &retry);
+            i++;
+          }
+        packets = sendpacket (soc, bpf, skip, dst, src, retry, magic, packets,
+                              &rtt, 1, env);
       }
-      packets = sendpacket(soc, bpf, skip, dst, src, retry, magic, packets, &rtt, 1, env);
-    }
   }
 
-  comm_send_status(globals, hname, "portscan", num, num);
+  comm_send_status (globals, hname, "portscan", num, num);
 #if 0
   plug_set_key(env, "Host/num_ports_scanned", ARG_INT, (void*)num);
 #endif
-  close(soc);
-  bpf_close(bpf);
-  if(ports != NULL)efree(&ports);
+  close (soc);
+  bpf_close (bpf);
+  if (ports != NULL)
+    efree (&ports);
   if (num >= 65535)
-    plug_set_key(env, "Host/full_scan", ARG_INT, (void*) 1);
+    plug_set_key (env, "Host/full_scan", ARG_INT, (void*) 1);
+
   return 0;
 }
-
-
 
 
 #define EN_NAME "SYN Scan"
@@ -829,7 +844,7 @@ scan(struct arglist * env, struct in6_addr *dst6, unsigned long rtt)
 This plugins performs a supposedly fast SYN port scan\n\
 It does so by computing the RTT (round trip time) of the packets\n\
 coming back and forth between the openvassd host and the target,\n\
-then it uses that to quicky send SYN packets to the remote host\n"
+then it uses that to quickly send SYN packets to the remote host\n"
 
 
 #define COPYRIGHT "Copyright (C) Renaud Deraison <deraison@cvs.nessus.org>"
@@ -838,35 +853,32 @@ then it uses that to quicky send SYN packets to the remote host\n"
 #define EN_FAMILY "Port scanners"
 
 int
-plugin_init(struct arglist * desc)
+plugin_init (struct arglist * desc)
 {
-	plug_set_id(desc, 11219);
-	plug_set_version(desc, "$Revision: 1266 $");
+  plug_set_id (desc, 11219);
+  plug_set_version (desc, "$Revision$");
 
+  plug_set_name (desc, EN_NAME);
+  plug_set_summary (desc, EN_SUMMARY);
+  plug_set_description (desc, EN_DESC);
 
+  plug_set_copyright (desc, COPYRIGHT);
+  plug_set_category (desc, ACT_SCANNER);
+  plug_set_family (desc, EN_FAMILY);
 
-	plug_set_name(desc, EN_NAME);
-	plug_set_summary(desc, EN_SUMMARY);
-	plug_set_description(desc, EN_DESC);
-
-	plug_set_copyright(desc, COPYRIGHT);
-	plug_set_category(desc, ACT_SCANNER);
-	plug_set_family(desc, EN_FAMILY);
-
-	plug_set_dep(desc, "ping_host.nasl");
-	return (0);
+  plug_set_dep (desc, "ping_host.nasl");
+  return (0);
 }
 
 
-
 int
-plugin_run(struct arglist * env)
+plugin_run (struct arglist * env)
 {
-	unsigned long   rtt;
+  unsigned long   rtt;
   struct in6_addr *dst6 = plug_get_host_ip(env);
-  struct in_addr *dst;
-  struct in_addr inaddr;
-	struct timeval  tv;
+  struct in_addr  *dst;
+  struct in_addr  inaddr;
+  struct timeval  tv;
 
   inaddr.s_addr = dst6->s6_addr32[3];
   dst = &inaddr;
@@ -896,6 +908,3 @@ plugin_run(struct arglist * env)
 	plug_set_key(env, "Host/scanners/synscan", ARG_INT, (void*)1);
 	return 0;
 }
-
-
-
