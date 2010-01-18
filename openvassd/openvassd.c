@@ -56,6 +56,9 @@
 
 #include "proctitle.h" /* for setproctitle.h */
 
+#include <gnutls/gnutls.h>
+#include <gnutls/x509.h>
+
 #ifdef USE_LIBWRAP
 #include <tcpd.h>
 #include <syslog.h>
@@ -462,6 +465,32 @@ scanner_thread (struct arglist * globals)
   log_write("New connection timeout -- closing the socket\n");
   close_stream_connection(soc);
   EXIT(0);
+ }
+
+ /* Get X.509 cert subject name */
+ {
+   gnutls_session_t *session;
+   gnutls_x509_crt_t cert;
+   unsigned int cert_list_size = 0;
+   const gnutls_datum_t *cert_list;
+   unsigned int x509_dname_size = sizeof (x509_dname);
+
+   session = ovas_get_tlssession_from_connection (soc2);
+
+   if (gnutls_certificate_type_get (*session) != GNUTLS_CRT_X509) {
+     log_write ("Certificate is not an X.509 certificate.");
+     goto shutdown_and_exit;
+   }
+
+   cert_list = gnutls_certificate_get_peers (*session, &cert_list_size);
+
+   if (cert_list_size > 0)
+     {
+       gnutls_x509_crt_init (&cert);
+       gnutls_x509_crt_import (cert, cert_list, GNUTLS_X509_FMT_DER);
+       gnutls_x509_crt_get_dn (cert, x509_dname, &x509_dname_size);
+       gnutls_x509_crt_deinit (cert);
+     }
  }
 
  if(((perms = auth_check_user(globals, asciiaddr, x509_dname))==BAD_LOGIN_ATTEMPT)||

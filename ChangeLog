@@ -1,3 +1,11 @@
+2010-01-18  Michael Wiegand <michael.wiegand@intevation.de>
+
+	Re-enabling certificate authentication.
+
+	* openvassd/openvassd.c (scanner_thread): Added code for retrieving the
+	X.509 DName from a session certificate so that the DName can be passed
+	to auth_check_user(). Based on code suggested by Roman Imankulov.
+
 2010-01-12  Felix Wolfsteller <felix.wolfsteller@intevation.de>
 
 	* cnvts/synscan/synscan.c: Reformatting, added svn revision keyword
