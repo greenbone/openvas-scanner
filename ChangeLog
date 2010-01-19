@@ -1,3 +1,7 @@
+2010-01-19  Felix Wolfsteller <felix.wolfsteller@intevation.de>
+
+	* cnvts/synscan/synscan.c: Cosmetics, doc.
+
 2010-01-18  Michael Wiegand <michael.wiegand@intevation.de>
 
 	Re-enabling certificate authentication.
