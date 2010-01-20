@@ -1,3 +1,10 @@
+2010-01-20  Michael Wiegand <michael.wiegand@intevation.de>
+
+	Improved error handling in certificate authentication.
+
+	* openvassd/openvassd.c (scanner_thread): Added improved error detection
+	and handling as suggested by Stefan Bühler.
+
 2010-01-19  Felix Wolfsteller <felix.wolfsteller@intevation.de>
 
 	* cnvts/synscan/synscan.c: Cosmetics, doc.

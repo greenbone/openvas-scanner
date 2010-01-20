@@ -474,6 +474,7 @@ scanner_thread (struct arglist * globals)
    unsigned int cert_list_size = 0;
    const gnutls_datum_t *cert_list;
    unsigned int x509_dname_size = sizeof (x509_dname);
+   int ret;
 
    session = ovas_get_tlssession_from_connection (soc2);
 
@@ -487,8 +488,18 @@ scanner_thread (struct arglist * globals)
    if (cert_list_size > 0)
      {
        gnutls_x509_crt_init (&cert);
-       gnutls_x509_crt_import (cert, cert_list, GNUTLS_X509_FMT_DER);
-       gnutls_x509_crt_get_dn (cert, x509_dname, &x509_dname_size);
+       if ((ret = gnutls_x509_crt_import(cert, &cert_list[0], GNUTLS_X509_FMT_DER)) < 0)
+         {
+           log_write("certificate decoding error: %s\n", gnutls_strerror(ret));
+           gnutls_x509_crt_deinit (cert);
+           goto shutdown_and_exit;
+         }
+       if ((ret = gnutls_x509_crt_get_dn (cert, x509_dname, &x509_dname_size)) < 0)
+         {
+           log_write("couldn't get subject from certificate: %s\n", gnutls_strerror(ret));
+           gnutls_x509_crt_deinit (cert);
+           goto shutdown_and_exit;
+         }
        gnutls_x509_crt_deinit (cert);
      }
  }
