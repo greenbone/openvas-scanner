@@ -62,7 +62,7 @@ users_add_rule(struct openvas_rules * rules, char * rule)
   char * t = rule;
   int len;
 #ifdef DEBUG_RULES
- printf("parse %s\n", rule);
+ log_write("parse %s\n", rule);
 #endif
  while(rules->next)rules = rules->next;
  if(!strncmp(t, "default", 7))
@@ -96,6 +96,7 @@ users_add_rule(struct openvas_rules * rules, char * rule)
    len --;
   }
 
+  rules->family = AF_INET;
 
   if(!(inet_aton(rule,&rules->inaddrs.ip)))
 	 {
@@ -126,7 +127,7 @@ users_add_rule(struct openvas_rules * rules, char * rule)
    }
    else rules->next = emalloc(sizeof(*rules));
 #ifdef DEBUG_RULES
-   printf("Added rule %s/%d\n",inet_ntoa(rules->ip), rules->mask);
+   log_write("Added rule %s/%d\n",inet_ntoa(rules->inaddrs.ip), rules->mask);
 #endif
  }
 }
@@ -144,6 +145,7 @@ users_read_rules (struct openvas_rules * rules,  FILE * f, char * buffer,
   if(!fgets(buffer, len, f))return rules;
   t[strlen(t)-1]='\0';
   while ((t[0] == ' ') || (t[0] == '\t'))
+    /** @todo This should be t++. */
     t += sizeof(char);
 
   if (t[0] == '#' || t[0] == '\0')

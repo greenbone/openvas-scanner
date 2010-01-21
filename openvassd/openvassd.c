@@ -531,7 +531,7 @@ scanner_thread (struct arglist * globals)
        rules_set_client_ip(rules, &addrs, family);
      }
 #ifdef DEBUG_RULES
-     printf("Rules have been added : \n");
+     log_write("Rules have been added : \n");
      rules_dump(rules);
 #endif
      arg_set_value(globals, "rules", -1, rules);

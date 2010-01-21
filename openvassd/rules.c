@@ -376,7 +376,7 @@ void rules_add(struct openvas_rules **rules,
   t = *rules;
   if(t)while(t->next)
   {
-    printf("DEFAULT: %s/%d\n", inet_ntoa(t->ip), t->mask);
+    log_write("DEFAULT: %s/%d\n", inet_ntoa(t->inaddrs.ip), t->mask);
     t = t->next;
   }
 #endif
@@ -388,7 +388,7 @@ void rules_add(struct openvas_rules **rules,
   if(t != NULL)while(t->next != NULL)
   {
 #ifdef DEBUG_RULES
-    printf("rules_add : %d %s/%d\n", t->rule, inet_ntoa(t->ip), t->mask);
+    log_write("rules_add : %d %s/%d\n", t->rule, inet_ntoa(t->inaddrs.ip), t->mask);
 #endif
     if(t->rule == RULES_ACCEPT)
     {
@@ -443,7 +443,7 @@ void rules_add(struct openvas_rules **rules,
   rules_set_def(*rules, def);
 
 #ifdef DEBUG_RULES
-  printf("After rules_cat : \n");
+  log_write("After rules_cat : \n");
   rules_dump(*rules);
 #endif
 }
@@ -458,10 +458,10 @@ rules_dump(struct openvas_rules * rules)
   while(r)
   {
     if(r->family == AF_INET)
-      printf("%d %c%s/%d (def %d)\n", r->rule, r->not?'!':' ', inet_ntop(r->family, &r->inaddrs.ip, buf,sizeof(buf)), r->mask,
+      log_write("rule: ip4 %d %c%s/%d (def %d)\n", r->rule, r->not?'!':' ', inet_ntop(r->family, &r->inaddrs.ip, buf,sizeof(buf)), r->mask,
           r->def);
     else
-      printf("%d %c%s/%d (def %d)\n", r->rule, r->not?'!':' ', inet_ntop(r->family, &r->inaddrs.ip6, buf,sizeof(buf)), r->mask,
+      log_write("rule: ip6 %d %c%s/%d (def %d)\n", r->rule, r->not?'!':' ', inet_ntop(r->family, &r->inaddrs.ip6, buf,sizeof(buf)), r->mask,
           r->def);
     r = r->next;
   }

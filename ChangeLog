@@ -1,3 +1,14 @@
+2010-01-22  Matthew Mundell <matthew.mundell@intevation.de>
+
+	* openvassd/users.c [DEBUG_RULES]: Print with log_write.
+	(users_add_rule): Set the rule family.
+
+	* openvassd/rules.c [DEBUG_RULES]: Print with log_write.
+	(rules_dump): Add ip4 or ip6 on front of line.
+
+	* openvassd/openvassd.c (scanner_thread) [DEBUG_RULES]: Print with
+	log_write.
+
 2010-01-21  Matthew Mundell <matthew.mundell@intevation.de>
 
 	* openvassd/openvassd.c (scanner_thread): Format more consistently.
