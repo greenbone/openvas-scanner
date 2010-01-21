@@ -397,7 +397,7 @@ scanner_thread (struct arglist * globals)
 #endif
 
  asciiaddr = emalloc(INET6_ADDRSTRLEN);
- if(family == AF_INET)
+ if (family == AF_INET)
  {
    saddr = (struct sockaddr_in *)addr;
    setproctitle("serving %s", inet_ntoa(saddr->sin_addr));
@@ -431,27 +431,27 @@ scanner_thread (struct arglist * globals)
  /* Close the scanner thread - it is useless for us now */
  close (global_iana_socket);
 
-     soc2 = ovas_scanner_context_attach (ovas_scanner_ctx, soc);
-     if (soc2 < 0)
-       goto shutdown_and_exit;
+ soc2 = ovas_scanner_context_attach (ovas_scanner_ctx, soc);
+ if (soc2 < 0)
+   goto shutdown_and_exit;
 
-     /* FIXME: The pre-gnutls code optionally printed information about
-      * the peer's certificate at this point.
-      */
+ /* FIXME: The pre-gnutls code optionally printed information about
+  * the peer's certificate at this point.
+  */
 
  setsockopt(soc, SOL_SOCKET, SO_KEEPALIVE, &opt, sizeof(opt));
  /* arg_set_value *replaces* an existing value, but it shouldn't fail here */
  (void) arg_set_value(globals, "global_socket", -1, GSIZE_TO_POINTER(soc2));
 
 #ifdef HAVE_ADDR2ASCII
- if(family == AF_INET)
-  addr2ascii(AF_INET, &saddr->sin_addr, sizeof(struct in_addr), asciiaddr);
+ if (family == AF_INET)
+   addr2ascii(AF_INET, &saddr->sin_addr, sizeof(struct in_addr), asciiaddr);
 #elif defined(HAVE_INET_NETA)
- if(family == AF_INET)
-  inet_neta(ntohl(saddr->sin_addr.s_addr), asciiaddr, 20);
+ if (family == AF_INET)
+   inet_neta(ntohl(saddr->sin_addr.s_addr), asciiaddr, 20);
 #else
- if(family == AF_INET)
-  asciiaddr = estrdup(inet_ntoa(saddr->sin_addr));
+ if (family == AF_INET)
+   asciiaddr = estrdup(inet_ntoa(saddr->sin_addr));
  else
  {
    char *addrstr = emalloc(INET6_ADDRSTRLEN);
@@ -460,11 +460,11 @@ scanner_thread (struct arglist * globals)
  }
 #endif
  protocol_version = comm_init(soc2);
- if(!protocol_version)
+ if (!protocol_version)
  {
-  log_write("New connection timeout -- closing the socket\n");
-  close_stream_connection(soc);
-  EXIT(0);
+   log_write("New connection timeout -- closing the socket\n");
+   close_stream_connection(soc);
+   EXIT(0);
  }
 
  /* Get X.509 cert subject name */
@@ -478,7 +478,8 @@ scanner_thread (struct arglist * globals)
 
    session = ovas_get_tlssession_from_connection (soc2);
 
-   if (gnutls_certificate_type_get (*session) != GNUTLS_CRT_X509) {
+   if (gnutls_certificate_type_get (*session) != GNUTLS_CRT_X509)
+   {
      log_write ("Certificate is not an X.509 certificate.");
      goto shutdown_and_exit;
    }
@@ -486,26 +487,26 @@ scanner_thread (struct arglist * globals)
    cert_list = gnutls_certificate_get_peers (*session, &cert_list_size);
 
    if (cert_list_size > 0)
+   {
+     gnutls_x509_crt_init (&cert);
+     if ((ret = gnutls_x509_crt_import(cert, &cert_list[0], GNUTLS_X509_FMT_DER)) < 0)
      {
-       gnutls_x509_crt_init (&cert);
-       if ((ret = gnutls_x509_crt_import(cert, &cert_list[0], GNUTLS_X509_FMT_DER)) < 0)
-         {
-           log_write("certificate decoding error: %s\n", gnutls_strerror(ret));
-           gnutls_x509_crt_deinit (cert);
-           goto shutdown_and_exit;
-         }
-       if ((ret = gnutls_x509_crt_get_dn (cert, x509_dname, &x509_dname_size)) < 0)
-         {
-           log_write("couldn't get subject from certificate: %s\n", gnutls_strerror(ret));
-           gnutls_x509_crt_deinit (cert);
-           goto shutdown_and_exit;
-         }
+       log_write("certificate decoding error: %s\n", gnutls_strerror(ret));
        gnutls_x509_crt_deinit (cert);
+       goto shutdown_and_exit;
      }
+     if ((ret = gnutls_x509_crt_get_dn (cert, x509_dname, &x509_dname_size)) < 0)
+     {
+       log_write("couldn't get subject from certificate: %s\n", gnutls_strerror(ret));
+       gnutls_x509_crt_deinit (cert);
+       goto shutdown_and_exit;
+     }
+     gnutls_x509_crt_deinit (cert);
+   }
  }
 
- if(((perms = auth_check_user(globals, asciiaddr, x509_dname))==BAD_LOGIN_ATTEMPT)||
-   !perms)
+ if (((perms = auth_check_user(globals, asciiaddr, x509_dname))==BAD_LOGIN_ATTEMPT)||
+     !perms)
  {
    auth_printf(globals, "Bad login attempt !\n");
    log_write("bad login attempt from %s\n",
@@ -513,25 +514,27 @@ scanner_thread (struct arglist * globals)
    efree (&asciiaddr);
    goto shutdown_and_exit;
  }
-  else {
+ else
+ {
    efree (&asciiaddr);
-   if(perms){
-     	rules_add(&rules, &perms, NULL);
-  if(family == AF_INET)
-  {
-    addrs.ip.s_addr = saddr->sin_addr.s_addr;
-    rules_set_client_ip(rules, &addrs, family);
-  }
-  else
-  {
-    memcpy(&addrs.ip6,&s6addr,sizeof(struct in6_addr));
-	  rules_set_client_ip(rules, &addrs, family);
-  }
+   if (perms)
+   {
+     rules_add(&rules, &perms, NULL);
+     if (family == AF_INET)
+     {
+       addrs.ip.s_addr = saddr->sin_addr.s_addr;
+       rules_set_client_ip(rules, &addrs, family);
+     }
+     else
+     {
+       memcpy(&addrs.ip6,&s6addr,sizeof(struct in6_addr));
+       rules_set_client_ip(rules, &addrs, family);
+     }
 #ifdef DEBUG_RULES
-  printf("Rules have been added : \n");
-	rules_dump(rules);
+     printf("Rules have been added : \n");
+     rules_dump(rules);
 #endif
-	arg_set_value(globals, "rules", -1, rules);
+     arg_set_value(globals, "rules", -1, rules);
    }
 
    arg_set_value (globals, "plugins", -1, plugins);
@@ -543,9 +546,9 @@ scanner_thread (struct arglist * globals)
 
    /* Become process group leader and the like ... */
    start_daemon_mode();
-wait :
+wait:
 #ifdef ENABLE_SAVE_TESTS
-   if(arg_get_value(globals, "RESTORE-SESSION"))
+   if (arg_get_value(globals, "RESTORE-SESSION"))
      arg_set_value(globals, "RESTORE-SESSION", sizeof(int),(void*)2);
    else
      arg_add_value(globals, "RESTORE-SESSION", ARG_INT, sizeof(int),(void*)2);
@@ -556,25 +559,25 @@ wait :
    ntp_1x_timestamp_scan_starts (globals);
    e = attack_network (globals);
    ntp_1x_timestamp_scan_ends(globals);
-   if(e < 0)
-    EXIT(0);
+   if (e < 0)
+     EXIT(0);
    comm_terminate(globals);
-   if(arg_get_value(prefs, "ntp_keep_communication_alive"))
-    {
-   	log_write("user %s : Kept alive connection",
-			(char*)arg_get_value(globals, "user"));
-   	goto wait;
-    }
-  }
+   if (arg_get_value(prefs, "ntp_keep_communication_alive"))
+   {
+     log_write("user %s : Kept alive connection",
+               (char*)arg_get_value(globals, "user"));
+     goto wait;
+   }
+ }
 
- shutdown_and_exit:
+shutdown_and_exit:
  if (soc2 >= 0)
    close_stream_connection(soc2);
  else
-   {
- shutdown(soc, 2);
- close(soc);
-   }
+ {
+   shutdown(soc, 2);
+   close(soc);
+ }
 
  /* Kill left overs */
  end_daemon_mode();
