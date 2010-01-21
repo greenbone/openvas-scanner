@@ -1,3 +1,8 @@
+2010-01-21  Matthew Mundell <matthew.mundell@intevation.de>
+
+	* openvassd/users.c, openvassd/rules.c, openvassd/openvassd.c: Flush
+	trailing whitespace.
+
 2010-01-20  Michael Wiegand <michael.wiegand@intevation.de>
 
 	Improved error handling in certificate authentication.
@@ -273,7 +278,7 @@
 	* openvassd/comm.h: Adjusted proto accordingly.
 
 	* openvassd/attack.c, openvassd/utils.c, openvassd/ntp_11.c:
-	Removed unnecessary include of ntp.h. 
+	Removed unnecessary include of ntp.h.
 
 2009-10-19  Michael Wiegand <michael.wiegand@intevation.de>
 

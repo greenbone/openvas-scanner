@@ -120,9 +120,9 @@ static void rules_ipv6addrmask(struct in6_addr *in6addr, int mask)
 
 /**
  * @brief Returns the name of the rules file.
- * 
+ *
  * @param preferences Preference- arglist (where rules are hooked in).
- * 
+ *
  * @return Filename of rules file.
  */
 static char *
@@ -141,13 +141,13 @@ rules_new(preferences)
   struct openvas_rules * nr = emalloc(sizeof(*nr));
   FILE * f;
   nr->rule = RULES_ACCEPT;
-  
+
   f = fopen(filename,"w");
   if(!f){
      perror("rules_new():open ");
      return nr;
   }
-     
+
   fprintf(f, "#\n# OpenVAS rules\n#\n\n");
   fprintf(f, "# Syntax : accept|reject address/netmask\n");
   fprintf(f, "\n# Accept to test anything : \n");
@@ -182,7 +182,7 @@ int rules_init_aux(struct openvas_rules * rules, FILE * file,
         continue;
       v = strchr(t, ' ');
       if( v == NULL ){
-        printf("Parse error in the rules file : %s\n", 
+        printf("Parse error in the rules file : %s\n",
             buffer);
         continue;
       }
@@ -310,12 +310,12 @@ rules_init(rules, preferences)
  def = rules_init_aux(nr, f, buffer, sizeof(buffer), 0);
  *rules = nr;
  rules_set_def(*rules, def);
- 
+
  fclose(f);
 }
 
 struct openvas_rules *
-rules_cat(struct openvas_rules * a, 
+rules_cat(struct openvas_rules * a,
     	struct openvas_rules * b)
 {
  struct openvas_rules * s = a;
@@ -361,22 +361,22 @@ void rules_set_def(struct openvas_rules * r, int def)
 	rules_set_def(r->next, def);
   }
 }
- 
-void rules_add(struct openvas_rules **rules, 
-		struct openvas_rules **user, 
+
+void rules_add(struct openvas_rules **rules,
+		struct openvas_rules **user,
 		char * username)
 {
   struct openvas_rules * accept_rules = emalloc(sizeof(**rules));
   struct openvas_rules * reject_rules = emalloc(sizeof(**rules));
   struct openvas_rules * t, *o, *p;
   int def = (*rules)->def;
-  
+
   if(!def)def = RULES_ACCEPT;
-#ifdef DEBUG_RULES  
+#ifdef DEBUG_RULES
   t = *rules;
   if(t)while(t->next)
   {
-    printf("DEFAULT: %s/%d\n", inet_ntoa(t->ip), t->mask); 
+    printf("DEFAULT: %s/%d\n", inet_ntoa(t->ip), t->mask);
     t = t->next;
   }
 #endif
@@ -384,12 +384,12 @@ void rules_add(struct openvas_rules **rules,
   o = accept_rules;
   p = reject_rules;
   if(t->def == RULES_REJECT)def = RULES_REJECT;
-  
+
   if(t != NULL)while(t->next != NULL)
   {
 #ifdef DEBUG_RULES
     printf("rules_add : %d %s/%d\n", t->rule, inet_ntoa(t->ip), t->mask);
-#endif    
+#endif
     if(t->rule == RULES_ACCEPT)
     {
       if(!username)
@@ -437,11 +437,11 @@ void rules_add(struct openvas_rules **rules,
   reject_rules = p;
   if(def == RULES_ACCEPT)
     *rules = rules_cat(rules_cat(reject_rules, *rules),accept_rules);
-  else 
+  else
     *rules = rules_cat(reject_rules, rules_cat(*rules, accept_rules));
 
   rules_set_def(*rules, def);
-   
+
 #ifdef DEBUG_RULES
   printf("After rules_cat : \n");
   rules_dump(*rules);
@@ -559,5 +559,5 @@ rules_free (struct openvas_rules* rules)
   struct openvas_rules * next = rules->next;
   efree(&rules);
   rules = next;
- }  
+ }
 }

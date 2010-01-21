@@ -125,8 +125,8 @@ users_add_rule(struct openvas_rules * rules, char * rule)
      bzero(rules, sizeof(*rules));
    }
    else rules->next = emalloc(sizeof(*rules));
-#ifdef DEBUG_RULES 
-   printf("Added rule %s/%d\n",inet_ntoa(rules->ip), rules->mask); 
+#ifdef DEBUG_RULES
+   printf("Added rule %s/%d\n",inet_ntoa(rules->ip), rules->mask);
 #endif
  }
 }
@@ -158,7 +158,7 @@ users_read_rules (struct openvas_rules * rules,  FILE * f, char * buffer,
 # define MD5_DIGEST_LENGTH	16
 #endif
 
-struct openvas_rules * 
+struct openvas_rules *
 check_user(char * user, char * password, char * dname)
 {
   struct openvas_rules* ret = NULL;
@@ -179,7 +179,7 @@ check_user(char * user, char * password, char * dname)
 #endif
 
   /* Should we change this for certificate authentication? */
-  if( password == NULL || 
+  if( password == NULL ||
       password[0] == '\0' )
    return BAD_LOGIN_ATTEMPT;
 
@@ -222,8 +222,8 @@ check_user(char * user, char * password, char * dname)
        int	i, x, n;
 
        /*
-	* file contains one or two string: 
-	* the 1st one is the hex encoded MD5 hash of the seed 
+	* file contains one or two string:
+	* the 1st one is the hex encoded MD5 hash of the seed
 	* concatenated to the password (or just the password),
 	* 2nd one (if any) is the seed, in ASCII, without space.
 	*/
@@ -297,7 +297,7 @@ check_user(char * user, char * password, char * dname)
    	return BAD_LOGIN_ATTEMPT;
      }
   }
- 
+
  snprintf(fname, sizeof(fname), "%s/%s/auth/rules", OPENVASSD_LOGINS, user);
  if ((f = fopen(fname, "r")) == NULL)
    perror(fname);

@@ -269,7 +269,7 @@ start_daemon_mode (void)
 
   /* become process group leader */
   if (setsid () < 0) {
-    log_write 
+    log_write
       ("Warning: Cannot set process group leader (%s)\n", strerror (errno));
   }
 
@@ -530,7 +530,7 @@ scanner_thread (struct arglist * globals)
 #ifdef DEBUG_RULES
   printf("Rules have been added : \n");
 	rules_dump(rules);
-#endif	
+#endif
 	arg_set_value(globals, "rules", -1, rules);
    }
 
@@ -548,7 +548,7 @@ wait :
    if(arg_get_value(globals, "RESTORE-SESSION"))
      arg_set_value(globals, "RESTORE-SESSION", sizeof(int),(void*)2);
    else
-     arg_add_value(globals, "RESTORE-SESSION", ARG_INT, sizeof(int),(void*)2); 
+     arg_add_value(globals, "RESTORE-SESSION", ARG_INT, sizeof(int),(void*)2);
 #endif
    comm_wait_order (globals);
    preferences_reset_cache ();
@@ -656,7 +656,7 @@ main_loop ()
 		      "*** 'cert_file' is not set - did you run openvas-mkcert?\n");
 	      exit (1);
 	    }
-  
+
 	  if (key == NULL)
 	    {
 	      fprintf(stderr,
@@ -854,11 +854,11 @@ main_loop ()
  * we setup the socket that will listen for incoming connections on port \<port\>
  * on address \<addr\> (which are set to OPENVAS_IANA_OTP_PORT and INADDR_ANY by
  * default).
- * 
+ *
  * @param port Port on which to listen.
  * @param[out] sock Socket to be initialized.
  * @param addr Adress.
- * 
+ *
  * @return 0 on success. Exit(1)s on failure.
  */
 static int
@@ -897,7 +897,7 @@ init_network (int port, int* sock, struct addrinfo addr)
 
 /**
  * @brief Initialize everything.
- * 
+ *
  * @param stop_early 1: do some initialization, 2: no initialization.
  */
 static int
@@ -1009,7 +1009,7 @@ main (int argc, char * argv[], char * envp[])
 
   initsetproctitle (argc, argv, envp);
 
-  if ((myself = strrchr (*argv, '/')) == 0) 
+  if ((myself = strrchr (*argv, '/')) == 0)
     myself = *argv ;
   else
     myself ++ ;
