@@ -1,5 +1,10 @@
 2010-01-22  Felix Wolfsteller <felix.wolfsteller@intevation.de>
 
+	* cnvts/synscan/synscan.c: More cosmetics and debug output (conditional
+	on DEBUG macro).
+
+2010-01-22  Felix Wolfsteller <felix.wolfsteller@intevation.de>
+
 	* cnvts/openvas_tcp_scanner/openvas_tcp_scanner.c, openvassd/hosts.c: Flush trailing white
 	spaces, minor other cosmetic changes.
 

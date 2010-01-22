@@ -11,7 +11,6 @@
 #include <openvas/scanners_utils.h> /* for getpts */
 #include <openvas/system.h> /* for efree */
 
-
 #undef DEBUG
 #undef SHOW_RETRIES
 #undef SHOW_RTT_REMOVAL
@@ -133,6 +132,9 @@ packetdead (unsigned long then, unsigned long rtt)
 }
 
 
+/**
+ * @brief Opens and returns a raw socket.
+ */
 int
 rawsocket (int family)
 {
@@ -140,31 +142,34 @@ rawsocket (int family)
   int opt = 1;
   int offset = 8;
 
-  if(family == AF_INET)
-  {
-    soc = socket(AF_INET, SOCK_RAW, IPPROTO_RAW);
-    if (soc < 0) {
-     perror("socket ");
-     printf("error opening socket\n");
-     return -1;
+  if (family == AF_INET)
+    {
+      soc = socket (AF_INET, SOCK_RAW, IPPROTO_RAW);
+      if (soc < 0)
+        {
+          perror ("socket ");
+          printf ("error opeinig socket\n");
+          return -1;
+        }
+      if (setsockopt (soc, IPPROTO_IP, IP_HDRINCL, /*(char *) */&opt, sizeof (opt)) < 0)
+        {
+          perror ("setsockopt ");
+          printf ("error setting socket opt\n");
+          close (soc);
+          return -1;
+        }
     }
-    if (setsockopt(soc, IPPROTO_IP, IP_HDRINCL, (char *) &opt, sizeof(opt)) < 0) {
-      perror("setsockopt ");
-      printf("error setting socket opt\n");
-      close(soc);
-      return -1;
-    }
-  }
   else
-  {
-    soc = socket(AF_INET6, SOCK_RAW, IPPROTO_TCP);
-    if (soc < 0) {
-     perror("socket ");
-     printf("error opening socket\n");
-     return -1;
+    {
+      soc = socket (AF_INET6, SOCK_RAW, IPPROTO_TCP);
+      if (soc < 0)
+        {
+          perror ("socket ");
+          printf ("error opeinig socket\n");
+          return -1;
+        }
+      setsockopt (soc, IPPROTO_IPV6, IPV6_CHECKSUM, &offset, sizeof (offset));
     }
-    setsockopt(soc, IPPROTO_IPV6, IPV6_CHECKSUM, &offset, sizeof(offset));
-  }
 
   return soc;
 }
@@ -241,10 +246,14 @@ get_packet (struct list * l, unsigned short dport)
 }
 
 
+/**
+ * @brief If no packet with \ref dport is in list, prepends a "packet" to the
+ * @brief list \ref l.
+ */
 struct list*
 add_packet (struct list * l, unsigned short dport, unsigned long ack)
 {
-	struct list    *ret;
+	struct list *ret;
 
 	ret = get_packet (l, dport);
 	if (ret != NULL)
@@ -332,7 +341,6 @@ rm_dead_packets (struct list * l, unsigned long rtt, int *retry)
 
 
 
-
 /*-----------------------------------------------------------------------------*/
 
 
@@ -388,7 +396,7 @@ extractsport (char *pkt, int len, int family)
         tcp = v6_extracttcp(pkt, len);
 
  if(tcp == NULL)return 0;
- 
+
 	return ntohs(tcp->th_sport);
 }
 
@@ -457,7 +465,8 @@ mktcp (struct in_addr src, int sport, struct in_addr dst, int dport,
 }
 
 char *
-mktcpv6 (struct in6_addr *src, int sport, struct in6_addr *dst, int dport, unsigned long th_ack, unsigned char flag)
+mktcpv6 (struct in6_addr *src, int sport, struct in6_addr *dst, int dport,
+         unsigned long th_ack, unsigned char flag)
 {
   static char pkt[sizeof (struct tcphdr)];
   struct tcphdr  *tcp;
@@ -616,16 +625,17 @@ sendpacket (int soc, int bpf, int skip, struct in_addr dst, struct in_addr src,
             int sniff, struct arglist * env)
 {
 	unsigned long   ack = maketime();
-	char           *pkt = mktcp(src, magic, dst, dport, ack, TH_SYN);
+	char           *pkt = mktcp (src, magic, dst, dport, ack, TH_SYN);
 	int             len;
 	char           *res;
 	struct sockaddr_in soca;
 	struct timeval rtt_tv = timeval(*rtt);
 	int family = AF_INET;
 
-	bzero (&soca, sizeof (soca));
-	soca.sin_family = AF_INET;
-	soca.sin_addr = dst;
+        bzero (&soca, sizeof (soca));
+        soca.sin_family = AF_INET;
+        soca.sin_addr = dst;
+
 	rtt_tv.tv_sec *= 1000;
 	rtt_tv.tv_sec /= 8;
 	
@@ -658,17 +668,17 @@ again:
 			if (synack) {
 			  char * rst;
 #ifdef DEBUG
-				printf("=> Port %d is open\n", sport);
+                          printf("=> Port %d is open\n", sport);
 #endif
-			   scanner_add_port(env, sport, "tcp");
+			   scanner_add_port (env, sport, "tcp");
 			  /* Send a RST to make sure the connection is closed on the remote side */
 			  rst = mktcp(src, magic, dst, sport, ack + 1, TH_RST);
 			  sendto(soc, rst, sizeof(struct ip) + sizeof(struct tcphdr), 0, (struct sockaddr *) & soca, sizeof(soca));
 
 			  /* Adjust the rtt */
 			  *rtt = compute_rtt(rack);
-			  if ( ntohl(*rtt) >= ( 1 << 28 ) ) *rtt = 1 << 28;
-
+			  if (ntohl (*rtt) >= (1 << 28))
+			    *rtt = 1 << 28;
 			}
 			packets = rm_packet(packets, sport);
 			rtt_tv.tv_sec = 0;
@@ -778,14 +788,17 @@ scan (struct arglist * env, struct in6_addr *dst6, unsigned long rtt)
       soc = rawsocket (AF_INET6);
     }
 #ifdef DEBUG
-  printf ("===> port range = %s\n", range);
+  printf ("===> Port range = %s\n", portrange);
+  printf ("===> Target IP Family = %s\n", (family == AF_INET6) ? "v6"
+                                                               : "v4");
+  printf ("===> Target = %s\n", inet_ntoa (dst));
 #endif
 
   ports = (unsigned short *) getpts (range, &num);
 
   if (soc < 0)
     {
-      printf ("error opeining raw socket\n");
+      printf ("error opening raw socket\n");
       return -1;
     }
 
@@ -798,6 +811,9 @@ scan (struct arglist * env, struct in6_addr *dst6, unsigned long rtt)
   /** This will send packets to ports not in ports list, will it? */
   for (i = 0; i < num ; i += 2)
     {
+#ifdef DEBUG
+      printf ("====> Sending packet to (at least) %d\n", ports[i]);
+#endif
       if (i % 100 == 0)
         comm_send_status (globals, hname, "portscan", i, num);
 
@@ -844,7 +860,7 @@ scan (struct arglist * env, struct in6_addr *dst6, unsigned long rtt)
 
   comm_send_status (globals, hname, "portscan", num, num);
 #if 0
-  plug_set_key(env, "Host/num_ports_scanned", ARG_INT, (void*)num);
+  plug_set_key (env, "Host/num_ports_scanned", ARG_INT, (void*)num);
 #endif
   close (soc);
   bpf_close (bpf);
