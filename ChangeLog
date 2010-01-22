@@ -1,11 +1,24 @@
 2010-01-22  Felix Wolfsteller <felix.wolfsteller@intevation.de>
 
+	Added code for a very basic standalone synscanner based on the cnvt to
+	ease debugging (e.g. IPv6 might not yet work).
+
+	* cnvts/synscan/synscan.c: Remove undef of DEBUG macro.
+	[DEBUG] (openbpf): Be very verbose.
+	(scan): Instead of accessing values in arglists, accept these values as
+	parameters, slighty more verbose ifdef DEBUG.
+	(plugin_run): Find and pass new parameters for scan().
+	[STANDALONE] (main): New. Main for the standalone synscanner.
+
+2010-01-22  Felix Wolfsteller <felix.wolfsteller@intevation.de>
+
 	* cnvts/synscan/synscan.c: More cosmetics and debug output (conditional
 	on DEBUG macro).
 
 2010-01-22  Felix Wolfsteller <felix.wolfsteller@intevation.de>
 
-	* cnvts/openvas_tcp_scanner/openvas_tcp_scanner.c, openvassd/hosts.c: Flush trailing white
+	* cnvts/openvas_tcp_scanner/openvas_tcp_scanner.c, openvassd/hosts.c:
+	Flush trailing white
 	spaces, minor other cosmetic changes.
 
 	* openvassd/attack.c, openvassd/attack.h: Cosmetics, docs.

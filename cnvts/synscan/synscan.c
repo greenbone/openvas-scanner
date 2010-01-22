@@ -11,7 +11,7 @@
 #include <openvas/scanners_utils.h> /* for getpts */
 #include <openvas/system.h> /* for efree */
 
-#undef DEBUG
+
 #undef SHOW_RETRIES
 #undef SHOW_RTT_REMOVAL
 
@@ -193,7 +193,13 @@ openbpf (struct in_addr dst, struct in_addr * src, int magic)
 	int             bpf;
 
 	iface = routethrough (&dst, src);
-	snprintf (filter, sizeof (filter), "tcp and src host %s and dst port %d", inet_ntoa (dst), magic);
+#ifdef DEBUG
+        printf ("Source adress found via routethrough: %s\n", inet_ntoa (*src));
+#endif
+        snprintf (filter, sizeof (filter), "tcp and src host %s and dst port %d", inet_ntoa (dst), magic);
+#ifdef DEBUG
+        printf ("Open bpf on interface %s with filter: %s\n", iface, filter);
+#endif
 	bpf = bpf_open_live (iface, filter);
 	return bpf;
 }
@@ -754,7 +760,8 @@ v6_sendpacket (int soc, int bpf, int skip, struct in6_addr *dst,
  * @return -1 if the socket could not be opened (error), 0 otherwise.
  */
 int
-scan (struct arglist * env, struct in6_addr *dst6, unsigned long rtt)
+scan (struct arglist * env, char* hostname, char* portrange,
+      struct in6_addr *dst6, unsigned long rtt)
 {
   int             num;
   int             soc;
@@ -766,17 +773,14 @@ scan (struct arglist * env, struct in6_addr *dst6, unsigned long rtt)
   int             skip;
   int             i;
   struct list    *packets = NULL;
-  struct arglist *globals = arg_get_value (env, "globals");
-  struct arglist *hostinfos = arg_get_value (env, "HOSTNAME");
-  char           *hname = arg_get_value (hostinfos, "NAME");
+  struct arglist *globals = (env) ? arg_get_value (env, "globals") : NULL;
   int             retry;
-  char           *range = get_preference (env, "port_range");
   unsigned short *ports;
   int family;
 
   dst.s_addr = 0;
 
-  if(IN6_IS_ADDR_V4MAPPED (dst6))
+  if (IN6_IS_ADDR_V4MAPPED (dst6))
     {
       family = AF_INET;
       dst.s_addr = dst6->s6_addr32[3];
@@ -794,7 +798,7 @@ scan (struct arglist * env, struct in6_addr *dst6, unsigned long rtt)
   printf ("===> Target = %s\n", inet_ntoa (dst));
 #endif
 
-  ports = (unsigned short *) getpts (range, &num);
+  ports = (unsigned short *) getpts (portrange, &num);
 
   if (soc < 0)
     {
@@ -815,7 +819,7 @@ scan (struct arglist * env, struct in6_addr *dst6, unsigned long rtt)
       printf ("====> Sending packet to (at least) %d\n", ports[i]);
 #endif
       if (i % 100 == 0)
-        comm_send_status (globals, hname, "portscan", i, num);
+        comm_send_status (globals, hostname, "portscan", i, num);
 
       if (family == AF_INET)
         packets = sendpacket (soc, bpf, skip, dst, src, ports[i], magic,
@@ -825,6 +829,9 @@ scan (struct arglist * env, struct in6_addr *dst6, unsigned long rtt)
                                  packets, &rtt, 0, env);
       if (i + 1 < num)
         {
+#ifdef DEBUG
+          printf ("=====>> Sniffing %d\n", ports[i+1]);
+#endif
           if (family == AF_INET)
             packets = sendpacket (soc, bpf, skip, dst, src, ports[i + 1],
                                   magic, packets, &rtt, 1, env);
@@ -843,6 +850,9 @@ scan (struct arglist * env, struct in6_addr *dst6, unsigned long rtt)
   {
     while (packets != NULL)
       {
+#ifdef DEBUG
+        printf ("===> Retry...\n");
+#endif
         i = 0;
         retry = 0;
         packets = rm_dead_packets (packets, rtt, &retry);
@@ -858,7 +868,7 @@ scan (struct arglist * env, struct in6_addr *dst6, unsigned long rtt)
       }
   }
 
-  comm_send_status (globals, hname, "portscan", num, num);
+  comm_send_status (globals, hostname, "portscan", num, num);
 #if 0
   plug_set_key (env, "Host/num_ports_scanned", ARG_INT, (void*)num);
 #endif
@@ -939,8 +949,52 @@ plugin_run (struct arglist * env)
 	printf ("That's %d seconds and %d usecs\n", tv.tv_sec, tv.tv_usec);
 #endif
 
-  scan (env, dst6, rtt);
+  struct arglist *hostinfos = arg_get_value (env, "HOSTNAME");
+  char           *hostname  = arg_get_value (hostinfos, "NAME");
+  char           *range = get_preference (env, "port_range");
+  scan (env, hostname, range, dst6, rtt);
   plug_set_key (env, "Host/scanned", ARG_INT, (void *) 1);
   plug_set_key (env, "Host/scanners/synscan", ARG_INT, (void*)1);
   return 0;
 }
+
+
+#ifdef STANDALONE
+/**
+ * @brief main- function of a basic standalone syn-scanner (for debugging
+ * @brief purposes). Define STANDALONE and DEBUG and link against
+ * @brief libopenvas_hg, libopenvas_base and libopenvas_misc.
+ *
+ * Call like standalone-synscan \<host\> [portrange]
+ * (e.g. "standalone-syncscan myhost.mydomain 10-100")
+ */
+int
+main (int argc, char* argv[])
+{
+  char* target    = NULL;
+  char* portrange = "default";
+  unsigned long rtt = htonl (1 << 28);
+  struct in6_addr dst6;
+
+  if (argc < 2)
+    {
+      printf ("Usage: synscan_standalone <host> [portrange].\n");
+      exit (1);
+    }
+
+  if (argc == 3)
+    {
+      portrange = argv[2];
+    }
+
+  target = argv[1];
+
+  printf ("Resolving host...\n");
+  hg_resolv (target, &dst6, AF_INET6);
+  printf ("Starting scan\n");
+  scan (NULL, target, portrange, &dst6, rtt);
+  printf ("Done.\n");
+
+  exit (0);
+}
+#endif
