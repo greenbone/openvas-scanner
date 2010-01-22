@@ -23,8 +23,6 @@
 * You should have received a copy of the GNU General Public License
 * along with this program; if not, write to the Free Software
 * Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA 02110-1301 USA.
-*
-*
 */
 
 #include <includes.h>
@@ -77,7 +75,8 @@ static void sigchld_handler(int sig)
 }
 
 /*-------------------------------------------------------------------------*/
-static int forward(struct arglist * globals, int in, int out)
+static int
+forward (struct arglist * globals, int in, int out)
 {
  struct arglist * preferences = globals ? arg_get_value(globals, "preferences"):NULL;
  static char * buf = NULL;
@@ -130,7 +129,7 @@ static int forward(struct arglist * globals, int in, int out)
 
 
 static void forward_all(struct arglist * globals, int in, int out)
-{ 
+{
  while(forward(globals, in, out) == 0);
 }
 /*-------------------------------------------------------------------*/
@@ -142,14 +141,13 @@ static struct host * host_rm(struct arglist * globals, struct host * hosts, stru
 
  if(h->pid != 0)waitpid(h->pid, NULL, WNOHANG);
  forward_all(globals, h->soc, g_soc);
- 
+
  if( preferences_save_session(preferences) != 0 )
    	save_tests_host_done(globals, h->name);
-	
-	
+
  close(h->soc);
  if(h->psoc != 0)close(h->psoc);
- 
+
  if( h->next != NULL )
   	h->next->prev = h->prev;
 
@@ -204,18 +202,18 @@ int hosts_init(int soc, int max_hosts)
  return 0;
 }
 
-int hosts_new(struct arglist * globals, char * name)
+int
+hosts_new (struct arglist * globals, char * name)
 {
  struct host * h;
  int soc[2];
- 
+
  while(hosts_num() >= g_max_hosts)
  {
   if(hosts_read(globals) < 0)
    return -1;
  }
- 
- 
+
  if(socketpair(AF_UNIX, SOCK_STREAM, 0, soc) < 0)
   return -1;
 
@@ -241,7 +239,7 @@ int hosts_set_pid(char * name, pid_t pid)
   fprintf(stderr, "host_set_pid() failed!\n");
   return -1;
   }
- 
+
  h->pid = pid;
  close(h->psoc); /* Close the socket used by our son */
  h->psoc = 0;
@@ -264,7 +262,6 @@ int hosts_stop_host(struct arglist * globals, char * name)
 
 void hosts_stop_all()
 {
- 
  while(hosts != NULL)
  {
   hosts_stop_host(NULL, hosts->name);
@@ -302,8 +299,7 @@ static int hosts_read_data(struct arglist * globals)
    h = h->next;
   }
  }
- 
- 
+
  for(;;)
  {
   tv.tv_sec = 0;
@@ -313,10 +309,10 @@ static int hosts_read_data(struct arglist * globals)
   if(e < 0 && errno == EINTR)continue;
   else break;
  }
- 
+
  if(e <= 0)
   return -1;
- 
+
  h = hosts;
  while(h != NULL)
  {
@@ -328,7 +324,7 @@ static int hosts_read_data(struct arglist * globals)
    }
   h = h->next;
  }
- 
+
  return ret;
 }
 
@@ -364,19 +360,19 @@ hosts_read_client(struct arglist * globals)
  if(e < 0 && errno == EINTR)continue;
  else break;
  }
- 
+
  if(e > 0 && FD_ISSET(rsoc, &rd) != 0)
  {
  int f;
  n = recv_line(g_soc, buf, sizeof(buf) - 1);
  if(n <= 0)
   return -1;
- 
+
  f = ntp_11_parse_input(globals, buf);
  if( f == NTP_STOP_WHOLE_TEST )
   return -1;
  }
- 
+
  return 0;
 }
 
@@ -394,8 +390,8 @@ hosts_read(struct arglist * globals)
       return -1;
     }
 
-  if ( hosts == NULL )
-    return -1; 
+  if (hosts == NULL)
+    return -1;
 
   hosts_read_data (globals);
 

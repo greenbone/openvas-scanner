@@ -5,7 +5,7 @@
 * Authors: - Renaud Deraison <deraison@nessus.org> (Original pre-fork develoment)
 *	   - Tim Brown <mailto:timb@openvas.org> (Initial fork)
 *	   - Laban Mwangi <mailto:labanm@openvas.org> (Renaming work)
-*	   - Tarik El-Yassem <mailto:tarik@openvas.org> (Headers section)	
+*	   - Tarik El-Yassem <mailto:tarik@openvas.org> (Headers section)
 *
 * Copyright:
 * Portions Copyright (C) 2006 Software in the Public Interest, Inc.
@@ -89,7 +89,7 @@ struct attack_start_args {
 
 
 static void
-fork_sleep(int n)
+fork_sleep (int n)
 {
  time_t then, now;
 
@@ -105,7 +105,7 @@ fork_sleep(int n)
 
 /**
  * @brief Inits an arglist which can be used by the plugins.
- * 
+ *
  * The arglist will have following keys and (type, value):
  *  - FQDN (string, Fully qualified domain name, e.g. host.domain.net)
  *  - NAME (string, The hostname parameter)
@@ -123,15 +123,15 @@ attack_init_hostinfos (char * mac, char * hostname, struct in6_addr * ip)
 {
   struct arglist * hostinfos;
 
-  hostinfos = emalloc (sizeof(struct arglist));
-  if(!hg_valid_ip_addr(hostname))
+  hostinfos = emalloc (sizeof (struct arglist));
+  if (!hg_valid_ip_addr (hostname))
     {
       char f[1024];
       hg_get_name_from_ip (ip, f, sizeof(f));
       arg_add_value (hostinfos, "FQDN", ARG_STRING, strlen(f), estrdup(f));
     }
   else
-   arg_add_value (hostinfos, "FQDN", ARG_STRING, strlen(hostname), estrdup(hostname));
+    arg_add_value (hostinfos, "FQDN", ARG_STRING, strlen (hostname), estrdup (hostname));
 
   if(mac)
     {
@@ -139,10 +139,10 @@ attack_init_hostinfos (char * mac, char * hostname, struct in6_addr * ip)
       arg_add_value (hostinfos, "MAC", ARG_STRING, strlen(mac), mac);
     }
   else
-      arg_add_value (hostinfos, "NAME", ARG_STRING, strlen(hostname), estrdup(hostname));
+    arg_add_value (hostinfos, "NAME", ARG_STRING, strlen (hostname), estrdup (hostname));
 
-  arg_add_value (hostinfos, "IP", ARG_PTR, sizeof(struct in6_addr), ip);
-  return(hostinfos);
+  arg_add_value (hostinfos, "IP", ARG_PTR, sizeof (struct in6_addr), ip);
+  return (hostinfos);
 }
 
 /**
@@ -622,66 +622,67 @@ attack_start (struct attack_start_args * args)
   struct in6_addr * hostip = &(args->hostip);
   struct arglist * hostinfos;
 
-  struct arglist * preferences = arg_get_value(globals,"preferences");
-  char * non_simult = arg_get_value(preferences, "non_simult_ports");
+  struct arglist * preferences = arg_get_value (globals,"preferences");
+  char * non_simult = arg_get_value (preferences, "non_simult_ports");
   int thread_socket = args->thread_socket;
   int soc;
   struct timeval then, now;
   plugins_scheduler_t sched = args->sched;
   int i;
 
-  thread_socket = dup2(thread_socket, 4);
-  for (i=5; i<getdtablesize(); i++)
+  thread_socket = dup2 (thread_socket, 4);
+
+  // Close all file descriptors >= 5
+  for (i = 5; i < getdtablesize (); i++)
     {
-      close(i);
+      close (i);
     }
 
-  gettimeofday(&then, NULL);
+  gettimeofday (&then, NULL);
 
   if (non_simult == NULL)
     {
-      non_simult = estrdup("139, 445");
-      arg_add_value(preferences, "non_simult_ports", ARG_STRING, strlen(non_simult), non_simult);
+      non_simult = estrdup ("139, 445");
+      arg_add_value (preferences, "non_simult_ports", ARG_STRING, strlen (non_simult), non_simult);
     }
-  arg_add_value(preferences, "non_simult_ports_list", ARG_ARGLIST, -1, (void*)list2arglist(non_simult));
+  arg_add_value (preferences, "non_simult_ports_list", ARG_ARGLIST, -1, (void*) list2arglist (non_simult));
 
   /* Options regarding the communication with our parent */
-  openvas_deregister_connection(GPOINTER_TO_SIZE(arg_get_value(globals, "global_socket")));
-  arg_set_value(globals, "global_socket", -1, GSIZE_TO_POINTER(thread_socket));
+  openvas_deregister_connection (GPOINTER_TO_SIZE (arg_get_value (globals, "global_socket")));
+  arg_set_value (globals, "global_socket", -1, GSIZE_TO_POINTER (thread_socket));
 
-  /* Wait for the server to confirm it read our data
-   * (prevents client desynch) */
-  arg_add_value(globals, "confirm", ARG_INT, sizeof(int), (void*)1);
+  /* Wait for the server to confirm it read our data (prevents client desynch) */
+  arg_add_value (globals, "confirm", ARG_INT, sizeof(int), (void*)1);
 
   soc = thread_socket;
   hostinfos = attack_init_hostinfos (mac, hostname, hostip);
-  if(mac)
+  if (mac)
     hostname = mac;
 
-  plugins_set_socket(plugs, soc);
-  ntp_1x_timestamp_host_scan_starts(globals, hostname);
+  plugins_set_socket (plugs, soc);
+  ntp_1x_timestamp_host_scan_starts (globals, hostname);
 
   // Start scan
   attack_host (globals, hostinfos, hostname, sched);
 
   // Calculate duration, clean up
-  if(preferences_ntp_show_end(preferences))
-    ntp_11_show_end(globals, hostname, 1);
+  if (preferences_ntp_show_end (preferences))
+    ntp_11_show_end (globals, hostname, 1);
 
-  ntp_1x_timestamp_host_scan_ends(globals, hostname);
-  gettimeofday(&now, NULL);
-  if(now.tv_usec < then.tv_usec)
+  ntp_1x_timestamp_host_scan_ends (globals, hostname);
+  gettimeofday (&now, NULL);
+  if (now.tv_usec < then.tv_usec)
     {
       then.tv_sec ++;
       now.tv_usec += 1000000;
     }
 
-  log_write("Finished testing %s. Time : %ld.%.2ld secs\n",
-            hostname,
-            (long)(now.tv_sec - then.tv_sec),
-            (long)((now.tv_usec - then.tv_usec) / 10000));
-  shutdown(soc, 2);
-  close(soc);
+  log_write ("Finished testing %s. Time : %ld.%.2ld secs\n",
+             hostname,
+             (long)(now.tv_sec - then.tv_sec),
+             (long)((now.tv_usec - then.tv_usec) / 10000));
+  shutdown (soc, 2);
+  close (soc);
 }
 
 /**
@@ -739,140 +740,137 @@ attack_network (struct arglist * globals)
   inaddrs_t addrs;
   char buffer[INET6_ADDRSTRLEN];
 
-  gettimeofday(&then, NULL);
+  gettimeofday (&then, NULL);
 
   host_ip = in6addr_any;
   preferences    = arg_get_value(globals, "preferences");
 
   num_tested = 0;
 
-  global_socket  = GPOINTER_TO_SIZE(arg_get_value(globals, "global_socket"));
+  global_socket  = GPOINTER_TO_SIZE (arg_get_value (globals, "global_socket"));
 
-  plugins        = arg_get_value(globals, "plugins");
-  rules          = arg_get_value(globals, "rules");
-  rejected_hosts = emalloc(sizeof(struct arglist));
+  plugins        = arg_get_value (globals, "plugins");
+  rules          = arg_get_value (globals, "rules");
+  rejected_hosts = emalloc (sizeof(struct arglist));
 
-  save_session = preferences_save_session(preferences);
-  restoring = (GPOINTER_TO_SIZE(arg_get_value(globals, "RESTORE-SESSION")) == 1);
+  save_session = preferences_save_session (preferences);
+  restoring = (GPOINTER_TO_SIZE (arg_get_value (globals, "RESTORE-SESSION")) == 1);
 
   if (restoring) tested = arg_get_value (globals, "TESTED_HOSTS");
   if (save_session) save_tests_init(globals);
 
 
   /* Init and check Target List */
-  hostlist = arg_get_value(preferences, "TARGET");
-  if ( hostlist == NULL )
+  hostlist = arg_get_value (preferences, "TARGET");
+  if (hostlist == NULL)
     {
-      log_write ("%s : TARGET not set ?!", attack_user_name(globals) );
-      EXIT(1);
+      log_write ("%s : TARGET not set ?!", attack_user_name (globals));
+      EXIT (1);
     }
 
-  /* Init and check Port Range */
-  port_range = arg_get_value(preferences, "port_range");
-  if( port_range == NULL || port_range[0] == '\0' )
+  /* Init and check Port Range. */
+  port_range = arg_get_value (preferences, "port_range");
+  if (port_range == NULL || port_range[0] == '\0')
     port_range = "1-15000";
 
-  if( strcmp(port_range, "-1") != 0 )
+  if (strcmp (port_range, "-1") != 0)
     {
       unsigned short * ports;
       ports = (unsigned short*) getpts (port_range, NULL);
-      if( ports == NULL)
+      if (ports == NULL)
         {
-          auth_printf(globals, "SERVER <|> ERROR <|> E001 - Invalid port range <|> SERVER\n");
+          auth_printf (globals, "SERVER <|> ERROR <|> E001 - Invalid port range <|> SERVER\n");
           return -1;
         }
     }
 
-  /*
-   * Initialization of the attack
-   */
-  sched  = plugins_scheduler_init(plugins,  preferences_autoload_dependencies(preferences), preferences_silent_dependencies(preferences) ); 
+  /* Initialize the attack. */
+  sched  = plugins_scheduler_init (plugins,
+                                   preferences_autoload_dependencies (preferences),
+                                   preferences_silent_dependencies (preferences) );
 
-  hg_flags = preferences_get_host_expansion(preferences);
-  max_hosts = get_max_hosts_number(globals, preferences);
+  hg_flags = preferences_get_host_expansion (preferences);
+  max_hosts = get_max_hosts_number (globals, preferences);
 
-
-  if( restoring == 0)
+  if (restoring == 0)
     {
-      int max_checks  = get_max_checks_number(globals, preferences);
-      log_write("user %s starts a new scan. Target(s) : %s, with max_hosts = %d and max_checks = %d\n",
-                attack_user_name(globals), hostlist, max_hosts, max_checks);
+      int max_checks = get_max_checks_number (globals, preferences);
+      log_write ("user %s starts a new scan. Target(s) : %s, with max_hosts = %d and max_checks = %d\n",
+                 attack_user_name (globals), hostlist, max_hosts, max_checks);
     }
   else
     {
-      int max_checks  = get_max_checks_number(globals, preferences);
-      log_write("user %s restores session %s, with max_hosts = %d and max_checks = %d\n",
-                attack_user_name(globals),
-                (char*)arg_get_value(globals, "RESTORE-SESSION-KEY"),
-                max_hosts, max_checks);
+      int max_checks  = get_max_checks_number (globals, preferences);
+      log_write ("user %s restores session %s, with max_hosts = %d and max_checks = %d\n",
+                 attack_user_name (globals),
+                 (char*) arg_get_value (globals, "RESTORE-SESSION-KEY"),
+                 max_hosts, max_checks);
 
       save_tests_playback (globals,
-                           arg_get_value(globals, "RESTORE-SESSION-KEY"),
+                           arg_get_value (globals, "RESTORE-SESSION-KEY"),
                            tested);
     }
 
-  /*
-   * Initialize the hosts_gatherer library 
-   */
-  if ( preferences_get_slice_network_addresses ( preferences ) != 0 )
+  /* Initialize the hosts_gatherer library. */
+  if (preferences_get_slice_network_addresses (preferences) != 0)
     hg_flags |= HG_DISTRIBUTE;
 
-  hg_globals = hg_init(hostlist, hg_flags);
-  hg_res = hg_next_host(hg_globals, &host_ip, hostname, sizeof(hostname));
+  hg_globals = hg_init (hostlist, hg_flags);
+  hg_res = hg_next_host (hg_globals, &host_ip, hostname, sizeof (hostname));
   if (tested != NULL)
     {
-      while (hg_res >= 0 && g_hash_table_lookup (tested, hostname) != 0 )
+      while (hg_res >= 0 && g_hash_table_lookup (tested, hostname) != 0)
         {
-          hg_res = hg_next_host(hg_globals, &host_ip, hostname, sizeof(hostname));
+          hg_res = hg_next_host (hg_globals, &host_ip, hostname, sizeof (hostname));
         }
     }
 
-  if( hg_res < 0 )
+  if (hg_res < 0)
     goto stop;
 
-  hosts_init(global_socket, max_hosts);
+  hosts_init (global_socket, max_hosts);
 
   /*
    * Start the attack !
    */
-  while( hg_res >= 0 )
+  while (hg_res >= 0)
     {
       nthread_t pid;
 
      /* openvassd offers the ability to either test
       * only the hosts we tested in the past, or only
       * the hosts we never tested (or both, of course) */
-      if(save_kb(globals))
+      if (save_kb (globals))
         {
-          if(save_kb_pref_tested_hosts_only(globals))
+          if (save_kb_pref_tested_hosts_only (globals))
             {
-              if(!save_kb_exists(globals, hostname))
+              if (!save_kb_exists (globals, hostname))
                 {
-                  log_write("user %s : not testing %s because it has never been tested before\n",
-                            attack_user_name(globals), hostname);
-                  hg_res = hg_next_host(hg_globals, &host_ip, hostname, sizeof(hostname));
+                  log_write ("user %s : not testing %s because it has never been tested before\n",
+                             attack_user_name(globals), hostname);
+                  hg_res = hg_next_host (hg_globals, &host_ip, hostname, sizeof (hostname));
 
                   if (tested != NULL)
                     {
                       while (hg_res >= 0 && g_hash_table_lookup (tested, hostname) != 0 )
-                        hg_res = hg_next_host(hg_globals, &host_ip, hostname, sizeof(hostname));
+                        hg_res = hg_next_host (hg_globals, &host_ip, hostname, sizeof (hostname));
                     }
                   continue;
                 }
             }
-          else if(save_kb_pref_untested_hosts_only(globals))
+          else if (save_kb_pref_untested_hosts_only (globals))
             {
               /* XXX */
-              if(save_kb_exists(globals, hostname))
+              if (save_kb_exists (globals, hostname))
                 {
-                  log_write("user %s : not testing %s because it has already been tested before\n",
-                            attack_user_name(globals), hostname);
+                  log_write ("user %s : not testing %s because it has already been tested before\n",
+                             attack_user_name (globals), hostname);
                   hg_res = hg_next_host(hg_globals, &host_ip, hostname, sizeof(hostname));
                   // If some hosts were tested already, jump over them.
                   if (tested != NULL)
                     {
                       while (hg_res >= 0 && g_hash_table_lookup (tested, hostname) != 0 )
-                        hg_res = hg_next_host(hg_globals, &host_ip, hostname, sizeof(hostname));
+                        hg_res = hg_next_host (hg_globals, &host_ip, hostname, sizeof (hostname));
                     }
                   continue;
                 }
@@ -880,13 +878,14 @@ attack_network (struct arglist * globals)
         }
 
       host_pending = 0 ;
-      memcpy(&addrs.ip6, &host_ip, sizeof(struct in6_addr));
+      memcpy (&addrs.ip6, &host_ip, sizeof (struct in6_addr));
+
       /* Do we have the right to test this host ? */
-      if(CAN_TEST(get_host_rules(rules, addrs)) == 0)
+      if (CAN_TEST (get_host_rules (rules, addrs)) == 0)
         {
-          log_write("user %s : rejected attempt to scan %s",
-                    attack_user_name(globals), hostname);
-          arg_add_value(rejected_hosts, hostname, ARG_INT, sizeof(int), (void*)1);
+          log_write ("user %s : rejected attempt to scan %s",
+                     attack_user_name (globals), hostname);
+          arg_add_value (rejected_hosts, hostname, ARG_INT, sizeof (int), (void*)1);
         }
       else
         { // We have the right to test this host
@@ -897,137 +896,133 @@ attack_network (struct arglist * globals)
           struct in_addr addr;
 
           addr.s_addr = host_ip.s6_addr32[3];
-          if(preferences_use_mac_addr(preferences) && v6_is_local_ip(&host_ip))
+          if (preferences_use_mac_addr (preferences) && v6_is_local_ip (&host_ip))
             {
-              mac_err = v6_get_mac_addr(&host_ip, &MAC);
+              mac_err = v6_get_mac_addr (&host_ip, &MAC);
               if(mac_err > 0)
                 {
                 /* remote host is down */
-                  hg_res = hg_next_host(hg_globals, &host_ip, hostname, sizeof(hostname));
+                  hg_res = hg_next_host (hg_globals, &host_ip, hostname, sizeof (hostname));
                   if (tested != NULL)
                     {
                       while (hg_res >= 0 && g_hash_table_lookup (tested, hostname) != 0 )
-                        hg_res = hg_next_host(hg_globals, &host_ip, hostname, sizeof(hostname));
+                        hg_res = hg_next_host (hg_globals, &host_ip, hostname, sizeof (hostname));
                     }
                   continue;
                 }
             }
 
-          s = hosts_new(globals, hostname);
-          if(s < 0) goto scan_stop;
+          s = hosts_new (globals, hostname);
+          if (s < 0) goto scan_stop;
 
           args.globals = globals;
-          strncpy(args.hostname, hostname, sizeof(args.hostname) - 1);
-          args.hostname[sizeof(args.hostname) - 1] = '\0';
-          memcpy(&args.hostip, &host_ip, sizeof(struct in6_addr));
+          strncpy (args.hostname, hostname, sizeof (args.hostname) - 1);
+          args.hostname[sizeof (args.hostname) - 1] = '\0';
+          memcpy (&args.hostip, &host_ip, sizeof (struct in6_addr));
           args.host_mac_addr = MAC;
           args.sched = sched;
           args.thread_socket = s;
 
 forkagain:
-          pid = create_process( (process_func_t) attack_start, &args); 
-          if(pid < 0)
+          pid = create_process ((process_func_t) attack_start, &args);
+          if (pid < 0)
             {
               fork_retries ++;
-              if(fork_retries > MAX_FORK_RETRIES)
+              if (fork_retries > MAX_FORK_RETRIES)
                 {
-                  /*
-                  * forking failed - we go to the wait queue
-                  */
+                  /* Forking failed - we go to the wait queue. */
                   log_write("fork() failed - %s. %s won't be tested\n",
                             strerror(errno), hostname);
-                  efree(&MAC);
+                  efree (&MAC);
                   goto stop;
                 }
 
-              log_write("fork() failed - sleeping %d seconds and trying again...\n", fork_retries);
-              fork_sleep(fork_retries);
+              log_write ("fork() failed - sleeping %d seconds and trying again...\n", fork_retries);
+              fork_sleep (fork_retries);
               goto forkagain;
             }
 
-          hosts_set_pid(hostname, pid);
-          log_write("user %s : testing %s (%s) [%d]\n", attack_user_name(globals), hostname, inet_ntop(AF_INET6, &args.hostip, buffer, sizeof(buffer)), pid);
-          if(MAC != NULL)
+          hosts_set_pid (hostname, pid);
+          log_write ("user %s : testing %s (%s) [%d]\n", attack_user_name (globals), hostname, inet_ntop (AF_INET6, &args.hostip, buffer, sizeof (buffer)), pid);
+          if (MAC != NULL)
             efree(&MAC);
         }
 
       num_tested++;
-      hg_res = hg_next_host(hg_globals, &host_ip, hostname, sizeof(hostname));
+      hg_res = hg_next_host (hg_globals, &host_ip, hostname, sizeof(hostname));
       if (tested != NULL)
         {
           while (hg_res >= 0 && g_hash_table_lookup (tested, hostname))
             {
-              hg_res = hg_next_host(hg_globals, &host_ip, hostname, sizeof(hostname));
+              hg_res = hg_next_host (hg_globals, &host_ip, hostname, sizeof(hostname));
             }
         }
     }
 
-  /*
-   * Every host is being tested... We have to wait for the threads
-   * to terminate
-   */
-  while(hosts_read(globals) == 0)
+  /* Every host is being tested... We have to wait for the processes
+   * to terminate. */
+  while (hosts_read (globals) == 0)
     ;
 
   log_write("user %s : test complete", attack_user_name(globals));
 
 scan_stop:
-    /* Delete the files uploaded by the user, if any */
+    /* Delete the files uploaded by the user, if any. */
     files = arg_get_value (globals, "files_translation");
     if (files)
       g_hash_table_foreach (files, (GHFunc) unlink_name_mapped_file, NULL);
 
-    if(rejected_hosts && rejected_hosts->next)
+    if (rejected_hosts && rejected_hosts->next)
       {
-        char * banner = emalloc(4001);
+        char * banner = emalloc (4001);
         int length = 0;
 
-        sprintf(banner, "SERVER <|> ERROR <|> E002 - These hosts could not be tested because you are not allowed to do so :;");
+        sprintf (banner, "SERVER <|> ERROR <|> E002 - These hosts could not be tested because you are not allowed to do so :;");
         length = strlen(banner);
 
-        while(rejected_hosts->next && (length < (4000-3)))
+        while (rejected_hosts->next && (length < (4000-3)))
           {
             int n;
             n = strlen(rejected_hosts->name);
-            if(length + n + 1 >= 4000)
+            if (length + n + 1 >= 4000)
               {
                 n = 4000 - length  - 2;
               }
 
-            strncat(banner, rejected_hosts->name, n);
-            strncat(banner, ";", 1);
-            length+=n+1;
+            strncat (banner, rejected_hosts->name, n);
+            strncat (banner, ";", 1);
+            length += n + 1;
             rejected_hosts = rejected_hosts->next;
           }
 
-        if( rejected_hosts->next != NULL )
+        if (rejected_hosts->next != NULL)
           strcat(banner, "...");
 
-        auth_printf(globals, "%s\n", banner);
+        auth_printf (globals, "%s\n", banner);
       }
 
 stop:
-  if(save_session)
+  if (save_session)
     {
-      save_tests_close(globals);
-      if(!preferences_save_empty_sessions(preferences))
+      save_tests_close (globals);
+      if (!preferences_save_empty_sessions (preferences))
         {
-          if(save_tests_empty(globals))
+          if (save_tests_empty (globals))
             {
-              log_write("user %s : Nothing interesting found - deleting the session\n",
-                        (char*)arg_get_value(globals, "user"));
-              save_tests_delete_current(globals);
+              log_write ("user %s : Nothing interesting found - deleting the session\n",
+                        (char*) arg_get_value (globals, "user"));
+              save_tests_delete_current (globals);
             }
         }
     }
 
-  hg_cleanup(hg_globals);
+  hg_cleanup (hg_globals);
 
-  arg_free_all(rejected_hosts);
-  plugins_scheduler_free(sched);
+  arg_free_all (rejected_hosts);
+  plugins_scheduler_free (sched);
 
-  gettimeofday(&now, NULL);
-  log_write("Total time to scan all hosts : %ld seconds\n", now.tv_sec - then.tv_sec);
+  gettimeofday (&now, NULL);
+  log_write ("Total time to scan all hosts : %ld seconds\n", now.tv_sec - then.tv_sec);
 
   return 0;
 }

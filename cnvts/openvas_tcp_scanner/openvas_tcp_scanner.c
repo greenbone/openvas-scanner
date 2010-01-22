@@ -66,8 +66,7 @@ int plugin_init(struct arglist * desc)
 {
  plug_set_id(desc, 10335);
  plug_set_version(desc, "$Revision: 1741 $");
-   
-         
+
  plug_set_name(desc, "OpenVAS TCP scanner");
  plug_set_summary(desc, "Look for open TCP ports & services banners");
  plug_set_description(desc, "\
@@ -80,7 +79,7 @@ for the service identification plugins\n\
 Note that TCP scanners are more intrusive than \n\
 SYN (half open) scanners\
 ");
- 
+
  plug_set_copyright(desc, "(C) 2004 Michel Arboi <mikhail@nessus.org>");
  plug_set_category(desc, ACT_SCANNER);
  plug_set_family(desc, "Port scanners");
@@ -180,7 +179,7 @@ double_check_std_ports(unsigned char* ports_states)
 }
 
 static int
-banner_grab(const struct in6_addr *pia, const char* portrange, 
+banner_grab(const struct in6_addr *pia, const char* portrange,
 	    const int read_timeout,
 	    int		min_cnx,
 	    int		max_cnx,
@@ -377,7 +376,7 @@ banner_grab(const struct in6_addr *pia, const char* portrange,
 #endif
 
       FD_ZERO(&rfs); FD_ZERO(&wfs); imax = -1;
-     
+
       while (scanned_ports < 65535)
 	{
 	  total_ports_nb = unfiltered_ports_nb + filtered_ports_nb + untested_ports_nb;
@@ -391,11 +390,11 @@ banner_grab(const struct in6_addr *pia, const char* portrange,
 	    }
 
 #if DEBUG > 0
-	  fprintf(stderr, "openvas_tcp_scanner(%s): %d / %d = %02d%% - %d ports remaining\n", 
-		  inet_ntoa(*pia), 
+	  fprintf(stderr, "openvas_tcp_scanner(%s): %d / %d = %02d%% - %d ports remaining\n",
+		  inet_ntoa(*pia),
 		  unfiltered_ports_nb + filtered_ports_nb,
 		  total_ports_nb,
-		  (unfiltered_ports_nb + filtered_ports_nb) * 100 / 
+		  (unfiltered_ports_nb + filtered_ports_nb) * 100 /
 		  (total_ports_nb > 0 ? total_ports_nb : 1),
 		  untested_ports_nb);
 #endif
@@ -535,7 +534,7 @@ banner_grab(const struct in6_addr *pia, const char* portrange,
 		      FD_SET(s, &wfs);
 		      if (s > imax) imax = s;
 		      break;
-		  
+
 		    case EAGAIN:
 		      x = open_sock_nb  / 16;	/* 6.25% */
 		      open_sock_max = open_sock_max2 = 
@@ -557,7 +556,7 @@ banner_grab(const struct in6_addr *pia, const char* portrange,
 		      closed_ports_nb1 ++;
 		      untested_ports_nb --;
 		      continue;
-		  
+
 		    case ENETUNREACH:
 		    case EHOSTUNREACH:
 		      ports_states[port] = GRAB_PORT_REJECTED;
@@ -1334,7 +1333,7 @@ read_sysctl_maxsysfd()
       if (fscanf(fp, "%*s = %d %*d %d", &cur_sys_fd, &max_sys_fd) == 2)
 	max_sys_fd -= cur_sys_fd;
       else
-	max_sys_fd = 0;	    
+	max_sys_fd = 0;
       pclose(fp);
     }
 	  
@@ -1357,7 +1356,7 @@ read_sysctl_maxsysfd()
    * On Solaris, the situation looks more complex: 
    * http://www.sean.de/Solaris/rexmit.html
    */
-  
+
   /* Restore stderr */
 #ifndef DEBUG
       if (devnull_fd >= 0) close(devnull_fd);
@@ -1386,7 +1385,7 @@ compute_min_max_cnx(int max_hosts, int max_checks, int safe_checks,
 	max_checks = 5; /* bigger values do not make sense */
 	// debug_printf(NULL, 1, "max_checks forced to %d\n", max_checks);
       }
-  
+
   min_cnx = 4 * max_checks;
     if (safe_checks)
       max_cnx = 24 * max_checks;
@@ -1403,7 +1402,7 @@ compute_min_max_cnx(int max_hosts, int max_checks, int safe_checks,
 	max_cnx /= (1.0 + maxloadavg);
 	// debug_printf(NULL, 1, "max_cnx reduced from %d to %d because of maxloadavg=%f\n", x, max_cnx, maxloadavg);
       }
-  
+
     max_sys_fd = read_sysctl_maxsysfd();
     // debug_printf(NULL, 1, "max_sys_fd=%d\n", max_sys_fd);
     if (max_sys_fd <= 0) max_sys_fd = 16384; /* reasonable default */
@@ -1436,7 +1435,7 @@ compute_min_max_cnx(int max_hosts, int max_checks, int safe_checks,
     x = max_cnx / 2;
     if (min_cnx > x) min_cnx = x > 0 ? x : 1;
   // debug_printf(NULL, 1, "min_cnx = %d ; max_cnx = %d\n", min_cnx, max_cnx);
-  
+
   *pmin = min_cnx;
   *pmax = max_cnx;
 }
@@ -1462,7 +1461,7 @@ int plugin_run(struct arglist * desc)
     timeout = 5;
 #if DEBUG > 0
   fprintf(stderr, "openvas_tcp_scanner: safe_checks=%d checks_read_timeout=%d\n", safe_checks, timeout);
-#endif  
+#endif
 
   {
     int		max_host = 0, max_checks = 0, cur_sys_fd = 0, max_sys_fd = 0;
@@ -1505,7 +1504,7 @@ int plugin_run(struct arglist * desc)
       {
 	if ( find_in_path("sysctl", 0) != NULL )
 	  fp = popen("sysctl fs.file-nr", "r");
-  	else
+	else
 	  fp = NULL;
 
 	if (fp != NULL)
@@ -1513,7 +1512,7 @@ int plugin_run(struct arglist * desc)
 	    if (fscanf(fp, "%*s = %*d %d %d", &cur_sys_fd, &max_sys_fd) == 1)
 	      max_sys_fd -= cur_sys_fd;
 	    else
-	      max_sys_fd = 0;	    
+	      max_sys_fd = 0;
 	    pclose(fp);
 	  }
       }
@@ -1535,7 +1534,7 @@ int plugin_run(struct arglist * desc)
       {
 	if ( find_in_path("sysctl", 0) )
 	  fp = popen("sysctl kern.maxfiles", "r");
- 	else
+	else
 	  fp = NULL;
 
 	if (fp != NULL)
@@ -1563,7 +1562,7 @@ int plugin_run(struct arglist * desc)
 	fprintf(stderr, "openvas_tcp_scanner: max_cnx reduced from %d to %d because of maxloadavg=%f\n", x, max_cnx, maxloadavg);
 #endif
       }
-  
+
 
 
 #if DEBUG > 0
@@ -1602,7 +1601,7 @@ int plugin_run(struct arglist * desc)
     fprintf(stderr, "openvas_tcp_scanner: min_cnx = %d ; max_cnx = %d\n", min_cnx, max_cnx);
 #endif
   }
-  
+
   p_addr = arg_get_value(hostinfos, "IP");
   if( p_addr == NULL )
     return -1;
@@ -1647,7 +1646,7 @@ main(int argc, char *argv[])
   int    safe_checks = 0, max_checks = 4, max_hosts = 4;
   int    min1 = 0, max1 = 0;
   int    i;
-  
+
   while ((i = getopt(argc, argv, "m:M:C:H:ShrFRN")) != -1)
     switch(i)
     {
@@ -1669,16 +1668,18 @@ main(int argc, char *argv[])
       if (optarg == NULL) usage();
       else max_hosts = atoi(optarg);
       break;
-      
+
     case 'h':
       usage();
       break;
   }
-  if (argc != optind + 2) usage();
-  if (inet_pton(AF_INET, argv[optind], &ia) > 0)
+
+  if (argc != optind + 2)
+    usage ();
+  if (inet_pton (AF_INET, argv[optind], &ia) > 0)
     pia = &ia;
 #ifdef IPV6_SUPPORT
-  else if (inet_pton(AF_INET6, argv[optind], &ia6) > 0)
+  else if (inet_pton (AF_INET6, argv[optind], &ia6) > 0)
     {
       pia6 = &ia6;
       ia6.sin6_family = AF_INET6;
@@ -1686,16 +1687,16 @@ main(int argc, char *argv[])
 #endif
   else
     {
-      fprintf(stderr, "Bad IP address %s\n", argv[optind]);
+      fprintf (stderr, "Bad IP address %s\n", argv[optind]);
       return 1;
     }
   if (min1 <= 0 || max1 <= 0)
-    compute_min_max_cnx(max_hosts, max_checks, safe_checks,
-			&min_cnx, &max_cnx);
+    compute_min_max_cnx (max_hosts, max_checks, safe_checks, &min_cnx,
+                         &max_cnx);
   if (min1 > 0) min_cnx = min1;
   if (max1 > 0) max_cnx = max1;
-  
-  if (banner_grab(pia, 
+
+  if (banner_grab (pia,
 #ifdef IPV6_SUPPORT
 		  pia6,
 #endif
@@ -1706,5 +1707,3 @@ main(int argc, char *argv[])
 }
 #endif
 /* STANDALONE */
-
-
