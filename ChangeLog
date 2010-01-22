@@ -1,3 +1,8 @@
+2010-01-22  Jan-Oliver Wagner <jan-oliver.wagner@greenbone.net>
+
+	* cnvts/synscan/synscan.c (rawsocket): Fixed typos in
+	error strings.
+
 2010-01-22  Matthew Mundell <matthew.mundell@intevation.de>
 
 	* openvassd/users.c [DEBUG_RULES]: Print with log_write.

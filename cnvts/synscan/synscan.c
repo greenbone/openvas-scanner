@@ -145,7 +145,7 @@ rawsocket (int family)
     soc = socket(AF_INET, SOCK_RAW, IPPROTO_RAW);
     if (soc < 0) {
      perror("socket ");
-     printf("error opeinig socket\n");
+     printf("error opening socket\n");
      return -1;
     }
     if (setsockopt(soc, IPPROTO_IP, IP_HDRINCL, (char *) &opt, sizeof(opt)) < 0) {
@@ -160,7 +160,7 @@ rawsocket (int family)
     soc = socket(AF_INET6, SOCK_RAW, IPPROTO_TCP);
     if (soc < 0) {
      perror("socket ");
-     printf("error opeinig socket\n");
+     printf("error opening socket\n");
      return -1;
     }
     setsockopt(soc, IPPROTO_IPV6, IPV6_CHECKSUM, &offset, sizeof(offset));
