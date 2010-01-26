@@ -1,3 +1,13 @@
+2010-01-26  Michael Wiegand <michael.wiegand@intevation.de>
+
+	Preparing the openvas-scanner 3.0.1 release.
+
+	* VERSION: Set to 3.0.1.
+
+	* doc/Doxyfile, doc/Doxyfile_full: Updated PROJECT_NUMBER.
+
+	* CHANGES: Updated.
+
 2010-01-26  Felix Wolfsteller <felix.wolfsteller@intevation.de>
 
 	* openvas-nvt-sync.in: Flush trailing whitespaces, minor reformatting

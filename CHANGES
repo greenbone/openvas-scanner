@@ -1,3 +1,21 @@
+openvas-scanner 3.0.1 (2010-01-26)
+
+This is the first maintenance release of the openvas-scanner module for the
+Open Vulnerability Assessment System (OpenVAS) 3.0-series.
+
+It reenables certificate authentication, improves user rules support and
+includes an updated openvas-nvt-sync script.
+
+Many thanks to everyone who has contributed to this release:
+Vlatko Kosturjak, Matthew Mundell, Jan-Oliver Wagner, Michael Wiegand and Felix
+Wolfsteller.
+
+Main changes compared to 3.0.0:
+* Reenabled certificate authentication
+* Improved user rules support
+* Updated openvas-nvt-sync script
+
+
 openvas-scanner 3.0.0 (2009-12-18)
 
 This is the 3.0.0 release of the openvas-scanner module for the Open
