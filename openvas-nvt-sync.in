@@ -28,6 +28,8 @@
 # along with this program; if not, write to the Free Software
 # Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA 02110-1301 USA.
 
+# if you need to debug script
+# set -x
 
 # these locations should be correct if standard ./configure had
 # been applied.
@@ -59,25 +61,40 @@ if [ -z "$TMPDIR" ]; then
 else
 	SYNC_TMP_DIR="$TMPDIR"
 fi
+
+# Script and feed information which will be made available to user through
+# command line options and automated tools.
+SCRIPT_NAME="openvas-nvt-sync"
+VERSION=@version@
+FEED_NAME="OpenVAS NVT Feed"
+FEED_PROVIDER="The OpenVAS Project"
+FEED_HOME="http://www.openvas.org/openvas-nvt-feed.html"
+RESTRICTED=0
+
 	
-echo "OpenVAS NVT Sync $Release$"
+echo "OpenVAS NVT Sync $VERSION"
 echo " "
 
-if [ "$1" = "--help" ]; then
+do_help () {
 	echo "$0: Sync NVTs using different protocols"
 	echo "--rsync		sync with rsync (default)"
 	echo "--wget		sync with wget"
 	echo "--curl		sync with curl"
 	echo "--check		just checksum check"
+	echo "OpenVAS administrator functions:"
+	echo " --selftest	perform self-test"
+	echo " --identify	display information"
+	echo " --version	display version"
+	echo " --describe	display current feed info"
 	echo ""
 	echo "Environment variables:"
-	echo "NVT_DIR		where to extract plugins"
+	echo "NVT_DIR		where to extract plugins (absolute path)"
 	echo "OV_RSYNC_FEED	URL of rsync feed" 
 	echo "OV_HTTP_FEED	URL of http feed"
 	echo "Note that you can use standard ones as well (e.g. http_proxy) for wget/curl"
 	echo ""
 	exit 0
-fi
+}
 
 echo "[i] NVT dir: $NVT_DIR"
 
@@ -85,48 +102,35 @@ CMD_RSYNC=`which rsync`
 CMD_MD5SUM=`which md5sum`
 CMD_WGET=`which wget`
 CMD_CURL=`which curl`
-CMD_METHOD=""
+TMP_NVT="$SYNC_TMP_DIR/openvas-feed-`date +%F`-$$.tar.bz2"
 
-if [ "$1" = "--rsync" ]; then
-	CMD_METHOD="rsync"
-fi
-if [ "$1" = "--wget" ]; then
-	CMD_METHOD="wget"
-fi
-if [ "$1" = "--curl" ]; then
-	CMD_METHOD="curl"
-fi
-if [ "$1" = "--check" ]; then
-	CMD_METHOD="check"
-fi
+chk_system_tools(){
+	echo "[i] Searching for required system tools (look for warnings)..."
 
-if [ -z "$1" ]; then
+	if [ -z "$CMD_MD5SUM" ]; then
+	  echo "[w] Warning: MD5SUM not found";
+	fi
+
+	if [ -z "$CMD_RSYNC" ]; then
+	  echo "[w] Warning: RSYNC not found";
+	fi
+
+	if [ -z "$CMD_WGET" ]; then
+	  echo "[w] Warning: wget not found";
+	fi
+
+	if [ -z "$CMD_CURL" ]; then
+	  echo "[w] Warning: curl not found";
+	fi
+
+	echo "[i] If you did not get any warnings, that means you have all tools required"
+
+	echo "[i] Note that it is recommended to have md5sum and one of the following: rsync, wget or curl."
+}
+
+do_rsync () {
 	if [ -z "$CMD_RSYNC" ]; then 
 		echo "[w] rsync not found!"
-		if [ -z "$CMD_WGET"]; then
-			echo "[w] GNU wget not found!"
-			if [ -z "$CMD_CURL"]; then
-				echo "[w] curl not found!"
-				echo -n "[e] no utility available in PATH environment variable to download plugins"	
-				exit 1
-			else
-				echo "[i] Will use curl"
-				CMD_METHOD="curl"
-			fi
-		else
-			echo "[i] Will use wget"
-			CMD_METHOD="wget"
-		fi
-	else 
-		echo "[i] Will use rsync"
-		CMD_METHOD="rsync"
-	fi
-fi
-
-if [ "$CMD_METHOD" = "rsync" ]; then
-	if [ -z "$CMD_RSYNC" ]; then 
-		echo "[e] rsync not found!"
-		exit 1
 	else 
 		echo "[i] Using rsync: $CMD_RSYNC"
 		echo "[i] Configured NVT rsync feed: $OV_RSYNC_FEED"
@@ -137,14 +141,11 @@ if [ "$CMD_METHOD" = "rsync" ]; then
 			exit 1
 		fi
 	fi
-fi
+}
 
-TMP_NVT="$SYNC_TMP_DIR/openvas-feed-`date +%F`-$$.tar.bz2"
-
-if [ "$CMD_METHOD" = "wget" ]; then
+do_wget () {
 	if [ -z "$CMD_WGET" ]; then 
-		echo "[e] GNU wget not found!"
-		exit 1
+		echo "[w] GNU wget not found!"
 	else 
 		echo "[i] Using GNU wget: $CMD_WGET"
 		echo "[i] Configured NVT http feed: $OV_HTTP_FEED"
@@ -156,12 +157,11 @@ if [ "$CMD_METHOD" = "wget" ]; then
 		&& rm -f $TMP_NVT \
 		&& echo "[i] Download complete"
 	fi
-fi
+}
 
-if [ "$CMD_METHOD" = "curl" ]; then
+do_curl () {
 	if [ -z "$CMD_CURL" ]; then 
-		echo "[e] curl not found!"
-		exit 1
+		echo "[w] curl not found!"
 	else 
 		echo "[i] Using curl: $CMD_CURL"
 		echo "[i] Configured NVT http feed: $OV_HTTP_FEED"
@@ -173,29 +173,109 @@ if [ "$CMD_METHOD" = "curl" ]; then
 		&& rm -f $TMP_NVT \
 		&& echo "[i] Download complete"
 	fi
-fi
+}
 
-if [ -z "CMD_MD5SUM" ]; then
-	echo "[w] md5sum utility not found, cannot check NVT checksums! You've been warned!"
-else
-	echo -n "[i] Checking dir: "	
-	eval "cd \"$NVT_DIR\""
-	if [ $? -ne 0 ] ; then
-		echo "not ok"
-		echo "Check your NVT dir for existence and permissions!"
-		exit 1
+do_check_md5 () {
+	if [ -z "CMD_MD5SUM" ]; then
+		echo "[w] md5sum utility not found, cannot check NVT checksums! You've been warned!"
 	else
+		echo -n "[i] Checking dir: "	
+		eval "cd \"$NVT_DIR\""
+		if [ $? -ne 0 ] ; then
+			echo "not ok"
+			echo "Check your NVT dir for existence and permissions!"
+			exit 1
+		else
+			echo "ok"
+		fi
+		echo -n "[i] Checking MD5 checksum: "	
+		eval "cd \"$NVT_DIR\" ; $CMD_MD5SUM -c --status \"$NVT_DIR/md5sums\""
+		if [ $? -ne 0 ] ; then
+			echo "not ok"
+			echo "Error: md5sums not correct. Your NVT collection might be broken now."
+			echo "Please try this for details: cd \"$NVT_DIR\" ; $CMD_MD5SUM -c \"$NVT_DIR/md5sums\" | less"
+			exit 1
+		fi	
 		echo "ok"
 	fi
-	echo -n "[i] Checking MD5 checksum: "	
-	eval "cd \"$NVT_DIR\" ; $CMD_MD5SUM -c --status \"$NVT_DIR/md5sums\""
-	if [ $? -ne 0 ] ; then
-		echo "not ok"
-		echo "Error: md5sums not correct. Your NVT collection might be broken now."
-		echo "Please try this for details: cd \"$NVT_DIR\" ; $CMD_MD5SUM -c \"$NVT_DIR/md5sums\" | less"
-		exit 1
-	fi	
-	echo "ok"
+}
+
+do_self_test ()
+{
+	chk_system_tools
+}
+
+do_describe ()
+{
+  echo "[i] This script synchronizes an NVT collection with the '$FEED_NAME'."
+  echo "[i] The '$FEED_NAME' is provided by '$FEED_PROVIDER'."
+  echo "[i] Online information about this feed: '$FEED_HOME'."
+}
+
+if [ -z "$1" ]; then
+	do_describe
+	if [ -z "$CMD_RSYNC" ]; then 
+		echo "[w] rsync not found!"
+		if [ -z "$CMD_WGET"]; then
+			echo "[w] GNU wget not found!"
+			if [ -z "$CMD_CURL"]; then
+				echo "[w] curl not found!"
+				echo -n "[e] no utility available in PATH environment variable to download plugins"	
+				exit 1
+			else
+				echo "[i] Will use curl"
+				do_curl
+			fi
+		else
+			echo "[i] Will use wget"
+			do_wget
+		fi
+	else 
+		echo "[i] Will use rsync"
+		do_rsync
+	fi
+	do_check_md5
+else 
+	while test $# -gt 0; do
+	 case "$1" in
+		--help) 
+			do_help
+			;;
+		--rsync) 
+			do_rsync
+			do_check_md5
+			;;
+		--wget) 
+			do_wget
+			do_check_md5
+			;;
+		--curl) 
+			do_curl
+			do_check_md5
+			;;
+		--check) 
+			do_check_md5
+			;;
+		--version)
+			echo $VERSION
+			exit 0
+			;;
+		--identify)
+			echo "NVTSYNC|$SCRIPT_NAME|$VERSION|$FEED_NAME|$RESTRICTED|NVTSYNC"
+			exit 0
+			;;
+		--selftest)
+			SELFTEST_FAIL=0
+			do_self_test
+			exit $SELFTEST_FAIL
+			;;
+		--describe)
+			do_describe
+			exit 0
+			;;
+	 esac
+	 shift
+	done
 fi
 
-
+exit 0

@@ -1,4 +1,11 @@
 2010-01-26  Vlatko Kosturjak <kost@linux.hr>
+
+	* openvas-nvt-sync.in: quick merge of old script which had support
+	for OpenVAS administrator and new script. In short, best of both
+	worlds (scripts). 
+
+2010-01-26  Vlatko Kosturjak <kost@linux.hr>
+
 	* openvas-nvt-sync.in: completely new version of openvas-nvt-sync,
 	it passed quite a while on mailing list and nobody reported
 	any serious bug (except cosmetic changes which can be contributed
