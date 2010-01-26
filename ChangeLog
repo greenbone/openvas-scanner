@@ -1,3 +1,9 @@
+2010-01-26  Vlatko Kosturjak <kost@linux.hr>
+	* openvas-nvt-sync.in: completely new version of openvas-nvt-sync,
+	it passed quite a while on mailing list and nobody reported
+	any serious bug (except cosmetic changes which can be contributed
+	now to SVN).
+
 2010-01-22  Felix Wolfsteller <felix.wolfsteller@intevation.de>
 
 	Added code for a very basic standalone synscanner based on the cnvt to

@@ -1,18 +1,19 @@
-#!/bin/bash
-#
+#!/bin/sh
+# 
 # OpenVAS
 # $Id$
-# Description: Synchronize with with NVT feed.
+# Description: Synchronize with NVT feed.
 # This shell script synchronizes the local set of
 # OpenVAS Network Vulerability Tests (NVTs) and
 # associated includefiles with a given upstream
 # feed of updated or new files.
 #
 # Authors:
+# Vlatko Kosturjak <kost@linux.hr>
+# 
+# Script is complete rewrite of original sync script by 
 # Lukas Grunwald <l.grunwald@dn-systems.de>
 # Jan-Oliver Wagner <jan-oliver.wagner@intevation.de>
-#
-# Copyright DN-Systems Enterprise Internet Solutions GmbH 2007
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License version 2,
@@ -27,149 +28,174 @@
 # along with this program; if not, write to the Free Software
 # Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA 02110-1301 USA.
 
+
+# these locations should be correct if standard ./configure had
+# been applied.
+
 prefix=@prefix@
 exec_prefix=@exec_prefix@
 sysconfdir=@sysconfdir@
 libdir=@libdir@
 localstatedir=@localstatedir@
 
-# these locations should be correct if standard ./configure had
-# been applied.
-NVT_DIR="$libdir/openvas/plugins"
+# configure NVT_DIR where we will sync NVTs
+if [ -z "$NVT_DIR" ]; then
+	NVT_DIR="$libdir/openvas/plugins"
+fi
 
 # The URL of the plugin feed
-FEED=rsync://rsync.openvas.org:/nvt-feed
-# An alternative syntax which might work if the above doesn't:
-#FEED=rsync@rsync.openvas.org::nvt-feed
-
-# Script and feed information which will be made available to user through
-# command line options and automated tools.
-SCRIPT_NAME="openvas-nvt-sync"
-VERSION=@version@
-FEED_NAME="OpenVAS NVT Feed"
-FEED_PROVIDER="The OpenVAS Project"
-FEED_HOME="http://www.openvas.org/openvas-nvt-feed.html"
-RESTRICTED=0
-
-findcmd()
-{
-  CMD=$1
-  SRCH=/usr/bin:/usr/ucb:/usr/sbin
-  SAVEIFS=$IFS
-  IFS=:
-  set $SRCH
-  IFS=$SAVEIFS
-  for dir
-    do
-      [ -x $dir/$CMD ] && {
-                echo $dir/$CMD
-                return
-                }
-   done
-}
-
-chk_system_tools(){
-echo "Searching for required system tools ..."
-
-RSYNC=`findcmd rsync`
-MD5SUM=`findcmd md5sum`
-
-if [ -z "$RSYNC" ]; then
-  echo "Error: RSYNC not found";
-  exit -1
+if [ -z "$OV_RSYNC_FEED" ]; then
+	OV_RSYNC_FEED=rsync://rsync.openvas.org:/nvt-feed
+	# An alternative syntax which might work if the above doesn't:
+	# OV_RSYNC_FEED=rsync@rsync.openvas.org::nvt-feed
 fi
 
-if [ -z "$MD5SUM" ]; then
-  echo "Error: MD5SUM not found";
-  exit -1
+if [ -z "$OV_HTTP_FEED" ]; then
+	OV_HTTP_FEED=http://www.openvas.org/openvas-nvt-feed-current.tar.bz2
 fi
-}
 
-sync_nvts (){
-  echo "Synchonizing NVTs via RSYNC ..."
-
-  mkdir -p "$NVT_DIR"
-  eval "rsync -ltvrP \"$FEED\" \"$NVT_DIR\""
-  if [ $? -ne 0 ] ; then
-    echo "Error: rsync failed. Your NVT collection might be broken now."
-    exit 1
-  fi
-  eval "cd \"$NVT_DIR\" ; md5sum -c --status \"$NVT_DIR/md5sums\""
-  if [ $? -ne 0 ] ; then
-    echo "Error: md5sums not correct. Your NVT collection might be broken now."
-    echo "Please try this for details: cd \"$NVT_DIR\" ; md5sum -c \"$NVT_DIR/md5sums\" | less"
-    exit 1
-  fi
-
-  echo "Synchronization successful."
-}
-
-# TODO: This does only sometimes work (if proper start/stop daemon was used)
-# It should be made verbose and robust so that the user will know whether
-# openvassd was restarted successfully or whether a failure occured.
-restart_openvassd (){
-  test -f @localstatedir@/run/openvassd.pid && {
-    pid=`cat @localstatedir@/run/openvassd.pid`
-    kill -1 $pid 2>/dev/null
-  }
-}
-
-do_self_test ()
-{
-  RSYNC_AVAIL=`command -v rsync`
-  if [[ -z $RSYNC_AVAIL ]] ; then
-    SELFTEST_FAIL=1
-    echo "The rsync binary could not be found." 1>&2
-  fi
-  MD5SUM_AVAIL=`command -v md5sum`
-  if [[ -z $MD5SUM_AVAIL ]] ; then
-    SELFTEST_FAIL=1
-    echo "The md5sum binary could not be found." 1>&2
-  fi
-  eval "rsync -nqltvrP \"$FEED/md5sums\" \"$NVT_DIR\""
-  if [ $? -ne 0 ] ; then
-    SELFTEST_FAIL=1
-    echo "Error: rsync failed." 1>&2
-  fi
-}
-
-do_describe ()
-{
-  echo "This script synchronizes an NVT collection with the '$FEED_NAME'."
-  echo "The '$FEED_NAME' is provided by '$FEED_PROVIDER'."
-  echo "Online information about this feed: '$FEED_HOME'."
-}
-
-while test $# -gt 0; do
- case "$1" in
-        --version)
-                echo $VERSION
-                exit 0
-                ;;
-        --identify)
-                echo "NVTSYNC|$SCRIPT_NAME|$VERSION|$FEED_NAME|$RESTRICTED|NVTSYNC"
-                exit 0
-                ;;
-        --selftest)
-                SELFTEST_FAIL=0
-                do_self_test
-                exit $SELFTEST_FAIL
-                ;;
-        --describe)
-                do_describe
-                exit 0
-                ;;
- esac
- shift
-done
-
-do_describe
-echo " "
-echo "Synchronizing into $NVT_DIR"
+if [ -z "$TMPDIR" ]; then
+	SYNC_TMP_DIR=/tmp
+else
+	SYNC_TMP_DIR="$TMPDIR"
+fi
+	
+echo "OpenVAS NVT Sync $Release$"
 echo " "
 
-chk_system_tools
-sync_nvts
-restart_openvassd
+if [ "$1" = "--help" ]; then
+	echo "$0: Sync NVTs using different protocols"
+	echo "--rsync		sync with rsync (default)"
+	echo "--wget		sync with wget"
+	echo "--curl		sync with curl"
+	echo "--check		just checksum check"
+	echo ""
+	echo "Environment variables:"
+	echo "NVT_DIR		where to extract plugins"
+	echo "OV_RSYNC_FEED	URL of rsync feed" 
+	echo "OV_HTTP_FEED	URL of http feed"
+	echo "Note that you can use standard ones as well (e.g. http_proxy) for wget/curl"
+	echo ""
+	exit 0
+fi
 
-exit 0
+echo "[i] NVT dir: $NVT_DIR"
+
+CMD_RSYNC=`which rsync`
+CMD_MD5SUM=`which md5sum`
+CMD_WGET=`which wget`
+CMD_CURL=`which curl`
+CMD_METHOD=""
+
+if [ "$1" = "--rsync" ]; then
+	CMD_METHOD="rsync"
+fi
+if [ "$1" = "--wget" ]; then
+	CMD_METHOD="wget"
+fi
+if [ "$1" = "--curl" ]; then
+	CMD_METHOD="curl"
+fi
+if [ "$1" = "--check" ]; then
+	CMD_METHOD="check"
+fi
+
+if [ -z "$1" ]; then
+	if [ -z "$CMD_RSYNC" ]; then 
+		echo "[w] rsync not found!"
+		if [ -z "$CMD_WGET"]; then
+			echo "[w] GNU wget not found!"
+			if [ -z "$CMD_CURL"]; then
+				echo "[w] curl not found!"
+				echo -n "[e] no utility available in PATH environment variable to download plugins"	
+				exit 1
+			else
+				echo "[i] Will use curl"
+				CMD_METHOD="curl"
+			fi
+		else
+			echo "[i] Will use wget"
+			CMD_METHOD="wget"
+		fi
+	else 
+		echo "[i] Will use rsync"
+		CMD_METHOD="rsync"
+	fi
+fi
+
+if [ "$CMD_METHOD" = "rsync" ]; then
+	if [ -z "$CMD_RSYNC" ]; then 
+		echo "[e] rsync not found!"
+		exit 1
+	else 
+		echo "[i] Using rsync: $CMD_RSYNC"
+		echo "[i] Configured NVT rsync feed: $OV_RSYNC_FEED"
+		mkdir -p "$NVT_DIR"
+		eval "$CMD_RSYNC -ltvrP \"$OV_RSYNC_FEED\" \"$NVT_DIR\""
+		if [ $? -ne 0 ] ; then
+			echo "Error: rsync failed. Your NVT collection might be broken now."
+			exit 1
+		fi
+	fi
+fi
+
+TMP_NVT="$SYNC_TMP_DIR/openvas-feed-`date +%F`-$$.tar.bz2"
+
+if [ "$CMD_METHOD" = "wget" ]; then
+	if [ -z "$CMD_WGET" ]; then 
+		echo "[e] GNU wget not found!"
+		exit 1
+	else 
+		echo "[i] Using GNU wget: $CMD_WGET"
+		echo "[i] Configured NVT http feed: $OV_HTTP_FEED"
+		echo "[i] Downloading to: $TMP_NVT"
+		mkdir -p "$NVT_DIR" \
+		&& wget "$OV_HTTP_FEED" -O $TMP_NVT \
+		&& cd "$NVT_DIR" \
+		&& tar xvjf $TMP_NVT \
+		&& rm -f $TMP_NVT \
+		&& echo "[i] Download complete"
+	fi
+fi
+
+if [ "$CMD_METHOD" = "curl" ]; then
+	if [ -z "$CMD_CURL" ]; then 
+		echo "[e] curl not found!"
+		exit 1
+	else 
+		echo "[i] Using curl: $CMD_CURL"
+		echo "[i] Configured NVT http feed: $OV_HTTP_FEED"
+		echo "[i] Downloading to: $TMP_NVT"
+		mkdir -p "$NVT_DIR" \
+		&& curl "$OV_HTTP_FEED" -o $TMP_NVT \
+		&& cd "$NVT_DIR" \
+		&& tar xvjf $TMP_NVT \
+		&& rm -f $TMP_NVT \
+		&& echo "[i] Download complete"
+	fi
+fi
+
+if [ -z "CMD_MD5SUM" ]; then
+	echo "[w] md5sum utility not found, cannot check NVT checksums! You've been warned!"
+else
+	echo -n "[i] Checking dir: "	
+	eval "cd \"$NVT_DIR\""
+	if [ $? -ne 0 ] ; then
+		echo "not ok"
+		echo "Check your NVT dir for existence and permissions!"
+		exit 1
+	else
+		echo "ok"
+	fi
+	echo -n "[i] Checking MD5 checksum: "	
+	eval "cd \"$NVT_DIR\" ; $CMD_MD5SUM -c --status \"$NVT_DIR/md5sums\""
+	if [ $? -ne 0 ] ; then
+		echo "not ok"
+		echo "Error: md5sums not correct. Your NVT collection might be broken now."
+		echo "Please try this for details: cd \"$NVT_DIR\" ; $CMD_MD5SUM -c \"$NVT_DIR/md5sums\" | less"
+		exit 1
+	fi	
+	echo "ok"
+fi
+
+
