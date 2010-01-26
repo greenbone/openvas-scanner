@@ -1,8 +1,13 @@
+2010-01-26  Felix Wolfsteller <felix.wolfsteller@intevation.de>
+
+	* openvas-nvt-sync.in: Flush trailing whitespaces, minor reformatting
+	for more consistency.
+
 2010-01-26  Vlatko Kosturjak <kost@linux.hr>
 
 	* openvas-nvt-sync.in: quick merge of old script which had support
 	for OpenVAS administrator and new script. In short, best of both
-	worlds (scripts). 
+	worlds (scripts).
 
 2010-01-26  Vlatko Kosturjak <kost@linux.hr>
 

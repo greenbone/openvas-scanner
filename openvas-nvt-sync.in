@@ -1,5 +1,5 @@
 #!/bin/sh
-# 
+#
 # OpenVAS
 # $Id$
 # Description: Synchronize with NVT feed.
@@ -10,7 +10,7 @@
 #
 # Authors:
 # Vlatko Kosturjak <kost@linux.hr>
-# 
+#
 # Script is complete rewrite of original sync script by 
 # Lukas Grunwald <l.grunwald@dn-systems.de>
 # Jan-Oliver Wagner <jan-oliver.wagner@intevation.de>
@@ -71,7 +71,7 @@ FEED_PROVIDER="The OpenVAS Project"
 FEED_HOME="http://www.openvas.org/openvas-nvt-feed.html"
 RESTRICTED=0
 
-	
+
 echo "OpenVAS NVT Sync $VERSION"
 echo " "
 
@@ -104,7 +104,7 @@ CMD_WGET=`which wget`
 CMD_CURL=`which curl`
 TMP_NVT="$SYNC_TMP_DIR/openvas-feed-`date +%F`-$$.tar.bz2"
 
-chk_system_tools(){
+chk_system_tools () {
 	echo "[i] Searching for required system tools (look for warnings)..."
 
 	if [ -z "$CMD_MD5SUM" ]; then
@@ -129,9 +129,9 @@ chk_system_tools(){
 }
 
 do_rsync () {
-	if [ -z "$CMD_RSYNC" ]; then 
+	if [ -z "$CMD_RSYNC" ]; then
 		echo "[w] rsync not found!"
-	else 
+	else
 		echo "[i] Using rsync: $CMD_RSYNC"
 		echo "[i] Configured NVT rsync feed: $OV_RSYNC_FEED"
 		mkdir -p "$NVT_DIR"
@@ -144,9 +144,9 @@ do_rsync () {
 }
 
 do_wget () {
-	if [ -z "$CMD_WGET" ]; then 
+	if [ -z "$CMD_WGET" ]; then
 		echo "[w] GNU wget not found!"
-	else 
+	else
 		echo "[i] Using GNU wget: $CMD_WGET"
 		echo "[i] Configured NVT http feed: $OV_HTTP_FEED"
 		echo "[i] Downloading to: $TMP_NVT"
@@ -162,7 +162,7 @@ do_wget () {
 do_curl () {
 	if [ -z "$CMD_CURL" ]; then 
 		echo "[w] curl not found!"
-	else 
+	else
 		echo "[i] Using curl: $CMD_CURL"
 		echo "[i] Configured NVT http feed: $OV_HTTP_FEED"
 		echo "[i] Downloading to: $TMP_NVT"
@@ -195,18 +195,16 @@ do_check_md5 () {
 			echo "Error: md5sums not correct. Your NVT collection might be broken now."
 			echo "Please try this for details: cd \"$NVT_DIR\" ; $CMD_MD5SUM -c \"$NVT_DIR/md5sums\" | less"
 			exit 1
-		fi	
+		fi
 		echo "ok"
 	fi
 }
 
-do_self_test ()
-{
+do_self_test () {
 	chk_system_tools
 }
 
-do_describe ()
-{
+do_describe () {
   echo "[i] This script synchronizes an NVT collection with the '$FEED_NAME'."
   echo "[i] The '$FEED_NAME' is provided by '$FEED_PROVIDER'."
   echo "[i] Online information about this feed: '$FEED_HOME'."
@@ -214,7 +212,7 @@ do_describe ()
 
 if [ -z "$1" ]; then
 	do_describe
-	if [ -z "$CMD_RSYNC" ]; then 
+	if [ -z "$CMD_RSYNC" ]; then
 		echo "[w] rsync not found!"
 		if [ -z "$CMD_WGET"]; then
 			echo "[w] GNU wget not found!"
@@ -230,30 +228,30 @@ if [ -z "$1" ]; then
 			echo "[i] Will use wget"
 			do_wget
 		fi
-	else 
+	else
 		echo "[i] Will use rsync"
 		do_rsync
 	fi
 	do_check_md5
-else 
+else
 	while test $# -gt 0; do
 	 case "$1" in
-		--help) 
+		--help)
 			do_help
 			;;
-		--rsync) 
+		--rsync)
 			do_rsync
 			do_check_md5
 			;;
-		--wget) 
+		--wget)
 			do_wget
 			do_check_md5
 			;;
-		--curl) 
+		--curl)
 			do_curl
 			do_check_md5
 			;;
-		--check) 
+		--check)
 			do_check_md5
 			;;
 		--version)
