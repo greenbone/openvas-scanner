@@ -38,7 +38,6 @@
 #include "pluginload.h"
 #include "log.h"
 #include "preferences.h"
-#include "users.h"
 
 static pl_class_t* plugin_classes = NULL;
 
