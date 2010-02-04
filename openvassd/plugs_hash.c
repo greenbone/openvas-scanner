@@ -36,7 +36,6 @@
 #include <openvas/system.h> /* for efree */
 
 #include <gcrypt.h>
-#include "users.h"
 #include "log.h"
 
 /*

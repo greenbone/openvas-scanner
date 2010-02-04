@@ -1,5 +1,9 @@
 2010-02-04  Michael Wiegand <michael.wiegand@intevation.de>
 
+	* openvassd/plugs_hash.c: Removed superfluous include of users.h.
+
+2010-02-04  Michael Wiegand <michael.wiegand@intevation.de>
+
 	* openvassd/pluginload.c: Removed superfluous include of users.h.
 
 2010-01-26  Michael Wiegand <michael.wiegand@intevation.de>
