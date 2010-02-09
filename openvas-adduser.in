@@ -145,6 +145,12 @@ while test "$ok" = `gettext "n"`;
 do
  echo $Xn "`gettext "Login :"` $Xc"
  read login
+ # Abort with error if nothing to read in.
+ if [ $? = 1 ]
+ then
+   gettext "No input, exiting."; echo
+   exit 1;
+ fi
  if [ -d $localstatedir/lib/openvas/users/$login ];
  then
    gettext "This login already exists. Choose another one."; echo
@@ -310,3 +316,5 @@ rm -rf $tmpAddUserDir
 
 
 gettext "user added."; echo
+
+exit 0
