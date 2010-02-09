@@ -25,9 +25,6 @@
 # You should have received a copy of the GNU General Public License
 # along with this program; if not, write to the Free Software
 # Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA 02110-1301 USA.
-#
-#
-#
 
 
 # check whether we have echo -n, depending
@@ -110,7 +107,7 @@ fi
 
 # find openvassd by the first path segment, ask for settings
 openvassd_conf=` openvassd -s | sed '/^config_file  *= /!d; s/^[^=]*= *//;'`
-	
+
 # some checks
 [ -s "$openvassd_conf" ] || {
 	eval_gettext "Missing or empty configuration file \"\$openvassd_conf\"!"; echo
@@ -119,7 +116,7 @@ openvassd_conf=` openvassd -s | sed '/^config_file  *= /!d; s/^[^=]*= *//;'`
 
 # path to a temporary directory
 test -z "$TMPDIR" && {
-  	if [ -d /var/tmp ];
+	if [ -d /var/tmp ];
 	then
 	  gettext "Using /var/tmp as a temporary file holder."; echo
 	  TMPDIR=/var/tmp
@@ -128,7 +125,7 @@ test -z "$TMPDIR" && {
 	  echo $Xn "`eval_gettext "Enter the location to a place where I could place temporary files: [\\$HOME]"` $Xc"
 	  read TMPDIR
 	  test -z "$TMPDIR"  && TMPDIR=$HOME
-	fi  
+	fi
 }
 
 
@@ -202,7 +199,7 @@ do
  read password_again
  stty echo
  echo
- 
+
  if test -z "$password" ; then
    gettext "Your password can not be empty."; echo
  else
@@ -217,7 +214,7 @@ done
 fi
 
 if [ $prompt -eq 0 ] ; then
-echo 
+echo
 gettext "User rules"; echo
 echo "---------------"
 
@@ -238,14 +235,14 @@ gettext "(the user can have an empty rules set)"; echo
 mkdir -m 0700 $tmpAddUserDir || { eval_gettext "Error - could not create \$tmpAddUserDir"; echo; exit 1; }
 
 cat > $tmpAddUserFile || {
-  	eval_gettext "Error - could not write \$tmpAddUserFile"
+	eval_gettext "Error - could not write \$tmpAddUserFile"
 	exit 1
 }
 
-echo 
+echo
 echo
 gettext "Login             : "; echo $Xn "$login" $Xc ; echo
-test -n "$dn" || echo "$sayPasswd ***********" ; 
+test -n "$dn" || echo "$sayPasswd ***********" ;
 test -n "$dn" && eval_gettext "DN                : \$dn";
 echo
 gettext "Rules             : "; echo
@@ -268,7 +265,7 @@ case $ok in ''|[`gettext "Yy"`]*);; *)
     exit 0
 esac
 
-# add the user rules in our rules files. 
+# Add the user rules in our rules files.
 #
 # The users file must end with the default user '*', so we add
 # our data at the TOP of the file
@@ -276,7 +273,6 @@ esac
 
 
 #echo "$login:$password" > $TMPDIR/adduser.$$
-	
 
 chmod 0700 "$localstatedir/lib/openvas/"
 mkdir -p "$localstatedir/lib/openvas/users/$login"
@@ -295,7 +291,7 @@ mkdir -p "$localstatedir/lib/openvas/users/$login/auth"
 chmod 0700 "$localstatedir/lib/openvas/users/$login/auth"
 
 if [ "$auth" = "pass" ]; then
-    	test -c /dev/urandom &&
+	test -c /dev/urandom &&
 	{
 	URANDOM=`dd if=/dev/urandom bs=16 count=16 2>/dev/null|$MD5CMD`
 	}
@@ -307,16 +303,10 @@ elif [ "$auth" = "cert" ]; then
 fi
 
 
-
 cp $tmpAddUserFile "$localstatedir/lib/openvas/users/$login/auth/rules"
-
 
 
 rm -rf $tmpAddUserDir
 
 
-
-
-
 gettext "user added."; echo
-

@@ -1,3 +1,7 @@
+2010-02-09  Felix Wolfsteller <felix.wolfsteller@intevation.de>
+
+	* openvas-adduser.in: Cosmetics.
+
 2010-02-04  Michael Wiegand <michael.wiegand@intevation.de>
 
 	* openvassd/plugs_hash.c: Removed superfluous include of users.h.
