@@ -71,10 +71,6 @@ FEED_PROVIDER="The OpenVAS Project"
 FEED_HOME="http://www.openvas.org/openvas-nvt-feed.html"
 RESTRICTED=0
 
-
-echo "OpenVAS NVT Sync $VERSION"
-echo " "
-
 do_help () {
 	echo "$0: Sync NVTs using different protocols"
 	echo "--rsync		sync with rsync (default)"
@@ -95,8 +91,6 @@ do_help () {
 	echo ""
 	exit 0
 }
-
-echo "[i] NVT dir: $NVT_DIR"
 
 CMD_RSYNC=`which rsync`
 CMD_MD5SUM=`which md5sum`
@@ -208,6 +202,8 @@ do_describe () {
   echo "[i] This script synchronizes an NVT collection with the '$FEED_NAME'."
   echo "[i] The '$FEED_NAME' is provided by '$FEED_PROVIDER'."
   echo "[i] Online information about this feed: '$FEED_HOME'."
+  echo "[i] NVT dir: $NVT_DIR"
+
 }
 
 if [ -z "$1" ]; then

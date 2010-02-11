@@ -1,3 +1,8 @@
+2010-02-11  Michael Wiegand <michael.wiegand@intevation.de>
+
+	* openvas-nvt-sync.in: Removed superfluous outputs which broke the
+	compatibility with openvas-administrator.
+
 2010-02-09  Felix Wolfsteller <felix.wolfsteller@intevation.de>
 
 	* openvas-adduser.in: exit 0 if successfull, exit 1 if no input to user
