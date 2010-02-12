@@ -1,3 +1,7 @@
+2010-02-12  Michael Wiegand <michael.wiegand@intevation.de>
+
+	* openvassd/nasl_plugins.c: Removed obsolete reference from comment.
+
 2010-02-11  Michael Wiegand <michael.wiegand@intevation.de>
 
 	* openvas-nvt-sync.in: Removed superfluous outputs which broke the

@@ -69,7 +69,7 @@ static void nasl_thread(struct arglist *);
 /**
  * @brief Add *one* .nasl plugin to the plugin list and return the pointer to it.
  *
- * The plugin is first attempted to be loaded from the cache (.desc) calling
+ * The plugin is first attempted to be loaded from the cache calling
  * store_load_plugin. If that fails, it is parsed (via exec_nasl_script) and
  * added to the store.
  * If a plugin with the same (file)name is already present in the plugins
