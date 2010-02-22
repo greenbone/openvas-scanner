@@ -1,3 +1,8 @@
+2010-02-22  Felix Wolfsteller <felix.wolfsteller@intevation.de>
+
+	* openvassd/ntp_11.c (files_add_translation): Corrected parameter
+	documentation.
+
 2010-02-12  Michael Wiegand <michael.wiegand@intevation.de>
 
 	* openvassd/nasl_plugins.c: Removed obsolete reference from comment.

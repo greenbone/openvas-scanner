@@ -394,7 +394,7 @@ ntp_11_show_end (struct arglist*  globals, char * name, int internal)
  *
  * @param globals    Global arglist.
  * @param remotename Path to file as referenced by the client.
- * @param remotename Path to file as referenced by the server.
+ * @param localname  Path to file as referenced by the server.
  */
 static void
 files_add_translation (struct arglist* globals, const char * remotename,
