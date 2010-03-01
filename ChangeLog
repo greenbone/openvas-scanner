@@ -1,3 +1,8 @@
+2010-03-01 Stephan Kleine
+
+	* cnvts/ssl_ciphers/ssl_ciphers.c: Changed return type of report_cat 
+	from int to void to fix a no-return-in-nonvoid-function error.
+
 2010-02-22  Felix Wolfsteller <felix.wolfsteller@intevation.de>
 
 	* openvassd/ntp_11.c (files_add_translation): Corrected parameter

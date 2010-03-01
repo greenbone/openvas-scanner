@@ -49,7 +49,7 @@ int plugin_init(desc)
 }
 
 
-static int report_cat(char ** report, int * report_sz, char * msg)
+static void report_cat(char ** report, int * report_sz, char * msg)
 {
  if ( *report == NULL )
  {
