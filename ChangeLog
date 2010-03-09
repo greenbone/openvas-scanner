@@ -1,3 +1,12 @@
+2010-03-09  Michael Meyer <michael.meyer@intevation.de>
+
+	* cnvts/find_service/find_service.c:
+	Re-enabled "mark_unknown_svc()". This function was removed in Rev
+	38. Nobody knows why. This function is very important for
+	find_service*.nasl (and a few others) because they all based
+	upon "Services/unknown" which are stored in KB by
+	mark_unknown_svc().
+
 2010-03-01 Stephan Kleine
 
 	* cnvts/ssl_ciphers/ssl_ciphers.c: Changed return type of report_cat 

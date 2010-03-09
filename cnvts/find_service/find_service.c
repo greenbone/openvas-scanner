@@ -1441,7 +1441,6 @@ port_to_name(int port)
 	return NULL;
 }
 
-#if 0
 static void
 mark_unknown_svc(desc, port, banner, trp)
 	struct arglist *desc;
@@ -1465,7 +1464,6 @@ It is usually reserved for %s",
 	if (*tmp != '\0')
 		post_note(desc, port, tmp);
 }
-#endif
 
 static void
 mark_gnuserv(desc, port)
@@ -2553,21 +2551,19 @@ and in %d.%03d when we just wait. It is  probably not wrapped\n",
 				}
 #endif
 
-				if (unindentified_service && port != 139)
+				if (unindentified_service && port != 139 && port != 135 && port != 445)
 					/*
 					 * port 139 can't be marked as
 					 * 'unknown'
 					 */
 				{
 					unknown[num_unknown++] = port;
-#if 0
 					/*
 					 * find_service_3digits will run
 					 * after us
 					 */
 					if (!three_digits)
 						mark_unknown_svc(desc, port, banner, trp);
-#endif
 				}
 				efree(&banner);
 			}
