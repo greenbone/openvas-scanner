@@ -1,3 +1,9 @@
+2010-03-10  Michael Wiegand <michael.wiegand@intevation.de>
+
+	* openvas-mkcert-client.in: Cleaned and reworked script for generating
+	OpenVAS client certificates. Now works with current openvas-scanner
+	and allows to create certificates non-interactively.
+
 2010-03-09  Michael Meyer <michael.meyer@intevation.de>
 
 	* cnvts/find_service/find_service.c:

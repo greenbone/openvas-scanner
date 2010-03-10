@@ -1,13 +1,11 @@
 #!/bin/sh
-
-# OpenVAS
-# $Id$
-# Description: create SSL client certificates.
+#
+# openvas-mkcert-client
+# Description: Create SSL client certificates for OpenVAS.
 #
 # Authors: - Michel Arboi <arboi@alussinan.org> (Original pre-fork develoment)
-#          - Tim Brown <mailto:timb@openvas.org> (Initial fork)
-#          - Laban Mwangi <mailto:labanm@openvas.org> (Renaming work)
-#          - Tarik El-Yassem <mailto:tarik@openvas.org> (Headers section)
+#          - Jan-Oliver Wagner <jan-oliver.wagner@intevation.de>
+#          - Michael Wiegand <michael.wiegand@intevation.de>
 #
 # Copyright:
 # Portions Copyright (C) 2006 Software in the Public Interest, Inc.
@@ -25,167 +23,103 @@
 # You should have received a copy of the GNU General Public License
 # along with this program; if not, write to the Free Software
 # Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA 02110-1301 USA.
-#
-#
-#
-
-
-case `echo -n` in
-\-n)	Xn=   ; Xc='\c' ;;
-*)	Xn=-n ; Xc=
-esac
 
 umask 022
 
 prefix=@prefix@
 datarootdir=@datarootdir@
 datadir=@datadir@
-sysconfdir=@sysconfdir@
 localstatedir=@localstatedir@
-sharedstatedir=@sharedstatedir@
 sbindir=@exec_prefix@/sbin
 bindir=@exec_prefix@/bin
-egdpath=@egdpath@
 
-RANDFLAG=""
-test -n "$egdpath" && 
+usage()
 {
- RANDFLAG="-rand $egdpath"
+ echo "Usage:"
+ echo "  openvas-mkcert-client [OPTION...] - Create SSL client certificates for OpenVAS."
+ echo
+ echo "Options:"
+ echo "  -h           Display help"
+ echo "  -n <name>    Run non-interactively, create certificates for user <name>"
+ echo "               and register user <name> with the OpenVAS scanner"
+ echo
+ exit $1
 }
 
-PATH=$PATH:$sbindir:$bindir:/usr/ssl/bin:/usr/local/ssl/bin:/opt/ssl/bin
+while getopts "n:h" OPTION
+do
+     case $OPTION in
+         h)
+             usage 0
+             ;;
+         n)
+             NAME=$OPTARG
+             ;;
+    esac
+done
 
-# check if gettext is present
-
-GETTEXT=`command -v gettext.sh`
-if [ $? -ne 0 ];
-then
-
-  # define dummy functions
-
-  gettext () {
-    echo $Xn "$1" $Xc
-  }
-
-  eval_gettext () {
-    eval_gettext_var="echo $1"
-    echo $Xn `eval $eval_gettext_var` $Xc
-  }
-
-else
-
-  # initialize gettext
-
-  . $GETTEXT
-  export TEXTDOMAIN=openvas-scripts
-  export TEXTDOMAINDIR=@datadir@/locale
-
+if [ -z $TMPDIR ] ; then
+  TMPDIR=/tmp
 fi
 
-
-Bo='('
-Bc=')'
-Hash='#'
-
-echo_no_nl ()
-{
-    echo $Xn "$*$Xc"
-}
-
-
-header()
-{
-clear
-echo "-------------------------------------------------------------------------------"
-gettext "			Creation OpenVAS SSL Client Certificate"; echo
-echo "-------------------------------------------------------------------------------"
-echo
-}
-#
-
-#
-# We need openssl
-#
-case `openssl version` in 
+# Check for OpenSSL availability
+case `openssl version` in
  OpenSSL*)
      ;;
  *)
-   gettext "OpenSSL is not properly installed: The 'openssl' command line utility could not be found (is your \$PATH set properly?)"; echo
+   echo "OpenSSL is not properly installed: The 'openssl' command line utility could not be found (is your \$PATH set properly?)"; echo
    exit 1
 esac
-     
-# Check environment
-if [ -z "$HOME" ]; then
-    gettext "\$HOME should be defined." 1>&2; echo; exit 1
+
+# Check for availability of OpenVAS CA
+OPENVASPRIV="$localstatedir/lib/openvas/private/CA"
+OPENVASPUB="$localstatedir/lib/openvas/CA"
+
+if [ ! -d "$OPENVASPRIV" ]; then
+    echo "Could not access private directory of the OpenVAS CA ($OPENVASPRIV)."
+    exit 1
 fi
 
-#
-# If EGD is not installed, we have to rely on other sources
-# of entropy
-# 
-test -z "$RANDFLAG" -a -z "$RANDFILE" &&
-{
- if [ ! -r /dev/random -a ! -r /dev/urandom -a ! -r $HOME/.rnd ];
-  then
-   header
-   gettext "You do not have any suitable random source."; echo
-   gettext "You will be asked to type a few random keys on your keyboard to generate random bytes."; echo
-   openvas-mkrand $HOME/.rnd 1024 
-   gettext "Press [ENTER] to continue..."; echo
-  fi
-}
-
-
-
-OPENVASPRIV="@OPENVASSD_STATEDIR@/private/CA"
-OPENVASPUB="@OPENVASSD_SHAREDSTATEDIR@/CA"
-
-while [ ! -d "$OPENVASPRIV" ]; do
-    gettext "OpenVAS server 'private' directory: "
-    read OPENVASPRIV
-done
-
-while [ ! -d "$OPENVASPUB" ]; do
-    gettext "OpenVAS server 'public' directory: "
-    read OPENVASPUB
-done
+if [ ! -d "$OPENVASPUB" ]; then
+    echo "Could not access directory of the OpenVAS CA ($OPENVASPUB)."
+    exit 1
+fi
 
 CAKEY=$OPENVASPRIV/cakey.pem
 CACERT=$OPENVASPUB/cacert.pem
 
-[ -r "$CAKEY" ] || echo "WARN: $CAKEY is not readable, this script will not be able to find the server certificate (hint: are you root?)"
+if [ ! -r "$CAKEY" ]; then
+    echo "$CAKEY is not readable, unable to access the OpenVAS CA files."
+    exit 1
+fi
 
-while [ ! -f "$CAKEY" ]; do
-    eval_gettext "\$CAKEY: not found or not a file."
-    gettext "OpenVAS CA private key: "
-    read CAKEY
-done
+if [ ! -f "$CAKEY" ]; then
+    echo "$CAKEY: not found or not a file."
+    exit 1
+fi
 
-while [ ! -f "$CACERT" ]; do
-    eval_gettext "\$CACERT: not found or not a file."
-    gettext "OpenVAS CA certificate: "
-    read CACERT
-done
+if [ ! -f "$CACERT" ]; then
+    echo "$CACERT: not found or not a file."
+    exit 1
+fi
 
-for F in "$CAKEY" "$CACERT"; do 
-    if [ ! -r "$F" ]; then
-	eval_gettext "Cannot read \$F" 1>&2; echo; exit 1
-    fi
-done
-
-R=x
-while [ "$R" != `gettext "y"` -a "$R" != `gettext "n"` ]; do
-    gettext "Do you want to register the users in the OpenVAS server as soon as you create their certificates? (y/n): "
+if [ -n $NAME ]; then
+    R=`echo "y"`
+else
+    R=x
+fi
+while [ "$R" != `echo "y"` -a "$R" != `echo "n"` ]; do
+    echo -n "Do you want to register the users with the OpenVAS scanner as soon as you create their certificates? (y/n): "
     read R
 done
 
-if [ "$R" = `gettext "y"` ]; then
-    USERSDIR=$localstatedir/lib/openvas/users
-    while [ ! -d "$USERSDIR" ]; do
-	eval_gettext "\$USERSDIR: not a directory."; echo
-	gettext "Users directory? "
-	read USERSDIR
-    done
+# Check for availability of the OpenVAS scanner user directory
+if [ "$R" = `echo "y"` ]; then
+    USERSDIR="$localstatedir/lib/openvas/users"
+    if [ ! -d "$USERSDIR" ]; then
+        echo "Could not access OpenVAS scanner user directory ($USERSDIR)."
+        exit 1
+    fi
 else
     USERSDIR=""
 fi
@@ -193,34 +127,41 @@ fi
 umask 066
 
 # Set environment
-BASEDIR=${TMPDIR-/tmp}/openvas-mkcert.$$
+BASEDIR=$TMPDIR/openvas-mkcert-client.$$
 mkdir $BASEDIR || exit 1
 
 
-gettext "This script will now ask you the relevant information to create the SSL client certificates for OpenVAS."; echo
+if [ -z $NAME ]; then
+echo "This script will now ask you the relevant information to create the SSL client certificates for OpenVAS."; echo
 
-gettext "Client certificates life time in days [365]: "; read x
+    echo -n "Client certificates life time in days [365]: "; read x
+fi
 DFL_CERT_LIFETIME=${x:-365}
 
-# Default country = France - Too bad for you, but quicker for my tests!
 if [ ! -z "$LANG" ]; then
     DC=`echo $LANG | sed -n 's/^..*_\(..\)$/\1/p'`
 fi
 X=${DC:=DE}
-eval_gettext "Your country \${Bo}two letter code\${Bc} [\$X]: "; read x
+if [ -z $NAME ]; then
+   echo -n "Your country (two letter code) [$X]: "; read x
+fi
 DFL_COUNTRY=${x:-$DC}
-gettext "Your state or province name [none]: "; read DFL_PROVINCE
-X=Berlin; 
-eval_gettext "Your location \${Bo}e.g. town\${Bc} [\$X]: "; read x
+if [ -z $NAME ]; then
+   echo -n "Your state or province name [none]: "; read DFL_PROVINCE
+fi
+X=Berlin;
+if [ -z $NAME ]; then
+   echo -n "Your location (e.g. town) [$X]: "; read x
+fi
 DFL_LOCATION=${x:-$X}
-gettext "Your organization [none]: "; read DFL_ORGANIZATION
-gettext "Your organizational unit [none]: "; read DFL_ORGUNIT
+if [ -z $NAME ]; then
+   echo -n "Your organization [none]: "; read DFL_ORGANIZATION
+fi
+if [ -z $NAME ]; then
+   echo -n "Your organizational unit [none]: "; read DFL_ORGUNIT
+fi
 
-#
-
-cat <<EOF>$BASEDIR/stdC.cnf
-RANDFILE		= $HOME/.rnd
-#
+cat <<EOF > $BASEDIR/stdC.cnf
 [ ca ]
 default_ca = OpenVASCA
 
@@ -241,7 +182,7 @@ crl_extensions	= crl_ext
 
 default_days	= 365		# how long to certify for
 default_crl_days= 30			# how long before next CRL
-default_md	= md5			# which md to use.
+default_md	= sha1			# which md to use.
 preserve	= no			# keep passed DN ordering
 
 policy		= policy_anything
@@ -346,57 +287,74 @@ keyUsage = cRLSign, keyCertSign
 nsCertType = sslCA
 EOF
 
-#
 echo 01 > $BASEDIR/serial
 touch $BASEDIR/index.txt
 
-echo "**********"
-gettext "We are going to ask you some question for each client certificate. "; echo
-gettext "If some question has a default answer, you can force an empty answer by entering a single dot '.'"; echo
-echo "*********"
+if [ -z $NAME ]; then
+    echo "**********"
+    echo "We are going to ask you some question for each client certificate. "; echo
+    echo "If some question has a default answer, you can force an empty answer by entering a single dot '.'"; echo
+    echo "*********"
+fi
 
+I=1; ANOTHER=`echo "y"`
 
-I=1; ANOTHER=`gettext "y"`
-
-while [ "$ANOTHER" != `gettext "n"` ]; do
-    PSEUDO=""
+while [ "$ANOTHER" != `echo "n"` ]; do
+    if [ -z $NAME ]; then
+        PSEUDO=""
+    else
+        PSEUDO=$NAME
+    fi
     while [ -z "$PSEUDO" ]; do
-	eval_gettext "User \${Hash}\$I name \${Bo}e.g. OpenVAS username\${Bc}: "
-	read PSEUDO
-	CERTFILE="$BASEDIR/cert_$PSEUDO.pem"
-	KEYFILE="$BASEDIR/key_$PSEUDO.pem"
-	REQFILE="$BASEDIR/req_$PSEUDO.pem"
-	DNFILE="$USERSDIR/$PSEUDO/auth/dname" # Not wise if USERSDIR is not set
-	if [ -f "$CERTFILE" -o -f "$KEYFILE" -o -f "$DNFILE" ]; then
-	    A=""
-	    while [ -z "$A" ]; do
-		gettext "Certificate, key or OpenVAS DN file(s) already exist."; echo
-		gettext "Do you want to go on and overwrite it/them? (y/n) "
-		read A
-		if [ "$A" = `gettext "n"` ]; then PSEUDO=""; fi
-	    done
-	fi
+        echo -n "OpenVAS username for the new user: "
+        read PSEUDO
     done
 
-    eval_gettext "Client certificates life time in days [\$DFL_CERT_LIFETIME]: "
-    read x
+    CERTFILE="$BASEDIR/cert_$PSEUDO.pem"
+    KEYFILE="$BASEDIR/key_$PSEUDO.pem"
+    REQFILE="$BASEDIR/req_$PSEUDO.pem"
+    if [ -n $USERSDIR ]; then
+        DNFILE="$USERSDIR/$PSEUDO/auth/dname"
+    fi
+    if [ -f "$CERTFILE" -o -f "$KEYFILE" ]; then
+        echo "Certificate or key for this user already exist."
+        exit 1
+    fi
+
+    if [ -z $NAME ]; then
+        echo -n "Client certificates life time in days [$DFL_CERT_LIFETIME]: "; read x
+    fi
     CERT_LIFETIME=${x:-$DFL_CERT_LIFETIME}
     X=$DFL_COUNTRY
-    eval_gettext "Country \${Bo}two letter code\${Bc} [\$X]: "; read x
+    if [ -z $NAME ]; then
+        echo -n "Country (two letter code) [$X]: "; read x
+    fi
     COUNTRY=${x:-$DFL_COUNTRY}
     X=$DFL_PROVINCE
-    eval_gettext "State or province name [\$X]: "; read x
+    if [ -z $NAME ]; then
+        echo -n "State or province name [$X]: "; read x
+    fi
     PROVINCE=${x:-$DFL_PROVINCE}
     X=$DFL_LOCATION
-    eval_gettext "Location \${Bo}e.g. town\${Bc} [\$X]: "; read x
+    if [ -z $NAME ]; then
+        echo -n "Location (e.g. town) [$X]: "; read x
+    fi
     LOCATION=${x:-$DFL_LOCATION}
     X=$DFL_ORGANIZATION
-    eval_gettext "Organization [\$X]: "; read x
+    if [ -z $NAME ]; then
+        echo -n "Organization [$X]: "; read x
+    fi
     ORGANIZATION=${x:-$DFL_ORGANIZATION}
     X=$DFL_ORGUNIT
-    eval_gettext "Organization unit [\$X]: "; read x
+    if [ -z $NAME ]; then
+        echo -n "Organization unit [$X]: "; read x
+    fi
     ORGUNIT=${x:-$DFL_ORGUNIT}
-    gettext "e-Mail []: "; read EMAIL
+    if [ -z $NAME ]; then
+        echo -n "e-Mail []: "; read EMAIL
+    else
+        EMAIL=""
+    fi
 
     # Client key
     openssl genrsa -out $KEYFILE 1024
@@ -408,90 +366,86 @@ ${LOCATION:-.}
 ${ORGANIZATION:-.}
 ${ORGUNIT:-.}
 $PSEUDO
-${EMAIL:-.}" | 
+${EMAIL:-.}" |
     openssl req -config $BASEDIR/stdC.cnf -new -key $KEYFILE -out $REQFILE
 
     # Sign the client certificate
     openssl ca -config $BASEDIR/stdC.cnf -name OpenVASCA -batch -days $CERT_LIFETIME -in $REQFILE -out $CERTFILE
 
-    # Create export file for OpenVASWX
-    NWX_CERTFILE=$BASEDIR/cert_nessuswx_$PSEUDO.pem
-    cp $CERTFILE $NWX_CERTFILE
-    cat $KEYFILE >> $NWX_CERTFILE
-
     chmod a+r $CERTFILE
-    chmod a+r $NWX_CERTFILE
 
     if [ ! -z "$USERSDIR" ]; then
+        # create the auth dir, which contains the user rules,
+        # password or cert
+        D="$USERSDIR/$PSEUDO/auth"
+        if [ ! -d "$D" ]; then
+            mkdir -p "$D"
+            chmod 700 "$D"
+        fi
 
-        # 
-        # create the auth dir, which contains the user rules, 
-        # password or cert, and plugin acl 
-	D="$USERSDIR/$PSEUDO/auth"
-	if [ ! -d "$D" ]; then
-	    mkdir -p "$D"
-	    chmod 700 "$D"
-	fi
+        # create the user auth/rules file
+        #
+        if [ -z $NAME ]; then
+            R="$USERSDIR/$PSEUDO/auth/rules"
+            echo
+            echo "User rules"; echo
+            echo "----------"
+            echo "openvassd has a rules system which allows you to restrict the hosts that $login has the right to test."; echo
+            echo "For instance, you may want him to be able to scan his own host only."; echo
+            echo
+            echo "Please see the openvas-adduser(8) man page for the rules syntax."; echo
+            echo
+            echo "Enter the rules for this user, and hit ctrl-D once you are done:"; echo
 
-        # 
-        # create the user auth/rules file 
-      # 
-      R="$USERSDIR/$PSEUDO/auth/rules" 
-      echo 
-      gettext "User rules"; echo 
-      echo "----------" 
-      eval_gettext "openvassd has a rules system which allows you to restrict the hosts that \$login has the right to test."; echo
-      gettext "For instance, you may want him to be able to scan his own host only."; echo
-      echo 
-      gettext "Please see the openvas-adduser(8) man page for the rules syntax."; echo
-      echo 
-      gettext "Enter the rules for this user, and hit ctrl-D once you are done:"; echo
+            tmpAddUserFile=$TMPDIR/rules.$$
 
-      tmpAddUserFile=$TMPDIR/rules.$$
+            echo "(the user can have an empty rules set)"; echo
+            cat > $tmpAddUserFile || {
+                    echo "Error - could not write $tmpAddUserFile"
+                    exit 1
+            }
+            cp $tmpAddUserFile "$USERSDIR/$PSEUDO/auth/rules"
 
+            rm $tmpAddUserFile
+        else
+            touch "$USERSDIR/$PSEUDO/auth/rules"
+        fi
 
-      gettext "(the user can have an empty rules set)"; echo
-      cat > $tmpAddUserFile || { 
-              echo "Error - could not write $tmpAddUserFile" 
-              exit 1 
-      } 
-      cp $tmpAddUserFile "$USERSDIR/$PSEUDO/auth/rules" 
+        # create the cert authentication file auth/dname
+        > $DNFILE
+        dn=""
+        [ ! -z "$COUNTRY" -a "$COUNTRY" != "." ] &&
+            dn=$dn"/C=$COUNTRY"
+        [ ! -z "$PROVINCE" -a "$PROVINCE" != "." ] &&
+            dn=$dn"/ST=$PROVINCE"
+        [ ! -z "$LOCATION" -a "$LOCATION" != "." ] &&
+            dn=$dn"/L=$LOCATION"
+        [ ! -z "$ORGANIZATION" -a "$ORGANIZATION" != "." ] &&
+            dn=$dn"/O=$ORGANIZATION"
+        [ ! -z "$ORGUNIT" -a "$ORGUNIT" != "." ] &&
+            dn=$dn"/OU=$ORGUNIT"
+        dn=$dn"/CN=$PSEUDO"
+        [ ! -z "$EMAIL" ] && dn=$dn"/emailAddress=$EMAIL"
 
-      rm $tmpAddUserFile 
+        # Convert to gnutls format: Replace "/" with ",", remove first ",",
+        # replace emailAdress= with EMAIL=
+        gdn="${dn//\//,}"
+        gdn="${gdn#,}"
+        gdn="${gdn/emailAddress=/EMAIL=}"
+        echo "$gdn" > $DNFILE
 
-      # 
-      # create the cert authentication file auth/dname 
-      # 
-	> $DNFILE
-	[ ! -z "$COUNTRY" -a "$COUNTRY" != "." ] &&
-	    echo_no_nl "/C=$COUNTRY" >> $DNFILE
-	[ ! -z "$PROVINCE" -a "$PROVINCE" != "." ] &&
-	    echo_no_nl "/ST=$PROVINCE" >> $DNFILE
-	[ ! -z "$LOCATION" -a "$LOCATION" != "." ] &&
-	    echo_no_nl "/L=$LOCATION" >> $DNFILE
-	[ ! -z "$ORGANIZATION" -a "$ORGANIZATION" != "." ] && 
-	    echo_no_nl "/O=$ORGANIZATION" >> $DNFILE
-	[ ! -z "$ORGUNIT" -a "$ORGUNIT" != "." ] && 
-	    echo_no_nl "/OU=$ORGUNIT" >> $DNFILE
-	echo_no_nl "/CN=$PSEUDO" >> $DNFILE
-	[ ! -z "$EMAIL" ] && echo_no_nl "/emailAddress=$EMAIL" >> $DNFILE
-
-      # 
-        # create the plugins dir, which contains the user plugins 
-        # 
-        E="$USERSDIR/$PSEUDO/plugins" 
-        if [ ! -d "$E" ]; then 
-            mkdir -p "$E" 
-            chmod 700 "$E" 
-        fi 
-        gettext "User added to OpenVAS."; echo
+        echo "User $PSEUDO added to OpenVAS."; echo
     fi
 
-    gettext "Another client certificate? (y/n) " 
-    read ANOTHER 
-    I=`expr $I + 1` 
+    if [ -n $NAME ]; then
+        ANOTHER=`echo "n"`
+    else
+        echo -n "Another client certificate? (y/n) "
+        read ANOTHER
+        I=`expr $I + 1`
+    fi
 done
 
-eval_gettext "Your client certificates are in \$BASEDIR."; echo
-gettext "You will have to copy them by hand."; echo
+echo "Your client certificates are in $BASEDIR ."; echo
+echo "You will have to copy them by hand."; echo
 
