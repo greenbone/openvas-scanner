@@ -1,3 +1,7 @@
+2010-03-11  Michael Wiegand <michael.wiegand@intevation.de>
+
+	* openvas-mkcert-client.in: Cleaned up bashisms in dname conversion.
+
 2010-03-10  Michael Wiegand <michael.wiegand@intevation.de>
 
 	* openvas-mkcert-client.in: Cleaned and reworked script for generating

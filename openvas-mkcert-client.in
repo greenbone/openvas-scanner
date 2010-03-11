@@ -429,9 +429,7 @@ ${EMAIL:-.}" |
 
         # Convert to gnutls format: Replace "/" with ",", remove first ",",
         # replace emailAdress= with EMAIL=
-        gdn="${dn//\//,}"
-        gdn="${gdn#,}"
-        gdn="${gdn/emailAddress=/EMAIL=}"
+        gdn=`echo $dn | sed -e 's/\//,/g' -e 's/^,//' -e 's/emailAddress/EMAIL/g'`
         echo "$gdn" > $DNFILE
 
         echo "User $PSEUDO added to OpenVAS."; echo
