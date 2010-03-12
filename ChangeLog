@@ -1,5 +1,9 @@
 2010-03-13  Jan-Oliver Wagner <jan-oliver.wagner@greenbone.net>
 
+	* configure: Updated.
+
+2010-03-13  Jan-Oliver Wagner <jan-oliver.wagner@greenbone.net>
+
 	* openvas-nvt-sync.in, tools/openvas-nvt-sync.in:
 	Moved to tools/.
 
