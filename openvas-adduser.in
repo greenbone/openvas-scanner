@@ -189,6 +189,7 @@ if [ "$auth" = "cert" ]; then
  read x && [ -n "$x" ] && dn=$dn/CN=$x
  echo $Xn "`gettext "e-Mail:"` $Xc"
  read x && [ -n "$x" ] && dn=$dn/Email=$x
+ dn=`echo $dn | sed -e 's/\//,/g' -e 's/^,//'`
 else
 askPasswd=`gettext "Login password :"`
 askPasswdAgain=`gettext "Login password (again) :"`

@@ -1,3 +1,7 @@
+2010-03-12  Michael Wiegand <michael.wiegand@intevation.de>
+
+	* openvas-adduser.in: Convert dname to GnuTLS format.
+
 2010-03-12  Jan-Oliver Wagner <jan-oliver.wagner@greenbone.net>
 
 	Adding a tools directory where to collect assisting scripts.
