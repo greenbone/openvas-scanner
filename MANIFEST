@@ -103,7 +103,6 @@ openvassd/utils.h
 openvas-mkcert-client.in
 openvas-mkcert.in
 openvas-nvt-sync.in
-openvas-rmuser.in
 openvas.tmpl.in
 po/Makefile
 po/openvas-scripts-de.po
@@ -112,5 +111,6 @@ README
 ssl/Makefile
 ssl/openvas-mkrand.c
 tools/openvas-adduser.in
+tools/openvas-rmuser.in
 tools/README
 VERSION

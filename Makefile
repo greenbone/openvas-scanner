@@ -72,7 +72,7 @@ install-bin:
 	$(INSTALL) -m 755 ssl/openvas-mkrand $(DESTDIR)${bindir}/openvas-mkrand
 	$(INSTALL) -m $(SERVERMODE) openvassd/openvassd $(DESTDIR)${sbindir}/openvassd
 	$(INSTALL) -m 755 tools/openvas-adduser $(DESTDIR)${sbindir}/openvas-adduser
-	$(INSTALL) -m 755 openvas-rmuser $(DESTDIR)${sbindir}/openvas-rmuser
+	$(INSTALL) -m 755 tools/openvas-rmuser $(DESTDIR)${sbindir}/openvas-rmuser
 	$(INSTALL) -m 755 openvas-mkcert $(DESTDIR)${sbindir}/openvas-mkcert
 	$(INSTALL) -c -m 0444 openvas-services  $(DESTDIR)${OPENVASSD_STATEDIR}/openvas-services
 
@@ -126,7 +126,7 @@ distclean: clean
 	rm -f config.cache config.status config.log
 	rm -f openvas-nvt-sync
 	rm -f tools/openvas-adduser
-	rm -f openvas-rmuser
+	rm -f tools/openvas-rmuser
 	rm -f openvas-mkcert
 	rm -f openvas-mkcert-client
 	rm -f openvas-install-cert
