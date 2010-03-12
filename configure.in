@@ -729,9 +729,9 @@ AC_SUBST(installuser)
 
 
 dnl And we put everything in the appropriate files
-AC_OUTPUT(openvas.tmpl include/corevers.h tools/openvas-adduser tools/openvas-rmuser tools/openvas-mkcert tools/openvas-mkcert-client openvas-nvt-sync)
+AC_OUTPUT(openvas.tmpl include/corevers.h tools/openvas-adduser tools/openvas-rmuser tools/openvas-mkcert tools/openvas-mkcert-client tools/openvas-nvt-sync)
 
 
-chmod +x tools/openvas-adduser tools/openvas-rmuser tools/openvas-mkcert tools/openvas-mkcert-client openvas-nvt-sync
+chmod +x tools/openvas-adduser tools/openvas-rmuser tools/openvas-mkcert tools/openvas-mkcert-client tools/openvas-nvt-sync
 
 exit 0

@@ -1,3 +1,10 @@
+2010-03-13  Jan-Oliver Wagner <jan-oliver.wagner@greenbone.net>
+
+	* openvas-nvt-sync.in, tools/openvas-nvt-sync.in:
+	Moved to tools/.
+
+	* configure.in, Makefile, MANIFEST: Adapted accordingly.
+
 2010-03-12  Jan-Oliver Wagner <jan-oliver.wagner@greenbone.net>
 
 	* openvas-mkcert-client.in, tools/openvas-mkcert-client.in:
