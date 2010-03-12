@@ -112,4 +112,5 @@ po/README
 README
 ssl/Makefile
 ssl/openvas-mkrand.c
+tools/README
 VERSION
