@@ -73,7 +73,7 @@ install-bin:
 	$(INSTALL) -m $(SERVERMODE) openvassd/openvassd $(DESTDIR)${sbindir}/openvassd
 	$(INSTALL) -m 755 tools/openvas-adduser $(DESTDIR)${sbindir}/openvas-adduser
 	$(INSTALL) -m 755 tools/openvas-rmuser $(DESTDIR)${sbindir}/openvas-rmuser
-	$(INSTALL) -m 755 openvas-mkcert $(DESTDIR)${sbindir}/openvas-mkcert
+	$(INSTALL) -m 755 tools/openvas-mkcert $(DESTDIR)${sbindir}/openvas-mkcert
 	$(INSTALL) -c -m 0444 openvas-services  $(DESTDIR)${OPENVASSD_STATEDIR}/openvas-services
 
 install-man:
@@ -127,7 +127,7 @@ distclean: clean
 	rm -f openvas-nvt-sync
 	rm -f tools/openvas-adduser
 	rm -f tools/openvas-rmuser
-	rm -f openvas-mkcert
+	rm -f tools/openvas-mkcert
 	rm -f openvas-mkcert-client
 	[ -z "${MAN_OPENVASSD_8}" ] || rm -f ${MAN_OPENVASSD_8}
 
