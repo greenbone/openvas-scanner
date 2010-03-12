@@ -1,5 +1,18 @@
 2010-03-12  Jan-Oliver Wagner <jan-oliver.wagner@greenbone.net>
 
+	* openvas-mkcert-client.in, tools/openvas-mkcert-client.in:
+	Moved to tools/.
+
+	* configure.in, Makefile, MANIFEST: Adapted accordingly.
+
+2010-03-12  Jan-Oliver Wagner <jan-oliver.wagner@greenbone.net>
+
+	* openvas-mkcert.in, tools/openvas-mkcert.in: Moved to tools/.
+
+	* configure.in, Makefile, MANIFEST: Adapted accordingly.
+
+2010-03-12  Jan-Oliver Wagner <jan-oliver.wagner@greenbone.net>
+
 	* Makefile: Removed removal of non-existing openvas-install-cert.
 
 2010-03-12  Jan-Oliver Wagner <jan-oliver.wagner@greenbone.net>
