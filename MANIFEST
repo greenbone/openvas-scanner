@@ -46,7 +46,6 @@ install-sh
 ltmain.sh
 Makefile
 MANIFEST
-openvas-adduser.in
 openvas-services
 openvassd/attack.c
 openvassd/attack.h
@@ -112,5 +111,6 @@ po/README
 README
 ssl/Makefile
 ssl/openvas-mkrand.c
+tools/openvas-adduser.in
 tools/README
 VERSION
