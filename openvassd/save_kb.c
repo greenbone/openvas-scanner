@@ -52,7 +52,6 @@
 #include "comm.h"
 #include "users.h"
 #include "locks.h"
-#ifdef ENABLE_SAVE_KB
 
 #ifndef MAP_FAILED
 #define MAP_FAILED (void*)(-1)
@@ -882,5 +881,3 @@ diff_scan_enable (struct arglist * pluginargs)
 {
  arg_add_value(pluginargs, "DIFF_SCAN", ARG_INT, sizeof(int), (void*)1);
 }
-
-#endif /* ENABLE_SAVE_KB */

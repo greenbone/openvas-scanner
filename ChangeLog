@@ -1,3 +1,11 @@
+2010-03-12  Jan-Oliver Wagner <jan-oliver.wagner@greenbone.net>
+
+	* openvassd/save_kb.c, openvassd/preferences.h,
+	include/config.h.in: Removed conditional "ENABLE_SAVE_KB".
+	This is not an experimental feature anymore. It has
+	become an intergral part of the scanner since a long
+	time and is a valuable feature for debugging purposes.
+
 2010-03-11  Michael Wiegand <michael.wiegand@intevation.de>
 
 	* openvas-mkcert-client.in: Cleaned up bashisms in dname conversion.
