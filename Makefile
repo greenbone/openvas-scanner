@@ -68,6 +68,7 @@ install-bin:
 	@test -d $(DESTDIR)${includedir}/openvas || $(INSTALL_DIR) -m 755 $(DESTDIR)${includedir}/openvas
 	@test -d $(DESTDIR)${OPENVASSD_CACHE} || $(INSTALL_DIR) -m 755 $(DESTDIR)${OPENVASSD_CACHE}
 	$(INSTALL) -m 755 tools/openvas-nvt-sync $(DESTDIR)${sbindir}
+	$(INSTALL) -m 755 tools/greenbone-nvt-sync $(DESTDIR)${sbindir}
 	$(INSTALL) -m 755 tools/openvas-mkcert-client $(DESTDIR)${bindir}/openvas-mkcert-client
 	$(INSTALL) -m 755 ssl/openvas-mkrand $(DESTDIR)${bindir}/openvas-mkrand
 	$(INSTALL) -m $(SERVERMODE) openvassd/openvassd $(DESTDIR)${sbindir}/openvassd

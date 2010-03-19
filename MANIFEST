@@ -107,6 +107,7 @@ po/README
 README
 ssl/Makefile
 ssl/openvas-mkrand.c
+tools/greenbone-nvt-sync
 tools/openvas-adduser.in
 tools/openvas-mkcert.in
 tools/openvas-mkcert-client.in
