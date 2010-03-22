@@ -1,3 +1,27 @@
+openvas-scanner 3.0.2 (2010-03-22)
+
+This is the second maintenance release of the openvas-scanner module for the
+Open Vulnerability Assessment System (OpenVAS) 3.0-series.
+
+This release mainly improves the supporting shell scripts for
+user- and feed-management.
+
+Many thanks to everyone who has contributed to this release:
+Javier Fernandez-Sanguino, Stephan Kleine, Michael Meyer,
+Jan-Oliver Wagner, Michael Wiegand and Felix Wolfsteller.
+
+Main changes compared to 3.0.1:
+
+* Changed C-NVT "find_service" to mark unknown services.
+* Improved script "openvas-adduser" regarding exit code.
+* Improved script "openvas-mkcert-client" to allow clean
+  certificate creation and to allow non-interactive execution.
+* Improved script "openvas-nvt-sync" to comply with openvas-adminstrator
+  API specification of NVT sync scripts. Also more robustness.
+* Added script "greenbone-nvt-sync".
+* Small internal code cleanups.
+
+
 openvas-scanner 3.0.1 (2010-01-26)
 
 This is the first maintenance release of the openvas-scanner module for the
