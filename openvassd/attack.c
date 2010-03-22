@@ -729,9 +729,7 @@ attack_network (struct arglist * globals)
   struct arglist * plugins      = NULL;
   struct openvas_rules *rules   = NULL;
   struct arglist * rejected_hosts =  NULL;
-  int restoring    = 0;
   GHashTable * tested = NULL;
-  int  save_session= 0;
   char * port_range;
   plugins_scheduler_t sched;
   int fork_retries = 0;
@@ -752,13 +750,6 @@ attack_network (struct arglist * globals)
   plugins        = arg_get_value (globals, "plugins");
   rules          = arg_get_value (globals, "rules");
   rejected_hosts = emalloc (sizeof(struct arglist));
-
-  save_session = preferences_save_session (preferences);
-  restoring = (GPOINTER_TO_SIZE (arg_get_value (globals, "RESTORE-SESSION")) == 1);
-
-  if (restoring) tested = arg_get_value (globals, "TESTED_HOSTS");
-  if (save_session) save_tests_init(globals);
-
 
   /* Init and check Target List */
   hostlist = arg_get_value (preferences, "TARGET");
@@ -792,24 +783,9 @@ attack_network (struct arglist * globals)
   hg_flags = preferences_get_host_expansion (preferences);
   max_hosts = get_max_hosts_number (globals, preferences);
 
-  if (restoring == 0)
-    {
-      int max_checks = get_max_checks_number (globals, preferences);
-      log_write ("user %s starts a new scan. Target(s) : %s, with max_hosts = %d and max_checks = %d\n",
-                 attack_user_name (globals), hostlist, max_hosts, max_checks);
-    }
-  else
-    {
-      int max_checks  = get_max_checks_number (globals, preferences);
-      log_write ("user %s restores session %s, with max_hosts = %d and max_checks = %d\n",
-                 attack_user_name (globals),
-                 (char*) arg_get_value (globals, "RESTORE-SESSION-KEY"),
-                 max_hosts, max_checks);
-
-      save_tests_playback (globals,
-                           arg_get_value (globals, "RESTORE-SESSION-KEY"),
-                           tested);
-    }
+  int max_checks = get_max_checks_number (globals, preferences);
+  log_write ("user %s starts a new scan. Target(s) : %s, with max_hosts = %d and max_checks = %d\n",
+             attack_user_name (globals), hostlist, max_hosts, max_checks);
 
   /* Initialize the hosts_gatherer library. */
   if (preferences_get_slice_network_addresses (preferences) != 0)
@@ -1002,20 +978,6 @@ scan_stop:
       }
 
 stop:
-  if (save_session)
-    {
-      save_tests_close (globals);
-      if (!preferences_save_empty_sessions (preferences))
-        {
-          if (save_tests_empty (globals))
-            {
-              log_write ("user %s : Nothing interesting found - deleting the session\n",
-                        (char*) arg_get_value (globals, "user"));
-              save_tests_delete_current (globals);
-            }
-        }
-    }
-
   hg_cleanup (hg_globals);
 
   arg_free_all (rejected_hosts);

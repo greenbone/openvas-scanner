@@ -78,7 +78,6 @@ static void sigchld_handler(int sig)
 static int
 forward (struct arglist * globals, int in, int out)
 {
- struct arglist * preferences = globals ? arg_get_value(globals, "preferences"):NULL;
  static char * buf = NULL;
  static int bufsz = 0;
  int n;
@@ -100,12 +99,6 @@ forward (struct arglist * globals, int in, int out)
  }
 
   len = strlen(buf);
-
-  if(preferences != NULL)
-  {
-  if(preferences_save_session(preferences) != 0)
-  		save_tests_write_data(globals, estrdup(buf));		
-  }
 
   if ( out > 0 ) 
    for ( n = 0; n < len ; )
@@ -137,13 +130,8 @@ static void forward_all(struct arglist * globals, int in, int out)
 
 static struct host * host_rm(struct arglist * globals, struct host * hosts, struct host * h)
 {
- struct arglist * preferences = arg_get_value(globals, "preferences");
-
  if(h->pid != 0)waitpid(h->pid, NULL, WNOHANG);
  forward_all(globals, h->soc, g_soc);
-
- if( preferences_save_session(preferences) != 0 )
-   	save_tests_host_done(globals, h->name);
 
  close(h->soc);
  if(h->psoc != 0)close(h->psoc);

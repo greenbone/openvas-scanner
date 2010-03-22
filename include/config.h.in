@@ -308,12 +308,3 @@
 #undef BROKEN_PTHREAD_CLEANUP_PUSH
 
 #undef HAVE_REGEX_SUPPORT
-/*
- * Experimental features 
- */
-#define ENABLE_SAVE_TESTS 1
-/* 
- * Local Variables:
- * mode: c
- * Emd:
- */

@@ -1,5 +1,32 @@
 2010-03-22  Jan-Oliver Wagner <jan-oliver.wagner@greenbone.net>
 
+	This is the first patch to remove the "Session Saving"
+	feature. This corresponds to Change Request #46,
+	http://www.openvas.org/openvas-cr-46.html
+
+	Deactivating feature "ENABLE_SAVE_TESTS". Some code
+	paths were not covered by this conditional and thus
+	were cleaned up manually.
+
+	* include/config.h.in: Removed macro ENABLE_SAVE_TESTS
+	and thus deactivated this feature.
+
+	* openvassd/attack.c (attack_network): Removed handling
+	of "restoring" and "save_session".
+
+	* openvassd/hosts.c (forward, host_rm): Removed call of deactivated
+	function. This also allows to remove the retrieval and
+	use of the preferences structure.
+
+	* openvassd/otp_1_0.h (client_request_t): Remove the CREQ_SESSION*
+	items.
+
+	* openvassd/otp_1_0.c (otp_1_0_get_client_request): Remove
+	identification and handling of OTP commands "SESSIONS_LIST",
+	"SESSION_DELETE", "SESSION_RESTORE".
+
+2010-03-22  Jan-Oliver Wagner <jan-oliver.wagner@greenbone.net>
+
 	Post-release version bump.
 
 	* VERSION: Set to 3.0.3.SVN.

@@ -54,9 +54,6 @@ otp_1_0_get_client_request (char* str)
   if (!strcmp(str, "PLUGIN_INFO")) return(CREQ_PLUGIN_INFO);
   if (!strcmp(str, "PREFERENCES")) return(CREQ_PREFERENCES);
   if (!strcmp(str, "RULES")) return(CREQ_RULES);
-  if (!strcmp(str, "SESSIONS_LIST")) return(CREQ_SESSIONS_LIST);
-  if (!strcmp(str, "SESSION_DELETE")) return(CREQ_SESSION_DELETE);
-  if (!strcmp(str, "SESSION_RESTORE")) return(CREQ_SESSION_RESTORE);
   if (!strcmp(str, "STOP_ATTACK")) return(CREQ_STOP_ATTACK);
   if (!strcmp(str, "STOP_WHOLE_TEST")) return(CREQ_STOP_WHOLE_TEST);
 

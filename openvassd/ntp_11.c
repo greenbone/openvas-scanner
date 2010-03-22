@@ -290,11 +290,8 @@ ntp_11_read_prefs (struct arglist * globals)
          !strcmp(pref, "config_file")       ||
          !strcmp(pref, "plugins_folder")    ||
 	 !strcmp(pref, "dumpfile")          ||
-	 !strcmp(pref, "users")             ||
 	 !strcmp(pref, "rules")             ||
-	 !strncmp(pref, "peks_", 5)         ||
 	 !strcmp(pref, "negot_timeout")     ||
-	 !strcmp(pref, "cookie_logpipe")    ||
 	 !strcmp(pref, "force_pubkey_auth") ||
 	 !strcmp(pref, "log_while_attack")  ||
 	 !strcmp(pref, "ca_file") 	    ||
