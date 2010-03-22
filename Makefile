@@ -118,7 +118,7 @@ $(MAN_OPENVASSD_8) : $(MAN_OPENVASSD_8).in
 clean:
 	cd openvassd && $(MAKE) clean
 	cd ssl && $(MAKE) clean
-	cd cnvts && ./make_world clean
+	-rm -f bin/*.nes
 
 distclean: clean
 	[ -z "${rootdir}" ] || rm -f ${rootdir}/include/config.h ${rootdir}/include/corevers.h
