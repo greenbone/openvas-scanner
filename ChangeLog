@@ -1,5 +1,42 @@
 2010-03-22  Jan-Oliver Wagner <jan-oliver.wagner@greenbone.net>
 
+	This is the second patch to remove the "Session Saving"
+	feature. This corresponds to Change Request #46,
+	http://www.openvas.org/openvas-cr-46.html
+
+	This patch removes the conditional code paths for
+	"ENABLE_SAVE_TESTS" which are not used anyway since
+	the first patch.
+
+	* openvassd/comm.c (comm_send_preferences): Don't send
+	"ntp_save_sessions" as preference anymore.
+
+	* openvassd/ntp_11.c: Removed inclusion of save_tests.h (it
+	was not ifdef-protected).
+	(extract_session_key_from_session_msg, ntp_11_delete_session,
+	ntp_11_restore_session, ntp_11_list_sessions): Removed.
+	(ntp_11_parse_input): Removed handling of Session Saving commands
+	LIST, DELETE and RESTORE.
+
+	* openvassd/openvassd.c (scanner_thread): Remove handling of
+	RESTORE-SESSION.
+
+	* openvassd/preferences.h: Removed protos for preferences_save_session
+	and preferences_save_empty_sessions.
+
+	* openvassd/attack.c, openvassd/utils.c, openvassd/hosts.c: Removed
+	inclusion of save_tests.h (it was not ifdef-protected).
+
+	* openvassd/save_tests.c, openvassd/save_tests.h: Removed.
+
+	* openvassd/Makefile: Removedhandling of module"save_tests".
+
+	* openvassd/save_kb.c: Removed a TODO entry concerning save_tests.c.
+
+	* MANIFEST: Updated.
+
+2010-03-22  Jan-Oliver Wagner <jan-oliver.wagner@greenbone.net>
+
 	This is the first patch to remove the "Session Saving"
 	feature. This corresponds to Change Request #46,
 	http://www.openvas.org/openvas-cr-46.html

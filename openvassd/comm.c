@@ -363,8 +363,10 @@ comm_send_preferences (struct arglist * globals)
             preferences in this list here. */ 
 	 strcmp(prefs->name, "users")             &&
 	 strcmp(prefs->name, "rules")             &&
+         /* TODO: Same for peks_* */
 	 strncmp(prefs->name, "peks_", 5)         &&
 	 strcmp(prefs->name, "negot_timeout")     &&
+         /* TODO: Same for cookie_logpipe */
 	 strcmp(prefs->name, "cookie_logpipe")    &&
 	 strcmp(prefs->name, "force_pubkey_auth") &&
 	 strcmp(prefs->name, "log_while_attack")  &&
@@ -377,8 +379,6 @@ comm_send_preferences (struct arglist * globals)
   }
   prefs = prefs->next;
  }
-#ifdef ENABLE_SAVE_TESTS
- auth_printf(globals, "ntp_save_sessions <|> yes\n");
  auth_printf(globals, "server_info_openvassd_version <|> %s\n", OPENVAS_VERSION);
  auth_printf(globals, "server_info_libnasl_version <|> %s\n", nasl_version());
  auth_printf(globals, "server_info_libnessus_version <|> %s\n", openvaslib_version());
@@ -387,7 +387,6 @@ comm_send_preferences (struct arglist * globals)
 #endif
   auth_printf(globals, "server_info_os <|> %s\n", OVS_OS_NAME);
   auth_printf(globals, "server_info_os_version <|> %s\n", OVS_OS_VERSION);
-#endif
   auth_printf(globals, "<|> SERVER\n");
 }
 

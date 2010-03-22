@@ -90,8 +90,6 @@ openvassd/rules.c
 openvassd/rules.h
 openvassd/save_kb.c
 openvassd/save_kb.h
-openvassd/save_tests.c
-openvassd/save_tests.h
 openvassd/shared_socket.c
 openvassd/shared_socket.h
 openvassd/sighand.c

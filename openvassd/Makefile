@@ -27,7 +27,6 @@ OBJS = auth.o \
        oval_plugins.o \
        plugs_req.o \
        openvassd.o \
-       save_tests.o \
        save_kb.o \
        pluginlaunch.o \
        locks.o \
@@ -99,9 +98,6 @@ oval_plugins.o : oval_plugins.c
 
 plugs_req.o : plugs_req.c
 	$(CC) $(OPENVAS_CFLAGS) $(OPENVAS_INCLUDE) -c plugs_req.c 
-
-save_tests.o : save_tests.c save_tests.h
-	$(CC) $(OPENVAS_CFLAGS) $(OPENVAS_INCLUDE) -c save_tests.c	
 
 save_kb.o : save_kb.c save_kb.h
 	$(CC) $(OPENVAS_CFLAGS) $(OPENVAS_INCLUDE) -c save_kb.c

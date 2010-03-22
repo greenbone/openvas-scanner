@@ -547,12 +547,6 @@ scanner_thread (struct arglist * globals)
    /* Become process group leader and the like ... */
    start_daemon_mode();
 wait:
-#ifdef ENABLE_SAVE_TESTS
-   if (arg_get_value(globals, "RESTORE-SESSION"))
-     arg_set_value(globals, "RESTORE-SESSION", sizeof(int),(void*)2);
-   else
-     arg_add_value(globals, "RESTORE-SESSION", ARG_INT, sizeof(int),(void*)2);
-#endif
    comm_wait_order (globals);
    preferences_reset_cache ();
    rules = arg_get_value (globals, "rules");

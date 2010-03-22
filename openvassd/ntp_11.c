@@ -43,7 +43,6 @@
 #include "log.h"
 #include "users.h"
 #include "utils.h"
-#include "save_tests.h"
 #include "preferences.h"
 #include "hosts.h"
 #include "hash_table_file.h"
@@ -63,12 +62,6 @@ static int ntp_11_read_prefs(struct arglist *);
 static int ntp_11_rules(struct arglist *);
 static int ntp_11_long_attack(struct arglist *, char *);
 static int ntp_11_recv_file(struct arglist*);
-
-#ifdef ENABLE_SAVE_TESTS
-static int ntp_11_list_sessions(struct arglist*);
-static int ntp_11_delete_session(struct arglist*, char*);
-static int ntp_11_restore_session(struct arglist*, char*);
-#endif
 
 /**
  * @brief Parses the input sent by the client before the NEW_ATTACK message.
@@ -138,20 +131,6 @@ ntp_11_parse_input (struct arglist * globals, char * input)
     case CREQ_RULES:
       ntp_11_rules(globals);
       break;
-
-#ifdef ENABLE_SAVE_TESTS
-    case CREQ_SESSIONS_LIST:
-      ntp_11_list_sessions(globals);
-      break;
-
-    case CREQ_SESSION_DELETE:
-      ntp_11_delete_session(globals, orig);
-      break;
-
-    case CREQ_SESSION_RESTORE:
-      result = ntp_11_restore_session(globals, orig);
-      break;
-#endif
 
     case CREQ_STOP_WHOLE_TEST:
       log_write("Stopping the whole test (requested by client)");
@@ -573,85 +552,6 @@ ntp_11_recv_file (struct arglist* globals)
 
   return 0;
 }
-
-#ifdef ENABLE_SAVE_TESTS
-static char*
-extract_session_key_from_session_msg (struct arglist * globals, char* orig)
-{
- char * t;
- int i, len;
-
- t = strrchr(orig, '<');
- if(!t)return NULL;
- t[0] = 0;
-
- t = strrchr(orig, '>');
- if(!t)return NULL;
-
- t++;
- while(t[0]==' ')t++;
- len = strlen(t);
- while(t[len-1]==' ')
-  {
- 	t[len-1]= '\0';
-	len --;
-  }
- /*
-  * Sanity check. All sessions name are under the form
-  * <year><month><day>-<hour><minute><second>
-  * (ie: 20000718-124427). If we see something else, then
-  * our current user is trying to do something evil. or something.
-  */
- for(i=0;i<len;i++)
-  if(!isdigit(t[i]) && t[i]!='-'){
-  	log_write("user %s : supplied an incorrect session name (%s)",
-			(char*)arg_get_value(globals, "user"),
-			t);
-  	return NULL;
-	}
- return strdup(t);
-}
-
-static int
-ntp_11_delete_session (struct arglist * globals, char * orig)
-{
- char * session = NULL;
- int ret;
-
- session = extract_session_key_from_session_msg(globals, orig);
- if(!session)return -1;
-
- ret = save_tests_delete(globals, session);
- efree(&session);
-
- return ret;
-}
-
-
-static int
-ntp_11_restore_session (struct arglist * globals, char * orig)
-{
- char * session;
-
- session = extract_session_key_from_session_msg(globals, orig);
- if(!session)return -1;
-
- save_tests_setup_playback(globals, session);
- efree(&session);
- return 0;
-}
-
-static int
-ntp_11_list_sessions (struct arglist * globals)
-{
- auth_printf(globals, "SERVER <|> SESSIONS_LIST\n");
- save_tests_send_list(globals);
- auth_printf(globals, "<|> SERVER\n");
- return 0;
-}
-
-#endif /* ENABLE_SAVE_TESTS */
-
 
 /*----------------------------------------------------------
 

@@ -51,11 +51,6 @@ int    preferences_safe_checks_enabled(struct arglist*);
 int    preferences_use_mac_addr(struct arglist *);
 int    preferences_report_killed_plugins(struct arglist *);
 
-#ifdef ENABLE_SAVE_TESTS
-int    preferences_save_session(struct arglist*);
-int    preferences_save_empty_sessions(struct arglist*);
-#endif
-
 int   preferences_delay_between_scans(struct arglist *);
 void  preferences_reset_cache();
 int   preferences_silent_dependencies(struct arglist*);

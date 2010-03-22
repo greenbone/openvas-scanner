@@ -59,8 +59,6 @@
 
 #include "save_kb.h"
 
-/** @TODO seems there is some code duplicate in save_tests.c */
-
 /*=========================================================================
 
 			Private functions

@@ -54,7 +54,6 @@
 #include "preferences.h"
 #include "processes.h"
 #include "rules.h"
-#include "save_tests.h"
 #include "save_kb.h"
 #include "sighand.h"
 #include "utils.h"
