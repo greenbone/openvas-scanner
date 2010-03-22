@@ -58,6 +58,11 @@ fi
 
 if [ -z "$TMPDIR" ]; then
 	SYNC_TMP_DIR=/tmp
+# If we have mktemp, create a temporary dir (safer)
+        if [ -n "`which mktemp`" ]; then
+            SYNC_TMP_DIR=`mktemp -d openvas-nvt-sync` || { echo "ERROR: Cannot create temporary directory for file download" >&2; exit 1 ; }
+            trap "rm -rf $SYNC_TMP_DIR" 0 1 2 5 15
+        fi
 else
 	SYNC_TMP_DIR="$TMPDIR"
 fi
@@ -87,6 +92,7 @@ do_help () {
 	echo "NVT_DIR		where to extract plugins (absolute path)"
 	echo "OV_RSYNC_FEED	URL of rsync feed" 
 	echo "OV_HTTP_FEED	URL of http feed"
+	echo "TMPDIR		temporary directory used to download the files"
 	echo "Note that you can use standard ones as well (e.g. http_proxy) for wget/curl"
 	echo ""
 	exit 0
