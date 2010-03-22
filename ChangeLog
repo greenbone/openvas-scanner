@@ -1,3 +1,16 @@
+2010-03-22  Javier Fernandez-Sanguino <jfs@debian.org>
+
+	* tools/openvas-nvt-sync.in: Use mktemp when TMPDIR is
+	undefined to prevent using /tmp directly. Since filenames
+	created by the script are predictable using /tmp could lead to a race
+	condition and an attack to the user running the script (typically root, since
+	it needs to change /usr or /var).
+
+2010-03-22  Javier Fernandez-Sanguino <jfs@debian.org>
+
+	* Makefile: Make_world does not clean, remove the binary
+	files in bin/ manually.
+
 2010-03-19  Jan-Oliver Wagner <jan-oliver.wagner@greenbone.net>
 
 	* tools/greenbone-nvt-sync: New.
