@@ -1,3 +1,18 @@
+2010-03-23  Jan-Oliver Wagner <jan-oliver.wagner@greenbone.net>
+
+	Removed the superfuous handling of the bin/ directory.
+	This handling only added confusion, no benefit.
+
+	*  bin/.create, bin/: Removed.
+
+	* cnvts/find_service/Makefile, cnvts/openvas_tcp_scanner/Makefile,
+	cnvts/ssl_ciphers/Makefile, cnvts/synscan/Makefile: Keep .nes file
+	in the respective directory.
+
+	* cnvts/install_plug: Remove copying of .nes to a "bin/" directory.
+
+	* Makefile: Removed handling of bin/ directory.
+
 2010-03-23  Michael Meyer <michael.meyer@intevation.de>
 
 	* tools/openvas-nvt-sync.in:

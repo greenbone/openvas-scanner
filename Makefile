@@ -95,7 +95,7 @@ install-nvts:
 		$(DESTDIR)${libdir}/openvas
 	test -d $(DESTDIR)${libdir}/openvas/plugins || $(INSTALL_DIR) -m 755 \
 		$(DESTDIR)${libdir}/openvas/plugins
-	for plugins in bin/*.nes; do \
+	for plugins in cnvts/*/*.nes; do \
 	$(INSTALL) -m 555 $$plugins \
 		$(DESTDIR)${libdir}/openvas/plugins; \
 	done
@@ -119,7 +119,6 @@ clean:
 	cd openvassd && $(MAKE) clean
 	cd ssl && $(MAKE) clean
 	cd cnvts && ./make_world clean	
-	-rm -f bin/*.nes
 
 distclean: clean
 	[ -z "${rootdir}" ] || rm -f ${rootdir}/include/config.h ${rootdir}/include/corevers.h
@@ -146,7 +145,6 @@ distcheck:
 	find . -type f | sed -e 's/^.\///' -e '/~$$/d' -e '/CVS/d' \
 			     -e '/\.o$$/d' -e '/^openvas.tmpl$$/d' \
 			     -e '/^openvassd\/OBJ\/openvassd$$/d' \
-			     -e '/^bin\/openvassd$$/d' \
 			     -e '/^config\.cache$$/d' \
 			     -e '/^config\.log$$/d' \
 			     -e '/^config\.status$$/d' \
