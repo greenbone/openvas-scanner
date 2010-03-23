@@ -2,6 +2,8 @@
 
 	* doc/session_saving.txt: Removed.
 
+	* MANIFEST: Updated.
+
 2010-03-22  Jan-Oliver Wagner <jan-oliver.wagner@greenbone.net>
 
 	This is the second patch to remove the "Session Saving"
