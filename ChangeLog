@@ -1,5 +1,11 @@
 2010-03-23  Jan-Oliver Wagner <jan-oliver.wagner@greenbone.net>
 
+	* VERSION: Set to 3.1.0.SVN.
+
+	* doc/Doxyfile, doc/Doxyfile_full: Increased PROJECT_NUMBER accordingly.
+
+2010-03-23  Jan-Oliver Wagner <jan-oliver.wagner@greenbone.net>
+
 	* doc/session_saving.txt: Removed.
 
 	* MANIFEST: Updated.
