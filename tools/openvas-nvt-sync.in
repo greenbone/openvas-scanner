@@ -60,7 +60,7 @@ if [ -z "$TMPDIR" ]; then
 	SYNC_TMP_DIR=/tmp
 # If we have mktemp, create a temporary dir (safer)
         if [ -n "`which mktemp`" ]; then
-            SYNC_TMP_DIR=`mktemp -d openvas-nvt-sync` || { echo "ERROR: Cannot create temporary directory for file download" >&2; exit 1 ; }
+            SYNC_TMP_DIR=`mktemp -d openvas-nvt-sync.XXXXXXXXXX` || { echo "ERROR: Cannot create temporary directory for file download" >&2; exit 1 ; }
             trap "rm -rf $SYNC_TMP_DIR" 0 1 2 5 15
         fi
 else
