@@ -96,7 +96,7 @@ install-nvts:
 	test -d $(DESTDIR)${libdir}/openvas/plugins || $(INSTALL_DIR) -m 755 \
 		$(DESTDIR)${libdir}/openvas/plugins
 	for plugins in cnvts/*/*.nes; do \
-	$(INSTALL) -m 555 $$plugins \
+	$(INSTALL) -s -m 555 $$plugins \
 		$(DESTDIR)${libdir}/openvas/plugins; \
 	done
 
