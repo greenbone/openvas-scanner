@@ -1,3 +1,7 @@
+2010-03-23  Jan-Oliver Wagner <jan-oliver.wagner@greenbone.net>
+
+	* doc/session_saving.txt: Removed.
+
 2010-03-22  Jan-Oliver Wagner <jan-oliver.wagner@greenbone.net>
 
 	This is the second patch to remove the "Session Saving"

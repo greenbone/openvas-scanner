@@ -34,7 +34,6 @@ doc/openvas-mkcert-client.1
 doc/openvas-mkrand.1
 doc/openvas-nvt-sync.8
 doc/openvas-rmuser.8
-doc/session_saving.txt
 doc/TODO.txt
 include/config.h
 include/config.h.in
