@@ -36,39 +36,42 @@
 
 static int process_son = 0;
 
-void sighand_process_term(int sig)
+void
+sighand_process_term (int sig)
 {
- int son = process_son;
- if(son){
- 	kill(son, SIGTERM);
-	process_son = 0;
-	}
- _EXIT(0);
+  int son = process_son;
+  if (son)
+    {
+      kill (son, SIGTERM);
+      process_son = 0;
+    }
+  _EXIT (0);
 }
 
 
-static void pr_sigterm(int sig)
+static void
+pr_sigterm (int sig)
 {
- _exit(0);
+  _exit (0);
 }
 
 
 int
 terminate_process (pid_t pid)
 {
- int ret;
+  int ret;
 
- if(pid <= 0 )
-   	return 0;
+  if (pid <= 0)
+    return 0;
 
- ret = kill(pid, SIGTERM);
+  ret = kill (pid, SIGTERM);
 
- if( ret == 0 )
- {
-  usleep(1000);
-  if (waitpid(pid, NULL, WNOHANG) >= 0 )
-   	kill(pid, SIGKILL);
- }
+  if (ret == 0)
+    {
+      usleep (1000);
+      if (waitpid (pid, NULL, WNOHANG) >= 0)
+        kill (pid, SIGKILL);
+    }
   return -1;
 }
 
@@ -77,29 +80,29 @@ terminate_process (pid_t pid)
  * @brief Create a new process (fork).
  */
 pid_t
-create_process (process_func_t function, void * argument)
+create_process (process_func_t function, void *argument)
 {
- int pid;
+  int pid;
 
- pid = fork();
+  pid = fork ();
 
- if (pid == 0)
- {
-  process_son = 0;
-  openvas_signal(SIGHUP, SIG_IGN);
-  openvas_signal(SIGTERM, pr_sigterm);
-  openvas_signal(SIGINT, pr_sigterm);
-  openvas_signal(SIGPIPE, SIG_IGN);
-  openvas_signal(SIGUSR1, SIG_IGN);
-  openvas_signal(SIGUSR2, SIG_IGN);
-  openvas_signal(SIGCHLD, sighand_chld);
-  openvas_signal(SIGSEGV, sighand_segv);	/* Comment this line out to dump a core and debug openvassd */
-  srand48(getpid() + getppid() + (long)time(NULL)); /* RATS: ignore */
-  (*function)(argument);
-  EXIT(0);
- }
+  if (pid == 0)
+    {
+      process_son = 0;
+      openvas_signal (SIGHUP, SIG_IGN);
+      openvas_signal (SIGTERM, pr_sigterm);
+      openvas_signal (SIGINT, pr_sigterm);
+      openvas_signal (SIGPIPE, SIG_IGN);
+      openvas_signal (SIGUSR1, SIG_IGN);
+      openvas_signal (SIGUSR2, SIG_IGN);
+      openvas_signal (SIGCHLD, sighand_chld);
+      openvas_signal (SIGSEGV, sighand_segv);   /* Comment this line out to dump a core and debug openvassd */
+      srand48 (getpid () + getppid () + (long) time (NULL));    /* RATS: ignore */
+      (*function) (argument);
+      EXIT (0);
+    }
   if (pid < 0)
     log_write ("Error : could not fork ! Error : %s\n", strerror (errno));
- process_son = pid;
- return pid;
+  process_son = pid;
+  return pid;
 }

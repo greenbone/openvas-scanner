@@ -30,8 +30,8 @@
 #include <corevers.h>
 #include <network.h>
 
-#include <openvas/nasl/nasl.h> /* for nasl_get_all_certifcates */
-#include <openvas/base/certificate.h> /* for certificate_t */
+#include <openvas/nasl/nasl.h>  /* for nasl_get_all_certifcates */
+#include <openvas/base/certificate.h>   /* for certificate_t */
 
 #include "otp_1_0.h"
 
@@ -45,26 +45,35 @@
  * @see client_request_t
  */
 client_request_t
-otp_1_0_get_client_request (char* str)
+otp_1_0_get_client_request (char *str)
 {
-  if (!strcmp(str, "ATTACHED_FILE")) return(CREQ_ATTACHED_FILE);
-  if (!strcmp(str, "CERTIFICATES")) return(CREQ_CERTIFICATES);
-  if (!strcmp(str, "LONG_ATTACK")) return(CREQ_LONG_ATTACK);
-  if (!strcmp(str, "OPENVAS_VERSION")) return(CREQ_OPENVAS_VERSION);
-  if (!strcmp(str, "PLUGIN_INFO")) return(CREQ_PLUGIN_INFO);
-  if (!strcmp(str, "PREFERENCES")) return(CREQ_PREFERENCES);
-  if (!strcmp(str, "RULES")) return(CREQ_RULES);
-  if (!strcmp(str, "STOP_ATTACK")) return(CREQ_STOP_ATTACK);
-  if (!strcmp(str, "STOP_WHOLE_TEST")) return(CREQ_STOP_WHOLE_TEST);
+  if (!strcmp (str, "ATTACHED_FILE"))
+    return (CREQ_ATTACHED_FILE);
+  if (!strcmp (str, "CERTIFICATES"))
+    return (CREQ_CERTIFICATES);
+  if (!strcmp (str, "LONG_ATTACK"))
+    return (CREQ_LONG_ATTACK);
+  if (!strcmp (str, "OPENVAS_VERSION"))
+    return (CREQ_OPENVAS_VERSION);
+  if (!strcmp (str, "PLUGIN_INFO"))
+    return (CREQ_PLUGIN_INFO);
+  if (!strcmp (str, "PREFERENCES"))
+    return (CREQ_PREFERENCES);
+  if (!strcmp (str, "RULES"))
+    return (CREQ_RULES);
+  if (!strcmp (str, "STOP_ATTACK"))
+    return (CREQ_STOP_ATTACK);
+  if (!strcmp (str, "STOP_WHOLE_TEST"))
+    return (CREQ_STOP_WHOLE_TEST);
 
-  return(CREQ_UNKNOWN);
+  return (CREQ_UNKNOWN);
 }
 
 /**
  * @brief Send server response OPENVAS_VERSION.
  */
 void
-otp_1_0_server_openvas_version (struct arglist * globals)
+otp_1_0_server_openvas_version (struct arglist *globals)
 {
   auth_printf (globals, "SERVER <|> OPENVAS_VERSION <|> %s <|> SERVER\n",
                OPENVAS_VERSION);
@@ -75,43 +84,43 @@ otp_1_0_server_openvas_version (struct arglist * globals)
  * @brief Send server response to certificate request by client.
  */
 void
-otp_1_0_server_send_certificates (struct arglist* globals)
+otp_1_0_server_send_certificates (struct arglist *globals)
 {
-  auth_printf(globals, "SERVER <|> CERTIFICATES\n");
+  auth_printf (globals, "SERVER <|> CERTIFICATES\n");
 
   /** @todo base/certificates.c offers certificates (list) functionality. */
-  GSList* certificates = nasl_get_all_certificates();
-  GSList* cert_list_elem = g_slist_nth(certificates, 0);
+  GSList *certificates = nasl_get_all_certificates ();
+  GSList *cert_list_elem = g_slist_nth (certificates, 0);
 
   // Iterate over certificates
-  while(cert_list_elem != NULL)
+  while (cert_list_elem != NULL)
     {
-      certificate_t* cert = cert_list_elem->data;
+      certificate_t *cert = cert_list_elem->data;
 
       // Replace newlines by semicolons
-      gchar* pos = cert->public_key;
+      gchar *pos = cert->public_key;
       /** @todo This will segfault if the public key could not be retrieved.
        * A solution would be to check if cert->public_key is NULL and try to
        * recover if it is.
        */
-      while(pos[0] != '\0')
+      while (pos[0] != '\0')
         {
-        if(pos[0] == '\n') pos[0] = ';';
-        pos++;
+          if (pos[0] == '\n')
+            pos[0] = ';';
+          pos++;
         }
 
-      char* trustlevel = (cert->trusted == TRUE)? "trusted" : "notrust";
-      cert_list_elem = g_slist_next(cert_list_elem);
-      auth_printf(globals, "%s <|> %s <|> %s <|> %d <|> %s\n", cert->fingerprint,
-                              cert->owner, trustlevel,
-                              (int)strlen(cert->public_key),
-                              cert->public_key);
+      char *trustlevel = (cert->trusted == TRUE) ? "trusted" : "notrust";
+      cert_list_elem = g_slist_next (cert_list_elem);
+      auth_printf (globals, "%s <|> %s <|> %s <|> %d <|> %s\n",
+                   cert->fingerprint, cert->owner, trustlevel,
+                   (int) strlen (cert->public_key), cert->public_key);
       // Release each element
       certificate_free (cert);
     }
 
   // Release list
-  g_slist_free(certificates);
+  g_slist_free (certificates);
 
-  auth_printf(globals, "<|> SERVER\n");
+  auth_printf (globals, "<|> SERVER\n");
 }

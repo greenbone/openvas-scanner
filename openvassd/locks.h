@@ -30,8 +30,8 @@
 #ifndef _OPENVAS_LOCKS_H__
 #define _OPENVAS_LOCKS_H__
 
-int file_lock(char *);
-int file_unlock(char *);
-int file_locked(char *);
+int file_lock (char *);
+int file_unlock (char *);
+int file_locked (char *);
 
 #endif /* _OPENVAS_LOCKS_H__ */

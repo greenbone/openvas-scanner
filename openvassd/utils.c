@@ -29,9 +29,9 @@
 
 #include <includes.h>
 
-#include <openvas/network.h> /* for stream_zero */
-#include <openvas/plugutils.h> /* for plug_get_launch */
-#include <openvas/system.h> /* for emalloc */
+#include <openvas/network.h>    /* for stream_zero */
+#include <openvas/plugutils.h>  /* for plug_get_launch */
+#include <openvas/system.h>     /* for emalloc */
 
 #include "log.h"
 #include "auth.h"
@@ -53,25 +53,29 @@ extern int global_max_checks;
  *
  * @return 0 if versions are equal, 1 if a newer than b, -1 if b newer than a.
  */
-int 
-version_check (char* a, char* b)
+int
+version_check (char *a, char *b)
 {
- int int_a, int_b;
- 
- if(!a || !b) return -2; 
- 
- int_a = atoi(a);
- int_b = atoi(b);
- 
- if(int_a < int_b) return -1;
- if(int_a > int_b) return 1;
- else {
-  char * dot_a = strchr(a, '.'), * dot_b = strchr(b, '.');
-  if(dot_a && dot_b)
-   return version_check(&(dot_a[1]), &(dot_b[1]));
-  else 
-   return -2;
- }
+  int int_a, int_b;
+
+  if (!a || !b)
+    return -2;
+
+  int_a = atoi (a);
+  int_b = atoi (b);
+
+  if (int_a < int_b)
+    return -1;
+  if (int_a > int_b)
+    return 1;
+  else
+    {
+      char *dot_a = strchr (a, '.'), *dot_b = strchr (b, '.');
+      if (dot_a && dot_b)
+        return version_check (&(dot_a[1]), &(dot_b[1]));
+      else
+        return -2;
+    }
 }
 
 
@@ -81,26 +85,26 @@ version_check (char* a, char* b)
  * @return 0 if l1 and l2 have a name in common, 0 otherwise.
  */
 int
-common(l1, l2)
- struct arglist * l1, *l2;
+common (l1, l2)
+     struct arglist *l1, *l2;
 {
- struct arglist* l2_start = l2;
- if(!l1 || !l2)
- {
+  struct arglist *l2_start = l2;
+  if (!l1 || !l2)
+    {
+      return 0;
+    }
+  while (l1->next != NULL)
+    {
+      l2 = l2_start;
+      while (l2->next != NULL)
+        {
+          if (strcmp (l1->name, l2->name) == 0)
+            return 1;
+          l2 = l2->next;
+        }
+      l1 = l1->next;
+    }
   return 0;
- }
- while( l1->next != NULL )
- {
-  l2 = l2_start;
-  while( l2->next != NULL )
-  {
-   if(strcmp(l1->name, l2->name) == 0)
-   	return 1;
-   l2 = l2->next;
-  }
-  l1 = l1->next;
- }
- return 0;
 }
 
 /**
@@ -108,69 +112,72 @@ common(l1, l2)
  * arglist.
  */
 struct arglist *
-list2arglist(list)
- char * list;
+list2arglist (list)
+     char *list;
 {
- struct arglist * ret = emalloc(sizeof(struct arglist));
- char * t = strchr(list, ',');
+  struct arglist *ret = emalloc (sizeof (struct arglist));
+  char *t = strchr (list, ',');
 
- if(!list)
-  {
-   efree(&ret);
-   return ret;
-  }
-  
-  
- while((t = strchr(list, ',')) != NULL)
- {
-  t[0] = 0;
-  while(list[0]==' ')list++;
-  if(list[0] != '\0')
-  {
-   arg_add_value(ret, list, ARG_INT, 0, (void*)1);
-  }
-  list = t+1;
- }
- 
- while(list[0]==' ')list++;
- if(list[0] != '\0')
-  {
-   arg_add_value(ret, list, ARG_INT, 0, (void*)1);
-  }
+  if (!list)
+    {
+      efree (&ret);
+      return ret;
+    }
+
+
+  while ((t = strchr (list, ',')) != NULL)
+    {
+      t[0] = 0;
+      while (list[0] == ' ')
+        list++;
+      if (list[0] != '\0')
+        {
+          arg_add_value (ret, list, ARG_INT, 0, (void *) 1);
+        }
+      list = t + 1;
+    }
+
+  while (list[0] == ' ')
+    list++;
+  if (list[0] != '\0')
+    {
+      arg_add_value (ret, list, ARG_INT, 0, (void *) 1);
+    }
   return ret;
 }
 
- 
+
 
 
 /**
  * Get the max number of hosts to test at the same time.
  */
-int 
-get_max_hosts_number(globals, preferences)
- struct arglist * globals;
- struct arglist * preferences;
+int
+get_max_hosts_number (globals, preferences)
+     struct arglist *globals;
+     struct arglist *preferences;
 {
   int max_hosts;
-  if(arg_get_value(preferences, "max_hosts"))
+  if (arg_get_value (preferences, "max_hosts"))
     {
-      max_hosts = atoi(arg_get_value(preferences, "max_hosts"));
-      if(max_hosts<=0)
-	{
-	  log_write("Error ! max_hosts = %d -- check %s\n", 
-		    max_hosts, (char *)arg_get_value(preferences, "config_file"));
-	  max_hosts = global_max_hosts;
-	}
-    else if(max_hosts > global_max_hosts)
-     {
-     	log_write("Client tried to raise the maximum hosts number - %d. Using %d. Change 'max_hosts' in openvassd.conf if \
-you believe this is incorrect\n",
-			max_hosts, global_max_hosts);
-	max_hosts = global_max_hosts;
-     }
+      max_hosts = atoi (arg_get_value (preferences, "max_hosts"));
+      if (max_hosts <= 0)
+        {
+          log_write ("Error ! max_hosts = %d -- check %s\n", max_hosts,
+                     (char *) arg_get_value (preferences, "config_file"));
+          max_hosts = global_max_hosts;
+        }
+      else if (max_hosts > global_max_hosts)
+        {
+          log_write ("Client tried to raise the maximum hosts number - %d. Using %d. Change 'max_hosts' in openvassd.conf if \
+you believe this is incorrect\n", max_hosts,
+                     global_max_hosts);
+          max_hosts = global_max_hosts;
+        }
     }
-  else max_hosts = global_max_hosts;
-  return(max_hosts);
+  else
+    max_hosts = global_max_hosts;
+  return (max_hosts);
 }
 
 /**
@@ -178,30 +185,31 @@ you believe this is incorrect\n",
  * host at the same time
  */
 int
-get_max_checks_number(globals, preferences)
- struct arglist * globals;
- struct arglist * preferences;
+get_max_checks_number (globals, preferences)
+     struct arglist *globals;
+     struct arglist *preferences;
 {
- int max_checks;
-  if(arg_get_value(preferences, "max_checks"))
+  int max_checks;
+  if (arg_get_value (preferences, "max_checks"))
     {
-      max_checks = atoi(arg_get_value(preferences, "max_checks"));
-      if(max_checks<=0)
-	{
-	  log_write("Error ! max_hosts = %d -- check %s\n", 
-		    max_checks, (char *)arg_get_value(preferences, "config_file"));
-	  max_checks = global_max_checks;
-	}
-    else if(max_checks > global_max_checks)
-     {
-     	log_write("Client tried to raise the maximum checks number - %d. Using %d. Change 'max_checks' in openvassd.conf if \
-you believe this is incorrect\n",
-			max_checks, global_max_checks);
-	max_checks = global_max_checks;
-     }
+      max_checks = atoi (arg_get_value (preferences, "max_checks"));
+      if (max_checks <= 0)
+        {
+          log_write ("Error ! max_hosts = %d -- check %s\n", max_checks,
+                     (char *) arg_get_value (preferences, "config_file"));
+          max_checks = global_max_checks;
+        }
+      else if (max_checks > global_max_checks)
+        {
+          log_write ("Client tried to raise the maximum checks number - %d. Using %d. Change 'max_checks' in openvassd.conf if \
+you believe this is incorrect\n", max_checks,
+                     global_max_checks);
+          max_checks = global_max_checks;
+        }
     }
-  else max_checks = global_max_checks;
-  return(max_checks);
+  else
+    max_checks = global_max_checks;
+  return (max_checks);
 }
 
 
@@ -209,40 +217,41 @@ you believe this is incorrect\n",
  * @brief Returns the number of plugins that will be launched.
  */
 int
-get_active_plugins_number (struct arglist *  plugins)
+get_active_plugins_number (struct arglist *plugins)
 {
   int num = 0;
 
-  if(plugins != NULL)
-   while(plugins->next != NULL)
-   {
-    if (plug_get_launch(plugins->value) != LAUNCH_DISABLED)
-      num++;
-    plugins = plugins->next;
-   }
+  if (plugins != NULL)
+    while (plugins->next != NULL)
+      {
+        if (plug_get_launch (plugins->value) != LAUNCH_DISABLED)
+          num++;
+        plugins = plugins->next;
+      }
 
- return num;
+  return num;
 }
 
 /*--------------------------------------------------------------------*/
 
 
 int
-is_symlink (char * name)
+is_symlink (char *name)
 {
- struct stat sb;
- if(stat(name, &sb))return(0);
- return(S_ISLNK(sb.st_mode));
+  struct stat sb;
+  if (stat (name, &sb))
+    return (0);
+  return (S_ISLNK (sb.st_mode));
 }
 
 void
-check_symlink (char * name)
+check_symlink (char *name)
 {
- if (is_symlink(name))
- {
-  fprintf(stderr, "The file %s is a symlink -- can't continue\n", name);
-  DO_EXIT(0);
- }
+  if (is_symlink (name))
+    {
+      fprintf (stderr, "The file %s is a symlink -- can't continue\n", name);
+      DO_EXIT (0);
+    }
 }
 
 /**
@@ -251,34 +260,37 @@ check_symlink (char * name)
  * in one string and returns it.
  */
 char *
-hosts_arglist_to_string (struct arglist * hosts)
+hosts_arglist_to_string (struct arglist *hosts)
 {
- int num_hosts = 0;
- struct arglist * start = hosts;
- int hosts_len = 0;
- char * ret;
+  int num_hosts = 0;
+  struct arglist *start = hosts;
+  int hosts_len = 0;
+  char *ret;
 
- while(hosts && hosts->next){
-  if(hosts->value)
-  {
-    num_hosts++;
-    hosts_len+=strlen(hosts->value);
-  }
-  hosts = hosts->next;
- }
+  while (hosts && hosts->next)
+    {
+      if (hosts->value)
+        {
+          num_hosts++;
+          hosts_len += strlen (hosts->value);
+        }
+      hosts = hosts->next;
+    }
 
- ret = emalloc(hosts_len + 2 * num_hosts + 1);
+  ret = emalloc (hosts_len + 2 * num_hosts + 1);
 
- hosts = start;
+  hosts = start;
 
- while(hosts && hosts->next) {
-  if(hosts->value){
-   strcat(ret, hosts->value);
-   strcat(ret, " ");
-  }
-  hosts = hosts->next;
- }
-return(ret);
+  while (hosts && hosts->next)
+    {
+      if (hosts->value)
+        {
+          strcat (ret, hosts->value);
+          strcat (ret, " ");
+        }
+      hosts = hosts->next;
+    }
+  return (ret);
 }
 
 /**
@@ -295,22 +307,25 @@ return(ret);
  *        In between, file names are stored in a GHashTable ('translation').
  *        Maybe this hashtable should instead carry the (uploaded) file itself.
  */
-char*
+char *
 temp_file_name ()
 {
-  char* ret = emalloc (strlen (OPENVASSD_STATEDIR) + strlen ("tmp/")
-                       + strlen ("tmp") + 40);
-  int fd = - 1;
-  do {
-    if (fd > 0 && close (fd) < 0)
-      perror("close");
+  char *ret =
+    emalloc (strlen (OPENVASSD_STATEDIR) + strlen ("tmp/") + strlen ("tmp") +
+             40);
+  int fd = -1;
+  do
+    {
+      if (fd > 0 && close (fd) < 0)
+        perror ("close");
 
-    sprintf (ret, "%s/tmp", OPENVASSD_STATEDIR);
-    mkdir (ret, 0700);
-    sprintf (ret, "%s/tmp/tmp.%d-%d", OPENVASSD_STATEDIR, getpid (),
-                  rand () % 1024);
-    fd = open (ret, O_RDONLY);
-   } while (fd >= 0);
+      sprintf (ret, "%s/tmp", OPENVASSD_STATEDIR);
+      mkdir (ret, 0700);
+      sprintf (ret, "%s/tmp/tmp.%d-%d", OPENVASSD_STATEDIR, getpid (),
+               rand () % 1024);
+      fd = open (ret, O_RDONLY);
+    }
+  while (fd >= 0);
 
   if (close (fd) < 0)
     perror ("close");
@@ -318,8 +333,8 @@ temp_file_name ()
   return ret;
 }
 
- 
- 
+
+
 
 /**
  * Determines if a process is alive - as reliably as we can
@@ -329,10 +344,10 @@ process_alive (pid_t pid)
 {
   int i, ret;
   if (pid == 0)
-  return 0;
+    return 0;
 
-  for (i = 0,ret = 1;(i < 10) && (ret > 0) ; i++)
-   ret = waitpid (pid, NULL, WNOHANG);
+  for (i = 0, ret = 1; (i < 10) && (ret > 0); i++)
+    ret = waitpid (pid, NULL, WNOHANG);
 
   return kill (pid, 0) == 0;
 }
@@ -343,31 +358,32 @@ process_alive (pid_t pid)
  * is NOT connected, 1 otherwise.
  * @return 0 if the BSD socket is not connected, 1 otherwise.
  */
-int 
-is_socket_connected(soc)
-	int soc;
+int
+is_socket_connected (soc)
+     int soc;
 {
-	fd_set  rd;
-	struct timeval tv;
-	int m;
-	int e;
+  fd_set rd;
+  struct timeval tv;
+  int m;
+  int e;
 
-	FD_ZERO(&rd);
-	FD_SET(soc, &rd);
-	m = soc + 1;
+  FD_ZERO (&rd);
+  FD_SET (soc, &rd);
+  m = soc + 1;
 again:
-	tv.tv_sec = 2;
-	tv.tv_usec = 0;
-	e = select(m+1, &rd, NULL, NULL, &tv);
-	if ( e < 0 && errno == EINTR)goto again;
-	
-	if( e > 0 )
-	{
-		int len = data_left(soc);
-		if( len == 0 )
-			return 0;
-	}
-	return 1;
+  tv.tv_sec = 2;
+  tv.tv_usec = 0;
+  e = select (m + 1, &rd, NULL, NULL, &tv);
+  if (e < 0 && errno == EINTR)
+    goto again;
+
+  if (e > 0)
+    {
+      int len = data_left (soc);
+      if (len == 0)
+        return 0;
+    }
+  return 1;
 }
 
 
@@ -375,66 +391,73 @@ again:
  * Determines if the client is still connected.
  * @return 1 if the client is here, 0 if it's not.
  */
-int 
-is_client_present(soc)
-	int soc;
+int
+is_client_present (soc)
+     int soc;
 {
-	fd_set  rd;
-	struct timeval tv;
-	int m;
-	int e;
+  fd_set rd;
+  struct timeval tv;
+  int m;
+  int e;
 
-	stream_zero(&rd);
-	m = stream_set(soc, &rd);
+  stream_zero (&rd);
+  m = stream_set (soc, &rd);
 again:
-	tv.tv_sec = 2;
-	tv.tv_usec = 0;
-	e = select(m+1, &rd, NULL, NULL, &tv);
-	if ( e < 0 && errno == EINTR)goto again;
-	
-	if( e > 0 )
-	{
-		int len = data_left(openvas_get_socket_from_connection(soc));
-		if(!len){
-			log_write("Communication closed by client\n");
-			return 0;
-			}
-	}
-	return 1;
+  tv.tv_sec = 2;
+  tv.tv_usec = 0;
+  e = select (m + 1, &rd, NULL, NULL, &tv);
+  if (e < 0 && errno == EINTR)
+    goto again;
+
+  if (e > 0)
+    {
+      int len = data_left (openvas_get_socket_from_connection (soc));
+      if (!len)
+        {
+          log_write ("Communication closed by client\n");
+          return 0;
+        }
+    }
+  return 1;
 }
 
 
 
 
-int data_left(soc)
- int soc;
+int
+data_left (soc)
+     int soc;
 {
- int data = 0;
- ioctl(soc, FIONREAD, &data);
- return data;
+  int data = 0;
+  ioctl (soc, FIONREAD, &data);
+  return data;
 }
 
 
-int set_linger(soc, linger)
- int soc, linger;
+int
+set_linger (soc, linger)
+     int soc, linger;
 {
- struct linger l;
- if(linger == 0)
-  l.l_onoff = 0;
- else 
-  l.l_onoff = 1;
- 
- l.l_linger = linger;
- return setsockopt(soc, SOL_SOCKET, SO_LINGER, (void*)&l, sizeof(l));
+  struct linger l;
+  if (linger == 0)
+    l.l_onoff = 0;
+  else
+    l.l_onoff = 1;
+
+  l.l_linger = linger;
+  return setsockopt (soc, SOL_SOCKET, SO_LINGER, (void *) &l, sizeof (l));
 }
 
 
-void wait_for_children1()
+void
+wait_for_children1 ()
 {
- int e, n = 0;
- do {
- errno = 0;
- e = waitpid(-1, NULL, WNOHANG);
- n++;
- } while ( (e > 0 || errno == EINTR) && n < 20 );
+  int e, n = 0;
+  do
+    {
+      errno = 0;
+      e = waitpid (-1, NULL, WNOHANG);
+      n++;
+    }
+  while ((e > 0 || errno == EINTR) && n < 20);
 }

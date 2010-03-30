@@ -25,12 +25,12 @@
 * Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA 02110-1301 USA.
 *
 *
-*/ 
+*/
 
 #include <includes.h>
 
 #include <openvas/nasl/nasl.h>
-#include <openvas/system.h> /* for emalloc */
+#include <openvas/system.h>     /* for emalloc */
 
 #include <glib.h>
 
@@ -39,41 +39,43 @@
 #include "log.h"
 #include "preferences.h"
 
-static pl_class_t* plugin_classes = NULL;
+static pl_class_t *plugin_classes = NULL;
 
 /*
  * main function for loading all the
  * plugins that are in folder <folder>
  */
-struct arglist * 
-plugins_init(preferences, be_quiet)
- struct arglist * preferences;
- int be_quiet;
+struct arglist *
+plugins_init (preferences, be_quiet)
+     struct arglist *preferences;
+     int be_quiet;
 {
 
- 
- return plugins_reload(preferences, emalloc(sizeof(struct arglist)), be_quiet);
+
+  return plugins_reload (preferences, emalloc (sizeof (struct arglist)),
+                         be_quiet);
 }
 
 static void
-init_plugin_classes(struct arglist * preferences)
+init_plugin_classes (struct arglist *preferences)
 {
   if (plugin_classes == NULL)
     {
-      pl_class_t ** cl_pptr = &plugin_classes;
-      pl_class_t * cl_ptr;
+      pl_class_t **cl_pptr = &plugin_classes;
+      pl_class_t *cl_ptr;
       int i;
-      pl_class_t* classes[] = {&nes_plugin_class, &nasl_plugin_class, &oval_plugin_class, NULL};
+      pl_class_t *classes[] =
+        { &nes_plugin_class, &nasl_plugin_class, &oval_plugin_class, NULL };
 
       for (i = 0; (cl_ptr = classes[i]); ++i)
-	{
-	  if ((*cl_ptr->pl_init)(preferences, NULL))
-	    {
-	      *cl_pptr = cl_ptr;
-	      cl_ptr->pl_next = NULL;
-	      cl_pptr = &cl_ptr->pl_next;
-	    }
-	}
+        {
+          if ((*cl_ptr->pl_init) (preferences, NULL))
+            {
+              *cl_pptr = cl_ptr;
+              cl_ptr->pl_next = NULL;
+              cl_pptr = &cl_ptr->pl_next;
+            }
+        }
     }
 }
 
@@ -93,210 +95,232 @@ init_plugin_classes(struct arglist * preferences)
  *         "folder" and its subdirectories. Not added are directory names.
  *         NVT files are identified by the defined filename suffixes.
  */
-GSList * collect_nvts(const char * folder, const char * subdir, GSList * files) {
-  GDir * dir;
-  const gchar * fname, * path;
+GSList *
+collect_nvts (const char *folder, const char *subdir, GSList * files)
+{
+  GDir *dir;
+  const gchar *fname, *path;
 
-  if (folder == NULL) return files;
+  if (folder == NULL)
+    return files;
 
-  dir = g_dir_open(folder, 0, NULL);
-  if (dir == NULL) return files;
+  dir = g_dir_open (folder, 0, NULL);
+  if (dir == NULL)
+    return files;
 
-  fname = g_dir_read_name(dir);
-  while (fname) {
-    path = g_build_filename(folder, fname, NULL);
-    if (g_file_test(path, G_FILE_TEST_IS_DIR ))
-      files = collect_nvts(g_build_filename(folder, fname, NULL),
-                           g_build_filename(subdir, fname, NULL),
-                           files);
-    else {
-      pl_class_t * cl_ptr = plugin_classes;
-      while(cl_ptr) {
-        if (g_str_has_suffix(fname, cl_ptr->extension)) {
-          files = g_slist_prepend(files, g_build_filename(subdir, fname, NULL));
-          break;
+  fname = g_dir_read_name (dir);
+  while (fname)
+    {
+      path = g_build_filename (folder, fname, NULL);
+      if (g_file_test (path, G_FILE_TEST_IS_DIR))
+        files =
+          collect_nvts (g_build_filename (folder, fname, NULL),
+                        g_build_filename (subdir, fname, NULL), files);
+      else
+        {
+          pl_class_t *cl_ptr = plugin_classes;
+          while (cl_ptr)
+            {
+              if (g_str_has_suffix (fname, cl_ptr->extension))
+                {
+                  files =
+                    g_slist_prepend (files,
+                                     g_build_filename (subdir, fname, NULL));
+                  break;
+                }
+              cl_ptr = cl_ptr->pl_next;
+            }
         }
-        cl_ptr = cl_ptr->pl_next;
-      }
+      fname = g_dir_read_name (dir);
     }
-    fname = g_dir_read_name(dir);
-  }
 
-  g_dir_close(dir);
+  g_dir_close (dir);
   return files;
 }
 
 
-static struct arglist * 
-plugins_reload_from_dir(preferences, plugins, folder, be_quiet)
- struct arglist * preferences;
- struct arglist * plugins;
- char * folder;
- int be_quiet;
+static struct arglist *
+plugins_reload_from_dir (preferences, plugins, folder, be_quiet)
+     struct arglist *preferences;
+     struct arglist *plugins;
+     char *folder;
+     int be_quiet;
 {
-  GSList * files = NULL, * f;
-  char * name;
-  gchar * pref_include_folders;
-  gchar ** include_folders;
+  GSList *files = NULL, *f;
+  char *name;
+  gchar *pref_include_folders;
+  gchar **include_folders;
   int n = 0, total = 0, num_files = 0;
   int i = 0;
   int result = 0;
 
-  add_nasl_inc_dir (""); // for absolute and relative paths
-  
+  add_nasl_inc_dir ("");        // for absolute and relative paths
+
   pref_include_folders = arg_get_value (preferences, "include_folders");
   if (pref_include_folders != NULL)
     {
       include_folders = g_strsplit (pref_include_folders, ":", 0);
 
-      for (i = 0; i < g_strv_length(include_folders); i++)
+      for (i = 0; i < g_strv_length (include_folders); i++)
         {
           result = add_nasl_inc_dir (include_folders[i]);
           if (result < 0)
-            printf ("Could not add %s to the list of include folders.\nMake sure %s exists and is a directory.\n", include_folders[i], include_folders[i]);
+            printf
+              ("Could not add %s to the list of include folders.\nMake sure %s exists and is a directory.\n",
+               include_folders[i], include_folders[i]);
         }
 
       g_strfreev (include_folders);
     }
 
-  init_plugin_classes(preferences);
+  init_plugin_classes (preferences);
 
-  if( folder == NULL)
+  if (folder == NULL)
     {
 #ifdef DEBUG
-      log_write("%s:%d : folder == NULL\n", __FILE__, __LINE__);
+      log_write ("%s:%d : folder == NULL\n", __FILE__, __LINE__);
 #endif
-      printf("Could not determine the value of <plugins_folder>. Check %s\n",
-      	(char *)arg_get_value(preferences, "config_file"));
+      printf ("Could not determine the value of <plugins_folder>. Check %s\n",
+              (char *) arg_get_value (preferences, "config_file"));
       return plugins;
     }
 
-  files = collect_nvts(folder, "", files);
-  num_files = g_slist_length(files);
-  
+  files = collect_nvts (folder, "", files);
+  num_files = g_slist_length (files);
+
   /*
    * Add the plugins
    */
 
-  if ( be_quiet == 0 ) {
-	printf("Loading the OpenVAS plugins...");
-	fflush(stdout);
-	}
-  f = files;
-  while (f != NULL) {
-    name = f->data;
-	pl_class_t * cl_ptr = plugin_classes;
-
-	n ++;
-	total ++;
-	if ( n > 50 && be_quiet == 0 )
-	{
-	  n = 0;
-	  printf("\rLoading the plugins... %d (out of %d)", total, num_files);
-	  fflush(stdout);
-	}
-	  
-	  
-	if(preferences_log_plugins_at_load(preferences))
-	 log_write("Loading %s\n", name);
-	while(cl_ptr) {
-         if (g_str_has_suffix(name, cl_ptr->extension)) {
-	 	struct arglist * pl = (*cl_ptr->pl_add)(folder, name,plugins,
-							preferences);
-   		if(pl) {
-			arg_add_value(pl, "PLUGIN_CLASS", ARG_PTR,
-			sizeof(cl_ptr), cl_ptr);
-		}
-		break;
-	}
-	cl_ptr = cl_ptr->pl_next;
-      }
-      g_free(f->data);
-      f = g_slist_next(f);
+  if (be_quiet == 0)
+    {
+      printf ("Loading the OpenVAS plugins...");
+      fflush (stdout);
     }
-    
-  g_slist_free(files);  
+  f = files;
+  while (f != NULL)
+    {
+      name = f->data;
+      pl_class_t *cl_ptr = plugin_classes;
 
-  if ( be_quiet == 0 )
-	  printf("\rAll plugins loaded                                   \n");
+      n++;
+      total++;
+      if (n > 50 && be_quiet == 0)
+        {
+          n = 0;
+          printf ("\rLoading the plugins... %d (out of %d)", total, num_files);
+          fflush (stdout);
+        }
+
+
+      if (preferences_log_plugins_at_load (preferences))
+        log_write ("Loading %s\n", name);
+      while (cl_ptr)
+        {
+          if (g_str_has_suffix (name, cl_ptr->extension))
+            {
+              struct arglist *pl = (*cl_ptr->pl_add) (folder, name, plugins,
+                                                      preferences);
+              if (pl)
+                {
+                  arg_add_value (pl, "PLUGIN_CLASS", ARG_PTR, sizeof (cl_ptr),
+                                 cl_ptr);
+                }
+              break;
+            }
+          cl_ptr = cl_ptr->pl_next;
+        }
+      g_free (f->data);
+      f = g_slist_next (f);
+    }
+
+  g_slist_free (files);
+
+  if (be_quiet == 0)
+    printf ("\rAll plugins loaded                                   \n");
 
   return plugins;
 }
 
 
 struct arglist *
-plugins_reload(preferences, plugins, be_quiet)
- struct arglist * preferences;
- struct arglist * plugins;
- int be_quiet;
+plugins_reload (preferences, plugins, be_quiet)
+     struct arglist *preferences;
+     struct arglist *plugins;
+     int be_quiet;
 {
- return plugins_reload_from_dir(preferences, plugins, arg_get_value(preferences, "plugins_folder"), be_quiet);
+  return plugins_reload_from_dir (preferences, plugins,
+                                  arg_get_value (preferences, "plugins_folder"),
+                                  be_quiet);
 }
 
-void 
-plugin_set_socket(struct arglist * plugin, int soc)
+void
+plugin_set_socket (struct arglist *plugin, int soc)
 {
- if(arg_get_value(plugin, "SOCKET") != NULL)
-  arg_set_value(plugin, "SOCKET", sizeof(gpointer), GSIZE_TO_POINTER(soc));
- else
-  arg_add_value(plugin, "SOCKET", ARG_INT, sizeof(gpointer), GSIZE_TO_POINTER(soc));
+  if (arg_get_value (plugin, "SOCKET") != NULL)
+    arg_set_value (plugin, "SOCKET", sizeof (gpointer), GSIZE_TO_POINTER (soc));
+  else
+    arg_add_value (plugin, "SOCKET", ARG_INT, sizeof (gpointer),
+                   GSIZE_TO_POINTER (soc));
 }
 
 int
-plugin_get_socket(struct arglist * plugin)
+plugin_get_socket (struct arglist *plugin)
 {
-  return GPOINTER_TO_SIZE(arg_get_value(plugin, "SOCKET"));
+  return GPOINTER_TO_SIZE (arg_get_value (plugin, "SOCKET"));
 }
 
 
-void plugin_unlink(plugin)
- struct arglist * plugin;
+void
+plugin_unlink (plugin)
+     struct arglist *plugin;
 {
-  if(plugin == NULL)
-   {
-    fprintf(stderr, "Error in plugin_unlink - args == NULL\n");
+  if (plugin == NULL)
+    {
+      fprintf (stderr, "Error in plugin_unlink - args == NULL\n");
+      return;
+    }
+  arg_set_value (plugin, "preferences", -1, NULL);
+}
+
+
+void
+plugin_free (plugin)
+     struct arglist *plugin;
+{
+  plugin_unlink (plugin);
+  arg_free_all (plugin);
+}
+
+void
+plugins_free (plugins)
+     struct arglist *plugins;
+{
+  struct arglist *p = plugins;
+  if (p == NULL)
     return;
-   }
-  arg_set_value(plugin, "preferences", -1, NULL);
+
+  while (p->next)
+    {
+      plugin_unlink (p->value);
+      p = p->next;
+    }
+  arg_free_all (plugins);
 }
 
-
-void
-plugin_free(plugin)
- struct arglist * plugin;
-{
- plugin_unlink(plugin);
- arg_free_all(plugin);
-}
-
-void
-plugins_free(plugins)
- struct arglist * plugins;
-{
- struct arglist * p = plugins;
- if(p == NULL)
-  return;
- 
- while(p->next)
- {
-  plugin_unlink(p->value);
-  p = p->next;
- }
- arg_free_all(plugins);
-}
 /*
  * Put our socket somewhere in the plugins
  * arguments
  */
-void 
-plugins_set_socket(struct arglist * plugins, int soc)
+void
+plugins_set_socket (struct arglist *plugins, int soc)
 {
-  struct arglist * t;
+  struct arglist *t;
 
   t = plugins;
-  while(t && t->next)
+  while (t && t->next)
     {
-     plugin_set_socket(t->value, soc);
-     t = t->next;
+      plugin_set_socket (t->value, soc);
+      t = t->next;
     }
 }

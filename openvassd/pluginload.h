@@ -31,26 +31,26 @@
 #ifndef _OPENVAS_PLUGINLOAD_H
 #define _OPENVAS_PLUGINLOAD_H
 
-#include <openvas/arglists.h> /* for struct arglist */
-#include <openvas/kb.h> /* for struct kb_item */
+#include <openvas/arglists.h>   /* for struct arglist */
+#include <openvas/kb.h>         /* for struct kb_item */
 
-struct arglist * plugins_init(struct arglist *, int);
-struct arglist * plugins_reload(struct arglist *, struct arglist *, int);
-void plugin_set_socket(struct arglist *, int);
-int  plugin_get_socket(struct arglist * );
-void plugins_set_socket(struct arglist *, int);
-void plugin_free(struct arglist *);
-void plugins_free(struct arglist *);
+struct arglist *plugins_init (struct arglist *, int);
+struct arglist *plugins_reload (struct arglist *, struct arglist *, int);
+void plugin_set_socket (struct arglist *, int);
+int plugin_get_socket (struct arglist *);
+void plugins_set_socket (struct arglist *, int);
+void plugin_free (struct arglist *);
+void plugins_free (struct arglist *);
 
 
 /**
  * Plugin standard function template to init a plugin (nasl/nes/oval).
  */
-typedef int(*plugin_init_t)(struct arglist *);
+typedef int (*plugin_init_t) (struct arglist *);
 /**
  * Plugin standard function template to run a plugin (nasl/nes/oval).
  */
-typedef int(*plugin_run_t)(struct arglist *);
+typedef int (*plugin_run_t) (struct arglist *);
 
 
 /**
@@ -59,17 +59,20 @@ typedef int(*plugin_run_t)(struct arglist *);
  * oval_plugin_class.
  * Holds the extension string and pointers to init, add and launch-functions.
  */
-typedef struct pl_class_s {
+typedef struct pl_class_s
+{
     /** Pointer to next class in list. */
-    struct pl_class_s* pl_next;
+  struct pl_class_s *pl_next;
     /** File extension for this NVT class (e.g. ".nasl"). */
-    const char* extension;
+  const char *extension;
     /** Pointer to init function */
-    struct pl_class_s* (*pl_init)(struct arglist*, struct arglist*);
+  struct pl_class_s *(*pl_init) (struct arglist *, struct arglist *);
     /** Pointer to add function */
-    struct arglist* (*pl_add)(char*, char*, struct arglist*, struct arglist*);
+  struct arglist *(*pl_add) (char *, char *, struct arglist *,
+                             struct arglist *);
     /** Pointer to launch function */
-    int (*pl_launch)(struct arglist*, struct arglist *, struct arglist*, struct arglist*, struct kb_item **, char *);
+  int (*pl_launch) (struct arglist *, struct arglist *, struct arglist *,
+                    struct arglist *, struct kb_item **, char *);
 } pl_class_t;
 
 extern pl_class_t nes_plugin_class;

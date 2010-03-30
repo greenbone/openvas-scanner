@@ -31,18 +31,18 @@
 #ifndef _OPENVAS_SIGHAND_H
 #define _OPENVAS_SIGHAND_H
 
-extern void (*openvas_signal(int signum, void (*handler)(int)))(int);
-extern void sighand_pipe();
-extern void sighand_chld();
-extern void sighand_alarm();
-extern void sighand_alarm_plugin();
-extern void sighand_term();
-extern void sighand_int();
-extern void sighand_kill();
-extern void sighand_segv();
-extern void sighand_sigusr1();
-extern void sighand_io();
-extern void sighandler(int sign);
+extern void (*openvas_signal (int signum, void (*handler) (int))) (int);
+extern void sighand_pipe ();
+extern void sighand_chld ();
+extern void sighand_alarm ();
+extern void sighand_alarm_plugin ();
+extern void sighand_term ();
+extern void sighand_int ();
+extern void sighand_kill ();
+extern void sighand_segv ();
+extern void sighand_sigusr1 ();
+extern void sighand_io ();
+extern void sighandler (int sign);
 
 extern void let_em_die (int pid);
 extern void make_em_die (int sig);

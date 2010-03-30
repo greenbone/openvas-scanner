@@ -31,9 +31,9 @@
 
 #include <glib.h>
 
-#include <openvas/network.h> /* for recv_line */
-#include <openvas/plugutils.h> /* for plug_get_name */
-#include <openvas/system.h> /* for emalloc */
+#include <openvas/network.h>    /* for recv_line */
+#include <openvas/plugutils.h>  /* for plug_get_name */
+#include <openvas/system.h>     /* for emalloc */
 
 #include "ntp_11.h"
 #include "otp_1_0.h"
@@ -58,164 +58,173 @@
 #endif
 
 
-static int ntp_11_read_prefs(struct arglist *);
-static int ntp_11_rules(struct arglist *);
-static int ntp_11_long_attack(struct arglist *, char *);
-static int ntp_11_recv_file(struct arglist*);
+static int ntp_11_read_prefs (struct arglist *);
+static int ntp_11_rules (struct arglist *);
+static int ntp_11_long_attack (struct arglist *, char *);
+static int ntp_11_recv_file (struct arglist *);
 
 /**
  * @brief Parses the input sent by the client before the NEW_ATTACK message.
  */
 int
-ntp_11_parse_input (struct arglist * globals, char * input)
+ntp_11_parse_input (struct arglist *globals, char *input)
 {
- char * str;
- int input_len = strlen(input);
- char * orig = emalloc(input_len + 1);
- int result = 1; /* default return value is 1 */
+  char *str;
+  int input_len = strlen (input);
+  char *orig = emalloc (input_len + 1);
+  int result = 1;               /* default return value is 1 */
 
- strncpy(orig, input, input_len);
+  strncpy (orig, input, input_len);
 
- str = strstr(input, " <|> ");
+  str = strstr (input, " <|> ");
   if (str == NULL)
     {
       efree (&orig);
       return 1;
     }
 
- str[0] = '\0';
+  str[0] = '\0';
 
- if( strcmp(input, "CLIENT") == 0 )
- {
-  input = str + 5;
-  str = strchr(input, ' ');
-  if (str != NULL )
-    str[0] = '\0';
+  if (strcmp (input, "CLIENT") == 0)
+    {
+      input = str + 5;
+      str = strchr (input, ' ');
+      if (str != NULL)
+        str[0] = '\0';
 
-  if (input[strlen(input) - 1] == '\n')
-    input[strlen(input) - 1] = '\0';
+      if (input[strlen (input) - 1] == '\n')
+        input[strlen (input) - 1] = '\0';
 
-  switch(otp_1_0_get_client_request(input)) {
-    case CREQ_ATTACHED_FILE:
-      ntp_11_recv_file (globals);
-      break;
+      switch (otp_1_0_get_client_request (input))
+        {
+        case CREQ_ATTACHED_FILE:
+          ntp_11_recv_file (globals);
+          break;
 
-    case CREQ_LONG_ATTACK:
-      result = ntp_11_long_attack(globals, orig);
-      break;
+        case CREQ_LONG_ATTACK:
+          result = ntp_11_long_attack (globals, orig);
+          break;
 
-    case CREQ_CERTIFICATES:
-      otp_1_0_server_send_certificates (globals);
-      break;
+        case CREQ_CERTIFICATES:
+          otp_1_0_server_send_certificates (globals);
+          break;
 
-    case CREQ_OPENVAS_VERSION:
-      otp_1_0_server_openvas_version (globals);
-      break;
+        case CREQ_OPENVAS_VERSION:
+          otp_1_0_server_openvas_version (globals);
+          break;
 
-    case CREQ_PLUGIN_INFO: {
-      char * t, *s;
-      t = strstr(&(str[1]), " <|> ");
-      if( t == NULL ) {
-        result = -1;
-        break;
-      }
-      s = t + 5;
-      plugin_send_infos(globals, s);
-      break;
-      }
+        case CREQ_PLUGIN_INFO:
+          {
+            char *t, *s;
+            t = strstr (&(str[1]), " <|> ");
+            if (t == NULL)
+              {
+                result = -1;
+                break;
+              }
+            s = t + 5;
+            plugin_send_infos (globals, s);
+            break;
+          }
 
-    case CREQ_PREFERENCES:
-      ntp_11_read_prefs(globals);
-      break;
+        case CREQ_PREFERENCES:
+          ntp_11_read_prefs (globals);
+          break;
 
-    case CREQ_RULES:
-      ntp_11_rules(globals);
-      break;
+        case CREQ_RULES:
+          ntp_11_rules (globals);
+          break;
 
-    case CREQ_STOP_WHOLE_TEST:
-      log_write("Stopping the whole test (requested by client)");
-      hosts_stop_all();
-      result = NTP_STOP_WHOLE_TEST;
-      break;
+        case CREQ_STOP_WHOLE_TEST:
+          log_write ("Stopping the whole test (requested by client)");
+          hosts_stop_all ();
+          result = NTP_STOP_WHOLE_TEST;
+          break;
 
-    case CREQ_STOP_ATTACK: {
-      char * t, *s;
-      char * user = (char*)arg_get_value(globals, "user");
-      s = str + 5;	
-      t = strstr(s, " <|> ");
-      if(t == NULL) {
-        result = -1;
-        break;
-      }
-      t[0] = '\0';
-      log_write("user %s : stopping attack against %s\n",  user, s);
-      hosts_stop_host(globals, s);
-      ntp_1x_timestamp_host_scan_interrupted(globals, s);
-      ntp_11_show_end (globals, s, 0);
-      break;
-      }
+        case CREQ_STOP_ATTACK:
+          {
+            char *t, *s;
+            char *user = (char *) arg_get_value (globals, "user");
+            s = str + 5;
+            t = strstr (s, " <|> ");
+            if (t == NULL)
+              {
+                result = -1;
+                break;
+              }
+            t[0] = '\0';
+            log_write ("user %s : stopping attack against %s\n", user, s);
+            hosts_stop_host (globals, s);
+            ntp_1x_timestamp_host_scan_interrupted (globals, s);
+            ntp_11_show_end (globals, s, 0);
+            break;
+          }
 
-    case CREQ_UNKNOWN:
-      break;
-  }
- }
+        case CREQ_UNKNOWN:
+          break;
+        }
+    }
 
- efree(&orig);
- return(result);
+  efree (&orig);
+  return (result);
 }
 
 static int
-ntp_11_long_attack (struct arglist * globals, char * orig)
+ntp_11_long_attack (struct arglist *globals, char *orig)
 {
- struct arglist * preferences = arg_get_value(globals, "preferences");
- int soc = GPOINTER_TO_SIZE(arg_get_value(globals, "global_socket"));
- char input[16384];
- int size;
- char * target;
- char * plugin_set;
- int n;
+  struct arglist *preferences = arg_get_value (globals, "preferences");
+  int soc = GPOINTER_TO_SIZE (arg_get_value (globals, "global_socket"));
+  char input[16384];
+  int size;
+  char *target;
+  char *plugin_set;
+  int n;
 
-  n = recv_line(soc, input, sizeof(input) - 1);
-  if(n <= 0)
-   return -1;
+  n = recv_line (soc, input, sizeof (input) - 1);
+  if (n <= 0)
+    return -1;
 
 #if DEBUGMORE
-  printf("long_attack :%s\n", input);
+  printf ("long_attack :%s\n", input);
 #endif
-  if(!strncmp(input, "<|> CLIENT", sizeof("<|> CLIENT")))
-   return 1; 
-  size = atoi(input);
-  target = emalloc(size+1);
+  if (!strncmp (input, "<|> CLIENT", sizeof ("<|> CLIENT")))
+    return 1;
+  size = atoi (input);
+  target = emalloc (size + 1);
 
   n = 0;
-  while(n < size)
-  {
-   int e;
-   e = nrecv(soc, target+n, size-n, 0);
-   if(e > 0)n+=e;
-   else return -1;
-  }
- plugin_set = arg_get_value(preferences, "plugin_set");
- if(!plugin_set || plugin_set[0] == '\0' )
- {
-  plugin_set = emalloc(3);
-  sprintf(plugin_set, "-1");
-  if(!arg_get_value(preferences, "plugin_set")) 
-   arg_add_value(preferences, "plugin_set", ARG_STRING, strlen(plugin_set), plugin_set);
-  else
-   arg_set_value(preferences, "plugin_set", strlen(plugin_set), plugin_set);
- }
+  while (n < size)
+    {
+      int e;
+      e = nrecv (soc, target + n, size - n, 0);
+      if (e > 0)
+        n += e;
+      else
+        return -1;
+    }
+  plugin_set = arg_get_value (preferences, "plugin_set");
+  if (!plugin_set || plugin_set[0] == '\0')
+    {
+      plugin_set = emalloc (3);
+      sprintf (plugin_set, "-1");
+      if (!arg_get_value (preferences, "plugin_set"))
+        arg_add_value (preferences, "plugin_set", ARG_STRING,
+                       strlen (plugin_set), plugin_set);
+      else
+        arg_set_value (preferences, "plugin_set", strlen (plugin_set),
+                       plugin_set);
+    }
 
- comm_setup_plugins(globals, plugin_set);
- if(arg_get_value(preferences, "TARGET"))
-  {
-  char * old = arg_get_value(preferences, "TARGET");
-  efree(&old);
-  arg_set_value(preferences, "TARGET", strlen(target), target);
-  }
- else
-  arg_add_value(preferences, "TARGET", ARG_STRING, strlen(target), target);
- return 0;
+  comm_setup_plugins (globals, plugin_set);
+  if (arg_get_value (preferences, "TARGET"))
+    {
+      char *old = arg_get_value (preferences, "TARGET");
+      efree (&old);
+      arg_set_value (preferences, "TARGET", strlen (target), target);
+    }
+  else
+    arg_add_value (preferences, "TARGET", ARG_STRING, strlen (target), target);
+  return 0;
 }
 
 /**
@@ -225,132 +234,132 @@ ntp_11_long_attack (struct arglist * globals, char * orig)
  * @return Always 0.
  */
 static int
-ntp_11_read_prefs (struct arglist * globals)
+ntp_11_read_prefs (struct arglist *globals)
 {
- struct arglist *  preferences = arg_get_value(globals, "preferences");
- int soc = GPOINTER_TO_SIZE(arg_get_value(globals, "global_socket"));
- char * input;
- int input_sz = 1024*1024;
- int n;
+  struct arglist *preferences = arg_get_value (globals, "preferences");
+  int soc = GPOINTER_TO_SIZE (arg_get_value (globals, "global_socket"));
+  char *input;
+  int input_sz = 1024 * 1024;
+  int n;
 
- input = emalloc(input_sz);
- for (;;) {
-   input[0] = '\0';
+  input = emalloc (input_sz);
+  for (;;)
+    {
+      input[0] = '\0';
 #if DEBUG_SSL > 2
-   fprintf(stderr, "ntp_11_read_prefs > soc=%d\n", soc);
+      fprintf (stderr, "ntp_11_read_prefs > soc=%d\n", soc);
 #endif
-   n = recv_line (soc, input, input_sz - 1);
+      n = recv_line (soc, input, input_sz - 1);
 
-  if (n < 0 || input [0] == '\0') {
-    log_write ("Empty data string -- closing comm. channel\n");
-    EXIT(0);
-  }
-
-  if(strstr(input, "<|> CLIENT") != NULL ) /* finished = 1; */
-    break ;
-  /* else */
-
-  {
-   char * pref;
-   char * value;
-   char * v;
-   char * old;
-    pref = input;
-    v = strchr(input, '<');
-    if(v)
-    { v-=1;
-      v[0] = 0;
-
-      value = v + 5;
-      /*
-       * "system" prefs can't be changed
-       */
-      if(!strcmp(pref, "logfile")           ||
-         !strcmp(pref, "config_file")       ||
-         !strcmp(pref, "plugins_folder")    ||
-	 !strcmp(pref, "dumpfile")          ||
-	 !strcmp(pref, "rules")             ||
-	 !strcmp(pref, "negot_timeout")     ||
-	 !strcmp(pref, "force_pubkey_auth") ||
-	 !strcmp(pref, "log_while_attack")  ||
-	 !strcmp(pref, "ca_file") 	    ||
-	 !strcmp(pref, "key_file")	    ||
-	 !strcmp(pref, "cert_file")	    ||
-	 !strcmp(pref, "be_nice")	    ||
-	 !strcmp(pref, "log_plugins_name_at_load") ||
-         !strcmp(pref, "nasl_no_signature_check"))
-      	continue;
-
-      old = arg_get_value(preferences, pref);
-#ifdef DEBUGMORE
-      printf("%s - %s (old : %s)\n", pref, value, old);
-#endif
-      if ( value[0] != '\0' )value[strlen(value)-1]='\0';
-
-      if( old != NULL )
-      {
-       if( strcmp(old, value) != 0 )
+      if (n < 0 || input[0] == '\0')
         {
-	 efree(&old); 
-         v = estrdup(value);
-	 arg_set_value(preferences, pref, strlen(v), v);
-	}
-      }
-      else
+          log_write ("Empty data string -- closing comm. channel\n");
+          EXIT (0);
+        }
+
+      if (strstr (input, "<|> CLIENT") != NULL) /* finished = 1; */
+        break;
+      /* else */
+
       {
-       v = estrdup(value);
-       arg_add_value(preferences, pref, ARG_STRING, strlen(v), v);
+        char *pref;
+        char *value;
+        char *v;
+        char *old;
+        pref = input;
+        v = strchr (input, '<');
+        if (v)
+          {
+            v -= 1;
+            v[0] = 0;
+
+            value = v + 5;
+            /*
+             * "system" prefs can't be changed
+             */
+            if (!strcmp (pref, "logfile") || !strcmp (pref, "config_file")
+                || !strcmp (pref, "plugins_folder")
+                || !strcmp (pref, "dumpfile") || !strcmp (pref, "rules")
+                || !strcmp (pref, "negot_timeout")
+                || !strcmp (pref, "force_pubkey_auth")
+                || !strcmp (pref, "log_while_attack")
+                || !strcmp (pref, "ca_file") || !strcmp (pref, "key_file")
+                || !strcmp (pref, "cert_file") || !strcmp (pref, "be_nice")
+                || !strcmp (pref, "log_plugins_name_at_load")
+                || !strcmp (pref, "nasl_no_signature_check"))
+              continue;
+
+            old = arg_get_value (preferences, pref);
+#ifdef DEBUGMORE
+            printf ("%s - %s (old : %s)\n", pref, value, old);
+#endif
+            if (value[0] != '\0')
+              value[strlen (value) - 1] = '\0';
+
+            if (old != NULL)
+              {
+                if (strcmp (old, value) != 0)
+                  {
+                    efree (&old);
+                    v = estrdup (value);
+                    arg_set_value (preferences, pref, strlen (v), v);
+                  }
+              }
+            else
+              {
+                v = estrdup (value);
+                arg_add_value (preferences, pref, ARG_STRING, strlen (v), v);
+              }
+          }
       }
     }
-  }
- }
 
- efree(&input);
- return(0);
+  efree (&input);
+  return (0);
 }
 
 static int
-ntp_11_rules (struct arglist * globals)
+ntp_11_rules (struct arglist *globals)
 {
- struct openvas_rules * user_rules = emalloc(sizeof(*user_rules));
- struct openvas_rules * rules = arg_get_value(globals, "rules");
- char * buffer;
- int finished = 0;
- struct sockaddr_in * soca;
- inaddrs_t addrs;
+  struct openvas_rules *user_rules = emalloc (sizeof (*user_rules));
+  struct openvas_rules *rules = arg_get_value (globals, "rules");
+  char *buffer;
+  int finished = 0;
+  struct sockaddr_in *soca;
+  inaddrs_t addrs;
 
- buffer = emalloc(4096); 
- while(!finished)
- {
-  auth_gets(globals, buffer, 4095);
-  if( buffer[0] == '\0' )
+  buffer = emalloc (4096);
+  while (!finished)
     {
-      log_write("Empty buffer - exiting\n");
-      EXIT(0);
-    }
+      auth_gets (globals, buffer, 4095);
+      if (buffer[0] == '\0')
+        {
+          log_write ("Empty buffer - exiting\n");
+          EXIT (0);
+        }
 
-  if( strstr(buffer, "<|> CLIENT") != NULL )
-	finished = 1;
-  else
-  {
+      if (strstr (buffer, "<|> CLIENT") != NULL)
+        finished = 1;
+      else
+        {
 #ifdef DEBUG_RULES
-    printf("User adds %s\n", buffer);
+          printf ("User adds %s\n", buffer);
 #endif
-    users_add_rule(user_rules, buffer);
-  }
- }
- efree(&buffer);
- rules_add(&rules, &user_rules, arg_get_value(globals, "user"));
- rules_free(user_rules);
- soca = arg_get_value(globals, "client_address");
- addrs.ip = soca->sin_addr;
- rules_set_client_ip(rules, &addrs, AF_INET);
- arg_set_value(globals, "rules", -1, rules);
- return(0);
+          users_add_rule (user_rules, buffer);
+        }
+    }
+  efree (&buffer);
+  rules_add (&rules, &user_rules, arg_get_value (globals, "user"));
+  rules_free (user_rules);
+  soca = arg_get_value (globals, "client_address");
+  addrs.ip = soca->sin_addr;
+  rules_set_client_ip (rules, &addrs, AF_INET);
+  arg_set_value (globals, "rules", -1, rules);
+  return (0);
 }
 
 void
-ntp_11_show_end (struct arglist*  globals, char * name, int internal)
+ntp_11_show_end (struct arglist *globals, char *name, int internal)
 {
   int soc = GPOINTER_TO_SIZE (arg_get_value (globals, "global_socket"));
   char buf[1024];
@@ -373,12 +382,13 @@ ntp_11_show_end (struct arglist*  globals, char * name, int internal)
  * @param localname  Path to file as referenced by the server.
  */
 static void
-files_add_translation (struct arglist* globals, const char * remotename,
-                       const char * localname)
+files_add_translation (struct arglist *globals, const char *remotename,
+                       const char *localname)
 {
-  GHashTable * trans = arg_get_value (globals, "files_translation");
+  GHashTable *trans = arg_get_value (globals, "files_translation");
 #if 0
-  fprintf (stderr, "files_add_translation: R=%s\tL=%s\n", remotename, localname);
+  fprintf (stderr, "files_add_translation: R=%s\tL=%s\n", remotename,
+           localname);
 #endif
   // Register the mapping table if none there yet
   if (trans == NULL)
@@ -387,7 +397,7 @@ files_add_translation (struct arglist* globals, const char * remotename,
       arg_add_value (globals, "files_translation", ARG_PTR, -1, trans);
     }
 
-  g_hash_table_insert (trans,g_strdup (remotename), g_strdup (localname));
+  g_hash_table_insert (trans, g_strdup (remotename), g_strdup (localname));
 }
 
 /**
@@ -403,16 +413,18 @@ files_add_translation (struct arglist* globals, const char * remotename,
  * @param filepath Path to file with serialized GHashTable.
  */
 static void
-build_global_host_sshlogins_map (struct arglist* globals, char* filepath)
+build_global_host_sshlogins_map (struct arglist *globals, char *filepath)
 {
   // Deserialize the hashtable that mapped login-account names to host names.
-  GHashTable* map_host_sshlogin_name = hash_table_file_read (filepath);
+  GHashTable *map_host_sshlogin_name = hash_table_file_read (filepath);
   // Add or replace it in the arglist
-  if (map_host_sshlogin_name!= NULL
+  if (map_host_sshlogin_name != NULL
       && arg_get_value (globals, "MAP_HOST_SSHLOGIN_NAME") == NULL)
-    arg_add_value (globals, "MAP_HOST_SSHLOGIN_NAME", ARG_PTR, -1, map_host_sshlogin_name);
-  else if (map_host_sshlogin_name!= NULL)
-    arg_set_value (globals, "MAP_HOST_SSHLOGIN_NAME", -1, map_host_sshlogin_name);
+    arg_add_value (globals, "MAP_HOST_SSHLOGIN_NAME", ARG_PTR, -1,
+                   map_host_sshlogin_name);
+  else if (map_host_sshlogin_name != NULL)
+    arg_set_value (globals, "MAP_HOST_SSHLOGIN_NAME", -1,
+                   map_host_sshlogin_name);
 }
 
 /**
@@ -429,12 +441,13 @@ build_global_host_sshlogins_map (struct arglist* globals, char* filepath)
  * @param filepath Path to the file '.logins' as translated.
  */
 static void
-build_global_sshlogin_info_map (struct arglist* globals, char* filepath)
+build_global_sshlogin_info_map (struct arglist *globals, char *filepath)
 {
   // Read the file, build map of names->structs
-  GHashTable* ssh_logins = openvas_ssh_login_file_read (filepath, FALSE);
+  GHashTable *ssh_logins = openvas_ssh_login_file_read (filepath, FALSE);
   // Add/ Replace, if not-empty
-  if (ssh_logins != NULL && arg_get_value (globals, "MAP_NAME_SSHLOGIN") == NULL)
+  if (ssh_logins != NULL
+      && arg_get_value (globals, "MAP_NAME_SSHLOGIN") == NULL)
     arg_add_value (globals, "MAP_NAME_SSHLOGIN", ARG_PTR, -1, ssh_logins);
   else if (ssh_logins != NULL)
     arg_set_value (globals, "MAP_NAME_SSHLOGIN", -1, ssh_logins);
@@ -453,11 +466,11 @@ build_global_sshlogin_info_map (struct arglist* globals, char* filepath)
  * @return 0 if successful, -1 in case of errors.
  */
 int
-ntp_11_recv_file (struct arglist* globals)
+ntp_11_recv_file (struct arglist *globals)
 {
-  int soc = GPOINTER_TO_SIZE(arg_get_value(globals, "global_socket"));
+  int soc = GPOINTER_TO_SIZE (arg_get_value (globals, "global_socket"));
   char input[4096];
-  char * origname, * localname = temp_file_name();
+  char *origname, *localname = temp_file_name ();
   int n;
   long bytes = 0;
   long tot = 0;
@@ -467,39 +480,39 @@ ntp_11_recv_file (struct arglist* globals)
   fprintf (stderr, "ntp_11_recv_file\n");
 #endif
 
-  n = recv_line (soc, input, sizeof(input) - 1);
+  n = recv_line (soc, input, sizeof (input) - 1);
   if (n <= 0)
     return -1;
 
-  if ( strncmp(input, "name: ", strlen("name: ")) == 0 )
+  if (strncmp (input, "name: ", strlen ("name: ")) == 0)
     {
-      origname = estrdup(input + sizeof("name: ")-1);
-      if(origname[strlen(origname) - 1] == '\n')
-      origname[strlen(origname) - 1] = '\0';
+      origname = estrdup (input + sizeof ("name: ") - 1);
+      if (origname[strlen (origname) - 1] == '\n')
+        origname[strlen (origname) - 1] = '\0';
     }
   else
     return -1;
 
-  n = recv_line(soc, input, sizeof(input) - 1);
+  n = recv_line (soc, input, sizeof (input) - 1);
   if (n <= 0)
     return -1;
   /* XXX content: message. Ignored for the moment */
 
-  n = recv_line (soc, input, sizeof(input) - 1);
+  n = recv_line (soc, input, sizeof (input) - 1);
   if (n <= 0)
     return -1;
 
-  if ( strncmp(input, "bytes: ", sizeof("bytes: ")-1) == 0 )
+  if (strncmp (input, "bytes: ", sizeof ("bytes: ") - 1) == 0)
     {
-      char * t = input + sizeof("bytes: ")-1;
-      bytes = atol(t);
+      char *t = input + sizeof ("bytes: ") - 1;
+      bytes = atol (t);
     }
   else
     return -1;
 
   /* We now know that we have to read <bytes> bytes from the remote socket. */
 
-  fd = open (localname, O_CREAT|O_WRONLY|O_TRUNC, 0600);
+  fd = open (localname, O_CREAT | O_WRONLY | O_TRUNC, 0600);
   if (fd < 0)
     {
       perror ("ntp_11_recv_file: open() ");
@@ -507,14 +520,14 @@ ntp_11_recv_file (struct arglist* globals)
     }
 
 #if 0
-  fprintf(stderr, "ntp_11_recv_file: localname=%s\n", localname);
+  fprintf (stderr, "ntp_11_recv_file: localname=%s\n", localname);
 #endif
 
   while (tot < bytes)
     {
-      bzero (input, sizeof(input));
-      n = nrecv (soc, input, MIN(sizeof(input)-1, bytes - tot), 0);
-      if (n  < 0)
+      bzero (input, sizeof (input));
+      n = nrecv (soc, input, MIN (sizeof (input) - 1, bytes - tot), 0);
+      if (n < 0)
         {
           char s[80];
           sprintf (s, "11_recv_file: nrecv(%d)", soc);
@@ -536,7 +549,7 @@ ntp_11_recv_file (struct arglist* globals)
 
   // Check for files that are handled in a special manner access per-host
   // login information.
-  gchar* origname_file = g_path_get_basename (origname);
+  gchar *origname_file = g_path_get_basename (origname);
   if (!strcmp (origname_file, ".host_sshlogins"))
     {
       build_global_host_sshlogins_map (globals, localname);
@@ -561,82 +574,85 @@ ntp_11_recv_file (struct arglist* globals)
 
 
 static int
-__ntp_1x_timestamp_scan (struct arglist * globals, char * msg)
+__ntp_1x_timestamp_scan (struct arglist *globals, char *msg)
 {
   char timestr[1024];
-  char * tmp;
+  char *tmp;
   time_t t;
   int len;
 
-  t = time(NULL);
-  tmp = ctime(&t);
-  timestr[sizeof ( timestr ) - 1 ] = '\0';
-  strncpy(timestr, tmp, sizeof(timestr) - 1);
-  len = strlen(timestr);
-  if( timestr[len - 1 ] == '\n' )
-	   timestr[len - 1 ] = '\0';
+  t = time (NULL);
+  tmp = ctime (&t);
+  timestr[sizeof (timestr) - 1] = '\0';
+  strncpy (timestr, tmp, sizeof (timestr) - 1);
+  len = strlen (timestr);
+  if (timestr[len - 1] == '\n')
+    timestr[len - 1] = '\0';
 
-  auth_printf(globals, "SERVER <|> TIME <|> %s <|> %s <|> SERVER\n",msg, timestr);
+  auth_printf (globals, "SERVER <|> TIME <|> %s <|> %s <|> SERVER\n", msg,
+               timestr);
   return 0;
 }
 
 
 static int
-__ntp_1x_timestamp_scan_host (struct arglist * globals, char * msg, char * host)
+__ntp_1x_timestamp_scan_host (struct arglist *globals, char *msg, char *host)
 {
   char timestr[1024];
-  char * tmp;
+  char *tmp;
   time_t t;
   int len;
   char buf[1024];
   int soc;
 
-  t = time(NULL);
-  tmp = ctime(&t);
-  timestr [ sizeof(timestr) - 1] = '\0';
-  strncpy(timestr, tmp, sizeof(timestr) - 1);
-  len = strlen(timestr);
-  if( timestr[len - 1 ] == '\n' )
-	   timestr[len - 1 ] = '\0';
+  t = time (NULL);
+  tmp = ctime (&t);
+  timestr[sizeof (timestr) - 1] = '\0';
+  strncpy (timestr, tmp, sizeof (timestr) - 1);
+  len = strlen (timestr);
+  if (timestr[len - 1] == '\n')
+    timestr[len - 1] = '\0';
 
-   soc = GPOINTER_TO_SIZE(arg_get_value(globals, "global_socket"));
+  soc = GPOINTER_TO_SIZE (arg_get_value (globals, "global_socket"));
 
-   snprintf(buf, sizeof(buf), "SERVER <|> TIME <|> %s <|> %s <|> %s <|> SERVER\n", msg, host, timestr);
+  snprintf (buf, sizeof (buf),
+            "SERVER <|> TIME <|> %s <|> %s <|> %s <|> SERVER\n", msg, host,
+            timestr);
 
-   internal_send(soc, buf, INTERNAL_COMM_MSG_TYPE_DATA); 
+  internal_send (soc, buf, INTERNAL_COMM_MSG_TYPE_DATA);
 
   return 0;
 }
 
 
 int
-ntp_1x_timestamp_scan_starts (struct arglist * globals)
+ntp_1x_timestamp_scan_starts (struct arglist *globals)
 {
- return __ntp_1x_timestamp_scan(globals, "SCAN_START");
+  return __ntp_1x_timestamp_scan (globals, "SCAN_START");
 }
 
 int
-ntp_1x_timestamp_scan_ends (struct arglist * globals)
+ntp_1x_timestamp_scan_ends (struct arglist *globals)
 {
- return __ntp_1x_timestamp_scan(globals, "SCAN_END");
+  return __ntp_1x_timestamp_scan (globals, "SCAN_END");
 }
 
 int
-ntp_1x_timestamp_host_scan_starts (struct arglist * globals, char * host)
+ntp_1x_timestamp_host_scan_starts (struct arglist *globals, char *host)
 {
- return __ntp_1x_timestamp_scan_host(globals, "HOST_START", host);
+  return __ntp_1x_timestamp_scan_host (globals, "HOST_START", host);
 }
 
 int
-ntp_1x_timestamp_host_scan_ends (struct arglist * globals, char * host)
+ntp_1x_timestamp_host_scan_ends (struct arglist *globals, char *host)
 {
- return __ntp_1x_timestamp_scan_host(globals, "HOST_END", host);
+  return __ntp_1x_timestamp_scan_host (globals, "HOST_END", host);
 }
 
 int
-ntp_1x_timestamp_host_scan_interrupted (struct arglist * globals, char * host)
+ntp_1x_timestamp_host_scan_interrupted (struct arglist *globals, char *host)
 {
- return __ntp_1x_timestamp_scan_host(globals, "HOST_INTERRUPTED", host);
+  return __ntp_1x_timestamp_scan_host (globals, "HOST_INTERRUPTED", host);
 }
 
 
@@ -645,142 +661,142 @@ ntp_1x_timestamp_host_scan_interrupted (struct arglist * globals, char * host)
 
 /*--------------------------------------------------------------------------------------------*/
 static int
-qsort_cmp (const void * a, const void * b)
+qsort_cmp (const void *a, const void *b)
 {
- struct arglist ** plugin_a, ** plugin_b;
+  struct arglist **plugin_a, **plugin_b;
 
- plugin_a = (struct arglist ** ) a;
- plugin_b = (struct arglist ** ) b;
+  plugin_a = (struct arglist **) a;
+  plugin_b = (struct arglist **) b;
 
- return strcmp((*plugin_a)->name, (*plugin_b)->name);
+  return strcmp ((*plugin_a)->name, (*plugin_b)->name);
 }
 
 
-static char*
-_find_plugin (struct arglist ** array, char * fname, int start, int end, int rend)
+static char *
+_find_plugin (struct arglist **array, char *fname, int start, int end, int rend)
 {
- int mid;
- struct arglist * plugin;
- int e;
+  int mid;
+  struct arglist *plugin;
+  int e;
 
- if ( start >= rend )
-	return NULL;
+  if (start >= rend)
+    return NULL;
 
- if ( start == end )
- {
-  plugin = array[start];
- 
-  if ( strcmp(fname, plugin->name) == 0 )
-	return plug_get_name(plugin->value);
-   else
-	return NULL;
- }
+  if (start == end)
+    {
+      plugin = array[start];
 
- mid = ( start + end ) / 2;
- plugin = array[mid];
- e = strcmp( plugin->name, fname );
- if ( e > 0 )
-	return _find_plugin(array, fname, start, mid, rend);
-  else if ( e < 0 )
-	return _find_plugin(array, fname, mid + 1, end, rend);
- else
-	return plug_get_name(plugin->value);
+      if (strcmp (fname, plugin->name) == 0)
+        return plug_get_name (plugin->value);
+      else
+        return NULL;
+    }
+
+  mid = (start + end) / 2;
+  plugin = array[mid];
+  e = strcmp (plugin->name, fname);
+  if (e > 0)
+    return _find_plugin (array, fname, start, mid, rend);
+  else if (e < 0)
+    return _find_plugin (array, fname, mid + 1, end, rend);
+  else
+    return plug_get_name (plugin->value);
 }
 
 
 
-static char*
-find_plugin (struct arglist ** array, char * fname, int num_plugins)
+static char *
+find_plugin (struct arglist **array, char *fname, int num_plugins)
 {
- return _find_plugin ( array, fname, 0, num_plugins, num_plugins);
+  return _find_plugin (array, fname, 0, num_plugins, num_plugins);
 }
 
 
 int
-ntp_1x_send_dependencies (struct arglist * globals)
+ntp_1x_send_dependencies (struct arglist *globals)
 {
- struct arglist * p = arg_get_value(globals, "plugins");
- struct arglist * plugins = p;
- struct arglist ** array;
- int num_plugins = 0;
- char * buf;
- int buf_size = 1024;
- int i = 0;
+  struct arglist *p = arg_get_value (globals, "plugins");
+  struct arglist *plugins = p;
+  struct arglist **array;
+  int num_plugins = 0;
+  char *buf;
+  int buf_size = 1024;
+  int i = 0;
 
 
- if(plugins == NULL)
- {
-  fprintf(stderr, "%s:%d: no plugins\n", __FILE__, __LINE__);
-  return -1;
- }
+  if (plugins == NULL)
+    {
+      fprintf (stderr, "%s:%d: no plugins\n", __FILE__, __LINE__);
+      return -1;
+    }
 
- while ( p->next != NULL ) 
- {
-   num_plugins ++;
-   p = p->next;
- }
+  while (p->next != NULL)
+    {
+      num_plugins++;
+      p = p->next;
+    }
 
- /* Store the plugins in an array index by filename */
- array = emalloc ( num_plugins * sizeof(struct arglist * ));
- p = plugins;
- while ( p->next != NULL )
- {
-   array[i++] = p;
-   p = p->next;
- }
+  /* Store the plugins in an array index by filename */
+  array = emalloc (num_plugins * sizeof (struct arglist *));
+  p = plugins;
+  while (p->next != NULL)
+    {
+      array[i++] = p;
+      p = p->next;
+    }
 
- qsort ( array, num_plugins, sizeof(struct arglist *), qsort_cmp);
+  qsort (array, num_plugins, sizeof (struct arglist *), qsort_cmp);
 
- auth_printf(globals, "SERVER <|> PLUGINS_DEPENDENCIES\n");
+  auth_printf (globals, "SERVER <|> PLUGINS_DEPENDENCIES\n");
 
- buf = emalloc(buf_size);
+  buf = emalloc (buf_size);
 
- while(plugins->next)
- {
-  struct arglist * args = plugins->value;
-  struct arglist * d, * deps;
-  if(!args)
-	goto nxt;
+  while (plugins->next)
+    {
+      struct arglist *args = plugins->value;
+      struct arglist *d, *deps;
+      if (!args)
+        goto nxt;
 
-  d = deps = plug_get_deps(args);
-  if(deps == NULL )
-    goto nxt;
+      d = deps = plug_get_deps (args);
+      if (deps == NULL)
+        goto nxt;
 
 
-  strncat(buf, plug_get_name(args), buf_size);
-  strncat(buf, " <|> ", buf_size);
-  while(deps->next)
-  {
-   char * fname = find_plugin(array, deps->name, num_plugins);
-   if( fname == NULL )
-   {
-    deps = deps->next;
-    continue;
-   }
-   if(strlen(fname) + strlen(buf) + 6 > buf_size)
-   {
-    buf_size *= 2;
-    if(strlen(fname) + strlen(buf) + 6 > buf_size)
-    	buf_size = strlen(fname) + strlen(buf) + 6;
+      strncat (buf, plug_get_name (args), buf_size);
+      strncat (buf, " <|> ", buf_size);
+      while (deps->next)
+        {
+          char *fname = find_plugin (array, deps->name, num_plugins);
+          if (fname == NULL)
+            {
+              deps = deps->next;
+              continue;
+            }
+          if (strlen (fname) + strlen (buf) + 6 > buf_size)
+            {
+              buf_size *= 2;
+              if (strlen (fname) + strlen (buf) + 6 > buf_size)
+                buf_size = strlen (fname) + strlen (buf) + 6;
 
-    buf = erealloc(buf, buf_size);
-   }
-   strncat(buf, fname, buf_size);
-   strncat(buf, " <|> ", buf_size);
-   deps = deps->next;
-  }
+              buf = erealloc (buf, buf_size);
+            }
+          strncat (buf, fname, buf_size);
+          strncat (buf, " <|> ", buf_size);
+          deps = deps->next;
+        }
 #if 0
-  arg_free_all(d);
+      arg_free_all (d);
 #endif
 
-  auth_printf(globals, "%s\n", buf);
+      auth_printf (globals, "%s\n", buf);
 
-  nxt:
-  	bzero(buf, buf_size);
-  	plugins = plugins->next;
- }
- auth_printf(globals, "<|> SERVER\n");
- efree(&buf);
- efree(&array);
- return 0;
+    nxt:
+      bzero (buf, buf_size);
+      plugins = plugins->next;
+    }
+  auth_printf (globals, "<|> SERVER\n");
+  efree (&buf);
+  efree (&array);
+  return 0;
 }

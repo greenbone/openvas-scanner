@@ -36,33 +36,33 @@
  */
 typedef union inaddrs
 {
-  struct in_addr  ip;
+  struct in_addr ip;
   struct in6_addr ip6;
 } inaddrs_t;
 
 struct openvas_rules
 {
   inaddrs_t inaddrs;
-  int    family;
+  int family;
   int client_ip; /**< If set to 1, then 'ip' will be replaced by the client ip
                       when appropriate. */
   int mask;
   int rule;
   int def;  /**< default */
   int not;  /**< not ip  */
-  struct openvas_rules * next;
+  struct openvas_rules *next;
 };
 
 #define RULES_ACCEPT 1
 #define RULES_REJECT 2
 #define CAN_TEST(x) (x==RULES_ACCEPT)
-void rules_init(struct openvas_rules **, struct arglist *);
-void rules_free(struct openvas_rules *);
-void rules_add(struct openvas_rules **, struct openvas_rules **, char*);
-struct openvas_rules * rules_parse(char * , struct openvas_rules *, int);
-struct openvas_rules * rules_dup(struct openvas_rules *);
-void rules_set_def(struct openvas_rules *, int);
-void rules_set_client_ip(struct openvas_rules *, inaddrs_t *, int family);
-int get_host_rules(struct openvas_rules *, inaddrs_t inaddrs);
+void rules_init (struct openvas_rules **, struct arglist *);
+void rules_free (struct openvas_rules *);
+void rules_add (struct openvas_rules **, struct openvas_rules **, char *);
+struct openvas_rules *rules_parse (char *, struct openvas_rules *, int);
+struct openvas_rules *rules_dup (struct openvas_rules *);
+void rules_set_def (struct openvas_rules *, int);
+void rules_set_client_ip (struct openvas_rules *, inaddrs_t *, int family);
+int get_host_rules (struct openvas_rules *, inaddrs_t inaddrs);
 
 #endif

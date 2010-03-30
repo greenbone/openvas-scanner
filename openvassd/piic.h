@@ -27,9 +27,9 @@
 *
 */
 
- 
+
 #ifndef OPENVAS_PIIC_H
 #define OPENVAS_PIIC_H
 
-void kb_parse(int, struct arglist*, struct kb_item **, char *, int);
+void kb_parse (int, struct arglist *, struct kb_item **, char *, int);
 #endif

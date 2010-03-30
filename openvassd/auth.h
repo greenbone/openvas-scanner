@@ -31,7 +31,7 @@
 #include "users.h"
 
 extern char *per_user_pfx;
-extern struct openvas_rules * auth_check_user(struct arglist *, char *, char*);
+extern struct openvas_rules *auth_check_user (struct arglist *, char *, char *);
 extern int user_lookup (const char *uname);
 
 #endif

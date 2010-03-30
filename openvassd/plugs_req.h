@@ -31,16 +31,15 @@
 #ifndef PLUGINS_REQUIREMENTS_H__
 #define PLUGINS_REQUIREMENTS_H__
 
-#include <openvas/kb.h> /* for struct kb_item */
-#include <openvas/arglists.h> /* for struct arglist */
+#include <openvas/kb.h>         /* for struct kb_item */
+#include <openvas/arglists.h>   /* for struct arglist */
 
-char * requirements_plugin(struct kb_item **, 
-                           struct scheduler_plugin *, 
-			   struct arglist *);
+char *requirements_plugin (struct kb_item **, struct scheduler_plugin *,
+                           struct arglist *);
 
-int mandatory_requirements_met(struct kb_item **, 
-                               struct scheduler_plugin *); 
+int mandatory_requirements_met (struct kb_item **, struct scheduler_plugin *);
 
-struct arglist*  requirements_common_ports(struct scheduler_plugin *, struct scheduler_plugin *);
-			       
-#endif			  
+struct arglist *requirements_common_ports (struct scheduler_plugin *,
+                                           struct scheduler_plugin *);
+
+#endif

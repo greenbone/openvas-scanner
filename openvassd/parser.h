@@ -31,7 +31,7 @@
 #ifndef _OPENVAS_PARSER_H
 #define _OPENVAS_PARSER_H
 
-char * parse_symbol(char *);
-char * parse_separator(char *);
+char *parse_symbol (char *);
+char *parse_separator (char *);
 
 #endif

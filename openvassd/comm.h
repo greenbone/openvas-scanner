@@ -30,17 +30,17 @@
 #ifndef _OPENVAS_COMM_H
 #define _OPENVAS_COMM_H
 
-#include <openvas/arglists.h> /* for struct arglist */
+#include <openvas/arglists.h>   /* for struct arglist */
 
-int comm_init(int);
-void comm_terminate(struct arglist *);
-void comm_send_pluginlist(struct arglist *);
-void comm_send_preferences(struct arglist *);
-void comm_send_rules(struct arglist *);
-void comm_wait_order(struct arglist *);
-void comm_setup_plugins(struct arglist *, char *);
-void client_handler();
-void comm_send_md5_plugins(struct arglist*);
-void plugin_send_infos(struct arglist*, char *);
+int comm_init (int);
+void comm_terminate (struct arglist *);
+void comm_send_pluginlist (struct arglist *);
+void comm_send_preferences (struct arglist *);
+void comm_send_rules (struct arglist *);
+void comm_wait_order (struct arglist *);
+void comm_setup_plugins (struct arglist *, char *);
+void client_handler ();
+void comm_send_md5_plugins (struct arglist *);
+void plugin_send_infos (struct arglist *, char *);
 
 #endif

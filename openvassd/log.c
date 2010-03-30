@@ -36,37 +36,41 @@
 #include "corevers.h"
 
 
-static FILE * log;
+static FILE *log;
 
-#define MAX_LOG_SIZE_MEGS 500 /* 500 Megs */
+#define MAX_LOG_SIZE_MEGS 500   /* 500 Megs */
 
-void rotate_log_file(const char * filename)
+void
+rotate_log_file (const char *filename)
 {
- char path[1024];
- int  i = 0;
- struct stat st;
+  char path[1024];
+  int i = 0;
+  struct stat st;
 
- if ( stat(filename, &st) == 0 )
- {
-  if ( st.st_size < 1024*1024*MAX_LOG_SIZE_MEGS)
-	return;
- }
- else return; /* Could not stat the log file */
+  if (stat (filename, &st) == 0)
+    {
+      if (st.st_size < 1024 * 1024 * MAX_LOG_SIZE_MEGS)
+        return;
+    }
+  else
+    return;                     /* Could not stat the log file */
 
 
- log_close();
+  log_close ();
 
- for ( i = 0 ; i < 1024 ; i ++ )
- {
-  int e;
-  snprintf(path, sizeof(path), "%s.%d", filename, i);
-  e = stat(path, &st);
-  if ( e < 0 && errno == ENOENT ) break;
- }
+  for (i = 0; i < 1024; i++)
+    {
+      int e;
+      snprintf (path, sizeof (path), "%s.%d", filename, i);
+      e = stat (path, &st);
+      if (e < 0 && errno == ENOENT)
+        break;
+    }
 
- if ( i == 1024 ) return; /* ?? */
+  if (i == 1024)
+    return;                     /* ?? */
 
- rename(filename, path);
+  rename (filename, path);
 }
 
 
@@ -74,102 +78,106 @@ void rotate_log_file(const char * filename)
  * @brief Initialization of the log file.
  */
 void
-log_init (const char * filename)
+log_init (const char *filename)
 {
-  if((!filename)||(!strcmp(filename, "stderr"))){
-  	log = stderr;
-	dup2(2, 3);
-	}
-  else if(!strcmp(filename, "syslog")){
-	openlog ("openvassd", 0, LOG_DAEMON);
-	log = NULL;
-	}
+  if ((!filename) || (!strcmp (filename, "stderr")))
+    {
+      log = stderr;
+      dup2 (2, 3);
+    }
+  else if (!strcmp (filename, "syslog"))
+    {
+      openlog ("openvassd", 0, LOG_DAEMON);
+      log = NULL;
+    }
 
   else
     {
-      rotate_log_file(filename);
-      int fd = open(filename, O_WRONLY|O_CREAT|O_APPEND
+      rotate_log_file (filename);
+      int fd = open (filename, O_WRONLY | O_CREAT | O_APPEND
 #ifdef O_LARGEFILE
-	| O_LARGEFILE
+                     | O_LARGEFILE
 #endif
-	, 0644);
-      if(fd < 0)
-      {
-       perror("log_init():open ");
-       printf("Could not open the logfile, using stderr\n");
-       log = stderr;
-      }
-      
-      if(fd != 3)
-      {
-      if(dup2(fd, 3) < 0)
-      {
-        perror("dup2 ");
-      }
-      close(fd);
-      }
-      
-      log = fdopen(3, "a");
-      if(log == NULL)
-       {
-       perror("fdopen ");
-       log = stderr;
-       dup2(2, 3);
-       }
-       
+                     , 0644);
+      if (fd < 0)
+        {
+          perror ("log_init():open ");
+          printf ("Could not open the logfile, using stderr\n");
+          log = stderr;
+        }
+
+      if (fd != 3)
+        {
+          if (dup2 (fd, 3) < 0)
+            {
+              perror ("dup2 ");
+            }
+          close (fd);
+        }
+
+      log = fdopen (3, "a");
+      if (log == NULL)
+        {
+          perror ("fdopen ");
+          log = stderr;
+          dup2 (2, 3);
+        }
+
 #ifdef _IOLBF
-	setvbuf(log, NULL, _IOLBF, 0);
-#endif	       
+      setvbuf (log, NULL, _IOLBF, 0);
+#endif
     }
 }
 
 
 
-void log_close()
+void
+log_close ()
 {
- if(log != NULL)
- {
-  log_write("closing logfile");
-  fclose(log);
-  log = NULL;
- }
- else closelog();
+  if (log != NULL)
+    {
+      log_write ("closing logfile");
+      fclose (log);
+      log = NULL;
+    }
+  else
+    closelog ();
 }
- 
+
 
 /*
  * write into the logfile
  * Nothing fancy here...
  */
-void 
-log_write(const char * str, ...)
+void
+log_write (const char *str, ...)
 {
   va_list param;
   char disp[4096];
-  char * tmp;
-  
-  va_start(param, str);
-  vsnprintf(disp, sizeof(disp),str, param);
-  va_end(param);  
-  
-  tmp = disp;
-  while((tmp=(char*)strchr(tmp, '\n')) != NULL)
-  	tmp[0]=' ';
-  
-	
-  if(log != NULL)
-  {
-   char timestr[255];
-   time_t t;
-   
-   t = time(NULL);
-   tmp = ctime(&t);
-  
-   timestr[sizeof(timestr) - 1 ] = '\0';
-   strncpy(timestr, tmp, sizeof(timestr) - 1);
-   timestr[strlen(timestr) - 1 ] = '\0';
-   fprintf(log, "[%s][%d] %s\n", timestr, getpid(), disp);
-  }
-  else syslog(LOG_NOTICE, "%s", disp);
-}
+  char *tmp;
 
+  va_start (param, str);
+  vsnprintf (disp, sizeof (disp), str, param);
+  va_end (param);
+
+  tmp = disp;
+  while ((tmp = (char *) strchr (tmp, '\n')) != NULL)
+    tmp[0] = ' ';
+
+
+  if (log != NULL)
+    {
+      char timestr[255];
+      time_t t;
+
+      t = time (NULL);
+      tmp = ctime (&t);
+
+      timestr[sizeof (timestr) - 1] = '\0';
+      strncpy (timestr, tmp, sizeof (timestr) - 1);
+      timestr[strlen (timestr) - 1] = '\0';
+      fprintf (log, "[%s][%d] %s\n", timestr, getpid (), disp);
+    }
+  else
+    syslog (LOG_NOTICE, "%s", disp);
+}

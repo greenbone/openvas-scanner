@@ -30,10 +30,10 @@
 
 #include <includes.h>
 
-#include <openvas/kb.h> /* for kb_item_set_int */
-#include <openvas/network.h> /* for internal_recv */
-#include <openvas/plugutils.h> /* for INTERNAL_COMM_MSG_TYPE_KB */
-#include <openvas/system.h> /* for efree */
+#include <openvas/kb.h>         /* for kb_item_set_int */
+#include <openvas/network.h>    /* for internal_recv */
+#include <openvas/plugutils.h>  /* for INTERNAL_COMM_MSG_TYPE_KB */
+#include <openvas/system.h>     /* for efree */
 
 #include "log.h"
 #include "save_kb.h"
@@ -52,43 +52,49 @@
  *            INTERNAL_COMM_KB_REPLACE (defined in plugutils.h)
  */
 void
-kb_parse (int soc, struct arglist * globals, struct kb_item ** kb, char * buf,
+kb_parse (int soc, struct arglist *globals, struct kb_item **kb, char *buf,
           int msg)
 {
-  char * t;
+  char *t;
   int type;
   char *c;
   int buf_len;
-  char * copy;
-  char * name;
-  char * value;
+  char *copy;
+  char *name;
+  char *value;
 
   if (buf == NULL || kb == NULL)
     return;
 
   if (msg & INTERNAL_COMM_KB_GET)
     {
-      struct kb_item * kitem = kb_item_get_single (kb, buf, 0);
+      struct kb_item *kitem = kb_item_get_single (kb, buf, 0);
 
       if (kitem == NULL)
         {
-          internal_send (soc, NULL, INTERNAL_COMM_MSG_TYPE_KB|INTERNAL_COMM_KB_ERROR);
+          internal_send (soc, NULL,
+                         INTERNAL_COMM_MSG_TYPE_KB | INTERNAL_COMM_KB_ERROR);
           return;
         }
 
       if (kitem->type == KB_TYPE_STR)
         {
-          internal_send (soc, kitem->v.v_str, INTERNAL_COMM_MSG_TYPE_KB|INTERNAL_COMM_KB_SENDING_STR);
+          internal_send (soc, kitem->v.v_str,
+                         INTERNAL_COMM_MSG_TYPE_KB |
+                         INTERNAL_COMM_KB_SENDING_STR);
           return;
         }
       else if (kitem->type == KB_TYPE_INT)
         {
           char buf[64];
           snprintf (buf, sizeof (buf), "%d", kitem->v.v_int);
-          internal_send (soc, buf, INTERNAL_COMM_MSG_TYPE_KB|INTERNAL_COMM_KB_SENDING_INT);
+          internal_send (soc, buf,
+                         INTERNAL_COMM_MSG_TYPE_KB |
+                         INTERNAL_COMM_KB_SENDING_INT);
         }
       else
-        internal_send (soc, NULL, INTERNAL_COMM_MSG_TYPE_KB|INTERNAL_COMM_KB_ERROR);
+        internal_send (soc, NULL,
+                       INTERNAL_COMM_MSG_TYPE_KB | INTERNAL_COMM_KB_ERROR);
 
       return;
     }
@@ -105,7 +111,7 @@ kb_parse (int soc, struct arglist * globals, struct kb_item ** kb, char * buf,
   if (c != NULL)
     c[0] = '\0';
 
-  t = strchr(buf, ' ');
+  t = strchr (buf, ' ');
   if (t == NULL)
     return;
 
@@ -118,21 +124,23 @@ kb_parse (int soc, struct arglist * globals, struct kb_item ** kb, char * buf,
   if (value == NULL)
     return;
 
-  value[0]='\0';
+  value[0] = '\0';
   value++;
 
-  name = t+1;
+  name = t + 1;
 
   if (type == ARG_INT)
     {
       int v = atoi (value);
       if (msg & INTERNAL_COMM_KB_REPLACE)
-        kb_item_set_int(kb, name,v);
+        kb_item_set_int (kb, name, v);
       else
         {
-          kb_item_add_int(kb, name,v);
-          if (save_kb(globals))
-            save_kb_write_int (globals, arg_get_value (globals, "CURRENTLY_TESTED_HOST"), name,v);
+          kb_item_add_int (kb, name, v);
+          if (save_kb (globals))
+            save_kb_write_int (globals,
+                               arg_get_value (globals, "CURRENTLY_TESTED_HOST"),
+                               name, v);
         }
     }
   else
@@ -144,7 +152,9 @@ kb_parse (int soc, struct arglist * globals, struct kb_item ** kb, char * buf,
         {
           kb_item_add_str (kb, name, copy);
           if (save_kb (globals))
-            save_kb_write_str (globals, arg_get_value (globals, "CURRENTLY_TESTED_HOST"), name, copy);
+            save_kb_write_str (globals,
+                               arg_get_value (globals, "CURRENTLY_TESTED_HOST"),
+                               name, copy);
         }
       efree (&copy);
     }

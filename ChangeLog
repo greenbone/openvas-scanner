@@ -1,3 +1,23 @@
+2010-03-30  Matthew Mundell <matthew.mundell@intevation.de>
+
+	* openvassd/comm.h, openvassd/utils.c, openvassd/parser.h,
+	openvassd/otp_1_0.c, openvassd/plugs_req.c, openvassd/preferences.c,
+	openvassd/ntp_11.c, openvassd/pluginscheduler.h, openvassd/utils.h,
+	openvassd/processes.c, openvassd/otp_1_0.h, openvassd/plugs_req.h,
+	openvassd/preferences.h, openvassd/ntp_11.h, openvassd/attack.c,
+	openvassd/save_kb.c, openvassd/processes.h, openvassd/sighand.c,
+	openvassd/shared_socket.c, openvassd/save_kb.h, openvassd/sighand.h,
+	openvassd/shared_socket.h, openvassd/piic.c, openvassd/nes_plugins.c,
+	openvassd/pluginlaunch.c, openvassd/piic.h, openvassd/plugs_hash.c,
+	openvassd/pluginload.c, openvassd/pluginlaunch.h, openvassd/hosts.c,
+	openvassd/auth.c, openvassd/users.c, openvassd/oval_plugins.c,
+	openvassd/openvassd.c, openvassd/plugs_hash.h, openvassd/pluginload.h,
+	openvassd/hosts.h, openvassd/auth.h, openvassd/users.h, openvassd/locks.c,
+	openvassd/locks.h, openvassd/log.c, openvassd/log.h, openvassd/rules.c,
+	openvassd/comm.c, openvassd/parser.c, openvassd/pluginscheduler.c,
+	openvassd/nasl_plugins.c, openvassd/rules.h: Format according to coding
+	style.  Command was 'indent --no-tabs --ignore-newlines -l 80 *.c *.h'.
+
 2010-03-23  Jan-Oliver Wagner <jan-oliver.wagner@greenbone.net>
 
 	Removed the superfuous handling of the bin/ directory.
@@ -21,7 +41,7 @@
 2010-03-23  Michael Meyer <michael.meyer@intevation.de>
 
 	* tools/openvas-nvt-sync.in:
-	Bugfix in "mktemp" (too few X's in template).  
+	Bugfix in "mktemp" (too few X's in template).
 
 2010-03-23  Jan-Oliver Wagner <jan-oliver.wagner@greenbone.net>
 
@@ -219,7 +239,7 @@
 
 2010-03-01 Stephan Kleine
 
-	* cnvts/ssl_ciphers/ssl_ciphers.c: Changed return type of report_cat 
+	* cnvts/ssl_ciphers/ssl_ciphers.c: Changed return type of report_cat
 	from int to void to fix a no-return-in-nonvoid-function error.
 
 2010-02-22  Felix Wolfsteller <felix.wolfsteller@intevation.de>

@@ -29,7 +29,7 @@
 
 #include <includes.h>
 
-#include <openvas/system.h> /* for emalloc */
+#include <openvas/system.h>     /* for emalloc */
 
 /** @TODO Contents of this file is duplicate in openvas-scanner/openvassd/parser.c
  *        and openvas-client/openvas/parser.c . Move to libraries and merge, once
@@ -45,18 +45,17 @@
  *         if none found.
  */
 char *
-parse_symbol (char* str)
-
+parse_symbol (char *str)
 {
-  char * s = str;
+  char *s = str;
 
   while (s)
     {
       s = strchr (s, '|');
       if (!s)
-        return ( NULL );
-      if ((s[1] == '>') && (s-1)[0] == '<')
-        return (s+3);
+        return (NULL);
+      if ((s[1] == '>') && (s - 1)[0] == '<')
+        return (s + 3);
       s++;
     }
 
@@ -78,11 +77,11 @@ parse_symbol (char* str)
  *         for special cases.
  */
 char *
-parse_separator (char * str)
+parse_separator (char *str)
 {
-  char * s_1;
-  char * s_2;
-  char * ret;
+  char *s_1;
+  char *s_2;
+  char *ret;
   int len = 0;
 
   s_1 = parse_symbol (str);
@@ -113,8 +112,9 @@ parse_separator (char * str)
     }
 
 #ifdef DEBUGMORE
-  fprintf (stderr, "%s:%d got %s returning \"%s\"\n", __FILE__, __LINE__, str, ret);
+  fprintf (stderr, "%s:%d got %s returning \"%s\"\n", __FILE__, __LINE__, str,
+           ret);
 #endif
 
- return ret;
+  return ret;
 }

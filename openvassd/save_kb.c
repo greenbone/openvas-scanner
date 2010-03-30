@@ -43,10 +43,10 @@
 
 #include <glib.h>
 
-#include <openvas/nvt_categories.h> /* for ACT_SCANNER */
-#include <openvas/kb.h> /* for kb_new */
-#include <openvas/plugutils.h> /* for addslashes.h */
-#include <openvas/system.h> /* for estrdup */
+#include <openvas/nvt_categories.h>     /* for ACT_SCANNER */
+#include <openvas/kb.h>         /* for kb_new */
+#include <openvas/plugutils.h>  /* for addslashes.h */
+#include <openvas/system.h>     /* for estrdup */
 
 #include "log.h"
 #include "comm.h"
@@ -72,16 +72,17 @@
  * @return Pointer to the parameter name string.
  */
 static char *
-filter_odd_name (char * name)
+filter_odd_name (char *name)
 {
- char * ret = name;
- while(name[0])
- {
-  /* A host name should never contain any slash. But we never  know */
-  if(name[0]=='/')name[0]='_';
-  name++;
- }
- return ret;
+  char *ret = name;
+  while (name[0])
+    {
+      /* A host name should never contain any slash. But we never  know */
+      if (name[0] == '/')
+        name[0] = '_';
+      name++;
+    }
+  return ret;
 }
 
 
@@ -93,7 +94,7 @@ filter_odd_name (char * name)
  *         using g_free.
  */
 static gchar *
-kb_dirname (struct arglist * globals)
+kb_dirname (struct arglist *globals)
 {
   return g_build_filename (user_home (globals), "kbs", NULL);
 }
@@ -104,29 +105,30 @@ kb_dirname (struct arglist * globals)
  * not check any error
  */
 static int
-kb_mkdir (char * dir)
+kb_mkdir (char *dir)
 {
- char *t;
- int ret = 0;
+  char *t;
+  int ret = 0;
 
- dir = estrdup(dir);
- t = strchr(dir+1, '/');
- while(t)
- {
-  t[0] = '\0';
-  mkdir(dir, 0700);
-  t[0] = '/';
-  t = strchr(t+1, '/');
- }
+  dir = estrdup (dir);
+  t = strchr (dir + 1, '/');
+  while (t)
+    {
+      t[0] = '\0';
+      mkdir (dir, 0700);
+      t[0] = '/';
+      t = strchr (t + 1, '/');
+    }
 
- if ((ret = mkdir(dir, 0700)) < 0) {
-  if(errno != EEXIST)
-    log_write("mkdir(%s) failed : %s\n", dir, strerror(errno));
-  efree(&dir);
+  if ((ret = mkdir (dir, 0700)) < 0)
+    {
+      if (errno != EEXIST)
+        log_write ("mkdir(%s) failed : %s\n", dir, strerror (errno));
+      efree (&dir);
+      return ret;
+    }
+  efree (&dir);
   return ret;
- }
- efree(&dir);
- return ret;
 }
 
 
@@ -136,166 +138,172 @@ kb_mkdir (char * dir)
  *
  * From \<hostname\>, return /path/to/var/lib/openvas/\<username\>/kbs/\<hostname\> .
  */
-static char*
-kb_fname (struct arglist* globals, char* hostname)
+static char *
+kb_fname (struct arglist *globals, char *hostname)
 {
- gchar * dir = kb_dirname(globals);
- char * ret;
- char * hn = strdup(hostname);
+  gchar *dir = kb_dirname (globals);
+  char *ret;
+  char *hn = strdup (hostname);
 
- hn = filter_odd_name (hn);
+  hn = filter_odd_name (hn);
 
  /** @todo use glibs *build_path functions */
- ret = emalloc(strlen(dir) + strlen(hn) + 2);
- sprintf(ret, "%s/%s", dir, hn);
- g_free (dir);
- efree(&hn);
- return ret;
+  ret = emalloc (strlen (dir) + strlen (hn) + 2);
+  sprintf (ret, "%s/%s", dir, hn);
+  g_free (dir);
+  efree (&hn);
+  return ret;
 }
 
 
 /*
  * mmap() tends to sometimes act weirdly
  */
-static char*
+static char *
 map_file (int file)
 {
- struct stat st;
- char *ret;
- int i = 0;
- int len;
+  struct stat st;
+  char *ret;
+  int i = 0;
+  int len;
 
- bzero(&st, sizeof(st));
- fstat(file, &st);
- len = (int)st.st_size;
- if ( len == 0 )
- 	return NULL;
+  bzero (&st, sizeof (st));
+  fstat (file, &st);
+  len = (int) st.st_size;
+  if (len == 0)
+    return NULL;
 
- lseek(file, 0, SEEK_SET);
- ret = emalloc(len + 1);
- while(i < len )
- {
-  int e = read(file, ret + i, len - i);
-  if(e > 0)
-  	i+=e;
-   else
-     {
-     	log_write("read(%d, buf, %d) failed : %s\n", file, len, strerror(errno));
-	efree(&ret);
-	lseek(file, len, SEEK_SET);
-	return NULL;
-     }
- }
+  lseek (file, 0, SEEK_SET);
+  ret = emalloc (len + 1);
+  while (i < len)
+    {
+      int e = read (file, ret + i, len - i);
+      if (e > 0)
+        i += e;
+      else
+        {
+          log_write ("read(%d, buf, %d) failed : %s\n", file, len,
+                     strerror (errno));
+          efree (&ret);
+          lseek (file, len, SEEK_SET);
+          return NULL;
+        }
+    }
 
- lseek(file, len, SEEK_SET);
- return ret;
+  lseek (file, len, SEEK_SET);
+  return ret;
 }
 
 static int
-save_kb_entry_present_already (struct arglist * globals, char * hostname,
-                               char* name, char* value)
+save_kb_entry_present_already (struct arglist *globals, char *hostname,
+                               char *name, char *value)
 {
-  char * buf;
+  char *buf;
   int fd;
-  char* req;
+  char *req;
   int ret;
 
-  fd = GPOINTER_TO_SIZE(arg_get_value(globals, "save_kb"));
-  if(fd <= 0)
-   return -1;
+  fd = GPOINTER_TO_SIZE (arg_get_value (globals, "save_kb"));
+  if (fd <= 0)
+    return -1;
 
-  buf = map_file(fd);
-  if(buf)
-  {
-   req = emalloc(strlen(name) + strlen(value) + 2);
-   sprintf(req, "%s=%s",name, value);
-   if(strstr(buf, req))
-    ret = 1;
-   else
-    ret = 0;
-   efree(&buf);
-   efree(&req);
-   return ret;
-  }
- return -1;
+  buf = map_file (fd);
+  if (buf)
+    {
+      req = emalloc (strlen (name) + strlen (value) + 2);
+      sprintf (req, "%s=%s", name, value);
+      if (strstr (buf, req))
+        ret = 1;
+      else
+        ret = 0;
+      efree (&buf);
+      efree (&req);
+      return ret;
+    }
+  return -1;
 }
 
 static int
-save_kb_rm_entry_value (struct arglist* globals, char* hostname, char* name,
-                        char* value)
+save_kb_rm_entry_value (struct arglist *globals, char *hostname, char *name,
+                        char *value)
 {
-  char * buf;
-  char * t;
+  char *buf;
+  char *t;
   int fd;
-  char * req;
+  char *req;
 
 
-  fd = GPOINTER_TO_SIZE(arg_get_value(globals, "save_kb"));
-  if(fd <= 0)
-   return -1;
+  fd = GPOINTER_TO_SIZE (arg_get_value (globals, "save_kb"));
+  if (fd <= 0)
+    return -1;
 
-  buf = map_file(fd);
-  if(buf)
-  {
-   if(value)
-   {
-    req = emalloc(strlen(name) + strlen(value) + 2);
-    sprintf(req, "%s=%s", name, value);
-   }
-   else
-    req = estrdup(name);
+  buf = map_file (fd);
+  if (buf)
+    {
+      if (value)
+        {
+          req = emalloc (strlen (name) + strlen (value) + 2);
+          sprintf (req, "%s=%s", name, value);
+        }
+      else
+        req = estrdup (name);
 
-   t = strstr(buf, req);
-   if(t)
-   {
-    char * end;
+      t = strstr (buf, req);
+      if (t)
+        {
+          char *end;
 
-     while(t[0] != '\n')
-     {
-       if(t == buf)break;
-       else t--;
-     }
+          while (t[0] != '\n')
+            {
+              if (t == buf)
+                break;
+              else
+                t--;
+            }
 
-     if(t[0] == '\n')t++;
-     end = strchr(t, '\n');
-     t[0] = '\0';
-     if(end){
-       	end[0] = '\0';
-	end++;
-	}
+          if (t[0] == '\n')
+            t++;
+          end = strchr (t, '\n');
+          t[0] = '\0';
+          if (end)
+            {
+              end[0] = '\0';
+              end++;
+            }
 
-     if((lseek(fd, 0, SEEK_SET))<0)
-       {
-        log_write("lseek() failed - %s\n", strerror(errno));
-       }
+          if ((lseek (fd, 0, SEEK_SET)) < 0)
+            {
+              log_write ("lseek() failed - %s\n", strerror (errno));
+            }
 
-     if((ftruncate(fd, 0))<0)
-       {
-        log_write("ftruncate() failed - %s\n", strerror(errno));
-       }
+          if ((ftruncate (fd, 0)) < 0)
+            {
+              log_write ("ftruncate() failed - %s\n", strerror (errno));
+            }
 
 
-     if(write(fd, buf, strlen(buf)) < 0)
-       {
-        log_write("write() failed - %s\n", strerror(errno));
-       }
+          if (write (fd, buf, strlen (buf)) < 0)
+            {
+              log_write ("write() failed - %s\n", strerror (errno));
+            }
 
-     if(end){
-       	if((write(fd, end, strlen(end)))<0)
-	  log_write("write() failed - %s\n", strerror(errno));
-	}
-      }
-      efree(&buf);
-      efree(&req);
-      lseek(fd, 0, SEEK_END);
-     }
-     return 0;
+          if (end)
+            {
+              if ((write (fd, end, strlen (end))) < 0)
+                log_write ("write() failed - %s\n", strerror (errno));
+            }
+        }
+      efree (&buf);
+      efree (&req);
+      lseek (fd, 0, SEEK_END);
+    }
+  return 0;
 }
 
 static int
-save_kb_rm_entry (struct arglist * globals, char * hostname, char * name)
+save_kb_rm_entry (struct arglist *globals, char *hostname, char *name)
 {
- return save_kb_rm_entry_value(globals, hostname, name, NULL);
+  return save_kb_rm_entry_value (globals, hostname, name, NULL);
 }
 
 /**
@@ -320,29 +328,28 @@ save_kb_rm_entry (struct arglist * globals, char * hostname, char * name)
  *         otherwise.
  */
 static int
-save_kb_write (struct arglist * globals, char* hostname, char* name,
-               char* value, int type)
+save_kb_write (struct arglist *globals, char *hostname, char *name, char *value,
+               int type)
 {
   int fd;
-  char * str;
+  char *str;
   int e;
   struct timeval now;
 
   if (!globals || !hostname || !name || !value)
     return -1;
 
-  fd = GPOINTER_TO_SIZE (arg_get_value(globals, "save_kb"));
+  fd = GPOINTER_TO_SIZE (arg_get_value (globals, "save_kb"));
   if (fd <= 0)
     {
       log_write ("user %s : Can not find KB fd for %s\n",
-                 (char*) arg_get_value (globals, "user"), hostname);
+                 (char *) arg_get_value (globals, "user"), hostname);
       return -1;
     }
 
   /* Skip temporary KB entries */
-  if (!strncmp (name, "/tmp/", 4) ||
-      !strncmp (name, "NIDS/", 5) ||
-      !strncmp (name, "Settings/", 9))
+  if (!strncmp (name, "/tmp/", 4) || !strncmp (name, "NIDS/", 5)
+      || !strncmp (name, "Settings/", 9))
     return 0;
 
   /* Don't save sensitive information */
@@ -350,9 +357,9 @@ save_kb_write (struct arglist * globals, char* hostname, char* name,
     return 0;
 
   /* Avoid duplicates for these families */
-  if (!strncmp (name, "Success/", strlen ("Success/"))   ||
-      !strncmp (name, "Launched/", strlen ("Launched/")) ||
-      !strncmp (name, "SentData/", strlen ("SentData/")))
+  if (!strncmp (name, "Success/", strlen ("Success/"))
+      || !strncmp (name, "Launched/", strlen ("Launched/"))
+      || !strncmp (name, "SentData/", strlen ("SentData/")))
     {
       save_kb_rm_entry (globals, hostname, name);
     }
@@ -373,8 +380,8 @@ save_kb_write (struct arglist * globals, char* hostname, char* name,
   if (e < 0)
     {
       log_write ("user %s : write kb error - %s\n",
-                (char*) arg_get_value (globals, "user"), strerror (errno));
-   }
+                 (char *) arg_get_value (globals, "user"), strerror (errno));
+    }
   efree (&str);
   return 0;
 }
@@ -396,57 +403,61 @@ save_kb_write (struct arglist * globals, char* hostname, char* name,
  * the future.
  */
 int
-save_kb_new (struct arglist * globals, char * hostname)
+save_kb_new (struct arglist *globals, char *hostname)
 {
- char * fname;
- char * dir;
- char * user = arg_get_value(globals, "user");
- int ret = 0;
- int f;
+  char *fname;
+  char *dir;
+  char *user = arg_get_value (globals, "user");
+  int ret = 0;
+  int f;
 
- if( hostname == NULL )
+  if (hostname == NULL)
     return -1;
- dir = kb_dirname(globals);
- kb_mkdir(dir);
- efree(&dir);
+  dir = kb_dirname (globals);
+  kb_mkdir (dir);
+  efree (&dir);
 
- fname = kb_fname(globals, hostname);
+  fname = kb_fname (globals, hostname);
 
- if(file_locked(fname))
- {
-  efree(&fname);
-  return 0;
- }
- unlink(fname); /* delete the previous kb */
- f = open(fname, O_CREAT|O_RDWR|O_EXCL, 0640);
- if(f < 0)
- {
-  log_write("user %s : Can not save KB for %s - %s", user, hostname, strerror(errno));
-  ret = -1;
-  efree(&fname);
-  return ret;
- }
- else
- {
-  file_lock(fname);
-  log_write("user %s : new KB will be saved as %s", user, fname);
-  if(arg_get_value(globals, "save_kb"))
-    arg_set_value(globals, "save_kb", sizeof(gpointer), GSIZE_TO_POINTER(f)); 
+  if (file_locked (fname))
+    {
+      efree (&fname);
+      return 0;
+    }
+  unlink (fname);               /* delete the previous kb */
+  f = open (fname, O_CREAT | O_RDWR | O_EXCL, 0640);
+  if (f < 0)
+    {
+      log_write ("user %s : Can not save KB for %s - %s", user, hostname,
+                 strerror (errno));
+      ret = -1;
+      efree (&fname);
+      return ret;
+    }
   else
-    arg_add_value(globals, "save_kb", ARG_INT, sizeof(gpointer),GSIZE_TO_POINTER(f));
- }
- return 0;
+    {
+      file_lock (fname);
+      log_write ("user %s : new KB will be saved as %s", user, fname);
+      if (arg_get_value (globals, "save_kb"))
+        arg_set_value (globals, "save_kb", sizeof (gpointer),
+                       GSIZE_TO_POINTER (f));
+      else
+        arg_add_value (globals, "save_kb", ARG_INT, sizeof (gpointer),
+                       GSIZE_TO_POINTER (f));
+    }
+  return 0;
 }
 
 
 void
-save_kb_close (struct arglist * globals, char * hostname)
+save_kb_close (struct arglist *globals, char *hostname)
 {
- int fd = GPOINTER_TO_SIZE(arg_get_value(globals, "save_kb"));
- char* fname = kb_fname(globals, hostname);
- if(fd > 0)close(fd);
- file_unlock(fname);
- efree(&fname);
+  int fd = GPOINTER_TO_SIZE (arg_get_value (globals, "save_kb"));
+  char *fname = kb_fname (globals, hostname);
+  if (fd > 0)
+    close (fd);
+  file_unlock (fname);
+  efree (&fname);
 }
 
 /**
@@ -455,49 +466,51 @@ save_kb_close (struct arglist * globals, char * hostname)
  *         account (returns true if a knowledge base exists).
  */
 int
-save_kb_exists (struct arglist * globals, char * hostname)
+save_kb_exists (struct arglist *globals, char *hostname)
 {
- char * fname = kb_fname(globals, hostname);
- FILE *f;
+  char *fname = kb_fname (globals, hostname);
+  FILE *f;
 
- if(file_locked(fname))
- {
-  efree(&fname);
-  return 0;
- }
- f = fopen(fname, "r");
- efree(&fname);
- if(!f) return 0;
- else {
- 	fclose(f);
- 	return 1;
-      }
+  if (file_locked (fname))
+    {
+      efree (&fname);
+      return 0;
+    }
+  f = fopen (fname, "r");
+  efree (&fname);
+  if (!f)
+    return 0;
+  else
+    {
+      fclose (f);
+      return 1;
+    }
 }
 
 
 int
-save_kb_write_str (struct arglist * globals, char * hostname, char* name,
-                   char* value)
+save_kb_write_str (struct arglist *globals, char *hostname, char *name,
+                   char *value)
 {
- char * newvalue  = addslashes(value);
- int e;
+  char *newvalue = addslashes (value);
+  int e;
 
- e = save_kb_write(globals, hostname, name, newvalue, ARG_STRING);
- efree(&newvalue);
- return e;
+  e = save_kb_write (globals, hostname, name, newvalue, ARG_STRING);
+  efree (&newvalue);
+  return e;
 }
 
 
 int
-save_kb_write_int (struct arglist * globals, char* hostname, char* name,
+save_kb_write_int (struct arglist *globals, char *hostname, char *name,
                    int value)
 {
- static char asc_value[25];
- int e;
- sprintf(asc_value, "%d", value);
- e = save_kb_write(globals, hostname, name, asc_value, ARG_INT);
- bzero(asc_value, sizeof(asc_value));
- return e;
+  static char asc_value[25];
+  int e;
+  sprintf (asc_value, "%d", value);
+  e = save_kb_write (globals, hostname, name, asc_value, ARG_INT);
+  bzero (asc_value, sizeof (asc_value));
+  return e;
 }
 
 
@@ -506,91 +519,91 @@ save_kb_write_int (struct arglist * globals, char* hostname, char* name,
  * @brief Restores a copy of the knowledge base
  */
 int
-save_kb_restore_backup (struct arglist * globals, char* hostname)
+save_kb_restore_backup (struct arglist *globals, char *hostname)
 {
- char * fname = kb_fname(globals, hostname);
- char * bakname;
- int fd;
+  char *fname = kb_fname (globals, hostname);
+  char *bakname;
+  int fd;
 
- bakname = emalloc(strlen(fname) + 5);
- strcat(bakname, fname);
- strcat(bakname, ".bak");
+  bakname = emalloc (strlen (fname) + 5);
+  strcat (bakname, fname);
+  strcat (bakname, ".bak");
 
- unlink(fname);
- if((fd = open(bakname, O_RDONLY)) >= 0)
- {
-  close(fd);
-  rename(bakname, fname);
- }
- return 0;
+  unlink (fname);
+  if ((fd = open (bakname, O_RDONLY)) >= 0)
+    {
+      close (fd);
+      rename (bakname, fname);
+    }
+  return 0;
 }
 
 /**
  * @brief Makes a copy of the knowledge base
  */
 int
-save_kb_backup (struct arglist * globals, char* hostname)
+save_kb_backup (struct arglist *globals, char *hostname)
 {
- char * fname = kb_fname(globals, hostname);
- char * newname = NULL;
- int fd_src = -1, fd_dst = -1;
+  char *fname = kb_fname (globals, hostname);
+  char *newname = NULL;
+  int fd_src = -1, fd_dst = -1;
 
- if(file_locked(fname))
-  {
-   log_write("%s is locked\n", fname);
-   goto failed1;
-  }
-
- file_lock(fname);
-
- newname = emalloc(strlen(fname) + 5);
- strcat(newname, fname);
- strcat(newname, ".bak");
-
- if((fd_src = open(fname, O_RDONLY)) >= 0)
- {
-  char buf[4096];
-  int n;
-  fd_dst = open(newname, O_WRONLY|O_CREAT|O_TRUNC, 0640);
-  if(fd_dst < 0)
-  {
-   log_write("save_kb_backup failed : %s", strerror(errno));
-   close(fd_src);
-   goto failed;
-  }
-  bzero(buf, sizeof(buf));
-  while((n = read(fd_src, buf, sizeof(buf))) > 0)
-  {
-   int m = 0;
-   while(m != n)
-   {
-    int e = write(fd_dst, &(buf[m]), n-m);
-    if(e < 0)
-     {
-     log_write("save_kb_backup failed : %s", strerror(errno));
-     close(fd_src);
-     close(fd_dst);
-     goto failed;
-     }
-     m+=e;
+  if (file_locked (fname))
+    {
+      log_write ("%s is locked\n", fname);
+      goto failed1;
     }
-    bzero(buf, sizeof(buf));
-   }
-  }
-  else
-    log_write("save_kb_backup failed : %s\n", strerror(errno));
 
-  close(fd_src);
-  close(fd_dst);
-  efree(&newname);
-  file_unlock(fname);
-  efree(&fname);
+  file_lock (fname);
+
+  newname = emalloc (strlen (fname) + 5);
+  strcat (newname, fname);
+  strcat (newname, ".bak");
+
+  if ((fd_src = open (fname, O_RDONLY)) >= 0)
+    {
+      char buf[4096];
+      int n;
+      fd_dst = open (newname, O_WRONLY | O_CREAT | O_TRUNC, 0640);
+      if (fd_dst < 0)
+        {
+          log_write ("save_kb_backup failed : %s", strerror (errno));
+          close (fd_src);
+          goto failed;
+        }
+      bzero (buf, sizeof (buf));
+      while ((n = read (fd_src, buf, sizeof (buf))) > 0)
+        {
+          int m = 0;
+          while (m != n)
+            {
+              int e = write (fd_dst, &(buf[m]), n - m);
+              if (e < 0)
+                {
+                  log_write ("save_kb_backup failed : %s", strerror (errno));
+                  close (fd_src);
+                  close (fd_dst);
+                  goto failed;
+                }
+              m += e;
+            }
+          bzero (buf, sizeof (buf));
+        }
+    }
+  else
+    log_write ("save_kb_backup failed : %s\n", strerror (errno));
+
+  close (fd_src);
+  close (fd_dst);
+  efree (&newname);
+  file_unlock (fname);
+  efree (&fname);
   return 0;
 failed:
-  file_unlock(fname);
+  file_unlock (fname);
 failed1:
-  efree(&fname);
-  efree(&newname);
+  efree (&fname);
+  efree (&newname);
   return -1;
 }
 
@@ -601,113 +614,119 @@ failed1:
  * The KB entry 'Host/dead' is ignored, as well as all the 
  * entries starting with '/tmp/'.
  */
-struct kb_item ** 
-save_kb_load_kb (struct arglist * globals, char* hostname)
+struct kb_item **
+save_kb_load_kb (struct arglist *globals, char *hostname)
 {
- char * fname = kb_fname(globals, hostname);
- FILE * f;
- int fd;
- struct kb_item ** kb;
- char buf[4096];
- long max_age = save_kb_max_age(globals);
+  char *fname = kb_fname (globals, hostname);
+  FILE *f;
+  int fd;
+  struct kb_item **kb;
+  char buf[4096];
+  long max_age = save_kb_max_age (globals);
 
- if(file_locked(fname))
- {
-  efree(&fname);
-  return NULL;
- }
- f = fopen(fname, "r");
- if(!f)
-  {
-   log_write("user %s : Could not open %s - kb won't be restored for %s\n", (char*)arg_get_value(globals, "user"), fname, hostname);
-   efree(&fname);
-   return NULL;
-  }
- bzero(buf, sizeof(buf));
- fgets(buf, sizeof(buf) - 1, f);
-
- kb  = kb_new();
-
- /* Ignore the date */
- bzero(buf, sizeof(buf));
-
- while(fgets(buf, sizeof(buf) - 1, f))
- {
-  int type;
-  char * name, * value, *t;
-  struct timeval then, now;
-
-  buf[strlen(buf)-1]='\0'; /* chomp(buf) */
-  t = strchr(buf, ' ');
-  if (!t)
-    continue;
-
-  t[0] = '\0';
-
-  then.tv_sec = atol(buf);
-  t[0] = ' ';t++;
-  type = atoi(t);
-  t = strchr(t, ' ');
-  if (!t)
-    continue;
-
-  t[0] = ' ';t++;
-  name = t;
-  t = strchr(name, '=');
-  if (!t)
-    continue;
-
-  t[0] = '\0';
-  name = strdup(name);
-  t[0] = ' ';
-  t++;
-  value = strdup(t);
-
-  if(strcmp(name, "Host/dead") && strncmp(name, "/tmp/", 4) &&
-     strcmp(name, "Host/ping_failed"))
-  {
-   gettimeofday(&now, NULL);
-   if(now.tv_sec - then.tv_sec > max_age)
-   {
-    /*
-    log_write("discarding %s because it's too old\n",
-    		name,
-    		(now.tv_sec - then.tv_sec));
-     */
-   }
-   else
-   {
-    if(type == ARG_STRING)
+  if (file_locked (fname))
     {
-     char * tmp = rmslashes(value);
-     kb_item_add_str(kb, name, tmp);
-     efree(&tmp);
+      efree (&fname);
+      return NULL;
     }
-    else if(type == ARG_INT)
-      kb_item_add_int(kb, name, atoi(value));
-   }
-  }
-  efree(&value);
-  efree(&name);
-  bzero(buf, sizeof(buf));
- }
- fclose(f);
+  f = fopen (fname, "r");
+  if (!f)
+    {
+      log_write ("user %s : Could not open %s - kb won't be restored for %s\n",
+                 (char *) arg_get_value (globals, "user"), fname, hostname);
+      efree (&fname);
+      return NULL;
+    }
+  bzero (buf, sizeof (buf));
+  fgets (buf, sizeof (buf) - 1, f);
 
- /*
-  * Re-open the file
-  */
- fd = open(fname, O_RDWR);
- efree(&fname);
- if(fd > 0)
- {
-  lseek(fd, 0, SEEK_END);
-  if(arg_get_value(globals, "save_kb"))
-     arg_set_value(globals, "save_kb", ARG_INT, GSIZE_TO_POINTER(fd));
+  kb = kb_new ();
+
+  /* Ignore the date */
+  bzero (buf, sizeof (buf));
+
+  while (fgets (buf, sizeof (buf) - 1, f))
+    {
+      int type;
+      char *name, *value, *t;
+      struct timeval then, now;
+
+      buf[strlen (buf) - 1] = '\0';     /* chomp(buf) */
+      t = strchr (buf, ' ');
+      if (!t)
+        continue;
+
+      t[0] = '\0';
+
+      then.tv_sec = atol (buf);
+      t[0] = ' ';
+      t++;
+      type = atoi (t);
+      t = strchr (t, ' ');
+      if (!t)
+        continue;
+
+      t[0] = ' ';
+      t++;
+      name = t;
+      t = strchr (name, '=');
+      if (!t)
+        continue;
+
+      t[0] = '\0';
+      name = strdup (name);
+      t[0] = ' ';
+      t++;
+      value = strdup (t);
+
+      if (strcmp (name, "Host/dead") && strncmp (name, "/tmp/", 4)
+          && strcmp (name, "Host/ping_failed"))
+        {
+          gettimeofday (&now, NULL);
+          if (now.tv_sec - then.tv_sec > max_age)
+            {
+              /*
+                 log_write("discarding %s because it's too old\n",
+                 name,
+                 (now.tv_sec - then.tv_sec));
+               */
+            }
+          else
+            {
+              if (type == ARG_STRING)
+                {
+                  char *tmp = rmslashes (value);
+                  kb_item_add_str (kb, name, tmp);
+                  efree (&tmp);
+                }
+              else if (type == ARG_INT)
+                kb_item_add_int (kb, name, atoi (value));
+            }
+        }
+      efree (&value);
+      efree (&name);
+      bzero (buf, sizeof (buf));
+    }
+  fclose (f);
+
+  /*
+   * Re-open the file
+   */
+  fd = open (fname, O_RDWR);
+  efree (&fname);
+  if (fd > 0)
+    {
+      lseek (fd, 0, SEEK_END);
+      if (arg_get_value (globals, "save_kb"))
+        arg_set_value (globals, "save_kb", ARG_INT, GSIZE_TO_POINTER (fd));
+      else
+        arg_add_value (globals, "save_kb", ARG_INT, sizeof (gpointer),
+                       GSIZE_TO_POINTER (fd));
+    }
   else
-    arg_add_value(globals, "save_kb", ARG_INT, sizeof(gpointer), GSIZE_TO_POINTER(fd));
- }
- else log_write("user %s : ERROR - %s\n", (char*)arg_get_value(globals, "user"), strerror(errno));
- return kb;
+    log_write ("user %s : ERROR - %s\n",
+               (char *) arg_get_value (globals, "user"), strerror (errno));
+  return kb;
 }
 
 
@@ -723,10 +742,10 @@ save_kb_load_kb (struct arglist * globals, char* hostname)
  *       use of a static variable.
  */
 int
-save_kb (struct arglist * globals)
+save_kb (struct arglist *globals)
 {
-  struct arglist * preferences;
-  char * value;
+  struct arglist *preferences;
+  char *value;
 
   if (!globals)
     return 0;
@@ -747,100 +766,102 @@ save_kb (struct arglist * globals)
  * @return 1 if we should only test hosts whose knowledge base we already have.
  */
 int
-save_kb_pref_tested_hosts_only (struct arglist * globals)
+save_kb_pref_tested_hosts_only (struct arglist *globals)
 {
- struct arglist * preferences = arg_get_value(globals, "preferences");
- char * value;
+  struct arglist *preferences = arg_get_value (globals, "preferences");
+  char *value;
 
- value = arg_get_value(preferences, "only_test_hosts_whose_kb_we_have");
- if(value && !strcmp(value, "yes"))
-  return 1;
+  value = arg_get_value (preferences, "only_test_hosts_whose_kb_we_have");
+  if (value && !strcmp (value, "yes"))
+    return 1;
 
- return 0;
+  return 0;
 }
 
 /**
  * @return 1 if we should only test hosts whose kb we DO NOT have.
  */
-int save_kb_pref_untested_hosts_only(globals)
- struct arglist * globals;
+int
+save_kb_pref_untested_hosts_only (globals)
+     struct arglist *globals;
 {
- struct arglist * preferences = arg_get_value(globals, "preferences");
- char * value;
+  struct arglist *preferences = arg_get_value (globals, "preferences");
+  char *value;
 
- value = arg_get_value(preferences, "only_test_hosts_whose_kb_we_dont_have");
- if(value && !strcmp(value, "yes"))
-  return 1;
+  value = arg_get_value (preferences, "only_test_hosts_whose_kb_we_dont_have");
+  if (value && !strcmp (value, "yes"))
+    return 1;
 
- return 0;
+  return 0;
 }
 
 /**
  * @return 1 if we should restore the KB for the tests.
  */
 int
-save_kb_pref_restore (struct arglist * globals)
+save_kb_pref_restore (struct arglist *globals)
 {
- struct arglist * preferences = arg_get_value(globals, "preferences");
- char * value;
+  struct arglist *preferences = arg_get_value (globals, "preferences");
+  char *value;
 
- value = arg_get_value(preferences, "kb_restore");
- if(value && !strcmp(value, "yes"))
-  return 1;
+  value = arg_get_value (preferences, "kb_restore");
+  if (value && !strcmp (value, "yes"))
+    return 1;
 
- return 0;
+  return 0;
 }
 
 /**
  * @return 1 if this type of plugin can be executed.
  */
 int
-save_kb_replay_check (struct arglist * globals, int type)
+save_kb_replay_check (struct arglist *globals, int type)
 {
- struct arglist * preferences = arg_get_value(globals, "preferences");
- char * name = NULL;
- char * value;
- switch(type)
- {
-  case ACT_SCANNER:
-  	name = "kb_dont_replay_scanners";
-	break;
-  case ACT_GATHER_INFO:
-  	name = "kb_dont_replay_info_gathering";
-	break;
-  case ACT_MIXED_ATTACK:
-  case ACT_DESTRUCTIVE_ATTACK:
-  case ACT_ATTACK:
-  	name = "kb_dont_replay_attacks";
-	break;
-  case ACT_DENIAL:
-  case ACT_KILL_HOST:
-  case ACT_FLOOD:
-  	name = "kb_dont_replay_denials";
-	break;
-  /* ACT_SETTINGS and ACT_INIT should always be executed */
- }
+  struct arglist *preferences = arg_get_value (globals, "preferences");
+  char *name = NULL;
+  char *value;
+  switch (type)
+    {
+    case ACT_SCANNER:
+      name = "kb_dont_replay_scanners";
+      break;
+    case ACT_GATHER_INFO:
+      name = "kb_dont_replay_info_gathering";
+      break;
+    case ACT_MIXED_ATTACK:
+    case ACT_DESTRUCTIVE_ATTACK:
+    case ACT_ATTACK:
+      name = "kb_dont_replay_attacks";
+      break;
+    case ACT_DENIAL:
+    case ACT_KILL_HOST:
+    case ACT_FLOOD:
+      name = "kb_dont_replay_denials";
+      break;
+      /* ACT_SETTINGS and ACT_INIT should always be executed */
+    }
 
- if(name)
- {
-  value = arg_get_value(preferences, name);
-  if(value && !strcmp(value, "yes"))return 0;
- }
- return 1;
+  if (name)
+    {
+      value = arg_get_value (preferences, name);
+      if (value && !strcmp (value, "yes"))
+        return 0;
+    }
+  return 1;
 }
 
 /**
  * @return Tthe max. age of the KB, in seconds, as set by the user.
  */
 long
-save_kb_max_age (struct arglist * globals)
+save_kb_max_age (struct arglist *globals)
 {
- struct arglist * prefs = arg_get_value(globals, "preferences");
- long ret = atol(arg_get_value(prefs, "kb_max_age"));
- if(!ret)
-  return 3600;
- else
-  return ret;
+  struct arglist *prefs = arg_get_value (globals, "preferences");
+  long ret = atol (arg_get_value (prefs, "kb_max_age"));
+  if (!ret)
+    return 3600;
+  else
+    return ret;
 }
 
 
@@ -862,20 +883,20 @@ save_kb_max_age (struct arglist * globals)
  *    Add 'DataSent/PluginID/Num' entries
  */
 int
-diff_scan (struct arglist * globals)
+diff_scan (struct arglist *globals)
 {
- struct arglist * prefs = arg_get_value(globals, "preferences");
- char * v = arg_get_value(prefs, "diff_scan");
+  struct arglist *prefs = arg_get_value (globals, "preferences");
+  char *v = arg_get_value (prefs, "diff_scan");
 
- if(v && !strcmp(v, "yes"))
-  return 1;
- else
-  return 0;
+  if (v && !strcmp (v, "yes"))
+    return 1;
+  else
+    return 0;
 }
 
 
 void
-diff_scan_enable (struct arglist * pluginargs)
+diff_scan_enable (struct arglist *pluginargs)
 {
- arg_add_value(pluginargs, "DIFF_SCAN", ARG_INT, sizeof(int), (void*)1);
+  arg_add_value (pluginargs, "DIFF_SCAN", ARG_INT, sizeof (int), (void *) 1);
 }

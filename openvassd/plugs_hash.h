@@ -31,8 +31,8 @@
 #ifndef OPENVAS_PLUGS_HASH_H__
 #define OPENVAS_PLUGS_HASH_H__
 
-char * file_hash(char *);
-char * plugins_hash(struct arglist *);
-void plugins_send_md5(struct arglist*);
+char *file_hash (char *);
+char *plugins_hash (struct arglist *);
+void plugins_send_md5 (struct arglist *);
 
 #endif

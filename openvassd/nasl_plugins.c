@@ -34,18 +34,18 @@
 #include <glib.h>
 
 #include <openvas/nasl/nasl.h>
-#include <openvas/network.h> /* for internal_send */
-#include <openvas/nvt_categories.h> /* for ACT_SCANNER */
-#include <openvas/plugutils.h> /* for INTERNAL_COMM_CTRL_FINISHED */
-#include <openvas/store.h> /* for store_plugin */
-#include <openvas/system.h> /* for emalloc */
+#include <openvas/network.h>    /* for internal_send */
+#include <openvas/nvt_categories.h>     /* for ACT_SCANNER */
+#include <openvas/plugutils.h>  /* for INTERNAL_COMM_CTRL_FINISHED */
+#include <openvas/store.h>      /* for store_plugin */
+#include <openvas/system.h>     /* for emalloc */
 
 #include "pluginload.h"
-#include "pluginscheduler.h" /* for LAUNCH_DISABLED */
+#include "pluginscheduler.h"    /* for LAUNCH_DISABLED */
 #include "plugs_hash.h"
 #include "preferences.h"
 #include "processes.h"
-#include "proctitle.h" /* for setproctitle */
+#include "proctitle.h"          /* for setproctitle */
 #include "log.h"
 
 /**
@@ -56,14 +56,14 @@
  * 
  * @return nasl_plugin_class struct.
  */
-static pl_class_t* nasl_plugin_init (struct arglist* prefs,
-                                     struct arglist* nasl)
+static pl_class_t *
+nasl_plugin_init (struct arglist *prefs, struct arglist *nasl)
 {
-    return &nasl_plugin_class;
+  return &nasl_plugin_class;
 }
 
 
-static void nasl_thread(struct arglist *);
+static void nasl_thread (struct arglist *);
 
 
 /**
@@ -84,16 +84,16 @@ static void nasl_thread(struct arglist *);
  * @return Pointer to the plugin (as arglist). NULL in case of errors.
  */
 static struct arglist *
-nasl_plugin_add (char* folder, char* name, struct arglist* plugins,
-                 struct arglist* preferences)
+nasl_plugin_add (char *folder, char *name, struct arglist *plugins,
+                 struct arglist *preferences)
 {
-  char fullname[PATH_MAX+1];
-  struct arglist * plugin_args;
-  struct arglist * prev_plugin = NULL;
+  char fullname[PATH_MAX + 1];
+  struct arglist *plugin_args;
+  struct arglist *prev_plugin = NULL;
   int nasl_mode;
   nasl_mode = NASL_EXEC_DESCR;
 
-  snprintf (fullname, sizeof(fullname), "%s/%s", folder, name);
+  snprintf (fullname, sizeof (fullname), "%s/%s", folder, name);
 
   if (preferences_nasl_no_signature_check (preferences) > 0)
     {
@@ -103,20 +103,22 @@ nasl_plugin_add (char* folder, char* name, struct arglist* plugins,
   plugin_args = store_load_plugin (name, preferences);
   if (plugin_args == NULL)
     {
-      char* sign_fprs = nasl_extract_signature_fprs (fullname);
+      char *sign_fprs = nasl_extract_signature_fprs (fullname);
       // If server accepts signed plugins only, discard if signature file missing.
-      if (preferences_nasl_no_signature_check(preferences) == 0 && sign_fprs == NULL)
-          {
-            printf ("%s: nvt is not signed and thus ignored\n", fullname);
-            return NULL;
-          }
+      if (preferences_nasl_no_signature_check (preferences) == 0
+          && sign_fprs == NULL)
+        {
+          printf ("%s: nvt is not signed and thus ignored\n", fullname);
+          return NULL;
+        }
       else if (sign_fprs == NULL)
         {
           sign_fprs = "";
         }
 
-      plugin_args = emalloc (sizeof(struct arglist));
-      arg_add_value (plugin_args, "preferences", ARG_ARGLIST, -1, (void*) preferences);
+      plugin_args = emalloc (sizeof (struct arglist));
+      arg_add_value (plugin_args, "preferences", ARG_ARGLIST, -1,
+                     (void *) preferences);
 
       if (exec_nasl_script (plugin_args, fullname, nasl_mode) < 0)
         {
@@ -137,7 +139,9 @@ nasl_plugin_add (char* folder, char* name, struct arglist* plugins,
         }
       else
         // Most likely an exit was hit before the description could be parsed.
-        fprintf(stderr, "\r%s could not be added to the cache and is likely to stay invisible to the client.\n", name);
+        fprintf (stderr,
+                 "\r%s could not be added to the cache and is likely to stay invisible to the client.\n",
+                 name);
     }
 
   if (plugin_args == NULL)
@@ -172,108 +176,114 @@ nasl_plugin_add (char* folder, char* name, struct arglist* plugins,
  * @brief Launch a NASL plugin.
  */
 int
-nasl_plugin_launch (struct arglist * globals, struct arglist * plugin,
-                    struct arglist * hostinfos, struct arglist * preferences,
-                    struct kb_item ** kb, char * name)
+nasl_plugin_launch (struct arglist *globals, struct arglist *plugin,
+                    struct arglist *hostinfos, struct arglist *preferences,
+                    struct kb_item **kb, char *name)
 {
- int timeout;
- int category = 0;
- nthread_t module;
- struct arglist * d = emalloc(sizeof(struct arglist));
+  int timeout;
+  int category = 0;
+  nthread_t module;
+  struct arglist *d = emalloc (sizeof (struct arglist));
 
- arg_add_value(plugin, "HOSTNAME", ARG_ARGLIST, -1, hostinfos);
- if(arg_get_value(plugin, "globals"))
-   arg_set_value(plugin, "globals", -1, globals);
- else
-   arg_add_value(plugin, "globals", ARG_ARGLIST, -1, globals);
+  arg_add_value (plugin, "HOSTNAME", ARG_ARGLIST, -1, hostinfos);
+  if (arg_get_value (plugin, "globals"))
+    arg_set_value (plugin, "globals", -1, globals);
+  else
+    arg_add_value (plugin, "globals", ARG_ARGLIST, -1, globals);
 
 
- arg_set_value(plugin, "preferences", -1, preferences);
- arg_add_value(plugin, "key", ARG_PTR, -1, kb);
+  arg_set_value (plugin, "preferences", -1, preferences);
+  arg_add_value (plugin, "key", ARG_PTR, -1, kb);
 
- arg_add_value(d, "args", ARG_ARGLIST, -1, plugin);
- arg_add_value(d, "name", ARG_STRING, -1, name);
- arg_add_value(d, "preferences", ARG_STRING, -1, preferences);
+  arg_add_value (d, "args", ARG_ARGLIST, -1, plugin);
+  arg_add_value (d, "name", ARG_STRING, -1, name);
+  arg_add_value (d, "preferences", ARG_STRING, -1, preferences);
 
- category = plug_get_category(plugin); 
- timeout = preferences_plugin_timeout(preferences, plug_get_oid(plugin));
- if( timeout == 0 )
-   {
-     if (category == ACT_SCANNER)
-       timeout = -1;
-     else
-       timeout = preferences_plugins_timeout (preferences);
-   }
+  category = plug_get_category (plugin);
+  timeout = preferences_plugin_timeout (preferences, plug_get_oid (plugin));
+  if (timeout == 0)
+    {
+      if (category == ACT_SCANNER)
+        timeout = -1;
+      else
+        timeout = preferences_plugins_timeout (preferences);
+    }
 
- module = create_process((process_func_t)nasl_thread, d); 
- arg_free(d);
- return module;
+  module = create_process ((process_func_t) nasl_thread, d);
+  arg_free (d);
+  return module;
 }
 
 
 static void
-nasl_thread (struct arglist * g_args)
+nasl_thread (struct arglist *g_args)
 {
- struct arglist * args = arg_get_value(g_args, "args");
- struct arglist * globals = arg_get_value(args, "globals");
- struct arglist * preferences = arg_get_value(g_args, "preferences");
- char * name = arg_get_value(g_args, "name");
- int soc = GPOINTER_TO_SIZE(arg_get_value(args, "SOCKET"));
- int i;
- int nasl_mode;
+  struct arglist *args = arg_get_value (g_args, "args");
+  struct arglist *globals = arg_get_value (args, "globals");
+  struct arglist *preferences = arg_get_value (g_args, "preferences");
+  char *name = arg_get_value (g_args, "name");
+  int soc = GPOINTER_TO_SIZE (arg_get_value (args, "SOCKET"));
+  int i;
+  int nasl_mode;
 
- if(preferences_benice(NULL))nice(-5);
- /* XXX ugly hack */
- soc = dup2(soc, 4);
- if ( soc < 0 )
- {
-  log_write("dup2() failed ! - can not launch the plugin\n");
-  return;
- }
- arg_set_value(args, "SOCKET", sizeof(gpointer), GSIZE_TO_POINTER(soc));
- arg_set_value(globals, "global_socket", sizeof(gpointer), GSIZE_TO_POINTER(soc));
- for(i=5;i<getdtablesize();i++)
- {
-  close(i);
- }
- #ifdef RLIMIT_RSS
+  if (preferences_benice (NULL))
+    nice (-5);
+  /* XXX ugly hack */
+  soc = dup2 (soc, 4);
+  if (soc < 0)
+    {
+      log_write ("dup2() failed ! - can not launch the plugin\n");
+      return;
+    }
+  arg_set_value (args, "SOCKET", sizeof (gpointer), GSIZE_TO_POINTER (soc));
+  arg_set_value (globals, "global_socket", sizeof (gpointer),
+                 GSIZE_TO_POINTER (soc));
+  for (i = 5; i < getdtablesize (); i++)
+    {
+      close (i);
+    }
+#ifdef RLIMIT_RSS
   {
-  struct rlimit rlim;
-  getrlimit (RLIMIT_RSS, &rlim);
-  rlim.rlim_cur = 1024*1024*512;
-  rlim.rlim_max = 1024*1024*512;
-  setrlimit (RLIMIT_RSS, &rlim);
+    struct rlimit rlim;
+    getrlimit (RLIMIT_RSS, &rlim);
+    rlim.rlim_cur = 1024 * 1024 * 512;
+    rlim.rlim_max = 1024 * 1024 * 512;
+    setrlimit (RLIMIT_RSS, &rlim);
   }
- #endif
+#endif
 
- #ifdef RLIMIT_AS
+#ifdef RLIMIT_AS
   {
-  struct rlimit rlim;
-  getrlimit (RLIMIT_AS, &rlim);
-  rlim.rlim_cur = 1024*1024*512;
-  rlim.rlim_max = 1024*1024*512;
-  setrlimit (RLIMIT_AS, &rlim);
+    struct rlimit rlim;
+    getrlimit (RLIMIT_AS, &rlim);
+    rlim.rlim_cur = 1024 * 1024 * 512;
+    rlim.rlim_max = 1024 * 1024 * 512;
+    setrlimit (RLIMIT_AS, &rlim);
   }
- #endif
+#endif
 
- #ifdef RLIMIT_DATA
+#ifdef RLIMIT_DATA
   {
-  struct rlimit rlim;
-  getrlimit (RLIMIT_DATA, &rlim);
-  rlim.rlim_cur = 1024*1024*512;
-  rlim.rlim_max = 1024*1024*512;
-  setrlimit (RLIMIT_DATA, &rlim);
+    struct rlimit rlim;
+    getrlimit (RLIMIT_DATA, &rlim);
+    rlim.rlim_cur = 1024 * 1024 * 512;
+    rlim.rlim_max = 1024 * 1024 * 512;
+    setrlimit (RLIMIT_DATA, &rlim);
   }
- #endif
- setproctitle ("testing %s (%s)", (char*)arg_get_value(arg_get_value(args, "HOSTNAME"), "NAME"), (char*)arg_get_value(g_args, "name"));
- signal (SIGTERM, _exit);
+#endif
+  setproctitle ("testing %s (%s)",
+                (char *) arg_get_value (arg_get_value (args, "HOSTNAME"),
+                                        "NAME"), (char *) arg_get_value (g_args,
+                                                                         "name"));
+  signal (SIGTERM, _exit);
 
- nasl_mode = NASL_EXEC_DONT_CLEANUP;
- if (preferences_nasl_no_signature_check(preferences) > 0 )
-     nasl_mode |= NASL_ALWAYS_SIGNED;
+  nasl_mode = NASL_EXEC_DONT_CLEANUP;
+  if (preferences_nasl_no_signature_check (preferences) > 0)
+    nasl_mode |= NASL_ALWAYS_SIGNED;
 
- exec_nasl_script(args, name, nasl_mode);
- internal_send(soc, NULL, INTERNAL_COMM_MSG_TYPE_CTRL | INTERNAL_COMM_CTRL_FINISHED);
+  exec_nasl_script (args, name, nasl_mode);
+  internal_send (soc, NULL,
+                 INTERNAL_COMM_MSG_TYPE_CTRL | INTERNAL_COMM_CTRL_FINISHED);
 }
 
 /**
@@ -282,9 +292,9 @@ nasl_thread (struct arglist * g_args)
  * @ref pl_class_s
  */
 pl_class_t nasl_plugin_class = {
-    NULL,
-    ".nasl",
-    nasl_plugin_init,
-    nasl_plugin_add,
-    nasl_plugin_launch,
+  NULL,
+  ".nasl",
+  nasl_plugin_init,
+  nasl_plugin_add,
+  nasl_plugin_launch,
 };

@@ -31,29 +31,29 @@
 #ifndef __OPENVAS_PREFERENCES_H
 #define __OPENVAS_PREFERENCES_H
 
-int    preferences_init(char *, struct arglist **);
-int    preferences_new(char *);
-int    preferences_process(char *, struct arglist *);
-int    preferences_get_host_expansion(struct arglist *);
-int    preferences_get_slice_network_addresses(struct arglist *);
-int    preferences_get_checks_read_timeout(struct arglist*);
-int    preferences_get_delay_between_tests(struct arglist *);
-int    preferences_log_whole_attack(struct arglist *);
-int    preferences_optimize_test(struct arglist *);
-int    preferences_ntp_show_end(struct arglist *);
-int    preferences_log_plugins_at_load(struct arglist *);
-int    preferences_plugins_timeout(struct arglist *);
-int    preferences_plugin_timeout(struct arglist *, char*);
-int    preferences_benice(struct arglist*);
-char * preferences_get_string(struct arglist*, char*);
-int    preferences_autoload_dependencies(struct arglist*);
-int    preferences_safe_checks_enabled(struct arglist*);
-int    preferences_use_mac_addr(struct arglist *);
-int    preferences_report_killed_plugins(struct arglist *);
+int preferences_init (char *, struct arglist **);
+int preferences_new (char *);
+int preferences_process (char *, struct arglist *);
+int preferences_get_host_expansion (struct arglist *);
+int preferences_get_slice_network_addresses (struct arglist *);
+int preferences_get_checks_read_timeout (struct arglist *);
+int preferences_get_delay_between_tests (struct arglist *);
+int preferences_log_whole_attack (struct arglist *);
+int preferences_optimize_test (struct arglist *);
+int preferences_ntp_show_end (struct arglist *);
+int preferences_log_plugins_at_load (struct arglist *);
+int preferences_plugins_timeout (struct arglist *);
+int preferences_plugin_timeout (struct arglist *, char *);
+int preferences_benice (struct arglist *);
+char *preferences_get_string (struct arglist *, char *);
+int preferences_autoload_dependencies (struct arglist *);
+int preferences_safe_checks_enabled (struct arglist *);
+int preferences_use_mac_addr (struct arglist *);
+int preferences_report_killed_plugins (struct arglist *);
 
-int   preferences_delay_between_scans(struct arglist *);
-void  preferences_reset_cache();
-int   preferences_silent_dependencies(struct arglist*);
-int  preferences_nasl_no_signature_check(struct arglist * );
+int preferences_delay_between_scans (struct arglist *);
+void preferences_reset_cache ();
+int preferences_silent_dependencies (struct arglist *);
+int preferences_nasl_no_signature_check (struct arglist *);
 
 #endif
