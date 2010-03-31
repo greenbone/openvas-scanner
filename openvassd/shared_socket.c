@@ -68,7 +68,7 @@ static struct shared_fd shared_fd[MAX_SHARED_SOCKETS];
 
 /**
  * @brief Remove a socket from the shared_fd table
- * 
+ *
  * @return -1 if socket index out of bounds, 0 otherwise.
  */
 static int
@@ -311,7 +311,7 @@ shared_socket_cleanup_process (nthread_t process)
  *                INTERNAL_COMM_SHARED_SOCKET_RELEASE or
  *                INTERNAL_COMM_SHARED_SOCKET_RELEASE
  *                (defined in libopenvas/plugutils.h).
- * 
+ *
  * @return -1 if message did not work out in some way (usually something
  *            will occur in the log file about shared sockets then).
  */

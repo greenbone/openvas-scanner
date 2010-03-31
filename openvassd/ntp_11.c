@@ -229,7 +229,7 @@ ntp_11_long_attack (struct arglist *globals, char *orig)
 
 /**
  * @brief Reads in "server" prefs sent by client.
- * 
+ *
  * @param globals The global arglist (containing server preferences).
  * @return Always 0.
  */

@@ -62,7 +62,7 @@
 /*=========================================================================
 
 			Private functions
-			
+
 ===========================================================================*/
 /**
  * @brief Replaces slashes in name by underscores (in-place).
@@ -89,7 +89,7 @@ filter_odd_name (char *name)
 /**
  * Returns name of the directory which contains the sessions of the current
  * user (/path/to/var/lib/openvas/<username>/kbs/).
- * 
+ *
  * @return Path to knowledge base directory for current user, has to be freed
  *         using g_free.
  */
@@ -390,13 +390,13 @@ save_kb_write (struct arglist *globals, char *hostname, char *name, char *value,
 /*======================================================================
 
 	                 Public functions
-	
+
  =======================================================================*/
 
 /**
  * @brief Initialize a new KB that will be saved.
  *
- * The indices of all the opened KB are in a hashlist in 
+ * The indices of all the opened KB are in a hashlist in
  * globals, saved under the name "save_kb". This makes no sense
  * at this time, as the test of each host is done in a separate
  * process, but this allows us to regroup easily these in
@@ -611,7 +611,7 @@ failed1:
 /**
  * @brief Restores a previously saved knowledge base.
  *
- * The KB entry 'Host/dead' is ignored, as well as all the 
+ * The KB entry 'Host/dead' is ignored, as well as all the
  * entries starting with '/tmp/'.
  */
 struct kb_item **
@@ -871,10 +871,10 @@ save_kb_max_age (struct arglist *globals)
  *
  * The idea of a differential scan is to only show the user what
  * has changed in the report. To do this, libopenvas relies on the content
- * of the Success/... and Failures/... KB entries that record if a test 
+ * of the Success/... and Failures/... KB entries that record if a test
  * was sucessful or failed in the past.
  *
- * Note that the KB now contain the full text of the messages sent 
+ * Note that the KB now contain the full text of the messages sent
  * back to the client, so libopenvas will be able to determine if a message
  * has changed or not (such as a newer FTP version for instance).
  *

@@ -85,9 +85,9 @@ static struct arglist *non_simult_ports_list;
 
 
 /**
- * 
+ *
  * @param p  Process index in processes array (function refers to processes[p]).
- * 
+ *
  * @return -1 if plugin died
  */
 static int
@@ -187,7 +187,7 @@ process_mgr_sighand_term (int sig)
 }
 
 /**
- * 
+ *
  */
 static void
 update_running_processes ()
@@ -271,7 +271,7 @@ update_running_processes ()
 
 /**
  * If another NVT with same port requirements is running, wait.
- * 
+ *
  * @return -1 if MAX_PROCESSES are running, the index of the first free "slot"
  *          in the processes array otherwise.
  */
@@ -325,7 +325,7 @@ next_free_process (struct scheduler_plugin *upcoming)
 }
 
 /**
- * 
+ *
  */
 static void
 read_running_processes ()

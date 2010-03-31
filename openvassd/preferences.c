@@ -29,7 +29,7 @@
 
 /** @file
  * 'Server' Preference related functions (some of them scan-related).
- * 
+ *
  * All the preference getter- functions for pseudo boolean values work in the
  * same fashion.
  * The static 'yes' value is initialized only the first time the function is
@@ -38,7 +38,7 @@
  * On subsequent calls where preferences != NULL, the arglist does not have
  * to be queried anymore.
  * Resetting this "cache"s is possible by calling preferences_reset_cache.
- * 
+ *
  * FIXME: Bacause of the static nature of the cache, the start of a new scan
  * with different 'server' preference values might override the values for a
  * already running scan, isnt it?
@@ -59,7 +59,7 @@
 #define inited(x) ((x) >= 0)
 
 /**
- * @brief Initializes the preferences structure 
+ * @brief Initializes the preferences structure
  */
 int
 preferences_init (char *config_file, struct arglist **prefs)
@@ -516,10 +516,10 @@ preferences_plugins_timeout (struct arglist *preferences)
 
 /**
  * @brief Returns the timeout defined by the client or 0 if none was set.
- * 
+ *
  * @param preferences Preferences arglist.
  * @param oid         OID of NVT to ask timeout value of.
- * 
+ *
  * @return 0 if no timeout for the NVT oid was found, timeout in seconds
  *         otherwise.
  */
@@ -795,7 +795,7 @@ preferences_get_string (preferences, name)
 
 /**
  * @brief Resets the preference caches.
- * 
+ *
  * Subsequent calls to the pseudo-boolean preference getters like
  * preferences_silent_dependencies will query a given arglist once and refill
  * the caches.

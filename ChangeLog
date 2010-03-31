@@ -1,3 +1,10 @@
+2010-03-31  Matthew Mundell <matthew.mundell@intevation.de>
+
+	* openvassd/nasl_plugins.c, openvassd/utils.c, openvassd/plugs_req.c,
+	openvassd/preferences.c, openvassd/ntp_11.c, openvassd/attack.c,
+	openvassd/save_kb.c, openvassd/shared_socket.c, openvassd/pluginlaunch.c,
+	openvassd/oval_plugins.c, openvassd/parser.c: Flush trailing whitespace.
+
 2010-03-30  Matthew Mundell <matthew.mundell@intevation.de>
 
 	* openvassd/comm.h, openvassd/utils.c, openvassd/parser.h,

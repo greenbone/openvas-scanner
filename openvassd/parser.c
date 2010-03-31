@@ -38,9 +38,9 @@
 /**
  * @brief This function returns a pointer to the string after the ' \<|\> '
  * @brief symbol.
- * 
+ *
  * @param str String that contains \<|\>.
- * 
+ *
  * @return A pointer into \ref str that points behind the \<|\>, or NULL
  *         if none found.
  */
@@ -65,14 +65,14 @@ parse_symbol (char *str)
 /**
  * @brief In the standard case, returns content between two separators (\<|\>)
  * @brief in a string.
- * 
+ *
  * Returns a copy of the string between the first two '\<|\>'s.
  * If just one \<|\> is found, returns a copy of the string from the first
  * \<|\> till its end.
  * Returns NULL if str is empty or does not contain a ' <|> '.
- * 
+ *
  * @param str String to parse.
- * 
+ *
  * @return Copy of content of string between two separators, see detailed doc
  *         for special cases.
  */

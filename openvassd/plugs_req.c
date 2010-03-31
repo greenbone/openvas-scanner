@@ -34,9 +34,9 @@
 #include "plugs_req.h"
 
 /**********************************************************
- 
+
  		   Private Functions
-	
+
 ***********************************************************/
 
 extern int kb_get_port_state_proto (struct kb_item **, struct arglist *, int,
@@ -137,9 +137,9 @@ key_present (struct kb_item **kb, struct arglist *keys)
 }
 
 /**********************************************************
- 
+
  		   Public Functions
-	
+
 ***********************************************************/
 
 

@@ -67,7 +67,7 @@
 extern u_short *getpts (char *, int *);
 
 /**
- * Bundles information about target(s), configuration (globals arglist) and 
+ * Bundles information about target(s), configuration (globals arglist) and
  * scheduler.
  */
 struct attack_start_args
@@ -84,7 +84,7 @@ struct attack_start_args
 /*******************************************************
 
 		PRIVATE FUNCTIONS
-		
+
 ********************************************************/
 
 
@@ -170,7 +170,7 @@ attack_user_name (struct arglist *globals)
  *
  * @param new_kb  If TRUE, kb is new and shall be saved.
  *
- * @return ERR_HOST_DEAD if host died, ERR_CANT_FORK if forking failed, 
+ * @return ERR_HOST_DEAD if host died, ERR_CANT_FORK if forking failed,
  *         0 otherwise.
  */
 static int
@@ -730,7 +730,7 @@ unlink_name_mapped_file (gchar * key, gchar * value, gpointer ignored)
 /*******************************************************
 
 		PUBLIC FUNCTIONS
-		
+
 ********************************************************/
 
 

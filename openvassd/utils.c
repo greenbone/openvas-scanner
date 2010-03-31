@@ -48,7 +48,7 @@ extern int global_max_checks;
  * @brief Library version check.
  *
  * Returns 0  if versions are equal
- * Returns 1 if the fist version is newer than the second 
+ * Returns 1 if the fist version is newer than the second
  * Return -1 if the first version is older than the second
  *
  * @return 0 if versions are equal, 1 if a newer than b, -1 if b newer than a.
@@ -255,7 +255,7 @@ check_symlink (char *name)
 }
 
 /**
- * Converts a hostnames arglist 
+ * Converts a hostnames arglist
  * to a space delimited lists of hosts
  * in one string and returns it.
  */

@@ -134,7 +134,7 @@ set_parser_state (state_t state)
  * running an untrusted executable, in this case ovaldi.  NB: The current
  * implementation is somewhat linux-specific and may not work on other
  * platforms.
- * 
+ *
  * @param user_data Pointer to additional data passed by glib; currently unused.
  */
 void
@@ -183,7 +183,7 @@ drop_privileges (gpointer user_data)
 }
 
 /**
- * @brief This function handles the opening tag of an XML element. 
+ * @brief This function handles the opening tag of an XML element.
  */
 void
 start_element (GMarkupParseContext * context, const gchar * element_name,

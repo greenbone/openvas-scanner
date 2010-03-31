@@ -50,10 +50,10 @@
 
 /**
  * @brief Initialize the nasl system.
- * 
+ *
  * @param prefs Ignored
  * @param nasl  Ignored
- * 
+ *
  * @return nasl_plugin_class struct.
  */
 static pl_class_t *
