@@ -113,6 +113,12 @@ ntp_11_parse_input (struct arglist *globals, char *input)
           otp_1_0_server_openvas_version (globals);
           break;
 
+        case CREQ_PAUSE_WHOLE_TEST:
+          log_write ("Pausing the whole test (requested by client)");
+          hosts_pause_all (globals);
+          result = NTP_PAUSE_WHOLE_TEST;
+          break;
+
         case CREQ_PLUGIN_INFO:
           {
             char *t, *s;
@@ -129,6 +135,12 @@ ntp_11_parse_input (struct arglist *globals, char *input)
 
         case CREQ_PREFERENCES:
           ntp_11_read_prefs (globals);
+          break;
+
+        case CREQ_RESUME_WHOLE_TEST:
+          log_write ("Resuming the whole test (requested by client)");
+          hosts_resume_all (globals);
+          result = NTP_RESUME_WHOLE_TEST;
           break;
 
         case CREQ_RULES:

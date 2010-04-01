@@ -65,6 +65,10 @@ otp_1_0_get_client_request (char *str)
     return (CREQ_STOP_ATTACK);
   if (!strcmp (str, "STOP_WHOLE_TEST"))
     return (CREQ_STOP_WHOLE_TEST);
+  if (!strcmp (str, "PAUSE_WHOLE_TEST"))
+    return (CREQ_PAUSE_WHOLE_TEST);
+  if (!strcmp (str, "RESUME_WHOLE_TEST"))
+    return (CREQ_RESUME_WHOLE_TEST);
 
   return (CREQ_UNKNOWN);
 }

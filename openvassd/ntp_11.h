@@ -34,6 +34,8 @@
 #include <openvas/arglists.h>   /* for struct arglist */
 
 #define NTP_STOP_WHOLE_TEST 2
+#define NTP_PAUSE_WHOLE_TEST 3
+#define NTP_RESUME_WHOLE_TEST 4
 
 int ntp_11_parse_input (struct arglist *, char *);
 void ntp_11_show_end (struct arglist *, char *, int);

@@ -81,6 +81,11 @@ struct attack_start_args
   char hostname[1024];
 };
 
+/**
+ * @brief Flag for pausing and resuming.
+ */
+static int pause_whole_test = 0;
+
 /*******************************************************
 
 		PRIVATE FUNCTIONS
@@ -102,6 +107,23 @@ fork_sleep (int n)
     }
 }
 
+/**
+ * @brief Set the pause_whole_test flag to pause the scan.
+ */
+static void
+attack_handle_sigusr1 ()
+{
+  pause_whole_test = 1;
+}
+
+/**
+ * @brief Set the pause_whole_test flag to resume the scan.
+ */
+static void
+attack_handle_sigusr2 ()
+{
+  pause_whole_test = 0;
+}
 
 /**
  * @brief Inits an arglist which can be used by the plugins.
@@ -583,6 +605,39 @@ attack_host (struct arglist *globals, struct arglist *hostinfos, char *hostname,
           return;
         }
 
+      /* Idle if the scan has been paused. */
+      if (pause_whole_test)
+        {
+          /* Let the running NVTs complete. */
+          pluginlaunch_wait ();
+
+          /* Send the PAUSE status to the client. */
+          if (comm_send_status (globals, hostname, "pause", cur_plug, num_plugs)
+              < 0)
+            {
+              pluginlaunch_stop ();
+              goto host_died;
+            }
+
+          /* Wait for resume. */
+          while (pause_whole_test)
+            {
+              struct timeval timeout;
+              timeout.tv_usec = 0;
+              timeout.tv_sec = 1;
+              select (0, NULL, NULL, NULL, &timeout);
+            }
+
+          /* Send the RESUME status to the client. */
+          if (comm_send_status (globals, hostname, "resume", cur_plug,
+                                num_plugs)
+              < 0)
+            {
+              pluginlaunch_stop ();
+              goto host_died;
+            }
+        }
+
       plugin = plugins_scheduler_next (sched);
       if (plugin != NULL && plugin != PLUG_RUNNING)
         {
@@ -653,6 +708,9 @@ attack_start (struct attack_start_args *args)
   struct timeval then, now;
   plugins_scheduler_t sched = args->sched;
   int i;
+
+  openvas_signal (SIGUSR1, attack_handle_sigusr1);
+  openvas_signal (SIGUSR2, attack_handle_sigusr2);
 
   thread_socket = dup2 (thread_socket, 4);
 
