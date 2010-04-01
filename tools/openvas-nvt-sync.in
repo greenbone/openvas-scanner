@@ -212,6 +212,14 @@ do_describe () {
 
 }
 
+do_feedversion () {
+  VERSIONFILE="$NVT_DIR/plugin_feed_info.inc"
+  if [ -r $VERSIONFILE ] ; then
+    FEEDVERSION=`grep PLUGIN_SET $VERSIONFILE | sed -e 's/[^0-9]//g'`
+    echo $FEEDVERSION
+  fi
+}
+
 if [ -z "$1" ]; then
 	do_describe
 	if [ -z "$CMD_RSYNC" ]; then
@@ -271,6 +279,10 @@ else
 			;;
 		--describe)
 			do_describe
+			exit 0
+			;;
+		--feedversion)
+			do_feedversion
 			exit 0
 			;;
 	 esac

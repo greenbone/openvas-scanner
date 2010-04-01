@@ -1,3 +1,8 @@
+2010-04-01  Michael Wiegand <michael.wiegand@intevation.de>
+
+	* tools/openvas-nvt-sync.in: Added support for retrieving the version
+	of the NVT collection.
+
 2010-03-31  Matthew Mundell <matthew.mundell@intevation.de>
 
 	* openvassd/nasl_plugins.c, openvassd/utils.c, openvassd/plugs_req.c,
