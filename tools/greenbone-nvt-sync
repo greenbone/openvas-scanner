@@ -28,7 +28,7 @@
 # with some characters in order to make it newer than
 # any follow-up version to prevent that your version
 # will be overwritten.
-VERSION=20091216
+VERSION=20100406
 
 # SETTINGS
 # ========
@@ -53,52 +53,6 @@ FEED_NAME="Greenbone Security Feed"
 FEED_PROVIDER="Greenbone Networks GmbH"
 FEED_HOME="http://www.greenbone.net/solutions/gbn_feed.html"
 RESTRICTED=1
-
-do_self_test ()
-{
-  RSYNC_AVAIL=`command -v rsync`
-  if [[ -z $RSYNC_AVAIL ]] ; then
-    SELFTEST_FAIL=1
-    echo "The rsync binary could not be found." 1>&2
-  fi
-  MD5SUM_AVAIL=`command -v md5sum`
-  if [[ -z $MD5SUM_AVAIL ]] ; then
-    SELFTEST_FAIL=1
-    echo "The md5sum binary could not be found." 1>&2
-  fi
-  # Test rsync
-  # Validate key
-}
-
-do_describe ()
-{
-  echo "This script synchronizes an NVT collection with the '$FEED_NAME'."
-  echo "The '$FEED_NAME' is provided by '$FEED_PROVIDER'."
-  echo "Online information about this feed: '$FEED_HOME'."
-}
-
-while test $# -gt 0; do
- case "$1" in
-        --version)
-                echo $VERSION
-                exit 0
-                ;;
-        --identify)
-                echo "NVTSYNC|$SCRIPT_NAME|$VERSION|$FEED_NAME|$RESTRICTED|NVTSYNC"
-                exit 0
-                ;;
-        --selftest)
-                SELFTEST_FAIL=0
-                do_self_test
-                exit $SELFTEST_FAIL
-                ;;
-        --describe)
-                do_describe
-                exit 0
-                ;;
- esac
- shift
-done
 
 
 if [[ ! -w $LOGDIR ]]
@@ -125,12 +79,6 @@ log_write(){
 }
 
 SCANNER_BINARY=`command -v openvassd`
-SCANNER_NAME="openvas-scanner"
-if [[ -z $SCANNER_BINARY ]]
-then
-  SCANNER_BINARY=`command -v openvasd`
-  SCANNER_NAME="openvas-server"
-fi
 if [[ -z $SCANNER_BINARY ]]
 then
   echo
@@ -138,16 +86,17 @@ then
   echo "Could not locate your OpenVAS Scanner."
   echo "Please make sure that you have installed OpenVAS Scanner correctly."
   echo "The command"
-  echo "  openvassd or openvasd"
+  echo "  openvassd"
   echo "must be available in your PATH variable."
   echo "If you are still not able to continue, please contact Greenbone Support at"
   echo "support@greenbone.net and include the error messages displayed above (if any)"
   echo "and your customer ID."
   echo "==============================================================================="
   echo
-  log_write "Neither openvassd nor openvasd found, aborting synchronization."
+  log_write "openvassd not found, aborting synchronization."
   exit 1
 fi
+SCANNER_NAME="openvas-scanner"
 SCANNER_CONFIG="`basename $SCANNER_BINARY`.conf"
 
 RSYNC=`command -v rsync`
@@ -351,7 +300,7 @@ update_openvasmd (){
     if [[ -e $sysconfdir/init.d/$MANAGER_NAME ]]
     then
       log_write "Updating the OpenVAS Manager database..."
-      ( $OPENVASMD --update && $sysconfdir/init.d/$MANAGER_NAME restart ) &
+      $OPENVASMD --rebuild && $sysconfdir/init.d/$MANAGER_NAME restart
     else
       echo
       echo "== greenbone-nvt-sync $VERSION =========================================="
@@ -366,9 +315,76 @@ update_openvasmd (){
   fi
 }
 
-sync_nvts
-restart_openvassd
-update_openvasmd
+do_self_test ()
+{
+  RSYNC_AVAIL=`command -v rsync`
+  if [[ -z $RSYNC_AVAIL ]] ; then
+    SELFTEST_FAIL=1
+    echo "The rsync binary could not be found." 1>&2
+  fi
+  MD5SUM_AVAIL=`command -v md5sum`
+  if [[ -z $MD5SUM_AVAIL ]] ; then
+    SELFTEST_FAIL=1
+    echo "The md5sum binary could not be found." 1>&2
+  fi
+  if [[ ! -e $sysconfdir/openvas/gsf-access-key ]] ; then
+    SELFTEST_FAIL=1
+    echo "No Greenbone Security Feed subscription file found." 1>&2
+    # else
+    # Test rsync
+    # Validate key
+  fi
+}
+
+do_describe ()
+{
+  echo "This script synchronizes an NVT collection with the '$FEED_NAME'."
+  echo "The '$FEED_NAME' is provided by '$FEED_PROVIDER'."
+  echo "Online information about this feed: '$FEED_HOME'."
+}
+
+do_feedversion () {
+  VERSIONFILE="$NVT_DIR/plugin_feed_info.inc"
+  if [ -r $VERSIONFILE ] ; then
+    FEEDVERSION=`grep PLUGIN_SET $VERSIONFILE | sed -e 's/[^0-9]//g'`
+    echo $FEEDVERSION
+  fi
+}
+
+if [ -z "$1" ] ; then
+  log_write "Starting synchronization."
+  sync_nvts
+  restart_openvassd
+  update_openvasmd
+  log_write "Synchronization successful."
+else
+  while test $# -gt 0; do
+    case "$1" in
+      --version)
+        echo $VERSION
+        exit 0
+        ;;
+      --identify)
+        echo "NVTSYNC|$SCRIPT_NAME|$VERSION|$FEED_NAME|$RESTRICTED|NVTSYNC"
+        exit 0
+        ;;
+      --selftest)
+        SELFTEST_FAIL=0
+        do_self_test
+        exit $SELFTEST_FAIL
+        ;;
+      --describe)
+        do_describe
+        exit 0
+        ;;
+      --feedversion)
+        do_feedversion
+        exit 0
+        ;;
+    esac
+    shift
+  done
+fi
 
 exit 0
 
