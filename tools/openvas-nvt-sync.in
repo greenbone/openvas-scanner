@@ -205,10 +205,9 @@ do_self_test () {
 }
 
 do_describe () {
-  echo "[i] This script synchronizes an NVT collection with the '$FEED_NAME'."
-  echo "[i] The '$FEED_NAME' is provided by '$FEED_PROVIDER'."
-  echo "[i] Online information about this feed: '$FEED_HOME'."
-  echo "[i] NVT dir: $NVT_DIR"
+  echo "This script synchronizes an NVT collection with the '$FEED_NAME'."
+  echo "The '$FEED_NAME' is provided by '$FEED_PROVIDER'."
+  echo "Online information about this feed: '$FEED_HOME'."
 
 }
 
@@ -220,8 +219,16 @@ do_feedversion () {
   fi
 }
 
+show_intro () {
+  echo "[i] This script synchronizes an NVT collection with the '$FEED_NAME'."
+  echo "[i] The '$FEED_NAME' is provided by '$FEED_PROVIDER'."
+  echo "[i] Online information about this feed: '$FEED_HOME'."
+  echo "[i] NVT dir: $NVT_DIR"
+
+}
+
 if [ -z "$1" ]; then
-	do_describe
+	show_intro
 	if [ -z "$CMD_RSYNC" ]; then
 		echo "[w] rsync not found!"
 		if [ -z "$CMD_WGET"]; then

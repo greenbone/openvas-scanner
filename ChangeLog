@@ -1,5 +1,11 @@
 2010-04-06  Michael Wiegand <michael.wiegand@intevation.de>
 
+	* tools/openvas-nvt-sync.in: Split showing of description in two
+	separate case for interactive and API use to make description in GSA
+	look better.
+
+2010-04-06  Michael Wiegand <michael.wiegand@intevation.de>
+
 	* tools/greenbone-nvt-sync: Added support for retrieving the version
 	of the NVT collection. Removed support for 2.0 infrastructures, tidied
 	up parameter handling and function definitions, added check for
