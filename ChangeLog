@@ -1,3 +1,11 @@
+2010-04-08  Matthew Mundell <matthew.mundell@intevation.de>
+
+	File missing from 2010-03-11 commit.
+
+	* openvassd/hosts.c (hosts_pause_all, hosts_resume_all): New functions.
+	Send pause and resume signal to host process.
+	(hosts_read_client): Pause or resume if client gave associated command.
+
 2010-04-06  Michael Wiegand <michael.wiegand@intevation.de>
 
 	* tools/openvas-nvt-sync.in: Split showing of description in two

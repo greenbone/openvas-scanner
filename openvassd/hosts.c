@@ -39,7 +39,7 @@
 #include "ntp_11.h"
 
 /**
- * @brief Host information, implementet as doubly linked List.
+ * @brief Host information, implemented as doubly linked list.
  */
 struct host
 {
@@ -274,6 +274,36 @@ hosts_stop_all ()
 
 /*-----------------------------------------------------------------*/
 
+/**
+ * @brief Pause all hosts.
+ */
+void
+hosts_pause_all ()
+{
+  struct host *host = hosts;
+  while (host != NULL)
+    {
+      kill (host->pid, SIGUSR1);
+      host = host->next;
+    }
+}
+
+/**
+ * @brief Resume all hosts.
+ */
+void
+hosts_resume_all ()
+{
+  struct host *host = hosts;
+  while (host != NULL)
+    {
+      kill (host->pid, SIGUSR2);
+      host = host->next;
+    }
+}
+
+/*-----------------------------------------------------------------*/
+
 static int
 hosts_read_data (struct arglist *globals)
 {
@@ -381,6 +411,10 @@ hosts_read_client (struct arglist *globals)
       f = ntp_11_parse_input (globals, buf);
       if (f == NTP_STOP_WHOLE_TEST)
         return -1;
+      else if (f == NTP_PAUSE_WHOLE_TEST)
+        hosts_pause_all ();
+      else if (f == NTP_RESUME_WHOLE_TEST)
+        hosts_resume_all ();
     }
 
   return 0;
