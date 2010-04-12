@@ -58,21 +58,12 @@ RESTRICTED=1
 if [[ ! -w $LOGDIR ]]
 then
   NOLOG=1
-  echo
-  echo "== greenbone-nvt-sync $VERSION ================================================"
-  echo "Warning: The logfile directory"
-  echo "  ($LOGDIR)"
-  echo "does not exist or is not writeable. Please make sure this directory exists and"
-  echo "is writable."
-  echo "Please be aware that logging is not possible during this script run!"
-  echo "==============================================================================="
-  echo
 fi
 
 log_write(){
   if (( $NOLOG ))
   then
-    echo "LOG: [`date -R`] $1"
+    echo "LOG: [`date -R`] $1" > /dev/stderr
   else
     echo "[`date -R`] $1" >> $LOGDIR$LOGFILE
   fi

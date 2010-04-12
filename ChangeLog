@@ -1,3 +1,9 @@
+2010-04-12  Michael Wiegand <michael.wiegand@intevation.de>
+
+	* tools/greenbone-nvt-sync: Removed unnecessary and misleading message
+	when the log file could not be accessed. Changed behaviour to log to
+	stderr instead of stdout when logging to a file is not possible.
+
 2010-04-08  Matthew Mundell <matthew.mundell@intevation.de>
 
 	File missing from 2010-03-11 commit.
