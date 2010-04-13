@@ -1,3 +1,8 @@
+2010-04-13  Michael Wiegand <michael.wiegand@intevation.de>
+
+	* tools/greenbone-nvt-sync: Increase VERSION to reflect the changes
+	made yesterday.
+
 2010-04-13  Geoff Galitz <geoff@eifel-consulting.eu>
 
 	* openvassd/attack.c: changed SSH-DEBUG message to not include
