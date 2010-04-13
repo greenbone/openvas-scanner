@@ -1,3 +1,9 @@
+2010-04-13  Geoff Galitz <geoff@eifel-consulting.eu>
+
+	* openvassd/attack.c: changed SSH-DEBUG message to not include
+	references directly to LSC checks.  This is to avoid confusion
+	between credentials debugging and LSC troubleshooting.
+
 2010-04-12  Michael Wiegand <michael.wiegand@intevation.de>
 
 	* tools/greenbone-nvt-sync: Removed unnecessary and misleading message

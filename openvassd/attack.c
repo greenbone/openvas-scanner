@@ -6,6 +6,7 @@
 *	   - Tim Brown <mailto:timb@openvas.org> (Initial fork)
 *	   - Laban Mwangi <mailto:labanm@openvas.org> (Renaming work)
 *	   - Tarik El-Yassem <mailto:tarik@openvas.org> (Headers section)
+*	   - Geoff Galitz <mailto:geoff@eifel-consulting.eu (Minor debug edits)
 *
 * Copyright:
 * Portions Copyright (C) 2006 Software in the Public Interest, Inc.
@@ -401,7 +402,7 @@ fill_host_kb_ssh_credentials (struct kb_item **kb, struct arglist *globals,
   if (map_host_login_names == NULL || map_loginname_login == NULL)
     {
       printf
-        ("SSH-DEBUG: Not setting login information for local checks at %s : No mapping found.\n",
+        ("SSH-DEBUG: Host %s: no extended credentials configuration.\n",
          hostname);
       return;
     }
