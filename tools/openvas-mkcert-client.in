@@ -42,11 +42,12 @@ usage()
  echo "  -h           Display help"
  echo "  -n <name>    Run non-interactively, create certificates for user <name>"
  echo "               and register user <name> with the OpenVAS scanner"
+ echo "  -i           Install client certificates for use with OpenVAS manager"
  echo
  exit $1
 }
 
-while getopts "n:h" OPTION
+while getopts "n:hi" OPTION
 do
      case $OPTION in
          h)
@@ -54,6 +55,9 @@ do
              ;;
          n)
              NAME=$OPTARG
+             ;;
+         i)
+             INSTALLCERT=1
              ;;
     esac
 done
@@ -442,8 +446,18 @@ ${EMAIL:-.}" |
         read ANOTHER
         I=`expr $I + 1`
     fi
+
+    if [ ! -z $INSTALLCERT ] ; then
+      cp $BASEDIR/key_$PSEUDO.pem $OPENVASPRIV/clientkey.pem
+      cp $BASEDIR/cert_$PSEUDO.pem $OPENVASPUB/clientcert.pem
+    fi
 done
 
-echo "Your client certificates are in $BASEDIR ."; echo
-echo "You will have to copy them by hand."; echo
+if [ -z $INSTALLCERT ] ; then
+  echo "Your client certificates are in $BASEDIR ."; echo
+  echo "You will have to copy them by hand."; echo
+fi
 
+if [ ! -z $INSTALLCERT -a -n $NAME ] ; then
+  rm -rf $BASEDIR
+fi

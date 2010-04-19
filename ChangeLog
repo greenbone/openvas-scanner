@@ -1,3 +1,8 @@
+2010-04-19  Michael Wiegand <michael.wiegand@greenbone.net>
+
+	* tools/openvas-mkcert-client.in: Added switch to automatically
+	install generated certificates for use with the openvas-manager.
+
 2010-04-13  Michael Wiegand <michael.wiegand@intevation.de>
 
 	* tools/greenbone-nvt-sync: Increase VERSION to reflect the changes
