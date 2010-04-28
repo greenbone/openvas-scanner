@@ -1,3 +1,13 @@
+2010-04-28  Jan-Oliver Wagner <jan-oliver.wagner@greenbone.net>
+
+	Removed the CNVT "ssl_cipher" which is being replaced
+	by the NASL implementation "secpod_ssl_ciphers.nasl".
+
+	* cnvts/ssl_ciphers/, cnvts/ssl_ciphers/ssl_ciphers.c,
+	cnvts/ssl_ciphers/Makefile: Removed.
+
+	* MANIFEST: Updated.
+
 2010-04-19  Michael Wiegand <michael.wiegand@greenbone.net>
 
 	* tools/openvas-mkcert-client.in: Added switch to automatically

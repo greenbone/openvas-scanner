@@ -7,8 +7,6 @@ cnvts/install_plug
 cnvts/make_world
 cnvts/openvas_tcp_scanner/Makefile
 cnvts/openvas_tcp_scanner/openvas_tcp_scanner.c
-cnvts/ssl_ciphers/Makefile
-cnvts/ssl_ciphers/ssl_ciphers.c
 cnvts/synscan/openvasicmp.h
 cnvts/synscan/openvasip.h
 cnvts/synscan/openvasraw.h
