@@ -475,36 +475,24 @@ fill_host_kb_ssh_credentials (struct kb_item **kb, struct arglist *globals,
   if (login->ssh_key_passphrase)
     kb_item_set_str (kb, "Secret/SSH/passphrase", login->ssh_key_passphrase);
 
-  // For the key-files: translate the path and set file content to kb
+  // For the key-files: look up content uploaded by client and set in kb
   if (login->public_key_path)
     {
-      const char *translated_path = g_hash_table_lookup (file_translation,
-                                                         login->
-                                                         public_key_path);
-      gchar *contents;
-      GError *error = NULL;
-      if (translated_path
-          && g_file_get_contents (translated_path, &contents, NULL, &error))
+      char *contents = g_hash_table_lookup (file_translation,
+                                            login->public_key_path);
+      if (contents)
         {
           kb_item_set_str (kb, "Secret/SSH/publickey", contents);
         }
-      if (error != NULL)
-        g_error_free (error);
     }
   if (login->private_key_path)
     {
-      const char *translated_path = g_hash_table_lookup (file_translation,
-                                                         login->
-                                                         private_key_path);
-      gchar *contents;
-      GError *error = NULL;
-      if (translated_path
-          && g_file_get_contents (translated_path, &contents, NULL, &error))
+      char *contents = g_hash_table_lookup (file_translation,
+                                            login->private_key_path);
+      if (contents)
         {
           kb_item_set_str (kb, "Secret/SSH/privatekey", contents);
         }
-      if (error != NULL)
-        g_error_free (error);
     }
 
   printf ("SSH-DEBUG: Resolved account name %s for local tests at %s\n",
@@ -772,18 +760,20 @@ attack_start (struct attack_start_args *args)
 }
 
 /**
- * @brief Remove a file that was uploaded by the user, as callback for
+ * @brief Frees memory used by uploaded, as callback for
  * @brief g_hash_table_foreach.
  *
- * @param key     Key of the hashtable.
- * @param value   Value of the hashtable (will attempt to unlink file at this
- *                path).
+ * @param key     Key of the hashtable (ignored).
+ * @param value   Value of the hashtable (ignored).
  * @param ignored data-pointer (ignored).
+ *
+ * @return Currently always returns TRUE, indicating that every entry in the
+ * @return hash table can be freed by the time this function is called.
  */
-static void
-unlink_name_mapped_file (gchar * key, gchar * value, gpointer ignored)
+gboolean
+free_uploaded_file (gchar * key, gchar * value, gpointer ignored)
 {
-  unlink (value);
+  return TRUE;
 }
 
 /*******************************************************
@@ -1064,10 +1054,10 @@ attack_network (struct arglist *globals)
   log_write ("user %s : test complete", attack_user_name (globals));
 
 scan_stop:
-  /* Delete the files uploaded by the user, if any. */
+  /* Free the memory used by the files uploaded by the user, if any. */
   files = arg_get_value (globals, "files_translation");
   if (files)
-    g_hash_table_foreach (files, (GHFunc) unlink_name_mapped_file, NULL);
+    g_hash_table_foreach_remove (files, (GHRFunc) free_uploaded_file, NULL);
 
   if (rejected_hosts && rejected_hosts->next)
     {

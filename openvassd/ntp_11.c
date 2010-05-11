@@ -385,22 +385,23 @@ ntp_11_show_end (struct arglist *globals, char *name, int internal)
 /**
  * @brief Adds a 'translation' entry for a file sent by the client.
  *
- * Files sent by the client are stored temporarily at server side.
- * In order to access these files, their original paths ('local' to the client)
- * can be 'translated' into the file paths of the temporary files on server side.
+ * Files sent by the client are stored in memory on the server side.
+ * In order to access these files, their original name ('local' to the client)
+ * can be 'translated' into the file contents of the in-memory copy of the
+ * file on the server side.
  *
  * @param globals    Global arglist.
- * @param remotename Path to file as referenced by the client.
- * @param localname  Path to file as referenced by the server.
+ * @param remotename Name of the file as referenced by the client.
+ * @param contents   Contents of the file.
  */
 static void
 files_add_translation (struct arglist *globals, const char *remotename,
-                       const char *localname)
+                       const char *contents)
 {
   GHashTable *trans = arg_get_value (globals, "files_translation");
 #if 0
-  fprintf (stderr, "files_add_translation: R=%s\tL=%s\n", remotename,
-           localname);
+  fprintf (stderr, "files_add_translation: R=%s\tC=%s\n", remotename,
+           contents);
 #endif
   // Register the mapping table if none there yet
   if (trans == NULL)
@@ -409,7 +410,37 @@ files_add_translation (struct arglist *globals, const char *remotename,
       arg_add_value (globals, "files_translation", ARG_PTR, -1, trans);
     }
 
-  g_hash_table_insert (trans, g_strdup (remotename), g_strdup (localname));
+  g_hash_table_insert (trans, g_strdup (remotename), contents);
+}
+
+/**
+ * @brief Adds a 'content size' entry for a file sent by the client.
+ *
+ * Files sent by the client are stored in memory on the server side.
+ * Because they may be binary we need to store the size of the uploaded file as
+ * well. This function sets up a mapping from the original name sent by the
+ * client to the file size.
+ *
+ * @param globals    Global arglist.
+ * @param remotename Name of the file as referenced by the client.
+ * @param filesize   Size of the file in bytes.
+ */
+static void
+files_add_size_translation (struct arglist *globals, const char *remotename,
+                            const long filesize)
+{
+  GHashTable *trans = arg_get_value (globals, "files_size_translation");
+  log_write ("files_add_size_translation: %s is %ld bytes (before ptr)", remotename, filesize);
+  gchar *filesize_str = g_strdup_printf ("%ld", filesize);
+
+  // Register the mapping table if none there yet
+  if (trans == NULL)
+    {
+      trans = g_hash_table_new_full (g_str_hash, g_str_equal, g_free, NULL);
+      arg_add_value (globals, "files_size_translation", ARG_PTR, -1, trans);
+    }
+
+  g_hash_table_insert (trans, g_strdup (remotename), g_strdup (filesize_str));
 }
 
 /**
@@ -421,14 +452,16 @@ files_add_translation (struct arglist *globals, const char *remotename,
  * The GHashTable will be available through the (global) arglist under the key
  * "MAP_HOST_SSHLOGIN_NAME".
  *
- * @param globals  Arglist to add the GHashTable to.
- * @param filepath Path to file with serialized GHashTable.
+ * @param globals     Arglist to add the GHashTable to.
+ * @param keyfiledata String containing the serialized GHashTable in keyfile
+ * format.
  */
 static void
-build_global_host_sshlogins_map (struct arglist *globals, char *filepath)
+build_global_host_sshlogins_map (struct arglist *globals, char *keyfiledata)
 {
   // Deserialize the hashtable that mapped login-account names to host names.
-  GHashTable *map_host_sshlogin_name = hash_table_file_read (filepath);
+  GHashTable *map_host_sshlogin_name =
+    hash_table_file_read_text (keyfiledata, strlen (keyfiledata));
   // Add or replace it in the arglist
   if (map_host_sshlogin_name != NULL
       && arg_get_value (globals, "MAP_HOST_SSHLOGIN_NAME") == NULL)
@@ -440,23 +473,23 @@ build_global_host_sshlogins_map (struct arglist *globals, char *filepath)
 }
 
 /**
- * @brief Reads a ssh login file with mapping that was sent by the client.
+ * @brief Reads ssh login information with mapping that was sent by the client.
  *
- * The file (local to the client called '.logins') is used to create a
+ * The information (mapped to the client file name '.logins') is used to create a
  * GHashTable that maps openvas_ssh_login structs to the user-defined names for
  * login-accounts.
  *
  * If successful, the map is available under the key "MAP_NAME_SSHLOGIN".
- * For it
  *
  * @param globals  Global arglist to add the map to.
- * @param filepath Path to the file '.logins' as translated.
+ * @param filepath Content of the '.login' file sent by the client.
  */
 static void
-build_global_sshlogin_info_map (struct arglist *globals, char *filepath)
+build_global_sshlogin_info_map (struct arglist *globals, char *keyfiledata)
 {
-  // Read the file, build map of names->structs
-  GHashTable *ssh_logins = openvas_ssh_login_file_read (filepath, FALSE);
+  // Read the buffer, build map of names->structs
+  GHashTable *ssh_logins =
+    openvas_ssh_login_file_read_buffer (keyfiledata, strlen (keyfiledata), FALSE);
   // Add/ Replace, if not-empty
   if (ssh_logins != NULL
       && arg_get_value (globals, "MAP_NAME_SSHLOGIN") == NULL)
@@ -482,11 +515,11 @@ ntp_11_recv_file (struct arglist *globals)
 {
   int soc = GPOINTER_TO_SIZE (arg_get_value (globals, "global_socket"));
   char input[4096];
-  char *origname, *localname = temp_file_name ();
+  char *origname, *contents;
+  gchar *cont_ptr = NULL;
   int n;
   long bytes = 0;
   long tot = 0;
-  int fd;
 
 #if 0
   fprintf (stderr, "ntp_11_recv_file\n");
@@ -524,17 +557,18 @@ ntp_11_recv_file (struct arglist *globals)
 
   /* We now know that we have to read <bytes> bytes from the remote socket. */
 
-  fd = open (localname, O_CREAT | O_WRONLY | O_TRUNC, 0600);
-  if (fd < 0)
+  contents = g_try_malloc0 (bytes);
+
+  if (contents == NULL)
     {
-      perror ("ntp_11_recv_file: open() ");
+      log_write ("ntp_11_recv_file: Failed to allocate memory for uploaded file.");
       return -1;
     }
 
 #if 0
-  fprintf (stderr, "ntp_11_recv_file: localname=%s\n", localname);
+  fprintf (stderr, "ntp_11_recv_file: contents=%s\n", contents);
 #endif
-
+  cont_ptr = contents;
   while (tot < bytes)
     {
       bzero (input, sizeof (input));
@@ -548,30 +582,28 @@ ntp_11_recv_file (struct arglist *globals)
         }
       else
         {
-          write (fd, input, n);
+          memcpy ((cont_ptr + (tot * sizeof (char))), &input, n);
           tot += n;
         }
     }
   auth_printf (globals, "SERVER <|> FILE_ACCEPTED <|> SERVER\n");
   /* Add the fact that what the remote client calls <filename> is actually
-   * <localname> here. */
-  files_add_translation (globals, origname, localname);
-
-  close (fd);
+   * stored in <contents> here and has a size of <bytes> bytes. */
+  files_add_translation (globals, origname, contents);
+  files_add_size_translation (globals, origname, bytes);
 
   // Check for files that are handled in a special manner access per-host
   // login information.
   gchar *origname_file = g_path_get_basename (origname);
   if (!strcmp (origname_file, ".host_sshlogins"))
     {
-      build_global_host_sshlogins_map (globals, localname);
+      build_global_host_sshlogins_map (globals, contents);
     }
   else if (!strcmp (origname_file, ".logins"))
     {
-      build_global_sshlogin_info_map (globals, localname);
+      build_global_sshlogin_info_map (globals, contents);
     }
 
-  efree (&localname);
   g_free (origname);
   g_free (origname_file);
 

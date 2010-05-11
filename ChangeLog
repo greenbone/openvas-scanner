@@ -1,3 +1,32 @@
+2010-05-11  Michael Wiegand <michael.wiegand@greenbone.net>
+
+	Changed preference file infrastructure to handle file uploads stored
+	in memory instead of on disk. Part of OpenVAS Change Request #47
+	(http://www.openvas.org/openvas-cr-47.html).
+
+	* openvassd/utils.c (temp_file_name): Removed, function was obsoleted
+	by the implementation of CR #47 and used nowhere else.
+
+	* openvassd/utils.h: Updated.
+
+	* openvassd/ntp_11.c (files_add_translation): This function now stores
+	the contents of the uploaded file instead of the server side file
+	name. Updated comments and variable names as well to reflect the
+	change.
+	(files_add_size_translation): New. Stores the size of the uploaded
+	file so that it is available later to NASL functions.
+	(build_global_host_sshlogins_map): Updated to read the mapping from a
+	buffer instead of from a file.
+	(build_global_sshlogin_info_map): Updated to read the mapping from a
+	buffer instead of from a file.
+	(ntp_11_recv_file): Read uploaded file into memory instead of writing
+	it to a file.
+
+	* openvassd/attack.c (fill_host_kb_ssh_credentials): Get credentials
+	directly from memory instead of from a file.
+	(unlink_name_mapped_file): Removed. Replaced by free_uploaded_file.
+	(free_uploaded_file): New.
+
 2010-04-28  Jan-Oliver Wagner <jan-oliver.wagner@greenbone.net>
 
 	Removed the CNVT "ssl_cipher" which is being replaced

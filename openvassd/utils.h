@@ -57,7 +57,6 @@ void attack_atom_insert (struct attack_atom **, char *, int, int);
 void attack_atom_remove (struct attack_atom **, char *);
 
 
-char *temp_file_name ();
 int version_check (char *, char *);
 
 struct arglist *list2arglist (char *);

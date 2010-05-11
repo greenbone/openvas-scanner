@@ -293,48 +293,6 @@ hosts_arglist_to_string (struct arglist *hosts)
   return (ret);
 }
 
-/**
- * @brief Returns a name for a temporary file.
- *
- * This function ensures that this name is not taken
- * already.
- */
-/** @todo Consider reworking, the current code is subject to a TOCTOU race
- *        condition.
- *        Problem is that these temporary files are used to store user-uploaded
- *        content and are needed by child processes, where the content is read
- *        in again.
- *        In between, file names are stored in a GHashTable ('translation').
- *        Maybe this hashtable should instead carry the (uploaded) file itself.
- */
-char *
-temp_file_name ()
-{
-  char *ret =
-    emalloc (strlen (OPENVASSD_STATEDIR) + strlen ("tmp/") + strlen ("tmp") +
-             40);
-  int fd = -1;
-  do
-    {
-      if (fd > 0 && close (fd) < 0)
-        perror ("close");
-
-      sprintf (ret, "%s/tmp", OPENVASSD_STATEDIR);
-      mkdir (ret, 0700);
-      sprintf (ret, "%s/tmp/tmp.%d-%d", OPENVASSD_STATEDIR, getpid (),
-               rand () % 1024);
-      fd = open (ret, O_RDONLY);
-    }
-  while (fd >= 0);
-
-  if (close (fd) < 0)
-    perror ("close");
-
-  return ret;
-}
-
-
-
 
 /**
  * Determines if a process is alive - as reliably as we can
