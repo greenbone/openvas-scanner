@@ -1,3 +1,14 @@
+2010-05-17  Michael Wiegand <michael.wiegand@greenbone.net>
+
+	Adding risk_factor tags to CNVTs.
+
+	* cnvts/find_service/find_service.c (plugin_init): Set risk_factor.
+
+	* cnvts/openvas_tcp_scanner/openvas_tcp_scanner.c (plugin_init): Set
+	risk_factor.
+
+	* cnvts/synscan/synscan.c (plugin_init): Set risk_factor.
+
 2010-05-11  Michael Wiegand <michael.wiegand@greenbone.net>
 
 	Changed preference file infrastructure to handle file uploads stored

@@ -75,6 +75,9 @@ plugin_init(desc)
 	plug_set_summary(desc, EN_SUMM);
 
 	plug_set_copyright(desc, EN_COPY);
+
+        plug_set_tag (desc, "risk_factor", "None");
+
 	add_plugin_preference(desc, NUM_CHILDREN, PREF_ENTRY, "6");
 	add_plugin_preference(desc, CNX_TIMEOUT_PREF, PREF_ENTRY, "5");
 	add_plugin_preference(desc, RW_TIMEOUT_PREF, PREF_ENTRY, "5");

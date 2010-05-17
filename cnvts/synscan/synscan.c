@@ -911,6 +911,7 @@ plugin_init (struct arglist * desc)
   plug_set_family (desc, EN_FAMILY);
 
   plug_set_dep (desc, "ping_host.nasl");
+  plug_set_tag (desc, "risk_factor", "None");
   return (0);
 }
 

@@ -85,6 +85,7 @@ SYN (half open) scanners\
  plug_set_family(desc, "Port scanners");
 
  plug_set_dep(desc, "ping_host.nasl");
+ plug_set_tag (desc, "risk_factor", "None");
  return(0);
 }
 #endif 
