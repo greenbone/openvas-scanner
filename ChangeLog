@@ -1,3 +1,13 @@
+2010-05-19  Michael Wiegand <michael.wiegand@greenbone.net>
+
+	Preparing the openvas-scanner 3.1.0.rc1 release.
+
+	* VERSION: Set to 3.1.0.rc1.
+
+	* doc/Doxyfile, doc/Doxyfile_full: Updated PROJECT_NUMBER.
+
+	* CHANGES: Updated.
+
 2010-05-19  Felix Wolfsteller <felix.wolfsteller@greenbone.net>
 
 	* README: Added hint that openvas-scanner is an evolution of
