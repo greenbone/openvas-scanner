@@ -1,3 +1,8 @@
+2010-05-19  Felix Wolfsteller <felix.wolfsteller@greenbone.net>
+
+	* README: Added hint that openvas-scanner is an evolution of
+	openvas-server. Corrected dependency statement.
+
 2010-05-17  Michael Wiegand <michael.wiegand@greenbone.net>
 
 	Adding risk_factor tags to CNVTs.

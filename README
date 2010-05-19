@@ -15,8 +15,8 @@ described below, we recommend that you use a binary package provided by your
 distribution. Information regarding available binary packages is available from
 the OpenVAS website.
 
-Note that you will need the openvas-libraries and openvas-libnasl modules to
-compile openvas-scanner. Further information about these modules is available
+Note that you will need the openvas-libraries modules to compile
+openvas-scanner. Further information about these modules is available
 from the OpenVAS website as well.
 
 If you have any question or suggestions, please feel free to use the mailing
@@ -69,7 +69,8 @@ Setting up openvas-scanner
 
 NOTE: This is only a very concise guide to setting up an openvas-scanner. Please
 refer to the OpenVAS compendium available at http://www.openvas.org/compendium/
-for more detailed information.
+for more detailed information. One of the many changes from OpenVAS 2.0 to
+OpenVAS 3.0 was the renaming of openvas-server to openvas-scanner.
 
 Setting up an openvas-scanner requires the following steps:
 
