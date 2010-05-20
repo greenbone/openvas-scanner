@@ -1,3 +1,8 @@
+2010-05-20  Michael Wiegand <michael.wiegand@greenbone.net>
+
+	* openvassd/ntp_11.c (files_add_size_translation): Removed stray debug
+	message.
+
 2010-05-19  Michael Wiegand <michael.wiegand@greenbone.net>
 
 	Post-release version bump.

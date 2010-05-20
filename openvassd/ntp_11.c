@@ -430,7 +430,6 @@ files_add_size_translation (struct arglist *globals, const char *remotename,
                             const long filesize)
 {
   GHashTable *trans = arg_get_value (globals, "files_size_translation");
-  log_write ("files_add_size_translation: %s is %ld bytes (before ptr)", remotename, filesize);
   gchar *filesize_str = g_strdup_printf ("%ld", filesize);
 
   // Register the mapping table if none there yet
