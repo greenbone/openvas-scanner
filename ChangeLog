@@ -1,3 +1,9 @@
+2010-05-27  Felix Wolfsteller <felix.wolfsteller@greenbone.net>
+
+	* openvassd/ntp_11.c (files_add_translation): Adressed compiler
+	warning, made content parameter not const (a reference is put in the
+	hashtable, data might get manipulated or freed from somewhere else).
+
 2010-05-20  Michael Wiegand <michael.wiegand@greenbone.net>
 
 	* openvassd/ntp_11.c (files_add_size_translation): Removed stray debug

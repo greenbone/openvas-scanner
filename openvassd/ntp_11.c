@@ -396,7 +396,7 @@ ntp_11_show_end (struct arglist *globals, char *name, int internal)
  */
 static void
 files_add_translation (struct arglist *globals, const char *remotename,
-                       const char *contents)
+                       char *contents)
 {
   GHashTable *trans = arg_get_value (globals, "files_translation");
 #if 0
