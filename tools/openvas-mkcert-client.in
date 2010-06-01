@@ -121,8 +121,8 @@ done
 if [ "$R" = `echo "y"` ]; then
     USERSDIR="$localstatedir/lib/openvas/users"
     if [ ! -d "$USERSDIR" ]; then
-        echo "Could not access OpenVAS scanner user directory ($USERSDIR)."
-        exit 1
+        mkdir -p $USERSDIR
+        chmod 755 $USERSDIR
     fi
 else
     USERSDIR=""

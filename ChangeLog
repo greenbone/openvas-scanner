@@ -1,3 +1,9 @@
+2010-06-01  Michael Wiegand <michael.wiegand@greenbone.net>
+
+	* tools/openvas-mkcert-client.in: Create the openvas users directory
+	if installing the new user is requested and the directory does not
+	exist.
+
 2010-05-27  Felix Wolfsteller <felix.wolfsteller@greenbone.net>
 
 	* openvassd/ntp_11.c (files_add_translation): Adressed compiler
