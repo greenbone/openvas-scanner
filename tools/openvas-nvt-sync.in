@@ -10,6 +10,7 @@
 #
 # Authors:
 # Vlatko Kosturjak <kost@linux.hr>
+# Michael Wiegand <michael.wiegand@greenbone.net>
 #
 # Script is complete rewrite of original sync script by 
 # Lukas Grunwald <l.grunwald@dn-systems.de>
@@ -78,15 +79,16 @@ RESTRICTED=0
 
 do_help () {
 	echo "$0: Sync NVTs using different protocols"
-	echo "--rsync		sync with rsync (default)"
-	echo "--wget		sync with wget"
-	echo "--curl		sync with curl"
-	echo "--check		just checksum check"
+	echo " --rsync		sync with rsync (default)"
+	echo " --wget		sync with wget"
+	echo " --curl		sync with curl"
+	echo " --check		just checksum check"
 	echo "OpenVAS administrator functions:"
 	echo " --selftest	perform self-test"
 	echo " --identify	display information"
 	echo " --version	display version"
 	echo " --describe	display current feed info"
+	echo " --nvt-dir <dir>	directory of the NVT collection"
 	echo ""
 	echo "Environment variables:"
 	echo "NVT_DIR		where to extract plugins (absolute path)"
@@ -108,6 +110,7 @@ chk_system_tools () {
 	echo "[i] Searching for required system tools (look for warnings)..."
 
 	if [ -z "$CMD_MD5SUM" ]; then
+	  SELFTEST_FAIL=1
 	  echo "[w] Warning: MD5SUM not found";
 	fi
 
@@ -121,6 +124,10 @@ chk_system_tools () {
 
 	if [ -z "$CMD_CURL" ]; then
 	  echo "[w] Warning: curl not found";
+	fi
+
+	if [ -z "$CMD_RSYNC" -a -z "$CMD_WGET" -a -z "$CMD_CURL" ]; then
+	  SELFTEST_FAIL=1
 	fi
 
 	echo "[i] If you did not get any warnings, that means you have all tools required"
@@ -227,49 +234,54 @@ show_intro () {
 
 }
 
-if [ -z "$1" ]; then
-	show_intro
-	if [ -z "$CMD_RSYNC" ]; then
-		echo "[w] rsync not found!"
-		if [ -z "$CMD_WGET"]; then
-			echo "[w] GNU wget not found!"
-			if [ -z "$CMD_CURL"]; then
-				echo "[w] curl not found!"
-				echo -n "[e] no utility available in PATH environment variable to download plugins"	
-				exit 1
-			else
-				echo "[i] Will use curl"
-				do_curl
-			fi
-		else
-			echo "[i] Will use wget"
-			do_wget
-		fi
-	else
-		echo "[i] Will use rsync"
-		do_rsync
-	fi
-	do_check_md5
-else
+do_sync () {
+  if [ -z "$CMD_RSYNC" ]; then
+    echo "[w] rsync not found!"
+    if [ -z "$CMD_WGET"]; then
+      echo "[w] GNU wget not found!"
+      if [ -z "$CMD_CURL"]; then
+        echo "[w] curl not found!"
+        echo -n "[e] no utility available in PATH environment variable to download plugins"  
+        exit 1
+      else
+        echo "[i] Will use curl"
+        do_curl
+      fi
+    else
+      echo "[i] Will use wget"
+      do_wget
+    fi
+  else
+    echo "[i] Will use rsync"
+    do_rsync
+  fi
+}
+
+if [ -n "$1" ]; then
 	while test $# -gt 0; do
 	 case "$1" in
 		--help)
 			do_help
+			exit 0
 			;;
 		--rsync)
 			do_rsync
 			do_check_md5
+			exit 0
 			;;
 		--wget)
 			do_wget
 			do_check_md5
+			exit 0
 			;;
 		--curl)
 			do_curl
 			do_check_md5
+			exit 0
 			;;
 		--check)
 			do_check_md5
+			exit 0
 			;;
 		--version)
 			echo $VERSION
@@ -292,9 +304,17 @@ else
 			do_feedversion
 			exit 0
 			;;
+		--nvt-dir)
+			NVT_DIR="$2"
+			shift
+			;;
 	 esac
 	 shift
 	done
 fi
+
+show_intro
+do_sync
+do_check_md5
 
 exit 0

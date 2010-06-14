@@ -1,3 +1,13 @@
+2010-06-14  Michael Wiegand <michael.wiegand@greenbone.net>
+
+	* tools/greenbone-nvt-sync: Redirect error messages to stderr or log
+	instead of writing them to stdout. Add --verbose flag. Add --nvt-dir
+	flag. Check for openvassd binary in selftest. Reworked flow and
+	command line parsing.
+
+	* tools/openvas-nvt-sync.in: Make selftest work. Add --nvt-dir flag.
+	Reworked flow and command line parsing.
+
 2010-06-01  Michael Wiegand <michael.wiegand@greenbone.net>
 
 	* tools/openvas-mkcert-client.in: Create the openvas users directory
