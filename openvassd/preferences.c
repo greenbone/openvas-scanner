@@ -188,6 +188,11 @@ preferences_new (char *name)
   fprintf (fd,
            "# Should consider all the NASL scripts as being signed ? (unsafe if set to 'yes')\n");
   fprintf (fd, "nasl_no_signature_check = yes\n\n");
+  fprintf (fd,
+           "# If this option is set to yes, openvassd will attempt to drop its privileges\n");
+  fprintf (fd,
+           "# before launching NVTs.\n");
+  fprintf (fd, "drop_privileges = no\n\n");
   fprintf (fd, "#end.\n");
 
   fclose (fd);
@@ -563,6 +568,38 @@ preferences_benice (preferences)
     yes = 0;
 
   return yes;
+}
+
+
+/**
+ * @brief Returns the privilege setting defined by the client or the scanner
+ * preference if none was set.
+ *
+ * @param preferences Preferences arglist.
+ * @param oid         OID of NVT to ask privilege setting of. (unused)
+ *
+ * @return 1 if privileges should be dropped for this NVT, 0 if not.
+ */
+int
+preferences_drop_privileges (struct arglist *preferences, char *oid)
+{
+  char *pref;
+  int ret = 0;
+
+  if (preferences == NULL)
+      return ret;
+
+  if (arg_get_type (preferences, "drop_privileges") == ARG_STRING)
+    {
+      if (strcmp (arg_get_value (preferences, "drop_privileges"), "yes") == 0)
+        ret = 1;
+    }
+
+  pref = arg_get_value (preferences, "drop_privileges");
+  printf ("pref = %s\n", pref);
+
+  printf ("returning %d\n", ret);
+  return ret;
 }
 
 
