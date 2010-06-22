@@ -596,9 +596,6 @@ preferences_drop_privileges (struct arglist *preferences, char *oid)
     }
 
   pref = arg_get_value (preferences, "drop_privileges");
-  printf ("pref = %s\n", pref);
-
-  printf ("returning %d\n", ret);
   return ret;
 }
 
