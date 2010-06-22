@@ -1,5 +1,10 @@
 2010-06-22  Michael Wiegand <michael.wiegand@greenbone.net>
 
+	* openvassd/nasl_plugins.c (nasl_thread): Attempt to drop privileges
+	before executing the NASL script.
+
+2010-06-22  Michael Wiegand <michael.wiegand@greenbone.net>
+
 	* openvassd/preferences.c (preferences_new): Add default value and
 	comment for new preference "drop_privileges".
 	(preferences_drop_privileges): New. Handles the new preference

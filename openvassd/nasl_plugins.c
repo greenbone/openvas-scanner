@@ -33,6 +33,7 @@
 
 #include <glib.h>
 
+#include <openvas/base/drop_privileges.h> /* for drop_privileges */
 #include <openvas/nasl/nasl.h>
 #include <openvas/network.h>    /* for internal_send */
 #include <openvas/nvt_categories.h>     /* for ACT_SCANNER */
@@ -225,6 +226,7 @@ nasl_thread (struct arglist *g_args)
   int soc = GPOINTER_TO_SIZE (arg_get_value (args, "SOCKET"));
   int i;
   int nasl_mode;
+  GError *error = NULL;
 
   if (preferences_benice (NULL))
     nice (-5);
@@ -280,6 +282,18 @@ nasl_thread (struct arglist *g_args)
   nasl_mode = NASL_EXEC_DONT_CLEANUP;
   if (preferences_nasl_no_signature_check (preferences) > 0)
     nasl_mode |= NASL_ALWAYS_SIGNED;
+
+  if (preferences_drop_privileges (preferences, NULL))
+    {
+      int drop_priv_res = OPENVAS_DROP_PRIVILEGES_OK;
+      drop_priv_res = drop_privileges (NULL, &error);
+      if (drop_priv_res != OPENVAS_DROP_PRIVILEGES_OK)
+        {
+          if (drop_priv_res != OPENVAS_DROP_PRIVILEGES_FAIL_NOT_ROOT)
+            log_write ("Failed to drop privileges for %s\n", name);
+          g_error_free (error);
+        }
+    }
 
   exec_nasl_script (args, name, nasl_mode);
   internal_send (soc, NULL,
