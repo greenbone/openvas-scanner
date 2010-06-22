@@ -135,10 +135,13 @@ set_parser_state (state_t state)
  * implementation is somewhat linux-specific and may not work on other
  * platforms.
  *
+ * TODO: Functionality for dropping privileges has now been added to
+ * openvas-libraries, consider using drop_privileges instead.
+ *
  * @param user_data Pointer to additional data passed by glib; currently unused.
  */
 void
-drop_privileges (gpointer user_data)
+oval_drop_privileges (gpointer user_data)
 {
   struct passwd *nobody_pw = NULL;
 
@@ -997,7 +1000,7 @@ ovaldi_launch (struct arglist *g_args)
   //   log_write ("Launching ovaldi with: %s\n", g_strjoinv (" ", argv));
 
   if (g_spawn_sync
-      (NULL, argv, NULL, G_SPAWN_SEARCH_PATH, drop_privileges, NULL, NULL, NULL,
+      (NULL, argv, NULL, G_SPAWN_SEARCH_PATH, oval_drop_privileges, NULL, NULL, NULL,
        NULL, NULL))
     {
       GMarkupParser parser;

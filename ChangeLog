@@ -1,3 +1,9 @@
+2010-06-22  Michael Wiegand <michael.wiegand@greenbone.net>
+
+	* openvassd/oval_plugins.c (drop_privileges): Renamed function to
+	oval_drop_privileges to avoid namespace collision with function
+	provided by openvas-libraries.
+
 2010-06-14  Michael Wiegand <michael.wiegand@greenbone.net>
 
 	* tools/greenbone-nvt-sync: Redirect error messages to stderr or log
