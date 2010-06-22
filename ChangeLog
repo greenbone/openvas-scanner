@@ -1,5 +1,10 @@
 2010-06-22  Michael Wiegand <michael.wiegand@greenbone.net>
 
+	* openvassd/nes_plugins.c (nes_thread): Attempt to drop privileges
+	before executing the NES script.
+
+2010-06-22  Michael Wiegand <michael.wiegand@greenbone.net>
+
 	* openvassd/nasl_plugins.c (nasl_thread): Attempt to drop privileges
 	before executing the NASL script.
 

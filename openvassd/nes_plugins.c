@@ -31,6 +31,7 @@
 
 #include <glib.h>
 
+#include <openvas/base/drop_privileges.h> /* for drop_privileges */
 #include <openvas/network.h>    /* for internal_send */
 #include <openvas/plugutils.h>  /* for plug_set_path */
 #include <openvas/store.h>      /* for store_load_plugin */
@@ -39,6 +40,7 @@
 #include "pluginload.h"
 #include "pluginscheduler.h"    /* for LAUNCH_DISABLED */
 #include "plugs_hash.h"
+#include "preferences.h"
 #include "processes.h"
 #include "proctitle.h"          /* for setproctitle */
 #include "log.h"
@@ -276,9 +278,11 @@ nes_thread (args)
 {
   int soc = GPOINTER_TO_SIZE (arg_get_value (args, "SOCKET"));
   struct arglist *globals = arg_get_value (args, "globals");
+  struct arglist *preferences = arg_get_value (args, "preferences");
   int i;
   plugin_run_t func;
   int e;
+  GError *error = NULL;
 
   if (preferences_benice (NULL))
     nice (-5);
@@ -303,6 +307,19 @@ nes_thread (args)
                 (char *) arg_get_value (arg_get_value (args, "HOSTNAME"),
                                         "NAME"), (char *) arg_get_value (args,
                                                                          "name"));
+  if (preferences_drop_privileges (preferences, NULL))
+    {
+      int drop_priv_res = OPENVAS_DROP_PRIVILEGES_OK;
+      drop_priv_res = drop_privileges (NULL, &error);
+      if (drop_priv_res != OPENVAS_DROP_PRIVILEGES_OK)
+        {
+          if (drop_priv_res != OPENVAS_DROP_PRIVILEGES_FAIL_NOT_ROOT)
+            log_write ("Failed to drop privileges for %s\n",
+                       (char *) arg_get_value (args, "name"));
+          g_error_free (error);
+        }
+    }
+
   func = arg_get_value (args, "func");
   signal (SIGTERM, _exit);
   e = func (args);
