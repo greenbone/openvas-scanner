@@ -33,6 +33,9 @@
 
 #include <glib.h>
 
+#include <sys/types.h>
+#include <utime.h>
+
 #include <openvas/base/drop_privileges.h> /* for drop_privileges */
 #include <openvas/nasl/nasl.h>
 #include <openvas/network.h>    /* for internal_send */
@@ -132,6 +135,22 @@ nasl_plugin_add (char *folder, char *name, struct arglist *plugins,
       plug_set_path (plugin_args, fullname);
 
       plug_set_sign_key_ids (plugin_args, sign_fprs);
+
+      // Check mtime of plugin before caching it
+      // Set to now if mtime is in the future
+      struct stat plug_stat;
+      time_t now = time (NULL) - 1;
+      stat (fullname, &plug_stat);
+      if (plug_stat.st_mtime > now)
+        {
+          struct utimbuf fixed_timestamp;
+          fixed_timestamp.actime = now;
+          fixed_timestamp.modtime = now;
+          if (utime (fullname, &fixed_timestamp) == 0)
+            log_write ("The timestamp for %s was from the future. This has been fixed.", fullname);
+          else
+            log_write ("The timestamp for %s is from the future and could not be fixed.", fullname);
+        }
 
       if (plug_get_oid (plugin_args) != NULL)
         {

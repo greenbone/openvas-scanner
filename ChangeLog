@@ -1,5 +1,12 @@
 2010-06-25  Michael Wiegand <michael.wiegand@greenbone.net>
 
+	* openvassd/nasl_plugins.c (nasl_plugin_add): Check the modification
+	time of the file before trying to cache a NASL script and fix it if it
+	is greater than the current system time. Resolves the "unable to load
+	plugins from the future" issue.
+
+2010-06-25  Michael Wiegand <michael.wiegand@greenbone.net>
+
 	* openvassd/attack.c (attack_init_hostinfos_vhosts): New. Initializes
 	a hostinfos arglist with vhost values as well.
 	(init_host_kb): Added vhosts parameter to function; now puts vhosts in
