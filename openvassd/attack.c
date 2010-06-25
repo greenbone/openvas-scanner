@@ -134,6 +134,55 @@ attack_handle_sigusr2 ()
  *  - NAME (string, The hostname parameter)
  *  - MAC  (string, The mac parameter if non-NULL)
  *  - IP   (*in_adrr, The ip parameter)
+ *  - VHOSTS (string, comma separated list of vhosts for this IP)
+ *
+ * @param mac      MAC- adress of host or NULL.
+ * @param hostname Hostname to be set.
+ * @param ip       in_adress struct to be set.
+ * @param vhosts   vhosts list to be set
+ *
+ * @return A 'hostinfo' arglist.
+ */
+static struct arglist *
+attack_init_hostinfos_vhosts (char *mac, char *hostname, struct in6_addr *ip, char *vhosts)
+{
+  struct arglist *hostinfos;
+
+  hostinfos = emalloc (sizeof (struct arglist));
+  if (!hg_valid_ip_addr (hostname))
+    {
+      char f[1024];
+      hg_get_name_from_ip (ip, f, sizeof (f));
+      arg_add_value (hostinfos, "FQDN", ARG_STRING, strlen (f), estrdup (f));
+    }
+  else
+    arg_add_value (hostinfos, "FQDN", ARG_STRING, strlen (hostname),
+                   estrdup (hostname));
+
+  if (mac)
+    {
+      arg_add_value (hostinfos, "NAME", ARG_STRING, strlen (mac), mac);
+      arg_add_value (hostinfos, "MAC", ARG_STRING, strlen (mac), mac);
+    }
+  else
+    arg_add_value (hostinfos, "NAME", ARG_STRING, strlen (hostname),
+                   estrdup (hostname));
+
+  arg_add_value (hostinfos, "IP", ARG_PTR, sizeof (struct in6_addr), ip);
+  if (vhosts)
+    arg_add_value (hostinfos, "VHOSTS", ARG_STRING, strlen (vhosts),
+                   estrdup (vhosts));
+  return (hostinfos);
+}
+
+/**
+ * @brief Inits an arglist which can be used by the plugins.
+ *
+ * The arglist will have following keys and (type, value):
+ *  - FQDN (string, Fully qualified domain name, e.g. host.domain.net)
+ *  - NAME (string, The hostname parameter)
+ *  - MAC  (string, The mac parameter if non-NULL)
+ *  - IP   (*in_adrr, The ip parameter)
  *
  * @param mac      MAC- adress of host or NULL.
  * @param hostname Hostname to be set.
@@ -515,10 +564,11 @@ fill_host_kb_ssh_credentials (struct kb_item **kb, struct arglist *globals,
  * @see fill_host_kb_ssh_credentials
  */
 static struct kb_item **
-init_host_kb (struct arglist *globals, char *hostname, gboolean * new_kb)
+init_host_kb (struct arglist *globals, char *hostname, struct arglist *hostinfos, gboolean * new_kb)
 {
   struct kb_item **kb;
   (*new_kb) = FALSE;
+  char *vhosts = (char *) arg_get_value (hostinfos, "VHOSTS");
 
   // Check if kb should be saved.
   if (save_kb (globals))
@@ -548,6 +598,19 @@ init_host_kb (struct arglist *globals, char *hostname, gboolean * new_kb)
 
   // Add local check (SSH)- related knowledge base items
   fill_host_kb_ssh_credentials (kb, globals, hostname);
+  // If vhosts is set, split it and put it in the KB
+  if (vhosts)
+    {
+      gchar **vhosts_array = g_strsplit (vhosts, ",", 0);
+      guint i = 0;
+      while (vhosts_array[i] != NULL)
+        {
+          kb_item_add_str (kb, "hostinfos/vhosts", vhosts_array[i]);
+          save_kb_write_str (globals, hostname, "hostinfos/vhosts", vhosts_array[i]);
+          i++;
+        }
+      g_strfreev (vhosts_array);
+    }
 
   return kb;
 }
@@ -571,7 +634,7 @@ attack_host (struct arglist *globals, struct arglist *hostinfos, char *hostname,
 
   setproctitle ("testing %s", (char *) arg_get_value (hostinfos, "NAME"));
 
-  kb = init_host_kb (globals, hostname, &new_kb);
+  kb = init_host_kb (globals, hostname, hostinfos, &new_kb);
 
   num_plugs = get_active_plugins_number (plugins);
 
@@ -692,6 +755,8 @@ attack_start (struct attack_start_args *args)
 
   struct arglist *preferences = arg_get_value (globals, "preferences");
   char *non_simult = arg_get_value (preferences, "non_simult_ports");
+  char *vhosts = arg_get_value (preferences, "vhosts");
+  char *vhosts_ip = arg_get_value (preferences, "vhosts_ip");
   int thread_socket = args->thread_socket;
   int soc;
   struct timeval then, now;
@@ -730,7 +795,24 @@ attack_start (struct attack_start_args *args)
   arg_add_value (globals, "confirm", ARG_INT, sizeof (int), (void *) 1);
 
   soc = thread_socket;
-  hostinfos = attack_init_hostinfos (mac, hostname, hostip);
+  if (vhosts == NULL || vhosts_ip == NULL)
+    hostinfos = attack_init_hostinfos (mac, hostname, hostip);
+  else
+    {
+      char *txt_ip;
+      struct in_addr inaddr;
+      char name[512];
+      inaddr.s_addr = hostip->s6_addr32[3];
+
+      if (IN6_IS_ADDR_V4MAPPED (hostip))
+        txt_ip = estrdup (inet_ntoa (inaddr));
+      else
+        txt_ip = estrdup (inet_ntop (AF_INET6, hostip, name, sizeof (name)));
+      if (strcmp (vhosts_ip, txt_ip) != 0)
+        vhosts = NULL;
+      hostinfos = attack_init_hostinfos_vhosts (mac, hostname, hostip, vhosts);
+    }
+
   if (mac)
     hostname = mac;
 

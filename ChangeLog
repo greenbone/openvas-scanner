@@ -1,3 +1,13 @@
+2010-06-25  Michael Wiegand <michael.wiegand@greenbone.net>
+
+	* openvassd/attack.c (attack_init_hostinfos_vhosts): New. Initializes
+	a hostinfos arglist with vhost values as well.
+	(init_host_kb): Added vhosts parameter to function; now puts vhosts in
+	the initial KB for this host if they are supplied.
+	(attack_host): Hand hostinfos to init_host_kb.
+	(attack_start): Put vhosts in hostinfos if both vhosts and vhosts_ip
+	are set and if vhosts_ip matches the IP we are supposed to scan.
+
 2010-06-22  Michael Wiegand <michael.wiegand@greenbone.net>
 
 	* openvassd/preferences.c (preferences_drop_privileges): Removed stray
