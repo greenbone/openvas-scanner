@@ -1,3 +1,22 @@
+openvas-scanner 3.1.0.rc2 (2010-06-28)
+
+This is the second release candidate of the openvas-scanner module for the
+Open Vulnerability Assessment System (OpenVAS) 3.1 series.
+
+This release adds support for dropping privileges for NASL and NES NVTs and for
+scanning virtual web hosts. It also contains updated feed synchronization
+scripts.
+
+Many thanks to everyone who has contributed to this release:
+Michael Wiegand and Felix Wolfsteller.
+
+Main changes compared to 3.1.0.rc1:
+* The support scripts for feed synchronization have been updated.
+* Support for dropping privileges in NASL and NES NVTs had been added.
+* Support for scanning virtual web hosts has been added.
+* The handling of NVTs with an invalid timestamp has been improved.
+
+
 openvas-scanner 3.1.0.rc1 (2010-05-19)
 
 This is the first release candidate of the openvas-scanner module for the
