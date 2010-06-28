@@ -1,5 +1,13 @@
 2010-06-28  Michael Wiegand <michael.wiegand@greenbone.net>
 
+	Post-release version bump.
+
+	* VERSION: Set to 3.1.0.rc3.SVN.
+
+	* doc/Doxyfile, doc/Doxyfile_full: Increased PROJECT_NUMBER accordingly.
+
+2010-06-28  Michael Wiegand <michael.wiegand@greenbone.net>
+
 	Preparing the openvas-scanner 3.1.0.rc2 release.
 
 	* VERSION: Set to 3.1.0.rc2.
