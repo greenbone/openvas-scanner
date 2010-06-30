@@ -228,7 +228,6 @@ check_user (char *user, char *password, char *dname)
 
   if (check_pass)
     {
-      char orig[255];
       char *p;
 
       snprintf (fname, sizeof (fname), "%s/%s/auth/hash", OPENVASSD_LOGINS,
@@ -282,49 +281,7 @@ check_user (char *user, char *password, char *dname)
             }
         }
       else
-        {
-          snprintf (fname, sizeof (fname), "%s/%s/auth/password",
-                    OPENVASSD_LOGINS, user);
-          if ((f = fopen (fname, "r")) == NULL)
-            return BAD_LOGIN_ATTEMPT;
-
-          fprintf (stderr,
-                   "\n===========================================================\n");
-          fprintf (stderr, "WARNING! Plaintext password found in:\n");
-          fprintf (stderr, "  %s\n", fname);
-          fprintf (stderr,
-                   "The account for user \"%s\" may have been compromised!\n",
-                   user);
-          fprintf (stderr,
-                   "Please create a new account with openvas-adduser and\n");
-          fprintf (stderr, "delete this account!\n");
-          fprintf (stderr,
-                   "Support for passwords stored in plaintext will be\n");
-          fprintf (stderr, "removed in the next openvas-server release!");
-          fprintf (stderr,
-                   "\n===========================================================\n");
-
-          log_write
-            ("\n===========================================================\n");
-          log_write ("WARNING! Plaintext password found in:\n");
-          log_write ("  %s\n", fname);
-          log_write ("The account for user \"%s\" may have been compromised!\n",
-                     user);
-          log_write ("Please create a new account with openvas-adduser and\n");
-          log_write ("delete this account!\n");
-          log_write ("Support for passwords stored in plaintext will be\n");
-          log_write ("removed in the next openvas-server release!");
-          log_write
-            ("\n===========================================================\n");
-
-          bzero (orig, sizeof (orig));
-          fgets (orig, sizeof (orig) - 1, f);
-          fclose (f);
-          if (orig[0] != '\0')
-            orig[strlen (orig) - 1] = '\0';
-          if (strcmp (password, orig) != 0)
-            return BAD_LOGIN_ATTEMPT;
-        }
+        return BAD_LOGIN_ATTEMPT;
     }
 
   snprintf (fname, sizeof (fname), "%s/%s/auth/rules", OPENVASSD_LOGINS, user);
