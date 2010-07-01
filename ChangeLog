@@ -1,3 +1,13 @@
+2010-07-01  Michael Wiegand <michael.wiegand@greenbone.net>
+
+	Preparing the openvas-scanner 3.1.0.rc3 release.
+
+	* VERSION: Set to 3.1.0.rc3.
+
+	* doc/Doxyfile, doc/Doxyfile_full: Updated PROJECT_NUMBER.
+
+	* CHANGES: Updated.
+
 2010-06-30  Michael Wiegand <michael.wiegand@greenbone.net>
 
 	* openvassd/users.c (check_user): Finally remove legacy support for

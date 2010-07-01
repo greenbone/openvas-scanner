@@ -1,3 +1,19 @@
+openvas-scanner 3.1.0.rc3 (2010-07-01)
+
+This is the third release candidate of the openvas-scanner module for the
+Open Vulnerability Assessment System (OpenVAS) 3.1 series.
+
+This release removes legacy support for passwords stored in plaintext ahead of
+the openvas-scanner 3.1.0 release (see OpenVAS change request #31,
+http://www.openvas.org/openvas-cr-31.html).
+
+Many thanks to everyone who has contributed to this release:
+Michael Wiegand.
+
+Main changes compared to 3.1.0.rc2:
+* Support for storing scanner passwords in plaintext has been removed.
+
+
 openvas-scanner 3.1.0.rc2 (2010-06-28)
 
 This is the second release candidate of the openvas-scanner module for the
