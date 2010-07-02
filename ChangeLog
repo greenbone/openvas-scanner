@@ -1,3 +1,8 @@
+2010-07-02  Michael Wiegand <michael.wiegand@greenbone.net>
+
+	* openvassd/pluginscheduler.c (hash_fill_deps): Remove overly verbose
+	log message when looking for dependencies.
+
 2010-07-01  Michael Wiegand <michael.wiegand@greenbone.net>
 
 	Post-release version bump.

@@ -269,8 +269,6 @@ hash_fill_deps (struct hash *h, struct hash *l)
                 {
                   gchar *dep_with_path =
                     g_build_filename (path, l->dependencies[i], NULL);
-                  log_write ("scheduler: dependency %s not found, trying %s",
-                             l->dependencies[i], dep_with_path);
                   d = _hash_get (h, dep_with_path);
                   g_free (dep_with_path);
                 }
