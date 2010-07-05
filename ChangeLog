@@ -1,3 +1,8 @@
+2010-07-05  Michael Wiegand <michael.wiegand@greenbone.net>
+
+	* openvassd/openvassd.c (main): Remove superfluous libnasl version
+	from --dump-cfg output.
+
 2010-07-02  Michael Wiegand <michael.wiegand@greenbone.net>
 
 	* openvassd/pluginscheduler.c (hash_fill_deps): Remove overly verbose

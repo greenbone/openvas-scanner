@@ -93,7 +93,6 @@ int allow_severity = LOG_NOTICE;
 #define setsid() setpgrp()
 #endif
 
-extern char *nasl_version ();
 extern char *openvaslib_version ();
 
 /**
@@ -1223,7 +1222,6 @@ main (int argc, char *argv[], char *envp[])
               OVS_OS_VERSION);
       printf ("compiled with %s\n", OVS_COMPILER);
       printf ("Current setup :\n");
-      printf ("\topenvas-libnasl                : %s\n", nasl_version ());
       printf ("\topenvas-libraries              : %s\n", openvaslib_version ());
       printf ("\tSSL is used for client / scanner communication\n");
       printf ("\tRunning as euid                : %d\n", geteuid ());
