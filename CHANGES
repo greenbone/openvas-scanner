@@ -1,3 +1,39 @@
+openvas-scanner 3.1.0 (2010-07-14)
+
+This is the 3.1.0 release of the openvas-scanner module for the Open
+Vulnerability Assessment System (OpenVAS).
+
+This release adds a number of new features, for example support for soft pausing
+of scans, for retrieving the version of an installed NVT collection, for
+automatically installing generated client certificates, for storing uploaded
+preference files in memory, for dropping privileges for NASL and NES NVTs and
+for scanning virtual web hosts. It also contains updated feed synchronization
+scripts and removes legacy support for passwords stored in plaintext (see
+OpenVAS change request #31, http://www.openvas.org/openvas-cr-31.html).
+
+Many thanks to everyone who has contributed to this release:
+Geoff Galitz, Michael Meyer, Matthew Mundell, Jan-Oliver Wagner, Michael Wiegand
+and Felix Wolfsteller.
+
+Main changes compared to 3.0.2:
+* Support for storing scanner passwords in plaintext has been removed.
+* Support for dropping privileges in NASL and NES NVTs had been added.
+* Support for scanning virtual web hosts has been added.
+* The handling of NVTs with an invalid timestamp has been improved.
+* A bug in the openvas-nvt-sync script which prevented synchronization via http
+  under certain circumstances has been fixed.
+* Support for retrieving the version of the NVT collection has been added to the
+  openvas-nvt-sync and greenbone-nvt-sync scripts.
+* Support for soft pausing of scans has been added.
+* Support for automatically installing generated certificate file has been added
+  to the openvas-mkcert-client script.
+* The obsolete C based NVT "ssl_cipher" has been removed from the
+  openvas-scanner module. It has been replaced by the NASL implementation
+  "secpod_ssl_ciphers.nasl".
+* Support for storing an uploaded preference file in memory instead of on disk
+  has been added.
+
+
 openvas-scanner 3.1.0.rc3 (2010-07-01)
 
 This is the third release candidate of the openvas-scanner module for the

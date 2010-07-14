@@ -1,3 +1,13 @@
+2010-07-14  Michael Wiegand <michael.wiegand@greenbone.net>
+
+	Preparing the openvas-scanner 3.1.0 release.
+
+	* VERSION: Set to 3.1.0.
+
+	* doc/Doxyfile, doc/Doxyfile_full: Updated PROJECT_NUMBER.
+
+	* CHANGES: Updated.
+
 2010-07-05  Michael Wiegand <michael.wiegand@greenbone.net>
 
 	* openvassd/openvassd.c (main): Remove superfluous libnasl version
