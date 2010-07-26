@@ -1,4 +1,9 @@
-2010-07-01  Michael Wiegand <michael.wiegand@greenbone.net>
+2010-07-26  Felix Wolfsteller <felix.wolfsteller@greenbone.net>
+
+	* openvassd/preferences.c: Resolved K&R function declarations.
+	(preferences_get_string): Minor doc added.
+
+2010-07-14  Michael Wiegand <michael.wiegand@greenbone.net>
 
 	Post-release version bump.
 

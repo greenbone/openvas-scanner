@@ -298,8 +298,7 @@ preferences_process (char *filename, struct arglist *prefs)
 
 
 int
-preferences_get_host_expansion (preferences)
-     struct arglist *preferences;
+preferences_get_host_expansion (struct arglist *preferences)
 {
   char *pref;
   static int ret = -1;
@@ -335,8 +334,7 @@ preferences_get_host_expansion (preferences)
 }
 
 int
-preferences_get_slice_network_addresses (preferences)
-     struct arglist *preferences;
+preferences_get_slice_network_addresses (struct arglist *preferences)
 {
   char *str;
 
@@ -380,8 +378,7 @@ preferences_get_checks_read_timeout (struct arglist *preferences)
 }
 
 int
-preferences_log_whole_attack (preferences)
-     struct arglist *preferences;
+preferences_log_whole_attack (struct arglist *preferences)
 {
   char *value;
   static int yes = -1;
@@ -408,8 +405,7 @@ preferences_log_whole_attack (preferences)
 }
 
 int
-preferences_optimize_test (preferences)
-     struct arglist *preferences;
+preferences_optimize_test (struct arglist *preferences)
 {
   static int yes = -1;
   char *optimize_asc;
@@ -437,8 +433,7 @@ preferences_optimize_test (preferences)
 
 
 int
-preferences_log_plugins_at_load (preferences)
-     struct arglist *preferences;
+preferences_log_plugins_at_load (struct arglist *preferences)
 {
   static int yes = -1;
   char *pref;
@@ -463,8 +458,7 @@ preferences_log_plugins_at_load (preferences)
 }
 
 int
-preferences_ntp_show_end (preferences)
-     struct arglist *preferences;
+preferences_ntp_show_end (struct arglist *preferences)
 {
   static int yes = -1;
   char *pref;
@@ -546,8 +540,7 @@ preferences_plugin_timeout (struct arglist *preferences, char *oid)
 }
 
 int
-preferences_benice (preferences)
-     struct arglist *preferences;
+preferences_benice (struct arglist *preferences)
 {
   char *pref;
   static int yes = -1;
@@ -601,8 +594,7 @@ preferences_drop_privileges (struct arglist *preferences, char *oid)
 
 
 int
-preferences_save_session (preferences)
-     struct arglist *preferences;
+preferences_save_session (struct arglist *preferences)
 {
   static int yes = -1;
   char *pref;
@@ -627,8 +619,7 @@ preferences_save_session (preferences)
 }
 
 int
-preferences_save_empty_sessions (preferences)
-     struct arglist *preferences;
+preferences_save_empty_sessions (struct arglist *preferences)
 {
   static int yes = -1;
   char *pref;
@@ -654,8 +645,7 @@ preferences_save_empty_sessions (preferences)
 
 
 int
-preferences_autoload_dependencies (preferences)
-     struct arglist *preferences;
+preferences_autoload_dependencies (struct arglist *preferences)
 {
   static int yes = -1;
   char *pref;
@@ -682,8 +672,7 @@ preferences_autoload_dependencies (preferences)
 
 
 int
-preferences_safe_checks_enabled (preferences)
-     struct arglist *preferences;
+preferences_safe_checks_enabled (struct arglist *preferences)
 {
   static int yes = -1;
   char *value;
@@ -708,8 +697,7 @@ preferences_safe_checks_enabled (preferences)
 
 
 int
-preferences_use_mac_addr (preferences)
-     struct arglist *preferences;
+preferences_use_mac_addr (struct arglist *preferences)
 {
   static int yes = -1;
   char *value;
@@ -734,8 +722,7 @@ preferences_use_mac_addr (preferences)
 }
 
 int
-preferences_nasl_no_signature_check (preferences)
-     struct arglist *preferences;
+preferences_nasl_no_signature_check (struct arglist *preferences)
 {
   static int yes = -1;
   char *pref;
@@ -761,8 +748,7 @@ preferences_nasl_no_signature_check (preferences)
 }
 
 int
-preferences_report_killed_plugins (preferences)
-     struct arglist *preferences;
+preferences_report_killed_plugins (struct arglist *preferences)
 {
   static int yes = -1;
   char *pref;
@@ -812,11 +798,11 @@ preferences_silent_dependencies (struct arglist *preferences)
   return yes;
 }
 
-
+/**
+ * @return NULL if pref is set to "no", preference value otherwise.
+ */
 char *
-preferences_get_string (preferences, name)
-     struct arglist *preferences;
-     char *name;
+preferences_get_string (struct arglist *preferences, char *name)
 {
   char *pref = arg_get_value (preferences, name);
 
