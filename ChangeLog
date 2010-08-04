@@ -1,3 +1,10 @@
+2010-08-04  Felix Wolfsteller <felix.wolfsteller@greenbone.net>
+
+	* tools/README, tools/README_TOOLS: Moved, such that doxygen will
+	include the correct README in the main page.
+
+	* MANIFEST: Updated entry.
+
 2010-07-26  Felix Wolfsteller <felix.wolfsteller@greenbone.net>
 
 	* openvassd/preferences.c: Resolved K&R function declarations.

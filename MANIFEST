@@ -108,5 +108,5 @@ tools/openvas-mkcert.in
 tools/openvas-mkcert-client.in
 tools/openvas-nvt-sync.in
 tools/openvas-rmuser.in
-tools/README
+tools/README_TOOLS
 VERSION
