@@ -1,3 +1,8 @@
+2010-08-12  Michael Meyer <michael.meyer@greenbone.net>
+
+	* tools/openvas-mkcert-client.in:
+	Bugfix (line 461: [: too many arguments).
+
 2010-08-04  Felix Wolfsteller <felix.wolfsteller@greenbone.net>
 
 	* tools/README, tools/README_TOOLS: Moved, such that doxygen will

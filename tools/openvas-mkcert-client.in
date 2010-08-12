@@ -458,6 +458,6 @@ if [ -z $INSTALLCERT ] ; then
   echo "You will have to copy them by hand."; echo
 fi
 
-if [ ! -z $INSTALLCERT -a -n $NAME ] ; then
+if [ ! -z "$INSTALLCERT" -a -n $NAME ] ; then
   rm -rf $BASEDIR
 fi
