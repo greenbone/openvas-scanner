@@ -1,5 +1,11 @@
 2010-08-12  Jan-Oliver Wagner <jan-oliver.wagner@greenbone.net>
 
+	* COPYING.GPLv2: New. Former COPYING.
+
+	* COPYING: Removed. Renamed to COPYING.GPLv2.
+
+2010-08-12  Jan-Oliver Wagner <jan-oliver.wagner@greenbone.net>
+
 	* cnvts/synscan/synscan.c: Added missing header with license
 	and copyright. This file originates from the -plugins module
 	and includes GPLv2 headers. It was and is linking GPLed nasl.
