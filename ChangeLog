@@ -1,5 +1,9 @@
 2010-08-12  Jan-Oliver Wagner <jan-oliver.wagner@greenbone.net>
 
+	* COPYING: New. A summary of the licenses for each file.
+
+2010-08-12  Jan-Oliver Wagner <jan-oliver.wagner@greenbone.net>
+
 	* COPYING.GPLv2: New. Former COPYING.
 
 	* COPYING: Removed. Renamed to COPYING.GPLv2.
