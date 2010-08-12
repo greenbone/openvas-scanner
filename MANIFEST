@@ -19,6 +19,7 @@ config.sub
 configure
 configure.in
 COPYING
+COPYING.GPLv2
 doc/Doxyfile
 doc/Doxyfile_full
 doc/HTTP_authentication.txt
