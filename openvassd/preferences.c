@@ -38,10 +38,6 @@
  * On subsequent calls where preferences != NULL, the arglist does not have
  * to be queried anymore.
  * Resetting this "cache"s is possible by calling preferences_reset_cache.
- *
- * FIXME: Bacause of the static nature of the cache, the start of a new scan
- * with different 'server' preference values might override the values for a
- * already running scan, isnt it?
  */
 
 #include <includes.h>

@@ -1,3 +1,11 @@
+2010-09-05 Thomas Reinke <reinke@securityspace.com>
+
+	* Removed FIXME comment.  Rational: The preferences,
+	despite being static, cannot be overwritten by another
+	client beginning another scan, because each client is
+	handled by a separate, forked, task, each with its
+	own copy of memory.
+
 2010-08-12  Jan-Oliver Wagner <jan-oliver.wagner@greenbone.net>
 
 	* MANIFEST: Updated.
