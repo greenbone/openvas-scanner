@@ -118,7 +118,7 @@ so you need to find a balance between these two options. Note that launching too
 
 .IP be_nice
 If this option is set to 'yes', then each child forked by openvassd will
-nice(2) itself to a very low priority. This may speed up your scan as the main openvassd process will be able to continue to spew processes, and this garantees that openvassd does not deprives other important processes from their resources.
+nice(2) itself to a very low priority. This may speed up your scan as the main openvassd process will be able to continue to spew processes, and this guarantees that openvassd does not deprives other important processes from their resources.
 
 .IP log_whole_attack
 If this option is set to 'yes', openvassd will store the name, pid, date and target of each plugin launched. This is helpful for monitoring and debugging purpose, however this option might make openvassd fill your disk rather quickly. 
@@ -143,16 +143,16 @@ By default, openvassd does not trust the remote host banners. It means that it w
 Number of seconds that the security checks will wait for when doing a recv(). You should increase this value if you are running openvassd across a slow network slink (testing a host via a dialup connection for instance)
 
 .IP non_simult_ports
-Some services (in particular SMB) do not appreciate multiple connections at the same time coming from the same host. This option allows you to prevent openvassd to make two connections on the same given ports at the same time. The syntax of this option is "port1[, port2....]". Note that you can use the KB notation of openvassd to designate a service formaly. Ex: "139, Services/www", will prevent openvassd from making two connections at the same time on port 139 and on every port which hosts a web server.
+Some services (in particular SMB) do not appreciate multiple connections at the same time coming from the same host. This option allows you to prevent openvassd to make two connections on the same given ports at the same time. The syntax of this option is "port1[, port2....]". Note that you can use the KB notation of openvassd to designate a service formally. Ex: "139, Services/www", will prevent openvassd from making two connections at the same time on port 139 and on every port which hosts a web server.
 
 .IP plugins_timeout
 This is the maximum lifetime, in seconds of a plugin. It may happen that some plugins are slow because of the way they are written or the way the remote server behaves. This option allows you to make sure your scan is never caught in an endless loop because of a non-finishing plugin.
 
 .IP safe_checks
-Most of the time, openvassd attempts to reproduce an exceptional condition to detemermine if the remote services are vulnerable to certain flaws. This includes the reproduction of buffer overflows or format strings, which may make the remote server crash. If you set this option to 'yes', openvassd will disable the plugins which have the potential to crash the remote services, and will at the same time make several checks rely on the banner of the service tested instead of its behavior towards a certain input. This reduces false positives and makes openvassd nicer towards your network, however this may make you miss important vulnerabilities (as a vulnerability affecting a given service may also affect another one).
+Most of the time, openvassd attempts to reproduce an exceptional condition to determine if the remote services are vulnerable to certain flaws. This includes the reproduction of buffer overflows or format strings, which may make the remote server crash. If you set this option to 'yes', openvassd will disable the plugins which have the potential to crash the remote services, and will at the same time make several checks rely on the banner of the service tested instead of its behavior towards a certain input. This reduces false positives and makes openvassd nicer towards your network, however this may make you miss important vulnerabilities (as a vulnerability affecting a given service may also affect another one).
 
 .IP auto_enable_dependencies
-OpenVAS plugins use the result of each other to execute their job. For instance, a plugin which logs into the remote SMB registry will need the results of the plugin which finds the SMB name of the remote host and the results of the plugin which attempts to log into the remote host. If you want to only select a subset of the plugins availaible, tracking the dependencies can quickly become tiresome. If you set this option to 'yes', openvassd will automatically enable the plugins that are depended on.
+OpenVAS plugins use the result of each other to execute their job. For instance, a plugin which logs into the remote SMB registry will need the results of the plugin which finds the SMB name of the remote host and the results of the plugin which attempts to log into the remote host. If you want to only select a subset of the plugins available, tracking the dependencies can quickly become tiresome. If you set this option to 'yes', openvassd will automatically enable the plugins that are depended on.
 
 .IP use_mac_addr
 Set this option to 'yes' if you are testing your local network and each local host has a dynamic IP address (affected by DHCP or BOOTP), and all the tested hosts will be referred to by their MAC address.
@@ -167,7 +167,7 @@ The other options in this file can usually be redefined by the client.
 The utility openvas-adduser(8) creates new openvassd users. Each openvassd user
 is attributed a "home", in @OPENVAS_STATEDIR@/users/<username>. This home contains the following directories :
 .IP auth/
-This directory contains the authentification information for this user. It might contain the file 'dname' if the user is authenticating using a certificate, or 'hash' (or 'passwd') if the user is authenticating using a password. The file 'hash' contains a MD5 hash of the user password, as well as a random seed. The file 'password' should contain the password in clear text.
+This directory contains the authentication information for this user. It might contain the file 'dname' if the user is authenticating using a certificate, or 'hash' (or 'passwd') if the user is authenticating using a password. The file 'hash' contains a MD5 hash of the user password, as well as a random seed. The file 'password' should contain the password in clear text.
 
 This directory also contains the file 'rules' which contains the rules which apply to this user.
 
@@ -208,7 +208,7 @@ is one of
 or
 .I default
 
-In addition to this, the IP adress may be preceded by
+In addition to this, the IP address may be preceded by
 an exclamation mark (!) which means: \*(lqnot\*(rq
 There are three sources of rules:
 
@@ -257,23 +257,23 @@ default reject
 .SH NETWORK USAGE
 
 Bear in mind that OpenVAS can be quite network intensive. Even if the
-OpenVAS developers have taken every effor to avoid packet loss (including
+OpenVAS developers have taken every effort to avoid packet loss (including
 transparently resending UDP packets, waiting for data to be received
-in TCP connections, etc.) so bandwith use should always be closely monitored, 
-with current server hardware, bandwith is usually the bottleneck in 
-a OpenVAS scan. It might not became too aparent in the final reports,
+in TCP connections, etc.) so bandwidth use should always be closely monitored, 
+with current server hardware, bandwidth is usually the bottleneck in 
+a OpenVAS scan. It might not became too apparent in the final reports,
 scanners will still run, holes might be detected, but you will risk to
 run into \fIfalse negatives\fR (i.e. OpenVAS will not report a security
 hole that is present in a remote host)
 
 Users might need to tune OpenVAS configuration if running the scanner in
-low bandwith conditions (\fIlow\fR being 'less bandwith that the one your
+low bandwidth conditions (\fIlow\fR being 'less bandwidth that the one your
 hardware system can produce) or otherwise will get erratic results. There are
 several parameters that can be modified to reduce network load:
 
 .IP checks_read_timeout
 (Introduced in OpenVAS 0.99.4) The default value is set to 5 seconds, that can
-(should) be increased if network bandwith is low in the
+(should) be increased if network bandwidth is low in the
 openvassd.conf or openvasrc configuration files. Notice that it is recommended
 to increase this this value, if you are running a test outside your LAN 
 (i.e. to Internet hosts through an Internet connection), to over 10 seconds.
@@ -284,16 +284,16 @@ GUI client or by .openvasrc) it can be as low as you want it to be
 (obviously 1 is the minimum)
 
 .IP max_checks
-Number of checkst to test at the same time (this value is also set by 
+Number of checks to test at the same time (this value is also set by 
 the OpenVAS GUI client or by .openvasrc ) it can be as low as you want it
 to be and it will also reduce network load and improve performance
 (obviously 1 is the minimum)
 Notice that the OpenVAS scanner will spawn max_hosts * max_checks processes.
 
 Other options might be using the QoS features offered by your server
-operating system or your network to improve the bandwith use.
+operating system or your network to improve the bandwidth use.
 
-It is not easy to give a bandwith estimate for a OpenVAS run, you will
+It is not easy to give a bandwidth estimate for a OpenVAS run, you will
 probably need to make your own counts. However, assuming you test 65536 
 TCP ports. This will require at least a single packet per port that is 
 at least 40 bytes large. Add 14 bytes for the ethernet header and you 
@@ -302,8 +302,8 @@ TCP ports we may need a multitude of this as nmap will try to
 resend the packets twice if no response is received.
 
 A very rough estimate is that a full scan for UDP, TCP and RPC as well as 
-all NASL scripts may result in 8 to 32 MB wrth of traffic per scanned host. 
-Reducing the amount of tested part and such will reduce the amout of data
+all NASL scripts may result in 8 to 32 MB worth of traffic per scanned host. 
+Reducing the amount of tested part and such will reduce the amount of data
 to be transfered significantly.
 
 .SH SEE ALSO
