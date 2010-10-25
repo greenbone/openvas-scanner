@@ -1,3 +1,14 @@
+2010-10-25  Jan-Oliver Wagner <jan-oliver.wagner@greenbone.net>
+
+	* ssl/, ssl/openvas-mkrand.c, ssl/Makefile: Removed.
+
+	* MANIFEST, COPYING: Removed file entries accordingly.
+
+	* Makefile: Removed handling of ssl mkrand module.
+
+	* tools/openvas-mkcert.in: Exit with error when no suitable
+	random source is found.
+
 2010-09-29  Michael Wiegand <michael.wiegand@greenbone.net>
 
 	* doc/openvassd.8.in: Fixed typos as suggested by Trent W. Buck.

@@ -30,7 +30,7 @@ include openvas.tmpl
 
 ALLDEPS = openvas.tmpl
 
-all: $(ALLDEPS) scanner sslstuff man mknvts
+all: $(ALLDEPS) scanner man mknvts
 
 
 openvas.tmpl: openvas.tmpl.in configure VERSION
@@ -70,7 +70,6 @@ install-bin:
 	$(INSTALL) -m 755 tools/openvas-nvt-sync $(DESTDIR)${sbindir}
 	$(INSTALL) -m 755 tools/greenbone-nvt-sync $(DESTDIR)${sbindir}
 	$(INSTALL) -m 755 tools/openvas-mkcert-client $(DESTDIR)${bindir}/openvas-mkcert-client
-	$(INSTALL) -m 755 ssl/openvas-mkrand $(DESTDIR)${bindir}/openvas-mkrand
 	$(INSTALL) -m $(SERVERMODE) openvassd/openvassd $(DESTDIR)${sbindir}/openvassd
 	$(INSTALL) -m 755 tools/openvas-adduser $(DESTDIR)${sbindir}/openvas-adduser
 	$(INSTALL) -m 755 tools/openvas-rmuser $(DESTDIR)${sbindir}/openvas-rmuser
@@ -82,7 +81,6 @@ install-man:
 	@test -d $(DESTDIR)${mandir} || $(INSTALL_DIR) -m 755 $(DESTDIR)${mandir}
 	@test -d $(DESTDIR)${mandir}/man1 || $(INSTALL_DIR) -m 755 $(DESTDIR)${mandir}/man1
 	@test -d $(DESTDIR)${mandir}/man8 || $(INSTALL_DIR) -m 755 $(DESTDIR)${mandir}/man8
-	$(INSTALL) -c -m 0444 doc/openvas-mkrand.1 $(DESTDIR)${mandir}/man1/openvas-mkrand.1
 	$(INSTALL) -c -m 0444 doc/openvassd.8 $(DESTDIR)${mandir}/man8/openvassd.8
 	$(INSTALL) -c -m 0444 doc/openvas-nvt-sync.8 $(DESTDIR)${mandir}/man8/openvas-nvt-sync.8
 	$(INSTALL) -c -m 0444 doc/openvas-adduser.8 $(DESTDIR)${mandir}/man8/openvas-adduser.8
@@ -103,9 +101,6 @@ install-nvts:
 scanner :
 	cd openvassd && $(MAKE)
 
-sslstuff :
-	cd ssl && $(MAKE)
-
 mknvts:
 	cd cnvts && ./make_world
 
@@ -117,7 +112,6 @@ $(MAN_OPENVASSD_8) : $(MAN_OPENVASSD_8).in
 
 clean:
 	cd openvassd && $(MAKE) clean
-	cd ssl && $(MAKE) clean
 	cd cnvts && ./make_world clean	
 
 distclean: clean

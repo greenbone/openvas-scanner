@@ -24,8 +24,6 @@ cnvts/synscan/openvastcp.h: GPLv2
 cnvts/synscan/openvasudp.h: GPLv2
 cnvts/synscan/synscan.c: GPLv2
 
-ssl/openvas-mkrand.c: GPLv2
-
 openvassd/attack.[c|h]: GPLv2
 openvassd/auth.[c|h]: GPLv2
 openvassd/comm.[c|h]: GPLv2

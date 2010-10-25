@@ -30,7 +30,6 @@ doc/openvas-adduser.8
 doc/openvassd.8.in
 doc/openvas-mkcert.8
 doc/openvas-mkcert-client.1
-doc/openvas-mkrand.1
 doc/openvas-nvt-sync.8
 doc/openvas-rmuser.8
 doc/TODO.txt
@@ -101,8 +100,6 @@ po/Makefile
 po/openvas-scripts-de.po
 po/README
 README
-ssl/Makefile
-ssl/openvas-mkrand.c
 tools/greenbone-nvt-sync
 tools/openvas-adduser.in
 tools/openvas-mkcert.in

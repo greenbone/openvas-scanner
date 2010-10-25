@@ -145,8 +145,9 @@ fi
 
 
 #
-# If EGD is not installed, we have to rely on other sources
-# of entropy
+# If EGD is not installed, we stop. It is mandatory
+# to have a entropy source on the system for certifcate
+# creation.
 # 
 test -z "$RANDFLAG" -a -z "$RANDFILE" &&
 {
@@ -154,9 +155,8 @@ test -z "$RANDFLAG" -a -z "$RANDFILE" &&
   then
    header
    gettext "You do not have any suitable random source."; echo
-   gettext "You will be asked to type a few random keys on your keyboard to generate random bytes."; echo
-   openvas-mkrand $HOME/.rnd 1024 
-   gettext "Press [ENTER] to continue..."; echo
+   gettext "Please use another system to create the certificate."
+   exit 1
   fi
 }
 
