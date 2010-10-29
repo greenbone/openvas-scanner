@@ -1,3 +1,24 @@
+openvas-scanner 3.1.1 (2010-10-29)
+
+This is the 3.1.1 release of the openvas-scanner module for the Open
+Vulnerability Assessment System (OpenVAS).
+
+This release improves the code documentation, clarifies the licenses of
+individual source code files, removes obsolete support for systems without
+entropy generation and fixes a bug in the client certificate generation script.
+
+Many thanks to everyone who has contributed to this release:
+Michael Meyer, Thomas Reinke, Jan-Oliver Wagner, Michael Wiegand
+and Felix Wolfsteller.
+
+Main changes compared to 3.1.0:
+* The code documentation infrastructure has been improved.
+* The license situation of the individual source code files has been clarified.
+* Obsolete support for systems without entropy generation has been removed.
+* A bug which caused the client certificate generation to fail under certain
+  circumstances has been fixed.
+
+
 openvas-scanner 3.1.0 (2010-07-14)
 
 This is the 3.1.0 release of the openvas-scanner module for the Open

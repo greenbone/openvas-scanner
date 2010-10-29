@@ -1,5 +1,15 @@
 2010-10-29  Michael Wiegand <michael.wiegand@greenbone.net>
 
+	Preparing the openvas-scanner 3.1.1 release.
+
+	* VERSION: Set to 3.1.1.
+
+	* doc/Doxyfile, doc/Doxyfile_full: Updated PROJECT_NUMBER.
+
+	* CHANGES: Updated.
+
+2010-10-29  Michael Wiegand <michael.wiegand@greenbone.net>
+
 	* doc/openvas-mkrand.1: Removed obsolete man page.
 
 2010-10-25  Jan-Oliver Wagner <jan-oliver.wagner@greenbone.net>
