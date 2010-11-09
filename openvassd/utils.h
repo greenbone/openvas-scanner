@@ -31,7 +31,7 @@
 #ifndef _OPENVAS_UTILS_H
 #define _OPENVAS_UTILS_H
 
-#include <openvas/arglists.h>   /* for struct arglist */
+#include <openvas/misc/arglists.h>   /* for struct arglist */
 
 struct attack_atom
 {

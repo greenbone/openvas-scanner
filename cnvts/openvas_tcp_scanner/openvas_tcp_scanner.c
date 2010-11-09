@@ -19,10 +19,12 @@
 
 #include <glib.h>
 
-#include <openvas/arglists.h> /* for struct arglist */
+#include <openvas/misc/arglists.h> /* for struct arglist */
 #include <openvas/nvt_categories.h> /* for ACT_SCANNER */
-#include <openvas/plugutils.h> /* for find_in_path */
-#include <openvas/system.h> /* for efree */
+#include <openvas/misc/plugutils.h> /* for find_in_path */
+#include <openvas/misc/scanners_utils.h> /* for comm_send_status */
+#include <openvas/misc/system.h> /* for efree */
+//#include <openvas/misc/services.h> /* for get_tcp_svcs */
 
 #ifdef LINUX
 #include <netinet/tcp.h>

@@ -29,10 +29,10 @@
 
 #include <includes.h>
 
-#include <openvas/network.h>    /* for internal_send */
-#include <openvas/nvt_categories.h>     /* for ACT_SCANNER */
-#include <openvas/plugutils.h>  /* for INTERNAL_COMM_MSG_SHARED_SOCKET */
-#include <openvas/system.h>     /* for efree */
+#include <openvas/misc/network.h>    /* for internal_send */
+#include <openvas/nvt_categories.h>  /* for ACT_SCANNER */
+#include <openvas/misc/plugutils.h>  /* for INTERNAL_COMM_MSG_SHARED_SOCKET */
+#include <openvas/misc/system.h>     /* for efree */
 
 #include "pluginload.h"
 #include "piic.h"

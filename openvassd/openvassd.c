@@ -43,18 +43,17 @@
 
 #include <includes.h>
 
-#include <openvas/bpf_share.h>  /* for bpf_server */
+#include <openvas/misc/bpf_share.h>  /* for bpf_server */
 #include <openvas/nasl/nasl.h>
-#include <openvas/network.h>    /* for auth_printf */
+#include <openvas/misc/network.h>    /* for auth_printf */
 #include <openvas/hg/hosts_gatherer.h>
-#include <openvas/plugutils.h>  /* for find_in_path */
-#include <openvas/store.h>      /* for store_init */
-#include <openvas/system.h>     /* for estrdup */
-#include <openvas/rand.h>       /* for openvas_init_random */
-#include <openvas/services1.h>  /* for openvas_init_svc */
-#include <openvas/base/pidfile.h>       /* for pidfile_remove */
-
-#include "proctitle.h"          /* for setproctitle.h */
+#include <openvas/misc/plugutils.h>  /* for find_in_path */
+#include <openvas/misc/store.h>      /* for store_init */
+#include <openvas/misc/system.h>     /* for estrdup */
+#include <openvas/misc/rand.h>       /* for openvas_init_random */
+#include <openvas/misc/services1.h>  /* for openvas_init_svc */
+#include <openvas/misc/proctitle.h>  /* for setproctitle.h */
+#include <openvas/base/pidfile.h>    /* for pidfile_remove */
 
 #include <gnutls/gnutls.h>
 #include <gnutls/x509.h>

@@ -29,9 +29,9 @@
 
 #include <includes.h>
 
-#include <openvas/network.h>    /* for stream_zero */
-#include <openvas/plugutils.h>  /* for plug_get_launch */
-#include <openvas/system.h>     /* for emalloc */
+#include <openvas/misc/network.h>    /* for stream_zero */
+#include <openvas/misc/plugutils.h>  /* for plug_get_launch */
+#include <openvas/misc/system.h>     /* for emalloc */
 
 #include "log.h"
 #include "auth.h"

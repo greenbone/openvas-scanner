@@ -27,9 +27,9 @@
 
 #include <includes.h>
 
-#include <openvas/network.h>    /* for internal_recv */
-#include <openvas/plugutils.h>  /* for INTERNAL_COMM_MSG_TYPE_CTRL */
-#include <openvas/system.h>     /* for estrdup */
+#include <openvas/misc/network.h>    /* for internal_recv */
+#include <openvas/misc/plugutils.h>  /* for INTERNAL_COMM_MSG_TYPE_CTRL */
+#include <openvas/misc/system.h>     /* for estrdup */
 
 #include "utils.h"
 #include "log.h"

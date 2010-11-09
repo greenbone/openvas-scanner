@@ -32,17 +32,17 @@
 #include <glib.h>
 
 #include <openvas/base/drop_privileges.h> /* for drop_privileges */
-#include <openvas/network.h>    /* for internal_send */
-#include <openvas/plugutils.h>  /* for plug_set_path */
-#include <openvas/store.h>      /* for store_load_plugin */
-#include <openvas/system.h>     /* for emalloc */
+#include <openvas/misc/network.h>    /* for internal_send */
+#include <openvas/misc/plugutils.h>  /* for plug_set_path */
+#include <openvas/misc/store.h>      /* for store_load_plugin */
+#include <openvas/misc/system.h>     /* for emalloc */
+#include <openvas/misc/proctitle.h>  /* for setproctitle */
 
 #include "pluginload.h"
 #include "pluginscheduler.h"    /* for LAUNCH_DISABLED */
 #include "plugs_hash.h"
 #include "preferences.h"
 #include "processes.h"
-#include "proctitle.h"          /* for setproctitle */
 #include "log.h"
 #include "preferences.h"
 

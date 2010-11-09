@@ -31,7 +31,7 @@
 #ifndef _OPENVAS_USERS_H
 #define _OPENVAS_USERS_H
 
-#include <openvas/arglists.h>   /* for struct arglist */
+#include <openvas/misc/arglists.h>   /* for struct arglist */
 
 #define BAD_LOGIN_ATTEMPT (struct openvas_rules*)(-1)
 #define OPENVAS_MAX_USERNAME_LEN	32      /* Including the ending nul byte! */

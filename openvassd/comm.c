@@ -35,20 +35,20 @@
 
 #include <openvas/nasl/nasl.h>
 #include <openvas/nvt_categories.h>     /* for ACT_FIRST */
+#include <openvas/misc/plugutils.h>     /* for plug_get_oid */
+#include <openvas/misc/network.h>       /* for recv_line */
+#include <openvas/misc/otp.h>           /* for OTP_10 */
+#include <openvas/misc/system.h>        /* for emalloc */
 
 #include "auth.h"
 
 #include "comm.h"
-#include "network.h"            /* for recv_line */
-#include "otp.h"                /* for OTP_10 */
 #include "ntp_11.h"
 #include "log.h"
 #include "plugs_hash.h"
 #include "pluginscheduler.h"    /* for define LAUNCH_DISABLED */
-#include "plugutils.h"          /* for plug_get_oid */
 #include "rules.h"
 #include "sighand.h"
-#include "system.h"             /* for emalloc */
 #include "utils.h"
 
 

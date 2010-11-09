@@ -30,7 +30,7 @@
 
 #include <includes.h>
 
-#include <openvas/system.h>     /* for efree */
+#include <openvas/misc/system.h>     /* for efree */
 
 #include <pwd.h>
 #include "comm.h"

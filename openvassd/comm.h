@@ -30,7 +30,7 @@
 #ifndef _OPENVAS_COMM_H
 #define _OPENVAS_COMM_H
 
-#include <openvas/arglists.h>   /* for struct arglist */
+#include <openvas/misc/arglists.h>   /* for struct arglist */
 
 int comm_init (int);
 void comm_terminate (struct arglist *);

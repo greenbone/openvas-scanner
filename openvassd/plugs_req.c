@@ -28,7 +28,7 @@
 
 #include <includes.h>
 
-#include <openvas/system.h>     /* for emalloc */
+#include <openvas/misc/system.h>     /* for emalloc */
 
 #include "pluginscheduler.h"
 #include "plugs_req.h"

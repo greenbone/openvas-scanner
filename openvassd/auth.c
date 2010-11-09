@@ -38,9 +38,9 @@
 
 #include <stdarg.h>
 
-#include <openvas/arglists.h>
-#include <openvas/system.h>
-#include <openvas/network.h>
+#include <openvas/misc/arglists.h>
+#include <openvas/misc/system.h>
+#include <openvas/misc/network.h>
 
 #include "auth.h"
 #include "comm.h"

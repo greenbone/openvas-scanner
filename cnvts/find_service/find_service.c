@@ -9,12 +9,12 @@
 
 #include <includes.h>
 
-#include <openvas/arglists.h> /* for struct arglist */
-#include <openvas/kb.h> /* for plug_get_oldstyle_kb */
-#include <openvas/network.h> /* for get_encaps_through */
+#include <openvas/misc/arglists.h> /* for struct arglist */
+#include <openvas/misc/kb.h> /* for plug_get_oldstyle_kb */
+#include <openvas/misc/network.h> /* for get_encaps_through */
 #include <openvas/nvt_categories.h> /* for ACT_SCANNER */
-#include <openvas/plugutils.h> /* for OPENVAS_ENCAPS_IP */
-#include <openvas/system.h> /* for efree */
+#include <openvas/misc/plugutils.h> /* for OPENVAS_ENCAPS_IP */
+#include <openvas/misc/system.h> /* for efree */
 
 #include <glib.h>
 

@@ -27,7 +27,7 @@
 
 #include <includes.h>
 
-#include <openvas/system.h>     /* for emalloc */
+#include <openvas/misc/system.h>     /* for emalloc */
 
 #include <gcrypt.h>
 #include "log.h"

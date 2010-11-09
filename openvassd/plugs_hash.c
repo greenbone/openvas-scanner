@@ -30,10 +30,10 @@
 
 #include <includes.h>
 
-#include <openvas/network.h>    /* for auth_printf */
-#include <openvas/plugutils.h>  /* for plug_get_path */
-#include <openvas/share_fd.h>   /* for send_fd */
-#include <openvas/system.h>     /* for efree */
+#include <openvas/misc/network.h>    /* for auth_printf */
+#include <openvas/misc/plugutils.h>  /* for plug_get_path */
+#include <openvas/misc/share_fd.h>   /* for send_fd */
+#include <openvas/misc/system.h>     /* for efree */
 
 #include <gcrypt.h>
 #include "log.h"

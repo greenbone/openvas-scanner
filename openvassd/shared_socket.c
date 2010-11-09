@@ -36,10 +36,10 @@
 
 #include <includes.h>
 
-#include <openvas/network.h>    /* internal_recv */
-#include <openvas/plugutils.h>  /* for INTERNAL_COMM_MSG_SHARED_SOCKET */
-#include <openvas/share_fd.h>   /* for recv_fd */
-#include <openvas/system.h>     /* for efree */
+#include <openvas/misc/network.h>    /* internal_recv */
+#include <openvas/misc/plugutils.h>  /* for INTERNAL_COMM_MSG_SHARED_SOCKET */
+#include <openvas/misc/share_fd.h>   /* for recv_fd */
+#include <openvas/misc/system.h>     /* for efree */
 
 #include "utils.h"
 #include "log.h"

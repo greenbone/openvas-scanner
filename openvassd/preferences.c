@@ -43,7 +43,7 @@
 #include <includes.h>
 
 #include <openvas/hg/hosts_gatherer.h>
-#include <openvas/system.h>     /* for efree */
+#include <openvas/misc/system.h>     /* for efree */
 
 #include "glib.h"
 #include "comm.h"

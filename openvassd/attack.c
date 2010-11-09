@@ -32,14 +32,15 @@
 
 #include <openvas/hg/hosts_gatherer.h>
 #include <openvas/hg/hg_utils.h>
-#include <openvas/kb.h>         /* for kb_new */
-#include <openvas/network.h>    /* for auth_printf */
-#include <openvas/nvt_categories.h>     /* for ACT_INIT */
-#include <openvas/pcap_openvas.h>       /* for v6_is_local_ip */
-#include <openvas/plugutils.h>  /* for plug_get_path */
-#include <openvas/proctitle.h>  /* for setproctitle */
-#include <openvas/system.h>     /* for emalloc */
-#include <openvas/scanners_utils.h>     /* for comm_send_status */
+#include <openvas/misc/kb.h>             /* for kb_new */
+#include <openvas/misc/network.h>        /* for auth_printf */
+#include <openvas/nvt_categories.h>      /* for ACT_INIT */
+#include <openvas/misc/pcap_openvas.h>   /* for v6_is_local_ip */
+#include <openvas/misc/plugutils.h>      /* for plug_get_path */
+#include <openvas/misc/proctitle.h>      /* for setproctitle */
+#include <openvas/misc/system.h>         /* for emalloc */
+#include <openvas/misc/scanners_utils.h> /* for comm_send_status */
+#include <openvas/misc/openvas_ssh_login.h>
 
 #include "attack.h"
 #include "auth.h"
@@ -47,7 +48,6 @@
 #include "hosts.h"
 #include "log.h"
 #include "ntp_11.h"
-#include "openvas_ssh_login.h"
 #include "pluginlaunch.h"
 #include "pluginload.h"
 #include "pluginscheduler.h"

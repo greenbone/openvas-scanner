@@ -31,9 +31,11 @@
 
 #include <glib.h>
 
-#include <openvas/network.h>    /* for recv_line */
-#include <openvas/plugutils.h>  /* for plug_get_name */
-#include <openvas/system.h>     /* for emalloc */
+#include <openvas/misc/network.h>    /* for recv_line */
+#include <openvas/misc/plugutils.h>  /* for plug_get_name */
+#include <openvas/misc/system.h>     /* for emalloc */
+#include <openvas/misc/hash_table_file.h>
+#include <openvas/misc/openvas_ssh_login.h>
 
 #include "ntp_11.h"
 #include "otp_1_0.h"
@@ -45,8 +47,6 @@
 #include "utils.h"
 #include "preferences.h"
 #include "hosts.h"
-#include "hash_table_file.h"
-#include "openvas_ssh_login.h"
 
 #ifndef MIN
 #define MIN(x,y) ((x) < (y) ? (x):(y))

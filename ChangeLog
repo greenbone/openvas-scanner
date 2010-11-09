@@ -1,3 +1,21 @@
+2010-11-09  Jan-Oliver Wagner <jan-oliver.wagner@greenbone.net>
+
+	* cnvts/find_service/find_service.c,
+	cnvts/openvas_tcp_scanner/openvas_tcp_scanner.c,
+	cnvts/synscan/synscan.c, openvassd/nasl_plugins.c,
+	openvassd/comm.h, openvassd/utils.c, openvassd/otp_1_0.c,
+	openvassd/plugs_req.c, openvassd/preferences.c, openvassd/ntp_11.c,
+	openvassd/utils.h, openvassd/plugs_req.h, openvassd/attack.c,
+	openvassd/ntp_11.h, openvassd/save_kb.c, openvassd/shared_socket.c,
+	openvassd/save_kb.h, openvassd/piic.c, openvassd/nes_plugins.c,
+	openvassd/pluginlaunch.c, openvassd/plugs_hash.c,
+	openvassd/pluginload.c, openvassd/hosts.c, openvassd/auth.c,
+	openvassd/users.c, openvassd/oval_plugins.c, openvassd/openvassd.c,
+	openvassd/pluginload.h, openvassd/users.h, openvassd/locks.c,
+	openvassd/rules.c, openvassd/comm.c, openvassd/parser.c,
+	openvassd/pluginscheduler.c: Adjusted include paths for header
+	files of libopenvas_misc.
+
 2010-11-09  Michael Wiegand <michael.wiegand@greenbone.net>
 
 	Added support for network level scans as described in OpenVAS Change

@@ -28,7 +28,7 @@
 #include <string.h>
 
 #include <corevers.h>
-#include <network.h>
+#include <openvas/misc/network.h>
 
 #include <openvas/nasl/nasl.h>  /* for nasl_get_all_certifcates */
 #include <openvas/base/certificate.h>   /* for certificate_t */

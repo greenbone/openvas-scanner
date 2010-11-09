@@ -30,15 +30,15 @@
 
 #include <includes.h>
 
-#include <openvas/nvt_categories.h>     /* for ACT_SCANNER */
-#include <openvas/plugutils.h>  /* for plug_get_required_ports */
-#include <openvas/system.h>     /* for emalloc */
+#include <openvas/nvt_categories.h>  /* for ACT_SCANNER */
+#include <openvas/misc/plugutils.h>  /* for plug_get_required_ports */
+#include <openvas/misc/system.h>     /* for emalloc */
+#include <openvas/misc/arglists.h>
 
 #include <glib.h>
 
 #define IN_SCHEDULER_CODE 1
 
-#include "arglists.h"
 #include "pluginscheduler.h"
 #include "pluginload.h"
 #include "pluginlaunch.h"

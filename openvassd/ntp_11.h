@@ -31,7 +31,7 @@
 #ifndef _OPENVAS_NTP_11_H
 #define _OPENVAS_NTP_11_H
 
-#include <openvas/arglists.h>   /* for struct arglist */
+#include <openvas/misc/arglists.h>   /* for struct arglist */
 
 #define NTP_STOP_WHOLE_TEST 2
 #define NTP_PAUSE_WHOLE_TEST 3
