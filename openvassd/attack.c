@@ -316,7 +316,16 @@ launch_plugin (struct arglist *globals, plugins_scheduler_t * sched,
           else
             {
               kb_item_add_int (kb, asc_id, 1);
-              save_kb_write_int (globals, hostname, asc_id, 1);
+              gchar *network_scan_status = arg_get_value (globals, "network_scan_status");
+              if (network_scan_status != NULL)
+                {
+                  if (g_ascii_strcasecmp (network_scan_status, "busy") == 0)
+                    {
+                      save_kb_write_int (globals, "network", asc_id, 1);
+                    }
+                }
+              else
+                save_kb_write_int (globals, hostname, asc_id, 1);
             }
         }
 
@@ -569,6 +578,29 @@ init_host_kb (struct arglist *globals, char *hostname, struct arglist *hostinfos
   struct kb_item **kb;
   (*new_kb) = FALSE;
   char *vhosts = (char *) arg_get_value (hostinfos, "VHOSTS");
+  struct kb_item **network_kb;
+  struct kb_item *host_network_results;
+  struct kb_item *result_iter;
+
+  gchar *network_scan_status = (gchar *) arg_get_value (globals, "network_scan_status");
+  if (network_scan_status != NULL)
+    {
+      if (g_ascii_strcasecmp (network_scan_status, "done") == 0)
+        {
+          gchar *hostname_pattern = g_strdup_printf ("%s/*", hostname);
+          network_kb = save_kb_load_kb (globals, "network");
+          host_network_results = kb_item_get_pattern (network_kb, hostname_pattern);
+        }
+      if (g_ascii_strcasecmp (network_scan_status, "busy") == 0)
+        {
+          arg_add_value (globals, "CURRENTLY_TESTED_HOST", ARG_STRING,
+                         strlen ("network"), "network");
+          save_kb_new (globals, "network");
+          kb = kb_new ();
+          (*new_kb) = TRUE;
+          return kb;
+        }
+    }
 
   // Check if kb should be saved.
   if (save_kb (globals))
@@ -610,6 +642,23 @@ init_host_kb (struct arglist *globals, char *hostname, struct arglist *hostinfos
           i++;
         }
       g_strfreev (vhosts_array);
+    }
+
+  result_iter = host_network_results;
+  while (result_iter != NULL)
+    {
+      char *newname = strstr (result_iter->name, "/") + 1;
+      if (result_iter->type == KB_TYPE_STR)
+        {
+          kb_item_add_str (kb, newname, result_iter->v.v_str);
+          save_kb_write_str (globals, hostname, newname, result_iter->v.v_str);
+        }
+      else if (result_iter->type == KB_TYPE_INT)
+        {
+          kb_item_add_int (kb, newname, result_iter->v.v_int);
+          save_kb_write_int (globals, hostname, newname, result_iter->v.v_int);
+        }
+      result_iter = result_iter->next;
     }
 
   return kb;
@@ -736,8 +785,18 @@ host_died:
   pluginlaunch_stop ();
   plugins_scheduler_free (sched);
 
-  if (new_kb == TRUE)
-    save_kb_close (globals, hostname);
+  gchar *network_scan_status = arg_get_value (globals, "network_scan_status");
+  if (network_scan_status != NULL)
+    {
+      if (g_ascii_strcasecmp (network_scan_status, "busy") == 0)
+        {
+          save_kb_close (globals, "network");
+        }
+    }
+  else
+    if (new_kb == TRUE)
+      save_kb_close (globals, hostname);
+
 }
 
 /**
@@ -896,10 +955,35 @@ attack_network (struct arglist *globals)
   inaddrs_t addrs;
   char buffer[INET6_ADDRSTRLEN];
 
+  int network_phase = 0;
+  gchar *network_targets;
+  int do_network_scan = 0;
+
   gettimeofday (&then, NULL);
 
   host_ip = in6addr_any;
   preferences = arg_get_value (globals, "preferences");
+
+  do_network_scan = preferences_network_scan (preferences);
+  log_write ("do_network_scan is %d", do_network_scan);
+  network_targets = arg_get_value (preferences, "network_targets");
+  arg_add_value (globals, "network_targets", ARG_STRING,
+                 strlen (network_targets), network_targets);
+  if (do_network_scan)
+    {
+      gchar *network_scan_status = arg_get_value (globals, "network_scan_status");
+      if (network_scan_status != NULL)
+        if (g_ascii_strcasecmp (network_scan_status, "done") == 0)
+          network_phase = 0;
+        else
+          network_phase = 1;
+      else
+        {
+          arg_add_value (globals, "network_scan_status", ARG_STRING,
+                         strlen ("busy"), "busy");
+          network_phase = 1;
+        }
+    }
 
   num_tested = 0;
 
@@ -938,15 +1022,35 @@ attack_network (struct arglist *globals)
   sched =
     plugins_scheduler_init (plugins,
                             preferences_autoload_dependencies (preferences),
-                            preferences_silent_dependencies (preferences));
+                            preferences_silent_dependencies (preferences),
+                            network_phase);
 
   hg_flags = preferences_get_host_expansion (preferences);
   max_hosts = get_max_hosts_number (globals, preferences);
 
   int max_checks = get_max_checks_number (globals, preferences);
-  log_write
-    ("user %s starts a new scan. Target(s) : %s, with max_hosts = %d and max_checks = %d\n",
-     attack_user_name (globals), hostlist, max_hosts, max_checks);
+
+  if (network_phase)
+    {
+      network_targets = arg_get_value (preferences, "network_targets");
+      if (network_targets == NULL)
+        {
+          log_write ("WARNING: In network phase, but without targets! Stopping.\n");
+          hg_res = -1;
+        }
+      else
+        {
+          log_write
+            ("user %s starts a new scan. Target(s) : %s, in network phase with target %s\n",
+             attack_user_name (globals), hostlist, network_targets);
+        }
+    }
+  else
+    {
+      log_write
+        ("user %s starts a new scan. Target(s) : %s, with max_hosts = %d and max_checks = %d\n",
+         attack_user_name (globals), hostlist, max_hosts, max_checks);
+    }
 
   /* Initialize the hosts_gatherer library. */
   if (preferences_get_slice_network_addresses (preferences) != 0)
@@ -975,54 +1079,57 @@ attack_network (struct arglist *globals)
     {
       nthread_t pid;
 
-      /* openvassd offers the ability to either test
-       * only the hosts we tested in the past, or only
-       * the hosts we never tested (or both, of course) */
-      if (save_kb (globals))
+      if (! network_phase)
         {
-          if (save_kb_pref_tested_hosts_only (globals))
+          /* openvassd offers the ability to either test
+           * only the hosts we tested in the past, or only
+           * the hosts we never tested (or both, of course) */
+          if (save_kb (globals))
             {
-              if (!save_kb_exists (globals, hostname))
+              if (save_kb_pref_tested_hosts_only (globals))
                 {
-                  log_write
-                    ("user %s : not testing %s because it has never been tested before\n",
-                     attack_user_name (globals), hostname);
-                  hg_res =
-                    hg_next_host (hg_globals, &host_ip, hostname,
-                                  sizeof (hostname));
+                  if (!save_kb_exists (globals, hostname))
+                    {
+                      log_write
+                        ("user %s : not testing %s because it has never been tested before\n",
+                         attack_user_name (globals), hostname);
+                      hg_res =
+                        hg_next_host (hg_globals, &host_ip, hostname,
+                                      sizeof (hostname));
 
-                  if (tested != NULL)
-                    {
-                      while (hg_res >= 0
-                             && g_hash_table_lookup (tested, hostname) != 0)
-                        hg_res =
-                          hg_next_host (hg_globals, &host_ip, hostname,
-                                        sizeof (hostname));
+                      if (tested != NULL)
+                        {
+                          while (hg_res >= 0
+                                 && g_hash_table_lookup (tested, hostname) != 0)
+                            hg_res =
+                              hg_next_host (hg_globals, &host_ip, hostname,
+                                            sizeof (hostname));
+                        }
+                      continue;
                     }
-                  continue;
                 }
-            }
-          else if (save_kb_pref_untested_hosts_only (globals))
-            {
-              /* XXX */
-              if (save_kb_exists (globals, hostname))
+              else if (save_kb_pref_untested_hosts_only (globals))
                 {
-                  log_write
-                    ("user %s : not testing %s because it has already been tested before\n",
-                     attack_user_name (globals), hostname);
-                  hg_res =
-                    hg_next_host (hg_globals, &host_ip, hostname,
-                                  sizeof (hostname));
-                  // If some hosts were tested already, jump over them.
-                  if (tested != NULL)
+                  /* XXX */
+                  if (save_kb_exists (globals, hostname))
                     {
-                      while (hg_res >= 0
-                             && g_hash_table_lookup (tested, hostname) != 0)
-                        hg_res =
-                          hg_next_host (hg_globals, &host_ip, hostname,
-                                        sizeof (hostname));
+                      log_write
+                        ("user %s : not testing %s because it has already been tested before\n",
+                         attack_user_name (globals), hostname);
+                      hg_res =
+                        hg_next_host (hg_globals, &host_ip, hostname,
+                                      sizeof (hostname));
+                      // If some hosts were tested already, jump over them.
+                      if (tested != NULL)
+                        {
+                          while (hg_res >= 0
+                                 && g_hash_table_lookup (tested, hostname) != 0)
+                            hg_res =
+                              hg_next_host (hg_globals, &host_ip, hostname,
+                                            sizeof (hostname));
+                        }
+                      continue;
                     }
-                  continue;
                 }
             }
         }
@@ -1103,27 +1210,41 @@ attack_network (struct arglist *globals)
             }
 
           hosts_set_pid (hostname, pid);
-          log_write ("user %s : testing %s (%s) [%d]\n",
-                     attack_user_name (globals), hostname, inet_ntop (AF_INET6,
-                                                                      &args.
-                                                                      hostip,
-                                                                      buffer,
-                                                                      sizeof
-                                                                      (buffer)),
-                     pid);
+          if (network_phase)
+            log_write ("user %s : testing %s (network level) [%d]\n",
+                       attack_user_name (globals), network_targets,
+                       pid);
+          else
+            log_write ("user %s : testing %s (%s) [%d]\n",
+                       attack_user_name (globals), hostname, inet_ntop (AF_INET6,
+                                                                        &args.
+                                                                        hostip,
+                                                                        buffer,
+                                                                        sizeof
+                                                                        (buffer)),
+                       pid);
           if (MAC != NULL)
             efree (&MAC);
         }
 
       num_tested++;
-      hg_res = hg_next_host (hg_globals, &host_ip, hostname, sizeof (hostname));
-      if (tested != NULL)
+
+      if (network_phase)
         {
-          while (hg_res >= 0 && g_hash_table_lookup (tested, hostname))
+          hg_res = -1;
+          arg_set_value (globals, "network_scan_status", strlen ("done"), "done");
+        }
+      else
+        {
+          hg_res = hg_next_host (hg_globals, &host_ip, hostname, sizeof (hostname));
+          if (tested != NULL)
             {
-              hg_res =
-                hg_next_host (hg_globals, &host_ip, hostname,
-                              sizeof (hostname));
+              while (hg_res >= 0 && g_hash_table_lookup (tested, hostname))
+                {
+                  hg_res =
+                    hg_next_host (hg_globals, &host_ip, hostname,
+                                  sizeof (hostname));
+                }
             }
         }
     }
@@ -1180,6 +1301,9 @@ stop:
   gettimeofday (&now, NULL);
   log_write ("Total time to scan all hosts : %ld seconds\n",
              now.tv_sec - then.tv_sec);
+
+  if (do_network_scan && network_phase)
+    return attack_network (globals);
 
   return 0;
 }

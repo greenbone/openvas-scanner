@@ -113,7 +113,7 @@ typedef struct plugins_scheduler_struct *plugins_scheduler_t;
 void plugin_set_running_state (plugins_scheduler_t, struct scheduler_plugin *,
                                int);
 
-plugins_scheduler_t plugins_scheduler_init (struct arglist *, int, int);
+plugins_scheduler_t plugins_scheduler_init (struct arglist *, int, int, int);
 struct scheduler_plugin *plugins_scheduler_next (plugins_scheduler_t);
 
 void plugins_scheduler_free (plugins_scheduler_t);

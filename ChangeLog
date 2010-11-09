@@ -1,3 +1,32 @@
+2010-11-09  Michael Wiegand <michael.wiegand@greenbone.net>
+
+	Added support for network level scans as described in OpenVAS Change
+	Request #49 (see http://www.openvas.org/openvas-cr-49.html).
+
+	* openvassd/preferences.c (preferences_network_scan): New function to
+	return the value of the network_scan preference as int.
+
+	* openvassd/preferences.h: Updated.
+
+	* openvassd/pluginscheduler.c (plugins_scheduler_init): Changed
+	function to accept an only_network switch. Remove NVTs in
+	ACT_GATHER_INFO and up from the schedule if only_network is set.
+
+	* openvassd/pluginscheduler.h: Updated.
+
+	* openvassd/save_kb.c (save_kb): Ensure the KB is saved during a
+	network level scan so we can us it later.
+
+	* openvassd/attack.c (launch_plugin): Write to the network KB if we
+	are scanning on the network level.
+	(init_host_kb): If we are in the network scan phase, return a new
+	network KB. If we have completed the network scan, get the relevant
+	items from the network KB and use them in the host KB.
+	(attack_host): Close the correct KB when an attack has finished.
+	(attack_start): Check preferences to see if a network level scan has
+	been requested and make the necessary preparations if this is the
+	case.
+
 2010-10-29  Michael Wiegand <michael.wiegand@greenbone.net>
 
 	Post-release version bump.

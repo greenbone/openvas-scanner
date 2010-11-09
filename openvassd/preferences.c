@@ -794,6 +794,32 @@ preferences_silent_dependencies (struct arglist *preferences)
   return yes;
 }
 
+int
+preferences_network_scan (struct arglist *preferences)
+{
+  static int yes = -1;
+  char *pref;
+
+  if (!preferences)
+    {
+      yes = -1;
+      return -1;
+    }
+
+
+  if (yes >= 0)
+    return yes;
+
+
+  pref = arg_get_value (preferences, "network_scan");
+  if (pref && !strcmp (pref, "yes"))
+    yes = 1;
+  else
+    yes = 0;
+
+  return yes;
+}
+
 /**
  * @return NULL if pref is set to "no", preference value otherwise.
  */

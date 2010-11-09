@@ -750,6 +750,10 @@ save_kb (struct arglist *globals)
   if (!globals)
     return 0;
 
+  value = arg_get_value (globals, "network_scan_status");
+  if (value && !strcmp (value, "busy"))
+    return 1;
+
   preferences = arg_get_value (globals, "preferences");
   if (!preferences)
     return 0;

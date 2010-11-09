@@ -534,7 +534,7 @@ enable_plugin_and_dependencies (plugins_scheduler_t shed,
 
 plugins_scheduler_t
 plugins_scheduler_init (struct arglist *plugins, int autoload,
-                        int silent_dependencies)
+                        int silent_dependencies, int only_network)
 {
   plugins_scheduler_t ret = emalloc (sizeof (*ret));
   struct arglist *arg;
@@ -637,6 +637,13 @@ plugins_scheduler_init (struct arglist *plugins, int autoload,
         }
     }
 
+  if (only_network)
+    {
+      for (i = ACT_GATHER_INFO; i <= ACT_LAST; i++)
+        {
+          ret->list[i] = NULL;
+        }
+    }
   return ret;
 }
 

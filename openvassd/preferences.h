@@ -56,5 +56,6 @@ void preferences_reset_cache ();
 int preferences_silent_dependencies (struct arglist *);
 int preferences_nasl_no_signature_check (struct arglist *);
 int preferences_drop_privileges (struct arglist *, char *);
+int preferences_network_scan (struct arglist *);
 
 #endif
