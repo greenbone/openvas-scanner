@@ -1,5 +1,11 @@
 2010-11-09  Jan-Oliver Wagner <jan-oliver.wagner@greenbone.net>
 
+	* VERSION: Updated from 3.1.2.SVN to 3.2.0.SVN.
+
+	* doc/Doxyfile, doc/Doxyfile_full: Increased PROJECT_NUMBER accordingly.
+
+2010-11-09  Jan-Oliver Wagner <jan-oliver.wagner@greenbone.net>
+
 	* cnvts/find_service/find_service.c,
 	cnvts/openvas_tcp_scanner/openvas_tcp_scanner.c,
 	cnvts/synscan/synscan.c, openvassd/nasl_plugins.c,
