@@ -1,3 +1,13 @@
+2010-11-10  Jan-Oliver Wagner <jan-oliver.wagner@greenbone.net>
+
+	Replace plugin_ calls by using nvti directly.
+
+	* openvassd/oval_plugins.c (oval_plugin_t): Removed because
+	this struct is not required anymore (the nvti carries all of it).
+	(current_plugin): now a nvti_t instead of oval_plugin_t.
+	(start_element, text, oval_plugin_add): Handle nvti object now.
+	Replace plugin_ calls by repsective nvti_ functions.
+
 2010-11-10  Michael Wiegand <michael.wiegand@greenbone.net>
 
 	* openvassd/attack.c (attack_network): Remove stray log message. Don't

@@ -39,6 +39,8 @@
 #include <openvas/misc/system.h>     /* for emalloc */
 #include <openvas/misc/proctitle.h>  /* for setproctitle */
 
+#include <openvas/base/nvti.h>  /* for nvti_t */
+
 #include <glib.h>
 #include <glib/gstdio.h>
 #include "corevers.h"
@@ -55,25 +57,14 @@ void ovaldi_launch (struct arglist *g_args);
 // user_data pointer provided by the glib XML parser.
 
 /**
- * @brief Structure for plugin information.
- */
-typedef struct
-{
-  gchar *id;
-  gchar *oid;
-  gchar *version;
-  gchar *description;
-  gchar *title;
-  gchar *copyright;
-} oval_plugin_t;
-
-/**
  * @brief The current plugin/definition when parsing definitions.
  */
-oval_plugin_t *current_plugin;
+nvti_t *current_plugin;
 
 /**
  * @brief The list of plugins/definitions.
+ * TODO: this can be moved to nvtis_t once the list iterator
+ * works for nvtis_t as well (see use of plugin_list further down).
  */
 GSList *plugin_list = NULL;
 
@@ -202,21 +193,20 @@ start_element (GMarkupParseContext * context, const gchar * element_name,
       if (strcmp (element_name, "definition") == 0)
         {
           set_parser_state (DEFINITION);
-          current_plugin = g_malloc (sizeof (oval_plugin_t));
+          current_plugin = nvti_new ();
           while (*name_cursor)
             {
               if (strcmp (*name_cursor, "id") == 0)
                 {
-                  current_plugin->id =
-                    g_strrstr (g_strdup (*value_cursor), ":") + 1;
                   // TODO: This currently assigns only IDs in the range intended for
                   // RedHat security advisories.
-                  current_plugin->oid =
-                    g_strconcat ("1.3.6.1.4.1.25623.1.2.2312.",
-                                 current_plugin->id, NULL);
+                  // TODO: g_strdup really necessary?
+                  nvti_set_oid (current_plugin,
+                      (const gchar *) g_strconcat ("1.3.6.1.4.1.25623.1.2.2312.",
+                      g_strrstr (g_strdup (*value_cursor), ":") + 1, NULL));
                 }
               if (strcmp (*name_cursor, "version") == 0)
-                current_plugin->version = g_strdup (*value_cursor);
+                nvti_set_version(current_plugin, *value_cursor);
               name_cursor++;
               value_cursor++;
             }
@@ -268,9 +258,7 @@ text (GMarkupParseContext * context, const gchar * text, gsize text_len,
   switch (parser_state)
     {
     case DESCRIPTION:
-      // NOTE: This currently cuts off descriptions longer than the maximum
-      // length specified in libopenvas/store_internal.h
-      current_plugin->description = g_strndup (text, 3190);
+      nvti_set_description (current_plugin, text);
       break;
     case TITLE:
       {
@@ -282,17 +270,20 @@ text (GMarkupParseContext * context, const gchar * text, gsize text_len,
               {
                 g_strstrip (title_split[i]);
               }
-            current_plugin->title = g_strjoinv (" ", title_split);
+            nvti_set_name (current_plugin, g_strjoinv (" ", title_split));
           }
         else
           {
-            current_plugin->title = g_strdup (title_split[0]);
+            nvti_set_name (current_plugin, title_split[0]);
           }
         g_strfreev (title_split);
       }
       break;
     case RIGHTS:
-      current_plugin->copyright = g_strdup (text);
+      // @TODO: We take the copyright of the first definition advisory for
+      // the entire collection for now. Ultimately we will need to go
+      // through all definitions and collect the copyrights.
+      nvti_set_copyright (current_plugin, text);
       break;
     default:
       break;
@@ -366,10 +357,8 @@ oval_plugin_add (char *folder, char *name, struct arglist *plugins,
   GMarkupParseContext *context = NULL;
   gchar *filebuffer = NULL;
   gsize length = 0;
-  gchar *title = NULL;
   gchar *descriptions = NULL;
   gchar *description = NULL;
-  gchar *copyright = NULL;
   int i;
 
   if (plugin_list != NULL)
@@ -430,7 +419,7 @@ oval_plugin_add (char *folder, char *name, struct arglist *plugins,
           return NULL;
         }
 
-      oval_plugin_t *first_plugin = g_slist_nth_data (plugin_list, 0);
+      nvti_t *first_plugin = g_slist_nth_data (plugin_list, 0);
       if (g_slist_length (plugin_list) > 1)
         {
           gchar **title_array;
@@ -439,8 +428,8 @@ oval_plugin_add (char *folder, char *name, struct arglist *plugins,
 
           for (i = 0; i < g_slist_length (plugin_list); i++)
             {
-              oval_plugin_t *plug = g_slist_nth_data (plugin_list, i);
-              title_array[i] = g_strdup_printf ("%s\n", plug->title);
+              nvti_t *plug = g_slist_nth_data (plugin_list, i);
+              title_array[i] = g_strdup_printf ("%s\n", nvti_name (plug));
             }
           title_array[i] = NULL;
           descriptions = g_strjoinv (NULL, title_array);
@@ -454,44 +443,28 @@ oval_plugin_add (char *folder, char *name, struct arglist *plugins,
             }
           else
             {
-              description =
-                g_strconcat
+              nvti_set_description (first_plugin, g_strconcat
                 ("This OVAL file contains the following definitions:\n",
-                 g_strdup (descriptions), NULL);
+                 g_strdup (descriptions), NULL));
             }
           g_free (descriptions);
           g_strfreev (title_array);
-          title =
-            g_strdup_printf ("%s (%d OVAL definitions)", name,
-                             g_slist_length (plugin_list));
-          // @TODO: We take the copyright of the first definition advisory for
-          // the entire collection for now. Ultimately we will need to go
-          // through all definitions and collect the copyrights.
-          copyright = first_plugin->copyright;
+          nvti_set_name (first_plugin,
+                         g_strdup_printf ("%s (%d OVAL definitions)", name,
+                           g_slist_length (plugin_list)));
         }
-      else
-        {
-          description = first_plugin->description;
-          title = first_plugin->title;
-          copyright = first_plugin->copyright;
-        }
+
+      nvti_set_summary (first_plugin, nvti_name (first_plugin));
+      nvti_set_family (first_plugin, "OVAL definitions");
+      nvti_set_dependencies (first_plugin, "toolcheck.nasl");
+      nvti_set_mandatory_keys (first_plugin, "Tools/Present/ovaldi");
+      nvti_set_category (first_plugin, ACT_END);
+      nvti_set_src (first_plugin, g_build_filename (folder, name, NULL));
+      nvti_set_sign_key_ids (first_plugin, sign_fprs);
 
       args = emalloc (sizeof (struct arglist));
 
-      plug_set_oid (args, g_strdup (first_plugin->oid));
-      plug_set_version (args, first_plugin->version);
-      plug_set_name (args, title);
-      plug_set_summary (args, title);
-      plug_set_copyright (args, first_plugin->copyright);
-      plug_set_description (args, description);
-      plug_set_dep (args, "toolcheck.nasl");
-      plug_mandatory_key (args, "Tools/Present/ovaldi");
-      plug_set_category (args, ACT_END);
-      plug_set_family (args, "OVAL definitions");
-
-      plug_set_path (args, g_build_filename (folder, name, NULL));
-
-      plug_set_sign_key_ids (args, sign_fprs);
+      plug_set_nvti (args, first_plugin);
 
       store_plugin (args, name);
       args = store_load_plugin (name, preferences);
