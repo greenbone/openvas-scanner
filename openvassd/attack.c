@@ -965,10 +965,10 @@ attack_network (struct arglist *globals)
   preferences = arg_get_value (globals, "preferences");
 
   do_network_scan = preferences_network_scan (preferences);
-  log_write ("do_network_scan is %d", do_network_scan);
   network_targets = arg_get_value (preferences, "network_targets");
-  arg_add_value (globals, "network_targets", ARG_STRING,
-                 strlen (network_targets), network_targets);
+  if (network_targets != NULL)
+    arg_add_value (globals, "network_targets", ARG_STRING,
+                   strlen (network_targets), network_targets);
   if (do_network_scan)
     {
       gchar *network_scan_status = arg_get_value (globals, "network_scan_status");
