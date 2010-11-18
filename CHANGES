@@ -1,3 +1,21 @@
+openvas-scanner 3.2+beta1 (2010-11-18)
+
+This release is the first beta version of the next release of openvas-scanner.
+It will be part of the upcoming "OpenVAS 4".
+
+Main new features and other changes of 3.2 compared to 3.1 include: Support of
+a network scan level, reduced memory consumption due to changes in
+openvas-libraries and a cleanup of the code base.
+
+Many thanks to everyone who has contributed to this release:
+Jan-Oliver Wagner and Michael Wiegand.
+
+Main changes compared to 3.1.1:
+* Network level scan support.
+* Removed unnecessary log entries.
+* Include paths have been updated to match with openvas-libraries 4.0.
+
+
 openvas-scanner 3.1.1 (2010-10-29)
 
 This is the 3.1.1 release of the openvas-scanner module for the Open

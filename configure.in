@@ -44,7 +44,7 @@ AC_INIT(.root-dir)
 AC_REVISION($Revision$)dnl
 AC_PREREQ(2.50)
 
-NEED_OPENVASLIBS_VERSION=3.0.0
+NEED_OPENVASLIBS_VERSION=4.0.0
 
 dnl version stuff -- jordan
 save_IFS="${IFS}"

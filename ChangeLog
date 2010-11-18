@@ -1,3 +1,20 @@
+2010-11-18  Michael Wiegand <michael.wiegand@greenbone.net>
+
+	Preparing the openvas-scanner 3.2+beta1 release.
+
+	* VERSION: Set to 3.2.0.beta1.
+
+	* doc/Doxyfile, doc/Doxyfile_full: Updated PROJECT_NUMBER.
+
+	* CHANGES: Updated.
+
+	* configure.in: Set required openvas-libraries version to 4.0.0.
+
+	* configure: Regenerated.
+
+	* openvassd/openvassd.c (main): Display OPENVAS_FULL_VERSION instead
+	of OPENVAS_VERSION in -V and -d.
+
 2010-11-10  Jan-Oliver Wagner <jan-oliver.wagner@greenbone.net>
 
 	Replace plugin_ calls by using nvti directly.

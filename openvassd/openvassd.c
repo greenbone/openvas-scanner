@@ -1188,7 +1188,7 @@ main (int argc, char *argv[], char *envp[])
 
   if (display_version)
     {
-      printf ("openvassd (%s) %s for %s\n\n", PROGNAME, OPENVAS_VERSION,
+      printf ("openvassd (%s) %s for %s\n\n", PROGNAME, OPENVAS_FULL_VERSION,
               OVS_OS_NAME);
       printf
         ("Nessusd origin: (C) 1998 - 2004 Renaud Deraison <deraison@nessus.org>\n");
@@ -1217,7 +1217,7 @@ main (int argc, char *argv[], char *envp[])
 
   if (dump_cfg)
     {
-      printf ("This is OpenVAS %s for %s %s\n", OPENVAS_VERSION, OVS_OS_NAME,
+      printf ("This is OpenVAS %s for %s %s\n", OPENVAS_FULL_VERSION, OVS_OS_NAME,
               OVS_OS_VERSION);
       printf ("compiled with %s\n", OVS_COMPILER);
       printf ("Current setup :\n");
