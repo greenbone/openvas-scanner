@@ -1,5 +1,12 @@
 2010-11-18  Michael Wiegand <michael.wiegand@greenbone.net>
 
+	* cnvts/openvas_tcp_scanner/openvas_tcp_scanner.c: Added include for
+	openvas/misc/services.h.
+	(std_port): Removed now superfluous declaration of
+	openvas_get_svc_name.
+
+2010-11-18  Michael Wiegand <michael.wiegand@greenbone.net>
+
 	Post-release version bump.
 
 	* VERSION: Set to 3.2.0.beta2.SVN.

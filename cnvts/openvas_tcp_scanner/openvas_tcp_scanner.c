@@ -24,7 +24,7 @@
 #include <openvas/misc/plugutils.h> /* for find_in_path */
 #include <openvas/misc/scanners_utils.h> /* for comm_send_status */
 #include <openvas/misc/system.h> /* for efree */
-//#include <openvas/misc/services.h> /* for get_tcp_svcs */
+#include <openvas/misc/services.h> /* for get_tcp_svcs */
 
 #ifdef LINUX
 #include <netinet/tcp.h>
@@ -147,7 +147,6 @@ my_socket_close(int s)
 static int std_port(int port)
 {
   const char	*name;
-  extern char*	openvas_get_svc_name();
 
   if (port < 1 || port > 65535) return 0;
   name = openvas_get_svc_name(port, NULL);
