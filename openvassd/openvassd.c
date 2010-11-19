@@ -484,7 +484,7 @@ scanner_thread (struct arglist *globals)
     gnutls_x509_crt_t cert;
     unsigned int cert_list_size = 0;
     const gnutls_datum_t *cert_list;
-    unsigned int x509_dname_size = sizeof (x509_dname);
+    size_t x509_dname_size = sizeof (x509_dname);
     int ret;
 
     session = ovas_get_tlssession_from_connection (soc2);

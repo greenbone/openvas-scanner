@@ -1,3 +1,13 @@
+2010-11-19  Michael Wiegand <michael.wiegand@greenbone.net>
+
+	Addressed 64 bit compiler warnings.
+
+	* cnvts/find_service/find_service.c (mark_unknown_svc, plugin_do_run):
+	Use GSIZE_TO_POINTER consistently instead casts to (void *).
+
+	* openvassd/openvassd.c (scanner_thread): Use size_t for sizeof return
+	value.
+
 2010-11-18  Michael Wiegand <michael.wiegand@greenbone.net>
 
 	* cnvts/openvas_tcp_scanner/openvas_tcp_scanner.c: Added include for

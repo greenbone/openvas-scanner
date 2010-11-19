@@ -1453,7 +1453,7 @@ mark_unknown_svc(desc, port, banner, trp)
 	char            tmp[1600], *norm = NULL;
 
 	/* Do NOT use plug_replace_key! */
-	plug_set_key(desc, "Services/unknown", ARG_INT, (void *) port);
+	plug_set_key(desc, "Services/unknown", ARG_INT, GSIZE_TO_POINTER(port));
 	snprintf(tmp, sizeof(tmp), "unknown/banner/%d", port);
 	plug_replace_key(desc, tmp, ARG_STRING, (char *) banner);
 
@@ -1980,7 +1980,7 @@ plugin_do_run(desc, h, test_ssl)
 					snprintf(report, sizeof(report), "A %s server answered on this port\n",
 						 get_encaps_name(trp));
 					post_note(desc, port, report);
-					plug_set_key(desc, "Transport/SSL", ARG_INT, (void *) port);
+					plug_set_key(desc, "Transport/SSL", ARG_INT, GSIZE_TO_POINTER(port));
 				}
 
 #define HTTP_GET	"GET / HTTP/1.0\r\n\r\n"
