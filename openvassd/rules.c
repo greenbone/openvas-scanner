@@ -429,29 +429,20 @@ rules_add (struct openvas_rules **rules, struct openvas_rules **user,
 #endif
         if (t->rule == RULES_ACCEPT)
           {
-            if (!username)
-              {
-                if (t->family == AF_INET)
-                  accept_rules->inaddrs.ip.s_addr = t->inaddrs.ip.s_addr;
-                else
-                  {
-                    memcpy (&accept_rules->inaddrs.ip6, &t->inaddrs.ip6,
-                            sizeof (struct in6_addr));
-                  }
-                accept_rules->family = t->family;
-                accept_rules->client_ip = t->client_ip;
-                accept_rules->mask = t->mask;
-                accept_rules->rule = t->rule;
-                accept_rules->not = t->not;
-                accept_rules->next = emalloc (sizeof (**rules));
-                accept_rules = accept_rules->next;
-              }
+            if (t->family == AF_INET)
+              accept_rules->inaddrs.ip.s_addr = t->inaddrs.ip.s_addr;
             else
               {
-                log_write
-                  ("user %s : attempted to gain more rights by adding accept %s/%d",
-                   username, inet_ntoa (t->inaddrs.ip), t->mask);
+                memcpy (&accept_rules->inaddrs.ip6, &t->inaddrs.ip6,
+                        sizeof (struct in6_addr));
               }
+            accept_rules->family = t->family;
+            accept_rules->client_ip = t->client_ip;
+            accept_rules->mask = t->mask;
+            accept_rules->rule = t->rule;
+            accept_rules->not = t->not;
+            accept_rules->next = emalloc (sizeof (**rules));
+            accept_rules = accept_rules->next;
           }
         else
           {

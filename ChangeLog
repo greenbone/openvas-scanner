@@ -1,3 +1,15 @@
+2010-12-02  Matthew Mundell <matthew.mundell@intevation.de>
+
+	Adjust the restriction on client side rules: instead of always refusing to
+	add any client side reject rules, accept any client side rules but only
+	when the user is already allowed to scan all hosts.
+
+	* openvassd/ntp_11.c (ntp_11_rules): Forbid client side rules when there
+	are any server side rules besides for "default accept".
+
+	* openvassd/rules.c (rules_add): Allow addition of accept rules when
+	username is given.
+
 2010-11-19  Michael Wiegand <michael.wiegand@greenbone.net>
 
 	Addressed 64 bit compiler warnings.

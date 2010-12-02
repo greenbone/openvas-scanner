@@ -333,13 +333,27 @@ ntp_11_read_prefs (struct arglist *globals)
 static int
 ntp_11_rules (struct arglist *globals)
 {
-  struct openvas_rules *user_rules = emalloc (sizeof (*user_rules));
+  struct openvas_rules *user_rules;
   struct openvas_rules *rules = arg_get_value (globals, "rules");
   char *buffer;
   int finished = 0;
   struct sockaddr_in *soca;
   inaddrs_t addrs;
 
+  /* Forbid client side rules when there are any server side rules besides
+   * for "default accept". */
+  if (rules->next
+      || rules->not
+      || (rules->def == RULES_REJECT)
+      || rules->rule)
+    {
+      log_write
+        ("user %s : attempted to add rules on top of server rules",
+         (char*) arg_get_value (globals, "user"));
+      return (0);
+    }
+
+  user_rules = emalloc (sizeof (*user_rules));
   buffer = emalloc (4096);
   while (!finished)
     {
