@@ -579,7 +579,7 @@ init_host_kb (struct arglist *globals, char *hostname, struct arglist *hostinfos
   (*new_kb) = FALSE;
   char *vhosts = (char *) arg_get_value (hostinfos, "VHOSTS");
   struct kb_item **network_kb;
-  struct kb_item *host_network_results;
+  struct kb_item *host_network_results = NULL;
   struct kb_item *result_iter;
 
   gchar *network_scan_status = (gchar *) arg_get_value (globals, "network_scan_status");

@@ -1,3 +1,8 @@
+2010-12-03  Michael Wiegand <michael.wiegand@greenbone.net>
+
+	* openvassd/attack.c (init_host_kb): Initialize host_network_results
+	as suggested by Matthew Mundell.
+
 2010-12-02  Matthew Mundell <matthew.mundell@intevation.de>
 
 	Adjust the restriction on client side rules: instead of always refusing to
