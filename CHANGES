@@ -1,3 +1,27 @@
+openvas-scanner 3.2+beta2 (2010-12-06)
+
+This release is the second beta version of the next release of openvas-scanner.
+It will be part of the upcoming "OpenVAS 4".
+
+It addresses three compiler warnings and fixes two issues discovered after the
+release of openvas-scanner 3.2+beta1.
+
+Many thanks to everyone who has contributed to this release:
+Matthew Mundell, Jan-Oliver Wagner and Michael Wiegand.
+
+Main changes compared to 3.2+beta1:
+* A compiler warning regarding an incorrect function declaration in
+  openvas_tcp_scanner has been addressed.
+* A compiler warning regarding incorrect pointer casts in find_service has been
+  addressed.
+* A compiler warning regarding the type of a return value in openvassd has been
+  addressed.
+* An issue which caused openvassd to refuse to scan certain hosts even when
+  permitted by rules has been fixed.
+* An issue which caused openvassd to abort the scan process prematurely under
+  certain circumstances has been fixed.
+
+
 openvas-scanner 3.2+beta1 (2010-11-18)
 
 This release is the first beta version of the next release of openvas-scanner.
