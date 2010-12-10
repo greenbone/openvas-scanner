@@ -371,8 +371,12 @@ read_running_processes ()
             {
               int result = process_internal_msg (i);
               if (result)
-                log_write ("process_internal_msg for %s returned %d\n",
-                           processes[i].name, result);
+                {
+#ifdef DEBUG
+                  log_write ("process_internal_msg for %s returned %d\n",
+                             processes[i].name, result);
+#endif
+                }
             }
         }
     }

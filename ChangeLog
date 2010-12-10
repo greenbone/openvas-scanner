@@ -1,3 +1,16 @@
+2010-12-10  Michael Wiegand <michael.wiegand@greenbone.net>
+
+	Stop logging debug messages during the handling of shared sockets
+	unless DEBUG is defined.
+
+	* openvassd/shared_socket.c (openvassd_shared_socket_register,
+	openvassd_shared_socket_acquire, openvassd_shared_socket_release,
+	shared_socket_cleanup_process): Stop shared_socket.c from being too
+	verbose by wrapping debugging output in an #ifdef DEBUG.
+
+	* openvassd/pluginlaunch.c (read_running_processes): Only log debug
+	message if DEBUG is defined.
+
 2010-12-06  Michael Wiegand <michael.wiegand@greenbone.net>
 
 	Post-release version bump.

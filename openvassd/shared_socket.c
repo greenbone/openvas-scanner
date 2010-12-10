@@ -141,8 +141,10 @@ openvassd_shared_socket_register (int soc, nthread_t pid, char *buf)
   shared_fd[empty_slot].lock_time = time (NULL);
   shared_fd[empty_slot].name = estrdup (buf);
   shared_fd[empty_slot].fd = fd;
+#ifdef DEBUG
   log_write ("shared_socket: Process %d registers a shared socket (%s)\n", pid,
              buf);
+#endif
   return 0;
 }
 
@@ -156,8 +158,10 @@ openvassd_shared_socket_acquire (int soc, nthread_t pid, char *buf)
         {
           if (shared_fd[i].current_user != 0)
             {
+#ifdef DEBUG
               log_write ("shared_socket: %s is busy (locked by %d)\n", buf,
                          shared_fd[i].current_user);
+#endif
               /* Send a SOCKET_BUSY message */
               internal_send (soc, NULL,
                              INTERNAL_COMM_MSG_SHARED_SOCKET |
@@ -179,7 +183,9 @@ openvassd_shared_socket_acquire (int soc, nthread_t pid, char *buf)
                 }
               else
                 {
+#ifdef DEBUG
                   log_write ("shared_socket: %s now locked by %d\n", buf, pid);
+#endif
                   shared_fd[i].current_user = pid;
                   shared_fd[i].lock_time = time (NULL);
                   /* Send the socket itself */
@@ -196,7 +202,9 @@ openvassd_shared_socket_acquire (int soc, nthread_t pid, char *buf)
   internal_send (soc, NULL,
                  INTERNAL_COMM_MSG_SHARED_SOCKET |
                  INTERNAL_COMM_SHARED_SOCKET_ERROR);
+#ifdef DEBUG
   log_write ("shared_socket: %s is unknown\n", buf);
+#endif
   return -1;
 }
 
@@ -218,7 +226,9 @@ openvassd_shared_socket_release (int soc, nthread_t pid, char *buf)
 
           shared_fd[i].current_user = 0;
           shared_fd[i].lock_time = 0;
+#ifdef DEBUG
           log_write ("shared_socket: %s released by process %d\n", buf, pid);
+#endif
           return 0;
         }
     }
@@ -296,8 +306,10 @@ shared_socket_cleanup_process (nthread_t process)
     {
       if (shared_fd[i].current_user == process)
         {
+#ifdef DEBUG
           log_write ("shared_socket: Process %d has finished - releasing %s\n",
                      process, shared_fd[i].name);
+#endif
           shared_fd[i].current_user = 0;
           shared_fd[i].lock_time = 0;
         }
