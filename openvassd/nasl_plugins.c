@@ -246,9 +246,14 @@ nasl_thread (struct arglist *g_args)
   int i;
   int nasl_mode;
   GError *error = NULL;
+  int nice_retval;
 
   if (preferences_benice (NULL))
-    nice (-5);
+    nice_retval = nice (-5);
+  // @todo: Check value of nice_retval to see if it was successful.
+  // Keep in mind that even -1 can mean success here; see man page of nice
+  // for details.
+
   /* XXX ugly hack */
   soc = dup2 (soc, 4);
   if (soc < 0)

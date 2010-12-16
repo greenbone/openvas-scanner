@@ -72,7 +72,7 @@ AC_PROG_INSTALL
 INSTALL_DIR="$INSTALL -d"
 AC_PROG_LIBTOOL
 
-test -n "$GCC" && CWALL="-Wall"
+test -n "$GCC" && CWALL="-Wall -Werror -Wformat -Wformat-security -O2 -D_FORTIFY_SOURCE=2 -fstack-protector -Wl,-z,relro -Wl,-z,now"
 
 
 test "x$enable_syslog" = "x" && enable_syslog="yes";

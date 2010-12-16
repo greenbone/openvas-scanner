@@ -1,3 +1,30 @@
+2010-12-16  Michael Wiegand <michael.wiegand@greenbone.net>
+
+	Address compiler warnings discovered with hardening flags on gcc 4.4.
+	Make hardening flags default.
+
+	* cnvts/openvas_tcp_scanner/openvas_tcp_scanner.c
+	(read_sysctl_maxsysfd): Check return value of fscanf.
+
+	* configure.in: Add hardening flags to default flags.
+
+	* configure: Regenerated.
+
+	* openvassd/locks.c (file_lock, file_locked): Check return values of
+	calls to write and read.
+
+	* openvassd/nasl_plugins.c (nasl_thread): Catch result of call to
+	nice. Added todo for checking the return value.
+
+	* openvassd/nes_plugins.c (nes_thread): Catch result of call to nice.
+	Added todo for checking the return value.
+
+	* openvassd/openvassd.c (scanner_thread): Catch result of call to
+	nice. Added todo for checking the return value.
+
+	* openvassd/save_kb.c (save_kb_load_kb): Check return value of call to
+	fgets.
+
 2010-12-10  Michael Wiegand <michael.wiegand@greenbone.net>
 
 	Stop logging debug messages during the handling of shared sockets

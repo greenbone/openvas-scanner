@@ -74,7 +74,8 @@ file_lock (name)
 
   bzero (buf, sizeof (buf));
   snprintf (buf, sizeof (buf), "%d", getpid ());
-  write (fd, buf, strlen (buf));
+  if (write (fd, buf, strlen (buf)) < 0)
+    return -1;
   close (fd);
   return 0;
 }
@@ -112,7 +113,14 @@ file_locked (name)
    * lock is still alive
    */
   bzero (asc_pid, sizeof (asc_pid));
-  read (fd, asc_pid, sizeof (asc_pid) - 1);
+  if (read (fd, asc_pid, sizeof (asc_pid) - 1) < 0)
+    {
+      log_write ("Could not determine if the file %s is locked: Failed to read %s\n",
+                 name, lock);
+      efree (&lock);
+      return 0;
+    }
+
   close (fd);
   pid = atoi (asc_pid);
   if (process_alive (pid))

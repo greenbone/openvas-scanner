@@ -393,6 +393,7 @@ scanner_thread (struct arglist *globals)
   struct sockaddr_in *saddr = NULL;
   struct sockaddr_in6 *s6addr;
   inaddrs_t addrs;
+  int nice_retval;
 
   char x509_dname[256];
   int soc2 = -1;
@@ -422,7 +423,10 @@ scanner_thread (struct arglist *globals)
 
   /* Everyone runs with a nicelevel of 10 */
   if (preferences_benice (prefs))
-    nice (10);
+    nice_retval = nice (10);
+  // @todo: Check value of nice_retval to see if it was successful.
+  // Keep in mind that even -1 can mean success here; see man page of nice
+  // for details.
 
   openvas_signal (SIGCHLD, sighand_chld);
 #if 1

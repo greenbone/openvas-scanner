@@ -283,9 +283,13 @@ nes_thread (args)
   plugin_run_t func;
   int e;
   GError *error = NULL;
+  int nice_retval;
 
   if (preferences_benice (NULL))
-    nice (-5);
+    nice_retval = nice (-5);
+  // @todo: Check value of nice_retval to see if it was successful.
+  // Keep in mind that even -1 can mean success here; see man page of nice
+  // for details.
 
 
   soc = dup2 (soc, 4);

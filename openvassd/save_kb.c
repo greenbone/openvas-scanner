@@ -638,7 +638,13 @@ save_kb_load_kb (struct arglist *globals, char *hostname)
       return NULL;
     }
   bzero (buf, sizeof (buf));
-  fgets (buf, sizeof (buf) - 1, f);
+  if (fgets (buf, sizeof (buf) - 1, f) == NULL)
+    {
+      log_write ("user %s : Could not read %s - kb won't be restored for %s\n",
+                 (char *) arg_get_value (globals, "user"), fname, hostname);
+      efree (&fname);
+      return NULL;
+    }
 
   kb = kb_new ();
 

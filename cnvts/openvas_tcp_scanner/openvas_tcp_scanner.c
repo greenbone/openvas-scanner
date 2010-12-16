@@ -1342,14 +1342,14 @@ read_sysctl_maxsysfd()
   if (max_sys_fd <= 0 && (fp = popen("sysctl fs.file-max", "r")) != NULL)
     {
       if (fscanf(fp, "%*s = %d", &max_sys_fd) != 1)
-	max_sys_fd = 0;
+        max_sys_fd = 0;
       pclose(fp);
     }
 
   if (max_sys_fd <= 0 && (fp = popen("sysctl kern.maxfiles", "r")) != NULL)
     {
       if (fscanf(fp, "%*s = %d", &max_sys_fd) != 1)
-	max_sys_fd = 0;
+        max_sys_fd = 0;
       pclose(fp);
     }
 
@@ -1527,7 +1527,8 @@ int plugin_run(struct arglist * desc)
 
 	if (fp != NULL)
 	  {
-	    fscanf(fp, "%*s = %d", &max_sys_fd);
+	    if (fscanf(fp, "%*s = %d", &max_sys_fd) < 1)
+	      max_sys_fd = 0;
 	    pclose(fp);
 	  }
       }
@@ -1541,7 +1542,8 @@ int plugin_run(struct arglist * desc)
 
 	if (fp != NULL)
 	  {
-	    fscanf(fp, "%*s = %d", &max_sys_fd);
+	    if (fscanf(fp, "%*s = %d", &max_sys_fd) < 1)
+	      max_sys_fd = 0;
 	    pclose(fp);
 	  }
       }
