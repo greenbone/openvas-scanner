@@ -1,3 +1,9 @@
+2010-12-17  Michael Wiegand <michael.wiegand@greenbone.net>
+
+	* openvassd/openvassd.c (main): Default to listening on IPv4
+	consistently if no other address is given instead of depending on
+	whether the system has IPv6 capabilities or not.
+
 2010-12-16  Michael Wiegand <michael.wiegand@greenbone.net>
 
 	Address compiler warnings discovered with hardening flags on gcc 4.4.

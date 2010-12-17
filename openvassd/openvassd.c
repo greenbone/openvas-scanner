@@ -1155,28 +1155,12 @@ main (int argc, char *argv[], char *envp[])
     }
   else
     {
-      int tmpsock;
-      tmpsock = socket (AF_INET6, SOCK_STREAM, 0);
-      if (tmpsock == -1 && errno == EAFNOSUPPORT)
-        {
-          /* No ipv6 support. Try ipv4 */
-          /*Warning: Not filling all the fields */
-          saddr.sin_addr.s_addr = INADDR_ANY;
-          saddr.sin_family = ai.ai_family = AF_INET;
-          ai.ai_addrlen = sizeof (saddr);
-          ai.ai_addr = (struct sockaddr *) &saddr;
-        }
-      else
-        {
-          /* we will stick to ipv6 */
-          if (tmpsock > 0)
-            close (tmpsock);
-          /*Warning: Not filling all the fields */
-          s6addr.sin6_addr = in6addr_any;
-          s6addr.sin6_family = ai.ai_family = AF_INET6;
-          ai.ai_addrlen = sizeof (s6addr);
-          ai.ai_addr = (struct sockaddr *) &s6addr;
-        }
+      /* Default to IPv4 */
+      /*Warning: Not filling all the fields */
+      saddr.sin_addr.s_addr = INADDR_ANY;
+      saddr.sin_family = ai.ai_family = AF_INET;
+      ai.ai_addrlen = sizeof (saddr);
+      ai.ai_addr = (struct sockaddr *) &saddr;
     }
 
   if (port != NULL)
