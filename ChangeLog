@@ -1,3 +1,7 @@
+2010-12-20  Michael Wiegand <michael.wiegand@greenbone.net>
+
+	* README: Updated.
+
 2010-12-17  Michael Wiegand <michael.wiegand@greenbone.net>
 
 	* openvassd/openvassd.c (main): Default to listening on IPv4
