@@ -115,7 +115,7 @@ ntp_11_parse_input (struct arglist *globals, char *input)
 
         case CREQ_PAUSE_WHOLE_TEST:
           log_write ("Pausing the whole test (requested by client)");
-          hosts_pause_all (globals);
+          hosts_pause_all ();
           result = NTP_PAUSE_WHOLE_TEST;
           break;
 
@@ -139,7 +139,7 @@ ntp_11_parse_input (struct arglist *globals, char *input)
 
         case CREQ_RESUME_WHOLE_TEST:
           log_write ("Resuming the whole test (requested by client)");
-          hosts_resume_all (globals);
+          hosts_resume_all ();
           result = NTP_RESUME_WHOLE_TEST;
           break;
 

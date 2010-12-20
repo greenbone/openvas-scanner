@@ -1,5 +1,11 @@
 2010-12-20  Michael Wiegand <michael.wiegand@greenbone.net>
 
+	* openvassd/ntp_11.c (ntp_11_parse_input): Fix calls to
+	hosts_pause_all and hosts_resume_all to match their prototypes.
+	Discovered by Stephan Kleine.
+
+2010-12-20  Michael Wiegand <michael.wiegand@greenbone.net>
+
 	Post-release version bump.
 
 	* VERSION: Set to 3.2.0.rc2.SVN.
