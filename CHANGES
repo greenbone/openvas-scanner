@@ -1,3 +1,24 @@
+openvas-scanner 3.2+rc1 (2010-12-20)
+
+This release is the first release candidate for the next release of
+openvas-scanner.  It will be part of the upcoming "OpenVAS 4".
+
+It silences a number of debug messages and addresses compiler warnings. Most
+importantly, openvas-scanner now reliably defaults to listening on IPv4 sockets
+even in environments where IPv6 support is present.
+
+Many thanks to everyone who has contributed to this release:
+Michael Wiegand.
+
+Main changes compared to 3.2+beta2:
+* Debug messages during the use of shared sockets are no longer logged unless
+  requested during compile time.
+* A number of compiler warnings from gcc 4.4 has been addressed.
+* Hardening flags are now enabled during compile time to increase code quality.
+* openvas-scanner now listens on an IPv4 socket by default, even when IPv6
+  support is present.
+
+
 openvas-scanner 3.2+beta2 (2010-12-06)
 
 This release is the second beta version of the next release of openvas-scanner.

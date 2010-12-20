@@ -1,5 +1,15 @@
 2010-12-20  Michael Wiegand <michael.wiegand@greenbone.net>
 
+	Preparing the openvas-scanner 3.2+rc1 release.
+
+	* VERSION: Set to 3.2.0.rc1.
+
+	* doc/Doxyfile, doc/Doxyfile_full: Updated PROJECT_NUMBER.
+
+	* CHANGES: Updated.
+
+2010-12-20  Michael Wiegand <michael.wiegand@greenbone.net>
+
 	* README: Updated.
 
 2010-12-17  Michael Wiegand <michael.wiegand@greenbone.net>
