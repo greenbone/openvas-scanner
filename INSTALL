@@ -1,0 +1,137 @@
+INSTALLING OPENVAS-SCANNER
+==========================
+
+Prerequisites
+-------------
+
+* openvas-libraries (4.0.0 or later)
+
+
+Compiling openvas-scanner
+-------------------------
+
+Run
+
+$ ./configure
+
+to set up the compilation environment.
+During configuration, error messages may show up if openvas-libraries or other
+libraries and applications needed to compile openvas-scanner are not present on
+your system or do not meet the version requirements.
+In this case, resolve the issues reported and run configure again.
+
+If you want to install openvas-scanner into a different hierarchy, you may
+want to use the prefix option during configuration:
+
+$ ./configure --prefix=/opt/openvas
+
+More information about the configuration options is available through the help
+option:
+
+$ ./configure --help
+
+Once you have configured openvas-scanner successfully, you can start the
+compilation by executing the following command:
+
+$ make
+
+To install openvas-scanner, you can use the following command:
+
+$ make install
+
+Please note that you may have to execute this command as root, especially if you
+have specified a prefix for which your user does not have full permissions.
+
+
+Setting up openvas-scanner
+--------------------------
+
+NOTE: This is only a very concise guide to setting up an openvas-scanner. Please
+refer to the OpenVAS compendium available at http://www.openvas.org/compendium/
+for more detailed information. One of the many changes from OpenVAS 2.0 to
+OpenVAS 3.0 was the renaming of openvas-server to openvas-scanner.
+
+Setting up an openvas-scanner requires the following steps:
+
+1) The scanner and the client modules of OpenVAS communicate through an SSL
+   connection. In order to establish this connection, the scanner needs to have
+   an SSL certificate it can present to the client to prove its identity. You
+   can interactively create this certificate by using the following command:
+
+   $ openvas-mkcert
+
+   This command will guide you through the certificate creation and place the
+   certificates in the correct locations on your system.
+
+   NOTE: If you want to use openvas-manager together with openvas-scanner you
+   may want to create the client certificate now. Please see the openvas-manager
+   INSTALL file for details.
+
+2) You need to create at least one user on the openvas-scanner to be able to
+   login with a client. This can be done through the following command:
+
+   $ openvas-adduser
+
+   The command will guide you through the user creation and allow you to specify
+   a name and authentication method for the user and to define rules restricting
+   the usage of the scanner by this user. For more details on rules please
+   refer to the OpenVAS compendium available through the OpenVAS website.
+
+   Alternatively you can use openvas-administrator to create users with a single
+   command. Please refer to the openvas-administrator documentation for details.
+
+3) In order to run vulnerability scan, you will need a collection of Network
+   Vulnerability Tests (NVTs) that can be run by openvas-scanner. Initially,
+   your NVT collection will contain very few NVTs. It is recommended that you
+   synchronize with an NVT feed service before starting openvas-scanner for the
+   first time.
+
+   Your installation is preconfigured to synchronize with the OpenVAS NVT Feed.
+   Simply execute the following command to receive thousands of NVTs from this
+   feed service:
+
+   $ openvas-nvt-sync
+
+   Please note that you will need at least one of the following tools for a
+   successful synchronization:
+   * rsync
+   * wget
+   * curl
+
+   NVT feeds are usually updated a few times per week. Be sure to update your
+   NVT collection regularly to detect the latest threats.
+   Please visit the OpenVAS website for more information on available NVT feeds
+   and instructions for integrating feeds into your scanner installation.
+
+4) You can launch openvas-scanner using the following command:
+
+   $ openvassd
+
+   Be aware that the first launch of openvas-scanner after the initial feed
+   synchronization or after large feed updates will take longer than usual since
+   the internal scanner cache has to be updated. Subsequent launches will be
+   much quicker.
+
+   Please note that although you can start openvassd as a user without elevated
+   privileges, it is recommended that you start openvassd as root since a number
+   of Network Vulnerability Tests (NVTs) require root privileges to perform
+   certain operations like packet forgery. If you run openvassd as a user
+   without permission to perform these operations, your scan results are very
+   likely to be incomplete.
+
+5) Once the scanner has started, you can use a client like OpenVAS-Client, GSA
+   or GSD to connect to your scanner using the user name and credentials you
+   specified in step 2.  Please refer to the documentation for your client for
+   more information.
+
+   Be aware that modern clients like GSA or GSD will need the openvas-manager
+   module to connect to openvas-scanner. See the openvas-manager documentation
+   for installation instructions.
+
+If you encounter problems, the files /var/log/openvas/openvassd.messages and
+/var/log/openvas/openvassd.dump may contain useful information. (The exact
+location of these files may differ depending on your distribution and
+installation method.) Please have these files ready when contacting the OpenVAS
+developers through the OpenVAS mailing list or the online chat or submitting bug
+reports at http://bugs.openvas.org/ as they may help to pinpoint the source of
+your issue.

@@ -40,6 +40,7 @@ include/corevers.h.in
 include/includes.h
 include/threadcompat.h
 install-sh
+INSTALL
 ltmain.sh
 Makefile
 MANIFEST

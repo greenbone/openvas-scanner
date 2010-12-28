@@ -1,3 +1,15 @@
+2010-12-28  Michael Wiegand <michael.wiegand@greenbone.net>
+
+	Split README and INSTALL documentation to be consistent with other
+	modules and to conform to the GNU Coding Standards recommendations.
+
+	* README: Moved content regarding installation and configuration to
+	new INSTALL file.
+
+	* INSTALL: New file containing installation and configuration hints.
+
+	* MANIFEST: Updated to include INSTALL.
+
 2010-12-20  Michael Wiegand <michael.wiegand@greenbone.net>
 
 	* openvassd/ntp_11.c (ntp_11_parse_input): Fix calls to
