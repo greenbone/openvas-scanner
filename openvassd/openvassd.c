@@ -1095,7 +1095,7 @@ main (int argc, char *argv[], char *envp[])
   };
 
   option_context =
-    g_option_context_new ("- 'server' for the OpenVAS security " "scanner");
+    g_option_context_new ("- Scanner of the Open Vulnerability Assessment System");
   g_option_context_add_main_entries (option_context, entries, NULL);
   if (!g_option_context_parse (option_context, &argc, &argv, &error))
     {
