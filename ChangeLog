@@ -1,5 +1,10 @@
 2010-12-30  Jan-Oliver Wagner <jan-oliver.wagner@greenbone.net>
 
+	* cnvts/find_service/find_service.c: Made several functions
+	static. These are not needed externally.
+
+2010-12-30  Jan-Oliver Wagner <jan-oliver.wagner@greenbone.net>
+
 	* cnvts/find_service/find_service.c,
 	cnvts/openvas_tcp_scanner/openvas_tcp_scanner.c: Replaced
 	use of includes.h by respective direct includes.
