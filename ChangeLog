@@ -1,5 +1,9 @@
 2010-12-30  Jan-Oliver Wagner <jan-oliver.wagner@greenbone.net>
 
+	* include/config.h.in: Remove long obsolete DEFAULT_PORT.
+
+2010-12-30  Jan-Oliver Wagner <jan-oliver.wagner@greenbone.net>
+
 	* openvassd/openvassd.c (main): Adapted --version output to
 	comply with GNU Coding Standards
 	(http://www.gnu.org/prep/standards/standards.html#g_t_002d_002dversion)
