@@ -1,5 +1,23 @@
 2010-12-30  Jan-Oliver Wagner <jan-oliver.wagner@greenbone.net>
 
+	* cnvts/find_service/find_service.c,
+	cnvts/openvas_tcp_scanner/openvas_tcp_scanner.c: Replaced
+	use of includes.h by respective direct includes.
+
+	* cnvts/synscan/synscan.c: Replaced use of includes.h by
+	respective direct includes. Also removed inclusion of
+	the openvastcp.h which is only relevant for absence
+	of netinet.
+
+	* cnvts/synscan/openvastcp.h, cnvts/synscan/openvasicmp.h,
+	cnvts/synscan/openvasip.h, cnvts/synscan/openvasudp.h,
+	cnvts/synscan/openvasraw.h: Removed. We assume we have
+	have netinet.
+
+	* MANIFEST: Updated.
+
+2010-12-30  Jan-Oliver Wagner <jan-oliver.wagner@greenbone.net>
+
 	* include/config.h.in: Remove long obsolete DEFAULT_PORT.
 
 2010-12-30  Jan-Oliver Wagner <jan-oliver.wagner@greenbone.net>

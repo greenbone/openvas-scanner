@@ -7,7 +7,18 @@
 #define SMART_TCP_RW
 /* #define DEBUG */
 
-#include <includes.h>
+#include "config.h"    /* for PLUGIN_TIMEOUT */
+
+#include <stdio.h>     /* for snprintf() */
+#include <string.h>    /* for strstr() */
+#include <stdlib.h>    /* for atoi() */
+#include <errno.h>     /* for errno() */
+#include <signal.h>    /* for signal() */
+#include <ctype.h>     /* for tolower() */
+#include <sys/time.h>  /* for gettimeofday() */
+#include <sys/types.h> /* for waitpid() */
+#include <sys/wait.h>  /* for waitpid() */
+#include <unistd.h>    /* for usleep() */
 
 #include <openvas/misc/arglists.h> /* for struct arglist */
 #include <openvas/misc/kb.h> /* for plug_get_oldstyle_kb */

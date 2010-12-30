@@ -7,11 +7,6 @@ cnvts/install_plug
 cnvts/make_world
 cnvts/openvas_tcp_scanner/Makefile
 cnvts/openvas_tcp_scanner/openvas_tcp_scanner.c
-cnvts/synscan/openvasicmp.h
-cnvts/synscan/openvasip.h
-cnvts/synscan/openvasraw.h
-cnvts/synscan/openvastcp.h
-cnvts/synscan/openvasudp.h
 cnvts/synscan/Makefile
 cnvts/synscan/synscan.c
 config.guess

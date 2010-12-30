@@ -26,8 +26,12 @@
 
 #define _BSD_SOURCE 1
 
-#include <includes.h>
-#include <openvasraw.h>
+#include <unistd.h>      /* for close() */
+#include <stdlib.h>      /* for rand() */
+#include <arpa/inet.h>   /* for AF_INET */
+#include <string.h>      /* for memcpy() */
+#include <netinet/tcp.h> /* for TH_SYN */
+#include <netinet/ip.h>
 
 #include <openvas/misc/arglists.h> /* for struct arglist */
 #include <openvas/misc/bpf_share.h> /* for bpf_open_live */
@@ -462,7 +466,7 @@ mktcp (struct in_addr src, int sport, struct in_addr dst, int dport,
 	ip->ip_hl = 5;
 	ip->ip_v = 4;
 	ip->ip_tos = 0;
-	ip->ip_len = FIX (sizeof (struct ip) + sizeof (struct tcphdr));
+	ip->ip_len = sizeof (struct ip) + sizeof (struct tcphdr);
 	ip->ip_id = rand();
 	ip->ip_off = 0;
 	ip->ip_ttl = 64;

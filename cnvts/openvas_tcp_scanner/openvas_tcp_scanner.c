@@ -15,7 +15,18 @@
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
  */
-#include <includes.h>
+
+#include <unistd.h>       /* for close() */
+#include <fcntl.h>        /* for fcntl() */
+#include <string.h>       /* for strcmp() */
+#include <stdio.h>        /* for fprintf() */
+#include <stdlib.h>       /* for atoi() */
+#include <sys/types.h>    /* for socket() */ 
+#include <sys/socket.h>   /* for socket() */
+#include <errno.h>        /* for errno() */
+#include <sys/time.h>     /* for gettimeofday() */
+#include <sys/resource.h> /* for getrlimit() */
+#include <netdb.h>        /* for getprotobyname() */
 
 #include <glib.h>
 
