@@ -1176,13 +1176,15 @@ main (int argc, char *argv[], char *envp[])
 
   if (display_version)
     {
-      printf ("openvassd (%s) %s for %s\n\n", PROGNAME, OPENVAS_FULL_VERSION,
-              OVS_OS_NAME);
+      printf ("OpenVAS Scanner %s\n", OPENVAS_FULL_VERSION);
       printf
-        ("Nessusd origin: (C) 1998 - 2004 Renaud Deraison <deraison@nessus.org>\n");
+        ("Nessus origin: (C) 2004 Renaud Deraison <deraison@nessus.org>\n");
       printf
-        ("Most new code since openvassd: (C) 2009 Greenbone Networks GmbH\n");
-      printf ("\n");
+        ("Most new code since OpenVAS: (C) 2010 Greenbone Networks GmbH\n");
+      printf ("License GPLv2: GNU GPL version 2\n");
+      printf
+        ("This is free software: you are free to change and redistribute it.\n"
+         "There is NO WARRANTY, to the extent permitted by law.\n\n");
       DO_EXIT (0);
     }
 
@@ -1205,12 +1207,11 @@ main (int argc, char *argv[], char *envp[])
 
   if (dump_cfg)
     {
-      printf ("This is OpenVAS %s for %s %s\n", OPENVAS_FULL_VERSION, OVS_OS_NAME,
+      printf ("This is OpenVAS Scanner %s for %s %s\n", OPENVAS_FULL_VERSION, OVS_OS_NAME,
               OVS_OS_VERSION);
       printf ("compiled with %s\n", OVS_COMPILER);
       printf ("Current setup :\n");
       printf ("\topenvas-libraries              : %s\n", openvaslib_version ());
-      printf ("\tSSL is used for client / scanner communication\n");
       printf ("\tRunning as euid                : %d\n", geteuid ());
 #ifdef USE_LIBWRAP
       printf ("\tCompiled with tcpwrappers support\n");
