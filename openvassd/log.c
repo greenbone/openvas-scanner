@@ -23,18 +23,22 @@
 * You should have received a copy of the GNU General Public License
 * along with this program; if not, write to the Free Software
 * Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA 02110-1301 USA.
-*
-*
 */
 
-#include <includes.h>
+#include <string.h>   /* for strchr() */
+#include <stdio.h>    /* for fprintf() */
+#include <fcntl.h>    /* for open() */
+#include <unistd.h>   /* for close() */
+#include <errno.h>    /* for errno() */
+#include <sys/stat.h> /* for stat() */
+#include <time.h>     /* for time() */
+
 #include <stdarg.h>
 #include <syslog.h>
 #include "comm.h"
 #include "utils.h"
 #include "log.h"
 #include "corevers.h"
-
 
 static FILE *log;
 
