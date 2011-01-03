@@ -23,8 +23,6 @@
 * You should have received a copy of the GNU General Public License
 * along with this program; if not, write to the Free Software
 * Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA 02110-1301 USA.
-*
-*
 */
 
 /** @file
@@ -40,7 +38,14 @@
  * Resetting this "cache"s is possible by calling preferences_reset_cache.
  */
 
-#include <includes.h>
+#include <unistd.h> /* for close() */
+#include <stdio.h>  /* for printf() */
+#include <string.h> /* for strstr() */
+#include <errno.h>  /* for errno() */
+#include <stdlib.h> /* for atoi() */
+#include <fcntl.h>  /* for open() */
+
+#include "config.h" /* for OPENVASSD_MESSAGES */
 
 #include <openvas/hg/hosts_gatherer.h>
 #include <openvas/misc/system.h>     /* for efree */
@@ -215,7 +220,7 @@ preferences_process (char *filename, struct arglist *prefs)
             {
               printf ("The OpenVAS daemon doesn't have the right to read %s\n",
                       filename);
-              DO_EXIT (1);
+              exit (1);
             }
 
 #ifdef DEBUG
@@ -233,7 +238,7 @@ preferences_process (char *filename, struct arglist *prefs)
             {
               perror ("preferences_process():open ");
               printf ("Could not open %s -- now quitting\n", filename);
-              DO_EXIT (2);
+              exit (2);
             }
         }
 
