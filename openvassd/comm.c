@@ -27,7 +27,10 @@
   *
   */
 
-#include <includes.h>
+#include <string.h> /* for strchr() */
+#include <stdio.h>  /* for fprintf() */
+#include <stdlib.h> /* for atoi() */
+
 #include <corevers.h>
 #include <stdarg.h>
 
@@ -74,7 +77,7 @@ comm_init (int soc)
      wants us to use */
   n = recv_line (soc, buf, sizeof (buf) - 1);
   if (n <= 0)
-    EXIT (0);
+    exit (0);
 
   buf[sizeof (buf) - 1] = '\0';
   if (!strncmp (buf, "< OTP/1.0 >", 11))
@@ -84,7 +87,7 @@ comm_init (int soc)
     }
   else
     {
-      EXIT (0);
+      exit (0);
     }
 #ifdef DEBUG
   log_write ("Client requested protocol %s.\n", buf);
@@ -102,7 +105,7 @@ comm_terminate (struct arglist *globals)
   auth_printf (globals, "SERVER <|> BYE <|> BYE <|> SERVER\n");
   /*
      auth_gets(globals, buf, 199);
-     if(!strlen(buf))EXIT(0);
+     if(!strlen(buf))exit(0);
      efree(&buf);
    */
 }
@@ -430,11 +433,11 @@ comm_wait_order (struct arglist *globals)
       if (n < 0)
         {
           log_write ("Client closed the communication\n");
-          EXIT (0);
+          exit (0);
         }
       if (str[0] == '\0')
         if (!is_client_present (soc))
-          EXIT (0);
+          exit (0);
 
       if (ntp_11_parse_input (globals, str) == 0)
         break;
