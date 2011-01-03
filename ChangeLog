@@ -1,5 +1,9 @@
 2011-01-03  Jan-Oliver Wagner <jan-oliver.wagner@greenbone.net>
 
+	* openvassd/comm.c: Removed uselsess defines of FALSE and TRUE.
+
+2011-01-03  Jan-Oliver Wagner <jan-oliver.wagner@greenbone.net>
+
 	* openvassd/comm.c: Replaced use of includes.h
 	by respective direct includes. Replaced occurences of EXIT()
 	by exit().

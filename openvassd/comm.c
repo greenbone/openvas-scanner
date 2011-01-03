@@ -54,15 +54,6 @@
 #include "sighand.h"
 #include "utils.h"
 
-
-#ifndef FALSE
-#define FALSE 0
-#endif
-#ifndef TRUE
-#define TRUE (!FALSE)
-#endif
-
-
 /**
  * @brief Initializes the communication between the scanner (us) and the client.
  */
