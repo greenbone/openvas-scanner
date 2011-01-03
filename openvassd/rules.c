@@ -23,12 +23,15 @@
 * You should have received a copy of the GNU General Public License
 * along with this program; if not, write to the Free Software
 * Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA 02110-1301 USA.
-*
-*
 */
 
+#include <arpa/inet.h> /* for AF_INET */
+#include <stdio.h>     /* for printf() */
+#include <string.h>    /* for strlen() */
+#include <stdlib.h>    /* for atoi() */
+#include <netdb.h>     /* for getaddrinfo() */
 
-#include <includes.h>
+#include "config.h" /* for OPENVASSD_RULES */
 
 #include <openvas/misc/system.h>     /* for efree */
 
@@ -276,7 +279,7 @@ rules_init_aux (struct openvas_rules *rules, FILE * file, char *buffer, int len,
                       printf
                         ("Error in the rules file. %s is not a valid cidr netmask\n",
                          v + sizeof (char));
-                      EXIT (1);
+                      exit (1);
                     }
                   if (rules->mask > 0)
                     {
@@ -295,7 +298,7 @@ rules_init_aux (struct openvas_rules *rules, FILE * file, char *buffer, int len,
                       printf
                         ("Error in the rules file. %s is not a valid cidr netmask\n",
                          v + sizeof (char));
-                      EXIT (1);
+                      exit (1);
                     }
                   if (rules->mask > 0)
                     rules_ipv6addrmask (&rules->inaddrs.ip6, rules->mask);
