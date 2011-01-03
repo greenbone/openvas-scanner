@@ -29,7 +29,14 @@
  * @brief The nasl - plugin class. Loads or launches nasl- plugins.
  */
 
-#include <includes.h>
+#include <stdio.h>    /* for fprintf() */
+#include <unistd.h>   /* for close() */
+#include <signal.h>   /* for SIGTERM */
+#include <sys/stat.h>
+
+#define USE_FORK_THREADS
+#include "config.h"
+#include "threadcompat.h"
 
 #include <glib.h>
 

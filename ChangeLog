@@ -1,5 +1,18 @@
 2011-01-03  Jan-Oliver Wagner <jan-oliver.wagner@greenbone.net>
 
+	* openvassd/oval_plugins.c: Replaced use of includes.h
+	by respective direct includes.
+	(oval_plugin_launch): Replaced ntthread_t by int as it
+	was handled as int already anyway.
+
+	* openvassd/nes_plugins.c: Replaced use of includes.h
+	by respective direct includes.
+
+	* openvassd/nasl_plugins.c: Replaced use of includes.h
+	by respective direct includes.
+
+2011-01-03  Jan-Oliver Wagner <jan-oliver.wagner@greenbone.net>
+
 	* openvassd/save_kb.c (diff_scan, diff_scan_enable): Removed
 	as these functions are never used and differntial computation
 	do not belong to the Scanner anyway.

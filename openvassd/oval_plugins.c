@@ -2,7 +2,7 @@
 * $Id: oval_plugins.c 140 2006-05-31 15:24:25Z tarik $
 * Description: Launches OVAL definitions.
 *
-* Authors: - Michael Wiegand <michael.wiegand@intevation.de>
+* Authors: Michael Wiegand <michael.wiegand@greenbone.net>
 *
 * Copyright:
 * Copyright (C) 2008 Intevation GmbH
@@ -29,7 +29,11 @@
  * interpreter.
  */
 
-#include <includes.h>
+#include <string.h>    /* for strcmp() */
+#include <unistd.h>    /* for _exit() */
+#include <sys/types.h> /* for getpwnam() */
+#include <pwd.h>       /* for getpwnam() */
+#include <signal.h>    /* for signal() */
 
 #include <openvas/nasl/nasl.h>
 #include <openvas/misc/network.h>    /* for internal_send */
@@ -48,7 +52,6 @@
 #include "pluginload.h"
 #include "preferences.h"
 #include "processes.h"
-
 
 static void oval_thread (struct arglist *);
 void ovaldi_launch (struct arglist *g_args);
@@ -492,7 +495,7 @@ oval_plugin_launch (struct arglist *globals, struct arglist *plugin,
                     struct arglist *hostinfos, struct arglist *preferences,
                     struct kb_item **kb, char *name)
 {
-  nthread_t module;
+  int module;
   arg_add_value (plugin, "globals", ARG_ARGLIST, -1, globals);
   arg_add_value (plugin, "HOSTNAME", ARG_ARGLIST, -1, hostinfos);
   arg_add_value (plugin, "name", ARG_STRING, strlen (name), name);

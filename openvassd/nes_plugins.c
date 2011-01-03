@@ -23,11 +23,17 @@
 * You should have received a copy of the GNU General Public License
 * along with this program; if not, write to the Free Software
 * Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA 02110-1301 USA.
-*
-*
 */
 
-#include <includes.h>
+#include <stdio.h>  /* for snprintf() */
+#include <unistd.h> /* for close() */
+#include <signal.h> /* for SIGTERM */
+#include <dlfcn.h>  /* for dlopen() */
+#include <string.h> /* for strlen() */
+
+#define USE_FORK_THREADS
+#include "config.h"
+#include "threadcompat.h"
 
 #include <glib.h>
 
