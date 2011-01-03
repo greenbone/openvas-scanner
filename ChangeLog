@@ -1,5 +1,11 @@
 2011-01-03  Jan-Oliver Wagner <jan-oliver.wagner@greenbone.net>
 
+	* openvassd/pluginscheduler.c (scheduler_plugin_score,
+	scheduler_plugin_best_score): Removed functions that
+	were disabled and marked as broken anyway.
+
+2011-01-03  Jan-Oliver Wagner <jan-oliver.wagner@greenbone.net>
+
 	* openvassd/pluginscheduler.c: Replaced use of includes.h
 	by respective direct includes.
 

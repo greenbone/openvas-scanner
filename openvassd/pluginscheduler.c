@@ -382,56 +382,6 @@ scheduler_rm_running_ports (plugins_scheduler_t sched,
 }
 
 
-#if DISABLED_AND_BROKEN
-
-/*
- * Returns the 'score' of the plugin, which means the number of
- * plugins that are already hammering the port this plugin will
- * hammer too
- */
-int
-scheduler_plugin_score (plugins_scheduler_t sched,
-                        struct scheduler_plugin *plugin)
-{
-  char **ports = hash_get_ports (sched->hash, plugin->arglist->name);
-  int i;
-  int score = 0;
-
-  if (ports == NULL)
-    return 0;
-
-  for (i = 0; ports[i] != NULL; i++)
-    {
-      struct plist *pl = pl_get (sched->plist, ports[i]);
-      if (pl != NULL)
-        {
-          if (pl->occurences > score)
-            score = pl->occurences;
-        }
-    }
-  return score;
-}
-
-
-void
-scheduler_plugin_best_score (plugins_scheduler_t sched, int *bscore,
-                             struct arglist **bplugin, struct arglist *plugin)
-{
-  int score = scheduler_plugin_score (sched, plugin);
-
-  if (score < *bscore)
-    {
-      *bscore = score;
-      *bplugin = plugin;
-    }
-}
-
-
-#endif
-
-
-
-
 struct scheduler_plugin *
 plugin_next_unrun_dependencie (plugins_scheduler_t sched,
                                struct hash **dependencies_ptr,
