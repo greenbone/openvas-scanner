@@ -1,5 +1,13 @@
 2011-01-03  Jan-Oliver Wagner <jan-oliver.wagner@greenbone.net>
 
+	* openvassd/save_kb.c (diff_scan, diff_scan_enable): Removed
+	as these functions are never used and differntial computation
+	do not belong to the Scanner anyway.
+
+	* openvassd/save_kb.h: Removed protos accordingly.
+
+2011-01-03  Jan-Oliver Wagner <jan-oliver.wagner@greenbone.net>
+
 	* openvassd/pluginlaunch.c: Replaced use of includes.h
 	by respective direct includes.
 

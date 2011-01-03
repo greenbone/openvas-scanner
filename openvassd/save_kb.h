@@ -55,7 +55,4 @@ int save_kb_pref_restore (struct arglist *);
 int save_kb_replay_check (struct arglist *, int);
 long save_kb_max_age (struct arglist *);
 
-
-int diff_scan (struct arglist *);
-void diff_scan_enable (struct arglist *);
 #endif

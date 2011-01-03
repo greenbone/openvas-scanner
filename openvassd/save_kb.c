@@ -28,9 +28,8 @@
 /**
  * @file
  * With the appropriate preferences, Knowledge bases will be saved and loaded.
- * This has not only importance for debugging, but could also allow differential
- * scans and information gain other than vulnerabilities of targets.
- * @see diff_scan
+ * This has not only importance for debugging, but could also allow information
+ * gain other than vulnerabilities of targets.
  *
  * Knowledge base backups are (if the appropriate preferences are set) saved
  * under (PREFIX)var/lib/openvas/users/(USERNAME)/kbs/(HOSTNAME) ,
@@ -877,41 +876,4 @@ save_kb_max_age (struct arglist *globals)
     return 3600;
   else
     return ret;
-}
-
-
-/**
- * Differential scans
- *
- *
- * The idea of a differential scan is to only show the user what
- * has changed in the report. To do this, libopenvas relies on the content
- * of the Success/... and Failures/... KB entries that record if a test
- * was sucessful or failed in the past.
- *
- * Note that the KB now contain the full text of the messages sent
- * back to the client, so libopenvas will be able to determine if a message
- * has changed or not (such as a newer FTP version for instance).
- *
- *
- * TODO :
- *    Add 'DataSent/PluginID/Num' entries
- */
-int
-diff_scan (struct arglist *globals)
-{
-  struct arglist *prefs = arg_get_value (globals, "preferences");
-  char *v = arg_get_value (prefs, "diff_scan");
-
-  if (v && !strcmp (v, "yes"))
-    return 1;
-  else
-    return 0;
-}
-
-
-void
-diff_scan_enable (struct arglist *pluginargs)
-{
-  arg_add_value (pluginargs, "DIFF_SCAN", ARG_INT, sizeof (int), (void *) 1);
 }
