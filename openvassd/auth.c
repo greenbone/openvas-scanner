@@ -23,18 +23,15 @@
 * You should have received a copy of the GNU General Public License
 * along with this program; if not, write to the Free Software
 * Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA 02110-1301 USA.
-*
-*
 */
 
 /*
  * This authentification scheme is BADLY written, and will NOT
  * be used in the future
- *
  */
 
-
-#include <includes.h>
+#include <string.h> /* for strlen() */
+#include <stdlib.h> /* for exit() */
 
 #include <stdarg.h>
 
@@ -69,14 +66,14 @@ auth_check_user (struct arglist *globals, char *from, char *dname)
     auth_gets (globals, buf_user, 254);
     if (buf_user[0] == '\0')
       {
-        EXIT (0);
+        exit (0);
       }
 
     auth_printf (globals, "Password : ");
     auth_gets (globals, buf_password, 254);
     if (buf_password[0] == '\0')
       {
-        EXIT (0);
+        exit (0);
       }
 
     l = strlen (buf_user);
