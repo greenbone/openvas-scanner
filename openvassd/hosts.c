@@ -25,7 +25,12 @@
 * Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA 02110-1301 USA.
 */
 
-#include <includes.h>
+#include <stdio.h>    /* for fprintf() */
+#include <errno.h>    /* for errno() */
+#include <signal.h>   /* for SIGTERM */
+#include <sys/wait.h> /* for waitpid() */
+#include <string.h>   /* for strlen() */
+#include <unistd.h>   /* for close() */
 
 #include <openvas/misc/network.h>    /* for internal_recv */
 #include <openvas/misc/plugutils.h>  /* for INTERNAL_COMM_MSG_TYPE_CTRL */
