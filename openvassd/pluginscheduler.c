@@ -27,8 +27,8 @@
 *
 */
 
-
-#include <includes.h>
+#include <string.h> /* for strcmp() */
+#include <stdio.h>  /* for printf() */
 
 #include <openvas/nvt_categories.h>  /* for ACT_SCANNER */
 #include <openvas/misc/plugutils.h>  /* for plug_get_required_ports */
