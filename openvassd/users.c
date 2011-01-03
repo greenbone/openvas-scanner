@@ -25,7 +25,11 @@
 * Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA 02110-1301 USA.
 */
 
-#include <includes.h>
+#include <stdio.h>      /* for fprintf() */
+#include <arpa/inet.h>  /* for inet_aton */
+#include <sys/param.h>  /* for MAXPATHLEN */
+
+#include "config.h"    /* for OPENVASSD_LOGINS */
 
 #include <openvas/misc/system.h>     /* for emalloc */
 
@@ -112,7 +116,7 @@ users_add_rule (struct openvas_rules *rules, char *rule)
               log_write
                 ("Parse error in the user rules : %s is not a valid IP\n",
                  rule);
-              EXIT (1);
+              exit (1);
             }
           else
             {
