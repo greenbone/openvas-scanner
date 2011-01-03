@@ -1,5 +1,10 @@
 2011-01-03  Jan-Oliver Wagner <jan-oliver.wagner@greenbone.net>
 
+	* openvassd/otp_1_0.c: Remove use of includes.h as it was
+	not necessary.
+
+2011-01-03  Jan-Oliver Wagner <jan-oliver.wagner@greenbone.net>
+
 	* openvassd/hosts.c: Replaced use of includes.h
 	by respective direct includes.
 

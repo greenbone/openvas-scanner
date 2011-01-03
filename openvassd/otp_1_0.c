@@ -3,7 +3,7 @@
 * Description: Implements OpenVAS Transfer Protocol 1.0.
 *
 * Authors:
-* Jan-Oliver Wagner <jan-oliver.wagner@intevation.de>
+* Jan-Oliver Wagner <jan-oliver.wagner@greenbone.net>
 *
 * Copyright:
 * Copyright (C) 2009 Greenbone Networks GmbH
@@ -20,16 +20,12 @@
 * You should have received a copy of the GNU General Public License
 * along with this program; if not, write to the Free Software
 * Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA 02110-1301 USA.
-*
 */
 
-#include <includes.h>
-
 #include <string.h>
-
 #include <corevers.h>
-#include <openvas/misc/network.h>
 
+#include <openvas/misc/network.h>
 #include <openvas/nasl/nasl.h>  /* for nasl_get_all_certifcates */
 #include <openvas/base/certificate.h>   /* for certificate_t */
 
