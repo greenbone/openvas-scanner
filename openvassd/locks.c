@@ -23,11 +23,13 @@
 * You should have received a copy of the GNU General Public License
 * along with this program; if not, write to the Free Software
 * Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA 02110-1301 USA.
-*
-*
 */
 
-#include <includes.h>
+#include <stdio.h>  /* for printf() */
+#include <string.h> /* for strlen() */
+#include <fcntl.h>  /* for open() */
+#include <stdlib.h> /* for atoi() */
+#include <unistd.h> /* for getpid() */
 
 #include <openvas/misc/system.h>     /* for efree */
 
