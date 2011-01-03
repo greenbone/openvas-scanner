@@ -29,10 +29,6 @@
 
 #include <openvas/misc/system.h>     /* for emalloc */
 
-/** @TODO Contents of this file is duplicate in openvas-scanner/openvassd/parser.c
- *        and openvas-client/openvas/parser.c . Move to libraries and merge, once
- *        openvas-client depends on libraries. */
-
 /**
  * @brief This function returns a pointer to the string after the ' \<|\> '
  * @brief symbol.
