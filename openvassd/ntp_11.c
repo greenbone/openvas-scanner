@@ -26,7 +26,10 @@
 * Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA 02110-1301 USA.
 */
 
-#include <includes.h>
+#include <string.h> /* for strlen() */
+#include <stdio.h>  /* for fprintf() */
+#include <stdlib.h> /* for atoi() */
+
 #include <corevers.h>
 
 #include <glib.h>
@@ -266,7 +269,7 @@ ntp_11_read_prefs (struct arglist *globals)
       if (n < 0 || input[0] == '\0')
         {
           log_write ("Empty data string -- closing comm. channel\n");
-          EXIT (0);
+          exit (0);
         }
 
       if (strstr (input, "<|> CLIENT") != NULL) /* finished = 1; */
@@ -361,7 +364,7 @@ ntp_11_rules (struct arglist *globals)
       if (buffer[0] == '\0')
         {
           log_write ("Empty buffer - exiting\n");
-          EXIT (0);
+          exit (0);
         }
 
       if (strstr (buffer, "<|> CLIENT") != NULL)

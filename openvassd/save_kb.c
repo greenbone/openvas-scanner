@@ -23,8 +23,6 @@
 * You should have received a copy of the GNU General Public License
 * along with this program; if not, write to the Free Software
 * Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA 02110-1301 USA.
-*
-*
 */
 
 /**
@@ -39,7 +37,14 @@
  * where strings in brackets have to be replaced by the respective value.
  */
 
-#include <includes.h>
+#include <unistd.h>   /* for close() */
+#include <string.h>   /* for strchr() */
+#include <stdlib.h>   /* for atoi() */
+#include <stdio.h>    /* for sprintf() */
+#include <errno.h>    /* for errno() */
+#include <sys/stat.h> /* for fstat() */
+#include <fcntl.h>    /* for open() */
+#include <sys/time.h> /* for gettimeofday() */
 
 #include <glib.h>
 
