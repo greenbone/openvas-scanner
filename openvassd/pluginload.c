@@ -23,11 +23,9 @@
 * You should have received a copy of the GNU General Public License
 * along with this program; if not, write to the Free Software
 * Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA 02110-1301 USA.
-*
-*
 */
 
-#include <includes.h>
+#include <stdio.h> /* for printf() */
 
 #include <openvas/nasl/nasl.h>
 #include <openvas/misc/system.h>     /* for emalloc */
@@ -50,8 +48,6 @@ plugins_init (preferences, be_quiet)
      struct arglist *preferences;
      int be_quiet;
 {
-
-
   return plugins_reload (preferences, emalloc (sizeof (struct arglist)),
                          be_quiet);
 }

@@ -23,12 +23,15 @@
 * You should have received a copy of the GNU General Public License
 * along with this program; if not, write to the Free Software
 * Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA 02110-1301 USA.
-*
-*
 */
 
-
-#include <includes.h>
+#include <stdio.h>    /* for snprintf() */
+#include <fcntl.h>    /* for open() */
+#include <sys/stat.h> /* for fstat() */
+#include <unistd.h>   /* for close() */
+#include <sys/mman.h> /* for mmap() */
+#include <dirent.h>   /* for opendir() */
+#include <errno.h>    /* for errno() */
 
 #include <openvas/misc/network.h>    /* for auth_printf */
 #include <openvas/misc/plugutils.h>  /* for plug_get_path */

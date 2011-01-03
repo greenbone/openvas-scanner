@@ -23,16 +23,23 @@
 * You should have received a copy of the GNU General Public License
 * along with this program; if not, write to the Free Software
 * Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA 02110-1301 USA.
-*
-*
 */
 
-#include <includes.h>
+#include <stdio.h>    /* for perror() */
+#include <unistd.h>   /* for close() */
+#include <sys/wait.h> /* for waitpid() */
+#include <strings.h>  /* for bzero() */
+#include <errno.h>    /* for errno() */
+#include <sys/time.h> /* for gettimeofday() */
 
 #include <openvas/misc/network.h>    /* for internal_send */
 #include <openvas/nvt_categories.h>  /* for ACT_SCANNER */
 #include <openvas/misc/plugutils.h>  /* for INTERNAL_COMM_MSG_SHARED_SOCKET */
 #include <openvas/misc/system.h>     /* for efree */
+
+#define USE_FORK_THREADS
+#include "config.h"
+#include "threadcompat.h"
 
 #include "pluginload.h"
 #include "piic.h"

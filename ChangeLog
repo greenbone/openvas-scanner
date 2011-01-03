@@ -1,5 +1,16 @@
 2011-01-03  Jan-Oliver Wagner <jan-oliver.wagner@greenbone.net>
 
+	* openvassd/pluginlaunch.c: Replaced use of includes.h
+	by respective direct includes.
+
+	* openvassd/pluginload.c: Replaced use of includes.h
+	by respective direct includes.
+
+	* openvassd/plugs_hash.c: Replaced use of includes.h
+	by respective direct includes.
+
+2011-01-03  Jan-Oliver Wagner <jan-oliver.wagner@greenbone.net>
+
 	* openvassd/ntp_11.c: Replaced use of includes.h
 	by respective direct includes. Replaced occurences of EXIT()
 	by exit().
