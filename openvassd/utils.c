@@ -23,11 +23,15 @@
 * You should have received a copy of the GNU General Public License
 * along with this program; if not, write to the Free Software
 * Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA 02110-1301 USA.
-*
-*
 */
 
-#include <includes.h>
+#include <stdio.h>     /* for fprintf() */
+#include <stdlib.h>    /* for atoi() */
+#include <string.h>    /* for strchr() */
+#include <sys/wait.h>  /* for waitpid() */
+#include <errno.h>     /* for errno() */
+#include <sys/ioctl.h> /* for ioctl() */
+#include <sys/stat.h>  /* for stat() */
 
 #include <openvas/misc/network.h>    /* for stream_zero */
 #include <openvas/misc/plugutils.h>  /* for plug_get_launch */
@@ -250,7 +254,7 @@ check_symlink (char *name)
   if (is_symlink (name))
     {
       fprintf (stderr, "The file %s is a symlink -- can't continue\n", name);
-      DO_EXIT (0);
+      exit (0);
     }
 }
 
