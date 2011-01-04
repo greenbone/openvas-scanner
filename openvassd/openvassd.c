@@ -23,7 +23,6 @@
 * You should have received a copy of the GNU General Public License
 * along with this program; if not, write to the Free Software
 * Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA 02110-1301 USA.
-*
 */
 
 /**
@@ -41,7 +40,17 @@
  * OpenVAS Scanner main module, runs the scanner.
  */
 
-#include <includes.h>
+#include <string.h>    /* for strchr() */
+#include <stdio.h>     /* for fprintf() */
+#include <stdlib.h>    /* for atoi() */
+#include <unistd.h>    /* for close() */
+#include <errno.h>     /* for errno() */
+#include <fcntl.h>     /* for open() */
+#include <arpa/inet.h> /* for inet_aton */
+#include <signal.h>    /* for SIGTERM */
+#include <netdb.h>     /* for addrinfo */
+
+#include "config.h" /* for OPENVASSD_CONF */
 
 #include <openvas/misc/bpf_share.h>  /* for bpf_server */
 #include <openvas/nasl/nasl.h>
@@ -479,7 +488,7 @@ scanner_thread (struct arglist *globals)
     {
       log_write ("New connection timeout -- closing the socket\n");
       close_stream_connection (soc);
-      EXIT (0);
+      exit (0);
     }
 
   /* Get X.509 cert subject name */
@@ -574,7 +583,7 @@ scanner_thread (struct arglist *globals)
       e = attack_network (globals);
       ntp_1x_timestamp_scan_ends (globals);
       if (e < 0)
-        EXIT (0);
+        exit (0);
       comm_terminate (globals);
       if (arg_get_value (prefs, "ntp_keep_communication_alive"))
         {
@@ -595,7 +604,7 @@ shutdown_and_exit:
 
   /* Kill left overs */
   end_daemon_mode ();
-  EXIT (0);
+  exit (0);
 }
 
 
@@ -783,7 +792,7 @@ main_loop ()
             }
           else
             {
-              EXIT (0);
+              exit (0);
             }
         }
       else
@@ -799,7 +808,7 @@ main_loop ()
             }
           else
             {
-              EXIT (0);
+              exit (0);
             }
         }
 #ifdef USE_LIBWRAP
@@ -908,14 +917,14 @@ init_network (int port, int *sock, struct addrinfo addr)
       int ec = errno;
       log_write ("socket(AF_INET): %s (errno = %d)\n", strerror (ec), ec);
       fprintf (stderr, "socket() failed : %s\n", strerror (ec));
-      DO_EXIT (1);
+      exit (1);
     }
 
   setsockopt (*sock, SOL_SOCKET, SO_REUSEADDR, &option, sizeof (int));
   if (bind (*sock, (struct sockaddr *) (addr.ai_addr), addr.ai_addrlen) == -1)
     {
       fprintf (stderr, "bind() failed : %s\n", strerror (errno));
-      DO_EXIT (1);
+      exit (1);
     }
 
   if (listen (*sock, 10) == -1)
@@ -923,7 +932,7 @@ init_network (int port, int *sock, struct addrinfo addr)
       fprintf (stderr, "listen() failed : %s\n", strerror (errno));
       shutdown (*sock, 2);
       close (*sock);
-      DO_EXIT (1);
+      exit (1);
     }
   return (0);
 }
@@ -1133,7 +1142,7 @@ main (int argc, char *argv[], char *envp[])
         {
           printf ("Invalid IP address.\n");
           printf ("Please use %s --help for more information.\n", myself);
-          DO_EXIT (0);
+          exit (0);
         }
       /* deep copy */
       ai.ai_family = mysaddr->ai_family;
@@ -1170,7 +1179,7 @@ main (int argc, char *argv[], char *envp[])
         {
           printf ("Invalid port specification.\n");
           printf ("Please use %s --help for more information.\n", myself);
-          DO_EXIT (1);
+          exit (1);
         }
     }
 
@@ -1185,7 +1194,7 @@ main (int argc, char *argv[], char *envp[])
       printf
         ("This is free software: you are free to change and redistribute it.\n"
          "There is NO WARRANTY, to the extent permitted by law.\n\n");
-      DO_EXIT (0);
+      exit (0);
     }
 
   if (config_file != NULL)
@@ -1217,7 +1226,7 @@ main (int argc, char *argv[], char *envp[])
       printf ("\tCompiled with tcpwrappers support\n");
 #endif
       printf ("\n\nInclude these infos in your bug reports\n");
-      DO_EXIT (0);
+      exit (0);
     }
 
   if (exit_early == 0)
@@ -1280,6 +1289,5 @@ main (int argc, char *argv[], char *envp[])
       pidfile_create ("openvassd");
       main_loop ();
     }
-  DO_EXIT (0);
-  return (0);
+  exit (0);
 }

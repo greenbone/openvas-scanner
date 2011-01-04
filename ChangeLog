@@ -1,3 +1,9 @@
+2011-01-05  Jan-Oliver Wagner <jan-oliver.wagner@greenbone.net>
+
+	* openvassd/openvassd.c: Replaced use of includes.h
+	by respective direct includes. Replaced occurences of EXIT()
+	by exit() and DO_EXIT() by exit().
+
 2011-01-04  Jan-Oliver Wagner <jan-oliver.wagner@greenbone.net>
 
 	* openvassd/sighand.c: Replaced use of includes.h
