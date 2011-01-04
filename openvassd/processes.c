@@ -23,11 +23,16 @@
 * You should have received a copy of the GNU General Public License
 * along with this program; if not, write to the Free Software
 * Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA 02110-1301 USA.
-*
-*
 */
 
-#include <includes.h>
+#include <signal.h>   /* for kill() */
+#include <sys/wait.h> /* for waitpid() */
+#include <unistd.h>   /* for fork() */
+#include <errno.h>    /* for errno() */
+#include <time.h>     /* for time() */
+#include <string.h>   /* for strerror() */
+#include <stdlib.h>   /* for exit() */
+
 #include <setjmp.h>
 #include "processes.h"
 #include "sighand.h"
@@ -45,7 +50,7 @@ sighand_process_term (int sig)
       kill (son, SIGTERM);
       process_son = 0;
     }
-  _EXIT (0);
+  _exit (0);
 }
 
 
@@ -99,7 +104,7 @@ create_process (process_func_t function, void *argument)
       openvas_signal (SIGSEGV, sighand_segv);   /* Comment this line out to dump a core and debug openvassd */
       srand48 (getpid () + getppid () + (long) time (NULL));    /* RATS: ignore */
       (*function) (argument);
-      EXIT (0);
+      exit (0);
     }
   if (pid < 0)
     log_write ("Error : could not fork ! Error : %s\n", strerror (errno));

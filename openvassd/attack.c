@@ -26,7 +26,16 @@
 * Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA 02110-1301 USA.
 */
 
-#include <includes.h>
+#include <string.h>    /* for strlen() */
+#include <unistd.h>    /* for close() */
+#include <errno.h>     /* for errno() */
+#include <sys/wait.h>  /* for waitpid() */
+#include <arpa/inet.h> /* for inet_ntoa() */
+#include <stdlib.h>    /* for exit() */
+
+#define USE_FORK_THREADS
+#include "config.h"
+#include "threadcompat.h"
 
 #include <glib.h>
 
@@ -998,7 +1007,7 @@ attack_network (struct arglist *globals)
   if (hostlist == NULL)
     {
       log_write ("%s : TARGET not set ?!", attack_user_name (globals));
-      EXIT (1);
+      exit (1);
     }
 
   /* Init and check Port Range. */
