@@ -1,5 +1,11 @@
 2011-01-05  Jan-Oliver Wagner <jan-oliver.wagner@greenbone.net>
 
+	* include/includes.h: Removed.
+
+	* MANIFEST: Updated.
+
+2011-01-05  Jan-Oliver Wagner <jan-oliver.wagner@greenbone.net>
+
 	* openvassd/openvassd.c: Replaced use of includes.h
 	by respective direct includes. Replaced occurences of EXIT()
 	by exit() and DO_EXIT() by exit().

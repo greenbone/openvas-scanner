@@ -32,7 +32,6 @@ include/config.h
 include/config.h.in
 include/corevers.h
 include/corevers.h.in
-include/includes.h
 include/threadcompat.h
 install-sh
 INSTALL
