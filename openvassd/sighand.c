@@ -25,23 +25,16 @@
 * Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA 02110-1301 USA.
 */
 
-
-#include <includes.h>
+#include <signal.h>     /* for kill() */
+#include <unistd.h>     /* for getpid() */
+#include <errno.h>      /* for errno() */
+#include <sys/wait.h>   /* for wait() */
+#include <sys/socket.h> /* for shutdown() */
 
 #include "log.h"
 #include "auth.h"
 #include "sighand.h"
 #include "utils.h"
-
-#ifdef HAVE_SYS_WAIT_H
-#include <sys/wait.h>
-#endif
-#ifdef HAVE_SYS_TYPES_H
-#include <sys/types.h>
-#endif
-#ifdef HAVE_SYS_RESOURCE_H
-#include <sys/resource.h>
-#endif
 
 #include <openvas/base/pidfile.h>
 
@@ -54,18 +47,8 @@ void
 let_em_die (int pid)
 {
   int status, x;
-# ifdef HAVE_WAITPID
+
   x = waitpid (pid, &status, WNOHANG);
-# else
-# ifdef HAVE_WAIT3
-  struct rusage ru;
-# ifdef HAVE_WAIT4
-  x = wait4 (pid, &status, WNOHANG, &ru);
-# else
-  x = wait3 (&status, WNOHANG, &ru);
-# endif
-# endif /* HAVE_WAIT3 */
-# endif /* HAVE_WAITPID */
 }
 
 
@@ -124,9 +107,6 @@ void (*openvas_signal (int signum, void (*handler) (int))) (int)
   sigdelset (&saNew.sa_mask, SIGALRM);  /* make sleep() work */
 
   saNew.sa_flags = 0;
-# ifdef HAVE_SIGNAL_SA_RESTORER
-  saNew.sa_restorer = 0;        /* not avail on Solaris - jordan */
-# endif
   saNew.sa_handler = handler;
 
   sigaction (signum, &saNew, &saOld);
@@ -154,7 +134,7 @@ sighand_alarm ()
   shutdown (0, 2);
   close (0);
   make_em_die (SIGTERM);
-  _EXIT (1);
+  _exit (1);
 }
 
 
@@ -181,11 +161,7 @@ sighandler (int sign)
       murderer++;
       break;
     case SIGSEGV:
-#ifdef HAVE__EXIT
       signal (SIGSEGV, _exit);
-#else
-      signal (SIGSEGV, exit);
-#endif
       sig = "SEGV";
       break;
     default:
@@ -197,23 +173,19 @@ sighandler (int sign)
   if (murderer)
     make_em_die (sign);
 
-  _EXIT (0);
+  _exit (0);
 }
 
 
 void
 sighand_segv ()
 {
-#ifdef HAVE__EXIT
   signal (SIGSEGV, _exit);
-#else
-  signal (SIGSEGV, exit);
-#endif
   log_write ("SIGSEGV occured !\n");
 #if 0
   for (;;)
     nice (1);                   /* to attach a debugger! */
 #endif
   make_em_die (SIGTERM);
-  _EXIT (0);
+  _exit (0);
 }

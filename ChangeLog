@@ -1,5 +1,18 @@
 2011-01-04  Jan-Oliver Wagner <jan-oliver.wagner@greenbone.net>
 
+	* openvassd/sighand.c: Replaced use of includes.h
+	by respective direct includes.
+	(let_em_die): We assume we have always waitpid() available
+	and don't try to fall back to wait4() or wait3().
+	(openvas_signal): Assume we always have sa_restorer.
+	(sighandler, sighand_segv): Always use _exit() and don't try
+	to fall back to exit(). Replace call of _EXIT() by exit().
+
+	* openvassd/shared_socket.c: Replaced use of includes.h
+	by respective direct includes.
+
+2011-01-04  Jan-Oliver Wagner <jan-oliver.wagner@greenbone.net>
+
 	* openvassd/plugs_req.c: Replaced use of includes.h
 	by respective direct includes.
 
