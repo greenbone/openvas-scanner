@@ -33,11 +33,9 @@
 #include <arpa/inet.h> /* for inet_ntoa() */
 #include <stdlib.h>    /* for exit() */
 
-#define USE_FORK_THREADS
-#include "config.h"
-#include "threadcompat.h"
-
 #include <glib.h>
+
+#include "config.h"
 
 #include <openvas/hg/hosts_gatherer.h>
 #include <openvas/hg/hg_utils.h>
@@ -1086,7 +1084,7 @@ attack_network (struct arglist *globals)
    */
   while (hg_res >= 0)
     {
-      nthread_t pid;
+      int pid;
 
       if (! network_phase)
         {

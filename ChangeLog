@@ -1,5 +1,48 @@
 2011-01-05  Jan-Oliver Wagner <jan-oliver.wagner@greenbone.net>
 
+	Remove unused and broken elements of trying to abstract
+	different threading models. Adding thread-support should
+	be done cleanly from ground up anew, if at all.
+
+	* configure.in, openvas.tmpl.in, include/config.h.in: Removed
+	PTHREAD handling.
+
+	* openvassd/nasl_plugins.c: Remove include of threadcompat.h.
+	(nasl_plugin_launch): module now is an int.
+
+	* openvassd/attack.c: Remove include of threadcompat.h.
+	(attack_network): pid now is an int.
+
+	* openvassd/shared_socket.c: Remove include of threadcompat.h
+	(struct shared_fd): current_users and creator now are int.
+	(openvassd_shared_socket_register, openvassd_shared_socket_acquire,
+	openvassd_shared_socket_release, openvassd_shared_socket_destroy,
+	shared_socket_process): Parameter pid is not an int.
+	(shared_socket_cleanup_process): Parameter process is not an int.
+
+	* openvassd/shared_socket.h: Adjusted protos accordingly.
+
+	* openvassd/nes_plugins.c: Remove include of threadcompat.h.
+	(ext_library_t, LOAD_FUNCTION, LIB_LAST_ERROR, CLOSE_LIBRARY):
+	Copied here from threadcompat.h.
+	(nes_plugin_launch): module is now an int.
+
+	* openvassd/pluginlaunch.c: Remove include of threadcompat.h.
+	(struct running): pid now is an int.
+	(process_mgr_sighand_term): Replaced _EXIT() by _exit().
+
+	* openvassd/openvassd.c (scanner_thread, main): Removed code paths
+	for USE_PTHREADS as this is not supported anymore anyway.
+
+	* openvassd/comm.c (comm_send_preferences): Remove conditional
+	USE_FORK_THREADS as we always use forks.
+
+	* include/threadcompat.h: Removed.
+
+	* MANIFEST: Updated.
+
+2011-01-05  Jan-Oliver Wagner <jan-oliver.wagner@greenbone.net>
+
 	* include/includes.h: Removed.
 
 	* MANIFEST: Updated.

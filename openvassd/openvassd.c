@@ -407,12 +407,6 @@ scanner_thread (struct arglist *globals)
   char x509_dname[256];
   int soc2 = -1;
 
-
-#ifdef USE_PTHREADS
-  int off = 0;
-  ioctl (soc, FIONBIO, &off);
-#endif
-
   asciiaddr = emalloc (INET6_ADDRSTRLEN);
   if (family == AF_INET)
     {
@@ -1058,11 +1052,6 @@ main (int argc, char *argv[], char *envp[])
     myself = *argv;
   else
     myself++;
-
-#ifdef USE_PTHREADS
-  /* pull in library symbols - otherwise abort */
-  openvaslib_pthreads_enabled ();
-#endif
 
   static gboolean display_version = FALSE;
   static gboolean dont_fork = FALSE;

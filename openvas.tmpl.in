@@ -89,10 +89,6 @@ X_CFLAGS=@X_CFLAGS@
 # library path location
 RUN_LIBS=@RUN_LIBS@
 
-# Do we have to use the pthreads ?
-
-USE_PTHREADS=@use_pthreads@
-
 # Should we log the error using syslog() ?
 
 # Build with debugging ?
@@ -102,7 +98,7 @@ DEBUG = @debug_flags@
 USE_LIBWRAP = @uselibwrap@
 
 # Some defines you may want to modify
-OPENVAS_DEFS=@DEFS@ $(USE_PTHREADS) $(DEBUG) $(USE_LIBWRAP)
+OPENVAS_DEFS=@DEFS@ $(DEBUG) $(USE_LIBWRAP)
 DEFS=  
 LDFLAGS=@LDFLAGS@
 
@@ -118,7 +114,6 @@ SOCKET_LIB=@socket_lib@
 NSL_LIB=@nsl_lib@
 RPCSVC_LIB=@rpcsvc_lib@
 COMPAT_LIB=@compat_lib@
-PTHREAD_LIB=@pthread_lib@
 C_R_LIB=@c_r_lib@
 LIBWRAP=@libwrap@
 LIBS=@LIBS@

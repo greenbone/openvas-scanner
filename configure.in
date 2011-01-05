@@ -36,7 +36,6 @@ dnl Supported options :
 dnl
 dnl --enable-release
 dnl --enable-debug
-dnl --enable-pthreads 	(experimental dont use dont use dont use!)
 dnl --enable-syslog
 
 

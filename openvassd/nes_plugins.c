@@ -31,9 +31,23 @@
 #include <dlfcn.h>  /* for dlopen() */
 #include <string.h> /* for strlen() */
 
-#define USE_FORK_THREADS
 #include "config.h"
-#include "threadcompat.h"
+
+/*
+ * External libraries management
+ */
+typedef void * ext_library_t;
+#define LOAD_FUNCTION(x,y) dlsym(x,y)
+
+#ifdef RTLD_NOW
+#define LOAD_LIBRARY(x) dlopen(x,RTLD_NOW)
+#else
+#define LOAD_LIBRARY(x) dlopen(x, 1)
+#endif /* not defined(RTLD_NOW) */
+
+#define LIB_LAST_ERROR dlerror
+#define CLOSE_LIBRARY(x) dlclose(x)
+
 
 #include <glib.h>
 
@@ -242,7 +256,7 @@ nes_plugin_launch (globals, plugin, hostinfos, preferences, kb, name)
      struct kb_item **kb;       /* knowledge base */
      char *name;
 {
-  nthread_t module;
+  int module;
   plugin_run_t func = NULL;
   ext_library_t ptr = NULL;
 

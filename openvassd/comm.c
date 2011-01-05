@@ -397,9 +397,7 @@ comm_send_preferences (struct arglist *globals)
                nasl_version ());
   auth_printf (globals, "server_info_libnessus_version <|> %s\n",
                openvaslib_version ());
-#ifdef USE_FORK_THREADS
   auth_printf (globals, "server_info_thread_manager <|> fork\n");
-#endif
   auth_printf (globals, "server_info_os <|> %s\n", OVS_OS_NAME);
   auth_printf (globals, "server_info_os_version <|> %s\n", OVS_OS_VERSION);
   auth_printf (globals, "<|> SERVER\n");

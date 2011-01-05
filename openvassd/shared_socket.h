@@ -23,8 +23,6 @@
 * You should have received a copy of the GNU General Public License
 * along with this program; if not, write to the Free Software
 * Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA 02110-1301 USA.
-*
-*
 */
 
 
@@ -32,8 +30,8 @@
 #define SHARED_SOCKET_H__
 
 int shared_socket_init ();
-int shared_socket_process (int, nthread_t, char *, int);
-int shared_socket_cleanup_process (nthread_t);
+int shared_socket_process (int, int, char *, int);
+int shared_socket_cleanup_process (int);
 int shared_socket_close ();
 
 #endif

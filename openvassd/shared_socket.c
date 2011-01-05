@@ -36,14 +36,12 @@
 #include <strings.h> /* for bzero() */
 #include <string.h>  /* for strcmp() */
 
+#include "config.h"
+
 #include <openvas/misc/network.h>    /* internal_recv */
 #include <openvas/misc/plugutils.h>  /* for INTERNAL_COMM_MSG_SHARED_SOCKET */
 #include <openvas/misc/share_fd.h>   /* for recv_fd */
 #include <openvas/misc/system.h>     /* for efree */
-
-#define USE_FORK_THREADS
-#include "config.h"
-#include "threadcompat.h"
 
 #include "utils.h"
 #include "log.h"
@@ -58,8 +56,8 @@
  */
 struct shared_fd
 {
-  nthread_t current_user;
-  nthread_t creator;
+  int current_user;
+  int creator;
   int fd;
   time_t lock_time;
   char *name;
@@ -91,7 +89,7 @@ openvassd_shared_socket_close (int idx)
  * @return 0 in case of success, -1 in case of error (then writes log message).
  */
 static int
-openvassd_shared_socket_register (int soc, nthread_t pid, char *buf)
+openvassd_shared_socket_register (int soc, int pid, char *buf)
 {
   int fd = 0;
   int i;
@@ -153,7 +151,7 @@ openvassd_shared_socket_register (int soc, nthread_t pid, char *buf)
 }
 
 static int
-openvassd_shared_socket_acquire (int soc, nthread_t pid, char *buf)
+openvassd_shared_socket_acquire (int soc, int pid, char *buf)
 {
   int i;
   for (i = 0; i < MAX_SHARED_SOCKETS; i++)
@@ -213,7 +211,7 @@ openvassd_shared_socket_acquire (int soc, nthread_t pid, char *buf)
 }
 
 static int
-openvassd_shared_socket_release (int soc, nthread_t pid, char *buf)
+openvassd_shared_socket_release (int soc, int pid, char *buf)
 {
   int i;
   for (i = 0; i < MAX_SHARED_SOCKETS; i++)
@@ -247,7 +245,7 @@ openvassd_shared_socket_release (int soc, nthread_t pid, char *buf)
  *         unknown).
  */
 static int
-openvassd_shared_socket_destroy (int soc, nthread_t pid, char *buf)
+openvassd_shared_socket_destroy (int soc, int pid, char *buf)
 {
   int i;
   for (i = 0; i < MAX_SHARED_SOCKETS; i++)
@@ -303,7 +301,7 @@ shared_socket_close ()
  * @return Always 0.
  */
 int
-shared_socket_cleanup_process (nthread_t process)
+shared_socket_cleanup_process (int process)
 {
   int i;
   for (i = 0; i < MAX_SHARED_SOCKETS; i++)
@@ -332,7 +330,7 @@ shared_socket_cleanup_process (nthread_t process)
  *            will occur in the log file about shared sockets then).
  */
 int
-shared_socket_process (int soc, nthread_t pid, char *buf, int message)
+shared_socket_process (int soc, int pid, char *buf, int message)
 {
   if (message & INTERNAL_COMM_SHARED_SOCKET_REGISTER)
     return openvassd_shared_socket_register (soc, pid, buf);

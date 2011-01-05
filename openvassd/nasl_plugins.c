@@ -34,14 +34,12 @@
 #include <signal.h>   /* for SIGTERM */
 #include <sys/stat.h>
 
-#define USE_FORK_THREADS
-#include "config.h"
-#include "threadcompat.h"
-
 #include <glib.h>
 
 #include <sys/types.h>
 #include <utime.h>
+
+#include "config.h"
 
 #include <openvas/base/drop_privileges.h> /* for drop_privileges */
 #include <openvas/nasl/nasl.h>
@@ -209,7 +207,7 @@ nasl_plugin_launch (struct arglist *globals, struct arglist *plugin,
 {
   int timeout;
   int category = 0;
-  nthread_t module;
+  int module;
   struct arglist *d = emalloc (sizeof (struct arglist));
 
   arg_add_value (plugin, "HOSTNAME", ARG_ARGLIST, -1, hostinfos);

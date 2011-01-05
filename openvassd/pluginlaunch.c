@@ -32,14 +32,12 @@
 #include <errno.h>    /* for errno() */
 #include <sys/time.h> /* for gettimeofday() */
 
+#include "config.h"
+
 #include <openvas/misc/network.h>    /* for internal_send */
 #include <openvas/nvt_categories.h>  /* for ACT_SCANNER */
 #include <openvas/misc/plugutils.h>  /* for INTERNAL_COMM_MSG_SHARED_SOCKET */
 #include <openvas/misc/system.h>     /* for efree */
-
-#define USE_FORK_THREADS
-#include "config.h"
-#include "threadcompat.h"
 
 #include "pluginload.h"
 #include "piic.h"
@@ -66,7 +64,7 @@
  */
 struct running
 {
-  nthread_t pid;             /**< Process ID. */
+  int pid;             /**< Process ID. */
   struct arglist *globals;   /**< 'Global' arglist. */
   struct kb_item **kb;       /**< Knowledge base for the currently tested host.*/
   char *name;
@@ -190,7 +188,7 @@ process_mgr_sighand_term (int sig)
           bzero (&(processes[i]), sizeof (struct running));
         }
     }
-  _EXIT (0);
+  _exit (0);
 }
 
 /**
