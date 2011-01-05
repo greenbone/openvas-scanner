@@ -23,8 +23,6 @@
   * You should have received a copy of the GNU General Public License
   * along with this program; if not, write to the Free Software
   * Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA 02110-1301 USA.
-  *
-  *
   */
 
 #include <string.h> /* for strchr() */
@@ -398,8 +396,6 @@ comm_send_preferences (struct arglist *globals)
   auth_printf (globals, "server_info_libnessus_version <|> %s\n",
                openvaslib_version ());
   auth_printf (globals, "server_info_thread_manager <|> fork\n");
-  auth_printf (globals, "server_info_os <|> %s\n", OVS_OS_NAME);
-  auth_printf (globals, "server_info_os_version <|> %s\n", OVS_OS_VERSION);
   auth_printf (globals, "<|> SERVER\n");
 }
 

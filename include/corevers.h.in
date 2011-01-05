@@ -23,14 +23,7 @@
 * You should have received a copy of the GNU General Public License
 * along with this program; if not, write to the Free Software
 * Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA 02110-1301 USA.
-*
-*
 */
-
-
-#define OVS_COMPILER   "@OVS_COMPILER@"
-#define OVS_OS_NAME    "@OVS_OS_NAME@"
-#define OVS_OS_VERSION "@OVS_OS_VERSION@"
 
 #define OPENVAS_VERSION  "@OPENVASSD_MAJOR@.@OPENVASSD_MINOR@.@OPENVASSD_PATCH@"
 #define OPENVAS_FULL_VERSION  "@OPENVASSD_MAJOR@.@OPENVASSD_MINOR@.@OPENVASSD_PATCH@.@OPENVASSD_RC@"

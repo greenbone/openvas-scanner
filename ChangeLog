@@ -1,5 +1,23 @@
 2011-01-05  Jan-Oliver Wagner <jan-oliver.wagner@greenbone.net>
 
+	Removing OVS_COMPILER, OVS_OS_NAME and OVS_OS_VERSION.
+	These do not deliver real value. Removing them simplifies
+	build process.
+
+	* include/corevers.h.in (OVS_COMPILER, OVS_OS_NAME, OVS_OS_VERSION):
+	Removed.
+
+	* configure.in: Removed handling of OVS_COMPILER, OVS_OS_NAME,
+	OVS_OS_VERSION.
+
+	* openvassd/openvassd.c (main): Don't print Compiler version,
+	operating system and version on --dumpg-cfg.
+
+	* openvassd/comm.c (comm_send_preferences): Don't send server_info_os
+	and server_info_os_version anymore for "SERVER <|> PREFERENCES".
+	
+2011-01-05  Jan-Oliver Wagner <jan-oliver.wagner@greenbone.net>
+
 	* openvassd/oval_plugins.c (ovaldi_launch): Replaced PROGNAME by its
 	static string "OpenVAS".
 

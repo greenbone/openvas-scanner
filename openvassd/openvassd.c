@@ -1205,9 +1205,7 @@ main (int argc, char *argv[], char *envp[])
 
   if (dump_cfg)
     {
-      printf ("This is OpenVAS Scanner %s for %s %s\n", OPENVAS_FULL_VERSION, OVS_OS_NAME,
-              OVS_OS_VERSION);
-      printf ("compiled with %s\n", OVS_COMPILER);
+      printf ("This is OpenVAS Scanner %s\n", OPENVAS_FULL_VERSION);
       printf ("Current setup :\n");
       printf ("\topenvas-libraries              : %s\n", openvaslib_version ());
       printf ("\tRunning as euid                : %d\n", geteuid ());

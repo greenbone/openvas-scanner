@@ -514,15 +514,6 @@ test "$use_pthreads" && {
 dnl end section using pthreads
 }
 
-dnl dnl Our defines
-dnl AC_DEFINE_UNQUOTED(OVS_COMPILER, "`$CC -v 2>&1 | tail -1`")
-dnl AC_DEFINE_UNQUOTED(OVS_OS_NAME, "`uname -s`")
-dnl AC_DEFINE_UNQUOTED(OVS_OS_VERSION, "`uname -r`")
-
-dnl version defines have been extracted to a separate file
-OVS_COMPILER="`$CC -v 2>&1 | tail -1 2>/dev/null`"
-OVS_OS_NAME="`uname -s`"
-OVS_OS_VERSION="`uname -r`"
 test "$use_pthreads" = "" && unset pthread_lib
 
 
@@ -687,9 +678,6 @@ AC_SUBST(OPENVASSD_MINOR)
 AC_SUBST(OPENVASSD_PATCH)
 AC_SUBST(OPENVASSD_RC)
 AC_SUBST(OPENVASSD_DATE)
-AC_SUBST(OVS_COMPILER)
-AC_SUBST(OVS_OS_NAME)
-AC_SUBST(OVS_OS_VERSION)
 AC_SUBST(OPENVASSD_CONFDIR)
 AC_SUBST(OPENVASSD_STATEDIR)
 AC_SUBST(OPENVASSD_PIDDIR)
