@@ -20,6 +20,7 @@
 #include <sys/wait.h>  /* for waitpid() */
 #include <unistd.h>    /* for usleep() */
 
+
 #include <openvas/misc/arglists.h> /* for struct arglist */
 #include <openvas/misc/kb.h> /* for plug_get_oldstyle_kb */
 #include <openvas/misc/network.h> /* for get_encaps_through */
@@ -157,7 +158,7 @@ mark_chargen_server(desc, port)
 	post_note(desc, port, "Chargen is running on this port");
 }
 
-static void 
+void 
 mark_echo_server(desc, port)
 	struct arglist *desc;
 	int             port;
@@ -166,7 +167,7 @@ mark_echo_server(desc, port)
 	post_note(desc, port, "An echo server is running on this port");
 }
 
-static void 
+void 
 mark_ncacn_http_server(desc, port, buffer)
 	struct arglist *desc;
 	int             port;
@@ -184,7 +185,7 @@ mark_ncacn_http_server(desc, port, buffer)
 	}
 }
 
-static void 
+void 
 mark_vnc_server(desc, port, buffer)
 	struct arglist *desc;
 	int             port;
@@ -196,7 +197,7 @@ mark_vnc_server(desc, port, buffer)
 	plug_replace_key(desc, ban, ARG_STRING, buffer);
 }
 
-static void 
+void 
 mark_nntp_server(desc, port, buffer, trp)
 	struct arglist *desc;
 	int             port, trp;
@@ -212,7 +213,7 @@ mark_nntp_server(desc, port, buffer, trp)
 }
 
 
-static void 
+void 
 mark_swat_server(desc, port, buffer)
 	struct arglist *desc;
 	int             port;
@@ -221,7 +222,7 @@ mark_swat_server(desc, port, buffer)
 	register_service(desc, port, "swat");
 }
 
-static void 
+void 
 mark_vqserver(desc, port, buffer)
 	struct arglist *desc;
 	int             port;
@@ -231,7 +232,7 @@ mark_vqserver(desc, port, buffer)
 }
 
 
-static void 
+void 
 mark_mldonkey(desc, port, buffer)
 	struct arglist *desc;
 	int             port;
@@ -245,7 +246,7 @@ mark_mldonkey(desc, port, buffer)
 
 
 
-static void 
+void 
 mark_http_server(desc, port, buffer, trp)
 	struct arglist *desc;
 	int             port, trp;
@@ -261,7 +262,7 @@ mark_http_server(desc, port, buffer, trp)
 }
 
 
-static void 
+void 
 mark_locked_adsubtract_server(desc, port, buffer, trp)
 	struct arglist *desc;
 	int             port, trp;
@@ -301,7 +302,7 @@ mark_gnutella_servent(desc, port, buffer, trp)
 }
 #endif
 
-static void 
+void 
 mark_rmserver(desc, port, buffer, trp)
 	struct arglist *desc;
 	int             port, trp;
@@ -317,7 +318,7 @@ mark_rmserver(desc, port, buffer, trp)
 	post_note(desc, port, ban);
 }
 
-static void 
+void 
 mark_smtp_server(desc, port, buffer, trp)
 	struct arglist *desc;
 	int             port, trp;
@@ -344,7 +345,7 @@ Here is its banner : \n%s",
 	}
 }
 
-static void
+void
 mark_snpp_server(desc, port, buffer, trp)
 	struct arglist *desc;
 	int             port, trp;
@@ -367,7 +368,7 @@ Here is its banner : \n%s",
 	efree(&report);
 }
 
-static void 
+void 
 mark_ftp_server(desc, port, buffer, trp)
 	struct arglist *desc;
 	int             port, trp;
@@ -399,7 +400,7 @@ Here is its banner : \n%s",
 	}
 }
 
-static void
+void
 mark_ssh_server(desc, port, buffer, trp)
 	struct arglist *desc;
 	int             port;
@@ -413,7 +414,7 @@ mark_ssh_server(desc, port, buffer, trp)
 	post_note(desc, port, "An ssh server is running on this port");
 }
 
-static void
+void
 mark_http_proxy(desc, port, buffer, trp)
 	struct arglist *desc;
 	int             port, trp;
@@ -427,7 +428,7 @@ mark_http_proxy(desc, port, buffer, trp)
 	post_note(desc, port, ban);
 }
 
-static void
+void
 mark_pop_server(desc, port, buffer)
 	struct arglist *desc;
 	int             port;
@@ -460,7 +461,7 @@ mark_pop_server(desc, port, buffer)
 	efree(&buffer2);
 }
 
-static void
+void
 mark_imap_server(desc, port, buffer, trp)
 	struct arglist *desc;
 	int             port, trp;
@@ -477,7 +478,7 @@ mark_imap_server(desc, port, buffer, trp)
 	}
 }
 
-static void
+void
 mark_auth_server(desc, port, buffer)
 	struct arglist *desc;
 	int             port;
@@ -492,7 +493,7 @@ mark_auth_server(desc, port, buffer)
  * Postgres, MySQL & CVS pserver detection by Vincent Renardias
  * <vincent@strongholdnet.com>
  */
-static void
+void
 mark_postgresql(desc, port, buffer)
 	struct arglist *desc;
 	int             port;
@@ -503,7 +504,7 @@ mark_postgresql(desc, port, buffer)
 	post_note(desc, port, "A PostgreSQL server is running on this port");
 }
 
-static void
+void
 mark_mysql(desc, port, buffer)
 	struct arglist *desc;
 	int             port;
@@ -514,7 +515,7 @@ mark_mysql(desc, port, buffer)
 	post_note(desc, port, "A MySQL server is running on this port");
 }
 
-static void
+void
 mark_cvspserver(desc, port, buffer, trp)
 	struct arglist *desc;
 	int             port;
@@ -527,7 +528,7 @@ mark_cvspserver(desc, port, buffer, trp)
 }
 
 
-static void
+void
 mark_cvsupserver(desc, port, buffer, trp)
 	struct arglist *desc;
 	int             port;
@@ -539,7 +540,7 @@ mark_cvsupserver(desc, port, buffer, trp)
 }
 
 
-static void
+void
 mark_cvslockserver(desc, port, buffer, trp)
 	struct arglist *desc;
 	int             port;
@@ -551,7 +552,7 @@ mark_cvslockserver(desc, port, buffer, trp)
 	post_info(desc, port, "A CVSLock server server is running on this port");
 }
 
-static void
+void
 mark_rsyncd(desc, port, buffer, trp)
 	struct arglist *desc;
 	int             port;
@@ -563,7 +564,7 @@ mark_rsyncd(desc, port, buffer, trp)
 }
 
 
-static void
+void
 mark_wild_shell(desc, port, buffer, trp)
 	struct arglist *desc;
 	int             port, trp;
@@ -575,7 +576,7 @@ mark_wild_shell(desc, port, buffer, trp)
 	post_hole(desc, port, "A shell seems to be running on this port ! (this is a possible backdoor)");
 }
 
-static void
+void
 mark_telnet_server(desc, port, buffer, trp)
 	struct arglist *desc;
 	int             port, trp;
@@ -590,7 +591,7 @@ mark_telnet_server(desc, port, buffer, trp)
 	}
 }
 
-static void
+void
 mark_gnome14_server(desc, port, buffer, trp)
 	struct arglist *desc;
 	int             port, trp;
@@ -605,7 +606,7 @@ mark_gnome14_server(desc, port, buffer, trp)
 	}
 }
 
-static void
+void
 mark_eggdrop_server(desc, port, buffer, trp)
 	struct arglist *desc;
 	int             port, trp;
@@ -620,7 +621,7 @@ mark_eggdrop_server(desc, port, buffer, trp)
 	}
 }
 
-static void
+void
 mark_netbus_server(desc, port, buffer)
 	struct arglist *desc;
 	int             port;
@@ -632,7 +633,7 @@ mark_netbus_server(desc, port, buffer)
 }
 
 
-static void
+void
 mark_linuxconf(desc, port, buffer)
 	struct arglist *desc;
 	int             port;
@@ -1311,7 +1312,7 @@ mark_stonegate_auth_server(desc, port, buffer, trp)
 
 
 
-static void
+void
 mark_listserv_server(desc, port, buffer, trp)
 	struct arglist *desc;
 	int             port, trp;
@@ -1327,7 +1328,7 @@ mark_listserv_server(desc, port, buffer, trp)
 }
 
 
-static void
+void
 mark_fssniffer(desc, port, buffer, trp)
 	struct arglist *desc;
 	int             port, trp;
@@ -1342,7 +1343,7 @@ mark_fssniffer(desc, port, buffer, trp)
 	}
 }
 
-static void
+void
 mark_remote_nc_server(desc, port, buffer, trp)
 	struct arglist *desc;
 	int             port, trp;
@@ -2644,8 +2645,7 @@ fwd_data(int in, int out, pid_t sender)
 }
 
 int 
-plugin_run(desc)
-	struct arglist *desc;
+plugin_run (struct arglist *desc)
 {
 	struct arglist *h = plug_get_oldstyle_kb(desc);
 

@@ -1,5 +1,11 @@
 2011-01-05  Jan-Oliver Wagner <jan-oliver.wagner@greenbone.net>
 
+	* cnvts/find_service/find_service.c: Made several
+	functions static that were forgotten somehow.
+	Remove a K&R style declaration.
+
+2011-01-05  Jan-Oliver Wagner <jan-oliver.wagner@greenbone.net>
+
 	* configure.in: Removed more of the pthread handling.
 
 	* configure: Updated.
