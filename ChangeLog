@@ -1,5 +1,11 @@
 2011-01-05  Jan-Oliver Wagner <jan-oliver.wagner@greenbone.net>
 
+	* configure.in: Removed more of the pthread handling.
+
+	* configure: Updated.
+
+2011-01-05  Jan-Oliver Wagner <jan-oliver.wagner@greenbone.net>
+
 	Removing OVS_COMPILER, OVS_OS_NAME and OVS_OS_VERSION.
 	These do not deliver real value. Removing them simplifies
 	build process.

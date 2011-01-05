@@ -446,79 +446,7 @@ AC_CHECK_FUNCS(NSCreateObjectFileImageFromFile)
 
 LIBS=`$LIBOPENVASCONFIG --libs`
 
-AC_CHECK_LIB(openvas_misc, openvaslib_pthreads_enabled, use_pthreads="-DUSE_PTHREADS -DTHREADS -D_REENTRANT")
-
-test "$use_pthreads" && {
-	AC_CHECK_HEADERS(pthread.h)
-	dnl Check if we have a lame pthread header
-	AC_MSG_CHECKING([if we have a broken pthread_cleanup_push])
-	AC_TRY_COMPILE([#include <pthread.h>
-	],
-    		[void main(){pthread_cleanup_push(NULL,NULL);}],
-	[AC_MSG_RESULT(no)],
-	[AC_MSG_RESULT(yes);AC_DEFINE(BROKEN_PTHREAD_CLEANUP_PUSH)])
-
-	
-	AC_CHECK_LIB(pthread, pthread_create, pthread_lib="-lpthread")
-	AC_CHECK_LIB(c_r, gethostbyname_r, c_r_lib="-lc_r")
-	AC_CHECK_LIB(c_r, pthread_create, c_r_lib="-lc_r")
-	AC_CHECK_LIB(c, gethostbyname_r, AC_DEFINE(HAVE_GETHOSTBYNAME_R))
-	AC_CHECK_LIB(c_r, gethostbyname_r, AC_DEFINE(HAVE_GETHOSTBYNAME_R))
-	AC_CHECK_LIB(nsl, gethostbyname_r, AC_DEFINE(HAVE_GETHOSTBYNAME_R))
-	AC_CHECK_LIB(pthread, pthread_cancel,AC_DEFINE(HAVE_PTHREAD_CANCEL))
-	AC_CHECK_LIB(c_r, pthread_cancel,AC_DEFINE(HAVE_PTHREAD_CANCEL))
-	AC_MSG_CHECKING([whether gethostbyname_r takes 5 args])
-	AC_TRY_COMPILE([
-#define THREADS 1
-#define _REENTRANT 1
-#include <sys/types.h>
-#include <netdb.h>],
-[
- const char * name;
- struct hostent * result;
- char * buffer;
- int buflen;
- int h_errnop;
- 
- gethostbyname_r(name, result, buffer, buflen, h_errnop);
-]
-, solaris_gethostbyname_r=yes)
-
-	test "x$solaris_gethostbyname_r" = "x" && AC_MSG_RESULT([no])
-	test "x$solaris_gethostbyname_r" = "x" || AC_MSG_RESULT([yes])
-	test "x$solaris_gethostbyname_r" = "xyes" && AC_DEFINE(HAVE_SOLARIS_GETHOSTBYNAME_R)
-
-	AC_MSG_CHECKING([whether gethostbyaddr_r takes 5 args])
-	AC_TRY_COMPILE([
-#define THREADS 1
-#define _REENTRANT 1
-#include <sys/types.h>
-#include <netdb.h>],
-[
- const char * addr;
- int length;
- int type;
- struct hostent *result;
- char * buffer;
- int buflen;
- int * h_errnop;
- 
- gethostbyaddr_r(addr, length, type, result, buffer, buflen, h_errnop);]
-, solaris_gethostbyaddr_r=yes)
-
-	test "x$solaris_gethostbyaddr_r" = "x" && AC_MSG_RESULT([no])
-	test "x$solaris_gethostbyaddr_r" = "x" || AC_MSG_RESULT([yes])
-
-	test "x$solaris_gethostbyaddr_r" = "xyes" && AC_DEFINE(HAVE_SOLARIS_GETHOSTBYADDR_R)
-
-dnl end section using pthreads
-}
-
-test "$use_pthreads" = "" && unset pthread_lib
-
-
 dnl I prefer to compile a C program rather than trusting the env. variables...
-
 
 dnl This test is from the configure.in of Unix Network Programming second
 dnl edition example code by W. Richard Stevens
@@ -697,14 +625,12 @@ AC_SUBST(resolv_lib)
 AC_SUBST(socket_lib)
 AC_SUBST(nsl_lib)
 AC_SUBST(ssl_lib)
-AC_SUBST(pthread_lib)
 AC_SUBST(debug_flags)
 AC_SUBST(man_openvas_1)
 AC_SUBST(man_openvassd_8)
 AC_SUBST(dl_lib)
 AC_SUBST(libwrap)
 AC_SUBST(uselibwrap)
-AC_SUBST(use_pthreads)
 AC_SUBST(rpcsvc_lib)
 AC_SUBST(compat_lib)
 AC_SUBST(c_r_lib)
