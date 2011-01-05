@@ -599,8 +599,8 @@ ovaldi_launch (struct arglist *g_args)
       tmp = localtime (&t);
       strftime (timestr, sizeof (timestr), "%FT%T", tmp);
       fprintf (sc_file,
-               "\t<generator>\n\t\t<oval:product_name>%s</oval:product_name>\n\t\t<oval:product_version>%s</oval:product_version>\n\t\t<oval:schema_version>5.4</oval:schema_version>\n\t\t<oval:timestamp>%s</oval:timestamp>\n\t\t<vendor>The OpenVAS Project</vendor>\n\t</generator>\n\n",
-               PROGNAME, OPENVAS_FULL_VERSION, timestr);
+               "\t<generator>\n\t\t<oval:product_name>OpenVAS</oval:product_name>\n\t\t<oval:product_version>%s</oval:product_version>\n\t\t<oval:schema_version>5.4</oval:schema_version>\n\t\t<oval:timestamp>%s</oval:timestamp>\n\t\t<vendor>The OpenVAS Project</vendor>\n\t</generator>\n\n",
+               OPENVAS_FULL_VERSION, timestr);
 
       // TODO: Replace dummy values with real values; inserted dummy value
       // since ovaldi does not like empty elements here.

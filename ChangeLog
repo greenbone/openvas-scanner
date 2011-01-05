@@ -1,5 +1,12 @@
 2011-01-05  Jan-Oliver Wagner <jan-oliver.wagner@greenbone.net>
 
+	* openvassd/oval_plugins.c (ovaldi_launch): Replaced PROGNAME by its
+	static string "OpenVAS".
+
+	* include/corevers.h.in: Removed PROGNAME.
+
+2011-01-05  Jan-Oliver Wagner <jan-oliver.wagner@greenbone.net>
+
 	Remove unused and broken elements of trying to abstract
 	different threading models. Adding thread-support should
 	be done cleanly from ground up anew, if at all.
