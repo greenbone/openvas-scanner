@@ -23,8 +23,6 @@
 * You should have received a copy of the GNU General Public License
 * along with this program; if not, write to the Free Software
 * Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA 02110-1301 USA.
-*
-*
 */
 
  
@@ -37,64 +35,22 @@
  * messages comming from OpenVAS 
  */
 #undef DEBUG
-
-/* more paricular debuging flags */
 #undef DEBUGMORE
-#undef ENABLE_PID_STAMP_DEBUGGING
 
 /*
  * OPENVASSD SPECIFIC CONFIGURATION
  */
 
-
 /* miscellaneous */
 #define OPENVASSD_LOGS     OPENVASSD_LOGDIR
 #define OPENVASSD_LOGINS   OPENVASSD_STATEDIR "/users"
-#define OPENVASSD_JOBS	OPENVASSD_STATEDIR  "/jobs"
-#define OPENVASSD_CERTS	OPENVASSD_STATEDIR "/certs"
-
 #define OPENVASSD_CA	OPENVASSD_SHAREDSTATEDIR "/CA"
-
-
-
 
 /* derived entries */
 #define OPENVASSD_CONF     OPENVASSD_CONFDIR  "/openvas/openvassd.conf"
-
 #define OPENVASSD_MESSAGES OPENVASSD_LOGS "/openvassd.messages"
 #define OPENVASSD_DEBUGMSG OPENVASSD_LOGS "/openvassd.dump"
-
-
-#define OPENVASSD_DATAPOOL OPENVASSD_STATEDIR "-datapool"
 #define OPENVASSD_RULES    OPENVASSD_DATADIR  "/openvassd.rules"
-
-
-/* Definitions for client/scanner ecryption, activated on the C compiler
-   command line as given by the command `openvas-config --cflags` */
-#ifdef ENABLE_CRYPTO_LAYER
-
-/* seconds the scanner waits for the client after authentication */
-#define OPENVASSD_NEGOT_TIMEOUT 600 
-
-/* the files, keys are stored in */
-#define OPENVASSD_USERKEYS /* logindir */ "~/auth/openvassd.user-keys"
-#define OPENVASSD_USERPWDS OPENVASSD_DATADIR "/openvassd.user-pwds"
-#define OPENVASSD_KEYFILE  OPENVASSD_DATADIR "/openvassd.private-keys"
-
-/* The default scanner key file and key length */
-#define OPENVASSD_KEYLENGTH    1024
-#define OPENVASSD_MAXPWDFAIL   5
-#define OPENVASSD_USERNAME     "openvassd"
-
-/* The default rpc cipher openvassd will be connect to (if any) */
-#define OPENVASSD_RPCIPHER     "twofish/ripemd160"
-#define OPENVASSD_RPCAUTH_METH  3 /* auth scheme, either 1 or 3 */
-
-/* The timeout secs when waiting for a log pipe to be established */
-#define OPENVASSD_LOGPIPE     OPENVASSD_DATADIR  "/openvassd.logpipe"
-#define OPENVASSD_LOGPIPE_TMO 2
-
-#endif /* ENABLE_CRYPTO_LAYER */
 
 /* The default port assigned to OpenVAS for OTP by the iana is 9390, see
    http://www.iana.org/assignments/port-numbers */
@@ -107,13 +63,6 @@
 #define OPENVASSD_CONNECT_BLOCKER 2
 
 /*
- * How much time before closing
- * the connection if nothing comes
- * from the client ? (in secs)
- */
-#define CLIENT_TIMEOUT 300
-
-/*
  * How much time before killing
  * a plugin ? (in secs)
  * (if you have a slow computer or a slow
@@ -121,37 +70,6 @@
  */
  
 #define PLUGIN_TIMEOUT 320
-
-
-/* 
- * Should we use applications for the remote harg stuff ?
- */
-#ifdef ENABLE_RHLST
-#undef ENABLE_RHLST_APPS
-#endif
-
-/*
- * Shall the scanner log EVERYTHING ?
- */
-#undef LOGMORE
-
-/*
- * Shall the scannerlog the whole attack ?
- */
-#undef LOG_WHOLE_ATTACK
-
-/*
- * Host specs.
- * 
- * Set this if you are running OpenBSD < 2.1 or all FreeBSD or
- * all netBSD, or BSDi < 3.0
- *
- * If you have run this script as root, then it should be correctly
- * set up
- *
- */
-#undef BSD_BYTE_ORDERING
-
 
 /*
  * Set by AC_SYS_LARGEFILE, needed for gpgme key retrieval

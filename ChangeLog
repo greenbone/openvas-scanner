@@ -1,3 +1,7 @@
+2011-01-08  Jan-Oliver Wagner <jan-oliver.wagner@greenbone.net>
+
+	* include/config.h.in: Removed various unsed defines.
+
 2011-01-05  Jan-Oliver Wagner <jan-oliver.wagner@greenbone.net>
 
 	* cnvts/find_service/find_service.c: Made several
