@@ -80,7 +80,7 @@ Setting up an openvas-scanner requires the following steps:
    Alternatively you can use openvas-administrator to create users with a single
    command. Please refer to the openvas-administrator documentation for details.
 
-3) In order to run vulnerability scan, you will need a collection of Network
+3) In order to run vulnerability scans, you will need a collection of Network
    Vulnerability Tests (NVTs) that can be run by openvas-scanner. Initially,
    your NVT collection will contain very few NVTs. It is recommended that you
    synchronize with an NVT feed service before starting openvas-scanner for the

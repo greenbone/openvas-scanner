@@ -1,3 +1,7 @@
+2011-01-10  Michael Wiegand <michael.wiegand@greenbone.net>
+
+	* INSTALL: Fixed typo.
+
 2011-01-08  Jan-Oliver Wagner <jan-oliver.wagner@greenbone.net>
 
 	* include/config.h.in: Removed various unsed defines.
