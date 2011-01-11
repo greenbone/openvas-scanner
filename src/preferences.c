@@ -93,15 +93,15 @@ preferences_new (char *name)
   fprintf (fd, "[Misc]\n\n");
 
   fprintf (fd, "# Path to the security checks folder : \n");
-  fprintf (fd, "plugins_folder = %s\n\n", OPENVASSD_PLUGINS);
+  fprintf (fd, "plugins_folder = %s\n\n", OPENVAS_NVT_DIR);
 
   fprintf (fd, "# Path to OpenVAS caching folder: \n");
-  fprintf (fd, "cache_folder = %s\n\n", OPENVASSD_CACHE);
+  fprintf (fd, "cache_folder = %s\n\n", OPENVAS_CACHE_DIR);
 
   fprintf (fd, "# Path to OpenVAS include directories: \n");
   fprintf (fd, "# (multiple entries are separated with colon ':')\n");
   // Default value is the same directory as the root for  the NVTs
-  fprintf (fd, "include_folders = %s\n\n", OPENVASSD_PLUGINS);
+  fprintf (fd, "include_folders = %s\n\n", OPENVAS_NVT_DIR);
 
   fprintf (fd, "# Maximum number of simultaneous hosts tested : \n");
   fprintf (fd, "max_hosts = 30\n\n");
@@ -142,7 +142,7 @@ preferences_new (char *name)
   fprintf (fd, "# non_simult_ports = Services/www, 139, Services/finger\n");
   fprintf (fd, "non_simult_ports = 139, 445\n");
   fprintf (fd, "# Maximum lifetime of a plugin (in seconds) : \n");
-  fprintf (fd, "plugins_timeout = %d\n", PLUGIN_TIMEOUT);
+  fprintf (fd, "plugins_timeout = %d\n", NVT_TIMEOUT);
   fprintf (fd, "\n\n# Safe checks rely on banner grabbing :\n");
   fprintf (fd, "safe_checks = yes\n");
   fprintf (fd,
@@ -503,10 +503,10 @@ preferences_plugins_timeout (struct arglist *preferences)
     {
       to = atoi (pref);
       if (to == 0)
-        to = PLUGIN_TIMEOUT;
+        to = NVT_TIMEOUT;
     }
   else
-    to = PLUGIN_TIMEOUT;
+    to = NVT_TIMEOUT;
 
   return to;
 }

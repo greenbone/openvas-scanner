@@ -46,8 +46,8 @@ user_home (struct arglist *globals)
     return NULL;
 
  /** @todo consider using glib functions */
-  ret = emalloc (strlen (OPENVASSD_LOGINS) + strlen (user) + 2);
-  sprintf (ret, "%s/%s", OPENVASSD_LOGINS, user);
+  ret = emalloc (strlen (OPENVAS_USERS_DIR) + strlen (user) + 2);
+  sprintf (ret, "%s/%s", OPENVAS_USERS_DIR, user);
 
   return ret;
 }
@@ -204,7 +204,7 @@ check_user (char *user, char *password, char *dname)
 
   if (dname != NULL && *dname != '\0')
     {
-      snprintf (fname, sizeof (fname), "%s/%s/auth/dname", OPENVASSD_LOGINS,
+      snprintf (fname, sizeof (fname), "%s/%s/auth/dname", OPENVAS_USERS_DIR,
                 user);
       if ((f = fopen (fname, "r")) == NULL)
         perror (fname);
@@ -232,7 +232,7 @@ check_user (char *user, char *password, char *dname)
     {
       char *p;
 
-      snprintf (fname, sizeof (fname), "%s/%s/auth/hash", OPENVASSD_LOGINS,
+      snprintf (fname, sizeof (fname), "%s/%s/auth/hash", OPENVAS_USERS_DIR,
                 user);
       if ((f = fopen (fname, "r")) != NULL)
         {
@@ -286,7 +286,7 @@ check_user (char *user, char *password, char *dname)
         return BAD_LOGIN_ATTEMPT;
     }
 
-  snprintf (fname, sizeof (fname), "%s/%s/auth/rules", OPENVASSD_LOGINS, user);
+  snprintf (fname, sizeof (fname), "%s/%s/auth/rules", OPENVAS_USERS_DIR, user);
   if ((f = fopen (fname, "r")) == NULL)
     perror (fname);
 

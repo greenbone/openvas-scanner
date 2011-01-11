@@ -389,7 +389,7 @@ comm_send_preferences (struct arglist *globals)
       prefs = prefs->next;
     }
   auth_printf (globals, "server_info_openvassd_version <|> %s\n",
-               OPENVAS_VERSION);
+               OPENVASSD_VERSION);
   auth_printf (globals, "server_info_libnasl_version <|> %s\n",
                nasl_version ());
   auth_printf (globals, "server_info_libnessus_version <|> %s\n",

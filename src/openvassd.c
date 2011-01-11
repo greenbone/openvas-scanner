@@ -98,6 +98,16 @@ int allow_severity = LOG_NOTICE;
 #define setsid() setpgrp()
 #endif
 
+/* The default port assigned to OpenVAS for OTP by the iana is 9390, see
+   http://www.iana.org/assignments/port-numbers */
+#define OPENVAS_IANA_OTP_PORT 9390
+
+/* The max number of client connections/sec */
+#define OPENVASSD_CONNECT_RATE 4
+
+/* Block this many secs if the OPENVASSD_CONNECT_RATE was exceeded */
+#define OPENVASSD_CONNECT_BLOCKER 2
+
 extern char *openvaslib_version ();
 
 /**
@@ -695,7 +705,7 @@ main_loop ()
         }
     }
 
-  log_write ("openvassd %s started\n", OPENVAS_FULL_VERSION);
+  log_write ("openvassd %s started\n", OPENVASSD_VERSION);
   for (;;)
     {
       int soc;
@@ -1100,7 +1110,7 @@ main (int argc, char *argv[], char *envp[])
 
   if (print_sysconfdir)
     {
-      g_print ("%s\n", OPENVASSD_CONFDIR);
+      g_print ("%s\n", OPENVAS_SYSCONF_DIR);
       exit (0);
     }
 
@@ -1171,7 +1181,7 @@ main (int argc, char *argv[], char *envp[])
 
   if (display_version)
     {
-      printf ("OpenVAS Scanner %s\n", OPENVAS_FULL_VERSION);
+      printf ("OpenVAS Scanner %s\n", OPENVASSD_VERSION);
       printf
         ("Nessus origin: (C) 2004 Renaud Deraison <deraison@nessus.org>\n");
       printf
@@ -1202,7 +1212,7 @@ main (int argc, char *argv[], char *envp[])
 
   if (dump_cfg)
     {
-      printf ("This is OpenVAS Scanner %s\n", OPENVAS_FULL_VERSION);
+      printf ("This is OpenVAS Scanner %s\n", OPENVASSD_VERSION);
       printf ("Current setup :\n");
       printf ("\topenvas-libraries              : %s\n", openvaslib_version ());
       printf ("\tRunning as euid                : %d\n", geteuid ());

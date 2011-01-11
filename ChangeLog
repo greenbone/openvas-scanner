@@ -1,3 +1,27 @@
+2011-01-12  Jan-Oliver Wagner <jan-oliver.wagner@greenbone.net>
+
+	* src/otp_1_0.c: Renamed makro OPENVAS_VERSION to OPENVASSD_VERSION.
+
+	* src/preferences.c: Renamed OPENVASSD_PLUGINS to OPENVAS_NVT_DIR,
+	OPENVASSD_CACHE to OPENVAS_CACHE_DIR, PLUGIN_TIMEOUT to NVT_TIMEOUT.
+
+	* src/users.c: Replaced OPENVASSD_LOGINS by OPENVAS_USERS_DIR.
+
+	* src/oval_plugins.c: Replaced OPENVAS_FULL_VERSION by
+	OPENVASSD_VERSION.
+
+	* src/openvassd.c: Added definition of OPENVAS_IANA_OTP_PORT,
+	OPENVASSD_CONNECT_RATE and OPENVASSD_CONNECT_BLOCKER. These were
+	previously in config.h. Replaced OPENVAS_FULL_VERSION by
+	OPENVASSD_VERSION, OPENVASSD_CONFDIR by OPENVAS_SYSCONF_DIR.
+
+	* src/comm.c: Replaced OPENVAS_VERSION by OPENVASSD_VERSION.
+
+	* CMakeLists.txt: New. The master cmake control file.
+
+	* src/CMakeLists.txt: New. The control file for building
+	the actual scanner.
+
 2011-01-11  Jan-Oliver Wagner <jan-oliver.wagner@greenbone.net>
 
 	* src/nasl_plugins.c, src/otp_1_0.c, src/preferences.c,
