@@ -1,5 +1,12 @@
 2011-01-11  Jan-Oliver Wagner <jan-oliver.wagner@greenbone.net>
 
+	* VERSION, VERSION.in: Renamed VERSION to VERSION.in.
+
+	* doc/Doxyfile.in, doc/Doxyfile_full.in: Replaced project
+	number by respecetive variable passed by cmake.
+
+2011-01-11  Jan-Oliver Wagner <jan-oliver.wagner@greenbone.net>
+
 	* doc/Doxyfile, doc/Doxyfile.in: Renamed Doxyfile to Doyfile.in.
 
 	* doc/Doxyfile_full, doc/Doxyfile_full.in: Renamed Doxyfile_full
