@@ -1,5 +1,10 @@
 2011-01-11  Jan-Oliver Wagner <jan-oliver.wagner@greenbone.net>
 
+	* src/, openvassd/: Renamed openvassd to src in order to
+	be consistent with other OpenVAS modules.
+
+2011-01-11  Jan-Oliver Wagner <jan-oliver.wagner@greenbone.net>
+
 	First step of migrating from autotools to cmake.
 
 	* configure, configure.in, config.guess, ltmain.sh, config.sub,
