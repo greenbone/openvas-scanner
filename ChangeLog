@@ -1,3 +1,21 @@
+2011-01-11  Jan-Oliver Wagner <jan-oliver.wagner@greenbone.net>
+
+	First step of migrating from autotools to cmake.
+
+	* configure, configure.in, config.guess, ltmain.sh, config.sub,
+	aclocal.m4, install-sh: Removed. This is mostly stuff of the
+	autotools environment.
+
+	* include/config.h.in, include/corevers.h.in, include/: Removed.
+	These include files contain makros that will be directly passed
+	to the compiler with the cmake environment.
+
+	* openvas.tmpl.in, Makefile, openvassd/Makefile: Removed.
+	This is the Makefile-part. The cmake environment
+	will build Makefiles directly.
+
+	* MANIFEST: Removed. Cmake brings its own packaging scheme.
+
 2011-01-10  Michael Wiegand <michael.wiegand@greenbone.net>
 
 	* INSTALL: Fixed typo.
