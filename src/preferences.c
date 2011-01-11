@@ -45,8 +45,6 @@
 #include <stdlib.h> /* for atoi() */
 #include <fcntl.h>  /* for open() */
 
-#include "config.h" /* for OPENVASSD_MESSAGES */
-
 #include <openvas/hg/hosts_gatherer.h>
 #include <openvas/misc/system.h>     /* for efree */
 

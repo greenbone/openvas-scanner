@@ -1,9 +1,20 @@
 2011-01-11  Jan-Oliver Wagner <jan-oliver.wagner@greenbone.net>
 
+	* src/nasl_plugins.c, src/otp_1_0.c, src/preferences.c,
+	src/ntp_11.c, src/attack.c, src/shared_socket.c, src/nes_plugins.c,
+	src/pluginlaunch.c, src/users.c, src/oval_plugins.c, src/openvassd.c,
+	src/log.c, src/rules.c, src/comm.c: Remove include of config.h
+	and corevers.h. The variables will now be passed directly via cmake.
+
+	* VERSION.in: Replaced version number by respective variable
+	passed by cmake.
+
+2011-01-11  Jan-Oliver Wagner <jan-oliver.wagner@greenbone.net>
+
 	* VERSION, VERSION.in: Renamed VERSION to VERSION.in.
 
 	* doc/Doxyfile.in, doc/Doxyfile_full.in: Replaced project
-	number by respecetive variable passed by cmake.
+	number by respective variable passed by cmake.
 
 2011-01-11  Jan-Oliver Wagner <jan-oliver.wagner@greenbone.net>
 

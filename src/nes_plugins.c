@@ -31,8 +31,6 @@
 #include <dlfcn.h>  /* for dlopen() */
 #include <string.h> /* for strlen() */
 
-#include "config.h"
-
 /*
  * External libraries management
  */

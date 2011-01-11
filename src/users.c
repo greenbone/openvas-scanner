@@ -29,8 +29,6 @@
 #include <arpa/inet.h>  /* for inet_aton */
 #include <sys/param.h>  /* for MAXPATHLEN */
 
-#include "config.h"    /* for OPENVASSD_LOGINS */
-
 #include <openvas/misc/system.h>     /* for emalloc */
 
 #include <gcrypt.h>

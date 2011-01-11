@@ -31,8 +31,6 @@
 #include <stdlib.h>    /* for atoi() */
 #include <netdb.h>     /* for getaddrinfo() */
 
-#include "config.h" /* for OPENVASSD_RULES */
-
 #include <openvas/misc/system.h>     /* for efree */
 
 #include <pwd.h>

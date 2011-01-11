@@ -38,7 +38,6 @@
 #include "comm.h"
 #include "utils.h"
 #include "log.h"
-#include "corevers.h"
 
 static FILE *log;
 

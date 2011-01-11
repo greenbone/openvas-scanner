@@ -47,7 +47,6 @@
 
 #include <glib.h>
 #include <glib/gstdio.h>
-#include "corevers.h"
 #include "log.h"
 #include "pluginload.h"
 #include "preferences.h"

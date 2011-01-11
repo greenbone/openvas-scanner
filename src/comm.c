@@ -29,7 +29,6 @@
 #include <stdio.h>  /* for fprintf() */
 #include <stdlib.h> /* for atoi() */
 
-#include <corevers.h>
 #include <stdarg.h>
 
 #include <glib.h>

@@ -36,8 +36,6 @@
 #include <strings.h> /* for bzero() */
 #include <string.h>  /* for strcmp() */
 
-#include "config.h"
-
 #include <openvas/misc/network.h>    /* internal_recv */
 #include <openvas/misc/plugutils.h>  /* for INTERNAL_COMM_MSG_SHARED_SOCKET */
 #include <openvas/misc/share_fd.h>   /* for recv_fd */

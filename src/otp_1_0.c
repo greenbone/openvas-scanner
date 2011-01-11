@@ -23,7 +23,6 @@
 */
 
 #include <string.h>
-#include <corevers.h>
 
 #include <openvas/misc/network.h>
 #include <openvas/nasl/nasl.h>  /* for nasl_get_all_certifcates */

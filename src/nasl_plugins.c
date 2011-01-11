@@ -39,8 +39,6 @@
 #include <sys/types.h>
 #include <utime.h>
 
-#include "config.h"
-
 #include <openvas/base/drop_privileges.h> /* for drop_privileges */
 #include <openvas/nasl/nasl.h>
 #include <openvas/misc/network.h>    /* for internal_send */

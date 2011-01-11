@@ -50,8 +50,6 @@
 #include <signal.h>    /* for SIGTERM */
 #include <netdb.h>     /* for addrinfo */
 
-#include "config.h" /* for OPENVASSD_CONF */
-
 #include <openvas/misc/bpf_share.h>  /* for bpf_server */
 #include <openvas/nasl/nasl.h>
 #include <openvas/misc/network.h>    /* for auth_printf */
@@ -92,7 +90,6 @@ int allow_severity = LOG_NOTICE;
 #include "users.h"
 #include "ntp_11.h"
 #include "utils.h"
-#include "corevers.h"
 #include "pluginscheduler.h"
 #include "pluginlaunch.h"
 

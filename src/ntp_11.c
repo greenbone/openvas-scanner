@@ -30,8 +30,6 @@
 #include <stdio.h>  /* for fprintf() */
 #include <stdlib.h> /* for atoi() */
 
-#include <corevers.h>
-
 #include <glib.h>
 
 #include <openvas/misc/network.h>    /* for recv_line */

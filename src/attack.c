@@ -35,8 +35,6 @@
 
 #include <glib.h>
 
-#include "config.h"
-
 #include <openvas/hg/hosts_gatherer.h>
 #include <openvas/hg/hg_utils.h>
 #include <openvas/misc/kb.h>             /* for kb_new */
