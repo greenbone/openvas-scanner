@@ -146,8 +146,8 @@ set (OPENVAS_CACHE_DIR   "${LOCALSTATEDIR}/cache/openvas")
 set (OPENVAS_PID_DIR     "${LOCALSTATEDIR}/run")
 set (OPENVAS_SYSCONF_DIR "${SYSCONFDIR}/openvas")
 
-set (OPENVAS_USERS_DIR   "${OPENVAS_STATE_DIR}/users/")
-set (OPENVAS_NVT_DIR     "${OPENVAS_STATE_DIR}/plugins/")
+set (OPENVAS_USERS_DIR   "${OPENVAS_STATE_DIR}/users")
+set (OPENVAS_NVT_DIR     "${OPENVAS_STATE_DIR}/plugins")
 
 set (OPENVAS_LIB_INSTALL_DIR     "${LIBDIR}")
 set (OPENVAS_SCANNER_CERTIFICATE "${OPENVAS_STATE_DIR}/CA/servercert.pem")
@@ -268,6 +268,7 @@ string (REPLACE "
 configure_file (doc/Doxyfile.in doc/Doxyfile)
 configure_file (doc/Doxyfile_full.in doc/Doxyfile_full)
 configure_file (VERSION.in VERSION)
+configure_file (tools/openvas-adduser.in tools/openvas-adduser)
 
 ## Program
 
@@ -281,6 +282,13 @@ add_subdirectory (src)
 ## Documentation
 
 add_subdirectory (doc)
+
+## Install
+
+install (FILES tools/openvas-adduser
+         DESTINATION ${SBINDIR}
+         PERMISSIONS OWNER_EXECUTE OWNER_READ OWNER_WRITE
+                     GROUP_READ GROUP_EXECUTE WORLD_READ WORLD_EXECUTE)
 
 ## Tests
 

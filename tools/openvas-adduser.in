@@ -38,11 +38,14 @@ esac
 
 umask 066
 
-prefix=@prefix@
-exec_prefix=@exec_prefix@
+bindir=@BINDIR@
+sbindir=@SBINDIR@
+datadir=@DATADIR@
+openvas_state_dir=@OPENVAS_STATE_DIR@
+openvas_users_dir=@OPENVAS_USERS_DIR@
 
 # add the openvas installation path
-PATH=@sbindir@:@bindir@:$PATH ; export PATH
+PATH=$sbindir:$bindir:$PATH ; export PATH
 
 # check if gettext is present
 
@@ -67,7 +70,7 @@ else
 
   . $GETTEXT
   export TEXTDOMAIN=openvas-scripts
-  export TEXTDOMAINDIR=@datadir@/locale
+  export TEXTDOMAINDIR=$datadir/locale
 
 fi
 
@@ -76,12 +79,6 @@ openvassd -g || {
     gettext "Executing openvassd failed. Make sure your library loader is configured properly and that openvassd is in your \$PATH."; echo
     exit 1
    }
-
-bindir=@bindir@
-sbindir=@sbindir@
-datarootdir=@datarootdir@
-datadir=@datadir@
-localstatedir=@localstatedir@
 
 PATH=$PATH:$sbindir:$bindir:/usr/ssl/bin:/usr/local/ssl/bin:/opt/ssl/bin
 
@@ -138,7 +135,7 @@ echo "---------------------------------"
 echo
 echo
 
-prompt=${ADDUSERPROMPT-0}
+prompt=$ADDUSERPROMPT-0
 
 ok=`gettext "n"`
 while test "$ok" = `gettext "n"`;
@@ -151,7 +148,7 @@ do
    gettext "No input, exiting."; echo
    exit 1;
  fi
- if [ -d $localstatedir/lib/openvas/users/$login ];
+ if [ -d $openvas_users_dir/$login ];
  then
    gettext "This login already exists. Choose another one."; echo
  else
@@ -281,21 +278,17 @@ esac
 
 #echo "$login:$password" > $TMPDIR/adduser.$$
 
-chmod 0700 "$localstatedir/lib/openvas/"
-mkdir -p "$localstatedir/lib/openvas/users/$login"
-chmod 0700 "$localstatedir/lib/openvas/users/$login"
-
-
-
-
+chmod 0700 "$openvas_state_dir"
+mkdir -p "$openvas_users_dir/$login"
+chmod 0700 "$openvas_users_dir/$login"
 
 
 #
 # Create the auth. dir, which contains the user rules,
 # password, and plugin acl
 #
-mkdir -p "$localstatedir/lib/openvas/users/$login/auth"
-chmod 0700 "$localstatedir/lib/openvas/users/$login/auth"
+mkdir -p "$openvas_users_dir/$login/auth"
+chmod 0700 "$openvas_users_dir/$login/auth"
 
 if [ "$auth" = "pass" ]; then
 	test -c /dev/urandom &&
@@ -304,13 +297,13 @@ if [ "$auth" = "pass" ]; then
 	}
 	SEED=`(echo $SEED; date; df; ls -l; echo $URANDOM) | $MD5CMD | awk '{print $1}'`
 	H=`echo $Xn $SEED$password$Xc | $MD5CMD | awk '{print $1}'`
-	echo $H $SEED > "$localstatedir/lib/openvas/users/$login/auth/hash"
+	echo $H $SEED > "$openvas_users_dir/$login/auth/hash"
 elif [ "$auth" = "cert" ]; then
-	echo "$dn" > "$localstatedir/lib/openvas/users/$login/auth/dname"
+	echo "$dn" > "$openvas_users_dir/$login/auth/dname"
 fi
 
 
-cp $tmpAddUserFile "$localstatedir/lib/openvas/users/$login/auth/rules"
+cp $tmpAddUserFile "$openvas_users_dir/$login/auth/rules"
 
 
 rm -rf $tmpAddUserDir

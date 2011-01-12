@@ -1,5 +1,13 @@
 2011-01-12  Jan-Oliver Wagner <jan-oliver.wagner@greenbone.net>
 
+	* tools/openvas-adduser.in: Consolidated variable replacement
+	of cmake processing.
+
+	* CMakeLists.txt: Added configuring and installing of script
+	openvas-adduser.
+
+2011-01-12  Jan-Oliver Wagner <jan-oliver.wagner@greenbone.net>
+
 	* src/otp_1_0.c: Renamed makro OPENVAS_VERSION to OPENVASSD_VERSION.
 
 	* src/preferences.c: Renamed OPENVASSD_PLUGINS to OPENVAS_NVT_DIR,
