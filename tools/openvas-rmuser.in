@@ -29,18 +29,8 @@
 #
 #
 
-
-prefix=@prefix@
-exec_prefix=@exec_prefix@
-bindir=@bindir@
-sbindir=@sbindir@
-libexecdir=@libexecdir@
-datarootdir=@datarootdir@
-datadir=@datadir@
-sysconfdir=@sysconfdir@
-sharedstatedir=@sharedstatedir@
-localstatedir=@localstatedir@
-libdir=@libdir@
+datadir=@DATADIR@
+openvas_users_dir=@OPENVAS_USERS_DIR@
 
 # check if gettext is present
 
@@ -65,7 +55,7 @@ else
 
   . $GETTEXT
   export TEXTDOMAIN=openvas-scripts
-  export TEXTDOMAINDIR=@datadir@/locale
+  export TEXTDOMAINDIR=$datadir/locale
 
 fi
 
@@ -82,9 +72,9 @@ test -z "$login" && {
  exit 1
 }
 
-if [ -d "$localstatedir/lib/openvas/users/$login" ];
+if [ -d "$openvas_users_dir/$login" ];
 then
- rm -rf "$localstatedir/lib/openvas/users/$login"
+ rm -rf "$openvas_users_dir/$login"
  gettext "user removed."; echo
 else
  gettext "user does not exist"; echo

@@ -26,12 +26,8 @@
 
 umask 022
 
-prefix=@prefix@
-datarootdir=@datarootdir@
-datadir=@datadir@
-localstatedir=@localstatedir@
-sbindir=@exec_prefix@/sbin
-bindir=@exec_prefix@/bin
+OPENVASPRIV="@OPENVAS_STATE_DIR@/private/CA"
+OPENVASPUB="@OPENVAS_STATE_DIR@/CA"
 
 usage()
 {
@@ -76,8 +72,6 @@ case `openssl version` in
 esac
 
 # Check for availability of OpenVAS CA
-OPENVASPRIV="$localstatedir/lib/openvas/private/CA"
-OPENVASPUB="$localstatedir/lib/openvas/CA"
 
 if [ ! -d "$OPENVASPRIV" ]; then
     echo "Could not access private directory of the OpenVAS CA ($OPENVASPRIV)."
@@ -119,7 +113,7 @@ done
 
 # Check for availability of the OpenVAS scanner user directory
 if [ "$R" = `echo "y"` ]; then
-    USERSDIR="$localstatedir/lib/openvas/users"
+    USERSDIR="@OPENVAS_USERS_DIR@"
     if [ ! -d "$USERSDIR" ]; then
         mkdir -p $USERSDIR
         chmod 755 $USERSDIR

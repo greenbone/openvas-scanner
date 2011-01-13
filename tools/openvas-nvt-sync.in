@@ -35,15 +35,9 @@
 # these locations should be correct if standard ./configure had
 # been applied.
 
-prefix=@prefix@
-exec_prefix=@exec_prefix@
-sysconfdir=@sysconfdir@
-libdir=@libdir@
-localstatedir=@localstatedir@
-
 # configure NVT_DIR where we will sync NVTs
 if [ -z "$NVT_DIR" ]; then
-	NVT_DIR="$libdir/openvas/plugins"
+	NVT_DIR="@OPENVAS_NVT_DIR@"
 fi
 
 # The URL of the plugin feed
@@ -71,7 +65,7 @@ fi
 # Script and feed information which will be made available to user through
 # command line options and automated tools.
 SCRIPT_NAME="openvas-nvt-sync"
-VERSION=@version@
+VERSION=@OPENVASSD_VERSION@
 FEED_NAME="OpenVAS NVT Feed"
 FEED_PROVIDER="The OpenVAS Project"
 FEED_HOME="http://www.openvas.org/openvas-nvt-feed.html"

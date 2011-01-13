@@ -1,3 +1,16 @@
+2011-01-13  Jan-Oliver Wagner <jan-oliver.wagner@greenbone.net>
+
+	* tools/openvas-mkcert-client.in, tools/openvas-nvt-sync.in,
+	tools/openvas-mkcert.in, tools/openvas-rmuser.in:
+	Consolidated variable replacement of cmake processing.
+
+	* CMakeLists.txt: Added configuration and installation of
+	the remaining shell scripts from tools/ directory.
+	Using @ONLY for the configuration.
+
+	* tools/openvas-adduser.in: Reverted prompt variable setting
+	change now that we use @ONLY.
+
 2011-01-13  Matthew Mundell <matthew.mundell@greenbone.net>
 
 	* ChangeLog: Remove trailing tab.  Format old entries properly.

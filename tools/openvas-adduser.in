@@ -135,7 +135,7 @@ echo "---------------------------------"
 echo
 echo
 
-prompt=$ADDUSERPROMPT-0
+prompt=${ADDUSERPROMPT-0}
 
 ok=`gettext "n"`
 while test "$ok" = `gettext "n"`;

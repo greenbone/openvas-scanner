@@ -26,9 +26,6 @@
 # You should have received a copy of the GNU General Public License
 # along with this program; if not, write to the Free Software
 # Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA 02110-1301 USA.
-#
-#
-#
 
 
 case `echo -n` in
@@ -38,14 +35,14 @@ esac
 
 umask 022
 
-prefix=@prefix@
-datarootdir=@datarootdir@
-datadir=@datadir@
-sysconfdir=@sysconfdir@
-localstatedir=@localstatedir@
-sharedstatedir=@sharedstatedir@
-sbindir=@exec_prefix@/sbin
-bindir=@exec_prefix@/bin
+datadir=@DATADIR@
+CF=@OPENVASSD_CONF@
+bindir=@BINDIR@
+sbindir=@SBINDIR@
+OPENVASPRIV="@OPENVAS_STATE_DIR@/private/CA"
+OPENVASPUB="@OPENVAS_STATE_DIR@/CA"
+
+# TODO: EGD is not supported anymore
 egdpath=@egdpath@
 
 RANDFLAG=""
@@ -80,7 +77,7 @@ else
 
   . $GETTEXT
   export TEXTDOMAIN=openvas-scripts
-  export TEXTDOMAINDIR=@datadir@/locale
+  export TEXTDOMAINDIR=$datadir/locale
 
 fi
 
@@ -123,8 +120,6 @@ case `openssl version` in
    exit 1
 esac
      
-OPENVASPRIV="@OPENVASSD_STATEDIR@/private/CA"
-OPENVASPUB="@OPENVASSD_SHAREDSTATEDIR@/CA"
 if [ ! -d "$OPENVASPRIV" ]; then
     mkdir -p "$OPENVASPRIV"
     chmod 0700 "$OPENVASPRIV"
@@ -378,7 +373,6 @@ then
 fi
 
 CAMAIL=ca@$hostname
-#cln CLNMAIL=nessus@$hostname
 SRVMAIL=openvassd@$hostname
 #
 # Create the root CA
@@ -436,7 +430,6 @@ openssl ca -config $BASEDIR/std.cnf -name OpenVASCA -batch -days $SRVCERT_LIFETI
 chmod a+r $CACERT $SRVCERT #cln $CLNCERT
 
 
-CF=@sysconfdir@/openvas/openvassd.conf
 egrep -v '^ *(pem_password|cert_file|key_file|ca_file|force_pubkey_auth) *=' "$CF" > "$CF.tmp"
 echo "#
 # Added by openvas-mkcert

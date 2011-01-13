@@ -265,10 +265,14 @@ string (REPLACE "
 " "" OPENVASSD_VERSION ${CPACK_PACKAGE_VERSION})
 
 # Configure Doxyfile with version number
-configure_file (doc/Doxyfile.in doc/Doxyfile)
-configure_file (doc/Doxyfile_full.in doc/Doxyfile_full)
-configure_file (VERSION.in VERSION)
-configure_file (tools/openvas-adduser.in tools/openvas-adduser)
+configure_file (doc/Doxyfile.in doc/Doxyfile @ONLY)
+configure_file (doc/Doxyfile_full.in doc/Doxyfile_full @ONLY)
+configure_file (VERSION.in VERSION @ONLY)
+configure_file (tools/openvas-adduser.in tools/openvas-adduser @ONLY)
+configure_file (tools/openvas-rmuser.in tools/openvas-rmuser @ONLY)
+configure_file (tools/openvas-mkcert.in tools/openvas-mkcert @ONLY)
+configure_file (tools/openvas-mkcert-client.in tools/openvas-mkcert-client @ONLY)
+configure_file (tools/openvas-nvt-sync.in tools/openvas-nvt-sync @ONLY)
 
 ## Program
 
@@ -285,7 +289,9 @@ add_subdirectory (doc)
 
 ## Install
 
-install (FILES tools/openvas-adduser
+install (FILES tools/openvas-adduser tools/openvas-rmuser
+               tools/openvas-mkcert tools/openvas-mkcert-client
+               tools/greenbone-nvt-sync tools/openvas-nvt-sync
          DESTINATION ${SBINDIR}
          PERMISSIONS OWNER_EXECUTE OWNER_READ OWNER_WRITE
                      GROUP_READ GROUP_EXECUTE WORLD_READ WORLD_EXECUTE)
