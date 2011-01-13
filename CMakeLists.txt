@@ -296,6 +296,9 @@ install (FILES tools/openvas-adduser tools/openvas-rmuser
          PERMISSIONS OWNER_EXECUTE OWNER_READ OWNER_WRITE
                      GROUP_READ GROUP_EXECUTE WORLD_READ WORLD_EXECUTE)
 
+install (FILES openvas-services DESTINATION ${OPENVAS_STATE_DIR}
+         PERMISSIONS OWNER_READ GROUP_READ WORLD_READ)
+
 ## Tests
 
 enable_testing ()
