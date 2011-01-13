@@ -150,7 +150,7 @@ if (NVT_TIMEOUT)
 endif (NVT_TIMEOUT)
 
 set_target_properties (openvassd PROPERTIES LINK_FLAGS
-                       "${LIB_TEMP} -lgnutls ${GLIB_LDFLAGS} ${OPENVAS_LDFLAGS}")
+                       "${LIB_TEMP} -lgnutls -ldl ${GLIB_LDFLAGS} ${OPENVAS_LDFLAGS}")
 
 set_target_properties (openvassd PROPERTIES COMPILE_FLAGS
                        "${HEADER_TEMP} ${OPENVAS_CFLAGS} ${GLIB_CFLAGS}")

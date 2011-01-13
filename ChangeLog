@@ -1,3 +1,8 @@
+2011-01-13  Jan-Oliver Wagner <jan-oliver.wagner@greenbone.net>
+
+	* src/CMakeLists.txt: Added -ldl for linking. Spotted by
+	Stefan Schwarz.
+
 2011-01-12  Jan-Oliver Wagner <jan-oliver.wagner@greenbone.net>
 
 	* tools/openvas-adduser.in: Consolidated variable replacement
