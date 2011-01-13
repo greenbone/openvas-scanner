@@ -1,3 +1,7 @@
+2011-01-13  Matthew Mundell <matthew.mundell@greenbone.net>
+
+	* ChangeLog: Remove trailing tab.  Format old entries properly.
+
 2011-01-13  Jan-Oliver Wagner <jan-oliver.wagner@greenbone.net>
 
 	* src/CMakeLists.txt: Added -ldl for linking. Spotted by
@@ -125,7 +129,7 @@
 
 	* openvassd/comm.c (comm_send_preferences): Don't send server_info_os
 	and server_info_os_version anymore for "SERVER <|> PREFERENCES".
-	
+
 2011-01-05  Jan-Oliver Wagner <jan-oliver.wagner@greenbone.net>
 
 	* openvassd/oval_plugins.c (ovaldi_launch): Replaced PROGNAME by its
@@ -2967,10 +2971,10 @@
 	Added support for parsing multiple results per OVAL result file, made
 	call to ovaldi compatible to ovaldi 5.5.x.
 
-	* oval_plugins.c: (start_element, end_element) Added support for
-	multiple results. (ovaldi_launch) Added support for communicating
-	multiple results to client. Improved result string handling. Free
-	memory we no longer need.
+	* oval_plugins.c (start_element, end_element): Added support for
+	multiple results.
+	(ovaldi_launch): Added support for communicating multiple results to
+	client. Improved result string handling. Free memory we no longer need.
 
 2009-02-24  Michael Wiegand <michael.wiegand@intevation.de>
 
@@ -2980,10 +2984,11 @@
 	ovaldi support is not yet present in the code, but expected to arrive
 	shortly.
 
-	* oval_plugins.c: (start_element, text, end_element) Made XML parsing
-	more stateful and robust. (text) Fix to remove superflous whitespaces
-	in definition titles. (ovaldi_launch) Temporarily included dummy
-	values in OVAL system_info element for testing.
+	* oval_plugins.c (start_element, text, end_element): Made XML parsing
+	more stateful and robust.
+	(text): Fix to remove superflous whitespaces in definition titles.
+	(ovaldi_launch): Temporarily included dummy values in OVAL system_info
+	element for testing.
 
 2009-02-19  Felix Wolfsteller <felix.wolfsteller@intevation.de>
 
