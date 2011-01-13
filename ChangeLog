@@ -1,5 +1,13 @@
 2011-01-13  Jan-Oliver Wagner <jan-oliver.wagner@greenbone.net>
 
+	* doc/openvassd.8.in: Consolidated variable replacement
+	of cmake processing.
+
+	* CMakeLists.txt: Added configuration of openvassd.8 and
+	added installation of all the man pages.
+
+2011-01-13  Jan-Oliver Wagner <jan-oliver.wagner@greenbone.net>
+
 	* CMakeLists.txt: Install openvas-services.
 
 2011-01-13  Jan-Oliver Wagner <jan-oliver.wagner@greenbone.net>

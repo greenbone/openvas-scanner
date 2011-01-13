@@ -267,6 +267,7 @@ string (REPLACE "
 # Configure Doxyfile with version number
 configure_file (doc/Doxyfile.in doc/Doxyfile @ONLY)
 configure_file (doc/Doxyfile_full.in doc/Doxyfile_full @ONLY)
+configure_file (doc/openvassd.8.in doc/openvassd.8 @ONLY)
 configure_file (VERSION.in VERSION @ONLY)
 configure_file (tools/openvas-adduser.in tools/openvas-adduser @ONLY)
 configure_file (tools/openvas-rmuser.in tools/openvas-rmuser @ONLY)
@@ -298,6 +299,10 @@ install (FILES tools/openvas-adduser tools/openvas-rmuser
 
 install (FILES openvas-services DESTINATION ${OPENVAS_STATE_DIR}
          PERMISSIONS OWNER_READ GROUP_READ WORLD_READ)
+
+install (FILES doc/openvas-adduser.8 doc/openvas-mkcert.8
+               doc/openvas-nvt-sync.8 doc/openvas-rmuser.8 doc/openvassd.8
+         DESTINATION ${DATADIR}/man )
 
 ## Tests
 
