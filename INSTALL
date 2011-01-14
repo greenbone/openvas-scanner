@@ -1,41 +1,49 @@
-INSTALLING OPENVAS-SCANNER
-==========================
+INSTALLATION INSTRUCTIONS FOR OPENVAS-SCANNER
+=============================================
 
-Prerequisites
--------------
-
-* openvas-libraries (4.0.0 or later)
-
+Please note: The reference system used by most of the developers is Debian
+GNU/Linux 'Lenny' 5.0.  The build might fail on any other systems.  Also
+it is necessary to install dependent development packages.
 
 Compiling openvas-scanner
 -------------------------
 
-Run
+Prerequisites:
+* cmake
+* glib-2.0
+* gnutls
+* openvas-libraries (4.0.0 or later)
 
-$ ./configure
+Prerequisites for building documentation:
+* Doxygen
+* xmltoman (optional, for building man page)
+* sqlfairy (optional, for producing database diagram)
 
-to set up the compilation environment.
-During configuration, error messages may show up if openvas-libraries or other
-libraries and applications needed to compile openvas-scanner are not present on
-your system or do not meet the version requirements.
-In this case, resolve the issues reported and run configure again.
+First, if your openvas/bin is not in your PATH, add it because
+libopenvas-config is needed
 
-If you want to install openvas-scanner into a different hierarchy, you may
-want to use the prefix option during configuration:
+    $ export PATH=$PATH:/path/to/your/installation/bin/
 
-$ ./configure --prefix=/opt/openvas
+Then configure the build with
 
-More information about the configuration options is available through the help
-option:
+    $ cmake -DCMAKE_INSTALL_PREFIX=/path/to/your/installation .
 
-$ ./configure --help
+or (if you want to use the default installation path /usr/local)
 
-Once you have configured openvas-scanner successfully, you can start the
-compilation by executing the following command:
+    $ cmake .
 
-$ make
+This only needs to be done once.  Note: It is assumed that the other
+OpenVAS components are installed to the same path.  If not, you need to set
+some paths separately, see below for details.
 
-To install openvas-scanner, you can use the following command:
+Thereafter, the following commands are useful.
+
+    $ make                # build the scanner
+    $ make doc            # build the documentation
+    $ make doc-full       # build more developer-oriented documentation
+    $ make install        # install the build
+    $ make rebuild_cache  # rebuild the make system cache
+
 
 $ make install
 
@@ -46,15 +54,10 @@ have specified a prefix for which your user does not have full permissions.
 Setting up openvas-scanner
 --------------------------
 
-NOTE: This is only a very concise guide to setting up an openvas-scanner. Please
-refer to the OpenVAS compendium available at http://www.openvas.org/compendium/
-for more detailed information. One of the many changes from OpenVAS 2.0 to
-OpenVAS 3.0 was the renaming of openvas-server to openvas-scanner.
-
 Setting up an openvas-scanner requires the following steps:
 
-1) The scanner and the client modules of OpenVAS communicate through an SSL
-   connection. In order to establish this connection, the scanner needs to have
+1) The scanner service communicate through an SSL connection.
+   In order to establish this connection, the scanner needs to have
    an SSL certificate it can present to the client to prove its identity. You
    can interactively create this certificate by using the following command:
 
@@ -74,17 +77,15 @@ Setting up an openvas-scanner requires the following steps:
 
    The command will guide you through the user creation and allow you to specify
    a name and authentication method for the user and to define rules restricting
-   the usage of the scanner by this user. For more details on rules please
-   refer to the OpenVAS compendium available through the OpenVAS website.
+   the usage of the scanner by this user.
 
    Alternatively you can use openvas-administrator to create users with a single
    command. Please refer to the openvas-administrator documentation for details.
 
 3) In order to run vulnerability scans, you will need a collection of Network
    Vulnerability Tests (NVTs) that can be run by openvas-scanner. Initially,
-   your NVT collection will contain very few NVTs. It is recommended that you
-   synchronize with an NVT feed service before starting openvas-scanner for the
-   first time.
+   your NVT collection will be empty. It is recommended that you synchronize
+   with an NVT feed service before starting openvas-scanner for the first time.
 
    Your installation is preconfigured to synchronize with the OpenVAS NVT Feed.
    Simply execute the following command to receive thousands of NVTs from this
@@ -119,14 +120,13 @@ Setting up an openvas-scanner requires the following steps:
    without permission to perform these operations, your scan results are very
    likely to be incomplete.
 
-5) Once the scanner has started, you can use a client like OpenVAS-Client, GSA
-   or GSD to connect to your scanner using the user name and credentials you
-   specified in step 2.  Please refer to the documentation for your client for
-   more information.
-
-   Be aware that modern clients like GSA or GSD will need the openvas-manager
-   module to connect to openvas-scanner. See the openvas-manager documentation
-   for installation instructions.
+5) Once the scanner has started, openvas-manager can act as a client and control
+   the scanner. The actual user interfaces (for example GSA, GSD or CLI-OMP)
+   will only interact with the manager, not the scanner.
+   It is still possible to use the latest version of the old OpenVAS-Client as
+   direct client application for the scanner but this will circumvent the whole
+   vulnerability management storage and processes.
+   
 
 If you encounter problems, the files /var/log/openvas/openvassd.messages and
 /var/log/openvas/openvassd.dump may contain useful information. (The exact
