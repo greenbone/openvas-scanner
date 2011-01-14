@@ -1,0 +1,37 @@
+.\"                                      Hey, EMACS: -*- nroff -*-
+.TH GREENBONE-NVT-SYNC 8 "January 2011" "The OpenVAS Project" "User Manuals"
+.SH NAME
+greenbone-nvt-sync \- updates the OpenVAS security checks from Greenbone Security Feed
+.SH SYNOPSIS
+.B greenbone-nvt-sync 
+.SH DESCRIPTION
+The 
+.B OpenVAS Scanner
+performs several security checks. These are called Network Vulnerability Tests
+(NVTs) and are mostly implemented in the programming language NASL. Some NVTs are
+wrappers for external tools.
+As new security holes are published every day, new NVTs appear in the
+Greenbone Security Feed. This feed is commercial and requires a respective subscription key.
+The OpenVAS project offers a free Feed which can be issued via openvas-nvt-sync(8).
+
+.br
+The script 
+.B greenbone-nvt-sync
+will fetch all new and updated security checks and install them at the proper
+location. Once this is done it will try to restart the openvas-scanner(8)
+so that the new NVTs are loaded and considered for new security scans. If your installation
+does not allow automatic restart, you need to restart the scanner manually.
+
+.SH SEE ALSO
+For more information see:
+.BR openvassd(8),
+.BR openvas-nvt-feed(8)
+.br
+			
+.SH AUTHOR
+This manual page was written by
+Jan-Oliver Wagner <jan-oliver.wagner@greenbone.net>.
+.PP
+The 
+.B greenbone-nvt-sync
+script was written by Greenbone Networks GmbH.

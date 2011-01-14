@@ -1,5 +1,15 @@
 2011-01-14  Jan-Oliver Wagner <jan-oliver.wagner@greenbone.net>
 
+	* doc/openvas-nvt-sync.8: Added feed name. Removed reference
+	to openvas-client.
+
+	* doc/greenbone-nvt-sync.8: New. First raw version of a man page
+	for completeness reason.
+
+	* COPYING: Removed a doubled entry.
+
+2011-01-14  Jan-Oliver Wagner <jan-oliver.wagner@greenbone.net>
+
 	* INSTALL: Updated and harmonized with INSTALL of openvas-manager.
 
 2011-01-13  Jan-Oliver Wagner <jan-oliver.wagner@greenbone.net>
