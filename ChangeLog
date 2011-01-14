@@ -1,5 +1,16 @@
 2011-01-14  Jan-Oliver Wagner <jan-oliver.wagner@greenbone.net>
 
+	* cnvts/find_service/find_service.c, cnvts/find_service/Makefile,
+	cnvts/find_service/, cnvts/make_world,
+	cnvts/openvas_tcp_scanner/openvas_tcp_scanner.c,
+	cnvts/openvas_tcp_scanner/Makefile, cnvts/openvas_tcp_scanner/,
+	cnvts/install_plug, cnvts/synscan/synscan.c, cnvts/synscan/Makefile,
+	cnvts/synscan/, cnvts/: Removed. The binary NVTs have been
+	turned into built-in NVTs and the source code is now part
+	of nasl module of openvas-libries.
+
+2011-01-14  Jan-Oliver Wagner <jan-oliver.wagner@greenbone.net>
+
 	* doc/TODO.txt: Removed. It was hopeless out of date
 	from the pre-OpenVAS times.
 
