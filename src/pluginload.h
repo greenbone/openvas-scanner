@@ -55,8 +55,7 @@ typedef int (*plugin_run_t) (struct arglist *);
 
 /**
  * Class of a NVT (implemented as list).
- * Currently three classes do exist: nes_plugin_class, nasl_plugin_class and
- * oval_plugin_class.
+ * Currently two classes do exist: nasl_plugin_class and oval_plugin_class.
  * Holds the extension string and pointers to init, add and launch-functions.
  */
 typedef struct pl_class_s
@@ -75,7 +74,6 @@ typedef struct pl_class_s
                     struct arglist *, struct kb_item **, char *);
 } pl_class_t;
 
-extern pl_class_t nes_plugin_class;
 extern pl_class_t nasl_plugin_class;
 extern pl_class_t oval_plugin_class;
 #endif

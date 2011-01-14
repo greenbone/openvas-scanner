@@ -1,5 +1,21 @@
 2011-01-14  Jan-Oliver Wagner <jan-oliver.wagner@greenbone.net>
 
+	Removing framework for binary plugins as they are gone now.
+
+	* src/nes_plugins.c: Removed.
+
+	* src/CMakeLists.txt: Removed handling of module nes_plugins.
+
+	* src/pluginload.c (init_plugin_classes): Removed nes_plugin_class
+	from the class list.
+
+	* src/pluginload.h (nes_plugin_class): Removed.
+
+	* COPYING: Removed cnvt entries, renamed "openvassd/" to "src/"
+	and added missing entry for openvas-rmuser.in.
+
+2011-01-14  Jan-Oliver Wagner <jan-oliver.wagner@greenbone.net>
+
 	* cnvts/find_service/find_service.c, cnvts/find_service/Makefile,
 	cnvts/find_service/, cnvts/make_world,
 	cnvts/openvas_tcp_scanner/openvas_tcp_scanner.c,
