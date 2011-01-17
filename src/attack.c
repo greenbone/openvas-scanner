@@ -39,7 +39,7 @@
 #include <openvas/hg/hg_utils.h>
 #include <openvas/misc/kb.h>             /* for kb_new */
 #include <openvas/misc/network.h>        /* for auth_printf */
-#include <openvas/nvt_categories.h>      /* for ACT_INIT */
+#include <openvas/misc/nvt_categories.h> /* for ACT_INIT */
 #include <openvas/misc/pcap_openvas.h>   /* for v6_is_local_ip */
 #include <openvas/misc/plugutils.h>      /* for plug_get_path */
 #include <openvas/misc/proctitle.h>      /* for setproctitle */

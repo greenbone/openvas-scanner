@@ -34,7 +34,7 @@
 #include <glib.h>
 
 #include <openvas/nasl/nasl.h>
-#include <openvas/nvt_categories.h>     /* for ACT_FIRST */
+#include <openvas/misc/nvt_categories.h>/* for ACT_FIRST */
 #include <openvas/misc/plugutils.h>     /* for plug_get_oid */
 #include <openvas/misc/network.h>       /* for recv_line */
 #include <openvas/misc/otp.h>           /* for OTP_10 */

@@ -1,3 +1,12 @@
+2011-01-17  Jan-Oliver Wagner <jan-oliver.wagner@greenbone.net>
+
+	* src/nasl_plugins.c, src/attack.c, src/save_kb.c, src/pluginlaunch.c,
+	src/oval_plugins.c, src/comm.c, src/pluginscheduler.c: Change include
+	patch for nvt_categories.h.
+
+	* .root-dir: Removed. This as a woraround file for the old build
+	environment.
+
 2011-01-14  Jan-Oliver Wagner <jan-oliver.wagner@greenbone.net>
 
 	Removing framework for binary plugins as they are gone now.

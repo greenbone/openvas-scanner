@@ -42,7 +42,7 @@
 #include <openvas/base/drop_privileges.h> /* for drop_privileges */
 #include <openvas/nasl/nasl.h>
 #include <openvas/misc/network.h>    /* for internal_send */
-#include <openvas/nvt_categories.h>  /* for ACT_SCANNER */
+#include <openvas/misc/nvt_categories.h>  /* for ACT_SCANNER */
 #include <openvas/misc/plugutils.h>  /* for INTERNAL_COMM_CTRL_FINISHED */
 #include <openvas/misc/store.h>      /* for store_plugin */
 #include <openvas/misc/system.h>     /* for emalloc */

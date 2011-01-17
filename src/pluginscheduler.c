@@ -30,7 +30,7 @@
 #include <string.h> /* for strcmp() */
 #include <stdio.h>  /* for printf() */
 
-#include <openvas/nvt_categories.h>  /* for ACT_SCANNER */
+#include <openvas/misc/nvt_categories.h>  /* for ACT_SCANNER */
 #include <openvas/misc/plugutils.h>  /* for plug_get_required_ports */
 #include <openvas/misc/system.h>     /* for emalloc */
 #include <openvas/misc/arglists.h>

@@ -33,7 +33,7 @@
 #include <sys/time.h> /* for gettimeofday() */
 
 #include <openvas/misc/network.h>    /* for internal_send */
-#include <openvas/nvt_categories.h>  /* for ACT_SCANNER */
+#include <openvas/misc/nvt_categories.h>  /* for ACT_SCANNER */
 #include <openvas/misc/plugutils.h>  /* for INTERNAL_COMM_MSG_SHARED_SOCKET */
 #include <openvas/misc/system.h>     /* for efree */
 
