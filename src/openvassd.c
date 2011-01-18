@@ -93,11 +93,6 @@ int allow_severity = LOG_NOTICE;
 #include "pluginscheduler.h"
 #include "pluginlaunch.h"
 
-
-#ifndef HAVE_SETSID
-#define setsid() setpgrp()
-#endif
-
 /* The default port assigned to OpenVAS for OTP by the iana is 9390, see
    http://www.iana.org/assignments/port-numbers */
 #define OPENVAS_IANA_OTP_PORT 9390
@@ -466,13 +461,6 @@ scanner_thread (struct arglist *globals)
   /* arg_set_value *replaces* an existing value, but it shouldn't fail here */
   (void) arg_set_value (globals, "global_socket", -1, GSIZE_TO_POINTER (soc2));
 
-#ifdef HAVE_ADDR2ASCII
-  if (family == AF_INET)
-    addr2ascii (AF_INET, &saddr->sin_addr, sizeof (struct in_addr), asciiaddr);
-#elif defined(HAVE_INET_NETA)
-  if (family == AF_INET)
-    inet_neta (ntohl (saddr->sin_addr.s_addr), asciiaddr, 20);
-#else
   if (family == AF_INET)
     asciiaddr = estrdup (inet_ntoa (saddr->sin_addr));
   else
@@ -483,7 +471,7 @@ scanner_thread (struct arglist *globals)
                  (AF_INET6, &s6addr->sin6_addr, addrstr, sizeof (addrstr)));
       efree (&addrstr);
     }
-#endif
+
   protocol_version = comm_init (soc2);
   if (!protocol_version)
     {
