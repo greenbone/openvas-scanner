@@ -939,7 +939,7 @@ init_openvassd (struct arglist *options, int first_pass, int stop_early,
   struct arglist *plugins = NULL;
   struct arglist *preferences = NULL;
   struct openvas_rules *rules = NULL;
-  int iana_port = GPOINTER_TO_SIZE (arg_get_value (options, "iana_port"));
+  int scanner_port = GPOINTER_TO_SIZE (arg_get_value (options, "scanner_port"));
   char *config_file = arg_get_value (options, "config_file");
   struct addrinfo *addr = arg_get_value (options, "addr");
   char *str;
@@ -984,7 +984,7 @@ init_openvassd (struct arglist *options, int first_pass, int stop_early,
       plugins = plugins_init (preferences, be_quiet);
 
       if (first_pass != 0)
-        init_network (iana_port, &isck, *addr);
+        init_network (scanner_port, &isck, *addr);
     }
 
   if (first_pass && !stop_early)
@@ -1017,7 +1017,7 @@ int
 main (int argc, char *argv[], char *envp[])
 {
   int exit_early = 0;
-  int iana_port = -1;
+  int scanner_port = 9391;
   char *myself;
   struct in6_addr *src_addrs = NULL;
   struct arglist *options = emalloc (sizeof (struct arglist));
@@ -1158,8 +1158,8 @@ main (int argc, char *argv[], char *envp[])
 
   if (port != NULL)
     {
-      iana_port = atoi (port);
-      if ((iana_port <= 0) || (iana_port >= 65536))
+      scanner_port = atoi (port);
+      if ((scanner_port <= 0) || (scanner_port >= 65536))
         {
           printf ("Invalid port specification.\n");
           printf ("Please use %s --help for more information.\n", myself);
@@ -1214,8 +1214,8 @@ main (int argc, char *argv[], char *envp[])
   if (exit_early == 0)
     bpf_server_pid = bpf_server ();
 
-  if (iana_port == -1)
-    iana_port = OPENVAS_IANA_OTP_PORT;
+  if (scanner_port == -1)
+    scanner_port = OPENVAS_IANA_OTP_PORT;
 
   if (!config_file)
     {
@@ -1223,8 +1223,8 @@ main (int argc, char *argv[], char *envp[])
       strncpy (config_file, OPENVASSD_CONF, strlen (OPENVASSD_CONF));
     }
 
-  arg_add_value (options, "iana_port", ARG_INT, sizeof (gpointer),
-                 GSIZE_TO_POINTER (iana_port));
+  arg_add_value (options, "scanner_port", ARG_INT, sizeof (gpointer),
+                 GSIZE_TO_POINTER (scanner_port));
   arg_add_value (options, "config_file", ARG_STRING, strlen (config_file),
                  config_file);
   arg_add_value (options, "addr", ARG_PTR, -1, &ai);
