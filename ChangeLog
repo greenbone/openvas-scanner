@@ -1,5 +1,10 @@
 2011-01-19  Jan-Oliver Wagner <jan-oliver.wagner@greenbone.net>
 
+	* src/openvassd.c (main): Removed useless check for port
+	as always a sensible is set.
+
+2011-01-19  Jan-Oliver Wagner <jan-oliver.wagner@greenbone.net>
+
 	* src/openvassd.c (main): Removed command line option
 	"--dump-cfg" as it returns no valueable information.
 

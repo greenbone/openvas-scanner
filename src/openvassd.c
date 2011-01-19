@@ -1198,9 +1198,6 @@ main (int argc, char *argv[], char *envp[])
   if (exit_early == 0)
     bpf_server_pid = bpf_server ();
 
-  if (scanner_port == -1)
-    scanner_port = OPENVAS_IANA_OTP_PORT;
-
   if (!config_file)
     {
       config_file = emalloc (strlen (OPENVASSD_CONF) + 1);
