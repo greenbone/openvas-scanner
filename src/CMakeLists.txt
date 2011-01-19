@@ -137,6 +137,10 @@ if (OPENVAS_PID_DIR)
   add_definitions (-DOPENVAS_PID_DIR=\\\"${OPENVAS_PID_DIR}\\\")
 endif (OPENVAS_PID_DIR)
 
+if (SYSCONFDIR)
+  add_definitions (-DSYSCONFDIR=\\\"${SYSCONFDIR}\\\")
+endif (SYSCONFDIR)
+
 if (OPENVAS_SYSCONF_DIR)
   add_definitions (-DOPENVAS_SYSCONF_DIR=\\\"${OPENVAS_SYSCONF_DIR}\\\")
 endif (OPENVAS_SYSCONF_DIR)

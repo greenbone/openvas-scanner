@@ -1,3 +1,10 @@
+2011-01-19  Matthew Mundell <matthew.mundell@greenbone.net>
+
+	* src/CMakeLists.txt: Add SYSCONFDIR to definitions.
+
+	* src/openvassd.c (main): Return SYSCONFDIR instead of OPENVAS_SYSCONF_DIR
+	for -y, to match the pre-cmake behaviour.
+
 2011-01-19  Michael Wiegand <michael.wiegand@greenbone.net>
 
 	* src/preferences.c (preferences_new): Add preferences for vhost

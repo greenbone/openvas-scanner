@@ -1098,7 +1098,7 @@ main (int argc, char *argv[], char *envp[])
 
   if (print_sysconfdir)
     {
-      g_print ("%s\n", OPENVAS_SYSCONF_DIR);
+      g_print ("%s\n", SYSCONFDIR);
       exit (0);
     }
 
