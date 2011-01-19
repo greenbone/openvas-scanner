@@ -1,19 +1,17 @@
-.TH OpenVASSD 8 "February 2004" "The OpenVAS Project" "User Manuals"
+.TH OpenVASSD 8 "January 2011" "The OpenVAS Project" "User Manuals"
 .SH NAME
-openvassd \- The 'scanner' part of the OpenVAS Security Scanner
+openvassd \- The Scanner of the Open Vulnerability Assessment System (OpenVAS)
 .SH SYNOPSIS
 .BI "openvassd [\|-v\|] [\|-h\|]  [\|-c " config-file\| "] [\|-S " ip[,ip2,...]\| "] [\|-a " address\| 
-.BI "] [\|-p " port-number\| "] [\|-D\|] [\|-d\|] [\|-R\|] [\|-P\|] [\|-q\|]"
+.BI "] [\|-p " port-number\| "] [\|-D\|] [\|-R\|] [\|-P\|] [\|-q\|] [\|-f\|]"
 
 .SH DESCRIPTION
-The 
-.B OpenVAS Security Scanner
-is a security auditing tool made up of two parts: a scanner and a client.
-The scanner,
+.B OpenVAS
+is a security auditing framework made up of several modules.
+The Scanner,
 .BR openvassd
-is in charge of the attacks, while the client 
-.BR openvas
-interfaces with the user.
+is in charge of executing many security tests against many
+target hosts in a highly optimized way.
 
 
 .BR openvassd
@@ -69,10 +67,6 @@ Make the scanner stay in foreground (non-daemon mode)
 .TP 
 .B "-q, --quiet"
 Prevent the scanner from printing the loading status of the plugins at startup
-
-.TP 
-.B "-d, --dump-cfg"
-Make the scanner dumps its compilation options
 
 .TP 
 .B "-v, --version"
@@ -333,4 +327,4 @@ http://bugs.openvas.org
 	
 .SH AUTHORS
 
-openvassd was written by Renaud Deraison <deraison@cvs.nessus.org>
+openvassd was forked from nessusd in 2005. Nessusd was written by Renaud Deraison <deraison@cvs.nessus.org>. Since 2005 the OpenVAS development team improved and extended the tool.

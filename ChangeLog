@@ -1,5 +1,14 @@
 2011-01-19  Jan-Oliver Wagner <jan-oliver.wagner@greenbone.net>
 
+	* src/openvassd.c (main): Removed command line option
+	"--dump-cfg" as it returns no valueable information.
+
+	* doc/openvassd.8.in: Updated accordingly. Updated date
+	and improved titel and description. Added "-f" in synopsis.
+	Extended authors section to explain some more background.
+
+2011-01-19  Jan-Oliver Wagner <jan-oliver.wagner@greenbone.net>
+
 	* doc/openvassd.8.in: New default port is 9391.
 
 2011-01-19  Jan-Oliver Wagner <jan-oliver.wagner@greenbone.net>

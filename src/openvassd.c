@@ -1055,7 +1055,6 @@ main (int argc, char *argv[], char *envp[])
   static gchar *port = NULL;
   static gchar *config_file = NULL;
   static gboolean quiet = FALSE;
-  static gboolean dump_cfg = FALSE;
   static gboolean print_specs = FALSE;
   static gboolean gen_config = FALSE;
   static gboolean print_sysconfdir = FALSE;
@@ -1074,8 +1073,6 @@ main (int argc, char *argv[], char *envp[])
      "Use port number <number>", "<number>"},
     {"config-file", 'c', 0, G_OPTION_ARG_FILENAME, &config_file,
      "Configuration file", "<.rcfile>"},
-    {"dump-cfg", 'd', 0, G_OPTION_ARG_NONE, &dump_cfg,
-     "Dump the openvassd compilation options", NULL},
     {"quiet", 'q', 0, G_OPTION_ARG_NONE, &quiet,
      "Quiet (do not issue any messages to stdout)", NULL},
     {"cfg-specs", 's', G_OPTION_FLAG_HIDDEN, G_OPTION_ARG_NONE, &print_specs,
@@ -1173,7 +1170,7 @@ main (int argc, char *argv[], char *envp[])
       printf
         ("Nessus origin: (C) 2004 Renaud Deraison <deraison@nessus.org>\n");
       printf
-        ("Most new code since OpenVAS: (C) 2010 Greenbone Networks GmbH\n");
+        ("Most new code since OpenVAS: (C) 2011 Greenbone Networks GmbH\n");
       printf ("License GPLv2: GNU GPL version 2\n");
       printf
         ("This is free software: you are free to change and redistribute it.\n"
@@ -1196,19 +1193,6 @@ main (int argc, char *argv[], char *envp[])
         {
           socket_source_init (src_addrs, AF_INET6);
         }
-    }
-
-  if (dump_cfg)
-    {
-      printf ("This is OpenVAS Scanner %s\n", OPENVASSD_VERSION);
-      printf ("Current setup :\n");
-      printf ("\topenvas-libraries              : %s\n", openvaslib_version ());
-      printf ("\tRunning as euid                : %d\n", geteuid ());
-#ifdef USE_LIBWRAP
-      printf ("\tCompiled with tcpwrappers support\n");
-#endif
-      printf ("\n\nInclude these infos in your bug reports\n");
-      exit (0);
     }
 
   if (exit_early == 0)
