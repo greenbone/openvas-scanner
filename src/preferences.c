@@ -192,6 +192,12 @@ preferences_new (char *name)
   fprintf (fd,
            "# before launching NVTs.\n");
   fprintf (fd, "drop_privileges = no\n\n");
+  fprintf (fd,
+           "# Settings for vhost scanning.\n");
+  fprintf (fd,
+           "# You will most likely want to leave the settings empty here and set them through your client.\n");
+  fprintf (fd, "vhosts =\n");
+  fprintf (fd, "vhosts_ip =\n\n");
   fprintf (fd, "#end.\n");
 
   fclose (fd);

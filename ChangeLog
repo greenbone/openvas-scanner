@@ -1,3 +1,8 @@
+2011-01-19  Michael Wiegand <michael.wiegand@greenbone.net>
+
+	* src/preferences.c (preferences_new): Add preferences for vhost
+	scanning to initial configuration file.
+
 2011-01-19  Jan-Oliver Wagner <jan-oliver.wagner@greenbone.net>
 
 	* CMakeLists.txt: Reverted wrongly changed patch version.
