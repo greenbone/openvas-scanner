@@ -57,6 +57,59 @@
 
 #define inited(x) ((x) >= 0)
 
+typedef struct
+{
+  char *option;
+  char *value;
+} openvassd_option;
+
+/**
+ * @brief Default values for scanner options. Must be NULL terminated.
+ */
+static openvassd_option openvassd_defaults[] = {
+  {"plugins_folder", OPENVAS_NVT_DIR},
+  {"cache_folder", OPENVAS_CACHE_DIR},
+  {"include_folders", OPENVAS_NVT_DIR},
+  {"max_hosts", "30"},
+  {"max_checks", "10"},
+  {"be_nice", "no"},
+  {"logfile", OPENVASSD_MESSAGES},
+  {"log_whole_attack", "no"},
+  {"log_plugins_name_at_load", "no"},
+  {"dumpfile", OPENVASSD_DEBUGMSG},
+  {"rules", OPENVASSD_RULES},
+  {"cgi_path", "/cgi-bin:/scripts"},
+  {"port_range", "default"},
+  {"optimize_test", "yes"},
+  {"checks_read_timeout", "5"},
+  {"non_simult_ports", "139, 445"},
+  {"plugins_timeout", G_STRINGIFY (NVT_TIMEOUT)},
+  {"safe_checks", "yes"},
+  {"auto_enable_dependencies", "yes"},
+  {"silent_dependencies", "no"},
+  {"use_mac_addr", "no"},
+  {"save_knowledge_base", "no"},
+  {"kb_restore", "no"},
+  {"only_test_hosts_whose_kb_we_dont_have", "no"},
+  {"only_test_hosts_whose_kb_we_have", "no"},
+  {"kb_dont_replay_scanners", "no"},
+  {"kb_dont_replay_info_gathering", "no"},
+  {"kb_dont_replay_attacks", "no"},
+  {"kb_dont_replay_denials", "no"},
+  {"kb_max_age", "864000"},
+  {"slice_network_addresses", "no"},
+  {"nasl_no_signature_check", "yes"},
+  {"drop_privileges", "no"},
+  // Empty options must be "\0", not NULL, to match the behavior of
+  // preferences_process.
+  {"vhosts", "\0"},
+  {"vhosts_ip", "\0"},
+  {"cert_file", SCANNERCERT},
+  {"key_file", SCANNERKEY},
+  {"ca_file", CACERT},
+  {NULL, NULL}
+};
+
 /**
  * @brief Initializes the preferences structure
  */
@@ -71,142 +124,6 @@ preferences_init (char *config_file, struct arglist **prefs)
 
 
 /**
- * @brief Creates a new preferences file.
- */
-int
-preferences_new (char *name)
-{
-  FILE *fd;
-  int f;
-
-  if ((f = open (name, O_CREAT | O_RDWR | O_EXCL, 0660)) < 0)
-    {
-      perror ("preferences_new():open ");
-      return (-1);
-    }
-
-  fd = fdopen (f, "w");
-
-  fprintf (fd, "# Configuration file of the OpenVAS Security Scanner\n\n\n\n");
-  fprintf (fd, "# Every line starting with a '#' is a comment\n\n");
-
-  fprintf (fd, "[Misc]\n\n");
-
-  fprintf (fd, "# Path to the security checks folder : \n");
-  fprintf (fd, "plugins_folder = %s\n\n", OPENVAS_NVT_DIR);
-
-  fprintf (fd, "# Path to OpenVAS caching folder: \n");
-  fprintf (fd, "cache_folder = %s\n\n", OPENVAS_CACHE_DIR);
-
-  fprintf (fd, "# Path to OpenVAS include directories: \n");
-  fprintf (fd, "# (multiple entries are separated with colon ':')\n");
-  // Default value is the same directory as the root for  the NVTs
-  fprintf (fd, "include_folders = %s\n\n", OPENVAS_NVT_DIR);
-
-  fprintf (fd, "# Maximum number of simultaneous hosts tested : \n");
-  fprintf (fd, "max_hosts = 30\n\n");
-  fprintf (fd,
-           "# Maximum number of simultaneous checks against each host tested : \n");
-  fprintf (fd, "max_checks = 10\n\n");
-  fprintf (fd,
-           "# Niceness. If set to 'yes', openvassd will renice itself to 10.\n");
-  fprintf (fd, "be_nice = no\n\n");
-
-
-  fprintf (fd, "# Log file (or 'syslog') : \n");
-  fprintf (fd, "logfile = %s\n\n", OPENVASSD_MESSAGES);
-  fprintf (fd,
-           "# Shall we log every details of the attack ? (disk intensive)\n");
-  fprintf (fd, "log_whole_attack = no\n\n");
-  fprintf (fd,
-           "# Log the name of the plugins that are loaded by the server ?\n");
-  fprintf (fd, "log_plugins_name_at_load = no\n\n");
-  fprintf (fd, "# Dump file for debugging output, use `-' for stdout\n");
-  fprintf (fd, "dumpfile = %s\n\n", OPENVASSD_DEBUGMSG);
-  fprintf (fd, "# Rules file : \n");
-  fprintf (fd, "rules = %s\n\n", OPENVASSD_RULES);
-  fprintf (fd, "# CGI paths to check for (cgi-bin:/cgi-aws:/ can do)\n");
-  fprintf (fd, "cgi_path = /cgi-bin:/scripts\n\n");
-  fprintf (fd, "# Range of the ports the port scanners will scan : \n");
-  fprintf (fd, "# 'default' means that OpenVAS will scan ports found in its\n");
-  fprintf (fd, "# services file.\n");
-  fprintf (fd, "port_range = default\n\n");
-  fprintf (fd, "# Optimize the test (recommended) : \n");
-  fprintf (fd, "optimize_test = yes\n\n");
-
-  fprintf (fd, "\n\n# Optimization : \n");
-  fprintf (fd, "# Read timeout for the sockets of the tests : \n");
-  fprintf (fd, "checks_read_timeout = 5\n");
-  fprintf (fd,
-           "# Ports against which two plugins should not be run simultaneously :\n");
-  fprintf (fd, "# non_simult_ports = Services/www, 139, Services/finger\n");
-  fprintf (fd, "non_simult_ports = 139, 445\n");
-  fprintf (fd, "# Maximum lifetime of a plugin (in seconds) : \n");
-  fprintf (fd, "plugins_timeout = %d\n", NVT_TIMEOUT);
-  fprintf (fd, "\n\n# Safe checks rely on banner grabbing :\n");
-  fprintf (fd, "safe_checks = yes\n");
-  fprintf (fd,
-           "\n\n# Automatically activate the plugins that are depended on\n");
-  fprintf (fd, "auto_enable_dependencies = yes\n");
-  fprintf (fd,
-           "\n\n# Do not echo data from plugins which have been automatically enabled\n");
-  fprintf (fd, "silent_dependencies = no\n");
-  fprintf (fd,
-           "\n\n# Designate hosts by MAC address, not IP address (useful for DHCP networks)\n");
-  fprintf (fd, "use_mac_addr = no\n");
-
-  fprintf (fd,
-           "\n\n#--- Knowledge base saving (can be configured by the client) :\n");
-  fprintf (fd, "# Save the knowledge base on disk : \n");
-  fprintf (fd, "save_knowledge_base = no\n");
-  fprintf (fd, "# Restore the KB for each test :\n");
-  fprintf (fd, "kb_restore = no\n");
-  fprintf (fd, "# Only test hosts whose KB we do not have :\n");
-  fprintf (fd, "only_test_hosts_whose_kb_we_dont_have = no\n");
-  fprintf (fd, "# Only test hosts whose KB we already have :\n");
-  fprintf (fd, "only_test_hosts_whose_kb_we_have = no\n");
-  fprintf (fd, "# KB test replay :\n");
-  fprintf (fd, "kb_dont_replay_scanners = no\n");
-  fprintf (fd, "kb_dont_replay_info_gathering = no\n");
-  fprintf (fd, "kb_dont_replay_attacks = no\n");
-  fprintf (fd, "kb_dont_replay_denials = no\n");
-  fprintf (fd, "kb_max_age = 864000\n");
-  fprintf (fd, "#--- end of the KB section\n\n");
-
-  fprintf (fd, "\n\n");
-  fprintf (fd,
-           "# If this option is set, OpenVAS will not scan a network incrementally\n");
-  fprintf (fd,
-           "# (10.0.0.1, then 10.0.0.2, 10.0.0.3 and so on..) but will attempt to\n");
-  fprintf (fd,
-           "# slice the workload throughout the whole network (ie: it will scan\n");
-  fprintf (fd,
-           "# 10.0.0.1, then 10.0.0.127, then 10.0.0.2, then 10.0.0.128 and so on...\n");
-  fprintf (fd, "slice_network_addresses = no\n\n");
-
-  fprintf (fd,
-           "# Should consider all the NASL scripts as being signed ? (unsafe if set to 'yes')\n");
-  fprintf (fd, "nasl_no_signature_check = yes\n\n");
-  fprintf (fd,
-           "# If this option is set to yes, openvassd will attempt to drop its privileges\n");
-  fprintf (fd,
-           "# before launching NVTs.\n");
-  fprintf (fd, "drop_privileges = no\n\n");
-  fprintf (fd,
-           "# Settings for vhost scanning.\n");
-  fprintf (fd,
-           "# You will most likely want to leave the settings empty here and set them through your client.\n");
-  fprintf (fd, "vhosts =\n");
-  fprintf (fd, "vhosts_ip =\n\n");
-  fprintf (fd, "#end.\n");
-
-  fclose (fd);
-  close (f);
-  return (0);
-}
-
-
-/**
  * @brief Copies the content of the prefs file to a special arglist.
  */
 int
@@ -215,90 +132,100 @@ preferences_process (char *filename, struct arglist *prefs)
   FILE *fd;
   char buffer[1024];
   char *opt, *value;
+  int i = 0;
+
+  while (openvassd_defaults[i].option != NULL)
+    {
+      arg_add_value (prefs, openvassd_defaults[i].option, ARG_STRING,
+                     strlen (openvassd_defaults[i].value),
+                     g_strdup (openvassd_defaults[i].value));
+      i++;
+    }
+
   if (filename)
     {
+      /**
+       * @todo This exits openvassd if the prefs file is a symlink. Better
+       * behavior would be to ignore the file and use the defaults.
+       */
       check_symlink (filename);
+
       if (!(fd = fopen (filename, "r")))
         {
-          if (errno == EACCES)
-            {
-              printf ("The OpenVAS daemon doesn't have the right to read %s\n",
-                      filename);
-              exit (1);
-            }
-
-#ifdef DEBUG
-          printf ("Couldn't find any prefs file... Creating a new one...\n");
-#endif
-          if (preferences_new (filename))
-            {
-              printf ("Error creating %s\n", filename);
-              exit (1);
-              arg_add_value (prefs, "plugins_folder", ARG_STRING,
-                             strlen ("./plugins"), "./plugins");
-              return (1);
-            }
-          else if (!(fd = fopen (filename, "r")))
-            {
-              perror ("preferences_process():open ");
-              printf ("Could not open %s -- now quitting\n", filename);
-              exit (2);
-            }
+          /**
+           * @todo We currently cannot log here since the logging subsystem is
+           * not initialized at this point. Once we switch to proper glib based
+           * logging, we should log the fact that the file could not be read.
+           */
         }
-
-      while (!feof (fd) && fgets (buffer, sizeof (buffer) - 1, fd))
+      else
         {
-          char *t;
-          int len;
-
-          buffer[sizeof (buffer) - 1] = '\0';
-          len = strlen (buffer);
-
-          if (buffer[len - 1] == '\n')
+          while (!feof (fd) && fgets (buffer, sizeof (buffer) - 1, fd))
             {
-              buffer[len - 1] = 0;
-              len--;
-            }
+              char *t;
+              int len;
+              char *old_value;
 
-          if (buffer[0] == '#')
-            continue;
-          opt = buffer;
-          t = strchr (buffer, '=');
-          if (t == NULL)
-            continue;
-          else
-            {
-              t[0] = 0;
-              t += sizeof (char);
-              while (t[0] == ' ')
-                t += sizeof (char);
-              len = strlen (opt);
-              while (opt[len - 1] == ' ')
+              buffer[sizeof (buffer) - 1] = '\0';
+              len = strlen (buffer);
+
+              if (buffer[len - 1] == '\n')
                 {
-                  opt[len - 1] = '\0';
+                  buffer[len - 1] = 0;
                   len--;
                 }
 
-              len = strlen (t);
-              while (t[len - 1] == ' ')
+              if (buffer[0] == '#')
+                continue;
+              opt = buffer;
+              t = strchr (buffer, '=');
+              if (t == NULL)
+                continue;
+              else
                 {
-                  t[len - 1] = '\0';
-                  len--;
-                }
+                  t[0] = 0;
+                  t += sizeof (char);
+                  while (t[0] == ' ')
+                    t += sizeof (char);
+                  len = strlen (opt);
+                  while (opt[len - 1] == ' ')
+                    {
+                      opt[len - 1] = '\0';
+                      len--;
+                    }
 
-              value = emalloc (len + 1);
-              strncpy (value, t, len);
-              arg_add_value (prefs, opt, ARG_STRING, strlen (value), value);
+                  len = strlen (t);
+                  while (t[len - 1] == ' ')
+                    {
+                      t[len - 1] = '\0';
+                      len--;
+                    }
+
+                  value = emalloc (len + 1);
+                  strncpy (value, t, len);
+
+                  old_value = arg_get_value (prefs, opt);
+                  if (old_value == NULL)
+                    arg_add_value (prefs, opt, ARG_STRING, strlen (value),
+                                   value);
+                  else
+                    {
+                      if (g_ascii_strcasecmp (value, old_value) != 0)
+                        {
+                          g_free (old_value);
+                          arg_set_value (prefs, opt, strlen (value), value);
+                        }
+                    }
 #ifdef DEBUGMORE
-              printf ("%s = %s\n", opt, value);
+                  printf ("%s = %s\n", opt, value);
 #endif
+                }
             }
+          fclose (fd);
+          return (0);
         }
-      fclose (fd);
-      return (0);
     }
-  else
-    return (1);
+  return (0);
 }
 
 

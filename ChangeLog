@@ -1,3 +1,13 @@
+2011-01-20  Michael Wiegand <michael.wiegand@greenbone.net>
+
+	Add default values for settings to the code to remove the dependence
+	on a separate openvassd.conf settings file.
+
+	* src/preferences.c: Add list of standard settings.
+	(preferences_process): Initialize with standard settings and process
+	settings file afterwards.
+	(preferences_new): Removed. Default settings are kept internally now.
+
 2011-01-19  Jan-Oliver Wagner <jan-oliver.wagner@greenbone.net>
 
 	* src/openvassd.c (main): Removed useless check for port
