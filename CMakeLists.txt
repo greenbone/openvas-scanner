@@ -97,6 +97,11 @@ set (CPACK_SOURCE_IGNORE_FILES
 "Doxyfile$"
 "Doxyfile_full$"
 "VERSION$"
+"tools/openvas-adduser$"
+"tools/openvas-mkcert$"
+"tools/openvas-mkcert-client$"
+"tools/openvas-rmuser$"
+"tools/openvas-nvt-sync$"
 )
 
 include (CPack)

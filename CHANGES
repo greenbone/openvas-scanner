@@ -1,3 +1,36 @@
+openvas-scanner 3.2+rc2 (2011-01-20)
+
+This release is the second release candidate for the next major release of
+the Scanner module. It will be part of the upcoming "OpenVAS 4".
+
+It features a complete exchange of the build process which now
+is cmake-based. Also, numerous code elements were removed
+of which it was unclear whether they have still practical relevance.
+The third major change concerns the resolving of binary NVTs.
+
+Many thanks to everyone who has contributed to this release:
+Matthew Mundell, Michael Wiegand and Jan-Oliver Wagner.
+
+Main changes compared to 3.2+rc1:
+* Improved output of --version
+* Comprehensive code cleanup
+* Binary (.nes) plugins we moved to libraries and turned into builtin
+  NASL methods.
+* Removed handling of binary plugins as we don't want to have them ever
+  again.
+* Added preferences for the vhost feature so that clients get them
+  and can offer them to the user. In other words: unhide the vhost feature.
+* Default port is now 9391 where the OpenVAS Manager expects the
+  Scanner by default.
+* Command line options "--dump-cfg" and "--gen-config" are removed.
+* openvassd does not need anymore a "openvassd.conf" file. It uses
+  its defaults and a possibly present conf-file can overwrite settings.
+* openvas-mkcert got a additional switch "-f" to force overwriting
+  certificates.
+* openvas-mkcert does not create a openvassd.conf anymore as it shares
+  the defaults with openvassd.
+
+
 openvas-scanner 3.2+rc1 (2010-12-20)
 
 This release is the first release candidate for the next release of
