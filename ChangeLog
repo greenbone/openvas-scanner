@@ -1,5 +1,14 @@
 2011-01-20  Jan-Oliver Wagner <jan-oliver.wagner@greenbone.net>
 
+	* tools/openvas-mkcert.in: Added switch "-f" to
+	force overwriting existing certificates.
+	Added a stop-mechanism with respective note
+	in case the certificate files already exist.
+
+	* doc/openvas-mkcert.8: Added info about "-f" switch.
+
+2011-01-20  Jan-Oliver Wagner <jan-oliver.wagner@greenbone.net>
+
 	* tools/openvas-mkcert.in: Removed test of openvassd as it is
 	not necessary anymore. Remove client part as it is completly
 	commented out anyway.

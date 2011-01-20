@@ -33,6 +33,12 @@ case `echo -n` in
 *)	Xn=-n ; Xc=
 esac
 
+test "$1" = "-q" && QUIET=y
+test "$2" = "-q" && QUIET=y
+
+test "$1" = "-f" && FORCE=y
+test "$2" = "-f" && FORCE=y
+
 umask 022
 
 datadir=@DATADIR@
@@ -40,6 +46,27 @@ bindir=@BINDIR@
 sbindir=@SBINDIR@
 OPENVASPRIV="@OPENVAS_STATE_DIR@/private/CA"
 OPENVASPUB="@OPENVAS_STATE_DIR@/CA"
+
+BASEDIR=${TMPDIR-/tmp}/openvas-mkcert.$$
+
+CAKEY=$OPENVASPRIV/cakey.pem
+CACERT=$OPENVASPUB/cacert.pem
+
+SRVKEY=$OPENVASPRIV/serverkey.pem
+SRVREQ=$BASEDIR/serverreq.pem
+SRVCERT=$OPENVASPUB/servercert.pem
+
+test -z "$FORCE" && if [ -e "$CACERT" -o -e "$CAKEY" -o -e "$SRVCERT" -o -e "$SRVKEY" ];
+then
+ echo "One or more files do already exist and would be overriden:"
+ test -e "$CACERT" && echo "  " "$CACERT"
+ test -e "$CAKEY" && echo "  " "$CAKEY"
+ test -e "$SRVCERT" && echo "  " "$SRVCERT"
+ test -e "$SRVKEY" && echo "  " "$SRVKEY"
+ echo "You need to remove or rename them and re-run openvas-mkcert."
+ echo "If you run openvas-mkcert with '-f', the files will be overwritten."
+ exit
+fi
 
 # TODO: EGD is not supported anymore
 egdpath=@egdpath@
@@ -83,8 +110,6 @@ fi
 
 Bo='('
 Bc=')'
-
-test "$1" = "-q" && QUIET=y
 
 
 echo_no_nl ()
@@ -149,20 +174,9 @@ test -z "$RANDFLAG" -a -z "$RANDFILE" &&
 }
 
 
-
 umask 077
 
-# Set environment
-BASEDIR=${TMPDIR-/tmp}/openvas-mkcert.$$
 mkdir $BASEDIR || exit 1
-
-CAKEY=$OPENVASPRIV/cakey.pem
-CACERT=$OPENVASPUB/cacert.pem
-#
-SRVKEY=$OPENVASPRIV/serverkey.pem
-SRVREQ=$BASEDIR/serverreq.pem
-SRVCERT=$OPENVASPUB/servercert.pem
-#
 
 if [ -z "$QUIET" ];
 then
