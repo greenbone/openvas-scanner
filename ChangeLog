@@ -1,5 +1,11 @@
 2011-01-20  Michael Wiegand <michael.wiegand@greenbone.net>
 
+	* tools/openvas-mkcert.in: Remove handling of openvassd.conf from
+	openvas-mkcert since the default locations of the keys and
+	certificates are already known to the scanner.
+
+2011-01-20  Michael Wiegand <michael.wiegand@greenbone.net>
+
 	* src/openvassd.c (main): Remove hidden command line option
 	"--gen-config" since it has become meaningless now.
 

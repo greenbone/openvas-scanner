@@ -36,7 +36,6 @@ esac
 umask 022
 
 datadir=@DATADIR@
-CF=@OPENVASSD_CONF@
 bindir=@BINDIR@
 sbindir=@SBINDIR@
 OPENVASPRIV="@OPENVAS_STATE_DIR@/private/CA"
@@ -162,7 +161,6 @@ umask 077
 # Set environment
 BASEDIR=${TMPDIR-/tmp}/openvas-mkcert.$$
 mkdir $BASEDIR || exit 1
-
 
 CAKEY=$OPENVASPRIV/cakey.pem
 CACERT=$OPENVASPUB/cacert.pem
@@ -430,32 +428,14 @@ openssl ca -config $BASEDIR/std.cnf -name OpenVASCA -batch -days $SRVCERT_LIFETI
 chmod a+r $CACERT $SRVCERT #cln $CLNCERT
 
 
-egrep -v '^ *(pem_password|cert_file|key_file|ca_file|force_pubkey_auth) *=' "$CF" > "$CF.tmp"
-echo "#
-# Added by openvas-mkcert
-#
-cert_file=$SRVCERT
-key_file=$SRVKEY
-ca_file=$CACERT
-# If you decide to protect your private key with a password, 
-# uncomment and change next line
-# pem_password=password
-# If you want to force the use of a client certificate, uncomment next line
-# force_pubkey_auth = yes" >> "$CF.tmp"
-
-
-
-
 test -z "$QUIET" && header
 
 if [ -s "$CACERT" -a -s "$CAKEY" -a -s "$SRVCERT" -a -s "$SRVKEY" ];
  then
  test -z "$QUIET" && gettext "Congratulations. Your server certificate was properly created."; echo
  
- mv -f "$CF.tmp" "$CF"
  test -z "$QUIET" && { 
  echo
- eval_gettext "\$CF updated"; echo
 
  #cln echo "Your client certificates are in $BASEDIR
  #cln You will have to copy them by hand
