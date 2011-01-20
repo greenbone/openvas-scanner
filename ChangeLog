@@ -1,3 +1,11 @@
+2011-01-20  Jan-Oliver Wagner <jan-oliver.wagner@greenbone.net>
+
+	* tools/openvas-mkcert.in: Removed test of openvassd as it is
+	not necessary anymore. Remove client part as it is completly
+	commented out anyway.
+
+	* doc/openvas-mkcert.8: Updated.
+
 2011-01-20  Michael Wiegand <michael.wiegand@greenbone.net>
 
 	* tools/openvas-mkcert.in: Remove handling of openvassd.conf from

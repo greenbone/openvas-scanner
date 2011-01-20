@@ -101,12 +101,6 @@ gettext "			Creation of the OpenVAS SSL Certificate"; echo
 echo    "-------------------------------------------------------------------------------"
 echo
 }
-#
-
-$sbindir/openvassd -g || {
-	gettext "Executing openvassd failed. Make sure your library loader is configured properly and that openvassd is in your \$PATH."; echo
-	exit 1
-	}
 
 #
 # We need openssl
@@ -170,12 +164,6 @@ SRVREQ=$BASEDIR/serverreq.pem
 SRVCERT=$OPENVASPUB/servercert.pem
 #
 
-# The client part will be implemented later on...
-#cln CLNKEY=$BASEDIR/clientkey.pem
-#cln CLNREQ=$BASEDIR/clientreq.pem
-#cln CLNCERT=$BASEDIR/clientcert.pem
-
-
 if [ -z "$QUIET" ];
 then
 header
@@ -188,8 +176,6 @@ gettext "CA certificate life time in days [1460]: "; read x
 CACERT_LIFETIME=${x:-1460}
 gettext "Server certificate life time in days [365]: "; read x
 SRVCERT_LIFETIME=${x:-365}
-#cln echo_no_nl "Client certificate life time in days [365]:"; read x
-#cln CLNCERT_LIFETIME=${x:-365}
 
 if [ ! -z "$LANG" ]; then
     DC=`echo $LANG | sed -n 's/^..*_\(..\)$/\1/p'`
@@ -407,25 +393,8 @@ openssl req -config $BASEDIR/std.cnf -new -key $SRVKEY -out $SRVREQ 2>> $BASEDIR
 # Sign the server certificate
 openssl ca -config $BASEDIR/std.cnf -name OpenVASCA -batch -days $SRVCERT_LIFETIME -in $SRVREQ -out $SRVCERT 2>> $BASEDIR/openssl-log
 
-#cln # Client key
-#cln openssl genrsa -out $CLNKEY 1024
 
-#cln # Client certificate "request"
-#cln echo "$COUNTRY
-#cln $PROVINCE
-#cln $LOCATION
-#cln $ORGANIZATION
-#cln Client certificate for $hostname
-#cln $hostname
-#cln $CLNMAIL" | 
-#cln openssl req -config $BASEDIR/stdC.cnf -new -key $CLNKEY -out $CLNREQ
-
-#cln # Sign the client certificate
-#cln openssl ca -config $BASEDIR/stdC.cnf -name OpenVASCA -batch -days $CLNCERT_LIFETIME -in $CLNREQ -out $CLNCERT
-
-####
-
-chmod a+r $CACERT $SRVCERT #cln $CLNCERT
+chmod a+r $CACERT $SRVCERT
 
 
 test -z "$QUIET" && header
@@ -437,9 +406,6 @@ if [ -s "$CACERT" -a -s "$CAKEY" -a -s "$SRVCERT" -a -s "$SRVKEY" ];
  test -z "$QUIET" && { 
  echo
 
- #cln echo "Your client certificates are in $BASEDIR
- #cln You will have to copy them by hand
-
  gettext "The following files were created:"; echo
  echo
  gettext ". Certification authority:"; echo
@@ -449,9 +415,6 @@ if [ -s "$CACERT" -a -s "$CAKEY" -a -s "$SRVCERT" -a -s "$SRVKEY" ];
  gettext ". OpenVAS Server : "; echo
  eval_gettext "    Certificate = \$SRVCERT"; echo
  eval_gettext "    Private key = \$SRVKEY"; echo
- #cln ***** OpenVAS client *****
- #cln Certificate = $CLNCERT
- #cln Private key = $CLNKEY
  }
 else
  gettext "An error occured while generating the certificates and/or keys!"; echo
