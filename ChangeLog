@@ -1,5 +1,10 @@
 2011-01-20  Michael Wiegand <michael.wiegand@greenbone.net>
 
+	* src/openvassd.c (main): Remove hidden command line option
+	"--gen-config" since it has become meaningless now.
+
+2011-01-20  Michael Wiegand <michael.wiegand@greenbone.net>
+
 	Add default values for settings to the code to remove the dependence
 	on a separate openvassd.conf settings file.
 
