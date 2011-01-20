@@ -1,5 +1,13 @@
 2011-01-20  Jan-Oliver Wagner <jan-oliver.wagner@greenbone.net>
 
+	* doc/HTTP_authentication.txt: Removed. There is no
+	new or helpful information in there.
+ 
+	* src/COPYING: Removed. Since we maintain a explicit
+	list in COPYING, we don't need that file anymore.
+
+2011-01-20  Jan-Oliver Wagner <jan-oliver.wagner@greenbone.net>
+
 	* tools/openvas-mkcert.in: Added switch "-f" to
 	force overwriting existing certificates.
 	Added a stop-mechanism with respective note
