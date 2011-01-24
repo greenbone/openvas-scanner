@@ -1,3 +1,8 @@
+2011-01-24  Jan-Oliver Wagner <jan-oliver.wagner@greenbone.net>
+
+	* src/openvassd.c (main): Unhide "--cfg-specs" from --help and
+	provide a short description.
+
 2011-01-20  Jan-Oliver Wagner <jan-oliver.wagner@greenbone.net>
 
 	Post-release version bump.

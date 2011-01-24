@@ -1074,8 +1074,8 @@ main (int argc, char *argv[], char *envp[])
      "Configuration file", "<.rcfile>"},
     {"quiet", 'q', 0, G_OPTION_ARG_NONE, &quiet,
      "Quiet (do not issue any messages to stdout)", NULL},
-    {"cfg-specs", 's', G_OPTION_FLAG_HIDDEN, G_OPTION_ARG_NONE, &print_specs,
-     "", NULL},
+    {"cfg-specs", 's', 0, G_OPTION_ARG_NONE, &print_specs,
+     "Print configuration settings", NULL},
     {"sysconfdir", 'y', 0, G_OPTION_ARG_NONE, &print_sysconfdir,
      "Print system configuration directory (set at compile time)", NULL},
     {NULL}
