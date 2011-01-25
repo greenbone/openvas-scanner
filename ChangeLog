@@ -1,3 +1,8 @@
+2011-01-25  Michael Wiegand <michael.wiegand@greenbone.net>
+
+	* tools/greenbone-nvt-sync: Removed superfluous check for
+	openvassd.conf.
+
 2011-01-24  Jan-Oliver Wagner <jan-oliver.wagner@greenbone.net>
 
 	* src/openvassd.c (main): Unhide "--cfg-specs" from --help and

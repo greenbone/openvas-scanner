@@ -28,7 +28,7 @@
 # with some characters in order to make it newer than
 # any follow-up version to prevent that your version
 # will be overwritten.
-VERSION=20100614
+VERSION=20110125
 
 # SETTINGS
 # ========
@@ -104,29 +104,8 @@ init_sync ()
     exit 1
   fi
   SCANNER_NAME="openvas-scanner"
-  SCANNER_CONFIG="`basename $SCANNER_BINARY`.conf"
 
   sysconfdir=`$SCANNER_BINARY --sysconfdir`
-
-  if [[ ! -e $sysconfdir/openvas/$SCANNER_CONFIG ]]
-  then
-    log_write "Could not find OpenVAS configuration file, creating ..."
-    $SCANNER_BINARY -g
-    if (( $? ))
-    then
-      stderr_write "== greenbone-nvt-sync $VERSION ================================================"
-      stderr_write "Could not find your OpenVAS configuration file, generating a fresh file failed."
-      stderr_write "Please make sure that you have installed OpenVAS correctly and that the command"
-      stderr_write "  $SCANNER_BINARY"
-      stderr_write "is available in your PATH variable."
-      stderr_write "If you are still not able to continue, please contact Greenbone Support at"
-      stderr_write "support@greenbone.net and include the error messages displayed above (if any)"
-      stderr_write "and your customer ID."
-      stderr_write "==============================================================================="
-      log_write "openvassd not found, aborting synchronization."
-      exit 1
-    fi
-  fi
 
   if [ -z $NVT_DIR ]
   then
@@ -135,10 +114,11 @@ init_sync ()
     then
       stderr_write "== greenbone-nvt-sync $VERSION ================================================"
       stderr_write "Could not determine the location of your NVT collection."
-      stderr_write "Please make sure that the value"
+      stderr_write "Please make sure that either the value"
       stderr_write "  plugins_folder"
       stderr_write "is correctly set in your configuration file located at"
       stderr_write "  $sysconfdir/openvas/$SCANNER_CONFIG"
+      stderr_write "or that you are using OpenVAS Scanner 3.2 or newer."
       stderr_write "If you are still not able to continue, please contact Greenbone Support at"
       stderr_write "support@greenbone.net and include the error messages displayed above (if any)"
       stderr_write "and your customer ID."
