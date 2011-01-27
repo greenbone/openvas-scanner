@@ -137,6 +137,21 @@ sync_nvts(){
   mkdir -p "$NVT_DIR"
   read feeduser < $sysconfdir/openvas/gsf-access-key
   read -d "@" custid < $sysconfdir/openvas/gsf-access-key
+  if [[ -z $feeduser || -z $custid ]]
+  then
+    stderr_write "== greenbone-nvt-sync $VERSION ================================================"
+    stderr_write "Feed synchronization was not possible because credential information could not"
+    stderr_write "be read from your access key."
+    stderr_write "Please make sure that the key located at"
+    stderr_write "  $sysconfdir/openvas/gsf-access-key"
+    stderr_write "is intact and in a valid format."
+    stderr_write "If you are still not able to continue, please contact Greenbone Support at"
+    stderr_write "support@greenbone.net and include the error messages displayed above (if any)"
+    stderr_write "and your customer ID."
+    stderr_write "==============================================================================="
+    log_write "Could not determine credentials, aborting synchronization."
+    exit 1
+  fi
   while (($notsynced))
   do
     # --protocol=29 is a workaround for a known bug in rsync 3.0.3

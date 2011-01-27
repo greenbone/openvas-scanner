@@ -1,3 +1,8 @@
+2011-01-27  Michael Wiegand <michael.wiegand@greenbone.net>
+
+	* tools/greenbone-nvt-sync: Check whether credentials were read
+	correctly before attempting to synchronize.
+
 2011-01-25  Michael Wiegand <michael.wiegand@greenbone.net>
 
 	* tools/greenbone-nvt-sync: Removed superfluous check for
