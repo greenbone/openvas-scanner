@@ -280,9 +280,9 @@ do_self_test ()
   else
     sysconfdir=`$OPENVASSD_AVAIL --sysconfdir`
   fi
-  if [[ ! -e $sysconfdir/openvas/gsf-access-key ]] ; then
+  if [[ ! -s $sysconfdir/openvas/gsf-access-key ]] ; then
     SELFTEST_FAIL=1
-    stderr_write "No Greenbone Security Feed subscription file found."
+    stderr_write "No valid Greenbone Security Feed subscription file found."
     # else
     # Test rsync
     # Validate key

@@ -1,5 +1,11 @@
 2011-01-27  Michael Wiegand <michael.wiegand@greenbone.net>
 
+	* tools/greenbone-nvt-sync: Check whether the access key has a size
+	greater than zero instead of just testing for existence during self
+	test.
+
+2011-01-27  Michael Wiegand <michael.wiegand@greenbone.net>
+
 	* tools/greenbone-nvt-sync: Check whether credentials were read
 	correctly before attempting to synchronize.
 
