@@ -74,14 +74,7 @@ else
 
 fi
 
-# check the implementation
-openvassd -g || {
-    gettext "Executing openvassd failed. Make sure your library loader is configured properly and that openvassd is in your \$PATH."; echo
-    exit 1
-   }
-
 PATH=$PATH:$sbindir:$bindir:/usr/ssl/bin:/usr/local/ssl/bin:/opt/ssl/bin
-
 
 # Test if we have MD5
 X=`echo x | openssl md5`
@@ -99,17 +92,6 @@ else
   exit 1
  fi
 fi
-
-
-
-# find openvassd by the first path segment, ask for settings
-openvassd_conf=` openvassd -s | sed '/^config_file  *= /!d; s/^[^=]*= *//;'`
-
-# some checks
-[ -s "$openvassd_conf" ] || {
-	eval_gettext "Missing or empty configuration file \"\$openvassd_conf\"!"; echo
-	exit 2
-}
 
 # path to a temporary directory
 test -z "$TMPDIR" && {
