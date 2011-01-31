@@ -44,11 +44,12 @@
 #include <errno.h>  /* for errno() */
 #include <stdlib.h> /* for atoi() */
 #include <fcntl.h>  /* for open() */
+#include <glib.h>
 
 #include <openvas/hg/hosts_gatherer.h>
 #include <openvas/misc/system.h>     /* for efree */
+#include <openvas/base/settings.h>   /* for init_settings_iterator_from_file */
 
-#include "glib.h"
 #include "comm.h"
 #include "preferences.h"
 #include "log.h"
@@ -129,10 +130,8 @@ preferences_init (char *config_file, struct arglist **prefs)
 int
 preferences_process (char *filename, struct arglist *prefs)
 {
-  FILE *fd;
-  char buffer[1024];
-  char *opt, *value;
   int i = 0;
+  settings_iterator_t settings;
 
   while (openvassd_defaults[i].option != NULL)
     {
@@ -142,89 +141,33 @@ preferences_process (char *filename, struct arglist *prefs)
       i++;
     }
 
-  if (filename)
+  if (!init_settings_iterator_from_file (&settings, filename, "Misc"))
     {
-      /**
-       * @todo This exits openvassd if the prefs file is a symlink. Better
-       * behavior would be to ignore the file and use the defaults.
-       */
-      check_symlink (filename);
-
-      if (!(fd = fopen (filename, "r")))
+      while (settings_iterator_next (&settings))
         {
-          /**
-           * @todo We currently cannot log here since the logging subsystem is
-           * not initialized at this point. Once we switch to proper glib based
-           * logging, we should log the fact that the file could not be read.
-           */
-        }
-      else
-        {
-          while (!feof (fd) && fgets (buffer, sizeof (buffer) - 1, fd))
+          gchar *old_value = arg_get_value (prefs, settings_iterator_name
+                                            (&settings));
+          if (old_value == NULL)
+            arg_add_value (prefs, settings_iterator_name (&settings),
+                           ARG_STRING,
+                           strlen (settings_iterator_value (&settings)),
+                           g_strdup (settings_iterator_value (&settings)));
+          else
             {
-              char *t;
-              int len;
-              char *old_value;
-
-              buffer[sizeof (buffer) - 1] = '\0';
-              len = strlen (buffer);
-
-              if (buffer[len - 1] == '\n')
+              if (g_ascii_strcasecmp (settings_iterator_value (&settings),
+                                      old_value) != 0)
                 {
-                  buffer[len - 1] = 0;
-                  len--;
-                }
-
-              if (buffer[0] == '#')
-                continue;
-              opt = buffer;
-              t = strchr (buffer, '=');
-              if (t == NULL)
-                continue;
-              else
-                {
-                  t[0] = 0;
-                  t += sizeof (char);
-                  while (t[0] == ' ')
-                    t += sizeof (char);
-                  len = strlen (opt);
-                  while (opt[len - 1] == ' ')
-                    {
-                      opt[len - 1] = '\0';
-                      len--;
-                    }
-
-                  len = strlen (t);
-                  while (t[len - 1] == ' ')
-                    {
-                      t[len - 1] = '\0';
-                      len--;
-                    }
-
-                  value = emalloc (len + 1);
-                  strncpy (value, t, len);
-
-                  old_value = arg_get_value (prefs, opt);
-                  if (old_value == NULL)
-                    arg_add_value (prefs, opt, ARG_STRING, strlen (value),
-                                   value);
-                  else
-                    {
-                      if (g_ascii_strcasecmp (value, old_value) != 0)
-                        {
-                          g_free (old_value);
-                          arg_set_value (prefs, opt, strlen (value), value);
-                        }
-                    }
-#ifdef DEBUGMORE
-                  printf ("%s = %s\n", opt, value);
-#endif
+                  g_free (old_value);
+                  arg_set_value (prefs, settings_iterator_name (&settings),
+                                 strlen (settings_iterator_value (&settings)),
+                                 g_strdup (settings_iterator_value (&settings)));
                 }
             }
-          fclose (fd);
-          return (0);
         }
+
+      cleanup_settings_iterator (&settings);
     }
+
   return (0);
 }
 
