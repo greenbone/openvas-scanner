@@ -13,16 +13,18 @@ Prerequisites:
 * glib-2.0
 * gnutls
 * openvas-libraries (4.0.0 or later)
+* pkg-config
 
 Prerequisites for building documentation:
 * Doxygen
 * xmltoman (optional, for building man page)
 * sqlfairy (optional, for producing database diagram)
 
-First, if your openvas/bin is not in your PATH, add it because
-libopenvas-config is needed
+If you have installed required libraries to a non-standard location, remember to
+set the PKG_CONFIG_PATH environment variable to the location of you pkg-config
+files before configuring:
 
-    $ export PATH=$PATH:/path/to/your/installation/bin/
+    $ export PKG_CONFIG_PATH=$PKG_CONFIG_PATH:/your/location/lib/pkgconfig
 
 Then configure the build with
 

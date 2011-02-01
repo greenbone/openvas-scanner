@@ -33,6 +33,8 @@ if (POLICY CMP0005)
   cmake_policy (SET CMP0005 OLD)
 endif (POLICY CMP0005)
 
+include (FindPkgConfig)
+
 if (NOT CMAKE_BUILD_TYPE)
   set (CMAKE_BUILD_TYPE Debug)
 endif (NOT CMAKE_BUILD_TYPE)
@@ -177,62 +179,9 @@ message ("-- Install prefix: ${CMAKE_INSTALL_PREFIX}")
 ## list and throw an error, otherwise long install-cmake-install-cmake cycles
 ## might occur.
 
-# TODO The version check of libopenvas will probably is required by other
-# modules, too (e.g. gsad). Either
-# 1) Move to the next CMake version with built-in version comparison functions
-# 2) Use the pkg-config configuration file that kost provided when installing
-#    openvas-libraries
-# 3) Move following checks in an own CMake- module to reuse. Other parts of
-#    the various CMakeLists.txt could be moved in a common ("openvas") module,
-#    too.
-
-## Check version of libopenvas
-# Obtain libopenvas version number
-find_program (PATH_TO_LIBOPENVASCONFIG libopenvas-config DOC "libopenvas-config program"
-                        " to retrieve information about installed"
-                        " openvas-libraries in the system.")
-if (PATH_TO_LIBOPENVASCONFIG)
-  # Obtain libopenvas version number
-  execute_process (COMMAND libopenvas-config --version
-    OUTPUT_VARIABLE LIBOPENVAS_VERSION
-    OUTPUT_STRIP_TRAILING_WHITESPACE)
-  # Make a (per definition: semicolon separated) list of it
-  string (REGEX REPLACE "\\." ";" LO_VER ${LIBOPENVAS_VERSION})
-  list (GET LO_VER 0 LO_MAJOR_VER)
-  list (GET LO_VER 1 LO_MINOR_VER)
-  list (GET LO_VER 2 LO_PATCH_VER)
-  set (LIBOPENVAS_SUFFICIENT TRUE)
-  # TODO Would like something like set (MIN_LO_VER "3" "0" "1")
-  #      which would then make it easier to modify these. However, had serious
-  #      issues with the conditionals, thus this clumsy implementation.
-  set (LO_MAJOR_MIN_VER 4)
-  set (LO_MINOR_MIN_VER 0)
-  set (LO_PATCH_MIN_VER 0)
-  set (LO_MAJOR_VER_FAIL FALSE)
-  set (LO_MINOR_VER_FAIL FALSE)
-  set (LO_PATCH_VER_FAIL FALSE)
-  if (${LO_MAJOR_VER} LESS ${LO_MAJOR_MIN_VER})
-    set (LO_MAJOR_VER_FAIL TRUE)
-  endif (${LO_MAJOR_VER} LESS ${LO_MAJOR_MIN_VER})
-  if (${LO_MAJOR_VER} EQUAL ${LO_MAJOR_MIN_VER} AND ${LO_MINOR_VER} LESS ${LO_MINOR_MIN_VER})
-    set (LO_MINOR_VER_FAIL TRUE)
-  endif (${LO_MAJOR_VER} EQUAL ${LO_MAJOR_MIN_VER} AND ${LO_MINOR_VER} LESS ${LO_MINOR_MIN_VER})
-  if (${LO_MAJOR_VER} EQUAL ${LO_MAJOR_MIN_VER} AND ${LO_MINOR_VER} EQUAL ${LO_MINOR_MIN_VER} AND ${LO_PATCH_VER} LESS ${LO_PATCH_MIN_VER})
-    set (LO_PATCH_VER_FAIL TRUE)
-  endif (${LO_MAJOR_VER} EQUAL ${LO_MAJOR_MIN_VER} AND ${LO_MINOR_VER} EQUAL ${LO_MINOR_MIN_VER} AND ${LO_PATCH_VER} LESS ${LO_PATCH_MIN_VER})
-  if (LO_MAJOR_VER_FAIL OR LO_MINOR_VER_FAIL OR LO_PATCH_VER_FAIL)
-    message (FATAL_ERROR "openvas-libraries version >= ${LO_MAJOR_MIN_VER}.${LO_MINOR_MIN_VER}.${LO_PATCH_MIN_VER} not found.")
-  endif (LO_MAJOR_VER_FAIL OR LO_MINOR_VER_FAIL OR LO_PATCH_VER_FAIL)
-else (PATH_TO_LIBOPENVASCONFIG)
-   message (FATAL_ERROR "Could not determine openvas-libraries version.")
-endif (PATH_TO_LIBOPENVASCONFIG)
-
-message (STATUS "Looking for gnutls...")
-find_library (GNUTLS gnutls)
-message (STATUS "Looking for gnutls... ${GNUTLS}")
-if (NOT GNUTLS)
-  message (FATAL_ERROR "The gnutls library is required.")
-endif (NOT GNUTLS)
+pkg_check_modules (LIBOPENVAS REQUIRED libopenvas>=4.0.0)
+pkg_check_modules (GNUTLS REQUIRED gnutls)
+pkg_check_modules (GLIB REQUIRED glib-2.0)
 
 message (STATUS "Looking for pcap...")
 find_library (PCAP pcap)
@@ -256,13 +205,6 @@ message (STATUS "Looking for openvas_base... ${OPENVAS_BASE}")
 if (NOT OPENVAS_BASE)
   message (FATAL_ERROR "The openvas_base library is required.")
 endif (NOT OPENVAS_BASE)
-
-message (STATUS "Looking for glib-2.0...")
-find_library (GLIB2 glib-2.0)
-message (STATUS "Looking for glib-2.0... ${GLIB2}")
-if (NOT GLIB2)
-  message (FATAL_ERROR "The glib-2.0 library is required.")
-endif (NOT GLIB2)
 
 ## Version
 
