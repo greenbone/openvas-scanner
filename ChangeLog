@@ -1,5 +1,15 @@
 2011-02-02  Michael Wiegand <michael.wiegand@greenbone.net>
 
+	Move installation of openvas-services file from openvas-scanner to
+	openvas-libraries since the only function using it resides in
+	openvas-libraries.
+
+	* openvas-services: Removed. Is now openvas-libraries/openvas-services.
+
+	* CMakeLists.txt: Remove handling of openvas-services.
+
+2011-02-02  Michael Wiegand <michael.wiegand@greenbone.net>
+
 	* CMakeLists.txt: Removed superfluous check for openvas_base.
 
 2011-02-01  Michael Wiegand <michael.wiegand@greenbone.net>

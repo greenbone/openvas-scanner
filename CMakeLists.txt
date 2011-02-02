@@ -235,9 +235,6 @@ install (FILES tools/openvas-adduser tools/openvas-rmuser
          PERMISSIONS OWNER_EXECUTE OWNER_READ OWNER_WRITE
                      GROUP_READ GROUP_EXECUTE WORLD_READ WORLD_EXECUTE)
 
-install (FILES openvas-services DESTINATION ${OPENVAS_STATE_DIR}
-         PERMISSIONS OWNER_READ GROUP_READ WORLD_READ)
-
 install (FILES doc/openvas-adduser.8 doc/openvas-mkcert.8
                doc/openvas-nvt-sync.8 doc/openvas-rmuser.8 doc/openvassd.8
          DESTINATION ${DATADIR}/man )
