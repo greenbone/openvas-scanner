@@ -197,15 +197,6 @@ if (NOT GPGME)
   message (FATAL_ERROR "The gpgme library is required.")
 endif (NOT GPGME)
 
-# TODO for Scanner: openvas_nasl, openvas_misc, openvas_hg
-
-message (STATUS "Looking for openvas_base...")
-find_library (OPENVAS_BASE openvas_base)
-message (STATUS "Looking for openvas_base... ${OPENVAS_BASE}")
-if (NOT OPENVAS_BASE)
-  message (FATAL_ERROR "The openvas_base library is required.")
-endif (NOT OPENVAS_BASE)
-
 ## Version
 
 string (REPLACE "

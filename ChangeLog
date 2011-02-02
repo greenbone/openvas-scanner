@@ -1,3 +1,7 @@
+2011-02-02  Michael Wiegand <michael.wiegand@greenbone.net>
+
+	* CMakeLists.txt: Removed superfluous check for openvas_base.
+
 2011-02-01  Michael Wiegand <michael.wiegand@greenbone.net>
 
 	Switch openvas-scanner to pkg-config.
