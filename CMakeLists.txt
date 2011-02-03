@@ -237,6 +237,7 @@ install (FILES tools/openvas-adduser tools/openvas-rmuser
 
 install (FILES doc/openvas-adduser.8 doc/openvas-mkcert.8
                doc/openvas-nvt-sync.8 doc/openvas-rmuser.8 doc/openvassd.8
+               doc/greenbone-nvt-sync.8
          DESTINATION ${DATADIR}/man/man8 )
 
 ## Tests

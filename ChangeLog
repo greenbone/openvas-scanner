@@ -1,3 +1,7 @@
+2011-02-03  Jan-Oliver Wagner <jan-oliver.wagner@greenbone.net>
+
+	* CMakeLists.txt: Added missing man page install directive.
+
 2011-02-02  Michael Wiegand <michael.wiegand@greenbone.net>
 
 	* CMakeLists.txt: Install man pages into the correct directory
