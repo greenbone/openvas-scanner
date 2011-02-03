@@ -1,3 +1,55 @@
+openvas-scanner 3.2.0 (2011-02-04)
+
+This is the first release of the openvas-scanner 3.2 module for the Open
+Vulnerability Assessment System release 4 (OpenVAS-4). Compared
+to the previous major release it contains a major cleanup of code, build process
+and installation. This increases the efficiency of the OpenVAS Scanner, makes
+the build easier and the installation compliant with the Filesystem Hierarchy
+Standard (FHS 2.3).
+
+Featurewise this release adds support for a network scan level, finally gets rid
+of binary plugins (existing binary plugins were turned into NASL built-ins and
+moved to openvas-libraries 4.0) and improves the handling of setting files. It
+exposes the vhosts feature, changes the default port to 9391 and now listens on
+IPv4 sockets by default.
+
+Many thanks to everyone who has contributed to the 4.0.0 release:
+Matthew Mundell, Michael Wiegand and Jan-Oliver Wagner.
+
+Main changes compared to 3.1.x:
+
+* Improved output of --version to comply with the GNU Coding Standard.
+* Comprehensive code cleanup.
+* Binary (.nes) plugins were moved to libraries and turned into built-in
+  NASL methods.
+* Handling of binary plugins has been removed.
+* Added preferences for the vhost feature so that clients get them
+  and can offer them to the user. In other words: unhide the vhost feature.
+* Default port is now 9391 where the OpenVAS Manager expects the
+  Scanner by default.
+* Command line options "--dump-cfg" and "--gen-config" are removed.
+* openvassd does not need anymore a "openvassd.conf" file. It uses
+  its defaults and a possibly present conf-file can overwrite settings.
+* openvas-mkcert got a additional switch "-f" to force overwriting
+  certificates.
+* openvas-mkcert does not create a openvassd.conf anymore as it shares
+  the defaults with openvassd.
+* Hardening flags are now enabled during compile time to increase code quality.
+* openvas-scanner now listens on an IPv4 socket by default, even when IPv6
+  support is present.
+* The former autotools build environment has been replaces with a build process
+  using cmake and using pkgconfig for dependency checks.
+* Removed unnecessary log entries.
+* Man pages have been updated.
+
+Main changes compared to 3.2+rc2:
+
+* The sync scripts have been updated.
+* OpenVAS Scanner now uses pkg-config to find libraries.
+* Installation of the openvas-services file has been moved to openvas-libraries.
+* Filesystem Hierarchy Standard (FHS 2.3) compliance has been improved.
+
+
 openvas-scanner 3.2+rc2 (2011-01-20)
 
 This release is the second release candidate for the next major release of
