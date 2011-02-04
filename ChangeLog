@@ -1,3 +1,9 @@
+2011-02-04  Michael Wiegand <michael.wiegand@greenbone.net>
+
+	Preparing the openvas-scanner 3.2.0 release.
+
+	* CMakeLists.txt: Updated.
+
 2011-02-03  Stephan Kleine
 
 	* src/CMakeLists.txt: explicitly link against gcrypt
