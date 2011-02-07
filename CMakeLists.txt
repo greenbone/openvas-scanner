@@ -197,6 +197,20 @@ if (NOT GPGME)
   message (FATAL_ERROR "The gpgme library is required.")
 endif (NOT GPGME)
 
+exec_program (pkg-config
+  ARGS --cflags glib-2.0
+  OUTPUT_VARIABLE GLIB_CFLAGS)
+exec_program (pkg-config
+  ARGS --libs glib-2.0
+  OUTPUT_VARIABLE GLIB_LDFLAGS)
+
+exec_program (pkg-config
+  ARGS --cflags libopenvas
+  OUTPUT_VARIABLE OPENVAS_CFLAGS)
+exec_program (pkg-config
+  ARGS --libs libopenvas
+  OUTPUT_VARIABLE OPENVAS_LDFLAGS)
+
 ## Version
 
 string (REPLACE "
@@ -212,13 +226,15 @@ configure_file (tools/openvas-rmuser.in tools/openvas-rmuser @ONLY)
 configure_file (tools/openvas-mkcert.in tools/openvas-mkcert @ONLY)
 configure_file (tools/openvas-mkcert-client.in tools/openvas-mkcert-client @ONLY)
 configure_file (tools/openvas-nvt-sync.in tools/openvas-nvt-sync @ONLY)
+# TODO: Once  Scanner has a proper logging mechanism like Manager.
+#configure_file (src/openvassd_log_conf.cmake_in src/openvassd_log.conf)
 
 ## Program
 
 set (HARDENING_FLAGS            "-Wformat -Wformat-security -O2 -D_FORTIFY_SOURCE=2 -fstack-protector -Wl,-z,relro -Wl,-z,now")
 
 set (CMAKE_C_FLAGS_DEBUG        "${CMAKE_C_FLAGS_DEBUG}")
-set (CMAKE_C_FLAGS              "${CMAKE_C_FLAGS} ${HARDENING_FLAGS} -Wall -Werror")
+set (CMAKE_C_FLAGS              "${CMAKE_C_FLAGS} ${HARDENING_FLAGS} -Wall -Werror -D_BSD_SOURCE -D_ISOC99_SOURCE -D_SVID_SOURCE")
 
 add_subdirectory (src)
 
@@ -227,6 +243,16 @@ add_subdirectory (src)
 add_subdirectory (doc)
 
 ## Install
+
+
+## Install
+
+install (FILES src/openvassd
+  DESTINATION ${SBINDIR})
+
+# TODO: Once Scanner has a proper logging mechanism like Manager.
+#install (FILES openvassd_log.conf
+#         DESTINATION ${OPENVAS_SYSCONF_DIR})
 
 install (FILES tools/openvas-adduser tools/openvas-rmuser
                tools/openvas-mkcert tools/openvas-mkcert-client

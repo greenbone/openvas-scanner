@@ -25,15 +25,6 @@
 
 ## Config
 
-add_definitions (-Werror -D_BSD_SOURCE -D_ISOC99_SOURCE -D_SVID_SOURCE)
-
-exec_program (pkg-config
-              ARGS --cflags glib-2.0
-              OUTPUT_VARIABLE GLIB_CFLAGS)
-exec_program (pkg-config
-              ARGS --libs glib-2.0
-              OUTPUT_VARIABLE GLIB_LDFLAGS)
-
 if (OPENVAS_HEADER_INSTALL_DIR)
   set (HEADER_TEMP "-I${OPENVAS_HEADER_INSTALL_DIR}")
 else (OPENVAS_HEADER_INSTALL_DIR)
@@ -45,20 +36,6 @@ if (OPENVAS_LIB_INSTALL_DIR)
 else (OPENVAS_LIB_INSTALL_DIR)
   set (LIB_TEMP "")
 endif (OPENVAS_LIB_INSTALL_DIR)
-
-
-## Gather flags from libopenvas
-
-exec_program (pkg-config
-              ARGS --cflags libopenvas
-              OUTPUT_VARIABLE OPENVAS_CFLAGS)
-exec_program (pkg-config
-              ARGS --libs libopenvas
-              OUTPUT_VARIABLE OPENVAS_LDFLAGS)
-
-## Libraries
-
-# None
 
 ## Program
 
@@ -163,19 +140,6 @@ set_target_properties (openvassd PROPERTIES COMPILE_FLAGS
 
 mark_as_advanced (LIB_TEMP)
 mark_as_advanced (HEADER_TEMP)
-
-# TODO: Once, Scanner has a prope logging mechanism like Manager.
-#configure_file (openvassd_log_conf.cmake_in
-#                "${CMAKE_CURRENT_SOURCE_DIR}/openvassd_log.conf")
-
-## Install
-
-install (TARGETS openvassd
-         RUNTIME DESTINATION ${SBINDIR})
-
-# TODO: Once, Scanner has a prope logging mechanism like Manager.
-#install (FILES openvassd_log.conf
-#         DESTINATION ${OPENVAS_SYSCONF_DIR})
 
 ## Tests
 
