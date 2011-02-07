@@ -15,7 +15,7 @@ target hosts in a highly optimized way.
 
 
 .BR openvassd
-inspect the remote hosts and attempts to list all the vulnerabilities and common
+inspects the remote hosts and attempts to list all the vulnerabilities and common
 misconfigurations that affects them. Note that openvassd will run in daemon mode
 by default (unless you specify -f as an option).
 
@@ -171,13 +171,6 @@ be altered by the user in any way whatsoever
 
 .IP kbs/
 This directory contains the knowledge base (KB) of each host tested by this user, if the user has enable the option 'save_kb'.
-
-.IP sessions/
-
-This directory contains the list and contents of the sessions done by this user.
-
-.IP plugins/
-This directory contains the plugins this user uploaded.
 
 
 
