@@ -248,7 +248,9 @@ add_subdirectory (doc)
 ## Install
 
 install (FILES src/openvassd
-  DESTINATION ${SBINDIR})
+  DESTINATION ${SBINDIR}
+  PERMISSIONS OWNER_EXECUTE OWNER_READ OWNER_WRITE
+  GROUP_READ GROUP_EXECUTE WORLD_READ WORLD_EXECUTE)
 
 # TODO: Once Scanner has a proper logging mechanism like Manager.
 #install (FILES openvassd_log.conf

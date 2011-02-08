@@ -1,3 +1,8 @@
+2011-02-08  Michael Wiegand <michael.wiegand@greenbone.net>
+
+	* CMakeLists.txt: Ensure openvassd is installed with the correct
+	permissions.
+
 2011-02-07  Michael Wiegand <michael.wiegand@greenbone.net>
 
 	* CMakeLists.txt, src/CMakeLists.txt: Move handling of configuration
