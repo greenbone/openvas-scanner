@@ -197,19 +197,19 @@ if (NOT GPGME)
   message (FATAL_ERROR "The gpgme library is required.")
 endif (NOT GPGME)
 
-exec_program (pkg-config
-  ARGS --cflags glib-2.0
-  OUTPUT_VARIABLE GLIB_CFLAGS)
-exec_program (pkg-config
-  ARGS --libs glib-2.0
-  OUTPUT_VARIABLE GLIB_LDFLAGS)
+execute_process (COMMAND pkg-config --cflags glib-2.0
+  OUTPUT_VARIABLE GLIB_CFLAGS
+  OUTPUT_STRIP_TRAILING_WHITESPACE)
+execute_process (COMMAND pkg-config --libs glib-2.0
+  OUTPUT_VARIABLE GLIB_LDFLAGS
+  OUTPUT_STRIP_TRAILING_WHITESPACE)
 
-exec_program (pkg-config
-  ARGS --cflags libopenvas
-  OUTPUT_VARIABLE OPENVAS_CFLAGS)
-exec_program (pkg-config
-  ARGS --libs libopenvas
-  OUTPUT_VARIABLE OPENVAS_LDFLAGS)
+execute_process (COMMAND pkg-config --cflags libopenvas
+  OUTPUT_VARIABLE OPENVAS_CFLAGS
+  OUTPUT_STRIP_TRAILING_WHITESPACE)
+execute_process (COMMAND pkg-config --libs libopenvas
+  OUTPUT_VARIABLE OPENVAS_LDFLAGS
+  OUTPUT_STRIP_TRAILING_WHITESPACE)
 
 ## Version
 
