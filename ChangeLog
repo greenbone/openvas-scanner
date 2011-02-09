@@ -1,5 +1,10 @@
 2011-02-09  Michael Wiegand <michael.wiegand@greenbone.net>
 
+	* CMakeLists.txt: Ensure OPENVAS_CACHE_DIR and OPENVAS_NVT_DIR are
+	created on install.
+
+2011-02-09  Michael Wiegand <michael.wiegand@greenbone.net>
+
 	* CMakeLists.txt: Eliminate trailing whitespace in flags as it leads
 	to trouble. Replace use of deprecated exec_program with
 	execute_process.

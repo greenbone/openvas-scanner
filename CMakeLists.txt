@@ -268,6 +268,9 @@ install (FILES doc/openvas-adduser.8 doc/openvas-mkcert.8
                doc/greenbone-nvt-sync.8
          DESTINATION ${DATADIR}/man/man8 )
 
+install (DIRECTORY DESTINATION ${OPENVAS_NVT_DIR})
+install (DIRECTORY DESTINATION ${OPENVAS_CACHE_DIR})
+
 ## Tests
 
 enable_testing ()
