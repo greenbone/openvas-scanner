@@ -28,7 +28,7 @@
 # with some characters in order to make it newer than
 # any follow-up version to prevent that your version
 # will be overwritten.
-VERSION=20110125
+VERSION=20110211
 
 # SETTINGS
 # ========
@@ -216,17 +216,16 @@ restart_openvassd (){
     $sysconfdir/init.d/$SCANNER_NAME restart
     log_write "Synchronization done, restarting the OpenVAS Scanner."
   else
-    stderr_write "== greenbone-nvt-sync $VERSION =========================================="
-    stderr_write "Could not find"
-    stderr_write "  $sysconfdir/init.d/$SCANNER_NAME!"
-    stderr_write "Restarting the scanner is not prepared on your system."
-    stderr_write "Please restart your scanner manually."
-    stderr_write "========================================================================="
-    log_write "$sysconfdir/init.d/$SCANNER_NAME not found, not restarting scanner."
+    stderr_write "Please restart OpenVAS Scanner and let OpenVAS Manager do a database update" 
+    stderr_write "or a database rebuild to use your updated NVT collection."
+    NOINIT=1
   fi
 }
 
 update_openvasmd (){
+  if (( $NOINIT )) ; then
+    return
+  fi
   log_write "Updating OpenVAS Manager"
   OPENVASMD=`command -v openvasmd`
   if [[ -z $OPENVASMD ]]
