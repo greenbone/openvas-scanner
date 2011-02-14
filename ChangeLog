@@ -1,3 +1,8 @@
+2011-02-14  Michael Wiegand <michael.wiegand@greenbone.net>
+
+	* tools/greenbone-nvt-sync: Clean up bashisms, make checks for command
+	availability more reliable.
+
 2011-02-11  Michael Wiegand <michael.wiegand@greenbone.net>
 
 	* tools/greenbone-nvt-sync: Improve behaviour when no init scripts are

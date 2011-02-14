@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/bin/sh
 #
 # greenbone-nvt-sync
 # This script synchronizes an OpenVAS installation with the Greenbone Security
@@ -28,7 +28,7 @@
 # with some characters in order to make it newer than
 # any follow-up version to prevent that your version
 # will be overwritten.
-VERSION=20110211
+VERSION=20110214
 
 # SETTINGS
 # ========
@@ -61,13 +61,13 @@ SELFTEST_FAIL=0
 # Verbosity flag for rsync. "-q" means a quiet rsync, "-v" a verbose rsync.
 RSYNC_VERBOSE="-q"
 
-if [[ ! -w $LOGDIR ]]
+if [ ! -w $LOGDIR ]
 then
   NOLOG=1
 fi
 
 log_write(){
-  if (( $NOLOG ))
+  if [ -n $NOLOG ]
   then
     echo "LOG: [`date -R`] $1" > /dev/stderr
   else
@@ -83,12 +83,12 @@ stderr_write ()
 init_sync ()
 {
   do_self_test
-  if [[ $SELFTEST_FAIL -ne 0 ]] ; then
+  if [ $SELFTEST_FAIL -ne 0 ] ; then
     exit $SELFTEST_FAIL
   fi
 
   SCANNER_BINARY=`command -v openvassd`
-  if [[ -z $SCANNER_BINARY ]]
+  if [ -z $SCANNER_BINARY ]
   then
     stderr_write "== greenbone-nvt-sync $VERSION ================================================"
     stderr_write "Could not locate your OpenVAS Scanner."
@@ -137,7 +137,7 @@ sync_nvts(){
   mkdir -p "$NVT_DIR"
   read feeduser < $sysconfdir/openvas/gsf-access-key
   read -d "@" custid < $sysconfdir/openvas/gsf-access-key
-  if [[ -z $feeduser || -z $custid ]]
+  if [ -z $feeduser ] || [ -z $custid ]
   then
     stderr_write "== greenbone-nvt-sync $VERSION ================================================"
     stderr_write "Feed synchronization was not possible because credential information could not"
@@ -152,20 +152,20 @@ sync_nvts(){
     log_write "Could not determine credentials, aborting synchronization."
     exit 1
   fi
-  while (($notsynced))
+  while [ $notsynced -eq 1 ]
   do
     # --protocol=29 is a workaround for a known bug in rsync 3.0.3
-    if [[ -e /admin/ezcli.state ]]
+    if [ -e /admin/ezcli.state ]
     then
       gsmproxy=`grep proxy_feed /admin/ezcli.state | sed -e 's/^.*\/\///' -e 's/:/ /' -e 's/[\t ]*$//'`
     fi
-    if [[ $gsmproxy == "proxy_feed" || -z $gsmproxy ]]
+    if [ "$gsmproxy" = "proxy_feed" ] || [ -z $gsmproxy ]
     then
       rsync -e "ssh -p 24 -i $sysconfdir/openvas/gsf-access-key" -ltrP $RSYNC_VERBOSE --protocol=29 $RSYNC_DELETE $feeduser $NVT_DIR
     else
       rsync -e "ssh -o \"ProxyCommand corkscrew $gsmproxy %h %p\" -p 24 -i $sysconfdir/openvas/gsf-access-key" -ltqrP $RSYNC_VERBOSE --protocol=29 $RSYNC_DELETE $feeduser $NVT_DIR
     fi
-    if (( $? )) ; then
+    if [ $? -ne 0 ]  ; then
       stderr_write "== greenbone-nvt-sync $VERSION ================================================"
       stderr_write "The synchronization with the feed failed. This may indicate a serious issue"
       stderr_write "with either your infrastructure or the feed itself."
@@ -179,8 +179,8 @@ sync_nvts(){
       exit 1
     fi
     eval "cd \"$NVT_DIR\" ; md5sum -c --status \"$NVT_DIR/md5sums\""
-    if (( $? )) ; then
-      if (( $retried ))
+    if [ $? -ne 0 ]  ; then
+      if [ -n $retried ]
       then
         stderr_write "== greenbone-nvt-sync $VERSION ================================================"
         stderr_write "The feed integrity check failed two times in a row. This may indicate a serious"
@@ -211,7 +211,7 @@ sync_nvts(){
 }
 
 restart_openvassd (){
-  if [[ -e $sysconfdir/init.d/$SCANNER_NAME ]]
+  if [ -e $sysconfdir/init.d/$SCANNER_NAME ]
   then
     $sysconfdir/init.d/$SCANNER_NAME restart
     log_write "Synchronization done, restarting the OpenVAS Scanner."
@@ -223,12 +223,12 @@ restart_openvassd (){
 }
 
 update_openvasmd (){
-  if (( $NOINIT )) ; then
+  if [ -n $NOINIT ] ; then
     return
   fi
   log_write "Updating OpenVAS Manager"
   OPENVASMD=`command -v openvasmd`
-  if [[ -z $OPENVASMD ]]
+  if [ -z $OPENVASMD ]
   then
     stderr_write "== greenbone-nvt-sync $VERSION ================================================"
     stderr_write "OpenVAS Manager not found. Thus, not updating openvas-manager database."
@@ -244,7 +244,7 @@ update_openvasmd (){
     log_write "openvasmd not found, not updating the openvas-manager database."
   else
     MANAGER_NAME="openvas-manager"
-    if [[ -e $sysconfdir/init.d/$MANAGER_NAME ]]
+    if [ -e $sysconfdir/init.d/$MANAGER_NAME ]
     then
       log_write "Updating the OpenVAS Manager database..."
       $OPENVASMD --rebuild && $sysconfdir/init.d/$MANAGER_NAME restart
@@ -263,23 +263,23 @@ update_openvasmd (){
 do_self_test ()
 {
   RSYNC_AVAIL=`command -v rsync`
-  if [[ -z $RSYNC_AVAIL ]] ; then
+  if [ $? -ne 0 ] ; then
     SELFTEST_FAIL=1
     stderr_write "The rsync binary could not be found."
   fi
   MD5SUM_AVAIL=`command -v md5sum`
-  if [[ -z $MD5SUM_AVAIL ]] ; then
+  if [ $? -ne 0 ] ; then
     SELFTEST_FAIL=1
     stderr_write "The md5sum binary could not be found."
   fi
   OPENVASSD_AVAIL=`command -v openvassd`
-  if [[ -z $OPENVASSD_AVAIL ]] ; then
+  if [ $? -ne 0 ] ; then
     SELFTEST_FAIL=1
     stderr_write "The openvassd binary could not be found."
   else
-    sysconfdir=`$OPENVASSD_AVAIL --sysconfdir`
+    sysconfdir=`openvassd --sysconfdir`
   fi
-  if [[ ! -s $sysconfdir/openvas/gsf-access-key ]] ; then
+  if [ ! -s $sysconfdir/openvas/gsf-access-key ] ; then
     SELFTEST_FAIL=1
     stderr_write "No valid Greenbone Security Feed subscription file found."
     # else
@@ -296,7 +296,7 @@ do_describe ()
 }
 
 do_feedversion () {
-  if [[ -z $NVT_DIR ]] ; then
+  if [ -z $NVT_DIR ] ; then
     init_sync
   fi
   VERSIONFILE="$NVT_DIR/plugin_feed_info.inc"
