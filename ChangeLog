@@ -1,3 +1,8 @@
+2011-02-15  Michael Wiegand <michael.wiegand@greenbone.net>
+
+	* tools/greenbone-nvt-sync: Remove redundant rsync flag. Spotted by
+	Lukas Grunwald.
+
 2011-02-14  Michael Wiegand <michael.wiegand@greenbone.net>
 
 	* tools/greenbone-nvt-sync: Clean up bashisms, make checks for command

@@ -163,7 +163,7 @@ sync_nvts(){
     then
       rsync -e "ssh -p 24 -i $sysconfdir/openvas/gsf-access-key" -ltrP $RSYNC_VERBOSE --protocol=29 $RSYNC_DELETE $feeduser $NVT_DIR
     else
-      rsync -e "ssh -o \"ProxyCommand corkscrew $gsmproxy %h %p\" -p 24 -i $sysconfdir/openvas/gsf-access-key" -ltqrP $RSYNC_VERBOSE --protocol=29 $RSYNC_DELETE $feeduser $NVT_DIR
+      rsync -e "ssh -o \"ProxyCommand corkscrew $gsmproxy %h %p\" -p 24 -i $sysconfdir/openvas/gsf-access-key" -ltrP $RSYNC_VERBOSE --protocol=29 $RSYNC_DELETE $feeduser $NVT_DIR
     fi
     if [ $? -ne 0 ]  ; then
       stderr_write "== greenbone-nvt-sync $VERSION ================================================"
