@@ -1,3 +1,24 @@
+openvas-scanner 3.2.1 (2011-02-16)
+
+This is the first maintenance release of the openvas-scanner 3.2 module for the
+Open Vulnerability Assessment System release 4 (OpenVAS-4).
+
+It features minor improvements to documentation, build environment and
+synchronization scripts and sets a default value for the "Consider unscanned
+ports closed" preference; this means that the scanner will now mark unscanned
+ports as closed by default unless instructed otherwise by a client.
+
+Many thanks to everyone who has contributed to this release:
+Michael Wiegand.
+
+Main changes compared to 3.2.0:
+* The openvassd man page has been updated.
+* The build environment has been consolidated.
+* The greenbone-nvt-sync script has been improved.
+* OpenVAS Scanner now sets a default value for the "unscanned_closed"
+  preference.
+
+
 openvas-scanner 3.2.0 (2011-02-04)
 
 This is the first release of the openvas-scanner 3.2 module for the Open

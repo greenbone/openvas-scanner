@@ -1,5 +1,11 @@
 2011-02-16  Michael Wiegand <michael.wiegand@greenbone.net>
 
+	Preparing the openvas-scanner 3.2.1 release.
+
+	* CHANGES: Updated.
+
+2011-02-16  Michael Wiegand <michael.wiegand@greenbone.net>
+
 	* src/preferences.c: Add default value for the preference
 	"unscanned_closed".
 
