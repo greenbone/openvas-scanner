@@ -101,6 +101,7 @@ static openvassd_option openvassd_defaults[] = {
   {"slice_network_addresses", "no"},
   {"nasl_no_signature_check", "yes"},
   {"drop_privileges", "no"},
+  {"unscanned_closed", "yes"},
   // Empty options must be "\0", not NULL, to match the behavior of
   // preferences_process.
   {"vhosts", "\0"},
