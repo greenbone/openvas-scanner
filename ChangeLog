@@ -1,5 +1,10 @@
 2011-02-17  Michael Wiegand <michael.wiegand@greenbone.net>
 
+	* tools/greenbone-nvt-sync: Log feed name, version and NVT count
+	before and after each sync.
+
+2011-02-17  Michael Wiegand <michael.wiegand@greenbone.net>
+
 	* tools/openvas-nvt-sync.in: Remove last bashism from
 	openvas-nvt-sync: Refer to signals by name, not by number.
 

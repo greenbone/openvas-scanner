@@ -131,6 +131,15 @@ init_sync ()
 
 sync_nvts(){
   log_write "Synchronizing NVTs from the Greenbone Security Feed into $NVT_DIR..."
+  VERSIONFILE="$NVT_DIR/plugin_feed_info.inc"
+  if [ -r $VERSIONFILE ] ; then
+    FEEDVERSION=`grep PLUGIN_SET $VERSIONFILE | sed -e 's/[^0-9]//g'`
+    FEEDNAME=`grep PLUGIN_FEED $VERSIONFILE | awk -F\" '{print $(NF-1)}'`
+    FEEDCOUNT=`grep -E "nasl$|inc$" $NVT_DIR/md5sums | wc -l`
+    log_write "Current status: Using $FEEDNAME at version $FEEDVERSION ($FEEDCOUNT NVTs)"
+  else
+    log_write "Current status: No feed installed."
+  fi
   notsynced=1
   retried=0
 
@@ -208,6 +217,14 @@ sync_nvts(){
     fi
   done
   log_write "Synchronization with the Greenbone Security Feed successful."
+  if [ -r $VERSIONFILE ] ; then
+    FEEDVERSION=`grep PLUGIN_SET $VERSIONFILE | sed -e 's/[^0-9]//g'`
+    FEEDNAME=`grep PLUGIN_FEED $VERSIONFILE | awk -F\" '{print $(NF-1)}'`
+    FEEDCOUNT=`grep -E "nasl$|inc$" $NVT_DIR/md5sums | wc -l`
+    log_write "Current status: Using $FEEDNAME at version $FEEDVERSION ($FEEDCOUNT NVTs)"
+  else
+    log_write "Current status: No feed installed."
+  fi
 }
 
 restart_openvassd (){
