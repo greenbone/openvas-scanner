@@ -1,5 +1,10 @@
 2011-02-17  Michael Wiegand <michael.wiegand@greenbone.net>
 
+	* tools/openvas-nvt-sync.in: Remove last bashism from
+	openvas-nvt-sync: Refer to signals by name, not by number.
+
+2011-02-17  Michael Wiegand <michael.wiegand@greenbone.net>
+
 	* src/preferences.h: Remove unimplemented function declaration for
 	preferences_get_delay_between_tests.
 
