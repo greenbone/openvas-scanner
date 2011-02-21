@@ -1,3 +1,9 @@
+2011-02-21  Michael Wiegand <michael.wiegand@greenbone.net>
+
+	Preparing the openvas-scanner 3.2.2 release.
+
+	* CHANGES: Updated.
+
 2011-02-17  Michael Wiegand <michael.wiegand@greenbone.net>
 
 	* tools/greenbone-nvt-sync: Log feed name, version and NVT count

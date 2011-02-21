@@ -1,3 +1,24 @@
+openvas-scanner 3.2.2 (2011-02-21)
+
+This is the second maintenance release of the openvas-scanner 3.2 module for the
+Open Vulnerability Assessment System release 4 (OpenVAS-4).
+
+It features improvements to the synchronization scripts and a minor code
+cleanup. All synchronization scripts are now free of bashisms, meaning they no
+longer depend on the GNU Bourne-Again shell to run and should be compatible with
+most shells.
+
+Many thanks to everyone who has contributed to this release:
+Michael Wiegand.
+
+Main changes compared to 3.2.1:
+* The last bashism has been removed from the openvas-nvt-sync synchronization
+  script.
+* The greenbone-nvt-sync script now logs additional information during
+  synchronization.
+* An unimplemented and superfluous function declaration has been removed.
+
+
 openvas-scanner 3.2.1 (2011-02-16)
 
 This is the first maintenance release of the openvas-scanner 3.2 module for the
