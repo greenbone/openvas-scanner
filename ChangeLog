@@ -1,3 +1,9 @@
+2011-03-04  Michael Wiegand <michael.wiegand@greenbone.net>
+
+	* CMakeLists.txt: Ensure that a "gnupg" directory is created in the
+	OpenVAS configuration directory with the correct permissions as a
+	preparation for signature verifications.
+
 2011-03-02  Michael Wiegand <michael.wiegand@greenbone.net>
 
 	Enable the generation of code documentation. Spotted by Michael Meyer.
