@@ -67,7 +67,7 @@ then
 fi
 
 log_write(){
-  if [ -n $NOLOG ]
+  if [ -n "$NOLOG" ]
   then
     echo "LOG: [`date -R`] $1" > /dev/stderr
   else
@@ -189,7 +189,7 @@ sync_nvts(){
     fi
     eval "cd \"$NVT_DIR\" ; md5sum -c --status \"$NVT_DIR/md5sums\""
     if [ $? -ne 0 ]  ; then
-      if [ -n $retried ]
+      if [ -n "$retried" ]
       then
         stderr_write "== greenbone-nvt-sync $VERSION ================================================"
         stderr_write "The feed integrity check failed two times in a row. This may indicate a serious"
@@ -240,7 +240,7 @@ restart_openvassd (){
 }
 
 update_openvasmd (){
-  if [ -n $NOINIT ] ; then
+  if [ -n "$NOINIT" ] ; then
     return
   fi
   log_write "Updating OpenVAS Manager"
