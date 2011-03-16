@@ -76,10 +76,11 @@ file_lock (name)
 
   bzero (buf, sizeof (buf));
   snprintf (buf, sizeof (buf), "%d", getpid ());
-  if (write (fd, buf, strlen (buf)) < 0) {
-    close (fd);
-    return -1;
-  }
+  if (write (fd, buf, strlen (buf)) < 0)
+    {
+      close (fd);
+      return -1;
+    }
   close (fd);
   return 0;
 }
