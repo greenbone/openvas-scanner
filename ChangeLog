@@ -1,3 +1,10 @@
+2011-03-16  Henri Doreau <henri.doreau@greenbone.net>
+
+	* src/locks.c (file_lock, file_locked): Close file descriptors before
+	return.
+
+	* src/save_kb.c (save_kb_load_kb): Close stream before return.
+
 2011-03-10  Michael Wiegand <michael.wiegand@greenbone.net>
 
 	* tools/greenbone-nvt-sync: Fix conditionals so that they are

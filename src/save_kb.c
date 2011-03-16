@@ -647,6 +647,7 @@ save_kb_load_kb (struct arglist *globals, char *hostname)
       log_write ("user %s : Could not read %s - kb won't be restored for %s\n",
                  (char *) arg_get_value (globals, "user"), fname, hostname);
       efree (&fname);
+      fclose (f);
       return NULL;
     }
 

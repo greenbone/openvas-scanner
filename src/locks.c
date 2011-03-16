@@ -76,8 +76,10 @@ file_lock (name)
 
   bzero (buf, sizeof (buf));
   snprintf (buf, sizeof (buf), "%d", getpid ());
-  if (write (fd, buf, strlen (buf)) < 0)
+  if (write (fd, buf, strlen (buf)) < 0) {
+    close (fd);
     return -1;
+  }
   close (fd);
   return 0;
 }
@@ -120,6 +122,7 @@ file_locked (name)
       log_write ("Could not determine if the file %s is locked: Failed to read %s\n",
                  name, lock);
       efree (&lock);
+      close (fd);
       return 0;
     }
 
