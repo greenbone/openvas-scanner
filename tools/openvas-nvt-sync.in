@@ -40,6 +40,35 @@ if [ -z "$NVT_DIR" ]; then
 	NVT_DIR="@OPENVAS_NVT_DIR@"
 fi
 
+# Script and feed information which will be made available to user through
+# command line options and automated tools.
+SCRIPT_NAME="openvas-nvt-sync"
+VERSION=@OPENVASSD_VERSION@
+RESTRICTED=0
+
+INFOFILE="$NVT_DIR/plugin_feed_info.inc"
+if [ -r $INFOFILE ] ; then
+  FEED_VERSION=`grep PLUGIN_SET $INFOFILE | sed -e 's/[^0-9]//g'`
+  FEED_NAME=`grep PLUGIN_FEED $INFOFILE | sed 's/PLUGIN_FEED\s*\=\s*\"\([^"]\+\)\";/\1/'`
+  FEED_VENDOR=`grep FEED_VENDOR $INFOFILE | sed 's/FEED_VENDOR\s*\=\s*\"\([^"]\+\)\";/\1/'`
+  FEED_HOME=`grep FEED_HOME $INFOFILE | sed 's/FEED_HOME\s*\=\s*\"\([^"]\+\)\";/\1/'`
+  FEED_PRESENT=1
+else
+  FEED_PRESENT=0
+fi
+
+if [ -z "$FEED_NAME" ] ; then
+  FEED_NAME="OpenVAS NVT Feed"
+fi
+
+if [ -z "$FEED_VENDOR" ] ; then
+  FEED_VENDOR="The OpenVAS Project"
+fi
+
+if [ -z "$FEED_HOME" ] ; then
+  FEED_HOME="http://www.openvas.org/openvas-nvt-feed.html"
+fi
+
 # The URL of the plugin feed
 if [ -z "$OV_RSYNC_FEED" ]; then
 	OV_RSYNC_FEED=rsync://rsync.openvas.org:/nvt-feed
@@ -61,15 +90,6 @@ if [ -z "$TMPDIR" ]; then
 else
 	SYNC_TMP_DIR="$TMPDIR"
 fi
-
-# Script and feed information which will be made available to user through
-# command line options and automated tools.
-SCRIPT_NAME="openvas-nvt-sync"
-VERSION=@OPENVASSD_VERSION@
-FEED_NAME="OpenVAS NVT Feed"
-FEED_PROVIDER="The OpenVAS Project"
-FEED_HOME="http://www.openvas.org/openvas-nvt-feed.html"
-RESTRICTED=0
 
 do_help () {
 	echo "$0: Sync NVTs using different protocols"
@@ -207,22 +227,20 @@ do_self_test () {
 
 do_describe () {
   echo "This script synchronizes an NVT collection with the '$FEED_NAME'."
-  echo "The '$FEED_NAME' is provided by '$FEED_PROVIDER'."
+  echo "The '$FEED_NAME' is provided by '$FEED_VENDOR'."
   echo "Online information about this feed: '$FEED_HOME'."
 
 }
 
 do_feedversion () {
-  VERSIONFILE="$NVT_DIR/plugin_feed_info.inc"
-  if [ -r $VERSIONFILE ] ; then
-    FEEDVERSION=`grep PLUGIN_SET $VERSIONFILE | sed -e 's/[^0-9]//g'`
-    echo $FEEDVERSION
+  if [ $FEED_PRESENT -eq 1 ] ; then
+    echo $FEED_VERSION
   fi
 }
 
 show_intro () {
   echo "[i] This script synchronizes an NVT collection with the '$FEED_NAME'."
-  echo "[i] The '$FEED_NAME' is provided by '$FEED_PROVIDER'."
+  echo "[i] The '$FEED_NAME' is provided by '$FEED_VENDOR'."
   echo "[i] Online information about this feed: '$FEED_HOME'."
   echo "[i] NVT dir: $NVT_DIR"
 

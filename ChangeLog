@@ -1,3 +1,9 @@
+2011-03-25  Michael Wiegand <michael.wiegand@greenbone.net>
+
+	* tools/openvas-nvt-sync.in: Add support for reading feed information
+	from the plugin_feed_info.inc. Rename FEED_PROVIDER to FEED_VENDOR
+	for consistency.
+
 2011-03-16  Henri Doreau <henri.doreau@greenbone.net>
 
 	* src/locks.c (file_lock): fixed coding style mismatch from previous
