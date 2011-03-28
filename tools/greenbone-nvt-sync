@@ -58,6 +58,9 @@ SELFTEST_FAIL=0
 # Verbosity flag for rsync. "-q" means a quiet rsync, "-v" a verbose rsync.
 RSYNC_VERBOSE="-q"
 
+# Port to use for synchronization. Default value is 24.
+PORT=24
+
 if [ ! -w $LOGDIR ]
 then
   NOLOG=1
@@ -189,9 +192,9 @@ sync_nvts(){
     fi
     if [ "$gsmproxy" = "proxy_feed" ] || [ -z $gsmproxy ]
     then
-      rsync -e "ssh -p 24 -i $sysconfdir/openvas/gsf-access-key" -ltrP $RSYNC_VERBOSE --protocol=29 $RSYNC_DELETE $feeduser $NVT_DIR
+      rsync -e "ssh -p $PORT -i $sysconfdir/openvas/gsf-access-key" -ltrP $RSYNC_VERBOSE --protocol=29 $RSYNC_DELETE $feeduser $NVT_DIR
     else
-      rsync -e "ssh -o \"ProxyCommand corkscrew $gsmproxy %h %p\" -p 24 -i $sysconfdir/openvas/gsf-access-key" -ltrP $RSYNC_VERBOSE --protocol=29 $RSYNC_DELETE $feeduser $NVT_DIR
+      rsync -e "ssh -o \"ProxyCommand corkscrew $gsmproxy %h %p\" -p $PORT -i $sysconfdir/openvas/gsf-access-key" -ltrP $RSYNC_VERBOSE --protocol=29 $RSYNC_DELETE $feeduser $NVT_DIR
     fi
     if [ $? -ne 0 ]  ; then
       stderr_write "== greenbone-nvt-sync $VERSION ================================================"

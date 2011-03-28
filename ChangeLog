@@ -1,5 +1,10 @@
 2011-03-28  Michael Wiegand <michael.wiegand@greenbone.net>
 
+	* tools/greenbone-nvt-sync: Add support for specifying an arbitrary
+	port for synchronization.
+
+2011-03-28  Michael Wiegand <michael.wiegand@greenbone.net>
+
 	* tools/greenbone-nvt-sync: Add support for reading configuration from
 	$sysconfdir/openvas/greenbone-nvt-sync.conf.
 
