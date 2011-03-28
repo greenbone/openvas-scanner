@@ -1,5 +1,10 @@
 2011-03-28  Michael Wiegand <michael.wiegand@greenbone.net>
 
+	* tools/greenbone-nvt-sync: Add support for reading configuration from
+	$sysconfdir/openvas/greenbone-nvt-sync.conf.
+
+2011-03-28  Michael Wiegand <michael.wiegand@greenbone.net>
+
 	* tools/greenbone-nvt-sync: Add support for reading feed information
 	from the plugin_feed_info.inc. Rename FEED_PROVIDER to FEED_VENDOR for
 	consistency.

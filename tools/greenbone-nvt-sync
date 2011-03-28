@@ -104,6 +104,8 @@ init_sync ()
 
   sysconfdir=`$SCANNER_BINARY --sysconfdir`
 
+  [ -r $sysconfdir/openvas/greenbone-nvt-sync.conf ] && . $sysconfdir/openvas/greenbone-nvt-sync.conf
+
   if [ -z $NVT_DIR ]
   then
     NVT_DIR=`$SCANNER_BINARY -s | grep plugins_folder | sed 's/plugins\_folder\ *=\ *//'`
