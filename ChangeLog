@@ -1,3 +1,8 @@
+2011-03-28  Michael Wiegand <michael.wiegand@greenbone.net>
+
+	* tools/openvas-nvt-sync.in: Make indentation consistent, flush
+	trailing spaces.
+
 2011-03-25  Michael Wiegand <michael.wiegand@greenbone.net>
 
 	* tools/openvas-nvt-sync.in: Add support for reading feed information
