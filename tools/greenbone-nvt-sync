@@ -49,9 +49,6 @@ LOGFILE="greenbone-nvt-sync.log"
 # Script and feed information which will be made available to user through
 # command line options and automated tools.
 SCRIPT_NAME="greenbone-nvt-sync"
-FEED_NAME="Greenbone Security Feed"
-FEED_PROVIDER="Greenbone Networks GmbH"
-FEED_HOME="http://www.greenbone.net/solutions/gbn_feed.html"
 RESTRICTED=1
 
 # Result of selftest () is stored here. If it is not 0, the selftest has failed
@@ -127,16 +124,36 @@ init_sync ()
       exit 1
     fi
   fi
+
+  INFOFILE="$NVT_DIR/plugin_feed_info.inc"
+  if [ -r $INFOFILE ] ; then
+    FEED_VERSION=`grep PLUGIN_SET $INFOFILE | sed -e 's/[^0-9]//g'`
+    FEED_NAME=`awk -F\" '/PLUGIN_FEED/ { print $2 }' $INFOFILE`
+    FEED_VENDOR=`awk -F\" '/FEED_VENDOR/ { print $2 }' $INFOFILE`
+    FEED_HOME=`awk -F\" '/FEED_HOME/ { print $2 }' $INFOFILE`
+    FEED_PRESENT=1
+  else
+    FEED_PRESENT=0
+  fi
+
+  if [ -z "$FEED_NAME" ] ; then
+    FEED_NAME="Greenbone Security Feed"
+  fi
+
+  if [ -z "$FEED_VENDOR" ] ; then
+    FEED_VENDOR="Greenbone Networks GmbH"
+  fi
+
+  if [ -z "$FEED_HOME" ] ; then
+    FEED_HOME="http://www.greenbone.net/solutions/gbn_feed.html"
+  fi
 }
 
 sync_nvts(){
   log_write "Synchronizing NVTs from the Greenbone Security Feed into $NVT_DIR..."
-  VERSIONFILE="$NVT_DIR/plugin_feed_info.inc"
-  if [ -r $VERSIONFILE ] ; then
-    FEEDVERSION=`grep PLUGIN_SET $VERSIONFILE | sed -e 's/[^0-9]//g'`
-    FEEDNAME=`grep PLUGIN_FEED $VERSIONFILE | awk -F\" '{print $(NF-1)}'`
+  if [ $FEED_PRESENT -eq 1 ] ; then
     FEEDCOUNT=`grep -E "nasl$|inc$" $NVT_DIR/md5sums | wc -l`
-    log_write "Current status: Using $FEEDNAME at version $FEEDVERSION ($FEEDCOUNT NVTs)"
+    log_write "Current status: Using $FEED_NAME at version $FEED_VERSION ($FEEDCOUNT NVTs)"
   else
     log_write "Current status: No feed installed."
   fi
@@ -217,11 +234,10 @@ sync_nvts(){
     fi
   done
   log_write "Synchronization with the Greenbone Security Feed successful."
-  if [ -r $VERSIONFILE ] ; then
-    FEEDVERSION=`grep PLUGIN_SET $VERSIONFILE | sed -e 's/[^0-9]//g'`
-    FEEDNAME=`grep PLUGIN_FEED $VERSIONFILE | awk -F\" '{print $(NF-1)}'`
+  init_sync
+  if [ $FEED_PRESENT -eq 1 ] ; then
     FEEDCOUNT=`grep -E "nasl$|inc$" $NVT_DIR/md5sums | wc -l`
-    log_write "Current status: Using $FEEDNAME at version $FEEDVERSION ($FEEDCOUNT NVTs)"
+    log_write "Current status: Using $FEED_NAME at version $FEED_VERSION ($FEEDCOUNT NVTs)"
   else
     log_write "Current status: No feed installed."
   fi
@@ -307,8 +323,11 @@ do_self_test ()
 
 do_describe ()
 {
+  if [ -z $NVT_DIR ] ; then
+    init_sync
+  fi
   echo "This script synchronizes an NVT collection with the '$FEED_NAME'."
-  echo "The '$FEED_NAME' is provided by '$FEED_PROVIDER'."
+  echo "The '$FEED_NAME' is provided by '$FEED_VENDOR'."
   echo "Online information about this feed: '$FEED_HOME'."
 }
 
@@ -316,12 +335,10 @@ do_feedversion () {
   if [ -z $NVT_DIR ] ; then
     init_sync
   fi
-  VERSIONFILE="$NVT_DIR/plugin_feed_info.inc"
-  if [ -r $VERSIONFILE ] ; then
-    FEEDVERSION=`grep PLUGIN_SET $VERSIONFILE | sed -e 's/[^0-9]//g'`
-    echo $FEEDVERSION
+  if [ $FEED_PRESENT -eq 1 ] ; then
+    echo $FEED_VERSION
   else
-    stderr_write "The file containing the feed version ($VERSIONFILE) could not be found."
+    stderr_write "The file containing the feed version could not be found."
     exit 1
   fi
 }
@@ -343,6 +360,7 @@ while test $# -gt 0; do
       exit 0
       ;;
     --identify)
+      init_sync
       echo "NVTSYNC|$SCRIPT_NAME|$VERSION|$FEED_NAME|$RESTRICTED|NVTSYNC"
       exit 0
       ;;
