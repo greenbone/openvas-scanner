@@ -247,11 +247,15 @@ show_intro () {
 }
 
 do_sync () {
-  if [ -z "$CMD_RSYNC" ]; then
-    echo "[w] rsync not found!"
-    if [ -z "$CMD_WGET"]; then
+  if [ -z "$CMD_RSYNC" ] || [ $FEED_PRESENT -eq 0 ] ; then
+    if [ $FEED_PRESENT -eq 0 ] ; then
+      echo "[i] rsync not is recommended for the initial sync. Falling back on http."
+    else
+      echo "[w] rsync not found!"
+    fi
+    if [ -z "$CMD_WGET" ]; then
       echo "[w] GNU wget not found!"
-      if [ -z "$CMD_CURL"]; then
+      if [ -z "$CMD_CURL" ]; then
         echo "[w] curl not found!"
         echo -n "[e] no utility available in PATH environment variable to download plugins"
         exit 1

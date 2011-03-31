@@ -1,3 +1,9 @@
+2011-03-31  Michael Wiegand <michael.wiegand@greenbone.net>
+
+	* tools/openvas-nvt-sync.in: Do not use rsync as the default when no
+	feed is present, i.e. we are doing the initial sync. Use http (wget or
+	curl) instead.
+
 2011-03-29  Michael Wiegand <michael.wiegand@greenbone.net>
 
 	* tools/greenbone-nvt-sync: Enable BatchMode in ssh during rsync.
