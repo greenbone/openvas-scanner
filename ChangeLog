@@ -1,3 +1,9 @@
+2011-04-08  Michael Wiegand <michael.wiegand@greenbone.net>
+
+	* tools/openvas-nvt-sync.in: Ensure openvas-nvt-sync syncs into the
+	NVT directory configured in the scanner by default. Remove obsolete
+	comment.
+
 2011-03-31  Michael Wiegand <michael.wiegand@greenbone.net>
 
 	* tools/openvas-nvt-sync.in: Do not use rsync as the default when no

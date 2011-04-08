@@ -32,12 +32,15 @@
 # if you need to debug script
 # set -x
 
-# these locations should be correct if standard ./configure had
-# been applied.
-
 # configure NVT_DIR where we will sync NVTs
 if [ -z "$NVT_DIR" ]; then
-  NVT_DIR="@OPENVAS_NVT_DIR@"
+  OPENVASSD=`which openvassd`
+  if [ -z "$OPENVASSD" ] ; then
+    echo "[e] Error: openvassd is not in the path, could not determine NVT directory."
+    exit 1
+  else
+    NVT_DIR=`openvassd -s | awk -F" = " '/^plugins_folder/ { print $2 }'`
+  fi
 fi
 
 # Script and feed information which will be made available to user through
