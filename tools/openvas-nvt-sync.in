@@ -74,9 +74,9 @@ fi
 
 # The URL of the plugin feed
 if [ -z "$OV_RSYNC_FEED" ]; then
-  OV_RSYNC_FEED=rsync://rsync.openvas.org:/nvt-feed
+  OV_RSYNC_FEED=rsync://feed.openvas.org:/nvt-feed
   # An alternative syntax which might work if the above doesn't:
-  # OV_RSYNC_FEED=rsync@rsync.openvas.org::nvt-feed
+  # OV_RSYNC_FEED=rsync@feed.openvas.org::nvt-feed
 fi
 
 if [ -z "$OV_HTTP_FEED" ]; then
