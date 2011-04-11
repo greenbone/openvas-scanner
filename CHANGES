@@ -1,3 +1,26 @@
+openvas-scanner 3.2.3 (2011-04-11)
+
+This is the third maintenance release of the openvas-scanner 3.2 module for the
+Open Vulnerability Assessment System release 4 (OpenVAS-4).
+
+This release features a number of minor improvements to the build process and to
+the synchronization scripts. It also close three potential resource leaks
+discovered by Henri Doreau.
+
+Many thanks to everyone who has contributed to this release:
+Henri Doreau and Michael Wiegand.
+
+Main changes compared to 3.2.2:
+* Fixed: Three potential resource leaks.
+* Fixed: Generation of code documentation.
+* Updated: Feed synchronization scripts.
+* Changed: The openvas-nvt-sync script will now perform the initial feed
+  synchronization via HTTP instead of rsync.
+* Changed: The openvas-nvt-sync script will now default to synchronize into the
+  NVT directory used by the OpenVAS Scanner instead of the one defined at
+  compile time.
+
+
 openvas-scanner 3.2.2 (2011-02-21)
 
 This is the second maintenance release of the openvas-scanner 3.2 module for the
