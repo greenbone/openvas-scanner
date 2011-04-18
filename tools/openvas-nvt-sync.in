@@ -87,7 +87,7 @@ if [ -z "$TMPDIR" ]; then
   SYNC_TMP_DIR=/tmp
   # If we have mktemp, create a temporary dir (safer)
   if [ -n "`which mktemp`" ]; then
-    SYNC_TMP_DIR=`mktemp -d openvas-nvt-sync.XXXXXXXXXX -t` || { echo "ERROR: Cannot create temporary directory for file download" >&2; exit 1 ; }
+    SYNC_TMP_DIR=`mktemp -t -d openvas-nvt-sync.XXXXXXXXXX` || { echo "ERROR: Cannot create temporary directory for file download" >&2; exit 1 ; }
     trap "rm -rf $SYNC_TMP_DIR" EXIT HUP INT TRAP TERM
   fi
 else
@@ -252,7 +252,7 @@ show_intro () {
 do_sync () {
   if [ -z "$CMD_RSYNC" ] || [ $FEED_PRESENT -eq 0 ] ; then
     if [ $FEED_PRESENT -eq 0 ] ; then
-      echo "[i] rsync not is recommended for the initial sync. Falling back on http."
+      echo "[i] rsync is not recommended for the initial sync. Falling back on http."
     else
       echo "[w] rsync not found!"
     fi

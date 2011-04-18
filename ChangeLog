@@ -1,3 +1,9 @@
+2011-04-18  Matthew Mundell <matthew.mundell@greenbone.net>
+
+	* tools/openvas-nvt-sync.in: Put the mktemp template last, otherwise
+	Ubuntu 9.10 gives an error.
+	(do_sync): Correct typo.
+
 2011-04-18  Henri Doreau <henri.doreau@greenbone.net>
 
 	* src/ntp_11.c (ntp_1x_send_dependencies): fixed memory leak reported
@@ -296,7 +302,7 @@
 
 	* doc/HTTP_authentication.txt: Removed. There is no
 	new or helpful information in there.
- 
+
 	* src/COPYING: Removed. Since we maintain a explicit
 	list in COPYING, we don't need that file anymore.
 
