@@ -95,7 +95,7 @@ GSList *
 collect_nvts (const char *folder, const char *subdir, GSList * files)
 {
   GDir *dir;
-  const gchar *fname, *path;
+  const gchar *fname;
 
   if (folder == NULL)
     return files;
@@ -107,11 +107,23 @@ collect_nvts (const char *folder, const char *subdir, GSList * files)
   fname = g_dir_read_name (dir);
   while (fname)
     {
+      char *path;
+
       path = g_build_filename (folder, fname, NULL);
       if (g_file_test (path, G_FILE_TEST_IS_DIR))
-        files =
-          collect_nvts (g_build_filename (folder, fname, NULL),
-                        g_build_filename (subdir, fname, NULL), files);
+        {
+          char *new_folder, *new_subdir;
+
+          new_folder = g_build_filename (folder, fname, NULL);
+          new_subdir = g_build_filename (subdir, fname, NULL);
+
+          files = collect_nvts (new_folder, new_subdir, files);
+
+          if (new_folder)
+            g_free (new_folder);
+          if (new_subdir)
+            g_free (new_subdir);
+        }
       else
         {
           pl_class_t *cl_ptr = plugin_classes;
@@ -127,6 +139,7 @@ collect_nvts (const char *folder, const char *subdir, GSList * files)
               cl_ptr = cl_ptr->pl_next;
             }
         }
+      g_free (path);
       fname = g_dir_read_name (dir);
     }
 
