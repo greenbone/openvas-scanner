@@ -843,9 +843,7 @@ ntp_1x_send_dependencies (struct arglist *globals)
           strncat (buf, " <|> ", buf_size);
           deps = deps->next;
         }
-#if 0
       arg_free_all (d);
-#endif
 
       auth_printf (globals, "%s\n", buf);
 

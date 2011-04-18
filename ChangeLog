@@ -1,5 +1,10 @@
 2011-04-18  Henri Doreau <henri.doreau@greenbone.net>
 
+	* src/ntp_11.c (ntp_1x_send_dependencies): fixed memory leak reported
+	by Valgrind.
+
+2011-04-18  Henri Doreau <henri.doreau@greenbone.net>
+
 	* src/pluginload.c (collect_nvts): fixed memory leak reported by
 	Valgrind.
 
