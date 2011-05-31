@@ -31,7 +31,8 @@
 
 #include <openvas/misc/kb.h>         /* for kb_item_set_int */
 #include <openvas/misc/network.h>    /* for internal_recv */
-#include <openvas/misc/plugutils.h>  /* for INTERNAL_COMM_MSG_TYPE_KB */
+#include <openvas/misc/plugutils.h>  /* for rmslashes */
+#include <openvas/misc/internal_com.h>  /* for INTERNAL_COMM_MSG_TYPE_KB */
 #include <openvas/misc/system.h>     /* for efree */
 
 #include "log.h"

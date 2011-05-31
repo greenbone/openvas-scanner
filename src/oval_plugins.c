@@ -42,6 +42,7 @@
 #include <openvas/misc/store.h>      /* for store_load_plugin */
 #include <openvas/misc/system.h>     /* for emalloc */
 #include <openvas/misc/proctitle.h>  /* for setproctitle */
+#include <openvas/misc/internal_com.h>  /* for INTERNAL_COMM_MSG_TYPE_CTRL */
 
 #include <openvas/base/nvti.h>  /* for nvti_t */
 

@@ -37,6 +37,7 @@
 #include <openvas/misc/system.h>     /* for emalloc */
 #include <openvas/misc/hash_table_file.h>
 #include <openvas/misc/openvas_ssh_login.h>
+#include <openvas/misc/internal_com.h> /* for INTERNAL_COMM_MSG_TYPE_DATA */
 
 #include "ntp_11.h"
 #include "otp_1_0.h"

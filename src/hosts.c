@@ -32,9 +32,9 @@
 #include <string.h>   /* for strlen() */
 #include <unistd.h>   /* for close() */
 
-#include <openvas/misc/network.h>    /* for internal_recv */
-#include <openvas/misc/plugutils.h>  /* for INTERNAL_COMM_MSG_TYPE_CTRL */
-#include <openvas/misc/system.h>     /* for estrdup */
+#include <openvas/misc/network.h>      /* for internal_recv */
+#include <openvas/misc/internal_com.h> /* for INTERNAL_COMM_MSG_TYPE_CTRL */
+#include <openvas/misc/system.h>       /* for estrdup */
 
 #include "utils.h"
 #include "log.h"

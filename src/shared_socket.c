@@ -36,10 +36,10 @@
 #include <strings.h> /* for bzero() */
 #include <string.h>  /* for strcmp() */
 
-#include <openvas/misc/network.h>    /* internal_recv */
-#include <openvas/misc/plugutils.h>  /* for INTERNAL_COMM_MSG_SHARED_SOCKET */
-#include <openvas/misc/share_fd.h>   /* for recv_fd */
-#include <openvas/misc/system.h>     /* for efree */
+#include <openvas/misc/network.h>      /* internal_recv */
+#include <openvas/misc/internal_com.h> /* for INTERNAL_COMM_MSG_SHARED_SOCKET */
+#include <openvas/misc/share_fd.h>     /* for recv_fd */
+#include <openvas/misc/system.h>       /* for efree */
 
 #include "utils.h"
 #include "log.h"

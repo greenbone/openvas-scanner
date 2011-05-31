@@ -1,5 +1,13 @@
 2011-05-31  Jan-Oliver Wagner <jan-oliver.wagner@greenbone.net>
 
+	* src/nasl_plugins.c, src/ntp_11.c, src/piic.c, src/pluginlaunch.c,
+	src/oval_plugins.c: Added include for internal_com.h.
+
+	* src/shared_socket.c, src/hosts.c: Replaced include of plugutils.h by
+	internal_com.h.
+
+2011-05-31  Jan-Oliver Wagner <jan-oliver.wagner@greenbone.net>
+
 	* doc/openvas-nvt-sync.8: Fixed author of the re-written script.
 
 	* COPYING: Fixed typo.
