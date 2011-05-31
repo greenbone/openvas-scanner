@@ -565,7 +565,6 @@ plugins_scheduler_init (struct arglist *plugins, int autoload,
       while (l != NULL)
         {
           if (plug_get_launch (l->plugin->arglist->value) == LAUNCH_DISABLED
-              && plug_get_category (l->plugin->arglist->value) != ACT_INIT
               && plug_get_category (l->plugin->arglist->value) != ACT_SETTINGS)
             {
               struct list *old = l->next;

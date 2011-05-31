@@ -266,7 +266,7 @@ launch_plugin (struct arglist *globals, plugins_scheduler_t * sched,
   strncpy (name, plug_get_path (args), sizeof (name) - 1);
   name[sizeof (name) - 1] = '\0';
 
-  if (plug_get_launch (args) != LAUNCH_DISABLED || category == ACT_INIT || category == ACT_SETTINGS)    /* can we launch it ? */
+  if (plug_get_launch (args) != LAUNCH_DISABLED || category == ACT_SETTINGS)    /* can we launch it ? */
     {
       char *error;
 

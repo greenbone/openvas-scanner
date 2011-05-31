@@ -1,3 +1,12 @@
+2011-05-31  Henri Doreau <henri.doreau@greenbone.net>
+
+	Do not force execution of ACT_INIT scripts anymore. This allows ACT_INIT
+	scripts to register information iff they are selected by the user.
+	ACT_SETTINGS scripts are still automatically selected though.
+
+	* src/attack.c (launch_plugin), src/pluginscheduler.c
+	(plugins_scheduler_init): Disable autoselection of ACT_INIT plugins.
+
 2011-05-30  Michael Wiegand <michael.wiegand@greenbone.net>
 
 	Post branch version bump.
