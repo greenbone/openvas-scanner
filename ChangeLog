@@ -1,3 +1,9 @@
+2011-05-31  Jan-Oliver Wagner <jan-oliver.wagner@greenbone.net>
+
+	* doc/openvas-nvt-sync.8: Fixed author of the re-written script.
+
+	* COPYING: Fixed typo.
+
 2011-05-31  Matthew Mundell <matthew.mundell@greenbone.net>
 
 	Deal with GCC 4.6 warnings.  Thanks to Stephan Kleine for original patch.
