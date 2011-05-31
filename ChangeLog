@@ -1,5 +1,23 @@
 2011-05-31  Jan-Oliver Wagner <jan-oliver.wagner@greenbone.net>
 
+	Removing last remains of the unused shared sockets implementation
+	according to Change Request #53.
+
+	* doc/CMakeLists.txt, src/CMakeLists.txt: Removed handling of
+	shared_socket.c.
+
+	* src/pluginlaunch.c (process_internal_msg): Removed action upon
+	message INTERNAL_COMM_MSG_SHARED_SOCKET which is never issued anyway.
+	(process_mgr_sighand_term, update_running_processes, pluginlaunch_stop):
+	Removed call of shared_socket_cleanup_process because there is nothing
+	to clean up anyway.
+
+	* src/shared_socket.c, src/shared_socket.h: Removed.
+
+	* COPYING: Removed entry for shared_socket.*.
+
+2011-05-31  Jan-Oliver Wagner <jan-oliver.wagner@greenbone.net>
+
 	* src/nasl_plugins.c, src/ntp_11.c, src/piic.c, src/pluginlaunch.c,
 	src/oval_plugins.c: Added include for internal_com.h.
 

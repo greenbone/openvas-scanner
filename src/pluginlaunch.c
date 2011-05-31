@@ -34,7 +34,6 @@
 
 #include <openvas/misc/network.h>    /* for internal_send */
 #include <openvas/misc/nvt_categories.h>  /* for ACT_SCANNER */
-#include <openvas/misc/internal_com.h>    /* for INTERNAL_COMM_MSG_SHARED_SOCKET */
 #include <openvas/misc/plugutils.h>  /* for rmslashes */
 #include <openvas/misc/system.h>     /* for efree */
 
@@ -47,7 +46,6 @@
 #include "processes.h"
 #include "pluginscheduler.h"
 #include "plugs_req.h"
-#include "shared_socket.h"
 
 /**
  * @brief 'Hard' limit of the max. number of concurrent plugins per host.
@@ -110,11 +108,7 @@ process_internal_msg (int p)
       return -1;
     }
 
-  if (type & INTERNAL_COMM_MSG_SHARED_SOCKET)
-    e =
-      shared_socket_process (processes[p].internal_soc, processes[p].pid,
-                             buffer, type);
-  else if (type & INTERNAL_COMM_MSG_TYPE_DATA)
+  if (type & INTERNAL_COMM_MSG_TYPE_DATA)
     {
       if (processes[p].launch_status != LAUNCH_SILENT)
         e = internal_send (processes[p].upstream_soc, buffer, type);
@@ -183,7 +177,6 @@ process_mgr_sighand_term (int sig)
           plugin_set_running_state (processes[i].sched, processes[i].plugin,
                                     PLUGIN_STATUS_DONE);
           close (processes[i].internal_soc);
-          shared_socket_cleanup_process (processes[i].pid);
           bzero (&(processes[i]), sizeof (struct running));
         }
     }
@@ -266,7 +259,6 @@ update_running_processes ()
                                         PLUGIN_STATUS_DONE);
 
               close (processes[i].internal_soc);
-              shared_socket_cleanup_process (processes[i].pid);
               bzero (&(processes[i]), sizeof (processes[i]));
             }
         }
@@ -449,11 +441,9 @@ pluginlaunch_stop ()
           plugin_set_running_state (processes[i].sched, processes[i].plugin,
                                     PLUGIN_STATUS_DONE);
           close (processes[i].internal_soc);
-          shared_socket_cleanup_process (processes[i].pid);
           bzero (&(processes[i]), sizeof (struct running));
         }
     }
-  shared_socket_close ();
   openvas_signal (SIGTERM, _exit);
 }
 

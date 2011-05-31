@@ -35,7 +35,6 @@ src/preferences.[c|h]: GPLv2
 src/processes.[c|h]: GPLv2
 src/rules.[c|h]: GPLv2
 src/save_kb.[c|h]: GPLv2
-src/shared_socket.[c|h]: GPLv2
 src/sighand.[c|h]: GPLv2
 src/users.[c|h]: GPLv2
 src/utils.[c|h]: GPLv2

@@ -40,7 +40,7 @@ else (NOT DOXYGEN_EXECUTABLE)
     ../src/piic.c ../src/pluginlaunch.c ../src/pluginload.c
     ../src/pluginscheduler.c ../src/plugs_hash.c ../src/plugs_req.c
     ../src/preferences.c ../src/processes.c ../src/rules.c ../src/save_kb.c
-    ../src/shared_socket.c ../src/sighand.c ../src/users.c ../src/utils.c
+    ../src/sighand.c ../src/users.c ../src/utils.c
     ../README ../INSTALL)
 
   add_custom_target (doc COMMENT "Building documentation..."
