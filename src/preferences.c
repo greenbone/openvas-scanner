@@ -452,7 +452,6 @@ preferences_benice (struct arglist *preferences)
 int
 preferences_drop_privileges (struct arglist *preferences, char *oid)
 {
-  char *pref;
   int ret = 0;
 
   if (preferences == NULL)
@@ -464,7 +463,6 @@ preferences_drop_privileges (struct arglist *preferences, char *oid)
         ret = 1;
     }
 
-  pref = arg_get_value (preferences, "drop_privileges");
   return ret;
 }
 

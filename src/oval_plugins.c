@@ -360,7 +360,6 @@ oval_plugin_add (char *folder, char *name, struct arglist *plugins,
   gchar *filebuffer = NULL;
   gsize length = 0;
   gchar *descriptions = NULL;
-  gchar *description = NULL;
   int i;
 
   if (plugin_list != NULL)
@@ -437,11 +436,10 @@ oval_plugin_add (char *folder, char *name, struct arglist *plugins,
           descriptions = g_strjoinv (NULL, title_array);
           if (strlen (descriptions) > 3100)
             {
-              description =
-                g_strconcat
+              nvti_set_description (first_plugin, g_strconcat
                 ("This OVAL file contains the following definitions:\n",
                  g_strndup (descriptions, 3100),
-                 "\n(list cut due to memory limitations)", NULL);
+                 "\n(list cut due to memory limitations)", NULL));
             }
           else
             {
