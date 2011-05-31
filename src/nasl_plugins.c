@@ -29,6 +29,7 @@
  * @brief The nasl - plugin class. Loads or launches nasl- plugins.
  */
 
+#include <errno.h>
 #include <stdio.h>    /* for fprintf() */
 #include <unistd.h>   /* for close() */
 #include <signal.h>   /* for SIGTERM */
@@ -252,10 +253,14 @@ nasl_thread (struct arglist *g_args)
   int nice_retval;
 
   if (preferences_benice (NULL))
-    nice_retval = nice (-5);
-  // @todo: Check value of nice_retval to see if it was successful.
-  // Keep in mind that even -1 can mean success here; see man page of nice
-  // for details.
+    {
+      errno = 0;
+      nice_retval = nice (-5);
+      if (nice_retval == -1 && errno != 0)
+        {
+          log_write ("Unable to renice process: %d", errno);
+        }
+    }
 
   /* XXX ugly hack */
   soc = dup2 (soc, 4);

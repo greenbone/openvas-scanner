@@ -1,3 +1,26 @@
+2011-05-31  Matthew Mundell <matthew.mundell@greenbone.net>
+
+	Deal with GCC 4.6 warnings.  Thanks to Stephan Kleine for original patch.
+	Backport from trunk r11034.
+
+	* src/attack.c (attack_network): Remove stray variables.
+
+	* src/nasl_plugins.c (nasl_thread): Check nice return.
+
+	* src/openvassd.c (scanner_thread): Check nice return.
+
+	* src/oval_plugins.c (oval_plugin_add): Set NVT description correctly in
+	overlength case.
+
+	* src/preferences.c (preferences_drop_privileges): Remove variable
+	previously used for trace message.
+
+	* src/shared_socket.c (openvassd_shared_socket_register): Check
+	internal_recv return.
+
+	* src/sighand.c (let_em_die): Remove return variable, as the waitpid may
+	fail in legitimate cases.
+
 2011-04-18  Matthew Mundell <matthew.mundell@greenbone.net>
 
 	* tools/openvas-nvt-sync.in: Put the mktemp template last, otherwise

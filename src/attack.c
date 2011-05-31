@@ -939,7 +939,6 @@ attack_network (struct arglist *globals)
 {
   int max_hosts = 0;
   int num_tested = 0;
-  int host_pending = 0;
   char hostname[1024];
   char *hostlist;
   struct in6_addr host_ip;
@@ -1139,7 +1138,6 @@ attack_network (struct arglist *globals)
             }
         }
 
-      host_pending = 0;
       memcpy (&addrs.ip6, &host_ip, sizeof (struct in6_addr));
 
       /* Do we have the right to test this host ? */
@@ -1156,9 +1154,7 @@ attack_network (struct arglist *globals)
           int s;
           char *MAC = NULL;
           int mac_err = -1;
-          struct in_addr addr;
 
-          addr.s_addr = host_ip.s6_addr32[3];
           if (preferences_use_mac_addr (preferences)
               && v6_is_local_ip (&host_ip))
             {

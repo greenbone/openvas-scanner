@@ -46,9 +46,9 @@ extern pid_t nasl_server_pid;
 void
 let_em_die (int pid)
 {
-  int status, x;
+  int status;
 
-  x = waitpid (pid, &status, WNOHANG);
+  waitpid (pid, &status, WNOHANG);
 }
 
 

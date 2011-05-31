@@ -40,6 +40,7 @@
  * OpenVAS Scanner main module, runs the scanner.
  */
 
+#include <errno.h>
 #include <string.h>    /* for strchr() */
 #include <stdio.h>     /* for fprintf() */
 #include <stdlib.h>    /* for atoi() */
@@ -428,11 +429,14 @@ scanner_thread (struct arglist *globals)
 
   /* Everyone runs with a nicelevel of 10 */
   if (preferences_benice (prefs))
-    nice_retval = nice (10);
-  // @todo: Check value of nice_retval to see if it was successful.
-  // Keep in mind that even -1 can mean success here; see man page of nice
-  // for details.
-
+    {
+      errno = 0;
+      nice_retval = nice (10);
+      if (nice_retval == -1 && errno != 0)
+        {
+          log_write ("Unable to renice process: %d", errno);
+        }
+    }
   openvas_signal (SIGCHLD, sighand_chld);
 #if 1
   /* To let some time to attach a debugger to the child process */

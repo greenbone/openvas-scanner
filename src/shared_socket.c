@@ -100,6 +100,12 @@ openvassd_shared_socket_register (int soc, int pid, char *buf)
   int type;
 
   e = internal_recv (soc, &buffer, &bufsz, &type);
+  if (e == -1)
+    {
+      log_write ("shared_socket_register(): Error - internal_recv() failed\n");
+      return -1;
+    }
+
   if ((type & INTERNAL_COMM_MSG_SHARED_SOCKET) == 0
       || (type & INTERNAL_COMM_SHARED_SOCKET_DORECVMSG) == 0)
     {
