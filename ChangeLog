@@ -1,3 +1,12 @@
+2011-06-01  Matthew Mundell <matthew.mundell@greenbone.net>
+
+	Close some leaks.  Based on patch from Michael Wiegand.
+
+	* src/oval_plugins.c (start_element, text, oval_plugin_add): Always free
+	memory that is allocated by glib functions.  Take into account that the
+	nvti_set_* functions duplicate the given memory.
+	(ovaldi_launch): Add leak todos.
+
 2011-05-31  Jan-Oliver Wagner <jan-oliver.wagner@greenbone.net>
 
 	* src/pluginlaunch.c: Added missing include of internal_com.h.

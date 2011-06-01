@@ -203,13 +203,14 @@ start_element (GMarkupParseContext * context, const gchar * element_name,
                 {
                   // TODO: This currently assigns only IDs in the range intended for
                   // RedHat security advisories.
-                  // TODO: g_strdup really necessary?
-                  nvti_set_oid (current_plugin,
-                      (const gchar *) g_strconcat ("1.3.6.1.4.1.25623.1.2.2312.",
-                      g_strrstr (g_strdup (*value_cursor), ":") + 1, NULL));
+                  gchar *nvt_oid = g_strconcat ("1.3.6.1.4.1.25623.1.2.2312.",
+                                                g_strrstr (*value_cursor, ":") + 1,
+                                                NULL);
+                  nvti_set_oid (current_plugin, nvt_oid);
+                  g_free (nvt_oid);
                 }
               if (strcmp (*name_cursor, "version") == 0)
-                nvti_set_version(current_plugin, *value_cursor);
+                nvti_set_version (current_plugin, *value_cursor);
               name_cursor++;
               value_cursor++;
             }
@@ -269,11 +270,14 @@ text (GMarkupParseContext * context, const gchar * text, gsize text_len,
         gchar **title_split = g_strsplit (text, "\n", 0);
         if (g_strv_length (title_split) > 1)
           {
+            gchar *nvt_name;
             for (i = 0; i < g_strv_length (title_split); i++)
               {
                 g_strstrip (title_split[i]);
               }
-            nvti_set_name (current_plugin, g_strjoinv (" ", title_split));
+            nvt_name = g_strjoinv (" ", title_split);
+            nvti_set_name (current_plugin, nvt_name);
+            g_free (nvt_name);
           }
         else
           {
@@ -383,6 +387,7 @@ oval_plugin_add (char *folder, char *name, struct arglist *plugins,
 
   if (args == NULL)
     {
+      gchar *nvt_filename;
       char *sign_fprs = nasl_extract_signature_fprs (fullname);
       // If server accepts signed plugins only, discard if signature file missing.
       if (preferences_nasl_no_signature_check (preferences) == 0
@@ -425,6 +430,8 @@ oval_plugin_add (char *folder, char *name, struct arglist *plugins,
       if (g_slist_length (plugin_list) > 1)
         {
           gchar **title_array;
+          gchar *nvt_description;
+          gchar *nvt_name;
           title_array =
             g_malloc0 ((g_slist_length (plugin_list) + 1) * sizeof (gchar *));
 
@@ -437,22 +444,27 @@ oval_plugin_add (char *folder, char *name, struct arglist *plugins,
           descriptions = g_strjoinv (NULL, title_array);
           if (strlen (descriptions) > 3100)
             {
-              nvti_set_description (first_plugin, g_strconcat
+              gchar *short_description = g_strndup (descriptions, 3100);
+              nvt_description = g_strconcat
                 ("This OVAL file contains the following definitions:\n",
-                 g_strndup (descriptions, 3100),
-                 "\n(list cut due to memory limitations)", NULL));
+                 short_description, "\n(list cut due to memory limitations)", NULL);
+              g_free (short_description);
             }
           else
             {
-              nvti_set_description (first_plugin, g_strconcat
+              nvt_description = g_strconcat
                 ("This OVAL file contains the following definitions:\n",
-                 g_strdup (descriptions), NULL));
+                 descriptions, NULL);
             }
+          nvti_set_description (first_plugin, nvt_description);
+          g_free (nvt_description);
           g_free (descriptions);
           g_strfreev (title_array);
-          nvti_set_name (first_plugin,
-                         g_strdup_printf ("%s (%d OVAL definitions)", name,
-                           g_slist_length (plugin_list)));
+          nvt_name = g_strdup_printf ("%s (%d OVAL definitions)",
+                                      name,
+                                      g_slist_length (plugin_list));
+          nvti_set_name (first_plugin, nvt_name);
+          g_free (nvt_name);
         }
 
       nvti_set_summary (first_plugin, nvti_name (first_plugin));
@@ -460,7 +472,11 @@ oval_plugin_add (char *folder, char *name, struct arglist *plugins,
       nvti_set_dependencies (first_plugin, "toolcheck.nasl");
       nvti_set_mandatory_keys (first_plugin, "Tools/Present/ovaldi");
       nvti_set_category (first_plugin, ACT_END);
-      nvti_set_src (first_plugin, g_build_filename (folder, name, NULL));
+
+      nvt_filename = g_build_filename (folder, name, NULL);
+      nvti_set_src (first_plugin, nvt_filename);
+      g_free (nvt_filename);
+
       nvti_set_sign_key_ids (first_plugin, sign_fprs);
 
       args = emalloc (sizeof (struct arglist));
@@ -558,14 +574,18 @@ ovaldi_launch (struct arglist *g_args)
   // struct arglist * args = arg_get_value (g_args, "args");
   struct kb_item **kb = arg_get_value (g_args, "key");
   gchar *basename =
+    /** @todo What frees the g_strdup string? */
     g_strrstr (g_strdup ((char *) arg_get_value (g_args, "name")), "/") + 1;
   gchar *result_string = NULL;
+  /** @todo What frees this? */
   gchar *folder = g_strndup ((char *) arg_get_value (g_args, "name"),
                              strlen ((char *) arg_get_value (g_args, "name")) -
                              strlen (basename));
 
+  /** @todo What frees this? */
   sc_filename = g_strconcat (folder, "sc-out.xml", NULL);
   log_write ("SC Filename: %s\n", sc_filename);
+  /** @todo What if some other process does an ovaldi scan? */
   results_filename = "/tmp/results.xml";
 
   if (g_file_test (results_filename, G_FILE_TEST_EXISTS))
