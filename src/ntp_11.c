@@ -813,11 +813,11 @@ ntp_1x_send_dependencies (struct arglist *globals)
   while (plugins->next)
     {
       struct arglist *args = plugins->value;
-      struct arglist *d, *deps;
+      struct arglist *deps;
       if (!args)
         goto nxt;
 
-      d = deps = plug_get_deps (args);
+      deps = plug_get_deps (args);
       if (deps == NULL)
         goto nxt;
 
