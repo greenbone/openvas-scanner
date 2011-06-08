@@ -1,3 +1,8 @@
+2011-06-08  Henri Doreau <henri.doreau@greenbone.net>
+
+	* src/preferences.c (openvassd_defaults, preference_reset_cache):
+	Added nework_scan to the list of default scanner options.
+
 2011-06-06  Michael Wiegand <michael.wiegand@greenbone.net>
 
 	* src/ntp_11.c (ntp_1x_send_dependencies): Revert last commit as it

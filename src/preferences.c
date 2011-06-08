@@ -83,6 +83,7 @@ static openvassd_option openvassd_defaults[] = {
   {"port_range", "default"},
   {"optimize_test", "yes"},
   {"checks_read_timeout", "5"},
+  {"network_scan", "no"},
   {"non_simult_ports", "139, 445"},
   {"plugins_timeout", G_STRINGIFY (NVT_TIMEOUT)},
   {"safe_checks", "yes"},
@@ -738,4 +739,5 @@ preferences_reset_cache ()
   preferences_save_session (NULL);
   preferences_save_empty_sessions (NULL);
   preferences_silent_dependencies (NULL);
+  preferences_network_scan (NULL);
 }
