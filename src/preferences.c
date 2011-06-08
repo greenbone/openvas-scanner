@@ -107,6 +107,7 @@ static openvassd_option openvassd_defaults[] = {
   // preferences_process.
   {"vhosts", "\0"},
   {"vhosts_ip", "\0"},
+  {"report_host_details", "yes"},
   {"cert_file", SCANNERCERT},
   {"key_file", SCANNERKEY},
   {"ca_file", CACERT},
