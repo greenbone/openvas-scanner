@@ -1,3 +1,9 @@
+2011-06-08  Michael Wiegand <michael.wiegand@greenbone.net>
+
+	Preparing the openvas-scanner 3.2.4 release.
+
+	* CHANGES: Updated.
+
 2011-06-06  Michael Wiegand <michael.wiegand@greenbone.net>
 
 	* src/ntp_11.c (ntp_1x_send_dependencies): Revert last commit as it

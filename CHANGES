@@ -1,3 +1,22 @@
+openvas-scanner 3.2.4 (2011-06-08)
+
+This is the fourth maintenance release of the openvas-scanner 3.2 module for the
+Open Vulnerability Assessment System release 4 (OpenVAS-4).
+
+This release addresses a number of compiler warnings discovered by Stephan
+Kleine, fixes two potential resource leaks reported by Henri Doreau and
+addresses an issue in the synchronization script which could cause an error
+under certain circumstances.
+
+Many thanks to everyone who has contributed to this release:
+Henri Doreau, Stephan Kleine, Matthew Mundell and Michael Wiegand.
+
+Main changes compared to 3.2.3:
+* Fixed: Two potential resource leaks.
+* Fixed: A number of compiler warning when compiling with gcc 4.6.
+* Fixed: Usage of the mktemp template in openvas-nvt-sync.
+
+
 openvas-scanner 3.2.3 (2011-04-11)
 
 This is the third maintenance release of the openvas-scanner 3.2 module for the
