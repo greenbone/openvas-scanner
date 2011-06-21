@@ -1,3 +1,13 @@
+2011-06-21  Michael Wiegand <michael.wiegand@greenbone.net>
+
+	Preparing the openvas-scanner 3.3+beta1 release.
+
+	* CHANGES: Updated.
+
+	* INSTALL: Note dependency on openvas-libraries >= 5.0+beta1.
+
+	* CMakeLists.txt: Updated.
+
 2011-06-08  Michael Wiegand <michael.wiegand@greenbone.net>
 
 	* src/preferences.c (openvassd_defaults): Add report_host_details to

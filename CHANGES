@@ -1,3 +1,28 @@
+openvas-scanner 3.3+beta1 (2011-06-21)
+
+This is the first beta release of the openvas-scanner 3.3 module for the Open
+Vulnerability Assessment System (OpenVAS). It will be part of the upcoming
+"OpenVAS 5".
+
+It contains the result of a continuous code audit and fixes a number of
+potential resource leaks and compiler warnings. It also removes the forced
+execution of NVTs in the ACT_INIT category and removes support for shared
+sockets in accordance with the OpenVAS Change Request #53.
+
+Many thanks to everyone who has contributed to this release:
+Henri Doreau, Stephan Kleine, Matthew Mundell, Jan-Oliver Wagner and Michael
+Wiegand.
+
+Main changes compared to 3.2.3:
+* Changed: Do not force execution of ACT_INIT category.
+* Fixed: A number of potential resource leaks.
+* Fixed: A number of compiler warnings when compiling with gcc 4.6.
+* Fixed: Usage of the mktemp template in openvas-nvt-sync.
+* Removed: Support for shared sockets.
+* New: The scanner options "network_scan" and "report_host_details" have been
+  added to the default scanner options.
+
+
 openvas-scanner 3.2.3 (2011-04-11)
 
 This is the third maintenance release of the openvas-scanner 3.2 module for the
