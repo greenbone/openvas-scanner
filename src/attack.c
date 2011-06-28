@@ -41,7 +41,7 @@
 #include <openvas/misc/network.h>        /* for auth_printf */
 #include <openvas/misc/nvt_categories.h> /* for ACT_INIT */
 #include <openvas/misc/pcap_openvas.h>   /* for v6_is_local_ip */
-#include <openvas/misc/plugutils.h>      /* for plug_get_path */
+#include <openvas/misc/plugutils.h>      /* for plug_get_launch */
 #include <openvas/misc/proctitle.h>      /* for setproctitle */
 #include <openvas/misc/system.h>         /* for emalloc */
 #include <openvas/misc/scanners_utils.h> /* for comm_send_status */
@@ -258,12 +258,13 @@ launch_plugin (struct arglist *globals, plugins_scheduler_t * sched,
 {
   struct arglist *preferences = arg_get_value (globals, "preferences");
   struct arglist *args = plugin->arglist->value;
+  nvti_t *nvti = arg_get_value (args, "NVTI");
   char name[1024];
   int optimize = preferences_optimize_test (preferences);
   int category = plugin->category;
   static int last_status = 0;
 
-  strncpy (name, plug_get_path (args), sizeof (name) - 1);
+  strncpy (name, nvti_src (nvti), sizeof (name) - 1);
   name[sizeof (name) - 1] = '\0';
 
   if (plug_get_launch (args) != LAUNCH_DISABLED || category == ACT_SETTINGS)    /* can we launch it ? */
@@ -300,7 +301,7 @@ launch_plugin (struct arglist *globals, plugins_scheduler_t * sched,
 
       if (save_kb (globals))
         {
-          char *oid = plug_get_oid (args);
+          char *oid = nvti_oid (nvti);
           char asc_id[100];
 
           snprintf (asc_id, sizeof (asc_id), "Launched/%s", oid);
