@@ -35,7 +35,7 @@
 
 #include <openvas/nasl/nasl.h>
 #include <openvas/misc/nvt_categories.h>/* for ACT_FIRST */
-#include <openvas/misc/plugutils.h>     /* for plug_get_oid */
+#include <openvas/misc/plugutils.h>     /* for plug_set_launch */
 #include <openvas/misc/network.h>       /* for recv_line */
 #include <openvas/misc/otp.h>           /* for OTP_10 */
 #include <openvas/misc/system.h>        /* for emalloc */
@@ -108,23 +108,21 @@ send_plug_info (struct arglist *globals, struct arglist *plugins)
   int j;
   static const char *categories[] = { ACT_STRING_LIST_ALL };
 #define CAT_MAX	(sizeof(categories) / sizeof(categories[0]))
-  struct arglist *args;
   char *t;
   const char *a, *b, *d, *e = NULL;
   char *desc = NULL;
   unsigned int mem_size = 0;
   char *str;
   int ignored = 0;
+  nvti_t *nvti = arg_get_value (plugins->value, "NVTI");
 
-  args = plugins->value;
-
-  if (!plug_get_oid (args))
+  if (!nvti_oid (nvti))
     {
       log_write ("NVT without OID found. Will not be sent.\n");
       return;
     }
 
-  t = plug_get_description (args);
+  t = nvti_description (nvti);
 
   if (t != NULL)
     {
@@ -133,27 +131,27 @@ send_plug_info (struct arglist *globals, struct arglist *plugins)
         t[0] = ';';
     }
 
-  j = plug_get_category (args);
+  j = nvti_category (nvti);
   if (j >= CAT_MAX || j < ACT_FIRST)
     j = CAT_MAX - 1;
 
-  e = plug_get_version (args);
+  e = nvti_version (nvti);
   if (!e)
     e = "?";
 
-  if ((a = plug_get_name (args)) == NULL)
+  if ((a = nvti_name (nvti)) == NULL)
     {
       log_write ("Inconsistent data (no name): %s - not applying this plugin\n",
-                 plug_get_oid (args));
+                 nvti_oid (nvti));
       a = "Unknown NAME";
       ignored = 1;
     }
 
-  if ((b = plug_get_copyright (args)) == NULL)
+  if ((b = nvti_copyright (nvti)) == NULL)
     {
       log_write
         ("Inconsistent data (no copyright): %s - not applying this plugin\n",
-         a ? a : plug_get_oid (args));
+         a ? a : nvti_oid (nvti));
       b = "Unknown COPYRIGHT";
       ignored = 1;
     }
@@ -161,37 +159,36 @@ send_plug_info (struct arglist *globals, struct arglist *plugins)
   if (desc == NULL)
     {
       log_write ("Inconsistent data (no desc): %s - not applying this plugin\n",
-                 a ? a : plug_get_oid (args));
+                 a ? a : nvti_oid (nvti));
       ignored = 1;
     }
 
-  if ((d = plug_get_summary (args)) == NULL)
+  if ((d = nvti_summary (nvti)) == NULL)
     {
       log_write
         ("Inconsistent data (no summary): %s - not applying this plugin\n",
-         a ? a : plug_get_oid (args));
+         a ? a : nvti_oid (nvti));
       d = "Unknown SUMMARY";
       ignored = 1;
     }
 
   if (strchr (a, '\n') != NULL)
     {
-      fprintf (stderr, "ERROR (newline in name) - %s %s\n", plug_get_oid (args),
-               a);
+      fprintf (stderr, "ERROR (newline in name) - %s %s\n", nvti_oid (nvti), a);
       ignored = 1;
     }
 
   if (strchr (b, '\n') != NULL)
     {
       fprintf (stderr, "ERROR (newline in copyright)- %s %s\n",
-               plug_get_oid (args), b);
+               nvti_oid (nvti), b);
       ignored = 1;
 
     }
 
   if (desc && strchr (desc, '\n') != NULL)
     {
-      fprintf (stderr, "ERROR (newline in desc) - %s %s\n", plug_get_oid (args),
+      fprintf (stderr, "ERROR (newline in desc) - %s %s\n", nvti_oid (nvti),
                desc);
       ignored = 1;
 
@@ -200,7 +197,7 @@ send_plug_info (struct arglist *globals, struct arglist *plugins)
   if (strchr (d, '\n'))
     {
       fprintf (stderr, "ERROR (newline in summary) - %s %s\n",
-               plug_get_oid (args), d);
+               nvti_oid (nvti), d);
       ignored = 1;
     }
 
@@ -211,20 +208,20 @@ send_plug_info (struct arglist *globals, struct arglist *plugins)
         strlen (desc) +         /* Description */
         strlen (d) +            /* Summary */
         strlen (e) +            /* Version */
-        strlen (plug_get_family (args)) +       /* Family */
+        strlen (nvti_family (nvti)) +       /* Family */
         7170 +                  /* CVEs + BIDs + XREFs + Tags + Keys */
         100;                    /* Separators etc. */
 
       str = emalloc (mem_size);
       snprintf (str, mem_size, "%s <|> %s <|> %s <|> %s <|> %s <|> %s <|> %s",  /* RATS: ignore */
-                plug_get_oid (args), a, categories[j], b, desc, d,
-                plug_get_family (args));
+                nvti_oid (nvti), a, categories[j], b, desc, d,
+                nvti_family (nvti));
 
       strcat (str, " <|> ");    /* RATS: ignore */
       strcat (str, e);          /* RATS: ignore */
 
       {
-        char *id = plug_get_cve_id (args);
+        char *id = nvti_cve (nvti);
         if (id == NULL || strcmp (id, "") == 0)
           id = "NOCVE";
         strcat (str, " <|> ");  /* RATS: ignore */
@@ -232,7 +229,7 @@ send_plug_info (struct arglist *globals, struct arglist *plugins)
       }
 
       {
-        char *bid = plug_get_bugtraq_id (args);
+        char *bid = nvti_bid (nvti);
         if (bid == NULL || strcmp (bid, "") == 0)
           bid = "NOBID";
         strcat (str, " <|> ");  /* RATS: ignore */
@@ -240,7 +237,7 @@ send_plug_info (struct arglist *globals, struct arglist *plugins)
       }
 
       {
-        char *xref = plug_get_xref (args);
+        char *xref = nvti_xref (nvti);
         if (xref == NULL || strcmp (xref, "") == 0)
           xref = "NOXREF";
         strcat (str, " <|> ");  /* RATS: ignore */
@@ -248,7 +245,7 @@ send_plug_info (struct arglist *globals, struct arglist *plugins)
       }
 
       {
-        char *sign_keys = plug_get_sign_key_ids (args);
+        char *sign_keys = nvti_sign_key_ids (nvti);
         if (sign_keys == NULL || strcmp (sign_keys, "") == 0)
           sign_keys = "NOSIGNKEYS";
         strcat (str, " <|> ");  /* RATS: ignore */
@@ -256,7 +253,7 @@ send_plug_info (struct arglist *globals, struct arglist *plugins)
       }
 
       {
-        char *tag = plug_get_tag (args);
+        char *tag = nvti_tag (nvti);
         if (tag == NULL || strcmp (tag, "") == 0)
           tag = "NOTAG";
         strcat (str, " <|> ");  /* RATS: ignore */
@@ -290,7 +287,7 @@ plugin_send_infos (struct arglist *globals, char *oid)
   while (plugins)
     {
       struct arglist *args = plugins->value;
-      if (args && !strcmp (oid, plug_get_oid (args)))
+      if (args && !strcmp (oid, nvti_oid (arg_get_value (args, "NVTI"))))
         {
           send_plug_info (globals, plugins);
           return;
@@ -445,8 +442,8 @@ qsort_cmp (const void *a, const void *b)
   struct arglist **plugin_b = (struct arglist **) b;
 
   return (strcmp
-          (plug_get_oid ((*plugin_a)->value),
-           plug_get_oid ((*plugin_b)->value)));
+          (nvti_oid (arg_get_value ((*plugin_a)->value, "NVTI")),
+           nvti_oid (arg_get_value ((*plugin_b)->value, "NVTI"))));
 }
 
 /**
@@ -466,7 +463,7 @@ _get_plug_by_oid (struct arglist **array, char *oid, int start, int end,
 
   if (start == end)
     {
-      plugin_oid = plug_get_oid (array[start]->value);
+      plugin_oid = nvti_oid (arg_get_value (array[start]->value, "NVTI"));
       if (strcmp (plugin_oid, oid) == 0)
         return array[start];
       else
@@ -474,7 +471,7 @@ _get_plug_by_oid (struct arglist **array, char *oid, int start, int end,
     }
 
   mid = (start + end) / 2;
-  plugin_oid = plug_get_oid (array[mid]->value);
+  plugin_oid = nvti_oid (arg_get_value (array[mid]->value, "NVTI"));
   if (strcmp (plugin_oid, oid) > 0)
     return _get_plug_by_oid (array, oid, start, mid, rend);
   else if (strcmp (plugin_oid, oid) < 0)

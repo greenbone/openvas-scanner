@@ -33,7 +33,7 @@
 #include <glib.h>
 
 #include <openvas/misc/network.h>    /* for recv_line */
-#include <openvas/misc/plugutils.h>  /* for plug_get_name */
+#include <openvas/misc/plugutils.h>  /* for plug_get_deps */
 #include <openvas/misc/system.h>     /* for emalloc */
 #include <openvas/misc/hash_table_file.h>
 #include <openvas/misc/openvas_ssh_login.h>
@@ -746,7 +746,7 @@ _find_plugin (struct arglist **array, char *fname, int start, int end, int rend)
       plugin = array[start];
 
       if (strcmp (fname, plugin->name) == 0)
-        return plug_get_name (plugin->value);
+        return nvti_name (arg_get_value (plugin->value, "NVTI"));
       else
         return NULL;
     }
@@ -759,7 +759,7 @@ _find_plugin (struct arglist **array, char *fname, int start, int end, int rend)
   else if (e < 0)
     return _find_plugin (array, fname, mid + 1, end, rend);
   else
-    return plug_get_name (plugin->value);
+    return nvti_name (arg_get_value (plugin->value, "NVTI"));
 }
 
 
@@ -812,6 +812,7 @@ ntp_1x_send_dependencies (struct arglist *globals)
 
   while (plugins->next)
     {
+      nvti_t *nvti = arg_get_value (plugins->value, "NVTI");
       struct arglist *args = plugins->value;
       struct arglist *d, *deps;
       if (!args)
@@ -821,8 +822,7 @@ ntp_1x_send_dependencies (struct arglist *globals)
       if (deps == NULL)
         goto nxt;
 
-
-      strncat (buf, plug_get_name (args), buf_size);
+      strncat (buf, nvti_name (nvti), buf_size);
       strncat (buf, " <|> ", buf_size);
       while (deps->next)
         {

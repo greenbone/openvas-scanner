@@ -1,3 +1,29 @@
+2011-07-10  Jan-Oliver Wagner <jan-oliver.wagner@greenbone.net>
+
+	* src/nasl_plugins.c (nasl_plugin_add, nasl_plugin_launch):
+	Replace use of plug_get*() by direct call of nvti_*() where
+	nvti elements are concerned.
+
+	* src/plugs_hash.c (plugins_send_md5): Replace use of
+	plug_get*() by direct call of nvti_*() where nvti elements are
+	concerned.
+
+	* src/comm.c (send_plug_info, plugin_send_infos, qsort_cmp,
+	_get_plug_by_oid): Replace use of plug_get*() by direct call of
+	nvti_*() where nvti elements are concerned.
+
+	* src/pluginscheduler.c (plugins_scheduler_init):
+	Replace use of plug_get*() by direct call of nvti_*() where
+	nvti elements are concerned. Except where lists are handled.
+
+	* src/ntp_11.c (_find_plugin, ntp_1x_send_dependencies):
+	Replace use of plug_get*() by direct call of nvti_*() where
+	nvti elements are concerned. Except where lists are handled.
+
+	* src/pluginlaunch.c (plugin_launch):
+	_get_plug_by_oid): Replace use of plug_get*() by direct call of
+	nvti_*() where nvti elements are concerned.
+
 2011-06-28  Jan-Oliver Wagner <jan-oliver.wagner@greenbone.net>
 
 	* src/attack.c (launch_plugin): Replace use of plug_get*() by

@@ -33,8 +33,8 @@
 #include <dirent.h>   /* for opendir() */
 #include <errno.h>    /* for errno() */
 
+#include <openvas/base/nvti.h>       /* for nvti_t */
 #include <openvas/misc/network.h>    /* for auth_printf */
-#include <openvas/misc/plugutils.h>  /* for plug_get_path */
 #include <openvas/misc/share_fd.h>   /* for send_fd */
 #include <openvas/misc/system.h>     /* for efree */
 
@@ -183,11 +183,9 @@ plugins_send_md5 (struct arglist *globals)
 
   while (plugins->next != NULL)
     {
-      struct arglist *args = plugins->value;
-      char *fname = plug_get_path (args);
-      char *oid = plug_get_oid (args);
-      char *md5 = file_hash (fname);
-      auth_printf (globals, "%s <|> %s\n", oid, md5);
+      nvti_t *nvti = arg_get_value (plugins->value, "NVTI");
+      char *md5 = file_hash ((char *)nvti_src (nvti));
+      auth_printf (globals, "%s <|> %s\n", nvti_oid (nvti), md5);
       efree (&md5);
       plugins = plugins->next;
     }

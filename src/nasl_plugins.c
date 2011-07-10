@@ -44,7 +44,7 @@
 #include <openvas/nasl/nasl.h>
 #include <openvas/misc/network.h>    /* for internal_send */
 #include <openvas/misc/nvt_categories.h>  /* for ACT_SCANNER */
-#include <openvas/misc/plugutils.h>     /* for plug_set_path */
+#include <openvas/misc/plugutils.h>     /* for plug_set_launch */
 #include <openvas/misc/internal_com.h>  /* for INTERNAL_COMM_CTRL_FINISHED */
 #include <openvas/misc/store.h>      /* for store_plugin */
 #include <openvas/misc/system.h>     /* for emalloc */
@@ -101,6 +101,7 @@ nasl_plugin_add (char *folder, char *name, struct arglist *plugins,
   struct arglist *prev_plugin = NULL;
   int nasl_mode;
   nasl_mode = NASL_EXEC_DESCR;
+  nvti_t * nvti = NULL;
 
   snprintf (fullname, sizeof (fullname), "%s/%s", folder, name);
 
@@ -128,6 +129,8 @@ nasl_plugin_add (char *folder, char *name, struct arglist *plugins,
       plugin_args = emalloc (sizeof (struct arglist));
       arg_add_value (plugin_args, "preferences", ARG_ARGLIST, -1,
                      (void *) preferences);
+      nvti = nvti_new ();
+      arg_add_value (plugin_args, "NVTI", ARG_PTR, -1, nvti);
 
       if (exec_nasl_script (plugin_args, fullname, nasl_mode) < 0)
         {
@@ -137,9 +140,9 @@ nasl_plugin_add (char *folder, char *name, struct arglist *plugins,
           return NULL;
         }
 
-      plug_set_path (plugin_args, fullname);
 
-      plug_set_sign_key_ids (plugin_args, sign_fprs);
+      nvti_set_src (nvti, fullname);
+      nvti_add_sign_key_id (nvti, sign_fprs);
 
       // Check mtime of plugin before caching it
       // Set to now if mtime is in the future
@@ -157,7 +160,7 @@ nasl_plugin_add (char *folder, char *name, struct arglist *plugins,
             log_write ("The timestamp for %s is from the future and could not be fixed.", fullname);
         }
 
-      if (plug_get_oid (plugin_args) != NULL)
+      if (nvti_oid (nvti) != NULL)
         {
           store_plugin (plugin_args, name);
           plugin_args = store_load_plugin (name, preferences);
@@ -176,7 +179,8 @@ nasl_plugin_add (char *folder, char *name, struct arglist *plugins,
       return NULL;
     }
 
-  if (plug_get_oid (plugin_args) == NULL)
+  nvti = arg_get_value (plugin_args, "NVTI");
+  if (nvti_oid (nvti) == NULL)
     {
       plugin_free (plugin_args);
       return NULL;
@@ -209,6 +213,7 @@ nasl_plugin_launch (struct arglist *globals, struct arglist *plugin,
   int category = 0;
   int module;
   struct arglist *d = emalloc (sizeof (struct arglist));
+  nvti_t * nvti = arg_get_value (plugin, "NVTI");
 
   arg_add_value (plugin, "HOSTNAME", ARG_ARGLIST, -1, hostinfos);
   if (arg_get_value (plugin, "globals"))
@@ -224,8 +229,8 @@ nasl_plugin_launch (struct arglist *globals, struct arglist *plugin,
   arg_add_value (d, "name", ARG_STRING, -1, name);
   arg_add_value (d, "preferences", ARG_STRING, -1, preferences);
 
-  category = plug_get_category (plugin);
-  timeout = preferences_plugin_timeout (preferences, plug_get_oid (plugin));
+  category = nvti_category (nvti);
+  timeout = preferences_plugin_timeout (preferences, nvti_oid (nvti));
   if (timeout == 0)
     {
       if (category == ACT_SCANNER)

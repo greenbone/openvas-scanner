@@ -503,13 +503,14 @@ plugins_scheduler_init (struct arglist *plugins, int autoload,
     {
       struct scheduler_plugin *scheduler_plugin;
       struct list *dup;
-      int category = plug_get_category (arg->value);
+      nvti_t *nvti = arg_get_value (arg->value, "NVTI");
+      int category = nvti_category (nvti);
 
       scheduler_plugin = emalloc (sizeof (struct scheduler_plugin));
       scheduler_plugin->arglist = arg;
       scheduler_plugin->running_state = PLUGIN_STATUS_UNRUN;
-      scheduler_plugin->category = plug_get_category (arg->value);
-      scheduler_plugin->timeout = plug_get_timeout (arg->value);
+      scheduler_plugin->category = category;
+      scheduler_plugin->timeout = nvti_timeout (nvti);
 
       scheduler_plugin->required_ports = plug_get_required_ports (arg->value);
       scheduler_plugin->required_udp_ports =
@@ -565,7 +566,7 @@ plugins_scheduler_init (struct arglist *plugins, int autoload,
       while (l != NULL)
         {
           if (plug_get_launch (l->plugin->arglist->value) == LAUNCH_DISABLED
-              && plug_get_category (l->plugin->arglist->value) != ACT_SETTINGS)
+              && nvti_category (arg_get_value (l->plugin->arglist->value, "NVTI")) != ACT_SETTINGS)
             {
               struct list *old = l->next;
 
