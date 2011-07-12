@@ -481,7 +481,7 @@ oval_plugin_add (char *folder, char *name, struct arglist *plugins,
 
       args = emalloc (sizeof (struct arglist));
 
-      plug_set_nvti (args, first_plugin);
+      arg_add_value (args, "NVTI", ARG_PTR, -1, first_plugin);
 
       store_plugin (args, name);
       args = store_load_plugin (name, preferences);

@@ -1,3 +1,8 @@
+2011-07-12  Jan-Oliver Wagner <jan-oliver.wagner@greenbone.net>
+
+	* src/oval_plugins.c (): Replace call of plug_set_nvti by
+	direct retrieval from arglist structure.
+
 2011-07-10  Jan-Oliver Wagner <jan-oliver.wagner@greenbone.net>
 
 	* src/nasl_plugins.c (nasl_plugin_add, nasl_plugin_launch):
