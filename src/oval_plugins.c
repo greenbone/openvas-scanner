@@ -38,7 +38,7 @@
 #include <openvas/nasl/nasl.h>
 #include <openvas/misc/network.h>    /* for internal_send */
 #include <openvas/misc/nvt_categories.h>  /* for ACT_END */
-#include <openvas/misc/plugutils.h>  /* for plug_set_oid */
+#include <openvas/misc/plugutils.h>  /* for post_note */
 #include <openvas/misc/store.h>      /* for store_load_plugin */
 #include <openvas/misc/system.h>     /* for emalloc */
 #include <openvas/misc/proctitle.h>  /* for setproctitle */

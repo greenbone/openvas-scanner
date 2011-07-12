@@ -1,7 +1,11 @@
 2011-07-12  Jan-Oliver Wagner <jan-oliver.wagner@greenbone.net>
 
-	* src/oval_plugins.c (): Replace call of plug_set_nvti by
-	direct retrieval from arglist structure.
+	* src/oval_plugins.c: Fixed rationale for a include.
+
+2011-07-12  Jan-Oliver Wagner <jan-oliver.wagner@greenbone.net>
+
+	* src/oval_plugins.c (oval_plugin_add): Replace call of plug_set_nvti
+	by direct retrieval from arglist structure.
 
 2011-07-10  Jan-Oliver Wagner <jan-oliver.wagner@greenbone.net>
 
