@@ -192,6 +192,7 @@ sync_nvts(){
     if [ -e /admin/ezcli.state ]
     then
       gsmproxy=`grep proxy_feed /admin/ezcli.state | sed -e 's/^.*\/\///' -e 's/:/ /' -e 's/[\t ]*$//'`
+      PORT=`grep ^syncport /admin/ezcli.state | sed -e "s/^syncport\t//g"`
     fi
     if [ "$gsmproxy" = "proxy_feed" ] || [ -z $gsmproxy ]
     then
