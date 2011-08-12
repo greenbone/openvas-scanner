@@ -1,3 +1,8 @@
+2011-08-12  Michael Wiegand <michael.wiegand@greenbone.net>
+
+	* tools/greenbone-nvt-sync: Switch Manager DB rebuild to signal based
+	mechanism.
+
 2011-07-13  Matthew Mundell <matthew.mundell@greenbone.net>
 
 	* ChangeLog: Always close the parentheses on the line they are opened on,

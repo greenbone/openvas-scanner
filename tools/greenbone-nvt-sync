@@ -28,7 +28,7 @@
 # with some characters in order to make it newer than
 # any follow-up version to prevent that your version
 # will be overwritten.
-VERSION=20110214
+VERSION=20110623
 
 # SETTINGS
 # ========
@@ -60,6 +60,9 @@ RSYNC_VERBOSE="-q"
 
 # Port to use for synchronization. Default value is 24.
 PORT=24
+
+# Directory where pidfiles are located
+PIDFILEDIR="/var/run"
 
 if [ ! -w $LOGDIR ]
 then
@@ -264,37 +267,21 @@ update_openvasmd (){
   if [ -n "$NOINIT" ] ; then
     return
   fi
-  log_write "Updating OpenVAS Manager"
-  OPENVASMD=`command -v openvasmd`
-  if [ -z $OPENVASMD ]
+  log_write "Updating OpenVAS Manager DB"
+  MANAGER_PIDFILE="$PIDFILEDIR/openvasmd.pid"
+  if [ -r "$MANAGER_PIDFILE" ]
   then
-    stderr_write "== greenbone-nvt-sync $VERSION ================================================"
-    stderr_write "OpenVAS Manager not found. Thus, not updating openvas-manager database."
-    stderr_write "This is not necessary if you run the Scanner directly and you may disregard"
-    stderr_write "this message."
-    stderr_write "However, if you actually use the Manager, please make sure that"
-    stderr_write "  openvasmd"
-    stderr_write "is installed and available in your PATH variable."
-    stderr_write "If you suspect a system error here, please contact Greenbone Support at"
-    stderr_write "support@greenbone.net and include the error messages displayed above (if any)"
-    stderr_write "and your customer ID."
-    stderr_write "==============================================================================="
-    log_write "openvasmd not found, not updating the openvas-manager database."
+    MANAGER_PID=`cat $MANAGER_PIDFILE`
+    kill -HUP $MANAGER_PID
+    log_write "Sent signal to OpenVAS Manager to rebuild the database."
   else
-    MANAGER_NAME="openvas-manager"
-    if [ -e $sysconfdir/init.d/$MANAGER_NAME ]
-    then
-      log_write "Updating the OpenVAS Manager database..."
-      $OPENVASMD --rebuild && $sysconfdir/init.d/$MANAGER_NAME restart
-    else
-      stderr_write "== greenbone-nvt-sync $VERSION =========================================="
-      stderr_write "Could not find"
-      stderr_write "  $sysconfdir/init.d/$MANAGER_NAME!"
-      stderr_write "Stopping the manager is not prepared on your system."
-      stderr_write "Please restart your manager manually."
-      stderr_write "========================================================================="
-      log_write "$sysconfdir/init.d/$MANAGER_NAME not found, not stopping manager."
-    fi
+    stderr_write "== greenbone-nvt-sync $VERSION =========================================="
+    stderr_write "Could not find"
+    stderr_write "  $PIDFILEDIR/openvasmd.pid!"
+    stderr_write "Sending a HUP signal to the manager is not prepared on your system."
+    stderr_write "Please send a HUP signal to your manager manually."
+    stderr_write "========================================================================="
+    log_write "$PIDFILEDIR/openvasmd.pid not found, not updating manager."
   fi
 }
 
