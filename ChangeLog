@@ -1,5 +1,9 @@
 2011-08-12  Michael Wiegand <michael.wiegand@greenbone.net>
 
+	* tools/greenbone-nvt-sync: Update VERSION.
+
+2011-08-12  Michael Wiegand <michael.wiegand@greenbone.net>
+
 	* tools/greenbone-nvt-sync: Add support for syncport setting.
 
 2011-08-12  Michael Wiegand <michael.wiegand@greenbone.net>
