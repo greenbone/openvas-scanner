@@ -1,3 +1,10 @@
+2011-09-12  Michael Wiegand <michael.wiegand@greenbone.net>
+
+	* src/oval_plugins.c (ovaldi_launch): Tighten security for ovaldi
+	launch: Ensure file names are not easily guessable, drop privileges
+	early and place files in a randomly named temporary directory after
+	privileges have been dropped. Improve cleanup after ovaldi launch.
+
 2011-08-12  Michael Wiegand <michael.wiegand@greenbone.net>
 
 	* tools/greenbone-nvt-sync: Update VERSION.

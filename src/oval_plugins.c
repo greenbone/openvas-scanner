@@ -34,6 +34,7 @@
 #include <sys/types.h> /* for getpwnam() */
 #include <pwd.h>       /* for getpwnam() */
 #include <signal.h>    /* for signal() */
+#include <stdlib.h>    /* for mkdtemp */
 
 #include <openvas/nasl/nasl.h>
 #include <openvas/misc/network.h>    /* for internal_send */
@@ -45,6 +46,8 @@
 #include <openvas/misc/internal_com.h>  /* for INTERNAL_COMM_MSG_TYPE_CTRL */
 
 #include <openvas/base/nvti.h>  /* for nvti_t */
+#include <openvas/base/drop_privileges.h> /* for drop_privileges */
+#include <openvas/base/openvas_file.h>  /* for openvas_file_remove_recurse */
 
 #include <glib.h>
 #include <glib/gstdio.h>
@@ -581,20 +584,33 @@ ovaldi_launch (struct arglist *g_args)
   gchar *folder = g_strndup ((char *) arg_get_value (g_args, "name"),
                              strlen ((char *) arg_get_value (g_args, "name")) -
                              strlen (basename));
+  GError *error;
+  gchar *tmpdirtemplate;
+  char *tmpdir;
 
-  /** @todo What frees this? */
-  sc_filename = g_strconcat (folder, "sc-out.xml", NULL);
-  log_write ("SC Filename: %s\n", sc_filename);
-  /** @todo What if some other process does an ovaldi scan? */
-  results_filename = "/tmp/results.xml";
-
-  if (g_file_test (results_filename, G_FILE_TEST_EXISTS))
+  int drop_priv_res = OPENVAS_DROP_PRIVILEGES_OK;
+  drop_priv_res = drop_privileges (NULL, &error);
+  if (drop_priv_res != OPENVAS_DROP_PRIVILEGES_OK)
     {
-      log_write
-        ("Found existing results file in %s, deleting it to avoid conflicts.",
-         results_filename);
-      g_unlink (results_filename);
+      if (drop_priv_res != OPENVAS_DROP_PRIVILEGES_FAIL_NOT_ROOT)
+        {
+          log_write ("Failed to drop privileges for ovaldi launch!");
+          g_error_free (error);
+          return;
+        }
+      g_error_free (error);
     }
+
+  tmpdirtemplate = g_strdup_printf ("%s/openvasovalXXXXXX", g_get_tmp_dir ());
+  tmpdir = mkdtemp (tmpdirtemplate);
+
+  if (tmpdir == NULL)
+    {
+      log_write ("Failed to create temporary directory!");
+      return;
+    }
+
+  sc_filename = g_strconcat (tmpdir, "/sc-out.xml", NULL);
 
   sc_file = fopen (sc_filename, "w");
   if (sc_file == NULL)
@@ -979,6 +995,8 @@ ovaldi_launch (struct arglist *g_args)
   if (sc_file != NULL)
     fclose (sc_file);
 
+  results_filename = g_strconcat (tmpdir, "/results.xml", NULL);
+
   gchar **argv = (gchar **) g_malloc (11 * sizeof (gchar *));
   argv[0] = g_strdup ("ovaldi");
   argv[1] = g_strdup ("-m");    // Do not check OVAL MD5 signature
@@ -994,7 +1012,7 @@ ovaldi_launch (struct arglist *g_args)
   //   log_write ("Launching ovaldi with: %s\n", g_strjoinv (" ", argv));
 
   if (g_spawn_sync
-      (NULL, argv, NULL, G_SPAWN_SEARCH_PATH, oval_drop_privileges, NULL, NULL, NULL,
+      (NULL, argv, NULL, G_SPAWN_SEARCH_PATH, NULL, NULL, NULL, NULL,
        NULL, NULL))
     {
       GMarkupParser parser;
@@ -1074,6 +1092,10 @@ ovaldi_launch (struct arglist *g_args)
     }
   g_strfreev (argv);
   g_free (result_string);
+  g_free (results_filename);
+  g_free (sc_filename);
+  openvas_file_remove_recurse (tmpdir);
+  g_free (tmpdir);
 }
 
 pl_class_t oval_plugin_class = {
