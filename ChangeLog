@@ -1,3 +1,11 @@
+2011-09-23  Michael Wiegand <michael.wiegand@greenbone.net>
+
+	* src/oval_plugins.c (ovaldi_launch): Tighten security for ovaldi
+	launch: Ensure file names are not easily guessable, drop privileges
+	early and place files in a randomly named temporary directory after
+	privileges have been dropped. Improve cleanup after ovaldi launch.
+	Backport from trunk, originally committed in SVN r11599.
+
 2011-06-08  Michael Wiegand <michael.wiegand@greenbone.net>
 
 	Post release version bump.
