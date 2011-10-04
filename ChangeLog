@@ -1,6 +1,12 @@
 2011-10-04  Matthew Mundell <matthew.mundell@greenbone.net>
 
-	* src/openvassd.c (main): Enforce UTC.
+	* ChangeLog: Describe UTC relation to Manager in last entry.
+
+2011-10-04  Matthew Mundell <matthew.mundell@greenbone.net>
+
+	* src/openvassd.c (main): Enforce UTC.  When using Scanner with Manager
+	either the Scanner must have been using UTC already, or the Manager must
+	migrate the existing data (r11730) before using this Scanner version.
 
 2011-09-12  Michael Wiegand <michael.wiegand@greenbone.net>
 
