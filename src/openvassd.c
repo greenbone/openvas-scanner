@@ -1100,6 +1100,14 @@ main (int argc, char *argv[], char *envp[])
       exit (0);
     }
 
+  /* Switch to UTC so that OTP times are always in UTC. */
+  if (setenv ("TZ", "utc 0", 1) == -1)
+    {
+      g_print ("%s\n\n", strerror (errno));
+      exit (0);
+    }
+  tzset ();
+
   if (quiet)
     be_quiet = 1;
 
