@@ -1,3 +1,33 @@
+openvas-scanner 3.3+beta2 (2011-10-10)
+
+This is the second beta release of the openvas-scanner 3.3 module for the Open
+Vulnerability Assessment System (OpenVAS). It will be part of the upcoming
+"OpenVAS 5".
+
+This release tightens security when using the external tool "ovaldi", enforces
+the internal use of the UTC timezone and features an updated greenbone-nvt-sync
+script.
+
+NOTE: Due to the changes in 5.0+beta2, it is strongly recommended to delete the
+contents of the OpenVAS Scanner cache directory to remove obsolete files and to
+force the Scanner to rebuild the cache.
+
+ATTENTION: The OpenVAS Scanner now enforces the internal use of the UTC
+timezone. If the Scanner has been in use with an OpenVAS Manager, it is strongly
+recommended to update to OpenVAS Manager >= 5.0+beta5 and to migrate the Manager
+database before using this Scanner version to ensure data consistency.
+
+Many thanks to everyone who has contributed to this release:
+Matthew Mundell, Jan-Oliver Wagner and Michael Wiegand.
+
+Main changes compared to 3.3+beta1:
+* NVT management code has been updated to reflect the updated openvas-libraries
+  API.
+* The optional use of the external tool "ovaldi" has been made more secure.
+* OpenVAS Scanner now uses UTC internally.
+* The greenbone-nvt-sync script has been updated.
+
+
 openvas-scanner 3.3+beta1 (2011-06-21)
 
 This is the first beta release of the openvas-scanner 3.3 module for the Open
