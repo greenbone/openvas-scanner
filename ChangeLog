@@ -1,3 +1,8 @@
+2011-10-10  Michael Wiegand <michael.wiegand@greenbone.net>
+
+	* tools/greenbone-nvt-sync: Use awk instead of read since the "-d"
+	option is not available in all shells.
+
 2011-10-04  Matthew Mundell <matthew.mundell@greenbone.net>
 
 	* ChangeLog: Describe UTC relation to Manager in last entry.

@@ -28,7 +28,7 @@
 # with some characters in order to make it newer than
 # any follow-up version to prevent that your version
 # will be overwritten.
-VERSION=20110812
+VERSION=20111010
 
 # SETTINGS
 # ========
@@ -170,7 +170,7 @@ sync_nvts(){
 
   mkdir -p "$NVT_DIR"
   read feeduser < $sysconfdir/openvas/gsf-access-key
-  read -d "@" custid < $sysconfdir/openvas/gsf-access-key
+  custid=`awk -F@ 'NR > 1 { exit }; { print $1 }' $sysconfdir/openvas/gsf-access-key`
   if [ -z $feeduser ] || [ -z $custid ]
   then
     stderr_write "== greenbone-nvt-sync $VERSION ================================================"
