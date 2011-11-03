@@ -1,5 +1,11 @@
 2011-11-03  Michael Wiegand <michael.wiegand@greenbone.net>
 
+	Post release version bump.
+
+	* CMakeLists.txt: Set to version to 3.2.6.
+
+2011-11-03  Michael Wiegand <michael.wiegand@greenbone.net>
+
 	Preparing the openvas-scanner 3.2.5 release.
 
 	* CHANGES: Updated.
