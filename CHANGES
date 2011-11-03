@@ -1,3 +1,19 @@
+openvas-scanner 3.2.5 (2011-11-03)
+
+This is the fifth maintenance release of the openvas-scanner 3.2 module for the
+Open Vulnerability Assessment System release 4 (OpenVAS-4).
+
+This release addresses a security issue related to the optional use of the
+external tool "ovaldi" by making file ownership and location more secure. This
+fixes the issue described in OSVDB-75177.
+
+Many thanks to everyone who has contributed to this release:
+Michael Wiegand.
+
+Main changes compared to 3.2.4:
+* The optional use of the external tool "ovaldi" has been made more secure.
+
+
 openvas-scanner 3.2.4 (2011-06-08)
 
 This is the fourth maintenance release of the openvas-scanner 3.2 module for the
