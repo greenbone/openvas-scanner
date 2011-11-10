@@ -247,7 +247,7 @@ add_subdirectory (doc)
 
 ## Install
 
-install (FILES src/openvassd
+install (FILES ${CMAKE_BINARY_DIR}/src/openvassd
   DESTINATION ${SBINDIR}
   PERMISSIONS OWNER_EXECUTE OWNER_READ OWNER_WRITE
   GROUP_READ GROUP_EXECUTE WORLD_READ WORLD_EXECUTE)
@@ -256,16 +256,28 @@ install (FILES src/openvassd
 #install (FILES openvassd_log.conf
 #         DESTINATION ${OPENVAS_SYSCONF_DIR})
 
-install (FILES tools/openvas-adduser tools/openvas-rmuser
-               tools/openvas-mkcert tools/openvas-mkcert-client
-               tools/greenbone-nvt-sync tools/openvas-nvt-sync
+install (FILES ${CMAKE_BINARY_DIR}/tools/openvas-adduser
+               ${CMAKE_BINARY_DIR}/tools/openvas-rmuser
+               ${CMAKE_BINARY_DIR}/tools/openvas-mkcert
+               ${CMAKE_BINARY_DIR}/tools/openvas-mkcert-client
+               ${CMAKE_BINARY_DIR}/tools/openvas-nvt-sync
          DESTINATION ${SBINDIR}
          PERMISSIONS OWNER_EXECUTE OWNER_READ OWNER_WRITE
                      GROUP_READ GROUP_EXECUTE WORLD_READ WORLD_EXECUTE)
 
-install (FILES doc/openvas-adduser.8 doc/openvas-mkcert.8
-               doc/openvas-nvt-sync.8 doc/openvas-rmuser.8 doc/openvassd.8
-               doc/greenbone-nvt-sync.8
+install (FILES ${CMAKE_SOURCE_DIR}/tools/greenbone-nvt-sync
+         DESTINATION ${SBINDIR}
+         PERMISSIONS OWNER_EXECUTE OWNER_READ OWNER_WRITE
+                     GROUP_READ GROUP_EXECUTE WORLD_READ WORLD_EXECUTE)
+
+install (FILES ${CMAKE_BINARY_DIR}/doc/openvassd.8
+         DESTINATION ${DATADIR}/man/man8 )
+
+install (FILES ${CMAKE_SOURCE_DIR}/doc/openvas-adduser.8
+               ${CMAKE_SOURCE_DIR}/doc/openvas-mkcert.8
+               ${CMAKE_SOURCE_DIR}/doc/openvas-nvt-sync.8
+               ${CMAKE_SOURCE_DIR}/doc/openvas-rmuser.8
+               ${CMAKE_SOURCE_DIR}/doc/greenbone-nvt-sync.8
          DESTINATION ${DATADIR}/man/man8 )
 
 install (DIRECTORY DESTINATION ${OPENVAS_NVT_DIR})
