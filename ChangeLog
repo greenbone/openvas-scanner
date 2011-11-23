@@ -1,3 +1,8 @@
+2011-11-23  Michael Wiegand <michael.wiegand@greenbone.net>
+
+	* tools/greenbone-nvt-sync: Quote variables in tests to ensure strings
+	containing spaces are handled correctly.
+
 2011-11-10  Michael Wiegand <michael.wiegand@greenbone.net>
 
 	* CMakeLists.txt: Adjust source locations in install command to enable

@@ -91,7 +91,7 @@ init_sync ()
   fi
 
   SCANNER_BINARY=`command -v openvassd`
-  if [ -z $SCANNER_BINARY ]
+  if [ -z "$SCANNER_BINARY" ]
   then
     stderr_write "== greenbone-nvt-sync $VERSION ================================================"
     stderr_write "Could not locate your OpenVAS Scanner."
@@ -112,10 +112,10 @@ init_sync ()
 
   [ -r $sysconfdir/openvas/greenbone-nvt-sync.conf ] && . $sysconfdir/openvas/greenbone-nvt-sync.conf
 
-  if [ -z $NVT_DIR ]
+  if [ -z "$NVT_DIR" ]
   then
     NVT_DIR=`$SCANNER_BINARY -s | grep plugins_folder | sed 's/plugins\_folder\ *=\ *//'`
-    if [ -z $NVT_DIR ]
+    if [ -z "$NVT_DIR" ]
     then
       stderr_write "== greenbone-nvt-sync $VERSION ================================================"
       stderr_write "Could not determine the location of your NVT collection."
@@ -171,7 +171,7 @@ sync_nvts(){
   mkdir -p "$NVT_DIR"
   read feeduser < $sysconfdir/openvas/gsf-access-key
   custid=`awk -F@ 'NR > 1 { exit }; { print $1 }' $sysconfdir/openvas/gsf-access-key`
-  if [ -z $feeduser ] || [ -z $custid ]
+  if [ -z "$feeduser" ] || [ -z "$custid" ]
   then
     stderr_write "== greenbone-nvt-sync $VERSION ================================================"
     stderr_write "Feed synchronization was not possible because credential information could not"
@@ -194,7 +194,7 @@ sync_nvts(){
       gsmproxy=`grep proxy_feed /admin/ezcli.state | sed -e 's/^.*\/\///' -e 's/:/ /' -e 's/[\t ]*$//'`
       PORT=`grep ^syncport /admin/ezcli.state | sed -e "s/^syncport\t//g"`
     fi
-    if [ "$gsmproxy" = "proxy_feed" ] || [ -z $gsmproxy ]
+    if [ "$gsmproxy" = "proxy_feed" ] || [ -z "$gsmproxy" ]
     then
       rsync -e "ssh -o \"BatchMode=yes\" -p $PORT -i $sysconfdir/openvas/gsf-access-key" -ltrP $RSYNC_VERBOSE --protocol=29 $RSYNC_DELETE $feeduser $NVT_DIR
     else
@@ -316,7 +316,7 @@ do_self_test ()
 
 do_describe ()
 {
-  if [ -z $NVT_DIR ] ; then
+  if [ -z "$NVT_DIR" ] ; then
     init_sync
   fi
   echo "This script synchronizes an NVT collection with the '$FEED_NAME'."
@@ -325,7 +325,7 @@ do_describe ()
 }
 
 do_feedversion () {
-  if [ -z $NVT_DIR ] ; then
+  if [ -z "$NVT_DIR" ] ; then
     init_sync
   fi
   if [ $FEED_PRESENT -eq 1 ] ; then
