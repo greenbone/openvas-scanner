@@ -1,3 +1,8 @@
+2011-11-25  Michael Wiegand <michael.wiegand@greenbone.net>
+
+	* src/preferences.c (openvassd_defaults): Add reverse_lookup to the
+	list of default scanner options with default value "no".
+
 2011-11-23  Michael Wiegand <michael.wiegand@greenbone.net>
 
 	* tools/greenbone-nvt-sync: Quote variables in tests to ensure strings

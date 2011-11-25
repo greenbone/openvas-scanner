@@ -111,6 +111,7 @@ static openvassd_option openvassd_defaults[] = {
   {"cert_file", SCANNERCERT},
   {"key_file", SCANNERKEY},
   {"ca_file", CACERT},
+  {"reverse_lookup", "no"},
   {NULL, NULL}
 };
 
