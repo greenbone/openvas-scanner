@@ -1,12 +1,14 @@
 INSTALLATION INSTRUCTIONS FOR OPENVAS-SCANNER
 =============================================
 
-Please note: The reference system used by most of the developers is Debian
-GNU/Linux 'Lenny' 5.0.  The build might fail on any other systems.  Also
-it is necessary to install dependent development packages.
+Please note: The reference systems used by most of the developers are Debian
+GNU/Linux 'Lenny' 5.0 and Debian GNU/Linux 'Squeeze' 6.0.  The build might fail
+on any other systems.  Also it is necessary to install dependent development
+packages.
 
-Compiling openvas-scanner
--------------------------
+
+Prerequisites for openvas-scanner
+---------------------------------
 
 Prerequisites:
 * cmake
@@ -19,6 +21,10 @@ Prerequisites for building documentation:
 * Doxygen
 * xmltoman (optional, for building man page)
 * sqlfairy (optional, for producing database diagram)
+
+
+Compiling openvas-scanner
+-------------------------
 
 If you have installed required libraries to a non-standard location, remember to
 set the PKG_CONFIG_PATH environment variable to the location of you pkg-config

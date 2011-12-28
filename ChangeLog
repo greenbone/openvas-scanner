@@ -1,3 +1,7 @@
+2011-12-28  Jan-Oliver Wagner <jan-oliver.wagner@greenbone.net>
+
+	* INSTALL: Re-arranged text a bit and added some Debian 6 info.
+
 2011-11-25  Michael Wiegand <michael.wiegand@greenbone.net>
 
 	* src/preferences.c (openvassd_defaults): Add reverse_lookup to the
