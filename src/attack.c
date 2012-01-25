@@ -263,9 +263,16 @@ launch_plugin (struct arglist *globals, plugins_scheduler_t * sched,
   int optimize = preferences_optimize_test (preferences);
   int category = plugin->category;
   static int last_status = 0;
+  gchar *network_scan_status;
+  gboolean network_scan = FALSE;
 
   strncpy (name, nvti_src (nvti), sizeof (name) - 1);
   name[sizeof (name) - 1] = '\0';
+      
+  network_scan_status = arg_get_value (globals, "network_scan_status");
+  if (network_scan_status != NULL)
+    if (g_ascii_strcasecmp (network_scan_status, "busy") == 0)
+      network_scan = TRUE;
 
   if (plug_get_launch (args) != LAUNCH_DISABLED || category == ACT_SETTINGS)    /* can we launch it ? */
     {
@@ -322,22 +329,16 @@ launch_plugin (struct arglist *globals, plugins_scheduler_t * sched,
           else
             {
               kb_item_add_int (kb, asc_id, 1);
-              gchar *network_scan_status = arg_get_value (globals, "network_scan_status");
-              if (network_scan_status != NULL)
-                {
-                  if (g_ascii_strcasecmp (network_scan_status, "busy") == 0)
-                    {
-                      save_kb_write_int (globals, "network", asc_id, 1);
-                    }
-                }
+              if (network_scan)
+                save_kb_write_int (globals, "network", asc_id, 1);
               else
                 save_kb_write_int (globals, hostname, asc_id, 1);
             }
         }
 
-      // Do not launch NVT if mandatory key is missing (e.g. an important tool
-      // was not found)
-      if (mandatory_requirements_met (kb, plugin))
+      /* Do not launch NVT if mandatory key is missing (e.g. an important tool
+       * was not found). This is ignored during network wide scanning phases. */
+      if (network_scan || mandatory_requirements_met (kb, plugin))
         error = NULL;
       else
         error = "because a mandatory key is missing";

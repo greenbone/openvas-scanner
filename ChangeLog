@@ -1,3 +1,8 @@
+2012-01-25  Henri Doreau <henri.doreau@greenbone.net>
+
+	* src/attack.c (launch_plugin): Ignore script_mandatory_keys
+	requirements during network-wide scanning phase.
+
 2011-12-28  Jan-Oliver Wagner <jan-oliver.wagner@greenbone.net>
 
 	* INSTALL: Re-arranged text a bit and added some Debian 6 info.
