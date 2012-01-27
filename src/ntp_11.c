@@ -151,6 +151,8 @@ ntp_11_parse_input (struct arglist *globals, char *input)
 
         case CREQ_STOP_WHOLE_TEST:
           log_write ("Stopping the whole test (requested by client)");
+          arg_add_value (globals, "stop_required", ARG_INT, sizeof (int),
+                         GSIZE_TO_POINTER (1));
           hosts_stop_all ();
           result = NTP_STOP_WHOLE_TEST;
           break;
@@ -169,6 +171,8 @@ ntp_11_parse_input (struct arglist *globals, char *input)
             t[0] = '\0';
             log_write ("user %s : stopping attack against %s\n", user, s);
             hosts_stop_host (globals, s);
+            arg_add_value (globals, "stop_required", ARG_INT, sizeof (int),
+                           GSIZE_TO_POINTER (1));
             ntp_1x_timestamp_host_scan_interrupted (globals, s);
             ntp_11_show_end (globals, s, 0);
             break;

@@ -964,6 +964,7 @@ attack_network (struct arglist *globals)
   int network_phase = 0;
   gchar *network_targets;
   int do_network_scan = 0;
+  int scan_stopped;
 
   gettimeofday (&then, NULL);
 
@@ -1296,6 +1297,8 @@ scan_stop:
     }
 
 stop:
+  scan_stopped = GPOINTER_TO_SIZE(arg_get_value (globals, "stop_required"));
+
   hg_cleanup (hg_globals);
 
   arg_free_all (rejected_hosts);
@@ -1305,7 +1308,7 @@ stop:
   log_write ("Total time to scan all hosts : %ld seconds\n",
              now.tv_sec - then.tv_sec);
 
-  if (do_network_scan && network_phase)
+  if (do_network_scan && network_phase && !scan_stopped)
     return attack_network (globals);
 
   return 0;
