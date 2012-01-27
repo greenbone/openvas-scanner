@@ -1,5 +1,10 @@
 2012-01-27  Henri Doreau <henri.doreau@greenbone.net>
 
+	* src/ntp_11.c (ntp_11_parse_input): Delete stop_required arglist entry
+	instead of setting its value to zero when resuming a scan.
+
+2012-01-27  Henri Doreau <henri.doreau@greenbone.net>
+
 	* src/ntp_11.c (ntp_11_parse_input): Reset stop_required variable on
 	scan resume.
 

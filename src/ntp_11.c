@@ -142,8 +142,7 @@ ntp_11_parse_input (struct arglist *globals, char *input)
         case CREQ_RESUME_WHOLE_TEST:
           log_write ("Resuming the whole test (requested by client)");
           hosts_resume_all ();
-          arg_add_value (globals, "stop_required", ARG_INT, sizeof (int),
-                         GSIZE_TO_POINTER (0));
+          arg_del_value (globals, "stop_required");
           result = NTP_RESUME_WHOLE_TEST;
           break;
 
