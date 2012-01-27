@@ -1,5 +1,10 @@
 2012-01-27  Henri Doreau <henri.doreau@greenbone.net>
 
+	* src/ntp_11.c (ntp_11_parse_input): Reset stop_required variable on
+	scan resume.
+
+2012-01-27  Henri Doreau <henri.doreau@greenbone.net>
+
 	* src/ntp_11.c (ntp_11_parse_input),
 	src/attack.c (attack_network):
 	Don't start the second scan phase when network scan is enabled and
