@@ -215,9 +215,6 @@ update_running_processes ()
       if (processes[i].pid > 0)
         {
           // If process dead or timed out
-      /** @todo communicate, e.g. send log message. Stub:
-       * internal_send (processes[i].upstream_soc, "SERVER <|> LOG <|> hostname <|> general/tcp <|> NVT was killed due to timeout (of %d seconds). <|> OID <|> SERVER\n", INTERNAL_COMM_MSG_TYPE_DATA);
-       */
           if (processes[i].alive == 0
               || (processes[i].timeout > 0
                   && ((now.tv_sec - processes[i].start.tv_sec) >
@@ -225,9 +222,33 @@ update_running_processes ()
             {
               if (processes[i].alive)
                 {
+                  struct arglist *desc;
+                  gchar *msg;
+                  const char *host;
+                  nvti_t *nvti;
+
                   if (log_whole)
                     log_write ("%s (pid %d) is slow to finish - killing it\n",
                                processes[i].name, processes[i].pid);
+
+                  desc = processes[i].plugin->arglist->value;
+                  nvti = arg_get_value (desc, "NVTI");
+                  host = plug_get_hostname (desc);
+                  msg = g_strdup_printf ("SERVER"
+                                         " <|> ERRMSG"
+                                         " <|> %s"
+                                         " <|> general/tcp"
+                                         " <|> NVT timed out after %d seconds."
+                                         " <|> %s"
+                                         " <|> SERVER\n",
+                                         host ? host : "HOST",
+                                         processes[i].timeout,
+                                         nvti ? nvti_oid (nvti) : "0");
+                  internal_send (processes[i].upstream_soc,
+                                 msg,
+                                 INTERNAL_COMM_MSG_TYPE_DATA);
+                  g_free (msg);
+
                   terminate_process (processes[i].pid);
                   processes[i].alive = 0;
                 }
