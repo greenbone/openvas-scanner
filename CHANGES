@@ -1,3 +1,24 @@
+openvas-scanner 3.3+rc1 (2012-03-11)
+
+This is the first release candidate of the openvas-scanner 3.3 module for the Open
+Vulnerability Assessment System (OpenVAS). It will be part of the upcoming
+"OpenVAS-5".
+
+This release fixes some minor issues detecting during beta testing.
+
+Many thanks to everyone who has contributed to this release:
+Henri Dorea, Matthew Mundell and Michael Wiegand.
+
+Main changes compared to 3.3+beta2:
+* New scanner preference "reverse_lookup", defaulting to "no" (the previous
+  behaviour)
+* For network wide scanning, mandatory keys are ignored.
+* Don't start the second scan phase when network scan is enabled and
+  user requests "stop" during the first phase.
+* Send an ERRMSG to the client when terminating a process.
+* Furter improvements to the build system.
+
+
 openvas-scanner 3.3+beta2 (2011-10-10)
 
 This is the second beta release of the openvas-scanner 3.3 module for the Open
