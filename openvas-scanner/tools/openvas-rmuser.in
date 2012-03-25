@@ -1,0 +1,83 @@
+#!/bin/sh
+
+# OpenVAS
+# $Id$
+# Description: shellscript to remove an openvas user.
+#
+# Authors: - Renaud Deraison <deraison@nessus.org> (Original pre-fork develoment)
+#          - Tim Brown <mailto:timb@openvas.org> (Initial fork)
+#          - Laban Mwangi <mailto:labanm@openvas.org> (Renaming work)
+#          - Tarik El-Yassem <mailto:tarik@openvas.org> (Headers section)
+#
+# Copyright:
+# Portions Copyright (C) 2006 Software in the Public Interest, Inc.
+# Based on work Copyright (C) 1998 - 2006 Tenable Network Security, Inc.
+#
+# This program is free software; you can redistribute it and/or modify
+# it under the terms of the GNU General Public License version 2,
+# as published by the Free Software Foundation
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program; if not, write to the Free Software
+# Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA 02110-1301 USA.
+#
+#
+#
+
+datadir=@DATADIR@
+openvas_users_dir=@OPENVAS_USERS_DIR@
+
+# check if gettext is present
+
+GETTEXT=`command -v gettext.sh`
+if [ $? -ne 0 ];
+then
+
+  # define dummy functions
+
+  gettext () {
+    echo $Xn "$1" $Xc
+  }
+
+  eval_gettext () {
+    eval_gettext_var="echo $1"
+    echo $Xn `eval $eval_gettext_var` $Xc
+  }
+
+else
+
+  # initialize gettext
+
+  . $GETTEXT
+  export TEXTDOMAIN=openvas-scripts
+  export TEXTDOMAINDIR=$datadir/locale
+
+fi
+
+
+login="$1"
+
+test -z "$login" && {
+echo $Xn "`gettext "Login to remove :"` $Xc"
+read login
+}
+
+test -z "$login" && {
+ gettext "No login entered"
+ exit 1
+}
+
+if [ -d "$openvas_users_dir/$login" ];
+then
+ rm -rf "$openvas_users_dir/$login"
+ gettext "user removed."; echo
+else
+ gettext "user does not exist"; echo
+fi
+
+exit 0

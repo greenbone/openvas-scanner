@@ -1,0 +1,457 @@
+#!/bin/sh
+#
+# openvas-mkcert-client
+# Description: Create SSL client certificates for OpenVAS.
+#
+# Authors: - Michel Arboi <arboi@alussinan.org> (Original pre-fork develoment)
+#          - Jan-Oliver Wagner <jan-oliver.wagner@intevation.de>
+#          - Michael Wiegand <michael.wiegand@intevation.de>
+#
+# Copyright:
+# Portions Copyright (C) 2006 Software in the Public Interest, Inc.
+# Based on work Copyright (C) 1998 - 2006 Tenable Network Security, Inc.
+#
+# This program is free software; you can redistribute it and/or modify
+# it under the terms of the GNU General Public License version 2,
+# as published by the Free Software Foundation
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program; if not, write to the Free Software
+# Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA 02110-1301 USA.
+
+umask 022
+
+OPENVASPRIV="@OPENVAS_STATE_DIR@/private/CA"
+OPENVASPUB="@OPENVAS_STATE_DIR@/CA"
+
+usage()
+{
+ echo "Usage:"
+ echo "  openvas-mkcert-client [OPTION...] - Create SSL client certificates for OpenVAS."
+ echo
+ echo "Options:"
+ echo "  -h           Display help"
+ echo "  -n <name>    Run non-interactively, create certificates for user <name>"
+ echo "               and register user <name> with the OpenVAS scanner"
+ echo "  -i           Install client certificates for use with OpenVAS manager"
+ echo
+ exit $1
+}
+
+while getopts "n:hi" OPTION
+do
+     case $OPTION in
+         h)
+             usage 0
+             ;;
+         n)
+             NAME=$OPTARG
+             ;;
+         i)
+             INSTALLCERT=1
+             ;;
+    esac
+done
+
+if [ -z $TMPDIR ] ; then
+  TMPDIR=/tmp
+fi
+
+# Check for OpenSSL availability
+case `openssl version` in
+ OpenSSL*)
+     ;;
+ *)
+   echo "OpenSSL is not properly installed: The 'openssl' command line utility could not be found (is your \$PATH set properly?)"; echo
+   exit 1
+esac
+
+# Check for availability of OpenVAS CA
+
+if [ ! -d "$OPENVASPRIV" ]; then
+    echo "Could not access private directory of the OpenVAS CA ($OPENVASPRIV)."
+    exit 1
+fi
+
+if [ ! -d "$OPENVASPUB" ]; then
+    echo "Could not access directory of the OpenVAS CA ($OPENVASPUB)."
+    exit 1
+fi
+
+CAKEY=$OPENVASPRIV/cakey.pem
+CACERT=$OPENVASPUB/cacert.pem
+
+if [ ! -r "$CAKEY" ]; then
+    echo "$CAKEY is not readable, unable to access the OpenVAS CA files."
+    exit 1
+fi
+
+if [ ! -f "$CAKEY" ]; then
+    echo "$CAKEY: not found or not a file."
+    exit 1
+fi
+
+if [ ! -f "$CACERT" ]; then
+    echo "$CACERT: not found or not a file."
+    exit 1
+fi
+
+if [ -n $NAME ]; then
+    R=`echo "y"`
+else
+    R=x
+fi
+while [ "$R" != `echo "y"` -a "$R" != `echo "n"` ]; do
+    echo -n "Do you want to register the users with the OpenVAS scanner as soon as you create their certificates? (y/n): "
+    read R
+done
+
+# Check for availability of the OpenVAS scanner user directory
+if [ "$R" = `echo "y"` ]; then
+    USERSDIR="@OPENVAS_USERS_DIR@"
+    if [ ! -d "$USERSDIR" ]; then
+        mkdir -p $USERSDIR
+        chmod 755 $USERSDIR
+    fi
+else
+    USERSDIR=""
+fi
+
+umask 066
+
+# Set environment
+BASEDIR=$TMPDIR/openvas-mkcert-client.$$
+mkdir $BASEDIR || exit 1
+
+
+if [ -z $NAME ]; then
+echo "This script will now ask you the relevant information to create the SSL client certificates for OpenVAS."; echo
+
+    echo -n "Client certificates life time in days [365]: "; read x
+fi
+DFL_CERT_LIFETIME=${x:-365}
+
+if [ ! -z "$LANG" ]; then
+    DC=`echo $LANG | sed -n 's/^..*_\(..\)$/\1/p'`
+fi
+X=${DC:=DE}
+if [ -z $NAME ]; then
+   echo -n "Your country (two letter code) [$X]: "; read x
+fi
+DFL_COUNTRY=${x:-$DC}
+if [ -z $NAME ]; then
+   echo -n "Your state or province name [none]: "; read DFL_PROVINCE
+fi
+X=Berlin;
+if [ -z $NAME ]; then
+   echo -n "Your location (e.g. town) [$X]: "; read x
+fi
+DFL_LOCATION=${x:-$X}
+if [ -z $NAME ]; then
+   echo -n "Your organization [none]: "; read DFL_ORGANIZATION
+fi
+if [ -z $NAME ]; then
+   echo -n "Your organizational unit [none]: "; read DFL_ORGUNIT
+fi
+
+cat <<EOF > $BASEDIR/stdC.cnf
+[ ca ]
+default_ca = OpenVASCA
+
+[ OpenVASCA ]
+dir		= $BASEDIR		# Where everything is kept
+certs		= \$dir			# Where the issued certs are kept
+crl_dir		= \$dir			# Where the issued crl are kept
+database	= \$dir/index.txt	# database index file.
+new_certs_dir	= \$dir			# default place for new certs.
+
+certificate	= $CACERT	 	# The CA certificate
+serial		= \$dir/serial 		# The current serial number
+crl		= \$dir/crl.pem 	# The current CRL
+private_key	= $CAKEY		# The private key
+
+x509_extensions	= usr_cert		# The extentions to add to the cert
+crl_extensions	= crl_ext
+
+default_days	= 365		# how long to certify for
+default_crl_days= 30			# how long before next CRL
+default_md	= sha1			# which md to use.
+preserve	= no			# keep passed DN ordering
+
+policy		= policy_anything
+
+[ policy_anything ]
+countryName             = optional
+stateOrProvinceName     = optional
+localityName            = optional
+organizationName        = optional
+organizationalUnitName  = optional
+commonName              = supplied
+emailAddress            = optional
+
+[ req ]
+default_bits		= 1024
+distinguished_name	= req_distinguished_name
+# attributes		= req_attributes
+x509_extensions	= v3_ca	# The extentions to add to the self signed cert
+
+[ req_distinguished_name ]
+countryName			= Country Name (2 letter code)
+countryName_default		= DE
+countryName_min			= 2
+countryName_max			= 2
+
+stateOrProvinceName		= State or Province Name (full name)
+stateOrProvinceName_default	= Some-State
+
+localityName			= Locality Name (eg, city)
+
+0.organizationName		= Organization Name (eg, company)
+0.organizationName_default	= Internet Widgits Pty Ltd
+
+# we can do this but it is not needed normally :-)
+#1.organizationName		= Second Organization Name (eg, company)
+#1.organizationName_default	= World Wide Web Pty Ltd
+
+organizationalUnitName		= Organizational Unit Name (eg, section)
+#organizationalUnitName_default	=
+
+commonName			= Common Name (eg, your name or your server\'s hostname)
+commonName_max			= 64
+
+emailAddress			= Email Address
+emailAddress_max		= 40
+
+# SET-ex3			= SET extension number 3
+
+[ usr_cert ]
+# These extensions are added when 'ca' signs a request.
+# This goes against PKIX guidelines but some CAs do it and some software
+# requires this to avoid interpreting an end user certificate as a CA.
+#basicConstraints=CA:FALSE
+
+# Here are some examples of the usage of nsCertType. If it is omitted
+# the certificate can be used for anything *except* object signing.
+
+# This is OK for an SSL server.
+# nsCertType			= nsCertType
+# For normal client use this is typical
+# nsCertType = client, email
+nsCertType			= client
+
+keyUsage = nonRepudiation, digitalSignature, keyEncipherment
+
+# This will be displayed in Netscape's comment listbox.
+nsComment			= "OpenSSL Generated Certificate"
+
+# PKIX recommendations harmless if included in all certificates.
+subjectKeyIdentifier=hash
+authorityKeyIdentifier=keyid,issuer:always
+
+# This stuff is for subjectAltName and issuerAltname.
+# Import the email address.
+subjectAltName=email:copy
+
+# Copy subject details
+issuerAltName=issuer:copy
+
+#nsCaRevocationUrl		= http://www.domain.dom/ca-crl.pem
+#nsBaseUrl
+#nsRevocationUrl
+#nsRenewalUrl
+#nsCaPolicyUrl
+#nsSslServerName
+
+[ v3_ca ]
+# PKIX recommendation.
+subjectKeyIdentifier=hash
+authorityKeyIdentifier=keyid:always,issuer:always
+
+# This is what PKIX recommends but some broken software chokes on critical
+# extensions.
+basicConstraints = critical,CA:true
+# So we do this instead.
+#basicConstraints = CA:true
+
+# Key usage: this is typical for a CA certificate. However since it will
+# prevent it being used as an test self-signed certificate it is best
+# left out by default.
+keyUsage = cRLSign, keyCertSign
+nsCertType = sslCA
+EOF
+
+echo 01 > $BASEDIR/serial
+touch $BASEDIR/index.txt
+
+if [ -z $NAME ]; then
+    echo "**********"
+    echo "We are going to ask you some question for each client certificate. "; echo
+    echo "If some question has a default answer, you can force an empty answer by entering a single dot '.'"; echo
+    echo "*********"
+fi
+
+I=1; ANOTHER=`echo "y"`
+
+while [ "$ANOTHER" != `echo "n"` ]; do
+    if [ -z $NAME ]; then
+        PSEUDO=""
+    else
+        PSEUDO=$NAME
+    fi
+    while [ -z "$PSEUDO" ]; do
+        echo -n "OpenVAS username for the new user: "
+        read PSEUDO
+    done
+
+    CERTFILE="$BASEDIR/cert_$PSEUDO.pem"
+    KEYFILE="$BASEDIR/key_$PSEUDO.pem"
+    REQFILE="$BASEDIR/req_$PSEUDO.pem"
+    if [ -n $USERSDIR ]; then
+        DNFILE="$USERSDIR/$PSEUDO/auth/dname"
+    fi
+    if [ -f "$CERTFILE" -o -f "$KEYFILE" ]; then
+        echo "Certificate or key for this user already exist."
+        exit 1
+    fi
+
+    if [ -z $NAME ]; then
+        echo -n "Client certificates life time in days [$DFL_CERT_LIFETIME]: "; read x
+    fi
+    CERT_LIFETIME=${x:-$DFL_CERT_LIFETIME}
+    X=$DFL_COUNTRY
+    if [ -z $NAME ]; then
+        echo -n "Country (two letter code) [$X]: "; read x
+    fi
+    COUNTRY=${x:-$DFL_COUNTRY}
+    X=$DFL_PROVINCE
+    if [ -z $NAME ]; then
+        echo -n "State or province name [$X]: "; read x
+    fi
+    PROVINCE=${x:-$DFL_PROVINCE}
+    X=$DFL_LOCATION
+    if [ -z $NAME ]; then
+        echo -n "Location (e.g. town) [$X]: "; read x
+    fi
+    LOCATION=${x:-$DFL_LOCATION}
+    X=$DFL_ORGANIZATION
+    if [ -z $NAME ]; then
+        echo -n "Organization [$X]: "; read x
+    fi
+    ORGANIZATION=${x:-$DFL_ORGANIZATION}
+    X=$DFL_ORGUNIT
+    if [ -z $NAME ]; then
+        echo -n "Organization unit [$X]: "; read x
+    fi
+    ORGUNIT=${x:-$DFL_ORGUNIT}
+    if [ -z $NAME ]; then
+        echo -n "e-Mail []: "; read EMAIL
+    else
+        EMAIL=""
+    fi
+
+    # Client key
+    openssl genrsa -out $KEYFILE 1024
+
+    # Client certificate "request"
+echo "${COUNTRY:-.}
+${PROVINCE:-.}
+${LOCATION:-.}
+${ORGANIZATION:-.}
+${ORGUNIT:-.}
+$PSEUDO
+${EMAIL:-.}" |
+    openssl req -config $BASEDIR/stdC.cnf -new -key $KEYFILE -out $REQFILE
+
+    # Sign the client certificate
+    openssl ca -config $BASEDIR/stdC.cnf -name OpenVASCA -batch -days $CERT_LIFETIME -in $REQFILE -out $CERTFILE
+
+    chmod a+r $CERTFILE
+
+    if [ ! -z "$USERSDIR" ]; then
+        # create the auth dir, which contains the user rules,
+        # password or cert
+        D="$USERSDIR/$PSEUDO/auth"
+        if [ ! -d "$D" ]; then
+            mkdir -p "$D"
+            chmod 700 "$D"
+        fi
+
+        # create the user auth/rules file
+        #
+        if [ -z $NAME ]; then
+            R="$USERSDIR/$PSEUDO/auth/rules"
+            echo
+            echo "User rules"; echo
+            echo "----------"
+            echo "openvassd has a rules system which allows you to restrict the hosts that $login has the right to test."; echo
+            echo "For instance, you may want him to be able to scan his own host only."; echo
+            echo
+            echo "Please see the openvas-adduser(8) man page for the rules syntax."; echo
+            echo
+            echo "Enter the rules for this user, and hit ctrl-D once you are done:"; echo
+
+            tmpAddUserFile=$TMPDIR/rules.$$
+
+            echo "(the user can have an empty rules set)"; echo
+            cat > $tmpAddUserFile || {
+                    echo "Error - could not write $tmpAddUserFile"
+                    exit 1
+            }
+            cp $tmpAddUserFile "$USERSDIR/$PSEUDO/auth/rules"
+
+            rm $tmpAddUserFile
+        else
+            touch "$USERSDIR/$PSEUDO/auth/rules"
+        fi
+
+        # create the cert authentication file auth/dname
+        > $DNFILE
+        dn=""
+        [ ! -z "$COUNTRY" -a "$COUNTRY" != "." ] &&
+            dn=$dn"/C=$COUNTRY"
+        [ ! -z "$PROVINCE" -a "$PROVINCE" != "." ] &&
+            dn=$dn"/ST=$PROVINCE"
+        [ ! -z "$LOCATION" -a "$LOCATION" != "." ] &&
+            dn=$dn"/L=$LOCATION"
+        [ ! -z "$ORGANIZATION" -a "$ORGANIZATION" != "." ] &&
+            dn=$dn"/O=$ORGANIZATION"
+        [ ! -z "$ORGUNIT" -a "$ORGUNIT" != "." ] &&
+            dn=$dn"/OU=$ORGUNIT"
+        dn=$dn"/CN=$PSEUDO"
+        [ ! -z "$EMAIL" ] && dn=$dn"/emailAddress=$EMAIL"
+
+        # Convert to gnutls format: Replace "/" with ",", remove first ",",
+        # replace emailAdress= with EMAIL=
+        gdn=`echo $dn | sed -e 's/\//,/g' -e 's/^,//' -e 's/emailAddress/EMAIL/g'`
+        echo "$gdn" > $DNFILE
+
+        echo "User $PSEUDO added to OpenVAS."; echo
+    fi
+
+    if [ -n $NAME ]; then
+        ANOTHER=`echo "n"`
+    else
+        echo -n "Another client certificate? (y/n) "
+        read ANOTHER
+        I=`expr $I + 1`
+    fi
+
+    if [ ! -z $INSTALLCERT ] ; then
+      cp $BASEDIR/key_$PSEUDO.pem $OPENVASPRIV/clientkey.pem
+      cp $BASEDIR/cert_$PSEUDO.pem $OPENVASPUB/clientcert.pem
+    fi
+done
+
+if [ -z $INSTALLCERT ] ; then
+  echo "Your client certificates are in $BASEDIR ."; echo
+  echo "You will have to copy them by hand."; echo
+fi
+
+if [ ! -z "$INSTALLCERT" -a -n $NAME ] ; then
+  rm -rf $BASEDIR
+fi

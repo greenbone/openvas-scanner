@@ -1,0 +1,127 @@
+.TH OpenVAS-ADDUSER 8 "May 2009" "The OpenVAS Project" "User Manuals"
+.SH NAME
+openvas-adduser \- add a user in the openvassd userbase
+.sp
+.SH SYNOPSIS
+.BI openvas-adduser
+
+.SH DESCRIPTION
+.LP
+The 
+.B OpenVAS Security Scanner
+comes with its own user base which contains the list of who can
+use the services of 
+.BR openvassd ,
+and what restriction (or
+.IR rules )
+each user has.
+
+.B openvas-adduser
+is a simple program which will add a user to the
+.B openvassd
+userbase.
+
+The program is straightforward and asks for the following items:
+.IP "\(bu Login"
+the login name of the 
+.B openvassd 
+user to add
+
+.IP "\(bu Password"
+the password that the user will use to connect to 
+.B openvassd
+
+.IP "\(bu Rules"
+the set of rules to apply to the user. See below.
+
+.SH RULES
+Each user has his own set of rules. Rules are here to restrict
+the rights of the users. For instance, you can add user \*(lqjoe\*(rq so
+that he can only test the host \*(lq192.168.1.1\*(rq, whereas you can 
+add user \*(lqbob\*(rq so that he can test whatever IP address he wishes.
+
+Each rule fits on one line. A user can have an unlimited amount of
+rules (and can even have no rule at all).
+
+The syntax is:
+.RS
+accept|deny ip/mask
+.RE
+and 
+.RS
+default accept|deny
+.RE
+
+Where
+.I mask
+is the CIDR netmask of the rule.
+
+The
+.I default
+statement must be the last rule and defines the policy of the user.
+
+The following rule set will allow the user to test 192.168.1.0/24, 
+192.168.3.0/24 and 172.22.0.0/16, but nothing else:
+.RS
+accept 192.168.1.0/24
+.br
+accept 192.168.3.0/24
+.br
+accept 172.22.0.0/16
+.br
+default deny
+.RE
+
+The following rule set will allow the user to test whatever he wants, 
+except the network 192.168.1.0/24:
+.RS
+deny 192.168.1.0/24
+.br
+default accept
+.RE
+
+The keyword
+.I client_ip
+has been defined, and is replaced at run time by the IP address
+of the 
+.B openvassd 
+user. For instance, if you want your users to be able
+to only be able to scan the system they come from, then you want
+them to have the following ruleset:
+.RS
+accept client_ip
+.br
+default deny
+.RE
+
+.SH SEE ALSO
+.BR openvas-rmuser (8),\  openvassd (8)
+
+.SH MORE INFORMATION ABOUT THE OpenVAS PROJECT
+The canonical places where you will find more information 
+about the OpenVAS project are: 
+.RS
+.UR
+http://www.openvas.org/
+.UE
+(Official site)
+.RE
+   
+
+.SH AUTHOR
+.B openvas-adduser 
+was quickly written by Renaud Deraison <deraison@cvs.nessus.org>
+
+.SH BUGS
+.B openvas-adduser 
+creates temporary files in 
+.IR $TMPDIR/ .
+If this variable is not
+set, then it will use 
+.I /var/tmp 
+which may be a security risk
+depending of your configuration.
+
+If you set your TMPDIR variable to 
+.IR /tmp ,
+then you are in trouble.

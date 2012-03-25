@@ -1,0 +1,10 @@
+README for openvas-scanner/tools/
+=================================
+
+This directory contains tools directly
+related to the openvas scanner.
+
+Basically this covers shell scripts
+for handling SSL certificates
+and NVT Feeds and other configuration
+aspects.

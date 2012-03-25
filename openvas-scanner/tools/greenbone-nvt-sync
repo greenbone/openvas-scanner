@@ -1,0 +1,386 @@
+#!/bin/sh
+#
+# greenbone-nvt-sync
+# This script synchronizes an OpenVAS installation with the Greenbone Security
+# Feed.
+#
+# Authors:
+# Lukas Grunwald <l.grunwald@greenbone.net>
+# Jan-Oliver Wagner <jan-oliver.wagner@greenbone.net>
+# Michael Wiegand <michael.wiegand@intevation.de>
+#
+# Copyright (C) 2009 Greenbone Networks GmbH
+#
+# This program is free software; you can redistribute it and/or modify
+# it under the terms of the GNU General Public License version 2,
+# as published by the Free Software Foundation
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program; if not, write to the Free Software
+# Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA 02110-1301 USA.
+
+# If you modify this script, please prefix the version
+# with some characters in order to make it newer than
+# any follow-up version to prevent that your version
+# will be overwritten.
+VERSION=20111010
+
+# SETTINGS
+# ========
+# RSYNC_DELETE controls whether files which are not part of the feed will be
+# removed from the local directory after synchronization. The default value for
+# this setting is "--delete --exclude=*nes", which means that files which are
+# not part of feed will be deleted, except the C based legacy plugins with the
+# suffix "nes".
+RSYNC_DELETE="--delete --exclude=*nes"
+
+# LOGDIR and LOGFILE specify the location of the greenbone-nvt-sync logfile.
+# The default value for LOGDIR is  "/var/log/openvas/", the default value for
+# LOGFILE is "greenbone-nvt-sync.log". Please make sure this script has
+# sufficient right to access the logfile.
+LOGDIR="/var/log/openvas/"
+LOGFILE="greenbone-nvt-sync.log"
+
+# Script and feed information which will be made available to user through
+# command line options and automated tools.
+SCRIPT_NAME="greenbone-nvt-sync"
+RESTRICTED=1
+
+# Result of selftest () is stored here. If it is not 0, the selftest has failed
+# and the sync script is unlikely to work.
+SELFTEST_FAIL=0
+
+# Verbosity flag for rsync. "-q" means a quiet rsync, "-v" a verbose rsync.
+RSYNC_VERBOSE="-q"
+
+# Port to use for synchronization. Default value is 24.
+PORT=24
+
+# Directory where pidfiles are located
+PIDFILEDIR="/var/run"
+
+if [ ! -w $LOGDIR ]
+then
+  NOLOG=1
+fi
+
+log_write(){
+  if [ -n "$NOLOG" ]
+  then
+    echo "LOG: [`date -R`] $1" > /dev/stderr
+  else
+    echo "[`date -R`] $1" >> $LOGDIR$LOGFILE
+  fi
+}
+
+stderr_write ()
+{
+  echo "$1" > /dev/stderr
+}
+
+init_sync ()
+{
+  do_self_test
+  if [ $SELFTEST_FAIL -ne 0 ] ; then
+    exit $SELFTEST_FAIL
+  fi
+
+  SCANNER_BINARY=`command -v openvassd`
+  if [ -z "$SCANNER_BINARY" ]
+  then
+    stderr_write "== greenbone-nvt-sync $VERSION ================================================"
+    stderr_write "Could not locate your OpenVAS Scanner."
+    stderr_write "Please make sure that you have installed OpenVAS Scanner correctly."
+    stderr_write "The command"
+    stderr_write "  openvassd"
+    stderr_write "must be available in your PATH variable."
+    stderr_write "If you are still not able to continue, please contact Greenbone Support at"
+    stderr_write "support@greenbone.net and include the error messages displayed above (if any)"
+    stderr_write "and your customer ID."
+    stderr_write "==============================================================================="
+    log_write "openvassd not found, aborting synchronization."
+    exit 1
+  fi
+  SCANNER_NAME="openvas-scanner"
+
+  sysconfdir=`$SCANNER_BINARY --sysconfdir`
+
+  [ -r $sysconfdir/openvas/greenbone-nvt-sync.conf ] && . $sysconfdir/openvas/greenbone-nvt-sync.conf
+
+  if [ -z "$NVT_DIR" ]
+  then
+    NVT_DIR=`$SCANNER_BINARY -s | grep plugins_folder | sed 's/plugins\_folder\ *=\ *//'`
+    if [ -z "$NVT_DIR" ]
+    then
+      stderr_write "== greenbone-nvt-sync $VERSION ================================================"
+      stderr_write "Could not determine the location of your NVT collection."
+      stderr_write "Please make sure that either the value"
+      stderr_write "  plugins_folder"
+      stderr_write "is correctly set in your configuration file located at"
+      stderr_write "  $sysconfdir/openvas/$SCANNER_CONFIG"
+      stderr_write "or that you are using OpenVAS Scanner 3.2 or newer."
+      stderr_write "If you are still not able to continue, please contact Greenbone Support at"
+      stderr_write "support@greenbone.net and include the error messages displayed above (if any)"
+      stderr_write "and your customer ID."
+      stderr_write "==============================================================================="
+      log_write "Could not determine location of NVT collection, aborting synchronization."
+      exit 1
+    fi
+  fi
+
+  INFOFILE="$NVT_DIR/plugin_feed_info.inc"
+  if [ -r $INFOFILE ] ; then
+    FEED_VERSION=`grep PLUGIN_SET $INFOFILE | sed -e 's/[^0-9]//g'`
+    FEED_NAME=`awk -F\" '/PLUGIN_FEED/ { print $2 }' $INFOFILE`
+    FEED_VENDOR=`awk -F\" '/FEED_VENDOR/ { print $2 }' $INFOFILE`
+    FEED_HOME=`awk -F\" '/FEED_HOME/ { print $2 }' $INFOFILE`
+    FEED_PRESENT=1
+  else
+    FEED_PRESENT=0
+  fi
+
+  if [ -z "$FEED_NAME" ] ; then
+    FEED_NAME="Greenbone Security Feed"
+  fi
+
+  if [ -z "$FEED_VENDOR" ] ; then
+    FEED_VENDOR="Greenbone Networks GmbH"
+  fi
+
+  if [ -z "$FEED_HOME" ] ; then
+    FEED_HOME="http://www.greenbone.net/solutions/gbn_feed.html"
+  fi
+}
+
+sync_nvts(){
+  log_write "Synchronizing NVTs from the Greenbone Security Feed into $NVT_DIR..."
+  if [ $FEED_PRESENT -eq 1 ] ; then
+    FEEDCOUNT=`grep -E "nasl$|inc$" $NVT_DIR/md5sums | wc -l`
+    log_write "Current status: Using $FEED_NAME at version $FEED_VERSION ($FEEDCOUNT NVTs)"
+  else
+    log_write "Current status: No feed installed."
+  fi
+  notsynced=1
+  retried=0
+
+  mkdir -p "$NVT_DIR"
+  read feeduser < $sysconfdir/openvas/gsf-access-key
+  custid=`awk -F@ 'NR > 1 { exit }; { print $1 }' $sysconfdir/openvas/gsf-access-key`
+  if [ -z "$feeduser" ] || [ -z "$custid" ]
+  then
+    stderr_write "== greenbone-nvt-sync $VERSION ================================================"
+    stderr_write "Feed synchronization was not possible because credential information could not"
+    stderr_write "be read from your access key."
+    stderr_write "Please make sure that the key located at"
+    stderr_write "  $sysconfdir/openvas/gsf-access-key"
+    stderr_write "is intact and in a valid format."
+    stderr_write "If you are still not able to continue, please contact Greenbone Support at"
+    stderr_write "support@greenbone.net and include the error messages displayed above (if any)"
+    stderr_write "and your customer ID."
+    stderr_write "==============================================================================="
+    log_write "Could not determine credentials, aborting synchronization."
+    exit 1
+  fi
+  while [ $notsynced -eq 1 ]
+  do
+    # --protocol=29 is a workaround for a known bug in rsync 3.0.3
+    if [ -e /admin/ezcli.state ]
+    then
+      gsmproxy=`grep proxy_feed /admin/ezcli.state | sed -e 's/^.*\/\///' -e 's/:/ /' -e 's/[\t ]*$//'`
+      PORT=`grep ^syncport /admin/ezcli.state | sed -e "s/^syncport\t//g"`
+    fi
+    if [ "$gsmproxy" = "proxy_feed" ] || [ -z "$gsmproxy" ]
+    then
+      rsync -e "ssh -o \"BatchMode=yes\" -p $PORT -i $sysconfdir/openvas/gsf-access-key" -ltrP $RSYNC_VERBOSE --protocol=29 $RSYNC_DELETE $feeduser $NVT_DIR
+    else
+      rsync -e "ssh -o \"BatchMode=yes\" -o \"ProxyCommand corkscrew $gsmproxy %h %p\" -p $PORT -i $sysconfdir/openvas/gsf-access-key" -ltrP $RSYNC_VERBOSE --protocol=29 $RSYNC_DELETE $feeduser $NVT_DIR
+    fi
+    if [ $? -ne 0 ]  ; then
+      stderr_write "== greenbone-nvt-sync $VERSION ================================================"
+      stderr_write "The synchronization with the feed failed. This may indicate a serious issue"
+      stderr_write "with either your infrastructure or the feed itself."
+      stderr_write "Your NVT collection is likely to be damaged now. Please resolve any connection"
+      stderr_write "issues and try again."
+      stderr_write "If you suspect an issue with the Greenbone Security Feed, please contact"
+      stderr_write "Greenbone support at support@greenbone.net and include the error messages"
+      stderr_write "displayed above (if any) and your customer ID ($custid)."
+      stderr_write "==============================================================================="
+      log_write "rsync failed, aborting synchronization."
+      exit 1
+    fi
+    eval "cd \"$NVT_DIR\" ; md5sum -c --status \"$NVT_DIR/md5sums\""
+    if [ $? -ne 0 ]  ; then
+      if [ -n "$retried" ]
+      then
+        stderr_write "== greenbone-nvt-sync $VERSION ================================================"
+        stderr_write "The feed integrity check failed two times in a row. This may indicate a serious"
+        stderr_write "issue with either your infrastructure or the feed itself."
+        stderr_write "Your NVT collection is likely to be damaged now. Please resolve any connection"
+        stderr_write "issues and try again."
+        stderr_write "If you suspect an issue with the Greenbone Security Feed, please contact"
+        stderr_write "Greenbone support at support@greenbone.net and include your customer ID:"
+        stderr_write "  $custid"
+        stderr_write "If possible, please execute the following commands:"
+        stderr_write "  cd \"$NVT_DIR\""
+        stderr_write "  md5sum -c \"$NVT_DIR/md5sums\" "
+        stderr_write "and include the output of the last command in your mail."
+        stderr_write "==============================================================================="
+        log_write "Feed integrity check failed twice, aborting synchronization."
+        exit 1
+      else
+        log_write "The feed integrity check failed. This may be due to a concurrent feed update or other temporary issues."
+        log_write "Sleeping 15 seconds before retrying ..."
+        sleep 15
+        retried=1
+      fi
+    else
+      notsynced=0
+    fi
+  done
+  log_write "Synchronization with the Greenbone Security Feed successful."
+  init_sync
+  if [ $FEED_PRESENT -eq 1 ] ; then
+    FEEDCOUNT=`grep -E "nasl$|inc$" $NVT_DIR/md5sums | wc -l`
+    log_write "Current status: Using $FEED_NAME at version $FEED_VERSION ($FEEDCOUNT NVTs)"
+  else
+    log_write "Current status: No feed installed."
+  fi
+}
+
+restart_openvassd (){
+  if [ -e $sysconfdir/init.d/$SCANNER_NAME ]
+  then
+    $sysconfdir/init.d/$SCANNER_NAME restart
+    log_write "Synchronization done, restarting the OpenVAS Scanner."
+  else
+    stderr_write "Please restart OpenVAS Scanner and let OpenVAS Manager do a database update" 
+    stderr_write "or a database rebuild to use your updated NVT collection."
+    NOINIT=1
+  fi
+}
+
+update_openvasmd (){
+  if [ -n "$NOINIT" ] ; then
+    return
+  fi
+  log_write "Updating OpenVAS Manager DB"
+  MANAGER_PIDFILE="$PIDFILEDIR/openvasmd.pid"
+  if [ -r "$MANAGER_PIDFILE" ]
+  then
+    MANAGER_PID=`cat $MANAGER_PIDFILE`
+    kill -HUP $MANAGER_PID
+    log_write "Sent signal to OpenVAS Manager to rebuild the database."
+  else
+    stderr_write "== greenbone-nvt-sync $VERSION =========================================="
+    stderr_write "Could not find"
+    stderr_write "  $PIDFILEDIR/openvasmd.pid!"
+    stderr_write "Sending a HUP signal to the manager is not prepared on your system."
+    stderr_write "Please send a HUP signal to your manager manually."
+    stderr_write "========================================================================="
+    log_write "$PIDFILEDIR/openvasmd.pid not found, not updating manager."
+  fi
+}
+
+do_self_test ()
+{
+  RSYNC_AVAIL=`command -v rsync`
+  if [ $? -ne 0 ] ; then
+    SELFTEST_FAIL=1
+    stderr_write "The rsync binary could not be found."
+  fi
+  MD5SUM_AVAIL=`command -v md5sum`
+  if [ $? -ne 0 ] ; then
+    SELFTEST_FAIL=1
+    stderr_write "The md5sum binary could not be found."
+  fi
+  OPENVASSD_AVAIL=`command -v openvassd`
+  if [ $? -ne 0 ] ; then
+    SELFTEST_FAIL=1
+    stderr_write "The openvassd binary could not be found."
+  else
+    sysconfdir=`openvassd --sysconfdir`
+  fi
+  if [ ! -s $sysconfdir/openvas/gsf-access-key ] ; then
+    SELFTEST_FAIL=1
+    stderr_write "No valid Greenbone Security Feed subscription file found."
+    # else
+    # Test rsync
+    # Validate key
+  fi
+}
+
+do_describe ()
+{
+  if [ -z "$NVT_DIR" ] ; then
+    init_sync
+  fi
+  echo "This script synchronizes an NVT collection with the '$FEED_NAME'."
+  echo "The '$FEED_NAME' is provided by '$FEED_VENDOR'."
+  echo "Online information about this feed: '$FEED_HOME'."
+}
+
+do_feedversion () {
+  if [ -z "$NVT_DIR" ] ; then
+    init_sync
+  fi
+  if [ $FEED_PRESENT -eq 1 ] ; then
+    echo $FEED_VERSION
+  else
+    stderr_write "The file containing the feed version could not be found."
+    exit 1
+  fi
+}
+
+do_sync ()
+{
+  log_write "Starting synchronization."
+  init_sync
+  sync_nvts
+  restart_openvassd
+  update_openvasmd
+  log_write "Synchronization successful."
+}
+
+while test $# -gt 0; do
+  case "$1" in
+    --version)
+      echo $VERSION
+      exit 0
+      ;;
+    --identify)
+      init_sync
+      echo "NVTSYNC|$SCRIPT_NAME|$VERSION|$FEED_NAME|$RESTRICTED|NVTSYNC"
+      exit 0
+      ;;
+    --selftest)
+      do_self_test
+      exit $SELFTEST_FAIL
+      ;;
+    --describe)
+      do_describe
+      exit 0
+      ;;
+    --feedversion)
+      do_feedversion
+      exit 0
+      ;;
+    --nvt-dir)
+      NVT_DIR="$2"
+      shift
+      ;;
+    --verbose)
+      RSYNC_VERBOSE="-v"
+      ;;
+  esac
+  shift
+done
+
+do_sync
+
+exit 0
+

@@ -1,0 +1,46 @@
+OpenVAS
+$Id$
+Description: OpenVAS Message Translations README
+
+Authors: - Jan-Oliver Wagner <jan@intevation.de>
+
+Copyright:
+Copyright (C) 2006 Software in the Public Interest, Inc.
+
+This program is free software; you can redistribute it and/or modify
+it under the terms of the GNU General Public License version 2,
+as published by the Free Software Foundation
+
+This program is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+GNU General Public License for more details.
+
+You should have received a copy of the GNU General Public License
+along with this program; if not, write to the Free Software
+Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA 02110-1301 USA.
+
+
+
+OpenVAS Message Translations
+============================
+
+Updating the message catalogs currently only works on unix-like systems
+and requires xgettext 0.14.
+There is one so-called text domains, 'openvas-scripts' which are
+the administration shell-script for the OpenVAS Server.
+
+OpenVAS Admin Scripts (text domain 'openvas-scripts')
+---------------------------------------------------
+
+Unfortunately, for shell scripts the updating process does
+not work automatically. Even the initial preparation was
+largly handcrafted after these steps did some automatic
+extraction (sample for adduser):
+xgettext -d openvas-scripts -s -o openvas-scripts.pot -L Shell openvas-adduser.in
+msginit -l de_DE -o openvas-scripts-de.po -i openvas-scripts.pot
+
+To just install the german translation (this will automatically
+create the gmo file):
+
+	$ make install-openvas-scripts

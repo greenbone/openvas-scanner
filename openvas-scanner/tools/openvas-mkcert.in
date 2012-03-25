@@ -1,0 +1,462 @@
+#!/bin/sh
+
+# OpenVAS
+# $Id$
+# Description: shellscript that creates the OpenVAS SSL certificate.
+#
+# Authors: - Renaud Deraison <deraison@nessus.org> (Original pre-fork develoment)
+#	   - Michel Arboi <arboi@alussinan.org> (Original pre-fork development)
+#          - Tim Brown <mailto:timb@openvas.org> (Initial fork)
+#          - Laban Mwangi <mailto:labanm@openvas.org> (Renaming work)
+#          - Tarik El-Yassem <mailto:tarik@openvas.org> (Headers section)
+#
+# Copyright:
+# Portions Copyright (C) 2006 Software in the Public Interest, Inc.
+# Based on work Copyright (C) 1998 - 2006 Tenable Network Security, Inc.
+#
+# This program is free software; you can redistribute it and/or modify
+# it under the terms of the GNU General Public License version 2,
+# as published by the Free Software Foundation
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program; if not, write to the Free Software
+# Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA 02110-1301 USA.
+
+
+case `echo -n` in
+\-n)	Xn=   ; Xc='\c' ;;
+*)	Xn=-n ; Xc=
+esac
+
+test "$1" = "-q" && QUIET=y
+test "$2" = "-q" && QUIET=y
+
+test "$1" = "-f" && FORCE=y
+test "$2" = "-f" && FORCE=y
+
+umask 022
+
+datadir=@DATADIR@
+bindir=@BINDIR@
+sbindir=@SBINDIR@
+OPENVASPRIV="@OPENVAS_STATE_DIR@/private/CA"
+OPENVASPUB="@OPENVAS_STATE_DIR@/CA"
+
+BASEDIR=${TMPDIR-/tmp}/openvas-mkcert.$$
+
+CAKEY=$OPENVASPRIV/cakey.pem
+CACERT=$OPENVASPUB/cacert.pem
+
+SRVKEY=$OPENVASPRIV/serverkey.pem
+SRVREQ=$BASEDIR/serverreq.pem
+SRVCERT=$OPENVASPUB/servercert.pem
+
+test -z "$FORCE" && if [ -e "$CACERT" -o -e "$CAKEY" -o -e "$SRVCERT" -o -e "$SRVKEY" ];
+then
+ echo "One or more files do already exist and would be overriden:"
+ test -e "$CACERT" && echo "  " "$CACERT"
+ test -e "$CAKEY" && echo "  " "$CAKEY"
+ test -e "$SRVCERT" && echo "  " "$SRVCERT"
+ test -e "$SRVKEY" && echo "  " "$SRVKEY"
+ echo "You need to remove or rename them and re-run openvas-mkcert."
+ echo "If you run openvas-mkcert with '-f', the files will be overwritten."
+ exit
+fi
+
+# TODO: EGD is not supported anymore
+egdpath=@egdpath@
+
+RANDFLAG=""
+test -n "$egdpath" && 
+{
+ RANDFLAG="-rand $egdpath"
+}
+
+
+PATH=$PATH:$sbindir:$bindir:/usr/ssl/bin:/usr/local/ssl/bin:/opt/ssl/bin
+
+# check if gettext is present
+
+GETTEXT=`command -v gettext.sh`
+if [ $? -ne 0 ];
+then
+
+  # define dummy functions
+
+  gettext () {
+    echo $Xn "$1" $Xc
+  }
+
+  eval_gettext () {
+    eval_gettext_var="echo $1"
+    echo $Xn `eval $eval_gettext_var` $Xc
+  }
+
+else
+
+  # initialize gettext
+
+  . $GETTEXT
+  export TEXTDOMAIN=openvas-scripts
+  export TEXTDOMAINDIR=$datadir/locale
+
+fi
+
+
+Bo='('
+Bc=')'
+
+
+echo_no_nl ()
+{
+    echo $Xn "$*$Xc"
+}
+
+
+header()
+{
+clear
+echo    "-------------------------------------------------------------------------------"
+gettext "			Creation of the OpenVAS SSL Certificate"; echo
+echo    "-------------------------------------------------------------------------------"
+echo
+}
+
+#
+# We need openssl
+#
+case `openssl version` in 
+ OpenSSL*)
+     ;;
+ *)
+   gettext "OpenSSL is not properly installed: The 'openssl' command line utility could not be found (is your \$PATH set properly?)"; echo
+   exit 1
+esac
+     
+if [ ! -d "$OPENVASPRIV" ]; then
+    mkdir -p "$OPENVASPRIV"
+    chmod 0700 "$OPENVASPRIV"
+    echo "$OPENVASPRIV `gettext "created"`"
+fi
+
+if [ ! -d "$OPENVASPUB" ]; then
+    mkdir -p "$OPENVASPUB"
+    chmod a+rx "$OPENVASPUB"
+    echo "$OPENVASPUB `gettext "created"`"
+fi
+
+
+# Check environment
+if [ -z "$HOME" ]; then
+    gettext "\$HOME should be defined." 1>&2; echo; exit 1
+fi
+
+
+#
+# If EGD is not installed, we stop. It is mandatory
+# to have a entropy source on the system for certifcate
+# creation.
+# 
+test -z "$RANDFLAG" -a -z "$RANDFILE" &&
+{
+ if [ ! -r /dev/random -a ! -r /dev/urandom -a ! -r $HOME/.rnd ];
+  then
+   header
+   gettext "You do not have any suitable random source."; echo
+   gettext "Please use another system to create the certificate."
+   exit 1
+  fi
+}
+
+
+umask 077
+
+mkdir $BASEDIR || exit 1
+
+if [ -z "$QUIET" ];
+then
+header
+gettext "This script will now ask you the relevant information to create the SSL certificate of OpenVAS."; echo
+gettext "Note that this information will *NOT* be sent to anybody (everything stays local), but anyone with the ability to connect to your OpenVAS daemon will be able to retrieve this information."; echo
+echo
+echo
+#
+gettext "CA certificate life time in days [1460]: "; read x
+CACERT_LIFETIME=${x:-1460}
+gettext "Server certificate life time in days [365]: "; read x
+SRVCERT_LIFETIME=${x:-365}
+
+if [ ! -z "$LANG" ]; then
+    DC=`echo $LANG | sed -n 's/^..*_\(..\)$/\1/p'`
+fi
+
+# Default country = France
+# Too bad for you, but quicker for my tests!
+X=${DC:=DE}
+eval_gettext "Your country \${Bo}two letter code\${Bc} [\$X]: "; read x
+COUNTRY=${x:-$DC}
+#
+gettext "Your state or province name [none]: "; read x
+PROVINCE=${x:-.}
+X=Berlin; eval_gettext "Your location \${Bo}e.g. town\${Bc} [\$X]: "; read x
+LOCATION=${x:-$X}
+X="OpenVAS Users United"; eval_gettext "Your organization [\$X]: "; read x
+ORGANIZATION=${x:-$X}
+# X="Test unit"; echo_no_nl "Your organization unit [$X]:"; read x
+# ORGUNIT=${x:-$X}
+
+####
+else 
+CACERT_LIFETIME="1460"
+SRVCERT_LIFETIME="365"
+COUNTRY="DE"
+PROVINCE="none"
+LOCATION="Berlin"
+ORGANIZATION="OpenVAS Users United"
+fi
+
+
+cat <<EOF>$BASEDIR/std000.cnf
+RANDFILE		= $HOME/.rnd
+#
+[ ca ]
+default_ca = OpenVASCA
+
+[ OpenVASCA ]
+dir		= $BASEDIR		# Where everything is kept
+certs		= \$dir			# Where the issued certs are kept
+crl_dir		= \$dir			# Where the issued crl are kept
+database	= \$dir/index.txt	# database index file.
+new_certs_dir	= \$dir			# default place for new certs.
+
+certificate	= $CACERT	 	# The CA certificate
+serial		= \$dir/serial 		# The current serial number
+crl		= \$dir/crl.pem 	# The current CRL
+private_key	= $CAKEY		# The private key
+
+x509_extensions	= usr_cert		# The extentions to add to the cert
+crl_extensions	= crl_ext
+
+default_days	= 365		# how long to certify for
+default_crl_days= 30			# how long before next CRL
+default_md	= sha1			# which md to use.
+preserve	= no			# keep passed DN ordering
+
+policy		= policy_anything
+
+[ policy_anything ]
+countryName             = optional
+stateOrProvinceName     = optional
+localityName            = optional
+organizationName        = optional
+organizationalUnitName  = optional
+commonName              = supplied
+emailAddress            = optional
+
+[ req ]
+default_bits		= 1024
+distinguished_name	= req_distinguished_name
+# attributes		= req_attributes
+x509_extensions	= v3_ca	# The extentions to add to the self signed cert
+
+[ req_distinguished_name ]
+countryName			= Country Name (2 letter code)
+countryName_default		= DE
+countryName_min			= 2
+countryName_max			= 2
+
+stateOrProvinceName		= State or Province Name (full name)
+stateOrProvinceName_default	= Some-State
+
+localityName			= Locality Name (eg, city)
+
+0.organizationName		= Organization Name (eg, company)
+0.organizationName_default	= Internet Widgits Pty Ltd
+
+# we can do this but it is not needed normally :-)
+#1.organizationName		= Second Organization Name (eg, company)
+#1.organizationName_default	= World Wide Web Pty Ltd
+
+organizationalUnitName		= Organizational Unit Name (eg, section)
+#organizationalUnitName_default	=
+
+commonName			= Common Name (eg, your name or your server\'s hostname)
+commonName_max			= 255
+
+emailAddress			= Email Address
+emailAddress_max		= 255
+
+# SET-ex3			= SET extension number 3
+
+[ usr_cert ]
+# These extensions are added when 'ca' signs a request.
+# This goes against PKIX guidelines but some CAs do it and some software
+# requires this to avoid interpreting an end user certificate as a CA.
+#basicConstraints=CA:FALSE
+
+# Here are some examples of the usage of nsCertType. If it is omitted
+# the certificate can be used for anything *except* object signing.
+
+# This is OK for an SSL server.
+# nsCertType			= nsCertType
+# For normal client use this is typical
+# nsCertType = client, email
+nsCertType			= NSCERTTYPE
+
+keyUsage = nonRepudiation, digitalSignature, keyEncipherment
+
+# This will be displayed in Netscape's comment listbox.
+nsComment			= "OpenSSL Generated Certificate"
+
+# PKIX recommendations harmless if included in all certificates.
+subjectKeyIdentifier=hash
+authorityKeyIdentifier=keyid,issuer:always
+
+# This stuff is for subjectAltName and issuerAltname.
+# Import the email address.
+subjectAltName=email:copy
+
+# Copy subject details
+issuerAltName=issuer:copy
+
+#nsCaRevocationUrl		= http://www.domain.dom/ca-crl.pem
+#nsBaseUrl
+#nsRevocationUrl
+#nsRenewalUrl
+#nsCaPolicyUrl
+#nsSslServerName
+
+[ v3_ca ]
+# PKIX recommendation.
+subjectKeyIdentifier=hash
+authorityKeyIdentifier=keyid:always,issuer:always
+
+# This is what PKIX recommends but some broken software chokes on critical
+# extensions.
+basicConstraints = critical,CA:true
+# So we do this instead.
+#basicConstraints = CA:true
+
+# Key usage: this is typical for a CA certificate. However since it will
+# prevent it being used as an test self-signed certificate it is best
+# left out by default.
+keyUsage = cRLSign, keyCertSign
+nsCertType = sslCA
+EOF
+
+#####
+
+sed 's/NSCERTTYPE/server/g' < $BASEDIR/std000.cnf > $BASEDIR/std.cnf
+sed 's/NSCERTTYPE/client/g' < $BASEDIR/std000.cnf > $BASEDIR/stdC.cnf
+hostname=`hostname`
+if [ -z "$hostname" ];
+then
+ gettext "An error occured while trying to determine hostname!"; echo
+ exit 1
+fi
+# The value for organizationalUnitName must be 64 chars or less;
+#   thus, hostname must be 36 chars or less. If it's too big,
+#   try removing domain.
+
+hostname_len=`echo $hostname| wc -c`
+
+if [ $hostname_len -gt 36 ];
+then
+  hostname=`echo $hostname | cut -d '.' -f 1`
+fi
+
+CAMAIL=ca@$hostname
+SRVMAIL=openvassd@$hostname
+#
+# Create the root CA
+#
+
+
+echo 01 > $BASEDIR/serial
+touch $BASEDIR/index.txt
+openssl genrsa $RANDFLAG -out $CAKEY  1024 2> $BASEDIR/openssl-log
+
+
+echo "$COUNTRY
+$PROVINCE
+$LOCATION
+$ORGANIZATION
+Certification Authority for $hostname
+$hostname
+$CAMAIL" | 
+openssl req -config $BASEDIR/std.cnf -new -x509 -days $CACERT_LIFETIME -key $CAKEY -out $CACERT 2>> $BASEDIR/openssl-log
+
+# Server key
+openssl genrsa $RANDFLAG -out $SRVKEY 1024 2>> $BASEDIR/openssl-log
+
+# Server certificate "request"
+echo "$COUNTRY
+$PROVINCE
+$LOCATION
+$ORGANIZATION
+Server certificate for $hostname
+$hostname
+$SRVMAIL" | 
+openssl req -config $BASEDIR/std.cnf -new -key $SRVKEY -out $SRVREQ 2>> $BASEDIR/openssl-log
+
+# Sign the server certificate
+openssl ca -config $BASEDIR/std.cnf -name OpenVASCA -batch -days $SRVCERT_LIFETIME -in $SRVREQ -out $SRVCERT 2>> $BASEDIR/openssl-log
+
+
+chmod a+r $CACERT $SRVCERT
+
+
+test -z "$QUIET" && header
+
+if [ -s "$CACERT" -a -s "$CAKEY" -a -s "$SRVCERT" -a -s "$SRVKEY" ];
+ then
+ test -z "$QUIET" && gettext "Congratulations. Your server certificate was properly created."; echo
+ 
+ test -z "$QUIET" && { 
+ echo
+
+ gettext "The following files were created:"; echo
+ echo
+ gettext ". Certification authority:"; echo
+ eval_gettext "   Certificate = \$CACERT"; echo
+ eval_gettext "   Private key = \$CAKEY"; echo
+ echo
+ gettext ". OpenVAS Server : "; echo
+ eval_gettext "    Certificate = \$SRVCERT"; echo
+ eval_gettext "    Private key = \$SRVKEY"; echo
+ }
+else
+ gettext "An error occured while generating the certificates and/or keys!"; echo
+ echo
+ echo_no_nl "`gettext "Do you want to save openssl output in a file for further analysis? (y/n) [y] "`" $Xc
+ read n < /dev/tty
+ test -z "$n" -o "$n" = `gettext "y"` && {
+  eval_gettext "Where should I save this file? [\$HOME/openssl-output] "
+  read n < /dev/tty
+  test -z "$n" && n="$HOME/openssl-output"
+  cp "$BASEDIR"/openssl-log "$n"
+}
+fi
+
+
+
+
+test -z "$QUIET" &&
+{
+ echo
+ gettext "Press [ENTER] to exit"; echo; read x
+}
+rm -rf "$BASEDIR"
+
+
+if [ -s "$CACERT" -a -s "$CAKEY" -a -s "$SRVCERT" -a -s "$SRVKEY" ];
+then
+ exit 0
+else
+ exit 1
+fi

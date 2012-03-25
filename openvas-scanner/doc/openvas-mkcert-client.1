@@ -1,0 +1,45 @@
+.TH OPENVAS-MKCERT-CLIENT 1 "May 2002" "The OpenVAS Project" "User Manuals"
+.SH NAME
+openvas-mkcert-client \- Creates a client certificate
+.sp
+.SH SYNOPSIS
+.BI openvas-mkcert-client
+
+.SH DESCRIPTION
+
+The 
+.B OpenVAS Security Scanner
+protects the communication between the client and the server by using SSL. SSL
+requires the server to present a certificate to the client, and the client can
+optionally present a certificate to the server.
+
+This script
+.B openvas-mkcert-client
+generates a client certificate.
+
+.SH SEE ALSO
+
+.BR openvassd (8),\  openvas-mkcert (8),\  openssl(1)
+
+.SH MORE INFORMATION ABOUT THE OpenVAS PROJECT
+The canonical places where you will find more information 
+about the OpenVAS project are: 
+
+.RS
+.UR
+http://www.openvas.org/
+.UE
+(Official site)
+.br
+.UR
+http://cvs.openvas.org/
+.UE
+(Developers site)
+.RE
+
+
+.SH AUTHOR
+
+.B openvas-mkcert-client 
+was written by Michel Arboi <arboi@bigfoot.com> based on
+.B openvas-mkcert
