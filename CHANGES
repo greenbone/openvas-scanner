@@ -1,3 +1,36 @@
+openvas-scanner 3.3.0 (2012-03-25)
+
+This is the first release of the openvas-scanner 3.3 module for the Open
+Vulnerability Assessment System release 5 (OpenVAS-5). Compared
+to the previous major release it covers a set of various improvements.
+
+Many thanks to everyone who has contributed to the 3.3.0 release:
+Henri Doreau, Stephan Kleine, Matthew Mundell, Jan-Oliver Wagner and Michael
+Wiegand.
+
+Main changes compared to 3.2.x:
+
+* New: scanner preference "reverse_lookup", defaulting to "no" (the previous
+  behaviour)
+* Changed: For network wide scanning, mandatory keys are ignored.
+* Changed: Don't start the second scan phase when network scan is enabled and
+  user requests "stop" during the first phase.
+* New: Send an ERRMSG to the client when terminating a process.
+* Changed: Do not force execution of ACT_INIT category.
+* Fixed: A number of potential resource leaks.
+* Fixed: A number of compiler warnings when compiling with gcc 4.6.
+* Fixed: Usage of the mktemp template in openvas-nvt-sync.
+* Removed: Support for shared sockets.
+* New: The scanner options "network_scan" and "report_host_details" have been
+  added to the default scanner options.
+* The greenbone-nvt-sync script has been updated.
+* OpenVAS Scanner now uses UTC internally.
+* The optional use of the external tool "ovaldi" has been made more secure.
+* NVT management code has been updated to reflect the updated openvas-libraries
+  API.
+* Further improvements to the build system.
+
+
 openvas-scanner 3.3+rc1 (2012-03-11)
 
 This is the first release candidate of the openvas-scanner 3.3 module for the Open

@@ -1,3 +1,11 @@
+2012-03-25  Jan-Oliver Wagner <jan-oliver.wagner@greenbone.net>
+
+	Preparing the openvas-scanner 3.3.0 release.
+
+	* CHANGES: Updated.
+
+	* CMakeLists.txt: Version bump to 3.3.0.
+
 2012-03-11  Jan-Oliver Wagner <jan-oliver.wagner@greenbone.net>
 
 	Post release version bump.
