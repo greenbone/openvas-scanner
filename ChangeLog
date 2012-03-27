@@ -1,3 +1,7 @@
+2012-03-27  Jan-Oliver Wagner <jan-oliver.wagner@greenbone.net>
+
+	* CMakeLists.txt: Fixed svn revisioning.
+
 2012-03-25  Jan-Oliver Wagner <jan-oliver.wagner@greenbone.net>
 
 	Post release version bump.
