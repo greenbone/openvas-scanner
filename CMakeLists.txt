@@ -183,8 +183,8 @@ message ("-- Install prefix: ${CMAKE_INSTALL_PREFIX}")
 ## might occur.
 
 pkg_check_modules (LIBOPENVAS REQUIRED libopenvas>=5.0.0)
-pkg_check_modules (GNUTLS REQUIRED gnutls)
-pkg_check_modules (GLIB REQUIRED glib-2.0)
+pkg_check_modules (GNUTLS REQUIRED gnutls>=2.2)
+pkg_check_modules (GLIB REQUIRED glib-2.0>=2.16)
 
 message (STATUS "Looking for pcap...")
 find_library (PCAP pcap)
