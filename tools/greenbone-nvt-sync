@@ -28,7 +28,7 @@
 # with some characters in order to make it newer than
 # any follow-up version to prevent that your version
 # will be overwritten.
-VERSION=20111010
+VERSION=20120404
 
 # SETTINGS
 # ========
@@ -196,9 +196,9 @@ sync_nvts(){
     fi
     if [ "$gsmproxy" = "proxy_feed" ] || [ -z "$gsmproxy" ]
     then
-      rsync -e "ssh -o \"BatchMode=yes\" -p $PORT -i $sysconfdir/openvas/gsf-access-key" -ltrP $RSYNC_VERBOSE --protocol=29 $RSYNC_DELETE $feeduser $NVT_DIR
+      rsync -e "ssh -o \"UserKnownHostsFile=/dev/null\" -o \"StrictHostKeyChecking=no\" -o \"BatchMode=yes\" -p $PORT -i $sysconfdir/openvas/gsf-access-key" -ltrP $RSYNC_VERBOSE --protocol=29 $RSYNC_DELETE $feeduser $NVT_DIR
     else
-      rsync -e "ssh -o \"BatchMode=yes\" -o \"ProxyCommand corkscrew $gsmproxy %h %p\" -p $PORT -i $sysconfdir/openvas/gsf-access-key" -ltrP $RSYNC_VERBOSE --protocol=29 $RSYNC_DELETE $feeduser $NVT_DIR
+      rsync -e "ssh -o \"UserKnownHostsFile=/dev/null\" -o \"StrictHostKeyChecking=no\" -o \"BatchMode=yes\" -o \"ProxyCommand corkscrew $gsmproxy %h %p\" -p $PORT -i $sysconfdir/openvas/gsf-access-key" -ltrP $RSYNC_VERBOSE --protocol=29 $RSYNC_DELETE $feeduser $NVT_DIR
     fi
     if [ $? -ne 0 ]  ; then
       stderr_write "== greenbone-nvt-sync $VERSION ================================================"
