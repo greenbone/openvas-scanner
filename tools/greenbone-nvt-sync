@@ -28,7 +28,7 @@
 # with some characters in order to make it newer than
 # any follow-up version to prevent that your version
 # will be overwritten.
-VERSION=20120404
+VERSION=20120413
 
 # SETTINGS
 # ========
@@ -63,6 +63,9 @@ PORT=24
 
 # Directory where pidfiles are located
 PIDFILEDIR="/var/run"
+
+# If ENABLED is set to 0, the sync script will not perform a synchronization.
+ENABLED=1
 
 if [ ! -w $LOGDIR ]
 then
@@ -111,6 +114,12 @@ init_sync ()
   sysconfdir=`$SCANNER_BINARY --sysconfdir`
 
   [ -r $sysconfdir/openvas/greenbone-nvt-sync.conf ] && . $sysconfdir/openvas/greenbone-nvt-sync.conf
+
+  if [ $ENABLED -ne 1 ]
+  then
+    log_write "NVT synchronization is disabled, exiting."
+    exit 0
+  fi
 
   if [ -z "$NVT_DIR" ]
   then

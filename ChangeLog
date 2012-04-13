@@ -1,3 +1,7 @@
+2012-04-13  Michael Wiegand <michael.wiegand@greenbone.net>
+
+	* tools/greenbone-nvt-sync: Add switch to disable the sync script.
+
 2012-04-04  Michael Wiegand <michael.wiegand@greenbone.net>
 
 	* tools/greenbone-nvt-sync: Add ssh options to disable strict host key
