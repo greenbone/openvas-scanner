@@ -67,6 +67,11 @@ PIDFILEDIR="/var/run"
 # If ENABLED is set to 0, the sync script will not perform a synchronization.
 ENABLED=1
 
+# If REFRESH_ONLY is set to 1, the sync script will only update the OpenVAS
+# Scanner cache and the OpenVAS Manager database. This can be controlled via
+# the --refresh parameter.
+REFRESH_ONLY=0
+
 if [ ! -w $LOGDIR ]
 then
   NOLOG=1
@@ -115,7 +120,7 @@ init_sync ()
 
   [ -r $sysconfdir/openvas/greenbone-nvt-sync.conf ] && . $sysconfdir/openvas/greenbone-nvt-sync.conf
 
-  if [ $ENABLED -ne 1 ]
+  if [ $ENABLED -ne 1 ] && [ $REFRESH_ONLY -ne 1 ]
   then
     log_write "NVT synchronization is disabled, exiting."
     exit 0
@@ -167,6 +172,11 @@ init_sync ()
 }
 
 sync_nvts(){
+  if [ $REFRESH_ONLY -eq 1 ]
+  then
+    return
+  fi
+
   log_write "Synchronizing NVTs from the Greenbone Security Feed into $NVT_DIR..."
   if [ $FEED_PRESENT -eq 1 ] ; then
     FEEDCOUNT=`grep -E "nasl$|inc$" $NVT_DIR/md5sums | wc -l`
@@ -377,6 +387,9 @@ while test $# -gt 0; do
     --feedversion)
       do_feedversion
       exit 0
+      ;;
+    --refresh)
+      REFRESH_ONLY=1
       ;;
     --nvt-dir)
       NVT_DIR="$2"

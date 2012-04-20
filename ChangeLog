@@ -1,3 +1,8 @@
+2012-04-20  Michael Wiegand <michael.wiegand@greenbone.net>
+
+	* tools/greenbone-nvt-sync: Add switch to refresh scanner cache and
+	manager database without requiring network access.
+
 2012-04-13  Michael Wiegand <michael.wiegand@greenbone.net>
 
 	* tools/greenbone-nvt-sync: Add switch to disable the sync script.
