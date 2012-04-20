@@ -1,5 +1,10 @@
 2012-04-20  Michael Wiegand <michael.wiegand@greenbone.net>
 
+	* tools/greenbone-nvt-sync: Move check for ENABLED further down to
+	allow options like --identify to work.
+
+2012-04-20  Michael Wiegand <michael.wiegand@greenbone.net>
+
 	* tools/greenbone-nvt-sync: Add switch to refresh scanner cache and
 	manager database without requiring network access.
 

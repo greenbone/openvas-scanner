@@ -120,12 +120,6 @@ init_sync ()
 
   [ -r $sysconfdir/openvas/greenbone-nvt-sync.conf ] && . $sysconfdir/openvas/greenbone-nvt-sync.conf
 
-  if [ $ENABLED -ne 1 ] && [ $REFRESH_ONLY -ne 1 ]
-  then
-    log_write "NVT synchronization is disabled, exiting."
-    exit 0
-  fi
-
   if [ -z "$NVT_DIR" ]
   then
     NVT_DIR=`$SCANNER_BINARY -s | grep plugins_folder | sed 's/plugins\_folder\ *=\ *//'`
@@ -172,6 +166,12 @@ init_sync ()
 }
 
 sync_nvts(){
+  if [ $ENABLED -ne 1 ] && [ $REFRESH_ONLY -ne 1 ]
+  then
+    log_write "NVT synchronization is disabled, exiting."
+    exit 0
+  fi
+
   if [ $REFRESH_ONLY -eq 1 ]
   then
     return
