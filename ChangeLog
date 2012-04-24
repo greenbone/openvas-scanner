@@ -1,5 +1,11 @@
 2012-04-24  Michael Wiegand <michael.wiegand@greenbone.net>
 
+	Preparing the openvas-scanner 3.3.1 release.
+
+	* CHANGES: Updated.
+
+2012-04-24  Michael Wiegand <michael.wiegand@greenbone.net>
+
 	Clean up CMake infrastructure and ensure that compilation with modern
 	gccs works.
 

@@ -1,3 +1,24 @@
+openvas-scanner 3.3.1 (2012-04-24)
+
+This is the first maintenance release of the openvas-scanner 3.3 module for the Open
+Vulnerability Assessment System release 5 (OpenVAS-5).
+
+This release contains fixes for the CMake build infrastructure and an updated
+greenbone-nvt-sync script. It also raises the glib and gnutls dependencies to
+the minimum of what OpenVAS Libraries requires (currently glib 2.16 and gnutls
+2.2).
+
+Many thanks to everyone who has contributed to the 3.3.1 release:
+Lukas Grunwald, Jan-Oliver Wagner and Michael Wiegand.
+
+Main changes compared to 3.3.0:
+* The CMake infrastructure has been cleaned up to ensure that compilation with
+  modern gccs works.
+* The greenbone-nvt-sync script has been updated.
+* OpenVAS Scanner now requires at least glib 2.16 and gnutls 2.2, matching the
+  requirements of OpenVAS Libraries.
+
+
 openvas-scanner 3.3.0 (2012-03-25)
 
 This is the first release of the openvas-scanner 3.3 module for the Open
