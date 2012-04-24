@@ -23,20 +23,6 @@
 # along with this program; if not, write to the Free Software
 # Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA 02110-1301 USA.
 
-## Config
-
-if (OPENVAS_HEADER_INSTALL_DIR)
-  set (HEADER_TEMP "-I${OPENVAS_HEADER_INSTALL_DIR}")
-else (OPENVAS_HEADER_INSTALL_DIR)
-  set (HEADER_TEMP "")
-endif (OPENVAS_HEADER_INSTALL_DIR)
-
-if (OPENVAS_LIB_INSTALL_DIR)
-  set (LIB_TEMP "-L${OPENVAS_LIB_INSTALL_DIR}")
-else (OPENVAS_LIB_INSTALL_DIR)
-  set (LIB_TEMP "")
-endif (OPENVAS_LIB_INSTALL_DIR)
-
 ## Program
 
 add_executable (openvassd attack.c auth.c comm.c hosts.c locks.c log.c
@@ -130,16 +116,11 @@ if (NVT_TIMEOUT)
   add_definitions (-DNVT_TIMEOUT=${NVT_TIMEOUT})
 endif (NVT_TIMEOUT)
 
-set_target_properties (openvassd PROPERTIES LINK_FLAGS
-                       "${LIB_TEMP} ${GLIB_LDFLAGS} ${OPENVAS_LDFLAGS}")
-
-target_link_libraries (openvassd gnutls dl gcrypt)
+target_link_libraries (openvassd
+                       dl gcrypt "${OPENVAS_LDFLAGS} ${GLIB_LDFLAGS} ${GNUTLS_LDFLAGS}")
 
 set_target_properties (openvassd PROPERTIES COMPILE_FLAGS
-                       "${HEADER_TEMP} ${OPENVAS_CFLAGS} ${GLIB_CFLAGS}")
-
-mark_as_advanced (LIB_TEMP)
-mark_as_advanced (HEADER_TEMP)
+                       "${OPENVAS_CFLAGS} ${GLIB_CFLAGS} ${GNUTLS_CFLAGS}")
 
 ## Tests
 

@@ -1,3 +1,18 @@
+2012-04-24  Michael Wiegand <michael.wiegand@greenbone.net>
+
+	Clean up CMake infrastructure and ensure that compilation with modern
+	gccs works.
+
+	* CMakeLists.txt: Retrieve GnuTLS flags via pkg-config. Remove setting
+	of OPENVAS_LIB_INSTALL_DIR and OPENVAS_HEADER_INSTALL_DIR as they are
+	retrieved via pkg-config now.
+
+	* src/CMakeLists.txt: Remove handling of now superfluous
+	OPENVAS_LIB_INSTALL_DIR and OPENVAS_HEADER_INSTALL_DIR. Set link
+	libraries via target_link_libraries and not via LINK_FLAGS since this
+	breaks compilation with more modern gccs. Take more libraries from
+	pkg-config output instead of hardcoding them.
+
 2012-04-20  Michael Wiegand <michael.wiegand@greenbone.net>
 
 	* tools/greenbone-nvt-sync: Move check for ENABLED further down to

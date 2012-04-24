@@ -214,6 +214,13 @@ execute_process (COMMAND pkg-config --libs libopenvas
   OUTPUT_VARIABLE OPENVAS_LDFLAGS
   OUTPUT_STRIP_TRAILING_WHITESPACE)
 
+execute_process (COMMAND pkg-config --cflags gnutls
+  OUTPUT_VARIABLE GNUTLS_CFLAGS
+  OUTPUT_STRIP_TRAILING_WHITESPACE)
+execute_process (COMMAND pkg-config --libs gnutls
+  OUTPUT_VARIABLE GNUTLS_LDFLAGS
+  OUTPUT_STRIP_TRAILING_WHITESPACE)
+
 ## Version
 
 string (REPLACE "
