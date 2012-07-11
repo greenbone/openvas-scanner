@@ -62,6 +62,7 @@
 #include <openvas/misc/services1.h>  /* for openvas_init_svc */
 #include <openvas/misc/proctitle.h>  /* for setproctitle.h */
 #include <openvas/base/pidfile.h>    /* for pidfile_remove */
+#include <openvas/base/nvticache.h>  /* for nvticache_new */
 
 #include <gnutls/gnutls.h>
 #include <gnutls/x509.h>
@@ -976,14 +977,12 @@ init_openvassd (struct arglist *options, int first_pass, int stop_early,
 
   if (stop_early == 0)
     {
-      // TODO: It is better to have cache_folder mandatory.
-      // Anything else will call for trouble (cache files
-      // mix up with source NVT files)
-      if (store_init
-          (arg_get_value (preferences, "cache_folder"),
-           arg_get_value (preferences, "plugins_folder")) != 0)
-        store_init (arg_get_value (preferences, "plugins_folder"),
-                    arg_get_value (preferences, "plugins_folder"));
+      nvticache_t * nvti_cache;
+
+      // @todo: Perhaps check wether "nvticache" is already present in arglist
+      nvti_cache = nvticache_new (arg_get_value (preferences, "cache_folder"),
+                                  arg_get_value (preferences, "plugins_folder"));
+      arg_add_value (preferences, "nvticache", ARG_PTR, -1, nvti_cache);
 
       plugins = plugins_init (preferences, be_quiet);
 

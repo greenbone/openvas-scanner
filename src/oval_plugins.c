@@ -46,6 +46,7 @@
 #include <openvas/misc/internal_com.h>  /* for INTERNAL_COMM_MSG_TYPE_CTRL */
 
 #include <openvas/base/nvti.h>  /* for nvti_t */
+#include <openvas/base/nvticache.h>       /* for nvticache_add */
 #include <openvas/base/drop_privileges.h> /* for drop_privileges */
 #include <openvas/base/openvas_file.h>  /* for openvas_file_remove_recurse */
 
@@ -482,11 +483,8 @@ oval_plugin_add (char *folder, char *name, struct arglist *plugins,
 
       nvti_set_sign_key_ids (first_plugin, sign_fprs);
 
-      args = emalloc (sizeof (struct arglist));
+      nvticache_add ((const nvticache_t *)arg_get_value (preferences, "nvticache"), first_plugin, name);
 
-      arg_add_value (args, "NVTI", ARG_PTR, -1, first_plugin);
-
-      store_plugin (args, name);
       args = store_load_plugin (name, preferences);
     }
 

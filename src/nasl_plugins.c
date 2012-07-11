@@ -41,12 +41,13 @@
 #include <utime.h>
 
 #include <openvas/base/drop_privileges.h> /* for drop_privileges */
+#include <openvas/base/nvticache.h>       /* for nvticache_add */
 #include <openvas/nasl/nasl.h>
 #include <openvas/misc/network.h>    /* for internal_send */
 #include <openvas/misc/nvt_categories.h>  /* for ACT_SCANNER */
 #include <openvas/misc/plugutils.h>     /* for plug_set_launch */
 #include <openvas/misc/internal_com.h>  /* for INTERNAL_COMM_CTRL_FINISHED */
-#include <openvas/misc/store.h>      /* for store_plugin */
+#include <openvas/misc/store.h>      /* for store_load_plugin */
 #include <openvas/misc/system.h>     /* for emalloc */
 #include <openvas/misc/proctitle.h>  /* for setproctitle */
 
@@ -162,7 +163,9 @@ nasl_plugin_add (char *folder, char *name, struct arglist *plugins,
 
       if (nvti_oid (nvti) != NULL)
         {
-          store_plugin (plugin_args, name);
+          nvticache_add (arg_get_value(preferences, "nvticache"), nvti, name);
+          arg_set_value (plugin_args, "preferences", -1, NULL);
+          arg_free_all (plugin_args);
           plugin_args = store_load_plugin (name, preferences);
         }
       else

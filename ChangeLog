@@ -1,3 +1,22 @@
+2012-07-12  Jan-Oliver Wagner <jan-oliver.wagner@greenbone.net>
+
+	Use nvticache API instead of store_* API in a first step.
+        Now it is mandatory that a cache directory really exists.
+
+	*  src/nasl_plugins.c (nasl_plugin_add): Replace use of store_
+	API by nvticache API.
+
+	* src/oval_plugins.c (oval_plugin_add): Replace use of store_
+	API by nvticache API.
+
+	* src/openvassd.c (init_openvassd): Replaced init via store_
+	by direct nvtichache calls. Make it mandatory that a
+	cache directory exists. Fallback of nvi directory not
+	used anymore.
+
+	* CMakeLists.txt: Increase dependency to openvas-libaries
+	to 6.0.0.
+
 2012-07-10  Jan-Oliver Wagner <jan-oliver.wagner@greenbone.net>
 
 	Post branch version bump.
