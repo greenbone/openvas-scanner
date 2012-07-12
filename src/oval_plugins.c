@@ -40,7 +40,6 @@
 #include <openvas/misc/network.h>    /* for internal_send */
 #include <openvas/misc/nvt_categories.h>  /* for ACT_END */
 #include <openvas/misc/plugutils.h>  /* for post_note */
-#include <openvas/misc/store.h>      /* for store_load_plugin */
 #include <openvas/misc/system.h>     /* for emalloc */
 #include <openvas/misc/proctitle.h>  /* for setproctitle */
 #include <openvas/misc/internal_com.h>  /* for INTERNAL_COMM_MSG_TYPE_CTRL */
@@ -370,6 +369,7 @@ oval_plugin_add (char *folder, char *name, struct arglist *plugins,
   gsize length = 0;
   gchar *descriptions = NULL;
   int i;
+  nvti_t *first_plugin = g_slist_nth_data (plugin_list, 0);
 
   if (plugin_list != NULL)
     {
@@ -387,7 +387,8 @@ oval_plugin_add (char *folder, char *name, struct arglist *plugins,
       return NULL;
     }
 
-  args = store_load_plugin (name, preferences);
+  first_plugin = nvticache_get (arg_get_value(preferences, "nvticache"), name);
+  args = plug_create_from_nvti_and_prefs (first_plugin, preferences);
 
   if (args == NULL)
     {
@@ -430,7 +431,7 @@ oval_plugin_add (char *folder, char *name, struct arglist *plugins,
           return NULL;
         }
 
-      nvti_t *first_plugin = g_slist_nth_data (plugin_list, 0);
+      first_plugin = g_slist_nth_data (plugin_list, 0);
       if (g_slist_length (plugin_list) > 1)
         {
           gchar **title_array;
@@ -485,7 +486,8 @@ oval_plugin_add (char *folder, char *name, struct arglist *plugins,
 
       nvticache_add ((const nvticache_t *)arg_get_value (preferences, "nvticache"), first_plugin, name);
 
-      args = store_load_plugin (name, preferences);
+      first_plugin = nvticache_get (arg_get_value(preferences, "nvticache"), name);
+      args = plug_create_from_nvti_and_prefs (first_plugin, preferences);
     }
 
   if (args != NULL)

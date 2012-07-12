@@ -47,7 +47,6 @@
 #include <openvas/misc/nvt_categories.h>  /* for ACT_SCANNER */
 #include <openvas/misc/plugutils.h>     /* for plug_set_launch */
 #include <openvas/misc/internal_com.h>  /* for INTERNAL_COMM_CTRL_FINISHED */
-#include <openvas/misc/store.h>      /* for store_load_plugin */
 #include <openvas/misc/system.h>     /* for emalloc */
 #include <openvas/misc/proctitle.h>  /* for setproctitle */
 
@@ -79,9 +78,9 @@ static void nasl_thread (struct arglist *);
 /**
  * @brief Add *one* .nasl plugin to the plugin list and return the pointer to it.
  *
- * The plugin is first attempted to be loaded from the cache calling
- * store_load_plugin. If that fails, it is parsed (via exec_nasl_script) and
- * added to the store.
+ * The plugin is first attempted to be loaded from the cache.
+ * If that fails, it is parsed (via exec_nasl_script) and
+ * added to the cache.
  * If a plugin with the same (file)name is already present in the plugins
  * arglist, it will be replaced.
  *
@@ -111,7 +110,8 @@ nasl_plugin_add (char *folder, char *name, struct arglist *plugins,
       nasl_mode |= NASL_ALWAYS_SIGNED;
     }
 
-  plugin_args = store_load_plugin (name, preferences);
+  nvti = nvticache_get (arg_get_value(preferences, "nvticache"), name);
+  plugin_args = plug_create_from_nvti_and_prefs (nvti, preferences);
   if (plugin_args == NULL)
     {
       char *sign_fprs = nasl_extract_signature_fprs (fullname);
@@ -166,7 +166,8 @@ nasl_plugin_add (char *folder, char *name, struct arglist *plugins,
           nvticache_add (arg_get_value(preferences, "nvticache"), nvti, name);
           arg_set_value (plugin_args, "preferences", -1, NULL);
           arg_free_all (plugin_args);
-          plugin_args = store_load_plugin (name, preferences);
+          nvti = nvticache_get (arg_get_value(preferences, "nvticache"), name);
+          plugin_args = plug_create_from_nvti_and_prefs (nvti, preferences);
         }
       else
         // Most likely an exit was hit before the description could be parsed.

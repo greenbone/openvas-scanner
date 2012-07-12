@@ -1,5 +1,11 @@
 2012-07-12  Jan-Oliver Wagner <jan-oliver.wagner@greenbone.net>
 
+	* src/nasl_plugins.c, src/oval_plugins.c: Replace calls
+	of store_load_plugin by subsequent calls of nvticache_get
+	and plug_create_from_nvti_and_prefs.
+
+2012-07-12  Jan-Oliver Wagner <jan-oliver.wagner@greenbone.net>
+
 	Use nvticache API instead of store_* API in a first step.
         Now it is mandatory that a cache directory really exists.
 
