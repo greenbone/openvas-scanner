@@ -362,17 +362,9 @@ comm_send_preferences (struct arglist *globals)
           if (strcmp (prefs->name, "logfile")
               && strcmp (prefs->name, "config_file")
               && strcmp (prefs->name, "plugins_folder")
-              && strcmp (prefs->name, "dumpfile") &&
-              /* TODO: users is deprecated since 3.0. It may still
-                 be around in the config files though.
-                 Same is likely the case for various other
-                 preferences in this list here. */
-              strcmp (prefs->name, "users") && strcmp (prefs->name, "rules") &&
-              /* TODO: Same for peks_* */
-              strncmp (prefs->name, "peks_", 5)
-              && strcmp (prefs->name, "negot_timeout") &&
-              /* TODO: Same for cookie_logpipe */
-              strcmp (prefs->name, "cookie_logpipe")
+              && strcmp (prefs->name, "dumpfile")
+              && strcmp (prefs->name, "rules")
+              && strcmp (prefs->name, "negot_timeout")
               && strcmp (prefs->name, "force_pubkey_auth")
               && strcmp (prefs->name, "log_while_attack")
               && strcmp (prefs->name, "ca_file")

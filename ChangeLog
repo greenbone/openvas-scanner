@@ -1,3 +1,7 @@
+2012-07-13  Jan-Oliver Wagner <jan-oliver.wagner@greenbone.net>
+
+	* src/comm.c (comm_send_preferences): Removed deprectated prefs sind 3.0.
+
 2012-07-12  Jan-Oliver Wagner <jan-oliver.wagner@greenbone.net>
 
 	* src/nasl_plugins.c, src/oval_plugins.c: Replace calls
@@ -7,7 +11,7 @@
 2012-07-12  Jan-Oliver Wagner <jan-oliver.wagner@greenbone.net>
 
 	Use nvticache API instead of store_* API in a first step.
-        Now it is mandatory that a cache directory really exists.
+	Now it is mandatory that a cache directory really exists.
 
 	*  src/nasl_plugins.c (nasl_plugin_add): Replace use of store_
 	API by nvticache API.
