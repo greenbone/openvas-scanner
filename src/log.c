@@ -41,42 +41,6 @@
 
 static FILE *log;
 
-#define MAX_LOG_SIZE_MEGS 500   /* 500 Megs */
-
-void
-rotate_log_file (const char *filename)
-{
-  char path[1024];
-  int i = 0;
-  struct stat st;
-
-  if (stat (filename, &st) == 0)
-    {
-      if (st.st_size < 1024 * 1024 * MAX_LOG_SIZE_MEGS)
-        return;
-    }
-  else
-    return;                     /* Could not stat the log file */
-
-
-  log_close ();
-
-  for (i = 0; i < 1024; i++)
-    {
-      int e;
-      snprintf (path, sizeof (path), "%s.%d", filename, i);
-      e = stat (path, &st);
-      if (e < 0 && errno == ENOENT)
-        break;
-    }
-
-  if (i == 1024)
-    return;                     /* ?? */
-
-  rename (filename, path);
-}
-
-
 /**
  * @brief Initialization of the log file.
  */
@@ -96,7 +60,6 @@ log_init (const char *filename)
 
   else
     {
-      rotate_log_file (filename);
       int fd = open (filename, O_WRONLY | O_CREAT | O_APPEND
 #ifdef O_LARGEFILE
                      | O_LARGEFILE

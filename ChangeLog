@@ -1,3 +1,11 @@
+2012-07-16  Jan-Oliver Wagner <jan-oliver.wagner@greenbone.net>
+
+	Removed built-in logfile rotation. It is not a good idea to try
+	to circumvent system enviroment technology for logrotate.
+
+	* src/log.c (MAX_LOG_SIZE_MEGS, rotate_log_file): Removed.
+	(log_init): Removed call of rotate_log_file).
+
 2012-07-13  Jan-Oliver Wagner <jan-oliver.wagner@greenbone.net>
 
 	* src/comm.c (comm_send_preferences): Removed deprectated prefs sind 3.0.
