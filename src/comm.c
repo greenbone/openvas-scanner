@@ -73,6 +73,11 @@ comm_init (int soc)
       version = OTP_10;
       nsend (soc, "< OTP/1.0 >\n", 12, 0);
     }
+  else if (!strncmp (buf, "< OTP/1.1 >", 11))
+    {
+      version = OTP_11;
+      nsend (soc, "< OTP/1.1 >\n", 12, 0);
+    }
   else
     {
       exit (0);

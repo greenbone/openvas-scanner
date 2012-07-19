@@ -63,6 +63,7 @@
 #include <openvas/misc/proctitle.h>  /* for setproctitle.h */
 #include <openvas/base/pidfile.h>    /* for pidfile_remove */
 #include <openvas/base/nvticache.h>  /* for nvticache_new */
+#include <openvas/misc/otp.h>        /* for OTP_10 */
 
 #include <gnutls/gnutls.h>
 #include <gnutls/x509.h>
@@ -557,10 +558,15 @@ scanner_thread (struct arglist *globals)
 
       arg_set_value (globals, "plugins", -1, plugins);
 
-      comm_send_md5_plugins (globals);
-      comm_send_preferences (globals);
-      comm_send_rules (globals);
-      ntp_1x_send_dependencies (globals);
+      // OTP 1.0 sends all plugins and other information at connect
+      // OTP >=1.1 does not send these at connect
+      if (protocol_version == OTP_10)
+        {
+          comm_send_md5_plugins (globals);
+          comm_send_preferences (globals);
+          comm_send_rules (globals);
+          ntp_1x_send_dependencies (globals);
+        }
 
       /* Become process group leader and the like ... */
       start_daemon_mode ();

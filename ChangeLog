@@ -1,3 +1,13 @@
+2012-07-19  Matthew Mundell <matthew.mundell@greenbone.net>
+
+	Add new OTP version 1.1 which is like 1.0 but sends less info to the
+	client initially.  Patch by Jan-Oliver Wagner.
+
+	* src/comm.c (comm_init): Add OTP/1.1 case.
+
+	* src/openvassd.c (scanner_thread): Skip sending some of the init info for
+	OTP > 1.0.
+
 2012-07-18  Jan-Oliver Wagner <jan-oliver.wagner@greenbone.net>
 
 	* src/openvassd.c (deny_severity, allow_severity): Removed. Global
