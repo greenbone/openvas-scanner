@@ -1,3 +1,8 @@
+2012-07-18  Jan-Oliver Wagner <jan-oliver.wagner@greenbone.net>
+
+	* src/openvassd.c (deny_severity, allow_severity): Removed. Global
+	vars are never used.
+
 2012-07-16  Jan-Oliver Wagner <jan-oliver.wagner@greenbone.net>
 
 	Removed built-in logfile rotation. It is not a good idea to try

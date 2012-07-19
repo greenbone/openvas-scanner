@@ -70,11 +70,6 @@
 #ifdef USE_LIBWRAP
 #include <tcpd.h>
 #include <syslog.h>
-
-// FIXME: These are not needed, are they?
-int deny_severity = LOG_WARNING;
-int allow_severity = LOG_NOTICE;
-
 #endif
 
 #include <glib.h>
