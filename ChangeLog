@@ -1,3 +1,8 @@
+2012-07-19  Michael Meyer <michael.meyer@greenbone.net>
+
+	* src/openvassd.c:
+	store.h was deleted in r13728. So don't include it.
+
 2012-07-19  Matthew Mundell <matthew.mundell@greenbone.net>
 
 	Add new OTP version 1.1 which is like 1.0 but sends less info to the

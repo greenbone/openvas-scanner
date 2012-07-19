@@ -56,7 +56,6 @@
 #include <openvas/misc/network.h>    /* for auth_printf */
 #include <openvas/hg/hosts_gatherer.h>
 #include <openvas/misc/plugutils.h>  /* for find_in_path */
-#include <openvas/misc/store.h>      /* for store_init */
 #include <openvas/misc/system.h>     /* for estrdup */
 #include <openvas/misc/rand.h>       /* for openvas_init_random */
 #include <openvas/misc/services1.h>  /* for openvas_init_svc */
