@@ -1,3 +1,11 @@
+2012-09-07  Jan-Oliver Wagner <jan-oliver.wagner@greenbone.net>
+
+	* src/ntp_11.c (ntp_1x_send_dependencies): Use str2arglist
+	directly instead of plug_get_deps.
+
+	* src/pluginscheduler.c (hash_add, plugins_scheduler_init):
+	Use str2arglist directly instead of plug_get_*.
+
 2012-07-19  Michael Meyer <michael.meyer@greenbone.net>
 
 	* src/openvassd.c:

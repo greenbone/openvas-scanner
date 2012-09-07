@@ -32,8 +32,9 @@
 
 #include <glib.h>
 
+#include <openvas/base/nvti.h>  /* for nvti_name */
+
 #include <openvas/misc/network.h>    /* for recv_line */
-#include <openvas/misc/plugutils.h>  /* for plug_get_deps */
 #include <openvas/misc/system.h>     /* for emalloc */
 #include <openvas/misc/hash_table_file.h>
 #include <openvas/misc/openvas_ssh_login.h>
@@ -818,12 +819,11 @@ ntp_1x_send_dependencies (struct arglist *globals)
   while (plugins->next)
     {
       nvti_t *nvti = arg_get_value (plugins->value, "NVTI");
-      struct arglist *args = plugins->value;
       struct arglist *d, *deps;
-      if (!args)
+      if (!plugins->value)
         goto nxt;
 
-      d = deps = plug_get_deps (args);
+      d = deps =  str2arglist (nvti_dependencies (nvti));
       if (deps == NULL)
         goto nxt;
 

@@ -30,10 +30,12 @@
 #include <string.h> /* for strcmp() */
 #include <stdio.h>  /* for printf() */
 
+#include <openvas/base/nvti.h>  /* for nvti_t */
+
 #include <openvas/misc/nvt_categories.h>  /* for ACT_SCANNER */
-#include <openvas/misc/plugutils.h>  /* for plug_get_required_ports */
+#include <openvas/misc/plugutils.h>  /* for plug_get_launch */
 #include <openvas/misc/system.h>     /* for emalloc */
-#include <openvas/misc/arglists.h>
+#include <openvas/misc/arglists.h>   /* for str2arglist */
 
 #include <glib.h>
 
@@ -160,8 +162,9 @@ hash_add (struct hash *h, char *name, struct scheduler_plugin *plugin)
 {
   struct hash *l = emalloc (sizeof (struct hash));
   unsigned int idx = mkhash (name);
-  struct arglist *deps = plug_get_deps (plugin->arglist->value);
-  struct arglist *ports = plug_get_required_ports (plugin->arglist->value);
+  nvti_t * nvti = arg_get_value (plugin->arglist->value, "NVTI");
+  struct arglist *deps = str2arglist (nvti_dependencies (nvti));
+  struct arglist *ports = str2arglist (nvti_required_ports (nvti));
   int num_deps = 0;
 
   l->plugin = plugin;
@@ -512,13 +515,11 @@ plugins_scheduler_init (struct arglist *plugins, int autoload,
       scheduler_plugin->category = category;
       scheduler_plugin->timeout = nvti_timeout (nvti);
 
-      scheduler_plugin->required_ports = plug_get_required_ports (arg->value);
-      scheduler_plugin->required_udp_ports =
-        plug_get_required_udp_ports (arg->value);
-      scheduler_plugin->required_keys = plug_get_required_keys (arg->value);
-      scheduler_plugin->mandatory_keys = plug_get_mandatory_keys (arg->value);
-      scheduler_plugin->excluded_keys = plug_get_excluded_keys (arg->value);
-
+      scheduler_plugin->required_ports = str2arglist (nvti_required_ports (nvti));
+      scheduler_plugin->required_udp_ports = str2arglist (nvti_required_udp_ports (nvti));
+      scheduler_plugin->required_keys = str2arglist (nvti_required_keys (nvti));
+      scheduler_plugin->mandatory_keys = str2arglist (nvti_mandatory_keys (nvti));
+      scheduler_plugin->excluded_keys = str2arglist (nvti_excluded_keys (nvti));
 
       if (category > ACT_LAST)
         category = ACT_LAST;
