@@ -1,3 +1,9 @@
+2012-09-10  Thomas reinke <reinke@securityspace.com>
+
+	* src/comm.c (send_plug_info): Fixed SIGSEGV coredump that would
+	occur if no family specified in a nasl script (would core dump
+	if client connected and requested complete nasl test list)
+
 2012-09-07  Jan-Oliver Wagner <jan-oliver.wagner@greenbone.net>
 
 	* src/ntp_11.c (ntp_1x_send_dependencies): Use str2arglist

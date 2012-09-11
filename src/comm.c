@@ -177,6 +177,16 @@ send_plug_info (struct arglist *globals, struct arglist *plugins)
       ignored = 1;
     }
 
+  if ((nvti_family (nvti)) == NULL)
+    {
+      log_write
+        ("Inconsistent data (no family): %s - not applying this plugin\n",
+         a ? a : nvti_oid (nvti));
+      d = "Unknown FAMILY";
+      ignored = 1;
+    }
+
+
   if (strchr (a, '\n') != NULL)
     {
       fprintf (stderr, "ERROR (newline in name) - %s %s\n", nvti_oid (nvti), a);
