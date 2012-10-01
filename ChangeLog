@@ -1,3 +1,8 @@
+2012-10-01  Michael Wiegand <michael.wiegand@greenbone.net>
+
+	* src/openvassd.c (main): Add command line switch to exit once the NVT
+	cache has been initialized or updated.
+
 2012-09-10  Thomas reinke <reinke@securityspace.com>
 
 	* src/comm.c (send_plug_info): Fixed SIGSEGV coredump that would

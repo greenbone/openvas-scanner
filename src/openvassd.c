@@ -1060,6 +1060,7 @@ main (int argc, char *argv[], char *envp[])
   static gboolean quiet = FALSE;
   static gboolean print_specs = FALSE;
   static gboolean print_sysconfdir = FALSE;
+  static gboolean only_cache = FALSE;
   GError *error = NULL;
   GOptionContext *option_context;
   static GOptionEntry entries[] = {
@@ -1081,6 +1082,8 @@ main (int argc, char *argv[], char *envp[])
      "Print configuration settings", NULL},
     {"sysconfdir", 'y', 0, G_OPTION_ARG_NONE, &print_sysconfdir,
      "Print system configuration directory (set at compile time)", NULL},
+    {"only-cache", 'C', 0, G_OPTION_ARG_NONE, &only_cache,
+     "Exit once the NVT cache has been initialized or updated", NULL},
     {NULL}
   };
 
@@ -1226,6 +1229,8 @@ main (int argc, char *argv[], char *envp[])
   if (print_specs)
     dump_cfg_specs (global_preferences);
   if (exit_early)
+    exit (0);
+  if (only_cache)
     exit (0);
 
   openvas_init_svc ();
