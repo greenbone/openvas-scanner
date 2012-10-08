@@ -1,3 +1,11 @@
+2012-10-08  Jan-Oliver Wagner <jan-oliver.wagner@greenbone.net>
+
+	* src/pluginscheduler.c (plugins_scheduler_init): Removed the
+	cleverness feature to enable ACT_SETTINGS that were explicitely
+	disabled. This behaviour is too clever for its own good.
+	This means that clients can not rely on this behaviour anymore
+	and must select the NVTs with corresponding care from now on.
+
 2012-10-01  Michael Wiegand <michael.wiegand@greenbone.net>
 
 	* src/openvassd.c (main): Add command line switch to exit once the NVT

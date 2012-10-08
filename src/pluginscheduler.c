@@ -566,8 +566,7 @@ plugins_scheduler_init (struct arglist *plugins, int autoload,
       struct list *l = ret->list[i];
       while (l != NULL)
         {
-          if (plug_get_launch (l->plugin->arglist->value) == LAUNCH_DISABLED
-              && nvti_category (arg_get_value (l->plugin->arglist->value, "NVTI")) != ACT_SETTINGS)
+          if (plug_get_launch (l->plugin->arglist->value) == LAUNCH_DISABLED)
             {
               struct list *old = l->next;
 
