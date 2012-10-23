@@ -1,3 +1,7 @@
+2012-10-23  Jan-Oliver Wagner <jan-oliver.wagner@greenbone.net>
+
+	* CHANGES: Prepared for soon release of firts 3.4 beta.
+
 2012-10-08  Jan-Oliver Wagner <jan-oliver.wagner@greenbone.net>
 
 	* src/pluginscheduler.c (plugins_scheduler_init): Removed the

@@ -1,3 +1,32 @@
+openvas-scanner 3.4+beta1 (2012-10-XX)
+
+This is the first beta release of the openvas-scanner 3.4 module for the Open
+Vulnerability Assessment System (OpenVAS). It will be part of the upcoming
+"OpenVAS-6".
+
+Main new feature and other changes of 3.4 compared to 3.3 include:
+A collection internal and other small improvements, introducing
+OTP 1.1 as optional protocol.
+
+Many thanks to everyone who has contributed to this release:
+Michael Meyer, Matthew Mundell, Thomas Reinke, Jan-Oliver Wagner
+and Michaek Wiegand.
+
+Main changes compared to 3.3.x:
+* Minimum requirements for openvas-libraries: Increased from 5.0 to 6.0.
+* Removed built-in logfile rotation. It is not a good idea to try
+  to circumvent system enviroment technology for logrotate.
+* New optional OTP version 1.1 which is like 1.0 but sends less info
+  to the client initially.
+* New: command line switch "--only-cache" to just build the cache and exit.
+* Changed: The magic that NVTs of category ACT_SETTINGS were always enabled
+  even when user disabled them has been removed. OTP clients now have
+  to take care to enable as needed.
+* Internal code cleanups for NVTI cache handling.
+* Fixed a bug when NVT lacks family specification.
+* Removed deprecated code.
+
+
 openvas-scanner 3.3.1 (2012-04-24)
 
 This is the first maintenance release of the openvas-scanner 3.3 module for the Open
