@@ -1,3 +1,8 @@
+2012-10-25  Jan-Oliver Wagner <jan-oliver.wagner@greenbone.net>
+
+	* src/pluginscheduler.c (hash_add): Closed memleak. Thanks to Felix
+	Wolfsteller for spotting.
+
 2012-10-23  Jan-Oliver Wagner <jan-oliver.wagner@greenbone.net>
 
 	* INSTALL: Updated for upcoming release.

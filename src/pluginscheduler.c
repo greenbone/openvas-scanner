@@ -216,6 +216,10 @@ hash_add (struct hash *h, char *name, struct scheduler_plugin *plugin)
           al = al->next;
         }
     }
+
+  arg_free_all (deps);
+  arg_free_all (ports);
+
   return 0;
 }
 
