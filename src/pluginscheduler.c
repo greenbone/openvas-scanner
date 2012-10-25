@@ -130,6 +130,12 @@ hash_link_destroy (struct hash *h)
     }
 
   efree (&h->dependencies_ptr);
+
+  arg_free_all (h->plugin->required_ports);
+  arg_free_all (h->plugin->required_udp_ports);
+  arg_free_all (h->plugin->required_keys);
+  arg_free_all (h->plugin->mandatory_keys);
+  arg_free_all (h->plugin->excluded_keys);
   efree (&h->plugin);
 
   if (h->ports != NULL)
