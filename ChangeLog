@@ -1,5 +1,10 @@
 2012-10-26  Michael Wiegand <michael.wiegand@greenbone.net>
 
+	* INSTALL: Update instructions to use out-of-source building, remove
+	outdated information.
+
+2012-10-26  Michael Wiegand <michael.wiegand@greenbone.net>
+
 	Update "doc" and "doc-full" targets for out-of-source builds.
 
 	* doc/CMakeLists.txt: Update commands and targets to work with

@@ -31,17 +31,20 @@ files before configuring:
 
     $ export PKG_CONFIG_PATH=$PKG_CONFIG_PATH:/your/location/lib/pkgconfig
 
+Create a build directory and change into it with
+
+    $ mkdir build
+    $ cd build
+
 Then configure the build with
 
-    $ cmake -DCMAKE_INSTALL_PREFIX=/path/to/your/installation .
+    $ cmake -DCMAKE_INSTALL_PREFIX=/path/to/your/installation ..
 
 or (if you want to use the default installation path /usr/local)
 
-    $ cmake .
+    $ cmake ..
 
-This only needs to be done once.  Note: It is assumed that the other
-OpenVAS components are installed to the same path.  If not, you need to set
-some paths separately, see below for details.
+This only needs to be done once.
 
 Thereafter, the following commands are useful.
 
@@ -49,13 +52,13 @@ Thereafter, the following commands are useful.
     $ make doc            # build the documentation
     $ make doc-full       # build more developer-oriented documentation
     $ make install        # install the build
-    $ make rebuild_cache  # rebuild the make system cache
+    $ make rebuild_cache  # rebuild the cmake cache
 
+Please note that you may have to execute "make install" as root, especially if
+you have specified a prefix for which your user does not have full permissions.
 
-$ make install
-
-Please note that you may have to execute this command as root, especially if you
-have specified a prefix for which your user does not have full permissions.
+To clean up the build environment, simply remove the contents of the "build"
+directory you created above.
 
 
 Setting up openvas-scanner
