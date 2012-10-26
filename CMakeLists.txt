@@ -104,6 +104,7 @@ set (CPACK_SOURCE_IGNORE_FILES
 "log.conf$"
 "Doxyfile$"
 "Doxyfile_full$"
+"openvassd.8$"
 "VERSION$"
 "tools/openvas-adduser$"
 "tools/openvas-mkcert$"
