@@ -33,30 +33,19 @@ include (FindDoxygen)
 if (NOT DOXYGEN_EXECUTABLE)
   message (STATUS "WARNING: Doxygen is required to build the HTML docs.")
 else (NOT DOXYGEN_EXECUTABLE)
-  set (DOC_FILES
-    ../src/attack.c ../src/auth.c ../src/comm.c ../src/hosts.c
-    ../src/locks.c ../src/log.c ../src/nasl_plugins.c ../src/ntp_11.c
-    ../src/openvassd.c ../src/otp_1_0.c ../src/oval_plugins.c ../src/parser.c
-    ../src/piic.c ../src/pluginlaunch.c ../src/pluginload.c
-    ../src/pluginscheduler.c ../src/plugs_hash.c ../src/plugs_req.c
-    ../src/preferences.c ../src/processes.c ../src/rules.c ../src/save_kb.c
-    ../src/sighand.c ../src/users.c ../src/utils.c
-    ../README ../INSTALL)
-
   add_custom_target (doc COMMENT "Building documentation..."
-    DEPENDS Doxyfile .built-html)
+    DEPENDS ${CMAKE_CURRENT_BINARY_DIR}/Doxyfile ${CMAKE_CURRENT_BINARY_DIR}/.built-html)
+
+  add_custom_command (OUTPUT .built-html
+    COMMAND sh
+    ARGS -c \"${DOXYGEN_EXECUTABLE} ${CMAKE_CURRENT_BINARY_DIR}/Doxyfile && touch ${CMAKE_CURRENT_BINARY_DIR}/.built-html\;\"
+    DEPENDS ${CMAKE_CURRENT_BINARY_DIR}/Doxyfile)
 
   add_custom_target (doc-full COMMENT "Building documentation..."
-    DEPENDS Doxyfile_full .built-html_full)
+    DEPENDS ${CMAKE_CURRENT_BINARY_DIR}/Doxyfile_full ${CMAKE_CURRENT_BINARY_DIR}/.built-html_full)
+
+  add_custom_command (OUTPUT .built-html_full
+    COMMAND sh
+    ARGS -c \"${DOXYGEN_EXECUTABLE} ${CMAKE_CURRENT_BINARY_DIR}/Doxyfile_full && touch ${CMAKE_CURRENT_BINARY_DIR}/.built-html_full\;\"
+    DEPENDS ${CMAKE_CURRENT_BINARY_DIR}/Doxyfile_full)
 endif (NOT DOXYGEN_EXECUTABLE)
-
-add_custom_command (OUTPUT .built-html
-                    COMMAND sh
-					ARGS -c \"cd .. && ${DOXYGEN_EXECUTABLE} doc/Doxyfile && touch doc/.built-html\;\"
-					DEPENDS Doxyfile ${DOC_FILES})
-
-add_custom_command (OUTPUT .built-html_full
-                    COMMAND sh
-					ARGS -c \"cd .. && ${DOXYGEN_EXECUTABLE} doc/Doxyfile_full && touch doc/.built-html_full\;\"
-					DEPENDS Doxyfile_full ${DOC_FILES})
-
