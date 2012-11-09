@@ -1,3 +1,8 @@
+2012-11-09  Michael Wiegand <michael.wiegand@greenbone.net>
+
+	* doc/CMakeLists.txt: Remove configuration no longer necessary for
+	out-of-source builds.
+
 2012-10-26  Michael Wiegand <michael.wiegand@greenbone.net>
 
 	Post release version bump.

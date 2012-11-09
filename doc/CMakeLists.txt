@@ -25,9 +25,6 @@
 
 ## build
 
-set_directory_properties (PROPERTIES CLEAN_NO_CUSTOM true)
-set_directory_properties (PROPERTIES ADDITIONAL_MAKE_CLEAN_FILES ".built-html;.built-html_full")
-
 include (FindDoxygen)
 
 if (NOT DOXYGEN_EXECUTABLE)
