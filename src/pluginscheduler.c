@@ -504,10 +504,11 @@ plugins_scheduler_init (struct arglist *plugins, int autoload,
   int i;
   struct hash *l;
 
-
   if (plugins == NULL)
-    return NULL;
-
+    {
+      efree (ret);
+      return NULL;
+    }
 
   /* Fill our lists */
   ret->hash = hash_init ();

@@ -1,3 +1,8 @@
+2013-01-04  Jan-Oliver Wagner <jan-oliver.wagner@greenbone.net>
+
+	* src/pluginscheduler.c (plugins_scheduler_init): Fixed a
+	memleak.
+
 2012-11-09  Michael Wiegand <michael.wiegand@greenbone.net>
 
 	* doc/CMakeLists.txt: Remove configuration no longer necessary for
