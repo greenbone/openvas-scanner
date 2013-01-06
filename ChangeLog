@@ -1,3 +1,16 @@
+2013-01-06  Jan-Oliver Wagner <jan-oliver.wagner@greenbone.net>
+
+	First part towards clean separation of NVTI into the NVTI Cache:
+	Plugin arg_list are provided with explicit OID element.
+	And whereever only the OID is required, it is directly retrieved
+	instead via NVTI.
+
+	* src/pluginlaunch.c (update_running_processes): Use OID element
+	directly instead of NVTI.
+
+	* src/comm.c (plugin_send_infos, _get_plug_by_oid): Use OID element
+	directly instead of NVTI.
+
 2013-01-04  Jan-Oliver Wagner <jan-oliver.wagner@greenbone.net>
 
 	* src/pluginscheduler.c (plugins_scheduler_init): Fixed a

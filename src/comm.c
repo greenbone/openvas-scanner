@@ -302,7 +302,7 @@ plugin_send_infos (struct arglist *globals, char *oid)
   while (plugins)
     {
       struct arglist *args = plugins->value;
-      if (args && !strcmp (oid, nvti_oid (arg_get_value (args, "NVTI"))))
+      if (args && !strcmp (oid, arg_get_value (args, "OID")))
         {
           send_plug_info (globals, plugins);
           return;
@@ -449,8 +449,8 @@ qsort_cmp (const void *a, const void *b)
   struct arglist **plugin_b = (struct arglist **) b;
 
   return (strcmp
-          (nvti_oid (arg_get_value ((*plugin_a)->value, "NVTI")),
-           nvti_oid (arg_get_value ((*plugin_b)->value, "NVTI"))));
+          (arg_get_value ((*plugin_a)->value, "OID"),
+           arg_get_value ((*plugin_b)->value, "OID")));
 }
 
 /**
@@ -470,7 +470,7 @@ _get_plug_by_oid (struct arglist **array, char *oid, int start, int end,
 
   if (start == end)
     {
-      plugin_oid = nvti_oid (arg_get_value (array[start]->value, "NVTI"));
+      plugin_oid = arg_get_value (array[start]->value, "OID");
       if (strcmp (plugin_oid, oid) == 0)
         return array[start];
       else
@@ -478,7 +478,7 @@ _get_plug_by_oid (struct arglist **array, char *oid, int start, int end,
     }
 
   mid = (start + end) / 2;
-  plugin_oid = nvti_oid (arg_get_value (array[mid]->value, "NVTI"));
+  plugin_oid = arg_get_value (array[mid]->value, "OID");
   if (strcmp (plugin_oid, oid) > 0)
     return _get_plug_by_oid (array, oid, start, mid, rend);
   else if (strcmp (plugin_oid, oid) < 0)

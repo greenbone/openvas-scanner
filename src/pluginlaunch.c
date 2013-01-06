@@ -225,14 +225,12 @@ update_running_processes ()
                   struct arglist *desc;
                   gchar *msg;
                   const char *host;
-                  nvti_t *nvti;
 
                   if (log_whole)
                     log_write ("%s (pid %d) is slow to finish - killing it\n",
                                processes[i].name, processes[i].pid);
 
                   desc = processes[i].plugin->arglist->value;
-                  nvti = arg_get_value (desc, "NVTI");
                   host = plug_get_hostname (desc);
                   msg = g_strdup_printf ("SERVER"
                                          " <|> ERRMSG"
@@ -243,7 +241,7 @@ update_running_processes ()
                                          " <|> SERVER\n",
                                          host ? host : "HOST",
                                          processes[i].timeout,
-                                         nvti ? nvti_oid (nvti) : "0");
+                                         arg_get_value (desc, "OID") ? (char *)arg_get_value (desc, "OID") : "0");
                   internal_send (processes[i].upstream_soc,
                                  msg,
                                  INTERNAL_COMM_MSG_TYPE_DATA);
