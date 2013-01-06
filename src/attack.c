@@ -47,6 +47,8 @@
 #include <openvas/misc/scanners_utils.h> /* for comm_send_status */
 #include <openvas/misc/openvas_ssh_login.h>
 
+#include <openvas/base/nvticache.h>     /* for nvticache_t */
+
 #include "attack.h"
 #include "auth.h"
 #include "comm.h"
@@ -258,7 +260,10 @@ launch_plugin (struct arglist *globals, plugins_scheduler_t * sched,
 {
   struct arglist *preferences = arg_get_value (globals, "preferences");
   struct arglist *args = plugin->arglist->value;
-  nvti_t *nvti = arg_get_value (args, "NVTI");
+  char *oid = (char *)arg_get_value (args, "OID");
+  nvticache_t *nvticache = (nvticache_t *)arg_get_value (
+    arg_get_value (args, "preferences"), "nvticache");
+  nvti_t *nvti = (oid == NULL ? NULL : nvticache_get_by_oid (nvticache, oid));
   char name[1024];
   int optimize = preferences_optimize_test (preferences);
   int category = plugin->category;
@@ -308,7 +313,6 @@ launch_plugin (struct arglist *globals, plugins_scheduler_t * sched,
 
       if (save_kb (globals))
         {
-          char *oid = nvti_oid (nvti);
           char asc_id[100];
 
           snprintf (asc_id, sizeof (asc_id), "Launched/%s", oid);

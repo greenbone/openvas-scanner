@@ -1,5 +1,34 @@
 2013-01-06  Jan-Oliver Wagner <jan-oliver.wagner@greenbone.net>
 
+	Second part towards clean separation of NVTI into the NVTI Cache:
+	All remaining access to NVTI object via "NVTI" is replaced
+	by access via OID.
+	The only exception is the parsing code for the description
+	block where the OID is not necessarily known at the beginning
+	and therefore can not be relied on.
+
+	* src/nasl_plugins.c (nasl_plugin_add): Remove the NVTI object
+	after we added it for parsing the NASL file.
+	(nasl_plugin_add): Use OID instead of NVTI.
+	(nasl_plugin_launch): Use OID instead of NVTI. Fix setting of
+	"name" and "preferences".
+
+	* src/ntp_11.c (_find_plugin, ntp_1x_send_dependencies): Use OID
+	instead of NVTI.
+	
+	* src/attack.c (launch_plugin): Use OID instead of NVTI.
+
+	* src/pluginlaunch.c (plugin_launch): Use OID instead of NVTI.
+
+	* src/plugs_hash.c (plugins_send_md5): Use OID instead of NVTI.
+
+	* src/comm.c (send_plug_info): Use OID instead of NVTI.
+
+	* src/pluginscheduler.c (hash_add, plugins_scheduler_init): Use OID
+	instead of NVTI.
+
+2013-01-06  Jan-Oliver Wagner <jan-oliver.wagner@greenbone.net>
+
 	First part towards clean separation of NVTI into the NVTI Cache:
 	Plugin arg_list are provided with explicit OID element.
 	And whereever only the OID is required, it is directly retrieved

@@ -37,6 +37,8 @@
 #include <openvas/misc/system.h>     /* for emalloc */
 #include <openvas/misc/arglists.h>   /* for str2arglist */
 
+#include <openvas/base/nvticache.h>     /* for nvticache_t */
+
 #include <glib.h>
 
 #define IN_SCHEDULER_CODE 1
@@ -168,7 +170,9 @@ hash_add (struct hash *h, char *name, struct scheduler_plugin *plugin)
 {
   struct hash *l = emalloc (sizeof (struct hash));
   unsigned int idx = mkhash (name);
-  nvti_t * nvti = arg_get_value (plugin->arglist->value, "NVTI");
+  nvti_t * nvti = nvticache_get_by_oid (arg_get_value (arg_get_value
+    (plugin->arglist->value, "preferences"), "nvticache"),
+      arg_get_value (plugin->arglist->value, "OID"));
   struct arglist *deps = str2arglist (nvti_dependencies (nvti));
   struct arglist *ports = str2arglist (nvti_required_ports (nvti));
   int num_deps = 0;
@@ -517,7 +521,10 @@ plugins_scheduler_init (struct arglist *plugins, int autoload,
     {
       struct scheduler_plugin *scheduler_plugin;
       struct list *dup;
-      nvti_t *nvti = arg_get_value (arg->value, "NVTI");
+      char *oid = (char *)arg_get_value (arg->value, "OID");
+      nvticache_t *nvticache = (nvticache_t *)arg_get_value (
+        arg_get_value (arg->value, "preferences"), "nvticache");
+      nvti_t *nvti = (oid == NULL ? NULL : nvticache_get_by_oid (nvticache, oid));
       int category = nvti_category (nvti);
 
       scheduler_plugin = emalloc (sizeof (struct scheduler_plugin));

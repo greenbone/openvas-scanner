@@ -497,7 +497,7 @@ plugin_launch (struct arglist *globals, plugins_scheduler_t * sched,
   processes[p].launch_status = plug_get_launch (plugin->arglist->value);
   processes[p].timeout =
     preferences_plugin_timeout (preferences,
-                                nvti_oid (arg_get_value (plugin->arglist->value, "NVTI")));
+                                arg_get_value (plugin->arglist->value, "OID"));
   if (processes[p].timeout == 0)
     processes[p].timeout = plugin->timeout;
 

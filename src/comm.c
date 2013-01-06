@@ -40,6 +40,8 @@
 #include <openvas/misc/otp.h>           /* for OTP_10 */
 #include <openvas/misc/system.h>        /* for emalloc */
 
+#include <openvas/base/nvticache.h>     /* for nvticache_t */
+
 #include "auth.h"
 
 #include "comm.h"
@@ -119,7 +121,10 @@ send_plug_info (struct arglist *globals, struct arglist *plugins)
   unsigned int mem_size = 0;
   char *str;
   int ignored = 0;
-  nvti_t *nvti = arg_get_value (plugins->value, "NVTI");
+  char *oid = (char *)arg_get_value (plugins->value, "OID");
+  nvticache_t *nvticache = (nvticache_t *)arg_get_value (
+    arg_get_value (plugins->value, "preferences"), "nvticache");
+  nvti_t *nvti = (oid == NULL ? NULL : nvticache_get_by_oid (nvticache, oid));
 
   if (!nvti_oid (nvti))
     {

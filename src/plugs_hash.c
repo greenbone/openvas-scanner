@@ -38,6 +38,8 @@
 #include <openvas/misc/share_fd.h>   /* for send_fd */
 #include <openvas/misc/system.h>     /* for efree */
 
+#include <openvas/base/nvticache.h>     /* for nvticache_t */
+
 #include <gcrypt.h>
 #include "log.h"
 
@@ -175,6 +177,7 @@ void
 plugins_send_md5 (struct arglist *globals)
 {
   struct arglist *plugins = arg_get_value (globals, "plugins");
+  nvticache_t *nvticache = (nvticache_t *)arg_get_value (globals, "nvticache");
 
   auth_printf (globals, "SERVER <|> PLUGINS_MD5\n");
 
@@ -183,9 +186,10 @@ plugins_send_md5 (struct arglist *globals)
 
   while (plugins->next != NULL)
     {
-      nvti_t *nvti = arg_get_value (plugins->value, "NVTI");
+      char *oid = (char *)arg_get_value (plugins->value, "OID");
+      nvti_t *nvti = (oid == NULL ? NULL : nvticache_get_by_oid (nvticache, oid));
       char *md5 = file_hash ((char *)nvti_src (nvti));
-      auth_printf (globals, "%s <|> %s\n", nvti_oid (nvti), md5);
+      auth_printf (globals, "%s <|> %s\n", oid, md5);
       efree (&md5);
       plugins = plugins->next;
     }

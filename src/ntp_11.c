@@ -40,6 +40,8 @@
 #include <openvas/misc/openvas_ssh_login.h>
 #include <openvas/misc/internal_com.h> /* for INTERNAL_COMM_MSG_TYPE_DATA */
 
+#include <openvas/base/nvticache.h>     /* for nvticache_t */
+
 #include "ntp_11.h"
 #include "otp_1_0.h"
 #include "comm.h"
@@ -752,7 +754,8 @@ _find_plugin (struct arglist **array, char *fname, int start, int end, int rend)
       plugin = array[start];
 
       if (strcmp (fname, plugin->name) == 0)
-        return nvti_name (arg_get_value (plugin->value, "NVTI"));
+        return nvti_name (nvticache_get_by_oid (arg_get_value
+          (arg_get_value (plugin->value, "preferences"), "nvticache"), arg_get_value (plugin->value, "OID")));
       else
         return NULL;
     }
@@ -765,7 +768,8 @@ _find_plugin (struct arglist **array, char *fname, int start, int end, int rend)
   else if (e < 0)
     return _find_plugin (array, fname, mid + 1, end, rend);
   else
-    return nvti_name (arg_get_value (plugin->value, "NVTI"));
+    return nvti_name (nvticache_get_by_oid (arg_get_value
+      (arg_get_value (plugin->value, "preferences"), "nvticache"), arg_get_value (plugin->value, "OID")));
 }
 
 
@@ -818,7 +822,10 @@ ntp_1x_send_dependencies (struct arglist *globals)
 
   while (plugins->next)
     {
-      nvti_t *nvti = arg_get_value (plugins->value, "NVTI");
+      char *oid = (char *)arg_get_value (plugins->value, "OID");
+      nvticache_t *nvticache = (nvticache_t *)arg_get_value (
+        arg_get_value (plugins->value, "preferences"), "nvticache");
+      nvti_t *nvti = (oid == NULL ? NULL : nvticache_get_by_oid (nvticache, oid));
       struct arglist *d, *deps;
       if (!plugins->value)
         goto nxt;

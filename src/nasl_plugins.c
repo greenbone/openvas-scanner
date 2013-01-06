@@ -33,6 +33,7 @@
 #include <stdio.h>    /* for fprintf() */
 #include <unistd.h>   /* for close() */
 #include <signal.h>   /* for SIGTERM */
+#include <string.h>   /* for strlen() */
 #include <sys/stat.h>
 
 #include <glib.h>
@@ -141,6 +142,10 @@ nasl_plugin_add (char *folder, char *name, struct arglist *plugins,
           return NULL;
         }
 
+      // this extra pointer was only necessary during parsing the
+      // description part of a NASL. Now we can remove it from the args.
+      if (arg_get_value (plugin_args, "NVTI"))
+        arg_del_value (plugin_args, "NVTI");
 
       nvti_set_src (nvti, fullname);
       nvti_add_sign_key_id (nvti, sign_fprs);
@@ -183,12 +188,15 @@ nasl_plugin_add (char *folder, char *name, struct arglist *plugins,
       return NULL;
     }
 
-  nvti = arg_get_value (plugin_args, "NVTI");
   if (nvti_oid (nvti) == NULL)
     {
+      /* Discard invalid plugins */
+      fprintf (stderr, "%s failed to load, no OID\n", name);
       plugin_free (plugin_args);
       return NULL;
     }
+
+  arg_add_value (plugin_args, "OID", ARG_STRING, strlen (nvti_oid (nvti)) , g_strdup (nvti_oid (nvti)));
 
   plug_set_launch (plugin_args, LAUNCH_DISABLED);
   prev_plugin = arg_get_value (plugins, name);
@@ -217,7 +225,8 @@ nasl_plugin_launch (struct arglist *globals, struct arglist *plugin,
   int category = 0;
   int module;
   struct arglist *d = emalloc (sizeof (struct arglist));
-  nvti_t * nvti = arg_get_value (plugin, "NVTI");
+  nvti_t * nvti = nvticache_get_by_oid (arg_get_value (arg_get_value (plugin,
+    "preferences"), "nvticache"), arg_get_value (plugin, "OID"));
 
   arg_add_value (plugin, "HOSTNAME", ARG_ARGLIST, -1, hostinfos);
   if (arg_get_value (plugin, "globals"))
@@ -230,8 +239,8 @@ nasl_plugin_launch (struct arglist *globals, struct arglist *plugin,
   arg_add_value (plugin, "key", ARG_PTR, -1, kb);
 
   arg_add_value (d, "args", ARG_ARGLIST, -1, plugin);
-  arg_add_value (d, "name", ARG_STRING, -1, name);
-  arg_add_value (d, "preferences", ARG_STRING, -1, preferences);
+  arg_add_value (d, "name", ARG_STRING, strlen (name), name);
+  arg_add_value (d, "preferences", ARG_ARGLIST, -1, preferences);
 
   category = nvti_category (nvti);
   timeout = preferences_plugin_timeout (preferences, nvti_oid (nvti));
