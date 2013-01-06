@@ -1,5 +1,32 @@
 2013-01-06  Jan-Oliver Wagner <jan-oliver.wagner@greenbone.net>
 
+	Third part towards clean separation of NVTI into the NVTI Cache:
+	Copyies are returned, so these need to be free'd.
+
+	* src/nasl_plugins.c (nasl_plugin_add, nasl_plugin_launch): Free the
+	nvti object once it is not needed anymore.
+
+	* src/ntp_11.c (_find_plugin): Free the nvti object once it is not
+	needed anymore.
+	(ntp_1x_send_dependencies): The filename needs to be free'd because
+	it was strdup'ed before. Free the nvti object once it is note
+	needed anymore.
+
+	* src/attack.c (launch_plugin): We need the oid later on and have
+	many exits, so better store it locally without need to free it.
+	Free the nvti.
+
+	* src/plugs_hash.c (plugins_send_md5): Free the nvti object.
+
+	* src/oval_plugins.c (oval_plugin_add): Free the nvti object.
+
+	* src/comm.c (send_plug_info): Free the nvti object.
+
+	* src/pluginscheduler.c (hash_add): Free the nvti object.
+	(plugins_scheduler_init): Added safety heck for missing OID.
+
+2013-01-06  Jan-Oliver Wagner <jan-oliver.wagner@greenbone.net>
+
 	Second part towards clean separation of NVTI into the NVTI Cache:
 	All remaining access to NVTI object via "NVTI" is replaced
 	by access via OID.

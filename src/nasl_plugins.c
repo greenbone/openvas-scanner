@@ -113,6 +113,7 @@ nasl_plugin_add (char *folder, char *name, struct arglist *plugins,
 
   nvti = nvticache_get (arg_get_value(preferences, "nvticache"), name);
   plugin_args = plug_create_from_nvti_and_prefs (nvti, preferences);
+  nvti_free (nvti);
   if (plugin_args == NULL)
     {
       char *sign_fprs = nasl_extract_signature_fprs (fullname);
@@ -173,6 +174,7 @@ nasl_plugin_add (char *folder, char *name, struct arglist *plugins,
           arg_free_all (plugin_args);
           nvti = nvticache_get (arg_get_value(preferences, "nvticache"), name);
           plugin_args = plug_create_from_nvti_and_prefs (nvti, preferences);
+          nvti_free (nvti);
         }
       else
         // Most likely an exit was hit before the description could be parsed.
@@ -197,6 +199,7 @@ nasl_plugin_add (char *folder, char *name, struct arglist *plugins,
     }
 
   arg_add_value (plugin_args, "OID", ARG_STRING, strlen (nvti_oid (nvti)) , g_strdup (nvti_oid (nvti)));
+//  nvti_free (nvti); // We don't need the nvti anymore, so remove it. But it causes openvassd to crash at startup(why?)
 
   plug_set_launch (plugin_args, LAUNCH_DISABLED);
   prev_plugin = arg_get_value (plugins, name);
@@ -244,6 +247,7 @@ nasl_plugin_launch (struct arglist *globals, struct arglist *plugin,
 
   category = nvti_category (nvti);
   timeout = preferences_plugin_timeout (preferences, nvti_oid (nvti));
+  nvti_free (nvti);
   if (timeout == 0)
     {
       if (category == ACT_SCANNER)

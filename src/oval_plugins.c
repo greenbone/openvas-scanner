@@ -389,6 +389,7 @@ oval_plugin_add (char *folder, char *name, struct arglist *plugins,
 
   first_plugin = nvticache_get (arg_get_value(preferences, "nvticache"), name);
   args = plug_create_from_nvti_and_prefs (first_plugin, preferences);
+  nvti_free (first_plugin);
 
   if (args == NULL)
     {
@@ -488,6 +489,7 @@ oval_plugin_add (char *folder, char *name, struct arglist *plugins,
 
       first_plugin = nvticache_get (arg_get_value(preferences, "nvticache"), name);
       args = plug_create_from_nvti_and_prefs (first_plugin, preferences);
+      nvti_free (first_plugin);
     }
 
   if (args != NULL)

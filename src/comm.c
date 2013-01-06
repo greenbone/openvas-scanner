@@ -129,6 +129,7 @@ send_plug_info (struct arglist *globals, struct arglist *plugins)
   if (!nvti_oid (nvti))
     {
       log_write ("NVT without OID found. Will not be sent.\n");
+      nvti_free (nvti);
       return;
     }
 
@@ -286,6 +287,8 @@ send_plug_info (struct arglist *globals, struct arglist *plugins)
 
   if (desc != NULL)
     efree (&desc);
+
+  nvti_free (nvti);
 }
 
 /**

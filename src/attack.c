@@ -264,7 +264,7 @@ launch_plugin (struct arglist *globals, plugins_scheduler_t * sched,
   nvticache_t *nvticache = (nvticache_t *)arg_get_value (
     arg_get_value (args, "preferences"), "nvticache");
   nvti_t *nvti = (oid == NULL ? NULL : nvticache_get_by_oid (nvticache, oid));
-  char name[1024];
+  char name[1024], oid_[100];
   int optimize = preferences_optimize_test (preferences);
   int category = plugin->category;
   static int last_status = 0;
@@ -273,6 +273,13 @@ launch_plugin (struct arglist *globals, plugins_scheduler_t * sched,
 
   strncpy (name, nvti_src (nvti), sizeof (name) - 1);
   name[sizeof (name) - 1] = '\0';
+
+  // we need the oid later on and have many exits, so better
+  // store it locally without need to free it.
+  strncpy (oid_, oid, sizeof (oid_) - 1);
+  name[sizeof (oid_) - 1] = '\0';
+
+  nvti_free (nvti);
       
   network_scan_status = arg_get_value (globals, "network_scan_status");
   if (network_scan_status != NULL)

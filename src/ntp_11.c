@@ -754,8 +754,13 @@ _find_plugin (struct arglist **array, char *fname, int start, int end, int rend)
       plugin = array[start];
 
       if (strcmp (fname, plugin->name) == 0)
-        return nvti_name (nvticache_get_by_oid (arg_get_value
-          (arg_get_value (plugin->value, "preferences"), "nvticache"), arg_get_value (plugin->value, "OID")));
+        {
+          nvti_t * nvti = nvticache_get_by_oid (arg_get_value
+            (arg_get_value (plugin->value, "preferences"), "nvticache"), arg_get_value (plugin->value, "OID"));
+          gchar * name = g_strdup (nvti_name (nvti));
+          nvti_free (nvti);
+          return name;
+        }
       else
         return NULL;
     }
@@ -768,8 +773,13 @@ _find_plugin (struct arglist **array, char *fname, int start, int end, int rend)
   else if (e < 0)
     return _find_plugin (array, fname, mid + 1, end, rend);
   else
-    return nvti_name (nvticache_get_by_oid (arg_get_value
-      (arg_get_value (plugin->value, "preferences"), "nvticache"), arg_get_value (plugin->value, "OID")));
+    {
+      nvti_t * nvti = nvticache_get_by_oid (arg_get_value
+        (arg_get_value (plugin->value, "preferences"), "nvticache"), arg_get_value (plugin->value, "OID"));
+      gchar * name = g_strdup (nvti_name (nvti));
+      nvti_free (nvti);
+      return name;
+    }
 }
 
 
@@ -791,7 +801,6 @@ ntp_1x_send_dependencies (struct arglist *globals)
   char *buf;
   int buf_size = 1024;
   int i = 0;
-
 
   if (plugins == NULL)
     {
@@ -855,6 +864,7 @@ ntp_1x_send_dependencies (struct arglist *globals)
           strncat (buf, fname, buf_size);
           strncat (buf, " <|> ", buf_size);
           deps = deps->next;
+          g_free (fname);
         }
       arg_free_all (d);
 
@@ -863,6 +873,7 @@ ntp_1x_send_dependencies (struct arglist *globals)
     nxt:
       bzero (buf, buf_size);
       plugins = plugins->next;
+      nvti_free (nvti);
     }
   auth_printf (globals, "<|> SERVER\n");
   efree (&buf);

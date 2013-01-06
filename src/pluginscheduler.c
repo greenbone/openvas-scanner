@@ -177,6 +177,7 @@ hash_add (struct hash *h, char *name, struct scheduler_plugin *plugin)
   struct arglist *ports = str2arglist (nvti_required_ports (nvti));
   int num_deps = 0;
 
+  nvti_free (nvti);
   l->plugin = plugin;
   l->plugin->parent_hash = l;
   l->name = name;
@@ -522,6 +523,7 @@ plugins_scheduler_init (struct arglist *plugins, int autoload,
       struct scheduler_plugin *scheduler_plugin;
       struct list *dup;
       char *oid = (char *)arg_get_value (arg->value, "OID");
+      if (! oid) continue; // This would be a serious problem as it shouldn't be
       nvticache_t *nvticache = (nvticache_t *)arg_get_value (
         arg_get_value (arg->value, "preferences"), "nvticache");
       nvti_t *nvti = (oid == NULL ? NULL : nvticache_get_by_oid (nvticache, oid));
@@ -539,6 +541,8 @@ plugins_scheduler_init (struct arglist *plugins, int autoload,
       scheduler_plugin->mandatory_keys = str2arglist (nvti_mandatory_keys (nvti));
       scheduler_plugin->excluded_keys = str2arglist (nvti_excluded_keys (nvti));
 
+      nvti_free (nvti);
+
       if (category > ACT_LAST)
         category = ACT_LAST;
       dup = emalloc (sizeof (struct list));
@@ -553,7 +557,6 @@ plugins_scheduler_init (struct arglist *plugins, int autoload,
       hash_add (ret->hash, arg->name, scheduler_plugin);
       arg = arg->next;
     }
-
 
   for (i = 0; i < HASH_MAX; i++)
     {
@@ -577,7 +580,6 @@ plugins_scheduler_init (struct arglist *plugins, int autoload,
         }
     }
 
-
   /* Now, remove the plugins that won't be launched */
   for (i = ACT_FIRST; i <= ACT_LAST; i++)
     {
@@ -592,7 +594,6 @@ plugins_scheduler_init (struct arglist *plugins, int autoload,
                 l->prev->next = l->next;
               else
                 ret->list[i] = l->next;
-
 
               if (l->next != NULL)
                 l->next->prev = l->prev;
