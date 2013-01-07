@@ -28,7 +28,7 @@
 # with some characters in order to make it newer than
 # any follow-up version to prevent that your version
 # will be overwritten.
-VERSION=20120413
+VERSION=20130107
 
 # SETTINGS
 # ========
@@ -217,7 +217,11 @@ sync_nvts(){
     then
       rsync -e "ssh -o \"UserKnownHostsFile=/dev/null\" -o \"StrictHostKeyChecking=no\" -o \"BatchMode=yes\" -p $PORT -i $sysconfdir/openvas/gsf-access-key" -ltrP $RSYNC_VERBOSE --protocol=29 $RSYNC_DELETE $feeduser $NVT_DIR
     else
-      rsync -e "ssh -o \"UserKnownHostsFile=/dev/null\" -o \"StrictHostKeyChecking=no\" -o \"BatchMode=yes\" -o \"ProxyCommand corkscrew $gsmproxy %h %p\" -p $PORT -i $sysconfdir/openvas/gsf-access-key" -ltrP $RSYNC_VERBOSE --protocol=29 $RSYNC_DELETE $feeduser $NVT_DIR
+      if [ -r /admin/proxyauth -a `stat -c %s /admin/proxyauth` != 0 ]; then
+        rsync -e "ssh -o \"UserKnownHostsFile=/dev/null\" -o \"StrictHostKeyChecking=no\" -o \"BatchMode=yes\" -o \"ProxyCommand corkscrew $gsmproxy %h %p /admin/proxyauth\" -p $PORT -i $sysconfdir/openvas/gsf-access-key" -ltrP $RSYNC_VERBOSE --protocol=29 $RSYNC_DELETE $feeduser $NVT_DIR
+      else
+        rsync -e "ssh -o \"UserKnownHostsFile=/dev/null\" -o \"StrictHostKeyChecking=no\" -o \"BatchMode=yes\" -o \"ProxyCommand corkscrew $gsmproxy %h %p\" -p $PORT -i $sysconfdir/openvas/gsf-access-key" -ltrP $RSYNC_VERBOSE --protocol=29 $RSYNC_DELETE $feeduser $NVT_DIR
+      fi
     fi
     if [ $? -ne 0 ]  ; then
       stderr_write "== greenbone-nvt-sync $VERSION ================================================"

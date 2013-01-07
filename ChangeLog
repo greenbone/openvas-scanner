@@ -1,3 +1,8 @@
+2013-01-07  Michael Wiegand <michael.wiegand@greenbone.net>
+
+	* tools/greenbone-nvt-sync: Add support for proxy authentication.
+	Patch submitted by Christian Schmidt.
+
 2013-01-06  Jan-Oliver Wagner <jan-oliver.wagner@greenbone.net>
 
 	Third part towards clean separation of NVTI into the NVTI Cache:
