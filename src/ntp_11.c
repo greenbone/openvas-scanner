@@ -756,7 +756,8 @@ _find_plugin (struct arglist **array, char *fname, int start, int end, int rend)
       if (strcmp (fname, plugin->name) == 0)
         {
           nvti_t * nvti = nvticache_get_by_oid (arg_get_value
-            (arg_get_value (plugin->value, "preferences"), "nvticache"), arg_get_value (plugin->value, "OID"));
+            (arg_get_value (plugin->value, "preferences"), "nvticache"),
+            arg_get_value (plugin->value, "OID"));
           gchar * name = g_strdup (nvti_name (nvti));
           nvti_free (nvti);
           return name;
@@ -775,7 +776,8 @@ _find_plugin (struct arglist **array, char *fname, int start, int end, int rend)
   else
     {
       nvti_t * nvti = nvticache_get_by_oid (arg_get_value
-        (arg_get_value (plugin->value, "preferences"), "nvticache"), arg_get_value (plugin->value, "OID"));
+        (arg_get_value (plugin->value, "preferences"), "nvticache"),
+        arg_get_value (plugin->value, "OID"));
       gchar * name = g_strdup (nvti_name (nvti));
       nvti_free (nvti);
       return name;

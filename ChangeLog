@@ -1,5 +1,9 @@
 2013-01-11  Jan-Oliver Wagner <jan-oliver.wagner@greenbone.net>
 
+	* src/ntp_11.c: Resolved some overlong lines.
+
+2013-01-11  Jan-Oliver Wagner <jan-oliver.wagner@greenbone.net>
+
 	* src/attack.c (launch_plugin): Retrieve src of nvti directly.
 
 	* src/plugs_hash.c (plugins_send_md5): Retrieve src of nvti directly.
