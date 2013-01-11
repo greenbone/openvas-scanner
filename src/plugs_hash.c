@@ -187,9 +187,8 @@ plugins_send_md5 (struct arglist *globals)
   while (plugins->next != NULL)
     {
       char *oid = (char *)arg_get_value (plugins->value, "OID");
-      nvti_t *nvti = (oid == NULL ? NULL : nvticache_get_by_oid (nvticache, oid));
-      char *md5 = file_hash ((char *)nvti_src (nvti));
-      nvti_free (nvti);
+      gchar *src = (oid == NULL ? NULL : nvticache_get_src_by_oid (nvticache, oid));
+      char *md5 = file_hash ((char *)src);
       auth_printf (globals, "%s <|> %s\n", oid, md5);
       efree (&md5);
       plugins = plugins->next;

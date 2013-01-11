@@ -263,7 +263,7 @@ launch_plugin (struct arglist *globals, plugins_scheduler_t * sched,
   char *oid = (char *)arg_get_value (args, "OID");
   nvticache_t *nvticache = (nvticache_t *)arg_get_value (
     arg_get_value (args, "preferences"), "nvticache");
-  nvti_t *nvti = (oid == NULL ? NULL : nvticache_get_by_oid (nvticache, oid));
+  gchar *src = (oid == NULL ? NULL : nvticache_get_src_by_oid (nvticache, oid));
   char name[1024], oid_[100];
   int optimize = preferences_optimize_test (preferences);
   int category = plugin->category;
@@ -271,16 +271,15 @@ launch_plugin (struct arglist *globals, plugins_scheduler_t * sched,
   gchar *network_scan_status;
   gboolean network_scan = FALSE;
 
-  strncpy (name, nvti_src (nvti), sizeof (name) - 1);
+  strncpy (name, src, sizeof (name) - 1);
   name[sizeof (name) - 1] = '\0';
+  g_free (src);
 
   // we need the oid later on and have many exits, so better
   // store it locally without need to free it.
   strncpy (oid_, oid, sizeof (oid_) - 1);
   oid_[sizeof (oid_) - 1] = '\0';
 
-  nvti_free (nvti);
-      
   network_scan_status = arg_get_value (globals, "network_scan_status");
   if (network_scan_status != NULL)
     if (g_ascii_strcasecmp (network_scan_status, "busy") == 0)
