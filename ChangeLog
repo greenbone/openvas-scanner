@@ -1,3 +1,8 @@
+2013-01-11  Jan-Oliver Wagner <jan-oliver.wagner@greenbone.net>
+
+	* src/attack.c (launch_plugin): Fix wrong reference. name was
+	truncated in rare cases.
+
 2013-01-07  Michael Wiegand <michael.wiegand@greenbone.net>
 
 	* tools/greenbone-nvt-sync: Add support for proxy authentication.

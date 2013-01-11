@@ -277,7 +277,7 @@ launch_plugin (struct arglist *globals, plugins_scheduler_t * sched,
   // we need the oid later on and have many exits, so better
   // store it locally without need to free it.
   strncpy (oid_, oid, sizeof (oid_) - 1);
-  name[sizeof (oid_) - 1] = '\0';
+  oid_[sizeof (oid_) - 1] = '\0';
 
   nvti_free (nvti);
       
