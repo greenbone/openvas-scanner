@@ -1,3 +1,16 @@
+2013-01-22  Matthew Mundell <matthew.mundell@greenbone.net>
+
+	* src/nasl_plugins.c (nasl_plugin_add): Remove NULL initialisation of
+	nvti which is actually initialised lower down, as this gives the wrong
+	impression of how the variable will be used.  Remove free of nvti before
+	plugins_args block.  Enable free of nvti after plugin_args block and
+	remove note about crash -- free'ing twice leads to crashes.  Free nvti
+	in plugin_arg block now that the free before plugin_arg block is gone.
+	Free nvti in plugin_arg block before reassigning to it, otherwise the
+	memory will leak.  Remove free that follows this reassignment because
+	the nvti is freed after the plugin block.  Merge duplicate plugin_args
+	block into first one, because having two is just confusing.
+
 2013-01-11  Jan-Oliver Wagner <jan-oliver.wagner@greenbone.net>
 
 	* src/ntp_11.c: Resolved some overlong lines.
@@ -62,7 +75,7 @@
 
 	* src/ntp_11.c (_find_plugin, ntp_1x_send_dependencies): Use OID
 	instead of NVTI.
-	
+
 	* src/attack.c (launch_plugin): Use OID instead of NVTI.
 
 	* src/pluginlaunch.c (plugin_launch): Use OID instead of NVTI.

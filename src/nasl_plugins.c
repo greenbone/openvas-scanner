@@ -102,7 +102,7 @@ nasl_plugin_add (char *folder, char *name, struct arglist *plugins,
   struct arglist *prev_plugin = NULL;
   int nasl_mode;
   nasl_mode = NASL_EXEC_DESCR;
-  nvti_t * nvti = NULL;
+  nvti_t *nvti;
 
   snprintf (fullname, sizeof (fullname), "%s/%s", folder, name);
 
@@ -113,10 +113,12 @@ nasl_plugin_add (char *folder, char *name, struct arglist *plugins,
 
   nvti = nvticache_get (arg_get_value(preferences, "nvticache"), name);
   plugin_args = plug_create_from_nvti_and_prefs (nvti, preferences);
-  nvti_free (nvti);
   if (plugin_args == NULL)
     {
       char *sign_fprs = nasl_extract_signature_fprs (fullname);
+
+      nvti_free (nvti);
+
       // If server accepts signed plugins only, discard if signature file missing.
       if (preferences_nasl_no_signature_check (preferences) == 0
           && sign_fprs == NULL)
@@ -172,19 +174,16 @@ nasl_plugin_add (char *folder, char *name, struct arglist *plugins,
           nvticache_add (arg_get_value(preferences, "nvticache"), nvti, name);
           arg_set_value (plugin_args, "preferences", -1, NULL);
           arg_free_all (plugin_args);
+          nvti_free (nvti);
           nvti = nvticache_get (arg_get_value(preferences, "nvticache"), name);
           plugin_args = plug_create_from_nvti_and_prefs (nvti, preferences);
-          nvti_free (nvti);
         }
       else
         // Most likely an exit was hit before the description could be parsed.
         fprintf (stderr,
                  "\r%s could not be added to the cache and is likely to stay invisible to the client.\n",
                  name);
-    }
 
-  if (plugin_args == NULL)
-    {
       /* Discard invalid plugins */
       fprintf (stderr, "%s failed to load\n", name);
       return NULL;
@@ -194,12 +193,13 @@ nasl_plugin_add (char *folder, char *name, struct arglist *plugins,
     {
       /* Discard invalid plugins */
       fprintf (stderr, "%s failed to load, no OID\n", name);
+      nvti_free (nvti);
       plugin_free (plugin_args);
       return NULL;
     }
 
   arg_add_value (plugin_args, "OID", ARG_STRING, strlen (nvti_oid (nvti)) , g_strdup (nvti_oid (nvti)));
-//  nvti_free (nvti); // We don't need the nvti anymore, so remove it. But it causes openvassd to crash at startup(why?)
+  nvti_free (nvti);
 
   plug_set_launch (plugin_args, LAUNCH_DISABLED);
   prev_plugin = arg_get_value (plugins, name);
