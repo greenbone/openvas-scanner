@@ -246,7 +246,10 @@ plugins_reload_from_dir (preferences, plugins, folder, be_quiet)
   g_slist_free (files);
 
   if (be_quiet == 0)
-    printf ("\rAll plugins loaded                                   \n");
+    {
+      printf ("\rAll plugins loaded                                   \n");
+      fflush (stdout);
+    }
 
   return plugins;
 }

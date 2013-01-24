@@ -1,3 +1,18 @@
+2013-01-24  Werner Koch  <wk@gnupg.org>
+
+	Improve bug tracking by directing diagnostics to the log file.
+
+	* src/openvassd.c: Include openvas_logging.h.
+	(init_openvassd): Add arg DONT_FORK and call
+	setup_legacy_log_handler.
+	(main): Pass DONT_FORK to init_openvassd.
+	* src/log.c (log_write): Factor most code out to ..
+	(log_vwrite): new function.
+	* src/log.h: Add prototype for log_vwrite.
+
+	* src/pluginload.c (plugins_reload_from_dir): fflush stdout to not
+	mess up output to stderr.
+
 2013-01-22  Matthew Mundell <matthew.mundell@greenbone.net>
 
 	* src/nasl_plugins.c (nasl_plugin_add): Remove NULL initialisation of

@@ -112,19 +112,16 @@ log_close ()
 
 
 /*
- * write into the logfile
+ * write into the logfile using a va_list.
  * Nothing fancy here...
  */
 void
-log_write (const char *str, ...)
+log_vwrite (const char *str, va_list arg_ptr)
 {
-  va_list param;
   char disp[4096];
   char *tmp;
 
-  va_start (param, str);
-  vsnprintf (disp, sizeof (disp), str, param);
-  va_end (param);
+  vsnprintf (disp, sizeof (disp), str, arg_ptr);
 
   tmp = disp;
   while ((tmp = (char *) strchr (tmp, '\n')) != NULL)
@@ -146,4 +143,18 @@ log_write (const char *str, ...)
     }
   else
     syslog (LOG_NOTICE, "%s", disp);
+}
+
+/*
+ * write into the logfile
+ * Nothing fancy here...
+ */
+void
+log_write (const char *str, ...)
+{
+  va_list param;
+
+  va_start (param, str);
+  log_vwrite (str, param);
+  va_end (param);
 }

@@ -60,6 +60,7 @@
 #include <openvas/misc/rand.h>       /* for openvas_init_random */
 #include <openvas/misc/services1.h>  /* for openvas_init_svc */
 #include <openvas/misc/proctitle.h>  /* for setproctitle.h */
+#include <openvas/misc/openvas_logging.h>  /* for setup_legacy_log_handler */
 #include <openvas/base/pidfile.h>    /* for pidfile_remove */
 #include <openvas/base/nvticache.h>  /* for nvticache_new */
 #include <openvas/misc/otp.h>        /* for OTP_10 */
@@ -131,7 +132,7 @@ static ovas_scanner_context_t ovas_scanner_ctx = NULL;
  * Functions prototypes
  */
 static void main_loop ();
-static int init_openvassd (struct arglist *, int, int, int);
+static int init_openvassd (struct arglist *, int, int, int, int);
 static int init_network (int, int *, struct addrinfo);
 static void scanner_thread (struct arglist *);
 
@@ -938,7 +939,7 @@ init_network (int port, int *sock, struct addrinfo addr)
  */
 static int
 init_openvassd (struct arglist *options, int first_pass, int stop_early,
-                int be_quiet)
+                int be_quiet, int dont_fork)
 {
   int isck = -1;
   struct arglist *plugins = NULL;
@@ -968,6 +969,8 @@ init_openvassd (struct arglist *options, int first_pass, int stop_early,
   arg_add_value (preferences, "config_file", ARG_STRING, strlen (config_file),
                  estrdup (config_file));
   log_init (arg_get_value (preferences, "logfile"));
+  if (dont_fork == FALSE)
+    setup_legacy_log_handler (log_vwrite);
 
   rules_init (&rules, preferences);
 #ifdef DEBUG_RULES
@@ -1218,7 +1221,7 @@ main (int argc, char *argv[], char *envp[])
                  config_file);
   arg_add_value (options, "addr", ARG_PTR, -1, &ai);
 
-  init_openvassd (options, 1, exit_early, be_quiet);
+  init_openvassd (options, 1, exit_early, be_quiet, dont_fork);
   g_options = options;
   global_iana_socket = GPOINTER_TO_SIZE (arg_get_value (options, "isck"));
   global_plugins = arg_get_value (options, "plugins");

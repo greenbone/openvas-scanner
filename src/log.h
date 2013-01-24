@@ -32,11 +32,15 @@
 #ifndef _OPENVAS_LOG_H
 #define _OPENVAS_LOG_H
 
+#include <stdarg.h>
+
 void log_init (const char *);
 void log_close (void);
 #ifdef __GNUC__
+void log_vwrite (const char *, va_list) __attribute__ ((format (printf, 1, 0)));
 void log_write (const char *, ...) __attribute__ ((format (printf, 1, 2)));
 #else
+void log_vwrite (const char *, va_list);
 void log_write (const char *, ...);
 #endif
 
