@@ -183,10 +183,6 @@ nasl_plugin_add (char *folder, char *name, struct arglist *plugins,
         fprintf (stderr,
                  "\r%s could not be added to the cache and is likely to stay invisible to the client.\n",
                  name);
-
-      /* Discard invalid plugins */
-      fprintf (stderr, "%s failed to load\n", name);
-      return NULL;
     }
 
   if (nvti_oid (nvti) == NULL)

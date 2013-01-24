@@ -1,3 +1,9 @@
+2013-01-24  Jan-Oliver Wagner <jan-oliver.wagner@greenbone.net>
+
+	* src/nasl_plugins.c (nasl_plugin_add): Removed (leftover?)
+	error message and too early exit. The error message and exit
+	was executed always when a new NVT (not in cache) is parsed.
+
 2013-01-24  Werner Koch  <wk@gnupg.org>
 
 	Improve bug tracking by directing diagnostics to the log file.
