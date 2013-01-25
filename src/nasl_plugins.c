@@ -185,6 +185,14 @@ nasl_plugin_add (char *folder, char *name, struct arglist *plugins,
                  name);
     }
 
+  if (plugin_args == NULL)
+    {
+      /* Discard invalid plugins */
+      fprintf (stderr, "%s failed to load\n", name);
+      nvti_free (nvti);
+      return NULL;
+    }
+
   if (nvti_oid (nvti) == NULL)
     {
       /* Discard invalid plugins */

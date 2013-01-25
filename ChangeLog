@@ -1,3 +1,10 @@
+2013-01-25  Matthew Mundell <matthew.mundell@greenbone.net>
+
+	* src/nasl_plugins.c (nasl_plugin_add): Revert second plugin_args if
+	block that I wrongly merged with the first one, and that Jan
+	subsequently removed.  plugin_args is assigned within the first if
+	block, so it is valid to recheck it for the second block.
+
 2013-01-24  Jan-Oliver Wagner <jan-oliver.wagner@greenbone.net>
 
 	* src/nasl_plugins.c (nasl_plugin_add): Removed (leftover?)
