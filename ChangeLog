@@ -1,3 +1,9 @@
+2013-02-06  Jan-Oliver Wagner <jan-oliver.wagner@greenbone.net>
+
+	* tools/greenbone-nvt-sync: Extended license from GPLv2 to
+	GPLv2+. Removed special exception for .nes binaries. These will
+	from now on be deleted.
+
 2013-01-25  Matthew Mundell <matthew.mundell@greenbone.net>
 
 	* src/nasl_plugins.c (nasl_plugin_add): Revert second plugin_args if

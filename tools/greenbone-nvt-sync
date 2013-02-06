@@ -9,11 +9,12 @@
 # Jan-Oliver Wagner <jan-oliver.wagner@greenbone.net>
 # Michael Wiegand <michael.wiegand@intevation.de>
 #
-# Copyright (C) 2009 Greenbone Networks GmbH
+# Copyright (C) 2009-2013 Greenbone Networks GmbH
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License version 2,
-# as published by the Free Software Foundation
+# or, at your option, any later version as published by the Free
+# Software Foundation
 #
 # This program is distributed in the hope that it will be useful,
 # but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -28,16 +29,15 @@
 # with some characters in order to make it newer than
 # any follow-up version to prevent that your version
 # will be overwritten.
-VERSION=20130107
+VERSION=20130206
 
 # SETTINGS
 # ========
 # RSYNC_DELETE controls whether files which are not part of the feed will be
 # removed from the local directory after synchronization. The default value for
-# this setting is "--delete --exclude=*nes", which means that files which are
-# not part of feed will be deleted, except the C based legacy plugins with the
-# suffix "nes".
-RSYNC_DELETE="--delete --exclude=*nes"
+# this setting is "--delete", which means that files which are not part of feed
+# will be deleted.
+RSYNC_DELETE="--delete"
 
 # LOGDIR and LOGFILE specify the location of the greenbone-nvt-sync logfile.
 # The default value for LOGDIR is  "/var/log/openvas/", the default value for
