@@ -1,3 +1,23 @@
+2013-02-07  Timo Pollmeier <timo.pollmeier@greenbone.net>
+
+	* tools/openvas-nvt-sync.in: Will now delete scripts not part of the
+	feed like greenbone-nvt-sync when using rsync, except for a private 
+	directory. These scripts should be migrated by calling the sync script
+	with option --migrate-to-private.
+	(): Add new command line option --migrate-to-private.
+	(IFS0, NEWLINE, PRIVATE_SUBDIR, OPENVAS_KEY_ID, RSYNC_DELETE, CMD_GPG):
+	New variables.
+	(do_help): Add new option and variable PRIVATE_SUBDIR.
+	Change indentation.
+	(chk_system_tools): Add warning if GPG is not found.
+	(do_rsync): Add RSYNC_DELETE to delete files not part of the feed and
+	prompt for migration if no private directory is found.
+	(do_migrate_to_private): New function to migrate files without
+	an OpenVAS signature to a private subdirectory.
+	(check_signature): New helper function to check if a file has an
+	OpenVAS signature.
+	(move_file): New helper function to move files.
+
 2013-02-06  Jan-Oliver Wagner <jan-oliver.wagner@greenbone.net>
 
 	* tools/greenbone-nvt-sync: Extended license from GPLv2 to

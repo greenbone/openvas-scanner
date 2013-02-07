@@ -11,6 +11,7 @@
 # Authors:
 # Vlatko Kosturjak <kost@linux.hr>
 # Michael Wiegand <michael.wiegand@greenbone.net>
+# Timo Pollmeier <timo.pollmeier@greenbone.net>
 #
 # Script is complete rewrite of original sync script by
 # Lukas Grunwald <l.grunwald@dn-systems.de>
@@ -32,6 +33,13 @@
 # if you need to debug script
 # set -x
 
+# old IFS
+IFS0="$IFS"
+# newline workaround because $'\n' doesnt work sometimes
+NEWLINE='
+'
+#
+
 # configure NVT_DIR where we will sync NVTs
 if [ -z "$NVT_DIR" ]; then
   OPENVASSD=`which openvassd`
@@ -42,6 +50,15 @@ if [ -z "$NVT_DIR" ]; then
     NVT_DIR=`openvassd -s | awk -F" = " '/^plugins_folder/ { print $2 }'`
   fi
 fi
+# private subdirectory
+if [ -z "$PRIVATE_SUBDIR" ]
+then
+  PRIVATE_SUBDIR="private"
+fi
+# OpenVAS Integrity Test key ID, used by do_migrate_to_private, check_signature
+OPENVAS_KEY_ID=48479FF648DB4530
+# delete option for rsync
+RSYNC_DELETE="--delete --exclude \"$PRIVATE_SUBDIR/\""
 
 # Script and feed information which will be made available to user through
 # command line options and automated tools.
@@ -96,19 +113,22 @@ fi
 
 do_help () {
   echo "$0: Sync NVTs using different protocols"
-  echo " --rsync		sync with rsync (default)"
+  echo " --rsync	sync with rsync (default)"
   echo " --wget		sync with wget"
   echo " --curl		sync with curl"
-  echo " --check		just checksum check"
+  echo " --check	just checksum check"
   echo "OpenVAS administrator functions:"
-  echo " --selftest	perform self-test"
-  echo " --identify	display information"
-  echo " --version	display version"
-  echo " --describe	display current feed info"
-  echo " --nvt-dir <dir>	directory of the NVT collection"
+  echo " --selftest	 perform self-test"
+  echo " --identify	 display information"
+  echo " --version	 display version"
+  echo " --describe	 display current feed info"
+  echo " --feedversion	 display current feed version info"
+  echo " --nvt-dir <dir> set directory of the NVT collection for this run"
+  echo " --migrate-to-private	migrate unsigned files to private directory"
   echo ""
   echo "Environment variables:"
   echo "NVT_DIR		where to extract plugins (absolute path)"
+  echo "PRIVATE_SUBDIR	subdirectory of \$NVT_DIR to migrate unsigned files to"
   echo "OV_RSYNC_FEED	URL of rsync feed"
   echo "OV_HTTP_FEED	URL of http feed"
   echo "TMPDIR		temporary directory used to download the files"
@@ -121,6 +141,7 @@ CMD_RSYNC=`which rsync`
 CMD_MD5SUM=`which md5sum`
 CMD_WGET=`which wget`
 CMD_CURL=`which curl`
+CMD_GPG=`which gpg` # May become obsolete when migrate-to-private is removed
 TMP_NVT="$SYNC_TMP_DIR/openvas-feed-`date +%F`-$$.tar.bz2"
 
 chk_system_tools () {
@@ -143,6 +164,11 @@ chk_system_tools () {
     echo "[w] Warning: curl not found";
   fi
 
+  # May become obsolete if migrate-to-private is removed
+  if [ -z "$CMD_GPG" ]; then
+    echo "[w] Warning: gpg not found";
+  fi
+
   if [ -z "$CMD_RSYNC" -a -z "$CMD_WGET" -a -z "$CMD_CURL" ]; then
     SELFTEST_FAIL=1
   fi
@@ -159,7 +185,38 @@ do_rsync () {
     echo "[i] Using rsync: $CMD_RSYNC"
     echo "[i] Configured NVT rsync feed: $OV_RSYNC_FEED"
     mkdir -p "$NVT_DIR"
-    eval "$CMD_RSYNC -ltvrP \"$OV_RSYNC_FEED\" \"$NVT_DIR\""
+
+    # migration will become obsolete when OpenVAS 5 is retired
+    if [ ! -d "$NVT_DIR/$PRIVATE_SUBDIR" ]
+    then
+      tty -s
+      if [ 0 -eq "$?" ]
+      then
+        # interactive
+        echo "[w] Private directory '$NVT_DIR/$PRIVATE_SUBDIR' not found."
+        echo "[w] Non-feed NVTs not migrated there will be deleted by rsync."
+        read -p "Run migration now ([y/n], any other input aborts)? " REPLY
+        echo ""
+        if [ "Y" = "$REPLY" ] || [ "y" = "$REPLY" ]
+        then
+          do_migrate_to_private
+        elif [ "N" = "$REPLY" ] || [ "n" = "$REPLY" ]
+        then
+          echo "[i] Skipping migration."
+        else
+          echo "[i] NVT sync aborted by user."
+          exit 0
+        fi
+      else
+        # non-interactive
+        echo "[e] Private directory '$PRIVATE_SUBDIR' not found. Aborting to prevent loss of user NVTs."
+        echo "[i] Please run this script on an interactive console or migrate NVTs by running this script with option --migrate-to-private."
+        exit 1
+      fi
+    fi
+    # end migration prompt
+
+    eval "$CMD_RSYNC -ltvrP $RSYNC_DELETE \"$OV_RSYNC_FEED\" \"$NVT_DIR\""
     if [ $? -ne 0 ] ; then
       echo "Error: rsync failed. Your NVT collection might be broken now."
       exit 1
@@ -276,9 +333,128 @@ do_sync () {
   fi
 }
 
+# Will become obsolete when OpenVAS 5 is retired
+do_migrate_to_private () {
+  echo "[i] Migrating non-OpenVAS files to private sub-directory '$PRIVATE_SUBDIR' of NVT directory '$NVT_DIR'. This can take a few minutes."
+
+  if [ -z "$CMD_GPG" ]
+  then
+    echo "[e] Error: gpg not found"
+    exit 1
+  fi
+
+  if [ ! -d "$NVT_DIR/$PRIVATE_SUBDIR" ]
+  then
+    mkdir -p "$NVT_DIR/$PRIVATE_SUBDIR"
+    if [ $? -ne 0 ]
+    then
+      echo "[e] Error: Could not create private directory."
+      exit 1
+    fi
+  fi
+
+  IFS="$NEWLINE"
+  for fname in `find "$NVT_DIR/" -path "$NVT_DIR/$PRIVATE_SUBDIR/*" -prune \
+                                 -o \( \
+                                      -type f \
+                                      -not \( \
+                                              -name "*.asc" \
+                                              -o -path "$NVT_DIR/md5sums" \
+                                              -o -path "$NVT_DIR/COPYING*" \
+                                          \) \
+                                      -print \
+                                    \)`
+  do
+    check_signature "$fname"
+  done
+
+  for fname in `find "$NVT_DIR/" -path "$NVT_DIR/$PRIVATE_SUBDIR/*" -prune \
+                                 -o \( \
+                                      -type f \
+                                      -name "*.asc" \
+                                      -print \
+                                    \)`
+  do
+    if [ -f "$fname" -a ! -f "${fname%.asc}" ]
+    then
+      check_signature "$fname"
+    fi
+  done
+  IFS="$IFS0"
+
+  echo "[i] Migration done."
+}
+
+# Will become obsolete when OpenVAS 5 is retired
+check_signature () {
+  openvas_sig_okay=0
+  fname="$1"
+  if [ -f "${fname}.asc" ]
+  then
+    for key_id in `gpg --homedir /dev/null --batch --status-fd 1 < ${fname}.asc 2>/dev/null | awk '$1 == "[GNUPG:]" && $2 == "NO_PUBKEY" { print $3 }'`
+    do
+      if [ "$key_id" = "$OPENVAS_KEY_ID" ]
+      then
+        openvas_sig_okay=1
+      fi
+    done
+  fi
+  if [ $openvas_sig_okay -ne 1 -a -f "$fname" ]
+  then
+    move_to="$NVT_DIR/$PRIVATE_SUBDIR${fname#$NVT_DIR}"
+    move_file "$fname" "$move_to"
+    if [ -f "${fname}.asc" ]
+    then
+      move_file "${fname}.asc" "${move_to}.asc"
+    fi
+  fi
+}
+
+# Will become obsolete when OpenVAS 5 is retired
+move_file () {
+  src="$1"
+  dst="$2"
+  if [ -e "$dst" ]
+  then
+    echo "[w] Warning: '$dst' already exists."
+    index=1;
+    while [ -e "${2}~$index" ]
+    do
+      index=`expr $index + 1`
+    done
+    dst="$2~$index~"
+    echo "[i] renaming and moving '${src##$NVT_DIR}' to '${dst##$NVT_DIR}'"
+  else
+    echo "[i] moving '${src##$NVT_DIR}' to '${dst##$NVT_DIR}'"
+  fi
+
+  dstdir="${dst%/*}"
+  if [ ! -d "$dstdir" ]
+  then
+    mkdir -p "$dstdir"
+    if [ $? -ne 0 ]
+    then
+      echo "[e] Error: Could not create directory '$dstdir'"
+      exit 1
+    fi
+  fi
+
+  mv "$src" "$dst"
+  if [ $? -ne 0 ]
+  then
+    echo "[e] Error: Could not move '$src' file to '$dst'"
+    exit 1
+  fi
+}
+
 if [ -n "$1" ]; then
   while test $# -gt 0; do
     case "$1" in
+      # migrate-to-private will become obsolete when OpenVAS 5 is retired
+      --migrate-to-private)
+        do_migrate_to_private
+        exit 0
+        ;;
       --help)
         do_help
         exit 0
