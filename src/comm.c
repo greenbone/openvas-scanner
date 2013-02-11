@@ -274,11 +274,21 @@ send_plug_info (struct arglist *globals, struct arglist *plugins)
       }
 
       {
-        char *tag = nvti_tag (nvti);
+        char *tag = estrdup (nvti_tag (nvti));
+        char *index = tag;
         if (tag == NULL || strcmp (tag, "") == 0)
           tag = "NOTAG";
+        else
+          while (*index)
+            {
+              if (*index == '\n')
+                *index = ';';
+              index++;
+            }
         strcat (str, " <|> ");  /* RATS: ignore */
         strcat (str, tag);      /* RATS: ignore */
+        if (tag)
+          efree (&tag);
       }
 
       auth_printf (globals, "%s\n", str);

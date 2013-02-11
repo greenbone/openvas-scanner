@@ -1,3 +1,8 @@
+2013-02-11  Hani Benhabiles  <hani.benhabiles@greenbone.net>
+
+	* src/comm.c (send_plug_info): Escape new lines in script tags when
+	sending plugin information.
+
 2013-02-07  Timo Pollmeier <timo.pollmeier@greenbone.net>
 
 	* tools/openvas-nvt-sync.in: Will now delete scripts not part of the
