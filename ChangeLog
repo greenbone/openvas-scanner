@@ -1,5 +1,11 @@
 2013-02-11  Hani Benhabiles  <hani.benhabiles@greenbone.net>
 
+	* src/comm.c (send_plug_info): Refactor code to remove fixed size of
+	string regrouping nvt elements and calculate size dynamically.
+	Rename variables to be more readable.
+
+2013-02-11  Hani Benhabiles  <hani.benhabiles@greenbone.net>
+
 	* src/comm.c (send_plug_info): Escape new lines in script tags when
 	sending plugin information.
 

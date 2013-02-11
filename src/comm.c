@@ -116,8 +116,8 @@ send_plug_info (struct arglist *globals, struct arglist *plugins)
   static const char *categories[] = { ACT_STRING_LIST_ALL };
 #define CAT_MAX	(sizeof(categories) / sizeof(categories[0]))
   char *t;
-  const char *a, *b, *d, *e = NULL;
-  char *desc = NULL;
+  const char *name, *copyright, *summary, *version, *family = NULL;
+  char *description = NULL;
   unsigned int mem_size = 0;
   char *str;
   int ignored = 0;
@@ -137,7 +137,7 @@ send_plug_info (struct arglist *globals, struct arglist *plugins)
 
   if (t != NULL)
     {
-      desc = t = estrdup (t);
+      description = t = estrdup (t);
       while ((t = strchr (t, '\n')))
         t[0] = ';';
     }
@@ -146,136 +146,105 @@ send_plug_info (struct arglist *globals, struct arglist *plugins)
   if (j >= CAT_MAX || j < ACT_FIRST)
     j = CAT_MAX - 1;
 
-  e = nvti_version (nvti);
-  if (!e)
-    e = "?";
+  version = nvti_version (nvti);
+  if (!version)
+    version = "?";
 
-  if ((a = nvti_name (nvti)) == NULL)
+  if ((name = nvti_name (nvti)) == NULL)
     {
       log_write ("Inconsistent data (no name): %s - not applying this plugin\n",
                  nvti_oid (nvti));
-      a = "Unknown NAME";
+      name = "Unknown NAME";
       ignored = 1;
     }
 
-  if ((b = nvti_copyright (nvti)) == NULL)
+  if ((copyright = nvti_copyright (nvti)) == NULL)
     {
       log_write
         ("Inconsistent data (no copyright): %s - not applying this plugin\n",
-         a ? a : nvti_oid (nvti));
-      b = "Unknown COPYRIGHT";
+         name ? name : nvti_oid (nvti));
+      copyright = "Unknown COPYRIGHT";
       ignored = 1;
     }
 
-  if (desc == NULL)
+  if (description == NULL)
     {
       log_write ("Inconsistent data (no desc): %s - not applying this plugin\n",
-                 a ? a : nvti_oid (nvti));
+                 name ? name : nvti_oid (nvti));
       ignored = 1;
     }
 
-  if ((d = nvti_summary (nvti)) == NULL)
+  if ((summary = nvti_summary (nvti)) == NULL)
     {
       log_write
         ("Inconsistent data (no summary): %s - not applying this plugin\n",
-         a ? a : nvti_oid (nvti));
-      d = "Unknown SUMMARY";
+         name ? name : nvti_oid (nvti));
+      summary = "Unknown SUMMARY";
       ignored = 1;
     }
 
-  if ((nvti_family (nvti)) == NULL)
+  if ((family = nvti_family (nvti)) == NULL)
     {
       log_write
         ("Inconsistent data (no family): %s - not applying this plugin\n",
-         a ? a : nvti_oid (nvti));
-      d = "Unknown FAMILY";
+         name ? name : nvti_oid (nvti));
+      family = "Unknown FAMILY";
       ignored = 1;
     }
 
 
-  if (strchr (a, '\n') != NULL)
+  if (strchr (name, '\n') != NULL)
     {
-      fprintf (stderr, "ERROR (newline in name) - %s %s\n", nvti_oid (nvti), a);
+      fprintf (stderr, "ERROR (newline in name) - %s %s\n", nvti_oid (nvti),
+               name);
       ignored = 1;
     }
 
-  if (strchr (b, '\n') != NULL)
+  if (strchr (copyright, '\n') != NULL)
     {
       fprintf (stderr, "ERROR (newline in copyright)- %s %s\n",
-               nvti_oid (nvti), b);
+               nvti_oid (nvti), copyright);
       ignored = 1;
-
     }
 
-  if (desc && strchr (desc, '\n') != NULL)
+  if (description && strchr (description, '\n') != NULL)
     {
       fprintf (stderr, "ERROR (newline in desc) - %s %s\n", nvti_oid (nvti),
-               desc);
+               description);
       ignored = 1;
-
     }
 
-  if (strchr (d, '\n'))
+  if (strchr (summary, '\n'))
     {
       fprintf (stderr, "ERROR (newline in summary) - %s %s\n",
-               nvti_oid (nvti), d);
+               nvti_oid (nvti), summary);
       ignored = 1;
     }
 
   if (!ignored)
     {
-      mem_size = strlen (a) +   /* Name */
-        strlen (b) +            /* Copyright */
-        strlen (desc) +         /* Description */
-        strlen (d) +            /* Summary */
-        strlen (e) +            /* Version */
-        strlen (nvti_family (nvti)) +       /* Family */
-        7170 +                  /* CVEs + BIDs + XREFs + Tags + Keys */
-        100;                    /* Separators etc. */
+      char *cve_id, *bid, *xref, *sign_keys, *tag;
 
-      str = emalloc (mem_size);
-      snprintf (str, mem_size, "%s <|> %s <|> %s <|> %s <|> %s <|> %s <|> %s",  /* RATS: ignore */
-                nvti_oid (nvti), a, categories[j], b, desc, d,
-                nvti_family (nvti));
+      cve_id = nvti_cve (nvti);
+      if (cve_id == NULL || strcmp (cve_id, "") == 0)
+        cve_id = "NOCVE";
 
-      strcat (str, " <|> ");    /* RATS: ignore */
-      strcat (str, e);          /* RATS: ignore */
+      bid = nvti_bid (nvti);
+      if (bid == NULL || strcmp (bid, "") == 0)
+        bid = "NOBID";
 
-      {
-        char *id = nvti_cve (nvti);
-        if (id == NULL || strcmp (id, "") == 0)
-          id = "NOCVE";
-        strcat (str, " <|> ");  /* RATS: ignore */
-        strcat (str, id);       /* RATS: ignore */
-      }
+      xref = nvti_xref (nvti);
+      if (xref == NULL || strcmp (xref, "") == 0)
+        xref = "NOXREF";
+
+      sign_keys = nvti_sign_key_ids (nvti);
+      if (sign_keys == NULL || strcmp (sign_keys, "") == 0)
+        sign_keys = "NOSIGNKEYS";
 
       {
-        char *bid = nvti_bid (nvti);
-        if (bid == NULL || strcmp (bid, "") == 0)
-          bid = "NOBID";
-        strcat (str, " <|> ");  /* RATS: ignore */
-        strcat (str, bid);      /* RATS: ignore */
-      }
-
-      {
-        char *xref = nvti_xref (nvti);
-        if (xref == NULL || strcmp (xref, "") == 0)
-          xref = "NOXREF";
-        strcat (str, " <|> ");  /* RATS: ignore */
-        strcat (str, xref);     /* RATS: ignore */
-      }
-
-      {
-        char *sign_keys = nvti_sign_key_ids (nvti);
-        if (sign_keys == NULL || strcmp (sign_keys, "") == 0)
-          sign_keys = "NOSIGNKEYS";
-        strcat (str, " <|> ");  /* RATS: ignore */
-        strcat (str, sign_keys);        /* RATS: ignore */
-      }
-
-      {
-        char *tag = estrdup (nvti_tag (nvti));
-        char *index = tag;
+        char *index;
+        tag = estrdup (nvti_tag (nvti));
+        index = tag;
         if (tag == NULL || strcmp (tag, "") == 0)
           tag = "NOTAG";
         else
@@ -285,18 +254,38 @@ send_plug_info (struct arglist *globals, struct arglist *plugins)
                 *index = ';';
               index++;
             }
-        strcat (str, " <|> ");  /* RATS: ignore */
-        strcat (str, tag);      /* RATS: ignore */
-        if (tag)
-          efree (&tag);
       }
 
+      mem_size = strlen (name) +
+        strlen (copyright) +
+        strlen (description) +
+        strlen (summary) +
+        strlen (family) +
+        strlen (version) +
+        strlen (cve_id) +
+        strlen (bid) +
+        strlen (xref) +
+        strlen (sign_keys) +
+        strlen (tag) +
+        100;                    /* Separators etc. */
+
+      str = emalloc (mem_size);
+      snprintf (str, mem_size,
+                "%s <|> %s <|> %s <|> "
+                "%s <|> %s <|> %s <|> "
+                "%s <|> %s <|> %s <|> %s <|> %s <|> %s <|> %s",
+                nvti_oid (nvti), name, categories[j],
+                copyright, description, summary,
+                family, version, cve_id, bid, xref, sign_keys, tag);
+
+      if (tag != NULL && strcmp (tag, "NOTAG"))
+        efree (&tag);
       auth_printf (globals, "%s\n", str);
       efree (&str);
     }
 
-  if (desc != NULL)
-    efree (&desc);
+  if (description != NULL)
+    efree (&description);
 
   nvti_free (nvti);
 }
