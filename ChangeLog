@@ -1,5 +1,12 @@
 2013-02-20  Michael Wiegand <michael.wiegand@greenbone.net>
 
+	Move "-Werror" flag to the "Debug" build type.
+
+	* CMakeLists.txt: Move "-Werror" from CMAKE_C_FLAGS to
+	CMAKE_C_FLAGS_DEBUG to keep it out of the "Release" build type.
+
+2013-02-20  Michael Wiegand <michael.wiegand@greenbone.net>
+
 	* CHANGES: Updated.
 
 2013-02-18  Jan-Oliver Wagner <jan-oliver.wagner@greenbone.net>
