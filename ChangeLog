@@ -1,5 +1,11 @@
 2013-02-20  Michael Wiegand <michael.wiegand@greenbone.net>
 
+	Post release version bump.
+
+	* CMakeLists.txt: Set version to 3.4+beta3.
+
+2013-02-20  Michael Wiegand <michael.wiegand@greenbone.net>
+
 	Move "-Werror" flag to the "Debug" build type.
 
 	* CMakeLists.txt: Move "-Werror" from CMAKE_C_FLAGS to
