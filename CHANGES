@@ -1,11 +1,11 @@
-openvas-scanner 3.4+beta2 (2013-XX-XX)
+openvas-scanner 3.4+beta2 (2013-02-20)
 
 This is the second beta release of the openvas-scanner 3.4 module for the Open
 Vulnerability Assessment System (OpenVAS). It will be part of the upcoming
 "OpenVAS-6".
 
 Main changes since last beta release are the behaviour change of the Feed
-Synchronisaiton routine and the more flexible handling of script tags.
+Synchronization routine and the more flexible handling of script tags.
 
 Many thanks to everyone who has contributed to this release:
 Hani Benhabiles, Werner Koch, Matthew Mundell, Timo Pollmeier,
