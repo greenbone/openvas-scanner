@@ -1,3 +1,7 @@
+2013-02-22  Michael Wiegand <michael.wiegand@greenbone.net>
+
+	* src/openvassd.c (main): Update year in copyright notice.
+
 2013-02-20  Michael Wiegand <michael.wiegand@greenbone.net>
 
 	Post release version bump.

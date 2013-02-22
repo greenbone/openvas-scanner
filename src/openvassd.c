@@ -1181,7 +1181,7 @@ main (int argc, char *argv[], char *envp[])
       printf
         ("Nessus origin: (C) 2004 Renaud Deraison <deraison@nessus.org>\n");
       printf
-        ("Most new code since OpenVAS: (C) 2011 Greenbone Networks GmbH\n");
+        ("Most new code since OpenVAS: (C) 2013 Greenbone Networks GmbH\n");
       printf ("License GPLv2: GNU GPL version 2\n");
       printf
         ("This is free software: you are free to change and redistribute it.\n"
