@@ -1,3 +1,9 @@
+2013-02-27  Jan-Oliver Wagner <jan-oliver.wagner@greenbone.net>
+
+	Post branch version bump.
+
+	* CMakeLists.txt: Set to version to 4.0.0 and beta status.
+
 2013-02-22  Michael Wiegand <michael.wiegand@greenbone.net>
 
 	* src/openvassd.c (main): Update year in copyright notice.
