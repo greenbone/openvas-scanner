@@ -29,7 +29,6 @@ src/parser.[c|h]: GPLv2
 src/piic.[c|h]: GPLv2
 src/pluginload.[c|h]: GPLv2
 src/pluginscheduler.[c|h]: GPLv2
-src/plugs_hash.[c|h]: GPLv2
 src/plugs_req.[c|h]: GPLv2
 src/preferences.[c|h]: GPLv2
 src/processes.[c|h]: GPLv2

@@ -53,7 +53,6 @@
 
 #include "pluginload.h"
 #include "pluginscheduler.h"    /* for LAUNCH_DISABLED */
-#include "plugs_hash.h"
 #include "preferences.h"
 #include "processes.h"
 #include "log.h"

@@ -1,3 +1,30 @@
+2013-02-28  Jan-Oliver Wagner <jan-oliver.wagner@greenbone.net>
+
+	Remove handling of MD5 for NVTs from OTP. Those checksums have
+	no meaning to the client because the client can not verify
+	them as it has no access to the actual NVT files.
+	So, the MD5 could serve as version/change indicator at best, but
+	that is already redundant with the revisioning in the tags.
+	The MD5 checksums could be used to determine which plugins
+	are changed since last contact (provided the client stores them)
+	in order to use PLUGIN_INFO for getting the changed ones
+	instead of downloading all. In practice it has shown that
+	it is simpler to just download all always.
+
+	This removes the command SEND_PLUGINS_MD5 from OTP.
+
+	* src/comm.c (comm_send_md5_plugins): Remove md5 computations
+	and rather just send "DUMMY" as md5 value for command PLUGINS_MD5
+	for the time being. Removed answering on SEND_PLUGINS_MD5.
+
+	* src/plugs_hash.c, src/plugs_hash.h: Removed.
+
+	* COPYING: Removed module plugs_hash.
+
+	* src/CMakeLists.txt: Removed handling of plugs_hash.
+
+	* src/nasl_plugins.c: Removed include of plugs_hash.h,
+
 2013-02-27  Timo Pollmeier <timo.pollmeier@greenbone.net>
 
 	* tools/greenbone-nvt-sync: Update version number.

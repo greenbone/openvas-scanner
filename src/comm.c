@@ -47,7 +47,6 @@
 #include "comm.h"
 #include "ntp_11.h"
 #include "log.h"
-#include "plugs_hash.h"
 #include "pluginscheduler.h"    /* for define LAUNCH_DISABLED */
 #include "rules.h"
 #include "sighand.h"
@@ -580,19 +579,9 @@ comm_setup_plugins (struct arglist *globals, char *list)
 void
 comm_send_md5_plugins (struct arglist *globals)
 {
-  char *md5;
   char buf[2048];
 
-  md5 = plugins_hash (globals);
-  if (md5 == NULL)
-    {
-      /* This should only happen in severe circumstances */
-      log_write ("comm_send_md5_plugins: could not determine plugins hash\n");
-      return;
-    }
-  auth_printf (globals, "SERVER <|> PLUGINS_MD5 <|> %s <|> SERVER\n", md5);
-  efree (&md5);
-
+  auth_printf (globals, "SERVER <|> PLUGINS_MD5 <|> DUMMY <|> SERVER\n");
 
   for (;;)
     {
@@ -600,10 +589,6 @@ comm_send_md5_plugins (struct arglist *globals)
       auth_gets (globals, buf, sizeof (buf) - 1);
       if (strstr (buf, "COMPLETE_LIST"))
         comm_send_pluginlist (globals);
-      else if (strstr (buf, "SEND_PLUGINS_MD5"))
-        {
-          plugins_send_md5 (globals);
-        }
       else if (strstr (buf, "PLUGIN_INFO"))
         {
           char *t = strstr (buf, " <|> ");
