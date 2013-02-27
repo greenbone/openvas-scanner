@@ -1,3 +1,8 @@
+2013-02-27  Timo Pollmeier <timo.pollmeier@greenbone.net>
+
+	* tools/greenbone-nvt-sync: Add PRIVATE_SUBDIR and private directory
+	functionality to RSYNC_DELETE.
+
 2013-02-27  Jan-Oliver Wagner <jan-oliver.wagner@greenbone.net>
 
 	Post branch version bump.
