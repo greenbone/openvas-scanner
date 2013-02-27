@@ -1,5 +1,9 @@
 2013-02-27  Timo Pollmeier <timo.pollmeier@greenbone.net>
 
+	* tools/greenbone-nvt-sync: Update version number.
+
+2013-02-27  Timo Pollmeier <timo.pollmeier@greenbone.net>
+
 	* tools/greenbone-nvt-sync: Add PRIVATE_SUBDIR and private directory
 	functionality to RSYNC_DELETE.
 
