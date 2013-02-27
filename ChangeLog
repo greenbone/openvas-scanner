@@ -1,5 +1,13 @@
 2013-02-28  Jan-Oliver Wagner <jan-oliver.wagner@greenbone.net>
 
+	* src/comm.c (comm_send_md5_plugins): Renamed to comm_send_nvt_info.
+
+	* src/comm.h: Updated proto accordingly.
+
+	* src/openvassd.c (scanner_thread): Renamed call accordingly.
+
+2013-02-28  Jan-Oliver Wagner <jan-oliver.wagner@greenbone.net>
+
 	Remove handling of MD5 for NVTs from OTP. Those checksums have
 	no meaning to the client because the client can not verify
 	them as it has no access to the actual NVT files.

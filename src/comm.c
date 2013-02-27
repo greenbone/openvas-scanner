@@ -577,7 +577,7 @@ comm_setup_plugins (struct arglist *globals, char *list)
  * @brief Send the OTP PLUGINS_MD5 command.
  */
 void
-comm_send_md5_plugins (struct arglist *globals)
+comm_send_nvt_info (struct arglist *globals)
 {
   char buf[2048];
 

@@ -562,7 +562,7 @@ scanner_thread (struct arglist *globals)
       // OTP >=1.1 does not send these at connect
       if (protocol_version == OTP_10)
         {
-          comm_send_md5_plugins (globals);
+          comm_send_nvt_info (globals);
           comm_send_preferences (globals);
           comm_send_rules (globals);
           ntp_1x_send_dependencies (globals);
