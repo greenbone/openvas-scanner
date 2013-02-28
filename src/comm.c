@@ -574,14 +574,17 @@ comm_setup_plugins (struct arglist *globals, char *list)
 }
 
 /**
- * @brief Send the OTP PLUGINS_MD5 command.
+ * @brief Send the OTP NVT_INFO message and then handle any COMPLETE_LIST
+ * and PLUGIN_INFO commands.
  */
 void
 comm_send_nvt_info (struct arglist *globals)
 {
   char buf[2048];
 
-  auth_printf (globals, "SERVER <|> PLUGINS_MD5 <|> DUMMY <|> SERVER\n");
+  // @todo It might make sense to send the revision of the feed instead
+  // of the static text "DUMMY".
+  auth_printf (globals, "SERVER <|> NVT_INFO <|> DUMMY <|> SERVER\n");
 
   for (;;)
     {

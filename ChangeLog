@@ -1,5 +1,12 @@
 2013-02-28  Jan-Oliver Wagner <jan-oliver.wagner@greenbone.net>
 
+	* src/comm.c (comm_send_nvti_info): Renamed OTP command
+	"PLUGINS_MD5" to "NVT_INFO" which is more apropriate as
+	no MD5 is handled at all anymore. The parameter is kept
+	as static text "DUMMY".
+
+2013-02-28  Jan-Oliver Wagner <jan-oliver.wagner@greenbone.net>
+
 	* src/comm.c (comm_send_md5_plugins): Renamed to comm_send_nvt_info.
 
 	* src/comm.h: Updated proto accordingly.
