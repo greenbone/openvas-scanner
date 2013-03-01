@@ -963,7 +963,6 @@ attack_network (struct arglist *globals)
   struct openvas_rules *rules = NULL;
   struct arglist *rejected_hosts = NULL;
   GHashTable *tested = NULL;
-  char *port_range;
   plugins_scheduler_t sched;
   int fork_retries = 0;
   GHashTable *files;
@@ -1018,21 +1017,11 @@ attack_network (struct arglist *globals)
       exit (1);
     }
 
-  /* Init and check Port Range. */
-  port_range = arg_get_value (preferences, "port_range");
-  if (port_range == NULL || port_range[0] == '\0')
-    port_range = "1-15000";
-
-  if (strcmp (port_range, "-1") != 0)
+  if ((unsigned short *) getpts (arg_get_value (preferences, "port_range"), NULL) == NULL)
     {
-      unsigned short *ports;
-      ports = (unsigned short *) getpts (port_range, NULL);
-      if (ports == NULL)
-        {
-          auth_printf (globals,
-                       "SERVER <|> ERROR <|> E001 - Invalid port range <|> SERVER\n");
-          return -1;
-        }
+      auth_printf (globals,
+                   "SERVER <|> ERROR <|> E001 - Invalid port range <|> SERVER\n");
+      return -1;
     }
 
   /* Initialize the attack. */

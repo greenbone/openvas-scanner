@@ -80,7 +80,6 @@ static openvassd_option openvassd_defaults[] = {
   {"dumpfile", OPENVASSD_DEBUGMSG},
   {"rules", OPENVASSD_RULES},
   {"cgi_path", "/cgi-bin:/scripts"},
-  {"port_range", "default"},
   {"optimize_test", "yes"},
   {"checks_read_timeout", "5"},
   {"network_scan", "no"},
