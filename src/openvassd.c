@@ -58,7 +58,6 @@
 #include <openvas/misc/plugutils.h>  /* for find_in_path */
 #include <openvas/misc/system.h>     /* for estrdup */
 #include <openvas/misc/rand.h>       /* for openvas_init_random */
-#include <openvas/misc/services1.h>  /* for openvas_init_svc */
 #include <openvas/misc/proctitle.h>  /* for setproctitle.h */
 #include <openvas/misc/openvas_logging.h>  /* for setup_legacy_log_handler */
 #include <openvas/base/pidfile.h>    /* for pidfile_remove */
@@ -1235,8 +1234,6 @@ main (int argc, char *argv[], char *envp[])
     exit (0);
   if (only_cache)
     exit (0);
-
-  openvas_init_svc ();
 
   // Daemon mode:
   if (dont_fork == FALSE)

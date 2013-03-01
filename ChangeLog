@@ -1,5 +1,11 @@
 2013-03-01  Jan-Oliver Wagner <jan-oliver.wagner@greenbone.net>
 
+	* src/openvassd.c (main): Don't initialize services
+	(openvas_init_svc) anymore. It is not needed anymore because removed
+	from openvas-libraries (see there for rationale).
+
+2013-03-01  Jan-Oliver Wagner <jan-oliver.wagner@greenbone.net>
+
 	The port_range "default" is not allowed anymore. It is now
 	mandatory that the client sends an explicit one.
 	Ratonale: "default" is an intransparent behaviour from user
