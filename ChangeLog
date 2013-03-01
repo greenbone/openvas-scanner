@@ -1,3 +1,8 @@
+2013-03-01  Timo Pollmeier <timo.pollmeier@greenbone.net>
+
+	* tools/greenbone-nvt-sync (RSYNC_DELETE): Remove quotes causing
+	exclude of private directory to be ignored.
+
 2013-02-28  Jan-Oliver Wagner <jan-oliver.wagner@greenbone.net>
 
 	* src/comm.c (comm_send_nvti_info): Renamed OTP command

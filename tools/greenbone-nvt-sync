@@ -29,7 +29,7 @@
 # with some characters in order to make it newer than
 # any follow-up version to prevent that your version
 # will be overwritten.
-VERSION=20130227
+VERSION=20130301
 
 # SETTINGS
 # ========
@@ -46,7 +46,7 @@ fi
 # "--delete --exclude \"$PRIVATE_SUBDIR/\"",
 # which means that files which are not part of the feed or private directory
 # will be deleted.
-RSYNC_DELETE="--delete --exclude \"$PRIVATE_SUBDIR/\""
+RSYNC_DELETE="--delete --exclude $PRIVATE_SUBDIR/"
 
 # LOGDIR and LOGFILE specify the location of the greenbone-nvt-sync logfile.
 # The default value for LOGDIR is  "/var/log/openvas/", the default value for
