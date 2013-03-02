@@ -1,3 +1,9 @@
+2013-03-03  Hani Benhabiles  <hani.benhabiles@greenbone.net>
+
+	* src/comm.c (send_plug_info): Send NOSUMMARY instead of whole summary
+	when script tag summary is present.
+	(plug_is_newstyle): Rename to plugin_is_newstyle.
+
 2013-03-02  Hani Benhabiles  <hani.benhabiles@greenbone.net>
 
 	* src/comm.c (plug_is_newstyle): New function to check if plugin has all
