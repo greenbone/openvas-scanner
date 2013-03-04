@@ -827,45 +827,6 @@ save_kb_pref_restore (struct arglist *globals)
 }
 
 /**
- * @return 1 if this type of plugin can be executed.
- */
-int
-save_kb_replay_check (struct arglist *globals, int type)
-{
-  struct arglist *preferences = arg_get_value (globals, "preferences");
-  char *name = NULL;
-  char *value;
-  switch (type)
-    {
-    case ACT_SCANNER:
-      name = "kb_dont_replay_scanners";
-      break;
-    case ACT_GATHER_INFO:
-      name = "kb_dont_replay_info_gathering";
-      break;
-    case ACT_MIXED_ATTACK:
-    case ACT_DESTRUCTIVE_ATTACK:
-    case ACT_ATTACK:
-      name = "kb_dont_replay_attacks";
-      break;
-    case ACT_DENIAL:
-    case ACT_KILL_HOST:
-    case ACT_FLOOD:
-      name = "kb_dont_replay_denials";
-      break;
-      /* ACT_SETTINGS and ACT_INIT should always be executed */
-    }
-
-  if (name)
-    {
-      value = arg_get_value (preferences, name);
-      if (value && !strcmp (value, "yes"))
-        return 0;
-    }
-  return 1;
-}
-
-/**
  * @return Tthe max. age of the KB, in seconds, as set by the user.
  */
 long

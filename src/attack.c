@@ -323,8 +323,7 @@ launch_plugin (struct arglist *globals, plugins_scheduler_t * sched,
 
           snprintf (asc_id, sizeof (asc_id), "Launched/%s", oid);
 
-          if (kb_item_get_int (kb, asc_id) > 0
-              && !save_kb_replay_check (globals, category))
+          if (kb_item_get_int (kb, asc_id) > 0)
             {
               /* XXX determine here if we should skip ACT_SCANNER, ACT_GATHER_INFO,
                  ACT_ATTACK and ACT_DENIAL */

@@ -1,3 +1,21 @@
+2013-03-04  Jan-Oliver Wagner <jan-oliver.wagner@greenbone.net>
+
+	First part of removing kb-saving feature.
+	This removes the scanner configs for selecting which NVT categories
+	should be replayed. Now all will be replayed regardless of the
+	category. However, this is temporary.
+
+	* src/preferences.c (openvassd_defaults): Removed
+	"kb_dont_replay_scanners", "kb_dont_replay_denials",
+	"kb_dont_replay_info_gathering", "kb_dont_replay_attacks".
+
+	* src/save_kb.c (save_kb_replay_check): Removed.
+
+	* src/save_kb.h: Removed proto accordingly.
+
+	* src/attack.c (launch_plugin): In case of using save_kb,
+	any NVT will be replayed now.
+
 2013-03-03  Hani Benhabiles  <hani.benhabiles@greenbone.net>
 
 	* src/comm.c (send_plug_info): Send NOSUMMARY instead of whole summary
