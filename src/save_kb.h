@@ -48,10 +48,6 @@ struct kb_item **save_kb_load_kb (struct arglist *, char *);
 /*
  * Preferences set by the user
  */
-int save_kb (struct arglist *);
-int save_kb_pref_tested_hosts_only (struct arglist *);
-int save_kb_pref_untested_hosts_only (struct arglist *);
-int save_kb_pref_restore (struct arglist *);
 long save_kb_max_age (struct arglist *);
 
 #endif

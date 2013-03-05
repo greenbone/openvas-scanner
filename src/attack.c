@@ -317,34 +317,6 @@ launch_plugin (struct arglist *globals, plugins_scheduler_t * sched,
             }
         }
 
-      if (save_kb (globals))
-        {
-          char asc_id[100];
-
-          snprintf (asc_id, sizeof (asc_id), "Launched/%s", oid);
-
-          if (kb_item_get_int (kb, asc_id) > 0)
-            {
-              /* XXX determine here if we should skip ACT_SCANNER, ACT_GATHER_INFO,
-                 ACT_ATTACK and ACT_DENIAL */
-              if (preferences_log_whole_attack (preferences))
-                log_write
-                  ("user %s : Not launching %s against %s %s (this is not an error)\n",
-                   attack_user_name (globals), plugin->arglist->name, hostname,
-                   "because it has already been launched in the past");
-              plugin_set_running_state (sched, plugin, PLUGIN_STATUS_DONE);
-              return 0;
-            }
-          else
-            {
-              kb_item_add_int (kb, asc_id, 1);
-              if (network_scan)
-                save_kb_write_int (globals, "network", asc_id, 1);
-              else
-                save_kb_write_int (globals, hostname, asc_id, 1);
-            }
-        }
-
       /* Do not launch NVT if mandatory key is missing (e.g. an important tool
        * was not found). This is ignored during network wide scanning phases. */
       if (network_scan || mandatory_requirements_met (kb, plugin))
@@ -618,31 +590,7 @@ init_host_kb (struct arglist *globals, char *hostname, struct arglist *hostinfos
         }
     }
 
-  // Check if kb should be saved.
-  if (save_kb (globals))
-    {
-      // Check if a saved kb exists and we shall restore it.
-      if (save_kb_exists (globals, hostname) != 0
-          && save_kb_pref_restore (globals) != 0)
-        {
-          save_kb_backup (globals, hostname);
-          kb = save_kb_load_kb (globals, hostname);
-        }
-      else
-        {
-          // We shall not or cannot restore.
-          save_kb_new (globals, hostname);
-          kb = kb_new ();
-          (*new_kb) = TRUE;
-        }
-
-      arg_add_value (globals, "CURRENTLY_TESTED_HOST", ARG_STRING,
-                     strlen (hostname), hostname);
-    }
-  else                          /* save_kb(globals) */
-    {
-      kb = kb_new ();
-    }
+  kb = kb_new ();
 
   // Add local check (SSH)- related knowledge base items
   fill_host_kb_ssh_credentials (kb, globals, hostname);
@@ -1083,61 +1031,6 @@ attack_network (struct arglist *globals)
   while (hg_res >= 0)
     {
       int pid;
-
-      if (! network_phase)
-        {
-          /* openvassd offers the ability to either test
-           * only the hosts we tested in the past, or only
-           * the hosts we never tested (or both, of course) */
-          if (save_kb (globals))
-            {
-              if (save_kb_pref_tested_hosts_only (globals))
-                {
-                  if (!save_kb_exists (globals, hostname))
-                    {
-                      log_write
-                        ("user %s : not testing %s because it has never been tested before\n",
-                         attack_user_name (globals), hostname);
-                      hg_res =
-                        hg_next_host (hg_globals, &host_ip, hostname,
-                                      sizeof (hostname));
-
-                      if (tested != NULL)
-                        {
-                          while (hg_res >= 0
-                                 && g_hash_table_lookup (tested, hostname) != 0)
-                            hg_res =
-                              hg_next_host (hg_globals, &host_ip, hostname,
-                                            sizeof (hostname));
-                        }
-                      continue;
-                    }
-                }
-              else if (save_kb_pref_untested_hosts_only (globals))
-                {
-                  /* XXX */
-                  if (save_kb_exists (globals, hostname))
-                    {
-                      log_write
-                        ("user %s : not testing %s because it has already been tested before\n",
-                         attack_user_name (globals), hostname);
-                      hg_res =
-                        hg_next_host (hg_globals, &host_ip, hostname,
-                                      sizeof (hostname));
-                      // If some hosts were tested already, jump over them.
-                      if (tested != NULL)
-                        {
-                          while (hg_res >= 0
-                                 && g_hash_table_lookup (tested, hostname) != 0)
-                            hg_res =
-                              hg_next_host (hg_globals, &host_ip, hostname,
-                                            sizeof (hostname));
-                        }
-                      continue;
-                    }
-                }
-            }
-        }
 
       memcpy (&addrs.ip6, &host_ip, sizeof (struct in6_addr));
 

@@ -1,3 +1,26 @@
+2013-03-05  Jan-Oliver Wagner <jan-oliver.wagner@greenbone.net>
+
+	Second part of removing kb-saving feature.
+	This removes the scanner configs for advising to save kb.
+	Thus no kb files are stored anymore under users/$user/kbs/
+	during a non-network scan. Network scans will still save
+	KBs.
+
+	* src/preferences.c (openvassd_defaults): Removed
+	"save_knowledge_base", "kb_restore",
+	"only_test_hosts_whose_kb_we_dont_have" and
+	"only_test_hosts_whose_kb_we_have".
+
+	* src/save_kb.c (save_kb, save_kb_pref_untested_hosts_only,
+	save_kb_pref_tested_hosts_only, save_kb_pref_restore): Removed.
+
+	* src/save_kb.h: Removed protos accordingly.
+
+	* src/attack.c (attack_network, launch_plugin, init_host_kb):
+	Removed handling for case "save_kb".
+
+	* src/piic.c (kb_parse): Removed handling for case "save_kb".
+
 2013-03-05  Hani Benhabiles  <hani.benhabiles@greenbone.net>
 
 	* src/comm.c (plugin_is_newstyle): Remove function. Now part of
