@@ -112,12 +112,13 @@ plugin_is_newstyle (const nvti_t *nvti)
 {
   const char* tag = nvti_tag (nvti);
 
-  return (strstr (tag, "summary=") &&
-          strstr (tag, "affected=") &&
-          strstr (tag, "insight=") &&
-          strstr (tag, "detection=") &&
-          strstr (tag, "impact=") &&
-          strstr (tag, "solution="));
+  return (tag
+          && strstr (tag, "summary=")
+          && strstr (tag, "affected=")
+          && strstr (tag, "insight=")
+          && strstr (tag, "detection=")
+          && strstr (tag, "impact=")
+          && strstr (tag, "solution="));
 }
 
 /**

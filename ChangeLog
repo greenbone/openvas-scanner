@@ -1,3 +1,8 @@
+2013-04-05  Matthew Mundell <matthew.mundell@greenbone.net>
+
+	* src/nasl_plugins.c (plugin_is_newstyle): Check tag in case it is NULL.
+	Also move &&'s to front of line for consistency.
+
 2013-03-04  Jan-Oliver Wagner <jan-oliver.wagner@greenbone.net>
 
 	First part of removing kb-saving feature.
@@ -49,7 +54,7 @@
 	* src/attack.c (attack_network): Check port_range directly as found in
 	preferences. Don't assume "1-15000" in absense of port_range and don't
 	consider port_range == "-1" as something valid.
- 
+
 2013-03-01  Timo Pollmeier <timo.pollmeier@greenbone.net>
 
 	* tools/greenbone-nvt-sync (RSYNC_DELETE): Remove quotes causing
@@ -153,7 +158,7 @@
 2013-02-07  Timo Pollmeier <timo.pollmeier@greenbone.net>
 
 	* tools/openvas-nvt-sync.in: Will now delete scripts not part of the
-	feed like greenbone-nvt-sync when using rsync, except for a private 
+	feed like greenbone-nvt-sync when using rsync, except for a private
 	directory. These scripts should be migrated by calling the sync script
 	with option --migrate-to-private.
 	(): Add new command line option --migrate-to-private.
