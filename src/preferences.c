@@ -89,7 +89,6 @@ static openvassd_option openvassd_defaults[] = {
   {"auto_enable_dependencies", "yes"},
   {"silent_dependencies", "no"},
   {"use_mac_addr", "no"},
-  {"kb_max_age", "864000"},
   {"slice_network_addresses", "no"},
   {"nasl_no_signature_check", "yes"},
   {"drop_privileges", "no"},

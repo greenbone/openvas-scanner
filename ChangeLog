@@ -1,5 +1,18 @@
 2013-03-05  Jan-Oliver Wagner <jan-oliver.wagner@greenbone.net>
 
+	Third part of removing kb-saving feature. This completes
+	the removal of the user-driven kb saving.
+
+	* src/preferences.c (openvassd_defaults): Removed "kb_max_age".
+
+	* src/save_kb.c (save_kb_max_age): Removed.
+	(save_kb_load_kb): Apply the default 864000 for max_age
+	directly (the old default, 10 days).
+
+	* src/save_kb.h: Removed proto accordingly.
+
+2013-03-05  Jan-Oliver Wagner <jan-oliver.wagner@greenbone.net>
+
 	Second part of removing kb-saving feature.
 	This removes the scanner configs for advising to save kb.
 	Thus no kb files are stored anymore under users/$user/kbs/

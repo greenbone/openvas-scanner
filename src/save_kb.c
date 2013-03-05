@@ -626,7 +626,7 @@ save_kb_load_kb (struct arglist *globals, char *hostname)
   int fd;
   struct kb_item **kb;
   char buf[4096];
-  long max_age = save_kb_max_age (globals);
+  long max_age = 864000;
 
   if (file_locked (fname))
     {
@@ -738,23 +738,4 @@ save_kb_load_kb (struct arglist *globals, char *hostname)
     log_write ("user %s : ERROR - %s\n",
                (char *) arg_get_value (globals, "user"), strerror (errno));
   return kb;
-}
-
-
-/*-------------------------------------------------------------------
- * Preferences set by the user
- *-------------------------------------------------------------------*/
-
-/**
- * @return Tthe max. age of the KB, in seconds, as set by the user.
- */
-long
-save_kb_max_age (struct arglist *globals)
-{
-  struct arglist *prefs = arg_get_value (globals, "preferences");
-  long ret = atol (arg_get_value (prefs, "kb_max_age"));
-  if (!ret)
-    return 3600;
-  else
-    return ret;
 }
