@@ -1,3 +1,8 @@
+2013-03-05  Hani Benhabiles  <hani.benhabiles@greenbone.net>
+
+	* src/comm.c (plugin_is_newstyle): Remove function. Now part of
+	plugutils.c in libraries.
+
 2013-04-05  Matthew Mundell <matthew.mundell@greenbone.net>
 
 	* src/nasl_plugins.c (plugin_is_newstyle): Check tag in case it is NULL.
