@@ -135,7 +135,13 @@ kb_parse (int soc, struct arglist *globals, struct kb_item **kb, char *buf,
       if (msg & INTERNAL_COMM_KB_REPLACE)
         kb_item_set_int (kb, name, v);
       else
-        kb_item_add_int (kb, name, v);
+        {
+          kb_item_add_int (kb, name, v);
+          if (save_kb (globals))
+            save_kb_write_int (globals,
+                               arg_get_value (globals, "CURRENTLY_TESTED_HOST"),
+                               name, v);
+        }
     }
   else
     {
@@ -143,7 +149,13 @@ kb_parse (int soc, struct arglist *globals, struct kb_item **kb, char *buf,
       if (msg & INTERNAL_COMM_KB_REPLACE)
         kb_item_set_str (kb, name, copy);
       else
-        kb_item_add_str (kb, name, copy);
+        {
+          kb_item_add_str (kb, name, copy);
+          if (save_kb (globals))
+            save_kb_write_str (globals,
+                               arg_get_value (globals, "CURRENTLY_TESTED_HOST"),
+                               name, copy);
+        }
       efree (&copy);
     }
 }

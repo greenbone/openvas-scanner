@@ -47,7 +47,6 @@
 
 #include <glib.h>
 
-#include <openvas/misc/nvt_categories.h>  /* for ACT_SCANNER */
 #include <openvas/misc/kb.h>         /* for kb_new */
 #include <openvas/misc/plugutils.h>  /* for addslashes.h */
 #include <openvas/misc/system.h>     /* for estrdup */
@@ -738,4 +737,25 @@ save_kb_load_kb (struct arglist *globals, char *hostname)
     log_write ("user %s : ERROR - %s\n",
                (char *) arg_get_value (globals, "user"), strerror (errno));
   return kb;
+}
+
+/**
+ * @return 1 if a network scan is in progress.
+ * @todo This operation is possibly executed often (with every kb modification).
+ *       Evaluate wether the preference can change during a scan, consider the
+ *       use of a static variable.
+ */
+int
+save_kb (struct arglist *globals)
+{
+  char *value;
+
+  if (!globals)
+    return 0;
+
+  value = arg_get_value (globals, "network_scan_status");
+  if (value && !strcmp (value, "busy"))
+    return 1;
+
+  return 0;
 }

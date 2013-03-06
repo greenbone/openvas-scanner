@@ -317,6 +317,29 @@ launch_plugin (struct arglist *globals, plugins_scheduler_t * sched,
             }
         }
 
+      if (network_scan)
+        {
+          char asc_id[100];
+
+          snprintf (asc_id, sizeof (asc_id), "Launched/%s", oid);
+
+          if (kb_item_get_int (kb, asc_id) > 0)
+            {
+              if (preferences_log_whole_attack (preferences))
+                log_write
+                  ("user %s : Not launching %s against %s %s (this is not an error)\n",
+                   attack_user_name (globals), plugin->arglist->name, hostname,
+                   "because it has already been launched in the past");
+              plugin_set_running_state (sched, plugin, PLUGIN_STATUS_DONE);
+              return 0;
+            }
+          else
+            {
+              kb_item_add_int (kb, asc_id, 1);
+              save_kb_write_int (globals, "network", asc_id, 1);
+            }
+        }
+
       /* Do not launch NVT if mandatory key is missing (e.g. an important tool
        * was not found). This is ignored during network wide scanning phases. */
       if (network_scan || mandatory_requirements_met (kb, plugin))
@@ -590,7 +613,30 @@ init_host_kb (struct arglist *globals, char *hostname, struct arglist *hostinfos
         }
     }
 
-  kb = kb_new ();
+  // Check if kb should be saved.
+  if (save_kb (globals))
+    {
+      // Check if a saved kb exists and we shall restore it.
+      if (save_kb_exists (globals, hostname) != 0)
+        {
+          save_kb_backup (globals, hostname);
+          kb = save_kb_load_kb (globals, hostname);
+        }
+      else
+        {
+          // We shall not or cannot restore.
+          save_kb_new (globals, hostname);
+          kb = kb_new ();
+          (*new_kb) = TRUE;
+        }
+ 
+      arg_add_value (globals, "CURRENTLY_TESTED_HOST", ARG_STRING,
+                     strlen (hostname), hostname);
+    }
+  else                          /* save_kb(globals) */
+    {
+      kb = kb_new ();
+    }
 
   // Add local check (SSH)- related knowledge base items
   fill_host_kb_ssh_credentials (kb, globals, hostname);

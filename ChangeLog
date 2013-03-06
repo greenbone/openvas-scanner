@@ -1,3 +1,20 @@
+2013-03-06  Jan-Oliver Wagner <jan-oliver.wagner@greenbone.net>
+
+	Reverting parts of the previous patch because under certain
+	conditions (network_scan_status == busy) the kb_saving
+	is still needed.
+
+	* src/save_kb.c: Removed unneeded include.
+	(save_kb): Re-added a simplified version.
+
+	* src/save_kb.h: Re-added proto accordingly.
+
+	* src/piic.c (kb_parse): Re-added handling for case "save_kb".
+
+	* src/attack.c (attack_network, launch_plugin, init_host_kb):
+	Re-adding, partly simplified, handling for case "save_kb", in
+	other words for network scan situations.
+
 2013-03-05  Jan-Oliver Wagner <jan-oliver.wagner@greenbone.net>
 
 	Third part of removing kb-saving feature. This completes
