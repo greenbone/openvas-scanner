@@ -1,3 +1,8 @@
+2013-03-14  Hani Benhabiles  <hani.benhabiles@greenbone.net>
+
+	* src/comm.c (nvt_feed_version): New function.
+	(comm_send_nvt_info): Send nvt feed version instead of DUMMY value.
+
 2013-03-06  Jan-Oliver Wagner <jan-oliver.wagner@greenbone.net>
 
 	Reverting parts of the previous patch because under certain

@@ -580,6 +580,39 @@ comm_setup_plugins (struct arglist *globals, char *list)
   efree (&array);
 }
 
+
+/**
+ * @brief Determine the version of the NVT feed.
+ * @param[out] feed_version Buffer to contain feed_version.
+ * @param[in]  feed_size    Size of feed_version buffer.
+ *
+ * @return Feed version. Free on caller.
+ */
+static int
+nvt_feed_version(char *feed_version, int feed_size)
+{
+  FILE *foutput;
+  gchar *command, *info_file;
+  info_file = g_build_filename (OPENVAS_NVT_DIR, "plugin_feed_info.inc", NULL);
+  command = g_strdup_printf ("grep PLUGIN_SET %s | sed -e 's/[^0-9]//g'",
+                             info_file);
+
+  foutput = popen (command, "r");
+  if (fgets (feed_version, feed_size, foutput))
+    {
+      g_free (info_file);
+      g_free (command);
+      return 1;
+    }
+
+  feed_version[strlen (feed_version) - 1] = '\0';
+
+  pclose (foutput);
+  g_free (info_file);
+  g_free (command);
+  return 0;
+}
+
 /**
  * @brief Send the OTP NVT_INFO message and then handle any COMPLETE_LIST
  * and PLUGIN_INFO commands.
@@ -588,10 +621,15 @@ void
 comm_send_nvt_info (struct arglist *globals)
 {
   char buf[2048];
+  gchar *feed_version;
+  int feed_size = 32;
 
-  // @todo It might make sense to send the revision of the feed instead
-  // of the static text "DUMMY".
-  auth_printf (globals, "SERVER <|> NVT_INFO <|> DUMMY <|> SERVER\n");
+  feed_version = g_malloc0 (feed_size);
+  nvt_feed_version (feed_version, feed_size);
+
+  auth_printf (globals, "SERVER <|> NVT_INFO <|> %s <|> SERVER\n",
+               feed_version ? feed_version : "NOVERSION");
+  g_free (feed_version);
 
   for (;;)
     {
