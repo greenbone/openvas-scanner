@@ -589,7 +589,7 @@ comm_setup_plugins (struct arglist *globals, char *list)
  * @return Feed version. Free on caller.
  */
 static int
-nvt_feed_version(char *feed_version, int feed_size)
+nvt_feed_version (char *feed_version, int feed_size)
 {
   FILE *foutput;
   gchar *command, *info_file;
@@ -598,19 +598,38 @@ nvt_feed_version(char *feed_version, int feed_size)
                              info_file);
 
   foutput = popen (command, "r");
-  if (fgets (feed_version, feed_size, foutput))
+  if (fgets (feed_version, feed_size, foutput) == NULL)
     {
+      pclose (foutput);
       g_free (info_file);
       g_free (command);
       return 1;
     }
 
   feed_version[strlen (feed_version) - 1] = '\0';
-
   pclose (foutput);
   g_free (info_file);
   g_free (command);
   return 0;
+}
+
+/**
+ * @brief Determine whether a buffer contains a valid feed version.
+ *
+ * @param[in] feed_version Buffer containing feed_version.
+ *
+ * @return 1 is valid feed_version, 0 otherwise.
+ */
+static int
+is_valid_feed_version (const char *feed_version)
+{
+  if (feed_version == NULL)
+    return 0;
+
+  while (*feed_version)
+    if (!g_ascii_isdigit (*feed_version++))
+      return 0;
+  return 1;
 }
 
 /**
@@ -628,7 +647,10 @@ comm_send_nvt_info (struct arglist *globals)
   nvt_feed_version (feed_version, feed_size);
 
   auth_printf (globals, "SERVER <|> NVT_INFO <|> %s <|> SERVER\n",
-               feed_version ? feed_version : "NOVERSION");
+               is_valid_feed_version (feed_version)
+                ? feed_version
+                : "NOVERSION");
+
   g_free (feed_version);
 
   for (;;)

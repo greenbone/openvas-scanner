@@ -1,5 +1,11 @@
 2013-03-14  Hani Benhabiles  <hani.benhabiles@greenbone.net>
 
+	* src/comm.c (is_valid_feed_version): New function.
+	(nvt_feed_version): Test fgets() return value correctly.
+	(comm_send_nvt_info): Validate feed version before sending it.
+
+2013-03-14  Hani Benhabiles  <hani.benhabiles@greenbone.net>
+
 	* src/comm.c (nvt_feed_version): New function.
 	(comm_send_nvt_info): Send nvt feed version instead of DUMMY value.
 
