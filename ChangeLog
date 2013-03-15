@@ -1,5 +1,13 @@
 2013-03-15  Hani Benhabiles  <hani.benhabiles@greenbone.net>
 
+	Preparing the openvas-scanner 3.4+rc1 release.
+
+	* CHANGES: Updated.
+
+	* CMakeLists.txt: Set version to 3.4+rc1.
+
+2013-03-15  Hani Benhabiles  <hani.benhabiles@greenbone.net>
+
 	Backport r15613. Patch by Hani Benhabiles.
 
 	* src/comm.c (plugin_is_newstyle): Remove function. Now part of
