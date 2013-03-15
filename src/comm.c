@@ -109,7 +109,7 @@ comm_terminate (struct arglist *globals)
  * @brief Checks if a plugin has all new nvt style tags.
  */
 static int
-plug_is_newstyle (const nvti_t *nvti)
+plugin_is_newstyle (const nvti_t *nvti)
 {
   const char* tag = nvti_tag (nvti);
 
@@ -148,7 +148,7 @@ send_plug_info (struct arglist *globals, struct arglist *plugins)
       return;
     }
 
-  if (plug_is_newstyle (nvti))
+  if (plugin_is_newstyle (nvti))
     description = "NODESC";
   else
     {
@@ -193,7 +193,11 @@ send_plug_info (struct arglist *globals, struct arglist *plugins)
       ignored = 1;
     }
 
-  if ((summary = nvti_summary (nvti)) == NULL)
+  if (nvti_tag (nvti) && strstr (nvti_tag (nvti), "summary="))
+    summary = "NOSUMMARY";
+  else
+    summary = nvti_summary (nvti);
+  if (summary == NULL)
     {
       log_write
         ("Inconsistent data (no summary): %s - not applying this plugin\n",
