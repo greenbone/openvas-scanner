@@ -1,3 +1,16 @@
+2013-03-15  Hani Benhabiles  <hani.benhabiles@greenbone.net>
+
+	Backport r15561. Patch by Timo Pollmeier.
+
+	* tools/greenbone-nvt-sync: Update version number.
+
+2013-03-15  Hani Benhabiles  <hani.benhabiles@greenbone.net>
+
+	Backport r15558. Patch by Timo Pollmeier.
+
+	* tools/greenbone-nvt-sync: Add PRIVATE_SUBDIR and private directory
+	functionality to RSYNC_DELETE.
+
 2013-02-22  Michael Wiegand <michael.wiegand@greenbone.net>
 
 	* src/openvassd.c (main): Update year in copyright notice.

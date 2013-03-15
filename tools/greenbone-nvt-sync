@@ -29,7 +29,7 @@
 # with some characters in order to make it newer than
 # any follow-up version to prevent that your version
 # will be overwritten.
-VERSION=20130206
+VERSION=20130227
 
 # SETTINGS
 # ========
