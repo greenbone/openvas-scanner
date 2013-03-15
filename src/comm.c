@@ -35,7 +35,7 @@
 
 #include <openvas/nasl/nasl.h>
 #include <openvas/misc/nvt_categories.h>/* for ACT_FIRST */
-#include <openvas/misc/plugutils.h>     /* for plug_set_launch */
+#include <openvas/misc/plugutils.h>
 #include <openvas/misc/network.h>       /* for recv_line */
 #include <openvas/misc/otp.h>           /* for OTP_10 */
 #include <openvas/misc/system.h>        /* for emalloc */
@@ -103,23 +103,6 @@ comm_terminate (struct arglist *globals)
      if(!strlen(buf))exit(0);
      efree(&buf);
    */
-}
-
-/**
- * @brief Checks if a plugin has all new nvt style tags.
- */
-static int
-plugin_is_newstyle (const nvti_t *nvti)
-{
-  const char* tag = nvti_tag (nvti);
-
-  return (tag
-          && strstr (tag, "summary=")
-          && strstr (tag, "affected=")
-          && strstr (tag, "insight=")
-          && strstr (tag, "detection=")
-          && strstr (tag, "impact=")
-          && strstr (tag, "solution="));
 }
 
 /**

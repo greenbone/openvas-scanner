@@ -1,5 +1,12 @@
 2013-03-15  Hani Benhabiles  <hani.benhabiles@greenbone.net>
 
+	Backport r15613. Patch by Hani Benhabiles.
+
+	* src/comm.c (plugin_is_newstyle): Remove function. Now part of
+	plugutils.c in libraries.
+
+2013-03-15  Hani Benhabiles  <hani.benhabiles@greenbone.net>
+
 	Backport r15610. Patch by Matthew Mundell.
 
 	* src/nasl_plugins.c (plugin_is_newstyle): Check tag in case it is NULL.
