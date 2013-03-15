@@ -1,5 +1,15 @@
 2013-03-15  Hani Benhabiles  <hani.benhabiles@greenbone.net>
 
+	Backport r15594. Patch by Hani Benhabiles.
+
+	* src/comm.c (plug_is_newstyle): New function to check if plugin has all
+	newly added tags (summary, affected, insight, detection, impact,
+	solution).
+	(send_plug_info): Send NODESC instead of whole description when plugin
+	has all new style tags.
+
+2013-03-15  Hani Benhabiles  <hani.benhabiles@greenbone.net>
+
 	Backport r15585. Patch by Timo Pollmeier.
 
 	* tools/greenbone-nvt-sync (RSYNC_DELETE): Remove quotes causing

@@ -105,6 +105,21 @@ comm_terminate (struct arglist *globals)
    */
 }
 
+/**
+ * @brief Checks if a plugin has all new nvt style tags.
+ */
+static int
+plug_is_newstyle (const nvti_t *nvti)
+{
+  const char* tag = nvti_tag (nvti);
+
+  return (strstr (tag, "summary=") &&
+          strstr (tag, "affected=") &&
+          strstr (tag, "insight=") &&
+          strstr (tag, "detection=") &&
+          strstr (tag, "impact=") &&
+          strstr (tag, "solution="));
+}
 
 /**
  * @brief Sends a plugin info.
@@ -133,13 +148,17 @@ send_plug_info (struct arglist *globals, struct arglist *plugins)
       return;
     }
 
-  t = nvti_description (nvti);
-
-  if (t != NULL)
+  if (plug_is_newstyle (nvti))
+    description = "NODESC";
+  else
     {
-      description = t = estrdup (t);
-      while ((t = strchr (t, '\n')))
-        t[0] = ';';
+      t = nvti_description (nvti);
+      if (t != NULL)
+        {
+          description = t = estrdup (t);
+          while ((t = strchr (t, '\n')))
+            t[0] = ';';
+        }
     }
 
   j = nvti_category (nvti);
@@ -284,7 +303,7 @@ send_plug_info (struct arglist *globals, struct arglist *plugins)
       efree (&str);
     }
 
-  if (description != NULL)
+  if (description != NULL && strcmp (description, "NODESC"))
     efree (&description);
 
   nvti_free (nvti);
