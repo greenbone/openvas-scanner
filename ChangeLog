@@ -1,5 +1,12 @@
 2013-03-15  Hani Benhabiles  <hani.benhabiles@greenbone.net>
 
+	Backport r15585. Patch by Timo Pollmeier.
+
+	* tools/greenbone-nvt-sync (RSYNC_DELETE): Remove quotes causing
+	exclude of private directory to be ignored.
+
+2013-03-15  Hani Benhabiles  <hani.benhabiles@greenbone.net>
+
 	Backport r15561. Patch by Timo Pollmeier.
 
 	* tools/greenbone-nvt-sync: Update version number.
