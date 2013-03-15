@@ -1,4 +1,11 @@
-2013-03-03  Hani Benhabiles  <hani.benhabiles@greenbone.net>
+2013-03-15  Hani Benhabiles  <hani.benhabiles@greenbone.net>
+
+	Backport r15610. Patch by Matthew Mundell.
+
+	* src/nasl_plugins.c (plugin_is_newstyle): Check tag in case it is NULL.
+	Also move &&'s to front of line for consistency.
+
+2013-03-15  Hani Benhabiles  <hani.benhabiles@greenbone.net>
 
 	Backport r15596. Patch by Hani Benhabiles.
 
@@ -77,7 +84,7 @@
 2013-02-07  Timo Pollmeier <timo.pollmeier@greenbone.net>
 
 	* tools/openvas-nvt-sync.in: Will now delete scripts not part of the
-	feed like greenbone-nvt-sync when using rsync, except for a private 
+	feed like greenbone-nvt-sync when using rsync, except for a private
 	directory. These scripts should be migrated by calling the sync script
 	with option --migrate-to-private.
 	(): Add new command line option --migrate-to-private.
