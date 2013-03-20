@@ -1,5 +1,11 @@
 2013-03-20  Jan-Oliver Wagner <jan-oliver.wagner@greenbone.net>
 
+	* po/openvas-scripts-de.po, po/Makefile, po/README, po/: Removed.
+	The i18n support for scripts has not proven and the scripts
+	will undergo a major change anyway.
+
+2013-03-20  Jan-Oliver Wagner <jan-oliver.wagner@greenbone.net>
+
 	* INSTALL: Removed notes on OpenVAS-Client which is not
 	compatible anymore with the OTP changes.
 
