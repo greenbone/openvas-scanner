@@ -1,3 +1,8 @@
+2013-03-20  Jan-Oliver Wagner <jan-oliver.wagner@greenbone.net>
+
+	* INSTALL: Removed notes on OpenVAS-Client which is not
+	compatible anymore with the OTP changes.
+
 2013-03-15  Jan-Oliver Wagner <jan-oliver.wagner@greenbone.net>
 
 	* CMakeLists.txt: Increased dependency to gnutls from 2.2 to 2.8.

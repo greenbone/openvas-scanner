@@ -118,22 +118,9 @@ Setting up an openvas-scanner requires the following steps:
    the scanner. The actual user interfaces (for example GSA, GSD or CLI-OMP)
    will only interact with the manager, not the scanner.
 
-   It is still possible to use the latest version of the old OpenVAS-Client as
-   direct client application for the scanner but this will circumvent the whole
-   vulnerability management storage and processes.
 
-5) [conditional]: If you do plan to use OpenVAS-Client as direct client and do
-   not plan to use OpenVAS Manager, then you need to create at least one user
-   for the openvas-scanner to be able to login. This can be done via the command:
-
-   $ openvas-adduser
-
-   The command will guide you through the user creation and allow you to specify
-   a name and authentication method for the user and to define rules restricting
-   the usage of the scanner by this user.
-
-   If you plan to use the OpenVAS Manager, you will be guided through
-   creation of user accounts by the INSTALL file of OpenVAS Manager.
+You will be guided through creation of user accounts by the INSTALL file
+of OpenVAS Manager.
 
 
 If you encounter problems, the files /var/log/openvas/openvassd.messages and
