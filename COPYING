@@ -39,8 +39,6 @@ src/users.[c|h]: GPLv2
 src/utils.[c|h]: GPLv2
 
 tools/greenbone-nvt-sync: GPLv2
-tools/openvas-adduser.in: GPLv2
-tools/openvas-rmuser.in: GPLv2
 tools/openvas-mkcert-client.in: GPLv2
 tools/openvas-mkcert.in: GPLv2
 tools/openvas-nvt-sync.in: GPLv2

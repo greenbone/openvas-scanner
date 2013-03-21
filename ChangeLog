@@ -1,3 +1,26 @@
+2013-03-21  Jan-Oliver Wagner <jan-oliver.wagner@greenbone.net>
+
+	Removing the shell scripts to add and to remove a user.
+	This is the first part of moving the user management into
+	OpenVAS Manager module. The Scanner should eventually only
+	be accessed with certificates. For the time being,
+	OpenVAS Administrator can manager traditional user accounts
+	for the Scanner.
+
+	* tools/openvas-adduser.in, tools/openvas-rmuser.in: Removed.
+
+	* doc/openvas-adduser.8, doc/openvas-rmuser.8: Removed.
+
+	* COPYING: Removed entries accordingly.
+
+	* CMakeLists.txt: Removed handling of the two scritps.
+
+	* doc/openvassd.8.in: Removed references to the documentation
+	for the two scripts.
+
+	* tools/openvas-mkcert-client.in: Removed reference to
+	openvas-adduser documentation.
+
 2013-03-20  Jan-Oliver Wagner <jan-oliver.wagner@greenbone.net>
 
 	* po/openvas-scripts-de.po, po/Makefile, po/README, po/: Removed.

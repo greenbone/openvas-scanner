@@ -158,7 +158,7 @@ The other options in this file can usually be redefined by the client.
 
 .SH USERS MANAGEMENT
 
-The utility openvas-adduser(8) creates new openvassd users. Each openvassd user
+Each openvassd user
 is attributed a "home", in @OPENVAS_USERS_DIR@/<username>. This home contains the following directories :
 .IP auth/
 This directory contains the authentication information for this user. It might contain the file 'dname' if the user is authenticating using a certificate, or 'hash' (or 'passwd') if the user is authenticating using a password. The file 'hash' contains a MD5 hash of the user password, as well as a random seed. The file 'password' should contain the password in clear text.
@@ -176,9 +176,6 @@ This directory contains the knowledge base (KB) of each host tested by this user
 
 When a user attempts to log in, openvassd first checks that the directory
 @OPENVAS_USERS_DIR@/<username> exists, then hashes the password sent by the user with the random salt found in <username>/auth/hash, and compares it with the password hash stored in the same file. If the users authenticates using a certificate, then openvassd checks that the certificate has been signed by a recognized authority, and makes sure that the dname of the certificate shown by the user is the same as the one in <username>/dname.
-
-
-To remove a given user, use the command openvas-rmuser(8).
 
 .SH THE RULE SET FORMAT
 
@@ -294,7 +291,7 @@ Reducing the amount of tested part and such will reduce the amount of data
 to be transfered significantly.
 
 .SH SEE ALSO
-.BR openvas (1),\  openvas-adduser (8),\  openvas-rmuser (8),\  openvas-mkcert (8)
+.BR openvas (1),\  openvas-mkcert (8)
 
 .SH MORE INFORMATION ABOUT THE OpenVAS PROJECT
 

@@ -106,10 +106,8 @@ set (CPACK_SOURCE_IGNORE_FILES
 "Doxyfile_full$"
 "openvassd.8$"
 "VERSION$"
-"tools/openvas-adduser$"
 "tools/openvas-mkcert$"
 "tools/openvas-mkcert-client$"
-"tools/openvas-rmuser$"
 "tools/openvas-nvt-sync$"
 )
 
@@ -235,8 +233,6 @@ configure_file (doc/Doxyfile.in doc/Doxyfile @ONLY)
 configure_file (doc/Doxyfile_full.in doc/Doxyfile_full @ONLY)
 configure_file (doc/openvassd.8.in doc/openvassd.8 @ONLY)
 configure_file (VERSION.in VERSION @ONLY)
-configure_file (tools/openvas-adduser.in tools/openvas-adduser @ONLY)
-configure_file (tools/openvas-rmuser.in tools/openvas-rmuser @ONLY)
 configure_file (tools/openvas-mkcert.in tools/openvas-mkcert @ONLY)
 configure_file (tools/openvas-mkcert-client.in tools/openvas-mkcert-client @ONLY)
 configure_file (tools/openvas-nvt-sync.in tools/openvas-nvt-sync @ONLY)
@@ -270,9 +266,7 @@ install (FILES ${CMAKE_BINARY_DIR}/src/openvassd
 #install (FILES openvassd_log.conf
 #         DESTINATION ${OPENVAS_SYSCONF_DIR})
 
-install (FILES ${CMAKE_BINARY_DIR}/tools/openvas-adduser
-               ${CMAKE_BINARY_DIR}/tools/openvas-rmuser
-               ${CMAKE_BINARY_DIR}/tools/openvas-mkcert
+install (FILES ${CMAKE_BINARY_DIR}/tools/openvas-mkcert
                ${CMAKE_BINARY_DIR}/tools/openvas-mkcert-client
                ${CMAKE_BINARY_DIR}/tools/openvas-nvt-sync
          DESTINATION ${SBINDIR}
@@ -287,10 +281,8 @@ install (FILES ${CMAKE_SOURCE_DIR}/tools/greenbone-nvt-sync
 install (FILES ${CMAKE_BINARY_DIR}/doc/openvassd.8
          DESTINATION ${DATADIR}/man/man8 )
 
-install (FILES ${CMAKE_SOURCE_DIR}/doc/openvas-adduser.8
-               ${CMAKE_SOURCE_DIR}/doc/openvas-mkcert.8
+install (FILES ${CMAKE_SOURCE_DIR}/doc/openvas-mkcert.8
                ${CMAKE_SOURCE_DIR}/doc/openvas-nvt-sync.8
-               ${CMAKE_SOURCE_DIR}/doc/openvas-rmuser.8
                ${CMAKE_SOURCE_DIR}/doc/greenbone-nvt-sync.8
          DESTINATION ${DATADIR}/man/man8 )
 

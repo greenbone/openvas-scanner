@@ -391,8 +391,6 @@ ${EMAIL:-.}" |
             echo "openvassd has a rules system which allows you to restrict the hosts that $login has the right to test."; echo
             echo "For instance, you may want him to be able to scan his own host only."; echo
             echo
-            echo "Please see the openvas-adduser(8) man page for the rules syntax."; echo
-            echo
             echo "Enter the rules for this user, and hit ctrl-D once you are done:"; echo
 
             tmpAddUserFile=$TMPDIR/rules.$$
