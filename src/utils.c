@@ -48,40 +48,6 @@
 extern int global_max_hosts;
 extern int global_max_checks;
 
-/**
- * @brief Library version check.
- *
- * Returns 0  if versions are equal
- * Returns 1 if the fist version is newer than the second
- * Return -1 if the first version is older than the second
- *
- * @return 0 if versions are equal, 1 if a newer than b, -1 if b newer than a.
- */
-int
-version_check (char *a, char *b)
-{
-  int int_a, int_b;
-
-  if (!a || !b)
-    return -2;
-
-  int_a = atoi (a);
-  int_b = atoi (b);
-
-  if (int_a < int_b)
-    return -1;
-  if (int_a > int_b)
-    return 1;
-  else
-    {
-      char *dot_a = strchr (a, '.'), *dot_b = strchr (b, '.');
-      if (dot_a && dot_b)
-        return version_check (&(dot_a[1]), &(dot_b[1]));
-      else
-        return -2;
-    }
-}
-
 
 /**
  * @brief Returns 1 if the two arglists have a name in common.
@@ -239,25 +205,6 @@ get_active_plugins_number (struct arglist *plugins)
 /*--------------------------------------------------------------------*/
 
 
-int
-is_symlink (char *name)
-{
-  struct stat sb;
-  if (stat (name, &sb))
-    return (0);
-  return (S_ISLNK (sb.st_mode));
-}
-
-void
-check_symlink (char *name)
-{
-  if (is_symlink (name))
-    {
-      fprintf (stderr, "The file %s is a symlink -- can't continue\n", name);
-      exit (0);
-    }
-}
-
 /**
  * Converts a hostnames arglist
  * to a space delimited lists of hosts
@@ -316,40 +263,6 @@ process_alive (pid_t pid)
 
 
 /**
- * Determines if a BSD socket is still connected. Returns 0 if the socket
- * is NOT connected, 1 otherwise.
- * @return 0 if the BSD socket is not connected, 1 otherwise.
- */
-int
-is_socket_connected (soc)
-     int soc;
-{
-  fd_set rd;
-  struct timeval tv;
-  int m;
-  int e;
-
-  FD_ZERO (&rd);
-  FD_SET (soc, &rd);
-  m = soc + 1;
-again:
-  tv.tv_sec = 2;
-  tv.tv_usec = 0;
-  e = select (m + 1, &rd, NULL, NULL, &tv);
-  if (e < 0 && errno == EINTR)
-    goto again;
-
-  if (e > 0)
-    {
-      int len = data_left (soc);
-      if (len == 0)
-        return 0;
-    }
-  return 1;
-}
-
-
-/**
  * Determines if the client is still connected.
  * @return 1 if the client is here, 0 if it's not.
  */
@@ -383,9 +296,6 @@ again:
   return 1;
 }
 
-
-
-
 int
 data_left (soc)
      int soc;
@@ -394,22 +304,6 @@ data_left (soc)
   ioctl (soc, FIONREAD, &data);
   return data;
 }
-
-
-int
-set_linger (soc, linger)
-     int soc, linger;
-{
-  struct linger l;
-  if (linger == 0)
-    l.l_onoff = 0;
-  else
-    l.l_onoff = 1;
-
-  l.l_linger = linger;
-  return setsockopt (soc, SOL_SOCKET, SO_LINGER, (void *) &l, sizeof (l));
-}
-
 
 void
 wait_for_children1 ()

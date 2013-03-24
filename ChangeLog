@@ -1,3 +1,10 @@
+2013-03-24  Hani Benhabiles  <hani.benhabiles@greenbone.net>
+
+	* src/utils.c (version_check, is_symlink, check_symlink)
+	(is_socket_connected, set_linger): Remove unused functions.
+
+	* src/utils.h: Remove unused headers and declarations accordingly.
+
 2013-03-21  Jan-Oliver Wagner <jan-oliver.wagner@greenbone.net>
 
 	Removing the shell scripts to add and to remove a user.
