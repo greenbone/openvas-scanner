@@ -691,7 +691,8 @@ attack_host (struct arglist *globals, struct arglist *hostinfos, char *hostname,
   struct arglist *plugins = arg_get_value (globals, "plugins");
   struct arglist *tmp;
 
-  setproctitle ("testing %s", (char *) arg_get_value (hostinfos, "NAME"));
+  setproctitle ("openvassd: testing %s",
+                (char *) arg_get_value (hostinfos, "NAME"));
 
   kb = init_host_kb (globals, hostname, hostinfos, &new_kb);
 

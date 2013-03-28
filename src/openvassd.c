@@ -410,12 +410,12 @@ scanner_thread (struct arglist *globals)
   if (family == AF_INET)
     {
       saddr = (struct sockaddr_in *) addr;
-      setproctitle ("serving %s", inet_ntoa (saddr->sin_addr));
+      setproctitle ("openvassd: serving %s", inet_ntoa (saddr->sin_addr));
     }
   else
     {
       s6addr = (struct sockaddr_in6 *) addr;
-      setproctitle ("serving %s",
+      setproctitle ("openvassd: serving %s",
                     inet_ntop (AF_INET6, &s6addr->sin6_addr, asciiaddr,
                                sizeof (asciiaddr)));
     }
@@ -612,7 +612,7 @@ main_loop ()
   int count = 0;
   struct addrinfo *ai = arg_get_value (g_options, "addr");
 
-  setproctitle ("waiting for incoming connections");
+  setproctitle ("openvassd: waiting for incoming connections");
   /* catch dead children */
   openvas_signal (SIGCHLD, sighand_chld);
 

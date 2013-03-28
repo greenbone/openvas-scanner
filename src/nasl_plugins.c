@@ -331,7 +331,7 @@ nasl_thread (struct arglist *g_args)
     setrlimit (RLIMIT_DATA, &rlim);
   }
 #endif
-  setproctitle ("testing %s (%s)",
+  setproctitle ("openvassd: testing %s (%s)",
                 (char *) arg_get_value (arg_get_value (args, "HOSTNAME"),
                                         "NAME"), (char *) arg_get_value (g_args,
                                                                          "name"));

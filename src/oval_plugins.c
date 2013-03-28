@@ -549,7 +549,7 @@ oval_thread (struct arglist *g_args)
   arg_set_value (globals, "global_socket", sizeof (gpointer),
                  GSIZE_TO_POINTER (soc));
 
-  setproctitle ("testing %s (%s)",
+  setproctitle ("openvassd: testing %s (%s)",
                 (char *) arg_get_value (arg_get_value (args, "HOSTNAME"),
                                         "NAME"), (char *) arg_get_value (g_args,
                                                                          "name"));

@@ -1,3 +1,17 @@
+2013-03-28  Hani Benhabiles  <hani.benhabiles@greenbone.net>
+
+	* src/attack.c (attack_host): Adjust setproctitle call argument to start
+	with "openvassd:".
+
+	* src/openvassd.c (scanner_thread, main_loop): Adjust setproctitle call
+	argument to start with "openvassd:".
+
+	* src/nasl_plugins.c (nasl_thread): Adjust setproctitle call argument to
+	start with "openvassd:".
+
+	* src/oval_plugins.c (oval_thread): Adjust setproctitle call argument to
+	start with "openvassd:".
+
 2013-03-24  Hani Benhabiles  <hani.benhabiles@greenbone.net>
 
 	* src/utils.c (version_check, is_symlink, check_symlink)
