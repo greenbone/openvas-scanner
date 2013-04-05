@@ -87,7 +87,6 @@ static openvassd_option openvassd_defaults[] = {
   {"plugins_timeout", G_STRINGIFY (NVT_TIMEOUT)},
   {"safe_checks", "yes"},
   {"auto_enable_dependencies", "yes"},
-  {"silent_dependencies", "no"},
   {"use_mac_addr", "no"},
   {"slice_network_addresses", "no"},
   {"nasl_no_signature_check", "yes"},
@@ -640,32 +639,6 @@ preferences_report_killed_plugins (struct arglist *preferences)
 }
 
 int
-preferences_silent_dependencies (struct arglist *preferences)
-{
-  static int yes = -1;
-  char *pref;
-
-  if (!preferences)
-    {
-      yes = -1;
-      return -1;
-    }
-
-
-  if (yes >= 0)
-    return yes;
-
-
-  pref = arg_get_value (preferences, "silent_dependencies");
-  if (pref && !strcmp (pref, "yes"))
-    yes = 1;
-  else
-    yes = 0;
-
-  return yes;
-}
-
-int
 preferences_network_scan (struct arglist *preferences)
 {
   static int yes = -1;
@@ -709,8 +682,8 @@ preferences_get_string (struct arglist *preferences, char *name)
 /**
  * @brief Resets the preference caches.
  *
- * Subsequent calls to the pseudo-boolean preference getters like
- * preferences_silent_dependencies will query a given arglist once and refill
+ * Subsequent calls to the pseudo-boolean preference getters
+ * will query a given arglist once and refill
  * the caches.
  */
 void
@@ -730,6 +703,5 @@ preferences_reset_cache ()
   preferences_use_mac_addr (NULL);
   preferences_save_session (NULL);
   preferences_save_empty_sessions (NULL);
-  preferences_silent_dependencies (NULL);
   preferences_network_scan (NULL);
 }

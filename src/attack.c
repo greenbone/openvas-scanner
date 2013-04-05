@@ -1022,7 +1022,6 @@ attack_network (struct arglist *globals)
   sched =
     plugins_scheduler_init (plugins,
                             preferences_autoload_dependencies (preferences),
-                            preferences_silent_dependencies (preferences),
                             network_phase);
 
   hg_flags = preferences_get_host_expansion (preferences);

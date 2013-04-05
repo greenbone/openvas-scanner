@@ -1,3 +1,51 @@
+2013-04-05  Jan-Oliver Wagner <jan-oliver.wagner@greenbone.net>
+
+	Remove scanner preference "silent_dependencies".
+
+	This setting advised the scanner to hold back results of those NVTs
+	that were not explicitely selected but were only executed because they
+	appeared as dependencies of selected ones.
+
+	It is removed because it is actually task of the user or the
+	controlling unit of the scanner (OpenVAS Manager) to filter whatever
+	is of interest.
+	The actual scan result should better remain complete inside the
+	result databse. Dropping for example detection details makes a
+	report less clear.
+	Another aspect is, that use of this preference is too error-prone
+	because users too easily combine a selection of NVT with this
+	preference and accidently switch of results they actually would
+	have expected (leading to False Negatives).
+
+	So, for comprehensibility and consistency a scan result should
+	always be complete. It is not the task of a scanner to drop any
+	information.
+
+	This patch may require some adjustments or improved ways of handling
+	results in the Scanner clients. This change will change default
+	behaviour of scan configurations that were setting
+	silent_dependencies to yes.
+
+	* src/pluginscheduler.c (enable_plugin_and_dependencies): Removed
+	parameter "silent" and its handling.
+	(plugins_scheduler_init): Call enable_plugin_and_dependencies without
+	"silent" parameter. Also remove parameter "silent_dependencies".
+
+	* src/pluginscheduler.h: Adjust proto accordingly.
+
+	* src/attack.c (attack_network): Adjust call of plugins_scheduler_init
+	accordingly.
+
+	* src/preferences.c (openvassd_defaults): Removed "silent_dependencies".
+	(preferences_silent_dependencies): Removed.
+	(preferences_reset_cache): Removed handling of silent_dependencies.
+
+	* src/preferences.h: Removed proto accordingly.
+
+	* src/pluginlaunch.c (process_internal_msg): Don't consider LAUNCH_SILENT anymore.
+
+	* src/pluginscheduler.h: Remove LAUNCH_SILENT.
+
 2013-03-28  Hani Benhabiles  <hani.benhabiles@greenbone.net>
 
 	* src/attack.c (attack_host): Adjust setproctitle call argument to start

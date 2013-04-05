@@ -111,10 +111,7 @@ process_internal_msg (int p)
 
   if (type & INTERNAL_COMM_MSG_TYPE_DATA)
     {
-      if (processes[p].launch_status != LAUNCH_SILENT)
-        e = internal_send (processes[p].upstream_soc, buffer, type);
-      else
-        e = 0;
+      e = internal_send (processes[p].upstream_soc, buffer, type);
     }
   else if (type & INTERNAL_COMM_MSG_TYPE_KB)
     {

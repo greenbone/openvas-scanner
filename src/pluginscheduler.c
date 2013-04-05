@@ -465,7 +465,7 @@ plugin_next_unrun_dependencie (plugins_scheduler_t sched,
  */
 static void
 enable_plugin_and_dependencies (plugins_scheduler_t shed,
-                                struct arglist *plugin, char *name, int silent)
+                                struct arglist *plugin, char *name)
 {
   struct hash **deps_ptr;
   int i;
@@ -478,12 +478,7 @@ enable_plugin_and_dependencies (plugins_scheduler_t shed,
 
   status = plug_get_launch (plugin);
   if (status == LAUNCH_DISABLED)
-    {
-      if (silent == 0)
-        plug_set_launch (plugin, LAUNCH_RUN);
-      else
-        plug_set_launch (plugin, LAUNCH_SILENT);
-    }
+    plug_set_launch (plugin, LAUNCH_RUN);
 
   if (deps_ptr != NULL)
     {
@@ -493,7 +488,7 @@ enable_plugin_and_dependencies (plugins_scheduler_t shed,
           p = deps_ptr[i]->plugin;
           if (p != NULL && p->arglist != NULL)
             enable_plugin_and_dependencies (shed, p->arglist->value,
-                                            p->arglist->name, silent);
+                                            p->arglist->name);
         }
     }
 }
@@ -502,7 +497,7 @@ enable_plugin_and_dependencies (plugins_scheduler_t shed,
 
 plugins_scheduler_t
 plugins_scheduler_init (struct arglist *plugins, int autoload,
-                        int silent_dependencies, int only_network)
+                        int only_network)
 {
   plugins_scheduler_t ret = emalloc (sizeof (*ret));
   struct arglist *arg;
@@ -574,8 +569,7 @@ plugins_scheduler_init (struct arglist *plugins, int autoload,
       while (arg->next != NULL)
         {
           if (plug_get_launch (arg->value) != LAUNCH_DISABLED)
-            enable_plugin_and_dependencies (ret, arg->value, arg->name,
-                                            silent_dependencies);
+            enable_plugin_and_dependencies (ret, arg->value, arg->name);
           arg = arg->next;
         }
     }
