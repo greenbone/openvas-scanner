@@ -67,8 +67,8 @@ log_init (const char *filename)
                      , 0644);
       if (fd < 0)
         {
-          perror ("log_init():open ");
-          printf ("Could not open the logfile, using stderr\n");
+          fprintf (stderr, "log_init():open : %s\n", strerror (errno));
+          fprintf (stderr, "Could not open the logfile, using stderr\n");
           log = stderr;
         }
 
