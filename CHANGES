@@ -1,3 +1,47 @@
+openvas-scanner 3.4.0 (2012-04-11)
+
+This is the first release of the openvas-scanner 3.4 module for the Open
+Vulnerability Assessment System release 6 (OpenVAS-6). Compared
+to the previous major release it covers a set of various improvements.
+
+Many thanks to everyone who has contributed to the 3.4.0 release:
+Hani Benhabiles, Werner Koch, Michael Meyer, Matthew Mundell, Timo Pollmeier,
+Thomas Reinke, Jan-Oliver Wagner and Michael Wiegand.
+
+Main changes compared to 3.3.x:
+* Minimum requirements for openvas-libraries: Increased from 5.0 to 6.0.
+* Minimum requirements for GnuTLS: Increased from 2.2 to 2.8.
+* New optional OTP version 1.1 which is like 1.0 but sends less info
+  to the client initially.
+* Changed behaviour of NVT sync script "openvas-nvt-sync":
+  It will now delete scripts not part of the when using rsync,
+  except for the directory "private/".
+  A Migration option "--migrate-to-private" of the sync-script will
+  move private scripts into the "private/" directory.
+  The Feed Sync will stop with an error until the "private/" is created.
+  As soon as this directory is created, the synchronisation will ultimately
+  delete all files in the local feed directory that are not part of the
+  regular Feed.
+* Changed: The magic that NVTs of category ACT_SETTINGS were always enabled
+  even when user disabled them has been removed. OTP clients now have
+  to take care to enable as needed.
+* Send NODESC and NOSUMMARY instead of whole plugin description and summary when
+  no result is returned and plugin has all new nvt tags.
+* Newline in script tags are now escaped.
+* The size of tags is not limited anymore.
+* Internal use of NVTI references by OID to allow using the NVTI
+  cache properly. This significantly lowers the memory consumption
+  per Scanner process.
+* Improve bug tracking by directing diagnostics to the log file.
+* Removed deprecated code.
+* Closed a number of memory leaks.
+* Various code and build cleanups.
+* Removed built-in logfile rotation. It is not a good idea to try
+  to circumvent system environment technology for logrotate.
+* New command line switch "--only-cache" to just build the cache and exit.
+* Fixed a bug when NVT lacks family specification.
+
+
 openvas-scanner 3.4+rc1 (2013-03-15)
 
 This is the first release candidate of the openvas-scanner 3.4 module for the

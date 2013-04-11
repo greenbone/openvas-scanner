@@ -1,5 +1,13 @@
 2013-04-11  Michael Wiegand <michael.wiegand@greenbone.net>
 
+	Preparing the openvas-scanner 3.4.0 release.
+
+	* CHANGES: Updated.
+
+	* CMakeLists.txt: Set version to 3.4.0, switch version scheme.
+
+2013-04-11  Michael Wiegand <michael.wiegand@greenbone.net>
+
 	Backport r15971. Patch by Matthew Mundell.
 
 	* src/log.c (log_init): Print fail messages about log file to stderr, so
