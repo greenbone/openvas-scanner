@@ -12,7 +12,7 @@ Prerequisites for openvas-scanner
 Prerequisites:
 * cmake
 * glib-2.0 >= 2.16
-* gnutls >= 2.2
+* gnutls >= 2.8
 * openvas-libraries >= 6.0.0
 * pkg-config
 

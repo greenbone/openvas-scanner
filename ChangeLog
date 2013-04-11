@@ -1,3 +1,7 @@
+2013-04-11  Michael Wiegand <michael.wiegand@greenbone.net>
+
+	* INSTALL: Note increased GnuTLS dependency.
+
 2013-03-18  Hani Benhabiles  <hani.benhabiles@greenbone.net>
 
 	Post release version bump.
