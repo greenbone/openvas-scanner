@@ -1,3 +1,8 @@
+2013-05-07  Michael Wiegand <michael.wiegand@greenbone.net>
+
+	* CMakeLists.txt: Remove creation of GnuPG homedir here since
+	openvas-libraries already takes care of this.
+
 2013-04-11  Michael Wiegand <michael.wiegand@greenbone.net>
 
 	* INSTALL: Note increased GnuTLS dependency.
