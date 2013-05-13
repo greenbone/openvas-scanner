@@ -76,6 +76,16 @@ Setting up an openvas-scanner requires the following steps:
    This command will guide you through the certificate creation and place the
    certificates in the correct locations on your system.
 
+1.1) (optional) You may decide to change the default scanner preferences
+   by setting them in the file $prefix/etc/openvassd.conf. If that file does
+   not exist (default), then the default settings are used. You can view
+   them with "openvassd -s".
+
+1.2) (optional) You may decide to restrict the hosts that the scanner is
+   allowed to scan in the file $prefix/etc/openvassd.rules. If that files does
+   not exist (default), then it is allowed to scan any host. A sample
+   file is available as doc/openvassd.rules.
+
 2) In order to run vulnerability scans, you will need a collection of Network
    Vulnerability Tests (NVTs) that can be run by openvas-scanner. Initially,
    your NVT collection will be empty. It is recommended that you synchronize

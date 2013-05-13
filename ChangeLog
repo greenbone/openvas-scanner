@@ -1,3 +1,14 @@
+2013-05-14  Jan-Oliver Wagner <jan-oliver.wagner@greenbone.net>
+
+	* CMakeLists.txt: Move the location of "openvassd.rules" from
+	DATA (share/) directory to SYSCONF (etc/) directory.
+
+	* doc/openvassd.rules: New. Sample and default file for
+	openvassd.rules.
+ 
+	* INSTALL: Added optinal items 1.1 and 1.2 about openvassd.conf
+	and openvassd.rules.
+
 2013-05-13  Jan-Oliver Wagner <jan-oliver.wagner@greenbone.net>
 
 	* src/rules.c (rules_init): Don't call rules_new anymore. The result

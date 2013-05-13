@@ -171,7 +171,7 @@ set (OPENVAS_CA_CERTIFICATE      "${OPENVAS_STATE_DIR}/CA/cacert.pem")
 set (OPENVASSD_MESSAGES "${OPENVAS_LOG_DIR}/openvassd.messages")
 set (OPENVASSD_DEBUGMSG "${OPENVAS_LOG_DIR}/openvassd.dump")
 set (OPENVASSD_CONF     "${OPENVAS_SYSCONF_DIR}/openvassd.conf")
-set (OPENVASSD_RULES    "${OPENVAS_DATA_DIR}/openvassd.rules")
+set (OPENVASSD_RULES    "${OPENVAS_SYSCONF_DIR}/openvassd.rules")
 
 set (NVT_TIMEOUT "320")
 
