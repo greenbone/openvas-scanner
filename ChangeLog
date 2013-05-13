@@ -1,5 +1,13 @@
 2013-05-13  Jan-Oliver Wagner <jan-oliver.wagner@greenbone.net>
 
+	* src/rules.c (rules_init): Don't call rules_new anymore. The result
+	wasn't used anyway and creating the file when it is not there
+	is wrong behaviour anyway. That file needs to be carefully
+	configured by the administrator of the OpenVAS Scanner installation.
+	(rules_new): Removed. It is now unused.
+
+2013-05-13  Jan-Oliver Wagner <jan-oliver.wagner@greenbone.net>
+
 	* src/users.c (check_user): Don't read the rules file of the user
 	anymore and don't make it mandatory that at least an empty
 	file "username/auth/rules" exists.

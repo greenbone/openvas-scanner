@@ -140,31 +140,6 @@ rules_get_fname (struct arglist *preferences)
     return (OPENVASSD_RULES);
 }
 
-struct openvas_rules *
-rules_new (preferences)
-     struct arglist *preferences;
-{
-  char *filename = rules_get_fname (preferences);
-  struct openvas_rules *nr = emalloc (sizeof (*nr));
-  FILE *f;
-  nr->rule = RULES_ACCEPT;
-
-  f = fopen (filename, "w");
-  if (!f)
-    {
-      perror ("rules_new():open ");
-      return nr;
-    }
-
-  fprintf (f, "#\n# OpenVAS rules\n#\n\n");
-  fprintf (f, "# Syntax : accept|reject address/netmask\n");
-  fprintf (f, "\n# Accept to test anything : \n");
-  fprintf (f, "default accept\n");
-  fclose (f);
-  return nr;
-}
-
-
 int
 rules_init_aux (struct openvas_rules *rules, FILE * file, char *buffer, int len,
                 int def)
@@ -327,7 +302,6 @@ rules_init (rules, preferences)
   char buffer[1024];
   if (f == NULL)
     {
-      rules_new (preferences);
       nr->rule = RULES_ACCEPT;
       nr->next = emalloc (sizeof (*nr));
       nr->def = RULES_ACCEPT;
