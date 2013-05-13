@@ -1,3 +1,11 @@
+2013-05-13  Jan-Oliver Wagner <jan-oliver.wagner@greenbone.net>
+
+	* tools/openvas-mkcert-client.in: Removed creation of rules file
+	during user creation. The user created with this script is only
+	used for controling via OpenVAS Manager. The rules of actual
+	users are now managed by OpenVAS Manager and stored in that
+	database.
+
 2013-05-07  Michael Wiegand <michael.wiegand@greenbone.net>
 
 	* CMakeLists.txt: Remove creation of GnuPG homedir here since

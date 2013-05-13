@@ -373,38 +373,11 @@ ${EMAIL:-.}" |
     chmod a+r $CERTFILE
 
     if [ ! -z "$USERSDIR" ]; then
-        # create the auth dir, which contains the user rules,
-        # password or cert
+        # create the auth dir, which contains the password or cert
         D="$USERSDIR/$PSEUDO/auth"
         if [ ! -d "$D" ]; then
             mkdir -p "$D"
             chmod 700 "$D"
-        fi
-
-        # create the user auth/rules file
-        #
-        if [ -z $NAME ]; then
-            R="$USERSDIR/$PSEUDO/auth/rules"
-            echo
-            echo "User rules"; echo
-            echo "----------"
-            echo "openvassd has a rules system which allows you to restrict the hosts that $login has the right to test."; echo
-            echo "For instance, you may want him to be able to scan his own host only."; echo
-            echo
-            echo "Enter the rules for this user, and hit ctrl-D once you are done:"; echo
-
-            tmpAddUserFile=$TMPDIR/rules.$$
-
-            echo "(the user can have an empty rules set)"; echo
-            cat > $tmpAddUserFile || {
-                    echo "Error - could not write $tmpAddUserFile"
-                    exit 1
-            }
-            cp $tmpAddUserFile "$USERSDIR/$PSEUDO/auth/rules"
-
-            rm $tmpAddUserFile
-        else
-            touch "$USERSDIR/$PSEUDO/auth/rules"
         fi
 
         # create the cert authentication file auth/dname
