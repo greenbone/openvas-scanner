@@ -148,29 +148,6 @@ users_add_rule (struct openvas_rules *rules, char *rule)
 }
 
 
-/**
- * @brief Reads the rules file.
- */
-static struct openvas_rules *
-users_read_rules (struct openvas_rules *rules, FILE * f, char *buffer, int len)
-{
-  char *t = buffer;
-  bzero (buffer, len);
-  if (!fgets (buffer, len, f))
-    return rules;
-  t[strlen (t) - 1] = '\0';
-  while ((t[0] == ' ') || (t[0] == '\t'))
-    /** @todo This should be t++. */
-    t += sizeof (char);
-
-  if (t[0] == '#' || t[0] == '\0')
-    return users_read_rules (rules, f, buffer, len);
-
-  users_add_rule (rules, t);
-  return users_read_rules (rules, f, buffer, len);
-}
-
-
 #ifndef MD5_DIGEST_LENGTH
 # define MD5_DIGEST_LENGTH	16
 #endif
@@ -178,8 +155,6 @@ users_read_rules (struct openvas_rules *rules, FILE * f, char *buffer, int len)
 struct openvas_rules *
 check_user (char *user, char *password, char *dname)
 {
-  struct openvas_rules *ret = NULL;
-  char *buf;
   FILE *f;
   char fname[MAXPATHLEN];
   int check_pass = 1;
@@ -286,20 +261,5 @@ check_user (char *user, char *password, char *dname)
         return BAD_LOGIN_ATTEMPT;
     }
 
-  snprintf (fname, sizeof (fname), "%s/%s/auth/rules", OPENVAS_USERS_DIR, user);
-  if ((f = fopen (fname, "r")) == NULL)
-    perror (fname);
-
-  if (f == NULL)
-    return BAD_LOGIN_ATTEMPT;
-
-
-  buf = emalloc (1024);
-  ret = emalloc (sizeof (*ret));
-  ret = users_read_rules (ret, f, buf, 1024);
-
-  fclose (f);
-  efree (&buf);
-
-  return ret;
+  return emalloc (sizeof (struct openvas_rules));
 }

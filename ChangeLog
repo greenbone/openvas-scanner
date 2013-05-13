@@ -1,5 +1,14 @@
 2013-05-13  Jan-Oliver Wagner <jan-oliver.wagner@greenbone.net>
 
+	* src/users.c (check_user): Don't read the rules file of the user
+	anymore and don't make it mandatory that at least an empty
+	file "username/auth/rules" exists.
+	Therefore now returns always a empty rules structure.
+	(users_read_rules): Removed. This was used only by the code
+	removed above.
+
+2013-05-13  Jan-Oliver Wagner <jan-oliver.wagner@greenbone.net>
+
 	* tools/openvas-mkcert-client.in: Removed creation of rules file
 	during user creation. The user created with this script is only
 	used for controling via OpenVAS Manager. The rules of actual
