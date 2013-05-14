@@ -1,3 +1,7 @@
+2013-05-14  Michael Wiegand <michael.wiegand@greenbone.net>
+
+	* src/openvassd.c (main): Free GOptionContext after use.
+
 2013-05-14  Jan-Oliver Wagner <jan-oliver.wagner@greenbone.net>
 
 	* CMakeLists.txt: Move the location of "openvassd.rules" from

@@ -1097,6 +1097,7 @@ main (int argc, char *argv[], char *envp[])
       g_print ("%s\n\n", error->message);
       exit (0);
     }
+  g_option_context_free (option_context);
 
   if (print_sysconfdir)
     {
