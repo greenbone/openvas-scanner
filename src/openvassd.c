@@ -391,7 +391,6 @@ scanner_thread (struct arglist *globals)
   struct arglist *prefs = arg_get_value (globals, "preferences");
   int soc = GPOINTER_TO_SIZE (arg_get_value (globals, "global_socket"));
   int family = GPOINTER_TO_SIZE (arg_get_value (globals, "family"));
-  struct openvas_rules *perms = NULL;
   char *asciiaddr;
   struct openvas_rules *rules = arg_get_value (globals, "rules");
   int protocol_version;
@@ -399,8 +398,7 @@ scanner_thread (struct arglist *globals)
   int opt = 1;
   void *addr = arg_get_value (globals, "client_address");
   struct sockaddr_in *saddr = NULL;
-  struct sockaddr_in6 *s6addr;
-  inaddrs_t addrs;
+  struct sockaddr_in6 *s6addr = NULL;
   int nice_retval;
 
   char x509_dname[256];
@@ -533,25 +531,6 @@ scanner_thread (struct arglist *globals)
   else
     {
       efree (&asciiaddr);
-      if (perms)
-        {
-          rules_add (&rules, &perms, NULL);
-          if (family == AF_INET)
-            {
-              addrs.ip.s_addr = saddr->sin_addr.s_addr;
-              rules_set_client_ip (rules, &addrs, family);
-            }
-          else
-            {
-              memcpy (&addrs.ip6, &s6addr, sizeof (struct in6_addr));
-              rules_set_client_ip (rules, &addrs, family);
-            }
-#ifdef DEBUG_RULES
-          log_write ("Rules have been added : \n");
-          rules_dump (rules);
-#endif
-          arg_set_value (globals, "rules", -1, rules);
-        }
 
       arg_set_value (globals, "plugins", -1, plugins);
 
