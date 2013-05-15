@@ -154,7 +154,7 @@ check_user (char *user, char *dname)
 {
   FILE *f;
   char fname[MAXPATHLEN];
-  int check_pass = 1;
+  int success = 0;
 
 
 #ifdef OPENVAS_MAX_USERNAME_LEN
@@ -175,15 +175,15 @@ check_user (char *user, char *dname)
         {
           char dnameref[512], *p;
 
-          while (check_pass
+          while (! success
                  && fgets (dnameref, sizeof (dnameref) - 1, f) != NULL)
             {
               if ((p = strchr (dnameref, '\n')) != NULL)
                 *p = '\0';
               if (strcmp (dname, dnameref) == 0)
-                check_pass = 0;
+                success = 1;
             }
-          if (check_pass)
+          if (! success)
             log_write
               ("check_user: Bad DN for user %s\nGiven DN=%s\nLast tried DN=%s\n",
                user, dname, dnameref);
@@ -191,7 +191,5 @@ check_user (char *user, char *dname)
         }
     }
 
-  if (! check_pass)
-    return 1;
-  return 0;
+  return success;
 }

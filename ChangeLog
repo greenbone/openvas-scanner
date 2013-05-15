@@ -1,5 +1,10 @@
 2013-05-15  Jan-Oliver Wagner <jan-oliver.wagner@greenbone.net>
 
+	* src/users.c (check_user): Better naming for internal variable
+	and swap logic of testing.
+
+2013-05-15  Jan-Oliver Wagner <jan-oliver.wagner@greenbone.net>
+
 	* src/users.c (check_user): Use a simple success value instead
 	of a faked rules object.
 
