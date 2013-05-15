@@ -81,15 +81,9 @@ auth_check_user (struct arglist *globals, char *from, char *dname)
       buf_user[--l] = '\0';
     if (l && buf_user[l - 1] == '\r')
       buf_user[--l] = '\0';
-
-    l = strlen (buf_password);
-    if (l && buf_password[l - 1] == '\n')
-      buf_password[--l] = '\0';
-    if (l && buf_password[l - 1] == '\r')
-      buf_password[--l] = '\0';
   }
 
-  if ((permissions = check_user (buf_user, buf_password, dname))
+  if ((permissions = check_user (buf_user, dname))
       && (permissions != BAD_LOGIN_ATTEMPT))
     {
       char *user = emalloc (strlen (buf_user) + 1);

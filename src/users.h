@@ -38,6 +38,6 @@
 
 char *user_home (struct arglist *);
 
-struct openvas_rules *check_user (char *, char *, char *);
+struct openvas_rules *check_user (char *, char *);
 void users_add_rule (struct openvas_rules *, char *);
 #endif
