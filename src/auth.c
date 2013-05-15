@@ -47,15 +47,15 @@
 
 
 /**
- * @brief Checks if a user has the right to use openvassd and return its
- * @brief permissions.
+ * @brief Checks if a user has the right to use openvassd.
  */
-struct openvas_rules *
+int
 auth_check_user (struct arglist *globals, char *from, char *dname)
 {
   char *buf_user, *buf_password;
   int free_buf_user = 1;
-  struct openvas_rules *permissions = emalloc (sizeof (struct openvas_rules));
+  int success = 0;
+
   {
     int l;
 
@@ -83,7 +83,7 @@ auth_check_user (struct arglist *globals, char *from, char *dname)
       buf_user[--l] = '\0';
   }
 
-  if (check_user (buf_user, dname))
+  if ((success = check_user (buf_user, dname)))
     {
       char *user = emalloc (strlen (buf_user) + 1);
       strncpy (user, buf_user, strlen (buf_user));
@@ -99,5 +99,5 @@ auth_check_user (struct arglist *globals, char *from, char *dname)
   if (free_buf_user)
     efree (&buf_user);
   efree (&buf_password);
-  return (permissions);
+  return success;
 }

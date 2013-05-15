@@ -391,7 +391,7 @@ scanner_thread (struct arglist *globals)
   struct arglist *prefs = arg_get_value (globals, "preferences");
   int soc = GPOINTER_TO_SIZE (arg_get_value (globals, "global_socket"));
   int family = GPOINTER_TO_SIZE (arg_get_value (globals, "family"));
-  struct openvas_rules *perms;
+  struct openvas_rules *perms = NULL;
   char *asciiaddr;
   struct openvas_rules *rules = arg_get_value (globals, "rules");
   int protocol_version;
@@ -523,9 +523,7 @@ scanner_thread (struct arglist *globals)
       }
   }
 
-  if (((perms =
-        auth_check_user (globals, asciiaddr, x509_dname)) == BAD_LOGIN_ATTEMPT)
-      || !perms)
+  if (! auth_check_user (globals, asciiaddr, x509_dname))
     {
       auth_printf (globals, "Bad login attempt !\n");
       log_write ("bad login attempt from %s\n", asciiaddr);

@@ -1,5 +1,19 @@
 2013-05-15  Jan-Oliver Wagner <jan-oliver.wagner@greenbone.net>
 
+	* src/auth.c (auth_check_user): Use a simple success value instead
+	of a faked rules object.
+
+	* src/auth.h: Adapt proto accordingly.
+
+	* src/openvassd.c (scanner_thread): Adjust call of auth_check_user
+	accordingly.
+
+	* src/users.h: Remove now unused BAD_LOGIN_ATTEMPT.
+
+	* src/rules.h: Add includes to cover what is used here.
+
+2013-05-15  Jan-Oliver Wagner <jan-oliver.wagner@greenbone.net>
+
 	* src/users.c (check_user): Better naming for internal variable
 	and swap logic of testing.
 

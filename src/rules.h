@@ -31,6 +31,10 @@
 #ifndef _OPENVAS_RULES_H
 #define _OPENVAS_RULES_H
 
+#include <arpa/inet.h> /* for AF_INET */
+
+#include <openvas/misc/arglists.h>   /* for struct arglist */
+
 /**
  * Representation of a chain of rules.
  */

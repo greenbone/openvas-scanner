@@ -33,9 +33,8 @@
 
 #include <openvas/misc/arglists.h>   /* for struct arglist */
 
-extern struct openvas_rules *auth_check_user (struct arglist *, char *, char *);
+#include "rules.h"
 
-#define BAD_LOGIN_ATTEMPT (struct openvas_rules*)(-1)
 #define OPENVAS_MAX_USERNAME_LEN	32      /* Including the ending nul byte! */
 
 char *user_home (struct arglist *);
