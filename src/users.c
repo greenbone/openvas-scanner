@@ -149,7 +149,7 @@ users_add_rule (struct openvas_rules *rules, char *rule)
 }
 
 
-struct openvas_rules *
+int
 check_user (char *user, char *dname)
 {
   FILE *f;
@@ -159,11 +159,11 @@ check_user (char *user, char *dname)
 
 #ifdef OPENVAS_MAX_USERNAME_LEN
   if (strlen (user) >= OPENVAS_MAX_USERNAME_LEN)
-    return BAD_LOGIN_ATTEMPT;
+    return 0;
 #endif
 
   if (strstr (user, "..") != NULL || strchr (user, '/') != NULL)
-    return BAD_LOGIN_ATTEMPT;
+    return 0;
 
   if (dname != NULL && *dname != '\0')
     {
@@ -191,5 +191,7 @@ check_user (char *user, char *dname)
         }
     }
 
-  return emalloc (sizeof (struct openvas_rules));
+  if (! check_pass)
+    return 1;
+  return 0;
 }

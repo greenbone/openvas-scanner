@@ -1,5 +1,14 @@
 2013-05-15  Jan-Oliver Wagner <jan-oliver.wagner@greenbone.net>
 
+	* src/users.c (check_user): Use a simple success value instead
+	of a faked rules object.
+
+	* src/users.h: Adapt proto accordingly.
+
+	* src/auth.c (auth_check_user): Use new call of check_user.
+
+2013-05-15  Jan-Oliver Wagner <jan-oliver.wagner@greenbone.net>
+
 	* src/users.c (check_user): Remove code path to check password.
 	Removed parameter "password".
 	(MD5_DIGEST_LENGTH): Remove this makro as not needed anymore.
