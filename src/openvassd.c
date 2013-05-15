@@ -392,7 +392,6 @@ scanner_thread (struct arglist *globals)
   int soc = GPOINTER_TO_SIZE (arg_get_value (globals, "global_socket"));
   int family = GPOINTER_TO_SIZE (arg_get_value (globals, "family"));
   char *asciiaddr;
-  struct openvas_rules *rules = arg_get_value (globals, "rules");
   int protocol_version;
   int e;
   int opt = 1;
@@ -549,7 +548,6 @@ scanner_thread (struct arglist *globals)
     wait:
       comm_wait_order (globals);
       preferences_reset_cache ();
-      rules = arg_get_value (globals, "rules");
       ntp_1x_timestamp_scan_starts (globals);
       e = attack_network (globals);
       ntp_1x_timestamp_scan_ends (globals);
