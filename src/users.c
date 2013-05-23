@@ -25,7 +25,7 @@
 * Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA 02110-1301 USA.
 */
 
-#include <stdio.h>      /* for fprintf() */
+#include <stdio.h>      /* for fopen() */
 #include <string.h>     /* for strlen() */
 #include <stdlib.h>     /* for exit() */
 #include <arpa/inet.h>  /* for inet_aton */
@@ -36,23 +36,6 @@
 #include "log.h"
 #include "users.h"
 #include "rules.h"
-
-char *
-user_home (struct arglist *globals)
-{
-  char *user = arg_get_value (globals, "user");
-  char *ret;
-
-  if (!user)
-    return NULL;
-
- /** @todo consider using glib functions */
-  ret = emalloc (strlen (OPENVAS_USERS_DIR) + strlen (user) + 2);
-  sprintf (ret, "%s/%s", OPENVAS_USERS_DIR, user);
-
-  return ret;
-}
-
 
 /**
  * @brief Add rules to the current user, and return the name of the next user.
@@ -167,8 +150,7 @@ check_user (char *user, char *dname)
 
   if (dname != NULL && *dname != '\0')
     {
-      snprintf (fname, sizeof (fname), "%s/%s/auth/dname", OPENVAS_USERS_DIR,
-                user);
+      snprintf (fname, sizeof (fname), "%s/dname", OPENVAS_STATE_DIR);
       if ((f = fopen (fname, "r")) == NULL)
         perror (fname);
       else

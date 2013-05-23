@@ -40,10 +40,6 @@ endif (OPENVASSD_VERSION)
 
 add_definitions (-DPREFIX=\\\"${CMAKE_INSTALL_PREFIX}\\\")
 
-if (OPENVAS_USERS_DIR)
-  add_definitions (-DOPENVAS_USERS_DIR=\\\"${OPENVAS_USERS_DIR}\\\")
-endif (OPENVAS_USERS_DIR)
-
 if (OPENVAS_NVT_DIR)
   add_definitions (-DOPENVAS_NVT_DIR=\\\"${OPENVAS_NVT_DIR}\\\")
 endif (OPENVAS_NVT_DIR)

@@ -36,21 +36,21 @@ usage()
  echo
  echo "Options:"
  echo "  -h           Display help"
- echo "  -n <name>    Run non-interactively, create certificates for user <name>"
- echo "               and register user <name> with the OpenVAS scanner"
+ echo "  -n           Run non-interactively, create certificates"
+ echo "               and register with the OpenVAS scanner"
  echo "  -i           Install client certificates for use with OpenVAS manager"
  echo
  exit $1
 }
 
-while getopts "n:hi" OPTION
+while getopts "nhi" OPTION
 do
      case $OPTION in
          h)
              usage 0
              ;;
          n)
-             NAME=$OPTARG
+             NONINTERACTIVE=1
              ;;
          i)
              INSTALLCERT=1
@@ -101,7 +101,7 @@ if [ ! -f "$CACERT" ]; then
     exit 1
 fi
 
-if [ -n $NAME ]; then
+if [ -n $NONINTERACTIVE ]; then
     R=`echo "y"`
 else
     R=x
@@ -111,17 +111,6 @@ while [ "$R" != `echo "y"` -a "$R" != `echo "n"` ]; do
     read R
 done
 
-# Check for availability of the OpenVAS scanner user directory
-if [ "$R" = `echo "y"` ]; then
-    USERSDIR="@OPENVAS_USERS_DIR@"
-    if [ ! -d "$USERSDIR" ]; then
-        mkdir -p $USERSDIR
-        chmod 755 $USERSDIR
-    fi
-else
-    USERSDIR=""
-fi
-
 umask 066
 
 # Set environment
@@ -129,7 +118,7 @@ BASEDIR=$TMPDIR/openvas-mkcert-client.$$
 mkdir $BASEDIR || exit 1
 
 
-if [ -z $NAME ]; then
+if [ -z $NONINTERACTIVE ]; then
 echo "This script will now ask you the relevant information to create the SSL client certificates for OpenVAS."; echo
 
     echo -n "Client certificates life time in days [365]: "; read x
@@ -140,22 +129,22 @@ if [ ! -z "$LANG" ]; then
     DC=`echo $LANG | sed -n 's/^..*_\(..\)$/\1/p'`
 fi
 X=${DC:=DE}
-if [ -z $NAME ]; then
+if [ -z $NONINTERACTIVE ]; then
    echo -n "Your country (two letter code) [$X]: "; read x
 fi
 DFL_COUNTRY=${x:-$DC}
-if [ -z $NAME ]; then
+if [ -z $NONINTERACTIVE ]; then
    echo -n "Your state or province name [none]: "; read DFL_PROVINCE
 fi
 X=Berlin;
-if [ -z $NAME ]; then
+if [ -z $NONINTERACTIVE ]; then
    echo -n "Your location (e.g. town) [$X]: "; read x
 fi
 DFL_LOCATION=${x:-$X}
-if [ -z $NAME ]; then
+if [ -z $NONINTERACTIVE ]; then
    echo -n "Your organization [none]: "; read DFL_ORGANIZATION
 fi
-if [ -z $NAME ]; then
+if [ -z $NONINTERACTIVE ]; then
    echo -n "Your organizational unit [none]: "; read DFL_ORGUNIT
 fi
 
@@ -288,7 +277,7 @@ EOF
 echo 01 > $BASEDIR/serial
 touch $BASEDIR/index.txt
 
-if [ -z $NAME ]; then
+if [ -z $NONINTERACTIVE ]; then
     echo "**********"
     echo "We are going to ask you some question for each client certificate. "; echo
     echo "If some question has a default answer, you can force an empty answer by entering a single dot '.'"; echo
@@ -298,57 +287,45 @@ fi
 I=1; ANOTHER=`echo "y"`
 
 while [ "$ANOTHER" != `echo "n"` ]; do
-    if [ -z $NAME ]; then
-        PSEUDO=""
-    else
-        PSEUDO=$NAME
-    fi
-    while [ -z "$PSEUDO" ]; do
-        echo -n "OpenVAS username for the new user: "
-        read PSEUDO
-    done
-
-    CERTFILE="$BASEDIR/cert_$PSEUDO.pem"
-    KEYFILE="$BASEDIR/key_$PSEUDO.pem"
-    REQFILE="$BASEDIR/req_$PSEUDO.pem"
-    if [ -n $USERSDIR ]; then
-        DNFILE="$USERSDIR/$PSEUDO/auth/dname"
-    fi
+    CERTFILE="$BASEDIR/cert_om.pem"
+    KEYFILE="$BASEDIR/key_om.pem"
+    REQFILE="$BASEDIR/req_om.pem"
+    DNFILE="@OPENVAS_STATE_DIR@/dname"
     if [ -f "$CERTFILE" -o -f "$KEYFILE" ]; then
         echo "Certificate or key for this user already exist."
         exit 1
     fi
 
-    if [ -z $NAME ]; then
+    if [ -z $NONINTERACTIVE ]; then
         echo -n "Client certificates life time in days [$DFL_CERT_LIFETIME]: "; read x
     fi
     CERT_LIFETIME=${x:-$DFL_CERT_LIFETIME}
     X=$DFL_COUNTRY
-    if [ -z $NAME ]; then
+    if [ -z $NONINTERACTIVE ]; then
         echo -n "Country (two letter code) [$X]: "; read x
     fi
     COUNTRY=${x:-$DFL_COUNTRY}
     X=$DFL_PROVINCE
-    if [ -z $NAME ]; then
+    if [ -z $NONINTERACTIVE ]; then
         echo -n "State or province name [$X]: "; read x
     fi
     PROVINCE=${x:-$DFL_PROVINCE}
     X=$DFL_LOCATION
-    if [ -z $NAME ]; then
+    if [ -z $NONINTERACTIVE ]; then
         echo -n "Location (e.g. town) [$X]: "; read x
     fi
     LOCATION=${x:-$DFL_LOCATION}
     X=$DFL_ORGANIZATION
-    if [ -z $NAME ]; then
+    if [ -z $NONINTERACTIVE ]; then
         echo -n "Organization [$X]: "; read x
     fi
     ORGANIZATION=${x:-$DFL_ORGANIZATION}
     X=$DFL_ORGUNIT
-    if [ -z $NAME ]; then
+    if [ -z $NONINTERACTIVE ]; then
         echo -n "Organization unit [$X]: "; read x
     fi
     ORGUNIT=${x:-$DFL_ORGUNIT}
-    if [ -z $NAME ]; then
+    if [ -z $NONINTERACTIVE ]; then
         echo -n "e-Mail []: "; read EMAIL
     else
         EMAIL=""
@@ -363,7 +340,7 @@ ${PROVINCE:-.}
 ${LOCATION:-.}
 ${ORGANIZATION:-.}
 ${ORGUNIT:-.}
-$PSEUDO
+om
 ${EMAIL:-.}" |
     openssl req -config $BASEDIR/stdC.cnf -new -key $KEYFILE -out $REQFILE
 
@@ -372,39 +349,28 @@ ${EMAIL:-.}" |
 
     chmod a+r $CERTFILE
 
-    if [ ! -z "$USERSDIR" ]; then
-        # create the auth dir, which contains the password or cert
-        D="$USERSDIR/$PSEUDO/auth"
-        if [ ! -d "$D" ]; then
-            mkdir -p "$D"
-            chmod 700 "$D"
-        fi
+    # create the cert authentication file dname
+    > $DNFILE
+    dn=""
+    [ ! -z "$COUNTRY" -a "$COUNTRY" != "." ] &&
+        dn=$dn"/C=$COUNTRY"
+    [ ! -z "$PROVINCE" -a "$PROVINCE" != "." ] &&
+        dn=$dn"/ST=$PROVINCE"
+    [ ! -z "$LOCATION" -a "$LOCATION" != "." ] &&
+        dn=$dn"/L=$LOCATION"
+    [ ! -z "$ORGANIZATION" -a "$ORGANIZATION" != "." ] &&
+        dn=$dn"/O=$ORGANIZATION"
+    [ ! -z "$ORGUNIT" -a "$ORGUNIT" != "." ] &&
+        dn=$dn"/OU=$ORGUNIT"
+    dn=$dn"/CN=om"
+    [ ! -z "$EMAIL" ] && dn=$dn"/emailAddress=$EMAIL"
 
-        # create the cert authentication file auth/dname
-        > $DNFILE
-        dn=""
-        [ ! -z "$COUNTRY" -a "$COUNTRY" != "." ] &&
-            dn=$dn"/C=$COUNTRY"
-        [ ! -z "$PROVINCE" -a "$PROVINCE" != "." ] &&
-            dn=$dn"/ST=$PROVINCE"
-        [ ! -z "$LOCATION" -a "$LOCATION" != "." ] &&
-            dn=$dn"/L=$LOCATION"
-        [ ! -z "$ORGANIZATION" -a "$ORGANIZATION" != "." ] &&
-            dn=$dn"/O=$ORGANIZATION"
-        [ ! -z "$ORGUNIT" -a "$ORGUNIT" != "." ] &&
-            dn=$dn"/OU=$ORGUNIT"
-        dn=$dn"/CN=$PSEUDO"
-        [ ! -z "$EMAIL" ] && dn=$dn"/emailAddress=$EMAIL"
+    # Convert to gnutls format: Replace "/" with ",", remove first ",",
+    # replace emailAdress= with EMAIL=
+    gdn=`echo $dn | sed -e 's/\//,/g' -e 's/^,//' -e 's/emailAddress/EMAIL/g'`
+    echo "$gdn" > $DNFILE
 
-        # Convert to gnutls format: Replace "/" with ",", remove first ",",
-        # replace emailAdress= with EMAIL=
-        gdn=`echo $dn | sed -e 's/\//,/g' -e 's/^,//' -e 's/emailAddress/EMAIL/g'`
-        echo "$gdn" > $DNFILE
-
-        echo "User $PSEUDO added to OpenVAS."; echo
-    fi
-
-    if [ -n $NAME ]; then
+    if [ -n $NONINTERACTIVE ]; then
         ANOTHER=`echo "n"`
     else
         echo -n "Another client certificate? (y/n) "
@@ -413,8 +379,8 @@ ${EMAIL:-.}" |
     fi
 
     if [ ! -z $INSTALLCERT ] ; then
-      cp $BASEDIR/key_$PSEUDO.pem $OPENVASPRIV/clientkey.pem
-      cp $BASEDIR/cert_$PSEUDO.pem $OPENVASPUB/clientcert.pem
+      cp $BASEDIR/key_om.pem $OPENVASPRIV/clientkey.pem
+      cp $BASEDIR/cert_om.pem $OPENVASPUB/clientcert.pem
     fi
 done
 
@@ -423,6 +389,6 @@ if [ -z $INSTALLCERT ] ; then
   echo "You will have to copy them by hand."; echo
 fi
 
-if [ ! -z "$INSTALLCERT" -a -n $NAME ] ; then
+if [ ! -z "$INSTALLCERT" -a -n $NONINTERACTIVE ] ; then
   rm -rf $BASEDIR
 fi

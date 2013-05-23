@@ -90,16 +90,15 @@ filter_odd_name (char *name)
 
 
 /**
- * Returns name of the directory which contains the sessions of the current
- * user (/path/to/var/lib/openvas/<username>/kbs/).
+ * Returns name of the directory which contains the sessions
+ * (/path/to/var/lib/openvas/kbs/).
  *
- * @return Path to knowledge base directory for current user, has to be freed
- *         using g_free.
+ * @return Path to knowledge base directory, has to be freed using g_free.
  */
 static gchar *
 kb_dirname (struct arglist *globals)
 {
-  return g_build_filename (user_home (globals), "kbs", NULL);
+  return g_build_filename (OPENVAS_STATE_DIR, "kbs", NULL);
 }
 
 /**

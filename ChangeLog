@@ -1,3 +1,25 @@
+2013-05-23  Jan-Oliver Wagner <jan-oliver.wagner@greenbone.net>
+
+	Removing "users" directory. Any remaining file-based data
+	are now located directly in the OpenVAS state directory.
+
+	* tools/openvas-mkcert-client.in: Changed paramters: -n does
+	need anymore a user name. Internally "om" is used statically.
+	No user directory is created or considered anymore. The file
+	"dname" is now created directly in the state directory.
+
+	* src/save_kb.c (kb_dirname): Moved location of
+	OPENVAS_USERS_DIR/$user/kbs/ to OPENVAS_STATE_DIR/kbs/
+
+	* src/users.c (user_home): Removed.
+	(check_user): Moved location of OPENVAS_USERS_DIR/$user/auth/dname
+	to OPENVAS_STATE_DIR/dname.
+
+	* src/users.h: Removed proto accordingly.
+
+	* CMakeLists.txt, src/CMakeLists.txt: Removed handling of
+	OPENVAS_USERS_DIR.
+
 2013-05-16  Jan-Oliver Wagner <jan-oliver.wagner@greenbone.net>
 
 	* src/openvassd.c (scanner_thread): Remove useless rules
