@@ -1,5 +1,27 @@
 2013-05-28  Jan-Oliver Wagner <jan-oliver.wagner@greenbone.net>
 
+	* src/attack.c (launch_plugin, attack_network): Remove handling of
+	username which is not relevant anymore because we have only one user.
+	(attack_user_name): Removed. It is not used anymore now.
+
+	* src/openvassd.c (scanner_tread): Removed handling of username.
+	(main): Don't read environment variable OPENVASUSER
+	and use it to set the user in global arglist. This seems to make
+	no sense at all here even for old times.
+
+	* src/ntp_11.c (ntp_11_parse_input, ntp_11_rules):  Removed handling of username.
+
+	* src/rules.c (rules_add): Don't have parameter username anymore because it
+	is not used anyway.
+
+	* src/rules.h: Adjust header accordingly.
+
+	* src/auth.c (auth_check_user): Don't store the username anymore into
+	the globals arglist.
+
+ 
+2013-05-28  Jan-Oliver Wagner <jan-oliver.wagner@greenbone.net>
+
 	* src/save_kb.c (save_kb_new, save_kb_load_kb, save_kb_write): Remove
 	handling of username, because "kbs" is not user-specific anymore.
 

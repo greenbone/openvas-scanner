@@ -227,21 +227,6 @@ attack_init_hostinfos (char *mac, char *hostname, struct in6_addr *ip)
 }
 
 /**
- * @brief Return our user name.
- *
- * @return Our user name.
- */
-static char *
-attack_user_name (struct arglist *globals)
-{
-  static char *user;
-  if (!user)
-    user = (char *) arg_get_value (globals, "user");
-
-  return user;
-}
-
-/**
  * @brief Launches a nvt. Respects safe check preference (i.e. does not try
  * @brief destructive nvt if save_checks is yes).
  *
@@ -297,8 +282,8 @@ launch_plugin (struct arglist *globals, plugins_scheduler_t * sched,
         {
           if (preferences_log_whole_attack (preferences))
             log_write
-              ("user %s : Not launching %s against %s %s (this is not an error)\n",
-               attack_user_name (globals), plugin->arglist->name, hostname,
+              ("Not launching %s against %s %s (this is not an error)\n",
+               plugin->arglist->name, hostname,
                "because safe checks are enabled");
           plugin_set_running_state (sched, plugin, PLUGIN_STATUS_DONE);
           return 0;
@@ -327,8 +312,8 @@ launch_plugin (struct arglist *globals, plugins_scheduler_t * sched,
             {
               if (preferences_log_whole_attack (preferences))
                 log_write
-                  ("user %s : Not launching %s against %s %s (this is not an error)\n",
-                   attack_user_name (globals), plugin->arglist->name, hostname,
+                  ("Not launching %s against %s %s (this is not an error)\n",
+                   plugin->arglist->name, hostname,
                    "because it has already been launched in the past");
               plugin_set_running_state (sched, plugin, PLUGIN_STATUS_DONE);
               return 0;
@@ -364,16 +349,14 @@ launch_plugin (struct arglist *globals, plugins_scheduler_t * sched,
             }
 
           if (preferences_log_whole_attack (preferences))
-            log_write ("user %s : launching %s against %s [%d]\n",
-                       attack_user_name (globals), plugin->arglist->name,
-                       hostname, pid);
+            log_write ("Launching %s against %s [%d]\n",
+                       plugin->arglist->name, hostname, pid);
 
           /* Stop the test if the host is 'dead' */
           if (kb_item_get_int (kb, "Host/dead") > 0
               || kb_item_get_int (kb, "Host/ping_failed") > 0)
             {
-              log_write ("user %s : The remote host (%s) is dead\n",
-                         attack_user_name (globals), hostname);
+              log_write ("The remote host (%s) is dead\n", hostname);
               pluginlaunch_stop ();
 
               if (new_kb == TRUE)
@@ -391,8 +374,8 @@ launch_plugin (struct arglist *globals, plugins_scheduler_t * sched,
           plugin_set_running_state (sched, plugin, PLUGIN_STATUS_DONE);
           if (preferences_log_whole_attack (preferences))
             log_write
-              ("user %s : Not launching %s against %s %s (this is not an error)\n",
-               attack_user_name (globals), plugin->arglist->name, hostname,
+              ("Not launching %s against %s %s (this is not an error)\n",
+               plugin->arglist->name, hostname,
                error);
         }
     }                           /* if(plugins->launch) */
@@ -1007,7 +990,7 @@ attack_network (struct arglist *globals)
   hostlist = arg_get_value (preferences, "TARGET");
   if (hostlist == NULL)
     {
-      log_write ("%s : TARGET not set ?!", attack_user_name (globals));
+      log_write ("TARGET not set ?!");
       exit (1);
     }
 
@@ -1040,15 +1023,15 @@ attack_network (struct arglist *globals)
       else
         {
           log_write
-            ("user %s starts a new scan. Target(s) : %s, in network phase with target %s\n",
-             attack_user_name (globals), hostlist, network_targets);
+            ("Start a new scan. Target(s) : %s, in network phase with target %s\n",
+             hostlist, network_targets);
         }
     }
   else
     {
       log_write
-        ("user %s starts a new scan. Target(s) : %s, with max_hosts = %d and max_checks = %d\n",
-         attack_user_name (globals), hostlist, max_hosts, max_checks);
+        ("Starts a new scan. Target(s) : %s, with max_hosts = %d and max_checks = %d\n",
+         hostlist, max_hosts, max_checks);
     }
 
   /* Initialize the hosts_gatherer library. */
@@ -1083,8 +1066,7 @@ attack_network (struct arglist *globals)
       /* Do we have the right to test this host ? */
       if (CAN_TEST (get_host_rules (rules, addrs)) == 0)
         {
-          log_write ("user %s : rejected attempt to scan %s",
-                     attack_user_name (globals), hostname);
+          log_write ("Rejected attempt to scan %s", hostname);
           arg_add_value (rejected_hosts, hostname, ARG_INT, sizeof (int),
                          (void *) 1);
         }
@@ -1152,17 +1134,16 @@ attack_network (struct arglist *globals)
 
           hosts_set_pid (hostname, pid);
           if (network_phase)
-            log_write ("user %s : testing %s (network level) [%d]\n",
-                       attack_user_name (globals), network_targets,
-                       pid);
+            log_write ("Testing %s (network level) [%d]\n",
+                       network_targets, pid);
           else
-            log_write ("user %s : testing %s (%s) [%d]\n",
-                       attack_user_name (globals), hostname, inet_ntop (AF_INET6,
-                                                                        &args.
-                                                                        hostip,
-                                                                        buffer,
-                                                                        sizeof
-                                                                        (buffer)),
+            log_write ("Testing %s (%s) [%d]\n",
+                       hostname, inet_ntop (AF_INET6,
+                                            &args.
+                                            hostip,
+                                            buffer,
+                                            sizeof
+                                            (buffer)),
                        pid);
           if (MAC != NULL)
             efree (&MAC);
@@ -1195,7 +1176,7 @@ attack_network (struct arglist *globals)
   while (hosts_read (globals) == 0)
     ;
 
-  log_write ("user %s : test complete", attack_user_name (globals));
+  log_write ("Test complete");
 
 scan_stop:
   /* Free the memory used by the files uploaded by the user, if any. */

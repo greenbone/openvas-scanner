@@ -164,7 +164,6 @@ ntp_11_parse_input (struct arglist *globals, char *input)
         case CREQ_STOP_ATTACK:
           {
             char *t, *s;
-            char *user = (char *) arg_get_value (globals, "user");
             s = str + 5;
             t = strstr (s, " <|> ");
             if (t == NULL)
@@ -173,7 +172,7 @@ ntp_11_parse_input (struct arglist *globals, char *input)
                 break;
               }
             t[0] = '\0';
-            log_write ("user %s : stopping attack against %s\n", user, s);
+            log_write ("Stopping attack against %s\n", s);
             hosts_stop_host (globals, s);
             arg_add_value (globals, "stop_required", ARG_INT, sizeof (int),
                            GSIZE_TO_POINTER (1));
@@ -357,9 +356,7 @@ ntp_11_rules (struct arglist *globals)
       || (rules->def == RULES_REJECT)
       || rules->rule)
     {
-      log_write
-        ("user %s : attempted to add rules on top of server rules",
-         (char*) arg_get_value (globals, "user"));
+      log_write ("Attempted to add rules on top of server rules");
       return (0);
     }
 
@@ -385,7 +382,7 @@ ntp_11_rules (struct arglist *globals)
         }
     }
   efree (&buffer);
-  rules_add (&rules, &user_rules, arg_get_value (globals, "user"));
+  rules_add (&rules, &user_rules);
   rules_free (user_rules);
   soca = arg_get_value (globals, "client_address");
   addrs.ip = soca->sin_addr;

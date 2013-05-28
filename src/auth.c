@@ -89,12 +89,8 @@ auth_check_user (struct arglist *globals, char *from, char *dname)
       strncpy (user, buf_user, strlen (buf_user));
 
 #ifdef DEBUG
-      log_write ("successful login of %s from %s\n", buf_user, from);
+      log_write ("successful login from %s\n", from);
 #endif
-      if (arg_get_value (globals, "user"))
-        arg_set_value (globals, "user", strlen (user), user);
-      else
-        arg_add_value (globals, "user", ARG_STRING, strlen (user), user);
     }
   if (free_buf_user)
     efree (&buf_user);

@@ -556,8 +556,7 @@ scanner_thread (struct arglist *globals)
       comm_terminate (globals);
       if (arg_get_value (prefs, "ntp_keep_communication_alive"))
         {
-          log_write ("user %s : Kept alive connection",
-                     (char *) arg_get_value (globals, "user"));
+          log_write ("Kept alive connection");
           goto wait;
         }
     }
@@ -1092,12 +1091,7 @@ main (int argc, char *argv[], char *envp[])
     be_quiet = 1;
 
   if (print_specs)
-    {
-      exit_early = 2;           /* no cipher initialization */
-      char *s = getenv ("OPENVASUSER");
-      if (s != 0)
-        arg_add_value (options, "user", ARG_STRING, strlen (s), s);
-    }
+    exit_early = 2;           /* no cipher initialization */
 
   if (address != NULL)
     {

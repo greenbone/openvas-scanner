@@ -370,8 +370,7 @@ rules_set_def (struct openvas_rules *r, int def)
 }
 
 void
-rules_add (struct openvas_rules **rules, struct openvas_rules **user,
-           char *username)
+rules_add (struct openvas_rules **rules, struct openvas_rules **user)
 {
   struct openvas_rules *accept_rules = emalloc (sizeof (**rules));
   struct openvas_rules *reject_rules = emalloc (sizeof (**rules));
