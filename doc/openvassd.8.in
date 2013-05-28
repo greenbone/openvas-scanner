@@ -156,26 +156,7 @@ path to the rules database
 
 The other options in this file can usually be redefined by the client.
 
-.SH USERS MANAGEMENT
-
-Each openvassd user
-is attributed a "home", in @OPENVAS_USERS_DIR@/<username>. This home contains the following directories :
-.IP auth/
-This directory contains the authentication information for this user. It might contain the file 'dname' if the user is authenticating using a certificate, or 'hash' (or 'passwd') if the user is authenticating using a password. The file 'hash' contains a MD5 hash of the user password, as well as a random seed. The file 'password' should contain the password in clear text.
-
-This directory also contains the file 'rules' which contains the rules which apply to this user.
-
-The content of this directory can 
-.B not
-be altered by the user in any way whatsoever
-
-.IP kbs/
-This directory contains the knowledge base (KB) of each host tested by this user, if the user has enable the option 'save_kb'.
-
-
-
-When a user attempts to log in, openvassd first checks that the directory
-@OPENVAS_USERS_DIR@/<username> exists, then hashes the password sent by the user with the random salt found in <username>/auth/hash, and compares it with the password hash stored in the same file. If the users authenticates using a certificate, then openvassd checks that the certificate has been signed by a recognized authority, and makes sure that the dname of the certificate shown by the user is the same as the one in <username>/dname.
+At  log in attempt, openvassd checks that the certificate has been signed by a recognized authority, and makes sure that the dname of the certificate shown by the user is the same as the one in file dname.
 
 .SH THE RULE SET FORMAT
 
