@@ -32,7 +32,7 @@
  * gain other than vulnerabilities of targets.
  *
  * Knowledge base backups are (if the appropriate preferences are set) saved
- * under (PREFIX)var/lib/openvas/users/(USERNAME)/kbs/(HOSTNAME) ,
+ * under (PREFIX)var/lib/openvas/kbs/(HOSTNAME) ,
  * where strings in brackets have to be replaced by the respective value.
  */
 
@@ -53,7 +53,6 @@
 
 #include "log.h"
 #include "comm.h"
-#include "users.h"
 #include "locks.h"
 
 #ifndef MAP_FAILED
@@ -138,7 +137,7 @@ kb_mkdir (char *dir)
  * @brief Returns file name where the kb for scan of a host can be saved/read
  * @brief from.
  *
- * From \<hostname\>, return /path/to/var/lib/openvas/\<username\>/kbs/\<hostname\> .
+ * From \<hostname\>, return /path/to/var/lib/openvas/kbs/\<hostname\> .
  */
 static char *
 kb_fname (struct arglist *globals, char *hostname)
@@ -344,8 +343,7 @@ save_kb_write (struct arglist *globals, char *hostname, char *name, char *value,
   fd = GPOINTER_TO_SIZE (arg_get_value (globals, "save_kb"));
   if (fd <= 0)
     {
-      log_write ("user %s : Can not find KB fd for %s\n",
-                 (char *) arg_get_value (globals, "user"), hostname);
+      log_write ("Can not find KB fd for %s\n", hostname);
       return -1;
     }
 
@@ -381,8 +379,7 @@ save_kb_write (struct arglist *globals, char *hostname, char *name, char *value,
   e = write (fd, str, strlen (str));
   if (e < 0)
     {
-      log_write ("user %s : write kb error - %s\n",
-                 (char *) arg_get_value (globals, "user"), strerror (errno));
+      log_write ("Write kb error - %s\n", strerror (errno));
     }
   efree (&str);
   return 0;
@@ -409,7 +406,6 @@ save_kb_new (struct arglist *globals, char *hostname)
 {
   char *fname;
   char *dir;
-  char *user = arg_get_value (globals, "user");
   int ret = 0;
   int f;
 
@@ -430,7 +426,7 @@ save_kb_new (struct arglist *globals, char *hostname)
   f = open (fname, O_CREAT | O_RDWR | O_EXCL, 0640);
   if (f < 0)
     {
-      log_write ("user %s : Can not save KB for %s - %s", user, hostname,
+      log_write ("Can not save KB for %s - %s", hostname,
                  strerror (errno));
       ret = -1;
       efree (&fname);
@@ -439,7 +435,7 @@ save_kb_new (struct arglist *globals, char *hostname)
   else
     {
       file_lock (fname);
-      log_write ("user %s : new KB will be saved as %s", user, fname);
+      log_write ("New KB will be saved as %s", fname);
       if (arg_get_value (globals, "save_kb"))
         arg_set_value (globals, "save_kb", sizeof (gpointer),
                        GSIZE_TO_POINTER (f));
@@ -634,16 +630,16 @@ save_kb_load_kb (struct arglist *globals, char *hostname)
   f = fopen (fname, "r");
   if (!f)
     {
-      log_write ("user %s : Could not open %s - kb won't be restored for %s\n",
-                 (char *) arg_get_value (globals, "user"), fname, hostname);
+      log_write ("Could not open %s - kb won't be restored for %s\n",
+                 fname, hostname);
       efree (&fname);
       return NULL;
     }
   bzero (buf, sizeof (buf));
   if (fgets (buf, sizeof (buf) - 1, f) == NULL)
     {
-      log_write ("user %s : Could not read %s - kb won't be restored for %s\n",
-                 (char *) arg_get_value (globals, "user"), fname, hostname);
+      log_write ("Could not read %s - kb won't be restored for %s\n",
+                 fname, hostname);
       efree (&fname);
       fclose (f);
       return NULL;
@@ -733,8 +729,7 @@ save_kb_load_kb (struct arglist *globals, char *hostname)
                        GSIZE_TO_POINTER (fd));
     }
   else
-    log_write ("user %s : ERROR - %s\n",
-               (char *) arg_get_value (globals, "user"), strerror (errno));
+    log_write ("ERROR - %s\n", strerror (errno));
   return kb;
 }
 
