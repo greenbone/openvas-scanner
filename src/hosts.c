@@ -39,7 +39,6 @@
 #include "utils.h"
 #include "log.h"
 #include "preferences.h"
-#include "save_kb.h"
 #include "hosts.h"
 #include "ntp_11.h"
 

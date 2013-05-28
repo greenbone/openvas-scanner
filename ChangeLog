@@ -1,5 +1,9 @@
 2013-05-28  Jan-Oliver Wagner <jan-oliver.wagner@greenbone.net>
 
+	* src/hosts.c: Removed unnecessary include.
+
+2013-05-28  Jan-Oliver Wagner <jan-oliver.wagner@greenbone.net>
+
 	* INSTALL, CMakeLists.txt: Increase dependency to openvas-libraries
 	from 6.0.0 to 7.0.0.
 
