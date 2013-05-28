@@ -1,5 +1,10 @@
 2013-05-28  Jan-Oliver Wagner <jan-oliver.wagner@greenbone.net>
 
+	* INSTALL, CMakeLists.txt: Increase dependency to openvas-libraries
+	from 6.0.0 to 7.0.0.
+
+2013-05-28  Jan-Oliver Wagner <jan-oliver.wagner@greenbone.net>
+
 	* src/attack.c (launch_plugin, attack_network): Remove handling of
 	username which is not relevant anymore because we have only one user.
 	(attack_user_name): Removed. It is not used anymore now.

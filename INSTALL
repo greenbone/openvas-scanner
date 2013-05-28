@@ -13,7 +13,7 @@ Prerequisites:
 * cmake
 * glib-2.0 >= 2.16
 * gnutls >= 2.8
-* openvas-libraries >= 6.0.0
+* openvas-libraries >= 7.0.0
 * pkg-config
 
 Prerequisites for building documentation:
