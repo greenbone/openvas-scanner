@@ -124,7 +124,9 @@ do_help () {
   echo " --describe	 display current feed info"
   echo " --feedversion	 display current feed version info"
   echo " --nvt-dir <dir> set directory of the NVT collection for this run"
+  echo "General functions:"
   echo " --migrate-to-private	migrate unsigned files to private directory"
+  echo " --feedcurrent		check if feed is current (requires rsync)"
   echo ""
   echo "Environment variables:"
   echo "NVT_DIR		where to extract plugins (absolute path)"
@@ -333,6 +335,54 @@ do_sync () {
   fi
 }
 
+is_feed_current () {
+  if [ -z "$FEED_VERSION" ]
+  then
+    echo "[w] Could not determine feed version."
+    FEED_CURRENT=0
+    return $FEED_CURRENT
+  fi
+  # Will only work for rsync
+  if [ -z "$CMD_RSYNC" ]
+  then
+    echo "[e] rsync not found!"
+    exit 1
+  else
+    FEED_INFO_TEMP_DIR=`mktemp -d`
+    if [ ! -d "$FEED_INFO_TEMP_DIR" ]
+    then
+      echo "[e] Failed to create temporary directory"
+      exit 1
+    fi
+    eval "$CMD_RSYNC \"$OV_RSYNC_FEED/plugin_feed_info.inc\" \"$FEED_INFO_TEMP_DIR\""
+    if [ $? -ne 0 ]
+    then
+      echo "[e] Error: rsync failed."
+      rm -rf $FEED_INFO_TEMP_DIR
+      exit 1
+    fi
+    FEED_VERSION_SERVER=`grep PLUGIN_SET $FEED_INFO_TEMP_DIR/plugin_feed_info.inc | sed -e 's/[^0-9]//g'`
+
+    if [ -z "$FEED_VERSION_SERVER" ]
+    then
+      echo "[e] Could not determine server feed version."
+      rm -rf $FEED_INFO_TEMP_DIR
+      exit 1
+    fi
+    # Check against FEED_VERSION
+    if [ $FEED_VERSION -lt $FEED_VERSION_SERVER ] ; then
+      FEED_CURRENT=0
+    else
+      FEED_CURRENT=1
+    fi
+
+    # Cleanup
+    rm -rf $FEED_INFO_TEMP_DIR
+
+    return $FEED_CURRENT
+  fi
+}
+
 # Will become obsolete when OpenVAS 5 is retired
 do_migrate_to_private () {
   echo "[i] Migrating non-OpenVAS files to private sub-directory '$PRIVATE_SUBDIR' of NVT directory '$NVT_DIR'. This can take a few minutes."
@@ -503,12 +553,32 @@ if [ -n "$1" ]; then
         NVT_DIR="$2"
         shift
         ;;
+      --feedcurrent)
+        is_feed_current
+        if [ $FEED_CURRENT -eq 1 ]
+        then
+          echo "[i] Feed is current."
+          exit 0
+        else
+          echo "[w] Feed is NOT current."
+          exit 10
+        fi
+        ;;
     esac
     shift
   done
 fi
 
 show_intro
+if [ ! -z "$CMD_RSYNC" ]
+then
+  is_feed_current
+  if [ $FEED_CURRENT -eq 1 ]
+  then
+    echo "[i] Feed is already current, no synchronization necessary."
+    exit 0
+  fi
+fi
 do_sync
 do_check_md5
 
