@@ -27,14 +27,12 @@
 *
 */
 
-
 #ifndef _OPENVAS_USERS_H
 #define _OPENVAS_USERS_H
 
 #include "rules.h"
 
-#define OPENVAS_MAX_USERNAME_LEN	32      /* Including the ending nul byte! */
-
-int check_user (char *, char *);
+int check_user (char *);
 void users_add_rule (struct openvas_rules *, char *);
+
 #endif

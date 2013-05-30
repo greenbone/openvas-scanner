@@ -1,3 +1,13 @@
+2013-05-30  Jan-Oliver Wagner <jan-oliver.wagner@greenbone.net>
+
+	* src/users.c (check_user): Remove any handling of the user name,
+	it isn't required anyway. Removed the parameter "user".
+
+	* src/users.h: Removed now unused macro OPENVAS_MAX_USERNAME_LEN.
+	Adjusted proto accordingly.
+
+	* src/auth.c (auth_check_user): Adjust call of check_user.
+
 2013-05-29  Michael Wiegand <michael.wiegand@greenbone.net>
 
 	* tools/openvas-nvt-sync.in: Add support for determining if the

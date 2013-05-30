@@ -83,7 +83,7 @@ auth_check_user (struct arglist *globals, char *from, char *dname)
       buf_user[--l] = '\0';
   }
 
-  if ((success = check_user (buf_user, dname)))
+  if ((success = check_user (dname)))
     {
       char *user = emalloc (strlen (buf_user) + 1);
       strncpy (user, buf_user, strlen (buf_user));

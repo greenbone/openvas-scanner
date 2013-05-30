@@ -133,20 +133,11 @@ users_add_rule (struct openvas_rules *rules, char *rule)
 
 
 int
-check_user (char *user, char *dname)
+check_user (char *dname)
 {
   FILE *f;
   char fname[MAXPATHLEN];
   int success = 0;
-
-
-#ifdef OPENVAS_MAX_USERNAME_LEN
-  if (strlen (user) >= OPENVAS_MAX_USERNAME_LEN)
-    return 0;
-#endif
-
-  if (strstr (user, "..") != NULL || strchr (user, '/') != NULL)
-    return 0;
 
   if (dname != NULL && *dname != '\0')
     {
@@ -167,8 +158,8 @@ check_user (char *user, char *dname)
             }
           if (! success)
             log_write
-              ("check_user: Bad DN for user %s\nGiven DN=%s\nLast tried DN=%s\n",
-               user, dname, dnameref);
+              ("check_user: Bad DN\nGiven DN=%s\nLast tried DN=%s\n",
+               dname, dnameref);
           (void) fclose (f);
         }
     }
