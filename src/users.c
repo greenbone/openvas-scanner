@@ -136,14 +136,12 @@ int
 check_user (char *dname)
 {
   FILE *f;
-  char fname[MAXPATHLEN];
   int success = 0;
 
   if (dname != NULL && *dname != '\0')
     {
-      snprintf (fname, sizeof (fname), "%s/dname", OPENVAS_STATE_DIR);
-      if ((f = fopen (fname, "r")) == NULL)
-        perror (fname);
+      if ((f = fopen (OPENVAS_STATE_DIR "/dname", "r")) == NULL)
+        perror (OPENVAS_STATE_DIR "/dname");
       else
         {
           char dnameref[512], *p;

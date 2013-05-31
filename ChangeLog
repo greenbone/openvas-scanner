@@ -1,3 +1,11 @@
+2013-05-31  Jan-Oliver Wagner <jan-oliver.wagner@greenbone.net>
+
+	* src/users.c (check_user): The file name is static, so
+	don't use a variable anymore.
+
+	* src/auth.c (auth_check_user): Ignore username and password,
+	only dname is of interest. Therfore simplify code.
+
 2013-05-31  Michael Wiegand <michael.wiegand@greenbone.net>
 
 	Mark results of code analysis based on a number of valgrind runs.

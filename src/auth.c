@@ -30,21 +30,11 @@
  * be used in the future
  */
 
-#include <string.h> /* for strlen() */
-#include <stdlib.h> /* for exit() */
-
-#include <stdarg.h>
-
 #include <openvas/misc/arglists.h>
-#include <openvas/misc/system.h>
-#include <openvas/misc/network.h>
+#include <openvas/misc/network.h> /* for auth_printf */
 
 #include "auth.h"
-#include "comm.h"
 #include "log.h"
-#include "rules.h"
-#include "sighand.h"
-
 
 /**
  * @brief Checks if a user has the right to use openvassd.
@@ -52,48 +42,21 @@
 int
 auth_check_user (struct arglist *globals, char *from, char *dname)
 {
-  char *buf_user, *buf_password;
-  int free_buf_user = 1;
-  int success = 0;
+  char buf[255];
 
-  {
-    int l;
+  auth_printf (globals, "User : ");
+  auth_gets (globals, buf, 254);
 
-    buf_user = emalloc (255);
-    buf_password = emalloc (255);
+  auth_printf (globals, "Password : ");
+  auth_gets (globals, buf, 254);
 
-    auth_printf (globals, "User : ");
-    auth_gets (globals, buf_user, 254);
-    if (buf_user[0] == '\0')
-      {
-        exit (0);
-      }
-
-    auth_printf (globals, "Password : ");
-    auth_gets (globals, buf_password, 254);
-    if (buf_password[0] == '\0')
-      {
-        exit (0);
-      }
-
-    l = strlen (buf_user);
-    if (l && buf_user[l - 1] == '\n')
-      buf_user[--l] = '\0';
-    if (l && buf_user[l - 1] == '\r')
-      buf_user[--l] = '\0';
-  }
-
-  if ((success = check_user (dname)))
+  if (check_user (dname))
     {
-      char *user = emalloc (strlen (buf_user) + 1);
-      strncpy (user, buf_user, strlen (buf_user));
-
 #ifdef DEBUG
       log_write ("successful login from %s\n", from);
 #endif
+      return 1;
     }
-  if (free_buf_user)
-    efree (&buf_user);
-  efree (&buf_password);
-  return success;
+
+  return 0;
 }
