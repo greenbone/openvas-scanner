@@ -1,3 +1,13 @@
+2013-05-31  Michael Wiegand <michael.wiegand@greenbone.net>
+
+	Mark results of code analysis based on a number of valgrind runs.
+
+	* src/pluginlaunch.c (process_internal_msg): Add TODO regarding
+	possible memleak.
+
+	* src/pluginscheduler.c (plugins_scheduler_init): Add TODO regarding
+	possible memleak.
+
 2013-05-30  Jan-Oliver Wagner <jan-oliver.wagner@greenbone.net>
 
 	* src/users.c (check_user): Remove any handling of the user name,

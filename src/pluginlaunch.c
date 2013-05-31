@@ -130,6 +130,10 @@ process_internal_msg (int p)
   else
     log_write ("Received unknown message type %d\n", type);
 
+  /**
+   * @TODO: Valgrind reports this as a possible memleak. Why is only freed under
+   * certain conditions? Shouldn't it always or never be freed?
+   */
   if (bufsz > 65535)
     efree (&buffer);
 

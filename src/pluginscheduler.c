@@ -530,6 +530,9 @@ plugins_scheduler_init (struct arglist *plugins, int autoload,
       scheduler_plugin->category = category;
       scheduler_plugin->timeout = nvti_timeout (nvti);
 
+      /**
+       * @TODO: Valgrind reports a possible memleak in the str2arglist usage.
+       */
       scheduler_plugin->required_ports = str2arglist (nvti_required_ports (nvti));
       scheduler_plugin->required_udp_ports = str2arglist (nvti_required_udp_ports (nvti));
       scheduler_plugin->required_keys = str2arglist (nvti_required_keys (nvti));
