@@ -340,7 +340,7 @@ ntp_11_read_prefs (struct arglist *globals)
 static int
 ntp_11_rules (struct arglist *globals)
 {
-  struct openvas_rules *user_rules;
+  struct openvas_rules *client_rules;
   struct openvas_rules *rules = arg_get_value (globals, "rules");
   char *buffer;
   int finished = 0;
@@ -358,7 +358,7 @@ ntp_11_rules (struct arglist *globals)
       return (0);
     }
 
-  user_rules = emalloc (sizeof (*user_rules));
+  client_rules = emalloc (sizeof (*client_rules));
   buffer = emalloc (4096);
   while (!finished)
     {
@@ -374,14 +374,14 @@ ntp_11_rules (struct arglist *globals)
       else
         {
 #ifdef DEBUG_RULES
-          printf ("User adds %s\n", buffer);
+          printf ("Client adds %s\n", buffer);
 #endif
-          rules_add_client_rule (user_rules, buffer);
+          rules_add_client_rule (client_rules, buffer);
         }
     }
   efree (&buffer);
-  rules_add (&rules, &user_rules);
-  rules_free (user_rules);
+  rules_add (&rules, &client_rules);
+  rules_free (client_rules);
   soca = arg_get_value (globals, "client_address");
   addrs.ip = soca->sin_addr;
   rules_set_client_ip (rules, &addrs, AF_INET);
