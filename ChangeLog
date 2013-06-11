@@ -1,3 +1,8 @@
+2013-06-11  Matthew Mundell <matthew.mundell@greenbone.net>
+
+	* src/openvassd.c (scanner_thread): Skip username/password part of OTP.
+	Patch by Jan-Oliver Wagner.
+
 2013-05-31  Jan-Oliver Wagner <jan-oliver.wagner@greenbone.net>
 
 	* src/users.c (check_user): The file name is static, so
@@ -67,7 +72,7 @@
 	* src/auth.c (auth_check_user): Don't store the username anymore into
 	the globals arglist.
 
- 
+
 2013-05-28  Jan-Oliver Wagner <jan-oliver.wagner@greenbone.net>
 
 	* src/save_kb.c (save_kb_new, save_kb_load_kb, save_kb_write): Remove
@@ -158,7 +163,7 @@
 
 	* doc/openvassd.rules: New. Sample and default file for
 	openvassd.rules.
- 
+
 	* INSTALL: Added optinal items 1.1 and 1.2 about openvassd.conf
 	and openvassd.rules.
 

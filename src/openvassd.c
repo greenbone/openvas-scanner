@@ -520,7 +520,7 @@ scanner_thread (struct arglist *globals)
       }
   }
 
-  if (! auth_check_user (globals, asciiaddr, x509_dname))
+  if (! check_user (x509_dname))
     {
       auth_printf (globals, "Bad login attempt !\n");
       log_write ("bad login attempt from %s\n", asciiaddr);
