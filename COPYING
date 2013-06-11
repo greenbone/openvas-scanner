@@ -34,7 +34,6 @@ src/processes.[c|h]: GPLv2
 src/rules.[c|h]: GPLv2
 src/save_kb.[c|h]: GPLv2
 src/sighand.[c|h]: GPLv2
-src/users.[c|h]: GPLv2
 src/utils.[c|h]: GPLv2
 
 tools/greenbone-nvt-sync: GPLv2

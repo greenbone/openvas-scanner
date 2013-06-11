@@ -30,7 +30,7 @@ add_executable (openvassd attack.c comm.c hosts.c locks.c log.c
                 oval_plugins.c parser.c piic.c pluginlaunch.c pluginload.c
                 pluginscheduler.c plugs_req.c preferences.c
                 processes.c rules.c save_kb.c sighand.c
-                users.c utils.c)
+                utils.c)
 
 set_target_properties (openvassd PROPERTIES LINKER_LANGUAGE C)
 
@@ -143,7 +143,7 @@ set (C_FILES "attack.c" "comm.c" "hosts.c" "locks.c" "log.c"
      "oval_plugins.c" "parser.c" "piic.c" "pluginlaunch.c" "pluginload.c"
      "pluginscheduler.c" "plugs_req.c" "preferences.c"
      "processes.c" "rules.c" "save_kb.c" "sighand.c"
-     "users.c" "utils.c")
+     "utils.c")
 add_custom_target (etags COMMENT "Building TAGS..."
                    COMMAND etags ${C_FILES})
 add_custom_target (ctags COMMENT "Building tags..."

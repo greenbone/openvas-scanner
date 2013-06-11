@@ -83,7 +83,6 @@
 #include "sighand.h"
 #include "log.h"
 #include "processes.h"
-#include "users.h"
 #include "ntp_11.h"
 #include "utils.h"
 #include "pluginscheduler.h"
@@ -383,6 +382,40 @@ sighup (int i)
 }
 
 
+int
+check_client (char *dname)
+{
+  FILE *f;
+  int success = 0;
+
+  if (dname != NULL && *dname != '\0')
+    {
+      if ((f = fopen (OPENVAS_STATE_DIR "/dname", "r")) == NULL)
+        perror (OPENVAS_STATE_DIR "/dname");
+      else
+        {
+          char dnameref[512], *p;
+
+          while (! success
+                 && fgets (dnameref, sizeof (dnameref) - 1, f) != NULL)
+            {
+              if ((p = strchr (dnameref, '\n')) != NULL)
+                *p = '\0';
+              if (strcmp (dname, dnameref) == 0)
+                success = 1;
+            }
+          if (! success)
+            log_write
+              ("check_client: Bad DN\nGiven DN=%s\nLast tried DN=%s\n",
+               dname, dnameref);
+          (void) fclose (f);
+        }
+    }
+
+  return success;
+}
+
+
 static void
 scanner_thread (struct arglist *globals)
 {
@@ -519,7 +552,7 @@ scanner_thread (struct arglist *globals)
       }
   }
 
-  if (! check_user (x509_dname))
+  if (! check_client (x509_dname))
     {
       auth_printf (globals, "Bad login attempt !\n");
       log_write ("bad login attempt from %s\n", asciiaddr);

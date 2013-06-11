@@ -1,5 +1,15 @@
 2013-06-11  Jan-Oliver Wagner <jan-oliver.wagner@greenbone.net>
 
+	* src/openvassd.c (check_client): New. Former check_user from users.c.
+
+	* src/users.c, src/users.h: Removed.
+
+	* src/CMakeLists.txt: Removed handling of users.c.
+
+	* COPYING: Removed module users.
+
+2013-06-11  Jan-Oliver Wagner <jan-oliver.wagner@greenbone.net>
+
 	* src/ntp_11.c (ntp_11_rules): Renamed variable user_rules to
 	client_rules which is more suitable.
 
