@@ -1,3 +1,15 @@
+2013-06-11  Jan-Oliver Wagner <jan-oliver.wagner@greenbone.net>
+
+	* src/auth.c, src/auth.h: Removed. This layer is not required
+	anymore.
+
+	* src/attack.c, src/comm.c, src/ntp_11.c, src/openvassd.c,
+	src/sighand.c src/utils.c: Remove include of auth.h.
+
+	* src/CMakeLists.txt: Remove handling of module auth.c.
+
+	* COPYING: Remove module auth.
+
 2013-06-11  Matthew Mundell <matthew.mundell@greenbone.net>
 
 	* src/openvassd.c (scanner_thread): Skip username/password part of OTP.

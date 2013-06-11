@@ -38,7 +38,6 @@
 #include <openvas/misc/system.h>     /* for emalloc */
 
 #include "log.h"
-#include "auth.h"
 #include "comm.h"
 #include "ntp_11.h"
 #include "utils.h"

@@ -32,7 +32,6 @@
 #include <sys/socket.h> /* for shutdown() */
 
 #include "log.h"
-#include "auth.h"
 #include "sighand.h"
 #include "utils.h"
 

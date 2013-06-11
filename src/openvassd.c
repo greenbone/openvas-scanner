@@ -77,7 +77,6 @@
 
 #include "pluginload.h"
 #include "preferences.h"
-#include "auth.h"
 #include "rules.h"
 #include "comm.h"
 #include "attack.h"

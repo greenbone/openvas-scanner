@@ -15,7 +15,6 @@ on the header of the respective files (last updated
 20110114):
 
 src/attack.[c|h]: GPLv2
-src/auth.[c|h]: GPLv2
 src/comm.[c|h]: GPLv2
 src/hosts.[c|h]: GPLv2
 src/locks.[c|h]: GPLv2

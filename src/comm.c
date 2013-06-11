@@ -42,8 +42,6 @@
 
 #include <openvas/base/nvticache.h>     /* for nvticache_t */
 
-#include "auth.h"
-
 #include "comm.h"
 #include "ntp_11.h"
 #include "log.h"

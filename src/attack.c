@@ -50,7 +50,6 @@
 #include <openvas/base/nvticache.h>     /* for nvticache_t */
 
 #include "attack.h"
-#include "auth.h"
 #include "comm.h"
 #include "hosts.h"
 #include "log.h"

@@ -45,7 +45,6 @@
 #include "ntp_11.h"
 #include "otp_1_0.h"
 #include "comm.h"
-#include "auth.h"
 #include "rules.h"
 #include "log.h"
 #include "users.h"
