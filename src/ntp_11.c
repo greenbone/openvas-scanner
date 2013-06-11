@@ -47,7 +47,6 @@
 #include "comm.h"
 #include "rules.h"
 #include "log.h"
-#include "users.h"
 #include "utils.h"
 #include "preferences.h"
 #include "hosts.h"
@@ -377,7 +376,7 @@ ntp_11_rules (struct arglist *globals)
 #ifdef DEBUG_RULES
           printf ("User adds %s\n", buffer);
 #endif
-          users_add_rule (user_rules, buffer);
+          rules_add_client_rule (user_rules, buffer);
         }
     }
   efree (&buffer);

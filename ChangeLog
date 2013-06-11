@@ -1,5 +1,20 @@
 2013-06-11  Jan-Oliver Wagner <jan-oliver.wagner@greenbone.net>
 
+	Move users_add_rule() from users.c to rules.c as rules_add_client_rule()
+	which is far more suitable.
+
+	* src/users.c (users_add_rule): Removed.
+
+	* src/users.h: Remove proto accordingly.
+
+	* src/rules.c (rules_add_client_rule): New.
+
+	* src/rules.h: Add proto accordingly.
+
+	* src/ntp_11.c (ntp_11_rules): Rename function call accordingly.
+
+2013-06-11  Jan-Oliver Wagner <jan-oliver.wagner@greenbone.net>
+
 	* src/auth.c, src/auth.h: Removed. This layer is not required
 	anymore.
 

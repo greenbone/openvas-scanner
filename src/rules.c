@@ -453,6 +453,101 @@ rules_add (struct openvas_rules **rules, struct openvas_rules **user)
 #endif
 }
 
+/**
+ * @brief Add rules as requested from the client application
+ * (voluntary self-restriction additional to server-side rule set).
+ */
+void
+rules_add_client_rule (struct openvas_rules *rules, char *rule)
+{
+  struct openvas_rules *start = rules;
+  int def = rules->def;
+  char *t = rule;
+  int len;
+#ifdef DEBUG_RULES
+  log_write ("parse %s\n", rule);
+#endif
+  while (rules->next)
+    rules = rules->next;
+  if (!strncmp (t, "default", 7))
+    {
+      if (!strncmp (t + 8, "accept", 6))
+        def = RULES_ACCEPT;
+      else
+        def = RULES_REJECT;
+      rules_set_def (start, def);
+      return;
+    }
+
+  if (!strncmp (t, "accept", 6))
+    rules->rule = RULES_ACCEPT;
+  else
+    rules->rule = RULES_REJECT;
+  rule = strchr (rule, ' ');
+  if (rule)
+    {
+      rule += sizeof (char);
+      t = strchr (rule, '/');
+      if (t)
+        t[0] = '\0';
+      if (rule[0] == '!')
+        {
+          rules->not = 1;
+          rule += sizeof (char);
+        }
+      else
+        rules->not = 0;
+
+      len = strlen (rule);
+
+      while (rule[len - 1] == ' ')
+        {
+          rule[len - 1] = '\0';
+          len--;
+        }
+
+      rules->family = AF_INET;
+
+      if (!(inet_aton (rule, &rules->inaddrs.ip)))
+        {
+          if (strcmp (rule, "client_ip"))
+            {
+              log_write
+                ("Parse error in the user rules : %s is not a valid IP\n",
+                 rule);
+              exit (1);
+            }
+          else
+            {
+              rules->client_ip = 1;
+              rules->inaddrs.ip.s_addr = -1;
+            }
+        }
+      else
+        rules->client_ip = 0;
+      rules->def = def;
+      if (t)
+        rules->mask = atoi (t + sizeof (char));
+      else
+        rules->mask = 32;
+      if (rules->mask < 0 || rules->mask > 32)
+        {
+          /* The user may have tried to fool us by entering
+             a bogus netmask. Just ignore this rule
+           */
+          log_write ("User entered an invalid netmask - %s/%d\n",
+                     inet_ntoa (rules->inaddrs.ip), rules->mask);
+          bzero (rules, sizeof (*rules));
+        }
+      else
+        rules->next = emalloc (sizeof (*rules));
+#ifdef DEBUG_RULES
+      log_write ("Added rule %s/%d\n", inet_ntoa (rules->inaddrs.ip),
+                 rules->mask);
+#endif
+    }
+}
+
 #ifdef DEBUG_RULES
 void
 rules_dump (struct openvas_rules *rules)

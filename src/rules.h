@@ -63,6 +63,7 @@ struct openvas_rules
 void rules_init (struct openvas_rules **, struct arglist *);
 void rules_free (struct openvas_rules *);
 void rules_add (struct openvas_rules **, struct openvas_rules **);
+void rules_add_client_rule (struct openvas_rules *, char *);
 struct openvas_rules *rules_parse (char *, struct openvas_rules *, int);
 struct openvas_rules *rules_dup (struct openvas_rules *);
 void rules_set_def (struct openvas_rules *, int);

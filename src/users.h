@@ -30,9 +30,6 @@
 #ifndef _OPENVAS_USERS_H
 #define _OPENVAS_USERS_H
 
-#include "rules.h"
-
 int check_user (char *);
-void users_add_rule (struct openvas_rules *, char *);
 
 #endif
