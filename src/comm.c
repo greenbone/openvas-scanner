@@ -37,7 +37,7 @@
 #include <openvas/misc/nvt_categories.h>/* for ACT_FIRST */
 #include <openvas/misc/plugutils.h>
 #include <openvas/misc/network.h>       /* for recv_line */
-#include <openvas/misc/otp.h>           /* for OTP_10 */
+#include <openvas/misc/otp.h>           /* for OTP_20 */
 #include <openvas/misc/system.h>        /* for emalloc */
 
 #include <openvas/base/nvticache.h>     /* for nvticache_t */
@@ -67,15 +67,15 @@ comm_init (int soc)
     exit (0);
 
   buf[sizeof (buf) - 1] = '\0';
-  if (!strncmp (buf, "< OTP/1.0 >", 11))
+  if (!strncmp (buf, "< OTP/2.0beta1 >", 16))
     {
-      version = OTP_10;
-      nsend (soc, "< OTP/1.0 >\n", 12, 0);
+      version = OTP_20;
+      nsend (soc, "< OTP/2.0beta1 >\n", 17, 0);
     }
-  else if (!strncmp (buf, "< OTP/1.1 >", 11))
+  else if (!strncmp (buf, "< OTP/2.1beta1 >", 16))
     {
-      version = OTP_11;
-      nsend (soc, "< OTP/1.1 >\n", 12, 0);
+      version = OTP_21;
+      nsend (soc, "< OTP/2.1beta1 >\n", 17, 0);
     }
   else
     {

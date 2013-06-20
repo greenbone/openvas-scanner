@@ -1,3 +1,12 @@
+2013-06-20  Michael Wiegand <michael.wiegand@greenbone.net>
+
+	Adjust version identification string for protocol version switch.
+
+	* src/openvassd.c (scanner_thread): Adjust version identifiers. Handle
+	2.0 like 1.0 and 2.1 like 1.1.
+
+	* src/comm.c (comm_init): Replace 1.x with 2.xbeta1.
+
 2013-06-11  Jan-Oliver Wagner <jan-oliver.wagner@greenbone.net>
 
 	* src/openvassd.c (check_client): New. Former check_user from users.c.
