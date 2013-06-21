@@ -1,3 +1,9 @@
+2013-06-21  Michael Wiegand <michael.wiegand@greenbone.net>
+
+	Preparing the openvas-scanner 4.0+beta1 release.
+
+	* CHANGES: Updated.
+
 2013-06-20  Michael Wiegand <michael.wiegand@greenbone.net>
 
 	Adjust version identification string for protocol version switch.
