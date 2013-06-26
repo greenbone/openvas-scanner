@@ -52,14 +52,14 @@ macro (Subversion_GET_REVISION dir variable)
 endmacro (Subversion_GET_REVISION)
 
 if (NOT CMAKE_BUILD_TYPE MATCHES "Release")
-  if (EXISTS ".svn/")
+  if (EXISTS "${CMAKE_SOURCE_DIR}/.svn/")
     if (SVN_EXECUTABLE)
       Subversion_GET_REVISION(. ProjectRevision)
       set (SVN_REVISION ".SVN.r${ProjectRevision}")
     else (SVN_EXECUTABLE)
       set (SVN_REVISION ".SVN")
     endif (SVN_EXECUTABLE)
-  endif (EXISTS ".svn/")
+  endif (EXISTS "${CMAKE_SOURCE_DIR}/.svn/")
 endif (NOT CMAKE_BUILD_TYPE MATCHES "Release")
 
 # TODO: Check pkg-config (maybe with code like in gsa/CMakeLists.txt).
