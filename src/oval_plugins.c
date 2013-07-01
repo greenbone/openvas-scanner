@@ -39,7 +39,7 @@
 #include <openvas/nasl/nasl.h>
 #include <openvas/misc/network.h>    /* for internal_send */
 #include <openvas/misc/nvt_categories.h>  /* for ACT_END */
-#include <openvas/misc/plugutils.h>  /* for post_note */
+#include <openvas/misc/plugutils.h>  /* for post_error */
 #include <openvas/misc/system.h>     /* for emalloc */
 #include <openvas/misc/proctitle.h>  /* for setproctitle */
 #include <openvas/misc/internal_com.h>  /* for INTERNAL_COMM_MSG_TYPE_CTRL */
@@ -621,7 +621,7 @@ ovaldi_launch (struct arglist *g_args)
         g_strdup_printf
         ("Could not launch ovaldi for OVAL definition %s: Could not create SC file.\n\n",
          basename);
-      post_note (g_args, 0, result_string);
+      post_error (g_args, 0, result_string);
       efree (&sc_filename);
     }
   else
@@ -878,7 +878,7 @@ ovaldi_launch (struct arglist *g_args)
             g_strdup_printf
             ("Could not collect remote package information for OVAL definition %s: Result may be incomplete.\n\n",
              basename);
-          post_note (g_args, 0, result_string);
+          post_error (g_args, 0, result_string);
 
         }
       else
@@ -1035,7 +1035,7 @@ ovaldi_launch (struct arglist *g_args)
             g_strdup_printf
             ("Could not return results for OVAL definition %s: Results file not found.\n\n",
              basename);
-          post_note (g_args, 0, result_string);
+          post_error (g_args, 0, result_string);
           log_write ("Results file %s not found!\n", results_filename);
         }
       else
@@ -1080,7 +1080,7 @@ ovaldi_launch (struct arglist *g_args)
                  first_result->definition_id, first_result->result);
             }
 
-          post_note (g_args, 0, result_string);
+          post_alarm (g_args, 0, result_string);
         }
     }
   else
@@ -1089,7 +1089,7 @@ ovaldi_launch (struct arglist *g_args)
         g_strdup_printf
         ("Could not launch ovaldi for OVAL definition %s: Launch failed. (Is ovaldi in your PATH?)\n\n",
          basename);
-      post_note (g_args, 0, result_string);
+      post_error (g_args, 0, result_string);
       log_write ("Could not launch ovaldi!\n");
     }
   g_strfreev (argv);
