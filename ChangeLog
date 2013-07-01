@@ -1,3 +1,9 @@
+2013-07-01  Michael Wiegand <michael.wiegand@greenbone.net>
+
+	* src/attack.c (pattern_matches, fill_host_kb_ssh_credentials): Hide
+	debug output behind NDEBUG ndefines so it does not show up when built
+	with the "Release" build type.
+
 2013-06-26  Michael Wiegand <michael.wiegand@greenbone.net>
 
 	* CMakeLists.txt: Make SVN revision in version string available again

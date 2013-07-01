@@ -414,11 +414,15 @@ is_pattern (const char *str)
 static gboolean
 pattern_matches (char *key_pattern, char *value_login, char *hostname)
 {
+#ifndef NDEBUG
   printf ("SSH-DEBUG: Testing if %s is pattern\n", key_pattern);
+#endif
   if (is_pattern (key_pattern) == FALSE)
     return FALSE;
 
+#ifndef NDEBUG
   printf ("SSH-DEBUG: Testing Pattern %s against %s\n", key_pattern, hostname);
+#endif
   if (g_pattern_match_simple (key_pattern, hostname) == TRUE)
     return TRUE;
 
@@ -452,9 +456,11 @@ fill_host_kb_ssh_credentials (struct kb_item **kb, struct arglist *globals,
 
   if (map_host_login_names == NULL || map_loginname_login == NULL)
     {
+#ifndef NDEBUG
       printf
         ("SSH-DEBUG: Host %s: no extended credentials configuration.\n",
          hostname);
+#endif
       return;
     }
 
@@ -468,8 +474,10 @@ fill_host_kb_ssh_credentials (struct kb_item **kb, struct arglist *globals,
   // No login- account name for this host found? Seach if any pattern matches.
   if (accountname == NULL || login == NULL)
     {
+#ifndef NDEBUG
       printf ("SSH-DEBUG: Trying to match patterns for login at %s\n",
               hostname);
+#endif
       accountname =
         g_hash_table_find (map_host_login_names, (GHRFunc) pattern_matches,
                            hostname);
@@ -481,16 +489,20 @@ fill_host_kb_ssh_credentials (struct kb_item **kb, struct arglist *globals,
   // No pattern matching this host found? Try "Default".
   if (accountname == NULL || login == NULL)
     {
+#ifndef NDEBUG
       printf ("SSH-DEBUG: Trying Default- account for local checks at %s\n",
               hostname);
+#endif
       accountname = g_hash_table_lookup (map_host_login_names, "Default");
 
       // If none under 'Default' either, done.
       if (accountname == NULL)
         {
+#ifndef NDEBUG
           printf
             ("SSH-DEBUG: Not setting login information for local checks at %s: No even Default account found.\n",
              hostname);
+#endif
           return;
         }
       else
@@ -499,17 +511,21 @@ fill_host_kb_ssh_credentials (struct kb_item **kb, struct arglist *globals,
           // No login information for this login-account found? Strange, but so be it.
           if (login == NULL)
             {
+#ifndef NDEBUG
               printf
                 ("SSH-DEBUG: Could not find info for accountname '%s' for local checks at %s.\n",
                  accountname, hostname);
+#endif
               return;
             }
         }
     }
 
+#ifndef NDEBUG
   printf
     ("SSH-DEBUG: Resolving infos of account '%s' for local checks at %s.\n",
      accountname, hostname);
+#endif
 
   // Get the translation table (remotefilepath -> localfilepath)
   file_translation = arg_get_value (globals, "files_translation");
@@ -546,8 +562,10 @@ fill_host_kb_ssh_credentials (struct kb_item **kb, struct arglist *globals,
         }
     }
 
+#ifndef NDEBUG
   printf ("SSH-DEBUG: Resolved account name %s for local tests at %s\n",
           accountname, hostname);
+#endif
 }
 
 // TODO eventually to be moved to libopenvas kb.c
