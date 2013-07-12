@@ -226,7 +226,7 @@ sync_nvts(){
     then
       rsync -e "ssh -o \"UserKnownHostsFile=/dev/null\" -o \"StrictHostKeyChecking=no\" -o \"BatchMode=yes\" -p $PORT -i $sysconfdir/openvas/gsf-access-key" -ltrP $RSYNC_VERBOSE --protocol=29 $RSYNC_DELETE $feeduser $NVT_DIR
     else
-      if [ -r /admin/proxyauth -a `stat -c %s /admin/proxyauth` != 0 ]; then
+      if [ -r /admin/proxyauth ] && [ -s /admin/proxyauth ]; then
         rsync -e "ssh -o \"UserKnownHostsFile=/dev/null\" -o \"StrictHostKeyChecking=no\" -o \"BatchMode=yes\" -o \"ProxyCommand corkscrew $gsmproxy %h %p /admin/proxyauth\" -p $PORT -i $sysconfdir/openvas/gsf-access-key" -ltrP $RSYNC_VERBOSE --protocol=29 $RSYNC_DELETE $feeduser $NVT_DIR
       else
         rsync -e "ssh -o \"UserKnownHostsFile=/dev/null\" -o \"StrictHostKeyChecking=no\" -o \"BatchMode=yes\" -o \"ProxyCommand corkscrew $gsmproxy %h %p\" -p $PORT -i $sysconfdir/openvas/gsf-access-key" -ltrP $RSYNC_VERBOSE --protocol=29 $RSYNC_DELETE $feeduser $NVT_DIR
