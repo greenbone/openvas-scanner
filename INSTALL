@@ -29,7 +29,7 @@ If you have installed required libraries to a non-standard location, remember to
 set the PKG_CONFIG_PATH environment variable to the location of you pkg-config
 files before configuring:
 
-    $ export PKG_CONFIG_PATH=$PKG_CONFIG_PATH:/your/location/lib/pkgconfig
+    $ export PKG_CONFIG_PATH=/your/location/lib/pkgconfig:$PKG_CONFIG_PATH
 
 Create a build directory and change into it with
 

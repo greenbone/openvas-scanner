@@ -1,3 +1,8 @@
+2013-07-25  Matthew Mundell <matthew.mundell@greenbone.net>
+
+	* INSTALL: Reorder PKG_CONFIG_PATH export, in case another openvas
+	installation is already in existing PKG_CONFIG_PATH.
+
 2013-07-12  Michael Wiegand <michael.wiegand@greenbone.net>
 
 	* tools/greenbone-nvt-sync: Simplify test and remove unnecessary stat
