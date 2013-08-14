@@ -1,3 +1,8 @@
+2013-08-14  Jan-Oliver Wagner <jan-oliver.wagner@greenbone.net>
+
+	* INSTALL: Updated reference system from Debian 6 to 7 and
+	removed mentioning of GSD.
+
 2013-07-25  Matthew Mundell <matthew.mundell@greenbone.net>
 
 	* INSTALL: Reorder PKG_CONFIG_PATH export, in case another openvas
