@@ -84,7 +84,7 @@ sigchld_handler (int sig)
 
 /*-------------------------------------------------------------------------*/
 static int
-forward (struct arglist *globals, int in, int out)
+forward (int in, int out)
 {
   static char *buf = NULL;
   static int bufsz = 0;
@@ -133,20 +133,20 @@ forward (struct arglist *globals, int in, int out)
 
 
 static void
-forward_all (struct arglist *globals, int in, int out)
+forward_all (int in, int out)
 {
-  while (forward (globals, in, out) == 0);
+  while (forward (in, out) == 0);
 }
 
 /*-------------------------------------------------------------------*/
 
 
 static struct host *
-host_rm (struct arglist *globals, struct host *hosts, struct host *h)
+host_rm (struct host *hosts, struct host *h)
 {
   if (h->pid != 0)
     waitpid (h->pid, NULL, WNOHANG);
-  forward_all (globals, h->soc, g_soc);
+  forward_all (h->soc, g_soc);
 
   close (h->soc);
   if (h->psoc != 0)
@@ -263,7 +263,7 @@ hosts_stop_host (struct arglist *globals, char *name)
   shutdown (h->soc, 2);
   kill (h->pid, SIGTERM);
   waitpid (h->pid, NULL, 0);
-  hosts = host_rm (globals, hosts, h);
+  hosts = host_rm (hosts, h);
   return 0;
 }
 
@@ -328,7 +328,7 @@ hosts_read_data (struct arglist *globals)
     {
       if (kill (h->pid, 0) < 0) /* Process is dead */
         {
-          hosts = host_rm (globals, hosts, h);
+          hosts = host_rm (hosts, h);
           h = hosts;
         }
       else
@@ -361,7 +361,7 @@ hosts_read_data (struct arglist *globals)
       if (FD_ISSET (h->soc, &rd) != 0)
         {
           if ((data_left (h->soc) != 0)
-              && (forward (globals, h->soc, g_soc) == 0))
+              && (forward (h->soc, g_soc) == 0))
             ret++;
         }
       h = h->next;

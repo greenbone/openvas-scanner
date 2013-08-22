@@ -36,13 +36,13 @@
 int save_kb_new (struct arglist *, char *);
 void save_kb_close (struct arglist *, char *);
 
-int save_kb_backup (struct arglist *, char *);
-int save_kb_restore_backup (struct arglist *, char *);
+int save_kb_backup (char *);
+int save_kb_restore_backup (char *);
 
 int save_kb_write_int (struct arglist *, char *, char *, int);
 int save_kb_write_str (struct arglist *, char *, char *, char *);
 
-int save_kb_exists (struct arglist *, char *);
+int save_kb_exists (char *);
 struct kb_item **save_kb_load_kb (struct arglist *, char *);
 
 int save_kb (struct arglist *);

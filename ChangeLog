@@ -1,3 +1,59 @@
+2013-08-22  Hani Benhabiles  <hani.benhabiles@greenbone.net>
+
+	Clean code, remove unused function parameters.
+
+	* src/attack.c (launch_plugin): Adjust plugin_set_running_state,
+	save_kb_restore_backup, save_kb_backup and save_kb_exists function call
+	accordingly.
+	(attack_network): Adjust get_max_hosts_number and get_max_checks_number
+	function calls.
+
+	* src/hosts.c (forward, forward_all, host_rm): Remove unused globals
+	parameter.
+
+	* src/nasl_plugins.c (nasl_plugin_init): Remove unused prefs and nasl
+	parameters.
+	(nasl_thread): Adjust preferences_drop_privileges function call.
+
+	* src/ntp_11.c (ntp_11_long_attack): Remove unused orig parameter.
+
+	* src/oval_plugins.c (oval_plugin_init): Remove unused prefs and args
+	parameters.
+
+	* src/pluginlaunch.c (process_mgr_sighand_term)
+	(update_running_processes, pluginlaunch_init, pluginlaunch_stop)
+	(plugin_launch): Adjust plugin_set_running_state and
+	get_max_checks_number function calls.
+
+	* src/pluginload.c (init_plugin_classes): Remove unused preferences
+	parameter.
+	(plugins_reload_from_dir): Adjust init_plugin_classes function call.
+
+	* src/pluginload.h (pl_class_s): Adjust pl_init function prototype.
+
+	* src/pluginscheduler.c (plugin_set_running_state)
+	(plugin_next_unrun_dependencie, plugins_scheduler_next): Remove unused
+	parameters. Adjust function calls.
+
+	* src/pluginscheduler.h: Adjust headers accordingly.
+
+	* src/preferences.c (preferences_drop_privileges): Remove unused
+	parameter.
+
+	* src/preferences.h: Adjust headers accordingly.
+
+	* src/save_kb.c (kb_dirname, kb_fname, save_kb_entry_present_already)
+	(save_kb_rm_entry_value, save_kb_rm_entry, save_kb_close)
+	(save_kb_exists, save_kb_restore_backup, save_kb_backup)
+	(save_kb_load_kb): Remove unused parameters. Adjust functions calls.
+
+	* src/save_kb.h: Adjust headers accordingly.
+
+	* src/utils.c (get_max_hosts_number, get_max_checks_number): Remove
+	unused parameters.
+
+	* src/utils.h: Adjust headers accordingly.
+
 2013-08-14  Jan-Oliver Wagner <jan-oliver.wagner@greenbone.net>
 
 	* INSTALL: Updated reference system from Debian 6 to 7 and

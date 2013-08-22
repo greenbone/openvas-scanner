@@ -348,7 +348,7 @@ end_element (GMarkupParseContext * context, const gchar * element_name,
  * @brief Initialize the plugin class.
  */
 pl_class_t *
-oval_plugin_init (struct arglist *prefs, struct arglist *args)
+oval_plugin_init (void)
 {
   return &oval_plugin_class;
 }

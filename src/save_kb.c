@@ -95,7 +95,7 @@ filter_odd_name (char *name)
  * @return Path to knowledge base directory, has to be freed using g_free.
  */
 static gchar *
-kb_dirname (struct arglist *globals)
+kb_dirname (void)
 {
   return g_build_filename (OPENVAS_STATE_DIR, "kbs", NULL);
 }
@@ -140,9 +140,9 @@ kb_mkdir (char *dir)
  * From \<hostname\>, return /path/to/var/lib/openvas/kbs/\<hostname\> .
  */
 static char *
-kb_fname (struct arglist *globals, char *hostname)
+kb_fname (char *hostname)
 {
-  gchar *dir = kb_dirname (globals);
+  gchar *dir = kb_dirname ();
   char *ret;
   char *hn = strdup (hostname);
 
@@ -196,8 +196,7 @@ map_file (int file)
 }
 
 static int
-save_kb_entry_present_already (struct arglist *globals, char *hostname,
-                               char *name, char *value)
+save_kb_entry_present_already (struct arglist *globals, char *name, char *value)
 {
   char *buf;
   int fd;
@@ -225,8 +224,7 @@ save_kb_entry_present_already (struct arglist *globals, char *hostname,
 }
 
 static int
-save_kb_rm_entry_value (struct arglist *globals, char *hostname, char *name,
-                        char *value)
+save_kb_rm_entry_value (struct arglist *globals, char *name, char *value)
 {
   char *buf;
   char *t;
@@ -302,9 +300,9 @@ save_kb_rm_entry_value (struct arglist *globals, char *hostname, char *name,
 }
 
 static int
-save_kb_rm_entry (struct arglist *globals, char *hostname, char *name)
+save_kb_rm_entry (struct arglist *globals, char *name)
 {
-  return save_kb_rm_entry_value (globals, hostname, name, NULL);
+  return save_kb_rm_entry_value (globals, name, NULL);
 }
 
 /**
@@ -361,12 +359,12 @@ save_kb_write (struct arglist *globals, char *hostname, char *name, char *value,
       || !strncmp (name, "Launched/", strlen ("Launched/"))
       || !strncmp (name, "SentData/", strlen ("SentData/")))
     {
-      save_kb_rm_entry (globals, hostname, name);
+      save_kb_rm_entry (globals, name);
     }
 
-  if (save_kb_entry_present_already (globals, hostname, name, value))
+  if (save_kb_entry_present_already (globals, name, value))
     {
-      save_kb_rm_entry_value (globals, hostname, name, value);
+      save_kb_rm_entry_value (globals, name, value);
     }
 
   str = emalloc (strlen (name) + strlen (value) + 25);
@@ -411,11 +409,11 @@ save_kb_new (struct arglist *globals, char *hostname)
 
   if (hostname == NULL)
     return -1;
-  dir = kb_dirname (globals);
+  dir = kb_dirname ();
   kb_mkdir (dir);
   efree (&dir);
 
-  fname = kb_fname (globals, hostname);
+  fname = kb_fname (hostname);
 
   if (file_locked (fname))
     {
@@ -451,7 +449,7 @@ void
 save_kb_close (struct arglist *globals, char *hostname)
 {
   int fd = GPOINTER_TO_SIZE (arg_get_value (globals, "save_kb"));
-  char *fname = kb_fname (globals, hostname);
+  char *fname = kb_fname (hostname);
   if (fd > 0)
     close (fd);
   file_unlock (fname);
@@ -464,9 +462,9 @@ save_kb_close (struct arglist *globals, char *hostname)
  *         account (returns true if a knowledge base exists).
  */
 int
-save_kb_exists (struct arglist *globals, char *hostname)
+save_kb_exists (char *hostname)
 {
-  char *fname = kb_fname (globals, hostname);
+  char *fname = kb_fname (hostname);
   FILE *f;
 
   if (file_locked (fname))
@@ -517,9 +515,9 @@ save_kb_write_int (struct arglist *globals, char *hostname, char *name,
  * @brief Restores a copy of the knowledge base
  */
 int
-save_kb_restore_backup (struct arglist *globals, char *hostname)
+save_kb_restore_backup (char *hostname)
 {
-  char *fname = kb_fname (globals, hostname);
+  char *fname = kb_fname (hostname);
   char *bakname;
   int fd;
 
@@ -540,9 +538,9 @@ save_kb_restore_backup (struct arglist *globals, char *hostname)
  * @brief Makes a copy of the knowledge base
  */
 int
-save_kb_backup (struct arglist *globals, char *hostname)
+save_kb_backup (char *hostname)
 {
-  char *fname = kb_fname (globals, hostname);
+  char *fname = kb_fname (hostname);
   char *newname = NULL;
   int fd_src = -1, fd_dst = -1;
 
@@ -615,7 +613,7 @@ failed1:
 struct kb_item **
 save_kb_load_kb (struct arglist *globals, char *hostname)
 {
-  char *fname = kb_fname (globals, hostname);
+  char *fname = kb_fname (hostname);
   FILE *f;
   int fd;
   struct kb_item **kb;

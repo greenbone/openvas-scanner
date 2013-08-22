@@ -41,8 +41,8 @@ struct attack_atom
   struct attack_atom *next;
 };
 struct arglist *sort_plugins_by_type (struct arglist *);
-int get_max_hosts_number (struct arglist *, struct arglist *);
-int get_max_checks_number (struct arglist *, struct arglist *);
+int get_max_hosts_number (struct arglist *);
+int get_max_checks_number (struct arglist *);
 int get_active_plugins_number (struct arglist *);
 char *hosts_arglist_to_string (struct arglist *);
 

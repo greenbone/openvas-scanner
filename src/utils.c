@@ -122,8 +122,7 @@ list2arglist (list)
  * Get the max number of hosts to test at the same time.
  */
 int
-get_max_hosts_number (globals, preferences)
-     struct arglist *globals;
+get_max_hosts_number (preferences)
      struct arglist *preferences;
 {
   int max_hosts;
@@ -154,8 +153,7 @@ you believe this is incorrect\n", max_hosts,
  * host at the same time
  */
 int
-get_max_checks_number (globals, preferences)
-     struct arglist *globals;
+get_max_checks_number (preferences)
      struct arglist *preferences;
 {
   int max_checks;

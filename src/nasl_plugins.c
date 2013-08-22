@@ -66,7 +66,7 @@
  * @return nasl_plugin_class struct.
  */
 static pl_class_t *
-nasl_plugin_init (struct arglist *prefs, struct arglist *nasl)
+nasl_plugin_init (void)
 {
   return &nasl_plugin_class;
 }
@@ -341,7 +341,7 @@ nasl_thread (struct arglist *g_args)
   if (preferences_nasl_no_signature_check (preferences) > 0)
     nasl_mode |= NASL_ALWAYS_SIGNED;
 
-  if (preferences_drop_privileges (preferences, NULL))
+  if (preferences_drop_privileges (preferences))
     {
       int drop_priv_res = OPENVAS_DROP_PRIVILEGES_OK;
       drop_priv_res = drop_privileges (NULL, &error);

@@ -63,7 +63,7 @@
 
 static int ntp_11_read_prefs (struct arglist *);
 static int ntp_11_rules (struct arglist *);
-static int ntp_11_long_attack (struct arglist *, char *);
+static int ntp_11_long_attack (struct arglist *);
 static int ntp_11_recv_file (struct arglist *);
 
 /**
@@ -105,7 +105,7 @@ ntp_11_parse_input (struct arglist *globals, char *input)
           break;
 
         case CREQ_LONG_ATTACK:
-          result = ntp_11_long_attack (globals, orig);
+          result = ntp_11_long_attack (globals);
           break;
 
         case CREQ_CERTIFICATES:
@@ -189,7 +189,7 @@ ntp_11_parse_input (struct arglist *globals, char *input)
 }
 
 static int
-ntp_11_long_attack (struct arglist *globals, char *orig)
+ntp_11_long_attack (struct arglist *globals)
 {
   struct arglist *preferences = arg_get_value (globals, "preferences");
   int soc = GPOINTER_TO_SIZE (arg_get_value (globals, "global_socket"));

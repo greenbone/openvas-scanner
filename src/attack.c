@@ -284,7 +284,7 @@ launch_plugin (struct arglist *globals, plugins_scheduler_t * sched,
               ("Not launching %s against %s %s (this is not an error)\n",
                plugin->arglist->name, hostname,
                "because safe checks are enabled");
-          plugin_set_running_state (sched, plugin, PLUGIN_STATUS_DONE);
+          plugin_set_running_state (plugin, PLUGIN_STATUS_DONE);
           return 0;
         }
 
@@ -314,7 +314,7 @@ launch_plugin (struct arglist *globals, plugins_scheduler_t * sched,
                   ("Not launching %s against %s %s (this is not an error)\n",
                    plugin->arglist->name, hostname,
                    "because it has already been launched in the past");
-              plugin_set_running_state (sched, plugin, PLUGIN_STATUS_DONE);
+              plugin_set_running_state (plugin, PLUGIN_STATUS_DONE);
               return 0;
             }
           else
@@ -343,7 +343,7 @@ launch_plugin (struct arglist *globals, plugins_scheduler_t * sched,
                            name, cl_ptr);
           if (pid < 0)
             {
-              plugin_set_running_state (sched, plugin, PLUGIN_STATUS_UNRUN);
+              plugin_set_running_state (plugin, PLUGIN_STATUS_UNRUN);
               return ERR_CANT_FORK;
             }
 
@@ -362,15 +362,15 @@ launch_plugin (struct arglist *globals, plugins_scheduler_t * sched,
                 save_kb_close (globals, hostname);
 
               if (kb_item_get_int (kb, "Host/ping_failed") > 0)
-                save_kb_restore_backup (globals, hostname);
+                save_kb_restore_backup (hostname);
 
-              plugin_set_running_state (sched, plugin, PLUGIN_STATUS_DONE);
+              plugin_set_running_state (plugin, PLUGIN_STATUS_DONE);
               return ERR_HOST_DEAD;
             }
         }
       else                      /* requirements_plugin() failed */
         {
-          plugin_set_running_state (sched, plugin, PLUGIN_STATUS_DONE);
+          plugin_set_running_state (plugin, PLUGIN_STATUS_DONE);
           if (preferences_log_whole_attack (preferences))
             log_write
               ("Not launching %s against %s %s (this is not an error)\n",
@@ -379,7 +379,7 @@ launch_plugin (struct arglist *globals, plugins_scheduler_t * sched,
         }
     }                           /* if(plugins->launch) */
   else
-    plugin_set_running_state (sched, plugin, PLUGIN_STATUS_DONE);
+    plugin_set_running_state (plugin, PLUGIN_STATUS_DONE);
 
   return 0;
 }
@@ -617,9 +617,9 @@ init_host_kb (struct arglist *globals, char *hostname, struct arglist *hostinfos
   if (save_kb (globals))
     {
       // Check if a saved kb exists and we shall restore it.
-      if (save_kb_exists (globals, hostname) != 0)
+      if (save_kb_exists (hostname) != 0)
         {
-          save_kb_backup (globals, hostname);
+          save_kb_backup (hostname);
           kb = save_kb_load_kb (globals, hostname);
         }
       else
@@ -1025,9 +1025,9 @@ attack_network (struct arglist *globals)
                             network_phase);
 
   hg_flags = preferences_get_host_expansion (preferences);
-  max_hosts = get_max_hosts_number (globals, preferences);
+  max_hosts = get_max_hosts_number (preferences);
 
-  int max_checks = get_max_checks_number (globals, preferences);
+  int max_checks = get_max_checks_number (preferences);
 
   if (network_phase)
     {

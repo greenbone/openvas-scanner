@@ -53,7 +53,7 @@ plugins_init (preferences, be_quiet)
 }
 
 static void
-init_plugin_classes (struct arglist *preferences)
+init_plugin_classes (void)
 {
   if (plugin_classes == NULL)
     {
@@ -65,7 +65,7 @@ init_plugin_classes (struct arglist *preferences)
 
       for (i = 0; (cl_ptr = classes[i]); ++i)
         {
-          if ((*cl_ptr->pl_init) (preferences, NULL))
+          if ((*cl_ptr->pl_init) ())
             {
               *cl_pptr = cl_ptr;
               cl_ptr->pl_next = NULL;
@@ -182,7 +182,7 @@ plugins_reload_from_dir (preferences, plugins, folder, be_quiet)
       g_strfreev (include_folders);
     }
 
-  init_plugin_classes (preferences);
+  init_plugin_classes ();
 
   if (folder == NULL)
     {

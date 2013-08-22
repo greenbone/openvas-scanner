@@ -437,12 +437,11 @@ preferences_benice (struct arglist *preferences)
  * preference if none was set.
  *
  * @param preferences Preferences arglist.
- * @param oid         OID of NVT to ask privilege setting of. (unused)
  *
  * @return 1 if privileges should be dropped for this NVT, 0 if not.
  */
 int
-preferences_drop_privileges (struct arglist *preferences, char *oid)
+preferences_drop_privileges (struct arglist *preferences)
 {
   int ret = 0;
 

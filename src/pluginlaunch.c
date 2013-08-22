@@ -176,8 +176,7 @@ process_mgr_sighand_term (int sig)
         {
           kill (processes[i].pid, SIGTERM);
           num_running_processes--;
-          plugin_set_running_state (processes[i].sched, processes[i].plugin,
-                                    PLUGIN_STATUS_DONE);
+          plugin_set_running_state (processes[i].plugin, PLUGIN_STATUS_DONE);
           close (processes[i].internal_soc);
           bzero (&(processes[i]), sizeof (struct running));
         }
@@ -276,7 +275,7 @@ update_running_processes ()
 
                 }
               num_running_processes--;
-              plugin_set_running_state (processes[i].sched, processes[i].plugin,
+              plugin_set_running_state (processes[i].plugin,
                                         PLUGIN_STATUS_DONE);
 
               close (processes[i].internal_soc);
@@ -408,7 +407,7 @@ pluginlaunch_init (struct arglist *globals)
 {
   struct arglist *preferences = arg_get_value (globals, "preferences");
   non_simult_ports_list = arg_get_value (preferences, "non_simult_ports_list");
-  max_running_processes = get_max_checks_number (globals, preferences);
+  max_running_processes = get_max_checks_number (preferences);
   old_max_running_processes = max_running_processes;
 
   signal (SIGCHLD, wait_for_children);
@@ -459,8 +458,7 @@ pluginlaunch_stop ()
         {
           kill (processes[i].pid, SIGKILL);
           num_running_processes--;
-          plugin_set_running_state (processes[i].sched, processes[i].plugin,
-                                    PLUGIN_STATUS_DONE);
+          plugin_set_running_state (processes[i].plugin, PLUGIN_STATUS_DONE);
           close (processes[i].internal_soc);
           bzero (&(processes[i]), sizeof (struct running));
         }
@@ -532,8 +530,7 @@ plugin_launch (struct arglist *globals, plugins_scheduler_t * sched,
   if (processes[p].pid > 0)
     num_running_processes++;
   else
-    plugin_set_running_state (processes[p].sched, processes[p].plugin,
-                              PLUGIN_STATUS_UNRUN);
+    plugin_set_running_state (processes[p].plugin, PLUGIN_STATUS_UNRUN);
 
   return processes[p].pid;
 }

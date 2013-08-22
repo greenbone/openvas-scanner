@@ -65,7 +65,7 @@ typedef struct pl_class_s
     /** File extension for this NVT class (e.g. ".nasl"). */
   const char *extension;
     /** Pointer to init function */
-  struct pl_class_s *(*pl_init) (struct arglist *, struct arglist *);
+  struct pl_class_s *(*pl_init) (void);
     /** Pointer to add function */
   struct arglist *(*pl_add) (char *, char *, struct arglist *,
                              struct arglist *);

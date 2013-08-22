@@ -109,8 +109,7 @@ typedef struct plugins_scheduler_struct *plugins_scheduler_t;
 #define PLUGIN_STATUS_DONE_AND_CLEANED 	4
 
 
-void plugin_set_running_state (plugins_scheduler_t, struct scheduler_plugin *,
-                               int);
+void plugin_set_running_state (struct scheduler_plugin *, int);
 
 plugins_scheduler_t plugins_scheduler_init (struct arglist *, int, int);
 struct scheduler_plugin *plugins_scheduler_next (plugins_scheduler_t);

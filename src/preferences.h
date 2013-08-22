@@ -53,7 +53,7 @@ int preferences_report_killed_plugins (struct arglist *);
 int preferences_delay_between_scans (struct arglist *);
 void preferences_reset_cache ();
 int preferences_nasl_no_signature_check (struct arglist *);
-int preferences_drop_privileges (struct arglist *, char *);
+int preferences_drop_privileges (struct arglist *);
 int preferences_network_scan (struct arglist *);
 
 #endif
