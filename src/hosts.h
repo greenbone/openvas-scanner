@@ -38,6 +38,6 @@ int hosts_read (struct arglist *);
 void hosts_pause_all ();
 void hosts_resume_all ();
 void hosts_stop_all ();
-int hosts_stop_host (struct arglist *globals, char *);
+int hosts_stop_host (char *);
 
 #endif

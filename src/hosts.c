@@ -254,7 +254,7 @@ hosts_set_pid (char *name, pid_t pid)
 
 /*-----------------------------------------------------------------*/
 int
-hosts_stop_host (struct arglist *globals, char *name)
+hosts_stop_host (char *name)
 {
   struct host *h = hosts_get (name);
   if (h == NULL)
@@ -272,7 +272,7 @@ hosts_stop_all ()
 {
   while (hosts != NULL)
     {
-      hosts_stop_host (NULL, hosts->name);
+      hosts_stop_host (hosts->name);
     }
 }
 
@@ -309,7 +309,7 @@ hosts_resume_all ()
 /*-----------------------------------------------------------------*/
 
 static int
-hosts_read_data (struct arglist *globals)
+hosts_read_data (void)
 {
   fd_set rd;
   struct timeval tv;
@@ -441,7 +441,7 @@ hosts_read (struct arglist *globals)
   if (hosts == NULL)
     return -1;
 
-  hosts_read_data (globals);
+  hosts_read_data ();
 
   return 0;
 }

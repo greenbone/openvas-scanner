@@ -171,7 +171,7 @@ ntp_11_parse_input (struct arglist *globals, char *input)
               }
             t[0] = '\0';
             log_write ("Stopping attack against %s\n", s);
-            hosts_stop_host (globals, s);
+            hosts_stop_host (s);
             arg_add_value (globals, "stop_required", ARG_INT, sizeof (int),
                            GSIZE_TO_POINTER (1));
             ntp_1x_timestamp_host_scan_interrupted (globals, s);
