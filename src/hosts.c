@@ -309,7 +309,7 @@ hosts_resume_all ()
 /*-----------------------------------------------------------------*/
 
 static int
-hosts_read_data (void)
+hosts_read_data ()
 {
   fd_set rd;
   struct timeval tv;
