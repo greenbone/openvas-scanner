@@ -34,7 +34,6 @@
 int preferences_init (char *, struct arglist **);
 int preferences_new (char *);
 int preferences_process (char *, struct arglist *);
-int preferences_get_host_expansion (struct arglist *);
 int preferences_get_slice_network_addresses (struct arglist *);
 int preferences_get_checks_read_timeout (struct arglist *);
 int preferences_log_whole_attack (struct arglist *);

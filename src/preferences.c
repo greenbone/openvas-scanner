@@ -46,7 +46,6 @@
 #include <fcntl.h>  /* for open() */
 #include <glib.h>
 
-#include <openvas/hg/hosts_gatherer.h>
 #include <openvas/misc/system.h>     /* for efree */
 #include <openvas/base/settings.h>   /* for init_settings_iterator_from_file */
 
@@ -164,42 +163,6 @@ preferences_process (char *filename, struct arglist *prefs)
   return (0);
 }
 
-
-int
-preferences_get_host_expansion (struct arglist *preferences)
-{
-  char *pref;
-  static int ret = -1;
-
-
-  if (!preferences)
-    {
-      ret = -1;
-      return -1;
-    }
-
-  if (ret >= 0)
-    return ret;
-
-  ret = 0;
-  pref = arg_get_value (preferences, "host_expansion");
-  if (!pref)
-    ret = HG_SUBNET;
-  else
-    {
-      if (strstr (pref, "dns"))
-        ret = ret | HG_DNS_AXFR;
-      if (strstr (pref, "nfs"))
-        ret = ret | HG_NFS;
-      if (strstr (pref, "ip"))
-        ret = ret | HG_SUBNET;
-    }
-
-  pref = arg_get_value (preferences, "reverse_lookup");
-  if (pref && strstr (pref, "yes"))
-    ret = ret | HG_REVLOOKUP;
-  return ret;
-}
 
 int
 preferences_get_slice_network_addresses (struct arglist *preferences)
@@ -688,7 +651,6 @@ preferences_get_string (struct arglist *preferences, char *name)
 void
 preferences_reset_cache ()
 {
-  preferences_get_host_expansion (NULL);
   preferences_get_checks_read_timeout (NULL);
   preferences_log_whole_attack (NULL);
   preferences_report_killed_plugins (NULL);

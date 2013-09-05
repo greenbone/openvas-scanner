@@ -1,3 +1,21 @@
+2013-09-05  Hani Benhabiles  <hani.benhabiles@greenbone.net>
+
+	Replace hg module usage with base/openvas_hosts API.
+
+	* src/attack.c: Remove hg/host_gatherer.h and hg/hg_utils.h includes.
+	Include base/openvas_hosts.h
+	(attack_start_args): Remove unused hg_globals element.
+	(attack_init_hostinfos_vhosts, attack_init_hostinfos, attack_network):
+	Remove hg module functions usage. Replace with openvas_hosts functions
+	calls. Remove unused code.
+
+	* src/openvassd.c: Remove unneeded include.
+
+	* src/preferences.c: Remove hg/host_gatherer.h include and unused
+	preferences_get_host_expansion function.
+
+	* src/preferences.h: Remove function header.
+
 2013-09-03  Hani Benhabiles  <hani.benhabiles@greenbone.net>
 
 	Clean code, remove unused function parameters.

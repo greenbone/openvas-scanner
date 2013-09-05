@@ -54,7 +54,6 @@
 #include <openvas/misc/bpf_share.h>  /* for bpf_server */
 #include <openvas/nasl/nasl.h>
 #include <openvas/misc/network.h>    /* for auth_printf */
-#include <openvas/hg/hosts_gatherer.h>
 #include <openvas/misc/plugutils.h>  /* for find_in_path */
 #include <openvas/misc/system.h>     /* for estrdup */
 #include <openvas/misc/rand.h>       /* for openvas_init_random */

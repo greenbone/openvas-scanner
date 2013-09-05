@@ -35,8 +35,7 @@
 
 #include <glib.h>
 
-#include <openvas/hg/hosts_gatherer.h>
-#include <openvas/hg/hg_utils.h>
+#include <openvas/base/openvas_hosts.h>
 #include <openvas/misc/kb.h>             /* for kb_new */
 #include <openvas/misc/network.h>        /* for auth_printf */
 #include <openvas/misc/nvt_categories.h> /* for ACT_INIT */
@@ -84,7 +83,6 @@ struct attack_start_args
   char *host_mac_addr;
   plugins_scheduler_t sched;
   int thread_socket;
-  struct hg_globals *hg_globals;
   char hostname[1024];
 };
 
@@ -136,7 +134,6 @@ attack_handle_sigusr2 ()
  * @brief Inits an arglist which can be used by the plugins.
  *
  * The arglist will have following keys and (type, value):
- *  - FQDN (string, Fully qualified domain name, e.g. host.domain.net)
  *  - NAME (string, The hostname parameter)
  *  - MAC  (string, The mac parameter if non-NULL)
  *  - IP   (*in_adrr, The ip parameter)
@@ -155,16 +152,6 @@ attack_init_hostinfos_vhosts (char *mac, char *hostname, struct in6_addr *ip, ch
   struct arglist *hostinfos;
 
   hostinfos = emalloc (sizeof (struct arglist));
-  if (!hg_valid_ip_addr (hostname))
-    {
-      char f[1024];
-      hg_get_name_from_ip (ip, f, sizeof (f));
-      arg_add_value (hostinfos, "FQDN", ARG_STRING, strlen (f), estrdup (f));
-    }
-  else
-    arg_add_value (hostinfos, "FQDN", ARG_STRING, strlen (hostname),
-                   estrdup (hostname));
-
   if (mac)
     {
       arg_add_value (hostinfos, "NAME", ARG_STRING, strlen (mac), mac);
@@ -185,7 +172,6 @@ attack_init_hostinfos_vhosts (char *mac, char *hostname, struct in6_addr *ip, ch
  * @brief Inits an arglist which can be used by the plugins.
  *
  * The arglist will have following keys and (type, value):
- *  - FQDN (string, Fully qualified domain name, e.g. host.domain.net)
  *  - NAME (string, The hostname parameter)
  *  - MAC  (string, The mac parameter if non-NULL)
  *  - IP   (*in_adrr, The ip parameter)
@@ -202,16 +188,6 @@ attack_init_hostinfos (char *mac, char *hostname, struct in6_addr *ip)
   struct arglist *hostinfos;
 
   hostinfos = emalloc (sizeof (struct arglist));
-  if (!hg_valid_ip_addr (hostname))
-    {
-      char f[1024];
-      hg_get_name_from_ip (ip, f, sizeof (f));
-      arg_add_value (hostinfos, "FQDN", ARG_STRING, strlen (f), estrdup (f));
-    }
-  else
-    arg_add_value (hostinfos, "FQDN", ARG_STRING, strlen (hostname),
-                   estrdup (hostname));
-
   if (mac)
     {
       arg_add_value (hostinfos, "NAME", ARG_STRING, strlen (mac), mac);
@@ -945,18 +921,14 @@ attack_network (struct arglist *globals)
 {
   int max_hosts = 0;
   int num_tested = 0;
-  char hostname[1024];
   char *hostlist;
-  struct in6_addr host_ip;
-  int hg_flags = 0;
-  int hg_res;
-  struct hg_globals *hg_globals = NULL;
+  openvas_hosts_t *hosts;
+  openvas_host_t *host;
   int global_socket = -1;
   struct arglist *preferences = NULL;
   struct arglist *plugins = NULL;
   struct openvas_rules *rules = NULL;
   struct arglist *rejected_hosts = NULL;
-  GHashTable *tested = NULL;
   plugins_scheduler_t sched;
   int fork_retries = 0;
   GHashTable *files;
@@ -971,7 +943,6 @@ attack_network (struct arglist *globals)
 
   gettimeofday (&then, NULL);
 
-  host_ip = in6addr_any;
   preferences = arg_get_value (globals, "preferences");
 
   do_network_scan = preferences_network_scan (preferences);
@@ -1024,7 +995,6 @@ attack_network (struct arglist *globals)
                             preferences_autoload_dependencies (preferences),
                             network_phase);
 
-  hg_flags = preferences_get_host_expansion (preferences);
   max_hosts = get_max_hosts_number (preferences);
 
   int max_checks = get_max_checks_number (preferences);
@@ -1035,7 +1005,7 @@ attack_network (struct arglist *globals)
       if (network_targets == NULL)
         {
           log_write ("WARNING: In network phase, but without targets! Stopping.\n");
-          hg_res = -1;
+          host = NULL;
         }
       else
         {
@@ -1051,33 +1021,28 @@ attack_network (struct arglist *globals)
          hostlist, max_hosts, max_checks);
     }
 
-  /* Initialize the hosts_gatherer library. */
-  if (preferences_get_slice_network_addresses (preferences) != 0)
-    hg_flags |= HG_DISTRIBUTE;
-
-  hg_globals = hg_init (hostlist, hg_flags);
-  hg_res = hg_next_host (hg_globals, &host_ip, hostname, sizeof (hostname));
-  if (tested != NULL)
-    {
-      while (hg_res >= 0 && g_hash_table_lookup (tested, hostname) != 0)
-        {
-          hg_res =
-            hg_next_host (hg_globals, &host_ip, hostname, sizeof (hostname));
-        }
-    }
-
-  if (hg_res < 0)
+  hosts = openvas_hosts_new (hostlist);
+  host = openvas_hosts_next (hosts);
+  if (host == NULL)
     goto stop;
-
   hosts_init (global_socket, max_hosts);
-
   /*
    * Start the attack !
    */
-  while (hg_res >= 0)
+  while (host)
     {
       int pid;
+      char *hostname;
+      struct in6_addr host_ip;
 
+      hostname = openvas_host_value_str (host);
+      if (openvas_host_get_addr6 (host, &host_ip) == -1)
+        {
+          log_write ("Couldn't resolve target %s\n", hostname);
+          g_free (hostname);
+          host = openvas_hosts_next (hosts);
+          continue;
+        }
       memcpy (&addrs.ip6, &host_ip, sizeof (struct in6_addr));
 
       /* Do we have the right to test this host ? */
@@ -1101,17 +1066,8 @@ attack_network (struct arglist *globals)
               if (mac_err > 0)
                 {
                   /* remote host is down */
-                  hg_res =
-                    hg_next_host (hg_globals, &host_ip, hostname,
-                                  sizeof (hostname));
-                  if (tested != NULL)
-                    {
-                      while (hg_res >= 0
-                             && g_hash_table_lookup (tested, hostname) != 0)
-                        hg_res =
-                          hg_next_host (hg_globals, &host_ip, hostname,
-                                        sizeof (hostname));
-                    }
+                  g_free (hostname);
+                  host = openvas_hosts_next (hosts);
                   continue;
                 }
             }
@@ -1170,21 +1126,13 @@ attack_network (struct arglist *globals)
 
       if (network_phase)
         {
-          hg_res = -1;
+          host = NULL;
           arg_set_value (globals, "network_scan_status", strlen ("done"), "done");
         }
       else
         {
-          hg_res = hg_next_host (hg_globals, &host_ip, hostname, sizeof (hostname));
-          if (tested != NULL)
-            {
-              while (hg_res >= 0 && g_hash_table_lookup (tested, hostname))
-                {
-                  hg_res =
-                    hg_next_host (hg_globals, &host_ip, hostname,
-                                  sizeof (hostname));
-                }
-            }
+          g_free (hostname);
+          host = openvas_hosts_next (hosts);
         }
     }
 
@@ -1234,7 +1182,7 @@ scan_stop:
 stop:
   scan_stopped = GPOINTER_TO_SIZE(arg_get_value (globals, "stop_required"));
 
-  hg_cleanup (hg_globals);
+  openvas_hosts_free (hosts);
 
   arg_free_all (rejected_hosts);
   plugins_scheduler_free (sched);
