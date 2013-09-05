@@ -2,6 +2,13 @@
 
 	Replace hg module usage with base/openvas_hosts API.
 
+	This also removes the scanner preference "host_expansion" which
+	in a magical way extends the list of hosts to be scanned.
+	It is strictly not the task of a scanner to extend the given scope
+	of scan targets based on unforseeable circumstances. Such intelligence
+	is to be solved via the vulnerability management, not via the
+	vulnerability scanning.
+
 	* src/attack.c: Remove hg/host_gatherer.h and hg/hg_utils.h includes.
 	Include base/openvas_hosts.h
 	(attack_start_args): Remove unused hg_globals element.
