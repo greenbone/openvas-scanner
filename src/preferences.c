@@ -87,7 +87,6 @@ static openvassd_option openvassd_defaults[] = {
   {"safe_checks", "yes"},
   {"auto_enable_dependencies", "yes"},
   {"use_mac_addr", "no"},
-  {"slice_network_addresses", "no"},
   {"nasl_no_signature_check", "yes"},
   {"drop_privileges", "no"},
   {"unscanned_closed", "yes"},
@@ -162,23 +161,6 @@ preferences_process (char *filename, struct arglist *prefs)
 
   return (0);
 }
-
-
-int
-preferences_get_slice_network_addresses (struct arglist *preferences)
-{
-  char *str;
-
-  if (preferences == NULL)
-    return 0;
-
-  str = arg_get_value (preferences, "slice_network_addresses");
-  if (str == NULL)
-    return 0;
-
-  return strcmp (str, "yes") == 0;
-}
-
 
 int
 preferences_get_checks_read_timeout (struct arglist *preferences)

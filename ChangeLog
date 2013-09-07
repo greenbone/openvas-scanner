@@ -1,3 +1,17 @@
+2013-09-07  Jan-Oliver Wagner <jan-oliver.wagner@greenbone.net>
+
+	Removing remains of the scanner preference "slice_network_addresses"
+	which was dropped with dropping the old host gatherer code.
+	New methods to iterate over target hosts will be implemented
+	based on the new code base. To not mix up with old prerefences,
+	new names will be used for this.
+
+	* src/preferences.c (openvassd_defaults): Removed
+	"slice_network_addresses"
+	(preferences_get_slice_network_addresses): Removed.
+
+	* src/preferences.h: Removed proto accordingly.
+
 2013-09-05  Hani Benhabiles  <hani.benhabiles@greenbone.net>
 
 	Replace hg module usage with base/openvas_hosts API.
