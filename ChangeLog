@@ -1,3 +1,10 @@
+2013-09-09  Hani Benhabiles  <hani.benhabiles@greenbone.net>
+
+	Add support for hosts_ordering scanner preferences.
+
+	* src/attack.c (attack_network): Check for hosts_ordering preference,
+	and shuffle hosts list when value is random. Fix coding style.
+
 2013-09-07  Jan-Oliver Wagner <jan-oliver.wagner@greenbone.net>
 
 	Removing remains of the scanner preference "slice_network_addresses"

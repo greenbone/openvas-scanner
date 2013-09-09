@@ -919,9 +919,9 @@ free_uploaded_file (gchar * key, gchar * value, gpointer ignored)
 int
 attack_network (struct arglist *globals)
 {
-  int max_hosts = 0;
+  int max_hosts = 0, max_checks;
   int num_tested = 0;
-  char *hostlist;
+  char *hostlist, *ordering;
   openvas_hosts_t *hosts;
   openvas_host_t *host;
   int global_socket = -1;
@@ -990,14 +990,11 @@ attack_network (struct arglist *globals)
     }
 
   /* Initialize the attack. */
-  sched =
-    plugins_scheduler_init (plugins,
-                            preferences_autoload_dependencies (preferences),
-                            network_phase);
+  sched = plugins_scheduler_init (plugins, preferences_autoload_dependencies
+                                            (preferences), network_phase);
 
   max_hosts = get_max_hosts_number (preferences);
-
-  int max_checks = get_max_checks_number (preferences);
+  max_checks = get_max_checks_number (preferences);
 
   if (network_phase)
     {
@@ -1016,12 +1013,17 @@ attack_network (struct arglist *globals)
     }
   else
     {
-      log_write
-        ("Starts a new scan. Target(s) : %s, with max_hosts = %d and max_checks = %d\n",
-         hostlist, max_hosts, max_checks);
+      log_write ("Starts a new scan. Target(s) : %s, with max_hosts = %d and"
+                 "max_checks = %d\n", hostlist, max_hosts, max_checks);
     }
 
   hosts = openvas_hosts_new (hostlist);
+
+  /* Get hosts ordering strategy: sequential, random... */
+  ordering = preferences_get_string (preferences, "hosts_ordering");
+  if (ordering && !strcmp (ordering, "random"))
+    openvas_hosts_shuffle (hosts);
+
   host = openvas_hosts_next (hosts);
   if (host == NULL)
     goto stop;
