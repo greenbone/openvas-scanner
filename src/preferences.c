@@ -403,31 +403,6 @@ preferences_save_session (struct arglist *preferences)
   return yes;
 }
 
-int
-preferences_save_empty_sessions (struct arglist *preferences)
-{
-  static int yes = -1;
-  char *pref;
-
-  if (!preferences)
-    {
-      yes = -1;
-      return -1;
-    }
-
-
-  if (yes >= 0)
-    return yes;
-
-  pref = arg_get_value (preferences, "save_empty_sessions");
-  if (pref && !strcmp (pref, "yes"))
-    yes = 1;
-  else
-    yes = 0;
-
-  return yes == 1;
-}
-
 
 int
 preferences_autoload_dependencies (struct arglist *preferences)
@@ -563,5 +538,4 @@ preferences_reset_cache ()
   preferences_autoload_dependencies (NULL);
   preferences_safe_checks_enabled (NULL);
   preferences_save_session (NULL);
-  preferences_save_empty_sessions (NULL);
 }
