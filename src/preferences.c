@@ -507,31 +507,6 @@ preferences_safe_checks_enabled (struct arglist *preferences)
 
 
 int
-preferences_use_mac_addr (struct arglist *preferences)
-{
-  static int yes = -1;
-  char *value;
-
-  if (!preferences)
-    {
-      yes = -1;
-      return -1;
-    }
-
-
-  if (yes >= 0)
-    return yes;
-
-  value = arg_get_value (preferences, "use_mac_addr");
-  if (value && !strcmp (value, "yes"))
-    yes = 1;
-  else
-    yes = 0;
-
-  return yes;
-}
-
-int
 preferences_nasl_no_signature_check (struct arglist *preferences)
 {
   static int yes = -1;
@@ -613,7 +588,6 @@ preferences_reset_cache ()
   preferences_benice (NULL);
   preferences_autoload_dependencies (NULL);
   preferences_safe_checks_enabled (NULL);
-  preferences_use_mac_addr (NULL);
   preferences_save_session (NULL);
   preferences_save_empty_sessions (NULL);
 }

@@ -47,7 +47,6 @@ int preferences_get_bool (struct arglist *, char *);
 char *preferences_get_string (struct arglist *, char *);
 int preferences_autoload_dependencies (struct arglist *);
 int preferences_safe_checks_enabled (struct arglist *);
-int preferences_use_mac_addr (struct arglist *);
 
 int preferences_delay_between_scans (struct arglist *);
 void preferences_reset_cache ();

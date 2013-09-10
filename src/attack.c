@@ -1062,7 +1062,7 @@ attack_network (struct arglist *globals)
           char *MAC = NULL;
           int mac_err = -1;
 
-          if (preferences_use_mac_addr (preferences)
+          if (preferences_get_bool (preferences, "use_mac_addr") > 0
               && v6_is_local_ip (&host_ip))
             {
               mac_err = v6_get_mac_addr (&host_ip, &MAC);

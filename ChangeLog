@@ -1,5 +1,17 @@
 2013-09-10  Jan-Oliver Wagner <jan-oliver.wagner@greenbone.net>
 
+	* src/preferences.c (preferences_use_mac_addr): Removed.
+	(preferences_reset_cache): Don't reset "use_mac_addr" anymore. Caching is
+	not relevant for this preference anyway, it is called once per host.
+
+	* src/preferences.h: Remove proto accordingly.
+
+	* src/attack.c (attack_network): Replace the explicit call for
+	use_mac_addr preference by generic bool check. In case of an error,
+	apply a default that is sensible in this context.
+
+2013-09-10  Jan-Oliver Wagner <jan-oliver.wagner@greenbone.net>
+
 	* src/preferences.c (preferences_report_killed_plugins): Removed.
 	It is an unused function.
 	(preferences_reset_cache): Don't call removed function anymore.
