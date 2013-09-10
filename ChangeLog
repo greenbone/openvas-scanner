@@ -1,5 +1,9 @@
 2013-09-10  Jan-Oliver Wagner <jan-oliver.wagner@greenbone.net>
 
+	* src/preferences.h: Remove forgotten proto.
+
+2013-09-10  Jan-Oliver Wagner <jan-oliver.wagner@greenbone.net>
+
 	* src/preferences.c (preferences_save_session): Removed.
 	It is an unused function.
 	(preferences_reset_cache): Don't call removed function anymore.
