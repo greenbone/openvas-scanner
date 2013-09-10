@@ -270,31 +270,6 @@ preferences_log_plugins_at_load (struct arglist *preferences)
   return yes;
 }
 
-int
-preferences_ntp_show_end (struct arglist *preferences)
-{
-  static int yes = -1;
-  char *pref;
-
-  if (!preferences)
-    {
-      yes = -1;
-      return -1;
-    }
-
-
-  if (yes >= 0)
-    return yes;
-
-  pref = arg_get_value (preferences, "ntp_opt_show_end");
-  if (pref && !strcmp (pref, "yes"))
-    yes = 1;
-  else
-    yes = 0;
-
-  return yes;
-}
-
 
 int
 preferences_plugins_timeout (struct arglist *preferences)
@@ -582,7 +557,6 @@ preferences_reset_cache ()
   preferences_get_checks_read_timeout (NULL);
   preferences_log_whole_attack (NULL);
   preferences_optimize_test (NULL);
-  preferences_ntp_show_end (NULL);
   preferences_log_plugins_at_load (NULL);
   preferences_plugins_timeout (NULL);
   preferences_benice (NULL);

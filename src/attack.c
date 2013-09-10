@@ -869,8 +869,7 @@ attack_start (struct attack_start_args *args)
   attack_host (globals, hostinfos, hostname, sched);
 
   // Calculate duration, clean up
-  if (preferences_ntp_show_end (preferences))
-    ntp_11_show_end (globals, hostname, 1);
+  ntp_11_show_end (globals, hostname, 1);
 
   ntp_1x_timestamp_host_scan_ends (globals, hostname);
   gettimeofday (&now, NULL);

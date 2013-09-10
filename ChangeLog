@@ -1,5 +1,18 @@
 2013-09-10  Jan-Oliver Wagner <jan-oliver.wagner@greenbone.net>
 
+	Removing support for Scanner preference "ntp_opt_show_end" and instead
+	show the end always.
+
+	* src/attack.c (attack_start): Show protocol end message (FINISHED) always.
+	It is send already always when stopping a scan.
+
+	* src/preferences.c (preferences_ntp_show_end): Removed.
+	(preferences_reset_cache): Don't reset "ntp_show_end" anymore.
+
+	* src/preferences.h: Remove proto accordingly.
+
+2013-09-10  Jan-Oliver Wagner <jan-oliver.wagner@greenbone.net>
+
 	* src/preferences.c (preferences_use_mac_addr): Removed.
 	(preferences_reset_cache): Don't reset "use_mac_addr" anymore. Caching is
 	not relevant for this preference anyway, it is called once per host.
