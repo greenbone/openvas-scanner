@@ -40,7 +40,6 @@ int preferences_plugin_timeout (struct arglist *, char *);
 int preferences_benice (struct arglist *);
 int preferences_get_bool (struct arglist *, char *);
 char *preferences_get_string (struct arglist *, char *);
-int preferences_autoload_dependencies (struct arglist *);
 int preferences_safe_checks_enabled (struct arglist *);
 
 void preferences_reset_cache ();

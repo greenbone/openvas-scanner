@@ -1,5 +1,17 @@
 2013-09-10  Jan-Oliver Wagner <jan-oliver.wagner@greenbone.net>
 
+	* src/preferences.c (preferences_autoload_dependencies): Removed.
+	(preferences_reset_cache): Don't reset "autoload_dependencies" anymore.
+	Caching is not relevant for this preference anyway, it is called once per attack.
+
+	* src/preferences.h: Remove proto accordingly.
+
+	* src/attack.c (attack_network): Replace the explicit call for
+	autoload_dependencies preference by generic bool check. In case of an error,
+	apply a default that is sensible in this context.
+
+2013-09-10  Jan-Oliver Wagner <jan-oliver.wagner@greenbone.net>
+
 	* src/preferences.h: Remove yet another two forgotten protos.
 
 2013-09-10  Jan-Oliver Wagner <jan-oliver.wagner@greenbone.net>

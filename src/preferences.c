@@ -379,33 +379,6 @@ preferences_drop_privileges (struct arglist *preferences)
 
 
 int
-preferences_autoload_dependencies (struct arglist *preferences)
-{
-  static int yes = -1;
-  char *pref;
-
-  if (!preferences)
-    {
-      yes = -1;
-      return -1;
-    }
-
-
-  if (yes >= 0)
-    return yes;
-
-  pref = arg_get_value (preferences, "auto_enable_dependencies");
-  if (pref && !strcmp (pref, "yes"))
-    yes = 1;
-  else
-    yes = 0;
-
-  return yes;
-}
-
-
-
-int
 preferences_safe_checks_enabled (struct arglist *preferences)
 {
   static int yes = -1;
@@ -509,6 +482,5 @@ preferences_reset_cache ()
   preferences_log_plugins_at_load (NULL);
   preferences_plugins_timeout (NULL);
   preferences_benice (NULL);
-  preferences_autoload_dependencies (NULL);
   preferences_safe_checks_enabled (NULL);
 }

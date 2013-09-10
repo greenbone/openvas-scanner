@@ -990,8 +990,9 @@ attack_network (struct arglist *globals)
     }
 
   /* Initialize the attack. */
-  sched = plugins_scheduler_init (plugins, preferences_autoload_dependencies
-                                            (preferences), network_phase);
+  sched = plugins_scheduler_init (plugins,
+    preferences_get_bool (preferences, "auto_enable_dependencies") == 1 ? 1 : 0,
+    network_phase);
 
   max_hosts = get_max_hosts_number (preferences);
   max_checks = get_max_checks_number (preferences);
