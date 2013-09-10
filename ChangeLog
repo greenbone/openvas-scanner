@@ -1,5 +1,9 @@
 2013-09-10  Jan-Oliver Wagner <jan-oliver.wagner@greenbone.net>
 
+	* src/preferences.h: Remove forgotten proto of recent commit.
+
+2013-09-10  Jan-Oliver Wagner <jan-oliver.wagner@greenbone.net>
+
 	* src/preferences.c (preferences_save_empty_sessions): Removed.
 	It is an unused function.
 	(preferences_reset_cache): Don't call removed function anymore.
@@ -14,8 +18,6 @@
 
 	* src/preferences.c (preferences_ntp_show_end): Removed.
 	(preferences_reset_cache): Don't reset "ntp_show_end" anymore.
-
-	* src/preferences.h: Remove proto accordingly.
 
 2013-09-10  Jan-Oliver Wagner <jan-oliver.wagner@greenbone.net>
 

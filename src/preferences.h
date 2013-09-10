@@ -38,7 +38,6 @@ int preferences_get_slice_network_addresses (struct arglist *);
 int preferences_get_checks_read_timeout (struct arglist *);
 int preferences_log_whole_attack (struct arglist *);
 int preferences_optimize_test (struct arglist *);
-int preferences_ntp_show_end (struct arglist *);
 int preferences_log_plugins_at_load (struct arglist *);
 int preferences_plugins_timeout (struct arglist *);
 int preferences_plugin_timeout (struct arglist *, char *);
