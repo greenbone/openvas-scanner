@@ -38,12 +38,8 @@
  * Resetting this "cache"s is possible by calling preferences_reset_cache.
  */
 
-#include <unistd.h> /* for close() */
-#include <stdio.h>  /* for printf() */
-#include <string.h> /* for strstr() */
-#include <errno.h>  /* for errno() */
+#include <string.h> /* for strlen() */
 #include <stdlib.h> /* for atoi() */
-#include <fcntl.h>  /* for open() */
 #include <glib.h>
 
 #include <openvas/misc/system.h>     /* for efree */
@@ -53,9 +49,6 @@
 #include "preferences.h"
 #include "log.h"
 #include "utils.h"
-
-
-#define inited(x) ((x) >= 0)
 
 typedef struct
 {
@@ -162,33 +155,6 @@ preferences_process (char *filename, struct arglist *prefs)
   return (0);
 }
 
-int
-preferences_get_checks_read_timeout (struct arglist *preferences)
-{
-  char *pref;
-  static int ret = -1;
-
-  if (!preferences)
-    {
-      ret = -1;
-      return -1;
-    }
-
-
-  if (ret >= 0)
-    return ret;
-
-  pref = arg_get_value (preferences, "checks_read_timeout");
-  if (pref)
-    {
-      ret = atoi (pref);
-      if (!ret)
-        ret = 15;
-    }
-  else
-    ret = 15;
-  return ret;
-}
 
 int
 preferences_log_whole_attack (struct arglist *preferences)
@@ -476,7 +442,6 @@ preferences_get_string (struct arglist *preferences, char *name)
 void
 preferences_reset_cache ()
 {
-  preferences_get_checks_read_timeout (NULL);
   preferences_log_whole_attack (NULL);
   preferences_optimize_test (NULL);
   preferences_log_plugins_at_load (NULL);

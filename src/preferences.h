@@ -31,7 +31,6 @@
 
 int preferences_init (char *, struct arglist **);
 int preferences_process (char *, struct arglist *);
-int preferences_get_checks_read_timeout (struct arglist *);
 int preferences_log_whole_attack (struct arglist *);
 int preferences_optimize_test (struct arglist *);
 int preferences_log_plugins_at_load (struct arglist *);
