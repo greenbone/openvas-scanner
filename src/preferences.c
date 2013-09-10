@@ -557,31 +557,6 @@ preferences_nasl_no_signature_check (struct arglist *preferences)
   return yes;
 }
 
-int
-preferences_report_killed_plugins (struct arglist *preferences)
-{
-  static int yes = -1;
-  char *pref;
-
-  if (!preferences)
-    {
-      yes = -1;
-      return -1;
-    }
-
-
-  if (yes >= 0)
-    return yes;
-
-  pref = arg_get_value (preferences, "report_killed_plugins");
-  if ((!pref) || strcmp (pref, "yes"))
-    yes = 0;
-  else
-    yes = 1;
-
-  return yes;
-}
-
 
 /**
  * @brief Get a integer boolean value of a "yes"/"no" preference.
@@ -631,7 +606,6 @@ preferences_reset_cache ()
 {
   preferences_get_checks_read_timeout (NULL);
   preferences_log_whole_attack (NULL);
-  preferences_report_killed_plugins (NULL);
   preferences_optimize_test (NULL);
   preferences_ntp_show_end (NULL);
   preferences_log_plugins_at_load (NULL);

@@ -1,5 +1,13 @@
 2013-09-10  Jan-Oliver Wagner <jan-oliver.wagner@greenbone.net>
 
+	* src/preferences.c (preferences_report_killed_plugins): Removed.
+	It is an unused function.
+	(preferences_reset_cache): Don't call removed function anymore.
+
+	* src/preferences.h: Removed proto accordingly.
+
+2013-09-10  Jan-Oliver Wagner <jan-oliver.wagner@greenbone.net>
+
 	* src/preferences.c (preferences_network_scan): Removed.
 	(preferences_get_bool): New. Generically check for "yes"/"no" settings.
 	(preferences_reset_cache): Don't reset "network_scan" anymore. Caching was
