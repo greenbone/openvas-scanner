@@ -1,3 +1,10 @@
+2013-09-10  Hani Benhabiles  <hani.benhabiles@greenbone.net>
+
+	Add support for exclude_hosts scanner preference.
+
+	* src/attack.c (attack_network): Call openvas_hosts_exclude when
+	exclude_hosts value is provided.
+
 2013-09-10  Jan-Oliver Wagner <jan-oliver.wagner@greenbone.net>
 
 	* src/preferences.c (preferences_autoload_dependencies): Removed.

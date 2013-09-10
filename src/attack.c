@@ -920,7 +920,7 @@ attack_network (struct arglist *globals)
 {
   int max_hosts = 0, max_checks;
   int num_tested = 0;
-  char *hostlist, *ordering;
+  char *hostlist, *ordering, *exclude_hosts;
   openvas_hosts_t *hosts;
   openvas_host_t *host;
   int global_socket = -1;
@@ -1024,6 +1024,18 @@ attack_network (struct arglist *globals)
   ordering = preferences_get_string (preferences, "hosts_ordering");
   if (ordering && !strcmp (ordering, "random"))
     openvas_hosts_shuffle (hosts);
+
+  /* Remove excluded hosts. */
+  exclude_hosts = preferences_get_string (preferences, "exclude_hosts");
+  if (exclude_hosts)
+    {
+      int ret = openvas_hosts_exclude (hosts, exclude_hosts);
+
+      if (ret >= 0)
+        log_write ("Excluded %d host(s).\n", ret);
+      else
+        log_write ("Error excluding %s.\n", exclude_hosts);
+    }
 
   host = openvas_hosts_next (hosts);
   if (host == NULL)
