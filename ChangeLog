@@ -1,3 +1,16 @@
+2013-09-10  Jan-Oliver Wagner <jan-oliver.wagner@greenbone.net>
+
+	* src/preferences.c (preferences_network_scan): Removed.
+	(preferences_get_bool): New. Generically check for "yes"/"no" settings.
+	(preferences_reset_cache): Don't reset "network_scan" anymore. Caching was
+	not relevant for this preference anyway, it is called once per scan.
+
+	* src/preferences.h: Add/remove protos accordingly.
+
+	* src/attack.c (attack_network): Replace the explicit call for network_scan
+	preference by generic bool check. In case of an error, apply a default that
+	is sensible in this context.
+
 2013-09-09  Hani Benhabiles  <hani.benhabiles@greenbone.net>
 
 	Add support for hosts_ordering scanner preferences.

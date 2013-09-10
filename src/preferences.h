@@ -43,6 +43,7 @@ int preferences_log_plugins_at_load (struct arglist *);
 int preferences_plugins_timeout (struct arglist *);
 int preferences_plugin_timeout (struct arglist *, char *);
 int preferences_benice (struct arglist *);
+int preferences_get_bool (struct arglist *, char *);
 char *preferences_get_string (struct arglist *, char *);
 int preferences_autoload_dependencies (struct arglist *);
 int preferences_safe_checks_enabled (struct arglist *);
@@ -53,6 +54,5 @@ int preferences_delay_between_scans (struct arglist *);
 void preferences_reset_cache ();
 int preferences_nasl_no_signature_check (struct arglist *);
 int preferences_drop_privileges (struct arglist *);
-int preferences_network_scan (struct arglist *);
 
 #endif

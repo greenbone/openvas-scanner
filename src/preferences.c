@@ -582,31 +582,27 @@ preferences_report_killed_plugins (struct arglist *preferences)
   return yes;
 }
 
+
+/**
+ * @brief Get a integer boolean value of a "yes"/"no" preference.
+ *
+ * @return 0 if the preference is "no", 1 if "yes", -1 upon error.
+ */
 int
-preferences_network_scan (struct arglist *preferences)
+preferences_get_bool (struct arglist *preferences, char *name)
 {
-  static int yes = -1;
-  char *pref;
+  char *pref = arg_get_value (preferences, name);
 
-  if (!preferences)
-    {
-      yes = -1;
-      return -1;
-    }
+  if (!pref || pref[0] == '\0')
+    return -1;
+  if (!strcmp (pref, "no"))
+    return 0;
+  if (!strcmp (pref, "yes"))
+    return 1;
 
-
-  if (yes >= 0)
-    return yes;
-
-
-  pref = arg_get_value (preferences, "network_scan");
-  if (pref && !strcmp (pref, "yes"))
-    yes = 1;
-  else
-    yes = 0;
-
-  return yes;
+  return -1;
 }
+
 
 /**
  * @return NULL if pref is set to "no", preference value otherwise.
@@ -646,5 +642,4 @@ preferences_reset_cache ()
   preferences_use_mac_addr (NULL);
   preferences_save_session (NULL);
   preferences_save_empty_sessions (NULL);
-  preferences_network_scan (NULL);
 }

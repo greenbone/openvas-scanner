@@ -945,7 +945,8 @@ attack_network (struct arglist *globals)
 
   preferences = arg_get_value (globals, "preferences");
 
-  do_network_scan = preferences_network_scan (preferences);
+  if ((do_network_scan = preferences_get_bool (preferences, "network_scan")) == -1)
+    do_network_scan = 0;
   network_targets = arg_get_value (preferences, "network_targets");
   if (network_targets != NULL)
     arg_add_value (globals, "network_targets", ARG_STRING,
