@@ -1015,7 +1015,7 @@ attack_network (struct arglist *globals)
   else
     {
       log_write ("Starts a new scan. Target(s) : %s, with max_hosts = %d and"
-                 "max_checks = %d\n", hostlist, max_hosts, max_checks);
+                 " max_checks = %d\n", hostlist, max_hosts, max_checks);
     }
 
   hosts = openvas_hosts_new (hostlist);
@@ -1036,6 +1036,11 @@ attack_network (struct arglist *globals)
       else
         log_write ("Error excluding %s.\n", exclude_hosts);
     }
+
+  /* Hosts that reverse-lookup only ? */
+  if (preferences_get_bool (preferences, "reverse_lookup_only") == 1)
+    log_write ("Skipped %d host(s) (No reverse-lookup.)\n",
+               openvas_hosts_reverse_lookup_only (hosts));
 
   host = openvas_hosts_next (hosts);
   if (host == NULL)
