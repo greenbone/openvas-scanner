@@ -38,7 +38,6 @@
 #define NTP_RESUME_WHOLE_TEST 4
 
 int ntp_11_parse_input (struct arglist *, char *);
-void ntp_11_show_end (struct arglist *, char *, int);
 
 int ntp_1x_timestamp_host_scan_starts (struct arglist *, char *);
 int ntp_1x_timestamp_host_scan_ends (struct arglist *, char *);

@@ -1,3 +1,15 @@
+2013-09-11  Jan-Oliver Wagner <jan-oliver.wagner@greenbone.net>
+
+	* src/attack.c: (attack_start): Remove again the sending
+	of FINISHED. It confuses the clients, they don't need this
+	extra message.
+
+	* src/ntp_11.c (ntp_11_parse_input): Don't send FINISHED upon
+	STOP_ATTACK, HOST_INTERRUPTED is sufficient for the time being.
+	(ntp_11_show_end): Removed.
+
+	* src/ntp_11.h: Removed proto accordingly.
+
 2013-09-11  Hani Benhabiles  <hani.benhabiles@greenbone.net>
 
 	Add support for reverse_lookup_only scanner preference.

@@ -175,7 +175,6 @@ ntp_11_parse_input (struct arglist *globals, char *input)
             arg_add_value (globals, "stop_required", ARG_INT, sizeof (int),
                            GSIZE_TO_POINTER (1));
             ntp_1x_timestamp_host_scan_interrupted (globals, s);
-            ntp_11_show_end (globals, s, 0);
             break;
           }
 
@@ -387,18 +386,6 @@ ntp_11_rules (struct arglist *globals)
   rules_set_client_ip (rules, &addrs, AF_INET);
   arg_set_value (globals, "rules", -1, rules);
   return (0);
-}
-
-void
-ntp_11_show_end (struct arglist *globals, char *name, int internal)
-{
-  int soc = GPOINTER_TO_SIZE (arg_get_value (globals, "global_socket"));
-  char buf[1024];
-  snprintf (buf, sizeof (buf), "SERVER <|> FINISHED <|> %s <|> SERVER\n", name);
-  if (internal)
-    internal_send (soc, buf, INTERNAL_COMM_MSG_TYPE_DATA);
-  else
-    auth_printf (globals, "%s", buf);
 }
 
 /**
