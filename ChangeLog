@@ -1,3 +1,10 @@
+2013-09-12  Hani Benhabiles  <hani.benhabiles@greenbone.net>
+
+	Add support for reverse_lookup_unify scanner preference.
+
+	* src/attack.c (attack_network): Check for reverse_lookup_unify. Update
+	other preferences logging style and comments.
+
 2013-09-11  Jan-Oliver Wagner <jan-oliver.wagner@greenbone.net>
 
 	* src/attack.c: (attack_start): Remove again the sending
