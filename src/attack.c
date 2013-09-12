@@ -1018,10 +1018,15 @@ attack_network (struct arglist *globals)
 
   hosts = openvas_hosts_new (hostlist);
 
-  /* Hosts ordering strategy: sequential, random... */
+  /* Hosts ordering strategy: sequential, random, reversed... */
   ordering = preferences_get_string (preferences, "hosts_ordering");
-  if (ordering && !strcmp (ordering, "random"))
-    openvas_hosts_shuffle (hosts);
+  if (ordering)
+    {
+      if (!strcmp (ordering, "random"))
+        openvas_hosts_shuffle (hosts);
+      else if (!strcmp (ordering, "reversed"))
+        openvas_hosts_reverse (hosts);
+    }
 
   /* Exclude hosts ? */
   exclude_hosts = preferences_get_string (preferences, "exclude_hosts");

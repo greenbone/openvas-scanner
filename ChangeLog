@@ -1,5 +1,12 @@
 2013-09-12  Hani Benhabiles  <hani.benhabiles@greenbone.net>
 
+	Add support for reversed hosts_ordering.
+
+	* src/attack.c (attack_network): Call openvas_hosts_reverse when
+	ordering value is reversed. Update comment.
+
+2013-09-12  Hani Benhabiles  <hani.benhabiles@greenbone.net>
+
 	Add support for reverse_lookup_unify scanner preference.
 
 	* src/attack.c (attack_network): Check for reverse_lookup_unify. Update
