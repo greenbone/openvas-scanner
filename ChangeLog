@@ -1,3 +1,7 @@
+2013-09-18  Hani Benhabiles  <hani.benhabiles@greenbone.net>
+
+	* src/attack.c (attack_network): Adjust openvas_hosts_exclude call.
+
 2013-09-12  Hani Benhabiles  <hani.benhabiles@greenbone.net>
 
 	Add support for reversed hosts_ordering.

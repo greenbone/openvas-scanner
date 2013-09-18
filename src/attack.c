@@ -1032,7 +1032,8 @@ attack_network (struct arglist *globals)
   exclude_hosts = preferences_get_string (preferences, "exclude_hosts");
   if (exclude_hosts)
     {
-      int ret = openvas_hosts_exclude (hosts, exclude_hosts);
+      /* Exclude hosts, resolving hostnames. */
+      int ret = openvas_hosts_exclude (hosts, exclude_hosts, 1);
 
       if (ret >= 0)
         log_write ("exclude_hosts: Skipped %d host(s).\n", ret);
