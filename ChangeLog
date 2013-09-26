@@ -1,5 +1,11 @@
 2013-09-26  Hani Benhabiles  <hani.benhabiles@greenbone.net>
 
+	Post release version bump.
+
+	* CMakeLists.txt: Set version to 4.0+beta3.
+
+2013-09-26  Hani Benhabiles  <hani.benhabiles@greenbone.net>
+
 	Preparing the openvas-scanner 4.0+beta2 release.
 
 	* CHANGES: Updated.
