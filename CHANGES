@@ -1,3 +1,26 @@
+openvas-scanner 4.0+beta2 (2013-09-26)
+
+This is the second beta release of the openvas-scanner 4.0 module for the Open
+Vulnerability Assessment System (OpenVAS). It will be part of the upcoming
+"OpenVAS-7".
+
+Main changes since last beta release include:
+Integration of openvas_hosts interface, replacing the usage of HG submodule.
+Support of new scanning preferences and removal of other ones and various code
+cleanups and improvements.
+
+Many thanks to everyone who has contributed to this release:
+Hani Benhabiles, Jan-Oliver Wagner, Matthew Mundell and Michael Wiegand.
+
+Main changes compared to 4.0+beta1:
+* Usage of post_alarm instead of post_error and post_note.
+* Big number of code cleanups.
+* Integrate openvas_hosts interface. Remove usage of HG submodule.
+* Remove slice_network_addresses and ntp_opt_show_end scanner preferences.
+* Add hosts_ordering, exclude_hosts, reverse_lookup_only, reverse_lookup_unify
+  scanner preferences.
+
+
 openvas-scanner 4.0+beta1 (2013-06-21)
 
 This is the first beta release of the openvas-scanner 4.0 module for the Open

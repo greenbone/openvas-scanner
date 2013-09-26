@@ -1,3 +1,9 @@
+2013-09-26  Hani Benhabiles  <hani.benhabiles@greenbone.net>
+
+	Preparing the openvas-scanner 4.0+beta2 release.
+
+	* CHANGES: Updated.
+
 2013-09-18  Hani Benhabiles  <hani.benhabiles@greenbone.net>
 
 	* src/attack.c (attack_network): Adjust openvas_hosts_exclude call.
