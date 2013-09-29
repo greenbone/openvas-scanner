@@ -113,7 +113,7 @@ send_plug_info (struct arglist *globals, struct arglist *plugins)
 #define CAT_MAX	(sizeof(categories) / sizeof(categories[0]))
   char *t;
   const char *name, *copyright, *summary, *version, *family = NULL;
-  char *description = NULL;
+  char *description = "NODESC";
   unsigned int mem_size = 0;
   char *str;
   int ignored = 0;
@@ -127,19 +127,6 @@ send_plug_info (struct arglist *globals, struct arglist *plugins)
       log_write ("NVT without OID found. Will not be sent.\n");
       nvti_free (nvti);
       return;
-    }
-
-  if (plugin_is_newstyle (nvti))
-    description = "NODESC";
-  else
-    {
-      t = nvti_description (nvti);
-      if (t != NULL)
-        {
-          description = t = estrdup (t);
-          while ((t = strchr (t, '\n')))
-            t[0] = ';';
-        }
     }
 
   j = nvti_category (nvti);
@@ -164,13 +151,6 @@ send_plug_info (struct arglist *globals, struct arglist *plugins)
         ("Inconsistent data (no copyright): %s - not applying this plugin\n",
          name ? name : nvti_oid (nvti));
       copyright = "Unknown COPYRIGHT";
-      ignored = 1;
-    }
-
-  if (description == NULL)
-    {
-      log_write ("Inconsistent data (no desc): %s - not applying this plugin\n",
-                 name ? name : nvti_oid (nvti));
       ignored = 1;
     }
 
@@ -208,13 +188,6 @@ send_plug_info (struct arglist *globals, struct arglist *plugins)
     {
       fprintf (stderr, "ERROR (newline in copyright)- %s %s\n",
                nvti_oid (nvti), copyright);
-      ignored = 1;
-    }
-
-  if (description && strchr (description, '\n') != NULL)
-    {
-      fprintf (stderr, "ERROR (newline in desc) - %s %s\n", nvti_oid (nvti),
-               description);
       ignored = 1;
     }
 
@@ -287,9 +260,6 @@ send_plug_info (struct arglist *globals, struct arglist *plugins)
       auth_printf (globals, "%s\n", str);
       efree (&str);
     }
-
-  if (description != NULL && strcmp (description, "NODESC"))
-    efree (&description);
 
   nvti_free (nvti);
 }
