@@ -111,7 +111,6 @@ send_plug_info (struct arglist *globals, struct arglist *plugins)
   int j;
   static const char *categories[] = { ACT_STRING_LIST_ALL };
 #define CAT_MAX	(sizeof(categories) / sizeof(categories[0]))
-  char *t;
   const char *name, *copyright, *summary, *version, *family = NULL;
   char *description = "NODESC";
   unsigned int mem_size = 0;

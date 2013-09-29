@@ -1,5 +1,9 @@
 2013-09-29  Jan-Oliver Wagner <jan-oliver.wagner@greenbone.net>
 
+	* src/comm.c (send_plug_info): Remove unused variable "t".
+
+2013-09-29  Jan-Oliver Wagner <jan-oliver.wagner@greenbone.net>
+
 	* src/comm.c (send_plug_info): Always send NODESC for description
 	instead of sending it only if the NVTI is a newstyle one.
 	Also remove the ignoring of the NVTI in case no description is present
