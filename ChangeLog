@@ -1,3 +1,8 @@
+2013-09-30  Hani Benhabiles  <hani.benhabiles@greenbone.net>
+
+	* src/preferences.c (openvassd_defaults): Remove unused reverse_lookup
+	value.
+
 2013-09-29  Jan-Oliver Wagner <jan-oliver.wagner@greenbone.net>
 
 	* src/comm.c (send_plug_info): Remove unused variable "t".
