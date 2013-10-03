@@ -1068,6 +1068,10 @@ attack_network (struct arglist *globals)
       if (openvas_host_get_addr6 (host, &host_ip) == -1)
         {
           log_write ("Couldn't resolve target %s\n", hostname);
+          auth_printf (globals,
+                       "SERVER <|> ERRMSG <|> %s <|> general/HOST <|>"
+                       " Couldn't resolve hostname. <|>  <|> SERVER\n", hostname);
+
           g_free (hostname);
           host = openvas_hosts_next (hosts);
           continue;

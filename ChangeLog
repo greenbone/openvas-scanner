@@ -1,3 +1,8 @@
+2013-10-03  Hani Benhabiles  <hani.benhabiles@greenbone.net>
+
+	* src/attack.c (attack_network): Send error message to manager when a
+	hostname is unresolvable.
+
 2013-09-30  Hani Benhabiles  <hani.benhabiles@greenbone.net>
 
 	* src/preferences.c (openvassd_defaults): Remove unused reverse_lookup
