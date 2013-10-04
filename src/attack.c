@@ -83,7 +83,7 @@ struct attack_start_args
   char *host_mac_addr;
   plugins_scheduler_t sched;
   int thread_socket;
-  char hostname[1024];
+  char fqdn[1024];
 };
 
 /**
@@ -135,6 +135,7 @@ attack_handle_sigusr2 ()
  *
  * The arglist will have following keys and (type, value):
  *  - NAME (string, The hostname parameter)
+ *  - FQDN (string, Fully qualified domain name, e.g. host.domain.net)
  *  - MAC  (string, The mac parameter if non-NULL)
  *  - IP   (*in_adrr, The ip parameter)
  *  - VHOSTS (string, comma separated list of vhosts for this IP)
@@ -147,7 +148,8 @@ attack_handle_sigusr2 ()
  * @return A 'hostinfo' arglist.
  */
 static struct arglist *
-attack_init_hostinfos_vhosts (char *mac, char *hostname, struct in6_addr *ip, char *vhosts)
+attack_init_hostinfos_vhosts (char *mac, char *hostname, struct in6_addr *ip,
+                              char *vhosts, char *fqdn)
 {
   struct arglist *hostinfos;
 
@@ -161,6 +163,9 @@ attack_init_hostinfos_vhosts (char *mac, char *hostname, struct in6_addr *ip, ch
     arg_add_value (hostinfos, "NAME", ARG_STRING, strlen (hostname),
                    estrdup (hostname));
 
+  if (fqdn)
+    arg_add_value (hostinfos, "FQDN", ARG_STRING, strlen (hostname),
+                   estrdup (fqdn));
   arg_add_value (hostinfos, "IP", ARG_PTR, sizeof (struct in6_addr), ip);
   if (vhosts)
     arg_add_value (hostinfos, "VHOSTS", ARG_STRING, strlen (vhosts),
@@ -172,6 +177,7 @@ attack_init_hostinfos_vhosts (char *mac, char *hostname, struct in6_addr *ip, ch
  * @brief Inits an arglist which can be used by the plugins.
  *
  * The arglist will have following keys and (type, value):
+ *  - FQDN (string, Fully qualified domain name, e.g. host.domain.net)
  *  - NAME (string, The hostname parameter)
  *  - MAC  (string, The mac parameter if non-NULL)
  *  - IP   (*in_adrr, The ip parameter)
@@ -183,7 +189,8 @@ attack_init_hostinfos_vhosts (char *mac, char *hostname, struct in6_addr *ip, ch
  * @return A 'hostinfo' arglist.
  */
 static struct arglist *
-attack_init_hostinfos (char *mac, char *hostname, struct in6_addr *ip)
+attack_init_hostinfos (char *mac, char *hostname, struct in6_addr *ip,
+                       char *fqdn)
 {
   struct arglist *hostinfos;
 
@@ -196,6 +203,9 @@ attack_init_hostinfos (char *mac, char *hostname, struct in6_addr *ip)
   else
     arg_add_value (hostinfos, "NAME", ARG_STRING, strlen (hostname),
                    estrdup (hostname));
+  if (fqdn)
+    arg_add_value (hostinfos, "FQDN", ARG_STRING, strlen (hostname),
+                   estrdup (fqdn));
 
   arg_add_value (hostinfos, "IP", ARG_PTR, sizeof (struct in6_addr), ip);
   return (hostinfos);
@@ -793,7 +803,7 @@ static void
 attack_start (struct attack_start_args *args)
 {
   struct arglist *globals = args->globals;
-  char *hostname = args->hostname;
+  char host_str[1024];
   char *mac = args->host_mac_addr;
   struct arglist *plugs = arg_get_value (globals, "plugins");
   struct in6_addr *hostip = &(args->hostip);
@@ -808,6 +818,15 @@ attack_start (struct attack_start_args *args)
   struct timeval then, now;
   plugins_scheduler_t sched = args->sched;
   int i;
+
+  /* Stringify the IP address. */
+  if (IN6_IS_ADDR_V4MAPPED (&args->hostip))
+    inet_ntop (AF_INET, ((char *)(&args->hostip))+12, host_str,
+               sizeof (host_str));
+  else
+    inet_ntop (AF_INET6, &args->hostip, host_str,
+               sizeof (host_str));
+
 
   openvas_signal (SIGUSR1, attack_handle_sigusr1);
   openvas_signal (SIGUSR2, attack_handle_sigusr2);
@@ -842,7 +861,7 @@ attack_start (struct attack_start_args *args)
 
   soc = thread_socket;
   if (vhosts == NULL || vhosts_ip == NULL)
-    hostinfos = attack_init_hostinfos (mac, hostname, hostip);
+    hostinfos = attack_init_hostinfos (mac, host_str, hostip, args->fqdn);
   else
     {
       char *txt_ip;
@@ -856,20 +875,21 @@ attack_start (struct attack_start_args *args)
         txt_ip = estrdup (inet_ntop (AF_INET6, hostip, name, sizeof (name)));
       if (strcmp (vhosts_ip, txt_ip) != 0)
         vhosts = NULL;
-      hostinfos = attack_init_hostinfos_vhosts (mac, hostname, hostip, vhosts);
+      hostinfos = attack_init_hostinfos_vhosts (mac, host_str, hostip, vhosts,
+                                                args->fqdn);
     }
 
   if (mac)
-    hostname = mac;
+    strcpy (host_str, mac);
 
   plugins_set_socket (plugs, soc);
-  ntp_1x_timestamp_host_scan_starts (globals, hostname);
+  ntp_1x_timestamp_host_scan_starts (globals, host_str);
 
   // Start scan
-  attack_host (globals, hostinfos, hostname, sched);
+  attack_host (globals, hostinfos, host_str, sched);
 
   // Calculate duration, clean up
-  ntp_1x_timestamp_host_scan_ends (globals, hostname);
+  ntp_1x_timestamp_host_scan_ends (globals, host_str);
   gettimeofday (&now, NULL);
   if (now.tv_usec < then.tv_usec)
     {
@@ -877,7 +897,7 @@ attack_start (struct attack_start_args *args)
       now.tv_usec += 1000000;
     }
 
-  log_write ("Finished testing %s. Time : %ld.%.2ld secs\n", hostname,
+  log_write ("Finished testing %s. Time : %ld.%.2ld secs\n", host_str,
              (long) (now.tv_sec - then.tv_sec),
              (long) ((now.tv_usec - then.tv_usec) / 10000));
   shutdown (soc, 2);
@@ -1110,13 +1130,15 @@ attack_network (struct arglist *globals)
             goto scan_stop;
 
           args.globals = globals;
-          if (IN6_IS_ADDR_V4MAPPED (&host_ip))
-            inet_ntop (AF_INET, ((char *)(&host_ip))+12, args.hostname,
-                       sizeof (args.hostname));
-          else
-            inet_ntop (AF_INET6, &host_ip, args.hostname,
-                       sizeof (args.hostname));
           memcpy (&args.hostip, &host_ip, sizeof (struct in6_addr));
+          if (openvas_host_type (host) == HOST_TYPE_NAME)
+            {
+              gchar *name = openvas_host_value_str (host);
+              strncpy (args.fqdn, name, sizeof (args.fqdn));
+              g_free (name);
+            }
+          else
+            args.fqdn[0] = '\0';
           args.host_mac_addr = MAC;
           args.sched = sched;
           args.thread_socket = s;
@@ -1200,9 +1222,7 @@ scan_stop:
           int n;
           n = strlen (rejected_hosts->name);
           if (length + n + 1 >= 4000)
-            {
-              n = 4000 - length - 2;
-            }
+            n = 4000 - length - 2;
 
           strncat (banner, rejected_hosts->name, n);
           strncat (banner, ";", 1);

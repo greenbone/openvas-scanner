@@ -1,5 +1,15 @@
 2013-10-04  Hani Benhabiles  <hani.benhabiles@greenbone.net>
 
+	* src/attack.c (attack_start_args): Remove hostname member. Add fqdn
+	member.
+	(attack_init_hostinfos_vhosts, attack_init_hostinfos): Add fqdn
+	parameter. Set FQDN host info.
+	(attack_start): Stringify host ip instead of using args hostname. Adjust
+	attack init function calls. Rename hostname variable.
+	(attack_network): Use openvas_host to get the fqdn in attack start args.
+
+2013-10-04  Hani Benhabiles  <hani.benhabiles@greenbone.net>
+
 	* src/attack.c (attack_network): Always use the string representation of
 	IPv4 and IPv6 addresses when a hostname is provided.
 
