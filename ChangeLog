@@ -1,3 +1,8 @@
+2013-10-04  Hani Benhabiles  <hani.benhabiles@greenbone.net>
+
+	* src/attack.c (attack_network): Always use the string representation of
+	IPv4 and IPv6 addresses when a hostname is provided.
+
 2013-10-03  Hani Benhabiles  <hani.benhabiles@greenbone.net>
 
 	* src/attack.c (attack_network): Send error message to manager when a

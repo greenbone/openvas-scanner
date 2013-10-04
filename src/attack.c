@@ -1110,8 +1110,12 @@ attack_network (struct arglist *globals)
             goto scan_stop;
 
           args.globals = globals;
-          strncpy (args.hostname, hostname, sizeof (args.hostname) - 1);
-          args.hostname[sizeof (args.hostname) - 1] = '\0';
+          if (IN6_IS_ADDR_V4MAPPED (&host_ip))
+            inet_ntop (AF_INET, ((char *)(&host_ip))+12, args.hostname,
+                       sizeof (args.hostname));
+          else
+            inet_ntop (AF_INET6, &host_ip, args.hostname,
+                       sizeof (args.hostname));
           memcpy (&args.hostip, &host_ip, sizeof (struct in6_addr));
           args.host_mac_addr = MAC;
           args.sched = sched;
