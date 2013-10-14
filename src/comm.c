@@ -112,7 +112,6 @@ send_plug_info (struct arglist *globals, struct arglist *plugins)
   static const char *categories[] = { ACT_STRING_LIST_ALL };
 #define CAT_MAX	(sizeof(categories) / sizeof(categories[0]))
   const char *name, *copyright, *summary, *version, *family = NULL;
-  char *description = "NODESC";
   unsigned int mem_size = 0;
   char *str;
   int ignored = 0;
@@ -234,7 +233,6 @@ send_plug_info (struct arglist *globals, struct arglist *plugins)
 
       mem_size = strlen (name) +
         strlen (copyright) +
-        strlen (description) +
         strlen (summary) +
         strlen (family) +
         strlen (version) +
@@ -249,10 +247,10 @@ send_plug_info (struct arglist *globals, struct arglist *plugins)
       snprintf (str, mem_size,
                 "%s <|> %s <|> %s <|> "
                 "%s <|> %s <|> %s <|> "
-                "%s <|> %s <|> %s <|> %s <|> %s <|> %s <|> %s",
+                "%s <|> %s <|> %s <|> %s <|> %s <|> %s",
                 nvti_oid (nvti), name, categories[j],
-                copyright, description, summary,
-                family, version, cve_id, bid, xref, sign_keys, tag);
+                copyright, summary, family,
+                version, cve_id, bid, xref, sign_keys, tag);
 
       if (tag != NULL && strcmp (tag, "NOTAG"))
         efree (&tag);

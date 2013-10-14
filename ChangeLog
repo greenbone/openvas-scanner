@@ -1,3 +1,7 @@
+2013-10-14  Hani Benhabiles  <hani.benhabiles@greenbone.net>
+
+	* src/comm.c (send_plug_info): Don't send plugin description.
+
 2013-10-04  Hani Benhabiles  <hani.benhabiles@greenbone.net>
 
 	* src/attack.c (attack_start_args): Remove hostname member. Add fqdn
