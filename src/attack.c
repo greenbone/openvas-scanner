@@ -927,6 +927,47 @@ free_uploaded_file (gchar * key, gchar * value, gpointer ignored)
 
 ********************************************************/
 
+static void
+apply_hosts_preferences (openvas_hosts_t *hosts, struct arglist *preferences)
+{
+  char *ordering, *exclude_hosts;
+
+  if (hosts == NULL || preferences == NULL)
+    return;
+
+  /* Hosts ordering strategy: sequential, random, reversed... */
+  ordering = preferences_get_string (preferences, "hosts_ordering");
+  if (ordering)
+    {
+      if (!strcmp (ordering, "random"))
+        openvas_hosts_shuffle (hosts);
+      else if (!strcmp (ordering, "reversed"))
+        openvas_hosts_reverse (hosts);
+    }
+
+  /* Exclude hosts ? */
+  exclude_hosts = preferences_get_string (preferences, "exclude_hosts");
+  if (exclude_hosts)
+    {
+      /* Exclude hosts, resolving hostnames. */
+      int ret = openvas_hosts_exclude (hosts, exclude_hosts, 1);
+
+      if (ret >= 0)
+        log_write ("exclude_hosts: Skipped %d host(s).\n", ret);
+      else
+        log_write ("exclude_hosts: Error.\n");
+    }
+
+  /* Reverse-lookup unify ? */
+  if (preferences_get_bool (preferences, "reverse_lookup_unify") == 1)
+    log_write ("reverse_lookup_unify: Skipped %d host(s).\n",
+               openvas_hosts_reverse_lookup_unify (hosts));
+
+  /* Hosts that reverse-lookup only ? */
+  if (preferences_get_bool (preferences, "reverse_lookup_only") == 1)
+    log_write ("reverse_lookup_only: Skipped %d host(s).\n",
+               openvas_hosts_reverse_lookup_only (hosts));
+}
 
 /**
  * @brief Attack a whole network.
@@ -938,7 +979,7 @@ attack_network (struct arglist *globals)
 {
   int max_hosts = 0, max_checks;
   int num_tested = 0;
-  char *hostlist, *ordering, *exclude_hosts;
+  char *hostlist;
   openvas_hosts_t *hosts;
   openvas_host_t *host;
   int global_socket = -1;
@@ -1038,38 +1079,8 @@ attack_network (struct arglist *globals)
 
   hosts = openvas_hosts_new (hostlist);
 
-  /* Hosts ordering strategy: sequential, random, reversed... */
-  ordering = preferences_get_string (preferences, "hosts_ordering");
-  if (ordering)
-    {
-      if (!strcmp (ordering, "random"))
-        openvas_hosts_shuffle (hosts);
-      else if (!strcmp (ordering, "reversed"))
-        openvas_hosts_reverse (hosts);
-    }
-
-  /* Exclude hosts ? */
-  exclude_hosts = preferences_get_string (preferences, "exclude_hosts");
-  if (exclude_hosts)
-    {
-      /* Exclude hosts, resolving hostnames. */
-      int ret = openvas_hosts_exclude (hosts, exclude_hosts, 1);
-
-      if (ret >= 0)
-        log_write ("exclude_hosts: Skipped %d host(s).\n", ret);
-      else
-        log_write ("exclude_hosts: Error.\n");
-    }
-
-  /* Reverse-lookup unify ? */
-  if (preferences_get_bool (preferences, "reverse_lookup_unify") == 1)
-    log_write ("reverse_lookup_unify: Skipped %d host(s).\n",
-               openvas_hosts_reverse_lookup_unify (hosts));
-
-  /* Hosts that reverse-lookup only ? */
-  if (preferences_get_bool (preferences, "reverse_lookup_only") == 1)
-    log_write ("reverse_lookup_only: Skipped %d host(s).\n",
-               openvas_hosts_reverse_lookup_only (hosts));
+  /* Apply Hosts preferences */
+  apply_hosts_preferences (hosts, preferences);
 
   host = openvas_hosts_next (hosts);
   if (host == NULL)

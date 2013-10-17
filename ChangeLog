@@ -1,3 +1,9 @@
+2013-10-17  Hani Benhabiles  <hani.benhabiles@greenbone.net>
+
+	* src/attack.c (apply_hosts_preferences): New function.
+	(attack_network): Call apply_hosts_preferences instead of checking and
+	applying hosts related preferences.
+
 2013-10-14  Hani Benhabiles  <hani.benhabiles@greenbone.net>
 
 	* src/comm.c (send_plug_info): Don't send plugin description.
