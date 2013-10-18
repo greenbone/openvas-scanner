@@ -39,22 +39,6 @@ This option is useful if you are running openvassd on a gateway and if you don't
 want people on the outside to connect to your 
 .BR openvassd .
 
-.TP
-.BI "-S " <ip[,ip2,...]> ", --src-ip=" <ip[,ip2,...]>
-Force the source IP of the connections established by OpenVAS to
-.I <ip>
-.\" Note that you can not set arbitrary addresses here, as most OpenVAS
-checks need to fully establish a connection to the remote host. This
-option is only useful if you have a multi-homed machine with multiple
-public IP addresses that you would like to use instead of the default
-one. Example :
-.BR "openvassd -S 192.168.1.1,192.168.1.2,192.168.1.3,192.168.1.4"
-will make 
-.B openvassd
-establish connections with a source IP of one among those listed above.
-For this setup to work, the host running openvassd should have multiple
-NICs with these IP addresses set.
-
 .TP 
 .BI "-p " <port-number> ", --port=" <port-number>
 Tell the scanner to listen on connection on the port <port-number> rather
@@ -150,6 +134,9 @@ OpenVAS plugins use the result of each other to execute their job. For instance,
 
 .IP use_mac_addr
 Set this option to 'yes' if you are testing your local network and each local host has a dynamic IP address (affected by DHCP or BOOTP), and all the tested hosts will be referred to by their MAC address.
+
+.IP source_iface
+Name of the network interface that will be used as the source of connections established by OpenVAS.
 
 .IP rules
 path to the rules database

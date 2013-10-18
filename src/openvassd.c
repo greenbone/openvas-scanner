@@ -132,117 +132,6 @@ static int init_openvassd (struct arglist *, int, int, int, int);
 static int init_network (int, int *, struct addrinfo);
 static void scanner_thread (struct arglist *);
 
-static struct in6_addr *
-convert_ip_addresses (char *ips, int family)
-{
-  char *t;
-  struct in_addr addr;
-  struct in6_addr addr6;
-  struct in6_addr *ret;
-  int num = 0;
-  int num_allocated = 256;
-  char *orig;
-
-  ips = orig = estrdup (ips);
-
-  ret = emalloc ((num_allocated + 1) * sizeof (struct in6_addr));
-
-  while ((t = strchr (ips, ',')) != NULL)
-    {
-      t[0] = '\0';
-      while (ips[0] == ' ')
-        ips++;
-      if (family == AF_INET)
-        {
-          if (inet_aton (ips, &addr) == 0)
-            {
-#ifdef DEBUG
-              fprintf (stderr, "Could not convert %s,may be ipv6 address\n",
-                       ips);
-#endif
-            }
-          else
-            {
-              ret[num].s6_addr32[0] = 0;
-              ret[num].s6_addr32[1] = 0;
-              ret[num].s6_addr32[2] = htonl (0xffff);
-              ret[num].s6_addr32[3] = addr.s_addr;
-              num++;
-            }
-        }
-      else
-        {
-          if (inet_pton (AF_INET6, ips, &addr6) == 0)
-            {
-#ifdef DEBUG
-              fprintf (stderr, "Could not convert %s,may be ipv6 address\n",
-                       ips);
-#endif
-            }
-          else
-            {
-              memcpy (&ret[num], &addr6, sizeof (struct in6_addr));
-              num++;
-            }
-        }
-
-      if (num >= num_allocated)
-        {
-          num_allocated *= 2;
-          ret = erealloc (ret, (num_allocated + 1) * sizeof (struct in6_addr));
-        }
-
-      ips = t + 1;
-    }
-
-  while (ips[0] == ' ')
-    ips++;
-
-  if (family == AF_INET)
-    {
-      if (inet_aton (ips, &addr) == 0)
-        {
-#ifdef DEBUG
-          fprintf (stderr, "Could not convert %s\n,may be ipv6 address", ips);
-#endif
-        }
-      else
-        {
-          ret[num].s6_addr32[0] = 0;
-          ret[num].s6_addr32[1] = 0;
-          ret[num].s6_addr32[2] = htonl (0xffff);
-          ret[num].s6_addr32[3] = addr.s_addr;
-          num++;
-        }
-    }
-  else
-    {
-      if (inet_pton (AF_INET6, ips, &addr6) == 0)
-        {
-#ifdef DEBUG
-          fprintf (stderr, "Could not convert %s,may be ipv4 address\n", ips);
-#endif
-        }
-      else
-        {
-          memcpy (&ret[num], &addr6, sizeof (struct in6_addr));
-          num++;
-        }
-    }
-  if (num >= num_allocated)
-    {
-      num_allocated++;
-      ret = erealloc (ret, (num_allocated + 1) * sizeof (struct in_addr));
-    }
-
-  efree (&orig);
-  if (num == 0)
-    return NULL;
-  return ret;
-}
-
-
-
 static void
 dump_cfg_specs (struct arglist *prefs)
 {
@@ -1029,7 +918,6 @@ main (int argc, char *argv[], char *envp[])
   int exit_early = 0;
   int scanner_port = 9391;
   char *myself;
-  struct in6_addr *src_addrs = NULL;
   struct arglist *options = emalloc (sizeof (struct arglist));
   int i;
   int be_quiet = 0;
@@ -1061,7 +949,6 @@ main (int argc, char *argv[], char *envp[])
   static gboolean display_version = FALSE;
   static gboolean dont_fork = FALSE;
   static gchar *address = NULL;
-  static gchar *src_ip = NULL;
   static gchar *port = NULL;
   static gchar *config_file = NULL;
   static gboolean quiet = FALSE;
@@ -1077,8 +964,6 @@ main (int argc, char *argv[], char *envp[])
      "Do not run in daemon mode but stay in foreground", NULL},
     {"listen", 'a', 0, G_OPTION_ARG_STRING, &address,
      "Listen on <address>", "<address>"},
-    {"src-ip", 'S', 0, G_OPTION_ARG_STRING, &src_ip,
-     "Send packets with a source IP of <ip[,ip...]>", "<ip[,ip...]>"},
     {"port", 'p', 0, G_OPTION_ARG_STRING, &port,
      "Use port number <number>", "<number>"},
     {"config-file", 'c', 0, G_OPTION_ARG_FILENAME, &config_file,
@@ -1191,20 +1076,6 @@ main (int argc, char *argv[], char *envp[])
 
   if (config_file != NULL)
     arg_add_value (options, "acc_hint", ARG_INT, sizeof (int), (void *) 1);
-
-  if (src_ip != NULL)
-    {
-      src_addrs = convert_ip_addresses (src_ip, AF_INET);
-      if (src_addrs != NULL)
-        {
-          socket_source_init (src_addrs, AF_INET);
-        }
-      src_addrs = convert_ip_addresses (src_ip, AF_INET6);
-      if (src_addrs != NULL)
-        {
-          socket_source_init (src_addrs, AF_INET6);
-        }
-    }
 
   if (exit_early == 0)
     bpf_server_pid = bpf_server ();

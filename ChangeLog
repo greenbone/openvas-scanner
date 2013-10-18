@@ -1,3 +1,13 @@
+2013-10-18  Hani Benhabiles  <hani.benhabiles@greenbone.net>
+
+	* src/attack.c (apply_source_iface_preference): New function.
+	(attack_network): Apply source_iface scanner preference.
+
+	* src/openvassd.c (convert_ip_addresses): Remove unused function.
+	(main): Remove src-ip option handling.
+
+	* doc/openvassd.8.in: Update man page.
+
 2013-10-17  Hani Benhabiles  <hani.benhabiles@greenbone.net>
 
 	* src/attack.c (apply_hosts_preferences): New function.

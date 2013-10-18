@@ -969,6 +969,31 @@ apply_hosts_preferences (openvas_hosts_t *hosts, struct arglist *preferences)
                openvas_hosts_reverse_lookup_only (hosts));
 }
 
+static void
+apply_source_iface_preference (struct arglist *preferences)
+{
+  char *source_iface;
+
+  /* Source interface name. */
+  source_iface = preferences_get_string (preferences, "source_iface");
+  if (source_iface == NULL)
+    return;
+
+  if (openvas_source_iface_init (source_iface))
+    log_write ("source_iface: Error with %s.\n", source_iface);
+  else
+    {
+      char *ipstr, *ip6str;
+      ipstr = openvas_source_addr_str ();
+      ip6str = openvas_source_addr6_str ();
+      log_write ("source_iface: Using %s (%s / %s).\n", source_iface,
+                 ipstr, ip6str);
+
+      g_free (ipstr);
+      g_free (ip6str);
+    }
+}
+
 /**
  * @brief Attack a whole network.
  *
@@ -1079,8 +1104,11 @@ attack_network (struct arglist *globals)
 
   hosts = openvas_hosts_new (hostlist);
 
-  /* Apply Hosts preferences */
+  /* Apply Hosts preferences. */
   apply_hosts_preferences (hosts, preferences);
+
+  /* Apply scanner preference. */
+  apply_source_iface_preference (preferences);
 
   host = openvas_hosts_next (hosts);
   if (host == NULL)
