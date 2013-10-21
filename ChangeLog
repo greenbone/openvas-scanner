@@ -1,3 +1,10 @@
+2013-10-21  Michael Wiegand <michael.wiegand@greenbone.net>
+
+	* tools/greenbone-nvt-sync: Use "logger" command for logging. Remove
+	superfluous and verbose output to stderr. Make rsync parameters easier
+	to manage. Ensure rsync uses maximum compression. Use rsync "--perms
+	--chmod" functionality to ensure correct NVT permissions.
+
 2013-10-18  Hani Benhabiles  <hani.benhabiles@greenbone.net>
 
 	* src/attack.c (apply_source_iface_preference): New function.
