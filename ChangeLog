@@ -1,5 +1,10 @@
 2013-10-21  Michael Wiegand <michael.wiegand@greenbone.net>
 
+	* tools/greenbone-nvt-sync: Add support for determining if the
+	installed feed is current and only sync feed when it is not.
+
+2013-10-21  Michael Wiegand <michael.wiegand@greenbone.net>
+
 	* tools/greenbone-nvt-sync: Use "logger" command for logging. Remove
 	superfluous and verbose output to stderr. Make rsync parameters easier
 	to manage. Ensure rsync uses maximum compression. Use rsync "--perms

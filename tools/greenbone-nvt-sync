@@ -158,6 +158,72 @@ init_sync ()
   fi
 }
 
+is_feed_current () {
+  if [ -z "$FEED_VERSION" ]
+  then
+    log_write "Could not determine feed version."
+    FEED_CURRENT=0
+    return $FEED_CURRENT
+  fi
+
+  if [ -e /admin/ezcli.state ]
+  then
+    gsmproxy=`grep proxy_feed /admin/ezcli.state | sed -e 's/^.*\/\///' -e 's/:/ /' -e 's/[\t ]*$//'`
+    PORT=`grep ^syncport /admin/ezcli.state | sed -e "s/^syncport\t//g"`
+  fi
+
+  read feeduser < $sysconfdir/openvas/gsf-access-key
+  custid=`awk -F@ 'NR > 1 { exit }; { print $1 }' $sysconfdir/openvas/gsf-access-key`
+  if [ -z "$feeduser" ] || [ -z "$custid" ]
+  then
+    log_err "Could not determine credentials, aborting synchronization."
+    exit 1
+  fi
+
+  if [ "$gsmproxy" = "proxy_feed" ] || [ -z "$gsmproxy" ]
+  then
+    RSYNC_SSH_PROXY_CMD=""
+  else
+    if [ -r /admin/proxyauth ] && [ -s /admin/proxyauth ]
+    then
+      RSYNC_SSH_PROXY_CMD="-o \"ProxyCommand corkscrew $gsmproxy %h %p /admin/proxyauth\""
+    else
+      RSYNC_SSH_PROXY_CMD="-o \"ProxyCommand corkscrew $gsmproxy %h %p\""
+    fi
+  fi
+
+  FEED_INFO_TEMP_DIR=`mktemp -d`
+
+  rsync -e "ssh $RSYNC_SSH_OPTS $RSYNC_SSH_PROXY_CMD -p $PORT -i $sysconfdir/openvas/gsf-access-key" -ltvrP --protocol=29 $RSYNC_DELETE $RSYNC_COMPRESS $RSYNC_CHMOD "$feeduser"plugin_feed_info.inc $FEED_INFO_TEMP_DIR
+
+  if [ $? -ne 0 ]
+  then
+    log_err "Error: rsync failed."
+    rm -rf "$FEED_INFO_TEMP_DIR"
+    exit 1
+  fi
+
+  FEED_VERSION_SERVER=`grep PLUGIN_SET $FEED_INFO_TEMP_DIR/plugin_feed_info.inc | sed -e 's/[^0-9]//g'`
+
+  if [ -z "$FEED_VERSION_SERVER" ]
+  then
+    echo "Could not determine server feed version."
+    rm -rf $FEED_INFO_TEMP_DIR
+    return -1
+  fi
+  # Check against FEED_VERSION
+  if [ $FEED_VERSION -lt $FEED_VERSION_SERVER ] ; then
+    FEED_CURRENT=0
+  else
+    FEED_CURRENT=1
+  fi
+
+  # Cleanup
+  rm -rf "$FEED_INFO_TEMP_DIR"
+
+  return $FEED_CURRENT
+}
+
 sync_nvts(){
   if [ $ENABLED -ne 1 ] && [ $REFRESH_ONLY -ne 1 ]
   then
@@ -319,10 +385,16 @@ do_sync ()
 {
   log_write "Starting synchronization."
   init_sync
-  sync_nvts
-  restart_openvassd
-  update_openvasmd
-  log_write "Synchronization successful."
+  is_feed_current
+  if [ $FEED_CURRENT -eq 1 ] && [ $REFRESH_ONLY -ne 1 ]
+  then
+    log_write "Feed is already current, skipping synchronization."
+  else
+    sync_nvts
+    restart_openvassd
+    update_openvasmd
+    log_write "Synchronization successful."
+  fi
 }
 
 while test $# -gt 0; do
@@ -354,6 +426,11 @@ while test $# -gt 0; do
     --nvt-dir)
       NVT_DIR="$2"
       shift
+      ;;
+    --feedcurrent)
+      init_sync
+      is_feed_current
+      exit $?
       ;;
     --verbose)
       RSYNC_VERBOSE="-v"
