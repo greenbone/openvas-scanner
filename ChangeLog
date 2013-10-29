@@ -1,3 +1,8 @@
+2013-10-29  Hani Benhabiles  <hani.benhabiles@greenbone.net>
+
+	* src/oval_plugins.c (text, oval_plugin_add): Don't set nvti
+	description.
+
 2013-10-21  Michael Wiegand <michael.wiegand@greenbone.net>
 
 	* tools/greenbone-nvt-sync: Add support for determining if the

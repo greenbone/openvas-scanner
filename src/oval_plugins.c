@@ -264,9 +264,6 @@ text (GMarkupParseContext * context, const gchar * text, gsize text_len,
 {
   switch (parser_state)
     {
-    case DESCRIPTION:
-      nvti_set_description (current_plugin, text);
-      break;
     case TITLE:
       {
         int i;
@@ -436,7 +433,6 @@ oval_plugin_add (char *folder, char *name, struct arglist *plugins,
       if (g_slist_length (plugin_list) > 1)
         {
           gchar **title_array;
-          gchar *nvt_description;
           gchar *nvt_name;
           title_array =
             g_malloc0 ((g_slist_length (plugin_list) + 1) * sizeof (gchar *));
@@ -448,22 +444,6 @@ oval_plugin_add (char *folder, char *name, struct arglist *plugins,
             }
           title_array[i] = NULL;
           descriptions = g_strjoinv (NULL, title_array);
-          if (strlen (descriptions) > 3100)
-            {
-              gchar *short_description = g_strndup (descriptions, 3100);
-              nvt_description = g_strconcat
-                ("This OVAL file contains the following definitions:\n",
-                 short_description, "\n(list cut due to memory limitations)", NULL);
-              g_free (short_description);
-            }
-          else
-            {
-              nvt_description = g_strconcat
-                ("This OVAL file contains the following definitions:\n",
-                 descriptions, NULL);
-            }
-          nvti_set_description (first_plugin, nvt_description);
-          g_free (nvt_description);
           g_free (descriptions);
           g_strfreev (title_array);
           nvt_name = g_strdup_printf ("%s (%d OVAL definitions)",
