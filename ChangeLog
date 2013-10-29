@@ -1,5 +1,9 @@
 2013-10-29  Hani Benhabiles  <hani.benhabiles@greenbone.net>
 
+	* openvassd.8.in: Update command-line documentation.
+
+2013-10-29  Hani Benhabiles  <hani.benhabiles@greenbone.net>
+
 	* src/oval_plugins.c (text, oval_plugin_add): Don't set nvti
 	description.
 

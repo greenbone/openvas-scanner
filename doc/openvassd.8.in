@@ -2,7 +2,7 @@
 .SH NAME
 openvassd \- The Scanner of the Open Vulnerability Assessment System (OpenVAS)
 .SH SYNOPSIS
-.BI "openvassd [\|-v\|] [\|-h\|]  [\|-c " config-file\| "] [\|-S " ip[,ip2,...]\| "] [\|-a " address\| 
+.BI "openvassd [\|-v\|] [\|-h\|]  [\|-c " config-file\| "] [\|-a " address\| 
 .BI "] [\|-p " port-number\| "] [\|-D\|] [\|-R\|] [\|-P\|] [\|-q\|] [\|-f\|]"
 
 .SH DESCRIPTION
