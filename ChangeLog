@@ -1,5 +1,10 @@
 2013-10-31  Hani Benhabiles  <hani.benhabiles@greenbone.net>
 
+	* doc/openvassd.8.in: Update documentation for ifaces_whitelist scanner
+	preferences.
+
+2013-10-31  Hani Benhabiles  <hani.benhabiles@greenbone.net>
+
 	* attack.c (iface_whitelisted): New function.
 	(apply_source_iface_preference): Check if interface name is authorized
 	in ifaces_whitelist before using it as a source interface.
