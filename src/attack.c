@@ -970,17 +970,38 @@ apply_hosts_preferences (openvas_hosts_t *hosts, struct arglist *preferences)
 }
 
 static void
-apply_source_iface_preference (struct arglist *preferences)
+error_message_to_client (struct arglist *globals, const char *msg,
+                         const char *hostname, const char *port)
+{
+  auth_printf (globals,
+               "SERVER <|> ERRMSG <|> %s <|> %s <|> %s <|>  <|> SERVER\n",
+               hostname ? hostname : "",
+               port ? port : "",
+               msg ? msg : "No error.");
+}
+
+/*
+ * Applies the source_iface scanner preference.
+ */
+static void
+apply_source_iface_preference (struct arglist *globals,
+                               struct arglist *preferences)
 {
   char *source_iface;
 
-  /* Source interface name. */
   source_iface = preferences_get_string (preferences, "source_iface");
   if (source_iface == NULL)
     return;
 
   if (openvas_source_iface_init (source_iface))
-    log_write ("source_iface: Error with %s.\n", source_iface);
+    {
+      gchar *msg = g_strdup_printf ("Erroneous source interface: %s",
+                                    source_iface);
+      log_write ("source_iface: Error with %s.\n", source_iface);
+      error_message_to_client (globals, msg,
+                               NULL, NULL);
+      g_free (msg);
+    }
   else
     {
       char *ipstr, *ip6str;
@@ -1108,7 +1129,7 @@ attack_network (struct arglist *globals)
   apply_hosts_preferences (hosts, preferences);
 
   /* Apply scanner preference. */
-  apply_source_iface_preference (preferences);
+  apply_source_iface_preference (globals, preferences);
 
   host = openvas_hosts_next (hosts);
   if (host == NULL)
@@ -1127,10 +1148,8 @@ attack_network (struct arglist *globals)
       if (openvas_host_get_addr6 (host, &host_ip) == -1)
         {
           log_write ("Couldn't resolve target %s\n", hostname);
-          auth_printf (globals,
-                       "SERVER <|> ERRMSG <|> %s <|> general/HOST <|>"
-                       " Couldn't resolve hostname. <|>  <|> SERVER\n", hostname);
-
+          error_message_to_client (globals, "Couldn't resolve hostname.",
+                                   hostname, NULL);
           g_free (hostname);
           host = openvas_hosts_next (hosts);
           continue;

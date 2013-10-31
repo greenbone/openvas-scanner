@@ -1,3 +1,11 @@
+2013-10-31  Hani Benhabiles  <hani.benhabiles@greenbone.net>
+
+	* attack.c (error_message_to_client): New function.
+	(apply_source_iface_preference): Push error message to client when there
+	is an error with the specified source interface.
+	(attack_network): Adjust apply_source_iface_preference call. Use
+	error_message_to_client to push error message for host unresolved name.
+
 2013-10-29  Hani Benhabiles  <hani.benhabiles@greenbone.net>
 
 	* openvassd.8.in: Update command-line documentation.
