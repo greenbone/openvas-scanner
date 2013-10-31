@@ -981,7 +981,49 @@ error_message_to_client (struct arglist *globals, const char *msg,
 }
 
 /*
- * Applies the source_iface scanner preference.
+ * Checks if a network interface is authorized to be used as source interface.
+ *
+ * @return 0 if iface not in whitelist, 1 if iface in whitelist or whitelist not
+ * present.
+ */
+static int
+iface_whitelisted (const char *iface, struct arglist *preferences)
+{
+  const char *ifaces;
+
+  if (iface == NULL)
+    return 0;
+
+  ifaces = preferences_get_string (preferences, "ifaces_whitelist");
+  if (ifaces)
+    {
+      gchar **element, **split;
+
+      split = g_strsplit (ifaces, ",", 0);
+      element = split;
+      while (*element)
+        {
+          gchar *stripped = g_strstrip (*element);
+
+          if (stripped && strcmp (stripped, iface) == 0)
+            {
+              g_strfreev (split);
+              return 1;
+            }
+
+          element++;
+        }
+
+      g_strfreev (split);
+      return 0;
+    }
+  else
+    return 1;
+}
+
+/*
+ * Applies the source_iface scanner preference, if allowed by ifaces_whitelist
+ * preference.
  */
 static void
 apply_source_iface_preference (struct arglist *globals,
@@ -993,13 +1035,23 @@ apply_source_iface_preference (struct arglist *globals,
   if (source_iface == NULL)
     return;
 
+  if (!iface_whitelisted (source_iface, preferences))
+    {
+      gchar *msg = g_strdup_printf ("Unauthorized source interface: %s",
+                                    source_iface);
+      log_write ("ifaces_whitelist: Unauthorized source interface %s.\n",
+                 source_iface);
+      error_message_to_client (globals, msg, NULL, NULL);
+      g_free (msg);
+      return;
+    }
+
   if (openvas_source_iface_init (source_iface))
     {
       gchar *msg = g_strdup_printf ("Erroneous source interface: %s",
                                     source_iface);
       log_write ("source_iface: Error with %s.\n", source_iface);
-      error_message_to_client (globals, msg,
-                               NULL, NULL);
+      error_message_to_client (globals, msg, NULL, NULL);
       g_free (msg);
     }
   else
