@@ -1,3 +1,14 @@
+2013-11-05  Hani Benhabiles  <hani.benhabiles@greenbone.net>
+
+	* doc/openvassd.8.in: Update documentation.
+
+	* src/attack.c (apply_hosts_preferences): Log the hosts_ordering method
+	used.
+	(str_in_comma_list): New function.
+	(iface_whitelisted): Rename to iface_authorized. Accordingly check for
+	ifaces_allow and ifaces_deny preferences instead.
+	(apply_source_iface_preference): Adjust iface_authorized call.
+
 2013-10-31  Hani Benhabiles  <hani.benhabiles@greenbone.net>
 
 	* doc/openvassd.8.in: Update documentation for ifaces_whitelist scanner

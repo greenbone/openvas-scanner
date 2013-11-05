@@ -138,8 +138,11 @@ Set this option to 'yes' if you are testing your local network and each local ho
 .IP source_iface
 Name of the network interface that will be used as the source of connections established by OpenVAS.
 
-.IP ifaces_whitelist
-Comma-separated list of network interfaces names that are authorized as source_iface values.
+.IP ifaces_allow
+Comma-separated list of interfaces names that are authorized as source_iface values.
+
+.IP ifaces_deny
+Comma-separated list of interfaces names that are not authorized as source_iface values.
 
 .IP rules
 path to the rules database

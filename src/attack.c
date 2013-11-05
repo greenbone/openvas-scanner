@@ -940,10 +940,18 @@ apply_hosts_preferences (openvas_hosts_t *hosts, struct arglist *preferences)
   if (ordering)
     {
       if (!strcmp (ordering, "random"))
-        openvas_hosts_shuffle (hosts);
-      else if (!strcmp (ordering, "reversed"))
-        openvas_hosts_reverse (hosts);
+        {
+          openvas_hosts_shuffle (hosts);
+          log_write ("hosts_ordering: Random.\n");
+        }
+      else if (!strcmp (ordering, "reverse"))
+        {
+          openvas_hosts_reverse (hosts);
+          log_write ("hosts_ordering: Reverse.\n");
+        }
     }
+  else
+    log_write ("hosts_ordering: Sequential.\n");
 
   /* Exclude hosts ? */
   exclude_hosts = preferences_get_string (preferences, "exclude_hosts");
@@ -980,6 +988,33 @@ error_message_to_client (struct arglist *globals, const char *msg,
                msg ? msg : "No error.");
 }
 
+static int
+str_in_comma_list (const char *str, const char *comma_list)
+{
+  gchar **element, **split;
+
+  if (str == NULL || comma_list == NULL)
+    return 0;
+
+  split = g_strsplit (comma_list, ",", 0);
+  element = split;
+  while (*element)
+    {
+      gchar *stripped = g_strstrip (*element);
+
+      if (stripped && strcmp (stripped, str) == 0)
+        {
+          g_strfreev (split);
+          return 1;
+        }
+
+      element++;
+    }
+
+  g_strfreev (split);
+  return 0;
+}
+
 /*
  * Checks if a network interface is authorized to be used as source interface.
  *
@@ -987,43 +1022,29 @@ error_message_to_client (struct arglist *globals, const char *msg,
  * present.
  */
 static int
-iface_whitelisted (const char *iface, struct arglist *preferences)
+iface_authorized (const char *iface, struct arglist *preferences)
 {
-  const char *ifaces;
+  const char *ifaces_deny, *ifaces_allow;
 
   if (iface == NULL)
     return 0;
 
-  ifaces = preferences_get_string (preferences, "ifaces_whitelist");
-  if (ifaces)
-    {
-      gchar **element, **split;
+  ifaces_deny = preferences_get_string (preferences, "ifaces_deny");
+  log_write ("deny %s\n", ifaces_deny);
+  if (ifaces_deny && str_in_comma_list (iface, ifaces_deny))
+    return 0;
 
-      split = g_strsplit (ifaces, ",", 0);
-      element = split;
-      while (*element)
-        {
-          gchar *stripped = g_strstrip (*element);
+  ifaces_allow = preferences_get_string (preferences, "ifaces_allow");
+  log_write ("allow %s\n", ifaces_allow);
+  if (ifaces_allow && !str_in_comma_list (iface, ifaces_allow))
+    return 0;
 
-          if (stripped && strcmp (stripped, iface) == 0)
-            {
-              g_strfreev (split);
-              return 1;
-            }
-
-          element++;
-        }
-
-      g_strfreev (split);
-      return 0;
-    }
-  else
-    return 1;
+  return 1;
 }
 
 /*
- * Applies the source_iface scanner preference, if allowed by ifaces_whitelist
- * preference.
+ * Applies the source_iface scanner preference, if allowed by ifaces_allow and
+ * ifaces_deny preferences.
  */
 static void
 apply_source_iface_preference (struct arglist *globals,
@@ -1035,11 +1056,11 @@ apply_source_iface_preference (struct arglist *globals,
   if (source_iface == NULL)
     return;
 
-  if (!iface_whitelisted (source_iface, preferences))
+  if (!iface_authorized (source_iface, preferences))
     {
       gchar *msg = g_strdup_printf ("Unauthorized source interface: %s",
                                     source_iface);
-      log_write ("ifaces_whitelist: Unauthorized source interface %s.\n",
+      log_write ("source_iface: Unauthorized source interface %s.\n",
                  source_iface);
       error_message_to_client (globals, msg, NULL, NULL);
       g_free (msg);
