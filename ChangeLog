@@ -1,5 +1,9 @@
 2013-11-05  Hani Benhabiles  <hani.benhabiles@greenbone.net>
 
+	* src/attack.c (iface_authorized): Remove unneeded log writes.
+
+2013-11-05  Hani Benhabiles  <hani.benhabiles@greenbone.net>
+
 	* doc/openvassd.8.in: Update documentation.
 
 	* src/attack.c (apply_hosts_preferences): Log the hosts_ordering method

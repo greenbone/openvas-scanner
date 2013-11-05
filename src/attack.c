@@ -1030,12 +1030,10 @@ iface_authorized (const char *iface, struct arglist *preferences)
     return 0;
 
   ifaces_deny = preferences_get_string (preferences, "ifaces_deny");
-  log_write ("deny %s\n", ifaces_deny);
   if (ifaces_deny && str_in_comma_list (iface, ifaces_deny))
     return 0;
 
   ifaces_allow = preferences_get_string (preferences, "ifaces_allow");
-  log_write ("allow %s\n", ifaces_allow);
   if (ifaces_allow && !str_in_comma_list (iface, ifaces_allow))
     return 0;
 
