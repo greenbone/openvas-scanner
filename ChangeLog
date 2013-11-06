@@ -1,5 +1,10 @@
 2013-11-05  Hani Benhabiles  <hani.benhabiles@greenbone.net>
 
+	* src/pluginlaunch.c (update_running_processes): Fix array out of bounds
+	that caused segfault under rare situations.
+
+2013-11-05  Hani Benhabiles  <hani.benhabiles@greenbone.net>
+
 	* src/attack.c (iface_authorized): Remove unneeded log writes.
 
 2013-11-05  Hani Benhabiles  <hani.benhabiles@greenbone.net>

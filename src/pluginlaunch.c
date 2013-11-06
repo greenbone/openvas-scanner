@@ -194,15 +194,15 @@ update_running_processes ()
   struct timeval now;
   int log_whole = 1;
 
-  // Set i to first non-NULL process
-  for (i = 0; (processes[i].globals == NULL) && i < MAX_PROCESSES; i++)
-    ;
-
-  if (i < MAX_PROCESSES)
+  for (i = 0; i < MAX_PROCESSES; i++)
     {
-      struct arglist *prefs =
-        arg_get_value (processes[i].globals, "preferences");
-      log_whole = preferences_log_whole_attack (prefs);
+      if (processes[i].globals != NULL)
+        {
+          struct arglist *prefs =
+            arg_get_value (processes[i].globals, "preferences");
+          log_whole = preferences_log_whole_attack (prefs);
+          break;
+        }
     }
 
   gettimeofday (&now, NULL);
