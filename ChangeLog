@@ -1,5 +1,14 @@
 2013-11-08  Hani Benhabiles  <hani.benhabiles@greenbone.net>
 
+	* doc/openvassd.8.in: Add documentation for hosts_allow and hosts_deny.
+
+	* src/attack.c (host_authorized): New function.
+	(attack_network): Use host_authorized to determine host access. Use
+	adequate error messages to client and log entries when access is denied
+	instead of using E002 error of OTP.
+
+2013-11-08  Hani Benhabiles  <hani.benhabiles@greenbone.net>
+
 	* src/attack.c (apply_source_iface_preference): Return value for success
 	or error, accordingly.
 	(attack_network): Handle apply_source_iface_preference return value.

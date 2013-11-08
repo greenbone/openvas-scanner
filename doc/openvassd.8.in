@@ -146,6 +146,14 @@ Comma-separated list of interfaces names that are authorized as source_iface val
 .IP ifaces_deny
 Comma-separated list of interfaces names that are not authorized as source_iface values.
 
+.IP hosts_allow
+Comma-separated list of targets that are authorized to be scanned. Supports the same
+syntax as the list of hosts to scan.
+
+.IP hosts_deny
+Comma-separated list of targets that are not authorized to be scanned. Supports
+the same syntax as the list of hosts to scan.
+
 .IP rules
 path to the rules database
 

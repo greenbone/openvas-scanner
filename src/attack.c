@@ -1041,6 +1041,27 @@ iface_authorized (const char *iface, struct arglist *preferences)
 }
 
 /*
+ * Checks if a host is authorized to be scanned.
+ *
+ * @return 1 if host authorized, 0 otherwise.
+ */
+static int
+host_authorized (const openvas_host_t *host, const openvas_hosts_t *hosts_allow,
+                 const openvas_hosts_t *hosts_deny)
+{
+  /* Check Hosts Access. */
+  if (host == NULL)
+    return 0;
+
+  if (hosts_deny && openvas_host_in_hosts (host, hosts_deny))
+    return 0;
+  if (hosts_allow && !openvas_host_in_hosts (host, hosts_allow))
+    return 0;
+
+  return 1;
+}
+
+/*
  * Applies the source_iface scanner preference, if allowed by ifaces_allow and
  * ifaces_deny preferences.
  *
@@ -1104,13 +1125,12 @@ attack_network (struct arglist *globals)
   int max_hosts = 0, max_checks;
   int num_tested = 0;
   char *hostlist;
-  openvas_hosts_t *hosts;
+  openvas_hosts_t *hosts, *hosts_allow, *hosts_deny;
   openvas_host_t *host;
   int global_socket = -1;
   struct arglist *preferences = NULL;
   struct arglist *plugins = NULL;
   struct openvas_rules *rules = NULL;
-  struct arglist *rejected_hosts = NULL;
   plugins_scheduler_t sched;
   int fork_retries = 0;
   GHashTable *files;
@@ -1155,7 +1175,6 @@ attack_network (struct arglist *globals)
 
   plugins = arg_get_value (globals, "plugins");
   rules = arg_get_value (globals, "rules");
-  rejected_hosts = emalloc (sizeof (struct arglist));
 
   /* Init and check Target List */
   hostlist = arg_get_value (preferences, "TARGET");
@@ -1202,6 +1221,11 @@ attack_network (struct arglist *globals)
     }
 
   hosts = openvas_hosts_new (hostlist);
+  /* hosts_allow/deny lists. */
+  hosts_allow = openvas_hosts_new (preferences_get_string
+                                    (preferences, "hosts_allow"));
+  hosts_deny = openvas_hosts_new (preferences_get_string
+                                   (preferences, "hosts_deny"));
 
   /* Apply Hosts preferences. */
   apply_hosts_preferences (hosts, preferences);
@@ -1236,11 +1260,12 @@ attack_network (struct arglist *globals)
       memcpy (&addrs.ip6, &host_ip, sizeof (struct in6_addr));
 
       /* Do we have the right to test this host ? */
-      if (CAN_TEST (get_host_rules (rules, addrs)) == 0)
+      if (CAN_TEST (get_host_rules (rules, addrs)) == 0
+          || !host_authorized (host, hosts_allow, hosts_deny))
         {
-          log_write ("Rejected attempt to scan %s", hostname);
-          arg_add_value (rejected_hosts, hostname, ARG_INT, sizeof (int),
-                         (void *) 1);
+          error_message_to_client (globals, "Host access denied.",
+                                   hostname, NULL);
+          log_write ("Host %s access denied.", hostname);
         }
       else
         {                       // We have the right to test this host
@@ -1345,40 +1370,13 @@ scan_stop:
   if (files)
     g_hash_table_foreach_remove (files, (GHRFunc) free_uploaded_file, NULL);
 
-  if (rejected_hosts && rejected_hosts->next)
-    {
-      char *banner = emalloc (4001);
-      int length = 0;
-
-      sprintf (banner,
-               "SERVER <|> ERROR <|> E002 - These hosts could not be tested because you are not allowed to do so :;");
-      length = strlen (banner);
-
-      while (rejected_hosts->next && (length < (4000 - 3)))
-        {
-          int n;
-          n = strlen (rejected_hosts->name);
-          if (length + n + 1 >= 4000)
-            n = 4000 - length - 2;
-
-          strncat (banner, rejected_hosts->name, n);
-          strncat (banner, ";", 1);
-          length += n + 1;
-          rejected_hosts = rejected_hosts->next;
-        }
-
-      if (rejected_hosts->next != NULL)
-        strcat (banner, "...");
-
-      auth_printf (globals, "%s\n", banner);
-    }
-
 stop:
   scan_stopped = GPOINTER_TO_SIZE(arg_get_value (globals, "stop_required"));
 
   openvas_hosts_free (hosts);
+  openvas_hosts_free (hosts_allow);
+  openvas_hosts_free (hosts_deny);
 
-  arg_free_all (rejected_hosts);
   plugins_scheduler_free (sched);
 
   gettimeofday (&now, NULL);
