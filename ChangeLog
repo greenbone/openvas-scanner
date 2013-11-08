@@ -1,3 +1,11 @@
+2013-11-08  Hani Benhabiles  <hani.benhabiles@greenbone.net>
+
+	* src/attack.c (apply_source_iface_preference): Return value for success
+	or error, accordingly.
+	(attack_network): Handle apply_source_iface_preference return value.
+
+	* doc/openvassd.8.in: Update source_iface documentation.
+
 2013-11-05  Hani Benhabiles  <hani.benhabiles@greenbone.net>
 
 	* src/pluginlaunch.c (update_running_processes): Fix array out of bounds

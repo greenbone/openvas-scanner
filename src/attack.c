@@ -1043,8 +1043,11 @@ iface_authorized (const char *iface, struct arglist *preferences)
 /*
  * Applies the source_iface scanner preference, if allowed by ifaces_allow and
  * ifaces_deny preferences.
+ *
+ * @return 0 if source_iface preference applied or not found, -1 if
+ * unauthorized value, -2 if iface can't be used.
  */
-static void
+static int
 apply_source_iface_preference (struct arglist *globals,
                                struct arglist *preferences)
 {
@@ -1052,7 +1055,7 @@ apply_source_iface_preference (struct arglist *globals,
 
   source_iface = preferences_get_string (preferences, "source_iface");
   if (source_iface == NULL)
-    return;
+    return 0;
 
   if (!iface_authorized (source_iface, preferences))
     {
@@ -1061,17 +1064,20 @@ apply_source_iface_preference (struct arglist *globals,
       log_write ("source_iface: Unauthorized source interface %s.\n",
                  source_iface);
       error_message_to_client (globals, msg, NULL, NULL);
+
       g_free (msg);
-      return;
+      return -1;
     }
 
   if (openvas_source_iface_init (source_iface))
     {
       gchar *msg = g_strdup_printf ("Erroneous source interface: %s",
                                     source_iface);
-      log_write ("source_iface: Error with %s.\n", source_iface);
+      log_write ("source_iface: Error with %s interface.\n", source_iface);
       error_message_to_client (globals, msg, NULL, NULL);
+
       g_free (msg);
+      return -2;
     }
   else
     {
@@ -1083,6 +1089,7 @@ apply_source_iface_preference (struct arglist *globals,
 
       g_free (ipstr);
       g_free (ip6str);
+      return 0;
     }
 }
 
@@ -1199,8 +1206,9 @@ attack_network (struct arglist *globals)
   /* Apply Hosts preferences. */
   apply_hosts_preferences (hosts, preferences);
 
-  /* Apply scanner preference. */
-  apply_source_iface_preference (globals, preferences);
+  /* Don't start if the provided interface is unauthorized. */
+  if (apply_source_iface_preference (globals, preferences) == -1)
+    return -1;
 
   host = openvas_hosts_next (hosts);
   if (host == NULL)
