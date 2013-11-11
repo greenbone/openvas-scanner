@@ -1,3 +1,33 @@
+2013-11-11  Hani Benhabiles  <hani.benhabiles@greenbone.net>
+
+	* CMakeLists.txt, src/CMakeLists.txt: Adjust for removal of old rules
+	system.
+
+	* src/attack.c: Don't include rules.h
+	(attack_networks): Remove rules checking.
+
+	* src/comm.c: Don't include rules.h
+	(comm_send_rules): Delete function.
+	(comm_send_preferences): Remove check for rules preference.
+
+	* src/ntp_11.c: Don't include rules.h
+	(ntp_11_rules): Delete function.
+	(ntp_11_parse_input): Don't handle CREQ_RULES case.
+	(ntp_11_read_prefs): Remove rules special case checking.
+
+	* src/openvassd.c: Don't include rules.h. Remove global_rules.
+	(scanner_thread, main_loop, main): Remove rules handling.
+	(init_openvassd): Don't initialize rules.
+
+	* src/otp_1_0.c (otp_1_0_get_client_request): Don't handle RULES
+	command.
+	(client_request_t): Remove CREQ_RULES.
+	(openvassd_defaults): Remove rules default.
+
+	* src/rules.h, src/rules.c: Delete files.
+
+	* COPYING: Remove rules license.
+
 2013-11-08  Hani Benhabiles  <hani.benhabiles@greenbone.net>
 
 	* doc/openvassd.8.in: Add documentation for hosts_allow and hosts_deny.

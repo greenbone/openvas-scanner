@@ -29,8 +29,7 @@ add_executable (openvassd attack.c comm.c hosts.c locks.c log.c
                 nasl_plugins.c ntp_11.c openvassd.c otp_1_0.c
                 oval_plugins.c parser.c piic.c pluginlaunch.c pluginload.c
                 pluginscheduler.c plugs_req.c preferences.c
-                processes.c rules.c save_kb.c sighand.c
-                utils.c)
+                processes.c save_kb.c sighand.c utils.c)
 
 set_target_properties (openvassd PROPERTIES LINKER_LANGUAGE C)
 
@@ -83,10 +82,6 @@ endif (OPENVASSD_DEBUGMSG)
 if (OPENVASSD_CONF)
   add_definitions (-DOPENVASSD_CONF=\\\"${OPENVASSD_CONF}\\\")
 endif (OPENVASSD_CONF)
-
-if (OPENVASSD_RULES)
-  add_definitions (-DOPENVASSD_RULES=\\\"${OPENVASSD_RULES}\\\")
-endif (OPENVASSD_RULES)
 
 if (OPENVAS_STATE_DIR)
   add_definitions (-DOPENVAS_STATE_DIR=\\\"${OPENVAS_STATE_DIR}\\\")
@@ -142,8 +137,7 @@ set (C_FILES "attack.c" "comm.c" "hosts.c" "locks.c" "log.c"
      "nasl_plugins.c" "ntp_11.c" "openvassd.c" "otp_1_0.c"
      "oval_plugins.c" "parser.c" "piic.c" "pluginlaunch.c" "pluginload.c"
      "pluginscheduler.c" "plugs_req.c" "preferences.c"
-     "processes.c" "rules.c" "save_kb.c" "sighand.c"
-     "utils.c")
+     "processes.c" "save_kb.c" "sighand.c" "utils.c")
 add_custom_target (etags COMMENT "Building TAGS..."
                    COMMAND etags ${C_FILES})
 add_custom_target (ctags COMMENT "Building tags..."

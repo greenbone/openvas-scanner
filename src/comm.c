@@ -46,7 +46,6 @@
 #include "ntp_11.h"
 #include "log.h"
 #include "pluginscheduler.h"    /* for define LAUNCH_DISABLED */
-#include "rules.h"
 #include "sighand.h"
 #include "utils.h"
 
@@ -311,29 +310,6 @@ comm_send_pluginlist (struct arglist *globals)
 }
 
 /**
- * @brief Sends the rules of the user.
- */
-void
-comm_send_rules (struct arglist *globals)
-{
-  auth_printf (globals, "SERVER <|> RULES <|>\n");
-#ifdef USELESS_AS_OF_NOW
-  struct openvas_rules *rules = arg_get_value (globals, "rules");
-  while (rules && rules->next)
-    {
-      if (rules->rule == RULES_ACCEPT)
-        auth_printf (globals, "accept %c%s/%d\n", rules->not ? '!' : '',
-                     inet_ntoa (rules->ip), rules->mask);
-      else
-        auth_printf (globals, "reject %c%s/%d\n", rules->not ? '!' : '',
-                     inet_ntoa (rules->ip), rules->mask);
-      rules = rules->next;
-    }
-#endif
-  auth_printf (globals, "<|> SERVER\n");
-}
-
-/**
  * @brief Sends the preferences of the scanner.
  * @param globals The global arglist with a "preferences" sub-arglist.
  */
@@ -356,7 +332,6 @@ comm_send_preferences (struct arglist *globals)
               && strcmp (prefs->name, "config_file")
               && strcmp (prefs->name, "plugins_folder")
               && strcmp (prefs->name, "dumpfile")
-              && strcmp (prefs->name, "rules")
               && strcmp (prefs->name, "negot_timeout")
               && strcmp (prefs->name, "force_pubkey_auth")
               && strcmp (prefs->name, "log_while_attack")

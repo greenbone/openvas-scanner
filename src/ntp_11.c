@@ -45,7 +45,6 @@
 #include "ntp_11.h"
 #include "otp_1_0.h"
 #include "comm.h"
-#include "rules.h"
 #include "log.h"
 #include "utils.h"
 #include "preferences.h"
@@ -62,7 +61,6 @@
 
 
 static int ntp_11_read_prefs (struct arglist *);
-static int ntp_11_rules (struct arglist *);
 static int ntp_11_long_attack (struct arglist *);
 static int ntp_11_recv_file (struct arglist *);
 
@@ -145,10 +143,6 @@ ntp_11_parse_input (struct arglist *globals, char *input)
           hosts_resume_all ();
           arg_del_value (globals, "stop_required");
           result = NTP_RESUME_WHOLE_TEST;
-          break;
-
-        case CREQ_RULES:
-          ntp_11_rules (globals);
           break;
 
         case CREQ_STOP_WHOLE_TEST:
@@ -297,7 +291,7 @@ ntp_11_read_prefs (struct arglist *globals)
              */
             if (!strcmp (pref, "logfile") || !strcmp (pref, "config_file")
                 || !strcmp (pref, "plugins_folder")
-                || !strcmp (pref, "dumpfile") || !strcmp (pref, "rules")
+                || !strcmp (pref, "dumpfile")
                 || !strcmp (pref, "negot_timeout")
                 || !strcmp (pref, "force_pubkey_auth")
                 || !strcmp (pref, "log_while_attack")
@@ -333,58 +327,6 @@ ntp_11_read_prefs (struct arglist *globals)
     }
 
   efree (&input);
-  return (0);
-}
-
-static int
-ntp_11_rules (struct arglist *globals)
-{
-  struct openvas_rules *client_rules;
-  struct openvas_rules *rules = arg_get_value (globals, "rules");
-  char *buffer;
-  int finished = 0;
-  struct sockaddr_in *soca;
-  inaddrs_t addrs;
-
-  /* Forbid client side rules when there are any server side rules besides
-   * for "default accept". */
-  if (rules->next
-      || rules->not
-      || (rules->def == RULES_REJECT)
-      || rules->rule)
-    {
-      log_write ("Attempted to add rules on top of server rules");
-      return (0);
-    }
-
-  client_rules = emalloc (sizeof (*client_rules));
-  buffer = emalloc (4096);
-  while (!finished)
-    {
-      auth_gets (globals, buffer, 4095);
-      if (buffer[0] == '\0')
-        {
-          log_write ("Empty buffer - exiting\n");
-          exit (0);
-        }
-
-      if (strstr (buffer, "<|> CLIENT") != NULL)
-        finished = 1;
-      else
-        {
-#ifdef DEBUG_RULES
-          printf ("Client adds %s\n", buffer);
-#endif
-          rules_add_client_rule (client_rules, buffer);
-        }
-    }
-  efree (&buffer);
-  rules_add (&rules, &client_rules);
-  rules_free (client_rules);
-  soca = arg_get_value (globals, "client_address");
-  addrs.ip = soca->sin_addr;
-  rules_set_client_ip (rules, &addrs, AF_INET);
-  arg_set_value (globals, "rules", -1, rules);
   return (0);
 }
 

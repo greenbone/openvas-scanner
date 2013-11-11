@@ -70,7 +70,6 @@ static openvassd_option openvassd_defaults[] = {
   {"log_whole_attack", "no"},
   {"log_plugins_name_at_load", "no"},
   {"dumpfile", OPENVASSD_DEBUGMSG},
-  {"rules", OPENVASSD_RULES},
   {"cgi_path", "/cgi-bin:/scripts"},
   {"optimize_test", "yes"},
   {"checks_read_timeout", "5"},

@@ -59,7 +59,6 @@
 #include "plugs_req.h"
 #include "preferences.h"
 #include "processes.h"
-#include "rules.h"
 #include "save_kb.h"
 #include "sighand.h"
 #include "utils.h"
@@ -1130,12 +1129,10 @@ attack_network (struct arglist *globals)
   int global_socket = -1;
   struct arglist *preferences = NULL;
   struct arglist *plugins = NULL;
-  struct openvas_rules *rules = NULL;
   plugins_scheduler_t sched;
   int fork_retries = 0;
   GHashTable *files;
   struct timeval then, now;
-  inaddrs_t addrs;
   char buffer[INET6_ADDRSTRLEN];
 
   int network_phase = 0;
@@ -1174,7 +1171,6 @@ attack_network (struct arglist *globals)
   global_socket = GPOINTER_TO_SIZE (arg_get_value (globals, "global_socket"));
 
   plugins = arg_get_value (globals, "plugins");
-  rules = arg_get_value (globals, "rules");
 
   /* Init and check Target List */
   hostlist = arg_get_value (preferences, "TARGET");
@@ -1257,11 +1253,9 @@ attack_network (struct arglist *globals)
           host = openvas_hosts_next (hosts);
           continue;
         }
-      memcpy (&addrs.ip6, &host_ip, sizeof (struct in6_addr));
 
       /* Do we have the right to test this host ? */
-      if (CAN_TEST (get_host_rules (rules, addrs)) == 0
-          || !host_authorized (host, hosts_allow, hosts_deny))
+      if (!host_authorized (host, hosts_allow, hosts_deny))
         {
           error_message_to_client (globals, "Host access denied.",
                                    hostname, NULL);

@@ -76,7 +76,6 @@
 
 #include "pluginload.h"
 #include "preferences.h"
-#include "rules.h"
 #include "comm.h"
 #include "attack.h"
 #include "sighand.h"
@@ -112,7 +111,6 @@ pid_t nasl_server_pid;
 int global_iana_socket;
 struct arglist *global_plugins;
 struct arglist *global_preferences;
-struct openvas_rules *global_rules;
 
 
 static char *orig_argv[64];
@@ -459,7 +457,6 @@ scanner_thread (struct arglist *globals)
         {
           comm_send_nvt_info (globals);
           comm_send_preferences (globals);
-          comm_send_rules (globals);
           ntp_1x_send_dependencies (globals);
         }
 
@@ -605,7 +602,6 @@ main_loop ()
 
       struct arglist *globals;
       struct arglist *my_plugins, *my_preferences;
-      struct openvas_rules *my_rules;
 
       if (restart != 0)
         restart_openvassd ();
@@ -755,8 +751,6 @@ main_loop ()
       my_preferences = global_preferences;
       arg_add_value (globals, "preferences", ARG_ARGLIST, -1, my_preferences);
 
-      my_rules = /*rules_dup */ (global_rules);
-
       p_addr = emalloc (sizeof (struct sockaddr_in6));
       if (ai->ai_family == AF_INET)
         memcpy (p_addr, &address, sizeof (address));
@@ -764,8 +758,6 @@ main_loop ()
         memcpy (p_addr, &address6, sizeof (address6));
       arg_add_value (globals, "client_address", ARG_PTR, -1, p_addr);
       arg_add_value (globals, "family", ARG_INT, -1, GSIZE_TO_POINTER (family));
-
-      arg_add_value (globals, "rules", ARG_PTR, -1, my_rules);
 
       /* we do not want to create an io thread, yet so the last argument is -1 */
       if (create_process ((process_func_t) scanner_thread, globals) < 0)
@@ -837,7 +829,6 @@ init_openvassd (struct arglist *options, int first_pass, int stop_early,
   int isck = -1;
   struct arglist *plugins = NULL;
   struct arglist *preferences = NULL;
-  struct openvas_rules *rules = NULL;
   int scanner_port = GPOINTER_TO_SIZE (arg_get_value (options, "scanner_port"));
   char *config_file = arg_get_value (options, "config_file");
   struct addrinfo *addr = arg_get_value (options, "addr");
@@ -864,12 +855,6 @@ init_openvassd (struct arglist *options, int first_pass, int stop_early,
   log_init (arg_get_value (preferences, "logfile"));
   if (dont_fork == FALSE)
     setup_legacy_log_handler (log_vwrite);
-
-  rules_init (&rules, preferences);
-#ifdef DEBUG_RULES
-  rules_dump (rules);
-#endif
-
 
   if (stop_early == 0)
     {
@@ -900,7 +885,6 @@ init_openvassd (struct arglist *options, int first_pass, int stop_early,
   arg_replace_value (options, "isck", ARG_INT, sizeof (gpointer),
                      GSIZE_TO_POINTER (isck));
   arg_replace_value (options, "plugins", ARG_ARGLIST, -1, plugins);
-  arg_replace_value (options, "rules", ARG_PTR, -1, rules);
   arg_replace_value (options, "preferences", ARG_ARGLIST, -1, preferences);
 
   return (0);
@@ -1097,7 +1081,6 @@ main (int argc, char *argv[], char *envp[])
   global_iana_socket = GPOINTER_TO_SIZE (arg_get_value (options, "isck"));
   global_plugins = arg_get_value (options, "plugins");
   global_preferences = arg_get_value (options, "preferences");
-  global_rules = arg_get_value (options, "rules");
 
   /* special treatment */
   if (print_specs)
