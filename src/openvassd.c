@@ -728,7 +728,7 @@ main_loop ()
       log_write ("connection from %s\n", (char *) asciiaddr);
 #endif
 
-      /* efree(&asciiaddr); */
+      free (asciiaddr);
 
 /* FIXME: Find out whether following comment is still valid.
           Especially, I do not see where the arglists are duplicated with
@@ -758,6 +758,7 @@ main_loop ()
         memcpy (p_addr, &address6, sizeof (address6));
       arg_add_value (globals, "client_address", ARG_PTR, -1, p_addr);
       arg_add_value (globals, "family", ARG_INT, -1, GSIZE_TO_POINTER (family));
+      free (p_addr);
 
       /* we do not want to create an io thread, yet so the last argument is -1 */
       if (create_process ((process_func_t) scanner_thread, globals) < 0)

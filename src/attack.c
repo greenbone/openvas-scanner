@@ -1217,19 +1217,20 @@ attack_network (struct arglist *globals)
     }
 
   hosts = openvas_hosts_new (hostlist);
-  /* hosts_allow/deny lists. */
-  hosts_allow = openvas_hosts_new (preferences_get_string
-                                    (preferences, "hosts_allow"));
-  hosts_deny = openvas_hosts_new (preferences_get_string
-                                   (preferences, "hosts_deny"));
-
   /* Apply Hosts preferences. */
   apply_hosts_preferences (hosts, preferences);
 
   /* Don't start if the provided interface is unauthorized. */
   if (apply_source_iface_preference (globals, preferences) != 0)
-    return -1;
-
+    {
+      openvas_hosts_free (hosts);
+      return -1;
+    }
+  /* hosts_allow/deny lists. */
+  hosts_allow = openvas_hosts_new (preferences_get_string
+                                    (preferences, "hosts_allow"));
+  hosts_deny = openvas_hosts_new (preferences_get_string
+                                   (preferences, "hosts_deny"));
   host = openvas_hosts_next (hosts);
   if (host == NULL)
     goto stop;

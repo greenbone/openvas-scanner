@@ -1,5 +1,10 @@
 2013-11-12  Hani Benhabiles  <hani.benhabiles@greenbone.net>
 
+	* src/attack.c (attack_network), src/openvassd.c (main_loop): Fix some
+	memory leaks.
+
+2013-11-12  Hani Benhabiles  <hani.benhabiles@greenbone.net>
+
 	* src/attack.c (attack_network): Return error for erroneous source
 	interface value too and not just when access to it is denied.
 
