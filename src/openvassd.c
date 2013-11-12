@@ -639,7 +639,7 @@ main_loop ()
               old_addr = 0;     /* currently done by efree, as well */
             }
         }
-      old_addr = asciiaddr;
+      old_addr = strdup (asciiaddr ? asciiaddr : "");
       asciiaddr = 0;
 
       if (ai->ai_family == AF_INET)

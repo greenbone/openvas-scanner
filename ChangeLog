@@ -1,5 +1,9 @@
 2013-11-12  Hani Benhabiles  <hani.benhabiles@greenbone.net>
 
+	* src/openvassd.c (main_loop): Duplicate asciiaddr into old_addr.
+
+2013-11-12  Hani Benhabiles  <hani.benhabiles@greenbone.net>
+
 	* src/attack.c (attack_network), src/openvassd.c (main_loop): Fix some
 	memory leaks.
 
