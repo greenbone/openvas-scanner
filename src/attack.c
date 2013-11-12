@@ -1227,7 +1227,7 @@ attack_network (struct arglist *globals)
   apply_hosts_preferences (hosts, preferences);
 
   /* Don't start if the provided interface is unauthorized. */
-  if (apply_source_iface_preference (globals, preferences) == -1)
+  if (apply_source_iface_preference (globals, preferences) != 0)
     return -1;
 
   host = openvas_hosts_next (hosts);

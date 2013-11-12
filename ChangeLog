@@ -1,3 +1,8 @@
+2013-11-12  Hani Benhabiles  <hani.benhabiles@greenbone.net>
+
+	* src/attack.c (attack_network): Return error for erroneous source
+	interface value too and not just when access to it is denied.
+
 2013-11-11  Hani Benhabiles  <hani.benhabiles@greenbone.net>
 
 	* CMakeLists.txt, src/CMakeLists.txt: Adjust for removal of old rules
