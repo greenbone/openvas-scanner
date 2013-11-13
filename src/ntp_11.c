@@ -298,7 +298,11 @@ ntp_11_read_prefs (struct arglist *globals)
                 || !strcmp (pref, "ca_file") || !strcmp (pref, "key_file")
                 || !strcmp (pref, "cert_file") || !strcmp (pref, "be_nice")
                 || !strcmp (pref, "log_plugins_name_at_load")
-                || !strcmp (pref, "nasl_no_signature_check"))
+                || !strcmp (pref, "nasl_no_signature_check")
+                || !strcmp (pref, "sys_hosts_allow")
+                || !strcmp (pref, "sys_hosts_deny")
+                || !strcmp (pref, "sys_ifaces_allow")
+                || !strcmp (pref, "sys_ifaces_deny"))
               continue;
 
             old = arg_get_value (preferences, pref);

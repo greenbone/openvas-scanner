@@ -138,13 +138,19 @@ Set this option to 'yes' if you are testing your local network and each local ho
 .IP source_iface
 Name of the network interface that will be used as the source of connections
 established by OpenVAS. The scan won't be launched if the value isn't authorized
-according to ifaces_allow / ifaces_deny if present.
+according to (sys_)ifaces_allow / (sys_)ifaces_deny if present.
 
 .IP ifaces_allow
 Comma-separated list of interfaces names that are authorized as source_iface values.
 
 .IP ifaces_deny
 Comma-separated list of interfaces names that are not authorized as source_iface values.
+
+.IP sys_ifaces_allow
+Like ifaces_allow. Can't be overriden by the client.
+
+.IP sys_ifaces_deny
+Like ifaces_deny. Can't be overriden by the client.
 
 .IP hosts_allow
 Comma-separated list of targets that are authorized to be scanned. Supports the same
@@ -153,6 +159,12 @@ syntax as the list of hosts to scan.
 .IP hosts_deny
 Comma-separated list of targets that are not authorized to be scanned. Supports
 the same syntax as the list of hosts to scan.
+
+.IP sys_hosts_allow
+Like hosts_allow. Can't be overriden by the client.
+
+.IP sys_hosts_deny
+Like hosts_deny. Can't be overriden by the client.
 
 .IP rules
 path to the rules database

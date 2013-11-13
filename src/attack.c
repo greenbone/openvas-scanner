@@ -1017,24 +1017,30 @@ str_in_comma_list (const char *str, const char *comma_list)
 /*
  * Checks if a network interface is authorized to be used as source interface.
  *
- * @return 0 if iface not in whitelist, 1 if iface in whitelist or whitelist not
- * present.
+ * @return 0 if iface is NULL, -1 if unauthorized by ifaces_deny/ifaces_allow,
+ * -2 if by sys_ifaces_deny/sys_ifaces_allow, 1 otherwise.
  */
 static int
 iface_authorized (const char *iface, struct arglist *preferences)
 {
-  const char *ifaces_deny, *ifaces_allow;
+  const char *ifaces_list;
 
   if (iface == NULL)
     return 0;
 
-  ifaces_deny = preferences_get_string (preferences, "ifaces_deny");
-  if (ifaces_deny && str_in_comma_list (iface, ifaces_deny))
-    return 0;
-
-  ifaces_allow = preferences_get_string (preferences, "ifaces_allow");
-  if (ifaces_allow && !str_in_comma_list (iface, ifaces_allow))
-    return 0;
+  ifaces_list = preferences_get_string (preferences, "ifaces_deny");
+  if (ifaces_list && str_in_comma_list (iface, ifaces_list))
+    return -1;
+  ifaces_list = preferences_get_string (preferences, "ifaces_allow");
+  if (ifaces_list && !str_in_comma_list (iface, ifaces_list))
+    return -1;
+  /* sys_* preferences are similar, but can't be overriden by the client. */
+  ifaces_list = preferences_get_string (preferences, "sys_ifaces_deny");
+  if (ifaces_list && str_in_comma_list (iface, ifaces_list))
+    return -2;
+  ifaces_list = preferences_get_string (preferences, "sys_ifaces_allow");
+  if (ifaces_list && !str_in_comma_list (iface, ifaces_list))
+    return -2;
 
   return 1;
 }
@@ -1072,16 +1078,31 @@ apply_source_iface_preference (struct arglist *globals,
                                struct arglist *preferences)
 {
   char *source_iface;
+  int ret;
 
   source_iface = preferences_get_string (preferences, "source_iface");
   if (source_iface == NULL)
     return 0;
 
-  if (!iface_authorized (source_iface, preferences))
+  ret = iface_authorized (source_iface, preferences);
+  if (ret == -1)
     {
       gchar *msg = g_strdup_printf ("Unauthorized source interface: %s",
                                     source_iface);
       log_write ("source_iface: Unauthorized source interface %s.\n",
+                 source_iface);
+      error_message_to_client (globals, msg, NULL, NULL);
+
+      g_free (msg);
+      return -1;
+    }
+  else if (ret == -2)
+    {
+      gchar *msg = g_strdup_printf ("Unauthorized source interface: %s"
+                                    " (system-wide restriction.)",
+                                    source_iface);
+      log_write ("source_iface: Unauthorized source interface %s."
+                 " (sys_* preference restriction.)\n",
                  source_iface);
       error_message_to_client (globals, msg, NULL, NULL);
 
@@ -1125,6 +1146,7 @@ attack_network (struct arglist *globals)
   int num_tested = 0;
   char *hostlist;
   openvas_hosts_t *hosts, *hosts_allow, *hosts_deny;
+  openvas_hosts_t *sys_hosts_allow, *sys_hosts_deny;
   openvas_host_t *host;
   int global_socket = -1;
   struct arglist *preferences = NULL;
@@ -1231,6 +1253,11 @@ attack_network (struct arglist *globals)
                                     (preferences, "hosts_allow"));
   hosts_deny = openvas_hosts_new (preferences_get_string
                                    (preferences, "hosts_deny"));
+  /* sys_* preferences, which can't be overriden by the client. */
+  sys_hosts_allow = openvas_hosts_new (preferences_get_string
+                                        (preferences, "sys_hosts_allow"));
+  sys_hosts_deny = openvas_hosts_new (preferences_get_string
+                                       (preferences, "sys_hosts_deny"));
   host = openvas_hosts_next (hosts);
   if (host == NULL)
     goto stop;
@@ -1262,8 +1289,16 @@ attack_network (struct arglist *globals)
                                    hostname, NULL);
           log_write ("Host %s access denied.", hostname);
         }
+      else if (!host_authorized (host, sys_hosts_allow, sys_hosts_deny))
+        {
+          error_message_to_client (globals, "Host access denied"
+                                            " (system-wide restriction.)",
+                                   hostname, NULL);
+          log_write ("Host %s access denied (sys_* preference restriction.)",
+                     hostname);
+        }
       else
-        {                       // We have the right to test this host
+        {
           struct attack_start_args args;
           int s;
           char *MAC = NULL;
@@ -1371,6 +1406,8 @@ stop:
   openvas_hosts_free (hosts);
   openvas_hosts_free (hosts_allow);
   openvas_hosts_free (hosts_deny);
+  openvas_hosts_free (sys_hosts_allow);
+  openvas_hosts_free (sys_hosts_deny);
 
   plugins_scheduler_free (sched);
 

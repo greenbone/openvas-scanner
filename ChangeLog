@@ -1,3 +1,17 @@
+2013-11-13  Hani Benhabiles  <hani.benhabiles@greenbone.net>
+
+	* src/attack.c (iface_authorized): Check access with sys_ifaces_allow and
+	sys_ifaces_deny preferences and return value accordingly.
+	(apply_source_iface_preference): Handle iface_authoried return value.
+	(attack_network): Also apply hosts access control with sys_hosts_allow
+	and sys_hosts_deny preferences.
+
+	* src/ntp_11.c (ntp_11_read_prefs): Add sys_hosts_allow, sys_hosts_deny,
+	sys_ifaces_allow and sys_ifaces_deny as scanner-side only preferences.
+
+	* doc/openvassd.8: Update documentation for the new scanner-side
+	preferences.
+
 2013-11-12  Hani Benhabiles  <hani.benhabiles@greenbone.net>
 
 	* src/openvassd.c (main_loop): Duplicate asciiaddr into old_addr.
