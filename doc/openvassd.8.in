@@ -153,12 +153,16 @@ Like ifaces_allow. Can't be overriden by the client.
 Like ifaces_deny. Can't be overriden by the client.
 
 .IP hosts_allow
-Comma-separated list of targets that are authorized to be scanned. Supports the same
-syntax as the list of hosts to scan.
+Comma-separated list of the only targets that are authorized to be scanned.
+Supports the same syntax as the list targets. Both target hostnames and the
+address to which they resolve are checked. Hostnames in hosts_allow list are not
+resolved however.
 
 .IP hosts_deny
 Comma-separated list of targets that are not authorized to be scanned. Supports
-the same syntax as the list of hosts to scan.
+the same syntax as the list targets. Both target hostnames and the address to
+which they resolve are checked. Hostnames in hosts_deny list are not resolved
+however.
 
 .IP sys_hosts_allow
 Like hosts_allow. Can't be overriden by the client.

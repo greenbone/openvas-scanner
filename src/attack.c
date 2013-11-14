@@ -1048,19 +1048,26 @@ iface_authorized (const char *iface, struct arglist *preferences)
 /*
  * Checks if a host is authorized to be scanned.
  *
+ * @param[in]   host    Host to check access to.
+ * @param[in]   addr    Pointer to address so a hostname isn't resolved multiple
+ *                      times.
+ * @param[in]   hosts_allow   Hosts whitelist.
+ * @param[in]   hosts_deny    Hosts blacklist.
+ *
  * @return 1 if host authorized, 0 otherwise.
  */
 static int
-host_authorized (const openvas_host_t *host, const openvas_hosts_t *hosts_allow,
+host_authorized (const openvas_host_t *host, const struct in6_addr *addr,
+                 const openvas_hosts_t *hosts_allow,
                  const openvas_hosts_t *hosts_deny)
 {
   /* Check Hosts Access. */
   if (host == NULL)
     return 0;
 
-  if (hosts_deny && openvas_host_in_hosts (host, hosts_deny))
+  if (hosts_deny && openvas_host_in_hosts (host, addr, hosts_deny))
     return 0;
-  if (hosts_allow && !openvas_host_in_hosts (host, hosts_allow))
+  if (hosts_allow && !openvas_host_in_hosts (host, addr, hosts_allow))
     return 0;
 
   return 1;
@@ -1283,13 +1290,14 @@ attack_network (struct arglist *globals)
         }
 
       /* Do we have the right to test this host ? */
-      if (!host_authorized (host, hosts_allow, hosts_deny))
+      if (!host_authorized (host, &host_ip, hosts_allow, hosts_deny))
         {
           error_message_to_client (globals, "Host access denied.",
                                    hostname, NULL);
           log_write ("Host %s access denied.", hostname);
         }
-      else if (!host_authorized (host, sys_hosts_allow, sys_hosts_deny))
+      else if (!host_authorized (host, &host_ip, sys_hosts_allow,
+                                 sys_hosts_deny))
         {
           error_message_to_client (globals, "Host access denied"
                                             " (system-wide restriction.)",

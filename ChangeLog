@@ -1,5 +1,14 @@
 2013-11-14  Hani Benhabiles  <hani.benhabiles@greenbone.net>
 
+	* src/attack.c (host_authorized): Add addr parameter. Adjust calls to
+	openvas_host_in_hosts.
+	(attack_network): Adjust calls to host_authorized.
+
+	* doc/openvassd.8.in: Update documentation for host access behavior with
+	hostnames.
+
+2013-11-14  Hani Benhabiles  <hani.benhabiles@greenbone.net>
+
 	* src/ntp_11.c (is_scanner_only_pref): New function to check for
 	scanner-only prefrences.
 	(ntp_11_read_prefs): Use new fuction.
