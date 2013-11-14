@@ -1,3 +1,9 @@
+2013-11-14  Hani Benhabiles  <hani.benhabiles@greenbone.net>
+
+	* src/ntp_11.c (is_scanner_only_pref): New function to check for
+	scanner-only prefrences.
+	(ntp_11_read_prefs): Use new fuction.
+
 2013-11-13  Hani Benhabiles  <hani.benhabiles@greenbone.net>
 
 	* src/attack.c (iface_authorized): Check access with sys_ifaces_allow and
