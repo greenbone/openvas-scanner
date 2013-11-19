@@ -1,5 +1,14 @@
 2013-11-19  Jan-Oliver Wagner <jan-oliver.wagner@greenbone.net>
 
+	* doc/openvassd.8.in: Removed section "THE RULE SET FORMAT"
+	and "THE RULES DATABASE" because the old rules schema and formats
+	has been replaced by a new scheme that is simplified and completely
+	handled via scanner preferences and openvassd config file.
+	Also removed description of config preference "rules" which is not
+	handled anymore.
+
+2013-11-19  Jan-Oliver Wagner <jan-oliver.wagner@greenbone.net>
+
 	* doc/openvassd.8.in: Removed reference to openvas(1) because
 	there is no such man page.
 

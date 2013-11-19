@@ -170,73 +170,9 @@ Like hosts_allow. Can't be overriden by the client.
 .IP sys_hosts_deny
 Like hosts_deny. Can't be overriden by the client.
 
-.IP rules
-path to the rules database
-
 The other options in this file can usually be redefined by the client.
 
 At  log in attempt, openvassd checks that the certificate has been signed by a recognized authority, and makes sure that the dname of the certificate shown by the user is the same as the one in file dname.
-
-.SH THE RULE SET FORMAT
-
-A rule has always the same format which is:
-.br
-	keyword IP/mask
-
-
-.I Keyword 
-is one of
-.I reject 
-,
-.I accept
-or
-.I default
-
-In addition to this, the IP address may be preceded by
-an exclamation mark (!) which means: \*(lqnot\*(rq
-There are three sources of rules:
-
-.IP \(bu
-the rules database, which applies to every users
-.IP \(bu
-the users database rules, which applies to one user
-.IP \(bu
-the users rules, defined by the user in the client
-
-You must know that there is a priority in the rules: the user
-can not extend its privileges, but can only lower them.
-(that it, it can only restrict the set of hosts he is allowed
-to test).
-
-.SH THE RULES DATABASE
-
-The rules database contains the system-wide rules, which applies
-for every user. Its syntax has been defined in the previous section.
-Example:
-
-.RS
-accept 127.0.0.0/8
-.br	
-reject 192.168.1.1/32
-.br
-reject !192.168.0.0/16
-.br
-default reject 
-.RE
-
-This allows the user to test localhost, and all the hosts on 
-192.168.0.0/16, except 192.168.1.1/32.
-.br
-The rules accept the special keyword
-.I client_ip
-which is replaced, at connection time, by the IP of the user who logs
-in. If you want everyone to test his own box only, then you can do:
-
-.RS
-accept client_ip/32
-.br
-default reject 
-.RE
 
 .SH NETWORK USAGE
 
