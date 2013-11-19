@@ -291,7 +291,7 @@ Reducing the amount of tested part and such will reduce the amount of data
 to be transfered significantly.
 
 .SH SEE ALSO
-.BR openvas (1),\  openvas-mkcert (8)
+.BR openvas-mkcert (8)
 
 .SH MORE INFORMATION ABOUT THE OpenVAS PROJECT
 
