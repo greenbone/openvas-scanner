@@ -1,3 +1,9 @@
+2013-11-21  Michael Wiegand <michael.wiegand@greenbone.net>
+
+	Preparing the openvas-scanner 4.0+beta3 release.
+
+	* CHANGES: Updated.
+
 2013-11-19  Jan-Oliver Wagner <jan-oliver.wagner@greenbone.net>
 
 	* doc/openvassd.8.in: Removed section "THE RULE SET FORMAT"

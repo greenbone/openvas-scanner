@@ -1,3 +1,27 @@
+openvas-scanner 4.0+beta3 (2013-11-21)
+
+This is the third beta release of the openvas-scanner 4.0 module for the Open
+Vulnerability Assessment System (OpenVAS). It will be part of the upcoming
+"OpenVAS-7".
+
+Main changes since last beta release include:
+A reworked host permissions concept, resulting in the removal of the outdated
+rules system; improve handling of interface permissions and host related
+preferences as well as a change in sending NVT descriptions.
+
+Many thanks to everyone who has contributed to this release:
+Hani Benhabiles, Jan-Oliver Wagner and Michael Wiegand.
+
+Main changes compared to 4.0+beta2:
+* The host permissions concept has been reworked, resulting in the removal of
+  the outdated rules system.
+* Handling of host related preferences has been improved.
+* Handling of interface permissions has been reworked.
+* OpenVAS Scanner no longer sends NVT descriptions separately since the
+  corresponding information is now contained in the script_tags.
+* Code cleanups.
+
+
 openvas-scanner 4.0+beta2 (2013-09-26)
 
 This is the second beta release of the openvas-scanner 4.0 module for the Open
