@@ -12,7 +12,7 @@ GPLv2: See file COPYING.GPLv2
 
 The following overview was collected 20100812 based
 on the header of the respective files (last updated
-20110114):
+20131210):
 
 src/attack.[c|h]: GPLv2
 src/comm.[c|h]: GPLv2
@@ -23,9 +23,9 @@ src/nasl_plugins.c: GPLv2
 src/ntp_11.[c|h]: GPLv2
 src/openvassd.c: GPLv2
 src/otp_1_0.[c|h]: GPLv2+
-src/oval_plugins.c: GPLv2+
 src/parser.[c|h]: GPLv2
 src/piic.[c|h]: GPLv2
+src/pluginlaunch.[c|h]: GPLv2
 src/pluginload.[c|h]: GPLv2
 src/pluginscheduler.[c|h]: GPLv2
 src/plugs_req.[c|h]: GPLv2
@@ -35,7 +35,7 @@ src/save_kb.[c|h]: GPLv2
 src/sighand.[c|h]: GPLv2
 src/utils.[c|h]: GPLv2
 
-tools/greenbone-nvt-sync: GPLv2
+tools/greenbone-nvt-sync: GPLv2+
 tools/openvas-mkcert-client.in: GPLv2
 tools/openvas-mkcert.in: GPLv2
 tools/openvas-nvt-sync.in: GPLv2
