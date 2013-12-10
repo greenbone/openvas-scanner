@@ -52,28 +52,12 @@ typedef int (*plugin_init_t) (struct arglist *);
  */
 typedef int (*plugin_run_t) (struct arglist *);
 
+/* From nasl_plugins.c */
+struct arglist *
+nasl_plugin_add (char *, char *, struct arglist *, struct arglist *);
 
-/**
- * Class of a NVT (implemented as list).
- * Currently two classes do exist: nasl_plugin_class and oval_plugin_class.
- * Holds the extension string and pointers to init, add and launch-functions.
- */
-typedef struct pl_class_s
-{
-    /** Pointer to next class in list. */
-  struct pl_class_s *pl_next;
-    /** File extension for this NVT class (e.g. ".nasl"). */
-  const char *extension;
-    /** Pointer to init function */
-  struct pl_class_s *(*pl_init) (void);
-    /** Pointer to add function */
-  struct arglist *(*pl_add) (char *, char *, struct arglist *,
-                             struct arglist *);
-    /** Pointer to launch function */
-  int (*pl_launch) (struct arglist *, struct arglist *, struct arglist *,
-                    struct arglist *, struct kb_item **, char *);
-} pl_class_t;
+int
+nasl_plugin_launch (struct arglist *, struct arglist *, struct arglist *, struct
+                    arglist *, struct kb_item **, char *);
 
-extern pl_class_t nasl_plugin_class;
-extern pl_class_t oval_plugin_class;
 #endif

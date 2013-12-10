@@ -474,8 +474,7 @@ pluginlaunch_stop ()
 int
 plugin_launch (struct arglist *globals, plugins_scheduler_t * sched,
                struct scheduler_plugin *plugin, struct arglist *hostinfos,
-               struct arglist *preferences, struct kb_item **kb, char *name,
-               pl_class_t * launcher)
+               struct arglist *preferences, struct kb_item **kb, char *name)
 {
   int p;
   int dsoc[2];
@@ -522,8 +521,8 @@ plugin_launch (struct arglist *globals, plugins_scheduler_t * sched,
   plugin_set_socket (plugin->arglist->value, dsoc[1]);
 
   processes[p].pid =
-    (*launcher->pl_launch) (globals, plugin->arglist->value, hostinfos,
-                            preferences, kb, name);
+    nasl_plugin_launch (globals, plugin->arglist->value, hostinfos,
+                        preferences, kb, name);
 
   processes[p].alive = 1;
   close (dsoc[1]);

@@ -258,8 +258,6 @@ launch_plugin (struct arglist *globals, plugins_scheduler_t * sched,
     {
       char *error;
 
-      pl_class_t *cl_ptr = arg_get_value (args, "PLUGIN_CLASS");
-
       if (preferences_safe_checks_enabled (preferences)
           && (category == ACT_DESTRUCTIVE_ATTACK || category == ACT_KILL_HOST
               || category == ACT_FLOOD || category == ACT_DENIAL))
@@ -325,7 +323,7 @@ launch_plugin (struct arglist *globals, plugins_scheduler_t * sched,
           /* Start the plugin */
           pid =
             plugin_launch (globals, sched, plugin, hostinfos, preferences, kb,
-                           name, cl_ptr);
+                           name);
           if (pid < 0)
             {
               plugin_set_running_state (plugin, PLUGIN_STATUS_UNRUN);

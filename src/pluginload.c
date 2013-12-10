@@ -37,8 +37,6 @@
 #include "log.h"
 #include "preferences.h"
 
-static pl_class_t *plugin_classes = NULL;
-
 /*
  * main function for loading all the
  * plugins that are in folder <folder>
@@ -50,29 +48,6 @@ plugins_init (preferences, be_quiet)
 {
   return plugins_reload (preferences, emalloc (sizeof (struct arglist)),
                          be_quiet);
-}
-
-static void
-init_plugin_classes (void)
-{
-  if (plugin_classes == NULL)
-    {
-      pl_class_t **cl_pptr = &plugin_classes;
-      pl_class_t *cl_ptr;
-      int i;
-      pl_class_t *classes[] =
-        { &nasl_plugin_class, NULL };
-
-      for (i = 0; (cl_ptr = classes[i]); ++i)
-        {
-          if ((*cl_ptr->pl_init) ())
-            {
-              *cl_pptr = cl_ptr;
-              cl_ptr->pl_next = NULL;
-              cl_pptr = &cl_ptr->pl_next;
-            }
-        }
-    }
 }
 
 /**
@@ -124,21 +99,9 @@ collect_nvts (const char *folder, const char *subdir, GSList * files)
           if (new_subdir)
             g_free (new_subdir);
         }
-      else
-        {
-          pl_class_t *cl_ptr = plugin_classes;
-          while (cl_ptr)
-            {
-              if (g_str_has_suffix (fname, cl_ptr->extension))
-                {
-                  files =
-                    g_slist_prepend (files,
-                                     g_build_filename (subdir, fname, NULL));
-                  break;
-                }
-              cl_ptr = cl_ptr->pl_next;
-            }
-        }
+      else if (g_str_has_suffix (fname, ".nasl"))
+        files = g_slist_prepend (files,
+                                 g_build_filename (subdir, fname, NULL));
       g_free (path);
       fname = g_dir_read_name (dir);
     }
@@ -182,8 +145,6 @@ plugins_reload_from_dir (preferences, plugins, folder, be_quiet)
       g_strfreev (include_folders);
     }
 
-  init_plugin_classes ();
-
   if (folder == NULL)
     {
 #ifdef DEBUG
@@ -210,8 +171,6 @@ plugins_reload_from_dir (preferences, plugins, folder, be_quiet)
   while (f != NULL)
     {
       name = f->data;
-      pl_class_t *cl_ptr = plugin_classes;
-
       n++;
       total++;
       if (n > 50 && be_quiet == 0)
@@ -224,21 +183,8 @@ plugins_reload_from_dir (preferences, plugins, folder, be_quiet)
 
       if (preferences_log_plugins_at_load (preferences))
         log_write ("Loading %s\n", name);
-      while (cl_ptr)
-        {
-          if (g_str_has_suffix (name, cl_ptr->extension))
-            {
-              struct arglist *pl = (*cl_ptr->pl_add) (folder, name, plugins,
-                                                      preferences);
-              if (pl)
-                {
-                  arg_add_value (pl, "PLUGIN_CLASS", ARG_PTR, sizeof (cl_ptr),
-                                 cl_ptr);
-                }
-              break;
-            }
-          cl_ptr = cl_ptr->pl_next;
-        }
+      if (g_str_has_suffix (name, ".nasl"))
+        nasl_plugin_add (folder, name, plugins, preferences);
       g_free (f->data);
       f = g_slist_next (f);
     }

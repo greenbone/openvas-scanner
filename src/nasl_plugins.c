@@ -57,21 +57,6 @@
 #include "processes.h"
 #include "log.h"
 
-/**
- * @brief Initialize the nasl system.
- *
- * @param prefs Ignored
- * @param nasl  Ignored
- *
- * @return nasl_plugin_class struct.
- */
-static pl_class_t *
-nasl_plugin_init (void)
-{
-  return &nasl_plugin_class;
-}
-
-
 static void nasl_thread (struct arglist *);
 
 
@@ -92,7 +77,7 @@ static void nasl_thread (struct arglist *);
  *
  * @return Pointer to the plugin (as arglist). NULL in case of errors.
  */
-static struct arglist *
+struct arglist *
 nasl_plugin_add (char *folder, char *name, struct arglist *plugins,
                  struct arglist *preferences)
 {
@@ -357,16 +342,3 @@ nasl_thread (struct arglist *g_args)
   internal_send (soc, NULL,
                  INTERNAL_COMM_MSG_TYPE_CTRL | INTERNAL_COMM_CTRL_FINISHED);
 }
-
-/**
- * @brief The NASL NVT class.
- *
- * @ref pl_class_s
- */
-pl_class_t nasl_plugin_class = {
-  NULL,
-  ".nasl",
-  nasl_plugin_init,
-  nasl_plugin_add,
-  nasl_plugin_launch,
-};

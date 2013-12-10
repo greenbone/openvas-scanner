@@ -1,5 +1,27 @@
 2013-12-10  Hani Benhabiles  <hani.benhabiles@greenbone.net>
 
+	* src/attack.c (launch_plugin): Adjust plugin_launch function call.
+
+	* src/nasl_plugins.c (nasl_plugin_init): Remove unused function.
+	(nasl_plugin_class): Remove unused structure.
+
+	* src/pluginlaunch.c (plugin_launch): Remove launcher argument as only
+	nasl_plugin_launch is used now.
+
+	* src/pluginlaunch.h: Add and adjust function prototypes adequately.
+
+	* src/pluginload.c (plugin_classes): Remove unused variable.
+	(init_plugin_classes): Delete unused function.
+	(collect_nvts): Don't iterate over plugin classes as only .nasl plugins
+	are supported.
+	(plugins_reload_from_dir): Remove init_plugin_classes call. Don't
+	iterate over plugins classes as only .nasl plugins are supported.
+
+	* src/pluginload.h: Add function prototype and remove pl_class_s struct.
+	Delete externs.
+
+2013-12-10  Hani Benhabiles  <hani.benhabiles@greenbone.net>
+
 	* src/oval_plugins.c: Delete file.
 
 	* src/CMakeLists.txt: Don't build deleted file.
