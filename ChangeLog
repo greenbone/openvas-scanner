@@ -1,3 +1,12 @@
+2013-12-10  Hani Benhabiles  <hani.benhabiles@greenbone.net>
+
+	* src/oval_plugins.c: Delete file.
+
+	* src/CMakeLists.txt: Don't build deleted file.
+
+	* src/pluginload.c (init_plugin_classes): Remove oval plugin class from
+	plugins classes list.
+
 2013-11-21  Michael Wiegand <michael.wiegand@greenbone.net>
 
 	Post release version bump.

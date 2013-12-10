@@ -61,7 +61,7 @@ init_plugin_classes (void)
       pl_class_t *cl_ptr;
       int i;
       pl_class_t *classes[] =
-        { &nasl_plugin_class, &oval_plugin_class, NULL };
+        { &nasl_plugin_class, NULL };
 
       for (i = 0; (cl_ptr = classes[i]); ++i)
         {
