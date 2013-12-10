@@ -42,16 +42,6 @@ void plugins_set_socket (struct arglist *, int);
 void plugin_free (struct arglist *);
 void plugins_free (struct arglist *);
 
-
-/**
- * Plugin standard function template to init a plugin (nasl/nes/oval).
- */
-typedef int (*plugin_init_t) (struct arglist *);
-/**
- * Plugin standard function template to run a plugin (nasl/nes/oval).
- */
-typedef int (*plugin_run_t) (struct arglist *);
-
 /* From nasl_plugins.c */
 struct arglist *
 nasl_plugin_add (char *, char *, struct arglist *, struct arglist *);

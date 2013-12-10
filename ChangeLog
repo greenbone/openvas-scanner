@@ -1,5 +1,10 @@
 2013-12-10  Jan-Oliver Wagner <jan-oliver.wagner@greenbone.net>
 
+	* src/pluginload.h (plugin_init_t, plugin_run_t) Removed these
+	typedefs since they are not used anymore.
+
+2013-12-10  Jan-Oliver Wagner <jan-oliver.wagner@greenbone.net>
+
 	* COPYING: Remove module, added missing one and fixed a license.
 
 2013-12-10  Hani Benhabiles  <hani.benhabiles@greenbone.net>
