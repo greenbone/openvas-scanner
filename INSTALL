@@ -76,17 +76,15 @@ Setting up an openvas-scanner requires the following steps:
    This command will guide you through the certificate creation and place the
    certificates in the correct locations on your system.
 
-1.1) (optional) You may decide to change the default scanner preferences
+2) (optional) You may decide to change the default scanner preferences
    by setting them in the file $prefix/etc/openvassd.conf. If that file does
    not exist (default), then the default settings are used. You can view
-   them with "openvassd -s".
+   them with "openvassd -s". The output of that command is a valid configuration
+   file. The man page ("man openvassd") provides details about the available
+   settings, among these opportunities to restrict access of scanner regarding
+   scan targets and interfaces.
 
-1.2) (optional) You may decide to restrict the hosts that the scanner is
-   allowed to scan in the file $prefix/etc/openvassd.rules. If that files does
-   not exist (default), then it is allowed to scan any host. A sample
-   file is available as doc/openvassd.rules.
-
-2) In order to run vulnerability scans, you will need a collection of Network
+3) In order to run vulnerability scans, you will need a collection of Network
    Vulnerability Tests (NVTs) that can be run by openvas-scanner. Initially,
    your NVT collection will be empty. It is recommended that you synchronize
    with an NVT feed service before starting openvas-scanner for the first time.
@@ -108,7 +106,7 @@ Setting up an openvas-scanner requires the following steps:
    Please visit the OpenVAS website for more information on available NVT feeds
    and instructions for integrating feeds into your scanner installation.
 
-3) You can launch openvas-scanner using the following command:
+4) You can launch openvas-scanner using the following command:
 
    $ openvassd
 
@@ -124,7 +122,7 @@ Setting up an openvas-scanner requires the following steps:
    without permission to perform these operations, your scan results are very
    likely to be incomplete.
 
-4) Once the scanner has started, openvas-manager can act as a client and control
+5) Once the scanner has started, openvas-manager can act as a client and control
    the scanner. The actual user interfaces (for example GSA or CLI-OMP)
    will only interact with the manager, not the scanner.
 

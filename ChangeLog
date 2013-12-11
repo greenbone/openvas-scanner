@@ -1,3 +1,11 @@
+2013-12-11  Jan-Oliver Wagner <jan-oliver.wagner@greenbone.net>
+
+	* INSTALL: Drop step 1.2 about rules file and make an
+	extended version of 1.1 to item 2, adapting subsequent enumeration.
+
+	* doc/openvassd.rules: Removed. rules are now configured via
+	openvassd.conf.
+
 2013-12-10  Jan-Oliver Wagner <jan-oliver.wagner@greenbone.net>
 
 	* src/pluginload.h (plugin_init_t, plugin_run_t) Removed these
