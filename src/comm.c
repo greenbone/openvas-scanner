@@ -339,19 +339,14 @@ comm_send_preferences (struct arglist *globals)
               && strcmp (prefs->name, "key_file")
               && strcmp (prefs->name, "cert_file")
               && strcmp (prefs->name, "be_nice")
-              && strcmp (prefs->name, "log_plugins_name_at_load"))
+              && strcmp (prefs->name, "log_plugins_name_at_load")
+              /* Preferences starting with sys_ are scanner-side only. */
+              && strncmp (prefs->name, "sys_", 4))
             auth_printf (globals, "%s <|> %s\n", prefs->name,
                          (const char *) prefs->value);
         }
       prefs = prefs->next;
     }
-  auth_printf (globals, "server_info_openvassd_version <|> %s\n",
-               OPENVASSD_VERSION);
-  auth_printf (globals, "server_info_libnasl_version <|> %s\n",
-               nasl_version ());
-  auth_printf (globals, "server_info_libnessus_version <|> %s\n",
-               openvaslib_version ());
-  auth_printf (globals, "server_info_thread_manager <|> fork\n");
   auth_printf (globals, "<|> SERVER\n");
 }
 
