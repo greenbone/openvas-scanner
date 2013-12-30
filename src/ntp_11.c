@@ -239,35 +239,6 @@ ntp_11_long_attack (struct arglist *globals)
   return 0;
 }
 
-/*
- * @brief Checks if a provided preference is scanner-only and can't be overriden
- * by the client.
- *
- * @return 1 if pref is scanner-only, 0 otherwise.
- */
-static int
-is_scanner_only_pref (const char *pref)
-{
-  if (pref == NULL)
-    return 0;
-  if (!strcmp (pref, "logfile") || !strcmp (pref, "config_file")
-      || !strcmp (pref, "plugins_folder")
-      || !strcmp (pref, "dumpfile")
-      || !strcmp (pref, "negot_timeout")
-      || !strcmp (pref, "force_pubkey_auth")
-      || !strcmp (pref, "log_while_attack")
-      || !strcmp (pref, "ca_file") || !strcmp (pref, "key_file")
-      || !strcmp (pref, "cert_file") || !strcmp (pref, "be_nice")
-      || !strcmp (pref, "log_plugins_name_at_load")
-      || !strcmp (pref, "nasl_no_signature_check")
-      || !strcmp (pref, "sys_hosts_allow")
-      || !strcmp (pref, "sys_hosts_deny")
-      || !strcmp (pref, "sys_ifaces_allow")
-      || !strcmp (pref, "sys_ifaces_deny"))
-    return 1;
-  return 0;
-}
-
 /**
  * @brief Reads in "server" prefs sent by client.
  *

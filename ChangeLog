@@ -1,3 +1,13 @@
+2013-12-30  Hani Benhabiles  <hani.benhabiles@greenbone.net>
+
+	* src/comm.c (comm_send_preferences): Check the preference via
+	is_scanner_only_pref instead of using a list of hard-coded values.
+
+	* src/ntp_11.c (is_scanner_only_pref): Adjust sys values matching. Move
+	function to src/utils.h
+
+	* src/utils.h: Add is_scanner_only_pref prototype.
+
 2013-12-13  Hani Benhabiles  <hani.benhabiles@greenbone.net>
 
 	* src/comm.c (comm_send_preferences): Remove server_info preferences as

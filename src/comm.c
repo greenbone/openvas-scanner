@@ -323,28 +323,9 @@ comm_send_preferences (struct arglist *globals)
 
   while (prefs && prefs->next)
     {
-      if (prefs->type == ARG_STRING)
-        {
-          /*
-           * No need to send openvassd-specific preferences
-           */
-          if (strcmp (prefs->name, "logfile")
-              && strcmp (prefs->name, "config_file")
-              && strcmp (prefs->name, "plugins_folder")
-              && strcmp (prefs->name, "dumpfile")
-              && strcmp (prefs->name, "negot_timeout")
-              && strcmp (prefs->name, "force_pubkey_auth")
-              && strcmp (prefs->name, "log_while_attack")
-              && strcmp (prefs->name, "ca_file")
-              && strcmp (prefs->name, "key_file")
-              && strcmp (prefs->name, "cert_file")
-              && strcmp (prefs->name, "be_nice")
-              && strcmp (prefs->name, "log_plugins_name_at_load")
-              /* Preferences starting with sys_ are scanner-side only. */
-              && strncmp (prefs->name, "sys_", 4))
-            auth_printf (globals, "%s <|> %s\n", prefs->name,
-                         (const char *) prefs->value);
-        }
+      if (prefs->type == ARG_STRING && !is_scanner_only_pref (prefs->name))
+        auth_printf (globals, "%s <|> %s\n", prefs->name,
+                     (const char *) prefs->value);
       prefs = prefs->next;
     }
   auth_printf (globals, "<|> SERVER\n");

@@ -54,4 +54,7 @@ int is_client_present (int);
 int data_left (int);
 
 void wait_for_children1 ();
+
+int
+is_scanner_only_pref (const char *);
 #endif
