@@ -1,5 +1,19 @@
 2013-12-31  Hani Benhabiles  <hani.benhabiles@greenbone.net>
 
+	* src/openvassd.c (set_globals_from_preferences): Also set the
+	global_plugins values.
+	(restart_openvassd): Reload the nvt plugins. Adjust
+	set_globals_from_preferences accordingly.
+	(main_loop): Set the process title before and after the reset of the
+	plugins and the config.
+	(init_openvassd): Adjust set_globals_from_preferences call. Remove
+	nvticache creation code.
+
+	* src/pluginload.c: Include base/nvticache.h
+	(plugins_init): Create nvti_cache and set preferences accordingly.
+
+2013-12-31  Hani Benhabiles  <hani.benhabiles@greenbone.net>
+
 	* src/openvassd.c (set_globals_from_preferences): New function.
 	(restart_openvassd): Reload the configuration file
 	(sighup): Update log message.

@@ -227,7 +227,7 @@ end_daemon_mode (void)
 }
 
 static void
-set_globals_from_preferences (struct arglist *prefs)
+set_globals_from_preferences (struct arglist *prefs, struct arglist *plugins)
 {
   char *str;
 
@@ -247,19 +247,24 @@ set_globals_from_preferences (struct arglist *prefs)
 
   arg_free (global_preferences);
   global_preferences = prefs;
+  arg_free (global_plugins);
+  global_plugins = plugins;
 }
 
 /* Restarts the scanner by reloading the configuration. */
 static void
 restart_openvassd ()
 {
-  struct arglist *preferences = NULL;
+  struct arglist *preferences = NULL, *plugins;
   char *config_file;
 
   /* Reload config file. */
   config_file = arg_get_value (global_preferences, "config_file");
   preferences_init (config_file, &preferences);
-  set_globals_from_preferences (preferences);
+
+  /* Reload the plugins */
+  plugins = plugins_init (preferences, 0);
+  set_globals_from_preferences (preferences, plugins);
 
   restart = 0;
 }
@@ -608,7 +613,11 @@ main_loop ()
       struct arglist *my_plugins, *my_preferences;
 
       if (restart != 0)
-        restart_openvassd ();
+        {
+          setproctitle ("openvassd: Resetting");
+          restart_openvassd ();
+          setproctitle ("openvassd: waiting for incoming connections");
+        }
 
       wait_for_children1 ();
       /* Prevent from an io table overflow attack against openvas */
@@ -839,7 +848,6 @@ init_openvassd (struct arglist *options, int first_pass, int stop_early,
   struct addrinfo *addr = arg_get_value (options, "addr");
 
   preferences_init (config_file, &preferences);
-  set_globals_from_preferences (preferences);
 
   log_init (arg_get_value (preferences, "logfile"));
   if (dont_fork == FALSE)
@@ -847,13 +855,6 @@ init_openvassd (struct arglist *options, int first_pass, int stop_early,
 
   if (stop_early == 0)
     {
-      nvticache_t * nvti_cache;
-
-      // @todo: Perhaps check wether "nvticache" is already present in arglist
-      nvti_cache = nvticache_new (arg_get_value (preferences, "cache_folder"),
-                                  arg_get_value (preferences, "plugins_folder"));
-      arg_add_value (preferences, "nvticache", ARG_PTR, -1, nvti_cache);
-
       plugins = plugins_init (preferences, be_quiet);
 
       if (first_pass != 0)
@@ -875,6 +876,7 @@ init_openvassd (struct arglist *options, int first_pass, int stop_early,
                      GSIZE_TO_POINTER (isck));
   arg_replace_value (options, "plugins", ARG_ARGLIST, -1, plugins);
   arg_replace_value (options, "preferences", ARG_ARGLIST, -1, preferences);
+  set_globals_from_preferences (preferences, plugins);
 
   return (0);
 }

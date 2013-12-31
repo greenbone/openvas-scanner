@@ -29,6 +29,7 @@
 
 #include <openvas/nasl/nasl.h>
 #include <openvas/misc/system.h>     /* for emalloc */
+#include <openvas/base/nvticache.h>  /* for nvticache_new */
 
 #include <glib.h>
 
@@ -42,10 +43,15 @@
  * plugins that are in folder <folder>
  */
 struct arglist *
-plugins_init (preferences, be_quiet)
-     struct arglist *preferences;
-     int be_quiet;
+plugins_init (struct arglist *preferences, int be_quiet)
 {
+  nvticache_t * nvti_cache;
+
+  // @todo: Perhaps check wether "nvticache" is already present in arglist
+  nvti_cache = nvticache_new (arg_get_value (preferences, "cache_folder"),
+                              arg_get_value (preferences, "plugins_folder"));
+  arg_add_value (preferences, "nvticache", ARG_PTR, -1, nvti_cache);
+
   return plugins_reload (preferences, emalloc (sizeof (struct arglist)),
                          be_quiet);
 }
