@@ -1,3 +1,14 @@
+2013-12-31  Hani Benhabiles  <hani.benhabiles@greenbone.net>
+
+	* src/openvassd.c (set_globals_from_preferences): New function.
+	(restart_openvassd): Reload the configuration file
+	(sighup): Update log message.
+	(init_openvassd): Change code to call set_globals_from_preferences.
+	(main): Don't set global_preferences variable.
+
+	* src/preferences.c (preferences_process): Set the config_file arg to
+	the provided filename value.
+
 2013-12-30  Hani Benhabiles  <hani.benhabiles@greenbone.net>
 
 	* src/comm.c (comm_send_preferences): Check the preference via

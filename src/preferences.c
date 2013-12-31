@@ -150,7 +150,9 @@ preferences_process (char *filename, struct arglist *prefs)
       cleanup_settings_iterator (&settings);
     }
 
-  return (0);
+  arg_add_value (prefs, "config_file", ARG_STRING, strlen (filename),
+                 estrdup (filename));
+  return 0;
 }
 
 

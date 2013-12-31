@@ -227,43 +227,47 @@ end_daemon_mode (void)
 }
 
 static void
+set_globals_from_preferences (struct arglist *prefs)
+{
+  char *str;
+
+  if ((str = arg_get_value (prefs, "max_hosts")) != NULL)
+    {
+      global_max_hosts = atoi (str);
+      if (global_max_hosts <= 0)
+        global_max_hosts = 15;
+    }
+
+  if ((str = arg_get_value (prefs, "max_checks")) != NULL)
+    {
+      global_max_checks = atoi (str);
+      if (global_max_checks <= 0)
+        global_max_checks = 10;
+    }
+
+  arg_free (global_preferences);
+  global_preferences = prefs;
+}
+
+/* Restarts the scanner by reloading the configuration. */
+static void
 restart_openvassd ()
 {
-  char *path;
-  char fpath[1024];
+  struct arglist *preferences = NULL;
+  char *config_file;
 
-  close (global_iana_socket);
-  pidfile_remove ("openvassd");
-  if (fork () == 0)
-    {
-      if (strchr (orig_argv[0], '/') != NULL)
-        path = orig_argv[0];
-      else
-        {
-          path = find_in_path ("openvassd", 0);
-          if (path == NULL)
-            {
-              log_write ("Could not re-start openvassd - not found\n");
-              _exit (1);
-            }
-          else
-            {
-              strncpy (fpath, path, sizeof (fpath) - strlen ("openvassd") - 2);
-              strcat (fpath, "/");
-              strcat (fpath, "openvassd");
-              path = fpath;
-            }
-        }
-      if (execv (path, orig_argv) < 0)
-        log_write ("Could not start %s - %s", path, strerror (errno));
-    }
-  _exit (0);
+  /* Reload config file. */
+  config_file = arg_get_value (global_preferences, "config_file");
+  preferences_init (config_file, &preferences);
+  set_globals_from_preferences (preferences);
+
+  restart = 0;
 }
 
 static void
 sighup (int i)
 {
-  log_write ("Caught HUP signal - reconfiguring openvassd\n");
+  log_write ("Received SIGHUP. Resetting the scanner.\n");
   restart = 1;
 }
 
@@ -833,26 +837,10 @@ init_openvassd (struct arglist *options, int first_pass, int stop_early,
   int scanner_port = GPOINTER_TO_SIZE (arg_get_value (options, "scanner_port"));
   char *config_file = arg_get_value (options, "config_file");
   struct addrinfo *addr = arg_get_value (options, "addr");
-  char *str;
 
   preferences_init (config_file, &preferences);
+  set_globals_from_preferences (preferences);
 
-  if ((str = arg_get_value (preferences, "max_hosts")) != NULL)
-    {
-      global_max_hosts = atoi (str);
-      if (global_max_hosts <= 0)
-        global_max_hosts = 15;
-    }
-
-  if ((str = arg_get_value (preferences, "max_checks")) != NULL)
-    {
-      global_max_checks = atoi (str);
-      if (global_max_checks <= 0)
-        global_max_checks = 10;
-    }
-
-  arg_add_value (preferences, "config_file", ARG_STRING, strlen (config_file),
-                 estrdup (config_file));
   log_init (arg_get_value (preferences, "logfile"));
   if (dont_fork == FALSE)
     setup_legacy_log_handler (log_vwrite);
@@ -1081,7 +1069,6 @@ main (int argc, char *argv[], char *envp[])
   g_options = options;
   global_iana_socket = GPOINTER_TO_SIZE (arg_get_value (options, "isck"));
   global_plugins = arg_get_value (options, "plugins");
-  global_preferences = arg_get_value (options, "preferences");
 
   /* special treatment */
   if (print_specs)
