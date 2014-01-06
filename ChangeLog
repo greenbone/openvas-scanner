@@ -1,5 +1,11 @@
 2014-01-06  Jan-Oliver Wagner <jan-oliver.wagner@greenbone.net>
 
+	Preparing the openvas-scanner 4.0+beta4 release.
+
+	* CHANGES: Updated. But set no date yet.
+
+2014-01-06  Jan-Oliver Wagner <jan-oliver.wagner@greenbone.net>
+
 	* doc/openvas-nvt-sync.8, INSTALL: Mention the new SIGHUP
 	behaviour.
 

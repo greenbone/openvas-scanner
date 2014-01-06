@@ -1,3 +1,25 @@
+openvas-scanner 4.0+beta4 (2014-??-??)
+
+This is the fourth beta release of the openvas-scanner 4.0 module for the Open
+Vulnerability Assessment System (OpenVAS). It will be part of the upcoming
+"OpenVAS-7".
+
+Main changes since last beta release include:
+New handling of SIGHUP.
+
+Many thanks to everyone who has contributed to this release:
+Hani Benhabiles and Jan-Oliver Wagner.
+
+Main changes compared to 4.0+beta3:
+* New handling of SIGHUP: The NVT cache will be updated and configuration
+  be reloaded.  This is only done for the main process, not for child processes.
+* Removed server_info preferences from OTP as they have not much use for
+  the client.
+* Removed support for OVAL plugins. I was never used as part of the feed
+  and it makes more sense to issue a specialised oval scanner.
+* Code cleanups.
+
+
 openvas-scanner 4.0+beta3 (2013-11-21)
 
 This is the third beta release of the openvas-scanner 4.0 module for the Open
