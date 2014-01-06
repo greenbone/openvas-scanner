@@ -1,5 +1,5 @@
 .\"                                      Hey, EMACS: -*- nroff -*-
-.TH OPENVAS-NVT-SYNC 8 "September 2009" "The OpenVAS Project" "User Manuals"
+.TH OPENVAS-NVT-SYNC 8 "January 2014" "The OpenVAS Project" "User Manuals"
 .SH NAME
 openvas-nvt-sync \- updates the OpenVAS security checks from OpenVAS NVT Feed
 .SH SYNOPSIS
@@ -14,8 +14,9 @@ plugins appear on the OpenVAS site (www.openvas.org)
 The script 
 .B openvas-nvt-sync
 will fetch all the newest security checks for you and install them at the proper
-location. Once this is done you will need to restart openvas-scanner(8)
-so that it loads them and uses them for new security scans.
+location. Once this is done you will need to either restart openvas-scanner(8)
+or send a SIGHUP to its main process so that it loads the new checks and uses them
+for new security scans.
 
 .br
 .B openvas-nvt-sync

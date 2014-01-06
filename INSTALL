@@ -115,6 +115,10 @@ Setting up an openvas-scanner requires the following steps:
    the internal scanner cache has to be updated. Subsequent launches will be
    much quicker.
 
+   Sending SIGHUP to the scanner main process will initiate a reload of the
+   feed content and of the scanner preferences. This will not affect running
+   scans.
+
    Please note that although you can start openvassd as a user without elevated
    privileges, it is recommended that you start openvassd as root since a number
    of Network Vulnerability Tests (NVTs) require root privileges to perform
