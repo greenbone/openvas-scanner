@@ -260,9 +260,6 @@ hash_get_deps_ptr (struct hash *h, char *name)
   if (l == NULL)
     return NULL;
 
-  if (l->dependencies_ptr == NULL)
-    return NULL;
-
   return l->dependencies_ptr;
 }
 

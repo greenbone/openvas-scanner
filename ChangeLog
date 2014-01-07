@@ -1,3 +1,7 @@
+2014-01-07  Henri Doreau <henri.doreau@gmail.com>
+
+	* src/pluginscheduler.c (hash_get_deps_ptr): Removed useless code.
+
 2014-01-06  Jan-Oliver Wagner <jan-oliver.wagner@greenbone.net>
 
 	Preparing the openvas-scanner 4.0+beta4 release.
@@ -8,6 +12,9 @@
 
 	* doc/openvas-nvt-sync.8, INSTALL: Mention the new SIGHUP
 	behaviour.
+2014-01-07  Henri Doreau <henri.doreau@gmail.com>
+
+	* src/pluginscheduler.c (hash_get_deps_ptr): Removed useless code.
 
 2013-12-31  Hani Benhabiles  <hani.benhabiles@greenbone.net>
 
