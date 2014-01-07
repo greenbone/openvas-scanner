@@ -1,5 +1,11 @@
 2014-01-07  Henri Doreau <henri.doreau@gmail.com>
 
+	* src/pluginscheduler.c (plugin_next_unrun_dependencie): Removed unused
+	variable 'counter'. Fixed unsafe use of 'flags'. Fixed and reduced
+	indentation. Fixed braces(!).
+
+2014-01-07  Henri Doreau <henri.doreau@gmail.com>
+
 	* src/pluginscheduler.c (hash_get_deps_ptr): Removed useless code.
 
 2014-01-06  Jan-Oliver Wagner <jan-oliver.wagner@greenbone.net>

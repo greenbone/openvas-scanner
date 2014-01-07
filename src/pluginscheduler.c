@@ -401,7 +401,6 @@ plugin_next_unrun_dependencie (plugins_scheduler_t sched,
                                struct hash **dependencies_ptr)
 {
   int flag = 0;
-  int counter = 0;
   int i;
 
   if (dependencies_ptr == NULL)
@@ -409,48 +408,52 @@ plugin_next_unrun_dependencie (plugins_scheduler_t sched,
 
   for (i = 0; dependencies_ptr[i] != NULL; i++)
     {
-      struct scheduler_plugin *plugin = dependencies_ptr[i]->plugin;
-      if (plugin != NULL)
+      struct scheduler_plugin *plugin;
+      int state;
+
+      plugin = dependencies_ptr[i]->plugin;
+      if (plugin == NULL)
+        continue;
+
+      state = plugin_get_running_state (plugin);
+      switch (state)
         {
-          int state = plugin_get_running_state (plugin);
-          switch (state)
-            {
-            case PLUGIN_STATUS_UNRUN:
-              {
-                struct hash **deps_ptr = dependencies_ptr[i]->dependencies_ptr;
-                struct scheduler_plugin *ret;
-                counter++;
-                if (deps_ptr == NULL)
-                  return plugin;
-                else
-                  {
-                    ret = plugin_next_unrun_dependencie (sched, deps_ptr);
-                    if (ret == NULL)
-                      return plugin;
-                    else if (ret == PLUG_RUNNING)
-                      flag++;
-                    else
-                      return ret;
-                  }
-            case PLUGIN_STATUS_RUNNING:
-                flag++;
-                break;
-            case PLUGIN_STATUS_DONE:
-                scheduler_rm_running_ports (sched, plugin);
-                plugin_set_running_state (plugin,
-                                          PLUGIN_STATUS_DONE_AND_CLEANED);
-                break;
-            case PLUGIN_STATUS_DONE_AND_CLEANED:
-                break;
-              }
-            }
+        case PLUGIN_STATUS_UNRUN:
+          {
+            struct hash **deps_ptr;
+            struct scheduler_plugin *ret;
+
+            deps_ptr = dependencies_ptr[i]->dependencies_ptr;
+            if (deps_ptr == NULL)
+              return plugin;
+
+            ret = plugin_next_unrun_dependencie (sched, deps_ptr);
+            if (ret == NULL)
+              return plugin;
+
+            if (ret == PLUG_RUNNING)
+              flag = 1;
+            else
+              return ret;
+          }
+          break;
+        case PLUGIN_STATUS_RUNNING:
+          flag = 1;
+          break;
+        case PLUGIN_STATUS_DONE:
+          scheduler_rm_running_ports (sched, plugin);
+          plugin_set_running_state (plugin,
+                                    PLUGIN_STATUS_DONE_AND_CLEANED);
+          break;
+        case PLUGIN_STATUS_DONE_AND_CLEANED:
+          break;
         }
     }
 
-  if (flag == 0)
+  if (!flag)
     return NULL;
-  else
-    return PLUG_RUNNING;
+
+  return PLUG_RUNNING;
 }
 
 /*---------------------------------------------------------------------------*/
