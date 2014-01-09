@@ -1,3 +1,7 @@
+2014-01-09  Jan-Oliver Wagner <jan-oliver.wagner@greenbone.net>
+
+	* CHANGES: Updated. But set no date yet.
+
 2014-01-09  Matthew Mundell <matthew.mundell@greenbone.net>
 
 	Remove --quiet option, making the NVT load messages depend on new option

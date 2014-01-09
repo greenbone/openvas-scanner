@@ -5,12 +5,16 @@ Vulnerability Assessment System (OpenVAS). It will be part of the upcoming
 "OpenVAS-7".
 
 Main changes since last beta release include:
-New handling of SIGHUP.
+New handling of SIGHUP and replacement of "-q" by "--progress",
+which changes the default behaviour.
 
 Many thanks to everyone who has contributed to this release:
-Hani Benhabiles and Jan-Oliver Wagner.
+Hani Benhabiles, Henri Doreau, Matthew Mundell and Jan-Oliver Wagner.
 
 Main changes compared to 4.0+beta3:
+* Drop command line option "-q". Instead scanner is now quiet by default.
+  Attention: This changes the default behaviour of invoking the scanner.
+* New command line option "--progress" will show progress of start-up.
 * New handling of SIGHUP: The NVT cache will be updated and configuration
   be reloaded.  This is only done for the main process, not for child processes.
 * Removed server_info preferences from OTP as they have not much use for
