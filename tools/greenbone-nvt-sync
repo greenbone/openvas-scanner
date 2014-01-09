@@ -5,11 +5,11 @@
 # Feed.
 #
 # Authors:
-# Lukas Grunwald <l.grunwald@greenbone.net>
+# Lukas Grunwald <lukas.grunwald@greenbone.net>
 # Jan-Oliver Wagner <jan-oliver.wagner@greenbone.net>
 # Michael Wiegand <michael.wiegand@intevation.de>
 #
-# Copyright (C) 2009-2013 Greenbone Networks GmbH
+# Copyright (C) 2009-2014 Greenbone Networks GmbH
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License version 2,
@@ -79,10 +79,15 @@ PIDFILEDIR="/var/run"
 # If ENABLED is set to 0, the sync script will not perform a synchronization.
 ENABLED=1
 
-# If REFRESH_ONLY is set to 1, the sync script will only update the OpenVAS
-# Scanner cache and the OpenVAS Manager database. This can be controlled via
+# If REFRESH_ONLY is set to 1, the sync script will only update OpenVAS
+# Scanner and OpenVAS Manager. This can be controlled via
 # the --refresh parameter.
 REFRESH_ONLY=0
+
+# If SYNC_ONLY is set to 1, the sync script will only perform the
+# synchronization but will not update OpenVAS Scanner nor OpenVAS Manager.
+# This can be controlled via the --synconly parameter.
+SYNC_ONLY=0
 
 # LOG_CMD defines the command to use for logging. To have logger log to stderr
 # as well as syslog, add "-s" here.
@@ -118,7 +123,6 @@ init_sync ()
     log_err "openvassd not found, aborting synchronization."
     exit 1
   fi
-  SCANNER_NAME="openvas-scanner"
 
   sysconfdir=`$SCANNER_BINARY --sysconfdir`
 
@@ -303,31 +307,42 @@ sync_nvts(){
   fi
 }
 
-restart_openvassd (){
-  if [ -e $sysconfdir/init.d/$SCANNER_NAME ]
+update_openvassd (){
+  if [ $SYNC_ONLY -eq 1 ]
   then
-    $sysconfdir/init.d/$SCANNER_NAME restart
-    log_write "Synchronization done, restarting the OpenVAS Scanner."
+    return
+  fi
+
+  log_write "Updating OpenVAS Scanner"
+  SCANNER_PIDFILE="$PIDFILEDIR/openvassd.pid"
+  if [ -r "$SCANNER_PIDFILE" ]
+  then
+    SCANNER_PID=`cat $SCANNER_PIDFILE`
+    kill -HUP $MANAGER_PID
+    log_write "Sent signal to OpenVAS Scanner to update."
   else
-    log_write "Please restart OpenVAS Scanner and let OpenVAS Manager do a database update" 
-    log_write "or a database rebuild to use your updated NVT collection."
-    NOINIT=1
+    log_err "$PIDFILEDIR/openvassd.pid not found, not updating OpenVAS Scanner."
+    log_write "Please restart OpenVAS Scanner or send SIGHUP to it and let OpenVAS"
+    log_write "Manager do a '--update' or a '--rebuild' to enable new NVTs for use."
+    SYNC_ONLY=1
   fi
 }
 
 update_openvasmd (){
-  if [ -n "$NOINIT" ] ; then
+  if [ $SYNC_ONLY -eq 1 ]
+  then
     return
   fi
-  log_write "Updating OpenVAS Manager DB"
+
+  log_write "Updating OpenVAS Manager"
   MANAGER_PIDFILE="$PIDFILEDIR/openvasmd.pid"
   if [ -r "$MANAGER_PIDFILE" ]
   then
     MANAGER_PID=`cat $MANAGER_PIDFILE`
     kill -HUP $MANAGER_PID
-    log_write "Sent signal to OpenVAS Manager to rebuild the database."
+    log_write "Sent signal to OpenVAS Manager to update."
   else
-    log_err "$PIDFILEDIR/openvasmd.pid not found, not updating manager."
+    log_err "$PIDFILEDIR/openvasmd.pid not found, not updating OpenVAS Manager."
   fi
 }
 
@@ -384,14 +399,21 @@ do_feedversion () {
 do_sync ()
 {
   log_write "Starting synchronization."
+
   init_sync
-  is_feed_current
+
+  if [ $REFRESH_ONLY -ne 1 ]
+  then
+    is_feed_current
+  fi
+
   if [ $FEED_CURRENT -eq 1 ] && [ $REFRESH_ONLY -ne 1 ]
   then
     log_write "Feed is already current, skipping synchronization."
   else
     sync_nvts
-    restart_openvassd
+    update_openvassd
+    sleep 1 # to ensure sd started working before md starts
     update_openvasmd
     log_write "Synchronization successful."
   fi
@@ -419,6 +441,9 @@ while test $# -gt 0; do
     --feedversion)
       do_feedversion
       exit 0
+      ;;
+    --synconly)
+      SYNC_ONLY=1
       ;;
     --refresh)
       REFRESH_ONLY=1

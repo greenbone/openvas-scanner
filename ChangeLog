@@ -1,5 +1,15 @@
 2014-01-09  Jan-Oliver Wagner <jan-oliver.wagner@greenbone.net>
 
+	* tools/greenbone-nvt-sync: New option --synconly that will prevent
+	updating of scanner and manager.
+	(restart_openvassd): Renamed to update_openvassd and changed
+	the restart directive of start-stop-daemon to the new SIGHUP mechanism.
+	(update_openvasmd): Consistent wording with update_openvassd.
+	(do_sync): Fix bug for refresh-only mode: Even the current-test should
+	not be executed.
+
+2014-01-09  Jan-Oliver Wagner <jan-oliver.wagner@greenbone.net>
+
 	* CHANGES: Updated. But set no date yet.
 
 2014-01-09  Matthew Mundell <matthew.mundell@greenbone.net>
