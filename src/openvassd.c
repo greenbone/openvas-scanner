@@ -60,7 +60,6 @@
 #include <openvas/misc/proctitle.h>  /* for setproctitle.h */
 #include <openvas/misc/openvas_logging.h>  /* for setup_legacy_log_handler */
 #include <openvas/base/pidfile.h>    /* for pidfile_remove */
-#include <openvas/base/nvticache.h>  /* for nvticache_new */
 #include <openvas/misc/otp.h>        /* for OTP_20 */
 
 #include <gnutls/gnutls.h>

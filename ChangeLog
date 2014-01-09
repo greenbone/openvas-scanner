@@ -1,3 +1,7 @@
+2013-01-09  Hani Benhabiles  <hani.benhabiles@greenbone.net>
+
+	* src/openvassd.c: Remove useless include.
+
 2014-01-07  Henri Doreau <henri.doreau@gmail.com>
 
 	* src/pluginscheduler.c (plugin_next_unrun_dependencie): Removed unused
