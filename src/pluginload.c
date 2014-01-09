@@ -43,7 +43,7 @@
  * plugins that are in folder <folder>
  */
 struct arglist *
-plugins_init (struct arglist *preferences, int be_quiet)
+plugins_init (struct arglist *preferences, int progress)
 {
   nvticache_t * nvti_cache;
 
@@ -53,7 +53,7 @@ plugins_init (struct arglist *preferences, int be_quiet)
   arg_add_value (preferences, "nvticache", ARG_PTR, -1, nvti_cache);
 
   return plugins_reload (preferences, emalloc (sizeof (struct arglist)),
-                         be_quiet);
+                         progress);
 }
 
 /**
@@ -117,12 +117,39 @@ collect_nvts (const char *folder, const char *subdir, GSList * files)
 }
 
 
+/**
+ * @brief Nudge the progress indicator.
+ */
+static void
+spin_progress ()
+{
+  static char current = '/';
+  switch (current)
+    {
+      case '\\':
+        current = '|';
+        break;
+      case '|':
+        current = '/';
+        break;
+      case '/':
+        current = '-';
+        break;
+      case '-':
+        current = '\\';
+        break;
+    }
+  putchar ('\b');
+  putchar (current);
+  fflush (stdout);
+}
+
 static struct arglist *
-plugins_reload_from_dir (preferences, plugins, folder, be_quiet)
+plugins_reload_from_dir (preferences, plugins, folder, progress)
      struct arglist *preferences;
      struct arglist *plugins;
      char *folder;
-     int be_quiet;
+     int progress;
 {
   GSList *files = NULL, *f;
   char *name;
@@ -168,9 +195,9 @@ plugins_reload_from_dir (preferences, plugins, folder, be_quiet)
    * Add the plugins
    */
 
-  if (be_quiet == 0)
+  if (progress)
     {
-      printf ("Loading the OpenVAS plugins...");
+      printf ("Loading the NVTs... \\");
       fflush (stdout);
     }
   f = files;
@@ -179,10 +206,13 @@ plugins_reload_from_dir (preferences, plugins, folder, be_quiet)
       name = f->data;
       n++;
       total++;
-      if (n > 50 && be_quiet == 0)
+      if ((n > 50) && progress)
         {
           n = 0;
-          printf ("\rLoading the plugins... %d (out of %d)", total, num_files);
+          printf ("\rLoading the NVTs...  ");
+          spin_progress ();
+          printf (" %d of %d (%d%%)",
+                  total, num_files, (total * 100) / num_files);
           fflush (stdout);
         }
 
@@ -197,9 +227,9 @@ plugins_reload_from_dir (preferences, plugins, folder, be_quiet)
 
   g_slist_free (files);
 
-  if (be_quiet == 0)
+  if (progress)
     {
-      printf ("\rAll plugins loaded                                   \n");
+      printf ("\rLoading the NVTs... done.                            \n");
       fflush (stdout);
     }
 
@@ -208,14 +238,14 @@ plugins_reload_from_dir (preferences, plugins, folder, be_quiet)
 
 
 struct arglist *
-plugins_reload (preferences, plugins, be_quiet)
+plugins_reload (preferences, plugins, progress)
      struct arglist *preferences;
      struct arglist *plugins;
-     int be_quiet;
+     int progress;
 {
   return plugins_reload_from_dir (preferences, plugins,
                                   arg_get_value (preferences, "plugins_folder"),
-                                  be_quiet);
+                                  progress);
 }
 
 void

@@ -1,4 +1,22 @@
-2013-01-09  Hani Benhabiles  <hani.benhabiles@greenbone.net>
+2014-01-09  Matthew Mundell <matthew.mundell@greenbone.net>
+
+	Remove --quiet option, making the NVT load messages depend on new option
+	--progress instead.  Match the messages to the Manager style.
+
+	* doc/openvassd.8.in: Replace --quiet with --progress.
+
+	* src/openvassd.c (orig_argv): Remove.
+	(init_openvassd): Replace quiet arg with progress arg.
+	(main): Remove orig_argv processing.  I can't find anything that uses
+	this variable.  Replace --quiet with --progress.
+
+	* src/pluginload.c (plugins_init): Replace quiet arg with progress arg.
+	(spin_progress): New function.
+	(plugins_reload_from_dir): Replace quiet arg with progress arg.  Use
+	"NVT" instead of "plugin" in progress messages.  Make the messages
+	look more like the Manager ones.  Add load percent next to the total.
+
+2014-01-09  Hani Benhabiles  <hani.benhabiles@greenbone.net>
 
 	* src/openvassd.c: Remove useless include.
 

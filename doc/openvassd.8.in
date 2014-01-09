@@ -49,8 +49,8 @@ than listening on port 9391 (default).
 Make the scanner stay in foreground (non-daemon mode)
 
 .TP 
-.B "-q, --quiet"
-Prevent the scanner from printing the loading status of the plugins at startup
+.B "--progress"
+Print the progress during loading of NVTs at startup
 
 .TP 
 .B "-v, --version"

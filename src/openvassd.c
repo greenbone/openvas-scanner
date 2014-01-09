@@ -112,7 +112,6 @@ struct arglist *global_plugins;
 struct arglist *global_preferences;
 
 
-static char *orig_argv[64];
 static int restart = 0;
 
 /**
@@ -834,10 +833,11 @@ init_network (int port, int *sock, struct addrinfo addr)
  * @brief Initialize everything.
  *
  * @param stop_early 1: do some initialization, 2: no initialization.
+ * @param progress   If true then display progress.
  */
 static int
 init_openvassd (struct arglist *options, int first_pass, int stop_early,
-                int be_quiet, int dont_fork)
+                int progress, int dont_fork)
 {
   int isck = -1;
   struct arglist *plugins = NULL;
@@ -854,7 +854,7 @@ init_openvassd (struct arglist *options, int first_pass, int stop_early,
 
   if (stop_early == 0)
     {
-      plugins = plugins_init (preferences, be_quiet);
+      plugins = plugins_init (preferences, progress);
 
       if (first_pass != 0)
         init_network (scanner_port, &isck, *addr);
@@ -894,24 +894,11 @@ main (int argc, char *argv[], char *envp[])
   char *myself;
   struct arglist *options = emalloc (sizeof (struct arglist));
   int i;
-  int be_quiet = 0;
-  int flag = 0;
   struct addrinfo *mysaddr;
   struct addrinfo hints;
   struct addrinfo ai;
   struct sockaddr_in saddr;
   struct sockaddr_in6 s6addr;
-
-  bzero (orig_argv, sizeof (orig_argv));
-  for (i = 0; i < argc; i++)
-    {
-      if (strcmp (argv[i], "-q") == 0 || strcmp (argv[i], "--quiet") == 0)
-        flag++;
-      orig_argv[i] = estrdup (argv[i]);
-    }
-
-  if (flag == 0)
-    orig_argv[argc] = estrdup ("-q");
 
   initsetproctitle (argc, argv, envp);
 
@@ -925,9 +912,9 @@ main (int argc, char *argv[], char *envp[])
   static gchar *address = NULL;
   static gchar *port = NULL;
   static gchar *config_file = NULL;
-  static gboolean quiet = FALSE;
   static gboolean print_specs = FALSE;
   static gboolean print_sysconfdir = FALSE;
+  static gboolean progress = FALSE;
   static gboolean only_cache = FALSE;
   GError *error = NULL;
   GOptionContext *option_context;
@@ -942,12 +929,12 @@ main (int argc, char *argv[], char *envp[])
      "Use port number <number>", "<number>"},
     {"config-file", 'c', 0, G_OPTION_ARG_FILENAME, &config_file,
      "Configuration file", "<.rcfile>"},
-    {"quiet", 'q', 0, G_OPTION_ARG_NONE, &quiet,
-     "Quiet (do not issue any messages to stdout)", NULL},
     {"cfg-specs", 's', 0, G_OPTION_ARG_NONE, &print_specs,
      "Print configuration settings", NULL},
     {"sysconfdir", 'y', 0, G_OPTION_ARG_NONE, &print_sysconfdir,
      "Print system configuration directory (set at compile time)", NULL},
+    {"progress", '\0', 0, G_OPTION_ARG_NONE, &progress,
+     "Display NVT load progress on stdout, even when in daemon mode", NULL},
     {"only-cache", 'C', 0, G_OPTION_ARG_NONE, &only_cache,
      "Exit once the NVT cache has been initialized or updated", NULL},
     {NULL}
@@ -976,9 +963,6 @@ main (int argc, char *argv[], char *envp[])
       exit (0);
     }
   tzset ();
-
-  if (quiet)
-    be_quiet = 1;
 
   if (print_specs)
     exit_early = 2;           /* no cipher initialization */
@@ -1066,7 +1050,7 @@ main (int argc, char *argv[], char *envp[])
                  config_file);
   arg_add_value (options, "addr", ARG_PTR, -1, &ai);
 
-  init_openvassd (options, 1, exit_early, be_quiet, dont_fork);
+  init_openvassd (options, 1, exit_early, progress, dont_fork);
   g_options = options;
   global_iana_socket = GPOINTER_TO_SIZE (arg_get_value (options, "isck"));
   global_plugins = arg_get_value (options, "plugins");
