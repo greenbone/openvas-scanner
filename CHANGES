@@ -1,4 +1,4 @@
-openvas-scanner 4.0+beta4 (2014-??-??)
+openvas-scanner 4.0+beta4 (2014-01-10)
 
 This is the fourth beta release of the openvas-scanner 4.0 module for the Open
 Vulnerability Assessment System (OpenVAS). It will be part of the upcoming
@@ -19,7 +19,7 @@ Main changes compared to 4.0+beta3:
   be reloaded.  This is only done for the main process, not for child processes.
 * Removed server_info preferences from OTP as they have not much use for
   the client.
-* Removed support for OVAL plugins. I was never used as part of the feed
+* Removed support for OVAL plugins. It was never used as part of the feed
   and it makes more sense to issue a specialised oval scanner.
 * Code cleanups.
 
