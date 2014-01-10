@@ -1,5 +1,11 @@
 2014-01-10  Benoit Allard  <benoit.allard@greenbone.net>
 
+	Post release version bump.
+
+        * CMakeLists.txt: Set version to 4.0+beta5.
+
+2014-01-10  Benoit Allard  <benoit.allard@greenbone.net>
+
 	* CHANGES: Set release date for openvas-scanner-4.0+beta4 to 2014-01-10
 
 2014-01-10  Hani Benhabiles  <hani.benhabiles@greenbone.net>
