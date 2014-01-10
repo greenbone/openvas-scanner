@@ -1,3 +1,10 @@
+2014-01-10  Hani Benhabiles  <hani.benhabiles@greenbone.net>
+
+	* src/openvassd.c (restart_scanner): Ignore SIGHUP signals while
+	reloading. Rename function to reload_scanner. Adjust log messages.
+	(sighup): Move function definition up. Remove log writing call.
+	(main_loop): Adjust scanner reloading title.
+
 2014-01-10  Jan-Oliver Wagner <jan-oliver.wagner@greenbone.net>
 
 	* tools/greenbone-nvt-sync: Renamed --synconly to sync-only to match

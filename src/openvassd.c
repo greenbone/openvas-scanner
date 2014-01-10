@@ -249,12 +249,22 @@ set_globals_from_preferences (struct arglist *prefs, struct arglist *plugins)
   global_plugins = plugins;
 }
 
+static void
+sighup (int i)
+{
+  restart = 1;
+}
+
 /* Restarts the scanner by reloading the configuration. */
 static void
-restart_openvassd ()
+reload_openvassd ()
 {
   struct arglist *preferences = NULL, *plugins;
   char *config_file;
+
+  log_write ("Reloading the scanner.\n");
+  /* Ignore SIGHUP while reloading. */
+  openvas_signal (SIGHUP, SIG_IGN);
 
   /* Reload config file. */
   config_file = arg_get_value (global_preferences, "config_file");
@@ -264,16 +274,10 @@ restart_openvassd ()
   plugins = plugins_init (preferences, 0);
   set_globals_from_preferences (preferences, plugins);
 
+  log_write ("Finished reloading the scanner.\n");
   restart = 0;
+  openvas_signal (SIGHUP, sighup);
 }
-
-static void
-sighup (int i)
-{
-  log_write ("Received SIGHUP. Resetting the scanner.\n");
-  restart = 1;
-}
-
 
 int
 check_client (char *dname)
@@ -612,8 +616,8 @@ main_loop ()
 
       if (restart != 0)
         {
-          setproctitle ("openvassd: Resetting");
-          restart_openvassd ();
+          setproctitle ("openvassd: Reloading");
+          reload_openvassd ();
           setproctitle ("openvassd: waiting for incoming connections");
         }
 
