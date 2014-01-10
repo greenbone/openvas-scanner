@@ -86,7 +86,7 @@ REFRESH_ONLY=0
 
 # If SYNC_ONLY is set to 1, the sync script will only perform the
 # synchronization but will not update OpenVAS Scanner nor OpenVAS Manager.
-# This can be controlled via the --synconly parameter.
+# This can be controlled via the --sync-only parameter.
 SYNC_ONLY=0
 
 # LOG_CMD defines the command to use for logging. To have logger log to stderr
@@ -442,7 +442,7 @@ while test $# -gt 0; do
       do_feedversion
       exit 0
       ;;
-    --synconly)
+    --sync-only)
       SYNC_ONLY=1
       ;;
     --refresh)
