@@ -47,7 +47,7 @@ struct arglist *
 nasl_plugin_add (char *, char *, struct arglist *, struct arglist *);
 
 int
-nasl_plugin_launch (struct arglist *, struct arglist *, struct arglist *, struct
-                    arglist *, struct kb_item **, char *);
+nasl_plugin_launch (struct arglist *, struct arglist *, struct arglist *,
+                    struct arglist *, kb_t, char *);
 
 #endif

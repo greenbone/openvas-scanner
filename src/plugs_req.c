@@ -40,7 +40,7 @@
 
 ***********************************************************/
 
-extern int kb_get_port_state_proto (struct kb_item **, struct arglist *, int,
+extern int kb_get_port_state_proto (kb_t, struct arglist *, int,
                                     char *);
 
 /**
@@ -49,7 +49,7 @@ extern int kb_get_port_state_proto (struct kb_item **, struct arglist *, int,
  * @return Whether a port in a port list is closed or not.
  */
 static int
-get_closed_ports (struct kb_item **kb, struct arglist *ports,
+get_closed_ports (kb_t kb, struct arglist *ports,
                   struct arglist *preferences)
 {
   if (ports == NULL)
@@ -78,7 +78,7 @@ get_closed_ports (struct kb_item **kb, struct arglist *ports,
  * @brief Returns whether a port in a port list is closed or not.
  */
 static int
-get_closed_udp_ports (struct kb_item **kb, struct arglist *ports,
+get_closed_udp_ports (kb_t kb, struct arglist *ports,
                       struct arglist *preferences)
 {
   if (ports == NULL)
@@ -99,7 +99,7 @@ get_closed_udp_ports (struct kb_item **kb, struct arglist *ports,
  * @brief Returns the name of the first key which is not \ref kb.
  */
 static char *
-key_missing (struct kb_item **kb, struct arglist *keys)
+key_missing (kb_t kb, struct arglist *keys)
 {
   if (kb == NULL || keys == NULL)
     return NULL;
@@ -120,7 +120,7 @@ key_missing (struct kb_item **kb, struct arglist *keys)
  * @brief The opposite of the previous function (\ref key_missing).
  */
 static char *
-key_present (struct kb_item **kb, struct arglist *keys)
+key_present (kb_t kb, struct arglist *keys)
 {
   if (kb == NULL || keys == NULL)
     return NULL;
@@ -200,7 +200,7 @@ requirements_common_ports (struct scheduler_plugin *plugin1,
  *         met. 0 if it is not the case.
  */
 int
-mandatory_requirements_met (struct kb_item **kb,
+mandatory_requirements_met (kb_t kb,
                             struct scheduler_plugin *plugin)
 {
   if (key_missing (kb, plugin->mandatory_keys))
@@ -215,7 +215,7 @@ mandatory_requirements_met (struct kb_item **kb,
  * @return Returns NULL is everything is ok, else an error message.
  */
 char *
-requirements_plugin (struct kb_item **kb, struct scheduler_plugin *plugin,
+requirements_plugin (kb_t kb, struct scheduler_plugin *plugin,
                      struct arglist *preferences)
 {
   static char error[64];

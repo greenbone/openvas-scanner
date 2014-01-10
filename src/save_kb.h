@@ -43,7 +43,7 @@ int save_kb_write_int (struct arglist *, char *, char *, int);
 int save_kb_write_str (struct arglist *, char *, char *, char *);
 
 int save_kb_exists (char *);
-struct kb_item **save_kb_load_kb (struct arglist *, char *);
+kb_t save_kb_load_kb (struct arglist *, char *);
 
 int save_kb (struct arglist *);
 

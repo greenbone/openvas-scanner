@@ -1,3 +1,9 @@
+2014-01-10  Jan-Oliver Wagner <jan-oliver.wagner@greenbone.net>
+
+	* src/nasl_plugins.c, src/plugs_req.c, src/plugs_req.h, src/attack.c,
+	src/save_kb.c, src/save_kb.h, src/pluginlaunch.c, src/pluginlaunch.h,
+	src/pluginload.h: Use new typedef kb_t.
+
 2014-01-10  Benoit Allard  <benoit.allard@greenbone.net>
 
 	Post release version bump.

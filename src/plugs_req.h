@@ -34,10 +34,10 @@
 #include <openvas/misc/kb.h>         /* for struct kb_item */
 #include <openvas/misc/arglists.h>   /* for struct arglist */
 
-char *requirements_plugin (struct kb_item **, struct scheduler_plugin *,
+char *requirements_plugin (kb_t, struct scheduler_plugin *,
                            struct arglist *);
 
-int mandatory_requirements_met (struct kb_item **, struct scheduler_plugin *);
+int mandatory_requirements_met (kb_t, struct scheduler_plugin *);
 
 struct arglist *requirements_common_ports (struct scheduler_plugin *,
                                            struct scheduler_plugin *);

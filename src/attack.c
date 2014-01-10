@@ -224,7 +224,7 @@ attack_init_hostinfos (char *mac, char *hostname, struct in6_addr *ip,
 static int
 launch_plugin (struct arglist *globals, plugins_scheduler_t * sched,
                struct scheduler_plugin *plugin, char *hostname, int *cur_plug,
-               int num_plugs, struct arglist *hostinfos, struct kb_item **kb,
+               int num_plugs, struct arglist *hostinfos, kb_t kb,
                gboolean new_kb)
 {
   struct arglist *preferences = arg_get_value (globals, "preferences");
@@ -425,7 +425,7 @@ pattern_matches (char *key_pattern, char *value_login, char *hostname)
  * @param hostname Name of the host of interest.
  */
 static void
-fill_host_kb_ssh_credentials (struct kb_item **kb, struct arglist *globals,
+fill_host_kb_ssh_credentials (kb_t kb, struct arglist *globals,
                               char *hostname)
 {
   GHashTable *map_host_login_names = NULL;
@@ -566,13 +566,13 @@ fill_host_kb_ssh_credentials (struct kb_item **kb, struct arglist *globals,
  *
  * @see fill_host_kb_ssh_credentials
  */
-static struct kb_item **
-init_host_kb (struct arglist *globals, char *hostname, struct arglist *hostinfos, gboolean * new_kb)
+static kb_t
+init_host_kb (struct arglist *globals, char *hostname,
+              struct arglist *hostinfos, gboolean * new_kb)
 {
-  struct kb_item **kb;
+  kb_t kb, network_kb;
   (*new_kb) = FALSE;
   char *vhosts = (char *) arg_get_value (hostinfos, "VHOSTS");
-  struct kb_item **network_kb;
   struct kb_item *host_network_results = NULL;
   struct kb_item *result_iter;
 
@@ -668,7 +668,7 @@ attack_host (struct arglist *globals, struct arglist *hostinfos, char *hostname,
   int num_plugs = 0;
   int cur_plug = 1;
 
-  struct kb_item **kb;
+  kb_t kb;
   gboolean new_kb = FALSE;
   int forks_retry = 0;
   struct arglist *plugins = arg_get_value (globals, "plugins");

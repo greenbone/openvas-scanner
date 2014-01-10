@@ -409,6 +409,7 @@ save_kb_new (struct arglist *globals, char *hostname)
 
   if (hostname == NULL)
     return -1;
+
   dir = kb_dirname ();
   kb_mkdir (dir);
   efree (&dir);
@@ -610,13 +611,13 @@ failed1:
  * The KB entry 'Host/dead' is ignored, as well as all the
  * entries starting with '/tmp/'.
  */
-struct kb_item **
+kb_t
 save_kb_load_kb (struct arglist *globals, char *hostname)
 {
   char *fname = kb_fname (hostname);
   FILE *f;
   int fd;
-  struct kb_item **kb;
+  kb_t kb;
   char buf[4096];
   long max_age = 864000;
 

@@ -64,7 +64,7 @@ struct running
 {
   int pid;             /**< Process ID. */
   struct arglist *globals;   /**< 'Global' arglist. */
-  struct kb_item **kb;       /**< Knowledge base for the currently tested host.*/
+  kb_t kb;       /**< Knowledge base for the currently tested host.*/
   char *name;
   struct scheduler_plugin *plugin;
   plugins_scheduler_t sched;
@@ -474,7 +474,7 @@ pluginlaunch_stop ()
 int
 plugin_launch (struct arglist *globals, plugins_scheduler_t * sched,
                struct scheduler_plugin *plugin, struct arglist *hostinfos,
-               struct arglist *preferences, struct kb_item **kb, char *name)
+               struct arglist *preferences, kb_t kb, char *name)
 {
   int p;
   int dsoc[2];
