@@ -44,11 +44,5 @@ int plugin_launch (struct arglist *, plugins_scheduler_t,
 void pluginlaunch_disable_parrallel_checks ();
 void pluginlaunch_enable_parrallel_checks ();
 
-/* From nasl_plugins.c */
-int
-nasl_plugin_launch (struct arglist *, struct arglist *, struct arglist *, struct
-                    arglist *, struct kb_item **, char *);
-
-
 int wait_for_children ();
 #endif
