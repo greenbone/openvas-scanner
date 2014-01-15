@@ -1,5 +1,10 @@
 2014-01-15  Jan-Oliver Wagner <jan-oliver.wagner@greenbone.net>
 
+	* src/plugs_req.c, src/plugs_req.h, src/attack.c: Improved
+	code formatting.
+
+2014-01-15  Jan-Oliver Wagner <jan-oliver.wagner@greenbone.net>
+
 	* src/pluginlaunch.h: Removed unneeded proto for nasl_plugin_launch.
 
 2014-01-15  Jan-Oliver Wagner <jan-oliver.wagner@greenbone.net>

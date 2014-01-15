@@ -1369,11 +1369,9 @@ attack_network (struct arglist *globals)
           else
             log_write ("Testing %s (%s) [%d]\n",
                        hostname, inet_ntop (AF_INET6,
-                                            &args.
-                                            hostip,
+                                            &args.hostip,
                                             buffer,
-                                            sizeof
-                                            (buffer)),
+                                            sizeof (buffer)),
                        pid);
           if (MAC != NULL)
             efree (&MAC);

@@ -40,8 +40,7 @@
 
 ***********************************************************/
 
-extern int kb_get_port_state_proto (kb_t, struct arglist *, int,
-                                    char *);
+extern int kb_get_port_state_proto (kb_t, struct arglist *, int, char *);
 
 /**
  * @brief Returns whether a port in a port list is closed or not.
