@@ -170,9 +170,9 @@ plugins_reload_from_dir (preferences, plugins, folder, progress)
         {
           result = add_nasl_inc_dir (include_folders[i]);
           if (result < 0)
-            printf
-              ("Could not add %s to the list of include folders.\nMake sure %s exists and is a directory.\n",
-               include_folders[i], include_folders[i]);
+            printf ("Could not add %s to the list of include folders.\n"
+                    "Make sure %s exists and is a directory.\n",
+                    include_folders[i], include_folders[i]);
         }
 
       g_strfreev (include_folders);
