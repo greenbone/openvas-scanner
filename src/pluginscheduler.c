@@ -463,7 +463,8 @@ plugin_next_unrun_dependencie (plugins_scheduler_t sched,
  */
 static void
 enable_plugin_and_dependencies (plugins_scheduler_t shed,
-                                struct arglist *plugin, char *name)
+                                struct arglist *plugin, char *name,
+                                GHashTable *deps_table)
 {
   struct hash **deps_ptr;
   int i;
@@ -471,6 +472,16 @@ enable_plugin_and_dependencies (plugins_scheduler_t shed,
 
   if (plugin == NULL)
     return;
+
+  if (g_hash_table_lookup (deps_table, name))
+    {
+      plug_set_launch (plugin, LAUNCH_DISABLED);
+      log_write ("scheduler: Won't run %s. Circular dependency found.\n",
+                 name);
+      return;
+    }
+  else
+    g_hash_table_insert (deps_table, g_strdup (name), name);
 
   deps_ptr = hash_get_deps_ptr (shed->hash, name);
 
@@ -486,7 +497,7 @@ enable_plugin_and_dependencies (plugins_scheduler_t shed,
           p = deps_ptr[i]->plugin;
           if (p != NULL && p->arglist != NULL)
             enable_plugin_and_dependencies (shed, p->arglist->value,
-                                            p->arglist->name);
+                                            p->arglist->name, deps_table);
         }
     }
 }
@@ -569,9 +580,16 @@ plugins_scheduler_init (struct arglist *plugins, int autoload,
       arg = plugins;
       while (arg->next != NULL)
         {
+          /* deps_table is used to prevent circular dependencies. */
+          GHashTable *deps_table;
+
+          deps_table = g_hash_table_new_full (g_str_hash, g_str_equal, g_free,
+                                              NULL);
           if (plug_get_launch (arg->value) != LAUNCH_DISABLED)
-            enable_plugin_and_dependencies (ret, arg->value, arg->name);
+            enable_plugin_and_dependencies (ret, arg->value, arg->name,
+                                            deps_table);
           arg = arg->next;
+          g_hash_table_destroy (deps_table);
         }
     }
 
