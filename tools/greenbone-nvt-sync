@@ -318,7 +318,7 @@ update_openvassd (){
   if [ -r "$SCANNER_PIDFILE" ]
   then
     SCANNER_PID=`cat $SCANNER_PIDFILE`
-    kill -HUP $MANAGER_PID
+    kill -HUP $SCANNER_PID
     log_write "Sent signal to OpenVAS Scanner to update."
   else
     log_err "$PIDFILEDIR/openvassd.pid not found, not updating OpenVAS Scanner."

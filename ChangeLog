@@ -1,3 +1,8 @@
+2014-01-21  Michael Meyer <michael.meyer@greenbone.net>
+
+	* tools/greenbone-nvt-sync:
+	Typo fixed.
+
 2014-01-20  Hani Benhabiles  <hani.benhabiles@greenbone.net>
 
 	* src/pluginscheduler.c (enable_plugin_and_dependencies): Add hash table
