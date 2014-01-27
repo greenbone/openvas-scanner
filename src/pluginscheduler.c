@@ -474,12 +474,7 @@ enable_plugin_and_dependencies (plugins_scheduler_t shed,
     return;
 
   if (g_hash_table_lookup (deps_table, name))
-    {
-      plug_set_launch (plugin, LAUNCH_DISABLED);
-      log_write ("scheduler: Won't run %s. Circular dependency found.\n",
-                 name);
-      return;
-    }
+    return;
   else
     g_hash_table_insert (deps_table, g_strdup (name), name);
 
