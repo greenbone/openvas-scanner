@@ -63,7 +63,7 @@ RSYNC_VERBOSE="-q"
 
 # RSYNC_OPTIONS controls the general parameters for the rsync connection.
 # Note: "--protocol=29" is a workaround for a known bug in rsync 3.0.3
-RSYNC_OPTIONS="--links --times $RSYNC_VERBOSE --recursive --partial --progress --protocol=29"
+RSYNC_OPTIONS="--links --times --omit-dir-times $RSYNC_VERBOSE --recursive --partial --progress --protocol=29"
 
 # Script and feed information which will be made available to user through
 # command line options and automated tools.

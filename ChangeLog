@@ -1,5 +1,11 @@
 2014-01-27  Michael Wiegand <michael.wiegand@greenbone.net>
 
+	* tools/greenbone-nvt-sync: Add "--omit-dir-times" to rsync options to
+	improve compatibility in situations where it is not possible to set
+	directory modification times.
+
+2014-01-27  Michael Wiegand <michael.wiegand@greenbone.net>
+
 	* tools/greenbone-nvt-sync: Factor out remaining rsync options, using
 	long options to improve readability. Ensure RSYNC_VERBOSE setting is
 	honored.
