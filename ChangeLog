@@ -1,3 +1,9 @@
+2014-01-27  Michael Wiegand <michael.wiegand@greenbone.net>
+
+	* tools/greenbone-nvt-sync: Factor out remaining rsync options, using
+	long options to improve readability. Ensure RSYNC_VERBOSE setting is
+	honored.
+
 2014-01-21  Michael Meyer <michael.meyer@greenbone.net>
 
 	* tools/greenbone-nvt-sync:
