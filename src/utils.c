@@ -85,7 +85,7 @@ list2arglist (list)
      char *list;
 {
   struct arglist *ret = emalloc (sizeof (struct arglist));
-  char *t = strchr (list, ',');
+  char *t;
 
   if (!list)
     {

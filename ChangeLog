@@ -1,5 +1,10 @@
 2014-01-29  Jan-Oliver Wagner <jan-oliver.wagner@greenbone.net>
 
+	* src/utils.c (list2args): Removed dead initial assignment of t.
+	That variable is anyway initialized in the while-loop.
+
+2014-01-29  Jan-Oliver Wagner <jan-oliver.wagner@greenbone.net>
+
 	* INSTALL: Add section about CLang and added some notes on
 	SIGHUP and pid file.
 
