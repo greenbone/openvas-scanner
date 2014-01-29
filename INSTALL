@@ -117,7 +117,9 @@ Setting up an openvas-scanner requires the following steps:
 
    Sending SIGHUP to the scanner main process will initiate a reload of the
    feed content and of the scanner preferences. This will not affect running
-   scans.
+   scans. The NVT synchronisation routine will try to send the SIGHUP to the
+   scanner on its own. This works only if the pid-file of scanner is found
+   which is expected to be /var/run/openvas/openvassd.pid.
 
    Please note that although you can start openvassd as a user without elevated
    privileges, it is recommended that you start openvassd as root since a number
@@ -142,3 +144,26 @@ installation method.) Please have these files ready when contacting the OpenVAS
 developers through the OpenVAS mailing list or the online chat or submitting bug
 reports at http://bugs.openvas.org/ as they may help to pinpoint the source of
 your issue.
+
+
+Static code analysis with the Clang Static Analyzer
+---------------------------------------------------
+
+If you want to use the Clang Static Analyzer (http://clang-analyzer.llvm.org/)
+to do a static code analysis, you can do so by adding the following parameter
+when configuring the build:
+
+  -DCMAKE_C_COMPILER=/usr/share/clang/scan-build/ccc-analyzer
+
+Note that the example above uses the default location of ccc-analyzer in Debian
+GNU/Linux and may be different in other environments.
+
+To have the analysis results aggregated into a set of HTML files, use the
+following command:
+
+    $ scan-build make
+
+The tool will provide a hint on how to launch a web browser with the results.
+
+It is recommended to do this analysis in a separate, empty build directory and
+to empty the build directory before "scan-build" call.

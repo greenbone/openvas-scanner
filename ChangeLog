@@ -1,3 +1,8 @@
+2014-01-29  Jan-Oliver Wagner <jan-oliver.wagner@greenbone.net>
+
+	* INSTALL: Add section about CLang and added some notes on
+	SIGHUP and pid file.
+
 2014-01-27  Hani Benhabiles  <hani.benhabiles@greenbone.net>
 
 	* src/pluginscheduler.c (enable_plugin_and_dependencies): Return
