@@ -1,5 +1,12 @@
 2014-01-29  Jan-Oliver Wagner <jan-oliver.wagner@greenbone.net>
 
+	* src/nasl_plugins.c (nasl_plugin_launch): Removed computation of
+	timeout. It is a dead assignment anyway. The timeout computation
+	actually happens in pluginlaunch.c(plugin_launch) in the same
+	way.
+
+2014-01-29  Jan-Oliver Wagner <jan-oliver.wagner@greenbone.net>
+
 	* src/utils.c (list2args): Removed dead initial assignment of t.
 	That variable is anyway initialized in the while-loop.
 

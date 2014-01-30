@@ -212,12 +212,8 @@ nasl_plugin_launch (struct arglist *globals, struct arglist *plugin,
                     struct arglist *hostinfos, struct arglist *preferences,
                     kb_t kb, char *name)
 {
-  int timeout;
-  int category = 0;
   int module;
   struct arglist *d = emalloc (sizeof (struct arglist));
-  nvti_t * nvti = nvticache_get_by_oid (arg_get_value (arg_get_value (plugin,
-    "preferences"), "nvticache"), arg_get_value (plugin, "OID"));
 
   arg_add_value (plugin, "HOSTNAME", ARG_ARGLIST, -1, hostinfos);
   if (arg_get_value (plugin, "globals"))
@@ -232,17 +228,6 @@ nasl_plugin_launch (struct arglist *globals, struct arglist *plugin,
   arg_add_value (d, "args", ARG_ARGLIST, -1, plugin);
   arg_add_value (d, "name", ARG_STRING, strlen (name), name);
   arg_add_value (d, "preferences", ARG_ARGLIST, -1, preferences);
-
-  category = nvti_category (nvti);
-  timeout = preferences_plugin_timeout (preferences, nvti_oid (nvti));
-  nvti_free (nvti);
-  if (timeout == 0)
-    {
-      if (category == ACT_SCANNER)
-        timeout = -1;
-      else
-        timeout = preferences_plugins_timeout (preferences);
-    }
 
   module = create_process ((process_func_t) nasl_thread, d);
   arg_free (d);
