@@ -36,6 +36,7 @@
 #include <glib.h>
 
 #include <openvas/base/openvas_hosts.h>
+#include <openvas/base/openvas_networking.h>
 #include <openvas/misc/kb.h>             /* for kb_new */
 #include <openvas/misc/network.h>        /* for auth_printf */
 #include <openvas/misc/nvt_categories.h> /* for ACT_INIT */
@@ -68,8 +69,6 @@
 #define ERR_CANT_FORK -2
 
 #define MAX_FORK_RETRIES 10
-
-extern u_short *getpts (char *, int *);
 
 /**
  * Bundles information about target(s), configuration (globals arglist) and
@@ -1163,7 +1162,7 @@ attack_network (struct arglist *globals)
   char buffer[INET6_ADDRSTRLEN];
 
   int network_phase = 0;
-  gchar *network_targets;
+  gchar *network_targets, *port_range;
   int do_network_scan = 0;
   int scan_stopped;
 
@@ -1207,11 +1206,11 @@ attack_network (struct arglist *globals)
       exit (1);
     }
 
-  if ((unsigned short *) getpts (arg_get_value (preferences, "port_range"), NULL) == NULL)
+  port_range = arg_get_value (preferences, "port_range");
+  if (validate_port_range (port_range))
     {
-      auth_printf (globals,
-                   "SERVER <|> ERROR <|> E001 - Invalid port range <|> SERVER\n");
-      return -1;
+      error_message_to_client (globals, "Invalid port range", NULL, port_range);
+      return 0;
     }
 
   /* Initialize the attack. */
