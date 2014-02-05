@@ -322,7 +322,6 @@ scanner_thread (struct arglist *globals)
   int family = GPOINTER_TO_SIZE (arg_get_value (globals, "family"));
   char *asciiaddr;
   int protocol_version;
-  int e;
   int opt = 1;
   void *addr = arg_get_value (globals, "client_address");
   struct sockaddr_in *saddr = NULL;
@@ -477,10 +476,8 @@ scanner_thread (struct arglist *globals)
       comm_wait_order (globals);
       preferences_reset_cache ();
       ntp_1x_timestamp_scan_starts (globals);
-      e = attack_network (globals);
+      attack_network (globals);
       ntp_1x_timestamp_scan_ends (globals);
-      if (e < 0)
-        exit (0);
       comm_terminate (globals);
       if (arg_get_value (prefs, "ntp_keep_communication_alive"))
         {

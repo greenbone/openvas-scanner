@@ -1,5 +1,11 @@
 2014-02-05  Jan-Oliver Wagner <jan-oliver.wagner@greenbone.net>
 
+	* src/attack.c (scanner_thread): Don't exit early out of
+	otp communication. The attack_network method does
+	never return anything else than 0 anyway.
+
+2014-02-05  Jan-Oliver Wagner <jan-oliver.wagner@greenbone.net>
+
 	There is no reason why the OTP communication should be interrupted
 	in cases where a scan can not be executed (due to whatever reason).
 	It is far better continue OTP communication for two reasons: One the
