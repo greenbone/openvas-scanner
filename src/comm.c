@@ -63,7 +63,10 @@ comm_init (int soc)
      wants us to use */
   n = recv_line (soc, buf, sizeof (buf) - 1);
   if (n <= 0)
-    exit (0);
+    {
+      log_write ("Failed reading client-requested OTP version.\n");
+      exit (0);
+    }
 
   buf[sizeof (buf) - 1] = '\0';
   if (!strncmp (buf, "< OTP/2.0beta1 >", 16))
@@ -78,6 +81,7 @@ comm_init (int soc)
     }
   else
     {
+      log_write ("Unknown client-requested OTP version: %s.\n", buf);
       exit (0);
     }
 #ifdef DEBUG
@@ -94,11 +98,6 @@ void
 comm_terminate (struct arglist *globals)
 {
   auth_printf (globals, "SERVER <|> BYE <|> BYE <|> SERVER\n");
-  /*
-     auth_gets(globals, buf, 199);
-     if(!strlen(buf))exit(0);
-     efree(&buf);
-   */
 }
 
 /**
@@ -354,7 +353,10 @@ comm_wait_order (struct arglist *globals)
         }
       if (str[0] == '\0')
         if (!is_client_present (soc))
-          exit (0);
+          {
+            log_write ("Client not present\n");
+            exit (0);
+          }
 
       if (ntp_11_parse_input (globals, str) == 0)
         break;
