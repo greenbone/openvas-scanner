@@ -1143,7 +1143,7 @@ apply_source_iface_preference (struct arglist *globals,
  *
  * @return 0 if success, -1 on error.
  */
-int
+void
 attack_network (struct arglist *globals)
 {
   int max_hosts = 0, max_checks;
@@ -1203,7 +1203,7 @@ attack_network (struct arglist *globals)
   if (hostlist == NULL)
     {
       error_message_to_client (globals, "Missing target hosts", NULL, NULL);
-      return 0;
+      return;
     }
 
   /* Verify the port range is a valid one */
@@ -1211,7 +1211,7 @@ attack_network (struct arglist *globals)
   if (validate_port_range (port_range))
     {
       error_message_to_client (globals, "Invalid port range", NULL, port_range);
-      return 0;
+      return;
     }
 
   /* Initialize the attack. */
@@ -1252,7 +1252,7 @@ attack_network (struct arglist *globals)
     {
       openvas_hosts_free (hosts);
       error_message_to_client (globals, "Interface not authorized for scanning", NULL, NULL);
-      return 0;
+      return;
     }
   /* hosts_allow/deny lists. */
   hosts_allow = openvas_hosts_new (preferences_get_string
@@ -1421,7 +1421,7 @@ stop:
              now.tv_sec - then.tv_sec);
 
   if (do_network_scan && network_phase && !scan_stopped)
-    return attack_network (globals);
+    attack_network (globals);
 
-  return 0;
+  return;
 }

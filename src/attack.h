@@ -29,6 +29,6 @@
 #ifndef __OPENVAS_ATTACK_H__
 #define __OPENVAS_ATTACK_H__
 
-int attack_network (struct arglist *);
+void attack_network (struct arglist *);
 
 #endif

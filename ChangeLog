@@ -1,5 +1,13 @@
 2014-02-05  Jan-Oliver Wagner <jan-oliver.wagner@greenbone.net>
 
+	* src/attack.c (attack_network): Changed return type from int
+	to void because it is always returned success anyway (problems
+	are reported as errors which is sufficient).
+
+	* src/attack.h: Adjust proto accordingly.
+
+2014-02-05  Jan-Oliver Wagner <jan-oliver.wagner@greenbone.net>
+
 	* src/attack.c (scanner_thread): Don't exit early out of
 	otp communication. The attack_network method does
 	never return anything else than 0 anyway.
