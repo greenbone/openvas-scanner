@@ -1202,10 +1202,11 @@ attack_network (struct arglist *globals)
   hostlist = arg_get_value (preferences, "TARGET");
   if (hostlist == NULL)
     {
-      log_write ("TARGET not set ?!");
-      exit (1);
+      error_message_to_client (globals, "Missing target hosts", NULL, NULL);
+      return 0;
     }
 
+  /* Verify the port range is a valid one */
   port_range = arg_get_value (preferences, "port_range");
   if (validate_port_range (port_range))
     {
@@ -1250,7 +1251,8 @@ attack_network (struct arglist *globals)
   if (apply_source_iface_preference (globals, preferences) != 0)
     {
       openvas_hosts_free (hosts);
-      return -1;
+      error_message_to_client (globals, "Interface not authorized for scanning", NULL, NULL);
+      return 0;
     }
   /* hosts_allow/deny lists. */
   hosts_allow = openvas_hosts_new (preferences_get_string

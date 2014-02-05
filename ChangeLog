@@ -1,3 +1,17 @@
+2014-02-05  Jan-Oliver Wagner <jan-oliver.wagner@greenbone.net>
+
+	There is no reason why the OTP communication should be interrupted
+	in cases where a scan can not be executed (due to whatever reason).
+	It is far better continue OTP communication for two reasons: One the
+	one hand this way the status of a task can be set to "Error" instead
+	of "Stopped".
+
+	* src/attack.c (attack_network): In case no target hosts were
+	provided issue an error message and return with OK which prevents
+	bailing out of otp.
+	In case the interface was not authorized an  error message and
+	return with OK which prevents bailing out of otp.
+
 2014-02-05  Hani Benhabiles  <hani.benhabiles@greenbone.net>
 
 	* src/plugs_req.c (get_closed_udp_ports): Call kb_get_port_state_proto()
