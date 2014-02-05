@@ -1140,8 +1140,6 @@ apply_source_iface_preference (struct arglist *globals,
 
 /**
  * @brief Attack a whole network.
- *
- * @return 0 if success, -1 on error.
  */
 void
 attack_network (struct arglist *globals)
