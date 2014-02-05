@@ -86,7 +86,7 @@ get_closed_udp_ports (kb_t kb, struct arglist *ports,
   while (ports->next != NULL)
     {
       int iport = atoi (ports->name);
-      if (kb_get_port_state_proto (kb, preferences, iport, "udp"))
+      if (iport > 0 && kb_get_port_state_proto (kb, preferences, iport, "udp"))
         return iport;
       ports = ports->next;
     }

@@ -1,3 +1,8 @@
+2014-02-05  Hani Benhabiles  <hani.benhabiles@greenbone.net>
+
+	* src/plugs_req.c (get_closed_udp_ports): Call kb_get_port_state_proto()
+	only for valid port numbers.
+
 2014-02-04  Hani Benhabiles  <hani.benhabiles@greenbone.net>
 
 	* src/attack.c: Include base/openvas_networking.h. Remove getpts
