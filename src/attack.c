@@ -72,8 +72,6 @@
 
 #define MAX_FORK_RETRIES 10
 
-extern u_short *getpts (char *, int *);
-
 /**
  * Bundles information about target(s), configuration (globals arglist) and
  * scheduler.
@@ -1025,13 +1023,12 @@ attack_network (struct arglist *globals)
 
   if (strcmp (port_range, "-1") != 0)
     {
-      unsigned short *ports;
-      ports = (unsigned short *) getpts (port_range, NULL);
-      if (ports == NULL)
+      port_range = arg_get_value (preferences, "port_range");
+      if (validate_port_range (port_range))
         {
           auth_printf (globals,
                        "SERVER <|> ERROR <|> E001 - Invalid port range <|> SERVER\n");
-          return -1;
+          return 0;
         }
     }
 
