@@ -23,7 +23,6 @@ src/nasl_plugins.c: GPLv2
 src/ntp_11.[c|h]: GPLv2
 src/openvassd.c: GPLv2
 src/otp_1_0.[c|h]: GPLv2+
-src/parser.[c|h]: GPLv2
 src/piic.[c|h]: GPLv2
 src/pluginlaunch.[c|h]: GPLv2
 src/pluginload.[c|h]: GPLv2

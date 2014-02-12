@@ -1,3 +1,23 @@
+2014-02-12  Hani Benhabiles  <hani.benhabiles@greenbone.net>
+
+	Remove dead code and fix memory leaks. Found using cppchecker.
+
+	* src/openvassd.c (set_globals_from_preferences): Call plugins_free
+	instead of arg_free, fixing memory leaks.
+
+	* src/CMakeLists.txt: Don't build parser.c
+
+	* src/parser.c, src/parser.h: Remove unused files.
+
+	* COPYING: Remove parser.c and parser.h details.
+
+	* src/processes.c (sighand_process_term): Remove unused function.
+
+	* src/sighand.c, src/sighand.h (sighand_alarm): Remove unused function.
+
+	* src/utils.c, src/utils.h (hosts_arglist_to_string): Remove unused
+	function.
+
 2014-02-05  Jan-Oliver Wagner <jan-oliver.wagner@greenbone.net>
 
 	* src/attack.c (attack_network): Removed outdated docstring element.

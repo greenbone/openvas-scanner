@@ -127,17 +127,6 @@ sighand_chld ()
 }
 
 void
-sighand_alarm ()
-{
-  log_write ("connection timed out\n");
-  shutdown (0, 2);
-  close (0);
-  make_em_die (SIGTERM);
-  _exit (1);
-}
-
-
-void
 sighandler (int sign)
 {
   char *sig = NULL;

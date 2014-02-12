@@ -41,19 +41,6 @@
 
 static int process_son = 0;
 
-void
-sighand_process_term (int sig)
-{
-  int son = process_son;
-  if (son)
-    {
-      kill (son, SIGTERM);
-      process_son = 0;
-    }
-  _exit (0);
-}
-
-
 static void
 pr_sigterm (int sig)
 {

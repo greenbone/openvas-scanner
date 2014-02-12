@@ -201,47 +201,6 @@ get_active_plugins_number (struct arglist *plugins)
 
 /*--------------------------------------------------------------------*/
 
-
-/**
- * Converts a hostnames arglist
- * to a space delimited lists of hosts
- * in one string and returns it.
- */
-char *
-hosts_arglist_to_string (struct arglist *hosts)
-{
-  int num_hosts = 0;
-  struct arglist *start = hosts;
-  int hosts_len = 0;
-  char *ret;
-
-  while (hosts && hosts->next)
-    {
-      if (hosts->value)
-        {
-          num_hosts++;
-          hosts_len += strlen (hosts->value);
-        }
-      hosts = hosts->next;
-    }
-
-  ret = emalloc (hosts_len + 2 * num_hosts + 1);
-
-  hosts = start;
-
-  while (hosts && hosts->next)
-    {
-      if (hosts->value)
-        {
-          strcat (ret, hosts->value);
-          strcat (ret, " ");
-        }
-      hosts = hosts->next;
-    }
-  return (ret);
-}
-
-
 /**
  * Determines if a process is alive - as reliably as we can
  */

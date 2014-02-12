@@ -245,7 +245,7 @@ set_globals_from_preferences (struct arglist *prefs, struct arglist *plugins)
 
   arg_free (global_preferences);
   global_preferences = prefs;
-  arg_free (global_plugins);
+  plugins_free (global_plugins);
   global_plugins = plugins;
 }
 
