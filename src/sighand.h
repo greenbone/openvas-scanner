@@ -31,11 +31,11 @@
 #ifndef _OPENVAS_SIGHAND_H
 #define _OPENVAS_SIGHAND_H
 
-extern void (*openvas_signal (int signum, void (*handler) (int))) (int);
-extern void sighand_chld ();
-extern void sighand_segv ();
-extern void sighandler (int sign);
+void (*openvas_signal (int signum, void (*handler) (int))) (int);
+void sighand_chld ();
+void sighand_segv ();
+void sighandler (int sign);
 
-extern void let_em_die (int pid);
-extern void make_em_die (int sig);
+void let_em_die (int pid);
+void make_em_die (int sig);
 #endif

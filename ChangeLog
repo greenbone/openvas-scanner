@@ -1,5 +1,10 @@
 2014-02-12  Jan-Oliver Wagner <jan-oliver.wagner@greenbone.net>
 
+	* src/sighand.h: Removed "extern" declaration for any protos.
+	This is of no use.
+
+2014-02-12  Jan-Oliver Wagner <jan-oliver.wagner@greenbone.net>
+
 	* src/sighand.h: Removed protos for sighand_pipe, sighand_alarm_plugin,
 	sighand_term, sighand_int, sighand_kill, sighand_sigusr1, sighand_io.
 	These are not defined anywhere nor used.
