@@ -1,5 +1,11 @@
 2014-02-16  Jan-Oliver Wagner <jan-oliver.wagner@greenbone.net>
 
+	Post release version bump.
+
+	* CMakeLists.txt: Set version to 4.0+beta6.
+
+2014-02-16  Jan-Oliver Wagner <jan-oliver.wagner@greenbone.net>
+
 	* CHANGES: Updated.
 
 2014-02-12  Jan-Oliver Wagner <jan-oliver.wagner@greenbone.net>
