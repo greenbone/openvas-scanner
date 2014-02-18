@@ -1,3 +1,10 @@
+2014-02-18  Hani Benhabiles  <hani.benhabiles@greenbone.net>
+
+	* src/attack.c (attack_init_hostinfos, attack_init_hostinfos_vhosts):
+	Fix fqdn arg string length.
+	(attack_network): Set adequate attack args fqdn value for all host types
+	as the api handles it.
+
 2014-02-16  Jan-Oliver Wagner <jan-oliver.wagner@greenbone.net>
 
 	Post release version bump.

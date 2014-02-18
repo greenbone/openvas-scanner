@@ -162,7 +162,7 @@ attack_init_hostinfos_vhosts (char *mac, char *hostname, struct in6_addr *ip,
                    estrdup (hostname));
 
   if (fqdn)
-    arg_add_value (hostinfos, "FQDN", ARG_STRING, strlen (hostname),
+    arg_add_value (hostinfos, "FQDN", ARG_STRING, strlen (fqdn),
                    estrdup (fqdn));
   arg_add_value (hostinfos, "IP", ARG_PTR, sizeof (struct in6_addr), ip);
   if (vhosts)
@@ -202,7 +202,7 @@ attack_init_hostinfos (char *mac, char *hostname, struct in6_addr *ip,
     arg_add_value (hostinfos, "NAME", ARG_STRING, strlen (hostname),
                    estrdup (hostname));
   if (fqdn)
-    arg_add_value (hostinfos, "FQDN", ARG_STRING, strlen (hostname),
+    arg_add_value (hostinfos, "FQDN", ARG_STRING, strlen (fqdn),
                    estrdup (fqdn));
 
   arg_add_value (hostinfos, "IP", ARG_PTR, sizeof (struct in6_addr), ip);
@@ -1308,6 +1308,7 @@ attack_network (struct arglist *globals)
           int s;
           char *MAC = NULL;
           int mac_err = -1;
+          gchar *name;
 
           if (preferences_get_bool (preferences, "use_mac_addr") > 0
               && v6_is_local_ip (&host_ip))
@@ -1328,14 +1329,8 @@ attack_network (struct arglist *globals)
 
           args.globals = globals;
           memcpy (&args.hostip, &host_ip, sizeof (struct in6_addr));
-          if (openvas_host_type (host) == HOST_TYPE_NAME)
-            {
-              gchar *name = openvas_host_value_str (host);
-              strncpy (args.fqdn, name, sizeof (args.fqdn));
-              g_free (name);
-            }
-          else
-            args.fqdn[0] = '\0';
+          name = openvas_host_value_str (host);
+          strncpy (args.fqdn, name, sizeof (args.fqdn));
           args.host_mac_addr = MAC;
           args.sched = sched;
           args.thread_socket = s;
