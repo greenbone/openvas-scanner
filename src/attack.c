@@ -1331,6 +1331,7 @@ attack_network (struct arglist *globals)
           memcpy (&args.hostip, &host_ip, sizeof (struct in6_addr));
           name = openvas_host_value_str (host);
           strncpy (args.fqdn, name, sizeof (args.fqdn));
+          g_free (name);
           args.host_mac_addr = MAC;
           args.sched = sched;
           args.thread_socket = s;

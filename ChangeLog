@@ -1,3 +1,7 @@
+2014-02-20  Henri Doreau <henri.doreau@gmail.com>
+
+	* src/attack.c (attack_network): Fixed memory leak.
+
 2014-02-18  Hani Benhabiles  <hani.benhabiles@greenbone.net>
 
 	* src/attack.c (attack_init_hostinfos, attack_init_hostinfos_vhosts):
