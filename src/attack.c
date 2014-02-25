@@ -235,7 +235,6 @@ launch_plugin (struct arglist *globals, plugins_scheduler_t * sched,
   char name[1024], oid_[100];
   int optimize = preferences_optimize_test (preferences);
   int category = plugin->category;
-  static int last_status = 0;
   gchar *network_scan_status;
   gboolean network_scan = FALSE;
 
@@ -256,6 +255,7 @@ launch_plugin (struct arglist *globals, plugins_scheduler_t * sched,
   if (plug_get_launch (args) != LAUNCH_DISABLED || category == ACT_SETTINGS)    /* can we launch it ? */
     {
       char *error;
+      static int last_status = 0;
 
       if (preferences_safe_checks_enabled (preferences)
           && (category == ACT_DESTRUCTIVE_ATTACK || category == ACT_KILL_HOST
@@ -862,13 +862,15 @@ attack_start (struct attack_start_args *args)
     {
       char *txt_ip;
       struct in_addr inaddr;
-      char name[512];
       inaddr.s_addr = hostip->s6_addr32[3];
 
       if (IN6_IS_ADDR_V4MAPPED (hostip))
         txt_ip = estrdup (inet_ntoa (inaddr));
       else
-        txt_ip = estrdup (inet_ntop (AF_INET6, hostip, name, sizeof (name)));
+        {
+          char name[512];
+          txt_ip = estrdup (inet_ntop (AF_INET6, hostip, name, sizeof (name)));
+        }
       if (strcmp (vhosts_ip, txt_ip) != 0)
         vhosts = NULL;
       hostinfos = attack_init_hostinfos_vhosts (mac, host_str, hostip, vhosts,

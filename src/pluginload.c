@@ -152,23 +152,20 @@ plugins_reload_from_dir (preferences, plugins, folder, progress)
      int progress;
 {
   GSList *files = NULL, *f;
-  char *name;
   gchar *pref_include_folders;
-  gchar **include_folders;
   int n = 0, total = 0, num_files = 0;
-  int i = 0;
-  int result = 0;
 
   add_nasl_inc_dir ("");        // for absolute and relative paths
 
   pref_include_folders = arg_get_value (preferences, "include_folders");
   if (pref_include_folders != NULL)
     {
-      include_folders = g_strsplit (pref_include_folders, ":", 0);
+      gchar **include_folders = g_strsplit (pref_include_folders, ":", 0);
+      int i = 0;
 
       for (i = 0; i < g_strv_length (include_folders); i++)
         {
-          result = add_nasl_inc_dir (include_folders[i]);
+          int result = add_nasl_inc_dir (include_folders[i]);
           if (result < 0)
             printf ("Could not add %s to the list of include folders.\n"
                     "Make sure %s exists and is a directory.\n",
@@ -203,7 +200,7 @@ plugins_reload_from_dir (preferences, plugins, folder, progress)
   f = files;
   while (f != NULL)
     {
-      name = f->data;
+      char *name = f->data;
       n++;
       total++;
       if ((n > 50) && progress)

@@ -167,13 +167,7 @@ start_daemon_mode (void)
     }
 
   if ((fd = open ("/dev/tty", O_RDWR)) >= 0)
-    {
-      /* detach from any controlling terminal */
-#ifdef TIOCNOTTY
-      ioctl (fd, TIOCNOTTY);
-#endif
-      close (fd);
-    }
+    close (fd);
 
   /* no input, anymore: provide an empty-file substitute */
   if ((fd = open ("/dev/null", O_RDONLY)) < 0)
@@ -195,11 +189,7 @@ start_daemon_mode (void)
   fflush (stdout);
   fflush (stderr);
 
-  if ((fd = open (s, O_WRONLY | O_CREAT | O_APPEND
-#ifdef O_LARGEFILE
-                  | O_LARGEFILE
-#endif
-                  , 0600)) < 0)
+  if ((fd = open (s, O_WRONLY | O_CREAT | O_APPEND, 0600)) < 0)
     {
       log_write ("Cannot create a new dumpfile %s (%s)-- aborting\n", s,
                  strerror (errno));
@@ -209,11 +199,8 @@ start_daemon_mode (void)
   dup2 (fd, 1);
   dup2 (fd, 2);
   close (fd);
-#ifdef _IOLBF
-  /* I don't know if setlinebuf() is available on all systems */
-  setvbuf (stdout, NULL, _IOLBF, 0);
-  setvbuf (stderr, NULL, _IOLBF, 0);
-#endif
+  setlinebuf (stdout);
+  setlinebuf (stderr);
 }
 
 
@@ -282,20 +269,21 @@ reload_openvassd ()
 int
 check_client (char *dname)
 {
-  FILE *f;
   int success = 0;
 
   if (dname != NULL && *dname != '\0')
     {
+      FILE *f;
       if ((f = fopen (OPENVAS_STATE_DIR "/dname", "r")) == NULL)
         perror (OPENVAS_STATE_DIR "/dname");
       else
         {
-          char dnameref[512], *p;
+          char dnameref[512];
 
           while (! success
                  && fgets (dnameref, sizeof (dnameref) - 1, f) != NULL)
             {
+              char *p;
               if ((p = strchr (dnameref, '\n')) != NULL)
                 *p = '\0';
               if (strcmp (dname, dnameref) == 0)
@@ -305,7 +293,7 @@ check_client (char *dname)
             log_write
               ("check_client: Bad DN\nGiven DN=%s\nLast tried DN=%s\n",
                dname, dnameref);
-          (void) fclose (f);
+          fclose (f);
         }
     }
 
@@ -504,8 +492,7 @@ shutdown_and_exit:
 static void
 main_loop ()
 {
-  char *cert, *key, *passwd, *ca_file, *s, *ssl_ver;
-  int force_pubkey_auth;
+  char *s, *ssl_ver;
   char *old_addr = 0, *asciiaddr = 0;
   time_t last = 0;
   int count = 0;
@@ -538,6 +525,8 @@ main_loop ()
   if (ovas_scanner_ctx == NULL)
     {
       int encaps = -1;
+      int force_pubkey_auth;
+      char *cert, *key, *passwd, *ca_file;
 
       if (strcasecmp (ssl_ver, "SSLv2") == 0)
         {
@@ -878,7 +867,7 @@ init_openvassd (struct arglist *options, int first_pass, int stop_early,
   arg_replace_value (options, "preferences", ARG_ARGLIST, -1, preferences);
   set_globals_from_preferences (preferences, plugins);
 
-  return (0);
+  return 0;
 }
 
 /**
@@ -894,7 +883,6 @@ main (int argc, char *argv[], char *envp[])
   int scanner_port = 9391;
   char *myself;
   struct arglist *options = emalloc (sizeof (struct arglist));
-  int i;
   struct addrinfo *mysaddr;
   struct addrinfo hints;
   struct addrinfo ai;
@@ -1068,7 +1056,7 @@ main (int argc, char *argv[], char *envp[])
   if (dont_fork == FALSE)
     {
       /* Close stdin, stdout and stderr */
-      i = open ("/dev/null", O_RDONLY, 0640);
+      int i = open ("/dev/null", O_RDONLY, 0640);
       if (dup2 (i, STDIN_FILENO) != STDIN_FILENO)
         fprintf (stderr, "Could not redirect stdin to /dev/null: %s\n",
                  strerror (errno));

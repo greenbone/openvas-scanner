@@ -252,11 +252,11 @@ ntp_11_read_prefs (struct arglist *globals)
   int soc = GPOINTER_TO_SIZE (arg_get_value (globals, "global_socket"));
   char *input;
   int input_sz = 1024 * 1024;
-  int n;
 
   input = emalloc (input_sz);
   for (;;)
     {
+      int n;
       input[0] = '\0';
 #if DEBUG_SSL > 2
       fprintf (stderr, "ntp_11_read_prefs > soc=%d\n", soc);
@@ -275,13 +275,13 @@ ntp_11_read_prefs (struct arglist *globals)
 
       {
         char *pref;
-        char *value;
         char *v;
         char *old;
         pref = input;
         v = strchr (input, '<');
         if (v)
           {
+            char *value;
             v -= 1;
             v[0] = 0;
 

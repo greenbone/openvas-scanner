@@ -174,7 +174,6 @@ hash_add (struct hash *h, char *name, struct scheduler_plugin *plugin)
       arg_get_value (plugin->arglist->value, "OID"));
   struct arglist *deps = str2arglist (nvti_dependencies (nvti));
   struct arglist *ports = str2arglist (nvti_required_ports (nvti));
-  int num_deps = 0;
 
   nvti_free (nvti);
   l->plugin = plugin;
@@ -190,6 +189,7 @@ hash_add (struct hash *h, char *name, struct scheduler_plugin *plugin)
     {
       struct arglist *al = deps;
       int i = 0;
+      int num_deps = 0;
       while (al->next)
         {
           num_deps++;
@@ -267,40 +267,40 @@ static void
 hash_fill_deps (struct hash *h, struct hash *l)
 {
   int i, j = 0;
-  if (l->num_deps != 0)
+  if (l->num_deps == 0)
+    return;
+
+  l->dependencies_ptr =
+    emalloc ((1 + l->num_deps) * sizeof (struct hash *));
+  for (i = 0; l->dependencies[i]; i++)
     {
-      l->dependencies_ptr =
-        emalloc ((1 + l->num_deps) * sizeof (struct hash *));
-      for (i = 0; l->dependencies[i]; i++)
+      struct hash *d = _hash_get (h, l->dependencies[i]);
+      if (d != NULL)
+        l->dependencies_ptr[j++] = d;
+      else
         {
-          struct hash *d = _hash_get (h, l->dependencies[i]);
+          gchar *path = g_path_get_dirname (l->plugin->arglist->name);
+          if (g_ascii_strcasecmp (path, ".") != 0)
+            {
+              gchar *dep_with_path =
+                g_build_filename (path, l->dependencies[i], NULL);
+              d = _hash_get (h, dep_with_path);
+              g_free (dep_with_path);
+            }
+          g_free (path);
           if (d != NULL)
-            l->dependencies_ptr[j++] = d;
+            {
+              l->dependencies_ptr[j++] = d;
+            }
           else
             {
-              gchar *path = g_path_get_dirname (l->plugin->arglist->name);
-              if (g_ascii_strcasecmp (path, ".") != 0)
-                {
-                  gchar *dep_with_path =
-                    g_build_filename (path, l->dependencies[i], NULL);
-                  d = _hash_get (h, dep_with_path);
-                  g_free (dep_with_path);
-                }
-              g_free (path);
-              if (d != NULL)
-                {
-                  l->dependencies_ptr[j++] = d;
-                }
-              else
-                {
-                  log_write
-                    ("scheduler: %s depends on %s which could not be found, thus this dependency is not considered for execution sequence\n",
-                     l->plugin->arglist->name, l->dependencies[i]);
-                }
+              log_write
+                ("scheduler: %s depends on %s which could not be found, thus this dependency is not considered for execution sequence\n",
+                 l->plugin->arglist->name, l->dependencies[i]);
             }
         }
-      l->dependencies_ptr[j] = NULL;
     }
+  l->dependencies_ptr[j] = NULL;
 }
 
 /*----------------------------------------------------------------------*/
@@ -467,8 +467,8 @@ enable_plugin_and_dependencies (plugins_scheduler_t shed,
                                 GHashTable *deps_table)
 {
   struct hash **deps_ptr;
-  int i;
   int status;
+  int i;
 
   if (plugin == NULL)
     return;
@@ -484,16 +484,15 @@ enable_plugin_and_dependencies (plugins_scheduler_t shed,
   if (status == LAUNCH_DISABLED)
     plug_set_launch (plugin, LAUNCH_RUN);
 
-  if (deps_ptr != NULL)
+  if (deps_ptr == NULL)
+    return;
+  for (i = 0; deps_ptr[i] != NULL; i++)
     {
-      for (i = 0; deps_ptr[i] != NULL; i++)
-        {
-          struct scheduler_plugin *p;
-          p = deps_ptr[i]->plugin;
-          if (p != NULL && p->arglist != NULL)
-            enable_plugin_and_dependencies (shed, p->arglist->value,
-                                            p->arglist->name, deps_table);
-        }
+      struct scheduler_plugin *p;
+      p = deps_ptr[i]->plugin;
+      if (p != NULL && p->arglist != NULL)
+        enable_plugin_and_dependencies (shed, p->arglist->value,
+                                        p->arglist->name, deps_table);
     }
 }
 

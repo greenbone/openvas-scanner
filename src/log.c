@@ -60,11 +60,7 @@ log_init (const char *filename)
 
   else
     {
-      int fd = open (filename, O_WRONLY | O_CREAT | O_APPEND
-#ifdef O_LARGEFILE
-                     | O_LARGEFILE
-#endif
-                     , 0644);
+      int fd = open (filename, O_WRONLY | O_CREAT | O_APPEND, 0644);
       if (fd < 0)
         {
           fprintf (stderr, "log_init():open : %s\n", strerror (errno));
@@ -89,9 +85,7 @@ log_init (const char *filename)
           dup2 (2, 3);
         }
 
-#ifdef _IOLBF
-      setvbuf (log, NULL, _IOLBF, 0);
-#endif
+      setlinebuf (log);
     }
 }
 

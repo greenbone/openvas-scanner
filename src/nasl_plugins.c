@@ -246,10 +246,10 @@ nasl_thread (struct arglist *g_args)
   int i;
   int nasl_mode;
   GError *error = NULL;
-  int nice_retval;
 
   if (preferences_benice (NULL))
     {
+      int nice_retval;
       errno = 0;
       nice_retval = nice (-5);
       if (nice_retval == -1 && errno != 0)
@@ -269,42 +269,10 @@ nasl_thread (struct arglist *g_args)
   arg_set_value (globals, "global_socket", sizeof (gpointer),
                  GSIZE_TO_POINTER (soc));
   for (i = 5; i < getdtablesize (); i++)
-    {
-      close (i);
-    }
-#ifdef RLIMIT_RSS
-  {
-    struct rlimit rlim;
-    getrlimit (RLIMIT_RSS, &rlim);
-    rlim.rlim_cur = 1024 * 1024 * 512;
-    rlim.rlim_max = 1024 * 1024 * 512;
-    setrlimit (RLIMIT_RSS, &rlim);
-  }
-#endif
-
-#ifdef RLIMIT_AS
-  {
-    struct rlimit rlim;
-    getrlimit (RLIMIT_AS, &rlim);
-    rlim.rlim_cur = 1024 * 1024 * 512;
-    rlim.rlim_max = 1024 * 1024 * 512;
-    setrlimit (RLIMIT_AS, &rlim);
-  }
-#endif
-
-#ifdef RLIMIT_DATA
-  {
-    struct rlimit rlim;
-    getrlimit (RLIMIT_DATA, &rlim);
-    rlim.rlim_cur = 1024 * 1024 * 512;
-    rlim.rlim_max = 1024 * 1024 * 512;
-    setrlimit (RLIMIT_DATA, &rlim);
-  }
-#endif
+    close (i);
   setproctitle ("openvassd: testing %s (%s)",
-                (char *) arg_get_value (arg_get_value (args, "HOSTNAME"),
-                                        "NAME"), (char *) arg_get_value (g_args,
-                                                                         "name"));
+                arg_get_value (arg_get_value (args, "HOSTNAME"), "NAME"),
+                name);
   signal (SIGTERM, _exit);
 
   nasl_mode = NASL_EXEC_DONT_CLEANUP;
@@ -313,8 +281,7 @@ nasl_thread (struct arglist *g_args)
 
   if (preferences_drop_privileges (preferences))
     {
-      int drop_priv_res = OPENVAS_DROP_PRIVILEGES_OK;
-      drop_priv_res = drop_privileges (NULL, &error);
+      int drop_priv_res = drop_privileges (NULL, &error);
       if (drop_priv_res != OPENVAS_DROP_PRIVILEGES_OK)
         {
           if (drop_priv_res != OPENVAS_DROP_PRIVILEGES_FAIL_NOT_ROOT)

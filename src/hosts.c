@@ -88,7 +88,6 @@ forward (int in, int out)
 {
   static char *buf = NULL;
   static int bufsz = 0;
-  int n;
   int len;
   int type;
 
@@ -109,17 +108,20 @@ forward (int in, int out)
   len = strlen (buf);
 
   if (out > 0)
-    for (n = 0; n < len;)
-      {
-        int e;
-        e = nsend (out, buf + n, len - n, 0);
-        if (e < 0 && errno == EINTR)
-          continue;
-        else if (e <= 0)
-          return -1;
-        else
-          n += e;
-      }
+    {
+      int n;
+      for (n = 0; n < len;)
+        {
+          int e;
+          e = nsend (out, buf + n, len - n, 0);
+          if (e < 0 && errno == EINTR)
+            continue;
+          else if (e <= 0)
+            return -1;
+          else
+            n += e;
+        }
+    }
 
   if (bufsz > 65535)
     {
@@ -376,12 +378,10 @@ hosts_read_data ()
 static int
 hosts_read_client (struct arglist *globals)
 {
-  char buf[4096];
   struct timeval tv;
   int e;
   fd_set rd;
   int rsoc;
-  int n;
 
   if (g_soc == -1)
     return 0;
@@ -407,7 +407,8 @@ hosts_read_client (struct arglist *globals)
 
   if (e > 0 && FD_ISSET (rsoc, &rd) != 0)
     {
-      int f;
+      int f, n;
+      char buf[4096];
       n = recv_line (g_soc, buf, sizeof (buf) - 1);
       if (n <= 0)
         return -1;

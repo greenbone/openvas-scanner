@@ -110,7 +110,6 @@ send_plug_info (struct arglist *globals, struct arglist *plugins)
   static const char *categories[] = { ACT_STRING_LIST_ALL };
 #define CAT_MAX	(sizeof(categories) / sizeof(categories[0]))
   const char *name, *copyright, *summary, *version, *family = NULL;
-  unsigned int mem_size = 0;
   char *str;
   int ignored = 0;
   char *oid = (char *)arg_get_value (plugins->value, "OID");
@@ -197,6 +196,7 @@ send_plug_info (struct arglist *globals, struct arglist *plugins)
   if (!ignored)
     {
       char *cve_id, *bid, *xref, *sign_keys, *tag;
+      unsigned int mem_size;
 
       cve_id = nvti_cve (nvti);
       if (cve_id == NULL || strcmp (cve_id, "") == 0)

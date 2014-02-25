@@ -149,17 +149,15 @@ wait_for_children (int sig)
 {
   int i;
   for (i = 0; i < MAX_PROCESSES; i++)
-    {
-      int ret;
-      if (processes[i].pid != 0)
-        {
-          do
-            {
-              ret = waitpid (-1, NULL, WNOHANG);
-            }
-          while (ret < 0 && errno == EINTR);
-        }
-    }
+    if (processes[i].pid != 0)
+      {
+        int ret;
+        do
+          {
+            ret = waitpid (-1, NULL, WNOHANG);
+          }
+        while (ret < 0 && errno == EINTR);
+      }
 }
 
 /*

@@ -201,7 +201,6 @@ save_kb_entry_present_already (struct arglist *globals, char *name, char *value)
   char *buf;
   int fd;
   char *req;
-  int ret;
 
   fd = GPOINTER_TO_SIZE (arg_get_value (globals, "save_kb"));
   if (fd <= 0)
@@ -210,6 +209,7 @@ save_kb_entry_present_already (struct arglist *globals, char *name, char *value)
   buf = map_file (fd);
   if (buf)
     {
+      int ret;
       req = emalloc (strlen (name) + strlen (value) + 2);
       sprintf (req, "%s=%s", name, value);
       if (strstr (buf, req))
@@ -227,7 +227,6 @@ static int
 save_kb_rm_entry_value (struct arglist *globals, char *name, char *value)
 {
   char *buf;
-  char *t;
   int fd;
   char *req;
 
@@ -239,6 +238,7 @@ save_kb_rm_entry_value (struct arglist *globals, char *name, char *value)
   buf = map_file (fd);
   if (buf)
     {
+      char *t;
       if (value)
         {
           req = emalloc (strlen (name) + strlen (value) + 2);
@@ -404,7 +404,6 @@ save_kb_new (struct arglist *globals, char *hostname)
 {
   char *fname;
   char *dir;
-  int ret = 0;
   int f;
 
   if (hostname == NULL)
@@ -427,9 +426,8 @@ save_kb_new (struct arglist *globals, char *hostname)
     {
       log_write ("Can not save KB for %s - %s", hostname,
                  strerror (errno));
-      ret = -1;
       efree (&fname);
-      return ret;
+      return -1;
     }
   else
     {

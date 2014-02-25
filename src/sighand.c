@@ -161,6 +161,7 @@ sighandler (int sign)
   if (murderer)
     make_em_die (sign);
 
+  log_close ();
   _exit (0);
 }
 
@@ -170,10 +171,7 @@ sighand_segv ()
 {
   signal (SIGSEGV, _exit);
   log_write ("SIGSEGV occured !\n");
-#if 0
-  for (;;)
-    nice (1);                   /* to attach a debugger! */
-#endif
   make_em_die (SIGTERM);
+  log_close ();
   _exit (0);
 }

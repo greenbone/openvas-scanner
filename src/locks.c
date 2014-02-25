@@ -67,7 +67,7 @@ file_lock (name)
      char *name;
 {
   char *lock = file_lock_name (name);
-  int fd = -1;
+  int fd;
   char buf[20];
   fd = open (lock, O_RDWR | O_CREAT | O_EXCL, 0600);
   efree (&lock);

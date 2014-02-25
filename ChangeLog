@@ -1,3 +1,38 @@
+2014-02-25  Hani Benhabiles  <hani.benhabiles@greenbone.net>
+
+	* src/attack.c (launch_plugin, attack_start): Reduce variables scopes.
+
+	* src/comm.c (send_plug_info): Remove useless variable initialization.
+
+	* src/hosts.c (forward, hosts_read_client): Reduce variables scopes.
+
+	* src/locks.c (file_lock): Reduce variable scope.
+
+	* src/log.c (log_init): Remove useless checks. Directly use setlinebuf.
+
+	* src/nasl_plugins.c (nasl_thread): Reduce variables scopes. Remove
+	setting of rlimit values as it is dead code. Remove useless variable
+	initialization.
+
+	* src/ntp_11.c (ntp_11_read_prefs): Reduce variables scopes.
+
+	* src/openvassd.c (start_daemon_mode): Remove dead code. Call setlinebuf
+	directly.
+	(check_client, main_loop, main): Reduce variables scopes. Style fix.
+
+	* src/pluginlaunch.c (wait_for_children): Style update.
+
+	* src/pluginload.c (plugins_load_from_dir): Reduce variables scopes.
+
+	* src/pluginscheduler.c (hash_add, hash_fill_deps)
+	(enable_plugin_and_dependencies): Reduce variables scopes. Style
+	fix.
+
+	* src/save_kb.c (save_kb_entry_present_already, save_kb_rm_entry_value)
+	(save_kb_new): Reduce variables scopes.
+
+	* src/sighand.c (sighandler, sighand_segv): Close log before exiting.
+
 2014-02-20  Henri Doreau <henri.doreau@gmail.com>
 
 	* src/attack.c (attack_network): Fixed memory leak.
