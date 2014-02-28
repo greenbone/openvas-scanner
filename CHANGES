@@ -1,3 +1,19 @@
+openvas-scanner 3.4.1 (2014-02-28)
+
+This is the first maintenance release of the openvas-scanner 3.4 module for the
+Open Vulnerability Assessment System release 6 (OpenVAS-6).
+
+This release fixes an issue with port range validation, raising the minimum
+required version of OpenVAS Libraries to 6.0.2.
+
+Many thanks to everyone who has contributed to the 3.4.1 release:
+Hani Benhabiles and Michael Wiegand.
+
+Main changes compared to 3.4.0:
+* Fix an issue with port range validation. This raises the minimum required
+  libopenvas version to 6.0.2.
+
+
 openvas-scanner 3.4.0 (2012-04-11)
 
 This is the first release of the openvas-scanner 3.4 module for the Open

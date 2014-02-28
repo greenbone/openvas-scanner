@@ -1,3 +1,13 @@
+2014-02-28  Michael Wiegand <michael.wiegand@greenbone.net>
+
+	Preparing the openvas-scanner 3.4.1 release.
+
+	* CHANGES: Updated.
+
+	* CMakeLists.txt: Raise libopenvas dependency to 6.0.2.
+
+	* INSTALL: Updated dependencies.
+
 2014-02-06  Hani Benhabiles  <hani.benhabiles@greenbone.net>
 
 	Backport r18690 and r18700, adjusted accordingly.
