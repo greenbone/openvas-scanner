@@ -30,6 +30,7 @@
 #include <openvas/nasl/nasl.h>
 #include <openvas/misc/system.h>     /* for emalloc */
 #include <openvas/base/nvticache.h>  /* for nvticache_new */
+#include <openvas/misc/proctitle.h>  /* for setproctitle */
 
 #include <glib.h>
 
@@ -203,17 +204,21 @@ plugins_reload_from_dir (preferences, plugins, folder, progress)
       char *name = f->data;
       n++;
       total++;
-      if ((n > 50) && progress)
+      if (n > 50)
         {
           n = 0;
-          printf ("\rLoading the NVTs...  ");
-          spin_progress ();
-          printf (" %d of %d (%d%%)",
-                  total, num_files, (total * 100) / num_files);
-          fflush (stdout);
+          int percentile = (total * 100) / num_files;
+          if (progress)
+            {
+              printf ("\rLoading the NVTs...  ");
+              spin_progress ();
+              printf (" %d of %d (%d%%)",
+                      total, num_files, percentile);
+              fflush (stdout);
+            }
+          setproctitle ("openvassd: Reloaded %d of %d NVTs (%d%%)",
+                        total, num_files, percentile);
         }
-
-
       if (preferences_log_plugins_at_load (preferences))
         log_write ("Loading %s\n", name);
       if (g_str_has_suffix (name, ".nasl"))
@@ -229,6 +234,7 @@ plugins_reload_from_dir (preferences, plugins, folder, progress)
       printf ("\rLoading the NVTs... done.                            \n");
       fflush (stdout);
     }
+  setproctitle ("openvassd: Reloaded all the NVTs.");
 
   return plugins;
 }

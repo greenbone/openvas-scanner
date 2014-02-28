@@ -1,3 +1,8 @@
+2014-02-28  Hani Benhabiles  <hani.benhabiles@greenbone.net>
+
+	* src/pluginload.c (plugins_reload_from_dir): Update scanner process
+	title to show plugins reloading progress.
+
 2014-02-25  Hani Benhabiles  <hani.benhabiles@greenbone.net>
 
 	* src/attack.c (launch_plugin, attack_start): Reduce variables scopes.
