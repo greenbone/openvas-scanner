@@ -1,3 +1,8 @@
+2014-03-03  Hani Benhabiles  <hani.benhabiles@greenbone.net>
+
+	* src/openvassd.c (init_openvassd): Defer initializing plugins after
+	init_network call.
+
 2014-02-28  Hani Benhabiles  <hani.benhabiles@greenbone.net>
 
 	* src/pluginload.c (plugins_reload_from_dir): Update scanner process

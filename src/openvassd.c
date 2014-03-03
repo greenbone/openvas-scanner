@@ -842,12 +842,11 @@ init_openvassd (struct arglist *options, int first_pass, int stop_early,
   if (dont_fork == FALSE)
     setup_legacy_log_handler (log_vwrite);
 
-  if (stop_early == 0)
+  if (!stop_early)
     {
-      plugins = plugins_init (preferences, progress);
-
       if (first_pass != 0)
         init_network (scanner_port, &isck, *addr);
+      plugins = plugins_init (preferences, progress);
     }
 
   if (first_pass && !stop_early)
