@@ -124,7 +124,7 @@ static ovas_scanner_context_t ovas_scanner_ctx = NULL;
  * Functions prototypes
  */
 static void main_loop ();
-static int init_openvassd (struct arglist *, int, int, int, int);
+static int init_openvassd (struct arglist *, int, int, int);
 static int init_network (int, int *, struct addrinfo);
 static void scanner_thread (struct arglist *);
 
@@ -212,7 +212,7 @@ end_daemon_mode (void)
 }
 
 static void
-set_globals_from_preferences (struct arglist *prefs, struct arglist *plugins)
+set_globals_from_preferences (struct arglist *prefs)
 {
   char *str;
 
@@ -232,8 +232,6 @@ set_globals_from_preferences (struct arglist *prefs, struct arglist *plugins)
 
   arg_free (global_preferences);
   global_preferences = prefs;
-  plugins_free (global_plugins);
-  global_plugins = plugins;
 }
 
 static void
@@ -259,7 +257,9 @@ reload_openvassd ()
 
   /* Reload the plugins */
   plugins = plugins_init (preferences, 0);
-  set_globals_from_preferences (preferences, plugins);
+  set_globals_from_preferences (preferences);
+  plugins_free (global_plugins);
+  global_plugins = plugins;
 
   log_write ("Finished reloading the scanner.\n");
   restart = 0;
@@ -819,18 +819,30 @@ init_network (int port, int *sock, struct addrinfo addr)
   return (0);
 }
 
+static void
+init_plugins (struct arglist *options, int progress)
+{
+  struct arglist *preferences, *plugins;
+
+  preferences = arg_get_value (options, "preferences");
+  plugins = plugins_init (preferences, progress);
+
+  arg_replace_value (options, "plugins", ARG_ARGLIST, -1, plugins);
+  plugins_free (global_plugins);
+  global_plugins = plugins;
+}
+
 /**
  * @brief Initialize everything.
  *
- * @param stop_early 1: do some initialization, 2: no initialization.
+ * @param stop_early 0: do some initialization, 1: no initialization.
  * @param progress   If true then display progress.
  */
 static int
 init_openvassd (struct arglist *options, int first_pass, int stop_early,
-                int progress, int dont_fork)
+                int dont_fork)
 {
   int isck = -1;
-  struct arglist *plugins = NULL;
   struct arglist *preferences = NULL;
   int scanner_port = GPOINTER_TO_SIZE (arg_get_value (options, "scanner_port"));
   char *config_file = arg_get_value (options, "config_file");
@@ -846,7 +858,6 @@ init_openvassd (struct arglist *options, int first_pass, int stop_early,
     {
       if (first_pass != 0)
         init_network (scanner_port, &isck, *addr);
-      plugins = plugins_init (preferences, progress);
     }
 
   if (first_pass && !stop_early)
@@ -862,9 +873,8 @@ init_openvassd (struct arglist *options, int first_pass, int stop_early,
 
   arg_replace_value (options, "isck", ARG_INT, sizeof (gpointer),
                      GSIZE_TO_POINTER (isck));
-  arg_replace_value (options, "plugins", ARG_ARGLIST, -1, plugins);
   arg_replace_value (options, "preferences", ARG_ARGLIST, -1, preferences);
-  set_globals_from_preferences (preferences, plugins);
+  set_globals_from_preferences (preferences);
 
   return 0;
 }
@@ -1038,7 +1048,7 @@ main (int argc, char *argv[], char *envp[])
                  config_file);
   arg_add_value (options, "addr", ARG_PTR, -1, &ai);
 
-  init_openvassd (options, 1, exit_early, progress, dont_fork);
+  init_openvassd (options, 1, exit_early, dont_fork);
   g_options = options;
   global_iana_socket = GPOINTER_TO_SIZE (arg_get_value (options, "isck"));
   global_plugins = arg_get_value (options, "plugins");
@@ -1070,12 +1080,14 @@ main (int argc, char *argv[], char *envp[])
         {
           setsid ();
           pidfile_create ("openvassd");
+          init_plugins (options, progress);
           main_loop ();
         }
     }
   else
     {
       pidfile_create ("openvassd");
+      init_plugins (options, progress);
       main_loop ();
     }
   exit (0);

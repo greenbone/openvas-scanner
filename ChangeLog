@@ -1,5 +1,16 @@
 2014-03-03  Hani Benhabiles  <hani.benhabiles@greenbone.net>
 
+	* src/openvassd.c (set_globals_from_preferences): Remove plugins
+	function argument. Don't set global plugins value.
+	(reload_openvassd): Reset global plugins value.
+	(init_plugins): New function.
+	(init_openvassd): Fix function documentation. Remove progress function
+	argument. Don't initialize plugins. Adjust function call.
+	(main): Initalizae plugins before calling main_loop, and after forking
+	background process in daemon mode.
+
+2014-03-03  Hani Benhabiles  <hani.benhabiles@greenbone.net>
+
 	* src/openvassd.c (init_openvassd): Defer initializing plugins after
 	init_network call.
 
