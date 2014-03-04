@@ -1,5 +1,10 @@
 2014-03-04  Henri Doreau <henri.doreau@gmail.com>
 
+	* src/attack.c (attack_host.c): Replaced a select() statement by an
+	equivalent sleep() for readability.
+
+2014-03-04  Henri Doreau <henri.doreau@gmail.com>
+
 	* src/attack.c (init_host_kb, attack_start, attack_host): Minor style
 	fixes.
 

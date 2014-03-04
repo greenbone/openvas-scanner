@@ -717,12 +717,7 @@ attack_host (struct arglist *globals, struct arglist *hostinfos, char *hostname,
 
           /* Wait for resume. */
           while (pause_whole_test)
-            {
-              struct timeval timeout;
-              timeout.tv_usec = 0;
-              timeout.tv_sec = 1;
-              select (0, NULL, NULL, NULL, &timeout);
-            }
+            sleep (1);
 
           /* Send the RESUME status to the client. */
           if (comm_send_status (globals, hostname, "resume", cur_plug,
