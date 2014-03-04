@@ -571,7 +571,7 @@ init_host_kb (struct arglist *globals, char *hostname,
 {
   kb_t kb, network_kb;
   (*new_kb) = FALSE;
-  char *vhosts = (char *) arg_get_value (hostinfos, "VHOSTS");
+  gchar *vhosts;
   struct kb_item *host_network_results = NULL;
   struct kb_item *result_iter;
 
@@ -620,9 +620,11 @@ init_host_kb (struct arglist *globals, char *hostname,
       kb = kb_new ();
     }
 
-  // Add local check (SSH)- related knowledge base items
+  /* Add local check (SSH)- related knowledge base items. */
   fill_host_kb_ssh_credentials (kb, globals, hostname);
-  // If vhosts is set, split it and put it in the KB
+
+  /* If vhosts is set, split it and put it in the KB. */
+  vhosts = (gchar *)arg_get_value (hostinfos, "VHOSTS");
   if (vhosts)
     {
       gchar **vhosts_array = g_strsplit (vhosts, ",", 0);
@@ -724,8 +726,7 @@ attack_host (struct arglist *globals, struct arglist *hostinfos, char *hostname,
 
           /* Send the RESUME status to the client. */
           if (comm_send_status (globals, hostname, "resume", cur_plug,
-                                num_plugs)
-              < 0)
+                                num_plugs) < 0)
             {
               pluginlaunch_stop ();
               goto host_died;
@@ -738,9 +739,9 @@ attack_host (struct arglist *globals, struct arglist *hostinfos, char *hostname,
           int e;
 
         again:
-          if ((e =
-               launch_plugin (globals, sched, plugin, hostname, &cur_plug,
-                              num_plugs, hostinfos, kb, new_kb)) < 0)
+          e = launch_plugin (globals, sched, plugin, hostname, &cur_plug,
+                             num_plugs, hostinfos, kb, new_kb);
+          if (e < 0)
             {
               /*
                * Remote host died
@@ -829,11 +830,9 @@ attack_start (struct attack_start_args *args)
 
   thread_socket = dup2 (thread_socket, 4);
 
-  // Close all file descriptors >= 5
+  /* Close all file descriptors >= 5 */
   for (i = 5; i < getdtablesize (); i++)
-    {
-      close (i);
-    }
+    close (i);
 
   gettimeofday (&then, NULL);
 

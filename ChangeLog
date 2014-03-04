@@ -1,3 +1,8 @@
+2014-03-04  Henri Doreau <henri.doreau@gmail.com>
+
+	* src/attack.c (init_host_kb, attack_start, attack_host): Minor style
+	fixes.
+
 2014-03-03  Hani Benhabiles  <hani.benhabiles@greenbone.net>
 
 	* src/openvassd.c (set_globals_from_preferences): Remove plugins
