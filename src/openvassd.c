@@ -493,7 +493,7 @@ static void
 main_loop ()
 {
   char *s, *ssl_ver;
-  char *old_addr = 0, *asciiaddr = 0;
+  char *old_addr = NULL, *asciiaddr = NULL;
   time_t last = 0;
   int count = 0;
   struct addrinfo *ai = arg_get_value (g_options, "addr");
@@ -609,7 +609,7 @@ main_loop ()
 
       wait_for_children1 ();
       /* Prevent from an io table overflow attack against openvas */
-      if (asciiaddr != 0)
+      if (asciiaddr && old_addr)
         {
           time_t now = time (0);
 
@@ -628,20 +628,15 @@ main_loop ()
               last = now;
             }
 
-          if (old_addr != 0)
-            {
-              /* detect whether sombody logs in more than once in a row */
-              if (strcmp (old_addr, asciiaddr) == 0
-                  && now < last + OPENVASSD_CONNECT_RATE)
-                {
-                  sleep (1);
-                }
-              efree (&old_addr);
-              old_addr = 0;     /* currently done by efree, as well */
-            }
+          /* detect whether sombody logs in more than once in a row */
+          if (!strcmp (old_addr, asciiaddr)
+              && now < last + OPENVASSD_CONNECT_RATE)
+            sleep (1);
+          free (old_addr);
+          old_addr = asciiaddr;
         }
-      old_addr = strdup (asciiaddr ? asciiaddr : "");
-      asciiaddr = 0;
+      else
+        old_addr = strdup (asciiaddr ? asciiaddr : "");
 
       if (ai->ai_family == AF_INET)
         {
@@ -728,8 +723,6 @@ main_loop ()
 #ifdef DEBUG
       log_write ("connection from %s\n", (char *) asciiaddr);
 #endif
-
-      free (asciiaddr);
 
 /* FIXME: Find out whether following comment is still valid.
           Especially, I do not see where the arglists are duplicated with
