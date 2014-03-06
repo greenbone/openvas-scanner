@@ -30,7 +30,7 @@
 #include <openvas/nasl/nasl.h>
 #include <openvas/misc/system.h>     /* for emalloc */
 #include <openvas/base/nvticache.h>  /* for nvticache_new */
-#include <openvas/misc/proctitle.h>  /* for setproctitle */
+#include <openvas/misc/openvas_proctitle.h>
 
 #include <glib.h>
 #include <sys/time.h>
@@ -198,9 +198,9 @@ plugins_reload_from_dir (struct arglist *preferences, struct arglist *plugins,
 
           percentile = (loaded_files * 100) / num_files;
           eta = calculate_eta (start_time, loaded_files, num_files);
-          setproctitle ("openvassd: Reloaded %d of %d NVTs"
-                        " (%d%% / ETA: %02d:%02d)", loaded_files, num_files,
-                        percentile, eta / 60, eta % 60);
+          proctitle_set ("openvassd: Reloaded %d of %d NVTs"
+                         " (%d%% / ETA: %02d:%02d)", loaded_files, num_files,
+                         percentile, eta / 60, eta % 60);
         }
       if (preferences_log_plugins_at_load (preferences))
         log_write ("Loading %s\n", name);
@@ -212,7 +212,7 @@ plugins_reload_from_dir (struct arglist *preferences, struct arglist *plugins,
 
   g_slist_free (files);
 
-  setproctitle ("openvassd: Reloaded all the NVTs.");
+  proctitle_set ("openvassd: Reloaded all the NVTs.");
 
   return plugins;
 }

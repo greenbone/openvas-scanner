@@ -37,12 +37,12 @@
 
 #include <openvas/base/openvas_hosts.h>
 #include <openvas/base/openvas_networking.h>
+#include <openvas/misc/openvas_proctitle.h>
 #include <openvas/misc/kb.h>             /* for kb_new */
 #include <openvas/misc/network.h>        /* for auth_printf */
 #include <openvas/misc/nvt_categories.h> /* for ACT_INIT */
 #include <openvas/misc/pcap_openvas.h>   /* for v6_is_local_ip */
 #include <openvas/misc/plugutils.h>      /* for plug_get_launch */
-#include <openvas/misc/proctitle.h>      /* for setproctitle */
 #include <openvas/misc/system.h>         /* for emalloc */
 #include <openvas/misc/scanners_utils.h> /* for comm_send_status */
 #include <openvas/misc/openvas_ssh_login.h>
@@ -679,8 +679,7 @@ attack_host (struct arglist *globals, struct arglist *hostinfos, char *hostname,
   struct arglist *plugins = arg_get_value (globals, "plugins");
   struct arglist *tmp;
 
-  setproctitle ("openvassd: testing %s",
-                (char *) arg_get_value (hostinfos, "NAME"));
+  proctitle_set ("openvassd: testing %s", arg_get_value (hostinfos, "NAME"));
 
   kb = init_host_kb (globals, hostname, hostinfos, &new_kb);
 

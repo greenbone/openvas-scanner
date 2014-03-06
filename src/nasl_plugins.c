@@ -49,7 +49,7 @@
 #include <openvas/misc/plugutils.h>     /* for plug_set_launch */
 #include <openvas/misc/internal_com.h>  /* for INTERNAL_COMM_CTRL_FINISHED */
 #include <openvas/misc/system.h>     /* for emalloc */
-#include <openvas/misc/proctitle.h>  /* for setproctitle */
+#include <openvas/misc/openvas_proctitle.h>
 
 #include "pluginload.h"
 #include "pluginscheduler.h"    /* for LAUNCH_DISABLED */
@@ -270,9 +270,9 @@ nasl_thread (struct arglist *g_args)
                  GSIZE_TO_POINTER (soc));
   for (i = 5; i < getdtablesize (); i++)
     close (i);
-  setproctitle ("openvassd: testing %s (%s)",
-                arg_get_value (arg_get_value (args, "HOSTNAME"), "NAME"),
-                name);
+  proctitle_set ("openvassd: testing %s (%s)",
+                 arg_get_value (arg_get_value (args, "HOSTNAME"), "NAME"),
+                 name);
   signal (SIGTERM, _exit);
 
   nasl_mode = NASL_EXEC_DONT_CLEANUP;

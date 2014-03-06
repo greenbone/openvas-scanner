@@ -57,7 +57,7 @@
 #include <openvas/misc/plugutils.h>  /* for find_in_path */
 #include <openvas/misc/system.h>     /* for estrdup */
 #include <openvas/misc/rand.h>       /* for openvas_init_random */
-#include <openvas/misc/proctitle.h>  /* for setproctitle.h */
+#include <openvas/misc/openvas_proctitle.h>
 #include <openvas/misc/openvas_logging.h>  /* for setup_legacy_log_handler */
 #include <openvas/base/pidfile.h>    /* for pidfile_remove */
 #include <openvas/misc/otp.h>        /* for OTP_20 */
@@ -323,14 +323,14 @@ scanner_thread (struct arglist *globals)
   if (family == AF_INET)
     {
       saddr = (struct sockaddr_in *) addr;
-      setproctitle ("openvassd: serving %s", inet_ntoa (saddr->sin_addr));
+      proctitle_set ("openvassd: Serving %s", inet_ntoa (saddr->sin_addr));
     }
   else
     {
       s6addr = (struct sockaddr_in6 *) addr;
-      setproctitle ("openvassd: serving %s",
-                    inet_ntop (AF_INET6, &s6addr->sin6_addr, asciiaddr,
-                               sizeof (asciiaddr)));
+      proctitle_set ("openvassd: Serving %s",
+                     inet_ntop (AF_INET6, &s6addr->sin6_addr, asciiaddr,
+                                sizeof (asciiaddr)));
     }
   efree (&asciiaddr);
 
@@ -498,7 +498,7 @@ main_loop ()
   int count = 0;
   struct addrinfo *ai = arg_get_value (g_options, "addr");
 
-  setproctitle ("openvassd: waiting for incoming connections");
+  proctitle_set ("openvassd: Waiting for incoming connections");
   /* catch dead children */
   openvas_signal (SIGCHLD, sighand_chld);
 
@@ -602,9 +602,9 @@ main_loop ()
 
       if (restart != 0)
         {
-          setproctitle ("openvassd: Reloading");
+          proctitle_set ("openvassd: Reloading");
           reload_openvassd ();
-          setproctitle ("openvassd: waiting for incoming connections");
+          proctitle_set ("openvassd: Waiting for incoming connections");
         }
 
       wait_for_children1 ();
@@ -875,10 +875,9 @@ init_openvassd (struct arglist *options, int first_pass, int stop_early,
  * @brief openvassd.
  * @param argc Argument count.
  * @param argv Argument vector.
- * @param envp Used by setproctitle.
  */
 int
-main (int argc, char *argv[], char *envp[])
+main (int argc, char *argv[])
 {
   int exit_early = 0;
   int scanner_port = 9391;
@@ -890,7 +889,7 @@ main (int argc, char *argv[], char *envp[])
   struct sockaddr_in saddr;
   struct sockaddr_in6 s6addr;
 
-  initsetproctitle (argc, argv, envp);
+  proctitle_init (argc, argv);
 
   if ((myself = strrchr (*argv, '/')) == 0)
     myself = *argv;
