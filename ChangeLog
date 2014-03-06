@@ -1,3 +1,8 @@
+2014-03-06  Benoît Allard  <benoit.allard@greenbone.net>
+
+	* doc/openvassd.8.in, doc/openvas-mkcert.8: Fix typos reported by
+	  lintian.
+
 2014-03-06  Hani Benhabiles  <hani.benhabiles@greenbone.net>
 
 	* src/pluginload.c (calculate_eta): New function

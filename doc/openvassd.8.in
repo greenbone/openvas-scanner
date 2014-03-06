@@ -17,7 +17,7 @@ target hosts in a highly optimized way.
 .BR openvassd
 inspects the remote hosts and attempts to list all the vulnerabilities and common
 misconfigurations that affects them. Note that openvassd will run in daemon mode
-by default (unless you specify -f as an option).
+by default (unless you specify \-f as an option).
 
 .SH OPTIONS
 .TP 
@@ -30,7 +30,7 @@ Use the alternate configuration file instead of
 Tell the scanner to only listen to connections on the address
 .I <address>
 which is an IP, not a machine name. For instance, 
-"openvassd -a 192.168.1.1"
+"openvassd \-a 192.168.1.1"
 will make 
 .B openvassd
 only listen to requests going to 
@@ -143,10 +143,10 @@ Comma-separated list of interfaces names that are authorized as source_iface val
 Comma-separated list of interfaces names that are not authorized as source_iface values.
 
 .IP sys_ifaces_allow
-Like ifaces_allow. Can't be overriden by the client.
+Like ifaces_allow. Can't be overridden by the client.
 
 .IP sys_ifaces_deny
-Like ifaces_deny. Can't be overriden by the client.
+Like ifaces_deny. Can't be overridden by the client.
 
 .IP hosts_allow
 Comma-separated list of the only targets that are authorized to be scanned.
@@ -161,10 +161,10 @@ which they resolve are checked. Hostnames in hosts_deny list are not resolved
 however.
 
 .IP sys_hosts_allow
-Like hosts_allow. Can't be overriden by the client.
+Like hosts_allow. Can't be overridden by the client.
 
 .IP sys_hosts_deny
-Like hosts_deny. Can't be overriden by the client.
+Like hosts_deny. Can't be overridden by the client.
 
 The other options in this file can usually be redefined by the client.
 
