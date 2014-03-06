@@ -1,5 +1,9 @@
 2014-03-05  Hani Benhabiles  <hani.benhabiles@greenbone.net>
 
+	* src/attack.c (launch_plugin): Fix possible null pointer dereference.
+
+2014-03-05  Hani Benhabiles  <hani.benhabiles@greenbone.net>
+
 	* src/openvassd.c (main_loop): Fix use after free issue. Code style fix.
 
 2014-03-05  Michael Wiegand <michael.wiegand@greenbone.net>

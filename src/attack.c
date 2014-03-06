@@ -228,15 +228,19 @@ launch_plugin (struct arglist *globals, plugins_scheduler_t * sched,
 {
   struct arglist *preferences = arg_get_value (globals, "preferences");
   struct arglist *args = plugin->arglist->value;
-  char *oid = (char *)arg_get_value (args, "OID");
   nvticache_t *nvticache = (nvticache_t *)arg_get_value (
     arg_get_value (args, "preferences"), "nvticache");
-  gchar *src = (oid == NULL ? NULL : nvticache_get_src_by_oid (nvticache, oid));
-  char name[1024], oid_[100];
+  char name[1024], oid_[100], *oid, *src;
   int optimize = preferences_optimize_test (preferences);
   int category = plugin->category;
   gchar *network_scan_status;
   gboolean network_scan = FALSE;
+
+  oid = arg_get_value (args, "OID");
+  if (oid)
+    src = nvticache_get_src_by_oid (nvticache, oid);
+  else
+    return 0;
 
   strncpy (name, src, sizeof (name) - 1);
   name[sizeof (name) - 1] = '\0';
