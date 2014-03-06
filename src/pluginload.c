@@ -33,6 +33,9 @@
 #include <openvas/misc/proctitle.h>  /* for setproctitle */
 
 #include <glib.h>
+#include <sys/time.h>
+#include <string.h>
+#include <errno.h>
 
 #include "utils.h"
 #include "pluginload.h"
@@ -44,7 +47,7 @@
  * plugins that are in folder <folder>
  */
 struct arglist *
-plugins_init (struct arglist *preferences, int progress)
+plugins_init (struct arglist *preferences)
 {
   nvticache_t * nvti_cache;
 
@@ -53,8 +56,7 @@ plugins_init (struct arglist *preferences, int progress)
                               arg_get_value (preferences, "plugins_folder"));
   arg_add_value (preferences, "nvticache", ARG_PTR, -1, nvti_cache);
 
-  return plugins_reload (preferences, emalloc (sizeof (struct arglist)),
-                         progress);
+  return plugins_reload (preferences, emalloc (sizeof (struct arglist)));
 }
 
 /**
@@ -117,44 +119,29 @@ collect_nvts (const char *folder, const char *subdir, GSList * files)
   return files;
 }
 
-
-/**
- * @brief Nudge the progress indicator.
- */
-static void
-spin_progress ()
+int
+calculate_eta (struct timeval start_time, int loaded, int total)
 {
-  static char current = '/';
-  switch (current)
-    {
-      case '\\':
-        current = '|';
-        break;
-      case '|':
-        current = '/';
-        break;
-      case '/':
-        current = '-';
-        break;
-      case '-':
-        current = '\\';
-        break;
-    }
-  putchar ('\b');
-  putchar (current);
-  fflush (stdout);
+  struct timeval current_time;
+  int elapsed, remaining;
+
+  if (start_time.tv_sec == 0)
+    return 0;
+
+  gettimeofday (&current_time, NULL);
+  elapsed = current_time.tv_sec - start_time.tv_sec;
+  remaining = total - loaded;
+  return (remaining * elapsed) / loaded;
 }
 
 static struct arglist *
-plugins_reload_from_dir (preferences, plugins, folder, progress)
-     struct arglist *preferences;
-     struct arglist *plugins;
-     char *folder;
-     int progress;
+plugins_reload_from_dir (struct arglist *preferences, struct arglist *plugins,
+                         char *folder)
 {
   GSList *files = NULL, *f;
   gchar *pref_include_folders;
-  int n = 0, total = 0, num_files = 0;
+  int n = 0, loaded_files = 0, num_files = 0;
+  struct timeval start_time;
 
   add_nasl_inc_dir ("");        // for absolute and relative paths
 
@@ -193,31 +180,27 @@ plugins_reload_from_dir (preferences, plugins, folder, progress)
    * Add the plugins
    */
 
-  if (progress)
+  if (gettimeofday (&start_time, NULL))
     {
-      printf ("Loading the NVTs... \\");
-      fflush (stdout);
+      bzero (&start_time, sizeof (start_time));
+      log_write ("gettimeofday: %s\n", strerror (errno));
     }
   f = files;
   while (f != NULL)
     {
       char *name = f->data;
       n++;
-      total++;
+      loaded_files++;
       if (n > 50)
         {
           n = 0;
-          int percentile = (total * 100) / num_files;
-          if (progress)
-            {
-              printf ("\rLoading the NVTs...  ");
-              spin_progress ();
-              printf (" %d of %d (%d%%)",
-                      total, num_files, percentile);
-              fflush (stdout);
-            }
-          setproctitle ("openvassd: Reloaded %d of %d NVTs (%d%%)",
-                        total, num_files, percentile);
+          int percentile, eta;
+
+          percentile = (loaded_files * 100) / num_files;
+          eta = calculate_eta (start_time, loaded_files, num_files);
+          setproctitle ("openvassd: Reloaded %d of %d NVTs"
+                        " (%d%% / ETA: %02d:%02d)", loaded_files, num_files,
+                        percentile, eta / 60, eta % 60);
         }
       if (preferences_log_plugins_at_load (preferences))
         log_write ("Loading %s\n", name);
@@ -229,26 +212,17 @@ plugins_reload_from_dir (preferences, plugins, folder, progress)
 
   g_slist_free (files);
 
-  if (progress)
-    {
-      printf ("\rLoading the NVTs... done.                            \n");
-      fflush (stdout);
-    }
   setproctitle ("openvassd: Reloaded all the NVTs.");
 
   return plugins;
 }
 
-
 struct arglist *
-plugins_reload (preferences, plugins, progress)
-     struct arglist *preferences;
-     struct arglist *plugins;
-     int progress;
+plugins_reload (struct arglist *preferences, struct arglist *plugins)
 {
   return plugins_reload_from_dir (preferences, plugins,
-                                  arg_get_value (preferences, "plugins_folder"),
-                                  progress);
+                                  arg_get_value (preferences,
+                                                 "plugins_folder"));
 }
 
 void

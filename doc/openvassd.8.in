@@ -49,10 +49,6 @@ than listening on port 9391 (default).
 Make the scanner stay in foreground (non-daemon mode)
 
 .TP 
-.B "--progress"
-Print the progress during loading of NVTs at startup
-
-.TP 
 .B "-v, --version"
 Writes the version number and exits
 

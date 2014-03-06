@@ -34,8 +34,8 @@
 #include <openvas/misc/arglists.h>   /* for struct arglist */
 #include <openvas/misc/kb.h>         /* for struct kb_item */
 
-struct arglist *plugins_init (struct arglist *, int);
-struct arglist *plugins_reload (struct arglist *, struct arglist *, int);
+struct arglist *plugins_init (struct arglist *);
+struct arglist *plugins_reload (struct arglist *, struct arglist *);
 void plugin_set_socket (struct arglist *, int);
 int plugin_get_socket (struct arglist *);
 void plugins_set_socket (struct arglist *, int);

@@ -1,3 +1,20 @@
+2014-03-06  Hani Benhabiles  <hani.benhabiles@greenbone.net>
+
+	* src/pluginload.c (calculate_eta): New function
+	(plugins_reload_from_dir): Remove useless progress printing to stdout as
+	process is now in background. Add an estimation of remaining time to
+	reload plugins to the process title.
+	(plugins_init, plugins_reload): Remove progress function argument.
+	(spin_progress): Remove function.
+
+	* src/pluginload.h: Adjust functions prototypes.
+
+	* src/openavssd.c (reload_openvassd, init_openvassd, main): Adjust
+	function calls.
+	(init_plugins): Remove progress function argument.
+
+	* doc/openvassd.8.in: Remove progress option documentation.
+
 2014-03-05  Hani Benhabiles  <hani.benhabiles@greenbone.net>
 
 	* src/attack.c (launch_plugin): Fix possible null pointer dereference.

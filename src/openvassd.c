@@ -256,7 +256,7 @@ reload_openvassd ()
   preferences_init (config_file, &preferences);
 
   /* Reload the plugins */
-  plugins = plugins_init (preferences, 0);
+  plugins = plugins_init (preferences);
   set_globals_from_preferences (preferences);
   plugins_free (global_plugins);
   global_plugins = plugins;
@@ -813,12 +813,12 @@ init_network (int port, int *sock, struct addrinfo addr)
 }
 
 static void
-init_plugins (struct arglist *options, int progress)
+init_plugins (struct arglist *options)
 {
   struct arglist *preferences, *plugins;
 
   preferences = arg_get_value (options, "preferences");
-  plugins = plugins_init (preferences, progress);
+  plugins = plugins_init (preferences);
 
   arg_replace_value (options, "plugins", ARG_ARGLIST, -1, plugins);
   plugins_free (global_plugins);
@@ -829,7 +829,6 @@ init_plugins (struct arglist *options, int progress)
  * @brief Initialize everything.
  *
  * @param stop_early 0: do some initialization, 1: no initialization.
- * @param progress   If true then display progress.
  */
 static int
 init_openvassd (struct arglist *options, int first_pass, int stop_early,
@@ -905,7 +904,6 @@ main (int argc, char *argv[], char *envp[])
   static gchar *config_file = NULL;
   static gboolean print_specs = FALSE;
   static gboolean print_sysconfdir = FALSE;
-  static gboolean progress = FALSE;
   static gboolean only_cache = FALSE;
   GError *error = NULL;
   GOptionContext *option_context;
@@ -924,8 +922,6 @@ main (int argc, char *argv[], char *envp[])
      "Print configuration settings", NULL},
     {"sysconfdir", 'y', 0, G_OPTION_ARG_NONE, &print_sysconfdir,
      "Print system configuration directory (set at compile time)", NULL},
-    {"progress", '\0', 0, G_OPTION_ARG_NONE, &progress,
-     "Display NVT load progress on stdout, even when in daemon mode", NULL},
     {"only-cache", 'C', 0, G_OPTION_ARG_NONE, &only_cache,
      "Exit once the NVT cache has been initialized or updated", NULL},
     {NULL}
@@ -1073,14 +1069,14 @@ main (int argc, char *argv[], char *envp[])
         {
           setsid ();
           pidfile_create ("openvassd");
-          init_plugins (options, progress);
+          init_plugins (options);
           main_loop ();
         }
     }
   else
     {
       pidfile_create ("openvassd");
-      init_plugins (options, progress);
+      init_plugins (options);
       main_loop ();
     }
   exit (0);
