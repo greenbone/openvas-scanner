@@ -1,3 +1,9 @@
+2014-03-07  Hani Benhabiles  <hani.benhabiles@greenbone.net>
+
+	* src/openvassd.c (main_loop): Change asciiaddr and old_addr into
+	statically allocated buffers. Remove unused code related to libwrap
+	support.
+
 2014-03-06  Hani Benhabiles  <hani.benhabiles@greenbone.net>
 
 	* src/attack.c: Include misc/openvas_proctitle.h instead of

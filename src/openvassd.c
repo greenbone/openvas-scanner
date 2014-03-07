@@ -64,12 +64,6 @@
 
 #include <gnutls/gnutls.h>
 #include <gnutls/x509.h>
-
-#ifdef USE_LIBWRAP
-#include <tcpd.h>
-#include <syslog.h>
-#endif
-
 #include <glib.h>
 
 
@@ -493,7 +487,7 @@ static void
 main_loop ()
 {
   char *s, *ssl_ver;
-  char *old_addr = NULL, *asciiaddr = NULL;
+  char old_addr[INET6_ADDRSTRLEN], asciiaddr[INET6_ADDRSTRLEN];
   time_t last = 0;
   int count = 0;
   struct addrinfo *ai = arg_get_value (g_options, "addr");
@@ -587,6 +581,8 @@ main_loop ()
     }
 
   log_write ("openvassd %s started\n", OPENVASSD_VERSION);
+  bzero (old_addr, sizeof (old_addr));
+  bzero (asciiaddr, sizeof (asciiaddr));
   for (;;)
     {
       int soc;
@@ -609,7 +605,7 @@ main_loop ()
 
       wait_for_children1 ();
       /* Prevent from an io table overflow attack against openvas */
-      if (asciiaddr && old_addr)
+      if (asciiaddr[0])
         {
           time_t now = time (0);
 
@@ -632,11 +628,8 @@ main_loop ()
           if (!strcmp (old_addr, asciiaddr)
               && now < last + OPENVASSD_CONNECT_RATE)
             sleep (1);
-          free (old_addr);
-          old_addr = asciiaddr;
+          strcpy (old_addr, asciiaddr);
         }
-      else
-        old_addr = strdup (asciiaddr ? asciiaddr : "");
 
       if (ai->ai_family == AF_INET)
         {
@@ -658,11 +651,11 @@ main_loop ()
         }
 
       family = ai->ai_family;
-      asciiaddr = (char *) emalloc (INET6_ADDRSTRLEN);
       if (family == AF_INET)
         {
           saddr = (struct sockaddr_in *) &address;
-          if (inet_ntop (AF_INET, &saddr->sin_addr, asciiaddr, INET6_ADDRSTRLEN)
+          if (inet_ntop (AF_INET, &saddr->sin_addr, asciiaddr,
+                         sizeof (asciiaddr))
               != NULL)
             {
 #ifdef DEBUG
@@ -677,9 +670,8 @@ main_loop ()
         }
       else
         {
-          if (inet_ntop
-              (AF_INET6, &address6.sin6_addr, asciiaddr,
-               INET6_ADDRSTRLEN) != NULL)
+          if (inet_ntop (AF_INET6, &address6.sin6_addr, asciiaddr,
+                         sizeof (asciiaddr)) != NULL)
             {
 #ifdef DEBUG
               log_write ("Family is %d ascii address is %s\n",
@@ -691,35 +683,6 @@ main_loop ()
               exit (0);
             }
         }
-#ifdef USE_LIBWRAP
-      {
-        char host_name[1024];
-        struct addrinfo hints;
-        struct addrinfo *saddr;
-
-        memset (&hints, 0, sizeof (hints));
-        hints.ai_socktype = SOCK_STREAM;
-        hints.ai_protocol = IPPROTO_TCP;
-        hints.ai_flags = AI_NUMERICHOST;
-        if (family == AF_INET)
-          ret = getaddrinfo (saddr, NULL, &hints, &mysaddr);
-        else
-          ret = getaddrinfo (address, NULL, &hints, &mysaddr);
-        if (ret)
-          {
-            continue;
-          }
-        memcpy (host_name, saddr->ai_cannonname, strlen (saddr->ai_cannonname));
-        freeaddrinfo (mysaddr);
-        if (!(hosts_ctl ("openvassd", host_name, asciiaddr, STRING_UNKNOWN)))
-          {
-            shutdown (soc, 2);
-            close (soc);
-            log_write ("Connection from %s rejected by libwrap", asciiaddr);
-            continue;
-          }
-      }
-#endif
 #ifdef DEBUG
       log_write ("connection from %s\n", (char *) asciiaddr);
 #endif
