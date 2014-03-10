@@ -79,18 +79,6 @@
 #include "pluginscheduler.h"
 #include "pluginlaunch.h"
 
-/* The default port assigned to OpenVAS for OTP by the iana is 9390, see
-   http://www.iana.org/assignments/port-numbers */
-#define OPENVAS_IANA_OTP_PORT 9390
-
-/* The max number of client connections/sec */
-#define OPENVASSD_CONNECT_RATE 4
-
-/* Block this many secs if the OPENVASSD_CONNECT_RATE was exceeded */
-#define OPENVASSD_CONNECT_BLOCKER 2
-
-extern char *openvaslib_version ();
-
 /**
  * Globals that should not be touched (used in utils module).
  */
@@ -105,22 +93,12 @@ int global_iana_socket;
 struct arglist *global_plugins;
 struct arglist *global_preferences;
 
-
 static int restart = 0;
 
 /**
  * SSL context may be kept once it is inited.
  */
 static ovas_scanner_context_t ovas_scanner_ctx = NULL;
-
-
-/*
- * Functions prototypes
- */
-static void main_loop ();
-static int init_openvassd (struct arglist *, int, int, int);
-static int init_network (int, int *, struct addrinfo);
-static void scanner_thread (struct arglist *);
 
 static void
 dump_cfg_specs (struct arglist *prefs)
@@ -294,7 +272,6 @@ check_client (char *dname)
   return success;
 }
 
-
 static void
 scanner_thread (struct arglist *globals)
 {
@@ -341,17 +318,6 @@ scanner_thread (struct arglist *globals)
         }
     }
   openvas_signal (SIGCHLD, sighand_chld);
-#if 1
-  /* To let some time to attach a debugger to the child process */
-  {
-    char *p = getenv ("OPENVAS_WAIT_AFTER_FORK");
-    int x = p == NULL ? 0 : atoi (p);
-    if (x > 0)
-      fprintf (stderr, "scanner_thread is starting. Sleeping %d s. PID = %d\n",
-               x, getpid ());
-    sleep (x);
-  }
-#endif
 
   /* Close the scanner thread - it is useless for us now */
   close (global_iana_socket);
@@ -482,94 +448,81 @@ shutdown_and_exit:
   exit (0);
 }
 
+/*
+ * Gives an OPENVAS_ENCAPS value matching an ssl version string.
+ *
+ * @param[in]   ssl_ver SSL version string.
+ *
+ * @return OPENVAS_ENCAPS value.
+ */
+static int
+ssl_ver_to_encaps (const char *ssl_ver)
+{
+  if (ssl_ver == NULL)
+    return OPENVAS_ENCAPS_TLSv1;
+
+  if (strcasecmp (ssl_ver, "SSLv2") == 0)
+    {
+      fprintf (stderr, "SSL version 2 is not supported anymore!\n");
+      return OPENVAS_ENCAPS_TLSv1;
+    }
+  else if (strcasecmp (ssl_ver, "SSLv3") == 0)
+    return OPENVAS_ENCAPS_SSLv3;
+  else if (strcasecmp (ssl_ver, "SSLv23") == 0)
+    return OPENVAS_ENCAPS_SSLv23;
+  else if (strcasecmp (ssl_ver, "TLSv1") == 0)
+    return OPENVAS_ENCAPS_TLSv1;
+  else
+    {
+      fprintf (stderr, "Unknown SSL version \"%s\"\n", ssl_ver);
+      return OPENVAS_ENCAPS_TLSv1;
+    }
+}
 
 static void
-main_loop ()
+init_ssl_ctx ()
 {
-  char *s, *ssl_ver;
-  char old_addr[INET6_ADDRSTRLEN], asciiaddr[INET6_ADDRSTRLEN];
-  time_t last = 0;
-  int count = 0;
-  struct addrinfo *ai = arg_get_value (g_options, "addr");
-
-  proctitle_set ("openvassd: Waiting for incoming connections");
-  /* catch dead children */
-  openvas_signal (SIGCHLD, sighand_chld);
-
-#if DEBUG_SSL > 1
-  fprintf (stderr, "**** in main_loop ****\n");
-#endif
-
-  openvas_init_random ();
-
-#define SSL_VER_DEF_NAME	"TLSv1"
-#define SSL_VER_DEF_ENCAPS	OPENVAS_ENCAPS_TLSv1
-  ssl_ver = preferences_get_string (global_preferences, "ssl_version");
-  if (ssl_ver == NULL || *ssl_ver == '\0')
-    ssl_ver = SSL_VER_DEF_NAME;
-
   if (openvas_SSL_init () < 0)
     {
       fprintf (stderr, "Could not initialize openvas SSL!\n");
       exit (1);
     }
 
-  /* In case the code is changed and main_loop is called several time,
-   * we initialize ssl_ctx only once */
+  /* Only initialize ovas_scanner_ctx once */
   if (ovas_scanner_ctx == NULL)
     {
-      int encaps = -1;
+      int encaps;
       int force_pubkey_auth;
-      char *cert, *key, *passwd, *ca_file;
+      char *cert, *key, *passwd, *ca_file, *ssl_ver;
+      char *str;
 
-      if (strcasecmp (ssl_ver, "SSLv2") == 0)
-        {
-          fprintf (stderr, "SSL version 2 is not supported anymore!\n");
-          exit (1);
-        }
-      else if (strcasecmp (ssl_ver, "SSLv3") == 0)
-        encaps = OPENVAS_ENCAPS_SSLv3;
-      else if (strcasecmp (ssl_ver, "SSLv23") == 0)
-        encaps = OPENVAS_ENCAPS_SSLv23;
-      else if (strcasecmp (ssl_ver, "TLSv1") == 0)
-        encaps = OPENVAS_ENCAPS_TLSv1;
-      else
-        {
-          fprintf (stderr,
-                   "Unknown SSL version \"%s\"\nSwitching to default "
-                   SSL_VER_DEF_NAME "\n", ssl_ver);
-          encaps = SSL_VER_DEF_ENCAPS;
-        }
-
+      ssl_ver = preferences_get_string (global_preferences, "ssl_version");
+      if (ssl_ver == NULL || *ssl_ver == '\0')
+        ssl_ver = "TLSv1";
+      encaps = ssl_ver_to_encaps (ssl_ver);
 
       ca_file = preferences_get_string (global_preferences, "ca_file");
       if (ca_file == NULL)
         {
-          fprintf (stderr,
-                   "*** 'ca_file' is not set - did you run openvas-mkcert?\n");
+          fprintf (stderr, "Missing ca_file - Did you run openvas-mkcert?\n");
+          exit (1);
+        }
+      cert = preferences_get_string (global_preferences, "cert_file");
+      if (cert == NULL)
+        {
+          fprintf (stderr, "Missing cert_file - Did you run openvas-mkcert?\n");
+          exit (1);
+        }
+      key = preferences_get_string (global_preferences, "key_file");
+      if (key == NULL)
+        {
+          fprintf (stderr, "Missing key_file - Did you run openvas-mkcert?\n");
           exit (1);
         }
 
       passwd = preferences_get_string (global_preferences, "pem_password");
-      cert = preferences_get_string (global_preferences, "cert_file");
-      key = preferences_get_string (global_preferences, "key_file");
-
-      if (cert == NULL)
-        {
-          fprintf (stderr,
-                   "*** 'cert_file' is not set - did you run openvas-mkcert?\n");
-          exit (1);
-        }
-
-      if (key == NULL)
-        {
-          fprintf (stderr,
-                   "*** 'key_file' is not set - did you run openvas-mkcert?\n");
-          exit (1);
-        }
-
-      s = arg_get_value (global_preferences, "force_pubkey_auth");
-      force_pubkey_auth = s != NULL && strcmp (s, "no") != 0;
+      str = arg_get_value (global_preferences, "force_pubkey_auth");
+      force_pubkey_auth = str != NULL && strcmp (str, "no") != 0;
       ovas_scanner_ctx =
         ovas_scanner_context_new (encaps, cert, key, passwd, ca_file,
                                   force_pubkey_auth);
@@ -579,15 +532,31 @@ main_loop ()
           exit (1);
         }
     }
+}
 
+static void
+main_loop ()
+{
+  struct addrinfo *ai = arg_get_value (g_options, "addr");
+
+  /* catch dead children */
+  openvas_signal (SIGCHLD, sighand_chld);
+
+#if DEBUG_SSL > 1
+  fprintf (stderr, "**** in main_loop ****\n");
+#endif
+
+  openvas_init_random ();
+
+  init_ssl_ctx ();
   log_write ("openvassd %s started\n", OPENVASSD_VERSION);
-  bzero (old_addr, sizeof (old_addr));
-  bzero (asciiaddr, sizeof (asciiaddr));
+  proctitle_set ("openvassd: Waiting for incoming connections");
   for (;;)
     {
       int soc;
       int family;
       unsigned int lg_address;
+      char asciiaddr[INET6_ADDRSTRLEN];
       struct sockaddr_in address;
       struct sockaddr_in6 address6;
       struct sockaddr_in6 *p_addr;
@@ -604,33 +573,6 @@ main_loop ()
         }
 
       wait_for_children1 ();
-      /* Prevent from an io table overflow attack against openvas */
-      if (asciiaddr[0])
-        {
-          time_t now = time (0);
-
-          /* Did we reach the max nums of connect/secs ? */
-          if (last == now)
-            {
-              if (++count > OPENVASSD_CONNECT_RATE)
-                {
-                  sleep (OPENVASSD_CONNECT_BLOCKER);
-                  last = 0;
-                }
-            }
-          else
-            {
-              count = 0;
-              last = now;
-            }
-
-          /* detect whether sombody logs in more than once in a row */
-          if (!strcmp (old_addr, asciiaddr)
-              && now < last + OPENVASSD_CONNECT_RATE)
-            sleep (1);
-          strcpy (old_addr, asciiaddr);
-        }
-
       if (ai->ai_family == AF_INET)
         {
           lg_address = sizeof (struct sockaddr_in);
@@ -646,46 +588,19 @@ main_loop ()
                     &lg_address);
         }
       if (soc == -1)
-        {
-          continue;
-        }
+        continue;
 
       family = ai->ai_family;
       if (family == AF_INET)
         {
           saddr = (struct sockaddr_in *) &address;
           if (inet_ntop (AF_INET, &saddr->sin_addr, asciiaddr,
-                         sizeof (asciiaddr))
-              != NULL)
-            {
-#ifdef DEBUG
-              log_write ("Family is %d ascii address is %s\n",
-                         address.sin_family, asciiaddr);
-#endif
-            }
-          else
-            {
-              exit (0);
-            }
+                         sizeof (asciiaddr)) == NULL)
+            exit (0);
         }
-      else
-        {
-          if (inet_ntop (AF_INET6, &address6.sin6_addr, asciiaddr,
-                         sizeof (asciiaddr)) != NULL)
-            {
-#ifdef DEBUG
-              log_write ("Family is %d ascii address is %s\n",
-                         address6.sin6_family, asciiaddr);
-#endif
-            }
-          else
-            {
-              exit (0);
-            }
-        }
-#ifdef DEBUG
-      log_write ("connection from %s\n", (char *) asciiaddr);
-#endif
+      else if (inet_ntop (AF_INET6, &address6.sin6_addr, asciiaddr,
+                          sizeof (asciiaddr)) == NULL)
+        exit (0);
 
 /* FIXME: Find out whether following comment is still valid.
           Especially, I do not see where the arglists are duplicated with
@@ -728,12 +643,10 @@ main_loop ()
     }
 }
 
-
 /**
  * Initialization of the network :
  * we setup the socket that will listen for incoming connections on port \<port\>
- * on address \<addr\> (which are set to OPENVAS_IANA_OTP_PORT and INADDR_ANY by
- * default).
+ * on address \<addr\>
  *
  * @param port Port on which to listen.
  * @param[out] sock Socket to be initialized.

@@ -1,3 +1,11 @@
+2014-03-10  Hani Benhabiles  <hani.benhabiles@greenbone.net>
+
+	* src/openvassd.c: Remove unneeded defines and prototypes redeclarations.
+	(scanner_thread): Remove useless code.
+	(init_ssl_ctx, ssl_ver_to_encaps): New functions.
+	(main_loop): Move code to new functions. Fix style and remove unneeded
+	code accordingly.
+
 2014-03-07  Hani Benhabiles  <hani.benhabiles@greenbone.net>
 
 	* src/openvassd.c (plugins_reload): Remove function.

@@ -90,7 +90,6 @@ comm_init (int soc)
   return (version);
 }
 
-
 /**
  * @brief This function must be called at the end of a session.
  */
