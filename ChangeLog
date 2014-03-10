@@ -1,5 +1,17 @@
 2014-03-10  Hani Benhabiles  <hani.benhabiles@greenbone.net>
 
+	* src/openvassd.c (get_x509_dname, handle_client): New functions.
+	(scanner_thread): Move code to new functions. Improve code style and
+	structure and remove useless and duplicate parts.
+	(main_loop): Don't call init_ssl_ctx(). Reduce variable scope.
+	(set_daemon_mode): New function.
+	(main): Call init_ssl_ctx() and set_daemon_mode() and restructure code
+	adequately.
+
+	* src/ntp_11.c: Remove DEBUG_SSL definition as never used.
+
+2014-03-10  Hani Benhabiles  <hani.benhabiles@greenbone.net>
+
 	* src/openvassd.c: Remove unneeded defines and prototypes redeclarations.
 	(scanner_thread): Remove useless code.
 	(init_ssl_ctx, ssl_ver_to_encaps): New functions.

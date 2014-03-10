@@ -55,11 +55,6 @@
 #endif
 
 
-#ifndef DEBUG_SSL
-#define DEBUG_SSL 1
-#endif
-
-
 static int ntp_11_read_prefs (struct arglist *);
 static int ntp_11_long_attack (struct arglist *);
 static int ntp_11_recv_file (struct arglist *);

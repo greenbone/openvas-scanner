@@ -272,40 +272,98 @@ check_client (char *dname)
   return success;
 }
 
+static int
+get_x509_dname (int soc, char *x509_dname, size_t x509_dname_size)
+{
+  gnutls_session_t *session;
+  gnutls_x509_crt_t cert;
+  unsigned int cert_list_size = 0;
+  const gnutls_datum_t *cert_list;
+  int ret;
+
+  session = ovas_get_tlssession_from_connection (soc);
+
+  if (gnutls_certificate_type_get (*session) != GNUTLS_CRT_X509)
+    {
+      log_write ("Certificate is not an X.509 certificate.");
+      return -1;
+    }
+  cert_list = gnutls_certificate_get_peers (*session, &cert_list_size);
+  if (cert_list_size == 0)
+    return -1;
+
+  gnutls_x509_crt_init (&cert);
+  if ((ret = gnutls_x509_crt_import (cert, &cert_list[0],
+                                     GNUTLS_X509_FMT_DER)) < 0)
+    {
+      log_write ("certificate decoding error: %s\n", gnutls_strerror (ret));
+      gnutls_x509_crt_deinit (cert);
+      return -1;
+    }
+  if ((ret = gnutls_x509_crt_get_dn (cert, x509_dname, &x509_dname_size)) < 0)
+    {
+      log_write ("couldn't get subject from certificate: %s\n",
+                 gnutls_strerror (ret));
+      gnutls_x509_crt_deinit (cert);
+      return -1;
+    }
+  gnutls_x509_crt_deinit (cert);
+  return 0;
+}
+
+static void
+handle_client (struct arglist *globals, int protocol_version)
+{
+  struct arglist *prefs = arg_get_value (globals, "preferences");
+
+  // OTP 2.0 sends all plugins and other information at connect
+  // OTP >=2.1 does not send these at connect
+  if (protocol_version == OTP_20)
+    {
+      comm_send_nvt_info (globals);
+      comm_send_preferences (globals);
+      ntp_1x_send_dependencies (globals);
+    }
+
+  /* Become process group leader and the like ... */
+  start_daemon_mode ();
+wait:
+  comm_wait_order (globals);
+  preferences_reset_cache ();
+  ntp_1x_timestamp_scan_starts (globals);
+  attack_network (globals);
+  ntp_1x_timestamp_scan_ends (globals);
+  comm_terminate (globals);
+  if (arg_get_value (prefs, "ntp_keep_communication_alive"))
+    {
+      log_write ("Kept alive connection");
+      goto wait;
+    }
+}
+
 static void
 scanner_thread (struct arglist *globals)
 {
-  struct arglist *plugins = arg_get_value (globals, "plugins");
   struct arglist *prefs = arg_get_value (globals, "preferences");
-  int soc = GPOINTER_TO_SIZE (arg_get_value (globals, "global_socket"));
-  int family = GPOINTER_TO_SIZE (arg_get_value (globals, "family"));
-  char *asciiaddr;
-  int protocol_version;
-  int opt = 1;
+  char asciiaddr[INET6_ADDRSTRLEN], x509_dname[512] = { '\0' };
+  int opt = 1, soc2 = -1, nice_retval, protocol_version, family, soc;
   void *addr = arg_get_value (globals, "client_address");
   struct sockaddr_in *saddr = NULL;
   struct sockaddr_in6 *s6addr = NULL;
-  int nice_retval;
 
-  char x509_dname[256];
-  int soc2 = -1;
-
-  asciiaddr = emalloc (INET6_ADDRSTRLEN);
+  family = GPOINTER_TO_SIZE (arg_get_value (globals, "family"));
+  soc = GPOINTER_TO_SIZE (arg_get_value (globals, "global_socket"));
   if (family == AF_INET)
     {
       saddr = (struct sockaddr_in *) addr;
-      proctitle_set ("openvassd: Serving %s", inet_ntoa (saddr->sin_addr));
+      inet_ntop (AF_INET,  &saddr->sin_addr, asciiaddr, sizeof(asciiaddr));
     }
   else
     {
       s6addr = (struct sockaddr_in6 *) addr;
-      proctitle_set ("openvassd: Serving %s",
-                     inet_ntop (AF_INET6, &s6addr->sin6_addr, asciiaddr,
-                                sizeof (asciiaddr)));
+      inet_ntop (AF_INET6, &s6addr->sin6_addr, asciiaddr, sizeof (asciiaddr));
     }
-  efree (&asciiaddr);
-
-  *x509_dname = '\0';
+  proctitle_set ("openvassd: Serving %s", asciiaddr);
 
   /* Everyone runs with a nicelevel of 10 */
   if (preferences_benice (prefs))
@@ -317,7 +375,6 @@ scanner_thread (struct arglist *globals)
           log_write ("Unable to renice process: %d", errno);
         }
     }
-  openvas_signal (SIGCHLD, sighand_chld);
 
   /* Close the scanner thread - it is useless for us now */
   close (global_iana_socket);
@@ -334,17 +391,6 @@ scanner_thread (struct arglist *globals)
   /* arg_set_value *replaces* an existing value, but it shouldn't fail here */
   (void) arg_set_value (globals, "global_socket", -1, GSIZE_TO_POINTER (soc2));
 
-  if (family == AF_INET)
-    asciiaddr = estrdup (inet_ntoa (saddr->sin_addr));
-  else
-    {
-      char *addrstr = emalloc (INET6_ADDRSTRLEN);
-      asciiaddr =
-        estrdup (inet_ntop
-                 (AF_INET6, &s6addr->sin6_addr, addrstr, sizeof (addrstr)));
-      efree (&addrstr);
-    }
-
   protocol_version = comm_init (soc2);
   if (!protocol_version)
     {
@@ -354,85 +400,16 @@ scanner_thread (struct arglist *globals)
     }
 
   /* Get X.509 cert subject name */
-  {
-    gnutls_session_t *session;
-    gnutls_x509_crt_t cert;
-    unsigned int cert_list_size = 0;
-    const gnutls_datum_t *cert_list;
-    size_t x509_dname_size = sizeof (x509_dname);
-    int ret;
+  if (get_x509_dname (soc2, x509_dname, sizeof (x509_dname)) != 0)
+    goto shutdown_and_exit;
 
-    session = ovas_get_tlssession_from_connection (soc2);
-
-    if (gnutls_certificate_type_get (*session) != GNUTLS_CRT_X509)
-      {
-        log_write ("Certificate is not an X.509 certificate.");
-        goto shutdown_and_exit;
-      }
-
-    cert_list = gnutls_certificate_get_peers (*session, &cert_list_size);
-
-    if (cert_list_size > 0)
-      {
-        gnutls_x509_crt_init (&cert);
-        if ((ret =
-             gnutls_x509_crt_import (cert, &cert_list[0],
-                                     GNUTLS_X509_FMT_DER)) < 0)
-          {
-            log_write ("certificate decoding error: %s\n",
-                       gnutls_strerror (ret));
-            gnutls_x509_crt_deinit (cert);
-            goto shutdown_and_exit;
-          }
-        if ((ret =
-             gnutls_x509_crt_get_dn (cert, x509_dname, &x509_dname_size)) < 0)
-          {
-            log_write ("couldn't get subject from certificate: %s\n",
-                       gnutls_strerror (ret));
-            gnutls_x509_crt_deinit (cert);
-            goto shutdown_and_exit;
-          }
-        gnutls_x509_crt_deinit (cert);
-      }
-  }
-
-  if (! check_client (x509_dname))
+  if (!check_client (x509_dname))
     {
       auth_printf (globals, "Bad login attempt !\n");
       log_write ("bad login attempt from %s\n", asciiaddr);
-      efree (&asciiaddr);
       goto shutdown_and_exit;
     }
-  else
-    {
-      efree (&asciiaddr);
-
-      arg_set_value (globals, "plugins", -1, plugins);
-
-      // OTP 2.0 sends all plugins and other information at connect
-      // OTP >=2.1 does not send these at connect
-      if (protocol_version == OTP_20)
-        {
-          comm_send_nvt_info (globals);
-          comm_send_preferences (globals);
-          ntp_1x_send_dependencies (globals);
-        }
-
-      /* Become process group leader and the like ... */
-      start_daemon_mode ();
-    wait:
-      comm_wait_order (globals);
-      preferences_reset_cache ();
-      ntp_1x_timestamp_scan_starts (globals);
-      attack_network (globals);
-      ntp_1x_timestamp_scan_ends (globals);
-      comm_terminate (globals);
-      if (arg_get_value (prefs, "ntp_keep_communication_alive"))
-        {
-          log_write ("Kept alive connection");
-          goto wait;
-        }
-    }
+  handle_client (globals, protocol_version);
 
 shutdown_and_exit:
   if (soc2 >= 0)
@@ -537,18 +514,7 @@ init_ssl_ctx ()
 static void
 main_loop ()
 {
-  struct addrinfo *ai = arg_get_value (g_options, "addr");
 
-  /* catch dead children */
-  openvas_signal (SIGCHLD, sighand_chld);
-
-#if DEBUG_SSL > 1
-  fprintf (stderr, "**** in main_loop ****\n");
-#endif
-
-  openvas_init_random ();
-
-  init_ssl_ctx ();
   log_write ("openvassd %s started\n", OPENVASSD_VERSION);
   proctitle_set ("openvassd: Waiting for incoming connections");
   for (;;)
@@ -556,14 +522,11 @@ main_loop ()
       int soc;
       int family;
       unsigned int lg_address;
-      char asciiaddr[INET6_ADDRSTRLEN];
       struct sockaddr_in address;
       struct sockaddr_in6 address6;
       struct sockaddr_in6 *p_addr;
-      struct sockaddr_in *saddr;
-
       struct arglist *globals;
-      struct arglist *my_plugins, *my_preferences;
+      struct addrinfo *ai;
 
       if (restart != 0)
         {
@@ -573,6 +536,7 @@ main_loop ()
         }
 
       wait_for_children1 ();
+      ai = arg_get_value (g_options, "addr");
       if (ai->ai_family == AF_INET)
         {
           lg_address = sizeof (struct sockaddr_in);
@@ -590,47 +554,24 @@ main_loop ()
       if (soc == -1)
         continue;
 
-      family = ai->ai_family;
-      if (family == AF_INET)
-        {
-          saddr = (struct sockaddr_in *) &address;
-          if (inet_ntop (AF_INET, &saddr->sin_addr, asciiaddr,
-                         sizeof (asciiaddr)) == NULL)
-            exit (0);
-        }
-      else if (inet_ntop (AF_INET6, &address6.sin6_addr, asciiaddr,
-                          sizeof (asciiaddr)) == NULL)
-        exit (0);
-
-/* FIXME: Find out whether following comment is still valid.
-          Especially, I do not see where the arglists are duplicated with
-          arg_add_value and TYPE != ARG_STRUCT, just pointers are copied, imho.
- */
-      /* Duplicate everything so that the threads don't share the
-       * same variables.
-       *
-       * Useless when fork is used, necessary for the pthreads.
-       *
+      /*
        * MA: you cannot share an open SSL connection through fork/multithread
        * The SSL connection shall be open _after_ the fork */
       globals = emalloc (sizeof (struct arglist));
       arg_add_value (globals, "global_socket", ARG_INT, -1,
                      GSIZE_TO_POINTER (soc));
 
-      my_plugins = global_plugins;
-      arg_add_value (globals, "plugins", ARG_ARGLIST, -1, my_plugins);
-
-      my_preferences = global_preferences;
-      arg_add_value (globals, "preferences", ARG_ARGLIST, -1, my_preferences);
+      arg_add_value (globals, "plugins", ARG_ARGLIST, -1, global_plugins);
+      arg_add_value (globals, "preferences", ARG_ARGLIST, -1, global_preferences);
 
       p_addr = emalloc (sizeof (struct sockaddr_in6));
-      if (ai->ai_family == AF_INET)
+      family = ai->ai_family;
+      if (family == AF_INET)
         memcpy (p_addr, &address, sizeof (address));
       else
         memcpy (p_addr, &address6, sizeof (address6));
       arg_add_value (globals, "client_address", ARG_PTR, -1, p_addr);
       arg_add_value (globals, "family", ARG_INT, -1, GSIZE_TO_POINTER (family));
-      free (p_addr);
 
       /* we do not want to create an io thread, yet so the last argument is -1 */
       if (create_process ((process_func_t) scanner_thread, globals) < 0)
@@ -745,6 +686,26 @@ init_openvassd (struct arglist *options, int first_pass, int stop_early,
   set_globals_from_preferences (preferences);
 
   return 0;
+}
+
+static void
+set_daemon_mode ()
+{
+  /* Close stdin, stdout and stderr */
+  int i = open ("/dev/null", O_RDONLY, 0640);
+  if (dup2 (i, STDIN_FILENO) != STDIN_FILENO)
+    fprintf (stderr, "Could not redirect stdin to /dev/null: %s\n",
+             strerror (errno));
+  if (dup2 (i, STDOUT_FILENO) != STDOUT_FILENO)
+    fprintf (stderr, "Could not redirect stdout to /dev/null: %s\n",
+             strerror (errno));
+  if (dup2 (i, STDERR_FILENO) != STDERR_FILENO)
+    fprintf (stderr, "Could not redirect stderr to /dev/null: %s\n",
+             strerror (errno));
+  close (i);
+  if (fork ())
+    exit (0);
+  setsid ();
 }
 
 /**
@@ -925,34 +886,12 @@ main (int argc, char *argv[])
   if (only_cache)
     exit (0);
 
+  init_ssl_ctx ();
   // Daemon mode:
   if (dont_fork == FALSE)
-    {
-      /* Close stdin, stdout and stderr */
-      int i = open ("/dev/null", O_RDONLY, 0640);
-      if (dup2 (i, STDIN_FILENO) != STDIN_FILENO)
-        fprintf (stderr, "Could not redirect stdin to /dev/null: %s\n",
-                 strerror (errno));
-      if (dup2 (i, STDOUT_FILENO) != STDOUT_FILENO)
-        fprintf (stderr, "Could not redirect stdout to /dev/null: %s\n",
-                 strerror (errno));
-      if (dup2 (i, STDERR_FILENO) != STDERR_FILENO)
-        fprintf (stderr, "Could not redirect stderr to /dev/null: %s\n",
-                 strerror (errno));
-      close (i);
-      if (!fork ())
-        {
-          setsid ();
-          pidfile_create ("openvassd");
-          init_plugins (options);
-          main_loop ();
-        }
-    }
-  else
-    {
-      pidfile_create ("openvassd");
-      init_plugins (options);
-      main_loop ();
-    }
+    set_daemon_mode ();
+  pidfile_create ("openvassd");
+  init_plugins (options);
+  main_loop ();
   exit (0);
 }
