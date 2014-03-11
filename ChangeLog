@@ -1,3 +1,26 @@
+2014-03-11  Hani Benhabiles  <hani.benhabiles@greenbone.net>
+
+	* src/comm.c (comm_init): Return -1 instead of exit() on error.
+	(comm_loading): New function.
+
+	* src/comm.h: Add function header.
+
+	* src/openvassd.c (restart): Rename to reload.
+	(scanner_thread): Check comm_init return value accordingly.
+	(check_and_reload): New function.
+	(main_loop): Call new function. Improve code structure and remove
+	duplication.
+	(loading_client_handle, loading_handler_start, loading_handler_stop):
+	New functions.
+	(main): Call loading handlers.
+
+	* src/pluginload.c (plugins_reload_from_dir): Style fix.
+
+	* src/sighand.c (sighand_chld): Add pid argument. Only wait for the
+	specified child process. This fixes catching a SIGCHLD signal from gpgme
+	when checking a plugin's fingerprint and waiting for the loading
+	handler process.
+
 2014-03-10  Hani Benhabiles  <hani.benhabiles@greenbone.net>
 
 	* src/openvassd.c (get_x509_dname, handle_client): New functions.

@@ -33,6 +33,7 @@
 #include <openvas/misc/arglists.h>   /* for struct arglist */
 
 int comm_init (int);
+int comm_loading (int);
 void comm_terminate (struct arglist *);
 void comm_send_pluginlist (struct arglist *);
 void comm_send_preferences (struct arglist *);

@@ -123,7 +123,7 @@ plugins_reload_from_dir (struct arglist *preferences, struct arglist *plugins,
 {
   GSList *files = NULL, *f;
   gchar *pref_include_folders;
-  int n = 0, loaded_files = 0, num_files = 0;
+  int loaded_files = 0, num_files = 0;
   struct timeval start_time;
 
   add_nasl_inc_dir ("");        // for absolute and relative paths
@@ -172,11 +172,9 @@ plugins_reload_from_dir (struct arglist *preferences, struct arglist *plugins,
   while (f != NULL)
     {
       char *name = f->data;
-      n++;
       loaded_files++;
-      if (n > 50)
+      if (loaded_files % 50 == 0)
         {
-          n = 0;
           int percentile, eta;
 
           percentile = (loaded_files * 100) / num_files;

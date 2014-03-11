@@ -93,7 +93,7 @@ int global_iana_socket;
 struct arglist *global_plugins;
 struct arglist *global_preferences;
 
-static int restart = 0;
+static int reload = 0;
 
 /**
  * SSL context may be kept once it is inited.
@@ -209,7 +209,7 @@ set_globals_from_preferences (struct arglist *prefs)
 static void
 sighup (int i)
 {
-  restart = 1;
+  reload = 1;
 }
 
 /* Restarts the scanner by reloading the configuration. */
@@ -234,7 +234,7 @@ reload_openvassd ()
   global_plugins = plugins;
 
   log_write ("Finished reloading the scanner.\n");
-  restart = 0;
+  reload = 0;
   openvas_signal (SIGHUP, sighup);
 }
 
@@ -392,9 +392,8 @@ scanner_thread (struct arglist *globals)
   (void) arg_set_value (globals, "global_socket", -1, GSIZE_TO_POINTER (soc2));
 
   protocol_version = comm_init (soc2);
-  if (!protocol_version)
+  if (protocol_version < 0)
     {
-      log_write ("New connection timeout -- closing the socket\n");
       close_stream_connection (soc);
       exit (0);
     }
@@ -511,10 +510,23 @@ init_ssl_ctx ()
     }
 }
 
+/*
+ * @brief Reloads the scanner if a reload was requested.
+ */
+static void
+check_and_reload ()
+{
+  if (reload != 0)
+    {
+      proctitle_set ("openvassd: Reloading");
+      reload_openvassd ();
+      proctitle_set ("openvassd: Waiting for incoming connections");
+    }
+}
+
 static void
 main_loop ()
 {
-
   log_write ("openvassd %s started\n", OPENVASSD_VERSION);
   proctitle_set ("openvassd: Waiting for incoming connections");
   for (;;)
@@ -522,35 +534,17 @@ main_loop ()
       int soc;
       int family;
       unsigned int lg_address;
-      struct sockaddr_in address;
       struct sockaddr_in6 address6;
       struct sockaddr_in6 *p_addr;
       struct arglist *globals;
       struct addrinfo *ai;
 
-      if (restart != 0)
-        {
-          proctitle_set ("openvassd: Reloading");
-          reload_openvassd ();
-          proctitle_set ("openvassd: Waiting for incoming connections");
-        }
-
+      check_and_reload ();
       wait_for_children1 ();
       ai = arg_get_value (g_options, "addr");
-      if (ai->ai_family == AF_INET)
-        {
-          lg_address = sizeof (struct sockaddr_in);
-          soc =
-            accept (global_iana_socket, (struct sockaddr *) (&address),
+      lg_address = sizeof (struct sockaddr_in6);
+      soc = accept (global_iana_socket, (struct sockaddr *) (&address6),
                     &lg_address);
-        }
-      else
-        {
-          lg_address = sizeof (struct sockaddr_in6);
-          soc =
-            accept (global_iana_socket, (struct sockaddr *) (&address6),
-                    &lg_address);
-        }
       if (soc == -1)
         continue;
 
@@ -566,10 +560,7 @@ main_loop ()
 
       p_addr = emalloc (sizeof (struct sockaddr_in6));
       family = ai->ai_family;
-      if (family == AF_INET)
-        memcpy (p_addr, &address, sizeof (address));
-      else
-        memcpy (p_addr, &address6, sizeof (address6));
+      memcpy (p_addr, &address6, sizeof (address6));
       arg_add_value (globals, "client_address", ARG_PTR, -1, p_addr);
       arg_add_value (globals, "family", ARG_INT, -1, GSIZE_TO_POINTER (family));
 
@@ -708,6 +699,71 @@ set_daemon_mode ()
   setsid ();
 }
 
+/*
+ * @brief Handles a client request when the scanner is still loading.
+ *
+ * @param[in]   soc Client socket to send and receive from.
+ */
+static void
+loading_client_handle (int soc)
+{
+  int soc2, opt = 1;
+  if (soc <= 0)
+    return;
+  soc2 = ovas_scanner_context_attach (ovas_scanner_ctx, soc);
+  if (soc2 < 0)
+    {
+      close (soc);
+      return;
+    }
+  setsockopt (soc, SOL_SOCKET, SO_KEEPALIVE, &opt, sizeof (opt));
+  comm_loading (soc2);
+  close_stream_connection (soc2);
+}
+
+/*
+ * @brief Starts a process to handle client requests while the scanner is
+ * loading.
+ *
+ * @return process id of loading handler.
+ */
+static pid_t
+loading_handler_start ()
+{
+  pid_t child_pid;
+
+  child_pid = fork ();
+  if (child_pid != 0)
+    return child_pid;
+  proctitle_set ("openvassd (Loading Handler)");
+  /*
+   * Forked process will handle client requests until parent stops it with
+   * loading_handler_stop ().
+   */
+  while (1)
+    {
+      unsigned int lg_address;
+      struct sockaddr_in6 address6;
+      int soc;
+      lg_address = sizeof (struct sockaddr_in6);
+      soc = accept (global_iana_socket, (struct sockaddr *) (&address6),
+                    &lg_address);
+      loading_client_handle (soc);
+    }
+  return 0;
+}
+
+/*
+ * @brief Stops the loading handler process.
+ *
+ * @param[in]   handler_pid Pid of loading handler.
+ */
+void
+loading_handler_stop (pid_t handler_pid)
+{
+  kill (handler_pid, SIGTERM);
+}
+
 /**
  * @brief openvassd.
  * @param argc Argument count.
@@ -716,8 +772,8 @@ set_daemon_mode ()
 int
 main (int argc, char *argv[])
 {
-  int exit_early = 0;
-  int scanner_port = 9391;
+  int exit_early = 0, scanner_port = 9391;
+  pid_t handler_pid;
   char *myself;
   struct arglist *options = emalloc (sizeof (struct arglist));
   struct addrinfo *mysaddr;
@@ -891,7 +947,9 @@ main (int argc, char *argv[])
   if (dont_fork == FALSE)
     set_daemon_mode ();
   pidfile_create ("openvassd");
+  handler_pid = loading_handler_start ();
   init_plugins (options);
+  loading_handler_stop (handler_pid);
   main_loop ();
   exit (0);
 }

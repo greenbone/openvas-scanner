@@ -114,16 +114,11 @@ void (*openvas_signal (int signum, void (*handler) (int))) (int)
 
 
 void
-sighand_chld ()
+sighand_chld (pid_t pid)
 {
-  int ret;
-  int e;
-  do
-    {
-      errno = 0;
-      e = wait (&ret);
-    }
-  while (e < 0 && errno == EINTR);
+  int status;
+
+  waitpid (pid, &status, WNOHANG);
 }
 
 void

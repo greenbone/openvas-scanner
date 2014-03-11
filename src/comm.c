@@ -51,6 +51,8 @@
 
 /**
  * @brief Initializes the communication between the scanner (us) and the client.
+ *
+ * @return Protocol version if success, -1 if error.
  */
 int
 comm_init (int soc)
@@ -65,7 +67,7 @@ comm_init (int soc)
   if (n <= 0)
     {
       log_write ("Failed reading client-requested OTP version.\n");
-      exit (0);
+      return -1;
     }
 
   buf[sizeof (buf) - 1] = '\0';
@@ -82,12 +84,37 @@ comm_init (int soc)
   else
     {
       log_write ("Unknown client-requested OTP version: %s.\n", buf);
-      exit (0);
+      return -1;
     }
-#ifdef DEBUG
-  log_write ("Client requested protocol %s.\n", buf);
-#endif
-  return (version);
+  return version;
+}
+
+/**
+ * @brief Informs the client that the scanner is still loading.
+ *
+ * @param[in]   soc Socket to send and receive from.
+ *
+ * @return 0 if success, -1 if error.
+ */
+int
+comm_loading (int soc)
+{
+  int n;
+  size_t len;
+  char buf[256];
+  n = recv_line (soc, buf, sizeof (buf) - 1);
+  if (n <= 0)
+    {
+      log_write ("Failed reading client input.\n");
+      return -1;
+    }
+  /* Always respond with OTP_LOADING. */
+  len = strlen (OTP_LOADING) + 1;
+  n = nsend (soc, OTP_LOADING "\n", len, 0);
+  if (n != len)
+    return -1;
+  recv_line (soc, buf, sizeof (buf) - 1);
+  return 0;
 }
 
 /**
