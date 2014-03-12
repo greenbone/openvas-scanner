@@ -101,10 +101,6 @@ ntp_11_parse_input (struct arglist *globals, char *input)
           result = ntp_11_long_attack (globals);
           break;
 
-        case CREQ_CERTIFICATES:
-          otp_1_0_server_send_certificates (globals);
-          break;
-
         case CREQ_OPENVAS_VERSION:
           otp_1_0_server_openvas_version (globals);
           break;

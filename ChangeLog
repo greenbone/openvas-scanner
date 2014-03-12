@@ -1,3 +1,20 @@
+2014-03-12  Jan-Oliver Wagner <jan-oliver.wagner@greenbone.net>
+
+	Removed OTP command "CERTIFICATES". It was used by the old GTK client
+	to retrieve the signing keys for NVT feed content. The core idea at
+	that time was that we have feed content with mixed author signing keys.
+	This turned out to not get into practice. In case it is needed
+	eventually it could be added anew based on future OSP protocol.
+
+	* src/otp_1_0.c (otp_1_0_get_client_request): Removed processing of
+	command CERTIFICATES.
+	(otp_1_0_server_send_certificates): Removed.
+
+	* src/ntp_11.c (ntp_11_parse_input): Removed processing of
+	CREQ_CERTIFICATES.
+
+	* src/otp_1_0.h: Removed enum element CREQ_CERTIFICATES.
+
 2014-03-11  Hani Benhabiles  <hani.benhabiles@greenbone.net>
 
 	* src/comm.c (comm_init): Return -1 instead of exit() on error.

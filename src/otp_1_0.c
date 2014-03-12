@@ -25,8 +25,6 @@
 #include <string.h>
 
 #include <openvas/misc/network.h>
-#include <openvas/nasl/nasl.h>  /* for nasl_get_all_certifcates */
-#include <openvas/base/certificate.h>   /* for certificate_t */
 
 #include "otp_1_0.h"
 
@@ -44,8 +42,6 @@ otp_1_0_get_client_request (char *str)
 {
   if (!strcmp (str, "ATTACHED_FILE"))
     return (CREQ_ATTACHED_FILE);
-  if (!strcmp (str, "CERTIFICATES"))
-    return (CREQ_CERTIFICATES);
   if (!strcmp (str, "LONG_ATTACK"))
     return (CREQ_LONG_ATTACK);
   if (!strcmp (str, "OPENVASSD_VERSION"))
@@ -74,50 +70,4 @@ otp_1_0_server_openvas_version (struct arglist *globals)
 {
   auth_printf (globals, "SERVER <|> OPENVAS_VERSION <|> %s <|> SERVER\n",
                OPENVASSD_VERSION);
-}
-
-
-/**
- * @brief Send server response to certificate request by client.
- */
-void
-otp_1_0_server_send_certificates (struct arglist *globals)
-{
-  auth_printf (globals, "SERVER <|> CERTIFICATES\n");
-
-  /** @todo base/certificates.c offers certificates (list) functionality. */
-  GSList *certificates = nasl_get_all_certificates ();
-  GSList *cert_list_elem = g_slist_nth (certificates, 0);
-
-  // Iterate over certificates
-  while (cert_list_elem != NULL)
-    {
-      certificate_t *cert = cert_list_elem->data;
-
-      // Replace newlines by semicolons
-      gchar *pos = cert->public_key;
-      /** @todo This will segfault if the public key could not be retrieved.
-       * A solution would be to check if cert->public_key is NULL and try to
-       * recover if it is.
-       */
-      while (pos[0] != '\0')
-        {
-          if (pos[0] == '\n')
-            pos[0] = ';';
-          pos++;
-        }
-
-      char *trustlevel = (cert->trusted == TRUE) ? "trusted" : "notrust";
-      cert_list_elem = g_slist_next (cert_list_elem);
-      auth_printf (globals, "%s <|> %s <|> %s <|> %d <|> %s\n",
-                   cert->fingerprint, cert->owner, trustlevel,
-                   (int) strlen (cert->public_key), cert->public_key);
-      // Release each element
-      certificate_free (cert);
-    }
-
-  // Release list
-  g_slist_free (certificates);
-
-  auth_printf (globals, "<|> SERVER\n");
 }
