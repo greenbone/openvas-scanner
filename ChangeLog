@@ -1,3 +1,9 @@
+2014-03-12  Michael Wiegand <michael.wiegand@greenbone.net>
+
+	Preparing the openvas-scanner 4.0+beta7 release.
+
+	* CHANGES: Updated.
+
 2014-03-12  Jan-Oliver Wagner <jan-oliver.wagner@greenbone.net>
 
 	Removed OTP command "CERTIFICATES". It was used by the old GTK client
