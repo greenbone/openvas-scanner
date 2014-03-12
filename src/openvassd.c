@@ -212,17 +212,84 @@ sighup (int i)
   reload = 1;
 }
 
+/*
+ * @brief Handles a client request when the scanner is still loading.
+ *
+ * @param[in]   soc Client socket to send and receive from.
+ */
+static void
+loading_client_handle (int soc)
+{
+  int soc2, opt = 1;
+  if (soc <= 0)
+    return;
+  soc2 = ovas_scanner_context_attach (ovas_scanner_ctx, soc);
+  if (soc2 < 0)
+    {
+      close (soc);
+      return;
+    }
+  setsockopt (soc, SOL_SOCKET, SO_KEEPALIVE, &opt, sizeof (opt));
+  comm_loading (soc2);
+  close_stream_connection (soc2);
+}
+
+/*
+ * @brief Starts a process to handle client requests while the scanner is
+ * loading.
+ *
+ * @return process id of loading handler.
+ */
+static pid_t
+loading_handler_start ()
+{
+  pid_t child_pid;
+
+  child_pid = fork ();
+  if (child_pid != 0)
+    return child_pid;
+  proctitle_set ("openvassd (Loading Handler)");
+  /*
+   * Forked process will handle client requests until parent stops it with
+   * loading_handler_stop ().
+   */
+  while (1)
+    {
+      unsigned int lg_address;
+      struct sockaddr_in6 address6;
+      int soc;
+      lg_address = sizeof (struct sockaddr_in6);
+      soc = accept (global_iana_socket, (struct sockaddr *) (&address6),
+                    &lg_address);
+      loading_client_handle (soc);
+    }
+  return 0;
+}
+
+/*
+ * @brief Stops the loading handler process.
+ *
+ * @param[in]   handler_pid Pid of loading handler.
+ */
+void
+loading_handler_stop (pid_t handler_pid)
+{
+  kill (handler_pid, SIGTERM);
+}
+
 /* Restarts the scanner by reloading the configuration. */
 static void
 reload_openvassd ()
 {
   struct arglist *preferences = NULL, *plugins;
   char *config_file;
+  pid_t handler_pid;
 
   log_write ("Reloading the scanner.\n");
   /* Ignore SIGHUP while reloading. */
   openvas_signal (SIGHUP, SIG_IGN);
 
+  handler_pid = loading_handler_start ();
   /* Reload config file. */
   config_file = arg_get_value (global_preferences, "config_file");
   preferences_init (config_file, &preferences);
@@ -232,6 +299,7 @@ reload_openvassd ()
   set_globals_from_preferences (preferences);
   plugins_free (global_plugins);
   global_plugins = plugins;
+  loading_handler_stop (handler_pid);
 
   log_write ("Finished reloading the scanner.\n");
   reload = 0;
@@ -697,71 +765,6 @@ set_daemon_mode ()
   if (fork ())
     exit (0);
   setsid ();
-}
-
-/*
- * @brief Handles a client request when the scanner is still loading.
- *
- * @param[in]   soc Client socket to send and receive from.
- */
-static void
-loading_client_handle (int soc)
-{
-  int soc2, opt = 1;
-  if (soc <= 0)
-    return;
-  soc2 = ovas_scanner_context_attach (ovas_scanner_ctx, soc);
-  if (soc2 < 0)
-    {
-      close (soc);
-      return;
-    }
-  setsockopt (soc, SOL_SOCKET, SO_KEEPALIVE, &opt, sizeof (opt));
-  comm_loading (soc2);
-  close_stream_connection (soc2);
-}
-
-/*
- * @brief Starts a process to handle client requests while the scanner is
- * loading.
- *
- * @return process id of loading handler.
- */
-static pid_t
-loading_handler_start ()
-{
-  pid_t child_pid;
-
-  child_pid = fork ();
-  if (child_pid != 0)
-    return child_pid;
-  proctitle_set ("openvassd (Loading Handler)");
-  /*
-   * Forked process will handle client requests until parent stops it with
-   * loading_handler_stop ().
-   */
-  while (1)
-    {
-      unsigned int lg_address;
-      struct sockaddr_in6 address6;
-      int soc;
-      lg_address = sizeof (struct sockaddr_in6);
-      soc = accept (global_iana_socket, (struct sockaddr *) (&address6),
-                    &lg_address);
-      loading_client_handle (soc);
-    }
-  return 0;
-}
-
-/*
- * @brief Stops the loading handler process.
- *
- * @param[in]   handler_pid Pid of loading handler.
- */
-void
-loading_handler_stop (pid_t handler_pid)
-{
-  kill (handler_pid, SIGTERM);
 }
 
 /**

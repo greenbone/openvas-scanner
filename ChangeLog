@@ -1,3 +1,12 @@
+2014-03-12  Hani Benhabiles  <hani.benhabiles@greenbone.net>
+
+	Start the loading handler process when scanner is reloaded too.
+
+	* src/openvassd.c (loading_client_handle, loading_handler_start)
+	(loading_handler_stop): Move definitions up.
+	(reload_openvassd): Start loading handler before reloading config and
+	plugins and stop it after finishing.
+
 2014-03-12  Michael Wiegand <michael.wiegand@greenbone.net>
 
 	Post release version bump.
