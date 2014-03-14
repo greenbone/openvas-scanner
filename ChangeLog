@@ -1,3 +1,9 @@
+2014-03-14  Hani Benhabiles  <hani.benhabiles@greenbone.net>
+
+	* src/openvassd.c (loading_handler_start): Set the sigterm signal
+	callback to default for the forked child.
+	(loading_handler_stop): Wait for the terminated child process.
+
 2014-03-12  Hani Benhabiles  <hani.benhabiles@greenbone.net>
 
 	Start the loading handler process when scanner is reloaded too.

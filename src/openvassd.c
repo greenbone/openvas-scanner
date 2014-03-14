@@ -50,6 +50,7 @@
 #include <arpa/inet.h> /* for inet_aton */
 #include <signal.h>    /* for SIGTERM */
 #include <netdb.h>     /* for addrinfo */
+#include <sys/wait.h>     /* for waitpid */
 
 #include <openvas/misc/bpf_share.h>  /* for bpf_server */
 #include <openvas/nasl/nasl.h>
@@ -249,6 +250,7 @@ loading_handler_start ()
   if (child_pid != 0)
     return child_pid;
   proctitle_set ("openvassd (Loading Handler)");
+  openvas_signal (SIGTERM, SIG_DFL);
   /*
    * Forked process will handle client requests until parent stops it with
    * loading_handler_stop ().
@@ -274,7 +276,10 @@ loading_handler_start ()
 void
 loading_handler_stop (pid_t handler_pid)
 {
+  int status;
+
   kill (handler_pid, SIGTERM);
+  waitpid (handler_pid, &status, 0);
 }
 
 /* Restarts the scanner by reloading the configuration. */
