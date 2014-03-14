@@ -1,6 +1,6 @@
 /* OpenVAS
 * $Id$
-* Description: Protos for OpenVAS Transfer Protocol 1.0.
+* Description: Protos for OpenVAS Transfer Protocol.
 *
 * Authors:
 * Jan-Oliver Wagner <jan-oliver.wagner@intevation.de>
@@ -23,8 +23,8 @@
 *
 */
 
-#ifndef _OTP_1_0_H
-#define _OTP_1_0_H
+#ifndef _OTP_H
+#define _OTP_H
 
 typedef enum
 {
@@ -40,10 +40,10 @@ typedef enum
   CREQ_STOP_WHOLE_TEST
 } client_request_t;
 
-client_request_t otp_1_0_get_client_request (char *);
+client_request_t otp_get_client_request (char *);
 
-void otp_1_0_server_openvas_version (struct arglist *);
+void otp_server_openvas_version (struct arglist *);
 
-void otp_1_0_server_send_certificates (struct arglist *globals);
+void otp_server_send_certificates (struct arglist *globals);
 
 #endif

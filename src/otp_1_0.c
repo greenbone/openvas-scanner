@@ -1,6 +1,6 @@
 /* OpenVAS
 * $Id$
-* Description: Implements OpenVAS Transfer Protocol 1.0.
+* Description: Implements OpenVAS Transfer Protocol.
 *
 * Authors:
 * Jan-Oliver Wagner <jan-oliver.wagner@greenbone.net>
@@ -38,7 +38,7 @@
  * @see client_request_t
  */
 client_request_t
-otp_1_0_get_client_request (char *str)
+otp_get_client_request (char *str)
 {
   if (!strcmp (str, "ATTACHED_FILE"))
     return (CREQ_ATTACHED_FILE);
@@ -66,7 +66,7 @@ otp_1_0_get_client_request (char *str)
  * @brief Send server response OPENVAS_VERSION.
  */
 void
-otp_1_0_server_openvas_version (struct arglist *globals)
+otp_server_openvas_version (struct arglist *globals)
 {
   auth_printf (globals, "SERVER <|> OPENVAS_VERSION <|> %s <|> SERVER\n",
                OPENVASSD_VERSION);

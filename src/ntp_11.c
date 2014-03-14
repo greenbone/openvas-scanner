@@ -91,7 +91,7 @@ ntp_11_parse_input (struct arglist *globals, char *input)
       if (input[strlen (input) - 1] == '\n')
         input[strlen (input) - 1] = '\0';
 
-      switch (otp_1_0_get_client_request (input))
+      switch (otp_get_client_request (input))
         {
         case CREQ_ATTACHED_FILE:
           ntp_11_recv_file (globals);
@@ -102,7 +102,7 @@ ntp_11_parse_input (struct arglist *globals, char *input)
           break;
 
         case CREQ_OPENVAS_VERSION:
-          otp_1_0_server_openvas_version (globals);
+          otp_server_openvas_version (globals);
           break;
 
         case CREQ_PAUSE_WHOLE_TEST:

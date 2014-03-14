@@ -1,3 +1,11 @@
+2014-03-14  Jan-Oliver Wagner <jan-oliver.wagner@greenbone.net>
+
+	Drop the version indicator for OTP as this does not make sense
+	code-wise.
+
+	* src/otp_1_0.h, src/otp_1_0.c, src/ntp_11.c: Replaced any "otp_1_0_"
+	name by just "otp_".
+
 2014-03-14  Hani Benhabiles  <hani.benhabiles@greenbone.net>
 
 	Remove sending of PLUGINS_DEPENDENCIES sending upon client connect with
