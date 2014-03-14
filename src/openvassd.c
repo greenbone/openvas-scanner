@@ -395,7 +395,6 @@ handle_client (struct arglist *globals, int protocol_version)
     {
       comm_send_nvt_info (globals);
       comm_send_preferences (globals);
-      ntp_1x_send_dependencies (globals);
     }
 
   /* Become process group leader and the like ... */

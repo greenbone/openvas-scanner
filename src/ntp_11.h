@@ -45,5 +45,4 @@ int ntp_1x_timestamp_host_scan_interrupted (struct arglist *, char *);
 
 int ntp_1x_timestamp_scan_starts (struct arglist *);
 int ntp_1x_timestamp_scan_ends (struct arglist *);
-int ntp_1x_send_dependencies (struct arglist *);
 #endif
