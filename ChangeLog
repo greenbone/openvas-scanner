@@ -1,3 +1,16 @@
+2014-03-15  Jan-Oliver Wagner <jan-oliver.wagner@greenbone.net>
+
+	Rename module opt_1_0 to just otp.
+
+	* src/otp_1_0.h, src/otp.h: Renamed otp_1_0.h to otp.h.
+
+	* src/otp_1_0.c, src/otp.c: Renamed otp_1_0.c to otp.c and adjust include
+	accordingly.
+
+	* src/ntp_11.c: Adjust include accordingly.
+
+	* COPYING, src/CMakeLists.txt: Adjust module name accordingly.
+
 2014-03-14  Jan-Oliver Wagner <jan-oliver.wagner@greenbone.net>
 
 	Drop the version indicator for OTP as this does not make sense

@@ -26,7 +26,7 @@
 
 #include <openvas/misc/network.h>
 
-#include "otp_1_0.h"
+#include "otp.h"
 
 #include <glib.h>
 

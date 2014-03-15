@@ -43,7 +43,7 @@
 #include <openvas/base/nvticache.h>     /* for nvticache_t */
 
 #include "ntp_11.h"
-#include "otp_1_0.h"
+#include "otp.h"
 #include "comm.h"
 #include "log.h"
 #include "utils.h"

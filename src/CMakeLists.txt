@@ -26,7 +26,7 @@
 ## Program
 
 add_executable (openvassd attack.c comm.c hosts.c locks.c log.c
-                nasl_plugins.c ntp_11.c openvassd.c otp_1_0.c
+                nasl_plugins.c ntp_11.c openvassd.c otp.c
                 piic.c pluginlaunch.c pluginload.c
                 pluginscheduler.c plugs_req.c preferences.c
                 processes.c save_kb.c sighand.c utils.c)
@@ -134,7 +134,7 @@ add_dependencies (check splint rats flawfinder)
 ## Tag files
 
 set (C_FILES "attack.c" "comm.c" "hosts.c" "locks.c" "log.c"
-     "nasl_plugins.c" "ntp_11.c" "openvassd.c" "otp_1_0.c"
+     "nasl_plugins.c" "ntp_11.c" "openvassd.c" "otp.c"
      "piic.c" "pluginlaunch.c" "pluginload.c"
      "pluginscheduler.c" "plugs_req.c" "preferences.c"
      "processes.c" "save_kb.c" "sighand.c" "utils.c")
