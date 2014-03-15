@@ -37,12 +37,12 @@
 #define NTP_PAUSE_WHOLE_TEST 3
 #define NTP_RESUME_WHOLE_TEST 4
 
-int ntp_11_parse_input (struct arglist *, char *);
+int ntp_parse_input (struct arglist *, char *);
 
-int ntp_1x_timestamp_host_scan_starts (struct arglist *, char *);
-int ntp_1x_timestamp_host_scan_ends (struct arglist *, char *);
-int ntp_1x_timestamp_host_scan_interrupted (struct arglist *, char *);
+int ntp_timestamp_host_scan_starts (struct arglist *, char *);
+int ntp_timestamp_host_scan_ends (struct arglist *, char *);
+int ntp_timestamp_host_scan_interrupted (struct arglist *, char *);
 
-int ntp_1x_timestamp_scan_starts (struct arglist *);
-int ntp_1x_timestamp_scan_ends (struct arglist *);
+int ntp_timestamp_scan_starts (struct arglist *);
+int ntp_timestamp_scan_ends (struct arglist *);
 #endif

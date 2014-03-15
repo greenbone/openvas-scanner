@@ -1,5 +1,13 @@
 2014-03-15  Jan-Oliver Wagner <jan-oliver.wagner@greenbone.net>
 
+	Drop the version indicator for NTP (actually is OTP) as this
+	does not make sense code-wise.
+
+	* src/ntp_11.h, src/ntp_11.c, src/comm.c, src/hosts.c, src/openvassd.c,
+	src/attack.c: Replaced any "ntp_11_" and "ntp_1x" name by just "ntp_".
+
+2014-03-15  Jan-Oliver Wagner <jan-oliver.wagner@greenbone.net>
+
 	Rename module opt_1_0 to just otp.
 
 	* src/otp_1_0.h, src/otp.h: Renamed otp_1_0.h to otp.h.

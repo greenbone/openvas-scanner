@@ -878,13 +878,13 @@ attack_start (struct attack_start_args *args)
     strcpy (host_str, mac);
 
   plugins_set_socket (plugs, soc);
-  ntp_1x_timestamp_host_scan_starts (globals, host_str);
+  ntp_timestamp_host_scan_starts (globals, host_str);
 
   // Start scan
   attack_host (globals, hostinfos, host_str, sched);
 
   // Calculate duration, clean up
-  ntp_1x_timestamp_host_scan_ends (globals, host_str);
+  ntp_timestamp_host_scan_ends (globals, host_str);
   gettimeofday (&now, NULL);
   if (now.tv_usec < then.tv_usec)
     {

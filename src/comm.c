@@ -384,7 +384,7 @@ comm_wait_order (struct arglist *globals)
             exit (0);
           }
 
-      if (ntp_11_parse_input (globals, str) == 0)
+      if (ntp_parse_input (globals, str) == 0)
         break;
     }
 }

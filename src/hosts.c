@@ -413,7 +413,7 @@ hosts_read_client (struct arglist *globals)
       if (n <= 0)
         return -1;
 
-      f = ntp_11_parse_input (globals, buf);
+      f = ntp_parse_input (globals, buf);
       if (f == NTP_STOP_WHOLE_TEST)
         return -1;
       else if (f == NTP_PAUSE_WHOLE_TEST)

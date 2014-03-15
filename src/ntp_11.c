@@ -55,15 +55,15 @@
 #endif
 
 
-static int ntp_11_read_prefs (struct arglist *);
-static int ntp_11_long_attack (struct arglist *);
-static int ntp_11_recv_file (struct arglist *);
+static int ntp_read_prefs (struct arglist *);
+static int ntp_long_attack (struct arglist *);
+static int ntp_recv_file (struct arglist *);
 
 /**
  * @brief Parses the input sent by the client before the NEW_ATTACK message.
  */
 int
-ntp_11_parse_input (struct arglist *globals, char *input)
+ntp_parse_input (struct arglist *globals, char *input)
 {
   char *str;
   int input_len = strlen (input);
@@ -94,11 +94,11 @@ ntp_11_parse_input (struct arglist *globals, char *input)
       switch (otp_get_client_request (input))
         {
         case CREQ_ATTACHED_FILE:
-          ntp_11_recv_file (globals);
+          ntp_recv_file (globals);
           break;
 
         case CREQ_LONG_ATTACK:
-          result = ntp_11_long_attack (globals);
+          result = ntp_long_attack (globals);
           break;
 
         case CREQ_OPENVAS_VERSION:
@@ -126,7 +126,7 @@ ntp_11_parse_input (struct arglist *globals, char *input)
           }
 
         case CREQ_PREFERENCES:
-          ntp_11_read_prefs (globals);
+          ntp_read_prefs (globals);
           break;
 
         case CREQ_RESUME_WHOLE_TEST:
@@ -159,7 +159,7 @@ ntp_11_parse_input (struct arglist *globals, char *input)
             hosts_stop_host (s);
             arg_add_value (globals, "stop_required", ARG_INT, sizeof (int),
                            GSIZE_TO_POINTER (1));
-            ntp_1x_timestamp_host_scan_interrupted (globals, s);
+            ntp_timestamp_host_scan_interrupted (globals, s);
             break;
           }
 
@@ -173,7 +173,7 @@ ntp_11_parse_input (struct arglist *globals, char *input)
 }
 
 static int
-ntp_11_long_attack (struct arglist *globals)
+ntp_long_attack (struct arglist *globals)
 {
   struct arglist *preferences = arg_get_value (globals, "preferences");
   int soc = GPOINTER_TO_SIZE (arg_get_value (globals, "global_socket"));
@@ -237,7 +237,7 @@ ntp_11_long_attack (struct arglist *globals)
  * @return Always 0.
  */
 static int
-ntp_11_read_prefs (struct arglist *globals)
+ntp_read_prefs (struct arglist *globals)
 {
   struct arglist *preferences = arg_get_value (globals, "preferences");
   int soc = GPOINTER_TO_SIZE (arg_get_value (globals, "global_socket"));
@@ -250,7 +250,7 @@ ntp_11_read_prefs (struct arglist *globals)
       int n;
       input[0] = '\0';
 #if DEBUG_SSL > 2
-      fprintf (stderr, "ntp_11_read_prefs > soc=%d\n", soc);
+      fprintf (stderr, "ntp_read_prefs > soc=%d\n", soc);
 #endif
       n = recv_line (soc, input, input_sz - 1);
 
@@ -440,7 +440,7 @@ build_global_sshlogin_info_map (struct arglist *globals, char *keyfiledata)
  * @return 0 if successful, -1 in case of errors.
  */
 int
-ntp_11_recv_file (struct arglist *globals)
+ntp_recv_file (struct arglist *globals)
 {
   int soc = GPOINTER_TO_SIZE (arg_get_value (globals, "global_socket"));
   char input[4096];
@@ -451,7 +451,7 @@ ntp_11_recv_file (struct arglist *globals)
   long tot = 0;
 
 #if 0
-  fprintf (stderr, "ntp_11_recv_file\n");
+  fprintf (stderr, "ntp_recv_file\n");
 #endif
 
   n = recv_line (soc, input, sizeof (input) - 1);
@@ -490,12 +490,12 @@ ntp_11_recv_file (struct arglist *globals)
 
   if (contents == NULL)
     {
-      log_write ("ntp_11_recv_file: Failed to allocate memory for uploaded file.");
+      log_write ("ntp_recv_file: Failed to allocate memory for uploaded file.");
       return -1;
     }
 
 #if 0
-  fprintf (stderr, "ntp_11_recv_file: contents=%s\n", contents);
+  fprintf (stderr, "ntp_recv_file: contents=%s\n", contents);
 #endif
   cont_ptr = contents;
   while (tot < bytes)
@@ -547,7 +547,7 @@ ntp_11_recv_file (struct arglist *globals)
 
 
 static int
-__ntp_1x_timestamp_scan (struct arglist *globals, char *msg)
+__ntp_timestamp_scan (struct arglist *globals, char *msg)
 {
   char timestr[1024];
   char *tmp;
@@ -569,7 +569,7 @@ __ntp_1x_timestamp_scan (struct arglist *globals, char *msg)
 
 
 static int
-__ntp_1x_timestamp_scan_host (struct arglist *globals, char *msg, char *host)
+__ntp_timestamp_scan_host (struct arglist *globals, char *msg, char *host)
 {
   char timestr[1024];
   char *tmp;
@@ -599,31 +599,31 @@ __ntp_1x_timestamp_scan_host (struct arglist *globals, char *msg, char *host)
 
 
 int
-ntp_1x_timestamp_scan_starts (struct arglist *globals)
+ntp_timestamp_scan_starts (struct arglist *globals)
 {
-  return __ntp_1x_timestamp_scan (globals, "SCAN_START");
+  return __ntp_timestamp_scan (globals, "SCAN_START");
 }
 
 int
-ntp_1x_timestamp_scan_ends (struct arglist *globals)
+ntp_timestamp_scan_ends (struct arglist *globals)
 {
-  return __ntp_1x_timestamp_scan (globals, "SCAN_END");
+  return __ntp_timestamp_scan (globals, "SCAN_END");
 }
 
 int
-ntp_1x_timestamp_host_scan_starts (struct arglist *globals, char *host)
+ntp_timestamp_host_scan_starts (struct arglist *globals, char *host)
 {
-  return __ntp_1x_timestamp_scan_host (globals, "HOST_START", host);
+  return __ntp_timestamp_scan_host (globals, "HOST_START", host);
 }
 
 int
-ntp_1x_timestamp_host_scan_ends (struct arglist *globals, char *host)
+ntp_timestamp_host_scan_ends (struct arglist *globals, char *host)
 {
-  return __ntp_1x_timestamp_scan_host (globals, "HOST_END", host);
+  return __ntp_timestamp_scan_host (globals, "HOST_END", host);
 }
 
 int
-ntp_1x_timestamp_host_scan_interrupted (struct arglist *globals, char *host)
+ntp_timestamp_host_scan_interrupted (struct arglist *globals, char *host)
 {
-  return __ntp_1x_timestamp_scan_host (globals, "HOST_INTERRUPTED", host);
+  return __ntp_timestamp_scan_host (globals, "HOST_INTERRUPTED", host);
 }

@@ -402,9 +402,9 @@ handle_client (struct arglist *globals, int protocol_version)
 wait:
   comm_wait_order (globals);
   preferences_reset_cache ();
-  ntp_1x_timestamp_scan_starts (globals);
+  ntp_timestamp_scan_starts (globals);
   attack_network (globals);
-  ntp_1x_timestamp_scan_ends (globals);
+  ntp_timestamp_scan_ends (globals);
   comm_terminate (globals);
   if (arg_get_value (prefs, "ntp_keep_communication_alive"))
     {
