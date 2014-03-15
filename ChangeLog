@@ -1,5 +1,19 @@
 2014-03-15  Jan-Oliver Wagner <jan-oliver.wagner@greenbone.net>
 
+	Rename module npt_11 to just ntp.
+
+	* src/ntp_11.h, src/ntp.h: Renamed ntp_11.h to ntp.h.
+
+	* src/ntp_11.c, src/ntp.c: Renamed ntp_11.c to ntp.c and adjust include
+	accordingly.
+
+	* src/utils.c, src/openvassd.c, src/hosts.c, src/comm.c, src/attack.c:
+	Adjust include accordingly.
+
+	* COPYING, src/CMakeLists.txt: Adjust module name accordingly.
+
+2014-03-15  Jan-Oliver Wagner <jan-oliver.wagner@greenbone.net>
+
 	Drop the version indicator for NTP (actually is OTP) as this
 	does not make sense code-wise.
 

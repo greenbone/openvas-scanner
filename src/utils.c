@@ -39,7 +39,7 @@
 
 #include "log.h"
 #include "comm.h"
-#include "ntp_11.h"
+#include "ntp.h"
 #include "utils.h"
 #include "preferences.h"
 #include "pluginscheduler.h"

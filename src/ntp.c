@@ -1,7 +1,6 @@
 /* OpenVAS
 * $Id$
-* Description: OpenVAS Communication Manager; it manages the OpenVAS Transfer Protocol,
-* version 1.1 and 1.2.
+* Description: OpenVAS Transfer Protocol handling.
 *
 * Authors: - Renaud Deraison <deraison@nessus.org> (Original pre-fork develoment)
 *          - Tim Brown <mailto:timb@openvas.org> (Initial fork)
@@ -42,7 +41,7 @@
 
 #include <openvas/base/nvticache.h>     /* for nvticache_t */
 
-#include "ntp_11.h"
+#include "ntp.h"
 #include "otp.h"
 #include "comm.h"
 #include "log.h"

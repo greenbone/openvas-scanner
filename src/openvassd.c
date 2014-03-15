@@ -75,7 +75,7 @@
 #include "sighand.h"
 #include "log.h"
 #include "processes.h"
-#include "ntp_11.h"
+#include "ntp.h"
 #include "utils.h"
 #include "pluginscheduler.h"
 #include "pluginlaunch.h"

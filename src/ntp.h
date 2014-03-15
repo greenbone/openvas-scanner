@@ -1,6 +1,6 @@
 /* OpenVAS
 * $Id$
-* Description: Header for ntp_11.c.
+* Description: Header for ntp.c.
 *
 * Authors: - Renaud Deraison <deraison@nessus.org> (Original pre-fork develoment)
 *          - Tim Brown <mailto:timb@openvas.org> (Initial fork)
@@ -28,8 +28,8 @@
 */
 
 
-#ifndef _OPENVAS_NTP_11_H
-#define _OPENVAS_NTP_11_H
+#ifndef _OPENVAS_NTP_H
+#define _OPENVAS_NTP_H
 
 #include <openvas/misc/arglists.h>   /* for struct arglist */
 

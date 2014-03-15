@@ -40,7 +40,7 @@
 #include "log.h"
 #include "preferences.h"
 #include "hosts.h"
-#include "ntp_11.h"
+#include "ntp.h"
 
 /**
  * @brief Host information, implemented as doubly linked list.

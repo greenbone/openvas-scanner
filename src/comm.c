@@ -43,7 +43,7 @@
 #include <openvas/base/nvticache.h>     /* for nvticache_t */
 
 #include "comm.h"
-#include "ntp_11.h"
+#include "ntp.h"
 #include "log.h"
 #include "pluginscheduler.h"    /* for define LAUNCH_DISABLED */
 #include "sighand.h"

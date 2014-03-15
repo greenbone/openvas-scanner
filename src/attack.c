@@ -53,7 +53,7 @@
 #include "comm.h"
 #include "hosts.h"
 #include "log.h"
-#include "ntp_11.h"
+#include "ntp.h"
 #include "pluginlaunch.h"
 #include "pluginload.h"
 #include "pluginscheduler.h"

@@ -20,7 +20,7 @@ src/hosts.[c|h]: GPLv2
 src/locks.[c|h]: GPLv2
 src/log.[c|h]: GPLv2
 src/nasl_plugins.c: GPLv2
-src/ntp_11.[c|h]: GPLv2
+src/ntp.[c|h]: GPLv2
 src/openvassd.c: GPLv2
 src/otp.[c|h]: GPLv2+
 src/piic.[c|h]: GPLv2
