@@ -1,5 +1,16 @@
 2014-03-15  Jan-Oliver Wagner <jan-oliver.wagner@greenbone.net>
 
+	Resolve need for misc/otp.h.
+
+	* src/comm.c (comm_loading): Use the keyword "SCANNER_LOADING"
+	directly.
+	(comm_init): Use a integer directly for the OTP version.
+
+	* src/openvassd.c (handle_client): Use a integer directly for
+	OTP version.
+
+2014-03-15  Jan-Oliver Wagner <jan-oliver.wagner@greenbone.net>
+
 	Rename module npt_11 to just ntp.
 
 	* src/ntp_11.h, src/ntp.h: Renamed ntp_11.h to ntp.h.

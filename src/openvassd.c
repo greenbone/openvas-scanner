@@ -61,7 +61,6 @@
 #include <openvas/misc/openvas_proctitle.h>
 #include <openvas/misc/openvas_logging.h>  /* for setup_legacy_log_handler */
 #include <openvas/base/pidfile.h>    /* for pidfile_remove */
-#include <openvas/misc/otp.h>        /* for OTP_20 */
 
 #include <gnutls/gnutls.h>
 #include <gnutls/x509.h>
@@ -391,7 +390,7 @@ handle_client (struct arglist *globals, int protocol_version)
 
   // OTP 2.0 sends all plugins and other information at connect
   // OTP >=2.1 does not send these at connect
-  if (protocol_version == OTP_20)
+  if (protocol_version == 20)
     {
       comm_send_nvt_info (globals);
       comm_send_preferences (globals);

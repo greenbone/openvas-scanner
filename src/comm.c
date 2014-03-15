@@ -37,7 +37,6 @@
 #include <openvas/misc/nvt_categories.h>/* for ACT_FIRST */
 #include <openvas/misc/plugutils.h>
 #include <openvas/misc/network.h>       /* for recv_line */
-#include <openvas/misc/otp.h>           /* for OTP_20 */
 #include <openvas/misc/system.h>        /* for emalloc */
 
 #include <openvas/base/nvticache.h>     /* for nvticache_t */
@@ -73,12 +72,12 @@ comm_init (int soc)
   buf[sizeof (buf) - 1] = '\0';
   if (!strncmp (buf, "< OTP/2.0beta1 >", 16))
     {
-      version = OTP_20;
+      version = 20;
       nsend (soc, "< OTP/2.0beta1 >\n", 17, 0);
     }
   else if (!strncmp (buf, "< OTP/2.1beta1 >", 16))
     {
-      version = OTP_21;
+      version = 21;
       nsend (soc, "< OTP/2.1beta1 >\n", 17, 0);
     }
   else
@@ -108,9 +107,9 @@ comm_loading (int soc)
       log_write ("Failed reading client input.\n");
       return -1;
     }
-  /* Always respond with OTP_LOADING. */
-  len = strlen (OTP_LOADING) + 1;
-  n = nsend (soc, OTP_LOADING "\n", len, 0);
+  /* Always respond with SCANNER_LOADING. */
+  len = strlen ("SCANNER_LOADING") + 1;
+  n = nsend (soc, "SCANNER_LOADING\n", len, 0);
   if (n != len)
     return -1;
   recv_line (soc, buf, sizeof (buf) - 1);
