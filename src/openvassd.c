@@ -384,17 +384,9 @@ get_x509_dname (int soc, char *x509_dname, size_t x509_dname_size)
 }
 
 static void
-handle_client (struct arglist *globals, int protocol_version)
+handle_client (struct arglist *globals)
 {
   struct arglist *prefs = arg_get_value (globals, "preferences");
-
-  // OTP 2.0 sends all plugins and other information at connect
-  // OTP >=2.1 does not send these at connect
-  if (protocol_version == 20)
-    {
-      comm_send_nvt_info (globals);
-      comm_send_preferences (globals);
-    }
 
   /* Become process group leader and the like ... */
   start_daemon_mode ();
@@ -417,7 +409,7 @@ scanner_thread (struct arglist *globals)
 {
   struct arglist *prefs = arg_get_value (globals, "preferences");
   char asciiaddr[INET6_ADDRSTRLEN], x509_dname[512] = { '\0' };
-  int opt = 1, soc2 = -1, nice_retval, protocol_version, family, soc;
+  int opt = 1, soc2 = -1, nice_retval, family, soc;
   void *addr = arg_get_value (globals, "client_address");
   struct sockaddr_in *saddr = NULL;
   struct sockaddr_in6 *s6addr = NULL;
@@ -462,8 +454,7 @@ scanner_thread (struct arglist *globals)
   /* arg_set_value *replaces* an existing value, but it shouldn't fail here */
   (void) arg_set_value (globals, "global_socket", -1, GSIZE_TO_POINTER (soc2));
 
-  protocol_version = comm_init (soc2);
-  if (protocol_version < 0)
+  if (comm_init (soc2) < 0)
     {
       close_stream_connection (soc);
       exit (0);
@@ -479,7 +470,7 @@ scanner_thread (struct arglist *globals)
       log_write ("bad login attempt from %s\n", asciiaddr);
       goto shutdown_and_exit;
     }
-  handle_client (globals, protocol_version);
+  handle_client (globals);
 
 shutdown_and_exit:
   if (soc2 >= 0)

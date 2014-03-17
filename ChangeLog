@@ -1,3 +1,21 @@
+2014-03-17  Hani Benhabiles  <hani.benhabiles@greenbone.net>
+
+	Handle OTP version 2.0 only. Handle NVT_INFO OTP client command.
+
+	* src/comm.c (comm_init): Only handle OTP version 2.0. Return 0 on
+	success.
+
+	* src/ntp.c (ntp_parse_input): Handle NVT_INFO client request. Remove
+	useless code.
+
+	* src/openvassd.c (handle_client): Remove protocol_version argument and
+	related code.
+	(scanner_thread): Adjust comm_init() and handle_client() calls.
+
+	* src/otp.c (otp_get_client_request): Handle CREQ_NVT_INFO case.
+
+	* src/otp.h (client_request_t): Add CREQ_NVT_INFO value.
+
 2014-03-15  Jan-Oliver Wagner <jan-oliver.wagner@greenbone.net>
 
 	Resolve need for misc/otp.h.

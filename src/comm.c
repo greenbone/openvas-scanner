@@ -51,13 +51,12 @@
 /**
  * @brief Initializes the communication between the scanner (us) and the client.
  *
- * @return Protocol version if success, -1 if error.
+ * @return 0 if success, -1 if error.
  */
 int
 comm_init (int soc)
 {
   char buf[1024];
-  int version = 0;
   int n;
 
   /* We must read the version of the OTP the client
@@ -70,22 +69,13 @@ comm_init (int soc)
     }
 
   buf[sizeof (buf) - 1] = '\0';
-  if (!strncmp (buf, "< OTP/2.0beta1 >", 16))
-    {
-      version = 20;
-      nsend (soc, "< OTP/2.0beta1 >\n", 17, 0);
-    }
-  else if (!strncmp (buf, "< OTP/2.1beta1 >", 16))
-    {
-      version = 21;
-      nsend (soc, "< OTP/2.1beta1 >\n", 17, 0);
-    }
-  else
+  if (strncmp (buf, "< OTP/2.0beta1 >", 16))
     {
       log_write ("Unknown client-requested OTP version: %s.\n", buf);
       return -1;
     }
-  return version;
+  nsend (soc, "< OTP/2.0beta1 >\n", 17, 0);
+  return 0;
 }
 
 /**

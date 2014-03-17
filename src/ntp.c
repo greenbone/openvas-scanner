@@ -65,18 +65,11 @@ int
 ntp_parse_input (struct arglist *globals, char *input)
 {
   char *str;
-  int input_len = strlen (input);
-  char *orig = emalloc (input_len + 1);
   int result = 1;               /* default return value is 1 */
-
-  strncpy (orig, input, input_len);
 
   str = strstr (input, " <|> ");
   if (str == NULL)
-    {
-      efree (&orig);
-      return 1;
-    }
+    return 1;
 
   str[0] = '\0';
 
@@ -162,12 +155,18 @@ ntp_parse_input (struct arglist *globals, char *input)
             break;
           }
 
+        case CREQ_NVT_INFO:
+          {
+            comm_send_nvt_info (globals);
+            comm_send_preferences (globals);
+            break;
+          }
+
         case CREQ_UNKNOWN:
           break;
         }
     }
 
-  efree (&orig);
   return (result);
 }
 

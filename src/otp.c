@@ -58,6 +58,8 @@ otp_get_client_request (char *str)
     return (CREQ_PAUSE_WHOLE_TEST);
   if (!strcmp (str, "RESUME_WHOLE_TEST"))
     return (CREQ_RESUME_WHOLE_TEST);
+  if (!strcmp (str, "NVT_INFO"))
+    return (CREQ_NVT_INFO);
 
   return (CREQ_UNKNOWN);
 }
