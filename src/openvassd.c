@@ -94,6 +94,7 @@ struct arglist *global_plugins;
 struct arglist *global_preferences;
 
 static int reload = 0;
+static int loading_stop = 0;
 
 /**
  * SSL context may be kept once it is inited.
@@ -235,6 +236,15 @@ loading_client_handle (int soc)
 }
 
 /*
+ * @brief Handles term signal received by loading handler child process.
+ */
+static void
+sighand_loading_handler (int sig)
+{
+  loading_stop = 1;
+}
+
+/*
  * @brief Starts a process to handle client requests while the scanner is
  * loading.
  *
@@ -249,7 +259,7 @@ loading_handler_start ()
   if (child_pid != 0)
     return child_pid;
   proctitle_set ("openvassd (Loading Handler)");
-  openvas_signal (SIGTERM, SIG_DFL);
+  openvas_signal (SIGTERM, sighand_loading_handler);
   /*
    * Forked process will handle client requests until parent stops it with
    * loading_handler_stop ().
@@ -259,12 +269,15 @@ loading_handler_start ()
       unsigned int lg_address;
       struct sockaddr_in6 address6;
       int soc;
+
+      if (loading_stop)
+        break;
       lg_address = sizeof (struct sockaddr_in6);
       soc = accept (global_iana_socket, (struct sockaddr *) (&address6),
                     &lg_address);
       loading_client_handle (soc);
     }
-  return 0;
+  exit (0);
 }
 
 /*

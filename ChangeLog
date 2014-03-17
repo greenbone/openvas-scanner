@@ -1,3 +1,10 @@
+2014-03-17  Hani Benhabiles  <hani.benhabiles@greenbone.net>
+
+	* src/openvassd.c (sighand_loading_stop): New function.
+	(loading_handler_start): Add SIGTERM handler for loading handler child
+	process. This ensures the loading handler isn't abruptly terminated by
+	the parent while responding to a client.
+
 2014-03-17  Jan-Oliver Wagner <jan-oliver.wagner@greenbone.net>
 
 	* tools/greenbone-nvt-sync (update_openvassd, update_openvasmd): Add
