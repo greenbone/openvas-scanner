@@ -1,3 +1,15 @@
+2014-03-17  Jan-Oliver Wagner <jan-oliver.wagner@greenbone.net>
+
+	Removed outdated and unmaintained documentation remains.
+
+	* doc/kb_entries.txt: Removed. This is an outdated list and unmaintained
+	since ages. The NVTs as such are the primary source on what KB entries
+	are set.
+
+	* doc/nsr_file_format.txt: Removed. Outdated and unmaintained.
+
+	* doc/nbe_file_format.txt: Removed. Outdated and unmaintained.
+
 2014-03-17  Hani Benhabiles  <hani.benhabiles@greenbone.net>
 
 	* src/comm.c (comm_loading): Receive all lines sent by client before
