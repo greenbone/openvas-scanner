@@ -1,5 +1,10 @@
 2014-03-17  Hani Benhabiles  <hani.benhabiles@greenbone.net>
 
+	* src/comm.c (comm_loading): Receive all lines sent by client before
+	closing the connection.
+
+2014-03-17  Hani Benhabiles  <hani.benhabiles@greenbone.net>
+
 	Handle OTP version 2.0 only. Handle NVT_INFO OTP client command.
 
 	* src/comm.c (comm_init): Only handle OTP version 2.0. Return 0 on

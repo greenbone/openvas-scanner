@@ -102,7 +102,9 @@ comm_loading (int soc)
   n = nsend (soc, "SCANNER_LOADING\n", len, 0);
   if (n != len)
     return -1;
-  recv_line (soc, buf, sizeof (buf) - 1);
+  while (n > 0)
+    n = recv_line (soc, buf, sizeof (buf) - 1);
+
   return 0;
 }
 
