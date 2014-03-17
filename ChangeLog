@@ -1,5 +1,10 @@
 2014-03-17  Jan-Oliver Wagner <jan-oliver.wagner@greenbone.net>
 
+	* tools/greenbone-nvt-sync (update_openvassd, update_openvasmd): Add
+	PID to log and unify log message in error case.
+
+2014-03-17  Jan-Oliver Wagner <jan-oliver.wagner@greenbone.net>
+
 	Removed outdated and unmaintained documentation remains.
 
 	* doc/kb_entries.txt: Removed. This is an outdated list and unmaintained

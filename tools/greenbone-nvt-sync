@@ -322,7 +322,7 @@ update_openvassd (){
   then
     SCANNER_PID=`cat $SCANNER_PIDFILE`
     kill -HUP $SCANNER_PID
-    log_write "Sent signal to OpenVAS Scanner to update."
+    log_write "Sent signal to OpenVAS Scanner to update (PID $SCANNER_PID)."
   else
     log_err "$PIDFILEDIR/openvassd.pid not found, not updating OpenVAS Scanner."
     log_write "Please restart OpenVAS Scanner or send SIGHUP to it and let OpenVAS"
@@ -343,9 +343,11 @@ update_openvasmd (){
   then
     MANAGER_PID=`cat $MANAGER_PIDFILE`
     kill -HUP $MANAGER_PID
-    log_write "Sent signal to OpenVAS Manager to update."
+    log_write "Sent signal to OpenVAS Manager to update (PID $MANAGER_PID)."
   else
     log_err "$PIDFILEDIR/openvasmd.pid not found, not updating OpenVAS Manager."
+    log_write "Please let OpenVAS Manager do a '--update' or a '--rebuild' to"
+    log_write "enable new NVTs for use."
   fi
 }
 
