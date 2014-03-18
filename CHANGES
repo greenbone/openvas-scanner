@@ -1,3 +1,25 @@
+openvas-scanner 4.0+beta8 (2014-03-18)
+
+This is the eighth beta release of the openvas-scanner 4.0 module for the Open
+Vulnerability Assessment System (OpenVAS). It will be part of the upcoming
+"OpenVAS-7".
+
+Starting with this release, OpenVAS Scanner will support only the OTP 2.0
+protocol. The OTP 1.0 and 1.1 protocols have been consolidated into OTP 2.0,
+thus allowing now unnecessary complexities to be removed from the code. This
+release also removes the obsolete OTP command "PLUGINS_DEPENDENCIES" and
+improves the loading process.
+
+Many thanks to everyone who has contributed to this release:
+Hani Benhabiles, Jan-Oliver Wagner and Michael Wiegand.
+
+Main changes compared to 4.0+beta7:
+* OpenVAS Scanner will only support OTP version 2.0 from now on.
+* The OTP command "PLUGINS_DEPENDENCIES" has been removed.
+* The loading process has been improved.
+* A number of outdated and unmaintained documentation files have been removed.
+
+
 openvas-scanner 4.0+beta7 (2014-03-12)
 
 This is the seventh beta release of the openvas-scanner 4.0 module for the Open

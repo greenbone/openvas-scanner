@@ -1,3 +1,9 @@
+2014-03-18  Michael Wiegand <michael.wiegand@greenbone.net>
+
+	Preparing the openvas-scanner 4.0+beta8 release.
+
+	* CHANGES: Updated.
+
 2014-03-18  Hani Benhabiles  <hani.benhabiles@greenbone.net>
 
 	* src/openvassd.c (main): In only cache mode, refresh the plugins cache
