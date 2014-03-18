@@ -939,6 +939,13 @@ main (int argc, char *argv[])
                  config_file);
   arg_add_value (options, "addr", ARG_PTR, -1, &ai);
 
+  if (only_cache)
+    {
+      init_openvassd (options, 0, 1, dont_fork);
+      init_plugins (options);
+      exit (0);
+    }
+
   init_openvassd (options, 1, exit_early, dont_fork);
   g_options = options;
   global_iana_socket = GPOINTER_TO_SIZE (arg_get_value (options, "isck"));
@@ -948,8 +955,6 @@ main (int argc, char *argv[])
   if (print_specs)
     dump_cfg_specs (global_preferences);
   if (exit_early)
-    exit (0);
-  if (only_cache)
     exit (0);
 
   init_ssl_ctx ();

@@ -1,3 +1,9 @@
+2014-03-18  Hani Benhabiles  <hani.benhabiles@greenbone.net>
+
+	* src/openvassd.c (main): In only cache mode, refresh the plugins cache
+	early, without listening on the network and skipping other
+	unused initializations.
+
 2014-03-17  Hani Benhabiles  <hani.benhabiles@greenbone.net>
 
 	* src/openvassd.c (sighand_loading_stop): New function.
