@@ -1,3 +1,23 @@
+2014-03-19  Hani Benhabiles  <hani.benhabiles@greenbone.net>
+
+	Report current and total number of loading plugins to clients when
+	scanner is still loading.
+
+	* src/comm.c (comm_loading): Send current and total loading values with
+	SCANNER_LOADING otp command.
+
+	* src/openvassd.c: Delete include of removed file.
+	(loading_handler_start, loading_handler_stop): Initialize and destroy
+	loading plugins shared memory.
+
+	* src/pluginload.c (init_loading_shm, destroy_loading_shm)
+	(current_loading_plugins, total_loading_plugins)
+	(set_current_loading_plugins, set_total_loading_plugins): New functions.
+	(plugins_reload_from_dir): Update number of currently and total loading
+	plugins in the shared memory to be seen by other processes.
+
+	* src/pluginload.h: Add function prototypes.
+
 2014-03-18  Michael Wiegand <michael.wiegand@greenbone.net>
 
 	Post release version bump.

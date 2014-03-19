@@ -33,7 +33,9 @@
 #include <openvas/misc/openvas_proctitle.h>
 
 #include <glib.h>
+#include <stdlib.h>
 #include <sys/time.h>
+#include <sys/shm.h>     /* for shmget */
 #include <string.h>
 #include <errno.h>
 
@@ -117,6 +119,105 @@ calculate_eta (struct timeval start_time, int loaded, int total)
   return (remaining * elapsed) / loaded;
 }
 
+static int *loading_shm = NULL;
+static int loading_shmid = 0;
+
+/*
+ * @brief Initializes the shared memory data used to report plugins loading
+ *        progress to other processes.
+ */
+void
+init_loading_shm ()
+{
+  int shm_key;
+
+  if (loading_shm)
+    return;
+
+  shm_key = rand () + 1;
+  /*
+   * Create shared memory segment if it doesn't exist.
+   * This will be used to communicate current plugins loading progress to other
+   * processes.
+   * loading_shm[0]: Number of loaded plugins.
+   * loading_shm[1]: Total number of plugins.
+   */
+  loading_shmid = shmget (shm_key, sizeof (int) * 2, IPC_CREAT | 0600);
+  if (loading_shmid < 0)
+    perror ("shmget");
+  loading_shm = shmat (loading_shmid, NULL, 0);
+  if (loading_shm == (void *) -1)
+    {
+      perror ("shmat");
+      loading_shm = NULL;
+    }
+  else
+    bzero (loading_shm, sizeof (int) * 2);
+}
+
+/*
+ * @brief Destroys the shared memory data used to report plugins loading
+ *        progress to other processes.
+ */
+void
+destroy_loading_shm ()
+{
+  if (loading_shm)
+    {
+      shmdt (loading_shm);
+      if (shmctl (loading_shmid, IPC_RMID, NULL))
+        perror ("shmctl");
+      loading_shm = NULL;
+      loading_shmid = 0;
+    }
+}
+
+/*
+ * @brief Gives current number of loaded plugins.
+ *
+ * @return Number of loaded plugins,  0 if initalization wasn't successful.
+ */
+int
+current_loading_plugins ()
+{
+  return loading_shm ? loading_shm[0] : 0;
+}
+
+/*
+ * @brief Gives the total number of plugins to be loaded.
+ *
+ * @return Total of loaded plugins,  0 if initalization wasn't successful.
+ */
+int
+total_loading_plugins ()
+{
+  return loading_shm ? loading_shm[1] : 0;
+}
+
+/*
+ * @brief Sets number of loaded plugins.
+ *
+ * @param[in]   current Number of loaded plugins.
+ */
+void
+set_current_loading_plugins (int current)
+{
+  if (loading_shm)
+    loading_shm[0] = current;
+}
+
+/*
+ * @brief Sets total number of plugins to be loaded.
+ *
+ * @param[in]   total Total number of plugins
+ */
+void
+set_total_loading_plugins (int total)
+{
+  if (loading_shm)
+    loading_shm[1] = total;
+}
+
 static struct arglist *
 plugins_reload_from_dir (struct arglist *preferences, struct arglist *plugins,
                          char *folder)
@@ -169,6 +270,7 @@ plugins_reload_from_dir (struct arglist *preferences, struct arglist *plugins,
       log_write ("gettimeofday: %s\n", strerror (errno));
     }
   f = files;
+  set_total_loading_plugins (num_files);
   while (f != NULL)
     {
       char *name = f->data;
@@ -177,6 +279,7 @@ plugins_reload_from_dir (struct arglist *preferences, struct arglist *plugins,
         {
           int percentile, eta;
 
+          set_current_loading_plugins (loaded_files);
           percentile = (loaded_files * 100) / num_files;
           eta = calculate_eta (start_time, loaded_files, num_files);
           proctitle_set ("openvassd: Reloaded %d of %d NVTs"

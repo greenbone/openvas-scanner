@@ -45,6 +45,7 @@
 #include "ntp.h"
 #include "log.h"
 #include "pluginscheduler.h"    /* for define LAUNCH_DISABLED */
+#include "pluginload.h"    /* for current_loading_plugins */
 #include "sighand.h"
 #include "utils.h"
 
@@ -98,8 +99,10 @@ comm_loading (int soc)
       return -1;
     }
   /* Always respond with SCANNER_LOADING. */
-  len = strlen ("SCANNER_LOADING") + 1;
-  n = nsend (soc, "SCANNER_LOADING\n", len, 0);
+  g_snprintf (buf, sizeof (buf), "SCANNER_LOADING <|> %d <|> %d\n",
+              current_loading_plugins (), total_loading_plugins ());
+  len = strlen (buf);
+  n = nsend (soc, buf, len, 0);
   if (n != len)
     return -1;
   while (n > 0)

@@ -41,6 +41,18 @@ void plugins_set_socket (struct arglist *, int);
 void plugin_free (struct arglist *);
 void plugins_free (struct arglist *);
 
+void
+init_loading_shm ();
+
+void
+destroy_loading_shm ();
+
+int
+current_loading_plugins ();
+
+int
+total_loading_plugins ();
+
 /* From nasl_plugins.c */
 struct arglist *
 nasl_plugin_add (char *, char *, struct arglist *, struct arglist *);

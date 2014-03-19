@@ -57,7 +57,6 @@
 #include <openvas/misc/network.h>    /* for auth_printf */
 #include <openvas/misc/plugutils.h>  /* for find_in_path */
 #include <openvas/misc/system.h>     /* for estrdup */
-#include <openvas/misc/rand.h>       /* for openvas_init_random */
 #include <openvas/misc/openvas_proctitle.h>
 #include <openvas/misc/openvas_logging.h>  /* for setup_legacy_log_handler */
 #include <openvas/base/pidfile.h>    /* for pidfile_remove */
@@ -255,6 +254,7 @@ loading_handler_start ()
 {
   pid_t child_pid;
 
+  init_loading_shm ();
   child_pid = fork ();
   if (child_pid != 0)
     return child_pid;
@@ -292,6 +292,7 @@ loading_handler_stop (pid_t handler_pid)
 
   kill (handler_pid, SIGTERM);
   waitpid (handler_pid, &status, 0);
+  destroy_loading_shm ();
 }
 
 /* Restarts the scanner by reloading the configuration. */
