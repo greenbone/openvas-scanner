@@ -1,3 +1,11 @@
+2014-03-20  Hani Benhabiles  <hani.benhabiles@greenbone.net>
+
+	* src/openvassd.c (loading_client_handle, scanner_thread): Adjust
+	ovas_scanner_context_attach call.
+	(ssl_ver_to_encaps): Delete function.
+	(init_ssl_ctx): Always create ovas_scanner_ctx with
+	OPENVAS_ENCAPS_TLScustom.
+
 2014-03-19  Hani Benhabiles  <hani.benhabiles@greenbone.net>
 
 	Report current and total number of loading plugins to clients when

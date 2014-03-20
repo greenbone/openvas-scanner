@@ -223,7 +223,7 @@ loading_client_handle (int soc)
   int soc2, opt = 1;
   if (soc <= 0)
     return;
-  soc2 = ovas_scanner_context_attach (ovas_scanner_ctx, soc);
+  soc2 = ovas_scanner_context_attach (ovas_scanner_ctx, soc, "NORMAL");
   if (soc2 < 0)
     {
       close (soc);
@@ -456,7 +456,7 @@ scanner_thread (struct arglist *globals)
   /* Close the scanner thread - it is useless for us now */
   close (global_iana_socket);
 
-  soc2 = ovas_scanner_context_attach (ovas_scanner_ctx, soc);
+  soc2 = ovas_scanner_context_attach (ovas_scanner_ctx, soc, "NORMAL");
   if (soc2 < 0)
     goto shutdown_and_exit;
 
@@ -500,37 +500,6 @@ shutdown_and_exit:
   exit (0);
 }
 
-/*
- * Gives an OPENVAS_ENCAPS value matching an ssl version string.
- *
- * @param[in]   ssl_ver SSL version string.
- *
- * @return OPENVAS_ENCAPS value.
- */
-static int
-ssl_ver_to_encaps (const char *ssl_ver)
-{
-  if (ssl_ver == NULL)
-    return OPENVAS_ENCAPS_TLSv1;
-
-  if (strcasecmp (ssl_ver, "SSLv2") == 0)
-    {
-      fprintf (stderr, "SSL version 2 is not supported anymore!\n");
-      return OPENVAS_ENCAPS_TLSv1;
-    }
-  else if (strcasecmp (ssl_ver, "SSLv3") == 0)
-    return OPENVAS_ENCAPS_SSLv3;
-  else if (strcasecmp (ssl_ver, "SSLv23") == 0)
-    return OPENVAS_ENCAPS_SSLv23;
-  else if (strcasecmp (ssl_ver, "TLSv1") == 0)
-    return OPENVAS_ENCAPS_TLSv1;
-  else
-    {
-      fprintf (stderr, "Unknown SSL version \"%s\"\n", ssl_ver);
-      return OPENVAS_ENCAPS_TLSv1;
-    }
-}
-
 static void
 init_ssl_ctx ()
 {
@@ -543,15 +512,9 @@ init_ssl_ctx ()
   /* Only initialize ovas_scanner_ctx once */
   if (ovas_scanner_ctx == NULL)
     {
-      int encaps;
       int force_pubkey_auth;
-      char *cert, *key, *passwd, *ca_file, *ssl_ver;
+      char *cert, *key, *passwd, *ca_file;
       char *str;
-
-      ssl_ver = preferences_get_string (global_preferences, "ssl_version");
-      if (ssl_ver == NULL || *ssl_ver == '\0')
-        ssl_ver = "TLSv1";
-      encaps = ssl_ver_to_encaps (ssl_ver);
 
       ca_file = preferences_get_string (global_preferences, "ca_file");
       if (ca_file == NULL)
@@ -575,9 +538,9 @@ init_ssl_ctx ()
       passwd = preferences_get_string (global_preferences, "pem_password");
       str = arg_get_value (global_preferences, "force_pubkey_auth");
       force_pubkey_auth = str != NULL && strcmp (str, "no") != 0;
-      ovas_scanner_ctx =
-        ovas_scanner_context_new (encaps, cert, key, passwd, ca_file,
-                                  force_pubkey_auth);
+      ovas_scanner_ctx = ovas_scanner_context_new
+                          (OPENVAS_ENCAPS_TLScustom, cert, key, passwd, ca_file,
+                           force_pubkey_auth);
       if (!ovas_scanner_ctx)
         {
           fprintf (stderr, "Could not create ovas_scanner_ctx\n");
