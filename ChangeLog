@@ -1,3 +1,15 @@
+2014-03-21  Hani Benhabiles  <hani.benhabiles@greenbone.net>
+
+	Add --gnutls-priorities option for the scanner.
+
+	* src/openvassd.c (loading_client_handle, scanner_thread): Adjust
+	ovas_context_attach() calls.
+	(init_ssl_ctx): Add priority parameter.
+	(main): Add --gnutls-priority option, defaulting to normal. Adjust
+	init_ssl_ctx() call.
+
+	* doc/openvassd.8.in: Update for the new option.
+
 2014-03-20  Hani Benhabiles  <hani.benhabiles@greenbone.net>
 
 	* src/openvassd.c (loading_client_handle, scanner_thread): Adjust

@@ -223,7 +223,7 @@ loading_client_handle (int soc)
   int soc2, opt = 1;
   if (soc <= 0)
     return;
-  soc2 = ovas_scanner_context_attach (ovas_scanner_ctx, soc, "NORMAL");
+  soc2 = ovas_scanner_context_attach (ovas_scanner_ctx, soc);
   if (soc2 < 0)
     {
       close (soc);
@@ -456,7 +456,7 @@ scanner_thread (struct arglist *globals)
   /* Close the scanner thread - it is useless for us now */
   close (global_iana_socket);
 
-  soc2 = ovas_scanner_context_attach (ovas_scanner_ctx, soc, "NORMAL");
+  soc2 = ovas_scanner_context_attach (ovas_scanner_ctx, soc);
   if (soc2 < 0)
     goto shutdown_and_exit;
 
@@ -501,7 +501,7 @@ shutdown_and_exit:
 }
 
 static void
-init_ssl_ctx ()
+init_ssl_ctx (const char *priority)
 {
   if (openvas_SSL_init () < 0)
     {
@@ -540,7 +540,7 @@ init_ssl_ctx ()
       force_pubkey_auth = str != NULL && strcmp (str, "no") != 0;
       ovas_scanner_ctx = ovas_scanner_context_new
                           (OPENVAS_ENCAPS_TLScustom, cert, key, passwd, ca_file,
-                           force_pubkey_auth);
+                           force_pubkey_auth, priority);
       if (!ovas_scanner_ctx)
         {
           fprintf (stderr, "Could not create ovas_scanner_ctx\n");
@@ -768,6 +768,7 @@ main (int argc, char *argv[])
   static gchar *address = NULL;
   static gchar *port = NULL;
   static gchar *config_file = NULL;
+  static gchar *gnutls_priorities = "NORMAL";
   static gboolean print_specs = FALSE;
   static gboolean print_sysconfdir = FALSE;
   static gboolean only_cache = FALSE;
@@ -790,6 +791,8 @@ main (int argc, char *argv[])
      "Print system configuration directory (set at compile time)", NULL},
     {"only-cache", 'C', 0, G_OPTION_ARG_NONE, &only_cache,
      "Exit once the NVT cache has been initialized or updated", NULL},
+    {"gnutls-priorities", '\0', 0, G_OPTION_ARG_STRING, &gnutls_priorities,
+     "GnuTLS priorities string", "<string>"},
     {NULL}
   };
 
@@ -921,7 +924,7 @@ main (int argc, char *argv[])
   if (exit_early)
     exit (0);
 
-  init_ssl_ctx ();
+  init_ssl_ctx (gnutls_priorities);
   // Daemon mode:
   if (dont_fork == FALSE)
     set_daemon_mode ();
