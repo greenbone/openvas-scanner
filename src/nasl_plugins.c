@@ -99,21 +99,7 @@ nasl_plugin_add (char *folder, char *name, struct arglist *plugins,
   plugin_args = plug_create_from_nvti_and_prefs (nvti, preferences);
   if (plugin_args == NULL)
     {
-      char *sign_fprs = nasl_extract_signature_fprs (fullname);
-
       nvti_free (nvti);
-
-      // If server accepts signed plugins only, discard if signature file missing.
-      if (preferences_nasl_no_signature_check (preferences) == 0
-          && sign_fprs == NULL)
-        {
-          printf ("%s: nvt is not signed and thus ignored\n", fullname);
-          return NULL;
-        }
-      else if (sign_fprs == NULL)
-        {
-          sign_fprs = "";
-        }
 
       plugin_args = emalloc (sizeof (struct arglist));
       arg_add_value (plugin_args, "preferences", ARG_ARGLIST, -1,
@@ -135,7 +121,6 @@ nasl_plugin_add (char *folder, char *name, struct arglist *plugins,
         arg_del_value (plugin_args, "NVTI");
 
       nvti_set_src (nvti, fullname);
-      nvti_add_sign_key_id (nvti, sign_fprs);
 
       // Check mtime of plugin before caching it
       // Set to now if mtime is in the future

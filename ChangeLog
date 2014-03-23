@@ -1,5 +1,13 @@
 2014-03-23  Jan-Oliver Wagner <jan-oliver.wagner@greenbone.net>
 
+	* src/nasl_plugin.c (nasl_plugin_add): Removed extra signature
+	check during cache build. It was only done to retrieve fingerprints.
+	The subsequent exec_nasl_script will drop the NVT anyway if
+	signature is not OK.
+	This decreases the initial build time of the cache by around 80%.
+
+2014-03-23  Jan-Oliver Wagner <jan-oliver.wagner@greenbone.net>
+
 	Drop sending of signature keys to the client. These information are
 	not used on OpenVAS Manager side. The original idea of knowledge about
 	NVT signer has turned out to be of little value because feeds are
