@@ -1,3 +1,13 @@
+2014-03-23  Jan-Oliver Wagner <jan-oliver.wagner@greenbone.net>
+
+	Drop sending of signature keys to the client. These information are
+	not used on OpenVAS Manager side. The original idea of knowledge about
+	NVT signer has turned out to be of little value because feeds are
+	typically not aggregated from different sources but rather provided
+	from a single source.
+
+	* src/comm.c (send_plug_info): Do not send the signature keys any more.
+
 2014-03-21  Hani Benhabiles  <hani.benhabiles@greenbone.net>
 
 	Add --gnutls-priorities option for the scanner.

@@ -215,7 +215,7 @@ send_plug_info (struct arglist *globals, struct arglist *plugins)
 
   if (!ignored)
     {
-      char *cve_id, *bid, *xref, *sign_keys, *tag;
+      char *cve_id, *bid, *xref, *tag;
       unsigned int mem_size;
 
       cve_id = nvti_cve (nvti);
@@ -229,10 +229,6 @@ send_plug_info (struct arglist *globals, struct arglist *plugins)
       xref = nvti_xref (nvti);
       if (xref == NULL || strcmp (xref, "") == 0)
         xref = "NOXREF";
-
-      sign_keys = nvti_sign_key_ids (nvti);
-      if (sign_keys == NULL || strcmp (sign_keys, "") == 0)
-        sign_keys = "NOSIGNKEYS";
 
       {
         char *index;
@@ -257,7 +253,6 @@ send_plug_info (struct arglist *globals, struct arglist *plugins)
         strlen (cve_id) +
         strlen (bid) +
         strlen (xref) +
-        strlen (sign_keys) +
         strlen (tag) +
         100;                    /* Separators etc. */
 
@@ -265,10 +260,10 @@ send_plug_info (struct arglist *globals, struct arglist *plugins)
       snprintf (str, mem_size,
                 "%s <|> %s <|> %s <|> "
                 "%s <|> %s <|> %s <|> "
-                "%s <|> %s <|> %s <|> %s <|> %s <|> %s",
+                "%s <|> %s <|> %s <|> %s <|> %s",
                 nvti_oid (nvti), name, categories[j],
                 copyright, summary, family,
-                version, cve_id, bid, xref, sign_keys, tag);
+                version, cve_id, bid, xref, tag);
 
       if (tag != NULL && strcmp (tag, "NOTAG"))
         efree (&tag);
