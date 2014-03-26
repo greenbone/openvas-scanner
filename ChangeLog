@@ -1,5 +1,11 @@
 2014-03-26  Benoît Allard  <benoit.allard@greenbone.net>
 
+	Post release version bump.
+
+	* CMakeLists.txt: 4.0+beta10
+
+2014-03-26  Benoît Allard  <benoit.allard@greenbone.net>
+
 	Preparing the openvas-scanner 4.0+beta9 release.
 
 	* CHANGES: Update
