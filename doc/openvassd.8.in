@@ -49,6 +49,13 @@ than listening on port 9391 (default).
 Sets the GnuTLS priority string for the listening socket to adjust the supported
 cipher suites.
 
+.TP
+.BI " --dh-params=" <file>
+Sets the path to a PEM file containing Diffie-Hellman parameters. Needed for key
+DHE-based key exchange algorithms that provide Perfect Forward Secrecy.
+This file could be generated using tools like "openssl dhparam" and
+"certtool --genrate-dh-params".
+
 .TP 
 .B "-f, --foreground"
 Make the scanner stay in foreground (non-daemon mode)

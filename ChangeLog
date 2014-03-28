@@ -1,3 +1,13 @@
+2014-03-28  Hani Benhabiles  <hani.benhabiles@greenbone.net>
+
+	Add --dh-params command-line option.
+
+	* src/openvassd.c (init_ssl_ctx): Add dhparams function argument. Adjust
+	ovas_scanner_context_new() call.
+	(main): Add --dh-params cli option. Adjust init_ssl_ctx() call.
+
+	* doc/openvassd.8.in: Update documentation.
+
 2014-03-26  Benoît Allard  <benoit.allard@greenbone.net>
 
 	Post release version bump.

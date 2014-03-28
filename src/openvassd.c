@@ -501,7 +501,7 @@ shutdown_and_exit:
 }
 
 static void
-init_ssl_ctx (const char *priority)
+init_ssl_ctx (const char *priority, const char *dhparams)
 {
   if (openvas_SSL_init () < 0)
     {
@@ -540,7 +540,7 @@ init_ssl_ctx (const char *priority)
       force_pubkey_auth = str != NULL && strcmp (str, "no") != 0;
       ovas_scanner_ctx = ovas_scanner_context_new
                           (OPENVAS_ENCAPS_TLScustom, cert, key, passwd, ca_file,
-                           force_pubkey_auth, priority);
+                           force_pubkey_auth, priority, dhparams);
       if (!ovas_scanner_ctx)
         {
           fprintf (stderr, "Could not create ovas_scanner_ctx\n");
@@ -769,6 +769,7 @@ main (int argc, char *argv[])
   static gchar *port = NULL;
   static gchar *config_file = NULL;
   static gchar *gnutls_priorities = "NORMAL";
+  static gchar *dh_params = NULL;
   static gboolean print_specs = FALSE;
   static gboolean print_sysconfdir = FALSE;
   static gboolean only_cache = FALSE;
@@ -793,6 +794,8 @@ main (int argc, char *argv[])
      "Exit once the NVT cache has been initialized or updated", NULL},
     {"gnutls-priorities", '\0', 0, G_OPTION_ARG_STRING, &gnutls_priorities,
      "GnuTLS priorities string", "<string>"},
+    {"dh-params", '\0', 0, G_OPTION_ARG_STRING, &dh_params,
+     "Diffie-Hellman parameters file", "<string>"},
     {NULL}
   };
 
@@ -924,7 +927,7 @@ main (int argc, char *argv[])
   if (exit_early)
     exit (0);
 
-  init_ssl_ctx (gnutls_priorities);
+  init_ssl_ctx (gnutls_priorities, dh_params);
   // Daemon mode:
   if (dont_fork == FALSE)
     set_daemon_mode ();
