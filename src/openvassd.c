@@ -512,9 +512,7 @@ init_ssl_ctx (const char *priority, const char *dhparams)
   /* Only initialize ovas_scanner_ctx once */
   if (ovas_scanner_ctx == NULL)
     {
-      int force_pubkey_auth;
       char *cert, *key, *passwd, *ca_file;
-      char *str;
 
       ca_file = preferences_get_string (global_preferences, "ca_file");
       if (ca_file == NULL)
@@ -536,11 +534,9 @@ init_ssl_ctx (const char *priority, const char *dhparams)
         }
 
       passwd = preferences_get_string (global_preferences, "pem_password");
-      str = arg_get_value (global_preferences, "force_pubkey_auth");
-      force_pubkey_auth = str != NULL && strcmp (str, "no") != 0;
       ovas_scanner_ctx = ovas_scanner_context_new
                           (OPENVAS_ENCAPS_TLScustom, cert, key, passwd, ca_file,
-                           force_pubkey_auth, priority, dhparams);
+                           priority, dhparams);
       if (!ovas_scanner_ctx)
         {
           fprintf (stderr, "Could not create ovas_scanner_ctx\n");

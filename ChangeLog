@@ -1,3 +1,7 @@
+2014-03-31  Hani Benhabiles  <hani.benhabiles@greenbone.net>
+
+	* src/openvassd.c (init_ssl_ctx): Adjust ovas_scanner_new() call.
+
 2014-03-28  Hani Benhabiles  <hani.benhabiles@greenbone.net>
 
 	Add --dh-params command-line option.
