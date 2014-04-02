@@ -539,7 +539,7 @@ init_ssl_ctx (const char *priority, const char *dhparams)
                            priority, dhparams);
       if (!ovas_scanner_ctx)
         {
-          fprintf (stderr, "Could not create ovas_scanner_ctx\n");
+          log_write ("Could not create ovas_scanner_ctx\n");
           exit (1);
         }
     }

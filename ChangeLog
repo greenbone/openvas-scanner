@@ -1,3 +1,8 @@
+2014-04-02  Hani Benhabiles  <hani.benhabiles@greenbone.net>
+
+	* src/openvassd.c (init_ssl_ctx): Use log_write() instead of fprintf()
+	for log message.
+
 2014-03-31  Hani Benhabiles  <hani.benhabiles@greenbone.net>
 
 	* src/openvassd.c (init_ssl_ctx): Adjust ovas_scanner_new() call.
