@@ -84,8 +84,6 @@ int global_max_hosts = 15;
 int global_max_checks = 10;
 struct arglist *g_options = NULL;
 
-pid_t nasl_server_pid;
-
 int global_iana_socket;
 struct arglist *global_plugins;
 struct arglist *global_preferences;

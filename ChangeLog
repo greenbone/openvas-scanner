@@ -1,5 +1,14 @@
 2014-04-04  Michael Wiegand <michael.wiegand@greenbone.net>
 
+	Removed obsolete nasl_server_pid variable.
+
+	* src/openvassd.c: Remove global variable nasl_server_pid.
+
+	* src/sighand.c: Remove declaration of extern nasl_server_pid.
+	(make_em_die): Remove handling of nasl_server_pid.
+
+2014-04-04  Michael Wiegand <michael.wiegand@greenbone.net>
+
 	Drop handling of "bpf_server" in openvas-scanner. The function in
 	libraries always returned 0.
 

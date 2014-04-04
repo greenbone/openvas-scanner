@@ -37,9 +37,6 @@
 
 #include <openvas/base/pidfile.h>
 
-extern pid_t nasl_server_pid;
-
-
 /* do not leave a zombie, hanging around if possible */
 void
 let_em_die (int pid)
@@ -59,9 +56,6 @@ make_em_die (int sig)
   /* leave if we are session leader */
   if (getpgrp () != getpid ())
     return;
-
-  if (nasl_server_pid != 0 && kill (nasl_server_pid, 0) >= 0)
-    kill (nasl_server_pid, SIGTERM);
 
   /* quickly send siglals and check the result */
   if (kill (0, sig) < 0)
