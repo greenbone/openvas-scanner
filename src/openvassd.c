@@ -361,7 +361,7 @@ check_client (char *dname)
 static int
 get_x509_dname (int soc, char *x509_dname, size_t x509_dname_size)
 {
-  gnutls_session_t *session;
+  gnutls_session_t session;
   gnutls_x509_crt_t cert;
   unsigned int cert_list_size = 0;
   const gnutls_datum_t *cert_list;
@@ -369,12 +369,12 @@ get_x509_dname (int soc, char *x509_dname, size_t x509_dname_size)
 
   session = ovas_get_tlssession_from_connection (soc);
 
-  if (gnutls_certificate_type_get (*session) != GNUTLS_CRT_X509)
+  if (gnutls_certificate_type_get (session) != GNUTLS_CRT_X509)
     {
       log_write ("Certificate is not an X.509 certificate.");
       return -1;
     }
-  cert_list = gnutls_certificate_get_peers (*session, &cert_list_size);
+  cert_list = gnutls_certificate_get_peers (session, &cert_list_size);
   if (cert_list_size == 0)
     return -1;
 

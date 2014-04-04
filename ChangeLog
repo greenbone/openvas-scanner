@@ -1,3 +1,8 @@
+2014-04-04  Hani Benhabiles  <hani.benhabiles@greenbone.net>
+
+	* src/openvassd.c (get_x509_dname): Adjust for
+	ovas_get_tlssession_from_connection() prototype change.
+
 2014-04-02  Hani Benhabiles  <hani.benhabiles@greenbone.net>
 
 	* src/openvassd.c (init_ssl_ctx): Use log_write() instead of fprintf()
