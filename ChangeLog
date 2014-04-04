@@ -1,3 +1,15 @@
+2014-04-04  Michael Wiegand <michael.wiegand@greenbone.net>
+
+	Drop handling of "bpf_server" in openvas-scanner. The function in
+	libraries always returned 0.
+
+	* src/openvassd.c (main): Do not call bpf_server since it always
+	returned 0.
+	Remove global variable bpf_server_pid. Remove now superfluous include.
+
+	* src/sighand.c: Remove declaration of extern bpf_server_pid.
+	(make_em_die): Remove handling of bpf_server_pid.
+
 2014-04-04  Hani Benhabiles  <hani.benhabiles@greenbone.net>
 
 	* src/openvassd.c (get_x509_dname): Adjust for

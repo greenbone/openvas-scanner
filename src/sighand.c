@@ -37,7 +37,6 @@
 
 #include <openvas/base/pidfile.h>
 
-extern pid_t bpf_server_pid;
 extern pid_t nasl_server_pid;
 
 
@@ -63,9 +62,6 @@ make_em_die (int sig)
 
   if (nasl_server_pid != 0 && kill (nasl_server_pid, 0) >= 0)
     kill (nasl_server_pid, SIGTERM);
-
-  if (bpf_server_pid != 0 && kill (bpf_server_pid, 0) >= 0)
-    kill (bpf_server_pid, SIGTERM);
 
   /* quickly send siglals and check the result */
   if (kill (0, sig) < 0)

@@ -52,7 +52,6 @@
 #include <netdb.h>     /* for addrinfo */
 #include <sys/wait.h>     /* for waitpid */
 
-#include <openvas/misc/bpf_share.h>  /* for bpf_server */
 #include <openvas/nasl/nasl.h>
 #include <openvas/misc/network.h>    /* for auth_printf */
 #include <openvas/misc/plugutils.h>  /* for find_in_path */
@@ -85,7 +84,6 @@ int global_max_hosts = 15;
 int global_max_checks = 10;
 struct arglist *g_options = NULL;
 
-pid_t bpf_server_pid;
 pid_t nasl_server_pid;
 
 int global_iana_socket;
@@ -889,9 +887,6 @@ main (int argc, char *argv[])
 
   if (config_file != NULL)
     arg_add_value (options, "acc_hint", ARG_INT, sizeof (int), (void *) 1);
-
-  if (exit_early == 0)
-    bpf_server_pid = bpf_server ();
 
   if (!config_file)
     {
