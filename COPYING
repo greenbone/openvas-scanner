@@ -10,9 +10,9 @@ or under "GNU GPLv2 or any later version" (GNU GPLv2+).
 
 GPLv2: See file COPYING.GPLv2
 
-The following overview was collected 20100812 based
-on the header of the respective files (last updated
-20131210):
+The following overview was initially collected 20100812 based
+on the header of the respective files and since then updated
+as changes were applied:
 
 src/attack.[c|h]: GPLv2
 src/comm.[c|h]: GPLv2

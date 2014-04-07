@@ -11,9 +11,9 @@ Please see the file COPYING for the license information.
 
 Please refer to the instructions provided in the file INSTALL if you want to
 install and configure openvas-scanner. If you are not familiar or comfortable
-with the procedure described there, we recommend that you use a binary package
-provided by your distribution. Information regarding available binary packages
-is available from the OpenVAS website.
+with building from source code, we recommend that you use a install package or use
+a prepared virtual machine. Information regarding available binary packages 
+and virtual machines is available from the download area of the OpenVAS website.
 
 Note that you will need the openvas-libraries modules to compile
 openvas-scanner. Further information about these modules is available
