@@ -1,3 +1,67 @@
+openvas-scanner 4.0.0 (2014-04-10)
+
+This is the first release of the openvas-scanner 4.0 module for the Open
+Vulnerability Assessment System release 7 (OpenVAS-7). Compared
+to the previous major release it has a reduced OTP protocol, does
+not manage users anymore and has a improved daemon handling.
+Further changes are a entirely new target host module that allows advanced
+specification of target ranges and new is the interface selection for scans.
+
+Many thanks to everyone who has contributed to the 4.0.0 release:
+Benoît Allard, Hani Benhabiles, Henri Doreau, Michael Meyer, Matthew Mundell,
+Timo Pollmeier, Jan-Oliver Wagner and Michael Wiegand.
+
+Main changes compared to 3.4.x:
+* Speedup cache building process.
+* Add --gnutls-priorities option.
+* An ETA for the plugins reload is now included in the proctitle.
+* The scanner now loads the NVTs in the background after starting instead of
+  waiting for the NVTs to load before backgrounding.
+  Attention: This changes the default behaviour of invoking the scanner.
+* Drop command line option "-q". Instead scanner is now quiet by default.
+  Attention: This changes the default behaviour of invoking the scanner.
+* New command line option "--progress" will show progress of start-up.
+* New handling of SIGHUP: The NVT cache will be updated and configuration
+  be reloaded.  This is only done for the main process, not for child processes.
+* OTP version 2.0 replaces OTP 1.0 and 1.1.
+* OTP command "PLUGINS_DEPENDENCIES" has been removed.
+* OTP command "CERTIFICATES" has been removed.
+* The handling of MD5 checksums and the SEND_PLUGINS_MD5 command has been
+  removed from OTP.
+* The OTP command PLUGINS_MD5 has been renamed to NVT_INFO.
+* Support for sending the feed version via OTP has been added.
+* Report current and total number of loading plugins to clients when scanner is still loading.
+* Don't early drops out of OTP upon non-critical problems.
+* Removed server_info preferences from OTP as they have not much use for
+  the client.
+* OpenVAS Scanner no longer sends NVT descriptions separately since the
+  corresponding information is now contained in the script_tags.
+* Remove slice_network_addresses and ntp_opt_show_end scanner preferences.
+* Add hosts_ordering, exclude_hosts, reverse_lookup_only, reverse_lookup_unify
+  scanner preferences.
+* The port range option "default" has been removed.
+* The scanner preference "silent_dependencies" has been removed.
+* Improved port range validation.
+* Prevent NVT circular depedencies in recursion.
+* Removed support for OVAL plugins. It was never used as part of the feed
+  and it makes more sense to issue a specialised oval scanner.
+* The host permissions concept has been reworked, resulting in the removal of
+  the outdated rules system.
+* Handling of interface permissions has been introduced.
+* Usage of post_alarm instead of post_error and post_note.
+* Integrate openvas_hosts interface. Remove usage of HG submodule.
+* Support for Knowledge Base saving outside of network scans has been removed.
+* User handling has been removed as it is now handled by OpenVAS Manager.
+* Support for determining if a NVT feed is current and only synchronizing it
+  when it is not has been added.
+* The required minimum GnuTLS version has increased to 2.8.
+* The required minimum OpenVAS Libraries version has increased to 7.0.0.
+* The I18n support for outdated scripts has been removed.
+* A number of outdated and unmaintained documentation files have been removed.
+* Addressed code quality issues.
+* Code cleanups.
+
+
 openvas-scanner 4.0+beta9 (2014-03-26)
 
 This is the ninth beta release of the openvas-scanner 4.0 module for the Open
