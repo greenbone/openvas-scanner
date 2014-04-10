@@ -1,5 +1,9 @@
 2014-04-10  Jan-Oliver Wagner <jan-oliver.wagner@greenbone.net>
 
+	* src/comm.c (comm_init): Remove "beta" from OTP identifier.
+
+2014-04-10  Jan-Oliver Wagner <jan-oliver.wagner@greenbone.net>
+
 	Post release version bump.
 
 	* CMakeLists.txt: Set version to 4.0.1.
