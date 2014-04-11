@@ -1,3 +1,7 @@
+2014-04-11  Hani Benhabiles  <hani.benhabiles@greenbone.net>
+
+	* src/comm.c (comm_init): Adjust version buffers comparing size.
+
 2014-04-10  Jan-Oliver Wagner <jan-oliver.wagner@greenbone.net>
 
 	* src/comm.c (comm_init): Remove "beta" from OTP identifier.
