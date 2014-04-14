@@ -193,13 +193,6 @@ if (NOT PCAP)
   message (FATAL_ERROR "The pcap library is required.")
 endif (NOT PCAP)
 
-message (STATUS "Looking for gpgme...")
-find_library (GPGME gpgme)
-message (STATUS "Looking for gpgme... ${GPGME}")
-if (NOT GPGME)
-  message (FATAL_ERROR "The gpgme library is required.")
-endif (NOT GPGME)
-
 execute_process (COMMAND pkg-config --cflags glib-2.0
   OUTPUT_VARIABLE GLIB_CFLAGS
   OUTPUT_STRIP_TRAILING_WHITESPACE)

@@ -1,3 +1,8 @@
+2014-04-14  Hani Benhabiles  <hani.benhabiles@greenbone.net>
+
+	* CMakeLists.txt, src/CMakeLists.txt: Remove useless linking against
+	libdl, libgpgme and libgcrypt.
+
 2014-04-11  Hani Benhabiles  <hani.benhabiles@greenbone.net>
 
 	* src/comm.c (comm_init): Adjust version buffers comparing size.
