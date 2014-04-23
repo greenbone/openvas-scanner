@@ -1,3 +1,19 @@
+openvas-scanner 4.0.1 (2014-04-23)
+
+This is the first maintenance release of the openvas-scanner 4.0 module for
+the Open Vulnerability Assessment System release 7 (OpenVAS-7).
+
+This release removes the last beta identifier from the OTP protocol, as well
+as fixes some minor issues.
+
+Many thanks to everyone who contributed to this release:
+Hani Benhabiles, Jan-Oliver Wagner
+
+Main changes compared to 4.0.0:
+* Remove "beta" from OTP identifier.
+* Remove superflous linking.
+
+
 openvas-scanner 4.0.0 (2014-04-10)
 
 This is the first release of the openvas-scanner 4.0 module for the Open

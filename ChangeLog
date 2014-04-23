@@ -1,3 +1,9 @@
+2014-04-23  Benoît Allard  <benoit.allard@greenbone.net>
+
+	Prepare for 4.0.1 release.
+
+	* CHANGES: Updated
+
 2014-04-14  Hani Benhabiles  <hani.benhabiles@greenbone.net>
 
 	* CMakeLists.txt, src/CMakeLists.txt: Remove useless linking against
