@@ -1,5 +1,11 @@
 2014-04-23  Benoît Allard  <benoit.allard@greenbone.net>
 
+	Post release version bump.
+
+	* CMakeLists.txt: 4.0.2
+
+2014-04-23  Benoît Allard  <benoit.allard@greenbone.net>
+
 	Prepare for 4.0.1 release.
 
 	* CHANGES: Updated
