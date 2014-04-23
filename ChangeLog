@@ -1,3 +1,7 @@
+2014-04-23  Henri Doreau <henri.doreau@gmail.com>
+
+	* src/pluginlaunch.c (process_internal_msg): Remove dead code.
+
 2014-04-23  Jan-Oliver Wagner <jan-oliver.wagner@greenbone.net>
 
 	* CMakeLists.txt: Increase dependency to openvas-libraries

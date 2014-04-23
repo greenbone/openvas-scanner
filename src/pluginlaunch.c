@@ -112,11 +112,6 @@ process_internal_msg (int p)
     {
       e = internal_send (processes[p].upstream_soc, buffer, type);
     }
-  else if (type & INTERNAL_COMM_MSG_TYPE_KB)
-    {
-      e = 0;
-      log_write ("Received an obsolete KB message. Ignoring.\n");
-    }
   else if (type & INTERNAL_COMM_MSG_TYPE_CTRL)
     {
       if (type & INTERNAL_COMM_CTRL_FINISHED)
