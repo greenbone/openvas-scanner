@@ -38,7 +38,7 @@
 #include <openvas/base/openvas_hosts.h>
 #include <openvas/base/openvas_networking.h>
 #include <openvas/misc/openvas_proctitle.h>
-#include <openvas/misc/kb.h>             /* for kb_new */
+#include <openvas/misc/kb.h>
 #include <openvas/misc/network.h>        /* for auth_printf */
 #include <openvas/misc/nvt_categories.h> /* for ACT_INIT */
 #include <openvas/misc/pcap_openvas.h>   /* for v6_is_local_ip */
@@ -60,7 +60,6 @@
 #include "plugs_req.h"
 #include "preferences.h"
 #include "processes.h"
-#include "save_kb.h"
 #include "sighand.h"
 #include "utils.h"
 
@@ -69,6 +68,20 @@
 #define ERR_CANT_FORK -2
 
 #define MAX_FORK_RETRIES 10
+
+#define KB_PATH_DEFAULT "/tmp/redis.sock"
+
+
+static gchar *scanner_kb_path (struct arglist *globals)
+{
+  gchar *kb_path;
+
+  kb_path = (gchar *) arg_get_value (globals, "kb_location");
+  if (kb_path == NULL)
+    kb_path = KB_PATH_DEFAULT;
+
+  return kb_path;
+}
 
 /**
  * Bundles information about target(s), configuration (globals arglist) and
@@ -81,7 +94,14 @@ struct attack_start_args
   char *host_mac_addr;
   plugins_scheduler_t sched;
   int thread_socket;
+  kb_t *net_kb;
   char fqdn[1024];
+};
+
+enum net_scan_status {
+  NSS_NONE = 0,
+  NSS_BUSY,
+  NSS_DONE,
 };
 
 /**
@@ -95,6 +115,29 @@ static int pause_whole_test = 0;
 
 ********************************************************/
 
+static void
+error_message_to_client (struct arglist *globals, const char *msg,
+                         const char *hostname, const char *port)
+{
+  auth_printf (globals,
+               "SERVER <|> ERRMSG <|> %s <|> %s <|> %s <|>  <|> SERVER\n",
+               hostname ? hostname : "",
+               port ? port : "",
+               msg ? msg : "No error.");
+}
+
+static void
+report_kb_failure (struct arglist *globals, int errcode)
+{
+  gchar *msg;
+
+  errcode = abs (errcode);
+  msg = g_strdup_printf ("WARNING: Cannot connect to KB at '%s': %s'",
+                         scanner_kb_path (globals), strerror (errcode));
+  log_write ("%s\n", msg);
+  error_message_to_client (globals, msg, NULL, NULL);
+  g_free (msg);
+}
 
 static void
 fork_sleep (int n)
@@ -126,6 +169,23 @@ static void
 attack_handle_sigusr2 ()
 {
   pause_whole_test = 0;
+}
+
+static enum net_scan_status
+network_scan_status (struct arglist *globals)
+{
+  gchar *nss;
+
+  nss = arg_get_value (globals, "network_scan_status");
+  if (nss == NULL)
+    return NSS_NONE;
+
+  if (g_ascii_strcasecmp (nss, "busy") == 0)
+    return NSS_BUSY;
+  else if (g_ascii_strcasecmp (nss, "done") == 0)
+    return NSS_DONE;
+  else
+    return NSS_NONE;
 }
 
 /**
@@ -223,8 +283,7 @@ attack_init_hostinfos (char *mac, char *hostname, struct in6_addr *ip,
 static int
 launch_plugin (struct arglist *globals, plugins_scheduler_t * sched,
                struct scheduler_plugin *plugin, char *hostname, int *cur_plug,
-               int num_plugs, struct arglist *hostinfos, kb_t kb,
-               gboolean new_kb)
+               int num_plugs, struct arglist *hostinfos, kb_t kb)
 {
   struct arglist *preferences = arg_get_value (globals, "preferences");
   struct arglist *args = plugin->arglist->value;
@@ -233,7 +292,6 @@ launch_plugin (struct arglist *globals, plugins_scheduler_t * sched,
   char name[1024], oid_[100], *oid, *src;
   int optimize = preferences_optimize_test (preferences);
   int category = plugin->category;
-  gchar *network_scan_status;
   gboolean network_scan = FALSE;
 
   oid = arg_get_value (args, "OID");
@@ -251,10 +309,8 @@ launch_plugin (struct arglist *globals, plugins_scheduler_t * sched,
   strncpy (oid_, oid, sizeof (oid_) - 1);
   oid_[sizeof (oid_) - 1] = '\0';
 
-  network_scan_status = arg_get_value (globals, "network_scan_status");
-  if (network_scan_status != NULL)
-    if (g_ascii_strcasecmp (network_scan_status, "busy") == 0)
-      network_scan = TRUE;
+  if (network_scan_status (globals) == NSS_BUSY)
+    network_scan = TRUE;
 
   if (plug_get_launch (args) != LAUNCH_DISABLED || category == ACT_SETTINGS)    /* can we launch it ? */
     {
@@ -306,7 +362,6 @@ launch_plugin (struct arglist *globals, plugins_scheduler_t * sched,
           else
             {
               kb_item_add_int (kb, asc_id, 1);
-              save_kb_write_int (globals, "network", asc_id, 1);
             }
         }
 
@@ -343,13 +398,6 @@ launch_plugin (struct arglist *globals, plugins_scheduler_t * sched,
             {
               log_write ("The remote host (%s) is dead\n", hostname);
               pluginlaunch_stop ();
-
-              if (new_kb == TRUE)
-                save_kb_close (globals, hostname);
-
-              if (kb_item_get_int (kb, "Host/ping_failed") > 0)
-                save_kb_restore_backup (hostname);
-
               plugin_set_running_state (plugin, PLUGIN_STATUS_DONE);
               return ERR_HOST_DEAD;
             }
@@ -554,7 +602,27 @@ fill_host_kb_ssh_credentials (kb_t kb, struct arglist *globals,
 #endif
 }
 
-// TODO eventually to be moved to libopenvas kb.c
+static int
+kb_duplicate(kb_t dst, kb_t src, const gchar *filter)
+{
+  struct kb_item *items, *p_itm;
+
+  items = kb_item_get_pattern(src, filter ? filter : "*");
+  for (p_itm = items; p_itm != NULL; p_itm = p_itm->next)
+    {
+      gchar *newname;
+
+      newname = strstr(p_itm->name, "/");
+      if (newname == NULL)
+        newname = p_itm->name;
+      else
+        newname += 1; /* Skip the '/' */
+
+      kb_item_add_str(dst, newname, p_itm->v_str);
+    }
+  return 0;
+}
+
 /**
  * @brief Inits or loads the knowledge base for a single host.
  *
@@ -571,57 +639,48 @@ fill_host_kb_ssh_credentials (kb_t kb, struct arglist *globals,
  */
 static kb_t
 init_host_kb (struct arglist *globals, char *hostname,
-              struct arglist *hostinfos, gboolean * new_kb)
+              struct arglist *hostinfos, kb_t *network_kb)
 {
-  kb_t kb, network_kb;
-  (*new_kb) = FALSE;
+  kb_t kb;
   gchar *vhosts;
-  struct kb_item *host_network_results = NULL;
-  struct kb_item *result_iter;
+  enum net_scan_status nss;
+  gchar *kb_path = scanner_kb_path (globals);
+  gchar *hostname_pattern;
+  int rc;
 
-  gchar *network_scan_status = (gchar *) arg_get_value (globals, "network_scan_status");
-  if (network_scan_status != NULL)
+  nss = network_scan_status (globals);
+  switch (nss)
     {
-      if (g_ascii_strcasecmp (network_scan_status, "done") == 0)
-        {
-          gchar *hostname_pattern = g_strdup_printf ("%s/*", hostname);
-          network_kb = save_kb_load_kb (globals, "network");
-          host_network_results = kb_item_get_pattern (network_kb, hostname_pattern);
-        }
-      if (g_ascii_strcasecmp (network_scan_status, "busy") == 0)
-        {
-          arg_add_value (globals, "CURRENTLY_TESTED_HOST", ARG_STRING,
-                         strlen ("network"), "network");
-          save_kb_new (globals, "network");
-          kb = kb_new ();
-          (*new_kb) = TRUE;
-          return kb;
-        }
-    }
+      case NSS_DONE:
+        rc = kb_new (&kb, kb_path);
+        if (rc)
+          {
+            report_kb_failure (globals, rc);
+            return NULL;
+          }
 
-  // Check if kb should be saved.
-  if (save_kb (globals))
-    {
-      // Check if a saved kb exists and we shall restore it.
-      if (save_kb_exists (hostname) != 0)
-        {
-          save_kb_backup (hostname);
-          kb = save_kb_load_kb (globals, hostname);
-        }
-      else
-        {
-          // We shall not or cannot restore.
-          save_kb_new (globals, hostname);
-          kb = kb_new ();
-          (*new_kb) = TRUE;
-        }
- 
-      arg_add_value (globals, "CURRENTLY_TESTED_HOST", ARG_STRING,
-                     strlen (hostname), hostname);
-    }
-  else                          /* save_kb(globals) */
-    {
-      kb = kb_new ();
+        hostname_pattern = g_strdup_printf ("%s/*", hostname);
+        kb_duplicate(kb, *network_kb, hostname_pattern);
+        g_free(hostname_pattern);
+        break;
+
+      case NSS_BUSY:
+        assert (network_kb != NULL);
+        assert (*network_kb != NULL);
+        kb = *network_kb;
+        arg_add_value (globals, "CURRENTLY_TESTED_HOST", ARG_STRING,
+                       strlen ("network"), "network");
+        break;
+
+      default:
+        rc = kb_new (&kb, kb_path);
+        if (rc)
+          {
+            report_kb_failure (globals, rc);
+            return NULL;
+          }
+        arg_add_value (globals, "CURRENTLY_TESTED_HOST", ARG_STRING,
+                       strlen (hostname), hostname);
     }
 
   /* Add local check (SSH)- related knowledge base items. */
@@ -632,31 +691,12 @@ init_host_kb (struct arglist *globals, char *hostname,
   if (vhosts)
     {
       gchar **vhosts_array = g_strsplit (vhosts, ",", 0);
-      guint i = 0;
-      while (vhosts_array[i] != NULL)
-        {
-          kb_item_add_str (kb, "hostinfos/vhosts", vhosts_array[i]);
-          save_kb_write_str (globals, hostname, "hostinfos/vhosts", vhosts_array[i]);
-          i++;
-        }
-      g_strfreev (vhosts_array);
-    }
+      int i;
 
-  result_iter = host_network_results;
-  while (result_iter != NULL)
-    {
-      char *newname = strstr (result_iter->name, "/") + 1;
-      if (result_iter->type == KB_TYPE_STR)
-        {
-          kb_item_add_str (kb, newname, result_iter->v.v_str);
-          save_kb_write_str (globals, hostname, newname, result_iter->v.v_str);
-        }
-      else if (result_iter->type == KB_TYPE_INT)
-        {
-          kb_item_add_int (kb, newname, result_iter->v.v_int);
-          save_kb_write_int (globals, hostname, newname, result_iter->v.v_int);
-        }
-      result_iter = result_iter->next;
+      for (i = 0; vhosts_array[i] != NULL; i++)
+        kb_item_add_str (kb, "hostinfos/vhosts", vhosts_array[i]);
+
+      g_strfreev (vhosts_array);
     }
 
   return kb;
@@ -666,27 +706,25 @@ init_host_kb (struct arglist *globals, char *hostname,
  * @brief Attack one host.
  */
 static void
-attack_host (struct arglist *globals, struct arglist *hostinfos, char *hostname,
-             plugins_scheduler_t sched)
+attack_host (struct arglist *globals, struct arglist *hostinfos,
+             char *hostname, plugins_scheduler_t sched, kb_t *net_kb)
 {
   /* Used for the status */
   int num_plugs = 0;
   int cur_plug = 1;
-
   kb_t kb;
-  gboolean new_kb = FALSE;
   int forks_retry = 0;
   struct arglist *plugins = arg_get_value (globals, "plugins");
-  struct arglist *tmp;
 
   proctitle_set ("openvassd: testing %s", arg_get_value (hostinfos, "NAME"));
 
-  kb = init_host_kb (globals, hostname, hostinfos, &new_kb);
+  kb = init_host_kb (globals, hostname, hostinfos, net_kb);
+  if (kb == NULL)
+    return;
+
+  kb_lnk_reset (kb);
 
   num_plugs = get_active_plugins_number (plugins);
-
-  tmp = emalloc (sizeof (struct arglist));
-  arg_add_value (tmp, "HOSTNAME", ARG_ARGLIST, -1, hostinfos);
 
   /* launch the plugins */
   pluginlaunch_init (globals);
@@ -738,7 +776,7 @@ attack_host (struct arglist *globals, struct arglist *hostinfos, char *hostname,
 
         again:
           e = launch_plugin (globals, sched, plugin, hostname, &cur_plug,
-                             num_plugs, hostinfos, kb, new_kb);
+                             num_plugs, hostinfos, kb);
           if (e < 0)
             {
               /*
@@ -773,22 +811,11 @@ attack_host (struct arglist *globals, struct arglist *hostinfos, char *hostname,
   pluginlaunch_wait ();
 
 host_died:
-  arg_free (tmp);
   pluginlaunch_stop ();
   plugins_scheduler_free (sched);
 
-  gchar *network_scan_status = arg_get_value (globals, "network_scan_status");
-  if (network_scan_status != NULL)
-    {
-      if (g_ascii_strcasecmp (network_scan_status, "busy") == 0)
-        {
-          save_kb_close (globals, "network");
-        }
-    }
-  else
-    if (new_kb == TRUE)
-      save_kb_close (globals, hostname);
-
+  if (net_kb == NULL || kb != *net_kb)
+    kb_delete (kb);
 }
 
 /**
@@ -812,6 +839,7 @@ attack_start (struct attack_start_args *args)
   int soc;
   struct timeval then, now;
   plugins_scheduler_t sched = args->sched;
+  kb_t *net_kb = args->net_kb;
   int i;
 
   /* Stringify the IP address. */
@@ -819,9 +847,7 @@ attack_start (struct attack_start_args *args)
     inet_ntop (AF_INET, ((char *)(&args->hostip))+12, host_str,
                sizeof (host_str));
   else
-    inet_ntop (AF_INET6, &args->hostip, host_str,
-               sizeof (host_str));
-
+    inet_ntop (AF_INET6, &args->hostip, host_str, sizeof (host_str));
 
   openvas_signal (SIGUSR1, attack_handle_sigusr1);
   openvas_signal (SIGUSR2, attack_handle_sigusr2);
@@ -881,7 +907,7 @@ attack_start (struct attack_start_args *args)
   ntp_timestamp_host_scan_starts (globals, host_str);
 
   // Start scan
-  attack_host (globals, hostinfos, host_str, sched);
+  attack_host (globals, hostinfos, host_str, sched, net_kb);
 
   // Calculate duration, clean up
   ntp_timestamp_host_scan_ends (globals, host_str);
@@ -970,17 +996,6 @@ apply_hosts_preferences (openvas_hosts_t *hosts, struct arglist *preferences)
   if (preferences_get_bool (preferences, "reverse_lookup_only") == 1)
     log_write ("reverse_lookup_only: Skipped %d host(s).\n",
                openvas_hosts_reverse_lookup_only (hosts));
-}
-
-static void
-error_message_to_client (struct arglist *globals, const char *msg,
-                         const char *hostname, const char *port)
-{
-  auth_printf (globals,
-               "SERVER <|> ERRMSG <|> %s <|> %s <|> %s <|>  <|> SERVER\n",
-               hostname ? hostname : "",
-               port ? port : "",
-               msg ? msg : "No error.");
 }
 
 static int
@@ -1137,11 +1152,26 @@ apply_source_iface_preference (struct arglist *globals,
     }
 }
 
+static int
+check_kb_access (struct arglist *globals)
+{
+  int rc;
+  kb_t kb;
+
+  rc = kb_new (&kb, scanner_kb_path (globals));
+  if (rc)
+      report_kb_failure (globals, rc);
+  else
+    kb_delete (kb);
+
+  return rc;
+}
+
 /**
  * @brief Attack a whole network.
  */
 void
-attack_network (struct arglist *globals)
+attack_network (struct arglist *globals, kb_t *network_kb)
 {
   int max_hosts = 0, max_checks;
   int num_tested = 0;
@@ -1158,42 +1188,65 @@ attack_network (struct arglist *globals)
   struct timeval then, now;
   char buffer[INET6_ADDRSTRLEN];
 
-  int network_phase = 0;
   gchar *network_targets, *port_range;
-  int do_network_scan = 0;
-  int scan_stopped;
+  gboolean network_phase = FALSE;
+  gboolean do_network_scan = FALSE;
+  gboolean scan_stopped;
 
   gettimeofday (&then, NULL);
 
   preferences = arg_get_value (globals, "preferences");
 
-  if ((do_network_scan = preferences_get_bool (preferences, "network_scan")) == -1)
-    do_network_scan = 0;
+  switch (preferences_get_bool (preferences, "network_scan"))
+    {
+      case -1:
+      case  0:
+        do_network_scan = FALSE;
+        break;
+
+      default:
+        do_network_scan = TRUE;
+        break;
+    }
+
   network_targets = arg_get_value (preferences, "network_targets");
   if (network_targets != NULL)
     arg_add_value (globals, "network_targets", ARG_STRING,
                    strlen (network_targets), network_targets);
+
   if (do_network_scan)
     {
-      gchar *network_scan_status = arg_get_value (globals, "network_scan_status");
-      if (network_scan_status != NULL)
-        if (g_ascii_strcasecmp (network_scan_status, "done") == 0)
-          network_phase = 0;
-        else
-          network_phase = 1;
-      else
+      enum net_scan_status nss;
+
+      nss = network_scan_status (globals);
+      switch (nss)
         {
-          arg_add_value (globals, "network_scan_status", ARG_STRING,
-                         strlen ("busy"), "busy");
-          network_phase = 1;
+          case NSS_DONE:
+            network_phase = FALSE;
+            break;
+
+          case NSS_BUSY:
+            network_phase = TRUE;
+            break;
+
+          default:
+            arg_add_value (globals, "network_scan_status", ARG_STRING,
+                           strlen ("busy"), "busy");
+            network_phase = TRUE;
+            break;
         }
     }
+  else
+    network_kb = NULL;
 
   num_tested = 0;
 
   global_socket = GPOINTER_TO_SIZE (arg_get_value (globals, "global_socket"));
 
   plugins = arg_get_value (globals, "plugins");
+
+  if (check_kb_access(globals))
+      return;
 
   /* Init and check Target List */
   hostlist = arg_get_value (preferences, "TARGET");
@@ -1221,7 +1274,6 @@ attack_network (struct arglist *globals)
 
   if (network_phase)
     {
-      network_targets = arg_get_value (preferences, "network_targets");
       if (network_targets == NULL)
         {
           log_write ("WARNING: In network phase, but without targets! Stopping.\n");
@@ -1229,15 +1281,26 @@ attack_network (struct arglist *globals)
         }
       else
         {
-          log_write
-            ("Start a new scan. Target(s) : %s, in network phase with target %s\n",
-             hostlist, network_targets);
+          int rc;
+
+          log_write ("Start a new scan. Target(s) : %s, "
+                     "in network phase with target %s\n",
+                     hostlist, network_targets);
+
+          rc = kb_new (network_kb, scanner_kb_path (globals));
+          if (rc)
+            {
+              report_kb_failure (globals, rc);
+              host = NULL;
+            }
+          else
+            kb_lnk_reset (*network_kb);
         }
     }
   else
     {
-      log_write ("Starts a new scan. Target(s) : %s, with max_hosts = %d and"
-                 " max_checks = %d\n", hostlist, max_hosts, max_checks);
+      log_write ("Starts a new scan. Target(s) : %s, with max_hosts = %d and "
+                 "max_checks = %d\n", hostlist, max_hosts, max_checks);
     }
 
   hosts = openvas_hosts_new (hostlist);
@@ -1332,8 +1395,9 @@ attack_network (struct arglist *globals)
           strncpy (args.fqdn, name, sizeof (args.fqdn));
           g_free (name);
           args.host_mac_addr = MAC;
-          args.sched = sched;
+          args.sched         = sched;
           args.thread_socket = s;
+          args.net_kb        = network_kb;
 
         forkagain:
           pid = create_process ((process_func_t) attack_start, &args);
@@ -1349,9 +1413,9 @@ attack_network (struct arglist *globals)
                   goto stop;
                 }
 
-              log_write
-                ("fork() failed - sleeping %d seconds and trying again...\n",
-                 fork_retries);
+              log_write ("fork() failed - "
+                         "sleeping %d seconds and trying again...\n",
+                         fork_retries);
               fork_sleep (fork_retries);
               goto forkagain;
             }
@@ -1399,7 +1463,7 @@ scan_stop:
     g_hash_table_foreach_remove (files, (GHRFunc) free_uploaded_file, NULL);
 
 stop:
-  scan_stopped = GPOINTER_TO_SIZE(arg_get_value (globals, "stop_required"));
+  scan_stopped = !!(GPOINTER_TO_SIZE(arg_get_value (globals, "stop_required")));
 
   openvas_hosts_free (hosts);
   openvas_hosts_free (hosts_allow);
@@ -1414,7 +1478,5 @@ stop:
              now.tv_sec - then.tv_sec);
 
   if (do_network_scan && network_phase && !scan_stopped)
-    attack_network (globals);
-
-  return;
+    attack_network (globals, network_kb);
 }

@@ -396,6 +396,7 @@ get_x509_dname (int soc, char *x509_dname, size_t x509_dname_size)
 static void
 handle_client (struct arglist *globals)
 {
+  kb_t net_kb = NULL;
   struct arglist *prefs = arg_get_value (globals, "preferences");
 
   /* Become process group leader and the like ... */
@@ -404,7 +405,12 @@ wait:
   comm_wait_order (globals);
   preferences_reset_cache ();
   ntp_timestamp_scan_starts (globals);
-  attack_network (globals);
+  attack_network (globals, &net_kb);
+  if (net_kb != NULL)
+    {
+      kb_delete (net_kb);
+      net_kb = NULL;
+    }
   ntp_timestamp_scan_ends (globals);
   comm_terminate (globals);
   if (arg_get_value (prefs, "ntp_keep_communication_alive"))

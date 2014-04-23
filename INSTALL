@@ -15,6 +15,8 @@ Prerequisites:
 * gnutls >= 2.8
 * openvas-libraries >= 7.0.0
 * pkg-config
+* hiredis >= 0.10.1
+* redis >= 2.4.0
 
 Prerequisites for building documentation:
 * Doxygen
@@ -128,7 +130,16 @@ Setting up an openvas-scanner requires the following steps:
    without permission to perform these operations, your scan results are very
    likely to be incomplete.
 
-5) Once the scanner has started, openvas-manager can act as a client and control
+5) The scanner needs a running redis server to temporarily store information
+   gathered on the scanned hosts. Redis 2.4 and newer is supported but 2.6
+   is recommended. See doc/redis_config.txt to see how to setup and run a redis
+   server.
+
+   Edit the configuration file and run:
+
+   $ redis-server /etc/redis.conf
+
+6) Once the scanner has started, openvas-manager can act as a client and control
    the scanner. The actual user interfaces (for example GSA or CLI-OMP)
    will only interact with the manager, not the scanner.
 

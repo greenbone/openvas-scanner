@@ -1,3 +1,45 @@
+2014-04-23  Henri Doreau <henri.doreau@gmail.com>
+
+	Use the new KB interface exposed by openvas-libraries. Updated
+	documentation to describe how to setup and configure a redis backend.
+
+	* INSTALL: Added information about supported versions of redis and how
+	to set it up for OpenVAS scanner.
+
+	* doc/redis_config.txt: Added information about how to configure redis
+	to serve KBs.
+
+	* src/save_kb.c, src/save_kb.c src/piic.c, src/piic.h, src/locks.c,
+	src/locks.h: Removed unused files.
+
+	* src/CMakeLists.txt: Updated accordingly.
+
+	* src/plugs_req.c (key_missing, key_present): Updated to make use of the
+	new KB interface and types.
+
+	* src/pluginlaunch.c (process_internal_msg): Ignore obsolete KB update
+	messages.
+
+	* src/openvassd.c (scanner_thread): Define and expose a KB handle for
+	network scan, delete it eventually if needed.
+
+	* src/attack.h (attack_network): The function now takes an optional
+	pointer to a network KB. Updated prototype accordingly.
+
+	* src/attack.c (KB_PATH_DEFAULT, scanner_kb_path, network_scan_status)
+	(kb_duplicate): new.
+	(launch_plugin): Removed save_kb_* statements which aren't needed
+	anymore.
+	(check_kb_access, report_kb_failure): Introduced two functions to check
+	if the scanner can reach the KB and report potential errors to the
+	manager.
+	(init_host_kb): Use the new KB initialization method. Propagate errors
+	on failure. Removed save_kb_* statements which aren't needed anymore.
+	(attack_host): Use the new KB interface. Propagate errors on failure.
+	Eventually delete host KB.
+	(attack_start): Receive, initialize and forward net KB handle if needed.
+	reset KB link on fork.
+
 2014-04-23  Benoît Allard  <benoit.allard@greenbone.net>
 
 	Post release version bump.

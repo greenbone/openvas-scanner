@@ -106,10 +106,15 @@ key_missing (kb_t kb, struct arglist *keys)
     {
       while (keys->next != NULL)
         {
-          if (kb_item_get_single (kb, keys->name, 0) == NULL)
-            return keys->name;
-          else
-            keys = keys->next;
+          struct kb_item *kbi;
+
+          kbi = kb_item_get_single (kb, keys->name, KB_TYPE_UNSPEC);
+          if (kbi != NULL)
+            {
+              kb_item_free (kbi);
+              keys = keys->next;
+            }
+          else return keys->name;
         }
     }
   return NULL;
@@ -127,10 +132,15 @@ key_present (kb_t kb, struct arglist *keys)
     {
       while (keys->next != NULL)
         {
-          if (kb_item_get_single (kb, keys->name, 0) != NULL)
-            return keys->name;
-          else
-            keys = keys->next;
+          struct kb_item *kbi;
+
+          kbi = kb_item_get_single (kb, keys->name, KB_TYPE_UNSPEC);
+          if (kbi != NULL)
+            {
+              kb_item_free (kbi);
+              return keys->name;
+            }
+          else keys = keys->next;
         }
     }
   return NULL;

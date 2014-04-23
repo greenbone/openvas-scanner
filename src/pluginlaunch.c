@@ -39,7 +39,6 @@
 #include <openvas/misc/system.h>     /* for efree */
 
 #include "pluginload.h"
-#include "piic.h"
 #include "utils.h"
 #include "preferences.h"
 #include "log.h"
@@ -116,8 +115,7 @@ process_internal_msg (int p)
   else if (type & INTERNAL_COMM_MSG_TYPE_KB)
     {
       e = 0;
-      kb_parse (processes[p].internal_soc, processes[p].globals,
-                processes[p].kb, buffer, type);
+      log_write ("Received an obsolete KB message. Ignoring.\n");
     }
   else if (type & INTERNAL_COMM_MSG_TYPE_CTRL)
     {

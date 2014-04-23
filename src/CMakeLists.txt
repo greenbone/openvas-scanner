@@ -25,11 +25,11 @@
 
 ## Program
 
-add_executable (openvassd attack.c comm.c hosts.c locks.c log.c
+add_executable (openvassd attack.c comm.c hosts.c log.c
                 nasl_plugins.c ntp.c openvassd.c otp.c
-                piic.c pluginlaunch.c pluginload.c
+                pluginlaunch.c pluginload.c
                 pluginscheduler.c plugs_req.c preferences.c
-                processes.c save_kb.c sighand.c utils.c)
+                processes.c sighand.c utils.c)
 
 set_target_properties (openvassd PROPERTIES LINKER_LANGUAGE C)
 
@@ -133,11 +133,11 @@ add_dependencies (check splint rats flawfinder)
 
 ## Tag files
 
-set (C_FILES "attack.c" "comm.c" "hosts.c" "locks.c" "log.c"
+set (C_FILES "attack.c" "comm.c" "hosts.c" "log.c"
      "nasl_plugins.c" "ntp.c" "openvassd.c" "otp.c"
-     "piic.c" "pluginlaunch.c" "pluginload.c"
+     "pluginlaunch.c" "pluginload.c"
      "pluginscheduler.c" "plugs_req.c" "preferences.c"
-     "processes.c" "save_kb.c" "sighand.c" "utils.c")
+     "processes.c" "sighand.c" "utils.c")
 add_custom_target (etags COMMENT "Building TAGS..."
                    COMMAND etags ${C_FILES})
 add_custom_target (ctags COMMENT "Building tags..."
