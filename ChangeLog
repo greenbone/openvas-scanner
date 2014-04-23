@@ -1,5 +1,10 @@
 2014-04-23  Jan-Oliver Wagner <jan-oliver.wagner@greenbone.net>
 
+	* CMakeLists.txt: Increase dependency to openvas-libraries
+	from 7.0.0 to 8.0.0.
+	
+2014-04-23  Jan-Oliver Wagner <jan-oliver.wagner@greenbone.net>
+
 	Post branch version bump.
 
 	* CMakeLists.txt: Set to version to 5.0.0 and beta status.

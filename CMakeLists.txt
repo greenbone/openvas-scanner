@@ -7,7 +7,7 @@
 # Jan-Oliver Wagner <jan-oliver.wagner@greenbone.net>
 #
 # Copyright:
-# Copyright (C) 2011 Greenbone Networks GmbH
+# Copyright (C) 2011-2014 Greenbone Networks GmbH
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License version 2,
@@ -182,7 +182,7 @@ message ("-- Install prefix: ${CMAKE_INSTALL_PREFIX}")
 ## list and throw an error, otherwise long install-cmake-install-cmake cycles
 ## might occur.
 
-pkg_check_modules (LIBOPENVAS REQUIRED libopenvas>=7.0.0)
+pkg_check_modules (LIBOPENVAS REQUIRED libopenvas>=8.0.0)
 pkg_check_modules (GNUTLS REQUIRED gnutls>=2.8)
 pkg_check_modules (GLIB REQUIRED glib-2.0>=2.16)
 
