@@ -1,3 +1,8 @@
+2014-04-24  Henri Doreau <henri.doreau@gmail.com>
+
+	* doc/redis_config.txt: Added information about how to configure redis
+	to serve KBs.
+
 2014-04-23  Henri Doreau <henri.doreau@gmail.com>
 
 	* src/pluginlaunch.c (process_internal_msg): Remove dead code.
@@ -20,9 +25,6 @@
 
 	* INSTALL: Added information about supported versions of redis and how
 	to set it up for OpenVAS scanner.
-
-	* doc/redis_config.txt: Added information about how to configure redis
-	to serve KBs.
 
 	* src/save_kb.c, src/save_kb.c src/piic.c, src/piic.h, src/locks.c,
 	src/locks.h: Removed unused files.
