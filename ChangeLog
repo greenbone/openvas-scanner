@@ -1,3 +1,12 @@
+2014-04-29  Jan-Oliver Wagner <jan-oliver.wagner@greenbone.net>
+
+	* doc/example_redis_2_4.conf.in, doc/example_redis_2_6.conf.in: New.
+
+	* INSTALL: Updated step 5 about redis to mention the above new examples.
+	Also increased version of required openvas-libraries to 8.0.0.
+
+	* CMakeLists.txt: Configure and install the two new example files.
+
 2014-04-24  Henri Doreau <henri.doreau@gmail.com>
 
 	* doc/redis_config.txt: Added information about how to configure redis

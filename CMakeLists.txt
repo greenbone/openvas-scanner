@@ -223,6 +223,8 @@ string (REPLACE "
 configure_file (doc/Doxyfile.in doc/Doxyfile @ONLY)
 configure_file (doc/Doxyfile_full.in doc/Doxyfile_full @ONLY)
 configure_file (doc/openvassd.8.in doc/openvassd.8 @ONLY)
+configure_file (doc/example_redis_2_4.conf.in doc/example_redis_2_4.conf @ONLY)
+configure_file (doc/example_redis_2_6.conf.in doc/example_redis_2_6.conf @ONLY)
 configure_file (VERSION.in VERSION @ONLY)
 configure_file (tools/openvas-mkcert.in tools/openvas-mkcert @ONLY)
 configure_file (tools/openvas-mkcert-client.in tools/openvas-mkcert-client @ONLY)
@@ -276,6 +278,10 @@ install (FILES ${CMAKE_SOURCE_DIR}/doc/openvas-mkcert.8
                ${CMAKE_SOURCE_DIR}/doc/openvas-nvt-sync.8
                ${CMAKE_SOURCE_DIR}/doc/greenbone-nvt-sync.8
          DESTINATION ${DATADIR}/man/man8 )
+
+install (FILES ${CMAKE_BINARY_DIR}/doc/example_redis_2_4.conf
+               ${CMAKE_BINARY_DIR}/doc/example_redis_2_6.conf
+         DESTINATION ${DATADIR}/doc/openvas-scanner/ )
 
 install (DIRECTORY DESTINATION ${OPENVAS_NVT_DIR})
 install (DIRECTORY DESTINATION ${OPENVAS_CACHE_DIR})

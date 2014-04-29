@@ -13,7 +13,7 @@ Prerequisites:
 * cmake
 * glib-2.0 >= 2.16
 * gnutls >= 2.8
-* openvas-libraries >= 7.0.0
+* openvas-libraries >= 8.0.0
 * pkg-config
 * hiredis >= 0.10.1
 * redis >= 2.4.0
@@ -135,9 +135,15 @@ Setting up an openvas-scanner requires the following steps:
    is recommended. See doc/redis_config.txt to see how to setup and run a redis
    server.
 
-   Edit the configuration file and run:
+   Two examples are installed which may use directly for a quick start:
 
-   $ redis-server /etc/redis.conf
+   $ redis-server /share/doc/openvas-scanner/example_redis_2_4.conf
+
+   or
+
+   $ redis-server /share/doc/openvas-scanner/example_redis_2_6.conf
+
+   or copy to another location, edit and us instead.
 
 6) Once the scanner has started, openvas-manager can act as a client and control
    the scanner. The actual user interfaces (for example GSA or CLI-OMP)
