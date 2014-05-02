@@ -1,3 +1,8 @@
+2014-05-02  Hani Benhabiles  <hani.benhabiles@greenbone.net>
+
+	* src/attack.c (fill_host_kb_ssh_credentials): Don't fill publickey ssh
+	kb entry.
+
 2014-05-02  Henri Doreau <henri.doreau@gmail.com>
 
 	* COPYING: Updated according to recent changes.

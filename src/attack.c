@@ -576,16 +576,7 @@ fill_host_kb_ssh_credentials (kb_t kb, struct arglist *globals,
   if (login->ssh_key_passphrase)
     kb_item_set_str (kb, "Secret/SSH/passphrase", login->ssh_key_passphrase);
 
-  // For the key-files: look up content uploaded by client and set in kb
-  if (login->public_key_path)
-    {
-      char *contents = g_hash_table_lookup (file_translation,
-                                            login->public_key_path);
-      if (contents)
-        {
-          kb_item_set_str (kb, "Secret/SSH/publickey", contents);
-        }
-    }
+  // For private key-file: look up content uploaded by client and set in kb
   if (login->private_key_path)
     {
       char *contents = g_hash_table_lookup (file_translation,
