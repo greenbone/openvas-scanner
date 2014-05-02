@@ -17,20 +17,17 @@ as changes were applied:
 src/attack.[c|h]: GPLv2
 src/comm.[c|h]: GPLv2
 src/hosts.[c|h]: GPLv2
-src/locks.[c|h]: GPLv2
 src/log.[c|h]: GPLv2
 src/nasl_plugins.c: GPLv2
 src/ntp.[c|h]: GPLv2
 src/openvassd.c: GPLv2
 src/otp.[c|h]: GPLv2+
-src/piic.[c|h]: GPLv2
 src/pluginlaunch.[c|h]: GPLv2
 src/pluginload.[c|h]: GPLv2
 src/pluginscheduler.[c|h]: GPLv2
 src/plugs_req.[c|h]: GPLv2
 src/preferences.[c|h]: GPLv2
 src/processes.[c|h]: GPLv2
-src/save_kb.[c|h]: GPLv2
 src/sighand.[c|h]: GPLv2
 src/utils.[c|h]: GPLv2
 

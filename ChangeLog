@@ -1,3 +1,7 @@
+2014-05-02  Henri Doreau <henri.doreau@gmail.com>
+
+	* COPYING: Updated according to recent changes.
+
 2014-04-29  Jan-Oliver Wagner <jan-oliver.wagner@greenbone.net>
 
 	* doc/example_redis_2_4.conf.in, doc/example_redis_2_6.conf.in: New.
