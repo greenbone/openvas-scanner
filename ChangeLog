@@ -1,3 +1,7 @@
+2014-05-14  Hani Benhabiles  <hani.benhabiles@greenbone.net>
+
+	* doc/openassd.8.in: Fix typo.
+
 2014-05-08  Jan-Oliver Wagner <jan-oliver.wagner@greenbone.net>
 
 	* doc/redis_config.txt: Added a secion how to use redis-cli

@@ -54,7 +54,7 @@ cipher suites.
 Sets the path to a PEM file containing Diffie-Hellman parameters. Needed for key
 DHE-based key exchange algorithms that provide Perfect Forward Secrecy.
 This file could be generated using tools like "openssl dhparam" and
-"certtool --genrate-dh-params".
+"certtool --generate-dh-params".
 
 .TP 
 .B "-f, --foreground"
