@@ -1,3 +1,7 @@
+2014-05-21  Henri Doreau <henri.doreau@gmail.com>
+
+	* src/attack.c (KB_PATH_DEFAULT): Use definition from openvas-libraries.
+
 2014-05-14  Hani Benhabiles  <hani.benhabiles@greenbone.net>
 
 	* doc/openassd.8.in: Fix typo.

@@ -69,8 +69,6 @@
 
 #define MAX_FORK_RETRIES 10
 
-#define KB_PATH_DEFAULT "/tmp/redis.sock"
-
 
 static gchar *scanner_kb_path (struct arglist *globals)
 {
