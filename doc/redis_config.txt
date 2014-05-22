@@ -95,3 +95,9 @@ redis /tmp/redis.sock[1]> keys "*ALARM*"
 
 Note that keys will disappear once a scan of a host finished.
 When the scanner is not active, the store is empty.
+
+The keys contain sets, not strings. So instead of the "get" command
+you need to use "smembers" to view the content:
+
+redis /tmp/redis.sock[1]> smembers Sun/VirtualBox/Lin/Ver
+1) "4.3.12.93733"

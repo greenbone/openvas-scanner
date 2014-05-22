@@ -1,3 +1,7 @@
+2014-05-22  Jan-Oliver Wagner <jan-oliver.wagner@greenbone.net>
+
+	* doc/redis_config.txt: Added some more notes on using redis-cli.
+
 2014-05-21  Henri Doreau <henri.doreau@gmail.com>
 
 	* src/attack.c (KB_PATH_DEFAULT): Use definition from openvas-libraries.
