@@ -631,11 +631,11 @@ init_host_kb (struct arglist *globals, char *hostname,
               struct arglist *hostinfos, kb_t *network_kb)
 {
   kb_t kb;
-  gchar *vhosts;
+  gchar *vhosts, *hostname_pattern, *hoststr;
   enum net_scan_status nss;
   gchar *kb_path = scanner_kb_path (globals);
-  gchar *hostname_pattern;
   int rc;
+  struct in6_addr *hostip;
 
   nss = network_scan_status (globals);
   switch (nss)
@@ -670,6 +670,22 @@ init_host_kb (struct arglist *globals, char *hostname,
           }
         arg_add_value (globals, "CURRENTLY_TESTED_HOST", ARG_STRING,
                        strlen (hostname), hostname);
+    }
+
+  /* Add Hostname and Host-IP */
+  hoststr = arg_get_value (hostinfos, "FQDN");
+  if (hoststr)
+    kb_item_add_str (kb, "Hostname", hoststr);
+  hostip = arg_get_value (hostinfos, "IP");
+  if (hostip)
+    {
+      char ipstr[INET6_ADDRSTRLEN];
+
+      if (IN6_IS_ADDR_V4MAPPED (hostip))
+        inet_ntop (AF_INET, ((char *) (hostip)) + 12, ipstr, sizeof (ipstr));
+      else
+        inet_ntop (AF_INET6, hostip, ipstr, sizeof (ipstr));
+      kb_item_add_str (kb, "Host-IP", ipstr);
     }
 
   /* Add local check (SSH)- related knowledge base items. */

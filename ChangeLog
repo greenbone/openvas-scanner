@@ -1,3 +1,8 @@
+2014-05-27  Hani Benhabiles  <hani.benhabiles@greenbone.net>
+
+	* src/attack.c (init_host_kb): Add "Hostname" and "Host-IP" KB entries
+	for the host's name and IP address values.
+
 2014-05-22  Jan-Oliver Wagner <jan-oliver.wagner@greenbone.net>
 
 	* doc/redis_config.txt: Added some more notes on using redis-cli.
