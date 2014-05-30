@@ -1,3 +1,7 @@
+2014-05-30  Jan-Oliver Wagner <jan-oliver.wagner@greenbone.net>
+
+	* tools/greenbone-nvt-sync: Fixed URL of feed home.
+
 2014-02-28  Michael Wiegand <michael.wiegand@greenbone.net>
 
 	Post release version bump.
