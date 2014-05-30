@@ -29,7 +29,7 @@
 # with some characters in order to make it newer than
 # any follow-up version to prevent that your version
 # will be overwritten.
-VERSION=20130301
+VERSION=20140530
 
 # SETTINGS
 # ========
@@ -162,7 +162,7 @@ init_sync ()
   fi
 
   if [ -z "$FEED_HOME" ] ; then
-    FEED_HOME="http://www.greenbone.net/solutions/gbn_feed.html"
+    FEED_HOME="http://www.greenbone.net/technology/gsf.html"
   fi
 }
 

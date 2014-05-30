@@ -1,3 +1,7 @@
+2014-05-30  Jan-Oliver Wagner <jan-oliver.wagner@greenbone.net>
+
+	* tools/greenbone-nvt-sync: Fixed URL of feed home.
+
 2014-05-27  Hani Benhabiles  <hani.benhabiles@greenbone.net>
 
 	* src/attack.c (init_host_kb): Add "Hostname" and "Host-IP" KB entries
