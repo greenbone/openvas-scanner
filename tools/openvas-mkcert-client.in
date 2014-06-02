@@ -184,7 +184,7 @@ commonName              = supplied
 emailAddress            = optional
 
 [ req ]
-default_bits		= 1024
+default_bits		= 4096
 distinguished_name	= req_distinguished_name
 # attributes		= req_attributes
 x509_extensions	= v3_ca	# The extentions to add to the self signed cert
@@ -332,7 +332,7 @@ while [ "$ANOTHER" != `echo "n"` ]; do
     fi
 
     # Client key
-    openssl genrsa -out $KEYFILE 1024
+    openssl genrsa -out $KEYFILE 4096
 
     # Client certificate "request"
 echo "${COUNTRY:-.}

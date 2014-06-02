@@ -1,3 +1,8 @@
+2014-06-02  Hani Benhabiles  <hani.benhabiles@greenbone.net>
+
+	* tools/openvas-mkcert-client.in, tools/openvas-mkcert.in: Default to
+	4096 bits RSA keys instead of 1024.
+
 2014-05-30  Jan-Oliver Wagner <jan-oliver.wagner@greenbone.net>
 
 	* tools/greenbone-nvt-sync: Fixed URL of feed home.

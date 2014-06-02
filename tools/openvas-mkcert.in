@@ -259,7 +259,7 @@ commonName              = supplied
 emailAddress            = optional
 
 [ req ]
-default_bits		= 1024
+default_bits		= 4096
 distinguished_name	= req_distinguished_name
 # attributes		= req_attributes
 x509_extensions	= v3_ca	# The extentions to add to the self signed cert
@@ -379,7 +379,7 @@ SRVMAIL=openvassd@$hostname
 
 echo 01 > $BASEDIR/serial
 touch $BASEDIR/index.txt
-openssl genrsa $RANDFLAG -out $CAKEY  1024 2> $BASEDIR/openssl-log
+openssl genrsa $RANDFLAG -out $CAKEY  4096 2> $BASEDIR/openssl-log
 
 
 echo "$COUNTRY
@@ -392,7 +392,7 @@ $CAMAIL" |
 openssl req -config $BASEDIR/std.cnf -new -x509 -days $CACERT_LIFETIME -key $CAKEY -out $CACERT 2>> $BASEDIR/openssl-log
 
 # Server key
-openssl genrsa $RANDFLAG -out $SRVKEY 1024 2>> $BASEDIR/openssl-log
+openssl genrsa $RANDFLAG -out $SRVKEY 4096 2>> $BASEDIR/openssl-log
 
 # Server certificate "request"
 echo "$COUNTRY
