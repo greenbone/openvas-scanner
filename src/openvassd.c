@@ -930,6 +930,7 @@ main (int argc, char *argv[])
   handler_pid = loading_handler_start ();
   init_plugins (options);
   loading_handler_stop (handler_pid);
+  kb_flush (KB_PATH_DEFAULT);
   main_loop ();
   exit (0);
 }

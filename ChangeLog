@@ -1,3 +1,9 @@
+2014-06-05  Hani Benhabiles  <hani.benhabiles@greenbone.net>
+
+	* src/openvassd.c (main): Flush all keyspaces in KB on start-up. This
+	is done in order to not get stuck with left-overs from older scanner
+	instances that were abruptly terminated during scans.
+
 2014-06-02  Hani Benhabiles  <hani.benhabiles@greenbone.net>
 
 	* tools/openvas-mkcert-client.in, tools/openvas-mkcert.in: Default to
