@@ -1,3 +1,9 @@
+2014-06-05  Henri Doreau <henri.doreau@gmail.com>
+
+	* src/openvassd.c (main): Replaced kb_flush() by flush_all_kbs().
+	(flush_all_kbs): new function. Initialize a KB handle and flush all
+	entries.
+
 2014-06-05  Hani Benhabiles  <hani.benhabiles@greenbone.net>
 
 	* src/openvassd.c (main): Flush all keyspaces in KB on start-up. This

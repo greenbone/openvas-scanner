@@ -736,6 +736,22 @@ set_daemon_mode ()
   setsid ();
 }
 
+static int
+flush_all_kbs (void)
+{
+  kb_t kb;
+  int rc;
+
+  rc = kb_new (&kb, KB_PATH_DEFAULT);
+  if (rc)
+    return rc;
+
+  rc = kb_flush (kb);
+
+  kb_delete (kb);
+  return rc;
+}
+
 /**
  * @brief openvassd.
  * @param argc Argument count.
@@ -930,7 +946,7 @@ main (int argc, char *argv[])
   handler_pid = loading_handler_start ();
   init_plugins (options);
   loading_handler_stop (handler_pid);
-  kb_flush (KB_PATH_DEFAULT);
+  flush_all_kbs ();
   main_loop ();
   exit (0);
 }
