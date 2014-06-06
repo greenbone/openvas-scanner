@@ -29,7 +29,7 @@
 # with some characters in order to make it newer than
 # any follow-up version to prevent that your version
 # will be overwritten.
-VERSION=20130301
+VERSION=20140606
 
 # SETTINGS
 # ========
@@ -164,6 +164,8 @@ init_sync ()
   if [ -z "$FEED_HOME" ] ; then
     FEED_HOME="http://www.greenbone.net/technology/gsf.html"
   fi
+
+  FEED_CURRENT=0
 }
 
 is_feed_current () {
@@ -403,8 +405,6 @@ do_feedversion () {
 
 do_sync ()
 {
-  log_write "Starting synchronization."
-
   init_sync
 
   if [ $REFRESH_ONLY -ne 1 ]
@@ -420,7 +420,6 @@ do_sync ()
     update_openvassd
     sleep 1 # to ensure sd started working before md starts
     update_openvasmd
-    log_write "Synchronization successful."
   fi
 }
 

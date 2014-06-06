@@ -1,3 +1,13 @@
+2014-06-06  Michael Wiegand <michael.wiegand@greenbone.net>
+
+	Backport r19606.
+
+	* tools/greenbone-nvt-sync (init_sync): Ensure FEED_CURRENT is
+	initialized.
+	(do_sync): Remove superfluous and potentially confusing log messages.
+	A synchronization may or may not take place in do_sync. If it takes
+	place, sync_nvts will log more accurate messages anyway.
+
 2014-05-30  Jan-Oliver Wagner <jan-oliver.wagner@greenbone.net>
 
 	* tools/greenbone-nvt-sync: Fixed URL of feed home.
