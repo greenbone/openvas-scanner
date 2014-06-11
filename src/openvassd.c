@@ -799,7 +799,7 @@ main (int argc, char *argv[])
     {"port", 'p', 0, G_OPTION_ARG_STRING, &port,
      "Use port number <number>", "<number>"},
     {"config-file", 'c', 0, G_OPTION_ARG_FILENAME, &config_file,
-     "Configuration file", "<.rcfile>"},
+     "Configuration file", "<filename>"},
     {"cfg-specs", 's', 0, G_OPTION_ARG_NONE, &print_specs,
      "Print configuration settings", NULL},
     {"sysconfdir", 'y', 0, G_OPTION_ARG_NONE, &print_sysconfdir,
