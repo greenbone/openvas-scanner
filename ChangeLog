@@ -1,3 +1,8 @@
+2014-06-25  Hani Benhabiles  <hani.benhabiles@greenbone.net>
+
+	* tools/openvas-mkcert.in, tools/openvas-mkcert-client.in: Sign
+	certificates with SHA-256 instead of SHA1.
+
 2014-06-11  Jan-Oliver Wagner <jan-oliver.wagner@greenbone.net>
 
 	* src/openvassd.c (main): Better term for help info: "filename"
