@@ -123,13 +123,7 @@ forward (int in, int out)
         }
     }
 
-  if (bufsz > 65535)
-    {
-      efree (&buf);
-      buf = NULL;
-      bufsz = 0;
-    }
-
+  efree (&buf);
   return 0;
 }
 
