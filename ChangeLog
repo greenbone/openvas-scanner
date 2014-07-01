@@ -1,3 +1,14 @@
+2014-07-01  Hani Benhabiles  <hani.benhabiles@greenbone.net>
+
+	Backport r19791.
+
+	* src/openvassd.c (gcrypt_init): New function.
+	(main): Initialize libgcrypt.
+
+	* CMakeLists.txt (GCRYPT_LDFLAGS, GCRYPT_CFLAGS): New variables.
+
+	* src/CMakeLists.txt: Link against libgcrypt.
+
 2014-06-06  Michael Wiegand <michael.wiegand@greenbone.net>
 
 	Backport r19606.

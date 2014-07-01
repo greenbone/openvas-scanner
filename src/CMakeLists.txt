@@ -108,7 +108,7 @@ if (NVT_TIMEOUT)
 endif (NVT_TIMEOUT)
 
 target_link_libraries (openvassd
-                       "${OPENVAS_LDFLAGS} ${GLIB_LDFLAGS} ${GNUTLS_LDFLAGS}")
+                       "${OPENVAS_LDFLAGS} ${GLIB_LDFLAGS} ${GCRYPT_LDFLAGS} ${GNUTLS_LDFLAGS}")
 
 set_target_properties (openvassd PROPERTIES COMPILE_FLAGS
                        "${OPENVAS_CFLAGS} ${GLIB_CFLAGS} ${GNUTLS_CFLAGS}")
