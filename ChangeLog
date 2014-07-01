@@ -1,3 +1,12 @@
+2014-07-01  Hani Benhabiles  <hani.benhabiles@greenbone.net>
+
+	* src/openvassd.c (gcrypt_init): New function.
+	(main): Initialize libgcrypt.
+
+	* CMakeLists.txt (GCRYPT_LDFLAGS, GCRYPT_CFLAGS): New variables.
+
+	* src/CMakeLists.txt: Link against libgcrypt.
+
 2014-06-26  Hani Benhabiles  <hani.benhabiles@greenbone.net>
 
 	* src/hosts.c (forward), src/pluginlaunch.c (process_internal_msg): Fix

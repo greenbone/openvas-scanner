@@ -63,6 +63,7 @@
 #include <gnutls/gnutls.h>
 #include <gnutls/x509.h>
 #include <glib.h>
+#include <gcrypt.h>
 
 
 #include "pluginload.h"
@@ -752,6 +753,18 @@ flush_all_kbs (void)
   return rc;
 }
 
+static void
+gcrypt_init ()
+{
+  if (gcry_control (GCRYCTL_ANY_INITIALIZATION_P))
+    return;
+  gcry_check_version (NULL);
+  gcry_control (GCRYCTL_SUSPEND_SECMEM_WARN);
+  gcry_control (GCRYCTL_INIT_SECMEM, 16384, 0);
+  gcry_control (GCRYCTL_RESUME_SECMEM_WARN);
+  gcry_control (GCRYCTL_INITIALIZATION_FINISHED);
+}
+
 /**
  * @brief openvassd.
  * @param argc Argument count.
@@ -771,6 +784,7 @@ main (int argc, char *argv[])
   struct sockaddr_in6 s6addr;
 
   proctitle_init (argc, argv);
+  gcrypt_init ();
 
   if ((myself = strrchr (*argv, '/')) == 0)
     myself = *argv;
