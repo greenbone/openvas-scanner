@@ -918,12 +918,8 @@ main (int argc, char *argv[])
 
   if (config_file != NULL)
     g_hash_table_insert (options, "acc_hint", GSIZE_TO_POINTER(1));
-
-  if (!config_file)
-    {
-      config_file = emalloc (strlen (OPENVASSD_CONF) + 1);
-      strncpy (config_file, OPENVASSD_CONF, strlen (OPENVASSD_CONF));
-    }
+  else
+    config_file = OPENVASSD_CONF;
 
   g_hash_table_insert (options, "scanner_port",
                        GSIZE_TO_POINTER (scanner_port));

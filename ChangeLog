@@ -1,5 +1,9 @@
 2014-07-02  Henri Doreau <henri.doreau@gmail.com>
 
+	* src/openvassd (main): Removed clumsy and unneeded string duplication.
+
+2014-07-02  Henri Doreau <henri.doreau@gmail.com>
+
 	* src/openvassd.c (global_options): Change type to GHashTable.
 	(arg_replace_value): Removed unused function.
 	(main_loop, init_plugins, init_openvassd, main): Update operations on
