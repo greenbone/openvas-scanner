@@ -1,5 +1,12 @@
 2014-07-02  Henri Doreau <henri.doreau@gmail.com>
 
+	* src/openvassd.c (global_options): Change type to GHashTable.
+	(arg_replace_value): Removed unused function.
+	(main_loop, init_plugins, init_openvassd, main): Update operations on
+	global_options and function prototypes accordingly.
+
+2014-07-02  Henri Doreau <henri.doreau@gmail.com>
+
 	* src/openvassd.c (global_options): Renamed variable for consistency.
 	(global_iana_socket, global_plugins, global_preferences, global_options)
 	(reload, loading_stop, ovas_scanner_ctx ): Mark as static and removed

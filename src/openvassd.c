@@ -87,7 +87,8 @@ int global_max_checks = 10;
 static int global_iana_socket;
 static struct arglist *global_plugins;
 static struct arglist *global_preferences;
-static struct arglist *global_options;
+
+static GHashTable *global_options;
 
 static int reload;
 static int loading_stop;
@@ -109,22 +110,10 @@ dump_cfg_specs (struct arglist *prefs)
 }
 
 static void
-arg_replace_value (struct arglist *arglist, char *name, int type, int length,
-                   void *value)
-{
-  if (arg_get_type (arglist, name) < 0)
-    arg_add_value (arglist, name, type, length, value);
-  else
-    arg_set_value (arglist, name, length, value);
-}
-
-
-static void
 start_daemon_mode (void)
 {
   char *s;
   int fd;
-
 
   /* do not block the listener port for subsequent scanners */
   close (global_iana_socket);
@@ -580,7 +569,7 @@ main_loop ()
 
       check_and_reload ();
       wait_for_children1 ();
-      ai = arg_get_value (global_options, "addr");
+      ai = g_hash_table_lookup (global_options, "addr");
       lg_address = sizeof (struct sockaddr_in6);
       soc = accept (global_iana_socket, (struct sockaddr *) (&address6),
                     &lg_address);
@@ -660,14 +649,14 @@ init_network (int port, int *sock, struct addrinfo addr)
 }
 
 static void
-init_plugins (struct arglist *options)
+init_plugins (GHashTable *options)
 {
   struct arglist *preferences, *plugins;
 
-  preferences = arg_get_value (options, "preferences");
+  preferences = g_hash_table_lookup (options, "preferences");
   plugins = plugins_init (preferences);
 
-  arg_replace_value (options, "plugins", ARG_ARGLIST, -1, plugins);
+  g_hash_table_replace (options, "plugins", plugins);
   plugins_free (global_plugins);
   global_plugins = plugins;
 }
@@ -678,14 +667,19 @@ init_plugins (struct arglist *options)
  * @param stop_early 0: do some initialization, 1: no initialization.
  */
 static int
-init_openvassd (struct arglist *options, int first_pass, int stop_early,
+init_openvassd (GHashTable *options, int first_pass, int stop_early,
                 int dont_fork)
 {
   int isck = -1;
   struct arglist *preferences = NULL;
-  int scanner_port = GPOINTER_TO_SIZE (arg_get_value (options, "scanner_port"));
-  char *config_file = arg_get_value (options, "config_file");
-  struct addrinfo *addr = arg_get_value (options, "addr");
+  int scanner_port;
+  char *config_file;
+  struct addrinfo *addr;
+
+  scanner_port = GPOINTER_TO_SIZE (g_hash_table_lookup (options,
+                                                        "scanner_port"));
+  config_file = g_hash_table_lookup (options, "config_file");
+  addr = g_hash_table_lookup (options, "addr");
 
   preferences_init (config_file, &preferences);
 
@@ -710,9 +704,9 @@ init_openvassd (struct arglist *options, int first_pass, int stop_early,
       openvas_signal (SIGPIPE, SIG_IGN);
     }
 
-  arg_replace_value (options, "isck", ARG_INT, sizeof (gpointer),
-                     GSIZE_TO_POINTER (isck));
-  arg_replace_value (options, "preferences", ARG_ARGLIST, -1, preferences);
+  g_hash_table_replace (options, "isck", GSIZE_TO_POINTER (isck));
+  g_hash_table_replace (options, "preferences", preferences);
+
   set_globals_from_preferences (preferences);
 
   return 0;
@@ -777,7 +771,7 @@ main (int argc, char *argv[])
   int exit_early = 0, scanner_port = 9391;
   pid_t handler_pid;
   char *myself;
-  struct arglist *options = emalloc (sizeof (struct arglist));
+  GHashTable *options;
   struct addrinfo *mysaddr;
   struct addrinfo hints;
   struct addrinfo ai;
@@ -920,8 +914,10 @@ main (int argc, char *argv[])
       exit (0);
     }
 
+  options = g_hash_table_new (g_str_hash, g_str_equal);
+
   if (config_file != NULL)
-    arg_add_value (options, "acc_hint", ARG_INT, sizeof (int), (void *) 1);
+    g_hash_table_insert (options, "acc_hint", GSIZE_TO_POINTER(1));
 
   if (!config_file)
     {
@@ -929,11 +925,10 @@ main (int argc, char *argv[])
       strncpy (config_file, OPENVASSD_CONF, strlen (OPENVASSD_CONF));
     }
 
-  arg_add_value (options, "scanner_port", ARG_INT, sizeof (gpointer),
-                 GSIZE_TO_POINTER (scanner_port));
-  arg_add_value (options, "config_file", ARG_STRING, strlen (config_file),
-                 config_file);
-  arg_add_value (options, "addr", ARG_PTR, -1, &ai);
+  g_hash_table_insert (options, "scanner_port",
+                       GSIZE_TO_POINTER (scanner_port));
+  g_hash_table_insert (options, "config_file", config_file);
+  g_hash_table_insert (options, "addr", &ai);
 
   if (only_cache)
     {
@@ -944,8 +939,8 @@ main (int argc, char *argv[])
 
   init_openvassd (options, 1, exit_early, dont_fork);
   global_options = options;
-  global_iana_socket = GPOINTER_TO_SIZE (arg_get_value (options, "isck"));
-  global_plugins = arg_get_value (options, "plugins");
+  global_iana_socket = GPOINTER_TO_SIZE (g_hash_table_lookup (options, "isck"));
+  global_plugins = g_hash_table_lookup (options, "plugins");
 
   /* special treatment */
   if (print_specs)
@@ -963,5 +958,6 @@ main (int argc, char *argv[])
   loading_handler_stop (handler_pid);
   flush_all_kbs ();
   main_loop ();
+  g_hash_table_destroy (options);
   exit (0);
 }
