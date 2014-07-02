@@ -83,19 +83,20 @@
  */
 int global_max_hosts = 15;
 int global_max_checks = 10;
-struct arglist *g_options = NULL;
 
-int global_iana_socket;
-struct arglist *global_plugins;
-struct arglist *global_preferences;
+static int global_iana_socket;
+static struct arglist *global_plugins;
+static struct arglist *global_preferences;
+static struct arglist *global_options;
 
-static int reload = 0;
-static int loading_stop = 0;
+static int reload;
+static int loading_stop;
 
 /**
  * SSL context may be kept once it is inited.
  */
-static ovas_scanner_context_t ovas_scanner_ctx = NULL;
+static ovas_scanner_context_t ovas_scanner_ctx;
+
 
 static void
 dump_cfg_specs (struct arglist *prefs)
@@ -579,7 +580,7 @@ main_loop ()
 
       check_and_reload ();
       wait_for_children1 ();
-      ai = arg_get_value (g_options, "addr");
+      ai = arg_get_value (global_options, "addr");
       lg_address = sizeof (struct sockaddr_in6);
       soc = accept (global_iana_socket, (struct sockaddr *) (&address6),
                     &lg_address);
@@ -942,7 +943,7 @@ main (int argc, char *argv[])
     }
 
   init_openvassd (options, 1, exit_early, dont_fork);
-  g_options = options;
+  global_options = options;
   global_iana_socket = GPOINTER_TO_SIZE (arg_get_value (options, "isck"));
   global_plugins = arg_get_value (options, "plugins");
 

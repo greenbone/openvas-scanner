@@ -1,3 +1,10 @@
+2014-07-02  Henri Doreau <henri.doreau@gmail.com>
+
+	* src/openvassd.c (global_options): Renamed variable for consistency.
+	(global_iana_socket, global_plugins, global_preferences, global_options)
+	(reload, loading_stop, ovas_scanner_ctx ): Mark as static and removed
+	superfluous initializations.
+
 2014-07-01  Hani Benhabiles  <hani.benhabiles@greenbone.net>
 
 	* src/openvassd.c (gcrypt_init): New function.
