@@ -290,7 +290,6 @@ while [ "$ANOTHER" != `echo "n"` ]; do
     CERTFILE="$BASEDIR/cert_om.pem"
     KEYFILE="$BASEDIR/key_om.pem"
     REQFILE="$BASEDIR/req_om.pem"
-    DNFILE="@OPENVAS_STATE_DIR@/dname"
     if [ -f "$CERTFILE" -o -f "$KEYFILE" ]; then
         echo "Certificate or key for this user already exist."
         exit 1
@@ -348,27 +347,6 @@ ${EMAIL:-.}" |
     openssl ca -config $BASEDIR/stdC.cnf -name OpenVASCA -batch -days $CERT_LIFETIME -in $REQFILE -out $CERTFILE
 
     chmod a+r $CERTFILE
-
-    # create the cert authentication file dname
-    > $DNFILE
-    dn=""
-    [ ! -z "$COUNTRY" -a "$COUNTRY" != "." ] &&
-        dn=$dn"/C=$COUNTRY"
-    [ ! -z "$PROVINCE" -a "$PROVINCE" != "." ] &&
-        dn=$dn"/ST=$PROVINCE"
-    [ ! -z "$LOCATION" -a "$LOCATION" != "." ] &&
-        dn=$dn"/L=$LOCATION"
-    [ ! -z "$ORGANIZATION" -a "$ORGANIZATION" != "." ] &&
-        dn=$dn"/O=$ORGANIZATION"
-    [ ! -z "$ORGUNIT" -a "$ORGUNIT" != "." ] &&
-        dn=$dn"/OU=$ORGUNIT"
-    dn=$dn"/CN=om"
-    [ ! -z "$EMAIL" ] && dn=$dn"/emailAddress=$EMAIL"
-
-    # Convert to gnutls format: Replace "/" with ",", remove first ",",
-    # replace emailAdress= with EMAIL=
-    gdn=`echo $dn | sed -e 's/\//,/g' -e 's/^,//' -e 's/emailAddress/EMAIL/g'`
-    echo "$gdn" > $DNFILE
 
     if [ -n $NONINTERACTIVE ]; then
         ANOTHER=`echo "n"`

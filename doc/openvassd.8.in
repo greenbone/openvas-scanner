@@ -180,7 +180,7 @@ Like hosts_deny. Can't be overridden by the client.
 
 The other options in this file can usually be redefined by the client.
 
-At  log in attempt, openvassd checks that the certificate has been signed by a recognized authority, and makes sure that the dname of the certificate shown by the user is the same as the one in file dname.
+At  log in attempt, openvassd checks that the certificate has been signed by a recognized authority.
 
 .SH NETWORK USAGE
 

@@ -311,79 +311,6 @@ reload_openvassd ()
   openvas_signal (SIGHUP, sighup);
 }
 
-int
-check_client (char *dname)
-{
-  int success = 0;
-
-  if (dname != NULL && *dname != '\0')
-    {
-      FILE *f;
-      if ((f = fopen (OPENVAS_STATE_DIR "/dname", "r")) == NULL)
-        perror (OPENVAS_STATE_DIR "/dname");
-      else
-        {
-          char dnameref[512];
-
-          while (! success
-                 && fgets (dnameref, sizeof (dnameref) - 1, f) != NULL)
-            {
-              char *p;
-              if ((p = strchr (dnameref, '\n')) != NULL)
-                *p = '\0';
-              if (strcmp (dname, dnameref) == 0)
-                success = 1;
-            }
-          if (! success)
-            log_write
-              ("check_client: Bad DN\nGiven DN=%s\nLast tried DN=%s\n",
-               dname, dnameref);
-          fclose (f);
-        }
-    }
-
-  return success;
-}
-
-static int
-get_x509_dname (int soc, char *x509_dname, size_t x509_dname_size)
-{
-  gnutls_session_t session;
-  gnutls_x509_crt_t cert;
-  unsigned int cert_list_size = 0;
-  const gnutls_datum_t *cert_list;
-  int ret;
-
-  session = ovas_get_tlssession_from_connection (soc);
-
-  if (gnutls_certificate_type_get (session) != GNUTLS_CRT_X509)
-    {
-      log_write ("Certificate is not an X.509 certificate.");
-      return -1;
-    }
-  cert_list = gnutls_certificate_get_peers (session, &cert_list_size);
-  if (cert_list_size == 0)
-    return -1;
-
-  gnutls_x509_crt_init (&cert);
-  if ((ret = gnutls_x509_crt_import (cert, &cert_list[0],
-                                     GNUTLS_X509_FMT_DER)) < 0)
-    {
-      log_write ("certificate decoding error: %s\n", gnutls_strerror (ret));
-      gnutls_x509_crt_deinit (cert);
-      return -1;
-    }
-  if ((ret = gnutls_x509_crt_get_dn (cert, x509_dname, &x509_dname_size)) < 0)
-    {
-      log_write ("couldn't get subject from certificate: %s\n",
-                 gnutls_strerror (ret));
-      gnutls_x509_crt_deinit (cert);
-      return -1;
-    }
-  gnutls_x509_crt_deinit (cert);
-  return 0;
-}
-
 static void
 handle_client (struct arglist *globals)
 {
@@ -415,7 +342,7 @@ static void
 scanner_thread (struct arglist *globals)
 {
   struct arglist *prefs = arg_get_value (globals, "preferences");
-  char asciiaddr[INET6_ADDRSTRLEN], x509_dname[512] = { '\0' };
+  char asciiaddr[INET6_ADDRSTRLEN];
   int opt = 1, soc2 = -1, nice_retval, family, soc;
   void *addr = arg_get_value (globals, "client_address");
   struct sockaddr_in *saddr = NULL;
@@ -465,17 +392,6 @@ scanner_thread (struct arglist *globals)
     {
       close_stream_connection (soc);
       exit (0);
-    }
-
-  /* Get X.509 cert subject name */
-  if (get_x509_dname (soc2, x509_dname, sizeof (x509_dname)) != 0)
-    goto shutdown_and_exit;
-
-  if (!check_client (x509_dname))
-    {
-      auth_printf (globals, "Bad login attempt !\n");
-      log_write ("bad login attempt from %s\n", asciiaddr);
-      goto shutdown_and_exit;
     }
   handle_client (globals);
 

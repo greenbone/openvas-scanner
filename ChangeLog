@@ -1,3 +1,13 @@
+2014-07-07  Hani Benhabiles  <hani.benhabiles@greenbone.net>
+
+	* src/openvassd.c (check_client, get_x509_dname): Remove functions.
+	(scanner_thread): Remove useless dname checking as user-management is
+	not part of the scanner anymore.
+
+	* tools/openvas-mkcert-client.in: Don't generate dname file.
+
+	* doc/openvassd.8.in: Update documentation.
+
 2014-07-02  Henri Doreau <henri.doreau@gmail.com>
 
 	* src/openvassd (main): Removed clumsy and unneeded string duplication.
