@@ -1,3 +1,13 @@
+2014-07-09  Hani Benhabiles  <hani.benhabiles@greenbone.net>
+
+	* src/hosts.c (struct host): Remove useless psoc element.
+	(host_rm, hosts_set_pid): Adjust for host structure change.
+	(hosts_new): Take host socket as a function argument instead of creating
+	an unnamed socket pair. Adjust return value accordingly.
+
+	* src/attack.c (attack_network): Adjust for hosts_new() function change.
+	Close socket for child process after the fork.
+
 2014-07-07  Hani Benhabiles  <hani.benhabiles@greenbone.net>
 
 	* src/openvassd.c (check_client, get_x509_dname): Remove functions.

@@ -1372,9 +1372,8 @@ attack_network (struct arglist *globals, kb_t *network_kb)
       else
         {
           struct attack_start_args args;
-          int s;
           char *MAC = NULL;
-          int mac_err = -1;
+          int mac_err = -1, soc[2];
           gchar *name;
 
           if (preferences_get_bool (preferences, "use_mac_addr") > 0
@@ -1390,8 +1389,9 @@ attack_network (struct arglist *globals, kb_t *network_kb)
                 }
             }
 
-          s = hosts_new (globals, hostname);
-          if (s < 0)
+          if (socketpair (AF_UNIX, SOCK_STREAM, 0, soc) < 0)
+            goto scan_stop;
+          if (hosts_new (globals, hostname, soc[1]) < 0)
             goto scan_stop;
 
           args.globals = globals;
@@ -1401,11 +1401,13 @@ attack_network (struct arglist *globals, kb_t *network_kb)
           g_free (name);
           args.host_mac_addr = MAC;
           args.sched         = sched;
-          args.thread_socket = s;
+          args.thread_socket = soc[0];
           args.net_kb        = network_kb;
 
         forkagain:
           pid = create_process ((process_func_t) attack_start, &args);
+          /* Close child process' socket. */
+          close (args.thread_socket);
           if (pid < 0)
             {
               fork_retries++;

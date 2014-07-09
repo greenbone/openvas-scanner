@@ -49,13 +49,12 @@ struct host
 {
   char *name;
   int soc;
-  int psoc;
   pid_t pid;
   struct host *next;
   struct host *prev;
 };
 /** @TODO struct hosts could be stripped down and put in a g_list, or,
- *        as a g_hash_table (name -> [soc,psoc,pid]), see hosts_get.*/
+ *        as a g_hash_table (name -> [soc,pid]), see hosts_get.*/
 
 
 static struct host *hosts = NULL;
@@ -145,9 +144,6 @@ host_rm (struct host *hosts, struct host *h)
   forward_all (h->soc, g_soc);
 
   close (h->soc);
-  if (h->psoc != 0)
-    close (h->psoc);
-
   if (h->next != NULL)
     h->next->prev = h->prev;
 
@@ -204,10 +200,9 @@ hosts_init (int soc, int max_hosts)
 }
 
 int
-hosts_new (struct arglist *globals, char *name)
+hosts_new (struct arglist *globals, char *name, int soc)
 {
   struct host *h;
-  int soc[2];
 
   while (hosts_num () >= g_max_hosts)
     {
@@ -215,20 +210,16 @@ hosts_new (struct arglist *globals, char *name)
         return -1;
     }
 
-  if (socketpair (AF_UNIX, SOCK_STREAM, 0, soc) < 0)
-    return -1;
-
   h = emalloc (sizeof (struct host));
   h->name = estrdup (name);
   h->pid = 0;
-  h->soc = soc[1];
-  h->psoc = soc[0];
+  h->soc = soc;
   if (hosts != NULL)
     hosts->prev = h;
   h->next = hosts;
   h->prev = NULL;
   hosts = h;
-  return soc[0];
+  return 0;
 }
 
 
@@ -243,8 +234,6 @@ hosts_set_pid (char *name, pid_t pid)
     }
 
   h->pid = pid;
-  close (h->psoc);              /* Close the socket used by our son */
-  h->psoc = 0;
   return 0;
 }
 

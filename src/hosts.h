@@ -32,7 +32,7 @@
 #define HOSTS_H
 
 int hosts_init (int, int);
-int hosts_new (struct arglist *, char *);
+int hosts_new (struct arglist *, char *, int);
 int hosts_set_pid (char *, pid_t);
 int hosts_read (struct arglist *);
 void hosts_pause_all ();
