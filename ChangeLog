@@ -1,5 +1,14 @@
 2014-07-10  Hani Benhabiles  <hani.benhabiles@greenbone.net>
 
+	* src/attack.c (attack_start_args): Add parent_socket element.
+	(attack_start): Close unused sockets. Update code style.
+	(attack_network): Set attack arguments accordingly.
+
+	* src/nasl_plugins.c (nasl_thread): Close old socket file descriptor
+	after duplicating it.
+
+2014-07-10  Hani Benhabiles  <hani.benhabiles@greenbone.net>
+
 	* src/pluginlaunch.c (struct running): Remove useless kb, name and sched
 	elements.
 	(update_running_processes, read_running_processes, plugin_launch):

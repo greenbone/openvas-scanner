@@ -228,8 +228,7 @@ nasl_thread (struct arglist *g_args)
   struct arglist *globals = arg_get_value (args, "globals");
   struct arglist *preferences = arg_get_value (g_args, "preferences");
   char *name = arg_get_value (g_args, "name");
-  int soc = GPOINTER_TO_SIZE (arg_get_value (args, "SOCKET"));
-  int i;
+  int i, soc, old_soc;
   int nasl_mode;
   GError *error = NULL;
 
@@ -245,8 +244,10 @@ nasl_thread (struct arglist *g_args)
     }
 
   pluginlaunch_child_cleanup ();
+  old_soc = GPOINTER_TO_SIZE (arg_get_value (args, "SOCKET"));
   /* XXX ugly hack */
-  soc = dup2 (soc, 4);
+  soc = dup2 (old_soc, 4);
+  close (old_soc);
   if (soc < 0)
     {
       log_write ("dup2() failed ! - can not launch the plugin\n");

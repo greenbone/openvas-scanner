@@ -92,6 +92,7 @@ struct attack_start_args
   char *host_mac_addr;
   plugins_scheduler_t sched;
   int thread_socket;
+  int parent_socket;
   kb_t *net_kb;
   char fqdn[1024];
 };
@@ -840,12 +841,10 @@ attack_start (struct attack_start_args *args)
   char *non_simult = arg_get_value (preferences, "non_simult_ports");
   char *vhosts = arg_get_value (preferences, "vhosts");
   char *vhosts_ip = arg_get_value (preferences, "vhosts_ip");
-  int thread_socket = args->thread_socket;
-  int soc;
+  int thread_socket, i;
   struct timeval then, now;
   plugins_scheduler_t sched = args->sched;
   kb_t *net_kb = args->net_kb;
-  int i;
 
   /* Stringify the IP address. */
   if (IN6_IS_ADDR_V4MAPPED (&args->hostip))
@@ -857,7 +856,10 @@ attack_start (struct attack_start_args *args)
   openvas_signal (SIGUSR1, attack_handle_sigusr1);
   openvas_signal (SIGUSR2, attack_handle_sigusr2);
 
-  thread_socket = dup2 (thread_socket, 4);
+  close (args->parent_socket);
+  thread_socket = dup2 (args->thread_socket, 4);
+  if (args->thread_socket != thread_socket)
+    close (args->thread_socket);
 
   /* Close all file descriptors >= 5 */
   for (i = 5; i < getdtablesize (); i++)
@@ -883,7 +885,6 @@ attack_start (struct attack_start_args *args)
   /* Wait for the server to confirm it read our data (prevents client desynch) */
   arg_add_value (globals, "confirm", ARG_INT, sizeof (int), (void *) 1);
 
-  soc = thread_socket;
   if (vhosts == NULL || vhosts_ip == NULL)
     hostinfos = attack_init_hostinfos (mac, host_str, hostip, args->fqdn);
   else
@@ -908,7 +909,7 @@ attack_start (struct attack_start_args *args)
   if (mac)
     strcpy (host_str, mac);
 
-  plugins_set_socket (plugs, soc);
+  plugins_set_socket (plugs, thread_socket);
   ntp_timestamp_host_scan_starts (globals, host_str);
 
   // Start scan
@@ -926,8 +927,8 @@ attack_start (struct attack_start_args *args)
   log_write ("Finished testing %s. Time : %ld.%.2ld secs\n", host_str,
              (long) (now.tv_sec - then.tv_sec),
              (long) ((now.tv_usec - then.tv_usec) / 10000));
-  shutdown (soc, 2);
-  close (soc);
+  shutdown (thread_socket, 2);
+  close (thread_socket);
 }
 
 /**
@@ -1400,9 +1401,10 @@ attack_network (struct arglist *globals, kb_t *network_kb)
           strncpy (args.fqdn, name, sizeof (args.fqdn));
           g_free (name);
           args.host_mac_addr = MAC;
-          args.sched         = sched;
+          args.sched = sched;
           args.thread_socket = soc[0];
-          args.net_kb        = network_kb;
+          args.parent_socket = soc[1];
+          args.net_kb = network_kb;
 
         forkagain:
           pid = create_process ((process_func_t) attack_start, &args);
