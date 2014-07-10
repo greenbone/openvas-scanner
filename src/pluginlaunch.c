@@ -63,10 +63,7 @@ struct running
 {
   int pid;             /**< Process ID. */
   struct arglist *globals;   /**< 'Global' arglist. */
-  kb_t kb;       /**< Knowledge base for the currently tested host.*/
-  char *name;
   struct scheduler_plugin *plugin;
-  plugins_scheduler_t sched;
   struct timeval start;
   int timeout;               /**< Timeout after which to kill process
                               * (NVT preference). If -1, never kill. it*/
@@ -213,7 +210,8 @@ update_running_processes ()
 
                   if (log_whole)
                     log_write ("%s (pid %d) is slow to finish - killing it\n",
-                               processes[i].name, processes[i].pid);
+                               processes[i].plugin->arglist->name,
+                               processes[i].pid);
 
                   desc = processes[i].plugin->arglist->value;
                   host = plug_get_hostname (desc);
@@ -247,7 +245,7 @@ update_running_processes ()
                   if (log_whole)
                     log_write
                       ("%s (process %d) finished its job in %ld.%.3ld seconds\n",
-                       processes[i].name, processes[i].pid,
+                       processes[i].plugin->arglist->name, processes[i].pid,
                        (long) (now.tv_sec - processes[i].start.tv_sec),
                        (long) ((now.tv_usec -
                                 processes[i].start.tv_usec) / 1000));
@@ -375,7 +373,7 @@ read_running_processes ()
                 {
 #ifdef DEBUG
                   log_write ("process_internal_msg for %s returned %d\n",
-                             processes[i].name, result);
+                             processes[i].plugin->arglist->name, result);
 #endif
                 }
             }
@@ -472,11 +470,8 @@ plugin_launch (struct arglist *globals, plugins_scheduler_t * sched,
     }
 
   p = next_free_process (plugin);
-  processes[p].kb = kb;
   processes[p].globals = globals;
   processes[p].plugin = plugin;
-  processes[p].sched = sched;
-  processes[p].name = plugin->arglist->name;
   processes[p].launch_status = plug_get_launch (plugin->arglist->value);
   processes[p].timeout =
     preferences_plugin_timeout (preferences,
@@ -535,6 +530,18 @@ pluginlaunch_wait ()
   while (num_running_processes != 0);
 }
 
+/**
+ * @brief Cleanup file descriptors used by the processes array. To be called by
+ *        the child process running the plugin.
+ */
+void
+pluginlaunch_child_cleanup ()
+{
+  int i;
+  for (i = 0; i < MAX_PROCESSES; i++)
+    if (processes[i].internal_soc)
+      close (processes[i].internal_soc);
+}
 
 /**
  * @brief Waits and 'pushes' processes until the number of running processes has

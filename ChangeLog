@@ -1,3 +1,15 @@
+2014-07-10  Hani Benhabiles  <hani.benhabiles@greenbone.net>
+
+	* src/pluginlaunch.c (struct running): Remove useless kb, name and sched
+	elements.
+	(update_running_processes, read_running_processes, plugin_launch):
+	Update for running structure's changes.
+	(pluginlaunch_child_cleanup): New function.
+
+	* src/pluginlaunch.h: Add function prototype.
+
+	* src/nasl_plugins.c (nasl_thread): Cleanup plugin launcher leftovers.
+
 2014-07-09  Hani Benhabiles  <hani.benhabiles@greenbone.net>
 
 	* src/hosts.c (struct host): Remove useless psoc element.

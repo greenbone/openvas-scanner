@@ -53,6 +53,7 @@
 
 #include "pluginload.h"
 #include "pluginscheduler.h"    /* for LAUNCH_DISABLED */
+#include "pluginlaunch.h"
 #include "preferences.h"
 #include "processes.h"
 #include "log.h"
@@ -243,6 +244,7 @@ nasl_thread (struct arglist *g_args)
         }
     }
 
+  pluginlaunch_child_cleanup ();
   /* XXX ugly hack */
   soc = dup2 (soc, 4);
   if (soc < 0)

@@ -41,6 +41,7 @@ int plugin_launch (struct arglist *, plugins_scheduler_t,
                    struct scheduler_plugin *, struct arglist *,
                    struct arglist *, kb_t, char *);
 
+void pluginlaunch_child_cleanup ();
 void pluginlaunch_disable_parrallel_checks ();
 void pluginlaunch_enable_parrallel_checks ();
 
