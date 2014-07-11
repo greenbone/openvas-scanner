@@ -1,3 +1,13 @@
+2014-07-11  Hani Benhabiles  <hani.benhabiles@greenbone.net>
+
+	* src/attack.c (attack_start): Don't attempt to randomly close all
+	possibly open file descriptors. Close parent_socket.
+
+	* src/nasl_plugins.c (nasl_thread): Reset kb link as this function is
+	called in forked process. Don't attempt to close all possibly open file
+	descriptors.
+	(scanner_thread): Add socket fd to globals.
+
 2014-07-10  Hani Benhabiles  <hani.benhabiles@greenbone.net>
 
 	* src/attack.c (attack_start_args): Add parent_socket element.

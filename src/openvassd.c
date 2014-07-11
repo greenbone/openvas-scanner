@@ -386,7 +386,8 @@ scanner_thread (struct arglist *globals)
 
   setsockopt (soc, SOL_SOCKET, SO_KEEPALIVE, &opt, sizeof (opt));
   /* arg_set_value *replaces* an existing value, but it shouldn't fail here */
-  (void) arg_set_value (globals, "global_socket", -1, GSIZE_TO_POINTER (soc2));
+  arg_add_value (globals, "parent_socket", ARG_INT, -1, GSIZE_TO_POINTER (soc));
+  arg_set_value (globals, "global_socket", -1, GSIZE_TO_POINTER (soc2));
 
   if (comm_init (soc2) < 0)
     {

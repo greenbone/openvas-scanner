@@ -841,7 +841,7 @@ attack_start (struct attack_start_args *args)
   char *non_simult = arg_get_value (preferences, "non_simult_ports");
   char *vhosts = arg_get_value (preferences, "vhosts");
   char *vhosts_ip = arg_get_value (preferences, "vhosts_ip");
-  int thread_socket, i;
+  int thread_socket;
   struct timeval then, now;
   plugins_scheduler_t sched = args->sched;
   kb_t *net_kb = args->net_kb;
@@ -861,10 +861,6 @@ attack_start (struct attack_start_args *args)
   if (args->thread_socket != thread_socket)
     close (args->thread_socket);
 
-  /* Close all file descriptors >= 5 */
-  for (i = 5; i < getdtablesize (); i++)
-    close (i);
-
   gettimeofday (&then, NULL);
 
   if (non_simult == NULL)
@@ -877,6 +873,8 @@ attack_start (struct attack_start_args *args)
                  (void *) list2arglist (non_simult));
 
   /* Options regarding the communication with our parent */
+  close (GPOINTER_TO_SIZE (arg_get_value (globals, "parent_socket")));
+  arg_del_value (globals, "parent_socket");
   openvas_deregister_connection (GPOINTER_TO_SIZE
                                  (arg_get_value (globals, "global_socket")));
   arg_set_value (globals, "global_socket", -1,

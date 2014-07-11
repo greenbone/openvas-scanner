@@ -228,8 +228,8 @@ nasl_thread (struct arglist *g_args)
   struct arglist *globals = arg_get_value (args, "globals");
   struct arglist *preferences = arg_get_value (g_args, "preferences");
   char *name = arg_get_value (g_args, "name");
-  int i, soc, old_soc;
-  int nasl_mode;
+  int nasl_mode, soc, old_soc;
+  kb_t kb;
   GError *error = NULL;
 
   if (preferences_benice (NULL))
@@ -244,6 +244,8 @@ nasl_thread (struct arglist *g_args)
     }
 
   pluginlaunch_child_cleanup ();
+  kb = arg_get_value (args, "key");
+  kb_lnk_reset (kb);
   old_soc = GPOINTER_TO_SIZE (arg_get_value (args, "SOCKET"));
   /* XXX ugly hack */
   soc = dup2 (old_soc, 4);
@@ -256,8 +258,6 @@ nasl_thread (struct arglist *g_args)
   arg_set_value (args, "SOCKET", sizeof (gpointer), GSIZE_TO_POINTER (soc));
   arg_set_value (globals, "global_socket", sizeof (gpointer),
                  GSIZE_TO_POINTER (soc));
-  for (i = 5; i < getdtablesize (); i++)
-    close (i);
   proctitle_set ("openvassd: testing %s (%s)",
                  arg_get_value (arg_get_value (args, "HOSTNAME"), "NAME"),
                  name);
