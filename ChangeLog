@@ -1,3 +1,9 @@
+2014-07-15  Hani Benhabiles  <hani.benhabiles@greenbone.net>
+
+	* src/nasl_plugins.c (nasl_thread_args): New struct.
+	(nasl_thread): Take a nasl_thread_args pointer as function argument.
+	(nasl_plugin_launch): Adjust function call accordingly.
+
 2014-07-11  Hani Benhabiles  <hani.benhabiles@greenbone.net>
 
 	* src/attack.c (attack_start): Don't attempt to randomly close all

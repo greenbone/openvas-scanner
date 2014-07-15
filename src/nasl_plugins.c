@@ -58,9 +58,6 @@
 #include "processes.h"
 #include "log.h"
 
-static void nasl_thread (struct arglist *);
-
-
 /**
  * @brief Add *one* .nasl plugin to the plugin list and return the pointer to it.
  *
@@ -190,6 +187,15 @@ nasl_plugin_add (char *folder, char *name, struct arglist *plugins,
   return plugin_args;
 }
 
+struct nasl_thread_args {
+  struct arglist *args;
+  char *name;
+  struct arglist *preferences;
+};
+
+static void
+nasl_thread (struct nasl_thread_args *);
+
 /**
  * @brief Launch a NASL plugin.
  */
@@ -199,7 +205,7 @@ nasl_plugin_launch (struct arglist *globals, struct arglist *plugin,
                     kb_t kb, char *name)
 {
   int module;
-  struct arglist *d = emalloc (sizeof (struct arglist));
+  struct nasl_thread_args nargs;
 
   arg_add_value (plugin, "HOSTNAME", ARG_ARGLIST, -1, hostinfos);
   if (arg_get_value (plugin, "globals"))
@@ -211,23 +217,21 @@ nasl_plugin_launch (struct arglist *globals, struct arglist *plugin,
   arg_set_value (plugin, "preferences", -1, preferences);
   arg_add_value (plugin, "key", ARG_PTR, -1, kb);
 
-  arg_add_value (d, "args", ARG_ARGLIST, -1, plugin);
-  arg_add_value (d, "name", ARG_STRING, strlen (name), name);
-  arg_add_value (d, "preferences", ARG_ARGLIST, -1, preferences);
+  nargs.args = plugin;
+  nargs.name = name;
+  nargs.preferences = preferences;
 
-  module = create_process ((process_func_t) nasl_thread, d);
-  arg_free (d);
+  module = create_process ((process_func_t) nasl_thread, &nargs);
   return module;
 }
 
-
 static void
-nasl_thread (struct arglist *g_args)
+nasl_thread (struct nasl_thread_args *nargs)
 {
-  struct arglist *args = arg_get_value (g_args, "args");
+  struct arglist *args = nargs->args;
   struct arglist *globals = arg_get_value (args, "globals");
-  struct arglist *preferences = arg_get_value (g_args, "preferences");
-  char *name = arg_get_value (g_args, "name");
+  struct arglist *preferences = nargs->preferences;
+  char *name = nargs->name;
   int nasl_mode, soc, old_soc;
   kb_t kb;
   GError *error = NULL;
