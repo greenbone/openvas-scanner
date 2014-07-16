@@ -196,7 +196,12 @@ install_cert ()
 # Clean up
 clean_up ()
 {
-  rm -rf $CERT_DIR
+  if [ "$DEBUG" -ne 1 ]
+  then
+    rm -rf $CERT_DIR
+  else
+    echo "DEBUG: Not removing $CERT_DIR in debug mode."
+  fi
 }
 
 # Parse command line options
@@ -251,8 +256,7 @@ then
     install_cert
   fi
 
-  # TODO: This is currently not called to keep generated files for debugging.
-  # clean_up
+  clean_up
 fi
 
 exit 0
