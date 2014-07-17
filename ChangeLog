@@ -1,5 +1,10 @@
 2014-07-17  Michael Wiegand <michael.wiegand@greenbone.net>
 
+	* tools/openvas-manage-certs.sh: Check exit status of certtool and
+	exit early if things went wrong.
+
+2014-07-17  Michael Wiegand <michael.wiegand@greenbone.net>
+
 	* tools/openvas-manage-certs.sh: Add missing comment. Only remove
 	generation directory if the files were already copied somewhere else.
 

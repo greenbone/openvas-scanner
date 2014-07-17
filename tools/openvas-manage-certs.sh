@@ -179,12 +179,23 @@ create_self_signed ()
 
   # Create a private key
   certtool --generate-privkey --bits "$OPENVAS_CERTIFICATE_KEYSIZE" --outfile "$KEY_FILENAME" 2>> "$LOGFILE"
+  if [ $? -ne 0 ]
+  then
+    echo "ERROR: Failed to generate private key, see $LOGFILE for details. Aborting."
+    exit 1
+  fi
 
   # TODO: Sleeping here to avoid certtool race condition
   sleep 1
 
   # Create a certificate
   certtool --generate-self-signed --hash "$OPENVAS_CERTIFICATE_SIGNALG" --load-privkey "$KEY_FILENAME" --outfile "$CERT_FILENAME" --template "$TEMPLATE_FILENAME" 2>> "$LOGFILE"
+  if [ $? -ne 0 ]
+  then
+    echo "ERROR: Failed to create self signed certificate, see $LOGFILE for details. Aborting."
+    exit 1
+  fi
+
 }
 
 # Install a certificate
