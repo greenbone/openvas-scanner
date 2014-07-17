@@ -1,3 +1,7 @@
+2014-07-17  Jan-Oliver Wagner <jan-oliver.wagner@greenbone.net>
+
+	* tools/greenbone-nvt-sync: Added handling of "--help".
+
 2014-07-17  Michael Wiegand <michael.wiegand@greenbone.net>
 
 	* tools/openvas-manage-certs.sh: Check exit status of certtool and
