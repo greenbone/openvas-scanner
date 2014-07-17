@@ -63,6 +63,17 @@ then
   fi
 fi
 
+# Key size
+if [ -z "$OPENVAS_CERTIFICATE_KEYSIZE" ]
+then
+  OPENVAS_CERTIFICATE_KEYSIZE=4096
+fi
+
+if [ -z "$OPENVAS_CERTIFICATE_SIGNALG" ]
+then
+  OPENVAS_CERTIFICATE_SIGNALG="SHA256"
+fi
+
 LOGFILE="./openvas-manage-certs.log"
 
 print_help ()
@@ -88,6 +99,8 @@ print_help ()
   echo "  OPENVAS_CERTIFICATE_ORG        Organization of certificate subject"
   echo "  OPENVAS_CERTIFICATE_ORG_UNIT   Organizational unit of certificate subject"
   echo "  OPENVAS_CERTIFICATE_HOSTNAME   Name to use for the certificate"
+  echo "  OPENVAS_CERTIFICATE_SIGNALG    Hash algorithm to use for signing"
+  echo "  OPENVAS_CERTIFICATE_KEYSIZE    Size in bits of the generated key"
   echo
 
   exit 0
@@ -164,13 +177,13 @@ create_self_signed ()
   fi
 
   # Create a private key
-  certtool --generate-privkey --outfile "$KEY_FILENAME" 2> "$LOGFILE"
+  certtool --generate-privkey --bits "$OPENVAS_CERTIFICATE_KEYSIZE" --outfile "$KEY_FILENAME" 2>> "$LOGFILE"
 
   # TODO: Sleeping here to avoid certtool race condition
   sleep 1
 
   # Create a certificate
-  certtool --generate-self-signed --load-privkey "$KEY_FILENAME" --outfile "$CERT_FILENAME" --template "$TEMPLATE_FILENAME" 2> "$LOGFILE"
+  certtool --generate-self-signed --hash "$OPENVAS_CERTIFICATE_SIGNALG" --load-privkey "$KEY_FILENAME" --outfile "$CERT_FILENAME" --template "$TEMPLATE_FILENAME" 2>> "$LOGFILE"
 }
 
 # Install a certificate

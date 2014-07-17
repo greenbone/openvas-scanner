@@ -1,3 +1,9 @@
+2014-07-17  Michael Wiegand <michael.wiegand@greenbone.net>
+
+	* tools/openvas-manage-certs.sh: Add support for setting key size and
+	signing algorithm. Document new settings in help. Actually append to
+	log.
+
 2014-07-16  Jan-Oliver Wagner <jan-oliver.wagner@greenbone.net>
 
 	* tools/openvas-manage-certs.sh: Make cleanup depend on
