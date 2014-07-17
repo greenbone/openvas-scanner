@@ -69,6 +69,7 @@ then
   OPENVAS_CERTIFICATE_KEYSIZE=4096
 fi
 
+# Signature algorithm
 if [ -z "$OPENVAS_CERTIFICATE_SIGNALG" ]
 then
   OPENVAS_CERTIFICATE_SIGNALG="SHA256"
@@ -269,7 +270,11 @@ then
     install_cert
   fi
 
-  clean_up
+  # If the files have been installed, clean up the generation directory.
+  if [ $INSTALL -eq 1 ]
+  then
+    clean_up
+  fi
 fi
 
 exit 0
