@@ -1,3 +1,9 @@
+2014-07-18  Michael Wiegand <michael.wiegand@greenbone.net>
+
+	* tools/openvas-manage-certs.sh: Redirect both stdout and stderr of
+	certtool invocation to log file since certtool sometimes prints error
+	messages to stdout.
+
 2014-07-17  Jan-Oliver Wagner <jan-oliver.wagner@greenbone.net>
 
 	* tools/greenbone-nvt-sync: Added handling of "--help".
