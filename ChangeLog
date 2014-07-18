@@ -1,5 +1,10 @@
 2014-07-18  Michael Wiegand <michael.wiegand@greenbone.net>
 
+	* tools/openvas-manage-certs.sh: Add support for GnuTLS "--sec-param"
+	parameter and use it if the key size is not explicitly set.
+
+2014-07-18  Michael Wiegand <michael.wiegand@greenbone.net>
+
 	* tools/openvas-manage-certs.sh: Redirect both stdout and stderr of
 	certtool invocation to log file since certtool sometimes prints error
 	messages to stdout.

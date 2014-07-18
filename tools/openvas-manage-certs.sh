@@ -66,7 +66,10 @@ fi
 # Key size
 if [ -z "$OPENVAS_CERTIFICATE_KEYSIZE" ]
 then
-  OPENVAS_CERTIFICATE_KEYSIZE=4096
+  if [ -z "$OPENVAS_CERTIFICATE_SECPARAM" ]
+  then
+    OPENVAS_CERTIFICATE_SECPARAM="high"
+  fi
 fi
 
 # Signature algorithm
@@ -101,7 +104,10 @@ print_help ()
   echo "  OPENVAS_CERTIFICATE_ORG_UNIT   Organizational unit of certificate subject"
   echo "  OPENVAS_CERTIFICATE_HOSTNAME   Name to use for the certificate"
   echo "  OPENVAS_CERTIFICATE_SIGNALG    Hash algorithm to use for signing"
+  echo
   echo "  OPENVAS_CERTIFICATE_KEYSIZE    Size in bits of the generated key"
+  echo "  or"
+  echo "  OPENVAS_CERTIFICATE_SECPARAM   GnuTLS security level [low|normal|high|ultra]"
   echo
 
   exit 0
@@ -177,8 +183,15 @@ create_self_signed ()
     cat $TEMPLATE_FILENAME
   fi
 
+  if [ -z "$OPENVAS_CERTIFICATE_KEYSIZE" ]
+  then
+    CERTTOOL_PRIVKEY_PARAM="--sec-param $OPENVAS_CERTIFICATE_SECPARAM"
+  else
+    CERTTOOL_PRIVKEY_PARAM="--bits $OPENVAS_CERTIFICATE_KEYSIZE"
+  fi
+
   # Create a private key
-  certtool --generate-privkey --bits "$OPENVAS_CERTIFICATE_KEYSIZE" --outfile "$KEY_FILENAME" >> "$LOGFILE" 2>&1
+  certtool --generate-privkey $CERTTOOL_PRIVKEY_PARAM --outfile "$KEY_FILENAME" >> "$LOGFILE" 2>&1
   if [ $? -ne 0 ]
   then
     echo "ERROR: Failed to generate private key, see $LOGFILE for details. Aborting."
