@@ -135,7 +135,7 @@ Setting up an openvas-scanner requires the following steps:
    is recommended. See doc/redis_config.txt to see how to setup and run a redis
    server.
 
-   Two examples are installed which may use directly for a quick start:
+   Two examples are installed which you may use directly for a quick start:
 
    $ redis-server /share/doc/openvas-scanner/example_redis_2_4.conf
 
@@ -143,7 +143,7 @@ Setting up an openvas-scanner requires the following steps:
 
    $ redis-server /share/doc/openvas-scanner/example_redis_2_6.conf
 
-   or copy to another location, edit and us instead.
+   or copy the example to another location, edit and use the copy instead.
 
 6) Once the scanner has started, openvas-manager can act as a client and control
    the scanner. The actual user interfaces (for example GSA or CLI-OMP)

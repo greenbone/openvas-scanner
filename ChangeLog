@@ -1,3 +1,9 @@
+2014-07-21  Michael Wiegand <michael.wiegand@greenbone.net>
+
+	* INSTALL: Improve style of redis section.
+
+	* doc/redis_config.txt: Fix typo.
+
 2014-07-18  Michael Wiegand <michael.wiegand@greenbone.net>
 
 	* tools/openvas-manage-certs.sh: Add support for GnuTLS "--sec-param"
