@@ -1,5 +1,11 @@
 2014-07-31  Michael Wiegand <michael.wiegand@greenbone.net>
 
+	Preparing the openvas-scanner 4.0.2 release.
+
+	* CHANGES: Updated.
+
+2014-07-31  Michael Wiegand <michael.wiegand@greenbone.net>
+
 	Avoid closing wrong file descriptor in when used with GnuTLS 3.x.
 	Original patch suggested by Hani Benhabiles.
 

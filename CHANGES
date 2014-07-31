@@ -1,3 +1,21 @@
+openvas-scanner 4.0.2 (2014-07-31)
+
+This is the second maintenance release of the openvas-scanner 4.0 module for
+the Open Vulnerability Assessment System release 7 (OpenVAS-7).
+
+This release addresses issues in the interaction with the libgcrypt and
+libgnutls libraries and updates the script for synchronization with the
+Greenbone Security Feed.
+
+Many thanks to everyone who contributed to this release:
+Hani Benhabiles, Jan-Oliver Wagner and Michael Wiegand.
+
+Main changes compared to 4.0.1:
+* Ensure libgcrypt is properly linked and initialized.
+* Avoid closing file descriptor which may be in use by GnuTLS 3.x.
+* Minor updates to greenbone-nvt-sync.
+
+
 openvas-scanner 4.0.1 (2014-04-23)
 
 This is the first maintenance release of the openvas-scanner 4.0 module for
