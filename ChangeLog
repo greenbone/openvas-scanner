@@ -1,3 +1,14 @@
+2014-07-31  Michael Wiegand <michael.wiegand@greenbone.net>
+
+	Avoid closing wrong file descriptor in when used with GnuTLS 3.x.
+	Original patch suggested by Hani Benhabiles.
+
+	* src/attack.c (attack_start): Avoid closing file descriptor 5 since
+	it is used by libgnutls in GnuTLS 3.x.
+
+	* src/nasl_plugins.c (nasl_thread): Avoid closing file descriptor 5
+	since it is used by libgnutls in GnuTLS 3.x.
+
 2014-07-01  Hani Benhabiles  <hani.benhabiles@greenbone.net>
 
 	Backport r19791.

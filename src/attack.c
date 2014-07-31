@@ -828,8 +828,8 @@ attack_start (struct attack_start_args *args)
 
   thread_socket = dup2 (thread_socket, 4);
 
-  /* Close all file descriptors >= 5 */
-  for (i = 5; i < getdtablesize (); i++)
+  /* Close all file descriptors >= 6 */
+  for (i = 6; i < getdtablesize (); i++)
     close (i);
 
   gettimeofday (&then, NULL);

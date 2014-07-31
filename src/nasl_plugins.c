@@ -253,7 +253,7 @@ nasl_thread (struct arglist *g_args)
   arg_set_value (args, "SOCKET", sizeof (gpointer), GSIZE_TO_POINTER (soc));
   arg_set_value (globals, "global_socket", sizeof (gpointer),
                  GSIZE_TO_POINTER (soc));
-  for (i = 5; i < getdtablesize (); i++)
+  for (i = 6; i < getdtablesize (); i++)
     close (i);
   proctitle_set ("openvassd: testing %s (%s)",
                  arg_get_value (arg_get_value (args, "HOSTNAME"), "NAME"),
