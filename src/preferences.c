@@ -82,6 +82,7 @@ static openvassd_option openvassd_defaults[] = {
   {"nasl_no_signature_check", "yes"},
   {"drop_privileges", "no"},
   {"unscanned_closed", "yes"},
+  {"unscanned_closed_udp", "yes"},
   // Empty options must be "\0", not NULL, to match the behavior of
   // preferences_process.
   {"vhosts", "\0"},
