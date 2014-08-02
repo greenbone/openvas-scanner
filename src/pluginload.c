@@ -250,7 +250,7 @@ plugins_reload_from_dir (struct arglist *preferences, struct arglist *plugins,
   if (folder == NULL)
     {
 #ifdef DEBUG
-      log_write ("%s:%d : folder == NULL\n", __FILE__, __LINE__);
+      log_write ("%s:%d : folder == NULL", __FILE__, __LINE__);
 #endif
       printf ("Could not determine the value of <plugins_folder>. Check %s\n",
               (char *) arg_get_value (preferences, "config_file"));
@@ -267,7 +267,7 @@ plugins_reload_from_dir (struct arglist *preferences, struct arglist *plugins,
   if (gettimeofday (&start_time, NULL))
     {
       bzero (&start_time, sizeof (start_time));
-      log_write ("gettimeofday: %s\n", strerror (errno));
+      log_write ("gettimeofday: %s", strerror (errno));
     }
   f = files;
   set_total_loading_plugins (num_files);
@@ -287,7 +287,7 @@ plugins_reload_from_dir (struct arglist *preferences, struct arglist *plugins,
                          percentile, eta / 60, eta % 60);
         }
       if (preferences_log_plugins_at_load (preferences))
-        log_write ("Loading %s\n", name);
+        log_write ("Loading %s", name);
       if (g_str_has_suffix (name, ".nasl"))
         nasl_plugin_add (folder, name, plugins, preferences);
       g_free (f->data);

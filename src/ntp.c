@@ -147,7 +147,7 @@ ntp_parse_input (struct arglist *globals, char *input)
                 break;
               }
             t[0] = '\0';
-            log_write ("Stopping attack against %s\n", s);
+            log_write ("Stopping attack against %s", s);
             hosts_stop_host (s);
             arg_add_value (globals, "stop_required", ARG_INT, sizeof (int),
                            GSIZE_TO_POINTER (1));
@@ -254,7 +254,7 @@ ntp_read_prefs (struct arglist *globals)
 
       if (n < 0 || input[0] == '\0')
         {
-          log_write ("Empty data string -- closing comm. channel\n");
+          log_write ("Empty data string -- closing comm. channel");
           exit (0);
         }
 

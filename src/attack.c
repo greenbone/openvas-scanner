@@ -133,7 +133,7 @@ report_kb_failure (struct arglist *globals, int errcode)
   errcode = abs (errcode);
   msg = g_strdup_printf ("WARNING: Cannot connect to KB at '%s': %s'",
                          scanner_kb_path (globals), strerror (errcode));
-  log_write ("%s\n", msg);
+  log_write ("%s", msg);
   error_message_to_client (globals, msg, NULL, NULL);
   g_free (msg);
 }
@@ -322,7 +322,7 @@ launch_plugin (struct arglist *globals, plugins_scheduler_t * sched,
         {
           if (preferences_log_whole_attack (preferences))
             log_write
-              ("Not launching %s against %s %s (this is not an error)\n",
+              ("Not launching %s against %s %s (this is not an error)",
                plugin->arglist->name, hostname,
                "because safe checks are enabled");
           plugin_set_running_state (plugin, PLUGIN_STATUS_DONE);
@@ -352,7 +352,7 @@ launch_plugin (struct arglist *globals, plugins_scheduler_t * sched,
             {
               if (preferences_log_whole_attack (preferences))
                 log_write
-                  ("Not launching %s against %s %s (this is not an error)\n",
+                  ("Not launching %s against %s %s (this is not an error)",
                    plugin->arglist->name, hostname,
                    "because it has already been launched in the past");
               plugin_set_running_state (plugin, PLUGIN_STATUS_DONE);
@@ -388,14 +388,14 @@ launch_plugin (struct arglist *globals, plugins_scheduler_t * sched,
             }
 
           if (preferences_log_whole_attack (preferences))
-            log_write ("Launching %s against %s [%d]\n",
+            log_write ("Launching %s against %s [%d]",
                        plugin->arglist->name, hostname, pid);
 
           /* Stop the test if the host is 'dead' */
           if (kb_item_get_int (kb, "Host/dead") > 0
               || kb_item_get_int (kb, "Host/ping_failed") > 0)
             {
-              log_write ("The remote host (%s) is dead\n", hostname);
+              log_write ("The remote host (%s) is dead", hostname);
               pluginlaunch_stop ();
               plugin_set_running_state (plugin, PLUGIN_STATUS_DONE);
               return ERR_HOST_DEAD;
@@ -406,7 +406,7 @@ launch_plugin (struct arglist *globals, plugins_scheduler_t * sched,
           plugin_set_running_state (plugin, PLUGIN_STATUS_DONE);
           if (preferences_log_whole_attack (preferences))
             log_write
-              ("Not launching %s against %s %s (this is not an error)\n",
+              ("Not launching %s against %s %s (this is not an error)",
                plugin->arglist->name, hostname,
                error);
         }
@@ -922,7 +922,7 @@ attack_start (struct attack_start_args *args)
       now.tv_usec += 1000000;
     }
 
-  log_write ("Finished testing %s. Time : %ld.%.2ld secs\n", host_str,
+  log_write ("Finished testing %s. Time : %ld.%.2ld secs", host_str,
              (long) (now.tv_sec - then.tv_sec),
              (long) ((now.tv_usec - then.tv_usec) / 10000));
   shutdown (thread_socket, 2);
@@ -967,16 +967,16 @@ apply_hosts_preferences (openvas_hosts_t *hosts, struct arglist *preferences)
       if (!strcmp (ordering, "random"))
         {
           openvas_hosts_shuffle (hosts);
-          log_write ("hosts_ordering: Random.\n");
+          log_write ("hosts_ordering: Random.");
         }
       else if (!strcmp (ordering, "reverse"))
         {
           openvas_hosts_reverse (hosts);
-          log_write ("hosts_ordering: Reverse.\n");
+          log_write ("hosts_ordering: Reverse.");
         }
     }
   else
-    log_write ("hosts_ordering: Sequential.\n");
+    log_write ("hosts_ordering: Sequential.");
 
   /* Exclude hosts ? */
   exclude_hosts = preferences_get_string (preferences, "exclude_hosts");
@@ -986,19 +986,19 @@ apply_hosts_preferences (openvas_hosts_t *hosts, struct arglist *preferences)
       int ret = openvas_hosts_exclude (hosts, exclude_hosts, 1);
 
       if (ret >= 0)
-        log_write ("exclude_hosts: Skipped %d host(s).\n", ret);
+        log_write ("exclude_hosts: Skipped %d host(s).", ret);
       else
-        log_write ("exclude_hosts: Error.\n");
+        log_write ("exclude_hosts: Error.");
     }
 
   /* Reverse-lookup unify ? */
   if (preferences_get_bool (preferences, "reverse_lookup_unify") == 1)
-    log_write ("reverse_lookup_unify: Skipped %d host(s).\n",
+    log_write ("reverse_lookup_unify: Skipped %d host(s).",
                openvas_hosts_reverse_lookup_unify (hosts));
 
   /* Hosts that reverse-lookup only ? */
   if (preferences_get_bool (preferences, "reverse_lookup_only") == 1)
-    log_write ("reverse_lookup_only: Skipped %d host(s).\n",
+    log_write ("reverse_lookup_only: Skipped %d host(s).",
                openvas_hosts_reverse_lookup_only (hosts));
 }
 
@@ -1111,7 +1111,7 @@ apply_source_iface_preference (struct arglist *globals,
     {
       gchar *msg = g_strdup_printf ("Unauthorized source interface: %s",
                                     source_iface);
-      log_write ("source_iface: Unauthorized source interface %s.\n",
+      log_write ("source_iface: Unauthorized source interface %s.",
                  source_iface);
       error_message_to_client (globals, msg, NULL, NULL);
 
@@ -1124,7 +1124,7 @@ apply_source_iface_preference (struct arglist *globals,
                                     " (system-wide restriction.)",
                                     source_iface);
       log_write ("source_iface: Unauthorized source interface %s."
-                 " (sys_* preference restriction.)\n",
+                 " (sys_* preference restriction.)",
                  source_iface);
       error_message_to_client (globals, msg, NULL, NULL);
 
@@ -1136,7 +1136,7 @@ apply_source_iface_preference (struct arglist *globals,
     {
       gchar *msg = g_strdup_printf ("Erroneous source interface: %s",
                                     source_iface);
-      log_write ("source_iface: Error with %s interface.\n", source_iface);
+      log_write ("source_iface: Error with %s interface.", source_iface);
       error_message_to_client (globals, msg, NULL, NULL);
 
       g_free (msg);
@@ -1147,7 +1147,7 @@ apply_source_iface_preference (struct arglist *globals,
       char *ipstr, *ip6str;
       ipstr = openvas_source_addr_str ();
       ip6str = openvas_source_addr6_str ();
-      log_write ("source_iface: Using %s (%s / %s).\n", source_iface,
+      log_write ("source_iface: Using %s (%s / %s).", source_iface,
                  ipstr, ip6str);
 
       g_free (ipstr);
@@ -1280,7 +1280,7 @@ attack_network (struct arglist *globals, kb_t *network_kb)
     {
       if (network_targets == NULL)
         {
-          log_write ("WARNING: In network phase, but without targets! Stopping.\n");
+          log_write ("WARNING: In network phase, but without targets! Stopping.");
           host = NULL;
         }
       else
@@ -1288,7 +1288,7 @@ attack_network (struct arglist *globals, kb_t *network_kb)
           int rc;
 
           log_write ("Start a new scan. Target(s) : %s, "
-                     "in network phase with target %s\n",
+                     "in network phase with target %s",
                      hostlist, network_targets);
 
           rc = kb_new (network_kb, scanner_kb_path (globals));
@@ -1304,7 +1304,7 @@ attack_network (struct arglist *globals, kb_t *network_kb)
   else
     {
       log_write ("Starts a new scan. Target(s) : %s, with max_hosts = %d and "
-                 "max_checks = %d\n", hostlist, max_hosts, max_checks);
+                 "max_checks = %d", hostlist, max_hosts, max_checks);
     }
 
   hosts = openvas_hosts_new (hostlist);
@@ -1344,7 +1344,7 @@ attack_network (struct arglist *globals, kb_t *network_kb)
       hostname = openvas_host_value_str (host);
       if (openvas_host_get_addr6 (host, &host_ip) == -1)
         {
-          log_write ("Couldn't resolve target %s\n", hostname);
+          log_write ("Couldn't resolve target %s", hostname);
           error_message_to_client (globals, "Couldn't resolve hostname.",
                                    hostname, NULL);
           g_free (hostname);
@@ -1414,14 +1414,14 @@ attack_network (struct arglist *globals, kb_t *network_kb)
               if (fork_retries > MAX_FORK_RETRIES)
                 {
                   /* Forking failed - we go to the wait queue. */
-                  log_write ("fork() failed - %s. %s won't be tested\n",
+                  log_write ("fork() failed - %s. %s won't be tested",
                              strerror (errno), hostname);
                   efree (&MAC);
                   goto stop;
                 }
 
               log_write ("fork() failed - "
-                         "sleeping %d seconds and trying again...\n",
+                         "sleeping %d seconds and trying again...",
                          fork_retries);
               fork_sleep (fork_retries);
               goto forkagain;
@@ -1429,10 +1429,10 @@ attack_network (struct arglist *globals, kb_t *network_kb)
 
           hosts_set_pid (hostname, pid);
           if (network_phase)
-            log_write ("Testing %s (network level) [%d]\n",
+            log_write ("Testing %s (network level) [%d]",
                        network_targets, pid);
           else
-            log_write ("Testing %s (%s) [%d]\n",
+            log_write ("Testing %s (%s) [%d]",
                        hostname, inet_ntop (AF_INET6,
                                             &args.hostip,
                                             buffer,
@@ -1481,7 +1481,7 @@ stop:
   plugins_scheduler_free (sched);
 
   gettimeofday (&now, NULL);
-  log_write ("Total time to scan all hosts : %ld seconds\n",
+  log_write ("Total time to scan all hosts : %ld seconds",
              now.tv_sec - then.tv_sec);
 
   if (do_network_scan && network_phase && !scan_stopped)

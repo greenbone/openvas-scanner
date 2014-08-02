@@ -100,7 +100,7 @@ process_internal_msg (int p)
   e = internal_recv (processes[p].internal_soc, &buffer, &bufsz, &type);
   if (e < 0)
     {
-      log_write ("Process %d seems to have died too early\n", processes[p].pid);
+      log_write ("Process %d seems to have died too early", processes[p].pid);
       processes[p].alive = 0;
       return -1;
     }
@@ -118,7 +118,7 @@ process_internal_msg (int p)
         }
     }
   else
-    log_write ("Received unknown message type %d\n", type);
+    log_write ("Received unknown message type %d", type);
 
   efree (&buffer);
   return e;
@@ -209,7 +209,7 @@ update_running_processes ()
                   const char *host;
 
                   if (log_whole)
-                    log_write ("%s (pid %d) is slow to finish - killing it\n",
+                    log_write ("%s (pid %d) is slow to finish - killing it",
                                processes[i].plugin->arglist->name,
                                processes[i].pid);
 
@@ -244,7 +244,7 @@ update_running_processes ()
                     }
                   if (log_whole)
                     log_write
-                      ("%s (process %d) finished its job in %ld.%.3ld seconds\n",
+                      ("%s (process %d) finished its job in %ld.%.3ld seconds",
                        processes[i].plugin->arglist->name, processes[i].pid,
                        (long) (now.tv_sec - processes[i].start.tv_sec),
                        (long) ((now.tv_usec -
@@ -296,7 +296,7 @@ next_free_process (struct scheduler_plugin *upcoming)
                 {
 #ifdef DEBUG_CONFLICT
                   printf ("Waiting has been initiated...\n");
-                  log_write ("Ports in common - waiting...\n");
+                  log_write ("Ports in common - waiting...");
 #endif
                   while (process_alive (processes[r].pid))
                     {
@@ -372,7 +372,7 @@ read_running_processes ()
               if (result)
                 {
 #ifdef DEBUG
-                  log_write ("process_internal_msg for %s returned %d\n",
+                  log_write ("process_internal_msg for %s returned %d",
                              processes[i].plugin->arglist->name, result);
 #endif
                 }
@@ -398,7 +398,7 @@ pluginlaunch_init (struct arglist *globals)
   if (max_running_processes >= MAX_PROCESSES)
     {
       log_write
-        ("max_checks (%d) > MAX_PROCESSES (%d) - modify openvas-scanner/openvassd/pluginlaunch.c\n",
+        ("max_checks (%d) > MAX_PROCESSES (%d) - modify openvas-scanner/openvassd/pluginlaunch.c",
          max_running_processes, MAX_PROCESSES);
       max_running_processes = MAX_PROCESSES - 1;
     }

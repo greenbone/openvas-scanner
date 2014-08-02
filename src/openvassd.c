@@ -121,7 +121,7 @@ start_daemon_mode (void)
   /* become process group leader */
   if (setsid () < 0)
     {
-      log_write ("Warning: Cannot set process group leader (%s)\n",
+      log_write ("Warning: Cannot set process group leader (%s)",
                  strerror (errno));
     }
 
@@ -131,7 +131,7 @@ start_daemon_mode (void)
   /* no input, anymore: provide an empty-file substitute */
   if ((fd = open ("/dev/null", O_RDONLY)) < 0)
     {
-      log_write ("Cannot open /dev/null (%s) -- aborting\n", strerror (errno));
+      log_write ("Cannot open /dev/null (%s) -- aborting", strerror (errno));
       exit (0);
     }
 
@@ -150,7 +150,7 @@ start_daemon_mode (void)
 
   if ((fd = open (s, O_WRONLY | O_CREAT | O_APPEND, 0600)) < 0)
     {
-      log_write ("Cannot create a new dumpfile %s (%s)-- aborting\n", s,
+      log_write ("Cannot create a new dumpfile %s (%s)-- aborting", s,
                  strerror (errno));
       exit (2);
     }
@@ -290,7 +290,7 @@ reload_openvassd ()
   char *config_file;
   pid_t handler_pid;
 
-  log_write ("Reloading the scanner.\n");
+  log_write ("Reloading the scanner.");
   /* Ignore SIGHUP while reloading. */
   openvas_signal (SIGHUP, SIG_IGN);
 
@@ -306,7 +306,7 @@ reload_openvassd ()
   global_plugins = plugins;
   loading_handler_stop (handler_pid);
 
-  log_write ("Finished reloading the scanner.\n");
+  log_write ("Finished reloading the scanner.");
   reload = 0;
   openvas_signal (SIGHUP, sighup);
 }
@@ -449,7 +449,7 @@ init_ssl_ctx (const char *priority, const char *dhparams)
                            priority, dhparams);
       if (!ovas_scanner_ctx)
         {
-          log_write ("Could not create ovas_scanner_ctx\n");
+          log_write ("Could not create ovas_scanner_ctx");
           exit (1);
         }
     }
@@ -472,7 +472,7 @@ check_and_reload ()
 static void
 main_loop ()
 {
-  log_write ("openvassd %s started\n", OPENVASSD_VERSION);
+  log_write ("openvassd %s started", OPENVASSD_VERSION);
   proctitle_set ("openvassd: Waiting for incoming connections");
   for (;;)
     {
@@ -543,7 +543,7 @@ init_network (int port, int *sock, struct addrinfo addr)
   if ((*sock = socket (addr.ai_family, SOCK_STREAM, 0)) == -1)
     {
       int ec = errno;
-      log_write ("socket(AF_INET): %s (errno = %d)\n", strerror (ec), ec);
+      log_write ("socket(AF_INET): %s (errno = %d)", strerror (ec), ec);
       fprintf (stderr, "socket() failed : %s\n", strerror (ec));
       exit (1);
     }

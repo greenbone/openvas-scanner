@@ -256,7 +256,7 @@ nasl_thread (struct nasl_thread_args *nargs)
   close (old_soc);
   if (soc < 0)
     {
-      log_write ("dup2() failed ! - can not launch the plugin\n");
+      log_write ("dup2() failed ! - can not launch the plugin");
       return;
     }
   arg_set_value (args, "SOCKET", sizeof (gpointer), GSIZE_TO_POINTER (soc));
@@ -277,7 +277,7 @@ nasl_thread (struct nasl_thread_args *nargs)
       if (drop_priv_res != OPENVAS_DROP_PRIVILEGES_OK)
         {
           if (drop_priv_res != OPENVAS_DROP_PRIVILEGES_FAIL_NOT_ROOT)
-            log_write ("Failed to drop privileges for %s\n", name);
+            log_write ("Failed to drop privileges for %s", name);
           g_error_free (error);
         }
     }

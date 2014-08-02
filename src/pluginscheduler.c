@@ -294,9 +294,10 @@ hash_fill_deps (struct hash *h, struct hash *l)
             }
           else
             {
-              log_write
-                ("scheduler: %s depends on %s which could not be found, thus this dependency is not considered for execution sequence\n",
-                 l->plugin->arglist->name, l->dependencies[i]);
+              log_write ("scheduler: %s depends on %s which could not be found,"
+                         " thus this dependency is not considered for execution"
+                         " sequence",
+                         l->plugin->arglist->name, l->dependencies[i]);
             }
         }
     }

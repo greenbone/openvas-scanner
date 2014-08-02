@@ -131,15 +131,15 @@ get_max_hosts_number (preferences)
       max_hosts = atoi (arg_get_value (preferences, "max_hosts"));
       if (max_hosts <= 0)
         {
-          log_write ("Error ! max_hosts = %d -- check %s\n", max_hosts,
+          log_write ("Error ! max_hosts = %d -- check %s", max_hosts,
                      (char *) arg_get_value (preferences, "config_file"));
           max_hosts = global_max_hosts;
         }
       else if (max_hosts > global_max_hosts)
         {
-          log_write ("Client tried to raise the maximum hosts number - %d. Using %d. Change 'max_hosts' in openvassd.conf if \
-you believe this is incorrect\n", max_hosts,
-                     global_max_hosts);
+          log_write ("Client tried to raise the maximum hosts number - %d."
+                     " Using %d. Change 'max_hosts' in openvassd.conf if you"
+                     " believe this is incorrect", max_hosts, global_max_hosts);
           max_hosts = global_max_hosts;
         }
     }
@@ -162,15 +162,15 @@ get_max_checks_number (preferences)
       max_checks = atoi (arg_get_value (preferences, "max_checks"));
       if (max_checks <= 0)
         {
-          log_write ("Error ! max_hosts = %d -- check %s\n", max_checks,
+          log_write ("Error ! max_hosts = %d -- check %s", max_checks,
                      (char *) arg_get_value (preferences, "config_file"));
           max_checks = global_max_checks;
         }
       else if (max_checks > global_max_checks)
         {
-          log_write ("Client tried to raise the maximum checks number - %d. Using %d. Change 'max_checks' in openvassd.conf if \
-you believe this is incorrect\n", max_checks,
-                     global_max_checks);
+          log_write ("Client tried to raise the maximum checks number - %d."
+                     " Using %d. Change 'max_checks' in openvassd.conf if you"
+                     " believe this is incorrect", max_checks, global_max_checks);
           max_checks = global_max_checks;
         }
     }
@@ -245,7 +245,7 @@ again:
       int len = data_left (openvas_get_socket_from_connection (soc));
       if (!len)
         {
-          log_write ("Communication closed by client\n");
+          log_write ("Communication closed by client");
           return 0;
         }
     }

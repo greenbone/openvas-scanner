@@ -1,3 +1,47 @@
+201'-08-01  Henri Doreau <henri.doreau@gmail.com>
+
+	Cleanup of the legacy logging infrastructure.
+
+	* src/log.c (log_vwrite): Updated documentation. Use variadic versions
+	of printf and syslog in reduce caller's code complexity. Assume that log
+	messages are not LF-terminated.
+	(log_write): Updated documentation.
+
+	* src/attack.c (report_kb_failure, launch_plugin, attack_start)
+	(apply_hosts_preferences, apply_source_iface_preference)
+	(attack_network): Removed line feed at the end of log messages.
+
+	* src/comm.c (comm_init, comm_loading, send_plug_info, comm_wait_order)
+	(comm_setup_plugins): Removed line feed at the end of log messages.
+
+	* src/nasl_plugins.c (nasl_thread): Removed line feed at the end of log
+	messages.
+
+	* src/ntp.c (ntp_parse_input, ntp_read_prefs): Removed line feed at the
+	end of log messages.
+
+	* src/openvassd.c (start_daemon_mode, reload_openvassd, init_ssl_ctx)
+	(main_loop, init_network): Removed line feed at the end of log messages.
+
+	* src/pluginlaunch.c (process_internal_msg, update_running_processes)
+	(next_free_process, read_running_processes, pluginlaunch_init): Removed
+	line feed at the end of log messages.
+
+	* src/pluginload.c (plugins_reload_from_dir): Removed line feed at the
+	end of log messages.
+
+	* src/pluginscheduler.c (hash_fill_deps): Removed line feed at the end
+	of log messages.
+
+	* src/processes.c (create_process): Removed line feed at the end of log
+	messages.
+
+	* src/sighand.c (sighandler, sighand_segv): Removed line feed at the end
+	of log messages.
+
+	* src/utils.c (get_max_hosts_number, get_max_checks_number)
+	is_client_present): Removed line feed at the end of log messages.
+
 2014-07-31  Matthew Mundell <matthew.mundell@greenbone.net>
 
 	* src/preferences.c (openvassd_defaults): Add unscanned_closed_udp.

@@ -105,43 +105,41 @@ log_close ()
 }
 
 
-/*
- * write into the logfile using a va_list.
- * Nothing fancy here...
+/**
+ * @brief Write into the logfile / syslog using a va_list.
+ *
+ * @param[in]   str     Format string.
+ * @param[in]   arg_ptr String parameters.
  */
 void
 log_vwrite (const char *str, va_list arg_ptr)
 {
-  char disp[4096];
   char *tmp;
+  char timestr[255];
+  time_t t;
 
-  vsnprintf (disp, sizeof (disp), str, arg_ptr);
-
-  tmp = disp;
-  while ((tmp = (char *) strchr (tmp, '\n')) != NULL)
-    tmp[0] = ' ';
-
-
-  if (log != NULL)
+  if (log == NULL)
     {
-      char timestr[255];
-      time_t t;
-
-      t = time (NULL);
-      tmp = ctime (&t);
-
-      timestr[sizeof (timestr) - 1] = '\0';
-      strncpy (timestr, tmp, sizeof (timestr) - 1);
-      timestr[strlen (timestr) - 1] = '\0';
-      fprintf (log, "[%s][%d] %s\n", timestr, getpid (), disp);
+      vsyslog (LOG_NOTICE, str, arg_ptr);
+      return;
     }
-  else
-    syslog (LOG_NOTICE, "%s", disp);
+
+    t = time (NULL);
+    tmp = ctime (&t);
+
+    timestr[sizeof (timestr) - 1] = '\0';
+    strncpy (timestr, tmp, sizeof (timestr) - 1);
+    timestr[strlen (timestr) - 1] = '\0';
+    fprintf (log, "[%s][%d] ", timestr, getpid ());
+    vfprintf (log, str, arg_ptr);
+    fprintf (log, "\n");
 }
 
-/*
- * write into the logfile
- * Nothing fancy here...
+/**
+ * @brief Write into the logfile / syslog.
+ *
+ * @param[in]   fmt Format string, followed by the corresponding parameters if
+ *                  any.
  */
 void
 log_write (const char *str, ...)

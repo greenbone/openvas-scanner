@@ -141,7 +141,7 @@ sighandler (int sign)
       sig = "< signal nonsense >";
     }
 
-  log_write ("received the %s signal\n", sig);
+  log_write ("received the %s signal", sig);
 
   if (murderer)
     make_em_die (sign);
@@ -155,7 +155,7 @@ void
 sighand_segv ()
 {
   signal (SIGSEGV, _exit);
-  log_write ("SIGSEGV occured !\n");
+  log_write ("SIGSEGV occured !");
   make_em_die (SIGTERM);
   log_close ();
   _exit (0);

@@ -65,14 +65,14 @@ comm_init (int soc)
   n = recv_line (soc, buf, sizeof (buf) - 1);
   if (n <= 0)
     {
-      log_write ("Failed reading client-requested OTP version.\n");
+      log_write ("Failed reading client-requested OTP version.");
       return -1;
     }
 
   buf[sizeof (buf) - 1] = '\0';
   if (strncmp (buf, "< OTP/2.0 >", 11))
     {
-      log_write ("Unknown client-requested OTP version: %s.\n", buf);
+      log_write ("Unknown client-requested OTP version: %s.", buf);
       return -1;
     }
   nsend (soc, "< OTP/2.0 >\n", 12, 0);
@@ -95,7 +95,7 @@ comm_loading (int soc)
   n = recv_line (soc, buf, sizeof (buf) - 1);
   if (n <= 0)
     {
-      log_write ("Failed reading client input.\n");
+      log_write ("Failed reading client input.");
       return -1;
     }
   /* Always respond with SCANNER_LOADING. */
@@ -139,7 +139,7 @@ send_plug_info (struct arglist *globals, struct arglist *plugins)
 
   if (!nvti_oid (nvti))
     {
-      log_write ("NVT without OID found. Will not be sent.\n");
+      log_write ("NVT without OID found. Will not be sent.");
       nvti_free (nvti);
       return;
     }
@@ -154,7 +154,7 @@ send_plug_info (struct arglist *globals, struct arglist *plugins)
 
   if ((name = nvti_name (nvti)) == NULL)
     {
-      log_write ("Inconsistent data (no name): %s - not applying this plugin\n",
+      log_write ("Inconsistent data (no name): %s - not applying this plugin",
                  nvti_oid (nvti));
       name = "Unknown NAME";
       ignored = 1;
@@ -163,7 +163,7 @@ send_plug_info (struct arglist *globals, struct arglist *plugins)
   if ((copyright = nvti_copyright (nvti)) == NULL)
     {
       log_write
-        ("Inconsistent data (no copyright): %s - not applying this plugin\n",
+        ("Inconsistent data (no copyright): %s - not applying this plugin",
          name ? name : nvti_oid (nvti));
       copyright = "Unknown COPYRIGHT";
       ignored = 1;
@@ -176,7 +176,7 @@ send_plug_info (struct arglist *globals, struct arglist *plugins)
   if (summary == NULL)
     {
       log_write
-        ("Inconsistent data (no summary): %s - not applying this plugin\n",
+        ("Inconsistent data (no summary): %s - not applying this plugin",
          name ? name : nvti_oid (nvti));
       summary = "Unknown SUMMARY";
       ignored = 1;
@@ -185,7 +185,7 @@ send_plug_info (struct arglist *globals, struct arglist *plugins)
   if ((family = nvti_family (nvti)) == NULL)
     {
       log_write
-        ("Inconsistent data (no family): %s - not applying this plugin\n",
+        ("Inconsistent data (no family): %s - not applying this plugin",
          name ? name : nvti_oid (nvti));
       family = "Unknown FAMILY";
       ignored = 1;
@@ -363,13 +363,13 @@ comm_wait_order (struct arglist *globals)
       n = recv_line (soc, str, sizeof (str) - 1);
       if (n < 0)
         {
-          log_write ("Client closed the communication\n");
+          log_write ("Client closed the communication");
           exit (0);
         }
       if (str[0] == '\0')
         if (!is_client_present (soc))
           {
-            log_write ("Client not present\n");
+            log_write ("Client not present");
             exit (0);
           }
 
@@ -505,7 +505,7 @@ comm_setup_plugins (struct arglist *globals, char *list)
         plug_set_launch (p->value, LAUNCH_RUN);
 #ifdef DEBUG
       else
-        log_write ("PLUGIN ID %s NOT FOUND!!!\n", oid);
+        log_write ("PLUGIN ID %s NOT FOUND!!!", oid);
 #endif
       oid = strtok (NULL, ";");
     }

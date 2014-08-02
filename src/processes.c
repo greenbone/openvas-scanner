@@ -94,7 +94,7 @@ create_process (process_func_t function, void *argument)
       exit (0);
     }
   if (pid < 0)
-    log_write ("Error : could not fork ! Error : %s\n", strerror (errno));
+    log_write ("Error : could not fork ! Error : %s", strerror (errno));
   process_son = pid;
   return pid;
 }
