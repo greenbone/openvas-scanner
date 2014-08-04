@@ -1,3 +1,7 @@
+2014-08-04  Henri Doreau <henri.doreau@gmail.com>
+
+	* src/attack.c (launch_plugin): Fixed a badly formatted log message.
+
 2014-08-02  Henri Doreau <henri.doreau@gmail.com>
 
 	Cleanup of the legacy logging infrastructure.

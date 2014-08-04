@@ -351,10 +351,9 @@ launch_plugin (struct arglist *globals, plugins_scheduler_t * sched,
           if (kb_item_get_int (kb, asc_id) > 0)
             {
               if (preferences_log_whole_attack (preferences))
-                log_write
-                  ("Not launching %s against %s %s (this is not an error)",
-                   plugin->arglist->name, hostname,
-                   "because it has already been launched in the past");
+                log_write ("Not launching %s against %s because it has already "
+                           "been lanched in the past (this is not an error)",
+                           plugin->arglist->name, hostname);
               plugin_set_running_state (plugin, PLUGIN_STATUS_DONE);
               return 0;
             }
