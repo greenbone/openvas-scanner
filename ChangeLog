@@ -1,3 +1,21 @@
+2014-08-06  Henri Doreau <henri.doreau@gmail.com>
+
+	* src/pluginscheduler.c (plugin_get_running_state)
+	(plugin_set_running_state): Useless accessors, removed.
+	(plugin_next_unrun_dependencie, plugins_scheduler_next): Replaced calls
+	to the removed functions by regular accesses to the
+	plugin::running_state field.
+
+	* src/pluginscheduler.h (plugin_set_running_state): Updated header
+	accordingly.
+
+	* src/attack.c (launch_plugin): Replaced plugin_set_running_state calls
+	by regular assignments.
+
+	* src/pluginlaunch.c (process_mgr_sighand_term)
+	(update_running_processes, pluginlaunch_stop, plugin_launch): Replaced
+	plugin_set_running_state calls by regular assignments.
+
 2014-08-04  Henri Doreau <henri.doreau@gmail.com>
 
 	* src/attack.c (launch_plugin): Fixed a badly formatted log message.

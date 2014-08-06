@@ -67,34 +67,11 @@
 #define HASH_MAX 2713
 
 
-/*-----------------------------------------------------------------------------*/
-
-int
-plugin_get_running_state (struct scheduler_plugin *plugin)
-{
-  return plugin->running_state;
-}
-
-void
-plugin_set_running_state (struct scheduler_plugin *plugin, int state)
-{
-  if (plugin == NULL)
-    return;
-
-  plugin->running_state = state;
-}
-
-/*-----------------------------------------------------------------------------*/
-
-
 static unsigned int
 mkhash (char *name)
 {
   return g_str_hash (name) % HASH_MAX;
 }
-
-/*------------------------------------------------------------------------------*/
-
 
 
 /*---------------------------------------------------------------------------*
@@ -410,14 +387,12 @@ plugin_next_unrun_dependencie (plugins_scheduler_t sched,
   for (i = 0; dependencies_ptr[i] != NULL; i++)
     {
       struct scheduler_plugin *plugin;
-      int state;
 
       plugin = dependencies_ptr[i]->plugin;
       if (plugin == NULL)
         continue;
 
-      state = plugin_get_running_state (plugin);
-      switch (state)
+      switch (plugin->running_state)
         {
         case PLUGIN_STATUS_UNRUN:
           {
@@ -443,8 +418,7 @@ plugin_next_unrun_dependencie (plugins_scheduler_t sched,
           break;
         case PLUGIN_STATUS_DONE:
           scheduler_rm_running_ports (sched, plugin);
-          plugin_set_running_state (plugin,
-                                    PLUGIN_STATUS_DONE_AND_CLEANED);
+          plugin->running_state = PLUGIN_STATUS_DONE_AND_CLEANED;
           break;
         case PLUGIN_STATUS_DONE_AND_CLEANED:
           break;
@@ -652,11 +626,7 @@ plugins_scheduler_next (plugins_scheduler_t h)
 
       while (l != NULL)
         {
-          int state;
-
-          state = plugin_get_running_state (l->plugin);
-
-          switch (state)
+          switch (l->plugin->running_state)
             {
             case PLUGIN_STATUS_UNRUN:
               {
@@ -672,8 +642,7 @@ plugins_scheduler_next (plugins_scheduler_t h)
                       {
                       case GPOINTER_TO_SIZE (NULL):
                         scheduler_mark_running_ports (h, l->plugin);
-                        plugin_set_running_state (l->plugin,
-                                                  PLUGIN_STATUS_RUNNING);
+                        l->plugin->running_state = PLUGIN_STATUS_RUNNING;
                         return l->plugin;
 
                         break;
@@ -689,7 +658,7 @@ plugins_scheduler_next (plugins_scheduler_t h)
                         {
                           /* Launch a dependencie  - don't pay attention to the type */
                           scheduler_mark_running_ports (h, p);
-                          plugin_set_running_state (p, PLUGIN_STATUS_RUNNING);
+                          p->running_state = PLUGIN_STATUS_RUNNING;
                           return p;
                         }
                       }
@@ -697,7 +666,7 @@ plugins_scheduler_next (plugins_scheduler_t h)
                 else            /* No dependencies */
                   {
                     scheduler_mark_running_ports (h, l->plugin);
-                    plugin_set_running_state (l->plugin, PLUGIN_STATUS_RUNNING);
+                    l->plugin->running_state = PLUGIN_STATUS_RUNNING;
                     return l->plugin;
                   }
               }
@@ -712,8 +681,7 @@ plugins_scheduler_next (plugins_scheduler_t h)
 
             case PLUGIN_STATUS_DONE:
               scheduler_rm_running_ports (h, l->plugin);
-              plugin_set_running_state (l->plugin,
-                                        PLUGIN_STATUS_DONE_AND_CLEANED);
+              l->plugin->running_state = PLUGIN_STATUS_DONE_AND_CLEANED;
               /* no break - we remove it right away */
             case PLUGIN_STATUS_DONE_AND_CLEANED:
               {

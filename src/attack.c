@@ -325,7 +325,7 @@ launch_plugin (struct arglist *globals, plugins_scheduler_t * sched,
               ("Not launching %s against %s %s (this is not an error)",
                plugin->arglist->name, hostname,
                "because safe checks are enabled");
-          plugin_set_running_state (plugin, PLUGIN_STATUS_DONE);
+          plugin->running_state = PLUGIN_STATUS_DONE;
           return 0;
         }
 
@@ -354,7 +354,7 @@ launch_plugin (struct arglist *globals, plugins_scheduler_t * sched,
                 log_write ("Not launching %s against %s because it has already "
                            "been lanched in the past (this is not an error)",
                            plugin->arglist->name, hostname);
-              plugin_set_running_state (plugin, PLUGIN_STATUS_DONE);
+              plugin->running_state = PLUGIN_STATUS_DONE;
               return 0;
             }
           else
@@ -382,7 +382,7 @@ launch_plugin (struct arglist *globals, plugins_scheduler_t * sched,
                            name);
           if (pid < 0)
             {
-              plugin_set_running_state (plugin, PLUGIN_STATUS_UNRUN);
+              plugin->running_state = PLUGIN_STATUS_UNRUN;
               return ERR_CANT_FORK;
             }
 
@@ -396,13 +396,13 @@ launch_plugin (struct arglist *globals, plugins_scheduler_t * sched,
             {
               log_write ("The remote host (%s) is dead", hostname);
               pluginlaunch_stop ();
-              plugin_set_running_state (plugin, PLUGIN_STATUS_DONE);
+              plugin->running_state = PLUGIN_STATUS_DONE;
               return ERR_HOST_DEAD;
             }
         }
       else                      /* requirements_plugin() failed */
         {
-          plugin_set_running_state (plugin, PLUGIN_STATUS_DONE);
+          plugin->running_state = PLUGIN_STATUS_DONE;
           if (preferences_log_whole_attack (preferences))
             log_write
               ("Not launching %s against %s %s (this is not an error)",
@@ -411,7 +411,7 @@ launch_plugin (struct arglist *globals, plugins_scheduler_t * sched,
         }
     }                           /* if(plugins->launch) */
   else
-    plugin_set_running_state (plugin, PLUGIN_STATUS_DONE);
+    plugin->running_state = PLUGIN_STATUS_DONE;
 
   return 0;
 }
