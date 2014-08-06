@@ -1,5 +1,11 @@
 2014-08-06  Henri Doreau <henri.doreau@gmail.com>
 
+	* src/pluginscheduler.c (plugin_next_unrun_dependencie)
+	(plugins_scheduler_next): Replaced all occurences of "dependencie" by
+	"dependency".
+
+2014-08-06  Henri Doreau <henri.doreau@gmail.com>
+
 	Properly declare scheduling-related structures.
 
 	* src/pluginscheduler.h (plugins_scheduler_t): Consistently define as a

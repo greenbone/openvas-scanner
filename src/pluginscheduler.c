@@ -412,7 +412,7 @@ scheduler_rm_running_ports (plugins_scheduler_t sched,
 
 
 struct scheduler_plugin *
-plugin_next_unrun_dependencie (plugins_scheduler_t sched,
+plugin_next_unrun_dependency (plugins_scheduler_t sched,
                                struct hash **dependencies_ptr)
 {
   int flag = 0;
@@ -440,7 +440,7 @@ plugin_next_unrun_dependencie (plugins_scheduler_t sched,
             if (deps_ptr == NULL)
               return plugin;
 
-            ret = plugin_next_unrun_dependencie (sched, deps_ptr);
+            ret = plugin_next_unrun_dependency (sched, deps_ptr);
             if (ret == NULL)
               return plugin;
 
@@ -673,7 +673,7 @@ plugins_scheduler_next (plugins_scheduler_t h)
                 if (deps_ptr != NULL)
                   {
                     struct scheduler_plugin *p =
-                      plugin_next_unrun_dependencie (h, deps_ptr);
+                      plugin_next_unrun_dependency (h, deps_ptr);
 
                     switch (GPOINTER_TO_SIZE (p))
                       {
@@ -685,7 +685,7 @@ plugins_scheduler_next (plugins_scheduler_t h)
                         break;
                       case GPOINTER_TO_SIZE (PLUG_RUNNING):
                         {
-                          /* One of the dependencie is still running  -  we write down its category */
+                          /* One of the dependency is still running  -  we write down its category */
                           if (l->plugin->category < running_category)
                             running_category = l->plugin->category;
                           flag++;
@@ -693,7 +693,7 @@ plugins_scheduler_next (plugins_scheduler_t h)
                         break;
                       default:
                         {
-                          /* Launch a dependencie  - don't pay attention to the type */
+                          /* Launch a dependency  - don't pay attention to the type */
                           scheduler_mark_running_ports (h, p);
                           p->running_state = PLUGIN_STATUS_RUNNING;
                           return p;
