@@ -31,6 +31,11 @@
 #ifndef PLUGINSCHEDULER_H
 #define PLUGINSCHEDULER_H
 
+#include <openvas/misc/arglists.h>
+
+struct hash;
+struct plugins_scheduler;
+
 /**
  * @brief States of scheduler_plugin.
  *
@@ -53,53 +58,8 @@ struct scheduler_plugin
   struct hash *parent_hash;
 };
 
-#ifndef IN_SCHEDULER_CODE
-typedef void *plugins_scheduler_t;
-#else
-struct watch_list
-{
-  char *name;
-  struct watch_list *next;
-};
 
-
-struct hash
-{
-  char *name;
-  struct scheduler_plugin *plugin;
-  char **dependencies;
-  int num_deps;
-  struct hash **dependencies_ptr;
-  char **ports;
-  struct hash *next;
-};
-
-struct list
-{
-  char *name;
-  struct scheduler_plugin *plugin;
-  struct list *next;
-  struct list *prev;
-};
-
-struct plist
-{
-  char name[64];
-  int occurences;
-  struct plist *next;
-  struct plist *prev;
-};
-
-struct plugins_scheduler_struct
-{
-  struct hash *hash;            /* Hash list of the plugins   */
-  struct list *list[ACT_LAST + 1];      /* Linked list of the plugins */
-  struct plist *plist;          /* Ports currently in use     */
-};
-
-typedef struct plugins_scheduler_struct *plugins_scheduler_t;
-
-#endif
+typedef struct plugins_scheduler *plugins_scheduler_t;
 
 
 #define PLUG_RUNNING ((struct scheduler_plugin*)0x02)

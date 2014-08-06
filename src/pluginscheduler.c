@@ -41,8 +41,6 @@
 
 #include <glib.h>
 
-#define IN_SCHEDULER_CODE 1
-
 #include "pluginscheduler.h"
 #include "pluginload.h"
 #include "pluginlaunch.h"
@@ -66,6 +64,45 @@
 
 #define HASH_MAX 2713
 
+struct watch_list
+{
+  char *name;
+  struct watch_list *next;
+};
+
+struct hash
+{
+  char *name;
+  struct scheduler_plugin *plugin;
+  char **dependencies;
+  int num_deps;
+  struct hash **dependencies_ptr;
+  char **ports;
+  struct hash *next;
+};
+
+struct list
+{
+  char *name;
+  struct scheduler_plugin *plugin;
+  struct list *next;
+  struct list *prev;
+};
+
+struct plist
+{
+  char name[64];
+  int occurences;
+  struct plist *next;
+  struct plist *prev;
+};
+
+struct plugins_scheduler
+{
+  struct hash *hash;                /**< Hash list of the plugins.   */
+  struct list *list[ACT_LAST + 1];  /**< Linked list of the plugins. */
+  struct plist *plist;              /**< Ports currently in use.     */
+};
 
 static unsigned int
 mkhash (char *name)

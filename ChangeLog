@@ -1,5 +1,30 @@
 2014-08-06  Henri Doreau <henri.doreau@gmail.com>
 
+	Properly declare scheduling-related structures.
+
+	* src/pluginscheduler.h (plugins_scheduler_t): Consistently define as a
+	struct plugins_scheduler *, regardless what macro has been set earlier.
+	(struct watch_list, struct hash, struct list, struct plist): Removed
+	from the header.
+	(struct plugins_scheduler_struct): Renamed (!!) and removed from this
+	header.
+
+	* src/pluginscheduler.c (struct watch_list, struct hash, struct list)
+	(struct plist, struct plugins_scheduler): Moved declarations to this
+	file. Fixed a couple comments.
+
+	* pluginlaunch.c (plugin_launch): Removed unused parameter sched.
+
+	* pluginlaunch.h (plugin_launch): Updated header accordingly.
+
+	* src/attack.c (launch_plugin): Removed unused parameter sched.
+	The "typedef void *" witchcraft which this commit removes was hiding a
+	type error here (erroneous extra indirection). Updated the plugin_launch
+	statement accordingly.
+	(attack_host): Updated the launch_plugin statement accordingly.
+
+2014-08-06  Henri Doreau <henri.doreau@gmail.com>
+
 	* src/pluginscheduler.c (plugin_get_running_state)
 	(plugin_set_running_state): Useless accessors, removed.
 	(plugin_next_unrun_dependencie, plugins_scheduler_next): Replaced calls

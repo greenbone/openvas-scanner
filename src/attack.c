@@ -280,9 +280,9 @@ attack_init_hostinfos (char *mac, char *hostname, struct in6_addr *ip,
  *         0 otherwise.
  */
 static int
-launch_plugin (struct arglist *globals, plugins_scheduler_t * sched,
-               struct scheduler_plugin *plugin, char *hostname, int *cur_plug,
-               int num_plugs, struct arglist *hostinfos, kb_t kb)
+launch_plugin (struct arglist *globals, struct scheduler_plugin *plugin,
+               char *hostname, int *cur_plug, int num_plugs,
+               struct arglist *hostinfos, kb_t kb)
 {
   struct arglist *preferences = arg_get_value (globals, "preferences");
   struct arglist *args = plugin->arglist->value;
@@ -378,8 +378,7 @@ launch_plugin (struct arglist *globals, plugins_scheduler_t * sched,
 
           /* Start the plugin */
           pid =
-            plugin_launch (globals, sched, plugin, hostinfos, preferences, kb,
-                           name);
+            plugin_launch (globals, plugin, hostinfos, preferences, kb, name);
           if (pid < 0)
             {
               plugin->running_state = PLUGIN_STATUS_UNRUN;
@@ -780,8 +779,8 @@ attack_host (struct arglist *globals, struct arglist *hostinfos,
           int e;
 
         again:
-          e = launch_plugin (globals, sched, plugin, hostname, &cur_plug,
-                             num_plugs, hostinfos, kb);
+          e = launch_plugin (globals, plugin, hostname, &cur_plug, num_plugs,
+                             hostinfos, kb);
           if (e < 0)
             {
               /*

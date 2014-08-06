@@ -453,9 +453,9 @@ pluginlaunch_stop ()
  *         classes pl_launch function (<=0 means there was a problem).
  */
 int
-plugin_launch (struct arglist *globals, plugins_scheduler_t * sched,
-               struct scheduler_plugin *plugin, struct arglist *hostinfos,
-               struct arglist *preferences, kb_t kb, char *name)
+plugin_launch (struct arglist *globals, struct scheduler_plugin *plugin,
+               struct arglist *hostinfos, struct arglist *preferences, kb_t kb,
+               char *name)
 {
   int p;
   int dsoc[2];
