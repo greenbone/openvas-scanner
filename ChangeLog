@@ -1,3 +1,28 @@
+2014-08-13  Hani Benhabiles  <hani.benhabiles@greenbone.net>
+
+	Remove scan pausing feature.
+
+	* src/attack.c (pause_whole_test): Remove global variable.
+	(attack_handle_sigusr1, attack_handle_sigusr2): Remove functions.
+	(attack_host): Remove pausing check and handling.
+	(attack_start): Don't register SIGUSR1 and SIGUSR2.
+
+	* src/hosts.c (hosts_pause_all, hosts_resume_all): Delete functions.
+
+	* src/hosts.h: Remove deleted function prototypes.
+
+	* src/ntp.c (ntp_parse_input): Remove CREQ_PAUSE_WHOLE_TEST and
+	CREQ_RESUME_WHOLE_TEST cases handling.
+
+	* src/ntp.h: Remove NTP_PAUSE_WHOLE_TEST and NTP_RESUME_WHOLE_TEST
+	definitions.
+
+	* src/otp.c (otp_get_client_request): Remove PAUSE_WHOLE_TEST and
+	RESUME_WHOLE_TEST client commands handling.
+
+	* src/otp.h (client_request_t): Remove CREQ_PAUSE_WHOLE_TEST and
+	CREQ_RESUME_WHOLE_TEST requests types.
+
 2014-08-06  Henri Doreau <henri.doreau@gmail.com>
 
 	* src/pluginscheduler.c (plugin_next_unrun_dependencie)

@@ -103,11 +103,6 @@ enum net_scan_status {
   NSS_DONE,
 };
 
-/**
- * @brief Flag for pausing and resuming.
- */
-static int pause_whole_test = 0;
-
 /*******************************************************
 
 		PRIVATE FUNCTIONS
@@ -150,24 +145,6 @@ fork_sleep (int n)
       usleep (10000);
       now = time (NULL);
     }
-}
-
-/**
- * @brief Set the pause_whole_test flag to pause the scan.
- */
-static void
-attack_handle_sigusr1 ()
-{
-  pause_whole_test = 1;
-}
-
-/**
- * @brief Set the pause_whole_test flag to resume the scan.
- */
-static void
-attack_handle_sigusr2 ()
-{
-  pause_whole_test = 0;
 }
 
 static enum net_scan_status
@@ -746,33 +723,6 @@ attack_host (struct arglist *globals, struct arglist *hostinfos,
           return;
         }
 
-      /* Idle if the scan has been paused. */
-      if (pause_whole_test)
-        {
-          /* Let the running NVTs complete. */
-          pluginlaunch_wait ();
-
-          /* Send the PAUSE status to the client. */
-          if (comm_send_status (globals, hostname, "pause", cur_plug, num_plugs)
-              < 0)
-            {
-              pluginlaunch_stop ();
-              goto host_died;
-            }
-
-          /* Wait for resume. */
-          while (pause_whole_test)
-            sleep (1);
-
-          /* Send the RESUME status to the client. */
-          if (comm_send_status (globals, hostname, "resume", cur_plug,
-                                num_plugs) < 0)
-            {
-              pluginlaunch_stop ();
-              goto host_died;
-            }
-        }
-
       plugin = plugins_scheduler_next (sched);
       if (plugin != NULL && plugin != PLUG_RUNNING)
         {
@@ -850,9 +800,6 @@ attack_start (struct attack_start_args *args)
                sizeof (host_str));
   else
     inet_ntop (AF_INET6, &args->hostip, host_str, sizeof (host_str));
-
-  openvas_signal (SIGUSR1, attack_handle_sigusr1);
-  openvas_signal (SIGUSR2, attack_handle_sigusr2);
 
   close (args->parent_socket);
   thread_socket = dup2 (args->thread_socket, 4);
