@@ -1,5 +1,18 @@
 2014-08-13  Hani Benhabiles  <hani.benhabiles@greenbone.net>
 
+	Remove unused STOP_ATTACK and OPENVASSD_VERSION otp commands.
+
+	* src/ntp.c (ntp_parse_input): Don't handle removed request types.
+
+	* src/otp.c (otp_get_client_request): Don't handle unused STOP_ATTACK and
+	OPENVASSD_VERSION otp commands.
+	(otp_server_openvas_version): Delete function.
+
+	* src/otp.h: Remove CREQ_OPENVASSD_VERSION and CREQ_STOP_ATTACK request
+	types. Remove deleted function prototype.
+
+2014-08-13  Hani Benhabiles  <hani.benhabiles@greenbone.net>
+
 	Remove scan pausing feature.
 
 	* src/attack.c (pause_whole_test): Remove global variable.

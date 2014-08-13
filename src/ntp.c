@@ -93,10 +93,6 @@ ntp_parse_input (struct arglist *globals, char *input)
           result = ntp_long_attack (globals);
           break;
 
-        case CREQ_OPENVAS_VERSION:
-          otp_server_openvas_version (globals);
-          break;
-
         case CREQ_PLUGIN_INFO:
           {
             char *t, *s;
@@ -122,25 +118,6 @@ ntp_parse_input (struct arglist *globals, char *input)
           hosts_stop_all ();
           result = NTP_STOP_WHOLE_TEST;
           break;
-
-        case CREQ_STOP_ATTACK:
-          {
-            char *t, *s;
-            s = str + 5;
-            t = strstr (s, " <|> ");
-            if (t == NULL)
-              {
-                result = -1;
-                break;
-              }
-            t[0] = '\0';
-            log_write ("Stopping attack against %s", s);
-            hosts_stop_host (s);
-            arg_add_value (globals, "stop_required", ARG_INT, sizeof (int),
-                           GSIZE_TO_POINTER (1));
-            ntp_timestamp_host_scan_interrupted (globals, s);
-            break;
-          }
 
         case CREQ_NVT_INFO:
           {

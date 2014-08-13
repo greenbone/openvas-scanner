@@ -44,28 +44,14 @@ otp_get_client_request (char *str)
     return (CREQ_ATTACHED_FILE);
   if (!strcmp (str, "LONG_ATTACK"))
     return (CREQ_LONG_ATTACK);
-  if (!strcmp (str, "OPENVASSD_VERSION"))
-    return (CREQ_OPENVAS_VERSION);
   if (!strcmp (str, "PLUGIN_INFO"))
     return (CREQ_PLUGIN_INFO);
   if (!strcmp (str, "PREFERENCES"))
     return (CREQ_PREFERENCES);
-  if (!strcmp (str, "STOP_ATTACK"))
-    return (CREQ_STOP_ATTACK);
   if (!strcmp (str, "STOP_WHOLE_TEST"))
     return (CREQ_STOP_WHOLE_TEST);
   if (!strcmp (str, "NVT_INFO"))
     return (CREQ_NVT_INFO);
 
   return (CREQ_UNKNOWN);
-}
-
-/**
- * @brief Send server response OPENVAS_VERSION.
- */
-void
-otp_server_openvas_version (struct arglist *globals)
-{
-  auth_printf (globals, "SERVER <|> OPENVAS_VERSION <|> %s <|> SERVER\n",
-               OPENVASSD_VERSION);
 }

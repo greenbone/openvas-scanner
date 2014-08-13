@@ -31,17 +31,13 @@ typedef enum
   CREQ_UNKNOWN,
   CREQ_ATTACHED_FILE,
   CREQ_LONG_ATTACK,
-  CREQ_OPENVAS_VERSION,
   CREQ_PLUGIN_INFO,
   CREQ_PREFERENCES,
-  CREQ_STOP_ATTACK,
   CREQ_STOP_WHOLE_TEST,
   CREQ_NVT_INFO,
 } client_request_t;
 
 client_request_t otp_get_client_request (char *);
-
-void otp_server_openvas_version (struct arglist *);
 
 void otp_server_send_certificates (struct arglist *globals);
 
