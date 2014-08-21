@@ -1,3 +1,29 @@
+openvas-scanner 5.0+beta1 (2014-08-21)
+
+This is the first beta release of the openvas-scanner 5.0 module for the Open
+Vulnerability Assessment System (OpenVAS). It will be part of the upcoming
+"OpenVAS-8".
+
+Main new feature of 5.0 compared to 4.0 is the switch to redis-based
+Knowledge Base (KB), making it mandatory to run a redis-server.
+
+Many thanks to everyone who has contributed to this release:
+Hani Benhabiles, Henri Doreau, Matthew Mundell, Jan-Oliver Wagner and
+Michael Wiegand.
+
+Main changes compared to 4.0.x:
+* Switch to the redis-based kowledge base (KB) backend.
+  This makes it mandatory to run a redis server for scanning.
+* Default key size for certificates of "mkcert" tools changed
+  from 1024 to 4069 bits and use SHA-256 instead of SHA-1.
+* Removed scan pausing feature.
+* Removed commands STOP_ATTACK and OPENVASSD_VERSION from OTP.
+* openvas-manage-certs.sh as initial version to eventually replace
+  openvas-mkcert and openvas-mkcert-client.
+* Various minor improvements.
+* Comprehensive code-cleanups.
+
+
 openvas-scanner 4.0.1 (2014-04-23)
 
 This is the first maintenance release of the openvas-scanner 4.0 module for
