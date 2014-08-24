@@ -39,8 +39,6 @@
 #include "log.h"
 
 
-static int process_son = 0;
-
 static void
 pr_sigterm (int sig)
 {
@@ -80,7 +78,6 @@ create_process (process_func_t function, void *argument)
 
   if (pid == 0)
     {
-      process_son = 0;
       openvas_signal (SIGHUP, SIG_IGN);
       openvas_signal (SIGTERM, pr_sigterm);
       openvas_signal (SIGINT, pr_sigterm);
@@ -95,6 +92,5 @@ create_process (process_func_t function, void *argument)
     }
   if (pid < 0)
     log_write ("Error : could not fork ! Error : %s", strerror (errno));
-  process_son = pid;
   return pid;
 }
