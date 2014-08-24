@@ -515,6 +515,8 @@ plugins_scheduler_init (struct arglist *plugins, int autoload,
                         int only_network)
 {
   plugins_scheduler_t ret = emalloc (sizeof (*ret));
+  nvticache_t *nvticache = (nvticache_t *)arg_get_value (
+    arg_get_value (plugins->value, "preferences"), "nvticache");
   struct arglist *arg;
   int i;
   struct hash *l;
@@ -534,8 +536,6 @@ plugins_scheduler_init (struct arglist *plugins, int autoload,
       struct list *dup;
       char *oid = (char *)arg_get_value (arg->value, "OID");
       if (! oid) continue; // This would be a serious problem as it shouldn't be
-      nvticache_t *nvticache = (nvticache_t *)arg_get_value (
-        arg_get_value (arg->value, "preferences"), "nvticache");
       nvti_t *nvti = (oid == NULL ? NULL : nvticache_get_by_oid (nvticache, oid));
       int category = nvti_category (nvti);
 

@@ -1,3 +1,9 @@
+2014-08-25  Jan-Oliver Wagner <jan-oliver.wagner@greenbone.net>
+
+	* src/pluginscheduler.c (plugins_scheduler_init): Moved nvticache
+	retrieval out of the plugins loop as there is only one cache
+	and thus only needs to be retrieved once.
+
 2014-08-24  Jan-Oliver Wagner <jan-oliver.wagner@greenbone.net>
 
 	* src/processes.c (process_son): Removed this global variable
