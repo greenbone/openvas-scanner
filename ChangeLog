@@ -1,5 +1,27 @@
 2014-08-25  Jan-Oliver Wagner <jan-oliver.wagner@greenbone.net>
 
+	Get rid of some arglist uses in the scheduler plugins.
+
+	* src/pluginscheduler.h (struct scheduler_plugin): Switch from
+	arglist to string array for required_keys, mandatory_keys,
+	excluded_keys.
+
+	* src/pluginscheduler.c (hash_link_destroy): Use g_strfreev instead
+	of arg_free_all for required_keys, mandatory_keys, excluded_keys.
+	(plugins_scheduler_init): Don't create a arglist anymore for
+	required_keys, mandatory_keys, excluded_keys. Instead, create
+	a NULL terminated string array.
+
+	* src/plugs_req.c (key_missing, key_present): Removed.
+	(kb_missing_keyname_of_namelist): A replacement for key_missing()
+	but now based on string array instead of arglist.
+	(kb_present_keyname_of_namelist): A replacement for key_present()
+	but now based on string array instead of arglist.
+	(mandatory_requirements_met, requirements_plugin): Use new replacement
+	functions.
+
+2014-08-25  Jan-Oliver Wagner <jan-oliver.wagner@greenbone.net>
+
 	* src/pluginscheduler.c (plugins_scheduler_init): Moved nvticache
 	retrieval out of the plugins loop as there is only one cache
 	and thus only needs to be retrieved once.

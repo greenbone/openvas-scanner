@@ -31,6 +31,8 @@
 #ifndef PLUGINSCHEDULER_H
 #define PLUGINSCHEDULER_H
 
+#include <glib.h> /* for gchar */
+
 #include <openvas/misc/arglists.h>
 
 struct hash;
@@ -51,9 +53,9 @@ struct scheduler_plugin
   int timeout;
   struct arglist *required_ports;
   struct arglist *required_udp_ports;
-  struct arglist *required_keys;
-  struct arglist *mandatory_keys;
-  struct arglist *excluded_keys;
+  gchar **required_keys;  /* Last element is NULL (created by g_strsplit) */
+  gchar **mandatory_keys; /* Last element is NULL (created by g_strsplit) */
+  gchar **excluded_keys;  /* Last element is NULL (created by g_strsplit) */
   struct arglist *arglist;
   struct hash *parent_hash;
 };

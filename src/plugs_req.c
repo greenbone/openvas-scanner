@@ -93,59 +93,6 @@ get_closed_udp_ports (kb_t kb, struct arglist *ports,
   return 0;                     /* found nothing */
 }
 
-
-/**
- * @brief Returns the name of the first key which is not \ref kb.
- */
-static char *
-key_missing (kb_t kb, struct arglist *keys)
-{
-  if (kb == NULL || keys == NULL)
-    return NULL;
-  else
-    {
-      while (keys->next != NULL)
-        {
-          struct kb_item *kbi;
-
-          kbi = kb_item_get_single (kb, keys->name, KB_TYPE_UNSPEC);
-          if (kbi != NULL)
-            {
-              kb_item_free (kbi);
-              keys = keys->next;
-            }
-          else return keys->name;
-        }
-    }
-  return NULL;
-}
-
-/**
- * @brief The opposite of the previous function (\ref key_missing).
- */
-static char *
-key_present (kb_t kb, struct arglist *keys)
-{
-  if (kb == NULL || keys == NULL)
-    return NULL;
-  else
-    {
-      while (keys->next != NULL)
-        {
-          struct kb_item *kbi;
-
-          kbi = kb_item_get_single (kb, keys->name, KB_TYPE_UNSPEC);
-          if (kbi != NULL)
-            {
-              kb_item_free (kbi);
-              return keys->name;
-            }
-          else keys = keys->next;
-        }
-    }
-  return NULL;
-}
-
 /**********************************************************
 
  		   Public Functions
@@ -199,6 +146,66 @@ requirements_common_ports (struct scheduler_plugin *plugin1,
 }
 
 /**
+ * @brief Returns the name of the first key which is not present in the \ref kb.
+ * @param[in] kb       KB handle where to search for the keys.
+ * @param[in] keynames NULL-terminated string array of keynames.
+ * @return A pointer to the string that was not found in the kb. This pointer
+           points into the string in the given keynames array.
+           NULL is returned in case all of the keys are present in the kb or
+           the kb is NULL.
+ */
+static gchar *
+kb_missing_keyname_of_namelist (kb_t kb, gchar **keynames)
+{
+  int i;
+
+  if (kb == NULL || keynames == NULL)
+    return NULL;
+
+  for (i = 0; keynames[i] != NULL; i ++)
+    {
+      struct kb_item *kbi = kb_item_get_single (kb, keynames[i], KB_TYPE_UNSPEC);
+
+      if (kbi == NULL)
+        return keynames[i]; /* This key is missing in the kb */
+
+      kb_item_free (kbi);
+    }
+
+  return NULL; /* All of the keys are present in the kb */
+}
+
+/**
+ * @brief Returns the name of the first key which is present in the \ref kb.
+ * @param[in] kb       KB handle where to search for the keys.
+ * @param[in] keynames NULL-terminated string array of keynames.
+ * @return A pointer to the string that was found in the kb. This pointer
+           points into the string in the given keynames array.
+           NULL is returned in case none of the keys is present in the kb or
+           the kb is NULL.
+ */
+static gchar *
+kb_present_keyname_of_namelist (kb_t kb, gchar **keynames)
+{
+  int i;
+
+  if (kb == NULL || keynames == NULL)
+    return NULL;
+
+  for (i = 0; keynames[i] != NULL; i ++)
+    {
+      struct kb_item *kbi = kb_item_get_single (kb, keynames[i], KB_TYPE_UNSPEC);
+
+      if (kbi != NULL)
+        {
+          kb_item_free (kbi);
+          return keynames[i];
+        }
+    }
+  return NULL;
+}
+
+/**
  * @brief Check whether mandatory requirements for plugin are met.
  *
  * @param kb     The arglist knowledge base with all keys.
@@ -212,7 +219,7 @@ int
 mandatory_requirements_met (kb_t kb,
                             struct scheduler_plugin *plugin)
 {
-  if (key_missing (kb, plugin->mandatory_keys))
+  if (kb_missing_keyname_of_namelist (kb, plugin->mandatory_keys))
     return 0;
 
   return 1;
@@ -230,7 +237,7 @@ requirements_plugin (kb_t kb, struct scheduler_plugin *plugin,
   static char error[64];
   char *missing;
   char *present;
-  struct arglist *tcp, *udp, *rkeys, *ekeys;
+  struct arglist *tcp, *udp;
   char *opti = arg_get_value (preferences, "optimization_level");
 
   /*
@@ -259,8 +266,7 @@ requirements_plugin (kb_t kb, struct scheduler_plugin *plugin,
   /*
    * Check wether a key we wanted is missing
    */
-  rkeys = plugin->required_keys;
-  if ((missing = key_missing (kb, rkeys)))
+  if ((missing = kb_missing_keyname_of_namelist (kb, plugin->required_keys)))
     {
       snprintf (error, sizeof (error), "because the key %s is missing",
                 missing);
@@ -273,8 +279,7 @@ requirements_plugin (kb_t kb, struct scheduler_plugin *plugin,
   /*
    * Check wether a key we do not want is present
    */
-  ekeys = plugin->excluded_keys;
-  if ((present = key_present (kb, ekeys)))
+  if ((present = kb_present_keyname_of_namelist (kb, plugin->excluded_keys)))
     {
       snprintf (error, sizeof (error), "because the key %s is present",
                 present);

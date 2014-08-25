@@ -148,9 +148,9 @@ hash_link_destroy (struct hash *h)
 
   arg_free_all (h->plugin->required_ports);
   arg_free_all (h->plugin->required_udp_ports);
-  arg_free_all (h->plugin->required_keys);
-  arg_free_all (h->plugin->mandatory_keys);
-  arg_free_all (h->plugin->excluded_keys);
+  g_strfreev (h->plugin->required_keys);
+  g_strfreev (h->plugin->mandatory_keys);
+  g_strfreev (h->plugin->excluded_keys);
   efree (&h->plugin);
 
   if (h->ports != NULL)
@@ -550,9 +550,9 @@ plugins_scheduler_init (struct arglist *plugins, int autoload,
        */
       scheduler_plugin->required_ports = str2arglist (nvti_required_ports (nvti));
       scheduler_plugin->required_udp_ports = str2arglist (nvti_required_udp_ports (nvti));
-      scheduler_plugin->required_keys = str2arglist (nvti_required_keys (nvti));
-      scheduler_plugin->mandatory_keys = str2arglist (nvti_mandatory_keys (nvti));
-      scheduler_plugin->excluded_keys = str2arglist (nvti_excluded_keys (nvti));
+      scheduler_plugin->required_keys = g_strsplit (nvti_required_keys (nvti), ", ", 0);
+      scheduler_plugin->mandatory_keys = g_strsplit (nvti_mandatory_keys (nvti), ", ", 0);
+      scheduler_plugin->excluded_keys = g_strsplit (nvti_excluded_keys (nvti), ", ", 0);
 
       nvti_free (nvti);
 
