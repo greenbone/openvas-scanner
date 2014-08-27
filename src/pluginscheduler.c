@@ -35,7 +35,6 @@
 #include <openvas/misc/nvt_categories.h>  /* for ACT_SCANNER */
 #include <openvas/misc/plugutils.h>  /* for plug_get_launch */
 #include <openvas/misc/system.h>     /* for emalloc */
-#include <openvas/misc/arglists.h>   /* for str2arglist */
 
 #include <openvas/base/nvticache.h>     /* for nvticache_t */
 
@@ -74,10 +73,10 @@ struct hash
 {
   char *name;
   struct scheduler_plugin *plugin;
-  char **dependencies;
+  gchar **dependencies;
   int num_deps;
   struct hash **dependencies_ptr;
-  char **ports;
+  gchar **ports;
   struct hash *next;
 };
 
@@ -128,21 +127,11 @@ hash_init ()
 static void
 hash_link_destroy (struct hash *h)
 {
-  int i;
   if (h == NULL)
     return;
 
   if (h->next != NULL)
     hash_link_destroy (h->next);
-
-  if (h->dependencies != NULL)
-    {
-      for (i = 0; h->dependencies[i] != NULL; i++)
-        {
-          cache_dec (h->dependencies[i]);
-        }
-      efree (&h->dependencies);
-    }
 
   efree (&h->dependencies_ptr);
 
@@ -153,15 +142,8 @@ hash_link_destroy (struct hash *h)
   g_strfreev (h->plugin->excluded_keys);
   efree (&h->plugin);
 
-  if (h->ports != NULL)
-    {
-      for (i = 0; h->ports[i] != NULL; i++)
-        {
-          cache_dec (h->ports[i]);
-        }
-      efree (&h->ports);
-    }
-
+  g_strfreev (h->dependencies);
+  g_strfreev (h->ports);
   efree (&h);
 }
 
@@ -178,7 +160,7 @@ hash_destroy (struct hash *h)
 }
 
 
-static int
+static void
 hash_add (struct hash *h, char *name, struct scheduler_plugin *plugin)
 {
   struct hash *l = emalloc (sizeof (struct hash));
@@ -186,10 +168,7 @@ hash_add (struct hash *h, char *name, struct scheduler_plugin *plugin)
   nvti_t * nvti = nvticache_get_by_oid (arg_get_value (arg_get_value
     (plugin->arglist->value, "preferences"), "nvticache"),
       arg_get_value (plugin->arglist->value, "OID"));
-  struct arglist *deps = str2arglist (nvti_dependencies (nvti));
-  struct arglist *ports = str2arglist (nvti_required_ports (nvti));
 
-  nvti_free (nvti);
   l->plugin = plugin;
   l->plugin->parent_hash = l;
   l->name = name;
@@ -197,57 +176,21 @@ hash_add (struct hash *h, char *name, struct scheduler_plugin *plugin)
   h[idx].next = l;
   l->dependencies_ptr = NULL;
 
-  if (deps == NULL)
-    l->dependencies = NULL;
+  if (nvti_required_ports (nvti) != NULL)
+    l->ports = g_strsplit (nvti_required_ports (nvti), ", ", 0);
   else
-    {
-      struct arglist *al = deps;
-      int i = 0;
-      int num_deps = 0;
-      while (al->next)
-        {
-          num_deps++;
-          al = al->next;
-        }
-      l->dependencies = emalloc ((num_deps + 1) * sizeof (char *));
-      al = deps;
-      while (al->next != NULL)
-        {
-          l->dependencies[i++] = cache_inc (al->name);
-          l->num_deps++;
-          al = al->next;
-        }
-    }
-
-  if (ports == NULL)
     l->ports = NULL;
-  else
+
+  if (nvti_dependencies (nvti) != NULL)
     {
-      struct arglist *al = ports;
-      int num_ports = 0;
-      int i = 0;
-      while (al->next != NULL)
-        {
-          num_ports++;
-          al = al->next;
-        }
-
-      l->ports = emalloc ((num_ports + 1) * sizeof (char *));
-      al = ports;
-      while (al->next != NULL)
-        {
-          l->ports[i++] = cache_inc (al->name);
-          al = al->next;
-        }
+      l->dependencies = g_strsplit (nvti_dependencies (nvti), ", ", 0);
+      for (l->num_deps = 0; l->dependencies[l->num_deps] != NULL; l->num_deps ++) ;
     }
+  else
+    l->dependencies = NULL;
 
-  arg_free_all (deps);
-  arg_free_all (ports);
-
-  return 0;
+  nvti_free (nvti);
 }
-
-
 
 
 static struct hash *

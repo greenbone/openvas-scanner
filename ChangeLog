@@ -1,5 +1,17 @@
 2014-08-27  Jan-Oliver Wagner <jan-oliver.wagner@greenbone.net>
 
+	Get rid of last occurances of str2arglist.
+
+	* src/pluginscheduler.c (struct hash): Change type of ports
+	and dependencies from char to gchar.
+	(hash_link_destroy): Simplify the removal of the strings arrays
+	by using gstrfreev.
+	(hash_add): Get the dependencies and required ports as string arrays
+	directly via g_strsplit instead of first converting strings to arglists
+	and then converting these to string arrays.
+
+2014-08-27  Jan-Oliver Wagner <jan-oliver.wagner@greenbone.net>
+
 	Get rid of more arglist uses in the scheduler plugins.
 
 	* src/pluginscheduler.h (struct scheduler_plugin): Switch from
