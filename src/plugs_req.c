@@ -48,15 +48,17 @@ extern int kb_get_port_state_proto (kb_t, struct arglist *, int, char *);
  * @return Whether a port in a port list is closed or not.
  */
 static int
-get_closed_ports (kb_t kb, struct arglist *ports,
+get_closed_ports (kb_t kb, gchar **ports,
                   struct arglist *preferences)
 {
+  int i;
+
   if (ports == NULL)
     return -1;
 
-  while (ports->next != NULL)
+  for (i = 0; ports[i] != NULL; i ++)
     {
-      int iport = atoi (ports->name);
+      int iport = atoi (ports[i]);
       if (iport != 0)
         {
           if (kb_get_port_state_proto (kb, preferences, iport, "tcp") != 0)
@@ -64,10 +66,9 @@ get_closed_ports (kb_t kb, struct arglist *ports,
         }
       else
         {
-          if (kb_item_get_int (kb, ports->name) > 0)
+          if (kb_item_get_int (kb, ports[i]) > 0)
             return 1;           /* should be the actual value indeed ! */
         }
-      ports = ports->next;
     }
   return 0;                     /* found nothing */
 }
@@ -77,18 +78,19 @@ get_closed_ports (kb_t kb, struct arglist *ports,
  * @brief Returns whether a port in a port list is closed or not.
  */
 static int
-get_closed_udp_ports (kb_t kb, struct arglist *ports,
+get_closed_udp_ports (kb_t kb, gchar **ports,
                       struct arglist *preferences)
 {
+  int i;
+
   if (ports == NULL)
     return -1;
 
-  while (ports->next != NULL)
+  for (i = 0; ports[i] != NULL; i ++)
     {
-      int iport = atoi (ports->name);
+      int iport = atoi (ports[i]);
       if (iport > 0 && kb_get_port_state_proto (kb, preferences, iport, "udp"))
         return iport;
-      ports = ports->next;
     }
   return 0;                     /* found nothing */
 }
@@ -109,38 +111,29 @@ requirements_common_ports (struct scheduler_plugin *plugin1,
                            struct scheduler_plugin *plugin2)
 {
   struct arglist *ret = NULL;
-  struct arglist *req1;
-  struct arglist *req2;
+  int i, j;
 
   if (!plugin1 || !plugin2)
     return 0;
 
-  req1 = plugin1->required_ports;
-  if (req1 == NULL)
+  if (plugin1->required_ports == NULL)
     return 0;
 
-  req2 = plugin2->required_ports;
-  if (req2 == NULL)
+  if (plugin2->required_ports == NULL)
     return 0;
 
-  while (req1->next != NULL)
+  for (i = 0; plugin1->required_ports[i] != NULL; i ++)
     {
-      struct arglist *r = req2;
-      if (r != NULL)
-        while (r->next != NULL)
-          {
-            if (req1->type == r->type)
-              {
-                if (r->name && req1->name && !strcmp (r->name, req1->name))
-                  {
-                    if (!ret)
-                      ret = emalloc (sizeof (struct arglist));
-                    arg_add_value (ret, r->name, ARG_INT, 0, (void *) 1);
-                  }
-              }
-            r = r->next;
-          }
-      req1 = req1->next;
+      for (j = 0; plugin2->required_ports[j] != NULL; j ++)
+        {
+           if (!strcmp (plugin2->required_ports[j], plugin1->required_ports[i]))
+             {
+               if (!ret)
+                 ret = emalloc (sizeof (struct arglist));
+               arg_add_value (ret, plugin2->required_ports[j], ARG_INT,
+                              0, (void *) 1);
+             }
+        }
     }
   return ret;
 }
@@ -237,7 +230,7 @@ requirements_plugin (kb_t kb, struct scheduler_plugin *plugin,
   static char error[64];
   char *missing;
   char *present;
-  struct arglist *tcp, *udp;
+  gchar **tcp, **udp;
   char *opti = arg_get_value (preferences, "optimization_level");
 
   /*
