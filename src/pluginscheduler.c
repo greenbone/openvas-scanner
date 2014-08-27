@@ -46,17 +46,6 @@
 #include "preferences.h"
 #include "log.h"
 
-
-/** @TODO
- * The pluginscheduler uses a name cache for NVTs, depedencies and ports, as
- * they are referenced by strings (names or OIDs). To remove duplicate code, the
- * pluginscheduler was changed to share the name cache with the arglists.
- * But the cache of the arglist is much smaller. It should be evaluated whether
- * this influenced the performance (memory imprint should be smaller), and
- * whether the string references could not be replaced e.g. by pointers to NVTi
- * structs.
- */
-
 /** @TODO
  * This important module needs documentation and comments.
  */
@@ -90,7 +79,7 @@ struct list
 
 struct plist
 {
-  char name[64];
+  gchar *name;
   int occurences;
   struct plist *next;
   struct plist *prev;
@@ -304,7 +293,7 @@ scheduler_mark_running_ports (plugins_scheduler_t sched,
       else
         {
           pl = emalloc (sizeof (struct plist));
-          strncpy (pl->name, ports[i], sizeof (pl->name) - 1);  /* Share cache_inc() ? */
+          pl->name = g_strdup (ports[i]);
           pl->occurences = 1;
           pl->next = sched->plist;
           if (sched->plist != NULL)
@@ -344,6 +333,7 @@ scheduler_rm_running_ports (plugins_scheduler_t sched,
               else
                 sched->plist = pl->next;
 
+              g_free (pl->name);
               efree (&pl);
             }
         }

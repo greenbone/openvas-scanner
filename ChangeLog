@@ -1,5 +1,15 @@
 2014-08-27  Jan-Oliver Wagner <jan-oliver.wagner@greenbone.net>
 
+	* src/pluginscheduler.c: Removed TODO about cache as this
+	is not relevant anymore.
+	(struct plist): Changed fixed size of name into a pointer.
+	(scheduler_mark_running_ports): Use g_strdup instead of
+	strncpy for the name.
+	(scheduler_rm_running_ports): Free the name now that
+	it is a pointer.
+
+2014-08-27  Jan-Oliver Wagner <jan-oliver.wagner@greenbone.net>
+
 	* src/pluginscheduler.c (plugins_scheduler_init): Do NULL
 	check before calling g_strsplit to silence assertion messages.
 
