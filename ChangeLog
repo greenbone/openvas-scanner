@@ -1,5 +1,12 @@
 2014-08-27  Jan-Oliver Wagner <jan-oliver.wagner@greenbone.net>
 
+	* src/attack.c (attack_start): Removed setting of non_simult_ports
+	in case the preferences is missing. It is not a good idea to set
+	some arbitrary default right here instead of keeping this in a
+	single place, the preferences defaults.
+
+2014-08-27  Jan-Oliver Wagner <jan-oliver.wagner@greenbone.net>
+
 	* src/pluginscheduler.c: Removed TODO about cache as this
 	is not relevant anymore.
 	(struct plist): Changed fixed size of name into a pointer.

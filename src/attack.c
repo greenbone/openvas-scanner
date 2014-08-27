@@ -808,12 +808,6 @@ attack_start (struct attack_start_args *args)
 
   gettimeofday (&then, NULL);
 
-  if (non_simult == NULL)
-    {
-      non_simult = estrdup ("139, 445");
-      arg_add_value (preferences, "non_simult_ports", ARG_STRING,
-                     strlen (non_simult), non_simult);
-    }
   arg_add_value (preferences, "non_simult_ports_list", ARG_ARGLIST, -1,
                  (void *) list2arglist (non_simult));
 
