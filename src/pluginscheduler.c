@@ -488,11 +488,30 @@ plugins_scheduler_init (struct arglist *plugins, int autoload,
       scheduler_plugin->category = category;
       scheduler_plugin->timeout = nvti_timeout (nvti);
 
-      scheduler_plugin->required_ports = g_strsplit (nvti_required_ports (nvti), ", ", 0);
-      scheduler_plugin->required_udp_ports = g_strsplit (nvti_required_udp_ports (nvti), ", ", 0);
-      scheduler_plugin->required_keys = g_strsplit (nvti_required_keys (nvti), ", ", 0);
-      scheduler_plugin->mandatory_keys = g_strsplit (nvti_mandatory_keys (nvti), ", ", 0);
-      scheduler_plugin->excluded_keys = g_strsplit (nvti_excluded_keys (nvti), ", ", 0);
+      if (nvti_required_ports (nvti) != NULL)
+        scheduler_plugin->required_ports = g_strsplit (nvti_required_ports (nvti), ", ", 0);
+      else
+        scheduler_plugin->required_ports = NULL;
+
+      if (nvti_required_udp_ports (nvti) != NULL)
+        scheduler_plugin->required_udp_ports = g_strsplit (nvti_required_udp_ports (nvti), ", ", 0);
+      else
+        scheduler_plugin->required_udp_ports = NULL;
+
+      if (nvti_required_keys (nvti) != NULL)
+        scheduler_plugin->required_keys = g_strsplit (nvti_required_keys (nvti), ", ", 0);
+      else
+        scheduler_plugin->required_keys = NULL;
+
+      if (nvti_mandatory_keys (nvti) != NULL)
+        scheduler_plugin->mandatory_keys = g_strsplit (nvti_mandatory_keys (nvti), ", ", 0);
+      else
+        scheduler_plugin->mandatory_keys = NULL;
+
+      if (nvti_excluded_keys (nvti) != NULL)
+        scheduler_plugin->excluded_keys = g_strsplit (nvti_excluded_keys (nvti), ", ", 0);
+      else
+        scheduler_plugin->excluded_keys = NULL;
 
       nvti_free (nvti);
 

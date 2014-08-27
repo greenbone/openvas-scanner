@@ -1,5 +1,10 @@
 2014-08-27  Jan-Oliver Wagner <jan-oliver.wagner@greenbone.net>
 
+	* src/pluginscheduler.c (plugins_scheduler_init): Do NULL
+	check before calling g_strsplit to silence assertion messages.
+
+2014-08-27  Jan-Oliver Wagner <jan-oliver.wagner@greenbone.net>
+
 	Get rid of last occurances of str2arglist.
 
 	* src/pluginscheduler.c (struct hash): Change type of ports
