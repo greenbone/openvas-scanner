@@ -1,3 +1,13 @@
+2014-08-28  Hani Benhabiles  <hani.benhabiles@greenbone.net>
+
+	* src/pluginschedule.c (plugins_scheduler_init): Check for null function
+	argument earlier, otherwise we may crash due to null pointer dereference.
+
+	* src/ntp.c (ntp_timestamp_host_scan_interrupted): Remove unused
+	function.
+
+	* src/ntp.h: Remove function prototype.
+
 2014-08-27  Jan-Oliver Wagner <jan-oliver.wagner@greenbone.net>
 
 	* src/attack.c (attack_start): Removed setting of non_simult_ports

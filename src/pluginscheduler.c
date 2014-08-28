@@ -447,20 +447,19 @@ plugins_scheduler_t
 plugins_scheduler_init (struct arglist *plugins, int autoload,
                         int only_network)
 {
-  plugins_scheduler_t ret = emalloc (sizeof (*ret));
-  nvticache_t *nvticache = (nvticache_t *)arg_get_value (
-    arg_get_value (plugins->value, "preferences"), "nvticache");
+  plugins_scheduler_t ret;
+  nvticache_t *nvticache;
   struct arglist *arg;
   int i;
   struct hash *l;
 
   if (plugins == NULL)
-    {
-      efree (ret);
-      return NULL;
-    }
+    return NULL;
 
+  nvticache = arg_get_value (arg_get_value (plugins->value, "preferences"),
+                             "nvticache");
   /* Fill our lists */
+  ret = emalloc (sizeof (*ret));
   ret->hash = hash_init ();
   arg = plugins;
   while (arg->next != NULL)

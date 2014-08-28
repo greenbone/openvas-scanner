@@ -583,9 +583,3 @@ ntp_timestamp_host_scan_ends (struct arglist *globals, char *host)
 {
   return __ntp_timestamp_scan_host (globals, "HOST_END", host);
 }
-
-int
-ntp_timestamp_host_scan_interrupted (struct arglist *globals, char *host)
-{
-  return __ntp_timestamp_scan_host (globals, "HOST_INTERRUPTED", host);
-}
