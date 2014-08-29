@@ -1,3 +1,9 @@
+2014-08-29  Michael Wiegand <michael.wiegand@greenbone.net>
+
+	* CMakeLists.txt, src/CMakeLists.txt, src/otp.c, src/otp.h,
+	tools/greenbone-nvt-sync: Ensure the GPLv2+ license notice uses the
+	paragraph suggested by the Free Software Foundation.
+
 2014-08-28  Hani Benhabiles  <hani.benhabiles@greenbone.net>
 
 	* src/pluginschedule.c (plugins_scheduler_init): Check for null function
