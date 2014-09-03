@@ -1,5 +1,10 @@
 2014-09-03  Michael Wiegand <michael.wiegand@greenbone.net>
 
+	* doc/CMakeLists.txt: Use appropriate text for second paragraph of the
+	license notice.
+
+2014-09-03  Michael Wiegand <michael.wiegand@greenbone.net>
+
 	Make license of CMakeLists.txt files consistent.
 
 	* doc/CMakeLists.txt: Change license from LGPLv2+ to GPLv2+.
