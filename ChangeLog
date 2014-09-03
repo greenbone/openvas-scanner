@@ -1,3 +1,9 @@
+2014-09-03  Michael Wiegand <michael.wiegand@greenbone.net>
+
+	Make license of CMakeLists.txt files consistent.
+
+	* doc/CMakeLists.txt: Change license from LGPLv2+ to GPLv2+.
+
 2014-08-29  Michael Wiegand <michael.wiegand@greenbone.net>
 
 	* CMakeLists.txt, src/CMakeLists.txt, src/otp.c, src/otp.h,
