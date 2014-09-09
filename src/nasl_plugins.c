@@ -30,7 +30,6 @@
  */
 
 #include <errno.h>
-#include <stdio.h>    /* for fprintf() */
 #include <unistd.h>   /* for close() */
 #include <signal.h>   /* for SIGTERM */
 #include <string.h>   /* for strlen() */
@@ -107,7 +106,7 @@ nasl_plugin_add (char *folder, char *name, struct arglist *plugins,
 
       if (exec_nasl_script (plugin_args, fullname, nasl_mode) < 0)
         {
-          printf ("%s could not be loaded\n", fullname);
+          log_write ("%s: Could not be loaded", fullname);
           arg_set_value (plugin_args, "preferences", -1, NULL);
           arg_free_all (plugin_args);
           return NULL;
@@ -147,15 +146,14 @@ nasl_plugin_add (char *folder, char *name, struct arglist *plugins,
         }
       else
         // Most likely an exit was hit before the description could be parsed.
-        fprintf (stderr,
-                 "\r%s could not be added to the cache and is likely to stay invisible to the client.\n",
-                 name);
+        log_write ("\r%s could not be added to the cache and is likely to stay"
+                   " invisible to the client.", name);
     }
 
   if (plugin_args == NULL)
     {
       /* Discard invalid plugins */
-      fprintf (stderr, "%s failed to load\n", name);
+      log_write ("%s: Failed to load", name);
       nvti_free (nvti);
       return NULL;
     }
@@ -163,7 +161,7 @@ nasl_plugin_add (char *folder, char *name, struct arglist *plugins,
   if (nvti_oid (nvti) == NULL)
     {
       /* Discard invalid plugins */
-      fprintf (stderr, "%s failed to load, no OID\n", name);
+      log_write ("%s: Failed to load, no OID", name);
       nvti_free (nvti);
       plugin_free (plugin_args);
       return NULL;
