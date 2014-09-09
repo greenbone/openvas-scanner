@@ -1,5 +1,12 @@
 2014-09-09  Hani Benhabiles  <hani.benhabiles@greenbone.net>
 
+	* src/comm.c (send_plug_info), src/hosts.c (forward, hosts_set_pid),
+	src/ntp.c (ntp_read_prefs), src/openvassd.c (init_ssl_ctx, init_network)
+	(set_daemon_mode): Use proper log_write() function instead of printing
+	to stderr fd which might be closed.
+
+2014-09-09  Hani Benhabiles  <hani.benhabiles@greenbone.net>
+
 	* src/nasl_plugins.c (nasl_plugin_add): Use log_write() instead of
 	printf() and fprintf().
 

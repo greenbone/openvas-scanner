@@ -194,22 +194,19 @@ send_plug_info (struct arglist *globals, struct arglist *plugins)
 
   if (strchr (name, '\n') != NULL)
     {
-      fprintf (stderr, "ERROR (newline in name) - %s %s\n", nvti_oid (nvti),
-               name);
+      log_write ("%s: Newline in name\n", nvti_oid (nvti));
       ignored = 1;
     }
 
   if (strchr (copyright, '\n') != NULL)
     {
-      fprintf (stderr, "ERROR (newline in copyright)- %s %s\n",
-               nvti_oid (nvti), copyright);
+      log_write ("%s: Newline in copyright\n", nvti_oid (nvti));
       ignored = 1;
     }
 
   if (strchr (summary, '\n'))
     {
-      fprintf (stderr, "ERROR (newline in summary) - %s %s\n",
-               nvti_oid (nvti), summary);
+      log_write ("%s: Newline in summary\n", nvti_oid (nvti));
       ignored = 1;
     }
 
