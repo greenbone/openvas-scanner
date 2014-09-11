@@ -1,5 +1,10 @@
 2014-09-11  Jan-Oliver Wagner <jan-oliver.wagner@greenbone.net>
 
+	* src/pluginscheduler.c (struct watch_list): Removed,
+	because it is not used.
+
+2014-09-11  Jan-Oliver Wagner <jan-oliver.wagner@greenbone.net>
+
 	Use glib memory management instead of own one.
 
 	* src/pluginscheduler.c (hash_init): Replaced call of emalloc by

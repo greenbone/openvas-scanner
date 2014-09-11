@@ -51,12 +51,6 @@
 
 #define HASH_MAX 2713
 
-struct watch_list
-{
-  char *name;
-  struct watch_list *next;
-};
-
 struct hash
 {
   char *name;
