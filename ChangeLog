@@ -1,3 +1,17 @@
+2014-09-11  Jan-Oliver Wagner <jan-oliver.wagner@greenbone.net>
+
+	Use glib memory management instead of own one.
+
+	* src/pluginscheduler.c (hash_init): Replaced call of emalloc by
+	g_malloc0. Dropped the additional single extra byte which was
+	allocated and made no sense.
+	(hash_link_destroy, hash_destroy, scheduler_rm_running_ports,
+	plugins_scheduler_next, plugins_scheduler_free): Replace efree by g_free.
+	(hash_add, hash_fill_deps, scheduler_mark_running_ports): Replaced
+	emalloc by g_malloc0.
+	(plugins_scheduler_init):  Replace efree by g_free and emalloc by
+	g_malloc0.
+
 2014-09-11  Hani Benhabiles  <hani.benhabiles@greenbone.net>
 
 	* src/attack.c (launch_plugin): Do not implicitly launch ACT_SETTINGS

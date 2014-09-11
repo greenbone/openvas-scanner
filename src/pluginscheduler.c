@@ -34,7 +34,6 @@
 
 #include <openvas/misc/nvt_categories.h>  /* for ACT_SCANNER */
 #include <openvas/misc/plugutils.h>  /* for plug_get_launch */
-#include <openvas/misc/system.h>     /* for emalloc */
 
 #include <openvas/base/nvticache.h>     /* for nvticache_t */
 
@@ -108,7 +107,7 @@ mkhash (char *name)
 static struct hash *
 hash_init ()
 {
-  struct hash *h = emalloc (sizeof (*h) * HASH_MAX + 1);
+  struct hash *h = g_malloc0 (HASH_MAX * sizeof (*h));
 
   return h;
 }
@@ -122,18 +121,18 @@ hash_link_destroy (struct hash *h)
   if (h->next != NULL)
     hash_link_destroy (h->next);
 
-  efree (&h->dependencies_ptr);
+  g_free (h->dependencies_ptr);
 
   g_strfreev (h->plugin->required_ports);
   g_strfreev (h->plugin->required_udp_ports);
   g_strfreev (h->plugin->required_keys);
   g_strfreev (h->plugin->mandatory_keys);
   g_strfreev (h->plugin->excluded_keys);
-  efree (&h->plugin);
+  g_free (h->plugin);
 
   g_strfreev (h->dependencies);
   g_strfreev (h->ports);
-  efree (&h);
+  g_free (h);
 }
 
 static void
@@ -145,14 +144,14 @@ hash_destroy (struct hash *h)
     {
       hash_link_destroy (h[i].next);
     }
-  efree (&h);
+  g_free (h);
 }
 
 
 static void
 hash_add (struct hash *h, char *name, struct scheduler_plugin *plugin)
 {
-  struct hash *l = emalloc (sizeof (struct hash));
+  struct hash *l = g_malloc0 (sizeof (struct hash));
   unsigned int idx = mkhash (name);
   nvti_t * nvti = nvticache_get_by_oid (arg_get_value (arg_get_value
     (plugin->arglist->value, "preferences"), "nvticache"),
@@ -217,7 +216,7 @@ hash_fill_deps (struct hash *h, struct hash *l)
     return;
 
   l->dependencies_ptr =
-    emalloc ((1 + l->num_deps) * sizeof (struct hash *));
+    g_malloc0 ((1 + l->num_deps) * sizeof (struct hash *));
   for (i = 0; l->dependencies[i]; i++)
     {
       struct hash *d = _hash_get (h, l->dependencies[i]);
@@ -292,7 +291,7 @@ scheduler_mark_running_ports (plugins_scheduler_t sched,
         pl->occurences++;
       else
         {
-          pl = emalloc (sizeof (struct plist));
+          pl = g_malloc0 (sizeof (struct plist));
           pl->name = g_strdup (ports[i]);
           pl->occurences = 1;
           pl->next = sched->plist;
@@ -334,7 +333,7 @@ scheduler_rm_running_ports (plugins_scheduler_t sched,
                 sched->plist = pl->next;
 
               g_free (pl->name);
-              efree (&pl);
+              g_free (pl);
             }
         }
       else
@@ -459,7 +458,7 @@ plugins_scheduler_init (struct arglist *plugins, int autoload,
   nvticache = arg_get_value (arg_get_value (plugins->value, "preferences"),
                              "nvticache");
   /* Fill our lists */
-  ret = emalloc (sizeof (*ret));
+  ret = g_malloc0 (sizeof (*ret));
   ret->hash = hash_init ();
   arg = plugins;
   while (arg->next != NULL)
@@ -471,7 +470,7 @@ plugins_scheduler_init (struct arglist *plugins, int autoload,
       nvti_t *nvti = (oid == NULL ? NULL : nvticache_get_by_oid (nvticache, oid));
       int category = nvti_category (nvti);
 
-      scheduler_plugin = emalloc (sizeof (struct scheduler_plugin));
+      scheduler_plugin = g_malloc0 (sizeof (struct scheduler_plugin));
       scheduler_plugin->arglist = arg;
       scheduler_plugin->running_state = PLUGIN_STATUS_UNRUN;
       scheduler_plugin->category = category;
@@ -506,7 +505,7 @@ plugins_scheduler_init (struct arglist *plugins, int autoload,
 
       if (category > ACT_LAST)
         category = ACT_LAST;
-      dup = emalloc (sizeof (struct list));
+      dup = g_malloc0 ( sizeof (struct list));
       dup->name = scheduler_plugin->arglist->name;
       dup->plugin = scheduler_plugin;
       dup->prev = NULL;
@@ -565,7 +564,7 @@ plugins_scheduler_init (struct arglist *plugins, int autoload,
               if (l->next != NULL)
                 l->next->prev = l->prev;
 
-              efree (&l);
+              g_free (l);
               l = old;
               continue;
             }
@@ -680,7 +679,7 @@ plugins_scheduler_next (plugins_scheduler_t h)
                 if (l->next != NULL)
                   l->next->prev = l->prev;
 
-                efree (&l);
+                g_free (l);
                 l = old;
 
                 continue;
@@ -717,7 +716,7 @@ list_destroy (struct list *list)
   while (list != NULL)
     {
       struct list *next = list->next;
-      efree (&list);
+      g_free (list);
       list = next;
     }
 }
@@ -730,5 +729,5 @@ plugins_scheduler_free (plugins_scheduler_t sched)
   hash_destroy (sched->hash);
   for (i = ACT_FIRST; i < ACT_LAST; i++)
     list_destroy (sched->list[i]);
-  efree (&sched);
+  g_free (sched);
 }
