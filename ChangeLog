@@ -1,3 +1,8 @@
+2014-09-11  Hani Benhabiles  <hani.benhabiles@greenbone.net>
+
+	* src/attack.c (launch_plugin): Do not implicitly launch ACT_SETTINGS
+	plugins. See r14214.
+
 2014-09-09  Hani Benhabiles  <hani.benhabiles@greenbone.net>
 
 	* src/comm.c (send_plug_info), src/hosts.c (forward, hosts_set_pid),

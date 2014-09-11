@@ -288,7 +288,7 @@ launch_plugin (struct arglist *globals, struct scheduler_plugin *plugin,
   if (network_scan_status (globals) == NSS_BUSY)
     network_scan = TRUE;
 
-  if (plug_get_launch (args) != LAUNCH_DISABLED || category == ACT_SETTINGS)    /* can we launch it ? */
+  if (plug_get_launch (args) != LAUNCH_DISABLED)    /* can we launch it ? */
     {
       char *error;
       static int last_status = 0;
