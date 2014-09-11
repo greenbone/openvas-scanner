@@ -64,7 +64,6 @@ struct hash
 
 struct list
 {
-  char *name;
   struct scheduler_plugin *plugin;
   struct list *next;
   struct list *prev;
@@ -500,7 +499,6 @@ plugins_scheduler_init (struct arglist *plugins, int autoload,
       if (category > ACT_LAST)
         category = ACT_LAST;
       dup = g_malloc0 ( sizeof (struct list));
-      dup->name = scheduler_plugin->arglist->name;
       dup->plugin = scheduler_plugin;
       dup->prev = NULL;
       dup->next = ret->list[category];
