@@ -248,7 +248,7 @@ ntp_read_prefs (struct arglist *globals)
       int n;
       input[0] = '\0';
 #if DEBUG_SSL > 2
-      fprintf (stderr, "ntp_read_prefs > soc=%d\n", soc);
+      log_write ("ntp_read_prefs > soc=%d\n", soc);
 #endif
       n = recv_line (soc, input, input_sz - 1);
 
@@ -327,10 +327,6 @@ files_add_translation (struct arglist *globals, const char *remotename,
                        char *contents)
 {
   GHashTable *trans = arg_get_value (globals, "files_translation");
-#if 0
-  fprintf (stderr, "files_add_translation: R=%s\tC=%s\n", remotename,
-           contents);
-#endif
   // Register the mapping table if none there yet
   if (trans == NULL)
     {
@@ -448,10 +444,6 @@ ntp_recv_file (struct arglist *globals)
   long bytes = 0;
   long tot = 0;
 
-#if 0
-  fprintf (stderr, "ntp_recv_file\n");
-#endif
-
   n = recv_line (soc, input, sizeof (input) - 1);
   if (n <= 0)
     return -1;
@@ -492,9 +484,6 @@ ntp_recv_file (struct arglist *globals)
       return -1;
     }
 
-#if 0
-  fprintf (stderr, "ntp_recv_file: contents=%s\n", contents);
-#endif
   cont_ptr = contents;
   while (tot < bytes)
     {

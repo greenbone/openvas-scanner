@@ -502,7 +502,7 @@ init_ssl_ctx (const char *priority, const char *dhparams)
 {
   if (openvas_SSL_init () < 0)
     {
-      fprintf (stderr, "Could not initialize openvas SSL!\n");
+      log_write ("Could not initialize openvas SSL!\n");
       exit (1);
     }
 
@@ -514,19 +514,19 @@ init_ssl_ctx (const char *priority, const char *dhparams)
       ca_file = preferences_get_string (global_preferences, "ca_file");
       if (ca_file == NULL)
         {
-          fprintf (stderr, "Missing ca_file - Did you run openvas-mkcert?\n");
+          log_write ("Missing ca_file - Did you run openvas-mkcert?\n");
           exit (1);
         }
       cert = preferences_get_string (global_preferences, "cert_file");
       if (cert == NULL)
         {
-          fprintf (stderr, "Missing cert_file - Did you run openvas-mkcert?\n");
+          log_write ("Missing cert_file - Did you run openvas-mkcert?\n");
           exit (1);
         }
       key = preferences_get_string (global_preferences, "key_file");
       if (key == NULL)
         {
-          fprintf (stderr, "Missing key_file - Did you run openvas-mkcert?\n");
+          log_write ("Missing key_file - Did you run openvas-mkcert?\n");
           exit (1);
         }
 
@@ -630,21 +630,20 @@ init_network (int port, int *sock, struct addrinfo addr)
   if ((*sock = socket (addr.ai_family, SOCK_STREAM, 0)) == -1)
     {
       int ec = errno;
-      log_write ("socket(AF_INET): %s (errno = %d)\n", strerror (ec), ec);
-      fprintf (stderr, "socket() failed : %s\n", strerror (ec));
+      log_write ("socket(AF_INET): %s", strerror (ec));
       exit (1);
     }
 
   setsockopt (*sock, SOL_SOCKET, SO_REUSEADDR, &option, sizeof (int));
   if (bind (*sock, (struct sockaddr *) (addr.ai_addr), addr.ai_addrlen) == -1)
     {
-      fprintf (stderr, "bind() failed : %s\n", strerror (errno));
+      log_write ("bind() failed : %s\n", strerror (errno));
       exit (1);
     }
 
   if (listen (*sock, 10) == -1)
     {
-      fprintf (stderr, "listen() failed : %s\n", strerror (errno));
+      log_write ("listen() failed : %s\n", strerror (errno));
       shutdown (*sock, 2);
       close (*sock);
       exit (1);
@@ -717,14 +716,13 @@ set_daemon_mode ()
   /* Close stdin, stdout and stderr */
   int i = open ("/dev/null", O_RDONLY, 0640);
   if (dup2 (i, STDIN_FILENO) != STDIN_FILENO)
-    fprintf (stderr, "Could not redirect stdin to /dev/null: %s\n",
-             strerror (errno));
+    log_write ("Could not redirect stdin to /dev/null: %s\n", strerror (errno));
   if (dup2 (i, STDOUT_FILENO) != STDOUT_FILENO)
-    fprintf (stderr, "Could not redirect stdout to /dev/null: %s\n",
-             strerror (errno));
+    log_write ("Could not redirect stdout to /dev/null: %s\n",
+               strerror (errno));
   if (dup2 (i, STDERR_FILENO) != STDERR_FILENO)
-    fprintf (stderr, "Could not redirect stderr to /dev/null: %s\n",
-             strerror (errno));
+    log_write ("Could not redirect stderr to /dev/null: %s\n",
+               strerror (errno));
   close (i);
   if (fork ())
     exit (0);

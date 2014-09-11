@@ -101,7 +101,7 @@ forward (int in, int out)
     }
   else if ((type & INTERNAL_COMM_MSG_TYPE_DATA) == 0)
     {
-      fprintf (stderr, "hosts.c:forward(): bad msg type (%d)\n", type);
+      log_write ("hosts.c:forward(): bad msg type (%d)\n", type);
       return -1;
     }
 
@@ -244,7 +244,7 @@ hosts_set_pid (char *name, pid_t pid)
   struct host *h = hosts_get (name);
   if (h == NULL)
     {
-      fprintf (stderr, "host_set_pid() failed!\n");
+      log_write ("host_set_pid() failed!\n");
       return -1;
     }
 
