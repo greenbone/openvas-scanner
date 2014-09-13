@@ -44,6 +44,7 @@
 
 #include <openvas/misc/system.h>     /* for efree */
 #include <openvas/base/settings.h>   /* for init_settings_iterator_from_file */
+#include <openvas/misc/kb.h>
 
 #include "comm.h"
 #include "preferences.h"
@@ -91,6 +92,7 @@ static openvassd_option openvassd_defaults[] = {
   {"cert_file", SCANNERCERT},
   {"key_file", SCANNERKEY},
   {"ca_file", CACERT},
+  {"kb_location", KB_PATH_DEFAULT},
   {NULL, NULL}
 };
 
@@ -449,4 +451,15 @@ preferences_reset_cache ()
   preferences_plugins_timeout (NULL);
   preferences_benice (NULL);
   preferences_safe_checks_enabled (NULL);
+}
+
+gchar *preferences_kb_location (struct arglist *prefs)
+{
+  gchar *kb_path;
+
+  kb_path = (gchar *) arg_get_value (prefs, "kb_location");
+  if (kb_path == NULL)
+    kb_path = KB_PATH_DEFAULT;
+
+  return kb_path;
 }

@@ -1,3 +1,25 @@
+2014-09-12  Henri Doreau <henri.doreau@gmail.com>
+
+	Make the redis socket actually configurable.
+
+	* src/attack.c (scanner_kb_path): Moved to preferences.c and renamed.
+	(error_message_to_client, init_host_kb, apply_source_iface_preference)
+	(attack_network): Updated calls to use the new preferences_kb_location()
+	function.
+
+	* src/openvassd.c (flush_all_kbs): Don't use default KB location but the
+	configured one, if present.
+	(main): Updated call accordingly.
+
+	* src/preferences.c (openvassd_defaults): Define "kb_location" with the
+	other scanner options.
+	(preferences_kb_location): Return the KB path, read option from
+	"preferences" arglist instead of globals as previously done by
+	scanner_kb_path().
+
+	* src/preferences.h (preferences_kb_location): Expose
+	preferences_kb_location() prototype.
+
 2014-09-11  Jan-Oliver Wagner <jan-oliver.wagner@greenbone.net>
 
 	Remove element "name" from list struct because it is never used.

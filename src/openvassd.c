@@ -648,12 +648,12 @@ set_daemon_mode ()
 }
 
 static int
-flush_all_kbs (void)
+flush_all_kbs (struct arglist *prefs)
 {
   kb_t kb;
   int rc;
 
-  rc = kb_new (&kb, KB_PATH_DEFAULT);
+  rc = kb_new (&kb, preferences_kb_location (prefs));
   if (rc)
     return rc;
 
@@ -867,7 +867,7 @@ main (int argc, char *argv[])
   handler_pid = loading_handler_start ();
   init_plugins (options);
   loading_handler_stop (handler_pid);
-  flush_all_kbs ();
+  flush_all_kbs (global_preferences);
   main_loop ();
   g_hash_table_destroy (options);
   exit (0);
