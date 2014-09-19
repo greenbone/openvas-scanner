@@ -1,3 +1,27 @@
+2014-09-19  Jan-Oliver Wagner <jan-oliver.wagner@greenbone.net>
+
+	Replace old internal calls for memory management by respective
+	glib functions.
+
+	* src/pluginload.c (plugins_init): Replace emalloc() by g_malloc0().
+
+	* src/hosts.c (forward): Replace efree() by g_free() and take care
+	the pointer is set to NULL because it is a static variable.
+	(host_rm): Replace efree() by g_free().
+	(hosts_new): Replace emalloc() by g_malloc0() and estrdup() by
+	g_strdup().
+
+	* src/nasl_plugins.c (nasl_plugin_add): Replace emalloc()
+	by g_malloc0().
+
+	* src/plugs_req.c (requirements_common_ports): Replace emalloc()
+	by g_malloc0().
+
+	* src/preferences.c (preferences_init): Replace emalloc()
+	by g_malloc0().
+	(preferences_process): Replace estrdup() by estrdup().
+	(preferences_plugin_timeout): Replace efree() by g_free().
+
 2014-09-12  Henri Doreau <henri.doreau@gmail.com>
 
 	Make the redis socket actually configurable.

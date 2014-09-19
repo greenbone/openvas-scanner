@@ -25,7 +25,6 @@
 * Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA 02110-1301 USA.
 */
 
-#include <stdio.h>    /* for fprintf() */
 #include <errno.h>    /* for errno() */
 #include <signal.h>   /* for SIGTERM */
 #include <sys/wait.h> /* for waitpid() */
@@ -34,13 +33,11 @@
 
 #include <openvas/misc/network.h>      /* for internal_recv */
 #include <openvas/misc/internal_com.h> /* for INTERNAL_COMM_MSG_TYPE_CTRL */
-#include <openvas/misc/system.h>       /* for estrdup */
 
-#include "utils.h"
-#include "log.h"
-#include "preferences.h"
-#include "hosts.h"
-#include "ntp.h"
+#include "utils.h" /* for data_left() */
+#include "log.h"   /* for log_write() */
+#include "hosts.h" /* for hosts_new() */
+#include "ntp.h"   /* for ntp_parse_input() */
 
 /**
  * @brief Host information, implemented as doubly linked list.
@@ -122,7 +119,8 @@ forward (int in, int out)
         }
     }
 
-  efree (&buf);
+  g_free (buf);
+  buf = NULL;
   return 0;
 }
 
@@ -152,8 +150,8 @@ host_rm (struct host *hosts, struct host *h)
   else
     hosts = h->next;
 
-  efree (&h->name);
-  efree (&h);
+  g_free (h->name);
+  g_free (h);
   return hosts;
 }
 
@@ -210,8 +208,8 @@ hosts_new (struct arglist *globals, char *name, int soc)
         return -1;
     }
 
-  h = emalloc (sizeof (struct host));
-  h->name = estrdup (name);
+  h = g_malloc0 (sizeof (struct host));
+  h->name = g_strdup (name);
   h->pid = 0;
   h->soc = soc;
   if (hosts != NULL)

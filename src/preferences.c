@@ -42,7 +42,6 @@
 #include <stdlib.h> /* for atoi() */
 #include <glib.h>
 
-#include <openvas/misc/system.h>     /* for efree */
 #include <openvas/base/settings.h>   /* for init_settings_iterator_from_file */
 #include <openvas/misc/kb.h>
 
@@ -103,7 +102,7 @@ int
 preferences_init (char *config_file, struct arglist **prefs)
 {
   int result;
-  *prefs = emalloc (sizeof (struct arglist));
+  *prefs = g_malloc0 (sizeof (struct arglist));
   result = preferences_process (config_file, *prefs);
   return (result);
 }
@@ -154,7 +153,7 @@ preferences_process (char *filename, struct arglist *prefs)
     }
 
   arg_add_value (prefs, "config_file", ARG_STRING, strlen (filename),
-                 estrdup (filename));
+                 g_strdup (filename));
   return 0;
 }
 
@@ -292,7 +291,7 @@ preferences_plugin_timeout (struct arglist *preferences, char *oid)
         ret = to;
     }
 
-  efree (&pref_name);
+  g_free (pref_name);
   return ret;
 }
 

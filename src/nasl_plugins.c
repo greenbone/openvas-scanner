@@ -47,7 +47,6 @@
 #include <openvas/misc/nvt_categories.h>  /* for ACT_SCANNER */
 #include <openvas/misc/plugutils.h>     /* for plug_set_launch */
 #include <openvas/misc/internal_com.h>  /* for INTERNAL_COMM_CTRL_FINISHED */
-#include <openvas/misc/system.h>     /* for emalloc */
 #include <openvas/misc/openvas_proctitle.h>
 
 #include "pluginload.h"
@@ -98,7 +97,7 @@ nasl_plugin_add (char *folder, char *name, struct arglist *plugins,
     {
       nvti_free (nvti);
 
-      plugin_args = emalloc (sizeof (struct arglist));
+      plugin_args = g_malloc0 (sizeof (struct arglist));
       arg_add_value (plugin_args, "preferences", ARG_ARGLIST, -1,
                      (void *) preferences);
       nvti = nvti_new ();

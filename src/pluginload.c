@@ -28,7 +28,6 @@
 #include <stdio.h> /* for printf() */
 
 #include <openvas/nasl/nasl.h>
-#include <openvas/misc/system.h>     /* for emalloc */
 #include <openvas/base/nvticache.h>  /* for nvticache_new */
 #include <openvas/misc/openvas_proctitle.h>
 
@@ -317,7 +316,7 @@ plugins_init (struct arglist *preferences)
   nvti_cache = nvticache_new (arg_get_value (preferences, "cache_folder"),
                               plugins_folder);
   arg_add_value (preferences, "nvticache", ARG_PTR, -1, nvti_cache);
-  plugins = emalloc (sizeof (struct arglist));
+  plugins = g_malloc0 (sizeof (struct arglist));
 
   return plugins_reload_from_dir (preferences, plugins, plugins_folder);
 }

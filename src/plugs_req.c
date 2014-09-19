@@ -29,8 +29,6 @@
 #include <string.h> /* for strcmp() */
 #include <stdio.h>  /* for snprintf() */
 
-#include <openvas/misc/system.h>     /* for emalloc */
-
 #include "pluginscheduler.h"
 #include "plugs_req.h"
 
@@ -129,7 +127,7 @@ requirements_common_ports (struct scheduler_plugin *plugin1,
            if (!strcmp (plugin2->required_ports[j], plugin1->required_ports[i]))
              {
                if (!ret)
-                 ret = emalloc (sizeof (struct arglist));
+                 ret = g_malloc0 (sizeof (struct arglist));
                arg_add_value (ret, plugin2->required_ports[j], ARG_INT,
                               0, (void *) 1);
              }
