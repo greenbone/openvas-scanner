@@ -43,7 +43,6 @@
 #include <openvas/misc/nvt_categories.h> /* for ACT_INIT */
 #include <openvas/misc/pcap_openvas.h>   /* for v6_is_local_ip */
 #include <openvas/misc/plugutils.h>      /* for plug_get_launch */
-#include <openvas/misc/system.h>         /* for emalloc */
 #include <openvas/misc/scanners_utils.h> /* for comm_send_status */
 #include <openvas/misc/openvas_ssh_login.h>
 
@@ -177,7 +176,7 @@ attack_init_hostinfos_vhosts (char *mac, char *hostname, struct in6_addr *ip,
 {
   struct arglist *hostinfos;
 
-  hostinfos = emalloc (sizeof (struct arglist));
+  hostinfos = g_malloc0 (sizeof (struct arglist));
   if (mac)
     {
       arg_add_value (hostinfos, "NAME", ARG_STRING, strlen (mac), mac);
@@ -185,15 +184,15 @@ attack_init_hostinfos_vhosts (char *mac, char *hostname, struct in6_addr *ip,
     }
   else
     arg_add_value (hostinfos, "NAME", ARG_STRING, strlen (hostname),
-                   estrdup (hostname));
+                   g_strdup (hostname));
 
   if (fqdn)
     arg_add_value (hostinfos, "FQDN", ARG_STRING, strlen (fqdn),
-                   estrdup (fqdn));
+                   g_strdup (fqdn));
   arg_add_value (hostinfos, "IP", ARG_PTR, sizeof (struct in6_addr), ip);
   if (vhosts)
     arg_add_value (hostinfos, "VHOSTS", ARG_STRING, strlen (vhosts),
-                   estrdup (vhosts));
+                   g_strdup (vhosts));
   return (hostinfos);
 }
 
@@ -218,7 +217,7 @@ attack_init_hostinfos (char *mac, char *hostname, struct in6_addr *ip,
 {
   struct arglist *hostinfos;
 
-  hostinfos = emalloc (sizeof (struct arglist));
+  hostinfos = g_malloc0 (sizeof (struct arglist));
   if (mac)
     {
       arg_add_value (hostinfos, "NAME", ARG_STRING, strlen (mac), mac);
@@ -226,10 +225,10 @@ attack_init_hostinfos (char *mac, char *hostname, struct in6_addr *ip,
     }
   else
     arg_add_value (hostinfos, "NAME", ARG_STRING, strlen (hostname),
-                   estrdup (hostname));
+                   g_strdup (hostname));
   if (fqdn)
     arg_add_value (hostinfos, "FQDN", ARG_STRING, strlen (fqdn),
-                   estrdup (fqdn));
+                   g_strdup (fqdn));
 
   arg_add_value (hostinfos, "IP", ARG_PTR, sizeof (struct in6_addr), ip);
   return (hostinfos);
@@ -822,11 +821,11 @@ attack_start (struct attack_start_args *args)
       inaddr.s_addr = hostip->s6_addr32[3];
 
       if (IN6_IS_ADDR_V4MAPPED (hostip))
-        txt_ip = estrdup (inet_ntoa (inaddr));
+        txt_ip = g_strdup (inet_ntoa (inaddr));
       else
         {
           char name[512];
-          txt_ip = estrdup (inet_ntop (AF_INET6, hostip, name, sizeof (name)));
+          txt_ip = g_strdup (inet_ntop (AF_INET6, hostip, name, sizeof (name)));
         }
       if (strcmp (vhosts_ip, txt_ip) != 0)
         vhosts = NULL;
@@ -1347,7 +1346,8 @@ attack_network (struct arglist *globals, kb_t *network_kb)
                   /* Forking failed - we go to the wait queue. */
                   log_write ("fork() failed - %s. %s won't be tested",
                              strerror (errno), hostname);
-                  efree (&MAC);
+                  if (MAC)
+                    g_free (MAC);
                   goto stop;
                 }
 
@@ -1370,7 +1370,7 @@ attack_network (struct arglist *globals, kb_t *network_kb)
                                             sizeof (buffer)),
                        pid);
           if (MAC != NULL)
-            efree (&MAC);
+            g_free (MAC);
         }
 
       num_tested++;

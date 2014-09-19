@@ -1,5 +1,23 @@
 2014-09-19  Jan-Oliver Wagner <jan-oliver.wagner@greenbone.net>
 
+	Replace last old internal calls for memory management by respective
+	glib functions.
+
+	* src/ntp.c (ntp_long_attack): Replaced emalloc() by g_malloc0() and efree()
+	by g_free().
+	(ntp_read_prefs): Replaced emalloc() by g_malloc0(), efree() by g_free()
+	and estrdup() by g_strdup().
+	(ntp_recv_file): Replaced estrdup() by g_strdup().
+
+	* src/openvassd.c (main_loop): Replaced emalloc() by g_malloc0().
+
+	* src/attack.c (attack_init_hostinfos_vhosts, attack_init_hostinfos):
+	Replaced emalloc() by g_malloc0() and estrdup() by g_strdup().
+	(attack_start): Replaced estrdup() by g_strdup().
+	(attack_network): Replaced free() by g_free().
+
+2014-09-19  Jan-Oliver Wagner <jan-oliver.wagner@greenbone.net>
+
 	Replace more old internal calls for memory management by respective
 	glib functions.
 

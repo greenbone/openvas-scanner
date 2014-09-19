@@ -34,7 +34,6 @@
 #include <openvas/base/nvti.h>  /* for nvti_name */
 
 #include <openvas/misc/network.h>    /* for recv_line */
-#include <openvas/misc/system.h>     /* for emalloc */
 #include <openvas/misc/hash_table_file.h>
 #include <openvas/misc/openvas_ssh_login.h>
 #include <openvas/misc/internal_com.h> /* for INTERNAL_COMM_MSG_TYPE_DATA */
@@ -155,7 +154,7 @@ ntp_long_attack (struct arglist *globals)
   if (!strncmp (input, "<|> CLIENT", sizeof ("<|> CLIENT")))
     return 1;
   size = atoi (input);
-  target = emalloc (size + 1);
+  target = g_malloc0 (size + 1);
 
   n = 0;
   while (n < size)
@@ -170,7 +169,7 @@ ntp_long_attack (struct arglist *globals)
   plugin_set = arg_get_value (preferences, "plugin_set");
   if (!plugin_set || plugin_set[0] == '\0')
     {
-      plugin_set = emalloc (3);
+      plugin_set = g_malloc0 (3);
       sprintf (plugin_set, "-1");
       if (!arg_get_value (preferences, "plugin_set"))
         arg_add_value (preferences, "plugin_set", ARG_STRING,
@@ -184,7 +183,7 @@ ntp_long_attack (struct arglist *globals)
   if (arg_get_value (preferences, "TARGET"))
     {
       char *old = arg_get_value (preferences, "TARGET");
-      efree (&old);
+      g_free (old);
       arg_set_value (preferences, "TARGET", strlen (target), target);
     }
   else
@@ -206,7 +205,7 @@ ntp_read_prefs (struct arglist *globals)
   char *input;
   int input_sz = 1024 * 1024;
 
-  input = emalloc (input_sz);
+  input = g_malloc0 (input_sz);
   for (;;)
     {
       int n;
@@ -256,21 +255,21 @@ ntp_read_prefs (struct arglist *globals)
               {
                 if (strcmp (old, value) != 0)
                   {
-                    efree (&old);
-                    v = estrdup (value);
+                    g_free (old);
+                    v = g_strdup (value);
                     arg_set_value (preferences, pref, strlen (v), v);
                   }
               }
             else
               {
-                v = estrdup (value);
+                v = g_strdup (value);
                 arg_add_value (preferences, pref, ARG_STRING, strlen (v), v);
               }
           }
       }
     }
 
-  efree (&input);
+  g_free (input);
   return (0);
 }
 
@@ -414,7 +413,7 @@ ntp_recv_file (struct arglist *globals)
 
   if (strncmp (input, "name: ", strlen ("name: ")) == 0)
     {
-      origname = estrdup (input + sizeof ("name: ") - 1);
+      origname = g_strdup (input + sizeof ("name: ") - 1);
       if (origname[strlen (origname) - 1] == '\n')
         origname[strlen (origname) - 1] = '\0';
     }

@@ -55,7 +55,6 @@
 #include <openvas/nasl/nasl.h>
 #include <openvas/misc/network.h>    /* for auth_printf */
 #include <openvas/misc/plugutils.h>  /* for find_in_path */
-#include <openvas/misc/system.h>     /* for estrdup */
 #include <openvas/misc/openvas_proctitle.h>
 #include <openvas/misc/openvas_logging.h>  /* for setup_legacy_log_handler */
 #include <openvas/base/pidfile.h>    /* for pidfile_remove */
@@ -496,14 +495,14 @@ main_loop ()
       /*
        * MA: you cannot share an open SSL connection through fork/multithread
        * The SSL connection shall be open _after_ the fork */
-      globals = emalloc (sizeof (struct arglist));
+      globals = g_malloc0 (sizeof (struct arglist));
       arg_add_value (globals, "global_socket", ARG_INT, -1,
                      GSIZE_TO_POINTER (soc));
 
       arg_add_value (globals, "plugins", ARG_ARGLIST, -1, global_plugins);
       arg_add_value (globals, "preferences", ARG_ARGLIST, -1, global_preferences);
 
-      p_addr = emalloc (sizeof (struct sockaddr_in6));
+      p_addr = g_malloc0 (sizeof (struct sockaddr_in6));
       family = ai->ai_family;
       memcpy (p_addr, &address6, sizeof (address6));
       arg_add_value (globals, "client_address", ARG_PTR, -1, p_addr);
