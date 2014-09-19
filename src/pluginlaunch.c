@@ -34,9 +34,8 @@
 
 #include <openvas/misc/network.h>    /* for internal_send */
 #include <openvas/misc/nvt_categories.h>  /* for ACT_SCANNER */
-#include <openvas/misc/plugutils.h>  /* for rmslashes */
+#include <openvas/misc/plugutils.h>  /* for plug_get_hostname */
 #include <openvas/misc/internal_com.h>  /* for INTERNAL_COMM_MSG_TYPE_DATA */
-#include <openvas/misc/system.h>     /* for efree */
 
 #include "pluginload.h"
 #include "utils.h"
@@ -120,7 +119,8 @@ process_internal_msg (int p)
   else
     log_write ("Received unknown message type %d", type);
 
-  efree (&buffer);
+  g_free (buffer);
+  buffer = NULL;
   return e;
 }
 

@@ -35,7 +35,6 @@
 
 #include <openvas/misc/network.h>    /* for stream_zero */
 #include <openvas/misc/plugutils.h>  /* for plug_get_launch */
-#include <openvas/misc/system.h>     /* for emalloc */
 
 #include "log.h"
 #include "comm.h"
@@ -84,15 +83,13 @@ struct arglist *
 list2arglist (list)
      char *list;
 {
-  struct arglist *ret = emalloc (sizeof (struct arglist));
+  struct arglist *ret;
   char *t;
 
   if (!list)
-    {
-      efree (&ret);
-      return ret;
-    }
+    return NULL;
 
+  ret = g_malloc0 (sizeof (struct arglist));
 
   while ((t = strchr (list, ',')) != NULL)
     {

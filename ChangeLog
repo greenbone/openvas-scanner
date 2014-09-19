@@ -1,5 +1,21 @@
 2014-09-19  Jan-Oliver Wagner <jan-oliver.wagner@greenbone.net>
 
+	Replace more old internal calls for memory management by respective
+	glib functions.
+
+	* src/pluginlaunch.c (process_internal_msg): Replace efree() by
+	g_free() and set buffer to NULL. 
+
+	* src/comm.c (send_plug_info): Replaced estrdup() by g_strdup(),
+	emalloc() by g_malloc0() and efree by g_free().
+	(comm_setup_plugins): Replaced emalloc() by g_malloc0() and efree()
+	by g_free().
+
+	* src/utils.c (list2arglist): Avoid calling efree(). Replace
+	emalloc() by g_malloc0().
+
+2014-09-19  Jan-Oliver Wagner <jan-oliver.wagner@greenbone.net>
+
 	Replace old internal calls for memory management by respective
 	glib functions.
 

@@ -37,7 +37,6 @@
 #include <openvas/misc/nvt_categories.h>/* for ACT_FIRST */
 #include <openvas/misc/plugutils.h>
 #include <openvas/misc/network.h>       /* for recv_line */
-#include <openvas/misc/system.h>        /* for emalloc */
 
 #include <openvas/base/nvticache.h>     /* for nvticache_t */
 
@@ -229,7 +228,7 @@ send_plug_info (struct arglist *globals, struct arglist *plugins)
 
       {
         char *index;
-        tag = estrdup (nvti_tag (nvti));
+        tag = g_strdup (nvti_tag (nvti));
         index = tag;
         if (tag == NULL || strcmp (tag, "") == 0)
           tag = "NOTAG";
@@ -253,7 +252,7 @@ send_plug_info (struct arglist *globals, struct arglist *plugins)
         strlen (tag) +
         100;                    /* Separators etc. */
 
-      str = emalloc (mem_size);
+      str = g_malloc0 (mem_size);
       snprintf (str, mem_size,
                 "%s <|> %s <|> %s <|> "
                 "%s <|> %s <|> %s <|> "
@@ -263,9 +262,9 @@ send_plug_info (struct arglist *globals, struct arglist *plugins)
                 version, cve_id, bid, xref, tag);
 
       if (tag != NULL && strcmp (tag, "NOTAG"))
-        efree (&tag);
+        g_free (tag);
       auth_printf (globals, "%s\n", str);
-      efree (&str);
+      g_free (str);
     }
 
   nvti_free (nvti);
@@ -482,7 +481,7 @@ comm_setup_plugins (struct arglist *globals, char *list)
   /* Store the plugins in an array for quick access */
   p = plugins;
   i = 0;
-  array = emalloc (num_plugins * sizeof (struct arglist **));
+  array = g_malloc0 (num_plugins * sizeof (struct arglist **));
   while (p->next != NULL)
     {
       array[i++] = p;
@@ -507,7 +506,7 @@ comm_setup_plugins (struct arglist *globals, char *list)
       oid = strtok (NULL, ";");
     }
 
-  efree (&array);
+  g_free (array);
 }
 
 
