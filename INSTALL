@@ -15,7 +15,6 @@ Prerequisites:
 * gnutls >= 2.8
 * openvas-libraries >= 8.0.0
 * pkg-config
-* hiredis >= 0.10.1
 * redis >= 2.4.0
 
 Prerequisites for building documentation:

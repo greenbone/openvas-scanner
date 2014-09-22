@@ -1,3 +1,8 @@
+2014-09-22  Michael Wiegand <michael.wiegand@greenbone.net>
+
+	* INSTALL: Remove libhiredis from the list of prerequisites since it
+	is actually required by openvas-libraries and handled there.
+
 2014-09-19  Jan-Oliver Wagner <jan-oliver.wagner@greenbone.net>
 
 	Replace last old internal calls for memory management by respective
