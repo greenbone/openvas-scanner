@@ -132,9 +132,7 @@ send_plug_info (struct arglist *globals, struct arglist *plugins)
   char *str;
   int ignored = 0;
   char *oid = (char *)arg_get_value (plugins->value, "OID");
-  nvticache_t *nvticache = (nvticache_t *)arg_get_value (
-    arg_get_value (plugins->value, "preferences"), "nvticache");
-  nvti_t *nvti = (oid == NULL ? NULL : nvticache_get_by_oid (nvticache, oid));
+  nvti_t *nvti = (oid == NULL ? NULL : nvticache_get_by_oid (oid));
 
   if (!nvti_oid (nvti))
     {

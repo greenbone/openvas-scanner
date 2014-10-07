@@ -307,15 +307,12 @@ plugins_reload_from_dir (struct arglist *preferences, struct arglist *plugins,
 struct arglist *
 plugins_init (struct arglist *preferences)
 {
-  nvticache_t * nvti_cache;
   char *plugins_folder;
   struct arglist *plugins;
 
-  // @todo: Perhaps check wether "nvticache" is already present in arglist
   plugins_folder = arg_get_value (preferences, "plugins_folder");
-  nvti_cache = nvticache_new (arg_get_value (preferences, "cache_folder"),
-                              plugins_folder);
-  arg_add_value (preferences, "nvticache", ARG_PTR, -1, nvti_cache);
+  nvticache_init (arg_get_value (preferences, "cache_folder"),
+                  plugins_folder);
   plugins = g_malloc0 (sizeof (struct arglist));
 
   return plugins_reload_from_dir (preferences, plugins, plugins_folder);

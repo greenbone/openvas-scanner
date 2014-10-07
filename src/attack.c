@@ -252,8 +252,6 @@ launch_plugin (struct arglist *globals, struct scheduler_plugin *plugin,
 {
   struct arglist *preferences = arg_get_value (globals, "preferences");
   struct arglist *args = plugin->arglist->value;
-  nvticache_t *nvticache = (nvticache_t *)arg_get_value (
-    arg_get_value (args, "preferences"), "nvticache");
   char name[1024], oid_[100], *oid, *src;
   int optimize = preferences_optimize_test (preferences);
   int category = plugin->category;
@@ -261,7 +259,7 @@ launch_plugin (struct arglist *globals, struct scheduler_plugin *plugin,
 
   oid = arg_get_value (args, "OID");
   if (oid)
-    src = nvticache_get_src_by_oid (nvticache, oid);
+    src = nvticache_get_src_by_oid (oid);
   else
     return 0;
 

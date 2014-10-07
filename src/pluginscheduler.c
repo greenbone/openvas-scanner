@@ -146,9 +146,8 @@ hash_add (struct hash *h, char *name, struct scheduler_plugin *plugin)
 {
   struct hash *l = g_malloc0 (sizeof (struct hash));
   unsigned int idx = mkhash (name);
-  nvti_t * nvti = nvticache_get_by_oid (arg_get_value (arg_get_value
-    (plugin->arglist->value, "preferences"), "nvticache"),
-      arg_get_value (plugin->arglist->value, "OID"));
+  nvti_t * nvti = nvticache_get_by_oid
+                   (arg_get_value (plugin->arglist->value, "OID"));
 
   l->plugin = plugin;
   l->plugin->parent_hash = l;
@@ -440,7 +439,6 @@ plugins_scheduler_init (struct arglist *plugins, int autoload,
                         int only_network)
 {
   plugins_scheduler_t ret;
-  nvticache_t *nvticache;
   struct arglist *arg;
   int i;
   struct hash *l;
@@ -448,8 +446,6 @@ plugins_scheduler_init (struct arglist *plugins, int autoload,
   if (plugins == NULL)
     return NULL;
 
-  nvticache = arg_get_value (arg_get_value (plugins->value, "preferences"),
-                             "nvticache");
   /* Fill our lists */
   ret = g_malloc0 (sizeof (*ret));
   ret->hash = hash_init ();
@@ -458,11 +454,14 @@ plugins_scheduler_init (struct arglist *plugins, int autoload,
     {
       struct scheduler_plugin *scheduler_plugin;
       struct list *dup;
-      char *oid = (char *)arg_get_value (arg->value, "OID");
-      if (! oid) continue; // This would be a serious problem as it shouldn't be
-      nvti_t *nvti = (oid == NULL ? NULL : nvticache_get_by_oid (nvticache, oid));
-      int category = nvti_category (nvti);
+      char *oid = arg_get_value (arg->value, "OID");
+      nvti_t *nvti;
+      int category;
 
+      if (!oid)
+        continue; // This would be a serious problem as it shouldn't be
+      nvti = nvticache_get_by_oid (oid);
+      category = nvti_category (nvti);
       scheduler_plugin = g_malloc0 (sizeof (struct scheduler_plugin));
       scheduler_plugin->arglist = arg;
       scheduler_plugin->running_state = PLUGIN_STATUS_UNRUN;

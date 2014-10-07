@@ -91,7 +91,7 @@ nasl_plugin_add (char *folder, char *name, struct arglist *plugins,
       nasl_mode |= NASL_ALWAYS_SIGNED;
     }
 
-  nvti = nvticache_get (arg_get_value(preferences, "nvticache"), name);
+  nvti = nvticache_get (name);
   plugin_args = plug_create_from_nvti_and_prefs (nvti, preferences);
   if (plugin_args == NULL)
     {
@@ -136,12 +136,11 @@ nasl_plugin_add (char *folder, char *name, struct arglist *plugins,
 
       if (nvti_oid (new_nvti) != NULL)
         {
-          nvticache_add (arg_get_value(preferences, "nvticache"), new_nvti,
-                                       name);
+          nvticache_add (new_nvti, name);
           arg_set_value (plugin_args, "preferences", -1, NULL);
           arg_free_all (plugin_args);
           nvti_free (new_nvti);
-          nvti = nvticache_get (arg_get_value(preferences, "nvticache"), name);
+          nvti = nvticache_get (name);
           plugin_args = plug_create_from_nvti_and_prefs (nvti, preferences);
         }
       else

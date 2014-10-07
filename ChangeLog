@@ -1,5 +1,12 @@
 2014-10-07  Hani Benhabiles  <hani.benhabiles@greenbone.net>
 
+	* src/attack.c (launch_plugin), src/comm.c (send_plug_info),
+	src/nasl_plugins.c (nasl_plugin_add), src/pluginload.c
+	(plugins_reload_from_dir), src/pluginscheduler.c (hash_add)
+	(plugins_scheduler_init): Adjust for nvticache API changes.
+
+2014-10-07  Hani Benhabiles  <hani.benhabiles@greenbone.net>
+
 	* src/nasl_plugins.c (nasl_plugin_add): Adjust for nvticache_get()
 	changes as the returned nvti object is unnecessarily not cloned.
 
