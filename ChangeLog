@@ -1,3 +1,8 @@
+2014-10-07  Hani Benhabiles  <hani.benhabiles@greenbone.net>
+
+	* src/nasl_plugins.c (nasl_plugin_add): Adjust for nvticache_get()
+	changes as the returned nvti object is unnecessarily not cloned.
+
 2014-09-22  Michael Wiegand <michael.wiegand@greenbone.net>
 
 	Post release version bump.

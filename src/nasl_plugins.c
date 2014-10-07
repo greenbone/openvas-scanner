@@ -82,7 +82,7 @@ nasl_plugin_add (char *folder, char *name, struct arglist *plugins,
   struct arglist *prev_plugin = NULL;
   int nasl_mode;
   nasl_mode = NASL_EXEC_DESCR;
-  nvti_t *nvti;
+  const nvti_t *nvti;
 
   snprintf (fullname, sizeof (fullname), "%s/%s", folder, name);
 
@@ -95,13 +95,13 @@ nasl_plugin_add (char *folder, char *name, struct arglist *plugins,
   plugin_args = plug_create_from_nvti_and_prefs (nvti, preferences);
   if (plugin_args == NULL)
     {
-      nvti_free (nvti);
+      nvti_t *new_nvti;
 
       plugin_args = g_malloc0 (sizeof (struct arglist));
       arg_add_value (plugin_args, "preferences", ARG_ARGLIST, -1,
                      (void *) preferences);
-      nvti = nvti_new ();
-      arg_add_value (plugin_args, "NVTI", ARG_PTR, -1, nvti);
+      new_nvti = nvti_new ();
+      arg_add_value (plugin_args, "NVTI", ARG_PTR, -1, new_nvti);
 
       if (exec_nasl_script (plugin_args, fullname, nasl_mode) < 0)
         {
@@ -116,7 +116,7 @@ nasl_plugin_add (char *folder, char *name, struct arglist *plugins,
       if (arg_get_value (plugin_args, "NVTI"))
         arg_del_value (plugin_args, "NVTI");
 
-      nvti_set_src (nvti, fullname);
+      nvti_set_src (new_nvti, fullname);
 
       // Check mtime of plugin before caching it
       // Set to now if mtime is in the future
@@ -134,12 +134,13 @@ nasl_plugin_add (char *folder, char *name, struct arglist *plugins,
             log_write ("The timestamp for %s is from the future and could not be fixed.", fullname);
         }
 
-      if (nvti_oid (nvti) != NULL)
+      if (nvti_oid (new_nvti) != NULL)
         {
-          nvticache_add (arg_get_value(preferences, "nvticache"), nvti, name);
+          nvticache_add (arg_get_value(preferences, "nvticache"), new_nvti,
+                                       name);
           arg_set_value (plugin_args, "preferences", -1, NULL);
           arg_free_all (plugin_args);
-          nvti_free (nvti);
+          nvti_free (new_nvti);
           nvti = nvticache_get (arg_get_value(preferences, "nvticache"), name);
           plugin_args = plug_create_from_nvti_and_prefs (nvti, preferences);
         }
@@ -153,7 +154,6 @@ nasl_plugin_add (char *folder, char *name, struct arglist *plugins,
     {
       /* Discard invalid plugins */
       log_write ("%s: Failed to load", name);
-      nvti_free (nvti);
       return NULL;
     }
 
@@ -161,13 +161,12 @@ nasl_plugin_add (char *folder, char *name, struct arglist *plugins,
     {
       /* Discard invalid plugins */
       log_write ("%s: Failed to load, no OID", name);
-      nvti_free (nvti);
       plugin_free (plugin_args);
       return NULL;
     }
 
-  arg_add_value (plugin_args, "OID", ARG_STRING, strlen (nvti_oid (nvti)), g_strdup (nvti_oid (nvti)));
-  nvti_free (nvti);
+  arg_add_value (plugin_args, "OID", ARG_STRING, strlen (nvti_oid (nvti)),
+                 g_strdup (nvti_oid (nvti)));
 
   plug_set_launch (plugin_args, LAUNCH_DISABLED);
   prev_plugin = arg_get_value (plugins, name);
