@@ -91,10 +91,8 @@ static struct arglist *non_simult_ports_list;
 static int
 process_internal_msg (int p)
 {
-  int e = 0;
-  static char *buffer = NULL;
-  static int bufsz = 0;
-  int type = 0;
+  int e = 0, bufsz = 0, type = 0;
+  char *buffer = NULL;
 
   e = internal_recv (processes[p].internal_soc, &buffer, &bufsz, &type);
   if (e < 0)
@@ -120,7 +118,6 @@ process_internal_msg (int p)
     log_write ("Received unknown message type %d", type);
 
   g_free (buffer);
-  buffer = NULL;
   return e;
 }
 

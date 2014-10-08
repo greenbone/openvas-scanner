@@ -252,25 +252,9 @@ launch_plugin (struct arglist *globals, struct scheduler_plugin *plugin,
 {
   struct arglist *preferences = arg_get_value (globals, "preferences");
   struct arglist *args = plugin->arglist->value;
-  char name[1024], oid_[100], *oid, *src;
   int optimize = preferences_optimize_test (preferences);
   int category = plugin->category;
   gboolean network_scan = FALSE;
-
-  oid = arg_get_value (args, "OID");
-  if (oid)
-    src = nvticache_get_src_by_oid (oid);
-  else
-    return 0;
-
-  strncpy (name, src, sizeof (name) - 1);
-  name[sizeof (name) - 1] = '\0';
-  g_free (src);
-
-  // we need the oid later on and have many exits, so better
-  // store it locally without need to free it.
-  strncpy (oid_, oid, sizeof (oid_) - 1);
-  oid_[sizeof (oid_) - 1] = '\0';
 
   if (network_scan_status (globals) == NSS_BUSY)
     network_scan = TRUE;
@@ -308,8 +292,10 @@ launch_plugin (struct arglist *globals, struct scheduler_plugin *plugin,
 
       if (network_scan)
         {
-          char asc_id[100];
+          char asc_id[100], *oid;
 
+          oid = arg_get_value (args, "OID");
+          assert (oid);
           snprintf (asc_id, sizeof (asc_id), "Launched/%s", oid);
 
           if (kb_item_get_int (kb, asc_id) > 0)
@@ -341,8 +327,9 @@ launch_plugin (struct arglist *globals, struct scheduler_plugin *plugin,
           int pid;
 
           /* Start the plugin */
-          pid =
-            plugin_launch (globals, plugin, hostinfos, preferences, kb, name);
+          pid = plugin_launch
+                 (globals, plugin, hostinfos, preferences, kb,
+                  plugin->arglist->name);
           if (pid < 0)
             {
               plugin->running_state = PLUGIN_STATUS_UNRUN;
