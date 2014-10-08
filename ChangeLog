@@ -1,3 +1,9 @@
+2014-10-08  Hani Benhabiles  <hani.benhabiles@greenbone.net>
+
+	* src/comm.c (send_plug_info), src/pluginscheduler.c (hash_add)
+	(plugins_scheduler_init): Call nvticache_get_by_oid_full() instead of
+	nvticache_get_by_oid().
+
 2014-10-07  Hani Benhabiles  <hani.benhabiles@greenbone.net>
 
 	* src/attack.c (launch_plugin), src/comm.c (send_plug_info),

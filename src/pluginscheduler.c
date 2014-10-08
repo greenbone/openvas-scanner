@@ -146,9 +146,11 @@ hash_add (struct hash *h, char *name, struct scheduler_plugin *plugin)
 {
   struct hash *l = g_malloc0 (sizeof (struct hash));
   unsigned int idx = mkhash (name);
-  nvti_t * nvti = nvticache_get_by_oid
-                   (arg_get_value (plugin->arglist->value, "OID"));
+  nvti_t *nvti;
 
+
+  nvti = nvticache_get_by_oid_full (arg_get_value (plugin->arglist->value,
+                                                   "OID"));
   l->plugin = plugin;
   l->plugin->parent_hash = l;
   l->name = name;
@@ -460,7 +462,7 @@ plugins_scheduler_init (struct arglist *plugins, int autoload,
 
       if (!oid)
         continue; // This would be a serious problem as it shouldn't be
-      nvti = nvticache_get_by_oid (oid);
+      nvti = nvticache_get_by_oid_full (oid);
       category = nvti_category (nvti);
       scheduler_plugin = g_malloc0 (sizeof (struct scheduler_plugin));
       scheduler_plugin->arglist = arg;

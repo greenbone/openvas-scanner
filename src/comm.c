@@ -125,15 +125,15 @@ comm_terminate (struct arglist *globals)
 void
 send_plug_info (struct arglist *globals, struct arglist *plugins)
 {
-  int j;
+  int j, ignored = 0;
   static const char *categories[] = { ACT_STRING_LIST_ALL };
 #define CAT_MAX	(sizeof(categories) / sizeof(categories[0]))
-  const char *name, *copyright, *summary, *version, *family = NULL;
-  char *str;
-  int ignored = 0;
-  char *oid = (char *)arg_get_value (plugins->value, "OID");
-  nvti_t *nvti = (oid == NULL ? NULL : nvticache_get_by_oid (oid));
+  const char *name, *copyright, *summary, *version, *family;
+  char *str, *oid;
+  nvti_t *nvti;
 
+  oid = arg_get_value (plugins->value, "OID");
+  nvti = oid ? nvticache_get_by_oid_full (oid) : NULL;
   if (!nvti_oid (nvti))
     {
       log_write ("NVT without OID found. Will not be sent.");
