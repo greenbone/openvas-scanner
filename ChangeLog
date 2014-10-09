@@ -1,3 +1,10 @@
+2014-10-09  Hani Benhabiles  <hani.benhabiles@greenbone.net>
+
+	* src/attack.c (attack_start): Fix memory leak.
+
+	* src/nasl_plugins.c (nasl_thread): Don't set NASL_EXEC_DONT_CLEANUP
+	mode.
+
 2014-10-09  Jan-Oliver Wagner <jan-oliver.wagner@greenbone.net>
 
 	* src/pluginlaunch.c (process_internal_msg): In case of unexpected

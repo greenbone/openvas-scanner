@@ -227,7 +227,7 @@ nasl_thread (struct nasl_thread_args *nargs)
   struct arglist *globals = arg_get_value (args, "globals");
   struct arglist *preferences = nargs->preferences;
   char *name = nargs->name;
-  int nasl_mode, soc, old_soc;
+  int nasl_mode = 0, soc, old_soc;
   kb_t kb;
   GError *error = NULL;
 
@@ -262,7 +262,6 @@ nasl_thread (struct nasl_thread_args *nargs)
                  name);
   signal (SIGTERM, _exit);
 
-  nasl_mode = NASL_EXEC_DONT_CLEANUP;
   if (preferences_nasl_no_signature_check (preferences) > 0)
     nasl_mode |= NASL_ALWAYS_SIGNED;
 

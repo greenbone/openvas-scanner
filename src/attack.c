@@ -814,6 +814,7 @@ attack_start (struct attack_start_args *args)
         }
       if (strcmp (vhosts_ip, txt_ip) != 0)
         vhosts = NULL;
+      g_free (txt_ip);
       hostinfos = attack_init_hostinfos_vhosts (mac, host_str, hostip, vhosts,
                                                 args->fqdn);
     }
