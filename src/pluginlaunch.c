@@ -97,7 +97,9 @@ process_internal_msg (int p)
   e = internal_recv (processes[p].internal_soc, &buffer, &bufsz, &type);
   if (e < 0)
     {
-      log_write ("Process %d seems to have died too early", processes[p].pid);
+      log_write ("Process %d (OID: %s) seems to have died too early",
+                 processes[p].pid, (char *)
+                 arg_get_value (processes[p].plugin->arglist->value, "OID"));
       processes[p].alive = 0;
       return -1;
     }
