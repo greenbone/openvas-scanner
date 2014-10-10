@@ -82,7 +82,7 @@ nasl_plugin_add (char *folder, char *name, struct arglist *plugins,
   struct arglist *prev_plugin = NULL;
   int nasl_mode;
   nasl_mode = NASL_EXEC_DESCR;
-  const nvti_t *nvti;
+  nvti_t *nvti;
 
   snprintf (fullname, sizeof (fullname), "%s/%s", folder, name);
 
@@ -97,6 +97,7 @@ nasl_plugin_add (char *folder, char *name, struct arglist *plugins,
     {
       nvti_t *new_nvti;
 
+      g_free (nvti);
       plugin_args = g_malloc0 (sizeof (struct arglist));
       arg_add_value (plugin_args, "preferences", ARG_ARGLIST, -1,
                      (void *) preferences);
@@ -139,7 +140,6 @@ nasl_plugin_add (char *folder, char *name, struct arglist *plugins,
           nvticache_add (new_nvti, name);
           arg_set_value (plugin_args, "preferences", -1, NULL);
           arg_free_all (plugin_args);
-          nvti_free (new_nvti);
           nvti = nvticache_get (name);
           plugin_args = plug_create_from_nvti_and_prefs (nvti, preferences);
         }
@@ -147,12 +147,14 @@ nasl_plugin_add (char *folder, char *name, struct arglist *plugins,
         // Most likely an exit was hit before the description could be parsed.
         log_write ("\r%s could not be added to the cache and is likely to stay"
                    " invisible to the client.", name);
+      nvti_free (new_nvti);
     }
 
   if (plugin_args == NULL)
     {
       /* Discard invalid plugins */
       log_write ("%s: Failed to load", name);
+      g_free (nvti);
       return NULL;
     }
 
@@ -161,11 +163,13 @@ nasl_plugin_add (char *folder, char *name, struct arglist *plugins,
       /* Discard invalid plugins */
       log_write ("%s: Failed to load, no OID", name);
       plugin_free (plugin_args);
+      g_free (nvti);
       return NULL;
     }
 
   arg_add_value (plugin_args, "OID", ARG_STRING, strlen (nvti_oid (nvti)),
                  g_strdup (nvti_oid (nvti)));
+  nvti_free (nvti);
 
   plug_set_launch (plugin_args, LAUNCH_DISABLED);
   prev_plugin = arg_get_value (plugins, name);

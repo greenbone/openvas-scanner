@@ -1,3 +1,8 @@
+2014-10-10  Hani Benhabiles  <hani.benhabiles@greenbone.net>
+
+	* src/nasl_plugins.c (nasl_plugin_add): Free the nvti struct returned by
+	nvticache_get() as it is not kept in the cache memory anymore.
+
 2014-10-09  Hani Benhabiles  <hani.benhabiles@greenbone.net>
 
 	* src/attack.c (attack_start): Fix memory leak.
