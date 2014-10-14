@@ -1,3 +1,9 @@
+2014-10-14  Michael Wiegand <michael.wiegand@greenbone.net>
+
+	Preparing the openvas-scanner 5.0+beta3 release.
+
+	* CHANGES: Updated.
+
 2014-10-13  Jan-Oliver Wagner <jan-oliver.wagner@greenbone.net>
 
 	* src/ntp.c: Fix include for hash_table_file for new location.
