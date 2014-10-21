@@ -438,7 +438,7 @@ fill_host_kb_ssh_credentials (kb_t kb, struct arglist *globals,
 
   if (map_host_login_names == NULL || map_loginname_login == NULL)
     {
-#ifndef NDEBUG
+#ifdef DEBUG
       printf
         ("SSH-DEBUG: Host %s: no extended credentials configuration.\n",
          hostname);
@@ -456,7 +456,7 @@ fill_host_kb_ssh_credentials (kb_t kb, struct arglist *globals,
   // No login- account name for this host found? Seach if any pattern matches.
   if (accountname == NULL || login == NULL)
     {
-#ifndef NDEBUG
+#ifdef DEBUG
       printf ("SSH-DEBUG: Trying to match patterns for login at %s\n",
               hostname);
 #endif
@@ -471,7 +471,7 @@ fill_host_kb_ssh_credentials (kb_t kb, struct arglist *globals,
   // No pattern matching this host found? Try "Default".
   if (accountname == NULL || login == NULL)
     {
-#ifndef NDEBUG
+#ifdef DEBUG
       printf ("SSH-DEBUG: Trying Default- account for local checks at %s\n",
               hostname);
 #endif
@@ -480,7 +480,7 @@ fill_host_kb_ssh_credentials (kb_t kb, struct arglist *globals,
       // If none under 'Default' either, done.
       if (accountname == NULL)
         {
-#ifndef NDEBUG
+#ifdef DEBUG
           printf
             ("SSH-DEBUG: Not setting login information for local checks at %s: No even Default account found.\n",
              hostname);
@@ -493,7 +493,7 @@ fill_host_kb_ssh_credentials (kb_t kb, struct arglist *globals,
           // No login information for this login-account found? Strange, but so be it.
           if (login == NULL)
             {
-#ifndef NDEBUG
+#ifdef DEBUG
               printf
                 ("SSH-DEBUG: Could not find info for accountname '%s' for local checks at %s.\n",
                  accountname, hostname);
@@ -503,7 +503,7 @@ fill_host_kb_ssh_credentials (kb_t kb, struct arglist *globals,
         }
     }
 
-#ifndef NDEBUG
+#ifdef DEBUG
   printf
     ("SSH-DEBUG: Resolving infos of account '%s' for local checks at %s.\n",
      accountname, hostname);
@@ -535,7 +535,7 @@ fill_host_kb_ssh_credentials (kb_t kb, struct arglist *globals,
         }
     }
 
-#ifndef NDEBUG
+#ifdef DEBUG
   printf ("SSH-DEBUG: Resolved account name %s for local tests at %s\n",
           accountname, hostname);
 #endif

@@ -1,3 +1,9 @@
+2014-10-21  Jan-Oliver Wagner <jan-oliver.wagner@greenbone.net>
+
+	* src/attack.c (fill_host_kb_ssh_credentials): Print debug info when
+	DEBUG is defined instead of printing debug info if NDEBUG is not defined.
+	This avoids noise by default.
+
 2014-10-21  Henri Doreau <henri.doreau@gmail.com>
 
 	* src/comm.c (send_plug_info): Replaced g_malloc0() + snprintf() by
