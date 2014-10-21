@@ -1,3 +1,8 @@
+2014-10-21  Henri Doreau <henri.doreau@gmail.com>
+
+	* src/comm.c (send_plug_info): Replaced g_malloc0() + snprintf() by
+	g_strdup_printf().
+
 2014-10-14  Michael Wiegand <michael.wiegand@greenbone.net>
 
 	Post release version bump.

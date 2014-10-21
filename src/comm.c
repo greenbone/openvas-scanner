@@ -210,7 +210,6 @@ send_plug_info (struct arglist *globals, struct arglist *plugins)
   if (!ignored)
     {
       char *cve_id, *bid, *xref, *tag;
-      unsigned int mem_size;
 
       cve_id = nvti_cve (nvti);
       if (cve_id == NULL || strcmp (cve_id, "") == 0)
@@ -239,26 +238,12 @@ send_plug_info (struct arglist *globals, struct arglist *plugins)
             }
       }
 
-      mem_size = strlen (name) +
-        strlen (copyright) +
-        strlen (summary) +
-        strlen (family) +
-        strlen (version) +
-        strlen (cve_id) +
-        strlen (bid) +
-        strlen (xref) +
-        strlen (tag) +
-        100;                    /* Separators etc. */
-
-      str = g_malloc0 (mem_size);
-      snprintf (str, mem_size,
-                "%s <|> %s <|> %s <|> "
-                "%s <|> %s <|> %s <|> "
-                "%s <|> %s <|> %s <|> %s <|> %s",
-                nvti_oid (nvti), name, categories[j],
-                copyright, summary, family,
-                version, cve_id, bid, xref, tag);
-
+      str = g_strdup_printf ("%s <|> %s <|> %s <|> "
+                             "%s <|> %s <|> %s <|> "
+                             "%s <|> %s <|> %s <|> %s <|> %s",
+                             nvti_oid (nvti), name, categories[j],
+                             copyright, summary, family,
+                             version, cve_id, bid, xref, tag);
       if (tag != NULL && strcmp (tag, "NOTAG"))
         g_free (tag);
       auth_printf (globals, "%s\n", str);
