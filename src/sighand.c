@@ -30,6 +30,7 @@
 #include <errno.h>      /* for errno() */
 #include <sys/wait.h>   /* for wait() */
 #include <sys/socket.h> /* for shutdown() */
+#include <execinfo.h>
 
 #include "log.h"
 #include "sighand.h"
@@ -150,12 +151,27 @@ sighandler (int sign)
   _exit (0);
 }
 
+static void
+print_trace ()
+{
+  void *array[10];
+  size_t size;
+  char **symbols;
+  size_t i;
+
+  size = backtrace (array, 10);
+  symbols = backtrace_symbols (array, size);
+  for (i = 0; i < size; i++)
+     log_write ("%s\n", symbols[i]);
+  g_free (symbols);
+}
 
 void
 sighand_segv ()
 {
   signal (SIGSEGV, _exit);
   log_write ("SIGSEGV occured !");
+  print_trace ();
   make_em_die (SIGTERM);
   log_close ();
   _exit (0);
