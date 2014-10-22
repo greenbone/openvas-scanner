@@ -167,8 +167,6 @@ nasl_plugin_add (char *folder, char *name, struct arglist *plugins,
       return NULL;
     }
 
-  arg_add_value (plugin_args, "OID", ARG_STRING, strlen (nvti_oid (nvti)),
-                 g_strdup (nvti_oid (nvti)));
   nvti_free (nvti);
 
   plug_set_launch (plugin_args, LAUNCH_DISABLED);
