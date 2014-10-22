@@ -318,7 +318,6 @@ update_openvassd (){
     return
   fi
 
-  log_write "Updating OpenVAS Scanner"
   SCANNER_PIDFILE="$PIDFILEDIR/openvassd.pid"
   if [ -r "$SCANNER_PIDFILE" ]
   then
@@ -339,7 +338,6 @@ update_openvasmd (){
     return
   fi
 
-  log_write "Updating OpenVAS Manager"
   MANAGER_PIDFILE="$PIDFILEDIR/openvasmd.pid"
   if [ -r "$MANAGER_PIDFILE" ]
   then
