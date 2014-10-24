@@ -40,6 +40,7 @@
 
 #include <string.h> /* for strlen() */
 #include <stdlib.h> /* for atoi() */
+#include <stdio.h>  /* for printf() */
 #include <glib.h>
 
 #include <openvas/base/settings.h>   /* for init_settings_iterator_from_file */
@@ -127,6 +128,21 @@ void
 preferences_set (struct arglist * new_prefs)
 {
   global_prefs = new_prefs;
+}
+
+/**
+ * @brief Dump the preferences to stdout
+ */
+void
+preferences_dump ()
+{
+  struct arglist * prefs = global_prefs;
+
+  while (prefs && prefs->next)
+    {
+      printf ("%s = %s\n", prefs->name, (char *) prefs->value);
+      prefs = prefs->next;
+    }
 }
 
 /**

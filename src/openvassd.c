@@ -96,17 +96,6 @@ static int loading_stop;
  */
 static ovas_scanner_context_t ovas_scanner_ctx;
 
-
-static void
-dump_cfg_specs (struct arglist *prefs)
-{
-  while (prefs && prefs->next)
-    {
-      printf ("%s = %s\n", prefs->name, (char *) prefs->value);
-      prefs = prefs->next;
-    }
-}
-
 static void
 start_daemon_mode (void)
 {
@@ -852,7 +841,7 @@ main (int argc, char *argv[])
 
   /* special treatment */
   if (print_specs)
-    dump_cfg_specs (preferences_get ());
+    preferences_dump ();
   if (exit_early)
     exit (0);
 

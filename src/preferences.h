@@ -32,6 +32,7 @@
 struct arglist * preferences_init (char *);
 struct arglist * preferences_get ();
 void preferences_set (struct arglist *);
+void preferences_dump ();
 int preferences_process (char *, struct arglist *);
 int preferences_log_whole_attack (struct arglist *);
 int preferences_optimize_test (struct arglist *);

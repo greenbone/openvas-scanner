@@ -1,5 +1,18 @@
 2014-10-24  Jan-Oliver Wagner <jan-oliver.wagner@greenbone.net>
 
+	Move preference dump function into preferences module as it
+	is of general use.
+
+	* src/preferences.c (preferences_dump): New. Dump the
+	preferences to stdout.
+
+	* src/preferences.h: Add proto accordingly.
+
+	* src/openvassd.c (dump_cfg_specs): Removed.
+	(main): Use preferences_dump instead of dump_cfg_specs.
+
+2014-10-24  Jan-Oliver Wagner <jan-oliver.wagner@greenbone.net>
+
 	Move the global preferences variable from openvassd to module
 	preferences.
 
