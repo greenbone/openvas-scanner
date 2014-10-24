@@ -85,7 +85,6 @@ int global_max_checks = 10;
 
 static int global_iana_socket;
 static struct arglist *global_plugins;
-static struct arglist *global_preferences;
 
 static GHashTable *global_options;
 
@@ -138,7 +137,7 @@ start_daemon_mode (void)
   close (fd);
 
   /* provide a dump file to collect stdout and stderr */
-  if ((s = arg_get_value (global_preferences, "dumpfile")) == 0)
+  if ((s = arg_get_value (preferences_get (), "dumpfile")) == 0)
     s = OPENVASSD_DEBUGMSG;
   /* setting "-" denotes terminal mode */
   if (strcmp (s, "-") == 0)
@@ -188,8 +187,7 @@ set_globals_from_preferences (struct arglist *prefs)
         global_max_checks = 10;
     }
 
-  arg_free (global_preferences);
-  global_preferences = prefs;
+  preferences_set (prefs);
 }
 
 static void
@@ -295,7 +293,7 @@ reload_openvassd ()
 
   handler_pid = loading_handler_start ();
   /* Reload config file. */
-  config_file = arg_get_value (global_preferences, "config_file");
+  config_file = arg_get_value (preferences_get (), "config_file");
   preferences = preferences_init (config_file);
 
   /* Reload the plugins */
@@ -423,26 +421,26 @@ init_ssl_ctx (const char *priority, const char *dhparams)
     {
       char *cert, *key, *passwd, *ca_file;
 
-      ca_file = preferences_get_string (global_preferences, "ca_file");
+      ca_file = preferences_get_string (preferences_get (), "ca_file");
       if (ca_file == NULL)
         {
           log_write ("Missing ca_file - Did you run openvas-mkcert?\n");
           exit (1);
         }
-      cert = preferences_get_string (global_preferences, "cert_file");
+      cert = preferences_get_string (preferences_get (), "cert_file");
       if (cert == NULL)
         {
           log_write ("Missing cert_file - Did you run openvas-mkcert?\n");
           exit (1);
         }
-      key = preferences_get_string (global_preferences, "key_file");
+      key = preferences_get_string (preferences_get (), "key_file");
       if (key == NULL)
         {
           log_write ("Missing key_file - Did you run openvas-mkcert?\n");
           exit (1);
         }
 
-      passwd = preferences_get_string (global_preferences, "pem_password");
+      passwd = preferences_get_string (preferences_get (), "pem_password");
       ovas_scanner_ctx = ovas_scanner_context_new
                           (OPENVAS_ENCAPS_TLScustom, cert, key, passwd, ca_file,
                            priority, dhparams);
@@ -500,7 +498,7 @@ main_loop ()
                      GSIZE_TO_POINTER (soc));
 
       arg_add_value (globals, "plugins", ARG_ARGLIST, -1, global_plugins);
-      arg_add_value (globals, "preferences", ARG_ARGLIST, -1, global_preferences);
+      arg_add_value (globals, "preferences", ARG_ARGLIST, -1, preferences_get ());
 
       p_addr = g_malloc0 (sizeof (struct sockaddr_in6));
       family = ai->ai_family;
@@ -854,7 +852,7 @@ main (int argc, char *argv[])
 
   /* special treatment */
   if (print_specs)
-    dump_cfg_specs (global_preferences);
+    dump_cfg_specs (preferences_get ());
   if (exit_early)
     exit (0);
 
@@ -866,7 +864,7 @@ main (int argc, char *argv[])
   handler_pid = loading_handler_start ();
   init_plugins (options);
   loading_handler_stop (handler_pid);
-  flush_all_kbs (global_preferences);
+  flush_all_kbs (preferences_get ());
   main_loop ();
   g_hash_table_destroy (options);
   exit (0);

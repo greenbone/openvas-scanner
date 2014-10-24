@@ -1,5 +1,25 @@
 2014-10-24  Jan-Oliver Wagner <jan-oliver.wagner@greenbone.net>
 
+	Move the global preferences variable from openvassd to module
+	preferences.
+
+	* src/openvassd.c (global_preferences): Removed this global variable.
+	(start_daemon_mode): Instead of directly using global_preferences,
+	use the new function preferences_get().
+	(set_globals_from_preferences): Instead freeing and setting the new
+	preferences, just call preferences_set().
+	(reload_openvassd, init_ssl_ctx, main_loop, main): Instead of using the
+	global variable, use preferences_get().
+
+	* src/preferences.c (global_prefs): New.
+	(preferences_init): Changed to use the global variable instead.
+	(preferences_get): New. Return the global variable.
+	(preferences_set): New. Replace global variable with new content.
+
+	* src/preferences.h: Adjust protos accordingly.
+
+2014-10-24  Jan-Oliver Wagner <jan-oliver.wagner@greenbone.net>
+
 	* src/preferences.c (preferences_init): Instead of pointer-pointer
 	parameter simply return the result.
 

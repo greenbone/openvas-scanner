@@ -95,17 +95,39 @@ static openvassd_option openvassd_defaults[] = {
   {NULL, NULL}
 };
 
+static struct arglist *global_prefs = NULL;
+
 /**
  * @brief Initializes the preferences structure
  */
 struct arglist *
 preferences_init (char *config_file)
 {
-  struct arglist * prefs = g_malloc0 (sizeof (struct arglist));
-  preferences_process (config_file, prefs);
-  return prefs;
+  if (global_prefs)
+    arg_free (global_prefs);
+
+  global_prefs = g_malloc0 (sizeof (struct arglist));
+  preferences_process (config_file, global_prefs);
+  return global_prefs;
 }
 
+/**
+ * @brief Get the pointer to the global preferences structure
+ */
+struct arglist *
+preferences_get ()
+{
+  return global_prefs;
+}
+
+/**
+ * @brief Replace the old preferences with the given new ones.
+ */
+void
+preferences_set (struct arglist * new_prefs)
+{
+  global_prefs = new_prefs;
+}
 
 /**
  * @brief Copies the content of the prefs file to a special arglist.
