@@ -1,3 +1,8 @@
+2014-10-24  Hani Benhabiles  <hani.benhabiles@greenbone.net>
+
+	* src/attack.c (launch_plugin): Pass the full nvt path to
+	plugin_launch().
+
 2014-10-24  Jan-Oliver Wagner <jan-oliver.wagner@greenbone.net>
 
 	* src/preferences.c (preferences_init): Dropped the return value

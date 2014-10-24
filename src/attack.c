@@ -325,11 +325,14 @@ launch_plugin (struct arglist *globals, struct scheduler_plugin *plugin,
               || !(error = requirements_plugin (kb, plugin, preferences))))
         {
           int pid;
+          char *oid, *src;
 
+          oid = arg_get_value (args, "OID");
+          src = g_strdup (nvticache_get_src (oid));
           /* Start the plugin */
           pid = plugin_launch
-                 (globals, plugin, hostinfos, preferences, kb,
-                  plugin->arglist->name);
+                 (globals, plugin, hostinfos, preferences, kb, src);
+          g_free (src);
           if (pid < 0)
             {
               plugin->running_state = PLUGIN_STATUS_UNRUN;
