@@ -98,11 +98,12 @@ static openvassd_option openvassd_defaults[] = {
 /**
  * @brief Initializes the preferences structure
  */
-void
-preferences_init (char *config_file, struct arglist **prefs)
+struct arglist *
+preferences_init (char *config_file)
 {
-  *prefs = g_malloc0 (sizeof (struct arglist));
-  preferences_process (config_file, *prefs);
+  struct arglist * prefs = g_malloc0 (sizeof (struct arglist));
+  preferences_process (config_file, prefs);
+  return prefs;
 }
 
 

@@ -296,7 +296,7 @@ reload_openvassd ()
   handler_pid = loading_handler_start ();
   /* Reload config file. */
   config_file = arg_get_value (global_preferences, "config_file");
-  preferences_init (config_file, &preferences);
+  preferences = preferences_init (config_file);
 
   /* Reload the plugins */
   plugins = plugins_init (preferences);
@@ -596,7 +596,7 @@ init_openvassd (GHashTable *options, int first_pass, int stop_early,
   config_file = g_hash_table_lookup (options, "config_file");
   addr = g_hash_table_lookup (options, "addr");
 
-  preferences_init (config_file, &preferences);
+  preferences = preferences_init (config_file);
 
   log_init (arg_get_value (preferences, "logfile"));
   if (dont_fork == FALSE)

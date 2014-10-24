@@ -29,7 +29,7 @@
 #ifndef __OPENVAS_PREFERENCES_H
 #define __OPENVAS_PREFERENCES_H
 
-void preferences_init (char *, struct arglist **);
+struct arglist * preferences_init (char *);
 int preferences_process (char *, struct arglist *);
 int preferences_log_whole_attack (struct arglist *);
 int preferences_optimize_test (struct arglist *);

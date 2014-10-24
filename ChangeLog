@@ -1,3 +1,13 @@
+2014-10-24  Jan-Oliver Wagner <jan-oliver.wagner@greenbone.net>
+
+	* src/preferences.c (preferences_init): Instead of pointer-pointer
+	parameter simply return the result.
+
+	* src/preferences.h: Adjust proto accordingly.
+
+	* src/openvassd.c (reload_openvassd, init_openvassd): Adjust call of
+	preferences_init to new API.
+
 2014-10-24  Hani Benhabiles  <hani.benhabiles@greenbone.net>
 
 	* src/attack.c (launch_plugin): Pass the full nvt path to
