@@ -179,8 +179,7 @@ update_running_processes ()
     {
       if (processes[i].globals != NULL)
         {
-          struct arglist *prefs =
-            arg_get_value (processes[i].globals, "preferences");
+          struct arglist *prefs = preferences_get ();
           log_whole = preferences_log_whole_attack (prefs);
           break;
         }
@@ -383,9 +382,9 @@ read_running_processes ()
 
 
 void
-pluginlaunch_init (struct arglist *globals)
+pluginlaunch_init ()
 {
-  struct arglist *preferences = arg_get_value (globals, "preferences");
+  struct arglist *preferences = preferences_get ();
   non_simult_ports_list = arg_get_value (preferences, "non_simult_ports_list");
   max_running_processes = get_max_checks_number (preferences);
   old_max_running_processes = max_running_processes;

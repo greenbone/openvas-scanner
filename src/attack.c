@@ -111,7 +111,7 @@ error_message_to_client (struct arglist *globals, const char *msg,
 static void
 report_kb_failure (struct arglist *globals, int errcode)
 {
-  struct arglist *prefs = arg_get_value (globals, "preferences");
+  struct arglist *prefs = preferences_get ();
   gchar *msg;
 
   errcode = abs (errcode);
@@ -250,7 +250,7 @@ launch_plugin (struct arglist *globals, struct scheduler_plugin *plugin,
                char *hostname, int *cur_plug, int num_plugs,
                struct arglist *hostinfos, kb_t kb)
 {
-  struct arglist *preferences = arg_get_value (globals, "preferences");
+  struct arglist *preferences = preferences_get ();
   struct arglist *args = plugin->arglist->value;
   int optimize = preferences_optimize_test (preferences);
   int category = plugin->category;
@@ -586,7 +586,7 @@ init_host_kb (struct arglist *globals, char *hostname,
   kb_t kb;
   gchar *vhosts, *hostname_pattern, *hoststr;
   enum net_scan_status nss;
-  struct arglist *prefs = arg_get_value (globals, "preferences");
+  struct arglist *prefs = preferences_get ();
   gchar *kb_path = preferences_kb_location (prefs);
   int rc;
   struct in6_addr *hostip;
@@ -686,7 +686,7 @@ attack_host (struct arglist *globals, struct arglist *hostinfos,
   num_plugs = get_active_plugins_number (plugins);
 
   /* launch the plugins */
-  pluginlaunch_init (globals);
+  pluginlaunch_init ();
 
   for (;;)
     {
@@ -763,7 +763,7 @@ attack_start (struct attack_start_args *args)
   struct in6_addr *hostip = &(args->hostip);
   struct arglist *hostinfos;
 
-  struct arglist *preferences = arg_get_value (globals, "preferences");
+  struct arglist *preferences = preferences_get ();
   char *non_simult = arg_get_value (preferences, "non_simult_ports");
   char *vhosts = arg_get_value (preferences, "vhosts");
   char *vhosts_ip = arg_get_value (preferences, "vhosts_ip");
@@ -1077,7 +1077,7 @@ apply_source_iface_preference (struct arglist *globals,
 static int
 check_kb_access (struct arglist *globals)
 {
-  struct arglist *prefs = arg_get_value (globals, "preferences");
+  struct arglist *prefs = preferences_get ();
   int rc;
   kb_t kb;
 
@@ -1118,7 +1118,7 @@ attack_network (struct arglist *globals, kb_t *network_kb)
 
   gettimeofday (&then, NULL);
 
-  preferences = arg_get_value (globals, "preferences");
+  preferences = preferences_get ();
 
   switch (preferences_get_bool (preferences, "network_scan"))
     {

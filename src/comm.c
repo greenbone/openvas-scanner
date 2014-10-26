@@ -45,6 +45,7 @@
 #include "log.h"
 #include "pluginscheduler.h"    /* for define LAUNCH_DISABLED */
 #include "pluginload.h"    /* for current_loading_plugins */
+#include "preferences.h"   /* for preferences_get() */
 #include "sighand.h"
 #include "utils.h"
 
@@ -304,12 +305,12 @@ comm_send_pluginlist (struct arglist *globals)
 
 /**
  * @brief Sends the preferences of the scanner.
- * @param globals The global arglist with a "preferences" sub-arglist.
+ * @param globals The global arglist.
  */
 void
 comm_send_preferences (struct arglist *globals)
 {
-  struct arglist *prefs = arg_get_value (globals, "preferences");
+  struct arglist *prefs = preferences_get ();
 
   /* We have to be backward compatible with the NTP/1.0 */
   auth_printf (globals, "SERVER <|> PREFERENCES <|>\n");

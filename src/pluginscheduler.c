@@ -42,7 +42,6 @@
 #include "pluginscheduler.h"
 #include "pluginload.h"
 #include "pluginlaunch.h"
-#include "preferences.h"
 #include "log.h"
 
 /** @TODO

@@ -301,7 +301,7 @@ static void
 handle_client (struct arglist *globals)
 {
   kb_t net_kb = NULL;
-  struct arglist *prefs = arg_get_value (globals, "preferences");
+  struct arglist *prefs = preferences_get ();
 
   /* Become process group leader and the like ... */
   start_daemon_mode ();
@@ -327,7 +327,7 @@ wait:
 static void
 scanner_thread (struct arglist *globals)
 {
-  struct arglist *prefs = arg_get_value (globals, "preferences");
+  struct arglist *prefs = preferences_get ();
   char asciiaddr[INET6_ADDRSTRLEN];
   int opt = 1, soc2 = -1, nice_retval, family, soc;
   void *addr = arg_get_value (globals, "client_address");

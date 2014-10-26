@@ -136,7 +136,7 @@ ntp_parse_input (struct arglist *globals, char *input)
 static int
 ntp_long_attack (struct arglist *globals)
 {
-  struct arglist *preferences = arg_get_value (globals, "preferences");
+  struct arglist *preferences = preferences_get ();
   int soc = GPOINTER_TO_SIZE (arg_get_value (globals, "global_socket"));
   char input[16384];
   int size;
@@ -200,7 +200,7 @@ ntp_long_attack (struct arglist *globals)
 static int
 ntp_read_prefs (struct arglist *globals)
 {
-  struct arglist *preferences = arg_get_value (globals, "preferences");
+  struct arglist *preferences = preferences_get ();
   int soc = GPOINTER_TO_SIZE (arg_get_value (globals, "global_socket"));
   char *input;
   int input_sz = 1024 * 1024;

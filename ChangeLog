@@ -1,3 +1,31 @@
+2014-10-26  Jan-Oliver Wagner <jan-oliver.wagner@greenbone.net>
+
+	First step for switching from preferences stored in a "globals"
+	arglist to a specific global module.
+
+	* src/comm.c (comm_send_preferences): Use preferences_get() instead
+	of searching though globals arglist.
+
+	* src/ntp.c (ntp_long_attack, ntp_read_prefs): Use preferences_get()
+	instead of searching though globals arglist.
+
+	* src/openvassd.c (handle_client, scanner_thread): Use preferences_get()
+	instead of searching though globals arglist.
+
+	* src/pluginlaunch.c (update_running_processes, pluginlaunch_init):
+	Use preferences_get() instead of searching though globals arglist.
+	(pluginlaunch_init): Drop argument "globals" because now it is not used
+	anymore.
+
+	* src/pluginlaunch.h: Adjust proto accordingly.
+
+	* src/attack.c (report_kb_failure, launch_plugin, init_host_kb,
+	attack_start, check_kb_access, attack_network): Use preferences_get()
+	instead of searching though globals arglist.
+	(attack_host): Adjust to new proto of pluginlaunch_init().
+
+	* src/pluginscheduler.c: Drop unneeded include.
+
 2014-10-24  Jan-Oliver Wagner <jan-oliver.wagner@greenbone.net>
 
 	Move preference dump function into preferences module as it
