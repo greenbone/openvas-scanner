@@ -29,6 +29,8 @@
 #ifndef __OPENVAS_PREFERENCES_H
 #define __OPENVAS_PREFERENCES_H
 
+const gchar * prefs_get (const gchar * key);
+
 struct arglist * preferences_init (char *);
 struct arglist * preferences_get ();
 void preferences_set (struct arglist *);
@@ -47,6 +49,5 @@ int preferences_safe_checks_enabled (struct arglist *);
 void preferences_reset_cache ();
 int preferences_nasl_no_signature_check (struct arglist *);
 int preferences_drop_privileges (struct arglist *);
-gchar *preferences_kb_location (struct arglist *);
 
 #endif

@@ -26,6 +26,15 @@
 */
 
 /** @file
+ * This module is under construction to migrate from a former server-centric
+ * and arglist-based implemention to a general module for getting and setting
+ * preferences which are stored in a global structure.
+ * All functions named prefs_ are of the new type, but for the time being
+ * still use arglist until the API is consquently used. All other functions
+ * are from the old implementation and should be replaced/removed eventually.
+ *
+ * Old description for this module:
+ * 
  * 'Server' Preference related functions (some of them scan-related).
  *
  * All the preference getter- functions for pseudo boolean values work in the
@@ -128,6 +137,24 @@ void
 preferences_set (struct arglist * new_prefs)
 {
   global_prefs = new_prefs;
+}
+
+/**
+ * @brief Get a preference value via a key.
+ *
+ * @param key    The identifier for the preference.
+ *
+ * @return A pointer to a string with the value for the preference.
+ *         NULL in case for the key no preference was found or the
+ *         preference is not of type string.
+ */
+const gchar *
+prefs_get (const gchar * key)
+{
+  if (arg_get_type (global_prefs, key) != ARG_STRING)
+    return NULL;
+
+  return arg_get_value (global_prefs, key);
 }
 
 /**
@@ -487,15 +514,4 @@ preferences_reset_cache ()
   preferences_plugins_timeout (NULL);
   preferences_benice (NULL);
   preferences_safe_checks_enabled (NULL);
-}
-
-gchar *preferences_kb_location (struct arglist *prefs)
-{
-  gchar *kb_path;
-
-  kb_path = (gchar *) arg_get_value (prefs, "kb_location");
-  if (kb_path == NULL)
-    kb_path = KB_PATH_DEFAULT;
-
-  return kb_path;
 }

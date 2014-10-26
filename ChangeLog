@@ -1,5 +1,22 @@
 2014-10-26  Jan-Oliver Wagner <jan-oliver.wagner@greenbone.net>
 
+	First step of using preferences via API instead of via arglists.
+
+	* src/preferences.c (prefs_get): New. Get a preference value via a key.
+	(preferences_kb_location): Removed. This should be used via prefs_get
+	now.
+
+	* src/preferences.h: Adjust protos accordingly.
+
+	* src/openvassd.c (flush_all_kbs): Use prefs_get() to directly get
+	a preference. This allows to drop the function parameter as well.
+	(main): Use prefs_get() to directly get a prefernce.
+
+	* src/attack.c (report_kb_failure, init_host_kb, check_kb_access,
+	attack_network):  Use prefs_get() to directly get a preference.
+
+2014-10-26  Jan-Oliver Wagner <jan-oliver.wagner@greenbone.net>
+
 	First step for switching from preferences stored in a "globals"
 	arglist to a specific global module.
 

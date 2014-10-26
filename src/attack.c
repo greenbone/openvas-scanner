@@ -111,12 +111,11 @@ error_message_to_client (struct arglist *globals, const char *msg,
 static void
 report_kb_failure (struct arglist *globals, int errcode)
 {
-  struct arglist *prefs = preferences_get ();
   gchar *msg;
 
   errcode = abs (errcode);
   msg = g_strdup_printf ("WARNING: Cannot connect to KB at '%s': %s'",
-                         preferences_kb_location (prefs), strerror (errcode));
+                         prefs_get ("kb_location"), strerror (errcode));
   log_write ("%s", msg);
   error_message_to_client (globals, msg, NULL, NULL);
   g_free (msg);
@@ -586,8 +585,7 @@ init_host_kb (struct arglist *globals, char *hostname,
   kb_t kb;
   gchar *vhosts, *hostname_pattern, *hoststr;
   enum net_scan_status nss;
-  struct arglist *prefs = preferences_get ();
-  gchar *kb_path = preferences_kb_location (prefs);
+  const gchar *kb_path = prefs_get ("kb_location");
   int rc;
   struct in6_addr *hostip;
 
@@ -1077,11 +1075,10 @@ apply_source_iface_preference (struct arglist *globals,
 static int
 check_kb_access (struct arglist *globals)
 {
-  struct arglist *prefs = preferences_get ();
   int rc;
   kb_t kb;
 
-  rc = kb_new (&kb, preferences_kb_location (prefs));
+  rc = kb_new (&kb, prefs_get ("kb_location"));
   if (rc)
       report_kb_failure (globals, rc);
   else
@@ -1210,7 +1207,7 @@ attack_network (struct arglist *globals, kb_t *network_kb)
                      "in network phase with target %s",
                      hostlist, network_targets);
 
-          rc = kb_new (network_kb, preferences_kb_location (preferences));
+          rc = kb_new (network_kb, prefs_get ("kb_location"));
           if (rc)
             {
               report_kb_failure (globals, rc);
