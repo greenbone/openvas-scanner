@@ -1095,7 +1095,7 @@ attack_network (struct arglist *globals, kb_t *network_kb)
 {
   int max_hosts = 0, max_checks;
   int num_tested = 0;
-  char *hostlist;
+  const char *hostlist;
   openvas_hosts_t *hosts, *hosts_allow, *hosts_deny;
   openvas_hosts_t *sys_hosts_allow, *sys_hosts_deny;
   openvas_host_t *host;
@@ -1169,7 +1169,7 @@ attack_network (struct arglist *globals, kb_t *network_kb)
       return;
 
   /* Init and check Target List */
-  hostlist = arg_get_value (preferences, "TARGET");
+  hostlist = prefs_get ("TARGET");
   if (hostlist == NULL)
     {
       error_message_to_client (globals, "Missing target hosts", NULL, NULL);

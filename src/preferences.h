@@ -30,6 +30,7 @@
 #define __OPENVAS_PREFERENCES_H
 
 const gchar * prefs_get (const gchar * key);
+void prefs_set (const gchar *, const gchar *);
 
 struct arglist * preferences_init (char *);
 struct arglist * preferences_get ();

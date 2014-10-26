@@ -140,7 +140,7 @@ preferences_set (struct arglist * new_prefs)
 }
 
 /**
- * @brief Get a preference value via a key.
+ * @brief Get a string preference value via a key.
  *
  * @param key    The identifier for the preference.
  *
@@ -155,6 +155,26 @@ prefs_get (const gchar * key)
     return NULL;
 
   return arg_get_value (global_prefs, key);
+}
+
+/**
+ * @brief Set a string preference value via a key.
+ *
+ * @param key    The identifier for the preference.
+ *
+ * @param value  The value to set.
+ */
+void
+prefs_set (const gchar * key, const gchar * value)
+{
+  if (arg_get_value (global_prefs, key))
+    {
+      gchar *old = arg_get_value (global_prefs, key);
+      g_free (old);
+      arg_set_value (global_prefs, key, strlen (value), (char *)value);
+    }
+  else
+    arg_add_value (global_prefs, key, ARG_STRING, strlen (value), (char *)value);
 }
 
 /**

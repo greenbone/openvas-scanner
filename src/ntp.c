@@ -180,14 +180,7 @@ ntp_long_attack (struct arglist *globals)
     }
 
   comm_setup_plugins (globals, plugin_set);
-  if (arg_get_value (preferences, "TARGET"))
-    {
-      char *old = arg_get_value (preferences, "TARGET");
-      g_free (old);
-      arg_set_value (preferences, "TARGET", strlen (target), target);
-    }
-  else
-    arg_add_value (preferences, "TARGET", ARG_STRING, strlen (target), target);
+  prefs_set ("TARGET", target);
   return 0;
 }
 

@@ -1,5 +1,16 @@
 2014-10-26  Jan-Oliver Wagner <jan-oliver.wagner@greenbone.net>
 
+	* src/ntp.c (ntp_long_attack): Use prefs_set instead of doing it on
+	arglist level.
+
+	* src/preferences.c (prefs_set): New.
+
+	* src/preferences.h: Add proto accordingly.
+
+	* src/attack.c (attack_network): Use prefs_get() instead of arglist.
+
+2014-10-26  Jan-Oliver Wagner <jan-oliver.wagner@greenbone.net>
+
 	First step of using preferences via API instead of via arglists.
 
 	* src/preferences.c (prefs_get): New. Get a preference value via a key.
