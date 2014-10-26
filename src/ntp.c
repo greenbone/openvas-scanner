@@ -181,6 +181,9 @@ ntp_long_attack (struct arglist *globals)
 
   comm_setup_plugins (globals, plugin_set);
   prefs_set ("TARGET", target);
+
+  g_free (target);
+
   return 0;
 }
 
@@ -193,7 +196,6 @@ ntp_long_attack (struct arglist *globals)
 static int
 ntp_read_prefs (struct arglist *globals)
 {
-  struct arglist *preferences = preferences_get ();
   int soc = GPOINTER_TO_SIZE (arg_get_value (globals, "global_socket"));
   char *input;
   int input_sz = 1024 * 1024;
@@ -221,7 +223,6 @@ ntp_read_prefs (struct arglist *globals)
       {
         char *pref;
         char *v;
-        char *old;
         pref = input;
         v = strchr (input, '<');
         if (v)
@@ -237,27 +238,10 @@ ntp_read_prefs (struct arglist *globals)
             if (is_scanner_only_pref (pref))
               continue;
 
-            old = arg_get_value (preferences, pref);
-#ifdef DEBUGMORE
-            printf ("%s - %s (old : %s)\n", pref, value, old);
-#endif
             if (value[0] != '\0')
               value[strlen (value) - 1] = '\0';
 
-            if (old != NULL)
-              {
-                if (strcmp (old, value) != 0)
-                  {
-                    g_free (old);
-                    v = g_strdup (value);
-                    arg_set_value (preferences, pref, strlen (v), v);
-                  }
-              }
-            else
-              {
-                v = g_strdup (value);
-                arg_add_value (preferences, pref, ARG_STRING, strlen (v), v);
-              }
+            prefs_set (pref, value);
           }
       }
     }

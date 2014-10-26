@@ -160,9 +160,10 @@ prefs_get (const gchar * key)
 /**
  * @brief Set a string preference value via a key.
  *
- * @param key    The identifier for the preference.
+ * @param key    The identifier for the preference. A copy of this will
+ *               be created if necessary.
  *
- * @param value  The value to set.
+ * @param value  The value to set. A copy of this will be created. 
  */
 void
 prefs_set (const gchar * key, const gchar * value)
@@ -171,10 +172,11 @@ prefs_set (const gchar * key, const gchar * value)
     {
       gchar *old = arg_get_value (global_prefs, key);
       g_free (old);
-      arg_set_value (global_prefs, key, strlen (value), (char *)value);
+      arg_set_value (global_prefs, key, strlen (value), g_strdup (value));
+      return;
     }
-  else
-    arg_add_value (global_prefs, key, ARG_STRING, strlen (value), (char *)value);
+
+  arg_add_value (global_prefs, key, ARG_STRING, strlen (value), g_strdup (value));
 }
 
 /**
