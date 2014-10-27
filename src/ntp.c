@@ -136,12 +136,11 @@ ntp_parse_input (struct arglist *globals, char *input)
 static int
 ntp_long_attack (struct arglist *globals)
 {
-  struct arglist *preferences = preferences_get ();
   int soc = GPOINTER_TO_SIZE (arg_get_value (globals, "global_socket"));
   char input[16384];
   int size;
   char *target;
-  char *plugin_set;
+  const char *plugin_set;
   int n;
 
   n = recv_line (soc, input, sizeof (input) - 1);
@@ -166,20 +165,14 @@ ntp_long_attack (struct arglist *globals)
       else
         return -1;
     }
-  plugin_set = arg_get_value (preferences, "plugin_set");
+  plugin_set = prefs_get ("plugin_set");
   if (!plugin_set || plugin_set[0] == '\0')
     {
-      plugin_set = g_malloc0 (3);
-      sprintf (plugin_set, "-1");
-      if (!arg_get_value (preferences, "plugin_set"))
-        arg_add_value (preferences, "plugin_set", ARG_STRING,
-                       strlen (plugin_set), plugin_set);
-      else
-        arg_set_value (preferences, "plugin_set", strlen (plugin_set),
-                       plugin_set);
+      prefs_set ("plugin_set", "-1");
+      plugin_set = prefs_get ("plugin_set");
     }
 
-  comm_setup_plugins (globals, plugin_set);
+  comm_setup_plugins (globals, (char *)plugin_set);
   prefs_set ("TARGET", target);
 
   g_free (target);
