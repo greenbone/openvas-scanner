@@ -257,7 +257,7 @@ data_left (soc)
 }
 
 void
-wait_for_children1 ()
+wait_for_children1 (void)
 {
   int e, n = 0;
   do

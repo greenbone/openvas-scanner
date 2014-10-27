@@ -42,16 +42,16 @@ void plugin_free (struct arglist *);
 void plugins_free (struct arglist *);
 
 void
-init_loading_shm ();
+init_loading_shm (void);
 
 void
-destroy_loading_shm ();
+destroy_loading_shm (void);
 
 int
-current_loading_plugins ();
+current_loading_plugins (void);
 
 int
-total_loading_plugins ();
+total_loading_plugins (void);
 
 /* From nasl_plugins.c */
 struct arglist *

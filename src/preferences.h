@@ -33,9 +33,9 @@ const gchar * prefs_get (const gchar * key);
 void prefs_set (const gchar *, const gchar *);
 
 struct arglist * preferences_init (char *);
-struct arglist * preferences_get ();
+struct arglist * preferences_get (void);
 void preferences_set (struct arglist *);
-void preferences_dump ();
+void preferences_dump (void);
 int preferences_process (char *, struct arglist *);
 int preferences_log_whole_attack (struct arglist *);
 int preferences_optimize_test (struct arglist *);
@@ -47,7 +47,7 @@ int preferences_get_bool (struct arglist *, char *);
 char *preferences_get_string (struct arglist *, char *);
 int preferences_safe_checks_enabled (struct arglist *);
 
-void preferences_reset_cache ();
+void preferences_reset_cache (void);
 int preferences_nasl_no_signature_check (struct arglist *);
 int preferences_drop_privileges (struct arglist *);
 

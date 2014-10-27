@@ -161,7 +161,7 @@ host_rm (struct host *hosts, struct host *h)
  * @brief Returns the number of entries in the global hosts list.
  */
 static int
-hosts_num ()
+hosts_num (void)
 {
   struct host *h = hosts;
   int num;
@@ -251,7 +251,7 @@ hosts_stop_host (char *name)
 }
 
 void
-hosts_stop_all ()
+hosts_stop_all (void)
 {
   while (hosts != NULL)
     {
@@ -262,7 +262,7 @@ hosts_stop_all ()
 /*-----------------------------------------------------------------*/
 
 static int
-hosts_read_data ()
+hosts_read_data (void)
 {
   fd_set rd;
   struct timeval tv;

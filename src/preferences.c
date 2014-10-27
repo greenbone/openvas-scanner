@@ -125,7 +125,7 @@ preferences_init (char *config_file)
  * @brief Get the pointer to the global preferences structure
  */
 struct arglist *
-preferences_get ()
+preferences_get (void)
 {
   return global_prefs;
 }
@@ -183,7 +183,7 @@ prefs_set (const gchar * key, const gchar * value)
  * @brief Dump the preferences to stdout
  */
 void
-preferences_dump ()
+preferences_dump (void)
 {
   struct arglist * prefs = global_prefs;
 
@@ -528,7 +528,7 @@ preferences_get_string (struct arglist *preferences, char *name)
  * the caches.
  */
 void
-preferences_reset_cache ()
+preferences_reset_cache (void)
 {
   preferences_log_whole_attack (NULL);
   preferences_optimize_test (NULL);

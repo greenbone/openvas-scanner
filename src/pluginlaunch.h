@@ -33,16 +33,16 @@
 #include "pluginload.h"         /* for struct pl_class_t */
 #include "pluginscheduler.h"    /* for struct plugins_scheduler_t */
 
-void pluginlaunch_init ();
-void pluginlaunch_wait ();
-void pluginlaunch_wait_for_free_process ();
-void pluginlaunch_stop ();
+void pluginlaunch_init (void);
+void pluginlaunch_wait (void);
+void pluginlaunch_wait_for_free_process (void);
+void pluginlaunch_stop (void);
 int plugin_launch (struct arglist *, struct scheduler_plugin *,
                    struct arglist *, struct arglist *, kb_t, char *);
 
-void pluginlaunch_child_cleanup ();
-void pluginlaunch_disable_parrallel_checks ();
-void pluginlaunch_enable_parrallel_checks ();
+void pluginlaunch_child_cleanup (void);
+void pluginlaunch_disable_parrallel_checks (void);
+void pluginlaunch_enable_parrallel_checks (void);
 
-int wait_for_children ();
+int wait_for_children (void);
 #endif

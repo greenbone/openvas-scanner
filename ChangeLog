@@ -1,3 +1,13 @@
+2014-10-27  Jan-Oliver Wagner <jan-oliver.wagner@greenbone.net>
+
+	* src/utils.c, src/preferences.c, src/utils.h,
+	src/preferences.h, src/pluginlaunch.c, src/pluginload.c,
+	src/pluginlaunch.h, src/hosts.c, src/pluginload.h, src/hosts.h:
+	Made any method without parameter explicitly use "void" to
+	inticate this and help compiler to identify wrong usage.
+
+	* src/comm.h: Dropped proto for non-existent function "client_handler".
+
 2014-10-27  Hani Benhabiles  <hani.benhabiles@greenbone.net>
 
 	* src/ntp.c (ntp_recv_file): Log error with log_write().

@@ -126,7 +126,7 @@ static int loading_shmid = 0;
  *        progress to other processes.
  */
 void
-init_loading_shm ()
+init_loading_shm (void)
 {
   int shm_key;
 
@@ -159,7 +159,7 @@ init_loading_shm ()
  *        progress to other processes.
  */
 void
-destroy_loading_shm ()
+destroy_loading_shm (void)
 {
   if (loading_shm)
     {
@@ -177,7 +177,7 @@ destroy_loading_shm ()
  * @return Number of loaded plugins,  0 if initalization wasn't successful.
  */
 int
-current_loading_plugins ()
+current_loading_plugins (void)
 {
   return loading_shm ? loading_shm[0] : 0;
 }
@@ -188,7 +188,7 @@ current_loading_plugins ()
  * @return Total of loaded plugins,  0 if initalization wasn't successful.
  */
 int
-total_loading_plugins ()
+total_loading_plugins (void)
 {
   return loading_shm ? loading_shm[1] : 0;
 }

@@ -169,7 +169,7 @@ process_mgr_sighand_term (int sig)
  *
  */
 static void
-update_running_processes ()
+update_running_processes (void)
 {
   int i;
   struct timeval now;
@@ -323,7 +323,7 @@ next_free_process (struct scheduler_plugin *upcoming)
  *
  */
 static void
-read_running_processes ()
+read_running_processes (void)
 {
   int i;
   int flag = 0;
@@ -382,7 +382,7 @@ read_running_processes ()
 
 
 void
-pluginlaunch_init ()
+pluginlaunch_init (void)
 {
   struct arglist *preferences = preferences_get ();
   non_simult_ports_list = arg_get_value (preferences, "non_simult_ports_list");
@@ -406,20 +406,20 @@ pluginlaunch_init ()
 }
 
 void
-pluginlaunch_disable_parrallel_checks ()
+pluginlaunch_disable_parrallel_checks (void)
 {
   max_running_processes = 1;
 }
 
 void
-pluginlaunch_enable_parrallel_checks ()
+pluginlaunch_enable_parrallel_checks (void)
 {
   max_running_processes = old_max_running_processes;
 }
 
 
 void
-pluginlaunch_stop ()
+pluginlaunch_stop (void)
 {
   int i;
   read_running_processes ();
@@ -515,7 +515,7 @@ plugin_launch (struct arglist *globals, struct scheduler_plugin *plugin,
  * @brief Waits and 'pushes' processes until num_running_processes is 0.
  */
 void
-pluginlaunch_wait ()
+pluginlaunch_wait (void)
 {
   do
     {
@@ -531,7 +531,7 @@ pluginlaunch_wait ()
  *        the child process running the plugin.
  */
 void
-pluginlaunch_child_cleanup ()
+pluginlaunch_child_cleanup (void)
 {
   int i;
   for (i = 0; i < MAX_PROCESSES; i++)
@@ -544,7 +544,7 @@ pluginlaunch_child_cleanup ()
  *        changed.
  */
 void
-pluginlaunch_wait_for_free_process ()
+pluginlaunch_wait_for_free_process (void)
 {
   int num = num_running_processes;
   do
