@@ -425,9 +425,7 @@ ntp_recv_file (struct arglist *globals)
       n = nrecv (soc, input, MIN (sizeof (input) - 1, bytes - tot), 0);
       if (n < 0)
         {
-          char s[80];
-          sprintf (s, "11_recv_file: nrecv(%d)", soc);
-          perror (s);
+          log_write ("11_recv_file: nrecv(%d)", soc);
           break;
         }
       else

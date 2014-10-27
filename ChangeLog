@@ -1,3 +1,7 @@
+2014-10-27  Hani Benhabiles  <hani.benhabiles@greenbone.net>
+
+	* src/ntp.c (ntp_recv_file): Log error with log_write().
+
 2014-10-27  Jan-Oliver Wagner <jan-oliver.wagner@greenbone.net>
 
 	* src/ntp.c (ntp_long_attack): Use prefs_set() instead of arglist
