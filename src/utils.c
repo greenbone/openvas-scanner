@@ -119,17 +119,16 @@ list2arglist (list)
  * Get the max number of hosts to test at the same time.
  */
 int
-get_max_hosts_number (preferences)
-     struct arglist *preferences;
+get_max_hosts_number (void)
 {
   int max_hosts;
-  if (arg_get_value (preferences, "max_hosts"))
+  if (prefs_get ("max_hosts"))
     {
-      max_hosts = atoi (arg_get_value (preferences, "max_hosts"));
+      max_hosts = atoi (prefs_get ("max_hosts"));
       if (max_hosts <= 0)
         {
           log_write ("Error ! max_hosts = %d -- check %s", max_hosts,
-                     (char *) arg_get_value (preferences, "config_file"));
+                     (char *) prefs_get ("config_file"));
           max_hosts = global_max_hosts;
         }
       else if (max_hosts > global_max_hosts)
@@ -150,17 +149,16 @@ get_max_hosts_number (preferences)
  * host at the same time
  */
 int
-get_max_checks_number (preferences)
-     struct arglist *preferences;
+get_max_checks_number (void)
 {
   int max_checks;
-  if (arg_get_value (preferences, "max_checks"))
+  if (prefs_get ("max_checks"))
     {
-      max_checks = atoi (arg_get_value (preferences, "max_checks"));
+      max_checks = atoi (prefs_get ("max_checks"));
       if (max_checks <= 0)
         {
           log_write ("Error ! max_hosts = %d -- check %s", max_checks,
-                     (char *) arg_get_value (preferences, "config_file"));
+                     (char *) prefs_get ("config_file"));
           max_checks = global_max_checks;
         }
       else if (max_checks > global_max_checks)

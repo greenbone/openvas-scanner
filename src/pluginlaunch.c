@@ -386,7 +386,7 @@ pluginlaunch_init ()
 {
   struct arglist *preferences = preferences_get ();
   non_simult_ports_list = arg_get_value (preferences, "non_simult_ports_list");
-  max_running_processes = get_max_checks_number (preferences);
+  max_running_processes = get_max_checks_number ();
   old_max_running_processes = max_running_processes;
 
   signal (SIGCHLD, wait_for_children);

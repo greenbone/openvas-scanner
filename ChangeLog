@@ -1,3 +1,16 @@
+2014-10-27  Jan-Oliver Wagner <jan-oliver.wagner@greenbone.net>
+
+	* src/utils.c (get_max_hosts_number, get_max_checks_number): Use
+	prefs_get() instead of arglist. Also drop parameter as it is not
+	needed anymore.
+
+	* src/utils.h: Adjust protos accordingly.
+
+	* src/attack.c (attack_network): Adjust calls to above API change.
+
+	* src/pluginlaunch.c (pluginlaunch_init): Adjust calls to above API
+	change.
+
 2014-10-26  Jan-Oliver Wagner <jan-oliver.wagner@greenbone.net>
 
 	* src/ntp.c (ntp_read_prefs): Increase size of buffer for
