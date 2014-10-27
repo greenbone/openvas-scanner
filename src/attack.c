@@ -1189,8 +1189,8 @@ attack_network (struct arglist *globals, kb_t *network_kb)
     preferences_get_bool (preferences, "auto_enable_dependencies") == 1 ? 1 : 0,
     network_phase);
 
-  max_hosts = get_max_hosts_number (preferences);
-  max_checks = get_max_checks_number (preferences);
+  max_hosts = get_max_hosts_number ();
+  max_checks = get_max_checks_number ();
 
   if (network_phase)
     {
