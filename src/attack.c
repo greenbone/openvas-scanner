@@ -761,10 +761,9 @@ attack_start (struct attack_start_args *args)
   struct in6_addr *hostip = &(args->hostip);
   struct arglist *hostinfos;
 
-  struct arglist *preferences = preferences_get ();
-  char *non_simult = arg_get_value (preferences, "non_simult_ports");
-  char *vhosts = arg_get_value (preferences, "vhosts");
-  char *vhosts_ip = arg_get_value (preferences, "vhosts_ip");
+  const char *non_simult = prefs_get ("non_simult_ports");
+  const char *vhosts = prefs_get ("vhosts");
+  const char *vhosts_ip = prefs_get ("vhosts_ip");
   int thread_socket;
   struct timeval then, now;
   plugins_scheduler_t sched = args->sched;
@@ -784,8 +783,8 @@ attack_start (struct attack_start_args *args)
 
   gettimeofday (&then, NULL);
 
-  arg_add_value (preferences, "non_simult_ports_list", ARG_ARGLIST, -1,
-                 (void *) list2arglist (non_simult));
+  arg_add_value (preferences_get (), "non_simult_ports_list", ARG_ARGLIST, -1,
+                 (void *) list2arglist ((char *)non_simult));
 
   /* Options regarding the communication with our parent */
   close (GPOINTER_TO_SIZE (arg_get_value (globals, "parent_socket")));
@@ -816,7 +815,7 @@ attack_start (struct attack_start_args *args)
       if (strcmp (vhosts_ip, txt_ip) != 0)
         vhosts = NULL;
       g_free (txt_ip);
-      hostinfos = attack_init_hostinfos_vhosts (mac, host_str, hostip, vhosts,
+      hostinfos = attack_init_hostinfos_vhosts (mac, host_str, hostip, (char *)vhosts,
                                                 args->fqdn);
     }
 
@@ -1108,7 +1107,7 @@ attack_network (struct arglist *globals, kb_t *network_kb)
   struct timeval then, now;
   char buffer[INET6_ADDRSTRLEN];
 
-  gchar *network_targets, *port_range;
+  const gchar *network_targets, *port_range;
   gboolean network_phase = FALSE;
   gboolean do_network_scan = FALSE;
   gboolean scan_stopped;
@@ -1129,10 +1128,10 @@ attack_network (struct arglist *globals, kb_t *network_kb)
         break;
     }
 
-  network_targets = arg_get_value (preferences, "network_targets");
+  network_targets = prefs_get ("network_targets");
   if (network_targets != NULL)
     arg_add_value (globals, "network_targets", ARG_STRING,
-                   strlen (network_targets), network_targets);
+                   strlen (network_targets), (char *)network_targets);
 
   if (do_network_scan)
     {
@@ -1177,7 +1176,7 @@ attack_network (struct arglist *globals, kb_t *network_kb)
     }
 
   /* Verify the port range is a valid one */
-  port_range = arg_get_value (preferences, "port_range");
+  port_range = prefs_get ("port_range");
   if (validate_port_range (port_range))
     {
       error_message_to_client (globals, "Invalid port range", NULL, port_range);

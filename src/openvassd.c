@@ -99,7 +99,7 @@ static ovas_scanner_context_t ovas_scanner_ctx;
 static void
 start_daemon_mode (void)
 {
-  char *s;
+  const char *s;
   int fd;
 
   /* do not block the listener port for subsequent scanners */
@@ -126,7 +126,7 @@ start_daemon_mode (void)
   close (fd);
 
   /* provide a dump file to collect stdout and stderr */
-  if ((s = arg_get_value (preferences_get (), "dumpfile")) == 0)
+  if ((s = prefs_get ("dumpfile")) == 0)
     s = OPENVASSD_DEBUGMSG;
   /* setting "-" denotes terminal mode */
   if (strcmp (s, "-") == 0)
@@ -160,16 +160,16 @@ end_daemon_mode (void)
 static void
 set_globals_from_preferences (struct arglist *prefs)
 {
-  char *str;
+  const char *str;
 
-  if ((str = arg_get_value (prefs, "max_hosts")) != NULL)
+  if ((str = prefs_get ("max_hosts")) != NULL)
     {
       global_max_hosts = atoi (str);
       if (global_max_hosts <= 0)
         global_max_hosts = 15;
     }
 
-  if ((str = arg_get_value (prefs, "max_checks")) != NULL)
+  if ((str = prefs_get ("max_checks")) != NULL)
     {
       global_max_checks = atoi (str);
       if (global_max_checks <= 0)
@@ -273,7 +273,7 @@ static void
 reload_openvassd ()
 {
   struct arglist *preferences = NULL, *plugins;
-  char *config_file;
+  const char *config_file;
   pid_t handler_pid;
 
   log_write ("Reloading the scanner.");
@@ -282,8 +282,8 @@ reload_openvassd ()
 
   handler_pid = loading_handler_start ();
   /* Reload config file. */
-  config_file = arg_get_value (preferences_get (), "config_file");
-  preferences = preferences_init (config_file);
+  config_file = prefs_get ("config_file");
+  preferences = preferences_init ((char *)config_file);
 
   /* Reload the plugins */
   plugins = plugins_init (preferences);
@@ -585,7 +585,7 @@ init_openvassd (GHashTable *options, int first_pass, int stop_early,
 
   preferences = preferences_init (config_file);
 
-  log_init (arg_get_value (preferences, "logfile"));
+  log_init (prefs_get ("logfile"));
   if (dont_fork == FALSE)
     setup_legacy_log_handler (log_vwrite);
 

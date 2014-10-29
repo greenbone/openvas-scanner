@@ -222,13 +222,13 @@ plugins_reload_from_dir (struct arglist *preferences, struct arglist *plugins,
                          char *folder)
 {
   GSList *files = NULL, *f;
-  gchar *pref_include_folders;
+  const gchar *pref_include_folders;
   int loaded_files = 0, num_files = 0;
   struct timeval start_time;
 
   add_nasl_inc_dir ("");        // for absolute and relative paths
 
-  pref_include_folders = arg_get_value (preferences, "include_folders");
+  pref_include_folders = prefs_get ("include_folders");
   if (pref_include_folders != NULL)
     {
       gchar **include_folders = g_strsplit (pref_include_folders, ":", 0);
@@ -252,7 +252,7 @@ plugins_reload_from_dir (struct arglist *preferences, struct arglist *plugins,
       log_write ("%s:%d : folder == NULL", __FILE__, __LINE__);
 #endif
       printf ("Could not determine the value of <plugins_folder>. Check %s\n",
-              (char *) arg_get_value (preferences, "config_file"));
+              (char *) prefs_get ("config_file"));
       return plugins;
     }
 
@@ -307,15 +307,15 @@ plugins_reload_from_dir (struct arglist *preferences, struct arglist *plugins,
 struct arglist *
 plugins_init (struct arglist *preferences)
 {
-  char *plugins_folder;
+  const char *plugins_folder;
   struct arglist *plugins;
 
-  plugins_folder = arg_get_value (preferences, "plugins_folder");
-  nvticache_init (arg_get_value (preferences, "cache_folder"),
+  plugins_folder = prefs_get ("plugins_folder");
+  nvticache_init (prefs_get ("cache_folder"),
                   plugins_folder);
   plugins = g_malloc0 (sizeof (struct arglist));
 
-  return plugins_reload_from_dir (preferences, plugins, plugins_folder);
+  return plugins_reload_from_dir (preferences, plugins, (char *)plugins_folder);
 }
 
 void

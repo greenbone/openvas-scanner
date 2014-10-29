@@ -1,3 +1,14 @@
+2014-10-29  Jan-Oliver Wagner <jan-oliver.wagner@greenbone.net>
+
+	* src/pluginload.c (plugins_reload_from_dir, plugins_init): Use
+	prefs_get() instead of arglist.
+
+	* src/openvassd.c (start_daemon_mode, set_globals_from_preferences,
+	reload_openvassd, init_openvassd): Use prefs_get() instead of arglist.
+
+	* src/attack.c (attack_start, attack_network): Use prefs_get() instead
+	of arglist.
+
 2014-10-27  Jan-Oliver Wagner <jan-oliver.wagner@greenbone.net>
 
 	* src/utils.c, src/preferences.c, src/utils.h,
