@@ -158,6 +158,30 @@ prefs_get (const gchar * key)
 }
 
 /**
+ * @brief Get a boolean expression of a preference value via a key.
+ *
+ * @param key    The identifier for the preference.
+ *
+ * @return 1 if the value is considered to represent "true" and
+ *         0 if the value is considered to represent "false".
+ *         If the preference is of type string, value "yes" is true,
+ *         anything else is false.
+ *         Any other type or non-existing key is false.
+ */
+int
+prefs_get_bool (const gchar * key)
+{
+  if (arg_get_type (global_prefs, key) == ARG_STRING)
+    {
+      gchar *str = arg_get_value (global_prefs, key);
+      if (str && !strcmp (str, "yes"))
+        return 1;
+    }
+
+  return 0;
+}
+
+/**
  * @brief Set a string preference value via a key.
  *
  * @param key    The identifier for the preference. A copy of this will
@@ -243,34 +267,6 @@ preferences_process (char *filename, struct arglist *prefs)
   return 0;
 }
 
-
-int
-preferences_log_whole_attack (struct arglist *preferences)
-{
-  char *value;
-  static int yes = -1;
-
-  if (!preferences)
-    {
-      yes = -1;
-      return -1;
-    }
-
-
-  if (yes >= 0)
-    return yes;
-
-  value = arg_get_value (preferences, "log_whole_attack");
-  if (value && strcmp (value, "yes"))
-    {
-      yes = 0;
-    }
-  else
-    yes = 1;
-
-  return yes;
-}
-
 int
 preferences_optimize_test (struct arglist *preferences)
 {
@@ -295,65 +291,6 @@ preferences_optimize_test (struct arglist *preferences)
 
   return yes;
 }
-
-
-
-
-int
-preferences_log_plugins_at_load (struct arglist *preferences)
-{
-  static int yes = -1;
-  char *pref;
-
-  if (!preferences)
-    {
-      yes = -1;
-      return -1;
-    }
-
-
-  if (yes >= 0)
-    return yes;
-
-  pref = arg_get_value (preferences, "log_plugins_name_at_load");
-  if (pref && !strcmp (pref, "yes"))
-    yes = 1;
-  else
-    yes = 0;
-
-  return yes;
-}
-
-
-int
-preferences_plugins_timeout (struct arglist *preferences)
-{
-  static int to = -1;
-  char *pref;
-
-  if (!preferences)
-    {
-      to = -1;
-      return -1;
-    }
-
-
-  if (to >= 0)
-    return to;
-
-  pref = arg_get_value (preferences, "plugins_timeout");
-  if (pref)
-    {
-      to = atoi (pref);
-      if (to == 0)
-        to = NVT_TIMEOUT;
-    }
-  else
-    to = NVT_TIMEOUT;
-
-  return to;
-}
-
 
 /**
  * @brief Returns the timeout defined by the client or 0 if none was set.
@@ -380,109 +317,6 @@ preferences_plugin_timeout (struct arglist *preferences, char *oid)
   g_free (pref_name);
   return ret;
 }
-
-int
-preferences_benice (struct arglist *preferences)
-{
-  char *pref;
-  static int yes = -1;
-
-  if (preferences == NULL)
-    {
-      return yes;
-    }
-
-
-  if (yes >= 0)
-    return yes;
-
-  pref = arg_get_value (preferences, "be_nice");
-  if (pref && !strcmp (pref, "yes"))
-    yes = 1;
-  else
-    yes = 0;
-
-  return yes;
-}
-
-
-/**
- * @brief Returns the privilege setting defined by the client or the scanner
- * preference if none was set.
- *
- * @param preferences Preferences arglist.
- *
- * @return 1 if privileges should be dropped for this NVT, 0 if not.
- */
-int
-preferences_drop_privileges (struct arglist *preferences)
-{
-  int ret = 0;
-
-  if (preferences == NULL)
-      return ret;
-
-  if (arg_get_type (preferences, "drop_privileges") == ARG_STRING)
-    {
-      if (strcmp (arg_get_value (preferences, "drop_privileges"), "yes") == 0)
-        ret = 1;
-    }
-
-  return ret;
-}
-
-
-int
-preferences_safe_checks_enabled (struct arglist *preferences)
-{
-  static int yes = -1;
-  char *value;
-
-  if (!preferences)
-    {
-      yes = -1;
-      return -1;
-    }
-
-
-  if (yes >= 0)
-    return yes;
-  value = arg_get_value (preferences, "safe_checks");
-  if (value && !strcmp (value, "yes"))
-    yes = 1;
-  else
-    yes = 0;
-
-  return yes;
-}
-
-
-int
-preferences_nasl_no_signature_check (struct arglist *preferences)
-{
-  static int yes = -1;
-  char *pref;
-
-  if (!preferences)
-    {
-      yes = -1;
-      return -1;
-    }
-
-
-  if (yes >= 0)
-    return yes;
-
-
-  pref = arg_get_value (preferences, "nasl_no_signature_check");
-  if (pref && !strcmp (pref, "yes"))
-    yes = 1;
-  else
-    yes = 0;
-
-  return yes;
-}
-
 
 /**
  * @brief Get a integer boolean value of a "yes"/"no" preference.
@@ -517,23 +351,4 @@ preferences_get_string (struct arglist *preferences, char *name)
     return pref;
   else
     return NULL;
-}
-
-
-/**
- * @brief Resets the preference caches.
- *
- * Subsequent calls to the pseudo-boolean preference getters
- * will query a given arglist once and refill
- * the caches.
- */
-void
-preferences_reset_cache (void)
-{
-  preferences_log_whole_attack (NULL);
-  preferences_optimize_test (NULL);
-  preferences_log_plugins_at_load (NULL);
-  preferences_plugins_timeout (NULL);
-  preferences_benice (NULL);
-  preferences_safe_checks_enabled (NULL);
 }

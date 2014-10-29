@@ -1,5 +1,42 @@
 2014-10-29  Jan-Oliver Wagner <jan-oliver.wagner@greenbone.net>
 
+	Replacing several explicit functions to get a boolean value
+	from the preferences. Those functions used to cache the value
+	which is not done anymore. The relevance of this caching is
+	unclear and if really needed the place where it is relevant
+	should take appropriate measures.
+
+	* src/preferences.c (prefs_get_bool): New. Get a boolean expression
+	of a preference value via a key.
+	(preferences_log_whole_attack, preferences_log_plugins_at_load,
+	preferences_plugins_timeout, preferences_benice,
+	preferences_drop_privileges, preferences_safe_checks_enabled,
+	preferences_nasl_no_signature_check, preferences_reset_cache): Removed.
+
+	* src/preferences.h: Updated proto list accordingly.
+
+	* src/pluginlaunch.c (update_running_processes): Use prefs_get_bool()
+	instead of explicit function. Removed loop across processes that
+	collected the preference about log_whole_attack. Since it is a single
+	preference, the loop is pointless.
+	(plugin_launch): Use prefs_get_bool() instead of explicit function.
+
+	* src/pluginload.c (plugins_reload_from_dir): Use prefs_get_bool()
+	instead of explicit function.
+
+	* src/nasl_plugins.c (nasl_plugin_add):
+	Use prefs_get_bool() instead of explicit function.
+	(nasl_thread_args, nasl_thread): Dropped now-unneeded element "preferences".
+	(nasl_plugin_launch): Don't set the removed element anymore.
+
+	* src/openvassd.c (handle_client): Don't reset the preferences cache anymore
+	as this is not needed anymore.
+	(scanner_thread): Don't set the removed element anymore.
+
+	* src/attack.c (launch_plugin): Don't set the removed element anymore.
+
+2014-10-29  Jan-Oliver Wagner <jan-oliver.wagner@greenbone.net>
+
 	* src/pluginload.c (plugins_reload_from_dir, plugins_init): Use
 	prefs_get() instead of arglist.
 

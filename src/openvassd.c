@@ -307,7 +307,6 @@ handle_client (struct arglist *globals)
   start_daemon_mode ();
 wait:
   comm_wait_order (globals);
-  preferences_reset_cache ();
   ntp_timestamp_scan_starts (globals);
   attack_network (globals, &net_kb);
   if (net_kb != NULL)
@@ -327,7 +326,6 @@ wait:
 static void
 scanner_thread (struct arglist *globals)
 {
-  struct arglist *prefs = preferences_get ();
   char asciiaddr[INET6_ADDRSTRLEN];
   int opt = 1, soc2 = -1, nice_retval, family, soc;
   void *addr = arg_get_value (globals, "client_address");
@@ -349,7 +347,7 @@ scanner_thread (struct arglist *globals)
   proctitle_set ("openvassd: Serving %s", asciiaddr);
 
   /* Everyone runs with a nicelevel of 10 */
-  if (preferences_benice (prefs))
+  if (prefs_get_bool ("be_nice"))
     {
       errno = 0;
       nice_retval = nice (10);

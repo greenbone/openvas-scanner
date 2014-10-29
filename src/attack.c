@@ -251,7 +251,7 @@ launch_plugin (struct arglist *globals, struct scheduler_plugin *plugin,
 {
   struct arglist *preferences = preferences_get ();
   struct arglist *args = plugin->arglist->value;
-  int optimize = preferences_optimize_test (preferences);
+  int optimize = prefs_get_bool ("optimize_test");
   int category = plugin->category;
   gboolean network_scan = FALSE;
 
@@ -263,11 +263,11 @@ launch_plugin (struct arglist *globals, struct scheduler_plugin *plugin,
       char *error;
       static int last_status = 0;
 
-      if (preferences_safe_checks_enabled (preferences)
+      if (prefs_get_bool ("safe_checks")
           && (category == ACT_DESTRUCTIVE_ATTACK || category == ACT_KILL_HOST
               || category == ACT_FLOOD || category == ACT_DENIAL))
         {
-          if (preferences_log_whole_attack (preferences))
+          if (prefs_get_bool ("log_whole_attack"))
             log_write
               ("Not launching %s against %s %s (this is not an error)",
                plugin->arglist->name, hostname,
@@ -299,7 +299,7 @@ launch_plugin (struct arglist *globals, struct scheduler_plugin *plugin,
 
           if (kb_item_get_int (kb, asc_id) > 0)
             {
-              if (preferences_log_whole_attack (preferences))
+              if (prefs_get_bool ("log_whole_attack"))
                 log_write ("Not launching %s against %s because it has already "
                            "been lanched in the past (this is not an error)",
                            plugin->arglist->name, hostname);
@@ -338,7 +338,7 @@ launch_plugin (struct arglist *globals, struct scheduler_plugin *plugin,
               return ERR_CANT_FORK;
             }
 
-          if (preferences_log_whole_attack (preferences))
+          if (prefs_get_bool ("log_whole_attack"))
             log_write ("Launching %s against %s [%d]",
                        plugin->arglist->name, hostname, pid);
 
@@ -355,7 +355,7 @@ launch_plugin (struct arglist *globals, struct scheduler_plugin *plugin,
       else                      /* requirements_plugin() failed */
         {
           plugin->running_state = PLUGIN_STATUS_DONE;
-          if (preferences_log_whole_attack (preferences))
+          if (prefs_get_bool ("log_whole_attack"))
             log_write
               ("Not launching %s against %s %s (this is not an error)",
                plugin->arglist->name, hostname,

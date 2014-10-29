@@ -86,7 +86,7 @@ nasl_plugin_add (char *folder, char *name, struct arglist *plugins,
 
   snprintf (fullname, sizeof (fullname), "%s/%s", folder, name);
 
-  if (preferences_nasl_no_signature_check (preferences) > 0)
+  if (prefs_get_bool ("nasl_no_signature_check"))
     {
       nasl_mode |= NASL_ALWAYS_SIGNED;
     }
@@ -187,7 +187,6 @@ nasl_plugin_add (char *folder, char *name, struct arglist *plugins,
 struct nasl_thread_args {
   struct arglist *args;
   char *name;
-  struct arglist *preferences;
 };
 
 static void
@@ -216,7 +215,6 @@ nasl_plugin_launch (struct arglist *globals, struct arglist *plugin,
 
   nargs.args = plugin;
   nargs.name = name;
-  nargs.preferences = preferences;
 
   module = create_process ((process_func_t) nasl_thread, &nargs);
   return module;
@@ -227,13 +225,12 @@ nasl_thread (struct nasl_thread_args *nargs)
 {
   struct arglist *args = nargs->args;
   struct arglist *globals = arg_get_value (args, "globals");
-  struct arglist *preferences = nargs->preferences;
   char *name = nargs->name;
   int nasl_mode = 0, soc, old_soc;
   kb_t kb;
   GError *error = NULL;
 
-  if (preferences_benice (NULL))
+  if (prefs_get_bool ("be_nice"))
     {
       int nice_retval;
       errno = 0;
@@ -264,10 +261,10 @@ nasl_thread (struct nasl_thread_args *nargs)
                  name);
   signal (SIGTERM, _exit);
 
-  if (preferences_nasl_no_signature_check (preferences) > 0)
+  if (prefs_get_bool ("nasl_no_signature_check"))
     nasl_mode |= NASL_ALWAYS_SIGNED;
 
-  if (preferences_drop_privileges (preferences))
+  if (prefs_get_bool ("drop_privileges"))
     {
       int drop_priv_res = drop_privileges (NULL, &error);
       if (drop_priv_res != OPENVAS_DROP_PRIVILEGES_OK)

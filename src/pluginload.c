@@ -285,7 +285,7 @@ plugins_reload_from_dir (struct arglist *preferences, struct arglist *plugins,
                          " (%d%% / ETA: %02d:%02d)", loaded_files, num_files,
                          percentile, eta / 60, eta % 60);
         }
-      if (preferences_log_plugins_at_load (preferences))
+      if (prefs_get_bool ("log_plugins_name_at_load"))
         log_write ("Loading %s", name);
       if (g_str_has_suffix (name, ".nasl"))
         nasl_plugin_add (folder, name, plugins, preferences);

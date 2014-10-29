@@ -173,17 +173,7 @@ update_running_processes (void)
 {
   int i;
   struct timeval now;
-  int log_whole = 1;
-
-  for (i = 0; i < MAX_PROCESSES; i++)
-    {
-      if (processes[i].globals != NULL)
-        {
-          struct arglist *prefs = preferences_get ();
-          log_whole = preferences_log_whole_attack (prefs);
-          break;
-        }
-    }
+  int log_whole =  prefs_get_bool ("log_whole_attack");
 
   gettimeofday (&now, NULL);
 
@@ -483,7 +473,7 @@ plugin_launch (struct arglist *globals, struct scheduler_plugin *plugin,
       if (category == ACT_SCANNER)
         processes[p].timeout = -1;
       else
-        processes[p].timeout = preferences_plugins_timeout (preferences);
+        processes[p].timeout = prefs_get_bool ("plugins_timeout");
     }
 
   if (socketpair (AF_UNIX, SOCK_STREAM, 0, dsoc) < 0)
