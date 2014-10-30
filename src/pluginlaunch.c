@@ -281,7 +281,7 @@ next_free_process (struct scheduler_plugin *upcoming)
               if (do_wait >= 0)
                 {
 #ifdef DEBUG_CONFLICT
-                  printf ("Waiting has been initiated...\n");
+                  log_write ("Waiting has been initiated...\n");
                   log_write ("Ports in common - waiting...");
 #endif
                   while (process_alive (processes[r].pid))
@@ -291,7 +291,7 @@ next_free_process (struct scheduler_plugin *upcoming)
                       wait_for_children (0);
                     }
 #ifdef DEBUG_CONFLICT
-                  printf ("End of the wait - was that long ?\n");
+                  log_write ("End of the wait - was that long ?\n");
 #endif
                 }
             }

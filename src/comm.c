@@ -26,7 +26,6 @@
   */
 
 #include <string.h> /* for strchr() */
-#include <stdio.h>  /* for fprintf() */
 #include <stdlib.h> /* for atoi() */
 
 #include <stdarg.h>

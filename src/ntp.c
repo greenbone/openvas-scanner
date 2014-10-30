@@ -26,7 +26,6 @@
 */
 
 #include <string.h> /* for strlen() */
-#include <stdio.h>  /* for fprintf() */
 #include <stdlib.h> /* for atoi() */
 
 #include <glib.h>
@@ -148,7 +147,7 @@ ntp_long_attack (struct arglist *globals)
     return -1;
 
 #if DEBUGMORE
-  printf ("long_attack :%s\n", input);
+  log_write ("long_attack :%s\n", input);
 #endif
   if (!strncmp (input, "<|> CLIENT", sizeof ("<|> CLIENT")))
     return 1;

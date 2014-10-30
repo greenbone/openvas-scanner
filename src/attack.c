@@ -399,13 +399,14 @@ static gboolean
 pattern_matches (char *key_pattern, char *value_login, char *hostname)
 {
 #ifndef NDEBUG
-  printf ("SSH-DEBUG: Testing if %s is pattern\n", key_pattern);
+  log_write ("SSH-DEBUG: Testing if %s is pattern\n", key_pattern);
 #endif
   if (is_pattern (key_pattern) == FALSE)
     return FALSE;
 
 #ifndef NDEBUG
-  printf ("SSH-DEBUG: Testing Pattern %s against %s\n", key_pattern, hostname);
+  log_write ("SSH-DEBUG: Testing Pattern %s against %s\n", key_pattern,
+             hostname);
 #endif
   if (g_pattern_match_simple (key_pattern, hostname) == TRUE)
     return TRUE;
@@ -441,9 +442,8 @@ fill_host_kb_ssh_credentials (kb_t kb, struct arglist *globals,
   if (map_host_login_names == NULL || map_loginname_login == NULL)
     {
 #ifdef DEBUG
-      printf
-        ("SSH-DEBUG: Host %s: no extended credentials configuration.\n",
-         hostname);
+      log_write ("SSH-DEBUG: Host %s: no extended credentials configuration.\n",
+                 hostname);
 #endif
       return;
     }
@@ -459,8 +459,8 @@ fill_host_kb_ssh_credentials (kb_t kb, struct arglist *globals,
   if (accountname == NULL || login == NULL)
     {
 #ifdef DEBUG
-      printf ("SSH-DEBUG: Trying to match patterns for login at %s\n",
-              hostname);
+      log_write ("SSH-DEBUG: Trying to match patterns for login at %s\n",
+                 hostname);
 #endif
       accountname =
         g_hash_table_find (map_host_login_names, (GHRFunc) pattern_matches,
@@ -474,8 +474,8 @@ fill_host_kb_ssh_credentials (kb_t kb, struct arglist *globals,
   if (accountname == NULL || login == NULL)
     {
 #ifdef DEBUG
-      printf ("SSH-DEBUG: Trying Default- account for local checks at %s\n",
-              hostname);
+      log_write ("SSH-DEBUG: Trying Default- account for local checks at %s\n",
+                 hostname);
 #endif
       accountname = g_hash_table_lookup (map_host_login_names, "Default");
 
@@ -483,9 +483,8 @@ fill_host_kb_ssh_credentials (kb_t kb, struct arglist *globals,
       if (accountname == NULL)
         {
 #ifdef DEBUG
-          printf
-            ("SSH-DEBUG: Not setting login information for local checks at %s: No even Default account found.\n",
-             hostname);
+          log_write ("SSH-DEBUG: Not setting login information for local checks"
+                     " at %s: No even Default account found.\n", hostname);
 #endif
           return;
         }
@@ -496,9 +495,9 @@ fill_host_kb_ssh_credentials (kb_t kb, struct arglist *globals,
           if (login == NULL)
             {
 #ifdef DEBUG
-              printf
-                ("SSH-DEBUG: Could not find info for accountname '%s' for local checks at %s.\n",
-                 accountname, hostname);
+              log_write
+                ("SSH-DEBUG: Could not find info for accountname '%s' for local"
+                 " checks at %s.\n", accountname, hostname);
 #endif
               return;
             }
@@ -506,7 +505,7 @@ fill_host_kb_ssh_credentials (kb_t kb, struct arglist *globals,
     }
 
 #ifdef DEBUG
-  printf
+  log_write
     ("SSH-DEBUG: Resolving infos of account '%s' for local checks at %s.\n",
      accountname, hostname);
 #endif
@@ -538,8 +537,8 @@ fill_host_kb_ssh_credentials (kb_t kb, struct arglist *globals,
     }
 
 #ifdef DEBUG
-  printf ("SSH-DEBUG: Resolved account name %s for local tests at %s\n",
-          accountname, hostname);
+  log_write ("SSH-DEBUG: Resolved account name %s for local tests at %s\n",
+             accountname, hostname);
 #endif
 }
 

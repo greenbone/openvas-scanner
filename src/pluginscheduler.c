@@ -28,7 +28,6 @@
 */
 
 #include <string.h> /* for strcmp() */
-#include <stdio.h>  /* for printf() */
 
 #include <openvas/base/nvti.h>  /* for nvti_t */
 
@@ -330,8 +329,8 @@ scheduler_rm_running_ports (plugins_scheduler_t sched,
             }
         }
       else
-        printf ("Warning: scheduler_rm_running_ports failed ?! (%s)\n",
-                ports[i]);
+        log_write ("Warning: scheduler_rm_running_ports failed ?! (%s)\n",
+                   ports[i]);
     }
 }
 

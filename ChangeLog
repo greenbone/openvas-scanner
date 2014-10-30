@@ -1,3 +1,13 @@
+2014-10-30  Hani Benhabiles  <hani.benhabiles@greenbone.net>
+
+	* src/attack.c (pattern_matches, fill_host_kb_ssh_credentials),
+	src/ntp.c (ntp_long_attack), src/pluginlaunch.c (next_free_process),
+	src/pluginload.c (plugins_reload_from_dir, plugin_unlink),
+	src/pluginscheduler.c (scheduler_rm_running_ports): Use log_write
+	instead of printf() and fprintf().
+
+	* src/comm.c, src/utils.c: Remove useless include.
+
 2014-10-29  Jan-Oliver Wagner <jan-oliver.wagner@greenbone.net>
 
 	Replacing several explicit functions to get a boolean value

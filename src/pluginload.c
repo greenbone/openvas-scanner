@@ -25,7 +25,7 @@
 * Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA 02110-1301 USA.
 */
 
-#include <stdio.h> /* for printf() */
+#include <stdio.h>
 
 #include <openvas/nasl/nasl.h>
 #include <openvas/base/nvticache.h>  /* for nvticache_new */
@@ -238,9 +238,9 @@ plugins_reload_from_dir (struct arglist *preferences, struct arglist *plugins,
         {
           int result = add_nasl_inc_dir (include_folders[i]);
           if (result < 0)
-            printf ("Could not add %s to the list of include folders.\n"
-                    "Make sure %s exists and is a directory.\n",
-                    include_folders[i], include_folders[i]);
+            log_write ("Could not add %s to the list of include folders.\n"
+                       "Make sure %s exists and is a directory.\n",
+                       include_folders[i], include_folders[i]);
         }
 
       g_strfreev (include_folders);
@@ -251,8 +251,9 @@ plugins_reload_from_dir (struct arglist *preferences, struct arglist *plugins,
 #ifdef DEBUG
       log_write ("%s:%d : folder == NULL", __FILE__, __LINE__);
 #endif
-      printf ("Could not determine the value of <plugins_folder>. Check %s\n",
-              (char *) prefs_get ("config_file"));
+      log_write ("Could not determine the value of <plugins_folder>. "
+                 " Check %s\n",
+                 (char *) arg_get_value (preferences, "config_file"));
       return plugins;
     }
 
@@ -341,7 +342,7 @@ plugin_unlink (plugin)
 {
   if (plugin == NULL)
     {
-      fprintf (stderr, "Error in plugin_unlink - args == NULL\n");
+      log_write ("Error in plugin_unlink - args == NULL\n");
       return;
     }
   arg_set_value (plugin, "preferences", -1, NULL);
