@@ -252,8 +252,7 @@ plugins_reload_from_dir (struct arglist *preferences, struct arglist *plugins,
       log_write ("%s:%d : folder == NULL", __FILE__, __LINE__);
 #endif
       log_write ("Could not determine the value of <plugins_folder>. "
-                 " Check %s\n",
-                 (char *) arg_get_value (preferences, "config_file"));
+                 " Check %s\n", (char *) prefs_get ("config_file"));
       return plugins;
     }
 

@@ -1,5 +1,9 @@
 2014-10-30  Hani Benhabiles  <hani.benhabiles@greenbone.net>
 
+	* src/pluginload.c (plugins_reload_from_dir): Call prefs_get().
+
+2014-10-30  Hani Benhabiles  <hani.benhabiles@greenbone.net>
+
 	* src/attack.c (pattern_matches, fill_host_kb_ssh_credentials),
 	src/ntp.c (ntp_long_attack), src/pluginlaunch.c (next_free_process),
 	src/pluginload.c (plugins_reload_from_dir, plugin_unlink),
