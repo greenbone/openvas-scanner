@@ -1,3 +1,10 @@
+2014-10-30  Michael Wiegand <michael.wiegand@greenbone.net>
+
+	Backport r20689 by Jan-Oliver Wagner.
+
+	* src/ntp.c (ntp_read_prefs): Increase size of buffer for
+	preferences to allow for upto 69K NVTs.
+
 2014-09-12  Hani Benhabiles <hani.benhabiles@greenbone.net>
 
 	Backport r20338.
