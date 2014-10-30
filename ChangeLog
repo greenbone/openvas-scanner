@@ -1,3 +1,10 @@
+2014-10-30  Michael Wiegand <michael.wiegand@greenbone.net>
+
+	Backport r20689 by Jan-Oliver Wagner.
+
+	* src/ntp_11.c (ntp_read_prefs): Increase size of buffer for
+	preferences to allow for upto 69K NVTs.
+
 2014-05-30  Jan-Oliver Wagner <jan-oliver.wagner@greenbone.net>
 
 	* tools/greenbone-nvt-sync: Fixed URL of feed home.

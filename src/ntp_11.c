@@ -261,7 +261,8 @@ ntp_11_read_prefs (struct arglist *globals)
   struct arglist *preferences = arg_get_value (globals, "preferences");
   int soc = GPOINTER_TO_SIZE (arg_get_value (globals, "global_socket"));
   char *input;
-  int input_sz = 1024 * 1024;
+  int input_sz = 1024 * 1024 * 2; /* this is sufficient for a plugin_set
+                                     for upto 69K OIDs */ 
   int n;
 
   input = emalloc (input_sz);
