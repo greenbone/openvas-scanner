@@ -1,5 +1,9 @@
 2014-10-31  Jan-Oliver Wagner <jan-oliver.wagner@greenbone.net>
 
+	* src/preferences.c (preferences_optimize_test): Removed meanwhile unneeded function.
+
+2014-10-31  Jan-Oliver Wagner <jan-oliver.wagner@greenbone.net>
+
 	* src/attack.c (apply_hosts_preferences, attack_network): Replaced calls of
 	preferences_get_bool() by prefs_get_bool()
 

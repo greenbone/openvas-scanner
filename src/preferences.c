@@ -267,31 +267,6 @@ preferences_process (char *filename, struct arglist *prefs)
   return 0;
 }
 
-int
-preferences_optimize_test (struct arglist *preferences)
-{
-  static int yes = -1;
-  char *optimize_asc;
-
-  if (!preferences)
-    {
-      yes = -1;
-      return -1;
-    }
-
-
-  if (yes >= 0)
-    return yes;
-
-  optimize_asc = arg_get_value (preferences, "optimize_test");
-  if (optimize_asc && !strcmp (optimize_asc, "no"))
-    yes = 0;
-  else
-    yes = 1;
-
-  return yes;
-}
-
 /**
  * @brief Returns the timeout defined by the client or 0 if none was set.
  *
