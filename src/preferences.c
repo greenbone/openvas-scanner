@@ -319,27 +319,6 @@ preferences_plugin_timeout (struct arglist *preferences, char *oid)
 }
 
 /**
- * @brief Get a integer boolean value of a "yes"/"no" preference.
- *
- * @return 0 if the preference is "no", 1 if "yes", -1 upon error.
- */
-int
-preferences_get_bool (struct arglist *preferences, char *name)
-{
-  char *pref = arg_get_value (preferences, name);
-
-  if (!pref || pref[0] == '\0')
-    return -1;
-  if (!strcmp (pref, "no"))
-    return 0;
-  if (!strcmp (pref, "yes"))
-    return 1;
-
-  return -1;
-}
-
-
-/**
  * @return NULL if pref is set to "no", preference value otherwise.
  */
 char *

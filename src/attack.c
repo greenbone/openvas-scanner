@@ -906,12 +906,12 @@ apply_hosts_preferences (openvas_hosts_t *hosts, struct arglist *preferences)
     }
 
   /* Reverse-lookup unify ? */
-  if (preferences_get_bool (preferences, "reverse_lookup_unify") == 1)
+  if (prefs_get_bool ("reverse_lookup_unify"))
     log_write ("reverse_lookup_unify: Skipped %d host(s).",
                openvas_hosts_reverse_lookup_unify (hosts));
 
   /* Hosts that reverse-lookup only ? */
-  if (preferences_get_bool (preferences, "reverse_lookup_only") == 1)
+  if (prefs_get_bool ("reverse_lookup_only"))
     log_write ("reverse_lookup_only: Skipped %d host(s).",
                openvas_hosts_reverse_lookup_only (hosts));
 }
@@ -1115,17 +1115,10 @@ attack_network (struct arglist *globals, kb_t *network_kb)
 
   preferences = preferences_get ();
 
-  switch (preferences_get_bool (preferences, "network_scan"))
-    {
-      case -1:
-      case  0:
-        do_network_scan = FALSE;
-        break;
-
-      default:
-        do_network_scan = TRUE;
-        break;
-    }
+  if (prefs_get_bool ("network_scan"))
+    do_network_scan = TRUE;
+  else
+    do_network_scan = FALSE;
 
   network_targets = prefs_get ("network_targets");
   if (network_targets != NULL)
@@ -1184,8 +1177,7 @@ attack_network (struct arglist *globals, kb_t *network_kb)
 
   /* Initialize the attack. */
   sched = plugins_scheduler_init (plugins,
-    preferences_get_bool (preferences, "auto_enable_dependencies") == 1 ? 1 : 0,
-    network_phase);
+    prefs_get_bool ("auto_enable_dependencies"), network_phase);
 
   max_hosts = get_max_hosts_number ();
   max_checks = get_max_checks_number ();
@@ -1289,8 +1281,7 @@ attack_network (struct arglist *globals, kb_t *network_kb)
           int mac_err = -1, soc[2];
           gchar *name;
 
-          if (preferences_get_bool (preferences, "use_mac_addr") > 0
-              && v6_is_local_ip (&host_ip))
+          if (prefs_get_bool ("use_mac_addr") && v6_is_local_ip (&host_ip))
             {
               mac_err = v6_get_mac_addr (&host_ip, &MAC);
               if (mac_err > 0)

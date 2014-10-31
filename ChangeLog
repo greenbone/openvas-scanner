@@ -1,3 +1,12 @@
+2014-10-31  Jan-Oliver Wagner <jan-oliver.wagner@greenbone.net>
+
+	* src/attack.c (apply_hosts_preferences, attack_network): Replaced calls of
+	preferences_get_bool() by prefs_get_bool()
+
+	* src/preferences.c (preferences_get_bool): Removed now unneeded function.
+
+	* src/preferences.h: Removed proto accordingly.
+
 2014-10-30  Hani Benhabiles  <hani.benhabiles@greenbone.net>
 
 	* src/pluginload.c (plugins_reload_from_dir): Call prefs_get().
