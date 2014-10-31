@@ -39,6 +39,5 @@ void preferences_set (struct arglist *);
 void preferences_dump (void);
 int preferences_process (char *, struct arglist *);
 int preferences_plugin_timeout (struct arglist *, char *);
-char *preferences_get_string (struct arglist *, char *);
 
 #endif

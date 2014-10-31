@@ -292,17 +292,3 @@ preferences_plugin_timeout (struct arglist *preferences, char *oid)
   g_free (pref_name);
   return ret;
 }
-
-/**
- * @return NULL if pref is set to "no", preference value otherwise.
- */
-char *
-preferences_get_string (struct arglist *preferences, char *name)
-{
-  char *pref = arg_get_value (preferences, name);
-
-  if (pref && pref[0] != '\0' && strcmp (pref, "no"))
-    return pref;
-  else
-    return NULL;
-}

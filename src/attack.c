@@ -867,15 +867,15 @@ free_uploaded_file (gchar * key, gchar * value, gpointer ignored)
 ********************************************************/
 
 static void
-apply_hosts_preferences (openvas_hosts_t *hosts, struct arglist *preferences)
+apply_hosts_preferences (openvas_hosts_t *hosts)
 {
-  char *ordering, *exclude_hosts;
+  const char *ordering = prefs_get ("hosts_ordering"),
+             *exclude_hosts = prefs_get ("exclude_hosts");
 
-  if (hosts == NULL || preferences == NULL)
+  if (hosts == NULL)
     return;
 
   /* Hosts ordering strategy: sequential, random, reversed... */
-  ordering = preferences_get_string (preferences, "hosts_ordering");
   if (ordering)
     {
       if (!strcmp (ordering, "random"))
@@ -893,7 +893,6 @@ apply_hosts_preferences (openvas_hosts_t *hosts, struct arglist *preferences)
     log_write ("hosts_ordering: Sequential.");
 
   /* Exclude hosts ? */
-  exclude_hosts = preferences_get_string (preferences, "exclude_hosts");
   if (exclude_hosts)
     {
       /* Exclude hosts, resolving hostnames. */
@@ -957,17 +956,17 @@ iface_authorized (const char *iface, struct arglist *preferences)
   if (iface == NULL)
     return 0;
 
-  ifaces_list = preferences_get_string (preferences, "ifaces_deny");
+  ifaces_list = prefs_get ("ifaces_deny");
   if (ifaces_list && str_in_comma_list (iface, ifaces_list))
     return -1;
-  ifaces_list = preferences_get_string (preferences, "ifaces_allow");
+  ifaces_list = prefs_get ("ifaces_allow");
   if (ifaces_list && !str_in_comma_list (iface, ifaces_list))
     return -1;
   /* sys_* preferences are similar, but can't be overriden by the client. */
-  ifaces_list = preferences_get_string (preferences, "sys_ifaces_deny");
+  ifaces_list = prefs_get ("sys_ifaces_deny");
   if (ifaces_list && str_in_comma_list (iface, ifaces_list))
     return -2;
-  ifaces_list = preferences_get_string (preferences, "sys_ifaces_allow");
+  ifaces_list = prefs_get ("sys_ifaces_allow");
   if (ifaces_list && !str_in_comma_list (iface, ifaces_list))
     return -2;
 
@@ -1013,10 +1012,9 @@ static int
 apply_source_iface_preference (struct arglist *globals,
                                struct arglist *preferences)
 {
-  char *source_iface;
+  const char *source_iface = prefs_get ("source_iface");
   int ret;
 
-  source_iface = preferences_get_string (preferences, "source_iface");
   if (source_iface == NULL)
     return 0;
 
@@ -1215,7 +1213,7 @@ attack_network (struct arglist *globals, kb_t *network_kb)
 
   hosts = openvas_hosts_new (hostlist);
   /* Apply Hosts preferences. */
-  apply_hosts_preferences (hosts, preferences);
+  apply_hosts_preferences (hosts);
 
   /* Don't start if the provided interface is unauthorized. */
   if (apply_source_iface_preference (globals, preferences) != 0)
@@ -1225,15 +1223,11 @@ attack_network (struct arglist *globals, kb_t *network_kb)
       return;
     }
   /* hosts_allow/deny lists. */
-  hosts_allow = openvas_hosts_new (preferences_get_string
-                                    (preferences, "hosts_allow"));
-  hosts_deny = openvas_hosts_new (preferences_get_string
-                                   (preferences, "hosts_deny"));
+  hosts_allow = openvas_hosts_new (prefs_get ("hosts_allow"));
+  hosts_deny = openvas_hosts_new (prefs_get ("hosts_deny"));
   /* sys_* preferences, which can't be overriden by the client. */
-  sys_hosts_allow = openvas_hosts_new (preferences_get_string
-                                        (preferences, "sys_hosts_allow"));
-  sys_hosts_deny = openvas_hosts_new (preferences_get_string
-                                       (preferences, "sys_hosts_deny"));
+  sys_hosts_allow = openvas_hosts_new (prefs_get ("sys_hosts_allow"));
+  sys_hosts_deny = openvas_hosts_new (prefs_get ("sys_hosts_deny"));
   host = openvas_hosts_next (hosts);
   if (host == NULL)
     goto stop;

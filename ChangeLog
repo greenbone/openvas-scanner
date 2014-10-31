@@ -1,5 +1,20 @@
 2014-10-31  Jan-Oliver Wagner <jan-oliver.wagner@greenbone.net>
 
+	* src/openvassd.c (init_ssl_ctx): Replaced calls of
+	preferences_get_string() by prefs_get().
+
+	* src/attack.c (apply_hosts_preferences): Replaced calls of
+	preferences_get_string() by prefs_get(). And dropped the now unneeded
+	parameter for preferences.
+	(apply_source_iface_preference, attack_network): Replaced calls of
+	preferences_get_string() by prefs_get().
+
+	* src/preferences.c (preferences_get_string): Removed now unneeded function.
+
+	* src/preferences.h: Removed proto accordingly.
+
+2014-10-31  Jan-Oliver Wagner <jan-oliver.wagner@greenbone.net>
+
 	* src/preferences.c (preferences_optimize_test): Removed meanwhile unneeded function.
 
 2014-10-31  Jan-Oliver Wagner <jan-oliver.wagner@greenbone.net>

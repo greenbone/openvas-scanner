@@ -406,28 +406,28 @@ init_ssl_ctx (const char *priority, const char *dhparams)
   /* Only initialize ovas_scanner_ctx once */
   if (ovas_scanner_ctx == NULL)
     {
-      char *cert, *key, *passwd, *ca_file;
+      const char *cert, *key, *passwd, *ca_file;
 
-      ca_file = preferences_get_string (preferences_get (), "ca_file");
+      ca_file = prefs_get ("ca_file");
       if (ca_file == NULL)
         {
           log_write ("Missing ca_file - Did you run openvas-mkcert?\n");
           exit (1);
         }
-      cert = preferences_get_string (preferences_get (), "cert_file");
+      cert = prefs_get ("cert_file");
       if (cert == NULL)
         {
           log_write ("Missing cert_file - Did you run openvas-mkcert?\n");
           exit (1);
         }
-      key = preferences_get_string (preferences_get (), "key_file");
+      key = prefs_get ("key_file");
       if (key == NULL)
         {
           log_write ("Missing key_file - Did you run openvas-mkcert?\n");
           exit (1);
         }
 
-      passwd = preferences_get_string (preferences_get (), "pem_password");
+      passwd = prefs_get ("pem_password");
       ovas_scanner_ctx = ovas_scanner_context_new
                           (OPENVAS_ENCAPS_TLScustom, cert, key, passwd, ca_file,
                            priority, dhparams);
