@@ -1,3 +1,19 @@
+2014-11-01  Jan-Oliver Wagner <jan-oliver.wagner@greenbone.net>
+
+	* src/preferences.c (preferences_init): Renamed to prefs_init().
+	(prefs_init): Set the default options directly.
+	(prefrences_dump): Renamed to prefs_dump.
+	(preferences_plugin_timeout): Renamed to prefs_nvt_timeout and avoid arg_list
+	calls.
+
+	* src/preferences.h: Adjust protos accordingly.
+
+	* src/pluginlaunch.c (plugin_launch): Adjust to new function
+	for timeout preference.
+
+	* src/openvassd.c (reload_openvassd, init_openvassd): Adjust to new call of prefs_init.
+	(main): Adjust to prefs_dump call.
+
 2014-10-31  Jan-Oliver Wagner <jan-oliver.wagner@greenbone.net>
 
 	* src/openvassd.c (init_ssl_ctx): Replaced calls of

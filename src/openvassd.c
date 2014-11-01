@@ -283,7 +283,8 @@ reload_openvassd ()
   handler_pid = loading_handler_start ();
   /* Reload config file. */
   config_file = prefs_get ("config_file");
-  preferences = preferences_init ((char *)config_file);
+  prefs_init (config_file);
+  preferences = preferences_get ();
 
   /* Reload the plugins */
   plugins = plugins_init (preferences);
@@ -581,7 +582,8 @@ init_openvassd (GHashTable *options, int first_pass, int stop_early,
   config_file = g_hash_table_lookup (options, "config_file");
   addr = g_hash_table_lookup (options, "addr");
 
-  preferences = preferences_init (config_file);
+  prefs_init (config_file);
+  preferences = preferences_get ();
 
   log_init (prefs_get ("logfile"));
   if (dont_fork == FALSE)
@@ -839,7 +841,7 @@ main (int argc, char *argv[])
 
   /* special treatment */
   if (print_specs)
-    preferences_dump ();
+    prefs_dump ();
   if (exit_early)
     exit (0);
 

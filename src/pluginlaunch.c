@@ -460,8 +460,7 @@ plugin_launch (struct arglist *globals, struct scheduler_plugin *plugin,
   processes[p].plugin = plugin;
   processes[p].launch_status = plug_get_launch (plugin->arglist->value);
   processes[p].timeout =
-    preferences_plugin_timeout (preferences,
-                                arg_get_value (plugin->arglist->value, "OID"));
+    prefs_nvt_timeout (arg_get_value (plugin->arglist->value, "OID"));
   if (processes[p].timeout == 0)
     processes[p].timeout = plugin->timeout;
 

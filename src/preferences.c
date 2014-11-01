@@ -56,7 +56,6 @@
 #include <openvas/misc/kb.h>
 
 #include "comm.h"
-#include "preferences.h"
 #include "log.h"
 #include "utils.h"
 
@@ -94,7 +93,7 @@ static openvassd_option openvassd_defaults[] = {
   {"unscanned_closed", "yes"},
   {"unscanned_closed_udp", "yes"},
   // Empty options must be "\0", not NULL, to match the behavior of
-  // preferences_process.
+  // prefs_init.
   {"vhosts", "\0"},
   {"vhosts_ip", "\0"},
   {"report_host_details", "yes"},
@@ -106,20 +105,6 @@ static openvassd_option openvassd_defaults[] = {
 };
 
 static struct arglist *global_prefs = NULL;
-
-/**
- * @brief Initializes the preferences structure
- */
-struct arglist *
-preferences_init (char *config_file)
-{
-  if (global_prefs)
-    arg_free (global_prefs);
-
-  global_prefs = g_malloc0 (sizeof (struct arglist));
-  preferences_process (config_file, global_prefs);
-  return global_prefs;
-}
 
 /**
  * @brief Get the pointer to the global preferences structure
@@ -204,10 +189,46 @@ prefs_set (const gchar * key, const gchar * value)
 }
 
 /**
+ * @brief Initializes the preferences structure. If it was
+ *        already initialized, remove old settings and start
+ *        from scratch.
+ *
+ * @param config    Filename of the configuration file.
+ */
+void
+prefs_init (const char *config)
+{
+  int i = 0;
+  settings_iterator_t settings;
+
+  if (global_prefs)
+    arg_free (global_prefs);
+
+  global_prefs = g_malloc0 (sizeof (struct arglist));
+
+  while (openvassd_defaults[i].option != NULL)
+    {
+      prefs_set (openvassd_defaults[i].option, openvassd_defaults[i].value);
+      i++;
+    }
+
+  if (!init_settings_iterator_from_file (&settings, config, "Misc"))
+    {
+      while (settings_iterator_next (&settings))
+          prefs_set (settings_iterator_name (&settings),
+                     settings_iterator_value (&settings));
+
+      cleanup_settings_iterator (&settings);
+    }
+
+  prefs_set ("config_file", config);
+}
+
+/**
  * @brief Dump the preferences to stdout
  */
 void
-preferences_dump (void)
+prefs_dump (void)
 {
   struct arglist * prefs = global_prefs;
 
@@ -219,76 +240,21 @@ preferences_dump (void)
 }
 
 /**
- * @brief Copies the content of the prefs file to a special arglist.
- */
-int
-preferences_process (char *filename, struct arglist *prefs)
-{
-  int i = 0;
-  settings_iterator_t settings;
-
-  while (openvassd_defaults[i].option != NULL)
-    {
-      arg_add_value (prefs, openvassd_defaults[i].option, ARG_STRING,
-                     strlen (openvassd_defaults[i].value),
-                     g_strdup (openvassd_defaults[i].value));
-      i++;
-    }
-
-  if (!init_settings_iterator_from_file (&settings, filename, "Misc"))
-    {
-      while (settings_iterator_next (&settings))
-        {
-          gchar *old_value = arg_get_value (prefs, settings_iterator_name
-                                            (&settings));
-          if (old_value == NULL)
-            arg_add_value (prefs, settings_iterator_name (&settings),
-                           ARG_STRING,
-                           strlen (settings_iterator_value (&settings)),
-                           g_strdup (settings_iterator_value (&settings)));
-          else
-            {
-              if (g_ascii_strcasecmp (settings_iterator_value (&settings),
-                                      old_value) != 0)
-                {
-                  g_free (old_value);
-                  arg_set_value (prefs, settings_iterator_name (&settings),
-                                 strlen (settings_iterator_value (&settings)),
-                                 g_strdup (settings_iterator_value (&settings)));
-                }
-            }
-        }
-
-      cleanup_settings_iterator (&settings);
-    }
-
-  arg_add_value (prefs, "config_file", ARG_STRING, strlen (filename),
-                 g_strdup (filename));
-  return 0;
-}
-
-/**
  * @brief Returns the timeout defined by the client or 0 if none was set.
  *
- * @param preferences Preferences arglist.
  * @param oid         OID of NVT to ask timeout value of.
  *
  * @return 0 if no timeout for the NVT oid was found, timeout in seconds
  *         otherwise.
  */
 int
-preferences_plugin_timeout (struct arglist *preferences, char *oid)
+prefs_nvt_timeout (const char *oid)
 {
-  int ret = 0;
   char *pref_name = g_strdup_printf ("timeout.%s", oid);
-
-  if (arg_get_type (preferences, pref_name) == ARG_STRING)
-    {
-      int to = atoi (arg_get_value (preferences, pref_name));
-      if (to)
-        ret = to;
-    }
+  const char * val = prefs_get (pref_name);
+  int timeout = (val ? atoi (val) : 0);
 
   g_free (pref_name);
-  return ret;
+
+  return timeout;
 }

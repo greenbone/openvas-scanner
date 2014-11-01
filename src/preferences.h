@@ -29,15 +29,14 @@
 #ifndef __OPENVAS_PREFERENCES_H
 #define __OPENVAS_PREFERENCES_H
 
+void prefs_init (const char *);
 const gchar * prefs_get (const gchar * key);
 int prefs_get_bool (const gchar * key);
 void prefs_set (const gchar *, const gchar *);
+void prefs_dump (void);
+int prefs_nvt_timeout (const char *);
 
-struct arglist * preferences_init (char *);
 struct arglist * preferences_get (void);
 void preferences_set (struct arglist *);
-void preferences_dump (void);
-int preferences_process (char *, struct arglist *);
-int preferences_plugin_timeout (struct arglist *, char *);
 
 #endif
