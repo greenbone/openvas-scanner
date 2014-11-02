@@ -1,3 +1,20 @@
+2014-11-02  Jan-Oliver Wagner <jan-oliver.wagner@greenbone.net>
+
+	* src/pluginload.c (plugins_reload_from_dir): Dropped argument
+	"prefrences" because prefrences_get() is used directly.
+	(plugins_init): Dropped argument "preferences" because it is
+	not needed anymore to call plugins_reload_from_dir.
+
+	* src/pluginload.h: Adjust protos accordingly.
+
+	* src/plugs_req.c (requirements_plugin): Use prefs_get
+	instead of arglist.
+
+	* src/preferences.h: Add missing include of glib.
+
+	* src/openvassd.c (reload_openvassd, init_plugins): Adapt to new
+	proto of plugins_init.
+
 2014-11-01  Jan-Oliver Wagner <jan-oliver.wagner@greenbone.net>
 
 	* src/preferences.c (preferences_init): Renamed to prefs_init().

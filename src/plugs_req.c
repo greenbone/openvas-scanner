@@ -29,6 +29,7 @@
 #include <string.h> /* for strcmp() */
 #include <stdio.h>  /* for snprintf() */
 
+#include "preferences.h"     /* for prefs_get() */
 #include "pluginscheduler.h"
 #include "plugs_req.h"
 
@@ -229,7 +230,7 @@ requirements_plugin (kb_t kb, struct scheduler_plugin *plugin,
   char *missing;
   char *present;
   gchar **tcp, **udp;
-  char *opti = arg_get_value (preferences, "optimization_level");
+  const char *opti = prefs_get ("optimization_level");
 
   /*
    * Check wether the good ports are open

@@ -218,8 +218,7 @@ set_total_loading_plugins (int total)
 }
 
 static struct arglist *
-plugins_reload_from_dir (struct arglist *preferences, struct arglist *plugins,
-                         char *folder)
+plugins_reload_from_dir (struct arglist *plugins, char *folder)
 {
   GSList *files = NULL, *f;
   const gchar *pref_include_folders;
@@ -288,7 +287,7 @@ plugins_reload_from_dir (struct arglist *preferences, struct arglist *plugins,
       if (prefs_get_bool ("log_plugins_name_at_load"))
         log_write ("Loading %s", name);
       if (g_str_has_suffix (name, ".nasl"))
-        nasl_plugin_add (folder, name, plugins, preferences);
+        nasl_plugin_add (folder, name, plugins, preferences_get());
       g_free (f->data);
       f = g_slist_next (f);
     }
@@ -301,21 +300,17 @@ plugins_reload_from_dir (struct arglist *preferences, struct arglist *plugins,
 }
 
 /*
- * main function for loading all the
- * plugins that are in folder <folder>
+ * main function for loading all the plugins
  */
 struct arglist *
-plugins_init (struct arglist *preferences)
+plugins_init (void)
 {
-  const char *plugins_folder;
-  struct arglist *plugins;
+  const char *plugins_folder = prefs_get ("plugins_folder");
+  struct arglist *plugins = g_malloc0 (sizeof (struct arglist));
 
-  plugins_folder = prefs_get ("plugins_folder");
-  nvticache_init (prefs_get ("cache_folder"),
-                  plugins_folder);
-  plugins = g_malloc0 (sizeof (struct arglist));
+  nvticache_init (prefs_get ("cache_folder"), plugins_folder);
 
-  return plugins_reload_from_dir (preferences, plugins, (char *)plugins_folder);
+  return plugins_reload_from_dir (plugins, (char *)plugins_folder);
 }
 
 void

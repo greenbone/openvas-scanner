@@ -287,7 +287,7 @@ reload_openvassd ()
   preferences = preferences_get ();
 
   /* Reload the plugins */
-  plugins = plugins_init (preferences);
+  plugins = plugins_init ();
   set_globals_from_preferences (preferences);
   plugins_free (global_plugins);
   global_plugins = plugins;
@@ -552,10 +552,9 @@ init_network (int port, int *sock, struct addrinfo addr)
 static void
 init_plugins (GHashTable *options)
 {
-  struct arglist *preferences, *plugins;
+  struct arglist *plugins;
 
-  preferences = g_hash_table_lookup (options, "preferences");
-  plugins = plugins_init (preferences);
+  plugins = plugins_init ();
 
   g_hash_table_replace (options, "plugins", plugins);
   plugins_free (global_plugins);

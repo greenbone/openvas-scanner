@@ -29,6 +29,8 @@
 #ifndef __OPENVAS_PREFERENCES_H
 #define __OPENVAS_PREFERENCES_H
 
+#include <glib.h> /* for gchar */
+
 void prefs_init (const char *);
 const gchar * prefs_get (const gchar * key);
 int prefs_get_bool (const gchar * key);
