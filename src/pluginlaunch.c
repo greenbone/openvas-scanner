@@ -442,11 +442,11 @@ pluginlaunch_stop (void)
  */
 int
 plugin_launch (struct arglist *globals, struct scheduler_plugin *plugin,
-               struct arglist *hostinfos, struct arglist *preferences, kb_t kb,
-               char *name)
+               struct arglist *hostinfos, kb_t kb, char *name)
 {
   int p;
   int dsoc[2];
+  struct arglist *preferences = preferences_get ();
 
   /* Wait for a free slot while reading the input from the plugins  */
   while (num_running_processes >= max_running_processes)

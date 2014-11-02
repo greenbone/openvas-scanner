@@ -287,7 +287,7 @@ plugins_reload_from_dir (struct arglist *plugins, char *folder)
       if (prefs_get_bool ("log_plugins_name_at_load"))
         log_write ("Loading %s", name);
       if (g_str_has_suffix (name, ".nasl"))
-        nasl_plugin_add (folder, name, plugins, preferences_get());
+        nasl_plugin_add (folder, name, plugins);
       g_free (f->data);
       f = g_slist_next (f);
     }

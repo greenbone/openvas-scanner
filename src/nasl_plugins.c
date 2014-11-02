@@ -69,17 +69,16 @@
  * @param name    File-name of the plugin (will be used as key in plugins).
  * @param plugins The arglist that the plugin shall be added to (with parameter
  *                name as the key).
- * @param preferences The plugins preferences.
  *
  * @return Pointer to the plugin (as arglist). NULL in case of errors.
  */
 struct arglist *
-nasl_plugin_add (char *folder, char *name, struct arglist *plugins,
-                 struct arglist *preferences)
+nasl_plugin_add (char *folder, char *name, struct arglist *plugins)
 {
   char fullname[PATH_MAX + 1];
   struct arglist *plugin_args;
   struct arglist *prev_plugin = NULL;
+  struct arglist *preferences = preferences_get ();
   int nasl_mode;
   nasl_mode = NASL_EXEC_DESCR;
   nvti_t *nvti;

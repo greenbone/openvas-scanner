@@ -47,8 +47,7 @@ extern int kb_get_port_state_proto (kb_t, struct arglist *, int, char *);
  * @return Whether a port in a port list is closed or not.
  */
 static int
-get_closed_ports (kb_t kb, gchar **ports,
-                  struct arglist *preferences)
+get_closed_ports (kb_t kb, gchar **ports)
 {
   int i;
 
@@ -60,7 +59,7 @@ get_closed_ports (kb_t kb, gchar **ports,
       int iport = atoi (ports[i]);
       if (iport != 0)
         {
-          if (kb_get_port_state_proto (kb, preferences, iport, "tcp") != 0)
+          if (kb_get_port_state_proto (kb, preferences_get(), iport, "tcp") != 0)
             return iport;
         }
       else
@@ -77,8 +76,7 @@ get_closed_ports (kb_t kb, gchar **ports,
  * @brief Returns whether a port in a port list is closed or not.
  */
 static int
-get_closed_udp_ports (kb_t kb, gchar **ports,
-                      struct arglist *preferences)
+get_closed_udp_ports (kb_t kb, gchar **ports)
 {
   int i;
 
@@ -88,7 +86,7 @@ get_closed_udp_ports (kb_t kb, gchar **ports,
   for (i = 0; ports[i] != NULL; i ++)
     {
       int iport = atoi (ports[i]);
-      if (iport > 0 && kb_get_port_state_proto (kb, preferences, iport, "udp"))
+      if (iport > 0 && kb_get_port_state_proto (kb, preferences_get(), iport, "udp"))
         return iport;
     }
   return 0;                     /* found nothing */
@@ -223,8 +221,7 @@ mandatory_requirements_met (kb_t kb,
  * @return Returns NULL is everything is ok, else an error message.
  */
 char *
-requirements_plugin (kb_t kb, struct scheduler_plugin *plugin,
-                     struct arglist *preferences)
+requirements_plugin (kb_t kb, struct scheduler_plugin *plugin)
 {
   static char error[64];
   char *missing;
@@ -237,7 +234,7 @@ requirements_plugin (kb_t kb, struct scheduler_plugin *plugin,
    */
   error[sizeof (error) - 1] = '\0';
   tcp = plugin->required_ports;
-  if (tcp != NULL && (get_closed_ports (kb, tcp, preferences)) == 0)
+  if (tcp != NULL && (get_closed_ports (kb, tcp)) == 0)
     {
       strncpy (error, "none of the required tcp ports are open",
                sizeof (error) - 1);
@@ -245,7 +242,7 @@ requirements_plugin (kb_t kb, struct scheduler_plugin *plugin,
     }
 
   udp = plugin->required_udp_ports;
-  if (udp != NULL && (get_closed_udp_ports (kb, udp, preferences)) == 0)
+  if (udp != NULL && (get_closed_udp_ports (kb, udp)) == 0)
     {
       strncpy (error, "none of the required udp ports are open",
                sizeof (error) - 1);

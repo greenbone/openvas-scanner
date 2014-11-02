@@ -1,5 +1,36 @@
 2014-11-02  Jan-Oliver Wagner <jan-oliver.wagner@greenbone.net>
 
+	* src/pluginlaunch.c (plugin_launch): Get global preferences directly
+	and therefore drop the argument "preferences".
+
+	* src/pluginlaunch.h: Adjust proto accordingly.
+
+	* src/pluginload.c (plugins_reload_from_dir): Adapt to new proto of
+	nasl_plugin_add.
+ 
+	* src/pluginload.h: Adjust proto accodingly.
+
+	* src/plugs_req.c (get_closed_ports, get_closed_udp_ports): Get global
+	preferences directly and therefore drop the argument "preferences".
+	(requirements_plugin): Adapt to changed protos and therefore drop the
+	argument "preferences".
+
+	* src/nasl_plugins.c (nasl_plugin_add): Get global preferences directly
+	and therefore drop the argument "preferences".
+
+	* src/openvassd.c (set_globals_from_preferences): Don't set the preferences
+	because it is not changing anything. Therefore drop the argument "prefs".
+	(reload_openvassd): Adjust the call of set_globals_from_preferences.
+
+	* src/attack.c (launch_plugin): Adjust to new protos.
+	(iface_authorized): Drop unneeded argument "preferences".
+	(apply_source_iface_preference): Adjust to new proto and therefore drop
+	argument "preferences".
+	(attack_network): Adjust to new protos.
+
+
+2014-11-02  Jan-Oliver Wagner <jan-oliver.wagner@greenbone.net>
+
 	* src/pluginload.c (plugins_reload_from_dir): Dropped argument
 	"prefrences" because prefrences_get() is used directly.
 	(plugins_init): Dropped argument "preferences" because it is

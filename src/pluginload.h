@@ -55,7 +55,7 @@ total_loading_plugins (void);
 
 /* From nasl_plugins.c */
 struct arglist *
-nasl_plugin_add (char *, char *, struct arglist *, struct arglist *);
+nasl_plugin_add (char *, char *, struct arglist *);
 
 int
 nasl_plugin_launch (struct arglist *, struct arglist *, struct arglist *,

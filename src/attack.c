@@ -249,7 +249,6 @@ launch_plugin (struct arglist *globals, struct scheduler_plugin *plugin,
                char *hostname, int *cur_plug, int num_plugs,
                struct arglist *hostinfos, kb_t kb)
 {
-  struct arglist *preferences = preferences_get ();
   struct arglist *args = plugin->arglist->value;
   int optimize = prefs_get_bool ("optimize_test");
   int category = plugin->category;
@@ -321,7 +320,7 @@ launch_plugin (struct arglist *globals, struct scheduler_plugin *plugin,
 
       if (!error
           && (!optimize
-              || !(error = requirements_plugin (kb, plugin, preferences))))
+              || !(error = requirements_plugin (kb, plugin))))
         {
           int pid;
           char *oid, *src;
@@ -329,8 +328,7 @@ launch_plugin (struct arglist *globals, struct scheduler_plugin *plugin,
           oid = arg_get_value (args, "OID");
           src = g_strdup (nvticache_get_src (oid));
           /* Start the plugin */
-          pid = plugin_launch
-                 (globals, plugin, hostinfos, preferences, kb, src);
+          pid = plugin_launch (globals, plugin, hostinfos, kb, src);
           g_free (src);
           if (pid < 0)
             {
@@ -949,7 +947,7 @@ str_in_comma_list (const char *str, const char *comma_list)
  * -2 if by sys_ifaces_deny/sys_ifaces_allow, 1 otherwise.
  */
 static int
-iface_authorized (const char *iface, struct arglist *preferences)
+iface_authorized (const char *iface)
 {
   const char *ifaces_list;
 
@@ -1009,8 +1007,7 @@ host_authorized (const openvas_host_t *host, const struct in6_addr *addr,
  * unauthorized value, -2 if iface can't be used.
  */
 static int
-apply_source_iface_preference (struct arglist *globals,
-                               struct arglist *preferences)
+apply_source_iface_preference (struct arglist *globals)
 {
   const char *source_iface = prefs_get ("source_iface");
   int ret;
@@ -1018,7 +1015,7 @@ apply_source_iface_preference (struct arglist *globals,
   if (source_iface == NULL)
     return 0;
 
-  ret = iface_authorized (source_iface, preferences);
+  ret = iface_authorized (source_iface);
   if (ret == -1)
     {
       gchar *msg = g_strdup_printf ("Unauthorized source interface: %s",
@@ -1096,7 +1093,6 @@ attack_network (struct arglist *globals, kb_t *network_kb)
   openvas_hosts_t *sys_hosts_allow, *sys_hosts_deny;
   openvas_host_t *host;
   int global_socket = -1;
-  struct arglist *preferences = NULL;
   struct arglist *plugins = NULL;
   plugins_scheduler_t sched;
   int fork_retries = 0;
@@ -1110,8 +1106,6 @@ attack_network (struct arglist *globals, kb_t *network_kb)
   gboolean scan_stopped;
 
   gettimeofday (&then, NULL);
-
-  preferences = preferences_get ();
 
   if (prefs_get_bool ("network_scan"))
     do_network_scan = TRUE;
@@ -1216,7 +1210,7 @@ attack_network (struct arglist *globals, kb_t *network_kb)
   apply_hosts_preferences (hosts);
 
   /* Don't start if the provided interface is unauthorized. */
-  if (apply_source_iface_preference (globals, preferences) != 0)
+  if (apply_source_iface_preference (globals) != 0)
     {
       openvas_hosts_free (hosts);
       error_message_to_client (globals, "Interface not authorized for scanning", NULL, NULL);

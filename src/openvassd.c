@@ -158,7 +158,7 @@ end_daemon_mode (void)
 }
 
 static void
-set_globals_from_preferences (struct arglist *prefs)
+set_globals_from_preferences (void)
 {
   const char *str;
 
@@ -175,8 +175,6 @@ set_globals_from_preferences (struct arglist *prefs)
       if (global_max_checks <= 0)
         global_max_checks = 10;
     }
-
-  preferences_set (prefs);
 }
 
 static void
@@ -272,7 +270,7 @@ loading_handler_stop (pid_t handler_pid)
 static void
 reload_openvassd ()
 {
-  struct arglist *preferences = NULL, *plugins;
+  struct arglist *plugins;
   const char *config_file;
   pid_t handler_pid;
 
@@ -284,11 +282,10 @@ reload_openvassd ()
   /* Reload config file. */
   config_file = prefs_get ("config_file");
   prefs_init (config_file);
-  preferences = preferences_get ();
 
   /* Reload the plugins */
   plugins = plugins_init ();
-  set_globals_from_preferences (preferences);
+  set_globals_from_preferences ();
   plugins_free (global_plugins);
   global_plugins = plugins;
   loading_handler_stop (handler_pid);
@@ -608,7 +605,7 @@ init_openvassd (GHashTable *options, int first_pass, int stop_early,
   g_hash_table_replace (options, "isck", GSIZE_TO_POINTER (isck));
   g_hash_table_replace (options, "preferences", preferences);
 
-  set_globals_from_preferences (preferences);
+  set_globals_from_preferences ();
 
   return 0;
 }
