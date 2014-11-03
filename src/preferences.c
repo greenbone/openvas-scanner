@@ -53,11 +53,8 @@
 #include <glib.h>
 
 #include <openvas/base/settings.h>   /* for init_settings_iterator_from_file */
-#include <openvas/misc/kb.h>
-
-#include "comm.h"
-#include "log.h"
-#include "utils.h"
+#include <openvas/misc/kb.h>         /* for KB_PATH_DEFAULT */
+#include <openvas/misc/arglists.h>   /* for struct arglist */
 
 typedef struct
 {
@@ -113,15 +110,6 @@ struct arglist *
 preferences_get (void)
 {
   return global_prefs;
-}
-
-/**
- * @brief Replace the old preferences with the given new ones.
- */
-void
-preferences_set (struct arglist * new_prefs)
-{
-  global_prefs = new_prefs;
 }
 
 /**

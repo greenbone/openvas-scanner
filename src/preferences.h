@@ -39,6 +39,5 @@ void prefs_dump (void);
 int prefs_nvt_timeout (const char *);
 
 struct arglist * preferences_get (void);
-void preferences_set (struct arglist *);
 
 #endif

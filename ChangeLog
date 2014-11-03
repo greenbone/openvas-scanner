@@ -1,3 +1,9 @@
+2014-11-03  Jan-Oliver Wagner <jan-oliver.wagner@greenbone.net>
+
+	* src/preferences.c (preferences_set): Removed unneeded function.
+
+	* src/preferences.h: Removed proto accordingly.
+
 2014-11-02  Jan-Oliver Wagner <jan-oliver.wagner@greenbone.net>
 
 	* src/pluginlaunch.c (plugin_launch): Get global preferences directly
