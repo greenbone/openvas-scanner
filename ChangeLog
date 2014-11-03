@@ -1,5 +1,20 @@
 2014-11-03  Jan-Oliver Wagner <jan-oliver.wagner@greenbone.net>
 
+	* src/preferences.c (struct openvassd_option, openvassd_defaults):
+	Removed. Moved to openvassd.c.
+	(prefs_init): Removed handling of options. Moved handling of config
+	into prefs_config().
+	(prefs_config): New. The config file settings from prefs_init.
+
+	* src/preferences.h: Adapt protos accordingly.
+
+	* src/openvassd.c (struct openvassd_option, openvassd_defaults): New.
+	Moved here from preferences.c.
+	(reload_openvassd, init_openvassd): Adapt to split of prefs_init and
+	prefs_config and set the options in its own.
+
+2014-11-03  Jan-Oliver Wagner <jan-oliver.wagner@greenbone.net>
+
 	* src/preferences.c (preferences_set): Removed unneeded function.
 
 	* src/preferences.h: Removed proto accordingly.

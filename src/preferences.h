@@ -31,7 +31,8 @@
 
 #include <glib.h> /* for gchar */
 
-void prefs_init (const char *);
+void prefs_init (void);
+void prefs_config (const char *);
 const gchar * prefs_get (const gchar * key);
 int prefs_get_bool (const gchar * key);
 void prefs_set (const gchar *, const gchar *);

@@ -58,6 +58,7 @@
 #include <openvas/misc/openvas_proctitle.h>
 #include <openvas/misc/openvas_logging.h>  /* for setup_legacy_log_handler */
 #include <openvas/base/pidfile.h>    /* for pidfile_remove */
+#include <openvas/misc/kb.h>         /* for KB_PATH_DEFAULT */
 
 #include <gnutls/gnutls.h>
 #include <gnutls/x509.h>
@@ -90,6 +91,51 @@ static GHashTable *global_options;
 
 static int reload;
 static int loading_stop;
+
+typedef struct
+{
+  char *option;
+  char *value;
+} openvassd_option;
+
+/**
+ * @brief Default values for scanner options. Must be NULL terminated.
+ */
+static openvassd_option openvassd_defaults[] = {
+  {"plugins_folder", OPENVAS_NVT_DIR},
+  {"cache_folder", OPENVAS_CACHE_DIR},
+  {"include_folders", OPENVAS_NVT_DIR},
+  {"max_hosts", "30"},
+  {"max_checks", "10"},
+  {"be_nice", "no"},
+  {"logfile", OPENVASSD_MESSAGES},
+  {"log_whole_attack", "no"},
+  {"log_plugins_name_at_load", "no"},
+  {"dumpfile", OPENVASSD_DEBUGMSG},
+  {"cgi_path", "/cgi-bin:/scripts"},
+  {"optimize_test", "yes"},
+  {"checks_read_timeout", "5"},
+  {"network_scan", "no"},
+  {"non_simult_ports", "139, 445"},
+  {"plugins_timeout", G_STRINGIFY (NVT_TIMEOUT)},
+  {"safe_checks", "yes"},
+  {"auto_enable_dependencies", "yes"},
+  {"use_mac_addr", "no"},
+  {"nasl_no_signature_check", "yes"},
+  {"drop_privileges", "no"},
+  {"unscanned_closed", "yes"},
+  {"unscanned_closed_udp", "yes"},
+  // Empty options must be "\0", not NULL, to match the behavior of
+  // prefs_init.
+  {"vhosts", "\0"},
+  {"vhosts_ip", "\0"},
+  {"report_host_details", "yes"},
+  {"cert_file", SCANNERCERT},
+  {"key_file", SCANNERKEY},
+  {"ca_file", CACERT},
+  {"kb_location", KB_PATH_DEFAULT},
+  {NULL, NULL}
+};
 
 /**
  * SSL context may be kept once it is inited.
@@ -273,6 +319,7 @@ reload_openvassd ()
   struct arglist *plugins;
   const char *config_file;
   pid_t handler_pid;
+  int i;
 
   log_write ("Reloading the scanner.");
   /* Ignore SIGHUP while reloading. */
@@ -281,7 +328,10 @@ reload_openvassd ()
   handler_pid = loading_handler_start ();
   /* Reload config file. */
   config_file = prefs_get ("config_file");
-  prefs_init (config_file);
+  prefs_init ();
+  for (i = 0; openvassd_defaults[i].option != NULL; i++)
+    prefs_set (openvassd_defaults[i].option, openvassd_defaults[i].value);
+  prefs_config (config_file);
 
   /* Reload the plugins */
   plugins = plugins_init ();
@@ -568,18 +618,20 @@ init_openvassd (GHashTable *options, int first_pass, int stop_early,
                 int dont_fork)
 {
   int isck = -1;
-  struct arglist *preferences = NULL;
   int scanner_port;
   char *config_file;
   struct addrinfo *addr;
+  int i;
 
   scanner_port = GPOINTER_TO_SIZE (g_hash_table_lookup (options,
                                                         "scanner_port"));
   config_file = g_hash_table_lookup (options, "config_file");
   addr = g_hash_table_lookup (options, "addr");
 
-  prefs_init (config_file);
-  preferences = preferences_get ();
+  prefs_init ();
+  for (i = 0; openvassd_defaults[i].option != NULL; i++)
+    prefs_set (openvassd_defaults[i].option, openvassd_defaults[i].value);
+  prefs_config (config_file);
 
   log_init (prefs_get ("logfile"));
   if (dont_fork == FALSE)
@@ -603,7 +655,7 @@ init_openvassd (GHashTable *options, int first_pass, int stop_early,
     }
 
   g_hash_table_replace (options, "isck", GSIZE_TO_POINTER (isck));
-  g_hash_table_replace (options, "preferences", preferences);
+  g_hash_table_replace (options, "preferences", preferences_get());
 
   set_globals_from_preferences ();
 

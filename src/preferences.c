@@ -56,51 +56,6 @@
 #include <openvas/misc/kb.h>         /* for KB_PATH_DEFAULT */
 #include <openvas/misc/arglists.h>   /* for struct arglist */
 
-typedef struct
-{
-  char *option;
-  char *value;
-} openvassd_option;
-
-/**
- * @brief Default values for scanner options. Must be NULL terminated.
- */
-static openvassd_option openvassd_defaults[] = {
-  {"plugins_folder", OPENVAS_NVT_DIR},
-  {"cache_folder", OPENVAS_CACHE_DIR},
-  {"include_folders", OPENVAS_NVT_DIR},
-  {"max_hosts", "30"},
-  {"max_checks", "10"},
-  {"be_nice", "no"},
-  {"logfile", OPENVASSD_MESSAGES},
-  {"log_whole_attack", "no"},
-  {"log_plugins_name_at_load", "no"},
-  {"dumpfile", OPENVASSD_DEBUGMSG},
-  {"cgi_path", "/cgi-bin:/scripts"},
-  {"optimize_test", "yes"},
-  {"checks_read_timeout", "5"},
-  {"network_scan", "no"},
-  {"non_simult_ports", "139, 445"},
-  {"plugins_timeout", G_STRINGIFY (NVT_TIMEOUT)},
-  {"safe_checks", "yes"},
-  {"auto_enable_dependencies", "yes"},
-  {"use_mac_addr", "no"},
-  {"nasl_no_signature_check", "yes"},
-  {"drop_privileges", "no"},
-  {"unscanned_closed", "yes"},
-  {"unscanned_closed_udp", "yes"},
-  // Empty options must be "\0", not NULL, to match the behavior of
-  // prefs_init.
-  {"vhosts", "\0"},
-  {"vhosts_ip", "\0"},
-  {"report_host_details", "yes"},
-  {"cert_file", SCANNERCERT},
-  {"key_file", SCANNERKEY},
-  {"ca_file", CACERT},
-  {"kb_location", KB_PATH_DEFAULT},
-  {NULL, NULL}
-};
-
 static struct arglist *global_prefs = NULL;
 
 /**
@@ -180,25 +135,28 @@ prefs_set (const gchar * key, const gchar * value)
  * @brief Initializes the preferences structure. If it was
  *        already initialized, remove old settings and start
  *        from scratch.
- *
- * @param config    Filename of the configuration file.
  */
 void
-prefs_init (const char *config)
+prefs_init (void)
 {
-  int i = 0;
-  settings_iterator_t settings;
-
   if (global_prefs)
     arg_free (global_prefs);
 
   global_prefs = g_malloc0 (sizeof (struct arglist));
+}
 
-  while (openvassd_defaults[i].option != NULL)
-    {
-      prefs_set (openvassd_defaults[i].option, openvassd_defaults[i].value);
-      i++;
-    }
+/**
+ * @brief Apply the configs from given file as preferences.
+ *
+ * @param config    Filename of the configuration file.
+ */
+void
+prefs_config (const char *config)
+{
+  settings_iterator_t settings;
+
+  if (!global_prefs)
+    prefs_init ();
 
   if (!init_settings_iterator_from_file (&settings, config, "Misc"))
     {
