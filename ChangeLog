@@ -1,3 +1,9 @@
+2014-11-04  Michael Wiegand <michael.wiegand@greenbone.net>
+
+	Preparing the openvas-scanner 4.0.4 release.
+
+	* CHANGES: Updated.
+
 2014-10-30  Michael Wiegand <michael.wiegand@greenbone.net>
 
 	Backport r20689 by Jan-Oliver Wagner.

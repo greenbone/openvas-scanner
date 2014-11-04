@@ -1,3 +1,20 @@
+openvas-scanner 4.0.4 (2014-11-04)
+
+This is the fourth maintenance release of the openvas-scanner 4.0 module for the
+Open Vulnerability Assessment System release 7 (OpenVAS-7).
+
+This release addresses an issue which caused NVTs to not be run even though they
+were explicitly enabled under certain circumstances. It also improves logging.
+
+Many thanks to everyone who contributed to this release:
+Hani Benhabiles, Jan-Oliver Wagner and Michael Wiegand.
+
+Main changes compared to 4.0.3:
+* An issue which resulted in NVTs not being run due to the inadequate size of
+  the NVT preferences buffer has been addressed.
+* Logging has been improved.
+
+
 openvas-scanner 4.0.3 (2014-09-09)
 
 This is the third maintenance release of the openvas-scanner 4.0 module for the
