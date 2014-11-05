@@ -30,6 +30,7 @@
 #include <openvas/nasl/nasl.h>
 #include <openvas/base/nvticache.h>  /* for nvticache_new */
 #include <openvas/misc/openvas_proctitle.h>
+#include <openvas/misc/prefs.h>      /* for prefs_get() */
 
 #include <glib.h>
 #include <stdlib.h>
@@ -41,7 +42,6 @@
 #include "utils.h"
 #include "pluginload.h"
 #include "log.h"
-#include "preferences.h"
 
 /**
  * @brief Collects all NVT files in a directory and recurses into subdirs.

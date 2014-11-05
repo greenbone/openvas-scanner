@@ -48,11 +48,11 @@
 #include <openvas/misc/plugutils.h>     /* for plug_set_launch */
 #include <openvas/misc/internal_com.h>  /* for INTERNAL_COMM_CTRL_FINISHED */
 #include <openvas/misc/openvas_proctitle.h>
+#include <openvas/misc/prefs.h>         /* for preferences_get() */
 
 #include "pluginload.h"
 #include "pluginscheduler.h"    /* for LAUNCH_DISABLED */
 #include "pluginlaunch.h"
-#include "preferences.h"
 #include "processes.h"
 #include "log.h"
 

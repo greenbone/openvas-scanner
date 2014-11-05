@@ -44,6 +44,7 @@
 #include <openvas/misc/pcap_openvas.h>   /* for v6_is_local_ip */
 #include <openvas/misc/plugutils.h>      /* for plug_get_launch */
 #include <openvas/misc/scanners_utils.h> /* for comm_send_status */
+#include <openvas/misc/prefs.h>          /* for prefs_get() */
 #include <openvas/misc/openvas_ssh_login.h>
 
 #include <openvas/base/nvticache.h>     /* for nvticache_t */
@@ -57,7 +58,6 @@
 #include "pluginload.h"
 #include "pluginscheduler.h"
 #include "plugs_req.h"
-#include "preferences.h"
 #include "processes.h"
 #include "sighand.h"
 #include "utils.h"

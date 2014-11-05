@@ -36,6 +36,7 @@
 #include <openvas/misc/network.h>    /* for recv_line */
 #include <openvas/misc/openvas_ssh_login.h>
 #include <openvas/misc/internal_com.h> /* for INTERNAL_COMM_MSG_TYPE_DATA */
+#include <openvas/misc/prefs.h>        /* for prefs_get() */
 
 #include <openvas/base/nvticache.h>     /* for nvticache_t */
 
@@ -44,7 +45,6 @@
 #include "comm.h"
 #include "log.h"
 #include "utils.h"
-#include "preferences.h"
 #include "hosts.h"
 
 #ifndef MIN

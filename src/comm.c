@@ -36,6 +36,7 @@
 #include <openvas/misc/nvt_categories.h>/* for ACT_FIRST */
 #include <openvas/misc/plugutils.h>
 #include <openvas/misc/network.h>       /* for recv_line */
+#include <openvas/misc/prefs.h>         /* for preferences_get() */
 
 #include <openvas/base/nvticache.h>     /* for nvticache_t */
 
@@ -44,7 +45,6 @@
 #include "log.h"
 #include "pluginscheduler.h"    /* for define LAUNCH_DISABLED */
 #include "pluginload.h"    /* for current_loading_plugins */
-#include "preferences.h"   /* for preferences_get() */
 #include "sighand.h"
 #include "utils.h"
 

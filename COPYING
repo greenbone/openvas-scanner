@@ -26,7 +26,6 @@ src/pluginlaunch.[c|h]: GPLv2
 src/pluginload.[c|h]: GPLv2
 src/pluginscheduler.[c|h]: GPLv2
 src/plugs_req.[c|h]: GPLv2
-src/preferences.[c|h]: GPLv2
 src/processes.[c|h]: GPLv2
 src/sighand.[c|h]: GPLv2
 src/utils.[c|h]: GPLv2

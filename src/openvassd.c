@@ -59,6 +59,7 @@
 #include <openvas/misc/openvas_logging.h>  /* for setup_legacy_log_handler */
 #include <openvas/base/pidfile.h>    /* for pidfile_remove */
 #include <openvas/misc/kb.h>         /* for KB_PATH_DEFAULT */
+#include <openvas/misc/prefs.h>      /* for prefs_get() */
 
 #include <gnutls/gnutls.h>
 #include <gnutls/x509.h>
@@ -67,7 +68,6 @@
 
 
 #include "pluginload.h"
-#include "preferences.h"
 #include "comm.h"
 #include "attack.h"
 #include "sighand.h"

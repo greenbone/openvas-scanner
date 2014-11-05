@@ -1,3 +1,20 @@
+2014-11-05  Jan-Oliver Wagner <jan-oliver.wagner@greenbone.net>
+
+	Move preferences handling from scanner to libraries because
+	we need to access it from some modules there directly while
+	at the same time getting rid of storing preferences pointer
+	in the arglists.
+
+	* src/preferences.c, src/preferences.h: Removed.
+
+	* src/CMakeLists.txt: Removed handling of module preferences.
+
+	* src/pluginlaunch.c, src/pluginload.c, src/utils.c,
+	src/plugs_req.c, src/comm.c, src/nasl_plugins.c, src/ntp.c,
+	src/openvassd.c, src/attack.c: Adjust include to new prefs.h.
+
+	* COPYING: Remove module preferences.
+
 2014-11-03  Jan-Oliver Wagner <jan-oliver.wagner@greenbone.net>
 
 	* src/preferences.c (struct openvassd_option, openvassd_defaults):

@@ -36,10 +36,10 @@
 #include <openvas/misc/nvt_categories.h>  /* for ACT_SCANNER */
 #include <openvas/misc/plugutils.h>  /* for plug_get_hostname */
 #include <openvas/misc/internal_com.h>  /* for INTERNAL_COMM_MSG_TYPE_DATA */
+#include <openvas/misc/prefs.h>         /* for prefs_get_bool() */
 
 #include "pluginload.h"
 #include "utils.h"
-#include "preferences.h"
 #include "log.h"
 #include "sighand.h"
 #include "processes.h"

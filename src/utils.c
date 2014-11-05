@@ -34,12 +34,12 @@
 
 #include <openvas/misc/network.h>    /* for stream_zero */
 #include <openvas/misc/plugutils.h>  /* for plug_get_launch */
+#include <openvas/misc/prefs.h>      /* for prefs_get() */
 
 #include "log.h"
 #include "comm.h"
 #include "ntp.h"
 #include "utils.h"
-#include "preferences.h"
 #include "pluginscheduler.h"
 
 extern int global_max_hosts;
