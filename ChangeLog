@@ -1,5 +1,10 @@
 2014-11-05  Jan-Oliver Wagner <jan-oliver.wagner@greenbone.net>
 
+	* src/plugs_req.c (get_closed_ports, get_closed_udp_ports): Adjust to
+	new proto of kb_get_port_state_proto.
+
+2014-11-05  Jan-Oliver Wagner <jan-oliver.wagner@greenbone.net>
+
 	Move preferences handling from scanner to libraries because
 	we need to access it from some modules there directly while
 	at the same time getting rid of storing preferences pointer

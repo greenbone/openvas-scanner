@@ -40,7 +40,7 @@
 
 ***********************************************************/
 
-extern int kb_get_port_state_proto (kb_t, struct arglist *, int, char *);
+extern int kb_get_port_state_proto (kb_t, int, char *);
 
 /**
  * @brief Returns whether a port in a port list is closed or not.
@@ -60,7 +60,7 @@ get_closed_ports (kb_t kb, gchar **ports)
       int iport = atoi (ports[i]);
       if (iport != 0)
         {
-          if (kb_get_port_state_proto (kb, preferences_get(), iport, "tcp") != 0)
+          if (kb_get_port_state_proto (kb, iport, "tcp") != 0)
             return iport;
         }
       else
@@ -87,7 +87,7 @@ get_closed_udp_ports (kb_t kb, gchar **ports)
   for (i = 0; ports[i] != NULL; i ++)
     {
       int iport = atoi (ports[i]);
-      if (iport > 0 && kb_get_port_state_proto (kb, preferences_get(), iport, "udp"))
+      if (iport > 0 && kb_get_port_state_proto (kb, iport, "udp"))
         return iport;
     }
   return 0;                     /* found nothing */
