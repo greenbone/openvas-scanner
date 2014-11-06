@@ -58,6 +58,7 @@
 #include <openvas/misc/openvas_proctitle.h>
 #include <openvas/misc/openvas_logging.h>  /* for setup_legacy_log_handler */
 #include <openvas/base/pidfile.h>    /* for pidfile_remove */
+#include <openvas/base/nvticache.h>
 #include <openvas/misc/kb.h>         /* for KB_PATH_DEFAULT */
 #include <openvas/misc/prefs.h>      /* for prefs_get() */
 
@@ -334,6 +335,7 @@ reload_openvassd ()
   prefs_config (config_file);
 
   /* Reload the plugins */
+  nvticache_free ();
   plugins = plugins_init ();
   set_globals_from_preferences ();
   plugins_free (global_plugins);

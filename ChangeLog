@@ -1,3 +1,8 @@
+2014-11-06  Hani Benhabiles  <hani.benhabiles@greenbone.net>
+
+	* src/openvassd.c (reload_openvassd): Free the nvti cache before
+	reloading the plugins.
+
 2014-11-05  Jan-Oliver Wagner <jan-oliver.wagner@greenbone.net>
 
 	* src/plugs_req.c (get_closed_ports, get_closed_udp_ports): Adjust to
