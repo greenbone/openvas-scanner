@@ -1,3 +1,30 @@
+2014-11-09  Jan-Oliver Wagner <jan-oliver.wagner@greenbone.net>
+
+	Final step of switching to global preference store.
+
+	* src/nasl_plugins.c (nasl_plugin_add): Adjust calls of
+	plug_create_from_nvti_and_prefs which does not need the preferences
+	as argument anymore. Do not add a "preferences" element to the
+	plugins arglist.
+	(nasl_plugin_launch): Drop argument "preferences". Do not add a
+	"preferences" element to the plugins arglist.
+
+	* src/pluginload.c (plugin_unlink): Do not set the "preferences"
+	element to the plugins arglist.
+
+	* src/pluginload.h: Adjust proto of nasl_plugin_launch.
+
+	* src/pluginlaunch.c (plugin_launch): Adjust call of
+	changed nasl_plugin_launch, now without preferences.
+
+	* src/openvassd.c (handle_client): Use prefs_get instead
+	of directly using arglist.
+	(main_loop): Do not add the "preferences" arglist to the globals
+	arglist anbymore.
+	(init_openvassd): Do not set the "preferences" arglist in the options.
+
+	* src/ntp.c: Fixed a comment.
+
 2014-11-06  Hani Benhabiles  <hani.benhabiles@greenbone.net>
 
 	* src/openvassd.c (reload_openvassd): Free the nvti cache before

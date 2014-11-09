@@ -86,7 +86,7 @@ int global_max_hosts = 15;
 int global_max_checks = 10;
 
 static int global_iana_socket;
-static struct arglist *global_plugins;
+struct arglist *global_plugins;
 
 static GHashTable *global_options;
 
@@ -351,7 +351,6 @@ static void
 handle_client (struct arglist *globals)
 {
   kb_t net_kb = NULL;
-  struct arglist *prefs = preferences_get ();
 
   /* Become process group leader and the like ... */
   start_daemon_mode ();
@@ -366,7 +365,7 @@ wait:
     }
   ntp_timestamp_scan_ends (globals);
   comm_terminate (globals);
-  if (arg_get_value (prefs, "ntp_keep_communication_alive"))
+  if (prefs_get ("ntp_keep_communication_alive"))
     {
       log_write ("Kept alive connection");
       goto wait;
@@ -535,7 +534,6 @@ main_loop ()
                      GSIZE_TO_POINTER (soc));
 
       arg_add_value (globals, "plugins", ARG_ARGLIST, -1, global_plugins);
-      arg_add_value (globals, "preferences", ARG_ARGLIST, -1, preferences_get ());
 
       p_addr = g_malloc0 (sizeof (struct sockaddr_in6));
       family = ai->ai_family;
@@ -657,7 +655,6 @@ init_openvassd (GHashTable *options, int first_pass, int stop_early,
     }
 
   g_hash_table_replace (options, "isck", GSIZE_TO_POINTER (isck));
-  g_hash_table_replace (options, "preferences", preferences_get());
 
   set_globals_from_preferences ();
 

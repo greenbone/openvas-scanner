@@ -446,7 +446,6 @@ plugin_launch (struct arglist *globals, struct scheduler_plugin *plugin,
 {
   int p;
   int dsoc[2];
-  struct arglist *preferences = preferences_get ();
 
   /* Wait for a free slot while reading the input from the plugins  */
   while (num_running_processes >= max_running_processes)
@@ -487,7 +486,7 @@ plugin_launch (struct arglist *globals, struct scheduler_plugin *plugin,
 
   processes[p].pid =
     nasl_plugin_launch (globals, plugin->arglist->value, hostinfos,
-                        preferences, kb, name);
+                        kb, name);
 
   processes[p].alive = 1;
   close (dsoc[1]);

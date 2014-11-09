@@ -339,7 +339,6 @@ plugin_unlink (plugin)
       log_write ("Error in plugin_unlink - args == NULL\n");
       return;
     }
-  arg_set_value (plugin, "preferences", -1, NULL);
 }
 
 

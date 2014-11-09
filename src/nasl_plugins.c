@@ -48,7 +48,7 @@
 #include <openvas/misc/plugutils.h>     /* for plug_set_launch */
 #include <openvas/misc/internal_com.h>  /* for INTERNAL_COMM_CTRL_FINISHED */
 #include <openvas/misc/openvas_proctitle.h>
-#include <openvas/misc/prefs.h>         /* for preferences_get() */
+#include <openvas/misc/prefs.h>         /* for prefs_get_bool */
 
 #include "pluginload.h"
 #include "pluginscheduler.h"    /* for LAUNCH_DISABLED */
@@ -78,7 +78,6 @@ nasl_plugin_add (char *folder, char *name, struct arglist *plugins)
   char fullname[PATH_MAX + 1];
   struct arglist *plugin_args;
   struct arglist *prev_plugin = NULL;
-  struct arglist *preferences = preferences_get ();
   int nasl_mode;
   nasl_mode = NASL_EXEC_DESCR;
   nvti_t *nvti;
@@ -91,22 +90,19 @@ nasl_plugin_add (char *folder, char *name, struct arglist *plugins)
     }
 
   nvti = nvticache_get (name);
-  plugin_args = plug_create_from_nvti_and_prefs (nvti, preferences);
+  plugin_args = plug_create_from_nvti_and_prefs (nvti);
   if (plugin_args == NULL)
     {
       nvti_t *new_nvti;
 
       g_free (nvti);
       plugin_args = g_malloc0 (sizeof (struct arglist));
-      arg_add_value (plugin_args, "preferences", ARG_ARGLIST, -1,
-                     (void *) preferences);
       new_nvti = nvti_new ();
       arg_add_value (plugin_args, "NVTI", ARG_PTR, -1, new_nvti);
 
       if (exec_nasl_script (plugin_args, fullname, nasl_mode) < 0)
         {
           log_write ("%s: Could not be loaded", fullname);
-          arg_set_value (plugin_args, "preferences", -1, NULL);
           arg_free_all (plugin_args);
           return NULL;
         }
@@ -137,10 +133,9 @@ nasl_plugin_add (char *folder, char *name, struct arglist *plugins)
       if (nvti_oid (new_nvti) != NULL)
         {
           nvticache_add (new_nvti, name);
-          arg_set_value (plugin_args, "preferences", -1, NULL);
           arg_free_all (plugin_args);
           nvti = nvticache_get (name);
-          plugin_args = plug_create_from_nvti_and_prefs (nvti, preferences);
+          plugin_args = plug_create_from_nvti_and_prefs (nvti);
         }
       else
         // Most likely an exit was hit before the description could be parsed.
@@ -196,8 +191,7 @@ nasl_thread (struct nasl_thread_args *);
  */
 int
 nasl_plugin_launch (struct arglist *globals, struct arglist *plugin,
-                    struct arglist *hostinfos, struct arglist *preferences,
-                    kb_t kb, char *name)
+                    struct arglist *hostinfos, kb_t kb, char *name)
 {
   int module;
   struct nasl_thread_args nargs;
@@ -208,8 +202,6 @@ nasl_plugin_launch (struct arglist *globals, struct arglist *plugin,
   else
     arg_add_value (plugin, "globals", ARG_ARGLIST, -1, globals);
 
-
-  arg_set_value (plugin, "preferences", -1, preferences);
   arg_add_value (plugin, "key", ARG_PTR, -1, kb);
 
   nargs.args = plugin;

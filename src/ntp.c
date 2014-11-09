@@ -182,7 +182,7 @@ ntp_long_attack (struct arglist *globals)
 /**
  * @brief Reads in "server" prefs sent by client.
  *
- * @param globals The global arglist (containing server preferences).
+ * @param globals The global arglist.
  * @return Always 0.
  */
 static int
