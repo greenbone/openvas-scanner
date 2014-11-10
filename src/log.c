@@ -124,15 +124,15 @@ log_vwrite (const char *str, va_list arg_ptr)
       return;
     }
 
-    t = time (NULL);
-    tmp = ctime (&t);
+  t = time (NULL);
+  tmp = ctime (&t);
 
-    timestr[sizeof (timestr) - 1] = '\0';
-    strncpy (timestr, tmp, sizeof (timestr) - 1);
-    timestr[strlen (timestr) - 1] = '\0';
-    fprintf (log, "[%s][%d] ", timestr, getpid ());
-    vfprintf (log, str, arg_ptr);
-    fprintf (log, "\n");
+  timestr[sizeof (timestr) - 1] = '\0';
+  strncpy (timestr, tmp, sizeof (timestr) - 1);
+  timestr[strlen (timestr) - 1] = '\0';
+  fprintf (log, "[%s][%d] ", timestr, getpid ());
+  vfprintf (log, str, arg_ptr);
+  fprintf (log, "\n");
 }
 
 /**

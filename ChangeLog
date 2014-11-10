@@ -1,3 +1,7 @@
+2014-11-10  Jan-Oliver Wagner <jan-oliver.wagner@greenbone.net>
+
+	* src/log.c (log_vwrite): Fix indention.
+
 2014-11-09  Jan-Oliver Wagner <jan-oliver.wagner@greenbone.net>
 
 	Final step of switching to global preference store.
