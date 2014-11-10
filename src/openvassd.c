@@ -59,6 +59,7 @@
 #include <openvas/misc/openvas_proctitle.h>
 #include <openvas/misc/openvas_logging.h>  /* for setup_legacy_log_handler */
 #include <openvas/base/pidfile.h>    /* for pidfile_remove */
+#include <openvas/base/nvticache.h>    /* for pidfile_remove */
 
 #include <gnutls/gnutls.h>
 #include <gnutls/x509.h>
@@ -297,6 +298,7 @@ static void
 reload_openvassd ()
 {
   struct arglist *preferences = NULL, *plugins;
+  nvticache_t *nvti_cache;
   char *config_file;
   pid_t handler_pid;
 
@@ -305,6 +307,9 @@ reload_openvassd ()
   openvas_signal (SIGHUP, SIG_IGN);
 
   handler_pid = loading_handler_start ();
+  /* Free the nvti cache. */
+  nvti_cache = arg_get_value (global_preferences, "nvticache");
+  nvticache_free (nvti_cache);
   /* Reload config file. */
   config_file = arg_get_value (global_preferences, "config_file");
   preferences_init (config_file, &preferences);

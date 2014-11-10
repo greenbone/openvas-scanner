@@ -1,3 +1,8 @@
+2014-11-10  Hani Benhabiles <hani.benhabiles@greenbone.net>
+
+	* src/openvavssd.c (reload_openvavssd): Free the nvti cache before
+	reinitializing the plugins.
+
 2014-11-04  Michael Wiegand <michael.wiegand@greenbone.net>
 
 	Post release version bump.
