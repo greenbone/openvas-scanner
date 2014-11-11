@@ -162,7 +162,10 @@ ntp_long_attack (struct arglist *globals)
       if (e > 0)
         n += e;
       else
-        return -1;
+        {
+          g_free (target);
+          return -1;
+        }
     }
   plugin_set = prefs_get ("plugin_set");
   if (!plugin_set || plugin_set[0] == '\0')
@@ -392,12 +395,18 @@ ntp_recv_file (struct arglist *globals)
 
   n = recv_line (soc, input, sizeof (input) - 1);
   if (n <= 0)
-    return -1;
+    {
+      g_free (origname);
+      return -1;
+    }
   /* XXX content: message. Ignored for the moment */
 
   n = recv_line (soc, input, sizeof (input) - 1);
   if (n <= 0)
-    return -1;
+    {
+      g_free (origname);
+      return -1;
+    }
 
   if (strncmp (input, "bytes: ", sizeof ("bytes: ") - 1) == 0)
     {
@@ -405,7 +414,10 @@ ntp_recv_file (struct arglist *globals)
       bytes = atol (t);
     }
   else
-    return -1;
+    {
+      g_free (origname);
+      return -1;
+    }
 
   /* We now know that we have to read <bytes> bytes from the remote socket. */
 
@@ -414,6 +426,7 @@ ntp_recv_file (struct arglist *globals)
   if (contents == NULL)
     {
       log_write ("ntp_recv_file: Failed to allocate memory for uploaded file.");
+      g_free (origname);
       return -1;
     }
 

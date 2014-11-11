@@ -1,3 +1,7 @@
+2014-11-11  Hani Benhabiles  <hani.benhabiles@greenbone.net>
+
+	* src/ntp.c (ntp_long_attack, ntp_recv_file): Fix memory leaks.
+
 2014-11-11  Benoît Allard  <benoit.allard@greenbone.net>
 
 	* CMakeLists.txt: define _DEFAULT_SOURCE to silent a warning with glibc
