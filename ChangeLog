@@ -1,3 +1,9 @@
+2014-11-11  Benoît Allard  <benoit.allard@greenbone.net>
+
+	* CMakeLists.txt: define _DEFAULT_SOURCE to silent a warning with glibc
+	  >= 2.20. See
+	  https://sourceware.org/glibc/wiki/Release/2.20#Packaging_Changes
+
 2014-11-10  Jan-Oliver Wagner <jan-oliver.wagner@greenbone.net>
 
 	* src/log.c (log_vwrite): Fix indention.
