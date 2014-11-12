@@ -32,6 +32,7 @@
 #include <errno.h>    /* for errno() */
 #include <sys/time.h> /* for gettimeofday() */
 
+#include <openvas/base/nvticache.h>  /* for nvticache_get_filename */
 #include <openvas/misc/network.h>    /* for internal_send */
 #include <openvas/misc/nvt_categories.h>  /* for ACT_SCANNER */
 #include <openvas/misc/plugutils.h>  /* for plug_get_hostname */
@@ -198,7 +199,7 @@ update_running_processes (void)
 
                   if (log_whole)
                     log_write ("%s (pid %d) is slow to finish - killing it",
-                               processes[i].plugin->arglist->name,
+                               nvticache_get_filename ((const char *)arg_get_value (processes[i].plugin->arglist->value, "OID")),
                                processes[i].pid);
 
                   desc = processes[i].plugin->arglist->value;
@@ -233,7 +234,8 @@ update_running_processes (void)
                   if (log_whole)
                     log_write
                       ("%s (process %d) finished its job in %ld.%.3ld seconds",
-                       processes[i].plugin->arglist->name, processes[i].pid,
+                       nvticache_get_filename ((const char *)arg_get_value (processes[i].plugin->arglist->value, "OID")),
+                       processes[i].pid,
                        (long) (now.tv_sec - processes[i].start.tv_sec),
                        (long) ((now.tv_usec -
                                 processes[i].start.tv_usec) / 1000));
@@ -359,7 +361,8 @@ read_running_processes (void)
                 {
 #ifdef DEBUG
                   log_write ("process_internal_msg for %s returned %d",
-                             processes[i].plugin->arglist->name, result);
+                             nvticache_get_filename ((const char *)arg_get_value (processes[i].plugin->arglist->value, "OID")),
+                             result);
 #endif
                 }
             }

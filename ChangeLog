@@ -1,3 +1,17 @@
+2014-11-12  Jan-Oliver Wagner <jan-oliver.wagner@greenbone.net>
+
+	* src/attack.c (launch_plugin): Use nvticache_get_filename() to get
+	the filename of a NVT instead of using the "name" element of
+	the plugin arglist.
+
+	* src/pluginlaunch.c (update_running_processes, read_running_processes):
+	Use nvticache_get_filename() to get the filename of a NVT instead of
+	using the "name" element of the plugin arglist.
+
+	* src/pluginscheduler.c (hash_fill_deps, enable_plugin_and_dependencies):
+	Use nvticache_get_filename() to get the filename of a NVT instead of
+	using the "name" element of the plugin arglist.
+
 2014-11-11  Hani Benhabiles  <hani.benhabiles@greenbone.net>
 
 	* src/ntp.c (ntp_long_attack, ntp_recv_file): Fix memory leaks.

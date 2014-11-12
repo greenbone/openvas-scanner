@@ -269,7 +269,8 @@ launch_plugin (struct arglist *globals, struct scheduler_plugin *plugin,
           if (prefs_get_bool ("log_whole_attack"))
             log_write
               ("Not launching %s against %s %s (this is not an error)",
-               plugin->arglist->name, hostname,
+               nvticache_get_filename ((const char *)arg_get_value (plugin->arglist->value, "OID")),
+               hostname,
                "because safe checks are enabled");
           plugin->running_state = PLUGIN_STATUS_DONE;
           return 0;
@@ -301,7 +302,8 @@ launch_plugin (struct arglist *globals, struct scheduler_plugin *plugin,
               if (prefs_get_bool ("log_whole_attack"))
                 log_write ("Not launching %s against %s because it has already "
                            "been lanched in the past (this is not an error)",
-                           plugin->arglist->name, hostname);
+                           nvticache_get_filename ((const char *)arg_get_value (plugin->arglist->value, "OID")),
+                           hostname);
               plugin->running_state = PLUGIN_STATUS_DONE;
               return 0;
             }
@@ -338,7 +340,8 @@ launch_plugin (struct arglist *globals, struct scheduler_plugin *plugin,
 
           if (prefs_get_bool ("log_whole_attack"))
             log_write ("Launching %s against %s [%d]",
-                       plugin->arglist->name, hostname, pid);
+                       nvticache_get_filename ((const char *)arg_get_value (plugin->arglist->value, "OID")),
+                       hostname, pid);
 
           /* Stop the test if the host is 'dead' */
           if (kb_item_get_int (kb, "Host/dead") > 0
@@ -356,7 +359,8 @@ launch_plugin (struct arglist *globals, struct scheduler_plugin *plugin,
           if (prefs_get_bool ("log_whole_attack"))
             log_write
               ("Not launching %s against %s %s (this is not an error)",
-               plugin->arglist->name, hostname,
+               nvticache_get_filename ((const char *)arg_get_value (plugin->arglist->value, "OID")),
+               hostname,
                error);
         }
     }                           /* if(plugins->launch) */

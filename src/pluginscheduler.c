@@ -204,6 +204,7 @@ static void
 hash_fill_deps (struct hash *h, struct hash *l)
 {
   int i, j = 0;
+
   if (l->num_deps == 0)
     return;
 
@@ -216,7 +217,7 @@ hash_fill_deps (struct hash *h, struct hash *l)
         l->dependencies_ptr[j++] = d;
       else
         {
-          gchar *path = g_path_get_dirname (l->plugin->arglist->name);
+          gchar *path = g_path_get_dirname (nvticache_get_filename ((const char *)arg_get_value (l->plugin->arglist->value, "OID")));
           if (g_ascii_strcasecmp (path, ".") != 0)
             {
               gchar *dep_with_path =
@@ -234,7 +235,8 @@ hash_fill_deps (struct hash *h, struct hash *l)
               log_write ("scheduler: %s depends on %s which could not be found,"
                          " thus this dependency is not considered for execution"
                          " sequence",
-                         l->plugin->arglist->name, l->dependencies[i]);
+                         nvticache_get_filename ((const char *)arg_get_value (l->plugin->arglist->value, "OID")),
+                         l->dependencies[i]);
             }
         }
     }
@@ -428,7 +430,8 @@ enable_plugin_and_dependencies (plugins_scheduler_t shed,
       p = deps_ptr[i]->plugin;
       if (p != NULL && p->arglist != NULL)
         enable_plugin_and_dependencies (shed, p->arglist->value,
-                                        p->arglist->name, deps_table);
+                                        (char *)nvticache_get_filename ((const char *)arg_get_value (p->arglist->value, "OID")),
+                                        deps_table);
     }
 }
 
