@@ -66,7 +66,7 @@
  * arglist, it will be replaced.
  *
  * @param folder  Path to the plugin folder.
- * @param name    File-name of the plugin (will be used as key in plugins).
+ * @param name    File-name of the plugin
  * @param plugins The arglist that the plugin shall be added to (with parameter
  *                name as the key).
  *
@@ -161,19 +161,19 @@ nasl_plugin_add (char *folder, char *name, struct arglist *plugins)
       return NULL;
     }
 
-  nvti_free (nvti);
-
   plug_set_launch (plugin_args, LAUNCH_DISABLED);
-  prev_plugin = arg_get_value (plugins, name);
+  prev_plugin = arg_get_value (plugins, nvti_oid (nvti));
 
-  // Was a plugin with the same filename already loaded? If so, remove it.
+  // Was a plugin with the same oid already loaded? If so, remove it.
   if (prev_plugin == NULL)
-    arg_add_value (plugins, name, ARG_ARGLIST, -1, plugin_args);
+    arg_add_value (plugins, nvti_oid (nvti), ARG_ARGLIST, -1, plugin_args);
   else
     {
       plugin_free (prev_plugin);
-      arg_set_value (plugins, name, -1, plugin_args);
+      arg_set_value (plugins, nvti_oid (nvti), -1, plugin_args);
     }
+
+  nvti_free (nvti);
 
   return plugin_args;
 }

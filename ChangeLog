@@ -1,3 +1,14 @@
+2014-11-13  Jan-Oliver Wagner <jan-oliver.wagner@greenbone.net>
+
+	* src/nasl_plugins.c (nasl_plugin_add): Instead of the filename, use
+	the OID as "name" of the plugin arglist structure.
+
+	* src/pluginscheduler.c (hash_add): Create the cache based on the
+	filename which now means to retrieve it first.
+	(_hash_get): Get the filename for comparison.
+	(hash_fill_deps): Since now the name of the arglist is the oid, simplify
+	the calls to get the filename based on an OID.
+
 2014-11-12  Hani Benhabiles  <hani.benhabiles@greenbone.net>
 
 	* src/attack.c (scan_is_stopped, check_scan_stop): New functions.

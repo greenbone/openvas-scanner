@@ -143,9 +143,8 @@ static void
 hash_add (struct hash *h, char *name, struct scheduler_plugin *plugin)
 {
   struct hash *l = g_malloc0 (sizeof (struct hash));
-  unsigned int idx = mkhash (name);
+  unsigned int idx = mkhash ((char *)nvticache_get_filename ((const char *)name));
   nvti_t *nvti;
-
 
   nvti = nvticache_get_by_oid_full (arg_get_value (plugin->arglist->value,
                                                    "OID"));
@@ -180,7 +179,7 @@ _hash_get (struct hash *h, char *name)
   struct hash *l = h[idx].next;
   while (l != NULL)
     {
-      if (strcmp (l->name, name) == 0)
+      if (strcmp (nvticache_get_filename ((const char *)l->name), name) == 0)
         return l;
       else
         l = l->next;
@@ -217,7 +216,7 @@ hash_fill_deps (struct hash *h, struct hash *l)
         l->dependencies_ptr[j++] = d;
       else
         {
-          gchar *path = g_path_get_dirname (nvticache_get_filename ((const char *)arg_get_value (l->plugin->arglist->value, "OID")));
+          gchar *path = g_path_get_dirname (nvticache_get_filename ((const char *)l->plugin->arglist->name));
           if (g_ascii_strcasecmp (path, ".") != 0)
             {
               gchar *dep_with_path =
@@ -235,7 +234,7 @@ hash_fill_deps (struct hash *h, struct hash *l)
               log_write ("scheduler: %s depends on %s which could not be found,"
                          " thus this dependency is not considered for execution"
                          " sequence",
-                         nvticache_get_filename ((const char *)arg_get_value (l->plugin->arglist->value, "OID")),
+                         nvticache_get_filename ((const char *)l->plugin->arglist->name),
                          l->dependencies[i]);
             }
         }
