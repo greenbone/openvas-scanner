@@ -114,7 +114,6 @@ ntp_parse_input (struct arglist *globals, char *input)
           arg_add_value (globals, "stop_required", ARG_INT, sizeof (int),
                          GSIZE_TO_POINTER (1));
           hosts_stop_all ();
-          result = NTP_STOP_WHOLE_TEST;
           break;
 
         case CREQ_NVT_INFO:

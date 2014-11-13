@@ -243,9 +243,8 @@ hosts_stop_host (char *name)
   if (h == NULL)
     return -1;
 
-  shutdown (h->soc, 2);
-  kill (h->pid, SIGTERM);
-  waitpid (h->pid, NULL, 0);
+  internal_send (h->soc, NULL,
+                 INTERNAL_COMM_MSG_TYPE_CTRL | INTERNAL_COMM_CTRL_STOP);
   hosts = host_rm (hosts, h);
   return 0;
 }
@@ -358,14 +357,14 @@ hosts_read_client (struct arglist *globals)
 
   if (e > 0 && FD_ISSET (rsoc, &rd) != 0)
     {
-      int f, n;
+      int result;
       char buf[4096];
-      n = recv_line (g_soc, buf, sizeof (buf) - 1);
-      if (n <= 0)
-        return -1;
 
-      f = ntp_parse_input (globals, buf);
-      if (f == NTP_STOP_WHOLE_TEST)
+      result = recv_line (g_soc, buf, sizeof (buf) - 1);
+      if (result <= 0)
+        return -1;
+      result = ntp_parse_input (globals, buf);
+      if (result == -1)
         return -1;
     }
 

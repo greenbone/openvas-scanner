@@ -33,8 +33,6 @@
 
 #include <openvas/misc/arglists.h>   /* for struct arglist */
 
-#define NTP_STOP_WHOLE_TEST 2
-
 int ntp_parse_input (struct arglist *, char *);
 
 int ntp_timestamp_host_scan_starts (struct arglist *, char *);

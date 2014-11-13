@@ -1,3 +1,17 @@
+2014-11-12  Hani Benhabiles  <hani.benhabiles@greenbone.net>
+
+	* src/attack.c (scan_is_stopped, check_scan_stop): New functions.
+	(launch_plugin): Only launch ACT_END plugins in stopped scan case.
+
+	* src/hosts.c (hosts_stop_host): Don't kill scan hosts processes. Send
+	internal control message instead.
+	(hosts_read_client): Adjust ntp_parse_input() return value check.
+
+	* src/ntp.c (ntp_parse_input): Don't return NTP_STOP_WHOLE_TEST on scan
+	stop.
+
+	* src/ntp.h: Remove unused NTP_STOP_WHOLE_TEST define.
+
 2014-11-12  Jan-Oliver Wagner <jan-oliver.wagner@greenbone.net>
 
 	* src/attack.c (launch_plugin): Use nvticache_get_filename() to get

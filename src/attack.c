@@ -34,6 +34,7 @@
 #include <stdlib.h>    /* for exit() */
 
 #include <glib.h>
+#include <fcntl.h>
 
 #include <openvas/base/openvas_hosts.h>
 #include <openvas/base/openvas_networking.h>
@@ -46,6 +47,7 @@
 #include <openvas/misc/scanners_utils.h> /* for comm_send_status */
 #include <openvas/misc/prefs.h>          /* for prefs_get() */
 #include <openvas/misc/openvas_ssh_login.h>
+#include <openvas/misc/internal_com.h>
 
 #include <openvas/base/nvticache.h>     /* for nvticache_t */
 
@@ -233,6 +235,33 @@ attack_init_hostinfos (char *mac, char *hostname, struct in6_addr *ip,
   return (hostinfos);
 }
 
+int global_scan_stop = 0;
+
+static int
+scan_is_stopped ()
+{
+ return global_scan_stop;
+}
+
+static void
+check_scan_stop (int soc)
+{
+  int bufsz = 0, type = 0, flags;
+  char *buffer = NULL;
+
+  /* Set socket as non-blocking for this check. */
+  if ((flags = fcntl (soc, F_GETFL, 0)) < 0)
+    return;
+  if (fcntl (soc, F_SETFL, O_NONBLOCK | flags) < 0)
+    return;
+  if (internal_recv (soc, &buffer, &bufsz, &type) >= 0
+      && type & INTERNAL_COMM_CTRL_STOP
+      && type & INTERNAL_COMM_MSG_TYPE_CTRL)
+    global_scan_stop = 1;
+  g_free (buffer);
+  fcntl (soc, F_SETFL, flags & ~O_NONBLOCK);
+}
+
 /**
  * @brief Launches a nvt. Respects safe check preference (i.e. does not try
  * @brief destructive nvt if save_checks is yes).
@@ -254,9 +283,22 @@ launch_plugin (struct arglist *globals, struct scheduler_plugin *plugin,
   int category = plugin->category;
   gboolean network_scan = FALSE;
 
+  if (scan_is_stopped ())
+    {
+      if (category != ACT_END)
+        {
+          plugin->running_state = PLUGIN_STATUS_DONE;
+          return 0;
+        }
+      else
+        log_write ("Stopped scan wrap-up: Launching %s", plugin->arglist->name);
+    }
+  else
+    check_scan_stop (GPOINTER_TO_SIZE (arg_get_value
+                                        (globals, "global_socket")));
+
   if (network_scan_status (globals) == NSS_BUSY)
     network_scan = TRUE;
-
   if (plug_get_launch (args) != LAUNCH_DISABLED)    /* can we launch it ? */
     {
       char *error;
