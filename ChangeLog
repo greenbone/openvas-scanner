@@ -1,3 +1,10 @@
+2014-11-14  Hani Benhabiles  <hani.benhabiles@greenbone.net>
+
+	* src/openvassd.c (reload_openvassd, main): Exit on plugins reload failure.
+
+	* src/pluginload.c (plugins_reload_from_dir): Stop loading plugins after
+	encountering 20 erroneous plugins.
+
 2014-11-13  Jan-Oliver Wagner <jan-oliver.wagner@greenbone.net>
 
 	* src/nasl_plugins.c (nasl_plugin_add): Instead of the filename, use

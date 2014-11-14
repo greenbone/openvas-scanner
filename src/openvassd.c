@@ -341,6 +341,8 @@ reload_openvassd ()
   plugins_free (global_plugins);
   global_plugins = plugins;
   loading_handler_stop (handler_pid);
+  if (!global_plugins)
+    exit (1);
 
   log_write ("Finished reloading the scanner.");
   reload = 0;
@@ -900,6 +902,8 @@ main (int argc, char *argv[])
   handler_pid = loading_handler_start ();
   init_plugins (options);
   loading_handler_stop (handler_pid);
+  if (!global_plugins)
+    return 1;
   flush_all_kbs ();
   main_loop ();
   g_hash_table_destroy (options);

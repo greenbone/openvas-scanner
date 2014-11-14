@@ -271,7 +271,9 @@ plugins_reload_from_dir (struct arglist *plugins, char *folder)
   set_total_loading_plugins (num_files);
   while (f != NULL)
     {
+      static int err_count = 0;
       char *name = f->data;
+
       loaded_files++;
       if (loaded_files % 50 == 0)
         {
@@ -287,12 +289,23 @@ plugins_reload_from_dir (struct arglist *plugins, char *folder)
       if (prefs_get_bool ("log_plugins_name_at_load"))
         log_write ("Loading %s", name);
       if (g_str_has_suffix (name, ".nasl"))
-        nasl_plugin_add (folder, name, plugins);
-      g_free (f->data);
+        {
+          if (!nasl_plugin_add (folder, name, plugins))
+            err_count++;
+        }
+
+      if (err_count == 20)
+        {
+          log_write ("Stopped loading plugins: High number of errors.");
+          proctitle_set ("openvassd: Error loading NVTs.");
+          plugins_free (plugins);
+          g_slist_free_full (files, g_free);
+          return NULL;
+        }
       f = g_slist_next (f);
     }
 
-  g_slist_free (files);
+  g_slist_free_full (files, g_free);
 
   proctitle_set ("openvassd: Reloaded all the NVTs.");
 
