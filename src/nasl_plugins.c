@@ -100,7 +100,7 @@ nasl_plugin_add (char *folder, char *name, struct arglist *plugins)
       new_nvti = nvti_new ();
       arg_add_value (plugin_args, "NVTI", ARG_PTR, -1, new_nvti);
 
-      if (exec_nasl_script (plugin_args, fullname, nasl_mode) < 0)
+      if (exec_nasl_script (plugin_args, fullname, NULL, nasl_mode) < 0)
         {
           log_write ("%s: Could not be loaded", fullname);
           arg_free_all (plugin_args);
@@ -181,6 +181,7 @@ nasl_plugin_add (char *folder, char *name, struct arglist *plugins)
 struct nasl_thread_args {
   struct arglist *args;
   char *name;
+  const char *oid;
 };
 
 static void
@@ -191,7 +192,8 @@ nasl_thread (struct nasl_thread_args *);
  */
 int
 nasl_plugin_launch (struct arglist *globals, struct arglist *plugin,
-                    struct arglist *hostinfos, kb_t kb, char *name)
+                    struct arglist *hostinfos, kb_t kb, char *name,
+                    const char *oid)
 {
   int module;
   struct nasl_thread_args nargs;
@@ -206,6 +208,7 @@ nasl_plugin_launch (struct arglist *globals, struct arglist *plugin,
 
   nargs.args = plugin;
   nargs.name = name;
+  nargs.oid = oid;
 
   module = create_process ((process_func_t) nasl_thread, &nargs);
   return module;
@@ -266,7 +269,7 @@ nasl_thread (struct nasl_thread_args *nargs)
         }
     }
 
-  exec_nasl_script (args, name, nasl_mode);
+  exec_nasl_script (args, name, nargs->oid, nasl_mode);
   internal_send (soc, NULL,
                  INTERNAL_COMM_MSG_TYPE_CTRL | INTERNAL_COMM_CTRL_FINISHED);
 }

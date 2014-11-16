@@ -487,7 +487,7 @@ plugin_launch (struct arglist *globals, struct scheduler_plugin *plugin,
 
   processes[p].pid =
     nasl_plugin_launch (globals, plugin->arglist->value, hostinfos,
-                        kb, name);
+                        kb, name, plugin->arglist->name);
 
   processes[p].alive = 1;
   close (dsoc[1]);

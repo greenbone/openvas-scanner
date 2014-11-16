@@ -1,5 +1,19 @@
 2014-11-16  Jan-Oliver Wagner <jan-oliver.wagner@greenbone.net>
 
+	* src/nasl_plugins.c (nasl_plugin_add): Adjust call of exec_nasl_script
+	by providing the oid.
+	(nasl_thread_args): Extend struct by element "oid".
+	(nasl_plugin_launch): Add parameter "oid" and use it for struct
+	nasl_thread_args.
+	(nasl_thread): Adjust call of exec_nasl_script providing the oid.
+
+	* src/pluginload.h: Adjust proto for nasl_plugin_launch accordingly.
+
+	* src/pluginlaunch.c (plugin_launch): Adjust call of nasl_plugin_launch
+	by providing NULL as oid.
+
+2014-11-16  Jan-Oliver Wagner <jan-oliver.wagner@greenbone.net>
+
 	* src/comm.c (send_plug_info): It is guaranteed that a NVTI
 	has a OID, therefore simpify the code. Also remove some uneeded
 	setting of variables as they are never used.
