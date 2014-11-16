@@ -311,7 +311,7 @@ launch_plugin (struct arglist *globals, struct scheduler_plugin *plugin,
           if (prefs_get_bool ("log_whole_attack"))
             log_write
               ("Not launching %s against %s %s (this is not an error)",
-               nvticache_get_filename ((const char *)arg_get_value (plugin->arglist->value, "OID")),
+               nvticache_get_filename ((const char *)plugin->arglist->name),
                hostname,
                "because safe checks are enabled");
           plugin->running_state = PLUGIN_STATUS_DONE;
@@ -335,7 +335,7 @@ launch_plugin (struct arglist *globals, struct scheduler_plugin *plugin,
         {
           char asc_id[100], *oid;
 
-          oid = arg_get_value (args, "OID");
+          oid = plugin->arglist->name;
           assert (oid);
           snprintf (asc_id, sizeof (asc_id), "Launched/%s", oid);
 
@@ -344,7 +344,7 @@ launch_plugin (struct arglist *globals, struct scheduler_plugin *plugin,
               if (prefs_get_bool ("log_whole_attack"))
                 log_write ("Not launching %s against %s because it has already "
                            "been lanched in the past (this is not an error)",
-                           nvticache_get_filename ((const char *)arg_get_value (plugin->arglist->value, "OID")),
+                           nvticache_get_filename ((const char *)plugin->arglist->name),
                            hostname);
               plugin->running_state = PLUGIN_STATUS_DONE;
               return 0;
@@ -369,7 +369,7 @@ launch_plugin (struct arglist *globals, struct scheduler_plugin *plugin,
           int pid;
           char *oid, *src;
 
-          oid = arg_get_value (args, "OID");
+          oid = plugin->arglist->name;
           src = g_strdup (nvticache_get_src (oid));
           /* Start the plugin */
           pid = plugin_launch (globals, plugin, hostinfos, kb, src);
@@ -382,7 +382,7 @@ launch_plugin (struct arglist *globals, struct scheduler_plugin *plugin,
 
           if (prefs_get_bool ("log_whole_attack"))
             log_write ("Launching %s against %s [%d]",
-                       nvticache_get_filename ((const char *)arg_get_value (plugin->arglist->value, "OID")),
+                       nvticache_get_filename ((const char *)plugin->arglist->name),
                        hostname, pid);
 
           /* Stop the test if the host is 'dead' */
@@ -401,7 +401,7 @@ launch_plugin (struct arglist *globals, struct scheduler_plugin *plugin,
           if (prefs_get_bool ("log_whole_attack"))
             log_write
               ("Not launching %s against %s %s (this is not an error)",
-               nvticache_get_filename ((const char *)arg_get_value (plugin->arglist->value, "OID")),
+               nvticache_get_filename ((const char *)plugin->arglist->name),
                hostname,
                error);
         }

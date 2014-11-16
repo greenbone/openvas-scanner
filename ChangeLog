@@ -1,3 +1,23 @@
+2014-11-16  Jan-Oliver Wagner <jan-oliver.wagner@greenbone.net>
+
+	Remove any use of the "OID" arglist element of a plugin arglist
+	structure.
+
+	* src/attack.c (launch_plugin): The plugins' arglist name is
+	the OID, so use this instead of aglist element "OID".
+
+	* src/pluginlaunch.c (process_internal_msg, update_running_processes,
+	read_running_processes, plugin_launch): The plugins' arglist name is
+	the OID, so use this instead of aglist element "OID".
+
+	* src/comm.c (send_plug_info, plugin_send_infos, qsort_cmp,
+	_get_plug_by_oid): The plugins' arglist name is
+	the OID, so use this instead of aglist element "OID".
+
+	* src/pluginscheduler.c (hash_add, enable_plugin_and_dependencies,
+	plugins_scheduler_init): The plugins' arglist name is the OID, so
+	use this instead of aglist element "OID".
+
 2014-11-14  Hani Benhabiles  <hani.benhabiles@greenbone.net>
 
 	* src/openvassd.c (reload_openvassd, main): Exit on plugins reload failure.

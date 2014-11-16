@@ -99,8 +99,7 @@ process_internal_msg (int p)
   if (e < 0)
     {
       log_write ("Process %d (OID: %s) seems to have died too early",
-                 processes[p].pid, (char *)
-                 arg_get_value (processes[p].plugin->arglist->value, "OID"));
+                 processes[p].pid, processes[p].plugin->arglist->name);
       processes[p].alive = 0;
       return -1;
     }
@@ -199,7 +198,7 @@ update_running_processes (void)
 
                   if (log_whole)
                     log_write ("%s (pid %d) is slow to finish - killing it",
-                               nvticache_get_filename ((const char *)arg_get_value (processes[i].plugin->arglist->value, "OID")),
+                               nvticache_get_filename ((const char *)processes[i].plugin->arglist->name),
                                processes[i].pid);
 
                   desc = processes[i].plugin->arglist->value;
@@ -213,7 +212,7 @@ update_running_processes (void)
                                          " <|> SERVER\n",
                                          host ? host : "HOST",
                                          processes[i].timeout,
-                                         arg_get_value (desc, "OID") ? (char *)arg_get_value (desc, "OID") : "0");
+                                         processes[i].plugin->arglist->name ? processes[i].plugin->arglist->name : "0");
                   internal_send (processes[i].upstream_soc,
                                  msg,
                                  INTERNAL_COMM_MSG_TYPE_DATA);
@@ -234,7 +233,7 @@ update_running_processes (void)
                   if (log_whole)
                     log_write
                       ("%s (process %d) finished its job in %ld.%.3ld seconds",
-                       nvticache_get_filename ((const char *)arg_get_value (processes[i].plugin->arglist->value, "OID")),
+                       nvticache_get_filename ((const char *)processes[i].plugin->arglist->name),
                        processes[i].pid,
                        (long) (now.tv_sec - processes[i].start.tv_sec),
                        (long) ((now.tv_usec -
@@ -361,7 +360,7 @@ read_running_processes (void)
                 {
 #ifdef DEBUG
                   log_write ("process_internal_msg for %s returned %d",
-                             nvticache_get_filename ((const char *)arg_get_value (processes[i].plugin->arglist->value, "OID")),
+                             nvticache_get_filename ((const char *)processes[i].plugin->arglist->name),
                              result);
 #endif
                 }
@@ -461,8 +460,7 @@ plugin_launch (struct arglist *globals, struct scheduler_plugin *plugin,
   processes[p].globals = globals;
   processes[p].plugin = plugin;
   processes[p].launch_status = plug_get_launch (plugin->arglist->value);
-  processes[p].timeout =
-    prefs_nvt_timeout (arg_get_value (plugin->arglist->value, "OID"));
+  processes[p].timeout = prefs_nvt_timeout (plugin->arglist->name);
   if (processes[p].timeout == 0)
     processes[p].timeout = plugin->timeout;
 

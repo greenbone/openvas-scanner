@@ -146,8 +146,7 @@ hash_add (struct hash *h, char *name, struct scheduler_plugin *plugin)
   unsigned int idx = mkhash ((char *)nvticache_get_filename ((const char *)name));
   nvti_t *nvti;
 
-  nvti = nvticache_get_by_oid_full (arg_get_value (plugin->arglist->value,
-                                                   "OID"));
+  nvti = nvticache_get_by_oid_full (plugin->arglist->name);
   l->plugin = plugin;
   l->plugin->parent_hash = l;
   l->name = name;
@@ -429,7 +428,7 @@ enable_plugin_and_dependencies (plugins_scheduler_t shed,
       p = deps_ptr[i]->plugin;
       if (p != NULL && p->arglist != NULL)
         enable_plugin_and_dependencies (shed, p->arglist->value,
-                                        (char *)nvticache_get_filename ((const char *)arg_get_value (p->arglist->value, "OID")),
+                                        (char *)nvticache_get_filename ((const char *)p->arglist->name),
                                         deps_table);
     }
 }
@@ -456,7 +455,7 @@ plugins_scheduler_init (struct arglist *plugins, int autoload,
     {
       struct scheduler_plugin *scheduler_plugin;
       struct list *dup;
-      char *oid = arg_get_value (arg->value, "OID");
+      char *oid = arg->name;
       nvti_t *nvti;
       int category;
 
