@@ -129,15 +129,12 @@ send_plug_info (struct arglist *globals, struct arglist *plugins)
   static const char *categories[] = { ACT_STRING_LIST_ALL };
 #define CAT_MAX	(sizeof(categories) / sizeof(categories[0]))
   const char *name, *copyright, *summary, *version, *family;
-  char *str, *oid;
-  nvti_t *nvti;
+  char *str;
+  nvti_t *nvti = nvticache_get_by_oid_full (plugins->name);
 
-  oid = plugins->name;
-  nvti = oid ? nvticache_get_by_oid_full (oid) : NULL;
-  if (!nvti_oid (nvti))
+  if (!nvti)
     {
-      log_write ("NVT without OID found. Will not be sent.");
-      nvti_free (nvti);
+      log_write ("NVTI not found for OID %s. Will not be sent.", plugins->name);
       return;
     }
 
@@ -153,7 +150,6 @@ send_plug_info (struct arglist *globals, struct arglist *plugins)
     {
       log_write ("Inconsistent data (no name): %s - not applying this plugin",
                  nvti_oid (nvti));
-      name = "Unknown NAME";
       ignored = 1;
     }
 
@@ -162,7 +158,6 @@ send_plug_info (struct arglist *globals, struct arglist *plugins)
       log_write
         ("Inconsistent data (no copyright): %s - not applying this plugin",
          name ? name : nvti_oid (nvti));
-      copyright = "Unknown COPYRIGHT";
       ignored = 1;
     }
 
@@ -175,7 +170,6 @@ send_plug_info (struct arglist *globals, struct arglist *plugins)
       log_write
         ("Inconsistent data (no summary): %s - not applying this plugin",
          name ? name : nvti_oid (nvti));
-      summary = "Unknown SUMMARY";
       ignored = 1;
     }
 
@@ -184,7 +178,6 @@ send_plug_info (struct arglist *globals, struct arglist *plugins)
       log_write
         ("Inconsistent data (no family): %s - not applying this plugin",
          name ? name : nvti_oid (nvti));
-      family = "Unknown FAMILY";
       ignored = 1;
     }
 

@@ -1,5 +1,11 @@
 2014-11-16  Jan-Oliver Wagner <jan-oliver.wagner@greenbone.net>
 
+	* src/comm.c (send_plug_info): It is guaranteed that a NVTI
+	has a OID, therefore simpify the code. Also remove some uneeded
+	setting of variables as they are never used.
+
+2014-11-16  Jan-Oliver Wagner <jan-oliver.wagner@greenbone.net>
+
 	Remove any use of the "OID" arglist element of a plugin arglist
 	structure.
 
