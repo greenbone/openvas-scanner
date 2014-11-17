@@ -1,3 +1,9 @@
+2014-11-17  Hani Benhabiles  <hani.benhabiles@greenbone.net>
+
+	* CMakeLists.txt: Check for and link against libopenvas_nasl,
+	libopenvas_base and libopenvas_misc libraries instead of the whole
+	libopenvas package.
+
 2014-11-16  Jan-Oliver Wagner <jan-oliver.wagner@greenbone.net>
 
 	* src/nasl_plugins.c (nasl_plugin_add): Adjust call of exec_nasl_script

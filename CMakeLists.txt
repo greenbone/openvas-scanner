@@ -182,7 +182,9 @@ message ("-- Install prefix: ${CMAKE_INSTALL_PREFIX}")
 ## list and throw an error, otherwise long install-cmake-install-cmake cycles
 ## might occur.
 
-pkg_check_modules (LIBOPENVAS REQUIRED libopenvas>=8.0.0)
+pkg_check_modules (LIBOPENVAS_NASL REQUIRED libopenvas_nasl>=8.0.0)
+pkg_check_modules (LIBOPENVAS_BASE REQUIRED libopenvas_base>=8.0.0)
+pkg_check_modules (LIBOPENVAS_MISC REQUIRED libopenvas_misc>=8.0.0)
 pkg_check_modules (GNUTLS REQUIRED gnutls>=2.8)
 pkg_check_modules (GLIB REQUIRED glib-2.0>=2.16)
 
@@ -200,11 +202,25 @@ execute_process (COMMAND pkg-config --libs glib-2.0
   OUTPUT_VARIABLE GLIB_LDFLAGS
   OUTPUT_STRIP_TRAILING_WHITESPACE)
 
-execute_process (COMMAND pkg-config --cflags libopenvas
-  OUTPUT_VARIABLE OPENVAS_CFLAGS
+execute_process (COMMAND pkg-config --cflags libopenvas_nasl
+  OUTPUT_VARIABLE OPENVAS_NASL_CFLAGS
   OUTPUT_STRIP_TRAILING_WHITESPACE)
-execute_process (COMMAND pkg-config --libs libopenvas
-  OUTPUT_VARIABLE OPENVAS_LDFLAGS
+execute_process (COMMAND pkg-config --libs libopenvas_nasl
+  OUTPUT_VARIABLE OPENVAS_NASL_LDFLAGS
+  OUTPUT_STRIP_TRAILING_WHITESPACE)
+
+execute_process (COMMAND pkg-config --cflags libopenvas_base
+  OUTPUT_VARIABLE OPENVAS_BASE_CFLAGS
+  OUTPUT_STRIP_TRAILING_WHITESPACE)
+execute_process (COMMAND pkg-config --libs libopenvas_base
+  OUTPUT_VARIABLE OPENVAS_BASE_LDFLAGS
+  OUTPUT_STRIP_TRAILING_WHITESPACE)
+
+execute_process (COMMAND pkg-config --cflags libopenvas_misc
+  OUTPUT_VARIABLE OPENVAS_MISC_CFLAGS
+  OUTPUT_STRIP_TRAILING_WHITESPACE)
+execute_process (COMMAND pkg-config --libs libopenvas_misc
+  OUTPUT_VARIABLE OPENVAS_MISC_LDFLAGS
   OUTPUT_STRIP_TRAILING_WHITESPACE)
 
 execute_process (COMMAND pkg-config --cflags gnutls
@@ -220,6 +236,9 @@ execute_process (COMMAND libgcrypt-config --libs
 execute_process (COMMAND libgcrypt-config --cflags
   OUTPUT_VARIABLE GCRYPT_CFLAGS
   OUTPUT_STRIP_TRAILING_WHITESPACE)
+
+set (OPENVAS_CFLAGS "${OPENVAS_NASL_CFLAGS} ${OPENVAS_BASE_CFLAGS} ${OPENVAS_MISC_CFLAGS}")
+set (OPENVAS_LDFLAGS "${OPENVAS_NASL_LDFLAGS} ${OPENVAS_BASE_LDFLAGS} ${OPENVAS_MISC_LDFLAGS}")
 
 ## Version
 
