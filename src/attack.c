@@ -257,7 +257,10 @@ check_scan_stop (int soc)
   if (internal_recv (soc, &buffer, &bufsz, &type) >= 0
       && type & INTERNAL_COMM_CTRL_STOP
       && type & INTERNAL_COMM_MSG_TYPE_CTRL)
-    global_scan_stop = 1;
+    {
+      global_scan_stop = 1;
+      pluginlaunch_stop ();
+    }
   g_free (buffer);
   fcntl (soc, F_SETFL, flags & ~O_NONBLOCK);
 }

@@ -1,5 +1,10 @@
 2014-11-17  Hani Benhabiles  <hani.benhabiles@greenbone.net>
 
+	* src/attack.c (check_scan_stop): Exit currently running plugins
+	processes when scan stop is received.
+
+2014-11-17  Hani Benhabiles  <hani.benhabiles@greenbone.net>
+
 	* CMakeLists.txt: Check for and link against libopenvas_nasl,
 	libopenvas_base and libopenvas_misc libraries instead of the whole
 	libopenvas package.
