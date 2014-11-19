@@ -373,7 +373,7 @@ launch_plugin (struct arglist *globals, struct scheduler_plugin *plugin,
           char *oid, *src;
 
           oid = plugin->arglist->name;
-          src = g_strdup (nvticache_get_src (oid));
+          src = nvticache_get_src (oid);
           /* Start the plugin */
           pid = plugin_launch (globals, plugin, hostinfos, kb, src);
           g_free (src);
