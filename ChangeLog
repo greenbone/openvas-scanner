@@ -1,5 +1,11 @@
 2014-11-20  Jan-Oliver Wagner <jan-oliver.wagner@greenbone.net>
 
+	Post release version bump.
+
+	* CMakeLists.txt: Set version to 5.0+beta5.
+
+2014-11-20  Jan-Oliver Wagner <jan-oliver.wagner@greenbone.net>
+
 	Preparing the openvas-scanner 5.0+beta4 release.
 
 	* CHANGES: Updated.
