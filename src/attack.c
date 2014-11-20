@@ -325,8 +325,7 @@ launch_plugin (struct arglist *globals, struct scheduler_plugin *plugin,
       if ((*cur_plug * 100) / num_plugs >= last_status)
         {
           last_status = (*cur_plug * 100) / num_plugs + 2;
-          if (comm_send_status
-              (globals, hostname, "attack", *cur_plug, num_plugs) < 0)
+          if (comm_send_status (globals, hostname, *cur_plug, num_plugs) < 0)
             {
               /* Could not send our status back to our father -> exit */
               pluginlaunch_stop ();

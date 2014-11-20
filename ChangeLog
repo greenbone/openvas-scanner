@@ -1,3 +1,7 @@
+2014-11-20  Hani Benhabiles  <hani.benhabiles@greenbone.net>
+
+	* src/attack.c (launch_plugin): Adjust comm_send_status() call.
+
 2014-11-19  Jan-Oliver Wagner <jan-oliver.wagner@greenbone.net>
 
 	* src/attack.c (launch_plugin): Don't duplicate the result of
