@@ -1,3 +1,24 @@
+openvas-scanner 5.0+beta4 (2014-11-20)
+
+This is the fourth beta release of the openvas-scanner 5.0 module for the Open
+Vulnerability Assessment System (OpenVAS). It will be part of the upcoming
+"OpenVAS-8".
+
+This release considerably improves memory management.
+
+Many thanks to everyone who has contributed to this release:
+Hani Benhabiles, Henri Doreau and Jan-Oliver Wagner.
+
+Main changes compared to 5.0+beta3:
+* Upon stop signal, the scanner will switch to ACT_END instead
+  of immediately bailing out.
+* Considerable reduction of memory consumption.
+* Various code cleanups and improvements.
+* Increase buffer size for preferences to allow for upto 69K NVTs.
+* Log backtrace when a process segfaults.
+* Refactored preferences module.
+
+
 openvas-scanner 5.0+beta3 (2014-10-14)
 
 This is the third beta release of the openvas-scanner 5.0 module for the Open
