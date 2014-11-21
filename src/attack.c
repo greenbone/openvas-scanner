@@ -278,8 +278,7 @@ check_scan_stop (int soc)
  */
 static int
 launch_plugin (struct arglist *globals, struct scheduler_plugin *plugin,
-               char *hostname, int *cur_plug, int num_plugs,
-               struct arglist *hostinfos, kb_t kb)
+               char *hostname, struct arglist *hostinfos, kb_t kb)
 {
   struct arglist *args = plugin->arglist->value;
   int optimize = prefs_get_bool ("optimize_test");
@@ -305,7 +304,6 @@ launch_plugin (struct arglist *globals, struct scheduler_plugin *plugin,
   if (plug_get_launch (args) != LAUNCH_DISABLED)    /* can we launch it ? */
     {
       char *error;
-      static int last_status = 0;
 
       if (prefs_get_bool ("safe_checks")
           && (category == ACT_DESTRUCTIVE_ATTACK || category == ACT_KILL_HOST
@@ -319,18 +317,6 @@ launch_plugin (struct arglist *globals, struct scheduler_plugin *plugin,
                "because safe checks are enabled");
           plugin->running_state = PLUGIN_STATUS_DONE;
           return 0;
-        }
-
-      (*cur_plug)++;
-      if ((*cur_plug * 100) / num_plugs >= last_status)
-        {
-          last_status = (*cur_plug * 100) / num_plugs + 2;
-          if (comm_send_status (globals, hostname, *cur_plug, num_plugs) < 0)
-            {
-              /* Could not send our status back to our father -> exit */
-              pluginlaunch_stop ();
-              return ERR_HOST_DEAD;
-            }
         }
 
       if (network_scan)
@@ -712,10 +698,8 @@ attack_host (struct arglist *globals, struct arglist *hostinfos,
              char *hostname, plugins_scheduler_t sched, kb_t *net_kb)
 {
   /* Used for the status */
-  int num_plugs = 0;
-  int cur_plug = 1;
+  int num_plugs, forks_retry = 0;
   kb_t kb;
-  int forks_retry = 0;
   struct arglist *plugins = arg_get_value (globals, "plugins");
 
   proctitle_set ("openvassd: testing %s", arg_get_value (hostinfos, "NAME"));
@@ -748,10 +732,10 @@ attack_host (struct arglist *globals, struct arglist *hostinfos,
       if (plugin != NULL && plugin != PLUG_RUNNING)
         {
           int e;
+          static int last_status = 0, cur_plug = 0;
 
         again:
-          e = launch_plugin (globals, plugin, hostname, &cur_plug, num_plugs,
-                             hostinfos, kb);
+          e = launch_plugin (globals, plugin, hostname, hostinfos, kb);
           if (e < 0)
             {
               /*
@@ -776,6 +760,17 @@ attack_host (struct arglist *globals, struct arglist *hostinfos,
                     }
                 }
             }
+
+          if ((cur_plug * 100) / num_plugs >= last_status)
+            {
+              last_status = (cur_plug * 100) / num_plugs + 2;
+              if (comm_send_status (globals, hostname, cur_plug, num_plugs) < 0)
+                {
+                  pluginlaunch_stop ();
+                  goto host_died;
+                }
+            }
+          cur_plug++;
         }
       else if (plugin == NULL)
         break;
