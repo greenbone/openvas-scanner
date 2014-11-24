@@ -62,8 +62,6 @@
 #include <openvas/misc/kb.h>         /* for KB_PATH_DEFAULT */
 #include <openvas/misc/prefs.h>      /* for prefs_get() */
 
-#include <gnutls/gnutls.h>
-#include <gnutls/x509.h>
 #include <glib.h>
 #include <gcrypt.h>
 

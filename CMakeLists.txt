@@ -185,15 +185,7 @@ message ("-- Install prefix: ${CMAKE_INSTALL_PREFIX}")
 pkg_check_modules (LIBOPENVAS_NASL REQUIRED libopenvas_nasl>=8.0.0)
 pkg_check_modules (LIBOPENVAS_BASE REQUIRED libopenvas_base>=8.0.0)
 pkg_check_modules (LIBOPENVAS_MISC REQUIRED libopenvas_misc>=8.0.0)
-pkg_check_modules (GNUTLS REQUIRED gnutls>=2.8)
 pkg_check_modules (GLIB REQUIRED glib-2.0>=2.16)
-
-message (STATUS "Looking for pcap...")
-find_library (PCAP pcap)
-message (STATUS "Looking for pcap... ${PCAP}")
-if (NOT PCAP)
-  message (FATAL_ERROR "The pcap library is required.")
-endif (NOT PCAP)
 
 execute_process (COMMAND pkg-config --cflags glib-2.0
   OUTPUT_VARIABLE GLIB_CFLAGS
@@ -221,13 +213,6 @@ execute_process (COMMAND pkg-config --cflags libopenvas_misc
   OUTPUT_STRIP_TRAILING_WHITESPACE)
 execute_process (COMMAND pkg-config --libs libopenvas_misc
   OUTPUT_VARIABLE OPENVAS_MISC_LDFLAGS
-  OUTPUT_STRIP_TRAILING_WHITESPACE)
-
-execute_process (COMMAND pkg-config --cflags gnutls
-  OUTPUT_VARIABLE GNUTLS_CFLAGS
-  OUTPUT_STRIP_TRAILING_WHITESPACE)
-execute_process (COMMAND pkg-config --libs gnutls
-  OUTPUT_VARIABLE GNUTLS_LDFLAGS
   OUTPUT_STRIP_TRAILING_WHITESPACE)
 
 execute_process (COMMAND libgcrypt-config --libs

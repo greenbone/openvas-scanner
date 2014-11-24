@@ -1,3 +1,11 @@
+2014-11-24  Hani Benhabiles  <hani.benhabiles@greenbone.net>
+
+	* CMakeLists.txt, src/CMakeLists.txt: Remove check for and linking
+	against libgnutls and libpcap.  This is already done adequately in
+	libraries.
+
+	* src/openvassd.c: Remove useless includes.
+
 2014-11-21  Hani Benhabiles  <hani.benhabiles@greenbone.net>
 
 	* src/nasl_plugins.c (nasl_plugin_add): Remove nvti_set_src() call.
