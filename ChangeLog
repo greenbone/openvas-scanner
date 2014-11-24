@@ -1,5 +1,9 @@
 2014-11-21  Hani Benhabiles  <hani.benhabiles@greenbone.net>
 
+	* src/nasl_plugins.c (nasl_plugin_add): Remove nvti_set_src() call.
+
+2014-11-21  Hani Benhabiles  <hani.benhabiles@greenbone.net>
+
 	* src/attack.c (launch_plugin): Remove cur_plug and num_plugs arguments.
 	Don't send scan status.
 	(attack_host): Send scan status after launching plugin.

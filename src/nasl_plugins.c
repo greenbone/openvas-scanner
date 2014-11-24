@@ -112,8 +112,6 @@ nasl_plugin_add (char *folder, char *name, struct arglist *plugins)
       if (arg_get_value (plugin_args, "NVTI"))
         arg_del_value (plugin_args, "NVTI");
 
-      nvti_set_src (new_nvti, fullname);
-
       // Check mtime of plugin before caching it
       // Set to now if mtime is in the future
       struct stat plug_stat;
