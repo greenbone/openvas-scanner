@@ -1,3 +1,19 @@
+openvas-scanner 4.0.5 (2014-11-27)
+
+This is the fifth maintenance release of the openvas-scanner 4.0 module for the
+Open Vulnerability Assessment System release 7 (OpenVAS-7).
+
+This release addresses a memory leak which occurred when the NVT collection was
+reinitialized. It also raises the OpenVAS Libaries dependency to 7.0.6.
+
+Many thanks to everyone who contributed to this release:
+Hani Benhabiles.
+
+Main changes compared to 4.0.4:
+* The NVTi cache is now freed before the NVT collection is reinitialized.
+* The libopenvas dependency has been raised to 7.0.6.
+
+
 openvas-scanner 4.0.4 (2014-11-04)
 
 This is the fourth maintenance release of the openvas-scanner 4.0 module for the

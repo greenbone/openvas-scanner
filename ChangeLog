@@ -1,3 +1,13 @@
+2014-11-27  Michael Wiegand <michael.wiegand@greenbone.net>
+
+	Preparing the openvas-scanner 4.0.5 release.
+
+	* CHANGES: Updated.
+
+	* CMakeLists.txt: Raise required libopenvas version to 7.0.6.
+
+	* INSTALL: Update version requirements.
+
 2014-11-10  Hani Benhabiles <hani.benhabiles@greenbone.net>
 
 	* src/openvavssd.c (reload_openvavssd): Free the nvti cache before
