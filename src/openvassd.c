@@ -852,9 +852,9 @@ main (int argc, char *argv[])
     {
       printf ("OpenVAS Scanner %s\n", OPENVASSD_VERSION);
       printf
-        ("Nessus origin: (C) 2004 Renaud Deraison <deraison@nessus.org>\n");
+        ("Most new code since 2005: (C) 2014 Greenbone Networks GmbH\n");
       printf
-        ("Most new code since OpenVAS: (C) 2013 Greenbone Networks GmbH\n");
+        ("Nessus origin: (C) 2004 Renaud Deraison <deraison@nessus.org>\n");
       printf ("License GPLv2: GNU GPL version 2\n");
       printf
         ("This is free software: you are free to change and redistribute it.\n"
