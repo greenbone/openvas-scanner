@@ -132,7 +132,7 @@ init_sync ()
 
   if [ -z "$NVT_DIR" ]
   then
-    NVT_DIR=="@OPENVAS_NVT_DIR@"
+    NVT_DIR="@OPENVAS_NVT_DIR@"
   fi
 
   INFOFILE="$NVT_DIR/plugin_feed_info.inc"

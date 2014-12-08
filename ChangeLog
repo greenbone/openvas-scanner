@@ -1,5 +1,10 @@
 2014-12-08  Michael Wiegand <michael.wiegand@greenbone.net>
 
+	* tools/greenbone-nvt-sync.in: Remove stray "=" introduced with last
+	commit.
+
+2014-12-08  Michael Wiegand <michael.wiegand@greenbone.net>
+
 	Generate greenbone-nvt-sync during build as well so that information
 	available at build time is used and does not have to be gathered at
 	runtime.
