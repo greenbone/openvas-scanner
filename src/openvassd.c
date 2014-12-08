@@ -40,42 +40,32 @@
  * OpenVAS Scanner main module, runs the scanner.
  */
 
-#include <errno.h>
-#include <string.h>    /* for strchr() */
-#include <stdio.h>     /* for fprintf() */
 #include <stdlib.h>    /* for atoi() */
 #include <unistd.h>    /* for close() */
 #include <errno.h>     /* for errno() */
 #include <fcntl.h>     /* for open() */
-#include <arpa/inet.h> /* for inet_aton */
 #include <signal.h>    /* for SIGTERM */
 #include <netdb.h>     /* for addrinfo */
 #include <sys/wait.h>     /* for waitpid */
 
-#include <openvas/nasl/nasl.h>
-#include <openvas/misc/network.h>    /* for auth_printf */
-#include <openvas/misc/plugutils.h>  /* for find_in_path */
-#include <openvas/misc/openvas_proctitle.h>
+#include <openvas/misc/network.h>    /* for ovas_scanner_context_t */
+#include <openvas/misc/openvas_proctitle.h> /* for proctitle_set */
 #include <openvas/misc/openvas_logging.h>  /* for setup_legacy_log_handler */
-#include <openvas/base/pidfile.h>    /* for pidfile_remove */
-#include <openvas/base/nvticache.h>
+#include <openvas/base/pidfile.h>    /* for pidfile_create */
+#include <openvas/base/nvticache.h> /* nvticache_free */
 #include <openvas/misc/kb.h>         /* for KB_PATH_DEFAULT */
 #include <openvas/misc/prefs.h>      /* for prefs_get() */
 
-#include <glib.h>
-#include <gcrypt.h>
+#include <gcrypt.h> /* for gcry_control */
 
-
-#include "pluginload.h"
-#include "comm.h"
-#include "attack.h"
-#include "sighand.h"
-#include "log.h"
-#include "processes.h"
-#include "ntp.h"
-#include "utils.h"
-#include "pluginscheduler.h"
-#include "pluginlaunch.h"
+#include "comm.h"         /* for comm_loading */
+#include "attack.h"       /* for attack_network */
+#include "sighand.h"      /* for openvas_signal */
+#include "log.h"          /* for log_write */
+#include "processes.h"    /* for create_process */
+#include "ntp.h"          /* for ntp_timestamp_scan_starts */
+#include "utils.h"        /* for wait_for_children1 */
+#include "pluginlaunch.h" /* for init_loading_shm */
 
 /**
  * Globals that should not be touched (used in utils module).

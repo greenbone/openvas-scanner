@@ -1,3 +1,7 @@
+2014-12-08  Jan-Oliver Wagner <jan-oliver.wagner@greenbone.net>
+
+	* src/openvassd.c: Removed unneeded include's.
+
 2014-12-08  Michael Wiegand <michael.wiegand@greenbone.net>
 
 	* tools/greenbone-nvt-sync.in: Remove stray "=" introduced with last
