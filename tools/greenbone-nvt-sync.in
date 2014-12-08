@@ -29,7 +29,7 @@
 # with some characters in order to make it newer than
 # any follow-up version to prevent that your version
 # will be overwritten.
-VERSION=20140606
+VERSION=20141208
 
 # SETTINGS
 # ========
@@ -78,7 +78,13 @@ SELFTEST_FAIL=0
 PORT=24
 
 # Directory where pidfiles are located
-PIDFILEDIR="/var/run"
+PIDFILEDIR="@OPENVAS_PID_DIR@"
+
+# Directory where the OpenVAS configuration is located
+OPENVAS_SYSCONF_DIR="@OPENVAS_SYSCONF_DIR@"
+
+# Location of the GSF Access Key
+ACCESS_KEY="$OPENVAS_SYSCONF_DIR/gsf-access-key"
 
 # If ENABLED is set to 0, the sync script will not perform a synchronization.
 ENABLED=1
@@ -96,6 +102,9 @@ SYNC_ONLY=0
 # LOG_CMD defines the command to use for logging. To have logger log to stderr
 # as well as syslog, add "-s" here.
 LOG_CMD="logger -t $SCRIPT_NAME"
+
+# Source configuration file if it is readable
+[ -r $OPENVAS_SYSCONF_DIR/greenbone-nvt-sync.conf ] && . $OPENVAS_SYSCONF_DIR/greenbone-nvt-sync.conf
 
 log_write () {
   $LOG_CMD -p daemon.notice $1
@@ -121,25 +130,9 @@ init_sync ()
     exit $SELFTEST_FAIL
   fi
 
-  SCANNER_BINARY=`command -v openvassd`
-  if [ -z "$SCANNER_BINARY" ]
-  then
-    log_err "openvassd not found, aborting synchronization."
-    exit 1
-  fi
-
-  sysconfdir=`$SCANNER_BINARY --sysconfdir`
-
-  [ -r $sysconfdir/openvas/greenbone-nvt-sync.conf ] && . $sysconfdir/openvas/greenbone-nvt-sync.conf
-
   if [ -z "$NVT_DIR" ]
   then
-    NVT_DIR=`$SCANNER_BINARY -s | grep plugins_folder | sed 's/plugins\_folder\ *=\ *//'`
-    if [ -z "$NVT_DIR" ]
-    then
-      log_err "Could not determine location of NVT collection, aborting synchronization."
-      exit 1
-    fi
+    NVT_DIR=="@OPENVAS_NVT_DIR@"
   fi
 
   INFOFILE="$NVT_DIR/plugin_feed_info.inc"
@@ -182,8 +175,8 @@ is_feed_current () {
     PORT=`grep ^syncport /admin/ezcli.state | sed -e "s/^syncport\t//g"`
   fi
 
-  read feeduser < $sysconfdir/openvas/gsf-access-key
-  custid=`awk -F@ 'NR > 1 { exit }; { print $1 }' $sysconfdir/openvas/gsf-access-key`
+  read feeduser < $ACCESS_KEY
+  custid=`awk -F@ 'NR > 1 { exit }; { print $1 }' $ACCESS_KEY`
   if [ -z "$feeduser" ] || [ -z "$custid" ]
   then
     log_err "Could not determine credentials, aborting synchronization."
@@ -204,7 +197,7 @@ is_feed_current () {
 
   FEED_INFO_TEMP_DIR=`mktemp -d`
 
-  rsync -e "ssh $RSYNC_SSH_OPTS $RSYNC_SSH_PROXY_CMD -p $PORT -i $sysconfdir/openvas/gsf-access-key" $RSYNC_OPTIONS $RSYNC_DELETE $RSYNC_COMPRESS $RSYNC_CHMOD "$feeduser"plugin_feed_info.inc $FEED_INFO_TEMP_DIR
+  rsync -e "ssh $RSYNC_SSH_OPTS $RSYNC_SSH_PROXY_CMD -p $PORT -i $ACCESS_KEY" $RSYNC_OPTIONS $RSYNC_DELETE $RSYNC_COMPRESS $RSYNC_CHMOD "$feeduser"plugin_feed_info.inc $FEED_INFO_TEMP_DIR
 
   if [ $? -ne 0 ]
   then
@@ -257,8 +250,8 @@ sync_nvts(){
   retried=0
 
   mkdir -p "$NVT_DIR"
-  read feeduser < $sysconfdir/openvas/gsf-access-key
-  custid=`awk -F@ 'NR > 1 { exit }; { print $1 }' $sysconfdir/openvas/gsf-access-key`
+  read feeduser < $ACCESS_KEY
+  custid=`awk -F@ 'NR > 1 { exit }; { print $1 }' $ACCESS_KEY`
   if [ -z "$feeduser" ] || [ -z "$custid" ]
   then
     log_err "Could not determine credentials, aborting synchronization."
@@ -281,7 +274,7 @@ sync_nvts(){
         RSYNC_SSH_PROXY_CMD="-o \"ProxyCommand corkscrew $gsmproxy %h %p\""
       fi
     fi
-    rsync -e "ssh $RSYNC_SSH_OPTS $RSYNC_SSH_PROXY_CMD -p $PORT -i $sysconfdir/openvas/gsf-access-key" $RSYNC_OPTIONS $RSYNC_DELETE $RSYNC_COMPRESS $RSYNC_CHMOD $feeduser $NVT_DIR
+    rsync -e "ssh $RSYNC_SSH_OPTS $RSYNC_SSH_PROXY_CMD -p $PORT -i $ACCESS_KEY" $RSYNC_OPTIONS $RSYNC_DELETE $RSYNC_COMPRESS $RSYNC_CHMOD $feeduser $NVT_DIR
     if [ $? -ne 0 ]  ; then
       log_err "rsync failed, aborting synchronization."
       exit 1
@@ -363,14 +356,7 @@ do_self_test ()
     SELFTEST_FAIL=1
     stderr_write "The md5sum binary could not be found."
   fi
-  OPENVASSD_AVAIL=`command -v openvassd`
-  if [ $? -ne 0 ] ; then
-    SELFTEST_FAIL=1
-    stderr_write "The openvassd binary could not be found."
-  else
-    sysconfdir=`openvassd --sysconfdir`
-  fi
-  if [ ! -s $sysconfdir/openvas/gsf-access-key ] ; then
+  if [ ! -s $ACCESS_KEY ] ; then
     SELFTEST_FAIL=1
     stderr_write "No valid Greenbone Security Feed subscription file found."
     # else

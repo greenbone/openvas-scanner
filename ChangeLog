@@ -1,3 +1,19 @@
+2014-12-08  Michael Wiegand <michael.wiegand@greenbone.net>
+
+	Generate greenbone-nvt-sync during build as well so that information
+	available at build time is used and does not have to be gathered at
+	runtime.
+
+	* CMakeLists.txt: Add tools/greenbone-nvt-sync to the list of files to
+	be generated and ignore generated file when packaging source tar ball.
+	Install generated file from build directory.
+
+	* tools/greenbone-nvt-sync.in: New. Renamed from greenbone-nvt-sync.
+	Use CMake variables instead of runtime checks. Simplify variables
+	derived from CMake variables.
+
+	* tools/greenbone-nvt-sync: Moved to greenbone-nvt-sync.in.
+
 2014-12-06  Jan-Oliver Wagner <jan-oliver.wagner@greenbone.net>
 
 	* src/openvassd.c (main): Updated/improved version info.

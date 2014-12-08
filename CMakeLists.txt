@@ -109,6 +109,7 @@ set (CPACK_SOURCE_IGNORE_FILES
 "tools/openvas-mkcert$"
 "tools/openvas-mkcert-client$"
 "tools/openvas-nvt-sync$"
+"tools/greenbone-nvt-sync$"
 )
 
 include (CPack)
@@ -240,6 +241,7 @@ configure_file (VERSION.in VERSION @ONLY)
 configure_file (tools/openvas-mkcert.in tools/openvas-mkcert @ONLY)
 configure_file (tools/openvas-mkcert-client.in tools/openvas-mkcert-client @ONLY)
 configure_file (tools/openvas-nvt-sync.in tools/openvas-nvt-sync @ONLY)
+configure_file (tools/greenbone-nvt-sync.in tools/greenbone-nvt-sync @ONLY)
 # TODO: Once  Scanner has a proper logging mechanism like Manager.
 #configure_file (src/openvassd_log_conf.cmake_in src/openvassd_log.conf)
 
@@ -273,11 +275,7 @@ install (FILES ${CMAKE_BINARY_DIR}/src/openvassd
 install (FILES ${CMAKE_BINARY_DIR}/tools/openvas-mkcert
                ${CMAKE_BINARY_DIR}/tools/openvas-mkcert-client
                ${CMAKE_BINARY_DIR}/tools/openvas-nvt-sync
-         DESTINATION ${SBINDIR}
-         PERMISSIONS OWNER_EXECUTE OWNER_READ OWNER_WRITE
-                     GROUP_READ GROUP_EXECUTE WORLD_READ WORLD_EXECUTE)
-
-install (FILES ${CMAKE_SOURCE_DIR}/tools/greenbone-nvt-sync
+               ${CMAKE_BINARY_DIR}/tools/greenbone-nvt-sync
          DESTINATION ${SBINDIR}
          PERMISSIONS OWNER_EXECUTE OWNER_READ OWNER_WRITE
                      GROUP_READ GROUP_EXECUTE WORLD_READ WORLD_EXECUTE)
