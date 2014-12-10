@@ -531,8 +531,9 @@ plugins_scheduler_init (struct arglist *plugins, int autoload,
           deps_table = g_hash_table_new_full (g_str_hash, g_str_equal, g_free,
                                               NULL);
           if (plug_get_launch (arg->value) != LAUNCH_DISABLED)
-            enable_plugin_and_dependencies (ret, arg->value, arg->name,
-                                            deps_table);
+            enable_plugin_and_dependencies
+             (ret, arg->value, (char *) nvticache_get_filename (arg->name),
+              deps_table);
           arg = arg->next;
           g_hash_table_destroy (deps_table);
         }
