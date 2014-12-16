@@ -1,3 +1,7 @@
+2014-12-16  Jan-Oliver Wagner <jan-oliver.wagner@greenbone.net>
+
+	* src/utils.c (is_scanner_only_pref): Added "kb_location".
+
 2014-12-11  Hani Benhabiles  <hani.benhabiles@greenbone.net>
 
 	* src/pluginscheduler.c (plugins_scheduler_init): Adjust

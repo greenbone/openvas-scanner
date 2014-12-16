@@ -281,6 +281,7 @@ is_scanner_only_pref (const char *pref)
     return 0;
   if (!strcmp (pref, "logfile") || !strcmp (pref, "config_file")
       || !strcmp (pref, "plugins_folder")
+      || !strcmp (pref, "kb_location")
       || !strcmp (pref, "dumpfile")
       || !strcmp (pref, "negot_timeout")
       || !strcmp (pref, "force_pubkey_auth")
