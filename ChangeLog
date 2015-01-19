@@ -1,3 +1,15 @@
+2015-01-19  Michael Wiegand <michael.wiegand@greenbone.net>
+
+	Simplify handling of library flags in CMakeLists.txt files, thereby
+	removing the need for clumsy workarounds.
+
+	* CMakeLists.txt: Remove redundant queries of library flags which were
+	already retrieved by CMake. Remove unnecessary aggregation of flags.
+
+	* src/CMakeLists.txt: Set include directories with include_directories
+	instead of target properties. Remove quotes in target_link_libraries
+	so that CMake lists get expanded correctly.
+
 2015-01-12  Michael Wiegand <michael.wiegand@greenbone.net>
 
 	Post release version bump.
