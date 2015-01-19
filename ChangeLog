@@ -1,5 +1,10 @@
 2015-01-19  Michael Wiegand <michael.wiegand@greenbone.net>
 
+	* CMakeLists.txt: Check if pkg-config was found. Abort and log a fatal
+	error if it is not found.
+
+2015-01-19  Michael Wiegand <michael.wiegand@greenbone.net>
+
 	Add check for required libgcrypt. It was already expected to be
 	present (see usage of libgcrypt-config), but never checked for.
 

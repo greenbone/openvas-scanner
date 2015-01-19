@@ -35,6 +35,10 @@ endif (POLICY CMP0005)
 
 include (FindPkgConfig)
 
+if (NOT PKG_CONFIG_FOUND)
+  message(FATAL_ERROR "pkg-config executable not found. Aborting.")
+endif (NOT PKG_CONFIG_FOUND)
+
 if (NOT CMAKE_BUILD_TYPE)
   set (CMAKE_BUILD_TYPE Debug)
 endif (NOT CMAKE_BUILD_TYPE)
