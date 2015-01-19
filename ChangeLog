@@ -1,5 +1,17 @@
 2015-01-19  Michael Wiegand <michael.wiegand@greenbone.net>
 
+	Add check for required libgcrypt. It was already expected to be
+	present (see usage of libgcrypt-config), but never checked for.
+
+	* CMakeLists.txt: Try to find libgcrypt before calling
+	libgcrypt-config. Raise SEND_ERROR if the library can not be found.
+	Remove now obsolete TODO.
+
+	* INSTALL: Note libgcrypt as prerequisite. Remove mention of gnutls
+	since it is only an indirect dependency via openvas-libraries.
+
+2015-01-19  Michael Wiegand <michael.wiegand@greenbone.net>
+
 	Simplify handling of library flags in CMakeLists.txt files, thereby
 	removing the need for clumsy workarounds.
 

@@ -177,23 +177,25 @@ set (NVT_TIMEOUT "320")
 message ("-- Install prefix: ${CMAKE_INSTALL_PREFIX}")
 
 ## Dependency checks
-##
-## TODO Also check for headers where needed.
-## Improve for workflow: First collect list of missing libs, then print the
-## list and throw an error, otherwise long install-cmake-install-cmake cycles
-## might occur.
 
 pkg_check_modules (LIBOPENVAS_NASL REQUIRED libopenvas_nasl>=8.0.0)
 pkg_check_modules (LIBOPENVAS_BASE REQUIRED libopenvas_base>=8.0.0)
 pkg_check_modules (LIBOPENVAS_MISC REQUIRED libopenvas_misc>=8.0.0)
 pkg_check_modules (GLIB REQUIRED glib-2.0>=2.16)
 
-execute_process (COMMAND libgcrypt-config --libs
-  OUTPUT_VARIABLE GCRYPT_LDFLAGS
-  OUTPUT_STRIP_TRAILING_WHITESPACE)
-execute_process (COMMAND libgcrypt-config --cflags
-  OUTPUT_VARIABLE GCRYPT_CFLAGS
-  OUTPUT_STRIP_TRAILING_WHITESPACE)
+message (STATUS "Looking for libgcrypt...")
+find_library (GCRYPT gcrypt)
+if (NOT GCRYPT)
+  message (SEND_ERROR "The libgcrypt library is required.")
+else (NOT GCRYPT)
+  message (STATUS "Looking for libgcrypt... ${GCRYPT}")
+  execute_process (COMMAND libgcrypt-config --libs
+    OUTPUT_VARIABLE GCRYPT_LDFLAGS
+    OUTPUT_STRIP_TRAILING_WHITESPACE)
+  execute_process (COMMAND libgcrypt-config --cflags
+    OUTPUT_VARIABLE GCRYPT_CFLAGS
+    OUTPUT_STRIP_TRAILING_WHITESPACE)
+endif (NOT GCRYPT)
 
 ## Version
 
