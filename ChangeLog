@@ -1,3 +1,10 @@
+2015-02-09  Hani Benhabiles  <hani.benhabiles@greenbone.net>
+
+	Backport a part of r21584.
+
+	* src/attack.c (attack_host): Update host scanning status, when finished
+	or terminated.
+
 2014-11-27  Michael Wiegand <michael.wiegand@greenbone.net>
 
 	Post release version bump.

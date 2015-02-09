@@ -773,6 +773,7 @@ attack_host (struct arglist *globals, struct arglist *hostinfos, char *hostname,
   pluginlaunch_wait ();
 
 host_died:
+  comm_send_status (globals, hostname, "attack", num_plugs, num_plugs);
   arg_free (tmp);
   pluginlaunch_stop ();
   plugins_scheduler_free (sched);
