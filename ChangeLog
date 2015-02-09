@@ -1,3 +1,8 @@
+2015-02-09  Hani Benhabiles  <hani.benhabiles@greenbone.net>
+
+	* src/attack.c (comm_send_status): New function, moved from libraries.
+	(attack_host): Update host scanning status, when finished or terminated.
+
 2015-01-19  Michael Wiegand <michael.wiegand@greenbone.net>
 
 	* CMakeLists.txt: Check if pkg-config was found. Abort and log a fatal

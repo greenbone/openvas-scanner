@@ -44,7 +44,6 @@
 #include <openvas/misc/nvt_categories.h> /* for ACT_INIT */
 #include <openvas/misc/pcap_openvas.h>   /* for v6_is_local_ip */
 #include <openvas/misc/plugutils.h>      /* for plug_get_launch */
-#include <openvas/misc/scanners_utils.h> /* for comm_send_status */
 #include <openvas/misc/prefs.h>          /* for prefs_get() */
 #include <openvas/misc/openvas_ssh_login.h>
 #include <openvas/misc/internal_com.h>
@@ -98,6 +97,30 @@ enum net_scan_status {
 		PRIVATE FUNCTIONS
 
 ********************************************************/
+
+/**
+ * @brief Sends the status of a host's scan.
+ */
+static int
+comm_send_status (struct arglist *globals, char *hostname, int curr, int max)
+{
+  int soc = GPOINTER_TO_SIZE (arg_get_value (globals, "global_socket"));
+  char buffer[2048];
+
+  if (soc < 0 || soc > 1024)
+    return -1;
+
+  if (strlen (hostname) > (sizeof (buffer) - 50))
+    return -1;
+
+  snprintf (buffer, sizeof (buffer),
+            "SERVER <|> STATUS <|> %s <|> %d/%d <|> SERVER\n",
+            hostname, curr, max);
+
+  internal_send (soc, buffer, INTERNAL_COMM_MSG_TYPE_DATA);
+
+  return 0;
+}
 
 static void
 error_message_to_client (struct arglist *globals, const char *msg,
@@ -781,6 +804,7 @@ attack_host (struct arglist *globals, struct arglist *hostinfos,
   pluginlaunch_wait ();
 
 host_died:
+  comm_send_status (globals, hostname, num_plugs, num_plugs);
   pluginlaunch_stop ();
   plugins_scheduler_free (sched);
 
