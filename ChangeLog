@@ -1,3 +1,9 @@
+2015-02-11  Michael Wiegand <michael.wiegand@greenbone.net>
+
+	Preparing the openvas-scanner 5.0+beta6 release.
+
+	* CHANGES: Updated.
+
 2015-02-09  Hani Benhabiles  <hani.benhabiles@greenbone.net>
 
 	* src/attack.c (comm_send_status): New function, moved from libraries.
