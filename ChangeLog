@@ -1,3 +1,8 @@
+2015-02-17  Hani Benhabiles  <hani.benhabiles@greenbone.net>
+
+	* src/attack.c (free_uploaded_file): Remove function.
+	(apply_hosts_preferences): Use g_hash_table_destroy() directly.
+
 2015-02-11  Michael Wiegand <michael.wiegand@greenbone.net>
 
 	Post release version bump.

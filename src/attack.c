@@ -908,29 +908,6 @@ attack_start (struct attack_start_args *args)
   close (thread_socket);
 }
 
-/**
- * @brief Frees memory used by uploaded, as callback for
- * @brief g_hash_table_foreach.
- *
- * @param key     Key of the hashtable (ignored).
- * @param value   Value of the hashtable (ignored).
- * @param ignored data-pointer (ignored).
- *
- * @return Currently always returns TRUE, indicating that every entry in the
- * @return hash table can be freed by the time this function is called.
- */
-gboolean
-free_uploaded_file (gchar * key, gchar * value, gpointer ignored)
-{
-  return TRUE;
-}
-
-/*******************************************************
-
-		PUBLIC FUNCTIONS
-
-********************************************************/
-
 static void
 apply_hosts_preferences (openvas_hosts_t *hosts)
 {
@@ -1428,7 +1405,7 @@ scan_stop:
   /* Free the memory used by the files uploaded by the user, if any. */
   files = arg_get_value (globals, "files_translation");
   if (files)
-    g_hash_table_foreach_remove (files, (GHRFunc) free_uploaded_file, NULL);
+    g_hash_table_destroy (files);
 
 stop:
   scan_stopped = !!(GPOINTER_TO_SIZE(arg_get_value (globals, "stop_required")));
