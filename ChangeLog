@@ -1,5 +1,12 @@
 2015-02-05  Henri Doreau <henri.doreau@gmail.com>
 
+	* src/attack.c (attack_start_args, attack_start, attack_network): Code
+	cleanup. Do not bother duplicating target FQDN into a structure field.
+	Use the heap allocated pointer returned by openvas_host_value_str()
+	instead.
+
+2015-02-05  Henri Doreau <henri.doreau@gmail.com>
+
 	* CMakeLists.txt, src/CMakeLists.txt: Link against libomp to satisfy
 	dependency chain.
 

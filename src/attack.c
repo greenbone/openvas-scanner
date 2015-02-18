@@ -83,7 +83,7 @@ struct attack_start_args
   int thread_socket;
   int parent_socket;
   kb_t *net_kb;
-  char fqdn[1024];
+  char *fqdn;
 };
 
 enum net_scan_status {
@@ -906,6 +906,7 @@ attack_start (struct attack_start_args *args)
              (long) ((now.tv_usec - then.tv_usec) / 10000));
   shutdown (thread_socket, 2);
   close (thread_socket);
+  g_free (args->fqdn);
 }
 
 static void
@@ -1310,8 +1311,8 @@ attack_network (struct arglist *globals, kb_t *network_kb)
         {
           struct attack_start_args args;
           char *MAC = NULL;
-          int mac_err = -1, soc[2];
-          gchar *name;
+          int mac_err = -1;
+          int soc[2];
 
           if (prefs_get_bool ("use_mac_addr") && v6_is_local_ip (&host_ip))
             {
@@ -1332,9 +1333,7 @@ attack_network (struct arglist *globals, kb_t *network_kb)
 
           args.globals = globals;
           memcpy (&args.hostip, &host_ip, sizeof (struct in6_addr));
-          name = openvas_host_value_str (host);
-          strncpy (args.fqdn, name, sizeof (args.fqdn));
-          g_free (name);
+          args.fqdn = openvas_host_value_str (host);
           args.host_mac_addr = MAC;
           args.sched = sched;
           args.thread_socket = soc[0];
