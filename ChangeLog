@@ -1,3 +1,8 @@
+2015-02-05  Henri Doreau <henri.doreau@gmail.com>
+
+	* CMakeLists.txt, src/CMakeLists.txt: Link against libomp to satisfy
+	dependency chain.
+
 2015-02-17  Hani Benhabiles  <hani.benhabiles@greenbone.net>
 
 	* src/attack.c (free_uploaded_file): Remove function.
