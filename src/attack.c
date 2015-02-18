@@ -819,12 +819,11 @@ static void
 attack_start (struct attack_start_args *args)
 {
   struct arglist *globals = args->globals;
-  char host_str[1024];
+  char host_str[INET6_ADDRSTRLEN];
   char *mac = args->host_mac_addr;
   struct arglist *plugs = arg_get_value (globals, "plugins");
-  struct in6_addr *hostip = &(args->hostip);
+  struct in6_addr *hostip = &args->hostip;
   struct arglist *hostinfos;
-
   const char *non_simult = prefs_get ("non_simult_ports");
   const char *vhosts = prefs_get ("vhosts");
   const char *vhosts_ip = prefs_get ("vhosts_ip");
@@ -873,7 +872,7 @@ attack_start (struct attack_start_args *args)
         txt_ip = g_strdup (inet_ntoa (inaddr));
       else
         {
-          char name[512];
+          char name[INET6_ADDRSTRLEN];
           txt_ip = g_strdup (inet_ntop (AF_INET6, hostip, name, sizeof (name)));
         }
       if (strcmp (vhosts_ip, txt_ip) != 0)
