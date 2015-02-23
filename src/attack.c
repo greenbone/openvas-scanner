@@ -784,7 +784,8 @@ attack_host (struct arglist *globals, struct arglist *hostinfos,
                 }
             }
 
-          if ((cur_plug * 100) / num_plugs >= last_status)
+          if ((cur_plug * 100) / num_plugs >= last_status
+              && !scan_is_stopped ())
             {
               last_status = (cur_plug * 100) / num_plugs + 2;
               if (comm_send_status (globals, hostname, cur_plug, num_plugs) < 0)
@@ -802,9 +803,10 @@ attack_host (struct arglist *globals, struct arglist *hostinfos,
     }
 
   pluginlaunch_wait ();
+  if (!scan_is_stopped ())
+    comm_send_status (globals, hostname, num_plugs, num_plugs);
 
 host_died:
-  comm_send_status (globals, hostname, num_plugs, num_plugs);
   pluginlaunch_stop ();
   plugins_scheduler_free (sched);
 

@@ -1,3 +1,8 @@
+2015-02-23  Hani Benhabiles  <hani.benhabiles@greenbone.net>
+
+	* src/attack.c (attack_host): Update scan status only when scan is
+	still running.
+
 2015-02-05  Henri Doreau <henri.doreau@gmail.com>
 
 	* src/attack.c (attack_start): Reduce stack-located buffers to required
