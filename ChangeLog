@@ -1,3 +1,7 @@
+2015-02-24  Benoît Allard  <benoit.allard@greenbone.net>
+
+	* doc/openvassd.8.in: Fix typo in man page
+
 2015-02-23  Hani Benhabiles  <hani.benhabiles@greenbone.net>
 
 	* src/attack.c (attack_host): Update scan status only when scan is

@@ -54,7 +54,7 @@ cipher suites.
 Sets the path to a PEM file containing Diffie-Hellman parameters. Needed for key
 DHE-based key exchange algorithms that provide Perfect Forward Secrecy.
 This file could be generated using tools like "openssl dhparam" and
-"certtool --generate-dh-params".
+"certtool \-\-generate-dh-params".
 
 .TP 
 .B "-f, --foreground"
@@ -232,7 +232,7 @@ resend the packets twice if no response is received.
 A very rough estimate is that a full scan for UDP, TCP and RPC as well as 
 all NASL scripts may result in 8 to 32 MB worth of traffic per scanned host. 
 Reducing the amount of tested part and such will reduce the amount of data
-to be transfered significantly.
+to be transferred significantly.
 
 .SH SEE ALSO
 .BR openvas-mkcert (8)
