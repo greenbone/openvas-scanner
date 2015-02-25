@@ -1,3 +1,18 @@
+2015-02-25  Hani Benhabiles  <hani.benhabiles@greenbone.net>
+
+	* src/attack.c (attack_network): Check if scan is stopped with
+	scan_is_stopped() instead of stop_required global value.
+
+	* src/hosts.c (host_rm): Remove hosts argument.
+	(hosts_stop_host): Take host struct as argument. Don't call host_rm() as
+	host scan processes may send data to the parent before exiting.
+	(hosts_stop_all): Adjust to not change hosts global variable value.
+	(hosts_read_data): Adjust for host_rm() change.
+
+	* src/hosts.h: Remove useless prototype.
+
+	* src/ntp.c (ntp_parse_input): Don't set stop_required globals value.
+
 2015-02-24  Benoît Allard  <benoit.allard@greenbone.net>
 
 	* doc/openvassd.8.in: Fix typo in man page

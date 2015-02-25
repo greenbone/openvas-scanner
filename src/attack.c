@@ -1149,7 +1149,6 @@ attack_network (struct arglist *globals, kb_t *network_kb)
   const gchar *network_targets, *port_range;
   gboolean network_phase = FALSE;
   gboolean do_network_scan = FALSE;
-  gboolean scan_stopped;
 
   gettimeofday (&then, NULL);
 
@@ -1408,7 +1407,6 @@ scan_stop:
     g_hash_table_destroy (files);
 
 stop:
-  scan_stopped = !!(GPOINTER_TO_SIZE(arg_get_value (globals, "stop_required")));
 
   openvas_hosts_free (hosts);
   openvas_hosts_free (hosts_allow);
@@ -1422,6 +1420,6 @@ stop:
   log_write ("Total time to scan all hosts : %ld seconds",
              now.tv_sec - then.tv_sec);
 
-  if (do_network_scan && network_phase && !scan_stopped)
+  if (do_network_scan && network_phase && !scan_is_stopped ())
     attack_network (globals, network_kb);
 }

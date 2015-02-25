@@ -134,8 +134,8 @@ forward_all (int in, int out)
 /*-------------------------------------------------------------------*/
 
 
-static struct host *
-host_rm (struct host *hosts, struct host *h)
+static void
+host_rm (struct host *h)
 {
   if (h->pid != 0)
     waitpid (h->pid, NULL, WNOHANG);
@@ -147,12 +147,9 @@ host_rm (struct host *hosts, struct host *h)
 
   if (h->prev != NULL)
     h->prev->next = h->next;
-  else
-    hosts = h->next;
 
   g_free (h->name);
   g_free (h);
-  return hosts;
 }
 
 /*-----------------------------------------------------------------*/
@@ -236,25 +233,25 @@ hosts_set_pid (char *name, pid_t pid)
 }
 
 /*-----------------------------------------------------------------*/
-int
-hosts_stop_host (char *name)
+static int
+hosts_stop_host (struct host *h)
 {
-  struct host *h = hosts_get (name);
   if (h == NULL)
     return -1;
 
   internal_send (h->soc, NULL,
                  INTERNAL_COMM_MSG_TYPE_CTRL | INTERNAL_COMM_CTRL_STOP);
-  hosts = host_rm (hosts, h);
   return 0;
 }
 
 void
 hosts_stop_all (void)
 {
-  while (hosts != NULL)
+  struct host *host = hosts;
+  while (host)
     {
-      hosts_stop_host (hosts->name);
+      hosts_stop_host (hosts);
+      host = host->next;
     }
 }
 
@@ -280,7 +277,8 @@ hosts_read_data (void)
     {
       if (kill (h->pid, 0) < 0) /* Process is dead */
         {
-          hosts = host_rm (hosts, h);
+          host_rm (h);
+          hosts = hosts->next;
           h = hosts;
         }
       else

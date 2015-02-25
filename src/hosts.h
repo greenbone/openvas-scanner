@@ -36,6 +36,5 @@ int hosts_new (struct arglist *, char *, int);
 int hosts_set_pid (char *, pid_t);
 int hosts_read (struct arglist *);
 void hosts_stop_all (void);
-int hosts_stop_host (char *);
 
 #endif
