@@ -31,7 +31,6 @@
 
 #include <errno.h>
 #include <unistd.h>   /* for close() */
-#include <signal.h>   /* for SIGTERM */
 #include <string.h>   /* for strlen() */
 #include <sys/stat.h>
 
@@ -251,7 +250,6 @@ nasl_thread (struct nasl_thread_args *nargs)
   proctitle_set ("openvassd: testing %s (%s)",
                  arg_get_value (arg_get_value (args, "HOSTNAME"), "NAME"),
                  name);
-  signal (SIGTERM, _exit);
 
   if (prefs_get_bool ("nasl_no_signature_check"))
     nasl_mode |= NASL_ALWAYS_SIGNED;

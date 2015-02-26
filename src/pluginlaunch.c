@@ -381,8 +381,6 @@ pluginlaunch_init (void)
   max_running_processes = get_max_checks_number ();
   old_max_running_processes = max_running_processes;
 
-  signal (SIGCHLD, wait_for_children);
-
   if (max_running_processes >= MAX_PROCESSES)
     {
       log_write
@@ -434,7 +432,6 @@ pluginlaunch_stop (void)
           bzero (&(processes[i]), sizeof (struct running));
         }
     }
-  openvas_signal (SIGTERM, _exit);
 }
 
 

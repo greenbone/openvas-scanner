@@ -1,5 +1,20 @@
 2015-02-26  Hani Benhabiles  <hani.benhabiles@greenbone.net>
 
+	* src/openvassd.c (reload): Make variable volatile and rename to
+	reload_flag.
+	(sighup): Rename to set_reload_flag().
+	(reload_openvassd, check_and_reload, init_openvassd): Adjust for
+	renamings. Don't set superfluous signal handlers.
+
+	* src/pluginlaunch.c (pluginlaunch_init, pluginlaunch_stop),
+	src/nasl_plugins (nasl_thread), src/processes.c (create_process): Remove
+	superfluous signal handlers setting.
+
+	* src/sighand.c (sighandler): Adjust to remove unused signals for
+	handler.
+
+2015-02-26  Hani Benhabiles  <hani.benhabiles@greenbone.net>
+
 	* src/hosts.c (sigchld_handler): Remove function.
 	(hosts_init): Don't set SIGCHLD signal handler, as this is already
 	handled by hosts_read_data().

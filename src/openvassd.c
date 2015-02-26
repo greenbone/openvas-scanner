@@ -78,7 +78,7 @@ struct arglist *global_plugins;
 
 static GHashTable *global_options;
 
-static int reload;
+static volatile int reload_flag;
 static int loading_stop;
 
 typedef struct
@@ -213,9 +213,9 @@ set_globals_from_preferences (void)
 }
 
 static void
-sighup (int i)
+set_reload_flag (int i)
 {
-  reload = 1;
+  reload_flag = 1;
 }
 
 /*
@@ -333,8 +333,8 @@ reload_openvassd ()
     exit (1);
 
   log_write ("Finished reloading the scanner.");
-  reload = 0;
-  openvas_signal (SIGHUP, sighup);
+  reload_flag = 0;
+  openvas_signal (SIGHUP, set_reload_flag);
 }
 
 static void
@@ -484,7 +484,7 @@ init_ssl_ctx (const char *priority, const char *dhparams)
 static void
 check_and_reload ()
 {
-  if (reload != 0)
+  if (reload_flag != 0)
     {
       proctitle_set ("openvassd: Reloading");
       reload_openvassd ();
@@ -635,13 +635,11 @@ init_openvassd (GHashTable *options, int first_pass, int stop_early,
 
   if (first_pass && !stop_early)
     {
-      openvas_signal (SIGSEGV, sighandler);
+      openvas_signal (SIGSEGV, sighand_segv);
       openvas_signal (SIGCHLD, sighand_chld);
       openvas_signal (SIGTERM, sighandler);
       openvas_signal (SIGINT, sighandler);
-      openvas_signal (SIGHUP, sighup);
-      openvas_signal (SIGUSR1, sighandler);     /* openvassd dies, not its sons */
-      openvas_signal (SIGPIPE, SIG_IGN);
+      openvas_signal (SIGHUP, set_reload_flag);
     }
 
   g_hash_table_replace (options, "isck", GSIZE_TO_POINTER (isck));

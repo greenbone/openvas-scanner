@@ -125,18 +125,10 @@ sighandler (int sign)
       murderer++;
       pidfile_remove ("openvassd");
       break;
-    case SIGUSR1:
-      sig = "USR1";
-      pidfile_remove ("openvassd");
-      break;
     case SIGINT:
       sig = "INT";
       pidfile_remove ("openvassd");
       murderer++;
-      break;
-    case SIGSEGV:
-      signal (SIGSEGV, _exit);
-      sig = "SEGV";
       break;
     default:
       sig = "< signal nonsense >";

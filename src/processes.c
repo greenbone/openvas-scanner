@@ -78,14 +78,11 @@ create_process (process_func_t function, void *argument)
 
   if (pid == 0)
     {
+      /* SIGHUP is only for reloading main scanner process. */
       openvas_signal (SIGHUP, SIG_IGN);
       openvas_signal (SIGTERM, pr_sigterm);
       openvas_signal (SIGINT, pr_sigterm);
-      openvas_signal (SIGPIPE, SIG_IGN);
-      openvas_signal (SIGUSR1, SIG_IGN);
-      openvas_signal (SIGUSR2, SIG_IGN);
-      openvas_signal (SIGCHLD, sighand_chld);
-      openvas_signal (SIGSEGV, sighand_segv);   /* Comment this line out to dump a core and debug openvassd */
+      openvas_signal (SIGSEGV, sighand_segv);
       srand48 (getpid () + getppid () + (long) time (NULL));    /* RATS: ignore */
       (*function) (argument);
       exit (0);
