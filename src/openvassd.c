@@ -326,6 +326,7 @@ reload_openvassd ()
   nvticache_free ();
   plugins = plugins_init ();
   set_globals_from_preferences ();
+arg_dump (global_plugins, 2);
   plugins_free (global_plugins);
   global_plugins = plugins;
   loading_handler_stop (handler_pid);
@@ -840,7 +841,7 @@ main (int argc, char *argv[])
     {
       printf ("OpenVAS Scanner %s\n", OPENVASSD_VERSION);
       printf
-        ("Most new code since 2005: (C) 2014 Greenbone Networks GmbH\n");
+        ("Most new code since 2005: (C) 2015 Greenbone Networks GmbH\n");
       printf
         ("Nessus origin: (C) 2004 Renaud Deraison <deraison@nessus.org>\n");
       printf ("License GPLv2: GNU GPL version 2\n");
