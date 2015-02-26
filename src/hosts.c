@@ -26,7 +26,6 @@
 */
 
 #include <errno.h>    /* for errno() */
-#include <signal.h>   /* for SIGTERM */
 #include <sys/wait.h> /* for waitpid() */
 #include <string.h>   /* for strlen() */
 #include <unistd.h>   /* for close() */
@@ -58,25 +57,6 @@ static struct host *hosts = NULL;
 static int g_soc = -1;
 static int g_max_hosts = 15;
 
-
-static void
-sigchld_handler (int sig)
-{
-  struct host *h = hosts;
-  while (h != NULL)
-    {
-      if (h->pid != 0)
-        {
-          int e;
-          do
-            {
-              e = waitpid (h->pid, NULL, WNOHANG);
-            }
-          while (e < 0 && errno == EINTR);
-        }
-      h = h->next;
-    }
-}
 
 /*-------------------------------------------------------------------------*/
 static int
@@ -190,7 +170,6 @@ hosts_init (int soc, int max_hosts)
 {
   g_soc = soc;
   g_max_hosts = max_hosts;
-  signal (SIGCHLD, sigchld_handler);
   return 0;
 }
 

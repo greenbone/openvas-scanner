@@ -1,3 +1,9 @@
+2015-02-26  Hani Benhabiles  <hani.benhabiles@greenbone.net>
+
+	* src/hosts.c (sigchld_handler): Remove function.
+	(hosts_init): Don't set SIGCHLD signal handler, as this is already
+	handled by hosts_read_data().
+
 2015-02-25  Hani Benhabiles  <hani.benhabiles@greenbone.net>
 
 	* src/attack.c (attack_network): Check if scan is stopped with
