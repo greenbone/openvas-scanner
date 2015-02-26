@@ -1,5 +1,9 @@
 2015-02-26  Jan-Oliver Wagner <jan-oliver.wagner@greenbone.net>
 
+	* src/openvassd.c: Removed accidently committed debug code.
+
+2015-02-26  Jan-Oliver Wagner <jan-oliver.wagner@greenbone.net>
+
 	* src/openvassd.c (main): Updated year to 2015.
 
 2015-02-26  Hani Benhabiles  <hani.benhabiles@greenbone.net>
