@@ -78,8 +78,9 @@ struct arglist *global_plugins;
 
 static GHashTable *global_options;
 
-static volatile int reload_flag;
-static int loading_stop;
+static volatile int loading_stop_signal = 0;
+static volatile int reload_signal = 0;
+static volatile int termination_signal = 0;
 
 typedef struct
 {
@@ -213,9 +214,15 @@ set_globals_from_preferences (void)
 }
 
 static void
-set_reload_flag (int i)
+handle_reload_signal (int sig)
 {
-  reload_flag = 1;
+  reload_signal = sig;
+}
+
+static void
+handle_termination_signal (int sig)
+{
+  termination_signal = sig;
 }
 
 /*
@@ -244,9 +251,9 @@ loading_client_handle (int soc)
  * @brief Handles term signal received by loading handler child process.
  */
 static void
-sighand_loading_handler (int sig)
+handle_loading_stop_signal (int sig)
 {
-  loading_stop = 1;
+  loading_stop_signal = sig;
 }
 
 /*
@@ -265,7 +272,7 @@ loading_handler_start ()
   if (child_pid != 0)
     return child_pid;
   proctitle_set ("openvassd (Loading Handler)");
-  openvas_signal (SIGTERM, sighand_loading_handler);
+  openvas_signal (SIGTERM, handle_loading_stop_signal);
   /*
    * Forked process will handle client requests until parent stops it with
    * loading_handler_stop ().
@@ -276,7 +283,7 @@ loading_handler_start ()
       struct sockaddr_in6 address6;
       int soc;
 
-      if (loading_stop)
+      if (loading_stop_signal)
         break;
       lg_address = sizeof (struct sockaddr_in6);
       soc = accept (global_iana_socket, (struct sockaddr *) (&address6),
@@ -299,6 +306,19 @@ loading_handler_stop (pid_t handler_pid)
   kill (handler_pid, SIGTERM);
   waitpid (handler_pid, &status, 0);
   destroy_loading_shm ();
+}
+
+/**
+ * @brief Initializes main scanner process' signal handlers.
+ */
+static void
+init_signal_handlers ()
+{
+  openvas_signal (SIGTERM, handle_termination_signal);
+  openvas_signal (SIGINT, handle_termination_signal);
+  openvas_signal (SIGQUIT, handle_termination_signal);
+  openvas_signal (SIGHUP, handle_reload_signal);
+  openvas_signal (SIGCHLD, sighand_chld);
 }
 
 /* Restarts the scanner by reloading the configuration. */
@@ -333,8 +353,8 @@ reload_openvassd ()
     exit (1);
 
   log_write ("Finished reloading the scanner.");
-  reload_flag = 0;
-  openvas_signal (SIGHUP, set_reload_flag);
+  reload_signal = 0;
+  openvas_signal (SIGHUP, handle_reload_signal);
 }
 
 static void
@@ -479,12 +499,27 @@ init_ssl_ctx (const char *priority, const char *dhparams)
 }
 
 /*
+ * @brief Terminates the scanner if a termination signal was received.
+ */
+static void
+check_termination ()
+{
+  if (termination_signal)
+    {
+      log_write ("Received the %s signal", strsignal (termination_signal));
+      make_em_die (SIGTERM);
+      log_close ();
+      _exit (0);
+    }
+}
+
+/*
  * @brief Reloads the scanner if a reload was requested.
  */
 static void
-check_and_reload ()
+check_reload ()
 {
-  if (reload_flag != 0)
+  if (reload_signal)
     {
       proctitle_set ("openvassd: Reloading");
       reload_openvassd ();
@@ -507,7 +542,8 @@ main_loop ()
       struct arglist *globals;
       struct addrinfo *ai;
 
-      check_and_reload ();
+      check_termination ();
+      check_reload ();
       wait_for_children1 ();
       ai = g_hash_table_lookup (global_options, "addr");
       lg_address = sizeof (struct sockaddr_in6);
@@ -631,15 +667,6 @@ init_openvassd (GHashTable *options, int first_pass, int stop_early,
     {
       if (first_pass != 0)
         init_network (scanner_port, &isck, *addr);
-    }
-
-  if (first_pass && !stop_early)
-    {
-      openvas_signal (SIGSEGV, sighand_segv);
-      openvas_signal (SIGCHLD, sighand_chld);
-      openvas_signal (SIGTERM, sighandler);
-      openvas_signal (SIGINT, sighandler);
-      openvas_signal (SIGHUP, set_reload_flag);
     }
 
   g_hash_table_replace (options, "isck", GSIZE_TO_POINTER (isck));
@@ -891,6 +918,7 @@ main (int argc, char *argv[])
   if (!global_plugins)
     return 1;
   flush_all_kbs ();
+  init_signal_handlers ();
   main_loop ();
   g_hash_table_destroy (options);
   exit (0);

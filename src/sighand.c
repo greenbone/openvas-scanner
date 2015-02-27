@@ -112,37 +112,6 @@ sighand_chld (pid_t pid)
   waitpid (pid, &status, WNOHANG);
 }
 
-void
-sighandler (int sign)
-{
-  char *sig = NULL;
-  int murderer = 0;
-
-  switch (sign)
-    {
-    case SIGTERM:
-      sig = "TERM";
-      murderer++;
-      pidfile_remove ("openvassd");
-      break;
-    case SIGINT:
-      sig = "INT";
-      pidfile_remove ("openvassd");
-      murderer++;
-      break;
-    default:
-      sig = "< signal nonsense >";
-    }
-
-  log_write ("received the %s signal", sig);
-
-  if (murderer)
-    make_em_die (sign);
-
-  log_close ();
-  _exit (0);
-}
-
 static void
 print_trace ()
 {

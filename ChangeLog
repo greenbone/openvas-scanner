@@ -1,3 +1,27 @@
+2015-02-27  Hani Benhabiles  <hani.benhabiles@greenbone.net>
+
+	* src/openvassd.c (reload_flag, loading_stop): Rename  to reload_signal
+	and loading_stop_signal.
+	(termination_signal): New variable.
+	(set_reload_flag, sighand_loading_stop_signal): Rename to
+	handle_reload_signal and handle_loading_stop_signal for consistency.
+	(handle_termination_signal, check_termination, init_signal_handlers):
+	New functions.
+	(loading_handler_start, reload_openvassd): Adjust for function and
+	variables renames.
+	(check_and_reload): Rename to check_reload.
+	(main_loop): Handle termination signal asynchronously.
+	(init_openvassd): Don't set signal handlers.
+	(main): Set signal handlers, after loading plugins.
+
+	* src/processes.c (create_process): Call init_child_signal_handlers.
+	(pr_sigterm): Remove unused function.
+	(init_child_signal_handlers): New function.
+
+	* src/sighand.c (sighandler): Remove function.
+
+	* src/sighand.h: Remove function prototype.
+
 2015-02-26  Jan-Oliver Wagner <jan-oliver.wagner@greenbone.net>
 
 	* src/openvassd.c: Removed accidently committed debug code.

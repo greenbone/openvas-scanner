@@ -39,13 +39,6 @@
 #include "log.h"
 
 
-static void
-pr_sigterm (int sig)
-{
-  _exit (0);
-}
-
-
 int
 terminate_process (pid_t pid)
 {
@@ -65,6 +58,16 @@ terminate_process (pid_t pid)
   return -1;
 }
 
+static void
+init_child_signal_handlers ()
+{
+  /* SIGHUP is only for reloading main scanner process. */
+  openvas_signal (SIGHUP, SIG_IGN);
+  openvas_signal (SIGTERM, make_em_die);
+  openvas_signal (SIGINT, make_em_die);
+  openvas_signal (SIGQUIT, make_em_die);
+  openvas_signal (SIGSEGV, sighand_segv);
+}
 
 /**
  * @brief Create a new process (fork).
@@ -78,11 +81,7 @@ create_process (process_func_t function, void *argument)
 
   if (pid == 0)
     {
-      /* SIGHUP is only for reloading main scanner process. */
-      openvas_signal (SIGHUP, SIG_IGN);
-      openvas_signal (SIGTERM, pr_sigterm);
-      openvas_signal (SIGINT, pr_sigterm);
-      openvas_signal (SIGSEGV, sighand_segv);
+      init_child_signal_handlers ();
       srand48 (getpid () + getppid () + (long) time (NULL));    /* RATS: ignore */
       (*function) (argument);
       exit (0);

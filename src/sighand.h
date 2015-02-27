@@ -34,7 +34,6 @@
 void (*openvas_signal (int signum, void (*handler) (int))) (int);
 void sighand_chld ();
 void sighand_segv ();
-void sighandler (int sign);
 
 void let_em_die (int pid);
 void make_em_die (int sig);
