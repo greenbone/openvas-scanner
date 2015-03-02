@@ -1,5 +1,9 @@
 2015-03-02  Hani Benhabiles  <hani.benhabiles@greenbone.net>
 
+	* src/ntp.c: Remove useless include.
+
+2015-03-02  Hani Benhabiles  <hani.benhabiles@greenbone.net>
+
 	* src/attack.c (is_pattern, pattern_matches)
 	(fill_host_kb_ssh_credentials): Remove unused functions.
 	(init_host_kb): Don't call fill_host_kb_ssh_credentials().

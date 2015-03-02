@@ -31,7 +31,6 @@
 #include <glib.h>
 
 #include <openvas/base/nvti.h>  /* for nvti_name */
-#include <openvas/base/hash_table_file.h>
 
 #include <openvas/misc/network.h>    /* for recv_line */
 #include <openvas/misc/openvas_ssh_login.h>
