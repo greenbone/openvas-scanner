@@ -300,69 +300,7 @@ files_add_size_translation (struct arglist *globals, const char *remotename,
 }
 
 /**
- * @brief Reads in a hashtable from file that maps login-account names to host
- * @brief names.
- *
- * On client side the file is known as .host_logins (if defined, found in each
- * task directory).
- * The GHashTable will be available through the (global) arglist under the key
- * "MAP_HOST_SSHLOGIN_NAME".
- *
- * @param globals     Arglist to add the GHashTable to.
- * @param keyfiledata String containing the serialized GHashTable in keyfile
- * format.
- */
-static void
-build_global_host_sshlogins_map (struct arglist *globals, char *keyfiledata)
-{
-  // Deserialize the hashtable that mapped login-account names to host names.
-  GHashTable *map_host_sshlogin_name =
-    hash_table_file_read_text (keyfiledata, strlen (keyfiledata));
-  // Add or replace it in the arglist
-  if (map_host_sshlogin_name != NULL
-      && arg_get_value (globals, "MAP_HOST_SSHLOGIN_NAME") == NULL)
-    arg_add_value (globals, "MAP_HOST_SSHLOGIN_NAME", ARG_PTR, -1,
-                   map_host_sshlogin_name);
-  else if (map_host_sshlogin_name != NULL)
-    arg_set_value (globals, "MAP_HOST_SSHLOGIN_NAME", -1,
-                   map_host_sshlogin_name);
-}
-
-/**
- * @brief Reads ssh login information with mapping that was sent by the client.
- *
- * The information (mapped to the client file name '.logins') is used to create a
- * GHashTable that maps openvas_ssh_login structs to the user-defined names for
- * login-accounts.
- *
- * If successful, the map is available under the key "MAP_NAME_SSHLOGIN".
- *
- * @param globals  Global arglist to add the map to.
- * @param filepath Content of the '.login' file sent by the client.
- */
-static void
-build_global_sshlogin_info_map (struct arglist *globals, char *keyfiledata)
-{
-  // Read the buffer, build map of names->structs
-  GHashTable *ssh_logins =
-    openvas_ssh_login_file_read_buffer (keyfiledata, strlen (keyfiledata), FALSE);
-  // Add/ Replace, if not-empty
-  if (ssh_logins != NULL
-      && arg_get_value (globals, "MAP_NAME_SSHLOGIN") == NULL)
-    arg_add_value (globals, "MAP_NAME_SSHLOGIN", ARG_PTR, -1, ssh_logins);
-  else if (ssh_logins != NULL)
-    arg_set_value (globals, "MAP_NAME_SSHLOGIN", -1, ssh_logins);
-}
-
-
-/**
  * @brief Receive a file sent by the client.
- *
- * Two files receive an extra treatment: <br>
- *  - The .logins file sent by a client is used to build a store for login
- * information.
- *  - The .host_sshlogins file sent by the client is used to map keys to
- * hostnames.
  *
  * @return 0 if successful, -1 in case of errors.
  */
@@ -449,21 +387,7 @@ ntp_recv_file (struct arglist *globals)
   files_add_translation (globals, origname, contents);
   files_add_size_translation (globals, origname, bytes);
 
-  // Check for files that are handled in a special manner access per-host
-  // login information.
-  gchar *origname_file = g_path_get_basename (origname);
-  if (!strcmp (origname_file, ".host_sshlogins"))
-    {
-      build_global_host_sshlogins_map (globals, contents);
-    }
-  else if (!strcmp (origname_file, ".logins"))
-    {
-      build_global_sshlogin_info_map (globals, contents);
-    }
-
   g_free (origname);
-  g_free (origname_file);
-
   return 0;
 }
 

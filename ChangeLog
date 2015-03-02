@@ -1,3 +1,13 @@
+2015-03-02  Hani Benhabiles  <hani.benhabiles@greenbone.net>
+
+	* src/attack.c (is_pattern, pattern_matches)
+	(fill_host_kb_ssh_credentials): Remove unused functions.
+	(init_host_kb): Don't call fill_host_kb_ssh_credentials().
+
+	* src/ntp.c (build_global_host_sshlogins_map)
+	(build_global_sshlogin_info_map): Remove functions.
+	(ntp_recv_file): Don't call removed functions.
+
 2015-02-27  Hani Benhabiles  <hani.benhabiles@greenbone.net>
 
 	* src/openvassd.c (reload_flag, loading_stop): Rename  to reload_signal
