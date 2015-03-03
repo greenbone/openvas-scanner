@@ -1,3 +1,7 @@
+2015-03-03  Hani Benhabiles  <hani.benhabiles@greenbone.net>
+
+	* src/ntp.c, src/attack.c: Remove inused includes.
+
 2015-03-02  Hani Benhabiles  <hani.benhabiles@greenbone.net>
 
 	* src/ntp.c: Remove useless include.

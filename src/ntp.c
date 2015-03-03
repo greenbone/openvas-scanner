@@ -33,7 +33,6 @@
 #include <openvas/base/nvti.h>  /* for nvti_name */
 
 #include <openvas/misc/network.h>    /* for recv_line */
-#include <openvas/misc/openvas_ssh_login.h>
 #include <openvas/misc/internal_com.h> /* for INTERNAL_COMM_MSG_TYPE_DATA */
 #include <openvas/misc/prefs.h>        /* for prefs_get() */
 

@@ -45,7 +45,6 @@
 #include <openvas/misc/pcap_openvas.h>   /* for v6_is_local_ip */
 #include <openvas/misc/plugutils.h>      /* for plug_get_launch */
 #include <openvas/misc/prefs.h>          /* for prefs_get() */
-#include <openvas/misc/openvas_ssh_login.h>
 #include <openvas/misc/internal_com.h>
 
 #include <openvas/base/nvticache.h>     /* for nvticache_t */
@@ -455,8 +454,6 @@ kb_duplicate(kb_t dst, kb_t src, const gchar *filter)
  * @param new_kb[out] TRUE if the kb is new and shall be saved.
  *
  * @return A knowledge base.
- *
- * @see fill_host_kb_ssh_credentials
  */
 static kb_t
 init_host_kb (struct arglist *globals, char *hostname,
