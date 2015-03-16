@@ -1,5 +1,14 @@
 2015-03-16  Michael Wiegand <michael.wiegand@greenbone.net>
 
+	Preparing the openvas-scanner 5.0.0 release.
+
+	* CHANGES: Updated.
+
+	* CMakeLists.txt: Switch version scheme. Exclude generated files from
+	source package.
+
+2015-03-16  Michael Wiegand <michael.wiegand@greenbone.net>
+
 	* tools/openvas-nvt-sync.in: Support for migration of unsigned files
 	to the "private/" subdirectory has been removed as it was obsolete
 	since the retirement of OpenVAS-5.

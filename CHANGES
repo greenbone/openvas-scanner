@@ -1,3 +1,53 @@
+openvas-scanner 5.0.0 (2015-03-16)
+
+This is the first release of the openvas-scanner 5.0 module for the Open
+Vulnerability Assessment System release 8 (OpenVAS-8). Compared to the previous
+major release it now uses a Redis based back end for the internal knowledge
+base. It removes support for the scan pausing feature and considerably reduces
+memory consumption and provides a number of other improvements.
+
+Many thanks to everyone who contributed to this release:
+Benoit Allard, Hani Benhabiles, Henri Doreau, Matthew Mundell, Jan-Oliver Wagner
+and Michael Wiegand.
+
+Main changes compared to the 4.0 series:
+* OpenVAS Scanner now uses the Redis based knowledge base (KB) back end. This
+  makes it mandatory to run a Redis server for scanning.
+* Support for the scan pausing feature has been removed.
+* The commands STOP_ATTACK and OPENVASSD_VERSION have been removed from OTP.
+* The scanner will no longer set the obsolete "src" element for the NVTi cache.
+* The default key size for certificates produces by the "mkcert" tools has been
+  changed from 1024 to 4096 bits, the scripts now use SHA-256 instead of SHA-1
+  as the message digest algorithm.
+* The scanner will no longer implicitly launch NVTs from the ACT_SETTINGS
+  category when scanning.
+* When commanded to stop a scan the scanner will now switch to ACT_END instead
+  of immediately bailing out.
+* Memory consumption has been considerably reduced.
+* Internal memory management now uses the appropriate glib functions instead of
+  the custom implementation provided by openvas-libraries used previously.
+* The OID of the affected NVT is now reported if an NVT terminates early.
+* The scanner now logs a backtrace when a process segfaults.
+* The communication of the host scanning status with the client has been
+  improved to allow for more accurate progress information.
+* Library checks during package configuration have been improved and are now
+  more comprehensive and consistent.
+* Handling of linker and compiler flags during package configuration has been
+  improved and simplified.
+* Support for migration of unsigned files to the "private/" subdirectory has
+  been removed as it was obsolete since the retirement of OpenVAS-5.
+* Signal handling has been improved.
+* Comprehensive code cleanups.
+
+Main changes compared to 5.0+beta6:
+* An issue which caused openvassd process to fail to terminate when a scan was
+  requested to stop has been fixed.
+* Support for migration of unsigned files to the "private/" subdirectory has
+  been removed as it was obsolete since the retirement of OpenVAS-5.
+* Signal handling has been improved.
+* Various code cleanups and improvements.
+
+
 openvas-scanner 5.0+beta6 (2015-02-11)
 
 This is the sixth beta release of the openvas-scanner 5.0 module for the Open
