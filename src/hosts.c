@@ -256,8 +256,8 @@ hosts_read_data (void)
     {
       if (kill (h->pid, 0) < 0) /* Process is dead */
         {
-          host_rm (h);
           hosts = hosts->next;
+          host_rm (h);
           h = hosts;
         }
       else
