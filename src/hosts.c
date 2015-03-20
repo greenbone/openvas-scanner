@@ -229,7 +229,7 @@ hosts_stop_all (void)
   struct host *host = hosts;
   while (host)
     {
-      hosts_stop_host (hosts);
+      hosts_stop_host (host);
       host = host->next;
     }
 }
