@@ -218,8 +218,8 @@ hosts_stop_host (struct host *h)
   if (h == NULL)
     return -1;
 
-  internal_send (h->soc, NULL,
-                 INTERNAL_COMM_MSG_TYPE_CTRL | INTERNAL_COMM_CTRL_STOP);
+  log_write ("Stopping host %s scan", h->name);
+  kill (h->pid, SIGUSR1);
   return 0;
 }
 
@@ -256,7 +256,8 @@ hosts_read_data (void)
     {
       if (kill (h->pid, 0) < 0) /* Process is dead */
         {
-          hosts = hosts->next;
+          if (!h->prev)
+            hosts = hosts->next;
           host_rm (h);
           h = hosts;
         }

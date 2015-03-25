@@ -143,28 +143,6 @@ wait_for_children (int sig)
       }
 }
 
-/*
- * Signal management
- */
-void
-process_mgr_sighand_term (int sig)
-{
-  int i;
-
-  for (i = 0; i < MAX_PROCESSES; i++)
-    {
-      if (processes[i].pid > 0)
-        {
-          kill (processes[i].pid, SIGTERM);
-          num_running_processes--;
-          processes[i].plugin->running_state = PLUGIN_STATUS_DONE;
-          close (processes[i].internal_soc);
-          bzero (&(processes[i]), sizeof (struct running));
-        }
-    }
-  _exit (0);
-}
-
 /**
  *
  */
@@ -392,7 +370,6 @@ pluginlaunch_init (void)
 
   num_running_processes = 0;
   bzero (&(processes), sizeof (processes));
-  openvas_signal (SIGTERM, process_mgr_sighand_term);
 }
 
 void

@@ -265,28 +265,6 @@ scan_is_stopped ()
  return global_scan_stop;
 }
 
-static void
-check_scan_stop (int soc)
-{
-  int bufsz = 0, type = 0, flags;
-  char *buffer = NULL;
-
-  /* Set socket as non-blocking for this check. */
-  if ((flags = fcntl (soc, F_GETFL, 0)) < 0)
-    return;
-  if (fcntl (soc, F_SETFL, O_NONBLOCK | flags) < 0)
-    return;
-  if (internal_recv (soc, &buffer, &bufsz, &type) >= 0
-      && type & INTERNAL_COMM_CTRL_STOP
-      && type & INTERNAL_COMM_MSG_TYPE_CTRL)
-    {
-      global_scan_stop = 1;
-      pluginlaunch_stop ();
-    }
-  g_free (buffer);
-  fcntl (soc, F_SETFL, flags & ~O_NONBLOCK);
-}
-
 /**
  * @brief Launches a nvt. Respects safe check preference (i.e. does not try
  * @brief destructive nvt if save_checks is yes).
@@ -317,9 +295,6 @@ launch_plugin (struct arglist *globals, struct scheduler_plugin *plugin,
       else
         log_write ("Stopped scan wrap-up: Launching %s", plugin->arglist->name);
     }
-  else
-    check_scan_stop (GPOINTER_TO_SIZE (arg_get_value
-                                        (globals, "global_socket")));
 
   if (network_scan_status (globals) == NSS_BUSY)
     network_scan = TRUE;
@@ -946,6 +921,13 @@ check_kb_access (struct arglist *globals)
   return rc;
 }
 
+static void
+handle_scan_stop_signal ()
+{
+  pluginlaunch_stop ();
+  global_scan_stop = 1;
+}
+
 /**
  * @brief Attack a whole network.
  */
@@ -1094,6 +1076,7 @@ attack_network (struct arglist *globals, kb_t *network_kb)
   /*
    * Start the attack !
    */
+  openvas_signal (SIGUSR1, handle_scan_stop_signal);
   while (host)
     {
       int pid;

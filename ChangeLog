@@ -1,3 +1,17 @@
+2015-03-25  Hani Benhabiles  <hani.benhabiles@greenbone.net>
+
+	* src/attack.c (check_scan_stop): Remove function.
+	(launch_plugin): Remove check_scan_stop() call.
+	(handle_scan_stop_signal): New function.
+	(attack_network): Set SIGUSR1 signal handler.
+
+	* src/hosts.c (hosts_stop_host): Send SIGUSR1 signal to host, instead of
+	sending INTERNAL_COMM_CTRL_STOP via the communication socket.
+	(hosts_read_data): Set hosts to next only when h is first host in list.
+
+	* src/pluginlaunch.c (process_mgr_sighand_term): Remove function.
+	(pluginlaunch_init): Remove SIGTERM handler.
+
 2015-03-20  Hani Benhabiles  <hani.benhabiles@greenbone.net>
 
 	* src/hosts.c (hosts_stop_all): Stop the right host.
