@@ -1,3 +1,8 @@
+2015-03-26  Hani Benhabiles  <hani.benhabiles@greenbone.net>
+
+	* src/utils.c (is_client_present): Reset errno as it will be tested for
+	after select() call. Check for select() failure.
+
 2015-03-25  Hani Benhabiles  <hani.benhabiles@greenbone.net>
 
 	* src/attack.c (check_scan_stop): Remove function.
