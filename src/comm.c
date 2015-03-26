@@ -564,8 +564,10 @@ comm_send_nvt_info (struct arglist *globals)
 
   for (;;)
     {
+      int soc = GPOINTER_TO_SIZE (arg_get_value (globals, "global_socket"));
+
       bzero (buf, sizeof (buf));
-      auth_gets (globals, buf, sizeof (buf) - 1);
+      recv_line (soc, buf, sizeof (buf) - 1);
       if (strstr (buf, "COMPLETE_LIST"))
         comm_send_pluginlist (globals);
       else if (strstr (buf, "PLUGIN_INFO"))

@@ -1,5 +1,15 @@
 2015-03-26  Hani Benhabiles  <hani.benhabiles@greenbone.net>
 
+	* src/comm.c (comm_send_nvt_info): Use recv_line() instead of removed
+	auth_gets().
+
+	* src/utils.c (auth_send, auth_printf): New functions, moved from
+	libraries and adjusted.
+
+	* src/utils.h: Add function prototype.
+
+2015-03-26  Hani Benhabiles  <hani.benhabiles@greenbone.net>
+
 	* src/comm.c (comm_wait_order): Handle ntp_parse_input () return value
 	correctly. Return value instead of exitting.
 
