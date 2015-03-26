@@ -63,6 +63,8 @@ ntp_parse_input (struct arglist *globals, char *input)
   char *str;
   int result = 1;               /* default return value is 1 */
 
+  if (*input == '\0')
+    return -1;
   str = strstr (input, " <|> ");
   if (str == NULL)
     return 1;

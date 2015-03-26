@@ -322,7 +322,7 @@ comm_send_preferences (struct arglist *globals)
  * @brief This function waits for the attack order of the client.
  * Meanwhile, it processes all the messages the client could send.
  */
-void
+int
 comm_wait_order (struct arglist *globals)
 {
   int soc = GPOINTER_TO_SIZE (arg_get_value (globals, "global_socket"));
@@ -336,17 +336,23 @@ comm_wait_order (struct arglist *globals)
       if (n < 0)
         {
           log_write ("Client closed the communication");
-          exit (0);
+          return -1;
         }
       if (str[0] == '\0')
         if (!is_client_present (soc))
           {
             log_write ("Client not present");
-            exit (0);
+            return -1;
           }
 
-      if (ntp_parse_input (globals, str) == 0)
-        break;
+      n = ntp_parse_input (globals, str);
+      if (n == 0)
+        return 0;
+      else if (n == -1)
+        {
+          log_write ("Client input parsing error: %s", str);
+          return -1;
+        }
     }
 }
 
