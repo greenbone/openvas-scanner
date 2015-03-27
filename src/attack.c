@@ -102,9 +102,8 @@ enum net_scan_status {
  * @brief Sends the status of a host's scan.
  */
 static int
-comm_send_status (struct arglist *globals, char *hostname, int curr, int max)
+comm_send_status (int soc, char *hostname, int curr, int max)
 {
-  int soc = GPOINTER_TO_SIZE (arg_get_value (globals, "global_socket"));
   char buffer[2048];
 
   if (soc < 0 || soc > 1024)
@@ -461,8 +460,6 @@ init_host_kb (struct arglist *globals, char *hostname,
         assert (network_kb != NULL);
         assert (*network_kb != NULL);
         kb = *network_kb;
-        arg_add_value (globals, "CURRENTLY_TESTED_HOST", ARG_STRING,
-                       strlen ("network"), "network");
         break;
 
       default:
@@ -472,8 +469,6 @@ init_host_kb (struct arglist *globals, char *hostname,
             report_kb_failure (soc, rc);
             return NULL;
           }
-        arg_add_value (globals, "CURRENTLY_TESTED_HOST", ARG_STRING,
-                       strlen (hostname), hostname);
     }
 
   /* Add Hostname and Host-IP */
@@ -516,12 +511,13 @@ attack_host (struct arglist *globals, struct arglist *hostinfos,
              char *hostname, plugins_scheduler_t sched, kb_t *net_kb)
 {
   /* Used for the status */
-  int num_plugs, forks_retry = 0;
+  int num_plugs, forks_retry = 0, global_socket;
   kb_t kb;
   struct arglist *plugins = global_plugins;
 
   proctitle_set ("openvassd: testing %s", arg_get_value (hostinfos, "NAME"));
 
+  global_socket = GPOINTER_TO_SIZE (arg_get_value (globals, "global_socket"));
   kb = init_host_kb (globals, hostname, hostinfos, net_kb);
   if (kb == NULL)
     return;
@@ -583,7 +579,8 @@ attack_host (struct arglist *globals, struct arglist *hostinfos,
               && !scan_is_stopped ())
             {
               last_status = (cur_plug * 100) / num_plugs + 2;
-              if (comm_send_status (globals, hostname, cur_plug, num_plugs) < 0)
+              if (comm_send_status
+                   (global_socket, hostname, cur_plug, num_plugs) < 0)
                 {
                   pluginlaunch_stop ();
                   goto host_died;
@@ -599,7 +596,7 @@ attack_host (struct arglist *globals, struct arglist *hostinfos,
 
   pluginlaunch_wait ();
   if (!scan_is_stopped ())
-    comm_send_status (globals, hostname, num_plugs, num_plugs);
+    comm_send_status (global_socket, hostname, num_plugs, num_plugs);
 
 host_died:
   pluginlaunch_stop ();

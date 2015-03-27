@@ -1,5 +1,12 @@
 2015-03-27  Hani Benhabiles  <hani.benhabiles@greenbone.net>
 
+	* src/attack.c (comm_send_status): Take socket instead of globals as
+	argument.
+	(init_host_kb): Don't set unused CURRENTLY_TESTED_HOST globals value.
+	(attack_host): Adjust function call.
+
+2015-03-27  Hani Benhabiles  <hani.benhabiles@greenbone.net>
+
 	* src/attack.c (error_message_to_client, report_kb_failure)
 	(apply_source_iface_preference, check_kb_access): Take socket as
 	argument, instead of globals arglist.
