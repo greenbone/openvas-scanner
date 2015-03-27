@@ -1,5 +1,15 @@
 2015-03-27  Hani Benhabiles  <hani.benhabiles@greenbone.net>
 
+	* src/comm.c (is_client_present): New function.
+	(comm_terminate): Wait for client to acknowledge termination.
+
+	* src/openvassd.c (handle_client): Remove ntp_keep_communication_alive
+	preference handling loop.
+
+	* src/utils.c, src/utils.h (is_client_present): Remove function.
+
+2015-03-27  Hani Benhabiles  <hani.benhabiles@greenbone.net>
+
 	* src/attack.c (comm_send_status): Take socket instead of globals as
 	argument.
 	(init_host_kb): Don't set unused CURRENTLY_TESTED_HOST globals value.

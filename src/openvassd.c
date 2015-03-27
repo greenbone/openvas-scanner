@@ -365,7 +365,6 @@ handle_client (struct arglist *globals)
 
   /* Become process group leader and the like ... */
   start_daemon_mode ();
-wait:
   if (comm_wait_order (globals))
     return;
   ntp_timestamp_scan_starts (soc);
@@ -377,11 +376,6 @@ wait:
     }
   ntp_timestamp_scan_ends (soc);
   comm_terminate (soc);
-  if (prefs_get ("ntp_keep_communication_alive"))
-    {
-      log_write ("Kept alive connection");
-      goto wait;
-    }
 }
 
 static void

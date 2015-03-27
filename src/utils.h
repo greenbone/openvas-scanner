@@ -49,7 +49,6 @@ struct arglist *list2arglist (char *);
 int common (struct arglist *, struct arglist *);
 
 int process_alive (pid_t);
-int is_client_present (int);
 int data_left (int);
 
 void wait_for_children1 (void);

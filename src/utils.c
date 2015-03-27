@@ -211,44 +211,6 @@ process_alive (pid_t pid)
   return kill (pid, 0) == 0;
 }
 
-
-/**
- * Determines if the client is still connected.
- * @return 1 if the client is here, 0 if it's not.
- */
-int
-is_client_present (int soc)
-{
-  fd_set rd;
-  struct timeval tv;
-  int m, e;
-
-  stream_zero (&rd);
-  m = stream_set (soc, &rd);
-again:
-  tv.tv_sec = 2;
-  tv.tv_usec = 0;
-  errno = 0;
-  e = select (m + 1, &rd, NULL, NULL, &tv);
-  if (e < 0)
-    {
-      if (errno == EINTR)
-        goto again;
-      return 0;
-    }
-
-  if (e > 0)
-    {
-      int len = data_left (openvas_get_socket_from_connection (soc));
-      if (!len)
-        {
-          log_write ("Communication closed by client");
-          return 0;
-        }
-    }
-  return 1;
-}
-
 int
 data_left (soc)
      int soc;
