@@ -51,7 +51,7 @@
 
 
 static int ntp_read_prefs (int);
-static int ntp_long_attack (struct arglist *);
+static int ntp_long_attack (int);
 static int ntp_recv_file (struct arglist *);
 
 /**
@@ -89,7 +89,7 @@ ntp_parse_input (struct arglist *globals, char *input)
           break;
 
         case CREQ_LONG_ATTACK:
-          result = ntp_long_attack (globals);
+          result = ntp_long_attack (soc);
           break;
 
         case CREQ_PLUGIN_INFO:
@@ -131,9 +131,8 @@ ntp_parse_input (struct arglist *globals, char *input)
 }
 
 static int
-ntp_long_attack (struct arglist *globals)
+ntp_long_attack (int soc)
 {
-  int soc = GPOINTER_TO_SIZE (arg_get_value (globals, "global_socket"));
   char input[16384];
   int size;
   char *target;
@@ -183,7 +182,7 @@ ntp_long_attack (struct arglist *globals)
 /**
  * @brief Reads in "server" prefs sent by client.
  *
- * @param globals The global arglist.
+ * @param int   Socket to read from.
  * @return Always 0.
  */
 static int
@@ -381,7 +380,7 @@ ntp_recv_file (struct arglist *globals)
           tot += n;
         }
     }
-  auth_printf (globals, "SERVER <|> FILE_ACCEPTED <|> SERVER\n");
+  send_printf (soc, "SERVER <|> FILE_ACCEPTED <|> SERVER\n");
   /* Add the fact that what the remote client calls <filename> is actually
    * stored in <contents> here and has a size of <bytes> bytes. */
   files_add_translation (globals, origname, contents);

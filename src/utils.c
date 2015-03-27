@@ -303,9 +303,9 @@ is_scanner_only_pref (const char *pref)
  * @brief Writes data to a socket.
  */
 static void
-auth_send (int soc, int confirm, char *data)
+auth_send (int soc, char *data)
 {
-  int n = 0, sent = 0;
+  int sent = 0;
   gsize length;
 
   if (soc < 0)
@@ -315,7 +315,7 @@ auth_send (int soc, int confirm, char *data)
   data = g_convert (data, -1, "UTF-8", "ISO_8859-1", NULL, &length, NULL);
   while (sent < length)
     {
-      n = nsend (soc, data + sent, length - sent, 0);
+      int n = nsend (soc, data + sent, length - sent, 0);
       if (n < 0)
         {
           if ((errno != ENOMEM) && (errno != ENOBUFS))
@@ -328,32 +328,6 @@ auth_send (int soc, int confirm, char *data)
         sent += n;
     }
   g_free (data);
-
-  /* If confirm is set, then we are a son
-   * trying to report some message to our busy
-   * father. So we wait until he told us he
-   * took care of it. */
-  if (confirm)
-    read_stream_connection_min (soc, &n, 1, 1);
-}
-
-/**
- * @brief Writes data to the global socket of the thread.
- */
-void
-auth_printf (struct arglist *globals, char *data, ...)
-{
-  va_list param;
-  char *buffer;
-  int soc = GPOINTER_TO_SIZE (arg_get_value (globals, "global_socket"));
-  int confirm = GPOINTER_TO_SIZE (arg_get_value (globals, "confirm"));
-
-  va_start (param, data);
-  buffer = g_strdup_vprintf (data, param);
-  va_end (param);
-
-  auth_send (soc, confirm, buffer);
-  g_free (buffer);
 }
 
 /**
@@ -369,6 +343,6 @@ send_printf (int soc, char *data, ...)
   buffer = g_strdup_vprintf (data, param);
   va_end (param);
 
-  auth_send (soc, 0, buffer);
+  auth_send (soc, buffer);
   g_free (buffer);
 }

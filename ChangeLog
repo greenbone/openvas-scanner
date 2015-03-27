@@ -1,5 +1,27 @@
 2015-03-27  Hani Benhabiles  <hani.benhabiles@greenbone.net>
 
+	* src/attack.c (error_message_to_client, report_kb_failure)
+	(apply_source_iface_preference, check_kb_access): Take socket as
+	argument, instead of globals arglist.
+	(init_host_kb, attack_network): Adjust functions calls.
+	(attack_start): Don't set unused confirm value.
+
+	* src/ntp.c (ntp_long_attack): Take socket as argument.
+	(ntp_parse_input): Adjust function call.
+
+	* src/otp.h: Remove unused function header.
+
+	* src/pluginlaunch.c (running): Remove unused globals element.
+	(plugin_launch): Don't set globals element.
+
+	* src/utils.c (auth_send): Remove unused confirm parameter.
+	(send_printf): Adjust function call.
+	(auth_printf): Remove unused function.
+
+	* src/utils.h: Remove function prototype.
+
+2015-03-27  Hani Benhabiles  <hani.benhabiles@greenbone.net>
+
 	* src/comm.c (comm_terminate, send_plug_info, plugin_send_infos)
 	(comm_send_pluginlist, comm_send_preference, comm_setup_plugins)
 	(comm_send_nvt_infos): Take socket as argument, instead of globals

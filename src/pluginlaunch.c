@@ -62,7 +62,6 @@
 struct running
 {
   int pid;             /**< Process ID. */
-  struct arglist *globals;   /**< 'Global' arglist. */
   struct scheduler_plugin *plugin;
   struct timeval start;
   int timeout;               /**< Timeout after which to kill process
@@ -431,7 +430,6 @@ plugin_launch (struct arglist *globals, struct scheduler_plugin *plugin,
     }
 
   p = next_free_process (plugin);
-  processes[p].globals = globals;
   processes[p].plugin = plugin;
   processes[p].launch_status = plug_get_launch (plugin->arglist->value);
   processes[p].timeout = prefs_nvt_timeout (plugin->arglist->name);

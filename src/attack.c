@@ -123,18 +123,16 @@ comm_send_status (struct arglist *globals, char *hostname, int curr, int max)
 }
 
 static void
-error_message_to_client (struct arglist *globals, const char *msg,
-                         const char *hostname, const char *port)
+error_message_to_client (int soc, const char *msg, const char *hostname,
+                         const char *port)
 {
-  auth_printf (globals,
-               "SERVER <|> ERRMSG <|> %s <|> %s <|> %s <|>  <|> SERVER\n",
-               hostname ? hostname : "",
-               port ? port : "",
+  send_printf (soc, "SERVER <|> ERRMSG <|> %s <|> %s <|> %s <|>  <|> SERVER\n",
+               hostname ? hostname : "", port ? port : "",
                msg ? msg : "No error.");
 }
 
 static void
-report_kb_failure (struct arglist *globals, int errcode)
+report_kb_failure (int soc, int errcode)
 {
   gchar *msg;
 
@@ -142,7 +140,7 @@ report_kb_failure (struct arglist *globals, int errcode)
   msg = g_strdup_printf ("WARNING: Cannot connect to KB at '%s': %s'",
                          prefs_get ("kb_location"), strerror (errcode));
   log_write ("%s", msg);
-  error_message_to_client (globals, msg, NULL, NULL);
+  error_message_to_client (soc, msg, NULL, NULL);
   g_free (msg);
 }
 
@@ -439,17 +437,18 @@ init_host_kb (struct arglist *globals, char *hostname,
   gchar *vhosts, *hostname_pattern, *hoststr;
   enum net_scan_status nss;
   const gchar *kb_path = prefs_get ("kb_location");
-  int rc;
+  int rc, soc;
   struct in6_addr *hostip;
 
   nss = network_scan_status (globals);
+  soc = GPOINTER_TO_SIZE (arg_get_value (globals, "global_socket"));
   switch (nss)
     {
       case NSS_DONE:
         rc = kb_new (&kb, kb_path);
         if (rc)
           {
-            report_kb_failure (globals, rc);
+            report_kb_failure (soc, rc);
             return NULL;
           }
 
@@ -470,7 +469,7 @@ init_host_kb (struct arglist *globals, char *hostname,
         rc = kb_new (&kb, kb_path);
         if (rc)
           {
-            report_kb_failure (globals, rc);
+            report_kb_failure (soc, rc);
             return NULL;
           }
         arg_add_value (globals, "CURRENTLY_TESTED_HOST", ARG_STRING,
@@ -654,9 +653,6 @@ attack_start (struct attack_start_args *args)
                                  (arg_get_value (globals, "global_socket")));
   arg_set_value (globals, "global_socket", -1,
                  GSIZE_TO_POINTER (thread_socket));
-
-  /* Wait for the server to confirm it read our data (prevents client desynch) */
-  arg_add_value (globals, "confirm", ARG_INT, sizeof (int), (void *) 1);
 
   if (vhosts == NULL || vhosts_ip == NULL)
     hostinfos = attack_init_hostinfos (mac, host_str, hostip, args->fqdn);
@@ -849,7 +845,7 @@ host_authorized (const openvas_host_t *host, const struct in6_addr *addr,
  * unauthorized value, -2 if iface can't be used.
  */
 static int
-apply_source_iface_preference (struct arglist *globals)
+apply_source_iface_preference (int soc)
 {
   const char *source_iface = prefs_get ("source_iface");
   int ret;
@@ -864,7 +860,7 @@ apply_source_iface_preference (struct arglist *globals)
                                     source_iface);
       log_write ("source_iface: Unauthorized source interface %s.",
                  source_iface);
-      error_message_to_client (globals, msg, NULL, NULL);
+      error_message_to_client (soc, msg, NULL, NULL);
 
       g_free (msg);
       return -1;
@@ -877,7 +873,7 @@ apply_source_iface_preference (struct arglist *globals)
       log_write ("source_iface: Unauthorized source interface %s."
                  " (sys_* preference restriction.)",
                  source_iface);
-      error_message_to_client (globals, msg, NULL, NULL);
+      error_message_to_client (soc, msg, NULL, NULL);
 
       g_free (msg);
       return -1;
@@ -888,7 +884,7 @@ apply_source_iface_preference (struct arglist *globals)
       gchar *msg = g_strdup_printf ("Erroneous source interface: %s",
                                     source_iface);
       log_write ("source_iface: Error with %s interface.", source_iface);
-      error_message_to_client (globals, msg, NULL, NULL);
+      error_message_to_client (soc, msg, NULL, NULL);
 
       g_free (msg);
       return -2;
@@ -908,14 +904,14 @@ apply_source_iface_preference (struct arglist *globals)
 }
 
 static int
-check_kb_access (struct arglist *globals)
+check_kb_access (int soc)
 {
   int rc;
   kb_t kb;
 
   rc = kb_new (&kb, prefs_get ("kb_location"));
   if (rc)
-      report_kb_failure (globals, rc);
+      report_kb_failure (soc, rc);
   else
     kb_delete (kb);
 
@@ -996,14 +992,15 @@ attack_network (struct arglist *globals, kb_t *network_kb)
 
   plugins = global_plugins;
 
-  if (check_kb_access(globals))
+  if (check_kb_access(global_socket))
       return;
 
   /* Init and check Target List */
   hostlist = prefs_get ("TARGET");
   if (hostlist == NULL)
     {
-      error_message_to_client (globals, "Missing target hosts", NULL, NULL);
+      error_message_to_client (global_socket, "Missing target hosts", NULL,
+                               NULL);
       return;
     }
 
@@ -1011,7 +1008,8 @@ attack_network (struct arglist *globals, kb_t *network_kb)
   port_range = prefs_get ("port_range");
   if (validate_port_range (port_range))
     {
-      error_message_to_client (globals, "Invalid port range", NULL, port_range);
+      error_message_to_client (global_socket, "Invalid port range", NULL,
+                               port_range);
       return;
     }
 
@@ -1040,7 +1038,7 @@ attack_network (struct arglist *globals, kb_t *network_kb)
           rc = kb_new (network_kb, prefs_get ("kb_location"));
           if (rc)
             {
-              report_kb_failure (globals, rc);
+              report_kb_failure (global_socket, rc);
               host = NULL;
             }
           else
@@ -1058,10 +1056,11 @@ attack_network (struct arglist *globals, kb_t *network_kb)
   apply_hosts_preferences (hosts);
 
   /* Don't start if the provided interface is unauthorized. */
-  if (apply_source_iface_preference (globals) != 0)
+  if (apply_source_iface_preference (global_socket) != 0)
     {
       openvas_hosts_free (hosts);
-      error_message_to_client (globals, "Interface not authorized for scanning", NULL, NULL);
+      error_message_to_client
+       (global_socket, "Interface not authorized for scanning", NULL, NULL);
       return;
     }
   /* hosts_allow/deny lists. */
@@ -1088,7 +1087,7 @@ attack_network (struct arglist *globals, kb_t *network_kb)
       if (openvas_host_get_addr6 (host, &host_ip) == -1)
         {
           log_write ("Couldn't resolve target %s", hostname);
-          error_message_to_client (globals, "Couldn't resolve hostname.",
+          error_message_to_client (global_socket, "Couldn't resolve hostname.",
                                    hostname, NULL);
           g_free (hostname);
           host = openvas_hosts_next (hosts);
@@ -1098,16 +1097,16 @@ attack_network (struct arglist *globals, kb_t *network_kb)
       /* Do we have the right to test this host ? */
       if (!host_authorized (host, &host_ip, hosts_allow, hosts_deny))
         {
-          error_message_to_client (globals, "Host access denied.",
+          error_message_to_client (global_socket, "Host access denied.",
                                    hostname, NULL);
           log_write ("Host %s access denied.", hostname);
         }
       else if (!host_authorized (host, &host_ip, sys_hosts_allow,
                                  sys_hosts_deny))
         {
-          error_message_to_client (globals, "Host access denied"
-                                            " (system-wide restriction.)",
-                                   hostname, NULL);
+          error_message_to_client
+           (global_socket, "Host access denied (system-wide restriction.)",
+            hostname, NULL);
           log_write ("Host %s access denied (sys_* preference restriction.)",
                      hostname);
         }

@@ -40,6 +40,4 @@ typedef enum
 
 client_request_t otp_get_client_request (char *);
 
-void otp_server_send_certificates (struct arglist *globals);
-
 #endif
