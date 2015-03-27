@@ -355,3 +355,20 @@ auth_printf (struct arglist *globals, char *data, ...)
   auth_send (soc, confirm, buffer);
   g_free (buffer);
 }
+
+/**
+ * @brief Writes data to a socket.
+ */
+void
+send_printf (int soc, char *data, ...)
+{
+  va_list param;
+  char *buffer;
+
+  va_start (param, data);
+  buffer = g_strdup_vprintf (data, param);
+  va_end (param);
+
+  auth_send (soc, 0, buffer);
+  g_free (buffer);
+}

@@ -60,4 +60,7 @@ is_scanner_only_pref (const char *);
 void
 auth_printf (struct arglist *, char *, ...) __attribute__ ((format (printf, 2, 3)));
 
+void
+send_printf (int, char *, ...) __attribute__ ((format (printf, 2, 3)));
+
 #endif

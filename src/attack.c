@@ -68,6 +68,7 @@
 
 #define MAX_FORK_RETRIES 10
 
+extern struct arglist *global_plugins;
 
 /**
  * Bundles information about target(s), configuration (globals arglist) and
@@ -518,7 +519,7 @@ attack_host (struct arglist *globals, struct arglist *hostinfos,
   /* Used for the status */
   int num_plugs, forks_retry = 0;
   kb_t kb;
-  struct arglist *plugins = arg_get_value (globals, "plugins");
+  struct arglist *plugins = global_plugins;
 
   proctitle_set ("openvassd: testing %s", arg_get_value (hostinfos, "NAME"));
 
@@ -618,7 +619,7 @@ attack_start (struct attack_start_args *args)
   struct arglist *globals = args->globals;
   char host_str[INET6_ADDRSTRLEN];
   char *mac = args->host_mac_addr;
-  struct arglist *plugs = arg_get_value (globals, "plugins");
+  struct arglist *plugs = global_plugins;
   struct in6_addr *hostip = &args->hostip;
   struct arglist *hostinfos;
   const char *non_simult = prefs_get ("non_simult_ports");
@@ -683,13 +684,13 @@ attack_start (struct attack_start_args *args)
     strcpy (host_str, mac);
 
   plugins_set_socket (plugs, thread_socket);
-  ntp_timestamp_host_scan_starts (globals, host_str);
+  ntp_timestamp_host_scan_starts (thread_socket, host_str);
 
   // Start scan
   attack_host (globals, hostinfos, host_str, sched, net_kb);
 
   // Calculate duration, clean up
-  ntp_timestamp_host_scan_ends (globals, host_str);
+  ntp_timestamp_host_scan_ends (thread_socket, host_str);
   gettimeofday (&now, NULL);
   if (now.tv_usec < then.tv_usec)
     {
@@ -993,7 +994,7 @@ attack_network (struct arglist *globals, kb_t *network_kb)
 
   global_socket = GPOINTER_TO_SIZE (arg_get_value (globals, "global_socket"));
 
-  plugins = arg_get_value (globals, "plugins");
+  plugins = global_plugins;
 
   if (check_kb_access(globals))
       return;

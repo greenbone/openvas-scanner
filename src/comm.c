@@ -48,6 +48,8 @@
 #include "sighand.h"
 #include "utils.h"
 
+extern struct arglist *global_plugins;
+
 /**
  * @brief Initializes the communication between the scanner (us) and the client.
  *
@@ -114,16 +116,16 @@ comm_loading (int soc)
  * @brief This function must be called at the end of a session.
  */
 void
-comm_terminate (struct arglist *globals)
+comm_terminate (int soc)
 {
-  auth_printf (globals, "SERVER <|> BYE <|> BYE <|> SERVER\n");
+  send_printf (soc, "SERVER <|> BYE <|> BYE <|> SERVER\n");
 }
 
 /**
  * @brief Sends a plugin info.
  */
 void
-send_plug_info (struct arglist *globals, struct arglist *plugins)
+send_plug_info (int soc, struct arglist *plugins)
 {
   int j, ignored = 0;
   static const char *categories[] = { ACT_STRING_LIST_ALL };
@@ -239,7 +241,7 @@ send_plug_info (struct arglist *globals, struct arglist *plugins)
                              version, cve_id, bid, xref, tag);
       if (tag != NULL && strcmp (tag, "NOTAG"))
         g_free (tag);
-      auth_printf (globals, "%s\n", str);
+      send_printf (soc, "%s\n", str);
       g_free (str);
     }
 
@@ -248,14 +250,14 @@ send_plug_info (struct arglist *globals, struct arglist *plugins)
 
 /**
  * @brief Sends the plugin info for a single plugin.
- * @param globals The global arglist holding all plugins.
+ * @param soc Socket to use to send plugin info.
  * @param oid OID of the plugin to send.
  * @see send_plug_info
  */
 void
-plugin_send_infos (struct arglist *globals, char *oid)
+plugin_send_infos (int soc, char *oid)
 {
-  struct arglist *plugins = arg_get_value (globals, "plugins");
+  struct arglist *plugins = global_plugins;
 
   if (!oid)
     return;
@@ -267,7 +269,7 @@ plugin_send_infos (struct arglist *globals, char *oid)
       struct arglist *args = plugins->value;
       if (args && !strcmp (oid, plugins->name))
         {
-          send_plug_info (globals, plugins);
+          send_plug_info (soc, plugins);
           return;
         }
       plugins = plugins->next;
@@ -278,43 +280,43 @@ plugin_send_infos (struct arglist *globals, char *oid)
 /**
  * @brief Sends the list of plugins that the scanner could load to the client,
  * @brief using the OTP format (calls send_plug_info for each).
- * @param globals The global arglist.
+ * @param socket    Socket to use for sending list of plugins.
  * @see send_plug_info
  */
 void
-comm_send_pluginlist (struct arglist *globals)
+comm_send_pluginlist (int soc)
 {
-  struct arglist *plugins = arg_get_value (globals, "plugins");
+  struct arglist *plugins = global_plugins;
 
-  auth_printf (globals, "SERVER <|> PLUGIN_LIST <|>\n");
+  send_printf (soc, "SERVER <|> PLUGIN_LIST <|>\n");
   while (plugins && plugins->next)
     {
-      send_plug_info (globals, plugins);
+      send_plug_info (soc, plugins);
       plugins = plugins->next;
     }
-  auth_printf (globals, "<|> SERVER\n");
+  send_printf (soc, "<|> SERVER\n");
 }
 
 /**
  * @brief Sends the preferences of the scanner.
- * @param globals The global arglist.
+ * @param soc Socket to use for sending.
  */
 void
-comm_send_preferences (struct arglist *globals)
+comm_send_preferences (int soc)
 {
   struct arglist *prefs = preferences_get ();
 
   /* We have to be backward compatible with the NTP/1.0 */
-  auth_printf (globals, "SERVER <|> PREFERENCES <|>\n");
+  send_printf (soc, "SERVER <|> PREFERENCES <|>\n");
 
   while (prefs && prefs->next)
     {
       if (prefs->type == ARG_STRING && !is_scanner_only_pref (prefs->name))
-        auth_printf (globals, "%s <|> %s\n", prefs->name,
+        send_printf (soc, "%s <|> %s\n", prefs->name,
                      (const char *) prefs->value);
       prefs = prefs->next;
     }
-  auth_printf (globals, "<|> SERVER\n");
+  send_printf (soc, "<|> SERVER\n");
 }
 
 
@@ -424,15 +426,14 @@ get_plug_by_oid (struct arglist **array, char *oid, int num_plugins)
 /**
  * Enable the plugins which have been selected by the user, or all if
  * list == NULL or list == "-1;";
- * @param globals The Global context to retrieve plugins from.
  * @param list A user (client) defined semicolon delimited list, of plugin(oids)
  *             that shall be enabled. If NULL or "-1;" all plugins are enabled!
  */
 void
-comm_setup_plugins (struct arglist *globals, char *list)
+comm_setup_plugins (char *list)
 {
   int num_plugins = 0;
-  struct arglist *plugins = arg_get_value (globals, "plugins");
+  struct arglist *plugins = global_plugins;
   struct arglist *p = plugins;
   struct arglist **array;
   char *t;
@@ -546,7 +547,7 @@ is_valid_feed_version (const char *feed_version)
  * and PLUGIN_INFO commands.
  */
 void
-comm_send_nvt_info (struct arglist *globals)
+comm_send_nvt_info (int soc)
 {
   char buf[2048];
   gchar *feed_version;
@@ -555,21 +556,18 @@ comm_send_nvt_info (struct arglist *globals)
   feed_version = g_malloc0 (feed_size);
   nvt_feed_version (feed_version, feed_size);
 
-  auth_printf (globals, "SERVER <|> NVT_INFO <|> %s <|> SERVER\n",
+  send_printf (soc, "SERVER <|> NVT_INFO <|> %s <|> SERVER\n",
                is_valid_feed_version (feed_version)
-                ? feed_version
-                : "NOVERSION");
+                ? feed_version : "NOVERSION");
 
   g_free (feed_version);
 
   for (;;)
     {
-      int soc = GPOINTER_TO_SIZE (arg_get_value (globals, "global_socket"));
-
       bzero (buf, sizeof (buf));
       recv_line (soc, buf, sizeof (buf) - 1);
       if (strstr (buf, "COMPLETE_LIST"))
-        comm_send_pluginlist (globals);
+        comm_send_pluginlist (soc);
       else if (strstr (buf, "PLUGIN_INFO"))
         {
           char *t = strstr (buf, " <|> ");
@@ -584,7 +582,7 @@ comm_send_nvt_info (struct arglist *globals)
           if (!t)
             continue;
           t[0] = '\0';
-          plugin_send_infos (globals, s);
+          plugin_send_infos (soc, s);
         }
       else
         break;

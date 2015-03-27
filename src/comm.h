@@ -34,13 +34,11 @@
 
 int comm_init (int);
 int comm_loading (int);
-void comm_terminate (struct arglist *);
-void comm_send_pluginlist (struct arglist *);
-void comm_send_preferences (struct arglist *);
-void comm_send_rules (struct arglist *);
+void comm_terminate (int);
+void comm_send_preferences (int);
 int comm_wait_order (struct arglist *);
-void comm_setup_plugins (struct arglist *, char *);
-void comm_send_nvt_info (struct arglist *);
-void plugin_send_infos (struct arglist *, char *);
+void comm_setup_plugins (char *);
+void comm_send_nvt_info (int);
+void plugin_send_infos (int, char *);
 
 #endif

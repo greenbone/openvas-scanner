@@ -35,9 +35,9 @@
 
 int ntp_parse_input (struct arglist *, char *);
 
-int ntp_timestamp_host_scan_starts (struct arglist *, char *);
-int ntp_timestamp_host_scan_ends (struct arglist *, char *);
+int ntp_timestamp_host_scan_starts (int, char *);
+int ntp_timestamp_host_scan_ends (int, char *);
 
-int ntp_timestamp_scan_starts (struct arglist *);
-int ntp_timestamp_scan_ends (struct arglist *);
+int ntp_timestamp_scan_starts (int);
+int ntp_timestamp_scan_ends (int);
 #endif

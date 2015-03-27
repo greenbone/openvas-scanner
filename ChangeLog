@@ -1,3 +1,30 @@
+2015-03-27  Hani Benhabiles  <hani.benhabiles@greenbone.net>
+
+	* src/comm.c (comm_terminate, send_plug_info, plugin_send_infos)
+	(comm_send_pluginlist, comm_send_preference, comm_setup_plugins)
+	(comm_send_nvt_infos): Take socket as argument, instead of globals
+	arglist. Call send_printf() instead of auth_printf() and adjust
+	functions calls.
+
+	* src/comm.h: Adjust and remove functions prototypes.
+
+	* src/ntp.c (ntp_parse_input, ntp_read_prefs, __ntp_timestamp_scan)
+	(ntp_timestamp_host_scan_starts, ntp_timestamp_host_scan_ends)
+	(__ntp_timestamp_scan_host): Take socket as argument, instead of globals
+	arglist. Adjust functions calls.
+
+	* src/ntp.h: Adjust functions prototypes.
+
+	* src/openvassd.c (handle_client): Don't set plugins entry in globals.
+	Adjust functions calls.
+
+	* src/attack.c (attack_host, attack_start, attack_network): Get plugins
+	arglist from global_plugins, instead of globals. Adjust functions calls.
+
+	* src/utils.c (send_printf): New function.
+
+	* src/utils.h: Add function prototype.
+
 2015-03-26  Hani Benhabiles  <hani.benhabiles@greenbone.net>
 
 	* src/comm.c (comm_send_nvt_info): Use recv_line() instead of removed

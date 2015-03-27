@@ -50,7 +50,7 @@
 #endif
 
 
-static int ntp_read_prefs (struct arglist *);
+static int ntp_read_prefs (int);
 static int ntp_long_attack (struct arglist *);
 static int ntp_recv_file (struct arglist *);
 
@@ -62,6 +62,7 @@ ntp_parse_input (struct arglist *globals, char *input)
 {
   char *str;
   int result = 1;               /* default return value is 1 */
+  int soc = GPOINTER_TO_SIZE (arg_get_value (globals, "global_socket"));
 
   if (*input == '\0')
     return -1;
@@ -101,12 +102,12 @@ ntp_parse_input (struct arglist *globals, char *input)
                 break;
               }
             s = t + 5;
-            plugin_send_infos (globals, s);
+            plugin_send_infos (soc, s);
             break;
           }
 
         case CREQ_PREFERENCES:
-          ntp_read_prefs (globals);
+          ntp_read_prefs (soc);
           break;
 
         case CREQ_STOP_WHOLE_TEST:
@@ -116,8 +117,8 @@ ntp_parse_input (struct arglist *globals, char *input)
 
         case CREQ_NVT_INFO:
           {
-            comm_send_nvt_info (globals);
-            comm_send_preferences (globals);
+            comm_send_nvt_info (soc);
+            comm_send_preferences (soc);
             break;
           }
 
@@ -171,7 +172,7 @@ ntp_long_attack (struct arglist *globals)
       plugin_set = prefs_get ("plugin_set");
     }
 
-  comm_setup_plugins (globals, (char *)plugin_set);
+  comm_setup_plugins ((char *) plugin_set);
   prefs_set ("TARGET", target);
 
   g_free (target);
@@ -186,9 +187,8 @@ ntp_long_attack (struct arglist *globals)
  * @return Always 0.
  */
 static int
-ntp_read_prefs (struct arglist *globals)
+ntp_read_prefs (int soc)
 {
-  int soc = GPOINTER_TO_SIZE (arg_get_value (globals, "global_socket"));
   char *input;
   int input_sz = 1024 * 1024 * 2; /* this is sufficient for a plugin_set
                                      for upto 69K OIDs */ 
@@ -399,7 +399,7 @@ ntp_recv_file (struct arglist *globals)
 
 
 static int
-__ntp_timestamp_scan (struct arglist *globals, char *msg)
+__ntp_timestamp_scan (int soc, char *msg)
 {
   char timestr[1024];
   char *tmp;
@@ -414,21 +414,19 @@ __ntp_timestamp_scan (struct arglist *globals, char *msg)
   if (timestr[len - 1] == '\n')
     timestr[len - 1] = '\0';
 
-  auth_printf (globals, "SERVER <|> TIME <|> %s <|> %s <|> SERVER\n", msg,
-               timestr);
+  send_printf (soc, "SERVER <|> TIME <|> %s <|> %s <|> SERVER\n", msg, timestr);
   return 0;
 }
 
 
 static int
-__ntp_timestamp_scan_host (struct arglist *globals, char *msg, char *host)
+__ntp_timestamp_scan_host (int soc, char *msg, char *host)
 {
   char timestr[1024];
   char *tmp;
   time_t t;
   int len;
   char buf[1024];
-  int soc;
 
   t = time (NULL);
   tmp = ctime (&t);
@@ -437,8 +435,6 @@ __ntp_timestamp_scan_host (struct arglist *globals, char *msg, char *host)
   len = strlen (timestr);
   if (timestr[len - 1] == '\n')
     timestr[len - 1] = '\0';
-
-  soc = GPOINTER_TO_SIZE (arg_get_value (globals, "global_socket"));
 
   snprintf (buf, sizeof (buf),
             "SERVER <|> TIME <|> %s <|> %s <|> %s <|> SERVER\n", msg, host,
@@ -451,25 +447,25 @@ __ntp_timestamp_scan_host (struct arglist *globals, char *msg, char *host)
 
 
 int
-ntp_timestamp_scan_starts (struct arglist *globals)
+ntp_timestamp_scan_starts (int soc)
 {
-  return __ntp_timestamp_scan (globals, "SCAN_START");
+  return __ntp_timestamp_scan (soc, "SCAN_START");
 }
 
 int
-ntp_timestamp_scan_ends (struct arglist *globals)
+ntp_timestamp_scan_ends (int soc)
 {
-  return __ntp_timestamp_scan (globals, "SCAN_END");
+  return __ntp_timestamp_scan (soc, "SCAN_END");
 }
 
 int
-ntp_timestamp_host_scan_starts (struct arglist *globals, char *host)
+ntp_timestamp_host_scan_starts (int soc, char *host)
 {
-  return __ntp_timestamp_scan_host (globals, "HOST_START", host);
+  return __ntp_timestamp_scan_host (soc, "HOST_START", host);
 }
 
 int
-ntp_timestamp_host_scan_ends (struct arglist *globals, char *host)
+ntp_timestamp_host_scan_ends (int soc, char *host)
 {
-  return __ntp_timestamp_scan_host (globals, "HOST_END", host);
+  return __ntp_timestamp_scan_host (soc, "HOST_END", host);
 }

@@ -361,21 +361,22 @@ static void
 handle_client (struct arglist *globals)
 {
   kb_t net_kb = NULL;
+  int soc = GPOINTER_TO_SIZE (arg_get_value (globals, "global_socket"));
 
   /* Become process group leader and the like ... */
   start_daemon_mode ();
 wait:
   if (comm_wait_order (globals))
     return;
-  ntp_timestamp_scan_starts (globals);
+  ntp_timestamp_scan_starts (soc);
   attack_network (globals, &net_kb);
   if (net_kb != NULL)
     {
       kb_delete (net_kb);
       net_kb = NULL;
     }
-  ntp_timestamp_scan_ends (globals);
-  comm_terminate (globals);
+  ntp_timestamp_scan_ends (soc);
+  comm_terminate (soc);
   if (prefs_get ("ntp_keep_communication_alive"))
     {
       log_write ("Kept alive connection");
@@ -559,8 +560,6 @@ main_loop ()
       globals = g_malloc0 (sizeof (struct arglist));
       arg_add_value (globals, "global_socket", ARG_INT, -1,
                      GSIZE_TO_POINTER (soc));
-
-      arg_add_value (globals, "plugins", ARG_ARGLIST, -1, global_plugins);
 
       p_addr = g_malloc0 (sizeof (struct sockaddr_in6));
       family = ai->ai_family;
