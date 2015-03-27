@@ -235,7 +235,7 @@ nasl_thread (struct nasl_thread_args *nargs)
   pluginlaunch_child_cleanup ();
   kb = arg_get_value (args, "key");
   kb_lnk_reset (kb);
-  old_soc = GPOINTER_TO_SIZE (arg_get_value (args, "SOCKET"));
+  old_soc = arg_get_value_int (args, "SOCKET");
   /* XXX ugly hack */
   soc = dup2 (old_soc, 4);
   close (old_soc);

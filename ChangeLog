@@ -1,5 +1,13 @@
 2015-03-27  Hani Benhabiles  <hani.benhabiles@greenbone.net>
 
+	* src/attack.c (init_host_kb, attack_host, attack_start)
+	(attack_network), src/comm.c (comm_wait_order), src/nasl_plugins.c
+	(nasl_thread), src/ntp.c (ntp_parse_input, ntp_recv_file),
+	src/openvassd.c (handle_client, scanner_thread) , src/pluginload.c
+	(plugin_get_socket): Use arg_get_value_int().
+
+2015-03-27  Hani Benhabiles  <hani.benhabiles@greenbone.net>
+
 	* src/comm.c (is_client_present): New function.
 	(comm_terminate): Wait for client to acknowledge termination.
 

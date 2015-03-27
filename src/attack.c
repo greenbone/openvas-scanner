@@ -440,7 +440,7 @@ init_host_kb (struct arglist *globals, char *hostname,
   struct in6_addr *hostip;
 
   nss = network_scan_status (globals);
-  soc = GPOINTER_TO_SIZE (arg_get_value (globals, "global_socket"));
+  soc = arg_get_value_int (globals, "global_socket");
   switch (nss)
     {
       case NSS_DONE:
@@ -517,7 +517,7 @@ attack_host (struct arglist *globals, struct arglist *hostinfos,
 
   proctitle_set ("openvassd: testing %s", arg_get_value (hostinfos, "NAME"));
 
-  global_socket = GPOINTER_TO_SIZE (arg_get_value (globals, "global_socket"));
+  global_socket = arg_get_value_int (globals, "global_socket");
   kb = init_host_kb (globals, hostname, hostinfos, net_kb);
   if (kb == NULL)
     return;
@@ -644,10 +644,9 @@ attack_start (struct attack_start_args *args)
                  (void *) list2arglist ((char *)non_simult));
 
   /* Options regarding the communication with our parent */
-  close (GPOINTER_TO_SIZE (arg_get_value (globals, "parent_socket")));
+  close (arg_get_value_int (globals, "parent_socket"));
   arg_del_value (globals, "parent_socket");
-  openvas_deregister_connection (GPOINTER_TO_SIZE
-                                 (arg_get_value (globals, "global_socket")));
+  openvas_deregister_connection (arg_get_value_int (globals, "global_socket"));
   arg_set_value (globals, "global_socket", -1,
                  GSIZE_TO_POINTER (thread_socket));
 
@@ -985,7 +984,7 @@ attack_network (struct arglist *globals, kb_t *network_kb)
 
   num_tested = 0;
 
-  global_socket = GPOINTER_TO_SIZE (arg_get_value (globals, "global_socket"));
+  global_socket = arg_get_value_int (globals, "global_socket");
 
   plugins = global_plugins;
 

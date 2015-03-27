@@ -339,7 +339,7 @@ plugin_set_socket (struct arglist *plugin, int soc)
 int
 plugin_get_socket (struct arglist *plugin)
 {
-  return GPOINTER_TO_SIZE (arg_get_value (plugin, "SOCKET"));
+  return arg_get_value_int (plugin, "SOCKET");
 }
 
 

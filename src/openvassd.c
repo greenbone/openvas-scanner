@@ -361,7 +361,7 @@ static void
 handle_client (struct arglist *globals)
 {
   kb_t net_kb = NULL;
-  int soc = GPOINTER_TO_SIZE (arg_get_value (globals, "global_socket"));
+  int soc = arg_get_value_int (globals, "global_socket");
 
   /* Become process group leader and the like ... */
   start_daemon_mode ();
@@ -387,8 +387,8 @@ scanner_thread (struct arglist *globals)
   struct sockaddr_in *saddr = NULL;
   struct sockaddr_in6 *s6addr = NULL;
 
-  family = GPOINTER_TO_SIZE (arg_get_value (globals, "family"));
-  soc = GPOINTER_TO_SIZE (arg_get_value (globals, "global_socket"));
+  family = arg_get_value_int (globals, "family");
+  soc = arg_get_value_int (globals, "global_socket");
   if (family == AF_INET)
     {
       saddr = (struct sockaddr_in *) addr;

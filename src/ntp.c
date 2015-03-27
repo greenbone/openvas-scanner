@@ -62,7 +62,7 @@ ntp_parse_input (struct arglist *globals, char *input)
 {
   char *str;
   int result = 1;               /* default return value is 1 */
-  int soc = GPOINTER_TO_SIZE (arg_get_value (globals, "global_socket"));
+  int soc = arg_get_value_int (globals, "global_socket");
 
   if (*input == '\0')
     return -1;
@@ -306,7 +306,7 @@ files_add_size_translation (struct arglist *globals, const char *remotename,
 int
 ntp_recv_file (struct arglist *globals)
 {
-  int soc = GPOINTER_TO_SIZE (arg_get_value (globals, "global_socket"));
+  int soc = arg_get_value_int (globals, "global_socket");
   char input[4096];
   char *origname, *contents;
   gchar *cont_ptr = NULL;

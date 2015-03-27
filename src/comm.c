@@ -366,7 +366,7 @@ comm_send_preferences (int soc)
 int
 comm_wait_order (struct arglist *globals)
 {
-  int soc = GPOINTER_TO_SIZE (arg_get_value (globals, "global_socket"));
+  int soc = arg_get_value_int (globals, "global_socket");
 
   for (;;)
     {
