@@ -1,3 +1,8 @@
+2015-03-30  Hani Benhabiles  <hani.benhabiles@greenbone.net>
+
+	* src/comm.c (send_plug_info): Improve code style and remove useless
+	extra allocation.
+
 2015-03-27  Hani Benhabiles  <hani.benhabiles@greenbone.net>
 
 	* src/attack.c (init_host_kb, attack_host, attack_start)

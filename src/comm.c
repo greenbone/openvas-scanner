@@ -170,7 +170,6 @@ send_plug_info (int soc, struct arglist *plugins)
   static const char *categories[] = { ACT_STRING_LIST_ALL };
 #define CAT_MAX	(sizeof(categories) / sizeof(categories[0]))
   const char *name, *copyright, *summary, *version, *family;
-  char *str;
   nvti_t *nvti = nvticache_get_by_oid_full (plugins->name);
 
   if (!nvti)
@@ -213,6 +212,11 @@ send_plug_info (int soc, struct arglist *plugins)
          name ? name : nvti_oid (nvti));
       ignored = 1;
     }
+  else if (strchr (summary, '\n'))
+    {
+      log_write ("%s: Newline in summary\n", nvti_oid (nvti));
+      ignored = 1;
+    }
 
   if ((family = nvti_family (nvti)) == NULL)
     {
@@ -232,12 +236,6 @@ send_plug_info (int soc, struct arglist *plugins)
   if (strchr (copyright, '\n') != NULL)
     {
       log_write ("%s: Newline in copyright\n", nvti_oid (nvti));
-      ignored = 1;
-    }
-
-  if (strchr (summary, '\n'))
-    {
-      log_write ("%s: Newline in summary\n", nvti_oid (nvti));
       ignored = 1;
     }
 
@@ -272,16 +270,12 @@ send_plug_info (int soc, struct arglist *plugins)
             }
       }
 
-      str = g_strdup_printf ("%s <|> %s <|> %s <|> "
-                             "%s <|> %s <|> %s <|> "
-                             "%s <|> %s <|> %s <|> %s <|> %s",
-                             nvti_oid (nvti), name, categories[j],
-                             copyright, summary, family,
-                             version, cve_id, bid, xref, tag);
+      send_printf
+       (soc, "%s <|> %s <|> %s <|> %s <|> %s <|> %s <|> %s <|> %s <|> %s <|> "
+        "%s <|> %s\n", nvti_oid (nvti), name, categories[j], copyright,
+        summary, family, version, cve_id, bid, xref, tag);
       if (tag != NULL && strcmp (tag, "NOTAG"))
         g_free (tag);
-      send_printf (soc, "%s\n", str);
-      g_free (str);
     }
 
   nvti_free (nvti);
