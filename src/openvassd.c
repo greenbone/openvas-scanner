@@ -382,21 +382,21 @@ static void
 scanner_thread (struct arglist *globals)
 {
   char asciiaddr[INET6_ADDRSTRLEN];
-  int opt = 1, soc2 = -1, nice_retval, family, soc;
-  void *addr = arg_get_value (globals, "client_address");
-  struct sockaddr_in *saddr = NULL;
-  struct sockaddr_in6 *s6addr = NULL;
+  int opt = 1, soc2 = -1, nice_retval, soc;
+  struct sockaddr_storage addr;
+  socklen_t len;
 
-  family = arg_get_value_int (globals, "family");
   soc = arg_get_value_int (globals, "global_socket");
-  if (family == AF_INET)
+  len = sizeof (addr);
+  getpeername (soc, (struct sockaddr *) &addr, &len);
+  if (addr.ss_family == AF_INET)
     {
-      saddr = (struct sockaddr_in *) addr;
+      struct sockaddr_in *saddr = (struct sockaddr_in *) &addr;
       inet_ntop (AF_INET,  &saddr->sin_addr, asciiaddr, sizeof(asciiaddr));
     }
   else
     {
-      s6addr = (struct sockaddr_in6 *) addr;
+      struct sockaddr_in6 *s6addr = (struct sockaddr_in6 *) &addr;
       inet_ntop (AF_INET6, &s6addr->sin6_addr, asciiaddr, sizeof (asciiaddr));
     }
   proctitle_set ("openvassd: Serving %s", asciiaddr);
@@ -531,17 +531,13 @@ main_loop ()
   for (;;)
     {
       int soc;
-      int family;
       unsigned int lg_address;
       struct sockaddr_in6 address6;
-      struct sockaddr_in6 *p_addr;
       struct arglist *globals;
-      struct addrinfo *ai;
 
       check_termination ();
       check_reload ();
       wait_for_children1 ();
-      ai = g_hash_table_lookup (global_options, "addr");
       lg_address = sizeof (struct sockaddr_in6);
       soc = accept (global_iana_socket, (struct sockaddr *) (&address6),
                     &lg_address);
@@ -554,12 +550,6 @@ main_loop ()
       globals = g_malloc0 (sizeof (struct arglist));
       arg_add_value (globals, "global_socket", ARG_INT, -1,
                      GSIZE_TO_POINTER (soc));
-
-      p_addr = g_malloc0 (sizeof (struct sockaddr_in6));
-      family = ai->ai_family;
-      memcpy (p_addr, &address6, sizeof (address6));
-      arg_add_value (globals, "client_address", ARG_PTR, -1, p_addr);
-      arg_add_value (globals, "family", ARG_INT, -1, GSIZE_TO_POINTER (family));
 
       /* we do not want to create an io thread, yet so the last argument is -1 */
       if (create_process ((process_func_t) scanner_thread, globals) < 0)

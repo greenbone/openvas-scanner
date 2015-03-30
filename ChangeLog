@@ -1,5 +1,11 @@
 2015-03-30  Hani Benhabiles  <hani.benhabiles@greenbone.net>
 
+	* src/openvassd.c (scanner_thread): Use getpeername() to get socket's
+	client address.
+	(main_loop): Don't set family and client_address in globals.
+
+2015-03-30  Hani Benhabiles  <hani.benhabiles@greenbone.net>
+
 	* src/comm.c (send_plug_info): Improve code style and remove useless
 	extra allocation.
 
