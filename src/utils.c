@@ -97,7 +97,7 @@ list2arglist (list)
         list++;
       if (list[0] != '\0')
         {
-          arg_add_value (ret, list, ARG_INT, 0, (void *) 1);
+          arg_add_value (ret, list, ARG_INT, (void *) 1);
         }
       list = t + 1;
     }
@@ -106,7 +106,7 @@ list2arglist (list)
     list++;
   if (list[0] != '\0')
     {
-      arg_add_value (ret, list, ARG_INT, 0, (void *) 1);
+      arg_add_value (ret, list, ARG_INT, (void *) 1);
     }
   return ret;
 }

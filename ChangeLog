@@ -1,3 +1,13 @@
+2015-03-31  Hani Benhabiles  <hani.benhabiles@greenbone.net>
+
+	* src/attack.c (attack_init_hostinfos_vhosts, attack_init_hostinfos)
+	(attack_start, attack_network), src/nasl_plugins.c (nasl_plugin_add)
+	(nasl_plugin_launch, nasl_thread), src/ntp.c (files_add_translation)
+	(files_add_size_translation), src/openvassd.c (scanner_thread)
+	(main_loop), src/pluginload.c (plugin_set_socket), src/plugs_req.c
+	(requirements_common_ports), src/utils.c (list2arglist): Adjust
+	arg_add_value() and arg_set_value() calls.
+
 2015-03-30  Hani Benhabiles  <hani.benhabiles@greenbone.net>
 
 	* src/openvassd.c (scanner_thread): Use getpeername() to get socket's

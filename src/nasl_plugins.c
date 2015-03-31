@@ -97,7 +97,7 @@ nasl_plugin_add (char *folder, char *name, struct arglist *plugins)
       g_free (nvti);
       plugin_args = g_malloc0 (sizeof (struct arglist));
       new_nvti = nvti_new ();
-      arg_add_value (plugin_args, "NVTI", ARG_PTR, -1, new_nvti);
+      arg_add_value (plugin_args, "NVTI", ARG_PTR, new_nvti);
 
       if (exec_nasl_script (plugin_args, fullname, NULL, nasl_mode) < 0)
         {
@@ -163,11 +163,11 @@ nasl_plugin_add (char *folder, char *name, struct arglist *plugins)
 
   // Was a plugin with the same oid already loaded? If so, remove it.
   if (prev_plugin == NULL)
-    arg_add_value (plugins, nvti_oid (nvti), ARG_ARGLIST, -1, plugin_args);
+    arg_add_value (plugins, nvti_oid (nvti), ARG_ARGLIST, plugin_args);
   else
     {
       plugin_free (prev_plugin);
-      arg_set_value (plugins, nvti_oid (nvti), -1, plugin_args);
+      arg_set_value (plugins, nvti_oid (nvti), plugin_args);
     }
 
   nvti_free (nvti);
@@ -195,13 +195,13 @@ nasl_plugin_launch (struct arglist *globals, struct arglist *plugin,
   int module;
   struct nasl_thread_args nargs;
 
-  arg_add_value (plugin, "HOSTNAME", ARG_ARGLIST, -1, hostinfos);
+  arg_add_value (plugin, "HOSTNAME", ARG_ARGLIST, hostinfos);
   if (arg_get_value (plugin, "globals"))
-    arg_set_value (plugin, "globals", -1, globals);
+    arg_set_value (plugin, "globals", globals);
   else
-    arg_add_value (plugin, "globals", ARG_ARGLIST, -1, globals);
+    arg_add_value (plugin, "globals", ARG_ARGLIST, globals);
 
-  arg_add_value (plugin, "key", ARG_PTR, -1, kb);
+  arg_add_value (plugin, "key", ARG_PTR, kb);
 
   nargs.args = plugin;
   nargs.name = name;
@@ -244,9 +244,8 @@ nasl_thread (struct nasl_thread_args *nargs)
       log_write ("dup2() failed ! - can not launch the plugin");
       return;
     }
-  arg_set_value (args, "SOCKET", sizeof (gpointer), GSIZE_TO_POINTER (soc));
-  arg_set_value (globals, "global_socket", sizeof (gpointer),
-                 GSIZE_TO_POINTER (soc));
+  arg_set_value (args, "SOCKET", GSIZE_TO_POINTER (soc));
+  arg_set_value (globals, "global_socket", GSIZE_TO_POINTER (soc));
   proctitle_set ("openvassd: testing %s (%s)",
                  arg_get_value (arg_get_value (args, "HOSTNAME"), "NAME"),
                  name);

@@ -200,20 +200,17 @@ attack_init_hostinfos_vhosts (char *mac, char *hostname, struct in6_addr *ip,
   hostinfos = g_malloc0 (sizeof (struct arglist));
   if (mac)
     {
-      arg_add_value (hostinfos, "NAME", ARG_STRING, strlen (mac), mac);
-      arg_add_value (hostinfos, "MAC", ARG_STRING, strlen (mac), mac);
+      arg_add_value (hostinfos, "NAME", ARG_STRING, mac);
+      arg_add_value (hostinfos, "MAC", ARG_STRING, mac);
     }
   else
-    arg_add_value (hostinfos, "NAME", ARG_STRING, strlen (hostname),
-                   g_strdup (hostname));
+    arg_add_value (hostinfos, "NAME", ARG_STRING, g_strdup (hostname));
 
   if (fqdn)
-    arg_add_value (hostinfos, "FQDN", ARG_STRING, strlen (fqdn),
-                   g_strdup (fqdn));
-  arg_add_value (hostinfos, "IP", ARG_PTR, sizeof (struct in6_addr), ip);
+    arg_add_value (hostinfos, "FQDN", ARG_STRING, g_strdup (fqdn));
+  arg_add_value (hostinfos, "IP", ARG_PTR, ip);
   if (vhosts)
-    arg_add_value (hostinfos, "VHOSTS", ARG_STRING, strlen (vhosts),
-                   g_strdup (vhosts));
+    arg_add_value (hostinfos, "VHOSTS", ARG_STRING, g_strdup (vhosts));
   return (hostinfos);
 }
 
@@ -241,17 +238,15 @@ attack_init_hostinfos (char *mac, char *hostname, struct in6_addr *ip,
   hostinfos = g_malloc0 (sizeof (struct arglist));
   if (mac)
     {
-      arg_add_value (hostinfos, "NAME", ARG_STRING, strlen (mac), mac);
-      arg_add_value (hostinfos, "MAC", ARG_STRING, strlen (mac), mac);
+      arg_add_value (hostinfos, "NAME", ARG_STRING, mac);
+      arg_add_value (hostinfos, "MAC", ARG_STRING, mac);
     }
   else
-    arg_add_value (hostinfos, "NAME", ARG_STRING, strlen (hostname),
-                   g_strdup (hostname));
+    arg_add_value (hostinfos, "NAME", ARG_STRING, g_strdup (hostname));
   if (fqdn)
-    arg_add_value (hostinfos, "FQDN", ARG_STRING, strlen (fqdn),
-                   g_strdup (fqdn));
+    arg_add_value (hostinfos, "FQDN", ARG_STRING, g_strdup (fqdn));
 
-  arg_add_value (hostinfos, "IP", ARG_PTR, sizeof (struct in6_addr), ip);
+  arg_add_value (hostinfos, "IP", ARG_PTR, ip);
   return (hostinfos);
 }
 
@@ -640,15 +635,14 @@ attack_start (struct attack_start_args *args)
 
   gettimeofday (&then, NULL);
 
-  arg_add_value (preferences_get (), "non_simult_ports_list", ARG_ARGLIST, -1,
+  arg_add_value (preferences_get (), "non_simult_ports_list", ARG_ARGLIST,
                  (void *) list2arglist ((char *)non_simult));
 
   /* Options regarding the communication with our parent */
   close (arg_get_value_int (globals, "parent_socket"));
   arg_del_value (globals, "parent_socket");
   openvas_deregister_connection (arg_get_value_int (globals, "global_socket"));
-  arg_set_value (globals, "global_socket", -1,
-                 GSIZE_TO_POINTER (thread_socket));
+  arg_set_value (globals, "global_socket", GSIZE_TO_POINTER (thread_socket));
 
   if (vhosts == NULL || vhosts_ip == NULL)
     hostinfos = attack_init_hostinfos (mac, host_str, hostip, args->fqdn);
@@ -955,7 +949,7 @@ attack_network (struct arglist *globals, kb_t *network_kb)
   network_targets = prefs_get ("network_targets");
   if (network_targets != NULL)
     arg_add_value (globals, "network_targets", ARG_STRING,
-                   strlen (network_targets), (char *)network_targets);
+                   (char *) network_targets);
 
   if (do_network_scan)
     {
@@ -974,7 +968,7 @@ attack_network (struct arglist *globals, kb_t *network_kb)
 
           default:
             arg_add_value (globals, "network_scan_status", ARG_STRING,
-                           strlen ("busy"), "busy");
+                           "busy");
             network_phase = TRUE;
             break;
         }
@@ -1183,7 +1177,7 @@ attack_network (struct arglist *globals, kb_t *network_kb)
       if (network_phase)
         {
           host = NULL;
-          arg_set_value (globals, "network_scan_status", strlen ("done"), "done");
+          arg_set_value (globals, "network_scan_status", "done");
         }
       else
         {

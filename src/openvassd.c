@@ -425,8 +425,8 @@ scanner_thread (struct arglist *globals)
 
   setsockopt (soc, SOL_SOCKET, SO_KEEPALIVE, &opt, sizeof (opt));
   /* arg_set_value *replaces* an existing value, but it shouldn't fail here */
-  arg_add_value (globals, "parent_socket", ARG_INT, -1, GSIZE_TO_POINTER (soc));
-  arg_set_value (globals, "global_socket", -1, GSIZE_TO_POINTER (soc2));
+  arg_add_value (globals, "parent_socket", ARG_INT, GSIZE_TO_POINTER (soc));
+  arg_set_value (globals, "global_socket", GSIZE_TO_POINTER (soc2));
 
   if (comm_init (soc2) < 0)
     {
@@ -548,8 +548,7 @@ main_loop ()
        * MA: you cannot share an open SSL connection through fork/multithread
        * The SSL connection shall be open _after_ the fork */
       globals = g_malloc0 (sizeof (struct arglist));
-      arg_add_value (globals, "global_socket", ARG_INT, -1,
-                     GSIZE_TO_POINTER (soc));
+      arg_add_value (globals, "global_socket", ARG_INT, GSIZE_TO_POINTER (soc));
 
       /* we do not want to create an io thread, yet so the last argument is -1 */
       if (create_process ((process_func_t) scanner_thread, globals) < 0)

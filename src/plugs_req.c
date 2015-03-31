@@ -129,7 +129,7 @@ requirements_common_ports (struct scheduler_plugin *plugin1,
                if (!ret)
                  ret = g_malloc0 (sizeof (struct arglist));
                arg_add_value (ret, plugin2->required_ports[j], ARG_INT,
-                              0, (void *) 1);
+                              (void *) 1);
              }
         }
     }

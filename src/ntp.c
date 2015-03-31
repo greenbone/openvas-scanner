@@ -263,7 +263,7 @@ files_add_translation (struct arglist *globals, const char *remotename,
   if (trans == NULL)
     {
       trans = g_hash_table_new_full (g_str_hash, g_str_equal, g_free, g_free);
-      arg_add_value (globals, "files_translation", ARG_PTR, -1, trans);
+      arg_add_value (globals, "files_translation", ARG_PTR, trans);
     }
 
   g_hash_table_insert (trans, g_strdup (remotename), contents);
@@ -292,7 +292,7 @@ files_add_size_translation (struct arglist *globals, const char *remotename,
   if (trans == NULL)
     {
       trans = g_hash_table_new_full (g_str_hash, g_str_equal, g_free, NULL);
-      arg_add_value (globals, "files_size_translation", ARG_PTR, -1, trans);
+      arg_add_value (globals, "files_size_translation", ARG_PTR, trans);
     }
 
   g_hash_table_insert (trans, g_strdup (remotename), g_strdup (filesize_str));
