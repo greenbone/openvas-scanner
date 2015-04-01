@@ -189,13 +189,13 @@ nasl_thread (struct nasl_thread_args *);
  */
 int
 nasl_plugin_launch (struct arglist *globals, struct arglist *plugin,
-                    struct arglist *hostinfos, kb_t kb, char *name,
+                    struct host_info *hostinfo, kb_t kb, char *name,
                     const char *oid)
 {
   int module;
   struct nasl_thread_args nargs;
 
-  arg_add_value (plugin, "HOSTNAME", ARG_ARGLIST, hostinfos);
+  arg_add_value (plugin, "HOSTNAME", ARG_PTR, hostinfo);
   if (arg_get_value (plugin, "globals"))
     arg_set_value (plugin, "globals", globals);
   else
@@ -216,6 +216,7 @@ nasl_thread (struct nasl_thread_args *nargs)
 {
   struct arglist *args = nargs->args;
   struct arglist *globals = arg_get_value (args, "globals");
+  struct host_info *hostinfo = arg_get_value (args, "HOSTNAME");
   char *name = nargs->name;
   int nasl_mode = 0, soc, old_soc;
   kb_t kb;
@@ -246,9 +247,7 @@ nasl_thread (struct nasl_thread_args *nargs)
     }
   arg_set_value (args, "SOCKET", GSIZE_TO_POINTER (soc));
   arg_set_value (globals, "global_socket", GSIZE_TO_POINTER (soc));
-  proctitle_set ("openvassd: testing %s (%s)",
-                 arg_get_value (arg_get_value (args, "HOSTNAME"), "NAME"),
-                 name);
+  proctitle_set ("openvassd: testing %s (%s)", hostinfo->name, name);
 
   if (prefs_get_bool ("nasl_no_signature_check"))
     nasl_mode |= NASL_ALWAYS_SIGNED;

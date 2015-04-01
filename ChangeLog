@@ -1,3 +1,17 @@
+2015-04-01  Hani Benhabiles  <hani.benhabiles@greenbone.net>
+
+	* src/attack.c (attack_init_hostinfos_vhosts, attack_init_hostinfos):
+	Remove functions.
+	(launch_plugin, init_host_kb, attack_host): Adjust for hostinfos change
+	from arglist to struct host_info.
+	(attack_start): Call addr6_as_str() and host_info_init() adequately.
+
+	* src/nasl_plugins.c (nasl_plugin_launch, nasl_thread),
+	src/pluginlaunch.c (plugin_launch): Adjust for hostinfos as struct
+	host_info.
+
+	* src/pluginlaunch.h, src/pluginload.h: Adjust functions prototypes.
+
 2015-04-01  Jan-Oliver Wagner <jan-oliver.wagner@greenbone.net>
 
 	Post branch version bump.

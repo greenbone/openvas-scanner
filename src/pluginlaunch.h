@@ -38,7 +38,7 @@ void pluginlaunch_wait (void);
 void pluginlaunch_wait_for_free_process (void);
 void pluginlaunch_stop (void);
 int plugin_launch (struct arglist *, struct scheduler_plugin *,
-                   struct arglist *, kb_t, char *);
+                   struct host_info *, kb_t, char *);
 
 void pluginlaunch_child_cleanup (void);
 void pluginlaunch_disable_parrallel_checks (void);

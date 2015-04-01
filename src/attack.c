@@ -174,82 +174,6 @@ network_scan_status (struct arglist *globals)
     return NSS_NONE;
 }
 
-/**
- * @brief Inits an arglist which can be used by the plugins.
- *
- * The arglist will have following keys and (type, value):
- *  - NAME (string, The hostname parameter)
- *  - FQDN (string, Fully qualified domain name, e.g. host.domain.net)
- *  - MAC  (string, The mac parameter if non-NULL)
- *  - IP   (*in_adrr, The ip parameter)
- *  - VHOSTS (string, comma separated list of vhosts for this IP)
- *
- * @param mac      MAC- adress of host or NULL.
- * @param hostname Hostname to be set.
- * @param ip       in_adress struct to be set.
- * @param vhosts   vhosts list to be set
- *
- * @return A 'hostinfo' arglist.
- */
-static struct arglist *
-attack_init_hostinfos_vhosts (char *mac, char *hostname, struct in6_addr *ip,
-                              char *vhosts, char *fqdn)
-{
-  struct arglist *hostinfos;
-
-  hostinfos = g_malloc0 (sizeof (struct arglist));
-  if (mac)
-    {
-      arg_add_value (hostinfos, "NAME", ARG_STRING, mac);
-      arg_add_value (hostinfos, "MAC", ARG_STRING, mac);
-    }
-  else
-    arg_add_value (hostinfos, "NAME", ARG_STRING, g_strdup (hostname));
-
-  if (fqdn)
-    arg_add_value (hostinfos, "FQDN", ARG_STRING, g_strdup (fqdn));
-  arg_add_value (hostinfos, "IP", ARG_PTR, ip);
-  if (vhosts)
-    arg_add_value (hostinfos, "VHOSTS", ARG_STRING, g_strdup (vhosts));
-  return (hostinfos);
-}
-
-/**
- * @brief Inits an arglist which can be used by the plugins.
- *
- * The arglist will have following keys and (type, value):
- *  - FQDN (string, Fully qualified domain name, e.g. host.domain.net)
- *  - NAME (string, The hostname parameter)
- *  - MAC  (string, The mac parameter if non-NULL)
- *  - IP   (*in_adrr, The ip parameter)
- *
- * @param mac      MAC- adress of host or NULL.
- * @param hostname Hostname to be set.
- * @param ip       in_adress struct to be set.
- *
- * @return A 'hostinfo' arglist.
- */
-static struct arglist *
-attack_init_hostinfos (char *mac, char *hostname, struct in6_addr *ip,
-                       char *fqdn)
-{
-  struct arglist *hostinfos;
-
-  hostinfos = g_malloc0 (sizeof (struct arglist));
-  if (mac)
-    {
-      arg_add_value (hostinfos, "NAME", ARG_STRING, mac);
-      arg_add_value (hostinfos, "MAC", ARG_STRING, mac);
-    }
-  else
-    arg_add_value (hostinfos, "NAME", ARG_STRING, g_strdup (hostname));
-  if (fqdn)
-    arg_add_value (hostinfos, "FQDN", ARG_STRING, g_strdup (fqdn));
-
-  arg_add_value (hostinfos, "IP", ARG_PTR, ip);
-  return (hostinfos);
-}
-
 int global_scan_stop = 0;
 
 static int
@@ -271,7 +195,7 @@ scan_is_stopped ()
  */
 static int
 launch_plugin (struct arglist *globals, struct scheduler_plugin *plugin,
-               char *hostname, struct arglist *hostinfos, kb_t kb)
+               char *hostname, struct host_info *hostinfos, kb_t kb)
 {
   struct arglist *args = plugin->arglist->value;
   int optimize = prefs_get_bool ("optimize_test");
@@ -425,7 +349,7 @@ kb_duplicate(kb_t dst, kb_t src, const gchar *filter)
  */
 static kb_t
 init_host_kb (struct arglist *globals, char *hostname,
-              struct arglist *hostinfos, kb_t *network_kb)
+              struct host_info *hostinfos, kb_t *network_kb)
 {
   kb_t kb;
   gchar *vhosts, *hostname_pattern, *hoststr;
@@ -467,10 +391,10 @@ init_host_kb (struct arglist *globals, char *hostname,
     }
 
   /* Add Hostname and Host-IP */
-  hoststr = arg_get_value (hostinfos, "FQDN");
+  hoststr = hostinfos->fqdn;
   if (hoststr)
     kb_item_add_str (kb, "Hostname", hoststr);
-  hostip = arg_get_value (hostinfos, "IP");
+  hostip = hostinfos->ip;
   if (hostip)
     {
       char ipstr[INET6_ADDRSTRLEN];
@@ -483,7 +407,7 @@ init_host_kb (struct arglist *globals, char *hostname,
     }
 
   /* If vhosts is set, split it and put it in the KB. */
-  vhosts = (gchar *)arg_get_value (hostinfos, "VHOSTS");
+  vhosts = hostinfos->vhosts;
   if (vhosts)
     {
       gchar **vhosts_array = g_strsplit (vhosts, ",", 0);
@@ -502,7 +426,7 @@ init_host_kb (struct arglist *globals, char *hostname,
  * @brief Attack one host.
  */
 static void
-attack_host (struct arglist *globals, struct arglist *hostinfos,
+attack_host (struct arglist *globals, struct host_info *hostinfos,
              char *hostname, plugins_scheduler_t sched, kb_t *net_kb)
 {
   /* Used for the status */
@@ -510,7 +434,7 @@ attack_host (struct arglist *globals, struct arglist *hostinfos,
   kb_t kb;
   struct arglist *plugins = global_plugins;
 
-  proctitle_set ("openvassd: testing %s", arg_get_value (hostinfos, "NAME"));
+  proctitle_set ("openvassd: testing %s", hostinfos->name);
 
   global_socket = arg_get_value_int (globals, "global_socket");
   kb = init_host_kb (globals, hostname, hostinfos, net_kb);
@@ -608,11 +532,10 @@ static void
 attack_start (struct attack_start_args *args)
 {
   struct arglist *globals = args->globals;
-  char host_str[INET6_ADDRSTRLEN];
-  char *mac = args->host_mac_addr;
+  char *host_str;
   struct arglist *plugs = global_plugins;
   struct in6_addr *hostip = &args->hostip;
-  struct arglist *hostinfos;
+  struct host_info *hostinfos;
   const char *non_simult = prefs_get ("non_simult_ports");
   const char *vhosts = prefs_get ("vhosts");
   const char *vhosts_ip = prefs_get ("vhosts_ip");
@@ -622,12 +545,11 @@ attack_start (struct attack_start_args *args)
   kb_t *net_kb = args->net_kb;
 
   /* Stringify the IP address. */
-  if (IN6_IS_ADDR_V4MAPPED (&args->hostip))
-    inet_ntop (AF_INET, ((char *)(&args->hostip))+12, host_str,
-               sizeof (host_str));
+  if (args->host_mac_addr)
+    host_str = g_strdup (args->host_mac_addr);
   else
-    inet_ntop (AF_INET6, &args->hostip, host_str, sizeof (host_str));
-
+    host_str = addr6_as_str (&args->hostip);
+  g_free (args->host_mac_addr);
   close (args->parent_socket);
   thread_socket = dup2 (args->thread_socket, 4);
   if (args->thread_socket != thread_socket)
@@ -645,35 +567,24 @@ attack_start (struct attack_start_args *args)
   arg_set_value (globals, "global_socket", GSIZE_TO_POINTER (thread_socket));
 
   if (vhosts == NULL || vhosts_ip == NULL)
-    hostinfos = attack_init_hostinfos (mac, host_str, hostip, args->fqdn);
+    hostinfos = host_info_init (host_str, hostip, NULL, args->fqdn);
   else
     {
       char *txt_ip;
-      struct in_addr inaddr;
-      inaddr.s_addr = hostip->s6_addr32[3];
 
-      if (IN6_IS_ADDR_V4MAPPED (hostip))
-        txt_ip = g_strdup (inet_ntoa (inaddr));
-      else
-        {
-          char name[INET6_ADDRSTRLEN];
-          txt_ip = g_strdup (inet_ntop (AF_INET6, hostip, name, sizeof (name)));
-        }
+      txt_ip = addr6_as_str (hostip);
       if (strcmp (vhosts_ip, txt_ip) != 0)
         vhosts = NULL;
       g_free (txt_ip);
-      hostinfos = attack_init_hostinfos_vhosts (mac, host_str, hostip, (char *)vhosts,
-                                                args->fqdn);
+      hostinfos = host_info_init (host_str, hostip, vhosts, args->fqdn);
     }
-
-  if (mac)
-    strcpy (host_str, mac);
 
   plugins_set_socket (plugs, thread_socket);
   ntp_timestamp_host_scan_starts (thread_socket, host_str);
 
   // Start scan
   attack_host (globals, hostinfos, host_str, sched, net_kb);
+  host_info_free (hostinfos);
 
   // Calculate duration, clean up
   ntp_timestamp_host_scan_ends (thread_socket, host_str);
