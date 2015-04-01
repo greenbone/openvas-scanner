@@ -7,7 +7,7 @@
 # Jan-Oliver Wagner <jan-oliver.wagner@greenbone.net>
 #
 # Copyright:
-# Copyright (C) 2011-2014 Greenbone Networks GmbH
+# Copyright (C) 2011-2015 Greenbone Networks GmbH
 #
 # This program is free software; you can redistribute it and/or
 # modify it under the terms of the GNU General Public License
@@ -85,7 +85,7 @@ set (CPACK_PACKAGE_VERSION_MAJOR "5")
 set (CPACK_PACKAGE_VERSION_MINOR "0")
 
 # Use this scheme for stable releases
-set (CPACK_PACKAGE_VERSION_PATCH "1${SVN_REVISION}")
+set (CPACK_PACKAGE_VERSION_PATCH "2${SVN_REVISION}")
 set (CPACK_PACKAGE_VERSION "${CPACK_PACKAGE_VERSION_MAJOR}.${CPACK_PACKAGE_VERSION_MINOR}.${CPACK_PACKAGE_VERSION_PATCH}")
 # Use this scheme for +betaN and +rcN releases:
 #set (CPACK_PACKAGE_VERSION_PATCH "+beta1${SVN_REVISION}")
