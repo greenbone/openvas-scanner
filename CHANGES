@@ -1,3 +1,22 @@
+openvas-scanner 5.0.1 (2015-04-01)
+
+This is the first maintenance release of the openvas-scanner 5.0 module for
+the Open Vulnerability Assessment System release 8 (OpenVAS-8).
+
+This release basically applies some minor improvements
+about signal handling and stopping a scan.
+
+Many thanks to everyone who contributed to this release:
+Hani Benhabiles
+
+Main changes compared to 5.0.0:
+* Dropped the useless otp setting "ntp_keep_communication_alive".
+  Clients don't need to send this anymore.
+* Improved signal handling of the scanner daemon.
+* Fixes for stopping scans properly.
+* Various code cleanups.
+
+
 openvas-scanner 5.0.0 (2015-03-16)
 
 This is the first release of the openvas-scanner 5.0 module for the Open
