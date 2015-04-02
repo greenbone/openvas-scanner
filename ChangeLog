@@ -1,3 +1,8 @@
+2015-04-02  Hani Benhabiles  <hani.benhabiles@greenbone.net>
+
+	* src/attack.c (attack_network): Set the host's fqdn as reverse lookup
+	of the ip when available.
+
 2015-04-01  Hani Benhabiles  <hani.benhabiles@greenbone.net>
 
 	* src/attack.c (attack_init_hostinfos_vhosts, attack_init_hostinfos):
