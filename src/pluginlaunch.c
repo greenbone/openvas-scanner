@@ -32,7 +32,6 @@
 #include <errno.h>    /* for errno() */
 #include <sys/time.h> /* for gettimeofday() */
 
-#include <openvas/base/nvticache.h>  /* for nvticache_get_filename */
 #include <openvas/misc/network.h>    /* for internal_send */
 #include <openvas/misc/nvt_categories.h>  /* for ACT_SCANNER */
 #include <openvas/misc/plugutils.h>  /* for plug_get_hostname */
@@ -167,6 +166,8 @@ update_running_processes (void)
                   && ((now.tv_sec - processes[i].start.tv_sec) >
                       processes[i].timeout)))
             {
+              char *oid = processes[i].plugin->arglist->name;
+
               if (processes[i].alive)
                 {
                   struct arglist *desc;
@@ -175,8 +176,7 @@ update_running_processes (void)
 
                   if (log_whole)
                     log_write ("%s (pid %d) is slow to finish - killing it",
-                               nvticache_get_filename ((const char *)processes[i].plugin->arglist->name),
-                               processes[i].pid);
+                               oid, processes[i].pid);
 
                   desc = processes[i].plugin->arglist->value;
                   host = plug_get_hostname (desc);
@@ -189,7 +189,7 @@ update_running_processes (void)
                                          " <|> SERVER\n",
                                          host ? host : "HOST",
                                          processes[i].timeout,
-                                         processes[i].plugin->arglist->name ? processes[i].plugin->arglist->name : "0");
+                                         oid ?: "0");
                   internal_send (processes[i].upstream_soc,
                                  msg,
                                  INTERNAL_COMM_MSG_TYPE_DATA);
@@ -210,8 +210,7 @@ update_running_processes (void)
                   if (log_whole)
                     log_write
                       ("%s (process %d) finished its job in %ld.%.3ld seconds",
-                       nvticache_get_filename ((const char *)processes[i].plugin->arglist->name),
-                       processes[i].pid,
+                       oid, processes[i].pid,
                        (long) (now.tv_sec - processes[i].start.tv_sec),
                        (long) ((now.tv_usec -
                                 processes[i].start.tv_usec) / 1000));
@@ -337,8 +336,7 @@ read_running_processes (void)
                 {
 #ifdef DEBUG
                   log_write ("process_internal_msg for %s returned %d",
-                             nvticache_get_filename ((const char *)processes[i].plugin->arglist->name),
-                             result);
+                             processes[i].plugin->arglist->name, result);
 #endif
                 }
             }

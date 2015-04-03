@@ -200,8 +200,10 @@ launch_plugin (struct arglist *globals, struct scheduler_plugin *plugin,
   struct arglist *args = plugin->arglist->value;
   int optimize = prefs_get_bool ("optimize_test");
   int category = plugin->category;
+  char *oid;
   gboolean network_scan = FALSE;
 
+  oid = plugin->arglist->name;
   if (scan_is_stopped ())
     {
       if (category != ACT_END)
@@ -210,7 +212,7 @@ launch_plugin (struct arglist *globals, struct scheduler_plugin *plugin,
           return 0;
         }
       else
-        log_write ("Stopped scan wrap-up: Launching %s", plugin->arglist->name);
+        log_write ("Stopped scan wrap-up: Launching %s", oid);
     }
 
   if (network_scan_status (globals) == NSS_BUSY)
@@ -226,18 +228,15 @@ launch_plugin (struct arglist *globals, struct scheduler_plugin *plugin,
           if (prefs_get_bool ("log_whole_attack"))
             log_write
               ("Not launching %s against %s %s (this is not an error)",
-               nvticache_get_filename ((const char *)plugin->arglist->name),
-               hostname,
-               "because safe checks are enabled");
+               oid, hostname, "because safe checks are enabled");
           plugin->running_state = PLUGIN_STATUS_DONE;
           return 0;
         }
 
       if (network_scan)
         {
-          char asc_id[100], *oid;
+          char asc_id[100];
 
-          oid = plugin->arglist->name;
           assert (oid);
           snprintf (asc_id, sizeof (asc_id), "Launched/%s", oid);
 
@@ -246,8 +245,7 @@ launch_plugin (struct arglist *globals, struct scheduler_plugin *plugin,
               if (prefs_get_bool ("log_whole_attack"))
                 log_write ("Not launching %s against %s because it has already "
                            "been lanched in the past (this is not an error)",
-                           nvticache_get_filename ((const char *)plugin->arglist->name),
-                           hostname);
+                           oid, hostname);
               plugin->running_state = PLUGIN_STATUS_DONE;
               return 0;
             }
@@ -269,9 +267,8 @@ launch_plugin (struct arglist *globals, struct scheduler_plugin *plugin,
               || !(error = requirements_plugin (kb, plugin))))
         {
           int pid;
-          char *oid, *src;
+          char *src;
 
-          oid = plugin->arglist->name;
           src = nvticache_get_src (oid);
           /* Start the plugin */
           pid = plugin_launch (globals, plugin, hostinfos, kb, src);
@@ -283,9 +280,7 @@ launch_plugin (struct arglist *globals, struct scheduler_plugin *plugin,
             }
 
           if (prefs_get_bool ("log_whole_attack"))
-            log_write ("Launching %s against %s [%d]",
-                       nvticache_get_filename ((const char *)plugin->arglist->name),
-                       hostname, pid);
+            log_write ("Launching %s against %s [%d]", oid, hostname, pid);
 
           /* Stop the test if the host is 'dead' */
           if (kb_item_get_int (kb, "Host/dead") > 0
@@ -303,9 +298,7 @@ launch_plugin (struct arglist *globals, struct scheduler_plugin *plugin,
           if (prefs_get_bool ("log_whole_attack"))
             log_write
               ("Not launching %s against %s %s (this is not an error)",
-               nvticache_get_filename ((const char *)plugin->arglist->name),
-               hostname,
-               error);
+               oid, hostname, error);
         }
     }                           /* if(plugins->launch) */
   else
