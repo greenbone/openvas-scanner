@@ -318,11 +318,17 @@ plugins_reload_from_dir (struct arglist *plugins, char *folder)
 struct arglist *
 plugins_init (void)
 {
+  struct arglist *plugins;
   const char *plugins_folder = prefs_get ("plugins_folder");
-  struct arglist *plugins = g_malloc0 (sizeof (struct arglist));
 
-  nvticache_init (prefs_get ("cache_folder"), plugins_folder);
+  if (nvticache_init (prefs_get ("cache_folder"), plugins_folder,
+                      prefs_get ("kb_location")))
+    {
+      log_write ("Failed to initialize nvti cache.");
+      return NULL;
+    }
 
+  plugins = g_malloc0 (sizeof (struct arglist));
   return plugins_reload_from_dir (plugins, (char *)plugins_folder);
 }
 

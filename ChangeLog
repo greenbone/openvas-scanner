@@ -1,3 +1,19 @@
+2015-04-07  Hani Benhabiles  <hani.benhabiles@greenbone.net>
+
+	* src/openvassd.c (main): Call flush_all_kbs() earlier to not flush nvti
+	cache.
+	(scanner_thread): Call nvticache_reset();
+
+	* src/pluginload.c (plugins_init): Adjust nvticache_init() call.
+
+	* src/pluginscheduler.c (hash_add): Take nvti as argument.
+	(_hash_get, hash_fill_deps): Free nvticache_get_filename() return value.
+	(enable_plugin_and_dependence, plugins_scheduler_init): Use oid instead
+	of file name. Adjust hash_add() call.
+
+	* src/attack.c (attack_start), src/nasl_plugins.c (nasl_thread): Call
+	nvticache_reset().
+
 2015-04-03  Hani Benhabiles  <hani.benhabiles@greenbone.net>
 
 	* src/attack.c (launch_plugin), src/pluginlaunch.c

@@ -386,6 +386,7 @@ scanner_thread (struct arglist *globals)
   struct sockaddr_storage addr;
   socklen_t len;
 
+  nvticache_reset ();
   soc = arg_get_value_int (globals, "global_socket");
   len = sizeof (addr);
   getpeername (soc, (struct sockaddr *) &addr, &len);
@@ -880,6 +881,7 @@ main (int argc, char *argv[])
     }
 
   init_openvassd (options, 1, exit_early, dont_fork);
+  flush_all_kbs ();
   global_options = options;
   global_iana_socket = GPOINTER_TO_SIZE (g_hash_table_lookup (options, "isck"));
   global_plugins = g_hash_table_lookup (options, "plugins");
@@ -900,7 +902,6 @@ main (int argc, char *argv[])
   loading_handler_stop (handler_pid);
   if (!global_plugins)
     return 1;
-  flush_all_kbs ();
   init_signal_handlers ();
   main_loop ();
   g_hash_table_destroy (options);

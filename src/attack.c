@@ -537,6 +537,7 @@ attack_start (struct attack_start_args *args)
   plugins_scheduler_t sched = args->sched;
   kb_t *net_kb = args->net_kb;
 
+  nvticache_reset ();
   /* Stringify the IP address. */
   if (args->host_mac_addr)
     host_str = g_strdup (args->host_mac_addr);

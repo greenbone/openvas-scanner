@@ -222,6 +222,7 @@ nasl_thread (struct nasl_thread_args *nargs)
   kb_t kb;
   GError *error = NULL;
 
+  nvticache_reset ();
   if (prefs_get_bool ("be_nice"))
     {
       int nice_retval;
