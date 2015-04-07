@@ -13,7 +13,7 @@ Prerequisites:
 * cmake
 * glib-2.0 >= 2.16
 * libgcrypt
-* openvas-libraries >= 8.0.0
+* libopenvas_nasl, libopenvas_base, libopenvas_misc >= 8.1.0
 * pkg-config
 * redis >= 2.4.0
 
