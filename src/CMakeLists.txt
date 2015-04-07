@@ -35,8 +35,7 @@ set_target_properties (openvassd PROPERTIES LINKER_LANGUAGE C)
 
 include_directories (${GLIB_INCLUDE_DIRS} ${LIBOPENVAS_NASL_INCLUDE_DIRS}
                      ${LIBOPENVAS_BASE_INCLUDE_DIRS}
-                     ${LIBOPENVAS_MISC_INCLUDE_DIRS}
-                     ${LIBOPENVAS_OMP_INCLUDE_DIRS})
+                     ${LIBOPENVAS_MISC_INCLUDE_DIRS})
 
 if (OPENVASSD_VERSION)
   add_definitions (-DOPENVASSD_VERSION=\\\"${OPENVASSD_VERSION}\\\")
@@ -114,8 +113,7 @@ endif (NVT_TIMEOUT)
 
 target_link_libraries (openvassd ${LIBOPENVAS_NASL_LDFLAGS}
                        ${LIBOPENVAS_BASE_LDFLAGS} ${LIBOPENVAS_MISC_LDFLAGS}
-                       ${LIBOPENVAS_OMP_LDFLAGS} ${GLIB_LDFLAGS}
-                       ${GCRYPT_LDFLAGS})
+                       ${GLIB_LDFLAGS} ${GCRYPT_LDFLAGS})
 
 ## Tests
 
