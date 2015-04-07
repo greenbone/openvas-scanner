@@ -144,10 +144,8 @@ hash_add (struct hash *h, char *name, struct scheduler_plugin *plugin,
           const nvti_t *nvti)
 {
   struct hash *l = g_malloc0 (sizeof (struct hash));
-  char *filename = nvticache_get_filename (name);
-  unsigned int idx = mkhash (filename);
+  unsigned int idx = mkhash (name);
 
-  g_free (filename);
   l->plugin = plugin;
   l->plugin->parent_hash = l;
   l->name = name;
@@ -177,16 +175,10 @@ _hash_get (struct hash *h, char *name)
   struct hash *l = h[idx].next;
   while (l != NULL)
     {
-      char *filename = nvticache_get_filename (l->name);
-
-      if (strcmp (filename, name) == 0)
-        {
-          g_free (filename);
-          return l;
-        }
+      if (strcmp (l->name, name) == 0)
+        return l;
       else
         l = l->next;
-      g_free (filename);
     }
   return NULL;
 }
@@ -207,7 +199,6 @@ static void
 hash_fill_deps (struct hash *h, struct hash *l)
 {
   int i, j = 0;
-  char *filename, *path;
 
   if (l->num_deps == 0)
     return;
@@ -215,33 +206,26 @@ hash_fill_deps (struct hash *h, struct hash *l)
   l->dependencies_ptr =
     g_malloc0 ((1 + l->num_deps) * sizeof (struct hash *));
 
-  filename = nvticache_get_filename (l->plugin->arglist->name);
-  path = g_path_get_dirname (filename);
   for (i = 0; l->dependencies[i]; i++)
     {
-      struct hash *d = _hash_get (h, l->dependencies[i]);
+      char *oid;
+      struct hash *d;
+
+      oid = nvticache_get_oid (l->dependencies[i]);
+      if (!oid)
+        {
+          log_write ("scheduler: %s depends on %s which could not be found",
+                     l->name, l->dependencies[i]);
+          continue;
+        }
+      d = _hash_get (h, oid);
       if (d != NULL)
         l->dependencies_ptr[j++] = d;
       else
-        {
-          char *dep_with_path = g_build_filename (path, l->dependencies[i],
-                                                  NULL);
-          d = _hash_get (h, dep_with_path);
-          g_free (dep_with_path);
-          if (d != NULL)
-            {
-              l->dependencies_ptr[j++] = d;
-            }
-          else
-            {
-              log_write ("scheduler: %s depends on %s which could not be found,"
-                         " thus this dependency is not considered for execution"
-                         " sequence", filename, l->dependencies[i]);
-            }
-        }
+        log_write ("scheduler: %s depends on %s which could not be found",
+                   l->name, l->dependencies[i]);
+      g_free (oid);
     }
-  g_free (path);
-  g_free (filename);
   l->dependencies_ptr[j] = NULL;
 }
 

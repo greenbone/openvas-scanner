@@ -1,5 +1,11 @@
 2015-04-07  Hani Benhabiles  <hani.benhabiles@greenbone.net>
 
+	* src/pluginscheduler.c (hash_add, _hash_get): Use plugin oid directly.
+	(hash_fill_deps): Adjust to call nvticache_get_oid() instead of
+	nvticache_get_filename().
+
+2015-04-07  Hani Benhabiles  <hani.benhabiles@greenbone.net>
+
 	* src/openvassd.c (main): Call flush_all_kbs() earlier to not flush nvti
 	cache.
 	(scanner_thread): Call nvticache_reset();
