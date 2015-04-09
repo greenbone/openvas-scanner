@@ -37,6 +37,7 @@
 #include <openvas/misc/plugutils.h>  /* for plug_get_hostname */
 #include <openvas/misc/internal_com.h>  /* for INTERNAL_COMM_MSG_TYPE_DATA */
 #include <openvas/misc/prefs.h>         /* for prefs_get_bool() */
+#include <openvas/base/nvticache.h>
 
 #include "pluginload.h"
 #include "utils.h"
@@ -432,13 +433,13 @@ plugin_launch (struct arglist *globals, struct scheduler_plugin *plugin,
   processes[p].launch_status = plug_get_launch (plugin->arglist->value);
   processes[p].timeout = prefs_nvt_timeout (plugin->arglist->name);
   if (processes[p].timeout == 0)
-    processes[p].timeout = plugin->timeout;
+    processes[p].timeout = nvticache_get_timeout (plugin->arglist->name);
 
 
   // Disable timeout if NVT is a scanner, set it to preferences otherwise
   if (processes[p].timeout == 0)
     {
-      int category = plugin->category;
+      int category = nvticache_get_category (plugin->arglist->name);
       if (category == ACT_SCANNER)
         processes[p].timeout = -1;
       else

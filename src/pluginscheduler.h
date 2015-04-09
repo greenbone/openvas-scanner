@@ -47,13 +47,6 @@ struct plugins_scheduler;
 struct scheduler_plugin
 {
   int running_state;
-  int category;
-  int timeout;
-  gchar **required_ports;     /* Last element is NULL (created by g_strsplit) */
-  gchar **required_udp_ports; /* Last element is NULL (created by g_strsplit) */
-  gchar **required_keys;      /* Last element is NULL (created by g_strsplit) */
-  gchar **mandatory_keys;     /* Last element is NULL (created by g_strsplit) */
-  gchar **excluded_keys;      /* Last element is NULL (created by g_strsplit) */
   struct arglist *arglist;
   struct hash *parent_hash;
 };

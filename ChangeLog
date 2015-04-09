@@ -1,3 +1,27 @@
+2015-04-09  Hani Benhabiles  <hani.benhabiles@greenbone.net>
+
+	Use nvticache instead of duplicating nvt info in scheduler_plugin.
+	Reduces memory usage by scanning processes by ~7-8M.
+
+	* src/pluginscheduler.h (struct scheduler_plugin): Remove category,
+	timeout, required_ports, required_udp_ports, required_keys,
+	mandatory_keys, excluded_keys elements.
+
+	* src/pluginscheduler.c (plugins_scheduler_init, hash_link_destroy):
+	Adjust for scheduler_plugin change.
+	(plugins_scheduler_next): Get category from nvticache.
+
+	* src/attack.c (launch_plugin): Get category from nvticache.
+
+	* src/pluginlaunch.c (plugin_launch): Get category and timeout from
+	cache.
+
+	* src/plugs_req.c (get_closed_ports, get_closed_udp_ports)
+	(kb_missing_keyname_of_namelist, kb_present_keyname_of_namelist): Adjust
+	to get comma separated list as argument.
+	(requirements_common_ports, mandatory_requirements_met)
+	(requirements_plugin): Get needed plugin info from nvticache.
+
 2015-04-07  Jan-Oliver Wagner <jan-oliver.wagner@greenbone.net>
 
 	* CMakeLists.txt, src/CMakeLists.txt: Removed dependency to

@@ -199,11 +199,12 @@ launch_plugin (struct arglist *globals, struct scheduler_plugin *plugin,
 {
   struct arglist *args = plugin->arglist->value;
   int optimize = prefs_get_bool ("optimize_test");
-  int category = plugin->category;
+  int category;
   char *oid;
   gboolean network_scan = FALSE;
 
   oid = plugin->arglist->name;
+  category = nvticache_get_category (oid);
   if (scan_is_stopped ())
     {
       if (category != ACT_END)

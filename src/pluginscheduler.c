@@ -114,11 +114,6 @@ hash_link_destroy (struct hash *h)
 
   g_free (h->dependencies_ptr);
 
-  g_strfreev (h->plugin->required_ports);
-  g_strfreev (h->plugin->required_udp_ports);
-  g_strfreev (h->plugin->required_keys);
-  g_strfreev (h->plugin->mandatory_keys);
-  g_strfreev (h->plugin->excluded_keys);
   g_free (h->plugin);
 
   g_strfreev (h->dependencies);
@@ -453,33 +448,6 @@ plugins_scheduler_init (struct arglist *plugins, int autoload,
       scheduler_plugin = g_malloc0 (sizeof (struct scheduler_plugin));
       scheduler_plugin->arglist = arg;
       scheduler_plugin->running_state = PLUGIN_STATUS_UNRUN;
-      scheduler_plugin->category = category;
-      scheduler_plugin->timeout = nvti_timeout (nvti);
-
-      if (nvti_required_ports (nvti) != NULL)
-        scheduler_plugin->required_ports = g_strsplit (nvti_required_ports (nvti), ", ", 0);
-      else
-        scheduler_plugin->required_ports = NULL;
-
-      if (nvti_required_udp_ports (nvti) != NULL)
-        scheduler_plugin->required_udp_ports = g_strsplit (nvti_required_udp_ports (nvti), ", ", 0);
-      else
-        scheduler_plugin->required_udp_ports = NULL;
-
-      if (nvti_required_keys (nvti) != NULL)
-        scheduler_plugin->required_keys = g_strsplit (nvti_required_keys (nvti), ", ", 0);
-      else
-        scheduler_plugin->required_keys = NULL;
-
-      if (nvti_mandatory_keys (nvti) != NULL)
-        scheduler_plugin->mandatory_keys = g_strsplit (nvti_mandatory_keys (nvti), ", ", 0);
-      else
-        scheduler_plugin->mandatory_keys = NULL;
-
-      if (nvti_excluded_keys (nvti) != NULL)
-        scheduler_plugin->excluded_keys = g_strsplit (nvti_excluded_keys (nvti), ", ", 0);
-      else
-        scheduler_plugin->excluded_keys = NULL;
 
       if (category > ACT_LAST)
         category = ACT_LAST;
@@ -610,9 +578,13 @@ plugins_scheduler_next (plugins_scheduler_t h)
                         break;
                       case GPOINTER_TO_SIZE (PLUG_RUNNING):
                         {
-                          /* One of the dependency is still running  -  we write down its category */
-                          if (l->plugin->category < running_category)
-                            running_category = l->plugin->category;
+                          /* One of the dependency is still running
+                           * we write down its category */
+
+                          int category = nvticache_get_category
+                                          (l->plugin->arglist->name);
+                          if (category < running_category)
+                            running_category = category;
                           flag++;
                         }
                         break;
@@ -635,8 +607,10 @@ plugins_scheduler_next (plugins_scheduler_t h)
               break;
             case PLUGIN_STATUS_RUNNING:
               {
-                if (l->plugin->category < running_category)
-                  running_category = l->plugin->category;
+                int category = nvticache_get_category
+                                (l->plugin->arglist->name);
+                if (category < running_category)
+                  running_category = category;
                 flag++;
               }
               break;

@@ -30,6 +30,7 @@
 #include <stdio.h>  /* for snprintf() */
 
 #include <openvas/misc/prefs.h>          /* for prefs_get() */
+#include <openvas/base/nvticache.h>
 
 #include "pluginscheduler.h"
 #include "plugs_req.h"
@@ -48,27 +49,36 @@ extern int kb_get_port_state_proto (kb_t, int, char *);
  * @return Whether a port in a port list is closed or not.
  */
 static int
-get_closed_ports (kb_t kb, gchar **ports)
+get_closed_ports (kb_t kb, char *ports_list)
 {
   int i;
+  char **ports;
 
-  if (ports == NULL)
+  if (!ports_list)
     return -1;
 
+  ports = g_strsplit (ports_list, ", ", 0);
   for (i = 0; ports[i] != NULL; i ++)
     {
       int iport = atoi (ports[i]);
       if (iport != 0)
         {
           if (kb_get_port_state_proto (kb, iport, "tcp") != 0)
-            return iport;
+            {
+              g_strfreev (ports);
+              return iport;
+            }
         }
       else
         {
           if (kb_item_get_int (kb, ports[i]) > 0)
-            return 1;           /* should be the actual value indeed ! */
+            {
+              g_strfreev (ports);
+              return 1;           /* should be the actual value indeed ! */
+            }
         }
     }
+  g_strfreev (ports);
   return 0;                     /* found nothing */
 }
 
@@ -77,19 +87,27 @@ get_closed_ports (kb_t kb, gchar **ports)
  * @brief Returns whether a port in a port list is closed or not.
  */
 static int
-get_closed_udp_ports (kb_t kb, gchar **ports)
+get_closed_udp_ports (kb_t kb, char *ports_list)
 {
   int i;
+  char **ports;
 
-  if (ports == NULL)
+  if (!ports_list)
+    return -1;
+  ports = g_strsplit (ports_list, ", ", 0);
+  if (!ports_list)
     return -1;
 
   for (i = 0; ports[i] != NULL; i ++)
     {
       int iport = atoi (ports[i]);
       if (iport > 0 && kb_get_port_state_proto (kb, iport, "udp"))
-        return iport;
+        {
+          g_strfreev (ports);
+          return iport;
+        }
     }
+  g_strfreev (ports);
   return 0;                     /* found nothing */
 }
 
@@ -110,90 +128,121 @@ requirements_common_ports (struct scheduler_plugin *plugin1,
 {
   struct arglist *ret = NULL;
   int i, j;
+  char *ports1, *ports2, **array1, **array2;
 
   if (!plugin1 || !plugin2)
     return 0;
 
-  if (plugin1->required_ports == NULL)
-    return 0;
-
-  if (plugin2->required_ports == NULL)
-    return 0;
-
-  for (i = 0; plugin1->required_ports[i] != NULL; i ++)
+  ports1 = nvticache_get_required_ports (plugin1->arglist->name);
+  ports2 = nvticache_get_required_ports (plugin2->arglist->name);
+  if (!ports1 || !ports2)
     {
-      for (j = 0; plugin2->required_ports[j] != NULL; j ++)
+      g_free (ports1);
+      g_free (ports2);
+      return 0;
+    }
+  array1 = g_strsplit (ports1, ", ", 0);
+  array2 = g_strsplit (ports2, ", ", 0);
+  g_free (ports1);
+  g_free (ports2);
+  if (!array1 || !array2)
+    {
+      g_strfreev (array1);
+      g_strfreev (array2);
+      return 0;
+    }
+
+  for (i = 0; array1[i] != NULL; i ++)
+    {
+      for (j = 0; array2[j] != NULL; j ++)
         {
-           if (!strcmp (plugin2->required_ports[j], plugin1->required_ports[i]))
+           if (!strcmp (array2[j], array1[i]))
              {
                if (!ret)
                  ret = g_malloc0 (sizeof (struct arglist));
-               arg_add_value (ret, plugin2->required_ports[j], ARG_INT,
-                              (void *) 1);
+               arg_add_value (ret, array2[j], ARG_INT, (void *) 1);
              }
         }
     }
+  g_strfreev (array1);
+  g_strfreev (array2);
   return ret;
 }
 
 /**
  * @brief Returns the name of the first key which is not present in the \ref kb.
- * @param[in] kb       KB handle where to search for the keys.
- * @param[in] keynames NULL-terminated string array of keynames.
- * @return A pointer to the string that was not found in the kb. This pointer
-           points into the string in the given keynames array.
-           NULL is returned in case all of the keys are present in the kb or
-           the kb is NULL.
+ * @param[in]   kb      KB handle where to search for the keys.
+ * @param[in]   keys    Comma separated list of keys.
+ * @param[out]  keyname Key that was missing. Free with g_free().
+ *
+ * @return 1 if a key is missing in KB, 0 otherwise.
  */
-static gchar *
-kb_missing_keyname_of_namelist (kb_t kb, gchar **keynames)
+static int
+kb_missing_keyname_of_namelist (kb_t kb, char *keys, char **keyname)
 {
   int i;
+  char **keynames;
+  if (!kb || !keys)
+    return 0;
 
-  if (kb == NULL || keynames == NULL)
-    return NULL;
-
+  keynames = g_strsplit (keys, ", ", 0);
+  if (!keynames)
+    return 0;
   for (i = 0; keynames[i] != NULL; i ++)
     {
       struct kb_item *kbi = kb_item_get_single (kb, keynames[i], KB_TYPE_UNSPEC);
 
       if (kbi == NULL)
-        return keynames[i]; /* This key is missing in the kb */
+        {
+          if (keyname)
+            *keyname = g_strdup (keynames[i]);
+          g_strfreev (keynames);
+          return 1;
+        }
 
       kb_item_free (kbi);
     }
 
-  return NULL; /* All of the keys are present in the kb */
+  g_strfreev (keynames);
+  return 0; /* All of the keys are present in the kb */
 }
 
 /**
  * @brief Returns the name of the first key which is present in the \ref kb.
- * @param[in] kb       KB handle where to search for the keys.
- * @param[in] keynames NULL-terminated string array of keynames.
- * @return A pointer to the string that was found in the kb. This pointer
-           points into the string in the given keynames array.
-           NULL is returned in case none of the keys is present in the kb or
-           the kb is NULL.
+ * @param[in]   kb      KB handle where to search for the keys.
+ * @param[in]   keys    Comma separated list of keys.
+ * @param[out]  keyname Key that was found. Free with g_free().
+ *
+ * @return 1 if a key is present in KB, 0 otherwise.
  */
-static gchar *
-kb_present_keyname_of_namelist (kb_t kb, gchar **keynames)
+static int
+kb_present_keyname_of_namelist (kb_t kb, char *keys, char **keyname)
 {
   int i;
+  char **keynames;
 
-  if (kb == NULL || keynames == NULL)
-    return NULL;
+  if (!kb || !keys)
+    return 0;
 
+  keynames = g_strsplit (keys, ", ", 0);
+  if (!keynames)
+    return 0;
   for (i = 0; keynames[i] != NULL; i ++)
     {
       struct kb_item *kbi = kb_item_get_single (kb, keynames[i], KB_TYPE_UNSPEC);
 
       if (kbi != NULL)
         {
+          if (keyname)
+            *keyname = g_strdup (keynames[i]);
           kb_item_free (kbi);
-          return keynames[i];
+          g_strfreev (keynames);
+          return 1;
         }
     }
-  return NULL;
+
+  g_strfreev (keynames);
+  return 0;
 }
 
 /**
@@ -210,9 +259,15 @@ int
 mandatory_requirements_met (kb_t kb,
                             struct scheduler_plugin *plugin)
 {
-  if (kb_missing_keyname_of_namelist (kb, plugin->mandatory_keys))
-    return 0;
+  char *mandatory_keys;
+  int ret;
 
+  mandatory_keys = nvticache_get_mandatory_keys (plugin->arglist->name);
+  ret = kb_missing_keyname_of_namelist (kb, mandatory_keys, NULL);
+
+  g_free (mandatory_keys);
+  if (ret)
+    return 0;
   return 1;
 }
 
@@ -225,30 +280,32 @@ char *
 requirements_plugin (kb_t kb, struct scheduler_plugin *plugin)
 {
   static char error[64];
-  char *missing;
-  char *present;
-  gchar **tcp, **udp;
+  char *errkey = NULL, *keys, *tcp, *udp;
   const char *opti = prefs_get ("optimization_level");
 
   /*
    * Check wether the good ports are open
    */
   error[sizeof (error) - 1] = '\0';
-  tcp = plugin->required_ports;
+  tcp = nvticache_get_required_ports (plugin->arglist->name);
   if (tcp != NULL && (get_closed_ports (kb, tcp)) == 0)
     {
       strncpy (error, "none of the required tcp ports are open",
                sizeof (error) - 1);
+      g_free (tcp);
       return error;
     }
+  g_free (tcp);
 
-  udp = plugin->required_udp_ports;
+  udp = nvticache_get_required_udp_ports (plugin->arglist->name);
   if (udp != NULL && (get_closed_udp_ports (kb, udp)) == 0)
     {
       strncpy (error, "none of the required udp ports are open",
                sizeof (error) - 1);
+      g_free (udp);
       return error;
     }
+  g_free (udp);
 
   if (opti != NULL && (strcmp (opti, "open_ports") == 0 || atoi (opti) == 1))
     return NULL;
@@ -256,12 +313,15 @@ requirements_plugin (kb_t kb, struct scheduler_plugin *plugin)
   /*
    * Check wether a key we wanted is missing
    */
-  if ((missing = kb_missing_keyname_of_namelist (kb, plugin->required_keys)))
+  keys = nvticache_get_required_keys (plugin->arglist->name);
+  if (kb_missing_keyname_of_namelist (kb, keys, &errkey))
     {
-      snprintf (error, sizeof (error), "because the key %s is missing",
-                missing);
+      snprintf (error, sizeof (error), "because the key %s is missing", errkey);
+      g_free (errkey);
+      g_free (keys);
       return error;
     }
+  g_free (keys);
 
   if (opti != NULL && (strcmp (opti, "required_keys") == 0 || atoi (opti) == 2))
     return NULL;
@@ -269,11 +329,14 @@ requirements_plugin (kb_t kb, struct scheduler_plugin *plugin)
   /*
    * Check wether a key we do not want is present
    */
-  if ((present = kb_present_keyname_of_namelist (kb, plugin->excluded_keys)))
+  keys = nvticache_get_excluded_keys (plugin->arglist->name);
+  if (kb_present_keyname_of_namelist (kb, keys, &errkey))
     {
-      snprintf (error, sizeof (error), "because the key %s is present",
-                present);
+      snprintf (error, sizeof (error), "because the key %s is present", errkey);
+      g_free (errkey);
+      g_free (keys);
       return error;
     }
+  g_free (keys);
   return NULL;
 }
