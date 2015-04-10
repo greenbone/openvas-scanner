@@ -1,3 +1,15 @@
+2015-04-10  Hani Benhabiles  <hani.benhabiles@greenbone.net>
+
+	Remove num_deps, dependencies and ports from struct hash and use
+	nvticache. Reduces memory usage by scanning processes by ~1.5M.
+
+	* src/pluginscheduler.c (struct hash): Remove dependencies, num_deps and
+	ports elements.
+	(hash_link_destroy, hash_add): Adjust for removed elements.
+	(hash_fill_deps): Get dependencies from nvticache.
+	(scheduler_mark_running_ports, scheduler_rm_running_ports): Get
+	required_ports from nvticache.
+
 2015-04-09  Hani Benhabiles  <hani.benhabiles@greenbone.net>
 
 	Use nvticache instead of duplicating nvt info in scheduler_plugin.

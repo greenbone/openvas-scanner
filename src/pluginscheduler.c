@@ -53,10 +53,7 @@ struct hash
 {
   char *name;
   struct scheduler_plugin *plugin;
-  gchar **dependencies;
-  int num_deps;
   struct hash **dependencies_ptr;
-  gchar **ports;
   struct hash *next;
 };
 
@@ -113,11 +110,7 @@ hash_link_destroy (struct hash *h)
     hash_link_destroy (h->next);
 
   g_free (h->dependencies_ptr);
-
   g_free (h->plugin);
-
-  g_strfreev (h->dependencies);
-  g_strfreev (h->ports);
   g_free (h);
 }
 
@@ -148,18 +141,6 @@ hash_add (struct hash *h, char *name, struct scheduler_plugin *plugin,
   h[idx].next = l;
   l->dependencies_ptr = NULL;
 
-  if (nvti_required_ports (nvti) != NULL)
-    l->ports = g_strsplit (nvti_required_ports (nvti), ", ", 0);
-  else
-    l->ports = NULL;
-
-  if (nvti_dependencies (nvti) != NULL)
-    {
-      l->dependencies = g_strsplit (nvti_dependencies (nvti), ", ", 0);
-      for (l->num_deps = 0; l->dependencies[l->num_deps] != NULL; l->num_deps ++) ;
-    }
-  else
-    l->dependencies = NULL;
 }
 
 
@@ -193,24 +174,35 @@ hash_get_deps_ptr (struct hash *h, char *name)
 static void
 hash_fill_deps (struct hash *h, struct hash *l)
 {
-  int i, j = 0;
+  int i, j = 0, num_deps;
+  char *dependencies, **array;
 
-  if (l->num_deps == 0)
+  if (!l->plugin)
+    return;
+  dependencies = nvticache_get_dependencies (l->plugin->arglist->name);
+  if (!dependencies)
+    return;
+  array = g_strsplit (dependencies, ", ", 0);
+  g_free (dependencies);
+  if (!array)
     return;
 
-  l->dependencies_ptr =
-    g_malloc0 ((1 + l->num_deps) * sizeof (struct hash *));
+  for (num_deps = 0; array[num_deps]; num_deps++)
+    ;
+  if (num_deps == 0)
+    return;
 
-  for (i = 0; l->dependencies[i]; i++)
+  l->dependencies_ptr = g_malloc0 ((1 + num_deps) * sizeof (struct hash *));
+  for (i = 0; array[i]; i++)
     {
       char *oid;
       struct hash *d;
 
-      oid = nvticache_get_oid (l->dependencies[i]);
+      oid = nvticache_get_oid (array[i]);
       if (!oid)
         {
           log_write ("scheduler: %s depends on %s which could not be found",
-                     l->name, l->dependencies[i]);
+                     l->name, array[i]);
           continue;
         }
       d = _hash_get (h, oid);
@@ -218,7 +210,7 @@ hash_fill_deps (struct hash *h, struct hash *l)
         l->dependencies_ptr[j++] = d;
       else
         log_write ("scheduler: %s depends on %s which could not be found",
-                   l->name, l->dependencies[i]);
+                   l->name, array[i]);
       g_free (oid);
     }
   l->dependencies_ptr[j] = NULL;
@@ -252,22 +244,27 @@ void
 scheduler_mark_running_ports (plugins_scheduler_t sched,
                               struct scheduler_plugin *plugin)
 {
-  char **ports = plugin->parent_hash->ports;
+  char *ports, **array;
   int i;
 
-  if (ports == NULL)
+  ports = nvticache_get_required_ports (plugin->arglist->name);
+  if (!ports)
     return;
 
-  for (i = 0; ports[i] != NULL; i++)
+  array = g_strsplit (ports, ", ", 0);
+  g_free (ports);
+  if (!array)
+    return;
+  for (i = 0; array[i] != NULL; i++)
     {
-      struct plist *pl = pl_get (sched->plist, ports[i]);
+      struct plist *pl = pl_get (sched->plist, array[i]);
 
       if (pl != NULL)
         pl->occurences++;
       else
         {
           pl = g_malloc0 (sizeof (struct plist));
-          pl->name = g_strdup (ports[i]);
+          pl->name = g_strdup (array[i]);
           pl->occurences = 1;
           pl->next = sched->plist;
           if (sched->plist != NULL)
@@ -276,23 +273,27 @@ scheduler_mark_running_ports (plugins_scheduler_t sched,
           sched->plist = pl;
         }
     }
+  g_strfreev (array);
 }
 
 void
 scheduler_rm_running_ports (plugins_scheduler_t sched,
                             struct scheduler_plugin *plugin)
 {
-  char **ports;
+  char *ports, **array;
   int i;
 
-  ports = plugin->parent_hash->ports;
-
-  if (ports == NULL)
+  ports = nvticache_get_required_ports (plugin->arglist->name);
+  if (!ports)
     return;
 
-  for (i = 0; ports[i] != NULL; i++)
+  array = g_strsplit (ports, ", ", 0);
+  g_free (ports);
+  if (!array)
+    return;
+  for (i = 0; array[i] != NULL; i++)
     {
-      struct plist *pl = pl_get (sched->plist, ports[i]);
+      struct plist *pl = pl_get (sched->plist, array[i]);
 
       if (pl != NULL)
         {
@@ -313,8 +314,9 @@ scheduler_rm_running_ports (plugins_scheduler_t sched,
         }
       else
         log_write ("Warning: scheduler_rm_running_ports failed ?! (%s)\n",
-                   ports[i]);
+                   array[i]);
     }
+  g_strfreev (array);
 }
 
 
