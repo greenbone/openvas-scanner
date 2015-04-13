@@ -933,7 +933,6 @@ attack_network (struct arglist *globals, kb_t *network_kb)
   int fork_retries = 0;
   GHashTable *files;
   struct timeval then, now;
-  char buffer[INET6_ADDRSTRLEN];
 
   const gchar *network_targets, *port_range;
   gboolean network_phase = FALSE;
@@ -1073,7 +1072,9 @@ attack_network (struct arglist *globals, kb_t *network_kb)
       char *hostname;
       struct in6_addr host_ip;
 
-      hostname = openvas_host_value_str (host);
+      hostname = openvas_host_reverse_lookup (host);
+      if (!hostname)
+        hostname = openvas_host_value_str (host);
       if (openvas_host_get_addr6 (host, &host_ip) == -1)
         {
           log_write ("Couldn't resolve target %s", hostname);
@@ -1103,7 +1104,7 @@ attack_network (struct arglist *globals, kb_t *network_kb)
       else
         {
           struct attack_start_args args;
-          char *MAC = NULL;
+          char *MAC = NULL, *txt_ip;
           int mac_err = -1;
           int soc[2];
 
@@ -1126,7 +1127,7 @@ attack_network (struct arglist *globals, kb_t *network_kb)
 
           args.globals = globals;
           memcpy (&args.hostip, &host_ip, sizeof (struct in6_addr));
-          args.fqdn = openvas_host_value_str (host);
+          args.fqdn = hostname;
           args.host_mac_addr = MAC;
           args.sched = sched;
           args.thread_socket = soc[0];
@@ -1156,20 +1157,15 @@ attack_network (struct arglist *globals, kb_t *network_kb)
               fork_sleep (fork_retries);
               goto forkagain;
             }
-
+          txt_ip = addr6_as_str (&args.hostip);
           hosts_set_pid (hostname, pid);
           if (network_phase)
             log_write ("Testing %s (network level) [%d]",
                        network_targets, pid);
           else
-            log_write ("Testing %s (%s) [%d]",
-                       hostname, inet_ntop (AF_INET6,
-                                            &args.hostip,
-                                            buffer,
-                                            sizeof (buffer)),
-                       pid);
-          if (MAC != NULL)
-            g_free (MAC);
+            log_write ("Testing %s (%s) [%d]", hostname, txt_ip, pid);
+         g_free (txt_ip);
+         g_free (MAC);
         }
 
       num_tested++;

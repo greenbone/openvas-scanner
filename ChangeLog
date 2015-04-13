@@ -1,3 +1,10 @@
+2015-04-13  Hani Benhabiles  <hani.benhabiles@greenbone.net>
+
+	Backport r22050.
+
+	* src/attack.c (attack_network): Set the host's fqdn as reverse lookup
+	of the ip when available.
+
 2015-04-01  Jan-Oliver Wagner <jan-oliver.wagner@greenbone.net>
 
 	Post release version bump.
