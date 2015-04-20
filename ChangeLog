@@ -1,3 +1,10 @@
+2015-04-20  Hani Benhabiles  <hani.benhabiles@greenbone.net>
+
+	Backport r22167.
+
+	* src/pluginlaunch.c (plugin_launch): Correctly set the plugin's timeout
+	when none is provided in the nvt. Issue reported by Kent Fritz.
+
 2015-04-13  Hani Benhabiles  <hani.benhabiles@greenbone.net>
 
 	Backport r22050.
