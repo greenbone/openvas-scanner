@@ -443,7 +443,7 @@ plugin_launch (struct arglist *globals, struct scheduler_plugin *plugin,
       if (category == ACT_SCANNER)
         processes[p].timeout = -1;
       else
-        processes[p].timeout = prefs_get_bool ("plugins_timeout");
+        processes[p].timeout = atoi (prefs_get ("plugins_timeout") ?: "-1");
     }
 
   if (socketpair (AF_UNIX, SOCK_STREAM, 0, dsoc) < 0)

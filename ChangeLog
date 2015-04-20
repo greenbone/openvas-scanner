@@ -1,3 +1,8 @@
+2015-04-20  Hani Benhabiles  <hani.benhabiles@greenbone.net>
+
+	* src/pluginlaunch.c (plugin_launch): Correctly set the plugin's timeout
+	when none is provided in the nvt. Issue reported by Kent Fritz.
+
 2015-04-10  Hani Benhabiles  <hani.benhabiles@greenbone.net>
 
 	Remove num_deps, dependencies and ports from struct hash and use
