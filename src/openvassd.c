@@ -250,17 +250,25 @@ sighand_loading_handler (int sig)
 static pid_t
 loading_handler_start ()
 {
-  pid_t child_pid;
+  pid_t child_pid, parent_pid;
 
   init_loading_shm ();
+  parent_pid = getpid ();
   child_pid = fork ();
   if (child_pid != 0)
     return child_pid;
+
   proctitle_set ("openvassd (Loading Handler)");
   openvas_signal (SIGTERM, sighand_loading_handler);
+  if (fcntl (global_iana_socket, F_SETFL, O_NONBLOCK) < 0)
+    {
+      log_write ("fcntl: %s", strerror (errno));
+      exit (0);
+    }
+
   /*
-   * Forked process will handle client requests until parent stops it with
-   * loading_handler_stop ().
+   * Forked process will handle client requests until parent dies or stops it
+   * with loading_handler_stop ().
    */
   while (1)
     {
@@ -268,12 +276,13 @@ loading_handler_start ()
       struct sockaddr_in6 address6;
       int soc;
 
-      if (loading_stop)
+      if (loading_stop || kill (parent_pid, 0) < 0)
         break;
       lg_address = sizeof (struct sockaddr_in6);
       soc = accept (global_iana_socket, (struct sockaddr *) (&address6),
                     &lg_address);
       loading_client_handle (soc);
+      sleep (1);
     }
   exit (0);
 }
@@ -307,6 +316,8 @@ reload_openvassd ()
   openvas_signal (SIGHUP, SIG_IGN);
 
   handler_pid = loading_handler_start ();
+  if (handler_pid < 0)
+    return;
   /* Free the nvti cache. */
   nvti_cache = arg_get_value (global_preferences, "nvticache");
   nvticache_free (nvti_cache);
@@ -939,6 +950,8 @@ main (int argc, char *argv[])
     set_daemon_mode ();
   pidfile_create ("openvassd");
   handler_pid = loading_handler_start ();
+  if (handler_pid < 0)
+    return 1;
   init_plugins (options);
   loading_handler_stop (handler_pid);
   main_loop ();

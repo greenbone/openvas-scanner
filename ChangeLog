@@ -1,3 +1,12 @@
+2015-04-27  Hani Benhabiles  <hani.benhabiles@greenbone.net>
+
+	Backport r22215.
+
+	* src/openvassd.c (loading_handler_start): Set global socket as
+	nonblocking. Periodically check that parent is still alive.
+	(reload_openvassd, main): Check loading_handler_start() return value.
+	Reported by Miguel Angel Cabrera.
+
 2015-03-04  Michael Wiegand <michael.wiegand@greenbone.net>
 
 	Post release version bump.
