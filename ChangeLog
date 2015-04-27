@@ -1,3 +1,10 @@
+2015-04-27  Hani Benhabiles  <hani.benhabiles@greenbone.net>
+
+	* src/openvassd.c (loading_handler_start): Set global socket as
+	nonblocking. Periodically check that parent is still alive.
+	(reload_openvassd, main): Check loading_handler_start() return value.
+	Reported by Miguel Angel Cabrera.
+
 2015-04-20  Hani Benhabiles  <hani.benhabiles@greenbone.net>
 
 	* src/pluginlaunch.c (plugin_launch): Correctly set the plugin's timeout
