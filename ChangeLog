@@ -1,3 +1,11 @@
+2015-04-28  Michael Wiegand <michael.wiegand@greenbone.net>
+
+	* src/pluginload.c (plugins_reload_from_dir): Ensure openvas-libraries
+	builds with GLib =< 2.28 by wrapping g_slist_free_full () in an ifdef
+	and falling back to g_slist_foreach () / g_slist_free () when using
+	older GLib versions. Based on patch suggested by Miguel Angel Cabrera
+	Moya.
+
 2015-04-27  Hani Benhabiles  <hani.benhabiles@greenbone.net>
 
 	* src/openvassd.c (loading_handler_start): Set global socket as
