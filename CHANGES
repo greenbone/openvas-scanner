@@ -1,3 +1,28 @@
+openvas-scanner 5.0.2 (2015-04-30)
+
+This is the second maintenance release of the openvas-scanner 5.0 module for
+the Open Vulnerability Assessment System release 8 (OpenVAS-8).
+
+This release increases the minimum required version of OpenVAS Libraries to
+8.0.2. It uses new functionality from OpenVAS Libraries to set the target hosts
+FQDN based on a reverse DNS lookup. It also fixes an issue which caused NVTs to
+hang under certain circumstances.
+
+Many thanks to everyone who contributed to this release:
+Hani Benhabiles, Miguel Angel Cabrera Moya and Michael Wiegand.
+
+Main changes compared to 5.0.1:
+* The required minimum OpenVAS Libraries version has increased to 8.0.2.
+* The target FQDN is now set to the result of a reverse DNS lookup on the IP
+  when available.
+* An issue which caused NVTs to hang on open, but unresponsive ports due to the
+  timeout not being set correctly has been fixed.
+* An issue which caused the loading handler process to live on even after the
+  parent process had been killed has been fixed.
+* An issue which prevented openvas-scanner from building with GLib =< 2.28 has
+  been addressed.
+
+
 openvas-scanner 5.0.1 (2015-04-01)
 
 This is the first maintenance release of the openvas-scanner 5.0 module for

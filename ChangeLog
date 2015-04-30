@@ -1,3 +1,15 @@
+2015-04-30  Michael Wiegand <michael.wiegand@greenbone.net>
+
+	Preparing the openvas-scanner 5.0.2 release.
+
+	* CHANGES: Updated.
+
+	* CMakeLists.txt: Bump minimum required openvas-libraries version to
+	8.0.2 due to API changes.
+
+	* INSTALL: Make required openvas-libraries version consistent with
+	CMakeLists.txt.
+
 2015-04-28  Michael Wiegand <michael.wiegand@greenbone.net>
 
 	Backport r22221.
