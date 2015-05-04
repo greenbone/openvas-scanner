@@ -1,3 +1,8 @@
+2015-05-04  Hani Benhabiles  <hani.benhabiles@greenbone.net>
+
+	* src/openvassd.c (loading_handler_start): Set back the global socket's
+	flags after loading end.
+
 2015-04-28  Michael Wiegand <michael.wiegand@greenbone.net>
 
 	* src/pluginload.c (plugins_reload_from_dir): Ensure openvas-scanner
