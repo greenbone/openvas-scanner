@@ -276,13 +276,13 @@ loading_handler_start ()
 
   proctitle_set ("openvassd (Loading Handler)");
   openvas_signal (SIGTERM, handle_loading_stop_signal);
-  if (fcntl (global_iana_socket, F_GETFL, &opts) < 0)
+  if ((opts = fcntl (global_iana_socket, F_GETFL, 0)) < 0)
     {
       log_write ("fcntl: %s", strerror (errno));
       exit (0);
     }
 
-  if (fcntl (global_iana_socket, F_SETFL, opts && O_NONBLOCK) < 0)
+  if (fcntl (global_iana_socket, F_SETFL, opts | O_NONBLOCK) < 0)
     {
       log_write ("fcntl: %s", strerror (errno));
       exit (0);

@@ -1,3 +1,8 @@
+2015-05-06  Hani Benhabiles  <hani.benhabiles@greenbone.net>
+
+	* src/openvassd.c (loading_handler_start): Save the socket's flags
+	correctly, and properly use it with O_NONBLOCK.
+
 2015-05-04  Hani Benhabiles  <hani.benhabiles@greenbone.net>
 
 	* src/openvassd.c (loading_handler_start): Set back the global socket's
