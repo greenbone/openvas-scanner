@@ -48,16 +48,12 @@ void
 log_init (const char *filename)
 {
   if ((!filename) || (!strcmp (filename, "stderr")))
-    {
-      log = stderr;
-      dup2 (2, 3);
-    }
+    log = stderr;
   else if (!strcmp (filename, "syslog"))
     {
       openlog ("openvassd", 0, LOG_DAEMON);
       log = NULL;
     }
-
   else
     {
       int fd = open (filename, O_WRONLY | O_CREAT | O_APPEND, 0644);
@@ -67,22 +63,11 @@ log_init (const char *filename)
           fprintf (stderr, "Could not open the logfile, using stderr\n");
           log = stderr;
         }
-
-      if (fd != 3)
-        {
-          if (dup2 (fd, 3) < 0)
-            {
-              perror ("dup2 ");
-            }
-          close (fd);
-        }
-
-      log = fdopen (3, "a");
+      log = fdopen (fd, "a");
       if (log == NULL)
         {
           perror ("fdopen ");
           log = stderr;
-          dup2 (2, 3);
         }
 
       setlinebuf (log);

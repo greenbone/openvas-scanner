@@ -1,3 +1,8 @@
+2015-05-08  Hani Benhabiles  <hani.benhabiles@greenbone.net>
+
+	* src/log.c (log_init): Don't duplicate log file descriptor to fixed 3
+	value. Fixes closing of a file descriptor with GnuTLS 3.3.8-9.
+
 2015-05-06  Hani Benhabiles  <hani.benhabiles@greenbone.net>
 
 	* src/openvassd.c (loading_handler_start): Save the socket's flags
