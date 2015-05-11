@@ -1,3 +1,20 @@
+openvas-scanner 5.0.3 (2015-05-11)
+
+This is the third maintenance release of the openvas-scanner 5.0 module for
+the Open Vulnerability Assessment System release 8 (OpenVAS-8).
+
+This release fixes an issue introduced with OpenVAS Scanner 5.0.2 which
+sometimes resulted in the parent process not releasing the CPU after loading the
+NVTs.
+
+Many thanks to everyone who contributed to this release:
+Hani Benhabiles.
+
+Main changes compared to 5.0.2:
+* An issue which caused OpenVAS Scanner to fail to release the CPU after loading
+  the NVTs under certain circumstances has been fixed.
+
+
 openvas-scanner 5.0.2 (2015-04-30)
 
 This is the second maintenance release of the openvas-scanner 5.0 module for
