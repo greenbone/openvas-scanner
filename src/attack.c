@@ -534,7 +534,7 @@ attack_start (struct attack_start_args *args)
   const char *vhosts = prefs_get ("vhosts");
   const char *vhosts_ip = prefs_get ("vhosts_ip");
   int thread_socket;
-  struct timeval then, now;
+  struct timeval then;
   plugins_scheduler_t sched = args->sched;
   kb_t *net_kb = args->net_kb;
 
@@ -581,18 +581,21 @@ attack_start (struct attack_start_args *args)
   attack_host (globals, hostinfos, host_str, sched, net_kb);
   host_info_free (hostinfos);
 
-  // Calculate duration, clean up
-  ntp_timestamp_host_scan_ends (thread_socket, host_str);
-  gettimeofday (&now, NULL);
-  if (now.tv_usec < then.tv_usec)
+  if (!scan_is_stopped ())
     {
-      then.tv_sec++;
-      now.tv_usec += 1000000;
-    }
+      struct timeval now;
 
-  log_write ("Finished testing %s. Time : %ld.%.2ld secs", host_str,
-             (long) (now.tv_sec - then.tv_sec),
-             (long) ((now.tv_usec - then.tv_usec) / 10000));
+      ntp_timestamp_host_scan_ends (thread_socket, host_str);
+      gettimeofday (&now, NULL);
+      if (now.tv_usec < then.tv_usec)
+        {
+          then.tv_sec++;
+          now.tv_usec += 1000000;
+        }
+        log_write ("Finished testing %s. Time : %ld.%.2ld secs", host_str,
+                   (long) (now.tv_sec - then.tv_sec),
+                   (long) ((now.tv_usec - then.tv_usec) / 10000));
+    }
   shutdown (thread_socket, 2);
   close (thread_socket);
   g_free (args->fqdn);

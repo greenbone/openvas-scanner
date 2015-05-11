@@ -1,3 +1,8 @@
+2015-05-11  Hani Benhabiles  <hani.benhabiles@greenbone.net>
+
+	* src/attack.c (attack_start): Don't send HOST_END when scan was
+	stopped.
+
 2015-05-08  Hani Benhabiles  <hani.benhabiles@greenbone.net>
 
 	* src/log.c (log_init): Don't duplicate log file descriptor to fixed 3
