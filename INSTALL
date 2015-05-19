@@ -107,7 +107,22 @@ Setting up an openvas-scanner requires the following steps:
    Please visit the OpenVAS website for more information on available NVT feeds
    and instructions for integrating feeds into your scanner installation.
 
-4) You can launch openvas-scanner using the following command:
+4) The scanner needs a running redis server to temporarily store information
+   gathered on the scanned hosts. Redis 2.4 and newer is supported but 2.6
+   is recommended. See doc/redis_config.txt to see how to setup and run a redis
+   server.
+
+   Two examples are installed which you may use directly for a quick start:
+
+   $ redis-server /share/doc/openvas-scanner/example_redis_2_4.conf
+
+   or
+
+   $ redis-server /share/doc/openvas-scanner/example_redis_2_6.conf
+
+   or copy the example to another location, edit and use the copy instead.
+
+5) You can launch openvas-scanner using the following command:
 
    $ openvassd
 
@@ -128,21 +143,6 @@ Setting up an openvas-scanner requires the following steps:
    certain operations like packet forgery. If you run openvassd as a user
    without permission to perform these operations, your scan results are very
    likely to be incomplete.
-
-5) The scanner needs a running redis server to temporarily store information
-   gathered on the scanned hosts. Redis 2.4 and newer is supported but 2.6
-   is recommended. See doc/redis_config.txt to see how to setup and run a redis
-   server.
-
-   Two examples are installed which you may use directly for a quick start:
-
-   $ redis-server /share/doc/openvas-scanner/example_redis_2_4.conf
-
-   or
-
-   $ redis-server /share/doc/openvas-scanner/example_redis_2_6.conf
-
-   or copy the example to another location, edit and use the copy instead.
 
 6) Once the scanner has started, openvas-manager can act as a client and control
    the scanner. The actual user interfaces (for example GSA or CLI-OMP)
