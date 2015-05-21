@@ -218,7 +218,7 @@ nasl_thread (struct nasl_thread_args *nargs)
   struct arglist *globals = arg_get_value (args, "globals");
   struct host_info *hostinfo = arg_get_value (args, "HOSTNAME");
   char *name = nargs->name;
-  int nasl_mode = 0, soc, old_soc;
+  int nasl_mode = 0, soc;
   kb_t kb;
   GError *error = NULL;
 
@@ -237,16 +237,7 @@ nasl_thread (struct nasl_thread_args *nargs)
   pluginlaunch_child_cleanup ();
   kb = arg_get_value (args, "key");
   kb_lnk_reset (kb);
-  old_soc = arg_get_value_int (args, "SOCKET");
-  /* XXX ugly hack */
-  soc = dup2 (old_soc, 4);
-  close (old_soc);
-  if (soc < 0)
-    {
-      log_write ("dup2() failed ! - can not launch the plugin");
-      return;
-    }
-  arg_set_value (args, "SOCKET", GSIZE_TO_POINTER (soc));
+  soc = arg_get_value_int (args, "SOCKET");
   arg_set_value (globals, "global_socket", GSIZE_TO_POINTER (soc));
   proctitle_set ("openvassd: testing %s (%s)", hostinfo->name, name);
 

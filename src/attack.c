@@ -546,10 +546,7 @@ attack_start (struct attack_start_args *args)
     host_str = addr6_as_str (&args->hostip);
   g_free (args->host_mac_addr);
   close (args->parent_socket);
-  thread_socket = dup2 (args->thread_socket, 4);
-  if (args->thread_socket != thread_socket)
-    close (args->thread_socket);
-
+  thread_socket = args->thread_socket;
   gettimeofday (&then, NULL);
 
   arg_add_value (preferences_get (), "non_simult_ports_list", ARG_ARGLIST,

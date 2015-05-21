@@ -1,3 +1,8 @@
+2015-05-20  Hani Benhabiles  <hani.benhabiles@greenbone.net>
+
+	* src/attack.c (attack_start), src/nasl_plugins.c (nasl_thread): Remove
+	useless socket duplicate to hardcoded value of 4.
+
 2015-05-19  Jan-Oliver Wagner <jan-oliver.wagner@greenbone.net>
 
 	* INSTALL: Move redis prior to openvassd start.
