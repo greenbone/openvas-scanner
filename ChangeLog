@@ -1,3 +1,8 @@
+2015-05-22  Benoît Allard  <benoit.allard@greenbone.net>
+
+	* src/attack.c, src/openvassd.c: Fix some style issues spotted by
+	  cppcheck (scope too wide for some variables).
+
 2015-05-20  Hani Benhabiles  <hani.benhabiles@greenbone.net>
 
 	* src/attack.c (attack_start), src/nasl_plugins.c (nasl_thread): Remove

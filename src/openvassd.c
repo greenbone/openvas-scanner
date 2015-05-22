@@ -403,7 +403,7 @@ static void
 scanner_thread (struct arglist *globals)
 {
   char asciiaddr[INET6_ADDRSTRLEN];
-  int opt = 1, soc2 = -1, nice_retval, soc;
+  int opt = 1, soc2 = -1, soc;
   struct sockaddr_storage addr;
   socklen_t len;
 
@@ -427,8 +427,7 @@ scanner_thread (struct arglist *globals)
   if (prefs_get_bool ("be_nice"))
     {
       errno = 0;
-      nice_retval = nice (10);
-      if (nice_retval == -1 && errno != 0)
+      if (nice(10) == -1 && errno != 0)
         {
           log_write ("Unable to renice process: %d", errno);
         }

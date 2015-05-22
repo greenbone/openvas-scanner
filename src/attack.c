@@ -974,7 +974,6 @@ attack_network (struct arglist *globals, kb_t *network_kb)
   openvas_signal (SIGUSR1, handle_scan_stop_signal);
   while (host)
     {
-      int pid;
       char *hostname;
       struct in6_addr host_ip;
 
@@ -1009,15 +1008,14 @@ attack_network (struct arglist *globals, kb_t *network_kb)
         }
       else
         {
+          int pid;
           struct attack_start_args args;
           char *MAC = NULL, *txt_ip;
-          int mac_err = -1;
           int soc[2];
 
           if (prefs_get_bool ("use_mac_addr") && v6_is_local_ip (&host_ip))
             {
-              mac_err = v6_get_mac_addr (&host_ip, &MAC);
-              if (mac_err > 0)
+              if (v6_get_mac_addr (&host_ip, &MAC) > 0)
                 {
                   /* remote host is down */
                   g_free (hostname);
