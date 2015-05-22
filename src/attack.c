@@ -629,10 +629,7 @@ attack_start (struct attack_start_args *args)
     inet_ntop (AF_INET6, &args->hostip, host_str, sizeof (host_str));
 
   close (args->parent_socket);
-  thread_socket = dup2 (args->thread_socket, 4);
-  if (args->thread_socket != thread_socket)
-    close (args->thread_socket);
-
+  thread_socket = args->thread_socket;
   gettimeofday (&then, NULL);
 
   arg_add_value (preferences_get (), "non_simult_ports_list", ARG_ARGLIST,
