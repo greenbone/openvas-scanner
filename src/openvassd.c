@@ -251,6 +251,7 @@ static pid_t
 loading_handler_start ()
 {
   pid_t child_pid, parent_pid;
+  int opts;
 
   init_loading_shm ();
   parent_pid = getpid ();
@@ -260,7 +261,13 @@ loading_handler_start ()
 
   proctitle_set ("openvassd (Loading Handler)");
   openvas_signal (SIGTERM, sighand_loading_handler);
-  if (fcntl (global_iana_socket, F_SETFL, O_NONBLOCK) < 0)
+  if ((opts = fcntl (global_iana_socket, F_GETFL, 0)) < 0)
+    {
+      log_write ("fcntl: %s", strerror (errno));
+      exit (0);
+    }
+
+  if (fcntl (global_iana_socket, F_SETFL, opts && O_NONBLOCK) < 0)
     {
       log_write ("fcntl: %s", strerror (errno));
       exit (0);
@@ -284,6 +291,9 @@ loading_handler_start ()
       loading_client_handle (soc);
       sleep (1);
     }
+  if (fcntl (global_iana_socket, F_SETFL, opts) < 0)
+    log_write ("fcntl: %s", strerror (errno));
+
   exit (0);
 }
 

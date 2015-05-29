@@ -1,3 +1,10 @@
+2015-05-29  Hani Benhabiles  <hani.benhabiles@greenbone.net>
+
+	Backport r22274 and r22296.
+
+	* src/openvassd.c (loading_handler_start): Save the socket's flags and
+	properly use O_NONBLOCK while loading.
+
 2015-04-27  Hani Benhabiles  <hani.benhabiles@greenbone.net>
 
 	Backport r22215.
