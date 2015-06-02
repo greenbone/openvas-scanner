@@ -1,3 +1,9 @@
+2015-06-02  Hani Benhabiles  <hani.benhabiles@greenbone.net>
+
+	* src/openvassd.c (remove_pidfile): New function.
+	(loading_handler_start): Handle SIGTERM with remove_pidfile().
+	(check_termination): Remove pidfile before exiting.
+
 2015-05-22  Benoît Allard  <benoit.allard@greenbone.net>
 
 	* src/attack.c, src/openvassd.c: Fix some style issues spotted by
