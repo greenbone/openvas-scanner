@@ -1,3 +1,11 @@
+2015-06-02  Hani Benhabiles  <hani.benhabiles@greenbone.net>
+
+	Backport r22544.
+
+	* src/openvassd.c (remove_pidfile): New function.
+	(loading_handler_start): Handle SIGTERM with remove_pidfile().
+	(check_termination): Remove pidfile before exiting.
+
 2015-05-22  Hani Benhabiles  <hani.benhabiles@greenbone.net>
 
 	Backport r22400.

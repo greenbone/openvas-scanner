@@ -256,6 +256,12 @@ handle_loading_stop_signal (int sig)
   loading_stop_signal = sig;
 }
 
+static void
+remove_pidfile ()
+{
+  pidfile_remove ("openvassd");
+}
+
 /*
  * @brief Starts a process to handle client requests while the scanner is
  * loading.
@@ -270,6 +276,7 @@ loading_handler_start ()
 
   init_loading_shm ();
   parent_pid = getpid ();
+  openvas_signal (SIGTERM, remove_pidfile);
   child_pid = fork ();
   if (child_pid != 0)
     return child_pid;
@@ -524,6 +531,7 @@ check_termination ()
   if (termination_signal)
     {
       log_write ("Received the %s signal", strsignal (termination_signal));
+      remove_pidfile ();
       make_em_die (SIGTERM);
       log_close ();
       _exit (0);
