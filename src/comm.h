@@ -38,7 +38,7 @@ void comm_terminate (struct arglist *);
 void comm_send_pluginlist (struct arglist *);
 void comm_send_preferences (struct arglist *);
 void comm_send_rules (struct arglist *);
-void comm_wait_order (struct arglist *);
+int comm_wait_order (struct arglist *);
 void comm_setup_plugins (struct arglist *, char *);
 void client_handler ();
 void comm_send_nvt_info (struct arglist *);

@@ -223,22 +223,25 @@ process_alive (pid_t pid)
  * @return 1 if the client is here, 0 if it's not.
  */
 int
-is_client_present (soc)
-     int soc;
+is_client_present (int soc)
 {
   fd_set rd;
   struct timeval tv;
-  int m;
-  int e;
+  int m, e;
 
   stream_zero (&rd);
   m = stream_set (soc, &rd);
 again:
   tv.tv_sec = 2;
   tv.tv_usec = 0;
+  errno = 0;
   e = select (m + 1, &rd, NULL, NULL, &tv);
-  if (e < 0 && errno == EINTR)
-    goto again;
+  if (e < 0)
+    {
+      if (errno == EINTR)
+        goto again;
+      return 0;
+    }
 
   if (e > 0)
     {

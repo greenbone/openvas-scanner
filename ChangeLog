@@ -1,3 +1,17 @@
+2015-06-02  Hani Benhabiles  <hani.benhabiles@greenbone.net>
+
+	Backport r21954 and r21956.
+
+	* src/comm.c (comm_wait_order): Handle ntp_parse_input () return value
+	correctly. Return value instead of exitting.
+
+	* src/comm.h: Adjust function prototype.
+
+	* src/ntp.c (ntp_parse_input): Handle empty input.
+
+	* src/utils.c (is_client_present): Reset errno as it will be tested for
+	after select() call. Check for select() failure.
+
 2015-06-02  Michael Wiegand <michael.wiegand@greenbone.net>
 
 	Post release version bump.

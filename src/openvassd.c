@@ -428,7 +428,8 @@ handle_client (struct arglist *globals)
   /* Become process group leader and the like ... */
   start_daemon_mode ();
 wait:
-  comm_wait_order (globals);
+  if (comm_wait_order (globals))
+    return;
   preferences_reset_cache ();
   ntp_timestamp_scan_starts (globals);
   attack_network (globals);
