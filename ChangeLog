@@ -1,5 +1,11 @@
 2015-06-02  Michael Wiegand <michael.wiegand@greenbone.net>
 
+	Post release version bump.
+
+	* CMakeLists.txt: Set version to 4.0.8.
+
+2015-06-02  Michael Wiegand <michael.wiegand@greenbone.net>
+
 	Preparing the openvas-scanner 4.0.7 release.
 
 	* CHANGES: Updated.
