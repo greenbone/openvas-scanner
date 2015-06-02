@@ -1,3 +1,9 @@
+2015-06-02  Michael Wiegand <michael.wiegand@greenbone.net>
+
+	Preparing the openvas-scanner 4.0.7 release.
+
+	* CHANGES: Updated.
+
 2015-05-29  Hani Benhabiles  <hani.benhabiles@greenbone.net>
 
 	Backport r22274 and r22296.
