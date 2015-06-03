@@ -1,3 +1,7 @@
+2015-06-03  Sven Haardiek <sven.haardiek@greenbone.net>
+
+	* CMakeLists.txt: Enable preprocessor defition for OPENVAS_PID_DIR
+
 2015-06-02  Hani Benhabiles  <hani.benhabiles@greenbone.net>
 
 	* src/openvassd.c (remove_pidfile): New function.
