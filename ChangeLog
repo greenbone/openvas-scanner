@@ -1,3 +1,12 @@
+2015-06-04  Hani Benhabiles  <hani.benhabiles@greenbone.net>
+
+	* src/comm.c (comm_send_nvt_info), src/otp.c (otp_get_client_request):
+	Remove PLUGIN_INFO handling.
+
+	* src/ntp.c (ntp_parse_input): Remove CREQ_PLUGIN_INFO handling.
+
+	*  src/otp.h (client_request_t): Remove CREQ_PLUGIN_INFO element.
+
 2015-06-04  Benoît Allard  <benoit.allard@greenbone.net>
 
 	* src/comm.c (send_plug_info): Prevent a null pointer dereference if

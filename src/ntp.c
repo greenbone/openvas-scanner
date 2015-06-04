@@ -92,20 +92,6 @@ ntp_parse_input (struct arglist *globals, char *input)
           result = ntp_long_attack (soc);
           break;
 
-        case CREQ_PLUGIN_INFO:
-          {
-            char *t, *s;
-            t = strstr (&(str[1]), " <|> ");
-            if (t == NULL)
-              {
-                result = -1;
-                break;
-              }
-            s = t + 5;
-            send_plug_info (soc, s);
-            break;
-          }
-
         case CREQ_PREFERENCES:
           ntp_read_prefs (soc);
           break;

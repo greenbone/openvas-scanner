@@ -549,8 +549,7 @@ is_valid_feed_version (const char *feed_version)
 }
 
 /**
- * @brief Send the OTP NVT_INFO message and then handle any COMPLETE_LIST
- * and PLUGIN_INFO commands.
+ * @brief Send the OTP NVT_INFO message and then handle any COMPLETE_LIST.
  */
 void
 comm_send_nvt_info (int soc)
@@ -574,22 +573,6 @@ comm_send_nvt_info (int soc)
       recv_line (soc, buf, sizeof (buf) - 1);
       if (strstr (buf, "COMPLETE_LIST"))
         comm_send_pluginlist (soc);
-      else if (strstr (buf, "PLUGIN_INFO"))
-        {
-          char *t = strstr (buf, " <|> ");
-          char *s;
-          if (!t)
-            continue;
-          t = strstr (t + 5, " <|> ");
-          if (!t)
-            continue;
-          s = t + 5;
-          t = strchr (s, ' ');
-          if (!t)
-            continue;
-          t[0] = '\0';
-          send_plug_info (soc, s);
-        }
       else
         break;
     }
