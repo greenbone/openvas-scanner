@@ -1,3 +1,8 @@
+2015-06-04  Benoît Allard  <benoit.allard@greenbone.net>
+
+	* src/comm.c (send_plug_info): Prevent a null pointer dereference if
+	  copyright is NULL.
+
 2015-06-04  Hani Benhabiles  <hani.benhabiles@greenbone.net>
 
 	* src/comm.c (send_plug_info): Take oid instead of arglist as argument.

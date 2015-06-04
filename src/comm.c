@@ -233,7 +233,7 @@ send_plug_info (int soc, const char *oid)
       ignored = 1;
     }
 
-  if (strchr (copyright, '\n') != NULL)
+  if ((copyright != NULL) && (strchr (copyright, '\n') != NULL))
     {
       log_write ("%s: Newline in copyright\n", nvti_oid (nvti));
       ignored = 1;
