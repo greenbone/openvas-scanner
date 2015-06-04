@@ -164,17 +164,17 @@ comm_terminate (int soc)
  * @brief Sends a plugin info.
  */
 void
-send_plug_info (int soc, struct arglist *plugins)
+send_plug_info (int soc, const char *oid)
 {
   int j, ignored = 0;
   static const char *categories[] = { ACT_STRING_LIST_ALL };
 #define CAT_MAX	(sizeof(categories) / sizeof(categories[0]))
   const char *name, *copyright, *summary, *version, *family;
-  nvti_t *nvti = nvticache_get_by_oid_full (plugins->name);
+  nvti_t *nvti = nvticache_get_by_oid_full (oid);
 
   if (!nvti)
     {
-      log_write ("NVTI not found for OID %s. Will not be sent.", plugins->name);
+      log_write ("NVTI not found for OID %s. Will not be sent.", oid);
       return;
     }
 
@@ -282,35 +282,6 @@ send_plug_info (int soc, struct arglist *plugins)
 }
 
 /**
- * @brief Sends the plugin info for a single plugin.
- * @param soc Socket to use to send plugin info.
- * @param oid OID of the plugin to send.
- * @see send_plug_info
- */
-void
-plugin_send_infos (int soc, char *oid)
-{
-  struct arglist *plugins = global_plugins;
-
-  if (!oid)
-    return;
-  if (!plugins)
-    return;
-
-  while (plugins)
-    {
-      struct arglist *args = plugins->value;
-      if (args && !strcmp (oid, plugins->name))
-        {
-          send_plug_info (soc, plugins);
-          return;
-        }
-      plugins = plugins->next;
-    }
-}
-
-
-/**
  * @brief Sends the list of plugins that the scanner could load to the client,
  * @brief using the OTP format (calls send_plug_info for each).
  * @param socket    Socket to use for sending list of plugins.
@@ -319,15 +290,17 @@ plugin_send_infos (int soc, char *oid)
 void
 comm_send_pluginlist (int soc)
 {
-  struct arglist *plugins = global_plugins;
+  GSList *list, *element;
 
+  list = element = nvticache_get_oids ();
   send_printf (soc, "SERVER <|> PLUGIN_LIST <|>\n");
-  while (plugins && plugins->next)
+  while (element)
     {
-      send_plug_info (soc, plugins);
-      plugins = plugins->next;
+      send_plug_info (soc, element->data);
+      element = element->next;
     }
   send_printf (soc, "<|> SERVER\n");
+  g_slist_free_full (list, g_free);
 }
 
 /**
@@ -615,7 +588,7 @@ comm_send_nvt_info (int soc)
           if (!t)
             continue;
           t[0] = '\0';
-          plugin_send_infos (soc, s);
+          send_plug_info (soc, s);
         }
       else
         break;

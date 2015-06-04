@@ -1,3 +1,15 @@
+2015-06-04  Hani Benhabiles  <hani.benhabiles@greenbone.net>
+
+	* src/comm.c (send_plug_info): Take oid instead of arglist as argument.
+	(plugin_send_infos): Remove function.
+	(comm_send_pluginlist): Use nvticache_get_oids() instead of
+	global_plugins.
+	(comm_send_nvt_info): Call send_plug_info().
+
+	* src/comm.h: Add and remove functions prototypes.
+
+	* src/ntp.c (ntp_parse_input): Call send_plug_info().
+
 2015-06-03  Sven Haardiek <sven.haardiek@greenbone.net>
 
 	* CMakeLists.txt: Enable preprocessor defition for OPENVAS_PID_DIR

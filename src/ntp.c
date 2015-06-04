@@ -102,7 +102,7 @@ ntp_parse_input (struct arglist *globals, char *input)
                 break;
               }
             s = t + 5;
-            plugin_send_infos (soc, s);
+            send_plug_info (soc, s);
             break;
           }
 
