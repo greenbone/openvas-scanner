@@ -157,7 +157,7 @@ ntp_long_attack (int soc)
       plugin_set = prefs_get ("plugin_set");
     }
 
-  comm_setup_plugins ((char *) plugin_set);
+  comm_setup_plugins (plugin_set);
   prefs_set ("TARGET", target);
 
   g_free (target);

@@ -1,3 +1,12 @@
+2015-06-09  Hani Benhabiles  <hani.benhabiles@greenbone.net>
+
+	* src/comm.c (comm_setup_plugins): Constify list argument, don't modify
+	string in place. Improve code style.
+
+	* src/comm.h: Adjust prototype.
+
+	* src/ntp.c (ntp_long_attack): Adjust comm_setup_plugins() call.
+
 2015-06-04  Hani Benhabiles  <hani.benhabiles@greenbone.net>
 
 	* src/comm.c (comm_send_nvt_info), src/otp.c (otp_get_client_request):

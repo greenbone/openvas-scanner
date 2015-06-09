@@ -436,23 +436,18 @@ get_plug_by_oid (struct arglist **array, char *oid, int num_plugins)
  *             that shall be enabled. If NULL or "-1;" all plugins are enabled!
  */
 void
-comm_setup_plugins (char *list)
+comm_setup_plugins (const char *list)
 {
-  int num_plugins = 0;
+  int i, num_plugins = 0, enable = LAUNCH_DISABLED;
   struct arglist *plugins = global_plugins;
   struct arglist *p = plugins;
   struct arglist **array;
-  char *t;
-  char *oid;
-  int i;
-  int enable = LAUNCH_DISABLED;
+  char *tokens, *oid;
 
   if (p == NULL)
     return;
-  if (list == NULL)
-    list = "-1;";
 
-  if (atoi (list) == -1)
+  if (list == NULL || atoi (list) == -1)
     enable = LAUNCH_RUN;
   /* Disable every plugin */
   while (p->next != NULL)
@@ -462,7 +457,7 @@ comm_setup_plugins (char *list)
       p = p->next;
     }
 
-  if (num_plugins == 0 || enable != 0)
+  if (num_plugins == 0 || enable == LAUNCH_RUN)
     return;
 
   /* Store the plugins in an array for quick access */
@@ -477,8 +472,8 @@ comm_setup_plugins (char *list)
 
   qsort (array, num_plugins, sizeof (struct arglist *), qsort_cmp);
 
-  t = list;
-  oid = strtok (t, ";");
+  tokens = g_strdup (list);
+  oid = strtok (tokens, ";");
 
   /* Read the list provided by the user and enable the plugins accordingly */
   while (oid != NULL)
@@ -494,6 +489,7 @@ comm_setup_plugins (char *list)
     }
 
   g_free (array);
+  g_free (tokens);
 }
 
 
