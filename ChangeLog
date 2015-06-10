@@ -1,3 +1,14 @@
+2015-06-10  Hani Benhabiles  <hani.benhabiles@greenbone.net>
+
+	* src/attack.c (attack_start): Don't set plugins socket.
+
+	* src/pluginlaunch.c (plugin_launch): Get upstream socket from
+	global_socket.
+
+	* src/pluginload.c (plugins_set_socket): Remove function.
+
+	* src/pluginload.h: Remove prototype.
+
 2015-06-09  Hani Benhabiles  <hani.benhabiles@greenbone.net>
 
 	* src/comm.c (comm_setup_plugins): Constify list argument, don't modify

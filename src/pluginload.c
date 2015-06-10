@@ -393,20 +393,3 @@ plugins_free (plugins)
     }
   arg_free_all (plugins);
 }
-
-/*
- * Put our socket somewhere in the plugins
- * arguments
- */
-void
-plugins_set_socket (struct arglist *plugins, int soc)
-{
-  struct arglist *t;
-
-  t = plugins;
-  while (t && t->next)
-    {
-      plugin_set_socket (t->value, soc);
-      t = t->next;
-    }
-}

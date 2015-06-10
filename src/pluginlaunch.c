@@ -452,7 +452,7 @@ plugin_launch (struct arglist *globals, struct scheduler_plugin *plugin,
     }
   gettimeofday (&(processes[p].start), NULL);
 
-  processes[p].upstream_soc = plugin_get_socket (plugin->arglist->value);
+  processes[p].upstream_soc = arg_get_value_int (globals, "global_socket");
   processes[p].internal_soc = dsoc[0];
   plugin_set_socket (plugin->arglist->value, dsoc[1]);
 

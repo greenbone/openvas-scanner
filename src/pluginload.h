@@ -38,7 +38,6 @@
 struct arglist *plugins_init (void);
 void plugin_set_socket (struct arglist *, int);
 int plugin_get_socket (struct arglist *);
-void plugins_set_socket (struct arglist *, int);
 void plugin_free (struct arglist *);
 void plugins_free (struct arglist *);
 

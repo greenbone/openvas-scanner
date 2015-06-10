@@ -527,7 +527,6 @@ attack_start (struct attack_start_args *args)
 {
   struct arglist *globals = args->globals;
   char *host_str;
-  struct arglist *plugs = global_plugins;
   struct in6_addr *hostip = &args->hostip;
   struct host_info *hostinfos;
   const char *non_simult = prefs_get ("non_simult_ports");
@@ -571,7 +570,6 @@ attack_start (struct attack_start_args *args)
       hostinfos = host_info_init (host_str, hostip, vhosts, args->fqdn);
     }
 
-  plugins_set_socket (plugs, thread_socket);
   ntp_timestamp_host_scan_starts (thread_socket, host_str);
 
   // Start scan
