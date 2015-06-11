@@ -832,7 +832,7 @@ attack_network (struct arglist *globals, kb_t *network_kb)
   openvas_hosts_t *sys_hosts_allow, *sys_hosts_deny;
   openvas_host_t *host;
   int global_socket = -1;
-  struct arglist *plugins = NULL;
+  struct arglist *plugins = global_plugins;
   plugins_scheduler_t sched;
   int fork_retries = 0;
   GHashTable *files;
@@ -882,8 +882,6 @@ attack_network (struct arglist *globals, kb_t *network_kb)
   num_tested = 0;
 
   global_socket = arg_get_value_int (globals, "global_socket");
-
-  plugins = global_plugins;
 
   if (check_kb_access(global_socket))
       return;

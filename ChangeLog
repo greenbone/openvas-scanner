@@ -1,3 +1,19 @@
+2015-06-11  Hani Benhabiles  <hani.benhabiles@greenbone.net>
+
+	* src/nasl_plugins.c (nasl_thread_args): Add soc element.
+	(nasl_plugin_launch): Take soc as function argument instead of using
+	SOCKET.
+
+	* src/attack.c (attack_network): Improve code style
+
+	* src/pluginlaunch.c (plugin_launch): Adjust nasl_plugin_launch() call.
+	Don't set socket in plugin arglist.
+
+	* src/pluginload.c (plugin_set_socket, plugin_get_socket): Remove
+	functions.
+
+	* src/pluginload.h: Remove and adjust functions prototypes.
+
 2015-06-10  Hani Benhabiles  <hani.benhabiles@greenbone.net>
 
 	* src/attack.c (attack_start): Don't set plugins socket.

@@ -343,22 +343,6 @@ plugins_init (void)
 }
 
 void
-plugin_set_socket (struct arglist *plugin, int soc)
-{
-  if (arg_get_value (plugin, "SOCKET") != NULL)
-    arg_set_value (plugin, "SOCKET", GSIZE_TO_POINTER (soc));
-  else
-    arg_add_value (plugin, "SOCKET", ARG_INT, GSIZE_TO_POINTER (soc));
-}
-
-int
-plugin_get_socket (struct arglist *plugin)
-{
-  return arg_get_value_int (plugin, "SOCKET");
-}
-
-
-void
 plugin_unlink (plugin)
      struct arglist *plugin;
 {

@@ -36,8 +36,6 @@
 #include <openvas/misc/network.h>
 
 struct arglist *plugins_init (void);
-void plugin_set_socket (struct arglist *, int);
-int plugin_get_socket (struct arglist *);
 void plugin_free (struct arglist *);
 void plugins_free (struct arglist *);
 
@@ -59,6 +57,6 @@ nasl_plugin_add (char *, char *, struct arglist *);
 
 int
 nasl_plugin_launch (struct arglist *, struct arglist *, struct host_info *,
-                    kb_t, char *, const char *);
+                    kb_t, char *, const char *, int);
 
 #endif

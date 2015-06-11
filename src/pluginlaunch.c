@@ -454,11 +454,10 @@ plugin_launch (struct arglist *globals, struct scheduler_plugin *plugin,
 
   processes[p].upstream_soc = arg_get_value_int (globals, "global_socket");
   processes[p].internal_soc = dsoc[0];
-  plugin_set_socket (plugin->arglist->value, dsoc[1]);
 
   processes[p].pid =
     nasl_plugin_launch (globals, plugin->arglist->value, hostinfo,
-                        kb, name, plugin->arglist->name);
+                        kb, name, plugin->arglist->name, dsoc[1]);
 
   processes[p].alive = 1;
   close (dsoc[1]);
