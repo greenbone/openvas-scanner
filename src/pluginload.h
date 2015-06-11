@@ -35,9 +35,8 @@
 #include <openvas/misc/kb.h>         /* for struct kb_item */
 #include <openvas/misc/network.h>
 
-struct arglist *plugins_init (void);
-void plugin_free (struct arglist *);
-void plugins_free (struct arglist *);
+int
+plugins_init (void);
 
 void
 init_loading_shm (void);
@@ -53,7 +52,7 @@ total_loading_plugins (void);
 
 /* From nasl_plugins.c */
 int
-nasl_plugin_add (char *, char *, struct arglist *);
+nasl_plugin_add (char *, char *);
 
 int
 nasl_plugin_launch (struct arglist *, struct arglist *, struct host_info *,

@@ -101,11 +101,9 @@ prefs_add_nvti (const nvti_t *nvti)
  * @return 0 on success, -1 on error.
  */
 int
-nasl_plugin_add (char *folder, char *name, struct arglist *plugins)
+nasl_plugin_add (char *folder, char *name)
 {
   char fullname[PATH_MAX + 1];
-  struct arglist *plugin_args;
-  struct arglist *prev_plugin = NULL;
   int nasl_mode;
   nasl_mode = NASL_EXEC_DESCR;
   nvti_t *nvti;
@@ -121,6 +119,7 @@ nasl_plugin_add (char *folder, char *name, struct arglist *plugins)
   if (nvti == NULL)
     {
       nvti_t *new_nvti;
+      struct arglist *plugin_args;
 
       g_free (nvti);
       plugin_args = g_malloc0 (sizeof (struct arglist));
@@ -177,23 +176,9 @@ nasl_plugin_add (char *folder, char *name, struct arglist *plugins)
       nvti_free (nvti);
       return -1;
     }
-
   prefs_add_nvti (nvti);
-  plugin_args = g_malloc0 (sizeof (struct arglist));
-  plug_set_launch (plugin_args, LAUNCH_DISABLED);
-  prev_plugin = arg_get_value (plugins, nvti_oid (nvti));
-
-  // Was a plugin with the same oid already loaded? If so, remove it.
-  if (prev_plugin == NULL)
-    arg_add_value (plugins, nvti_oid (nvti), ARG_ARGLIST, plugin_args);
-  else
-    {
-      plugin_free (prev_plugin);
-      arg_set_value (plugins, nvti_oid (nvti), plugin_args);
-    }
 
   nvti_free (nvti);
-
   return 0;
 }
 
@@ -219,11 +204,7 @@ nasl_plugin_launch (struct arglist *globals, struct arglist *plugin,
   struct nasl_thread_args nargs;
 
   arg_add_value (plugin, "HOSTNAME", ARG_PTR, hostinfo);
-  if (arg_get_value (plugin, "globals"))
-    arg_set_value (plugin, "globals", globals);
-  else
-    arg_add_value (plugin, "globals", ARG_ARGLIST, globals);
-
+  arg_add_value (plugin, "globals", ARG_ARGLIST, globals);
   arg_add_value (plugin, "key", ARG_PTR, kb);
 
   nargs.args = plugin;

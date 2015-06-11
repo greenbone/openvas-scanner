@@ -1,5 +1,34 @@
 2015-06-11  Hani Benhabiles  <hani.benhabiles@greenbone.net>
 
+	Don't create plugins list on start-up and reloading. Reduce main process
+	memory footprint by ~10MB and start-up and reload time from ~35s to ~8s.
+
+	* src/attack.c (attack_host): Use global_plugins directly.
+	(plugins_new): New function.
+	(attack_network): Use new function, set global_plugins.
+
+	* src/comm.c (qsort_cmp, _get_plug_by_oid, get_plug_by_oid)
+	(comm_setup_plugins): Remove unused functions.
+
+	* src/comm.h: Remove function prototype.
+
+	* src/nasl_plugins.c (nasl_plugin_add): Don't create plugins list.
+	(nasl_plugin_launch): Improve code style.
+
+	* src/ntp.c (ntp_long_attack): Don't setup plugins list.
+
+	* src/openvassd.c (reload_openvassd, main): Adjust for global_plugins
+	removal.
+	(init_plugins): Remove function.
+
+	* src/pluginload.c (plugins_reload_from_dir, plugins_init): Return int
+	instead of plugin.
+	(plugin_unlink, plugin_free, plugins_free): Remove function.
+
+	* src/pluginload.h: Adjust and remove prototypes.
+
+2015-06-11  Hani Benhabiles  <hani.benhabiles@greenbone.net>
+
 	* src/nasl_plugins.c (prefs_add_nvti): New function.
 	(nasl_plugin_add): Return boolean value instead of arglist. Adjust to
 	use prefs_add_nvti() instead of plug_create_from_nvti_and_prefs().

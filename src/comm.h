@@ -37,7 +37,6 @@ int comm_loading (int);
 void comm_terminate (int);
 void comm_send_preferences (int);
 int comm_wait_order (struct arglist *);
-void comm_setup_plugins (const char *);
 void comm_send_nvt_info (int);
 
 void

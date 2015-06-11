@@ -74,7 +74,6 @@ int global_max_hosts = 15;
 int global_max_checks = 10;
 
 static int global_iana_socket;
-struct arglist *global_plugins;
 
 static GHashTable *global_options;
 
@@ -351,10 +350,9 @@ init_signal_handlers ()
 static void
 reload_openvassd ()
 {
-  struct arglist *plugins;
   const char *config_file;
   pid_t handler_pid;
-  int i;
+  int i, ret;
 
   log_write ("Reloading the scanner.");
   /* Ignore SIGHUP while reloading. */
@@ -372,17 +370,15 @@ reload_openvassd ()
 
   /* Reload the plugins */
   nvticache_free ();
-  plugins = plugins_init ();
+  ret = plugins_init ();
   set_globals_from_preferences ();
-  plugins_free (global_plugins);
-  global_plugins = plugins;
   loading_handler_stop (handler_pid);
-  if (!global_plugins)
-    exit (1);
 
   log_write ("Finished reloading the scanner.");
   reload_signal = 0;
   openvas_signal (SIGHUP, handle_reload_signal);
+  if (ret)
+    exit (1);
 }
 
 static void
@@ -634,18 +630,6 @@ init_network (int port, int *sock, struct addrinfo addr)
   return (0);
 }
 
-static void
-init_plugins (GHashTable *options)
-{
-  struct arglist *plugins;
-
-  plugins = plugins_init ();
-
-  g_hash_table_replace (options, "plugins", plugins);
-  plugins_free (global_plugins);
-  global_plugins = plugins;
-}
-
 /**
  * @brief Initialize everything.
  *
@@ -743,7 +727,7 @@ gcrypt_init ()
 int
 main (int argc, char *argv[])
 {
-  int exit_early = 0, scanner_port = 9391;
+  int exit_early = 0, scanner_port = 9391, ret;
   pid_t handler_pid;
   char *myself;
   GHashTable *options;
@@ -904,15 +888,15 @@ main (int argc, char *argv[])
   if (only_cache)
     {
       init_openvassd (options, 0, 1, dont_fork);
-      init_plugins (options);
-      exit (0);
+      if (plugins_init ())
+        return 1;
+      return 0;
     }
 
   init_openvassd (options, 1, exit_early, dont_fork);
   flush_all_kbs ();
   global_options = options;
   global_iana_socket = GPOINTER_TO_SIZE (g_hash_table_lookup (options, "isck"));
-  global_plugins = g_hash_table_lookup (options, "plugins");
 
   /* special treatment */
   if (print_specs)
@@ -928,9 +912,9 @@ main (int argc, char *argv[])
   handler_pid = loading_handler_start ();
   if (handler_pid < 0)
     return 1;
-  init_plugins (options);
+  ret = plugins_init ();
   loading_handler_stop (handler_pid);
-  if (!global_plugins)
+  if (ret)
     return 1;
   init_signal_handlers ();
   main_loop ();

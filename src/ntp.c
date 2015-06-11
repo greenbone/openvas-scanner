@@ -122,7 +122,6 @@ ntp_long_attack (int soc)
   char input[16384];
   int size;
   char *target;
-  const char *plugin_set;
   int n;
 
   n = recv_line (soc, input, sizeof (input) - 1);
@@ -150,14 +149,7 @@ ntp_long_attack (int soc)
           return -1;
         }
     }
-  plugin_set = prefs_get ("plugin_set");
-  if (!plugin_set || plugin_set[0] == '\0')
-    {
-      prefs_set ("plugin_set", "-1");
-      plugin_set = prefs_get ("plugin_set");
-    }
 
-  comm_setup_plugins (plugin_set);
   prefs_set ("TARGET", target);
 
   g_free (target);

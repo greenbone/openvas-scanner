@@ -217,8 +217,8 @@ set_total_loading_plugins (int total)
     loading_shm[1] = total;
 }
 
-static struct arglist *
-plugins_reload_from_dir (struct arglist *plugins, char *folder)
+static int
+plugins_reload_from_dir (char *folder)
 {
   GSList *files = NULL, *f;
   const gchar *pref_include_folders;
@@ -252,7 +252,7 @@ plugins_reload_from_dir (struct arglist *plugins, char *folder)
 #endif
       log_write ("Could not determine the value of <plugins_folder>. "
                  " Check %s\n", (char *) prefs_get ("config_file"));
-      return plugins;
+      return -1;
     }
 
   files = collect_nvts (folder, "", files);
@@ -290,7 +290,7 @@ plugins_reload_from_dir (struct arglist *plugins, char *folder)
         log_write ("Loading %s", name);
       if (g_str_has_suffix (name, ".nasl"))
         {
-          if (nasl_plugin_add (folder, name, plugins))
+          if (nasl_plugin_add (folder, name))
             err_count++;
         }
 
@@ -298,14 +298,13 @@ plugins_reload_from_dir (struct arglist *plugins, char *folder)
         {
           log_write ("Stopped loading plugins: High number of errors.");
           proctitle_set ("openvassd: Error loading NVTs.");
-          plugins_free (plugins);
 #if GLIB_CHECK_VERSION (2, 28, 0)
           g_slist_free_full (files, g_free);
 #else
           g_slist_foreach (files, (GFunc) g_free, NULL);
           g_slist_free (files);
 #endif
-          return NULL;
+          return -1;
         }
       f = g_slist_next (f);
     }
@@ -319,61 +318,22 @@ plugins_reload_from_dir (struct arglist *plugins, char *folder)
 
   proctitle_set ("openvassd: Reloaded all the NVTs.");
 
-  return plugins;
+  return 0;
 }
 
 /*
  * main function for loading all the plugins
  */
-struct arglist *
+int
 plugins_init (void)
 {
-  struct arglist *plugins;
   const char *plugins_folder = prefs_get ("plugins_folder");
 
   if (nvticache_init (prefs_get ("cache_folder"), plugins_folder,
                       prefs_get ("kb_location")))
     {
       log_write ("Failed to initialize nvti cache.");
-      return NULL;
+      return -1;
     }
-
-  plugins = g_malloc0 (sizeof (struct arglist));
-  return plugins_reload_from_dir (plugins, (char *)plugins_folder);
-}
-
-void
-plugin_unlink (plugin)
-     struct arglist *plugin;
-{
-  if (plugin == NULL)
-    {
-      log_write ("Error in plugin_unlink - args == NULL\n");
-      return;
-    }
-}
-
-
-void
-plugin_free (plugin)
-     struct arglist *plugin;
-{
-  plugin_unlink (plugin);
-  arg_free_all (plugin);
-}
-
-void
-plugins_free (plugins)
-     struct arglist *plugins;
-{
-  struct arglist *p = plugins;
-  if (p == NULL)
-    return;
-
-  while (p->next)
-    {
-      plugin_unlink (p->value);
-      p = p->next;
-    }
-  arg_free_all (plugins);
+  return plugins_reload_from_dir ((char *)plugins_folder);
 }
