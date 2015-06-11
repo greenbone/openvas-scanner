@@ -56,7 +56,36 @@
 #include "log.h"
 
 /**
- * @brief Add *one* .nasl plugin to the plugin list and return the pointer to it.
+ * @brief Add a nvti's preferences to the global preferences.
+ *
+ * @param nvti  NVTI pointer.
+ */
+static void
+prefs_add_nvti (const nvti_t *nvti)
+{
+  int i;
+
+  if (!nvti)
+    return;
+
+  for (i = 0; i < nvti_pref_len (nvti); i++)
+    {
+      char *pref, *cname;
+      const nvtpref_t *np = nvti_pref (nvti, i);
+
+      cname = g_strdup (nvtpref_name (np));
+      g_strchomp (cname);
+      pref = g_strdup_printf ("%s[%s]:%s", nvti_name (nvti), nvtpref_type (np),
+                              cname);
+      prefs_set (pref, nvtpref_default (np));
+
+      g_free (cname);
+      g_free (pref);
+    }
+}
+
+/**
+ * @brief Add *one* .nasl plugin to the plugin list.
  *
  * The plugin is first attempted to be loaded from the cache.
  * If that fails, it is parsed (via exec_nasl_script) and
@@ -69,9 +98,9 @@
  * @param plugins The arglist that the plugin shall be added to (with parameter
  *                name as the key).
  *
- * @return Pointer to the plugin (as arglist). NULL in case of errors.
+ * @return 0 on success, -1 on error.
  */
-struct arglist *
+int
 nasl_plugin_add (char *folder, char *name, struct arglist *plugins)
 {
   char fullname[PATH_MAX + 1];
@@ -89,8 +118,7 @@ nasl_plugin_add (char *folder, char *name, struct arglist *plugins)
     }
 
   nvti = nvticache_get (name);
-  plugin_args = plug_create_from_nvti_and_prefs (nvti);
-  if (plugin_args == NULL)
+  if (nvti == NULL)
     {
       nvti_t *new_nvti;
 
@@ -103,13 +131,9 @@ nasl_plugin_add (char *folder, char *name, struct arglist *plugins)
         {
           log_write ("%s: Could not be loaded", fullname);
           arg_free_all (plugin_args);
-          return NULL;
+          return -1;
         }
-
-      // this extra pointer was only necessary during parsing the
-      // description part of a NASL. Now we can remove it from the args.
-      if (arg_get_value (plugin_args, "NVTI"))
-        arg_del_value (plugin_args, "NVTI");
+      arg_free_all (plugin_args);
 
       // Check mtime of plugin before caching it
       // Set to now if mtime is in the future
@@ -130,9 +154,7 @@ nasl_plugin_add (char *folder, char *name, struct arglist *plugins)
       if (nvti_oid (new_nvti) != NULL)
         {
           nvticache_add (new_nvti, name);
-          arg_free_all (plugin_args);
           nvti = nvticache_get (name);
-          plugin_args = plug_create_from_nvti_and_prefs (nvti);
         }
       else
         // Most likely an exit was hit before the description could be parsed.
@@ -141,23 +163,23 @@ nasl_plugin_add (char *folder, char *name, struct arglist *plugins)
       nvti_free (new_nvti);
     }
 
-  if (plugin_args == NULL)
+  if (nvti == NULL)
     {
       /* Discard invalid plugins */
       log_write ("%s: Failed to load", name);
-      g_free (nvti);
-      return NULL;
+      return -1;
     }
 
   if (nvti_oid (nvti) == NULL)
     {
       /* Discard invalid plugins */
       log_write ("%s: Failed to load, no OID", name);
-      plugin_free (plugin_args);
-      g_free (nvti);
-      return NULL;
+      nvti_free (nvti);
+      return -1;
     }
 
+  prefs_add_nvti (nvti);
+  plugin_args = g_malloc0 (sizeof (struct arglist));
   plug_set_launch (plugin_args, LAUNCH_DISABLED);
   prev_plugin = arg_get_value (plugins, nvti_oid (nvti));
 
@@ -172,7 +194,7 @@ nasl_plugin_add (char *folder, char *name, struct arglist *plugins)
 
   nvti_free (nvti);
 
-  return plugin_args;
+  return 0;
 }
 
 struct nasl_thread_args {

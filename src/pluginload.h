@@ -52,7 +52,7 @@ int
 total_loading_plugins (void);
 
 /* From nasl_plugins.c */
-struct arglist *
+int
 nasl_plugin_add (char *, char *, struct arglist *);
 
 int

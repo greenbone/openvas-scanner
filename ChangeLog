@@ -1,5 +1,16 @@
 2015-06-11  Hani Benhabiles  <hani.benhabiles@greenbone.net>
 
+	* src/nasl_plugins.c (prefs_add_nvti): New function.
+	(nasl_plugin_add): Return boolean value instead of arglist. Adjust to
+	use prefs_add_nvti() instead of plug_create_from_nvti_and_prefs().
+
+	* src/pluginload.c (plugins_reload_from_dir): Adjust handling nasl_plugin_add()
+	return value.
+
+	* src/pluginload.h: Modify prototype.
+
+2015-06-11  Hani Benhabiles  <hani.benhabiles@greenbone.net>
+
 	* src/nasl_plugins.c (nasl_thread_args): Add soc element.
 	(nasl_plugin_launch): Take soc as function argument instead of using
 	SOCKET.
