@@ -61,12 +61,11 @@
  */
 struct running
 {
-  int pid;             /**< Process ID. */
   struct scheduler_plugin *plugin;
   struct timeval start;
+  int pid;                   /**< Process ID. */
   int timeout;               /**< Timeout after which to kill process
                               * (NVT preference). If -1, never kill. it*/
-  int launch_status;
   int upstream_soc;
   int internal_soc;          /**< 'Input' socket for this process */
   int alive;                 /**< 0 if dead. */
@@ -424,7 +423,6 @@ plugin_launch (struct arglist *globals, struct scheduler_plugin *plugin,
 
   p = next_free_process (plugin);
   processes[p].plugin = plugin;
-  processes[p].launch_status = plugin->enabled;
   processes[p].timeout = prefs_nvt_timeout (plugin->oid);
   if (processes[p].timeout == 0)
     processes[p].timeout = nvticache_get_timeout (plugin->oid);

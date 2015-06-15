@@ -1,5 +1,10 @@
 2015-06-15  Hani Benhabiles  <hani.benhabiles@greenbone.net>
 
+	* src/pluginlaunch.c (struct running): Remove launch_status element.
+	(plugin_launch): Don't set process' launch_status.
+
+2015-06-15  Hani Benhabiles  <hani.benhabiles@greenbone.net>
+
 	Don't store global_plugins arglist in memory. Only keep oid and enabled
 	in scheduler_plugin. Reduces scanning processes memory footprint by ~3MB
 	each.
