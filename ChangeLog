@@ -1,5 +1,11 @@
 2015-06-15  Hani Benhabiles  <hani.benhabiles@greenbone.net>
 
+	* src/pluginscheduler.c (plugins_new): Remove function.
+	(plugins_scheduler_enable, plugins_scheduler_fill): New functions.
+	(plugins_scheduler_init): Adjust to use new functions.
+
+2015-06-15  Hani Benhabiles  <hani.benhabiles@greenbone.net>
+
 	* src/pluginlaunch.c (struct running): Remove launch_status element.
 	(plugin_launch): Don't set process' launch_status.
 

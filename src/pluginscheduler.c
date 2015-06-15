@@ -411,111 +411,52 @@ enable_plugin_and_dependencies (plugins_scheduler_t shed,
 /*---------------------------------------------------------------------------*/
 
 /*
- * Create a list of nvt plugins, and enable ones in oid_list.
+ * Enable plugins in scheduler, from a list.
  *
+ * param[in]    sched       Plugins scheduler.
  * param[in]    oid_list    List of plugins to enable.
- *
- * @return arglist of plugins, NULL if error.
+ * param[in]    autoload    Whether to autoload dependencies.
  */
-static struct arglist *
-plugins_new (const char *oid_list)
+static void
+plugins_scheduler_enable (plugins_scheduler_t sched, const char *oid_list,
+                          int autoload)
 {
-  GSList *list, *element;
-  struct arglist *plugins;
-  char *oid, *oids;
+  int i;
+  char *oids, *oid;
+  GHashTable *oids_table;
 
-  /* Create new list. */
-  list = element = nvticache_get_oids ();
-  plugins = g_malloc0 (sizeof (struct arglist));
-  while (element)
-    {
-      struct arglist *plugin = g_malloc0 (sizeof (struct arglist));
+  oids_table = g_hash_table_new_full (g_str_hash, g_str_equal, NULL, NULL);
 
-      plug_set_launch (plugin, LAUNCH_DISABLED);
-      arg_prepend_value (&plugins, element->data, ARG_ARGLIST, plugin);
-      element = element->next;
-    }
-
-  g_slist_free_full (list, g_free);
-  /* Activate plugins from oid_list. */
+  /* Store list of plugins in hashtable. */
   oids = g_strdup (oid_list);
   oid = strtok (oids, ";");
   while (oid)
     {
-      struct arglist *plugin = arg_get_value (plugins, oid);
-      if (plugin)
-        plug_set_launch (plugin, LAUNCH_RUN);
-
+      g_hash_table_insert (oids_table, oid, oid);
       oid = strtok (NULL, ";");
     }
 
-  g_free (oids);
-  return plugins;
-}
-
-plugins_scheduler_t
-plugins_scheduler_init (const char *plugins_list, int autoload, int only_network)
-{
-  plugins_scheduler_t ret;
-  struct arglist *arg, *plugins;
-  int i;
-  struct hash *l;
-
-  /* Fill our lists */
-  ret = g_malloc0 (sizeof (*ret));
-  ret->hash = hash_init ();
-  plugins = plugins_new (plugins_list);
-
-  arg = plugins;
-  while (arg->next != NULL)
+  /* Enable plugins found in hashtable. */
+  for (i = ACT_FIRST; i <= ACT_LAST; i++)
     {
-      struct scheduler_plugin *scheduler_plugin;
-      struct list *dup;
-      char *oid;
-      nvti_t *nvti;
-      int category;
+      struct list *element = sched->list[i];
 
-      assert (arg->name);
-      oid = g_strdup (arg->name);
-      nvti = nvticache_get_by_oid_full (oid);
-      category = nvti_category (nvti);
-      scheduler_plugin = g_malloc0 (sizeof (struct scheduler_plugin));
-      scheduler_plugin->running_state = PLUGIN_STATUS_UNRUN;
-      scheduler_plugin->oid = oid;
-      scheduler_plugin->enabled = plug_get_launch (arg->value);
-
-      assert (category <= ACT_LAST);
-      dup = g_malloc0 ( sizeof (struct list));
-      dup->plugin = scheduler_plugin;
-      dup->prev = NULL;
-      dup->next = ret->list[category];
-      if (ret->list[category] != NULL)
-        ret->list[category]->prev = dup;
-      ret->list[category] = dup;
-
-      hash_add (ret->hash, scheduler_plugin, nvti);
-      nvti_free (nvti);
-      arg = arg->next;
-    }
-  arg_free_all (plugins);
-
-  for (i = 0; i < HASH_MAX; i++)
-    {
-      l = &ret->hash[i];
-      while (l != NULL)
+      while (element)
         {
-          hash_fill_deps (ret->hash, l);
-          l = l->next;
+          if (g_hash_table_lookup (oids_table, element->plugin->oid))
+            element->plugin->enabled = LAUNCH_RUN;
+
+          element = element->next;
         }
     }
+  g_hash_table_destroy (oids_table);
+  g_free (oids);
 
   if (autoload != 0)
     {
-      int i;
-
       for (i = ACT_FIRST; i <= ACT_LAST; i++)
         {
-          struct list *element = ret->list[i];
+          struct list *element = sched->list[i];
 
           while (element)
             {
@@ -525,7 +466,7 @@ plugins_scheduler_init (const char *plugins_list, int autoload, int only_network
               deps_table = g_hash_table_new_full
                             (g_str_hash, g_str_equal, g_free, NULL);
               if (element->plugin->enabled != LAUNCH_DISABLED)
-                enable_plugin_and_dependencies (ret, element->plugin,
+                enable_plugin_and_dependencies (sched, element->plugin,
                                                 deps_table);
 
               g_hash_table_destroy (deps_table);
@@ -533,6 +474,71 @@ plugins_scheduler_init (const char *plugins_list, int autoload, int only_network
             }
         }
     }
+}
+
+static void
+plugins_scheduler_fill (plugins_scheduler_t sched)
+{
+  int i;
+  GSList *list, *element;
+
+  list = element = nvticache_get_oids ();
+  while (element)
+    {
+      struct scheduler_plugin *scheduler_plugin;
+      struct list *dup;
+      char *oid;
+      nvti_t *nvti;
+      int category;
+
+      assert (element->data);
+      oid = g_strdup (element->data);
+      nvti = nvticache_get_by_oid_full (oid);
+      category = nvti_category (nvti);
+      scheduler_plugin = g_malloc0 (sizeof (struct scheduler_plugin));
+      scheduler_plugin->running_state = PLUGIN_STATUS_UNRUN;
+      scheduler_plugin->oid = oid;
+      scheduler_plugin->enabled = LAUNCH_DISABLED;
+
+      assert (category <= ACT_LAST);
+      dup = g_malloc0 ( sizeof (struct list));
+      dup->plugin = scheduler_plugin;
+      dup->prev = NULL;
+      dup->next = sched->list[category];
+      if (sched->list[category] != NULL)
+        sched->list[category]->prev = dup;
+      sched->list[category] = dup;
+
+      hash_add (sched->hash, scheduler_plugin, nvti);
+      nvti_free (nvti);
+      element = element->next;
+    }
+  g_slist_free_full (list, g_free);
+
+  for (i = 0; i < HASH_MAX; i++)
+    {
+      struct hash *l = &sched->hash[i];
+      while (l != NULL)
+        {
+          hash_fill_deps (sched->hash, l);
+          l = l->next;
+        }
+    }
+
+}
+
+plugins_scheduler_t
+plugins_scheduler_init (const char *plugins_list, int autoload, int only_network)
+{
+  plugins_scheduler_t ret;
+  int i;
+
+  /* Fill our lists */
+  ret = g_malloc0 (sizeof (*ret));
+  ret->hash = hash_init ();
+  plugins_scheduler_fill (ret);
+
+  plugins_scheduler_enable (ret, plugins_list, autoload);
 
   /* Now, remove the plugins that won't be launched */
   for (i = ACT_FIRST; i <= ACT_LAST; i++)
