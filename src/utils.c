@@ -33,7 +33,6 @@
 #include <sys/stat.h>  /* for stat() */
 
 #include <openvas/misc/network.h>    /* for stream_zero */
-#include <openvas/misc/plugutils.h>  /* for plug_get_launch */
 #include <openvas/misc/prefs.h>      /* for prefs_get() */
 
 #include "log.h"
@@ -173,27 +172,6 @@ get_max_checks_number (void)
   return (max_checks);
 }
 
-
-/**
- * @brief Returns the number of plugins that will be launched.
- */
-int
-get_active_plugins_number (struct arglist *plugins)
-{
-  int num = 0;
-
-  if (plugins != NULL)
-    while (plugins->next != NULL)
-      {
-        if (plug_get_launch (plugins->value) != LAUNCH_DISABLED)
-          num++;
-        plugins = plugins->next;
-      }
-
-  return num;
-}
-
-/*--------------------------------------------------------------------*/
 
 /**
  * Determines if a process is alive - as reliably as we can

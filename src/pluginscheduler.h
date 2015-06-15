@@ -46,9 +46,10 @@ struct plugins_scheduler;
 
 struct scheduler_plugin
 {
-  int running_state;
-  struct arglist *arglist;
   struct hash *parent_hash;
+  char *oid;
+  int running_state;
+  int enabled;
 };
 
 
@@ -62,9 +63,16 @@ typedef struct plugins_scheduler *plugins_scheduler_t;
 #define PLUGIN_STATUS_DONE_AND_CLEANED 	4
 
 
-plugins_scheduler_t plugins_scheduler_init (struct arglist *, int, int);
-struct scheduler_plugin *plugins_scheduler_next (plugins_scheduler_t);
+plugins_scheduler_t
+plugins_scheduler_init (const char *, int, int);
 
-void plugins_scheduler_free (plugins_scheduler_t);
+struct scheduler_plugin *
+plugins_scheduler_next (plugins_scheduler_t);
+
+int
+plugins_scheduler_count_active (plugins_scheduler_t);
+
+void
+plugins_scheduler_free (plugins_scheduler_t);
 
 #endif

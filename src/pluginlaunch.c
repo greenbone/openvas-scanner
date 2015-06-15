@@ -98,7 +98,7 @@ process_internal_msg (int p)
   if (e < 0)
     {
       log_write ("Process %d (OID: %s) seems to have died too early",
-                 processes[p].pid, processes[p].plugin->arglist->name);
+                 processes[p].pid, processes[p].plugin->oid);
       processes[p].alive = 0;
       return -1;
     }
@@ -167,33 +167,27 @@ update_running_processes (void)
                   && ((now.tv_sec - processes[i].start.tv_sec) >
                       processes[i].timeout)))
             {
-              char *oid = processes[i].plugin->arglist->name;
+              char *oid = processes[i].plugin->oid;
 
               if (processes[i].alive)
                 {
-                  struct arglist *desc;
                   gchar *msg;
-                  const char *host;
 
                   if (log_whole)
                     log_write ("%s (pid %d) is slow to finish - killing it",
                                oid, processes[i].pid);
 
-                  desc = processes[i].plugin->arglist->value;
-                  host = plug_get_hostname (desc);
                   msg = g_strdup_printf ("SERVER"
                                          " <|> ERRMSG"
-                                         " <|> %s"
+                                         " <|> HOST"
                                          " <|> general/tcp"
                                          " <|> NVT timed out after %d seconds."
                                          " <|> %s"
                                          " <|> SERVER\n",
-                                         host ? host : "HOST",
                                          processes[i].timeout,
                                          oid ?: "0");
                   internal_send (processes[i].upstream_soc,
-                                 msg,
-                                 INTERNAL_COMM_MSG_TYPE_DATA);
+                                 msg, INTERNAL_COMM_MSG_TYPE_DATA);
                   g_free (msg);
 
                   terminate_process (processes[i].pid);
@@ -337,7 +331,7 @@ read_running_processes (void)
                 {
 #ifdef DEBUG
                   log_write ("process_internal_msg for %s returned %d",
-                             processes[i].plugin->arglist->name, result);
+                             processes[i].plugin->oid, result);
 #endif
                 }
             }
@@ -430,16 +424,16 @@ plugin_launch (struct arglist *globals, struct scheduler_plugin *plugin,
 
   p = next_free_process (plugin);
   processes[p].plugin = plugin;
-  processes[p].launch_status = plug_get_launch (plugin->arglist->value);
-  processes[p].timeout = prefs_nvt_timeout (plugin->arglist->name);
+  processes[p].launch_status = plugin->enabled;
+  processes[p].timeout = prefs_nvt_timeout (plugin->oid);
   if (processes[p].timeout == 0)
-    processes[p].timeout = nvticache_get_timeout (plugin->arglist->name);
+    processes[p].timeout = nvticache_get_timeout (plugin->oid);
 
 
   // Disable timeout if NVT is a scanner, set it to preferences otherwise
   if (processes[p].timeout == 0)
     {
-      int category = nvticache_get_category (plugin->arglist->name);
+      int category = nvticache_get_category (plugin->oid);
       if (category == ACT_SCANNER)
         processes[p].timeout = -1;
       else
@@ -456,8 +450,7 @@ plugin_launch (struct arglist *globals, struct scheduler_plugin *plugin,
   processes[p].internal_soc = dsoc[0];
 
   processes[p].pid =
-    nasl_plugin_launch (globals, plugin->arglist->value, hostinfo,
-                        kb, name, plugin->arglist->name, dsoc[1]);
+    nasl_plugin_launch (globals, hostinfo, kb, name, plugin->oid, dsoc[1]);
 
   processes[p].alive = 1;
   close (dsoc[1]);

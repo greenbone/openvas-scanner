@@ -196,13 +196,14 @@ nasl_thread (struct nasl_thread_args *);
  * @brief Launch a NASL plugin.
  */
 int
-nasl_plugin_launch (struct arglist *globals, struct arglist *plugin,
-                    struct host_info *hostinfo, kb_t kb, char *name,
-                    const char *oid, int soc)
+nasl_plugin_launch (struct arglist *globals, struct host_info *hostinfo,
+                    kb_t kb, char *name, const char *oid, int soc)
 {
   int module;
   struct nasl_thread_args nargs;
+  struct arglist *plugin;
 
+  plugin = g_malloc0 (sizeof (struct arglist));
   arg_add_value (plugin, "HOSTNAME", ARG_PTR, hostinfo);
   arg_add_value (plugin, "globals", ARG_ARGLIST, globals);
   arg_add_value (plugin, "key", ARG_PTR, kb);

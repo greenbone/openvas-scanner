@@ -55,7 +55,7 @@ int
 nasl_plugin_add (char *, char *);
 
 int
-nasl_plugin_launch (struct arglist *, struct arglist *, struct host_info *,
-                    kb_t, char *, const char *, int);
+nasl_plugin_launch (struct arglist *, struct host_info *, kb_t, char *,
+                    const char *, int);
 
 #endif

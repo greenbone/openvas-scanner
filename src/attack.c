@@ -68,8 +68,6 @@
 
 #define MAX_FORK_RETRIES 10
 
-struct arglist *global_plugins;
-
 /**
  * Bundles information about target(s), configuration (globals arglist) and
  * scheduler.
@@ -197,17 +195,16 @@ static int
 launch_plugin (struct arglist *globals, struct scheduler_plugin *plugin,
                char *hostname, struct host_info *hostinfos, kb_t kb)
 {
-  struct arglist *args = plugin->arglist->value;
   int optimize = prefs_get_bool ("optimize_test");
   int category;
   char *oid;
   gboolean network_scan = FALSE;
 
-  oid = plugin->arglist->name;
+  oid = plugin->oid;
   category = nvticache_get_category (oid);
   if (scan_is_stopped ())
     {
-      if (category != ACT_END)
+      if (category != ACT_LAST)
         {
           plugin->running_state = PLUGIN_STATUS_DONE;
           return 0;
@@ -218,7 +215,7 @@ launch_plugin (struct arglist *globals, struct scheduler_plugin *plugin,
 
   if (network_scan_status (globals) == NSS_BUSY)
     network_scan = TRUE;
-  if (plug_get_launch (args) != LAUNCH_DISABLED)    /* can we launch it ? */
+  if (plugin->enabled != LAUNCH_DISABLED)    /* can we launch it ? */
     {
       char *error;
 
@@ -436,11 +433,9 @@ attack_host (struct arglist *globals, struct host_info *hostinfos,
 
   kb_lnk_reset (kb);
 
-  num_plugs = get_active_plugins_number (global_plugins);
-
   /* launch the plugins */
   pluginlaunch_init ();
-
+  num_plugs = plugins_scheduler_count_active (sched);
   for (;;)
     {
       struct scheduler_plugin *plugin;
@@ -818,49 +813,6 @@ handle_scan_stop_signal ()
   global_scan_stop = 1;
 }
 
-/*
- * Create a list of nvt plugins, and enable ones in oid_list.
- *
- * param[in]    oid_list    List of plugins to enable.
- *
- * @return arglist of plugins, NULL if error.
- */
-struct arglist *
-plugins_new (const char *oid_list)
-{
-  GSList *list, *element;
-  struct arglist *plugins;
-  char *oid, *oids;
-
-  /* Create new list. */
-  list = element = nvticache_get_oids ();
-  plugins = g_malloc0 (sizeof (struct arglist));
-  while (element)
-    {
-      struct arglist *plugin = g_malloc0 (sizeof (struct arglist));
-
-      plug_set_launch (plugin, LAUNCH_DISABLED);
-      arg_prepend_value (&plugins, element->data, ARG_ARGLIST, plugin);
-      element = element->next;
-    }
-
-  g_slist_free_full (list, g_free);
-  /* Activate plugins from oid_list. */
-  oids = g_strdup (oid_list);
-  oid = strtok (oids, ";");
-  while (oid)
-    {
-      struct arglist *plugin = arg_get_value (plugins, oid);
-      if (plugin)
-        plug_set_launch (plugin, LAUNCH_RUN);
-
-      oid = strtok (NULL, ";");
-    }
-
-  g_free (oids);
-  return plugins;
-}
-
 /**
  * @brief Attack a whole network.
  */
@@ -945,12 +897,10 @@ attack_network (struct arglist *globals, kb_t *network_kb)
       return;
     }
 
-  /* Initialize plugins list. */
-  global_plugins = plugins_new (prefs_get ("plugin_set"));
-
   /* Initialize the attack. */
-  sched = plugins_scheduler_init (global_plugins,
-    prefs_get_bool ("auto_enable_dependencies"), network_phase);
+  sched = plugins_scheduler_init
+           (prefs_get ("plugin_set"), prefs_get_bool ("auto_enable_dependencies"),
+            network_phase);
 
   max_hosts = get_max_hosts_number ();
   max_checks = get_max_checks_number ();

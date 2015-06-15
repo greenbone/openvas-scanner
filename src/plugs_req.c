@@ -133,8 +133,8 @@ requirements_common_ports (struct scheduler_plugin *plugin1,
   if (!plugin1 || !plugin2)
     return 0;
 
-  ports1 = nvticache_get_required_ports (plugin1->arglist->name);
-  ports2 = nvticache_get_required_ports (plugin2->arglist->name);
+  ports1 = nvticache_get_required_ports (plugin1->oid);
+  ports2 = nvticache_get_required_ports (plugin2->oid);
   if (!ports1 || !ports2)
     {
       g_free (ports1);
@@ -262,7 +262,7 @@ mandatory_requirements_met (kb_t kb,
   char *mandatory_keys;
   int ret;
 
-  mandatory_keys = nvticache_get_mandatory_keys (plugin->arglist->name);
+  mandatory_keys = nvticache_get_mandatory_keys (plugin->oid);
   ret = kb_missing_keyname_of_namelist (kb, mandatory_keys, NULL);
 
   g_free (mandatory_keys);
@@ -287,7 +287,7 @@ requirements_plugin (kb_t kb, struct scheduler_plugin *plugin)
    * Check wether the good ports are open
    */
   error[sizeof (error) - 1] = '\0';
-  tcp = nvticache_get_required_ports (plugin->arglist->name);
+  tcp = nvticache_get_required_ports (plugin->oid);
   if (tcp != NULL && (get_closed_ports (kb, tcp)) == 0)
     {
       strncpy (error, "none of the required tcp ports are open",
@@ -297,7 +297,7 @@ requirements_plugin (kb_t kb, struct scheduler_plugin *plugin)
     }
   g_free (tcp);
 
-  udp = nvticache_get_required_udp_ports (plugin->arglist->name);
+  udp = nvticache_get_required_udp_ports (plugin->oid);
   if (udp != NULL && (get_closed_udp_ports (kb, udp)) == 0)
     {
       strncpy (error, "none of the required udp ports are open",
@@ -313,7 +313,7 @@ requirements_plugin (kb_t kb, struct scheduler_plugin *plugin)
   /*
    * Check wether a key we wanted is missing
    */
-  keys = nvticache_get_required_keys (plugin->arglist->name);
+  keys = nvticache_get_required_keys (plugin->oid);
   if (kb_missing_keyname_of_namelist (kb, keys, &errkey))
     {
       snprintf (error, sizeof (error), "because the key %s is missing", errkey);
@@ -329,7 +329,7 @@ requirements_plugin (kb_t kb, struct scheduler_plugin *plugin)
   /*
    * Check wether a key we do not want is present
    */
-  keys = nvticache_get_excluded_keys (plugin->arglist->name);
+  keys = nvticache_get_excluded_keys (plugin->oid);
   if (kb_present_keyname_of_namelist (kb, keys, &errkey))
     {
       snprintf (error, sizeof (error), "because the key %s is present", errkey);

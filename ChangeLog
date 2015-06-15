@@ -1,3 +1,42 @@
+2015-06-15  Hani Benhabiles  <hani.benhabiles@greenbone.net>
+
+	Don't store global_plugins arglist in memory. Only keep oid and enabled
+	in scheduler_plugin. Reduces scanning processes memory footprint by ~3MB
+	each.
+
+	* src/pluginscheduler.h: Add and remove prototypes.
+	(scheduler_plugin): Add oid and enabled elements. Remove arglist
+	element.
+
+	* src/attack.c (global_plugins): Remove variable.
+	(launch_plugin): Adjust for struct scheduler_plugin change.
+	(plugins_new): Remove function.
+	(attack_network): Adjust plugins_scheduler_init() call.
+
+	* src/pluginscheduler.c (plugins_scheduler_count_active): New function.
+	(plugins_scheduler_free): Fix off-by-one.
+	(plugins_scheduler_next, enable_plugin_and_dependencies, hash_fill_deps)
+	(scheduler_rm_running_ports, scheduler_mark_running_ports, hash_add):
+	Adjust to use scheduler_plugin's oid and enabled instead of arglist.
+	(struct hash): Remove name element.
+	(plugins_scheduler_init): Take plugins list as string. Free plugins
+	arglist after usage. Adjust for struct scheduler_plugin change.
+	(plugins_new): New function, moved from src/attack.c.
+
+	* src/plugs_req.c (requirements_plugin, mandatory_requirements_met)
+	(nvticache_get_required_udp_ports, requirements_common_ports),
+	src/pluginlaunch.c (process_internal_message, plugin_launch)
+	(update_running_processes, read_running_processes): Use
+	scheduler_plugin's oid and enabled instead of arglist.
+
+	* src/nasl_plugins.c (nasl_plugin_launch): Don't take plugin argument,
+	allocate one.
+
+	* src/utils.c (get_active_plugins_number): Remove function.
+
+	* src/utils.h, src/pluginload.h: Remove and adjust prototypes.
+
+
 2015-06-11  Hani Benhabiles  <hani.benhabiles@greenbone.net>
 
 	Don't create plugins list on start-up and reloading. Reduce main process
