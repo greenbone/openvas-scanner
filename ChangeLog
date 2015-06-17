@@ -1,3 +1,11 @@
+2015-06-17  Hani Benhabiles  <hani.benhabiles@greenbone.net>
+
+	* src/hosts.c (hosts_new): Check if scan is stopped.
+	(hosts_stop_all): Set global_scan_stop for this process too.
+
+	* src/attack.c (attack_network): Don't start new host scans when scan is
+	stopped.
+
 2015-06-15  Hani Benhabiles  <hani.benhabiles@greenbone.net>
 
 	* src/pluginscheduler.c (plugins_new): Remove function.

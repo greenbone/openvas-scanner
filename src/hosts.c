@@ -173,6 +173,8 @@ hosts_init (int soc, int max_hosts)
   return 0;
 }
 
+extern int global_scan_stop;
+
 int
 hosts_new (struct arglist *globals, char *name, int soc)
 {
@@ -183,6 +185,8 @@ hosts_new (struct arglist *globals, char *name, int soc)
       if (hosts_read (globals) < 0)
         return -1;
     }
+  if (global_scan_stop)
+    return 0;
 
   h = g_malloc0 (sizeof (struct host));
   h->name = g_strdup (name);
@@ -227,6 +231,8 @@ void
 hosts_stop_all (void)
 {
   struct host *host = hosts;
+
+  global_scan_stop = 1;
   while (host)
     {
       hosts_stop_host (host);
