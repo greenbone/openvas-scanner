@@ -1,3 +1,10 @@
+2015-06-18  Hani Benhabiles  <hani.benhabiles@greenbone.net>
+
+	* src/comm.c (send_plug_info, comm_send_pluginlist),
+	src/pluginscheduler.c (plugins_scheduler_fill): Adjust to use
+	nvticache_get_names() and nvticache_get_by_name_full() in order to
+	reduce number of KB queries.
+
 2015-06-17  Hani Benhabiles  <hani.benhabiles@greenbone.net>
 
 	* src/hosts.c (hosts_new): Check if scan is stopped.

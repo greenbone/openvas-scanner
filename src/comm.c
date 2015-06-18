@@ -162,17 +162,17 @@ comm_terminate (int soc)
  * @brief Sends a plugin info.
  */
 void
-send_plug_info (int soc, const char *oid)
+send_plug_info (int soc, const char *filename)
 {
   int j, ignored = 0;
   static const char *categories[] = { ACT_STRING_LIST_ALL };
 #define CAT_MAX	(sizeof(categories) / sizeof(categories[0]))
   const char *name, *copyright, *summary, *version, *family;
-  nvti_t *nvti = nvticache_get_by_oid_full (oid);
+  nvti_t *nvti = nvticache_get_by_name_full (filename);
 
   if (!nvti)
     {
-      log_write ("NVTI not found for OID %s. Will not be sent.", oid);
+      log_write ("NVTI not found for %s. Will not be sent.", filename);
       return;
     }
 
@@ -290,7 +290,7 @@ comm_send_pluginlist (int soc)
 {
   GSList *list, *element;
 
-  list = element = nvticache_get_oids ();
+  list = element = nvticache_get_names ();
   send_printf (soc, "SERVER <|> PLUGIN_LIST <|>\n");
   while (element)
     {

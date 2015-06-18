@@ -482,22 +482,20 @@ plugins_scheduler_fill (plugins_scheduler_t sched)
   int i;
   GSList *list, *element;
 
-  list = element = nvticache_get_oids ();
+  list = element = nvticache_get_names ();
   while (element)
     {
       struct scheduler_plugin *scheduler_plugin;
       struct list *dup;
-      char *oid;
       nvti_t *nvti;
       int category;
 
-      assert (element->data);
-      oid = g_strdup (element->data);
-      nvti = nvticache_get_by_oid_full (oid);
+      nvti = nvticache_get_by_name_full (element->data);
+      assert (nvti);
       category = nvti_category (nvti);
       scheduler_plugin = g_malloc0 (sizeof (struct scheduler_plugin));
       scheduler_plugin->running_state = PLUGIN_STATUS_UNRUN;
-      scheduler_plugin->oid = oid;
+      scheduler_plugin->oid = g_strdup (nvti_oid (nvti));
       scheduler_plugin->enabled = LAUNCH_DISABLED;
 
       assert (category <= ACT_LAST);
