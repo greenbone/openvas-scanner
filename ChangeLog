@@ -1,3 +1,9 @@
+2015-06-25  Hani Benhabiles  <hani.benhabiles@greenbone.net>
+
+	* src/pluginscheduler.c (hash_add): Remove nvti parameter.
+	(plugins_scheduler_fill): Don't get the full nvti. Get category from
+	nvticache.
+
 2015-06-18  Hani Benhabiles  <hani.benhabiles@greenbone.net>
 
 	* src/comm.c (send_plug_info, comm_send_pluginlist),

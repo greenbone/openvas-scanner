@@ -127,7 +127,7 @@ hash_destroy (struct hash *h)
 
 
 static void
-hash_add (struct hash *h, struct scheduler_plugin *plugin, const nvti_t *nvti)
+hash_add (struct hash *h, struct scheduler_plugin *plugin)
 {
   struct hash *l = g_malloc0 (sizeof (struct hash));
   unsigned int idx = mkhash (plugin->oid);
@@ -482,20 +482,17 @@ plugins_scheduler_fill (plugins_scheduler_t sched)
   int i;
   GSList *list, *element;
 
-  list = element = nvticache_get_names ();
+  list = element = nvticache_get_oids ();
   while (element)
     {
       struct scheduler_plugin *scheduler_plugin;
       struct list *dup;
-      nvti_t *nvti;
       int category;
 
-      nvti = nvticache_get_by_name_full (element->data);
-      assert (nvti);
-      category = nvti_category (nvti);
+      category = nvticache_get_category (element->data);
       scheduler_plugin = g_malloc0 (sizeof (struct scheduler_plugin));
       scheduler_plugin->running_state = PLUGIN_STATUS_UNRUN;
-      scheduler_plugin->oid = g_strdup (nvti_oid (nvti));
+      scheduler_plugin->oid = g_strdup (element->data);
       scheduler_plugin->enabled = LAUNCH_DISABLED;
 
       assert (category <= ACT_LAST);
@@ -507,8 +504,7 @@ plugins_scheduler_fill (plugins_scheduler_t sched)
         sched->list[category]->prev = dup;
       sched->list[category] = dup;
 
-      hash_add (sched->hash, scheduler_plugin, nvti);
-      nvti_free (nvti);
+      hash_add (sched->hash, scheduler_plugin);
       element = element->next;
     }
   g_slist_free_full (list, g_free);
