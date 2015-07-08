@@ -1,3 +1,8 @@
+2015-07-08  Hani Benhabiles  <hani.benhabiles@greenbone.net>
+
+	* src/processes.c (init_child_signal_handlers): Ignore SIGPIPE instead
+	of terminating process.
+
 2015-06-25  Hani Benhabiles  <hani.benhabiles@greenbone.net>
 
 	* src/pluginscheduler.c (hash_add): Remove nvti parameter.

@@ -67,6 +67,7 @@ init_child_signal_handlers ()
   openvas_signal (SIGINT, make_em_die);
   openvas_signal (SIGQUIT, make_em_die);
   openvas_signal (SIGSEGV, sighand_segv);
+  openvas_signal (SIGPIPE, SIG_IGN);
 }
 
 /**
