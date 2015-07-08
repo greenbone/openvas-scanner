@@ -1066,7 +1066,7 @@ attack_network (struct arglist *globals, kb_t *network_kb)
    * Start the attack !
    */
   openvas_signal (SIGUSR1, handle_scan_stop_signal);
-  while (host)
+  while (host && !scan_is_stopped ())
     {
       int pid;
       char *hostname;
@@ -1125,6 +1125,14 @@ attack_network (struct arglist *globals, kb_t *network_kb)
           if (hosts_new (globals, hostname, soc[1]) < 0)
             goto scan_stop;
 
+          if (scan_is_stopped ())
+            {
+              close (soc[0]);
+              close (soc[1]);
+              g_free (MAC);
+              g_free (hostname);
+              continue;
+            }
           args.globals = globals;
           memcpy (&args.hostip, &host_ip, sizeof (struct in6_addr));
           args.fqdn = hostname;

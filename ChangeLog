@@ -1,3 +1,13 @@
+2015-07-08  Michael Wiegand <michael.wiegand@greenbone.net>
+
+	Backport r22654. Original patch by Hani Benhabiles.
+
+	* src/hosts.c (hosts_new): Check if scan is stopped.
+	(hosts_stop_all): Set global_scan_stop for this process too.
+
+	* src/attack.c (attack_network): Don't start new host scans when scan is
+	stopped.
+
 2015-06-02  Hani Benhabiles  <hani.benhabiles@greenbone.net>
 
 	Backport r22544.
