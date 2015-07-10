@@ -123,7 +123,7 @@ log_vwrite (const char *str, va_list arg_ptr)
 /**
  * @brief Write into the logfile / syslog.
  *
- * @param[in]   fmt Format string, followed by the corresponding parameters if
+ * @param[in]   str Format string, followed by the corresponding parameters if
  *                  any.
  */
 void

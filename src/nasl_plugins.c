@@ -95,8 +95,6 @@ prefs_add_nvti (const nvti_t *nvti)
  *
  * @param folder  Path to the plugin folder.
  * @param name    File-name of the plugin
- * @param plugins The arglist that the plugin shall be added to (with parameter
- *                name as the key).
  *
  * @return 0 on success, -1 on error.
  */

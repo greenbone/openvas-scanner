@@ -282,7 +282,7 @@ send_plug_info (int soc, const char *filename)
 /**
  * @brief Sends the list of plugins that the scanner could load to the client,
  * @brief using the OTP format (calls send_plug_info for each).
- * @param socket    Socket to use for sending list of plugins.
+ * @param soc    Socket to use for sending list of plugins.
  * @see send_plug_info
  */
 void
