@@ -434,7 +434,7 @@ attack_host (struct arglist *globals, struct host_info *hostinfos,
   kb_lnk_reset (kb);
 
   /* launch the plugins */
-  pluginlaunch_init ();
+  pluginlaunch_init (hostinfos->name);
   num_plugs = plugins_scheduler_count_active (sched);
   for (;;)
     {

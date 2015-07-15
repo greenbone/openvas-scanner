@@ -33,7 +33,7 @@
 #include "pluginload.h"         /* for struct pl_class_t */
 #include "pluginscheduler.h"    /* for struct plugins_scheduler_t */
 
-void pluginlaunch_init (void);
+void pluginlaunch_init (const char *);
 void pluginlaunch_wait (void);
 void pluginlaunch_wait_for_free_process (void);
 void pluginlaunch_stop (void);

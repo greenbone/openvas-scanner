@@ -34,7 +34,6 @@
 
 #include <openvas/misc/network.h>    /* for internal_send */
 #include <openvas/misc/nvt_categories.h>  /* for ACT_SCANNER */
-#include <openvas/misc/plugutils.h>  /* for plug_get_hostname */
 #include <openvas/misc/internal_com.h>  /* for INTERNAL_COMM_MSG_TYPE_DATA */
 #include <openvas/misc/prefs.h>         /* for prefs_get_bool() */
 #include <openvas/base/nvticache.h>
@@ -79,6 +78,7 @@ static int num_running_processes;
 static int max_running_processes;
 static int old_max_running_processes;
 static struct arglist *non_simult_ports_list;
+const char *hostname = NULL;
 
 
 /**
@@ -176,15 +176,11 @@ update_running_processes (void)
                     log_write ("%s (pid %d) is slow to finish - killing it",
                                oid, processes[i].pid);
 
-                  msg = g_strdup_printf ("SERVER"
-                                         " <|> ERRMSG"
-                                         " <|> HOST"
-                                         " <|> general/tcp"
-                                         " <|> NVT timed out after %d seconds."
-                                         " <|> %s"
-                                         " <|> SERVER\n",
-                                         processes[i].timeout,
-                                         oid ?: "0");
+                  msg = g_strdup_printf
+                         ("SERVER <|> ERRMSG <|> %s <|> general/tcp"
+                          " <|> NVT timed out after %d seconds."
+                          " <|> %s <|> SERVER\n",
+                          hostname, processes[i].timeout, oid ?: "0");
                   internal_send (processes[i].upstream_soc,
                                  msg, INTERNAL_COMM_MSG_TYPE_DATA);
                   g_free (msg);
@@ -343,12 +339,13 @@ read_running_processes (void)
 
 
 void
-pluginlaunch_init (void)
+pluginlaunch_init (const char *host)
 {
   struct arglist *preferences = preferences_get ();
   non_simult_ports_list = arg_get_value (preferences, "non_simult_ports_list");
   max_running_processes = get_max_checks_number ();
   old_max_running_processes = max_running_processes;
+  hostname = host;
 
   if (max_running_processes >= MAX_PROCESSES)
     {
