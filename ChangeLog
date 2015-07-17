@@ -1,3 +1,11 @@
+2015-07-17  Michael Wiegand <michael.wiegand@greenbone.net>
+
+	Backport r22852.
+
+	* CMakeLists.txt: Install openvas-mkcert-client to "bin" instead of
+	"sbin" to be FHS compliant. Ensure man page for openvas-mkcert-client
+	is installed. Based on patch provided by Michal Ambroz.
+
 2015-07-09  Michael Wiegand <michael.wiegand@greenbone.net>
 
 	Post release version bump.

@@ -251,12 +251,19 @@ install (FILES ${CMAKE_BINARY_DIR}/src/openvassd
 #         DESTINATION ${OPENVAS_SYSCONF_DIR})
 
 install (FILES ${CMAKE_BINARY_DIR}/tools/openvas-mkcert
-               ${CMAKE_BINARY_DIR}/tools/openvas-mkcert-client
                ${CMAKE_BINARY_DIR}/tools/openvas-nvt-sync
                ${CMAKE_BINARY_DIR}/tools/greenbone-nvt-sync
          DESTINATION ${SBINDIR}
          PERMISSIONS OWNER_EXECUTE OWNER_READ OWNER_WRITE
                      GROUP_READ GROUP_EXECUTE WORLD_READ WORLD_EXECUTE)
+
+install (FILES ${CMAKE_BINARY_DIR}/tools/openvas-mkcert-client
+         DESTINATION ${BINDIR}
+         PERMISSIONS OWNER_EXECUTE OWNER_READ OWNER_WRITE
+                     GROUP_READ GROUP_EXECUTE WORLD_READ WORLD_EXECUTE)
+
+install (FILES ${CMAKE_SOURCE_DIR}/doc/openvas-mkcert-client.1
+          DESTINATION ${DATADIR}/man/man1 )
 
 install (FILES ${CMAKE_BINARY_DIR}/doc/openvassd.8
          DESTINATION ${DATADIR}/man/man8 )
