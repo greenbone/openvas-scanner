@@ -1,3 +1,7 @@
+2015-07-30  Sven Haardiek <sven.haardiek@greenbone.net>
+
+	* CMakeLists.txt: Change non release version style to fit better to debian
+
 2015-07-17  Michael Wiegand <michael.wiegand@greenbone.net>
 
 	* CMakeLists.txt: Install openvas-mkcert-client to "bin" instead of
