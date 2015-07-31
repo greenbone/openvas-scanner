@@ -216,9 +216,11 @@ configure_file (doc/Doxyfile_full.in doc/Doxyfile_full @ONLY)
 configure_file (doc/openvassd.8.in doc/openvassd.8 @ONLY)
 configure_file (doc/example_redis_2_4.conf.in doc/example_redis_2_4.conf @ONLY)
 configure_file (doc/example_redis_2_6.conf.in doc/example_redis_2_6.conf @ONLY)
+configure_file (doc/example-openvas-manage-certs.conf.in doc/example-openvas-manage-certs.conf @ONLY)
 configure_file (VERSION.in VERSION @ONLY)
 configure_file (tools/openvas-mkcert.in tools/openvas-mkcert @ONLY)
 configure_file (tools/openvas-mkcert-client.in tools/openvas-mkcert-client @ONLY)
+configure_file (tools/openvas-manage-certs.in tools/openvas-manage-certs @ONLY)
 configure_file (tools/openvas-nvt-sync.in tools/openvas-nvt-sync @ONLY)
 configure_file (tools/greenbone-nvt-sync.in tools/greenbone-nvt-sync @ONLY)
 # TODO: Once  Scanner has a proper logging mechanism like Manager.
@@ -263,6 +265,11 @@ install (FILES ${CMAKE_BINARY_DIR}/tools/openvas-mkcert-client
          PERMISSIONS OWNER_EXECUTE OWNER_READ OWNER_WRITE
                      GROUP_READ GROUP_EXECUTE WORLD_READ WORLD_EXECUTE)
 
+install (FILES ${CMAKE_BINARY_DIR}/tools/openvas-manage-certs
+         DESTINATION ${BINDIR}
+         PERMISSIONS OWNER_EXECUTE OWNER_READ OWNER_WRITE
+                     GROUP_READ GROUP_EXECUTE WORLD_READ WORLD_EXECUTE)
+
 install (FILES ${CMAKE_SOURCE_DIR}/doc/openvas-mkcert-client.1
           DESTINATION ${DATADIR}/man/man1 )
 
@@ -276,6 +283,7 @@ install (FILES ${CMAKE_SOURCE_DIR}/doc/openvas-mkcert.8
 
 install (FILES ${CMAKE_BINARY_DIR}/doc/example_redis_2_4.conf
                ${CMAKE_BINARY_DIR}/doc/example_redis_2_6.conf
+               ${CMAKE_BINARY_DIR}/doc/example-openvas-manage-certs.conf
          DESTINATION ${DATADIR}/doc/openvas-scanner/ )
 
 install (DIRECTORY DESTINATION ${OPENVAS_NVT_DIR})
