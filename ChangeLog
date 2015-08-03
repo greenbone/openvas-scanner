@@ -1,3 +1,10 @@
+2015-08-03  Michael Wiegand <michael.wiegand@greenbone.net>
+
+	* src/openvassd.c (init_ssl_ctx): Remove obsolete warnings. The
+	variables ca_file, cert_file and key_file are always non-NULL now and
+	the warning was a reference to a feature of openvas-mkcert which has
+	been removed in r10047.
+
 2015-07-31  Michael Wiegand <michael.wiegand@greenbone.net>
 
 	Improve openvas-manage-certs script. The script is now able to set up
