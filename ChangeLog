@@ -1,3 +1,11 @@
+2015-08-03  Hani Benhabiles  <hani.benhabiles@greenbone.net>
+
+	* src/openvassd.c (init_network): Take listen address as string, adjust
+	to support both IPv6 and IPv4.  Refactor code accordingly.
+	(init_openvassd): Default listen address to ::. Adjust init_network()
+	call.
+	(main): Adjust init_openvassd() call, clean code.
+
 2015-08-03  Michael Wiegand <michael.wiegand@greenbone.net>
 
 	* src/openvassd.c (init_ssl_ctx): Remove obsolete warnings. The

@@ -580,39 +580,54 @@ main_loop ()
  * @param[out] sock Socket to be initialized.
  * @param addr Adress.
  *
- * @return 0 on success. Exit(1)s on failure.
+ * @return 0 on success. -1 on failure.
  */
 static int
-init_network (int port, int *sock, struct addrinfo addr)
+init_network (int port, int *sock, const char *addr_str)
 {
   int option = 1;
+  struct sockaddr_storage address;
+  struct sockaddr_in *addr4 = (struct sockaddr_in *) &address;
+  struct sockaddr_in6 *addr6 = (struct sockaddr_in6 *) &address;
 
-  if (addr.ai_family == AF_INET)
-    ((struct sockaddr_in *) (addr.ai_addr))->sin_port = htons (port);
+  if (inet_pton (AF_INET6, addr_str, &addr6->sin6_addr) > 0)
+    {
+      address.ss_family = AF_INET6;
+      addr6->sin6_port = htons (port);
+    }
+  else if (inet_pton (AF_INET, addr_str, &addr4->sin_addr) > 0)
+    {
+      address.ss_family = AF_INET;
+      addr4->sin_port = htons (port);
+    }
   else
-    ((struct sockaddr_in6 *) (addr.ai_addr))->sin6_port = htons (port);
-  if ((*sock = socket (addr.ai_family, SOCK_STREAM, 0)) == -1)
+    {
+      printf ("Invalid IP address.\n");
+      printf ("Please use --help for more information.\n");
+      return -1;
+    }
+
+  if ((*sock = socket (address.ss_family, SOCK_STREAM, 0)) == -1)
     {
       int ec = errno;
       log_write ("socket(AF_INET): %s", strerror (ec));
-      exit (1);
+      return -1;
     }
-
   setsockopt (*sock, SOL_SOCKET, SO_REUSEADDR, &option, sizeof (int));
-  if (bind (*sock, (struct sockaddr *) (addr.ai_addr), addr.ai_addrlen) == -1)
+  if (bind (*sock, (struct sockaddr *) &address, sizeof (address)) == -1)
     {
       log_write ("bind() failed : %s\n", strerror (errno));
-      exit (1);
+      return -1;
     }
-
-  if (listen (*sock, 10) == -1)
+  if (listen (*sock, 512) == -1)
     {
       log_write ("listen() failed : %s\n", strerror (errno));
       shutdown (*sock, 2);
       close (*sock);
-      exit (1);
+      return -1;
     }
-  return (0);
+
+  return 0;
 }
 
 /**
@@ -622,18 +637,14 @@ init_network (int port, int *sock, struct addrinfo addr)
  */
 static int
 init_openvassd (GHashTable *options, int first_pass, int stop_early,
-                int dont_fork)
+                int dont_fork, const char *addr_str)
 {
-  int isck = -1;
-  int scanner_port;
+  int isck = -1, i, scanner_port;
   char *config_file;
-  struct addrinfo *addr;
-  int i;
 
   scanner_port = GPOINTER_TO_SIZE (g_hash_table_lookup (options,
                                                         "scanner_port"));
   config_file = g_hash_table_lookup (options, "config_file");
-  addr = g_hash_table_lookup (options, "addr");
 
   prefs_init ();
   for (i = 0; openvassd_defaults[i].option != NULL; i++)
@@ -644,10 +655,10 @@ init_openvassd (GHashTable *options, int first_pass, int stop_early,
   if (dont_fork == FALSE)
     setup_legacy_log_handler (log_vwrite);
 
-  if (!stop_early)
+  if (!stop_early && first_pass)
     {
-      if (first_pass != 0)
-        init_network (scanner_port, &isck, *addr);
+      if (init_network (scanner_port, &isck, addr_str ?: "::"))
+        return -1;
     }
 
   g_hash_table_replace (options, "isck", GSIZE_TO_POINTER (isck));
@@ -714,21 +725,10 @@ main (int argc, char *argv[])
 {
   int exit_early = 0, scanner_port = 9391, ret;
   pid_t handler_pid;
-  char *myself;
   GHashTable *options;
-  struct addrinfo *mysaddr;
-  struct addrinfo hints;
-  struct addrinfo ai;
-  struct sockaddr_in saddr;
-  struct sockaddr_in6 s6addr;
 
   proctitle_init (argc, argv);
   gcrypt_init ();
-
-  if ((myself = strrchr (*argv, '/')) == 0)
-    myself = *argv;
-  else
-    myself++;
 
   static gboolean display_version = FALSE;
   static gboolean dont_fork = FALSE;
@@ -793,53 +793,13 @@ main (int argc, char *argv[])
   if (print_specs)
     exit_early = 2;           /* no cipher initialization */
 
-  if (address != NULL)
-    {
-      memset (&hints, 0, sizeof (hints));
-      hints.ai_socktype = SOCK_STREAM;
-      hints.ai_protocol = IPPROTO_TCP;
-      hints.ai_flags = AI_NUMERICHOST;
-      if (getaddrinfo (address, NULL, &hints, &mysaddr))
-        {
-          printf ("Invalid IP address.\n");
-          printf ("Please use %s --help for more information.\n", myself);
-          exit (0);
-        }
-      /* deep copy */
-      ai.ai_family = mysaddr->ai_family;
-      if (ai.ai_family == AF_INET)
-        {
-          memcpy (&saddr, mysaddr->ai_addr, mysaddr->ai_addrlen);
-          ai.ai_addr = (struct sockaddr *) &saddr;
-        }
-      else
-        {
-          memcpy (&s6addr, mysaddr->ai_addr, mysaddr->ai_addrlen);
-          ai.ai_addr = (struct sockaddr *) &s6addr;
-        }
-      ai.ai_family = mysaddr->ai_family;
-      ai.ai_protocol = mysaddr->ai_protocol;
-      ai.ai_socktype = mysaddr->ai_socktype;
-      ai.ai_addrlen = mysaddr->ai_addrlen;
-      freeaddrinfo (mysaddr);
-    }
-  else
-    {
-      /* Default to IPv4 */
-      /*Warning: Not filling all the fields */
-      saddr.sin_addr.s_addr = INADDR_ANY;
-      saddr.sin_family = ai.ai_family = AF_INET;
-      ai.ai_addrlen = sizeof (saddr);
-      ai.ai_addr = (struct sockaddr *) &saddr;
-    }
-
   if (port != NULL)
     {
       scanner_port = atoi (port);
       if ((scanner_port <= 0) || (scanner_port >= 65536))
         {
           printf ("Invalid port specification.\n");
-          printf ("Please use %s --help for more information.\n", myself);
+          printf ("Please use --help for more information.\n");
           exit (1);
         }
     }
@@ -868,17 +828,18 @@ main (int argc, char *argv[])
   g_hash_table_insert (options, "scanner_port",
                        GSIZE_TO_POINTER (scanner_port));
   g_hash_table_insert (options, "config_file", config_file);
-  g_hash_table_insert (options, "addr", &ai);
 
   if (only_cache)
     {
-      init_openvassd (options, 0, 1, dont_fork);
+      if (init_openvassd (options, 0, 1, dont_fork, address))
+        return 1;
       if (plugins_init ())
         return 1;
       return 0;
     }
 
-  init_openvassd (options, 1, exit_early, dont_fork);
+  if (init_openvassd (options, 1, exit_early, dont_fork, address))
+    return 1;
   flush_all_kbs ();
   global_options = options;
   global_iana_socket = GPOINTER_TO_SIZE (g_hash_table_lookup (options, "isck"));
