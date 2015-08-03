@@ -275,7 +275,6 @@ loading_handler_start ()
 
   init_loading_shm ();
   parent_pid = getpid ();
-  openvas_signal (SIGTERM, remove_pidfile);
   child_pid = fork ();
   if (child_pid != 0)
     return child_pid;

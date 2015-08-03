@@ -1,5 +1,10 @@
 2015-08-03  Hani Benhabiles  <hani.benhabiles@greenbone.net>
 
+	* src/openvassd.c (loading_handler_start): Don't set SIGTERM handler, as
+	it is done already.
+
+2015-08-03  Hani Benhabiles  <hani.benhabiles@greenbone.net>
+
 	* src/openvassd.c (init_network): Take listen address as string, adjust
 	to support both IPv6 and IPv4.  Refactor code accordingly.
 	(init_openvassd): Default listen address to ::. Adjust init_network()
