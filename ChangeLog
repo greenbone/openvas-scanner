@@ -1,3 +1,15 @@
+2015-08-05  Hani Benhabiles  <hani.benhabiles@greenbone.net>
+
+	* CMakeLists.txt: Add -Wextra compiler flag.
+
+	* src/comm.c (comm_loading, send_plug_info), src/nasl_plugins.c
+	(prefs_add_nvti), src/ntp.c (ntp_recv_file), src/utils.c (auth_send),
+	src/pluginload.c (plugins_reload_from_dir): Fix signedness issues.
+
+	* src/pluginlaunch.c (wait_for_children): Remove unused parameter.
+	(pluginlaunch_wait, pluginlauch_wait_for_free_process)
+	(next_free_process): Adjust wait_for_children() call.
+
 2015-08-03  Hani Benhabiles  <hani.benhabiles@greenbone.net>
 
 	* src/openvassd.c (loading_handler_start): Don't set SIGTERM handler, as

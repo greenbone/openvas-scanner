@@ -63,7 +63,7 @@
 static void
 prefs_add_nvti (const nvti_t *nvti)
 {
-  int i;
+  unsigned int i;
 
   if (!nvti)
     return;

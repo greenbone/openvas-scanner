@@ -289,8 +289,7 @@ ntp_recv_file (struct arglist *globals)
   char *origname, *contents;
   gchar *cont_ptr = NULL;
   int n;
-  long bytes = 0;
-  long tot = 0;
+  size_t bytes = 0, tot = 0;
 
   n = recv_line (soc, input, sizeof (input) - 1);
   if (n <= 0)

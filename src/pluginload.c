@@ -231,7 +231,7 @@ plugins_reload_from_dir (char *folder)
   if (pref_include_folders != NULL)
     {
       gchar **include_folders = g_strsplit (pref_include_folders, ":", 0);
-      int i = 0;
+      unsigned int i = 0;
 
       for (i = 0; i < g_strv_length (include_folders); i++)
         {

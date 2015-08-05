@@ -245,7 +245,7 @@ is_scanner_only_pref (const char *pref)
 static void
 auth_send (int soc, char *data)
 {
-  int sent = 0;
+  unsigned int sent = 0;
   gsize length;
 
   if (soc < 0)

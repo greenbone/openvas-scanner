@@ -122,13 +122,11 @@ process_internal_msg (int p)
 }
 
 
-/**
- * @param sig ignored.
- */
 void
-wait_for_children (int sig)
+wait_for_children ()
 {
   int i;
+
   for (i = 0; i < MAX_PROCESSES; i++)
     if (processes[i].pid != 0)
       {
@@ -232,7 +230,7 @@ next_free_process (struct scheduler_plugin *upcoming)
 {
   int r;
 
-  wait_for_children (0);
+  wait_for_children ();
   for (r = 0; r < MAX_PROCESSES; r++)
     {
       if (processes[r].pid > 0)
@@ -255,7 +253,7 @@ next_free_process (struct scheduler_plugin *upcoming)
                     {
                       read_running_processes ();
                       update_running_processes ();
-                      wait_for_children (0);
+                      wait_for_children ();
                     }
 #ifdef DEBUG_CONFLICT
                   log_write ("End of the wait - was that long ?\n");
@@ -466,7 +464,7 @@ pluginlaunch_wait (void)
 {
   do
     {
-      wait_for_children (0);
+      wait_for_children ();
       read_running_processes ();
       update_running_processes ();
     }
@@ -496,7 +494,7 @@ pluginlaunch_wait_for_free_process (void)
   int num = num_running_processes;
   do
     {
-      wait_for_children (0);
+      wait_for_children ();
       read_running_processes ();
       update_running_processes ();
     }

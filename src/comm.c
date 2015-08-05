@@ -88,8 +88,7 @@ comm_init (int soc)
 int
 comm_loading (int soc)
 {
-  int n;
-  size_t len;
+  int n, len;
   char buf[256];
   n = recv_line (soc, buf, sizeof (buf) - 1);
   if (n <= 0)
@@ -165,8 +164,6 @@ void
 send_plug_info (int soc, const char *filename)
 {
   int j, ignored = 0;
-  static const char *categories[] = { ACT_STRING_LIST_ALL };
-#define CAT_MAX	(sizeof(categories) / sizeof(categories[0]))
   const char *name, *copyright, *summary, *version, *family;
   nvti_t *nvti = nvticache_get_by_name_full (filename);
 
@@ -177,8 +174,8 @@ send_plug_info (int soc, const char *filename)
     }
 
   j = nvti_category (nvti);
-  if (j >= CAT_MAX || j < ACT_FIRST)
-    j = CAT_MAX - 1;
+  if (j >= ACT_UNKNOWN || j < ACT_FIRST)
+    j = ACT_UNKNOWN;
 
   version = nvti_version (nvti);
   if (!version)
@@ -240,6 +237,7 @@ send_plug_info (int soc, const char *filename)
   if (!ignored)
     {
       char *cve_id, *bid, *xref, *tag;
+      static const char *categories[] = { ACT_STRING_LIST_ALL };
 
       cve_id = nvti_cve (nvti);
       if (cve_id == NULL || strcmp (cve_id, "") == 0)
