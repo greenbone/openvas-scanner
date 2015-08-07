@@ -271,6 +271,7 @@ install (FILES ${CMAKE_BINARY_DIR}/tools/openvas-manage-certs
                      GROUP_READ GROUP_EXECUTE WORLD_READ WORLD_EXECUTE)
 
 install (FILES ${CMAKE_SOURCE_DIR}/doc/openvas-mkcert-client.1
+               ${CMAKE_SOURCE_DIR}/doc/openvas-manage-certs.1
           DESTINATION ${DATADIR}/man/man1 )
 
 install (FILES ${CMAKE_BINARY_DIR}/doc/openvassd.8
