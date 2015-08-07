@@ -67,15 +67,18 @@ Setting up openvas-scanner
 
 Setting up an openvas-scanner requires the following steps:
 
-1) The scanner service communicate through an SSL connection.
-   In order to establish this connection, the scanner needs to have
-   an SSL certificate it can present to the client to prove its identity. You
-   can interactively create this certificate by using the following command:
+1) All communication with openvas-scanner uses the TLS protocol to establish
+   secure connections and for authentication and authorization.
+   This requires the presence of a certificate infrastructure consisting of a
+   certificate authority (CA) and a server and client certificate signed by the
+   CA.
 
-   $ openvas-mkcert
+   The "openvas-manage-certs" script provided with openvas-scanner can be
+   used to set up a certificate infrastructure. The following command will
+   automatically generate the necessary certificates for a default OpenVAS
+   installation and place the files in the correct location:
 
-   This command will guide you through the certificate creation and place the
-   certificates in the correct locations on your system.
+   $ openvas-manage-certs -a
 
 2) (optional) You may decide to change the default scanner preferences
    by setting them in the file $prefix/etc/openvassd.conf. If that file does

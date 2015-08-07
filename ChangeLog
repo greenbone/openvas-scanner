@@ -1,5 +1,10 @@
 2015-08-07  Michael Wiegand <michael.wiegand@greenbone.net>
 
+	* INSTALL: Updated to describe usage of openvas-manage-certs instead
+	of openvas-mkcert.
+
+2015-08-07  Michael Wiegand <michael.wiegand@greenbone.net>
+
 	Add a man page for openvas-manage-certs.
 
 	* doc/openvas-manage-certs.1: New. Man page roughly based on "-h" help
