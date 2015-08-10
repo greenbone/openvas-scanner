@@ -1,3 +1,15 @@
+2015-08-10  Michael Wiegand <michael.wiegand@greenbone.net>
+
+	Add support for setting appropriate usage constraints for server and
+	client certificates and set constraints in automatic mode.
+
+	* doc/openvas-manage-certs.1: Update documentation.
+
+	* tools/openvas-manage-certs.in: Add support for setting key usage
+	constraints compliant to RFC 5280. Set constraints correctly when in
+	automatic mode. Reorder install process in automatic mode to ensure
+	the certificates end up in the correct location.
+
 2015-08-07  Michael Wiegand <michael.wiegand@greenbone.net>
 
 	* INSTALL: Updated to describe usage of openvas-manage-certs instead

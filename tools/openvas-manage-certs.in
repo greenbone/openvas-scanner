@@ -138,6 +138,10 @@ print_help ()
   echo "  -S             Sign a certificate request"
   echo "  -f             Force overwriting of existing files"
   echo
+  echo "Certificate options:"
+  echo "  -E             Create a server certificate"
+  echo "  -L             Create a client certificate"
+  echo
   echo "Output control:"
   echo "  -d             Print debug output"
   echo "  -v             Print verbose messages"
@@ -347,6 +351,20 @@ create_certificate ()
   if [ -n "$OPENVAS_CERTIFICATE_HOSTNAME" ]
   then
     echo "cn = \"$OPENVAS_CERTIFICATE_HOSTNAME\"" >> $OPENVAS_CERT_TEMPLATE_FILENAME
+  fi
+
+  # Add key usage constraints if the certificate type is known
+  if [ $CREATE_SERVER_CERTIFICATE -eq 1 ]
+  then
+    # This certificate will be used to encrypt data.
+    # This is the keyEncipherment flag in RFC5280 terminology.
+    echo "encryption_key" >> $OPENVAS_CERT_TEMPLATE_FILENAME
+  fi
+  if [ $CREATE_CLIENT_CERTIFICATE -eq 1 ]
+  then
+    # This certificate will be used to sign data.
+    # This is the digitalSignature flag in RFC5280 terminology.
+    echo "signing_key" >> $OPENVAS_CERT_TEMPLATE_FILENAME
   fi
 
   if [ $DEBUG -eq 1 ]
@@ -639,6 +657,8 @@ INSTALL_CERTIFICATE=0
 INSTALL_CA=0
 CREATE_CERTIFICATE=0
 CREATE_SELF_SIGNED=0
+CREATE_SERVER_CERTIFICATE=0
+CREATE_CLIENT_CERTIFICATE=0
 CREATE_CA=0
 SIGN_CERTIFICATE=0
 VERIFY=0
@@ -647,7 +667,7 @@ DEBUG=0
 QUIET=0
 FORCE=0
 
-while getopts hasiIcfdCSVvqe: OPTION
+while getopts hasiIcfdCSVvqe:EL OPTION
 do
   case "$OPTION" in
     h)
@@ -693,6 +713,12 @@ do
       ;;
     e)
       CONFIGURATION_FILE="$OPTARG"
+      ;;
+    E)
+      CREATE_SERVER_CERTIFICATE=1
+      ;;
+    L)
+      CREATE_CLIENT_CERTIFICATE=1
       ;;
     \?)
       print_help
@@ -743,7 +769,11 @@ then
   OPENVAS_SIGNING_CA_KEY_FILENAME="$OPENVAS_CA_KEY_FILENAME"
   OPENVAS_SIGNING_CA_CERT_FILENAME="$OPENVAS_CA_CERT_FILENAME"
   log_verbose "  CA certificate generated."
+  install_ca_cert
+  log_verbose "  CA certificate and key installed."
 
+  CREATE_SERVER_CERTIFICATE=1
+  CREATE_CLIENT_CERTIFICATE=0
   OPENVAS_CERT_PREFIX=server
   OPENVAS_KEY_FILENAME="$OPENVAS_CERT_DIR/${OPENVAS_CERT_PREFIX}key.pem"
   OPENVAS_CERT_FILENAME="$OPENVAS_CERT_DIR/${OPENVAS_CERT_PREFIX}cert.pem"
@@ -753,7 +783,11 @@ then
   create_certificate
   sign_certificate
   log_verbose "  Server certificate generated."
+  install_cert "server"
+  log_verbose "  Server certificate and key installed."
 
+  CREATE_SERVER_CERTIFICATE=0
+  CREATE_CLIENT_CERTIFICATE=1
   OPENVAS_CERT_PREFIX=client
   OPENVAS_KEY_FILENAME="$OPENVAS_CERT_DIR/${OPENVAS_CERT_PREFIX}key.pem"
   OPENVAS_CERT_FILENAME="$OPENVAS_CERT_DIR/${OPENVAS_CERT_PREFIX}cert.pem"
@@ -763,11 +797,8 @@ then
   create_certificate
   sign_certificate
   log_verbose "  Client certificate generated."
-
-  install_ca_cert
-  install_cert "server"
   install_cert "client"
-  log_verbose "  Keys and certificates have been installed."
+  log_verbose "  Client certificate and key installed."
 
   clean_up
 
