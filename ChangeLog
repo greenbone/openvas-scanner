@@ -1,5 +1,28 @@
 2015-08-21  Michael Wiegand <michael.wiegand@greenbone.net>
 
+	Retire openvas-mkcert and openvas-mkcert-client now that their
+	replacement openvas-manage-certs is ready.
+
+	* CMakeLists.txt: Remove generation and installation of openvas-mkcert
+	and openvas-mkcert-client. Remove generated scripts from
+	CPACK_SOURCE_IGNORE_FILES. Remove installation of corresponding man
+	pages.
+
+	* COPYING: Updated.
+
+	* doc/openvassd.8.in: Change "See Also" from openvas-mkcert to
+	openvas-manage-certs.
+
+	* doc/openvas-mkcert-client.1: Removed.
+
+	* doc/openvas-mkcert.8: Removed.
+
+	* tools/openvas-mkcert-client.in: Removed.
+
+	* tools/openvas-mkcert.in: Removed.
+
+2015-08-21  Michael Wiegand <michael.wiegand@greenbone.net>
+
 	* CMakeLists.txt: Add openvas-manage-certs to
 	CPACK_SOURCE_IGNORE_FILES since it is a generated file.
 
