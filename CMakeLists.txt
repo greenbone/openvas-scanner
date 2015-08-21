@@ -112,6 +112,7 @@ set (CPACK_SOURCE_IGNORE_FILES
 "VERSION$"
 "tools/openvas-mkcert$"
 "tools/openvas-mkcert-client$"
+"tools/openvas-manage-certs$"
 "tools/openvas-nvt-sync$"
 "tools/greenbone-nvt-sync$"
 "doc/example_redis_2_4.conf$"
