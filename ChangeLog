@@ -1,5 +1,10 @@
 2015-08-21  Michael Wiegand <michael.wiegand@greenbone.net>
 
+	* INSTALL: Note that "certtool" is now need for certificate
+	generation.
+
+2015-08-21  Michael Wiegand <michael.wiegand@greenbone.net>
+
 	Retire openvas-mkcert and openvas-mkcert-client now that their
 	replacement openvas-manage-certs is ready.
 

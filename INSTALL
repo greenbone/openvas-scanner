@@ -17,6 +17,9 @@ Prerequisites:
 * pkg-config
 * redis >= 2.4.0
 
+Prerequisites for certificate generation:
+* GnuTLS certtool
+
 Prerequisites for building documentation:
 * Doxygen
 * xmltoman (optional, for building man page)
