@@ -425,7 +425,11 @@ scanner_thread (struct arglist *globals)
   else
     {
       struct sockaddr_in6 *s6addr = (struct sockaddr_in6 *) &addr;
-      inet_ntop (AF_INET6, &s6addr->sin6_addr, asciiaddr, sizeof (asciiaddr));
+      if (IN6_IS_ADDR_V4MAPPED (&s6addr->sin6_addr))
+        inet_ntop (AF_INET, &s6addr->sin6_addr.s6_addr[12],
+                   asciiaddr, sizeof (asciiaddr));
+      else
+        inet_ntop (AF_INET6, &s6addr->sin6_addr, asciiaddr, sizeof (asciiaddr));
     }
   proctitle_set ("openvassd: Serving %s", asciiaddr);
 
