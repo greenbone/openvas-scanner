@@ -1,3 +1,8 @@
+2015-08-25  Hani Benhabiles  <hani.benhabiles@greenbone.net>
+
+	* src/openvassd.c (scanner_thread): Adjust process title for IPv4-mapped
+	IPv6 address case.
+
 2015-08-21  Michael Wiegand <michael.wiegand@greenbone.net>
 
 	* INSTALL: Note that "certtool" is now need for certificate
