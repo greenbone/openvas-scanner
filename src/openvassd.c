@@ -413,20 +413,7 @@ scanner_thread (struct arglist *globals)
   soc = arg_get_value_int (globals, "global_socket");
   len = sizeof (addr);
   getpeername (soc, (struct sockaddr *) &addr, &len);
-  if (addr.ss_family == AF_INET)
-    {
-      struct sockaddr_in *saddr = (struct sockaddr_in *) &addr;
-      inet_ntop (AF_INET,  &saddr->sin_addr, asciiaddr, sizeof(asciiaddr));
-    }
-  else
-    {
-      struct sockaddr_in6 *s6addr = (struct sockaddr_in6 *) &addr;
-      if (IN6_IS_ADDR_V4MAPPED (&s6addr->sin6_addr))
-        inet_ntop (AF_INET, &s6addr->sin6_addr.s6_addr[12],
-                   asciiaddr, sizeof (asciiaddr));
-      else
-        inet_ntop (AF_INET6, &s6addr->sin6_addr, asciiaddr, sizeof (asciiaddr));
-    }
+  sockaddr_as_str (&addr, asciiaddr);
   proctitle_set ("openvassd: Serving %s", asciiaddr);
 
   /* Everyone runs with a nicelevel of 10 */
