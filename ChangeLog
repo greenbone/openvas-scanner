@@ -1,3 +1,7 @@
+2015-08-27  Hani Benhabiles  <hani.benhabiles@greenbone.net>
+
+	* src/attack.c (launch_plugin): Use nvti_category_is_safe().
+
 2015-08-26  Hani Benhabiles  <hani.benhabiles@greenbone.net>
 
 	* src/openvassd.c (scanner_thread): Use sockaddr_as_str().

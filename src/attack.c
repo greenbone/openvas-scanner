@@ -219,9 +219,7 @@ launch_plugin (struct arglist *globals, struct scheduler_plugin *plugin,
     {
       char *error;
 
-      if (prefs_get_bool ("safe_checks")
-          && (category == ACT_DESTRUCTIVE_ATTACK || category == ACT_KILL_HOST
-              || category == ACT_FLOOD || category == ACT_DENIAL))
+      if (prefs_get_bool ("safe_checks") && !nvti_category_is_safe (category))
         {
           if (prefs_get_bool ("log_whole_attack"))
             log_write
