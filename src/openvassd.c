@@ -115,7 +115,6 @@ static openvassd_option openvassd_defaults[] = {
   {"unscanned_closed", "yes"},
   {"unscanned_closed_udp", "yes"},
   // Empty options must be "\0", not NULL, to match the behavior of
-  // prefs_init.
   {"vhosts", "\0"},
   {"vhosts_ip", "\0"},
   {"report_host_details", "yes"},
@@ -362,7 +361,6 @@ reload_openvassd ()
     return;
   /* Reload config file. */
   config_file = prefs_get ("config_file");
-  prefs_init ();
   for (i = 0; openvassd_defaults[i].option != NULL; i++)
     prefs_set (openvassd_defaults[i].option, openvassd_defaults[i].value);
   prefs_config (config_file);
@@ -636,7 +634,6 @@ init_openvassd (GHashTable *options, int first_pass, int stop_early,
                                                         "scanner_port"));
   config_file = g_hash_table_lookup (options, "config_file");
 
-  prefs_init ();
   for (i = 0; openvassd_defaults[i].option != NULL; i++)
     prefs_set (openvassd_defaults[i].option, openvassd_defaults[i].value);
   prefs_config (config_file);
