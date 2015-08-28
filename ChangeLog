@@ -1,3 +1,8 @@
+2015-08-28  Jan-Oliver Wagner <jan-oliver.wagner@greenbone.net>
+
+	* tools/greenbone-nvt-sync.in, tools/openvas-nvt-sync.in:
+	Replace any tabs by spaces.
+
 2015-08-27  Hani Benhabiles  <hani.benhabiles@greenbone.net>
 
 	* src/openvassd.c (reload_openvassd, init_openvassd): Remove

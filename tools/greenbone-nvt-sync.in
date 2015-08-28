@@ -409,17 +409,17 @@ do_sync ()
 
 do_help () {
   echo "$0: Sync NVT data"
-  echo " --describe	display current feed info"
-  echo " --feedcurrent	just check if feed is up-to-date"
-  echo " --feedversion	display version of this feed"
-  echo " --help		display this help"
-  echo " --identify	display information"
-  echo " --nvtdir dir	set dir as NVT directory"
-  echo " --refresh	update database without downloading new state"
-  echo " --selftest	perform self-test"
-  echo " --sync-only	download new state without updating database"
-  echo " --verbose	makes the sync process print details"
-  echo " --version	display version"
+  echo " --describe     display current feed info"
+  echo " --feedcurrent  just check if feed is up-to-date"
+  echo " --feedversion  display version of this feed"
+  echo " --help         display this help"
+  echo " --identify     display information"
+  echo " --nvtdir dir   set dir as NVT directory"
+  echo " --refresh      update database without downloading new state"
+  echo " --selftest     perform self-test"
+  echo " --sync-only    download new state without updating database"
+  echo " --verbose      makes the sync process print details"
+  echo " --version      display version"
   echo ""
   exit 0
 }
