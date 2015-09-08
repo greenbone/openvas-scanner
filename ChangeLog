@@ -1,3 +1,26 @@
+2015-09-08  Michael Wiegand <michael.wiegand@greenbone.net>
+
+	Simplify project version setting. Use SVN version at build time in
+	binary instead of SVN version at configuration time. Make SVN revision
+	retrieval work with SVN >= 1.7.
+
+	* CMakeLists.txt: Set project version independently of CPack
+	configuration. Make switching between beta and stable version schemes
+	easier. Use version string with possible SVN revision suffix for the
+	CPack package version, but skip SVN revision suffix for
+	OPENVASSD_VERSION since we do not care about the revision at
+	configuration time. Improve SVN checkout detection to work with SVN >=
+	1.7 as well.
+
+	* src/CMakeLists.txt: Determine build time SVN revision if the build
+	type is "Debug" and SVN information is available.
+
+	* src/openvassd.c: Include SVN revision in version information if it
+	is available.
+
+	* getsvn.cmake: New. CMake script to write SVN revision to a header
+	file if SVN information is available.
+
 2015-08-28  Jan-Oliver Wagner <jan-oliver.wagner@greenbone.net>
 
 	* tools/greenbone-nvt-sync.in, tools/openvas-nvt-sync.in:

@@ -56,17 +56,44 @@ macro (Subversion_GET_REVISION dir variable)
 endmacro (Subversion_GET_REVISION)
 
 if (NOT CMAKE_BUILD_TYPE MATCHES "Release")
-  if (EXISTS "${CMAKE_SOURCE_DIR}/.svn/")
+  if (EXISTS "${CMAKE_SOURCE_DIR}/.svn/" OR EXISTS "${CMAKE_SOURCE_DIR}/../.svn/")
     if (SVN_EXECUTABLE)
       Subversion_GET_REVISION(. ProjectRevision)
       set (SVN_REVISION "~svn${ProjectRevision}")
     else (SVN_EXECUTABLE)
       set (SVN_REVISION "~svn")
     endif (SVN_EXECUTABLE)
-  endif (EXISTS "${CMAKE_SOURCE_DIR}/.svn/")
+  endif (EXISTS "${CMAKE_SOURCE_DIR}/.svn/" OR EXISTS "${CMAKE_SOURCE_DIR}/../.svn/")
 endif (NOT CMAKE_BUILD_TYPE MATCHES "Release")
 
 # TODO: Check pkg-config (maybe with code like in gsa/CMakeLists.txt).
+
+## Project version
+# The following three variables should be set through the project command once
+# we require CMake >= 3.0
+set (PROJECT_VERSION_MAJOR 5)
+set (PROJECT_VERSION_MINOR 1)
+set (PROJECT_VERSION_PATCH 0)
+
+# Set beta version if this is a beta release series,
+# unset if this is a stable release series.
+set (PROJECT_BETA_RELEASE 2)
+
+if (SVN_REVISION)
+  set (PROJECT_VERSION_SVN "${SVN_REVISION}")
+endif (SVN_REVISION)
+
+# If PROJECT_BETA_RELEASE is set, the version string will be set to:
+#   "major.minor+beta${PROJECT_BETA_RELEASE}"
+# If PROJECT_BETA_RELEASE is NOT set, the version string will be set to:
+#   "major.minor.patch"
+if (PROJECT_BETA_RELEASE)
+  set (PROJECT_VERSION_SUFFIX "+beta${PROJECT_BETA_RELEASE}")
+else (PROJECT_BETA_RELEASE)
+  set (PROJECT_VERSION_SUFFIX ".${PROJECT_VERSION_PATCH}")
+endif (PROJECT_BETA_RELEASE)
+
+set (PROJECT_VERSION_STRING "${PROJECT_VERSION_MAJOR}.${PROJECT_VERSION_MINOR}${PROJECT_VERSION_SUFFIX}")
 
 ## CPack configuration
 
@@ -81,15 +108,8 @@ set (CPACK_SOURCE_GENERATOR "TGZ")
 set (CPACK_SOURCE_TOPLEVEL_TAG "")
 set (CPACK_SYSTEM_NAME "")
 set (CPACK_TOPLEVEL_TAG "")
-set (CPACK_PACKAGE_VERSION_MAJOR "5")
-set (CPACK_PACKAGE_VERSION_MINOR "1")
 
-# Use this scheme for stable releases
-#set (CPACK_PACKAGE_VERSION_PATCH "0${SVN_REVISION}")
-#set (CPACK_PACKAGE_VERSION "${CPACK_PACKAGE_VERSION_MAJOR}.${CPACK_PACKAGE_VERSION_MINOR}.${CPACK_PACKAGE_VERSION_PATCH}")
-# Use this scheme for +betaN and +rcN releases:
-set (CPACK_PACKAGE_VERSION_PATCH "+beta2${SVN_REVISION}")
-set (CPACK_PACKAGE_VERSION "${CPACK_PACKAGE_VERSION_MAJOR}.${CPACK_PACKAGE_VERSION_MINOR}${CPACK_PACKAGE_VERSION_PATCH}")
+set (CPACK_PACKAGE_VERSION "${PROJECT_VERSION_STRING}${PROJECT_VERSION_SVN}")
 
 set (CPACK_PACKAGE_FILE_NAME "${PROJECT_NAME}-${CPACK_PACKAGE_VERSION}")
 set (CPACK_SOURCE_PACKAGE_FILE_NAME "${PROJECT_NAME}-${CPACK_PACKAGE_VERSION}")
@@ -206,8 +226,7 @@ endif (NOT GCRYPT)
 
 ## Version
 
-string (REPLACE "
-" "" OPENVASSD_VERSION ${CPACK_PACKAGE_VERSION})
+set (OPENVASSD_VERSION "${PROJECT_VERSION_STRING}")
 
 # Configure Doxyfile with version number
 configure_file (doc/Doxyfile.in doc/Doxyfile @ONLY)

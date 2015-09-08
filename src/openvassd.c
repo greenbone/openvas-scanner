@@ -67,6 +67,10 @@
 #include "utils.h"        /* for wait_for_children1 */
 #include "pluginlaunch.h" /* for init_loading_shm */
 
+#ifdef SVN_REV_AVAILABLE
+#include "svnrevision.h"
+#endif
+
 /**
  * Globals that should not be touched (used in utils module).
  */
@@ -524,7 +528,13 @@ check_reload ()
 static void
 main_loop ()
 {
+#ifdef OPENVASSD_SVN_REVISION
+  log_write ("openvassd %s (SVN revision %i) started",
+             OPENVASSD_VERSION,
+             OPENVASSD_SVN_REVISION);
+#else
   log_write ("openvassd %s started", OPENVASSD_VERSION);
+#endif
   proctitle_set ("openvassd: Waiting for incoming connections");
   for (;;)
     {
@@ -794,6 +804,9 @@ main (int argc, char *argv[])
   if (display_version)
     {
       printf ("OpenVAS Scanner %s\n", OPENVASSD_VERSION);
+#ifdef OPENVASSD_SVN_REVISION
+      printf ("SVN revision %i\n", OPENVASSD_SVN_REVISION);
+#endif
       printf
         ("Most new code since 2005: (C) 2015 Greenbone Networks GmbH\n");
       printf
