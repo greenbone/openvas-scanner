@@ -1,3 +1,19 @@
+2015-09-21  Michael Wiegand <michael.wiegand@greenbone.net>
+
+	Extend functionality provided by openvas-manage-certs while
+	simplifying internal script work flow.
+
+	* tools/openvas-manage-certs.in: Expose CSR generation functionality.
+	Add support for skipping CA (re-)generation in auto mode. Unify
+	functions for generating CSRs and self-signed certificates and for
+	installing certificates and keys. Move CA installation up in sequence
+	to simplify signing new certificates with a new CA in a single step.
+	Streamline prefix setting.
+
+	* doc/example-openvas-manage-certs.conf.in: Removed obsoleted settings.
+
+	* doc/openvas-manage-certs.1: Updated documentation.
+
 2015-09-08  Michael Wiegand <michael.wiegand@greenbone.net>
 
 	Simplify project version setting. Use SVN version at build time in

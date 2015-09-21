@@ -74,13 +74,6 @@
 # Filename to use for generated certificate template
 # OPENVAS_CERT_TEMPLATE_FILENAME=cert.cfg"
 
-# Filename to use for generated CA private key
-# OPENVAS_CA_KEY_FILENAME="$OPENVAS_CERT_DIR/cakey.pem"
-# Filename to use for generated CA certificate
-# OPENVAS_CA_CERT_FILENAME="$OPENVAS_CERT_DIR/cacert.pem"
-# Filename to use for generated CA certificate template
-# OPENVAS_CA_TEMPLATE_FILENAME=cert.cfg"
-
 # Filename of CA private key used for signing certificates
 # OPENVAS_SIGNING_CA_KEY_FILENAME="$OPENVAS_KEY_LOCATION/cakey.pem"
 # Filename of CA certificate used for signing certificates

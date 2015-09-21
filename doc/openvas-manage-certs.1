@@ -1,4 +1,4 @@
-.TH OPENVAS-MANAGE-CERTS "1" "2015-08-07" "The OpenVAS Project" "User manual for the Open Vulnerability Assessment System (OpenVAS)"
+.TH OPENVAS-MANAGE-CERTS "1" "2015-09-21" "The OpenVAS Project" "User manual for the Open Vulnerability Assessment System (OpenVAS)"
 .SH NAME
 openvas-manage-certs \- manage certificate infrastructure for an OpenVAS installation
 .SH SYNOPSIS
@@ -37,6 +37,15 @@ Verify existing OpenVAS certificate infrastructure
 \fB\-C\fR
 Create a certificate authority (CA)
 .TP
+\fB\-R\fR
+Create a certificate request for a CA
+.TP
+\fB\-r\fR
+Create a certificate request for a CA and sign it
+.TP
+\fB\-C\fR
+Create a certificate authority (CA)
+.TP
 \fB\-I\fR
 Install a CA certificate
 .TP
@@ -60,6 +69,10 @@ This sets the appropriate key usage constraints for a server certificate.
 \fB\-L\fR
 Create a client certificate.
 This sets the appropriate key usage constraints for a client certificate.
+.TP
+\fB\-A\fR
+Skip CA generation in automatic mode.
+This automatically (re-)generates server and client certificates, but keeps the CA certificate.
 .SS "Configuration"
 \fB\-e\fR \fIfile\fR
 Read configuration from
@@ -109,7 +122,7 @@ OPENVAS_CERT_DIR
 Directory where keys and certificates are stored before installation
 .TP
 OPENVAS_CERT_PREFIX
-Prefix for certificate filename (e.g. "server"
+Prefix for certificate filename (e.g. "server")
 .PP
 For a complete list of options, please refer to the example configuration file
 included in the documentation.

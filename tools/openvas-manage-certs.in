@@ -34,6 +34,10 @@ SCRIPT_NAME="openvas-manage-certs"
 # as well as syslog, add "-s" here.
 LOG_CMD="logger -t $SCRIPT_NAME"
 
+CA_CERTIFICATE=1
+SERVER_CERTIFICATE=2
+CLIENT_CERTIFICATE=3
+
 log_write () {
   if [ $QUIET -ne 1 ]
   then
@@ -133,6 +137,8 @@ print_help ()
   echo "  -V             Verify existing OpenVAS certificate infrastructure"
   echo "  -C             Create a certificate authority (CA)"
   echo "  -I             Install a CA certificate"
+  echo "  -R             Create a certificate request for a CA"
+  echo "  -r             Create a certificate request"
   echo "  -c             Create a certificate request and sign it"
   echo "  -i             Install a certificate"
   echo "  -S             Sign a certificate request"
@@ -141,6 +147,7 @@ print_help ()
   echo "Certificate options:"
   echo "  -E             Create a server certificate"
   echo "  -L             Create a client certificate"
+  echo "  -A             Skip CA generation in automatic mode"
   echo
   echo "Output control:"
   echo "  -d             Print debug output"
@@ -164,7 +171,7 @@ print_help ()
   echo "  OPENVAS_CERT_DIR               Directory where keys and certificates are stored"
   echo "                                 before installation"
   echo
-  echo "  OPENVAS_CERT_PREFIX            Prefix for certificate filename (e.g. \"server\""
+  echo "  OPENVAS_CERT_PREFIX            Prefix for certificate filename (e.g. \"server\")"
   echo
   echo "For a complete list of options, please refer to the documentation."
   echo
@@ -211,17 +218,20 @@ set_up ()
   # Filename to use for generated certificate template
   OPENVAS_CERT_TEMPLATE_FILENAME=${OPENVAS_CERT_TEMPLATE_FILENAME:-"$OPENVAS_CERT_DIR/${OPENVAS_CERT_PREFIX}openvas-cert.cfg"}
 
-  # Filename to use for generated CA private key
-  OPENVAS_CA_KEY_FILENAME=${OPENVAS_CA_KEY_FILENAME:-"$OPENVAS_CERT_DIR/cakey.pem"}
-  # Filename to use for generated CA certificate
-  OPENVAS_CA_CERT_FILENAME=${OPENVAS_CA_CERT_FILENAME:-"$OPENVAS_CERT_DIR/cacert.pem"}
-  # Filename to use for generated CA certificate template
-  OPENVAS_CA_TEMPLATE_FILENAME=${OPENVAS_CA_TEMPLATE_FILENAME:-"$OPENVAS_CERT_DIR/openvas-ca-cert.cfg"}
-
   # Filename of CA private key used for signing certificates
   OPENVAS_SIGNING_CA_KEY_FILENAME=${OPENVAS_SIGNING_CA_KEY_FILENAME:-"$OPENVAS_KEY_LOCATION/cakey.pem"}
   # Filename of CA certificate used for signing certificates
   OPENVAS_SIGNING_CA_CERT_FILENAME=${OPENVAS_SIGNING_CA_CERT_FILENAME:-"$OPENVAS_CERT_LOCATION/cacert.pem"}
+}
+
+# Apply file name prefix setting for generated files
+set_prefix ()
+{
+  OPENVAS_CERT_PREFIX="$1"
+  OPENVAS_KEY_FILENAME="$OPENVAS_CERT_DIR/${OPENVAS_CERT_PREFIX}key.pem"
+  OPENVAS_CERT_FILENAME="$OPENVAS_CERT_DIR/${OPENVAS_CERT_PREFIX}cert.pem"
+  OPENVAS_CERT_REQUEST_FILENAME="$OPENVAS_CERT_DIR/${OPENVAS_CERT_PREFIX}request.pem"
+  OPENVAS_CERT_TEMPLATE_FILENAME="$OPENVAS_CERT_DIR/${OPENVAS_CERT_PREFIX}openvas-cert.cfg"
 }
 
 # Create a private key
@@ -252,70 +262,6 @@ create_private_key ()
   log_write "Generated private key in $1."
 }
 
-# Create a CA certificate
-create_ca ()
-{
-  log_verbose "Generating CA certificate."
-
-  umask 022
-
-  # Create template using parameters
-  if [ -n "$OPENVAS_CA_CERTIFICATE_LIFETIME" ]
-  then
-    echo "expiration_days = $OPENVAS_CA_CERTIFICATE_LIFETIME" >> $OPENVAS_CA_TEMPLATE_FILENAME
-  fi
-  if [ -n "$OPENVAS_CA_CERTIFICATE_COUNTRY" ]
-  then
-    echo "country = \"$OPENVAS_CA_CERTIFICATE_COUNTRY\"" >> $OPENVAS_CA_TEMPLATE_FILENAME
-  fi
-  if [ -n "$OPENVAS_CA_CERTIFICATE_STATE" ]
-  then
-    echo "state = \"$OPENVAS_CA_CERTIFICATE_STATE\"" >> $OPENVAS_CA_TEMPLATE_FILENAME
-  fi
-  if [ -n "$OPENVAS_CA_CERTIFICATE_LOCALITY" ]
-  then
-    echo "locality = \"$OPENVAS_CA_CERTIFICATE_LOCALITY\"" >> $OPENVAS_CA_TEMPLATE_FILENAME
-  fi
-  if [ -n "$OPENVAS_CA_CERTIFICATE_ORG" ]
-  then
-    echo "organization = \"$OPENVAS_CA_CERTIFICATE_ORG\"" >> $OPENVAS_CA_TEMPLATE_FILENAME
-  fi
-  if [ -n "$OPENVAS_CA_CERTIFICATE_ORG_UNIT" ]
-  then
-    echo "unit = \"$OPENVAS_CA_CERTIFICATE_ORG_UNIT\"" >> $OPENVAS_CA_TEMPLATE_FILENAME
-  fi
-  if [ -n "$OPENVAS_CA_CERTIFICATE_HOSTNAME" ]
-  then
-    echo "cn = \"$OPENVAS_CA_CERTIFICATE_HOSTNAME\"" >> $OPENVAS_CA_TEMPLATE_FILENAME
-  fi
-
-  echo "ca" >> $OPENVAS_CA_TEMPLATE_FILENAME
-  echo "cert_signing_key" >> $OPENVAS_CA_TEMPLATE_FILENAME
-  echo "crl_signing_key" >> $OPENVAS_CA_TEMPLATE_FILENAME
-
-  if [ $DEBUG -eq 1 ]
-  then
-    echo "DEBUG: Using the following template ($OPENVAS_CA_TEMPLATE_FILENAME):" >> "$CERTTOOL_LOGFILE"
-    cat $OPENVAS_CA_TEMPLATE_FILENAME >> "$CERTTOOL_LOGFILE"
-  fi
-
-  # Create a certificate
-  certtool \
-    --generate-self-signed \
-    --hash "$OPENVAS_CERTIFICATE_SIGNALG" \
-    --load-privkey "$OPENVAS_CA_KEY_FILENAME" \
-    --outfile "$OPENVAS_CA_CERT_FILENAME" \
-    --template "$OPENVAS_CA_TEMPLATE_FILENAME" \
-    >> "$CERTTOOL_LOGFILE" 2>&1
-  if [ $? -ne 0 ]
-  then
-    log_err "ERROR: Failed to create self signed CA certificate, see $CERTTOOL_LOGFILE for details. Aborting."
-    exit 1
-  fi
-
-  log_write "Generated CA certificate in $OPENVAS_CA_CERT_FILENAME."
-}
-
 # Create a certificate
 create_certificate ()
 {
@@ -324,43 +270,81 @@ create_certificate ()
   umask 022
 
   # Create template using parameters
-  if [ -n "$OPENVAS_CERTIFICATE_LIFETIME" ]
+  if [ $CERTIFICATE_TYPE -eq $CA_CERTIFICATE ]
   then
-    echo "expiration_days = $OPENVAS_CERTIFICATE_LIFETIME" >> $OPENVAS_CERT_TEMPLATE_FILENAME
-  fi
-  if [ -n "$OPENVAS_CERTIFICATE_COUNTRY" ]
-  then
-    echo "country = \"$OPENVAS_CERTIFICATE_COUNTRY\"" >> $OPENVAS_CERT_TEMPLATE_FILENAME
-  fi
-  if [ -n "$OPENVAS_CERTIFICATE_STATE" ]
-  then
-    echo "state = \"$OPENVAS_CERTIFICATE_STATE\"" >> $OPENVAS_CERT_TEMPLATE_FILENAME
-  fi
-  if [ -n "$OPENVAS_CERTIFICATE_LOCALITY" ]
-  then
-    echo "locality = \"$OPENVAS_CERTIFICATE_LOCALITY\"" >> $OPENVAS_CERT_TEMPLATE_FILENAME
-  fi
-  if [ -n "$OPENVAS_CERTIFICATE_ORG" ]
-  then
-    echo "organization = \"$OPENVAS_CERTIFICATE_ORG\"" >> $OPENVAS_CERT_TEMPLATE_FILENAME
-  fi
-  if [ -n "$OPENVAS_CERTIFICATE_ORG_UNIT" ]
-  then
-    echo "unit = \"$OPENVAS_CERTIFICATE_ORG_UNIT\"" >> $OPENVAS_CERT_TEMPLATE_FILENAME
-  fi
-  if [ -n "$OPENVAS_CERTIFICATE_HOSTNAME" ]
-  then
-    echo "cn = \"$OPENVAS_CERTIFICATE_HOSTNAME\"" >> $OPENVAS_CERT_TEMPLATE_FILENAME
+    if [ -n "$OPENVAS_CA_CERTIFICATE_LIFETIME" ]
+    then
+      echo "expiration_days = $OPENVAS_CA_CERTIFICATE_LIFETIME" >> $OPENVAS_CERT_TEMPLATE_FILENAME
+    fi
+    if [ -n "$OPENVAS_CA_CERTIFICATE_COUNTRY" ]
+    then
+      echo "country = \"$OPENVAS_CA_CERTIFICATE_COUNTRY\"" >> $OPENVAS_CERT_TEMPLATE_FILENAME
+    fi
+    if [ -n "$OPENVAS_CA_CERTIFICATE_STATE" ]
+    then
+      echo "state = \"$OPENVAS_CA_CERTIFICATE_STATE\"" >> $OPENVAS_CERT_TEMPLATE_FILENAME
+    fi
+    if [ -n "$OPENVAS_CA_CERTIFICATE_LOCALITY" ]
+    then
+      echo "locality = \"$OPENVAS_CA_CERTIFICATE_LOCALITY\"" >> $OPENVAS_CERT_TEMPLATE_FILENAME
+    fi
+    if [ -n "$OPENVAS_CA_CERTIFICATE_ORG" ]
+    then
+      echo "organization = \"$OPENVAS_CA_CERTIFICATE_ORG\"" >> $OPENVAS_CERT_TEMPLATE_FILENAME
+    fi
+    if [ -n "$OPENVAS_CA_CERTIFICATE_ORG_UNIT" ]
+    then
+      echo "unit = \"$OPENVAS_CA_CERTIFICATE_ORG_UNIT\"" >> $OPENVAS_CERT_TEMPLATE_FILENAME
+    fi
+    if [ -n "$OPENVAS_CA_CERTIFICATE_HOSTNAME" ]
+    then
+      echo "cn = \"$OPENVAS_CA_CERTIFICATE_HOSTNAME\"" >> $OPENVAS_CERT_TEMPLATE_FILENAME
+    fi
+  else
+    if [ -n "$OPENVAS_CERTIFICATE_LIFETIME" ]
+    then
+      echo "expiration_days = $OPENVAS_CERTIFICATE_LIFETIME" >> $OPENVAS_CERT_TEMPLATE_FILENAME
+    fi
+    if [ -n "$OPENVAS_CERTIFICATE_COUNTRY" ]
+    then
+      echo "country = \"$OPENVAS_CERTIFICATE_COUNTRY\"" >> $OPENVAS_CERT_TEMPLATE_FILENAME
+    fi
+    if [ -n "$OPENVAS_CERTIFICATE_STATE" ]
+    then
+      echo "state = \"$OPENVAS_CERTIFICATE_STATE\"" >> $OPENVAS_CERT_TEMPLATE_FILENAME
+    fi
+    if [ -n "$OPENVAS_CERTIFICATE_LOCALITY" ]
+    then
+      echo "locality = \"$OPENVAS_CERTIFICATE_LOCALITY\"" >> $OPENVAS_CERT_TEMPLATE_FILENAME
+    fi
+    if [ -n "$OPENVAS_CERTIFICATE_ORG" ]
+    then
+      echo "organization = \"$OPENVAS_CERTIFICATE_ORG\"" >> $OPENVAS_CERT_TEMPLATE_FILENAME
+    fi
+    if [ -n "$OPENVAS_CERTIFICATE_ORG_UNIT" ]
+    then
+      echo "unit = \"$OPENVAS_CERTIFICATE_ORG_UNIT\"" >> $OPENVAS_CERT_TEMPLATE_FILENAME
+    fi
+    if [ -n "$OPENVAS_CERTIFICATE_HOSTNAME" ]
+    then
+      echo "cn = \"$OPENVAS_CERTIFICATE_HOSTNAME\"" >> $OPENVAS_CERT_TEMPLATE_FILENAME
+    fi
   fi
 
   # Add key usage constraints if the certificate type is known
-  if [ $CREATE_SERVER_CERTIFICATE -eq 1 ]
+  if [ $CERTIFICATE_TYPE -eq $CA_CERTIFICATE ]
+  then
+    echo "ca" >> $OPENVAS_CERT_TEMPLATE_FILENAME
+    echo "cert_signing_key" >> $OPENVAS_CERT_TEMPLATE_FILENAME
+    echo "crl_signing_key" >> $OPENVAS_CERT_TEMPLATE_FILENAME
+  fi
+  if [ $CERTIFICATE_TYPE -eq $SERVER_CERTIFICATE ]
   then
     # This certificate will be used to encrypt data.
     # This is the keyEncipherment flag in RFC5280 terminology.
     echo "encryption_key" >> $OPENVAS_CERT_TEMPLATE_FILENAME
   fi
-  if [ $CREATE_CLIENT_CERTIFICATE -eq 1 ]
+  if [ $CERTIFICATE_TYPE -eq $CLIENT_CERTIFICATE ]
   then
     # This certificate will be used to sign data.
     # This is the digitalSignature flag in RFC5280 terminology.
@@ -446,58 +430,6 @@ sign_certificate ()
   fi
 
   log_write "Signed certificate request in $OPENVAS_CERT_REQUEST_FILENAME with CA certificate in $OPENVAS_SIGNING_CA_CERT_FILENAME to generate certificate in $OPENVAS_CERT_FILENAME"
-}
-
-# Install a CA certificate
-install_ca_cert ()
-{
-  log_verbose "Installing CA certificate and key."
-
-  if [ ! -s "$OPENVAS_CA_KEY_FILENAME" ] || [ ! -s "$OPENVAS_CA_CERT_FILENAME" ]
-  then
-    log_err "ERROR: Files to install ($OPENVAS_CA_KEY_FILENAME and $OPENVAS_CA_CERT_FILENAME) not found. Aborting."
-    exit 1
-  fi
-
-  if [ ! -w "$OPENVAS_CERT_LOCATION" ] || [ ! -w "$OPENVAS_KEY_LOCATION" ]
-  then
-    log_err "ERROR: Install destinations are not writable. Aborting."
-    exit 1
-  fi
-
-  KEY_INSTALL="$OPENVAS_KEY_LOCATION/cakey.pem"
-  if [ -f "$KEY_INSTALL" ] && [ $FORCE -ne 1 ]
-  then
-    echo "$KEY_INSTALL exists already, not overwriting."
-    echo "Use '-f' parameter to overwrite existing files."
-    exit 1
-  else
-    cp "$OPENVAS_CA_KEY_FILENAME" "$KEY_INSTALL"
-    if [ $? -ne 0 ]
-    then
-      log_err "Failed to install $OPENVAS_CA_KEY_FILENAME to $KEY_INSTALL.  Aborting."
-      exit 1
-    else
-      log_write "Installed CA private key to $KEY_INSTALL."
-    fi
-  fi
-
-  CERT_INSTALL="$OPENVAS_CERT_LOCATION/cacert.pem"
-  if [ -f "$CERT_INSTALL" ] && [ $FORCE -ne 1 ]
-  then
-    echo "$CERT_INSTALL exists already, not overwriting."
-    echo "Use '-f' parameter to overwrite existing files."
-    exit 1
-  else
-    cp "$OPENVAS_CA_CERT_FILENAME" "$CERT_INSTALL"
-    if [ $? -ne 0 ]
-    then
-      log_err "Failed to install $OPENVAS_CA_CERT_FILENAME to $CERT_INSTALL.  Aborting."
-      exit 1
-    else
-      log_write "Installed CA certificate to $CERT_INSTALL."
-    fi
-  fi
 }
 
 # Install a certificate
@@ -653,12 +585,15 @@ then
 fi
 
 AUTO=0
+AUTO_SKIP_CA=0
 INSTALL_CERTIFICATE=0
 INSTALL_CA=0
 CREATE_CERTIFICATE=0
 CREATE_SELF_SIGNED=0
+CERTIFICATE_TYPE=0
 CREATE_SERVER_CERTIFICATE=0
 CREATE_CLIENT_CERTIFICATE=0
+CREATE_CSR=0
 CREATE_CA=0
 SIGN_CERTIFICATE=0
 VERIFY=0
@@ -667,7 +602,7 @@ DEBUG=0
 QUIET=0
 FORCE=0
 
-while getopts hasiIcfdCSVvqe:EL OPTION
+while getopts haAsiIcfdCSVvqe:ELrR OPTION
 do
   case "$OPTION" in
     h)
@@ -675,6 +610,9 @@ do
       ;;
     a)
       AUTO=1
+      ;;
+    A)
+      AUTO_SKIP_CA=1
       ;;
     s)
       CREATE_CERTIFICATE=1
@@ -715,10 +653,17 @@ do
       CONFIGURATION_FILE="$OPTARG"
       ;;
     E)
-      CREATE_SERVER_CERTIFICATE=1
+      CERTIFICATE_TYPE=$SERVER_CERTIFICATE
       ;;
     L)
-      CREATE_CLIENT_CERTIFICATE=1
+      CERTIFICATE_TYPE=$CLIENT_CERTIFICATE
+      ;;
+    r)
+      CREATE_CSR=1
+      ;;
+    R)
+      CERTIFICATE_TYPE=$CA_CERTIFICATE
+      CREATE_CSR=1
       ;;
     \?)
       print_help
@@ -744,9 +689,23 @@ if [ $AUTO -eq 1 ]
 then
   set_up
 
-  if [ -s "$OPENVAS_CERT_LOCATION/cacert.pem" ] \
-    || [ -s "$OPENVAS_CERT_LOCATION/servercert.pem" ] \
-    || [ -s "$OPENVAS_CERT_LOCATION/clientcert.pem" ]
+  if [ $AUTO_SKIP_CA -eq 1 ]
+  then
+    if [ -s "$OPENVAS_CERT_LOCATION/servercert.pem" ] \
+      || [ -s "$OPENVAS_CERT_LOCATION/clientcert.pem" ]
+    then
+      CERTS_EXIST=1
+    fi
+  else
+    if [ -s "$OPENVAS_CERT_LOCATION/cacert.pem" ] \
+      || [ -s "$OPENVAS_CERT_LOCATION/servercert.pem" ] \
+      || [ -s "$OPENVAS_CERT_LOCATION/clientcert.pem" ]
+    then
+      CERTS_EXIST=1
+    fi
+  fi
+
+  if [ $CERTS_EXIST -eq 1 ]
   then
     if [ $FORCE -ne 1 ]
     then
@@ -764,40 +723,37 @@ then
 
   log_verbose "Creating new certificate infrastructure in automatic mode."
 
-  create_private_key "$OPENVAS_CA_KEY_FILENAME"
-  create_ca
-  OPENVAS_SIGNING_CA_KEY_FILENAME="$OPENVAS_CA_KEY_FILENAME"
-  OPENVAS_SIGNING_CA_CERT_FILENAME="$OPENVAS_CA_CERT_FILENAME"
-  log_verbose "  CA certificate generated."
-  install_ca_cert
-  log_verbose "  CA certificate and key installed."
+  if [ $AUTO_SKIP_CA -ne 1 ]
+  then
+    CERTIFICATE_TYPE=$CA_CERTIFICATE
+    CREATE_SELF_SIGNED=1
+    set_prefix "ca"
+    create_private_key "$OPENVAS_KEY_FILENAME"
+    create_certificate
+    log_verbose "  CA certificate generated."
+    install_cert "${OPENVAS_CERT_PREFIX}"
+    log_verbose "  CA certificate and key installed."
+    CREATE_SELF_SIGNED=0
+  else
+    log_verbose "Skipping CA creation as requested."
+  fi
 
-  CREATE_SERVER_CERTIFICATE=1
-  CREATE_CLIENT_CERTIFICATE=0
-  OPENVAS_CERT_PREFIX=server
-  OPENVAS_KEY_FILENAME="$OPENVAS_CERT_DIR/${OPENVAS_CERT_PREFIX}key.pem"
-  OPENVAS_CERT_FILENAME="$OPENVAS_CERT_DIR/${OPENVAS_CERT_PREFIX}cert.pem"
-  OPENVAS_CERT_REQUEST_FILENAME="$OPENVAS_CERT_DIR/${OPENVAS_CERT_PREFIX}request.pem"
-  OPENVAS_CERT_TEMPLATE_FILENAME="$OPENVAS_CERT_DIR/${OPENVAS_CERT_PREFIX}openvas-cert.cfg"
+  CERTIFICATE_TYPE=$SERVER_CERTIFICATE
+  set_prefix "server"
   create_private_key "$OPENVAS_KEY_FILENAME"
   create_certificate
   sign_certificate
   log_verbose "  Server certificate generated."
-  install_cert "server"
+  install_cert "${OPENVAS_CERT_PREFIX}"
   log_verbose "  Server certificate and key installed."
 
-  CREATE_SERVER_CERTIFICATE=0
-  CREATE_CLIENT_CERTIFICATE=1
-  OPENVAS_CERT_PREFIX=client
-  OPENVAS_KEY_FILENAME="$OPENVAS_CERT_DIR/${OPENVAS_CERT_PREFIX}key.pem"
-  OPENVAS_CERT_FILENAME="$OPENVAS_CERT_DIR/${OPENVAS_CERT_PREFIX}cert.pem"
-  OPENVAS_CERT_REQUEST_FILENAME="$OPENVAS_CERT_DIR/${OPENVAS_CERT_PREFIX}request.pem"
-  OPENVAS_CERT_TEMPLATE_FILENAME="$OPENVAS_CERT_DIR/${OPENVAS_CERT_PREFIX}openvas-cert.cfg"
+  CERTIFICATE_TYPE=$CLIENT_CERTIFICATE
+  set_prefix "client"
   create_private_key "$OPENVAS_KEY_FILENAME"
   create_certificate
   sign_certificate
   log_verbose "  Client certificate generated."
-  install_cert "client"
+  install_cert "${OPENVAS_CERT_PREFIX}"
   log_verbose "  Client certificate and key installed."
 
   clean_up
@@ -811,11 +767,31 @@ then
   verify
 fi
 
+if [ $CREATE_CSR -eq 1 ]
+then
+  set_up
+  if [ $CERTIFICATE_TYPE -eq $CA_CERTIFICATE ]
+  then
+    set_prefix "ca"
+  fi
+  create_private_key "$OPENVAS_KEY_FILENAME"
+  create_certificate
+fi
+
 if [ $CREATE_CA -eq 1 ]
 then
   set_up
-  create_private_key "$OPENVAS_CA_KEY_FILENAME"
-  create_ca
+  set_prefix "ca"
+  create_private_key "$OPENVAS_KEY_FILENAME"
+  CERTIFICATE_TYPE=$CA_CERTIFICATE
+  CREATE_SELF_SIGNED=1
+  create_certificate
+fi
+
+if [ $INSTALL_CA -eq 1 ]
+then
+  set_up
+  install_cert "ca"
 fi
 
 if [ $CREATE_CERTIFICATE -eq 1 ]
@@ -838,12 +814,6 @@ if [ $SIGN_CERTIFICATE -eq 1 ]
 then
   set_up
   sign_certificate
-fi
-
-if [ $INSTALL_CA -eq 1 ]
-then
-  set_up
-  install_ca_cert
 fi
 
 if [ $INSTALL_CERTIFICATE -eq 1 ]
