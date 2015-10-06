@@ -654,7 +654,8 @@ init_openvassd (GHashTable *options, int first_pass, int stop_early,
 
   if (!stop_early && first_pass)
     {
-      if (init_network (scanner_port, &isck, addr_str ?: "::"))
+      if (init_network (scanner_port, &isck,
+                        addr_str ?: ipv6_is_enabled () ? "::" : "0.0.0.0"))
         return -1;
     }
 

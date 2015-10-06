@@ -1,3 +1,8 @@
+2015-10-06  Hani Benhabiles  <hani.benhabiles@greenbone.net>
+
+	* src/openvassd.c (init_openvassd): Check if IPv6 support is enabled
+	when setting default listening address.
+
 2015-09-21  Michael Wiegand <michael.wiegand@greenbone.net>
 
 	Extend functionality provided by openvas-manage-certs while
