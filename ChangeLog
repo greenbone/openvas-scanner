@@ -1,3 +1,7 @@
+2015-10-21  Jan-Oliver Wagner <jan-oliver.wagner@greenbone.net>
+
+	* CHANGES: Updated.
+
 2015-10-06  Hani Benhabiles  <hani.benhabiles@greenbone.net>
 
 	* src/openvassd.c (init_openvassd): Check if IPv6 support is enabled

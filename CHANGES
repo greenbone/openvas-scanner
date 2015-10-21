@@ -1,4 +1,34 @@
-openvas-scanner 5.1+beta1 (2014-07-17)
+openvas-scanner 5.1+beta2 (2015-10-XX)
+
+This is the second beta release of the openvas-scanner 5.1 module for the Open
+Vulnerability Assessment System (OpenVAS). It will be part of the upcoming
+"OpenVAS-9".
+
+Main new feature of this release is the switch from openssl based
+certificate management scripts to a GNUTLS (certtool) based one.
+
+Many thanks to everyone who has contributed to this release:
+Hani Benhabiles, Sven Haardiek, Jan-Oliver Wagner and Michael Wiegand.
+
+Main changes compared to 5.0beta1:
+* Install "openvas-mkcert-client" FHS compliant.
+* Improve openvas-manage-certs script. The script is now able to set up
+  a certificate infrastructure for an OpenVAS installation, create
+  additional certificates, verify the installation and perform other
+  certificate related tasks while being highly configurable at run time
+  through environment variables or a configuration file.
+* Retire openvas-mkcert and openvas-mkcert-client now that their
+  replacement openvas-manage-certs is ready for use. This also means
+  that openssl is not required anymore, instead gnutls (certtool) is now also
+  used for the certificate management scripts.
+* Improved support for IPv6.
+* Simplify project version setting. Use SVN version at build time in
+  binary instead of SVN version at configuration time. Make SVN revision
+  retrieval work with SVN >= 1.7.
+* Apply -Wextra for builds.
+
+
+openvas-scanner 5.1+beta1 (2015-07-17)
 
 This is the first beta release of the openvas-scanner 5.1 module for the Open
 Vulnerability Assessment System (OpenVAS). It will be part of the upcoming
