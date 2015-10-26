@@ -77,9 +77,7 @@
 int global_max_hosts = 15;
 int global_max_checks = 10;
 
-static int global_iana_socket;
-
-static GHashTable *global_options;
+static int global_iana_socket = -1;
 
 static volatile int loading_stop_signal = 0;
 static volatile int reload_signal = 0;
@@ -634,15 +632,10 @@ init_network (int port, int *sock, const char *addr_str)
  * @param stop_early 0: do some initialization, 1: no initialization.
  */
 static int
-init_openvassd (GHashTable *options, int first_pass, int stop_early,
-                int dont_fork, const char *addr_str)
+init_openvassd (int scanner_port, int first_pass, int stop_early, int dont_fork,
+                const char *addr_str, const char *config_file)
 {
-  int isck = -1, i, scanner_port;
-  char *config_file;
-
-  scanner_port = GPOINTER_TO_SIZE (g_hash_table_lookup (options,
-                                                        "scanner_port"));
-  config_file = g_hash_table_lookup (options, "config_file");
+  int i;
 
   for (i = 0; openvassd_defaults[i].option != NULL; i++)
     prefs_set (openvassd_defaults[i].option, openvassd_defaults[i].value);
@@ -654,13 +647,10 @@ init_openvassd (GHashTable *options, int first_pass, int stop_early,
 
   if (!stop_early && first_pass)
     {
-      if (init_network (scanner_port, &isck,
+      if (init_network (scanner_port, &global_iana_socket,
                         addr_str ?: ipv6_is_enabled () ? "::" : "0.0.0.0"))
         return -1;
     }
-
-  g_hash_table_replace (options, "isck", GSIZE_TO_POINTER (isck));
-
   set_globals_from_preferences ();
 
   return 0;
@@ -723,7 +713,6 @@ main (int argc, char *argv[])
 {
   int exit_early = 0, scanner_port = 9391, ret;
   pid_t handler_pid;
-  GHashTable *options;
 
   proctitle_init (argc, argv);
   gcrypt_init ();
@@ -819,31 +808,21 @@ main (int argc, char *argv[])
       exit (0);
     }
 
-  options = g_hash_table_new (g_str_hash, g_str_equal);
-
-  if (config_file != NULL)
-    g_hash_table_insert (options, "acc_hint", GSIZE_TO_POINTER(1));
-  else
+  if (!config_file)
     config_file = OPENVASSD_CONF;
-
-  g_hash_table_insert (options, "scanner_port",
-                       GSIZE_TO_POINTER (scanner_port));
-  g_hash_table_insert (options, "config_file", config_file);
-
   if (only_cache)
     {
-      if (init_openvassd (options, 0, 1, dont_fork, address))
+      if (init_openvassd (scanner_port, 0, 1, dont_fork, address, config_file))
         return 1;
       if (plugins_init ())
         return 1;
       return 0;
     }
 
-  if (init_openvassd (options, 1, exit_early, dont_fork, address))
+  if (init_openvassd (scanner_port, 1, exit_early, dont_fork, address,
+                      config_file))
     return 1;
   flush_all_kbs ();
-  global_options = options;
-  global_iana_socket = GPOINTER_TO_SIZE (g_hash_table_lookup (options, "isck"));
 
   /* special treatment */
   if (print_specs)
@@ -865,6 +844,5 @@ main (int argc, char *argv[])
     return 1;
   init_signal_handlers ();
   main_loop ();
-  g_hash_table_destroy (options);
   exit (0);
 }

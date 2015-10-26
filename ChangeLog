@@ -1,3 +1,9 @@
+2015-10-26  Hani Benhabiles  <hani.benhabiles@greenbone.net>
+
+	* src/openvassd.c (init_openvassd): Remove options parameter. Add
+	scanner_port and config_file parameters. Adjust accordingly.
+	(main): Remove options hashtable, adjust function calls accordingly.
+
 2015-10-21  Michael Wiegand <michael.wiegand@greenbone.net>
 
 	Post release version bump.
