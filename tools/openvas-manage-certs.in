@@ -84,7 +84,7 @@ set_defaults () {
   # Hostname
   if [ -z "$OPENVAS_CERTIFICATE_HOSTNAME" ]
   then
-    OPENVAS_CERTIFICATE_HOSTNAME=`hostname --fqdn`
+    OPENVAS_CERTIFICATE_HOSTNAME=$(hostname --fqdn 2> /dev/null)
     if [ $? -ne 0 ]
     then
       OPENVAS_CERTIFICATE_HOSTNAME="localhost"

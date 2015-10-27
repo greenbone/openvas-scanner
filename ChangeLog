@@ -1,3 +1,8 @@
+2015-10-27  Michael Wiegand <michael.wiegand@greenbone.net>
+
+	* tools/openvas-manage-certs.in (set_defaults): Discard stderr of
+	hostname call.
+
 2015-10-26  Hani Benhabiles  <hani.benhabiles@greenbone.net>
 
 	* src/openvassd.c (init_openvassd): Remove options parameter. Add
