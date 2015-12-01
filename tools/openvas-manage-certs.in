@@ -224,6 +224,36 @@ set_up ()
   OPENVAS_SIGNING_CA_CERT_FILENAME=${OPENVAS_SIGNING_CA_CERT_FILENAME:-"$OPENVAS_CERT_LOCATION/cacert.pem"}
 }
 
+# Create installation directories with correct permissions
+set_up_directories ()
+{
+  log_verbose "Setting up directories"
+
+  if [ ! -d "$OPENVAS_CERT_LOCATION" ]
+  then
+    mkdir -p "$OPENVAS_CERT_LOCATION"
+    if [ $? -ne 0 ]
+    then
+      log_err "ERROR: Failed to create certificate directory ($OPENVAS_CERT_LOCATION). Aborting."
+      exit 1
+    fi
+  fi
+
+  if [ ! -d "$OPENVAS_KEY_LOCATION" ]
+  then
+    mkdir -p "$OPENVAS_KEY_LOCATION"
+    if [ $? -ne 0 ]
+    then
+      log_err "ERROR: Failed to create private key directory ($OPENVAS_KEY_LOCATION). Aborting."
+      exit 1
+    fi
+  fi
+
+  chmod 0700 "$OPENVAS_KEY_LOCATION"
+
+  chmod a+rx "$OPENVAS_CERT_LOCATION"
+}
+
 # Apply file name prefix setting for generated files
 set_prefix ()
 {
@@ -443,6 +473,13 @@ install_cert ()
     log_err "ERROR: Files to install ($OPENVAS_KEY_FILENAME and $OPENVAS_CERT_FILENAME) not found. Aborting."
     exit 1
   fi
+
+  if [ ! -d "$OPENVAS_CERT_LOCATION" ] || [ ! -d "$OPENVAS_KEY_LOCATION" ]
+  then
+    log_verbose "Install destinations do not exist as directories, attempting to create them."
+    set_up_directories
+  fi
+
 
   if [ ! -w "$OPENVAS_CERT_LOCATION" ] || [ ! -w "$OPENVAS_KEY_LOCATION" ]
   then
@@ -715,12 +752,6 @@ then
       echo "Use '-f' parameter to overwrite existing certificates."
       exit 1
     fi
-  fi
-
-  if [ ! -w "$OPENVAS_CERT_LOCATION" ] || [ ! -w "$OPENVAS_KEY_LOCATION" ]
-  then
-    echo "Install destinations are not writable. Aborting."
-    exit 1
   fi
 
   log_verbose "Creating new certificate infrastructure in automatic mode."

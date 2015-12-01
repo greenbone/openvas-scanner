@@ -1,5 +1,14 @@
 2015-12-01  Michael Wiegand <michael.wiegand@greenbone.net>
 
+	* tools/openvas-manage-certs.in: Remove check of install destinations
+	since this is now done in install_cert.
+	(set_up_directories): New function for setting up directories for
+	certificates and private keys.
+	(install_cert): Check if install destinations exist and create them if
+	necessary.
+
+2015-12-01  Michael Wiegand <michael.wiegand@greenbone.net>
+
 	* tools/openvas-manage-certs.in: Make sure CERTS_EXIST is initialized
 	before check.
 
