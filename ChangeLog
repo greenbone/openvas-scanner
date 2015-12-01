@@ -1,3 +1,8 @@
+2015-12-01  Michael Wiegand <michael.wiegand@greenbone.net>
+
+	* tools/openvas-manage-certs.in: Make sure CERTS_EXIST is initialized
+	before check.
+
 2015-10-27  Michael Wiegand <michael.wiegand@greenbone.net>
 
 	* tools/openvas-manage-certs.in (set_defaults): Discard stderr of

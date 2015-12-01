@@ -689,6 +689,8 @@ if [ $AUTO -eq 1 ]
 then
   set_up
 
+  CERTS_EXIST=0
+
   if [ $AUTO_SKIP_CA -eq 1 ]
   then
     if [ -s "$OPENVAS_CERT_LOCATION/servercert.pem" ] \
