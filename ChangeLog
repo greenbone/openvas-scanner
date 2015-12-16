@@ -1,3 +1,7 @@
+2015-12-17  Hani Benhabiles  <hani.benhabiles@greenbone.net>
+
+	* src/comm.c (send_plug_info): Fix segfault when an NVT has no name.
+
 2015-12-01  Michael Wiegand <michael.wiegand@greenbone.net>
 
 	* tools/openvas-manage-certs.in: Remove check of install destinations

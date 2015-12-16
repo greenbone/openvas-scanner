@@ -187,6 +187,12 @@ send_plug_info (int soc, const char *filename)
                  nvti_oid (nvti));
       ignored = 1;
     }
+  else if (strchr (name, '\n') != NULL)
+    {
+      log_write ("%s: Newline in name\n", nvti_oid (nvti));
+      ignored = 1;
+    }
+
 
   if ((copyright = nvti_copyright (nvti)) == NULL)
     {
@@ -218,13 +224,6 @@ send_plug_info (int soc, const char *filename)
       log_write
         ("Inconsistent data (no family): %s - not applying this plugin",
          name ? name : nvti_oid (nvti));
-      ignored = 1;
-    }
-
-
-  if (strchr (name, '\n') != NULL)
-    {
-      log_write ("%s: Newline in name\n", nvti_oid (nvti));
       ignored = 1;
     }
 
