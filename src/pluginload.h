@@ -32,7 +32,7 @@
 #define _OPENVAS_PLUGINLOAD_H
 
 #include <openvas/misc/arglists.h>   /* for struct arglist */
-#include <openvas/misc/kb.h>         /* for struct kb_item */
+#include <openvas/base/kb.h>         /* for struct kb_item */
 #include <openvas/misc/network.h>
 
 int

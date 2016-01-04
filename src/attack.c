@@ -39,7 +39,7 @@
 #include <openvas/base/openvas_hosts.h>
 #include <openvas/base/openvas_networking.h>
 #include <openvas/misc/openvas_proctitle.h>
-#include <openvas/misc/kb.h>
+#include <openvas/base/kb.h>
 #include <openvas/misc/network.h>        /* for auth_printf */
 #include <openvas/misc/nvt_categories.h> /* for ACT_INIT */
 #include <openvas/misc/pcap_openvas.h>   /* for v6_is_local_ip */

@@ -1,3 +1,8 @@
+2016-01-04  Hani Benhabiles  <hani.benhabiles@greenbone.net>
+
+	* src/attack.c, src/openvassd.c, src/pluginload.h, src/plugs_req.h: Fix
+	kb includes.
+
 2015-12-17  Hani Benhabiles  <hani.benhabiles@greenbone.net>
 
 	* src/comm.c (send_plug_info): Fix segfault when an NVT has no name.

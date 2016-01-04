@@ -53,7 +53,7 @@
 #include <openvas/misc/openvas_logging.h>  /* for setup_legacy_log_handler */
 #include <openvas/base/pidfile.h>    /* for pidfile_create */
 #include <openvas/base/nvticache.h> /* nvticache_free */
-#include <openvas/misc/kb.h>         /* for KB_PATH_DEFAULT */
+#include <openvas/base/kb.h>         /* for KB_PATH_DEFAULT */
 #include <openvas/misc/prefs.h>      /* for prefs_get() */
 
 #include <gcrypt.h> /* for gcry_control */
