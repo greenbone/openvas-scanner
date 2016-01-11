@@ -1,3 +1,14 @@
+2016-01-11  Michael Wiegand <michael.wiegand@greenbone.net>
+
+	Make a better distinction between hardening flags for compiling and
+	for linking to avoid using flags in a context where they make no
+	sense.
+
+	* CMakeLists.txt: Separate linker hardening flags from compiler
+	hardening flags.
+
+	* src/CMakeLists.txt: Use linker hardening flags when linking.
+
 2016-01-04  Hani Benhabiles  <hani.benhabiles@greenbone.net>
 
 	* src/attack.c, src/openvassd.c, src/pluginload.h, src/plugs_req.h: Fix
