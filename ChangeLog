@@ -1,3 +1,8 @@
+2016-01-13  Sven Haardiek <sven.haardiek@greenbone.net>
+
+	* tools/greenbone-nvt-sync.in: Use gos-state-manager
+	instead of the ezcli.state, split ipv6:port correctly
+
 2016-01-11  Michael Wiegand <michael.wiegand@greenbone.net>
 
 	Make a better distinction between hardening flags for compiling and

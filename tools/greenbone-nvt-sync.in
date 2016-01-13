@@ -161,6 +161,28 @@ init_sync ()
   FEED_CURRENT=0
 }
 
+# This function uses gos-state-manager to get information about the settings.
+# If not gos-state-manager is installed this values of the settings can not be
+# retrieved.
+#
+# Input: option
+# Output: value as string or empty String if gos-state-manager is not installed
+#         or option not set
+get_value ()
+{
+  value=""
+  key=$1
+  if which gos-state-manager 2>&1 1>/dev/null
+  then
+    if gos-state-manager get "$key.value" 2>&1 1>/dev/null
+    then
+      value="$(gos-state-manager get "$key.value")"
+    fi
+  fi
+  echo "$value"
+}
+
+
 is_feed_current () {
   if [ -z "$FEED_VERSION" ]
   then
@@ -169,10 +191,11 @@ is_feed_current () {
     return $FEED_CURRENT
   fi
 
-  if [ -e /admin/ezcli.state ]
+  gsmproxy=$(get_value proxy_feed | sed -e 's/^.*\/\///' -e 's/:/ /' -e 's/[\t ]*$//')
+  syncport=$(get_value syncport)
+  if [ "$syncport" ]
   then
-    gsmproxy=`grep proxy_feed /admin/ezcli.state | sed -e 's/^.*\/\///' -e 's/:/ /' -e 's/[\t ]*$//'`
-    PORT=`grep ^syncport /admin/ezcli.state | sed -e "s/^syncport\t//g"`
+    PORT="$syncport"
   fi
 
   read feeduser < $ACCESS_KEY
@@ -259,11 +282,14 @@ sync_nvts(){
   fi
   while [ $notsynced -eq 1 ]
   do
-    if [ -e /admin/ezcli.state ]
+
+    gsmproxy=$(get_value proxy_feed | sed -e 's/^.*\/\///' -e 's/:/ /' -e 's/[\t ]*$//')
+    syncport=$(get_value syncport)
+    if [ "$syncport" ]
     then
-      gsmproxy=`grep proxy_feed /admin/ezcli.state | sed -e 's/^.*\/\///' -e 's/:/ /' -e 's/[\t ]*$//'`
-      PORT=`grep ^syncport /admin/ezcli.state | sed -e "s/^syncport\t//g"`
+      PORT="$syncport"
     fi
+
     if [ "$gsmproxy" = "proxy_feed" ] || [ -z "$gsmproxy" ]
     then
       RSYNC_SSH_PROXY_CMD=""
