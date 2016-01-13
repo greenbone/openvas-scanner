@@ -191,7 +191,7 @@ is_feed_current () {
     return $FEED_CURRENT
   fi
 
-  gsmproxy=$(get_value proxy_feed | sed -e 's/^.*\/\///' -e 's/:/ /' -e 's/[\t ]*$//')
+  gsmproxy=$(get_value proxy_feed | sed -r -e 's/^.*\/\///' -e 's/:([0-9]+)$/ \1/')
   syncport=$(get_value syncport)
   if [ "$syncport" ]
   then
@@ -283,7 +283,7 @@ sync_nvts(){
   while [ $notsynced -eq 1 ]
   do
 
-    gsmproxy=$(get_value proxy_feed | sed -e 's/^.*\/\///' -e 's/:/ /' -e 's/[\t ]*$//')
+    gsmproxy=$(get_value proxy_feed | sed -r -e 's/^.*\/\///' -e 's/:([0-9]+)$/ \1/')
     syncport=$(get_value syncport)
     if [ "$syncport" ]
     then

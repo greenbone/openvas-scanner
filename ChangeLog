@@ -1,5 +1,10 @@
 2016-01-13  Sven Haardiek <sven.haardiek@greenbone.net>
 
+	* tools/greenbone-nvt-sync.in: Split ipv6:port correctly (supplement to
+	r24114)
+
+2016-01-13  Sven Haardiek <sven.haardiek@greenbone.net>
+
 	* tools/greenbone-nvt-sync.in: Use gos-state-manager
 	instead of the ezcli.state, split ipv6:port correctly
 
