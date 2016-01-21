@@ -750,7 +750,7 @@ main (int argc, char *argv[])
      "GnuTLS priorities string", "<string>"},
     {"dh-params", '\0', 0, G_OPTION_ARG_STRING, &dh_params,
      "Diffie-Hellman parameters file", "<string>"},
-    {NULL}
+    {NULL, 0, 0, 0, NULL, NULL, NULL}
   };
 
   option_context =
