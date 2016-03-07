@@ -109,6 +109,7 @@ static openvassd_option openvassd_defaults[] = {
   {"network_scan", "no"},
   {"non_simult_ports", "139, 445"},
   {"plugins_timeout", G_STRINGIFY (NVT_TIMEOUT)},
+  {"scanner_plugins_timeout", G_STRINGIFY (SCANNER_NVT_TIMEOUT)},
   {"safe_checks", "yes"},
   {"auto_enable_dependencies", "yes"},
   {"use_mac_addr", "no"},

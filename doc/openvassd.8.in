@@ -132,7 +132,10 @@ Number of seconds that the security checks will wait for when doing a recv(). Yo
 Some services (in particular SMB) do not appreciate multiple connections at the same time coming from the same host. This option allows you to prevent openvassd to make two connections on the same given ports at the same time. The syntax of this option is "port1[, port2....]". Note that you can use the KB notation of openvassd to designate a service formally. Ex: "139, Services/www", will prevent openvassd from making two connections at the same time on port 139 and on every port which hosts a web server.
 
 .IP plugins_timeout
-This is the maximum lifetime, in seconds of a plugin. It may happen that some plugins are slow because of the way they are written or the way the remote server behaves. This option allows you to make sure your scan is never caught in an endless loop because of a non-finishing plugin.
+This is the maximum lifetime, in seconds of a plugin. It may happen that some plugins are slow because of the way they are written or the way the remote server behaves. This option allows you to make sure your scan is never caught in an endless loop because of a non-finishing plugin. Doesn't affect ACT_SCANNER plugins.
+
+.IP scanner_plugins_timeout
+Like plugins_timeout, but for ACT_SCANNER plugins.
 
 .IP safe_checks
 Most of the time, openvassd attempts to reproduce an exceptional condition to determine if the remote services are vulnerable to certain flaws. This includes the reproduction of buffer overflows or format strings, which may make the remote server crash. If you set this option to 'yes', openvassd will disable the plugins which have the potential to crash the remote services, and will at the same time make several checks rely on the banner of the service tested instead of its behavior towards a certain input. This reduces false positives and makes openvassd nicer towards your network, however this may make you miss important vulnerabilities (as a vulnerability affecting a given service may also affect another one).

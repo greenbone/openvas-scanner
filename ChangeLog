@@ -1,3 +1,15 @@
+2016-03-07  Hani Benhabiles  <hani.benhabiles@greenbone.net>
+
+	* src/openvassd.c (openvassd_defaults): Add scanner_plugins_timeout
+	preference.
+
+	* src/pluginlaunch.c (plugin_launch): Use scanner_plugins_timeout as the
+	default value for scanner plugins.
+
+	* CMakeLists.txt: Add SCANNER_NVT_TIMEOUT variable.
+
+	* doc/openvassd.8.in: Update documentation.
+
 2016-01-21  Michael Wiegand <michael.wiegand@greenbone.net>
 
 	* src/openvassd.c (main): Ensure terminating GOptionEntry is fully
