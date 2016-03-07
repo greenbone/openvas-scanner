@@ -437,12 +437,12 @@ plugin_launch (struct arglist *globals, struct scheduler_plugin *plugin,
     processes[p].timeout = plugin->timeout;
 
 
-  // Disable timeout if NVT is a scanner, set it to preferences otherwise
   if (processes[p].timeout == 0)
     {
       int category = plugin->category;
       if (category == ACT_SCANNER)
-        processes[p].timeout = -1;
+        processes[p].timeout = atoi (prefs_get ("scanner_plugins_timeout")
+                                     ?: "-1");
       else
         processes[p].timeout = atoi (prefs_get ("plugins_timeout") ?: "-1");
     }

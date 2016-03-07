@@ -179,6 +179,7 @@ set (OPENVASSD_DEBUGMSG "${OPENVAS_LOG_DIR}/openvassd.dump")
 set (OPENVASSD_CONF     "${OPENVAS_SYSCONF_DIR}/openvassd.conf")
 
 set (NVT_TIMEOUT "320")
+set (SCANNER_NVT_TIMEOUT "36000")
 
 message ("-- Install prefix: ${CMAKE_INSTALL_PREFIX}")
 
