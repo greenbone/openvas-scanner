@@ -143,17 +143,11 @@ enable_testing ()
 
 ## Static analysis
 
-add_custom_target (splint COMMENT "Running splint..."
-                   COMMAND sh -c \"splint -booltype gboolean -predboolint +unixlib +export-header `pkg-config --cflags glib-2.0` `pkg-config --cflags libopenvas` *.c\")
-
-add_custom_target (rats COMMENT "Running rats..."
-                   COMMAND sh -c \"rats --warning 2 *.[ch]\")
-
-add_custom_target (flawfinder COMMENT "Running flawfinder..."
-                   COMMAND sh -c \"flawfinder *.[ch]\")
+add_custom_target (cppcheck COMMENT "Running cppcheck..."
+                   COMMAND sh -c \"cppcheck ${CMAKE_CURRENT_SOURCE_DIR}\")
 
 add_custom_target (check COMMENT "Checking code...")
-add_dependencies (check splint rats flawfinder)
+add_dependencies (check cppcheck)
 
 ## Tag files
 

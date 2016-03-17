@@ -1,3 +1,8 @@
+2016-03-17  Timo Pollmeier <timo.pollmeier@greenbone.net>
+
+	* src/CMakeLists.txt: Replace splint, rats and flawfinder targets with
+	a cppcheck one.
+
 2016-03-07  Hani Benhabiles  <hani.benhabiles@greenbone.net>
 
 	* src/openvassd.c (openvassd_defaults): Add scanner_plugins_timeout
