@@ -1,5 +1,9 @@
 2016-03-17  Timo Pollmeier <timo.pollmeier@greenbone.net>
 
+	* src/processes.c (create_process): Remove RATS annotation.
+
+2016-03-17  Timo Pollmeier <timo.pollmeier@greenbone.net>
+
 	* src/CMakeLists.txt: Replace splint, rats and flawfinder targets with
 	a cppcheck one.
 

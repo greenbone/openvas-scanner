@@ -83,7 +83,7 @@ create_process (process_func_t function, void *argument)
   if (pid == 0)
     {
       init_child_signal_handlers ();
-      srand48 (getpid () + getppid () + (long) time (NULL));    /* RATS: ignore */
+      srand48 (getpid () + getppid () + (long) time (NULL));
       (*function) (argument);
       exit (0);
     }
