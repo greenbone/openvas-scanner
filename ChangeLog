@@ -1,3 +1,9 @@
+2016-03-30  Hani Benhabiles  <hani.benhabiles@greenbone.net>
+
+	* src/openvassd.c (openvassd_defaults): Add timeout_retry preference.
+
+	* doc/openvassd.8.in: Update documentation.
+
 2016-03-17  Timo Pollmeier <timo.pollmeier@greenbone.net>
 
 	* src/processes.c (create_process): Remove RATS annotation.

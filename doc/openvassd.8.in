@@ -128,6 +128,9 @@ By default, openvassd does not trust the remote host banners. It means that it w
 .IP checks_read_timeout
 Number of seconds that the security checks will wait for when doing a recv(). You should increase this value if you are running openvassd across a slow network slink (testing a host via a dialup connection for instance)
 
+.IP timeout_retry
+Number of retries when a socket connection attempt timesout.
+
 .IP non_simult_ports
 Some services (in particular SMB) do not appreciate multiple connections at the same time coming from the same host. This option allows you to prevent openvassd to make two connections on the same given ports at the same time. The syntax of this option is "port1[, port2....]". Note that you can use the KB notation of openvassd to designate a service formally. Ex: "139, Services/www", will prevent openvassd from making two connections at the same time on port 139 and on every port which hosts a web server.
 
