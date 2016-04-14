@@ -77,7 +77,7 @@ set (PROJECT_VERSION_PATCH 0)
 
 # Set beta version if this is a beta release series,
 # unset if this is a stable release series.
-set (PROJECT_BETA_RELEASE 3)
+set (PROJECT_BETA_RELEASE 4)
 
 if (SVN_REVISION)
   set (PROJECT_VERSION_SVN "${SVN_REVISION}")
