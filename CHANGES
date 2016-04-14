@@ -1,3 +1,21 @@
+openvas-scanner 5.1+beta3 (2016-04-14)
+
+This is the third beta release of the openvas-scanner 5.1 module for
+the Open Vulnerability Assessment System (OpenVAS). It will be part of
+the upcoming "OpenVAS-9".
+
+This release addresses numerous minor bug fixes, code improvements and
+build improvements.
+
+Many thanks to everyone who has contributed to this release:
+Hani Benhabiles, Sven Haardiek, Timo Pollmeier and Michael Wiegand.
+
+Main changes compared to 5.0beta2:
+* Add scanner preferences timeout_retry and scanner_plugins_timeout.
+* Various minor bug fixes and code improvements as well as build
+  improvements.
+
+
 openvas-scanner 5.1+beta2 (2015-10-21)
 
 This is the second beta release of the openvas-scanner 5.1 module for
