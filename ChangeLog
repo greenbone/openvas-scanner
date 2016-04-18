@@ -1,3 +1,8 @@
+2016-04-18  Michael Wiegand <michael.wiegand@greenbone.net>
+
+	* CMakeLists.txt: Simplify CPACK_SOURCE_IGNORE_FILES by ignoring the
+	entire build directory.
+
 2016-04-14  Jan-Oliver Wagner <jan-oliver.wagner@greenbone.net>
 
 	Post release version bump.

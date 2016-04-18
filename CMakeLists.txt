@@ -115,26 +115,9 @@ set (CPACK_PACKAGE_FILE_NAME "${PROJECT_NAME}-${CPACK_PACKAGE_VERSION}")
 set (CPACK_SOURCE_PACKAGE_FILE_NAME "${PROJECT_NAME}-${CPACK_PACKAGE_VERSION}")
 set (CPACK_PACKAGE_VENDOR "The OpenVAS Project")
 set (CPACK_SOURCE_IGNORE_FILES
+"${CMAKE_BINARY_DIR}"
 "/.svn/"
-"/_CPack_Packages/"
-"/CMakeFiles/"
-"cmake$"
 "swp$"
-"Cache.txt$"
-".tar.gz"
-"install_manifest.txt"
-"Makefile"
-"/doc/generated/"
-"log.conf$"
-"Doxyfile$"
-"Doxyfile_full$"
-"openvassd.8$"
-"VERSION$"
-"tools/openvas-manage-certs$"
-"tools/openvas-nvt-sync$"
-"tools/greenbone-nvt-sync$"
-"doc/example_redis_2_4.conf$"
-"doc/example_redis_2_6.conf$"
 )
 
 include (CPack)
