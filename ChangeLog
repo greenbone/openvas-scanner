@@ -1,3 +1,11 @@
+2016-03-30  Hani Benhabiles  <hani.benhabiles@greenbone.net>
+
+	Backport r24812.
+
+	* src/openvassd.c (openvassd_defaults): Add timeout_retry preference.
+
+	* doc/openvassd.8.in: Update documentation.
+
 2016-03-07  Hani Benhabiles  <hani.benhabiles@greenbone.net>
 
 	Backport r24613.
