@@ -1,3 +1,7 @@
+2016-04-26  Sven Haardiek <sven.haardiek@greenbone.net>
+
+	* CMakeLists.txt: Make it possible to change OPENVAS_NVT_DIR
+
 2016-04-18  Michael Wiegand <michael.wiegand@greenbone.net>
 
 	* CMakeLists.txt: Simplify CPACK_SOURCE_IGNORE_FILES by ignoring the
