@@ -1,3 +1,8 @@
+2016-05-03  Benoît Allard  <benoit.allard@greenbone.net>
+
+	* tools/openvas-manage-certs.in: Add the correct EKU when generating
+	  certificates.
+
 2016-04-26  Sven Haardiek <sven.haardiek@greenbone.net>
 
 	* CMakeLists.txt: Make it possible to change OPENVAS_NVT_DIR
