@@ -1,3 +1,9 @@
+2016-05-26  Hani Benhabiles  <hani.benhabiles@greenbone.net>
+
+	* src/attack.c (attack_start): Fix memory leak.
+
+	* src/nasl_plugins.c (nasl_plugin_launch): Fix memory leak.
+
 2016-05-03  Benoît Allard  <benoit.allard@greenbone.net>
 
 	* tools/openvas-manage-certs.in: Add the correct EKU when generating
