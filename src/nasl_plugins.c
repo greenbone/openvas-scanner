@@ -212,7 +212,7 @@ nasl_plugin_launch (struct arglist *globals, struct host_info *hostinfo,
   nargs.soc = soc;
 
   module = create_process ((process_func_t) nasl_thread, &nargs);
-  arg_free_all (plugin);
+  arg_free (plugin);
   return module;
 }
 
