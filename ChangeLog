@@ -1,5 +1,9 @@
 2016-05-27  Hani Benhabiles  <hani.benhabiles@greenbone.net>
 
+	* src/pluginscheduler.c (hash_fill_deps): Fix memory leak.
+
+2016-05-27  Hani Benhabiles  <hani.benhabiles@greenbone.net>
+
 	* src/nasl_plugins.c (nasl_plugin_launch): Use arg_free() instead of
 	arg_free_all().
 

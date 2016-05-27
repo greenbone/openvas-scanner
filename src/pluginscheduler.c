@@ -211,6 +211,7 @@ hash_fill_deps (struct hash *h, struct hash *l)
       g_free (oid);
     }
   l->dependencies_ptr[j] = NULL;
+  g_strfreev (array);
 }
 
 /*----------------------------------------------------------------------*/
