@@ -1,3 +1,13 @@
+2016-05-30  Hani Benhabiles  <hani.benhabiles@greenbone.net>
+
+	Backport r25384, r25394 and r25397.
+
+	* src/attack.c (attack_start): Fix memory leak.
+
+	* src/nasl_plugins.c (nasl_plugin_launch): Fix memory leak.
+
+	* src/pluginscheduler.c (hash_fill_deps): Fix memory leak.
+
 2016-03-30  Hani Benhabiles  <hani.benhabiles@greenbone.net>
 
 	Backport r24812.
