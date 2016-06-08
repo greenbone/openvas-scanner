@@ -1,3 +1,7 @@
+2016-06-08  Benoît Allard  <benoit.allard@greenbone.net>
+
+	* tools/greenbone-nvt-sync.in: Fix shell mistakes in order of redirects
+
 2016-05-27  Hani Benhabiles  <hani.benhabiles@greenbone.net>
 
 	* src/pluginscheduler.c (hash_fill_deps): Fix memory leak.

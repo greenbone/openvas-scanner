@@ -172,9 +172,9 @@ get_value ()
 {
   value=""
   key=$1
-  if which gos-state-manager 2>&1 1>/dev/null
+  if which gos-state-manager 1>/dev/null 2>&1
   then
-    if gos-state-manager get "$key.value" 2>&1 1>/dev/null
+    if gos-state-manager get "$key.value" 1>/dev/null 2>&1
     then
       value="$(gos-state-manager get "$key.value")"
     fi
