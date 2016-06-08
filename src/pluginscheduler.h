@@ -31,7 +31,7 @@
 #ifndef PLUGINSCHEDULER_H
 #define PLUGINSCHEDULER_H
 
-#include <glib.h> /* for gchar */
+#include <glib.h>
 
 struct hash;
 struct plugins_scheduler;

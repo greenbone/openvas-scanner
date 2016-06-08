@@ -1,3 +1,8 @@
+2016-06-08  Henri Doreau <henri.doreau@gmail.com>
+
+	* src/comm.c, src/nasl_plugins.c, src/pluginscheduler.h: remove
+	obsolete comment.
+
 2016-06-08  Benoît Allard  <benoit.allard@greenbone.net>
 
 	* tools/greenbone-nvt-sync.in: Fix shell mistakes in order of redirects

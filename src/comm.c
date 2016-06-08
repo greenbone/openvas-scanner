@@ -43,7 +43,7 @@
 #include "comm.h"
 #include "ntp.h"
 #include "log.h"
-#include "pluginscheduler.h"    /* for define LAUNCH_DISABLED */
+#include "pluginscheduler.h"
 #include "pluginload.h"    /* for current_loading_plugins */
 #include "sighand.h"
 #include "utils.h"

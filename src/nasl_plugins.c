@@ -50,7 +50,7 @@
 #include <openvas/misc/prefs.h>         /* for prefs_get_bool */
 
 #include "pluginload.h"
-#include "pluginscheduler.h"    /* for LAUNCH_DISABLED */
+#include "pluginscheduler.h"
 #include "pluginlaunch.h"
 #include "processes.h"
 #include "log.h"
