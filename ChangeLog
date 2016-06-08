@@ -1,5 +1,18 @@
 2016-06-08  Henri Doreau <henri.doreau@gmail.com>
 
+	* src/pluginscheduler.c (plugins_scheduler_init): Renamed `l' into
+	`plist' as the former is a terrible variable name.
+
+	* src/attack.c (launch_plugin), src/pluginscheduler.c
+	(enable_plugin_and_dependencies, plugins_scheduler_enable)
+	(plugins_scheduler_fill, plugins_scheduler_init)
+	(plugins_scheduler_count_active): Replaced binary constants by gboolean
+	for clarity.
+
+	* src/pluginscheduler.h (LAUNCH_DISABLED, LAUNCH_RUN): Removed.
+
+2015-10-22  Henri Doreau <henri.doreau@gmail.com>
+
 	* src/comm.c, src/nasl_plugins.c, src/pluginscheduler.h: remove
 	obsolete comment.
 

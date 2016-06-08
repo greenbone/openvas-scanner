@@ -36,20 +36,13 @@
 struct hash;
 struct plugins_scheduler;
 
-/**
- * @brief States of scheduler_plugin.
- *
- * @todo Consider creating an enumeration.
- */
-#define LAUNCH_DISABLED 0
-#define LAUNCH_RUN      1
 
 struct scheduler_plugin
 {
   struct hash *parent_hash;
   char *oid;
   int running_state;
-  int enabled;
+  gboolean enabled;
 };
 
 

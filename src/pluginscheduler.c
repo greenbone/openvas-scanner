@@ -396,7 +396,7 @@ enable_plugin_and_dependencies (plugins_scheduler_t shed,
   else
     g_hash_table_insert (deps_table, g_strdup (plugin->oid), plugin->oid);
 
-  plugin->enabled = LAUNCH_RUN;
+  plugin->enabled = TRUE;
   deps_ptr = hash_get_deps_ptr (shed->hash, plugin->oid);
   if (deps_ptr == NULL)
     return;
@@ -445,7 +445,7 @@ plugins_scheduler_enable (plugins_scheduler_t sched, const char *oid_list,
       while (element)
         {
           if (g_hash_table_lookup (oids_table, element->plugin->oid))
-            element->plugin->enabled = LAUNCH_RUN;
+            element->plugin->enabled = TRUE;
 
           element = element->next;
         }
@@ -466,7 +466,7 @@ plugins_scheduler_enable (plugins_scheduler_t sched, const char *oid_list,
 
               deps_table = g_hash_table_new_full
                             (g_str_hash, g_str_equal, g_free, NULL);
-              if (element->plugin->enabled != LAUNCH_DISABLED)
+              if (element->plugin->enabled)
                 enable_plugin_and_dependencies (sched, element->plugin,
                                                 deps_table);
 
@@ -494,7 +494,7 @@ plugins_scheduler_fill (plugins_scheduler_t sched)
       scheduler_plugin = g_malloc0 (sizeof (struct scheduler_plugin));
       scheduler_plugin->running_state = PLUGIN_STATUS_UNRUN;
       scheduler_plugin->oid = g_strdup (element->data);
-      scheduler_plugin->enabled = LAUNCH_DISABLED;
+      scheduler_plugin->enabled = FALSE;
 
       assert (category <= ACT_LAST);
       dup = g_malloc0 ( sizeof (struct list));
@@ -538,26 +538,27 @@ plugins_scheduler_init (const char *plugins_list, int autoload, int only_network
   /* Now, remove the plugins that won't be launched */
   for (i = ACT_FIRST; i <= ACT_LAST; i++)
     {
-      struct list *l = ret->list[i];
-      while (l != NULL)
+      struct list *plist = ret->list[i];
+
+      while (plist != NULL)
         {
-          if (l->plugin->enabled == LAUNCH_DISABLED)
+          if (!plist->plugin->enabled)
             {
-              struct list *old = l->next;
+              struct list *old = plist->next;
 
-              if (l->prev != NULL)
-                l->prev->next = l->next;
+              if (plist->prev != NULL)
+                plist->prev->next = plist->next;
               else
-                ret->list[i] = l->next;
+                ret->list[i] = plist->next;
 
-              if (l->next != NULL)
-                l->next->prev = l->prev;
+              if (plist->next != NULL)
+                plist->next->prev = plist->prev;
 
-              g_free (l);
-              l = old;
+              g_free (plist);
+              plist = old;
               continue;
             }
-          l = l->next;
+          plist = plist->next;
         }
     }
 
@@ -583,7 +584,7 @@ plugins_scheduler_count_active (plugins_scheduler_t sched)
 
       while (element)
         {
-          if (element->plugin->enabled == LAUNCH_RUN)
+          if (element->plugin->enabled)
             ret++;
           element = element->next;
         }

@@ -215,7 +215,9 @@ launch_plugin (struct arglist *globals, struct scheduler_plugin *plugin,
 
   if (network_scan_status (globals) == NSS_BUSY)
     network_scan = TRUE;
-  if (plugin->enabled != LAUNCH_DISABLED)    /* can we launch it ? */
+
+  /* can we launch it ? */
+  if (plugin->enabled)
     {
       char *error;
 
