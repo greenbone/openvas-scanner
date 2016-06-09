@@ -35,6 +35,7 @@
 #include "log.h"
 #include "sighand.h"
 #include "utils.h"
+#include "string.h"
 
 #include <openvas/base/pidfile.h>
 
@@ -116,17 +117,23 @@ static void
 print_trace ()
 {
   void *array[10];
-  size_t size;
-  int fd;
+  int fd, ret = 0;
+  char *message = "SIGSEGV occured !\n";
 
   fd = log_get_fd ();
   if (fd < 0)
     return;
 
-  if (write (fd, "SIGSEGV occured !\n", 18) == -1)
-    return;
-  size = backtrace (array, 10);
-  backtrace_symbols_fd (array, size, fd);
+  while (1)
+  {
+    ret = write (fd, message + ret, strlen (message) - ret);
+    if (ret == -1 && errno == EINTR)
+      continue;
+    else
+      break;
+  }
+  ret = backtrace (array, 10);
+  backtrace_symbols_fd (array, ret, fd);
 }
 
 void
