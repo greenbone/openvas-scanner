@@ -1,6 +1,11 @@
 2016-06-09  Matthew Mundell <matthew.mundell@greenbone.net>
 
-	* src/preferences.c (openvassd_defaults): Add unscanned_closed_udp.
+	* src/sighand.c (make_em_die): Correct typo.
+
+2016-06-09  Matthew Mundell <matthew.mundell@greenbone.net>
+
+	* src/sighand.c (print_trace): Handle write return correctly, as it may
+	only write part of the string.
 
 2016-05-09  Hani Benhabiles  <hani.benhabiles@greenbone.net>
 

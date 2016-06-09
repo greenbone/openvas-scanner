@@ -59,7 +59,7 @@ make_em_die (int sig)
   if (getpgrp () != getpid ())
     return;
 
-  /* quickly send siglals and check the result */
+  /* quickly send signals and check the result */
   if (kill (0, sig) < 0)
     return;
   let_em_die (0);
