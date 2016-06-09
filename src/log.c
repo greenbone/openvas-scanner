@@ -39,7 +39,7 @@
 #include "utils.h"
 #include "log.h"
 
-static FILE *log;
+static FILE *log = NULL;
 
 /**
  * @brief Initialization of the log file.
@@ -75,6 +75,16 @@ log_init (const char *filename)
 }
 
 
+/**
+ * @brief Get the open log file descriptor.
+ *
+ * @param[out]   Return the log file descriptor.
+ */
+int
+log_get_fd ()
+{
+  return log ? fileno (log) : -1;
+}
 
 void
 log_close ()

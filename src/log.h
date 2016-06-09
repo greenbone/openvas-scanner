@@ -36,6 +36,7 @@
 
 void log_init (const char *);
 void log_close (void);
+int log_get_fd ();
 #ifdef __GNUC__
 void log_vwrite (const char *, va_list) __attribute__ ((format (printf, 1, 0)));
 void log_write (const char *, ...) __attribute__ ((format (printf, 1, 2)));

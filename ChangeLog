@@ -1,3 +1,12 @@
+2016-05-09  Hani Benhabiles  <hani.benhabiles@greenbone.net>
+
+	* src/log.c (log_get_fd): New function.
+
+	* src/log.h: Add new function prototype.
+
+	* src/sighand.c (print_trace, sighand_segv): Make function
+	async-signal-safe.
+
 2016-06-08  Henri Doreau <henri.doreau@gmail.com>
 
 	* src/pluginscheduler.c (plugins_scheduler_init): Renamed `l' into

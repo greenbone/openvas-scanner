@@ -117,23 +117,23 @@ print_trace ()
 {
   void *array[10];
   size_t size;
-  char **symbols;
-  size_t i;
+  int fd;
 
+  fd = log_get_fd ();
+  if (fd < 0)
+    return;
+
+  if (write (fd, "SIGSEGV occured !\n", 18) == -1)
+    return;
   size = backtrace (array, 10);
-  symbols = backtrace_symbols (array, size);
-  for (i = 0; i < size; i++)
-     log_write ("%s\n", symbols[i]);
-  g_free (symbols);
+  backtrace_symbols_fd (array, size, fd);
 }
 
 void
 sighand_segv ()
 {
   signal (SIGSEGV, _exit);
-  log_write ("SIGSEGV occured !");
   print_trace ();
   make_em_die (SIGTERM);
-  log_close ();
   _exit (0);
 }
