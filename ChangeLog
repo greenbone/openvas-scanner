@@ -1,3 +1,14 @@
+2016-05-09  Hani Benhabiles  <hani.benhabiles@greenbone.net>
+
+	Backport r25470.
+
+	* src/log.c (log_get_fd): New function.
+
+	* src/log.h: Add new function prototype.
+
+	* src/sighand.c (print_trace, sighand_segv): Make function
+	async-signal-safe.
+
 2016-05-30  Hani Benhabiles  <hani.benhabiles@greenbone.net>
 
 	Backport r25384, r25394 and r25397.
