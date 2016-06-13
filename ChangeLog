@@ -1,11 +1,16 @@
-2016-05-09  Hani Benhabiles  <hani.benhabiles@greenbone.net>
+2016-06-13  Hani Benhabiles  <hani.benhabiles@greenbone.net>
+
+	* src/pluginscheduler.c (hash_fill_deps): Remove backported part from
+	r25417.
+
+2016-06-09  Hani Benhabiles  <hani.benhabiles@greenbone.net>
 
 	Backport r25481.
 
 	* src/sighand.c (print_trace): Add loop around write() call to handle
 	signal interrupts. Don't return on error.
 
-2016-05-09  Hani Benhabiles  <hani.benhabiles@greenbone.net>
+2016-06-09  Hani Benhabiles  <hani.benhabiles@greenbone.net>
 
 	Backport r25470.
 
