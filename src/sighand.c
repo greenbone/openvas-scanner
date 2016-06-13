@@ -117,21 +117,26 @@ static void
 print_trace ()
 {
   void *array[10];
-  int fd, ret = 0;
+  int fd, ret = 0, left;
   char *message = "SIGSEGV occured !\n";
 
   fd = log_get_fd ();
   if (fd < 0)
     return;
 
-  while (1)
-  {
-    ret = write (fd, message + ret, strlen (message) - ret);
-    if (ret == -1 && errno == EINTR)
-      continue;
-    else
-      break;
-  }
+  left = strlen (message);
+  while (left)
+    {
+      ret = write (fd, message, left);
+      if (ret == -1)
+        {
+          if (errno == EINTR || errno == EAGAIN || errno == EWOULDBLOCK)
+            continue;
+          break;
+        }
+      left -= ret;
+      message += ret;
+    }
   ret = backtrace (array, 10);
   backtrace_symbols_fd (array, ret, fd);
 }

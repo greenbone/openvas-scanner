@@ -1,3 +1,10 @@
+2016-06-13  Matthew Mundell <matthew.mundell@greenbone.net>
+
+	Backport r25483.
+
+	* src/sighand.c (print_trace): Handle write return correctly, as it may
+	only write part of the string.
+
 2016-06-13  Hani Benhabiles  <hani.benhabiles@greenbone.net>
 
 	* src/pluginscheduler.c (hash_fill_deps): Remove backported part from
@@ -843,7 +850,7 @@
 
 	* src/pluginload.c (plugins_reload_from_dir): Adapt to new proto of
 	nasl_plugin_add.
- 
+
 	* src/pluginload.h: Adjust proto accodingly.
 
 	* src/plugs_req.c (get_closed_ports, get_closed_udp_ports): Get global
@@ -1275,7 +1282,7 @@
 	glib functions.
 
 	* src/pluginlaunch.c (process_internal_msg): Replace efree() by
-	g_free() and set buffer to NULL. 
+	g_free() and set buffer to NULL.
 
 	* src/comm.c (send_plug_info): Replaced estrdup() by g_strdup(),
 	emalloc() by g_malloc0() and efree by g_free().
@@ -1454,7 +1461,7 @@
 	arglist to string array.
 	(requirements_plugin): Changed type of internal variables from
 	arglist to string array.
- 
+
 2014-08-25  Jan-Oliver Wagner <jan-oliver.wagner@greenbone.net>
 
 	Get rid of some arglist uses in the scheduler plugins.
