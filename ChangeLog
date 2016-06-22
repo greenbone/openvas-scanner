@@ -1,5 +1,10 @@
 2016-06-22  Jan-Oliver Wagner <jan-oliver.wagner@greenbone.net>
 
+	* src/pluginload.c (plugins_reload_from_dir): Drop code
+	path for glib<2.28 since we require now at least 2.32.
+
+2016-06-22  Jan-Oliver Wagner <jan-oliver.wagner@greenbone.net>
+
 	* CMakeLists.txt, INSTALL: Imcrease dependency for glib from 2.16 to
 	2.32 in order to allow the use of newer API elements. Also,
 	prior to 2.32 there is subject to the (disputed) CVE-2012-0039.

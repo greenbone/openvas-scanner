@@ -298,23 +298,13 @@ plugins_reload_from_dir (char *folder)
         {
           log_write ("Stopped loading plugins: High number of errors.");
           proctitle_set ("openvassd: Error loading NVTs.");
-#if GLIB_CHECK_VERSION (2, 28, 0)
           g_slist_free_full (files, g_free);
-#else
-          g_slist_foreach (files, (GFunc) g_free, NULL);
-          g_slist_free (files);
-#endif
           return -1;
         }
       f = g_slist_next (f);
     }
 
-#if GLIB_CHECK_VERSION (2, 28, 0)
   g_slist_free_full (files, g_free);
-#else
-  g_slist_foreach (files, (GFunc) g_free, NULL);
-  g_slist_free (files);
-#endif
 
   proctitle_set ("openvassd: Reloaded all the NVTs.");
 
