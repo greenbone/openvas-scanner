@@ -12,7 +12,7 @@ Prerequisites for openvas-scanner
 Prerequisites:
 * cmake
 * libopenvas_nasl, libopenvas_base, libopenvas_misc >= 9.0.0
-* glib-2.0 >= 2.16
+* glib-2.0 >= 2.32
 * libgcrypt
 * pkg-config
 * redis >= 2.4.0
