@@ -1,3 +1,7 @@
+2016-05-23  Hani Benhabiles  <hani.benhabiles@greenbone.net>
+
+	* src/attack.c (nvti_category_is_safe): New function.
+
 2016-06-22  Jan-Oliver Wagner <jan-oliver.wagner@greenbone.net>
 
 	* src/pluginload.c (plugins_reload_from_dir): Drop code

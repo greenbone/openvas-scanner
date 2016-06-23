@@ -181,6 +181,24 @@ scan_is_stopped ()
 }
 
 /**
+ * @brief Checks that an NVT category is safe.
+ *
+ * @param category  Category to check.
+ *
+ * @return 0 if category is unsafe, 1 otherwise.
+ */
+static int
+nvti_category_is_safe (int category)
+{
+  /* XXX: Duplicated from openvas-libraries. */
+  if (category == ACT_DESTRUCTIVE_ATTACK || category == ACT_KILL_HOST
+      || category == ACT_FLOOD || category == ACT_DENIAL)
+    return 0;
+  return 1;
+}
+
+
+/**
  * @brief Launches a nvt. Respects safe check preference (i.e. does not try
  * @brief destructive nvt if save_checks is yes).
  *
