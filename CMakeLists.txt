@@ -7,7 +7,7 @@
 # Jan-Oliver Wagner <jan-oliver.wagner@greenbone.net>
 #
 # Copyright:
-# Copyright (C) 2011-2015 Greenbone Networks GmbH
+# Copyright (C) 2011-2016 Greenbone Networks GmbH
 #
 # This program is free software; you can redistribute it and/or
 # modify it under the terms of the GNU General Public License
@@ -27,7 +27,7 @@ message ("-- Configuring the Scanner...")
 
 project (openvas-scanner C)
 
-cmake_minimum_required (VERSION 2.6)
+cmake_minimum_required (VERSION 2.8)
 
 if (POLICY CMP0005)
   cmake_policy (SET CMP0005 OLD)

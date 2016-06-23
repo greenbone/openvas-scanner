@@ -1,3 +1,11 @@
+2016-06-23  Jan-Oliver Wagner <jan-oliver.wagner@greenbone.net>
+
+	* CMakeLists.txt: Increase required cmake version from 2.6
+	to 2.8 because 2.8 is the minimum version we are sure it
+	works with.
+
+	* INSTALL: Update accordingly.
+
 2016-05-23  Hani Benhabiles  <hani.benhabiles@greenbone.net>
 
 	* src/attack.c (nvti_category_is_safe): New function.
