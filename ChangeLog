@@ -1,3 +1,7 @@
+2016-07-15  Hani Benhabiles  <hani.benhabiles@greenbone.net>
+
+	* src/comm.c (send_plug_info): Don't send nvt summary.
+
 2016-06-23  Jan-Oliver Wagner <jan-oliver.wagner@greenbone.net>
 
 	* CMakeLists.txt: Increase required cmake version from 2.6

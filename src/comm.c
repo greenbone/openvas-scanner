@@ -164,7 +164,7 @@ void
 send_plug_info (int soc, const char *filename)
 {
   int j, ignored = 0;
-  const char *name, *copyright, *summary, *version, *family;
+  const char *name, *copyright, *version, *family;
   nvti_t *nvti = nvticache_get_by_name_full (filename);
 
   if (!nvti)
@@ -199,23 +199,6 @@ send_plug_info (int soc, const char *filename)
       log_write
         ("Inconsistent data (no copyright): %s - not applying this plugin",
          name ? name : nvti_oid (nvti));
-      ignored = 1;
-    }
-
-  if (nvti_tag (nvti) && strstr (nvti_tag (nvti), "summary="))
-    summary = "NOSUMMARY";
-  else
-    summary = nvti_summary (nvti);
-  if (summary == NULL)
-    {
-      log_write
-        ("Inconsistent data (no summary): %s - not applying this plugin",
-         name ? name : nvti_oid (nvti));
-      ignored = 1;
-    }
-  else if (strchr (summary, '\n'))
-    {
-      log_write ("%s: Newline in summary\n", nvti_oid (nvti));
       ignored = 1;
     }
 
@@ -266,9 +249,9 @@ send_plug_info (int soc, const char *filename)
       }
 
       send_printf
-       (soc, "%s <|> %s <|> %s <|> %s <|> %s <|> %s <|> %s <|> %s <|> %s <|> "
+       (soc, "%s <|> %s <|> %s <|> %s <|> %s <|> %s <|> %s <|> %s <|> "
         "%s <|> %s\n", nvti_oid (nvti), name, categories[j], copyright,
-        summary, family, version, cve_id, bid, xref, tag);
+        family, version, cve_id, bid, xref, tag);
       if (tag != NULL && strcmp (tag, "NOTAG"))
         g_free (tag);
     }
