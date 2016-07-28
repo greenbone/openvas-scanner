@@ -690,7 +690,6 @@ attack_start (struct attack_start_args *args)
   shutdown (thread_socket, 2);
   close (thread_socket);
   g_free (args->fqdn);
-  g_free (host_str);
 }
 
 static void

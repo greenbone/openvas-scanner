@@ -1,5 +1,11 @@
 2016-07-28  Matthew Mundell <matthew.mundell@greenbone.net>
 
+	Revert part of the r25384 backport.
+
+	* src/sighand.c (attack_start): Remove free, this is a stack array.
+
+2016-07-28  Matthew Mundell <matthew.mundell@greenbone.net>
+
 	Backport r25859.
 
 	* src/sighand.c (sighand_segv): Raise signal again, to enable core
