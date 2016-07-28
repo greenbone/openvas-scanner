@@ -1,3 +1,10 @@
+2016-07-28  Matthew Mundell <matthew.mundell@greenbone.net>
+
+	Backport r25859.
+
+	* src/sighand.c (sighand_segv): Raise signal again, to enable core
+	dumps.
+
 2016-06-13  Matthew Mundell <matthew.mundell@greenbone.net>
 
 	Backport r25483.

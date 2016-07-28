@@ -142,10 +142,13 @@ print_trace ()
 }
 
 void
-sighand_segv ()
+sighand_segv (int given_signal)
 {
   signal (SIGSEGV, _exit);
   print_trace ();
   make_em_die (SIGTERM);
-  _exit (0);
+  /* Raise signal again, to exit with the correct return value,
+   * and to enable core dumping. */
+  openvas_signal (given_signal, SIG_DFL);
+  raise (given_signal);
 }
