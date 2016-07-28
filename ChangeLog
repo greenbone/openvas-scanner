@@ -1,3 +1,8 @@
+2016-07-28  Matthew Mundell <matthew.mundell@greenbone.net>
+
+	* src/sighand.c (sighand_segv): Raise signal again, to enable core
+	dumps.
+
 2016-07-15  Hani Benhabiles  <hani.benhabiles@greenbone.net>
 
 	* src/comm.c (send_plug_info): Don't send nvt summary.
