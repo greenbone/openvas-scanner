@@ -47,6 +47,8 @@
 #include <signal.h>    /* for SIGTERM */
 #include <netdb.h>     /* for addrinfo */
 #include <sys/wait.h>     /* for waitpid */
+#include <sys/un.h>
+#include <sys/stat.h>
 
 #include <openvas/misc/network.h>    /* for ovas_scanner_context_t */
 #include <openvas/misc/openvas_proctitle.h> /* for proctitle_set */
@@ -133,6 +135,8 @@ static openvassd_option openvassd_defaults[] = {
  * SSL context may be kept once it is inited.
  */
 static ovas_scanner_context_t ovas_scanner_ctx;
+
+static gchar *unix_socket_path = NULL;
 
 static void
 start_daemon_mode (void)
@@ -238,7 +242,11 @@ loading_client_handle (int soc)
   int soc2, opt = 1;
   if (soc <= 0)
     return;
-  soc2 = ovas_scanner_context_attach (ovas_scanner_ctx, soc);
+
+  if (unix_socket_path)
+    soc2 = soc;
+  else
+    soc2 = ovas_scanner_context_attach (ovas_scanner_ctx, soc);
   if (soc2 < 0)
     {
       close (soc);
@@ -246,7 +254,13 @@ loading_client_handle (int soc)
     }
   setsockopt (soc, SOL_SOCKET, SO_KEEPALIVE, &opt, sizeof (opt));
   comm_loading (soc2);
-  close_stream_connection (soc2);
+  if (!unix_socket_path)
+    close_stream_connection (soc2);
+  else
+    {
+      shutdown (soc, 2);
+      close (soc);
+    }
 }
 
 /*
@@ -431,7 +445,10 @@ scanner_thread (struct arglist *globals)
   /* Close the scanner thread - it is useless for us now */
   close (global_iana_socket);
 
-  soc2 = ovas_scanner_context_attach (ovas_scanner_ctx, soc);
+  if (unix_socket_path)
+    soc2 = soc;
+  else
+    soc2 = ovas_scanner_context_attach (ovas_scanner_ctx, soc);
   if (soc2 < 0)
     goto shutdown_and_exit;
 
@@ -446,13 +463,14 @@ scanner_thread (struct arglist *globals)
 
   if (comm_init (soc2) < 0)
     {
-      close_stream_connection (soc);
+      if (!unix_socket_path)
+        close_stream_connection (soc);
       exit (0);
     }
   handle_client (globals);
 
 shutdown_and_exit:
-  if (soc2 >= 0)
+  if (soc2 >= 0 && unix_socket_path)
     close_stream_connection (soc2);
   else
     {
@@ -475,7 +493,7 @@ init_ssl_ctx (const char *priority, const char *dhparams)
     }
 
   /* Only initialize ovas_scanner_ctx once */
-  if (ovas_scanner_ctx == NULL)
+  if (ovas_scanner_ctx == NULL && !unix_socket_path)
     {
       const char *cert, *key, *passwd, *ca_file;
 
@@ -570,6 +588,58 @@ main_loop ()
 }
 
 /**
+ * Initialization of the network in unix socket case:
+ * we setup the socket that will listen for incoming connections on
+ * unix_socket_path.
+ *
+ * @param[out] sock Socket to be initialized.
+ * @param unix_socket_path Path to unix socket to listen on.
+ *
+ * @return 0 on success. -1 on failure.
+ */
+static int
+init_unix_network (int *sock, const char *unix_socket_path)
+{
+  struct sockaddr_un addr;
+  struct stat ustat;
+  mode_t oldmask = 0;
+  int unix_socket;
+
+  unix_socket = socket (AF_UNIX, SOCK_STREAM, 0);
+  if (unix_socket == -1)
+    {
+      log_write ("%s: Couldn't create UNIX socket", __FUNCTION__);
+      return -1;
+    }
+  addr.sun_family = AF_UNIX;
+  strncpy (addr.sun_path, unix_socket_path, sizeof (addr.sun_path));
+  if (!stat (addr.sun_path, &ustat))
+    {
+      /* Remove socket so we can bind(). Keep same permissions when recreating
+       * it. */
+      unlink (addr.sun_path);
+      oldmask = umask (~ustat.st_mode);
+    }
+  if (bind (unix_socket, (struct sockaddr *) &addr, sizeof (struct sockaddr_un))
+      == -1)
+    {
+      log_write ("%s: Error on bind(%s): %s", __FUNCTION__,
+                 unix_socket_path, strerror (errno));
+      return -1;
+    }
+  if (oldmask)
+    umask (oldmask);
+  if (listen (unix_socket, 128) == -1)
+    {
+      log_write ("%s: Error on listen(): %s", __FUNCTION__, strerror (errno));
+      return -1;
+    }
+
+  *sock = unix_socket;
+  return 0;
+}
+
+/**
  * Initialization of the network :
  * we setup the socket that will listen for incoming connections on port \<port\>
  * on address \<addr\>
@@ -634,8 +704,7 @@ init_network (int port, int *sock, const char *addr_str)
  * @param stop_early 0: do some initialization, 1: no initialization.
  */
 static int
-init_openvassd (int scanner_port, int first_pass, int stop_early, int dont_fork,
-                const char *addr_str, const char *config_file)
+init_openvassd (int dont_fork, const char *config_file)
 {
   int i;
 
@@ -647,12 +716,6 @@ init_openvassd (int scanner_port, int first_pass, int stop_early, int dont_fork,
   if (dont_fork == FALSE)
     setup_legacy_log_handler (log_vwrite);
 
-  if (!stop_early && first_pass)
-    {
-      if (init_network (scanner_port, &global_iana_socket,
-                        addr_str ?: ipv6_is_enabled () ? "::" : "0.0.0.0"))
-        return -1;
-    }
   set_globals_from_preferences ();
 
   return 0;
@@ -752,6 +815,8 @@ main (int argc, char *argv[])
      "GnuTLS priorities string", "<string>"},
     {"dh-params", '\0', 0, G_OPTION_ARG_STRING, &dh_params,
      "Diffie-Hellman parameters file", "<string>"},
+    {"unix-socket", 'c', 0, G_OPTION_ARG_FILENAME, &unix_socket_path,
+     "Path of unix socket to listen on", "<filename>"},
     {NULL, 0, 0, 0, NULL, NULL, NULL}
   };
 
@@ -782,6 +847,11 @@ main (int argc, char *argv[])
   if (print_specs)
     exit_early = 2;           /* no cipher initialization */
 
+  if (unix_socket_path && (port || address))
+    {
+      printf ("Can't use --unix-socket with --port or --address.\n");
+      exit (1);
+    }
   if (port != NULL)
     {
       scanner_port = atoi (port);
@@ -814,16 +884,26 @@ main (int argc, char *argv[])
     config_file = OPENVASSD_CONF;
   if (only_cache)
     {
-      if (init_openvassd (scanner_port, 0, 1, dont_fork, address, config_file))
+      if (init_openvassd (dont_fork, config_file))
         return 1;
       if (plugins_init ())
         return 1;
       return 0;
     }
 
-  if (init_openvassd (scanner_port, 1, exit_early, dont_fork, address,
-                      config_file))
+  if (init_openvassd (dont_fork, config_file))
     return 1;
+  if (!exit_early && unix_socket_path)
+    {
+      if (init_unix_network (&global_iana_socket, unix_socket_path))
+        return 1;
+    }
+  else if (!exit_early)
+    {
+      if (init_network (scanner_port, &global_iana_socket,
+                        address ?: ipv6_is_enabled () ? "::" : "0.0.0.0"))
+        return 1;
+    }
   flush_all_kbs ();
 
   /* special treatment */

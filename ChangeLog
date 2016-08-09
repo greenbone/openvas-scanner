@@ -1,3 +1,12 @@
+2016-08-09  Hani Benhabiles  <hani.benhabiles@greenbone.net>
+
+	* src/openvassd.c (start_daemon_mode, loading_client_handle)
+	(scanner_thread, init_ssl_ctx): Adjust for unix socket case.
+	(init_unix_network): New function.
+	(init_openvassd): Don't call init_network.
+	(main): Add --unix-socket option. Adjust initialization functions calls
+	accordingly.
+
 2016-07-28  Matthew Mundell <matthew.mundell@greenbone.net>
 
 	* src/sighand.c (sighand_segv): Raise signal again, to enable core
