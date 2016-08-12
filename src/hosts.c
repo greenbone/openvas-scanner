@@ -57,6 +57,8 @@ static struct host *hosts = NULL;
 static int g_soc = -1;
 static int g_max_hosts = 15;
 
+extern char unix_socket_path;
+
 
 /*-------------------------------------------------------------------------*/
 static int
@@ -321,7 +323,10 @@ hosts_read_client (struct arglist *globals)
     return 0;
 
 
-  rsoc = openvas_get_socket_from_connection (g_soc);
+  if (unix_socket_path)
+    rsoc = g_soc;
+  else
+    rsoc = openvas_get_socket_from_connection (g_soc);
   if (rsoc == -1)
     return -1;
 

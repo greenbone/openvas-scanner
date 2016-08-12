@@ -136,7 +136,7 @@ static openvassd_option openvassd_defaults[] = {
  */
 static ovas_scanner_context_t ovas_scanner_ctx;
 
-static gchar *unix_socket_path = NULL;
+gchar *unix_socket_path = NULL;
 
 static void
 start_daemon_mode (void)

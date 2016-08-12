@@ -1,3 +1,11 @@
+2016-08-12  Hani Benhabiles  <hani.benhabiles@greenbone.net>
+
+	* src/hosts.c (hosts_read_client): Don't call
+	openvas_get_socket_from_connection() in unix socket case as it is not an
+	openvas stream socket.
+
+	* src/openvassd.c (unix_socket_path): Remove static modifier.
+
 2016-08-09  Hani Benhabiles  <hani.benhabiles@greenbone.net>
 
 	* src/openvassd.c (start_daemon_mode, loading_client_handle)
