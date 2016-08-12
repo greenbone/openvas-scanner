@@ -64,8 +64,8 @@ extern char unix_socket_path;
 static int
 forward (int in, int out)
 {
-  static char *buf = NULL;
-  static int bufsz = 0;
+  char *buf = NULL;
+  int bufsz = 0;
   int len;
   int type;
 
@@ -102,7 +102,6 @@ forward (int in, int out)
     }
 
   g_free (buf);
-  buf = NULL;
   return 0;
 }
 

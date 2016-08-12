@@ -48,6 +48,8 @@
 #include "sighand.h"
 #include "utils.h"
 
+extern char *unix_socket_path;
+
 /**
  * @brief Initializes the communication between the scanner (us) and the client.
  *
@@ -134,7 +136,9 @@ again:
       return 0;
     }
 
-  if (e > 0 && !data_left (openvas_get_socket_from_connection (soc)))
+  if (!unix_socket_path)
+    soc = openvas_get_socket_from_connection (soc);
+  if (e > 0 && !data_left (soc))
     return 0;
   return 1;
 }

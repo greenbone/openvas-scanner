@@ -1,5 +1,13 @@
 2016-08-12  Hani Benhabiles  <hani.benhabiles@greenbone.net>
 
+	* src/comm.c (is_client_present): Don't call
+	openvas_get_socket_from_connection() in unix socket case as it is not an
+	openvas stream socket.
+
+	* src/hosts.c (forward): Don't define buf as static variable.
+
+2016-08-12  Hani Benhabiles  <hani.benhabiles@greenbone.net>
+
 	* src/hosts.c (hosts_read_client): Don't call
 	openvas_get_socket_from_connection() in unix socket case as it is not an
 	openvas stream socket.
