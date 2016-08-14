@@ -1,3 +1,8 @@
+2016-08-15  Hani Benhabiles  <hani.benhabiles@greenbone.net>
+
+	* src/comm.c (is_client_present), src/hosts.c (hosts_read_client): Check
+	socket type with fd_is_stream() instead of unix_socket_path variable.
+
 2016-08-12  Hani Benhabiles  <hani.benhabiles@greenbone.net>
 
 	* src/comm.c (is_client_present): Don't call

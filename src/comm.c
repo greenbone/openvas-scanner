@@ -48,8 +48,6 @@
 #include "sighand.h"
 #include "utils.h"
 
-extern char *unix_socket_path;
-
 /**
  * @brief Initializes the communication between the scanner (us) and the client.
  *
@@ -120,15 +118,17 @@ is_client_present (int soc)
 {
   fd_set rd;
   struct timeval tv;
-  int m, e;
+  int e;
 
-  stream_zero (&rd);
-  m = stream_set (soc, &rd);
+  FD_ZERO (&rd);
+  if (fd_is_stream (soc))
+    soc = openvas_get_socket_from_connection (soc);
+  FD_SET (soc, &rd);
 again:
   tv.tv_sec = 2;
   tv.tv_usec = 0;
   errno = 0;
-  e = select (m + 1, &rd, NULL, NULL, &tv);
+  e = select (soc + 1, &rd, NULL, NULL, &tv);
   if (e < 0)
     {
       if (errno == EINTR)
@@ -136,8 +136,6 @@ again:
       return 0;
     }
 
-  if (!unix_socket_path)
-    soc = openvas_get_socket_from_connection (soc);
   if (e > 0 && !data_left (soc))
     return 0;
   return 1;
