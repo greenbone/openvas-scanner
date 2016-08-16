@@ -1,3 +1,8 @@
+2016-08-17  Hani Benhabiles  <hani.benhabiles@greenbone.net>
+
+	* src/openvassd.c (scanner_thread): Adjust serving process title in unix
+	socket case.
+
 2016-08-15  Hani Benhabiles  <hani.benhabiles@greenbone.net>
 
 	* src/comm.c (is_client_present), src/hosts.c (hosts_read_client): Check

@@ -430,7 +430,7 @@ scanner_thread (struct arglist *globals)
   len = sizeof (addr);
   getpeername (soc, (struct sockaddr *) &addr, &len);
   sockaddr_as_str (&addr, asciiaddr);
-  proctitle_set ("openvassd: Serving %s", asciiaddr);
+  proctitle_set ("openvassd: Serving %s", unix_socket_path ?: asciiaddr);
 
   /* Everyone runs with a nicelevel of 10 */
   if (prefs_get_bool ("be_nice"))
