@@ -1,3 +1,8 @@
+2016-08-18  Matthew Mundell <matthew.mundell@greenbone.net>
+
+	* tools/greenbone-nvt-sync.in: Expect proxy auth file in
+	OPENVAS_SYSCONF_DIR.  Patch by Sven Haardiek.
+
 2016-08-17  Hani Benhabiles  <hani.benhabiles@greenbone.net>
 
 	* src/openvassd.c (scanner_thread): Adjust serving process title in unix
