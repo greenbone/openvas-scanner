@@ -49,6 +49,7 @@
 #include <sys/wait.h>     /* for waitpid */
 #include <sys/un.h>
 #include <sys/stat.h>
+#include <pwd.h>
 
 #include <openvas/misc/network.h>    /* for ovas_scanner_context_t */
 #include <openvas/misc/openvas_proctitle.h> /* for proctitle_set */
@@ -598,12 +599,13 @@ main_loop ()
  * @return 0 on success. -1 on failure.
  */
 static int
-init_unix_network (int *sock, const char *unix_socket_path)
+init_unix_network (int *sock, const char *owner)
 {
   struct sockaddr_un addr;
   struct stat ustat;
   mode_t oldmask = 0;
   int unix_socket;
+  struct passwd *pwd;
 
   unix_socket = socket (AF_UNIX, SOCK_STREAM, 0);
   if (unix_socket == -1)
@@ -627,6 +629,22 @@ init_unix_network (int *sock, const char *unix_socket_path)
                  unix_socket_path, strerror (errno));
       return -1;
     }
+
+  if (owner)
+    {
+      pwd = getpwnam (owner);
+      if (!pwd)
+        {
+          log_write ("%s: User %s not found.", __FUNCTION__, owner);
+          return -1;
+        }
+      if (chown (unix_socket_path, pwd->pw_uid, -1) == -1)
+        {
+          log_write ("%s: chown: %s", __FUNCTION__, strerror (errno));
+          return -1;
+        }
+    }
+
   if (oldmask)
     umask (oldmask);
   if (listen (unix_socket, 128) == -1)
@@ -789,6 +807,7 @@ main (int argc, char *argv[])
   static gchar *config_file = NULL;
   static gchar *gnutls_priorities = "NORMAL";
   static gchar *dh_params = NULL;
+  static gchar *listen_owner = NULL;
   static gboolean print_specs = FALSE;
   static gboolean print_sysconfdir = FALSE;
   static gboolean only_cache = FALSE;
@@ -817,6 +836,8 @@ main (int argc, char *argv[])
      "Diffie-Hellman parameters file", "<string>"},
     {"unix-socket", 'c', 0, G_OPTION_ARG_FILENAME, &unix_socket_path,
      "Path of unix socket to listen on", "<filename>"},
+    {"listen-owner", '\0', 0, G_OPTION_ARG_STRING, &listen_owner,
+     "Owner of the unix socket", "<string>"},
     {NULL, 0, 0, 0, NULL, NULL, NULL}
   };
 
@@ -895,7 +916,7 @@ main (int argc, char *argv[])
     return 1;
   if (!exit_early && unix_socket_path)
     {
-      if (init_unix_network (&global_iana_socket, unix_socket_path))
+      if (init_unix_network (&global_iana_socket, listen_owner))
         return 1;
     }
   else if (!exit_early)

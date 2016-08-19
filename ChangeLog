@@ -1,3 +1,8 @@
+2016-08-19  Hani Benhabiles  <hani.benhabiles@greenbone.net>
+
+	* src/openvassd.c (main): Add --listen-owner option.
+	(init_unix_network): Add parameter for socket owner.
+
 2016-08-18  Matthew Mundell <matthew.mundell@greenbone.net>
 
 	* tools/greenbone-nvt-sync.in: Expect proxy auth file in
