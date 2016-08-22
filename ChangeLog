@@ -1,5 +1,10 @@
 2016-08-22  Hani Benhabiles  <hani.benhabiles@greenbone.net>
 
+	* src/openvassd.c (main): Add --listen-mode option.
+	(init_unix_network): Add parameter for socket file mode.
+
+2016-08-22  Hani Benhabiles  <hani.benhabiles@greenbone.net>
+
 	* src/openvassd.c (main): Add --listen-group option.
 	(init_unix_network): Add parameter for socket group.
 

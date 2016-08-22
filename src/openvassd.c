@@ -600,7 +600,8 @@ main_loop ()
  * @return 0 on success. -1 on failure.
  */
 static int
-init_unix_network (int *sock, const char *owner, const char *group)
+init_unix_network (int *sock, const char *owner, const char *group,
+                   const char *mode)
 {
   struct sockaddr_un addr;
   struct stat ustat;
@@ -660,8 +661,23 @@ init_unix_network (int *sock, const char *owner, const char *group)
         }
     }
 
-  if (oldmask)
+  if (mode)
+    {
+      mode_t omode = strtol (mode, 0, 8);
+      if (omode <= 0 || omode > 4095)
+        {
+          log_write ("%s: Erroneous liste-mode value", __FUNCTION__);
+          return -1;
+        }
+      if (chmod (unix_socket_path, strtol (mode, 0, 8)) == -1)
+        {
+          log_write ("%s: chmod: %s", __FUNCTION__, strerror (errno));
+          return -1;
+        }
+    }
+  else if (oldmask)
     umask (oldmask);
+
   if (listen (unix_socket, 128) == -1)
     {
       log_write ("%s: Error on listen(): %s", __FUNCTION__, strerror (errno));
@@ -824,6 +840,7 @@ main (int argc, char *argv[])
   static gchar *dh_params = NULL;
   static gchar *listen_owner = NULL;
   static gchar *listen_group = NULL;
+  static gchar *listen_mode = NULL;
   static gboolean print_specs = FALSE;
   static gboolean print_sysconfdir = FALSE;
   static gboolean only_cache = FALSE;
@@ -856,6 +873,8 @@ main (int argc, char *argv[])
      "Owner of the unix socket", "<string>"},
     {"listen-group", '\0', 0, G_OPTION_ARG_STRING, &listen_group,
      "Group of the unix socket", "<string>"},
+    {"listen-mode", '\0', 0, G_OPTION_ARG_STRING, &listen_mode,
+     "File mode of the unix socket", "<string>"},
     {NULL, 0, 0, 0, NULL, NULL, NULL}
   };
 
@@ -934,7 +953,8 @@ main (int argc, char *argv[])
     return 1;
   if (!exit_early && unix_socket_path)
     {
-      if (init_unix_network (&global_iana_socket, listen_owner, listen_group))
+      if (init_unix_network (&global_iana_socket, listen_owner, listen_group,
+                             listen_mode))
         return 1;
     }
   else if (!exit_early)
