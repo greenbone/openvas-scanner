@@ -605,8 +605,8 @@ init_unix_network (int *sock, const char *owner, const char *group,
 {
   struct sockaddr_un addr;
   struct stat ustat;
-  mode_t oldmask = 0;
   int unix_socket;
+  mode_t omode;
 
   unix_socket = socket (AF_UNIX, SOCK_STREAM, 0);
   if (unix_socket == -1)
@@ -618,10 +618,8 @@ init_unix_network (int *sock, const char *owner, const char *group,
   strncpy (addr.sun_path, unix_socket_path, sizeof (addr.sun_path));
   if (!stat (addr.sun_path, &ustat))
     {
-      /* Remove socket so we can bind(). Keep same permissions when recreating
-       * it. */
+      /* Remove socket so we can bind(). */
       unlink (addr.sun_path);
-      oldmask = umask (~ustat.st_mode);
     }
   if (bind (unix_socket, (struct sockaddr *) &addr, sizeof (struct sockaddr_un))
       == -1)
@@ -661,22 +659,19 @@ init_unix_network (int *sock, const char *owner, const char *group,
         }
     }
 
-  if (mode)
-    {
-      mode_t omode = strtol (mode, 0, 8);
-      if (omode <= 0 || omode > 4095)
-        {
-          log_write ("%s: Erroneous liste-mode value", __FUNCTION__);
-          return -1;
-        }
-      if (chmod (unix_socket_path, strtol (mode, 0, 8)) == -1)
-        {
-          log_write ("%s: chmod: %s", __FUNCTION__, strerror (errno));
-          return -1;
-        }
-    }
-  else if (oldmask)
-    umask (oldmask);
+  if (!mode)
+    mode = "660";
+ omode = strtol (mode, 0, 8);
+ if (omode <= 0 || omode > 4095)
+   {
+     log_write ("%s: Erroneous liste-mode value", __FUNCTION__);
+     return -1;
+   }
+ if (chmod (unix_socket_path, strtol (mode, 0, 8)) == -1)
+   {
+     log_write ("%s: chmod: %s", __FUNCTION__, strerror (errno));
+     return -1;
+   }
 
   if (listen (unix_socket, 128) == -1)
     {

@@ -1,5 +1,10 @@
 2016-08-22  Hani Benhabiles  <hani.benhabiles@greenbone.net>
 
+	* src/openvassd.c (init_unix_network): Set the default socket file mode
+	to 660.
+
+2016-08-22  Hani Benhabiles  <hani.benhabiles@greenbone.net>
+
 	* src/openvassd.c (main): Add --listen-mode option.
 	(init_unix_network): Add parameter for socket file mode.
 
