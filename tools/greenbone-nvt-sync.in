@@ -78,7 +78,7 @@ SELFTEST_FAIL=0
 PORT=24
 
 # Directory where pidfiles are located
-PIDFILEDIR="@OPENVAS_PID_DIR@"
+PIDFILEDIR="@OPENVAS_RUN_DIR@"
 
 # Directory where the OpenVAS configuration is located
 OPENVAS_SYSCONF_DIR="@OPENVAS_SYSCONF_DIR@"

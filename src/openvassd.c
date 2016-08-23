@@ -905,6 +905,10 @@ main (int argc, char *argv[])
       printf ("Can't use --unix-socket with --port or --address.\n");
       exit (1);
     }
+
+  /* Default behaviour is to listen on unix file socket. */
+  if (!address && !port && !unix_socket_path)
+    unix_socket_path = g_build_filename (OPENVAS_RUN_DIR, "openvassd.sock", NULL);
   if (port != NULL)
     {
       scanner_port = atoi (port);
