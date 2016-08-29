@@ -1,3 +1,7 @@
+2016-08-29  Jan-Oliver Wagner <jan-oliver.wagner@greenbone.net>
+
+	* src/attack.c: Removed an unneeded include.
+
 2016-08-23  Hani Benhabiles  <hani.benhabiles@greenbone.net>
 
 	* CMakeLists.txt, src/CMakeLists.txt, tools/greenbone-nvt-sync.in

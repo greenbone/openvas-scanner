@@ -43,7 +43,6 @@
 #include <openvas/misc/network.h>        /* for auth_printf */
 #include <openvas/misc/nvt_categories.h> /* for ACT_INIT */
 #include <openvas/misc/pcap_openvas.h>   /* for v6_is_local_ip */
-#include <openvas/misc/plugutils.h>      /* for plug_get_launch */
 #include <openvas/misc/prefs.h>          /* for prefs_get() */
 #include <openvas/misc/internal_com.h>
 
