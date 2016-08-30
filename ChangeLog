@@ -1,3 +1,9 @@
+2016-08-30  Michael Wiegand <michael.wiegand@greenbone.net>
+
+	Preparing the openvas-scanner 5.0.6 release.
+
+	* CHANGES: Updated.
+
 2016-07-28  Matthew Mundell <matthew.mundell@greenbone.net>
 
 	Revert part of the r25384 backport.

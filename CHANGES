@@ -1,3 +1,23 @@
+openvas-scanner 5.0.6 (2016-08-30)
+
+This is the sixth maintenance release of the openvas-scanner 5.0 module for
+the Open Vulnerability Assessment System release 8 (OpenVAS-8).
+
+This release adds support for the 'scanner_plugins_timeout' and 'timeout_retry'
+preferences, addresses a number of memory leaks and improves signal handling in
+scanner processes.
+
+Many thanks to everyone who contributed to this release:
+Hani Benhabiles and Matthew Mundell.
+
+Main changes compared to 5.0.5:
+* Support for the 'scanner_plugins_timeout' preference has been added.
+* Support for the 'timeout_retry' preference has been added.
+* A number of memory leaks have been fixed.
+* Signal handling in scanner processes has been improved.
+* Documentation has been updated.
+
+
 openvas-scanner 5.0.5 (2015-12-21)
 
 This is the fifth maintenance release of the openvas-scanner 5.0 module for
