@@ -1,3 +1,7 @@
+2016-08-31  Jan-Oliver Wagner <jan-oliver.wagner@greenbone.net>
+
+	* src/ntp.c: Remove unneeded includes.
+
 2016-08-29  Jan-Oliver Wagner <jan-oliver.wagner@greenbone.net>
 
 	* src/attack.c: Removed an unneeded include.

@@ -30,13 +30,9 @@
 
 #include <glib.h>
 
-#include <openvas/base/nvti.h>  /* for nvti_name */
-
 #include <openvas/misc/network.h>    /* for recv_line */
 #include <openvas/misc/internal_com.h> /* for INTERNAL_COMM_MSG_TYPE_DATA */
-#include <openvas/misc/prefs.h>        /* for prefs_get() */
-
-#include <openvas/base/nvticache.h>     /* for nvticache_t */
+#include <openvas/misc/prefs.h>        /* for prefs_set() */
 
 #include "ntp.h"
 #include "otp.h"
