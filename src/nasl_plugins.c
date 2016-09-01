@@ -208,7 +208,6 @@ nasl_plugin_launch (struct arglist *globals, struct arglist *plugin,
   nargs.oid = oid;
 
   module = create_process ((process_func_t) nasl_thread, &nargs);
-  arg_free (plugin);
   return module;
 }
 
