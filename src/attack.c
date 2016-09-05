@@ -214,20 +214,22 @@ launch_plugin (struct arglist *globals, struct scheduler_plugin *plugin,
 {
   int optimize = prefs_get_bool ("optimize_test");
   int category;
-  char *oid;
+  char *oid, *name;
   gboolean network_scan = FALSE;
 
   oid = plugin->oid;
   category = nvticache_get_category (oid);
+  name = nvticache_get_name (oid);
   if (scan_is_stopped ())
     {
       if (category != ACT_LAST)
         {
           plugin->running_state = PLUGIN_STATUS_DONE;
+          g_free (name);
           return 0;
         }
       else
-        log_write ("Stopped scan wrap-up: Launching %s", oid);
+        log_write ("Stopped scan wrap-up: Launching %s (%s)", name, oid);
     }
 
   if (network_scan_status (globals) == NSS_BUSY)
@@ -242,9 +244,10 @@ launch_plugin (struct arglist *globals, struct scheduler_plugin *plugin,
         {
           if (prefs_get_bool ("log_whole_attack"))
             log_write
-              ("Not launching %s against %s %s (this is not an error)",
-               oid, hostname, "because safe checks are enabled");
+              ("Not launching %s (%s) against %s because safe checks are"
+               " enabled (this is not an error)", name, oid, hostname);
           plugin->running_state = PLUGIN_STATUS_DONE;
+          g_free (name);
           return 0;
         }
 
@@ -262,6 +265,7 @@ launch_plugin (struct arglist *globals, struct scheduler_plugin *plugin,
                            "been lanched in the past (this is not an error)",
                            oid, hostname);
               plugin->running_state = PLUGIN_STATUS_DONE;
+              g_free (name);
               return 0;
             }
           else
@@ -291,11 +295,13 @@ launch_plugin (struct arglist *globals, struct scheduler_plugin *plugin,
           if (pid < 0)
             {
               plugin->running_state = PLUGIN_STATUS_UNRUN;
+              g_free (name);
               return ERR_CANT_FORK;
             }
 
           if (prefs_get_bool ("log_whole_attack"))
-            log_write ("Launching %s against %s [%d]", oid, hostname, pid);
+            log_write ("Launching %s (%s) against %s [%d]", name, oid, hostname,
+                       pid);
 
           /* Stop the test if the host is 'dead' */
           if (kb_item_get_int (kb, "Host/dead") > 0
@@ -304,6 +310,7 @@ launch_plugin (struct arglist *globals, struct scheduler_plugin *plugin,
               log_write ("The remote host (%s) is dead", hostname);
               pluginlaunch_stop ();
               plugin->running_state = PLUGIN_STATUS_DONE;
+              g_free (name);
               return ERR_HOST_DEAD;
             }
         }
@@ -312,13 +319,14 @@ launch_plugin (struct arglist *globals, struct scheduler_plugin *plugin,
           plugin->running_state = PLUGIN_STATUS_DONE;
           if (prefs_get_bool ("log_whole_attack"))
             log_write
-              ("Not launching %s against %s %s (this is not an error)",
-               oid, hostname, error);
+              ("Not launching %s (%s) against %s %s (this is not an error)",
+               name, oid, hostname, error);
         }
     }                           /* if(plugins->launch) */
   else
     plugin->running_state = PLUGIN_STATUS_DONE;
 
+  g_free (name);
   return 0;
 }
 

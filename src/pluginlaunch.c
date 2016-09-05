@@ -196,12 +196,16 @@ update_running_processes (void)
                       now.tv_usec += 1000000;
                     }
                   if (log_whole)
-                    log_write
-                      ("%s (process %d) finished its job in %ld.%.3ld seconds",
-                       oid, processes[i].pid,
-                       (long) (now.tv_sec - processes[i].start.tv_sec),
-                       (long) ((now.tv_usec -
-                                processes[i].start.tv_usec) / 1000));
+                    {
+                      char *name = nvticache_get_name (oid);
+                      log_write
+                        ("%s (%s) [%d] finished its job in %ld.%.3ld seconds",
+                         name, oid, processes[i].pid,
+                         (long) (now.tv_sec - processes[i].start.tv_sec),
+                         (long) ((now.tv_usec -
+                                  processes[i].start.tv_usec) / 1000));
+                      g_free (name);
+                    }
                   now = old_now;
                   do
                     {
