@@ -92,7 +92,7 @@ forward (int in, int out)
           e = nsend (out, buf + n, len - n, 0);
           if (e < 0 && errno == EINTR)
             continue;
-          else if (e <= 0)
+          else if (e < 0)
             return -1;
           else
             n += e;
