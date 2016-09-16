@@ -171,9 +171,6 @@ ntp_read_prefs (int soc)
     {
       int n;
       input[0] = '\0';
-#if DEBUG_SSL > 2
-      log_write ("ntp_read_prefs > soc=%d\n", soc);
-#endif
       n = recv_line (soc, input, input_sz - 1);
 
       if (n < 0 || input[0] == '\0')

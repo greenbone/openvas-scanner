@@ -1,3 +1,18 @@
+2016-09-16  Hani Benhabiles  <hani.benhabiles@greenbone.net>
+
+	Remove support for OTP over TCP sockets.
+
+	* src/comm.c (is_client_present), src/hosts.c (hosts_read_client),
+	src/ntp.c (ntp_read_prefs): Remove handling of otp over tcp.
+
+	* src/openvassd.c (loading_client_handle, loading_handler_start)
+	(scanner_thread, main_loop): Remove handling of otp over tcp.
+	(init_ssl_ctx, init_network): Remove function.
+	(main): Remove --listen --port --gnutls-priorities and --dh-params
+	cli parameters.
+
+	* doc/openvassd.8.in: Update documentation.
+
 2016-09-09  Hani Benhabiles  <hani.benhabiles@greenbone.net>
 
 	* src/hosts.c (forward): Don't end sending loop when nsend() returns 0.

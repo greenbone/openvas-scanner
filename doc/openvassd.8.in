@@ -2,8 +2,8 @@
 .SH NAME
 openvassd \- The Scanner of the Open Vulnerability Assessment System (OpenVAS)
 .SH SYNOPSIS
-.BI "openvassd [\|-v\|] [\|-h\|]  [\|-c " config-file\| "] [\|-a " address\| 
-.BI "] [\|-p " port-number\| "] [\|-D\|] [\|-R\|] [\|-P\|] [\|-q\|] [\|-f\|]"
+.BI "openvassd [\|-v\|] [\|-h\|]  [\|-c " config-file\| "]
+.BI " [\|-D\|] [\|-R\|] [\|-P\|] [\|-q\|] [\|-f\|]"
 
 .SH DESCRIPTION
 .B OpenVAS
@@ -24,37 +24,6 @@ by default (unless you specify \-f as an option).
 .BI "-c " <config-file> ", --config-file=" <config-file>
 Use the alternate configuration file instead of 
 .I @OPENVASSD_CONF@
-
-.TP 
-.BI "-a " <address> ", --listen=" <address>
-Tell the scanner to only listen to connections on the address
-.I <address>
-which is an IP, not a machine name. For instance, 
-"openvassd \-a 192.168.1.1"
-will make 
-.B openvassd
-only listen to requests going to 
-.I 192.168.1.1
-This option is useful if you are running openvassd on a gateway and if you don't
-want people on the outside to connect to your 
-.BR openvassd .
-
-.TP 
-.BI "-p " <port-number> ", --port=" <port-number>
-Tell the scanner to listen on connection on the port <port-number> rather
-than listening on port 9391 (default).
-
-.TP 
-.BI " --gnutls-priorities=" <priority-string>
-Sets the GnuTLS priority string for the listening socket to adjust the supported
-cipher suites.
-
-.TP
-.BI " --dh-params=" <file>
-Sets the path to a PEM file containing Diffie-Hellman parameters. Needed for key
-DHE-based key exchange algorithms that provide Perfect Forward Secrecy.
-This file could be generated using tools like "openssl dhparam" and
-"certtool \-\-generate-dh-params".
 
 .TP 
 .B "-f, --foreground"

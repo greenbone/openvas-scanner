@@ -52,7 +52,6 @@
 #include <pwd.h>
 #include <grp.h>
 
-#include <openvas/misc/network.h>    /* for ovas_scanner_context_t */
 #include <openvas/misc/openvas_proctitle.h> /* for proctitle_set */
 #include <openvas/misc/openvas_logging.h>  /* for setup_legacy_log_handler */
 #include <openvas/base/pidfile.h>    /* for pidfile_create */
@@ -132,11 +131,6 @@ static openvassd_option openvassd_defaults[] = {
   {"timeout_retry", "3"},
   {NULL, NULL}
 };
-
-/**
- * SSL context may be kept once it is inited.
- */
-static ovas_scanner_context_t ovas_scanner_ctx;
 
 gchar *unix_socket_path = NULL;
 
@@ -241,28 +235,14 @@ handle_termination_signal (int sig)
 static void
 loading_client_handle (int soc)
 {
-  int soc2, opt = 1;
+  int opt = 1;
   if (soc <= 0)
     return;
 
-  if (unix_socket_path)
-    soc2 = soc;
-  else
-    soc2 = ovas_scanner_context_attach (ovas_scanner_ctx, soc);
-  if (soc2 < 0)
-    {
-      close (soc);
-      return;
-    }
   setsockopt (soc, SOL_SOCKET, SO_KEEPALIVE, &opt, sizeof (opt));
-  comm_loading (soc2);
-  if (!unix_socket_path)
-    close_stream_connection (soc2);
-  else
-    {
-      shutdown (soc, 2);
-      close (soc);
-    }
+  comm_loading (soc);
+  shutdown (soc, 2);
+  close (soc);
 }
 
 /*
@@ -319,13 +299,13 @@ loading_handler_start ()
   while (1)
     {
       unsigned int lg_address;
-      struct sockaddr_in6 address6;
+      struct sockaddr_un address;
       int soc;
 
       if (loading_stop_signal || kill (parent_pid, 0) < 0)
         break;
-      lg_address = sizeof (struct sockaddr_in6);
-      soc = accept (global_iana_socket, (struct sockaddr *) (&address6),
+      lg_address = sizeof (struct sockaddr_un);
+      soc = accept (global_iana_socket, (struct sockaddr *) (&address),
                     &lg_address);
       loading_client_handle (soc);
       sleep (1);
@@ -422,17 +402,11 @@ handle_client (struct arglist *globals)
 static void
 scanner_thread (struct arglist *globals)
 {
-  char asciiaddr[INET6_ADDRSTRLEN];
-  int opt = 1, soc2 = -1, soc;
-  struct sockaddr_storage addr;
-  socklen_t len;
+  int opt = 1, soc;
 
   nvticache_reset ();
   soc = arg_get_value_int (globals, "global_socket");
-  len = sizeof (addr);
-  getpeername (soc, (struct sockaddr *) &addr, &len);
-  sockaddr_as_str (&addr, asciiaddr);
-  proctitle_set ("openvassd: Serving %s", unix_socket_path ?: asciiaddr);
+  proctitle_set ("openvassd: Serving %s", unix_socket_path);
 
   /* Everyone runs with a nicelevel of 10 */
   if (prefs_get_bool ("be_nice"))
@@ -447,72 +421,25 @@ scanner_thread (struct arglist *globals)
   /* Close the scanner thread - it is useless for us now */
   close (global_iana_socket);
 
-  if (unix_socket_path)
-    soc2 = soc;
-  else
-    soc2 = ovas_scanner_context_attach (ovas_scanner_ctx, soc);
-  if (soc2 < 0)
+  if (soc < 0)
     goto shutdown_and_exit;
-
-  /* FIXME: The pre-gnutls code optionally printed information about
-   * the peer's certificate at this point.
-   */
 
   setsockopt (soc, SOL_SOCKET, SO_KEEPALIVE, &opt, sizeof (opt));
   /* arg_set_value *replaces* an existing value, but it shouldn't fail here */
   arg_add_value (globals, "parent_socket", ARG_INT, GSIZE_TO_POINTER (soc));
-  arg_set_value (globals, "global_socket", GSIZE_TO_POINTER (soc2));
+  arg_set_value (globals, "global_socket", GSIZE_TO_POINTER (soc));
 
-  if (comm_init (soc2) < 0)
-    {
-      if (!unix_socket_path)
-        close_stream_connection (soc);
-      exit (0);
-    }
+  if (comm_init (soc) < 0)
+    exit (0);
   handle_client (globals);
 
 shutdown_and_exit:
-  if (soc2 >= 0 && unix_socket_path)
-    close_stream_connection (soc2);
-  else
-    {
-      shutdown (soc, 2);
-      close (soc);
-    }
+  shutdown (soc, 2);
+  close (soc);
 
   /* Kill left overs */
   end_daemon_mode ();
   exit (0);
-}
-
-static void
-init_ssl_ctx (const char *priority, const char *dhparams)
-{
-  if (openvas_SSL_init () < 0)
-    {
-      log_write ("Could not initialize openvas SSL!\n");
-      exit (1);
-    }
-
-  /* Only initialize ovas_scanner_ctx once */
-  if (ovas_scanner_ctx == NULL && !unix_socket_path)
-    {
-      const char *cert, *key, *passwd, *ca_file;
-
-      ca_file = prefs_get ("ca_file");
-      cert = prefs_get ("cert_file");
-      key = prefs_get ("key_file");
-
-      passwd = prefs_get ("pem_password");
-      ovas_scanner_ctx = ovas_scanner_context_new
-                          (OPENVAS_ENCAPS_TLScustom, cert, key, passwd, ca_file,
-                           priority, dhparams);
-      if (!ovas_scanner_ctx)
-        {
-          log_write ("Could not create ovas_scanner_ctx");
-          exit (1);
-        }
-    }
 }
 
 /*
@@ -560,21 +487,18 @@ main_loop ()
     {
       int soc;
       unsigned int lg_address;
-      struct sockaddr_in6 address6;
+      struct sockaddr_un address;
       struct arglist *globals;
 
       check_termination ();
       check_reload ();
       wait_for_children1 ();
-      lg_address = sizeof (struct sockaddr_in6);
-      soc = accept (global_iana_socket, (struct sockaddr *) (&address6),
+      lg_address = sizeof (struct sockaddr_un);
+      soc = accept (global_iana_socket, (struct sockaddr *) (&address),
                     &lg_address);
       if (soc == -1)
         continue;
 
-      /*
-       * MA: you cannot share an open SSL connection through fork/multithread
-       * The SSL connection shall be open _after_ the fork */
       globals = g_malloc0 (sizeof (struct arglist));
       arg_add_value (globals, "global_socket", ARG_INT, GSIZE_TO_POINTER (soc));
 
@@ -684,65 +608,6 @@ init_unix_network (int *sock, const char *owner, const char *group,
 }
 
 /**
- * Initialization of the network :
- * we setup the socket that will listen for incoming connections on port \<port\>
- * on address \<addr\>
- *
- * @param port Port on which to listen.
- * @param[out] sock Socket to be initialized.
- * @param addr Adress.
- *
- * @return 0 on success. -1 on failure.
- */
-static int
-init_network (int port, int *sock, const char *addr_str)
-{
-  int option = 1;
-  struct sockaddr_storage address;
-  struct sockaddr_in *addr4 = (struct sockaddr_in *) &address;
-  struct sockaddr_in6 *addr6 = (struct sockaddr_in6 *) &address;
-
-  if (inet_pton (AF_INET6, addr_str, &addr6->sin6_addr) > 0)
-    {
-      address.ss_family = AF_INET6;
-      addr6->sin6_port = htons (port);
-    }
-  else if (inet_pton (AF_INET, addr_str, &addr4->sin_addr) > 0)
-    {
-      address.ss_family = AF_INET;
-      addr4->sin_port = htons (port);
-    }
-  else
-    {
-      printf ("Invalid IP address.\n");
-      printf ("Please use --help for more information.\n");
-      return -1;
-    }
-
-  if ((*sock = socket (address.ss_family, SOCK_STREAM, 0)) == -1)
-    {
-      int ec = errno;
-      log_write ("socket(AF_INET): %s", strerror (ec));
-      return -1;
-    }
-  setsockopt (*sock, SOL_SOCKET, SO_REUSEADDR, &option, sizeof (int));
-  if (bind (*sock, (struct sockaddr *) &address, sizeof (address)) == -1)
-    {
-      log_write ("bind() failed : %s\n", strerror (errno));
-      return -1;
-    }
-  if (listen (*sock, 512) == -1)
-    {
-      log_write ("listen() failed : %s\n", strerror (errno));
-      shutdown (*sock, 2);
-      close (*sock);
-      return -1;
-    }
-
-  return 0;
-}
-
-/**
  * @brief Initialize everything.
  *
  * @param stop_early 0: do some initialization, 1: no initialization.
@@ -820,7 +685,7 @@ gcrypt_init ()
 int
 main (int argc, char *argv[])
 {
-  int exit_early = 0, scanner_port = 9391, ret;
+  int exit_early = 0, ret;
   pid_t handler_pid;
 
   proctitle_init (argc, argv);
@@ -828,11 +693,7 @@ main (int argc, char *argv[])
 
   static gboolean display_version = FALSE;
   static gboolean dont_fork = FALSE;
-  static gchar *address = NULL;
-  static gchar *port = NULL;
   static gchar *config_file = NULL;
-  static gchar *gnutls_priorities = "NORMAL";
-  static gchar *dh_params = NULL;
   static gchar *listen_owner = NULL;
   static gchar *listen_group = NULL;
   static gchar *listen_mode = NULL;
@@ -846,10 +707,6 @@ main (int argc, char *argv[])
      "Display version information", NULL},
     {"foreground", 'f', 0, G_OPTION_ARG_NONE, &dont_fork,
      "Do not run in daemon mode but stay in foreground", NULL},
-    {"listen", 'a', 0, G_OPTION_ARG_STRING, &address,
-     "Listen on <address>", "<address>"},
-    {"port", 'p', 0, G_OPTION_ARG_STRING, &port,
-     "Use port number <number>", "<number>"},
     {"config-file", 'c', 0, G_OPTION_ARG_FILENAME, &config_file,
      "Configuration file", "<filename>"},
     {"cfg-specs", 's', 0, G_OPTION_ARG_NONE, &print_specs,
@@ -858,10 +715,6 @@ main (int argc, char *argv[])
      "Print system configuration directory (set at compile time)", NULL},
     {"only-cache", 'C', 0, G_OPTION_ARG_NONE, &only_cache,
      "Exit once the NVT cache has been initialized or updated", NULL},
-    {"gnutls-priorities", '\0', 0, G_OPTION_ARG_STRING, &gnutls_priorities,
-     "GnuTLS priorities string", "<string>"},
-    {"dh-params", '\0', 0, G_OPTION_ARG_STRING, &dh_params,
-     "Diffie-Hellman parameters file", "<string>"},
     {"unix-socket", 'c', 0, G_OPTION_ARG_FILENAME, &unix_socket_path,
      "Path of unix socket to listen on", "<filename>"},
     {"listen-owner", '\0', 0, G_OPTION_ARG_STRING, &listen_owner,
@@ -900,25 +753,8 @@ main (int argc, char *argv[])
   if (print_specs)
     exit_early = 2;           /* no cipher initialization */
 
-  if (unix_socket_path && (port || address))
-    {
-      printf ("Can't use --unix-socket with --port or --address.\n");
-      exit (1);
-    }
-
-  /* Default behaviour is to listen on unix file socket. */
-  if (!address && !port && !unix_socket_path)
+  if (!unix_socket_path)
     unix_socket_path = g_build_filename (OPENVAS_RUN_DIR, "openvassd.sock", NULL);
-  if (port != NULL)
-    {
-      scanner_port = atoi (port);
-      if ((scanner_port <= 0) || (scanner_port >= 65536))
-        {
-          printf ("Invalid port specification.\n");
-          printf ("Please use --help for more information.\n");
-          exit (1);
-        }
-    }
 
   if (display_version)
     {
@@ -950,16 +786,10 @@ main (int argc, char *argv[])
 
   if (init_openvassd (dont_fork, config_file))
     return 1;
-  if (!exit_early && unix_socket_path)
+  if (!exit_early)
     {
       if (init_unix_network (&global_iana_socket, listen_owner, listen_group,
                              listen_mode))
-        return 1;
-    }
-  else if (!exit_early)
-    {
-      if (init_network (scanner_port, &global_iana_socket,
-                        address ?: ipv6_is_enabled () ? "::" : "0.0.0.0"))
         return 1;
     }
   flush_all_kbs ();
@@ -970,7 +800,6 @@ main (int argc, char *argv[])
   if (exit_early)
     exit (0);
 
-  init_ssl_ctx (gnutls_priorities, dh_params);
   // Daemon mode:
   if (dont_fork == FALSE)
     set_daemon_mode ();

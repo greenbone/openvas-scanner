@@ -121,8 +121,6 @@ is_client_present (int soc)
   int e;
 
   FD_ZERO (&rd);
-  if (fd_is_stream (soc))
-    soc = openvas_get_socket_from_connection (soc);
   FD_SET (soc, &rd);
 again:
   tv.tv_sec = 2;

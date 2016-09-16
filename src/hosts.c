@@ -312,35 +312,28 @@ static int
 hosts_read_client (struct arglist *globals)
 {
   struct timeval tv;
-  int e = 0, rsoc;
+  int e = 0;
   fd_set rd;
 
   if (g_soc == -1)
     return 0;
 
 
-  if (fd_is_stream (g_soc))
-    rsoc = openvas_get_socket_from_connection (g_soc);
-  else
-    rsoc = g_soc;
-  if (rsoc == -1)
-    return -1;
-
   FD_ZERO (&rd);
-  FD_SET (rsoc, &rd);
+  FD_SET (g_soc, &rd);
 
   for (;;)
     {
       tv.tv_sec = 0;
       tv.tv_usec = 1000;
-      e = select (rsoc + 1, &rd, NULL, NULL, &tv);
+      e = select (g_soc, &rd, NULL, NULL, &tv);
       if (e < 0 && errno == EINTR)
         continue;
       else
         break;
     }
 
-  if (e > 0 && FD_ISSET (rsoc, &rd) != 0)
+  if (e > 0 && FD_ISSET (g_soc, &rd) != 0)
     {
       int result;
       char buf[4096];
