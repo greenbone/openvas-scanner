@@ -685,7 +685,7 @@ gcrypt_init ()
 int
 main (int argc, char *argv[])
 {
-  int exit_early = 0, ret;
+  int ret;
   pid_t handler_pid;
 
   proctitle_init (argc, argv);
@@ -750,9 +750,6 @@ main (int argc, char *argv[])
     }
   tzset ();
 
-  if (print_specs)
-    exit_early = 2;           /* no cipher initialization */
-
   if (!unix_socket_path)
     unix_socket_path = g_build_filename (OPENVAS_RUN_DIR, "openvassd.sock", NULL);
 
@@ -786,19 +783,20 @@ main (int argc, char *argv[])
 
   if (init_openvassd (dont_fork, config_file))
     return 1;
-  if (!exit_early)
+  if (!print_specs)
     {
       if (init_unix_network (&global_iana_socket, listen_owner, listen_group,
                              listen_mode))
         return 1;
     }
-  flush_all_kbs ();
 
   /* special treatment */
   if (print_specs)
-    prefs_dump ();
-  if (exit_early)
-    exit (0);
+    {
+      prefs_dump ();
+      exit (0);
+    }
+  flush_all_kbs ();
 
   // Daemon mode:
   if (dont_fork == FALSE)

@@ -1,3 +1,8 @@
+2016-09-20  Hani Benhabiles  <hani.benhabiles@greenbone.net>
+
+	* src/openvassd.c (main): Don't flush the kb when --cfg-specs is
+	provided.
+
 2016-09-16  Hani Benhabiles  <hani.benhabiles@greenbone.net>
 
 	Remove support for OTP over TCP sockets.
