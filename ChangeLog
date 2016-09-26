@@ -1,3 +1,10 @@
+2016-09-26  Timo Pollmeier <timo.pollmeier@greenbone.net>
+
+	Backport r26271.
+
+	* src/CMakeLists.txt: Add add_definitions for SCANNER_NVT_TIMEOUT to
+	have it defined in the C code.
+
 2016-09-06  Michael Wiegand <michael.wiegand@greenbone.net>
 
 	Post release version bump.
