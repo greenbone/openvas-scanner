@@ -1,3 +1,8 @@
+2016-09-26  Timo Pollmeier <timo.pollmeier@greenbone.net>
+
+	* src/CMakeLists.txt: Add add_definitions for SCANNER_NVT_TIMEOUT to
+	have it defined in the C code.
+
 2016-09-20  Hani Benhabiles  <hani.benhabiles@greenbone.net>
 
 	* src/openvassd.c (main): Don't flush the kb when --cfg-specs is

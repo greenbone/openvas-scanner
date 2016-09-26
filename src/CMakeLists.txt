@@ -132,6 +132,10 @@ if (NVT_TIMEOUT)
   add_definitions (-DNVT_TIMEOUT=${NVT_TIMEOUT})
 endif (NVT_TIMEOUT)
 
+if (SCANNER_NVT_TIMEOUT)
+  add_definitions (-DSCANNER_NVT_TIMEOUT=${SCANNER_NVT_TIMEOUT})
+endif (SCANNER_NVT_TIMEOUT)
+
 target_link_libraries (openvassd ${LIBOPENVAS_NASL_LDFLAGS}
                        ${LIBOPENVAS_BASE_LDFLAGS} ${LIBOPENVAS_MISC_LDFLAGS}
                        ${GLIB_LDFLAGS} ${GCRYPT_LDFLAGS}
