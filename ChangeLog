@@ -1,3 +1,8 @@
+2016-09-27  Hani Benhabiles  <hani.benhabiles@greenbone.net>
+
+	* src/attack.c (attack_host): Send a "Host dead" host detail when the
+	host is dead.
+
 2016-09-26  Timo Pollmeier <timo.pollmeier@greenbone.net>
 
 	* src/CMakeLists.txt: Add add_definitions for SCANNER_NVT_TIMEOUT to

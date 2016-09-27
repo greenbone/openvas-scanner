@@ -488,7 +488,19 @@ attack_host (struct arglist *globals, struct host_info *hostinfos,
                * Remote host died
                */
               if (e == ERR_HOST_DEAD)
-                goto host_died;
+                {
+                  char buffer[2048];
+                  snprintf
+                   (buffer, sizeof (buffer),
+                    "SERVER <|> LOG <|> %s <|> general/Host_Details"
+                    " <|> <host><detail><name>Host dead</name>"
+                    "<value>1</value><source><description/><type/>"
+                    "<name/></source></detail></host> <|>  <|> SERVER\n",
+                    hostname ?: "");
+
+                  internal_send (global_socket, buffer, INTERNAL_COMM_MSG_TYPE_DATA);
+                  goto host_died;
+                }
               else if (e == ERR_CANT_FORK)
                 {
                   if (forks_retry < MAX_FORK_RETRIES)
