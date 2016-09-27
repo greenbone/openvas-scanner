@@ -68,7 +68,6 @@ RSYNC_OPTIONS="--links --times --omit-dir-times $RSYNC_VERBOSE --recursive --par
 # Script and feed information which will be made available to user through
 # command line options and automated tools.
 SCRIPT_NAME="greenbone-nvt-sync"
-RESTRICTED=1
 
 # Result of selftest () is stored here. If it is not 0, the selftest has failed
 # and the sync script is unlikely to work.
@@ -110,18 +109,96 @@ log_write () {
   $LOG_CMD -p daemon.notice $1
 }
 
-log_err () {
-  $LOG_CMD -p daemon.err $1
+log_debug () {
+  $LOG_CMD -p daemon.debug "$1"
 }
 
-log_debug () {
-  $LOG_CMD -p daemon.debug $1
+log_info () {
+  $LOG_CMD -p daemon.info "$1"
+}
+
+log_notice () {
+  $LOG_CMD -p daemon.notice "$1"
+}
+
+log_warning () {
+  $LOG_CMD -p daemon.warning "$1"
+}
+
+log_err () {
+  $LOG_CMD -p daemon.err "$1"
 }
 
 stderr_write ()
 {
   echo "$1" > /dev/stderr
 }
+
+# Determine whether a GSF access key is present. If yes,
+# then use the Greenbone Security Feed. Else use the
+# Greenbone Community Feed.
+if [ -e $ACCESS_KEY ]
+then
+  RESTRICTED=1
+
+  if [ -z "$FEED_NAME" ] ; then
+    FEED_NAME="Greenbone Security Feed"
+  fi
+
+  if [ -z "$FEED_VENDOR" ] ; then
+    FEED_VENDOR="Greenbone Networks GmbH"
+  fi
+
+  if [ -z "$FEED_HOME" ] ; then
+    FEED_HOME="http://www.greenbone.net/technology/gsf.html"
+  fi
+
+  if [ $(id -u) -eq 0 ]
+  then
+    log_notice "Started as root, restarting as openvasmd"
+    su --shell /bin/sh --command "$0 $*" openvasmd
+    exit $?
+  fi
+else
+  RESTRICTED=0
+
+  if [ -z "$FEED_NAME" ] ; then
+    FEED_NAME="OpenVAS NVT Feed"
+  fi
+
+  if [ -z "$FEED_VENDOR" ] ; then
+    FEED_VENDOR="The OpenVAS Project"
+  fi
+
+  if [ -z "$FEED_HOME" ] ; then
+    FEED_HOME="http://www.openvas.org/openvas-nvt-feed.html"
+  fi
+
+  if [ -z "$COMMUNITY_NVT_RSYNC_FEED" ]; then
+    COMMUNITY_NVT_RSYNC_FEED=rsync://feed.openvas.org:/nvt-feed
+    # An alternative syntax which might work if the above doesn't:
+    # COMMUNITY_SCAP_RSYNC_FEED=rsync@feed.openvas.org::/nvt-feed
+  fi
+
+  if [ -z "$COMMUNITY_NVT_HTTP_FEED" ]; then
+    COMMUNITY_NVT_HTTP_FEED=http://www.openvas.org/openvas-nvt-feed-current.tar.bz2
+  fi
+fi
+
+RSYNC=`command -v rsync`
+WGET=`command -v wget`
+CURL=`command -v curl`
+
+if [ -z "$TMPDIR" ]; then
+  SYNC_TMP_DIR=/tmp
+  # If we have mktemp, create a temporary dir (safer)
+  if [ -n "`which mktemp`" ]; then
+    SYNC_TMP_DIR=`mktemp -t -d openvas-nvt-sync.XXXXXXXXXX` || { echo "ERROR: Cannot create temporary directory for file download" >&2; exit 1 ; }
+    trap "rm -rf $SYNC_TMP_DIR" EXIT HUP INT TRAP TERM
+  fi
+else
+  SYNC_TMP_DIR="$TMPDIR"
+fi
 
 init_sync ()
 {
@@ -184,70 +261,150 @@ get_value ()
 
 
 is_feed_current () {
-  if [ -z "$FEED_VERSION" ]
+  if [ $REFRESH_ONLY -eq 0 ]
   then
-    log_write "Could not determine feed version."
-    FEED_CURRENT=0
-    return $FEED_CURRENT
-  fi
-
-  gsmproxy=$(get_value proxy_feed | sed -r -e 's/^.*\/\///' -e 's/:([0-9]+)$/ \1/')
-  syncport=$(get_value syncport)
-  if [ "$syncport" ]
-  then
-    PORT="$syncport"
-  fi
-
-  read feeduser < $ACCESS_KEY
-  custid=`awk -F@ 'NR > 1 { exit }; { print $1 }' $ACCESS_KEY`
-  if [ -z "$feeduser" ] || [ -z "$custid" ]
-  then
-    log_err "Could not determine credentials, aborting synchronization."
-    exit 1
-  fi
-
-  if [ "$gsmproxy" = "proxy_feed" ] || [ -z "$gsmproxy" ]
-  then
-    RSYNC_SSH_PROXY_CMD=""
-  else
-    if [ -e $OPENVAS_SYSCONF_DIR/proxyauth ] && [ -r $OPENVAS_SYSCONF_DIR/proxyauth ]
+    if [ -z "$FEED_VERSION" ]
     then
-      RSYNC_SSH_PROXY_CMD="-o \"ProxyCommand corkscrew $gsmproxy %h %p $OPENVAS_SYSCONF_DIR/proxyauth\""
-    else
-      RSYNC_SSH_PROXY_CMD="-o \"ProxyCommand corkscrew $gsmproxy %h %p\""
+      log_write "Could not determine feed version."
+      FEED_CURRENT=0
+      return $FEED_CURRENT
     fi
-  fi
 
-  FEED_INFO_TEMP_DIR=`mktemp -d`
+    FEED_INFO_TEMP_DIR=`mktemp -d`
 
-  rsync -e "ssh $RSYNC_SSH_OPTS $RSYNC_SSH_PROXY_CMD -p $PORT -i $ACCESS_KEY" $RSYNC_OPTIONS $RSYNC_DELETE $RSYNC_COMPRESS $RSYNC_CHMOD "$feeduser"plugin_feed_info.inc $FEED_INFO_TEMP_DIR
+    if [ -e $ACCESS_KEY ]
+    then
+      gsmproxy=$(get_value proxy_feed | sed -r -e 's/^.*\/\///' -e 's/:([0-9]+)$/ \1/')
+      syncport=$(get_value syncport)
+      if [ "$syncport" ]
+      then
+        PORT="$syncport"
+      fi
 
-  if [ $? -ne 0 ]
-  then
-    log_err "Error: rsync failed."
+      read feeduser < $ACCESS_KEY
+      custid=`awk -F@ 'NR > 1 { exit }; { print $1 }' $ACCESS_KEY`
+      if [ -z "$feeduser" ] || [ -z "$custid" ]
+      then
+        log_err "Could not determine credentials, aborting synchronization."
+        exit 1
+      fi
+
+      if [ "$gsmproxy" = "proxy_feed" ] || [ -z "$gsmproxy" ]
+      then
+        RSYNC_SSH_PROXY_CMD=""
+      else
+        if [ -e $OPENVAS_SYSCONF_DIR/proxyauth ] && [ -r $OPENVAS_SYSCONF_DIR/proxyauth ]
+        then
+          RSYNC_SSH_PROXY_CMD="-o \"ProxyCommand corkscrew $gsmproxy %h %p $OPENVAS_SYSCONF_DIR/proxyauth\""
+        else
+          RSYNC_SSH_PROXY_CMD="-o \"ProxyCommand corkscrew $gsmproxy %h %p\""
+        fi
+      fi
+
+      rsync -e "ssh $RSYNC_SSH_OPTS $RSYNC_SSH_PROXY_CMD -p $PORT -i $ACCESS_KEY" $RSYNC_OPTIONS $RSYNC_DELETE $RSYNC_COMPRESS $RSYNC_CHMOD "$feeduser"plugin_feed_info.inc $FEED_INFO_TEMP_DIR
+
+      if [ $? -ne 0 ]
+      then
+        log_err "Error: rsync failed."
+        rm -rf "$FEED_INFO_TEMP_DIR"
+        exit 1
+      fi
+    else
+      log_notice "No Greenbone Security Feed access key found, falling back to Greenbone Community Feed"
+      eval "$RSYNC -ltvrP \"$COMMUNITY_NVT_RSYNC_FEED/plugin_feed_info.inc\" \"$FEED_INFO_TEMP_DIR\""
+      if [ $? -ne 0 ]
+      then
+        log_err "rsync failed, aborting synchronization."
+        rm -rf "$FEED_INFO_TEMP_DIR"
+        exit 1
+      fi
+    fi
+
+    FEED_VERSION_SERVER=`grep PLUGIN_SET $FEED_INFO_TEMP_DIR/plugin_feed_info.inc | sed -e 's/[^0-9]//g'`
+
+    if [ -z "$FEED_VERSION_SERVER" ]
+    then
+      echo "Could not determine server feed version."
+      rm -rf $FEED_INFO_TEMP_DIR
+      return -1
+    fi
+    # Check against FEED_VERSION
+    if [ $FEED_VERSION -lt $FEED_VERSION_SERVER ] ; then
+      FEED_CURRENT=0
+    else
+      FEED_CURRENT=1
+    fi
+    # Cleanup
     rm -rf "$FEED_INFO_TEMP_DIR"
-    exit 1
   fi
-
-  FEED_VERSION_SERVER=`grep PLUGIN_SET $FEED_INFO_TEMP_DIR/plugin_feed_info.inc | sed -e 's/[^0-9]//g'`
-
-  if [ -z "$FEED_VERSION_SERVER" ]
-  then
-    echo "Could not determine server feed version."
-    rm -rf $FEED_INFO_TEMP_DIR
-    return -1
-  fi
-  # Check against FEED_VERSION
-  if [ $FEED_VERSION -lt $FEED_VERSION_SERVER ] ; then
-    FEED_CURRENT=0
-  else
-    FEED_CURRENT=1
-  fi
-
-  # Cleanup
-  rm -rf "$FEED_INFO_TEMP_DIR"
 
   return $FEED_CURRENT
+}
+
+do_wget_community_feed () {
+  TMP_NVT="$SYNC_TMP_DIR/openvas-feed-`date +%F`-$$.tar.bz2"
+
+  log_info "Configured NVT http feed: $COMMUNITY_NVT_HTTP_FEED"
+  log_info "Downloading to: $TMP_NVT"
+  mkdir -p "$NVT_DIR" \
+    && wget "$COMMUNITY_NVT_HTTP_FEED" -O $TMP_NVT \
+    && cd "$NVT_DIR" \
+    && tar xvjf $TMP_NVT \
+    && rm -f $TMP_NVT \
+    && log_info "Download complete"
+}
+
+do_curl_community_feed () {
+  log_info "Configured NVT http feed: $COMMUNITY_NVT_HTTP_FEED"
+  log_info "Downloading to: $TMP_NVT"
+  mkdir -p "$NVT_DIR" \
+    && curl "$COMMUNITY_NVT_HTTP_FEED" -o $TMP_NVT \
+    && cd "$NVT_DIR" \
+    && tar xvjf $TMP_NVT \
+    && rm -f $TMP_NVT \
+    && log_info "Download complete"
+}
+
+do_rsync_community_feed () {
+  if [ -z "$RSYNC" ]; then
+    log_err "rsync not found!"
+  else
+    log_notice "Using rsync: $RSYNC"
+    log_notice "Configured NVT rsync feed: $COMMUNITY_NVT_RSYNC_FEED"
+    mkdir -p "$NVT_DIR"
+    eval "$RSYNC -ltvrP $RSYNC_DELETE \"$COMMUNITY_NVT_RSYNC_FEED\" \"$NVT_DIR\""
+    if [ $? -ne 0 ] ; then
+      log_err "rsync failed."
+      exit 1
+    fi
+  fi
+}
+
+do_sync_community_feed () {
+  if [ -z "$RSYNC" ] || [ $FEED_PRESENT -eq 0 ] ; then
+    if [ $FEED_PRESENT -eq 0 ] ; then
+      log_notice "rsync is not recommended for the initial sync. Falling back on http."
+    else
+      log_warning "rsync not found!"
+    fi
+    if [ -z "$WGET" ]; then
+      log_warning "GNU wget not found!"
+      if [ -z "$CURL" ]; then
+        log_warning "curl not found!"
+        log_err "no utility available in PATH environment variable to download plugins"
+        exit 1
+      else
+        log_info "Will use curl"
+        do_curl_community_feed
+      fi
+    else
+      log_info "Will use wget"
+      do_wget_community_feed
+    fi
+  else
+    log_info "Will use rsync"
+    do_rsync_community_feed
+  fi
 }
 
 sync_nvts(){
@@ -262,72 +419,78 @@ sync_nvts(){
     return
   fi
 
-  log_write "Synchronizing NVTs from the Greenbone Security Feed into $NVT_DIR..."
-  if [ $FEED_PRESENT -eq 1 ] ; then
-    FEEDCOUNT=`grep -E "nasl$|inc$" $NVT_DIR/md5sums | wc -l`
-    log_write "Current status: Using $FEED_NAME at version $FEED_VERSION ($FEEDCOUNT NVTs)"
-  else
-    log_write "Current status: No feed installed."
-  fi
-  notsynced=1
-  retried=0
-
-  mkdir -p "$NVT_DIR"
-  read feeduser < $ACCESS_KEY
-  custid=`awk -F@ 'NR > 1 { exit }; { print $1 }' $ACCESS_KEY`
-  if [ -z "$feeduser" ] || [ -z "$custid" ]
+  if [ -e $ACCESS_KEY ]
   then
-    log_err "Could not determine credentials, aborting synchronization."
-    exit 1
-  fi
-  while [ $notsynced -eq 1 ]
-  do
-
-    gsmproxy=$(get_value proxy_feed | sed -r -e 's/^.*\/\///' -e 's/:([0-9]+)$/ \1/')
-    syncport=$(get_value syncport)
-    if [ "$syncport" ]
-    then
-      PORT="$syncport"
-    fi
-
-    if [ "$gsmproxy" = "proxy_feed" ] || [ -z "$gsmproxy" ]
-    then
-      RSYNC_SSH_PROXY_CMD=""
+    log_write "Synchronizing NVTs from the Greenbone Security Feed into $NVT_DIR..."
+    if [ $FEED_PRESENT -eq 1 ] ; then
+      FEEDCOUNT=`grep -E "nasl$|inc$" $NVT_DIR/md5sums | wc -l`
+      log_write "Current status: Using $FEED_NAME at version $FEED_VERSION ($FEEDCOUNT NVTs)"
     else
-      if [ -e $OPENVAS_SYSCONF_DIR/proxyauth ] && [ -r $OPENVAS_SYSCONF_DIR/proxyauth ]; then
-        RSYNC_SSH_PROXY_CMD="-o \"ProxyCommand corkscrew $gsmproxy %h %p $OPENVAS_SYSCONF_DIR/proxyauth\""
-      else
-        RSYNC_SSH_PROXY_CMD="-o \"ProxyCommand corkscrew $gsmproxy %h %p\""
-      fi
+      log_write "Current status: No feed installed."
     fi
-    rsync -e "ssh $RSYNC_SSH_OPTS $RSYNC_SSH_PROXY_CMD -p $PORT -i $ACCESS_KEY" $RSYNC_OPTIONS $RSYNC_DELETE $RSYNC_COMPRESS $RSYNC_CHMOD $feeduser $NVT_DIR
-    if [ $? -ne 0 ]  ; then
-      log_err "rsync failed, aborting synchronization."
+    notsynced=1
+    retried=0
+
+    mkdir -p "$NVT_DIR"
+    read feeduser < $ACCESS_KEY
+    custid=`awk -F@ 'NR > 1 { exit }; { print $1 }' $ACCESS_KEY`
+    if [ -z "$feeduser" ] || [ -z "$custid" ]
+    then
+      log_err "Could not determine credentials, aborting synchronization."
       exit 1
     fi
-    eval "cd \"$NVT_DIR\" ; md5sum -c --status \"$NVT_DIR/md5sums\""
-    if [ $? -ne 0 ]  ; then
-      if [ -n "$retried" ]
+    while [ $notsynced -eq 1 ]
+    do
+
+      gsmproxy=$(get_value proxy_feed | sed -r -e 's/^.*\/\///' -e 's/:([0-9]+)$/ \1/')
+      syncport=$(get_value syncport)
+      if [ "$syncport" ]
       then
-        log_err "Feed integrity check failed twice, aborting synchronization."
-        exit 1
-      else
-        log_write "The feed integrity check failed. This may be due to a concurrent feed update or other temporary issues."
-        log_write "Sleeping 15 seconds before retrying ..."
-        sleep 15
-        retried=1
+        PORT="$syncport"
       fi
+
+      if [ "$gsmproxy" = "proxy_feed" ] || [ -z "$gsmproxy" ]
+      then
+        RSYNC_SSH_PROXY_CMD=""
+      else
+        if [ -e $OPENVAS_SYSCONF_DIR/proxyauth ] && [ -r $OPENVAS_SYSCONF_DIR/proxyauth ]; then
+          RSYNC_SSH_PROXY_CMD="-o \"ProxyCommand corkscrew $gsmproxy %h %p $OPENVAS_SYSCONF_DIR/proxyauth\""
+        else
+          RSYNC_SSH_PROXY_CMD="-o \"ProxyCommand corkscrew $gsmproxy %h %p\""
+        fi
+      fi
+      rsync -e "ssh $RSYNC_SSH_OPTS $RSYNC_SSH_PROXY_CMD -p $PORT -i $ACCESS_KEY" $RSYNC_OPTIONS $RSYNC_DELETE $RSYNC_COMPRESS $RSYNC_CHMOD $feeduser $NVT_DIR
+      if [ $? -ne 0 ]  ; then
+        log_err "rsync failed, aborting synchronization."
+        exit 1
+      fi
+      eval "cd \"$NVT_DIR\" ; md5sum -c --status \"$NVT_DIR/md5sums\""
+      if [ $? -ne 0 ]  ; then
+        if [ -n "$retried" ]
+        then
+          log_err "Feed integrity check failed twice, aborting synchronization."
+          exit 1
+        else
+          log_write "The feed integrity check failed. This may be due to a concurrent feed update or other temporary issues."
+          log_write "Sleeping 15 seconds before retrying ..."
+          sleep 15
+          retried=1
+        fi
+      else
+        notsynced=0
+      fi
+    done
+    log_write "Synchronization with the Greenbone Security Feed successful."
+    init_sync
+    if [ $FEED_PRESENT -eq 1 ] ; then
+      FEEDCOUNT=`grep -E "nasl$|inc$" $NVT_DIR/md5sums | wc -l`
+      log_write "Current status: Using $FEED_NAME at version $FEED_VERSION ($FEEDCOUNT NVTs)"
     else
-      notsynced=0
+      log_write "Current status: No feed installed."
     fi
-  done
-  log_write "Synchronization with the Greenbone Security Feed successful."
-  init_sync
-  if [ $FEED_PRESENT -eq 1 ] ; then
-    FEEDCOUNT=`grep -E "nasl$|inc$" $NVT_DIR/md5sums | wc -l`
-    log_write "Current status: Using $FEED_NAME at version $FEED_VERSION ($FEEDCOUNT NVTs)"
   else
-    log_write "Current status: No feed installed."
+    log_notice "No Greenbone Security Feed access key found, falling back to Greenbone Community Feed"
+    do_sync_community_feed
   fi
 }
 
@@ -372,22 +535,17 @@ update_openvasmd (){
 
 do_self_test ()
 {
-  RSYNC_AVAIL=`command -v rsync`
-  if [ $? -ne 0 ] ; then
-    SELFTEST_FAIL=1
-    stderr_write "The rsync binary could not be found."
-  fi
   MD5SUM_AVAIL=`command -v md5sum`
   if [ $? -ne 0 ] ; then
     SELFTEST_FAIL=1
     stderr_write "The md5sum binary could not be found."
   fi
-  if [ ! -s $ACCESS_KEY ] ; then
-    SELFTEST_FAIL=1
-    stderr_write "No valid Greenbone Security Feed subscription file found."
-    # else
-    # Test rsync
-    # Validate key
+  if [ -s $ACCESS_KEY ] ; then
+    RSYNC_AVAIL=`command -v rsync`
+    if [ $? -ne 0 ] ; then
+      SELFTEST_FAIL=1
+      stderr_write "The rsync binary could not be found."
+    fi
   fi
 }
 

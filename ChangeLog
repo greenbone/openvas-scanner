@@ -1,3 +1,20 @@
+2016-09-27  Timo Pollmeier <timo.pollmeier@greenbone.net>
+
+	Allow greenbone-nvt-sync to fall back to community feed if no access
+	key is available.
+
+	* tools/greenbone-nvt-sync.in: Add check if an access key is available
+	and use community feed as fallback.
+	(log_info, log_notice, log_warning): New functions.
+	(is_feed_current): Fall back to community feed if no access key is
+	available.
+	(do_wget_community_feed, do_curl_community_feed)
+	(do_rsync_community_feed, do_sync_community_feed): New functions.
+	(sync_feed): Fall back to community feed if no access key is
+	available.
+	(do_self_test): Do not fail if access key is missing. Check rsync
+	availablilty only in mode using access key.
+
 2016-09-27  Hani Benhabiles  <hani.benhabiles@greenbone.net>
 
 	* src/attack.c (attack_host): Send a "Host dead" host detail when the
