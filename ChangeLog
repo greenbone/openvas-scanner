@@ -1,5 +1,9 @@
 2016-09-27  Timo Pollmeier <timo.pollmeier@greenbone.net>
 
+	* tools/greenbone-nvt-sync.in: Increase version number.
+
+2016-09-27  Timo Pollmeier <timo.pollmeier@greenbone.net>
+
 	Allow greenbone-nvt-sync to fall back to community feed if no access
 	key is available.
 
