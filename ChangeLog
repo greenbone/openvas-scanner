@@ -1,3 +1,9 @@
+2016-09-30  Jan-Oliver Wagner <jan-oliver.wagner@greenbone.net>
+
+	* tools/greenbone-nvt-sync.in: Removed accidently placed
+	check for root. This is only relevant for scap/cert feed syncs,
+	not for nvt.
+
 2016-09-27  Timo Pollmeier <timo.pollmeier@greenbone.net>
 
 	* tools/greenbone-nvt-sync.in: Increase version number.

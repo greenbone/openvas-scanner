@@ -152,13 +152,6 @@ then
   if [ -z "$FEED_HOME" ] ; then
     FEED_HOME="http://www.greenbone.net/technology/gsf.html"
   fi
-
-  if [ $(id -u) -eq 0 ]
-  then
-    log_notice "Started as root, restarting as openvasmd"
-    su --shell /bin/sh --command "$0 $*" openvasmd
-    exit $?
-  fi
 else
   RESTRICTED=0
 
