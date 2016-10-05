@@ -1,3 +1,10 @@
+2016-10-05  Timo Pollmeier <timo.pollmeier@greenbone.net>
+
+	* tools/greenbone-nvt-sync.in (setup_temp_access_key)
+	(cleanup_temp_access_key): New functions.
+	(is_feed_current, sync_nvts): Use a temporary copy of the access key
+	with restrictive file access permissions if necessary.
+
 2016-09-30  Jan-Oliver Wagner <jan-oliver.wagner@greenbone.net>
 
 	* tools/greenbone-nvt-sync.in: Removed accidently placed

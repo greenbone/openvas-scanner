@@ -252,6 +252,33 @@ get_value ()
   echo "$value"
 }
 
+# Creates a restricted access copy of the access key if necessary.
+setup_temp_access_key () {
+  if [ -e "$ACCESS_KEY" ]
+  then
+    FILE_ACCESS=`stat -c%a "$ACCESS_KEY" | cut -c2-`
+  fi
+  if [ -n "$FILE_ACCESS" ] && [ "00" != "$FILE_ACCESS" ]
+  then
+    TEMP_ACCESS_KEY_DIR=`mktemp -d`
+    TEMP_ACCESS_KEY="$TEMP_ACCESS_KEY_DIR/gsf-access-key"
+    cp "$ACCESS_KEY" "$TEMP_ACCESS_KEY"
+    chmod 400 "$TEMP_ACCESS_KEY"
+  else
+    TEMP_ACCESS_KEY_DIR=""
+    TEMP_ACCESS_KEY="$ACCESS_KEY"
+  fi
+}
+
+# Deletes the read-only copy of the access key.
+cleanup_temp_access_key () {
+  if [ -n "$TEMP_ACCESS_KEY_DIR" ]
+  then
+    rm -rf "$TEMP_ACCESS_KEY_DIR"
+  fi
+  TEMP_ACCESS_KEY_DIR=""
+  TEMP_ACCESS_KEY=""
+}
 
 is_feed_current () {
   if [ $REFRESH_ONLY -eq 0 ]
@@ -282,6 +309,8 @@ is_feed_current () {
         exit 1
       fi
 
+      setup_temp_access_key
+
       if [ "$gsmproxy" = "proxy_feed" ] || [ -z "$gsmproxy" ]
       then
         RSYNC_SSH_PROXY_CMD=""
@@ -294,7 +323,7 @@ is_feed_current () {
         fi
       fi
 
-      rsync -e "ssh $RSYNC_SSH_OPTS $RSYNC_SSH_PROXY_CMD -p $PORT -i $ACCESS_KEY" $RSYNC_OPTIONS $RSYNC_DELETE $RSYNC_COMPRESS $RSYNC_CHMOD "$feeduser"plugin_feed_info.inc $FEED_INFO_TEMP_DIR
+      rsync -e "ssh $RSYNC_SSH_OPTS $RSYNC_SSH_PROXY_CMD -p $PORT -i $TEMP_ACCESS_KEY" $RSYNC_OPTIONS $RSYNC_DELETE $RSYNC_COMPRESS $RSYNC_CHMOD "$feeduser"plugin_feed_info.inc $FEED_INFO_TEMP_DIR
 
       if [ $? -ne 0 ]
       then
@@ -319,6 +348,7 @@ is_feed_current () {
     then
       echo "Could not determine server feed version."
       rm -rf $FEED_INFO_TEMP_DIR
+      cleanup_temp_access_key
       return -1
     fi
     # Check against FEED_VERSION
@@ -329,6 +359,7 @@ is_feed_current () {
     fi
     # Cleanup
     rm -rf "$FEED_INFO_TEMP_DIR"
+    cleanup_temp_access_key
   fi
 
   return $FEED_CURRENT
@@ -432,6 +463,9 @@ sync_nvts(){
       log_err "Could not determine credentials, aborting synchronization."
       exit 1
     fi
+
+    setup_temp_access_key
+
     while [ $notsynced -eq 1 ]
     do
 
@@ -452,7 +486,7 @@ sync_nvts(){
           RSYNC_SSH_PROXY_CMD="-o \"ProxyCommand corkscrew $gsmproxy %h %p\""
         fi
       fi
-      rsync -e "ssh $RSYNC_SSH_OPTS $RSYNC_SSH_PROXY_CMD -p $PORT -i $ACCESS_KEY" $RSYNC_OPTIONS $RSYNC_DELETE $RSYNC_COMPRESS $RSYNC_CHMOD $feeduser $NVT_DIR
+      rsync -e "ssh $RSYNC_SSH_OPTS $RSYNC_SSH_PROXY_CMD -p $PORT -i $TEMP_ACCESS_KEY" $RSYNC_OPTIONS $RSYNC_DELETE $RSYNC_COMPRESS $RSYNC_CHMOD $feeduser $NVT_DIR
       if [ $? -ne 0 ]  ; then
         log_err "rsync failed, aborting synchronization."
         exit 1
@@ -462,6 +496,7 @@ sync_nvts(){
         if [ -n "$retried" ]
         then
           log_err "Feed integrity check failed twice, aborting synchronization."
+          cleanup_temp_access_key
           exit 1
         else
           log_write "The feed integrity check failed. This may be due to a concurrent feed update or other temporary issues."
@@ -473,6 +508,7 @@ sync_nvts(){
         notsynced=0
       fi
     done
+    cleanup_temp_access_key
     log_write "Synchronization with the Greenbone Security Feed successful."
     init_sync
     if [ $FEED_PRESENT -eq 1 ] ; then
