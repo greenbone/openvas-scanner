@@ -57,6 +57,7 @@
 #include <openvas/base/pidfile.h>    /* for pidfile_create */
 #include <openvas/base/nvticache.h> /* nvticache_free */
 #include <openvas/base/kb.h>         /* for KB_PATH_DEFAULT */
+#include <openvas/base/gpgme_util.h>
 #include <openvas/misc/prefs.h>      /* for prefs_get() */
 
 #include <gcrypt.h> /* for gcry_control */
@@ -697,6 +698,7 @@ main (int argc, char *argv[])
   static gchar *listen_owner = NULL;
   static gchar *listen_group = NULL;
   static gchar *listen_mode = NULL;
+  static gchar *gnupg_dir = NULL;
   static gboolean print_specs = FALSE;
   static gboolean print_sysconfdir = FALSE;
   static gboolean only_cache = FALSE;
@@ -723,6 +725,8 @@ main (int argc, char *argv[])
      "Group of the unix socket", "<string>"},
     {"listen-mode", '\0', 0, G_OPTION_ARG_STRING, &listen_mode,
      "File mode of the unix socket", "<string>"},
+    {"gnupg-home", 'c', 0, G_OPTION_ARG_STRING, &gnupg_dir,
+     "Gnupg home directory", "<directory>"},
     {NULL, 0, 0, 0, NULL, NULL, NULL}
   };
 
@@ -769,6 +773,9 @@ main (int argc, char *argv[])
          "There is NO WARRANTY, to the extent permitted by law.\n\n");
       exit (0);
     }
+
+  if (gnupg_dir)
+    set_gpghome (gnupg_dir);
 
   if (!config_file)
     config_file = OPENVASSD_CONF;

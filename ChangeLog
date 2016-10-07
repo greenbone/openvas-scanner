@@ -1,3 +1,8 @@
+2016-10-07  Hani Benhabiles  <hani.benhabiles@greenbone.net>
+
+	* src/openvassd.c (main): Add --gnupg-home option. Call set_gpghome()
+	accordingly.
+
 2016-10-05  Timo Pollmeier <timo.pollmeier@greenbone.net>
 
 	* tools/greenbone-nvt-sync.in (setup_temp_access_key)
