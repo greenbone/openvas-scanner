@@ -232,9 +232,10 @@ configure_file (tools/greenbone-nvt-sync.in tools/greenbone-nvt-sync @ONLY)
 
 set (HARDENING_FLAGS            "-Wformat -Wformat-security -O2 -D_FORTIFY_SOURCE=2 -fstack-protector")
 set (LINKER_HARDENING_FLAGS     "-Wl,-z,relro -Wl,-z,now")
+set (GPGME_C_FLAGS              "-D_FILE_OFFSET_BITS=64 -DLARGEFILE_SOURCE=1")
 
-set (CMAKE_C_FLAGS_DEBUG        "${CMAKE_C_FLAGS_DEBUG} -Werror -Wextra")
-set (CMAKE_C_FLAGS              "${CMAKE_C_FLAGS} ${HARDENING_FLAGS} -Wall -D_BSD_SOURCE -D_ISOC99_SOURCE -D_SVID_SOURCE -D_DEFAULT_SOURCE")
+set (CMAKE_C_FLAGS_DEBUG        "${CMAKE_C_FLAGS_DEBUG} ${GPGME_C_FLAGS} -Werror -Wextra")
+set (CMAKE_C_FLAGS              "${CMAKE_C_FLAGS} ${HARDENING_FLAGS} ${GPGME_C_FLAGS} -Wall -D_BSD_SOURCE -D_ISOC99_SOURCE -D_SVID_SOURCE -D_DEFAULT_SOURCE")
 
 add_subdirectory (src)
 

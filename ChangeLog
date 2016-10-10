@@ -1,3 +1,8 @@
+2016-10-10  Hani Benhabiles  <hani.benhabiles@greenbone.net>
+
+	* CMakeLists.txt: Add -D_FILE_OFFSET_BITS=64 -DLARGEFILE_SOURCE=1.
+	Needed due to the include in r26353. Patch by Michael Wiegand.
+
 2016-10-07  Hani Benhabiles  <hani.benhabiles@greenbone.net>
 
 	* src/openvassd.c (main): Add --gnupg-home option. Call set_gpghome()
