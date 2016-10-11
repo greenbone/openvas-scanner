@@ -1,3 +1,12 @@
+2016-10-11  Hani Benhabiles  <hani.benhabiles@greenbone.net>
+
+	Backport r26363.
+
+	* src/pluginscheduler.c (plugin_next_unrun_dependency): Add parameter to
+	check for infinite recursive calls caused by dependency cycles.
+	(plugins_scheduler_next): Adjust plugin_next_unrun_dependency() function
+	call.
+
 2016-09-26  Timo Pollmeier <timo.pollmeier@greenbone.net>
 
 	Backport r26271.

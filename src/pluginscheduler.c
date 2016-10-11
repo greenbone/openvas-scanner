@@ -337,13 +337,20 @@ scheduler_rm_running_ports (plugins_scheduler_t sched,
 
 struct scheduler_plugin *
 plugin_next_unrun_dependency (plugins_scheduler_t sched,
-                               struct hash **dependencies_ptr)
+                              struct hash **dependencies_ptr, int calls)
 {
   int flag = 0;
   int i;
 
   if (dependencies_ptr == NULL)
     return NULL;
+
+  if (calls > 100)
+    {
+      log_write ("Possible dependency cycle detected %s",
+                 dependencies_ptr[0]->plugin->oid);
+      return NULL;
+    }
 
   for (i = 0; dependencies_ptr[i] != NULL; i++)
     {
@@ -364,7 +371,7 @@ plugin_next_unrun_dependency (plugins_scheduler_t sched,
             if (deps_ptr == NULL)
               return plugin;
 
-            ret = plugin_next_unrun_dependency (sched, deps_ptr);
+            ret = plugin_next_unrun_dependency (sched, deps_ptr, calls++);
             if (ret == NULL)
               return plugin;
 
@@ -613,7 +620,7 @@ plugins_scheduler_next (plugins_scheduler_t h)
                 if (deps_ptr != NULL)
                   {
                     struct scheduler_plugin *p =
-                      plugin_next_unrun_dependency (h, deps_ptr);
+                      plugin_next_unrun_dependency (h, deps_ptr, 0);
 
                     switch (GPOINTER_TO_SIZE (p))
                       {
