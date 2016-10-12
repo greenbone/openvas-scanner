@@ -1,3 +1,8 @@
+2016-10-12  Hani Benhabiles  <hani.benhabiles@greenbone.net>
+
+	* src/pluginscheduler.c (plugin_next_unrun_dependency): Get oid from
+	plugin arglist.
+
 2016-10-11  Hani Benhabiles  <hani.benhabiles@greenbone.net>
 
 	Backport r26363.

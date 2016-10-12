@@ -348,7 +348,7 @@ plugin_next_unrun_dependency (plugins_scheduler_t sched,
   if (calls > 100)
     {
       log_write ("Possible dependency cycle detected %s",
-                 dependencies_ptr[0]->plugin->oid);
+                 dependencies_ptr[0]->plugin->arglist->name);
       return NULL;
     }
 
