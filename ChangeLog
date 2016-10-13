@@ -1,3 +1,11 @@
+2016-10-13  Hani Benhabiles  <hani.benhabiles@greenbone.net>
+
+	Backport r26403.
+
+	* src/openvassd.c (loading_handler_stop): Call terminate_process().
+	Handles a race condition where the scanner tries to terminate the
+	loading handler process before the later has set the signal handler.
+
 2016-10-12  Hani Benhabiles  <hani.benhabiles@greenbone.net>
 
 	* src/pluginscheduler.c (plugin_next_unrun_dependency): Get oid from

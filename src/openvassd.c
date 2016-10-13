@@ -329,10 +329,7 @@ loading_handler_start ()
 void
 loading_handler_stop (pid_t handler_pid)
 {
-  int status;
-
-  kill (handler_pid, SIGTERM);
-  waitpid (handler_pid, &status, 0);
+  terminate_process (handler_pid);
   destroy_loading_shm ();
 }
 
