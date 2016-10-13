@@ -370,23 +370,63 @@ do_wget_community_feed () {
 
   log_info "Configured NVT http feed: $COMMUNITY_NVT_HTTP_FEED"
   log_info "Downloading to: $TMP_NVT"
-  mkdir -p "$NVT_DIR" \
-    && wget "$COMMUNITY_NVT_HTTP_FEED" -O $TMP_NVT \
-    && cd "$NVT_DIR" \
-    && tar xvjf $TMP_NVT \
-    && rm -f $TMP_NVT \
-    && log_info "Download complete"
+  mkdir -p "$NVT_DIR"
+
+  wget "$COMMUNITY_NVT_HTTP_FEED" -O $TMP_NVT
+
+  if [ $? -ne 0 ]
+  then
+    rm -f $TMP_NVT
+    log_err "wget failed"
+    exit 1
+  else
+    log_info "Download complete"
+  fi
+
+  cd "$NVT_DIR" \
+    && tar xvjf $TMP_NVT
+
+  if [ $? -ne 0 ]
+  then
+    rm -f $TMP_NVT
+    log_err "tar extraction failed."
+    exit 1
+  else
+    rm -f $TMP_NVT
+    log_info "NVTs extracted successfully"
+  fi
 }
 
 do_curl_community_feed () {
+  TMP_NVT="$SYNC_TMP_DIR/openvas-feed-`date +%F`-$$.tar.bz2"
+
   log_info "Configured NVT http feed: $COMMUNITY_NVT_HTTP_FEED"
   log_info "Downloading to: $TMP_NVT"
-  mkdir -p "$NVT_DIR" \
-    && curl "$COMMUNITY_NVT_HTTP_FEED" -o $TMP_NVT \
-    && cd "$NVT_DIR" \
-    && tar xvjf $TMP_NVT \
-    && rm -f $TMP_NVT \
-    && log_info "Download complete"
+  mkdir -p "$NVT_DIR"
+
+  curl "$COMMUNITY_NVT_HTTP_FEED" -o $TMP_NVT
+
+  if [ $? -ne 0 ]
+  then
+    rm -f $TMP_NVT
+    log_err "curl failed"
+    exit 1
+  else
+    log_info "Download complete"
+  fi
+
+  cd "$NVT_DIR" \
+    && tar xvjf $TMP_NVT
+
+  if [ $? -ne 0 ]
+  then
+    rm -f $TMP_NVT
+    log_err "tar extraction failed."
+    exit 1
+  else
+    rm -f $TMP_NVT
+    log_info "NVTs extracted successfully"
+  fi
 }
 
 do_rsync_community_feed () {

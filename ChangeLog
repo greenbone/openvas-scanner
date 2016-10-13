@@ -1,3 +1,10 @@
+2016-10-13  Timo Pollmeier <timo.pollmeier@greenbone.net>
+
+	* tools/greenbone-nvt-sync.in (do_wget_community_feed): Log error and
+	exit on failure.
+	(do_curl_community_feed): Add missing definition of TMP_NVT.  Log error
+	and exit on failure.
+
 2016-10-11  Hani Benhabiles  <hani.benhabiles@greenbone.net>
 
 	* src/pluginscheduler.c (plugin_next_unrun_dependency): Add parameter to
