@@ -331,7 +331,8 @@ is_feed_current () {
         rm -rf "$FEED_INFO_TEMP_DIR"
         exit 1
       fi
-    else
+    elif [ -n "$RSYNC" ]
+    then
       log_notice "No Greenbone Security Feed access key found, falling back to Greenbone Community Feed"
       eval "$RSYNC -ltvrP \"$COMMUNITY_NVT_RSYNC_FEED/plugin_feed_info.inc\" \"$FEED_INFO_TEMP_DIR\""
       if [ $? -ne 0 ]
@@ -340,6 +341,12 @@ is_feed_current () {
         rm -rf "$FEED_INFO_TEMP_DIR"
         exit 1
       fi
+    else
+      log_notice "rsync not available, skipping feed version test"
+      FEED_CURRENT=0
+      rm -rf $FEED_INFO_TEMP_DIR
+      cleanup_temp_access_key
+      return 0
     fi
 
     FEED_VERSION_SERVER=`grep PLUGIN_SET $FEED_INFO_TEMP_DIR/plugin_feed_info.inc | sed -e 's/[^0-9]//g'`
@@ -406,7 +413,7 @@ do_curl_community_feed () {
 
   curl "$COMMUNITY_NVT_HTTP_FEED" -o $TMP_NVT
 
-  if [ $? -ne 0 ]
+  if [ $? -ne 0 ] || [ ! -f $TMP_NVT ]
   then
     rm -f $TMP_NVT
     log_err "curl failed"

@@ -1,3 +1,10 @@
+2016-10-19  Timo Pollmeier <timo.pollmeier@greenbone.net>
+
+	* tools/greenbone-nvt-sync.in (is_feed_current): Skip check if rsync is
+	not available.
+	(do_curl_community_feed): Output "curl failed" error if the archive
+	file does not exist after running curl.
+
 2016-10-13  Hani Benhabiles  <hani.benhabiles@greenbone.net>
 
 	* src/openvassd.c (loading_handler_stop): Call terminate_process().
