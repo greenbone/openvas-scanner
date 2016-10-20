@@ -1,5 +1,10 @@
 2016-10-20  Jan-Oliver Wagner <jan-oliver.wagner@greenbone.net>
 
+	* tools/greenbone-nvt-sync.in: Use the package version instead
+	of a self-maintained one.
+
+2016-10-20  Jan-Oliver Wagner <jan-oliver.wagner@greenbone.net>
+
 	* tools/greenbone-nvt-sync.in: Update URL about general information
 	about GSF.
 

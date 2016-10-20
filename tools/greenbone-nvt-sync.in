@@ -25,11 +25,7 @@
 # along with this program; if not, write to the Free Software
 # Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA 02110-1301 USA.
 
-# If you modify this script, please prefix the version
-# with some characters in order to make it newer than
-# any follow-up version to prevent that your version
-# will be overwritten.
-VERSION=20161020
+VERSION=@OPENVASSD_VERSION@
 
 # SETTINGS
 # ========
