@@ -1,3 +1,10 @@
+2016-10-20  Jan-Oliver Wagner <jan-oliver.wagner@greenbone.net>
+
+	Backport parts of r26436.
+
+	* tools/greenbone-nvt-sync.in: Update URL about general information
+	about GSF.
+
 2016-10-13  Hani Benhabiles  <hani.benhabiles@greenbone.net>
 
 	Backport r26403.
