@@ -1,3 +1,10 @@
+2016-10-20  Timo Pollmeier <timo.pollmeier@greenbone.net>
+
+	* tools/greenbone-nvt-sync.in: Add command line arguments --rsync,
+	--wget and --curl to select download method.
+	(is_feed_current, do_sync_community_feed, sync_nvts, do_help): Add
+	cases for new command line arguments.
+
 2016-10-19  Timo Pollmeier <timo.pollmeier@greenbone.net>
 
 	* tools/greenbone-nvt-sync.in (is_feed_current): Skip check if rsync is

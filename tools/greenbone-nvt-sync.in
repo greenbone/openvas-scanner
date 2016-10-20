@@ -294,6 +294,13 @@ is_feed_current () {
 
     if [ -e $ACCESS_KEY ]
     then
+      if [ -n "$FIXED_METHOD" ] && [ "rsync" != "$FIXED_METHOD" ]
+      then
+        log_err "Sync with access key must be run with rsync. Aborting synchronization."
+        stderr_write "Sync with access key must be run with rsync."
+        exit 1
+      fi
+
       gsmproxy=$(get_value proxy_feed | sed -r -e 's/^.*\/\///' -e 's/:([0-9]+)$/ \1/')
       syncport=$(get_value syncport)
       if [ "$syncport" ]
@@ -331,7 +338,7 @@ is_feed_current () {
         rm -rf "$FEED_INFO_TEMP_DIR"
         exit 1
       fi
-    elif [ -n "$RSYNC" ]
+    elif [ -n "$RSYNC" ] && [ -z "$FIXED_METHOD" -o "$FIXED_METHOD" = "rsync" ]
     then
       log_notice "No Greenbone Security Feed access key found, falling back to Greenbone Community Feed"
       eval "$RSYNC -ltvrP \"$COMMUNITY_NVT_RSYNC_FEED/plugin_feed_info.inc\" \"$FEED_INFO_TEMP_DIR\""
@@ -342,7 +349,12 @@ is_feed_current () {
         exit 1
       fi
     else
-      log_notice "rsync not available, skipping feed version test"
+      if [ -n "$FIXED_METHOD" ]
+      then
+        log_notice "non-rsync method selected, skipping feed version test"
+      else
+        log_notice "rsync not available, skipping feed version test"
+      fi
       FEED_CURRENT=0
       rm -rf $FEED_INFO_TEMP_DIR
       cleanup_temp_access_key
@@ -452,7 +464,31 @@ do_rsync_community_feed () {
 }
 
 do_sync_community_feed () {
-  if [ -z "$RSYNC" ] || [ $FEED_PRESENT -eq 0 ] ; then
+  if [ "rsync" = "$FIXED_METHOD" ] ; then
+    if [ -z "$RSYNC" ] ; then
+      log_error "rsync requested but not found! Aborting synchronization."
+      exit 1
+    else
+      log_info "Will use rsync"
+      do_rsync_community_feed
+    fi
+  elif [ "wget" = "$FIXED_METHOD" ] ; then
+    if [ -z "$WGET" ] ; then
+      log_error "wget requested but not found! Aborting synchronization."
+      exit 1
+    else
+      log_info "Will use wget"
+      do_wget_community_feed
+    fi
+  elif [ "curl" = "$FIXED_METHOD" ] ; then
+    if [ -z "$CURL" ] ; then
+      log_error "curl requested but not found! Aborting synchronization."
+      exit 1
+    else
+      log_info "Will use curl"
+      do_curl_community_feed
+    fi
+  elif [ -z "$RSYNC" ] || [ $FEED_PRESENT -eq 0 ] ; then
     if [ $FEED_PRESENT -eq 0 ] ; then
       log_notice "rsync is not recommended for the initial sync. Falling back on http."
     else
@@ -492,6 +528,13 @@ sync_nvts(){
 
   if [ -e $ACCESS_KEY ]
   then
+    if [ -n "$FIXED_METHOD" ] && [ "rsync" != "$FIXED_METHOD" ]
+    then
+      log_err "Sync with access key must be run with rsync. Aborting synchronization."
+      stderr_write "Sync with access key must be run with rsync."
+      exit 1
+    fi
+
     log_write "Synchronizing NVTs from the Greenbone Security Feed into $NVT_DIR..."
     if [ $FEED_PRESENT -eq 1 ] ; then
       FEEDCOUNT=`grep -E "nasl$|inc$" $NVT_DIR/md5sums | wc -l`
@@ -669,6 +712,7 @@ do_sync ()
 
 do_help () {
   echo "$0: Sync NVT data"
+  echo " --curl         only use curl to download feed files"
   echo " --describe     display current feed info"
   echo " --feedcurrent  just check if feed is up-to-date"
   echo " --feedversion  display version of this feed"
@@ -676,10 +720,12 @@ do_help () {
   echo " --identify     display information"
   echo " --nvtdir dir   set dir as NVT directory"
   echo " --refresh      update database without downloading new state"
+  echo " --rsync        only use rsync to download feed files"
   echo " --selftest     perform self-test"
   echo " --sync-only    download new state without updating database"
   echo " --verbose      makes the sync process print details"
   echo " --version      display version"
+  echo " --wget         only use wget to download feed files"
   echo ""
   exit 0
 }
@@ -689,6 +735,15 @@ while test $# -gt 0; do
     --version)
       echo $VERSION
       exit 0
+      ;;
+    --rsync)
+      FIXED_METHOD="rsync"
+      ;;
+    --wget)
+      FIXED_METHOD="wget"
+      ;;
+    --curl)
+      FIXED_METHOD="curl"
       ;;
     --identify)
       init_sync
