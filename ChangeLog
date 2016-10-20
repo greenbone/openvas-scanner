@@ -1,3 +1,8 @@
+2016-10-20  Jan-Oliver Wagner <jan-oliver.wagner@greenbone.net>
+
+	* tools/greenbone-nvt-sync.in: Update URL about general information
+	about GSF.
+
 2016-10-20  Timo Pollmeier <timo.pollmeier@greenbone.net>
 
 	* tools/greenbone-nvt-sync.in: Add command line arguments --rsync,
