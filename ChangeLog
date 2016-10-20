@@ -1,5 +1,10 @@
 2016-10-20  Jan-Oliver Wagner <jan-oliver.wagner@greenbone.net>
 
+	* tools/greenbone-nvt-sync.in: Drop the ancient convenience pinning
+	to rsync protocol version 29 to circumvent a problem with rsync 3.0.3.
+
+2016-10-20  Jan-Oliver Wagner <jan-oliver.wagner@greenbone.net>
+
 	* tools/greenbone-nvt-sync.in: Use the package version instead
 	of a self-maintained one.
 
