@@ -1,3 +1,8 @@
+2016-10-22  Jan-Oliver Wagner <jan-oliver.wagner@greenbone.net>
+
+	* tools/greenbone-nvt-sync.in: Add hints on env variables
+	added to --help output.
+
 2016-10-20  Jan-Oliver Wagner <jan-oliver.wagner@greenbone.net>
 
 	* tools/greenbone-nvt-sync.in: Use a consistent name for

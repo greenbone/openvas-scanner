@@ -1,8 +1,8 @@
 #!/bin/sh
 #
 # greenbone-nvt-sync
-# This script synchronizes an OpenVAS installation with the Greenbone Security
-# Feed.
+# This script updates the local OpenVAS NVTs from the Greenbone Security Feed
+# or the Community Feed. 
 #
 # Authors:
 # Lukas Grunwald <lukas.grunwald@greenbone.net>
@@ -29,8 +29,9 @@ VERSION=@OPENVASSD_VERSION@
 
 # SETTINGS
 # ========
-# PRIVATE_SUBDIR defines a subdirectory of the NVT directory
-# where files not part of the feed or database will not be deleted by rsync.
+
+# PRIVATE_SUBDIR defines a subdirectory of the NVT directory that is excluded
+# from the feed sync. This is where to place your own NVTs.
 if [ -z "$PRIVATE_SUBDIR" ]
 then
   PRIVATE_SUBDIR="private"
@@ -721,6 +722,13 @@ do_help () {
   echo " --verbose      makes the sync process print details"
   echo " --version      display version"
   echo " --wget         only use wget to download feed files"
+  echo ""
+  echo ""
+  echo "Environment variables:"
+  echo "NVT_DIR         where to extract plugins (absolute path)"
+  echo "PRIVATE_SUBDIR  subdirectory of \$NVT_DIR to exclude from synchronization"
+  echo "TMPDIR          temporary directory used to download the files"
+  echo "Note that you can use standard ones as well (e.g. http_proxy) for wget/curl"
   echo ""
   exit 0
 }
