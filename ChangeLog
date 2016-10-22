@@ -1,5 +1,24 @@
 2016-10-22  Jan-Oliver Wagner <jan-oliver.wagner@greenbone.net>
 
+	Drop the "openvasnvt-sync" script as the "greenbone-nvt-sync"
+	script does syncrhonise with the community feed in case no
+	subscription key is present. This also makes the maintenance easier.
+
+	* tools/openvas-nvt-sync.in, doc/openvas-nvt-sync.8: Removed.
+
+	* COPYING: Removed the entry accordingly.
+
+	* INSTALL: Mention to use greenbone-nvt-sync.
+
+	* CMakeLists.txt: Remove handling of removed files.
+
+	* doc/greenbone-nvt-sync.8: Updated to say it is also for the
+	community feed.
+
+	* tools/README_TOOLS: Description improved.
+
+2016-10-22  Jan-Oliver Wagner <jan-oliver.wagner@greenbone.net>
+
 	* tools/greenbone-nvt-sync.in: Add hints on env variables
 	added to --help output.
 

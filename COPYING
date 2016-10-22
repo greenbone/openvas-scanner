@@ -32,4 +32,3 @@ src/utils.[c|h]: GPLv2
 
 tools/greenbone-nvt-sync.in: GPLv2+
 tools/openvas-manage-certs.in: GPLv2+
-tools/openvas-nvt-sync.in: GPLv2

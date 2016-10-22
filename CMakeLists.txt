@@ -223,7 +223,6 @@ configure_file (doc/example_redis_2_6.conf.in doc/example_redis_2_6.conf @ONLY)
 configure_file (doc/example-openvas-manage-certs.conf.in doc/example-openvas-manage-certs.conf @ONLY)
 configure_file (VERSION.in VERSION @ONLY)
 configure_file (tools/openvas-manage-certs.in tools/openvas-manage-certs @ONLY)
-configure_file (tools/openvas-nvt-sync.in tools/openvas-nvt-sync @ONLY)
 configure_file (tools/greenbone-nvt-sync.in tools/greenbone-nvt-sync @ONLY)
 # TODO: Once  Scanner has a proper logging mechanism like Manager.
 #configure_file (src/openvassd_log_conf.cmake_in src/openvassd_log.conf)
@@ -257,8 +256,7 @@ install (FILES ${CMAKE_BINARY_DIR}/src/openvassd
 #install (FILES openvassd_log.conf
 #         DESTINATION ${OPENVAS_SYSCONF_DIR})
 
-install (FILES ${CMAKE_BINARY_DIR}/tools/openvas-nvt-sync
-               ${CMAKE_BINARY_DIR}/tools/greenbone-nvt-sync
+install (FILES ${CMAKE_BINARY_DIR}/tools/greenbone-nvt-sync
          DESTINATION ${SBINDIR}
          PERMISSIONS OWNER_EXECUTE OWNER_READ OWNER_WRITE
                      GROUP_READ GROUP_EXECUTE WORLD_READ WORLD_EXECUTE)
@@ -274,8 +272,7 @@ install (FILES ${CMAKE_SOURCE_DIR}/doc/openvas-manage-certs.1
 install (FILES ${CMAKE_BINARY_DIR}/doc/openvassd.8
          DESTINATION ${DATADIR}/man/man8 )
 
-install (FILES ${CMAKE_SOURCE_DIR}/doc/openvas-nvt-sync.8
-               ${CMAKE_SOURCE_DIR}/doc/greenbone-nvt-sync.8
+install (FILES ${CMAKE_SOURCE_DIR}/doc/greenbone-nvt-sync.8
          DESTINATION ${DATADIR}/man/man8 )
 
 install (FILES ${CMAKE_BINARY_DIR}/doc/example_redis_2_4.conf

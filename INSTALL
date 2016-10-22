@@ -100,7 +100,7 @@ Setting up an openvas-scanner requires the following steps:
    Simply execute the following command to receive thousands of NVTs from this
    feed service:
 
-   $ openvas-nvt-sync
+   $ greenbone-nvt-sync
 
    Please note that you will need at least one of the following tools for a
    successful synchronization:
