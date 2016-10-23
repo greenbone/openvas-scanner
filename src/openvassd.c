@@ -125,9 +125,6 @@ static openvassd_option openvassd_defaults[] = {
   {"vhosts", "\0"},
   {"vhosts_ip", "\0"},
   {"report_host_details", "yes"},
-  {"cert_file", SCANNERCERT},
-  {"key_file", SCANNERKEY},
-  {"ca_file", CACERT},
   {"kb_location", KB_PATH_DEFAULT},
   {"timeout_retry", "3"},
   {NULL, NULL}

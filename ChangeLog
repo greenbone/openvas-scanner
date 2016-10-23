@@ -1,5 +1,18 @@
 2016-10-23  Jan-Oliver Wagner <jan-oliver.wagner@greenbone.net>
 
+	* src/util.c (is_scanner_only_pref): No need to exclude ca_file,
+	key_file and cert_file because they are not used anymore.
+
+	* src/openvassd.c (openvassd_option openvassd_defaults): Drop cert_file,
+	key_file and ca_file because they are not used anymore.
+
+	* CMakeLists.txt, src/CMakeLists.txt: Removed handling of
+	OPENVAS_SCANNER_CERTIFICATE, OPENVAS_SCANNER_KEY,
+	OPENVAS_CLIENT_CERTIFICATE, OPENVAS_CLIENT_KEY, OPENVAS_CA_CERTIFICATE
+	because these are not needed anymore.
+
+2016-10-23  Jan-Oliver Wagner <jan-oliver.wagner@greenbone.net>
+
 	* INSTALL: Updated. Especially removed step 1 about the TLS
 	certificates.
 

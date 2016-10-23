@@ -174,11 +174,6 @@ if (NOT OPENVAS_NVT_DIR)
 endif (NOT OPENVAS_NVT_DIR)
 
 set (OPENVAS_LIB_INSTALL_DIR     "${LIBDIR}")
-set (OPENVAS_SCANNER_CERTIFICATE "${OPENVAS_STATE_DIR}/CA/servercert.pem")
-set (OPENVAS_SCANNER_KEY         "${OPENVAS_STATE_DIR}/private/CA/serverkey.pem")
-set (OPENVAS_CLIENT_CERTIFICATE  "${OPENVAS_STATE_DIR}/CA/clientcert.pem")
-set (OPENVAS_CLIENT_KEY          "${OPENVAS_STATE_DIR}/private/CA/clientkey.pem")
-set (OPENVAS_CA_CERTIFICATE      "${OPENVAS_STATE_DIR}/CA/cacert.pem")
 
 set (OPENVASSD_MESSAGES "${OPENVAS_LOG_DIR}/openvassd.messages")
 set (OPENVASSD_DEBUGMSG "${OPENVAS_LOG_DIR}/openvassd.dump")
