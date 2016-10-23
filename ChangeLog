@@ -1,3 +1,8 @@
+2016-10-23  Jan-Oliver Wagner <jan-oliver.wagner@greenbone.net>
+
+	* INSTALL: Updated. Especially removed step 1 about the TLS
+	certificates.
+
 2016-10-22  Jan-Oliver Wagner <jan-oliver.wagner@greenbone.net>
 
 	Drop the "openvasnvt-sync" script as the "greenbone-nvt-sync"
