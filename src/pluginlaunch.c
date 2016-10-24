@@ -376,18 +376,22 @@ pluginlaunch_enable_parrallel_checks (void)
 
 
 void
-pluginlaunch_stop (void)
+pluginlaunch_stop (int soft_stop)
 {
   int i;
-  read_running_processes ();
 
-  for (i = 0; i < MAX_PROCESSES; i++)
+  if (soft_stop)
     {
-      if (processes[i].pid > 0)
-        kill (processes[i].pid, SIGTERM);
+      read_running_processes ();
+
+      for (i = 0; i < MAX_PROCESSES; i++)
+        {
+          if (processes[i].pid > 0)
+            kill (processes[i].pid, SIGTERM);
+        }
+      usleep (20000);
     }
 
-  usleep (20000);
   for (i = 0; i < MAX_PROCESSES; i++)
     {
       if (processes[i].pid > 0)

@@ -308,7 +308,7 @@ launch_plugin (struct arglist *globals, struct scheduler_plugin *plugin,
               || kb_item_get_int (kb, "Host/ping_failed") > 0)
             {
               log_write ("The remote host (%s) is dead", hostname);
-              pluginlaunch_stop ();
+              pluginlaunch_stop (1);
               plugin->running_state = PLUGIN_STATUS_DONE;
               g_free (name);
               return ERR_HOST_DEAD;
@@ -470,7 +470,7 @@ attack_host (struct arglist *globals, struct host_info *hostinfos,
       parent = getppid ();
       if (parent <= 1 || process_alive (parent) == 0)
         {
-          pluginlaunch_stop ();
+          pluginlaunch_stop (1);
           return;
         }
 
@@ -526,7 +526,7 @@ attack_host (struct arglist *globals, struct host_info *hostinfos,
               if (comm_send_status
                    (global_socket, hostname, cur_plug, num_plugs) < 0)
                 {
-                  pluginlaunch_stop ();
+                  pluginlaunch_stop (1);
                   goto host_died;
                 }
             }
@@ -543,7 +543,7 @@ attack_host (struct arglist *globals, struct host_info *hostinfos,
     comm_send_status (global_socket, hostname, num_plugs, num_plugs);
 
 host_died:
-  pluginlaunch_stop ();
+  pluginlaunch_stop (1);
   plugins_scheduler_free (sched);
 
   if (net_kb == NULL || kb != *net_kb)
@@ -847,7 +847,7 @@ check_kb_access (int soc)
 static void
 handle_scan_stop_signal ()
 {
-  pluginlaunch_stop ();
+  pluginlaunch_stop (0);
   global_scan_stop = 1;
 }
 
