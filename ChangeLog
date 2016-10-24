@@ -1,3 +1,26 @@
+2016-10-24  Jan-Oliver Wagner <jan-oliver.wagner@greenbone.net>
+
+	Move the openvas-manage-certs script to module openvas-manager
+	because the module openvas-scanner does not need to manage
+	certs anymore.
+
+	* tools/openvas-manage-certs.in: Removed.
+	This moved to module openvas-manager.
+
+	* tools/README_TOOLS: Adjust to reflect removal.
+
+	* doc/example-openvas-manage-certs.conf.in: Removed.
+	This moved to module openvas-manager.
+
+	* doc/openvas-manage-certs.1: Removed.
+	This moved to module openvas-manager.
+
+	* CMakeLists.txt: Removed handling of the removed files.
+
+	* COPYING: Remove entry accordingly.
+
+	* doc/openvassd.8.in: Remove reference accordingly.
+
 2016-10-24  Hani Benhabiles  <hani.benhabiles@greenbone.net>
 
 	* src/pluginlaunch.c (pluginlaunch_stop): Add soft_stop argument.

@@ -209,9 +209,6 @@ all NASL scripts may result in 8 to 32 MB worth of traffic per scanned host.
 Reducing the amount of tested part and such will reduce the amount of data
 to be transferred significantly.
 
-.SH SEE ALSO
-.BR openvas-manage-certs (1)
-
 .SH MORE INFORMATION ABOUT THE OpenVAS PROJECT
 
 The canonical places where you will find more information 
