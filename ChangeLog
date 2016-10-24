@@ -1,3 +1,7 @@
+2016-10-13  Hani Benhabiles  <hani.benhabiles@greenbone.net>
+
+	* src/hosts.c (hosts_read_client): Fix nfds argument for select() call.
+
 2016-10-23  Jan-Oliver Wagner <jan-oliver.wagner@greenbone.net>
 
 	* src/util.c (is_scanner_only_pref): No need to exclude ca_file,

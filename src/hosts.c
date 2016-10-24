@@ -326,7 +326,7 @@ hosts_read_client (struct arglist *globals)
     {
       tv.tv_sec = 0;
       tv.tv_usec = 1000;
-      e = select (g_soc, &rd, NULL, NULL, &tv);
+      e = select (g_soc + 1, &rd, NULL, NULL, &tv);
       if (e < 0 && errno == EINTR)
         continue;
       else
