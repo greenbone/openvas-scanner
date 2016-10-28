@@ -170,7 +170,7 @@ else
   fi
 
   if [ -z "$COMMUNITY_NVT_HTTP_FEED" ]; then
-    COMMUNITY_NVT_HTTP_FEED=http://www.openvas.org/openvas-nvt-feed-current.tar.bz2
+    COMMUNITY_NVT_HTTP_FEED=http://dl.greenbone.net/community-nvt-feed-current.tar.bz2
   fi
 fi
 
