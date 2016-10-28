@@ -89,7 +89,7 @@ if [ -z "$OV_RSYNC_FEED" ]; then
 fi
 
 if [ -z "$OV_HTTP_FEED" ]; then
-  OV_HTTP_FEED=http://www.openvas.org/openvas-nvt-feed-current.tar.bz2
+  OV_HTTP_FEED=http://dl.greenbone.net/community-nvt-feed-current.tar.bz2
 fi
 
 if [ -z "$TMPDIR" ]; then
