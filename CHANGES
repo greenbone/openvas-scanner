@@ -4,7 +4,7 @@ This is the first release of the openvas-scanner 5.1 module for the Open
 Vulnerability Assessment System 9 (OpenVAS-9). Compared to the previous
 major release the scanner now serves via a unix file socket instead
 of a tcp socket which simplifies the setup, handling and code-base.
-Also, the feed synchonistations were consolidated into a single method.
+Also, the feed synchronisations were consolidated into a single method.
 And in general the scanner becomes lighter, faster and more robust.
 
 Many thanks to everyone who has contributed to this release:
