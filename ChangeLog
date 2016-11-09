@@ -1,5 +1,11 @@
 2016-11-09  Michael Wiegand <michael.wiegand@greenbone.net>
 
+	Post release version bump.
+
+	* CMakeLists.txt: Set version to 5.1.1.
+
+2016-11-09  Michael Wiegand <michael.wiegand@greenbone.net>
+
 	* CHANGES: Fix typo.
 
 2016-11-09  Jan-Oliver Wagner <jan-oliver.wagner@greenbone.net>
