@@ -758,7 +758,7 @@ main (int argc, char *argv[])
       printf ("SVN revision %i\n", OPENVASSD_SVN_REVISION);
 #endif
       printf
-        ("Most new code since 2005: (C) 2015 Greenbone Networks GmbH\n");
+        ("Most new code since 2005: (C) 2016 Greenbone Networks GmbH\n");
       printf
         ("Nessus origin: (C) 2004 Renaud Deraison <deraison@nessus.org>\n");
       printf ("License GPLv2: GNU GPL version 2\n");

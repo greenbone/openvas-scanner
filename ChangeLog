@@ -1,3 +1,16 @@
+2016-11-09  Jan-Oliver Wagner <jan-oliver.wagner@greenbone.net>
+
+	Preparing the openvas-scanner 5.1.0 release.
+
+	* CHANGES: Updated.
+
+	* CMakeLists.txt: Switch version scheme from beta to stable.
+
+	* INSTALL: Remove a prerequisite for GNUTLS certool which is not needed
+	anymore in this module.
+
+	* src/openvassd.c (main): Updated (C) year.
+
 2016-10-28  Jan-Oliver Wagner <jan-oliver.wagner@greenbone.net>
 
 	* tools/greenbone-nvt-sync.in: Change URL for feed tarball
@@ -311,7 +324,7 @@
 
 	* INSTALL: Update accordingly.
 
-2016-05-23  Hani Benhabiles  <hani.benhabiles@greenbone.net>
+2016-06-23  Hani Benhabiles  <hani.benhabiles@greenbone.net>
 
 	* src/attack.c (nvti_category_is_safe): New function.
 

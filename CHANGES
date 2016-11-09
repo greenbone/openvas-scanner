@@ -1,3 +1,55 @@
+openvas-scanner 5.1.0 (2016-11-09)
+
+This is the first release of the openvas-scanner 5.1 module for the Open
+Vulnerability Assessment System 9 (OpenVAS-9). Compared to the previous
+major release the scanner now serves via a unix file socket instead
+of a tcp socket which simplifies the setup, handling and code-base.
+Also, the feed synchonistations were consolidated into a single method.
+And in general the scanner becomes lighter, faster and more robust.
+
+Many thanks to everyone who has contributed to this release:
+Benoît Allard, Hani Benhabiles, Henri Doreau, Sven Haardiek, Matthew Mundell,
+Timo Pollmeier, Jan-Oliver Wagner and Michael Wiegand.
+
+Main changes compared to the 5.0 series:
+* Replaced OTP TLS certificate-authorized TCP socket service by
+  a unix file socket based service.
+* Moved the TLS certificate management script to module openvas-manager.
+* Merged the two feed sync scripts into a single one that can handle
+  both, the Community Feed and the Greenbone Security Feed. 
+* New command line options --unix-socket, --listen-mode,
+  --listen-group, --listen-owner and --gnupg-home.
+* Removed command line options --listen, --port, --gnutls-priorities and
+  --dh-params.
+* The nvt summary isn't send anymore as it is not used anymore.
+* Send a "Host dead" host detail when the host is dead.
+* Dropped scanner preferences cert_file, key_file and ca_file.
+* Add scanner preferences timeout_retry and scanner_plugins_timeout.
+* Reduced memory consumption and improved performance
+* Numerous build and code improvements 
+* Increased dependency for glib from 2.16 to 2.32.
+* Increased dependency for openvas-libraries from 8.0 to 9.0.0.
+
+Main changes compared to 5.0beta3:
+* Replaced OTP TLS certificate-authorized TCP socket service by
+  a unix file socket service.
+* New command line options --unix-socket, --listen-mode,
+  --listen-group, --listen-owner and --gnupg-home.
+* Removed command line options --listen, --port, --gnutls-priorities and
+  --dh-params.
+* Extended greenbone-nvt-sync with some functionalities of openvas-nvt-sync to
+  cover both, GSF feed and Community Feed. openvas-nvt-sync removed.
+* Moved the openvas-manage-certs script to module openvas-manager.
+* Dropped scanner preferences cert_file, key_file and ca_file.
+* Send a "Host dead" host detail when the host is dead.
+* Improved the cmake buildsystem.
+* Fixed some memory leaks.
+* Some improvements to the logging functionality.
+* The nvt summary isn't send anymore as it is not used anymore.
+* Increased dependency for glib from 2.16 to 2.32.
+* Various code improvements.
+
+
 openvas-scanner 5.1+beta3 (2016-04-14)
 
 This is the third beta release of the openvas-scanner 5.1 module for
