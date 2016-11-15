@@ -1,3 +1,7 @@
+2016-11-15  Michael Wiegand <michael.wiegand@greenbone.net>
+
+	* src/ntp.c, src/pluginscheduler.c: Fix typos in comments.
+
 2016-11-10  Michael Wiegand <michael.wiegand@greenbone.net>
 
 	Post branch version bump.

@@ -164,7 +164,7 @@ ntp_read_prefs (int soc)
 {
   char *input;
   int input_sz = 1024 * 1024 * 2; /* this is sufficient for a plugin_set
-                                     for upto 69K OIDs */ 
+                                     for up to 69K OIDs */ 
 
   input = g_malloc0 (input_sz);
   for (;;)
