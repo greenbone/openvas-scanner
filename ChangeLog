@@ -1,3 +1,8 @@
+2016-11-29  Hani Benhabiles  <hani.benhabiles@greenbone.net>
+
+	* src/openvassd.c (reload_openvassd): Reinitialize logging on scanner
+	reload.
+
 2016-11-15  Michael Wiegand <michael.wiegand@greenbone.net>
 
 	* src/ntp.c, src/pluginscheduler.c: Fix typos in comments.
