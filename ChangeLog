@@ -1,3 +1,10 @@
+2016-11-29  Hani Benhabiles  <hani.benhabiles@greenbone.net>
+
+	Backport r26731.
+
+	* src/openvassd.c (reload_openvassd): Reinitialize logging on scanner
+	reload.
+
 2016-11-09  Michael Wiegand <michael.wiegand@greenbone.net>
 
 	Post release version bump.
