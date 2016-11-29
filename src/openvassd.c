@@ -355,9 +355,12 @@ reload_openvassd ()
   pid_t handler_pid;
   int i;
 
-  log_write ("Reloading the scanner.");
   /* Ignore SIGHUP while reloading. */
   openvas_signal (SIGHUP, SIG_IGN);
+
+  /* Reinitialize logging before writing to it. */
+  log_init (prefs_get ("logfile"));
+  log_write ("Reloading the scanner.");
 
   handler_pid = loading_handler_start ();
   if (handler_pid < 0)
