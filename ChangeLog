@@ -1,3 +1,14 @@
+2016-10-24  Hani Benhabiles  <hani.benhabiles@greenbone.net>
+
+	Backport r26467.
+
+	* src/pluginlaunch.c (pluginlaunch_stop): Add soft_stop argument.
+
+	* src/pluginlaunch.h: Adjust function parameter.
+
+	* src/attack.c (launch_plugin, attack_host, handle_scan_stop_signal):
+	Adjust function call.
+
 2016-11-29  Hani Benhabiles  <hani.benhabiles@greenbone.net>
 
 	Backport r26731.
