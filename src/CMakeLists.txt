@@ -116,9 +116,14 @@ if (SCANNER_NVT_TIMEOUT)
   add_definitions (-DSCANNER_NVT_TIMEOUT=${SCANNER_NVT_TIMEOUT})
 endif (SCANNER_NVT_TIMEOUT)
 
+if (CMAKE_SYSTEM_NAME MATCHES "FreeBSD")
+  set (EXECINFO_LDFLAGS "execinfo")
+endif (CMAKE_SYSTEM_NAME MATCHES "FreeBSD")
+
 target_link_libraries (openvassd ${LIBOPENVAS_NASL_LDFLAGS}
                        ${LIBOPENVAS_BASE_LDFLAGS} ${LIBOPENVAS_MISC_LDFLAGS}
                        ${GLIB_LDFLAGS} ${GCRYPT_LDFLAGS}
+                       ${EXECINFO_LDFLAGS}
                        ${LINKER_HARDENING_FLAGS})
 
 ## Tests

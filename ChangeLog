@@ -1,3 +1,9 @@
+2016-12-02  Michael Wiegand <michael.wiegand@greenbone.net>
+
+	Make it possible to build openvas-scanner on FreeBSD.
+
+	* src/CMakeLists.txt: Explicitly link against execinfo on FreeBSD.
+
 2016-11-29  Hani Benhabiles  <hani.benhabiles@greenbone.net>
 
 	* src/openvassd.c (reload_openvassd): Reinitialize logging on scanner
