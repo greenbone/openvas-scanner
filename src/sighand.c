@@ -37,7 +37,7 @@
 #include "utils.h"
 #include "string.h"
 
-#include <openvas/base/pidfile.h>
+#include <gvm/base/pidfile.h>
 
 /* do not leave a zombie, hanging around if possible */
 void

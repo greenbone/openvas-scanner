@@ -52,9 +52,10 @@
 #include <pwd.h>
 #include <grp.h>
 
+#include <gvm/base/pidfile.h>    /* for pidfile_create */
+
 #include <openvas/misc/openvas_proctitle.h> /* for proctitle_set */
 #include <openvas/misc/openvas_logging.h>  /* for setup_legacy_log_handler */
-#include <openvas/base/pidfile.h>    /* for pidfile_create */
 #include <openvas/base/nvticache.h> /* nvticache_free */
 #include <openvas/base/kb.h>         /* for KB_PATH_DEFAULT */
 #include <openvas/base/gpgme_util.h>
