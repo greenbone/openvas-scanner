@@ -71,7 +71,10 @@ comm_init (int soc)
   buf[sizeof (buf) - 1] = '\0';
   if (strncmp (buf, "< OTP/2.0 >", 11))
     {
-      log_write ("Unknown client-requested OTP version: %s.", buf);
+      if (g_str_is_ascii (buf))
+        log_write ("Unknown client-requested OTP version: %s.", buf);
+      else
+        log_write ("Unknown client-requested OTP version.");
       return -1;
     }
   nsend (soc, "< OTP/2.0 >\n", 12, 0);
