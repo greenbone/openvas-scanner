@@ -2,7 +2,7 @@ INSTALLATION INSTRUCTIONS FOR OPENVAS-SCANNER
 =============================================
 
 Please note: The reference system used by most of the developers is Debian
-Debian GNU/Linux 'Wheezy' 7.  The build might fail on any other systems.
+GNU/Linux 'Wheezy' 7.  The build might fail on any other systems.
 Also it is necessary to install dependent development packages.
 
 
