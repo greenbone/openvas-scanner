@@ -1,8 +1,8 @@
 INSTALLATION INSTRUCTIONS FOR OPENVAS-SCANNER
 =============================================
 
-Please note: The reference system used by most of the developers is Debian
-Debian GNU/Linux 'Jessie' 8.  The build might fail on any other systems.
+Please note: The reference system used by most of the developers is Debian 
+GNU/Linux 'Jessie' 8. The build might fail on any other systems.
 Also it is necessary to install dependent development packages.
 
 
