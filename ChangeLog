@@ -1,3 +1,9 @@
+2016-12-08  Michael Wiegand <michael.wiegand@greenbone.net>
+
+	* CMakeLists.txt: Set hardening and optimization flags only in
+	"Release" build type to avoid compiler optimization interfering with
+	debugging in "Debug" build type. Stop setting GPGME_C_FLAGS twice.
+
 2016-12-05  Hani Benhabiles  <hani.benhabiles@greenbone.net>
 
 	* src/comm.c (comm_init): Don't write gibberish content to log file when
