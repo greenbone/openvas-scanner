@@ -29,8 +29,6 @@
 
 #include <string.h> /* for strcmp() */
 
-#include <openvas/base/nvti.h>  /* for nvti_t */
-
 #include <openvas/misc/nvt_categories.h>  /* for ACT_SCANNER */
 #include <openvas/misc/plugutils.h>  /* for plug_get_launch */
 
