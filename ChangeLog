@@ -1,3 +1,8 @@
+2016-12-12  Hani Benhabiles  <hani.benhabiles@greenbone.net>
+
+	* src/comm.c (comm_wait_order): Zero str buffer. Fixes possible infinite
+	loop.
+
 2016-12-09  Jan-Oliver Wagner <jan-oliver.wagner@greenbone.net>
 
 	* src/pluginscheduler.c: Removed unneeded include "nvti.h".
