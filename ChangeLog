@@ -1,3 +1,8 @@
+2016-12-13  Michael Wiegand <michael.wiegand@greenbone.net>
+
+	* src/openvassd.c (main): Terminate immediately with a non-zero exit
+	code if KB flushing fails.
+
 2016-12-12  Hani Benhabiles  <hani.benhabiles@greenbone.net>
 
 	* src/comm.c (comm_wait_order): Zero str buffer. Fixes possible infinite

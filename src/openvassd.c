@@ -801,7 +801,8 @@ main (int argc, char *argv[])
       prefs_dump ();
       exit (0);
     }
-  flush_all_kbs ();
+  if (flush_all_kbs ())
+    exit (1);
 
   // Daemon mode:
   if (dont_fork == FALSE)
