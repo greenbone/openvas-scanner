@@ -346,7 +346,7 @@ kb_duplicate(kb_t dst, kb_t src, const gchar *filter)
       else
         newname += 1; /* Skip the '/' */
 
-      kb_item_add_str(dst, newname, p_itm->v_str);
+      kb_item_add_str(dst, newname, p_itm->v_str, 0);
     }
   return 0;
 }
@@ -409,7 +409,7 @@ init_host_kb (struct arglist *globals, char *hostname,
   /* Add Hostname and Host-IP */
   hoststr = hostinfos->fqdn;
   if (hoststr)
-    kb_item_add_str (kb, "Hostname", hoststr);
+    kb_item_add_str (kb, "Hostname", hoststr, 0);
   hostip = hostinfos->ip;
   if (hostip)
     {
@@ -419,7 +419,7 @@ init_host_kb (struct arglist *globals, char *hostname,
         inet_ntop (AF_INET, ((char *) (hostip)) + 12, ipstr, sizeof (ipstr));
       else
         inet_ntop (AF_INET6, hostip, ipstr, sizeof (ipstr));
-      kb_item_add_str (kb, "Host-IP", ipstr);
+      kb_item_add_str (kb, "Host-IP", ipstr, 0);
     }
 
   /* If vhosts is set, split it and put it in the KB. */
@@ -430,7 +430,7 @@ init_host_kb (struct arglist *globals, char *hostname,
       int i;
 
       for (i = 0; vhosts_array[i] != NULL; i++)
-        kb_item_add_str (kb, "hostinfos/vhosts", vhosts_array[i]);
+        kb_item_add_str (kb, "hostinfos/vhosts", vhosts_array[i], 0);
 
       g_strfreev (vhosts_array);
     }
