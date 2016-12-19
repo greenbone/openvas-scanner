@@ -26,6 +26,7 @@
 */
 
 #include <stdio.h>    /* for perror() */
+#include <stdlib.h>   /* for atoi() */
 #include <unistd.h>   /* for close() */
 #include <sys/wait.h> /* for waitpid() */
 #include <strings.h>  /* for bzero() */

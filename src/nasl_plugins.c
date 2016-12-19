@@ -29,9 +29,10 @@
  * @brief The nasl - plugin class. Loads or launches nasl- plugins.
  */
 
-#include <errno.h>
+#include <errno.h>    /* for errno */
 #include <unistd.h>   /* for close() */
 #include <string.h>   /* for strlen() */
+#include <stdio.h>    /* for snprintf() */
 #include <sys/stat.h>
 
 #include <glib.h>

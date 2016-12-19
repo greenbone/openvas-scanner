@@ -27,6 +27,7 @@
 
 #include <string.h> /* for strlen() */
 #include <stdlib.h> /* for atoi() */
+#include <stdio.h>  /* for snprintf() */
 
 #include <glib.h>
 

@@ -28,7 +28,8 @@
 #include <string.h> /* for strchr() */
 #include <stdlib.h> /* for atoi() */
 
-#include <stdarg.h>
+#include <stdio.h>  /* for FILE */
+#include <errno.h>  /* for errno */
 
 #include <glib.h>
 
