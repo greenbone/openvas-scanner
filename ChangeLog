@@ -1,3 +1,14 @@
+2016-12-23  Jan-Oliver Wagner <jan-oliver.wagner@greenbone.net>
+
+	* src/attack.c: Include gvm/base/networking.h instead of
+	openvas/base/openvas_networking.h.
+	(apply_source_iface_preference): Use gvm_source_iface_init instead
+	of openvas_source_iface_init. Use gvm_source_addr_str instead of
+	openvas_source_addr_str. Use gvm_source_addr6_str instead of
+	openvas_source_addr6_str.
+
+	* src/hosts.c: Add a need include.
+
 2016-12-21  Michael Wiegand <michael.wiegand@greenbone.net>
 
 	Make location of access key configurable.

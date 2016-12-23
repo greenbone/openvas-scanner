@@ -36,8 +36,9 @@
 #include <glib.h>
 #include <fcntl.h>
 
+#include <gvm/base/networking.h>
+
 #include <openvas/base/openvas_hosts.h>
-#include <openvas/base/openvas_networking.h>
 #include <openvas/misc/openvas_proctitle.h>
 #include <openvas/base/kb.h>
 #include <openvas/misc/network.h>        /* for auth_printf */
@@ -805,7 +806,7 @@ apply_source_iface_preference (int soc)
       return -1;
     }
 
-  if (openvas_source_iface_init (source_iface))
+  if (gvm_source_iface_init (source_iface))
     {
       gchar *msg = g_strdup_printf ("Erroneous source interface: %s",
                                     source_iface);
@@ -818,8 +819,8 @@ apply_source_iface_preference (int soc)
   else
     {
       char *ipstr, *ip6str;
-      ipstr = openvas_source_addr_str ();
-      ip6str = openvas_source_addr6_str ();
+      ipstr = gvm_source_addr_str ();
+      ip6str = gvm_source_addr6_str ();
       log_write ("source_iface: Using %s (%s / %s).", source_iface,
                  ipstr, ip6str);
 

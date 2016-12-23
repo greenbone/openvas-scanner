@@ -30,6 +30,8 @@
 #include <string.h>   /* for strlen() */
 #include <unistd.h>   /* for close() */
 
+#include <glib.h>     /* for g_free() */
+
 #include <openvas/misc/network.h>      /* for internal_recv */
 #include <openvas/misc/internal_com.h> /* for INTERNAL_COMM_MSG_TYPE_CTRL */
 
