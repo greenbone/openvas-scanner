@@ -40,7 +40,8 @@
 #include <sys/types.h>
 #include <utime.h>
 
-#include <openvas/base/drop_privileges.h> /* for drop_privileges */
+#include <gvm/base/drop_privileges.h> /* for drop_privileges */
+
 #include <openvas/base/nvticache.h>       /* for nvticache_add */
 #include <openvas/nasl/nasl.h>
 #include <openvas/misc/network.h>    /* for internal_send */
@@ -252,9 +253,9 @@ nasl_thread (struct nasl_thread_args *nargs)
   if (prefs_get_bool ("drop_privileges"))
     {
       int drop_priv_res = drop_privileges (NULL, &error);
-      if (drop_priv_res != OPENVAS_DROP_PRIVILEGES_OK)
+      if (drop_priv_res != GVM_DROP_PRIVILEGES_OK)
         {
-          if (drop_priv_res != OPENVAS_DROP_PRIVILEGES_FAIL_NOT_ROOT)
+          if (drop_priv_res != GVM_DROP_PRIVILEGES_FAIL_NOT_ROOT)
             log_write ("Failed to drop privileges for %s", name);
           g_error_free (error);
         }

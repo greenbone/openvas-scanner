@@ -1,3 +1,9 @@
+2017-01-01  Jan-Oliver Wagner <jan-oliver.wagner@greenbone.net>
+
+	* src/nasl_plugins.c (nasl_thread): Use GVM_DROP_PRIVILEGES_OK instead
+	OPENVAS_DROP_PRIVILEGES_OK and GVM_DROP_PRIVILEGES_FAIL_NOT_ROOT
+	instead of OPENVAS_DROP_PRIVILEGES_FAIL_NOT_ROOT.
+
 2016-12-23  Jan-Oliver Wagner <jan-oliver.wagner@greenbone.net>
 
 	* src/attack.c: Include gvm/base/networking.h instead of
