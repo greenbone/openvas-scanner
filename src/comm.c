@@ -318,6 +318,7 @@ comm_wait_order (struct arglist *globals)
       static char str[2048];
       int n;
 
+      memset (str, '\0', sizeof (str));
       n = recv_line (soc, str, sizeof (str) - 1);
       if (n < 0)
         {

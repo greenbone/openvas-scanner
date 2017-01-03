@@ -1,3 +1,10 @@
+2017-01-03  Hani Benhabiles  <hani.benhabiles@greenbone.net>
+
+	Backport r26905.
+
+	* src/comm.c (comm_wait_order): Zero str buffer. Fixes possible infinite
+	loop.
+
 2016-11-29  Hani Benhabiles  <hani.benhabiles@greenbone.net>
 
 	Backport r26731.
