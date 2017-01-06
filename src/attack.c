@@ -37,8 +37,8 @@
 #include <fcntl.h>
 
 #include <gvm/base/networking.h>
+#include <gvm/base/hosts.h>
 
-#include <openvas/base/openvas_hosts.h>
 #include <openvas/misc/openvas_proctitle.h>
 #include <openvas/base/kb.h>
 #include <openvas/misc/network.h>        /* for auth_printf */
@@ -630,7 +630,7 @@ attack_start (struct attack_start_args *args)
 }
 
 static void
-apply_hosts_preferences (openvas_hosts_t *hosts)
+apply_hosts_preferences (gvm_hosts_t *hosts)
 {
   const char *ordering = prefs_get ("hosts_ordering"),
              *exclude_hosts = prefs_get ("exclude_hosts");
@@ -643,12 +643,12 @@ apply_hosts_preferences (openvas_hosts_t *hosts)
     {
       if (!strcmp (ordering, "random"))
         {
-          openvas_hosts_shuffle (hosts);
+          gvm_hosts_shuffle (hosts);
           log_write ("hosts_ordering: Random.");
         }
       else if (!strcmp (ordering, "reverse"))
         {
-          openvas_hosts_reverse (hosts);
+          gvm_hosts_reverse (hosts);
           log_write ("hosts_ordering: Reverse.");
         }
     }
@@ -659,7 +659,7 @@ apply_hosts_preferences (openvas_hosts_t *hosts)
   if (exclude_hosts)
     {
       /* Exclude hosts, resolving hostnames. */
-      int ret = openvas_hosts_exclude (hosts, exclude_hosts, 1);
+      int ret = gvm_hosts_exclude (hosts, exclude_hosts, 1);
 
       if (ret >= 0)
         log_write ("exclude_hosts: Skipped %d host(s).", ret);
@@ -670,12 +670,12 @@ apply_hosts_preferences (openvas_hosts_t *hosts)
   /* Reverse-lookup unify ? */
   if (prefs_get_bool ("reverse_lookup_unify"))
     log_write ("reverse_lookup_unify: Skipped %d host(s).",
-               openvas_hosts_reverse_lookup_unify (hosts));
+               gvm_hosts_reverse_lookup_unify (hosts));
 
   /* Hosts that reverse-lookup only ? */
   if (prefs_get_bool ("reverse_lookup_only"))
     log_write ("reverse_lookup_only: Skipped %d host(s).",
-               openvas_hosts_reverse_lookup_only (hosts));
+               gvm_hosts_reverse_lookup_only (hosts));
 }
 
 static int
@@ -748,17 +748,17 @@ iface_authorized (const char *iface)
  * @return 1 if host authorized, 0 otherwise.
  */
 static int
-host_authorized (const openvas_host_t *host, const struct in6_addr *addr,
-                 const openvas_hosts_t *hosts_allow,
-                 const openvas_hosts_t *hosts_deny)
+host_authorized (const gvm_host_t *host, const struct in6_addr *addr,
+                 const gvm_hosts_t *hosts_allow,
+                 const gvm_hosts_t *hosts_deny)
 {
   /* Check Hosts Access. */
   if (host == NULL)
     return 0;
 
-  if (hosts_deny && openvas_host_in_hosts (host, addr, hosts_deny))
+  if (hosts_deny && gvm_host_in_hosts (host, addr, hosts_deny))
     return 0;
-  if (hosts_allow && !openvas_host_in_hosts (host, addr, hosts_allow))
+  if (hosts_allow && !gvm_host_in_hosts (host, addr, hosts_allow))
     return 0;
 
   return 1;
@@ -861,9 +861,9 @@ attack_network (struct arglist *globals, kb_t *network_kb)
   int max_hosts = 0, max_checks;
   int num_tested = 0;
   const char *hostlist;
-  openvas_hosts_t *hosts, *hosts_allow, *hosts_deny;
-  openvas_hosts_t *sys_hosts_allow, *sys_hosts_deny;
-  openvas_host_t *host;
+  gvm_hosts_t *hosts, *hosts_allow, *hosts_deny;
+  gvm_hosts_t *sys_hosts_allow, *sys_hosts_deny;
+  gvm_host_t *host;
   int global_socket = -1;
   plugins_scheduler_t sched;
   int fork_retries = 0;
@@ -975,25 +975,25 @@ attack_network (struct arglist *globals, kb_t *network_kb)
                  "max_checks = %d", hostlist, max_hosts, max_checks);
     }
 
-  hosts = openvas_hosts_new (hostlist);
+  hosts = gvm_hosts_new (hostlist);
   /* Apply Hosts preferences. */
   apply_hosts_preferences (hosts);
 
   /* Don't start if the provided interface is unauthorized. */
   if (apply_source_iface_preference (global_socket) != 0)
     {
-      openvas_hosts_free (hosts);
+      gvm_hosts_free (hosts);
       error_message_to_client
        (global_socket, "Interface not authorized for scanning", NULL, NULL);
       return;
     }
   /* hosts_allow/deny lists. */
-  hosts_allow = openvas_hosts_new (prefs_get ("hosts_allow"));
-  hosts_deny = openvas_hosts_new (prefs_get ("hosts_deny"));
+  hosts_allow = gvm_hosts_new (prefs_get ("hosts_allow"));
+  hosts_deny = gvm_hosts_new (prefs_get ("hosts_deny"));
   /* sys_* preferences, which can't be overriden by the client. */
-  sys_hosts_allow = openvas_hosts_new (prefs_get ("sys_hosts_allow"));
-  sys_hosts_deny = openvas_hosts_new (prefs_get ("sys_hosts_deny"));
-  host = openvas_hosts_next (hosts);
+  sys_hosts_allow = gvm_hosts_new (prefs_get ("sys_hosts_allow"));
+  sys_hosts_deny = gvm_hosts_new (prefs_get ("sys_hosts_deny"));
+  host = gvm_hosts_next (hosts);
   if (host == NULL)
     goto stop;
   hosts_init (global_socket, max_hosts);
@@ -1006,16 +1006,16 @@ attack_network (struct arglist *globals, kb_t *network_kb)
       char *hostname;
       struct in6_addr host_ip;
 
-      hostname = openvas_host_reverse_lookup (host);
+      hostname = gvm_host_reverse_lookup (host);
       if (!hostname)
-        hostname = openvas_host_value_str (host);
-      if (openvas_host_get_addr6 (host, &host_ip) == -1)
+        hostname = gvm_host_value_str (host);
+      if (gvm_host_get_addr6 (host, &host_ip) == -1)
         {
           log_write ("Couldn't resolve target %s", hostname);
           error_message_to_client (global_socket, "Couldn't resolve hostname.",
                                    hostname, NULL);
           g_free (hostname);
-          host = openvas_hosts_next (hosts);
+          host = gvm_hosts_next (hosts);
           continue;
         }
 
@@ -1048,7 +1048,7 @@ attack_network (struct arglist *globals, kb_t *network_kb)
                 {
                   /* remote host is down */
                   g_free (hostname);
-                  host = openvas_hosts_next (hosts);
+                  host = gvm_hosts_next (hosts);
                   continue;
                 }
             }
@@ -1119,7 +1119,7 @@ attack_network (struct arglist *globals, kb_t *network_kb)
       else
         {
           g_free (hostname);
-          host = openvas_hosts_next (hosts);
+          host = gvm_hosts_next (hosts);
         }
     }
 
@@ -1138,11 +1138,11 @@ scan_stop:
 
 stop:
 
-  openvas_hosts_free (hosts);
-  openvas_hosts_free (hosts_allow);
-  openvas_hosts_free (hosts_deny);
-  openvas_hosts_free (sys_hosts_allow);
-  openvas_hosts_free (sys_hosts_deny);
+  gvm_hosts_free (hosts);
+  gvm_hosts_free (hosts_allow);
+  gvm_hosts_free (hosts_deny);
+  gvm_hosts_free (sys_hosts_allow);
+  gvm_hosts_free (sys_hosts_deny);
 
   plugins_scheduler_free (sched);
 

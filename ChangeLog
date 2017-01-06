@@ -1,3 +1,21 @@
+2017-01-06  Jan-Oliver Wagner <jan-oliver.wagner@greenbone.net>
+
+	* src/attack.c: Include gvm/base/hosts.h instead of
+	openvas/base/openvas_hosts.h
+	Use gvm_host_t and gvm_hosts_t instead of openvas_host_t
+	and opnevas_hosts_t.
+	(apply_hosts_preferences): Use gvm_hosts_shuffle, gvm_hosts_exclude,
+	gvm_hosts_reverse_lookup_unify, gvm_hosts_reverse_lookup_only and
+	gvm_hosts_reverse instead of openvas_hosts_shuffle,
+	openvas_hosts_exclude, openvas_hosts_reverse_lookup_unify,
+	openvas_hosts_reverse_lookup_only and openvas_hosts_reverse
+	(host_authorized): Use gvm_host_in_hosts instead of openvas_host_in_hosts.
+	(attack_network): Use gvm_hosts_free, gvm_hosts_next,
+	gvm_host_reverse_lookup, gvm_host_value_str, gvm_host_get_addr6 and
+	gvm_hosts_new instead of openvas_hosts_free, openvas_hosts_next,
+	openvas_host_reverse_lookup, openvas_host_value_strm
+	openvas_host_get_addr6 and openvas_hosts_new.
+
 2017-01-01  Jan-Oliver Wagner <jan-oliver.wagner@greenbone.net>
 
 	* src/nasl_plugins.c (nasl_thread): Use GVM_DROP_PRIVILEGES_OK instead
