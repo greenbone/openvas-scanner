@@ -78,7 +78,7 @@ log_init (const char *filename)
 /**
  * @brief Get the open log file descriptor.
  *
- * @param[out]   Return the log file descriptor.
+ * @return The log file descriptor.
  */
 int
 log_get_fd ()
