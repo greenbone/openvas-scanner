@@ -36,9 +36,14 @@
 #include <openvas/misc/internal_com.h> /* for INTERNAL_COMM_MSG_TYPE_CTRL */
 
 #include "utils.h" /* for data_left() */
-#include "log.h"   /* for log_write() */
 #include "hosts.h" /* for hosts_new() */
 #include "ntp.h"   /* for ntp_parse_input() */
+
+#undef G_LOG_DOMAIN
+/**
+ * @brief GLib log domain.
+ */
+#define G_LOG_DOMAIN "sd   main"
 
 /**
  * @brief Host information, implemented as doubly linked list.
@@ -79,7 +84,7 @@ forward (int in, int out)
     }
   else if ((type & INTERNAL_COMM_MSG_TYPE_DATA) == 0)
     {
-      log_write ("hosts.c:forward(): bad msg type (%d)\n", type);
+      g_debug ("hosts.c:forward(): bad msg type (%d)\n", type);
       return -1;
     }
 
@@ -208,7 +213,7 @@ hosts_set_pid (char *name, pid_t pid)
   struct host *h = hosts_get (name);
   if (h == NULL)
     {
-      log_write ("host_set_pid() failed!\n");
+      g_debug ("host_set_pid() failed!\n");
       return -1;
     }
 
@@ -223,7 +228,7 @@ hosts_stop_host (struct host *h)
   if (h == NULL)
     return -1;
 
-  log_write ("Stopping host %s scan", h->name);
+  g_debug ("Stopping host %s scan", h->name);
   kill (h->pid, SIGUSR1);
   return 0;
 }
@@ -361,7 +366,7 @@ hosts_read (struct arglist *globals)
   if (hosts_read_client (globals) < 0)
     {
       hosts_stop_all ();
-      log_write ("Client abruptly closed the communication");
+      g_debug ("Client abruptly closed the communication");
       return -1;
     }
 

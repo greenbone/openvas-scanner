@@ -25,7 +25,7 @@
 
 ## Program
 
-add_executable (openvassd attack.c comm.c hosts.c log.c
+add_executable (openvassd attack.c comm.c hosts.c
                 nasl_plugins.c ntp.c openvassd.c otp.c
                 pluginlaunch.c pluginload.c
                 pluginscheduler.c plugs_req.c
@@ -76,10 +76,6 @@ endif (OPENVAS_CACHE_DIR)
 if (OPENVAS_LOG_DIR)
   add_definitions (-DOPENVAS_LOG_DIR=\\\"${OPENVAS_LOG_DIR}\\\")
 endif (OPENVAS_LOG_DIR)
-
-if (OPENVASSD_MESSAGES)
-  add_definitions (-DOPENVASSD_MESSAGES=\\\"${OPENVASSD_MESSAGES}\\\")
-endif (OPENVASSD_MESSAGES)
 
 if (OPENVASSD_DEBUGMSG)
   add_definitions (-DOPENVASSD_DEBUGMSG=\\\"${OPENVASSD_DEBUGMSG}\\\")
@@ -142,7 +138,7 @@ add_dependencies (check cppcheck)
 
 ## Tag files
 
-set (C_FILES "attack.c" "comm.c" "hosts.c" "log.c"
+set (C_FILES "attack.c" "comm.c" "hosts.c"
      "nasl_plugins.c" "ntp.c" "openvassd.c" "otp.c"
      "pluginlaunch.c" "pluginload.c"
      "pluginscheduler.c" "plugs_req.c"

@@ -41,11 +41,16 @@
 
 #include "pluginload.h"
 #include "utils.h"
-#include "log.h"
 #include "sighand.h"
 #include "processes.h"
 #include "pluginscheduler.h"
 #include "plugs_req.h"
+
+#undef G_LOG_DOMAIN
+/**
+ * @brief GLib log domain.
+ */
+#define G_LOG_DOMAIN "sd   main"
 
 /**
  * @brief 'Hard' limit of the max. number of concurrent plugins per host.
@@ -97,7 +102,7 @@ process_internal_msg (int p)
   e = internal_recv (processes[p].internal_soc, &buffer, &bufsz, &type);
   if (e < 0)
     {
-      log_write ("Process %d (OID: %s) seems to have died too early",
+      g_debug ("Process %d (OID: %s) seems to have died too early",
                  processes[p].pid, processes[p].plugin->oid);
       processes[p].alive = 0;
       return -1;
@@ -116,7 +121,7 @@ process_internal_msg (int p)
         }
     }
   else
-    log_write ("Received unknown message type %d", type);
+    g_debug ("Received unknown message type %d", type);
 
   g_free (buffer);
   return e;
@@ -172,7 +177,7 @@ update_running_processes (void)
                   gchar *msg;
 
                   if (log_whole)
-                    log_write ("%s (pid %d) is slow to finish - killing it",
+                    g_debug ("%s (pid %d) is slow to finish - killing it",
                                oid, processes[i].pid);
 
                   msg = g_strdup_printf
@@ -199,7 +204,7 @@ update_running_processes (void)
                   if (log_whole)
                     {
                       char *name = nvticache_get_name (oid);
-                      log_write
+                      g_debug
                         ("%s (%s) [%d] finished its job in %ld.%.3ld seconds",
                          name, oid, processes[i].pid,
                          (long) (now.tv_sec - processes[i].start.tv_sec),
@@ -251,8 +256,8 @@ next_free_process (struct scheduler_plugin *upcoming)
               if (do_wait >= 0)
                 {
 #ifdef DEBUG_CONFLICT
-                  log_write ("Waiting has been initiated...\n");
-                  log_write ("Ports in common - waiting...");
+                  g_debug ("Waiting has been initiated...\n");
+                  g_debug ("Ports in common - waiting...");
 #endif
                   while (process_alive (processes[r].pid))
                     {
@@ -261,7 +266,7 @@ next_free_process (struct scheduler_plugin *upcoming)
                       wait_for_children ();
                     }
 #ifdef DEBUG_CONFLICT
-                  log_write ("End of the wait - was that long ?\n");
+                  g_debug ("End of the wait - was that long ?\n");
 #endif
                 }
             }
@@ -328,7 +333,7 @@ read_running_processes (void)
               if (result)
                 {
 #ifdef DEBUG
-                  log_write ("process_internal_msg for %s returned %d",
+                  g_debug ("process_internal_msg for %s returned %d",
                              processes[i].plugin->oid, result);
 #endif
                 }
@@ -352,7 +357,7 @@ pluginlaunch_init (const char *host)
 
   if (max_running_processes >= MAX_PROCESSES)
     {
-      log_write
+      g_debug
         ("max_checks (%d) > MAX_PROCESSES (%d) - modify openvas-scanner/openvassd/pluginlaunch.c",
          max_running_processes, MAX_PROCESSES);
       max_running_processes = MAX_PROCESSES - 1;

@@ -55,7 +55,13 @@
 #include "pluginscheduler.h"
 #include "pluginlaunch.h"
 #include "processes.h"
-#include "log.h"
+
+#undef G_LOG_DOMAIN
+/**
+ * @brief GLib log domain.
+ */
+#define G_LOG_DOMAIN "sd   main"
+
 
 /**
  * @brief Add a nvti's preferences to the global preferences.
@@ -128,7 +134,7 @@ nasl_plugin_add (char *folder, char *name)
 
       if (exec_nasl_script (plugin_args, fullname, NULL, nasl_mode) < 0)
         {
-          log_write ("%s: Could not be loaded", fullname);
+          g_debug ("%s: Could not be loaded", fullname);
           arg_free_all (plugin_args);
           return -1;
         }
@@ -145,9 +151,9 @@ nasl_plugin_add (char *folder, char *name)
           fixed_timestamp.actime = now;
           fixed_timestamp.modtime = now;
           if (utime (fullname, &fixed_timestamp) == 0)
-            log_write ("The timestamp for %s was from the future. This has been fixed.", fullname);
+            g_debug ("The timestamp for %s was from the future. This has been fixed.", fullname);
           else
-            log_write ("The timestamp for %s is from the future and could not be fixed.", fullname);
+            g_debug ("The timestamp for %s is from the future and could not be fixed.", fullname);
         }
 
       if (nvti_oid (new_nvti) != NULL)
@@ -157,7 +163,7 @@ nasl_plugin_add (char *folder, char *name)
         }
       else
         // Most likely an exit was hit before the description could be parsed.
-        log_write ("\r%s could not be added to the cache and is likely to stay"
+        g_debug ("\r%s could not be added to the cache and is likely to stay"
                    " invisible to the client.", name);
       nvti_free (new_nvti);
     }
@@ -165,14 +171,14 @@ nasl_plugin_add (char *folder, char *name)
   if (nvti == NULL)
     {
       /* Discard invalid plugins */
-      log_write ("%s: Failed to load", name);
+      g_debug ("%s: Failed to load", name);
       return -1;
     }
 
   if (nvti_oid (nvti) == NULL)
     {
       /* Discard invalid plugins */
-      log_write ("%s: Failed to load, no OID", name);
+      g_debug ("%s: Failed to load, no OID", name);
       nvti_free (nvti);
       return -1;
     }
@@ -237,7 +243,7 @@ nasl_thread (struct nasl_thread_args *nargs)
       nice_retval = nice (-5);
       if (nice_retval == -1 && errno != 0)
         {
-          log_write ("Unable to renice process: %d", errno);
+          g_debug ("Unable to renice process: %d", errno);
         }
     }
 
@@ -256,7 +262,7 @@ nasl_thread (struct nasl_thread_args *nargs)
       if (drop_priv_res != GVM_DROP_PRIVILEGES_OK)
         {
           if (drop_priv_res != GVM_DROP_PRIVILEGES_FAIL_NOT_ROOT)
-            log_write ("Failed to drop privileges for %s", name);
+            g_debug ("Failed to drop privileges for %s", name);
           g_error_free (error);
         }
     }

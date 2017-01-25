@@ -51,9 +51,10 @@
 #include <sys/stat.h>
 #include <pwd.h>
 #include <grp.h>
+#include <glib.h>
 
 #include <gvm/base/pidfile.h>    /* for pidfile_create */
-#include <gvm/base/logging.h>    /* for setup_legacy_log_handler */
+#include <gvm/base/logging.h>    /* for setup_log_handler, load_log_configuration, free_log_configuration*/
 
 #include <openvas/misc/openvas_proctitle.h> /* for proctitle_set */
 #include <openvas/base/nvticache.h> /* nvticache_free */
@@ -65,7 +66,6 @@
 #include "comm.h"         /* for comm_loading */
 #include "attack.h"       /* for attack_network */
 #include "sighand.h"      /* for openvas_signal */
-#include "log.h"          /* for log_write */
 #include "processes.h"    /* for create_process */
 #include "ntp.h"          /* for ntp_timestamp_scan_starts */
 #include "utils.h"        /* for wait_for_children1 */
@@ -75,11 +75,25 @@
 #include "svnrevision.h"
 #endif
 
+#undef G_LOG_DOMAIN
+/**
+ * @brief GLib log domain.
+ */
+#define G_LOG_DOMAIN "sd   main"
+
+
 /**
  * Globals that should not be touched (used in utils module).
  */
 int global_max_hosts = 15;
 int global_max_checks = 10;
+
+
+/**
+ * @brief Logging parameters, as passed to setup_log_handlers.
+ */
+GSList *log_config = NULL;
+
 
 static int global_iana_socket = -1;
 
@@ -103,7 +117,6 @@ static openvassd_option openvassd_defaults[] = {
   {"max_hosts", "30"},
   {"max_checks", "10"},
   {"be_nice", "no"},
-  {"logfile", OPENVASSD_MESSAGES},
   {"log_whole_attack", "no"},
   {"log_plugins_name_at_load", "no"},
   {"dumpfile", OPENVASSD_DEBUGMSG},
@@ -144,7 +157,7 @@ start_daemon_mode (void)
   /* become process group leader */
   if (setsid () < 0)
     {
-      log_write ("Warning: Cannot set process group leader (%s)",
+      g_warning ("Cannot set process group leader (%s)\n",
                  strerror (errno));
     }
 
@@ -154,7 +167,7 @@ start_daemon_mode (void)
   /* no input, anymore: provide an empty-file substitute */
   if ((fd = open ("/dev/null", O_RDONLY)) < 0)
     {
-      log_write ("Cannot open /dev/null (%s) -- aborting", strerror (errno));
+      g_critical ("Cannot open /dev/null (%s) -- aborting", strerror (errno));
       exit (0);
     }
 
@@ -173,7 +186,7 @@ start_daemon_mode (void)
 
   if ((fd = open (s, O_WRONLY | O_CREAT | O_APPEND, 0600)) < 0)
     {
-      log_write ("Cannot create a new dumpfile %s (%s)-- aborting", s,
+      g_critical ("Cannot create a new dumpfile %s (%s)-- aborting", s,
                  strerror (errno));
       exit (2);
     }
@@ -280,13 +293,13 @@ loading_handler_start ()
   openvas_signal (SIGTERM, handle_loading_stop_signal);
   if ((opts = fcntl (global_iana_socket, F_GETFL, 0)) < 0)
     {
-      log_write ("fcntl: %s", strerror (errno));
+      g_critical ("fcntl: %s", strerror (errno));
       exit (0);
     }
 
   if (fcntl (global_iana_socket, F_SETFL, opts | O_NONBLOCK) < 0)
     {
-      log_write ("fcntl: %s", strerror (errno));
+      g_critical ("fcntl: %s", strerror (errno));
       exit (0);
     }
 
@@ -309,7 +322,7 @@ loading_handler_start ()
       sleep (1);
     }
   if (fcntl (global_iana_socket, F_SETFL, opts) < 0)
-    log_write ("fcntl: %s", strerror (errno));
+    g_critical ("fcntl: %s", strerror (errno));
 
   exit (0);
 }
@@ -343,6 +356,7 @@ init_signal_handlers ()
 static void
 reload_openvassd ()
 {
+  static gchar *rc_name = NULL;
   const char *config_file;
   pid_t handler_pid;
   int i, ret;
@@ -350,9 +364,15 @@ reload_openvassd ()
   /* Ignore SIGHUP while reloading. */
   openvas_signal (SIGHUP, SIG_IGN);
 
-  /* Reinitialize logging before writing to it. */
-  log_init (prefs_get ("logfile"));
-  log_write ("Reloading the scanner.");
+  /* Setup logging. */
+  rc_name = g_build_filename (OPENVAS_SYSCONF_DIR,
+                              "openvassd_log.conf",
+                              NULL);
+  if (g_file_test (rc_name, G_FILE_TEST_EXISTS))
+    log_config = load_log_configuration (rc_name);
+  g_free (rc_name);
+  setup_log_handlers (log_config);
+  g_message ("Reloading the scanner.\n");
 
   handler_pid = loading_handler_start ();
   if (handler_pid < 0)
@@ -369,7 +389,7 @@ reload_openvassd ()
   set_globals_from_preferences ();
   loading_handler_stop (handler_pid);
 
-  log_write ("Finished reloading the scanner.");
+  g_message ("Finished reloading the scanner.");
   reload_signal = 0;
   openvas_signal (SIGHUP, handle_reload_signal);
   if (ret)
@@ -412,7 +432,7 @@ scanner_thread (struct arglist *globals)
       errno = 0;
       if (nice(10) == -1 && errno != 0)
         {
-          log_write ("Unable to renice process: %d", errno);
+          g_warning ("Unable to renice process: %d", errno);
         }
     }
 
@@ -440,6 +460,17 @@ shutdown_and_exit:
   exit (0);
 }
 
+/**
+ * @brief Free logging configuration.
+ */
+static void
+log_config_free ()
+{
+  free_log_configuration (log_config);
+  log_config = NULL;
+}
+
+
 /*
  * @brief Terminates the scanner if a termination signal was received.
  */
@@ -448,10 +479,10 @@ check_termination ()
 {
   if (termination_signal)
     {
-      log_write ("Received the %s signal", strsignal (termination_signal));
+      g_debug ("Received the %s signal", strsignal (termination_signal));
+      if (log_config) log_config_free ();
       remove_pidfile ();
       make_em_die (SIGTERM);
-      log_close ();
       _exit (0);
     }
 }
@@ -474,11 +505,11 @@ static void
 main_loop ()
 {
 #ifdef OPENVASSD_SVN_REVISION
-  log_write ("openvassd %s (SVN revision %i) started",
+  g_message ("openvassd %s (SVN revision %i) started",
              OPENVASSD_VERSION,
              OPENVASSD_SVN_REVISION);
 #else
-  log_write ("openvassd %s started", OPENVASSD_VERSION);
+  g_message ("openvassd %s started", OPENVASSD_VERSION);
 #endif
   proctitle_set ("openvassd: Waiting for incoming connections");
   for (;;)
@@ -503,7 +534,7 @@ main_loop ()
       /* we do not want to create an io thread, yet so the last argument is -1 */
       if (create_process ((process_func_t) scanner_thread, globals) < 0)
         {
-          log_write ("Could not fork - client won't be served");
+          g_debug ("Could not fork - client won't be served");
           sleep (2);
         }
       close (soc);
@@ -533,7 +564,7 @@ init_unix_network (int *sock, const char *owner, const char *group,
   unix_socket = socket (AF_UNIX, SOCK_STREAM, 0);
   if (unix_socket == -1)
     {
-      log_write ("%s: Couldn't create UNIX socket", __FUNCTION__);
+      g_debug ("%s: Couldn't create UNIX socket", __FUNCTION__);
       return -1;
     }
   addr.sun_family = AF_UNIX;
@@ -546,7 +577,7 @@ init_unix_network (int *sock, const char *owner, const char *group,
   if (bind (unix_socket, (struct sockaddr *) &addr, sizeof (struct sockaddr_un))
       == -1)
     {
-      log_write ("%s: Error on bind(%s): %s", __FUNCTION__,
+      g_debug ("%s: Error on bind(%s): %s", __FUNCTION__,
                  unix_socket_path, strerror (errno));
       return -1;
     }
@@ -556,12 +587,12 @@ init_unix_network (int *sock, const char *owner, const char *group,
       struct passwd *pwd = getpwnam (owner);
       if (!pwd)
         {
-          log_write ("%s: User %s not found.", __FUNCTION__, owner);
+          g_debug ("%s: User %s not found.", __FUNCTION__, owner);
           return -1;
         }
       if (chown (unix_socket_path, pwd->pw_uid, -1) == -1)
         {
-          log_write ("%s: chown: %s", __FUNCTION__, strerror (errno));
+          g_debug ("%s: chown: %s", __FUNCTION__, strerror (errno));
           return -1;
         }
     }
@@ -571,12 +602,12 @@ init_unix_network (int *sock, const char *owner, const char *group,
       struct group *grp = getgrnam (group);
       if (!grp)
         {
-          log_write ("%s: Group %s not found.", __FUNCTION__, group);
+          g_debug ("%s: Group %s not found.", __FUNCTION__, group);
           return -1;
         }
       if (chown (unix_socket_path, -1, grp->gr_gid) == -1)
         {
-          log_write ("%s: chown: %s", __FUNCTION__, strerror (errno));
+          g_debug ("%s: chown: %s", __FUNCTION__, strerror (errno));
           return -1;
         }
     }
@@ -586,18 +617,18 @@ init_unix_network (int *sock, const char *owner, const char *group,
  omode = strtol (mode, 0, 8);
  if (omode <= 0 || omode > 4095)
    {
-     log_write ("%s: Erroneous liste-mode value", __FUNCTION__);
+     g_debug ("%s: Erroneous liste-mode value", __FUNCTION__);
      return -1;
    }
  if (chmod (unix_socket_path, strtol (mode, 0, 8)) == -1)
    {
-     log_write ("%s: chmod: %s", __FUNCTION__, strerror (errno));
+     g_debug ("%s: chmod: %s", __FUNCTION__, strerror (errno));
      return -1;
    }
 
   if (listen (unix_socket, 128) == -1)
     {
-      log_write ("%s: Error on listen(): %s", __FUNCTION__, strerror (errno));
+      g_debug ("%s: Error on listen(): %s", __FUNCTION__, strerror (errno));
       return -1;
     }
 
@@ -613,15 +644,24 @@ init_unix_network (int *sock, const char *owner, const char *group,
 static int
 init_openvassd (int dont_fork, const char *config_file)
 {
+  static gchar *rc_name = NULL;
   int i;
 
   for (i = 0; openvassd_defaults[i].option != NULL; i++)
     prefs_set (openvassd_defaults[i].option, openvassd_defaults[i].value);
   prefs_config (config_file);
 
-  log_init (prefs_get ("logfile"));
+
+
+  /* Setup logging. */
+  rc_name = g_build_filename (OPENVAS_SYSCONF_DIR,
+                              "openvassd_log.conf",
+                              NULL);
+  if (g_file_test (rc_name, G_FILE_TEST_EXISTS))
+    log_config = load_log_configuration (rc_name);
+  g_free (rc_name);
   if (dont_fork == FALSE)
-    setup_legacy_log_handler (log_vwrite);
+    setup_log_handlers (log_config);
 
   set_globals_from_preferences ();
 
@@ -634,13 +674,13 @@ set_daemon_mode ()
   /* Close stdin, stdout and stderr */
   int i = open ("/dev/null", O_RDONLY, 0640);
   if (dup2 (i, STDIN_FILENO) != STDIN_FILENO)
-    log_write ("Could not redirect stdin to /dev/null: %s\n", strerror (errno));
+    g_debug ("Could not redirect stdin to /dev/null: %s\n", strerror (errno));
   if (dup2 (i, STDOUT_FILENO) != STDOUT_FILENO)
-    log_write ("Could not redirect stdout to /dev/null: %s\n",
-               strerror (errno));
+    g_debug ("Could not redirect stdout to /dev/null: %s\n",
+             strerror (errno));
   if (dup2 (i, STDERR_FILENO) != STDERR_FILENO)
-    log_write ("Could not redirect stderr to /dev/null: %s\n",
-               strerror (errno));
+    g_debug ("Could not redirect stderr to /dev/null: %s\n",
+             strerror (errno));
   close (i);
   if (fork ())
     exit (0);

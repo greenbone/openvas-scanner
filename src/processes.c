@@ -32,12 +32,17 @@
 #include <time.h>     /* for time() */
 #include <string.h>   /* for strerror() */
 #include <stdlib.h>   /* for exit() */
+#include <glib.h>     /* for g_error */
 
 #include <setjmp.h>
 #include "processes.h"
 #include "sighand.h"
-#include "log.h"
 
+#undef G_LOG_DOMAIN
+/**
+ * @brief GLib log domain.
+ */
+#define G_LOG_DOMAIN "sd   main"
 
 int
 terminate_process (pid_t pid)
@@ -88,6 +93,6 @@ create_process (process_func_t function, void *argument)
       exit (0);
     }
   if (pid < 0)
-    log_write ("Error : could not fork ! Error : %s", strerror (errno));
+    g_error ("Error : could not fork ! Error : %s", strerror (errno));
   return pid;
 }

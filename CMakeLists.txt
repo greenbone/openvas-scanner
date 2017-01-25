@@ -179,7 +179,6 @@ endif (NOT OPENVAS_ACCESS_KEY_DIR)
 
 set (OPENVAS_LIB_INSTALL_DIR     "${LIBDIR}")
 
-set (OPENVASSD_MESSAGES "${OPENVAS_LOG_DIR}/openvassd.messages")
 set (OPENVASSD_DEBUGMSG "${OPENVAS_LOG_DIR}/openvassd.dump")
 set (OPENVASSD_CONF     "${OPENVAS_SYSCONF_DIR}/openvassd.conf")
 
@@ -222,8 +221,7 @@ configure_file (doc/example_redis_2_4.conf.in doc/example_redis_2_4.conf @ONLY)
 configure_file (doc/example_redis_2_6.conf.in doc/example_redis_2_6.conf @ONLY)
 configure_file (VERSION.in VERSION @ONLY)
 configure_file (tools/greenbone-nvt-sync.in tools/greenbone-nvt-sync @ONLY)
-# TODO: Once  Scanner has a proper logging mechanism like Manager.
-#configure_file (src/openvassd_log_conf.cmake_in src/openvassd_log.conf)
+configure_file (src/openvassd_log_conf.cmake_in src/openvassd_log.conf)
 
 ## Program
 
@@ -250,9 +248,8 @@ install (FILES ${CMAKE_BINARY_DIR}/src/openvassd
   PERMISSIONS OWNER_EXECUTE OWNER_READ OWNER_WRITE
   GROUP_READ GROUP_EXECUTE WORLD_READ WORLD_EXECUTE)
 
-# TODO: Once Scanner has a proper logging mechanism like Manager.
-#install (FILES openvassd_log.conf
-#         DESTINATION ${OPENVAS_SYSCONF_DIR})
+install (FILES ${CMAKE_BINARY_DIR}/src/openvassd_log.conf
+         DESTINATION ${OPENVAS_SYSCONF_DIR})
 
 install (FILES ${CMAKE_BINARY_DIR}/tools/greenbone-nvt-sync
          DESTINATION ${SBINDIR}

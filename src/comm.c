@@ -43,11 +43,16 @@
 
 #include "comm.h"
 #include "ntp.h"
-#include "log.h"
 #include "pluginscheduler.h"
 #include "pluginload.h"    /* for current_loading_plugins */
 #include "sighand.h"
 #include "utils.h"
+
+#undef G_LOG_DOMAIN
+/**
+ * @brief GLib log domain.
+ */
+#define G_LOG_DOMAIN "sd   main"
 
 /**
  * @brief Initializes the communication between the scanner (us) and the client.
@@ -65,7 +70,7 @@ comm_init (int soc)
   n = recv_line (soc, buf, sizeof (buf) - 1);
   if (n <= 0)
     {
-      log_write ("Failed reading client-requested OTP version.");
+      g_debug ("Failed reading client-requested OTP version.");
       return -1;
     }
 
@@ -73,9 +78,9 @@ comm_init (int soc)
   if (strncmp (buf, "< OTP/2.0 >", 11))
     {
       if (g_str_is_ascii (buf))
-        log_write ("Unknown client-requested OTP version: %s.", buf);
+        g_debug ("Unknown client-requested OTP version: %s.", buf);
       else
-        log_write ("Unknown client-requested OTP version.");
+        g_debug ("Unknown client-requested OTP version.");
       return -1;
     }
   nsend (soc, "< OTP/2.0 >\n", 12, 0);
@@ -97,7 +102,7 @@ comm_loading (int soc)
   n = recv_line (soc, buf, sizeof (buf) - 1);
   if (n <= 0)
     {
-      log_write ("Failed reading client input.");
+      g_debug ("Failed reading client input.");
       return -1;
     }
   /* Always respond with SCANNER_LOADING. */
@@ -173,7 +178,7 @@ send_plug_info (int soc, const char *filename)
 
   if (!nvti)
     {
-      log_write ("NVTI not found for %s. Will not be sent.", filename);
+      g_debug ("NVTI not found for %s. Will not be sent.", filename);
       return;
     }
 
@@ -187,20 +192,20 @@ send_plug_info (int soc, const char *filename)
 
   if ((name = nvti_name (nvti)) == NULL)
     {
-      log_write ("Inconsistent data (no name): %s - not applying this plugin",
+      g_debug ("Inconsistent data (no name): %s - not applying this plugin",
                  nvti_oid (nvti));
       ignored = 1;
     }
   else if (strchr (name, '\n') != NULL)
     {
-      log_write ("%s: Newline in name\n", nvti_oid (nvti));
+      g_debug ("%s: Newline in name\n", nvti_oid (nvti));
       ignored = 1;
     }
 
 
   if ((copyright = nvti_copyright (nvti)) == NULL)
     {
-      log_write
+      g_debug
         ("Inconsistent data (no copyright): %s - not applying this plugin",
          name ? name : nvti_oid (nvti));
       ignored = 1;
@@ -208,7 +213,7 @@ send_plug_info (int soc, const char *filename)
 
   if ((family = nvti_family (nvti)) == NULL)
     {
-      log_write
+      g_debug
         ("Inconsistent data (no family): %s - not applying this plugin",
          name ? name : nvti_oid (nvti));
       ignored = 1;
@@ -216,7 +221,7 @@ send_plug_info (int soc, const char *filename)
 
   if ((copyright != NULL) && (strchr (copyright, '\n') != NULL))
     {
-      log_write ("%s: Newline in copyright\n", nvti_oid (nvti));
+      g_debug ("%s: Newline in copyright\n", nvti_oid (nvti));
       ignored = 1;
     }
 
@@ -326,13 +331,13 @@ comm_wait_order (struct arglist *globals)
       n = recv_line (soc, str, sizeof (str) - 1);
       if (n < 0)
         {
-          log_write ("Client closed the communication");
+          g_debug ("Client closed the communication");
           return -1;
         }
       if (str[0] == '\0')
         if (!is_client_present (soc))
           {
-            log_write ("Client not present");
+            g_debug ("Client not present");
             return -1;
           }
 
@@ -341,7 +346,7 @@ comm_wait_order (struct arglist *globals)
         return 0;
       else if (n == -1)
         {
-          log_write ("Client input parsing error: %s", str);
+          g_debug ("Client input parsing error: %s", str);
           return -1;
         }
     }

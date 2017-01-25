@@ -38,13 +38,18 @@
 #include "ntp.h"
 #include "otp.h"
 #include "comm.h"
-#include "log.h"
 #include "utils.h"
 #include "hosts.h"
 
 #ifndef MIN
 #define MIN(x,y) ((x) < (y) ? (x):(y))
 #endif
+
+#undef G_LOG_DOMAIN
+/**
+ * @brief GLib log domain.
+ */
+#define G_LOG_DOMAIN "sd   main"
 
 
 static int ntp_read_prefs (int);
@@ -94,7 +99,7 @@ ntp_parse_input (struct arglist *globals, char *input)
           break;
 
         case CREQ_STOP_WHOLE_TEST:
-          log_write ("Stopping the whole test (requested by client)");
+          g_debug ("Stopping the whole test (requested by client)");
           hosts_stop_all ();
           break;
 
@@ -126,7 +131,7 @@ ntp_long_attack (int soc)
     return -1;
 
 #if DEBUGMORE
-  log_write ("long_attack :%s\n", input);
+  g_debug ("long_attack :%s\n", input);
 #endif
   if (!strncmp (input, "<|> CLIENT", sizeof ("<|> CLIENT")))
     return 1;
@@ -176,7 +181,7 @@ ntp_read_prefs (int soc)
 
       if (n < 0 || input[0] == '\0')
         {
-          log_write ("Empty data string -- closing comm. channel");
+          g_debug ("Empty data string -- closing comm. channel");
           exit (0);
         }
 
@@ -330,7 +335,7 @@ ntp_recv_file (struct arglist *globals)
 
   if (contents == NULL)
     {
-      log_write ("ntp_recv_file: Failed to allocate memory for uploaded file.");
+      g_debug ("ntp_recv_file: Failed to allocate memory for uploaded file.");
       g_free (origname);
       return -1;
     }
@@ -342,7 +347,7 @@ ntp_recv_file (struct arglist *globals)
       n = nrecv (soc, input, MIN (sizeof (input) - 1, bytes - tot), 0);
       if (n < 0)
         {
-          log_write ("11_recv_file: nrecv(%d)", soc);
+          g_debug ("11_recv_file: nrecv(%d)", soc);
           break;
         }
       else

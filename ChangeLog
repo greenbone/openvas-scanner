@@ -1,3 +1,80 @@
+2017-01-25  Juan Jose Nicola  <juan.nicola@greenbone.net>
+
+	Add support for using GLib based logging to OpenVAS Scanner.
+
+	* src/openvassd_log_conf.cmake_in: New file with log configuration
+	template.
+
+	* CMakeLists.txt: Configure and install openvassd_log.conf.
+	Remove now obsolete TODO. Remove setting of OPENVASSD_MESSAGES.
+
+	* src/CMakeLists.txt: Remove add_executable and setting of "log.c"
+	since it is not longer required. Remove add_definitions of
+	OPENVASSD_MESSAGES.
+
+	* src/attack.c: Remove unneeded include "log.h". Define G_LOG_DOMAIN.
+	(launch_plugin, attack_host,apply_hosts_preferences, attack_start)
+	(attack_network, report_kb_failure, apply_source_iface_preference): Use
+	g_message, g_debug and g_warning instead of log_write, depending on the
+	required log level .
+
+	* src/comm.c: Remove unneeded include "log.h".	 Define G_LOG_DOMAIN.
+	(comm_init, comm_loading, send_plug_info, comm_wait_order): Use
+	g_debug instead of log_write.
+
+	* src/hosts.c: Remove unneeded include "log.h". Define G_LOG_DOMAIN.
+	(forward, hosts_set_pid, hosts_stop_host, hosts_read): Use g_debug
+	instead of log_write.
+
+	* src/nasl_plugins.c: Remove unneeded include "log.h". Define
+	G_LOG_DOMAIN.
+	(nasl_plugin_add, nasl_thread) Use g_debug instead of log_write.
+
+	* src/ntp.c: Remove unneeded include "log.h". Define G_LOG_DOMAIN.
+	(ntp_parse_input, ntp_long_attack, ntp_read_prefs, ntp_recv_file): Use
+	g_debug instead of log_write.
+
+	* src/openvassd.c: Remove unneeded include "log.h". Include "glib.h"
+	for logging purpouse. Define G_LOG_DOMAIN. Initialize logging
+	parameter log_config.
+	(start_daemon_mode, loading_handler_start, scanner_thread,main_loop)
+	(init_unix_network, set_daemon_mode): Use g_message, g_debug and
+	g_warning instead of log_write, depending on the required log level.
+	(reload_openvassd)init_openvassd): New variable rc_name for logging
+	setup. Check if a configuration file for logging exist and setup
+	the log handler. Use g_message instead of log_write.
+	(log_config_free): New function.
+	(check_termination): Use log_config_free instead of log_close. Use
+	g_debug instead of log_write.
+	(init_openvassd): New variable rc_name for logging setup. Check if a
+	configuration file for logging exist and setup the log handler.
+	(struct openvassd_option openvassd_defaults): Delete default option
+	"logconf".
+
+	* src/pluginlaunch.c: Remove unneeded include "log.h". Define
+	G_LOG_DOMAIN.
+	(process_internal_msg, update_running_processes, next_free_process)
+	(pluginlaunch_init ): Use g_debug instead of log_write.
+
+	* src/pluginload.c: Remove unneeded include "log.h". Define
+	G_LOG_DOMAIN.
+	(plugins_reload_from_dir, plugins_init ): Use g_debug instead of
+	log_write.
+
+	* src/pluginscheduler.c: Remove unneeded include "log.h".
+	Define G_LOG_DOMAIN.
+	(hash_fill_deps, scheduler_rm_running_ports, plugin_next_unrun_dependency):
+	Use g_debug instead of log_write.
+
+	* src/processes.c: Remove unneeded include "log.h". Include "glib.h"
+	for logging purpouse. Define G_LOG_DOMAIN.
+	(create_process): Use g_error instead of log_write.
+
+	* src/sighand.c: Remove unneeded include "log.h". Include "glib.h"
+	for logging purpouse. Define G_LOG_DOMAIN.
+	(print_trace): Remove variable. New variable. Use g_critical instead of
+	write and backtrace_symbols_df to log the backtrace.
+
 2017-01-23  Jan-Oliver Wagner <jan-oliver.wagner@greenbone.net>
 
 	* src/openvassd.c: Include gvm/base/logging.h instead of

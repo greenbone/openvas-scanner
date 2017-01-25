@@ -3,10 +3,10 @@
 * Description: Launches the plugins, and manages multithreading.
 *
 * Authors: - Renaud Deraison <deraison@nessus.org> (Original pre-fork develoment)
-*	   - Tim Brown <mailto:timb@openvas.org> (Initial fork)
-*	   - Laban Mwangi <mailto:labanm@openvas.org> (Renaming work)
-*	   - Tarik El-Yassem <mailto:tarik@openvas.org> (Headers section)
-*	   - Geoff Galitz <mailto:geoff@eifel-consulting.eu (Minor debug edits)
+*          - Tim Brown <mailto:timb@openvas.org> (Initial fork)
+*          - Laban Mwangi <mailto:labanm@openvas.org> (Renaming work)
+*          - Tarik El-Yassem <mailto:tarik@openvas.org> (Headers section)
+*          - Geoff Galitz <mailto:geoff@eifel-consulting.eu (Minor debug edits)
 *
 * Copyright:
 * Portions Copyright (C) 2006 Software in the Public Interest, Inc.
@@ -52,7 +52,6 @@
 #include "attack.h"
 #include "comm.h"
 #include "hosts.h"
-#include "log.h"
 #include "ntp.h"
 #include "pluginlaunch.h"
 #include "pluginload.h"
@@ -67,6 +66,12 @@
 #define ERR_CANT_FORK -2
 
 #define MAX_FORK_RETRIES 10
+
+#undef G_LOG_DOMAIN
+/**
+ * @brief GLib log domain.
+ */
+#define G_LOG_DOMAIN "sd   main"
 
 /**
  * Bundles information about target(s), configuration (globals arglist) and
@@ -92,7 +97,7 @@ enum net_scan_status {
 
 /*******************************************************
 
-		PRIVATE FUNCTIONS
+               PRIVATE FUNCTIONS
 
 ********************************************************/
 
@@ -136,7 +141,7 @@ report_kb_failure (int soc, int errcode)
   errcode = abs (errcode);
   msg = g_strdup_printf ("WARNING: Cannot connect to KB at '%s': %s'",
                          prefs_get ("kb_location"), strerror (errcode));
-  log_write ("%s", msg);
+  g_warning ("%s", msg);
   error_message_to_client (soc, msg, NULL, NULL);
   g_free (msg);
 }
@@ -230,7 +235,7 @@ launch_plugin (struct arglist *globals, struct scheduler_plugin *plugin,
           return 0;
         }
       else
-        log_write ("Stopped scan wrap-up: Launching %s (%s)", name, oid);
+        g_debug ("Stopped scan wrap-up: Launching %s (%s)", name, oid);
     }
 
   if (network_scan_status (globals) == NSS_BUSY)
@@ -244,7 +249,7 @@ launch_plugin (struct arglist *globals, struct scheduler_plugin *plugin,
       if (prefs_get_bool ("safe_checks") && !nvti_category_is_safe (category))
         {
           if (prefs_get_bool ("log_whole_attack"))
-            log_write
+            g_debug
               ("Not launching %s (%s) against %s because safe checks are"
                " enabled (this is not an error)", name, oid, hostname);
           plugin->running_state = PLUGIN_STATUS_DONE;
@@ -262,9 +267,9 @@ launch_plugin (struct arglist *globals, struct scheduler_plugin *plugin,
           if (kb_item_get_int (kb, asc_id) > 0)
             {
               if (prefs_get_bool ("log_whole_attack"))
-                log_write ("Not launching %s against %s because it has already "
-                           "been lanched in the past (this is not an error)",
-                           oid, hostname);
+                g_debug ("Not launching %s against %s because it has already "
+                         "been lanched in the past (this is not an error)",
+                         oid, hostname);
               plugin->running_state = PLUGIN_STATUS_DONE;
               g_free (name);
               return 0;
@@ -301,14 +306,14 @@ launch_plugin (struct arglist *globals, struct scheduler_plugin *plugin,
             }
 
           if (prefs_get_bool ("log_whole_attack"))
-            log_write ("Launching %s (%s) against %s [%d]", name, oid, hostname,
+            g_message ("Launching %s (%s) against %s [%d]", name, oid, hostname,
                        pid);
 
           /* Stop the test if the host is 'dead' */
           if (kb_item_get_int (kb, "Host/dead") > 0
               || kb_item_get_int (kb, "Host/ping_failed") > 0)
             {
-              log_write ("The remote host (%s) is dead", hostname);
+              g_debug ("The remote host (%s) is dead", hostname);
               pluginlaunch_stop (1);
               plugin->running_state = PLUGIN_STATUS_DONE;
               g_free (name);
@@ -319,7 +324,7 @@ launch_plugin (struct arglist *globals, struct scheduler_plugin *plugin,
         {
           plugin->running_state = PLUGIN_STATUS_DONE;
           if (prefs_get_bool ("log_whole_attack"))
-            log_write
+            g_debug
               ("Not launching %s (%s) against %s %s (this is not an error)",
                name, oid, hostname, error);
         }
@@ -507,14 +512,14 @@ attack_host (struct arglist *globals, struct host_info *hostinfos,
                   if (forks_retry < MAX_FORK_RETRIES)
                     {
                       forks_retry++;
-                      log_write ("fork() failed - sleeping %d seconds (%s)",
+                      g_debug ("fork() failed - sleeping %d seconds (%s)",
                                  forks_retry, strerror (errno));
                       fork_sleep (forks_retry);
                       goto again;
                     }
                   else
                     {
-                      log_write ("fork() failed too many times - aborting");
+                      g_debug ("fork() failed too many times - aborting");
                       goto host_died;
                     }
                 }
@@ -619,9 +624,9 @@ attack_start (struct attack_start_args *args)
           then.tv_sec++;
           now.tv_usec += 1000000;
         }
-        log_write ("Finished testing %s. Time : %ld.%.2ld secs", host_str,
-                   (long) (now.tv_sec - then.tv_sec),
-                   (long) ((now.tv_usec - then.tv_usec) / 10000));
+      g_message ("Finished testing %s. Time : %ld.%.2ld secs", host_str,
+                 (long) (now.tv_sec - then.tv_sec),
+                 (long) ((now.tv_usec - then.tv_usec) / 10000));
     }
   shutdown (thread_socket, 2);
   close (thread_socket);
@@ -644,16 +649,16 @@ apply_hosts_preferences (gvm_hosts_t *hosts)
       if (!strcmp (ordering, "random"))
         {
           gvm_hosts_shuffle (hosts);
-          log_write ("hosts_ordering: Random.");
+          g_debug ("hosts_ordering: Random.");
         }
       else if (!strcmp (ordering, "reverse"))
         {
           gvm_hosts_reverse (hosts);
-          log_write ("hosts_ordering: Reverse.");
+          g_debug ("hosts_ordering: Reverse.");
         }
     }
   else
-    log_write ("hosts_ordering: Sequential.");
+    g_debug ("hosts_ordering: Sequential.");
 
   /* Exclude hosts ? */
   if (exclude_hosts)
@@ -662,20 +667,20 @@ apply_hosts_preferences (gvm_hosts_t *hosts)
       int ret = gvm_hosts_exclude (hosts, exclude_hosts, 1);
 
       if (ret >= 0)
-        log_write ("exclude_hosts: Skipped %d host(s).", ret);
+        g_debug ("exclude_hosts: Skipped %d host(s).", ret);
       else
-        log_write ("exclude_hosts: Error.");
+        g_debug ("exclude_hosts: Error.");
     }
 
   /* Reverse-lookup unify ? */
   if (prefs_get_bool ("reverse_lookup_unify"))
-    log_write ("reverse_lookup_unify: Skipped %d host(s).",
-               gvm_hosts_reverse_lookup_unify (hosts));
+    g_debug ("reverse_lookup_unify: Skipped %d host(s).",
+             gvm_hosts_reverse_lookup_unify (hosts));
 
   /* Hosts that reverse-lookup only ? */
   if (prefs_get_bool ("reverse_lookup_only"))
-    log_write ("reverse_lookup_only: Skipped %d host(s).",
-               gvm_hosts_reverse_lookup_only (hosts));
+    g_debug ("reverse_lookup_only: Skipped %d host(s).",
+             gvm_hosts_reverse_lookup_only (hosts));
 }
 
 static int
@@ -785,7 +790,7 @@ apply_source_iface_preference (int soc)
     {
       gchar *msg = g_strdup_printf ("Unauthorized source interface: %s",
                                     source_iface);
-      log_write ("source_iface: Unauthorized source interface %s.",
+      g_warning ("source_iface: Unauthorized source interface %s.",
                  source_iface);
       error_message_to_client (soc, msg, NULL, NULL);
 
@@ -797,7 +802,7 @@ apply_source_iface_preference (int soc)
       gchar *msg = g_strdup_printf ("Unauthorized source interface: %s"
                                     " (system-wide restriction.)",
                                     source_iface);
-      log_write ("source_iface: Unauthorized source interface %s."
+      g_warning ("source_iface: Unauthorized source interface %s."
                  " (sys_* preference restriction.)",
                  source_iface);
       error_message_to_client (soc, msg, NULL, NULL);
@@ -810,7 +815,7 @@ apply_source_iface_preference (int soc)
     {
       gchar *msg = g_strdup_printf ("Erroneous source interface: %s",
                                     source_iface);
-      log_write ("source_iface: Error with %s interface.", source_iface);
+      g_debug ("source_iface: Error with %s interface.", source_iface);
       error_message_to_client (soc, msg, NULL, NULL);
 
       g_free (msg);
@@ -821,7 +826,7 @@ apply_source_iface_preference (int soc)
       char *ipstr, *ip6str;
       ipstr = gvm_source_addr_str ();
       ip6str = gvm_source_addr6_str ();
-      log_write ("source_iface: Using %s (%s / %s).", source_iface,
+      g_debug ("source_iface: Using %s (%s / %s).", source_iface,
                  ipstr, ip6str);
 
       g_free (ipstr);
@@ -948,14 +953,14 @@ attack_network (struct arglist *globals, kb_t *network_kb)
     {
       if (network_targets == NULL)
         {
-          log_write ("WARNING: In network phase, but without targets! Stopping.");
+          g_warning ("WARNING: In network phase, but without targets! Stopping.");
           host = NULL;
         }
       else
         {
           int rc;
 
-          log_write ("Start a new scan. Target(s) : %s, "
+          g_message ("Start a new scan. Target(s) : %s, "
                      "in network phase with target %s",
                      hostlist, network_targets);
 
@@ -970,10 +975,8 @@ attack_network (struct arglist *globals, kb_t *network_kb)
         }
     }
   else
-    {
-      log_write ("Starts a new scan. Target(s) : %s, with max_hosts = %d and "
-                 "max_checks = %d", hostlist, max_hosts, max_checks);
-    }
+    g_message ("Starts a new scan. Target(s) : %s, with max_hosts = %d and "
+               "max_checks = %d", hostlist, max_hosts, max_checks);
 
   hosts = gvm_hosts_new (hostlist);
   /* Apply Hosts preferences. */
@@ -1011,7 +1014,7 @@ attack_network (struct arglist *globals, kb_t *network_kb)
         hostname = gvm_host_value_str (host);
       if (gvm_host_get_addr6 (host, &host_ip) == -1)
         {
-          log_write ("Couldn't resolve target %s", hostname);
+          g_debug ("Couldn't resolve target %s", hostname);
           error_message_to_client (global_socket, "Couldn't resolve hostname.",
                                    hostname, NULL);
           g_free (hostname);
@@ -1024,7 +1027,7 @@ attack_network (struct arglist *globals, kb_t *network_kb)
         {
           error_message_to_client (global_socket, "Host access denied.",
                                    hostname, NULL);
-          log_write ("Host %s access denied.", hostname);
+          g_debug ("Host %s access denied.", hostname);
         }
       else if (!host_authorized (host, &host_ip, sys_hosts_allow,
                                  sys_hosts_deny))
@@ -1032,7 +1035,7 @@ attack_network (struct arglist *globals, kb_t *network_kb)
           error_message_to_client
            (global_socket, "Host access denied (system-wide restriction.)",
             hostname, NULL);
-          log_write ("Host %s access denied (sys_* preference restriction.)",
+          g_debug ("Host %s access denied (sys_* preference restriction.)",
                      hostname);
         }
       else
@@ -1085,14 +1088,14 @@ attack_network (struct arglist *globals, kb_t *network_kb)
               if (fork_retries > MAX_FORK_RETRIES)
                 {
                   /* Forking failed - we go to the wait queue. */
-                  log_write ("fork() failed - %s. %s won't be tested",
+                  g_debug ("fork() failed - %s. %s won't be tested",
                              strerror (errno), hostname);
                   if (MAC)
                     g_free (MAC);
                   goto stop;
                 }
 
-              log_write ("fork() failed - "
+              g_debug ("fork() failed - "
                          "sleeping %d seconds and trying again...",
                          fork_retries);
               fork_sleep (fork_retries);
@@ -1101,12 +1104,12 @@ attack_network (struct arglist *globals, kb_t *network_kb)
           txt_ip = addr6_as_str (&args.hostip);
           hosts_set_pid (hostname, pid);
           if (network_phase)
-            log_write ("Testing %s (network level) [%d]",
-                       network_targets, pid);
+            g_debug ("Testing %s (network level) [%d]",
+                     network_targets, pid);
           else
-            log_write ("Testing %s (%s) [%d]", hostname, txt_ip, pid);
-         g_free (txt_ip);
-         g_free (MAC);
+            g_debug ("Testing %s (%s) [%d]", hostname, txt_ip, pid);
+          g_free (txt_ip);
+          g_free (MAC);
         }
 
       num_tested++;
@@ -1127,8 +1130,8 @@ attack_network (struct arglist *globals, kb_t *network_kb)
    * to terminate. */
   while (hosts_read (globals) == 0)
     ;
+  g_message ("Test complete");
 
-  log_write ("Test complete");
 
 scan_stop:
   /* Free the memory used by the files uploaded by the user, if any. */
@@ -1147,7 +1150,7 @@ stop:
   plugins_scheduler_free (sched);
 
   gettimeofday (&now, NULL);
-  log_write ("Total time to scan all hosts : %ld seconds",
+  g_message ("Total time to scan all hosts : %ld seconds",
              now.tv_sec - then.tv_sec);
 
   if (do_network_scan && network_phase && !scan_is_stopped ())

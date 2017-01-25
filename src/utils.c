@@ -35,7 +35,6 @@
 #include <openvas/misc/network.h>    /* for stream_zero */
 #include <openvas/misc/prefs.h>      /* for prefs_get() */
 
-#include "log.h"
 #include "comm.h"
 #include "ntp.h"
 #include "utils.h"
@@ -43,6 +42,12 @@
 
 extern int global_max_hosts;
 extern int global_max_checks;
+
+#undef G_LOG_DOMAIN
+/**
+ * @brief GLib log domain.
+ */
+#define G_LOG_DOMAIN "sd   main"
 
 
 /**
@@ -125,13 +130,13 @@ get_max_hosts_number (void)
       max_hosts = atoi (prefs_get ("max_hosts"));
       if (max_hosts <= 0)
         {
-          log_write ("Error ! max_hosts = %d -- check %s", max_hosts,
+          g_debug ("Error ! max_hosts = %d -- check %s", max_hosts,
                      (char *) prefs_get ("config_file"));
           max_hosts = global_max_hosts;
         }
       else if (max_hosts > global_max_hosts)
         {
-          log_write ("Client tried to raise the maximum hosts number - %d."
+          g_debug ("Client tried to raise the maximum hosts number - %d."
                      " Using %d. Change 'max_hosts' in openvassd.conf if you"
                      " believe this is incorrect", max_hosts, global_max_hosts);
           max_hosts = global_max_hosts;
@@ -155,13 +160,13 @@ get_max_checks_number (void)
       max_checks = atoi (prefs_get ("max_checks"));
       if (max_checks <= 0)
         {
-          log_write ("Error ! max_hosts = %d -- check %s", max_checks,
+          g_debug ("Error ! max_hosts = %d -- check %s", max_checks,
                      (char *) prefs_get ("config_file"));
           max_checks = global_max_checks;
         }
       else if (max_checks > global_max_checks)
         {
-          log_write ("Client tried to raise the maximum checks number - %d."
+          g_debug ("Client tried to raise the maximum checks number - %d."
                      " Using %d. Change 'max_checks' in openvassd.conf if you"
                      " believe this is incorrect", max_checks, global_max_checks);
           max_checks = global_max_checks;

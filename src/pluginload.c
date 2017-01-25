@@ -41,7 +41,13 @@
 
 #include "utils.h"
 #include "pluginload.h"
-#include "log.h"
+
+#undef G_LOG_DOMAIN
+/**
+ * @brief GLib log domain.
+ */
+#define G_LOG_DOMAIN "sd   main"
+
 
 /**
  * @brief Collects all NVT files in a directory and recurses into subdirs.
@@ -237,7 +243,7 @@ plugins_reload_from_dir (char *folder)
         {
           int result = add_nasl_inc_dir (include_folders[i]);
           if (result < 0)
-            log_write ("Could not add %s to the list of include folders.\n"
+            g_debug ("Could not add %s to the list of include folders.\n"
                        "Make sure %s exists and is a directory.\n",
                        include_folders[i], include_folders[i]);
         }
@@ -248,9 +254,9 @@ plugins_reload_from_dir (char *folder)
   if (folder == NULL)
     {
 #ifdef DEBUG
-      log_write ("%s:%d : folder == NULL", __FILE__, __LINE__);
+      g_debug ("%s:%d : folder == NULL", __FILE__, __LINE__);
 #endif
-      log_write ("Could not determine the value of <plugins_folder>. "
+      g_debug ("Could not determine the value of <plugins_folder>. "
                  " Check %s\n", (char *) prefs_get ("config_file"));
       return -1;
     }
@@ -265,7 +271,7 @@ plugins_reload_from_dir (char *folder)
   if (gettimeofday (&start_time, NULL))
     {
       bzero (&start_time, sizeof (start_time));
-      log_write ("gettimeofday: %s", strerror (errno));
+      g_debug ("gettimeofday: %s", strerror (errno));
     }
   f = files;
   set_total_loading_plugins (num_files);
@@ -287,7 +293,7 @@ plugins_reload_from_dir (char *folder)
                          percentile, eta / 60, eta % 60);
         }
       if (prefs_get_bool ("log_plugins_name_at_load"))
-        log_write ("Loading %s", name);
+        g_debug ("Loading %s", name);
       if (g_str_has_suffix (name, ".nasl"))
         {
           if (nasl_plugin_add (folder, name))
@@ -296,7 +302,7 @@ plugins_reload_from_dir (char *folder)
 
       if (err_count == 20)
         {
-          log_write ("Stopped loading plugins: High number of errors.");
+          g_debug ("Stopped loading plugins: High number of errors.");
           proctitle_set ("openvassd: Error loading NVTs.");
           g_slist_free_full (files, g_free);
           return -1;
@@ -322,7 +328,7 @@ plugins_init (void)
   if (nvticache_init (prefs_get ("cache_folder"), plugins_folder,
                       prefs_get ("kb_location")))
     {
-      log_write ("Failed to initialize nvti cache.");
+      g_debug ("Failed to initialize nvti cache.");
       return -1;
     }
   return plugins_reload_from_dir ((char *)plugins_folder);

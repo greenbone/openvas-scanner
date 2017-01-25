@@ -28,16 +28,22 @@
 #include <signal.h>     /* for kill() */
 #include <unistd.h>     /* for getpid() */
 #include <errno.h>      /* for errno() */
+#include <glib.h>       /* for G_LOG_DOMAIN, for g_critical() */
 #include <sys/wait.h>   /* for wait() */
 #include <sys/socket.h> /* for shutdown() */
 #include <execinfo.h>
 
-#include "log.h"
 #include "sighand.h"
 #include "utils.h"
 #include "string.h"
 
 #include <gvm/base/pidfile.h>
+
+#undef G_LOG_DOMAIN
+/**
+ * @brief GLib log domain.
+ */
+#define G_LOG_DOMAIN "sd   main"
 
 /* do not leave a zombie, hanging around if possible */
 void
@@ -117,28 +123,19 @@ static void
 print_trace ()
 {
   void *array[10];
-  int fd, ret = 0, left;
+  int ret = 0, left;
   char *message = "SIGSEGV occured !\n";
+  char **strings;
 
-  fd = log_get_fd ();
-  if (fd < 0)
-    return;
-
-  left = strlen (message);
-  while (left)
-    {
-      ret = write (fd, message, left);
-      if (ret == -1)
-        {
-          if (errno == EINTR || errno == EAGAIN || errno == EWOULDBLOCK)
-            continue;
-          break;
-        }
-      left -= ret;
-      message += ret;
-    }
+  /*It used log_get_fd() in log.h to know where to log the backtrace.*/
   ret = backtrace (array, 10);
-  backtrace_symbols_fd (array, ret, fd);
+  strings = backtrace_symbols (array, ret);
+  g_critical ("%s", message);
+
+  for (left = 0; left < 10 ; left++)
+    g_critical ("%s\n", strings[left]);
+
+  g_free (strings);
 }
 
 void

@@ -39,7 +39,12 @@
 #include "pluginscheduler.h"
 #include "pluginload.h"
 #include "pluginlaunch.h"
-#include "log.h"
+
+#undef G_LOG_DOMAIN
+/**
+ * @brief GLib log domain.
+ */
+#define G_LOG_DOMAIN "sd   main"
 
 /** @TODO
  * This important module needs documentation and comments.
@@ -196,7 +201,7 @@ hash_fill_deps (struct hash *h, struct hash *l)
       oid = nvticache_get_oid (array[i]);
       if (!oid)
         {
-          log_write ("scheduler: %s depends on %s which could not be found",
+          g_debug ("scheduler: %s depends on %s which could not be found",
                      l->plugin->oid, array[i]);
           continue;
         }
@@ -204,7 +209,7 @@ hash_fill_deps (struct hash *h, struct hash *l)
       if (d != NULL)
         l->dependencies_ptr[j++] = d;
       else
-        log_write ("scheduler: %s depends on %s which could not be found",
+        g_debug ("scheduler: %s depends on %s which could not be found",
                    l->plugin->oid, array[i]);
       g_free (oid);
     }
@@ -309,8 +314,9 @@ scheduler_rm_running_ports (plugins_scheduler_t sched,
             }
         }
       else
-        log_write ("Warning: scheduler_rm_running_ports failed ?! (%s)\n",
+        g_warning ("Warning: scheduler_rm_running_ports failed ?! (%s)\n",
                    array[i]);
+
     }
   g_strfreev (array);
 }
@@ -328,7 +334,7 @@ plugin_next_unrun_dependency (plugins_scheduler_t sched,
 
   if (calls > 100)
     {
-      log_write ("Possible dependency cycle detected %s",
+      g_debug ("Possible dependency cycle detected %s",
                  dependencies_ptr[0]->plugin->oid);
       return NULL;
     }
