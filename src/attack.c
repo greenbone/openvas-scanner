@@ -260,7 +260,7 @@ launch_plugin (struct arglist *globals, struct scheduler_plugin *plugin,
       if (prefs_get_bool ("safe_checks") && !nvti_category_is_safe (category))
         {
           if (prefs_get_bool ("log_whole_attack"))
-            g_debug
+            g_message
               ("Not launching %s (%s) against %s because safe checks are"
                " enabled (this is not an error)", name, oid, hostname);
           plugin->running_state = PLUGIN_STATUS_DONE;
@@ -278,9 +278,9 @@ launch_plugin (struct arglist *globals, struct scheduler_plugin *plugin,
           if (kb_item_get_int (kb, asc_id) > 0)
             {
               if (prefs_get_bool ("log_whole_attack"))
-                g_debug ("Not launching %s against %s because it has already "
-                         "been lanched in the past (this is not an error)",
-                         oid, hostname);
+                g_message("Not launching %s against %s because it has already "
+                           "been lanched in the past (this is not an error)",
+                           oid, hostname);
               plugin->running_state = PLUGIN_STATUS_DONE;
               g_free (name);
               return 0;
@@ -324,7 +324,7 @@ launch_plugin (struct arglist *globals, struct scheduler_plugin *plugin,
         {
           plugin->running_state = PLUGIN_STATUS_DONE;
           if (prefs_get_bool ("log_whole_attack"))
-            g_debug
+            g_message
               ("Not launching %s (%s) against %s %s (this is not an error)",
                name, oid, hostname, error);
         }

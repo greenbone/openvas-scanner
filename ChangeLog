@@ -1,3 +1,13 @@
+2017-01-26  Christian Fischer  <christian.fischer@greenbone.net>
+
+	* src/attack.c (launch_plugin):
+	Use g_message as the log level for messages
+	protected by the log_whole_attack setting.
+
+	* src/pluginlauch.c (update_running_processes):
+	Use g_message as the log level for messages
+	protected by the log_whole_attack setting.
+
 2017-01-25  Hani Benhabiles  <hani.benhabiles@greenbone.net>
 
 	* src/attack.c (launch_plugin): Check for Host/dead and Host/ping_failed

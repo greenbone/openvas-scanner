@@ -177,7 +177,7 @@ update_running_processes (void)
                   gchar *msg;
 
                   if (log_whole)
-                    g_debug ("%s (pid %d) is slow to finish - killing it",
+                    g_message ("%s (pid %d) is slow to finish - killing it",
                                oid, processes[i].pid);
 
                   msg = g_strdup_printf
@@ -204,7 +204,7 @@ update_running_processes (void)
                   if (log_whole)
                     {
                       char *name = nvticache_get_name (oid);
-                      g_debug
+                      g_message
                         ("%s (%s) [%d] finished its job in %ld.%.3ld seconds",
                          name, oid, processes[i].pid,
                          (long) (now.tv_sec - processes[i].start.tv_sec),
