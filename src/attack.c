@@ -278,7 +278,7 @@ launch_plugin (struct arglist *globals, struct scheduler_plugin *plugin,
           if (kb_item_get_int (kb, asc_id) > 0)
             {
               if (prefs_get_bool ("log_whole_attack"))
-                g_message("Not launching %s against %s because it has already "
+                g_message ("Not launching %s against %s because it has already "
                            "been lanched in the past (this is not an error)",
                            oid, hostname);
               plugin->running_state = PLUGIN_STATUS_DONE;
