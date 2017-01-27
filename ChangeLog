@@ -1,3 +1,8 @@
+2017-01-27  Michael Wiegand <michael.wiegand@greenbone.net>
+
+	* src/openvassd.c (openvassd_defaults): Recover part of comment lost
+	in r23163.
+
 2017-01-26  Christian Fischer  <christian.fischer@greenbone.net>
 
 	* src/attack.c (launch_plugin): Add missing space after

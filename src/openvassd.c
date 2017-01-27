@@ -135,6 +135,7 @@ static openvassd_option openvassd_defaults[] = {
   {"unscanned_closed", "yes"},
   {"unscanned_closed_udp", "yes"},
   // Empty options must be "\0", not NULL, to match the behavior of
+  // prefs_init.
   {"vhosts", "\0"},
   {"vhosts_ip", "\0"},
   {"report_host_details", "yes"},
