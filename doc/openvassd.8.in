@@ -48,15 +48,6 @@ contains these options:
 .IP plugins_folder
 Contains the location of the plugins folder. This is usually
 @OPENVAS_NVT_DIR@, but you may change this.
-.IP logfile
-path to the logfile. You can enter
-.I syslog
-if you want the openvassd messages to be logged via
-.B syslogd
-You may also enter
-.I stderr
-if you want the openvassd logs to be written on stderr.
-.I Because openvassd is a sensitive program, you should keep your logs. 
 
 .IP max_hosts
 is maximum number of hosts to test at the same time which should be

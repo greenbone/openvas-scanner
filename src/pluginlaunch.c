@@ -57,8 +57,6 @@
  */
 #define MAX_PROCESSES 32
 
-#undef VERBOSE_LOGGING          /* This really fills your openvassd.messages */
-
 #undef DEBUG_CONFLICTS
 
 /**

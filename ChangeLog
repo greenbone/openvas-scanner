@@ -1,3 +1,18 @@
+2017-01-27  Juan Jose Nicola  <juan.nicola@greenbone.net>
+
+	* src/log.c: Delete file.
+
+	* src/log.h: Delete file.
+
+	* INSTALL: Add section Logging Configuration.
+
+	* COPYING: Remove line src/log.[c|h].
+
+	* src/pluginlaunch.c: #undef VERBOSE_LOGGING and its comment
+	is deleted.
+
+	* doc/openvassd.8.in: Remove now obsolete "logfile" setting.
+
 2017-01-27  Michael Wiegand <michael.wiegand@greenbone.net>
 
 	* src/openvassd.c (openvassd_defaults): Recover part of comment lost
@@ -65,7 +80,7 @@
 	(start_daemon_mode, loading_handler_start, scanner_thread,main_loop)
 	(init_unix_network, set_daemon_mode): Use g_message, g_debug and
 	g_warning instead of log_write, depending on the required log level.
-	(reload_openvassd)init_openvassd): New variable rc_name for logging
+	(reload_openvassd, init_openvassd): New variable rc_name for logging
 	setup. Check if a configuration file for logging exist and setup
 	the log handler. Use g_message instead of log_write.
 	(log_config_free): New function.

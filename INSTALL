@@ -139,15 +139,47 @@ Setting up an openvas-scanner requires the following steps:
    the scanner. The actual user interfaces (for example GSA or CLI-OMP)
    will only interact with the manager, not the scanner.
 
+Logging Configuration
+---------------------
 
-If you encounter problems, the files /var/log/openvas/openvassd.messages and
-/var/log/openvas/openvassd.dump may contain useful information. The exact
-location of these files may differ depending on your distribution and
-installation method. Please have these files ready when contacting the OpenVAS
-developers through the OpenVAS mailing list or the online chat or submitting bug
-reports at http://bugs.openvas.org/ as they may help to pinpoint the source of
-your issue.
+If you encounter problems, by default the scanner writes logs to the files
 
+    <install-prefix>/var/log/openvas/openvassd.log
+    <install-prefix>/var/log/openvas/openvassd.dump
+    
+They may contain useful information.The exact location of these files may differ
+depending on your distribution and installation method. Please have these files
+ready when contacting the OpenVAS developers through the OpenVAS mailing list
+or the online chat or submitting bug reports at http://bugs.openvas.org/ as they
+may help to pinpoint the source of your issue.
+
+Logging is configured entirely by the file
+
+    <install-prefix>/etc/openvas/openvassd_log.conf
+
+The configuration is divided into domains like this one
+
+    [sd   main]
+    prepend=%t %p
+    prepend_time_format=%Y-%m-%d %Hh%M.%S %Z
+    file=/var/log/openvas/openvassd.log
+    level=128
+
+The "level" field controls the amount of logging that is written.
+The value of "level" can be
+
+      4  Errors.
+      8  Critical situation.
+     16  Warnings.
+     32  Messages.
+     64  Information.
+    128  Debug.  (Lots of output.)
+
+Enabling any level includes all the levels above it. So enabling Information
+will include Warnings, Critical situations and Errors.
+
+To get absolutely all logging, set the level to 128 for all domains in the
+configuration file.
 
 Static code analysis with the Clang Static Analyzer
 ---------------------------------------------------
