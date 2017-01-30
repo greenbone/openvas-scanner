@@ -1,3 +1,18 @@
+2017-01-30  Hani Benhabiles  <hani.benhabiles@greenbone.net>
+
+	* src/attack.c (attack_start): Don't add non_simult_ports_list arglist
+	to preferences.
+
+	* src/pluginlaunch.c (pluginlaunch_init): Adjust to
+	non_simult_ports_list removal.
+
+	* src/comm.c (comm_send_pluginlist): Adjust to prefs change to
+	GHashTable.
+
+	* src/utils.c (list2arglist): Constify parameter.
+
+	* src/utils.h: Adjust function header.
+
 2017-01-27  Juan Jose Nicola  <juan.nicola@greenbone.net>
 
 	* src/log.c: Delete file.

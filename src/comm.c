@@ -297,17 +297,18 @@ comm_send_pluginlist (int soc)
 void
 comm_send_preferences (int soc)
 {
-  struct arglist *prefs = preferences_get ();
+  GHashTableIter iter;
+  void *itername, *itervalue;
+  GHashTable *prefs = preferences_get ();
 
   /* We have to be backward compatible with the NTP/1.0 */
   send_printf (soc, "SERVER <|> PREFERENCES <|>\n");
 
-  while (prefs && prefs->next)
+  g_hash_table_iter_init (&iter, prefs);
+  while (g_hash_table_iter_next (&iter, &itername, &itervalue))
     {
-      if (prefs->type == ARG_STRING && !is_scanner_only_pref (prefs->name))
-        send_printf (soc, "%s <|> %s\n", prefs->name,
-                     (const char *) prefs->value);
-      prefs = prefs->next;
+      if (!is_scanner_only_pref (itername))
+        send_printf (soc, "%s <|> %s\n", (char *) itername, (char *) itervalue);
     }
   send_printf (soc, "<|> SERVER\n");
 }

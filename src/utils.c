@@ -83,8 +83,7 @@ common (l1, l2)
  * arglist.
  */
 struct arglist *
-list2arglist (list)
-     char *list;
+list2arglist (const char *list)
 {
   struct arglist *ret;
   char *t;

@@ -566,7 +566,6 @@ attack_start (struct attack_start_args *args)
   char *host_str;
   struct in6_addr *hostip = &args->hostip;
   struct host_info *hostinfos;
-  const char *non_simult = prefs_get ("non_simult_ports");
   const char *vhosts = prefs_get ("vhosts");
   const char *vhosts_ip = prefs_get ("vhosts_ip");
   int thread_socket;
@@ -584,9 +583,6 @@ attack_start (struct attack_start_args *args)
   close (args->parent_socket);
   thread_socket = args->thread_socket;
   gettimeofday (&then, NULL);
-
-  arg_add_value (preferences_get (), "non_simult_ports_list", ARG_ARGLIST,
-                 (void *) list2arglist ((char *)non_simult));
 
   /* Options regarding the communication with our parent */
   close (arg_get_value_int (globals, "parent_socket"));

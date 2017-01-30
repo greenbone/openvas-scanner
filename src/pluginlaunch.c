@@ -347,8 +347,7 @@ read_running_processes (void)
 void
 pluginlaunch_init (const char *host)
 {
-  struct arglist *preferences = preferences_get ();
-  non_simult_ports_list = arg_get_value (preferences, "non_simult_ports_list");
+  non_simult_ports_list = list2arglist (prefs_get ("non_simult_ports"));
   max_running_processes = get_max_checks_number ();
   old_max_running_processes = max_running_processes;
   hostname = host;

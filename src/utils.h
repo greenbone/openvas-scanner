@@ -44,7 +44,7 @@ struct arglist *sort_plugins_by_type (struct arglist *);
 int get_max_hosts_number (void);
 int get_max_checks_number (void);
 
-struct arglist *list2arglist (char *);
+struct arglist *list2arglist (const char *);
 int common (struct arglist *, struct arglist *);
 
 int process_alive (pid_t);
