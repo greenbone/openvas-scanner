@@ -41,6 +41,7 @@
  */
 
 #include <stdlib.h>    /* for atoi() */
+#include <stdio.h>     /* for fflush() */
 #include <unistd.h>    /* for close() */
 #include <errno.h>     /* for errno() */
 #include <fcntl.h>     /* for open() */
