@@ -1,3 +1,10 @@
+2017-02-03  Hani Benhabiles  <hani.benhabiles@greenbone.net>
+
+	Backport r27340.
+
+	* src/attack.c (launch_plugin): Check for Host/dead and Host/ping_failed
+	before attempting to launch the plugin.
+
 2016-10-24  Hani Benhabiles  <hani.benhabiles@greenbone.net>
 
 	Backport r26467.
