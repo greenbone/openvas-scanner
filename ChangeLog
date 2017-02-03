@@ -1,3 +1,9 @@
+2017-02-03  Michael Wiegand <michael.wiegand@greenbone.net>
+
+	* tools/greenbone-nvt-sync.in (is_feed_current): Remove non-portable
+	negative return code, log an error and exit non-zero instead for
+	consistency.
+
 2017-02-02  Björn Ricks <bjoern.ricks@greenbone.net>
 
 	* src/openvassd.c: Include stdio.h for fflush on opensuse systems.

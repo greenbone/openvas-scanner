@@ -361,10 +361,10 @@ is_feed_current () {
 
     if [ -z "$FEED_VERSION_SERVER" ]
     then
-      echo "Could not determine server feed version."
+      log_err "Could not determine server feed version."
       rm -rf $FEED_INFO_TEMP_DIR
       cleanup_temp_access_key
-      return -1
+      exit 1
     fi
     # Check against FEED_VERSION
     if [ $FEED_VERSION -lt $FEED_VERSION_SERVER ] ; then
