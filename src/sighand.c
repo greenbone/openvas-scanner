@@ -130,10 +130,10 @@ print_trace ()
   /*It used log_get_fd() in log.h to know where to log the backtrace.*/
   ret = backtrace (array, 10);
   strings = backtrace_symbols (array, ret);
-  g_critical ("%s", message);
+  g_warning ("%s", message);
 
   for (left = 0; left < 10 ; left++)
-    g_critical ("%s\n", strings[left]);
+    g_warning ("%s\n", strings[left]);
 
   g_free (strings);
 }
