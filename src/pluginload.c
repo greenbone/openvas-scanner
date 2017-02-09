@@ -293,7 +293,7 @@ plugins_reload_from_dir (char *folder)
                          percentile, eta / 60, eta % 60);
         }
       if (prefs_get_bool ("log_plugins_name_at_load"))
-        g_debug ("Loading %s", name);
+        g_message ("Loading %s", name);
       if (g_str_has_suffix (name, ".nasl"))
         {
           if (nasl_plugin_add (folder, name))
