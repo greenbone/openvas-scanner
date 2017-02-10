@@ -38,8 +38,8 @@
 
 #include <gvm/base/networking.h>
 #include <gvm/base/hosts.h>
+#include <gvm/base/proctitle.h>
 
-#include <openvas/misc/openvas_proctitle.h>
 #include <openvas/base/kb.h>
 #include <openvas/misc/network.h>        /* for auth_printf */
 #include <openvas/misc/nvt_categories.h> /* for ACT_INIT */

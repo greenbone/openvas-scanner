@@ -1,3 +1,9 @@
+2017-02-10  Jan-Oliver Wagner <jan-oliver.wagner@greenbone.net>
+
+	* src/attack.c, src/nasl_plugins.c, src/openvassd.c, src/pluginload.c:
+	Include gvm/base/proctitle.h instead of
+	openvas/misc/openvas_proctitle.h.
+
 2017-02-10  Hani Benhabiles  <hani.benhabiles@greenbone.net>
 
 	Reorganize plugins scheduler in-memory representation and remove

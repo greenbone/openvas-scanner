@@ -56,8 +56,8 @@
 
 #include <gvm/base/pidfile.h>    /* for pidfile_create */
 #include <gvm/base/logging.h>    /* for setup_log_handler, load_log_configuration, free_log_configuration*/
+#include <gvm/base/proctitle.h>  /* for proctitle_set */
 
-#include <openvas/misc/openvas_proctitle.h> /* for proctitle_set */
 #include <openvas/base/nvticache.h> /* nvticache_free */
 #include <openvas/base/kb.h>         /* for KB_PATH_DEFAULT */
 #include <openvas/misc/prefs.h>      /* for prefs_get() */
