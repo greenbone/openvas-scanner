@@ -1,5 +1,32 @@
 2017-02-10  Hani Benhabiles  <hani.benhabiles@greenbone.net>
 
+	Reorganize plugins scheduler in-memory representation and remove
+	superfluous data structures and data duplications. Results in reduction
+	of each scanning process' memory footprint by ~3.5MB.
+
+	* src/pluginscheduler.h (struct scheduler_plugin): Remove parent_hash
+	element. Add deps element.
+
+	* src/pluginscheduler.c (struct hash, struct list, struct plist): Remove
+	unused structs.
+	(struct plugins_scheduler): Remove hash and plist elements. Change list
+	to type GSList.
+	(mkhash, hash_init, hash_link_destroy, hash_destroy, hash_add)
+	(_hash_get, hash_fill_deps, pl_get, scheduler_mark_running_ports)
+	(scheduler_rm_running_ports, list_destroy): Remove unused functions.
+	(plugin_next_unrun_dependency, plugins_scheduler_count_active)
+	(plugins_scheduler_init, plugins_scheduler_next)
+	(plugins_scheduler_free): Adjust to change in struct plugins_scheduler
+	and struct scheduler_plugin.
+	(plugin_add): Don't duplicate plugin oid for the hash table. Adjust for
+	plugins_scheduler change. Fill dependency plugins when enabled.
+	(plugins_scheduler_fill_deps, scheduler_plugin_free): New functions.
+	(plugins_scheduler_enable): Don't free oids_table keys as they're not
+	duplicated. Fill plugins dependencies when not done by plugin_add().
+	Remove hashing loop.
+
+2017-02-10  Hani Benhabiles  <hani.benhabiles@greenbone.net>
+
 	Reorganize plugins scheduler initialization and reduce memory
 	allocations. Reduces each scanning process' memory footprint by ~3MB.
 

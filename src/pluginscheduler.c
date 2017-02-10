@@ -50,289 +50,31 @@
  * This important module needs documentation and comments.
  */
 
-#define HASH_MAX 2713
-
-struct hash
-{
-  struct scheduler_plugin *plugin;
-  struct hash **dependencies_ptr;
-  struct hash *next;
-};
-
-struct list
-{
-  struct scheduler_plugin *plugin;
-  struct list *next;
-  struct list *prev;
-};
-
-struct plist
-{
-  gchar *name;
-  int occurences;
-  struct plist *next;
-  struct plist *prev;
-};
-
 struct plugins_scheduler
 {
-  struct hash *hash;                /**< Hash list of the plugins.   */
-  struct list *list[ACT_LAST + 1];  /**< Linked list of the plugins. */
-  struct plist *plist;              /**< Ports currently in use.     */
+  GSList *list[ACT_LAST + 1]; /**< Per-category linked-lists of the plugins. */
 };
 
-static unsigned int
-mkhash (char *name)
-{
-  return g_str_hash (name) % HASH_MAX;
-}
-
-
-/*---------------------------------------------------------------------------*
- *
- * A minimalist HASH structure
- *
- *---------------------------------------------------------------------------*/
-
-static struct hash *
-hash_init ()
-{
-  struct hash *h = g_malloc0 (HASH_MAX * sizeof (*h));
-
-  return h;
-}
-
-static void
-hash_link_destroy (struct hash *h)
-{
-  if (h == NULL)
-    return;
-
-  if (h->next != NULL)
-    hash_link_destroy (h->next);
-
-  g_free (h->dependencies_ptr);
-  g_free (h->plugin);
-  g_free (h);
-}
-
-static void
-hash_destroy (struct hash *h)
-{
-  int i;
-
-  for (i = 0; i < HASH_MAX; i++)
-    {
-      hash_link_destroy (h[i].next);
-    }
-  g_free (h);
-}
-
-
-static void
-hash_add (struct hash *h, struct scheduler_plugin *plugin)
-{
-  struct hash *l = g_malloc0 (sizeof (struct hash));
-  unsigned int idx = mkhash (plugin->oid);
-
-  l->plugin = plugin;
-  l->plugin->parent_hash = l;
-  l->next = h[idx].next;
-  h[idx].next = l;
-  l->dependencies_ptr = NULL;
-
-}
-
-
-static struct hash *
-_hash_get (struct hash *h, char *name)
-{
-  unsigned int idx = mkhash (name);
-  struct hash *l = h[idx].next;
-  while (l != NULL)
-    {
-      if (strcmp (l->plugin->oid, name) == 0)
-        return l;
-      else
-        l = l->next;
-    }
-  return NULL;
-}
-
-
-static void
-hash_fill_deps (struct hash *h, struct hash *l)
-{
-  int i, j = 0, num_deps;
-  char *dependencies, **array;
-
-  if (!l->plugin)
-    return;
-  dependencies = nvticache_get_dependencies (l->plugin->oid);
-  if (!dependencies)
-    return;
-  array = g_strsplit (dependencies, ", ", 0);
-  g_free (dependencies);
-  if (!array)
-    return;
-
-  for (num_deps = 0; array[num_deps]; num_deps++)
-    ;
-  if (num_deps == 0)
-    return;
-
-  l->dependencies_ptr = g_malloc0 ((1 + num_deps) * sizeof (struct hash *));
-  for (i = 0; array[i]; i++)
-    {
-      char *oid;
-      struct hash *d;
-
-      oid = nvticache_get_oid (array[i]);
-      if (!oid)
-        {
-          g_debug ("scheduler: %s depends on %s which could not be found",
-                     l->plugin->oid, array[i]);
-          continue;
-        }
-      d = _hash_get (h, oid);
-      if (d != NULL)
-        l->dependencies_ptr[j++] = d;
-      else
-        g_debug ("scheduler: %s depends on %s which could not be found",
-                   l->plugin->oid, array[i]);
-      g_free (oid);
-    }
-  l->dependencies_ptr[j] = NULL;
-  g_strfreev (array);
-}
-
-/*----------------------------------------------------------------------*/
-
-struct plist *
-pl_get (struct plist *list, char *name)
-{
-  while (list != NULL)
-    {
-      if (strcmp (list->name, name) == 0)
-        return list;
-      else
-        list = list->next;
-    }
-  return NULL;
-}
-
-
-/*----------------------------------------------------------------------*
- *									*
- * Utilities								*
- *									*
- *----------------------------------------------------------------------*/
-
-
-
-void
-scheduler_mark_running_ports (plugins_scheduler_t sched,
-                              struct scheduler_plugin *plugin)
-{
-  char *ports, **array;
-  int i;
-
-  ports = nvticache_get_required_ports (plugin->oid);
-  if (!ports)
-    return;
-
-  array = g_strsplit (ports, ", ", 0);
-  g_free (ports);
-  if (!array)
-    return;
-  for (i = 0; array[i] != NULL; i++)
-    {
-      struct plist *pl = pl_get (sched->plist, array[i]);
-
-      if (pl != NULL)
-        pl->occurences++;
-      else
-        {
-          pl = g_malloc0 (sizeof (struct plist));
-          pl->name = g_strdup (array[i]);
-          pl->occurences = 1;
-          pl->next = sched->plist;
-          if (sched->plist != NULL)
-            sched->plist->prev = pl;
-          pl->prev = NULL;
-          sched->plist = pl;
-        }
-    }
-  g_strfreev (array);
-}
-
-void
-scheduler_rm_running_ports (plugins_scheduler_t sched,
-                            struct scheduler_plugin *plugin)
-{
-  char *ports, **array;
-  int i;
-
-  ports = nvticache_get_required_ports (plugin->oid);
-  if (!ports)
-    return;
-
-  array = g_strsplit (ports, ", ", 0);
-  g_free (ports);
-  if (!array)
-    return;
-  for (i = 0; array[i] != NULL; i++)
-    {
-      struct plist *pl = pl_get (sched->plist, array[i]);
-
-      if (pl != NULL)
-        {
-          pl->occurences--;
-          if (pl->occurences == 0)
-            {
-              if (pl->next != NULL)
-                pl->next->prev = pl->prev;
-
-              if (pl->prev != NULL)
-                pl->prev->next = pl->next;
-              else
-                sched->plist = pl->next;
-
-              g_free (pl->name);
-              g_free (pl);
-            }
-        }
-      else
-        g_warning ("Warning: scheduler_rm_running_ports failed ?! (%s)\n",
-                   array[i]);
-
-    }
-  g_strfreev (array);
-}
-
-
 struct scheduler_plugin *
-plugin_next_unrun_dependency (plugins_scheduler_t sched,
-                              struct hash **dependencies_ptr, int calls)
+plugin_next_unrun_dependency (plugins_scheduler_t sched, GSList *deps, int calls)
 {
   int flag = 0;
-  int i;
 
-  if (dependencies_ptr == NULL)
+  if (deps == NULL)
     return NULL;
 
   if (calls > 100)
     {
       g_debug ("Possible dependency cycle detected %s",
-                 dependencies_ptr[0]->plugin->oid);
+                 ((struct scheduler_plugin *) deps->data)->oid);
       return NULL;
     }
 
-  for (i = 0; dependencies_ptr[i] != NULL; i++)
+  while (deps)
     {
       struct scheduler_plugin *plugin;
 
-      plugin = dependencies_ptr[i]->plugin;
+      plugin = deps->data;
       if (plugin == NULL)
         continue;
 
@@ -340,10 +82,10 @@ plugin_next_unrun_dependency (plugins_scheduler_t sched,
         {
         case PLUGIN_STATUS_UNRUN:
           {
-            struct hash **deps_ptr;
+            GSList *deps_ptr;
             struct scheduler_plugin *ret;
 
-            deps_ptr = dependencies_ptr[i]->dependencies_ptr;
+            deps_ptr = ((struct scheduler_plugin *) deps->data)->deps;
             if (deps_ptr == NULL)
               return plugin;
 
@@ -361,12 +103,12 @@ plugin_next_unrun_dependency (plugins_scheduler_t sched,
           flag = 1;
           break;
         case PLUGIN_STATUS_DONE:
-          scheduler_rm_running_ports (sched, plugin);
           plugin->running_state = PLUGIN_STATUS_DONE_AND_CLEANED;
           break;
         case PLUGIN_STATUS_DONE_AND_CLEANED:
           break;
         }
+      deps = deps->next;
     }
 
   if (!flag)
@@ -381,28 +123,22 @@ static void
 plugin_add (plugins_scheduler_t sched, GHashTable *oids_table, int autoload,
             char *oid)
 {
-  struct scheduler_plugin *scheduler_plugin;
-  struct list *dup;
+  struct scheduler_plugin *plugin;
   int category;
 
   if (g_hash_table_lookup (oids_table, oid))
     return;
-  g_hash_table_insert (oids_table, g_strdup (oid), oid);
 
   category = nvticache_get_category (oid);
-  scheduler_plugin = g_malloc0 (sizeof (struct scheduler_plugin));
-  scheduler_plugin->running_state = PLUGIN_STATUS_UNRUN;
-  scheduler_plugin->oid = g_strdup (oid);
+  plugin = g_malloc0 (sizeof (struct scheduler_plugin));
+  plugin->running_state = PLUGIN_STATUS_UNRUN;
+  plugin->oid = g_strdup (oid);
+  g_hash_table_insert (oids_table, plugin->oid, plugin);
 
   assert (category <= ACT_LAST);
-  dup = g_malloc0 ( sizeof (struct list));
-  dup->plugin = scheduler_plugin;
-  dup->prev = NULL;
-  dup->next = sched->list[category];
-  if (sched->list[category] != NULL)
-    sched->list[category]->prev = dup;
-  sched->list[category] = dup;
-  hash_add (sched->hash, scheduler_plugin);
+  sched->list[category] = g_slist_prepend
+                           (sched->list[category], plugin);
+
 
   /* Add the plugin's dependencies too. */
   if (autoload)
@@ -416,13 +152,57 @@ plugin_add (plugins_scheduler_t sched, GHashTable *oids_table, int autoload,
 
           for (i = 0; array[i]; i++)
             {
+              struct scheduler_plugin *dep_plugin;
               char *dep_oid = nvticache_get_oid (array[i]);
               plugin_add (sched, oids_table, autoload, dep_oid);
+              dep_plugin = g_hash_table_lookup (oids_table, dep_oid);
+              /* In case of autoload, no need to wait for plugin_add() to fill
+               * all enabled plugins to start filling dependencies lists. */
+              assert (dep_plugin);
+              plugin->deps = g_slist_prepend (plugin->deps, dep_plugin);
               g_free (dep_oid);
             }
           g_strfreev(array);
           g_free (deps);
         }
+    }
+}
+
+static void
+plugins_scheduler_fill_deps (plugins_scheduler_t sched, GHashTable *oids_table)
+{
+  int category;
+
+  for (category = ACT_FIRST; category <= ACT_LAST; category++)
+    {
+      GSList *element = sched->list[category];
+
+      while (element)
+      {
+        char *deps;
+        struct scheduler_plugin *plugin = element->data;
+
+        assert (plugin->deps == NULL);
+        deps = nvticache_get_dependencies (plugin->oid);
+        if (deps)
+          {
+            int i;
+            char **array = g_strsplit (deps, ", ", 0);
+
+            for (i = 0; array[i]; i++)
+              {
+                struct scheduler_plugin *dep_plugin;
+                char *dep_oid = nvticache_get_oid (array[i]);
+                dep_plugin = g_hash_table_lookup (oids_table, dep_oid);
+                if (dep_plugin)
+                  plugin->deps = g_slist_prepend (plugin->deps, dep_plugin);
+                g_free (dep_oid);
+              }
+            g_strfreev(array);
+            g_free (deps);
+          }
+        element = element->next;
+      }
     }
 }
 
@@ -437,11 +217,10 @@ static void
 plugins_scheduler_enable (plugins_scheduler_t sched, const char *oid_list,
                           int autoload)
 {
-  int i;
   char *oids, *oid;
   GHashTable *oids_table;
 
-  oids_table = g_hash_table_new_full (g_str_hash, g_str_equal, g_free, NULL);
+  oids_table = g_hash_table_new_full (g_str_hash, g_str_equal, NULL, NULL);
 
   /* Store list of plugins in hashtable. */
   oids = g_strdup (oid_list);
@@ -451,19 +230,13 @@ plugins_scheduler_enable (plugins_scheduler_t sched, const char *oid_list,
       plugin_add (sched, oids_table, autoload, oid);
       oid = strtok (NULL, ";");
     }
+
+  /* When autoload is disabled, each plugin's deps list is still empty. */
+  if (!autoload)
+    plugins_scheduler_fill_deps (sched, oids_table);
+
   g_hash_table_destroy (oids_table);
   g_free (oids);
-
-  /* Fill the hash pointers. */
-  for (i = 0; i < HASH_MAX; i++)
-    {
-      struct hash *l = &sched->hash[i];
-      while (l != NULL)
-        {
-          hash_fill_deps (sched->hash, l);
-          l = l->next;
-        }
-    }
 }
 
 plugins_scheduler_t
@@ -474,8 +247,6 @@ plugins_scheduler_init (const char *plugins_list, int autoload, int only_network
 
   /* Fill our lists */
   ret = g_malloc0 (sizeof (*ret));
-  ret->hash = hash_init ();
-
   plugins_scheduler_enable (ret, plugins_list, autoload);
 
   if (only_network)
@@ -495,22 +266,13 @@ plugins_scheduler_count_active (plugins_scheduler_t sched)
   assert (sched);
 
   for (i = ACT_FIRST; i <= ACT_LAST; i++)
-    {
-      struct list *element = sched->list[i];
-
-      while (element)
-        {
-          ret++;
-          element = element->next;
-        }
-    }
+    ret += g_slist_length (sched->list[i]);
   return ret;
 }
 
 struct scheduler_plugin *
 plugins_scheduler_next (plugins_scheduler_t h)
 {
-  struct list *l;
   int category;
   int running_category = ACT_LAST;
   int flag = 0;
@@ -520,7 +282,7 @@ plugins_scheduler_next (plugins_scheduler_t h)
 
   for (category = ACT_FIRST; category <= ACT_LAST; category++)
     {
-      l = h->list[category];
+      GSList *element = h->list[category];
 
       /*
        * Scanners (and DoS) must not be run in parallel
@@ -531,14 +293,14 @@ plugins_scheduler_next (plugins_scheduler_t h)
       else
         pluginlaunch_enable_parrallel_checks ();
 
-      while (l != NULL)
+      while (element != NULL)
         {
-          switch (l->plugin->running_state)
+          struct scheduler_plugin *plugin = element->data;
+          switch (plugin->running_state)
             {
             case PLUGIN_STATUS_UNRUN:
               {
-                struct hash **deps_ptr =
-                  l->plugin->parent_hash->dependencies_ptr;
+                GSList *deps_ptr = plugin->deps;
 
                 if (deps_ptr != NULL)
                   {
@@ -548,9 +310,8 @@ plugins_scheduler_next (plugins_scheduler_t h)
                     switch (GPOINTER_TO_SIZE (p))
                       {
                       case GPOINTER_TO_SIZE (NULL):
-                        scheduler_mark_running_ports (h, l->plugin);
-                        l->plugin->running_state = PLUGIN_STATUS_RUNNING;
-                        return l->plugin;
+                        plugin->running_state = PLUGIN_STATUS_RUNNING;
+                        return plugin;
 
                         break;
                       case GPOINTER_TO_SIZE (PLUG_RUNNING):
@@ -558,8 +319,7 @@ plugins_scheduler_next (plugins_scheduler_t h)
                           /* One of the dependency is still running
                            * we write down its category */
 
-                          int category = nvticache_get_category
-                                          (l->plugin->oid);
+                          int category = nvticache_get_category (plugin->oid);
                           if (category < running_category)
                             running_category = category;
                           flag++;
@@ -568,7 +328,6 @@ plugins_scheduler_next (plugins_scheduler_t h)
                       default:
                         {
                           /* Launch a dependency  - don't pay attention to the type */
-                          scheduler_mark_running_ports (h, p);
                           p->running_state = PLUGIN_STATUS_RUNNING;
                           return p;
                         }
@@ -576,15 +335,14 @@ plugins_scheduler_next (plugins_scheduler_t h)
                   }
                 else            /* No dependencies */
                   {
-                    scheduler_mark_running_ports (h, l->plugin);
-                    l->plugin->running_state = PLUGIN_STATUS_RUNNING;
-                    return l->plugin;
+                    plugin->running_state = PLUGIN_STATUS_RUNNING;
+                    return plugin;
                   }
               }
               break;
             case PLUGIN_STATUS_RUNNING:
               {
-                int category = nvticache_get_category (l->plugin->oid);
+                int category = nvticache_get_category (plugin->oid);
                 if (category < running_category)
                   running_category = category;
                 flag++;
@@ -592,29 +350,10 @@ plugins_scheduler_next (plugins_scheduler_t h)
               break;
 
             case PLUGIN_STATUS_DONE:
-              scheduler_rm_running_ports (h, l->plugin);
-              l->plugin->running_state = PLUGIN_STATUS_DONE_AND_CLEANED;
-              /* no break - we remove it right away */
-            case PLUGIN_STATUS_DONE_AND_CLEANED:
-              {
-                struct list *old = l->next;
-
-                if (l->prev != NULL)
-                  l->prev->next = l->next;
-                else
-                  h->list[category] = l->next;
-
-                if (l->next != NULL)
-                  l->next->prev = l->prev;
-
-                g_free (l);
-                l = old;
-
-                continue;
-              }
+              plugin->running_state = PLUGIN_STATUS_DONE_AND_CLEANED;
               break;
             }
-          l = l->next;
+          element = element->next;
         }
 
 
@@ -633,27 +372,28 @@ plugins_scheduler_next (plugins_scheduler_t h)
         }
     }
 
-
   return flag != 0 ? PLUG_RUNNING : NULL;
 }
 
 void
-list_destroy (struct list *list)
+scheduler_plugin_free (void *data)
 {
-  while (list != NULL)
-    {
-      struct list *next = list->next;
-      g_free (list);
-      list = next;
-    }
+  struct scheduler_plugin *plugin;
+  if (!data)
+    return;
+
+  plugin = data;
+  g_free (plugin->oid);
+  g_slist_free (plugin->deps);
+  g_free (plugin);
 }
 
 void
 plugins_scheduler_free (plugins_scheduler_t sched)
 {
   int i;
-  hash_destroy (sched->hash);
+
   for (i = ACT_FIRST; i <= ACT_LAST; i++)
-    list_destroy (sched->list[i]);
+    g_slist_free_full (sched->list[i], scheduler_plugin_free);
   g_free (sched);
 }

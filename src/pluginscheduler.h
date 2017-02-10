@@ -33,14 +33,13 @@
 
 #include <glib.h>
 
-struct hash;
 struct plugins_scheduler;
 
 
 struct scheduler_plugin
 {
-  struct hash *parent_hash;
   char *oid;
+  GSList *deps;
   int running_state;
 };
 
