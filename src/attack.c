@@ -220,7 +220,7 @@ launch_plugin (struct arglist *globals, struct scheduler_plugin *plugin,
 {
   int optimize = prefs_get_bool ("optimize_test");
   int category;
-  char *oid, *name;
+  char *oid, *name, *error;
   gboolean network_scan = FALSE;
 
   oid = plugin->oid;
@@ -252,85 +252,76 @@ launch_plugin (struct arglist *globals, struct scheduler_plugin *plugin,
   if (network_scan_status (globals) == NSS_BUSY)
     network_scan = TRUE;
 
-  /* can we launch it ? */
-  if (plugin->enabled)
+  if (prefs_get_bool ("safe_checks") && !nvti_category_is_safe (category))
     {
-      char *error;
+      if (prefs_get_bool ("log_whole_attack"))
+        g_message ("Not launching %s (%s) against %s because safe checks are"
+                   " enabled (this is not an error)", name, oid, hostname);
+      plugin->running_state = PLUGIN_STATUS_DONE;
+      g_free (name);
+      return 0;
+    }
 
-      if (prefs_get_bool ("safe_checks") && !nvti_category_is_safe (category))
+  if (network_scan)
+    {
+      char asc_id[100];
+
+      assert (oid);
+      snprintf (asc_id, sizeof (asc_id), "Launched/%s", oid);
+
+      if (kb_item_get_int (kb, asc_id) > 0)
         {
           if (prefs_get_bool ("log_whole_attack"))
-            g_message
-              ("Not launching %s (%s) against %s because safe checks are"
-               " enabled (this is not an error)", name, oid, hostname);
+            g_message ("Not launching %s against %s because it has already "
+                       "been lanched in the past (this is not an error)",
+                       oid, hostname);
           plugin->running_state = PLUGIN_STATUS_DONE;
           g_free (name);
           return 0;
         }
-
-      if (network_scan)
-        {
-          char asc_id[100];
-
-          assert (oid);
-          snprintf (asc_id, sizeof (asc_id), "Launched/%s", oid);
-
-          if (kb_item_get_int (kb, asc_id) > 0)
-            {
-              if (prefs_get_bool ("log_whole_attack"))
-                g_message ("Not launching %s against %s because it has already "
-                           "been lanched in the past (this is not an error)",
-                           oid, hostname);
-              plugin->running_state = PLUGIN_STATUS_DONE;
-              g_free (name);
-              return 0;
-            }
-          else
-            {
-              kb_item_add_int (kb, asc_id, 1);
-            }
-        }
-
-      /* Do not launch NVT if mandatory key is missing (e.g. an important tool
-       * was not found). This is ignored during network wide scanning phases. */
-      if (network_scan || mandatory_requirements_met (kb, plugin))
-        error = NULL;
       else
-        error = "because a mandatory key is missing";
-
-      if (!error
-          && (!optimize
-              || !(error = requirements_plugin (kb, plugin))))
         {
-          int pid;
-          char *src;
-
-          src = nvticache_get_src (oid);
-          /* Start the plugin */
-          pid = plugin_launch (globals, plugin, hostinfos, kb, src);
-          g_free (src);
-          if (pid < 0)
-            {
-              plugin->running_state = PLUGIN_STATUS_UNRUN;
-              g_free (name);
-              return ERR_CANT_FORK;
-            }
-
-          if (prefs_get_bool ("log_whole_attack"))
-            g_message ("Launching %s (%s) against %s [%d]", name, oid, hostname,
-                       pid);
+          kb_item_add_int (kb, asc_id, 1);
         }
-      else                      /* requirements_plugin() failed */
-        {
-          plugin->running_state = PLUGIN_STATUS_DONE;
-          if (prefs_get_bool ("log_whole_attack"))
-            g_message
-              ("Not launching %s (%s) against %s %s (this is not an error)",
-               name, oid, hostname, error);
-        }
-    }                           /* if(plugins->launch) */
+    }
+
+  /* Do not launch NVT if mandatory key is missing (e.g. an important tool
+   * was not found). This is ignored during network wide scanning phases. */
+  if (network_scan || mandatory_requirements_met (kb, plugin))
+    error = NULL;
   else
-    plugin->running_state = PLUGIN_STATUS_DONE;
+    error = "because a mandatory key is missing";
+
+  if (!error
+      && (!optimize
+          || !(error = requirements_plugin (kb, plugin))))
+    {
+      int pid;
+      char *src;
+
+      src = nvticache_get_src (oid);
+      /* Start the plugin */
+      pid = plugin_launch (globals, plugin, hostinfos, kb, src);
+      g_free (src);
+      if (pid < 0)
+        {
+          plugin->running_state = PLUGIN_STATUS_UNRUN;
+          g_free (name);
+          return ERR_CANT_FORK;
+        }
+
+      if (prefs_get_bool ("log_whole_attack"))
+        g_message ("Launching %s (%s) against %s [%d]", name, oid, hostname,
+                   pid);
+    }
+  else                      /* requirements_plugin() failed */
+    {
+      plugin->running_state = PLUGIN_STATUS_DONE;
+      if (prefs_get_bool ("log_whole_attack"))
+        g_message
+         ("Not launching %s (%s) against %s %s (this is not an error)",
+          name, oid, hostname, error);
+    }
 
   g_free (name);
   return 0;

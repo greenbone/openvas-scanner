@@ -1,3 +1,23 @@
+2017-02-10  Hani Benhabiles  <hani.benhabiles@greenbone.net>
+
+	Reorganize plugins scheduler initialization and reduce memory
+	allocations. Reduces each scanning process' memory footprint by ~3MB.
+
+	* src/pluginscheduler.c (struct scheduler_plugin): Remove enabled
+	element.
+
+	* src/pluginscheduler.c (hash_get_deps_ptr, plugins_scheduler_fill)
+	(enable_plugin_and_dependencies): Remove function.
+	(plugin_add): New function which allocates the scheduler_plugin struct
+	and enables its dependencies.
+	(plugins_scheduler_enable): Call plugin_add(). Remove plugins enabling
+	and dependencies enabling loops.
+	(plugins_scheduler_init): Don't call plugins_scheduler_fill(). Remove
+	disabled plugins loop.
+	(plugins_scheduler_count_active): Adjust for enabled element removal.
+
+	* src/attack.c (launch_plugin): Adjust for enabled element removal.
+
 2017-02-09  Juan Jose Nicola  <juan.nicola@greenbone.net>
 
 	* src/pluginload.c (plugins_reload_from_dir): Use g_message() instead

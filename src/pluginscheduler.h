@@ -42,7 +42,6 @@ struct scheduler_plugin
   struct hash *parent_hash;
   char *oid;
   int running_state;
-  gboolean enabled;
 };
 
 
