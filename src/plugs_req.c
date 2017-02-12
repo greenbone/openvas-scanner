@@ -29,7 +29,8 @@
 #include <string.h> /* for strcmp() */
 #include <stdio.h>  /* for snprintf() */
 
-#include <openvas/misc/prefs.h>          /* for prefs_get() */
+#include <gvm/base/prefs.h>          /* for prefs_get() */
+
 #include <openvas/base/nvticache.h>
 
 #include "pluginscheduler.h"

@@ -32,8 +32,9 @@
 #include <sys/ioctl.h> /* for ioctl() */
 #include <sys/stat.h>  /* for stat() */
 
+#include <gvm/base/prefs.h>      /* for prefs_get() */
+
 #include <openvas/misc/network.h>    /* for stream_zero */
-#include <openvas/misc/prefs.h>      /* for prefs_get() */
 
 #include "comm.h"
 #include "ntp.h"

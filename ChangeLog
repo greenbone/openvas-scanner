@@ -1,3 +1,9 @@
+2017-02-12  Jan-Oliver Wagner <jan-oliver.wagner@greenbone.net>
+
+	* src/attack.c, src/comm.c, src/nasl_plugins.c, src/openvassd.c,
+	src/pluginlaunch.c, src/pluginload.c, src/plugs_req.c, src/utils.c:
+	Include gvm/base/prefs.h instead of openvas/misc/prefs.h.
+
 2017-02-10  Jan-Oliver Wagner <jan-oliver.wagner@greenbone.net>
 
 	* src/attack.c, src/nasl_plugins.c, src/openvassd.c, src/pluginload.c:

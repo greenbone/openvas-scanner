@@ -33,11 +33,12 @@
 
 #include <glib.h>
 
+#include <gvm/base/prefs.h>         /* for preferences_get() */
+
 #include <openvas/nasl/nasl.h>
 #include <openvas/misc/nvt_categories.h>/* for ACT_FIRST */
 #include <openvas/misc/plugutils.h>
 #include <openvas/misc/network.h>       /* for recv_line */
-#include <openvas/misc/prefs.h>         /* for preferences_get() */
 
 #include <openvas/base/nvticache.h>     /* for nvticache_t */
 

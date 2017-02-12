@@ -28,10 +28,10 @@
 #include <stdio.h>
 
 #include <gvm/base/proctitle.h>
+#include <gvm/base/prefs.h>       /* for prefs_get() */
 
 #include <openvas/nasl/nasl.h>
 #include <openvas/base/nvticache.h>  /* for nvticache_new */
-#include <openvas/misc/prefs.h>      /* for prefs_get() */
 
 #include <glib.h>
 #include <stdlib.h>

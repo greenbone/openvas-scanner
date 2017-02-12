@@ -39,12 +39,12 @@
 #include <gvm/base/networking.h>
 #include <gvm/base/hosts.h>
 #include <gvm/base/proctitle.h>
+#include <gvm/base/prefs.h>              /* for prefs_get() */
 
 #include <openvas/base/kb.h>
 #include <openvas/misc/network.h>        /* for auth_printf */
 #include <openvas/misc/nvt_categories.h> /* for ACT_INIT */
 #include <openvas/misc/pcap_openvas.h>   /* for v6_is_local_ip */
-#include <openvas/misc/prefs.h>          /* for prefs_get() */
 #include <openvas/misc/internal_com.h>
 
 #include <openvas/base/nvticache.h>     /* for nvticache_t */
