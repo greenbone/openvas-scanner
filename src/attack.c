@@ -1043,10 +1043,13 @@ attack_network (struct arglist *globals, kb_t *network_kb)
                 }
             }
 
-          if (socketpair (AF_UNIX, SOCK_STREAM, 0, soc) < 0)
-            goto scan_stop;
-          if (hosts_new (globals, hostname, soc[1]) < 0)
-            goto scan_stop;
+          if (socketpair (AF_UNIX, SOCK_STREAM, 0, soc) < 0
+              || hosts_new (globals, hostname, soc[1]) < 0)
+            {
+              g_free (MAC);
+              g_free (hostname);
+              goto scan_stop;
+            }
 
           if (scan_is_stopped ())
             {
@@ -1077,8 +1080,8 @@ attack_network (struct arglist *globals, kb_t *network_kb)
                   /* Forking failed - we go to the wait queue. */
                   g_debug ("fork() failed - %s. %s won't be tested",
                              strerror (errno), hostname);
-                  if (MAC)
-                    g_free (MAC);
+                  g_free (MAC);
+                  g_free (hostname);
                   goto stop;
                 }
 
@@ -1107,10 +1110,8 @@ attack_network (struct arglist *globals, kb_t *network_kb)
           arg_set_value (globals, "network_scan_status", "done");
         }
       else
-        {
-          g_free (hostname);
-          host = gvm_hosts_next (hosts);
-        }
+        host = gvm_hosts_next (hosts);
+      g_free (hostname);
     }
 
   /* Every host is being tested... We have to wait for the processes
