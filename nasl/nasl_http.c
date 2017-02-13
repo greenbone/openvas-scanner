@@ -21,10 +21,11 @@
 #include <ctype.h>              /* for isspace */
 #include <string.h>             /* for strlen */
 
-#include <gvm/base/prefs.h>     /* for prefs_get */
+#include <gvm/base/prefs.h>      /* for prefs_get */
 
-#include "../base/kb.h"                 /* for kb_item_get_str */
-#include "../misc/plugutils.h"          /* plug_get_host_fqdn */
+#include <openvas/base/kb.h>         /* for kb_item_get_str */
+#include <openvas/misc/plugutils.h>  /* plug_get_host_fqdn */
+#include <openvas/misc/www_funcs.h>  /* for build_encode_URL */
 
 #include "nasl_tree.h"
 #include "nasl_global_ctxt.h"
@@ -38,7 +39,6 @@
 
 #include "nasl_http.h"
 
-#include "../misc/www_funcs.h"          /* for build_encode_URL */
 
 /*-----------------[ http_* functions ]-------------------------------*/
 

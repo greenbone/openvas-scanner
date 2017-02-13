@@ -63,10 +63,10 @@
 #include <gvm/base/logging.h>
 #include <gvm/base/prefs.h>  /* for prefs_get */
 
-#include "../misc/arglists.h"
-#include "../misc/plugutils.h"
-#include "../misc/popen.h"
-#include "../base/kb.h"
+#include <openvas/misc/arglists.h>
+#include <openvas/misc/plugutils.h>
+#include <openvas/misc/popen.h>
+#include <openvas/base/kb.h>
 
 #include "nasl_lex_ctxt.h"
 

@@ -22,7 +22,8 @@
 
 #include <gvm/base/logging.h>
 
-#include "../misc/arglists.h"
+#include <openvas/misc/arglists.h>
+#include <openvas/misc/plugutils.h>
 
 #include "nasl_tree.h"
 #include "nasl_global_ctxt.h"
@@ -30,7 +31,6 @@
 #include "nasl_var.h"
 #include "nasl_lex_ctxt.h"
 #include "exec.h"
-#include "../misc/plugutils.h"
 
 #undef G_LOG_DOMAIN
 /**

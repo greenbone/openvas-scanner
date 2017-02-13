@@ -29,10 +29,10 @@
 #include <net-snmp/net-snmp-includes.h>
 
 #include <gvm/base/logging.h>
+#include <openvas/misc/plugutils.h>
 
 #include <assert.h>
 #include "nasl_lex_ctxt.h"
-#include "../misc/plugutils.h"
 
 /*
  * @brief SNMP Get query value.

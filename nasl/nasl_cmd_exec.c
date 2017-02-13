@@ -32,8 +32,8 @@
 #include <sys/param.h>          /* for MAXPATHLEN */
 #include <unistd.h>             /* for getcwd */
 
-#include "../misc/plugutils.h"          /* for find_in_path */
-#include "../misc/popen.h"              /* for openvas_popen4 */
+#include <openvas/misc/plugutils.h>          /* for find_in_path */
+#include <openvas/misc/popen.h>              /* for openvas_popen4 */
 
 #include "nasl_tree.h"
 #include "nasl_global_ctxt.h"

@@ -27,11 +27,10 @@
 
 #include <stdio.h>
 
+#include <openvas/base/nvticache.h>  /* for nvticache_new */
+
 #include <gvm/base/proctitle.h>
 #include <gvm/base/prefs.h>       /* for prefs_get() */
-
-#include <openvas/nasl/nasl.h>
-#include <openvas/base/nvticache.h>  /* for nvticache_new */
 
 #include <glib.h>
 #include <stdlib.h>
@@ -42,6 +41,8 @@
 
 #include "utils.h"
 #include "pluginload.h"
+
+#include "../nasl/nasl.h"
 
 #undef G_LOG_DOMAIN
 /**

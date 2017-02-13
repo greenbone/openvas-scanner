@@ -118,6 +118,9 @@ set (CPACK_SOURCE_IGNORE_FILES
 "${CMAKE_BINARY_DIR}"
 "/.svn/"
 "swp$"
+"nasl/nasl_grammar.tab.c"
+"nasl/nasl_grammar.tab.h"
+"nasl/nasl_grammar.output"
 )
 
 include (CPack)
@@ -190,7 +193,6 @@ message ("-- Install prefix: ${CMAKE_INSTALL_PREFIX}")
 ## Dependency checks
 
 pkg_check_modules (LIBGVM_BASE REQUIRED libgvm_base>=1.0.0)
-pkg_check_modules (LIBOPENVAS_NASL REQUIRED libopenvas_nasl>=9.0.0)
 pkg_check_modules (LIBOPENVAS_BASE REQUIRED libopenvas_base>=9.0.0)
 pkg_check_modules (LIBOPENVAS_MISC REQUIRED libopenvas_misc>=9.0.0)
 pkg_check_modules (GLIB REQUIRED glib-2.0>=2.32)
@@ -222,6 +224,8 @@ configure_file (doc/example_redis_2_6.conf.in doc/example_redis_2_6.conf @ONLY)
 configure_file (VERSION.in VERSION @ONLY)
 configure_file (tools/greenbone-nvt-sync.in tools/greenbone-nvt-sync @ONLY)
 configure_file (src/openvassd_log_conf.cmake_in src/openvassd_log.conf)
+#configure_file (doc/openvas-nasl.1.in doc/openvas-nasl.1 @ONLY)
+#configure_file (doc/openvas-nasl-lint.1.in doc/openvas-nasl-lint.1 @ONLY)
 
 ## Program
 
@@ -229,45 +233,17 @@ set (HARDENING_FLAGS            "-Wformat -Wformat-security -O2 -D_FORTIFY_SOURC
 set (LINKER_HARDENING_FLAGS     "-Wl,-z,relro -Wl,-z,now")
 set (GPGME_C_FLAGS              "-D_FILE_OFFSET_BITS=64 -DLARGEFILE_SOURCE=1")
 
-set (CMAKE_C_FLAGS_DEBUG        "${CMAKE_C_FLAGS_DEBUG} -Werror -Wextra")
 set (CMAKE_C_FLAGS_RELEASE      "${CMAKE_C_FLAGS_RELEASE} ${HARDENING_FLAGS}")
 
 set (CMAKE_C_FLAGS              "${CMAKE_C_FLAGS} ${GPGME_C_FLAGS} -Wall -D_BSD_SOURCE -D_ISOC99_SOURCE -D_SVID_SOURCE -D_DEFAULT_SOURCE")
 
+add_subdirectory (nasl)
 add_subdirectory (src)
 
 ## Documentation
 
 add_subdirectory (doc)
 
-
-## Install
-
-install (FILES ${CMAKE_BINARY_DIR}/src/openvassd
-  DESTINATION ${SBINDIR}
-  PERMISSIONS OWNER_EXECUTE OWNER_READ OWNER_WRITE
-  GROUP_READ GROUP_EXECUTE WORLD_READ WORLD_EXECUTE)
-
-install (FILES ${CMAKE_BINARY_DIR}/src/openvassd_log.conf
-         DESTINATION ${OPENVAS_SYSCONF_DIR})
-
-install (FILES ${CMAKE_BINARY_DIR}/tools/greenbone-nvt-sync
-         DESTINATION ${SBINDIR}
-         PERMISSIONS OWNER_EXECUTE OWNER_READ OWNER_WRITE
-                     GROUP_READ GROUP_EXECUTE WORLD_READ WORLD_EXECUTE)
-
-install (FILES ${CMAKE_BINARY_DIR}/doc/openvassd.8
-         DESTINATION ${DATADIR}/man/man8 )
-
-install (FILES ${CMAKE_SOURCE_DIR}/doc/greenbone-nvt-sync.8
-         DESTINATION ${DATADIR}/man/man8 )
-
-install (FILES ${CMAKE_BINARY_DIR}/doc/example_redis_2_4.conf
-               ${CMAKE_BINARY_DIR}/doc/example_redis_2_6.conf
-         DESTINATION ${DATADIR}/doc/openvas-scanner/ )
-
-install (DIRECTORY DESTINATION ${OPENVAS_NVT_DIR})
-install (DIRECTORY DESTINATION ${OPENVAS_CACHE_DIR})
 
 ## Tests
 

@@ -45,11 +45,12 @@
 #include <gvm/base/prefs.h>           /* for prefs_get_bool */
 
 #include <openvas/base/nvticache.h>       /* for nvticache_add */
-#include <openvas/nasl/nasl.h>
 #include <openvas/misc/network.h>    /* for internal_send */
 #include <openvas/misc/nvt_categories.h>  /* for ACT_SCANNER */
 #include <openvas/misc/plugutils.h>     /* for plug_set_launch */
 #include <openvas/misc/internal_com.h>  /* for INTERNAL_COMM_CTRL_FINISHED */
+
+#include "../nasl/nasl.h"
 
 #include "pluginload.h"
 #include "pluginscheduler.h"

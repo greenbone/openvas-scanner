@@ -21,7 +21,7 @@
 
 /* for FILE */
 #include <stdio.h>
-#include "../base/kb.h"
+#include <openvas/base/kb.h>
 
 typedef struct
 {

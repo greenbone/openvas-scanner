@@ -48,8 +48,8 @@
 #include <gvm/base/networking.h> /* for gvm_source_set_socket */
 #include <gvm/base/logging.h>
 
-#include "../misc/network.h"
-#include "../misc/plugutils.h"          /* for plug_get_host_ip */
+#include <openvas/misc/network.h>
+#include <openvas/misc/plugutils.h>          /* for plug_get_host_ip */
 
 #include "nasl.h"
 

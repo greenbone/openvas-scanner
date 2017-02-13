@@ -59,6 +59,8 @@ if (NOT CMAKE_BUILD_TYPE MATCHES "Release")
   endif (SVN_REVISION)
 endif (NOT CMAKE_BUILD_TYPE MATCHES "Release")
 
+set (CMAKE_C_FLAGS_DEBUG        "${CMAKE_C_FLAGS_DEBUG} -Werror -Wextra")
+
 if (OPENVASSD_VERSION)
   add_definitions (-DOPENVASSD_VERSION=\\\"${OPENVASSD_VERSION}\\\")
 endif (OPENVASSD_VERSION)
@@ -117,7 +119,8 @@ if (CMAKE_SYSTEM_NAME MATCHES "FreeBSD")
   set (EXECINFO_LDFLAGS "execinfo")
 endif (CMAKE_SYSTEM_NAME MATCHES "FreeBSD")
 
-target_link_libraries (openvassd ${LIBOPENVAS_NASL_LDFLAGS}
+
+target_link_libraries (openvassd openvas_nasl_shared ${LIBOPENVAS_NASL_LDFLAGS}
                        ${LIBOPENVAS_BASE_LDFLAGS} ${LIBOPENVAS_MISC_LDFLAGS}
                        ${LIBGVM_BASE_LDFLAGS}
                        ${GLIB_LDFLAGS} ${GCRYPT_LDFLAGS}
@@ -150,4 +153,35 @@ add_custom_target (ctags COMMENT "Building tags..."
 add_custom_target (tags COMMENT "Building tags files...")
 add_dependencies (tags etags ctags)
 
+## Install
+
+install (TARGETS openvassd
+         RUNTIME DESTINATION ${SBINDIR}
+#           #PUBLIC_HEADER DESTINATION "${INCLUDEDIR}/openvas/nasl"
+         PERMISSIONS OWNER_EXECUTE OWNER_READ OWNER_WRITE
+         GROUP_READ GROUP_EXECUTE WORLD_READ WORLD_EXECUTE)
+
+install (FILES ${CMAKE_BINARY_DIR}/src/openvassd_log.conf
+         DESTINATION ${OPENVAS_SYSCONF_DIR})
+
+install (FILES ${CMAKE_BINARY_DIR}/tools/greenbone-nvt-sync
+         DESTINATION ${SBINDIR}
+         PERMISSIONS OWNER_EXECUTE OWNER_READ OWNER_WRITE
+                     GROUP_READ GROUP_EXECUTE WORLD_READ WORLD_EXECUTE)
+
+install (FILES ${CMAKE_BINARY_DIR}/doc/openvassd.8
+         DESTINATION ${DATADIR}/man/man8 )
+
+
+install (FILES ${CMAKE_SOURCE_DIR}/doc/greenbone-nvt-sync.8
+         DESTINATION ${DATADIR}/man/man8 )
+
+install (FILES ${CMAKE_BINARY_DIR}/doc/example_redis_2_4.conf
+               ${CMAKE_BINARY_DIR}/doc/example_redis_2_6.conf
+         DESTINATION ${DATADIR}/doc/openvas-scanner/ )
+
+install (DIRECTORY DESTINATION ${OPENVAS_NVT_DIR})
+install (DIRECTORY DESTINATION ${OPENVAS_CACHE_DIR})
+
 ## End
+

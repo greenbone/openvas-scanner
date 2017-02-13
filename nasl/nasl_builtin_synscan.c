@@ -39,11 +39,11 @@
 #include <gvm/base/logging.h>
 #include <gvm/base/prefs.h>    /* for prefs_get */
 
-#include "../misc/arglists.h" /* for struct arglist */
-#include "../misc/bpf_share.h" /* for bpf_open_live */
-#include "../misc/pcap_openvas.h" /* for get_datalink_size */
-#include "../misc/plugutils.h" /* for scanner_add_port */
-#include "../misc/network.h"    /* for getpts */
+#include <openvas/misc/arglists.h>     /* for struct arglist */
+#include <openvas/misc/bpf_share.h>    /* for bpf_open_live */
+#include <openvas/misc/pcap_openvas.h> /* for get_datalink_size */
+#include <openvas/misc/plugutils.h>    /* for scanner_add_port */
+#include <openvas/misc/network.h>      /* for getpts */
 
 #include "nasl_lex_ctxt.h"
 

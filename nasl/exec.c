@@ -31,7 +31,7 @@
 #include <gvm/base/logging.h>
 #include <gvm/base/prefs.h>     /* for prefs_get */
 
-#include "../misc/plugutils.h"
+#include <openvas/misc/plugutils.h>
 
 #include "nasl.h"
 #include "nasl_tree.h"

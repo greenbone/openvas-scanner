@@ -29,21 +29,20 @@
 #include <gnutls/gnutls.h>      /* for gnutls_check_version */
 #include <sys/wait.h>
 
+#include <glib.h>
 #include <gpgme.h>              /* for gpgme_check_version */
 
 #include <gvm/base/hosts.h>     /* for gvm_hosts_* and gvm_host_* */
 #include <gvm/base/nvti.h>
 #include <gvm/base/prefs.h>     /* for prefs_get */
 
-#include "../misc/network.h"
+#include <openvas/base/kb.h>    /* for kb_new */
+#include <openvas/misc/nvt_categories.h>
+#include <openvas/misc/network.h>
 
 #include "nasl.h"
 #include "nasl_lex_ctxt.h"
 #include "exec.h"
-#include "../base/kb.h"                 /* for kb_new */
-#include "../misc/nvt_categories.h"
-
-#include <glib.h>
 
 #ifndef MAP_FAILED
 #define MAP_FAILED ((void*)-1)

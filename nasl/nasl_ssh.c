@@ -53,22 +53,23 @@
 #include <gvm/base/logging.h>
 #include <gvm/base/prefs.h>    /* for prefs_get() */
 
+#include <openvas/misc/network.h>    /* for openvas_get_socket_from_connection */
+#include <openvas/misc/plugutils.h>
+#include <openvas/base/kb.h>
+
 #include "nasl_tree.h"
 #include "nasl_global_ctxt.h"
 #include "nasl_func.h"
 #include "nasl_var.h"
 #include "nasl_lex_ctxt.h"
 #include "exec.h"
-#include "../misc/plugutils.h"
-#include "../base/kb.h"
 #include "nasl_debug.h"
-#include "../misc/network.h"            /* for openvas_get_socket_from_connection */
 
 #include "nasl_ssh.h"
 
 
 #ifndef DIM
-# define DIM(v)		     (sizeof(v)/sizeof((v)[0]))
+# define DIM(v)               (sizeof(v)/sizeof((v)[0]))
 # define DIMof(type,member)   DIM(((type *)0)->member)
 #endif
 

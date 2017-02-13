@@ -25,11 +25,22 @@
 
 ## Config
 
-# Set policy for consistent behaviour regarding relative paths in
-# link_directories
-if (POLICY CMP0015)
-  cmake_policy (SET CMP0015 OLD)
-endif (POLICY CMP0015)
+## Project version
+# The following three variables should be set through the project command once
+# we require CMake >= 3.0
+set (NASL_VERSION_MAJOR 9)
+set (NASL_VERSION_MINOR 1)
+set (NASL_VERSION_PATCH 0)
+
+if (PROJECT_BETA_RELEASE)
+  set (NASL_VERSION_SUFFIX "+beta${PROJECT_BETA_RELEASE}")
+else (PROJECT_BETA_RELEASE)
+  set (NASL_VERSION_SUFFIX ".${PROJECT_VERSION_PATCH}")
+endif (PROJECT_BETA_RELEASE)
+
+set (NASL_VERSION_STRING "${NASL_VERSION_MAJOR}.${NASL_VERSION_MINOR}${NASL_VERSION_SUFFIX}")
+set (NASL_PACKAGE_VERSION "${NASL_VERSION_STRING}${PROJECT_VERSION_SVN}")
+set (NASL_VERSION "${NASL_VERSION_STRING}")
 
 ## Library
 if (SNMP)
@@ -37,11 +48,9 @@ if (SNMP)
 endif (SNMP)
 
 pkg_check_modules (GIO REQUIRED gio-2.0)
-
-if (BUILD_STATIC)
-  pkg_check_modules (ZLIB REQUIRED zlib)
-  pkg_check_modules (REDIS REQUIRED hiredis>=0.10.1)
-endif (BUILD_STATIC)
+pkg_check_modules (GNUTLS REQUIRED gnutls>=3.2.15)
+pkg_check_modules (LIBGVM_BASE REQUIRED libgvm_base>=1.0.0)
+pkg_check_modules (LIBGVM_UTIL REQUIRED libgvm_util>=1.0.0)
 
 # for 'nasl' binary
 pkg_check_modules (LIBSSH REQUIRED libssh>=0.5.0)
@@ -69,10 +78,26 @@ else (NOT KSBA)
   endif (${KSBA_VERSION} VERSION_LESS ${KSBA_MIN_VERSION})
 endif (NOT KSBA)
 
+if (NOT MINGW)
+ find_library (GPGME gpgme)
+  message (STATUS "Looking for gpgme... ${GPGME}")
+  if (NOT GPGME)
+    message (SEND_ERROR "The gpgme library is required.")
+  endif (NOT GPGME)
+  execute_process (COMMAND gpgme-config --libs
+    OUTPUT_VARIABLE GPGME_LDFLAGS
+    OUTPUT_STRIP_TRAILING_WHITESPACE)
+  execute_process (COMMAND gpgme-config --cflags
+    OUTPUT_VARIABLE GPGME_CFLAGS
+    OUTPUT_STRIP_TRAILING_WHITESPACE)
+endif (NOT MINGW)
+
+
 # The "-D_FILE_OFFSET_BITS=64 -DLARGEFILE_SOURCE=1" is necessary for GPGME!
 # The "-fno-strict-aliasing" silences warnings caused by macros defined in byteorder.h.
 # Once the warnings have been addressed this flag should be removed.
 set (CMAKE_C_FLAGS              "${CMAKE_C_FLAGS} -Wall -Wextra -D_FILE_OFFSET_BITS=64 -DLARGEFILE_SOURCE=1 -fno-strict-aliasing")
+set (CMAKE_C_FLAGS_DEBUG        "${CMAKE_C_FLAGS_DEBUG} -Werror")
 set (CMAKE_C_FLAGS_RELEASE      "${CMAKE_C_FLAGS_RELEASE} ${HARDENING_FLAGS}")
 
 ## Compile the parser - note that there are (better) CMake macros to achieve
@@ -108,7 +133,6 @@ set (FILES arc4.c capture_packet.c charcnv.c exec.c genrand.c hmacmd5.c
      ntlmssp.c strutils.c smb_crypt.c smb_crypt2.c
      smb_signing.c time.c)
 
-set (HEADERS nasl.h)
 
 if (NOT OPENVAS_WMICLIENT_FOUND)
   set (FILES smb_interface_stub.c wmi_interface_stub.c ${FILES})
@@ -122,6 +146,10 @@ if (KSBA)
   add_definitions (-DHAVE_LIBKSBA)
 endif (KSBA)
 
+if (OPENVASSD_CONF)
+  add_definitions (-DOPENVASSD_CONF=\\\"${OPENVASSD_CONF}\\\")
+endif (OPENVASSD_CONF)
+
 set_source_files_properties (nasl_grammar.tab.c GENERATED)
 
 ## Pass-throughs
@@ -134,77 +162,47 @@ include_directories (${GLIB_INCLUDE_DIRS}
                      ${LIBSSH_INCLUDE_DIRS}
                      ${LIBGVM_BASE_INCLUDE_DIRS}
                      ${LIBGVM_UTIL_INCLUDE_DIRS}
+                     ${LIBOPENVAS_BASE_INCLUDE_DIRS}
+                     ${LIBOPENVAS_MISC_INCLUDE_DIRS}
                      ${KSBA_INCLUDE_DIRS})
 
-link_directories (${LIBDIR} ../base ../misc)
 
-if (BUILD_STATIC)
-   add_library (openvas_nasl_static STATIC ${FILES})
-
-   set_target_properties (openvas_nasl_static PROPERTIES OUTPUT_NAME "openvas_nasl")
-   set_target_properties (openvas_nasl_static PROPERTIES CLEAN_DIRECT_OUTPUT 1)
-   set_target_properties (openvas_nasl_static PROPERTIES PUBLIC_HEADER "${HEADERS}")
-   target_link_libraries (openvas_nasl_static openvas_base_static
-                          openvas_misc_static openvas_omp_static
-                          ${GLIB_LDFLAGS} ${GCRYPT_LDFLAGS} ${GPGME_LDFLAGS}
-                          ${GNUTLS_LDFLAGS} ${PCAP_LDFLAGS}
-                          ${LIBGVM_BASE_LDFLAGS}
-                          ${LIBGVM_UTIL_LDFLAGS}
-                          ${OPENVAS_WMICLIENT_LDFLAGS}
-                          ${OPENVAS_WINCMD_LDFLAGS} ${SNMP_LDFLAGS}
-                          ${LIBSSH_LDFLAGS} ${KSBA_LDFLAGS} m)
-endif (BUILD_STATIC)
-
-if (BUILD_SHARED)
-  add_library (openvas_nasl_shared SHARED ${FILES})
-  set_target_properties (openvas_nasl_shared PROPERTIES OUTPUT_NAME "openvas_nasl")
-  set_target_properties (openvas_nasl_shared PROPERTIES CLEAN_DIRECT_OUTPUT 1)
-  set_target_properties (openvas_nasl_shared PROPERTIES SOVERSION "${PROJECT_VERSION_MAJOR}")
-  set_target_properties (openvas_nasl_shared PROPERTIES VERSION "${CPACK_PACKAGE_VERSION}")
-  set_target_properties (openvas_nasl_shared PROPERTIES PUBLIC_HEADER "${HEADERS}")
+# Build shared 
+add_library (openvas_nasl_shared SHARED ${FILES})
+set_target_properties (openvas_nasl_shared PROPERTIES OUTPUT_NAME "openvas_nasl")
+set_target_properties (openvas_nasl_shared PROPERTIES CLEAN_DIRECT_OUTPUT 1)
+set_target_properties (openvas_nasl_shared PROPERTIES SOVERSION "${NASL_VERSION_MAJOR}")
+set_target_properties (openvas_nasl_shared PROPERTIES VERSION "${NASL_PACKAGE_VERSION}")
 # line bellow is needed so it also works with no-undefined which is e.g. used by Mandriva
-  target_link_libraries (openvas_nasl_shared openvas_base_shared openvas_misc_shared
-                         ${GLIB_LDFLAGS} ${GCRYPT_LDFLAGS} ${GPGME_LDFLAGS} m
+target_link_libraries (openvas_nasl_shared ${GLIB_LDFLAGS}
+                         ${GCRYPT_LDFLAGS} ${GPGME_LDFLAGS} m
                          ${LIBGVM_BASE_LDFLAGS}
                          ${LIBGVM_UTIL_LDFLAGS}
+                         ${LIBOPENVAS_BASE_LDFLAGS} ${LIBOPENVAS_MISC_LDFLAGS}
                          ${OPENVAS_WMICLIENT_LDFLAGS} ${OPENVAS_WINCMD_LDFLAGS}
                          ${GNUTLS_LDFLAGS} ${PCAP_LDFLAGS} ${LIBSSH_LDFLAGS}
                          ${KSBA_LDFLAGS} ${SNMP_LDFLAGS}
                          ${LINKER_HARDENING_FLAGS})
-endif (BUILD_SHARED)
+
 
 # Link the openvas-nasl executable
 add_executable (openvas-nasl nasl.c)
-if (BUILD_STATIC)
-  target_link_libraries (openvas-nasl openvas_nasl_static ${ZLIB_STATIC_LDFLAGS} ${REDIS_STATIC_LDFLAGS} ${GNUTLS_STATIC_LDFLAGS})
-endif (BUILD_STATIC)
-if (BUILD_SHARED)
-  target_link_libraries (openvas-nasl openvas_base_shared openvas_misc_shared openvas_nasl_shared ${GNUTLS_LDFLAGS} ${LIBSSH_LDFLAGS})
-endif (BUILD_SHARED)
+target_link_libraries (openvas-nasl openvas_nasl_shared ${GNUTLS_LDFLAGS} ${LIBSSH_LDFLAGS})
 
 # Link the openvas-nasl-lint executable
 add_executable (openvas-nasl-lint nasl-lint.c)
-if (BUILD_STATIC)
-  target_link_libraries (openvas-nasl-lint openvas_nasl_static ${GLIB_LDFLAGS} ${GIO_LDFLAGS} ${ZLIB_STATIC_LDFLAGS} ${REDIS_STATIC_LDFLAGS} ${GNUTLS_STATIC_LDFLAGS})
-endif (BUILD_STATIC)
-if (BUILD_SHARED)
-  target_link_libraries (openvas-nasl-lint openvas_nasl_shared ${GLIB_LDFLAGS} ${GIO_LDFLAGS})
-endif (BUILD_SHARED)
+target_link_libraries (openvas-nasl-lint openvas_nasl_shared ${GLIB_LDFLAGS} ${GIO_LDFLAGS})
 
 ## Install
 
-if (BUILD_STATIC)
-  install (TARGETS openvas_nasl_static openvas-nasl openvas-nasl-lint
-           RUNTIME DESTINATION ${BINDIR}
-           ARCHIVE DESTINATION ${LIBDIR}
-           PUBLIC_HEADER DESTINATION "${INCLUDEDIR}/openvas/nasl")
-endif (BUILD_STATIC)
-if (BUILD_SHARED)
-  install (TARGETS openvas_nasl_shared openvas-nasl openvas-nasl-lint
-           RUNTIME DESTINATION ${BINDIR}
-           LIBRARY DESTINATION ${LIBDIR}
-           ARCHIVE DESTINATION ${LIBDIR}
-           PUBLIC_HEADER DESTINATION "${INCLUDEDIR}/openvas/nasl")
-endif (BUILD_SHARED)
+install (TARGETS openvas_nasl_shared openvas-nasl openvas-nasl-lint
+         RUNTIME DESTINATION ${BINDIR}
+         LIBRARY DESTINATION ${LIBDIR}
+         ARCHIVE DESTINATION ${LIBDIR})
 
+#install (FILES ${CMAKE_SOURCE_DIR}/doc/openvas-nasl.1
+#         DESTINATION ${DATADIR}/man/man1 )
+
+#install (FILES ${CMAKE_SOURCE_DIR}/doc/openvas-nasl-lint.1
+#         DESTINATION ${DATADIR}/man/man1 )
 ## End

@@ -31,7 +31,7 @@
 
 #include <glib.h>
 
-#include "../misc/arglists.h"           /* for struct arglist */
+#include <openvas/misc/arglists.h>           /* for struct arglist */
 
 /* Signature information extraction and verification (not nasl- specific
   anymore, thus likely to be moved to openvas-libraries): */

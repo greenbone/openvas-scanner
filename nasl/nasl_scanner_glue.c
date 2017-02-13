@@ -37,9 +37,10 @@
 #include <gvm/base/logging.h>
 #include <gvm/base/prefs.h>     /* for prefs_get */
 
-#include "../base/kb.h"                 /* for KB_TYPE_INT */
-#include "../misc/plugutils.h"          /* for plug_set_id */
-#include "../misc/network.h"            /* for getpts */
+#include <openvas/base/kb.h>                 /* for KB_TYPE_INT */
+#include <openvas/base/nvticache.h>
+#include <openvas/misc/plugutils.h>          /* for plug_set_id */
+#include <openvas/misc/network.h>            /* for getpts */
 
 #include "nasl_tree.h"
 #include "nasl_global_ctxt.h"
@@ -49,8 +50,6 @@
 
 #include "nasl_debug.h"
 #include "nasl_scanner_glue.h"
-
-#include "../base/nvticache.h"
 
 
 #ifndef NASL_DEBUG

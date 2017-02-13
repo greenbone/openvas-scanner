@@ -35,7 +35,6 @@
 
 #include <gvm/base/prefs.h>         /* for preferences_get() */
 
-#include <openvas/nasl/nasl.h>
 #include <openvas/misc/nvt_categories.h>/* for ACT_FIRST */
 #include <openvas/misc/plugutils.h>
 #include <openvas/misc/network.h>       /* for recv_line */
@@ -48,6 +47,8 @@
 #include "pluginload.h"    /* for current_loading_plugins */
 #include "sighand.h"
 #include "utils.h"
+
+#include "../nasl/nasl.h"
 
 #undef G_LOG_DOMAIN
 /**
