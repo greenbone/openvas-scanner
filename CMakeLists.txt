@@ -224,8 +224,8 @@ configure_file (doc/example_redis_2_6.conf.in doc/example_redis_2_6.conf @ONLY)
 configure_file (VERSION.in VERSION @ONLY)
 configure_file (tools/greenbone-nvt-sync.in tools/greenbone-nvt-sync @ONLY)
 configure_file (src/openvassd_log_conf.cmake_in src/openvassd_log.conf)
-#configure_file (doc/openvas-nasl.1.in doc/openvas-nasl.1 @ONLY)
-#configure_file (doc/openvas-nasl-lint.1.in doc/openvas-nasl-lint.1 @ONLY)
+configure_file (doc/openvas-nasl.1.in doc/openvas-nasl.1 @ONLY)
+configure_file (doc/openvas-nasl-lint.1.in doc/openvas-nasl-lint.1 @ONLY)
 
 ## Program
 
