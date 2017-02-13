@@ -31,9 +31,10 @@
 
 #include <glib.h>
 
+#include <gvm/base/prefs.h>         /* for preferences_get() */
+
 #include <openvas/misc/network.h>    /* for recv_line */
 #include <openvas/misc/internal_com.h> /* for INTERNAL_COMM_MSG_TYPE_DATA */
-#include <openvas/misc/prefs.h>        /* for prefs_set() */
 
 #include "ntp.h"
 #include "otp.h"
