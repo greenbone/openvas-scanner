@@ -1,0 +1,21 @@
+2007-08-01  Dirk Jagdmann <doj@cubic.org>
+
+	Proposed extensions to NASL:
+
+	* array/hash comparison
+
+	local_var a,b; a[0]=0; b[1]=1;
+	if(a == b) { ... }
+
+	* direct initialization of a variable
+
+	local_var a=3;
+	global_var g="nil";
+
+	* use function which returns array/hash directly in expression
+
+	function f()
+	{
+	  local_var a; a["drei"]=3; return a;
+	}
+	if(f()["drei"] == 3) { ... }

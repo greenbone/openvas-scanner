@@ -1,3 +1,49 @@
+2017-02-13  Juan Jose Nicola  <juan.nicola@greenbone.net>
+
+	Move nasl from openvas-libraries to openvas-scanner.
+
+	* doc/openvas-nasl.1, doc/openvas-nasl-lint.1,
+	nasl/, nasl/arc4.c, nasl/build, nasl/byteorder.h, nasl/capture_packet.h,
+	nasl/ChangeLog-pre-09-2009, nasl/charcnv.c, nasl/charset.h,
+	nasl/CMakeLists.txt, nasl/exec.h, nasl/genrand.c, nasl/hmacmd5.c,
+	nasl/hmacmd5.h, nasl/iconv.c, nasl/iconv.h, nasl/lint.c, nasl/md4.c,
+	nasl/md4.h, nasl/md5.c, nasl/md5.h,nasl/nasl_builtin_plugins.h,
+	nasl/nasl_cert.c, nasl/nasl_cert.h, nasl/nasl_cmd_exec.h,
+	nasl/nasl_crypto2.c, nasl/nasl_crypto2.h, nasl/nasl_crypto.c,
+	nasl/nasl_crypto.h, nasl/nasl_debug.h, nasl/nasl_func.c,
+	nasl/nasl_func.h,nasl/nasl_grammar.y, nasl/nasl_host.h, nasl/nasl_http.h,
+	nasl/nasl_init.h, nasl/nasl_isotime.c, nasl/nasl_isotime.h,
+	nasl/nasl_lex_ctxt.c, nasl/nasl_lex_ctxt.h, nasl/nasl-lint.c,
+	nasl/nasl_misc_funcs.h, nasl/nasl_packet_forgery.h,
+	nasl/nasl_packet_forgery_v6.h, nasl/nasl_raw.h, nasl/nasl_scanner_glue.h,
+	nasl/nasl_signature.c, nasl/nasl_signature.h, nasl/nasl_smb.h,
+	nasl/nasl_snmp.h, nasl/nasl_socket.h, nasl/nasl_ssh.h,
+	nasl/nasl_text_utils.c, nasl/nasl_text_utils.h, nasl/nasl_tree.c,
+	nasl/nasl_tree.h, nasl/nasl_var.c, nasl/nasl_var.h, nasl/nasl_wmi.h,
+	nasl/ntlmssp.c, nasl/ntlmssp.h, nasl/openvas_smb_interface.h,
+	nasl/openvas_wmi_interface.h, nasl/proto.h, nasl/README.txt,
+	nasl/smb_crypt2.c, nasl/smb_crypt.c, nasl/smb_crypt.h, nasl/smb.h,
+	nasl/smb_interface_stub.c, nasl/smb_signing.c, nasl/smb_signing.h,
+	nasl/strutils.c, nasl/strutils.h, nasl/tests, nasl/time.c,
+	nasl/TODO, nasl/wmi_interface_stub.c, nasl/test/keys,
+	nasl/test/Makefile, nasl/test/README.txt, nasl/test/signed.nasl,
+	nasl/test/signed.nasl.asc, nasl/test/test_blowfish.nasl,
+	nasl/test/test_bn.nasl, nasl/test/test_dh.nasl, nasl/test/test_dsa.nasl,
+	nasl/test/test_hexstr.nasl, nasl/test/test_isotime.nasl,
+	nasl/test/test_md.nasl, nasl/test/test_privkey.nasl,
+	nasl/test/test_rsa.nasl, nasl/test/test_script_signing.sh,
+	nasl/test/test_socket.nasl, nasl/test/testsuiteinit.nasl,
+	nasl/capture_packet.c, nasl/exec.c, nasl/nasl_builtin_find_service.c,
+	nasl/nasl_builtin_nmap.c, nasl/nasl_builtin_openvas_tcp_scanner.c,
+	nasl/nasl_builtin_synscan.c, nasl/nasl.c, nasl/nasl_global_ctxt.h,
+	nasl/nasl_cmd_exec.c, nasl/nasl_debug.c, nasl/nasl.h, nasl/nasl_host.c,
+	nasl/nasl_http.c, nasl/nasl_init.c, nasl/nasl_misc_funcs.c,
+	nasl/nasl_packet_forgery.c, nasl/nasl_packet_forgery_v6.c,
+	nasl/nasl_scanner_glue.c, nasl/nasl_smb.c, nasl/nasl_snmp.c,
+	nasl/nasl_socket.c, nasl/nasl_ssh.c, nasl/nasl_wmi.c
+	nasl/test/testsuitesummary.nasl: New: moved from openvas-libraries.
+
+
 2017-02-13  Hani Benhabiles  <hani.benhabiles@greenbone.net>
 
 	* src/attack.c (attack_network): Fix memory leaks.

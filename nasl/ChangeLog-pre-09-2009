@@ -1,0 +1,1762 @@
+2009-09-01  Felix Wolfsteller <felix.wolfsteller@intevation.de>
+
+	* README: Added end-of-life notice for this standalone module (moved
+	into openvas-libraries).
+
+2009-08-26  Jan-Oliver Wagner <jan-oliver.wagner@greenbone.net>
+
+	First set of changes to openvas-libnasl towards IPv6 support.
+	This corresponds to Change Request #27,
+	http://www.openvas.org/openvas-cr-27.html
+	Most work done by Srinivasa NL <nl.srinivas@gmail.com>.
+
+	* nasl/nasl_host.c (get_host_ip, nasl_islocalhost, nasl_islocalnet,
+	nasl_this_host): Added support for ipv6.
+
+	* nasl/nasl.c (init_hostinfos, main): Added support for ipv6.
+	(init): Changed parameter ip from in_addr to in6_addr. Added support
+	for ipv6.
+
+	* nasl/nasl_socket.c (nasl_open_privileged_socket, nasl_open_sock_udp):
+	Added support for ipv6.
+
+	* nasl/nasl_packet_forgery.c (forge_ip_packet, nasl_tcp_ping, nasl_send_packet,
+	nasl_pcap_next, nasl_send_capture): Prepared support for ipv6. Not complete yet.
+
+2009-08-25  Felix Wolfsteller <felix.wolfsteller@intevation.de>
+
+	* nasl/nasl.c: Formatting, docs, TODOs added.
+	
+	* ChangeLog: Minor formatting.
+
+2009-08-21  Chandrashekhar B <bchandra@secpod.com>
+
+	* nasl/nasl_smb.c:
+	Reverted the change from filename to file_handle to be consistent with
+	the naming.
+	Removed trailing whitespaces.
+	Fixed an issue with nasl_smb_close() which was always returning NULL.
+
+	* nasl/nasl_init.c:
+	Renamed file_handle to filename to be consistent with the way it is
+	being called in nasl_smb.c.
+
+2009-08-21  Chandrashekhar B <bchandra@secpod.com>
+
+	* nasl/nasl_smb.c:
+	Renamed filename to file_handle.
+
+2009-08-21  Chandrashekhar B <bchandra@secpod.com>
+
+	* nasl/nasl_init.c:
+	 Sorted the function arguments for smb_file*.
+
+2009-08-21  Jan-Oliver Wagner <jan-oliver.wagner@greenbone.net>
+
+	Add version information on used WMI/SMB implementations.
+
+	* nasl/nasl_wmi.c (wmi_versioninfo): New.
+
+	* nasl/nasl_wmi.h: Added respective proto.
+
+	* nasl/nasl_smb.c (smb_versioninfo): New.
+
+	* nasl/nasl_smb.h: Added respective proto.
+
+	* nasl/openvas_wmi_interface.h: Added proto for wmi_versioninfo.
+
+	* nasl/openvas_smb_interface.h: Added proto for smb_versioninfo.
+
+	* nasl/wmi_interface_stub.c (wmi_versioninfo): New.
+
+	* nasl/smb_interface_stub.c (smb_versioninfo): New.
+
+	* nasl/nasl_init.c (libfuncs): Added wmi_versioninfo amd smb_versioninfo.
+
+2009-08-21  Jan-Oliver Wagner <jan-oliver.wagner@greenbone.net>
+
+	Added basis for built-in SMB support. This focuses effective file rights
+	because most of the other things could better be done via the WMI interface.
+	Most work done by Chandrashekhar B <bchandra@secpod.com>.
+
+	* nasl/nasl_smb.c: New. Implementation of the built-in NASL
+	SMB functions.
+
+	* nasl/nasl_smb.h: New. Protos for nasl_smb.c.
+
+	* nasl/openvas_smb_interface.h: New. Interface specification for
+	a linked library in order to provide SMB functionality to NASL.
+
+	* nasl/smb_interface_stub.c: New. Empty stub implementation for a smb
+	library that implements empty functions for the smb interface.
+
+	* nasl/nasl_init.c (libfuncs): Added smb_connect, smb_close, smb_file_SDDL,
+	smb_file_owner_sid, smb_file_group_sid and smb_file_trustee_rights
+	to the list of registered built-in functions.
+
+	* nasl/Makefile: Handle module "nasl_smb" and "smb_interface_stub".
+
+	* MANIFEST: Updated.
+
+2009-08-20  Chandrashekhar B <bchandra@secpod.com>
+
+	* nasl/nasl_wmi.c,
+	nasl/openvas_wmi_interface.h,
+	nasl/nasl_wmi.h,
+	nasl/wmi_interface_stub.c:
+	GNU style conventions.
+
+2009-08-19  Jan-Oliver Wagner <jan-oliver.wagner@greenbone.net>
+
+	WMI part of implementation for WMI support.
+	This corresponds to Change Request #25,
+	http://www.openvas.org/openvas-cr-25.html
+	Most work done by Chandrashekhar B <bchandra@secpod.com>.
+
+	* nasl/nasl_wmi.c (nasl_wmi_get_value, nasl_wmi_query): Extend
+	error message with actual query string and renamed to nasl_wmi_query.
+	(nasl_wmi_connect_rsop): New. Connect to a WMI RSOP service and
+	return a handle for it.
+	(nasl_wmi_query_rsop): WMI RSOP query.
+	(nasl_wmi_connect_reg): New. Connect to a WMI Registry service and
+	return a handle for it.
+	(nasl_wmi_reg_get_sz): Get string value from Registry.
+	(nasl_wmi_reg_enum_value): New. Enumerate registry values.
+	(nasl_wmi_reg_enum_key): New. Enumerate registry keys.
+	(nasl_wmi_reg_get_bin_val): New. Get registry binary value.
+	(nasl_wmi_reg_get_dword_val): New. Get registry DWORD value.
+	(nasl_wmi_reg_get_ex_string_val): New. Get registry expanded string value.
+	(nasl_wmi_reg_get_mul_string_val): New. Get registry multi valued strings.
+	(nasl_wmi_reg_get_qword_val): New. Get registry QWORD value.
+
+	* nasl/nasl_wmi.h: Added protos for new functions.
+
+	* nasl/openvas_wmi_interface.h: Added protos for wmi_connect_rsop,
+	wmi_query_rsop, wmi_connect_reg, wmi_reg_get_sz, wmi_reg_enum_value,
+	wmi_reg_enum_value, wmi_reg_get_bin_val, wmi_reg_get_dword_val,
+	wmi_reg_get_ex_string_val, wmi_reg_get_mul_string_val and
+	wmi_reg_get_qword_val.
+
+	* nasl/wmi_interface_stub.c (wmi_connect, wmi_close): Fixed return value.
+	Should be -1 in case of failure.
+	(wmi_connect_rsop, wmi_connect_reg, wmi_reg_get_sz, wmi_query_rsop,
+	wmi_reg_enum_value, wmi_reg_enum_key, wmi_reg_get_bin_val,
+	wmi_reg_get_dword_val, wmi_reg_get_ex_string_val,
+	wmi_reg_get_mul_string_val, wmi_reg_get_qword_val): New. All are
+	stubs and simply return -1.
+
+	* nasl/nasl_init.c (libfuncs): Added wmi_connect_rsop, wmi_connect_reg,
+	wmi_reg_get_sz, wmi_connect_rsop, wmi_reg_enum_key, wmi_reg_enum_value,
+	wmi_reg_get_bin_val, wmi_reg_get_dword_val, wmi_reg_get_ex_string_val,
+	wmi_reg_get_mul_string_val and wmi_reg_get_qword_val to the list of
+	registered built-in functions.
+	Renamed wmi_get_value to wmi_query.
+
+2009-08-19  Felix Wolfsteller <felix.wolfsteller@intevation.de>
+
+	* configure.in, configure: Raised version requirement of
+	openvas-libraries to 2.0.4, regenerated configure.
+
+2009-08-18  Jan-Oliver Wagner <jan-oliver.wagner@greenbone.net>
+
+	* nasl/Makefile: Hardwiring module wmi_interface_stub
+	for the time being. This makes openvas-server compile
+	again.
+
+2009-08-18  Felix Wolfsteller <felix.wolfsteller@intevation.de>
+
+	Backported from branches/openvas-libnasl-2-0 revision 4552.
+
+	* nasl/hmacmd5.c: Reformatted comments to be useful with doxygen.
+
+2009-08-17  Jan-Oliver Wagner <jan-oliver.wagner@greenbone.net>
+
+	Initializing implementation for WMI support.
+	This corresponds to Change Request #25,
+	http://www.openvas.org/openvas-cr-25.html
+	Most work done by Chandrashekhar B <bchandra@secpod.com>.
+
+	* nasl/nasl_wmi.c: New. Module for handling WMI access.
+
+	* nasl/nasl_wmi.h: New. Protos for WMI access API.
+
+	* nasl/openvas_wmi_interface.h: New. Interface specification for
+	a linked library in order to provide WMI functionality to NASL.
+
+	* nasl/wmi_interface_stub.c: New. Empty stub implementation for a wmilib
+	that implements empty functions for the wmilib_interface.
+
+	* nasl/Makefile: Added handling for modules "nasl_wmi" and "wmilib_stub".
+
+	* nasl/nasl_init.c (libfuncs): Added wmi_connect, wmi_close and wmi_get_value
+	to the list of registered built-in functions.
+
+2009-08-17  Jan-Oliver Wagner <jan-oliver.wagner@greenbone.net>
+
+	* nasl/nasl_lex_ctxt.h, nasl/nasl_global_ctxt.h: Added includes for
+	things needed inside these files.
+
+2009-08-13  Felix Wolfsteller <felix.wolfsteller@intevation.de>
+
+	* nasl/exec.c:
+	Further formatting and documentation,
+	three TODOs added where functionality is available from elsewhere
+	or relatively easy refactoring is possible.
+	
+2009-08-13  Felix Wolfsteller <felix.wolfsteller@intevation.de>
+
+	* nasl/exec.c:
+	Formatting and documentation,
+	two TODOs added where functionality is available from glib.
+	
+	* ChangeLog:
+	Corrected.
+
+2009-08-13  Felix Wolfsteller <felix.wolfsteller@intevation.de>
+
+	* openvas-libnasl/packaging/debian,
+	openvas-libnasl/packaging/debian/libopenvasnasl2.install,
+	openvas-libnasl/packaging/debian/patches,
+	Removed.
+	Was moved to /openvas-packaging/openvas-libnasl/debian/trunk.
+
+2009-08-05  Jan-Oliver Wagner <jan-oliver.wagner@greenbone.net>
+
+	* nasl/nasl_init.c (libfuncs): Removed any language
+	parameters ("deutsch", "english", "francais" and "portugues").
+
+2009-08-05  Felix Wolfsteller <felix.wolfsteller@intevation.de>
+
+	* packaging/debian,
+	packaging/debian/control,
+	packaging/debian/libopenvasnasl2.dirs,
+	packaging/debian/compat,
+	packaging/debian/libopenvasnasl2-dev.install,
+	packaging/debian/watch,
+	packaging/debian/changelog,
+	packaging/debian/libopenvasnasl2.install,
+	packaging/debian/patches,
+	packaging/debian/patches/10_fix_gcrypt.dpatch,
+	packaging/debian/patches/00list,
+	packaging/debian/copyright,
+	packaging/debian/rules,
+	packaging/debian/libopenvasnasl2-dev.dirs:
+	Removed.
+	Was moved to /openvas-packaging/openvas-libnasl/debian/trunk.
+
+2009-08-04  Felix Wolfsteller <felix.wolfsteller@intevation.de>
+
+	* nasl/nasl_signature.c:
+	Closed memleak and avoid possible segfault (when no keys were known),
+	removed respective TODO.
+
+2009-08-03  Felix Wolfsteller <felix.wolfsteller@intevation.de>
+
+	* nasl/nasl_signature.c:
+	Cosmetics, documentation, reformatting, added TODO items.
+
+2009-07-29  Jan-Oliver Wagner <jan-oliver.wagner@greenbone.net>
+
+	Add script_mandatory_keys() to NASL. This is part of
+	implementing Change Request #39,
+	http://www.openvas.org/openvas-cr-39.html.
+
+	* nasl/nasl_nessusd_glue.c (script_mandatory_keys): New.
+	Handle mandatory_keys() NASL method.
+
+	* nasl/nasl_nessusd_glue.h: Add proto for script_mandatory_keys().
+
+	* nasl/nasl_init.c (libfuncs): Add script_mandatory_keys().
+
+	* include/nasl.h (OPENVAS_NASL_LEVEL): Increased to 2320.
+
+2009-07-28  Jan Wagner <waja@cyconet.org>
+
+	* packaging/debian/changelog, packaging/debian/control,
+	packaging/debian/watch, packaging/debian/copyright:
+
+	- relicense packaging to GPL-3
+	- Add debian/watch to detect when a new version is available at
+	  wald.intevation.org
+	- Bump Standards-Version to 3.8.2, no changes needed
+
+2009-07-06  Jan-Oliver Wagner <jan-oliver.wagner@greenbone.net>
+	
+	* nasl/Makefile: Removed compile option "-DNESSUS_EXTENSIONS",
+	because this method is not used anywhere.
+	Renamed NESSUS_* to OPENVAS_*.
+
+2009-07-06  Jan-Oliver Wagner <jan-oliver.wagner@greenbone.net>
+
+	* nasl/nasl_http.c(_http_req): Renamed NESSUS_USER_AGENT to
+	OPENVAS_USER_AGENT and adapted http identification string. 
+
+2009-07-06  Jan-Oliver Wagner <jan-oliver.wagner@greenbone.net>
+
+	* nasl/Makefile, nasl/nasl_cmd_exec.c: Renamed
+	NESSUS_STATE_DIR to OPENVAS_STATE_DIR.
+
+2009-07-01  Jan-Oliver Wagner <jan-oliver.wagner@greenbone.net>
+
+	* nasl/nasl_nessusd_glue.c (script_elem): Adapt to new API
+	of script_name, etc.
+
+2009-07-01  Michael Wiegand <michael.wiegand@intevation.de>
+
+	Post branch version bump.
+
+	* VERSION: Set to 2.1.0.SVN.
+
+	* doc/Doxyfile, doc/Doxyfile_full: Updated PROJECT_NUMBER.
+
+2009-06-22  Jan-Oliver Wagner <jan-oliver.wagner@intevation.de>
+
+	* nasl/nasl_nessusd_glue.c (script_elem): Since english was the
+	only supported language here anyway, removed the superfluous code.
+
+2009-05-18  Matthew Mundell <mmundell@intevation.de>
+
+	* doc/Doxyfile (EXTRACT_ALL): Turn off, to enable warnings about
+	missing function docs.
+
+2009-05-05  Jan Wagner <waja@yconet.org>
+
+	* packaging/debian/changelog: Add new version and insert last changes
+
+	* packaging/debian/control, packaging/debian/rules: include dpatch
+	infrastructure
+
+	* packaging/debian/patches: Add gcrypt fix
+
+2009-04-20  Michael Wiegand <michael.wiegand@intevation.de>
+
+	* packaging/debian/control: Adjusted overly strict build dependencies
+	which prevented building a Debian Etch package for openvas-libnasl.
+
+2009-04-17  Michael Wiegand <michael.wiegand@intevation.de>
+
+	* packaging/debian/control: Adjusted build dependencies.
+
+2009-04-09  Jan-Oliver Wagner <jan-oliver.wagner@intevation.de>
+
+	Fix for the ugly behaviour that after configure updates,
+	and subsequent callof "make", the paramenters were forgotten.
+	Now, working with the SVN version means less headache.
+
+	* configure.in, nasl.tmpl.in: Remember configure arguments.
+
+	* configure: Updated.
+
+2009-04-08  Jan-Oliver Wagner <jan-oliver.wagner@intevation.de>
+
+	* include/nasl.h, nasl/nasl_init.c: Marked NASL_LEVEL as deprecated.
+
+2009-04-07  Felix Wolfsteller <felix.wolfsteller@intevation.de>
+
+	Minor cleanups in preparse module.
+
+	* nasl/preparse.c: Updated doc, minor reformatting.
+	
+	* nasl/preparse.h (nasl_load_parsed_tree_buf): Removed proto for
+	function that was removed with rev. 2003.
+
+2009-04-06  Michael Wiegand <michael.wiegand@intevation.de>
+
+	* packaging/debian/rules: Set the value for sysconfdir to /etc to be
+	consistent with openvas-server. Otherwise openvas-libnasl will guess an
+	incorrect value for the gnupg homedir.
+
+2009-03-20  Michael Wiegand <michael.wiegand@intevation.de>
+
+	* configure.in: Added check for gcrypt.h which properly sets $LIBS so
+	gcrypt can be correctly linked. This fixes the linker warnings described
+	in Bug #911 (http://bugs.openvas.org/911) that occured if
+	openvas-libnasl was configured with LDFLAGS="-Wl,-z,defs"
+	(--no-undefined).
+
+	* configure: Regenerated.
+
+	* ChangeLog: Fixed a number of wrong years/months. ;)
+
+2009-03-05  Vlatko Kosturjak <kost@linux.hr>
+
+	* configure, configure.in: Removal of  PCAP_TIMEOUT_IGNORED which
+	is not used any more in the source
+
+2009-02-16  Michael Wiegand <michael.wiegand@intevation.de>
+
+	* CHANGES: Fixed wrong module name in header for 2.0.1 changes.
+
+2009-02-12  Michael Wiegand <michael.wiegand@intevation.de>
+
+	Post release version bump.
+
+	* VERSION: Set to 2.0.2.SVN
+
+	* doc/Doxyfile, doc/Doxyfile_full: Set PROJECT_NUMBER to 2.0.2.SVN.
+
+2009-02-12  Michael Wiegand <michael.wiegand@intevation.de>
+
+	Preparing the openvas-libnasl 2.0.1 release.
+
+	* CHANGES: Updated.
+
+	* VERSION: Set to 2.0.1.
+
+	* doc/Doxyfile, doc/Doxyfile_full: Set PROJECT_NUMBER to 2.0.1.
+
+2009-02-12  Jan-Oliver Wagner <jan-oliver.wagner@intevation.de>
+
+	* include/nasl.h: Doxygen mainpage now uses new README
+
+	* test/README: Renamed to README.txt
+
+	* test/README.txt: Former README.
+
+	* MANIFEST: Updated.
+
+2009-02-12  Michael Wiegand <michael.wiegand@intevation.de>
+
+	* README: Added a README containing information about openvas-libnasl
+	and basic installation instructions.
+
+	* INSTALL: Removed since the (very small amount of) information
+	contained in this file has been superseded by README.
+
+	* MANIFEST: Updated.
+
+2009-02-12  Michael Wiegand <michael.wiegand@intevation.de>
+
+	* nasl/nasl_http.c (_http_req): Replaced usage of a number of glibc
+	string functions with their glib counterparts to ensure buffer
+	boundary checking takes place in a secure manner when constructing
+	HTTP requests. Removed Flawfinder/RATS statements since they were
+	without explanation and related to the glibc string functions that
+	were replaced.
+
+2009-02-10  Jan-Oliver Wagner <jan-oliver.wagner@intevation.de>
+
+	* configure.in: Raised requirement to 2.0.1 of openvas-libraries.
+
+	* configure: updated.
+
+2009-02-10  Jan-Oliver Wagner <jan-oliver.wagner@intevation.de>
+
+	* MANIFEST: Updated.
+
+	* nasl/nasl_init.c (nasl_version): Flawfinder ignore for strncpy.
+
+	* nasl/nasl_cmd_exec.c (nasl_pread): Flawfinder ignore for strncpy
+	and strcat. Also, removed alternativ code for case that
+	MAXPATHLEN is not defined - it is mandatory anyway as it is needed
+	in other functions in this file.
+
+2009-02-10  Jan-Oliver Wagner <jan-oliver.wagner@intevation.de>
+
+	* Makefile: Added target "doc-full".
+
+	* doc/Doxyfile_full: New. doxygen config for comprehensive
+	documentation.
+
+	* doc/Doxyfile: A couple of small fixes.
+
+2009-02-10  Felix Wolfsteller <felix.wolfsteller@intevation.de>
+
+	Adding GPL header from module nasl_cryptos implementation file to its
+	header file.
+	
+	* nasl/nasl_crypto.h: Added GPL header from implentation file
+	(nasl_crypto.c).
+
+2009-02-10  Felix Wolfsteller <felix.wolfsteller@intevation.de>
+
+	Documentation and formatting.
+
+	* nasl/nasl_nessusd_glue.c: Documentation transformed and added,
+	whitespaces removed.
+	
+	* nasl/nasl_signature.c: Donated new lines to doc comments to improve
+	readability, minor documentation improvements, own lines for function
+	return types, minor formatting changes.
+	
+	* nasl/nasl_crypto2.c: Transformed doc blocks to be doxygen-
+	interpretable, added file documentation block.
+	
+	* nasl/nasl.c: Added file doc.
+	
+	* nasl/nasl_crypto.c: Added file doc.
+	
+	* nasl/nasl_init.c: Added/ transformed documentation.
+	
+	* nasl/nasl_text_utils.c: Transformed documentation blocks.
+	
+	* nasl/exec.c: Tiny documentation improvement.
+	
+	* nasl/capture_packet.c: Tiny documentation improvement, white space
+	removal.
+
+2009-02-10  Michael Wiegand <michael.wiegand@intevation.de>
+
+	* nasl/nasl_grammar.y (add_nasl_inc_dir): Do not add entries to the
+	include_folders list which do not exist or aren't directories. Added
+	return value to allow for better error handling.
+
+	* include/nasl.h: Updated function definition. 
+
+2009-02-09  Felix Wolfsteller <felix.wolfsteller@intevation.de>
+
+	Improved documentation.
+	
+	* doc/Doxyfile: Added paths to allow inclusion of COPYING and INSTALL
+	files.
+	
+	* include/nasl.h: Added mainpage directive, exposed NASL language levels
+	to doxygen.
+
+2009-02-09  Felix Wolfsteller <felix.wolfsteller@intevation.de>
+
+	Added Doxygen support (doxygen config file, targets in Makefile).
+
+	* doc/Doxyfile: New.
+	
+	* MANIFEST: Added doc/Doxyfile
+	
+	* Makefile: Added .PHONY doc target, modified clean target to get rid
+	of documentation files under doc/generated.
+
+2009-02-04  Jan-Oliver Wagner <jan-oliver.wagner@intevation.de>
+
+	* nasl/nasl_http.c (nasl_is_cgi_installed): Removed.
+	It was marked deprecated anyway and not used anywhere
+	from openvas-plugins. Apart from that, it contained
+	no implementation other than an error message.
+
+	* nasl/nasl_init.c (libfuncs): Removed entry
+	for "is_cgi_installed".
+	
+2009-02-04  Jan-Oliver Wagner <jan-oliver.wagner@intevation.de>
+
+	* nasl/nasl.c (main): Initialize list of include paths
+	so that current directory is searched as well.
+	This fixes command openvas-nasl to work again properly.
+
+2009-02-02  Jan-Oliver Wagner <jan-oliver.wagner@intevation.de>
+
+	* nasl/nasl_grammar.y (inc_dirs): New. This global
+	variable holds the configured include paths.
+	(add_nasl_inc_dir): New. Allows to add a include path.
+	(init_nasl_ctx): Use global inc_dirs instead of
+	its own method. Take care to be compatible with
+	openvas-server 2.0.0.
+
+	* include/nasl.h: Added proto for add_nasl_inc_dir.
+
+2009-02-01  Jan-Oliver Wagner <jan-oliver.wagner@intevation.de>
+
+	* nasl/nasl_grammar.y (init_nasl_ctx): Reworked in order
+	to prepare for include dirs list, to use glib helpers
+	and resolve a "goto". Also added doc string.
+
+2009-01-22  Jan-Oliver Wagner <jan-oliver.wagner@intevation.de>
+
+	* nasl/exec.c (exec_nasl_script): New. Former
+	execute_nasl_script but without paramter cache_dir.
+	(execute_nasl_script): Reduced to a compatibility wrapper
+	and marked as deprecated.
+
+	* include/nasl.h: Updated protos accordingly.
+
+	* nasl/nasl.c (main): Call exec_nasl_script instead
+	of execute_nasl_script.
+
+2009-01-21  Jan-Oliver Wagner <jan-oliver.wagner@intevation.de>
+
+	* nasl/preparse.c (nasl_load_or_parse): Removed. It is indeed
+	not used from openvas-server and thus API won't break.
+
+	* nasl/preparse.h: Removed proto for nasl_load_or_parse.
+	Added copyright header from preparse.c.
+
+2009-01-21  Jan-Oliver Wagner <jan-oliver.wagner@intevation.de>
+
+	* nasl/exec.c (execute_nasl_script): call nasl_reload_or_parse
+	instead of nasl_load_or_parse. Now variable "basename" isn't
+	used at all and thus is removed.
+
+2009-01-21  Jan-Oliver Wagner <jan-oliver.wagner@intevation.de>
+
+	* nasl/preparse.c (nasl_reload_or_parse): New. This contains
+	all functionality of nasl_load_or_parse but does not require the
+	unused paramters "cache_dir" and "basename".
+	(nasl_load_or_parse): now only calls nasl_reload_or_parse and
+	marked as deprecated.
+
+	* nasl/preparse.h: Adapted protos accordingly.
+	Removed forgotten proto for function nasl_parse_and_dump
+	which has been removed some time ago.
+
+2009-01-02  Michael Wiegand <michael.wiegand@intevation.de>
+
+	* include/nasl.h: Added missing declaration for
+	openvas_certificate_free.
+
+2008-12-20  Tim Brown <tim@nth-dimension.org.uk>
+
+	* nasl/Makefile, nasl.tmpl.in: Honour LDFLAGS.
+
+2008-12-20  Michael Wiegand <michael.wiegand@intevation.de>
+
+	* nasl/Makefile: Use $LO_OBJS instead of $OBJS when linking so
+	openvas-libnasl builds correctly when configured not to build the static
+	libs (--disable-static). This solves bug #855
+	(http://bugs.openvas.org/855).
+
+2008-12-17  Michael Wiegand <michael.wiegand@intevation.de>
+
+	Post release version bump.
+
+	* VERSION: Set to 2.0.1.SVN.
+
+2008-12-17  Michael Wiegand <michael.wiegand@intevation.de>
+
+	Preparing the openvas-libnasl 2.0.0 release.
+
+	* CHANGES: Updated.
+
+	* VERSION: Set to 2.0.0.
+
+2008-12-16  Michael Wiegand <michael.wiegand@intevation.de>
+
+	* MANIFEST: Updated.	
+
+2008-12-16  Michael Wiegand <michael.wiegand@intevation.de>
+
+	Downgraded build environment to use a consistent libtool and autotools
+	version.
+
+	* config.guess, config.sub, ltmain.sh, configure, aclocal.m4:
+	Regenerated.
+
+2008-12-15  Jan-Oliver Wagner <jan-oliver.wagner@intevation.de>
+
+	Removing and elements of the code path that is
+	only valid for the ENABLE_PLUGIN_SERVER makro
+	which was never true.
+
+	* nasl/exec.c (execute_nasl_script): Removed code
+	path for condition ENABLE_PLUGIN_SERVER which was
+	never true and thus never executed.
+	Removed include for nasl_parse.h.
+
+	* nasl/lint.c: Removed include for nasl_parse.h.
+
+	* nasl/preparse.c (fd_ctx, fdctx_init, fdctx_free, fdctx_write,
+	fdctx_eof, fdctx_read, fdctx_save, fdctx_load, fdctx_init_with_buf,
+	DICTIONNARY_MAGIC, DICTIONNARY_EOF, dictionnary, dictionnary_hash,
+	dictionnary_init, dictionnary_free, dictionnary_get_word,
+	dictionnary_add_word, dictionnary_save, dictionnary_load,
+	nasl_saved_parsed_cell, nasl_saved_parsed_tree,
+	nasl_load_parsed_cell, nasl_load_parsed_tree,
+	nasl_load_parsed_tree_buf, nasl_parse_and_dump): Removed.
+	These functions were only relevant if ENABLE_PLUGIN_SERVER
+	conditional would habe been enabled.
+	(nasl_load_or_parse): Removed code
+	path for condition ENABLE_PLUGIN_SERVER which was
+	never true and thus never executed.
+
+	* nasl/Makefile: Removed handling for module nasl_server.
+
+	* nasl/nasl_server.h, nasl_server.c: Removed. These
+	were only valid for the ENABLE_PLUGIN_SERVER code path.
+
+2008-12-05  Michael Wiegand <michael.wiegand@intevation.de>
+
+	Post release version bump.
+
+	* VERSION: Set to 2.0.0.rc2.SVN.
+
+2008-12-05  Michael Wiegand <michael.wiegand@intevation.de>
+
+	Preparing the openvas-libnasl 2.0-rc1 release.
+
+	* CHANGES: Updated.
+
+	* VERSION: Set to 2.0.0.rc1.
+
+2008-12-05  Michael Wiegand <michael.wiegand@intevation.de>
+
+	Checking for potential code quality issues ahead of the 2.0-rc1
+	release, setting ignore flags for false positives.
+
+	* nasl/nasl_var.c (get_var_name, array2str, var2str): Ignore warning
+	regarding snprintf usage with very old libc. We assume systems able to
+	compile and run openvas-libnasl no longer use libc4.[45] where this
+	was a potential security issue.
+
+	* nasl/nasl_misc_funcs.c (nasl_rand): Ignore warning regarding lrand48
+	not being random enough; it is random enough for our purposes.
+
+	* nasl/nasl_tree.c (dump_cell_val, nasl_type_name, get_line_nb):
+	Ignore snprintf warnings; see above.
+
+	* nasl/nasl_nessusd_glue.c (isalldigit): Ignore snprintf warning; see
+	above.
+
+	* nasl/preparse.c (nasl_load_or_parse, nasl_parse_and_dump): Ignore
+	snprintf warnings; see above.
+
+	* nasl/nasl_server.c (_nasl_server_start): Ignore snprintf warnings;
+	see above.
+
+	* nasl/nasl_cmd_exec.c (nasl_get_tmp_dir): Ignore snprintf warning;
+	see above.
+
+	* nasl/nasl_socket.c (add_udp_data, get_udp_data, rm_udp_data): Ignore
+	snprintf warnings; see above.
+
+	* nasl/nasl_func.c (nasl_func_call): Ignore snprintf warnings; see
+	above.
+
+	* nasl/nasl_packet_forgery.c (get_ip_element, nasl_tcp_ping): Ignore
+	snprintf warnings; see above.
+
+	* nasl/nasl_text_utils.c: (nasl_hex, nasl_hexstr) Ignore snprintf
+	warnings; see above. (_regreplace) Ignore strncat warning since enough
+	memory has been allocated before strncat usage.
+
+	* nasl/exec.c (cell2str, cell2str_and_size): Ignore snprintf warnings;
+	see above.
+
+	* nasl/capture_packet.c (init_capture_device): Ignore snprintf
+	warning; see above.
+
+	* nasl/nasl_http.c (_http_req): Ignore snprintf warnings; see above.
+
+2008-12-03  Michael Wiegand <michael.wiegand@intevation.de>
+
+	Implementing CR #22 (New script_tag Command,
+	http://www.openvas.org/openvas-cr-22.html).
+
+	* include/nasl.h: Increased OPENVAS_NASL_LEVEL to 2310.
+
+	* nasl/nasl_nessusd_glue.c: Added new script_tag function.
+
+	* nasl/nasl_nessusd_glue.h: Added function declaration.
+
+	* nasl/nasl_init.c: Make new function available to parser.
+
+2008-11-19  Tim Brown <timb@nth-dimension.org.uk>
+
+	* packaging/debian/changelog: Updated.
+
+2008-11-19  Michael Wiegand <michael.wiegand@intevation.de>
+
+	* nasl/Makefile: Use libtool for building openvas-nasl as well as
+	pointed out by Stephan Kleine.
+
+2008-11-18  Michael Wiegand <michael.wiegand@intevation.de>
+
+	Fixing version requirements for glib as pointed out by atomicturtle.
+
+	* configure.in: Updated glib requirements to >= 2.6.0
+
+	* configure: Regenerated.
+
+2008-11-14  Michael Wiegand <michael.wiegand@intevation.de>
+
+	Post release version bump.
+
+	* VERSION: Set to 2.0.0.beta3.SVN.
+
+2008-11-14  Michael Wiegand <michael.wiegand@intevation.de>
+
+	Preparing the 2.0-beta2 release.
+
+	* VERSION: Set to 2.0.0.beta2.
+
+	* MANIFEST: Updated.
+
+	* CHANGES: Updated.
+
+2008-11-14  Michael Wiegand <michael.wiegand@intevation.de>
+
+	Applying patch provided by Stjepan Gros to eliminate compiler warnings.
+
+	* nasl/nasl_var.c (get_var_name), nasl/nasl_tree.c (nasl_dump_tree):
+	Changed printf formatting string to print pointer and not to cast first
+	to integer.
+
+	* nasl/regex.c (regex_compile, re_match_2): Added a few parentheses and
+	variable initializations to silence compiler warnings.
+
+	* nasl/nasl_init.c: Added parentheses to array initialization to
+	silence compiler warnings. (init_nasl_library) Added cast to silence
+	compiler warnings.
+
+	* nasl/strutils.c (str_match): Added few parentheses around expressions
+	to silence compiler warnings.
+
+2008-11-14  Michael Wiegand <michael.wiegand@intevation.de>
+
+	* nasl.tmpl.in: Added datarootdir to remove configure warning and to be
+	compatible with autoconf 2.60 (see
+	http://www.gnu.org/software/libtool/manual/autoconf/Changed-Directory-Variables.html).
+
+2008-11-14  Michael Wiegand <michael.wiegand@intevation.de>
+
+	Updated libtool usage again to make it more consistent and to avoid
+	duplicate mode parameters.
+
+	* nasl/Makefile: Changed COMPILE and LINK to directly set the
+	appropriate libtool mode; made mode parameters for install and finish
+	consistent with COMPILE and LINK.
+
+	* nasl.tmpl.in: Removed LIBTOOL_LINK shortcut, changed LIBTOOL back.
+	Mode handling is now done directly in the Makefile.
+
+2008-11-13  Felix Wolfsteller <felix.wolfsteller@intevation.de>
+
+	* nasl/nasl_signature.c (openvas_certificate_free) : corrected and NULL
+	guarded.
+
+2008-11-13  Michael Wiegand <michael.wiegand@intevation.de>
+
+	Updated libtool usage to remove warnings about inferring the mode of
+	operation.
+
+	* nasl/Makefile: Use libtool in link mode when needed, otherwise use
+	compile mode.
+
+	* nasl.tmpl.in: Create LIBTOOL_LINK shortcut for using libtool in link
+	mode, changed LIBTOOL to compile mode.
+
+2008-11-13  Felix Wolfsteller <felix.wolfsteller@intevation.de>
+
+	* nasl/nasl_signature.c : More NULLness- guards (bug 825).
+
+2008-11-13  Felix Wolfsteller <felix.wolfsteller@intevation.de>
+
+	Changed max fingerprint size, work on bug 825
+	 ( http://bugs.openvas.org/825 )
+
+	* nasl/nasl_signature.c : Decreased max fingerprint size, attacked
+	bug 825 by manual check against NULL.
+
+2008-11-12  Michael Wiegand <michael.wiegand@intevation.de>
+
+	* configure.in: Include version requirements in glib error string as
+	pointed out by Jon Bebeau.
+
+	* configure: Regenerated.
+
+2008-11-12  Michael Wiegand <michael.wiegand@intevation.de>
+
+	Applying patch provided by Stjepan Gros to improve 64-bit cleanliness.
+
+	* nasl/nasl_misc_funcs.c, nasl/nasl_nessusd_glue.c, nasl/regex.c:
+	 64/32-bit cleanups.
+
+2008-11-12  Felix Wolfsteller <felix.wolfsteller@intevation.de>
+
+	Work on Change Request #17 (http://www.openvas.org/openvas-cr-17.html -
+	"OTP: Make NVT signatures available to OpenVAS-Client").
+	Interface extension and certificate information functionality.
+
+	* configure.in : Macros for gpgme public key support added.
+
+	* include/config.h.in : undef _FILE_OFFSET_BITS for AC_SYS_LARGEFILE
+
+	* configure : regenerated.
+
+	* include/nasl.h : Opened interface here (although nasl_signature should
+	soon be moved to libraries).
+
+	* nasl/nasl_signature.h : protos and struct openvas_signature definition
+
+	* nasl/nasl_signature.c (openvas_certificate_new, 
+	openvas_certificate_free) : struct init and free methods added.
+
+	* nasl/nasl_signature.c (nasl_get_pubkey, nasl_get_all_certificates) :
+	Extraction of information about certificates added/improved.
+
+2008-11-12  Michael Wiegand <michael.wiegand@intevation.de>
+
+	* configure.in: Added AC_PREREQ directive to tell autoconf to generate
+	a 2.50-style configure script.
+
+2008-11-10  Michael Wiegand <michael.wiegand@intevation.de>
+
+	* configure: Regenerated to include updated version requirements.
+
+2008-11-10  Michael Wiegand <michael.wiegand@intevation.de>
+
+	* include/config.h.in: Removed obsolete getopt define.
+
+2008-10-05  Felix Wolfsteller <felix.wolfsteller@intevation.de>
+
+	Further steps to an implementation of Change Request #17 
+	(http://www.openvas.org/openvas-cr-17.html - "OTP: Make NVT signatures 
+	available to OpenVAS-Client").
+	Adds real values to the new field "sign_key_ids" to plugin-structures 
+	and the .desc store.
+
+	* nasl/preparse.c (nasl_load_or_parse): Added comment.
+
+	* nasl/exec.c (execute_nasl_script): Added comment.
+
+	* nasl/nasl_signature.c (nasl_verify_signature, init_openvas_gpgme_ctx):
+	extracted init_openvas_gpgme function, glib include added.
+
+	* nasl/nasl_signature.c (nasl_extract_signature_fprs): Function to 
+	retrieve fingerprints from certificates added.
+
+	* nasl/nasl_signature.h (nasl_extract_signature_fprs, 
+	init_openvas_gpgme_ctx): protos added.
+
+2008-10-22  Michael Wiegand <michael.wiegand@intevation.de>
+
+	Making new NASL functions available to NVT writers.
+
+	* include/nasl.h: Updated OPENVAS_NASL_LEVEL to 2300.
+
+	* configure.in: Require openvas-libraries 2.0.0 or higher.
+
+2008-10-15  Tim Brown <timb@nth-dimension.org.uk>
+
+	* nasl/nasl_cmd_exec.c: In the case where lstat reports
+	that the file passed to the fwrite NASL function does not
+	exist, we now open() it with O_EXCL. This prevents the case
+	where a symlink could be slipped in between the fstat() call
+	and the open() because open() didn't guarantee that the file
+	or in our case symlink hadn't been made in the mean time.
+
+2008-10-14  Tim Brown <timb@nth-dimension.org.uk>
+
+	* nasl/nasl_cmd_exec.c: Now closes the file descripter and 
+	not the pointer to the stream in the NASL fread and fwrite
+	functions. Also calls ftruncate() after the file has been
+	validated to mimic the previous behaviour of fwrite NASL
+	function. Finally fixed a couple of error messages in fwrite
+	which were misleadingly pointing to fread NASL function.
+
+2008-10-13  Tim Brown <timb@nth-dimension.org.uk>
+
+	* nasl/nasl_cmd_exec.c: Fixed logic bug, fdopen returns NULL
+	on failure and not as the test was "!= FALSE".
+
+2008-10-12  Tim Brown <timb@nth-dimension.org.uk>
+
+	* nasl/nasl_cmd_exec.c: Fixed problem of TRUE not being defined.
+	Fixed minor typo with variable name.
+
+	* config.guess, config.sub, ltmain.sh, aclocal.m4: Refreshed auto*
+	(aclocal && libtoolize --copy --force) as libraries were
+	being created with *no* extension.
+
+	* packaging/debian/changelog: Updated.
+
+	* packaging/debian/copyright: Updated.
+
+	* packaging/debian/rules: Cleaned up.
+
+	* packaging/debian/libopenvasnasl2-dev.dirs,
+	packaging/debian/libopenvasnasl2-dev.install,
+	packaging/debian/libopenvasnasl2.dirs,
+	packaging/debian/libopenvasnasl2.install: Added.
+
+2008-10-05  Tim Brown <timb@nth-dimension.org.uk>
+
+	* nasl/nasl_cmd_exec.c: Fixed potential symlink attacks against fread,
+	fwrite and file_open NASL functions.
+
+2008-09-24  Michael Wiegand <michael.wiegand@intevation.de>
+
+	Post release version bump.
+
+	* VERSION: Set to 2.0.0.beta2.SVN
+
+2008-09-24  Michael Wiegand <michael.wiegand@intevation.de>
+
+	Doing the 2.0-beta1 release.
+
+	* VERSION: Set to 2.0.0.beta1
+
+	* CHANGES: Updated.
+
+2008-09-24  Michael Wiegand <michael.wiegand@intevation.de>
+
+	First step for change request #9 (Make OpenVAS use (and depend on) glib)
+	(http://www.openvas.org/openvas-cr-9.html)
+
+	* nasl/nasl.c:  (main) Replaced getopt command line parsing with glib
+	command line parsing. (usage) Removed since usage information is now
+	automatically generated by glib.
+
+	* configure.in: Fixed link in gpgme error message. Set GPGME_LIBS so
+	openvas-libnasl-config can properly indicate the necessary libs. Added
+	checking for glib. Removed checking for getopt.
+
+	* Makefile: Added support for glib.
+
+	* openvas-libnasl-config.in: Added variable to --libs output so
+	openvas-libnasl-config can properly indicate the necessary libs.
+
+	* nasl.tmpl.in: Added support for glib.
+
+	* aclocal.m4: Regenerated from configure.in.
+
+	* configure: Regenerated from configure.in.
+
+2008-09-19  Michael Wiegand <michael.wiegand@intevation.de>
+
+	Added support for new LOG and DEBUG messages.
+
+	* nasl/nasl_nessusd_glue.c (log_message, debug_message): Added functions
+	to support new LOG and DEBUG messages.
+
+	* nasl/nasl_nessusd_glue.h: Added function declarations for new
+	functions.
+
+	* nasl/nasl_init.c: Made new functions available to parser.
+
+2008-08-21  Jan-Oliver Wagner <jan-oliver.wagner@intevation.de>
+
+	* nasl/nasl_socket.c (nasl_close_socket): Added some thoughts from
+	the mailing list as comments so they are directly present they eye
+	of a developer turns here (again).
+
+2008-08-06   Chandrashekhar B <bchandra@secpod.com>
+
+	* nasl/nasl_socket.c (nasl_close_socket): Fixed an issue with UDP socket close.
+
+2008-07-18  Tim Brown <timb@nth-dimension.org.uk>
+
+	* include/nasl.h, nasl/nasl_init.c: Implemented OPENVAS_NASL_LEVEL
+	symbol enabling detection of the OpenVAS variant of
+	libnasl in plugin scripts. This is to allow them to support
+	both OpenVAS and Nessus if necessary.
+
+	* ChangeLog: Fixed typos.
+
+	* packaging/debian/changelog: Fixed typos.
+
+2008-07-07  Jan Wagner <waja@cyconet.org>
+
+	* packaging/debian/changelog, packaging/debian/control:
+	Set openvas-distro-deb@wald.intevation.org as Debian Maintainer.
+
+	* packaging/debian/changelog, packaging/debian/rules:
+	Remove trailing witespaces at EOL and EOF.
+
+	* packaging/debian/changelog, packaging/debian/control:
+	Adjust dependencies.
+
+	* packaging/debian/changelog, packaging/debian/libopenvasnasl1.dirs,
+	packaging/debian/libopenvasnasl1-dev.dirs: Remove debian/*.dirs
+	since unneeded.
+
+2008-07-04  Jan Wagner <waja@cyconet.org>
+
+	* packaging/debian/changelog, packaging/debian/control:
+	New debian package version with some minor changes.
+
+2008-07-01  Michael Wiegand <michael.wiegand@intevation.de>
+
+	Post-release version bump.
+
+	* VERSION: Set to 1.0.2.SVN.
+
+2008-07-01  Michael Wiegand <michael.wiegand@intevation.de>
+
+	* MANIFEST: updated.
+
+2008-07-01  Michael Wiegand <michael.wiegand@intevation.de>
+
+	Doing the 1.0.1 release.
+
+	* VERSION: Set to 1.0.1.
+
+	* CHANGES: Updated.
+
+2008-06-27  Jan-Oliver Wagner <jan-oliver.wagner@intevation.de>
+
+	* openvas-libnasl-config.in: fix variable replacement problems.
+	Original problem report and initial patch supplied by
+	Ales Nosek.
+
+2008-06-26  Jan-Oliver Wagner <jan-oliver.wagner@intevation.de>
+
+	* configure.in: Removed misleading comments.
+
+2008-06-19  Tim Brown <timb@nth-dimension.org.uk>
+
+	* nasl/lfind.c: Replaced with http://ftp.netbsd.org/pub/NetBSD/NetBSD-release-3-1/src/lib/libc/stdlib/lsearch.c.
+	This fixes a problem where the original file was 4-clause BSD.
+
+	* packaging/debian/copyright: Expanded the copyright notice to
+	cover change to nasl/lsearch.c, the missing PKT_LICENSE file
+	and the OpenSSL-exemption.
+	
+	* packaging/debian/control: Fixed Build-Depend directive.
+
+2008-06-18  Jan-Oliver Wagner <jan-oliver.wagner@intevation.de>
+
+	* doc/nasl2_reference.lyx: Removed because it is proprietary.
+
+	* doc/Makefile: Handling of nasl2_reference removed.
+
+2008-05-23  Tim Brown <timb@nth-dimension.org.uk>
+
+	* packaging/debian/copyright, packaging/debian/changelog: More
+	information in the copyright. Done after a full (C) and license
+	review of all the source code.
+
+2008-05-02  Jan-Oliver Wagner <jan-oliver.wagner@intevation.de>
+
+	* configure.in: Raised dependency to openvas-libraries
+	from 0.9.2 to 1.0.2 (due to API extension for oid)
+
+	* configure: updated.
+
+	* nasl/nasl_nessusd_glue.h: Added missing proto for script_oid()
+
+2008-04-30  Tim Brown <timb@nth-dimension.org.uk>
+
+	* nasl/nasl_nessusd_glue.c, nasl/nasl_init.c: Preliminary support
+	for script_oid function.
+
+	* packaging/debian/control: Minor updates to control file to fix
+	issues highlighted by jfs in regard to the priority.
+
+2008-04-22  Jan-Oliver Wagner <jan-oliver.wagner@intevation.de>
+
+	* doc/openvas-libnasl-config.1, doc/openvas-nasl.1: Some renaming
+	from Nessus to OpenVAS, basically to avoid confusion.
+
+2008-04-18  Jan-Oliver Wagner <jan-oliver.wagner@intevation.de>
+
+	* packaging/fedora: New. Directory for Fedora RPM files.
+
+	* packaging/fedora/openvas-libnasl-1.0.0-configure.diff,
+	packaging/fedora/openvas-libnasl-1.0.0-configure.in.diff,
+	packaging/fedora/openvas-libnasl-1.0.0-Makefile.diff,
+	packaging/fedora/openvas-libnasl-1.0.0-nasl-Makefile.diff,
+	packaging/fedora/openvas-libnasl-1.0.0-1.fc8.openvas.spec: New.
+
+	* MANIFEST: updated.
+
+2008-04-16  Jan-Oliver Wagner <jan-oliver.wagner@intevation.de>
+
+	* packaging/opensuse: New. Directory for OpenSUSE RPM files.
+
+	* opensuse/openvas-libnasl-1.0.0-1.suse102.openvas.spec,
+	opensuse/openvas-libnasl-1.0.0-Makefile.diff,
+	opensuse/openvas-libnasl-1.0.0-configure.diff,
+	opensuse/openvas-libnasl-1.0.0-configure.in.diff,
+	opensuse/openvas-libnasl-1.0.0-nasl-Makefile.diff: New.
+
+2008-04-16  Bernhard Herzog  <bh@intevation.de>
+
+	* nasl/Makefile (install): Use TAB in Makefile rule
+
+2008-04-16  Jan-Oliver Wagner <jan-oliver.wagner@intevation.de>
+
+	* Makefile (install): Do not create the openvas localstatedir. This
+	is not necessary for openvas-libnasl, only relevant for openvas-server.
+
+2008-04-16  Javier Fernández-Sanguino Peña <jfs@computer.org>
+
+	* Makefile, nasl/Makefile: Restore DESTDIR
+
+	* packaging/debian/rules: Use DESTDIR, not prefix.
+
+	* packaging/debian/control: Typo fix in description.
+
+	* packaging/debian/changelog: New Debian version.
+
+	* packaging/debian/control: Remove unnecessary misc:Depends
+
+2008-04-16  Tim Brown <timb@nth-dimension.org.uk>
+
+	* packaging/debian/*: Minor fixes, now lintian clean.
+
+	* nasl/Makefile: Changed nasl to openvas-nasl in clean target, as
+	it was blocking rebuilds.
+
+2008-04-15  Jan-Oliver Wagner <jan-oliver.wagner@intevation.de>
+
+	* MANIFEST: Added forgotten file "CHANGES".
+
+2008-04-04  Bernhard Herzog  <bh@intevation.de>
+
+	* nasl/nasl_nessusd_glue.c (set_kb_item): Include parameter "name"
+	in error messages for invalid values.
+
+2008-03-06  Bernhard Herzog  <bh@intevation.de>
+
+	* test/test_blowfish.nasl, test/test_bn.nasl, test/test_dh.nasl,
+	test/test_dsa.nasl, test/test_privkey.nasl,
+	test/test_rsa.nasl, test/testsuiteinit.nasl,
+	test/testsuitesummary.nasl: Add copyright header.
+
+	* test/test_md.nasl: Adapt header slightly to make it more like
+	the headers of the other testsuite files.
+
+2008-03-06  Bernhard Herzog  <bh@intevation.de>
+
+	* nasl/nasl_text_utils.c (nasl_hexstr): Core functionality
+	reimplemented in a simpler way that completely the eliminates the
+	strcat call and does not need a Flawfinder: ignore anymore.
+
+2008-03-06  Bernhard Herzog  <bh@intevation.de>
+
+	* test/test_hexstr.nasl: Test case for the nasl function hexstr
+
+	* test/Makefile (TEST_SCRIPTS): Add test_hexstr.nasl
+
+2008-03-06  Bernhard Herzog  <bh@intevation.de>
+
+	* test/Makefile (check): do not echo the echo command itself
+
+2008-03-05  Jan-Oliver Wagner <jan-oliver.wagner@intevation.de>
+
+	* test/test_md.nasl: Added standard header.
+
+2008-03-03  Laban Mwangi <labeneator@gmail.com>
+
+	* nasl/nasl_misc_funcs.c, nasl/nasl_signature.c,
+	nasl/nasl_cmd_exec.c, nasl/nasl_text_utils.c,
+	nasl/nasl_http.c: Adding FlawFinder ignores
+	to various string operations as discussed on
+	the Mailing List.
+
+2008-02-12  Tim Brown <timb@nth-dimension.org.uk>
+
+	* nasl/Makefile: Patch by Philipp Reinkemeier to make
+	parallel build safe.
+
+	* packaging, packaging/debian: New directories.
+
+	* packaging/debian/control, packaging/debian/libopenvasnasl1.dirs,
+	packaging/debian/compat, packaging/debian/libopenvasnasl1-dev.install,
+	packaging/debian/changelog, packaging/debian/libopenvasnasl1.install,
+	packaging/debian/copyright, packaging/debian/rules,
+	packaging/debian/libopenvasnasl1-dev.dirs: New. The debian packaging files.
+
+2008-02-11  Jan-Oliver Wagner <jan-oliver.wagner@intevation.de>
+
+	* configure.in: Downgraded required gpgme version from 1.1.5 to 1.1.2.
+	The 1.1.2 is standard of Debian Etch 4.0 and prooved to be sufficient.
+
+	* configure: Updated.
+
+2008-02-11  Jan-Oliver Wagner <jan-oliver.wagner@intevation.de>
+
+	* configure.in: Fixed gpgme version test to also cope with svn releases.
+
+	* configure: Updated.
+
+2008-01-04  Jan-Oliver Wagner <jan-oliver.wagner@intevation.de>
+
+	Post-release version bump.
+
+	* VERSION: set to 1.0.1.SVN
+
+2008-01-04  Jan-Oliver Wagner <jan-oliver.wagner@intevation.de>
+
+	Doing the 1.0.0 release.
+
+	* VERSION: set to 1.0.0.
+
+	* CHANGES: Updated according to ChangeLog.
+
+2007-11-22  Jan-Oliver Wagner <jan-oliver.wagner@intevation.de>
+
+	* configure.in: Added version check for gpgme.
+	Necessary for example if libgpgme6 instead of libgpgme11
+	is installed on a Debian system.
+
+	* configure: updated.
+
+2007-11-15  Jan-Oliver Wagner <jan-oliver.wagner@intevation.de>
+
+	* nasl/preparse.c: naslparse should be put outside of the
+	ifdef, will fix an undefined reference warning.
+	Thanks to Hanno Böck for this patch.
+
+2007-11-06  Jan-Oliver Wagner <jan-oliver.wagner@intevation.de>
+
+	* nasl/nasl_host.c: Added missing include (thanks to Hanno Böck)
+	(nasl_same_host): Fixed call of nasl_perror().
+
+2007-11-01  Jan-Oliver Wagner <jan-oliver.wagner@intevation.de>
+
+	Post-release version bump.
+
+	* VERSION: set to 0.9.3.SVN
+
+2007-11-01  Jan-Oliver Wagner <jan-oliver.wagner@intevation.de>
+
+	Doing the 0.9.2 release.
+
+	* VERSION: set to 0.9.2.
+
+	* CHANGES: Updated according to ChangeLog.
+
+2007-10-29  Bernhard Herzog  <bh@intevation.de>
+
+	* test/test_blowfish.nasl (test_bf_cbc_encrypt): New parameter
+	variant so that multiple calls can be distinguished in the output.
+	There's a new test now for keys longer than 16 bytes and ivs
+	longer 8 bytes.
+
+	* nasl/nasl_crypto2.c (nasl_bf_cbc): Make if behave more like the
+	original OpenSSL based implementation.  Now it's OK to pass in a
+	key longer than 16 bytes and an iv longer than 8 bytes.  However
+	only first 16 bytes of the key and first 8 bytes of the iv are
+	actually used.  Using shorter keys/ivs is still an error.
+
+2007-10-26  Bernhard Herzog  <bh@intevation.de>
+
+	* nasl/nasl_crypto2.c (nasl_rsa_public_decrypt): Pass the
+	signature as MPI to libgcrypt to avoid problems with numbers whose
+	most significant bit is set.  Also strip pkcs#1 padding from the
+	decrypted string if present.  The original openssl based
+	implementation also stripped the padding and the code in
+	ssh_func.inc expects that behavior.
+	(strip_pkcs1_padding): New internal function to strip pkcs#1
+	padding.
+
+	* test/test_rsa.nasl (signature2, plain_text2): New
+	plaintext/signature combination where the signature has the most
+	significant bit set.
+	(test_rsa_public_decrypt): New parameter variant so that multiple
+	calls can be distinguished in the output.  The function is called
+	twice now with different signatures.  Also, omit the padding from
+	the expected result because it's automatically stripped now.
+
+2007-10-17  Jan-Oliver Wagner <jan-oliver.wagner@intevation.de>
+
+	* nasl/Makefile: Don't remove strutils.h anymore, it is now
+	a source file.
+
+2007-10-16  Jan-Oliver Wagner <jan-oliver.wagner@intevation.de>
+
+	* doc/signatures-howto.txt: Fixed description: Unlike
+	Nessus, for OpenVAS plugins rules: no sig present hence
+	not executed.
+
+2007-10-15  Jan-Oliver Wagner <jan-oliver.wagner@intevation.de>
+
+	Post-release version bump.
+
+	* VERSION: set to 0.9.2.SVN
+
+2007-10-15  Jan-Oliver Wagner <jan-oliver.wagner@intevation.de>
+
+	Doing the 0.9.1 release.
+
+	* VERSION: set to 0.9.1.
+
+	* CHANGES: Updated according to ChangeLog.
+
+2007-10-09  Bernhard Herzog  <bh@intevation.de>
+
+	* test/test_script_signing.sh (unsigned): Update test for unsigned
+	scripts to match the change in nasl_grammar.y
+
+2007-10-09  Bernhard Herzog  <bh@intevation.de>
+
+	* nasl/nasl_grammar.y (init_nasl_ctx): Treat a missing signature
+	like a bad signature so that only nasl files with good signatures
+	are executed if signature checks are not disabled.
+
+2007-10-09  Jan-Oliver Wagner <jan-oliver.wagner@intevation.de>
+
+	* VERSION: updated to 0.9.0.SVN.
+
+2007-10-09  Jan-Oliver Wagner <jan-oliver.wagner@intevation.de>
+
+	* MANIFEST: updated.
+
+2007-10-09  Jan-Oliver Wagner <jan-oliver.wagner@intevation.de>
+
+	* configure.in: Added sanity check for minimum version of
+	openvas-libraries. Which is set to 0.9.2 because a newly
+	installed header file of openvas-libraries is needed.
+
+	* configure: updated.
+
+2007-10-08  Bernhard Herzog  <bh@intevation.de>
+
+	* nasl/nasl.c: #include "hosts_gatherer.h" and remove the
+	declarations of hosts_gatherer.h functions that had been copied
+	here.
+	(main): Use the correct typ for hg_globals instead of void *
+
+2007-10-08  Bernhard Herzog  <bh@intevation.de>
+
+	* nasl/strutils.c: #include "strutils.h"
+
+2007-10-08  Bernhard Herzog  <bh@intevation.de>
+
+	* nasl/strutils.h.in, nasl/strutils.h: Renamed strutils.h.in to
+	strutils.h.  There's no need to generate the latter from the
+	former, because the former doesn't contain any variable
+	substition rules
+
+	* configure.in: Do not generate nasl/strutils.h
+
+	* configure: Update from configure.in
+
+2007-10-08  Bernhard Herzog  <bh@intevation.de>
+
+	* nasl/nasl_grammar.y (nasllex): Make nasllex static and add a
+	declaration for it.
+
+2007-10-05  Bernhard Herzog  <bh@intevation.de>
+
+	* nasl/nasl.c (usage, main): Remove the option to sign a
+	script (-S).  It's not needed anymore in OpenVAS.
+
+	* nasl/nasl_crypto2.c (generate_signed_script): Remove.  Now
+	unused.
+
+2007-10-05  Bernhard Herzog  <bh@intevation.de>
+
+	* test/README: New.  Some information about the test suite,
+	especially the signature tests.
+
+2007-10-05  Bernhard Herzog  <bh@intevation.de>
+
+	* doc/signatures-howto.txt: Add some documentation about signature
+	handling in OpenVAS NASL
+
+2007-10-05  Bernhard Herzog  <bh@intevation.de>
+
+	Extend the test suite to test signature verification
+
+	* test/signed.nasl, test/signed.nasl.asc: New. Signed NASL script
+	with corresponding signature
+
+	* test/test_script_signing.sh: New.  Script that runs some
+	signature verification tests.  Uses signed.nasl.
+
+	* test/Makefile: Add creation of the actual gnupg home directory
+	and run the signature verification tests
+
+	* test/keys/keypair.asc: New.  gnupg keypair for the test suite
+
+	* test/keys/ownertrust.txt: New. owner trust database for the test
+	suite.
+
+2007-10-05  Bernhard Herzog  <bh@intevation.de>
+
+	Implement the GnuPG based detached signatures for nasl scripts.
+
+	* nasl/nasl_signature.c, nasl/nasl_signature.h: New. GPGME base
+	signature verification with the new function nasl_verify_signature
+
+	* nasl/nasl_grammar.y (init_nasl_ctx): Check detached gpg
+	signatures now, using nasl_verify_signature instead of the old
+	verify_script_signature
+
+	* nasl/nasl_crypto2.c (hexdecode, verify_script_signature):
+	Removed.  The functions are no longer uses.
+
+	* nasl/nasl_crypto2.h (verify_script_signature): Removed.
+
+	* nasl/Makefile (NESSUS_CFLAGS, +NESSUS_LIBS): Add GPGME options
+	(OBJS, LO_OBJS): Add nasl_signature.
+
+2007-10-05  Bernhard Herzog  <bh@intevation.de>
+
+	Add simple support for GPGME to configure
+
+	* configure.in: Add check for GPGME
+
+	* nasl.tmpl.in (GPGME_CONFIG): New varible for GPGPME support
+
+	* configure: Updated from configure.in
+
+2007-10-04  Bernhard Herzog  <bh@intevation.de>
+
+	* nasl/Makefile: Remove unused variable CSRCS
+
+2007-09-27  Jan-Oliver Wagner <jan-oliver.wagner@intevation.de>
+
+	* Makefile: Removed installation of nessus_org.pem.
+
+	* doc/nessus_org.pem: Removed.
+
+	* TODO: Removed entry about nessus_pem.org.
+
+	* MANIFEST: Updated.
+
+2007-09-13  Jan-Oliver Wagner <jan-oliver.wagner@intevation.de>
+
+	* configure.in, nasl.tmpl.in: Replaced NESSUS_MAJOR etc. by
+	OPENVASNASL_MAJOR etc.
+
+	* configure: updated.
+
+2007-09-13  Jan-Oliver Wagner <jan-oliver.wagner@intevation.de>
+
+	* nasl/nasl_server.c: Fixed state_dir paths.
+
+	* TODO: OPENVAS_STATE_DIR.
+
+2007-09-13  Jan-Oliver Wagner <jan-oliver.wagner@intevation.de>
+
+	Various little patches that were part of or inspired by the
+	patch by Dirk Jagdmann posted as "libnasl patchset [2/6]" on
+	plugins-writers@list.nessus.org.
+
+	* nasl/nasl_cmd_exec.c (nasl_get_tmp_dir): Removed usused
+	variables "p" and "warn". Fixed "Nessus" to "OpenVAS" strings.
+	Fixed state_dir paths.
+	(nasl_file_read, nasl_file_seek): Removed unused variable "len".
+	(nasl_file_open): Default of "imode" now O_RDONLY istead of
+	uninitialized.
+
+	* nasl/nasl_grammar.y: Added missing include.
+
+	* nasl/nasl_misc_funcs.c (nasl_open_sock_kdc): Removed unusued
+	variables "val", "_tcp", "_port", "prefs", "t".
+	(nasl_gettimeofday): Fixed type mismatch.
+
+	* nasl/nasl_nessusd_glue.c(nasl_shared_socket_register): Removed
+	unused variable "opt_len" and "type".
+	(nasl_shared_socket_release, nasl_shared_socket_destroy): Removed
+	unused variable "fd".
+
+	* nasl_socket.c(nasl_get_source_port): Removed unused variable "i".
+
+2007-08-01  Jan-Oliver Wagner <jan-oliver.wagner@intevation.de>
+
+	* TODO: Added some items that Dirk Jagdmann posted
+	on plugin-writers.
+
+2007-08-01  Jan-Oliver Wagner <jan-oliver.wagner@intevation.de>
+
+	Removed strange handling of CWARN which tries to collect
+	a number of warning wishes for compilation. It didn't
+	really work anyway.
+	Replaced this by: allways give all warnings (-Wall).
+
+	* configure.in, nasl.tmpl.in: Removed handling
+	of CWARN[01234] and CWALL, applied -Wall for any case.
+
+	* configure: updated.
+
+2007-07-27  Jan-Oliver Wagner <jan-oliver.wagner@intevation.de>
+
+	Doing the 0.9.0 release.
+
+	* VERSION: set to 0.9.0.
+
+	* CHANGES: set release date to 2007-07-27.
+
+2007-07-21  Jan-Oliver Wagner <jan-oliver.wagner@intevation.de>
+
+	* openvas-libnasl-config.in: Fixed to now deliver
+	the correct libopenvasnasl and include directory.
+
+2007-07-20  Bernhard Herzog  <bh@intevation.de>
+
+	* include/config.h.in: Remove HAVE_OPENSSL_.*_H defines that are
+	unused now.
+
+2007-07-20  Bernhard Herzog  <bh@intevation.de>
+
+	* nasl/nasl_init.c (libfuncs): Unconditionally compile in support
+	for MD4
+
+2007-07-20  Bernhard Herzog  <bh@intevation.de>
+
+	* test/Makefile (check): The nasl interpreter has been renamed to
+	openvas-nasl
+
+2007-07-20  Jan-Oliver Wagner <jan-oliver.wagner@intevation.de>
+
+	* INSTALL: reduced to the essential.
+
+	* CHANGES: Fix name.
+
+2007-07-20  Jan-Oliver Wagner <jan-oliver.wagner@intevation.de>
+
+	* configure.in: Removed checks for openssl. Removed some W32/Cygwin stuff.
+
+	* configure: updated.
+
+2007-07-20  Jan-Oliver Wagner <jan-oliver.wagner@intevation.de>
+
+	Resolve name conflicts with a Nessus installation.
+
+	* doc/Makefile: Changed docdir from libnasl to openvas-libnasl to
+	avoid conflict with parallel Nessus installation.
+
+	* doc/nasl.1: Renamed to openvas-nasl.1
+
+	* doc/openvas-nasl.1: New. Former nasl.1
+
+	* Makefile: Renamed install files due to renaming.
+
+	* MANIFEST: updated.
+
+	* nasl/Makefile: Renaming libnasl to libopenvasnasl and nasl to
+	openvas-nasl.
+
+2007-07-19  Jan-Oliver Wagner <jan-oliver.wagner@intevation.de>
+
+	* CHANGES: New. Describe changes for users.
+
+2007-07-18  Bernhard Herzog  <bh@intevation.de>
+
+	* include/includes.h: Remove openssl includes
+
+2007-07-17  Bernhard Herzog  <bh@intevation.de>
+
+	Add a small test suite. For now it only covers the crypto
+	functions that were modified because the OpenSSL ->
+	GnuTLS/libgcrypt migration.
+
+	* test/Makefile: New. Makefile for the test suit.  Run make check in
+	the test subdirectory to execute the test suite.
+
+	* test/test_blowfish.nasl, test/test_bn.nasl, test/test_dh.nasl,
+	test/test_dsa.nasl, test/test_md.nasl, test/test_privkey.nasl,
+	test/test_rsa.nasl: New. Tests for the test suite
+
+	* test/testsuiteinit.nasl, test/testsuitesummary.nasl:
+	New. Testsuite support code.
+
+2007-07-17  Bernhard Herzog  <bh@intevation.de>
+
+	* nasl/nasl_crypto2.c: Use GnuTLS/libgcrypt instead of OpenSSL.
+	Note the incompatible changes in rsa_sign and
+	verify_script_signature.
+	(print_tls_error, print_gcrypt_error): New.  Helper functions to
+	print error messages.
+	(mpi_from_string, mpi_from_named_parameter, set_mpi_retc): New.
+	Helper functions to handle MPIs
+	(extract_mpi_from_sexp, set_retc_from_sexp): New. Helper functions
+	to handle gcrypt s-expressions.
+	(nasl_load_privkey_param, nasl_sexp_from_privkey): New. Helper
+	functions to handle private keys.
+	(calc_dh_public, calc_dh_key): New.  Helper functions for
+	diffie-hellman
+	(hexdecode): New.  Helper function to decode a hex string.
+	(nasl_bn_cmp, nasl_bn_random, nasl_pem_to)
+	(nasl_dh_generate_key, nasl_dh_compute_key)
+	(nasl_rsa_public_decrypt, nasl_rsa_sign, nasl_dsa_do_verify)
+	(nasl_dsa_do_sign, nasl_bf_cbc): Use GnuTLS/libgcrypt instead of
+	OpenSSL.  nasl_rsa_sign has different parameters now (see comments
+	in the code).
+	(nasl_bf_cbc_encrypt, nasl_bf_cbc_decrypt): Adapt to changes in
+	nasl_bf_cbc
+	(map_file): Return the data as a gnutls_datum_t.
+	(generate_signed_script, verify_script_signature): Use
+	GnuTLS/libgcrypt instead of OpenSSL.  verify_script_signature now
+	requires an x509 certificate instead of just an RSA key.
+
+2007-07-09  Bernhard Herzog  <bh@intevation.de>
+
+	* nasl/nasl_crypto.c (nasl_gcrypt_hash, nasl_hash): New.  Helper
+	functions for the actual nasl functions that use libgcrypt instead
+	of openssl
+	(nasl_md4, nasl_md5, nasl_ripemd160): Use nasl_hash to compute the
+	hash function.
+	(nasl_hmac): use libgcrypt instead of openssl
+	(nasl_hmac_md5, nasl_hmac_sha1, nasl_hmac_ripemd160): Adapt to
+	changes in nasl_hmac.
+	(nasl_md2, nasl_sha, nasl_hmac_md2, nasl_hmac_sha, nasl_hmac_dss):
+	Removed.  The hash algorithms used by these functions are not
+	implemented in libgcrypt.  The nasl-level counterparts of these
+	functions aren't used anywhere, so it shouldn't be a problem.
+
+	* nasl/nasl_crypto.h: Remove the #ifdef HAVE_SSL
+	conditionals. Remove the declarations for the functions that have
+	been removed from nasl_crypto.c
+
+	* nasl/nasl_init.c: Removed the functions that are no longer
+	implemented in nasl_crypto.c
+
+2007-06-22  Jan-Oliver Wagner <jan-oliver.wagner@intevation.de>
+
+	* configure.in: removed handling for libpcap-nessus and also
+	any handling for pcap RESTART methods since they are no where
+	used anyway.
+
+	* configure: updated with autoconf as of Debian Etch.
+
+2007-06-22  Jan-Oliver Wagner <jan-oliver.wagner@intevation.de>
+
+	* include/nasl_udp.h: Renamed HAVE_NETINET_UDP_H to
+	HAVE_STRUCT_UDPHDR, because the first does not exist anywhere
+	and the latter in fact tests what the first has in its name.
+	This bugfix allows to _really_ go without nessus-libpcap.
+
+2007-05-14  Jan-Oliver Wagner <jan-oliver.wagner@intevation.de>
+
+	* nasl/Makefile: Fixed stupid syntax error.
+
+	* TODO: New. List of TODOs.
+
+	* configure: updated.
+
+2007-05-14  Jan-Oliver Wagner <jan-oliver.wagner@intevation.de>
+
+	* Makefile: Added target "dist".
+
+	* MANIFEST: New. List of source files.
+
+2007-05-14  Jan-Oliver Wagner <jan-oliver.wagner@intevation.de>
+
+	* Makefile: destination for include files changed from nessus to openvas.
+
+2007-05-14  Jan-Oliver Wagner <jan-oliver.wagner@intevation.de>
+
+	* configure.in, Makefile, openvas-libnasl-config.in, nasl/Makefile:
+	Removed DESTDIR, it is not needed since
+	"make install prefix=/some/where" does the same already.
+
+2007-05-14  Jan-Oliver Wagner <jan-oliver.wagner@intevation.de>
+
+	Renaming nasl-config to openvas-libnasl-config.
+
+	* nasl-config.in: renamed to openvas-libnasl-config.in.
+
+	* openvas-libnasl-config.in: New. Former nasl-config.in.
+	Renaming nasl-config to openvas-libnasl-config.
+
+	* Makefile, configure.in: Renaming nasl-config to openvas-libnasl-config.
+
+	* doc/nasl-config.1: renamed to openvas-libnasl-config.1.
+
+	* doc/openvas-libnasl-config.1: New. Former nasl-config.1.
+	Renaming nasl-config to openvas-libnasl-config.
+
+2007-05-14  Jan-Oliver Wagner <jan-oliver.wagner@intevation.de>
+
+	Getting openvas-nasl to compile with openvas-libraries.
+
+	* ChangeLog: New. From now on keeps change log information for
+	the moduke "openvas-libnasl.
+
+	* VERSION: Changed to 0.9.0.SVN.
+
+	* configure.in, nasl.tmpl.in, nasl/Makefile: Renamed NESSUSCONFIG
+	to LIBOPENVASCONFIG and added header information.
+
+	* include/includes.h: include libopenvas.h instead of libnessus.h.
+
+	* nasl/Makefile: target clfags should depend on Makefile as changes
+	there may affect the contents of cflags.
+
+	* configure: updated.
+
+2007-05-14  Jan-Oliver Wagner <jan-oliver.wagner@intevation.de>
+
+	The whole module was removed and replaced by Nessus' libnasl
+	from CVS as of 2007-05-14 of the NESSUS_2_2 branch.
