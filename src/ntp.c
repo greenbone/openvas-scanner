@@ -31,7 +31,7 @@
 
 #include <glib.h>
 
-#include <gvm/base/prefs.h>         /* for preferences_get() */
+#include <gvm/base/prefs.h>         /* for prefs_set() */
 
 #include <openvas/misc/network.h>    /* for recv_line */
 #include <openvas/misc/internal_com.h> /* for INTERNAL_COMM_MSG_TYPE_DATA */

@@ -1,5 +1,9 @@
 2017-02-13  Christian Fischer <christian.fischer@greenbone.net>
 
+	* src/ntp.c: Fix comment.
+
+2017-02-13  Christian Fischer <christian.fischer@greenbone.net>
+
 	* src/ntp.c:
 	Include gvm/base/prefs.h instead of openvas/misc/prefs.h.
 
