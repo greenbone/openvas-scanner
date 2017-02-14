@@ -1,0 +1,135 @@
+NASL-Signatures in OpenVAS
+==========================
+
+This file summarizes what users of OpenVAS and developers of NASL
+scripts should know about signed NASL files in OpenVAS.
+
+Some general familiarity with OpenPGP and GnuPG in particular is
+assumed.
+
+
+Signature Format
+----------------
+
+The signatures for NASL-Files in OpenVAS are standard ASCII-armored
+detached OpenPGP signatures.  This format was chosen because it fits
+these criteria:
+
+ - there can be multiple signer keys
+
+ - site administrators can decide which keys to trust
+
+ - Signatures can be created and verified with standard tools like GnuPG
+
+ - Signatures do not require changes to the signed file
+
+
+The name of the signature file is the name of the signed file with the
+added extension ".asc".  That is, the name of the signature file for a
+file "myscript.nasl" is "myscript.nasl.asc".
+
+The keyring used by GnuPG when run by OpenVAS to verify signatures is
+located in $sysconfdir/openvas/gnupg.  The vale of sysconfdir is set by
+the configure script and defaults to $prefix/etc.
+
+
+Running GnuPG
+-------------
+
+Use the GNUPGHOME environment variable or the --homedir command line
+option of gpg to tell it where OpenVAS stores its keyrings.  E. g. if
+the keyring is in $sysconfdir/openvas/gnupg you can either
+
+    export GNUPGHOME=$sysconfdir/openvas/gnupg
+
+before calling gpg, or
+
+    gpg --homedir=$sysconfdir/openvas/gnupg
+
+followed by the rest of the command line arguments.
+
+In the following, all command examples assume that the home directory is
+specified in one of these ways.
+
+
+Signature Verification
+----------------------
+
+When OpenVAS verifies a NASL signature it checks all signatures
+contained in the signature file and all signatures must be fully valid.
+This means that all of the following criteria must be fulfilled for all
+signatures:
+
+  1. The public key must be present in the keyring
+  2. The key must be fully valid
+  3. The signature must be valid.
+
+If any of the signatures does not meet all of these criteria, the file
+is considered untrustworthy and will not be exectuded at all.  If all
+signatures meet the criteria, the script is trusted fully and may
+execute any functions. If no signature file exists, the script is not
+executed.
+
+To verify signatures on the command line, you can either run GnuPG:
+
+    gpg --verify script.nasl.asc script.nasl
+
+Or you can use the standalone nasl interpreter:
+
+    openvas-nasl -p script.nasl
+
+The -p Option means that the script is only parsed and not executed.
+
+To debug the signature verification done by the nasl interpreter, use
+the -T Option to enable the trace mode.  The signature verification will
+leave some detailed information about the verification and the
+signatures found in the trace file.
+
+
+Creating a Signing Key
+----------------------
+
+To sign nasl scripts yourself and to sign other signing keys (see
+"Validating a Key" below) you need a signing key.  You can use an
+existing key you already have, or you can generate a new one:
+
+    gpg --gen-key
+
+Generating a new one for your OpenVAS installation is recommended.
+
+
+Signing a NASL File
+-------------------
+
+    gpg --detach-sign -a myscript.nasl
+
+This will create the signature file myscript.nasl.asc.  If the file
+myscript.nasl.asc already exists it will be overwritten.
+
+To add a signature to an existing signature you can do
+
+    gpg --detach-sign -a -o myscript.nasl.asc2 myscript.nasl
+    cat myscript.nasl.asc2 >> myscript.nasl.asc
+
+
+Adding keys to the keyring
+--------------------------
+
+To add a key to the keyring, import it with gpg:
+
+    gpg --import keyfile.asc
+
+
+Validating a Key
+----------------
+
+For OpenVAS to trust a signature, the key used to create the signature
+has to be valid.  A key that was just imported has unknown validity and
+thus is not valid.  To make a key valid, you have to sign it.  The
+preferred way is to use local signatures which will not be exported from
+the keyring.  To sign the key with a known key id (use gpg --list-keys
+to determine the ID), use
+
+    gpg --lsign-key KEY_ID
+
+Check the fingerprint carefully before signing a key!
