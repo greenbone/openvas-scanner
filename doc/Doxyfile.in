@@ -228,7 +228,11 @@ TAB_SIZE               = 2
 # "Side Effects:". You can put \n's in the value part of an alias to insert
 # newlines.
 
-ALIASES                = "TODO=\todo"
+ALIASES                = "TODO=\todo" \
+                         "naslfn{1}=\par NASL Function: \b \1\n" \
+                         "nasluparam=\par NASL Unnamed Parameters:\n" \
+                         "naslnparam=\par NASL Named Parameters:\n" \
+                         "naslret=\par NASL Returns:\n"
 
 # This tag can be used to specify a number of word-keyword mappings (TCL only).
 # A mapping has the form "name=value". For example adding "class=itcl::class"
@@ -753,7 +757,8 @@ WARN_LOGFILE           =
 # spaces.
 # Note: If this tag is empty the current directory is searched.
 
-INPUT                  = @CMAKE_SOURCE_DIR@/src
+INPUT                  = @CMAKE_SOURCE_DIR@/src \
+                         @CMAKE_SOURCE_DIR@/nasl
 
 # This tag can be used to specify the character encoding of the source files
 # that doxygen parses. Internally doxygen uses the UTF-8 encoding. Doxygen uses
