@@ -193,7 +193,7 @@ message ("-- Install prefix: ${CMAKE_INSTALL_PREFIX}")
 ## Dependency checks
 
 pkg_check_modules (LIBGVM_BASE REQUIRED libgvm_base>=1.0.0)
-pkg_check_modules (LIBOPENVAS_BASE REQUIRED libopenvas_base>=9.0.0)
+pkg_check_modules (LIBGVM_UTIL REQUIRED libgvm_util>=1.0.0)
 pkg_check_modules (LIBOPENVAS_MISC REQUIRED libopenvas_misc>=9.0.0)
 pkg_check_modules (GLIB REQUIRED glib-2.0>=2.32)
 

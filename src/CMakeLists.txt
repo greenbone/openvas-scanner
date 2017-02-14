@@ -35,7 +35,6 @@ set_target_properties (openvassd PROPERTIES LINKER_LANGUAGE C)
 
 include_directories (${GLIB_INCLUDE_DIRS} ${LIBOPENVAS_NASL_INCLUDE_DIRS}
                      ${LIBGVM_BASE_INCLUDE_DIRS}
-                     ${LIBOPENVAS_BASE_INCLUDE_DIRS}
                      ${LIBOPENVAS_MISC_INCLUDE_DIRS})
 
 if (NOT CMAKE_BUILD_TYPE MATCHES "Release")
@@ -121,7 +120,7 @@ endif (CMAKE_SYSTEM_NAME MATCHES "FreeBSD")
 
 
 target_link_libraries (openvassd openvas_nasl_shared ${LIBOPENVAS_NASL_LDFLAGS}
-                       ${LIBOPENVAS_BASE_LDFLAGS} ${LIBOPENVAS_MISC_LDFLAGS}
+                       ${LIBOPENVAS_MISC_LDFLAGS}
                        ${LIBGVM_BASE_LDFLAGS}
                        ${GLIB_LDFLAGS} ${GCRYPT_LDFLAGS}
                        ${EXECINFO_LDFLAGS}
