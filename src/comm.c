@@ -230,7 +230,6 @@ send_plug_info (int soc, const char *filename)
   if (!ignored)
     {
       char *cve_id, *bid, *xref, *tag;
-      static const char *categories[] = { ACT_STRING_LIST_ALL };
 
       cve_id = nvti_cve (nvti);
       if (cve_id == NULL || strcmp (cve_id, "") == 0)
@@ -260,8 +259,8 @@ send_plug_info (int soc, const char *filename)
       }
 
       send_printf
-       (soc, "%s <|> %s <|> %s <|> %s <|> %s <|> %s <|> %s <|> %s <|> "
-        "%s <|> %s\n", nvti_oid (nvti), name, categories[j], copyright,
+       (soc, "%s <|> %s <|> %d <|> %s <|> %s <|> %s <|> %s <|> %s <|> "
+        "%s <|> %s\n", nvti_oid (nvti), name, j, copyright,
         family, version, cve_id, bid, xref, tag);
       if (tag != NULL && strcmp (tag, "NOTAG"))
         g_free (tag);

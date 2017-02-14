@@ -1,3 +1,11 @@
+2017-02-14  Jan-Oliver Wagner <jan-oliver.wagner@greenbone.net>
+
+	OTP change: PLUGIN_LIST: The NVT category is now send as
+	an integer, not as a string anymore.
+
+	* src/comm.c (send_plug_info): For the category, send
+	now the integer value instead of a string representation.
+
 2017-02-14  Juan Jose Nicola  <juan.nicola@greenbone.net>
 
 	* openvas-nasl.1.in, openvas-nasl-lint.1.in: Removed
