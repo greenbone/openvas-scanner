@@ -19,16 +19,6 @@
 #ifndef __LIB_NASL_H__
 #define __LIB_NASL_H__
 
-/**
- * @mainpage
- *
- * @section installation Overview and installation instructions
- * @verbinclude README
- *
- * @section copying License Information
- * @verbinclude COPYING
- */
-
 #include <glib.h>
 
 #include <openvas/misc/arglists.h>           /* for struct arglist */
