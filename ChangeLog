@@ -1,5 +1,12 @@
 2017-02-14  Jan-Oliver Wagner <jan-oliver.wagner@greenbone.net>
 
+	* nasl/nasl.c, nasl/nasl_builtin_nmap.c, nasl/nasl_global_ctxt.h,
+	nasl/nasl_http.c, nasl/nasl_misc_funcs.c, nasl/nasl_scanner_glue.c,
+	nasl/nasl_ssh.c, src/attack.c, src/openvassd.c, src/pluginload.h,
+	src/plugs_req.h: Include gvm/util/kb.h instead of openvas/base/kb.h.
+
+2017-02-14  Jan-Oliver Wagner <jan-oliver.wagner@greenbone.net>
+
 	* src/nasl_plugins.c: Remove unneeded include.
 
 2017-02-14  Michael Wiegand <michael.wiegand@greenbone.net>

@@ -36,8 +36,8 @@
 
 #include <gvm/base/logging.h>
 #include <gvm/base/prefs.h>     /* for prefs_get */
+#include <gvm/util/kb.h>        /* for KB_TYPE_INT */
 
-#include <openvas/base/kb.h>                 /* for KB_TYPE_INT */
 #include <openvas/base/nvticache.h>
 #include <openvas/misc/plugutils.h>          /* for plug_set_id */
 #include <openvas/misc/network.h>            /* for getpts */

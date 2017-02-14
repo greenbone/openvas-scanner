@@ -31,8 +31,9 @@
 #ifndef _OPENVAS_PLUGINLOAD_H
 #define _OPENVAS_PLUGINLOAD_H
 
+#include <gvm/util/kb.h>             /* for struct kb_item */
+
 #include <openvas/misc/arglists.h>   /* for struct arglist */
-#include <openvas/base/kb.h>         /* for struct kb_item */
 #include <openvas/misc/network.h>
 
 int

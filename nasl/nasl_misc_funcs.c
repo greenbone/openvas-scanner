@@ -29,9 +29,9 @@
 #include <unistd.h>             /* for usleep */
 
 #include <gvm/util/compressutils.h> /* for gvm_uncompress */
+#include <gvm/util/kb.h>            /* for KB_TYPE_STR */
 
 #include <openvas/misc/ftp_funcs.h>          /* for ftp_log_in */
-#include <openvas/base/kb.h>                 /* for KB_TYPE_STR */
 #include <openvas/misc/network.h>            /* read_stream_connection_min */
 #include <openvas/misc/plugutils.h>          /* plug_get_host_open_port */
 

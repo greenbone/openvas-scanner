@@ -35,8 +35,8 @@
 #include <gvm/base/hosts.h>     /* for gvm_hosts_* and gvm_host_* */
 #include <gvm/base/nvti.h>
 #include <gvm/base/prefs.h>     /* for prefs_get */
+#include <gvm/util/kb.h>        /* for kb_new */
 
-#include <openvas/base/kb.h>    /* for kb_new */
 #include <openvas/misc/nvt_categories.h>
 #include <openvas/misc/network.h>
 

@@ -58,9 +58,9 @@
 #include <gvm/base/logging.h>    /* for setup_log_handler, load_log_configuration, free_log_configuration*/
 #include <gvm/base/proctitle.h>  /* for proctitle_set */
 #include <gvm/base/prefs.h>      /* for prefs_get() */
+#include <gvm/util/kb.h>         /* for KB_PATH_DEFAULT */
 
 #include <openvas/base/nvticache.h> /* nvticache_free */
-#include <openvas/base/kb.h>         /* for KB_PATH_DEFAULT */
 
 #include <gcrypt.h> /* for gcry_control */
 
