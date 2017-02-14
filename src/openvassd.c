@@ -59,8 +59,7 @@
 #include <gvm/base/proctitle.h>  /* for proctitle_set */
 #include <gvm/base/prefs.h>      /* for prefs_get() */
 #include <gvm/util/kb.h>         /* for KB_PATH_DEFAULT */
-
-#include <openvas/base/nvticache.h> /* nvticache_free */
+#include <gvm/util/nvticache.h>  /* nvticache_free */
 
 #include <gcrypt.h> /* for gcry_control */
 

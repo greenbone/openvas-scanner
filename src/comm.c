@@ -34,12 +34,11 @@
 #include <glib.h>
 
 #include <gvm/base/prefs.h>         /* for preferences_get() */
+#include <gvm/util/nvticache.h>     /* for nvticache_t */
 
 #include <openvas/misc/nvt_categories.h>/* for ACT_FIRST */
 #include <openvas/misc/plugutils.h>
 #include <openvas/misc/network.h>       /* for recv_line */
-
-#include <openvas/base/nvticache.h>     /* for nvticache_t */
 
 #include "comm.h"
 #include "ntp.h"

@@ -27,10 +27,9 @@
 
 #include <stdio.h>
 
-#include <openvas/base/nvticache.h>  /* for nvticache_new */
-
 #include <gvm/base/proctitle.h>
 #include <gvm/base/prefs.h>       /* for prefs_get() */
+#include <gvm/util/nvticache.h>   /* for nvticache_new */
 
 #include <glib.h>
 #include <stdlib.h>

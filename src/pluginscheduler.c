@@ -29,10 +29,10 @@
 
 #include <string.h> /* for strcmp() */
 
+#include <gvm/util/nvticache.h>     /* for nvticache_t */
+
 #include <openvas/misc/nvt_categories.h>  /* for ACT_SCANNER */
 #include <openvas/misc/plugutils.h>  /* for plug_get_launch */
-
-#include <openvas/base/nvticache.h>     /* for nvticache_t */
 
 #include <glib.h>
 

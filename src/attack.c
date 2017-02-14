@@ -41,13 +41,12 @@
 #include <gvm/base/proctitle.h>
 #include <gvm/base/prefs.h>              /* for prefs_get() */
 #include <gvm/util/kb.h>
+#include <gvm/util/nvticache.h>          /* for nvticache_t */
 
 #include <openvas/misc/network.h>        /* for auth_printf */
 #include <openvas/misc/nvt_categories.h> /* for ACT_INIT */
 #include <openvas/misc/pcap_openvas.h>   /* for v6_is_local_ip */
 #include <openvas/misc/internal_com.h>
-
-#include <openvas/base/nvticache.h>     /* for nvticache_t */
 
 #include "attack.h"
 #include "comm.h"

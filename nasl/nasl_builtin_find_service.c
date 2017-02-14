@@ -30,11 +30,11 @@
 #include <sys/wait.h>           /* for waitpid() */
 #include <unistd.h>             /* for usleep() */
 
+#include <gvm/util/nvticache.h>
 
 #include <openvas/misc/arglists.h>   /* for struct arglist */
 #include <openvas/misc/network.h>    /* for get_encaps_through */
 #include <openvas/misc/plugutils.h>  /* for OPENVAS_ENCAPS_IP */
-#include <openvas/base/nvticache.h>
 
 #include "nasl_lex_ctxt.h"
 

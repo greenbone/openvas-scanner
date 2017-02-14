@@ -34,11 +34,11 @@
 #include <sys/time.h> /* for gettimeofday() */
 
 #include <gvm/base/prefs.h>          /* for prefs_get_bool() */
+#include <gvm/util/nvticache.h>
 
 #include <openvas/misc/network.h>    /* for internal_send */
 #include <openvas/misc/nvt_categories.h>  /* for ACT_SCANNER */
 #include <openvas/misc/internal_com.h>  /* for INTERNAL_COMM_MSG_TYPE_DATA */
-#include <openvas/base/nvticache.h>
 
 #include "pluginload.h"
 #include "utils.h"

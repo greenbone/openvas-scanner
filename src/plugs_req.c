@@ -30,8 +30,7 @@
 #include <stdio.h>  /* for snprintf() */
 
 #include <gvm/base/prefs.h>          /* for prefs_get() */
-
-#include <openvas/base/nvticache.h>
+#include <gvm/util/nvticache.h>
 
 #include "pluginscheduler.h"
 #include "plugs_req.h"
