@@ -1,5 +1,9 @@
 2017-02-14  Juan Jose Nicola  <juan.nicola@greenbone.net>
 
+	* openvas-nasl.1.in, openvas-nasl-lint.1.in: Removed
+
+2017-02-14  Juan Jose Nicola  <juan.nicola@greenbone.net>
+
 	* openvas-nasl.1, openvas-nasl-lint.1: rename from
 	openvas-nasl.1.in and openvas-nasl-lint.1.in
 
