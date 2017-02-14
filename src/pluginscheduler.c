@@ -102,11 +102,6 @@ plugin_next_unrun_dependency (plugins_scheduler_t sched, GSList *deps, int calls
         case PLUGIN_STATUS_RUNNING:
           flag = 1;
           break;
-        case PLUGIN_STATUS_DONE:
-          plugin->running_state = PLUGIN_STATUS_DONE_AND_CLEANED;
-          break;
-        case PLUGIN_STATUS_DONE_AND_CLEANED:
-          break;
         }
       deps = deps->next;
     }
@@ -347,10 +342,6 @@ plugins_scheduler_next (plugins_scheduler_t h)
                   running_category = category;
                 flag++;
               }
-              break;
-
-            case PLUGIN_STATUS_DONE:
-              plugin->running_state = PLUGIN_STATUS_DONE_AND_CLEANED;
               break;
             }
           element = element->next;

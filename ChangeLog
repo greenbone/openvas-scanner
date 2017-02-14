@@ -1,3 +1,12 @@
+2017-02-14  Hani Benhabiles  <hani.benhabiles@greenbone.net>
+
+	* src/utils.h: Remove unused declarations.
+
+	* src/pluginscheduler.c (plugin_next_unrun_dependency)
+	(plugins_scheduler_next): Remove useless code branches.
+
+	* src/pluginscheduler.h: Remove unused declaration.
+
 2017-02-13  Juan Jose Nicola  <jnicola@armant.core.os.greenbone.net>
 
 	* CMakeLists.txt: Uncomment configure_file of
@@ -6,7 +15,6 @@
 	* nasl/CMakeLists.txt: Uncomment install files of openvas-nasl.1
 	and openvas-nasl-lint.1.
 
-	
 2017-02-13  Juan Jose Nicola  <juan.nicola@greenbone.net>
 
 	* CMakeLists.txt: Add handling for nasl submodule. Comment configure_file of
@@ -136,7 +144,6 @@
 
 	* nasl/nasl_wmi.c: include openvas/misc/plugutils.h instead
 	of ../misc/plugutils.h.
-
 
 2017-02-13  Juan Jose Nicola  <juan.nicola@greenbone.net>
 

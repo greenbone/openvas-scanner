@@ -51,7 +51,6 @@ typedef struct plugins_scheduler *plugins_scheduler_t;
 #define PLUGIN_STATUS_UNRUN 		1
 #define PLUGIN_STATUS_RUNNING		2
 #define PLUGIN_STATUS_DONE		3
-#define PLUGIN_STATUS_DONE_AND_CLEANED 	4
 
 
 plugins_scheduler_t

@@ -33,14 +33,6 @@
 
 #include <openvas/misc/arglists.h>   /* for struct arglist */
 
-struct attack_atom
-{
-  char *name;
-  int soc; /**< public socket  */
-  int psoc;/**< private socket */
-  struct attack_atom *next;
-};
-struct arglist *sort_plugins_by_type (struct arglist *);
 int get_max_hosts_number (void);
 int get_max_checks_number (void);
 
