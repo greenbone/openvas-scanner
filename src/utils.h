@@ -31,13 +31,8 @@
 #ifndef _OPENVAS_UTILS_H
 #define _OPENVAS_UTILS_H
 
-#include <openvas/misc/arglists.h>   /* for struct arglist */
-
 int get_max_hosts_number (void);
 int get_max_checks_number (void);
-
-struct arglist *list2arglist (const char *);
-int common (struct arglist *, struct arglist *);
 
 int process_alive (pid_t);
 int data_left (int);

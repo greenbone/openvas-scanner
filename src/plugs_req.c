@@ -119,57 +119,6 @@ get_closed_udp_ports (kb_t kb, char *ports_list)
 
 
 /**
- * @brief Returns \<port\> if the lists of the required ports between
- * @brief plugin 1 and plugin 2 have at least one port in common.
- */
-struct arglist *
-requirements_common_ports (struct scheduler_plugin *plugin1,
-                           struct scheduler_plugin *plugin2)
-{
-  struct arglist *ret = NULL;
-  int i, j;
-  char *ports1, *ports2, **array1, **array2;
-
-  if (!plugin1 || !plugin2)
-    return 0;
-
-  ports1 = nvticache_get_required_ports (plugin1->oid);
-  ports2 = nvticache_get_required_ports (plugin2->oid);
-  if (!ports1 || !ports2)
-    {
-      g_free (ports1);
-      g_free (ports2);
-      return 0;
-    }
-  array1 = g_strsplit (ports1, ", ", 0);
-  array2 = g_strsplit (ports2, ", ", 0);
-  g_free (ports1);
-  g_free (ports2);
-  if (!array1 || !array2)
-    {
-      g_strfreev (array1);
-      g_strfreev (array2);
-      return 0;
-    }
-
-  for (i = 0; array1[i] != NULL; i ++)
-    {
-      for (j = 0; array2[j] != NULL; j ++)
-        {
-           if (!strcmp (array2[j], array1[i]))
-             {
-               if (!ret)
-                 ret = g_malloc0 (sizeof (struct arglist));
-               arg_add_value (ret, array2[j], ARG_INT, (void *) 1);
-             }
-        }
-    }
-  g_strfreev (array1);
-  g_strfreev (array2);
-  return ret;
-}
-
-/**
  * @brief Returns the name of the first key which is not present in the \ref kb.
  * @param[in]   kb      KB handle where to search for the keys.
  * @param[in]   keys    Comma separated list of keys.

@@ -32,6 +32,7 @@
 #include <strings.h>  /* for bzero() */
 #include <errno.h>    /* for errno() */
 #include <sys/time.h> /* for gettimeofday() */
+#include <string.h>
 
 #include <gvm/base/prefs.h>          /* for prefs_get_bool() */
 #include <gvm/util/nvticache.h>
@@ -82,7 +83,7 @@ static struct running processes[MAX_PROCESSES];
 static int num_running_processes;
 static int max_running_processes;
 static int old_max_running_processes;
-static struct arglist *non_simult_ports_list;
+static GSList *non_simult_ports = NULL;
 const char *hostname = NULL;
 
 
@@ -228,6 +229,86 @@ update_running_processes (void)
     }
 }
 
+static int
+common (GSList *list1, GSList *list2)
+{
+  if (!list1 || !list2)
+    return 0;
+
+  while (list1)
+    {
+      GSList *tmp = list2;
+      while (tmp)
+        {
+          if (!strcmp (list1->data, tmp->data))
+            return 1;
+          tmp = tmp->next;
+        }
+      list1 = list1->next;
+    }
+  return 0;
+}
+
+static GSList *
+required_ports_in_list (const char *oid, GSList *list)
+{
+  GSList *common_ports = NULL;
+  char **array, *ports;
+  int i;
+
+  if (!oid || !list)
+    return 0;
+  ports = nvticache_get_required_ports (oid);
+  if (!ports)
+    return 0;
+  array = g_strsplit (ports, ", ", 0);
+  g_free (ports);
+  if (!array)
+    return 0;
+
+  for (i = 0; array[i]; i++)
+    {
+      GSList *tmp = list;
+      while (tmp)
+        {
+          if (!strcmp (tmp->data, array[i]))
+            common_ports = g_slist_prepend (common_ports, g_strdup (tmp->data));
+          tmp = tmp->next;
+        }
+    }
+
+  g_strfreev (array);
+  return common_ports;
+}
+
+static void
+wait_if_simult_ports (int pid, const char *oid, const char *next_oid)
+{
+  GSList *common_ports1 = NULL, *common_ports2 = NULL;
+
+  common_ports1 = required_ports_in_list (oid, non_simult_ports);
+  if (common_ports1)
+    common_ports2 = required_ports_in_list (next_oid, non_simult_ports);
+  if (common_ports1 && common_ports2 && common (common_ports1, common_ports2))
+    {
+#ifdef DEBUG_CONFLICT
+      g_debug ("Waiting has been initiated...\n");
+      g_debug ("Ports in common - waiting...");
+#endif
+      while (process_alive (pid))
+        {
+          read_running_processes ();
+          update_running_processes ();
+          wait_for_children ();
+        }
+#ifdef DEBUG_CONFLICT
+       g_debug ("End of the wait - was that long ?\n");
+#endif
+    }
+  g_slist_free_full (common_ports1, g_free);
+  g_slist_free_full (common_ports2, g_free);
+}
+
 /**
  * If another NVT with same port requirements is running, wait.
  *
@@ -243,44 +324,13 @@ next_free_process (struct scheduler_plugin *upcoming)
   for (r = 0; r < MAX_PROCESSES; r++)
     {
       if (processes[r].pid > 0)
-        {
-          struct arglist *common_ports;
-          if ((common_ports =
-               requirements_common_ports (processes[r].plugin, upcoming)))
-            {
-              int do_wait = -1;
-              if (common (common_ports, non_simult_ports_list))
-                do_wait = r;
-              arg_free (common_ports);
-              if (do_wait >= 0)
-                {
-#ifdef DEBUG_CONFLICT
-                  g_debug ("Waiting has been initiated...\n");
-                  g_debug ("Ports in common - waiting...");
-#endif
-                  while (process_alive (processes[r].pid))
-                    {
-                      read_running_processes ();
-                      update_running_processes ();
-                      wait_for_children ();
-                    }
-#ifdef DEBUG_CONFLICT
-                  g_debug ("End of the wait - was that long ?\n");
-#endif
-                }
-            }
-        }
+        wait_if_simult_ports (processes[r].pid, processes[r].plugin->oid,
+                              upcoming->oid);
     }
-
-  // Find the last "living" process.
-  r = 0;
-  while ((r < MAX_PROCESSES) && (processes[r].pid > 0))
-    r++;
-
-  if (r >= MAX_PROCESSES)
-    return -1;
-  else
-    return r;
+  for (r = 0; r < MAX_PROCESSES; r++)
+    if (processes[r].pid <= 0)
+      return r;
+  return -1;
 }
 
 /**
@@ -348,7 +398,12 @@ read_running_processes (void)
 void
 pluginlaunch_init (const char *host)
 {
-  non_simult_ports_list = list2arglist (prefs_get ("non_simult_ports"));
+  int i;
+
+  char **split = g_strsplit (prefs_get ("non_simult_ports"), ", ", 0);
+  for (i = 0; split[i]; i++)
+    non_simult_ports = g_slist_prepend (non_simult_ports, g_strdup (split[i]));
+  g_strfreev (split);
   max_running_processes = get_max_checks_number ();
   old_max_running_processes = max_running_processes;
   hostname = host;
