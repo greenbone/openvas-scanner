@@ -1,5 +1,11 @@
 2017-02-15  Hani Benhabiles  <hani.benhabiles@greenbone.net>
 
+	* nasl/nasl_crypto.c (nasl_ntlm2_response, nasl_ntlm_response): Fix
+	possible segfaults.
+	(nasl_nt_owf_gen, nasl_lm_owf_gen): Fix error messages.
+
+2017-02-15  Hani Benhabiles  <hani.benhabiles@greenbone.net>
+
 	* src/pluginlaunch.c (non_simult_ports_list): Change from arglist to
 	GSList.
 	(common, required_ports_in_list, wait_if_simult_ports): New functions.

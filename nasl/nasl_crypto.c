@@ -553,13 +553,13 @@ nasl_ntlm2_response (lex_ctxt * lexic)
 {
   char *cryptkey = (char *) get_str_var_by_name (lexic, "cryptkey");
   char *password = get_str_var_by_name (lexic, "password");
-  unsigned char *nt_hash =
-    (unsigned char *) get_str_var_by_name (lexic, "nt_hash");
+  void *nt_hash = get_str_var_by_name (lexic, "nt_hash");
+  int hash_len = get_var_size_by_name (lexic, "nt_hash");
 
-  if (cryptkey == NULL || password == NULL)
+  if (!cryptkey || !password || !nt_hash || hash_len < 16)
     {
-      nasl_perror (lexic,
-                   "Syntax : ntlm2_response(cryptkey:<c>, password:<p>, nt_hash:<n>)\n");
+      nasl_perror
+       (lexic, "Syntax : ntlm2_response(cryptkey:<c>, password:<p>, nt_hash:<n[16]>)\n");
       return NULL;
     }
 
@@ -588,14 +588,14 @@ nasl_ntlm_response (lex_ctxt * lexic)
 {
   char *cryptkey = (char *) get_str_var_by_name (lexic, "cryptkey");
   char *password = get_str_var_by_name (lexic, "password");
-  unsigned char *nt_hash =
-    (unsigned char *) get_str_var_by_name (lexic, "nt_hash");
+  void *nt_hash = get_str_var_by_name (lexic, "nt_hash");
+  int hash_len = get_var_size_by_name (lexic, "nt_hash");
   int neg_flags = get_int_var_by_name (lexic, "neg_flags", -1);
 
-  if (cryptkey == NULL || password == NULL || nt_hash == NULL || neg_flags < 0)
+  if (!cryptkey || !password || !nt_hash || hash_len < 16 || neg_flags < 0)
     {
       nasl_perror (lexic,
-                   "Syntax : ntlm_response(cryptkey:<c>, password:<p>, nt_hash:<n>, neg_flags:<nf>)\n");
+                   "Syntax : ntlm_response(cryptkey:<c>, password:<p>, nt_hash:<n[16]>, neg_flags:<nf>)\n");
       return NULL;
     }
 
@@ -698,7 +698,7 @@ nasl_nt_owf_gen (lex_ctxt * lexic)
 
   if (pass_len == 0 || pass == NULL)
     {
-      nasl_perror (lexic, "Syntax : nt_owf_gen(cryptkey:<c>, password:<p>)\n");
+      nasl_perror (lexic, "Syntax : nt_owf_gen(password:<p>)\n");
       return NULL;
     }
 
@@ -737,7 +737,7 @@ nasl_lm_owf_gen (lex_ctxt * lexic)
 
   if (pass_len < 0 || pass == NULL)
     {
-      nasl_perror (lexic, "Syntax : nt_lm_gen(cryptkey:<c>, password:<p>)\n");
+      nasl_perror (lexic, "Syntax : nt_lm_gen(password:<p>)\n");
       return NULL;
     }
 
