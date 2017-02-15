@@ -1,5 +1,12 @@
 2017-02-15  Hani Benhabiles  <hani.benhabiles@greenbone.net>
 
+	* nasl/nasl.c, nasl/nasl-lint.c: Fix missing-field-initializers clang
+	warning.
+
+	* nasl/nasl_crypto.c (tls_prf): Check for null pointer.
+
+2017-02-15  Hani Benhabiles  <hani.benhabiles@greenbone.net>
+
 	* nasl/nasl_crypto.c (nasl_ntlm2_response, nasl_ntlm_response): Fix
 	possible segfaults.
 	(nasl_nt_owf_gen, nasl_lm_owf_gen): Fix error messages.

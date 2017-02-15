@@ -178,7 +178,7 @@ main (int argc, char **argv)
      "Search for includes in <dir>", "<dir>"},
     {G_OPTION_REMAINING, 0, 0, G_OPTION_ARG_FILENAME_ARRAY, &nvt_files,
      "Absolute path to one or more nasl scripts", "NASL_FILE..."},
-    {NULL}
+    {NULL, 0, 0, 0, NULL, NULL, NULL}
   };
 
   option_context =

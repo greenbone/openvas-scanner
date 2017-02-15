@@ -379,6 +379,8 @@ tls_prf (const void *secret, size_t secret_len, const void *seed,
    * lseed = label + seed
    */
   Ai = hmac_func (secret, secret_len, seed, seed_len);
+  if (!Ai)
+    return NULL;
   lslen = strlen (label) + seed_len;
   lseed = g_malloc0 (lslen);
   memcpy (lseed, label, strlen (label));
