@@ -82,6 +82,9 @@ else (NOT KSBA)
   endif (${KSBA_VERSION} VERSION_LESS ${KSBA_MIN_VERSION})
 endif (NOT KSBA)
 
+message (STATUS "Looking for pcap...")
+find_library (PCAP pcap)
+
 if (NOT MINGW)
  find_library (GPGME gpgme)
   message (STATUS "Looking for gpgme... ${GPGME}")
@@ -95,7 +98,6 @@ if (NOT MINGW)
   execute_process (COMMAND gpgme-config --cflags
     OUTPUT_VARIABLE GPGME_CFLAGS
     OUTPUT_STRIP_TRAILING_WHITESPACE)
-
 
   message (STATUS "Looking for netsnmp...")
   find_library (SNMP snmp)
