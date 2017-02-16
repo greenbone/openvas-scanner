@@ -1,3 +1,8 @@
+2017-02-16  Juan Jose Nicola  <juan.nicola@greenbone.net>
+
+	* nasl/CMakeLists.txt: Check for libraries with pkg_check_modules and
+	find_library. It was still in the CMakeLists.txt of openvas-libraries.
+
 2017-02-15  Hani Benhabiles  <hani.benhabiles@greenbone.net>
 
 	* nasl/nasl.c, nasl/nasl-lint.c: Fix missing-field-initializers clang

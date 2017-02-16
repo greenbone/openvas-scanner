@@ -52,6 +52,10 @@ pkg_check_modules (GNUTLS REQUIRED gnutls>=3.2.15)
 pkg_check_modules (LIBGVM_BASE REQUIRED libgvm_base>=1.0.0)
 pkg_check_modules (LIBGVM_UTIL REQUIRED libgvm_util>=1.0.0)
 
+pkg_check_modules (OPENVAS_WMICLIENT libopenvas_wmiclient>=1.0.1)
+pkg_check_modules (OPENVAS_WINCMD libopenvas_wincmd>=1.0.1)
+
+
 # for 'nasl' binary
 pkg_check_modules (LIBSSH REQUIRED libssh>=0.5.0)
 
@@ -84,12 +88,38 @@ if (NOT MINGW)
   if (NOT GPGME)
     message (SEND_ERROR "The gpgme library is required.")
   endif (NOT GPGME)
+  
   execute_process (COMMAND gpgme-config --libs
     OUTPUT_VARIABLE GPGME_LDFLAGS
     OUTPUT_STRIP_TRAILING_WHITESPACE)
   execute_process (COMMAND gpgme-config --cflags
     OUTPUT_VARIABLE GPGME_CFLAGS
     OUTPUT_STRIP_TRAILING_WHITESPACE)
+
+
+  message (STATUS "Looking for netsnmp...")
+  find_library (SNMP snmp)
+  message (STATUS "Looking for netsnmp... ${SNMP}")
+  if (SNMP)
+    execute_process (COMMAND net-snmp-config --libs
+      OUTPUT_VARIABLE SNMP_LDFLAGS
+      OUTPUT_STRIP_TRAILING_WHITESPACE)
+  endif (SNMP)
+
+  message (STATUS "Looking for libgcrypt...")
+  find_library (GCRYPT gcrypt)
+  message (STATUS "Looking for libgcrypt... ${GCRYPT}")
+  if (NOT GCRYPT)
+    message (SEND_ERROR "The libgcrypt library is required.")
+  else (NOT GCRYPT)
+    execute_process (COMMAND libgcrypt-config --libs
+      OUTPUT_VARIABLE GCRYPT_LDFLAGS
+      OUTPUT_STRIP_TRAILING_WHITESPACE)
+    execute_process (COMMAND libgcrypt-config --cflags
+      OUTPUT_VARIABLE GCRYPT_CFLAGS
+      OUTPUT_STRIP_TRAILING_WHITESPACE)
+  endif (NOT GCRYPT)
+
 endif (NOT MINGW)
 
 
@@ -129,8 +159,7 @@ set (FILES arc4.c capture_packet.c charcnv.c exec.c genrand.c hmacmd5.c
      nasl_http.c nasl_init.c nasl_lex_ctxt.c nasl_misc_funcs.c nasl_scanner_glue.c
      nasl_packet_forgery.c nasl_packet_forgery_v6.c nasl_signature.c nasl_smb.c
      nasl_socket.c nasl_text_utils.c nasl_tree.c nasl_var.c nasl_wmi.c
-     nasl_isotime.c
-     ntlmssp.c strutils.c smb_crypt.c smb_crypt2.c
+     nasl_isotime.c ntlmssp.c strutils.c smb_crypt.c smb_crypt2.c
      smb_signing.c time.c)
 
 
@@ -183,7 +212,6 @@ target_link_libraries (openvas_nasl_shared ${GLIB_LDFLAGS}
                          ${GNUTLS_LDFLAGS} ${PCAP_LDFLAGS} ${LIBSSH_LDFLAGS}
                          ${KSBA_LDFLAGS} ${SNMP_LDFLAGS}
                          ${LINKER_HARDENING_FLAGS})
-
 
 # Link the openvas-nasl executable
 add_executable (openvas-nasl nasl.c)
