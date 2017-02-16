@@ -1,5 +1,10 @@
 2017-02-16  Juan Jose Nicola  <juan.nicola@greenbone.net>
 
+	* nasl/CMakeLists.txt: Check SNMP to add_definitions after find_library.
+
+
+2017-02-16  Juan Jose Nicola  <juan.nicola@greenbone.net>
+
 	* INSTALL: Add bison, flex, libpcap, libssh, libksba to the list
 	of prerequisites since it is actually required by nasl. Add recommendation
 	to have WMI and improved SNMP support. Add command to install prerequisites.

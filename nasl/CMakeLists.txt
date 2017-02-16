@@ -42,11 +42,6 @@ set (NASL_VERSION_STRING "${NASL_VERSION_MAJOR}.${NASL_VERSION_MINOR}${NASL_VERS
 set (NASL_PACKAGE_VERSION "${NASL_VERSION_STRING}${PROJECT_VERSION_SVN}")
 set (NASL_VERSION "${NASL_VERSION_STRING}")
 
-## Library
-if (SNMP)
-  add_definitions (-DHAVE_NETSNMP)
-endif (SNMP)
-
 pkg_check_modules (GIO REQUIRED gio-2.0)
 pkg_check_modules (GNUTLS REQUIRED gnutls>=3.2.15)
 pkg_check_modules (LIBGVM_BASE REQUIRED libgvm_base>=1.0.0)
@@ -123,6 +118,12 @@ if (NOT MINGW)
   endif (NOT GCRYPT)
 
 endif (NOT MINGW)
+
+
+## Library
+if (SNMP)
+  add_definitions (-DHAVE_NETSNMP)
+endif (SNMP)
 
 
 # The "-D_FILE_OFFSET_BITS=64 -DLARGEFILE_SOURCE=1" is necessary for GPGME!
