@@ -12,9 +12,11 @@ Prerequisites for openvas-scanner
 Prerequisites:
 * cmake >= 2.8
 * libgvm_base >= 1.0.0
+* libgvm_util >= 1.0.0
 * libopenvas_misc >= 9.0.0
 * glib-2.0 >= 2.32
-* bison >= 2.5
+* gio-2.0
+* bison
 * flex
 * libgcrypt
 * pkg-config
@@ -164,7 +166,7 @@ If you encounter problems, by default the scanner writes logs to the files
 
     <install-prefix>/var/log/openvas/openvassd.log
     <install-prefix>/var/log/openvas/openvassd.dump
-    
+
 They may contain useful information.The exact location of these files may differ
 depending on your distribution and installation method. Please have these files
 ready when contacting the OpenVAS developers through the OpenVAS mailing list

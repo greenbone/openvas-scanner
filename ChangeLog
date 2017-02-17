@@ -1,5 +1,9 @@
 2017-02-17  Michael Wiegand <michael.wiegand@greenbone.net>
 
+	* INSTALL: Add missing prerequisites, flush trailing whitespace.
+
+2017-02-17  Michael Wiegand <michael.wiegand@greenbone.net>
+
 	* COPYING: Regenerate list with 'licensecheck' to make sure licenses
 	are present, to add missing files and to make the list easier
 	parseable and maintainable. Use Debian/SPDX identifiers for licenses.
