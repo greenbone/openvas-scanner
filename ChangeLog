@@ -1,7 +1,21 @@
+2017-02-17  Hani Benhabiles  <hani.benhabiles@greenbone.net>
+
+	* src/attack.c (attack_start_args, network_scan_status, launch_plugin)
+	(init_host_kb, attack_host, attack_start, attack_network), src/comm.c
+	(comm_wait_order), src/hosts.c (hosts_new, hosts_read_client)
+	(hosts_read), src/nasl_plugins.c (nasl_plugin_launch, nasl_thread),
+	src/ntp.c (ntp_parse_input, files_add_translation, ntp_recv_file)
+	(files_add_size_translation), src/openvassd.c (handle_client)
+	(scanner_thread, main_loop), src/pluginlaunch.c (plugin_launch): Adjust
+	to change of globals from arglist to struct scan_globals.
+
+	* src/attack.h, src/comm.h, src/pluginload.h, src/pluginlaunch.h,
+	src/ntp.h, src/hosts.h: Adjust function headers and remove arglist.h
+	include.
+
 2017-02-16  Juan Jose Nicola  <juan.nicola@greenbone.net>
 
 	* nasl/CMakeLists.txt: Check SNMP to add_definitions after find_library.
-
 
 2017-02-16  Juan Jose Nicola  <juan.nicola@greenbone.net>
 

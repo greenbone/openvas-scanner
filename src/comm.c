@@ -319,9 +319,9 @@ comm_send_preferences (int soc)
  * Meanwhile, it processes all the messages the client could send.
  */
 int
-comm_wait_order (struct arglist *globals)
+comm_wait_order (struct scan_globals *globals)
 {
-  int soc = arg_get_value_int (globals, "global_socket");
+  int soc = globals->global_socket;
 
   for (;;)
     {

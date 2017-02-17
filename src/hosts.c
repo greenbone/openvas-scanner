@@ -182,7 +182,7 @@ hosts_init (int soc, int max_hosts)
 extern int global_scan_stop;
 
 int
-hosts_new (struct arglist *globals, char *name, int soc)
+hosts_new (struct scan_globals *globals, char *name, int soc)
 {
   struct host *h;
 
@@ -316,7 +316,7 @@ hosts_read_data (void)
  * Returns -1 if no socket, error or client asked to stop tests, 0 otherwise.
  */
 static int
-hosts_read_client (struct arglist *globals)
+hosts_read_client (struct scan_globals *globals)
 {
   struct timeval tv;
   int e = 0;
@@ -361,7 +361,7 @@ hosts_read_client (struct arglist *globals)
  *        0 otherwise.
  */
 int
-hosts_read (struct arglist *globals)
+hosts_read (struct scan_globals *globals)
 {
   if (hosts_read_client (globals) < 0)
     {

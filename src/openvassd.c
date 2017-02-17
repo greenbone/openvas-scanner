@@ -58,8 +58,10 @@
 #include <gvm/base/logging.h>    /* for setup_log_handler, load_log_configuration, free_log_configuration*/
 #include <gvm/base/proctitle.h>  /* for proctitle_set */
 #include <gvm/base/prefs.h>      /* for prefs_get() */
+#include <gvm/base/nvti.h>       /* for prefs_get() */
 #include <gvm/util/kb.h>         /* for KB_PATH_DEFAULT */
 #include <gvm/util/nvticache.h>  /* nvticache_free */
+#include <openvas/misc/plugutils.h>  /* nvticache_free */
 
 #include <gcrypt.h> /* for gcry_control */
 
@@ -398,10 +400,10 @@ reload_openvassd ()
 }
 
 static void
-handle_client (struct arglist *globals)
+handle_client (struct scan_globals *globals)
 {
   kb_t net_kb = NULL;
-  int soc = arg_get_value_int (globals, "global_socket");
+  int soc = globals->global_socket;
 
   /* Become process group leader and the like ... */
   start_daemon_mode ();
@@ -419,12 +421,12 @@ handle_client (struct arglist *globals)
 }
 
 static void
-scanner_thread (struct arglist *globals)
+scanner_thread (struct scan_globals *globals)
 {
   int opt = 1, soc;
 
   nvticache_reset ();
-  soc = arg_get_value_int (globals, "global_socket");
+  soc = globals->global_socket;
   proctitle_set ("openvassd: Serving %s", unix_socket_path);
 
   /* Everyone runs with a nicelevel of 10 */
@@ -445,8 +447,8 @@ scanner_thread (struct arglist *globals)
 
   setsockopt (soc, SOL_SOCKET, SO_KEEPALIVE, &opt, sizeof (opt));
   /* arg_set_value *replaces* an existing value, but it shouldn't fail here */
-  arg_add_value (globals, "parent_socket", ARG_INT, GSIZE_TO_POINTER (soc));
-  arg_set_value (globals, "global_socket", GSIZE_TO_POINTER (soc));
+  globals->parent_socket = soc;
+  globals->global_socket = soc;
 
   if (comm_init (soc) < 0)
     exit (0);
@@ -518,7 +520,7 @@ main_loop ()
       int soc;
       unsigned int lg_address;
       struct sockaddr_un address;
-      struct arglist *globals;
+      struct scan_globals *globals;
 
       check_termination ();
       check_reload ();
@@ -529,8 +531,8 @@ main_loop ()
       if (soc == -1)
         continue;
 
-      globals = g_malloc0 (sizeof (struct arglist));
-      arg_add_value (globals, "global_socket", ARG_INT, GSIZE_TO_POINTER (soc));
+      globals = g_malloc0 (sizeof (struct scan_globals));
+      globals->global_socket = soc;
 
       /* we do not want to create an io thread, yet so the last argument is -1 */
       if (create_process ((process_func_t) scanner_thread, globals) < 0)
@@ -539,7 +541,7 @@ main_loop ()
           sleep (2);
         }
       close (soc);
-      arg_free (globals);
+      g_free (globals);
     }
 }
 

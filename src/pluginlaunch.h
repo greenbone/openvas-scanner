@@ -37,7 +37,7 @@ void pluginlaunch_init (const char *);
 void pluginlaunch_wait (void);
 void pluginlaunch_wait_for_free_process (void);
 void pluginlaunch_stop (int);
-int plugin_launch (struct arglist *, struct scheduler_plugin *,
+int plugin_launch (struct scan_globals *, struct scheduler_plugin *,
                    struct host_info *, kb_t, char *);
 
 void pluginlaunch_child_cleanup (void);

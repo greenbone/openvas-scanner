@@ -30,13 +30,13 @@
 #ifndef _OPENVAS_COMM_H
 #define _OPENVAS_COMM_H
 
-#include <openvas/misc/arglists.h>   /* for struct arglist */
+#include <gvm/base/nvti.h>   /* for struct scan_globals */
 
 int comm_init (int);
 int comm_loading (int);
 void comm_terminate (int);
 void comm_send_preferences (int);
-int comm_wait_order (struct arglist *);
+int comm_wait_order (struct scan_globals *);
 void comm_send_nvt_info (int);
 
 void

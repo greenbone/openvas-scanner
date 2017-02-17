@@ -29,6 +29,6 @@
 #ifndef __OPENVAS_ATTACK_H__
 #define __OPENVAS_ATTACK_H__
 
-void attack_network (struct arglist *, kb_t *network_kb);
+void attack_network (struct scan_globals *, kb_t *network_kb);
 
 #endif

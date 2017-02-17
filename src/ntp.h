@@ -31,9 +31,9 @@
 #ifndef _OPENVAS_NTP_H
 #define _OPENVAS_NTP_H
 
-#include <openvas/misc/arglists.h>   /* for struct arglist */
+#include <gvm/base/nvti.h>   /* for struct scan_globals */
 
-int ntp_parse_input (struct arglist *, char *);
+int ntp_parse_input (struct scan_globals *, char *);
 
 int ntp_timestamp_host_scan_starts (int, char *);
 int ntp_timestamp_host_scan_ends (int, char *);

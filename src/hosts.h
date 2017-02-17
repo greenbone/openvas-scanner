@@ -31,10 +31,12 @@
 #ifndef HOSTS_H
 #define HOSTS_H
 
+#include <gvm/base/nvti.h>
+
 int hosts_init (int, int);
-int hosts_new (struct arglist *, char *, int);
+int hosts_new (struct scan_globals *, char *, int);
 int hosts_set_pid (char *, pid_t);
-int hosts_read (struct arglist *);
+int hosts_read (struct scan_globals *);
 void hosts_stop_all (void);
 
 #endif

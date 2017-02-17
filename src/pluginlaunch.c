@@ -470,7 +470,7 @@ pluginlaunch_stop (int soft_stop)
  *         classes pl_launch function (<=0 means there was a problem).
  */
 int
-plugin_launch (struct arglist *globals, struct scheduler_plugin *plugin,
+plugin_launch (struct scan_globals *globals, struct scheduler_plugin *plugin,
                struct host_info *hostinfo, kb_t kb, char *name)
 {
   int p;
@@ -505,7 +505,7 @@ plugin_launch (struct arglist *globals, struct scheduler_plugin *plugin,
     }
   gettimeofday (&(processes[p].start), NULL);
 
-  processes[p].upstream_soc = arg_get_value_int (globals, "global_socket");
+  processes[p].upstream_soc = globals->global_socket;
   processes[p].internal_soc = dsoc[0];
 
   processes[p].pid =

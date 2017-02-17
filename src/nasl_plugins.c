@@ -202,7 +202,7 @@ nasl_thread (struct nasl_thread_args *);
  * @brief Launch a NASL plugin.
  */
 int
-nasl_plugin_launch (struct arglist *globals, struct host_info *hostinfo,
+nasl_plugin_launch (struct scan_globals *globals, struct host_info *hostinfo,
                     kb_t kb, char *name, const char *oid, int soc)
 {
   int module;
@@ -211,7 +211,7 @@ nasl_plugin_launch (struct arglist *globals, struct host_info *hostinfo,
 
   plugin = g_malloc0 (sizeof (struct arglist));
   arg_add_value (plugin, "HOSTNAME", ARG_PTR, hostinfo);
-  arg_add_value (plugin, "globals", ARG_ARGLIST, globals);
+  arg_add_value (plugin, "globals", ARG_PTR, globals);
   arg_add_value (plugin, "key", ARG_PTR, kb);
 
   nargs.args = plugin;
@@ -228,7 +228,7 @@ static void
 nasl_thread (struct nasl_thread_args *nargs)
 {
   struct arglist *args = nargs->args;
-  struct arglist *globals = arg_get_value (args, "globals");
+  struct scan_globals *globals = arg_get_value (args, "globals");
   struct host_info *hostinfo = arg_get_value (args, "HOSTNAME");
   char *name = nargs->name;
   int nasl_mode = 0;
@@ -250,7 +250,7 @@ nasl_thread (struct nasl_thread_args *nargs)
   pluginlaunch_child_cleanup ();
   kb = arg_get_value (args, "key");
   kb_lnk_reset (kb);
-  arg_set_value (globals, "global_socket", GSIZE_TO_POINTER (nargs->soc));
+  globals->global_socket = nargs->soc;
   proctitle_set ("openvassd: testing %s (%s)", hostinfo->name, name);
 
   if (prefs_get_bool ("nasl_no_signature_check"))

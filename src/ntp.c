@@ -55,17 +55,17 @@
 
 static int ntp_read_prefs (int);
 static int ntp_long_attack (int);
-static int ntp_recv_file (struct arglist *);
+static int ntp_recv_file (struct scan_globals *);
 
 /**
  * @brief Parses the input sent by the client before the NEW_ATTACK message.
  */
 int
-ntp_parse_input (struct arglist *globals, char *input)
+ntp_parse_input (struct scan_globals *globals, char *input)
 {
   char *str;
   int result = 1;               /* default return value is 1 */
-  int soc = arg_get_value_int (globals, "global_socket");
+  int soc = globals->global_socket;
 
   if (*input == '\0')
     return -1;
@@ -228,20 +228,20 @@ ntp_read_prefs (int soc)
  * can be 'translated' into the file contents of the in-memory copy of the
  * file on the server side.
  *
- * @param globals    Global arglist.
+ * @param globals    Global struct.
  * @param remotename Name of the file as referenced by the client.
  * @param contents   Contents of the file.
  */
 static void
-files_add_translation (struct arglist *globals, const char *remotename,
+files_add_translation (struct scan_globals *globals, const char *remotename,
                        char *contents)
 {
-  GHashTable *trans = arg_get_value (globals, "files_translation");
+  GHashTable *trans = globals->files_translation;
   // Register the mapping table if none there yet
   if (trans == NULL)
     {
       trans = g_hash_table_new_full (g_str_hash, g_str_equal, g_free, g_free);
-      arg_add_value (globals, "files_translation", ARG_PTR, trans);
+      globals->files_translation = trans;
     }
 
   g_hash_table_insert (trans, g_strdup (remotename), contents);
@@ -255,22 +255,22 @@ files_add_translation (struct arglist *globals, const char *remotename,
  * well. This function sets up a mapping from the original name sent by the
  * client to the file size.
  *
- * @param globals    Global arglist.
+ * @param globals    Global struct.
  * @param remotename Name of the file as referenced by the client.
  * @param filesize   Size of the file in bytes.
  */
 static void
-files_add_size_translation (struct arglist *globals, const char *remotename,
-                            const long filesize)
+files_add_size_translation (struct scan_globals *globals,
+                            const char *remotename, const long filesize)
 {
-  GHashTable *trans = arg_get_value (globals, "files_size_translation");
+  GHashTable *trans = globals->files_size_translation;
   gchar *filesize_str = g_strdup_printf ("%ld", filesize);
 
   // Register the mapping table if none there yet
   if (trans == NULL)
     {
       trans = g_hash_table_new_full (g_str_hash, g_str_equal, g_free, NULL);
-      arg_add_value (globals, "files_size_translation", ARG_PTR, trans);
+      globals->files_size_translation = trans;
     }
 
   g_hash_table_insert (trans, g_strdup (remotename), g_strdup (filesize_str));
@@ -282,9 +282,9 @@ files_add_size_translation (struct arglist *globals, const char *remotename,
  * @return 0 if successful, -1 in case of errors.
  */
 int
-ntp_recv_file (struct arglist *globals)
+ntp_recv_file (struct scan_globals *globals)
 {
-  int soc = arg_get_value_int (globals, "global_socket");
+  int soc = globals->global_socket;
   char input[4096];
   char *origname, *contents;
   gchar *cont_ptr = NULL;

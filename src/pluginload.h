@@ -33,7 +33,6 @@
 
 #include <gvm/util/kb.h>             /* for struct kb_item */
 
-#include <openvas/misc/arglists.h>   /* for struct arglist */
 #include <openvas/misc/network.h>
 
 int
@@ -56,7 +55,7 @@ int
 nasl_plugin_add (char *, char *);
 
 int
-nasl_plugin_launch (struct arglist *, struct host_info *, kb_t, char *,
+nasl_plugin_launch (struct scan_globals *, struct host_info *, kb_t, char *,
                     const char *, int);
 
 #endif

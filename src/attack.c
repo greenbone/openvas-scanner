@@ -73,12 +73,12 @@
 #define G_LOG_DOMAIN "sd   main"
 
 /**
- * Bundles information about target(s), configuration (globals arglist) and
+ * Bundles information about target(s), configuration (globals struct) and
  * scheduler.
  */
 struct attack_start_args
 {
-  struct arglist *globals;
+  struct scan_globals *globals;
   struct in6_addr hostip;
   char *host_mac_addr;
   plugins_scheduler_t sched;
@@ -160,11 +160,11 @@ fork_sleep (int n)
 }
 
 static enum net_scan_status
-network_scan_status (struct arglist *globals)
+network_scan_status (struct scan_globals *globals)
 {
   gchar *nss;
 
-  nss = arg_get_value (globals, "network_scan_status");
+  nss = globals->network_scan_status;
   if (nss == NULL)
     return NSS_NONE;
 
@@ -214,7 +214,7 @@ nvti_category_is_safe (int category)
  *         0 otherwise.
  */
 static int
-launch_plugin (struct arglist *globals, struct scheduler_plugin *plugin,
+launch_plugin (struct scan_globals *globals, struct scheduler_plugin *plugin,
                char *hostname, struct host_info *hostinfos, kb_t kb)
 {
   int optimize = prefs_get_bool ("optimize_test");
@@ -353,14 +353,14 @@ kb_duplicate(kb_t dst, kb_t src, const gchar *filter)
  * Fills the knowledge base with host-specific login information for local
  * checks if defined.
  *
- * @param globals     Global preference arglist.
+ * @param globals     Global preference struct.
  * @param hostname    Name of the host.
  * @param new_kb[out] TRUE if the kb is new and shall be saved.
  *
  * @return A knowledge base.
  */
 static kb_t
-init_host_kb (struct arglist *globals, char *hostname,
+init_host_kb (struct scan_globals *globals, char *hostname,
               struct host_info *hostinfos, kb_t *network_kb)
 {
   kb_t kb;
@@ -371,7 +371,7 @@ init_host_kb (struct arglist *globals, char *hostname,
   struct in6_addr *hostip;
 
   nss = network_scan_status (globals);
-  soc = arg_get_value_int (globals, "global_socket");
+  soc = globals->global_socket;
   switch (nss)
     {
       case NSS_DONE:
@@ -438,7 +438,7 @@ init_host_kb (struct arglist *globals, char *hostname,
  * @brief Attack one host.
  */
 static void
-attack_host (struct arglist *globals, struct host_info *hostinfos,
+attack_host (struct scan_globals *globals, struct host_info *hostinfos,
              char *hostname, plugins_scheduler_t sched, kb_t *net_kb)
 {
   /* Used for the status */
@@ -447,7 +447,7 @@ attack_host (struct arglist *globals, struct host_info *hostinfos,
 
   proctitle_set ("openvassd: testing %s", hostinfos->name);
 
-  global_socket = arg_get_value_int (globals, "global_socket");
+  global_socket = globals->global_socket;
   kb = init_host_kb (globals, hostname, hostinfos, net_kb);
   if (kb == NULL)
     return;
@@ -552,7 +552,7 @@ host_died:
 static void
 attack_start (struct attack_start_args *args)
 {
-  struct arglist *globals = args->globals;
+  struct scan_globals *globals = args->globals;
   char *host_str;
   struct in6_addr *hostip = &args->hostip;
   struct host_info *hostinfos;
@@ -575,10 +575,10 @@ attack_start (struct attack_start_args *args)
   gettimeofday (&then, NULL);
 
   /* Options regarding the communication with our parent */
-  close (arg_get_value_int (globals, "parent_socket"));
-  arg_del_value (globals, "parent_socket");
-  openvas_deregister_connection (arg_get_value_int (globals, "global_socket"));
-  arg_set_value (globals, "global_socket", GSIZE_TO_POINTER (thread_socket));
+  close (globals->parent_socket);
+  globals->parent_socket = 0;
+  openvas_deregister_connection (globals->global_socket);
+  globals->global_socket = thread_socket;
 
   if (vhosts == NULL || vhosts_ip == NULL)
     hostinfos = host_info_init (host_str, hostip, NULL, args->fqdn);
@@ -847,7 +847,7 @@ handle_scan_stop_signal ()
  * @brief Attack a whole network.
  */
 void
-attack_network (struct arglist *globals, kb_t *network_kb)
+attack_network (struct scan_globals *globals, kb_t *network_kb)
 {
   int max_hosts = 0, max_checks;
   int num_tested = 0;
@@ -874,8 +874,7 @@ attack_network (struct arglist *globals, kb_t *network_kb)
 
   network_targets = prefs_get ("network_targets");
   if (network_targets != NULL)
-    arg_add_value (globals, "network_targets", ARG_STRING,
-                   (char *) network_targets);
+    globals->network_targets = g_strdup (network_targets);
 
   if (do_network_scan)
     {
@@ -893,8 +892,7 @@ attack_network (struct arglist *globals, kb_t *network_kb)
             break;
 
           default:
-            arg_add_value (globals, "network_scan_status", ARG_STRING,
-                           "busy");
+            globals->network_scan_status = g_strdup ("busy");
             network_phase = TRUE;
             break;
         }
@@ -904,7 +902,7 @@ attack_network (struct arglist *globals, kb_t *network_kb)
 
   num_tested = 0;
 
-  global_socket = arg_get_value_int (globals, "global_socket");
+  global_socket = globals->global_socket;
 
   if (check_kb_access(global_socket))
       return;
@@ -1106,7 +1104,7 @@ attack_network (struct arglist *globals, kb_t *network_kb)
       if (network_phase)
         {
           host = NULL;
-          arg_set_value (globals, "network_scan_status", "done");
+          globals->network_scan_status = g_strdup ("done");
         }
       else
         host = gvm_hosts_next (hosts);
@@ -1122,7 +1120,7 @@ attack_network (struct arglist *globals, kb_t *network_kb)
 
 scan_stop:
   /* Free the memory used by the files uploaded by the user, if any. */
-  files = arg_get_value (globals, "files_translation");
+  files = globals->files_translation;
   if (files)
     g_hash_table_destroy (files);
 
@@ -1133,6 +1131,8 @@ stop:
   gvm_hosts_free (hosts_deny);
   gvm_hosts_free (sys_hosts_allow);
   gvm_hosts_free (sys_hosts_deny);
+  g_free (globals->network_scan_status);
+  g_free (globals->network_targets);
 
   plugins_scheduler_free (sched);
 
