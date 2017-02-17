@@ -1,3 +1,10 @@
+2017-02-17  Michael Wiegand <michael.wiegand@greenbone.net>
+
+	* COPYING: Regenerate list with 'licensecheck' to make sure licenses
+	are present, to add missing files and to make the list easier
+	parseable and maintainable. Use Debian/SPDX identifiers for licenses.
+	Describe how the list was generated in the file itself.
+
 2017-02-17  Hani Benhabiles  <hani.benhabiles@greenbone.net>
 
 	* src/attack.c (attack_start_args, network_scan_status, launch_plugin)

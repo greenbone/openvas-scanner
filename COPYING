@@ -2,104 +2,157 @@ License information about openvas-scanner
 ------------------------------------------
 
 Th effective license of the modules as a whole
-is the GNU General Public License Version 2 (GNU GPLv2).
+is the GNU General Public License Version 2 (GNU GPL-2).
 
 Single files, however, are licensed either
-under GNU General Public License Version 2 (GNU GPLv2)
-or under "GNU GPLv2 or any later version" (GNU GPLv2+).
+under GNU General Public License Version 2 (GNU GPL-2)
+or under "GNU GPLv2 or any later version" (GNU GPL-2+).
 
-GPLv2: See file COPYING.GPLv2
+GPL-2: See file COPYING.GPLv2
 
-The following overview was initially collected 20100812 based
-on the header of the respective files and since then updated
-as changes were applied:
+The following list was created using the 'licensecheck'
+tool with the following command:
 
-src/attack.[c|h]: GPLv2
-src/comm.[c|h]: GPLv2
-src/hosts.[c|h]: GPLv2
-src/nasl_plugins.c: GPLv2
-src/ntp.[c|h]: GPLv2
-src/openvassd.c: GPLv2
-src/otp.[c|h]: GPLv2+
-src/pluginlaunch.[c|h]: GPLv2
-src/pluginload.[c|h]: GPLv2
-src/pluginscheduler.[c|h]: GPLv2
-src/plugs_req.[c|h]: GPLv2
-src/processes.[c|h]: GPLv2
-src/sighand.[c|h]: GPLv2
-src/utils.[c|h]: GPLv2
-
-tools/greenbone-nvt-sync.in: GPLv2+
+  licensecheck -r --deb-fmt <directory>
 
 
-nasl/arc4.c: GPLv2+
-nasl/byteorder.h: GPLv2+
-nasl/capture_packet.[c|h]: GPLv2
-nasl/charcnv.c: GPLv2+
-nasl/charset.h: GPLv2+
-nasl/CMakeLists.txt: GPLv2+
-nasl/exec.[c|h]: GPLv2
-nasl/genrand.c: GPLv2+
-nasl/hmacmd5.[c|h]: GPLv2+
-nasl/iconv.[c|h]: GPLv2+
-nasl/lint.c: GPLv2
-nasl/md4.[c|h]: GPLv2+
-nasl/md5.[c|h]: Public Domain
-nasl/nasl.[c|h]: GPLv2
-nasl/nasl_builtin_find_service.c: GPLv2
-nasl/nasl_builtin_nmap.c: GPLv2+
-nasl/nasl_builtin_openvas_tcp_scanner.c: GPLv2
-nasl/nasl_builtin_plugins.h: GPLv2+
-nasl/nasl_builtin_synscan.c: GPLv2
-nasl/nasl_cert.[c|h]: GPLv2+
-nasl/nasl_cmd_exec.[c|h]: GPLv2
-nasl/nasl_crypto2.[c|h]: GPLv2
-nasl/nasl_crypto.[c|h]: GPLv2
-nasl/nasl_debug.[c|h]: GPLv2
-nasl/nasl_func.[c|h]: GPLv2
-nasl/nasl_global_ctxt.h: GPLv2
-nasl/nasl_grammar.y: GPLv2
-nasl/nasl_host.[c|h]: GPLv2
-nasl/nasl_http.[c|h]: GPLv2
-nasl/nasl_init.[c|h]: GPLv2
-nasl/nasl_isotime.[c|h]: GPLv2+
-nasl/nasl_lex_ctxt.[c|h]: GPLv2
-nasl/nasl_misc_funcs.[c|h]: GPLv2
-nasl/nasl_packet_forgery.[c|h]: GPLv2
-nasl/nasl_packet_forgery_v6.[c|h]: GPLv2
-nasl/nasl_raw.h: GPLv2
-nasl/nasl_scanner_glue.[c|h]: GPLv2
-nasl/nasl_signature.[c|h]: GPLv2+
-nasl/nasl_smb.[c|h]: GPLv2+
-nasl/nasl_socket.[c|h]: GPLv2
-nasl/nasl_text_utils.[c|h]: GPLv2
-nasl/nasl_tree.[c|h]: GPLv2
-nasl/nasl_var.[c|h]: GPLv2
-nasl/nasl_wmi.[c|h]: GPLv2+
-nasl/ntlmssp.[c|h]: GPLv2+
-nasl/openvas_smb_interface.h: GPLv2+
-nasl/openvas_wmi_interface.h: GPLv2+
-nasl/proto.h: GPLv2+
-nasl/smb_crypt2.c: GPLv2+
-nasl/smb_crypt.[c|h]: GPLv2+
-nasl/smb.h: GPLv2+
-nasl/smb_interface_stub.c: GPLv2+
-nasl/smb_signing.[c|h]: GPLv2+
-nasl/strutils.[c|h]: GPLv2
-nasl/wmi_interface_stub.c: GPLv2+
+src/CMakeLists.txt: GPL-2+
+src/attack.c: GPL-2
+src/attack.h: GPL-2
+src/comm.c: GPL-2
+src/comm.h: GPL-2
+src/hosts.c: GPL-2
+src/hosts.h: GPL-2
+src/nasl_plugins.c: GPL-2
+src/ntp.c: GPL-2
+src/ntp.h: GPL-2
+src/openvassd.c: GPL-2
+src/otp.c: GPL-2+
+src/otp.h: GPL-2+
+src/pluginlaunch.c: GPL-2
+src/pluginlaunch.h: GPL-2
+src/pluginload.c: GPL-2
+src/pluginload.h: GPL-2
+src/pluginscheduler.c: GPL-2
+src/pluginscheduler.h: GPL-2
+src/plugs_req.c: GPL-2
+src/plugs_req.h: GPL-2
+src/processes.c: GPL-2
+src/processes.h: GPL-2
+src/sighand.c: GPL-2
+src/sighand.h: GPL-2
+src/utils.c: GPL-2
+src/utils.h: GPL-2
 
-nasl/tests/Makefile: GPLv2+
-nasl/tests/signed.nasl: GPLv2+
-nasl/tests/test_blowfish.nasl: GPLv2+
-nasl/tests/test_bn.nasl: GPLv2+
-nasl/tests/test_dh.nasl: GPLv2+
-nasl/tests/test_dsa.nasl: GPLv2+
-nasl/tests/test_hexstr.nasl: GPLv2+
-nasl/tests/test_isotime.nasl: GPLv2+
-nasl/tests/test_md.nasl: GPLv2+
-nasl/tests/test_privkey.nasl: GPLv2+
-nasl/tests/test_rsa.nasl: GPLv2+
-nasl/tests/test_script_signing.sh: GPLv2+
-nasl/tests/test_socket.nasl: GPLv2+
-nasl/tests/testsuiteinit.nasl: GPLv2+
-nasl/tests/testsuitesummary.nasl: GPLv2+
+tools/greenbone-nvt-sync.in: GPL-2+
+
+nasl/CMakeLists.txt: GPL-2+
+nasl/arc4.c: GPL-2+
+nasl/byteorder.h: GPL-2+
+nasl/capture_packet.c: GPL-2
+nasl/capture_packet.h: GPL-2
+nasl/charcnv.c: GPL-2+
+nasl/charset.h: GPL-2+
+nasl/exec.c: GPL-2
+nasl/exec.h: GPL-2
+nasl/genrand.c: GPL-2+
+nasl/hmacmd5.c: GPL-2+
+nasl/hmacmd5.h: GPL-2+
+nasl/iconv.c: GPL-2+
+nasl/iconv.h: GPL-2+
+nasl/lint.c: GPL-2
+nasl/md4.c: GPL-2+
+nasl/md4.h: GPL-2+
+nasl/md5.c: public-domain
+nasl/md5.h: public-domain
+nasl/nasl-lint.c: GPL-2+
+nasl/nasl.c: GPL-2
+nasl/nasl.h: GPL-2
+nasl/nasl_builtin_find_service.c: GPL-2
+nasl/nasl_builtin_nmap.c: GPL-2+
+nasl/nasl_builtin_openvas_tcp_scanner.c: GPL-2
+nasl/nasl_builtin_plugins.h: GPL-2+
+nasl/nasl_builtin_synscan.c: GPL-2
+nasl/nasl_cert.c: GPL-2+
+nasl/nasl_cert.h: GPL-2+
+nasl/nasl_cmd_exec.c: GPL-2
+nasl/nasl_cmd_exec.h: GPL-2
+nasl/nasl_crypto.c: GPL-2
+nasl/nasl_crypto.h: GPL-2
+nasl/nasl_crypto2.c: GPL-2
+nasl/nasl_crypto2.h: GPL-2
+nasl/nasl_debug.c: GPL-2
+nasl/nasl_debug.h: GPL-2
+nasl/nasl_func.c: GPL-2
+nasl/nasl_func.h: GPL-2
+nasl/nasl_global_ctxt.h: GPL-2
+nasl/nasl_grammar.y: GPL-2
+nasl/nasl_host.c: GPL-2
+nasl/nasl_host.h: GPL-2
+nasl/nasl_http.c: GPL-2
+nasl/nasl_http.h: GPL-2
+nasl/nasl_init.c: GPL-2
+nasl/nasl_init.h: GPL-2
+nasl/nasl_isotime.c: GPL-2+
+nasl/nasl_isotime.h: GPL-2+
+nasl/nasl_lex_ctxt.c: GPL-2
+nasl/nasl_lex_ctxt.h: GPL-2
+nasl/nasl_misc_funcs.c: GPL-2
+nasl/nasl_misc_funcs.h: GPL-2
+nasl/nasl_packet_forgery.c: GPL-2
+nasl/nasl_packet_forgery.h: GPL-2
+nasl/nasl_packet_forgery_v6.c: GPL-2
+nasl/nasl_packet_forgery_v6.h: GPL-2
+nasl/nasl_raw.h: GPL-2
+nasl/nasl_scanner_glue.c: GPL-2
+nasl/nasl_scanner_glue.h: GPL-2
+nasl/nasl_signature.c: GPL-2+
+nasl/nasl_signature.h: GPL-2+
+nasl/nasl_smb.c: GPL-2+
+nasl/nasl_smb.h: GPL-2+
+nasl/nasl_snmp.c: GPL-2+
+nasl/nasl_snmp.h: GPL-2+
+nasl/nasl_socket.c: GPL-2
+nasl/nasl_socket.h: GPL-2
+nasl/nasl_ssh.c: GPL-2+
+nasl/nasl_ssh.h: GPL-2+
+nasl/nasl_text_utils.c: GPL-2
+nasl/nasl_text_utils.h: GPL-2
+nasl/nasl_tree.c: GPL-2
+nasl/nasl_tree.h: GPL-2
+nasl/nasl_var.c: GPL-2
+nasl/nasl_var.h: GPL-2
+nasl/nasl_wmi.c: GPL-2+
+nasl/nasl_wmi.h: GPL-2+
+nasl/ntlmssp.c: GPL-2+
+nasl/ntlmssp.h: GPL-2+
+nasl/openvas_smb_interface.h: GPL-2+
+nasl/openvas_wmi_interface.h: GPL-2+
+nasl/proto.h: GPL-2+
+nasl/smb.h: GPL-2+
+nasl/smb_crypt.c: GPL-2+
+nasl/smb_crypt.h: GPL-2+
+nasl/smb_crypt2.c: GPL-2+
+nasl/smb_interface_stub.c: GPL-2+
+nasl/smb_signing.c: GPL-2+
+nasl/smb_signing.h: GPL-2+
+nasl/strutils.c: GPL-2
+nasl/strutils.h: GPL-2
+nasl/time.c: GPL-2+
+nasl/wmi_interface_stub.c: GPL-2+
+
+nasl/tests/Makefile: GPL-2+
+nasl/tests/signed.nasl: GPL-2+
+nasl/tests/test_blowfish.nasl: GPL-2+
+nasl/tests/test_bn.nasl: GPL-2+
+nasl/tests/test_dh.nasl: GPL-2+
+nasl/tests/test_dsa.nasl: GPL-2+
+nasl/tests/test_hexstr.nasl: GPL-2+
+nasl/tests/test_isotime.nasl: GPL-2+
+nasl/tests/test_md.nasl: GPL-2+
+nasl/tests/test_privkey.nasl: GPL-2+
+nasl/tests/test_rsa.nasl: GPL-2+
+nasl/tests/test_script_signing.sh: GPL-2+
+nasl/tests/test_socket.nasl: GPL-2+
+nasl/tests/testsuiteinit.nasl: GPL-2+
+nasl/tests/testsuitesummary.nasl: GPL-2+
