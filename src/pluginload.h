@@ -34,6 +34,7 @@
 #include <gvm/util/kb.h>             /* for struct kb_item */
 
 #include <openvas/misc/network.h>
+#include <openvas/misc/scanneraux.h>
 
 int
 plugins_init (void);
