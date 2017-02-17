@@ -86,7 +86,7 @@ if (NOT MINGW)
   if (NOT GPGME)
     message (SEND_ERROR "The gpgme library is required.")
   endif (NOT GPGME)
-  
+
   execute_process (COMMAND gpgme-config --libs
     OUTPUT_VARIABLE GPGME_LDFLAGS
     OUTPUT_STRIP_TRAILING_WHITESPACE)
@@ -233,7 +233,7 @@ install (TARGETS openvas_nasl_shared openvas-nasl openvas-nasl-lint
 
 install (FILES ${CMAKE_SOURCE_DIR}/doc/openvas-nasl.1
          DESTINATION ${DATADIR}/man/man1 )
-         
+
 install (FILES ${CMAKE_SOURCE_DIR}/doc/openvas-nasl-lint.1
          DESTINATION ${DATADIR}/man/man1 )
 ## End
