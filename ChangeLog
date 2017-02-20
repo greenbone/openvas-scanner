@@ -1,3 +1,15 @@
+2017-02-20  Juan Jose Nicola  <juan.nicola@greenbone.net>
+
+	Move misc library from openvas-libraries.
+
+	* misc/, misc/CMakeLists.txt, misc/README.txt, misc/arglists.c,
+	misc/arglists.h, misc/bpf_share.c, misc/bpf_share.h, misc/ftp_funcs.c,
+	misc/ftp_funcs.h, misc/ids_send.c, misc/ids_send.h, misc/internal_com.h,
+	misc/network.c, misc/network.h, misc/nvt_categories.h, misc/pcap.c,
+	misc/pcap_openvas.h, misc/plugutils.c, misc/plugutils.h, misc/popen.c,
+	misc/popen.h, misc/support.h, misc/www_funcs.c, misc/www_funcs.h,
+        /misc/scanneraux.h: Move from openvas-libraries.
+
 2017-02-17  Hani Benhabiles  <hani.benhabiles@greenbone.net>
 
 	* src/attack.c, src/comm.h, src/hosts.h, src/ntp.h, src/pluginload.h:
