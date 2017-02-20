@@ -22,8 +22,8 @@
 
 #include <gvm/base/logging.h>
 
-#include <openvas/misc/arglists.h>
-#include <openvas/misc/plugutils.h>
+#include "../misc/arglists.h"
+#include "../misc/plugutils.h"
 
 #include "nasl_tree.h"
 #include "nasl_global_ctxt.h"

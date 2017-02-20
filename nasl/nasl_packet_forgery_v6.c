@@ -51,9 +51,9 @@
 
 #include <netinet/icmp6.h>      /* ICMPv6 */
 
-#include <openvas/misc/bpf_share.h>          /* for bpf_open_live */
-#include <openvas/misc/pcap_openvas.h>       /* for routethrough */
-#include <openvas/misc/plugutils.h>          /* plug_get_host_ip */
+#include "../misc/bpf_share.h"          /* for bpf_open_live */
+#include "../misc/pcap_openvas.h"       /* for routethrough */
+#include "../misc/plugutils.h"          /* plug_get_host_ip */
 
 #include "nasl_raw.h"
 

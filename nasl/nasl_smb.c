@@ -51,7 +51,7 @@
 #include <gvm/base/networking.h>
 #include <gvm/base/logging.h>
 
-#include <openvas/misc/plugutils.h>
+#include "../misc/plugutils.h"
 
 #include "nasl_smb.h"
 #include "openvas_smb_interface.h"

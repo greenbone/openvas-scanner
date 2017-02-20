@@ -31,7 +31,7 @@
 #ifndef _OPENVAS_NTP_H
 #define _OPENVAS_NTP_H
 
-#include <openvas/misc/scanneraux.h>
+#include "../misc/scanneraux.h"
 
 int ntp_parse_input (struct scan_globals *, char *);
 

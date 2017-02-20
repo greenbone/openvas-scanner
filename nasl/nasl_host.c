@@ -35,9 +35,9 @@
 
 #include <gvm/base/networking.h>
 
-#include <openvas/misc/network.h>
-#include <openvas/misc/plugutils.h>          /* for plug_get_host_fqdn */
-#include <openvas/misc/pcap_openvas.h>       /* for v6_is_local_ip */
+#include "../misc/network.h"
+#include "../misc/plugutils.h"          /* for plug_get_host_fqdn */
+#include "../misc/pcap_openvas.h"       /* for v6_is_local_ip */
 
 #include "nasl_tree.h"
 #include "nasl_global_ctxt.h"

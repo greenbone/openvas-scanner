@@ -31,9 +31,9 @@
 #include <gvm/util/compressutils.h> /* for gvm_uncompress */
 #include <gvm/util/kb.h>            /* for KB_TYPE_STR */
 
-#include <openvas/misc/ftp_funcs.h>          /* for ftp_log_in */
-#include <openvas/misc/network.h>            /* read_stream_connection_min */
-#include <openvas/misc/plugutils.h>          /* plug_get_host_open_port */
+#include "../misc/ftp_funcs.h"          /* for ftp_log_in */
+#include "../misc/network.h"            /* read_stream_connection_min */
+#include "../misc/plugutils.h"          /* plug_get_host_open_port */
 
 #include "nasl_tree.h"
 #include "nasl_global_ctxt.h"

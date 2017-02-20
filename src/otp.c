@@ -25,7 +25,7 @@
 
 #include <string.h>
 
-#include <openvas/misc/network.h>
+#include "../misc/network.h"
 
 #include "otp.h"
 

@@ -55,7 +55,7 @@
 #include <gvm/base/networking.h>
 #include <gvm/base/logging.h>
 
-#include <openvas/misc/plugutils.h>
+#include "../misc/plugutils.h"
 
 #include "nasl_wmi.h"
 #include "openvas_wmi_interface.h"

@@ -54,8 +54,8 @@
 #include <gvm/base/prefs.h>    /* for prefs_get() */
 #include <gvm/util/kb.h>
 
-#include <openvas/misc/network.h>    /* for openvas_get_socket_from_connection */
-#include <openvas/misc/plugutils.h>
+#include "../misc/network.h"    /* for openvas_get_socket_from_connection */
+#include "../misc/plugutils.h"
 
 #include "nasl_tree.h"
 #include "nasl_global_ctxt.h"

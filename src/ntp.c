@@ -33,8 +33,8 @@
 
 #include <gvm/base/prefs.h>         /* for prefs_set() */
 
-#include <openvas/misc/network.h>    /* for recv_line */
-#include <openvas/misc/internal_com.h> /* for INTERNAL_COMM_MSG_TYPE_DATA */
+#include "../misc/network.h"    /* for recv_line */
+#include "../misc/internal_com.h" /* for INTERNAL_COMM_MSG_TYPE_DATA */
 
 #include "ntp.h"
 #include "otp.h"

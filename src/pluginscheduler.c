@@ -31,8 +31,8 @@
 
 #include <gvm/util/nvticache.h>     /* for nvticache_t */
 
-#include <openvas/misc/nvt_categories.h>  /* for ACT_SCANNER */
-#include <openvas/misc/plugutils.h>  /* for plug_get_launch */
+#include "../misc/nvt_categories.h"  /* for ACT_SCANNER */
+#include "../misc/plugutils.h"  /* for plug_get_launch */
 
 #include <glib.h>
 

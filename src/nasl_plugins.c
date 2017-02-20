@@ -45,9 +45,9 @@
 #include <gvm/base/prefs.h>           /* for prefs_get_bool */
 #include <gvm/util/nvticache.h>       /* for nvticache_add */
 
-#include <openvas/misc/network.h>    /* for internal_send */
-#include <openvas/misc/plugutils.h>     /* for plug_set_launch */
-#include <openvas/misc/internal_com.h>  /* for INTERNAL_COMM_CTRL_FINISHED */
+#include "../misc/network.h"    /* for internal_send */
+#include "../misc/plugutils.h"     /* for plug_set_launch */
+#include "../misc/internal_com.h"  /* for INTERNAL_COMM_CTRL_FINISHED */
 
 #include "../nasl/nasl.h"
 

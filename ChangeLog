@@ -1,5 +1,164 @@
 2017-02-20  Juan Jose Nicola  <juan.nicola@greenbone.net>
 
+	* INSTALL: Add prerequisites for misc library. Add section
+	"Configuration Options".
+
+	* README: Replace openvas-libraries for gvm-libs.
+
+	* CMakeLists.txt: Add handling for misc submodule.Set LIBDIR.
+	Add subdirectory 'misc'. Remove check for 'libopenvas_misc' library.
+
+	* misc/CMakeLists.txt: Add dependency checks, set variables and
+	install directories which were before in openvas-libraries's
+	CMakeLists.txt. Remove static or shared building option. Set
+	version variables for misc submodule, as it is different to the
+	openvassd version. Add INSTALL target related to this module.
+
+	* nasl/CMakeLists.txt: Remove base and misc from the list of
+	include_directories. Add openvas_misc_shared instead of libopenvas_misc
+	to the list of target_link_libraries. Remove libopenvas_base from the list
+	of target_link_libraries.
+
+	* src/CMakeLists.txt: Add openvas_misc_shared instead of libopenvas_misc
+	to the list of target_link_libraries. Remove libopenvas_base from the list
+	of target_link_libraries.
+
+	* doc/Doxyfile_full.in, doc/Doxyfile.in: Add INPUT to
+	generate misc documentation.
+
+	* misc/arglists.h: Remove Doxygen mainpage configuration.
+
+	* nasl/nasl_debug.c: Include ../misc/arglists.h, ../misc/plugutils.h
+	instead of openvas/misc/arglists.h, openvas/misc/plugutils.h.
+
+	* nasl/nasl_scanner_glue.c: Include ../misc/plugutils.h, ../misc/network.h
+	instead of openvas/misc/plugutils.h, openvas/misc/network.h.
+
+	* nasl/nasl_snmp.c: Include ../misc/plugutils.h instead of
+	openvas/misc/plugutils.h.
+
+	* nasl/nasl_host.c: Include ../misc/network.h, ../misc/plugutils.h,
+	../misc/pcap_openvas.h instead of openvas/misc/network.h,
+	openvas/misc/plugutils.h, openvas/misc/pcap_openvas.h.
+
+	* nasl/nasl_builtin_openvas_tcp_scanner.c: Include ../misc/arglists.h,
+	../misc/plugutils.h, ../misc/network.h instead of
+	openvas/misc/arglists.h, openvas/misc/plugutils.h,
+	openvas/misc/network.h.
+
+	* nasl/nasl_misc_funcs.c: Include ../misc/ftp_funcs.h,
+	../misc/network.h, ../misc/plugutils.h instead of
+	openvas/misc/ftp_funcs.h, openvas/misc/network.h,
+	openvas/misc/plugutils.h.
+
+	* nasl/nasl_smb.c: Include ../misc/plugutils.h instead of
+	openvas/misc/plugutils.h.
+
+	* nasl/nasl_packet_forgery.c: Include ../misc/bpf_share.h,
+	../misc/pcap_openvas.h, ../misc/plugutils.h instead of
+	openvas/misc/bpf_share.h, openvas/misc/pcap_openvas.h,
+	openvas/misc/plugutils.h.
+
+	* nasl/nasl_ssh.c: Include ../misc/network.h, ../misc/plugutils.h
+	instead of openvas/misc/network.h, openvas/misc/plugutils.h.
+
+	* nasl/nasl_wmi.c: Include ../misc/plugutils.h instead of
+	openvas/misc/plugutils.h.
+
+	* nasl/exec.c: Include ../misc/plugutils.h instead of
+	openvas/misc/plugutils.h.
+
+	* nasl/nasl_builtin_nmap.c: Include ../misc/arglists.h,
+	../misc/plugutils.h, ../misc/popen.h instead of
+	openvas/misc/arglists.h, openvas/misc/plugutils.h,
+	openvas/misc/popen.h.
+
+	* nasl/nasl.c: Include ../misc/nvt_categories.h, ../misc/network.h
+	instead of openvas/misc/nvt_categories.h, openvas/misc/network.h.
+
+	* nasl/capture_packet.c: Include ../misc/bpf_share.h,
+	../misc/pcap_openvas.h instead of openvas/misc/bpf_share.h,
+	openvas/misc/pcap_openvas.h.
+
+	* nasl/nasl_builtin_find_service.c: Include ../misc/arglists.h,
+	../misc/network.h, ../misc/plugutils.h instead of
+	openvas/misc/arglists.h, openvas/misc/network.h,
+	openvas/misc/plugutils.h.
+
+	* nasl/nasl_http.c: Include ../misc/plugutils.h,
+	../misc/www_funcs.h instead of openvas/misc/plugutils.h,
+	openvas/misc/www_funcs.h.
+
+	* nasl/nasl_builtin_synscan.c: Include ../misc/arglists.h,
+	../misc/bpf_share.h, ../misc/pcap_openvas.h, ../misc/plugutils.h,
+	../misc/network.h instead of openvas/misc/arglists.h,
+	openvas/misc/bpf_share.h, openvas/misc/pcap_openvas.h,
+	openvas/misc/plugutils.h, openvas/misc/network.h.
+
+	* nasl/nasl_socket.c: Include ../misc/network.h, ../misc/plugutils.h
+	instead of openvas/misc/network.h, openvas/misc/plugutils.h.
+
+	* nasl/nasl_cmd_exec.c: Include ../misc/plugutils.h, ../misc/popen.h
+	instead of openvas/misc/plugutils.h, openvas/misc/popen.h.
+
+	* nasl/nasl.h: Include ../misc/arglists.h instead of
+	openvas/misc/arglists.h.
+
+	* nasl/nasl_packet_forgery_v6.c: Include ../misc/bpf_share.h,
+	../misc/pcap_openvas.h, ../misc/plugutils.h instead of
+	openvas/misc/bpf_share.h, openvas/misc/pcap_openvas.h,
+	openvas/misc/plugutils.h.
+
+	* nasl/nasl_init.c: Include ../misc/nvt_categories.h,
+	../misc/network.h instead of openvas/misc/nvt_categories.h,
+	openvas/misc/network.h.
+
+	* src/attack.c: Include ../misc/network.h, ../misc/nvt_categories.h,
+	../misc/pcap_openvas.h, ../misc/internal_com.h instead of
+	openvas/misc/network.h, openvas/misc/nvt_categories.h,
+	openvas/misc/pcap_openvas.h, openvas/misc/internal_com.h.
+
+	* src/utils.c: Include ../misc/network.h instead of
+	openvas/misc/network.h.
+
+	* src/ntp.h: Include ../misc/arglists.h instead of
+	openvas/misc/arglists.h.
+
+	* src/pluginload.h: Include ../misc/arglists.h, ../misc/network.h
+	../misc/scanneraux.h instead of openvas/misc/arglists.h,
+	openvas/misc/network.h, openvas/misc/scanneraux.h.
+
+	* src/hosts.c: Include ../misc/network.h, ../misc/internal_com.h,
+	../misc/scanneraux.h instead of openvas/misc/network.h,
+	openvas/misc/internal_com.h, openvas/misc/scanneraux.h,
+
+	* src/ntp.c: Include ../misc/network.h, ../misc/internal_com.h,
+	../misc/network.h, ../misc/scanneraux.h instead of openvas/misc/network.h,
+	openvas/misc/internal_com.h, openvas/misc/network.h, openvas/misc/scanneraux.h
+
+	* src/comm.c: Include ../misc/nvt_categories.h, ../misc/plugutils.h,
+	../misc/network.h instead of openvas/misc/nvt_categories.h,
+	openvas/misc/plugutils.h, openvas/misc/network.h.
+
+	* src/pluginscheduler.c: Include ../misc/nvt_categories.h,
+	../misc/plugutils.h instead of openvas/misc/nvt_categories.h,
+	openvas/misc/plugutils.h.
+
+	* src/comm.h: Include ../misc/arglists.h ../misc/scanneraux.h
+	instead of openvas/misc/arglists.h, openvas/misc/scanneraux.h.
+
+	* src/pluginlaunch.c: Include ../misc/network.h,
+	../misc/nvt_categories.h,
+	../misc/internal_com.h instead of openvas/misc/network.h,
+	openvas/misc/nvt_categories.h, openvas/misc/internal_com.h.
+
+	* src/nasl_plugins.c: Include ../misc/network.h,
+	../misc/plugutils.h, ../misc/internal_com.h, ../misc/scanneraux.h
+	instead of openvas/misc/network.h, openvas/misc/plugutils.h,
+	openvas/misc/internal_com.h, openvas/misc/scanneraux.h.
+
+2017-02-20  Juan Jose Nicola  <juan.nicola@greenbone.net>
+
 	Move misc library from openvas-libraries.
 
 	* misc/, misc/CMakeLists.txt, misc/README.txt, misc/arglists.c,

@@ -10,10 +10,9 @@ Prerequisites for openvas-scanner
 ---------------------------------
 
 Prerequisites:
+* a C compiler (e.g. gcc)
 * cmake >= 2.8
-* libgvm_base >= 1.0.0
-* libgvm_util >= 1.0.0
-* libopenvas_misc >= 9.0.0
+* libgvm_base, libgvm_util >= 1.0.0
 * glib-2.0 >= 2.32
 * gio-2.0
 * bison
@@ -25,6 +24,7 @@ Prerequisites:
 * redis >= 2.4.0
 * libssh >= 0.5.0
 * libksba >= 1.0.7
+* libgnutls >= 3.2.15
 
 Prerequisites for building documentation:
 * Doxygen
@@ -81,6 +81,35 @@ you have specified a prefix for which your user does not have full permissions.
 
 To clean up the build environment, simply remove the contents of the "build"
 directory you created above.
+
+
+Configuration Options
+---------------------
+
+During compilation, the build process uses a set of compiler options which
+enable very strict error checking and ask the compiler to abort should it detect
+any errors in the code. This is to ensure a maximum of code quality and
+security.
+
+Unfortunately, some (especially newer) compiler can be more strict than others
+when it comes to error checking. While this is a good thing and the OpenVAS
+developers aim to address all compiler warnings, it may lead the build process
+to abort on your system. Below you will find a list of the most common warnings
+and what you can do about them.
+
+* "call to function ‘xyz’ without a real prototype"
+
+This warning shows up on recent openSUSE versions due to a compiler option only
+present on these systems. To tell the build process to not abort the build
+process on this warning, add -DIGNORE_UNPROTOTYPED_CALLS=1 to your configuration
+command, for example:
+
+    $ cmake -DIGNORE_UNPROTOTYPED_CALLS=1 .
+
+Should you notice any other error messages causing your build process to abort,
+do not hesitate to contact the OpenVAS developers using the mailing lists or IRC
+chat. Don't forget to include the name and version of your system and
+distribution in your message.
 
 
 Setting up openvas-scanner

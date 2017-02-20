@@ -61,7 +61,7 @@
 #include <gvm/base/nvti.h>       /* for prefs_get() */
 #include <gvm/util/kb.h>         /* for KB_PATH_DEFAULT */
 #include <gvm/util/nvticache.h>  /* nvticache_free */
-#include <openvas/misc/plugutils.h>  /* nvticache_free */
+#include "../misc/plugutils.h"  /* nvticache_free */
 
 #include <gcrypt.h> /* for gcry_control */
 

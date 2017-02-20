@@ -31,7 +31,7 @@
 #ifndef HOSTS_H
 #define HOSTS_H
 
-#include <openvas/misc/scanneraux.h>
+#include "../misc/scanneraux.h"
 
 int hosts_init (int, int);
 int hosts_new (struct scan_globals *, char *, int);

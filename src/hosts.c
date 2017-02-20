@@ -32,8 +32,8 @@
 
 #include <glib.h>     /* for g_free() */
 
-#include <openvas/misc/network.h>      /* for internal_recv */
-#include <openvas/misc/internal_com.h> /* for INTERNAL_COMM_MSG_TYPE_CTRL */
+#include "../misc/network.h"      /* for internal_recv */
+#include "../misc/internal_com.h" /* for INTERNAL_COMM_MSG_TYPE_CTRL */
 
 #include "utils.h" /* for data_left() */
 #include "hosts.h" /* for hosts_new() */

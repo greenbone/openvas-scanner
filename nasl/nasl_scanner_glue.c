@@ -38,8 +38,8 @@
 #include <gvm/base/prefs.h>     /* for prefs_get */
 #include <gvm/util/kb.h>        /* for KB_TYPE_INT */
 
-#include <openvas/misc/plugutils.h>          /* for plug_set_id */
-#include <openvas/misc/network.h>            /* for getpts */
+#include "../misc/plugutils.h"          /* for plug_set_id */
+#include "../misc/network.h"            /* for getpts */
 
 #include "nasl_tree.h"
 #include "nasl_global_ctxt.h"

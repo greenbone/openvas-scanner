@@ -148,7 +148,16 @@ if (NOT SBINDIR)
 endif (NOT SBINDIR)
 
 if (NOT LIBDIR)
-  set (LIBDIR "${EXEC_PREFIX}/lib")
+  set (_DEFAULT_LIBRARY_INSTALL_DIR lib)
+  if (EXISTS "${EXEC_PREFIX}/lib32/" AND CMAKE_SIZEOF_VOID_P EQUAL 4)
+    set (_DEFAULT_LIBRARY_INSTALL_DIR lib32)
+  endif (EXISTS "${EXEC_PREFIX}/lib32/" AND CMAKE_SIZEOF_VOID_P EQUAL 4)
+  if (EXISTS "${CMAKE_INSTALL_PREFIX}/lib64/" AND CMAKE_SIZEOF_VOID_P EQUAL 8)
+    set (_DEFAULT_LIBRARY_INSTALL_DIR lib64)
+  endif (EXISTS "${CMAKE_INSTALL_PREFIX}/lib64/" AND CMAKE_SIZEOF_VOID_P EQUAL 8)
+  set( LIBRARY_INSTALL_DIR "${_DEFAULT_LIBRARY_INSTALL_DIR}")
+  set (LIBDIR "${EXEC_PREFIX}/${LIBRARY_INSTALL_DIR}")
+  message ("Set LIBDIR to ${LIBDIR}")
 endif (NOT LIBDIR)
 
 if (NOT LOCALSTATEDIR)
@@ -194,7 +203,6 @@ message ("-- Install prefix: ${CMAKE_INSTALL_PREFIX}")
 
 pkg_check_modules (LIBGVM_BASE REQUIRED libgvm_base>=1.0.0)
 pkg_check_modules (LIBGVM_UTIL REQUIRED libgvm_util>=1.0.0)
-pkg_check_modules (LIBOPENVAS_MISC REQUIRED libopenvas_misc>=9.0.0)
 pkg_check_modules (GLIB REQUIRED glib-2.0>=2.32)
 
 message (STATUS "Looking for libgcrypt...")
@@ -235,6 +243,7 @@ set (CMAKE_C_FLAGS_RELEASE      "${CMAKE_C_FLAGS_RELEASE} ${HARDENING_FLAGS}")
 
 set (CMAKE_C_FLAGS              "${CMAKE_C_FLAGS} ${GPGME_C_FLAGS} -Wall -D_BSD_SOURCE -D_ISOC99_SOURCE -D_SVID_SOURCE -D_DEFAULT_SOURCE")
 
+add_subdirectory (misc)
 add_subdirectory (nasl)
 add_subdirectory (src)
 

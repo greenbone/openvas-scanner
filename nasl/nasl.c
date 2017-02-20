@@ -37,8 +37,8 @@
 #include <gvm/base/prefs.h>     /* for prefs_get */
 #include <gvm/util/kb.h>        /* for kb_new */
 
-#include <openvas/misc/nvt_categories.h>
-#include <openvas/misc/network.h>
+#include "../misc/nvt_categories.h"
+#include "../misc/network.h"
 
 #include "nasl.h"
 #include "nasl_lex_ctxt.h"

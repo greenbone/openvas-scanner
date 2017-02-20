@@ -22,6 +22,65 @@
 # along with this program; if not, write to the Free Software
 # Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA 02110-1301 USA.
 
+## Dependency checks
+##
+## TODO Also check for headers where needed.
+
+pkg_check_modules (GNUTLS REQUIRED gnutls>=3.2.15)
+
+pkg_check_modules (OPENVAS_WMICLIENT libopenvas_wmiclient>=1.0.1)
+pkg_check_modules (OPENVAS_WINCMD libopenvas_wincmd>=1.0.1)
+
+message (STATUS "Looking for pcap...")
+find_library (PCAP pcap)
+message (STATUS "Looking for pcap... ${PCAP}")
+if (NOT PCAP)
+  message (SEND_ERROR "The pcap library is required.")
+endif (NOT PCAP)
+
+message (STATUS "Looking for pcap-config...")
+find_program (PCAP_CONFIG pcap-config)
+
+if (PCAP_CONFIG)
+  message (STATUS "Looking for pcap-config... ${PCAP_CONFIG}")
+  execute_process (COMMAND pcap-config --libs
+    OUTPUT_VARIABLE PCAP_LDFLAGS
+    OUTPUT_STRIP_TRAILING_WHITESPACE)
+  execute_process (COMMAND pcap-config --cflags
+    OUTPUT_VARIABLE PCAP_CFLAGS
+    OUTPUT_STRIP_TRAILING_WHITESPACE)
+else (PCAP_CONFIG)
+  message (STATUS "pcap-config not found, using defaults...")
+  set (PCAP_LDFLAGS "-L/usr/lib -lpcap")
+  set (PCAP_CFLAGS "-I/usr/include")
+endif (PCAP_CONFIG)
+
+if (NOT MINGW)
+  # TODO: We do not have a library lookup for those modules
+  # which also works when cross compiling. Library names
+  # are hardcoded in the corresponding linker commands.
+  message (STATUS "Looking for gpgme...")
+  find_library (GPGME gpgme)
+  message (STATUS "Looking for gpgme... ${GPGME}")
+  if (NOT GPGME)
+    message (SEND_ERROR "The gpgme library is required.")
+  endif (NOT GPGME)
+
+  execute_process (COMMAND gpgme-config --libs
+    OUTPUT_VARIABLE GPGME_LDFLAGS
+    OUTPUT_STRIP_TRAILING_WHITESPACE)
+  execute_process (COMMAND gpgme-config --cflags
+    OUTPUT_VARIABLE GPGME_CFLAGS
+    OUTPUT_STRIP_TRAILING_WHITESPACE)
+
+endif (NOT MINGW)
+
+set (HARDENING_FLAGS "-Wformat -Wformat-security -O2 -D_FORTIFY_SOURCE=2 -fstack-protector")
+set (LINKER_HARDENING_FLAGS "-Wl,-z,relro -Wl,-z,now")
+set (CMAKE_C_FLAGS_DEBUG "${CMAKE_C_FLAGS_DEBUG} -Werror")
+
+
+
 ## Pass-throughs
 
 include_directories (${GLIB_INCLUDE_DIRS}
@@ -53,10 +112,6 @@ if (MINGW)
 else (MINGW)
   set (FILES arglists.c bpf_share.c ftp_funcs.c ids_send.c
              network.c plugutils.c popen.c  www_funcs.c pcap.c)
-
-  set (HEADERS arglists.h bpf_share.h ftp_funcs.h scanneraux.h
-               network.h pcap_openvas.h plugutils.h popen.h
-               nvt_categories.h internal_com.h www_funcs.h)
 endif (MINGW)
 
 # Indentation targets
@@ -64,35 +119,43 @@ endif (MINGW)
 # what this directive is good for.
 #add_custom_indent_targets (${FILES})
 
-if (BUILD_STATIC)
-  add_library (openvas_misc_static STATIC ${FILES})
+## Project version
+# The following three variables should be set through the project command once
+# we require CMake >= 3.0
+set (MISC_VERSION_MAJOR 9)
+set (MISC_VERSION_MINOR 1)
+set (MISC_VERSION_PATCH 0)
 
-  set_target_properties (openvas_misc_static PROPERTIES OUTPUT_NAME "openvas_misc")
-  set_target_properties (openvas_misc_static PROPERTIES CLEAN_DIRECT_OUTPUT 1)
-  set_target_properties (openvas_misc_static PROPERTIES PUBLIC_HEADER "${HEADERS}")
-  target_link_libraries (openvas_misc_static)
-endif (BUILD_STATIC)
+if (PROJECT_BETA_RELEASE)
+  set (MISC_VERSION_SUFFIX "+beta${PROJECT_BETA_RELEASE}")
+else (PROJECT_BETA_RELEASE)
+  set (MISC_VERSION_SUFFIX ".${PROJECT_VERSION_PATCH}")
+endif (PROJECT_BETA_RELEASE)
 
-if (BUILD_SHARED)
-  add_library (openvas_misc_shared SHARED ${FILES})
+set (MISC_VERSION_STRING "${MISC_VERSION_MAJOR}.${MISC_VERSION_MINOR}${MISC_VERSION_SUFFIX}")
+set (MISC_PACKAGE_VERSION "${MISC_VERSION_STRING}${PROJECT_VERSION_SVN}")
+set (MISC_VERSION "${MISC_VERSION_STRING}")
 
-  set_target_properties (openvas_misc_shared PROPERTIES OUTPUT_NAME "openvas_misc")
-  set_target_properties (openvas_misc_shared PROPERTIES CLEAN_DIRECT_OUTPUT 1)
-  set_target_properties (openvas_misc_shared PROPERTIES SOVERSION "${PROJECT_VERSION_MAJOR}")
-  set_target_properties (openvas_misc_shared PROPERTIES VERSION "${CPACK_PACKAGE_VERSION}")
-  set_target_properties (openvas_misc_shared PROPERTIES PUBLIC_HEADER "${HEADERS}")
 
-  if (MINGW)
-    set (GLIB_LDFLAGS -Wl,--start-group ${GLIB_LDFLAGS} gmodule-2.0 -Wl,--end-group)
-    set (W32LIBS ${GLIB_LDFLAGS} gnutls intl iconv tasn1
-       gcrypt gpgme assuan libgpg-error ole32 ws2_32 ffi z shlwapi dnsapi winmm)
-    target_link_libraries (openvas_misc_shared ${W32LIBS})
-  else (MINGW)
-    target_link_libraries (openvas_misc_shared LINK_PRIVATE ${GNUTLS_LDFLAGS} ${UUID_LDFLAGS}
-                           ${GLIB_LDFLAGS} ${PCAP_LDFLAGS}
-                           ${GCRYPT_LDFLAGS} ${LINKER_HARDENING_FLAGS})
-  endif (MINGW)
-endif (BUILD_SHARED)
+# Build shared
+
+add_library (openvas_misc_shared SHARED ${FILES})
+
+set_target_properties (openvas_misc_shared PROPERTIES OUTPUT_NAME "openvas_misc")
+set_target_properties (openvas_misc_shared PROPERTIES CLEAN_DIRECT_OUTPUT 1)
+set_target_properties (openvas_misc_shared PROPERTIES SOVERSION "${MISC_VERSION_MAJOR}")
+set_target_properties (openvas_misc_shared PROPERTIES VERSION "${MISC_PACKAGE_VERSION}")
+
+if (MINGW)
+  set (GLIB_LDFLAGS -Wl,--start-group ${GLIB_LDFLAGS} gmodule-2.0 -Wl,--end-group)
+  set (W32LIBS ${GLIB_LDFLAGS} gnutls intl iconv tasn1
+     gcrypt gpgme assuan libgpg-error ole32 ws2_32 ffi z shlwapi dnsapi winmm)
+  target_link_libraries (openvas_misc_shared ${W32LIBS})
+else (MINGW)
+  target_link_libraries (openvas_misc_shared LINK_PRIVATE ${GNUTLS_LDFLAGS} ${UUID_LDFLAGS}
+                         ${GLIB_LDFLAGS} ${PCAP_LDFLAGS}
+                         ${GCRYPT_LDFLAGS} ${LINKER_HARDENING_FLAGS})
+endif (MINGW)
 
 if (OPENVAS_STATE_DIR)
   add_definitions (-DOPENVAS_STATE_DIR=\\\"${OPENVAS_STATE_DIR}\\\")
@@ -111,16 +174,24 @@ endif (OPENVAS_SYSCONF_DIR)
 
 # install library
 
-if (BUILD_STATIC)
-  install (TARGETS openvas_misc_static
-           RUNTIME DESTINATION ${BINDIR}
-           ARCHIVE DESTINATION ${LIBDIR}
-           PUBLIC_HEADER DESTINATION "${INCLUDEDIR}/openvas/misc")
-endif (BUILD_STATIC)
-if (BUILD_SHARED)
-  install (TARGETS openvas_misc_shared
-           RUNTIME DESTINATION ${BINDIR}
-           LIBRARY DESTINATION ${LIBDIR}
-           ARCHIVE DESTINATION ${LIBDIR}
-           PUBLIC_HEADER DESTINATION "${INCLUDEDIR}/openvas/misc")
-endif (BUILD_SHARED)
+install (TARGETS openvas_misc_shared
+         RUNTIME DESTINATION ${BINDIR}
+         LIBRARY DESTINATION ${LIBDIR}
+         ARCHIVE DESTINATION ${LIBDIR})
+
+install (DIRECTORY DESTINATION ${OPENVAS_LOG_DIR})
+install (DIRECTORY DESTINATION ${OPENVAS_DATA_DIR})
+install (DIRECTORY DESTINATION ${OPENVAS_CACHE_DIR})
+install (DIRECTORY DESTINATION ${OPENVAS_SYSCONF_DIR})
+install (DIRECTORY
+  DESTINATION ${OPENVAS_SYSCONF_DIR}/gnupg
+  DIRECTORY_PERMISSIONS OWNER_EXECUTE OWNER_READ OWNER_WRITE)
+install (DIRECTORY
+  DESTINATION ${OPENVAS_STATE_DIR}/gnupg
+  DIRECTORY_PERMISSIONS OWNER_EXECUTE OWNER_READ OWNER_WRITE)
+
+## Tests
+
+enable_testing ()
+
+## End

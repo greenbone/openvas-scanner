@@ -15,7 +15,7 @@ with building from source code, we recommend that you use a install package or u
 a prepared virtual machine. Information regarding available binary packages 
 and virtual machines is available from the download area of the OpenVAS website.
 
-Note that you will need the openvas-libraries modules to compile
+Note that you will need the gvm-libs modules to compile
 openvas-scanner. Further information about these modules is available
 from the OpenVAS website as well.
 

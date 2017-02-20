@@ -33,9 +33,9 @@
 #include <gvm/base/logging.h>
 #include <gvm/base/prefs.h>    /* for prefs_get */
 
-#include <openvas/misc/arglists.h>  /* for struct arglist */
-#include <openvas/misc/plugutils.h> /* for find_in_path */
-#include <openvas/misc/network.h>
+#include "../misc/arglists.h"  /* for struct arglist */
+#include "../misc/plugutils.h" /* for find_in_path */
+#include "../misc/network.h"
 
 #include "nasl_lex_ctxt.h"
 

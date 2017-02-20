@@ -64,9 +64,9 @@
 #include <gvm/base/prefs.h>  /* for prefs_get */
 #include <gvm/util/kb.h>
 
-#include <openvas/misc/arglists.h>
-#include <openvas/misc/plugutils.h>
-#include <openvas/misc/popen.h>
+#include "../misc/arglists.h"
+#include "../misc/plugutils.h"
+#include "../misc/popen.h"
 
 #include "nasl_lex_ctxt.h"
 

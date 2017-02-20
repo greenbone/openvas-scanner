@@ -23,16 +23,6 @@
  * Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA 02110-1301 USA.
  */
 
-/**
- * @mainpage
- *
- * @section installation Overview and installation instructions
- * @verbinclude README
- *
- * @section copying License Information
- * @verbinclude COPYING
- */
-
 #ifndef OPENVAS_ARGLISTS_H
 #define OPENVAS_ARGLISTS_H
 

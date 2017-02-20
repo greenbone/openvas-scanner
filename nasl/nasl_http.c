@@ -24,8 +24,8 @@
 #include <gvm/base/prefs.h>      /* for prefs_get */
 #include <gvm/util/kb.h>         /* for kb_item_get_str */
 
-#include <openvas/misc/plugutils.h>  /* plug_get_host_fqdn */
-#include <openvas/misc/www_funcs.h>  /* for build_encode_URL */
+#include "../misc/plugutils.h"  /* plug_get_host_fqdn */
+#include "../misc/www_funcs.h"  /* for build_encode_URL */
 
 #include "nasl_tree.h"
 #include "nasl_global_ctxt.h"

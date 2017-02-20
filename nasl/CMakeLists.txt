@@ -194,8 +194,6 @@ include_directories (${GLIB_INCLUDE_DIRS}
                      ${LIBSSH_INCLUDE_DIRS}
                      ${LIBGVM_BASE_INCLUDE_DIRS}
                      ${LIBGVM_UTIL_INCLUDE_DIRS}
-                     ${LIBOPENVAS_BASE_INCLUDE_DIRS}
-                     ${LIBOPENVAS_MISC_INCLUDE_DIRS}
                      ${KSBA_INCLUDE_DIRS})
 
 
@@ -206,11 +204,10 @@ set_target_properties (openvas_nasl_shared PROPERTIES CLEAN_DIRECT_OUTPUT 1)
 set_target_properties (openvas_nasl_shared PROPERTIES SOVERSION "${NASL_VERSION_MAJOR}")
 set_target_properties (openvas_nasl_shared PROPERTIES VERSION "${NASL_PACKAGE_VERSION}")
 # line bellow is needed so it also works with no-undefined which is e.g. used by Mandriva
-target_link_libraries (openvas_nasl_shared ${GLIB_LDFLAGS}
+target_link_libraries (openvas_nasl_shared openvas_misc_shared ${GLIB_LDFLAGS}
                          ${GCRYPT_LDFLAGS} ${GPGME_LDFLAGS} m
                          ${LIBGVM_BASE_LDFLAGS}
                          ${LIBGVM_UTIL_LDFLAGS}
-                         ${LIBOPENVAS_BASE_LDFLAGS} ${LIBOPENVAS_MISC_LDFLAGS}
                          ${OPENVAS_WMICLIENT_LDFLAGS} ${OPENVAS_WINCMD_LDFLAGS}
                          ${GNUTLS_LDFLAGS} ${PCAP_LDFLAGS} ${LIBSSH_LDFLAGS}
                          ${KSBA_LDFLAGS} ${SNMP_LDFLAGS}
@@ -218,11 +215,11 @@ target_link_libraries (openvas_nasl_shared ${GLIB_LDFLAGS}
 
 # Link the openvas-nasl executable
 add_executable (openvas-nasl nasl.c)
-target_link_libraries (openvas-nasl openvas_nasl_shared ${GNUTLS_LDFLAGS} ${LIBSSH_LDFLAGS})
+target_link_libraries (openvas-nasl openvas_nasl_shared openvas_misc_shared ${GNUTLS_LDFLAGS} ${LIBSSH_LDFLAGS})
 
 # Link the openvas-nasl-lint executable
 add_executable (openvas-nasl-lint nasl-lint.c)
-target_link_libraries (openvas-nasl-lint openvas_nasl_shared ${GLIB_LDFLAGS} ${GIO_LDFLAGS})
+target_link_libraries (openvas-nasl-lint openvas_nasl_shared openvas_misc_shared ${GLIB_LDFLAGS} ${GIO_LDFLAGS})
 
 ## Install
 

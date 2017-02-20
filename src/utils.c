@@ -34,7 +34,7 @@
 
 #include <gvm/base/prefs.h>      /* for prefs_get() */
 
-#include <openvas/misc/network.h>    /* for stream_zero */
+#include "../misc/network.h"    /* for stream_zero */
 
 #include "comm.h"
 #include "ntp.h"

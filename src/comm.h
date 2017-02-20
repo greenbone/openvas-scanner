@@ -30,7 +30,7 @@
 #ifndef _OPENVAS_COMM_H
 #define _OPENVAS_COMM_H
 
-#include <openvas/misc/scanneraux.h>
+#include "../misc/scanneraux.h"
 
 int comm_init (int);
 int comm_loading (int);

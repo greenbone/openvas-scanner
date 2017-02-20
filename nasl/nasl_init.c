@@ -23,8 +23,8 @@
 #include <string.h>         /* for memset */
 #include <stdlib.h>         /* for getenv.  */
 
-#include <openvas/misc/nvt_categories.h> /* for ACT_INIT */
-#include <openvas/misc/network.h>      /* for OPENVAS_ENCAPS_* */
+#include "../misc/nvt_categories.h" /* for ACT_INIT */
+#include "../misc/network.h"      /* for OPENVAS_ENCAPS_* */
 
 #include "nasl.h"
 #include "nasl_tree.h"
