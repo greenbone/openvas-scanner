@@ -1,4 +1,4 @@
-/* openvas-libraries/nasl
+/* openvas-scanner/nasl
  * $Id$
  * Description: Implementation of an API for X.509 certificates
  *

@@ -1,3 +1,20 @@
+2017-02-20  Juan Jose Nicola  <juan.nicola@greenbone.net>
+
+	* nasl/nasl_builtin_plugins.h, nasl/nasl_cert.c, nasl/nasl_cert.h,
+	nasl/nasl_isotime.c, nasl/nasl_isotime.h, nasl/nasl_snmp.c,
+	nasl/nasl_snmp.h, nasl/nasl_socket.c, nasl/nasl_ssh.c,
+	nasl/nasl_ssh.h: Replace in the description openvas-libraries/nasl
+	with openvas-scanner/nasl.
+
+	* src/attack.c (nvti_category_is_safe): In a comment, replace
+	openvas-libraries with openvas-scanner/nasl.
+
+	* misc/scanneraux.h, misc/support.h: Replace in the description
+	openvas-libraries/misc with openvas-scanner/misc.
+
+	* misc/ids_send.c (injecet, injectv6): Replace in perror messages
+	openvas-libraries with openvas-scanner.
+
 2017-02-20  Michael Wiegand <michael.wiegand@greenbone.net>
 
 	* COPYING: Add licenses for 'misc/' subdirectory.
@@ -38,6 +55,8 @@
 	CMakeLists.txt. Remove static or shared building option. Set
 	version variables for misc submodule, as it is different to the
 	openvassd version. Add INSTALL target related to this module.
+	Remove HEADER set and install. They are no longer requiered since
+	misc is in the same module.
 
 	* nasl/CMakeLists.txt: Remove base and misc from the list of
 	include_directories. Add openvas_misc_shared instead of libopenvas_misc

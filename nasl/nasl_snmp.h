@@ -1,4 +1,4 @@
-/* openvas-libraries/nasl
+/* openvas-scanner/nasl
  * $Id$
  * Description: Headers of an API for SNMP used by NASL scripts.
  *

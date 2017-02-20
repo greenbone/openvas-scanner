@@ -1,4 +1,4 @@
-/* openvas-libraries/nasl/nasl_socket.c
+/* openvas-scanner/nasl/nasl_socket.c
  * $Id$
  * Description: NASL socket API
  *

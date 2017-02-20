@@ -1,4 +1,4 @@
-/* openvas-libraries/misc
+/* openvas-scanner/misc
  * $Id$
  * Description: Support macros for special platforms.
  *

@@ -1,4 +1,4 @@
-/* openvas-libraries/nasl
+/* openvas-scanner/nasl
  * $Id$
  * Description: API (structs and protos) for SSH functions used by NASL scripts
  *

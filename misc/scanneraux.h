@@ -1,4 +1,4 @@
-/* openvas-libraries/misc
+/* openvas-scanner/misc
  * $Id$
  * Description: Auxiliary structures for scanner.
  *

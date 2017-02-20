@@ -424,7 +424,7 @@ inject (orig_packet, packet_len, method, flags, data, data_len)
        sizeof (sockaddr)) < 0)
     {
       perror
-        ("openvas-libraries : libopenvas : ids_send.c : inject() : sendto() ");
+        ("openvas-scanner : libopenvas : ids_send.c : inject() : sendto() ");
     }
   g_free (packet);
   close (soc);
@@ -518,7 +518,7 @@ injectv6 (orig_packet, packet_len, method, flags, data, data_len)
        sizeof (sockaddr6)) < 0)
     {
       perror
-        ("openvas-libraries : libopenvas : ids_send.c : inject() : sendto() ");
+        ("openvas-scanner : libopenvas : ids_send.c : inject() : sendto() ");
     }
   g_free (packet);
   close (soc);
