@@ -156,3 +156,27 @@ nasl/tests/test_script_signing.sh: GPL-2+
 nasl/tests/test_socket.nasl: GPL-2+
 nasl/tests/testsuiteinit.nasl: GPL-2+
 nasl/tests/testsuitesummary.nasl: GPL-2+
+
+misc/CMakeLists.txt: GPL-2+
+misc/arglists.c: LGPL-2+
+misc/arglists.h: LGPL-2+
+misc/bpf_share.c: GPL-2
+misc/bpf_share.h: LGPL-2+
+misc/ftp_funcs.c: LGPL-2+
+misc/ftp_funcs.h: LGPL-2+
+misc/ids_send.c: LGPL-2+
+misc/ids_send.h: LGPL-2+
+misc/internal_com.h: GPL-2+
+misc/network.c: LGPL-2+
+misc/network.h: LGPL-2+
+misc/nvt_categories.h: LGPL-2+
+misc/pcap.c: LGPL-2+
+misc/pcap_openvas.h: LGPL-2+
+misc/plugutils.c: LGPL-2+
+misc/plugutils.h: LGPL-2+
+misc/popen.c: LGPL-2+
+misc/popen.h: LGPL-2+
+misc/scanneraux.h: GPL-2+
+misc/support.h: GPL-2+
+misc/www_funcs.c: GPL-2
+misc/www_funcs.h: LGPL-2+
