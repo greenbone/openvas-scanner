@@ -1683,7 +1683,7 @@ extern tree_cell *nasl_lint (lex_ctxt *, tree_cell *);
  * bit #0 (1) is "description"
  * Bit #1 (2) is "parse only"
  *
- * @param script_infos The plugin as arglist. Has to be allocated.
+ * @param script_infos The plugin script_infos.
  * @param name         Filename.
  * @param mode         Bit field describing launch mode (description, parse
  *                     always signed).
@@ -1692,7 +1692,7 @@ extern tree_cell *nasl_lint (lex_ctxt *, tree_cell *);
  * error occurred.
  */
 int
-exec_nasl_script (struct arglist *script_infos, const char *name,
+exec_nasl_script (struct script_infos *script_infos, const char *name,
                   const char *oid, int mode)
 {
   naslctxt ctx;
@@ -1702,7 +1702,6 @@ exec_nasl_script (struct arglist *script_infos, const char *name,
   lex_ctxt *lexic;
   gchar *old_dir;
   gchar *newdir;
-  char *old;
   tree_cell tc;
   const char *str;
 
@@ -1713,13 +1712,9 @@ exec_nasl_script (struct arglist *script_infos, const char *name,
 #if NASL_DEBUG > 2
   nasl_trace_fp = stderr;
 #endif
-  if ((old = arg_get_value (script_infos, "script_name")) == NULL)
-    arg_add_value (script_infos, "script_name", ARG_STRING, g_strdup (name));
-  else
-    {
-      g_free (old);
-      arg_set_value (script_infos, "script_name", g_strdup (name));
-    }
+  if (script_infos->name)
+    g_free (script_infos->name);
+  script_infos->name = g_strdup (name);
 
   newdir = g_path_get_dirname (name);
 

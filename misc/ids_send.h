@@ -33,8 +33,7 @@
 #ifndef __OPENVAS_IDS_SEND_H__
 #define __OPENVAS_IDS_SEND_H__
 
-/* for struct arglist */
-#include "arglists.h"
+#include "scanneraux.h"
 
 /*
  * Transport layer options
@@ -50,6 +49,6 @@
 #define OPENVAS_CNX_IDS_EVASION_SEND_MASK (OPENVAS_CNX_IDS_EVASION_SPLIT|OPENVAS_CNX_IDS_EVASION_INJECT|OPENVAS_CNX_IDS_EVASION_SHORT_TTL)
 
 int ids_send (int, void *, int, int);
-int ids_open_sock_tcp (struct arglist *, int, int, int);
+int ids_open_sock_tcp (struct script_infos *, int, int, int);
 
 #endif

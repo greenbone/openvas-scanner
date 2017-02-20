@@ -31,7 +31,7 @@ enum node_type
   NODE_REPEAT_UNTIL,
   NODE_REPEATED,                /* [0] = func call, [1] = repeat nb */
   NODE_FUN_DEF,                 /* [0] = argdecl, [1] = block */
-  NODE_FUN_CALL,                /* [0] = arglist */
+  NODE_FUN_CALL,                /* [0] = script_infos */
   NODE_DECL,                    /* [0] = next arg in list */
   NODE_ARG,                     /* val = name can be NULL, [0] = val, [1] = next arg */
   NODE_RETURN,                  /* ret val */

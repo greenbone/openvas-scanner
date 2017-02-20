@@ -39,7 +39,6 @@
 
 #include <gvm/base/logging.h>
 
-#include "arglists.h"
 #include "bpf_share.h"
 #include "ids_send.h"
 #include "network.h"
@@ -692,11 +691,7 @@ ids_send (fd, buf0, n, method)
 
 
 int
-ids_open_sock_tcp (args, port, method, timeout)
-     struct arglist *args;
-     int port;
-     int method;
-     int timeout;
+ids_open_sock_tcp (struct script_infos *args, int port, int method, int timeout)
 {
   int bpf;
   struct in_addr dst, src;

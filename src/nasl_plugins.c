@@ -98,8 +98,6 @@ prefs_add_nvti (const nvti_t *nvti)
  * The plugin is first attempted to be loaded from the cache.
  * If that fails, it is parsed (via exec_nasl_script) and
  * added to the cache.
- * If a plugin with the same (file)name is already present in the plugins
- * arglist, it will be replaced.
  *
  * @param folder  Path to the plugin folder.
  * @param name    File-name of the plugin
@@ -125,20 +123,18 @@ nasl_plugin_add (char *folder, char *name)
   if (nvti == NULL)
     {
       nvti_t *new_nvti;
-      struct arglist *plugin_args;
+      struct script_infos *args;
 
-      g_free (nvti);
-      plugin_args = g_malloc0 (sizeof (struct arglist));
+      args = g_malloc0 (sizeof (struct script_infos));
       new_nvti = nvti_new ();
-      arg_add_value (plugin_args, "NVTI", ARG_PTR, new_nvti);
-
-      if (exec_nasl_script (plugin_args, fullname, NULL, nasl_mode) < 0)
+      args->nvti = new_nvti;
+      if (exec_nasl_script (args, fullname, NULL, nasl_mode) < 0)
         {
           g_debug ("%s: Could not be loaded", fullname);
-          arg_free_all (plugin_args);
+          g_free (args);
           return -1;
         }
-      arg_free_all (plugin_args);
+      g_free (args);
 
       // Check mtime of plugin before caching it
       // Set to now if mtime is in the future
@@ -189,7 +185,7 @@ nasl_plugin_add (char *folder, char *name)
 }
 
 struct nasl_thread_args {
-  struct arglist *args;
+  struct script_infos *args;
   char *name;
   const char *oid;
   int soc;
@@ -207,29 +203,29 @@ nasl_plugin_launch (struct scan_globals *globals, struct host_info *hostinfo,
 {
   int module;
   struct nasl_thread_args nargs;
-  struct arglist *plugin;
+  struct script_infos *infos;
 
-  plugin = g_malloc0 (sizeof (struct arglist));
-  arg_add_value (plugin, "HOSTNAME", ARG_PTR, hostinfo);
-  arg_add_value (plugin, "globals", ARG_PTR, globals);
-  arg_add_value (plugin, "key", ARG_PTR, kb);
+  infos = g_malloc0 (sizeof (struct script_infos));
+  infos->hostname = hostinfo;
+  infos->globals = globals;
+  infos->key = kb;
 
-  nargs.args = plugin;
+  nargs.args = infos;
   nargs.name = name;
   nargs.oid = oid;
   nargs.soc = soc;
 
   module = create_process ((process_func_t) nasl_thread, &nargs);
-  arg_free (plugin);
+  g_free (infos);
   return module;
 }
 
 static void
 nasl_thread (struct nasl_thread_args *nargs)
 {
-  struct arglist *args = nargs->args;
-  struct scan_globals *globals = arg_get_value (args, "globals");
-  struct host_info *hostinfo = arg_get_value (args, "HOSTNAME");
+  struct script_infos *args = nargs->args;
+  struct scan_globals *globals = args->globals;
+  struct host_info *hostinfo = args->hostname;
   char *name = nargs->name;
   int nasl_mode = 0;
   kb_t kb;
@@ -248,7 +244,7 @@ nasl_thread (struct nasl_thread_args *nargs)
     }
 
   pluginlaunch_child_cleanup ();
-  kb = arg_get_value (args, "key");
+  kb = args->key;
   kb_lnk_reset (kb);
   globals->global_socket = nargs->soc;
   proctitle_set ("openvassd: testing %s (%s)", hostinfo->name, name);

@@ -26,6 +26,6 @@
 #ifndef OPENVAS_WWW_FUNCS_H
 #define OPENVAS_WWW_FUNCS_H
 
-char *build_encode_URL (struct arglist *, char *, char *, char *, char *);
+char *build_encode_URL (struct  script_infos*, char *, char *, char *, char *);
 
 #endif

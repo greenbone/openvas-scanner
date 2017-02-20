@@ -127,9 +127,9 @@ struct udp_record {
 
 /* add udp data in our cache */
 static int
-add_udp_data (struct arglist *script_infos, int soc, char *data, int len)
+add_udp_data (struct script_infos *script_infos, int soc, char *data, int len)
 {
-  GHashTable * udp_data = arg_get_value (script_infos, "udp_data");
+  GHashTable * udp_data = script_infos->udp_data;
   struct udp_record * data_record = g_malloc0 (sizeof(struct udp_record));
   int * key = g_memdup (&soc, sizeof(int));
 
@@ -139,7 +139,7 @@ add_udp_data (struct arglist *script_infos, int soc, char *data, int len)
   if (udp_data == NULL)
     {
       udp_data = g_hash_table_new_full (g_int_hash, g_int_equal, g_free, g_free);
-      arg_add_value (script_infos, "udp_data", ARG_PTR, udp_data);
+      script_infos->udp_data = udp_data;
     }
 
   g_hash_table_replace (udp_data, (gpointer)key, (gpointer)data_record);
@@ -149,15 +149,15 @@ add_udp_data (struct arglist *script_infos, int soc, char *data, int len)
 
 /* get the udp data for socket <soc> */
 static char *
-get_udp_data (struct arglist *script_infos, int soc, int *len)
+get_udp_data (struct script_infos *script_infos, int soc, int *len)
 {
   GHashTable *udp_data;
   struct udp_record *data_record;
 
-  if ((udp_data = arg_get_value (script_infos, "udp_data")) == NULL)
+  if ((udp_data = script_infos->udp_data) == NULL)
     {
       udp_data = g_hash_table_new_full (g_int_hash, g_int_equal, g_free, g_free);
-      arg_add_value (script_infos, "udp_data", ARG_PTR, udp_data);
+      script_infos->udp_data = udp_data;
       return NULL;
     }
   data_record = g_hash_table_lookup (udp_data, (gconstpointer)&soc);
@@ -170,9 +170,9 @@ get_udp_data (struct arglist *script_infos, int soc, int *len)
 
 /* remove the udp data for socket <soc> */
 static void
-rm_udp_data (struct arglist *script_infos, int soc)
+rm_udp_data (struct script_infos *script_infos, int soc)
 {
-  GHashTable * udp_data = arg_get_value (script_infos, "udp_data");
+  GHashTable *udp_data = script_infos->udp_data;
 
   if (udp_data)
     g_hash_table_remove (udp_data, (gconstpointer)&soc);
@@ -185,7 +185,7 @@ rm_udp_data (struct arglist *script_infos, int soc)
 static tree_cell *
 nasl_open_privileged_socket (lex_ctxt * lexic, int proto)
 {
-  struct arglist *script_infos = lexic->script_infos;
+  struct script_infos *script_infos = lexic->script_infos;
   int sport, current_sport = -1;
   int dport;
   int sock;
@@ -382,7 +382,7 @@ tree_cell *
 nasl_open_sock_tcp_bufsz (lex_ctxt * lexic, int bufsz)
 {
   int soc = -1;
-  struct arglist *script_infos = lexic->script_infos;
+  struct script_infos *script_infos = lexic->script_infos;
   int to, port;
   int transport = -1;
   const char *priority;
@@ -498,7 +498,7 @@ nasl_open_sock_udp (lex_ctxt * lexic)
   int port;
   struct sockaddr_in soca;
   struct sockaddr_in6 soca6;
-  struct arglist *script_infos = lexic->script_infos;
+  struct script_infos *script_infos = lexic->script_infos;
   struct in6_addr *ia;
 
   port = get_int_var_by_num (lexic, 0, -1);

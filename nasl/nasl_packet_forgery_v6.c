@@ -128,7 +128,7 @@ forge_ipv6_packet (lex_ctxt * lexic)
   tree_cell *retc;
   struct ip6_hdr *pkt;
   char *s;
-  struct arglist *script_infos = lexic->script_infos;
+  struct script_infos *script_infos = lexic->script_infos;
   struct in6_addr *dst_addr;
   char *data;
   int data_len;
@@ -1549,7 +1549,7 @@ nasl_tcp_v6_ping (lex_ctxt * lexic)
   int soc;
   struct ip6_hdr *ip = (struct ip6_hdr *) packet;
   struct tcphdr *tcp = (struct tcphdr *) (packet + sizeof (struct ip6_hdr));
-  struct arglist *script_infos = lexic->script_infos;
+  struct script_infos *script_infos = lexic->script_infos;
   struct in6_addr *dst = plug_get_host_ip (script_infos);
   struct in6_addr src;
   struct sockaddr_in6 soca;
@@ -1697,7 +1697,7 @@ nasl_send_v6packet (lex_ctxt * lexic)
   int to = get_int_local_var_by_name (lexic, "pcap_timeout", 5);
   char *filter = get_str_local_var_by_name (lexic, "pcap_filter");
   int dfl_len = get_int_local_var_by_name (lexic, "length", -1);
-  struct arglist *script_infos = lexic->script_infos;
+  struct script_infos *script_infos = lexic->script_infos;
   struct in6_addr *dstip = plug_get_host_ip (script_infos);
   int offset = 1;
   char name[INET6_ADDRSTRLEN];

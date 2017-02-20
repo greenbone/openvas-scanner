@@ -34,6 +34,7 @@
 #include "../misc/ftp_funcs.h"          /* for ftp_log_in */
 #include "../misc/network.h"            /* read_stream_connection_min */
 #include "../misc/plugutils.h"          /* plug_get_host_open_port */
+#include "../misc/arglists.h"
 
 #include "nasl_tree.h"
 #include "nasl_global_ctxt.h"
@@ -212,7 +213,7 @@ nasl_telnet_init (lex_ctxt * lexic)
 tree_cell *
 nasl_start_denial (lex_ctxt * lexic)
 {
-  struct arglist *script_infos = lexic->script_infos;
+  struct script_infos *script_infos = lexic->script_infos;
   int to = lexic->recv_timeout;
   int port = plug_get_host_open_port (script_infos);
   int soc;
@@ -224,13 +225,7 @@ nasl_start_denial (lex_ctxt * lexic)
       soc = open_stream_connection (script_infos, port, OPENVAS_ENCAPS_IP, to);
       if (soc >= 0)
         {
-          if (arg_get_value (script_infos, "denial_port") != 0)
-            arg_set_value (script_infos, "denial_port",
-                           GSIZE_TO_POINTER (port));
-          else
-            arg_add_value (script_infos, "denial_port", ARG_INT,
-                           GSIZE_TO_POINTER (port));
-
+          script_infos->denial_port = port;
           close_stream_connection (soc);
 
           return FAKE_CELL;
@@ -241,13 +236,7 @@ nasl_start_denial (lex_ctxt * lexic)
   if (p != NULL)
     alive = p->x.i_val;
 
-  if (arg_get_value (script_infos, "tcp_ping_result") != 0)
-    arg_set_value (script_infos, "tcp_ping_result",
-                   GSIZE_TO_POINTER (alive));
-  else
-    arg_add_value (script_infos, "tcp_ping_result", ARG_INT,
-                   GSIZE_TO_POINTER (alive));
-
+  script_infos->alive = alive;
   deref_cell (p);
 
   return FAKE_CELL;
@@ -256,10 +245,10 @@ nasl_start_denial (lex_ctxt * lexic)
 tree_cell *
 nasl_end_denial (lex_ctxt * lexic)
 {
-  int port = arg_get_value_int (lexic->script_infos, "denial_port");
+  int port = lexic->script_infos->denial_port;
   int soc;
   int to = lexic->recv_timeout;
-  struct arglist *script_infos = lexic->script_infos;
+  struct script_infos *script_infos = lexic->script_infos;
   tree_cell *retc = NULL;
 
   /*
@@ -269,7 +258,7 @@ nasl_end_denial (lex_ctxt * lexic)
 
   if (!port)
     {
-      int ping = arg_get_value_int (script_infos, "tcp_ping_result");
+      int ping = script_infos->alive;
 
       if (ping)
         return nasl_tcp_ping (lexic);
@@ -913,7 +902,7 @@ nasl_open_sock_kdc (lex_ctxt * lexic)
   int ret, type;
   int timeout = 30, port = 88, tcp = 0;
   char *hostname = NULL, *port_str, *tcp_str;   /* Domain name for windows */
-  struct arglist *script_infos;
+  struct script_infos *script_infos;
 
   script_infos = lexic->script_infos;
 

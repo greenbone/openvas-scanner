@@ -22,6 +22,7 @@
 #include <glib.h>
 
 #include "../misc/arglists.h"           /* for struct arglist */
+#include "../misc/scanneraux.h"
 
 /* Signature information extraction and verification (not nasl- specific
   anymore, thus likely to be moved to openvas-libraries): */
@@ -33,9 +34,8 @@ GSList *nasl_get_all_certificates (void);
 int add_nasl_inc_dir (const char *);
 
 int
-exec_nasl_script (struct arglist *, const char *, const char *, int);
-int
-execute_preparsed_nasl_script (struct arglist *, char *, char *, int, int);
+exec_nasl_script (struct script_infos *, const char *, const char *, int);
+
 char *
 nasl_version (void);
 pid_t

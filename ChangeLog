@@ -1,3 +1,24 @@
+2017-02-20  Hani Benhabiles  <hani.benhabiles@greenbone.net>
+
+	* misc/scanneraux.h (struct script_infos): New struct.
+
+	* misc/ids_send.c, misc/ids_send.h, misc/network.c, misc/network.h,
+	misc/plugutils.c, misc/plugutils.h, misc/www_funcs.c, misc/www_funcs.h,
+	nasl/exec.c, nasl/nasl-lint.c, nasl/nasl.c, nasl/nasl.h,
+	nasl/nasl_builtin_find_service.c, nasl/nasl_builtin_nmap.c,
+	nasl/nasl_builtin_openvas_tcp_scanner.c, nasl/nasl_builtin_synscan.c,
+	nasl/nasl_debug.c, nasl/nasl_host.c, nasl/nasl_http.c,
+	nasl/nasl_lex_ctxt.h, nasl/nasl_misc_funcs.c,
+	nasl/nasl_packet_forgery.c, nasl/nasl_packet_forgery_v6.c,
+	nasl/nasl_scanner_glue.c, nasl/nasl_smb.c, nasl/nasl_socket.c,
+	nasl/nasl_tree.h, nasl/nasl_wmi.c, nasl/nasl_plugins.c, src/openvassd.c,
+	src/plug_reqs.c: Use struct script_infos instead of struct arglist for
+	the plugin infos structure. Adjust function headers and comments
+	accordingly.
+
+	* src/nasl_builtin_find_service.c (plugin_run_find_service)
+	(plugin_do_run): Fix type for globals. Use linked-list for sons_args.
+
 2017-02-20  Juan Jose Nicola  <juan.nicola@greenbone.net>
 
 	* INSTALL: Add prerequisites for misc library. Add section

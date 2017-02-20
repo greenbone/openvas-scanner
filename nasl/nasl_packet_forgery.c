@@ -101,7 +101,7 @@ forge_ip_packet (lex_ctxt * lexic)
   tree_cell *retc;
   struct ip *pkt;
   char *s;
-  struct arglist *script_infos = lexic->script_infos;
+  struct script_infos *script_infos = lexic->script_infos;
   struct in6_addr *dst_addr;
   char *data;
   int data_len;
@@ -1362,7 +1362,7 @@ forge_igmp_packet (lex_ctxt * lexic)
 tree_cell *
 nasl_tcp_ping (lex_ctxt * lexic)
 {
-  struct arglist *script_infos = lexic->script_infos;
+  struct script_infos *script_infos = lexic->script_infos;
   struct in6_addr *dst = plug_get_host_ip (script_infos);
   if (IN6_IS_ADDR_V4MAPPED (dst) != 1)
     {
@@ -1525,7 +1525,7 @@ nasl_send_packet (lex_ctxt * lexic)
   char *filter = get_str_local_var_by_name (lexic, "pcap_filter");
   int dfl_len = get_int_local_var_by_name (lexic, "length", -1);
   int i = 1;
-  struct arglist *script_infos = lexic->script_infos;
+  struct script_infos *script_infos = lexic->script_infos;
   struct in6_addr *dstip = plug_get_host_ip (script_infos);
   struct in_addr inaddr;
 

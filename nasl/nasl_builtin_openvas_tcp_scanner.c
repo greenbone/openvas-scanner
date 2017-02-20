@@ -169,7 +169,7 @@ banner_grab(const struct in6_addr *pia, const char* portrange,
 	    const int read_timeout,
 	    int		min_cnx,
 	    int		max_cnx,
-	    struct arglist *desc)
+	    struct script_infos *desc)
 {
   char			buf[2048], kb[64];
   int			s, tcpproto, pass;
@@ -1277,8 +1277,8 @@ banner_grab(const struct in6_addr *pia, const char* portrange,
 tree_cell *
 plugin_run_openvas_tcp_scanner (lex_ctxt * lexic)
 {
-  struct arglist *desc = lexic->script_infos;
-  struct host_info *hostinfo = arg_get_value(desc, "HOSTNAME");
+  struct script_infos *desc = lexic->script_infos;
+  struct host_info *hostinfo = desc->hostname;
   const char * port_range = prefs_get ("port_range");
   const char * p;
   struct in6_addr *p_addr;

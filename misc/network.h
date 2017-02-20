@@ -32,7 +32,7 @@
 #include <gnutls/gnutls.h>
 #include <gnutls/x509.h>
 
-#include "arglists.h"
+#include "scanneraux.h"
 
 /*
  * Type of "transport layer", for encapsulated connections
@@ -63,18 +63,18 @@ struct host_info {
 #define IS_ENCAPS_SSL(x) ((x) >= OPENVAS_ENCAPS_SSLv23 && (x) <= OPENVAS_ENCAPS_TLScustom)
 
 /* Plugin specific network functions */
-int open_sock_tcp (struct arglist *, unsigned int, int);
-int open_sock_option (struct arglist *, unsigned int, int, int, int);
+int open_sock_tcp (struct script_infos *, unsigned int, int);
+int open_sock_option (struct script_infos *, unsigned int, int, int, int);
 int recv_line (int, char *, size_t);
 int nrecv (int, void *, int, int);
 int socket_close (int);
 int get_sock_infos (int sock, int *r_transport, void **r_tls_session);
 unsigned short *getpts (char *, int *);
 
-int open_stream_connection (struct arglist *, unsigned int, int, int);
-int open_stream_connection_ext (struct arglist *, unsigned int, int, int,
+int open_stream_connection (struct script_infos *, unsigned int, int, int);
+int open_stream_connection_ext (struct script_infos *, unsigned int, int, int,
                                 const char *);
-int open_stream_auto_encaps_ext (struct arglist *args, unsigned int port,
+int open_stream_auto_encaps_ext (struct script_infos *, unsigned int port,
                                  int timeout, int force);
 
 int write_stream_connection (int, void *buf, int n);
@@ -123,7 +123,7 @@ int fd_is_stream (int);
 
 int stream_set_timeout (int, int);
 
-int socket_negotiate_ssl (int, openvas_encaps_t, struct arglist *);
+int socket_negotiate_ssl (int, openvas_encaps_t, struct script_infos *);
 void socket_get_cert (int, void **, int *);
 int socket_get_ssl_version (int);
 void socket_get_ssl_session_id (int, void **, size_t *);

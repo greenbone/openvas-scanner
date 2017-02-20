@@ -27,6 +27,8 @@
 #define _OPENVAS_SCANNERAUX_H
 
 #include <glib.h>
+#include <gvm/util/kb.h>
+#include <gvm/base/nvti.h>
 
 struct scan_globals {
   char *network_targets;
@@ -37,4 +39,18 @@ struct scan_globals {
   int parent_socket;
 };
 
+struct host_info;
+
+struct script_infos {
+  struct host_info *hostname;
+  struct scan_globals *globals;
+  kb_t key;
+  nvti_t *nvti;
+  char *oid;
+  char *name;
+  GHashTable *udp_data;
+  int standalone;
+  int denial_port;
+  int alive;
+};
 #endif /* not _OPENVAS_SCANNERAUX_H */

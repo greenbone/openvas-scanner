@@ -731,7 +731,7 @@ open_SSL_connection (openvas_connection * fp, const char *cert,
 
 
 static void
-set_ids_evasion_mode (struct arglist *args, openvas_connection * fp)
+set_ids_evasion_mode (struct script_infos *args, openvas_connection * fp)
 {
   kb_t kb = plug_get_kb (args);
   char *ids_evasion_split = kb_item_get_str (kb, "NIDS/TCP/split");
@@ -784,7 +784,8 @@ set_ids_evasion_mode (struct arglist *args, openvas_connection * fp)
  * @return -1 if error, socket file descriptor value otherwise.
  */
 int
-socket_negotiate_ssl (int fd, openvas_encaps_t transport, struct arglist *args)
+socket_negotiate_ssl (int fd, openvas_encaps_t transport,
+                      struct script_infos *args)
 {
   char *cert = NULL, *key = NULL, *passwd = NULL, *cafile = NULL;
   char *hostname = NULL;
@@ -1017,7 +1018,7 @@ socket_get_ssl_ciphersuite (int fd)
 
    ABI_BREAK_NOTE: Merge this with open_stream_connection.  */
 int
-open_stream_connection_ext (struct arglist *args, unsigned int port,
+open_stream_connection_ext (struct script_infos *args, unsigned int port,
                             int transport, int timeout, const char *priority)
 {
   int fd;
@@ -1131,7 +1132,7 @@ failed:
 
 
 int
-open_stream_connection (struct arglist *args, unsigned int port,
+open_stream_connection (struct script_infos *args, unsigned int port,
                         int transport, int timeout)
 {
   return open_stream_connection_ext (args, port, transport, timeout, NULL);
@@ -1140,7 +1141,7 @@ open_stream_connection (struct arglist *args, unsigned int port,
 /* Same as open_stream_auto_encaps but allows to force auto detection
    of the protocols if FORCE is true.  */
 int
-open_stream_auto_encaps_ext (struct arglist *args, unsigned int port,
+open_stream_auto_encaps_ext (struct script_infos *args, unsigned int port,
                              int timeout, int force)
 {
   int fd, transport;
@@ -1931,7 +1932,7 @@ open_sock_opt_hn (const char *hostname, unsigned int port, int type,
 }
 
 int
-open_sock_tcp (struct arglist *args, unsigned int port, int timeout)
+open_sock_tcp (struct script_infos *args, unsigned int port, int timeout)
 {
   int ret, retry = 0;
   const char *timeout_retry;
@@ -1973,7 +1974,7 @@ open_sock_tcp (struct arglist *args, unsigned int port, int timeout)
 
 
 int
-open_sock_option (struct arglist *args, unsigned int port, int type,
+open_sock_option (struct script_infos *args, unsigned int port, int type,
                   int protocol, int timeout)
 {
   struct sockaddr_in addr;
@@ -1994,7 +1995,6 @@ open_sock_option (struct arglist *args, unsigned int port, int type,
   if (!t)
     {
       g_message ("ERROR ! NO ADDRESS ASSOCIATED WITH NAME");
-      arg_dump (args, 0);
       return (-1);
     }
   if (IN6_ARE_ADDR_EQUAL (t, &in6addr_any))

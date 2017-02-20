@@ -88,8 +88,8 @@ This is a perfect log entry and nobody can suspect on it :-)
 */
 
 char *
-build_encode_URL (struct arglist *data, char *method, char *path, char *name,
-                  char *httpver)
+build_encode_URL (struct script_infos *data, char *method, char *path,
+                  char *name, char *httpver)
 {
   int i, l = 0, n_slash = 0, n_backslash = 0, start_with_slash = 0;
   char *ret, *ret2;

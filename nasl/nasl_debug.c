@@ -52,7 +52,7 @@ nasl_perror (lex_ctxt * lexic, char *msg, ...)
 
   if (lexic != NULL)
     {
-      script_name = arg_get_value (lexic->script_infos, "script_name");
+      script_name = lexic->script_infos->name;
       if (script_name == NULL)
         script_name = "";
     }
@@ -102,7 +102,7 @@ nasl_trace (lex_ctxt * lexic, char *msg, ...)
 
   if (lexic != NULL)
     {
-      script_name = arg_get_value (lexic->script_infos, "script_name");
+      script_name = lexic->script_infos->name;
       if (script_name == NULL)
         script_name = "";
     }

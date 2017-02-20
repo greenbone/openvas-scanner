@@ -197,9 +197,9 @@ kb_present_keyname_of_namelist (kb_t kb, char *keys, char **keyname)
 /**
  * @brief Check whether mandatory requirements for plugin are met.
  *
- * @param kb     The arglist knowledge base with all keys.
+ * @param kb     The knowledge base with all keys.
  *
- * @param plugin The arglist plugin.
+ * @param plugin The scheduler plugin.
  *
  * @return 1 if all mandatory requirements for the plugin are
  *         met. 0 if it is not the case.

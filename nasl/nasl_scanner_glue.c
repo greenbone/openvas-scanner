@@ -40,6 +40,7 @@
 
 #include "../misc/plugutils.h"          /* for plug_set_id */
 #include "../misc/network.h"            /* for getpts */
+#include "../misc/arglists.h"
 
 #include "nasl_tree.h"
 #include "nasl_global_ctxt.h"
@@ -93,7 +94,7 @@ isalldigit (char *str, int len)
 tree_cell *
 script_timeout (lex_ctxt * lexic)
 {
-  nvti_t *nvti = arg_get_value (lexic->script_infos, "NVTI");
+  nvti_t *nvti = lexic->script_infos->nvti;
   int to = get_int_var_by_num (lexic, 0, -65535);
 
   if (to == -65535)
@@ -114,7 +115,7 @@ script_id (lex_ctxt * lexic)
   if (id > 0)
     {
       oid = g_strdup_printf ("%s%i", LEGACY_OID, id);
-      nvti_set_oid (arg_get_value (lexic->script_infos, "NVTI"), oid);
+      nvti_set_oid (lexic->script_infos->nvti, oid);
       g_free (oid);
     }
 
@@ -124,8 +125,7 @@ script_id (lex_ctxt * lexic)
 tree_cell *
 script_oid (lex_ctxt * lexic)
 {
-  nvti_set_oid (arg_get_value (lexic->script_infos, "NVTI"),
-                get_str_var_by_num (lexic, 0));
+  nvti_set_oid (lexic->script_infos->nvti, get_str_var_by_num (lexic, 0));
   return FAKE_CELL;
 }
 
@@ -135,13 +135,13 @@ script_oid (lex_ctxt * lexic)
 tree_cell *
 script_cve_id (lex_ctxt * lexic)
 {
-  struct arglist *script_infos = lexic->script_infos;
+  struct script_infos *script_infos = lexic->script_infos;
   char *cve = get_str_var_by_num (lexic, 0);
   int i;
 
   for (i = 0; cve != NULL; i++)
     {
-      nvti_add_cve (arg_get_value (script_infos, "NVTI"), cve);
+      nvti_add_cve (script_infos->nvti, cve);
       cve = get_str_var_by_num (lexic, i + 1);
     }
 
@@ -154,13 +154,13 @@ script_cve_id (lex_ctxt * lexic)
 tree_cell *
 script_bugtraq_id (lex_ctxt * lexic)
 {
-  struct arglist *script_infos = lexic->script_infos;
+  struct script_infos *script_infos = lexic->script_infos;
   char *bid = get_str_var_by_num (lexic, 0);
   int i;
 
   for (i = 0; bid != NULL; i++)
     {
-      nvti_add_bid (arg_get_value (script_infos, "NVTI"), bid);
+      nvti_add_bid (script_infos->nvti, bid);
       bid = get_str_var_by_num (lexic, i + 1);
     }
 
@@ -171,7 +171,7 @@ script_bugtraq_id (lex_ctxt * lexic)
 tree_cell *
 script_xref (lex_ctxt * lexic)
 {
-  struct arglist *script_infos = lexic->script_infos;
+  struct script_infos *script_infos = lexic->script_infos;
   char *name = get_str_var_by_name (lexic, "name");
   char *value = get_str_var_by_name (lexic, "value");
 
@@ -208,7 +208,7 @@ script_xref (lex_ctxt * lexic)
 tree_cell *
 script_tag (lex_ctxt * lexic)
 {
-  struct arglist *script_infos = lexic->script_infos;
+  struct script_infos *script_infos = lexic->script_infos;
   char *name = get_str_var_by_name (lexic, "name");
   char *value = get_str_var_by_name (lexic, "value");
 
@@ -249,8 +249,7 @@ script_tag (lex_ctxt * lexic)
 tree_cell *
 script_name (lex_ctxt * lexic)
 {
-  nvti_set_name (arg_get_value (lexic->script_infos, "NVTI"),
-                 get_str_var_by_num (lexic, 0));
+  nvti_set_name (lexic->script_infos->nvti, get_str_var_by_num (lexic, 0));
   return FAKE_CELL;
 }
 
@@ -258,7 +257,7 @@ script_name (lex_ctxt * lexic)
 tree_cell *
 script_version (lex_ctxt * lexic)
 {
-  nvti_t *nvti = arg_get_value (lexic->script_infos, "NVTI");
+  nvti_t *nvti = lexic->script_infos->nvti;
 
   char *version = get_str_var_by_num (lexic, 0);
   if (version == NULL)
@@ -276,8 +275,7 @@ script_version (lex_ctxt * lexic)
 tree_cell *
 script_copyright (lex_ctxt * lexic)
 {
-  nvti_set_copyright (arg_get_value (lexic->script_infos, "NVTI"),
-                      get_str_var_by_num (lexic, 0));
+  nvti_set_copyright (lexic->script_infos->nvti, get_str_var_by_num (lexic, 0));
   return FAKE_CELL;
 }
 
@@ -292,7 +290,7 @@ script_summary (lex_ctxt * lexic)
 tree_cell *
 script_category (lex_ctxt * lexic)
 {
-  struct arglist *script_infos = lexic->script_infos;
+  struct script_infos *script_infos = lexic->script_infos;
 
   int category = get_int_var_by_num (lexic, 0, -1);
 
@@ -302,22 +300,21 @@ script_category (lex_ctxt * lexic)
       nasl_perror (lexic, "Function usage is : script_category(<category>)\n");
       return FAKE_CELL;
     }
-  nvti_set_category (arg_get_value (script_infos, "NVTI"), category);
+  nvti_set_category (script_infos->nvti, category);
   return FAKE_CELL;
 }
 
 tree_cell *
 script_family (lex_ctxt * lexic)
 {
-  nvti_set_family (arg_get_value (lexic->script_infos, "NVTI"),
-                 get_str_var_by_num (lexic, 0));
+  nvti_set_family (lexic->script_infos->nvti, get_str_var_by_num (lexic, 0));
   return FAKE_CELL;
 }
 
 tree_cell *
 script_dependencies (lex_ctxt * lexic)
 {
-  struct arglist *script_infos = lexic->script_infos;
+  struct script_infos *script_infos = lexic->script_infos;
   char *dep = get_str_var_by_num (lexic, 0);
   int i;
 
@@ -358,7 +355,7 @@ script_require_keys (lex_ctxt * lexic)
   for (i = 0; keys != NULL; i++)
     {
       keys = get_str_var_by_num (lexic, i);
-      nvti_add_required_keys (arg_get_value (lexic->script_infos, "NVTI"), keys);
+      nvti_add_required_keys (lexic->script_infos->nvti, keys);
     }
 
   return FAKE_CELL;
@@ -383,7 +380,7 @@ script_mandatory_keys (lex_ctxt * lexic)
   for (i = 0; keys != NULL; i++)
     {
       keys = get_str_var_by_num (lexic, i);
-      nvti_add_mandatory_keys (arg_get_value (lexic->script_infos, "NVTI"), keys);
+      nvti_add_mandatory_keys (lexic->script_infos->nvti, keys);
     }
 
   return FAKE_CELL;
@@ -406,7 +403,7 @@ script_exclude_keys (lex_ctxt * lexic)
   for (i = 0; keys != NULL; i++)
     {
       keys = get_str_var_by_num (lexic, i);
-      nvti_add_excluded_keys (arg_get_value (lexic->script_infos, "NVTI"), keys);
+      nvti_add_excluded_keys (lexic->script_infos->nvti, keys);
     }
 
   return FAKE_CELL;
@@ -423,7 +420,7 @@ script_require_ports (lex_ctxt * lexic)
     {
       port = get_str_var_by_num (lexic, i);
       if (port != NULL)
-        nvti_add_required_ports (arg_get_value (lexic->script_infos, "NVTI"), port);
+        nvti_add_required_ports (lexic->script_infos->nvti, port);
       else
         break;
     }
@@ -442,7 +439,7 @@ script_require_udp_ports (lex_ctxt * lexic)
     {
       port = get_str_var_by_num (lexic, i);
       if (port != NULL)
-        nvti_add_required_udp_ports (arg_get_value (lexic->script_infos, "NVTI"), port);
+        nvti_add_required_udp_ports (lexic->script_infos->nvti, port);
       else
         break;
     }
@@ -456,7 +453,7 @@ script_add_preference (lex_ctxt * lexic)
   char *name = get_str_local_var_by_name (lexic, "name");
   char *type = get_str_local_var_by_name (lexic, "type");
   char *value = get_str_local_var_by_name (lexic, "value");
-  struct arglist *script_infos = lexic->script_infos;
+  struct script_infos *script_infos = lexic->script_infos;
 
   if (name == NULL || type == NULL || value == NULL)
     {
@@ -509,7 +506,7 @@ script_get_preference (lex_ctxt * lexic)
 tree_cell *
 script_get_preference_file_content (lex_ctxt * lexic)
 {
-  struct arglist *script_infos = lexic->script_infos;
+  struct script_infos *script_infos = lexic->script_infos;
   tree_cell *retc;
   char *pref = get_str_var_by_num (lexic, 0);
   char *value;
@@ -552,7 +549,7 @@ script_get_preference_file_content (lex_ctxt * lexic)
 tree_cell *
 script_get_preference_file_location (lex_ctxt * lexic)
 {
-  struct arglist *script_infos = lexic->script_infos;
+  struct script_infos *script_infos = lexic->script_infos;
   tree_cell *retc;
   char *pref = get_str_var_by_num (lexic, 0);
   const char *value, *local;
@@ -602,13 +599,13 @@ safe_checks (lex_ctxt * lexic)
 tree_cell *
 scan_phase (lex_ctxt * lexic)
 {
-  struct arglist *script_infos = lexic->script_infos;
-  struct arglist *globals = arg_get_value (script_infos, "globals");
+  struct script_infos *script_infos = lexic->script_infos;
+  struct scan_globals *globals = script_infos->globals;
   char *value;
   tree_cell *retc = alloc_tree_cell (0, NULL);
 
   retc->type = CONST_INT;
-  value = arg_get_value (globals, "network_scan_status");
+  value = globals->network_scan_status;
   if (value)
     {
       if (strcmp (value, "busy") == 0)
@@ -625,12 +622,12 @@ scan_phase (lex_ctxt * lexic)
 tree_cell *
 network_targets (lex_ctxt * lexic)
 {
-  struct arglist *script_infos = lexic->script_infos;
-  struct arglist *globals = arg_get_value (script_infos, "globals");
+  struct script_infos *script_infos = lexic->script_infos;
+  struct scan_globals *globals = script_infos->globals;
   char *value;
   tree_cell *retc;
 
-  value = arg_get_value (globals, "network_targets");
+  value = globals->network_targets;
   retc = alloc_typed_cell (CONST_DATA);
   if (value)
     {
@@ -671,7 +668,7 @@ get_script_oid (lex_ctxt * lexic)
 tree_cell *
 get_kb_list (lex_ctxt * lexic)
 {
-  struct arglist *script_infos = lexic->script_infos;
+  struct script_infos *script_infos = lexic->script_infos;
   kb_t kb = plug_get_kb (script_infos);
   char *kb_mask = get_str_var_by_num (lexic, 0);
   tree_cell *retc;
@@ -730,7 +727,7 @@ get_kb_list (lex_ctxt * lexic)
 tree_cell *
 get_kb_item (lex_ctxt * lexic)
 {
-  struct arglist *script_infos = lexic->script_infos;
+  struct script_infos *script_infos = lexic->script_infos;
 
   char *kb_entry = get_str_var_by_num (lexic, 0);
   char *val;
@@ -777,7 +774,7 @@ get_kb_item (lex_ctxt * lexic)
 tree_cell *
 replace_kb_item (lex_ctxt * lexic)
 {
-  struct arglist *script_infos = lexic->script_infos;
+  struct script_infos *script_infos = lexic->script_infos;
   char *name = get_str_local_var_by_name (lexic, "name");
   int type = get_local_var_type_by_name (lexic, "value");
 
@@ -820,7 +817,7 @@ replace_kb_item (lex_ctxt * lexic)
 tree_cell *
 set_kb_item (lex_ctxt * lexic)
 {
-  struct arglist *script_infos = lexic->script_infos;
+  struct script_infos *script_infos = lexic->script_infos;
   char *name = get_str_local_var_by_name (lexic, "name");
   int type = get_local_var_type_by_name (lexic, "value");
 
@@ -864,19 +861,19 @@ set_kb_item (lex_ctxt * lexic)
 /**
  * Function is used when the script wants to report a problem back to openvassd.
  */
-typedef void (*proto_post_something_t) (const char *, struct arglist *, int,
+typedef void (*proto_post_something_t) (const char *, struct script_infos *, int,
                                         const char *, const char *);
 /**
  * Function is used when the script wants to report a problem back to openvassd.
  */
-typedef void (*post_something_t) (const char *, struct arglist *, int, const char *);
+typedef void (*post_something_t) (const char *, struct script_infos *, int, const char *);
 
 
 static tree_cell *
 security_something (lex_ctxt * lexic, proto_post_something_t proto_post_func,
                     post_something_t post_func)
 {
-  struct arglist *script_infos = lexic->script_infos;
+  struct script_infos *script_infos = lexic->script_infos;
 
   char *proto = get_str_local_var_by_name (lexic, "protocol");
   char *data = get_str_local_var_by_name (lexic, "data");
@@ -894,7 +891,7 @@ security_something (lex_ctxt * lexic, proto_post_something_t proto_post_func,
           dup[i] = ' ';
     }
 
-  if ((arg_get_value (script_infos, "standalone")) != NULL)
+  if (script_infos->standalone)
     {
       if (data != NULL)
         fprintf (stdout, "%s\n", dup);
@@ -1027,7 +1024,7 @@ nasl_scanner_get_port (lex_ctxt * lexic)
 tree_cell *
 nasl_scanner_add_port (lex_ctxt * lexic)
 {
-  struct arglist *script_infos = lexic->script_infos;
+  struct script_infos *script_infos = lexic->script_infos;
 
   int port = get_int_local_var_by_name (lexic, "port", -1);
   char *proto = get_str_local_var_by_name (lexic, "proto");

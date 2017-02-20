@@ -51,7 +51,7 @@
 tree_cell *
 get_hostname (lex_ctxt * lexic)
 {
-  struct arglist *script_infos = lexic->script_infos;
+  struct script_infos *script_infos = lexic->script_infos;
   char *hostname = plug_get_host_fqdn (script_infos);
   tree_cell *retc;
 
@@ -69,7 +69,7 @@ get_hostname (lex_ctxt * lexic)
 tree_cell *
 get_host_ip (lex_ctxt * lexic)
 {
-  struct arglist *script_infos = lexic->script_infos;
+  struct script_infos *script_infos = lexic->script_infos;
   struct in6_addr *ip = plug_get_host_ip (script_infos);
   tree_cell *retc;
 
@@ -90,7 +90,7 @@ get_host_ip (lex_ctxt * lexic)
 tree_cell *
 get_host_open_port (lex_ctxt * lexic)
 {
-  struct arglist *script_infos = lexic->script_infos;
+  struct script_infos *script_infos = lexic->script_infos;
   unsigned int port = plug_get_host_open_port (script_infos);
   tree_cell *retc;
 
@@ -106,7 +106,7 @@ tree_cell *
 get_port_state (lex_ctxt * lexic)
 {
   int open;
-  struct arglist *script_infos = lexic->script_infos;
+  struct script_infos *script_infos = lexic->script_infos;
   tree_cell *retc;
   int port;
 
@@ -125,7 +125,7 @@ tree_cell *
 get_udp_port_state (lex_ctxt * lexic)
 {
   int open;
-  struct arglist *script_infos = lexic->script_infos;
+  struct script_infos *script_infos = lexic->script_infos;
   tree_cell *retc;
   int port;
 
@@ -144,7 +144,7 @@ get_udp_port_state (lex_ctxt * lexic)
 tree_cell *
 nasl_islocalhost (lex_ctxt * lexic)
 {
-  struct arglist *script_infos = lexic->script_infos;
+  struct script_infos *script_infos = lexic->script_infos;
   struct in6_addr *dst = plug_get_host_ip (script_infos);
   tree_cell *retc;
 
@@ -158,7 +158,7 @@ nasl_islocalhost (lex_ctxt * lexic)
 tree_cell *
 nasl_islocalnet (lex_ctxt * lexic)
 {
-  struct arglist *script_infos = lexic->script_infos;
+  struct script_infos *script_infos = lexic->script_infos;
   struct in6_addr *ip = plug_get_host_ip (script_infos);
   tree_cell *retc;
 
@@ -172,7 +172,7 @@ nasl_islocalnet (lex_ctxt * lexic)
 tree_cell *
 nasl_this_host (lex_ctxt * lexic)
 {
-  struct arglist *script_infos = lexic->script_infos;
+  struct script_infos *script_infos = lexic->script_infos;
   tree_cell *retc;
   char hostname[255];
   struct in6_addr *ia = plug_get_host_ip (script_infos);
@@ -278,7 +278,7 @@ nasl_this_host_name (lex_ctxt * lexic)
 tree_cell *
 get_port_transport (lex_ctxt * lexic)
 {
-  struct arglist *script_infos = lexic->script_infos;
+  struct script_infos *script_infos = lexic->script_infos;
   tree_cell *retc;
   int port = get_int_var_by_num (lexic, 0, -1);
 
@@ -435,7 +435,7 @@ tree_cell *
 nasl_target_is_ipv6 (lex_ctxt * lexic)
 {
   tree_cell *retc;
-  struct arglist *script_infos = lexic->script_infos;
+  struct script_infos *script_infos = lexic->script_infos;
   struct in6_addr *addr;
 
   addr = plug_get_host_ip (script_infos);

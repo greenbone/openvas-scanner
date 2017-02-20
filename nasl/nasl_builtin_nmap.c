@@ -319,7 +319,7 @@ typedef struct
   const gchar *filename;
 
   /* General execution environment */
-  struct arglist *env;
+  struct script_infos *env;
 
   /* OID of this NVT */
   const char *oid;
@@ -1020,17 +1020,17 @@ set_closetag_callbacks (GHashTable * close)
 int
 add_target (nmap_t * nmap)
 {
-  struct arglist *globals;
+  struct scan_globals *globals;
   gchar *network;
 
-  globals = arg_get_value (nmap->env, "globals");
+  globals = nmap->env->globals;
   if (!globals)
     {
       dbg ("Invalid environment: unavailable \"globals\"\n");
       return -1;
     }
 
-  network = arg_get_value (globals, "network_targets");
+  network = globals->network_targets;
   if (!network)
     {
       dbg ("Invalid environment: unavailable \"network_targets\"\n");

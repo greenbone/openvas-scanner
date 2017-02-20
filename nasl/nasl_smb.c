@@ -106,7 +106,7 @@ nasl_smb_versioninfo (lex_ctxt * lexic)
 tree_cell *
 nasl_smb_connect (lex_ctxt * lexic)
 {
-  struct arglist *script_infos = lexic->script_infos;
+  struct script_infos *script_infos = lexic->script_infos;
   struct in6_addr *host = plug_get_host_ip (script_infos);
   char *ip;
   char *username = get_str_local_var_by_name (lexic, "username");
@@ -378,7 +378,7 @@ nasl_smb_file_trustee_rights (lex_ctxt * lexic)
 tree_cell *
 nasl_win_cmd_exec (lex_ctxt * lexic)
 {
-  struct arglist *script_infos = lexic->script_infos;
+  struct script_infos *script_infos = lexic->script_infos;
   struct in6_addr *host = plug_get_host_ip (script_infos);
   char *ip;
   char *res = NULL;

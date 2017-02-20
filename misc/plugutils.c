@@ -50,7 +50,6 @@
 #include "network.h"
 #include "plugutils.h"
 #include "internal_com.h"
-#include "scanneraux.h"
 
 
 #undef G_LOG_DOMAIN
@@ -63,9 +62,9 @@
 int global_nasl_debug = 0;
 
 void
-plug_set_xref (struct arglist *desc, char *name, char *value)
+plug_set_xref (struct script_infos *args, char *name, char *value)
 {
-  nvti_t *n = arg_get_value (desc, "NVTI");
+  nvti_t *n = args->nvti;
   char *new;
 
   if (nvti_xref (n))
@@ -78,9 +77,9 @@ plug_set_xref (struct arglist *desc, char *name, char *value)
 }
 
 void
-plug_set_tag (struct arglist *desc, char *name, char *value)
+plug_set_tag (struct script_infos *args, char *name, char *value)
 {
-  nvti_t *n = arg_get_value (desc, "NVTI");
+  nvti_t *n = args->nvti;
   char *new;
 
   if (nvti_tag (n))
@@ -93,9 +92,9 @@ plug_set_tag (struct arglist *desc, char *name, char *value)
 }
 
 void
-plug_set_dep (struct arglist *desc, const char *depname)
+plug_set_dep (struct script_infos *args, const char *depname)
 {
-  nvti_t *n = arg_get_value (desc, "NVTI");
+  nvti_t *n = args->nvti;
   gchar * old = nvti_dependencies (n);
   gchar * new;
 
@@ -112,7 +111,7 @@ plug_set_dep (struct arglist *desc, const char *depname)
 }
 
 void
-host_add_port_proto (struct arglist *args, int portnum, char *proto)
+host_add_port_proto (struct script_infos *args, int portnum, char *proto)
 {
   char port_s[255];
   snprintf (port_s, sizeof (port_s), "Ports/%s/%d", proto, portnum);
@@ -175,30 +174,28 @@ kb_get_port_state_proto (kb_t kb, int portnum, char *proto)
 }
 
 int
-host_get_port_state_proto (struct arglist *plugdata, int portnum, char *proto)
+host_get_port_state_proto (struct script_infos *args, int portnum, char *proto)
 {
-  kb_t kb = plug_get_kb (plugdata);
-
-  return kb_get_port_state_proto (kb, portnum, proto);
+  return kb_get_port_state_proto (args->key, portnum, proto);
 }
 
 int
-host_get_port_state (struct arglist *plugdata, int portnum)
+host_get_port_state (struct script_infos *plugdata, int portnum)
 {
   return (host_get_port_state_proto (plugdata, portnum, "tcp"));
 }
 
 int
-host_get_port_state_udp (struct arglist *plugdata, int portnum)
+host_get_port_state_udp (struct script_infos *plugdata, int portnum)
 {
   return (host_get_port_state_proto (plugdata, portnum, "udp"));
 }
 
 
 const char *
-plug_get_hostname (struct arglist *desc)
+plug_get_hostname (struct script_infos *args)
 {
-  struct host_info *hinfo = arg_get_value (desc, "HOSTNAME");
+  struct host_info *hinfo = args->hostname;
   if (hinfo)
     return hinfo->name;
   else
@@ -206,13 +203,13 @@ plug_get_hostname (struct arglist *desc)
 }
 
 char *
-plug_get_host_fqdn (struct arglist *desc)
+plug_get_host_fqdn (struct script_infos *args)
 {
-  struct host_info *hinfos = arg_get_value (desc, "HOSTNAME");
+  struct host_info *hinfos = args->hostname;
   if (hinfos)
     {
       int type;
-      char *vhosts = plug_get_key (desc, "hostinfos/vhosts", &type, NULL);
+      char *vhosts = plug_get_key (args, "hostinfos/vhosts", &type, NULL);
       if (vhosts)
         return vhosts;
       else
@@ -224,16 +221,16 @@ plug_get_host_fqdn (struct arglist *desc)
 
 
 struct in6_addr *
-plug_get_host_ip (struct arglist *desc)
+plug_get_host_ip (struct script_infos *args)
 {
-  struct host_info *hinfos = arg_get_value (desc, "HOSTNAME");
+  struct host_info *hinfos = args->hostname;
   if (hinfos)
     return hinfos->ip;
   return NULL;
 }
 
 char *
-plug_get_host_ip_str (struct arglist *desc)
+plug_get_host_ip_str (struct script_infos *desc)
 {
   return addr6_as_str (plug_get_host_ip (desc));
 }
@@ -241,10 +238,10 @@ plug_get_host_ip_str (struct arglist *desc)
 /**
  * @brief Sets a Success kb- entry for the plugin described with parameter desc.
  *
- * @param desc Plugin-arglist.
+ * @param desc Plugin script infos.
  */
 static void
-mark_successful_plugin (const char *oid, struct arglist *desc)
+mark_successful_plugin (const char *oid, struct script_infos *desc)
 {
   char data[512];
 
@@ -254,7 +251,7 @@ mark_successful_plugin (const char *oid, struct arglist *desc)
 }
 
 static void
-mark_post (const char *oid, struct arglist *desc, const char *action,
+mark_post (const char *oid, struct script_infos *desc, const char *action,
            const char *content)
 {
   char entry_name[255];
@@ -270,7 +267,7 @@ mark_post (const char *oid, struct arglist *desc, const char *action,
  * @brief Post a security message (e.g. LOG, NOTE, WARNING ...).
  *
  * @param oid   The oid of the NVT
- * @param desc  The arglist where to get the nvtichache from and some
+ * @param desc  The script infos where to get the nvtichache from and some
  *              other settings and it is used to send the messages
  * @param port  Port number related to the issue.
  * @param proto Protocol related to the issue (tcp or udp).
@@ -278,8 +275,8 @@ mark_post (const char *oid, struct arglist *desc, const char *action,
  * @param what   The type, like "LOG".
  */
 void
-proto_post_wrapped (const char *oid, struct arglist *desc, int port, const char *proto,
-                    const char *action, const char *what)
+proto_post_wrapped (const char *oid, struct script_infos *desc, int port,
+                    const char *proto, const char *action, const char *what)
 {
   int soc, len;
   const char *prepend_tags, *append_tags;
@@ -415,7 +412,7 @@ proto_post_wrapped (const char *oid, struct arglist *desc, int port, const char 
               idbuffer);
 
   mark_post (oid, desc, what, action);
-  globals = arg_get_value (desc, "globals");
+  globals = desc->globals;
   soc = globals->global_socket;
   /* Convert to UTF-8 before sending to Manager. */
   data = g_convert (buffer, -1, "UTF-8", "ISO_8859-1", NULL, &length, NULL);
@@ -431,14 +428,15 @@ proto_post_wrapped (const char *oid, struct arglist *desc, int port, const char 
 }
 
 void
-proto_post_alarm (const char *oid, struct arglist *desc, int port,
+proto_post_alarm (const char *oid, struct script_infos *desc, int port,
                   const char *proto, const char *action)
 {
   proto_post_wrapped (oid, desc, port, proto, action, "ALARM");
 }
 
 void
-post_alarm (const char *oid, struct arglist *desc, int port, const char *action)
+post_alarm (const char *oid, struct script_infos *desc, int port,
+            const char *action)
 {
   proto_post_alarm (oid, desc, port, "tcp", action);
 }
@@ -448,7 +446,7 @@ post_alarm (const char *oid, struct arglist *desc, int port, const char *action)
  * @brief Post a log message
  */
 void
-proto_post_log (const char *oid, struct arglist *desc, int port,
+proto_post_log (const char *oid, struct script_infos *desc, int port,
                 const char *proto, const char *action)
 {
   proto_post_wrapped (oid, desc, port, proto, action, "LOG");
@@ -458,13 +456,14 @@ proto_post_log (const char *oid, struct arglist *desc, int port,
  * @brief Post a log message about a tcp port.
  */
 void
-post_log (const char *oid, struct arglist *desc, int port, const char *action)
+post_log (const char *oid, struct script_infos *desc, int port,
+          const char *action)
 {
   proto_post_log (oid, desc, port, "tcp", action);
 }
 
 void
-proto_post_error (const char *oid, struct arglist *desc, int port,
+proto_post_error (const char *oid, struct script_infos *desc, int port,
                   const char *proto, const char *action)
 {
   proto_post_wrapped (oid, desc, port, proto, action, "ERRMSG");
@@ -472,16 +471,17 @@ proto_post_error (const char *oid, struct arglist *desc, int port,
 
 
 void
-post_error (const char *oid, struct arglist *desc, int port, const char *action)
+post_error (const char *oid, struct script_infos *desc, int port,
+            const char *action)
 {
   proto_post_error (oid, desc, port, "tcp", action);
 }
 
 void
-add_plugin_preference (struct arglist *desc, const char *name, const char *type,
-                       const char *defaul)
+add_plugin_preference (struct script_infos *desc, const char *name,
+                       const char *type, const char *defaul)
 {
-  nvti_t *n = arg_get_value (desc, "NVTI");
+  nvti_t *n = desc->nvti;
   nvtpref_t *np = nvtpref_new ((gchar *)name, (gchar *)type, (gchar *)defaul);
 
   nvti_add_pref (n, np);
@@ -549,7 +549,7 @@ get_plugin_preference (const char *oid, const char *name)
  *         broken.
  */
 const char *
-get_plugin_preference_fname (struct arglist *desc, const char *filename)
+get_plugin_preference_fname (struct script_infos *desc, const char *filename)
 {
   const char *content;
   long contentsize = 0;
@@ -603,10 +603,10 @@ get_plugin_preference_fname (struct arglist *desc, const char *filename)
  *         broken.
  */
 char *
-get_plugin_preference_file_content (struct arglist *desc,
+get_plugin_preference_file_content (struct script_infos *desc,
                                     const char *identifier)
 {
-  struct scan_globals *globals = arg_get_value (desc, "globals");
+  struct scan_globals *globals = desc->globals;
   GHashTable *trans;
 
   if (!globals)
@@ -635,9 +635,10 @@ get_plugin_preference_file_content (struct arglist *desc,
  *         setup broken.
  */
 long
-get_plugin_preference_file_size (struct arglist *desc, const char *identifier)
+get_plugin_preference_file_size (struct script_infos *desc,
+                                 const char *identifier)
 {
-  struct scan_globals *globals = arg_get_value (desc, "globals");
+  struct scan_globals *globals = desc->globals;
   GHashTable *trans;
   gchar *filesize_str;
 
@@ -656,8 +657,8 @@ get_plugin_preference_file_size (struct arglist *desc, const char *identifier)
 }
 
 void
-plug_set_key_len (struct arglist *args, char *name, int type, const void *value,
-                  size_t len)
+plug_set_key_len (struct script_infos *args, char *name, int type,
+                  const void *value, size_t len)
 {
   kb_t kb = plug_get_kb (args);
 
@@ -679,14 +680,15 @@ plug_set_key_len (struct arglist *args, char *name, int type, const void *value,
 }
 
 void
-plug_set_key (struct arglist *args, char *name, int type, const void *value)
+plug_set_key (struct script_infos *args, char *name, int type,
+              const void *value)
 {
   plug_set_key_len (args, name, type, value, 0);
 }
 
 void
-plug_replace_key_len (struct arglist *args, char *name, int type, void *value,
-                      size_t len)
+plug_replace_key_len (struct script_infos *args, char *name, int type,
+                      void *value, size_t len)
 {
   kb_t kb = plug_get_kb (args);
 
@@ -708,22 +710,22 @@ plug_replace_key_len (struct arglist *args, char *name, int type, void *value,
 }
 
 void
-plug_replace_key (struct arglist *args, char *name, int type, void *value)
+plug_replace_key (struct script_infos *args, char *name, int type, void *value)
 {
   plug_replace_key_len (args, name, type, value, 0);
 }
 
 void
-scanner_add_port (struct arglist *args, int port, char *proto)
+scanner_add_port (struct script_infos *args, int port, char *proto)
 {
   host_add_port_proto (args, port, proto);
 }
 
 
 kb_t
-plug_get_kb (struct arglist *args)
+plug_get_kb (struct script_infos *args)
 {
-  return (kb_t) arg_get_value (args, "key");
+  return args->key;
 }
 
 /*
@@ -778,9 +780,9 @@ sig_chld (void (*fcn) ())
 }
 
 void *
-plug_get_key (struct arglist *args, char *name, int *type, size_t *len)
+plug_get_key (struct script_infos *args, char *name, int *type, size_t *len)
 {
-  kb_t kb = plug_get_kb (args);
+  kb_t kb = args->key;
   struct kb_item *res = NULL, *res_list;
   int sockpair[2];
   int upstream = 0;
@@ -835,7 +837,7 @@ plug_get_key (struct arglist *args, char *name, int *type, size_t *len)
           kb_lnk_reset (kb);
           nvticache_reset ();
           close (sockpair[0]);
-          globals = arg_get_value (args, "globals");
+          globals = args->globals;
           old = globals->global_socket;
           if (old > 0)
             close (old);
@@ -873,7 +875,7 @@ plug_get_key (struct arglist *args, char *name, int *type, size_t *len)
           int status;
           struct scan_globals *globals;
 
-          globals = arg_get_value (args, "globals");
+          globals = args->globals;
           upstream = globals->global_socket;
           close (sockpair[1]);
           _plug_get_key_son = pid;
@@ -931,7 +933,7 @@ plug_get_key (struct arglist *args, char *name, int *type, size_t *len)
  * open ports, as many transparent proxies are acting for these...
  */
 unsigned int
-plug_get_host_open_port (struct arglist *desc)
+plug_get_host_open_port (struct script_infos *desc)
 {
   kb_t kb = plug_get_kb (desc);
   struct kb_item *res, *k;
@@ -990,7 +992,7 @@ plug_get_host_open_port (struct arglist *desc)
  */
 
 void
-plug_set_port_transport (struct arglist *args, int port, int tr)
+plug_set_port_transport (struct script_infos *args, int port, int tr)
 {
   char s[256];
 
@@ -1004,7 +1006,7 @@ plug_set_port_transport (struct arglist *args, int port, int tr)
    knowledge base (or its value is < 0), OPENVAS_ENCAPS_IP is
    currently returned.  */
 int
-plug_get_port_transport (struct arglist *args, int port)
+plug_get_port_transport (struct script_infos *args, int port)
 {
   char s[256];
   int trp;
@@ -1019,7 +1021,7 @@ plug_get_port_transport (struct arglist *args, int port)
 }
 
 static void
-plug_set_ssl_item (struct arglist *args, char *item, char *itemfname)
+plug_set_ssl_item (struct script_infos *args, char *item, char *itemfname)
 {
   char s[256];
   snprintf (s, sizeof (s), "SSL/%s", item);
@@ -1027,19 +1029,19 @@ plug_set_ssl_item (struct arglist *args, char *item, char *itemfname)
 }
 
 void
-plug_set_ssl_cert (struct arglist *args, char *cert)
+plug_set_ssl_cert (struct script_infos *args, char *cert)
 {
   plug_set_ssl_item (args, "cert", cert);
 }
 
 void
-plug_set_ssl_key (struct arglist *args, char *key)
+plug_set_ssl_key (struct script_infos *args, char *key)
 {
   plug_set_ssl_item (args, "key", key);
 }
 
 void
-plug_set_ssl_pem_password (struct arglist *args, char *key)
+plug_set_ssl_pem_password (struct script_infos *args, char *key)
 {
   plug_set_ssl_item (args, "password", key);
 }
@@ -1049,7 +1051,7 @@ plug_set_ssl_pem_password (struct arglist *args, char *key)
  *        Check whether these conditions can actually occur. Document the
  *        functions on the way. */
 void
-plug_set_ssl_CA_file (struct arglist *args, char *key)
+plug_set_ssl_CA_file (struct script_infos *args, char *key)
 {
   plug_set_ssl_item (args, "CA", key);
 }

@@ -26,7 +26,7 @@
 #include <stdio.h> /* for printf */
 #include <stdlib.h> /* for exit */
 
-#include "nasl.h" /* exec_nasl_script, arglist */
+#include "nasl.h" /* exec_nasl_script */
 
 #include <glib.h> /* gchar, g_malloc, g_error, g_print, ... */
 
@@ -65,7 +65,7 @@ get_DIS_from_filename (const gchar* filename)
  * @return TRUE if the file contains error(s)
  */
 static gboolean
-process_file (const gchar* filepath, int mode, struct arglist* script_args)
+process_file (const gchar* filepath, int mode, struct script_infos* script_args)
 {
   g_debug("Processing %s", filepath);
   if (exec_nasl_script (script_args, filepath, NULL, mode) < 0)
@@ -85,7 +85,7 @@ process_file (const gchar* filepath, int mode, struct arglist* script_args)
  */
 static int
 process_file_list (const gchar* list_file, int mode,
-                   struct arglist* script_args)
+                   struct script_infos* script_args)
 {
   int err = 0;
   GError* error = NULL;
@@ -123,7 +123,7 @@ process_file_list (const gchar* list_file, int mode,
  * @return The amount of script that contains errors
  */
 static int
-process_files(const gchar** files, int mode, struct arglist* script_args)
+process_files(const gchar** files, int mode, struct script_infos* script_args)
 {
   int n = 0;
   int err = 0;
@@ -166,7 +166,7 @@ main (int argc, char **argv)
   static gchar *include_dir = NULL;
   static gchar *nvt_file_list = NULL;
   static const gchar **nvt_files = NULL;
-  struct arglist *script_infos = g_malloc0 (sizeof (struct arglist));
+  struct script_infos *script_infos = g_malloc0 (sizeof (struct script_infos));
   GError *error = NULL;
   GOptionContext *option_context;
   static GOptionEntry entries[] = {

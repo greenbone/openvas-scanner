@@ -543,7 +543,7 @@ mktcpv6 (int sport, int dport,
 struct list*
 sendpacket (int soc, int bpf, int skip, struct in_addr dst, struct in_addr src,
             int dport, int magic, struct list * packets, unsigned long * rtt,
-            int sniff, struct arglist * env)
+            int sniff, struct script_infos * env)
 {
 	unsigned long   ack = maketime();
 	char           *pkt = mktcp (src, magic, dst, dport, ack, TH_SYN);
@@ -614,7 +614,7 @@ struct list *
 v6_sendpacket (int soc, int bpf, int skip, struct in6_addr *dst,
                int dport, int magic,
                struct list * packets, unsigned long * rtt, int sniff,
-               struct arglist * env)
+               struct script_infos * env)
 {
   unsigned long ack = maketime();
   char *pkt = mktcpv6 (magic, dport, ack, TH_SYN);
@@ -675,7 +675,7 @@ v6_sendpacket (int soc, int bpf, int skip, struct in6_addr *dst,
  * @return -1 if the socket could not be opened (error), 0 otherwise.
  */
 int
-scan (struct arglist * env, char* portrange, struct in6_addr *dst6,
+scan (struct script_infos * env, char* portrange, struct in6_addr *dst6,
       unsigned long rtt)
 {
   int             num;
@@ -793,7 +793,7 @@ scan (struct arglist * env, char* portrange, struct in6_addr *dst6,
 tree_cell *
 plugin_run_synscan (lex_ctxt * lexic)
 {
-  struct arglist  *env = lexic->script_infos;
+  struct script_infos  *env = lexic->script_infos;
   unsigned long   rtt;
   struct in6_addr *dst6 = plug_get_host_ip (env);
   struct in_addr  *dst;

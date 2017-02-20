@@ -65,7 +65,7 @@ _http_req (lex_ctxt * lexic, char *keyword)
   char *data = get_str_local_var_by_name (lexic, "data");
   int port = get_int_local_var_by_name (lexic, "port", -1);
   char *url = NULL;
-  struct arglist *script_infos = lexic->script_infos;
+  struct script_infos *script_infos = lexic->script_infos;
   char *auth, tmp[32];
   int ver;
   int cl;

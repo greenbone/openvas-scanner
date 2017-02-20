@@ -157,7 +157,7 @@ nasl_wmi_versioninfo (lex_ctxt * lexic)
 tree_cell *
 nasl_wmi_connect (lex_ctxt * lexic)
 {
-  struct arglist *script_infos = lexic->script_infos;
+  struct script_infos *script_infos = lexic->script_infos;
   struct in6_addr *host = plug_get_host_ip (script_infos);
   char *ip;
   IMPORT (username);
@@ -316,7 +316,7 @@ nasl_wmi_query (lex_ctxt * lexic)
 tree_cell *
 nasl_wmi_connect_rsop (lex_ctxt * lexic)
 {
-  struct arglist *script_infos = lexic->script_infos;
+  struct script_infos *script_infos = lexic->script_infos;
   struct in6_addr *host = plug_get_host_ip (script_infos);
   char *ip;
   IMPORT (username);
@@ -433,7 +433,7 @@ nasl_wmi_query_rsop (lex_ctxt * lexic)
 tree_cell *
 nasl_wmi_connect_reg (lex_ctxt * lexic)
 {
-  struct arglist *script_infos = lexic->script_infos;
+  struct script_infos *script_infos = lexic->script_infos;
   struct in6_addr *host = plug_get_host_ip (script_infos);
   char *ip;
   IMPORT (username);

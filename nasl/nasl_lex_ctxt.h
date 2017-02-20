@@ -36,7 +36,7 @@ typedef struct struct_lex_ctxt
   unsigned break_flag:1;        /* Break from loop */
   unsigned cont_flag:1;         /* Next iteration in loop */
   unsigned always_authenticated:1;
-  struct arglist *script_infos;
+  struct script_infos *script_infos;
   const char *oid;
   int recv_timeout;
   int line_nb;

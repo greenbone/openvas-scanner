@@ -55,8 +55,6 @@
 #define G_LOG_DOMAIN "lib  nasl"
 
 extern char *nasl_version (void);
-extern int execute_instruction (struct arglist *, char *);
-void exit_nasl (struct arglist *, int);
 
 
 void
@@ -73,45 +71,36 @@ my_gnutls_log_func (int level, const char *text)
     putc ('\n', stderr);
 }
 
-struct arglist *
+struct script_infos *
 init (char *hostname, struct in6_addr *ip, char *fqdn, kb_t kb)
 {
-  struct arglist *script_infos = g_malloc0 (sizeof (struct arglist));
+  struct script_infos *infos = g_malloc0 (sizeof (struct script_infos));
 
-  arg_add_value (script_infos, "standalone", ARG_INT, (void *) 1);
   prefs_set ("checks_read_timeout", "5");
-  arg_add_value (script_infos, "key", ARG_PTR, kb);
+  infos->standalone = 1;
+  infos->key = kb;
+  infos->hostname = host_info_init (hostname, ip, NULL, fqdn);
 
-  arg_add_value (script_infos, "HOSTNAME", ARG_PTR,
-                 host_info_init (hostname, ip, NULL, fqdn));
-
-  return script_infos;
+  return infos;
 }
 
 extern FILE *nasl_trace_fp;
 
 static nvti_t *
-parse_script_infos (const char *file, struct arglist *script_infos)
+parse_script_infos (const char *file, struct script_infos *infos)
 {
   nvti_t *nvti;
-  char *oid;
   int mode = NASL_EXEC_DESCR | NASL_ALWAYS_SIGNED;
 
   nvti = nvti_new ();
-  arg_add_value (script_infos, "NVTI", ARG_PTR, nvti);
-
-  if (exec_nasl_script (script_infos, file, NULL, mode) < 0)
+  infos->nvti = nvti;
+  if (exec_nasl_script (infos, file, NULL, mode) < 0)
     {
-      arg_del_value (script_infos, "NVTI");
       printf ("%s could not be loaded\n", file);
       return NULL;
     }
-  arg_del_value (script_infos, "NVTI");
-
-  arg_del_value (script_infos, "OID");
-  oid = g_strdup (nvti_oid (nvti));
-  if (oid)
-    arg_add_value (script_infos, "OID", ARG_STRING, oid);
+  infos->nvti = NULL;
+  infos->oid = g_strdup (nvti_oid (nvti));
 
   return nvti;
 }
@@ -141,7 +130,7 @@ nvti_category_is_safe (int category)
 int
 main (int argc, char **argv)
 {
-  struct arglist *script_infos;
+  struct script_infos *script_infos;
   gvm_hosts_t *hosts;
   gvm_host_t *host;
   static gchar *target = NULL;
@@ -373,7 +362,7 @@ main (int argc, char **argv)
           if ((pid = fork ()) == 0)
             {
               if (exec_nasl_script (script_infos, nasl_filenames[n],
-                                    arg_get_value (script_infos, "OID"), mode) < 0)
+                                    script_infos->oid, mode) < 0)
                 exit (1);
               else
                 exit (0);

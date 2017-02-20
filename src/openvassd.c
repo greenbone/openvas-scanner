@@ -446,7 +446,6 @@ scanner_thread (struct scan_globals *globals)
     goto shutdown_and_exit;
 
   setsockopt (soc, SOL_SOCKET, SO_KEEPALIVE, &opt, sizeof (opt));
-  /* arg_set_value *replaces* an existing value, but it shouldn't fail here */
   globals->parent_socket = soc;
   globals->global_socket = soc;
 
