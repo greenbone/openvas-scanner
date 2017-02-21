@@ -40,7 +40,6 @@
 
 #include "../misc/plugutils.h"          /* for plug_set_id */
 #include "../misc/network.h"            /* for getpts */
-#include "../misc/arglists.h"
 
 #include "nasl_tree.h"
 #include "nasl_global_ctxt.h"

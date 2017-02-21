@@ -34,7 +34,6 @@
 #include "../misc/ftp_funcs.h"          /* for ftp_log_in */
 #include "../misc/network.h"            /* read_stream_connection_min */
 #include "../misc/plugutils.h"          /* plug_get_host_open_port */
-#include "../misc/arglists.h"
 
 #include "nasl_tree.h"
 #include "nasl_global_ctxt.h"

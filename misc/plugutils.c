@@ -46,7 +46,6 @@
 #include <gvm/util/kb.h>
 #include <gvm/util/nvticache.h>      /* for nvticache_get_by_oid() */
 
-#include "arglists.h"
 #include "network.h"
 #include "plugutils.h"
 #include "internal_com.h"

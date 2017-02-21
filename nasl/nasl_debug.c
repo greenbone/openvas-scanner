@@ -22,7 +22,6 @@
 
 #include <gvm/base/logging.h>
 
-#include "../misc/arglists.h"
 #include "../misc/plugutils.h"
 
 #include "nasl_tree.h"

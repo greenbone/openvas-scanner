@@ -33,7 +33,6 @@
 #include <gvm/base/logging.h>
 #include <gvm/base/prefs.h>    /* for prefs_get */
 
-#include "../misc/arglists.h"  /* for struct arglist */
 #include "../misc/plugutils.h" /* for find_in_path */
 #include "../misc/network.h"
 

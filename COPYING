@@ -158,8 +158,6 @@ nasl/tests/testsuiteinit.nasl: GPL-2+
 nasl/tests/testsuitesummary.nasl: GPL-2+
 
 misc/CMakeLists.txt: GPL-2+
-misc/arglists.c: LGPL-2+
-misc/arglists.h: LGPL-2+
 misc/bpf_share.c: GPL-2
 misc/bpf_share.h: LGPL-2+
 misc/ftp_funcs.c: LGPL-2+

@@ -21,7 +21,6 @@
 
 #include <glib.h>
 
-#include "../misc/arglists.h"           /* for struct arglist */
 #include "../misc/scanneraux.h"
 
 /* Signature information extraction and verification (not nasl- specific
