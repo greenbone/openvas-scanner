@@ -65,8 +65,8 @@ plugin_next_unrun_dependency (plugins_scheduler_t sched, GSList *deps, int calls
 
   if (calls > 100)
     {
-      g_debug ("Possible dependency cycle detected %s",
-                 ((struct scheduler_plugin *) deps->data)->oid);
+      g_message ("Possible dependency cycle detected %s",
+                   ((struct scheduler_plugin *) deps->data)->oid);
       return NULL;
     }
 

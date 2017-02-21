@@ -1,3 +1,9 @@
+2017-02-21  Christian Fischer  <christian.fischer@greenbone.net>
+
+	* src/pluginscheduler.c (plugin_next_unrun_dependency):
+	Use g_message if a dependency cycle is detected as this
+	is a serve issue which needs to always show up in the logs.
+
 2017-02-21  Hani Benhabiles  <hani.benhabiles@greenbone.net>
 
 	* misc/arglists.c, misc/arglists.h: Remove files.
