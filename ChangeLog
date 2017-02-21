@@ -1,3 +1,8 @@
+2017-02-21  Hani Benhabiles  <hani.benhabiles@greenbone.net>
+
+	* misc/network.c (stream_zero, stream_set), misc/pcap.c (getsourceip):
+	Remove unused functions.
+
 2017-02-21  Christian Fischer  <christian.fischer@greenbone.net>
 
 	* src/pluginscheduler.c (plugin_next_unrun_dependency):

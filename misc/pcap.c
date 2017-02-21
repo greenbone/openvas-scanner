@@ -795,45 +795,6 @@ v6_getsourceip (struct in6_addr *src, struct in6_addr *dst)
 }
 
 int
-getsourceip (struct in_addr *src, struct in_addr *dst)
-{
-  int sd;
-  struct sockaddr_in sock;
-  unsigned int socklen = sizeof (struct sockaddr_in);
-  unsigned short p1;
-
-  get_random_bytes (&p1, 2);
-  if (p1 < 5000)
-    p1 += 5000;
-
-  if ((sd = socket (AF_INET, SOCK_DGRAM, 0)) == -1)
-    {
-      perror ("Socket troubles");
-      return 0;
-    }
-  sock.sin_family = AF_INET;
-  sock.sin_addr = *dst;
-  sock.sin_port = htons (p1);
-  if (connect (sd, (struct sockaddr *) &sock, sizeof (struct sockaddr_in)) ==
-      -1)
-    {
-      close (sd);
-      return 0;
-    }
-  bzero (&sock, sizeof (struct sockaddr_in));
-  if (getsockname (sd, (struct sockaddr *) &sock, &socklen) == -1)
-    {
-      perror ("getsockname");
-      close (sd);
-      return 0;
-    }
-
-  src->s_addr = sock.sin_addr.s_addr;
-  close (sd);
-  return 1;                     /* Calling function responsible for checking validity */
-}
-
-int
 getipv4routes (struct myroute *myroutes, int *numroutes)
 {
   struct interface_info *mydevs;

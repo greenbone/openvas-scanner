@@ -2148,22 +2148,6 @@ socket_close (int soc)
  */
 
 int
-stream_zero (fd_set * set)
-{
-  FD_ZERO (set);
-  return 0;
-}
-
-int
-stream_set (int fd, fd_set * set)
-{
-  int soc = openvas_get_socket_from_connection (fd);
-  if (soc >= 0)
-    FD_SET (soc, set);
-  return soc;
-}
-
-int
 fd_is_stream (int fd)
 {
   return OPENVAS_STREAM (fd);   /* Should probably be smarter... */
