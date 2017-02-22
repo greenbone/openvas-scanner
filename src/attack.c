@@ -235,14 +235,14 @@ launch_plugin (struct scan_globals *globals, struct scheduler_plugin *plugin,
           return 0;
         }
       else
-        g_debug ("Stopped scan wrap-up: Launching %s (%s)", name, oid);
+        g_message ("Stopped scan wrap-up: Launching %s (%s)", name, oid);
     }
 
   /* Stop the test if the host is 'dead' */
   if (kb_item_get_int (kb, "Host/dead") > 0
       || kb_item_get_int (kb, "Host/ping_failed") > 0)
     {
-      g_debug ("The remote host (%s) is dead", hostname);
+      g_message ("The remote host (%s) is dead", hostname);
       pluginlaunch_stop (1);
       plugin->running_state = PLUGIN_STATUS_DONE;
       g_free (name);
@@ -1092,10 +1092,10 @@ attack_network (struct scan_globals *globals, kb_t *network_kb)
           txt_ip = addr6_as_str (&args.hostip);
           hosts_set_pid (hostname, pid);
           if (network_phase)
-            g_debug ("Testing %s (network level) [%d]",
-                     network_targets, pid);
+            g_message ("Testing %s (network level) [%d]",
+                       network_targets, pid);
           else
-            g_debug ("Testing %s (%s) [%d]", hostname, txt_ip, pid);
+            g_message ("Testing %s (%s) [%d]", hostname, txt_ip, pid);
           g_free (txt_ip);
           g_free (MAC);
         }

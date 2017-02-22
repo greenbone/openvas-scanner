@@ -1,3 +1,9 @@
+2017-02-22  Christian Fischer  <christian.fischer@greenbone.net>
+
+	* src/attack.c (launch_plugin, attack_network):
+	Use g_message to have the same logging behavior as
+	previously.
+
 2017-02-21  Hani Benhabiles  <hani.benhabiles@greenbone.net>
 
 	* misc/network.c (stream_zero, stream_set), misc/pcap.c (getsourceip):
