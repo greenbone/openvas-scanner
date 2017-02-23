@@ -1,0 +1,43 @@
+Note to the *BSD users. 
+
+
+OpenVAS uses the pcap library, which uses the
+berkeley packet filter (bpf) to do its job.
+
+Since OpenVAS used multiple processes, several pcap-aware plugins will
+need to access the the bpf at the same time. 
+
+This means that you need to recompile your kernel with the
+following option :
+
+pseudo-device   bpfilter NUM
+
+(or pseudo-device bpf NUM)
+
+Where 'NUM' is the number of bpf you want -- it should be equal to
+the 'max hosts number' option you enter in scanner x the
+'max plugins' option.
+	   
+If for instance you want to have 10 scanner instances running at the same time,
+each running 5 plugins in parallel, you should create 50 (10 * 5) bpfs
+(as openvasd is extremely lightweight, you can expect to have this amount
+ of processes running at the same time)
+
+If you plan to scan a whole network, we recommend you create at least
+100 of them.
+
+Once your kernel has been rebuilt, get root, cd to /dev
+and do  :
+
+  i=0; while [ $i -lt 100];
+  do
+  ./MAKEDEV bpf$i
+  let i=$i+1
+  done
+
+On FreeBSD, you can directly do :
+      ./MAKEDEV bpf+100
+
+If you can not recompile your kernel, there once was a feature
+'enable-bpf-sharing' which has been removed (see OpenVAS Change Request 5).
+Please report on the OpenVAS Mailing Lists if this causes a problem to you.

@@ -1,3 +1,7 @@
+2017-02-23  Michael Wiegand <michael.wiegand@greenbone.net>
+
+	* doc/README.BPF: Moved here from 'openvas-scanner/doc/'.
+
 2017-02-22  Christian Fischer  <christian.fischer@greenbone.net>
 
 	* src/attack.c (launch_plugin, attack_network):
