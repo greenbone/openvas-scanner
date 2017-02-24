@@ -930,6 +930,11 @@ attack_network (struct scan_globals *globals, kb_t *network_kb)
   sched = plugins_scheduler_init
            (prefs_get ("plugin_set"), prefs_get_bool ("auto_enable_dependencies"),
             network_phase);
+  if (!sched)
+    {
+      g_message ("Couldn't initialize the plugin scheduler");
+      return;
+    }
 
   max_hosts = get_max_hosts_number ();
   max_checks = get_max_checks_number ();

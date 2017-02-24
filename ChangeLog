@@ -1,3 +1,14 @@
+2017-02-24  Hani Benhabiles  <hani.benhabiles@greenbone.net>
+
+	*  src/attack.c (attack_network): Check that scheduler was created
+	correctly.
+
+	* src/pluginscheduler.c (find_plugins_in_deps, check_dependency_cycles):
+	New functions.
+	(plugins_scheduler_init): Check for dependency cycles.
+	(plugin_next_unrun_dependency): Remove check for number of calls.
+	(plugins_scheduler_next): Adjust function call.
+
 2017-02-24  Juan Jose Nicola  <juan.nicola@greenbone.net>
 
 	* nasl/exec.c (exec_nasl_script): Log an error before exit

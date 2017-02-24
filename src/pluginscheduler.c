@@ -56,19 +56,12 @@ struct plugins_scheduler
 };
 
 struct scheduler_plugin *
-plugin_next_unrun_dependency (plugins_scheduler_t sched, GSList *deps, int calls)
+plugin_next_unrun_dependency (plugins_scheduler_t sched, GSList *deps)
 {
   int flag = 0;
 
   if (deps == NULL)
     return NULL;
-
-  if (calls > 100)
-    {
-      g_message ("Possible dependency cycle detected %s",
-                   ((struct scheduler_plugin *) deps->data)->oid);
-      return NULL;
-    }
 
   while (deps)
     {
@@ -89,7 +82,7 @@ plugin_next_unrun_dependency (plugins_scheduler_t sched, GSList *deps, int calls
             if (deps_ptr == NULL)
               return plugin;
 
-            ret = plugin_next_unrun_dependency (sched, deps_ptr, calls++);
+            ret = plugin_next_unrun_dependency (sched, deps_ptr);
             if (ret == NULL)
               return plugin;
 
@@ -234,6 +227,64 @@ plugins_scheduler_enable (plugins_scheduler_t sched, const char *oid_list,
   g_free (oids);
 }
 
+int
+find_plugin_in_deps (struct scheduler_plugin **array, int pos)
+{
+  GSList *element = array[pos]->deps;
+  int i;
+
+  for (i = 0; i < pos; i++)
+    if (array[i] == array[pos])
+      return pos;
+
+  while (element)
+    {
+      int ret;
+
+      array[pos + 1] = element->data;
+      ret = find_plugin_in_deps (array, pos + 1);
+      if (ret != -1)
+        return ret;
+      element = element->next;
+    }
+  return -1;
+}
+
+int
+check_dependency_cycles (plugins_scheduler_t sched)
+{
+  int i, j;
+
+  for (i = ACT_FIRST; i <= ACT_LAST; i++)
+    {
+      GSList *element = sched->list[i];
+
+      while (element)
+        {
+          struct scheduler_plugin *array[1024];
+          int pos;
+
+          array[0] = element->data;
+          pos = find_plugin_in_deps (array, 0);
+          if (pos >= 0)
+            {
+              g_warning ("Dependency cycle:");
+              for (j = 0; j <= pos; j++)
+                {
+                  char *name = nvticache_get_name (array[j]->oid);
+
+                  g_message (" %s (%s)", name, array[j]->oid);
+                  g_free (name);
+                }
+
+              return 1;
+            }
+          element = element->next;
+        }
+    }
+  return 0;
+}
+
 plugins_scheduler_t
 plugins_scheduler_init (const char *plugins_list, int autoload, int only_network)
 {
@@ -250,6 +301,12 @@ plugins_scheduler_init (const char *plugins_list, int autoload, int only_network
         {
           ret->list[i] = NULL;
         }
+    }
+
+  if (check_dependency_cycles (ret))
+    {
+      plugins_scheduler_free (ret);
+      return NULL;
     }
   return ret;
 }
@@ -300,7 +357,7 @@ plugins_scheduler_next (plugins_scheduler_t h)
                 if (deps_ptr != NULL)
                   {
                     struct scheduler_plugin *p =
-                      plugin_next_unrun_dependency (h, deps_ptr, 0);
+                      plugin_next_unrun_dependency (h, deps_ptr);
 
                     switch (GPOINTER_TO_SIZE (p))
                       {
