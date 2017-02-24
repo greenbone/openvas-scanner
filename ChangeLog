@@ -1,5 +1,9 @@
 2017-02-24  Hani Benhabiles  <hani.benhabiles@greenbone.net>
 
+	* nasl/nasl.c (init): Allocate memory for globals struct.
+
+2017-02-24  Hani Benhabiles  <hani.benhabiles@greenbone.net>
+
 	*  src/attack.c (attack_network): Check that scheduler was created
 	correctly.
 
