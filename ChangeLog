@@ -1,3 +1,8 @@
+2017-02-24  Juan Jose Nicola  <juan.nicola@greenbone.net>
+
+	* nasl/exec.c (exec_nasl_script): Log an error before exit
+	if chdir is not possible.
+
 2017-02-24  Hani Benhabiles  <hani.benhabiles@greenbone.net>
 
 	* nasl/nasl_crypto.c (nasl_nt_owf_gen): Revert part of r27515 to allow

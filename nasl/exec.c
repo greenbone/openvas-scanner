@@ -1720,6 +1720,8 @@ exec_nasl_script (struct script_infos *script_infos, const char *name,
 
   if (g_chdir (newdir) != 0)
     {
+      g_message ("%s: Not able to open nor to locate it in include paths",
+                 name);
       g_free (old_dir);
       g_free (newdir);
       return -1;
