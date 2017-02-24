@@ -698,7 +698,7 @@ nasl_nt_owf_gen (lex_ctxt * lexic)
   char *src;
 
 
-  if (pass_len == 0 || pass == NULL)
+  if (pass == NULL)
     {
       nasl_perror (lexic, "Syntax : nt_owf_gen(password:<p>)\n");
       return NULL;

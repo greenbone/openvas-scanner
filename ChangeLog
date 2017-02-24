@@ -1,3 +1,8 @@
+2017-02-24  Hani Benhabiles  <hani.benhabiles@greenbone.net>
+
+	* nasl/nasl_crypto.c (nasl_nt_owf_gen): Revert part of r27515 to allow
+	empty password.
+
 2017-02-23  Michael Wiegand <michael.wiegand@greenbone.net>
 
 	* doc/README.BPF: Moved here from 'openvas-scanner/doc/'.
