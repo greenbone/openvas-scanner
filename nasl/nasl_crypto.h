@@ -39,6 +39,7 @@ tree_cell *nasl_hmac_dss (lex_ctxt *);
 tree_cell *nasl_hmac_ripemd160 (lex_ctxt *);
 tree_cell *nasl_prf_sha256 (lex_ctxt *);
 tree_cell *nasl_prf_sha384 (lex_ctxt *);
+tree_cell *nasl_tls1_prf (lex_ctxt *);
 tree_cell *nasl_ntlmv1_hash (lex_ctxt *);
 tree_cell *nasl_nt_owf_gen (lex_ctxt *);
 tree_cell *nasl_lm_owf_gen (lex_ctxt *);

@@ -273,6 +273,34 @@ nasl_get_sign (lex_ctxt * lexic)
 }
 
 static void *
+hmac_md5_for_prf (const void *key, int keylen, const void *buf, int buflen)
+{
+  void *signature = g_malloc0 (16);
+  gsize signlen = 16;
+  GHmac *hmac;
+
+  hmac = g_hmac_new (G_CHECKSUM_MD5, key, keylen);
+  g_hmac_update (hmac, buf, buflen);
+  g_hmac_get_digest (hmac, signature, &signlen);
+  g_hmac_unref (hmac);
+  return signature;
+}
+
+static void *
+hmac_sha1 (const void *key, int keylen, const void *buf, int buflen)
+{
+  void *signature = g_malloc0 (20);
+  gsize signlen = 20;
+  GHmac *hmac;
+
+  hmac = g_hmac_new (G_CHECKSUM_SHA1, key, keylen);
+  g_hmac_update (hmac, buf, buflen);
+  g_hmac_get_digest (hmac, signature, &signlen);
+  g_hmac_unref (hmac);
+  return signature;
+}
+
+static void *
 hmac_sha256 (const void *key, int keylen, const void *buf, int buflen)
 {
   void *signature = g_malloc0 (32);
@@ -349,7 +377,7 @@ nasl_hmac_sha256 (lex_ctxt * lexic)
 
 /* @brief PRF function from RFC 2246 chapter 5.
  *
- * @param hmac   0 for SHA256, 1 for SHA384.
+ * @param hmac   0 for SHA256, 1 for SHA384, 2 for MD5, 3 for SHA1.
  *
  * */
 static void *
@@ -367,10 +395,20 @@ tls_prf (const void *secret, size_t secret_len, const void *seed,
       hmac_size = 32;
       hmac_func = hmac_sha256;
     }
-  else
+  else if (hmac == 1)
     {
       hmac_size = 48;
       hmac_func = hmac_sha384;
+    }
+  else if (hmac == 2)
+    {
+      hmac_size = 16;
+      hmac_func = hmac_md5_for_prf;
+    }
+  else
+    {
+      hmac_size = 20;
+      hmac_func = hmac_sha1;
     }
 
   /*
@@ -417,6 +455,59 @@ tls_prf (const void *secret, size_t secret_len, const void *seed,
   return result;
 }
 
+/* @brief PRF function from RFC 4346 chapter 5. TLS v1.1
+ *
+ * Legacy function in wich P_MD5 and PSHA1 are combined.
+ *
+ * Legacy function has been replaced with prf_sha256 and prf_sha348
+ *  in TLS v1.2, as it can be read in chapter 1.2
+ * */
+static void *
+tls1_prf (const void *secret, size_t secret_len, const void *seed,
+         size_t seed_len, const void *label, size_t outlen)
+{
+  void *result, *secret1 = NULL, *secret2 = NULL;
+  unsigned int half_slen, odd = 0, i;
+  char *resultmd5 = NULL, *resultsha1 = NULL, *aux_res = NULL;
+
+  if (secret_len % 2 == 0 )
+    half_slen =  secret_len / 2;
+  else
+    {
+      half_slen = (secret_len + 1) / 2;
+      odd = 1;
+    }
+
+  secret1 = g_malloc0 (half_slen);
+  memcpy (secret1, secret, half_slen);
+  secret2 = g_malloc0 (half_slen);
+  memcpy (secret2, secret + (half_slen - odd), half_slen);
+
+  resultmd5 = g_malloc0(outlen);
+  resultsha1 = g_malloc0(outlen);
+  aux_res = g_malloc0(outlen);
+
+  resultmd5 = tls_prf (secret1, half_slen, seed, seed_len, label, outlen, 2);
+  if (!resultmd5)
+    return NULL;
+  resultsha1 = tls_prf (secret2, half_slen, seed, seed_len, label, outlen, 3);
+  if (!resultsha1)
+    return NULL;
+  for (i = 0; i < outlen; i++)
+    aux_res[i] = resultmd5[i] ^ resultsha1[i];
+
+  result = g_malloc (outlen);
+  memcpy (result, aux_res, outlen);
+
+  g_free(resultmd5);
+  g_free(resultsha1);
+  g_free(secret1);
+  g_free(secret2);
+  g_free(aux_res);
+
+  return result;
+}
+
 static tree_cell *
 nasl_prf (lex_ctxt * lexic, int hmac)
 {
@@ -438,7 +529,11 @@ nasl_prf (lex_ctxt * lexic, int hmac)
                    "Syntax : prf(secret, seed, label, outlen)\n");
       return NULL;
     }
-  result = tls_prf (secret, secret_len, seed, seed_len, label, outlen, hmac);
+  if (hmac != 2)
+    result = tls_prf (secret, secret_len, seed, seed_len, label, outlen, hmac);
+  else
+    result = tls1_prf (secret, secret_len, seed, seed_len, label, outlen);
+
   if (!result)
     return NULL;
 
@@ -459,6 +554,12 @@ tree_cell *
 nasl_prf_sha384 (lex_ctxt * lexic)
 {
   return nasl_prf (lexic, 1);
+}
+
+tree_cell *
+nasl_tls1_prf (lex_ctxt * lexic)
+{
+  return nasl_prf (lexic, 2);
 }
 
 tree_cell *

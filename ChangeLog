@@ -1,3 +1,20 @@
+2017-02-28  Juan Jose Nicola  <juan.nicola@greenbone.net>
+
+	* nasl/nasl_crypto2.c (nasl_aes128_gcm_encrypt)
+	(nasl_aes256_gcm_encrypt): New functions.
+
+	* nasl/nasl_crypto2.h: Add new functions prototypes.
+
+	* nasl/nasl_crypto.c (hmac_md5_for_prf)
+	(hmac_sha1, tls1_prf, nasl_tls1_prf): New functions.
+	(nasl_prf): Add support por for tls1_prf.
+	(tls_prf): Add option 2 and 3 for MD5 and SHA1 respectively.
+
+	* nasl/nasl_crypto.h: Add new function prototype.
+
+	* nasl/nasl_init.c (libfuncs): Add aes128_gcm_encrypt(),
+	aes256_gcm_encrypt() and tls1_prf().
+
 2017-02-24  Hani Benhabiles  <hani.benhabiles@greenbone.net>
 
 	* nasl/nasl.c (init): Allocate memory for globals struct.

@@ -1461,3 +1461,15 @@ nasl_des_ede_cbc_encrypt (lex_ctxt * lexic)
 {
   return encrypt_data (lexic, GCRY_CIPHER_3DES, GCRY_CIPHER_MODE_CBC);
 }
+
+tree_cell *
+nasl_aes128_gcm_encrypt (lex_ctxt * lexic)
+{
+  return encrypt_data (lexic, GCRY_CIPHER_AES128, GCRY_CIPHER_MODE_GCM);
+}
+
+tree_cell *
+nasl_aes256_gcm_encrypt (lex_ctxt * lexic)
+{
+  return encrypt_data (lexic, GCRY_CIPHER_AES256, GCRY_CIPHER_MODE_GCM);
+}

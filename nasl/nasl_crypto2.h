@@ -38,6 +38,8 @@ tree_cell *nasl_aes256_cbc_encrypt (lex_ctxt * lexic);
 tree_cell *nasl_aes128_ctr_encrypt (lex_ctxt * lexic);
 tree_cell *nasl_aes256_ctr_encrypt (lex_ctxt * lexic);
 tree_cell *nasl_des_ede_cbc_encrypt (lex_ctxt * lexic);
+tree_cell *nasl_aes128_gcm_encrypt (lex_ctxt * lexic);
+tree_cell *nasl_aes256_gcm_encrypt (lex_ctxt * lexic);
 
 
 int generate_script_signature (char *);
