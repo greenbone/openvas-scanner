@@ -306,13 +306,16 @@ nasl_display (lex_ctxt * lexic)
 {
   tree_cell *r, *retc;
   int j;
-
+  char *msg = NULL;
   r = nasl_string (lexic);
 
+  msg = g_malloc0 (r->size);
   for (j = 0; j < r->size; j++)
-    putchar (isprint (r->x.str_val[j])
+    msg[j] = (isprint (r->x.str_val[j])
              || isspace (r->x.str_val[j]) ? r->x.str_val[j] : '.');
-  fflush (stdout);
+
+  g_message (msg);
+  g_free (msg);
   retc = alloc_tree_cell (0, NULL);
   retc->type = CONST_INT;
   retc->x.i_val = r->size;
