@@ -480,30 +480,36 @@ tls1_prf (const void *secret, size_t secret_len, const void *seed,
 
   secret1 = g_malloc0 (half_slen);
   memcpy (secret1, secret, half_slen);
-  secret2 = g_malloc0 (half_slen);
-  memcpy (secret2, secret + (half_slen - odd), half_slen);
-
-  resultmd5 = g_malloc0(outlen);
-  resultsha1 = g_malloc0(outlen);
-  aux_res = g_malloc0(outlen);
-
   resultmd5 = tls_prf (secret1, half_slen, seed, seed_len, label, outlen, 2);
   if (!resultmd5)
-    return NULL;
+    {
+      g_free (secret1);
+      return NULL;
+    }
+
+  secret2 = g_malloc0 (half_slen);
+  memcpy (secret2, secret + (half_slen - odd), half_slen);
   resultsha1 = tls_prf (secret2, half_slen, seed, seed_len, label, outlen, 3);
   if (!resultsha1)
-    return NULL;
+    {
+      g_free (resultmd5);
+      g_free (secret1);
+      g_free (secret2);
+      return NULL;
+    }
+
+  aux_res = g_malloc0 (outlen);
   for (i = 0; i < outlen; i++)
     aux_res[i] = resultmd5[i] ^ resultsha1[i];
 
   result = g_malloc (outlen);
   memcpy (result, aux_res, outlen);
 
-  g_free(resultmd5);
-  g_free(resultsha1);
-  g_free(secret1);
-  g_free(secret2);
-  g_free(aux_res);
+  g_free (resultmd5);
+  g_free (resultsha1);
+  g_free (secret1);
+  g_free (secret2);
+  g_free (aux_res);
 
   return result;
 }

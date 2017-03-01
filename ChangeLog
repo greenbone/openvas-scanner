@@ -1,3 +1,9 @@
+2017-03-01  Juan Jose Nicola  <juan.nicola@greenbone.net>
+
+	* nasl/nasl_crypto.c (tls1_prf): Remove useless memory allocation
+	and improve code style. Free allocated memory in case that md5 or sha1
+	result is NULL before leaving the function.
+
 2017-02-28  Juan Jose Nicola  <juan.nicola@greenbone.net>
 
 	* nasl/nasl_crypto2.c (nasl_aes128_gcm_encrypt)
