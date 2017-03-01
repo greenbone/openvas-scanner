@@ -1,5 +1,14 @@
 2017-03-01  Juan Jose Nicola  <juan.nicola@greenbone.net>
 
+	* src/openvassd.c (set_daemon_mode): Call log_config_free in daemon mode
+	for the parent process before exit.
+	(init_openvassd): Remove dont_fork argument variable, since it is no
+	longer required, because the log handler is always set.
+	(main): Remove dont_fork variable from the argument list to call
+	init_openvassd().
+
+2017-03-01  Juan Jose Nicola  <juan.nicola@greenbone.net>
+
 	* nasl/nasl_text_utils.c (nasl_display): Use g_message instead of
 	putchar.
 

@@ -644,7 +644,7 @@ init_unix_network (int *sock, const char *owner, const char *group,
  * @param stop_early 0: do some initialization, 1: no initialization.
  */
 static int
-init_openvassd (int dont_fork, const char *config_file)
+init_openvassd (const char *config_file)
 {
   static gchar *rc_name = NULL;
   int i;
@@ -662,9 +662,7 @@ init_openvassd (int dont_fork, const char *config_file)
   if (g_file_test (rc_name, G_FILE_TEST_EXISTS))
     log_config = load_log_configuration (rc_name);
   g_free (rc_name);
-  if (dont_fork == FALSE)
-    setup_log_handlers (log_config);
-
+  setup_log_handlers (log_config);
   set_globals_from_preferences ();
 
   return 0;
@@ -685,7 +683,10 @@ set_daemon_mode ()
              strerror (errno));
   close (i);
   if (fork ())
-    exit (0);
+    { /* Parent. */
+      log_config_free ();
+      exit (0);
+    }
   setsid ();
 }
 
@@ -814,14 +815,14 @@ main (int argc, char *argv[])
     config_file = OPENVASSD_CONF;
   if (only_cache)
     {
-      if (init_openvassd (dont_fork, config_file))
+      if (init_openvassd (config_file))
         return 1;
       if (plugins_init ())
         return 1;
       return 0;
     }
 
-  if (init_openvassd (dont_fork, config_file))
+  if (init_openvassd (config_file))
     return 1;
   if (!print_specs)
     {
