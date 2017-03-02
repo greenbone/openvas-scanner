@@ -1,3 +1,9 @@
+2017-03-02  Juan Jose Nicola  <juan.nicola@greenbone.net>
+
+	* src/openvassd.c (struct openvassd_option openvassd_defaults):
+	Add port 3389 and Services/irc to non_simult_ports config option,
+	suggested by Christian Fischer.
+
 2017-03-01  Juan Jose Nicola  <juan.nicola@greenbone.net>
 
 	* src/openvassd.c (set_daemon_mode): Call log_config_free in daemon mode

@@ -126,7 +126,7 @@ static openvassd_option openvassd_defaults[] = {
   {"optimize_test", "yes"},
   {"checks_read_timeout", "5"},
   {"network_scan", "no"},
-  {"non_simult_ports", "139, 445"},
+  {"non_simult_ports", "139, 445, 3389, Services/irc"},
   {"plugins_timeout", G_STRINGIFY (NVT_TIMEOUT)},
   {"scanner_plugins_timeout", G_STRINGIFY (SCANNER_NVT_TIMEOUT)},
   {"safe_checks", "yes"},
