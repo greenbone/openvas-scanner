@@ -142,13 +142,20 @@ plugin_add (plugins_scheduler_t sched, GHashTable *oids_table, int autoload,
             {
               struct scheduler_plugin *dep_plugin;
               char *dep_oid = nvticache_get_oid (array[i]);
-              plugin_add (sched, oids_table, autoload, dep_oid);
-              dep_plugin = g_hash_table_lookup (oids_table, dep_oid);
-              /* In case of autoload, no need to wait for plugin_add() to fill
-               * all enabled plugins to start filling dependencies lists. */
-              assert (dep_plugin);
-              plugin->deps = g_slist_prepend (plugin->deps, dep_plugin);
-              g_free (dep_oid);
+              if (dep_oid)
+                {
+                  plugin_add (sched, oids_table, autoload, dep_oid);
+                  dep_plugin = g_hash_table_lookup (oids_table, dep_oid);
+                  /* In case of autoload, no need to wait for plugin_add() to
+                   * fill all enabled plugins to start filling dependencies
+                   * lists. */
+                  assert (dep_plugin);
+                  plugin->deps = g_slist_prepend (plugin->deps, dep_plugin);
+                  g_free (dep_oid);
+                }
+              else
+                g_warning ("A dependency of %s could not be loaded. "
+                           "This may be due to a parse error.", array[i]);
             }
           g_strfreev(array);
           g_free (deps);

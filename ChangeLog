@@ -1,3 +1,8 @@
+2017-03-03  Juan Jose Nicola  <juan.nicola@greenbone.net>
+
+	* src/pluginscheduler.c (plugin_add): Check if dep_oid
+	is not null to avoid a SIGSEGV may be due to a parse error.
+
 2017-03-02  Juan Jose Nicola  <juan.nicola@greenbone.net>
 
 	* src/openvassd.c (struct openvassd_option openvassd_defaults):
