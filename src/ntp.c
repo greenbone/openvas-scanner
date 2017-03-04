@@ -100,7 +100,7 @@ ntp_parse_input (struct scan_globals *globals, char *input)
           break;
 
         case CREQ_STOP_WHOLE_TEST:
-          g_debug ("Stopping the whole test (requested by client)");
+          g_message ("Stopping the whole test (requested by client)");
           hosts_stop_all ();
           break;
 

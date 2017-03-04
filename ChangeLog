@@ -1,3 +1,11 @@
+2017-03-04  Christian Fischer  <christian.fischer@greenbone.net>
+
+	* src/attack.c (apply_hosts_preferences),
+	src/hosts.c (hosts_stop_host),
+	src/ntp.c (ntp_parse_input):
+	Use g_message to have the same logging behavior as
+	previously.
+
 2017-03-03  Juan Jose Nicola  <juan.nicola@greenbone.net>
 
 	* src/pluginscheduler.c (plugin_add): Check if dep_oid

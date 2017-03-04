@@ -654,9 +654,9 @@ apply_hosts_preferences (gvm_hosts_t *hosts)
       int ret = gvm_hosts_exclude (hosts, exclude_hosts, 1);
 
       if (ret >= 0)
-        g_debug ("exclude_hosts: Skipped %d host(s).", ret);
+        g_message ("exclude_hosts: Skipped %d host(s).", ret);
       else
-        g_debug ("exclude_hosts: Error.");
+        g_message ("exclude_hosts: Error.");
     }
 
   /* Reverse-lookup unify ? */
