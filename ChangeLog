@@ -1,3 +1,8 @@
+2017-03-06  Juan Jose Nicola  <juan.nicola@greenbone.net>
+
+	* src/pluginscheduler.c (plugin_add): Change the message
+	to a more appropriate one after check if dep_oid is null.
+
 2017-03-06  Hani Benhabiles  <hani.benhabiles@greenbone.net>
 
 	* nasl/nasl_text_utils.c (nasl_display): Fix g_message() call.

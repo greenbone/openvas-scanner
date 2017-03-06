@@ -154,7 +154,7 @@ plugin_add (plugins_scheduler_t sched, GHashTable *oids_table, int autoload,
                   g_free (dep_oid);
                 }
               else
-                g_warning ("A dependency of %s could not be loaded. "
+                g_warning ("There was a problem trying to load %s. "
                            "This may be due to a parse error.", array[i]);
             }
           g_strfreev(array);
