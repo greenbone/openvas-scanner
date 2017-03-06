@@ -1,3 +1,7 @@
+2017-03-06  Hani Benhabiles  <hani.benhabiles@greenbone.net>
+
+	* nasl/nasl_text_utils.c (nasl_display): Fix g_message() call.
+
 2017-03-04  Christian Fischer  <christian.fischer@greenbone.net>
 
 	* src/attack.c (apply_hosts_preferences),

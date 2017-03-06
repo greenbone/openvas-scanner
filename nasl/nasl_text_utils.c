@@ -314,7 +314,7 @@ nasl_display (lex_ctxt * lexic)
     msg[j] = (isprint (r->x.str_val[j])
              || isspace (r->x.str_val[j]) ? r->x.str_val[j] : '.');
 
-  g_message (msg);
+  g_message ("%s", msg);
   g_free (msg);
   retc = alloc_tree_cell (0, NULL);
   retc->type = CONST_INT;
