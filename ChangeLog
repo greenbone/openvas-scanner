@@ -1,3 +1,8 @@
+2017-03-08  Juan Jose Nicola  <juan.nicola@greenbone.net>
+
+	* nasl/nasl_crypto.c (tls_prf): Replace the seed with
+	the concatenation of the label and the seed.
+
 2017-03-06  Juan Jose Nicola  <juan.nicola@greenbone.net>
 
 	* src/pluginscheduler.c (plugin_add): Change the message

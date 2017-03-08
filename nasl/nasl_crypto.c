@@ -412,17 +412,18 @@ tls_prf (const void *secret, size_t secret_len, const void *seed,
     }
 
   /*
-   * A0 = seed
-   * Ai = HMAC(secret, A(i - 1))
    * lseed = label + seed
+   * A0 = lseed (new seed)
+   * Ai = HMAC(secret, A(i - 1))
    */
-  Ai = hmac_func (secret, secret_len, seed, seed_len);
-  if (!Ai)
-    return NULL;
   lslen = strlen (label) + seed_len;
   lseed = g_malloc0 (lslen);
   memcpy (lseed, label, strlen (label));
   memcpy (lseed + strlen (label), seed, seed_len);
+
+  Ai = hmac_func (secret, secret_len, lseed, lslen);
+  if (!Ai)
+    return NULL;
 
   result = g_malloc0 (outlen);
   while (pos < outlen)
