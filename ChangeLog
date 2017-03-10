@@ -1,3 +1,10 @@
+2017-03-10  Hani Benhabiles  <hani.benhabiles@greenbone.net>
+
+	Backport r27968.
+
+	* src/pluginscheduler.c (plugins_scheduler_next): Simplify checks for
+	returning PLUG_RUNNING.
+
 2017-03-07  Michael Wiegand <michael.wiegand@greenbone.net>
 
 	Post release version bump.

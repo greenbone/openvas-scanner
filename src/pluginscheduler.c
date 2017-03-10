@@ -604,8 +604,7 @@ plugins_scheduler_next (plugins_scheduler_t h)
 {
   struct list *l;
   int category;
-  int running_category = ACT_LAST;
-  int flag = 0;
+  int still_running = 0;
 
   if (h == NULL)
     return NULL;
@@ -647,14 +646,8 @@ plugins_scheduler_next (plugins_scheduler_t h)
                         break;
                       case GPOINTER_TO_SIZE (PLUG_RUNNING):
                         {
-                          /* One of the dependency is still running
-                           * we write down its category */
-
-                          int category = nvticache_get_category
-                                          (l->plugin->oid);
-                          if (category < running_category)
-                            running_category = category;
-                          flag++;
+                          /* One of the dependency is still running */
+                          still_running = 1;
                         }
                         break;
                       default:
@@ -675,12 +668,7 @@ plugins_scheduler_next (plugins_scheduler_t h)
               }
               break;
             case PLUGIN_STATUS_RUNNING:
-              {
-                int category = nvticache_get_category (l->plugin->oid);
-                if (category < running_category)
-                  running_category = category;
-                flag++;
-              }
+              still_running = 1;
               break;
 
             case PLUGIN_STATUS_DONE:
@@ -710,23 +698,20 @@ plugins_scheduler_next (plugins_scheduler_t h)
         }
 
 
-      /* Could not find anything */
+      /* Make sure that all plugins in these categories are run before
+       * attempting to launch plugins from other categories. */
       if ((category == ACT_SCANNER || category == ACT_INIT
-           || category == ACT_SETTINGS) && flag != 0)
+           || category == ACT_SETTINGS) && still_running)
         {
           pluginlaunch_wait_for_free_process ();
-          flag = 0;
+          still_running = 0;
           category--;
-        }
-
-      if (category + 1 >= ACT_DENIAL && flag && running_category < ACT_DENIAL)
-        {
-          return PLUG_RUNNING;
         }
     }
 
-
-  return flag != 0 ? PLUG_RUNNING : NULL;
+  if (still_running)
+    return PLUG_RUNNING;
+  return NULL;
 }
 
 void
