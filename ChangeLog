@@ -1,3 +1,8 @@
+2017-03-10  Hani Benhabiles  <hani.benhabiles@greenbone.net>
+
+	* src/pluginscheduler.c (plugins_scheduler_next): Simplify checks for
+	returning PLUG_RUNNING.
+
 2017-03-08  Juan Jose Nicola  <juan.nicola@greenbone.net>
 
 	* nasl/nasl_crypto.c (tls_prf): Replace the seed with
