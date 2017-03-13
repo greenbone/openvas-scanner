@@ -1,3 +1,23 @@
+2017-03-13  Juan Jose Nicola  <juan.nicola@greenbone.net>
+
+	* nasl/nasl_crypto.c (nasl_ntlm_response): New variable pass_len
+	to be passed to ntlmssp_genauth_ntlm().
+	(nasl_ntlm2_response): New variable pass_len to be passed to
+	ntlmssp_genauth_ntlm2().
+
+	* nasl/ntlmssp.c (ntlmssp_genauth_ntlm2, ntlmssp_genauth_ntlm):
+	Add argument pass_len to be passed to E_deshash_ntlmssp().
+
+	* nasl/ntlmssp.h (ntlmssp_genauth_ntlm2, ntlmssp_genauth_ntlm):
+	Add argument pass_len.
+
+	* nasl/smb_crypt.c (E_deshash_ntlmssp) Add argument pass_len.
+	replace push_ascii_ntlmssp with g_utf8_strup, since it was used
+	only to uppercase the password.
+
+	* nasl/smb_crypt.h (E_deshash_ntlmssp): Add argument pass_len in
+	prototype.
+
 2017-03-10  Hani Benhabiles  <hani.benhabiles@greenbone.net>
 
 	* src/pluginscheduler.c (plugins_scheduler_next): Simplify checks for

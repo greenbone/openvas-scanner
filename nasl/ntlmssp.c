@@ -40,11 +40,14 @@ void ntlmssp_genauth_ntlmv2(char* user, char *domain, char* address_list, int ad
   SMBNTLMv2encrypt_hash_ntlmssp(user, domain, ntlmv2_hash, challenge_data, address_list, address_list_len, lm_response, nt_response, session_key);
 }
 
-void ntlmssp_genauth_ntlm2(char *password, uint8_t *lm_response, uint8_t *nt_response, uint8_t *session_key, char *challenge_data, unsigned char* nt_hash)
+void ntlmssp_genauth_ntlm2 (char *password, uint8_t pass_len,
+                           uint8_t *lm_response, uint8_t *nt_response,
+                           uint8_t *session_key, char *challenge_data,
+                           unsigned char* nt_hash)
 {
   unsigned char lm_hash[16];
 
-  E_deshash_ntlmssp(password, lm_hash);
+  E_deshash_ntlmssp (password, pass_len, lm_hash);
 
   struct MD5Context md5_session_nonce_ctx;
   uchar session_nonce_hash[16];
@@ -70,11 +73,14 @@ void ntlmssp_genauth_ntlm2(char *password, uint8_t *lm_response, uint8_t *nt_res
 }
 
 
-void ntlmssp_genauth_ntlm(char *password, uint8_t *lm_response, uint8_t *nt_response, uint8_t *session_key, char *challenge_data, unsigned char* nt_hash, int neg_flags)
+void ntlmssp_genauth_ntlm (char *password, uint8_t pass_len,
+                          uint8_t *lm_response, uint8_t *nt_response,
+                          uint8_t *session_key, char *challenge_data,
+                          unsigned char* nt_hash, int neg_flags)
 {
   unsigned char lm_hash[16];
 
-  E_deshash_ntlmssp(password, lm_hash);
+  E_deshash_ntlmssp (password, pass_len, lm_hash);
 
   SMBencrypt_hash_ntlmssp(lm_hash, (const uchar*)challenge_data, lm_response);
   SMBNTencrypt_hash_ntlmssp(nt_hash, (uchar*)challenge_data, nt_response);

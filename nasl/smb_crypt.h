@@ -57,7 +57,7 @@ void SMBencrypt_hash_ntlmssp(const uchar lm_hash[16], const uchar *c8, uchar p24
 
 void SMBNTencrypt_hash_ntlmssp(const uchar nt_hash[16], uchar *c8, uchar *p24);
 
-bool E_deshash_ntlmssp(const char *passwd, uchar p16[16]);
+bool E_deshash_ntlmssp (const char *passwd, uint8_t pass_len, uchar p16[16]);
 
 void SamOEMhash( uchar *data, const uchar *key, int val);
 

@@ -441,14 +441,16 @@ void SMBsesskeygen_lm_sess_key_ntlmssp(const uchar lm_hash[16], const uchar lm_r
  * @return False if password was > 14 characters, and therefore may be incorrect, otherwise True
  * @note p16 is filled in regardless
  **/
-bool E_deshash_ntlmssp(const char *passwd, uchar p16[16])
+bool E_deshash_ntlmssp (const char *passwd, uint8_t pass_len, uchar p16[16])
 {
   bool ret = True;
   fstring dospwd;
   ZERO_STRUCT(dospwd);
+  char *dpass;
 
   /* Password must be converted to DOS charset - null terminated, uppercase. */
-  push_ascii_ntlmssp(dospwd, passwd, sizeof(dospwd), STR_UPPER|STR_TERMINATE);
+  dpass = g_utf8_strup (passwd, pass_len);
+  memcpy (dospwd, dpass, pass_len);
 
   /* Only the fisrt 14 chars are considered, password need not be null terminated. */
   E_P16((unsigned char *)dospwd, p16);
@@ -457,6 +459,7 @@ bool E_deshash_ntlmssp(const char *passwd, uchar p16[16])
     ret = False;
   }
 
+  g_free (dpass);
   ZERO_STRUCT(dospwd);
 
   return ret;
