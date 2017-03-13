@@ -163,23 +163,6 @@ size_t strlen_w_ntlmssp(const uint16 *src)
 }
 
 /**
- *  Convert a string to UPPER case.
- *  **/
-_PUBLIC_ void strupper_m_ntlmssp(char *s)
-{
-
-/* this is quite a common operation, so we want it to be
- * fast. We optimise for the ascii case, knowing that all our
- * supported multi-byte character sets are ascii-compatible
- * (ie. they match for the first 128 chars) */
-  while (*s && !(((uint8_t)*s) & 0x80)) {
-    *s = toupper((uint8_t)*s);
-    s++;
-  }
-
-}
-
-/**
  *  * Return the name of a charset to give to iconv().
  *   **/
 static const char *charset_name_ntlmssp(charset_t ch)
@@ -591,54 +574,6 @@ size_t convert_string_ntlmssp(charset_t from, charset_t to,
   general_case:
   #endif
   return convert_string_internal_ntlmssp(from, to, src, srclen, dest, destlen, allow_bad_conv);
-}
-
-/**
- * Copy a string from a char* unix src to a dos codepage string destination.
- *
- * @return the number of bytes occupied by the string in the destination.
- *
- * @param flags can include
- * <dl>
- * <dt>STR_TERMINATE</dt> <dd>means include the null termination</dd>
- * <dt>STR_UPPER</dt> <dd>means uppercase in the destination</dd>
- * </dl>
- *
- * @param dest_len the maximum length in bytes allowed in the
- * destination.  If @p dest_len is -1 then no maximum is used.
- **/
-size_t push_ascii_ntlmssp(void *dest, const char *src, size_t dest_len, int flags)
-{
-  size_t src_len = strlen(src);
-  char *tmpbuf = NULL;
-  size_t ret;
-
-  /* No longer allow a length of -1. */
-  if (dest_len == (size_t)-1) {
-    g_message ("push_ascii - dest_len == -1");
-  }
-
-  if (flags & STR_UPPER) {
-    tmpbuf = SMB_STRDUP(src);
-    if (!tmpbuf) {
-      g_message ("malloc fail");
-    }
-    strupper_m_ntlmssp(tmpbuf);
-    src = tmpbuf;
-  }
-
-  if (flags & (STR_TERMINATE | STR_TERMINATE_ASCII)) {
-    src_len++;
-  }
-
-  ret = convert_string_ntlmssp(CH_UNIX, CH_DOS, src, src_len, dest, dest_len, True);
-  if (ret == (size_t)-1 &&
-     (flags & (STR_TERMINATE | STR_TERMINATE_ASCII))
-     && dest_len > 0) {
-    ((char *)dest)[0] = '\0';
-  }
-  free(tmpbuf);
-  return ret;
 }
 
 

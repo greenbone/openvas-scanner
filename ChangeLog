@@ -1,5 +1,12 @@
 2017-03-13  Juan Jose Nicola  <juan.nicola@greenbone.net>
 
+	* nasl/charcnv.c (void strupper_m_ntlmssp, push_ascii_ntlmssp):
+	Delete functions.
+
+	* nasl/proto.h (push_ascii_ntlmssp) Remove function prototype.
+
+2017-03-13  Juan Jose Nicola  <juan.nicola@greenbone.net>
+
 	* nasl/nasl_crypto.c (nasl_ntlm_response): New variable pass_len
 	to be passed to ntlmssp_genauth_ntlm().
 	(nasl_ntlm2_response): New variable pass_len to be passed to
