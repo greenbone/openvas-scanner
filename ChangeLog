@@ -1,5 +1,18 @@
 2017-03-14  Hani Benhabiles  <hani.benhabiles@greenbone.net>
 
+	* misc/network.h (struct host_info): Remove vhosts element.
+
+	* misc/network.c (host_info_init): Remove vhosts parameter.
+	(host_init_free): Don't free vhosts element.
+
+	* nasl/nasl.c (init): Adjust function call.
+
+	* src/attack.c (init_host_kb): Get vhosts and vhosts_ip values directly
+	from prefs instead of hostinfos.
+	(attack_start): Adjust host_info_init() call.
+
+2017-03-14  Hani Benhabiles  <hani.benhabiles@greenbone.net>
+
 	* misc/plugutils.c (plug_get_key): Set the SIGTERM handler to _exit in
 	forked child case.
 

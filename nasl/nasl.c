@@ -79,7 +79,7 @@ init (char *hostname, struct in6_addr *ip, char *fqdn, kb_t kb)
   prefs_set ("checks_read_timeout", "5");
   infos->standalone = 1;
   infos->key = kb;
-  infos->hostname = host_info_init (hostname, ip, NULL, fqdn);
+  infos->hostname = host_info_init (hostname, ip, fqdn);
   infos->globals = g_malloc0 (sizeof (struct scan_globals));
 
   return infos;

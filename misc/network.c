@@ -2547,14 +2547,13 @@ getpts (char *origexpr, int *len)
  */
 struct host_info *
 host_info_init (const char *name, const struct in6_addr *ip,
-                const char *vhosts, const char *fqdn)
+                const char *fqdn)
 {
   struct host_info *hostinfo;
 
   hostinfo = g_malloc0 (sizeof (struct host_info));
   hostinfo->name = g_strdup (name);
   hostinfo->fqdn = g_strdup (fqdn);
-  hostinfo->vhosts = g_strdup (vhosts);
   if (ip)
     {
       hostinfo->ip = g_malloc0 (sizeof (struct in6_addr));
@@ -2575,6 +2574,5 @@ host_info_free (struct host_info *hostinfo)
     return;
   g_free (hostinfo->name);
   g_free (hostinfo->fqdn);
-  g_free (hostinfo->vhosts);
   g_free (hostinfo->ip);
 }

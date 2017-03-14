@@ -365,9 +365,10 @@ init_host_kb (struct scan_globals *globals, char *hostname,
               struct host_info *hostinfos, kb_t *network_kb)
 {
   kb_t kb;
-  gchar *vhosts, *hostname_pattern, *hoststr;
+  gchar *hostname_pattern, *hoststr, *txt_ip;
   enum net_scan_status nss;
   const gchar *kb_path = prefs_get ("kb_location");
+  const char *vhosts, *vhosts_ip;
   int rc, soc;
   struct in6_addr *hostip;
 
@@ -420,8 +421,10 @@ init_host_kb (struct scan_globals *globals, char *hostname,
     }
 
   /* If vhosts is set, split it and put it in the KB. */
-  vhosts = hostinfos->vhosts;
-  if (vhosts)
+  vhosts_ip = prefs_get ("vhosts_ip");
+  vhosts = prefs_get ("vhosts");
+  txt_ip = addr6_as_str (hostip);
+  if (vhosts && vhosts_ip && !strcmp (vhosts_ip, txt_ip))
     {
       gchar **vhosts_array = g_strsplit (vhosts, ",", 0);
       int i;
@@ -431,6 +434,7 @@ init_host_kb (struct scan_globals *globals, char *hostname,
 
       g_strfreev (vhosts_array);
     }
+  g_free (txt_ip);
 
   return kb;
 }
@@ -557,8 +561,6 @@ attack_start (struct attack_start_args *args)
   char *host_str;
   struct in6_addr *hostip = &args->hostip;
   struct host_info *hostinfos;
-  const char *vhosts = prefs_get ("vhosts");
-  const char *vhosts_ip = prefs_get ("vhosts_ip");
   int thread_socket;
   struct timeval then;
   plugins_scheduler_t sched = args->sched;
@@ -581,19 +583,7 @@ attack_start (struct attack_start_args *args)
   openvas_deregister_connection (globals->global_socket);
   globals->global_socket = thread_socket;
 
-  if (vhosts == NULL || vhosts_ip == NULL)
-    hostinfos = host_info_init (host_str, hostip, NULL, args->fqdn);
-  else
-    {
-      char *txt_ip;
-
-      txt_ip = addr6_as_str (hostip);
-      if (strcmp (vhosts_ip, txt_ip) != 0)
-        vhosts = NULL;
-      g_free (txt_ip);
-      hostinfos = host_info_init (host_str, hostip, vhosts, args->fqdn);
-    }
-
+  hostinfos = host_info_init (host_str, hostip, args->fqdn);
   ntp_timestamp_host_scan_starts (thread_socket, host_str);
 
   // Start scan
