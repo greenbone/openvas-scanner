@@ -833,6 +833,7 @@ plug_get_key (struct script_infos *args, char *name, int *type, size_t *len)
           struct scan_globals *globals;
           void *ret;
 
+          sig_term (_exit);
           kb_lnk_reset (kb);
           nvticache_reset ();
           close (sockpair[0]);

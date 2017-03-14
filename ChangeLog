@@ -1,3 +1,8 @@
+2017-03-14  Hani Benhabiles  <hani.benhabiles@greenbone.net>
+
+	* misc/plugutils.c (plug_get_key): Set the SIGTERM handler to _exit in
+	forked child case.
+
 2017-03-13  Juan Jose Nicola  <juan.nicola@greenbone.net>
 
 	* nasl/charcnv.c (void strupper_m_ntlmssp, push_ascii_ntlmssp):
