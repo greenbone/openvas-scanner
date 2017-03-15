@@ -1,3 +1,8 @@
+2017-03-15  Michael Wiegand <michael.wiegand@greenbone.net>
+
+	* misc/network.c (host_info_init): Update documentation to match
+	code changes.
+
 2017-03-15  Juan Jose Nicola  <juan.nicola@greenbone.net>
 
 	* nasl/nasl_init.c (libfuncs): Add argument to rsa_public_encrypt

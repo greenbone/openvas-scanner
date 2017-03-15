@@ -2540,7 +2540,6 @@ getpts (char *origexpr, int *len)
  *
  * @param[in]   name        Hostname.
  * @param[in]   ip          IP address.
- * @param[in]   vhosts      Vhosts list.
  * @param[in]   fqdn        Fully qualified domain name.
  *
  * @return host_info pointer.
