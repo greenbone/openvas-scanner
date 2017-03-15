@@ -1,3 +1,11 @@
+2017-03-15  Juan Jose Nicola  <juan.nicola@greenbone.net>
+
+	* nasl/nasl_init.c (libfuncs): Add argument to rsa_public_encrypt
+	to set no padding.
+
+	* nasl/nasl_crypto2.c (nasl_rsa_public_encrypt): Add no padding
+	functionality.
+
 2017-03-14  Hani Benhabiles  <hani.benhabiles@greenbone.net>
 
 	* misc/network.h (struct host_info): Remove vhosts element.
