@@ -660,7 +660,7 @@ strip_pkcs1_padding (tree_cell * retc)
 /**
  * nasl function
  *
- *   rsa_public_encrypt(data:data, e:mpi_e, n:mpi_n)
+ *  rsa_public_encrypt(data:data, e:mpi_e, n:mpi_n, padd:<TRUE:FALSE>)
  *
  * Encrypt the provided data  with the public RSA key given by its parameters e
  * and n. The return value is the encrypted data.
@@ -738,6 +738,96 @@ ret:
   gcry_mpi_release (dt);
   gcry_mpi_release (e);
   gcry_mpi_release (n);
+  return retc;
+}
+
+/**
+ * nasl function
+ *
+ *  rsa_private_decrypt(data:data, d:mpi_d, e:mpi_e, n:mpi_n, padd:<TRUE:FALSE>)
+ *
+ * Decrypt the provided data with the private RSA key given by its parameters
+ * d, e and n. The return value is the decrypted data in plantext format.
+ */
+tree_cell *
+nasl_rsa_private_decrypt (lex_ctxt * lexic)
+{
+  tree_cell *retc = NULL;
+  gcry_mpi_t e = NULL, n = NULL, d = NULL, dt = NULL;
+  gcry_sexp_t key = NULL, data = NULL, decrypted = NULL;
+  gcry_error_t err;
+  char *pad = (char *) get_str_var_by_name (lexic, "pad");
+
+  if (pad == NULL)
+  {
+    nasl_perror (lexic,
+                 "Syntax : rsa_public_encrypt(data:<d>,"
+                 "n:<n>, d:<d>, e:<e>, pad:<pad>)");
+    return NULL;
+  }
+  retc = alloc_tree_cell (0, NULL);
+  retc->type = CONST_DATA;
+
+  if (mpi_from_named_parameter (lexic, &dt, "data",
+                                "nasl_rsa_private_decrypt") < 0)
+    goto fail;
+  if (mpi_from_named_parameter (lexic, &e, "e", "nasl_rsa_private_decrypt") < 0)
+    goto fail;
+  if (mpi_from_named_parameter (lexic, &n, "n", "nasl_rsa_private_decrypt") < 0)
+    goto fail;
+  if (mpi_from_named_parameter (lexic, &d, "d", "nasl_rsa_private_decrypt") < 0)
+    goto fail;
+
+  err = gcry_sexp_build (&key, NULL, "(private-key (rsa (n %m) (e %m) (d %m)))",
+                         n, e, d);
+  if (err)
+    {
+      print_gcrypt_error (lexic, "gcry_sexp_build privkey", err);
+      goto fail;
+    }
+
+  if (strcmp (pad,"TRUE") == 0)
+    err = gcry_sexp_build (&data, NULL, "(enc-val (flags pkcs1) (rsa (a %m)))",
+                           dt);
+  else
+    err = gcry_sexp_build (&data, NULL, "(enc-val (flags raw) (rsa (a %m)))",
+                           dt);
+  if (err)
+    {
+      print_gcrypt_error (lexic, "gcry_sexp_build data", err);
+      goto fail;
+    }
+
+  err = gcry_pk_decrypt (&decrypted, data, key);
+  if (err)
+    {
+      print_gcrypt_error (lexic, "gcry_pk_decrypt", err);
+      goto fail;
+    }
+
+  if (strcmp (pad,"TRUE") == 0)
+    {
+      if (set_retc_from_sexp (retc, decrypted, "value") >= 0 &&
+          strip_pkcs1_padding (retc) >= 0)
+        goto ret;
+    }
+  else
+    {
+      if (set_retc_from_sexp (retc, decrypted, "value") >= 0)
+        goto ret;
+    }
+
+fail:
+  retc->size = 0;
+  retc->x.str_val = g_malloc0 (1);
+ret:
+  gcry_sexp_release (decrypted);
+  gcry_sexp_release (key);
+  gcry_sexp_release (data);
+  gcry_mpi_release (dt);
+  gcry_mpi_release (e);
+  gcry_mpi_release (n);
+  gcry_mpi_release (d);
   return retc;
 }
 

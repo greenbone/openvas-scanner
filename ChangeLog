@@ -1,5 +1,13 @@
 2017-03-16  Juan Jose Nicola  <juan.nicola@greenbone.net>
 
+	* nasl/nasl_crypto2.c (nasl_rsa_private_decrypt): New function.
+
+	* nasl/nasl_crypto2.h: Add new function prototype.
+
+	* nasl/nasl_init.c (libfuncs): Add rsa_private_decrypt().
+
+2017-03-16  Juan Jose Nicola  <juan.nicola@greenbone.net>
+
 	* misc/bpf_share.c (print_pcap_error): New function which use
 	glib to log errors.
 	(bpf_open_live): Use the new function print_pcap_error instead of
