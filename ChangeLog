@@ -1,3 +1,10 @@
+2017-03-16  Juan Jose Nicola  <juan.nicola@greenbone.net>
+
+	* misc/bpf_share.c (print_pcap_error): New function which use
+	glib to log errors.
+	(bpf_open_live): Use the new function print_pcap_error instead of
+	pcap_perror().
+
 2017-03-15  Michael Wiegand <michael.wiegand@greenbone.net>
 
 	* misc/network.c (host_info_init): Update documentation to match

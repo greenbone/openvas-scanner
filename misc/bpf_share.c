@@ -38,6 +38,14 @@
 /** Shared pcap_t's. */
 static pcap_t *pcaps[NUM_CLIENTS];
 
+
+void
+print_pcap_error (pcap_t *p, char *prefix)
+{
+  char *msg = pcap_geterr (p);
+  g_message ("%s : %s", prefix, msg);
+}
+
 /**
  * @return -1 in case of error, index of the opened pcap_t in pcaps
  *         otherwise.
@@ -80,14 +88,14 @@ bpf_open_live (char *iface, char *filter)
 
   if (pcap_compile (ret, &filter_prog, filter, 1, netmask) < 0)
     {
-      pcap_perror (ret, "pcap_compile");
+      print_pcap_error (ret, "pcap_compile");
       pcap_close (ret);
       return -1;
     }
 
   if (pcap_setnonblock (ret, 1, NULL) == -1)
     {
-      pcap_perror (ret, "pcap_setnonblock");
+      print_pcap_error (ret, "pcap_setnonblock");
       g_message
         ("call to pcap_setnonblock failed, some plugins/scripts will"
          " hang/freeze. Upgrade your version of libcap!");
@@ -95,7 +103,7 @@ bpf_open_live (char *iface, char *filter)
 
   if (pcap_setfilter (ret, &filter_prog) < 0)
     {
-      pcap_perror (ret, "pcap_setfilter\n");
+      print_pcap_error (ret, "pcap_setfilter\n");
       pcap_close (ret);
       return -1;
     }
