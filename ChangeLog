@@ -1,3 +1,9 @@
+2017-03-20  Juan Jose Nicola  <juan.nicola@greenbone.net>
+
+	* src/pluginscheduler.c: Include gvm/base/prefs.h.
+	(plugin_add): Check for deprecated plugin before attempting
+	to schedule it.
+
 2017-03-16  Juan Jose Nicola  <juan.nicola@greenbone.net>
 
 	* nasl/nasl_crypto2.c (nasl_rsa_private_decrypt): New function.

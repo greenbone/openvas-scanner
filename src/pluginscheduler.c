@@ -30,6 +30,7 @@
 #include <string.h> /* for strcmp() */
 
 #include <gvm/util/nvticache.h>     /* for nvticache_t */
+#include <gvm/base/prefs.h>              /* for prefs_get() */
 
 #include "../misc/nvt_categories.h"  /* for ACT_SCANNER */
 #include "../misc/plugutils.h"  /* for plug_get_launch */
@@ -116,6 +117,32 @@ plugin_add (plugins_scheduler_t sched, GHashTable *oids_table, int autoload,
 
   if (g_hash_table_lookup (oids_table, oid))
     return;
+
+
+  /* Check if the plugin is deprecated */
+  nvti_t *fullnvti = nvticache_get_by_oid_full (oid) ;
+  if (!fullnvti)
+    return;
+
+  char **tags = g_strsplit (nvti_tag (fullnvti), "| ", 0);
+  if (tags)
+    {
+      int j;
+      for (j = 0; tags[j]; j++)
+        if (strstr (tags[j],"deprecated=1"))
+          {
+            char *name = nvticache_get_name (oid);
+            if (prefs_get_bool ("log_whole_attack"))
+              g_message ("Plugin %s is deprecated. "
+                         "It will neither loaded nor launched.", name);
+            g_strfreev (tags);
+            nvti_free (fullnvti);
+            return;
+          }
+    }
+  g_strfreev (tags);
+  nvti_free (fullnvti);
+
 
   category = nvticache_get_category (oid);
   plugin = g_malloc0 (sizeof (struct scheduler_plugin));
