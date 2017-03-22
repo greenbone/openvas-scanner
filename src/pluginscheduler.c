@@ -112,19 +112,17 @@ static void
 plugin_add (plugins_scheduler_t sched, GHashTable *oids_table, int autoload,
             char *oid)
 {
+  char **tags, *tags_str;
   struct scheduler_plugin *plugin;
   int category;
 
   if (g_hash_table_lookup (oids_table, oid))
     return;
 
-
   /* Check if the plugin is deprecated */
-  nvti_t *fullnvti = nvticache_get_by_oid_full (oid) ;
-  if (!fullnvti)
-    return;
-
-  char **tags = g_strsplit (nvti_tag (fullnvti), "| ", 0);
+  tags_str = nvticache_get_tags (oid);
+  tags = g_strsplit (tags_str, "| ", 0);
+  g_free (tags_str);
   if (tags)
     {
       int j;
@@ -136,13 +134,11 @@ plugin_add (plugins_scheduler_t sched, GHashTable *oids_table, int autoload,
               g_message ("Plugin %s is deprecated. "
                          "It will neither loaded nor launched.", name);
             g_strfreev (tags);
-            nvti_free (fullnvti);
+            g_free (name);
             return;
           }
     }
   g_strfreev (tags);
-  nvti_free (fullnvti);
-
 
   category = nvticache_get_category (oid);
   plugin = g_malloc0 (sizeof (struct scheduler_plugin));
@@ -305,7 +301,7 @@ check_dependency_cycles (plugins_scheduler_t sched)
               g_warning ("Dependency cycle:");
               for (j = 0; j <= pos; j++)
                 {
-                  char *name = nvticache_get_name (array[j]->oid);
+                  char *name = nvticache_get_filename (array[j]->oid);
 
                   g_message (" %s (%s)", name, array[j]->oid);
                   g_free (name);

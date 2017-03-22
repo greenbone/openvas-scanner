@@ -69,27 +69,30 @@
  * @param nvti  NVTI pointer.
  */
 static void
-prefs_add_nvti (const nvti_t *nvti)
+prefs_add_nvti (const char *name, GSList *prefs)
 {
-  unsigned int i;
+  GSList *element = prefs;
 
-  if (!nvti)
-    return;
-
-  for (i = 0; i < nvti_pref_len (nvti); i++)
+  while (element)
     {
-      char *pref, *cname;
-      const nvtpref_t *np = nvti_pref (nvti, i);
+      char pref[4096], *cname;
+      const nvtpref_t *np = element->data;
 
       cname = g_strdup (nvtpref_name (np));
       g_strchomp (cname);
-      pref = g_strdup_printf ("%s[%s]:%s", nvti_name (nvti), nvtpref_type (np),
-                              cname);
+      g_snprintf (pref, sizeof (pref), "%s[%s]:%s", name, nvtpref_type (np),
+                  cname);
       prefs_set (pref, nvtpref_default (np));
 
       g_free (cname);
-      g_free (pref);
+      element = element->next;
     }
+}
+
+static void
+nvtpref_free_helper (void *pref)
+{
+  nvtpref_free (pref);
 }
 
 /**
@@ -105,22 +108,20 @@ prefs_add_nvti (const nvti_t *nvti)
  * @return 0 on success, -1 on error.
  */
 int
-nasl_plugin_add (char *folder, char *name)
+nasl_plugin_add (char *folder, char *filename)
 {
   char fullname[PATH_MAX + 1];
   int nasl_mode;
   nasl_mode = NASL_EXEC_DESCR;
-  nvti_t *nvti;
 
-  snprintf (fullname, sizeof (fullname), "%s/%s", folder, name);
+  snprintf (fullname, sizeof (fullname), "%s/%s", folder, filename);
 
   if (prefs_get_bool ("nasl_no_signature_check"))
     {
       nasl_mode |= NASL_ALWAYS_SIGNED;
     }
 
-  nvti = nvticache_get (name);
-  if (nvti == NULL)
+  if (!nvticache_check (filename))
     {
       nvti_t *new_nvti;
       struct script_infos *args;
@@ -152,35 +153,30 @@ nasl_plugin_add (char *folder, char *name)
             g_debug ("The timestamp for %s is from the future and could not be fixed.", fullname);
         }
 
-      if (nvti_oid (new_nvti) != NULL)
+      if (nvti_oid (new_nvti))
         {
-          nvticache_add (new_nvti, name);
-          nvti = nvticache_get (name);
+          nvticache_add (new_nvti, filename);
+          prefs_add_nvti (new_nvti->name, new_nvti->prefs);
         }
       else
         // Most likely an exit was hit before the description could be parsed.
-        g_debug ("\r%s could not be added to the cache and is likely to stay"
-                   " invisible to the client.", name);
+        g_warning ("\r%s could not be added to the cache and is likely to stay"
+                   " invisible to the client.", filename);
       nvti_free (new_nvti);
     }
-
-  if (nvti == NULL)
+  else
     {
-      /* Discard invalid plugins */
-      g_debug ("%s: Failed to load", name);
-      return -1;
+      char *oid = nvticache_get_oid (filename);
+      GSList *prefs = nvticache_get_prefs (oid);
+      if (prefs)
+        {
+          char *name = nvticache_get_name (oid);
+          prefs_add_nvti (name, prefs);
+          g_free (name);
+        }
+      g_slist_free_full (prefs, nvtpref_free_helper);
+      g_free (oid);
     }
-
-  if (nvti_oid (nvti) == NULL)
-    {
-      /* Discard invalid plugins */
-      g_debug ("%s: Failed to load, no OID", name);
-      nvti_free (nvti);
-      return -1;
-    }
-  prefs_add_nvti (nvti);
-
-  nvti_free (nvti);
   return 0;
 }
 

@@ -283,15 +283,11 @@ proto_post_wrapped (const char *oid, struct script_infos *desc, int port,
   struct scan_globals *globals;
   GString *action_str;
   gsize length;
-  nvti_t *nvti;
 
   /* Should not happen, just to avoid trouble stop here if no NVTI found */
   if (!nvticache_initialized () || !oid)
     return;
 
-  nvti = nvticache_get_by_oid_full (oid);
-  if (!nvti)
-    return;
   if (action == NULL)
     action_str = g_string_new ("");
   else
@@ -305,7 +301,9 @@ proto_post_wrapped (const char *oid, struct script_infos *desc, int port,
 
   if (prepend_tags || append_tags)
     {
-      nvti_tags = g_strsplit (nvti_tag (nvti), "|", 0);
+      char *tags = nvticache_get_tags (oid);
+      nvti_tags = g_strsplit (tags, "|", 0);
+      g_free (tags);
     }
 
   /* This is convenience functionality in preparation for the breaking up of the
@@ -421,7 +419,6 @@ proto_post_wrapped (const char *oid, struct script_infos *desc, int port,
   /* Mark in the KB that the plugin was successful */
   mark_successful_plugin (oid, desc);
 
-  nvti_free (nvti);
   g_free (buffer);
   g_string_free (action_str, TRUE);
 }
@@ -494,16 +491,14 @@ get_plugin_preference (const char *oid, const char *name)
   GHashTableIter iter;
   char *plug_name, *cname;
   void *itername, *itervalue;
-  nvti_t * nvti;
 
   prefs = preferences_get ();
   if (!prefs || !nvticache_initialized () || !oid || !name)
     return NULL;
 
-  nvti = nvticache_get_by_oid_full (oid);
-  if (!nvti) return NULL;
-
-  plug_name = nvti_name (nvti);
+  plug_name = nvticache_get_name (oid);
+  if (!plug_name)
+    return NULL;
   cname = g_strdup (name);
 
   g_strchomp (cname);
@@ -525,7 +520,6 @@ get_plugin_preference (const char *oid, const char *name)
                 {
                   a[0] = old;
                   g_free (cname);
-                  nvti_free (nvti);
                   return itervalue;
                 }
               a[0] = old;
@@ -533,7 +527,6 @@ get_plugin_preference (const char *oid, const char *name)
         }
     }
   g_free (cname);
-  nvti_free (nvti);
   return (NULL);
 }
 

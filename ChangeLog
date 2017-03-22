@@ -1,3 +1,20 @@
+2017-03-22  Hani Benhabiles  <hani.benhabiles@greenbone.net>
+
+	* misc/plugutils.c (proto_post_wrapped): Get tags instead of full nvti.
+	(get_plugin_preference): Get name instead of full nvti.
+
+	* src/attack.c (launch_plugin): Use nvticache_get_filename().
+
+	* src/nasl_plugins.c (nasl_plugin_add): Call nvticache_check(). Adjust
+	for nvticache changes.
+	(prefs_add_nvti): Take name and prefs as arguments.
+
+	* src/openvassd.c (flush_all_kbs), src/pluginload.c (plugins_init):
+	Adjust function call.
+
+	* src/pluginlaunch.c (update_running_processes), src/pluginscheduler.c
+	(plugin_add, check_dependency_cycles): Use nvticache functions.
+
 2017-03-22  Juan Jose Nicola  <juan.nicola@greenbone.net>
 
 	* misc/nvt_categories.h: Flush trailing whitespace.

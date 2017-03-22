@@ -326,8 +326,7 @@ plugins_init (void)
 {
   const char *plugins_folder = prefs_get ("plugins_folder");
 
-  if (nvticache_init (prefs_get ("cache_folder"), plugins_folder,
-                      prefs_get ("kb_location")))
+  if (nvticache_init (plugins_folder, prefs_get ("kb_location")))
     {
       g_debug ("Failed to initialize nvti cache.");
       return -1;

@@ -203,7 +203,7 @@ update_running_processes (void)
                     }
                   if (log_whole)
                     {
-                      char *name = nvticache_get_name (oid);
+                      char *name = nvticache_get_filename (oid);
                       g_message
                         ("%s (%s) [%d] finished its job in %ld.%.3ld seconds",
                          name, oid, processes[i].pid,

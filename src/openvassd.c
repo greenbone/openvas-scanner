@@ -700,9 +700,7 @@ flush_all_kbs ()
   if (rc)
     return rc;
 
-  rc = kb_flush (kb);
-
-  kb_delete (kb);
+  rc = kb_flush (kb, "nvticache");
   return rc;
 }
 
