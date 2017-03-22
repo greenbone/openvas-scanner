@@ -30,7 +30,7 @@
 #include <string.h> /* for strcmp() */
 
 #include <gvm/util/nvticache.h>     /* for nvticache_t */
-#include <gvm/base/prefs.h>              /* for prefs_get() */
+#include <gvm/base/prefs.h>         /* for prefs_get() */
 
 #include "../misc/nvt_categories.h"  /* for ACT_SCANNER */
 #include "../misc/plugutils.h"  /* for plug_get_launch */

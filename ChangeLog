@@ -1,3 +1,9 @@
+2017-03-22  Juan Jose Nicola  <juan.nicola@greenbone.net>
+
+	* misc/nvt_categories.h: Flush trailing whitespace.
+
+	* nasl/nasl_text_utils.c: Define G_LOG_DOMAIN.
+
 2017-03-20  Juan Jose Nicola  <juan.nicola@greenbone.net>
 
 	* src/pluginscheduler.c: Include gvm/base/prefs.h.

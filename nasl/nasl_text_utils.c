@@ -45,6 +45,12 @@
 
 #include "nasl_text_utils.h"
 
+#undef G_LOG_DOMAIN
+/**
+ * @brief GLib logging domain.
+ */
+#define G_LOG_DOMAIN "lib  nasl"
+
 
 tree_cell *
 nasl_string (lex_ctxt * lexic)
