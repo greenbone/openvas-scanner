@@ -1,3 +1,8 @@
+2017-03-23  Michael Wiegand <michael.wiegand@greenbone.net>
+
+	* src/nasl_plugins.c (nasl_plugin_add): Adjust documentation with
+	recent parameter name change.
+
 2017-03-22  Hani Benhabiles  <hani.benhabiles@greenbone.net>
 
 	* misc/plugutils.c (proto_post_wrapped): Get tags instead of full nvti.

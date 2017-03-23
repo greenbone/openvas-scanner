@@ -103,7 +103,7 @@ nvtpref_free_helper (void *pref)
  * added to the cache.
  *
  * @param folder  Path to the plugin folder.
- * @param name    File-name of the plugin
+ * @param filename    File-name of the plugin
  *
  * @return 0 on success, -1 on error.
  */
