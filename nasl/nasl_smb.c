@@ -380,17 +380,14 @@ nasl_win_cmd_exec (lex_ctxt * lexic)
 {
   struct script_infos *script_infos = lexic->script_infos;
   struct in6_addr *host = plug_get_host_ip (script_infos);
-  char *ip;
-  char *res = NULL;
-  char *argv[5];
+  char *ip, *argv[4], *sout = NULL;
+  tree_cell *retc;
+  int estatus = 0, ret;
+  GError *err = NULL;
 
   IMPORT (username);
   IMPORT (password);
   IMPORT (cmd);
-
-  int argc = 5, value;
-  char *argv1 = "winexe";
-  char *argv2 = "-U";
 
   if ((host == NULL) || (username == NULL) || (password == NULL) || (cmd == NULL))
     {
@@ -407,37 +404,28 @@ nasl_win_cmd_exec (lex_ctxt * lexic)
       return NULL;
     }
 
-  argv[0] = (char *) g_malloc0 (strlen (argv1) + 1);
-  argv[1] = (char *) g_malloc0 (strlen (argv2) + 1);
-  argv[2] = (char *) g_malloc0 (strlen (username) + strlen (password) + 1 + 1);
-  argv[3] = (char *) g_malloc0 (strlen (ip) + 2 + 1);
-  argv[4] = (char *) g_malloc0 (strlen (cmd) + 1);
-
-  // Construct the WinCMD query
-  strcpy (argv[0], argv1);
-  strcpy (argv[1], "-U");
-  strcpy (argv[2], username);
-  strcat (argv[2], "%");
-  strcat (argv[2], password);
-  strcpy (argv[3], "//");
-  strcat (argv[3], ip);
-  strcpy (argv[4], cmd);
-
-  tree_cell *retc = alloc_tree_cell (0, NULL);
-  retc->type = CONST_DATA;
-  retc->x.str_val = NULL;
-  retc->size = 0;
-
-  value = wincmd (argc, argv, &res);
-  if (value == -1)
+  argv[0] = g_strdup ("wmiexec.py");
+  argv[1] = g_strdup_printf ("%s:%s@%s", username, password, ip);
+  argv[2] = g_strdup_printf ("%s", cmd);
+  argv[3] = NULL;
+  g_free(ip);
+  ret = g_spawn_sync (NULL, argv, NULL, G_SPAWN_SEARCH_PATH, NULL, NULL, &sout,
+                      NULL, &estatus, &err);
+  g_free (argv[0]);
+  g_free (argv[1]);
+  g_free (argv[2]);
+  if (ret == FALSE || g_str_has_prefix (sout, "[-]"))
     {
-      g_message ("win_cmd_exec: WinCMD Connect failed");
-      g_free(ip);
+      g_message ("win_cmd_exec: %s", err ? err->message : sout);
+      g_free (sout);
+      if (err)
+        g_error_free (err);
       return NULL;
     }
 
-  retc->x.str_val = strdup (res);
-  retc->size = strlen (res);
-  g_free(ip);
+  retc = alloc_tree_cell (0, NULL);
+  retc->type = CONST_DATA;
+  retc->x.str_val = sout;
+  retc->size = strlen (sout);
   return retc;
 }

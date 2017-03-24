@@ -1,3 +1,7 @@
+2017-03-24  Hani Benhabiles  <hani.benhabiles@greenbone.net>
+
+	* nasl/nasl_smb.c (nasl_win_cmd_exec): Use wmiexec.py instead of winexe.
+
 2017-03-23  Michael Wiegand <michael.wiegand@greenbone.net>
 
 	* src/nasl_plugins.c (nasl_plugin_add): Adjust documentation with
