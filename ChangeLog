@@ -1,3 +1,8 @@
+2017-03-27  Juan Jose Nicola  <juan.nicola@greenbone.net>
+
+	* src/openvassd.c (main): Call openvas_SSL_init to initialize gnutls to
+	avoid SIGSEGV in gnutls version prior to 3.3.0.
+
 2017-03-24  Hani Benhabiles  <hani.benhabiles@greenbone.net>
 
 	* nasl/nasl_smb.c (nasl_win_cmd_exec): Use wmiexec.py instead of winexe.

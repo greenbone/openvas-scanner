@@ -61,7 +61,8 @@
 #include <gvm/base/nvti.h>       /* for prefs_get() */
 #include <gvm/util/kb.h>         /* for KB_PATH_DEFAULT */
 #include <gvm/util/nvticache.h>  /* nvticache_free */
-#include "../misc/plugutils.h"  /* nvticache_free */
+#include "../misc/plugutils.h"   /* nvticache_free */
+#include "../misc/network.h"     /* openvas_SSL_init */
 
 #include <gcrypt.h> /* for gcry_control */
 
@@ -837,6 +838,9 @@ main (int argc, char *argv[])
     }
   if (flush_all_kbs ())
     exit (1);
+
+  if (openvas_SSL_init () < 0)
+    g_message ("Could not initialize openvas SSL!");
 
   // Daemon mode:
   if (dont_fork == FALSE)
