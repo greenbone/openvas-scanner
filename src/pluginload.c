@@ -306,6 +306,7 @@ plugins_reload_from_dir (char *folder)
           g_debug ("Stopped loading plugins: High number of errors.");
           proctitle_set ("openvassd: Error loading NVTs.");
           g_slist_free_full (files, g_free);
+          nvticache_save ();
           return -1;
         }
       f = g_slist_next (f);
@@ -313,6 +314,7 @@ plugins_reload_from_dir (char *folder)
 
   g_slist_free_full (files, g_free);
 
+  nvticache_save ();
   proctitle_set ("openvassd: Reloaded all the NVTs.");
 
   return 0;

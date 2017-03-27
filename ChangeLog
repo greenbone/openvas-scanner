@@ -1,3 +1,9 @@
+2017-03-27  Hani Benhabiles  <hani.benhabiles@greenbone.net>
+
+	* src/pluginload.c (plugins_reload_from_dir): Call nvticache_save()
+	after finishing nvts loading. This ensures that Redis periodic saving
+	isn't needed and that only nvticache is saved on disk.
+
 2017-03-27  Juan Jose Nicola  <juan.nicola@greenbone.net>
 
 	* src/openvassd.c (main): Call openvas_SSL_init to initialize gnutls to
