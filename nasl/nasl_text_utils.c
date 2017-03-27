@@ -1355,7 +1355,7 @@ nasl_str_replace (lex_ctxt * lexic)
 tree_cell *
 nasl_int (lex_ctxt * lexic)
 {
-  int r = get_int_var_by_num (lexic, 0, 0);
+  long int r = get_int_var_by_num (lexic, 0, 0);
   tree_cell *retc;
 
   retc = alloc_tree_cell (0, NULL);

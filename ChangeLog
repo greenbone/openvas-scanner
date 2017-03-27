@@ -1,5 +1,10 @@
 2017-03-27  Juan Jose Nicola  <juan.nicola@greenbone.net>
 
+	* nasl_text_utils.c (nasl_int): Define r variable as long int
+	instead of int to support bigger numbers.
+
+2017-03-27  Juan Jose Nicola  <juan.nicola@greenbone.net>
+
 	* src/pluginscheduler.c (plugin_add): Use nvticache_get_filename
 	instead of nvticache_get_name.
 
