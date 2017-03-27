@@ -129,7 +129,7 @@ plugin_add (plugins_scheduler_t sched, GHashTable *oids_table, int autoload,
       for (j = 0; tags[j]; j++)
         if (strstr (tags[j],"deprecated=1"))
           {
-            char *name = nvticache_get_name (oid);
+            char *name = nvticache_get_filename (oid);
             if (prefs_get_bool ("log_whole_attack"))
               g_message ("Plugin %s is deprecated. "
                          "It will neither loaded nor launched.", name);

@@ -1,5 +1,10 @@
 2017-03-27  Juan Jose Nicola  <juan.nicola@greenbone.net>
 
+	* src/pluginscheduler.c (plugin_add): Use nvticache_get_filename
+	instead of nvticache_get_name.
+
+2017-03-27  Juan Jose Nicola  <juan.nicola@greenbone.net>
+
 	* src/openvassd.c (main): Add preprocessor directives to check
 	the gnutls version.
 
