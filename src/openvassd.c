@@ -125,7 +125,6 @@ static openvassd_option openvassd_defaults[] = {
   {"be_nice", "no"},
   {"log_whole_attack", "no"},
   {"log_plugins_name_at_load", "no"},
-  {"dumpfile", OPENVASSD_DEBUGMSG},
   {"cgi_path", "/cgi-bin:/scripts"},
   {"optimize_test", "yes"},
   {"checks_read_timeout", "5"},
@@ -155,9 +154,6 @@ gchar *unix_socket_path = NULL;
 static void
 start_daemon_mode (void)
 {
-  const char *s;
-  int fd;
-
   /* do not block the listener port for subsequent scanners */
   close (global_iana_socket);
 
@@ -167,42 +163,6 @@ start_daemon_mode (void)
       g_warning ("Cannot set process group leader (%s)\n",
                  strerror (errno));
     }
-
-  if ((fd = open ("/dev/tty", O_RDWR)) >= 0)
-    close (fd);
-
-  /* no input, anymore: provide an empty-file substitute */
-  if ((fd = open ("/dev/null", O_RDONLY)) < 0)
-    {
-      g_critical ("Cannot open /dev/null (%s) -- aborting", strerror (errno));
-      exit (0);
-    }
-
-  dup2 (fd, 0);
-  close (fd);
-
-  /* provide a dump file to collect stdout and stderr */
-  if ((s = prefs_get ("dumpfile")) == 0)
-    s = OPENVASSD_DEBUGMSG;
-  /* setting "-" denotes terminal mode */
-  if (strcmp (s, "-") == 0)
-    return;
-
-  fflush (stdout);
-  fflush (stderr);
-
-  if ((fd = open (s, O_WRONLY | O_CREAT | O_APPEND, 0600)) < 0)
-    {
-      g_critical ("Cannot create a new dumpfile %s (%s)-- aborting", s,
-                 strerror (errno));
-      exit (2);
-    }
-
-  dup2 (fd, 1);
-  dup2 (fd, 2);
-  close (fd);
-  setlinebuf (stdout);
-  setlinebuf (stderr);
 }
 
 
@@ -675,17 +635,6 @@ init_openvassd (const char *config_file)
 static void
 set_daemon_mode ()
 {
-  /* Close stdin, stdout and stderr */
-  int i = open ("/dev/null", O_RDONLY, 0640);
-  if (dup2 (i, STDIN_FILENO) != STDIN_FILENO)
-    g_debug ("Could not redirect stdin to /dev/null: %s\n", strerror (errno));
-  if (dup2 (i, STDOUT_FILENO) != STDOUT_FILENO)
-    g_debug ("Could not redirect stdout to /dev/null: %s\n",
-             strerror (errno));
-  if (dup2 (i, STDERR_FILENO) != STDERR_FILENO)
-    g_debug ("Could not redirect stderr to /dev/null: %s\n",
-             strerror (errno));
-  close (i);
   if (fork ())
     { /* Parent. */
       log_config_free ();

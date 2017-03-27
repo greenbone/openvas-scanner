@@ -191,13 +191,12 @@ Setting up an openvas-scanner requires the following steps:
 Logging Configuration
 ---------------------
 
-If you encounter problems, by default the scanner writes logs to the files
+If you encounter problems, by default the scanner writes logs to the file
 
     <install-prefix>/var/log/openvas/openvassd.log
-    <install-prefix>/var/log/openvas/openvassd.dump
 
-They may contain useful information.The exact location of these files may differ
-depending on your distribution and installation method. Please have these files
+It may contain useful information.The exact location of this file may differ
+depending on your distribution and installation method. Please have this file
 ready when contacting the OpenVAS developers through the OpenVAS mailing list
 or the online chat or submitting bug reports at http://bugs.openvas.org/ as they
 may help to pinpoint the source of your issue.

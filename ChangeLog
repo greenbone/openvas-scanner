@@ -1,5 +1,21 @@
 2017-03-27  Juan Jose Nicola  <juan.nicola@greenbone.net>
 
+	Remove handling of dumpfile for stderr and stdout.
+
+	* src/openvassd.c (openvassd_defaults): Remove default option
+	dumpfile.
+	(start_daemon_mode): Remove redirects of stdout and stderr and
+	creation of dumpfile.
+	(set_daemon_mode): Does not close stdin, stdout and stderr.
+
+	* src/utils.c (is_scanner_only_pref): Remove check for dumpfile.
+
+	* INSTALL: Remove reference accordingly.
+
+	* CMakeLists.txt: Remove set of OPENVASSD_DEBUGMSG.
+
+2017-03-27  Juan Jose Nicola  <juan.nicola@greenbone.net>
+
 	* nasl_text_utils.c (nasl_int): Define r variable as long int
 	instead of int to support bigger numbers.
 
