@@ -71,6 +71,10 @@
 #include "utils.h"        /* for wait_for_children1 */
 #include "pluginlaunch.h" /* for init_loading_shm */
 
+#if GNUTLS_VERSION_NUMBER < 0x030300
+#include <openvas/misc/network.h>     /* openvas_SSL_init */
+#endif
+
 #ifdef SVN_REV_AVAILABLE
 #include "svnrevision.h"
 #endif
@@ -801,6 +805,11 @@ main (int argc, char *argv[])
       exit (0);
     }
   flush_all_kbs ();
+
+#if GNUTLS_VERSION_NUMBER < 0x030300
+  if (openvas_SSL_init () < 0)
+    g_message ("Could not initialize openvas SSL!");
+#endif
 
   // Daemon mode:
   if (dont_fork == FALSE)

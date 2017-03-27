@@ -1,3 +1,13 @@
+2017-03-27  Juan Jose Nicola  <juan.nicola@greenbone.net>
+
+	Backport r28088, r28091, with adjustments due to code changes.
+
+	* src/openvassd.c: Include network.h and add preprocessor directives to
+	check the gnutls version.
+	(main): Call openvas_SSL_init to initialize gnutls to avoid SIGSEGV
+	in gnutls version prior to 3.3.0. Add preprocessor directives to
+	check the gnutls version.
+
 2017-03-10  Hani Benhabiles  <hani.benhabiles@greenbone.net>
 
 	Backport r27968.
