@@ -62,7 +62,6 @@
 #include <gvm/util/kb.h>         /* for KB_PATH_DEFAULT */
 #include <gvm/util/nvticache.h>  /* nvticache_free */
 #include "../misc/plugutils.h"   /* nvticache_free */
-#include "../misc/network.h"     /* openvas_SSL_init */
 
 #include <gcrypt.h> /* for gcry_control */
 
@@ -76,6 +75,10 @@
 
 #ifdef SVN_REV_AVAILABLE
 #include "svnrevision.h"
+#endif
+
+#if GNUTLS_VERSION_NUMBER < 0x030300
+#include "../misc/network.h"     /* openvas_SSL_init */
 #endif
 
 #undef G_LOG_DOMAIN
@@ -839,9 +842,12 @@ main (int argc, char *argv[])
   if (flush_all_kbs ())
     exit (1);
 
+
+#if GNUTLS_VERSION_NUMBER < 0x030300
   if (openvas_SSL_init () < 0)
     g_message ("Could not initialize openvas SSL!");
-
+#endif
+  
   // Daemon mode:
   if (dont_fork == FALSE)
     set_daemon_mode ();
