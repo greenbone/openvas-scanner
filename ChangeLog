@@ -1,3 +1,11 @@
+2017-03-28  Michael Wiegand <michael.wiegand@greenbone.net>
+
+	Remove remnants of previously removed 'dumpfile' support.
+
+	* doc/openvassd.8.in: Remove documentation of of 'dumpfile' option.
+
+	* src/CMakeLists.txt: Remove handling of OPENVASSD_DEBUGMSG.
+
 2017-03-27  Juan Jose Nicola  <juan.nicola@greenbone.net>
 
 	Remove handling of dumpfile for stderr and stdout.

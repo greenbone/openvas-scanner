@@ -78,10 +78,6 @@ if (OPENVAS_LOG_DIR)
   add_definitions (-DOPENVAS_LOG_DIR=\\\"${OPENVAS_LOG_DIR}\\\")
 endif (OPENVAS_LOG_DIR)
 
-if (OPENVASSD_DEBUGMSG)
-  add_definitions (-DOPENVASSD_DEBUGMSG=\\\"${OPENVASSD_DEBUGMSG}\\\")
-endif (OPENVASSD_DEBUGMSG)
-
 if (OPENVASSD_CONF)
   add_definitions (-DOPENVASSD_CONF=\\\"${OPENVASSD_CONF}\\\")
 endif (OPENVASSD_CONF)

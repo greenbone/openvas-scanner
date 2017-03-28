@@ -72,9 +72,6 @@ If this option is set to 'yes', openvassd will store the name, pid, date and tar
 .IP log_plugins_name_at_load
 If this option is set to 'yes', openvassd will log the name of each plugin being loaded at startup, or each time it receives the HUP signal.
 
-.IP dumpfile
-Some plugins might issue messages, most of the time to inform you that something went wrong. If you want to read these messages, set this value to a given file name. If you want to save space, set this option value to /dev/null
-
 .IP cgi_path
 By default, openvassd looks for default CGIs in /cgi-bin and /scripts. You may
 change these to something else to reflect the policy of your site. The syntax of this option is the same as the shell $PATH variable: path1:path2:...
