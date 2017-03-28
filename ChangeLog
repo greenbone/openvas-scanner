@@ -1,3 +1,9 @@
+2017-03-28  Hani Benhabiles  <hani.benhabiles@greenbone.net>
+
+	* src/comm.c (send_plug_info): Take oid as parameter. Don't fetch whole
+	nvti, but only needed parts.
+	(comm_send_pluginlist): Use nvticache_get_oids ();
+
 2017-03-28  Michael Wiegand <michael.wiegand@greenbone.net>
 
 	Remove remnants of previously removed 'dumpfile' support.
