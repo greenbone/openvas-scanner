@@ -192,8 +192,8 @@ nasl_func_call (lex_ctxt * lexic, const nasl_func * f, tree_cell * arg_list)
       if (nb_n + nb_u > f->nb_unnamed_args + f->nb_named_args)
         nasl_perror (lexic,
                      "Too many args for function '%s' [%dN+%dU > %dN+%dU]\n",
-                     f->func_name, nb_n, nb_u, f->nb_unnamed_args,
-                     f->nb_named_args);
+                     f->func_name, nb_n, nb_u, f->nb_named_args,
+                     f->nb_unnamed_args);
       /*
        * I should look exactly how unnamed arguments works...
        * Or maybe I should remove this feature?
