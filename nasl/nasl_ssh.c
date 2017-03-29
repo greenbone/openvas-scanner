@@ -442,7 +442,7 @@ get_ssh_port (lex_ctxt *lexic)
   if (value && (port = (unsigned short)strtoul (value, NULL, 10)) > 0)
     return port;
 
-  port_str = plug_get_key (lexic->script_infos, "Services/ssh", &type, NULL);
+  port_str = plug_get_key (lexic->script_infos, "Services/ssh", &type, NULL, 0);
   if (port_str)
     {
       port = GPOINTER_TO_SIZE (port_str);

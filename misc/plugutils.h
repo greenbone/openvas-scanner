@@ -101,7 +101,7 @@ void plug_set_key_len (struct script_infos *, char *, int, const void *, size_t)
 void plug_replace_key (struct script_infos *, char *, int, void *);
 void plug_replace_key_len (struct script_infos *, char *, int, void *, size_t);
 kb_t plug_get_kb (struct script_infos *);
-void *plug_get_key (struct script_infos *, char *, int *, size_t *);
+void *plug_get_key (struct script_infos *, char *, int *, size_t *, int);
 
 struct in6_addr *plug_get_host_ip (struct script_infos *);
 char *plug_get_host_ip_str (struct script_infos *);

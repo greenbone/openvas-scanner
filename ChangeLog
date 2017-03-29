@@ -1,3 +1,17 @@
+2017-03-29  Hani Benhabiles  <hani.benhabiles@greenbone.net>
+
+	* misc/plugutils.c (plug_get_key): Add single parameter, to choose
+	whether to fork or not.
+	(plug_get_host_fqdn), nasl/nasl_builtin_find_service.c (plugin_do_run),
+	nasl/nasl_builtin_openvas_tcp_scanner.c (banner_grab),
+	nasl/nasl_misc_funcs.c (nasl_open_sock_kdc), nasl/nasl_scanner_glue.c
+	(get_kb_item), nasl/nasl_ssh.c (get_ssh_port): Adjust calls to
+	plug_get_key().
+
+	* nasl/nasl_init.c (libfuncs): Add parameter to get_kb_item().
+
+	* misc/plugutils.h: Adjust function prototype.
+
 2017-03-28  Hani Benhabiles  <hani.benhabiles@greenbone.net>
 
 	* src/comm.c (send_plug_info): Take oid as parameter. Don't fetch whole

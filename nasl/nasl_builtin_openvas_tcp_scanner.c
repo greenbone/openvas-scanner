@@ -235,7 +235,7 @@ banner_grab(const struct in6_addr *pia, const char* portrange,
   {
     char	*k;
     int		type = 0;
-    k = plug_get_key (desc, "/tmp/ping/RTT", &type, NULL);
+    k = plug_get_key (desc, "/tmp/ping/RTT", &type, NULL, 0);
     if (type == ARG_STRING && k != NULL)
       ping_rtt = atoi(k);
     else if (type == ARG_INT)

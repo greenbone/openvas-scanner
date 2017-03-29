@@ -905,18 +905,18 @@ nasl_open_sock_kdc (lex_ctxt * lexic)
 
   script_infos = lexic->script_infos;
 
-  hostname = plug_get_key (script_infos, "Secret/kdc_hostname", &type, NULL);
+  hostname = plug_get_key (script_infos, "Secret/kdc_hostname", &type, NULL, 0);
   if (!hostname || type != KB_TYPE_STR)
     return NULL;
 
-  port_str = plug_get_key (script_infos, "Secret/kdc_port", &type, NULL);
+  port_str = plug_get_key (script_infos, "Secret/kdc_port", &type, NULL, 0);
   port = GPOINTER_TO_SIZE (port_str);
   g_free (port_str);
   if (port <= 0 || type != KB_TYPE_INT)
     return NULL;
 
 
-  tcp_str = plug_get_key (script_infos, "Secret/kdc_use_tcp", &type, NULL);
+  tcp_str = plug_get_key (script_infos, "Secret/kdc_use_tcp", &type, NULL, 0);
   tcp = GPOINTER_TO_SIZE (tcp_str);
   g_free (tcp_str);
   if (tcp < 0 || type != KB_TYPE_INT)

@@ -208,7 +208,7 @@ plug_get_host_fqdn (struct script_infos *args)
   if (hinfos)
     {
       int type;
-      char *vhosts = plug_get_key (args, "hostinfos/vhosts", &type, NULL);
+      char *vhosts = plug_get_key (args, "hostinfos/vhosts", &type, NULL, 0);
       if (vhosts)
         return vhosts;
       else
@@ -772,7 +772,8 @@ sig_chld (void (*fcn) ())
 }
 
 void *
-plug_get_key (struct script_infos *args, char *name, int *type, size_t *len)
+plug_get_key (struct script_infos *args, char *name, int *type, size_t *len,
+              int single)
 {
   kb_t kb = args->key;
   struct kb_item *res = NULL, *res_list;
@@ -790,7 +791,7 @@ plug_get_key (struct script_infos *args, char *name, int *type, size_t *len)
   if (res == NULL)
     return NULL;
 
-  if (res->next == NULL)        /* No fork - good */
+  if (res->next == NULL || single)        /* No fork - good */
     {
       void *ret;
       if (res->type == KB_TYPE_INT)
