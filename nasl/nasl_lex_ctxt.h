@@ -54,8 +54,8 @@ void free_lex_ctxt (lex_ctxt *);
 void dump_ctxt (lex_ctxt *);
 
 nasl_func *get_func_ref_by_name (lex_ctxt *, const char *);
-tree_cell *decl_nasl_func (lex_ctxt *, tree_cell *);
-nasl_func *insert_nasl_func (lex_ctxt *, const char *, tree_cell *);
+tree_cell *decl_nasl_func (lex_ctxt *, tree_cell *, int);
+nasl_func *insert_nasl_func (lex_ctxt *, const char *, tree_cell *, int);
 tree_cell *nasl_func_call (lex_ctxt *, const nasl_func *, tree_cell *);
 
 tree_cell *get_variable_by_name (lex_ctxt *, const char *);

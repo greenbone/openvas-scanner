@@ -1,3 +1,23 @@
+2017-03-30  Juan Jose Nicola  <jnicola@armant.core.os.greenbone.net>
+
+	Fix openvas-nasl-lint to recognize missing function.
+
+	* nasl/exec.c (nasl_exec): New variable lint_mode. It is passed
+	as argument to decl_nasl_func()
+
+	* nasl/lint.c (nasl_lint_call, nasl_lint_def): New functions.
+	(nasl_lint), use the new functions to check function definitions
+	and function calls.
+
+	* nasl/nasl_func.c (insert_nasl_func): Receive a new parameter.
+	(decl_nasl_func): Receive new parameter lint_mode and add it to
+	insert_nasl_func().
+
+	* nasl/nasl_init.c (init_nasl_library): New variable lint_mode.
+	It is passed as argument to inser_nasl_func.
+
+	* nasl/nasl_lex_ctxt.h: Adjust function prototype.
+
 2017-03-29  Hani Benhabiles  <hani.benhabiles@greenbone.net>
 
 	* nasl/nasl_func.c (nasl_func_call): Fix error message.

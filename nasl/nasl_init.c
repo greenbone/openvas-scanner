@@ -652,11 +652,12 @@ init_nasl_library (lex_ctxt * lexic)
   tree_cell tc;
   const char **p, *q;
   unsigned i;
+  int lint_mode = 0;
 
   memset (&tc, 0, sizeof (tc));
   for (i = 0, c = 0; i < sizeof (libfuncs) / sizeof (libfuncs[0]) - 1; i++)
     {
-      if ((pf = insert_nasl_func (lexic, libfuncs[i].name, NULL)) == NULL)
+      if ((pf = insert_nasl_func (lexic, libfuncs[i].name, NULL, lint_mode)) == NULL)
         {
           nasl_perror (lexic, "init_nasl_library: could not define fct '%s'\n",
                        libfuncs[i].name);

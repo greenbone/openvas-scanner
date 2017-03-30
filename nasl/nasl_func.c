@@ -62,7 +62,7 @@ get_func (lex_ctxt * ctxt, const char *name, int h)
 typedef int(*qsortcmp)(const void *, const void *);
 
 nasl_func *
-insert_nasl_func (lex_ctxt * lexic, const char *fname, tree_cell * decl_node)
+insert_nasl_func (lex_ctxt * lexic, const char *fname, tree_cell * decl_node, int lint_mode)
 {
   int h = hash_str (fname);
   int i;
@@ -71,9 +71,10 @@ insert_nasl_func (lex_ctxt * lexic, const char *fname, tree_cell * decl_node)
 
   if (get_func (lexic, fname, h) != NULL)
     {
-      nasl_perror (lexic,
-                   "insert_nasl_func: function '%s' is already defined\n",
-                   fname);
+      if (lint_mode == 0)
+        nasl_perror (lexic,
+                     "insert_nasl_func: function '%s' is already defined\n",
+                     fname);
       return NULL;
     }
   pf = g_malloc0 (sizeof (nasl_func));
@@ -108,7 +109,7 @@ insert_nasl_func (lex_ctxt * lexic, const char *fname, tree_cell * decl_node)
 }
 
 tree_cell *
-decl_nasl_func (lex_ctxt * lexic, tree_cell * decl_node)
+decl_nasl_func (lex_ctxt * lexic, tree_cell * decl_node, int lint_mode)
 {
   if (decl_node == NULL || decl_node == FAKE_CELL)
     {
@@ -116,7 +117,7 @@ decl_nasl_func (lex_ctxt * lexic, tree_cell * decl_node)
       return NULL;
     }
 
-  if (insert_nasl_func (lexic, decl_node->x.str_val, decl_node) == NULL)
+  if (insert_nasl_func (lexic, decl_node->x.str_val, decl_node, lint_mode) == NULL)
     return NULL;
   else
     return FAKE_CELL;

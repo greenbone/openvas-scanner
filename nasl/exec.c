@@ -793,7 +793,7 @@ nasl_exec (lex_ctxt * lexic, tree_cell * st)
   nasl_func *pf = NULL;
   int i;
   long int x, y, n;
-
+  int lint_mode = 0;
 
 #if 0
   nasl_dump_tree (st);          /* See rt.value, rt.type, rt.length */
@@ -1021,7 +1021,8 @@ nasl_exec (lex_ctxt * lexic, tree_cell * st)
 
     case NODE_FUN_DEF:
       /* x.str_val = function name, [0] = argdecl, [1] = block */
-      ret = decl_nasl_func (lexic, st);
+      /* 3rd arg is only for lint. Hier is always 0 */
+      ret = decl_nasl_func (lexic, st, lint_mode);
       return ret;
 
     case NODE_FUN_CALL:
