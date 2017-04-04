@@ -1,4 +1,17 @@
-2017-03-30  Juan Jose Nicola  <jnicola@armant.core.os.greenbone.net>
+2017-04-04  Juan Jose Nicola  <juan.nicola@greenbone.net>
+
+	A connection failures to the redis-server is considered fatal to the
+	running scan, meaning that it is stopped immediately and send an
+	'Error' result.
+
+	* src/attack.c: Define new error type ERR_REDIS_CONN.
+	(launch_plugin): Check access to the knowledge base. If a
+	problem is found, return an error and the running scan is stoped.
+	(attack_host): Adds an item to the host knowledge base. After launch
+	the plugin check if there was an error trying to connect to the
+	redis-server. In that case send a error message.
+
+2017-03-30  Juan Jose Nicola  <juan.nicola@greenbone.net>
 
 	Fix openvas-nasl-lint to recognize missing function.
 

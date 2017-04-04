@@ -64,6 +64,7 @@
 
 #define ERR_HOST_DEAD -1
 #define ERR_CANT_FORK -2
+#define ERR_REDIS_CONN -3
 
 #define MAX_FORK_RETRIES 10
 
@@ -238,6 +239,15 @@ launch_plugin (struct scan_globals *globals, struct scheduler_plugin *plugin,
         g_message ("Stopped scan wrap-up: Launching %s (%s)", name, oid);
     }
 
+  /* Stop the test if it can not connect to redis server. */
+  if (kb_item_get_int (kb, "check_host_kb") < 0)
+    {
+      g_message ("Redis connection error during %s scan", hostname);
+      pluginlaunch_stop (1);
+      plugin->running_state = PLUGIN_STATUS_DONE;
+      g_free (name);
+      return ERR_REDIS_CONN;
+    }
   /* Stop the test if the host is 'dead' */
   if (kb_item_get_int (kb, "Host/dead") > 0
       || kb_item_get_int (kb, "Host/ping_failed") > 0)
@@ -459,6 +469,8 @@ attack_host (struct scan_globals *globals, struct host_info *hostinfos,
 
   kb_lnk_reset (kb);
 
+  kb_item_add_int (kb, "check_host_kb", 1);
+
   /* launch the plugins */
   pluginlaunch_init (hostinfos->name);
   num_plugs = plugins_scheduler_count_active (sched);
@@ -499,7 +511,8 @@ attack_host (struct scan_globals *globals, struct host_info *hostinfos,
                     "<name/></source></detail></host> <|>  <|> SERVER\n",
                     hostname ?: "");
 
-                  internal_send (global_socket, buffer, INTERNAL_COMM_MSG_TYPE_DATA);
+                  internal_send (global_socket, buffer,
+                                 INTERNAL_COMM_MSG_TYPE_DATA);
                   goto host_died;
                 }
               else if (e == ERR_CANT_FORK)
@@ -517,6 +530,20 @@ attack_host (struct scan_globals *globals, struct host_info *hostinfos,
                       g_debug ("fork() failed too many times - aborting");
                       goto host_died;
                     }
+                }
+              else if (e == ERR_REDIS_CONN)
+                {
+                  char buffer[2048];
+                  snprintf
+                   (buffer, sizeof (buffer),
+                    "SERVER <|> ERRMSG <|> %s <|> general/Host_Details"
+                    " <|> Redis connection error."
+                    " <|>  <|> SERVER\n",
+                    hostname?:"");
+
+                  internal_send (global_socket, buffer,
+                                 INTERNAL_COMM_MSG_TYPE_DATA);
+                  goto host_died;
                 }
             }
 
