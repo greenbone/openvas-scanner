@@ -1,3 +1,8 @@
+2017-04-06  Juan Jose Nicola  <juan.nicola@greenbone.net>
+
+	* nasl/nals.c (gcrypt_init): New function to initilalize libgcrypt.
+	(main): Calls gcrypt_init().
+
 2017-04-04  Juan Jose Nicola  <juan.nicola@greenbone.net>
 
 	A connection failures to the redis-server is considered fatal to the
