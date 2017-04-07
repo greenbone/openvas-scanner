@@ -47,6 +47,8 @@ tree_cell *nasl_ssh_shell_open (lex_ctxt *lexic);
 tree_cell *nasl_ssh_shell_read (lex_ctxt *lexic);
 tree_cell *nasl_ssh_shell_write (lex_ctxt *lexic);
 tree_cell *nasl_ssh_shell_close (lex_ctxt *lexic);
+tree_cell *nasl_ssh_login_interactive (lex_ctxt *lexic);
+tree_cell *nasl_ssh_login_interactive_pass (lex_ctxt *lexic);
 
 tree_cell *nasl_ssh_exec (lex_ctxt *);
 

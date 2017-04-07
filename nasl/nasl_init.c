@@ -410,6 +410,8 @@ static init_func libfuncs[] = {
   {"ssh_get_sock", nasl_ssh_get_sock, 1, {NULL }},
   {"ssh_set_login", nasl_ssh_set_login, 1, {"login", NULL }},
   {"ssh_userauth", nasl_ssh_userauth, 1, {"login", "password", NULL }},
+  {"ssh_login_interactive", nasl_ssh_login_interactive, 1, {"login", NULL }},
+  {"ssh_login_interactive_pass", nasl_ssh_login_interactive_pass, 1, {"password", NULL }},
   {"ssh_request_exec", nasl_ssh_request_exec,
    1, {"cmd", "stderr", "stdout",NULL }},
   {"ssh_shell_open", nasl_ssh_shell_open, 1, { NULL }},

@@ -1,3 +1,16 @@
+2017-04-07  Juan Jose Nicola  <juan.nicola@greenbone.net>
+
+	New functions make possible to authenticate a user on an
+	ssh connection in two steps, receiving the prompt between them.
+
+	* nasl/nasl_init.c (libfuncs): Add ssh_login_interactive()
+	and ssh_login_interactive_pass().
+
+	* nasl/nasl_ssh.c (nasl_ssh_login_interactive)
+	(nasl_ssh_login_interactive_pass): New functions.
+
+	* nasl/nasl_ssh.h Add new functions prototypes.
+
 2017-04-06  Juan Jose Nicola  <juan.nicola@greenbone.net>
 
 	* nasl/nals.c (gcrypt_init): New function to initilalize libgcrypt.

@@ -1257,6 +1257,193 @@ nasl_ssh_userauth (lex_ctxt *lexic)
   }
 }
 
+
+/**
+ * @brief Authenticate a user on an ssh connection
+ * @naslfn{ssh_login_intenteractive}
+ *
+ * The function starts the authentication process and pauses it when
+ * it finds the first non-echo prompt. The function expects the session
+ * id as its first unnamed argument.
+ * The first time this function is called for a session id, the named
+ * argument "login" is also expected.
+ *
+ * @nasluparam
+ *
+ * - An ssh session id.
+ *
+ * @naslnparam
+ *
+ * - @a login A string with the login name.
+ *
+ * @naslret A data block on success or NULL on error.
+ *
+ * @param[in] lexic Lexical context of NASL interpreter.
+ *
+ * @return A string containing the prompt is returned on success.
+ *         NULL indicates that the error.
+ */
+tree_cell *
+nasl_ssh_login_interactive (lex_ctxt *lexic)
+{
+ int tbl_slot;
+  int session_id;
+  ssh_session session;
+  int rc;
+  const char *s = NULL;
+  int methods;
+  int verbose;
+
+  session_id = get_int_var_by_num (lexic, 0, -1);
+  if (!verify_session_id (session_id, "ssh_login_interactive", &tbl_slot))
+    return NULL;  /* Ooops.  */
+  session = session_table[tbl_slot].session;
+  verbose = session_table[tbl_slot].verbose;
+
+  /* Check if we need to set the user.  This is done only once per
+     session.  */
+  if (!session_table[tbl_slot].user_set && !nasl_ssh_set_login (lexic))
+    return NULL;
+
+  /* Get the authentication methods onlye once per session.  */
+  if (!session_table[tbl_slot].authmethods_valid)
+    {
+      if (!get_authmethods (tbl_slot))
+        {
+          s = NULL;
+          goto leave;
+        }
+    }
+  methods = session_table[tbl_slot].authmethods;
+
+  if (methods & SSH_AUTH_METHOD_INTERACTIVE)
+    {
+      /* Our strategy for kbint is to send the password to the first
+         prompt marked as non-echo.  */
+      while ((rc = ssh_userauth_kbdint (session, NULL, NULL)) == SSH_AUTH_INFO)
+        {
+          int n, nprompt;
+          char echoflag;
+          int found_prompt = 0;
+
+          if (verbose)
+            {
+              s = ssh_userauth_kbdint_getname (session);
+              if (s && *s)
+                g_message ("SSH kbdint name='%s'", s);
+              s = ssh_userauth_kbdint_getinstruction (session);
+              if (s && *s)
+                g_message ("SSH kbdint instruction='%s'", s);
+            }
+
+          nprompt = ssh_userauth_kbdint_getnprompts (session);
+          for (n=0; n < nprompt; n++)
+            {
+              s = ssh_userauth_kbdint_getprompt (session, n, &echoflag);
+              if (s && *s && verbose)
+                g_message ("SSH kbdint prompt='%s'%s",
+                           s, echoflag ? "" : " [hide input]");
+              if (s && *s && !echoflag && !found_prompt)
+                goto leave;
+            }
+        }
+      if (verbose)
+        g_message
+          ("SSH keyboard-interactive authentication failed for session %d"
+           ": %s", session_id, ssh_get_error (session));
+    }
+
+  if (!s)
+    return NULL;
+
+ leave:
+  {
+    tree_cell *retc;
+
+    retc = alloc_typed_cell (CONST_DATA);
+    retc->x.str_val = g_strdup (s);
+    retc->size = strlen (s);
+    return retc;
+  }
+}
+
+
+/**
+ * @brief Authenticate a user on an ssh connection
+ * @naslfn{ssh_login_intenteractive_pass}
+ *
+ * The function finishes the authentication process started by
+ * ssh_login_interactive. The function expects the session id as its first
+ * unnamed argument.
+ *
+ * To finish the password, the named argument "password" must contain
+ * a password.
+ *
+ * @nasluparam
+ *
+ * - An ssh session id.
+ *
+ * @naslnparam
+ *
+ * - @a password A string with the password.
+ *
+ * @naslret An integer as status value; 0 indicates success.
+ *
+ * @param[in] lexic Lexical context of NASL interpreter.
+ *
+ * @return An integer is returned on success. -1 indicates an
+ *         error.
+ */
+tree_cell *
+nasl_ssh_login_interactive_pass (lex_ctxt *lexic)
+{
+int tbl_slot;
+  int session_id;
+  ssh_session session;
+  const char *password = NULL;
+  int rc= -1;
+  int retc_val = -1;
+  int verbose;
+
+  session_id = get_int_var_by_num (lexic, 0, -1);
+  if (!verify_session_id (session_id, "ssh_login_interactive_pass", &tbl_slot))
+    return NULL;  /* Ooops.  */
+  session = session_table[tbl_slot].session;
+  verbose = session_table[tbl_slot].verbose;
+
+  /* A prompt is waiting for the password. */
+  if ((password = get_str_local_var_by_name (lexic, "password")) == NULL)
+    return NULL;
+  rc = ssh_userauth_kbdint_setanswer (session, 0, password);
+
+  if (rc != SSH_AUTH_SUCCESS)
+    {
+      if (verbose)
+        g_message ("SSH keyboard-interactive authentication "
+                   "failed at prompt %d for session %d: %s",
+                   0, session_id, ssh_get_error (session));
+    }
+
+  if (rc == SSH_AUTH_SUCCESS)
+    {
+      /* I need to do that to finish the auth process. */
+      while ((rc = ssh_userauth_kbdint (session, NULL, NULL)) == SSH_AUTH_INFO)
+        ssh_userauth_kbdint_getnprompts (session);
+      retc_val = 0;
+      goto leave;
+    }
+
+ leave:
+  {
+    tree_cell *retc;
+
+    retc = alloc_typed_cell (CONST_INT);
+    retc->x.i_val = retc_val;
+    return retc;
+  }
+}
+
+
 static void
 exec_ssh_cmd_alarm (int signal)
 {
