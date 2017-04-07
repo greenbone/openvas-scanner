@@ -1286,7 +1286,7 @@ nasl_ssh_userauth (lex_ctxt *lexic)
 tree_cell *
 nasl_ssh_login_interactive (lex_ctxt *lexic)
 {
- int tbl_slot;
+  int tbl_slot;
   int session_id;
   ssh_session session;
   int rc;
@@ -1397,11 +1397,11 @@ nasl_ssh_login_interactive (lex_ctxt *lexic)
 tree_cell *
 nasl_ssh_login_interactive_pass (lex_ctxt *lexic)
 {
-int tbl_slot;
+  int tbl_slot;
   int session_id;
   ssh_session session;
   const char *password = NULL;
-  int rc= -1;
+  int rc;
   int retc_val = -1;
   int verbose;
 
@@ -1414,23 +1414,36 @@ int tbl_slot;
   /* A prompt is waiting for the password. */
   if ((password = get_str_local_var_by_name (lexic, "password")) == NULL)
     return NULL;
+
   rc = ssh_userauth_kbdint_setanswer (session, 0, password);
 
-  if (rc != SSH_AUTH_SUCCESS)
+  if (rc < 0)
     {
       if (verbose)
         g_message ("SSH keyboard-interactive authentication "
                    "failed at prompt %d for session %d: %s",
                    0, session_id, ssh_get_error (session));
+      retc_val = -1;
+      goto leave;
     }
 
-  if (rc == SSH_AUTH_SUCCESS)
+  if (rc == 0)
     {
       /* I need to do that to finish the auth process. */
       while ((rc = ssh_userauth_kbdint (session, NULL, NULL)) == SSH_AUTH_INFO)
-        ssh_userauth_kbdint_getnprompts (session);
-      retc_val = 0;
-      goto leave;
+        {
+          ssh_userauth_kbdint_getnprompts (session);
+        }
+      if (rc == SSH_AUTH_SUCCESS)
+        {
+          retc_val = 0;
+          goto leave;
+        }
+      if (rc != SSH_AUTH_SUCCESS)
+        {
+          retc_val = -1;
+          goto leave;
+        }
     }
 
  leave:

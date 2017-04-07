@@ -1,5 +1,11 @@
 2017-04-07  Juan Jose Nicola  <juan.nicola@greenbone.net>
 
+	* nasl/nasl_ssh.c (nasl_ssh_login_interactive_pass): Fix error checks,
+	to return the correct values.
+	(nasl_ssh_login_interactive): Fix indentation
+
+2017-04-07  Juan Jose Nicola  <juan.nicola@greenbone.net>
+
 	New functions make possible to authenticate a user on an
 	ssh connection in two steps, receiving the prompt between them.
 
