@@ -1,3 +1,8 @@
+2017-04-10  Hani Benhabiles  <hani.benhabiles@greenbone.net>
+
+	* nasl/nasl_var.c (array2str): Use glib strings instead of manually
+	reallocating buffer string. Fix invalid memory write.
+
 2017-04-07  Juan Jose Nicola  <juan.nicola@greenbone.net>
 
 	* nasl/nasl_ssh.c (nasl_ssh_login_interactive_pass): Fix error checks,

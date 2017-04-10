@@ -1114,61 +1114,36 @@ var2int (anon_nasl_var * v, int defval)
 const char *
 array2str (const nasl_array * a)
 {
-  static char *s = NULL;
-  static int len = 0;
-
-  int i, n, n1 = 0, l;
+  GString *str;
+  int i, n1 = 0;
   anon_nasl_var *u;
   named_nasl_var *v;
-
 
   if (a == NULL)
     return "";
 
-  if (len == 0)
-    {
-      len = 80;
-      s = g_malloc0 (80 + 1);
-    }
-
-  strcpy (s, "[ ");
-  n = strlen (s);
-
+  str = g_string_new ("[ ");
   if (a->num_elt != NULL)
     for (i = 0; i < a->max_idx; i++)
       if ((u = a->num_elt[i]) != NULL && u->var_type != VAR2_UNDEF)
         {
-          if (n + 80 >= len)
-            {
-              len += 80;
-              s = g_realloc (s, len + 1);
-            }
           if (n1 > 0)
-            n += sprintf (s + n, ", ");
+            g_string_append (str, ", ");
           n1++;
           switch (u->var_type)
             {
             case VAR2_INT:
-              snprintf (s + n, len - n, "%d: %ld", i, u->v.v_int);
-              n += strlen (s + n);
+              g_string_append_printf (str, "%d: %ld", i, u->v.v_int);
               break;
             case VAR2_STRING:
             case VAR2_DATA:
               if (u->v.v_str.s_siz < 64)
-                {
-                  snprintf (s + n, len - n, "%d: '%s'", i, u->v.v_str.s_val);
-                  n += strlen (s + n);
-                }
+                g_string_append_printf (str, "%d: '%s'", i, u->v.v_str.s_val);
               else
-                {
-                  snprintf (s + n, 70, "%d: '%s", i, u->v.v_str.s_val);
-                  n += strlen (s + n);
-                  n += sprintf (s + n, "'...");
-                }
+                g_string_append_printf (str, "%d: '%s'...", i, u->v.v_str.s_val);
               break;
             default:
-              snprintf (s + n, len - n, "%d: ????", i);
-              n += strlen (s + n);
+              g_string_append_printf (str, "%d: ????", i);
               break;
             }
         }
@@ -1178,49 +1153,32 @@ array2str (const nasl_array * a)
       for (v = a->hash_elt[i]; v != NULL; v = v->next_var)
         if (v->u.var_type != VAR2_UNDEF)
           {
-            l = strlen (v->var_name);
             u = &v->u;
-            if (n + 80 >= len)
-              {
-                len += 80 + l;
-                s = g_realloc (s, len + 1);
-              }
             if (n1 > 0)
-              n += sprintf (s + n, ", ");
+              g_string_append (str, ", ");
             n1++;
             switch (u->var_type)
               {
               case VAR2_INT:
-                n += snprintf (s + n, len - n, "%s: %ld", v->var_name, u->v.v_int);
+                g_string_append_printf (str, "%s: %ld", v->var_name, u->v.v_int);
                 break;
               case VAR2_STRING:
               case VAR2_DATA:
                 if (u->v.v_str.s_siz < 64)
-                  {
-                    snprintf (s + n, len - n, "%s: '%s'", v->var_name, u->v.v_str.s_val);
-                    n += strlen (s + n);
-                  }
+                  g_string_append_printf (str, "%s: '%s'", v->var_name,
+                                          u->v.v_str.s_val);
                 else
-                  {
-                    snprintf (s + n, 70 + l, "%s: '%s", v->var_name, u->v.v_str.s_val);
-                    n += strlen (s + n);
-                    n += sprintf (s + n, "'...");
-                  }
+                  g_string_append_printf (str, "%s: '%s'...", v->var_name,
+                                          u->v.v_str.s_val);
                 break;
               default:
-                snprintf (s + n, len - n, "%s: ????", v->var_name);
-                n += strlen (s + n);
+                g_string_append_printf (str, "%s: ????", v->var_name);
                 break;
               }
           }
 
-  if (n + 2 >= len)
-    {
-      len += 80;
-      s = g_realloc (s, len + 1);
-    }
-  strcpy (s + n, " ]");
-  return s;
+  g_string_append (str, " ]");
+  return g_string_free (str, FALSE);
 }
 
 const char *
