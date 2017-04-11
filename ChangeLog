@@ -1,3 +1,12 @@
+2017-04-11  Juan Jose Nicola  <juan.nicola@greenbone.net>
+
+	* nasl/lint.c: New GSList dont_check_list.
+	(stringcompare): New Function.
+	(nasl_lint_call): Add case CONST_DATA to create a list of functions
+	checked with the nasl function defined_func(). Listed function will
+	not be checked by lint.
+	(nasl_lint): New variable defined_flag.
+
 2017-04-10  Hani Benhabiles  <hani.benhabiles@greenbone.net>
 
 	* nasl/nasl_var.c (array2str): Use glib strings instead of manually
