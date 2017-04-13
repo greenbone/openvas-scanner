@@ -315,7 +315,7 @@ nasl_display (lex_ctxt * lexic)
   char *msg = NULL;
   r = nasl_string (lexic);
 
-  msg = g_malloc0 (r->size);
+  msg = g_malloc0 (r->size + 1);
   for (j = 0; j < r->size; j++)
     msg[j] = (isprint (r->x.str_val[j])
              || isspace (r->x.str_val[j]) ? r->x.str_val[j] : '.');
