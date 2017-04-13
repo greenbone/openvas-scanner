@@ -1,3 +1,13 @@
+2017-04-13  Juan Jose Nicola  <juan.nicola@greenbone.net>
+
+	* nasl/lint.c: New typedef list_t.
+	(stringcompare): Check if the list data is null.
+	(nasl_lint_call): Add new argument to the function, since the list
+	variable is not global.
+	(nasl_lint): Do deep copy of lexic. dont_check_list is type list_t.
+	After to free the list, it point tu null. Use free_lex_ctxt() to free
+	lexic_aux.
+
 2017-04-13  Hani Benhabiles  <hani.benhabiles@greenbone.net>
 
 	* nasl/nasl_text_utils.c (nasl_display): Fix off-by-one allocation.
