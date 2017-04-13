@@ -1,3 +1,10 @@
+2017-04-13  Hani Benhabiles  <hani.benhabiles@greenbone.net>
+
+	* nasl/lint.c (list_t): Remove typedef.
+	(nasl_lint_call): Remove dont_check_list argument. Handle CONST_STR
+	case. Add defined_func() argument to declared functions.
+	(nasl_lint): Adjust nasl_lint_call() call.
+
 2017-04-13  Juan Jose Nicola  <juan.nicola@greenbone.net>
 
 	* nasl/lint.c: New typedef list_t.
