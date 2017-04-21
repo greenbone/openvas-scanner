@@ -236,7 +236,7 @@ launch_plugin (struct arglist *globals, struct scheduler_plugin *plugin,
   if (kb_item_get_int (kb, "Host/dead") > 0
       || kb_item_get_int (kb, "Host/ping_failed") > 0)
     {
-      log_write ("The remote host (%s) is dead", hostname);
+      log_write ("The remote host %s (%s) is dead", hostinfos->fqdn, hostname);
       pluginlaunch_stop (1);
       plugin->running_state = PLUGIN_STATUS_DONE;
       g_free (name);
@@ -617,9 +617,9 @@ attack_start (struct attack_start_args *args)
           then.tv_sec++;
           now.tv_usec += 1000000;
         }
-        log_write ("Finished testing %s. Time : %ld.%.2ld secs", host_str,
-                   (long) (now.tv_sec - then.tv_sec),
-                   (long) ((now.tv_usec - then.tv_usec) / 10000));
+      log_write ("Finished testing %s (%s). Time : %ld.%.2ld secs", args->fqdn, host_str,
+                 (long) (now.tv_sec - then.tv_sec),
+                 (long) ((now.tv_usec - then.tv_usec) / 10000));
     }
   shutdown (thread_socket, 2);
   close (thread_socket);

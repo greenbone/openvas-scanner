@@ -1,3 +1,10 @@
+2017-04-22  Juan Jose Nicola  <juan.nicola@greenbone.net>
+
+	Backport r28264 with adjustments due to code changes.
+
+	* src/attack.c (attack_start, launch_plugin): Use consistent
+	hostname (ip) logging. Add fqdn to the messages.
+
 2017-03-27  Juan Jose Nicola  <juan.nicola@greenbone.net>
 
 	Backport r28088, r28091, with adjustments due to code changes.
