@@ -1,4 +1,8 @@
-2017-04-22  Juan Jose Nicola  <juan.nicola@greenbone.net>
+2017-04-21  Juan Jose Nicola  <juan.nicola@greenbone.net>
+
+	* Changelog: Correct a wrong entry date.
+
+2017-04-21  Juan Jose Nicola  <juan.nicola@greenbone.net>
 
 	Backport r28264 with adjustments due to code changes.
 
