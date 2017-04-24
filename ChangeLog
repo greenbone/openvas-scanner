@@ -1,3 +1,8 @@
+2017-04-24  Hani Benhabiles  <hani.benhabiles@greenbone.net>
+
+	* src/pluginscheduler.c (plugins_scheduler_next): Fix compilation
+	warning with GCC 7.
+
 2017-04-21  Juan Jose Nicola  <juan.nicola@greenbone.net>
 
 	* Changelog: Correct a wrong entry date.

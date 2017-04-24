@@ -674,7 +674,7 @@ plugins_scheduler_next (plugins_scheduler_t h)
             case PLUGIN_STATUS_DONE:
               scheduler_rm_running_ports (h, l->plugin);
               l->plugin->running_state = PLUGIN_STATUS_DONE_AND_CLEANED;
-              /* no break - we remove it right away */
+              /* fallthrough */
             case PLUGIN_STATUS_DONE_AND_CLEANED:
               {
                 struct list *old = l->next;
