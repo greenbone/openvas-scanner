@@ -419,9 +419,7 @@ static init_func libfuncs[] = {
   {"ssh_shell_write", nasl_ssh_shell_write, 1, { "cmd" }},
   {"ssh_shell_close", nasl_ssh_shell_close, 1, { NULL }},
   {"ssh_get_issue_banner", nasl_ssh_get_issue_banner, 1, {NULL }},
-#if LIBSSH_VERSION_INT >= SSH_VERSION_INT (0, 6, 0)
   {"ssh_get_server_banner", nasl_ssh_get_server_banner, 1, {NULL }},
-#endif
   {"ssh_get_auth_methods", nasl_ssh_get_auth_methods, 1, {NULL }},
   {"ssh_get_host_key", nasl_ssh_get_host_key, 1, {NULL }},
 
@@ -626,13 +624,6 @@ static struct
   "EUNREACH", NASL_ERR_EUNREACH},
   {
   "EUNKNOWN", NASL_ERR_EUNKNOWN},
-  {
-  /* Since OpenVAS-8, libssh is mandatory. To maintain compatibility of
-     the NVT feed with older versions, this variable needs to be set.
-     Once OpenVAS-7 is retired, this setting of the variable can be removed
-     and also any occurrences in the NVTs, which should lead to some
-     significant NASL code removals. */
-  "_HAVE_LIBSSH", 1},
   {
 NULL, 0},};
 

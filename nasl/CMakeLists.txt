@@ -52,7 +52,7 @@ pkg_check_modules (OPENVAS_WINCMD libopenvas_wincmd>=1.0.1)
 
 
 # for 'nasl' binary
-pkg_check_modules (LIBSSH REQUIRED libssh>=0.5.0)
+pkg_check_modules (LIBSSH REQUIRED libssh>=0.6.0)
 
 set (KSBA_MIN_VERSION "1.0.7")
 message (STATUS "Looking for ksba >= ${KSBA_MIN_VERSION}...")

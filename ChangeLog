@@ -1,3 +1,13 @@
+2017-04-24  Juan Jose Nicola  <juan.nicola@greenbone.net>
+
+	* INSTALL: Change libssh version dependency. Now list 0.6 instead
+	of 0.5.
+
+	* nasl/CMakeLists.txt: Check for libssh version 0.6 instead of 0.5.
+
+	* nasl/nasl_init.c (libfuncs): Remove version check for libssh.
+	(libivars): Remove _HAVE_LI_BSSH variable and related comments.
+
 2017-04-20  Juan Jose Nicola  <juan.nicola@greenbone.net>
 
 	* src/attack.c (attack_start, launch_plugin): Use consistent
