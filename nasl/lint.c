@@ -57,6 +57,7 @@ nasl_lint_def (lex_ctxt * lexic, tree_cell * st, int lint_mode)
 
       /* x.str_val = function name, [0] = argdecl, [1] = block */
       decl_nasl_func (lexic, st, lint_mode);
+      /* fallthrough */
 
     default:
       for (i = 0; i < 4; i++)
@@ -103,6 +104,7 @@ nasl_lint_call (lex_ctxt * lexic, tree_cell * st, int *defined_flag)
         }
       if (g_strcmp0 (st->x.str_val, "defined_func") == 0)
         *defined_flag = 1;
+      /* fallthrough */
 
     default:
       for (i = 0; i < 4; i++)

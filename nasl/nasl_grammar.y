@@ -1282,6 +1282,7 @@ mylex(lvalp, parm)
     case ST_ZEROX:
       nasl_perror(NULL, "Invalid token 0x parsed as 0 at line %d\n",
 	      ctx->line_nb);
+      /* fallthrough */
     case ST_ZERO:
       lvalp->num = 0;
       return INTEGER;

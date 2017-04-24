@@ -276,6 +276,7 @@ get_array_elem (lex_ctxt * ctxt, const char *name, tree_cell * idx)
     case VAR2_UNDEF:
       /* We define the array here */
       u->var_type = VAR2_ARRAY;
+      /* fallthrough */
     case VAR2_ARRAY:
       switch (idx->type)
         {
@@ -977,7 +978,7 @@ nasl_read_var_ref (lex_ctxt * lexic, tree_cell * tc)
           v->v.v_str.s_siz = strlen ((char *) v->v.v_str.s_val);
           nasl_perror (lexic, "nasl_read_var_ref: Bad string length fixed\n");
         }
-      /* Go on next case */
+      /* fallthrough */
     case VAR2_DATA:
       ret->type = v->var_type == VAR2_STRING ? CONST_STR : CONST_DATA;
       if (v->v.v_str.s_val == NULL)

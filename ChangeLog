@@ -1,3 +1,10 @@
+2017-04-24  Hani Benhabiles  <hani.benhabiles@greenbone.net>
+
+	* misc/network.c (open_socket), nasl/lint.c (nasl_lint_def)
+	(nasl_lint_call), nasl/nasl_grammar.y (mylex), nasl/nasl_var.c
+	(get_array_elem, nasl_read_var_ref): Use fallthrough comment to fix
+	GCC 7 warnings.
+
 2017-04-24  Juan Jose Nicola  <juan.nicola@greenbone.net>
 
 	* INSTALL: Change libssh version dependency. Now list 0.6 instead

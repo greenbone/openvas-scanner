@@ -1888,7 +1888,7 @@ open_socket (struct sockaddr *paddr, int type, int protocol,
           errno = opt;
           pid_perror ("SO_ERROR");
 #endif
-          /* no break; go on */
+          /* fallthrough */
         default:
           __port_closed = 1;
           socket_close (soc);
