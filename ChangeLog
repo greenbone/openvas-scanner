@@ -1,3 +1,8 @@
+2017-04-25  Michael Wiegand <michael.wiegand@greenbone.net>
+
+	* doc/openvas-nvt-sync.8: Replace very outdated host name in
+	openvas-nvt-sync man page.
+
 2017-04-21  Juan Jose Nicola  <juan.nicola@greenbone.net>
 
 	Backport r28264 with adjustments due to code changes.
