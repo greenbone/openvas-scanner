@@ -297,13 +297,13 @@ comm_wait_order (struct scan_globals *globals)
       n = recv_line (soc, str, sizeof (str) - 1);
       if (n < 0)
         {
-          g_debug ("Client closed the communication");
+          g_warning ("Client closed the communication");
           return -1;
         }
       if (str[0] == '\0')
         if (!is_client_present (soc))
           {
-            g_debug ("Client not present");
+            g_warning ("Client not present");
             return -1;
           }
 

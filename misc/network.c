@@ -2079,7 +2079,6 @@ recv_line (int soc, char *buf, size_t bufsiz)
   else
     {
       fd_set rd;
-      struct timeval tv;
 
       do
         {
@@ -2088,9 +2087,7 @@ recv_line (int soc, char *buf, size_t bufsiz)
           errno = 0;
           FD_ZERO (&rd);
           FD_SET (soc, &rd);
-          tv.tv_sec = 30;
-          tv.tv_usec = 0;
-          e = select (soc + 1, &rd, NULL, NULL, &tv);
+          e = select (soc + 1, &rd, NULL, NULL, NULL);
           if (e == 0 && !FD_ISSET (soc, &rd))
             return -1;
           if (e < 0 && errno == EINTR)
@@ -2117,8 +2114,6 @@ recv_line (int soc, char *buf, size_t bufsiz)
             }
           else
             break;
-          tv.tv_sec = 1;
-          tv.tv_usec = 0;
         }
       while (buf[ret - 1] != '\0' && buf[ret - 1] != '\n' && ret < bufsiz);
 

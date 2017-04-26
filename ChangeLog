@@ -1,3 +1,10 @@
+2017-04-26  Hani Benhabiles  <hani.benhabiles@greenbone.net>
+
+	* misc/network.c (recv_line): Don't set timeout for select() call, as
+	client closing connection case is correctly handled.
+
+	* src/comm.c (comm_wait_order): Use g_warning() instead of g_debug().
+
 2017-04-24  Hani Benhabiles  <hani.benhabiles@greenbone.net>
 
 	* misc/network.c (open_socket), nasl/lint.c (nasl_lint_def)
