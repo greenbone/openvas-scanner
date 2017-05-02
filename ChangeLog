@@ -1,3 +1,8 @@
+2017-05-02  Hani Benhabiles  <hani.benhabiles@greenbone.net>
+
+	* nasl/nasl_builtin_find_service.c (plugin_do_run): Increase default
+	connection timeout to 20 seconds.
+
 2017-05-02  Juan Jose Nicola  <juan.nicola@greenbone.net>
 
 	* nasl/nasl_crypto.c (nasl_ntlm2_response): Improve code style.

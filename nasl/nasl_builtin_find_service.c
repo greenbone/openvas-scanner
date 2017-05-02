@@ -1511,7 +1511,7 @@ plugin_do_run (struct script_infos *desc, GSList *h, int test_ssl)
   int num_unknown = 0;
   size_t len_head = strlen (head);
 
-  int rw_timeout = 5, cnx_timeout = 5, wrap_timeout = 3;
+  int rw_timeout = 5, cnx_timeout = 20, wrap_timeout = 3;
   int x, timeout;
   char *rw_timeout_s = get_plugin_preference (oid, RW_TIMEOUT_PREF);
   char *cnx_timeout_s = get_plugin_preference (oid, CNX_TIMEOUT_PREF);
