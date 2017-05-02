@@ -1,3 +1,9 @@
+2017-05-02  Juan Jose Nicola  <juan.nicola@greenbone.net>
+
+	* nasl/nasl_crypto.c (nasl_ntlm2_response): Improve code style.
+
+	* nasl/smb_crypt.c (E_deshash_ntlmssp): Improve code style.
+
 2017-04-26  Hani Benhabiles  <hani.benhabiles@greenbone.net>
 
 	* misc/network.c (recv_line): Don't set timeout for select() call, as

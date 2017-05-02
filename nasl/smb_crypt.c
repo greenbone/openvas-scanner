@@ -451,6 +451,7 @@ bool E_deshash_ntlmssp (const char *passwd, uint8_t pass_len, uchar p16[16])
   /* Password must be converted to DOS charset - null terminated, uppercase. */
   dpass = g_utf8_strup (passwd, pass_len);
   memcpy (dospwd, dpass, pass_len);
+  g_free (dpass);
 
   /* Only the fisrt 14 chars are considered, password need not be null terminated. */
   E_P16((unsigned char *)dospwd, p16);
@@ -459,7 +460,6 @@ bool E_deshash_ntlmssp (const char *passwd, uint8_t pass_len, uchar p16[16])
     ret = False;
   }
 
-  g_free (dpass);
   ZERO_STRUCT(dospwd);
 
   return ret;

@@ -663,7 +663,7 @@ nasl_ntlm2_response (lex_ctxt * lexic)
 {
   char *cryptkey = (char *) get_str_var_by_name (lexic, "cryptkey");
   char *password = get_str_var_by_name (lexic, "password");
-  uint8_t pass_len = (uint8_t) get_var_size_by_name (lexic, "password");
+  uint8_t pass_len = get_var_size_by_name (lexic, "password");
   void *nt_hash = get_str_var_by_name (lexic, "nt_hash");
   int hash_len = get_var_size_by_name (lexic, "nt_hash");
 
