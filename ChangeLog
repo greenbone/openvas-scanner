@@ -1,3 +1,16 @@
+2017-05-03  Juan Jose Nicola  <juan.nicola@greenbone.net>
+
+	* nasl/nasl_ssh.c: Remove preprocessor directives to check
+	the libssh version and the code related to old libssh version.
+	(my_ssh_key_s, my_ssh_key_free, remove_and_free_temp_key_file)
+	(my_ssh_pki_import_privkey_base64, my_ssh_userauth_try_publickey)
+	(my_ssh_userauth_publickey): Remove functions and structs.
+	(nasl_ssh_connect, nasl_ssh_userauth): Remove no longer required
+	code inside preprocessor directives to check the libssh version.
+
+	* nasl/nasl_ssh.h: Remove include libssh/legacy.h.
+
+
 2017-05-02  Hani Benhabiles  <hani.benhabiles@greenbone.net>
 
 	* nasl/nasl_builtin_find_service.c (plugin_do_run): Increase default

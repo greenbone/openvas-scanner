@@ -34,7 +34,6 @@
  */
 
 #include <libssh/libssh.h>
-#include <libssh/legacy.h>
 
 tree_cell *nasl_ssh_connect (lex_ctxt *lexic);
 tree_cell *nasl_ssh_disconnect (lex_ctxt *lexic);

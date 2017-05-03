@@ -140,256 +140,6 @@ g_string_comma_str (GString *gstr, const char *str)
   g_string_append (gstr, str);
 }
 
-/* Wrapper functions to make a future migration to the libssh 0.6 API
-   easier.  The idea is that you only need to remove these wrappers
-   and s/my_ssh_/ssh_/ on this file.  */
-
-#if LIBSSH_VERSION_INT < SSH_VERSION_INT (0, 6, 0)
-struct my_ssh_key_s
-{
-  ssh_private_key privkey;
-  int type;
-  ssh_string pubkey_string;
-};
-typedef struct my_ssh_key_s *my_ssh_key;
-
-/* Release an ssh key object.  NULL for KEY is allowed.  */
-static void
-my_ssh_key_free (my_ssh_key key)
-{
-  if (!key)
-    return;
-  privatekey_free (key->privkey);
-  ssh_string_free (key->pubkey_string);
-  g_free (key);
-}
-
-/* Remove the temporary directory and its key file.  FILENAME is also freed. */
-static void
-remove_and_free_temp_key_file (char *filename)
-{
-  char *p;
-
-  if (g_remove (filename) && errno != ENOENT)
-    g_message ("Failed to remove temporary file '%s': %s",
-               filename, strerror (errno));
-  p = strrchr (filename, '/');
-  g_assert (p);
-  *p = 0;
-  if (g_rmdir (filename))
-    g_message ("Failed to remove temporary directory '%s': %s",
-               filename, strerror (errno));
-  g_free (filename);
-}
-
-
-/* Import a base64 formatted key from a memory c-string.
- *
- * B64_KEY is a string holding the base64 encoded key.  PASSPHRASE is
- * the passphrase used to unprotect that key; if the key has no
- * protection NULL may be passed.  AUTH_FN and AUTH_DATA are defined
- * by libssh to allow for an authentication callback (i.e. asking for
- * the passphrase; it is not used here.  The SESSION is required only
- * for this wrapper.
- *
- * On success the a key object is allocated and stored at PKEY.  The
- * caller must free that value.  It is suggested that the caller
- * stores NULL at it before calling the function.
- *
- * The function returns 0 on success or a non-zero value on failure.
- */
-static int
-my_ssh_pki_import_privkey_base64(ssh_session session,
-                                 int verbose,
-                                 const char *b64_key,
-                                 const char *passphrase,
-                                 void *auth_fn,
-                                 void *auth_data,
-                                 my_ssh_key *r_pkey)
-{
-  ssh_private_key ssh_privkey;
-  ssh_public_key ssh_pubkey;
-  gchar *privkey_filename;
-  char key_dir[] = "/tmp/openvas_key_XXXXXX";
-  GError *error;
-  my_ssh_key pkey;
-  char *pkcs8_buffer = NULL;
-
-  /* Write the private key to a file in a temporary directory.  */
-  if (!g_mkdtemp_full (key_dir, S_IRUSR|S_IWUSR|S_IXUSR))
-    {
-      g_message ("%s: g_mkdtemp_full/mkdtemp failed", __FUNCTION__);
-      return SSH_AUTH_ERROR;
-    }
-
-  privkey_filename = g_strdup_printf ("%s/key", key_dir);
-
- read_again:
-  error = NULL;
-  g_file_set_contents (privkey_filename, b64_key, strlen (b64_key), &error);
-  if (error)
-    {
-      g_message ("Failed to write private key to temporary file: %s",
-                 error->message);
-      g_error_free (error);
-      remove_and_free_temp_key_file (privkey_filename);
-      g_free (pkcs8_buffer);
-      return SSH_AUTH_ERROR;
-    }
-
-  /* We should have created the file with approriate permission in the
-     first place.  Unfortunately glib does not allow that.  */
-  g_chmod (privkey_filename, S_IRUSR | S_IWUSR);
-
-  ssh_privkey = privatekey_from_file (session, privkey_filename, 0, passphrase);
-  if (!ssh_privkey && verbose)
-    g_message ("Reading private key from '%s' failed: %s",
-               privkey_filename, ssh_get_error (session));
-  if (!ssh_privkey && !pkcs8_buffer)
-    {
-      if (verbose)
-        g_message ("Converting from PKCS#8 and trying again ...");
-
-      pkcs8_buffer = openvas_ssh_pkcs8_decrypt (b64_key, passphrase);
-      if (pkcs8_buffer)
-        {
-          b64_key = pkcs8_buffer;
-          g_remove (privkey_filename);
-          goto read_again;
-        }
-    }
-  if (pkcs8_buffer)
-    {
-      g_free (pkcs8_buffer);
-      pkcs8_buffer = NULL;
-      if (verbose)
-        g_message ("... this worked.");
-    }
-
-  remove_and_free_temp_key_file (privkey_filename);
-  privkey_filename = NULL;
-  if (!ssh_privkey)
-    return SSH_AUTH_ERROR;
-
-  /* Create our key object.  */
-  pkey = g_try_malloc0 (sizeof *pkey);
-  if (!pkey)
-    {
-      privatekey_free (ssh_privkey);
-      g_message ("%s: malloc failed", __FUNCTION__);
-      return SSH_AUTH_ERROR;
-    }
-  pkey->privkey = ssh_privkey;
-  pkey->type = ssh_privatekey_type (ssh_privkey);
-  if (pkey->type == SSH_KEYTYPE_UNKNOWN)
-    {
-      my_ssh_key_free (pkey);
-      if (verbose)
-        g_message ("%s: key type is not known", __FUNCTION__);
-      return SSH_AUTH_ERROR;
-    }
-
-  /* Extract the public key from the private key.  */
-  ssh_pubkey = publickey_from_privatekey (ssh_privkey);
-  if (!ssh_pubkey)
-    {
-      my_ssh_key_free (pkey);
-      if (verbose)
-        g_message ("%s: publickey_from_privatekey failed",
-                   __FUNCTION__);
-      return SSH_AUTH_ERROR;
-    }
-  pkey->pubkey_string = publickey_to_string (ssh_pubkey);
-  publickey_free (ssh_pubkey);
-  if (!pkey->pubkey_string)
-    {
-      my_ssh_key_free (pkey);
-      if (verbose)
-        g_message ("%s: publickey_to_string failed", __FUNCTION__);
-      return SSH_AUTH_ERROR;
-    }
-
-  *r_pkey = pkey;
-  return SSH_AUTH_SUCCESS;
-}
-
-
-/* Try to authenticate with the given public key.
-
-   To avoid unnecessary processing and user interaction, the following
-   method is provided for querying whether authentication using the
-   given key would be possible.
-
-   SESSION is the session object.  USERNAME should be passed as NULL.
-   It is expected that ssh_options_set has been been used to set the
-   username before the first authentication attempt.  The reason is
-   that most servers do not permit changing the username during the
-   authentication phase.  KEY is the ssh key object; the function uses
-   only the public key part.
-
-   Returns:
-
-    SSH_SUCCESS (0)  - The public key is accepted.
-
-    SSH_AUTH_DENIED  - The server doesn't accept that public key as an
-                       authentication token.
-
-    SSH_AUTH_ERROR   - A serious error happened.
-
-    SSH_AUTH_PARTIAL - You have been partially authenticated, you
-                       still have to use another method.
-
- */
-static int
-my_ssh_userauth_try_publickey (ssh_session session,
-                               const char *username,
-                               const my_ssh_key key)
-{
-  int rc;
-
-  (void)username;
-
-  rc = ssh_userauth_offer_pubkey (session, NULL, key->type, key->pubkey_string);
-  return rc;
-}
-
-
-/* Authenticate with the given private key.
-
-   SESSION is the session object.  USERNAME should be passed as NULL.
-   It is expected that ssh_options_set has been been used to set the
-   username before the first authentication attempt.  The reason is
-   that most servers do not permit changing the username during the
-   authentication phase.  KEY is the ssh key object.
-
-   Returns:
-
-    SSH_SUCCESS (0)  - The public key is accepted.
-
-    SSH_AUTH_DENIED  - The server doesn't accept that key as an
-                       authentication token.
-
-    SSH_AUTH_ERROR   - A serious error happened.
-
-    SSH_AUTH_PARTIAL - You have been partially authenticated, you
-                       still have to use another method.
-
- */
-static int
-my_ssh_userauth_publickey(ssh_session session,
-                          const char *username,
-                          const my_ssh_key key)
-{
-  int rc;
-
-  (void)username;
-
-  rc = ssh_userauth_pubkey (session, NULL, key->pubkey_string, key->privkey);
-  return rc;
-}
-#endif
-
-
 
 /* Return the next session id.  Note that the first session ID we will
    hand out is an arbitrary high number, this is only to help
@@ -554,7 +304,7 @@ nasl_ssh_connect (lex_ctxt *lexic)
     }
 
   key_type = get_str_local_var_by_name (lexic, "keytype");
-#if LIBSSH_VERSION_INT >= SSH_VERSION_INT (0, 6, 0)
+
   if (key_type && ssh_options_set (session, SSH_OPTIONS_HOSTKEYS, key_type))
     {
       g_message ("Failed to set SSH key type '%s': %s",
@@ -562,14 +312,6 @@ nasl_ssh_connect (lex_ctxt *lexic)
       ssh_free (session);
       return NULL;
     }
-#else
-  if (key_type)
-    {
-      g_message ("SSH_OPTIONS_HOSTKEYS not supported");
-      ssh_free (session);
-      return NULL;
-    }
-#endif
 
   csciphers = get_str_local_var_by_name (lexic, "csciphers");
   if (csciphers && ssh_options_set (session, SSH_OPTIONS_CIPHERS_C_S, csciphers))
@@ -1183,7 +925,7 @@ nasl_ssh_userauth (lex_ctxt *lexic)
   /* If we have a private key, try public key authentication.  */
   if (privkeystr && *privkeystr && (methods & SSH_AUTH_METHOD_PUBLICKEY))
     {
-#if LIBSSH_VERSION_INT >= SSH_VERSION_INT (0, 6, 0)
+
       ssh_key key = NULL;
 
       if (ssh_pki_import_privkey_base64 (privkeystr, privkeypass, NULL, NULL,
@@ -1209,38 +951,6 @@ nasl_ssh_userauth (lex_ctxt *lexic)
           goto leave;
         }
       ssh_key_free (key);
-
-#else
-
-      my_ssh_key key = NULL;
-
-      /* SESSION is only used by our emulation - FIXME: remove it for 0.6.  */
-      if (my_ssh_pki_import_privkey_base64 (session, verbose,
-                                            privkeystr, privkeypass,
-                                            NULL, NULL, &key))
-        {
-          if (verbose)
-            g_message
-              ("SSH public key authentication failed for "
-               "session %d: %s", session_id, "Error converting provided key");
-        }
-      else if (my_ssh_userauth_try_publickey (session, NULL, key)
-               != SSH_AUTH_SUCCESS)
-        {
-          if (verbose)
-            g_message
-              ("SSH public key authentication failed for "
-               "session %d: %s", session_id, "Server does not want our key");
-        }
-      else if (my_ssh_userauth_publickey (session, NULL, key)
-               == SSH_AUTH_SUCCESS)
-        {
-          retc_val = 0;
-          my_ssh_key_free (key);
-          goto leave;
-        }
-      my_ssh_key_free (key);
-#endif
       /* Keep on trying.  */
     }
 
@@ -1759,7 +1469,6 @@ nasl_ssh_get_issue_banner (lex_ctxt *lexic)
 }
 
 
-#if LIBSSH_VERSION_INT >= SSH_VERSION_INT (0, 6, 0)
 /**
  * @brief Get the server banner
  * @naslfn{ssh_get_server_banner}
@@ -1802,7 +1511,7 @@ nasl_ssh_get_server_banner (lex_ctxt *lexic)
   (void)lexic;
   return NULL;
 }
-#endif
+
 
 /**
  * @brief Get the host key
