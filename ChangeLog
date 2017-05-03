@@ -1,3 +1,8 @@
+2017-05-03  Hani Benhabiles  <hani.benhabiles@greenbone.net>
+
+	* src/pluginscheduler.c (plugin_scheduler_next): Hold on launching
+	ACT_END plugins until all other plugins have run.
+
 2017-05-03  Juan Jose Nicola  <juan.nicola@greenbone.net>
 
 	* nasl/nasl_ssh.c: Remove preprocessor directives to check

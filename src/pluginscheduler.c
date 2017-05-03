@@ -365,6 +365,15 @@ plugins_scheduler_next (plugins_scheduler_t h)
     {
       GSList *element = h->list[category];
 
+      /* Run all plugins before ACT_END ones. */
+      if (category == ACT_END && still_running)
+        {
+          pluginlaunch_wait_for_free_process ();
+          still_running = 0;
+          category--;
+          continue;
+        }
+
       /*
        * Scanners (and DoS) must not be run in parallel
        */
