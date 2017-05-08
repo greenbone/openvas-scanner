@@ -1,3 +1,10 @@
+2017-05-08  Hani Benhabiles  <hani.benhabiles@greenbone.net>
+
+	* src/pluginscheduler.c (get_next_plugin): New function.
+	(plugins_scheduler_next): Use new function. Run all plugins up to
+	ACT_GATHER_INFO before ACT_ATTACK plugins. Run ACT_END plugins after
+	finishing other plugins.
+
 2017-05-03  Hani Benhabiles  <hani.benhabiles@greenbone.net>
 
 	* src/pluginscheduler.c (plugin_scheduler_next): Hold on launching

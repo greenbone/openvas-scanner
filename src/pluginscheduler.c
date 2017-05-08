@@ -352,28 +352,82 @@ plugins_scheduler_count_active (plugins_scheduler_t sched)
   return ret;
 }
 
+static struct scheduler_plugin *
+get_next_plugin (plugins_scheduler_t h, struct scheduler_plugin *plugin,
+                 int *still_running)
+{
+  assert (plugin);
+
+  switch (plugin->running_state)
+    {
+    case PLUGIN_STATUS_UNRUN:
+      {
+        GSList *deps_ptr = plugin->deps;
+        struct scheduler_plugin *p;
+
+        if (!deps_ptr)
+          {
+            plugin->running_state = PLUGIN_STATUS_RUNNING;
+            return plugin;
+          }
+
+        p = plugin_next_unrun_dependency (h, deps_ptr);
+        switch (GPOINTER_TO_SIZE (p))
+          {
+          case GPOINTER_TO_SIZE (NULL):
+            plugin->running_state = PLUGIN_STATUS_RUNNING;
+            return plugin;
+
+            break;
+          case GPOINTER_TO_SIZE (PLUG_RUNNING):
+            {
+              /* One of the dependency is still running */
+              *still_running = 1;
+            }
+            break;
+          default:
+            {
+              /* Launch a dependency  - don't pay attention to the type */
+              p->running_state = PLUGIN_STATUS_RUNNING;
+              return p;
+            }
+          }
+      }
+      break;
+    case PLUGIN_STATUS_RUNNING:
+      *still_running = 1;
+      break;
+    }
+  return NULL;
+}
+
 struct scheduler_plugin *
 plugins_scheduler_next (plugins_scheduler_t h)
 {
   int category;
   int still_running = 0;
+  GSList *element;
 
   if (h == NULL)
     return NULL;
 
-  for (category = ACT_FIRST; category <= ACT_LAST; category++)
+  for (category = ACT_INIT; category <= ACT_GATHER_INFO; category++)
     {
-      GSList *element = h->list[category];
-
-      /* Run all plugins before ACT_END ones. */
-      if (category == ACT_END && still_running)
+      element = h->list[category];
+      while (element)
         {
-          pluginlaunch_wait_for_free_process ();
-          still_running = 0;
-          category--;
-          continue;
+          struct scheduler_plugin *plugin = get_next_plugin (h, element->data,
+                                                             &still_running);
+          if (plugin)
+            return plugin;
+          element = element->next;
         }
+    }
+  if (still_running)
+    return PLUG_RUNNING;
 
+  for (category = ACT_ATTACK; category <= ACT_FLOOD; category++)
+    {
       /*
        * Scanners (and DoS) must not be run in parallel
        */
@@ -383,69 +437,31 @@ plugins_scheduler_next (plugins_scheduler_t h)
       else
         pluginlaunch_enable_parrallel_checks ();
 
-      while (element != NULL)
+      element = h->list[category];
+      while (element)
         {
-          struct scheduler_plugin *plugin = element->data;
-          switch (plugin->running_state)
-            {
-            case PLUGIN_STATUS_UNRUN:
-              {
-                GSList *deps_ptr = plugin->deps;
-
-                if (deps_ptr != NULL)
-                  {
-                    struct scheduler_plugin *p =
-                      plugin_next_unrun_dependency (h, deps_ptr);
-
-                    switch (GPOINTER_TO_SIZE (p))
-                      {
-                      case GPOINTER_TO_SIZE (NULL):
-                        plugin->running_state = PLUGIN_STATUS_RUNNING;
-                        return plugin;
-
-                        break;
-                      case GPOINTER_TO_SIZE (PLUG_RUNNING):
-                        {
-                          /* One of the dependency is still running */
-                          still_running = 1;
-                        }
-                        break;
-                      default:
-                        {
-                          /* Launch a dependency  - don't pay attention to the type */
-                          p->running_state = PLUGIN_STATUS_RUNNING;
-                          return p;
-                        }
-                      }
-                  }
-                else            /* No dependencies */
-                  {
-                    plugin->running_state = PLUGIN_STATUS_RUNNING;
-                    return plugin;
-                  }
-              }
-              break;
-            case PLUGIN_STATUS_RUNNING:
-              still_running = 1;
-              break;
-            }
+          struct scheduler_plugin *plugin = get_next_plugin (h, element->data,
+                                                             &still_running);
+          if (plugin)
+            return plugin;
           element = element->next;
         }
-
-
-      /* Make sure that all plugins in these categories are run before
-       * attempting to launch plugins from other categories. */
-      if ((category == ACT_SCANNER || category == ACT_INIT
-           || category == ACT_SETTINGS) && still_running)
-        {
-          pluginlaunch_wait_for_free_process ();
-          still_running = 0;
-          category--;
-        }
     }
-
   if (still_running)
     return PLUG_RUNNING;
+
+  element = h->list[ACT_END];
+  while (element)
+    {
+      struct scheduler_plugin *plugin = get_next_plugin (h, element->data,
+                                                         &still_running);
+      if (plugin)
+        return plugin;
+      element = element->next;
+    }
+  if (still_running)
+    return PLUG_RUNNING;
+
   return NULL;
 }
 
