@@ -401,67 +401,56 @@ get_next_plugin (plugins_scheduler_t h, struct scheduler_plugin *plugin,
   return NULL;
 }
 
+static struct scheduler_plugin *
+get_next_in_range (plugins_scheduler_t h, int start, int end)
+{
+  int category;
+  GSList *element;
+  int still_running = 0;
+
+  for (category = start; category <= end; category++)
+    {
+      element = h->list[category];
+      if (category == ACT_SCANNER || category == ACT_KILL_HOST
+          || category == ACT_FLOOD || category == ACT_DENIAL)
+        pluginlaunch_disable_parrallel_checks ();
+      while (element)
+        {
+          struct scheduler_plugin *plugin = get_next_plugin (h, element->data,
+                                                             &still_running);
+          if (plugin)
+            return plugin;
+          element = element->next;
+        }
+      pluginlaunch_enable_parrallel_checks ();
+    }
+  if (still_running)
+    return PLUG_RUNNING;
+  return NULL;
+}
+
 struct scheduler_plugin *
 plugins_scheduler_next (plugins_scheduler_t h)
 {
-  int category;
-  int still_running = 0;
-  GSList *element;
+  struct scheduler_plugin *ret;
 
   if (h == NULL)
     return NULL;
-
-  for (category = ACT_INIT; category <= ACT_GATHER_INFO; category++)
-    {
-      element = h->list[category];
-      while (element)
-        {
-          struct scheduler_plugin *plugin = get_next_plugin (h, element->data,
-                                                             &still_running);
-          if (plugin)
-            return plugin;
-          element = element->next;
-        }
-    }
-  if (still_running)
-    return PLUG_RUNNING;
-
-  for (category = ACT_ATTACK; category <= ACT_FLOOD; category++)
-    {
-      /*
-       * Scanners (and DoS) must not be run in parallel
-       */
-      if ((category == ACT_SCANNER) || (category == ACT_KILL_HOST)
-          || (category == ACT_FLOOD) || (category == ACT_DENIAL))
-        pluginlaunch_disable_parrallel_checks ();
-      else
-        pluginlaunch_enable_parrallel_checks ();
-
-      element = h->list[category];
-      while (element)
-        {
-          struct scheduler_plugin *plugin = get_next_plugin (h, element->data,
-                                                             &still_running);
-          if (plugin)
-            return plugin;
-          element = element->next;
-        }
-    }
-  if (still_running)
-    return PLUG_RUNNING;
-
-  element = h->list[ACT_END];
-  while (element)
-    {
-      struct scheduler_plugin *plugin = get_next_plugin (h, element->data,
-                                                         &still_running);
-      if (plugin)
-        return plugin;
-      element = element->next;
-    }
-  if (still_running)
-    return PLUG_RUNNING;
-
+  ret = get_next_in_range (h, ACT_INIT, ACT_INIT);
+  if (ret)
+    return ret;
+  ret = get_next_in_range (h, ACT_SCANNER, ACT_SCANNER);
+  if (ret)
+    return ret;
+  ret = get_next_in_range (h, ACT_SETTINGS, ACT_GATHER_INFO);
+  if (ret)
+    return ret;
+  ret = get_next_in_range (h, ACT_ATTACK, ACT_FLOOD);
+  if (ret)
+    return ret;
+  ret = get_next_in_range (h, ACT_END, ACT_END);
+  if (ret)
+    return ret;
   return NULL;
 }
 

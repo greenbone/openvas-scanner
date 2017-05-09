@@ -1,3 +1,8 @@
+2017-05-09  Hani Benhabiles  <hani.benhabiles@greenbone.net>
+
+	* src/pluginscheduler.c (get_next_in_range): New function.
+	(plugins_scheduler_next): Use new function.
+
 2017-05-08  Hani Benhabiles  <hani.benhabiles@greenbone.net>
 
 	* src/pluginscheduler.c (get_next_plugin): New function.
