@@ -1477,8 +1477,9 @@ make_array_from_elems (tree_cell * el)
   int n;
   tree_cell *c, *c2;
   nasl_array *a;
-  anon_nasl_var v;
+  anon_nasl_var *v;
 
+  v = g_malloc0 (sizeof (anon_nasl_var));
   a = g_malloc0 (sizeof (nasl_array));
   /* Either the elements are all "named", or they are "numbered". No mix! */
   if (el->x.str_val == NULL)    /* numbered */
@@ -1500,42 +1501,42 @@ make_array_from_elems (tree_cell * el)
       c2 = c->link[0];
       if (c2 != NULL && c2 != FAKE_CELL)
         {
-          memset (&v, 0, sizeof (v));
           switch (c2->type)
             {
             case CONST_INT:
-              v.var_type = VAR2_INT;
-              v.v.v_int = c2->x.i_val;
+              v->var_type = VAR2_INT;
+              v->v.v_int = c2->x.i_val;
               break;
             case CONST_STR:
             case CONST_DATA:
-              v.var_type = c2->type == CONST_STR ? VAR2_STRING : VAR2_DATA;
+              v->var_type = c2->type == CONST_STR ? VAR2_STRING : VAR2_DATA;
               if (c2->x.str_val == NULL)
                 {
-                  v.v.v_str.s_val = NULL;
-                  v.v.v_str.s_siz = 0;
+                  v->v.v_str.s_val = NULL;
+                  v->v.v_str.s_siz = 0;
                 }
               else
                 {
-                  v.v.v_str.s_siz = c2->size;
-                  v.v.v_str.s_val = (unsigned char *) c2->x.str_val;
+                  v->v.v_str.s_siz = c2->size;
+                  v->v.v_str.s_val = (unsigned char *) c2->x.str_val;
                 }
               break;
             default:
               nasl_perror (NULL,
                            "make_array_from_list: unhandled cell type %s at position %d\n",
                            nasl_type_name (c2->type), n);
-              v.var_type = VAR2_UNDEF;
+              v->var_type = VAR2_UNDEF;
               break;
             }
         }
 
       if (c->x.str_val == NULL)
-        add_var_to_list (a, n++, &v);
+        add_var_to_list (a, n++, v);
       else
-        add_var_to_array (a, c->x.str_val, &v);
+        add_var_to_array (a, c->x.str_val, v);
     }
 
+  g_free (v);
   c = alloc_typed_cell (DYN_ARRAY);
   c->x.ref_val = a;
   deref_cell (el);
