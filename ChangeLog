@@ -1,3 +1,7 @@
+2017-05-12  Christian Fischer  <christian.fischer@greenbone.net>
+
+	* doc/openvas-nasl.1, nasl/nasl.c (main): Fix typo.
+
 2017-05-12  Juan Jose Nicola  <juan.nicola@greenbone.net>
 
 	* Changelog: add missing log.

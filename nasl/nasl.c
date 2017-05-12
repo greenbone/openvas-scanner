@@ -204,7 +204,7 @@ main (int argc, char **argv)
     {"debug-tls", 0, 0, G_OPTION_ARG_INT, &debug_tls,
      "Enable TLS debugging at <level>", "<level>"},
     {"kb", 'k', 0, G_OPTION_ARG_STRING_ARRAY, &kb_values,
-     "Set KB key to vaue. Can be used multiple times", "<key=value>"},
+     "Set KB key to value. Can be used multiple times", "<key=value>"},
     {G_OPTION_REMAINING, 0, 0, G_OPTION_ARG_FILENAME_ARRAY, &nasl_filenames,
      "Absolute path to one or more nasl scripts", "NASL_FILE..."},
     {NULL, 0, 0, 0, NULL, NULL, NULL}
