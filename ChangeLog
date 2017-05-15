@@ -1,3 +1,7 @@
+2017-05-15  Michael Wiegand <michael.wiegand@greenbone.net>
+
+	* src/sighand.c (print_trace): Fix typo in log message.
+
 2017-05-15  Hani Benhabiles  <hani.benhabiles@greenbone.net>
 
 	* nasl/nasl_builtin_find_service.c (plugin_do_run): Increase rw_timeout

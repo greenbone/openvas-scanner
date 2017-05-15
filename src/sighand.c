@@ -124,7 +124,7 @@ print_trace ()
 {
   void *array[10];
   int ret = 0, left;
-  char *message = "SIGSEGV occured !\n";
+  char *message = "SIGSEGV occurred!\n";
   char **strings;
 
   /*It used log_get_fd() in log.h to know where to log the backtrace.*/
