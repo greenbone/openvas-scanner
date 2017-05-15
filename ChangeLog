@@ -1,3 +1,8 @@
+2017-05-15  Hani Benhabiles  <hani.benhabiles@greenbone.net>
+
+	* nasl/nasl_builtin_find_service.c (plugin_do_run): Increase rw_timeout
+	and wrap_timeout to match cnx_timeout.
+
 2017-05-12  Christian Fischer  <christian.fischer@greenbone.net>
 
 	* doc/openvas-nasl.1, nasl/nasl.c (main): Fix typo.
