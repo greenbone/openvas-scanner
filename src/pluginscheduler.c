@@ -599,118 +599,117 @@ plugins_scheduler_count_active (plugins_scheduler_t sched)
   return ret;
 }
 
+static struct scheduler_plugin *
+get_next_plugin (plugins_scheduler_t h, struct scheduler_plugin *plugin,
+                 int *still_running)
+{
+  assert (plugin);
+
+  switch (plugin->running_state)
+    {
+    case PLUGIN_STATUS_UNRUN:
+      {
+        struct hash **deps_ptr = plugin->parent_hash->dependencies_ptr;
+
+        if (deps_ptr)
+          {
+            struct scheduler_plugin *p =
+              plugin_next_unrun_dependency (h, deps_ptr, 0);
+
+            switch (GPOINTER_TO_SIZE (p))
+              {
+              case GPOINTER_TO_SIZE (NULL):
+                scheduler_mark_running_ports (h, plugin);
+                plugin->running_state = PLUGIN_STATUS_RUNNING;
+                return plugin;
+
+                break;
+              case GPOINTER_TO_SIZE (PLUG_RUNNING):
+                {
+                  /* One of the dependency is still running */
+                  *still_running = 1;
+                }
+                break;
+              default:
+                {
+                  /* Launch a dependency  - don't pay attention to the type */
+                  scheduler_mark_running_ports (h, p);
+                  p->running_state = PLUGIN_STATUS_RUNNING;
+                  return p;
+                }
+              }
+          }
+        else            /* No dependencies */
+          {
+            scheduler_mark_running_ports (h, plugin);
+            plugin->running_state = PLUGIN_STATUS_RUNNING;
+            return plugin;
+          }
+      }
+      break;
+    case PLUGIN_STATUS_RUNNING:
+      *still_running = 1;
+      break;
+    case PLUGIN_STATUS_DONE:
+      scheduler_rm_running_ports (h, plugin);
+      plugin->running_state = PLUGIN_STATUS_DONE_AND_CLEANED;
+      /* fallthrough */
+    case PLUGIN_STATUS_DONE_AND_CLEANED:
+      return NULL;
+    }
+  return NULL;
+}
+
+static struct scheduler_plugin *
+get_next_in_range (plugins_scheduler_t h, int start, int end)
+{
+  int category;
+  struct list *element;
+  int still_running = 0;
+
+  for (category = start; category <= end; category++)
+    {
+      element = h->list[category];
+      if (category == ACT_SCANNER || category == ACT_KILL_HOST
+          || category == ACT_FLOOD || category == ACT_DENIAL)
+        pluginlaunch_disable_parrallel_checks ();
+      while (element)
+        {
+          struct scheduler_plugin *plugin = get_next_plugin (h, element->plugin,
+                                                             &still_running);
+          if (plugin)
+            return plugin;
+          element = element->next;
+        }
+      pluginlaunch_enable_parrallel_checks ();
+    }
+  if (still_running)
+    return PLUG_RUNNING;
+  return NULL;
+}
+
 struct scheduler_plugin *
 plugins_scheduler_next (plugins_scheduler_t h)
 {
-  struct list *l;
-  int category;
-  int still_running = 0;
+  struct scheduler_plugin *ret;
 
   if (h == NULL)
     return NULL;
-
-  for (category = ACT_FIRST; category <= ACT_LAST; category++)
-    {
-      l = h->list[category];
-
-      /*
-       * Scanners (and DoS) must not be run in parallel
-       */
-      if ((category == ACT_SCANNER) || (category == ACT_KILL_HOST)
-          || (category == ACT_FLOOD) || (category == ACT_DENIAL))
-        pluginlaunch_disable_parrallel_checks ();
-      else
-        pluginlaunch_enable_parrallel_checks ();
-
-      while (l != NULL)
-        {
-          switch (l->plugin->running_state)
-            {
-            case PLUGIN_STATUS_UNRUN:
-              {
-                struct hash **deps_ptr =
-                  l->plugin->parent_hash->dependencies_ptr;
-
-                if (deps_ptr != NULL)
-                  {
-                    struct scheduler_plugin *p =
-                      plugin_next_unrun_dependency (h, deps_ptr, 0);
-
-                    switch (GPOINTER_TO_SIZE (p))
-                      {
-                      case GPOINTER_TO_SIZE (NULL):
-                        scheduler_mark_running_ports (h, l->plugin);
-                        l->plugin->running_state = PLUGIN_STATUS_RUNNING;
-                        return l->plugin;
-
-                        break;
-                      case GPOINTER_TO_SIZE (PLUG_RUNNING):
-                        {
-                          /* One of the dependency is still running */
-                          still_running = 1;
-                        }
-                        break;
-                      default:
-                        {
-                          /* Launch a dependency  - don't pay attention to the type */
-                          scheduler_mark_running_ports (h, p);
-                          p->running_state = PLUGIN_STATUS_RUNNING;
-                          return p;
-                        }
-                      }
-                  }
-                else            /* No dependencies */
-                  {
-                    scheduler_mark_running_ports (h, l->plugin);
-                    l->plugin->running_state = PLUGIN_STATUS_RUNNING;
-                    return l->plugin;
-                  }
-              }
-              break;
-            case PLUGIN_STATUS_RUNNING:
-              still_running = 1;
-              break;
-
-            case PLUGIN_STATUS_DONE:
-              scheduler_rm_running_ports (h, l->plugin);
-              l->plugin->running_state = PLUGIN_STATUS_DONE_AND_CLEANED;
-              /* fallthrough */
-            case PLUGIN_STATUS_DONE_AND_CLEANED:
-              {
-                struct list *old = l->next;
-
-                if (l->prev != NULL)
-                  l->prev->next = l->next;
-                else
-                  h->list[category] = l->next;
-
-                if (l->next != NULL)
-                  l->next->prev = l->prev;
-
-                g_free (l);
-                l = old;
-
-                continue;
-              }
-              break;
-            }
-          l = l->next;
-        }
-
-
-      /* Make sure that all plugins in these categories are run before
-       * attempting to launch plugins from other categories. */
-      if ((category == ACT_SCANNER || category == ACT_INIT
-           || category == ACT_SETTINGS) && still_running)
-        {
-          pluginlaunch_wait_for_free_process ();
-          still_running = 0;
-          category--;
-        }
-    }
-
-  if (still_running)
-    return PLUG_RUNNING;
+  ret = get_next_in_range (h, ACT_INIT, ACT_INIT);
+  if (ret)
+    return ret;
+  ret = get_next_in_range (h, ACT_SCANNER, ACT_SCANNER);
+  if (ret)
+    return ret;
+  ret = get_next_in_range (h, ACT_SETTINGS, ACT_GATHER_INFO);
+  if (ret)
+    return ret;
+  ret = get_next_in_range (h, ACT_ATTACK, ACT_FLOOD);
+  if (ret)
+    return ret;
+  ret = get_next_in_range (h, ACT_END, ACT_END);
+  if (ret)
+    return ret;
   return NULL;
 }
 

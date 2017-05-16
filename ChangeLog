@@ -1,3 +1,13 @@
+2017-05-16  Hani Benhabiles  <hani.benhabiles@greenbone.net>
+
+	Backport r28347 and r28358
+
+	* src/pluginscheduler.c (get_next_plugin, get_next_in_range): New
+	functions.
+	(plugins_scheduler_next): Use new functions. Run all plugins up to
+	ACT_GATHER_INFO before ACT_ATTACK plugins. Run ACT_END plugins after
+	finishing other plugins.
+
 2017-04-24  Hani Benhabiles  <hani.benhabiles@greenbone.net>
 
 	* src/pluginscheduler.c (plugins_scheduler_next): Fix compilation
