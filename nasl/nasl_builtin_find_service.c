@@ -2521,7 +2521,7 @@ plugin_run_find_service (lex_ctxt * lexic)
   int sons_pipe[MAX_SONS][2];
   int num_ports = 0;
   char *num_sons_s = get_plugin_preference (oid, NUM_CHILDREN);
-  int num_sons = 10;
+  int num_sons = 6;
   int port_per_son;
   int i;
   struct scan_globals *globals = desc->globals;
@@ -2574,7 +2574,7 @@ plugin_run_find_service (lex_ctxt * lexic)
     num_sons = atoi (num_sons_s);
 
   if (num_sons <= 0)
-    num_sons = 10;
+    num_sons = 6;
 
   if (num_sons > MAX_SONS)
     num_sons = MAX_SONS;
