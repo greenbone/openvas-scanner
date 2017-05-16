@@ -450,15 +450,6 @@ set_gnutls_protocol (gnutls_session_t session, openvas_encaps_t encaps,
   const char * errloc;
   int err;
 
-  /*
-   * MAC Priority: From gnutls 3.0 on this could be "MAC-ALL",
-   * but older versions don't support this. Therefore
-   * "+SHA1:+MD5" is applied.
-   * COMPRESSION Priority: * From gnutls 3.0 on this could be "COMP-ALL",
-   * but older versions don't support this. Therefore
-   * "+COMP-DEFLATE:+COMP-NULL" is applied.
-   */
-
   switch (encaps)
     {
       case OPENVAS_ENCAPS_SSLv3:
@@ -1135,7 +1126,8 @@ int
 open_stream_connection (struct script_infos *args, unsigned int port,
                         int transport, int timeout)
 {
-  return open_stream_connection_ext (args, port, transport, timeout, NULL);
+  return open_stream_connection_ext (args, port, transport, timeout,
+                                     "NORMAL:+ARCFOUR-128");
 }
 
 /* Same as open_stream_auto_encaps but allows to force auto detection
