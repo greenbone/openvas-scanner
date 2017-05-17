@@ -801,12 +801,8 @@ tree_cell *
 nasl_nt_owf_gen (lex_ctxt * lexic)
 {
   char *pass = get_str_var_by_num (lexic, 0);
-  unsigned int i, pass_len = get_var_size_by_num (lexic, 0);
-  char pwd[130];
-  short upwd[130], *dst;
-  short val;
-  char *src;
-
+  glong items_written;
+  gunichar2 *upass = g_utf8_to_utf16 (pass,-1,NULL, &items_written,NULL);
 
   if (pass == NULL)
     {
@@ -814,27 +810,8 @@ nasl_nt_owf_gen (lex_ctxt * lexic)
       return NULL;
     }
 
-  dst = upwd;
-  src = pass;
-  for (i = 0; i < pass_len; i++)
-    {
-      val = *src;
-#if __BYTE_ORDER == __BIG_ENDIAN
-      *dst = val << 8;
-#else
-      *dst = val;
-#endif
-      dst++;
-      src++;
-      if (val == 0)
-        break;
-    }
-
-  bzero (pwd, sizeof (pwd));
-  memcpy (pwd, upwd, sizeof (pwd) < pass_len * 2 ? sizeof (pwd) : pass_len * 2);
-  return nasl_gcrypt_hash (lexic, GCRY_MD_MD4, pwd,
-                           pass_len * 2 > 128 ? 128 : pass_len * 2, NULL, 0);
-
+  return nasl_gcrypt_hash (lexic, GCRY_MD_MD4, upass,
+                           items_written * 2 > 128 ? 128 : items_written * 2, NULL, 0);
 }
 
 tree_cell *
