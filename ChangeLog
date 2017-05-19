@@ -1,3 +1,8 @@
+2017-05-19  Hani Benhabiles  <hani.benhabiles@greenbone.net>
+
+	* nasl/nasl_crypto.c (nasl_nt_owf_gen): Fix memory leak. Improve code
+	style. Fix calculation for inputs of more than 64 characters.
+
 2017-05-17  Juan Jose Nicola  <juan.nicola@greenbone.net>
 
 	* nasl/nasl_crypto.c (nasl_nt_owf_gen): Replace code to convert

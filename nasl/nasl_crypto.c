@@ -801,17 +801,19 @@ tree_cell *
 nasl_nt_owf_gen (lex_ctxt * lexic)
 {
   char *pass = get_str_var_by_num (lexic, 0);
-  glong items_written;
-  gunichar2 *upass = g_utf8_to_utf16 (pass,-1,NULL, &items_written,NULL);
+  gunichar2 *upass;
+  glong upass_len;
+  tree_cell *ret;
 
-  if (pass == NULL)
+  if (!pass)
     {
-      nasl_perror (lexic, "Syntax : nt_owf_gen(password:<p>)\n");
+      nasl_perror (lexic, "Syntax : nt_owf_gen(<password>)\n");
       return NULL;
     }
-
-  return nasl_gcrypt_hash (lexic, GCRY_MD_MD4, upass,
-                           items_written * 2 > 128 ? 128 : items_written * 2, NULL, 0);
+  upass = g_utf8_to_utf16 (pass, -1, NULL, &upass_len, NULL);
+  ret = nasl_gcrypt_hash (lexic, GCRY_MD_MD4, upass, upass_len * 2, NULL, 0);
+  g_free (upass);
+  return ret;
 }
 
 tree_cell *
