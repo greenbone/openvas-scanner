@@ -85,12 +85,13 @@ ACCESS_KEY="@OPENVAS_ACCESS_KEY_DIR@/gsf-access-key"
 ENABLED=1
 
 # If REFRESH_ONLY is set to 1, the sync script will only update OpenVAS
-# Scanner and OpenVAS Manager. This can be controlled via
+# Scanner and Greenbone Vulnerability Manager. This can be controlled via
 # the --refresh parameter.
 REFRESH_ONLY=0
 
 # If SYNC_ONLY is set to 1, the sync script will only perform the
-# synchronization but will not update OpenVAS Scanner nor OpenVAS Manager.
+# synchronization but will not update OpenVAS Scanner nor Greenbone
+# Vulnerability Manager.
 # This can be controlled via the --sync-only parameter.
 SYNC_ONLY=0
 
@@ -623,27 +624,27 @@ update_openvassd (){
     log_write "Sent signal to OpenVAS Scanner to update (PID $SCANNER_PID)."
   else
     log_err "$PIDFILEDIR/openvassd.pid not found, not updating OpenVAS Scanner."
-    log_write "Please restart OpenVAS Scanner or send SIGHUP to it and let OpenVAS"
-    log_write "Manager do a '--update' or a '--rebuild' to enable new NVTs for use."
+    log_write "Please restart OpenVAS Scanner or send SIGHUP to it and let Greenbone"
+    log_write "Vulnerability Manager do a '--update' or a '--rebuild' to enable new NVTs for use."
     SYNC_ONLY=1
   fi
 }
 
-update_openvasmd (){
+update_gvmd (){
   if [ $SYNC_ONLY -eq 1 ]
   then
     return
   fi
 
-  MANAGER_PIDFILE="$PIDFILEDIR/openvasmd.pid"
+  MANAGER_PIDFILE="$PIDFILEDIR/gvmd.pid"
   if [ -r "$MANAGER_PIDFILE" ]
   then
     MANAGER_PID=`cat $MANAGER_PIDFILE`
     kill -HUP $MANAGER_PID
-    log_write "Sent signal to OpenVAS Manager to update (PID $MANAGER_PID)."
+    log_write "Sent signal to Greenbone Vulnerability Manager to update (PID $MANAGER_PID)."
   else
-    log_err "$PIDFILEDIR/openvasmd.pid not found, not updating OpenVAS Manager."
-    log_write "Please let OpenVAS Manager do a '--update' or a '--rebuild' to"
+    log_err "$PIDFILEDIR/gvmd.pid not found, not updating Greenbone Vulnerability Manager."
+    log_write "Please let Greenbone Vulnerability Manager do a '--update' or a '--rebuild' to"
     log_write "enable new NVTs for use."
   fi
 }
@@ -702,7 +703,7 @@ do_sync ()
     sync_nvts
     update_openvassd
     sleep 1 # to ensure sd started working before md starts
-    update_openvasmd
+    update_gvmd
   fi
 }
 

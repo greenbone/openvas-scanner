@@ -1,3 +1,10 @@
+2017-05-23  Jan-Oliver Wagner <jan-oliver.wagner@greenbone.net>
+
+	* tools/greenbone-nvt-sync.in: Renamed openvasmd to gvmd
+	especially the PID filename.
+
+	* doc/greenbone-nvt-sync.8: Renamed openvasmd to gvmd.
+
 2017-05-23  Juan Jose Nicola  <juan.nicola@greenbone.net>
 
 	* src/openvassd.c (main): Ignore SIGHUP until the scanner is ready.
