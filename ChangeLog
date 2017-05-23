@@ -1,5 +1,9 @@
 2017-05-24  Hani Benhabiles  <hani.benhabiles@greenbone.net>
 
+	* nasl/exec.c (exec_nasl_script): Handle openvas-nasl case.
+
+2017-05-24  Hani Benhabiles  <hani.benhabiles@greenbone.net>
+
 	* nasl/exec.c (exec_nasl_script): Use nvticache kb for nasl context, to
 	use signature checks from load-up phase.
 
