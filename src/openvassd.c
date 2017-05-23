@@ -801,6 +801,10 @@ main (int argc, char *argv[])
   if (dont_fork == FALSE)
     set_daemon_mode ();
   pidfile_create ("openvassd");
+
+    /* Ignore SIGHUP while reloading. */
+  openvas_signal (SIGHUP, SIG_IGN);
+
   handler_pid = loading_handler_start ();
   if (handler_pid < 0)
     return 1;
