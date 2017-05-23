@@ -1,3 +1,8 @@
+2017-05-23  Hani Benhabiles  <hani.benhabiles@greenbone.net>
+
+	* src/nasl_plugins.c (nasl_plugin_add): Set args kb to nvticache kb to
+	be used for storing nvts signature checks.
+
 2017-05-19  Hani Benhabiles  <hani.benhabiles@greenbone.net>
 
 	* nasl/nasl_crypto.c (nasl_nt_owf_gen): Fix memory leak. Improve code

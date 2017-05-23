@@ -127,6 +127,7 @@ nasl_plugin_add (char *folder, char *filename)
       struct script_infos *args;
 
       args = g_malloc0 (sizeof (struct script_infos));
+      args->key = nvticache_get_kb ();
       new_nvti = nvti_new ();
       args->nvti = new_nvti;
       if (exec_nasl_script (args, fullname, NULL, nasl_mode) < 0)
