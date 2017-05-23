@@ -1,3 +1,9 @@
+2017-05-23  Juan Jose Nicola  <juan.nicola@greenbone.net>
+
+	Backport r28456.
+
+	* src/openvassd.c (main): Ignore SIGHUP until the scanner is ready.
+
 2017-05-16  Hani Benhabiles  <hani.benhabiles@greenbone.net>
 
 	Backport r28347 and r28358
