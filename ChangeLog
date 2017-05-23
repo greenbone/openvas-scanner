@@ -1,3 +1,8 @@
+2017-05-24  Hani Benhabiles  <hani.benhabiles@greenbone.net>
+
+	* nasl/exec.c (exec_nasl_script): Use nvticache kb for nasl context, to
+	use signature checks from load-up phase.
+
 2017-05-23  Jan-Oliver Wagner <jan-oliver.wagner@greenbone.net>
 
 	* tools/greenbone-nvt-sync.in: Renamed openvasmd to gvmd

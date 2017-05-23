@@ -30,6 +30,7 @@
 #include <regex.h>
 #include <gvm/base/logging.h>
 #include <gvm/base/prefs.h>     /* for prefs_get */
+#include <gvm/util/nvticache.h> /* for nvticache_get_kb */
 
 #include "../misc/plugutils.h"
 
@@ -1732,7 +1733,7 @@ exec_nasl_script (struct script_infos *script_infos, const char *name,
   bzero (&ctx, sizeof (ctx));
   if (mode & NASL_ALWAYS_SIGNED)
     ctx.always_authenticated = 1;
-  ctx.kb = plug_get_kb (script_infos);
+  ctx.kb = nvticache_get_kb ();
 
   if (init_nasl_ctx (&ctx, name) == 0)
     {
