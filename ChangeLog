@@ -1,3 +1,10 @@
+2017-05-24  Hani Benhabiles  <hani.benhabiles@greenbone.net>
+
+	Backport r28455.
+
+	* src/nasl_plugins.c (nasl_plugin_add): Set args kb to nvticache kb to
+	be used for storing nvts signature checks.
+
 2017-05-23  Juan Jose Nicola  <juan.nicola@greenbone.net>
 
 	Backport r28456.

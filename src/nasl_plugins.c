@@ -121,6 +121,7 @@ nasl_plugin_add (char *folder, char *name)
 
       g_free (nvti);
       plugin_args = g_malloc0 (sizeof (struct arglist));
+      arg_add_value (plugin_args, "key", ARG_PTR, nvticache_get_kb ());
       new_nvti = nvti_new ();
       arg_add_value (plugin_args, "NVTI", ARG_PTR, new_nvti);
 
