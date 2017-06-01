@@ -46,6 +46,8 @@ nasl_perror (lex_ctxt * lexic, char *msg, ...)
   va_list param;
   char debug_message[4096];
   char *script_name = "";
+  lex_ctxt *lexic2 = NULL;
+  int line_nb = 0;
 
   va_start (param, msg);
 
@@ -54,11 +56,21 @@ nasl_perror (lex_ctxt * lexic, char *msg, ...)
       script_name = lexic->script_infos->name;
       if (script_name == NULL)
         script_name = "";
+
+      /* Climbing up to find a line number */
+      for (lexic2 = lexic; lexic2 != NULL; lexic2 = lexic2->up_ctxt)
+        {
+          if (lexic2->line_nb != 0)
+            {
+              line_nb = lexic2->line_nb;
+              break;
+            }
+        }
     }
 
   vsnprintf (debug_message, sizeof (debug_message), msg, param);
   g_message ("[%d](%s:%d) %s", getpid (), script_name,
-             lexic ? lexic->line_nb : 0, debug_message);
+             line_nb, debug_message);
 
   /** @todo Enable this when the NVTs are ready.  Sends ERRMSG to client. */
 #if 0

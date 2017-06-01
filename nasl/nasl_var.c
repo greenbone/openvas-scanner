@@ -75,7 +75,8 @@ nasl_get_var_by_num (void *ctxt, nasl_array *a, int num, int create)
   if (num < 0)
     {
       /* TBD: implement a min_index field, just like $[ in Perl */
-      nasl_perror (ctxt, "Negative integer index are not supported yet!\n");
+      nasl_perror (ctxt,
+                   "Negative integer index %d are not supported yet!\n", num);
       return NULL;
     }
 
@@ -292,8 +293,8 @@ get_array_elem (lex_ctxt * ctxt, const char *name, tree_cell * idx)
           return var2cell (nv != NULL ? &nv->u : NULL);
 
         default:
-          nasl_perror (ctxt, "get_array_elem: unhandled index type 0x%x\n",
-                       idx->type);
+          nasl_perror (ctxt, "get_array_elem: unhandled index type 0x%x for "
+                       "variable %s\n", idx->type, name);
           return NULL;
         }
        /*NOTREACHED*/ break;
@@ -311,8 +312,8 @@ get_array_elem (lex_ctxt * ctxt, const char *name, tree_cell * idx)
           if (idx->x.i_val >= l)
             {
               nasl_perror (ctxt,
-                           "get_array_elem: requesting character after end of string %s (%d >= %d)\n",
-                           name, idx->x.i_val, l);
+                           "get_array_elem: requesting character after end "
+                           "of string %s (%d >= %d)\n", name, idx->x.i_val, l);
               tc = alloc_expr_cell (idx->line_nb, CONST_DATA /*CONST_STR */ ,
                                     NULL, NULL);
               tc->x.str_val = g_strdup ("");
@@ -323,7 +324,9 @@ get_array_elem (lex_ctxt * ctxt, const char *name, tree_cell * idx)
             {
               if (idx->x.i_val < 0)
                 {
-                  nasl_perror (ctxt, "Negative index !\n");
+                  nasl_perror (ctxt,
+                               "get_array_elem: Negative index (%d) passed to "
+                               "\"%s\"!\n", idx->x.i_val, name);
                   return NULL;
                 }
               tc = alloc_expr_cell (idx->line_nb, CONST_DATA /*CONST_STR */ ,
@@ -338,8 +341,9 @@ get_array_elem (lex_ctxt * ctxt, const char *name, tree_cell * idx)
       else
         {
           nasl_perror (ctxt,
-                       "get_array_elem: Cannot use a non integer index  (type 0x%x) in string\n",
-                       idx->type);
+                       "get_array_elem: Cannot use a non integer index"
+                       " (type 0x%x) in string. Variable: %s\n",
+                       idx->type, name);
           return NULL;
         }
        /*NOTREACHED*/ break;

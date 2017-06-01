@@ -1,3 +1,11 @@
+2017-06-01  Juan Jose Nicola  <juan.nicola@greenbone.net>
+
+	* nasl/nasl_debug.c (nasl_perror): Climb up in the context to find
+	a line number to be printed in the error message.
+
+	* nasl/nasl_var.c (nasl_get_var_by_num, get_array_elem): Add info
+	to the error message.
+
 2017-05-24  Hani Benhabiles  <hani.benhabiles@greenbone.net>
 
 	* nasl/exec.c (exec_nasl_script): Handle openvas-nasl case.
