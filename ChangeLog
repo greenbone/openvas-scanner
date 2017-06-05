@@ -1,3 +1,16 @@
+2017-06-05  Jan-Oliver Wagner <jan-oliver.wagner@greenbone.net>
+
+	* CMakeLists.txt, tools/greenbone-nvt-sync.in: Change the location of
+	the gsf-access-key from the openvas to the gvm sysconfdir.
+
+	This makes it necessary to migrate the gsf-access-key:
+
+	Copy $prefix/etc/openvas/gsf-access-key to
+	$prefix/etc/gvm/
+	If the gsf-access-key was already migrated for
+	gvm module as well, then there needs not to remain the
+	file gsf-acces-key under $prefix/etc/openvas.
+
 2017-06-01  Juan Jose Nicola  <juan.nicola@greenbone.net>
 
 	* nasl/nasl_debug.c (nasl_perror): Climb up in the context to find

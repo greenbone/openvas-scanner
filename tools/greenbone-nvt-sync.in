@@ -79,7 +79,7 @@ PIDFILEDIR="@OPENVAS_RUN_DIR@"
 OPENVAS_SYSCONF_DIR="@OPENVAS_SYSCONF_DIR@"
 
 # Location of the GSF Access Key
-ACCESS_KEY="@OPENVAS_ACCESS_KEY_DIR@/gsf-access-key"
+ACCESS_KEY="@GVM_ACCESS_KEY_DIR@/gsf-access-key"
 
 # If ENABLED is set to 0, the sync script will not perform a synchronization.
 ENABLED=1
