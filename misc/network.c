@@ -725,13 +725,17 @@ static void
 set_ids_evasion_mode (struct script_infos *args, openvas_connection * fp)
 {
   kb_t kb = plug_get_kb (args);
-  char *ids_evasion_split = kb_item_get_str (kb, "NIDS/TCP/split");
-  char *ids_evasion_inject = kb_item_get_str (kb, "NIDS/TCP/inject");
-  char *ids_evasion_short_ttl = kb_item_get_str (kb, "NIDS/TCP/short_ttl");
-  char *ids_evasion_fake_rst = kb_item_get_str (kb, "NIDS/TCP/fake_rst");
+  char *ids_evasion_split, *ids_evasion_inject, *ids_evasion_short_ttl;
+  char *ids_evasion_fake_rst;
   int option = 0;
 
+  if (kb_item_get_int (kb, "NIDS/TCP/enabled") != 1)
+    return;
 
+  ids_evasion_split = kb_item_get_str (kb, "NIDS/TCP/split");
+  ids_evasion_inject = kb_item_get_str (kb, "NIDS/TCP/inject");
+  ids_evasion_short_ttl = kb_item_get_str (kb, "NIDS/TCP/short_ttl");
+  ids_evasion_fake_rst = kb_item_get_str (kb, "NIDS/TCP/fake_rst");
   /*
    * These first three options are mutually exclusive
    */
