@@ -1,3 +1,7 @@
+2017-06-08  Hani Benhabiles  <hani.benhabiles@greenbone.net>
+
+	* misc/www_funcs.c (build_encode_URL): Fix return string allocation.
+
 2017-06-06  Hani Benhabiles  <hani.benhabiles@greenbone.net>
 
 	* misc/network.c (set_ids_evasion_mode): Check if NIDS/TCP/enabled key
