@@ -1,5 +1,10 @@
 2017-06-08  Hani Benhabiles  <hani.benhabiles@greenbone.net>
 
+	* misc/plugutils.c (plug_get_host_fqdn): Don't fetch vhosts values from
+	kb if not present in prefs.
+
+2017-06-08  Hani Benhabiles  <hani.benhabiles@greenbone.net>
+
 	* misc/www_funcs.c (build_encode_URL): Fix return string allocation.
 
 2017-06-06  Hani Benhabiles  <hani.benhabiles@greenbone.net>

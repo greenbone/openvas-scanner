@@ -205,17 +205,15 @@ char *
 plug_get_host_fqdn (struct script_infos *args)
 {
   struct host_info *hinfos = args->hostname;
-  if (hinfos)
-    {
-      int type;
-      char *vhosts = plug_get_key (args, "hostinfos/vhosts", &type, NULL, 0);
-      if (vhosts)
-        return vhosts;
-      else
-        return g_strdup (hinfos->fqdn);
-    }
-  else
-    return (NULL);
+  int type;
+  char *vhosts;
+
+  if (!strlen (prefs_get ("vhosts_ip")))
+    return g_strdup (hinfos->fqdn);
+  vhosts = plug_get_key (args, "hostinfos/vhosts", &type, NULL, 0);
+  if (!vhosts)
+    return g_strdup (hinfos->fqdn);
+  return vhosts;
 }
 
 
