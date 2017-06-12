@@ -208,7 +208,7 @@ plug_get_host_fqdn (struct script_infos *args)
   int type;
   char *vhosts;
 
-  if (!strlen (prefs_get ("vhosts_ip")))
+  if (!prefs_get ("vhosts_ip") || !strlen (prefs_get ("vhosts_ip")))
     return g_strdup (hinfos->fqdn);
   vhosts = plug_get_key (args, "hostinfos/vhosts", &type, NULL, 0);
   if (!vhosts)
