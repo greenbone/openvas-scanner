@@ -276,14 +276,16 @@ launch_plugin (struct scan_globals *globals, struct scheduler_plugin *plugin,
 
   /* Do not launch NVT if mandatory key is missing (e.g. an important tool
    * was not found). This is ignored during network wide scanning phases. */
-  if (!network_scan && mandatory_requirements_met (kb, plugin))
+  if (!network_scan && !mandatory_requirements_met (kb, plugin))
     error = "because a mandatory key is missing";
-  if (error || (!optimize && (error = requirements_plugin (kb, plugin))))
+  if (error || (optimize && (error = requirements_plugin (kb, plugin))))
     {
       plugin->running_state = PLUGIN_STATUS_DONE;
       if (prefs_get_bool ("log_whole_attack"))
         g_message ("Not launching %s (%s) against %s %s (this is not an error)",
           name, oid, hostname, error);
+      g_free (name);
+      return 0;
     }
 
   /* Stop the test if it can not connect to redis server. */
