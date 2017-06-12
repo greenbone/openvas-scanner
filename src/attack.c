@@ -219,9 +219,8 @@ static int
 launch_plugin (struct scan_globals *globals, struct scheduler_plugin *plugin,
                char *hostname, struct host_info *hostinfos, kb_t kb)
 {
-  int optimize = prefs_get_bool ("optimize_test");
-  int category;
-  char *oid, *name, *error;
+  int optimize = prefs_get_bool ("optimize_test"), category, pid;
+  char *oid, *name, *error, *src;
   gboolean network_scan = FALSE;
 
   oid = plugin->oid;
@@ -237,26 +236,6 @@ launch_plugin (struct scan_globals *globals, struct scheduler_plugin *plugin,
         }
       else
         g_message ("Stopped scan wrap-up: Launching %s (%s)", name, oid);
-    }
-
-  /* Stop the test if it can not connect to redis server. */
-  if (kb_item_get_int (kb, "check_host_kb") < 0)
-    {
-      g_message ("Redis connection error during %s scan", hostname);
-      pluginlaunch_stop (1);
-      plugin->running_state = PLUGIN_STATUS_DONE;
-      g_free (name);
-      return ERR_REDIS_CONN;
-    }
-  /* Stop the test if the host is 'dead' */
-  if (kb_item_get_int (kb, "Host/dead") > 0
-      || kb_item_get_int (kb, "Host/ping_failed") > 0)
-    {
-      g_message ("The remote host %s (%s) is dead", hostinfos->fqdn, hostname);
-      pluginlaunch_stop (1);
-      plugin->running_state = PLUGIN_STATUS_DONE;
-      g_free (name);
-      return ERR_HOST_DEAD;
     }
 
   if (network_scan_status (globals) == NSS_BUSY)
@@ -297,41 +276,48 @@ launch_plugin (struct scan_globals *globals, struct scheduler_plugin *plugin,
 
   /* Do not launch NVT if mandatory key is missing (e.g. an important tool
    * was not found). This is ignored during network wide scanning phases. */
-  if (network_scan || mandatory_requirements_met (kb, plugin))
-    error = NULL;
-  else
+  if (!network_scan && mandatory_requirements_met (kb, plugin))
     error = "because a mandatory key is missing";
-
-  if (!error
-      && (!optimize
-          || !(error = requirements_plugin (kb, plugin))))
-    {
-      int pid;
-      char *src;
-
-      src = nvticache_get_src (oid);
-      /* Start the plugin */
-      pid = plugin_launch (globals, plugin, hostinfos, kb, src);
-      g_free (src);
-      if (pid < 0)
-        {
-          plugin->running_state = PLUGIN_STATUS_UNRUN;
-          g_free (name);
-          return ERR_CANT_FORK;
-        }
-
-      if (prefs_get_bool ("log_whole_attack"))
-        g_message ("Launching %s (%s) against %s [%d]", name, oid, hostname,
-                   pid);
-    }
-  else                      /* requirements_plugin() failed */
+  if (error || (!optimize && (error = requirements_plugin (kb, plugin))))
     {
       plugin->running_state = PLUGIN_STATUS_DONE;
       if (prefs_get_bool ("log_whole_attack"))
-        g_message
-         ("Not launching %s (%s) against %s %s (this is not an error)",
+        g_message ("Not launching %s (%s) against %s %s (this is not an error)",
           name, oid, hostname, error);
     }
+
+  /* Stop the test if it can not connect to redis server. */
+  if (kb_item_get_int (kb, "check_host_kb") < 0)
+    {
+      g_message ("Redis connection error during %s scan", hostname);
+      pluginlaunch_stop (1);
+      plugin->running_state = PLUGIN_STATUS_DONE;
+      g_free (name);
+      return ERR_REDIS_CONN;
+    }
+  /* Stop the test if the host is 'dead' */
+  if (kb_item_get_int (kb, "Host/dead") > 0)
+    {
+      g_message ("The remote host %s (%s) is dead", hostinfos->fqdn, hostname);
+      pluginlaunch_stop (1);
+      plugin->running_state = PLUGIN_STATUS_DONE;
+      g_free (name);
+      return ERR_HOST_DEAD;
+    }
+
+  src = nvticache_get_src (oid);
+  /* Start the plugin */
+  pid = plugin_launch (globals, plugin, hostinfos, kb, src);
+  g_free (src);
+  if (pid < 0)
+    {
+      plugin->running_state = PLUGIN_STATUS_UNRUN;
+      g_free (name);
+      return ERR_CANT_FORK;
+    }
+
+  if (prefs_get_bool ("log_whole_attack"))
+    g_message ("Launching %s (%s) against %s [%d]", name, oid, hostname, pid);
 
   g_free (name);
   return 0;

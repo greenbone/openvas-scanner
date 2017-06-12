@@ -1,3 +1,10 @@
+2017-06-12  Hani Benhabiles  <hani.benhabiles@greenbone.net>
+
+	* src/attack.c (launch_plugin): Remove redundant check for
+	Host/ping_failed. Improve code style. Move checks for kb and dead host
+	after checks of mandatory and required keys, to reduce kb hits for
+	plugins that are not launched.
+
 2017-06-08  Hani Benhabiles  <hani.benhabiles@greenbone.net>
 
 	* misc/plugutils.c (plug_get_host_fqdn): Don't fetch vhosts values from
