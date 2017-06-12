@@ -220,7 +220,7 @@ launch_plugin (struct scan_globals *globals, struct scheduler_plugin *plugin,
                char *hostname, struct host_info *hostinfos, kb_t kb)
 {
   int optimize = prefs_get_bool ("optimize_test"), category, pid;
-  char *oid, *name, *error, *src;
+  char *oid, *name, *error = NULL, *src;
   gboolean network_scan = FALSE;
 
   oid = plugin->oid;
