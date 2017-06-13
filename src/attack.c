@@ -289,17 +289,6 @@ launch_plugin (struct arglist *globals, struct scheduler_plugin *plugin,
         log_write ("Stopped scan wrap-up: Launching %s", plugin->arglist->name);
     }
 
-  /* Stop the test if the host is 'dead' */
-  if (kb_item_get_int (kb, "Host/dead") > 0
-      || kb_item_get_int (kb, "Host/ping_failed") > 0)
-    {
-      log_write ("The remote host %s (%s) is dead",
-                 (char*)arg_get_value (hostinfos, "FQDN"), hostname);
-      pluginlaunch_stop (1);
-      plugin->running_state = PLUGIN_STATUS_DONE;
-      return ERR_HOST_DEAD;
-    }
-
   if (network_scan_status (globals) == NSS_BUSY)
     network_scan = TRUE;
   if (plug_get_launch (args) != LAUNCH_DISABLED)    /* can we launch it ? */
@@ -350,6 +339,16 @@ launch_plugin (struct arglist *globals, struct scheduler_plugin *plugin,
         error = NULL;
       else
         error = "because a mandatory key is missing";
+
+      /* Stop the test if the host is 'dead' */
+      if (kb_item_get_int (kb, "Host/dead") > 0)
+        {
+          log_write ("The remote host %s (%s) is dead",
+                     (char*)arg_get_value (hostinfos, "FQDN"), hostname);
+          pluginlaunch_stop (1);
+          plugin->running_state = PLUGIN_STATUS_DONE;
+          return ERR_HOST_DEAD;
+        }
 
       if (!error
           && (!optimize
