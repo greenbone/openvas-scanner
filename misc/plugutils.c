@@ -60,6 +60,9 @@
 /* Used to allow debugging for openvas-nasl */
 int global_nasl_debug = 0;
 
+static int
+plug_fork_child (struct scan_globals *, kb_t);
+
 void
 plug_set_xref (struct script_infos *args, char *name, char *value)
 {
@@ -205,15 +208,23 @@ char *
 plug_get_host_fqdn (struct script_infos *args)
 {
   struct host_info *hinfos = args->hostname;
-  int type;
-  char *vhosts;
+  int i;
 
   if (!prefs_get ("vhosts_ip") || !strlen (prefs_get ("vhosts_ip")))
     return g_strdup (hinfos->fqdn);
-  vhosts = plug_get_key (args, "hostinfos/vhosts", &type, NULL, 0);
-  if (!vhosts)
-    return g_strdup (hinfos->fqdn);
-  return vhosts;
+
+  if (g_strv_length (hinfos->vhosts) == 1)
+    return hinfos->vhosts[0];
+  for (i = 0; hinfos->vhosts[i]; i++)
+    {
+      pid_t pid = plug_fork_child (args->globals, args->key);
+
+      if (pid == 0)
+        return hinfos->vhosts[i];
+      else if (pid == -1)
+        return NULL;
+    }
+  exit (0);
 }
 
 
@@ -769,14 +780,88 @@ sig_chld (void (*fcn) ())
   sig_n (SIGCHLD, fcn);
 }
 
+static int
+plug_fork_child (struct scan_globals *globals, kb_t kb)
+{
+  int sockpair[2];
+  pid_t pid;
+
+  socketpair (AF_UNIX, SOCK_STREAM, 0, sockpair);
+  if ((pid = fork ()) == 0)
+    {
+      int old;
+
+      sig_term (_exit);
+      kb_lnk_reset (kb);
+      nvticache_reset ();
+      close (sockpair[0]);
+      old = globals->global_socket;
+      if (old > 0)
+        close (old);
+      globals->global_socket = sockpair[1];
+
+      srand48 (getpid () + getppid () + time (NULL));
+      return 0;
+    }
+  else if (pid < 0)
+    {
+      g_warning ("%s(): fork() failed (%s)", __func__, strerror (errno));
+      return -1;
+    }
+  else
+    {
+      int e, status;
+
+      close (sockpair[1]);
+      _plug_get_key_son = pid;
+      sig_term (plug_get_key_sighand_term);
+      for (;;)
+        {
+          fd_set rd;
+          struct timeval tv;
+          int type;
+
+          do
+            {
+              tv.tv_sec = 0;
+              tv.tv_usec = 100000;
+              FD_ZERO (&rd);
+              FD_SET (sockpair[0], &rd);
+              e = select (sockpair[0] + 1, &rd, NULL, NULL, &tv);
+            }
+          while (e < 0 && errno == EINTR);
+
+          if (e > 0)
+            {
+              char *buf = NULL;
+              int bufsz = 0;
+
+              e = internal_recv (sockpair[0], &buf, &bufsz, &type);
+              if (e < 0 || (type & INTERNAL_COMM_MSG_TYPE_CTRL))
+                {
+                  waitpid (pid, &status, WNOHANG);
+                  _plug_get_key_son = 0;
+                  close (sockpair[0]);
+                  sig_term (_exit);
+                  g_free (buf); /* Left NULL on error, harmless */
+                  break;
+                }
+              else
+                internal_send (globals->global_socket, buf, type);
+
+              g_free (buf);
+            }
+        }
+    }
+  return 1;
+}
+
 void *
 plug_get_key (struct script_infos *args, char *name, int *type, size_t *len,
               int single)
 {
   kb_t kb = args->key;
   struct kb_item *res = NULL, *res_list;
-  int sockpair[2];
-  int upstream = 0;
 
   if (type != NULL)
     *type = -1;
@@ -814,28 +899,14 @@ plug_get_key (struct script_infos *args, char *name, int *type, size_t *len,
   /* More than  one value - we will fork() then */
   sig_chld (plug_get_key_sigchld);
   res_list = res;
-  while (res != NULL)
+  while (res)
     {
-      pid_t pid;
+      pid_t pid = plug_fork_child (args->globals, kb);
 
-      socketpair (AF_UNIX, SOCK_STREAM, 0, sockpair);
-      if ((pid = fork ()) == 0)
+      if (pid == 0)
         {
-          int old;
-          struct scan_globals *globals;
+          /* Forked child. */
           void *ret;
-
-          sig_term (_exit);
-          kb_lnk_reset (kb);
-          nvticache_reset ();
-          close (sockpair[0]);
-          globals = args->globals;
-          old = globals->global_socket;
-          if (old > 0)
-            close (old);
-          globals->global_socket = sockpair[1];
-
-          srand48 (getpid () + getppid () + time (NULL));
 
           if (res->type == KB_TYPE_INT)
             {
@@ -854,66 +925,12 @@ plug_get_key (struct script_infos *args, char *name, int *type, size_t *len,
           kb_item_free (res_list);
           return ret;
         }
-      else if (pid < 0)
-        {
-          g_message ("libopenvas:%s:%s(): fork() failed (%s)", __FILE__,
-                     __func__, strerror (errno));
-          kb_item_free (res_list);
-          return NULL;
-        }
-      else
-        {
-          int e;
-          int status;
-          struct scan_globals *globals;
-
-          globals = args->globals;
-          upstream = globals->global_socket;
-          close (sockpair[1]);
-          _plug_get_key_son = pid;
-          sig_term (plug_get_key_sighand_term);
-          for (;;)
-            {
-              fd_set rd;
-              struct timeval tv;
-              int type;
-
-              do
-                {
-                  tv.tv_sec = 0;
-                  tv.tv_usec = 100000;
-                  FD_ZERO (&rd);
-                  FD_SET (sockpair[0], &rd);
-                  e = select (sockpair[0] + 1, &rd, NULL, NULL, &tv);
-                }
-              while (e < 0 && errno == EINTR);
-
-              if (e > 0)
-                {
-                  char *buf = NULL;
-                  int bufsz = 0;
-
-                  e = internal_recv (sockpair[0], &buf, &bufsz, &type);
-                  if (e < 0 || (type & INTERNAL_COMM_MSG_TYPE_CTRL))
-                    {
-                      waitpid (pid, &status, WNOHANG);
-                      _plug_get_key_son = 0;
-                      close (sockpair[0]);
-                      sig_term (_exit);
-                      g_free (buf); /* Left NULL on error, harmless */
-                      break;
-                    }
-                  else
-                    internal_send (upstream, buf, type);
-
-                  g_free (buf);
-                }
-            }
-        }
+      else if (pid == -1)
+        return NULL;
       res = res->next;
     }
   kb_item_free (res_list);
-  internal_send (upstream, NULL,
+  internal_send (args->globals->global_socket, NULL,
                  INTERNAL_COMM_MSG_TYPE_CTRL | INTERNAL_COMM_CTRL_FINISHED);
   exit (0);
 }

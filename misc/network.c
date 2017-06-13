@@ -2540,6 +2540,8 @@ host_info_init (const char *name, const struct in6_addr *ip,
                 const char *fqdn)
 {
   struct host_info *hostinfo;
+  const char *vhosts, *vhosts_ip;
+  char *txt_ip;
 
   hostinfo = g_malloc0 (sizeof (struct host_info));
   hostinfo->name = g_strdup (name);
@@ -2549,6 +2551,13 @@ host_info_init (const char *name, const struct in6_addr *ip,
       hostinfo->ip = g_malloc0 (sizeof (struct in6_addr));
       memcpy (hostinfo->ip, ip, sizeof (struct in6_addr));
     }
+
+  vhosts_ip = prefs_get ("vhosts_ip");
+  vhosts = prefs_get ("vhosts");
+  txt_ip = addr6_as_str (hostinfo->ip);
+  if (vhosts && vhosts_ip && !strcmp (vhosts_ip, txt_ip))
+    hostinfo->vhosts = g_strsplit (vhosts, ",", 0);
+  g_free (txt_ip);
   return hostinfo;
 }
 
@@ -2565,4 +2574,5 @@ host_info_free (struct host_info *hostinfo)
   g_free (hostinfo->name);
   g_free (hostinfo->fqdn);
   g_free (hostinfo->ip);
+  g_strfreev (hostinfo->vhosts);
 }

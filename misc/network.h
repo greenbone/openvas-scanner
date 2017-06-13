@@ -56,6 +56,7 @@ typedef enum openvas_encaps {
 struct host_info {
   char *name;           /* Hostname. */
   char *fqdn;           /* Fully qualified domain name, e.g. host.domain.net */
+  char **vhosts;        /* Array of vhosts. */
   struct in6_addr *ip;  /* IP address. */
 };
 

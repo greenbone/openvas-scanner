@@ -49,6 +49,7 @@ struct script_infos {
   char *oid;
   char *name;
   GHashTable *udp_data;
+  gchar **vhosts;
   int standalone;
   int denial_port;
   int alive;

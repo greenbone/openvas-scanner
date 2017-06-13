@@ -1,3 +1,17 @@
+2017-06-13  Hani Benhabiles  <hani.benhabiles@greenbone.net>
+
+	* misc/network.c (host_info_init): Set vhosts element.
+	(host_info_free): Free vhosts element.
+
+	* misc/plugutils.c (plug_fork_child): New function.
+	(plug_get_host_fqdn): Get vhosts values from vhosts hostinfo element.
+	Use new function.
+	(plug_get_key): Use plug_fork_child(). Adjust code accordingly.
+
+	* misc/scanneraux.h (script_infos): Add vhosts element.
+
+	* src/attack.c (init_host_kb): Don't set hostinfo/vhosts kb entry.
+
 2017-06-13  Juan Jose Nicola  <juan.nicola@greenbone.net>
 
 	Add the file name to the nasl context to be showed in case of error
@@ -109,7 +123,7 @@
 	(nasl_wmi_reg_delete_key): Add the third argument to the call to
 	alloc_tree_cell().
 
-(2017-06-12  Hani Benhabiles  <hani.benhabiles@greenbone.net>
+2017-06-12  Hani Benhabiles  <hani.benhabiles@greenbone.net>
 
 	* src/attack.c (launch_plugin): Fix plugin launching checks.
 

@@ -363,10 +363,9 @@ init_host_kb (struct scan_globals *globals, char *hostname,
               struct host_info *hostinfos, kb_t *network_kb)
 {
   kb_t kb;
-  gchar *hostname_pattern, *hoststr, *txt_ip;
+  gchar *hostname_pattern, *hoststr;
   enum net_scan_status nss;
   const gchar *kb_path = prefs_get ("kb_location");
-  const char *vhosts, *vhosts_ip;
   int rc, soc;
   struct in6_addr *hostip;
 
@@ -417,22 +416,6 @@ init_host_kb (struct scan_globals *globals, char *hostname,
         inet_ntop (AF_INET6, hostip, ipstr, sizeof (ipstr));
       kb_item_add_str (kb, "Host-IP", ipstr, 0);
     }
-
-  /* If vhosts is set, split it and put it in the KB. */
-  vhosts_ip = prefs_get ("vhosts_ip");
-  vhosts = prefs_get ("vhosts");
-  txt_ip = addr6_as_str (hostip);
-  if (vhosts && vhosts_ip && !strcmp (vhosts_ip, txt_ip))
-    {
-      gchar **vhosts_array = g_strsplit (vhosts, ",", 0);
-      int i;
-
-      for (i = 0; vhosts_array[i] != NULL; i++)
-        kb_item_add_str (kb, "hostinfos/vhosts", vhosts_array[i], 0);
-
-      g_strfreev (vhosts_array);
-    }
-  g_free (txt_ip);
 
   return kb;
 }
