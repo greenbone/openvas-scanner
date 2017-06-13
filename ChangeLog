@@ -1,3 +1,11 @@
+2017-06-13  Hani Benhabiles  <hani.benhabiles@greenbone.net>
+
+	Backport parts of r28628.
+
+	* src/attack.c (launch_plugin): Remove redundant check for
+	Host/ping_failed. Improve code style. Move check dead host after checks
+	of mandatory keys, to reduce kb hits for plugins that are not launched.
+
 2017-05-24  Hani Benhabiles  <hani.benhabiles@greenbone.net>
 
 	Backport r28455.
