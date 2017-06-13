@@ -144,7 +144,7 @@ forge_ipv6_packet (lex_ctxt * lexic)
   data = get_str_local_var_by_name (lexic, "data");
   data_len = get_local_var_size_by_name (lexic, "data");
 
-  retc = alloc_tree_cell (0, NULL);
+  retc = alloc_tree_cell (0, NULL, NULL);
   retc->type = CONST_DATA;
   retc->size = sizeof (struct ip6_hdr) + data_len;
 
@@ -248,7 +248,7 @@ get_ipv6_element (lex_ctxt * lexic)
 
   if (flag != 0)
     {
-      retc = alloc_tree_cell (0, NULL);
+      retc = alloc_tree_cell (0, NULL, NULL);
       retc->type = CONST_INT;
       retc->x.i_val = ret_int;
       return retc;
@@ -271,7 +271,7 @@ get_ipv6_element (lex_ctxt * lexic)
       return NULL;
     }
 
-  retc = alloc_tree_cell (0, NULL);
+  retc = alloc_tree_cell (0, NULL, NULL);
   retc->type = CONST_DATA;
   retc->size = strlen (ret_ascii);
   retc->x.str_val = g_strdup (ret_ascii);
@@ -292,7 +292,7 @@ set_ipv6_elements (lex_ctxt * lexic)
   struct ip6_hdr *o_pkt =
     (struct ip6_hdr *) get_str_local_var_by_name (lexic, "ip6");
   int size = get_var_size_by_name (lexic, "ip6");
-  tree_cell *retc = alloc_tree_cell (0, NULL);
+  tree_cell *retc = alloc_tree_cell (0, NULL, NULL);
   struct ip6_hdr *pkt;
   char *s;
 
@@ -434,7 +434,7 @@ insert_ipv6_options (lex_ctxt * lexic)
   new_packet->ip6_plen =
     FIX (size + sizeof (uc_code) + sizeof (uc_len) + value_size + pad_len);
 
-  retc = alloc_tree_cell (0, NULL);
+  retc = alloc_tree_cell (0, NULL, NULL);
   retc->type = CONST_DATA;
   retc->size = size + value_size + sizeof (uc_code) + sizeof (uc_len) + pad_len;
   retc->x.str_val = (char *) new_packet;
@@ -492,7 +492,7 @@ forge_tcp_v6_packet (lex_ctxt * lexic)
   data = get_str_local_var_by_name (lexic, "data");
   len = data == NULL ? 0 : get_var_size_by_name (lexic, "data");
 
-  retc = alloc_tree_cell (0, NULL);
+  retc = alloc_tree_cell (0, NULL, NULL);
   retc->type = CONST_DATA;
   tcp_packet = (struct ip6_hdr *) g_malloc0 (ipsz + sizeof (struct tcphdr) + len);
   retc->x.str_val = (char *) tcp_packet;
@@ -609,7 +609,7 @@ get_tcp_v6_element (lex_ctxt * lexic)
     ret = tcp->th_urp;
   else if (!strcmp (element, "data"))
     {
-      retc = alloc_tree_cell (0, NULL);
+      retc = alloc_tree_cell (0, NULL, NULL);
       retc->type = CONST_DATA;
       retc->size = UNFIX (ip6->ip6_plen) - ntohl (tcp->th_off) * 4;
       retc->x.str_val = g_malloc0 (retc->size);
@@ -622,7 +622,7 @@ get_tcp_v6_element (lex_ctxt * lexic)
       return NULL;
     }
 
-  retc = alloc_tree_cell (0, NULL);
+  retc = alloc_tree_cell (0, NULL, NULL);
   retc->type = CONST_INT;
   retc->x.i_val = ret;
   return retc;
@@ -720,7 +720,7 @@ set_tcp_v6_elements (lex_ctxt * lexic)
       g_free (tcpsumdata);
     }
 
-  retc = alloc_tree_cell (0, NULL);
+  retc = alloc_tree_cell (0, NULL, NULL);
   retc->type = CONST_DATA;
   retc->size = 40 + (tcp->th_off * 4) + data_len;
   retc->x.str_val = npkt;
@@ -910,7 +910,7 @@ forge_udp_v6_packet (lex_ctxt * lexic)
             }
         }
 
-      retc = alloc_tree_cell (0, NULL);
+      retc = alloc_tree_cell (0, NULL, NULL);
       retc->type = CONST_DATA;
       retc->x.str_val = (char *) pkt;
       retc->size = 8 + 40 + data_len;
@@ -967,7 +967,7 @@ get_udp_v6_element (lex_ctxt * lexic)
   else if (!strcmp (element, "data"))
     {
       int sz;
-      retc = alloc_tree_cell (0, NULL);
+      retc = alloc_tree_cell (0, NULL, NULL);
       retc->type = CONST_DATA;
       sz = ntohs (udphdr->uh_ulen) - sizeof (struct udphdr);
 
@@ -985,7 +985,7 @@ get_udp_v6_element (lex_ctxt * lexic)
       return NULL;
     }
 
-  retc = alloc_tree_cell (0, NULL);
+  retc = alloc_tree_cell (0, NULL, NULL);
   retc->type = CONST_INT;
   retc->x.i_val = ret;
   return retc;
@@ -1094,7 +1094,7 @@ set_udp_v6_elements (lex_ctxt * lexic)
                          + ((len % 2) ? len + 1 : len));
           g_free (udpsumdata);
         }
-      retc = alloc_tree_cell (0, NULL);
+      retc = alloc_tree_cell (0, NULL, NULL);
       retc->type = CONST_DATA;
       retc->size = sz;
       retc->x.str_val = pkt;
@@ -1188,7 +1188,7 @@ forge_icmp_v6_packet (lex_ctxt * lexic)
 
   if (ip6 != NULL)
     {
-      retc = alloc_tree_cell (0, NULL);
+      retc = alloc_tree_cell (0, NULL, NULL);
       retc->type = CONST_DATA;
       data = get_str_local_var_by_name (lexic, "data");
       len = data == NULL ? 0 : get_var_size_by_name (lexic, "data");
@@ -1428,7 +1428,7 @@ get_icmp_v6_element (lex_ctxt * lexic)
         value = ntohs (icmp->icmp6_seq);
       else if (!strcmp (elem, "data"))
         {
-          retc = alloc_tree_cell (0, NULL);
+          retc = alloc_tree_cell (0, NULL, NULL);
           retc->type = CONST_DATA;
           retc->size = get_var_size_by_name (lexic, "icmp") - 40 - 8;
           if (retc->size > 0)
@@ -1443,7 +1443,7 @@ get_icmp_v6_element (lex_ctxt * lexic)
       else
         return NULL;
 
-      retc = alloc_tree_cell (0, NULL);
+      retc = alloc_tree_cell (0, NULL, NULL);
       retc->type = CONST_INT;
       retc->x.i_val = value;
       return retc;
@@ -1522,7 +1522,7 @@ forge_igmp_v6_packet (lex_ctxt * lexic)
           char *p = (char *) (pkt + 40 + sizeof (struct igmp6_hdr));
           bcopy (p, data, len);
         }
-      retc = alloc_tree_cell (0, NULL);
+      retc = alloc_tree_cell (0, NULL, NULL);
       retc->type = CONST_DATA;
       retc->x.str_val = (char *) pkt;
       retc->size = 40 + sizeof (struct igmp6_hdr) + len;
@@ -1665,7 +1665,7 @@ nasl_tcp_v6_ping (lex_ctxt * lexic)
         }
     }
 
-  retc = alloc_tree_cell (0, NULL);
+  retc = alloc_tree_cell (0, NULL, NULL);
   retc->type = CONST_INT;
   retc->x.i_val = flag;
   if (bpf >= 0)
@@ -1777,7 +1777,7 @@ nasl_send_v6packet (lex_ctxt * lexic)
             }
           if (answer)
             {
-              retc = alloc_tree_cell (0, NULL);
+              retc = alloc_tree_cell (0, NULL, NULL);
               retc->type = CONST_DATA;
               retc->x.str_val = (char *) answer;
               retc->size = answer_sz;

@@ -34,13 +34,14 @@
 #include "nasl_debug.h"
 
 tree_cell *
-alloc_tree_cell (int lnb, char *s)
+alloc_tree_cell (int lnb, char *s, char *fn)
 {
   tree_cell *p = g_malloc0 (sizeof (tree_cell));
   int i;
 
   p->type = 0;
   p->size = 0;
+  p->filename = g_strdup (fn);
   p->line_nb = lnb;
   p->x.str_val = s;
   p->ref_count = 1;
@@ -52,7 +53,7 @@ alloc_tree_cell (int lnb, char *s)
 tree_cell *
 alloc_typed_cell (int typ)
 {
-  tree_cell *c = alloc_tree_cell (0, NULL);
+  tree_cell *c = alloc_tree_cell (0, NULL, NULL);
   c->type = typ;
   return c;
 }
@@ -63,7 +64,7 @@ alloc_RE_cell (int lnb, int t, tree_cell * l, char *re_str)
   regex_t *re = g_malloc0 (sizeof (regex_t));
   int e;
 
-  tree_cell *c = alloc_tree_cell (lnb, NULL);
+  tree_cell *c = alloc_tree_cell (lnb, NULL, NULL);
   c->type = t;                  /* We could check the type... */
   c->link[0] = l;
   c->link[1] = FAKE_CELL;
@@ -85,10 +86,11 @@ alloc_RE_cell (int lnb, int t, tree_cell * l, char *re_str)
 tree_cell *
 alloc_expr_cell (int lnb, int t, tree_cell * l, tree_cell * r)
 {
-  tree_cell *c = alloc_tree_cell (lnb, NULL);
+  tree_cell *c = alloc_tree_cell (lnb, NULL, NULL);
   c->type = t;
   c->link[0] = l;
   c->link[1] = r;
+
   return c;
 }
 
@@ -103,9 +105,10 @@ dup_cell (const tree_cell * tc)
   else if (tc == FAKE_CELL)
     return FAKE_CELL;
 
-  r = alloc_tree_cell (tc->line_nb, NULL);
+  r = alloc_tree_cell (tc->line_nb, NULL, NULL);
   r->type = tc->type;
   r->size = tc->size;
+
   switch (tc->type)
     {
     case CONST_STR:
@@ -137,6 +140,12 @@ free_tree (tree_cell * c)
   for (i = 0; i < 4; i++)
     if (c->link[i] != NULL)
       deref_cell (c->link[i]);
+  if (c->filename)
+    {
+      g_free (c->filename);
+      c->filename = NULL;
+   }
+
   if (c->x.str_val != NULL)
     switch (c->type)
       {

@@ -1,4 +1,115 @@
-2017-06-12  Hani Benhabiles  <hani.benhabiles@greenbone.net>
+2017-06-13  Juan Jose Nicola  <juan.nicola@greenbone.net>
+
+	Add the file name to the nasl context to be showed in case of error
+
+	* nasl/nasl_grammar.y: Define new macro FNAME. Add FNAME as
+	third argument to the call to alloc_tree_cell() function.
+	(init_nasl_ctx): Copy the script_name to the naslctxt.
+
+	* nasl/nasl_tree.c (alloc_tree_cell): New argument filename. Set the
+	filename.
+	(alloc_typed_cell, alloc_RE_cell, alloc_expr_cell, dup_cell): Add the
+	third argument to the call to alloc_tree_cell().
+	(free_cell): Free filename.
+
+	* nasl/nasl_tree.h (tree_cell): Add filename char pointer member.
+
+	* nasl/exec.c (nasl_exec): Copy the filename from the tree cell to
+	the context. Pass the filename as a third argument to alloc_tree_cell().
+	(exec_nasl_script): Copy the script_name to the lexic context.
+
+	* nasl/nasl_debug.c (nasl_perror): Climb up in the context to find
+	a file name to be printed in the error message. Check if the file name
+	is the script name or an included file.
+
+	* nasl/nasl_cert.c (build_hostname_list): Add the third argument
+	to the call to alloc_tree_cell().
+
+	* nasl/nasl_crypto.c (nasl_gcrypt_hash, nasl_cipher, nasl_get_sign)
+	(nasl_hmac_sha256, nasl_prf, nasl_get_smb2_sign, nasl_ntlmv2_response)
+	(nasl_ntlm2_response, nasl_ntlm_response, nasl_keyexchg)
+	(nasl_ntlmv1_hashm, nasl_lm_owf_gen, nasl_insert_hexzeros)
+	(nasl_ntv2_owf_gen, nasl_ntlmv2_hash): Add the third argument
+	to the call to alloc_tree_cell().
+
+	* nasl/nasl_crypto2.c (nasl_bn_random, nasl_pem_to)
+	(nasl_dh_generate_key, nasl_dh_compute_key, nasl_rsa_public_encrypt)
+	(nasl_rsa_private_decrypt, nasl_rsa_public_decrypt, nasl_rsa_sign)
+	(nasl_bf_cbc, encrypt_data): Add the third argument
+	to the call to alloc_tree_cell().
+
+	* nasl/nasl_global_ctxt.h (naslctxt): Add filename.
+
+	* nasl/nasl_http.c (_http_req, cgibin): Add the third argument
+	to the call to alloc_tree_cell().
+
+	* nasl/nasl_lex_ctxt.c (init_empty_lex_ctxt): Initialize pointer
+	to filename.
+
+	* nasl/nasl_misc_funcs.c (nasl_rand, nasl_ftp_log_in)
+	(nasl_ftp_get_pasv_address, nasl_end_denial, nasl_do_exit)
+	(nasl_isnull, nasl_make_list, nasl_make_array, nasl_keys)
+	(nasl_max_index, nasl_typeof, nasl_defined_func, nasl_gunzip)
+	(nasl_gzip, nasl_dec2str): Add the third argument to the call
+	to alloc_tree_cell().
+
+	* nasl/nasl_packet_forgery.c (forge_ip_packet, get_ip_element)
+	(set_ip_elements, insert_ip_options, forge_tcp_packet, get_tcp_element)
+	(set_tcp_elements, forge_udp_packet, get_udp_element, set_udp_elements)
+	(forge_icmp_packet, get_icmp_element, forge_igmp_packet, nasl_tcp_ping)
+	(nasl_send_packet, nasl_pcap_next, nasl_send_capture): Add the third
+	argument to the call to alloc_tree_cell().
+
+	* nasl/nasl_packet_forgery_v6.c (forge_ipv6_packetm, get_ipv6_elemen)
+	(set_ipv6_elements, forge_tcp_v6_packet, set_tcp_v6_elements)
+	(forge_udp_v6_packet, get_udp_v6_element, set_udp_v6_elements)
+	(forge_icmp_v6_packet, get_icmp_v6_element, forge_igmp_v6_packet)
+	(nasl_tcp_v6_ping, nasl_send_v6packet): Add the third argument to
+	the call to alloc_tree_cell().
+
+	* nasl/nasl_scanner_glue.c (script_get_preference)
+	(script_get_preference_file_content, safe_checks, scan_phase)
+	(get_kb_list, get_kb_item, nasl_scanner_get_port): Add the third
+	argument to the call to alloc_tree_cell().
+
+	* nasl/nasl_smb.c (nasl_smb_versioninfo, nasl_smb_connect)
+	(nasl_smb_close, nasl_smb_file_SDDL, nasl_smb_file_owner_sid)
+	(nasl_smb_file_group_sid, nasl_smb_file_trustee_rights)
+	(nasl_win_cmd_exec): Add the third argument to the call to
+	alloc_tree_cell().
+
+	* nasl/nasl_socket.c (nasl_open_privileged_socket)
+	(nasl_open_sock_tcp_bufsz, nasl_open_sock_udp)
+	(nasl_socket_negotiate_ssl, nasl_socket_get_cert, nasl_socket_get_cert)
+	(nasl_socket_get_ssl_session_id, nasl_socket_get_ssl_compression)
+	(nasl_socket_get_ssl_version, nasl_socket_get_ssl_ciphersuite)
+	(nasl_recv, nasl_recv_line, nasl_send, nasl_get_sock_info): Add the
+	third argument to the call to alloc_tree_cell().
+
+	* nasl/nasl_text_utils.c (nasl_string, nasl_rawstring, nasl_strlen)
+	(nasl_strcat, nasl_display, nasl_hex, nasl_hexstr, nasl_ord)
+	(nasl_tolower, nasl_toupper, nasl_ereg, nasl_ereg_replace)
+	(nasl_egrep, nasl_eregmatch, nasl_substr, nasl_insstr, nasl_match)
+	(nasl_split, nasl_chomp, nasl_crap, nasl_strstr, nasl_int): Add the
+	third argument to the call to alloc_tree_cell().
+
+	* nasl/nasl_var.c (var2cell, copy_ref_array, nasl_read_var_ref)
+	(nasl_incr_variable): Add the third argument to the call to
+	alloc_tree_cell().
+
+	* nasl/nasl_wmi.c (nasl_wmi_versioninfo, nasl_wmi_connect)
+	(nasl_wmi_close, nasl_wmi_query, nasl_wmi_connect_rsop)
+	(nasl_wmi_query_rsop, nasl_wmi_connect_reg, nasl_wmi_reg_get_sz)
+	(nasl_wmi_reg_enum_value, nasl_wmi_reg_enum_key)
+	(nasl_wmi_reg_get_bin_val, nasl_wmi_reg_get_dword_val)
+	(nasl_wmi_reg_get_ex_string_val, nasl_wmi_reg_get_mul_string_val)
+	(nasl_wmi_reg_get_qword_val, nasl_wmi_reg_set_dword_val)
+	(nasl_wmi_reg_set_qword_val nasl_wmi_reg_set_ex_string_val)
+	(nasl_wmi_reg_set_string_val, nasl_wmi_reg_create_key)
+	(nasl_wmi_reg_delete_key): Add the third argument to the call to
+	alloc_tree_cell().
+
+(2017-06-12  Hani Benhabiles  <hani.benhabiles@greenbone.net>
 
 	* src/attack.c (launch_plugin): Fix plugin launching checks.
 

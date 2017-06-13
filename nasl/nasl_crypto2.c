@@ -219,7 +219,7 @@ nasl_bn_random (lex_ctxt * lexic)
   gcry_mpi_t key = NULL;
   long need;
 
-  retc = alloc_tree_cell (0, NULL);
+  retc = alloc_tree_cell (0, NULL, NULL);
   retc->type = CONST_DATA;
 
   /* number of random bits */
@@ -306,7 +306,7 @@ nasl_pem_to (lex_ctxt * lexic, int type)
   gcry_mpi_t key = NULL;
   int err;
 
-  retc = alloc_tree_cell (0, NULL);
+  retc = alloc_tree_cell (0, NULL, NULL);
   retc->type = CONST_DATA;
 
   privkey = nasl_load_privkey_param (lexic, "priv", "passphrase");
@@ -475,7 +475,7 @@ nasl_dh_generate_key (lex_ctxt * lexic)
   tree_cell *retc = NULL;
   gcry_mpi_t p = NULL, g = NULL, priv = NULL, pub_mpi = NULL;
 
-  retc = alloc_tree_cell (0, NULL);
+  retc = alloc_tree_cell (0, NULL, NULL);
   retc->type = CONST_DATA;
 
   if (mpi_from_named_parameter (lexic, &p, "p", "nasl_dh_generate_key") < 0)
@@ -523,7 +523,7 @@ nasl_dh_compute_key (lex_ctxt * lexic)
   gcry_mpi_t pub_key = NULL, priv_key = NULL;
   gcry_mpi_t shared = NULL;
 
-  retc = alloc_tree_cell (0, NULL);
+  retc = alloc_tree_cell (0, NULL, NULL);
   retc->type = CONST_DATA;
 
   if (mpi_from_named_parameter (lexic, &p, "p", "nasl_dh_compute_key") < 0)
@@ -681,7 +681,7 @@ nasl_rsa_public_encrypt (lex_ctxt * lexic)
                    "n:<n>, e:<e>, pad:<pad>)");
       return NULL;
     }
-  retc = alloc_tree_cell (0, NULL);
+  retc = alloc_tree_cell (0, NULL, NULL);
   retc->type = CONST_DATA;
 
   if (mpi_from_named_parameter (lexic, &dt, "data", "nasl_rsa_public_encrypt") <
@@ -765,7 +765,7 @@ nasl_rsa_private_decrypt (lex_ctxt * lexic)
                  "n:<n>, d:<d>, e:<e>, pad:<pad>)");
     return NULL;
   }
-  retc = alloc_tree_cell (0, NULL);
+  retc = alloc_tree_cell (0, NULL, NULL);
   retc->type = CONST_DATA;
 
   if (mpi_from_named_parameter (lexic, &dt, "data",
@@ -848,7 +848,7 @@ nasl_rsa_public_decrypt (lex_ctxt * lexic)
   gcry_sexp_t key = NULL, sig = NULL, decrypted = NULL;
   gcry_error_t err;
 
-  retc = alloc_tree_cell (0, NULL);
+  retc = alloc_tree_cell (0, NULL, NULL);
   retc->type = CONST_DATA;
 
   if (mpi_from_named_parameter (lexic, &s, "sig", "nasl_rsa_public_decrypt") <
@@ -992,7 +992,7 @@ nasl_rsa_sign (lex_ctxt * lexic)
   gnutls_x509_privkey_t priv_key = NULL;
   gcry_error_t err;
 
-  retc = alloc_tree_cell (0, NULL);
+  retc = alloc_tree_cell (0, NULL, NULL);
   retc->type = CONST_DATA;
 
   data = get_str_local_var_by_name (lexic, "data");
@@ -1264,7 +1264,7 @@ nasl_bf_cbc (lex_ctxt * lexic, int enc)
   nasl_array *a;
   gcry_error_t err;
 
-  retc = alloc_tree_cell (0, NULL);
+  retc = alloc_tree_cell (0, NULL, NULL);
   retc->type = CONST_DATA;
 
   /* key */
@@ -1529,7 +1529,7 @@ encrypt_data (lex_ctxt *lexic, int cipher, int mode)
 
   g_free (tmp);
   gcry_cipher_close (hd);
-  retc = alloc_tree_cell (0, NULL);
+  retc = alloc_tree_cell (0, NULL, NULL);
   retc->type = CONST_DATA;
   retc->x.str_val = result;
   retc->size = resultlen;

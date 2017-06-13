@@ -26,6 +26,7 @@
 typedef struct
 {
   int line_nb;
+  char *filename;
   int always_authenticated;
   int maxlen;
   FILE *fp;

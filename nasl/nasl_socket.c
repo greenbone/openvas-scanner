@@ -356,7 +356,7 @@ tryagain:
   if (proto == IPPROTO_TCP)
     sock = openvas_register_connection (sock, NULL, NULL, OPENVAS_ENCAPS_IP);
 
-  retc = alloc_tree_cell (0, NULL);
+  retc = alloc_tree_cell (0, NULL, NULL);
   retc->type = CONST_INT;
   retc->x.i_val = sock < 0 ? 0 : sock;
   return retc;
@@ -430,7 +430,7 @@ nasl_open_sock_tcp_bufsz (lex_ctxt * lexic, int bufsz)
         nasl_perror (lexic, "stream_set_buffer: soc=%d,bufsz=%d\n", soc, bufsz);
     }
 
-  retc = alloc_tree_cell (0, NULL);
+  retc = alloc_tree_cell (0, NULL, NULL);
   retc->type = CONST_INT;
   retc->x.i_val = soc < 0 ? 0 : soc;
 
@@ -532,7 +532,7 @@ nasl_open_sock_udp (lex_ctxt * lexic)
     }
 
 
-  retc = alloc_tree_cell (0, NULL);
+  retc = alloc_tree_cell (0, NULL, NULL);
   retc->type = CONST_INT;
   retc->x.i_val = soc < 0 ? 0 : soc;
   return retc;
@@ -566,7 +566,7 @@ nasl_socket_negotiate_ssl (lex_ctxt * lexic)
   if (ret < 0)
     return NULL;
 
-  retc = alloc_tree_cell (0, NULL);
+  retc = alloc_tree_cell (0, NULL, NULL);
   retc->type = CONST_INT;
   retc->x.i_val = ret;
   return retc;
@@ -589,7 +589,7 @@ nasl_socket_get_cert (lex_ctxt * lexic)
   socket_get_cert (soc, &cert, &cert_len);
   if (cert_len <= 0)
     return NULL;
-  retc = alloc_tree_cell (0, NULL);
+  retc = alloc_tree_cell (0, NULL, NULL);
   retc->type = CONST_DATA;
   retc->x.str_val = cert;
   retc->size = cert_len;
@@ -614,7 +614,7 @@ nasl_socket_get_ssl_session_id (lex_ctxt * lexic)
   socket_get_ssl_session_id (soc, &sid, &sid_len);
   if (sid == NULL || sid_len == 0)
     return NULL;
-  retc = alloc_tree_cell (0, NULL);
+  retc = alloc_tree_cell (0, NULL, NULL);
   retc->type = CONST_DATA;
   retc->x.str_val = sid;
   retc->size = sid_len;
@@ -634,7 +634,7 @@ nasl_socket_get_ssl_compression (lex_ctxt * lexic)
                    soc);
       return NULL;
     }
-  retc = alloc_tree_cell (0, NULL);
+  retc = alloc_tree_cell (0, NULL, NULL);
   retc->type = CONST_INT;
   retc->x.i_val = socket_get_ssl_compression (soc);
   return retc;
@@ -651,7 +651,7 @@ nasl_socket_get_ssl_version (lex_ctxt * lexic)
   version = socket_get_ssl_version (soc);
   if (version < 0)
     return NULL;
-  retc = alloc_tree_cell (0, NULL);
+  retc = alloc_tree_cell (0, NULL, NULL);
   retc->type = CONST_INT;
   retc->x.i_val = version;
   return retc;
@@ -667,7 +667,7 @@ nasl_socket_get_ssl_ciphersuite (lex_ctxt * lexic)
   result = socket_get_ssl_ciphersuite (soc);
   if (result < 0)
     return NULL;
-  retc = alloc_tree_cell (0, NULL);
+  retc = alloc_tree_cell (0, NULL, NULL);
   retc->type = CONST_INT;
   retc->x.i_val = result;
   return retc;
@@ -761,7 +761,7 @@ nasl_recv (lex_ctxt * lexic)
     }
   if (new_len > 0)
     {
-      tree_cell *retc = alloc_tree_cell (0, NULL);
+      tree_cell *retc = alloc_tree_cell (0, NULL, NULL);
       retc->type = CONST_DATA;
       retc->x.str_val = g_memdup (data, new_len);
       retc->size = new_len;
@@ -836,7 +836,7 @@ nasl_recv_line (lex_ctxt * lexic)
 
 
 
-  retc = alloc_tree_cell (0, NULL);
+  retc = alloc_tree_cell (0, NULL, NULL);
   retc->type = CONST_DATA;
   retc->size = new_len;
   retc->x.str_val = g_memdup (data, new_len + 1);
@@ -884,7 +884,7 @@ nasl_send (lex_ctxt * lexic)
   else
     n = nsend (soc, data, length, option);
 
-  retc = alloc_tree_cell (0, NULL);
+  retc = alloc_tree_cell (0, NULL, NULL);
   retc->type = CONST_INT;
   retc->x.i_val = n;
 
@@ -1360,7 +1360,7 @@ nasl_get_sock_info (lex_ctxt * lexic)
           else
             {
               unsigned int i;
-              retc = alloc_tree_cell (0, NULL);
+              retc = alloc_tree_cell (0, NULL, NULL);
               retc->type = DYN_ARRAY;
               retc->x.ref_val = a = g_malloc0 (sizeof *a);
 

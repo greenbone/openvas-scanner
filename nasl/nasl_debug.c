@@ -48,7 +48,7 @@ nasl_perror (lex_ctxt * lexic, char *msg, ...)
   char *script_name = "";
   lex_ctxt *lexic2 = NULL;
   int line_nb = 0;
-
+  char *filename = NULL;
   va_start (param, msg);
 
   if (lexic != NULL)
@@ -66,12 +66,26 @@ nasl_perror (lex_ctxt * lexic, char *msg, ...)
               break;
             }
         }
+      /* Climbing up to find a filename */
+      for (lexic2 = lexic; lexic2 != NULL; lexic2 = lexic2->up_ctxt)
+        {
+          if (lexic2->filename)
+            {
+              filename = g_strdup (lexic2->filename);
+              break;
+            }
+        }
     }
 
   vsnprintf (debug_message, sizeof (debug_message), msg, param);
-  g_message ("[%d](%s:%d) %s", getpid (), script_name,
-             line_nb, debug_message);
+  if (g_strcmp0 (filename, script_name) == 0)
+    g_message ("[%d](%s:%d) %s", getpid (), script_name,
+               line_nb, debug_message);
+  else
+    g_message ("[%d](%s)(%s:%d) %s", getpid (), script_name, filename,
+               line_nb, debug_message);
 
+  g_free (filename);
   /** @todo Enable this when the NVTs are ready.  Sends ERRMSG to client. */
 #if 0
   if (lexic != NULL)

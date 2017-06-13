@@ -801,7 +801,11 @@ nasl_exec (lex_ctxt * lexic, tree_cell * st)
 #endif
 
   if (st)
-    lexic->line_nb = st->line_nb;
+    {
+      lexic->line_nb = st->line_nb;
+      if (st->filename)
+        lexic->filename = g_strdup (st->filename);
+    }
   /* return */
   if (lexic->ret_val != NULL)
     {
@@ -1322,7 +1326,7 @@ nasl_exec (lex_ctxt * lexic, tree_cell * st)
             memcpy (s3 + len1, s2 != NULL ? s2 : tc2->x.str_val, len2);
           g_free (s1);
           g_free (s2);
-          ret = alloc_tree_cell (0, s3);
+          ret = alloc_tree_cell (0, s3, NULL);
           ret->type = flag;
           ret->size = sz;
           break;
@@ -1423,7 +1427,7 @@ nasl_exec (lex_ctxt * lexic, tree_cell * st)
             {
               s3 = g_malloc0 (len1 + 1);
               memcpy (s3, p1, len1);
-              ret = alloc_tree_cell (0, s3);
+              ret = alloc_tree_cell (0, s3, NULL);
               ret->type = flag;
               ret->size = len1;
             }
@@ -1443,7 +1447,7 @@ nasl_exec (lex_ctxt * lexic, tree_cell * st)
                   if (sz > p - p1)
                     memcpy (s3 + (p - p1), p + len2, sz - (p - p1));
                 }
-              ret = alloc_tree_cell (0, s3);
+              ret = alloc_tree_cell (0, s3, NULL);
               ret->size = sz;
               ret->type = flag;
             }
@@ -1763,6 +1767,7 @@ exec_nasl_script (struct script_infos *script_infos, const char *name,
   lexic = init_empty_lex_ctxt ();
   lexic->script_infos = script_infos;
   lexic->oid = oid;
+  lexic->filename = g_strdup (name);
 
   str = prefs_get ("checks_read_timeout");
   if (str != NULL)

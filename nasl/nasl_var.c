@@ -195,7 +195,7 @@ get_var_ref_by_num (lex_ctxt * ctxt, int num)
 tree_cell *
 var2cell (anon_nasl_var * v)
 {
-  tree_cell *tc = alloc_tree_cell (0, NULL);
+  tree_cell *tc = alloc_tree_cell (0, NULL, NULL);
 
   tc->type = REF_VAR;
   tc->x.ref_val = v;            /* No need to free this later! */
@@ -572,7 +572,7 @@ copy_ref_array (const tree_cell * c1)
   if (c1 == NULL || c1 == FAKE_CELL || c1->type != REF_ARRAY)
     return NULL;
 
-  c2 = alloc_tree_cell (0, NULL);
+  c2 = alloc_tree_cell (0, NULL, NULL);
   c2->type = DYN_ARRAY;
   c2->x.ref_val = a2 = g_malloc0 (sizeof (nasl_array));
   copy_array (a2, c1->x.ref_val, 1);
@@ -963,7 +963,7 @@ nasl_read_var_ref (lex_ctxt * lexic, tree_cell * tc)
       return NULL;
     }
 
-  ret = alloc_tree_cell (tc->line_nb, NULL);
+  ret = alloc_tree_cell (tc->line_nb, NULL, NULL);
 
   switch (v->var_type)
     {
@@ -1082,7 +1082,7 @@ nasl_incr_variable (lex_ctxt * lexic, tree_cell * tc, int pre, int val)
   v->var_type = VAR2_INT;
   v->v.v_int = new_val;
 
-  retc = alloc_tree_cell (0, NULL);
+  retc = alloc_tree_cell (0, NULL, NULL);
   retc->type = CONST_INT;
   retc->x.i_val = pre ? new_val : old_val;
 

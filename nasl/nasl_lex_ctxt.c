@@ -38,6 +38,7 @@ init_empty_lex_ctxt ()
     c->functions[i] = NULL;
   c->oid = NULL;
   c->ret_val = NULL;
+  c->filename = NULL;
   c->fct_ctxt = 0;
   return c;
 }
