@@ -47,6 +47,8 @@
 #include <netinet/in.h>
 #include <sys/socket.h>
 #include <arpa/inet.h>
+#include <errno.h>
+#include <unistd.h>
 
 #include <gvm/base/networking.h>
 #include <gvm/base/logging.h>
@@ -380,10 +382,10 @@ nasl_win_cmd_exec (lex_ctxt * lexic)
 {
   struct script_infos *script_infos = lexic->script_infos;
   struct in6_addr *host = plug_get_host_ip (script_infos);
-  char *ip, *argv[4], *sout = NULL;
+  char *ip, *command, *unicode;
   tree_cell *retc;
-  int estatus = 0, ret;
-  GError *err = NULL;
+  FILE *fp;
+  GString *string = NULL;
 
   IMPORT (username);
   IMPORT (password);
@@ -404,28 +406,66 @@ nasl_win_cmd_exec (lex_ctxt * lexic)
       return NULL;
     }
 
-  argv[0] = g_strdup ("wmiexec.py");
-  argv[1] = g_strdup_printf ("%s:%s@%s", username, password, ip);
-  argv[2] = g_strdup_printf ("%s", cmd);
-  argv[3] = NULL;
-  g_free(ip);
-  ret = g_spawn_sync (NULL, argv, NULL, G_SPAWN_SEARCH_PATH, NULL, NULL, &sout,
-                      NULL, &estatus, &err);
-  g_free (argv[0]);
-  g_free (argv[1]);
-  g_free (argv[2]);
-  if (ret == FALSE || g_str_has_prefix (sout, "[-]"))
+  command = g_strdup_printf ("wmiexec.py %s:%s@%s %s", username, password, ip,
+                             cmd);
+  fp = popen (command, "r");
+  g_free (command);
+  g_free (ip);
+  if (!fp)
     {
-      g_message ("win_cmd_exec: %s", err ? err->message : sout);
-      g_free (sout);
-      if (err)
-        g_error_free (err);
+      g_warning ("win_cmd_exec: %s", strerror (errno));
       return NULL;
+    }
+  string = g_string_new ("");
+  while (1)
+    {
+      char buf[4096];
+      size_t bytes;
+
+      bytes = read (fileno (fp), buf, sizeof (buf));
+      if (bytes == 0)
+        break;
+      else if (bytes > 0)
+        g_string_append_len (string, buf, bytes);
+      else
+        {
+          g_warning ("win_cmd_exec: %s", strerror (errno));
+          g_string_free (string, TRUE);
+          return NULL;
+        }
+    }
+
+  if (g_str_has_prefix (string->str, "[-]"))
+    {
+      g_warning ("win_cmd_exec: %s", string->str);
+      g_string_free (string, TRUE);
+      return NULL;
+    }
+  else if ((unicode = strstr (string->str, "\xff\xfe")))
+    {
+      /* UTF-16 case. */
+      size_t length, diff;
+      GError *err = NULL;
+      char *tmp;
+
+      diff = unicode - string->str + 1;
+      tmp = g_convert (unicode + 2, string->len - diff, "UTF-8", "UTF-16", NULL,
+                       &length, &err);
+      if (!tmp)
+        {
+          g_warning ("win_cmd_exec: %s", err->message);
+          g_string_free (string, TRUE);
+          g_error_free (err);
+          return NULL;
+        }
+      g_free (string->str);
+      string->len = length;
+      string->str = tmp;
     }
 
   retc = alloc_tree_cell (0, NULL, NULL);
   retc->type = CONST_DATA;
-  retc->x.str_val = sout;
-  retc->size = strlen (sout);
+  retc->x.str_val = string->str;
+  retc->size = string->len;
   return retc;
 }
