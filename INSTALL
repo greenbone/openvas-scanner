@@ -193,7 +193,7 @@ Logging Configuration
 
 If you encounter problems, by default the scanner writes logs to the file
 
-    <install-prefix>/var/log/openvas/openvassd.log
+    <install-prefix>/var/log/gvm/openvassd.log
 
 It may contain useful information.The exact location of this file may differ
 depending on your distribution and installation method. Please have this file
@@ -210,7 +210,7 @@ The configuration is divided into domains like this one
     [sd   main]
     prepend=%t %p
     prepend_time_format=%Y-%m-%d %Hh%M.%S %Z
-    file=/var/log/openvas/openvassd.log
+    file=/var/log/gvm/openvassd.log
     level=128
 
 The "level" field controls the amount of logging that is written.

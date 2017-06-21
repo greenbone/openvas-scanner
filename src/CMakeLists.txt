@@ -74,10 +74,6 @@ if (OPENVAS_CACHE_DIR)
   add_definitions (-DOPENVAS_CACHE_DIR=\\\"${OPENVAS_CACHE_DIR}\\\")
 endif (OPENVAS_CACHE_DIR)
 
-if (OPENVAS_LOG_DIR)
-  add_definitions (-DOPENVAS_LOG_DIR=\\\"${OPENVAS_LOG_DIR}\\\")
-endif (OPENVAS_LOG_DIR)
-
 if (OPENVASSD_CONF)
   add_definitions (-DOPENVASSD_CONF=\\\"${OPENVASSD_CONF}\\\")
 endif (OPENVASSD_CONF)

@@ -6,11 +6,11 @@
 [sd   main]
 prepend=%t %p
 prepend_time_format=%Y-%m-%d %Hh%M.%S %Z
-file=${OPENVAS_LOG_DIR}/openvassd.log
+file=${GVM_LOG_DIR}/openvassd.log
 level=127
 
 [*]
 prepend=%t %p
 prepend_time_format=%Y-%m-%d %Hh%M.%S %Z
-file=${OPENVAS_LOG_DIR}/openvassd.log
+file=${GVM_LOG_DIR}/openvassd.log
 level=127
