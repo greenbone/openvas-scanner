@@ -1,3 +1,10 @@
+2017-06-21  Hani Benhabiles  <hani.benhabiles@greenbone.net>
+
+	* nasl/nasl_ssh.c (nasl_ssh_connect): Update documentation.
+
+	* nasl/nasl_init.c (libfuncs): Update args for ssh_connect and
+	ssh_userauth.
+
 2017-06-19  Hani Benhabiles  <hani.benhabiles@greenbone.net>
 
 	* nasl/nasl_smb.c (nasl_win_cmd_exec): Adjust to handle case where

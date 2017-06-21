@@ -228,6 +228,13 @@ get_ssh_port (lex_ctxt *lexic)
  * - @a port A non-standard port to connect to.  This is only used if
  *           @a socket is not given or 0.
  *
+ * - @a keytype List of the preferred server host key types. Example:
+ *              "ssh-rsa,ssh-dss"
+ *
+ * - @a csciphers SSH client-to-server ciphers.
+ *
+ * - @a scciphers SSH server-to-client ciphers.
+ *
  * @naslret An integer to identify the ssh session. Zero on error.
  *
  * @param[in] lexic Lexical context of NASL interpreter.

@@ -404,12 +404,14 @@ static init_func libfuncs[] = {
                                       NULL }},
 #endif /* HAVE_NETSNMP */
 
-  {"ssh_connect", nasl_ssh_connect, 0, {"port", "socket", NULL }},
+  {"ssh_connect", nasl_ssh_connect, 0, {"csciphers", "keytype", "port",
+                                        "scciphers", "socket", NULL }},
   {"ssh_disconnect", nasl_ssh_disconnect, 1, {NULL }},
   {"ssh_session_id_from_sock", nasl_ssh_session_id_from_sock, 1, {NULL }},
   {"ssh_get_sock", nasl_ssh_get_sock, 1, {NULL }},
   {"ssh_set_login", nasl_ssh_set_login, 1, {"login", NULL }},
-  {"ssh_userauth", nasl_ssh_userauth, 1, {"login", "password", NULL }},
+  {"ssh_userauth", nasl_ssh_userauth, 1, {"login", "passphrase", "password",
+                                          "privatekey", NULL }},
   {"ssh_login_interactive", nasl_ssh_login_interactive, 1, {"login", NULL }},
   {"ssh_login_interactive_pass", nasl_ssh_login_interactive_pass, 1, {"password", NULL }},
   {"ssh_request_exec", nasl_ssh_request_exec,
