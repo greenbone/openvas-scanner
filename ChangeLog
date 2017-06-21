@@ -1,3 +1,13 @@
+2017-06-21  Juan Jose Nicola  <juan.nicola@greenbone.net>
+
+	* nasl/nasl_signature.c (examine_signatures): Add argument.
+	Remove while loop because analyze only one signature.
+	Remove not needed variables. Update documentation.
+	(nasl_verify_signature): Add variables. Load file contents into
+	buffers. Use gpgme_data_new_from_mem() instead of
+	gpgme_data_new_from_file(). Search manually the signature inside the
+	file. Update documentation.
+
 2017-06-21  Jan-Oliver Wagner <jan-oliver.wagner@greenbone.net>
 
 	Switch the log location from /var/log/openvas/ to /var/log/gvm/.
