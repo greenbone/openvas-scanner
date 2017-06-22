@@ -1053,7 +1053,9 @@ dbg_display_cmdline (nmap_t * nmap)
     dbg ("%s ", nmap->args[i]);
 
   if (i == 0)
-    dbg ("<empty>");
+    {
+      dbg ("<empty>");
+    }
 
   dbg ("\n");
 }
@@ -1748,10 +1750,14 @@ xmltag_open_hop (nmap_t * nmap, const gchar ** attrnames,
                                                          attrval);
         }
       else
-        dbg ("Inconsistent results: duplicate traceroute information!");
+        {
+          dbg ("Inconsistent results: duplicate traceroute information!");
+        }
     }
   else
-    dbg ("Trace TTL out of bounds: %d (max=%d)", ttl, MAX_TRACE_HOPS);
+    {
+      dbg ("Trace TTL out of bounds: %d (max=%d)", ttl, MAX_TRACE_HOPS);
+    }
 }
 
 /**

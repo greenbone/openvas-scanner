@@ -1,3 +1,9 @@
+2017-06-22  Michael Wiegand <michael.wiegand@greenbone.net>
+
+	* nasl/nasl_builtin_nmap.c (dbg_display_cmdline, xmltag_open_hop): Put
+	single 'dbg ()' calls in conditional branches into blocks for
+	consistency as they expand to nothing when NDEBUG is defined.
+
 2017-06-21  Jan-Oliver Wagner <jan-oliver.wagner@greenbone.net>
 
 	* misc/CMakeLists.txt: Install GVM_LOG_DIR instead of
