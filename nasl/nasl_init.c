@@ -642,10 +642,9 @@ NULL, 0},};
 int
 init_nasl_library (lex_ctxt * lexic)
 {
-  int j, c;
+  int c;
   nasl_func *pf;
   tree_cell tc;
-  const char **p, *q;
   unsigned i;
   int lint_mode = 0;
 
@@ -662,18 +661,7 @@ init_nasl_library (lex_ctxt * lexic)
       pf->flags |= FUNC_FLAG_INTERNAL;
       pf->nb_unnamed_args = libfuncs[i].unnamed;
 
-      for (j = 0, p = libfuncs[i].args, q = NULL; (*p) != NULL; j++)
-        {
-          if (q != NULL && strcmp (q, *p) > 0)
-            nasl_perror (lexic,
-                         "init_nasl_library: unsorted args for function %s: %s > %s\n",
-                         libfuncs[i].name, q, (*p));
-          q = (*p);
-          p++;
-        }
-      pf->nb_named_args = j;
       pf->args_names = (char **) libfuncs[i].args;
-
       c++;
     }
 

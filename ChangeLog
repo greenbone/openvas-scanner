@@ -1,5 +1,18 @@
 2017-06-22  Hani Benhabiles  <hani.benhabiles@greenbone.net>
 
+	* nasl/nasl_func.h (nasl_func): Remove nb_named_args element.
+
+	* nasl/nasl_func.c (insert_nasl_func, nasl_func_call, free_func): Adjust
+	for nasl_func change.
+
+	* nasl/nasl_init.c (init_nasl_library): Don't check for named args
+	ordering.
+
+	* nasl/nasl_misc_funcs.c (nasl_func_named_args, nasl_func_has_arg):
+	Adjust for nasl_func change.
+
+2017-06-22  Hani Benhabiles  <hani.benhabiles@greenbone.net>
+
 	* nasl/nasl_lex_ctxt.h (lex_ctxt): Change functions element type to
 	GHashTable.
 

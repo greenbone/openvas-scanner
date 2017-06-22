@@ -620,7 +620,7 @@ nasl_func_named_args (lex_ctxt * lexic)
 {
   nasl_func *f;
   char *s;
-  int i;
+  int i, nb;
   tree_cell *retc;
   nasl_array *a;
   anon_nasl_var v;
@@ -645,7 +645,8 @@ nasl_func_named_args (lex_ctxt * lexic)
   memset (&v, 0, sizeof (v));
   v.var_type = VAR2_STRING;
 
-  for (i = 0; i < f->nb_named_args; i++)
+  nb = g_strv_length (f->args_names);
+  for (i = 0; i < nb; i++)
     {
       v.v.v_str.s_val = (unsigned char *) f->args_names[i];
       v.v.v_str.s_siz = strlen (f->args_names[i]);
@@ -710,6 +711,8 @@ nasl_func_has_arg (lex_ctxt * lexic)
   vt = get_var_type_by_num (lexic, 1);
   switch (vt)
     {
+    int nb;
+
     case VAR2_INT:
       i = get_int_var_by_num (lexic, 1, -1);
       if (i >= 0 && i < f->nb_unnamed_args)
@@ -719,7 +722,8 @@ nasl_func_has_arg (lex_ctxt * lexic)
     case VAR2_STRING:
     case VAR2_DATA:
       s = get_str_var_by_num (lexic, 1);
-      for (i = 0; i < f->nb_named_args && !flag; i++)
+      nb = g_strv_length (f->args_names);
+      for (i = 0; i < nb && !flag; i++)
         if (strcmp (s, f->args_names[i]) == 0)
           flag = 1;
       break;

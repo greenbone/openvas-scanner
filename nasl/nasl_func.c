@@ -74,19 +74,17 @@ insert_nasl_func (lex_ctxt * lexic, const char *fname, tree_cell * decl_node, in
 
   if (decl_node != NULL && decl_node != FAKE_CELL)
     {
+      int nb_named_args = 0;
       for (pc = decl_node->link[0]; pc != NULL; pc = pc->link[0])
         if (pc->x.str_val == NULL)
           pf->nb_unnamed_args++;
         else
-          pf->nb_named_args++;
+          nb_named_args++;
 
-      pf->args_names = g_malloc0 (sizeof (char *) * pf->nb_named_args);
+      pf->args_names = g_malloc0 (sizeof (char *) * (nb_named_args + 1));
       for (i = 0, pc = decl_node->link[0]; pc != NULL; pc = pc->link[0])
         if (pc->x.str_val != NULL)
           pf->args_names[i++] = g_strdup (pc->x.str_val);
-      /* Sort argument names */
-      qsort (pf->args_names, pf->nb_named_args, sizeof (pf->args_names[0]),
-             (qsortcmp)strcmp);
 
       pf->block = decl_node->link[1];
       ref_cell (pf->block);
@@ -168,16 +166,16 @@ nasl_func_call (lex_ctxt * lexic, const nasl_func * f, tree_cell * arg_list)
       nb_u++;
     else
       {
-        size_t num = f->nb_named_args;
+        size_t num = g_strv_length (f->args_names);
         if (lfind
             (&pc->x.str_val, f->args_names, &num, sizeof (char *),
              stringcompare) != NULL)
           nb_n++;
       }
 
-  if (nb_n + nb_u > f->nb_unnamed_args + f->nb_named_args)
+  if (nb_n + nb_u > f->nb_unnamed_args + (int) g_strv_length (f->args_names))
     nasl_perror (lexic, "Too many args for function '%s' [%dN+%dU > %dN+%dU]\n",
-                 f->func_name, nb_n, nb_u, f->nb_named_args,
+                 f->func_name, nb_n, nb_u, g_strv_length (f->args_names),
                  f->nb_unnamed_args);
   /*
    * I should look exactly how unnamed arguments works...
@@ -306,17 +304,13 @@ nasl_return (lex_ctxt * ctxt, tree_cell * retv)
 void
 free_func (nasl_func *f)
 {
-  int i;
-
   if (! f) return;
 
   g_free (f->func_name);
 
   if (!(f->flags & FUNC_FLAG_INTERNAL))
     {
-      for (i = 0; i < f->nb_named_args; i++)
-        g_free (f->args_names[i]);
-      g_free (f->args_names);
+      g_strfreev (f->args_names);
       deref_cell (f->block);
     }
   g_free (f);

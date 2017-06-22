@@ -30,7 +30,7 @@ typedef struct st_nasl_func
 {
   char *func_name;
   int flags;
-  int nb_unnamed_args, nb_named_args;
+  int nb_unnamed_args;
   char **args_names;
   void *block;                  /* Can be pointer to a C function! */
 } nasl_func;
