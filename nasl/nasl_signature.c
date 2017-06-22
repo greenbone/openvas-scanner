@@ -120,7 +120,7 @@ nasl_verify_signature (const char *filename)
 {
   int retcode = -1, sig_count = 0;
   char *sigfilename = NULL;
-  gsize siglen, flen;
+  gsize siglen = 0, flen = 0;
   gchar * scontent = NULL;
   gchar * offset = NULL;
   gchar * endpos = NULL;
@@ -169,7 +169,12 @@ nasl_verify_signature (const char *filename)
   endpos = g_strstr_len (offset,-1, "-----E");
   if (endpos)
     siglen = strlen(offset) - strlen(endpos) + 17 ;
-
+  else
+    {
+      nasl_trace (NULL, "nasl_verify_signature: No signature in '%s'\n",
+                  sigfilename);
+      goto fail;
+    }
 
   do
     {
@@ -209,8 +214,16 @@ nasl_verify_signature (const char *filename)
       /* Search a new signature. */
       offset = g_strstr_len (offset + 1, strlen(offset), "-----B");
       if (offset)
-        if ( (endpos = g_strstr_len (offset, strlen (offset), "-----E")) )
-          siglen = (strlen(offset) - strlen(endpos) + 17);
+        {
+          if ( (endpos = g_strstr_len (offset, strlen (offset), "-----E")) )
+            siglen = (strlen(offset) - strlen(endpos) + 17);
+          else
+            {
+              nasl_trace (NULL, "nasl_verify_signature: No signature in '%s'\n",
+                          sigfilename);
+              goto fail;
+            }
+        }
 
       gpgme_data_release (sig);
       sig = NULL;

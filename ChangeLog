@@ -1,3 +1,9 @@
+2017-06-22  Juan Jose Nicola  <juan.nicola@greenbone.net>
+
+	* nasl/nasl_signature.c (nasl_verify_signature): Adjust to handle
+	case where the signature could not be parsed correctly. Initialize
+	variables.
+
 2017-06-22  Michael Wiegand <michael.wiegand@greenbone.net>
 
 	* nasl/nasl_builtin_nmap.c (dbg_display_cmdline, xmltag_open_hop): Put
