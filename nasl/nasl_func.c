@@ -32,28 +32,21 @@
 
 #include "nasl_debug.h"
 
-/** @TODO consider glibs string hashing function g_strhash */
-static int
-hash_str (const char *s)
-{
-  return hash_str2 (s, FUNC_NAME_HASH);
-}
-
 /**
  * @brief This function climbs up in the context list and searches for a given
  * @brief function.
  */
 static nasl_func *
-get_func (lex_ctxt * ctxt, const char *name, int h)
+get_func (lex_ctxt * ctxt, const char *name)
 {
-  nasl_func *v;
   lex_ctxt *c;
 
   for (c = ctxt; c != NULL; c = c->up_ctxt)
     {
-      for (v = c->functions[h]; v != NULL; v = v->next_func)
-        if (v->func_name != NULL && strcmp (name, v->func_name) == 0)
-          return v;
+      nasl_func *v = g_hash_table_lookup (c->functions, name);
+
+      if (v)
+        return v;
     }
 
   return NULL;
@@ -64,12 +57,11 @@ typedef int(*qsortcmp)(const void *, const void *);
 nasl_func *
 insert_nasl_func (lex_ctxt * lexic, const char *fname, tree_cell * decl_node, int lint_mode)
 {
-  int h = hash_str (fname);
   int i;
   nasl_func *pf;
   tree_cell *pc;
 
-  if (get_func (lexic, fname, h) != NULL)
+  if (get_func (lexic, fname))
     {
       if (lint_mode == 0)
         nasl_perror (lexic,
@@ -103,8 +95,7 @@ insert_nasl_func (lex_ctxt * lexic, const char *fname, tree_cell * decl_node, in
   if (decl_node != NULL)
     pf->nb_unnamed_args = 9999;
 
-  pf->next_func = lexic->functions[h];
-  lexic->functions[h] = pf;
+  g_hash_table_insert (lexic->functions, pf->func_name, pf);
   return pf;
 }
 
@@ -126,10 +117,9 @@ decl_nasl_func (lex_ctxt * lexic, tree_cell * decl_node, int lint_mode)
 nasl_func *
 get_func_ref_by_name (lex_ctxt * ctxt, const char *name)
 {
-  int h = hash_str (name);
   nasl_func *f;
 
-  if ((f = get_func (ctxt, name, h)) != NULL)
+  if ((f = get_func (ctxt, name)))
     return f;
   else
     return NULL;
@@ -313,8 +303,8 @@ nasl_return (lex_ctxt * ctxt, tree_cell * retv)
   return FAKE_CELL;
 }
 
-static void
-free_func (nasl_func * f)
+void
+free_func (nasl_func *f)
 {
   int i;
 
@@ -330,14 +320,4 @@ free_func (nasl_func * f)
       deref_cell (f->block);
     }
   g_free (f);
-}
-
-
-void
-free_func_chain (nasl_func * f)
-{
-  if (f == NULL)
-    return;
-  free_func_chain (f->next_func);
-  free_func (f);
 }

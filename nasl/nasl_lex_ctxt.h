@@ -43,8 +43,8 @@ typedef struct struct_lex_ctxt
   char *filename;
   /* Named variables hash set + anonymous variables array */
   nasl_array ctx_vars;
-  /* Functions hash set */
-  nasl_func *functions[FUNC_NAME_HASH];
+  /* Functions hash table */
+  GHashTable *functions;
 } lex_ctxt;
 
 #define NASL_COMPAT_LEX_CTXT	"NASL compat lex context"

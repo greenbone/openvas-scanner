@@ -29,13 +29,12 @@ lex_ctxt *
 init_empty_lex_ctxt ()
 {
   lex_ctxt *c = g_malloc0 (sizeof (lex_ctxt));
-  int i;
 
   c->ctx_vars.hash_elt = g_malloc0 (sizeof (named_nasl_var) * VAR_NAME_HASH);
   c->ctx_vars.num_elt = NULL;
   c->ctx_vars.max_idx = 0;
-  for (i = 0; i < FUNC_NAME_HASH; i++)
-    c->functions[i] = NULL;
+  c->functions = g_hash_table_new_full (g_str_hash, g_str_equal, NULL,
+                                        (GDestroyNotify) free_func);
   c->oid = NULL;
   c->ret_val = NULL;
   c->filename = NULL;
@@ -46,18 +45,9 @@ init_empty_lex_ctxt ()
 void
 free_lex_ctxt (lex_ctxt * c)
 {
-  int i;
-
-#if 0
-  if (c->exit_flag && c->up_ctxt != NULL)
-    ((lex_ctxt *) c->up_ctxt)->exit_flag = 1;
-#endif
   deref_cell (c->ret_val);
   free_array (&c->ctx_vars);
-  for (i = 0; i < FUNC_NAME_HASH; i++)
-    {
-      free_func_chain (c->functions[i]);
-    }
+  g_hash_table_destroy (c->functions);
   g_free (c);
 }
 
@@ -66,7 +56,6 @@ dump_ctxt (lex_ctxt * c)
 {
   int i;
   named_nasl_var *v;
-  nasl_func *f;
 
   printf ("--------<CTXT>--------\n");
   if (c->fct_ctxt)
@@ -83,12 +72,6 @@ dump_ctxt (lex_ctxt * c)
   for (i = 0; i < VAR_NAME_HASH; i++)
     for (v = c->ctx_vars.hash_elt[i]; v != NULL; v = v->next_var)
       printf ("%s\t", v->var_name);
-  putchar ('\n');
-
-  printf ("Functions:\n");
-  for (i = 0; i < FUNC_NAME_HASH; i++)
-    for (f = c->functions[i]; f != NULL; f = f->next_func)
-      printf ("%s\t", f->func_name);
   putchar ('\n');
 
   printf ("----------------------\n");
