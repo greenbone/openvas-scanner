@@ -21,7 +21,6 @@
 
 #define FUNC_NAME_HASH 17
 
-#define FUNC_FLAG_COMPAT (1 << 0)       /* Old interface */
 #define FUNC_FLAG_INTERNAL (1 << 1)     /* Internal C function */
 
 /**

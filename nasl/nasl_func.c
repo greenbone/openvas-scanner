@@ -147,9 +147,6 @@ extern FILE *nasl_trace_fp;
 tree_cell *
 nasl_func_call (lex_ctxt * lexic, const nasl_func * f, tree_cell * arg_list)
 {
-#if 0
-  return FAKE_CELL;
-#else
   int nb_u = 0, nb_n = 0, nb_a = 0;
   tree_cell *pc = NULL, *pc2 = NULL, *retc = NULL;
   lex_ctxt *lexic2 = NULL;
@@ -176,141 +173,114 @@ nasl_func_call (lex_ctxt * lexic, const nasl_func * f, tree_cell * arg_list)
         trace_buf_len += tn;
     }
 
-  if (!(f->flags & FUNC_FLAG_COMPAT))
+  for (pc = arg_list; pc != NULL; pc = pc->link[1])
+    if (pc->x.str_val == NULL)
+      nb_u++;
+    else
+      {
+        size_t num = f->nb_named_args;
+        if (lfind
+            (&pc->x.str_val, f->args_names, &num, sizeof (char *),
+             stringcompare) != NULL)
+          nb_n++;
+      }
+
+  if (nb_n + nb_u > f->nb_unnamed_args + f->nb_named_args)
+    nasl_perror (lexic, "Too many args for function '%s' [%dN+%dU > %dN+%dU]\n",
+                 f->func_name, nb_n, nb_u, f->nb_named_args,
+                 f->nb_unnamed_args);
+  /*
+   * I should look exactly how unnamed arguments works...
+   * Or maybe I should remove this feature?
+   */
+
+  for (nb_u = 0, pc = arg_list; pc != NULL; pc = pc->link[1])
     {
-      for (pc = arg_list; pc != NULL; pc = pc->link[1])
-        if (pc->x.str_val == NULL)
+      pc2 = cell2atom (lexic, pc->link[0]);
+      if (pc->x.str_val == NULL)
+        {
+          /* 2. Add unnamed (numbered) variables for unnamed args */
+          if (add_numbered_var_to_ctxt (lexic2, nb_u, pc2) == NULL)
+            goto error;
           nb_u++;
-        else
-          {
-            size_t num = f->nb_named_args;
-            if (lfind
-                (&pc->x.str_val, f->args_names, &num, sizeof (char *),
-                 stringcompare) != NULL)
-              nb_n++;
-          }
-
-      if (nb_n + nb_u > f->nb_unnamed_args + f->nb_named_args)
-        nasl_perror (lexic,
-                     "Too many args for function '%s' [%dN+%dU > %dN+%dU]\n",
-                     f->func_name, nb_n, nb_u, f->nb_named_args,
-                     f->nb_unnamed_args);
-      /*
-       * I should look exactly how unnamed arguments works...
-       * Or maybe I should remove this feature?
-       */
-
-      for (nb_u = 0, pc = arg_list; pc != NULL; pc = pc->link[1])
-        {
-#if 0
-          pc2 = pc->link[0];
-          ref_cell (pc2);
-          do
+          if (nasl_trace_fp != NULL && trace_buf_len < TRACE_BUF_SZ)
             {
-              pc22 = nasl_exec (lexic, pc2);
-              deref_cell (pc2);
-              pc2 = pc22;
+              tn = snprintf (trace_buf + trace_buf_len, TRACE_BUF_SZ -
+                             trace_buf_len, "%s%d: %s", nb_a > 0 ? ", " : "",
+                             nb_u, dump_cell_val (pc2));
+              if (tn > 0)
+                trace_buf_len += tn;
             }
-          while (!nasl_is_leaf (pc2));
-#else
-          pc2 = cell2atom (lexic, pc->link[0]);
-#endif
-          if (pc->x.str_val == NULL)
-            {
-              /* 2. Add unnamed (numbered) variables for unnamed args */
-              if (add_numbered_var_to_ctxt (lexic2, nb_u, pc2) == NULL)
-                goto error;
-              nb_u++;
-              if (nasl_trace_fp != NULL && trace_buf_len < TRACE_BUF_SZ)
-                {
-                  tn = snprintf (trace_buf + trace_buf_len,
-                                 TRACE_BUF_SZ - trace_buf_len, "%s%d: %s",
-                                 nb_a > 0 ? ", " : "", nb_u,
-                                 dump_cell_val (pc2));
-                  if (tn > 0)
-                    trace_buf_len += tn;
-                }
-              nb_a++;
-            }
-          else
-            {
-              /* 3. and add named variables for named args */
-              if (add_named_var_to_ctxt (lexic2, pc->x.str_val, pc2) == NULL)
-                goto error;
-              if (nasl_trace_fp != NULL && trace_buf_len < TRACE_BUF_SZ)
-                {
-                  tn = snprintf (trace_buf + trace_buf_len,
-                                 TRACE_BUF_SZ - trace_buf_len, "%s%s: %s",
-                                 nb_a > 0 ? ", " : "", pc->x.str_val,
-                                 dump_cell_val (pc2));
-                  if (tn > 0)
-                    trace_buf_len += tn;
-                }
-              nb_a++;
-            }
-          deref_cell (pc2);
-        }
-
-      if (nasl_trace_fp != NULL)
-        {
-          if (trace_buf_len < TRACE_BUF_SZ)
-            nasl_trace (lexic, "NASL> %s)\n", trace_buf);
-          else
-            nasl_trace (lexic, "NASL> %s ...)\n", trace_buf);
-          g_free (trace_buf);
-        }
-
-      /* 4. Chain new context to old (lexic) */
-      lexic2->up_ctxt = lexic;
-      /* 5. Execute */
-      if (f->flags & FUNC_FLAG_INTERNAL)
-        {
-          tree_cell *(*pf2) (lex_ctxt *) = f->block;
-          retc = pf2 (lexic2);
+          nb_a++;
         }
       else
         {
-          retc = nasl_exec (lexic2, f->block);
-          deref_cell (retc);
-          retc = FAKE_CELL;
+          /* 3. and add named variables for named args */
+          if (add_named_var_to_ctxt (lexic2, pc->x.str_val, pc2) == NULL)
+            goto error;
+          if (nasl_trace_fp != NULL && trace_buf_len < TRACE_BUF_SZ)
+            {
+              tn = snprintf (trace_buf + trace_buf_len,
+                             TRACE_BUF_SZ - trace_buf_len, "%s%s: %s",
+                             nb_a > 0 ? ", " : "", pc->x.str_val,
+                             dump_cell_val (pc2));
+              if (tn > 0)
+                trace_buf_len += tn;
+            }
+          nb_a++;
         }
-
-      if ((retc == NULL || retc == FAKE_CELL)
-          && (lexic2->ret_val != NULL && lexic2->ret_val != FAKE_CELL))
-        {
-#if 0
-          nasl_perror (lexic,
-                       "nasl_func_call: nasl_exec(%s) returns NULL or FAKE value, but context disagrees. Fixing...\n",
-                       f->func_name);
-          nasl_dump_tree (retc);
-#endif
-          retc = lexic2->ret_val;
-          ref_cell (retc);
-        }
-
-      if (nasl_trace_enabled ())
-        nasl_trace (lexic, "NASL> Return %s: %s\n", f->func_name,
-                    dump_cell_val (retc));
-#if 1
-      if (!nasl_is_leaf (retc))
-        {
-          nasl_perror (lexic,
-                       "nasl_func_call: return value from %s is not atomic!\n",
-                       f->func_name);
-          nasl_dump_tree (retc);
-        }
-#endif
-
-      free_lex_ctxt (lexic2);
-      lexic2 = NULL;
-      return retc;
+      deref_cell (pc2);
     }
 
+  if (nasl_trace_fp != NULL)
+    {
+      if (trace_buf_len < TRACE_BUF_SZ)
+        nasl_trace (lexic, "NASL> %s)\n", trace_buf);
+      else
+        nasl_trace (lexic, "NASL> %s ...)\n", trace_buf);
+      g_free (trace_buf);
+    }
+
+  /* 4. Chain new context to old (lexic) */
+  lexic2->up_ctxt = lexic;
+  /* 5. Execute */
+  if (f->flags & FUNC_FLAG_INTERNAL)
+    {
+      tree_cell *(*pf2) (lex_ctxt *) = f->block;
+      retc = pf2 (lexic2);
+    }
+  else
+    {
+      retc = nasl_exec (lexic2, f->block);
+      deref_cell (retc);
+      retc = FAKE_CELL;
+    }
+
+  if ((retc == NULL || retc == FAKE_CELL)
+      && (lexic2->ret_val != NULL && lexic2->ret_val != FAKE_CELL))
+    {
+      retc = lexic2->ret_val;
+      ref_cell (retc);
+    }
+
+  if (nasl_trace_enabled ())
+    nasl_trace (lexic, "NASL> Return %s: %s\n", f->func_name,
+                dump_cell_val (retc));
+  if (!nasl_is_leaf (retc))
+    {
+      nasl_perror (lexic,
+                   "nasl_func_call: return value from %s is not atomic!\n",
+                   f->func_name);
+      nasl_dump_tree (retc);
+    }
+
+  free_lex_ctxt (lexic2);
+  lexic2 = NULL;
+  return retc;
 
 error:
   free_lex_ctxt (lexic2);
   return NULL;
-#endif
 }
 
 tree_cell *

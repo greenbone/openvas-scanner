@@ -1,3 +1,10 @@
+2017-06-22  Hani Benhabiles  <hani.benhabiles@greenbone.net>
+
+	* nasl/nasl_func.c (nasl_func_call): Don't check for FUNC_FLAG_COMPAT as
+	it is never set.
+
+	* nasl/nasl_func.h (FUNC_FLAG_COMPAT): Remove unused flag.
+
 2017-06-22  Juan Jose Nicola  <juan.nicola@greenbone.net>
 
 	* nasl/nasl_signature.c (nasl_verify_signature): Adjust to handle
