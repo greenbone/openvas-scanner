@@ -1027,7 +1027,7 @@ nasl_ssh_login_interactive (lex_ctxt *lexic)
     {
       if (!get_authmethods (tbl_slot))
         {
-          s = NULL;
+          s = g_strdup ("");
           goto leave;
         }
     }

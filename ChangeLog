@@ -1,3 +1,8 @@
+2017-06-22  Juan Jose Nicola  <juan.nicola@greenbone.net>
+
+	* nasl/nasl_ssh.c (nasl_ssh_login_interactive): Set variable to empty
+	string if no authentication is requiered.
+
 2017-06-22  Hani Benhabiles  <hani.benhabiles@greenbone.net>
 
 	* nasl/nasl_func.h (nasl_func): Remove nb_named_args element.
