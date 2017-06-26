@@ -419,7 +419,7 @@ tls_prf (const void *secret, size_t secret_len, const void *seed,
   lslen = strlen (label) + seed_len;
   lseed = g_malloc0 (lslen);
   memcpy (lseed, label, strlen (label));
-  memcpy (lseed + strlen (label), seed, seed_len);
+  memcpy ((char *) lseed + strlen (label), seed, seed_len);
 
   Ai = hmac_func (secret, secret_len, lseed, lslen);
   if (!Ai)
@@ -434,7 +434,7 @@ tls_prf (const void *secret, size_t secret_len, const void *seed,
       /* HMAC_hash(secret, Ai + lseed) */
       tmp = g_malloc0 (hmac_size + lslen);
       memcpy (tmp, Ai, hmac_size);
-      memcpy (tmp + hmac_size, lseed, lslen);
+      memcpy ((char *) tmp + hmac_size, lseed, lslen);
       tmp2 = hmac_func (secret, secret_len, tmp, hmac_size + lslen);
       g_free (tmp);
       /* concat to result */
@@ -489,7 +489,7 @@ tls1_prf (const void *secret, size_t secret_len, const void *seed,
     }
 
   secret2 = g_malloc0 (half_slen);
-  memcpy (secret2, secret + (half_slen - odd), half_slen);
+  memcpy (secret2, (char *) secret + (half_slen - odd), half_slen);
   resultsha1 = tls_prf (secret2, half_slen, seed, seed_len, label, outlen, 3);
   if (!resultsha1)
     {
@@ -599,13 +599,13 @@ nasl_get_smb2_sign (lex_ctxt * lexic)
     }
 
   /* Zero the SMB2 signature field, then calculate signature */
-  memset(buf + 48, 0, 16);
+  memset((char *) buf + 48, 0, 16);
   signature = hmac_sha256 (key, keylen, buf, buflen);
 
   /* Return the header with signature included. */
   ret = g_malloc0 (buflen);
   memcpy (ret, buf, buflen);
-  memcpy (ret + 48, signature, 16);
+  memcpy ((char *) ret + 48, signature, 16);
   g_free (signature);
   retc = alloc_tree_cell (0, NULL, NULL);
   retc->type = CONST_DATA;

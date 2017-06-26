@@ -1,3 +1,8 @@
+2017-06-26  Hani Benhabiles  <hani.benhabiles@greenbone.net>
+
+	* nasl/nasl_crypto.c (tls_prf, nasl_get_smb2_sign): Fix void pointer
+	calculations warnings in cppcheck.
+
 2017-06-23  Juan Jose Nicola  <juan.nicola@greenbone.net>
 
 	* nasl/lint.c (nasl_lint_call): Add the file name and the line number
