@@ -1,5 +1,31 @@
 2017-06-26  Hani Benhabiles  <hani.benhabiles@greenbone.net>
 
+	* nasl/lint.c (stringcompare): Remove function.
+	(nasl_lint), nasl/exec.c (exec_nasl_script): Don't call
+	init_nasl_library().
+
+	* nasl/nasl_lex_ctxt.c (init_empty_lex_ctxt): Call init_nasl_library().
+
+	* nasl/nasl_lex_ctxt.h: Adjust function header.
+
+	* nasl/nasl_init.c (init_func): Remove unnamed and args elements.
+	(libfuncs): ADjust for struct init_func change.
+	(init_nasl_library): Don't return value. Don't copy insert functions.
+	(func_is_internal): New function.
+
+	* nasl/nasl_func.c (stringcompare): Remove function.
+	(get_func, free_func, nasl_func_call): Adjust to use func_is_internal().
+	Remove named args check.
+	(insert_nasl_func): Don't set args names and number or args.
+
+	* nasl/nasl_func.h: Remove unused definitions.
+	(nasl_func): Remove flags, nb_unnamed_args and args_names elements.
+
+	* nasl/nasl_misc_funcs.c, nasl/nasl_misc_funcs.h (nasl_func_named_args)
+	(nasl_func_unnamed_arg, nasl_func_has_arg): Remove functions.
+
+2017-06-26  Hani Benhabiles  <hani.benhabiles@greenbone.net>
+
 	* nasl/nasl_crypto.c (tls_prf, nasl_get_smb2_sign): Fix void pointer
 	calculations warnings in cppcheck.
 

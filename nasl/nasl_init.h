@@ -18,5 +18,5 @@
 
 #ifndef NASL_INIT_H
 #define NASL_INIT_H
-int init_nasl_library (lex_ctxt *);
+void init_nasl_library (lex_ctxt *);
 #endif

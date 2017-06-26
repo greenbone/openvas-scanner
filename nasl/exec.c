@@ -1780,12 +1780,6 @@ exec_nasl_script (struct script_infos *script_infos, const char *name,
 
   lexic->recv_timeout = to;
 
- /** @todo Initialization of the library seems intuitively be necessary only
-  *        once (involves "linking" the nasl functions to c code).
-  *        Consider a "prototype" context that has to be created only once and
-  *        of which copies are made when needed. */
-  init_nasl_library (lexic);
-
   process_id = getpid ();
   if (mode & NASL_LINT)
     {

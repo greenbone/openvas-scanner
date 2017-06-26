@@ -68,15 +68,6 @@ nasl_lint_def (lex_ctxt * lexic, tree_cell * st, int lint_mode)
     }
 }
 
-
-int stringcompare (char *list_data_a, char *list_data_b)
-{
-  if (list_data_a)
-    return g_strcmp0 (list_data_a, list_data_b);
-  return 1;
-}
-
-
 tree_cell *
 nasl_lint_call (lex_ctxt * lexic, tree_cell * st, int *defined_flag)
 {
@@ -129,7 +120,6 @@ nasl_lint (lex_ctxt * lexic, tree_cell * st)
   lexic_aux = init_empty_lex_ctxt ();
   lexic_aux->script_infos = lexic->script_infos;
   lexic_aux->oid = lexic->oid;
-  init_nasl_library (lexic_aux);
 
   /* first loads all defined functions*/
   if ((ret = nasl_lint_def (lexic_aux, st, lint_mode)) == NULL)

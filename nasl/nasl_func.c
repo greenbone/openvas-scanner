@@ -49,7 +49,7 @@ get_func (lex_ctxt * ctxt, const char *name)
         return v;
     }
 
-  return NULL;
+  return func_is_internal (name);
 }
 
 typedef int(*qsortcmp)(const void *, const void *);
@@ -57,9 +57,7 @@ typedef int(*qsortcmp)(const void *, const void *);
 nasl_func *
 insert_nasl_func (lex_ctxt * lexic, const char *fname, tree_cell * decl_node, int lint_mode)
 {
-  int i;
   nasl_func *pf;
-  tree_cell *pc;
 
   if (get_func (lexic, fname))
     {
@@ -74,25 +72,9 @@ insert_nasl_func (lex_ctxt * lexic, const char *fname, tree_cell * decl_node, in
 
   if (decl_node != NULL && decl_node != FAKE_CELL)
     {
-      int nb_named_args = 0;
-      for (pc = decl_node->link[0]; pc != NULL; pc = pc->link[0])
-        if (pc->x.str_val == NULL)
-          pf->nb_unnamed_args++;
-        else
-          nb_named_args++;
-
-      pf->args_names = g_malloc0 (sizeof (char *) * (nb_named_args + 1));
-      for (i = 0, pc = decl_node->link[0]; pc != NULL; pc = pc->link[0])
-        if (pc->x.str_val != NULL)
-          pf->args_names[i++] = g_strdup (pc->x.str_val);
-
       pf->block = decl_node->link[1];
       ref_cell (pf->block);
     }
-  /* Allow variable number of arguments for user defined functions */
-  if (decl_node != NULL)
-    pf->nb_unnamed_args = 9999;
-
   g_hash_table_insert (lexic->functions, pf->func_name, pf);
   return pf;
 }
@@ -123,19 +105,12 @@ get_func_ref_by_name (lex_ctxt * ctxt, const char *name)
     return NULL;
 }
 
-static int
-stringcompare (const void *a, const void *b)
-{
-  char **s1 = (char **) a, **s2 = (char **) b;
-  return strcmp (*s1, *s2);
-}
-
 extern FILE *nasl_trace_fp;
 
 tree_cell *
 nasl_func_call (lex_ctxt * lexic, const nasl_func * f, tree_cell * arg_list)
 {
-  int nb_u = 0, nb_n = 0, nb_a = 0;
+  int nb_u = 0, nb_a = 0;
   tree_cell *pc = NULL, *pc2 = NULL, *retc = NULL;
   lex_ctxt *lexic2 = NULL;
   char *trace_buf = NULL;
@@ -164,19 +139,7 @@ nasl_func_call (lex_ctxt * lexic, const nasl_func * f, tree_cell * arg_list)
   for (pc = arg_list; pc != NULL; pc = pc->link[1])
     if (pc->x.str_val == NULL)
       nb_u++;
-    else
-      {
-        size_t num = g_strv_length (f->args_names);
-        if (lfind
-            (&pc->x.str_val, f->args_names, &num, sizeof (char *),
-             stringcompare) != NULL)
-          nb_n++;
-      }
 
-  if (nb_n + nb_u > f->nb_unnamed_args + (int) g_strv_length (f->args_names))
-    nasl_perror (lexic, "Too many args for function '%s' [%dN+%dU > %dN+%dU]\n",
-                 f->func_name, nb_n, nb_u, g_strv_length (f->args_names),
-                 f->nb_unnamed_args);
   /*
    * I should look exactly how unnamed arguments works...
    * Or maybe I should remove this feature?
@@ -232,7 +195,7 @@ nasl_func_call (lex_ctxt * lexic, const nasl_func * f, tree_cell * arg_list)
   /* 4. Chain new context to old (lexic) */
   lexic2->up_ctxt = lexic;
   /* 5. Execute */
-  if (f->flags & FUNC_FLAG_INTERNAL)
+  if (func_is_internal (f->func_name))
     {
       tree_cell *(*pf2) (lex_ctxt *) = f->block;
       retc = pf2 (lexic2);
@@ -308,9 +271,8 @@ free_func (nasl_func *f)
 
   g_free (f->func_name);
 
-  if (!(f->flags & FUNC_FLAG_INTERNAL))
+  if (!func_is_internal (f->func_name))
     {
-      g_strfreev (f->args_names);
       deref_cell (f->block);
     }
   g_free (f);

@@ -19,21 +19,16 @@
 #ifndef NASL_FUNC_H_INCLUDED
 #define NASL_FUNC_H_INCLUDED
 
-#define FUNC_NAME_HASH 17
-
-#define FUNC_FLAG_INTERNAL (1 << 1)     /* Internal C function */
-
 /**
  * Type for a built-in nasl function.
  */
 typedef struct st_nasl_func
 {
   char *func_name;
-  int flags;
-  int nb_unnamed_args;
-  char **args_names;
   void *block;                  /* Can be pointer to a C function! */
 } nasl_func;
+
+nasl_func *func_is_internal (const char *);
 
 void free_func (nasl_func *);
 
