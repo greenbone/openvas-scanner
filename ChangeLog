@@ -1,3 +1,9 @@
+2017-06-27  Michael Wiegand <michael.wiegand@greenbone.net>
+
+	* misc/network.c (read_stream_connection_unbuffered): Do not try to
+	store errno in 'fp->last_err'. This only makes sense when this is an
+	"openvas connection", otherwise 'fp' is still NULL.
+
 2017-06-27  Juan Jose Nicola  <juan.nicola@greenbone.net>
 
 	* src/nasl_plugins.c (nasl_plugin_add): Add the script timeout to

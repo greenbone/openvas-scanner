@@ -1256,14 +1256,12 @@ read_stream_connection_unbuffered (int fd, void *buf0, int min_len, int max_len)
               if (ret < 0)
                 if (errno != EINTR)
                   {
-                    fp->last_err = errno;
                     return total;
                   }
                 else
                   ret = 0;
               else if (ret == 0)        /* EOF */
                 {
-                  fp->last_err = EPIPE;
                   return total;
                 }
               /*ret > 0 */
@@ -1273,8 +1271,6 @@ read_stream_connection_unbuffered (int fd, void *buf0, int min_len, int max_len)
               flag = 0;
             }
         }
-      if (t >= timeout)
-        fp->last_err = ETIMEDOUT;
       return total;
     }
 
