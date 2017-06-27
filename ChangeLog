@@ -1,5 +1,11 @@
 2017-06-27  Juan Jose Nicola  <juan.nicola@greenbone.net>
 
+	* Changelog: Add more info to the previous entry.
+
+2017-06-27  Juan Jose Nicola  <juan.nicola@greenbone.net>
+
+	Backport r28816. With adjustments due to code changes.
+
 	* src/nasl_plugins.c (nasl_plugin_add): Add the script timeout to
 	the preferences list to be passed to manager.
 
