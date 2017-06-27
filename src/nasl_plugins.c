@@ -157,6 +157,14 @@ nasl_plugin_add (char *folder, char *filename)
       if (nvti_oid (new_nvti))
         {
           nvticache_add (new_nvti, filename);
+          if (new_nvti->timeout)
+            {
+              gchar def_val[5];
+              nvtpref_t *np;
+              snprintf (def_val, 5, "%d", new_nvti->timeout);
+              np = nvtpref_new ("Script timeout", "entry", def_val);
+              nvti_add_pref (new_nvti, np);
+            }
           prefs_add_nvti (new_nvti->name, new_nvti->prefs);
         }
       else
@@ -169,9 +177,18 @@ nasl_plugin_add (char *folder, char *filename)
     {
       char *oid = nvticache_get_oid (filename);
       GSList *prefs = nvticache_get_prefs (oid);
-      if (prefs)
+      int timeout = nvticache_get_timeout (oid);
+
+      if (prefs || (timeout > 0))
         {
           char *name = nvticache_get_name (oid);
+          if (timeout > 0)
+            {
+              gchar def_val[5];
+              snprintf (def_val, 5, "%d", timeout);
+              nvtpref_t *np = nvtpref_new ("Script timeout", "entry", def_val);
+              prefs = g_slist_append (prefs, np);
+            }
           prefs_add_nvti (name, prefs);
           g_free (name);
         }
