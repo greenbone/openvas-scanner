@@ -1,3 +1,8 @@
+2017-06-27  Hani Benhabiles  <hani.benhabiles@greenbone.net>
+
+	* nasl/nasl_init.c (libvars): Remove unused global variable
+	pcap_timeout.
+
 2017-06-27  Michael Wiegand <michael.wiegand@greenbone.net>
 
 	* misc/network.c (read_stream_connection_unbuffered): Do not try to

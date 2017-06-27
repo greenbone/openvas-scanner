@@ -395,8 +395,6 @@ static struct
   {
   "FALSE", 0},
   {
-  "pcap_timeout", 5},
-  {
   "IPPROTO_TCP", IPPROTO_TCP},
   {
   "IPPROTO_UDP", IPPROTO_UDP},
