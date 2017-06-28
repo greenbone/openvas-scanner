@@ -25,7 +25,6 @@
 #define YYLEX_PARAM parm
 
 #define LNB	(((naslctxt*)parm)->line_nb)
-#define FNAME	(((naslctxt*)parm)->filename)
 
 #include <ctype.h> /* for isalpha */
 #include <pcap.h> /* for islocalhost */
@@ -156,7 +155,6 @@ instr_decl_list: instr_decl
 	{
 	  $$ = alloc_tree_cell();
           $$->line_nb = LNB;
-          $$->filename = g_strdup (FNAME);
 	  $$->type = NODE_INSTR_L;
 	  $$->link[0] = $1;
 	}
@@ -164,7 +162,6 @@ instr_decl_list: instr_decl
 	{
 	  $$ = alloc_tree_cell();
           $$->line_nb = LNB;
-          $$->filename = g_strdup (FNAME);
 	  $$->type = NODE_INSTR_L;
 	  $$->link[0] = $1;
 	  $$->link[1] = $2;
@@ -177,7 +174,6 @@ func_decl: FUNCTION identifier '(' arg_decl ')' block
 	  $$ = alloc_tree_cell();
           $$->line_nb = LNB;
           $$->x.str_val = $2;
-          $$->filename = g_strdup (FNAME);
 	  $$->type = NODE_FUN_DEF;
 	  $$->link[0] = $4;
 	  $$->link[1] = $6;
@@ -189,7 +185,6 @@ arg_decl_1: identifier
           $$ = alloc_tree_cell();
           $$->line_nb = LNB;
           $$->x.str_val = $1;
-          $$->filename = g_strdup (FNAME);
           $$->type = NODE_DECL;
         }
 	| identifier ',' arg_decl_1
@@ -197,7 +192,6 @@ arg_decl_1: identifier
 	  $$ = alloc_tree_cell();
           $$->line_nb = LNB;
           $$->x.str_val = $1;
-          $$->filename = g_strdup (FNAME);
 	  $$->type = NODE_DECL;
 	  $$->link[0] = $3;
 	};
@@ -213,7 +207,6 @@ instr_list: instr
 	    {
 	      $$ = alloc_tree_cell();
               $$->line_nb = LNB;
-              $$->filename = g_strdup (FNAME);
 	      $$->type = NODE_INSTR_L;
 	      $$->link[0] = $1;
 	      $$->link[1] = $2;
@@ -229,13 +222,11 @@ simple_instr : aff | post_pre_incr | rep
 	| BREAK {
 	  $$ = alloc_tree_cell();
           $$->line_nb = LNB;
-          $$->filename = g_strdup (FNAME);
 	  $$->type =  NODE_BREAK;
 	}
 	| CONTINUE {
 	  $$ = alloc_tree_cell();
           $$->line_nb = LNB;
-          $$->filename = g_strdup (FNAME);
 	  $$->type =  NODE_CONTINUE;
 	}
 	| /* nop */ { $$ = NULL; };
@@ -245,7 +236,6 @@ ret: RETURN expr
 	{
 	  $$ = alloc_tree_cell();
           $$->line_nb = LNB;
-          $$->filename = g_strdup (FNAME);
 	  $$->type =  NODE_RETURN;
 	  $$->link[0] = $2;
 	} |
@@ -253,7 +243,6 @@ ret: RETURN expr
 	{
 	  $$ = alloc_tree_cell();
           $$->line_nb = LNB;
-          $$->filename = g_strdup (FNAME);
 	  $$->type =  NODE_RETURN;
 	} ;
 
@@ -262,7 +251,6 @@ if_block: IF '(' expr ')' instr
 	{
 	  $$ = alloc_tree_cell();
           $$->line_nb = LNB;
-          $$->filename = g_strdup (FNAME);
 	  $$->type = NODE_IF_ELSE;
 	  $$->link[0] = $3; $$->link[1] = $5;
 	}
@@ -270,7 +258,6 @@ if_block: IF '(' expr ')' instr
 	{
 	  $$ = alloc_tree_cell();
           $$->line_nb = LNB;
-          $$->filename = g_strdup (FNAME);
 	  $$->type = NODE_IF_ELSE;
 	  $$->link[0] = $3; $$->link[1] = $5; $$->link[2] = $7;
 	};
@@ -281,7 +268,6 @@ for_loop : FOR '(' aff_func ';' expr ';' aff_func ')' instr
 	{
 	  $$ = alloc_tree_cell();
           $$->line_nb = LNB;
-          $$->filename = g_strdup (FNAME);
 	  $$->type = NODE_FOR;
 	  $$->link[0] = $3;
 	  $$->link[1] = $5;
@@ -293,7 +279,6 @@ while_loop : WHILE '(' expr ')' instr
 	{
 	  $$ = alloc_tree_cell();
           $$->line_nb = LNB;
-          $$->filename = g_strdup (FNAME);
 	  $$->type = NODE_WHILE;
 	  $$->link[0] = $3;
 	  $$->link[1] = $5;
@@ -302,7 +287,6 @@ repeat_loop : REPEAT instr UNTIL expr ';'
 	{
 	  $$ = alloc_tree_cell();
           $$->line_nb = LNB;
-          $$->filename = g_strdup (FNAME);
 	  $$->type = NODE_REPEAT_UNTIL;
 	  $$->link[0] = $2;
 	  $$->link[1] = $4;
@@ -313,7 +297,6 @@ foreach_loop : FOREACH identifier '(' expr ')'  instr
 	  $$ = alloc_tree_cell();
           $$->line_nb = LNB;
           $$->x.str_val = $2;
-          $$->filename = g_strdup (FNAME);
 	  $$->type = NODE_FOREACH;
 	  $$->link[0] = $4;
 	  $$->link[1] = $6;
@@ -327,7 +310,6 @@ rep: func_call REP expr
 	{
 	  $$ = alloc_tree_cell();
           $$->line_nb = LNB;
-          $$->filename = g_strdup (FNAME);
 	  $$->type = NODE_REPEATED;
 	  $$->link[0] = $1;
 	  $$->link[1] = $3;
@@ -351,13 +333,10 @@ inc: INCLUDE '(' string ')'
 	      if (! naslparse(&subctx))
 		{
 		  $$ = subctx.tree;
-                  $$->filename = g_strdup (subctx.filename);
 		}
 	      else
 		nasl_perror(NULL, "%s: Parse error at or near line %d\n",
 			$3, subctx.line_nb);
-              g_free(subctx.filename);
-              subctx.filename = NULL;
 	      g_free(subctx.buffer);
 	      subctx.buffer = NULL;
 	      fclose(subctx.fp);
@@ -377,7 +356,6 @@ func_call: identifier '(' arg_list ')'
 	  $$ = alloc_tree_cell();
           $$->line_nb = LNB;
           $$->x.str_val = $1;
-          $$->filename = g_strdup (FNAME);
 	  $$->type = NODE_FUN_CALL;
 	  $$->link[0] = $3;
 	};
@@ -393,7 +371,6 @@ arg : expr
 	{
 	  $$ = alloc_tree_cell();
           $$->line_nb = LNB;
-          $$->filename = g_strdup (FNAME);
 	  $$->type = NODE_ARG;
 	  $$->link[0] = $1;
 	}
@@ -402,7 +379,6 @@ arg : expr
 	  $$ = alloc_tree_cell();
           $$->line_nb = LNB;
           $$->x.str_val = $1;
-          $$->filename = g_strdup (FNAME);
 	  $$->type = NODE_ARG;
 	  $$->link[0] = $3;
 	} ;
@@ -426,7 +402,6 @@ lvalue:	identifier
         { $$ = alloc_tree_cell();
           $$->line_nb = LNB;
           $$->x.str_val = $1;
-          $$->filename = g_strdup (FNAME);
           $$->type = NODE_VAR;
         } | array_elem ;
 
@@ -437,7 +412,6 @@ array_elem: identifier '[' array_index ']'
 	  $$ = alloc_tree_cell();
           $$->line_nb = LNB;
           $$->x.str_val = $1;
-          $$->filename = g_strdup (FNAME);
 	  $$->type = NODE_ARRAY_EL;
 	  $$->link[0] = $3;
 	} ;
@@ -517,7 +491,6 @@ var:    var_name
           $$ = alloc_tree_cell();
           $$->line_nb = LNB;
           $$->x.str_val = $1;
-          $$->filename = g_strdup (FNAME);
           $$->type = NODE_VAR;
         }
 	| array_elem | func_call;
@@ -530,7 +503,6 @@ ipaddr: INTEGER '.' INTEGER '.' INTEGER '.' INTEGER
 	  $$ = alloc_tree_cell();
           $$->line_nb = LNB;
           $$->x.str_val = s;
-          $$->filename = g_strdup (FNAME);
 	  $$->type = CONST_STR;
 	  $$->size = strlen(s);
 	};
@@ -540,7 +512,6 @@ loc: LOCAL arg_decl
 	{
 	  $$ = alloc_tree_cell();
           $$->line_nb = LNB;
-          $$->filename = g_strdup (FNAME);
 	  $$->type = NODE_LOCAL;
 	  $$->link[0] = $2;
 	};
@@ -550,7 +521,6 @@ glob: GLOBAL arg_decl
 	{
 	  $$ = alloc_tree_cell();
           $$->line_nb = LNB;
-          $$->filename = g_strdup (FNAME);
 	  $$->type = NODE_GLOBAL;
 	  $$->link[0] = $2;
 	};
@@ -663,14 +633,12 @@ init_nasl_ctx(naslctxt* pc, const char* name)
   if (! inc_dirs) add_nasl_inc_dir("");
 
   pc->line_nb = 1;
-  pc->filename = NULL;
   pc->tree = NULL;
   pc->buffer = g_malloc0 (80);
   pc->maxlen = 80;
   pc->fp = NULL;
 
-  pc->filename = g_strdup (name);
-
+  nasl_set_filename (name);
   while (inc_dir != NULL) {
     if (full_name)
       g_free (full_name);
@@ -755,8 +723,6 @@ nasl_clean_ctx(naslctxt* c)
   deref_cell(c->tree);
   g_free(c->buffer);
   c->buffer = NULL;
-  g_free(c->filename);
-  c->filename = NULL;
   if (c->fp)
     {
       fclose(c->fp);

@@ -106,7 +106,6 @@ typedef struct TC
 {
   short type;
   short line_nb;
-  char *filename;
   short ref_count;              /* Cell is freed when count reaches zero */
   int size;
   union

@@ -132,11 +132,6 @@ free_tree (tree_cell * c)
   for (i = 0; i < 4; i++)
     if (c->link[i] != NULL)
       deref_cell (c->link[i]);
-  if (c->filename)
-    {
-      g_free (c->filename);
-      c->filename = NULL;
-   }
 
   if (c->x.str_val != NULL)
     switch (c->type)

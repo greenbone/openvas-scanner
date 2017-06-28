@@ -801,11 +801,7 @@ nasl_exec (lex_ctxt * lexic, tree_cell * st)
 #endif
 
   if (st)
-    {
-      lexic->line_nb = st->line_nb;
-      if (st->filename)
-        lexic->filename = g_strdup (st->filename);
-    }
+    lexic->line_nb = st->line_nb;
   /* return */
   if (lexic->ret_val != NULL)
     {
@@ -1770,7 +1766,7 @@ exec_nasl_script (struct script_infos *script_infos, const char *name,
   lexic = init_empty_lex_ctxt ();
   lexic->script_infos = script_infos;
   lexic->oid = oid;
-  lexic->filename = g_strdup (name);
+  nasl_set_filename (name);
 
   str = prefs_get ("checks_read_timeout");
   if (str != NULL)

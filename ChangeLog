@@ -1,5 +1,30 @@
 2017-06-28  Hani Benhabiles  <hani.benhabiles@greenbone.net>
 
+	Remove repetitive filename duplications during parsing. Improves fresh
+	load-up time.
+
+	* nasl/nasl_debug.c (nasl_set_filename): New function.
+	(nasl_perror): Use value set by new function instead of filename element
+	in lex_ctxt.
+
+	* nasl/nasl_debug.h: Add new function prototype.
+
+	* nasl/nasl_global_ctxt.h (lex_ctxt): Remove filename element.
+
+	* nasl/exec.c (nasl_exec, exec_nasl_script): Call nasl_set_filename().
+
+	* nasl/lint.c (nasl_lint_call), nasl/nasl_tree.c (free_tree): Remove
+	filename handling.
+
+	* nasl/nasl_tree.h (tree_cell): Remove filename element.
+
+	* nasl/nasl_grammar.y (FNAME): Remove macro.
+	(nasllex): Don't duplicate context filename.
+	(init_nasl_ctxt): Call nasl_set_filename().
+	(nasl_clean_ctxt): Don't free filename.
+
+2017-06-28  Hani Benhabiles  <hani.benhabiles@greenbone.net>
+
 	* nasl/nasl_tree.c (allloc_tree_cell): Remove unneeded initializations.
 	Remove function parameters.
 
