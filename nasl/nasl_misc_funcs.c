@@ -58,7 +58,7 @@ nasl_rand (lex_ctxt * lexic)
 {
   (void) lexic;
   tree_cell *retc;
-  retc = alloc_tree_cell (0, NULL, NULL);
+  retc = alloc_tree_cell ();
   retc->type = CONST_INT;
   retc->x.i_val = lrand48 ();
   return retc;
@@ -106,7 +106,7 @@ nasl_ftp_log_in (lex_ctxt * lexic)
 
   res = ftp_log_in (soc, u, p) == 0;
 
-  retc = alloc_tree_cell (0, NULL, NULL);
+  retc = alloc_tree_cell ();
   retc->type = CONST_INT;
   retc->x.i_val = res;
 
@@ -127,7 +127,7 @@ nasl_ftp_get_pasv_address (lex_ctxt * lexic)
   bzero (&addr, sizeof (addr));
   ftp_get_pasv_address (soc, &addr);
 
-  retc = alloc_tree_cell (0, NULL, NULL);
+  retc = alloc_tree_cell ();
   retc->type = CONST_INT;
   retc->x.i_val = ntohs (addr.sin_port);
   return retc;
@@ -263,7 +263,7 @@ nasl_end_denial (lex_ctxt * lexic)
         return nasl_tcp_ping (lexic);
       else
         {
-          retc = alloc_tree_cell (0, NULL, NULL);
+          retc = alloc_tree_cell ();
           retc->type = CONST_INT;
           retc->x.i_val = 1;
           return retc;
@@ -271,7 +271,7 @@ nasl_end_denial (lex_ctxt * lexic)
     }
   else
     {
-      retc = alloc_tree_cell (0, NULL, NULL);
+      retc = alloc_tree_cell ();
       retc->type = CONST_INT;
 
       soc = open_stream_connection (script_infos, port, OPENVAS_ENCAPS_IP, to);
@@ -321,7 +321,7 @@ tree_cell *
 nasl_do_exit (lex_ctxt * lexic)
 {
   int retcode = get_int_var_by_num (lexic, 0, 0);
-  tree_cell *retc = alloc_tree_cell (0, NULL, NULL);
+  tree_cell *retc = alloc_tree_cell ();
 
   retc->type = CONST_INT;
   retc->x.i_val = retcode;
@@ -352,7 +352,7 @@ nasl_isnull (lex_ctxt * lexic)
   tree_cell *retc;
 
   t = get_var_type_by_num (lexic, 0);
-  retc = alloc_tree_cell (0, NULL, NULL);
+  retc = alloc_tree_cell ();
   retc->type = CONST_INT;
   retc->x.i_val = (t == VAR2_UNDEF);
   return retc;
@@ -373,7 +373,7 @@ nasl_make_list (lex_ctxt * lexic)
   nasl_array *a, *a2;
 
 
-  retc = alloc_tree_cell (0, NULL, NULL);
+  retc = alloc_tree_cell ();
   retc->type = DYN_ARRAY;
   retc->x.ref_val = a = g_malloc0 (sizeof (nasl_array));
 
@@ -442,7 +442,7 @@ nasl_make_array (lex_ctxt * lexic)
   nasl_array *a;
 
 
-  retc = alloc_tree_cell (0, NULL, NULL);
+  retc = alloc_tree_cell ();
   retc->type = DYN_ARRAY;
   retc->x.ref_val = a = g_malloc0 (sizeof (nasl_array));
 
@@ -493,7 +493,7 @@ nasl_keys (lex_ctxt * lexic)
   nasl_array *a, *a2;
   int i, j, vi;
 
-  retc = alloc_tree_cell (0, NULL, NULL);
+  retc = alloc_tree_cell ();
   retc->type = DYN_ARRAY;
   retc->x.ref_val = a2 = g_malloc0 (sizeof (nasl_array));
 
@@ -547,7 +547,7 @@ nasl_max_index (lex_ctxt * lexic)
 
   a = &v->v.v_arr;
 
-  retc = alloc_tree_cell (0, NULL, NULL);
+  retc = alloc_tree_cell ();
   retc->type = CONST_INT;
   retc->x.i_val = array_max_index (a);
 
@@ -561,7 +561,7 @@ nasl_typeof (lex_ctxt * lexic)
   anon_nasl_var *u;
   const char *s;
 
-  retc = alloc_tree_cell (0, NULL, NULL);
+  retc = alloc_tree_cell ();
   retc->type = CONST_DATA;
   u = nasl_get_var_by_num (lexic, &lexic->ctx_vars, 0, 0);
 
@@ -609,7 +609,7 @@ nasl_defined_func (lex_ctxt * lexic)
     }
 
   f = get_func_ref_by_name (lexic, s);
-  retc = alloc_tree_cell (0, NULL, NULL);
+  retc = alloc_tree_cell ();
   retc->type = CONST_INT;
   retc->x.i_val = (f != NULL);
   return retc;
@@ -833,7 +833,7 @@ nasl_gunzip (lex_ctxt * lexic)
   if (uncompressed == NULL)
     return NULL;
 
-  retc = alloc_tree_cell (0, NULL, NULL);
+  retc = alloc_tree_cell ();
   retc->type = CONST_DATA;
   retc->size = uncomplen;
   retc->x.str_val = uncompressed;
@@ -859,7 +859,7 @@ nasl_gzip (lex_ctxt * lexic)
   if (compressed == NULL)
     return NULL;
 
-  retc = alloc_tree_cell (0, NULL, NULL);
+  retc = alloc_tree_cell ();
   retc->type = CONST_DATA;
   retc->size = complen;
   retc->x.str_val = compressed;
@@ -882,7 +882,7 @@ nasl_dec2str (lex_ctxt * lexic)
   char *ret = g_malloc0 (sizeof (num));
   SIVAL (ret, 0, num);
   tree_cell *retc;
-  retc = alloc_tree_cell (0, NULL, NULL);
+  retc = alloc_tree_cell ();
   retc->type = CONST_DATA;
   retc->size = sizeof (num);
   retc->x.str_val = ret;

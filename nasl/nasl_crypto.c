@@ -99,7 +99,7 @@ nasl_gcrypt_hash (lex_ctxt * lexic, int algorithm, void *data, size_t datalen,
 
   gcry_md_write (hd, data, datalen);
 
-  retc = alloc_tree_cell (0, NULL, NULL);
+  retc = alloc_tree_cell ();
   retc->type = CONST_DATA;
   retc->x.str_val = g_memdup (gcry_md_read (hd, algorithm), dlen + 1);
   retc->size = dlen;
@@ -180,7 +180,7 @@ nasl_cipher (int algorithm, void *data, size_t dlen, void *key, size_t klen)
     }
   gcry_cipher_close (hd);
 
-  retc = alloc_tree_cell (0, NULL, NULL);
+  retc = alloc_tree_cell ();
   retc->type = CONST_DATA;
   retc->x.str_val = result;
   retc->size = dlen;
@@ -265,7 +265,7 @@ nasl_get_sign (lex_ctxt * lexic)
   char *ret = g_malloc0 (buflen);
   memcpy (ret, buf, buflen);
   tree_cell *retc;
-  retc = alloc_tree_cell (0, NULL, NULL);
+  retc = alloc_tree_cell ();
   retc->type = CONST_DATA;
   retc->size = buflen;
   retc->x.str_val = (char *) ret;
@@ -368,7 +368,7 @@ nasl_hmac_sha256 (lex_ctxt * lexic)
     }
   signature = hmac_sha256 (key, keylen, data, datalen);
 
-  retc = alloc_tree_cell (0, NULL, NULL);
+  retc = alloc_tree_cell ();
   retc->type = CONST_DATA;
   retc->size = 32;
   retc->x.str_val = (char *) signature;
@@ -544,7 +544,7 @@ nasl_prf (lex_ctxt * lexic, int hmac)
   if (!result)
     return NULL;
 
-  retc = alloc_tree_cell (0, NULL, NULL);
+  retc = alloc_tree_cell ();
   retc->type = CONST_DATA;
   retc->size = outlen;
   retc->x.str_val = (char *) result;
@@ -607,7 +607,7 @@ nasl_get_smb2_sign (lex_ctxt * lexic)
   memcpy (ret, buf, buflen);
   memcpy ((char *) ret + 48, signature, 16);
   g_free (signature);
-  retc = alloc_tree_cell (0, NULL, NULL);
+  retc = alloc_tree_cell ();
   retc->type = CONST_DATA;
   retc->size = buflen;
   retc->x.str_val = (char *) ret;
@@ -651,7 +651,7 @@ nasl_ntlmv2_response (lex_ctxt * lexic)
   memcpy (ret + lm_response_len, session_key, sizeof (session_key));
   memcpy (ret + lm_response_len + sizeof (session_key), nt_response,
           nt_response_len);
-  retc = alloc_tree_cell (0, NULL, NULL);
+  retc = alloc_tree_cell ();
   retc->type = CONST_DATA;
   retc->size = len;
   retc->x.str_val = ret;
@@ -687,7 +687,7 @@ nasl_ntlm2_response (lex_ctxt * lexic)
   memcpy (ret + sizeof (lm_response), nt_response, sizeof (nt_response));
   memcpy (ret + sizeof (lm_response) + sizeof (nt_response), session_key,
           sizeof (session_key));
-  retc = alloc_tree_cell (0, NULL, NULL);
+  retc = alloc_tree_cell ();
   retc->type = CONST_DATA;
   retc->size = len;
   retc->x.str_val = ret;
@@ -726,7 +726,7 @@ nasl_ntlm_response (lex_ctxt * lexic)
   memcpy (ret + sizeof (lm_response), nt_response, sizeof (nt_response));
   memcpy (ret + sizeof (lm_response) + sizeof (nt_response), session_key,
           sizeof (session_key));
-  retc = alloc_tree_cell (0, NULL, NULL);
+  retc = alloc_tree_cell ();
   retc->type = CONST_DATA;
   retc->size = len;
   retc->x.str_val = ret;
@@ -757,7 +757,7 @@ nasl_keyexchg (lex_ctxt * lexic)
   char *ret = g_malloc0 (len);
   memcpy (ret, new_sess_key, 16);
   memcpy (ret + 16, encrypted_session_key, 16);
-  retc = alloc_tree_cell (0, NULL, NULL);
+  retc = alloc_tree_cell ();
   retc->type = CONST_DATA;
   retc->size = len;
   retc->x.str_val = ret;
@@ -789,7 +789,7 @@ nasl_ntlmv1_hash (lex_ctxt * lexic)
   ret = g_malloc0 (24);
 
   E_P24 (p21, cryptkey, ret);
-  retc = alloc_tree_cell (0, NULL, NULL);
+  retc = alloc_tree_cell ();
   retc->type = CONST_DATA;
   retc->size = 24;
   retc->x.str_val = (char *) ret;
@@ -839,7 +839,7 @@ nasl_lm_owf_gen (lex_ctxt * lexic)
 
   E_P16 (pwd, p16);
 
-  retc = alloc_tree_cell (0, NULL, NULL);
+  retc = alloc_tree_cell ();
   retc->type = CONST_DATA;
   retc->size = 16;
   retc->x.str_val = g_memdup (p16, 16);
@@ -881,7 +881,7 @@ nasl_insert_hexzeros (lex_ctxt * lexic)
   /* We don't want null termination */
   byte_len = byte_len - 2;
 
-  retc = alloc_tree_cell (0, NULL, NULL);
+  retc = alloc_tree_cell ();
   retc->type = CONST_DATA;
   retc->size = byte_len;
   retc->x.str_val = (char *) out;
@@ -969,7 +969,7 @@ nasl_ntv2_owf_gen (lex_ctxt * lexic)
   g_free (user);
   g_free (domain);
 
-  retc = alloc_tree_cell (0, NULL, NULL);
+  retc = alloc_tree_cell ();
   retc->type = CONST_DATA;
   retc->size = 16;
   retc->x.str_val = (char *) kr_buf;
@@ -1022,7 +1022,7 @@ nasl_ntlmv2_hash (lex_ctxt * lexic)
 
   g_free (ntlmv2_client_data);
 
-  retc = alloc_tree_cell (0, NULL, NULL);
+  retc = alloc_tree_cell ();
   retc->type = CONST_DATA;
   retc->size = client_chal_length + sizeof (ntlmv2_response);
   retc->x.str_val = (char *) final_response;

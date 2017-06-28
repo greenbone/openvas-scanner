@@ -121,7 +121,7 @@ typedef struct TC
 #define FAKE_CELL	((void*)1)
 #define EXIT_CELL	((void*)2)
 
-tree_cell *alloc_tree_cell (int, char *, char *);
+tree_cell *alloc_tree_cell (void);
 tree_cell *alloc_expr_cell (int, int, tree_cell *, tree_cell *);
 tree_cell *alloc_RE_cell (int, int, tree_cell *, char *);
 tree_cell *alloc_typed_cell (int);

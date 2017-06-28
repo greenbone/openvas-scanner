@@ -465,7 +465,7 @@ build_hostname_list (ksba_cert_t cert)
   if (!name)
     return NULL; /* No valid subject.  */
 
-  retc = alloc_tree_cell (0, NULL, NULL);
+  retc = alloc_tree_cell ();
   retc->type = DYN_ARRAY;
   retc->x.ref_val = a = g_malloc0 (sizeof *a);
   arridx = 0;
