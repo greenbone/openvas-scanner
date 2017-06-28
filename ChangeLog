@@ -1,3 +1,10 @@
+2017-06-28  Juan Jose Nicola  <juan.nicola@greenbone.net>
+
+	Backport r28816. With adjustments due to code changes.
+
+	* src/nasl_plugins.c (nasl_plugin_add): Add the script timeout to
+	the preferences list to be passed to manager.
+
 2017-06-13  Hani Benhabiles  <hani.benhabiles@greenbone.net>
 
 	Backport parts of r28628.

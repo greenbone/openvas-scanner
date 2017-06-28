@@ -89,6 +89,15 @@ nasl_plugin_add (char *folder, char *name, struct arglist *plugins)
     }
 
   nvti = nvticache_get (name);
+  if(nvti)
+    if (nvti->timeout)
+      {
+        gchar def_val[5];
+        nvtpref_t *np;
+        snprintf (def_val, 5, "%d", nvti->timeout);
+        np = nvtpref_new ("Script timeout", "entry", def_val);
+        nvti_add_pref (nvti, np);
+      }
   plugin_args = plug_create_from_nvti_and_prefs (nvti);
   if (plugin_args == NULL)
     {
@@ -132,6 +141,14 @@ nasl_plugin_add (char *folder, char *name, struct arglist *plugins)
           nvticache_add (new_nvti, name);
           arg_free_all (plugin_args);
           nvti = nvticache_get (name);
+          if (nvti->timeout)
+            {
+              gchar def_val[5];
+              nvtpref_t *np;
+              snprintf (def_val, 5, "%d", nvti->timeout);
+              np = nvtpref_new ("Script timeout", "entry", def_val);
+              nvti_add_pref (nvti, np);
+            }
           plugin_args = plug_create_from_nvti_and_prefs (nvti);
         }
       else
