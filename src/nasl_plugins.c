@@ -95,7 +95,7 @@ nasl_plugin_add (char *folder, char *name, struct arglist *plugins)
         gchar def_val[5];
         nvtpref_t *np;
         snprintf (def_val, 5, "%d", nvti->timeout);
-        np = nvtpref_new ("Script timeout", "entry", def_val);
+        np = nvtpref_new ("Timeout", "entry", def_val);
         nvti_add_pref (nvti, np);
       }
   plugin_args = plug_create_from_nvti_and_prefs (nvti);
@@ -146,7 +146,7 @@ nasl_plugin_add (char *folder, char *name, struct arglist *plugins)
               gchar def_val[5];
               nvtpref_t *np;
               snprintf (def_val, 5, "%d", nvti->timeout);
-              np = nvtpref_new ("Script timeout", "entry", def_val);
+              np = nvtpref_new ("Timeout", "entry", def_val);
               nvti_add_pref (nvti, np);
             }
           plugin_args = plug_create_from_nvti_and_prefs (nvti);
