@@ -1,3 +1,12 @@
+2017-06-29  Hani Benhabiles  <hani.benhabiles@greenbone.net>
+
+	* nasl/nasl_global_ctxt.h (naslctxt): Remove maxlen and buffer elements.
+
+	* nasl/nasl_grammar.y (parse_buffer, parse_len): New variables.
+	(init_nasl_ctx, nasl_clean_ctx, mylex): Adjust to use parse_buffer and
+	parse_len instead of allocating and reallocating a new ctxt buffer each
+	time. Improves parsing performance.
+
 2017-06-29  Juan Jose Nicola  <juan.nicola@greenbone.net>
 
 	* src/nasl_plugins.c (nasl_plugin_add): Set the preference's name to
