@@ -1,3 +1,10 @@
+2017-06-29  Juan Jose Nicola  <juan.nicola@greenbone.net>
+
+	Backport r28861. 
+
+	* src/nasl_plugins.c (nasl_plugin_add): Set the preference's name to
+	Timeout instead of Script timeout.
+
 2017-06-27  Juan Jose Nicola  <juan.nicola@greenbone.net>
 
 	* Changelog: Add more info to the previous entry.
