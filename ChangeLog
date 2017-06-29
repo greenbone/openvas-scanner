@@ -1,3 +1,9 @@
+2017-06-29  Christian Fischer  <christian.fischer@greenbone.net>
+
+	* nasl/nasl_crypto.c (nasl_get_sign, nasl_get_smb2_sign,
+	nasl_keyexchg): Use the function names in nasl_perror
+	which are exposed to the NASL scripts.
+
 2017-06-29  Hani Benhabiles  <hani.benhabiles@greenbone.net>
 
 	* nasl/nasl_global_ctxt.h (naslctxt): Remove maxlen and buffer elements.

@@ -256,7 +256,7 @@ nasl_get_sign (lex_ctxt * lexic)
   if (mac_key == NULL || buf == NULL || buflen == -1 || seq_num <= -1)
     {
       nasl_perror (lexic,
-                   "Syntax : get_sign(key:<k>, buf:<b>, buflen:<bl>, seq_number:<s>)\n");
+                   "Syntax : get_signature(key:<k>, buf:<b>, buflen:<bl>, seq_number:<s>)\n");
       return NULL;
     }
   uint8_t calc_md5_mac[16];
@@ -589,7 +589,7 @@ nasl_get_smb2_sign (lex_ctxt * lexic)
   if (!key || !buf || keylen <= 0)
     {
       nasl_perror (lexic,
-                   "Syntax : get_smb2_sign(buf:<b>, key:<k>)");
+                   "Syntax : get_smb2_signature(buf:<b>, key:<k>)");
       return NULL;
     }
   if (buflen < 64)
@@ -744,7 +744,7 @@ nasl_keyexchg (lex_ctxt * lexic)
   if (cryptkey == NULL || session_key == NULL || nt_hash == NULL)
     {
       nasl_perror (lexic,
-                   "Syntax : keyexchg(cryptkey:<c>, session_key:<s>, nt_hash:<n> )\n");
+                   "Syntax : key_exchange(cryptkey:<c>, session_key:<s>, nt_hash:<n> )\n");
       return NULL;
     }
   uint8_t new_sess_key[16];
