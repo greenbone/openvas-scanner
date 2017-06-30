@@ -313,6 +313,7 @@ plugins_reload_from_dir (char *folder)
     }
 
   g_slist_free_full (files, g_free);
+  nasl_clean_inc ();
 
   nvticache_save ();
   proctitle_set ("openvassd: Reloaded all the NVTs.");

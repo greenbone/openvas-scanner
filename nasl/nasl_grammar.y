@@ -52,6 +52,9 @@ static char *parse_buffer = NULL;
 static int parse_len = 0;
 
 static void naslerror(naslctxt *, const char *);
+
+GHashTable *includes_hash = NULL;
+
 #define YYERROR_VERBOSE
 %}
 
@@ -325,25 +328,37 @@ string : STRING1 { $$ = $1.val; } | STRING2 ;
 inc: INCLUDE '(' string ')'
 	{
 	  naslctxt	subctx;
-	  int		x;
 
           subctx.always_authenticated = ((naslctxt*)parm)->always_authenticated;
           subctx.kb = ((naslctxt *) parm)->kb;
           subctx.tree = ((naslctxt*) parm)->tree;
-	  x = init_nasl_ctx(&subctx, $3);
-	  $$ = NULL;
-	  if (x >= 0)
-	    {
-	      if (! naslparse(&subctx))
-		{
-		  $$ = subctx.tree;
-		}
-	      else
-		nasl_perror(NULL, "%s: Parse error at or near line %d\n",
-			$3, subctx.line_nb);
+          $$ = NULL;
+          if (init_nasl_ctx(&subctx, $3) >= 0)
+            {
+              if (!includes_hash)
+                includes_hash = g_hash_table_new_full
+                                 (g_str_hash, g_str_equal, g_free,
+                                  (GDestroyNotify) deref_cell);
+              if ((subctx.tree = g_hash_table_lookup (includes_hash, $3)))
+                {
+                  $$ = subctx.tree;
+                  ref_cell ($$);
+                  g_free ($3);
+                }
+              else if (!naslparse (&subctx))
+                {
+                  $$ = subctx.tree;
+                  g_hash_table_insert (includes_hash, $3, $$);
+                  ref_cell ($$);
+                }
+              else
+                {
+                  nasl_perror (NULL, "%s: Parse error at or near line %d\n", $3,
+                               subctx.line_nb);
+                  g_free ($3);
+                }
 	      fclose(subctx.fp);
 	      subctx.fp = NULL;
-	      g_free($3);
 	    }
           else
             {
@@ -734,6 +749,13 @@ nasl_clean_ctx(naslctxt* c)
       fclose(c->fp);
       c->fp = NULL;
     }
+}
+
+void
+nasl_clean_inc (void)
+{
+ g_hash_table_destroy (includes_hash);
+ includes_hash = NULL;
 }
 
 enum lex_state {
