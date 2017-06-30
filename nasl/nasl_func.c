@@ -270,10 +270,5 @@ free_func (nasl_func *f)
   if (! f) return;
 
   g_free (f->func_name);
-
-  if (!func_is_internal (f->func_name))
-    {
-      deref_cell (f->block);
-    }
   g_free (f);
 }

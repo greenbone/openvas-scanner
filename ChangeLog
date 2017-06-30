@@ -1,3 +1,7 @@
+2017-06-30  Hani Benhabiles  <hani.benhabiles@greenbone.net>
+
+	* nasl/nasl_func.c (free_func): Remove unneeded call to func_is_internal().
+
 2017-06-29  Christian Fischer  <christian.fischer@greenbone.net>
 
 	* nasl/nasl_crypto.c (nasl_get_sign, nasl_get_smb2_sign,
