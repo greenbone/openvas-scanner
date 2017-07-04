@@ -1,3 +1,12 @@
+2017-07-04  Michael Wiegand <michael.wiegand@greenbone.net>
+
+	Adapt to include-streamling in gvm-libs. Include necessary headers
+	directly instead of relying on other headers to include them.
+
+	* nasl/nasl.c: Add includes of errno.h (for 'errno ()') and
+	gvm/base/networking.h (for 'gvm_source_iface_init ()') since they are
+	no longer included via gvm/base/hosts.h.
+
 2017-06-30  Hani Benhabiles  <hani.benhabiles@greenbone.net>
 
 	* nasl/nasl_grammar.y (nasl_clean_inc): New function.

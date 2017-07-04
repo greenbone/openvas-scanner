@@ -21,6 +21,7 @@
   * Source of the standalone NASL interpreter of OpenVAS.
   */
 
+#include <errno.h>              /* for errno */
 #include <signal.h>             /* for SIGINT */
 #include <string.h>             /* for strlen */
 #include <stdlib.h>             /* for exit */
@@ -34,6 +35,7 @@
 #include <gpgme.h>              /* for gpgme_check_version */
 
 #include <gvm/base/hosts.h>     /* for gvm_hosts_* and gvm_host_* */
+#include <gvm/base/networking.h> /* for gvm_source_iface_init */
 #include <gvm/base/nvti.h>
 #include <gvm/base/prefs.h>     /* for prefs_get */
 #include <gvm/util/kb.h>        /* for kb_new */
