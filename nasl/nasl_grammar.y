@@ -600,31 +600,6 @@ add_nasl_inc_dir (const char * dir)
 }
 
 /**
- * @brief Get the md5sum of a file.
- *
- * @param[in]  filename     Path to file.
- *
- * @return md5sum string, NULL otherwise.
- */
-static char *
-file_md5sum (const char *filename)
-{
-  char *content = NULL, digest[16], *result;
-  size_t len = 0, i;
-
-  if (!filename || !g_file_get_contents (filename, &content, &len, NULL))
-    return NULL;
-
-  gcry_md_hash_buffer (GCRY_MD_MD5, digest, content, len);
-  result = g_malloc0 (33);
-  for (i = 0; i < 16; i++)
-    snprintf (result + 2 * i, 3, "%02x", (unsigned char) digest[i]);
-  g_free (content);
-
-  return result;
-}
-
-/**
  * @brief Initialize a NASL context for a NASL file.
  *
  * @param pc   The NASL context handler.
@@ -689,29 +664,26 @@ init_nasl_ctx(naslctxt* pc, const char* name)
    * files are not verified multiple times per scan. */
   if (pc->kb)
     {
-      char *check, *md5sum;
+      time_t timestamp;
 
       snprintf (key_path, sizeof (key_path), "SignatureCheck/%s", full_name);
-      check = kb_item_get_str (pc->kb, key_path);
-      if (!check)
-        ;
-      else if (!strcmp (check, "0"))
+      timestamp = kb_item_get_int (pc->kb, key_path);
+      if (!timestamp)
         {
           g_free (full_name);
           return -1;
         }
       else
         {
-          md5sum = file_md5sum (full_name);
-          if (!strcmp (check, md5sum))
+          struct stat file_stat;
+
+          if (stat (full_name, &file_stat) >= 0
+              && timestamp > file_stat.st_mtime)
             {
-              /* md5sum of file matches. No need to reverify. */
+              /* No need to reverify. */
               g_free (full_name);
-              g_free (md5sum);
               return 0;
             }
-          /* Different md5sum. Reverify. */
-          g_free (md5sum);
         }
     }
 
@@ -727,11 +699,7 @@ init_nasl_ctx(naslctxt* pc, const char* name)
       return -1;
     }
   if (pc->kb)
-    {
-      char *md5sum = file_md5sum (full_name);
-      kb_item_add_str (pc->kb, key_path, md5sum, 0);
-      g_free (md5sum);
-    }
+    kb_item_add_int (pc->kb, key_path, time (NULL));
 
   g_free(full_name);
   return 0;
