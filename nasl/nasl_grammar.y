@@ -25,6 +25,7 @@
 #define YYLEX_PARAM parm
 
 #define LNB	(((naslctxt*)parm)->line_nb)
+#define FNAME	(((naslctxt*)parm)->filename)
 
 #include <ctype.h> /* for isalpha */
 #include <pcap.h> /* for islocalhost */
@@ -372,6 +373,7 @@ func_call: identifier '(' arg_list ')'
 	{
 	  $$ = alloc_tree_cell();
           $$->line_nb = LNB;
+          $$->filename = FNAME;          
           $$->x.str_val = $1;
 	  $$->type = NODE_FUN_CALL;
 	  $$->link[0] = $3;
@@ -625,6 +627,7 @@ init_nasl_ctx(naslctxt* pc, const char* name)
   if (! inc_dirs) add_nasl_inc_dir("");
 
   pc->line_nb = 1;
+  pc->filename = g_strdup(name);
   pc->tree = NULL;
   pc->fp = NULL;
   if (!parse_len)
@@ -635,8 +638,6 @@ init_nasl_ctx(naslctxt* pc, const char* name)
   else
     parse_buffer[0] = '\0';
 
-
-  nasl_set_filename (name);
   while (inc_dir != NULL) {
     if (full_name)
       g_free (full_name);

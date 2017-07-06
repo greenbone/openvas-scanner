@@ -40,6 +40,7 @@ typedef struct struct_lex_ctxt
   const char *oid;
   int recv_timeout;
   int line_nb;
+  char *filename;
   /* Named variables hash set + anonymous variables array */
   nasl_array ctx_vars;
   /* Functions hash table */

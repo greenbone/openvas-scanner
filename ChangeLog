@@ -1,3 +1,29 @@
+2017-07-06  Juan Jose Nicola  <juan.nicola@greenbone.net>
+
+	Re-add the file name to the nasl context to be showed in case of error.
+
+	* nasl/nasl_debug.c: Remove global variable debug_filename.
+	(nasl_set_filename): Remove function.
+	(nasl_perror): Add filename variable. Climb up the context to
+	find a filename.
+
+	* nasl/nasl_debug.h: Remove function prototype.
+
+	* nasl/exec.c (nasl_exec): Copy the filename from tree_cell
+	to the lexic context only in the case NODE_FUN_CALL.
+	(exec_nasl_script): Remove call to nasl_set_filename.
+
+	* nasl/nasl_global_ctxt.h (naslctxt): Add filename element.
+
+	* nasl/nasl_grammar.y: Add macro FNAME. Set filename only
+	for NODE_FUN_CALL.
+	(init_nasl_ctx): Do a copy of the parsed filename. Remove
+	call to nasl_set_filename.
+
+	* nasl/nasl_lex_ctxt.h (lex_ctxt): Add filename element.
+
+	* nasl/nasl_tree.h (nasl_tree): Add filename element.
+
 2017-07-05  Hani Benhabiles  <hani.benhabiles@greenbone.net>
 
 	* nasl/nasl_grammar.y (file_md5sum): Remove function.
