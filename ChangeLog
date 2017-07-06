@@ -1,3 +1,13 @@
+2017-07-06  Michael Wiegand <michael.wiegand@greenbone.net>
+
+	Start preparing openvas-scanner 5.1.2 release.
+
+	* CHANGES: Add partly complete changes for 5.1.2.
+
+	* CMakeLists.txt: Bump libopenvas dependency to 9.0.2.
+
+	* INSTALL: Document increased minimum version for libopenvas.
+
 2017-06-29  Juan Jose Nicola  <juan.nicola@greenbone.net>
 
 	Backport r28861. 

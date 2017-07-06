@@ -1,3 +1,22 @@
+openvas-scanner 5.1.2 (2017-07-XX)
+
+This is the second maintenance release of the openvas-scanner 5.1 module
+for the Open Vulnerability Assessment System 9 (OpenVAS-9).
+
+Many thanks to everyone who has contributed to this release:
+Hani Benhabiles and Juan Jose Nicola.
+
+Main changes compared to 5.1.1:
+* Plugin scheduling has been improved.
+* An issue which caused segmentation faults under certain circumstances when
+  openvas-scanner was built with GnuTLS < 3.3.0 has been addressed.
+* The use of hostname and IP while logging has been made more consistent.
+* An issue which caused NVTs to be executed out of sequence has been addressed.
+* An issue which caused the main scanner process to terminate prematurely when
+  receiving a SIGHUP signal under certain circumstances has been addressed.
+* Increased dependency for openvas-libraries from 9.0.0 to 9.0.2.
+
+
 openvas-scanner 5.1.1 (2017-03-07)
 
 This is the first maintenance release of the openvas-scanner 5.1 module
