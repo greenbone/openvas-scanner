@@ -1,5 +1,21 @@
 2017-07-07  Hani Benhabiles  <hani.benhabiles@greenbone.net>
 
+	* nasl/nasl_debug.c (nasl_get_filename, nasl_set_function_filename): New
+	functions.
+	(nasl_set_filename): Handle case where passed parameter is current
+	debug_filename value.
+
+	* nasl/nasl_debug.h: Add functions prototypes.
+
+	* nasl/nasl_func.c (nasl_func_call): Set correct filename for executed
+	function.
+
+	* nasl/nasl_grammar.y (FUNCTION, INCLUDE): Use new functions to set
+	matching filename for defined functions.
+	(nasl_clean_inc): Check for null value.
+
+2017-07-07  Hani Benhabiles  <hani.benhabiles@greenbone.net>
+
 	* nasl/nasl_debug.c, nasl/nasl_debug.h, nasl/exec.c,
 	nasl/nasl_global_ctxt.h, nasl/nasl_grammar.y, nasl/nasl_tree.h,
 	nasl/nasl_lex_ctxt.h: Revert r28943.

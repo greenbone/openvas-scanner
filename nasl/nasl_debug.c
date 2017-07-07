@@ -41,13 +41,39 @@ extern FILE *nasl_trace_fp;
 
 static char *debug_filename = NULL;
 
+static GHashTable *functions_filenames = NULL;
+
+const char *
+nasl_get_filename (const char *function)
+{
+  char *ret = NULL;
+
+  if (function)
+    ret = g_hash_table_lookup (functions_filenames, function);
+  return ret ?: debug_filename;
+}
+
 void
 nasl_set_filename (const char *filename)
 {
   assert (filename);
 
+  if (filename == debug_filename)
+    return;
   g_free (debug_filename);
   debug_filename = g_strdup (filename);
+}
+
+void
+nasl_set_function_filename (const char *function)
+{
+  assert (function);
+
+  if (!functions_filenames)
+    functions_filenames = g_hash_table_new_full
+                           (g_str_hash, g_str_equal, g_free, g_free);
+  g_hash_table_insert (functions_filenames, g_strdup (function),
+                       g_strdup (debug_filename));
 }
 
 void

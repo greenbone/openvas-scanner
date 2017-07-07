@@ -26,4 +26,10 @@ int nasl_trace_enabled (void);
 void
 nasl_set_filename (const char *);
 
+void
+nasl_set_function_filename (const char *);
+
+const char *
+nasl_get_filename (const char *);
+
 #endif

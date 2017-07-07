@@ -113,7 +113,7 @@ nasl_func_call (lex_ctxt * lexic, const nasl_func * f, tree_cell * arg_list)
   int nb_u = 0, nb_a = 0;
   tree_cell *pc = NULL, *pc2 = NULL, *retc = NULL;
   lex_ctxt *lexic2 = NULL;
-  char *trace_buf = NULL;
+  char *trace_buf = NULL, *tmp_filename = NULL;
   int trace_buf_len = 0, tn;
 #define TRACE_BUF_SZ	255
 
@@ -195,6 +195,8 @@ nasl_func_call (lex_ctxt * lexic, const nasl_func * f, tree_cell * arg_list)
   /* 4. Chain new context to old (lexic) */
   lexic2->up_ctxt = lexic;
   /* 5. Execute */
+  tmp_filename = g_strdup (nasl_get_filename (NULL));
+  nasl_set_filename (nasl_get_filename (f->func_name));
   if (func_is_internal (f->func_name))
     {
       tree_cell *(*pf2) (lex_ctxt *) = f->block;
@@ -206,6 +208,8 @@ nasl_func_call (lex_ctxt * lexic, const nasl_func * f, tree_cell * arg_list)
       deref_cell (retc);
       retc = FAKE_CELL;
     }
+  nasl_set_filename (tmp_filename);
+  g_free (tmp_filename);
 
   if ((retc == NULL || retc == FAKE_CELL)
       && (lexic2->ret_val != NULL && lexic2->ret_val != FAKE_CELL))

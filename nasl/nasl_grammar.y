@@ -178,6 +178,7 @@ instr_decl: instr | func_decl;
 /* Function declaration */
 func_decl: FUNCTION identifier '(' arg_decl ')' block
 	{
+          nasl_set_function_filename ($2);
 	  $$ = alloc_tree_cell();
           $$->line_nb = LNB;
           $$->x.str_val = $2;
@@ -327,12 +328,15 @@ string : STRING1 { $$ = $1.val; } | STRING2 ;
 /* include */
 inc: INCLUDE '(' string ')'
 	{
+          char *tmp;
 	  naslctxt	subctx;
 
           subctx.always_authenticated = ((naslctxt*)parm)->always_authenticated;
           subctx.kb = ((naslctxt *) parm)->kb;
           subctx.tree = ((naslctxt*) parm)->tree;
           $$ = NULL;
+          tmp = g_strdup (nasl_get_filename (NULL));
+          nasl_set_filename ($3);
           if (init_nasl_ctx(&subctx, $3) >= 0)
             {
               if (!includes_hash)
@@ -363,8 +367,11 @@ inc: INCLUDE '(' string ')'
           else
             {
               g_free($3);
+              g_free (tmp);
               return -2;
             }
+          nasl_set_filename (tmp);
+          g_free (tmp);
 	} ;
 
 /* Function call */
@@ -722,6 +729,8 @@ nasl_clean_ctx(naslctxt* c)
 void
 nasl_clean_inc (void)
 {
+ if (!includes_hash)
+   return;
  g_hash_table_destroy (includes_hash);
  includes_hash = NULL;
 }
