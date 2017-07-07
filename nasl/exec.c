@@ -1027,7 +1027,6 @@ nasl_exec (lex_ctxt * lexic, tree_cell * st)
       return ret;
 
     case NODE_FUN_CALL:
-      lexic->filename = g_strdup (st->filename);
       pf = get_func_ref_by_name (lexic, st->x.str_val);
       if (pf == NULL)
         {
@@ -1767,6 +1766,7 @@ exec_nasl_script (struct script_infos *script_infos, const char *name,
   lexic = init_empty_lex_ctxt ();
   lexic->script_infos = script_infos;
   lexic->oid = oid;
+  nasl_set_filename (name);
 
   str = prefs_get ("checks_read_timeout");
   if (str != NULL)
