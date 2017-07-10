@@ -1,5 +1,10 @@
 2017-07-10  Juan Jose Nicola  <juan.nicola@greenbone.net>
 
+	* nasl/exec.c (cell_cmp): Add the variable name or its content to
+	the error message passed to nasl_perror.
+
+2017-07-10  Juan Jose Nicola  <juan.nicola@greenbone.net>
+
 	* nasl/exec.c (cell2int3): Receive a new argument with variable
 	value and name to give more information in a error message.
 	Handle REF_VAR case to take variable value and name.

@@ -250,7 +250,8 @@ cell_cmp (lex_ctxt * lexic, tree_cell * c1, tree_cell * c2)
   long int x1, x2;
   char *s1, *s2;
   int len_s1, len_s2, len_min;
-
+  gchar *n1 = c1->x.str_val;
+  gchar *n2 = c2->x.str_val;
 
 #if NASL_DEBUG >= 0
   if (c1 == NULL || c1 == FAKE_CELL)
@@ -259,7 +260,7 @@ cell_cmp (lex_ctxt * lexic, tree_cell * c1, tree_cell * c2)
     nasl_perror (lexic, "cell_cmp: c2 == NULL !\n");
 #endif
 
-  /* We first convert the cell to atomic types */
+  /* We first convert the cell to atomic types. */
   c1 = cell2atom (lexic, c1);
   c2 = cell2atom (lexic, c2);
 
@@ -319,8 +320,9 @@ cell_cmp (lex_ctxt * lexic, tree_cell * c1, tree_cell * c2)
       }
   else
     {
-      nasl_perror (lexic, "cell_cmp: comparing %s and %s does not make sense\n",
-                   nasl_type_name (typ1), nasl_type_name (typ2));
+      nasl_perror (lexic, "cell_cmp: comparing '%s' of type %s and '%s' of "
+                   "type %s does not make sense\n",
+                   n1, nasl_type_name (typ1), n2, nasl_type_name (typ2));
       deref_cell (c1);
       deref_cell (c2);
       return 0;
