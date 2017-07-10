@@ -98,7 +98,7 @@ cell2bool (lex_ctxt * lexic, tree_cell * c)
 }
 
 static long int
-cell2int3 (lex_ctxt * lexic, tree_cell * c, int warn)
+cell2int3 (lex_ctxt * lexic, tree_cell * c, int warn, named_nasl_var *v)
 {
   tree_cell *c2 = NULL;
   long int x;
@@ -117,13 +117,27 @@ cell2int3 (lex_ctxt * lexic, tree_cell * c, int warn)
       x = strtol (c->x.str_val, &p, 0);
       if (*p != '\0' && warn)
         if (warn)
-          nasl_perror (lexic,
-                       "Converting a non numeric string to integer does not make sense in this context");
+          {
+            if (v)
+              nasl_perror (lexic,
+                           "Converting the non numeric string '%s' in variable "
+                           "'%s' to integer does not make sense in this "
+                           "context", c->x.str_val,
+                           v->var_name != NULL ? v->var_name : "(null)");
+            else
+              nasl_perror (lexic,
+                           "Converting the non numeric string '%s' to "
+                           "integer does not make sense in this context",
+                           c->x.str_val);
+          }
       return x;
+
+    case REF_VAR:
+      v = c->x.ref_val;
 
     default:
       c2 = nasl_exec (lexic, c);
-      x = cell2int3 (lexic, c2, warn);
+      x = cell2int3 (lexic, c2, warn, v);
       deref_cell (c2);
       return x;
     }
@@ -132,13 +146,13 @@ cell2int3 (lex_ctxt * lexic, tree_cell * c, int warn)
 static long int
 cell2int (lex_ctxt * lexic, tree_cell * c)
 {
-  return cell2int3 (lexic, c, 0);
+  return cell2int3 (lexic, c, 0, NULL);
 }
 
 static long int
 cell2intW (lex_ctxt * lexic, tree_cell * c)
 {
-  return cell2int3 (lexic, c, 1);
+  return cell2int3 (lexic, c, 1, NULL);
 }
 
 static tree_cell *
@@ -801,7 +815,8 @@ nasl_exec (lex_ctxt * lexic, tree_cell * st)
 #endif
 
   if (st)
-    lexic->line_nb = st->line_nb;
+    if (st->line_nb != 0)
+      lexic->line_nb = st->line_nb;
   /* return */
   if (lexic->ret_val != NULL)
     {

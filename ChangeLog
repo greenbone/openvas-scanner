@@ -1,3 +1,11 @@
+2017-07-10  Juan Jose Nicola  <juan.nicola@greenbone.net>
+
+	* nasl/exec.c (cell2int3): Receive a new argument with variable
+	value and name to give more information in a error message.
+	Handle REF_VAR case to take variable value and name.
+	(cell2intW, cell2int): Add parameter in call to cell2int3().
+	(nasl_exec): Set line_nb only if it is differente to zero.
+
 2017-07-07  Hani Benhabiles  <hani.benhabiles@greenbone.net>
 
 	* nasl/nasl_debug.c (nasl_get_filename, nasl_set_function_filename): New
