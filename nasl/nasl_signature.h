@@ -24,6 +24,6 @@
 #ifndef NASL_SIGNATURE_H
 #define NASL_SIGNATURE_H
 
-int nasl_verify_signature (const char *filename);
+int nasl_verify_signature (const char *, const char *, size_t);
 
 #endif

@@ -1,3 +1,18 @@
+2017-07-11  Hani Benhabiles  <hani.benhabiles@greenbone.net>
+
+	* nasl/nasl_global_ctxt.h (naslctxt): Add buffer and index elements.
+	Remove fp element.
+
+	* nasl/nasl_grammar.y (INCLUDE, mylex): Adjust to use ctxt buffer instead of
+	file pointer.
+	(nasl_clean_ctxt, init_nasl_ctxt): Adjust to naslctxt changes. Adjust
+	nasl_verify_signature() call.
+
+	* nasl/nasl_signature.c (nasl_verify_signature): Don't re-read file
+	content, get it as parameter instead.
+
+	* nasl/nasl_signature.h: Adjust function header.
+
 2017-07-10  Juan Jose Nicola  <juan.nicola@greenbone.net>
 
 	* nasl/exec.c (cell_cmp): Add the variable name or its content to

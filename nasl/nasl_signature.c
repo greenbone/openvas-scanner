@@ -116,15 +116,14 @@ examine_signatures (gpgme_verify_result_t result, int sig_count)
  *         -1 on missing file or error.
  */
 int
-nasl_verify_signature (const char *filename)
+nasl_verify_signature (const char *filename, const char *fcontent, size_t flen)
 {
   int retcode = -1, sig_count = 0;
   char *sigfilename = NULL;
-  gsize siglen = 0, flen = 0;
+  gsize siglen = 0;
   gchar * scontent = NULL;
   gchar * offset = NULL;
   gchar * endpos = NULL;
-  gchar * fcontent = NULL;
   gchar * path = g_build_filename (OPENVAS_SYSCONF_DIR, "gnupg", NULL);
   gboolean success;
   gpgme_error_t err;
@@ -137,12 +136,6 @@ nasl_verify_signature (const char *filename)
       nasl_trace (NULL, "gpgme context could not be initialized.\n");
       goto fail;
     }
-
-  /* Scriptfile is buffered. */
-  nasl_trace (NULL, "nasl_verify_signature: loading scriptfile '%s'\n",
-                  filename);
-  if (!g_file_get_contents (filename, &fcontent, &flen, NULL))
-    goto fail;
 
   /* Signatures file is buffered. */
   sigfilename = g_malloc0 (strlen (filename) + 4 + 1);
@@ -234,7 +227,6 @@ nasl_verify_signature (const char *filename)
 
  fail:
   g_free (scontent);
-  g_free (fcontent);
   if (sig)
     gpgme_data_release (sig);
   if (text)

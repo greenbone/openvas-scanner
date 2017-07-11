@@ -27,8 +27,9 @@ typedef struct
 {
   int line_nb;
   int always_authenticated;
-  FILE *fp;
+  int index;
   tree_cell *tree;
+  char *buffer;
   kb_t kb;
 } naslctxt;
 
