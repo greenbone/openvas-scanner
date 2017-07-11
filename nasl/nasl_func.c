@@ -113,7 +113,8 @@ nasl_func_call (lex_ctxt * lexic, const nasl_func * f, tree_cell * arg_list)
   int nb_u = 0, nb_a = 0;
   tree_cell *pc = NULL, *pc2 = NULL, *retc = NULL;
   lex_ctxt *lexic2 = NULL;
-  char *trace_buf = NULL, *tmp_filename = NULL;
+  char *trace_buf = NULL;
+  char *temp_funname = NULL, *tmp_filename = NULL;
   int trace_buf_len = 0, tn;
 #define TRACE_BUF_SZ	255
 
@@ -204,9 +205,12 @@ nasl_func_call (lex_ctxt * lexic, const nasl_func * f, tree_cell * arg_list)
     }
   else
     {
+      temp_funname = g_strdup (nasl_get_function_name());
+      nasl_set_function_name (f->func_name);
       retc = nasl_exec (lexic2, f->block);
       deref_cell (retc);
       retc = FAKE_CELL;
+      nasl_set_function_name (temp_funname);
     }
   nasl_set_filename (tmp_filename);
   g_free (tmp_filename);

@@ -1,3 +1,19 @@
+2017-07-11  Juan Jose Nicola  <juan.nicola@greenbone.net>
+
+	Show the name of the function in which an error ocurred. Add more
+	information in the error message for debugging purposes.
+
+	* nasl/nasl_debug.c (nasl_set_function_name, nasl_get_function_name):
+	New functions.
+	(nasl_perror): Add the function name to the message.
+
+	* nasl/nasl_debug.h: Add functions prototypes.
+
+	* nasl/nasl_func.c: Set the function name.
+
+	* nasl/nasl_text_utils.c: Show a more specific error message for
+	nasl_substr() errors.
+
 2017-07-11  Hani Benhabiles  <hani.benhabiles@greenbone.net>
 
 	* nasl/nasl_global_ctxt.h (naslctxt): Add buffer and index elements.

@@ -40,6 +40,7 @@
 extern FILE *nasl_trace_fp;
 
 static char *debug_filename = NULL;
+static char *debug_funname = NULL;
 
 static GHashTable *functions_filenames = NULL;
 
@@ -51,6 +52,24 @@ nasl_get_filename (const char *function)
   if (function)
     ret = g_hash_table_lookup (functions_filenames, function);
   return ret ?: debug_filename;
+}
+
+/* For debug purposes, the non internal function name is saved to
+ * be displayed in the error message.
+ */
+void
+nasl_set_function_name (const char *funname)
+{
+  if (funname == debug_funname)
+    return;
+  g_free (debug_funname);
+  debug_funname = g_strdup (funname);
+}
+
+const char *
+nasl_get_function_name ()
+{
+  return debug_funname;
 }
 
 void
@@ -80,7 +99,7 @@ void
 nasl_perror (lex_ctxt * lexic, char *msg, ...)
 {
   va_list param;
-  char debug_message[4096];
+  gchar debug_message[4096];
   char *script_name = "";
   lex_ctxt *lexic2 = NULL;
   int line_nb = 0;
@@ -103,13 +122,17 @@ nasl_perror (lex_ctxt * lexic, char *msg, ...)
         }
     }
 
-  vsnprintf (debug_message, sizeof (debug_message), msg, param);
+  g_vsnprintf (debug_message, sizeof (debug_message), msg, param);
+  if ((debug_funname != NULL) && (g_strcmp0 (debug_funname, "") != 0))
+    g_snprintf (debug_message, sizeof (debug_message),
+                 "In function '%s()': %s", debug_funname, debug_message);
+
   if (g_strcmp0 (debug_filename, script_name) == 0)
     g_message ("[%d](%s:%d) %s", getpid (), script_name,
                line_nb, debug_message);
   else
-    g_message ("[%d](%s)(%s:%d) %s", getpid (), script_name, debug_filename,
-               line_nb, debug_message);
+    g_message ("[%d](%s)(%s:%d) %s", getpid (), script_name,
+               debug_filename, line_nb, debug_message);
 
   /** @todo Enable this when the NVTs are ready.  Sends ERRMSG to client. */
 #if 0

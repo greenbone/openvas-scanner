@@ -878,9 +878,17 @@ nasl_substr (lex_ctxt * lexic)
   if (i2 >= sz1)
     i2 = sz1 - 1;
 
-  if (s1 == NULL || i1 < 0)
+  if (s1 == NULL)
     {
-      nasl_perror (lexic, "Usage: substr(string, idx_start [,idx_end])\n");
+      nasl_perror (lexic, "Usage: substr(string, idx_start [,idx_end])\n. "
+                   "The given string is NULL");
+      return NULL;
+    }
+  if (i1 < 0)
+    {
+      nasl_perror (lexic, "Usage: substr(string, idx_start [,idx_end]). "
+                   "At least idx_start must be given to trim the "
+                   "string '%s'.\n", s1);
       return NULL;
     }
 
