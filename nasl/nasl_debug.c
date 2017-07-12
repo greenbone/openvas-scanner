@@ -100,6 +100,7 @@ nasl_perror (lex_ctxt * lexic, char *msg, ...)
 {
   va_list param;
   gchar debug_message[4096];
+  gchar *final_message;
   char *script_name = "";
   lex_ctxt *lexic2 = NULL;
   int line_nb = 0;
@@ -124,16 +125,18 @@ nasl_perror (lex_ctxt * lexic, char *msg, ...)
 
   g_vsnprintf (debug_message, sizeof (debug_message), msg, param);
   if ((debug_funname != NULL) && (g_strcmp0 (debug_funname, "") != 0))
-    g_snprintf (debug_message, sizeof (debug_message),
-                 "In function '%s()': %s", debug_funname, debug_message);
+    final_message = g_strconcat ("In function '", debug_funname,
+                                 "()': ", debug_message, NULL);
+  else
+    final_message = g_strdup (debug_message);
 
   if (g_strcmp0 (debug_filename, script_name) == 0)
     g_message ("[%d](%s:%d) %s", getpid (), script_name,
-               line_nb, debug_message);
+               line_nb, final_message);
   else
     g_message ("[%d](%s)(%s:%d) %s", getpid (), script_name,
-               debug_filename, line_nb, debug_message);
-
+               debug_filename, line_nb, final_message);
+  g_free (final_message);
   /** @todo Enable this when the NVTs are ready.  Sends ERRMSG to client. */
 #if 0
   if (lexic != NULL)
