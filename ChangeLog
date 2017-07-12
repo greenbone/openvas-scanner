@@ -1,11 +1,29 @@
+2017-07-12  Juan Jose Nicola  <juan.nicola@greenbone.net>
+
+	* nasl/nasl_ssh.c (verify_session_id): Receive lexic as new parameter.
+	Used nasl_perror instead of g_message to be able to show the NVT
+	name in case of bad/invalid SSH session_id.
+	(nasl_ssh_disconnect, nasl_ssh_get_sock, nasl_ssh_set_login)
+	(nasl_ssh_userauth, nasl_ssh_login_interactive)
+	(nasl_ssh_login_interactive_pass, nasl_ssh_request_exec)
+	(nasl_ssh_get_issue_banner, nasl_ssh_get_server_banner)
+	(nasl_ssh_get_auth_methods, nasl_ssh_shell_open, nasl_ssh_shell_read)
+	(nasl_ssh_shell_write, nasl_ssh_shell_close): Pass lexic as argument
+	when it calls verify_session_id().
+
+	* nasl/nasl_text_utils.c (nasl_string): Add the string in the error
+	message for the case "unknow scape sequence".
+
+	* ChangeLog: Add missing information in one of my last log entry.
+
 2017-07-12  Hani Benhabiles  <hani.benhabiles@greenbone.net>
 
 	* nasl/nasl_debug.c (nasl_get_filename): Add null variable check.
 
 2017-07-12  Juan Jose Nicola  <juan.nicola@greenbone.net>
 
-	* nasl/nasl_debug.c (nasl_perror): Use g_strconcat() instead of g_snprintf()
-	to fix the message format.
+	* nasl/nasl_debug.c (nasl_perror): Use g_strconcat() instead of
+	g_snprintf() to fix the message format.
 
 2017-07-11  Juan Jose Nicola  <juan.nicola@greenbone.net>
 
@@ -18,10 +36,10 @@
 
 	* nasl/nasl_debug.h: Add functions prototypes.
 
-	* nasl/nasl_func.c: Set the function name.
+	* nasl/nasl_func.c (nasl_func_call): Set the function name.
 
-	* nasl/nasl_text_utils.c: Show a more specific error message for
-	nasl_substr() errors.
+	* nasl/nasl_text_utils.c (nasl_substr): Show a more specific
+	error message for nasl_substr() errors.
 
 2017-07-11  Hani Benhabiles  <hani.benhabiles@greenbone.net>
 

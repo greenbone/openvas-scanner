@@ -127,8 +127,9 @@ nasl_string (lex_ctxt * lexic)
                       }
                     break;
                   default:
-                    nasl_perror (lexic, "Unknown escape sequence '\\%c'\n",
-                                 isprint (p1[1]) ? p1[1] : '.');
+                    nasl_perror (lexic, "Unknown escape sequence '\\%c' in the "
+                                 "string '%s'\n",
+                                 isprint (p1[1]) ? p1[1] : '.', s);
                     retc->size--;
                     break;
                   }
@@ -389,7 +390,8 @@ nasl_ord (lex_ctxt * lexic)
 
   if (val == NULL)
     {
-      nasl_perror (lexic, "ord() usage : ord(char)\n");
+      nasl_perror (lexic, "Usage : ord(char). The given char or string "
+                   "is NULL\n");
       return NULL;
     }
 
