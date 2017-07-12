@@ -1,3 +1,9 @@
+2017-07-12  Hani Benhabiles  <hani.benhabiles@greenbone.net>
+
+	Backport r28888.
+
+	* src/pluginload.c (plugin_reload_from_dir): Call nasl_clean_inc().
+
 2017-07-06  Michael Wiegand <michael.wiegand@greenbone.net>
 
 	Start preparing openvas-scanner 5.1.2 release.
