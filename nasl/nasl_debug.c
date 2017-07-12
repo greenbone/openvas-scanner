@@ -49,7 +49,7 @@ nasl_get_filename (const char *function)
 {
   char *ret = NULL;
 
-  if (function)
+  if (functions_filenames && function)
     ret = g_hash_table_lookup (functions_filenames, function);
   return ret ?: debug_filename;
 }
