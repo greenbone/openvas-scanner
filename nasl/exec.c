@@ -134,6 +134,7 @@ cell2int3 (lex_ctxt * lexic, tree_cell * c, int warn, named_nasl_var *v)
 
     case REF_VAR:
       v = c->x.ref_val;
+      /* fallthrough */
 
     default:
       c2 = nasl_exec (lexic, c);

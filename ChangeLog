@@ -1,3 +1,7 @@
+2017-07-17  Hani Benhabiles  <hani.benhabiles@greenbone.net>
+
+	* nasl/exec.c (cell2int3): Fix compilation with gcc 7.
+
 2017-07-12  Juan Jose Nicola  <juan.nicola@greenbone.net>
 
 	* nasl/nasl_ssh.c (verify_session_id): Receive lexic as new parameter.
