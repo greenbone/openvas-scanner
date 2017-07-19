@@ -1,3 +1,17 @@
+2017-07-19  Juan Jose Nicola  <juan.nicola@greenbone.net>
+
+	Check if the included files are used or not.
+
+	* nasl/lint.c (check_called_files, print_uncall_files):
+	New functions.
+	(nasl_lint_def): Get hash table as new parameter. Add into the table
+	the included files.
+	(nasl_lint_call): Get hash table as new parameter. Mark the included
+	file in the table, if a called function is inside the file.
+	(nasl_lint): New hash table. New single linked list. Pass the table as
+	argument to nasl_lint_def() and nasl_lint_call() functions. Check if
+	the included files are used or not.
+
 2017-07-17  Hani Benhabiles  <hani.benhabiles@greenbone.net>
 
 	* nasl/exec.c (cell2int3): Fix compilation with gcc 7.
