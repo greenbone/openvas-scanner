@@ -560,8 +560,7 @@ static void
 naslerror(naslctxt *parm, const char *s)
 {
   (void) parm;
-  fputs(s, stderr);
-  fputc('\n', stderr);
+  g_message ("%s", s);
 }
 
 static GSList * inc_dirs = NULL;
