@@ -1,5 +1,13 @@
 2017-07-24  Hani Benhabiles  <hani.benhabiles@greenbone.net>
 
+	* nasl/nasl_socket.c (nasl_open_sock_udp): Set lowest_socket variable.
+	(nasl_close_socket): Check lowest_socket instead of using hardcoded
+	value. Fixes close() error for udp sockets.
+
+	* nasl/nasl_ssh.c (nasl_ssh_connect): Set lowest_socket variable.
+
+2017-07-24  Hani Benhabiles  <hani.benhabiles@greenbone.net>
+
 	* nasl/nasl_grammar.y (INCLUDE): Zero subctx struct. Fixes clang
 	analyzer error.
 

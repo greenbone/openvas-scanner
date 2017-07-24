@@ -483,6 +483,7 @@ nasl_open_sock_tcp (lex_ctxt * lexic)
   return nasl_open_sock_tcp_bufsz (lexic, -1);
 }
 
+int lowest_socket = 0;
 
 /*
  * Opening a UDP socket is a little more tricky, since
@@ -531,6 +532,8 @@ nasl_open_sock_udp (lex_ctxt * lexic)
       connect (soc, (struct sockaddr *) &soca6, sizeof (soca6));
     }
 
+  if (soc > 0 && lowest_socket == 0)
+    lowest_socket = soc;
 
   retc = alloc_tree_cell ();
   retc->type = CONST_INT;
@@ -892,7 +895,6 @@ nasl_send (lex_ctxt * lexic)
 }
 
 
-
 /*---------------------------------------------------------------------*/
 tree_cell *
 nasl_close_socket (lex_ctxt * lexic)
@@ -903,49 +905,14 @@ nasl_close_socket (lex_ctxt * lexic)
   int e;
 
   soc = get_int_var_by_num (lexic, 0, -1);
-  /* XXX: These are thoughts expressed on the openvas-devel mailing list 2008-08-06:
-   *
-   * nasl_close_socket seems to be the only place in nasl/nasl_socket.c where the
-   * value of the socket filedescriptor is checked in this way.  That in itself is
-   * strange.  Why only there?  Also, why can't the socket fd be less than 4?  I
-   * could sort of understand 3 (0, 1, 2 are already taken by the standard
-   * streams) but 4? Does the openvas server and/or the NASL interpreter guarantee
-   * that at least one other file is open?
-   *
-   * My guess is that the check is there to prevent NASL scripts from closing file
-   * descriptors needed by openvas/NASL which includes the ones it uses for
-   * accessing the knowledgebase.  If that's the case, then the test has too much
-   * knowledge of the circumstances under which the NASL interpreter runs.  It
-   * should be moved to a separate function whose behavior can be influenced by
-   * the program embedding the NASL interpreter.  Other functions should probably
-   * also check the descriptors.
-   *
-   * I also wonder whether the original code (disallowing any file descriptor <= 4)
-   * actually was correct and the real defect is that open_sock_udp actually
-   * returned 4.  Under which circumstances does it actually do that?  In my brief
-   * tests with the stand-alone nasl interpreter the smallest number it returned
-   * was 5.
-   *
-   * Update (Hani) 2014-07-14:
-   * 0, 1, 2: Standard streams.
-   * 3: log fd. (dup2() calls in Scanner src/log.c)
-   * 4: thread socket. (dup2() call in Scanner src/nasl_plugins.c)
-   *    Used by the child to send info to the parent. Otherwise close(4) will
-   *    kill the communication with the parent process.
-   * 5: Generally:
-   *  With GnuTLS 2.x: File descriptor open in libgcrypt.
-   *  With GnuTLS 3.x: File descriptor open in libgnutls.
-   *  However, we shouldn't have knowledge or/and make assumptions about external
-   *  libraries.
-   */
-  if (soc <= 4)
+  if (fd_is_stream (soc))
+    return close_stream_connection (soc) < 0 ? NULL : FAKE_CELL;
+
+  if (lowest_socket == 0 || soc < lowest_socket)
     {
       nasl_perror (lexic, "close(%d): Invalid socket value\n", soc);
       return NULL;
     }
-
-  if (fd_is_stream (soc))
-    return close_stream_connection (soc) < 0 ? NULL : FAKE_CELL;
 
   e = getsockopt (soc, SOL_SOCKET, SO_TYPE, &type, &opt_len);
   if (e == 0)

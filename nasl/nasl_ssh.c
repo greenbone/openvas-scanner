@@ -204,6 +204,7 @@ get_ssh_port (lex_ctxt *lexic)
   return 22;
 }
 
+extern int lowest_socket;
 
 /**
  * @brief Connect to the target host via TCP and setup an ssh
@@ -419,6 +420,8 @@ nasl_ssh_connect (lex_ctxt *lexic)
   session_table[tbl_slot].session_id = next_session_id ();
   session_table[tbl_slot].sock =
     forced_sock != -1? forced_sock : ssh_get_fd (session);
+  if (lowest_socket == 0 && session_table[tbl_slot].sock > 0)
+    lowest_socket = session_table[tbl_slot].sock;
 
   /* Return the session id.  */
   retc = alloc_typed_cell (CONST_INT);
