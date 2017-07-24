@@ -1,3 +1,8 @@
+2017-07-24  Juan Jose Nicola  <juan.nicola@greenbone.net>
+
+	* nasl/exec.c (cell_cmp): Use cell2str() to copy the cell's values
+	since it checks if the cell is NULL and	then are freed conveniently.
+
 2017-07-20  Juan Jose Nicola  <juan.nicola@greenbone.net>
 
 	* nasl/nasl_grammar.y (naslerror): Replace fputs and fputc
