@@ -331,10 +331,10 @@ inc: INCLUDE '(' string ')'
           char *tmp;
 	  naslctxt	subctx;
 
+          bzero (&subctx, sizeof (subctx));
           subctx.always_authenticated = ((naslctxt*)parm)->always_authenticated;
           subctx.kb = ((naslctxt *) parm)->kb;
           subctx.tree = ((naslctxt*) parm)->tree;
-          subctx.index = 0;
           $$ = NULL;
           tmp = g_strdup (nasl_get_filename (NULL));
           nasl_set_filename ($3);
