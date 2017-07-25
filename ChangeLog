@@ -1,5 +1,11 @@
 2017-07-25  Michael Wiegand <michael.wiegand@greenbone.net>
 
+	* nasl/nasl_crypto.c (tls1_prf), src/pluginload.c
+	(current_loading_plugins, total_loading_plugins): Fix typos in
+	documentation.
+
+2017-07-25  Michael Wiegand <michael.wiegand@greenbone.net>
+
 	* misc/CMakeLists.txt: Stop superfluous linking against libgcrypt.
 
 2017-07-24  Hani Benhabiles  <hani.benhabiles@greenbone.net>

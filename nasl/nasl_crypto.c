@@ -458,7 +458,7 @@ tls_prf (const void *secret, size_t secret_len, const void *seed,
 
 /* @brief PRF function from RFC 4346 chapter 5. TLS v1.1
  *
- * Legacy function in wich P_MD5 and PSHA1 are combined.
+ * Legacy function in which P_MD5 and PSHA1 are combined.
  *
  * Legacy function has been replaced with prf_sha256 and prf_sha348
  *  in TLS v1.2, as it can be read in chapter 1.2

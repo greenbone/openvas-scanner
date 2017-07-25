@@ -181,7 +181,7 @@ destroy_loading_shm (void)
 /*
  * @brief Gives current number of loaded plugins.
  *
- * @return Number of loaded plugins,  0 if initalization wasn't successful.
+ * @return Number of loaded plugins,  0 if initialization wasn't successful.
  */
 int
 current_loading_plugins (void)
@@ -192,7 +192,7 @@ current_loading_plugins (void)
 /*
  * @brief Gives the total number of plugins to be loaded.
  *
- * @return Total of loaded plugins,  0 if initalization wasn't successful.
+ * @return Total of loaded plugins,  0 if initialization wasn't successful.
  */
 int
 total_loading_plugins (void)
