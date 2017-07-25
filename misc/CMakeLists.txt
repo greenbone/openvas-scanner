@@ -154,7 +154,7 @@ if (MINGW)
 else (MINGW)
   target_link_libraries (openvas_misc_shared LINK_PRIVATE ${GNUTLS_LDFLAGS} ${UUID_LDFLAGS}
                          ${GLIB_LDFLAGS} ${PCAP_LDFLAGS}
-                         ${GCRYPT_LDFLAGS} ${LINKER_HARDENING_FLAGS})
+                         ${LINKER_HARDENING_FLAGS})
 endif (MINGW)
 
 if (OPENVAS_STATE_DIR)
