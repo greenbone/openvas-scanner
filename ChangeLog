@@ -1,3 +1,17 @@
+2017-07-27  Juan Jose Nicola  <juan.nicola@greenbone.net>
+
+	Add the file name in the openvas-nasl-lints error message.
+
+	* nasl/lint.c (print_uncall_files): Adjust documentation.
+	(nasl_lint_def): Receive new parameters. Handle NODE_FUN_CALL case
+	to associet an undefined function with a filename. Set the actual
+	filename.
+	(nasl_lint_call): Receive new parameters. Set the file name to be
+	show in error message if a called function is not defined.
+	(nasl_lint): New hash table. Pass the table as argument to
+	nasl_lint_def() and nasl_lint_call() functions. Check if
+	the included files are used or not. Improve the code style.
+
 2017-07-25  Michael Wiegand <michael.wiegand@greenbone.net>
 
 	* nasl/nasl_crypto.c (tls1_prf), src/pluginload.c
