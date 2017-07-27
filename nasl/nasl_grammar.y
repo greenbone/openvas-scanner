@@ -652,7 +652,7 @@ init_nasl_ctx(naslctxt* pc, const char* name)
     inc_dir = g_slist_next(inc_dir);
   }
 
-  if (!pc->buffer) {
+  if (!full_name || !pc->buffer) {
     g_message ("%s: Not able to open nor to locate it in include paths",
                name);
     g_free(full_name);

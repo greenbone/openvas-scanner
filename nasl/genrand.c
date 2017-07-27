@@ -130,7 +130,7 @@ static int do_reseed_ntlmssp(bool use_fd, int fd)
 	}
 
 	/* Add in some secret file contents */
-
+        memset (seed_inbuf, '\0', sizeof (seed_inbuf));
 	do_filehash_ntlmssp("/etc/shadow", &seed_inbuf[0]);
 	/*
 	 * Add the counter, time of day, and pid.

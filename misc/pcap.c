@@ -323,7 +323,7 @@ int
 v6_ipaddr2devname (char *dev, int sz, struct in6_addr *addr)
 {
   struct interface_info *mydevs;
-  int numdevs;
+  int numdevs = 0;
   int i;
   mydevs = v6_getinterfaces (&numdevs);
 #if TCPIP_DEBUGGING

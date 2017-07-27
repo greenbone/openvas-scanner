@@ -1,3 +1,11 @@
+2017-07-27  Hani Benhabiles  <hani.benhabiles@greenbone.net>
+
+	* misc/pcap.c (v6_ipaddr2devname): Fix garbage value warning.
+
+	* nasl/nasl_grammar.y (init_nasl_ctx): Fix possible null value warning.
+
+	* nasl/genrand.c (do_reseed_ntlmssp): Fix garbage value warning.
+
 2017-07-27  Juan Jose Nicola  <juan.nicola@greenbone.net>
 
 	Add the file name in the openvas-nasl-lints error message.
