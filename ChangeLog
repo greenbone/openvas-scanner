@@ -1,3 +1,8 @@
+2017-07-28  Juan Jose Nicola  <juan.nicola@greenbone.net>
+
+	* nasl/nasl_smb.c (nasl_win_cmd_exec): Add quotation marks to cmd, since
+	wmiexec.py needs it if the cmd has more than one word.
+
 2017-07-27  Hani Benhabiles  <hani.benhabiles@greenbone.net>
 
 	* misc/pcap.c (v6_ipaddr2devname): Fix garbage value warning.

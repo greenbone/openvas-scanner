@@ -406,7 +406,7 @@ nasl_win_cmd_exec (lex_ctxt * lexic)
       return NULL;
     }
 
-  command = g_strdup_printf ("wmiexec.py %s:%s@%s %s", username, password, ip,
+  command = g_strdup_printf ("wmiexec.py %s:%s@%s '%s'", username, password, ip,
                              cmd);
   fp = popen (command, "r");
   g_free (command);
