@@ -1,3 +1,9 @@
+2017-07-28  Hani Benhabiles  <hani.benhabiles@greenbone.net>
+
+	* misc/ids_send.c (ids_send), nasl/nasl_host.c (nasl_same_host),
+	nasl/nasl_var.c (get_array_elem, add_var_to_list): Fix garbage values
+	and possible null pointer dereference warnings.
+
 2017-07-28  Juan Jose Nicola  <juan.nicola@greenbone.net>
 
 	* nasl/nasl_smb.c (nasl_win_cmd_exec): Add quotation marks to cmd, since

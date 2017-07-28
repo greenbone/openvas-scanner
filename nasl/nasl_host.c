@@ -315,6 +315,9 @@ nasl_same_host (lex_ctxt * lexic)
   int i, j, n[2], names_nb[2], flag;
   int cmp_hostname = get_int_local_var_by_name (lexic, "cmp_hostname", 0);
 
+  memset (names_nb, '\0', sizeof (names_nb));
+  memset (names, '\0', sizeof (names));
+  memset (a, '\0', sizeof (a));
   for (i = 0; i < 2; i++)
     {
       hn[i] = get_str_var_by_num (lexic, i);

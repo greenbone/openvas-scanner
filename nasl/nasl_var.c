@@ -267,8 +267,8 @@ get_array_elem (lex_ctxt * ctxt, const char *name, tree_cell * idx)
       nasl_perror (ctxt, "get_array_elem: NULL index\n");
 #endif
       /* Treat it as zero */
+      memset (&idx0, '\0', sizeof (idx0));
       idx = &idx0;
-      idx->x.i_val = 0;
       idx->type = CONST_INT;
     }
 
@@ -1404,7 +1404,7 @@ nasl_iterate_array (nasl_iterator * it)
 int
 add_var_to_list (nasl_array * a, int i, const anon_nasl_var * v)
 {
-  anon_nasl_var *v2;
+  anon_nasl_var *v2 = NULL;
 
   if (i < 0)
     {
@@ -1421,9 +1421,12 @@ add_var_to_list (nasl_array * a, int i, const anon_nasl_var * v)
       a->max_idx = i + 1;
     }
 
-  free_anon_var (a->num_elt[i]);
-  v2 = dup_anon_var (v);        /* May return NULL */
-  a->num_elt[i] = v2;
+  if (a->num_elt)
+    {
+      free_anon_var (a->num_elt[i]);
+      v2 = dup_anon_var (v);        /* May return NULL */
+      a->num_elt[i] = v2;
+    }
   if (v2 == NULL)
     return 0;
   else
