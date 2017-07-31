@@ -1,3 +1,19 @@
+2017-08-31  Jan-Oliver Wagner <jan-oliver.wagner@greenbone.net>
+
+	Drop the HUP signal sending to gvmd by the sync script
+	greenbone-nvt-sync. This makes the entire module unaware of
+	the Greenbone Vulnerability Manager. The gvmd will on its own decide
+	when to load new NVT data from the scanner rather then being triggered
+	by the NVT sync script. That mechanism was error-prone anyway as it had
+	to find out the PID of gvmd on its own.
+
+	* tools/greenbone-nvt-sync.in: Adjust some comments to explain that
+	only OpenVAS Scanner gets a HUP after the sync.
+	(update_gvmd): Removed.
+	(do_sync): Remove the sleep and the call of update_gvmd().
+
+	* doc/greenbone-nvt-sync.8: Rempove any note on GVM accordingly.
+
 2017-07-28  Hani Benhabiles  <hani.benhabiles@greenbone.net>
 
 	* misc/ids_send.c (ids_send), nasl/nasl_host.c (nasl_same_host),

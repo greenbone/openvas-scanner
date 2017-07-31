@@ -84,14 +84,13 @@ ACCESS_KEY="@GVM_ACCESS_KEY_DIR@/gsf-access-key"
 # If ENABLED is set to 0, the sync script will not perform a synchronization.
 ENABLED=1
 
-# If REFRESH_ONLY is set to 1, the sync script will only update OpenVAS
-# Scanner and Greenbone Vulnerability Manager. This can be controlled via
-# the --refresh parameter.
+# If REFRESH_ONLY is set to 1, the sync script will not download the feed but
+# rather only update OpenVAS Scanner This can be controlled via the --refresh
+# parameter.
 REFRESH_ONLY=0
 
 # If SYNC_ONLY is set to 1, the sync script will only perform the
-# synchronization but will not update OpenVAS Scanner nor Greenbone
-# Vulnerability Manager.
+# synchronization but will not update OpenVAS Scanner.
 # This can be controlled via the --sync-only parameter.
 SYNC_ONLY=0
 
@@ -229,7 +228,7 @@ init_sync ()
 }
 
 # This function uses gos-state-manager to get information about the settings.
-# If not gos-state-manager is installed this values of the settings can not be
+# If gos-state-manager is not installed the values of the settings can not be
 # retrieved.
 #
 # Input: option
@@ -624,28 +623,8 @@ update_openvassd (){
     log_write "Sent signal to OpenVAS Scanner to update (PID $SCANNER_PID)."
   else
     log_err "$PIDFILEDIR/openvassd.pid not found, not updating OpenVAS Scanner."
-    log_write "Please restart OpenVAS Scanner or send SIGHUP to it and let Greenbone"
-    log_write "Vulnerability Manager do a '--update' or a '--rebuild' to enable new NVTs for use."
+    log_write "Please restart OpenVAS Scanner or send SIGHUP to it"
     SYNC_ONLY=1
-  fi
-}
-
-update_gvmd (){
-  if [ $SYNC_ONLY -eq 1 ]
-  then
-    return
-  fi
-
-  MANAGER_PIDFILE="$PIDFILEDIR/gvmd.pid"
-  if [ -r "$MANAGER_PIDFILE" ]
-  then
-    MANAGER_PID=`cat $MANAGER_PIDFILE`
-    kill -HUP $MANAGER_PID
-    log_write "Sent signal to Greenbone Vulnerability Manager to update (PID $MANAGER_PID)."
-  else
-    log_err "$PIDFILEDIR/gvmd.pid not found, not updating Greenbone Vulnerability Manager."
-    log_write "Please let Greenbone Vulnerability Manager do a '--update' or a '--rebuild' to"
-    log_write "enable new NVTs for use."
   fi
 }
 
@@ -702,8 +681,6 @@ do_sync ()
   else
     sync_nvts
     update_openvassd
-    sleep 1 # to ensure sd started working before md starts
-    update_gvmd
   fi
 }
 
@@ -716,10 +693,10 @@ do_help () {
   echo " --help         display this help"
   echo " --identify     display information"
   echo " --nvtdir dir   set dir as NVT directory"
-  echo " --refresh      update database without downloading new state"
+  echo " --refresh      update OpenVAS Scanner without downloading new state"
   echo " --rsync        only use rsync to download feed files"
   echo " --selftest     perform self-test"
-  echo " --sync-only    download new state without updating database"
+  echo " --sync-only    download new state without updating OpenVAS Scanner"
   echo " --verbose      makes the sync process print details"
   echo " --version      display version"
   echo " --wget         only use wget to download feed files"
