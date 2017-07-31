@@ -1,3 +1,7 @@
+2017-07-31  Michael Wiegand <michael.wiegand@greenbone.net>
+
+	* tools/greenbone-nvt-sync.in: Re-add period lost in last commit.
+
 2017-08-31  Jan-Oliver Wagner <jan-oliver.wagner@greenbone.net>
 
 	Drop the HUP signal sending to gvmd by the sync script

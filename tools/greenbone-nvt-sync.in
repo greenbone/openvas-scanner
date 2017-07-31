@@ -85,7 +85,7 @@ ACCESS_KEY="@GVM_ACCESS_KEY_DIR@/gsf-access-key"
 ENABLED=1
 
 # If REFRESH_ONLY is set to 1, the sync script will not download the feed but
-# rather only update OpenVAS Scanner This can be controlled via the --refresh
+# rather only update OpenVAS Scanner. This can be controlled via the --refresh
 # parameter.
 REFRESH_ONLY=0
 
