@@ -1,3 +1,7 @@
+2017-08-03  Hani Benhabiles  <hani.benhabiles@greenbone.net>
+
+	* nasl/nasl_var.c (get_var_ref_by_name): Check for null parameter.
+
 2017-07-31  Michael Wiegand <michael.wiegand@greenbone.net>
 
 	* tools/greenbone-nvt-sync.in: Re-add period lost in last commit.

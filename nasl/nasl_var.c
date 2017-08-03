@@ -132,6 +132,8 @@ get_var_ref_by_name (lex_ctxt * ctxt, const char *name, int climb)
   int h = hash_str (name);
   lex_ctxt *c;
 
+  if (!ctxt)
+    return NULL;
   if (climb != 0)
     {
       for (c = ctxt; c != NULL; c = c->up_ctxt)
