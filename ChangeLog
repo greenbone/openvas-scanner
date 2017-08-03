@@ -1,3 +1,10 @@
+2017-08-03  Michael Wiegand <michael.wiegand@greenbone.net>
+
+	* CMakeLists.txt: Remove -O2 from HARDENING_FLAGS. It is not directly
+	related to hardening and having it in HARDENING_FLAGS actually causes
+	optimization flags from CMAKE_C_FLAGS_RELEASE to be duplicated or even
+	superseded for no good reason.
+
 2017-08-03  Hani Benhabiles  <hani.benhabiles@greenbone.net>
 
 	* nasl/nasl_var.c (get_var_ref_by_name): Check for null parameter.
