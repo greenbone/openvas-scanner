@@ -47,6 +47,7 @@ tree_cell *nasl_socket_get_ssl_session_id (lex_ctxt *);
 tree_cell *nasl_socket_get_ssl_version (lex_ctxt *);
 tree_cell *nasl_socket_get_ssl_compression (lex_ctxt *);
 tree_cell *nasl_socket_get_ssl_ciphersuite (lex_ctxt *);
+tree_cell *nasl_socket_cert_verify (lex_ctxt *);
 
 tree_cell *nasl_close_socket (lex_ctxt *);
 

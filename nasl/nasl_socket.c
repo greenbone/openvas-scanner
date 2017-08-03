@@ -1366,3 +1366,98 @@ nasl_get_sock_info (lex_ctxt * lexic)
 
   return retc;
 }
+
+/**
+ * @brief Verify a certificate.
+ * @naslfn{socket_cert_verify}
+ *
+ * This function is used to retrieve and verify a certificate from an
+ * active socket. It requires the It requires the NASL socket number.
+ *
+ * @nasluparam
+ *
+ * - A NASL socket.
+ *
+ * @naslret 0 in case of successfully verification. A positive integer in
+ * case of verification error or NULL on other errors.
+ *
+ * @param[in] lexic  Lexical context of the NASL interpreter.
+ *
+ * @return A tree cell.
+ */
+tree_cell *
+nasl_socket_cert_verify (lex_ctxt *lexic)
+{
+  int soc, err;
+  int ret;
+  tree_cell *retc;
+  gnutls_x509_crt_t *cert = NULL;
+  gnutls_x509_trust_list_t ca_list;
+  unsigned int ca_list_size = 0;
+  unsigned int i, cert_n = 0;
+  unsigned int voutput;
+  const gnutls_datum_t *certs;
+
+  int transport;
+  gnutls_session_t tls_session;
+
+  soc = get_int_local_var_by_name (lexic, "socket", -1);
+  if (soc < 0)
+    {
+      nasl_perror (lexic, "socket_get_cert: Erroneous socket value %d\n",
+                   soc);
+      return NULL;
+    }
+
+  {
+    void *tmp = NULL;
+    err = get_sock_infos (soc, &transport, &tmp);
+    tls_session = tmp;
+  }
+  if (err)
+    {
+      nasl_perror (lexic, "error retrieving tls_session for socket %d: %s\n",
+                   soc, strerror (err));
+      return NULL;
+    }
+
+  /* We only support X.509 for now.  GNUTLS also allows for
+     OpenPGP, but we are not prepared for that.  */
+  if (tls_session
+      && gnutls_certificate_type_get (tls_session) == GNUTLS_CRT_X509)
+    {
+      certs = gnutls_certificate_get_peers (tls_session, &cert_n);
+      if (!certs)
+        return NULL;  /* No certificate or other error.  */
+    }
+
+  cert = g_malloc0 (sizeof(*cert) * cert_n);
+  for (i = 0; i < cert_n; i++ )
+    {
+      if (gnutls_x509_crt_init (&cert[i]) != GNUTLS_E_SUCCESS)
+        return NULL;
+      if (gnutls_x509_crt_import (cert[i], &certs[i], GNUTLS_X509_FMT_DER)
+          != GNUTLS_E_SUCCESS)
+        return NULL;
+    }
+
+  /* Init ca_list and load system CA trust list */
+  if ((ret = gnutls_x509_trust_list_init (&ca_list, ca_list_size)) < 0)
+    return NULL;
+  ret = gnutls_x509_trust_list_add_system_trust (ca_list, 0, 0);
+  if (ret < 0)
+    return NULL;
+
+  /* Certificate verification against a trust list*/
+  if (gnutls_x509_trust_list_verify_crt (ca_list, cert, cert_n,
+                                         0, &voutput ,
+                                         NULL)
+      != GNUTLS_E_SUCCESS)
+    return NULL;
+
+  ret = voutput;
+
+  retc = alloc_typed_cell (CONST_INT);
+  retc->x.i_val = ret;
+  return retc;
+}

@@ -116,6 +116,7 @@ static init_func libfuncs[] = {
   {"socket_get_ssl_ciphersuite", nasl_socket_get_ssl_ciphersuite},
   {"socket_get_ssl_session_id", nasl_socket_get_ssl_session_id},
   {"socket_get_ssl_compression", nasl_socket_get_ssl_compression},
+  {"socket_cert_verify", nasl_socket_cert_verify},
   {"close", nasl_close_socket},
   {"join_multicast_group", nasl_join_multicast_group},
   {"leave_multicast_group", nasl_leave_multicast_group},

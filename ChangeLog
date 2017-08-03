@@ -1,3 +1,13 @@
+2017-08-03  Juan Jose Nicola  <juan.nicola@greenbone.net>
+
+	Function to verify certifactes retrieved from an active socket.
+
+	* nasl/nasl_socket.c (nasl_socket_cert_verify): New function.
+
+	* nasl/nasl_socket.h: Add function prototype.
+
+	* nasl/nasl_init.c (libfuncs): Add socket_cert_verify().
+
 2017-08-03  Michael Wiegand <michael.wiegand@greenbone.net>
 
 	Unify handling of compiler flags to avoid passing the same flag
