@@ -126,12 +126,10 @@ if (SNMP)
 endif (SNMP)
 
 
-# The "-D_FILE_OFFSET_BITS=64 -DLARGEFILE_SOURCE=1" is necessary for GPGME!
 # The "-fno-strict-aliasing" silences warnings caused by macros defined in byteorder.h.
 # Once the warnings have been addressed this flag should be removed.
-set (CMAKE_C_FLAGS              "${CMAKE_C_FLAGS} -Wall -Wextra -D_FILE_OFFSET_BITS=64 -DLARGEFILE_SOURCE=1 -fno-strict-aliasing")
+set (CMAKE_C_FLAGS              "${CMAKE_C_FLAGS} -Wall -Wextra -fno-strict-aliasing")
 set (CMAKE_C_FLAGS_DEBUG        "${CMAKE_C_FLAGS_DEBUG} -Werror")
-set (CMAKE_C_FLAGS_RELEASE      "${CMAKE_C_FLAGS_RELEASE} ${HARDENING_FLAGS}")
 
 ## Compile the parser - note that there are (better) CMake macros to achieve
 ## that

@@ -237,6 +237,7 @@ configure_file (src/openvassd_log_conf.cmake_in src/openvassd_log.conf)
 
 set (HARDENING_FLAGS            "-Wformat -Wformat-security -D_FORTIFY_SOURCE=2 -fstack-protector")
 set (LINKER_HARDENING_FLAGS     "-Wl,-z,relro -Wl,-z,now")
+# The "-D_FILE_OFFSET_BITS=64 -DLARGEFILE_SOURCE=1" is necessary for GPGME!
 set (GPGME_C_FLAGS              "-D_FILE_OFFSET_BITS=64 -DLARGEFILE_SOURCE=1")
 
 set (CMAKE_C_FLAGS_RELEASE      "${CMAKE_C_FLAGS_RELEASE} ${HARDENING_FLAGS}")

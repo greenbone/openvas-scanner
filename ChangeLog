@@ -1,5 +1,24 @@
 2017-08-03  Michael Wiegand <michael.wiegand@greenbone.net>
 
+	Unify handling of compiler flags to avoid passing the same flag
+	multiple times.
+
+	* CMakeLists.txt: Move explanatory comment for flags required by GPGME
+	here from nasl/CMakeLists.txt.
+
+	* misc/CMakeLists.txt: Stop setting HARDENING_FLAGS and
+	LINKER_HARDENING_FLAGS as they are already set in top-level. Stop
+	adding the HARDENING_FLAGS to CMAKE_C_FLAGS_RELEASE a second time,
+	they were already added in top-level.
+
+	* nasl/CMakeLists.txt: Stop adding GPGME related flags to
+	CMAKE_C_FLAGS, they were already added in top-level. Remove related
+	comment as well. Stop adding the HARDENING_FLAGS to
+	CMAKE_C_FLAGS_RELEASE a second time, they were already added in
+	top-level.
+
+2017-08-03  Michael Wiegand <michael.wiegand@greenbone.net>
+
 	* CMakeLists.txt: Remove -O2 from HARDENING_FLAGS. It is not directly
 	related to hardening and having it in HARDENING_FLAGS actually causes
 	optimization flags from CMAKE_C_FLAGS_RELEASE to be duplicated or even
