@@ -1,3 +1,9 @@
+2017-08-04  Juan Jose Nicola  <juan.nicola@greenbone.net>
+
+	* nasl/nasl_socket.c (nasl_socket_cert_verify): Handle case in which
+	tls_session is NULL or the certificate type is not x509. Fix documentation
+	issue.
+
 2017-08-03  Juan Jose Nicola  <juan.nicola@greenbone.net>
 
 	Function to verify certifactes retrieved from an active socket.

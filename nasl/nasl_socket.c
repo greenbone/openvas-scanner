@@ -1372,7 +1372,7 @@ nasl_get_sock_info (lex_ctxt * lexic)
  * @naslfn{socket_cert_verify}
  *
  * This function is used to retrieve and verify a certificate from an
- * active socket. It requires the It requires the NASL socket number.
+ * active socket. It requires the NASL socket number.
  *
  * @nasluparam
  *
@@ -1430,6 +1430,8 @@ nasl_socket_cert_verify (lex_ctxt *lexic)
       if (!certs)
         return NULL;  /* No certificate or other error.  */
     }
+  else
+    return NULL;
 
   cert = g_malloc0 (sizeof(*cert) * cert_n);
   for (i = 0; i < cert_n; i++ )
