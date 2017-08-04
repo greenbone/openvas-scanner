@@ -61,41 +61,41 @@ endif (NOT CMAKE_BUILD_TYPE MATCHES "Release")
 set (CMAKE_C_FLAGS_DEBUG        "${CMAKE_C_FLAGS_DEBUG} -Werror -Wextra")
 
 if (OPENVASSD_VERSION)
-  add_definitions (-DOPENVASSD_VERSION=\\\"${OPENVASSD_VERSION}\\\")
+  add_definitions (-DOPENVASSD_VERSION="${OPENVASSD_VERSION}")
 endif (OPENVASSD_VERSION)
 
-add_definitions (-DPREFIX=\\\"${CMAKE_INSTALL_PREFIX}\\\")
+add_definitions (-DPREFIX="${CMAKE_INSTALL_PREFIX}")
 
 if (OPENVAS_NVT_DIR)
-  add_definitions (-DOPENVAS_NVT_DIR=\\\"${OPENVAS_NVT_DIR}\\\")
+  add_definitions (-DOPENVAS_NVT_DIR="${OPENVAS_NVT_DIR}")
 endif (OPENVAS_NVT_DIR)
 
 if (OPENVAS_CACHE_DIR)
-  add_definitions (-DOPENVAS_CACHE_DIR=\\\"${OPENVAS_CACHE_DIR}\\\")
+  add_definitions (-DOPENVAS_CACHE_DIR="${OPENVAS_CACHE_DIR}")
 endif (OPENVAS_CACHE_DIR)
 
 if (OPENVASSD_CONF)
-  add_definitions (-DOPENVASSD_CONF=\\\"${OPENVASSD_CONF}\\\")
+  add_definitions (-DOPENVASSD_CONF="${OPENVASSD_CONF}")
 endif (OPENVASSD_CONF)
 
 if (OPENVAS_STATE_DIR)
-  add_definitions (-DOPENVAS_STATE_DIR=\\\"${OPENVAS_STATE_DIR}\\\")
+  add_definitions (-DOPENVAS_STATE_DIR="${OPENVAS_STATE_DIR}")
 endif (OPENVAS_STATE_DIR)
 
 if (OPENVAS_RUN_DIR)
-  add_definitions (-DOPENVAS_RUN_DIR=\\\"${OPENVAS_RUN_DIR}\\\")
+  add_definitions (-DOPENVAS_RUN_DIR="${OPENVAS_RUN_DIR}")
 endif (OPENVAS_RUN_DIR)
 
 if (SYSCONFDIR)
-  add_definitions (-DSYSCONFDIR=\\\"${SYSCONFDIR}\\\")
+  add_definitions (-DSYSCONFDIR="${SYSCONFDIR}")
 endif (SYSCONFDIR)
 
 if (OPENVAS_SYSCONF_DIR)
-  add_definitions (-DOPENVAS_SYSCONF_DIR=\\\"${OPENVAS_SYSCONF_DIR}\\\")
+  add_definitions (-DOPENVAS_SYSCONF_DIR="${OPENVAS_SYSCONF_DIR}")
 endif (OPENVAS_SYSCONF_DIR)
 
 if (OPENVAS_DATA_DIR)
-  add_definitions (-DOPENVAS_DATA_DIR=\\\"${OPENVAS_DATA_DIR}\\\")
+  add_definitions (-DOPENVAS_DATA_DIR="${OPENVAS_DATA_DIR}")
 endif (OPENVAS_DATA_DIR)
 
 if (NVT_TIMEOUT)

@@ -177,15 +177,15 @@ if (KSBA)
 endif (KSBA)
 
 if (OPENVASSD_CONF)
-  add_definitions (-DOPENVASSD_CONF=\\\"${OPENVASSD_CONF}\\\")
+  add_definitions (-DOPENVASSD_CONF="${OPENVASSD_CONF}")
 endif (OPENVASSD_CONF)
 
 set_source_files_properties (nasl_grammar.tab.c GENERATED)
 
 ## Pass-throughs
-add_definitions (-DOPENVAS_STATE_DIR=\\\"${OPENVAS_STATE_DIR}\\\")
-add_definitions (-DOPENVASLIB_VERSION=\\\"${OPENVASLIB_VERSION}\\\")
-add_definitions (-DOPENVAS_SYSCONF_DIR=\\\"${OPENVAS_SYSCONF_DIR}\\\")
+add_definitions (-DOPENVAS_STATE_DIR="${OPENVAS_STATE_DIR}")
+add_definitions (-DOPENVASLIB_VERSION="${OPENVASLIB_VERSION}")
+add_definitions (-DOPENVAS_SYSCONF_DIR="${OPENVAS_SYSCONF_DIR}")
 
 include_directories (${GLIB_INCLUDE_DIRS}
                      ${GPGME_INCLUDE_DIRS}

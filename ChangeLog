@@ -1,3 +1,16 @@
+2017-08-04  Michael Wiegand <michael.wiegand@greenbone.net>
+
+	Switch to NEW behavior for CMake policy CMP0005. The policy was
+	introduced in CMake 2.6, the OLD behavior is deprecated by definition.
+	This means that preprocessor definition values are now escaped
+	automatically and no longer have to be escaped to work around
+	limitations in earlier CMake versions.
+
+	* CMakeLists.txt: Switch CMake Policy CMP0005 to NEW behavior.
+
+	* misc/CMakeLists.txt, nasl/CMakeLists.txt, src/CMakeLists.txt: Remove
+	now superfluous escaping.
+
 2017-08-04  Juan Jose Nicola  <juan.nicola@greenbone.net>
 
 	* nasl/nasl_socket.c (nasl_socket_cert_verify): Handle case in which

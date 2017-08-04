@@ -154,18 +154,18 @@ else (MINGW)
 endif (MINGW)
 
 if (OPENVAS_STATE_DIR)
-  add_definitions (-DOPENVAS_STATE_DIR=\\\"${OPENVAS_STATE_DIR}\\\")
+  add_definitions (-DOPENVAS_STATE_DIR="${OPENVAS_STATE_DIR}")
 endif (OPENVAS_STATE_DIR)
 
 if (OPENVAS_DATA_DIR)
-  add_definitions (-DOPENVAS_DATA_DIR=\\\"${OPENVAS_DATA_DIR}\\\")
+  add_definitions (-DOPENVAS_DATA_DIR="${OPENVAS_DATA_DIR}")
 endif (OPENVAS_DATA_DIR)
 
 # @todo Why is this definition setting guarded? OPENVAS_SYSCONF_DIR should
 #       always be set.
 #$(COMPILE) -DOPENVAS_STATE_DIR=\"$(localstatedir)\" -DCONF_DIR=\"$(sysconfdir)\" -c services1.c
 if (OPENVAS_SYSCONF_DIR)
-  add_definitions (-DOPENVAS_SYSCONF_DIR=\\\"${OPENVAS_SYSCONF_DIR}\\\")
+  add_definitions (-DOPENVAS_SYSCONF_DIR="${OPENVAS_SYSCONF_DIR}")
 endif (OPENVAS_SYSCONF_DIR)
 
 # install library
