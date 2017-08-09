@@ -1,3 +1,8 @@
+2017-08-09  Michael Wiegand <michael.wiegand@greenbone.net>
+
+	* INSTALL: Make libssh flavor recommended in Debian install
+	prerequisites match the flavor recommended in gvm-libs.
+
 2017-08-04  Michael Wiegand <michael.wiegand@greenbone.net>
 
 	Switch to NEW behavior for CMake policy CMP0005. The policy was

@@ -39,7 +39,7 @@ Recommended to have improved SNMP support:
 * netsnmp
 
 Install prerequisites on Debian GNU/Linux 'Jessie' 8:
-# apt-get install gcc pkg-config libssh-dev libgnutls28-dev libglib2.0-dev \
+# apt-get install gcc pkg-config libssh-gcrypt-dev libgnutls28-dev libglib2.0-dev \
   libpcap-dev libgpgme11-dev bison libksba-dev \
   libsnmp-dev libgcrypt20-dev
 
