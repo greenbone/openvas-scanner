@@ -41,8 +41,8 @@ int plugin_launch (struct scan_globals *, struct scheduler_plugin *,
                    struct host_info *, kb_t, char *);
 
 void pluginlaunch_child_cleanup (void);
-void pluginlaunch_disable_parrallel_checks (void);
-void pluginlaunch_enable_parrallel_checks (void);
+void pluginlaunch_disable_parallel_checks (void);
+void pluginlaunch_enable_parallel_checks (void);
 
 int wait_for_children (void);
 #endif

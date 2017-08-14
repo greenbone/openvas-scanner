@@ -413,7 +413,7 @@ get_next_in_range (plugins_scheduler_t h, int start, int end)
       element = h->list[category];
       if (category == ACT_SCANNER || category == ACT_KILL_HOST
           || category == ACT_FLOOD || category == ACT_DENIAL)
-        pluginlaunch_disable_parrallel_checks ();
+        pluginlaunch_disable_parallel_checks ();
       while (element)
         {
           struct scheduler_plugin *plugin = get_next_plugin (h, element->data,
@@ -422,7 +422,7 @@ get_next_in_range (plugins_scheduler_t h, int start, int end)
             return plugin;
           element = element->next;
         }
-      pluginlaunch_enable_parrallel_checks ();
+      pluginlaunch_enable_parallel_checks ();
     }
   if (still_running)
     return PLUG_RUNNING;

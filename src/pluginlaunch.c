@@ -422,13 +422,13 @@ pluginlaunch_init (const char *host)
 }
 
 void
-pluginlaunch_disable_parrallel_checks (void)
+pluginlaunch_disable_parallel_checks (void)
 {
   max_running_processes = 1;
 }
 
 void
-pluginlaunch_enable_parrallel_checks (void)
+pluginlaunch_enable_parallel_checks (void)
 {
   max_running_processes = old_max_running_processes;
 }

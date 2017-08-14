@@ -1,3 +1,9 @@
+2017-08-14  Hani Benhabiles  <hani.benhabiles@greenbone.net>
+
+	* src/pluginscheduler.c, src/pluginlauncher.c, src/pluginlauncher.h
+	(pluginlaunch_disable_parallel_checks)
+	(pluginlaunch_enable_parallel_checks): Fix typo in functions name.
+
 2017-08-09  Michael Wiegand <michael.wiegand@greenbone.net>
 
 	* INSTALL: Make libssh flavor recommended in Debian install
