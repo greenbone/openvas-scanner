@@ -1,3 +1,14 @@
+2017-08-16  Juan Jose Nicola  <juan.nicola@greenbone.net>
+
+	Make openvas-nasl-lint able to check if a variable was defined
+	before to be used.
+
+	* nasl/lint.c (add_predef_varname, nasl_lint_defvar,list_cmp): New
+	functions.
+	(nasl_lint_call): Recieve less arguments and use a static variable.
+	(nasl_lint): Pass less arguments to nasl_lint_call. New GSList.
+	Call nasl_lint_defvar to check variables.
+
 2017-08-14  Hani Benhabiles  <hani.benhabiles@greenbone.net>
 
 	* src/pluginscheduler.c, src/pluginlauncher.c, src/pluginlauncher.h

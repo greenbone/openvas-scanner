@@ -38,6 +38,32 @@
  */
 #define G_LOG_DOMAIN "lib  nasl"
 
+/* Add keywords to the varnames list*/
+void
+add_predef_varname (GSList **defined_var)
+{
+  int i;
+  gchar *keywords[] = {"ACT_UNKNOWN", "ACT_END",
+                       "ACT_FLOOD", "ACT_KILL_HOST",
+                       "ACT_DENIAL", "ACT_DESTRUCTIVE_ATTACK",
+                       "ACT_MIXED_ATTACK", "ACT_ATTACK",
+                       "ACT_GATHER_INFO", "ACT_SETTINGS",
+                       "ACT_SCANNER", "ACT_INIT",
+                       "description", "NULL","OPENVAS_VERSION",
+                       "SCRIPT_NAME", "FALSE", "TRUE", "argv",
+                       "Workaround", "attr", "_FCT_ANON_ARGS", NULL};
+
+  for (i = 0; keywords[i] != NULL; i++)
+      *defined_var = g_slist_append(*defined_var, keywords[i]);
+}
+
+gint
+list_cmp (gconstpointer lelem, gconstpointer data)
+{
+  if (data)
+    return (g_strcmp0 (lelem , data));
+  return -1;
+}
 
 /* It adds to a list the inc files, which have never been called. */
 void
@@ -60,7 +86,6 @@ print_uncall_files (gpointer filename, gpointer lexic)
       lexic = NULL;
     }
 }
-
 
 tree_cell *
 nasl_lint_def (lex_ctxt * lexic, tree_cell * st, int lint_mode,
@@ -117,23 +142,23 @@ nasl_lint_def (lex_ctxt * lexic, tree_cell * st, int lint_mode,
 }
 
 tree_cell *
-nasl_lint_call (lex_ctxt * lexic, tree_cell * st, int *defined_flag,
-                GHashTable **include_files, GHashTable **func_fnames_tab,
-                gchar *err_fname)
+nasl_lint_call (lex_ctxt * lexic, tree_cell * st, GHashTable **include_files,
+                GHashTable **func_fnames_tab, gchar *err_fname)
 {
   int i;
   tree_cell *ret = FAKE_CELL;
   nasl_func *pf;
   char *incname = NULL;
+  static int defined_flag = 0;
 
   switch (st->type)
     {
     case CONST_DATA:
     case CONST_STR:
-      if (st->x.str_val != NULL && *defined_flag == 1)
+      if (st->x.str_val != NULL && defined_flag == 1)
         {
           decl_nasl_func (lexic, st, 1);
-          *defined_flag = 0;
+          defined_flag = 0;
         }
       return FAKE_CELL;
 
@@ -158,18 +183,74 @@ nasl_lint_call (lex_ctxt * lexic, tree_cell * st, int *defined_flag,
            }
        }
       if (g_strcmp0 (st->x.str_val, "defined_func") == 0)
-        *defined_flag = 1;
+        defined_flag = 1;
       /* fallthrough */
 
     default:
       for (i = 0; i < 4; i++)
         if (st->link[i] != NULL && st->link[i] != FAKE_CELL)
-          if ((ret = nasl_lint_call (lexic, st->link[i], defined_flag,
-                                     include_files, func_fnames_tab,
-                                     err_fname)) == NULL)
+          if ((ret = nasl_lint_call (lexic, st->link[i], include_files,
+                                     func_fnames_tab, err_fname)) == NULL)
             return NULL;
       return ret;
     }
+}
+
+/* Consider all cases in which a variable is set, and add it to a list. If
+ * a variable is read, it checks if it was previously added to the list.
+ */
+tree_cell *
+nasl_lint_defvar (lex_ctxt * lexic, tree_cell * st, GHashTable **include_files,
+                  GHashTable **func_fnames_tab, gchar *err_fname,
+                  GSList **defined_var)
+{
+  int i;
+  tree_cell *ret = FAKE_CELL;
+  static int defined_fn_mode = 0;
+  static int defined_var_mode = 0;
+
+  if (st->type != NODE_DECL && defined_fn_mode == 1)
+    defined_fn_mode = 0;
+
+  //Check defined variables
+  if ((st->type == NODE_AFF || st->type == EXPR_NOT)
+      && defined_var_mode == 0)
+    defined_var_mode = 1;
+
+  else if ((st->type == NODE_FUN_DEF || st->type == NODE_LOCAL ||
+            st->type == NODE_GLOBAL) && defined_fn_mode == 0)
+      defined_fn_mode = 1;
+
+  //The variable is defined. Therefore is save in a list.
+  else if ((st->type == NODE_VAR || st->type == NODE_DECL)
+           && (defined_var_mode == 1 || defined_fn_mode == 1))
+    {
+      if (st->x.str_val != NULL)
+        *defined_var = g_slist_prepend(*defined_var, st->x.str_val);
+      defined_var_mode = 0;
+    }
+
+  //The variable is used. It checks if the variable was defined
+  else if (st->type == NODE_VAR && defined_var_mode == 0)
+    {
+      if (!g_slist_find_custom (*defined_var, st->x.str_val,
+                                (GCompareFunc) list_cmp))
+        {
+          lexic->line_nb = st->line_nb;
+          nasl_perror (lexic, "The variable %s was not declared",
+                       st->x.str_val);
+          return NULL;
+        }
+    }
+
+  for (i = 0; i < 4; i++)
+    if (st->link[i] != NULL && st->link[i] != FAKE_CELL)
+      if ((ret = nasl_lint_defvar (lexic, st->link[i],
+                                 include_files, func_fnames_tab,
+                                   err_fname, defined_var)) == NULL)
+        return NULL;
+  return ret;
+
 }
 
 tree_cell *
@@ -178,7 +259,6 @@ nasl_lint (lex_ctxt * lexic, tree_cell * st)
   lex_ctxt * lexic_aux;
   tree_cell *ret = FAKE_CELL;
   int lint_mode = 1;
-  int defined_flag = 0;
   GHashTable *include_files = NULL;
   GHashTable *func_fnames_tab = NULL;
   GSList *unusedfiles = NULL;
@@ -197,11 +277,9 @@ nasl_lint (lex_ctxt * lexic, tree_cell * st)
   if ((ret = nasl_lint_def (lexic_aux, st, lint_mode, &include_files,
                             &func_fnames_tab, err_fname)) == NULL)
     goto fail;
-
   /* Check if a called function was defined. */
-  if ((ret = nasl_lint_call (lexic_aux, st, &defined_flag,
-                             &include_files,&func_fnames_tab,
-                             err_fname)) == NULL)
+  if ((ret = nasl_lint_call (lexic_aux, st, &include_files,
+                             &func_fnames_tab, err_fname)) == NULL)
     goto fail;
 
   /* Check if the included files are used or not. */
@@ -215,11 +293,19 @@ nasl_lint (lex_ctxt * lexic, tree_cell * st)
       goto fail;
     }
 
-/* Now check that each function was loaded just once. */
+  /* Now check that each function was loaded just once. */
   lint_mode = 0;
   if ((ret = nasl_lint_def (lexic, st, lint_mode, &include_files,
                             &func_fnames_tab, err_fname)) == NULL)
       goto fail;
+
+  /* Check if a variable was defined. */
+  GSList *defined_var = NULL;
+  add_predef_varname (&defined_var);
+  ret = nasl_lint_defvar (lexic_aux, st,
+                          &include_files,&func_fnames_tab,
+                          err_fname, &defined_var);
+  g_slist_free (defined_var);
 
  fail:
   g_hash_table_destroy (include_files);
