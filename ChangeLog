@@ -1,3 +1,8 @@
+2017-08-21  Juan Jose Nicola  <juan.nicola@.greenbone.net>
+
+	* nasl/lint.c (nasl_lint_defvar): Handle case in which the variable
+	is declared in a foreach node.
+
 2017-08-16  Juan Jose Nicola  <juan.nicola@greenbone.net>
 
 	Make openvas-nasl-lint able to check if a variable was defined

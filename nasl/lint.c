@@ -50,8 +50,8 @@ add_predef_varname (GSList **defined_var)
                        "ACT_GATHER_INFO", "ACT_SETTINGS",
                        "ACT_SCANNER", "ACT_INIT",
                        "description", "NULL","OPENVAS_VERSION",
-                       "SCRIPT_NAME", "FALSE", "TRUE", "argv",
-                       "Workaround", "attr", "_FCT_ANON_ARGS", NULL};
+                       "SCRIPT_NAME", "FALSE", "TRUE",
+                       "_FCT_ANON_ARGS", NULL};
 
   for (i = 0; keywords[i] != NULL; i++)
       *defined_var = g_slist_append(*defined_var, keywords[i]);
@@ -218,18 +218,24 @@ nasl_lint_defvar (lex_ctxt * lexic, tree_cell * st, GHashTable **include_files,
     defined_var_mode = 1;
 
   else if ((st->type == NODE_FUN_DEF || st->type == NODE_LOCAL ||
-            st->type == NODE_GLOBAL) && defined_fn_mode == 0)
+            st->type == NODE_GLOBAL || st->type == NODE_PLUS_EQ) &&
+           defined_fn_mode == 0)
       defined_fn_mode = 1;
 
   //The variable is defined. Therefore is save in a list.
-  else if ((st->type == NODE_VAR || st->type == NODE_DECL)
-           && (defined_var_mode == 1 || defined_fn_mode == 1))
+  else if ((st->type == NODE_VAR || st->type == NODE_DECL ||
+            st->type == NODE_ARRAY_EL) && (defined_var_mode == 1 ||
+                                           defined_fn_mode == 1))
     {
       if (st->x.str_val != NULL)
         *defined_var = g_slist_prepend(*defined_var, st->x.str_val);
       defined_var_mode = 0;
     }
-
+  else if (st->type == NODE_FOREACH)
+    {
+      if (st->x.str_val != NULL)
+        *defined_var = g_slist_prepend(*defined_var, st->x.str_val);
+    }
   //The variable is used. It checks if the variable was defined
   else if (st->type == NODE_VAR && defined_var_mode == 0)
     {
