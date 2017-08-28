@@ -1,3 +1,8 @@
+2017-08-28  Michael Wiegand <michael.wiegand@greenbone.net>
+
+	* doc/Doxyfile.in, doc/Doxyfile_full.in: Use correct INPUT_ENCODING,
+	otherwise Doxygen ends up producing invalid XML.
+
 2017-08-21  Juan Jose Nicola  <juan.nicola@.greenbone.net>
 
 	* nasl/lint.c (nasl_lint_defvar): Handle case in which the variable
