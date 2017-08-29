@@ -1,5 +1,10 @@
 2017-08-29  Michael Wiegand <michael.wiegand@greenbone.net>
 
+	* INSTALL: Rework 'Configuration Options' section, remove reference to
+	a build flag that was removed a long time ago.
+
+2017-08-29  Michael Wiegand <michael.wiegand@greenbone.net>
+
 	Make it possible skip dependency checks during configuration. This
 	makes it possible to generate documentation and source tarballs in
 	environments where said dependencies are not present.
