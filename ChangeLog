@@ -1,3 +1,22 @@
+2017-08-29  Michael Wiegand <michael.wiegand@greenbone.net>
+
+	Make it possible skip dependency checks during configuration. This
+	makes it possible to generate documentation and source tarballs in
+	environments where said dependencies are not present.
+
+	* CMakeLists.txt: Move dependency checks to subdirectories. Do not
+	consider subdirectories containing code and dependency checks when
+	SKIP_SRC is defined.
+
+	* misc/CMakeLists.txt: Explicitly check for glib-2.0 and libgvm_base
+	since this is no longer done by the top-level CMakeLists.txt.
+
+	* nasl/CMakeLists.txt: Explicitly check for glib-2.0 since this is no
+	longer done by the top-level CMakeLists.txt.
+
+	* src/CMakeLists.txt: Explicitly check for glib-2.0, libgvm_base and
+	gcrypt since this is no longer done by the top-level CMakeLists.txt.
+
 2017-08-28  Michael Wiegand <michael.wiegand@greenbone.net>
 
 	* doc/Doxyfile.in, doc/Doxyfile_full.in: Use correct INPUT_ENCODING,

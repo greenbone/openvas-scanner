@@ -199,26 +199,6 @@ set (SCANNER_NVT_TIMEOUT "36000")
 
 message ("-- Install prefix: ${CMAKE_INSTALL_PREFIX}")
 
-## Dependency checks
-
-pkg_check_modules (LIBGVM_BASE REQUIRED libgvm_base>=1.0.0)
-pkg_check_modules (LIBGVM_UTIL REQUIRED libgvm_util>=1.0.0)
-pkg_check_modules (GLIB REQUIRED glib-2.0>=2.32)
-
-message (STATUS "Looking for libgcrypt...")
-find_library (GCRYPT gcrypt)
-if (NOT GCRYPT)
-  message (SEND_ERROR "The libgcrypt library is required.")
-else (NOT GCRYPT)
-  message (STATUS "Looking for libgcrypt... ${GCRYPT}")
-  execute_process (COMMAND libgcrypt-config --libs
-    OUTPUT_VARIABLE GCRYPT_LDFLAGS
-    OUTPUT_STRIP_TRAILING_WHITESPACE)
-  execute_process (COMMAND libgcrypt-config --cflags
-    OUTPUT_VARIABLE GCRYPT_CFLAGS
-    OUTPUT_STRIP_TRAILING_WHITESPACE)
-endif (NOT GCRYPT)
-
 ## Version
 
 set (OPENVASSD_VERSION "${PROJECT_VERSION_STRING}")
@@ -244,9 +224,11 @@ set (CMAKE_C_FLAGS_RELEASE      "${CMAKE_C_FLAGS_RELEASE} ${HARDENING_FLAGS}")
 
 set (CMAKE_C_FLAGS              "${CMAKE_C_FLAGS} ${GPGME_C_FLAGS} -Wall -D_BSD_SOURCE -D_ISOC99_SOURCE -D_SVID_SOURCE -D_DEFAULT_SOURCE")
 
-add_subdirectory (misc)
-add_subdirectory (nasl)
-add_subdirectory (src)
+if (NOT SKIP_SRC)
+  add_subdirectory (misc)
+  add_subdirectory (nasl)
+  add_subdirectory (src)
+endif (NOT SKIP_SRC)
 
 ## Documentation
 

@@ -25,6 +25,25 @@
 
 ## Program
 
+## Dependency checks
+
+pkg_check_modules (LIBGVM_BASE REQUIRED libgvm_base>=1.0.0)
+pkg_check_modules (GLIB REQUIRED glib-2.0>=2.32)
+
+message (STATUS "Looking for libgcrypt...")
+find_library (GCRYPT gcrypt)
+if (NOT GCRYPT)
+  message (SEND_ERROR "The libgcrypt library is required.")
+else (NOT GCRYPT)
+  message (STATUS "Looking for libgcrypt... ${GCRYPT}")
+  execute_process (COMMAND libgcrypt-config --libs
+    OUTPUT_VARIABLE GCRYPT_LDFLAGS
+    OUTPUT_STRIP_TRAILING_WHITESPACE)
+  execute_process (COMMAND libgcrypt-config --cflags
+    OUTPUT_VARIABLE GCRYPT_CFLAGS
+    OUTPUT_STRIP_TRAILING_WHITESPACE)
+endif (NOT GCRYPT)
+
 add_executable (openvassd attack.c comm.c hosts.c
                 nasl_plugins.c ntp.c openvassd.c otp.c
                 pluginlaunch.c pluginload.c

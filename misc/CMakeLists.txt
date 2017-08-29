@@ -26,7 +26,10 @@
 ##
 ## TODO Also check for headers where needed.
 
+pkg_check_modules (GLIB REQUIRED glib-2.0>=2.32)
 pkg_check_modules (GNUTLS REQUIRED gnutls>=3.2.15)
+
+pkg_check_modules (LIBGVM_BASE REQUIRED libgvm_base>=1.0.0)
 
 pkg_check_modules (OPENVAS_WMICLIENT libopenvas_wmiclient>=1.0.1)
 pkg_check_modules (OPENVAS_WINCMD libopenvas_wincmd>=1.0.1)
