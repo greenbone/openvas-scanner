@@ -1,3 +1,9 @@
+2017-08-31  Hani Benhabiles  <hani.benhabiles@greenbone.net>
+
+	* nasl/nasl_grammar.y (load_signatures, file_md5sum): New functions.
+	(init_nasl_ctx): Use checksums from md5sum file to authentify nasl
+	files.
+
 2017-08-29  Michael Wiegand <michael.wiegand@greenbone.net>
 
 	* INSTALL: Rework 'Configuration Options' section, remove reference to
