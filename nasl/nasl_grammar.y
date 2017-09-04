@@ -608,7 +608,7 @@ add_nasl_inc_dir (const char * dir)
 }
 
 static void
-load_signatures (kb_t kb)
+load_checksums (kb_t kb)
 {
   static int loaded = 0;
   const char *base;
@@ -709,9 +709,10 @@ file_md5sum (const char *filename)
 int
 init_nasl_ctx(naslctxt* pc, const char* name)
 {
-  char *full_name = NULL, key_path[2048], *md5sum;
+  char *full_name = NULL, key_path[2048], *md5sum, *filename;
   GSList * inc_dir = inc_dirs; // iterator for include directories
   size_t flen = 0;
+  time_t timestamp;
 
   // initialize if not yet done (for openvas-server < 2.0.1)
   if (! inc_dirs) add_nasl_inc_dir("");
@@ -753,11 +754,26 @@ init_nasl_ctx(naslctxt* pc, const char* name)
     }
   /* Cache the md5sum of signature verified files, so that commonly included
    * files are not verified multiple times per scan. */
-  load_signatures (pc->kb);
   if (strstr (full_name, ".inc"))
-    snprintf (key_path, sizeof (key_path), "md5sums:%s", basename (full_name));
+    filename = basename (full_name);
   else
-    snprintf (key_path, sizeof (key_path), "md5sums:%s", full_name);
+    filename = full_name;
+  snprintf (key_path, sizeof (key_path), "signaturecheck:%s", filename);
+  timestamp = kb_item_get_int (pc->kb, key_path);
+  if (timestamp > 0)
+    {
+      struct stat file_stat;
+
+      if (stat (full_name, &file_stat) >= 0 && timestamp > file_stat.st_mtime)
+        {
+          /* Already checked. No need to check again. */
+          g_free (full_name);
+          return 0;
+        }
+    }
+
+  load_checksums (pc->kb);
+  snprintf (key_path, sizeof (key_path), "md5sums:%s", filename);
   md5sum = kb_item_get_str (pc->kb, key_path);
   if (!md5sum)
     {
@@ -773,6 +789,11 @@ init_nasl_ctx(naslctxt* pc, const char* name)
       ret = strcmp (check, md5sum);
       if (ret)
         g_warning ("md5sum for %s not matching", full_name);
+      else
+        {
+          snprintf (key_path, sizeof (key_path), "signaturecheck:%s", filename);
+          kb_item_add_int (pc->kb, key_path, time (NULL));
+        }
       g_free (full_name);
       g_free (md5sum);
       g_free (check);
