@@ -1,3 +1,8 @@
+2017-09-06  Hani Benhabiles  <hani.benhabiles@greenbone.net>
+
+	* nasl/nasl_grammar.y (load_checksums, file_checksum, init_nasl_ctx):
+	Refactor functions to be checksum algorithm agnostic. Handle sha256 case.
+
 2017-09-04  Hani Benhabiles  <hani.benhabiles@greenbone.net>
 
 	* nasl/nasl_grammar.y (init_nasl_ctx): Use a timestamp to skip checking

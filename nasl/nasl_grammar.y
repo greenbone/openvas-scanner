@@ -607,11 +607,13 @@ add_nasl_inc_dir (const char * dir)
     return -2;
 }
 
+static int checksum_algorithm = 0;
+
 static void
 load_checksums (kb_t kb)
 {
   static int loaded = 0;
-  const char *base;
+  const char *base, *prefix;
   char filename[2048], *fbuffer;
   FILE *file;
   size_t flen;
@@ -620,17 +622,29 @@ load_checksums (kb_t kb)
     return;
   loaded = 1;
   base = prefs_get ("plugins_folder");
-  snprintf (filename, sizeof (filename), "%s/md5sums", base);
-  if (!g_file_get_contents (filename, &fbuffer, &flen, NULL))
-    return;
-  /* Verify md5sums.asc */
+  snprintf (filename, sizeof (filename), "%s/sha256sums", base);
+  if (g_file_get_contents (filename, &fbuffer, &flen, NULL))
+    checksum_algorithm = 2;
+  else
+    {
+      snprintf (filename, sizeof (filename), "%s/md5sums", base);
+      if (g_file_get_contents (filename, &fbuffer, &flen, NULL))
+        checksum_algorithm = 1;
+    }
+  if (!checksum_algorithm)
+    {
+      g_warning ("No plugins checksums file");
+      return;
+    }
+  /* Verify checksum */
   if (nasl_verify_signature (filename, fbuffer, flen) != 0)
     {
-      g_message ("%s: Missing or erroneous md5sums.asc", __FUNCTION__);
+      g_warning ("Erroneous or missing signature for checksums file %s",
+                 filename);
       g_free (fbuffer);
-      //XXX return;
+      return;
     }
-  //XXX g_free (fbuffer);
+  g_free (fbuffer);
 
   /* Insert content into KB */
   file = fopen (filename, "r");
@@ -639,7 +653,16 @@ load_checksums (kb_t kb)
       g_warning ("%s: Couldn't read file %s", __FUNCTION__, filename);
       return;
     }
-  kb_del_items (kb, "md5sums:*");
+  if (checksum_algorithm == 1)
+    {
+      kb_del_items (kb, "md5sums:*");
+      prefix = "md5sums";
+    }
+  else
+    {
+      kb_del_items (kb, "sha256sums:*");
+      prefix = "sha256sums";
+    }
   while (1)
     {
       char buffer[2048], **splits;
@@ -651,15 +674,17 @@ load_checksums (kb_t kb)
       splits = g_strsplit (buffer, "  ", -1);
       if (g_strv_length (splits) != 2)
         {
-          g_warning ("%s: Erroneous md5sums entry %s", __FUNCTION__, buffer);
+          g_warning ("%s: Erroneous checksum entry %s", __FUNCTION__, buffer);
           g_strfreev (splits);
           break;
         }
       splits[1][strlen (splits[1]) - 1] = '\0';
       if (strstr (splits[1], ".inc"))
-        g_snprintf (buffer, sizeof (buffer), "md5sums:%s", basename (splits[1]));
+        g_snprintf (buffer, sizeof (buffer), "%s:%s", prefix,
+                    basename (splits[1]));
       else
-        g_snprintf (buffer, sizeof (buffer), "md5sums:%s/%s", base, splits[1]);
+        g_snprintf (buffer, sizeof (buffer), "%s:%s/%s", prefix, base,
+                    splits[1]);
       kb_item_add_str (kb, buffer, splits[0], 0);
       g_strfreev (splits);
     }
@@ -667,24 +692,34 @@ load_checksums (kb_t kb)
 }
 
 /**
- * @brief Get the md5sum of a file.
+ * @brief Get the checksum of a file.
  *
  * @param[in]  filename     Path to file.
  *
- * @return md5sum string, NULL otherwise.
+ * @return checksum string, NULL otherwise.
  */
 static char *
-file_md5sum (const char *filename)
+file_checksum (const char *filename, int algorithm)
 {
-  char *content = NULL, digest[16], *result;
-  size_t len = 0, i;
+  char *content = NULL, digest[128], *result;
+  size_t len = 0, i, alglen;
 
+  assert (algorithm == 1 || algorithm == 2);
   if (!filename || !g_file_get_contents (filename, &content, &len, NULL))
     return NULL;
 
-  gcry_md_hash_buffer (GCRY_MD_MD5, digest, content, len);
-  result = g_malloc0 (33);
-  for (i = 0; i < 16; i++)
+  result = g_malloc0 (128);
+  if (algorithm == 1)
+    {
+      gcry_md_hash_buffer (GCRY_MD_MD5, digest, content, len);
+      alglen = 16;
+    }
+  else
+    {
+      gcry_md_hash_buffer (GCRY_MD_SHA256, digest, content, len);
+      alglen = 32;
+    }
+  for (i = 0; i < alglen; i++)
     snprintf (result + 2 * i, 3, "%02x", (unsigned char) digest[i]);
   g_free (content);
 
@@ -709,7 +744,7 @@ file_md5sum (const char *filename)
 int
 init_nasl_ctx(naslctxt* pc, const char* name)
 {
-  char *full_name = NULL, key_path[2048], *md5sum, *filename;
+  char *full_name = NULL, key_path[2048], *checksum, *filename;
   GSList * inc_dir = inc_dirs; // iterator for include directories
   size_t flen = 0;
   time_t timestamp;
@@ -752,7 +787,7 @@ init_nasl_ctx(naslctxt* pc, const char* name)
       g_free(full_name);
       return 0;
     }
-  /* Cache the md5sum of signature verified files, so that commonly included
+  /* Cache the checksum of signature verified files, so that commonly included
    * files are not verified multiple times per scan. */
   if (strstr (full_name, ".inc"))
     filename = basename (full_name);
@@ -773,29 +808,36 @@ init_nasl_ctx(naslctxt* pc, const char* name)
     }
 
   load_checksums (pc->kb);
-  snprintf (key_path, sizeof (key_path), "md5sums:%s", filename);
-  md5sum = kb_item_get_str (pc->kb, key_path);
-  if (!md5sum)
+  if (!checksum_algorithm)
+    return -1;
+  else if (checksum_algorithm == 1)
+    snprintf (key_path, sizeof (key_path), "md5sums:%s", filename);
+  else if (checksum_algorithm == 2)
+    snprintf (key_path, sizeof (key_path), "sha256sums:%s", filename);
+  else
+    abort ();
+  checksum = kb_item_get_str (pc->kb, key_path);
+  if (!checksum)
     {
-      g_warning ("No md5sum for %s", full_name);
+      g_warning ("No checksum for %s", full_name);
       g_free (full_name);
       return -1;
     }
   else
     {
       int ret;
-      char *check = file_md5sum (full_name);
+      char *check = file_checksum (full_name, checksum_algorithm);
 
-      ret = strcmp (check, md5sum);
+      ret = strcmp (check, checksum);
       if (ret)
-        g_warning ("md5sum for %s not matching", full_name);
+        g_warning ("checksum for %s not matching", full_name);
       else
         {
           snprintf (key_path, sizeof (key_path), "signaturecheck:%s", filename);
           kb_item_add_int (pc->kb, key_path, time (NULL));
         }
       g_free (full_name);
-      g_free (md5sum);
+      g_free (checksum);
       g_free (check);
       return ret;
     }
