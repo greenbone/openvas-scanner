@@ -92,6 +92,7 @@ static init_func libfuncs[] = {
   {"script_bugtraq_id", script_bugtraq_id},
   {"script_xref", script_xref},
   {"script_tag", script_tag},
+  {"vendor_version", nasl_vendor_version},
   {"get_preference", nasl_get_preference},
   {"safe_checks", safe_checks},
   {"get_script_oid", get_script_oid},

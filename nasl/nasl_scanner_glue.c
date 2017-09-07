@@ -40,6 +40,7 @@
 
 #include "../misc/plugutils.h"          /* for plug_set_id */
 #include "../misc/network.h"            /* for getpts */
+#include "../misc/vendorversion.h"      /* for vendor_version_get */
 
 #include "nasl_tree.h"
 #include "nasl_global_ctxt.h"
@@ -968,6 +969,20 @@ nasl_get_preference (lex_ctxt * lexic)
   retc = alloc_typed_cell (CONST_DATA);
   retc->x.str_val = strdup (value);
   retc->size = strlen (value);
+  return retc;
+}
+
+tree_cell *
+nasl_vendor_version (lex_ctxt * lexic)
+{
+  tree_cell *retc;
+  gchar *version = g_strdup (vendor_version_get ());
+  (void) lexic;
+  retc = alloc_typed_cell (CONST_DATA);
+  retc->x.str_val = strdup (version);
+  retc->size = strlen (version);
+  g_free (version);
+
   return retc;
 }
 

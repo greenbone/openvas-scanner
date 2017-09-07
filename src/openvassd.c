@@ -62,6 +62,7 @@
 #include <gvm/util/kb.h>         /* for KB_PATH_DEFAULT */
 #include <gvm/util/nvticache.h>  /* nvticache_free */
 #include "../misc/plugutils.h"   /* nvticache_free */
+#include "../misc/vendorversion.h" /* for vendor_version_set */
 
 #include <gcrypt.h> /* for gcry_control */
 
@@ -686,6 +687,7 @@ main (int argc, char *argv[])
   static gboolean display_version = FALSE;
   static gboolean dont_fork = FALSE;
   static gchar *config_file = NULL;
+  static gchar *vendor_version_string = NULL;
   static gchar *listen_owner = NULL;
   static gchar *listen_group = NULL;
   static gchar *listen_mode = NULL;
@@ -701,6 +703,8 @@ main (int argc, char *argv[])
      "Do not run in daemon mode but stay in foreground", NULL},
     {"config-file", 'c', 0, G_OPTION_ARG_FILENAME, &config_file,
      "Configuration file", "<filename>"},
+    {"vendor-version", '\0', 0, G_OPTION_ARG_STRING, &vendor_version_string,
+     "Use <string> as vendor version.", "<string>"},
     {"cfg-specs", 's', 0, G_OPTION_ARG_NONE, &print_specs,
      "Print configuration settings", NULL},
     {"sysconfdir", 'y', 0, G_OPTION_ARG_NONE, &print_sysconfdir,
@@ -761,6 +765,9 @@ main (int argc, char *argv[])
          "There is NO WARRANTY, to the extent permitted by law.\n\n");
       exit (0);
     }
+
+  if (vendor_version_string)
+    vendor_version_set (vendor_version_string);
 
   if (!config_file)
     config_file = OPENVASSD_CONF;

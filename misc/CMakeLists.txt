@@ -109,7 +109,7 @@ endif (NOT MINGW)
 
 if (MINGW)
 else (MINGW)
-  set (FILES bpf_share.c ftp_funcs.c ids_send.c
+  set (FILES bpf_share.c ftp_funcs.c ids_send.c vendorversion.c
              network.c plugutils.c popen.c  www_funcs.c pcap.c)
 endif (MINGW)
 

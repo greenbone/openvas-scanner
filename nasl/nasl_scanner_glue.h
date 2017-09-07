@@ -56,5 +56,6 @@ tree_cell *error_message (lex_ctxt *);
 tree_cell *nasl_scanner_get_port (lex_ctxt *);
 tree_cell *nasl_scanner_add_port (lex_ctxt *);
 tree_cell *nasl_scanner_status (lex_ctxt *);
+tree_cell *nasl_vendor_version (lex_ctxt *);
 
 #endif

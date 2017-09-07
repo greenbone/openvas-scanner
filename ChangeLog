@@ -1,3 +1,25 @@
+2017-09-07  Juan Jose Nicola  <jnicola@armant.core.os.greenbone.net>
+
+	* misc/CMakeLists.txt: Set new file vendorversion.c.
+
+	* misc/vendorversion.c: New file with functions to set and to get
+	the vendor version.
+
+	* misc/vendorversion.h: New file with functions prototypes.
+
+	* nasl/nasl.c: Include ../misc/vendorversion.h.
+	(main) Add new command line option vendor-version.
+
+	* nasl/init.c (libfuncs): Add vendor_version().
+
+	* nasl/nasl_scanner_glue.c: Include ../misc/vendorversion.h.
+	(nasl_vendor_version): New function.
+
+	* nasl/nasl_scanner_glue.h: Add function prototype.
+
+	* src/openvassd.c: Include ../misc/vendorversion.h.
+	(main) Add new command line option vendor-version.
+
 2017-09-06  Hani Benhabiles  <hani.benhabiles@greenbone.net>
 
 	* nasl/nasl_grammar.y (load_checksums, file_checksum, init_nasl_ctx):
