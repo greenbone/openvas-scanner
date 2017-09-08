@@ -1,3 +1,8 @@
+2017-09-08  Hani Benhabiles  <hani.benhabiles@greenbone.net>
+
+	* nasl/nasl_grammar.y (load_checksums, init_nasl_ctx, file_checksum):
+	Improve code readability by using GCRY_MD_* constants.
+
 2017-09-07  Juan Jose Nicola  <jnicola@armant.core.os.greenbone.net>
 
 	* misc/CMakeLists.txt: Set new file vendorversion.c.
