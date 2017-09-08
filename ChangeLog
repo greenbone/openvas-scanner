@@ -1,3 +1,8 @@
+2017-09-08  Juan Jose Nicola  <juan.nicola@greenbone.net>
+
+	* misc/vendorversion.c (vendor_version_set, vendor_version_set): Correct
+	the comment to match with the implementation.
+
 2017-09-08  Hani Benhabiles  <hani.benhabiles@greenbone.net>
 
 	* src/comm.c (comm_send_preferences, comm_send_nvt_info): Add check for

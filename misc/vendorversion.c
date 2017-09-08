@@ -32,7 +32,9 @@
 gchar *vendor_version = NULL;
 
 /**
- * @brief Set vendor version, or NULL.
+ * @brief Set vendor version
+ *
+ * @param[in]  version  Vendor version.
  */
 void
 vendor_version_set (const gchar *version)
@@ -42,7 +44,9 @@ vendor_version_set (const gchar *version)
 }
 
 /**
- * @brief Get vendor version, or NULL.
+ * @brief Get vendor version.
+ *
+ * @return Set vendor version or empty string.
  */
 const gchar *
 vendor_version_get ()
