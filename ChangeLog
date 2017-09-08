@@ -1,5 +1,13 @@
 2017-09-08  Hani Benhabiles  <hani.benhabiles@greenbone.net>
 
+	* src/comm.c (comm_send_preferences, comm_send_nvt_info): Add check for
+	client socket status.
+	(comm_wait_order): Remove warning for when the client is first to close
+	the socket. Use g_warning() instead of g_debug() for erroneous input
+	error.
+
+2017-09-08  Hani Benhabiles  <hani.benhabiles@greenbone.net>
+
 	* nasl/nasl_grammar.y (load_checksums, init_nasl_ctx, file_checksum):
 	Improve code readability by using GCRY_MD_* constants.
 

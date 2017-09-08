@@ -266,6 +266,8 @@ comm_send_preferences (int soc)
   void *itername, *itervalue;
   GHashTable *prefs = preferences_get ();
 
+  if (!is_client_present (soc))
+    return;
   /* We have to be backward compatible with the NTP/1.0 */
   send_printf (soc, "SERVER <|> PREFERENCES <|>\n");
 
@@ -300,19 +302,15 @@ comm_wait_order (struct scan_globals *globals)
           g_warning ("Client closed the communication");
           return -1;
         }
-      if (str[0] == '\0')
-        if (!is_client_present (soc))
-          {
-            g_warning ("Client not present");
-            return -1;
-          }
+      if (str[0] == '\0' && !is_client_present (soc))
+        return -1;
 
       n = ntp_parse_input (globals, str);
       if (n == 0)
         return 0;
       else if (n == -1)
         {
-          g_debug ("Client input parsing error: %s", str);
+          g_warning ("Client input parsing error: %s", str);
           return -1;
         }
     }
@@ -391,6 +389,8 @@ comm_send_nvt_info (int soc)
 
   g_free (feed_version);
 
+  if (!is_client_present (soc))
+    return;
   for (;;)
     {
       bzero (buf, sizeof (buf));
