@@ -59,6 +59,7 @@
 #include <openvas/base/kb.h>         /* for KB_PATH_DEFAULT */
 #include <openvas/base/gpgme_util.h>
 #include <openvas/misc/prefs.h>      /* for prefs_get() */
+#include <openvas/misc/vendorversion.h>      /* for prefs_get() */
 
 #include <gcrypt.h> /* for gcry_control */
 
@@ -696,6 +697,7 @@ main (int argc, char *argv[])
   static gboolean display_version = FALSE;
   static gboolean dont_fork = FALSE;
   static gchar *config_file = NULL;
+  static gchar *vendor_version_string = NULL;
   static gchar *listen_owner = NULL;
   static gchar *listen_group = NULL;
   static gchar *listen_mode = NULL;
@@ -712,6 +714,8 @@ main (int argc, char *argv[])
      "Do not run in daemon mode but stay in foreground", NULL},
     {"config-file", 'c', 0, G_OPTION_ARG_FILENAME, &config_file,
      "Configuration file", "<filename>"},
+    {"vendor-version", '\0', 0, G_OPTION_ARG_STRING, &vendor_version_string,
+     "Use <string> as vendor version.", "<string>"},
     {"cfg-specs", 's', 0, G_OPTION_ARG_NONE, &print_specs,
      "Print configuration settings", NULL},
     {"sysconfdir", 'y', 0, G_OPTION_ARG_NONE, &print_sysconfdir,
@@ -777,6 +781,9 @@ main (int argc, char *argv[])
 
   if (gnupg_dir)
     set_gpghome (gnupg_dir);
+
+  if (vendor_version_string)
+    vendor_version_set (vendor_version_string);
 
   if (!config_file)
     config_file = OPENVASSD_CONF;
