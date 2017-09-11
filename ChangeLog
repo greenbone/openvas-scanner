@@ -1,3 +1,7 @@
+2017-09-11  Hani Benhabiles  <hani.benhabiles@greenbone.net>
+
+	* src/pluginload.c: Revert r29045.
+
 2017-09-08  Juan Jose Nicola  <juan.nicola@greenbone.net>
 
 	Backport r29523 with adjustments due to code change.
