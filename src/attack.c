@@ -68,6 +68,15 @@
 
 #define MAX_FORK_RETRIES 10
 
+/**
+ * It switchs progress bar styles.
+ * If set to 1, time oriented style and it take into account only alive host.
+ * If set to 0, it not reflect progress adequately in case of dead host,
+ * which will take into account with 0% processed, producing jumps in the
+ * process bar.
+ */
+#define PROGRESS_BAR_STYLE 1
+
 #undef G_LOG_DOMAIN
 /**
  * @brief GLib log domain.
@@ -481,7 +490,12 @@ attack_host (struct scan_globals *globals, struct host_info *hostinfos,
                     "<value>1</value><source><description/><type/>"
                     "<name/></source></detail></host> <|>  <|> SERVER\n",
                     hostname ?: "");
-
+#if (PROGRESS_BAR_STYLE == 1)
+                  /* In case of a dead host, it sends max_ports = -1 to the
+                     manager. The host will not be taken into account to
+                     calculate the scan progress. */
+                  comm_send_status(global_socket, hostname, 0, -1);
+#endif
                   internal_send (global_socket, buffer,
                                  INTERNAL_COMM_MSG_TYPE_DATA);
                   goto host_died;
