@@ -172,8 +172,13 @@ plugin_add (plugins_scheduler_t sched, GHashTable *oids_table, int autoload,
                   /* In case of autoload, no need to wait for plugin_add() to
                    * fill all enabled plugins to start filling dependencies
                    * lists. */
-                  assert (dep_plugin);
-                  plugin->deps = g_slist_prepend (plugin->deps, dep_plugin);
+		  if (dep_plugin)
+                    plugin->deps = g_slist_prepend (plugin->deps, dep_plugin);
+		  else
+                    g_warning ("There was a problem loading %s (%s), a "
+                               "dependency of %s. This can happen e.g. when "
+			       "depending on a deprecated NVT.",
+			       array[i], dep_oid, oid);
                   g_free (dep_oid);
                 }
               else
