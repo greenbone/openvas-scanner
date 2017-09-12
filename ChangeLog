@@ -1,3 +1,13 @@
+2017-09-12  Juan Jose Nicola  <juan.nicola@greenbone.net>
+
+	Backport r29548.
+
+	* src/attack.c: Define PROGRESS_BAR_STYLE.
+	(attack_host): Add preprocessor directives to switch the progress
+	bar style. In case of a dead host, it sends max_ports = -1 to the
+	manager, and it will not be taken into account to calculate the scan
+	progress.
+
 2017-09-11  Hani Benhabiles  <hani.benhabiles@greenbone.net>
 
 	* src/pluginload.c: Revert r29045.
