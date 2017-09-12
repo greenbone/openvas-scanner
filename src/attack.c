@@ -119,7 +119,7 @@ comm_send_status (int soc, char *hostname, int curr, int max)
 {
   char buffer[2048];
 
-  if (soc < 0 || soc > 1024)
+  if (!hostname || soc < 0 || soc > 1024)
     return -1;
 
   if (strlen (hostname) > (sizeof (buffer) - 50))
