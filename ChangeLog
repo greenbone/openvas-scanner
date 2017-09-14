@@ -1,3 +1,12 @@
+2017-09-14  Hani Benhabiles  <hani.benhabiles@greenbone.net>
+
+	* src/pluginload.c (plugins_reload_from_dir): Don't call
+	nvticache_save(). Don't set include dirs. Exit instead of returning.
+	(include_dirs): New function.
+	(plugins_init): Fork a child process to load-up plugins and prevent main
+	process memory footprint growth. Call nvtiache_save() and new function
+	accordingly.
+
 2017-09-12  Hani Benhabiles  <hani.benhabiles@greenbone.net>
 
 	* src/attack.c (comm_send_status): Check hostname parameter value.

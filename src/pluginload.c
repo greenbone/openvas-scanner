@@ -34,12 +34,15 @@
 #include <glib.h>
 #include <stdlib.h>
 #include <sys/time.h>
+#include <sys/wait.h>
 #include <sys/shm.h>     /* for shmget */
 #include <string.h>
 #include <errno.h>
 
 #include "utils.h"
 #include "pluginload.h"
+#include "processes.h"
+#include "sighand.h"
 
 #include "../nasl/nasl.h"
 
@@ -225,33 +228,13 @@ set_total_loading_plugins (int total)
 }
 
 static int
-plugins_reload_from_dir (char *folder)
+plugins_reload_from_dir (void *folder)
 {
   GSList *files = NULL, *f;
-  const gchar *pref_include_folders;
   int loaded_files = 0, num_files = 0;
   struct timeval start_time;
 
-  add_nasl_inc_dir ("");        // for absolute and relative paths
-
-  pref_include_folders = prefs_get ("include_folders");
-  if (pref_include_folders != NULL)
-    {
-      gchar **include_folders = g_strsplit (pref_include_folders, ":", 0);
-      unsigned int i = 0;
-
-      for (i = 0; i < g_strv_length (include_folders); i++)
-        {
-          int result = add_nasl_inc_dir (include_folders[i]);
-          if (result < 0)
-            g_debug ("Could not add %s to the list of include folders.\n"
-                       "Make sure %s exists and is a directory.\n",
-                       include_folders[i], include_folders[i]);
-        }
-
-      g_strfreev (include_folders);
-    }
-
+  openvas_signal (SIGTERM, SIG_DFL);
   if (folder == NULL)
     {
 #ifdef DEBUG
@@ -259,7 +242,7 @@ plugins_reload_from_dir (char *folder)
 #endif
       g_debug ("Could not determine the value of <plugins_folder>. "
                  " Check %s\n", (char *) prefs_get ("config_file"));
-      return -1;
+      exit (1);
     }
 
   files = collect_nvts (folder, "", files);
@@ -306,8 +289,7 @@ plugins_reload_from_dir (char *folder)
           g_debug ("Stopped loading plugins: High number of errors.");
           proctitle_set ("openvassd: Error loading NVTs.");
           g_slist_free_full (files, g_free);
-          nvticache_save ();
-          return -1;
+          exit (1);
         }
       f = g_slist_next (f);
     }
@@ -315,10 +297,34 @@ plugins_reload_from_dir (char *folder)
   g_slist_free_full (files, g_free);
   nasl_clean_inc ();
 
-  nvticache_save ();
   proctitle_set ("openvassd: Reloaded all the NVTs.");
 
-  return 0;
+  exit (0);
+}
+
+static void
+include_dirs (void)
+{
+  const gchar *pref_include_folders;
+
+  add_nasl_inc_dir ("");        // for absolute and relative paths
+  pref_include_folders = prefs_get ("include_folders");
+  if (pref_include_folders != NULL)
+    {
+      gchar **include_folders = g_strsplit (pref_include_folders, ":", 0);
+      unsigned int i = 0;
+
+      for (i = 0; i < g_strv_length (include_folders); i++)
+        {
+          int result = add_nasl_inc_dir (include_folders[i]);
+          if (result < 0)
+            g_debug ("Could not add %s to the list of include folders.\n"
+                       "Make sure %s exists and is a directory.\n",
+                       include_folders[i], include_folders[i]);
+        }
+
+      g_strfreev (include_folders);
+    }
 }
 
 /*
@@ -327,6 +333,8 @@ plugins_reload_from_dir (char *folder)
 int
 plugins_init (void)
 {
+  int ret = 0;
+  pid_t child_pid;
   const char *plugins_folder = prefs_get ("plugins_folder");
 
   if (nvticache_init (plugins_folder, prefs_get ("kb_location")))
@@ -334,5 +342,10 @@ plugins_init (void)
       g_debug ("Failed to initialize nvti cache.");
       return -1;
     }
-  return plugins_reload_from_dir ((char *)plugins_folder);
+  include_dirs ();
+
+  child_pid = create_process (plugins_reload_from_dir, (void *) plugins_folder);
+  waitpid (child_pid, &ret, 0);
+  nvticache_save ();
+  return ret;
 }
