@@ -1,3 +1,13 @@
+2017-09-14  Juan Jose Nicola  <juan.nicola@greenbone.net>
+
+	* nasl/lint.c (add_predef_varname): Remove keywords and add them
+	calling get_nasl_library().
+
+	* nasl/nasl_init.c (add_nasl_library): New function. Add built-in
+	variables to a GSlist.
+
+	* nasl/nasl_init.h: Add function prototype.
+
 2017-09-14  Hani Benhabiles  <hani.benhabiles@greenbone.net>
 
 	* src/pluginload.c (plugins_reload_from_dir): Don't call

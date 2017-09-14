@@ -556,3 +556,17 @@ nasl_version ()
   vers[sizeof (vers) - 1] = '\0';
   return vers;
 }
+
+
+/**
+ * @brief Add "built-in" variables to a list.
+ */
+void
+add_nasl_library (GSList **list)
+{
+  int i;
+  for (i = 0; libivars[i].name != NULL; i++)
+    *list = g_slist_append (*list, g_strdup (libivars[i].name));
+  for (i = 0; libsvars[i].name != NULL; i++)
+    *list = g_slist_append (*list, g_strdup (libsvars[i].name));
+}

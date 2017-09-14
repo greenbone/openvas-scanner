@@ -43,18 +43,13 @@ void
 add_predef_varname (GSList **defined_var)
 {
   int i;
-  gchar *keywords[] = {"ACT_UNKNOWN", "ACT_END",
-                       "ACT_FLOOD", "ACT_KILL_HOST",
-                       "ACT_DENIAL", "ACT_DESTRUCTIVE_ATTACK",
-                       "ACT_MIXED_ATTACK", "ACT_ATTACK",
-                       "ACT_GATHER_INFO", "ACT_SETTINGS",
-                       "ACT_SCANNER", "ACT_INIT",
-                       "description", "NULL","OPENVAS_VERSION",
-                       "SCRIPT_NAME", "FALSE", "TRUE",
+  gchar *keywords[] = {"ACT_UNKNOWN", "description", "NULL",
+                       "SCRIPT_NAME", "COMMAND_LINE",
                        "_FCT_ANON_ARGS", NULL};
 
   for (i = 0; keywords[i] != NULL; i++)
       *defined_var = g_slist_append(*defined_var, keywords[i]);
+  add_nasl_library (defined_var);
 }
 
 gint

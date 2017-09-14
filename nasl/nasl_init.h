@@ -19,4 +19,5 @@
 #ifndef NASL_INIT_H
 #define NASL_INIT_H
 void init_nasl_library (lex_ctxt *);
+void add_nasl_library (GSList **);
 #endif
