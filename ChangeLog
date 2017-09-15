@@ -1,3 +1,9 @@
+2017-09-15  Juan Jose Nicola  <juan.nicola@greenbone.net>
+
+	* nasl/lint.c (nasl_lint_defvar): Handle case in which a variable
+	is declared incrementing it self. Handle the case in wich a variable
+	is declared with 'plus equal'.
+
 2017-09-14  Juan Jose Nicola  <juan.nicola@greenbone.net>
 
 	* nasl/lint.c (add_predef_varname): Remove keywords and add them
