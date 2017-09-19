@@ -85,7 +85,7 @@ print_uncall_files (gpointer filename, gpointer lexic)
 tree_cell *
 nasl_lint_def (lex_ctxt * lexic, tree_cell * st, int lint_mode,
                GHashTable **include_files, GHashTable **func_fnames_tab,
-               gchar *err_fname)
+               gchar *err_fname, GSList **called_funcs)
 {
   int i;
   tree_cell *ret = FAKE_CELL;
@@ -105,12 +105,20 @@ nasl_lint_def (lex_ctxt * lexic, tree_cell * st, int lint_mode,
   switch (st->type)
     {
     case NODE_FUN_DEF:
+      /* with lint_mode = 0 check if this function was declared twice*/
       if (lint_mode == 0)
         {
           if (decl_nasl_func (lexic, st, lint_mode) == NULL)
             ret = NULL;
           return ret;
         }
+
+      if (!g_slist_find_custom (*called_funcs, st->x.str_val,
+                         (GCompareFunc) list_cmp))
+        {
+          return FAKE_CELL;
+        }
+
       /* x.str_val = function name, [0] = argdecl, [1] = block */
       decl_nasl_func (lexic, st, lint_mode);
       incname = g_strdup (nasl_get_filename (st->x.str_val));
@@ -124,7 +132,7 @@ nasl_lint_def (lex_ctxt * lexic, tree_cell * st, int lint_mode,
         if (st->link[i] != NULL && st->link[i] != FAKE_CELL)
           if ((ret = nasl_lint_def (lexic, st->link[i], lint_mode,
                                     include_files, func_fnames_tab,
-                                    err_fname)) == NULL)
+                                    err_fname, called_funcs)) == NULL)
             return NULL;
 
       if (st->type == NODE_FUN_DEF)
@@ -138,13 +146,27 @@ nasl_lint_def (lex_ctxt * lexic, tree_cell * st, int lint_mode,
 
 tree_cell *
 nasl_lint_call (lex_ctxt * lexic, tree_cell * st, GHashTable **include_files,
-                GHashTable **func_fnames_tab, gchar *err_fname)
+                GHashTable **func_fnames_tab, gchar *err_fname,
+                GSList **called_funcs)
 {
   int i;
   tree_cell *ret = FAKE_CELL;
   nasl_func *pf;
   char *incname = NULL;
   static int defined_flag = 0;
+
+
+  /** This check if a defined function is called. If it is never called
+    * it does not go deeper.
+    */
+  if (st->type == NODE_FUN_DEF)
+    {
+      if (!g_slist_find_custom (*called_funcs, st->x.str_val,
+                         (GCompareFunc) list_cmp))
+        {
+          return FAKE_CELL;
+        }
+    }
 
   switch (st->type)
     {
@@ -185,7 +207,8 @@ nasl_lint_call (lex_ctxt * lexic, tree_cell * st, GHashTable **include_files,
       for (i = 0; i < 4; i++)
         if (st->link[i] != NULL && st->link[i] != FAKE_CELL)
           if ((ret = nasl_lint_call (lexic, st->link[i], include_files,
-                                     func_fnames_tab, err_fname)) == NULL)
+                                     func_fnames_tab, err_fname,
+                                     called_funcs)) == NULL)
             return NULL;
       return ret;
     }
@@ -197,12 +220,24 @@ nasl_lint_call (lex_ctxt * lexic, tree_cell * st, GHashTable **include_files,
 tree_cell *
 nasl_lint_defvar (lex_ctxt * lexic, tree_cell * st, GHashTable **include_files,
                   GHashTable **func_fnames_tab, gchar *err_fname,
-                  GSList **defined_var)
+                  GSList **defined_var, GSList **called_funcs)
 {
   int i;
   tree_cell *ret = FAKE_CELL;
   static int defined_fn_mode = 0;
   static int defined_var_mode = 0;
+
+  /** This check if a defined function is called. If it is never called
+    * it does not go deeper.
+    */
+  if (st->type == NODE_FUN_DEF)
+    {
+      if (!g_slist_find_custom (*called_funcs, st->x.str_val,
+                         (GCompareFunc) list_cmp))
+        {
+          return FAKE_CELL;
+        }
+    }
 
   if (st->type != NODE_DECL && defined_fn_mode == 1)
     defined_fn_mode = 0;
@@ -248,10 +283,40 @@ nasl_lint_defvar (lex_ctxt * lexic, tree_cell * st, GHashTable **include_files,
     if (st->link[i] != NULL && st->link[i] != FAKE_CELL)
       if ((ret = nasl_lint_defvar (lexic, st->link[i],
                                  include_files, func_fnames_tab,
-                                   err_fname, defined_var)) == NULL)
+                                   err_fname, defined_var,
+                                   called_funcs)) == NULL)
         return NULL;
   return ret;
 
+}
+
+tree_cell *
+make_call_func_list (lex_ctxt *lexic, tree_cell *st,
+                     GSList **called_funcs)
+{
+  int i;
+  tree_cell *ret = FAKE_CELL;
+  nasl_func *pf = NULL;
+
+  switch (st->type)
+    {
+    case NODE_FUN_CALL:
+      pf = get_func_ref_by_name (lexic, st->x.str_val);
+      if (st->x.str_val && !pf )
+        {
+          *called_funcs = g_slist_prepend (*called_funcs,
+                                           g_strdup (st->x.str_val));
+        }
+      /* fallthrough */
+
+    default:
+      for (i = 0; i < 4; i++)
+        if (st->link[i] != NULL && st->link[i] != FAKE_CELL)
+          if ((ret = make_call_func_list (lexic, st->link[i],
+                                     called_funcs)) == NULL)
+            return NULL;
+      return ret;
+    }
 }
 
 tree_cell *
@@ -263,6 +328,7 @@ nasl_lint (lex_ctxt * lexic, tree_cell * st)
   GHashTable *include_files = NULL;
   GHashTable *func_fnames_tab = NULL;
   GSList *unusedfiles = NULL;
+  GSList *called_funcs = NULL;
   gchar *err_fname = NULL;
 
   include_files = g_hash_table_new_full
@@ -274,13 +340,18 @@ nasl_lint (lex_ctxt * lexic, tree_cell * st)
   lexic_aux->script_infos = lexic->script_infos;
   lexic_aux->oid = lexic->oid;
 
-  /* First loads all defined functions. */
+  /* Make a list of all called functions */
+  make_call_func_list (lexic_aux, st, &called_funcs);
+
+  /* Loads all defined functions. */
   if ((ret = nasl_lint_def (lexic_aux, st, lint_mode, &include_files,
-                            &func_fnames_tab, err_fname)) == NULL)
+                            &func_fnames_tab, err_fname,
+                            &called_funcs)) == NULL)
     goto fail;
   /* Check if a called function was defined. */
   if ((ret = nasl_lint_call (lexic_aux, st, &include_files,
-                             &func_fnames_tab, err_fname)) == NULL)
+                             &func_fnames_tab, err_fname,
+                             &called_funcs)) == NULL)
     goto fail;
 
   /* Check if the included files are used or not. */
@@ -297,18 +368,20 @@ nasl_lint (lex_ctxt * lexic, tree_cell * st)
   /* Now check that each function was loaded just once. */
   lint_mode = 0;
   if ((ret = nasl_lint_def (lexic, st, lint_mode, &include_files,
-                            &func_fnames_tab, err_fname)) == NULL)
+                            &func_fnames_tab, err_fname,
+                            &called_funcs)) == NULL)
       goto fail;
 
-  /* Check if a variable was defined. */
+  /* Check if a variable was declared. */
   GSList *defined_var = NULL;
   add_predef_varname (&defined_var);
-  ret = nasl_lint_defvar (lexic_aux, st,
-                          &include_files,&func_fnames_tab,
-                          err_fname, &defined_var);
+  ret = nasl_lint_defvar (lexic_aux, st, &include_files,
+                          &func_fnames_tab, err_fname,
+                          &defined_var, &called_funcs);
   g_slist_free (defined_var);
 
  fail:
+  g_slist_free (called_funcs);
   g_hash_table_destroy (include_files);
   include_files = NULL;
   g_hash_table_destroy (func_fnames_tab);

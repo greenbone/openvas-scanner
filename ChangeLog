@@ -1,3 +1,27 @@
+2017-09-19  Juan Jose Nicola  <juan.nicola@greenbone.net>
+
+	openvas-nasl-lint does not go deeper through a declared function
+	if it is not called/used. If a not used function has unsatisfied
+	dependencies, no errors will show.
+
+	* nasl/lint.c (nasl_lint_def): Receive a new argument. Add a comment.
+	Check if a declared function will be used, before to continue to going
+	deeper in the tree.
+
+	* nasl/lint.c (nasl_lint_call): Receive a new argument. Check if a
+	declared function will be used, before to continue to going deeper in
+	the tree.
+
+	* nasl/lint.c (nasl_lint_defvar): Receive a new argument. Check if a
+	declared function will be used, before to continue to going deeper in
+	the tree.
+
+	* nasl/lint.c (make_call_func_list): New function. It adds to a list
+	all called functions.
+
+	* nasl/lint.c (nasl_lint): New GSList. Call make_call_func_list().
+	Pass as argument the new GSList to functions. Free the new list.
+
 2017-09-15  Juan Jose Nicola  <juan.nicola@greenbone.net>
 
 	* nasl/lint.c (nasl_lint_defvar): Handle case in which a variable
