@@ -1,3 +1,10 @@
+2017-09-20  Juan Jose Nicola  <juan.nicola@greenbone.net>
+
+	* nasl/lint.c (nasl_lint_defvar): Add new GSList for local variables.
+	Handle variables declared as local.
+
+	* Changelog: Correct the format of the last entry.
+
 2017-09-19  Juan Jose Nicola  <juan.nicola@greenbone.net>
 
 	openvas-nasl-lint does not go deeper through a declared function
@@ -7,19 +14,15 @@
 	* nasl/lint.c (nasl_lint_def): Receive a new argument. Add a comment.
 	Check if a declared function will be used, before to continue to going
 	deeper in the tree.
-
-	* nasl/lint.c (nasl_lint_call): Receive a new argument. Check if a
+	(nasl_lint_call): Receive a new argument. Check if a
 	declared function will be used, before to continue to going deeper in
 	the tree.
-
-	* nasl/lint.c (nasl_lint_defvar): Receive a new argument. Check if a
+	(nasl_lint_defvar): Receive a new argument. Check if a
 	declared function will be used, before to continue to going deeper in
 	the tree.
-
-	* nasl/lint.c (make_call_func_list): New function. It adds to a list
+	(make_call_func_list): New function. It adds to a list
 	all called functions.
-
-	* nasl/lint.c (nasl_lint): New GSList. Call make_call_func_list().
+	(nasl_lint): New GSList. Call make_call_func_list().
 	Pass as argument the new GSList to functions. Free the new list.
 
 2017-09-15  Juan Jose Nicola  <juan.nicola@greenbone.net>
