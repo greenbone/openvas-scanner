@@ -137,7 +137,8 @@ nasl_lint_def (lex_ctxt * lexic, tree_cell * st, int lint_mode,
 
       if (st->type == NODE_FUN_DEF)
         {
-          nasl_set_filename (tmp_filename);
+          if (tmp_filename)
+            nasl_set_filename (tmp_filename);
           g_free (tmp_filename);
         }
       return ret;
@@ -184,7 +185,7 @@ nasl_lint_call (lex_ctxt * lexic, tree_cell * st, GHashTable **include_files,
       if (pf == NULL)
         {
           incname = g_hash_table_lookup (*func_fnames_tab, st->x.str_val);
-          nasl_set_filename (incname);
+          incname ? nasl_set_filename (incname) : "unknown";
           lexic->line_nb = st->line_nb;
           nasl_perror (lexic, "Undefined function '%s'\n", st->x.str_val);
           return NULL;

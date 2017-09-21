@@ -1,3 +1,8 @@
+2017-09-21  Juan Jose Nicola  <juan.nicola@greenbone.net>
+
+	* nasl/lint.c (nasl_lint_def, nasl_lint_call): Check if a function
+	is associated to a filename before to set it.
+
 2017-09-20  Juan Jose Nicola  <juan.nicola@greenbone.net>
 
 	* nasl/lint.c (nasl_lint_defvar): Add new GSList for local variables.
