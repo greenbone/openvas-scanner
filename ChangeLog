@@ -1,5 +1,13 @@
 2017-09-21  Juan Jose Nicola  <juan.nicola@greenbone.net>
 
+	* nasl/lint.c (add_predef_varname, check_called_files) Use
+	g_slist_prepend instead of g_slist_append.
+	(nasl_lint_defvar): Set GSLists to NULL after freeing. Fix case where
+	a defined variables is global.
+	(nasl_lint): Set GSLists to NULL after freeing.
+
+2017-09-21  Juan Jose Nicola  <juan.nicola@greenbone.net>
+
 	* nasl/lint.c (nasl_lint_def, nasl_lint_call): Check if a function
 	is associated to a filename before to set it.
 

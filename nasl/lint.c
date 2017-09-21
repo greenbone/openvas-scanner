@@ -48,7 +48,7 @@ add_predef_varname (GSList **defined_var)
                        "_FCT_ANON_ARGS", NULL};
 
   for (i = 0; keywords[i] != NULL; i++)
-      *defined_var = g_slist_append(*defined_var, keywords[i]);
+    *defined_var = g_slist_prepend (*defined_var, keywords[i]);
   add_nasl_library (defined_var);
 }
 
@@ -66,9 +66,8 @@ check_called_files (gpointer key, gpointer value, GSList **unusedfiles)
 {
   if (key != NULL)
     if (!g_strcmp0 (value,("NO")))
-      *unusedfiles = g_slist_append(*unusedfiles, key);
+      *unusedfiles = g_slist_prepend (*unusedfiles, key);
 }
-
 
 /* It shows a msg for unused included files. */
 void
@@ -227,6 +226,7 @@ nasl_lint_defvar (lex_ctxt * lexic, tree_cell * st, GHashTable **include_files,
   tree_cell *ret = FAKE_CELL;
   static int defined_fn_mode = 0;
   static int defined_var_mode = 0;
+  static int def_glob_var = 0;
   static GSList *local_var_list = NULL;
 
   /** This checks if a defined function is called. If it is never called
@@ -241,18 +241,24 @@ nasl_lint_defvar (lex_ctxt * lexic, tree_cell * st, GHashTable **include_files,
         }
     }
 
-  if (st->type != NODE_DECL && defined_fn_mode == 1)
-    defined_fn_mode = 0;
+  if ((defined_fn_mode == 1 || def_glob_var) &&
+       st->type != NODE_DECL)
+    {
+      defined_fn_mode = 0;
+      def_glob_var = 0;
+    }
 
   /* A variable will be defined, then set the mode variable. */
   if ((st->type == NODE_AFF || st->type == EXPR_NOT ||
        st->type == EXPR_INCR || st->type == NODE_PLUS_EQ) &&
       defined_var_mode == 0)
     defined_var_mode = 1;
-  else if ((st->type == NODE_FUN_DEF || st->type == NODE_LOCAL ||
-            st->type == NODE_GLOBAL) &&
-            defined_fn_mode == 0)
+  else if ((st->type == NODE_FUN_DEF || st->type == NODE_LOCAL) &&
+           defined_fn_mode == 0)
     defined_fn_mode = 1;
+
+  else if (st->type == NODE_GLOBAL)
+    def_glob_var = 1;
 
   /* The variable is being defined. Therefore is save into the
    * global list only if was not previously added in local list.
@@ -264,17 +270,19 @@ nasl_lint_defvar (lex_ctxt * lexic, tree_cell * st, GHashTable **include_files,
         {
           if (!g_slist_find_custom (local_var_list, st->x.str_val,
                                     (GCompareFunc) list_cmp))
-            *defined_var = g_slist_prepend(*defined_var, st->x.str_val);
+            *defined_var = g_slist_prepend (*defined_var, st->x.str_val);
           defined_var_mode = 0;
         }
     }
   /** It is a local variable and it is added in special list,
    *  which will be cleaned at the end of the function.
    */
-  else if (st->type == NODE_DECL && defined_fn_mode == 1)
+  else if (st->type == NODE_DECL && st->x.str_val != NULL)
     {
-      if (st->x.str_val != NULL)
+      if (defined_fn_mode == 1)
         local_var_list = g_slist_prepend(local_var_list, st->x.str_val);
+      if (def_glob_var == 1)
+        *defined_var = g_slist_prepend (*defined_var, st->x.str_val);
     }
   /* Special case foreach. */
   else if (st->type == NODE_FOREACH)
@@ -309,7 +317,10 @@ nasl_lint_defvar (lex_ctxt * lexic, tree_cell * st, GHashTable **include_files,
    *  is cleaned.
    */
   if (st->type == NODE_FUN_DEF)
-    g_slist_free (local_var_list);
+    {
+      g_slist_free (local_var_list);
+      local_var_list = NULL;
+    }
 
   return ret;
 
@@ -404,15 +415,18 @@ nasl_lint (lex_ctxt * lexic, tree_cell * st)
                           &func_fnames_tab, err_fname,
                           &defined_var, &called_funcs);
   g_slist_free (defined_var);
+  defined_var = NULL;
 
  fail:
   g_slist_free (called_funcs);
+  called_funcs = NULL;
   g_hash_table_destroy (include_files);
   include_files = NULL;
   g_hash_table_destroy (func_fnames_tab);
   func_fnames_tab = NULL;
   g_free (err_fname);
   g_slist_free (unusedfiles);
+  unusedfiles = NULL;
   free_lex_ctxt (lexic_aux);
 
   return ret;
