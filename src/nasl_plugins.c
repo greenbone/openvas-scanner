@@ -64,38 +64,6 @@
 
 
 /**
- * @brief Add a nvti's preferences to the global preferences.
- *
- * @param nvti  NVTI pointer.
- */
-static void
-prefs_add_nvti (const char *name, GSList *prefs)
-{
-  GSList *element = prefs;
-
-  while (element)
-    {
-      char pref[4096], *cname;
-      const nvtpref_t *np = element->data;
-
-      cname = g_strdup (nvtpref_name (np));
-      g_strchomp (cname);
-      g_snprintf (pref, sizeof (pref), "%s[%s]:%s", name, nvtpref_type (np),
-                  cname);
-      prefs_set (pref, nvtpref_default (np));
-
-      g_free (cname);
-      element = element->next;
-    }
-}
-
-static void
-nvtpref_free_helper (void *pref)
-{
-  nvtpref_free (pref);
-}
-
-/**
  * @brief Add *one* .nasl plugin to the plugin list.
  *
  * The plugin is first attempted to be loaded from the cache.
@@ -155,45 +123,12 @@ nasl_plugin_add (char *folder, char *filename)
         }
 
       if (nvti_oid (new_nvti))
-        {
-          nvticache_add (new_nvti, filename);
-          if (new_nvti->timeout)
-            {
-              gchar def_val[5];
-              nvtpref_t *np;
-              snprintf (def_val, 5, "%d", new_nvti->timeout);
-              np = nvtpref_new ("Timeout", "entry", def_val);
-              nvti_add_pref (new_nvti, np);
-            }
-          prefs_add_nvti (new_nvti->name, new_nvti->prefs);
-        }
+        nvticache_add (new_nvti, filename);
       else
         // Most likely an exit was hit before the description could be parsed.
         g_warning ("\r%s could not be added to the cache and is likely to stay"
                    " invisible to the client.", filename);
       nvti_free (new_nvti);
-    }
-  else
-    {
-      char *oid = nvticache_get_oid (filename);
-      GSList *prefs = nvticache_get_prefs (oid);
-      int timeout = nvticache_get_timeout (oid);
-
-      if (prefs || (timeout > 0))
-        {
-          char *name = nvticache_get_name (oid);
-          if (timeout > 0)
-            {
-              gchar def_val[5];
-              snprintf (def_val, 5, "%d", timeout);
-              nvtpref_t *np = nvtpref_new ("Timeout", "entry", def_val);
-              prefs = g_slist_append (prefs, np);
-            }
-          prefs_add_nvti (name, prefs);
-          g_free (name);
-        }
-      g_slist_free_full (prefs, nvtpref_free_helper);
-      g_free (oid);
     }
   return 0;
 }

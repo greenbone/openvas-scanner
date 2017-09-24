@@ -498,7 +498,7 @@ get_plugin_preference (const char *oid, const char *name)
 {
   GHashTable *prefs;
   GHashTableIter iter;
-  char *plug_name, *cname;
+  char *plug_name, *cname, *retval = NULL;
   void *itername, *itervalue;
 
   prefs = preferences_get ();
@@ -528,15 +528,32 @@ get_plugin_preference (const char *oid, const char *name)
               if (!strcmp (itername, plug_name))
                 {
                   a[0] = old;
-                  g_free (cname);
-                  return itervalue;
+                  retval = itervalue;
+                  break;
                 }
               a[0] = old;
             }
         }
     }
+  /* If no value set by the user, get the default one. */
+  if (!retval)
+    {
+       GSList *nprefs, *tmp;
+
+       tmp = nprefs = nvticache_get_prefs (oid);
+       while (tmp)
+         {
+           if (!strcmp (cname, nvtpref_name (tmp->data)))
+              {
+                retval = g_strdup (nvtpref_default (tmp->data));
+                break;
+              }
+           tmp = tmp->next;
+         }
+       g_slist_free_full (nprefs,  (void (*) (void *)) nvtpref_free);
+    }
   g_free (cname);
-  return (NULL);
+  return retval;
 }
 
 /**

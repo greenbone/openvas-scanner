@@ -255,6 +255,41 @@ comm_send_pluginlist (int soc)
   g_slist_free_full (list, g_free);
 }
 
+void
+send_plugins_preferences (int soc)
+{
+  GSList *list, *element;
+
+  list = element = nvticache_get_oids ();
+  while (element)
+    {
+      char *oid = element->data;
+      GSList *nprefs = nvticache_get_prefs (oid);
+      int timeout = nvticache_get_timeout (oid);
+
+      if (nprefs || (timeout > 0))
+        {
+          GSList *tmp = nprefs;
+          char *name = nvticache_get_name (oid);
+
+          if (timeout > 0)
+            send_printf (soc, "%s[%s]:%s <|> %d\n", name, "entry", "Timeout",
+                         timeout);
+          while (tmp)
+            {
+              nvtpref_t *pref = tmp->data;
+              send_printf (soc, "%s[%s]:%s <|> %s\n", name, nvtpref_type (pref),
+                           g_strchomp (nvtpref_name (pref)),
+                           nvtpref_default (pref));
+              tmp = tmp->next;
+            }
+          g_free (name);
+        }
+      g_slist_free_full (nprefs, (void (*) (void *)) nvtpref_free);
+      element = element->next;
+    }
+  g_slist_free_full (list, g_free);
+}
 /**
  * @brief Sends the preferences of the scanner.
  * @param soc Socket to use for sending.
@@ -277,6 +312,7 @@ comm_send_preferences (int soc)
       if (!is_scanner_only_pref (itername))
         send_printf (soc, "%s <|> %s\n", (char *) itername, (char *) itervalue);
     }
+  send_plugins_preferences (soc);
   send_printf (soc, "<|> SERVER\n");
 }
 

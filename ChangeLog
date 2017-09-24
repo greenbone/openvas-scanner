@@ -1,3 +1,15 @@
+2017-09-24  Hani Benhabiles  <hani.benhabiles@greenbone.net>
+
+	* src/comm.c (send_plugin_preferences): New function.
+	(comm_send_preferences): Call new function.
+
+	* src/nasl_plugins.c (prefs_add_nvti, nvtpref_free_helper): Remove
+	functions.
+	(nasl_plugin_add): Don't add plugin preferences in memory.
+
+	* misc/plugutils.c (get_plugin_preference): When no value is found in
+	memory preferences, use the default one from nvticache.
+
 2017-09-21  Juan Jose Nicola  <juan.nicola@greenbone.net>
 
 	* nasl/lint.c (add_predef_varname, check_called_files) Use
