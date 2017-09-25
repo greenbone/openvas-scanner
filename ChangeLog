@@ -1,5 +1,23 @@
 2017-09-25  Hani Benhabiles  <hani.benhabiles@greenbone.net>
 
+	* misc/network.c (openvas_connection): Remove options parameter.
+	(set_ids_evasion_mode): Remove function.
+	(open_stream_connection_ext, write_stream_connection4): Don't check
+	for ids evasion options.
+
+	* nasl/nasl_http.c (build_encode_URL): New function. Moved from
+	www_funcs.c and removed outdated NIDS evasion techniques.
+	(_http_req): Adjust build_encode_URL() calls.
+
+	* misc/ids_send.c, misc/ids_send.h, misc/www_funcs.c, misc/www_funcs.h:
+	Remove unused files.
+
+	* misc/CMakeLists.txt: Don't build removed files.
+
+	* COPYING: Remove entries of removed files.
+
+2017-09-25  Hani Benhabiles  <hani.benhabiles@greenbone.net>
+
 	* nasl/nasl_cert.c (build_hostname_list, get_name): Return NULL instead
 	of using g_assert().
 

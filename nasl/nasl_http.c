@@ -25,7 +25,6 @@
 #include <gvm/util/kb.h>         /* for kb_item_get_str */
 
 #include "../misc/plugutils.h"  /* plug_get_host_fqdn */
-#include "../misc/www_funcs.h"  /* for build_encode_URL */
 
 #include "nasl_tree.h"
 #include "nasl_global_ctxt.h"
@@ -55,6 +54,24 @@ http_close_socket (lex_ctxt * lexic)
   return nasl_close_socket (lexic);
 }
 
+static char *
+build_encode_URL (char *method, char *path, char *name, char *httpver)
+{
+  char *ret, *ret2;
+
+  if (path == NULL)
+    ret = g_strdup (name);
+  else
+    ret = g_strdup_printf ("%s/%s", path, name);
+
+#ifdef URL_DEBUG
+  g_message ("Request => %s", ret);
+#endif
+
+  ret2 = g_strdup_printf ("%s %s %s", method, ret, httpver);
+  g_free (ret);
+  return ret2;
+}
 
 static tree_cell *
 _http_req (lex_ctxt * lexic, char *keyword)
@@ -151,11 +168,10 @@ _http_req (lex_ctxt * lexic, char *keyword)
       else
         hostheader = g_strdup_printf ("%s:%d", hostname, port);
 
-      url = build_encode_URL (script_infos, keyword, NULL, item, "HTTP/1.1");
+      url = build_encode_URL (keyword, NULL, item, "HTTP/1.1");
       str_length =
         strlen (url) + strlen (hostname) + al + cl + strlen (ua) + 1024;
       str = g_malloc0 (str_length);
-      /* NIDS evasion */
       g_snprintf (str, str_length, "%s\r\n\
 Connection: Close\r\n\
 Host: %s\r\n\
@@ -171,9 +187,7 @@ Accept-Charset: iso-8859-1,*,utf-8\r\n", url, hostheader, ua);
     }
   else
     {
-      /* NIDS evasion */
-      url =
-        build_encode_URL (script_infos, keyword, NULL, item, "HTTP/1.0\r\n");
+      url = build_encode_URL (keyword, NULL, item, "HTTP/1.0\r\n");
 
       str_length = strlen (url) + al + cl + 120;
       str = g_malloc0 (str_length);

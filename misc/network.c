@@ -59,7 +59,6 @@
 
 #include "network.h"            /* for socket_close() */
 
-#include "ids_send.h"
 #include "plugutils.h"
 #include "internal_com.h" /* for INTERNAL_COMM_MSG_TYPE_CTRL */
 #include "support.h"
@@ -91,7 +90,6 @@ typedef struct
   openvas_encaps_t transport;
   char *priority;/**< Malloced "priority" string for certain transports.  */
   int timeout;   /**< timeout, in seconds. Special values: -2 for default */
-  int options;   /**< Misc options - see ids_send.h */
 
   int port;
 
@@ -720,55 +718,6 @@ open_SSL_connection (openvas_connection * fp, const char *cert,
     }
  /*NOTREACHED*/}
 
-
-static void
-set_ids_evasion_mode (struct script_infos *args, openvas_connection * fp)
-{
-  kb_t kb = plug_get_kb (args);
-  char *ids_evasion_split, *ids_evasion_inject, *ids_evasion_short_ttl;
-  char *ids_evasion_fake_rst;
-  int option = 0;
-
-  if (kb_item_get_int (kb, "NIDS/TCP/enabled") != 1)
-    return;
-
-  ids_evasion_split = kb_item_get_str (kb, "NIDS/TCP/split");
-  ids_evasion_inject = kb_item_get_str (kb, "NIDS/TCP/inject");
-  ids_evasion_short_ttl = kb_item_get_str (kb, "NIDS/TCP/short_ttl");
-  ids_evasion_fake_rst = kb_item_get_str (kb, "NIDS/TCP/fake_rst");
-  /*
-   * These first three options are mutually exclusive
-   */
-  if (ids_evasion_split != NULL && strcmp (ids_evasion_split, "yes") == 0)
-    option = OPENVAS_CNX_IDS_EVASION_SPLIT;
-
-  if (ids_evasion_inject != NULL && strcmp (ids_evasion_inject, "yes") == 0)
-    option = OPENVAS_CNX_IDS_EVASION_INJECT;
-
-  if (ids_evasion_short_ttl != NULL
-      && strcmp (ids_evasion_short_ttl, "yes") == 0)
-    option = OPENVAS_CNX_IDS_EVASION_SHORT_TTL;
-
-
-  /*
-   * This is not exclusive with the above
-   */
-  if (ids_evasion_fake_rst != NULL && strcmp (ids_evasion_fake_rst, "yes") == 0)
-    option |= OPENVAS_CNX_IDS_EVASION_FAKE_RST;
-
-  if (option)
-    {
-      int n = 1;
-      (void) setsockopt (fp->fd, SOL_SOCKET, SO_SNDLOWAT, (void *) &n,
-                         sizeof (n));
-      fp->options |= option;
-    }
-  g_free (ids_evasion_split);
-  g_free (ids_evasion_inject);
-  g_free (ids_evasion_short_ttl);
-  g_free (ids_evasion_fake_rst);
-}
-
 /*
  * @brief Upgrade an ENCAPS_IP socket to an SSL/TLS encapsulated one.
  *
@@ -1069,13 +1018,8 @@ open_stream_connection_ext (struct script_infos *args, unsigned int port,
   fp->timeout = timeout;
   fp->port = port;
   fp->last_err = 0;
-  set_ids_evasion_mode (args, fp);
 
-  if (fp->options & OPENVAS_CNX_IDS_EVASION_FAKE_RST)
-    fp->fd = ids_open_sock_tcp (args, port, fp->options, timeout);
-  else
-    fp->fd = open_sock_tcp (args, port, timeout);
-
+  fp->fd = open_sock_tcp (args, port, timeout);
   if (fp->fd < 0)
     goto failed;
 
@@ -1459,8 +1403,8 @@ write_stream_connection4 (int fd, void *buf0, int n, int i_opt)
 
 #if DEBUG_SSL > 8
   log_lecacy_write (
-           "> write_stream_connection(%d, %s, %d, 0x%x) \tE=%d 0=0x%x\n", fd,
-           buf, n, i_opt, fp->transport, fp->options);
+           "> write_stream_connection(%d, %s, %d, 0x%x) \tE=%d\n", fd,
+           buf, n, i_opt, fp->transport);
 #endif
 
   switch (fp->transport)
@@ -1468,17 +1412,7 @@ write_stream_connection4 (int fd, void *buf0, int n, int i_opt)
     case OPENVAS_ENCAPS_IP:
       for (count = 0; count < n;)
         {
-          if ((fp->options & OPENVAS_CNX_IDS_EVASION_SEND_MASK) != 0)
-            {
-              if (fp->options & OPENVAS_CNX_IDS_EVASION_SPLIT)
-                /* IDS evasion */
-                ret = send (fp->fd, buf + count, 1, i_opt);
-              else
-                /* i_opt ignored for ids_send */
-                ret = ids_send (fp->fd, buf + count, n - count, fp->options);
-            }
-          else
-            ret = send (fp->fd, buf + count, n - count, i_opt);
+          ret = send (fp->fd, buf + count, n - count, i_opt);
 
           if (ret <= 0)
             {
