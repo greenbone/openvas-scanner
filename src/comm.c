@@ -255,6 +255,10 @@ comm_send_pluginlist (int soc)
   g_slist_free_full (list, g_free);
 }
 
+/**
+ * @brief Sends the list of plugins preferences to the client.
+ * @param soc    Socket to use for sending list of preferences.
+ */
 void
 send_plugins_preferences (int soc)
 {
@@ -290,6 +294,7 @@ send_plugins_preferences (int soc)
     }
   g_slist_free_full (list, g_free);
 }
+
 /**
  * @brief Sends the preferences of the scanner.
  * @param soc Socket to use for sending.

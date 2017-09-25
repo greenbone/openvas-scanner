@@ -1,3 +1,7 @@
+2017-09-25  Hani Benhabiles  <hani.benhabiles@greenbone.net>
+
+	* src/comm.c (send_plugins_preferences): Add function documentation.
+
 2017-09-24  Hani Benhabiles  <hani.benhabiles@greenbone.net>
 
 	* src/comm.c (send_plugin_preferences): New function.
