@@ -496,7 +496,11 @@ build_hostname_list (ksba_cert_t cert)
           char *endp;
           unsigned long n = strtoul (name+11, &endp, 10);
 
-          g_assert (*endp == ':');
+          if (*endp != ':')
+            {
+              ksba_free (name);
+              return NULL;
+            }
           endp++;
           memset (&v, 0, sizeof v);
           v.var_type = VAR2_DATA;
@@ -676,10 +680,12 @@ get_name (const char *string)
       if (gcry_sexp_sscan (&sexp, NULL, string, len))
         return NULL;  /* Invalid encoding.  */
       len = gcry_sexp_sprint (sexp, GCRYSEXP_FMT_ADVANCED, NULL, 0);
-      g_assert (len);
+      if (!len)
+        return NULL;
       buffer = g_malloc0 (len);
       len = gcry_sexp_sprint (sexp, GCRYSEXP_FMT_ADVANCED, buffer, len);
-      g_assert (len);
+      if (!len)
+        return NULL;
       len = strlen (buffer);
       /* Strip a trailing linefeed.  */
       if (len && buffer[len-1] == '\n')
