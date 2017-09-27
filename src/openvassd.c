@@ -475,6 +475,36 @@ check_reload ()
     }
 }
 
+/**
+ * @brief Check if Redis Server is up and if the KB exists.
+ *        If KB does not exist force a reload.
+ */
+void
+check_kb_status ()
+{
+  int  waitredis = 5, ret = 0;
+  kb_t kb_access_aux;
+  while (waitredis != 0)
+    {
+      ret = kb_new (&kb_access_aux, prefs_get ("kb_location"));
+      if (ret)
+        {
+          waitredis--;
+          sleep (5);
+          continue;
+        }
+      else
+        {
+          kb_delete (kb_access_aux);
+          break;
+        }
+    }
+  if (waitredis == 0 || kb_no_empty (prefs_get ("kb_location")) == -1)
+    exit (1);
+  if (waitredis != 5 || kb_no_empty (prefs_get ("kb_location")) == 0)
+    reload_openvassd ();
+}
+
 static void
 main_loop ()
 {
@@ -502,6 +532,7 @@ main_loop ()
       if (soc == -1)
         continue;
 
+      check_kb_status ();
       globals = g_malloc0 (sizeof (struct arglist));
       arg_add_value (globals, "global_socket", ARG_INT, GSIZE_TO_POINTER (soc));
 
