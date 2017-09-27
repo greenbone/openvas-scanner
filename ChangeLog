@@ -1,5 +1,11 @@
 2017-09-27  Juan Jose Nicola  <juan.nicola@greenbone.net>
 
+	* Changelog: Add info to the last entry.
+
+2017-09-27  Juan Jose Nicola  <juan.nicola@greenbone.net>
+
+	Backport r29680 with adjustments due to code changes.
+
 	* src/openvassd.c (check_kb_status): New function. Check if Redis
         Server is up and if the KB exists. If KB does not exist force a reload.
         (main_loop): Call new function.
