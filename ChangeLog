@@ -1,3 +1,9 @@
+2017-09-28  Juan Jose Nicola  <juan.nicola@greenbone.net>
+
+	* src/openvassd.c (check_kb_status): Call kb_lnk_reset() to close
+	redis connection, to avoid the increase of connections and to reach
+	the maximum.
+
 2017-09-27  Juan Jose Nicola  <juan.nicola@greenbone.net>
 
 	* src/openvassd.c (check_kb_status): New function. Check if Redis

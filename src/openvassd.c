@@ -496,8 +496,11 @@ check_kb_status ()
 
   if (waitredis == 0)
     exit (1);
-  if (waitredis != 5 || !kb_find (prefs_get ("kb_location"), "nvticache"))
+  kb_access_aux = kb_find (prefs_get ("kb_location"), "nvticache");
+  if (waitredis != 5 || !kb_access_aux)
     reload_openvassd ();
+  else
+    kb_lnk_reset (kb_access_aux);
 }
 
 
