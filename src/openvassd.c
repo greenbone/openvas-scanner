@@ -552,7 +552,6 @@ main_loop ()
  * unix_socket_path.
  *
  * @param[out] sock Socket to be initialized.
- * @param unix_socket_path Path to unix socket to listen on.
  *
  * @return 0 on success. -1 on failure.
  */
@@ -643,7 +642,7 @@ init_unix_network (int *sock, const char *owner, const char *group,
 /**
  * @brief Initialize everything.
  *
- * @param stop_early 0: do some initialization, 1: no initialization.
+ * @param config_file Path to config file for initialization
  */
 static int
 init_openvassd (const char *config_file)

@@ -219,8 +219,6 @@ nvti_category_is_safe (int category)
  *
  * Does not launch a plugin twice if !save_kb_replay.
  *
- * @param new_kb  If TRUE, kb is new and shall be saved.
- *
  * @return ERR_HOST_DEAD if host died, ERR_CANT_FORK if forking failed,
  *         0 otherwise.
  */
@@ -363,7 +361,6 @@ kb_duplicate(kb_t dst, kb_t src, const gchar *filter)
  *
  * @param globals     Global preference struct.
  * @param hostname    Name of the host.
- * @param new_kb[out] TRUE if the kb is new and shall be saved.
  *
  * @return A knowledge base.
  */

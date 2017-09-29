@@ -119,7 +119,7 @@ get_closed_udp_ports (kb_t kb, char *ports_list)
 
 
 /**
- * @brief Returns the name of the first key which is not present in the \ref kb.
+ * @brief Returns the name of the first key which is not present in the \p kb.
  * @param[in]   kb      KB handle where to search for the keys.
  * @param[in]   keys    Comma separated list of keys.
  * @param[out]  keyname Key that was missing. Free with g_free().
@@ -157,7 +157,7 @@ kb_missing_keyname_of_namelist (kb_t kb, char *keys, char **keyname)
 }
 
 /**
- * @brief Returns the name of the first key which is present in the \ref kb.
+ * @brief Returns the name of the first key which is present in the \p kb.
  * @param[in]   kb      KB handle where to search for the keys.
  * @param[in]   keys    Comma separated list of keys.
  * @param[out]  keyname Key that was found. Free with g_free().

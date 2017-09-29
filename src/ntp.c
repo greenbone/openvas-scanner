@@ -163,7 +163,7 @@ ntp_long_attack (int soc)
 /**
  * @brief Reads in "server" prefs sent by client.
  *
- * @param int   Socket to read from.
+ * @param soc   Socket to read from.
  * @return Always 0.
  */
 static int

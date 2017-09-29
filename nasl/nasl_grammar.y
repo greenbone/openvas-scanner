@@ -695,6 +695,7 @@ load_checksums (kb_t kb)
  * @brief Get the checksum of a file.
  *
  * @param[in]  filename     Path to file.
+ * @param[in]  algorithm    Libgcrypt hash algorithm to use for generating the checksum.
  *
  * @return checksum string, NULL otherwise.
  */

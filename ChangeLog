@@ -1,3 +1,19 @@
+2017-09-29  Michael Wiegand <michael.wiegand@greenbone.net>
+
+	Address documentation issues.
+
+	* nasl/nasl_grammar.y: Add missing parameter documentation.
+
+	* src/attack.c: Remove documentation of non-existing parameters.
+
+	* src/ntp.c: Correct parameter name.
+
+	* src/openvassd.c: Remove documentation of non-existing parameters.
+	Add missing parameter documentation.
+
+	* src/plugs_req.c: Replace non-existing reference with more
+	appropriate Doxygen command.
+
 2017-09-28  Juan Jose Nicola  <juan.nicola@greenbone.net>
 
 	* src/openvassd.c (check_kb_status): Call kb_lnk_reset() to close
