@@ -499,6 +499,10 @@ check_kb_status ()
           break;
         }
     }
+  /* The function kb_no_empty() used here was written in openvas-libraries-9
+   * and it is used only in this branch for openvas-scanner-5.1. In the Trunk 
+   * version a new function kb_find() is used instead of this.
+   */
   if (waitredis == 0 || kb_no_empty (prefs_get ("kb_location")) == -1)
     exit (1);
   if (waitredis != 5 || kb_no_empty (prefs_get ("kb_location")) == 0)
