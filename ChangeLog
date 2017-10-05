@@ -1,3 +1,8 @@
+2017-10-04  Hani Benhabiles  <hani.benhabiles@greenbone.net>
+
+	* misc/pcap.c (get_random_bytes): Remove function.
+	(v6_getsourceip): Use rand() instead of get_random_bytes().
+
 2017-09-29  Michael Wiegand <michael.wiegand@greenbone.net>
 
 	Address documentation issues.
