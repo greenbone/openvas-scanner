@@ -91,7 +91,6 @@ struct attack_start_args
 {
   struct scan_globals *globals;
   struct in6_addr hostip;
-  char *host_mac_addr;
   plugins_scheduler_t sched;
   int thread_socket;
   int parent_socket;
@@ -576,12 +575,7 @@ attack_start (struct attack_start_args *args)
   kb_t *net_kb = args->net_kb;
 
   nvticache_reset ();
-  /* Stringify the IP address. */
-  if (args->host_mac_addr)
-    host_str = g_strdup (args->host_mac_addr);
-  else
-    host_str = addr6_as_str (&args->hostip);
-  g_free (args->host_mac_addr);
+  host_str = addr6_as_str (&args->hostip);
   close (args->parent_socket);
   thread_socket = args->thread_socket;
   gettimeofday (&then, NULL);
@@ -1031,24 +1025,12 @@ attack_network (struct scan_globals *globals, kb_t *network_kb)
         {
           int pid;
           struct attack_start_args args;
-          char *MAC = NULL, *txt_ip;
+          char *txt_ip;
           int soc[2];
-
-          if (prefs_get_bool ("use_mac_addr") && v6_is_local_ip (&host_ip))
-            {
-              if (v6_get_mac_addr (&host_ip, &MAC) > 0)
-                {
-                  /* remote host is down */
-                  g_free (hostname);
-                  host = gvm_hosts_next (hosts);
-                  continue;
-                }
-            }
 
           if (socketpair (AF_UNIX, SOCK_STREAM, 0, soc) < 0
               || hosts_new (globals, hostname, soc[1]) < 0)
             {
-              g_free (MAC);
               g_free (hostname);
               goto scan_stop;
             }
@@ -1057,14 +1039,12 @@ attack_network (struct scan_globals *globals, kb_t *network_kb)
             {
               close (soc[0]);
               close (soc[1]);
-              g_free (MAC);
               g_free (hostname);
               continue;
             }
           args.globals = globals;
           memcpy (&args.hostip, &host_ip, sizeof (struct in6_addr));
           args.fqdn = hostname;
-          args.host_mac_addr = MAC;
           args.sched = sched;
           args.thread_socket = soc[0];
           args.parent_socket = soc[1];
@@ -1082,7 +1062,6 @@ attack_network (struct scan_globals *globals, kb_t *network_kb)
                   /* Forking failed - we go to the wait queue. */
                   g_debug ("fork() failed - %s. %s won't be tested",
                              strerror (errno), hostname);
-                  g_free (MAC);
                   g_free (hostname);
                   goto stop;
                 }
@@ -1101,7 +1080,6 @@ attack_network (struct scan_globals *globals, kb_t *network_kb)
           else
             g_message ("Testing %s (%s) [%d]", hostname, txt_ip, pid);
           g_free (txt_ip);
-          g_free (MAC);
         }
 
       num_tested++;

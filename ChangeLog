@@ -1,3 +1,13 @@
+2017-10-05  Hani Benhabiles  <hani.benhabiles@greenbone.net>
+
+	* misc/pcap.c (v6_get_mac_addr): Remove function.
+
+	* misc/pcap_openvas.h: Remove function header.
+
+	* src/attack.c (struct attack_start_args): Remove host_mac_addr element.
+	(attack_start): Remove host_mac_addr check.
+	(attack_network): Remove handling of unused use_mac_addr preference.
+
 2017-10-04  Hani Benhabiles  <hani.benhabiles@greenbone.net>
 
 	* misc/pcap.c (get_random_bytes): Remove function.

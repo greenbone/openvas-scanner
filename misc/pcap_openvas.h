@@ -34,7 +34,6 @@
 #endif
 
 int v6_is_local_ip (struct in6_addr *);
-int v6_get_mac_addr (struct in6_addr *, char **);
 int islocalhost (struct in_addr *);
 int v6_islocalhost (struct in6_addr *);
 int get_datalink_size (int);
