@@ -1,3 +1,9 @@
+2017-10-06  Hani Benhabiles  <hani.benhabiles@greenbone.net>
+
+	* src/attack.c (attack_start_args): Remove hostip and fqdn elements.
+	(attack_network, attack_start): Move hostname resolving and reverse
+	resolving from main scan process to the spawned host process.
+
 2017-10-05  Hani Benhabiles  <hani.benhabiles@greenbone.net>
 
 	* misc/pcap.c (v6_get_mac_addr): Remove function.
