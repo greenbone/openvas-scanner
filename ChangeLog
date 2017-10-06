@@ -1,5 +1,13 @@
 2017-10-06  Hani Benhabiles  <hani.benhabiles@greenbone.net>
 
+	Backport r29753.
+
+	* src/attack.c (attack_start_args): Remove hostip and fqdn elements.
+	(attack_network, attack_start): Move hostname resolving and reverse
+	resolving from main scan process to the spawned host process.
+
+2017-10-06  Hani Benhabiles  <hani.benhabiles@greenbone.net>
+
 	Backport r29747.
 
 	* src/attack.c (struct attack_start_args): Remove host_mac_addr element.

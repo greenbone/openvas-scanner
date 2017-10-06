@@ -84,12 +84,11 @@
 struct attack_start_args
 {
   struct arglist *globals;
-  struct in6_addr hostip;
   plugins_scheduler_t sched;
   int thread_socket;
   int parent_socket;
   kb_t *net_kb;
-  char *fqdn;
+  openvas_host_t *host;
 };
 
 enum net_scan_status {
@@ -589,6 +588,34 @@ host_died:
     kb_delete (kb);
 }
 
+/*
+ * Checks if a host is authorized to be scanned.
+ *
+ * @param[in]   host    Host to check access to.
+ * @param[in]   addr    Pointer to address so a hostname isn't resolved multiple
+ *                      times.
+ * @param[in]   hosts_allow   Hosts whitelist.
+ * @param[in]   hosts_deny    Hosts blacklist.
+ *
+ * @return 1 if host authorized, 0 otherwise.
+ */
+static int
+host_authorized (const openvas_host_t *host, const struct in6_addr *addr,
+                 const openvas_hosts_t *hosts_allow,
+                 const openvas_hosts_t *hosts_deny)
+{
+  /* Check Hosts Access. */
+  if (host == NULL)
+    return 0;
+
+  if (hosts_deny && openvas_host_in_hosts (host, addr, hosts_deny))
+    return 0;
+  if (hosts_allow && !openvas_host_in_hosts (host, addr, hosts_allow))
+    return 0;
+
+  return 1;
+}
+
 /**
  * @brief Set up some data and jump into attack_host()
  */
@@ -596,8 +623,8 @@ static void
 attack_start (struct attack_start_args *args)
 {
   struct arglist *globals = args->globals;
-  char *host_str;
-  struct in6_addr *hostip = &args->hostip;
+  char *host_str, *hostname;
+  struct in6_addr hostip;
   struct host_info *hostinfos;
   const char *non_simult = prefs_get ("non_simult_ports");
   const char *vhosts = prefs_get ("vhosts");
@@ -606,9 +633,11 @@ attack_start (struct attack_start_args *args)
   struct timeval then;
   plugins_scheduler_t sched = args->sched;
   kb_t *net_kb = args->net_kb;
+  openvas_hosts_t *hosts_allow, *hosts_deny;
+  openvas_hosts_t *sys_hosts_allow, *sys_hosts_deny;
+
 
   nvticache_reset ();
-  host_str = addr6_as_str (&args->hostip);
   close (args->parent_socket);
   thread_socket = args->thread_socket;
   gettimeofday (&then, NULL);
@@ -622,20 +651,58 @@ attack_start (struct attack_start_args *args)
   openvas_deregister_connection (arg_get_value_int (globals, "global_socket"));
   arg_set_value (globals, "global_socket", GSIZE_TO_POINTER (thread_socket));
 
+  hostname = openvas_host_reverse_lookup (args->host);
+  if (!hostname)
+    hostname = openvas_host_value_str (args->host);
+  if (openvas_host_get_addr6 (args->host, &hostip) == -1)
+    {
+      g_warning ("Couldn't resolve target %s", hostname);
+      error_message_to_client (thread_socket, "Couldn't resolve hostname.",
+                               hostname, NULL);
+      return;
+    }
+
+  /* Do we have the right to test this host ? */
+  hosts_allow = openvas_hosts_new (prefs_get ("hosts_allow"));
+  hosts_deny = openvas_hosts_new (prefs_get ("hosts_deny"));
+  if (!host_authorized (args->host, &hostip, hosts_allow, hosts_deny))
+    {
+      error_message_to_client
+       (thread_socket, "Host access denied.", hostname, NULL);
+      log_write ("Host %s access denied.", hostname);
+      return;
+    }
+  sys_hosts_allow = openvas_hosts_new (prefs_get ("sys_hosts_allow"));
+  sys_hosts_deny = openvas_hosts_new (prefs_get ("sys_hosts_deny"));
+  if (!host_authorized (args->host, &hostip, sys_hosts_allow, sys_hosts_deny))
+    {
+      error_message_to_client
+       (thread_socket, "Host access denied (system-wide restriction.)",
+        hostname, NULL);
+      log_write ("Host %s access denied (sys_* preference restriction.)",
+                 hostname);
+      return;
+    }
+  openvas_hosts_free (hosts_allow);
+  openvas_hosts_free (hosts_deny);
+  openvas_hosts_free (sys_hosts_allow);
+  openvas_hosts_free (sys_hosts_deny);
+
+  host_str = addr6_as_str (&hostip);
   if (vhosts == NULL || vhosts_ip == NULL)
-    hostinfos = host_info_init (host_str, hostip, NULL, args->fqdn);
+    hostinfos = host_info_init (host_str, &hostip, NULL, hostname);
   else
     {
       char *txt_ip;
 
-      txt_ip = addr6_as_str (hostip);
+      txt_ip = addr6_as_str (&hostip);
       if (strcmp (vhosts_ip, txt_ip) != 0)
         vhosts = NULL;
       g_free (txt_ip);
-      hostinfos = host_info_init (host_str, hostip, vhosts, args->fqdn);
+      hostinfos = host_info_init (host_str, &hostip, vhosts, hostname);
     }
-
   ntp_timestamp_host_scan_starts (thread_socket, host_str);
+  log_write ("Testing %s (%s) [%d]", hostname, host_str, getpid ());
 
   // Start scan
   attack_host (globals, hostinfos, host_str, sched, net_kb);
@@ -652,13 +719,13 @@ attack_start (struct attack_start_args *args)
           then.tv_sec++;
           now.tv_usec += 1000000;
         }
-      log_write ("Finished testing %s (%s). Time : %ld.%.2ld secs", args->fqdn, host_str,
-                 (long) (now.tv_sec - then.tv_sec),
+      log_write ("Finished testing %s (%s). Time : %ld.%.2ld secs",
+		 hostname, host_str, (long) (now.tv_sec - then.tv_sec),
                  (long) ((now.tv_usec - then.tv_usec) / 10000));
     }
   shutdown (thread_socket, 2);
   close (thread_socket);
-  g_free (args->fqdn);
+  g_free (hostname);
   g_free (host_str);
 }
 
@@ -770,34 +837,6 @@ iface_authorized (const char *iface)
 }
 
 /*
- * Checks if a host is authorized to be scanned.
- *
- * @param[in]   host    Host to check access to.
- * @param[in]   addr    Pointer to address so a hostname isn't resolved multiple
- *                      times.
- * @param[in]   hosts_allow   Hosts whitelist.
- * @param[in]   hosts_deny    Hosts blacklist.
- *
- * @return 1 if host authorized, 0 otherwise.
- */
-static int
-host_authorized (const openvas_host_t *host, const struct in6_addr *addr,
-                 const openvas_hosts_t *hosts_allow,
-                 const openvas_hosts_t *hosts_deny)
-{
-  /* Check Hosts Access. */
-  if (host == NULL)
-    return 0;
-
-  if (hosts_deny && openvas_host_in_hosts (host, addr, hosts_deny))
-    return 0;
-  if (hosts_allow && !openvas_host_in_hosts (host, addr, hosts_allow))
-    return 0;
-
-  return 1;
-}
-
-/*
  * Applies the source_iface scanner preference, if allowed by ifaces_allow and
  * ifaces_deny preferences.
  *
@@ -892,16 +931,14 @@ void
 attack_network (struct arglist *globals, kb_t *network_kb)
 {
   int max_hosts = 0, max_checks;
-  int num_tested = 0;
   const char *hostlist;
-  openvas_hosts_t *hosts, *hosts_allow, *hosts_deny;
-  openvas_hosts_t *sys_hosts_allow, *sys_hosts_deny;
   openvas_host_t *host;
   int global_socket = -1;
   plugins_scheduler_t sched;
   int fork_retries = 0;
   GHashTable *files;
   struct timeval then, now;
+  openvas_hosts_t *hosts;
 
   const gchar *network_targets, *port_range;
   gboolean network_phase = FALSE;
@@ -944,10 +981,7 @@ attack_network (struct arglist *globals, kb_t *network_kb)
   else
     network_kb = NULL;
 
-  num_tested = 0;
-
   global_socket = arg_get_value_int (globals, "global_socket");
-
   if (check_kb_access(global_socket))
       return;
 
@@ -1020,12 +1054,6 @@ attack_network (struct arglist *globals, kb_t *network_kb)
        (global_socket, "Interface not authorized for scanning", NULL, NULL);
       return;
     }
-  /* hosts_allow/deny lists. */
-  hosts_allow = openvas_hosts_new (prefs_get ("hosts_allow"));
-  hosts_deny = openvas_hosts_new (prefs_get ("hosts_deny"));
-  /* sys_* preferences, which can't be overriden by the client. */
-  sys_hosts_allow = openvas_hosts_new (prefs_get ("sys_hosts_allow"));
-  sys_hosts_deny = openvas_hosts_new (prefs_get ("sys_hosts_deny"));
   host = openvas_hosts_next (hosts);
   if (host == NULL)
     goto stop;
@@ -1036,97 +1064,59 @@ attack_network (struct arglist *globals, kb_t *network_kb)
   openvas_signal (SIGUSR1, handle_scan_stop_signal);
   while (host && !scan_is_stopped ())
     {
-      char *hostname;
-      struct in6_addr host_ip;
+      int pid;
+      struct attack_start_args args;
+      char *host_str;
+      int soc[2];
 
-      hostname = openvas_host_reverse_lookup (host);
-      if (!hostname)
-        hostname = openvas_host_value_str (host);
-      if (openvas_host_get_addr6 (host, &host_ip) == -1)
+      host_str = openvas_host_value_str (host);
+      if (socketpair (AF_UNIX, SOCK_STREAM, 0, soc) < 0
+          || hosts_new (globals, host_str, soc[1]) < 0)
         {
-          log_write ("Couldn't resolve target %s", hostname);
-          error_message_to_client (global_socket, "Couldn't resolve hostname.",
-                                   hostname, NULL);
-          g_free (hostname);
-          host = openvas_hosts_next (hosts);
+          g_free (host_str);
+          goto scan_stop;
+        }
+
+      if (scan_is_stopped ())
+        {
+          close (soc[0]);
+          close (soc[1]);
+          g_free (host_str);
           continue;
         }
+      args.host = host;
+      args.globals = globals;
+      args.sched = sched;
+      args.thread_socket = soc[0];
+      args.parent_socket = soc[1];
+      args.net_kb = network_kb;
 
-      /* Do we have the right to test this host ? */
-      if (!host_authorized (host, &host_ip, hosts_allow, hosts_deny))
+    forkagain:
+      pid = create_process ((process_func_t) attack_start, &args);
+      /* Close child process' socket. */
+      close (args.thread_socket);
+      if (pid < 0)
         {
-          error_message_to_client (global_socket, "Host access denied.",
-                                   hostname, NULL);
-          log_write ("Host %s access denied.", hostname);
-        }
-      else if (!host_authorized (host, &host_ip, sys_hosts_allow,
-                                 sys_hosts_deny))
-        {
-          error_message_to_client
-           (global_socket, "Host access denied (system-wide restriction.)",
-            hostname, NULL);
-          log_write ("Host %s access denied (sys_* preference restriction.)",
-                     hostname);
-        }
-      else
-        {
-          int pid;
-          struct attack_start_args args;
-          char *txt_ip;
-          int soc[2];
-
-          if (socketpair (AF_UNIX, SOCK_STREAM, 0, soc) < 0)
-            goto scan_stop;
-          if (hosts_new (globals, hostname, soc[1]) < 0)
-            goto scan_stop;
-
-          if (scan_is_stopped ())
+          fork_retries++;
+          if (fork_retries > MAX_FORK_RETRIES)
             {
-              close (soc[0]);
-              close (soc[1]);
-              g_free (hostname);
-              continue;
+              /* Forking failed - we go to the wait queue. */
+              log_write ("fork() failed - %s. %s won't be tested",
+                         strerror (errno), host_str);
+              g_free (host_str);
+              goto stop;
             }
-          args.globals = globals;
-          memcpy (&args.hostip, &host_ip, sizeof (struct in6_addr));
-          args.fqdn = hostname;
-          args.sched = sched;
-          args.thread_socket = soc[0];
-          args.parent_socket = soc[1];
-          args.net_kb = network_kb;
 
-        forkagain:
-          pid = create_process ((process_func_t) attack_start, &args);
-          /* Close child process' socket. */
-          close (args.thread_socket);
-          if (pid < 0)
-            {
-              fork_retries++;
-              if (fork_retries > MAX_FORK_RETRIES)
-                {
-                  /* Forking failed - we go to the wait queue. */
-                  log_write ("fork() failed - %s. %s won't be tested",
-                             strerror (errno), hostname);
-                  goto stop;
-                }
-
-              log_write ("fork() failed - "
-                         "sleeping %d seconds and trying again...",
-                         fork_retries);
-              fork_sleep (fork_retries);
-              goto forkagain;
-            }
-          txt_ip = addr6_as_str (&args.hostip);
-          hosts_set_pid (hostname, pid);
-          if (network_phase)
-            log_write ("Testing %s (network level) [%d]",
-                       network_targets, pid);
-          else
-            log_write ("Testing %s (%s) [%d]", hostname, txt_ip, pid);
-         g_free (txt_ip);
+          log_write ("fork() failed - "
+                     "sleeping %d seconds and trying again...",
+                     fork_retries);
+          fork_sleep (fork_retries);
+          goto forkagain;
         }
-
-      num_tested++;
+      hosts_set_pid (host_str, pid);
+      if (network_phase)
+        log_write ("Testing %s (network level) [%d]",
+                   network_targets, pid);
 
       if (network_phase)
         {
@@ -1134,10 +1124,8 @@ attack_network (struct arglist *globals, kb_t *network_kb)
           arg_set_value (globals, "network_scan_status", "done");
         }
       else
-        {
-          g_free (hostname);
           host = openvas_hosts_next (hosts);
-        }
+      g_free (host_str);
     }
 
   /* Every host is being tested... We have to wait for the processes
@@ -1154,12 +1142,6 @@ scan_stop:
     g_hash_table_destroy (files);
 
 stop:
-
-  openvas_hosts_free (hosts);
-  openvas_hosts_free (hosts_allow);
-  openvas_hosts_free (hosts_deny);
-  openvas_hosts_free (sys_hosts_allow);
-  openvas_hosts_free (sys_hosts_deny);
 
   plugins_scheduler_free (sched);
 
