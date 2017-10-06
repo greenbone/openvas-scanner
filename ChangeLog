@@ -1,3 +1,11 @@
+2017-10-06  Hani Benhabiles  <hani.benhabiles@greenbone.net>
+
+	Backport r29747.
+
+	* src/attack.c (struct attack_start_args): Remove host_mac_addr element.
+	(attack_start): Remove host_mac_addr check.
+	(attack_network): Remove handling of unused use_mac_addr preference.
+
 2017-10-02  Juan Jose Nicola  <juan.nicola@greenbone.net>
 
 	* src/openvassd.c (check_kb_status): Add comment about the use of the
