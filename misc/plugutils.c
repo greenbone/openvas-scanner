@@ -243,21 +243,6 @@ plug_get_host_ip_str (struct script_infos *desc)
   return addr6_as_str (plug_get_host_ip (desc));
 }
 
-/**
- * @brief Sets a Success kb- entry for the plugin described with parameter desc.
- *
- * @param desc Plugin script infos.
- */
-static void
-mark_successful_plugin (const char *oid, struct script_infos *desc)
-{
-  char data[512];
-
-  bzero (data, sizeof (data));
-  snprintf (data, sizeof (data), "Success/%s", oid);
-  plug_set_key (desc, data, ARG_INT, (void *) 1);
-}
-
 static void
 mark_post (const char *oid, struct script_infos *desc, const char *action,
            const char *content)
@@ -424,9 +409,6 @@ proto_post_wrapped (const char *oid, struct script_infos *desc, int port,
   data = g_convert (buffer, -1, "UTF-8", "ISO_8859-1", NULL, &length, NULL);
   internal_send (soc, data, INTERNAL_COMM_MSG_TYPE_DATA);
   g_free (data);
-
-  /* Mark in the KB that the plugin was successful */
-  mark_successful_plugin (oid, desc);
 
   g_free (buffer);
   g_string_free (action_str, TRUE);

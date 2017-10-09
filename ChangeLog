@@ -1,3 +1,8 @@
+2017-10-09  Hani Benhabiles  <hani.benhabiles@greenbone.net>
+
+	* misc/plugutils.c (mark_successful_plugin): Remove useless function.
+	(proto_post_wrapped): Don't call removed function.
+
 2017-10-06  Hani Benhabiles  <hani.benhabiles@greenbone.net>
 
 	* src/attack.c (attack_start_args): Remove hostip and fqdn elements.
