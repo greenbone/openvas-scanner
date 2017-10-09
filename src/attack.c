@@ -64,7 +64,6 @@
 
 #define ERR_HOST_DEAD -1
 #define ERR_CANT_FORK -2
-#define ERR_REDIS_CONN -3
 
 #define MAX_FORK_RETRIES 10
 
@@ -187,6 +186,14 @@ scan_is_stopped ()
  return global_scan_stop;
 }
 
+int global_stop_all_scans = 0;
+
+static int
+all_scans_are_stopped ()
+{
+ return global_stop_all_scans;
+}
+
 /**
  * @brief Checks that an NVT category is safe.
  *
@@ -228,7 +235,7 @@ launch_plugin (struct arglist *globals, struct scheduler_plugin *plugin,
   oid = plugin->oid;
   category = nvticache_get_category (oid);
   name = nvticache_get_name (oid);
-  if (scan_is_stopped ())
+  if (scan_is_stopped () || all_scans_are_stopped())
     {
       if (category != ACT_LAST)
         {
@@ -289,15 +296,6 @@ launch_plugin (struct arglist *globals, struct scheduler_plugin *plugin,
       else
         error = "because a mandatory key is missing";
 
-      /* Stop the test if it can not connect to redis server. */
-      if (kb_item_get_int (kb, "check_host_kb") < 0)
-        {
-          log_write ("Redis connection error during %s scan", hostname);
-          pluginlaunch_stop (1);
-          plugin->running_state = PLUGIN_STATUS_DONE;
-          g_free (name);
-          return ERR_REDIS_CONN;
-        }
       /* Stop the test if the host is 'dead' */
       if (kb_item_get_int (kb, "Host/dead") > 0)
         {
@@ -474,8 +472,6 @@ attack_host (struct arglist *globals, struct host_info *hostinfos,
 
   kb_lnk_reset (kb);
 
-  kb_item_add_int (kb, "check_host_kb", 1);
-
   /* launch the plugins */
   pluginlaunch_init (hostinfos->name);
   num_plugs = plugins_scheduler_count_active (sched);
@@ -541,24 +537,10 @@ attack_host (struct arglist *globals, struct host_info *hostinfos,
                       goto host_died;
                     }
                 }
-              else if (e == ERR_REDIS_CONN)
-                {
-                  char buffer[2048];
-                  snprintf
-                   (buffer, sizeof (buffer),
-                    "SERVER <|> ERRMSG <|> %s <|> general/Host_Details"
-                    " <|> Redis connection error."
-                    " <|>  <|> SERVER\n",
-                    hostname?:"");
-
-                  internal_send (global_socket, buffer,
-                                 INTERNAL_COMM_MSG_TYPE_DATA);
-                  goto host_died;
-                }
             }
 
           if ((cur_plug * 100) / num_plugs >= last_status
-              && !scan_is_stopped ())
+              && !scan_is_stopped () && !all_scans_are_stopped())
             {
               last_status = (cur_plug * 100) / num_plugs + 2;
               if (comm_send_status
@@ -577,7 +559,7 @@ attack_host (struct arglist *globals, struct host_info *hostinfos,
     }
 
   pluginlaunch_wait ();
-  if (!scan_is_stopped ())
+  if (!scan_is_stopped () && !all_scans_are_stopped())
     comm_send_status (global_socket, hostname, num_plugs, num_plugs);
 
 host_died:
@@ -708,7 +690,7 @@ attack_start (struct attack_start_args *args)
   attack_host (globals, hostinfos, host_str, sched, net_kb);
   host_info_free (hostinfos);
 
-  if (!scan_is_stopped ())
+  if (!scan_is_stopped () && !all_scans_are_stopped ())
     {
       struct timeval now;
 
@@ -924,6 +906,13 @@ handle_scan_stop_signal ()
   global_scan_stop = 1;
 }
 
+static void
+handle_stop_all_scans_signal ()
+{
+  global_stop_all_scans = 1;
+  hosts_stop_all ();
+}
+
 /**
  * @brief Attack a whole network.
  */
@@ -1062,7 +1051,8 @@ attack_network (struct arglist *globals, kb_t *network_kb)
    * Start the attack !
    */
   openvas_signal (SIGUSR1, handle_scan_stop_signal);
-  while (host && !scan_is_stopped ())
+  openvas_signal (SIGUSR2, handle_stop_all_scans_signal);
+  while (host && !scan_is_stopped () && !all_scans_are_stopped())
     {
       int pid;
       struct attack_start_args args;
@@ -1077,7 +1067,7 @@ attack_network (struct arglist *globals, kb_t *network_kb)
           goto scan_stop;
         }
 
-      if (scan_is_stopped ())
+      if (scan_is_stopped () || all_scans_are_stopped ())
         {
           close (soc[0]);
           close (soc[1]);
@@ -1142,13 +1132,19 @@ scan_stop:
     g_hash_table_destroy (files);
 
 stop:
-
+  if (all_scans_are_stopped ())
+    {
+      error_message_to_client
+        (global_socket, "The whole scan was stopped. "
+         "Fatal Redis connection error.", "", NULL);
+    }
   plugins_scheduler_free (sched);
 
   gettimeofday (&now, NULL);
   log_write ("Total time to scan all hosts : %ld seconds",
              now.tv_sec - then.tv_sec);
 
-  if (do_network_scan && network_phase && !scan_is_stopped ())
+  if (do_network_scan && network_phase &&
+      !scan_is_stopped () && !all_scans_are_stopped ())
     attack_network (globals, network_kb);
 }

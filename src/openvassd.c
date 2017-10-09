@@ -475,15 +475,48 @@ check_reload ()
     }
 }
 
+
 /**
- * @brief Check if Redis Server is up and if the KB exists.
- *        If KB does not exist force a reload.
+ * @brief Send SIGUSR2 kill signal to all running scans to stop them.
+ */
+static void
+stop_all_scans (void)
+{
+  char parentID[256];
+  char processID[256];
+  char pgroupID[256];
+  FILE *fp = popen("ps -C openvassd --format '%r %P %p'" , "r");
+
+  if (fp == NULL)
+    {
+      log_write ("Error trying to get the PIDs of running scans .");
+      return;
+    }
+
+  if (fscanf (fp, "%s %s %s", pgroupID, parentID, processID) < 0)
+    {
+      log_write ("Error trying to stop the running scans.");
+      return;
+    }
+  
+  while (fscanf (fp, "%s %s %s", pgroupID, parentID, processID) != EOF)
+    {
+      if (atoi (parentID) == (int)getpid())
+        kill (atoi (processID), SIGUSR2);
+    }
+  pclose(fp);
+}
+
+/**
+ * @brief Check if Redis Server is up and if the KB exists. If KB does not
+ * exist,force a reload and stop all the running scans.
  */
 void
 check_kb_status ()
 {
   int  waitredis = 5, ret = 0;
   kb_t kb_access_aux;
+
   while (waitredis != 0)
     {
       ret = kb_new (&kb_access_aux, prefs_get ("kb_location"));
@@ -499,6 +532,7 @@ check_kb_status ()
           break;
         }
     }
+
   /* The function kb_no_empty() used here was written in openvas-libraries-9
    * and it is used only in this branch for openvas-scanner-5.1. In the Trunk 
    * version a new function kb_find() is used instead of this.
@@ -506,7 +540,11 @@ check_kb_status ()
   if (waitredis == 0 || kb_no_empty (prefs_get ("kb_location")) == -1)
     exit (1);
   if (waitredis != 5 || kb_no_empty (prefs_get ("kb_location")) == 0)
-    reload_openvassd ();
+    {
+      log_write ("Redis connection error. Stopping all the running scans.");
+      stop_all_scans();
+      reload_openvassd ();
+    }
 }
 
 static void
@@ -522,21 +560,61 @@ main_loop ()
   proctitle_set ("openvassd: Waiting for incoming connections");
   for (;;)
     {
-      int soc;
+      int soc, opts;
       unsigned int lg_address;
       struct sockaddr_un address;
       struct arglist *globals;
+      fd_set set;
+      struct timeval timeout;
+      int rv;
 
       check_termination ();
       check_reload ();
+      check_kb_status ();
       wait_for_children1 ();
       lg_address = sizeof (struct sockaddr_un);
-      soc = accept (global_iana_socket, (struct sockaddr *) (&address),
+
+      /* Setting the socket to non-blocking and the use of select() for
+       * listen() before accept() is done only for openvas-9. It allows to
+       * go through the loop every 0.5sec without stuck in the accept() call.
+       * In the trunk version the manager ask the the scanner for new NVTs
+       * every 10sec, so the loop is not stuck in accept().
+       */
+      if ((opts = fcntl (global_iana_socket, F_GETFL, 0)) < 0)
+        {
+          log_write ("fcntl: %s", strerror (errno));
+          exit (0);
+        }
+      if (fcntl (global_iana_socket, F_SETFL, opts | O_NONBLOCK) < 0)
+        {
+          log_write ("fcntl: %s", strerror (errno));
+          exit (0);
+        }
+
+      if (listen (global_iana_socket, 5) < 0)
+        continue;
+
+      FD_ZERO(&set);
+      FD_SET(global_iana_socket, &set);
+
+      timeout.tv_sec = 0;
+      timeout.tv_usec = 500000;
+
+      rv = select(global_iana_socket + 1, &set, NULL, NULL, &timeout);
+      if(rv == -1) /* Select error. */
+        continue;
+      else if(rv == 0) /* Timeout. */
+        continue;
+      else
+        soc = accept (global_iana_socket, (struct sockaddr *) (&address),
                     &lg_address);
       if (soc == -1)
         continue;
 
-      check_kb_status ();
+      /* Set the socket to blocking again. */
+      if (fcntl (global_iana_socket, F_SETFL, opts) < 0)
+        log_write ("fcntl: %s", strerror (errno));
+
       globals = g_malloc0 (sizeof (struct arglist));
       arg_add_value (globals, "global_socket", ARG_INT, GSIZE_TO_POINTER (soc));
 
@@ -850,7 +928,7 @@ main (int argc, char *argv[])
 
 #if GNUTLS_VERSION_NUMBER < 0x030300
   if (openvas_SSL_init () < 0)
-    g_message ("Could not initialize openvas SSL!");
+    log_write ("Could not initialize openvas SSL!");
 #endif
 
   // Daemon mode:

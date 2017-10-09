@@ -1,3 +1,26 @@
+2017-10-09  Juan Jose Nicola  <juan.nicola@greenbone.net>
+
+	Backport r29785 with adjustments due to code changes.
+
+	In case of redis error, the scanner detects it and send the SIGUSR2
+	signal to all the running scans.
+
+	* src/opevassd.c (stop_all_scans): New function.
+	(check_kb_status): Call stop_all_scans().
+	(main_loop): Set the socket nonblocking before and use select for
+	listen() before call accept() and then set it blocking again. It
+	permits to go through the loop to check the redis status and does not
+	stuck in the accept() call.
+
+	* src/attack.c: New variable global_stop_all_scans.
+	(all_scans_are_stopped): New function.
+	(launch_plugin,	attack_host): Call all_scans_are_stopped().
+	Revert r29507.
+	(attack_start): Call all_scans_are_stopped().
+	(handle_stop_all_scans_signal): New function.
+	(attack_network): Set SIGUSR2 signal handler. Call
+	all_scans_are_stopped().
+
 2017-10-06  Hani Benhabiles  <hani.benhabiles@greenbone.net>
 
 	Backport r29753.
@@ -28,8 +51,8 @@
 	Backport r29680 with adjustments due to code changes.
 
 	* src/openvassd.c (check_kb_status): New function. Check if Redis
-        Server is up and if the KB exists. If KB does not exist force a reload.
-        (main_loop): Call new function.
+	Server is up and if the KB exists. If KB does not exist force a reload.
+	(main_loop): Call new function.
 
 
 2017-09-12  Juan Jose Nicola  <juan.nicola@greenbone.net>
