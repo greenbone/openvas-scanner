@@ -469,8 +469,34 @@ check_reload ()
 }
 
 /**
- * @brief Check if Redis Server is up and if the KB exists.
- *        If KB does not exist force a reload.
+ * @brief Send SIGUSR2 kill signal to all running scans to stop them.
+ */
+static void
+stop_all_scans (void)
+{
+  char parentID[256];
+  char processID[256];
+  char pgroupID[256];
+  FILE *fp = popen("ps -C openvassd --format '%r %P %p'" , "r");
+
+  if (fp == NULL)
+    {
+      g_debug ("Error trying to stop the running scans.");
+      return;
+    }
+
+  fscanf(fp, "%s %s %s", pgroupID, parentID, processID);
+  while (fscanf(fp, "%s %s %s", pgroupID, parentID, processID) != EOF)
+    {
+      if (atoi(parentID) == (int)getpid())
+        kill (atoi(processID), SIGUSR2);
+    }
+  pclose(fp);
+}
+
+/**
+ * @brief Check if Redis Server is up and if the KB exists. If KB does not
+ * exist,force a reload and stop all the running scans.
  */
 void
 check_kb_status ()
@@ -498,7 +524,10 @@ check_kb_status ()
     exit (1);
   kb_access_aux = kb_find (prefs_get ("kb_location"), "nvticache");
   if (waitredis != 5 || !kb_access_aux)
-    reload_openvassd ();
+    {
+      stop_all_scans ();
+      reload_openvassd ();
+    }
   else
     kb_lnk_reset (kb_access_aux);
 }
@@ -524,6 +553,7 @@ main_loop ()
 
       check_termination ();
       check_reload ();
+      check_kb_status ();
       wait_for_children1 ();
       lg_address = sizeof (struct sockaddr_un);
       soc = accept (global_iana_socket, (struct sockaddr *) (&address),
@@ -531,7 +561,6 @@ main_loop ()
       if (soc == -1)
         continue;
 
-      check_kb_status ();
       globals = g_malloc0 (sizeof (struct scan_globals));
       globals->global_socket = soc;
 
