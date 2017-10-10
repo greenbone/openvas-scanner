@@ -1,3 +1,10 @@
+2017-10-10  Juan Jose Nicola  <juan.nicola@greenbone.net>
+
+	Backport r29808 with adjustments due to code changes.
+
+	* src/opevassd.c (stop_all_scans): Do not get the group process ID.
+	Set the char array size to 8.
+
 2017-10-09  Juan Jose Nicola  <juan.nicola@greenbone.net>
 
 	Backport r29785 with adjustments due to code changes.

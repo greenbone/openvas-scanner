@@ -482,10 +482,9 @@ check_reload ()
 static void
 stop_all_scans (void)
 {
-  char parentID[256];
-  char processID[256];
-  char pgroupID[256];
-  FILE *fp = popen("ps -C openvassd --format '%r %P %p'" , "r");
+  char parentID[8];
+  char processID[8];
+  FILE *fp = popen("ps -C openvassd --format '%P %p'" , "r");
 
   if (fp == NULL)
     {
@@ -493,13 +492,13 @@ stop_all_scans (void)
       return;
     }
 
-  if (fscanf (fp, "%s %s %s", pgroupID, parentID, processID) < 0)
+  if (fscanf (fp, "%s %s", parentID, processID) < 0)
     {
       log_write ("Error trying to stop the running scans.");
       return;
     }
   
-  while (fscanf (fp, "%s %s %s", pgroupID, parentID, processID) != EOF)
+  while (fscanf (fp, "%s %s", parentID, processID) != EOF)
     {
       if (atoi (parentID) == (int)getpid())
         kill (atoi (processID), SIGUSR2);
