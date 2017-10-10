@@ -1,5 +1,10 @@
 2017-10-10  Juan Jose Nicola  <juan.nicola@greenbone.net>
 
+	* src/opevassd.c (stop_all_scans): Do not get the group process ID.
+	Set the char array size to 8.
+
+2017-10-10  Juan Jose Nicola  <juan.nicola@greenbone.net>
+
 	* src/opevassd.c (stop_all_scans): Evaluate the return code from
 	the first fscanf () call.
 
