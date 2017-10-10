@@ -479,13 +479,18 @@ stop_all_scans (void)
   char pgroupID[256];
   FILE *fp = popen("ps -C openvassd --format '%r %P %p'" , "r");
 
-  if (fp == NULL)
+ if (fp == NULL)
     {
-      g_debug ("Error trying to stop the running scans.");
+      g_message ("Error trying to get the PIDs of running scans .");
       return;
     }
 
-  fscanf(fp, "%s %s %s", pgroupID, parentID, processID);
+  if (fscanf (fp, "%s %s %s", pgroupID, parentID, processID) < 0)
+    {
+      g_message ("Error trying to stop the running scans.");
+      return;
+    }
+
   while (fscanf(fp, "%s %s %s", pgroupID, parentID, processID) != EOF)
     {
       if (atoi(parentID) == (int)getpid())

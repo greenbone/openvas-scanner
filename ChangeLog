@@ -1,4 +1,11 @@
-2017-10-09  Juan Jose Nicola  <jnicola@armant.core.os.greenbone.net>
+2017-10-10  Juan Jose Nicola  <juan.nicola@greenbone.net>
+
+	* src/opevassd.c (stop_all_scans): Evaluate the return code from
+	the first fscanf () call.
+
+	* Changelog: Correct log entry email.
+
+2017-10-09  Juan Jose Nicola  <juan.nicola@greenbone.net>
 
 	* src/attack: Remove error type ERR_REDIS_CONN.
 	(launch_plugin, attack_host): Remove handling of redis error.
