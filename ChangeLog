@@ -1,3 +1,10 @@
+2017-10-11  Juan Jose Nicola  <juan.nicola@greenbone.net>
+
+	Backport r29818 with adjustments due to code changes.
+
+	* src/opevassd.c (stop_all_scans): Remove popen() and get the pids
+	reading the /proc directory.
+
 2017-10-10  Juan Jose Nicola  <juan.nicola@greenbone.net>
 
 	Backport r29808 with adjustments due to code changes.
