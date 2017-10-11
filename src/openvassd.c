@@ -469,33 +469,75 @@ check_reload ()
 }
 
 /**
- * @brief Send SIGUSR2 kill signal to all running scans to stop them.
+ * @brief Get the pid and ppid from /proc to find the running scan pids.
+ *        Send SIGUSR2 kill signal to all running scans to stop them.
  */
 static void
 stop_all_scans (void)
 {
-  char parentID[8];
-  char processID[8];
-  FILE *fp = popen("ps -C openvassd --format '%P %p'" , "r");
+  int i, ispid;
+  GDir *proc = NULL;
+  const gchar *piddir = NULL;
+  gchar *pidstatfn = NULL;
+  gchar **contents_split = NULL;
+  gchar *contents = NULL;
+  GError *error = NULL;
+  gchar *parentID = NULL;
+  gchar *processID = NULL;
 
- if (fp == NULL)
+  proc = g_dir_open ("/proc", 0, &error);
+  if (error != NULL)
+  {
+    g_message ("Unable to open directory: %s\n", error->message);
+    g_error_free (error);
+    return;
+  }
+  while ((piddir = g_dir_read_name (proc)) != NULL)
     {
-      g_message ("Error trying to get the PIDs of running scans .");
-      return;
+      ispid = 1;
+      for (i = 0; i < (int)strlen (piddir); i++)
+        if (!g_ascii_isdigit (piddir[i]))
+          {
+            ispid = 0;
+            break;
+          }
+      if (!ispid)
+        continue;
+
+      pidstatfn = g_strconcat ("/proc/", piddir, "/stat", NULL);
+      if (g_file_get_contents (pidstatfn, &contents, NULL, NULL))
+        {
+          contents_split = g_strsplit (contents," ", 6);
+          parentID = g_strdup (contents_split[3]);
+          processID = g_strdup (contents_split[4]);
+
+          g_free (pidstatfn);
+          pidstatfn = NULL;
+          g_free (contents);
+          contents  = NULL;
+          g_strfreev (contents_split);
+          contents_split  = NULL;
+
+          if (atoi(parentID) == (int)getpid())
+            {
+              g_message ("Stopping running scan with PID: %s", processID);
+              kill (atoi(processID), SIGUSR2);
+            }
+          g_free (parentID);
+          parentID = NULL;
+          g_free (processID);
+          processID = NULL;
+        }
+      else
+        {
+          g_free (pidstatfn);
+          pidstatfn = NULL;
+          continue;
+        }
     }
 
-  if (fscanf (fp, "%s %s", parentID, processID) < 0)
-    {
-      g_message ("Error trying to stop the running scans.");
-      return;
-    }
-
-  while (fscanf(fp, "%s %s", parentID, processID) != EOF)
-    {
-      if (atoi(parentID) == (int)getpid())
-        kill (atoi(processID), SIGUSR2);
-    }
-  pclose(fp);
+  if (proc)
+    g_dir_close (proc);
 }
 
 /**
