@@ -192,7 +192,6 @@ nasl_thread (struct nasl_thread_args *nargs)
         }
     }
 
-  pluginlaunch_child_cleanup ();
   kb = args->key;
   kb_lnk_reset (kb);
   globals->global_socket = nargs->soc;

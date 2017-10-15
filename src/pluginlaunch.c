@@ -72,12 +72,8 @@ struct running
   int timeout;               /**< Timeout after which to kill process
                               * (NVT preference). If -1, never kill. it*/
   int upstream_soc;
-  int internal_soc;          /**< 'Input' socket for this process */
   int alive;                 /**< 0 if dead. */
 };
-
-static void read_running_processes ();
-static void update_running_processes ();
 
 static struct running processes[MAX_PROCESSES];
 static int num_running_processes;
@@ -85,65 +81,6 @@ static int max_running_processes;
 static int old_max_running_processes;
 static GSList *non_simult_ports = NULL;
 const char *hostname = NULL;
-
-
-/**
- *
- * @param p  Process index in processes array (function refers to processes[p]).
- *
- * @return -1 if plugin died
- */
-static int
-process_internal_msg (int p)
-{
-  int e = 0, bufsz = 0, type = 0;
-  char *buffer = NULL;
-
-  e = internal_recv (processes[p].internal_soc, &buffer, &bufsz, &type);
-  if (e < 0)
-    {
-      g_debug ("Process %d (OID: %s) seems to have died too early",
-                 processes[p].pid, processes[p].plugin->oid);
-      processes[p].alive = 0;
-      return -1;
-    }
-
-  if (type & INTERNAL_COMM_MSG_TYPE_DATA)
-    {
-      e = internal_send (processes[p].upstream_soc, buffer, type);
-    }
-  else if (type & INTERNAL_COMM_MSG_TYPE_CTRL)
-    {
-      if (type & INTERNAL_COMM_CTRL_FINISHED)
-        {
-          kill (processes[p].pid, SIGTERM);
-          processes[p].alive = 0;
-        }
-    }
-  else
-    g_debug ("Received unknown message type %d", type);
-
-  g_free (buffer);
-  return e;
-}
-
-
-void
-wait_for_children ()
-{
-  int i;
-
-  for (i = 0; i < MAX_PROCESSES; i++)
-    if (processes[i].pid != 0)
-      {
-        int ret;
-        do
-          {
-            ret = waitpid (-1, NULL, WNOHANG);
-          }
-        while (ret < 0 && errno == EINTR);
-      }
-}
 
 /**
  *
@@ -160,10 +97,14 @@ update_running_processes (void)
   if (num_running_processes == 0)
     return;
 
+  usleep (250000);
   for (i = 0; i < MAX_PROCESSES; i++)
     {
       if (processes[i].pid > 0)
         {
+          if (!process_alive (processes[i].pid))
+            processes[i].alive = 0;
+
           // If process dead or timed out
           if (processes[i].alive == 0
               || (processes[i].timeout > 0
@@ -222,7 +163,6 @@ update_running_processes (void)
                 }
               num_running_processes--;
               processes[i].plugin->running_state = PLUGIN_STATUS_DONE;
-              close (processes[i].internal_soc);
               bzero (&(processes[i]), sizeof (processes[i]));
             }
         }
@@ -297,9 +237,7 @@ wait_if_simult_ports (int pid, const char *oid, const char *next_oid)
 #endif
       while (process_alive (pid))
         {
-          read_running_processes ();
           update_running_processes ();
-          wait_for_children ();
         }
 #ifdef DEBUG_CONFLICT
        g_debug ("End of the wait - was that long ?\n");
@@ -320,7 +258,6 @@ next_free_process (struct scheduler_plugin *upcoming)
 {
   int r;
 
-  wait_for_children ();
   for (r = 0; r < MAX_PROCESSES; r++)
     {
       if (processes[r].pid > 0)
@@ -332,68 +269,6 @@ next_free_process (struct scheduler_plugin *upcoming)
       return r;
   return -1;
 }
-
-/**
- *
- */
-static void
-read_running_processes (void)
-{
-  int i;
-  int flag = 0;
-  struct timeval tv;
-  fd_set rd;
-  int max = 0;
-  int e;
-
-  if (num_running_processes == 0)
-    return;
-
-  FD_ZERO (&rd);
-  for (i = 0; i < MAX_PROCESSES; i++)
-    {
-      if (processes[i].pid > 0)
-        {
-          FD_SET (processes[i].internal_soc, &rd);
-          if (processes[i].internal_soc > max)
-            max = processes[i].internal_soc;
-        }
-    }
-
-  do
-    {
-      tv.tv_sec = 0;
-      tv.tv_usec = 500000;
-      e = select (max + 1, &rd, NULL, NULL, &tv);
-    }
-  while (e < 0 && errno == EINTR);
-
-  if (e == 0)
-    return;
-
-  for (i = 0; i < MAX_PROCESSES; i++)
-    {
-      if (processes[i].pid > 0)
-        {
-          flag++;
-          if (FD_ISSET (processes[i].internal_soc, &rd) != 0)
-            {
-              int result = process_internal_msg (i);
-              if (result)
-                {
-#ifdef DEBUG
-                  g_debug ("process_internal_msg for %s returned %d",
-                             processes[i].plugin->oid, result);
-#endif
-                }
-            }
-        }
-    }
-
-  if (flag == 0 && num_running_processes != 0)
-    num_running_processes = 0;
-}
-
 
 void
 pluginlaunch_init (const char *host)
@@ -441,8 +316,6 @@ pluginlaunch_stop (int soft_stop)
 
   if (soft_stop)
     {
-      read_running_processes ();
-
       for (i = 0; i < MAX_PROCESSES; i++)
         {
           if (processes[i].pid > 0)
@@ -458,7 +331,6 @@ pluginlaunch_stop (int soft_stop)
           kill (processes[i].pid, SIGKILL);
           num_running_processes--;
           processes[i].plugin->running_state = PLUGIN_STATUS_DONE;
-          close (processes[i].internal_soc);
           bzero (&(processes[i]), sizeof (struct running));
         }
     }
@@ -474,14 +346,10 @@ plugin_launch (struct scan_globals *globals, struct scheduler_plugin *plugin,
                struct host_info *hostinfo, kb_t kb, char *name)
 {
   int p;
-  int dsoc[2];
 
-  /* Wait for a free slot while reading the input from the plugins  */
+  /* Wait for a free slot */
   while (num_running_processes >= max_running_processes)
-    {
-      read_running_processes ();
-      update_running_processes ();
-    }
+    update_running_processes ();
 
   p = next_free_process (plugin);
   processes[p].plugin = plugin;
@@ -499,20 +367,13 @@ plugin_launch (struct scan_globals *globals, struct scheduler_plugin *plugin,
         processes[p].timeout = atoi (prefs_get ("plugins_timeout") ?: "-1");
     }
 
-  if (socketpair (AF_UNIX, SOCK_STREAM, 0, dsoc) < 0)
-    {
-      perror ("pluginlaunch.c:plugin_launch:socketpair(1) ");
-    }
   gettimeofday (&(processes[p].start), NULL);
-
   processes[p].upstream_soc = globals->global_socket;
-  processes[p].internal_soc = dsoc[0];
-
   processes[p].pid =
-    nasl_plugin_launch (globals, hostinfo, kb, name, plugin->oid, dsoc[1]);
+    nasl_plugin_launch (globals, hostinfo, kb, name, plugin->oid,
+                        globals->global_socket);
 
   processes[p].alive = 1;
-  close (dsoc[1]);
   if (processes[p].pid > 0)
     num_running_processes++;
   else
@@ -528,26 +389,8 @@ plugin_launch (struct scan_globals *globals, struct scheduler_plugin *plugin,
 void
 pluginlaunch_wait (void)
 {
-  do
-    {
-      wait_for_children ();
-      read_running_processes ();
-      update_running_processes ();
-    }
-  while (num_running_processes != 0);
-}
-
-/**
- * @brief Cleanup file descriptors used by the processes array. To be called by
- *        the child process running the plugin.
- */
-void
-pluginlaunch_child_cleanup (void)
-{
-  int i;
-  for (i = 0; i < MAX_PROCESSES; i++)
-    if (processes[i].internal_soc)
-      close (processes[i].internal_soc);
+  while (num_running_processes != 0)
+    update_running_processes ();
 }
 
 /**
@@ -558,11 +401,7 @@ void
 pluginlaunch_wait_for_free_process (void)
 {
   int num = num_running_processes;
-  do
-    {
-      wait_for_children ();
-      read_running_processes ();
-      update_running_processes ();
-    }
-  while (num_running_processes == num);
+
+  while (num_running_processes == num)
+    update_running_processes ();
 }

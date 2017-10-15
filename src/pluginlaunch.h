@@ -40,7 +40,6 @@ void pluginlaunch_stop (int);
 int plugin_launch (struct scan_globals *, struct scheduler_plugin *,
                    struct host_info *, kb_t, char *);
 
-void pluginlaunch_child_cleanup (void);
 void pluginlaunch_disable_parallel_checks (void);
 void pluginlaunch_enable_parallel_checks (void);
 

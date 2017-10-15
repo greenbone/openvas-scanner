@@ -1,3 +1,21 @@
+2017-10-13  Hani Benhabiles  <hani.benhabiles@greenbone.net>
+
+	* src/pluginlaunch.c (plugin_launch): Adjust to set child processes to
+	send scan results directly to main scan process instead of passing them
+	through parent host process.
+	(struct running): Remove internal_soc element.
+	(process_internal_msg, wait_for_children, pluginlaunch_child_cleanup)
+	(read_running_processes): Remove functions.
+	(update_running_processes): Adjust to check if child processes are
+	alive.
+	(wait_if_simult_ports, next_free_process, pluginlaunch_init)
+	(pluginlaunch_wait, pluginlaunch_wait_for_free_process): Don't call
+	removed functions.
+
+	* src/nasl_plugins.c (nasl_thread): Don't call removed function.
+
+	* src/pluginlaunch.h: Remove deleted function header.
+
 2017-10-11  Juan Jose Nicola  <juan.nicola@greenbone.net>
 
 	* src/opevassd.c (stop_all_scans): Remove popen() and get the pids
