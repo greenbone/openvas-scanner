@@ -60,7 +60,6 @@
 #include "network.h"            /* for socket_close() */
 
 #include "plugutils.h"
-#include "internal_com.h" /* for INTERNAL_COMM_MSG_TYPE_CTRL */
 #include "support.h"
 
 #define TIMEOUT 20
@@ -2186,39 +2185,22 @@ os_recv (int soc, void *buf, int len, int opt)
  * the messages themselves.
  */
 int
-internal_send (int soc, char *data, int msg_type)
+internal_send (int soc, char *data)
 {
   int len;
   int e;
-  int ack;
 
   if (data == NULL)
     data = "";
 
-  e = os_send (soc, &msg_type, sizeof (msg_type), 0);
+  len = strlen (data);
+
+  e = os_send (soc, &len, sizeof (len), 0);
   if (e < 0)
     return -1;
-
-  if ((msg_type & INTERNAL_COMM_MSG_TYPE_CTRL) == 0)
-    {
-      len = strlen (data);
-
-      e = os_send (soc, &len, sizeof (len), 0);
-      if (e < 0)
-        return -1;
-      e = os_send (soc, data, len, 0);
-      if (e < 0)
-        return -1;
-    }
-
-  e = os_recv (soc, &ack, sizeof (ack), 0);
+  e = os_send (soc, data, len, 0);
   if (e < 0)
-    {
-      g_message ("internal_send->os_recv(%d): %s", soc,
-                 strerror (errno));
-      return -1;
-    }
-
+    return -1;
   return 0;
 }
 
@@ -2235,20 +2217,17 @@ internal_send (int soc, char *data, int msg_type)
  *                          set to NULL, and left untouched on failure or
  *                          zero-length messages.
  * @param[out]  data_sz     Size of the received message.
- * @param[out]  msg_type    Type of the message which was received.
  *
  * @retval Length of the received message on success (can be zero).
  * @retval Negative value on error.
  */
 int
-internal_recv (int soc, char **data, int *data_sz, int *msg_type)
+internal_recv (int soc, char **data, int *data_sz)
 {
   int len = 0;
   int e;
   char *buf = NULL;
   int sz = 0;
-  int type;
-  int ack;
 
   if (*data != NULL)
     {
@@ -2256,37 +2235,23 @@ internal_recv (int soc, char **data, int *data_sz, int *msg_type)
       return -1;
     }
 
-  e = os_recv (soc, &type, sizeof (type), 0);
-  if (e < 0)
+  e = os_recv (soc, &len, sizeof (len), 0);
+  if (e < 0 || len < 0)
     goto error;
 
-  if ((type & INTERNAL_COMM_MSG_TYPE_CTRL) == 0)
+  /* length == 0 is perfectly valid though */
+  if (len > 0)
     {
-      e = os_recv (soc, &len, sizeof (len), 0);
-      if (e < 0 || len < 0)
+      sz = len + 1;
+      buf = g_malloc0 (sz);
+
+      e = os_recv (soc, buf, len, 0);
+      if (e < 0)
         goto error;
-
-      /* length == 0 is perfectly valid though */
-      if (len > 0)
-        {
-          sz = len + 1;
-          buf = g_malloc0 (sz);
-
-          e = os_recv (soc, buf, len, 0);
-          if (e < 0)
-            goto error;
-        }
     }
 
   *data     = buf;
   *data_sz  = sz;
-  *msg_type = type;
-
-  ack = INTERNAL_COMM_MSG_TYPE_CTRL | INTERNAL_COMM_CTRL_ACK;
-  e = os_send (soc, &ack, sizeof (ack), 0);
-  if (e < 0)
-    goto error;
-
   return len;
 
 error:

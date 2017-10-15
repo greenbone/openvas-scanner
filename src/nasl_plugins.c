@@ -47,7 +47,6 @@
 
 #include "../misc/network.h"    /* for internal_send */
 #include "../misc/plugutils.h"     /* for plug_set_launch */
-#include "../misc/internal_com.h"  /* for INTERNAL_COMM_CTRL_FINISHED */
 
 #include "../nasl/nasl.h"
 
@@ -212,6 +211,4 @@ nasl_thread (struct nasl_thread_args *nargs)
     }
 
   exec_nasl_script (args, name, nargs->oid, nasl_mode);
-  internal_send (nargs->soc, NULL,
-                 INTERNAL_COMM_MSG_TYPE_CTRL | INTERNAL_COMM_CTRL_FINISHED);
 }

@@ -1,5 +1,25 @@
 2017-10-13  Hani Benhabiles  <hani.benhabiles@greenbone.net>
 
+	* COPYING: Remove internal_com.h entry.
+
+	* misc/internal_com.h: Remove file.
+
+	* misc/network.c (internal_send, internal_recv): Remove message type
+	handling.
+
+	* misc/network.h: Adjust function headers.
+
+	* misc/plugutils.c (plug_get_host_fqdn, proto_post_wrapped)
+	(plug_get_key): Adjust function calls.
+	(plug_fork_child): Send results through global_socket directly.
+
+	* nasl/nasl_builtin_find_service.c (fwd_data), src/attack.c
+	(comm_send_status, attack_host), src/hosts.c (forward),
+	src/nasl_plugins.c (nasl_thread), src/ntp.c (__ntp_timestamp_scan_host),
+	src/pluginlaunch.c (update_running_processes): Adjust function calls.
+
+2017-10-13  Hani Benhabiles  <hani.benhabiles@greenbone.net>
+
 	* src/pluginlaunch.c (plugin_launch): Adjust to set child processes to
 	send scan results directly to main scan process instead of passing them
 	through parent host process.

@@ -162,7 +162,6 @@ misc/bpf_share.c: GPL-2
 misc/bpf_share.h: LGPL-2+
 misc/ftp_funcs.c: LGPL-2+
 misc/ftp_funcs.h: LGPL-2+
-misc/internal_com.h: GPL-2+
 misc/network.c: LGPL-2+
 misc/network.h: LGPL-2+
 misc/nvt_categories.h: LGPL-2+

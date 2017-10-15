@@ -33,7 +33,6 @@
 #include <glib.h>     /* for g_free() */
 
 #include "../misc/network.h"      /* for internal_recv */
-#include "../misc/internal_com.h" /* for INTERNAL_COMM_MSG_TYPE_CTRL */
 
 #include "utils.h" /* for data_left() */
 #include "hosts.h" /* for hosts_new() */
@@ -72,24 +71,11 @@ forward (int in, int out)
   char *buf = NULL;
   int bufsz = 0;
   int len;
-  int type;
 
-  if (internal_recv (in, &buf, &bufsz, &type) < 0)
+  if (internal_recv (in, &buf, &bufsz) < 0)
     return -1;
 
-  if (type & INTERNAL_COMM_MSG_TYPE_CTRL)
-    {
-      errno = type & ~INTERNAL_COMM_MSG_TYPE_CTRL;
-      return -1;
-    }
-  else if ((type & INTERNAL_COMM_MSG_TYPE_DATA) == 0)
-    {
-      g_debug ("hosts.c:forward(): bad msg type (%d)\n", type);
-      return -1;
-    }
-
   len = strlen (buf);
-
   if (out > 0)
     {
       int n;

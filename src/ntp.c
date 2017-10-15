@@ -34,7 +34,6 @@
 #include <gvm/base/prefs.h>         /* for prefs_set() */
 
 #include "../misc/network.h"    /* for recv_line */
-#include "../misc/internal_com.h" /* for INTERNAL_COMM_MSG_TYPE_DATA */
 
 #include "ntp.h"
 #include "otp.h"
@@ -416,7 +415,7 @@ __ntp_timestamp_scan_host (int soc, char *msg, char *host)
             "SERVER <|> TIME <|> %s <|> %s <|> %s <|> SERVER\n", msg, host,
             timestr);
 
-  internal_send (soc, buf, INTERNAL_COMM_MSG_TYPE_DATA);
+  internal_send (soc, buf);
 
   return 0;
 }

@@ -46,7 +46,6 @@
 #include "../misc/network.h"        /* for auth_printf */
 #include "../misc/nvt_categories.h" /* for ACT_INIT */
 #include "../misc/pcap_openvas.h"   /* for v6_is_local_ip */
-#include "../misc/internal_com.h"
 #include "../misc/scanneraux.h"
 
 #include "attack.h"
@@ -126,7 +125,7 @@ comm_send_status (int soc, char *hostname, int curr, int max)
             "SERVER <|> STATUS <|> %s <|> %d/%d <|> SERVER\n",
             hostname, curr, max);
 
-  internal_send (soc, buffer, INTERNAL_COMM_MSG_TYPE_DATA);
+  internal_send (soc, buffer);
 
   return 0;
 }
@@ -487,8 +486,7 @@ attack_host (struct scan_globals *globals, struct host_info *hostinfos,
                      calculate the scan progress. */
                   comm_send_status(global_socket, hostname, 0, -1);
 #endif
-                  internal_send (global_socket, buffer,
-                                 INTERNAL_COMM_MSG_TYPE_DATA);
+                  internal_send (global_socket, buffer);
                   goto host_died;
                 }
               else if (e == ERR_CANT_FORK)

@@ -115,8 +115,8 @@ int stream_set (int, fd_set *);
 int os_send (int, void *, int, int);
 int os_recv (int, void *, int, int);
 
-int internal_send (int, char *, int);
-int internal_recv (int, char **, int *, int *);
+int internal_send (int, char *);
+int internal_recv (int, char **, int *);
 
 int fd_is_stream (int);
 

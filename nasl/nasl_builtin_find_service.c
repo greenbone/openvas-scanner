@@ -2496,13 +2496,12 @@ fwd_data (int in, int out)
   int e;
   char *buf = NULL;
   int bufsz = 0;
-  int type;
 
-  e = internal_recv (in, &buf, &bufsz, &type);
+  e = internal_recv (in, &buf, &bufsz);
   if (e <= 0)
     return -1;
 
-  internal_send (out, buf, type);
+  internal_send (out, buf);
   g_free (buf);
   return 0;
 }

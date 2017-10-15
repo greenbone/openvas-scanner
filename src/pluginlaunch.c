@@ -39,7 +39,6 @@
 
 #include "../misc/network.h"    /* for internal_send */
 #include "../misc/nvt_categories.h"  /* for ACT_SCANNER */
-#include "../misc/internal_com.h"  /* for INTERNAL_COMM_MSG_TYPE_DATA */
 
 #include "pluginload.h"
 #include "utils.h"
@@ -126,8 +125,7 @@ update_running_processes (void)
                           " <|> NVT timed out after %d seconds."
                           " <|> %s <|> SERVER\n",
                           hostname, processes[i].timeout, oid ?: "0");
-                  internal_send (processes[i].upstream_soc,
-                                 msg, INTERNAL_COMM_MSG_TYPE_DATA);
+                  internal_send (processes[i].upstream_soc, msg);
                   g_free (msg);
 
                   terminate_process (processes[i].pid);
