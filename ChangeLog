@@ -1,3 +1,8 @@
+2017-10-15  Hani Benhabiles  <hani.benhabiles@greenbone.net>
+
+	* nasl/nasl_smb.c (nasl_win_cmd_exec): Escape the password to not be
+	interpreted by the shell.
+
 2017-10-13  Hani Benhabiles  <hani.benhabiles@greenbone.net>
 
 	* COPYING: Remove internal_com.h entry.

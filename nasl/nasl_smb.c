@@ -382,7 +382,7 @@ nasl_win_cmd_exec (lex_ctxt * lexic)
 {
   struct script_infos *script_infos = lexic->script_infos;
   struct in6_addr *host = plug_get_host_ip (script_infos);
-  char *ip, *command, *unicode;
+  char *ip, *command, *unicode, *quoted_pass;
   tree_cell *retc;
   FILE *fp;
   GString *string = NULL;
@@ -406,8 +406,10 @@ nasl_win_cmd_exec (lex_ctxt * lexic)
       return NULL;
     }
 
-  command = g_strdup_printf ("wmiexec.py %s:%s@%s '%s'", username, password, ip,
-                             cmd);
+  quoted_pass = g_shell_quote (password);
+  command = g_strdup_printf ("wmiexec.py %s:%s@%s '%s'", username, quoted_pass,
+                             ip, cmd);
+  g_free (quoted_pass);
   fp = popen (command, "r");
   g_free (command);
   g_free (ip);
