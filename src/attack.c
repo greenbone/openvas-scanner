@@ -596,7 +596,11 @@ attack_start (struct attack_start_args *args)
 
   hostname = gvm_host_reverse_lookup (args->host);
   if (!hostname)
-    hostname = gvm_host_value_str (args->host);
+    {
+      error_message_to_client
+       (thread_socket, "Couldn't reverse-lookup hostname.", hostname, NULL);
+      hostname = gvm_host_value_str (args->host);
+    }
   if (gvm_host_get_addr6 (args->host, &hostip) == -1)
     {
       g_warning ("Couldn't resolve target %s", hostname);

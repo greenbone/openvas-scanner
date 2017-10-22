@@ -1,5 +1,10 @@
 2017-10-22  Hani Benhabiles  <hani.benhabiles@greenbone.net>
 
+	* src/attack.c (attack_start): Send error message to client on
+	reverse-lookup failure.
+
+2017-10-22  Hani Benhabiles  <hani.benhabiles@greenbone.net>
+
 	* src/nasl_plugins.c (check_nvti): New function.
 	(nasl_plugin_add): Use new function.
 
