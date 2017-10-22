@@ -61,6 +61,47 @@
  */
 #define G_LOG_DOMAIN "sd   main"
 
+/**
+ * @brief Check that the nvt's data is valid.
+ *
+ * @param filename  Filename of the NVT.
+ * @param nvt       NVT to check.
+ *
+ * @return 0 on success, -1 on error.
+ */
+static int
+check_nvti (const char *filename, nvti_t *nvt)
+{
+  assert (filename);
+  assert (nvt);
+
+  if (!nvti_oid (nvt))
+    {
+      g_warning ("%s: Missing OID", filename);
+      return -1;
+    }
+  else if (!nvti_name (nvt))
+    {
+      g_warning ("%s: Missing name", filename);
+      return -1;
+    }
+  else if (!nvti_version (nvt))
+    {
+      g_warning ("%s: Missing version", filename);
+      return -1;
+    }
+  else if (!nvti_family (nvt))
+    {
+      g_warning ("%s: Missing family", filename);
+      return -1;
+    }
+  else if (!nvti_copyright (nvt))
+    {
+      g_warning ("%s: Missing copyright", filename);
+      return -1;
+    }
+  return 0;
+}
 
 /**
  * @brief Add *one* .nasl plugin to the plugin list.
@@ -121,12 +162,8 @@ nasl_plugin_add (char *folder, char *filename)
             g_debug ("The timestamp for %s is from the future and could not be fixed.", fullname);
         }
 
-      if (nvti_oid (new_nvti))
+      if (!check_nvti (filename, new_nvti))
         nvticache_add (new_nvti, filename);
-      else
-        // Most likely an exit was hit before the description could be parsed.
-        g_warning ("\r%s could not be added to the cache and is likely to stay"
-                   " invisible to the client.", filename);
       nvti_free (new_nvti);
     }
   return 0;
