@@ -181,6 +181,7 @@ rm_udp_data (struct script_infos *script_infos, int soc)
 
 /*-------------------------------------------------------------------*/
 
+int lowest_socket = 0;
 
 static tree_cell *
 nasl_open_privileged_socket (lex_ctxt * lexic, int proto)
@@ -353,6 +354,8 @@ tryagain:
       break;
     }
 
+  if (lowest_socket == 0)
+    lowest_socket = sock;
   if (proto == IPPROTO_TCP)
     sock = openvas_register_connection (sock, NULL, NULL, OPENVAS_ENCAPS_IP);
 
@@ -482,8 +485,6 @@ nasl_open_sock_tcp (lex_ctxt * lexic)
 {
   return nasl_open_sock_tcp_bufsz (lexic, -1);
 }
-
-int lowest_socket = 0;
 
 /*
  * Opening a UDP socket is a little more tricky, since

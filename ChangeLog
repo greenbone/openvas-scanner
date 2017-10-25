@@ -1,3 +1,8 @@
+2017-10-25  Hani Benhabiles  <hani.benhabiles@greenbone.net>
+
+	* nasl/nasl_socket.c (nasl_open_privileged_socket): Set lowest_socket
+	variable, to fix close() error message.
+
 2017-10-22  Hani Benhabiles  <hani.benhabiles@greenbone.net>
 
 	* src/attack.c (attack_start): Send error message to client on
