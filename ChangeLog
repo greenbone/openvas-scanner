@@ -1,3 +1,10 @@
+2017-10-25  Hani Benhabiles  <hani.benhabiles@greenbone.net>
+
+	Backport r29884.
+
+	* src/attack.c (attack_start): Send error message to client on
+	reverse-lookup failure.
+
 2017-10-11  Juan Jose Nicola  <juan.nicola@greenbone.net>
 
 	Backport r29818 with adjustments due to code changes.
