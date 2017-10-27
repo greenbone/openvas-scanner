@@ -54,6 +54,7 @@
 struct plugins_scheduler
 {
   GSList *list[ACT_LAST + 1]; /**< Per-category linked-lists of the plugins. */
+  int stopped;
 };
 
 struct scheduler_plugin *
@@ -457,6 +458,33 @@ plugins_scheduler_next (plugins_scheduler_t h)
   if (ret)
     return ret;
   return NULL;
+}
+
+/*
+ * @brief Set all non-ACT_END plugins to stopped.
+ *
+ * @param   sched   Plugins scheduler.
+ */
+void
+plugins_scheduler_stop (plugins_scheduler_t sched)
+{
+  int category;
+
+  if (sched->stopped)
+    return;
+  for (category = ACT_FIRST; category < ACT_END; category++)
+    {
+      GSList *element = sched->list[category];
+
+      while (element)
+      {
+        struct scheduler_plugin *plugin = element->data;
+
+        plugin->running_state = PLUGIN_STATUS_DONE;
+        element = element->next;
+      }
+    }
+  sched->stopped = 1;
 }
 
 void

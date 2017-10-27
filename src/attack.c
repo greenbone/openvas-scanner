@@ -457,6 +457,8 @@ attack_host (struct scan_globals *globals, struct host_info *hostinfos,
           return;
         }
 
+      if (scan_is_stopped ())
+        plugins_scheduler_stop (sched);
       plugin = plugins_scheduler_next (sched);
       if (plugin != NULL && plugin != PLUG_RUNNING)
         {

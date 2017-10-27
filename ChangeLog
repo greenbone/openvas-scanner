@@ -1,5 +1,15 @@
 2017-10-27  Hani Benhabiles  <hani.benhabiles@greenbone.net>
 
+	* src/pluginscheduler.c (plugins_scheduler_stop): New function.
+	(struct plugins_scheduler): Add stopped element.
+
+	* src/pluginscheduler.h: Add function header.
+
+	* src/attack.c (attack_host): Call plugins_scheduler_stop() if scan is
+	stopped.
+
+2017-10-27  Hani Benhabiles  <hani.benhabiles@greenbone.net>
+
 	* misc/plugutils.c (plug_fork_child): Remove debug messages.
 
 2017-10-25  Hani Benhabiles  <hani.benhabiles@greenbone.net>

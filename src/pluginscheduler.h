@@ -63,6 +63,9 @@ int
 plugins_scheduler_count_active (plugins_scheduler_t);
 
 void
+plugins_scheduler_stop (plugins_scheduler_t);
+
+void
 plugins_scheduler_free (plugins_scheduler_t);
 
 #endif
