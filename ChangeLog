@@ -1,3 +1,7 @@
+2017-10-27  Hani Benhabiles  <hani.benhabiles@greenbone.net>
+
+	* misc/plugutils.c (plug_fork_child): Remove debug messages.
+
 2017-10-25  Hani Benhabiles  <hani.benhabiles@greenbone.net>
 
 	* nasl/nasl_socket.c (nasl_open_privileged_socket): Set lowest_socket

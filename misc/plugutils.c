@@ -800,9 +800,7 @@ plug_fork_child (kb_t kb)
     {
       _plug_get_key_son = pid;
       sig_term (plug_get_key_sighand_term);
-      g_warning ("Started waiting for %d", pid);
       waitpid (pid, NULL, 0);
-      g_warning ("Finished waiting for %d", pid);
       _plug_get_key_son = 0;
       sig_term (_exit);
     }
