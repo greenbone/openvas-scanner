@@ -1,3 +1,7 @@
+2017-10-31  Hani Benhabiles  <hani.benhabiles@greenbone.net>
+
+	* src/attack.c (attack_start): Revert r29884.
+
 2017-10-27  Hani Benhabiles  <hani.benhabiles@greenbone.net>
 
 	* src/pluginscheduler.c (plugins_scheduler_stop): New function.
