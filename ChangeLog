@@ -1,3 +1,8 @@
+2017-11-15  Juan Jose Nicola  <juan.nicola@greenbone.net>
+
+	* nasl/nasl_misc_funcs.c (nasl_gzip): Look for a new local variable
+	into the lexic to select the header format, zlib or gzip.
+
 2017-10-31  Hani Benhabiles  <hani.benhabiles@greenbone.net>
 
 	* src/attack.c (attack_start): Revert r29884.

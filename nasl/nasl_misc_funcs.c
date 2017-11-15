@@ -845,7 +845,7 @@ tree_cell *
 nasl_gzip (lex_ctxt * lexic)
 {
   tree_cell *retc;
-  void *data, *compressed;
+  void *data, *compressed, *headerformat;
   unsigned long datalen, complen;
 
   data = get_str_local_var_by_name (lexic, "data");
@@ -855,9 +855,21 @@ nasl_gzip (lex_ctxt * lexic)
   if (datalen <= 0)
     return NULL;
 
-  compressed = gvm_compress (data, datalen, &complen);
-  if (compressed == NULL)
-    return NULL;
+  headerformat = get_str_local_var_by_name (lexic, "headformat");
+  if (!g_strcmp0 (headerformat, "gzip"))
+    {
+      compressed = gvm_compress_gzipheader (data, datalen, &complen);
+      if (compressed == NULL)
+        return NULL;
+    }
+  else
+    {
+      compressed = gvm_compress (data, datalen, &complen);
+      if (compressed == NULL)
+        return NULL;
+    }
+  
+   
 
   retc = alloc_tree_cell ();
   retc->type = CONST_DATA;
