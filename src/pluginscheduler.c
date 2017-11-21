@@ -122,24 +122,27 @@ plugin_add (plugins_scheduler_t sched, GHashTable *oids_table, int autoload,
 
   /* Check if the plugin is deprecated */
   tags_str = nvticache_get_tags (oid);
-  tags = g_strsplit (tags_str, "| ", 0);
-  g_free (tags_str);
-  if (tags)
+  if (tags_str)
     {
-      int j;
-      for (j = 0; tags[j]; j++)
-        if (strstr (tags[j],"deprecated=1"))
-          {
-            char *name = nvticache_get_filename (oid);
-            if (prefs_get_bool ("log_whole_attack"))
-              g_message ("Plugin %s is deprecated. "
-                         "It will neither loaded nor launched.", name);
-            g_strfreev (tags);
-            g_free (name);
-            return;
-          }
+      tags = g_strsplit (tags_str, "| ", 0);
+      g_free (tags_str);
+      if (tags)
+        {
+          int j;
+          for (j = 0; tags[j]; j++)
+            if (strstr (tags[j],"deprecated=1"))
+              {
+                char *name = nvticache_get_filename (oid);
+                if (prefs_get_bool ("log_whole_attack"))
+                  g_message ("Plugin %s is deprecated. "
+                             "It will neither loaded nor launched.", name);
+                g_strfreev (tags);
+                g_free (name);
+                return;
+              }
+        }
+      g_strfreev (tags);
     }
-  g_strfreev (tags);
 
   category = nvticache_get_category (oid);
   plugin = g_malloc0 (sizeof (struct scheduler_plugin));
@@ -173,13 +176,13 @@ plugin_add (plugins_scheduler_t sched, GHashTable *oids_table, int autoload,
                   /* In case of autoload, no need to wait for plugin_add() to
                    * fill all enabled plugins to start filling dependencies
                    * lists. */
-		  if (dep_plugin)
+                  if (dep_plugin)
                     plugin->deps = g_slist_prepend (plugin->deps, dep_plugin);
-		  else
+                  else
                     g_warning ("There was a problem loading %s (%s), a "
                                "dependency of %s. This can happen e.g. when "
-			       "depending on a deprecated NVT.",
-			       array[i], dep_oid, oid);
+                               "depending on a deprecated NVT.",
+                               array[i], dep_oid, oid);
                   g_free (dep_oid);
                 }
               else

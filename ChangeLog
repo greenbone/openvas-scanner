@@ -1,3 +1,8 @@
+2017-11-21  Juan Jose Nicola  <juan.nicola@greenbone.net>
+
+	* src/pluginscheduler.c (plugin_add): Check for NULL before calling
+	g_strsplit during deprecated plugin check. Replace tabs with spaces.
+
 2017-11-15  Juan Jose Nicola  <juan.nicola@greenbone.net>
 
 	* nasl/nasl_misc_funcs.c (nasl_gzip): Look for a new local variable
