@@ -1,3 +1,9 @@
+2017-11-23  Hani Benhabiles  <hani.benhabiles@greenbone.net>
+
+	* nasl/nasl_ssh.c (exec_ssh_cmd): Attach session to a pseudo-terminal
+	before executing the command. This ensures that long-running commands
+	are properly terminated by the host on session disconnect.
+
 2017-11-21  Juan Jose Nicola  <juan.nicola@greenbone.net>
 
 	* src/pluginscheduler.c (plugin_add): Check for NULL before calling

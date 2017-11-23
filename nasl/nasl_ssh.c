@@ -1230,6 +1230,9 @@ exec_ssh_cmd (ssh_session session, char *cmd, int verbose, int compat_mode,
       return SSH_ERROR;
     }
 
+  if (ssh_channel_request_pty (channel) && verbose)
+    g_message ("ssh_channel_request_pty failed: %s", ssh_get_error (session));
+
   if (ssh_channel_request_exec (channel, cmd))
     {
       /* FIXME: Handle SSH_AGAIN.  */
