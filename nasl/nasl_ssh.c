@@ -1207,8 +1207,9 @@ exec_ssh_cmd (ssh_session session, char *cmd, int verbose, int compat_mode,
               int to_stdout, int to_stderr, GString *response,
               GString *compat_buf)
 {
-  int rc, retry = 60;
+  int rc = 1;
   ssh_channel channel;
+  char buffer[4096];
 
   /* Work-around for LibSSH calling poll() with an infinite timeout. */
   signal (SIGALRM, exec_ssh_cmd_alarm);
@@ -1244,15 +1245,10 @@ exec_ssh_cmd (ssh_session session, char *cmd, int verbose, int compat_mode,
     }
   alarm (0);
   signal (SIGALRM, _exit);
-  /* XXX: ssh_channel_read_timeout() is available for LIBSSH > 0.6. */
-  while (ssh_channel_is_open (channel) && !ssh_channel_is_eof (channel)
-         && retry-- > 0)
+  while (rc > 0)
     {
-      char buffer[4096];
-
-      memset (buffer, '\0', sizeof (buffer));
-      if ((rc = ssh_channel_read_nonblocking
-                 (channel, buffer, sizeof (buffer), 1)) > 0)
+      if ((rc = ssh_channel_read_timeout (channel, buffer, sizeof (buffer), 1,
+                                          15000)) > 0)
         {
           if (to_stderr)
             g_string_append_len (response, buffer, rc);
@@ -1261,8 +1257,12 @@ exec_ssh_cmd (ssh_session session, char *cmd, int verbose, int compat_mode,
         }
       if (rc == SSH_ERROR)
         goto exec_err;
-      if ((rc = ssh_channel_read_nonblocking
-                 (channel, buffer, sizeof (buffer), 0)) > 0)
+    }
+  rc = 1;
+  while (rc > 0)
+    {
+      if ((rc = ssh_channel_read_timeout (channel, buffer, sizeof (buffer), 0,
+                                          15000)) > 0)
         {
           compat_mode = 0;
           if (to_stdout)
@@ -1270,10 +1270,6 @@ exec_ssh_cmd (ssh_session session, char *cmd, int verbose, int compat_mode,
         }
       if (rc == SSH_ERROR)
         goto exec_err;
-      if (*buffer)
-        retry = 60;
-      else
-        usleep (250000);
     }
   rc = SSH_OK;
 

@@ -1,3 +1,7 @@
+2017-12-01  Hani Benhabiles  <hani.benhabiles@greenbone.net>
+
+	* nasl/nasl_ssh.c (exec_ssh_cmd): Use ssh_channel_read_timeout().
+
 2017-12-01  Juan Jose Nicola  <juan.nicola@greenbone.net>
 
 	* misc/network.c (open_sock_tcp): After some unsuccessfully attempts,
