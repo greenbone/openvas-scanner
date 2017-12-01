@@ -1888,9 +1888,24 @@ open_sock_tcp (struct script_infos *args, unsigned int port, int timeout)
       if (log_count == -1)
         log_count = 0;
       if (log_count < 3)
-        g_message ("open_sock_tcp: %s:%d time-out.", ip_str, port);
-      log_count++;
-      kb_item_set_int (kb, buffer, log_count);
+        {
+          g_message ("open_sock_tcp: %s:%d time-out.", ip_str, port);
+          log_count++;
+          kb_item_set_int (kb, buffer, log_count);
+        }
+      else
+        {
+          /* After some unsuccessfully attempts, the port is set to closed to
+           * avoid new attempts from other plugins.
+           */
+          if (host_get_port_state (args, port) > 0)
+            {
+              g_snprintf (buffer, sizeof (buffer), "Ports/tcp/%d", port);
+              g_message ("open_sock_tcp: %s:%d too many timeouts. "
+                         "This port will be set to closed.", ip_str, port);
+              kb_item_set_int (kb, buffer, 0);
+            }
+        }
       g_free (ip_str);
     }
 

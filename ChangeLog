@@ -1,3 +1,8 @@
+2017-12-01  Juan Jose Nicola  <juan.nicola@greenbone.net>
+
+	* misc/network.c (open_sock_tcp): After some unsuccessfully attempts,
+	the port is set to closed.
+
 2017-11-23  Hani Benhabiles  <hani.benhabiles@greenbone.net>
 
 	* nasl/nasl_ssh.c (exec_ssh_cmd): Attach session to a pseudo-terminal
