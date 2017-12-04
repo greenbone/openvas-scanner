@@ -1878,9 +1878,16 @@ open_sock_tcp (struct script_infos *args, unsigned int port, int timeout)
     }
   if (ret < 0 && errno == ETIMEDOUT)
     {
-      int log_count;
+      int log_count, attempts = 0;
       char *ip_str = plug_get_host_ip_str (args), buffer[1024];
       kb_t kb = plug_get_kb (args);
+      const char *max_attempts;
+
+      max_attempts = prefs_get ("open_sock_max_attempts");
+      if (max_attempts)
+        attempts = atoi (max_attempts);
+      if (attempts < 0)
+        attempts = 0;
 
       g_snprintf (buffer, sizeof (buffer), "ConnectTimeout/%s/%d", ip_str,
                   port);
@@ -1893,17 +1900,27 @@ open_sock_tcp (struct script_infos *args, unsigned int port, int timeout)
           log_count++;
           kb_item_set_int (kb, buffer, log_count);
         }
-      else
+      if ((log_count >= attempts) && (attempts != 0))
         {
           /* After some unsuccessfully attempts, the port is set to closed to
            * avoid new attempts from other plugins.
            */
           if (host_get_port_state (args, port) > 0)
             {
+              int global_socket;
+              global_socket = args->globals->global_socket;
+
               g_snprintf (buffer, sizeof (buffer), "Ports/tcp/%d", port);
               g_message ("open_sock_tcp: %s:%d too many timeouts. "
                          "This port will be set to closed.", ip_str, port);
               kb_item_set_int (kb, buffer, 0);
+
+              snprintf (buffer, sizeof (buffer),
+                        "SERVER <|> ERRMSG <|> %s <|> %d/tcp <|> "
+                        "Too many timeouts. The port was set to closed."
+                        "<|>  <|> SERVER\n",
+                        args->hostname->name ? : "", port);
+              internal_send (global_socket, buffer);
             }
         }
       g_free (ip_str);

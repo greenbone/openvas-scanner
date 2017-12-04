@@ -88,6 +88,9 @@ Number of seconds that the security checks will wait for when doing a recv(). Yo
 .IP timeout_retry
 Number of retries when a socket connection attempt timesout.
 
+.IP open_sock_max_attempts
+When a port  is found as opened at the beginning of the scan, and for some reason the status changes to filtered/closed, it will not be possible to open a socket. This is the number of unsuccessful retries to open the socket before to set the port as closed. This avoids to launch plugins which need the opened port as a mandatory key, therefore it avoids an overlong scan duration. If the set value is 0 or a negative value, this option is disabled. It should be take in account that one unsuccessful attempt needs the number of retries set in "timeout_retry".
+
 .IP non_simult_ports
 Some services (in particular SMB) do not appreciate multiple connections at the same time coming from the same host. This option allows you to prevent openvassd to make two connections on the same given ports at the same time. The syntax of this option is "port1[, port2....]". Note that you can use the KB notation of openvassd to designate a service formally. Ex: "139, Services/www", will prevent openvassd from making two connections at the same time on port 139 and on every port which hosts a web server.
 

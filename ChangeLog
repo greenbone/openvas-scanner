@@ -1,3 +1,14 @@
+2017-12-04  Juan Jose Nicola  <juan.nicola@greenbone.net>
+
+	* src/openvassd.c (openvassd_defaults): Add new default value
+	open_sock_max_attempts.
+
+	* doc/openvassd.8.in: Update documentation about new default value.
+
+	* misc/network.c (open_sock_tcp): Use the prefs open_sock_max_attempts
+	as max value to set a port as closed. When a port is set to closed, it
+	send an error message to the manager.
+
 2017-12-01  Hani Benhabiles  <hani.benhabiles@greenbone.net>
 
 	* nasl/nasl_ssh.c (exec_ssh_cmd): Use ssh_channel_read_timeout().
