@@ -1916,10 +1916,10 @@ open_sock_tcp (struct script_infos *args, unsigned int port, int timeout)
               kb_item_set_int (kb, buffer, 0);
 
               snprintf (buffer, sizeof (buffer),
-                        "SERVER <|> ERRMSG <|> %s <|> %d/tcp <|> "
+                        "SERVER <|> ERRMSG <|> %s <|> %s <|> %d/tcp <|> "
                         "Too many timeouts. The port was set to closed."
-                        "<|>  <|> SERVER\n",
-                        args->hostname->name ? : "", port);
+                        "<|>  <|> SERVER\n", args->hostname->name ? : "",
+                        args->hostname->fqdn ?: "", port);
               internal_send (global_socket, buffer);
             }
         }

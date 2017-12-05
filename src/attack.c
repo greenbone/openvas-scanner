@@ -134,9 +134,9 @@ static void
 error_message_to_client (int soc, const char *msg, const char *hostname,
                          const char *port)
 {
-  send_printf (soc, "SERVER <|> ERRMSG <|> %s <|> %s <|> %s <|>  <|> SERVER\n",
-               hostname ? hostname : "", port ? port : "",
-               msg ? msg : "No error.");
+  send_printf
+   (soc, "SERVER <|> ERRMSG <|> %s <|>  <|> %s <|> %s <|>  <|> SERVER\n",
+    hostname ?: "", port ?: "", msg ?: "No error.");
 }
 
 static void
@@ -477,7 +477,7 @@ attack_host (struct scan_globals *globals, struct host_info *hostinfos,
                   char buffer[2048];
                   snprintf
                    (buffer, sizeof (buffer),
-                    "SERVER <|> LOG <|> %s <|> general/Host_Details"
+                    "SERVER <|> LOG <|> %s <|>  <|> general/Host_Details"
                     " <|> <host><detail><name>Host dead</name>"
                     "<value>1</value><source><description/><type/>"
                     "<name/></source></detail></host> <|>  <|> SERVER\n",

@@ -213,13 +213,21 @@ plug_get_host_fqdn (struct script_infos *args)
     return g_strdup (hinfos->fqdn);
 
   if (g_strv_length (hinfos->vhosts) == 1)
-    return hinfos->vhosts[0];
+    {
+      g_free (hinfos->fqdn);
+      hinfos->fqdn = g_strdup (hinfos->vhosts[0]);
+      return hinfos->vhosts[0];
+    }
   for (i = 0; hinfos->vhosts[i]; i++)
     {
       pid_t pid = plug_fork_child (args->key);
 
       if (pid == 0)
-        return hinfos->vhosts[i];
+        {
+          g_free (hinfos->fqdn);
+          hinfos->fqdn = g_strdup (hinfos->vhosts[i]);
+          return hinfos->vhosts[i];
+        }
       else if (pid == -1)
         return NULL;
     }
@@ -380,9 +388,9 @@ proto_post_wrapped (const char *oid, struct script_infos *desc, int port,
   if (port > 0)
     snprintf (port_s, sizeof (port_s), "%d", port);
   buffer = g_strdup_printf
-            ("SERVER <|> %s <|> %s <|> %s/%s <|> %s <|> %s <|> SERVER\n",
-             what, plug_get_hostname (desc), port_s, proto, action_str->str,
-             oid ?: "");
+            ("SERVER <|> %s <|> %s <|> %s <|> %s/%s <|> %s <|> %s <|> SERVER\n",
+             what, plug_get_hostname (desc), desc->hostname->fqdn ?: "", port_s,
+             proto, action_str->str, oid ?: "");
   mark_post (oid, desc, what, action);
   globals = desc->globals;
   soc = globals->global_socket;

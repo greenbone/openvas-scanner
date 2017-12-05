@@ -121,7 +121,7 @@ update_running_processes (void)
                                oid, processes[i].pid);
 
                   msg = g_strdup_printf
-                         ("SERVER <|> ERRMSG <|> %s <|> general/tcp"
+                         ("SERVER <|> ERRMSG <|> %s <|>  <|> general/tcp"
                           " <|> NVT timed out after %d seconds."
                           " <|> %s <|> SERVER\n",
                           hostname, processes[i].timeout, oid ?: "0");

@@ -1,5 +1,15 @@
 2017-12-05  Hani Benhabiles  <hani.benhabiles@greenbone.net>
 
+	* misc/plugutils.c (plug_get_host_fqdn): Set host fqdn value to the
+	fetched vhosts value.
+	(proto_post_wrapped): Send host fqdn value in result message.
+
+	* misc/network.c (open_sock_tcp), src/attack.c
+	(error_message_to_client, attack_host), src/pluginlaunch.c
+	(update_running_process): Add new hostname field in result message.
+
+2017-12-05  Hani Benhabiles  <hani.benhabiles@greenbone.net>
+
 	* misc/plugutils.c (proto_post_wrapped): Refactor code.
 
 2017-12-04  Juan Jose Nicola  <juan.nicola@greenbone.net>
