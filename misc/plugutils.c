@@ -270,9 +270,9 @@ void
 proto_post_wrapped (const char *oid, struct script_infos *desc, int port,
                     const char *proto, const char *action, const char *what)
 {
-  int soc, len;
+  int soc;
   const char *prepend_tags, *append_tags;
-  char *buffer, *data, **nvti_tags = NULL;
+  char *buffer, *data, **nvti_tags = NULL, port_s[16] = "general";
   struct scan_globals *globals;
   GString *action_str;
   gsize length;
@@ -377,30 +377,12 @@ proto_post_wrapped (const char *oid, struct script_infos *desc, int port,
         }
     }
 
-  len = action_str->len;
-  buffer = g_malloc0 (1024 + len + 1);
-  char idbuffer[105];
-  if (oid == NULL)
-    {
-      *idbuffer = '\0';
-    }
-  else
-    {
-      snprintf (idbuffer, sizeof (idbuffer), "<|> %s ", oid);
-    }
   if (port > 0)
-    {
-      snprintf (buffer, 1024 + len,
-                "SERVER <|> %s <|> %s <|> %d/%s <|> %s %s<|> SERVER\n",
-                what, plug_get_hostname (desc), port, proto,
-                action_str->str, idbuffer);
-    }
-  else
-    snprintf (buffer, 1024 + len,
-              "SERVER <|> %s <|> %s <|> general/%s <|> %s %s<|> SERVER\n", what,
-              plug_get_hostname (desc), proto, action_str->str,
-              idbuffer);
-
+    snprintf (port_s, sizeof (port_s), "%d", port);
+  buffer = g_strdup_printf
+            ("SERVER <|> %s <|> %s <|> %s/%s <|> %s <|> %s <|> SERVER\n",
+             what, plug_get_hostname (desc), port_s, proto, action_str->str,
+             oid ?: "");
   mark_post (oid, desc, what, action);
   globals = desc->globals;
   soc = globals->global_socket;

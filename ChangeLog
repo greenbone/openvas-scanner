@@ -1,3 +1,7 @@
+2017-12-05  Hani Benhabiles  <hani.benhabiles@greenbone.net>
+
+	* misc/plugutils.c (proto_post_wrapped): Refactor code.
+
 2017-12-04  Juan Jose Nicola  <juan.nicola@greenbone.net>
 
 	* src/openvassd.c (openvassd_defaults): Add new default value
