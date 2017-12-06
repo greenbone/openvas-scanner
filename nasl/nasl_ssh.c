@@ -51,6 +51,7 @@
 #include <glib/gstdio.h>
 
 #include <gvm/base/logging.h>
+#include <gvm/base/networking.h>
 #include <gvm/base/prefs.h>    /* for prefs_get() */
 #include <gvm/util/kb.h>
 
@@ -250,10 +251,10 @@ nasl_ssh_connect (lex_ctxt *lexic)
 {
   ssh_session session;
   tree_cell *retc;
-  const char *hostname, *key_type, *csciphers, *scciphers;
+  const char *key_type, *csciphers, *scciphers, *s;
+  char ip_str[INET6_ADDRSTRLEN];
   int port, sock;
   unsigned int tbl_slot;
-  const char *s;
   int verbose = 0;
   int forced_sock = -1;
 
@@ -267,16 +268,7 @@ nasl_ssh_connect (lex_ctxt *lexic)
         port = get_ssh_port (lexic);
     }
 
-  hostname = plug_get_hostname (lexic->script_infos);
-  if (!hostname)
-    {
-      /* Note: We want the hostname even if we are working on an open
-         socket.  libssh may use it for example to maintain its
-         known_hosts file.  */
-      g_message ("No hostname available to ssh_connect");
-      return NULL;
-    }
-
+  addr6_to_str (plug_get_host_ip (lexic->script_infos), ip_str);
   session = ssh_new ();
   if (!session)
     {
@@ -295,10 +287,10 @@ nasl_ssh_connect (lex_ctxt *lexic)
         }
     }
 
-  if (ssh_options_set (session, SSH_OPTIONS_HOST, hostname))
+  if (ssh_options_set (session, SSH_OPTIONS_HOST, ip_str))
     {
       g_message ("Failed to set SSH hostname '%s': %s",
-                 hostname, ssh_get_error (session));
+                 ip_str, ssh_get_error (session));
       ssh_free (session);
       return NULL;
     }
@@ -345,7 +337,7 @@ nasl_ssh_connect (lex_ctxt *lexic)
       if (ssh_options_set (session, SSH_OPTIONS_PORT, &my_port))
         {
           g_message ("Failed to set SSH port for '%s' to %d: %s",
-                     hostname, port, ssh_get_error (session));
+                     ip_str, port, ssh_get_error (session));
           ssh_free (session);
           return NULL;
         }
@@ -356,12 +348,12 @@ nasl_ssh_connect (lex_ctxt *lexic)
 
       if (verbose)
         g_message ("Setting SSH fd for '%s' to %d (NASL sock=%d)",
-                   hostname, my_fd, sock);
+                   ip_str, my_fd, sock);
       if (ssh_options_set (session, SSH_OPTIONS_FD, &my_fd))
         {
           g_message
             ("Failed to set SSH fd for '%s' to %d (NASL sock=%d): %s",
-             hostname, my_fd, sock, ssh_get_error (session));
+             ip_str, my_fd, sock, ssh_get_error (session));
           ssh_free (session);
           return NULL;
         }
@@ -390,12 +382,12 @@ nasl_ssh_connect (lex_ctxt *lexic)
   /* Connect to the host.  */
   if (verbose)
     g_message ("Connecting to SSH server '%s' (port %d, sock %d)",
-               hostname, port, sock);
+               ip_str, port, sock);
   if (ssh_connect (session))
     {
       if (verbose)
         g_message ("Failed to connect to SSH server '%s'"
-                   " (port %d, sock %d, f=%d): %s", hostname, port,
+                   " (port %d, sock %d, f=%d): %s", ip_str, port,
                    sock, forced_sock, ssh_get_error (session));
       if (forced_sock != -1)
         {

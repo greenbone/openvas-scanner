@@ -76,14 +76,14 @@ my_gnutls_log_func (int level, const char *text)
 }
 
 struct script_infos *
-init (char *hostname, struct in6_addr *ip, char *fqdn, kb_t kb)
+init (struct in6_addr *ip, char *fqdn, kb_t kb)
 {
   struct script_infos *infos = g_malloc0 (sizeof (struct script_infos));
 
   prefs_set ("checks_read_timeout", "5");
   infos->standalone = 1;
   infos->key = kb;
-  infos->hostname = host_info_init (hostname, ip, fqdn);
+  infos->hostname = host_info_init (ip, fqdn);
   infos->globals = g_malloc0 (sizeof (struct scan_globals));
 
   return infos;
@@ -325,16 +325,18 @@ main (int argc, char **argv)
   while ((host = gvm_hosts_next (hosts)))
     {
       struct in6_addr ip6;
-      char *hostname, *fqdn;
+      char *fqdn;
       kb_t kb;
       int rc;
 
-      hostname = gvm_host_value_str (host);
+      fqdn = gvm_host_reverse_lookup (host);
+      if (!fqdn)
+        fqdn = gvm_host_value_str (host);
       if (gvm_host_get_addr6 (host, &ip6) == -1)
         {
-          fprintf (stderr, "Couldn't resolve %s\n", hostname);
+          fprintf (stderr, "Couldn't resolve %s\n", fqdn);
+          g_free (fqdn);
           err++;
-          g_free (hostname);
           continue;
         }
 
@@ -342,8 +344,7 @@ main (int argc, char **argv)
       if (rc)
         exit (1);
 
-      fqdn = gvm_host_reverse_lookup (host);
-      script_infos = init (hostname, &ip6, fqdn ?: hostname, kb);
+      script_infos = init (&ip6, fqdn, kb);
       g_free (fqdn);
       while (nasl_filenames[n])
         {
@@ -409,7 +410,6 @@ main (int argc, char **argv)
           n++;
         }
       kb_delete (kb);
-      g_free (hostname);
     }
 
   if (nasl_trace_fp != NULL)

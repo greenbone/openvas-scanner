@@ -193,23 +193,13 @@ host_get_port_state_udp (struct script_infos *plugdata, int portnum)
 }
 
 
-const char *
-plug_get_hostname (struct script_infos *args)
-{
-  struct host_info *hinfo = args->hostname;
-  if (hinfo)
-    return hinfo->name;
-  else
-    return (NULL);
-}
-
 char *
 plug_get_host_fqdn (struct script_infos *args)
 {
   struct host_info *hinfos = args->hostname;
   int i;
 
-  if (!prefs_get ("vhosts_ip") || !strlen (prefs_get ("vhosts_ip")))
+  if (!hinfos->vhosts)
     return g_strdup (hinfos->fqdn);
 
   if (g_strv_length (hinfos->vhosts) == 1)
@@ -281,6 +271,7 @@ proto_post_wrapped (const char *oid, struct script_infos *desc, int port,
   int soc;
   const char *prepend_tags, *append_tags;
   char *buffer, *data, **nvti_tags = NULL, port_s[16] = "general";
+  char ip_str[INET6_ADDRSTRLEN];
   struct scan_globals *globals;
   GString *action_str;
   gsize length;
@@ -387,10 +378,11 @@ proto_post_wrapped (const char *oid, struct script_infos *desc, int port,
 
   if (port > 0)
     snprintf (port_s, sizeof (port_s), "%d", port);
+  addr6_to_str (plug_get_host_ip (desc), ip_str);
   buffer = g_strdup_printf
             ("SERVER <|> %s <|> %s <|> %s <|> %s/%s <|> %s <|> %s <|> SERVER\n",
-             what, plug_get_hostname (desc), desc->hostname->fqdn ?: "", port_s,
-             proto, action_str->str, oid ?: "");
+             what, ip_str, desc->hostname->fqdn ?: "", port_s, proto,
+             action_str->str, oid ?: "");
   mark_post (oid, desc, what, action);
   globals = desc->globals;
   soc = globals->global_socket;

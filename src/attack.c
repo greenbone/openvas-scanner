@@ -355,20 +355,18 @@ kb_duplicate(kb_t dst, kb_t src, const gchar *filter)
  * checks if defined.
  *
  * @param globals     Global preference struct.
- * @param hostname    Name of the host.
+ * @param ip_str      IP string of target host.
  *
  * @return A knowledge base.
  */
 static kb_t
-init_host_kb (struct scan_globals *globals, char *hostname,
-              struct host_info *hostinfos, kb_t *network_kb)
+init_host_kb (struct scan_globals *globals, char *ip_str, kb_t *network_kb)
 {
   kb_t kb;
-  gchar *hostname_pattern, *hoststr;
+  gchar *hostname_pattern;
   enum net_scan_status nss;
   const gchar *kb_path = prefs_get ("kb_location");
   int rc, soc;
-  struct in6_addr *hostip;
 
   nss = network_scan_status (globals);
   soc = globals->global_socket;
@@ -382,7 +380,7 @@ init_host_kb (struct scan_globals *globals, char *hostname,
             return NULL;
           }
 
-        hostname_pattern = g_strdup_printf ("%s/*", hostname);
+        hostname_pattern = g_strdup_printf ("%s/*", ip_str);
         kb_duplicate(kb, *network_kb, hostname_pattern);
         g_free(hostname_pattern);
         break;
@@ -402,22 +400,6 @@ init_host_kb (struct scan_globals *globals, char *hostname,
           }
     }
 
-  /* Add Hostname and Host-IP */
-  hoststr = hostinfos->fqdn;
-  if (hoststr)
-    kb_item_add_str (kb, "Hostname", hoststr, 0);
-  hostip = hostinfos->ip;
-  if (hostip)
-    {
-      char ipstr[INET6_ADDRSTRLEN];
-
-      if (IN6_IS_ADDR_V4MAPPED (hostip))
-        inet_ntop (AF_INET, ((char *) (hostip)) + 12, ipstr, sizeof (ipstr));
-      else
-        inet_ntop (AF_INET6, hostip, ipstr, sizeof (ipstr));
-      kb_item_add_str (kb, "Host-IP", ipstr, 0);
-    }
-
   return kb;
 }
 
@@ -426,23 +408,23 @@ init_host_kb (struct scan_globals *globals, char *hostname,
  */
 static void
 attack_host (struct scan_globals *globals, struct host_info *hostinfos,
-             char *hostname, plugins_scheduler_t sched, kb_t *net_kb)
+             char *ip_str, plugins_scheduler_t sched, kb_t *net_kb)
 {
   /* Used for the status */
   int num_plugs, forks_retry = 0, global_socket;
   kb_t kb;
 
-  proctitle_set ("openvassd: testing %s", hostinfos->name);
+  proctitle_set ("openvassd: testing %s", ip_str);
 
   global_socket = globals->global_socket;
-  kb = init_host_kb (globals, hostname, hostinfos, net_kb);
+  kb = init_host_kb (globals, ip_str, net_kb);
   if (kb == NULL)
     return;
 
   kb_lnk_reset (kb);
 
   /* launch the plugins */
-  pluginlaunch_init (hostinfos->name);
+  pluginlaunch_init (ip_str);
   num_plugs = plugins_scheduler_count_active (sched);
   for (;;)
     {
@@ -466,7 +448,7 @@ attack_host (struct scan_globals *globals, struct host_info *hostinfos,
           static int last_status = 0, cur_plug = 0;
 
         again:
-          e = launch_plugin (globals, plugin, hostname, hostinfos, kb);
+          e = launch_plugin (globals, plugin, ip_str, hostinfos, kb);
           if (e < 0)
             {
               /*
@@ -481,12 +463,12 @@ attack_host (struct scan_globals *globals, struct host_info *hostinfos,
                     " <|> <host><detail><name>Host dead</name>"
                     "<value>1</value><source><description/><type/>"
                     "<name/></source></detail></host> <|>  <|> SERVER\n",
-                    hostname ?: "");
+                    ip_str);
 #if (PROGRESS_BAR_STYLE == 1)
                   /* In case of a dead host, it sends max_ports = -1 to the
                      manager. The host will not be taken into account to
                      calculate the scan progress. */
-                  comm_send_status(global_socket, hostname, 0, -1);
+                  comm_send_status(global_socket, ip_str, 0, -1);
 #endif
                   internal_send (global_socket, buffer);
                   goto host_died;
@@ -514,7 +496,7 @@ attack_host (struct scan_globals *globals, struct host_info *hostinfos,
             {
               last_status = (cur_plug * 100) / num_plugs + 2;
               if (comm_send_status
-                   (global_socket, hostname, cur_plug, num_plugs) < 0)
+                   (global_socket, ip_str, cur_plug, num_plugs) < 0)
                 {
                   pluginlaunch_stop (1);
                   goto host_died;
@@ -530,7 +512,7 @@ attack_host (struct scan_globals *globals, struct host_info *hostinfos,
 
   pluginlaunch_wait ();
   if (!scan_is_stopped () && !all_scans_are_stopped ())
-    comm_send_status (global_socket, hostname, num_plugs, num_plugs);
+    comm_send_status (global_socket, ip_str, num_plugs, num_plugs);
 
 host_died:
   pluginlaunch_stop (1);
@@ -575,7 +557,7 @@ static void
 attack_start (struct attack_start_args *args)
 {
   struct scan_globals *globals = args->globals;
-  char *host_str, *hostname;
+  char ip_str[INET6_ADDRSTRLEN], *hostname;
   struct in6_addr hostip;
   struct host_info *hostinfos;
   int thread_socket;
@@ -633,19 +615,19 @@ attack_start (struct attack_start_args *args)
   gvm_hosts_free (sys_hosts_allow);
   gvm_hosts_free (sys_hosts_deny);
 
-  host_str = addr6_as_str (&hostip);
-  hostinfos = host_info_init (host_str, &hostip, hostname);
-  ntp_timestamp_host_scan_starts (thread_socket, host_str);
+  addr6_to_str (&hostip, ip_str);
+  hostinfos = host_info_init (&hostip, hostname);
+  ntp_timestamp_host_scan_starts (thread_socket, ip_str);
   // Start scan
-  g_message ("Testing %s (%s) [%d]", hostname, host_str, getpid ());
-  attack_host (globals, hostinfos, host_str, sched, net_kb);
+  g_message ("Testing %s (%s) [%d]", ip_str, hostname, getpid ());
+  attack_host (globals, hostinfos, ip_str, sched, net_kb);
   host_info_free (hostinfos);
 
   if (!scan_is_stopped () && !all_scans_are_stopped ())
     {
       struct timeval now;
 
-      ntp_timestamp_host_scan_ends (thread_socket, host_str);
+      ntp_timestamp_host_scan_ends (thread_socket, ip_str);
       gettimeofday (&now, NULL);
       if (now.tv_usec < then.tv_usec)
         {
@@ -653,13 +635,12 @@ attack_start (struct attack_start_args *args)
           now.tv_usec += 1000000;
         }
       g_message ("Finished testing %s (%s). Time : %ld.%.2ld secs",
-                 hostname, host_str, (long) (now.tv_sec - then.tv_sec),
+                 hostname, ip_str, (long) (now.tv_sec - then.tv_sec),
                  (long) ((now.tv_usec - then.tv_usec) / 10000));
     }
   shutdown (thread_socket, 2);
   close (thread_socket);
   g_free (hostname);
-  g_free (host_str);
 }
 
 static void

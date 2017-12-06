@@ -1,3 +1,27 @@
+2017-12-06  Hani Benhabiles  <hani.benhabiles@greenbone.net>
+
+	* misc/network.h (struct host_info): Remove name parameter.
+
+	* misc/network.c (open_sock_tcp, host_info_free): Adjust for host_info
+	change.
+	(host_info_init): Remove name parameter. Don't fetch vhosts_ip/vhosts
+	preferences.
+
+	* misc/plugutils.c (plug_get_hostname): Remove function.
+	(plug_get_host_fqdn): Don't check vhosts_ip/vhosts preferences.
+	(proto_post_wrapped): Adjust for host_infos change.
+
+	* misc/plugutils.h: Remove function header.
+
+	* nasl/nasl.c (init): Adjust for host_infos_init() change. Reorganize
+	name resolution and reverse-resolution to mimic steps in scanner.
+
+	* src/attack.c (init_host_kb): Remove hostinfos parameter. Rename
+	hostname to ip_str. Remove unused Hostname and Host-IP keys.
+	(attack_host, attack_start), src/nasl_plugins.c (nasl_thread),
+	nasl/nasl_ssh.c (nasl_ssh_connect): Rename hostname to ip_str for
+	clarity. Adjust for host_info change.
+
 2017-12-05  Hani Benhabiles  <hani.benhabiles@greenbone.net>
 
 	* misc/plugutils.c (plug_get_host_fqdn): Set host fqdn value to the

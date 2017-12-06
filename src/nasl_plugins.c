@@ -42,6 +42,7 @@
 
 #include <gvm/base/drop_privileges.h> /* for drop_privileges */
 #include <gvm/base/proctitle.h>
+#include <gvm/base/networking.h>
 #include <gvm/base/prefs.h>           /* for prefs_get_bool */
 #include <gvm/util/nvticache.h>       /* for nvticache_add */
 
@@ -211,7 +212,7 @@ nasl_thread (struct nasl_thread_args *nargs)
   struct script_infos *args = nargs->args;
   struct scan_globals *globals = args->globals;
   struct host_info *hostinfo = args->hostname;
-  char *name = nargs->name;
+  char *name = nargs->name, ip_str[INET6_ADDRSTRLEN];
   int nasl_mode = 0;
   kb_t kb;
   GError *error = NULL;
@@ -231,7 +232,8 @@ nasl_thread (struct nasl_thread_args *nargs)
   kb = args->key;
   kb_lnk_reset (kb);
   globals->global_socket = nargs->soc;
-  proctitle_set ("openvassd: testing %s (%s)", hostinfo->name, name);
+  addr6_to_str (hostinfo->ip, ip_str);
+  proctitle_set ("openvassd: testing %s (%s)", ip_str, name);
 
   if (prefs_get_bool ("nasl_no_signature_check"))
     nasl_mode |= NASL_ALWAYS_SIGNED;

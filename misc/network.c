@@ -1908,6 +1908,7 @@ open_sock_tcp (struct script_infos *args, unsigned int port, int timeout)
           if (host_get_port_state (args, port) > 0)
             {
               int global_socket;
+              char ip_str[INET6_ADDRSTRLEN];
               global_socket = args->globals->global_socket;
 
               g_snprintf (buffer, sizeof (buffer), "Ports/tcp/%d", port);
@@ -1915,11 +1916,12 @@ open_sock_tcp (struct script_infos *args, unsigned int port, int timeout)
                          "This port will be set to closed.", ip_str, port);
               kb_item_set_int (kb, buffer, 0);
 
+              addr6_to_str (args->hostname->ip, ip_str);
               snprintf (buffer, sizeof (buffer),
                         "SERVER <|> ERRMSG <|> %s <|> %s <|> %d/tcp <|> "
                         "Too many timeouts. The port was set to closed."
-                        "<|>  <|> SERVER\n", args->hostname->name ? : "",
-                        args->hostname->fqdn ?: "", port);
+                        "<|>  <|> SERVER\n", ip_str, args->hostname->fqdn ?: "",
+                        port);
               internal_send (global_socket, buffer);
             }
         }
@@ -2463,28 +2465,17 @@ getpts (char *origexpr, int *len)
  * @return host_info pointer.
  */
 struct host_info *
-host_info_init (const char *name, const struct in6_addr *ip,
-                const char *fqdn)
+host_info_init (const struct in6_addr *ip, const char *fqdn)
 {
   struct host_info *hostinfo;
-  const char *vhosts, *vhosts_ip;
-  char *txt_ip;
 
   hostinfo = g_malloc0 (sizeof (struct host_info));
-  hostinfo->name = g_strdup (name);
   hostinfo->fqdn = g_strdup (fqdn);
   if (ip)
     {
       hostinfo->ip = g_malloc0 (sizeof (struct in6_addr));
       memcpy (hostinfo->ip, ip, sizeof (struct in6_addr));
     }
-
-  vhosts_ip = prefs_get ("vhosts_ip");
-  vhosts = prefs_get ("vhosts");
-  txt_ip = addr6_as_str (hostinfo->ip);
-  if (vhosts && vhosts_ip && !strcmp (vhosts_ip, txt_ip))
-    hostinfo->vhosts = g_strsplit (vhosts, ",", 0);
-  g_free (txt_ip);
   return hostinfo;
 }
 
@@ -2498,7 +2489,6 @@ host_info_free (struct host_info *hostinfo)
 {
   if (!hostinfo)
     return;
-  g_free (hostinfo->name);
   g_free (hostinfo->fqdn);
   g_free (hostinfo->ip);
   g_strfreev (hostinfo->vhosts);
