@@ -1,3 +1,11 @@
+2017-12-06  Juan Jose Nicola  <juan.nicola@greenbone.net>
+
+	Backport r30008.
+
+	* src/utils.c (is_scanner_only_pref): The preference is log_whole_attack
+	instead of log_while_attack. the preference will not be sent to
+	the manager.
+
 2017-10-31  Hani Benhabiles  <hani.benhabiles@greenbone.net>
 
 	* src/attack.c (attack_start): Revert r29928. Also use log_write instead
