@@ -755,10 +755,12 @@ socket_negotiate_ssl (int fd, openvas_encaps_t transport,
   fp->priority = NULL;
   if (open_SSL_connection (fp, cert, key, passwd, cafile, hostname) <= 0)
     {
+      g_free (hostname);
       g_message ("socket_negotiate_ssl: SSL connection failed.");
       release_connection_fd (fd, 0);
       return -1;
     }
+  g_free (hostname);
   return fd;
 }
 
@@ -1920,7 +1922,7 @@ open_sock_tcp (struct script_infos *args, unsigned int port, int timeout)
               snprintf (buffer, sizeof (buffer),
                         "SERVER <|> ERRMSG <|> %s <|> %s <|> %d/tcp <|> "
                         "Too many timeouts. The port was set to closed."
-                        "<|>  <|> SERVER\n", ip_str, args->hostname->fqdn ?: "",
+                        "<|>  <|> SERVER\n", ip_str, plug_current_vhost() ?: "",
                         port);
               internal_send (global_socket, buffer);
             }
@@ -2458,7 +2460,6 @@ getpts (char *origexpr, int *len)
 /**
  * @brief Initializes a host_info.
  *
- * @param[in]   name        Hostname.
  * @param[in]   ip          IP address.
  * @param[in]   fqdn        Fully qualified domain name.
  *
@@ -2470,7 +2471,7 @@ host_info_init (const struct in6_addr *ip, const char *fqdn)
   struct host_info *hostinfo;
 
   hostinfo = g_malloc0 (sizeof (struct host_info));
-  hostinfo->fqdn = g_strdup (fqdn);
+  hostinfo->vhosts = g_slist_prepend (hostinfo->vhosts, g_strdup (fqdn));
   if (ip)
     {
       hostinfo->ip = g_malloc0 (sizeof (struct in6_addr));
@@ -2489,7 +2490,6 @@ host_info_free (struct host_info *hostinfo)
 {
   if (!hostinfo)
     return;
-  g_free (hostinfo->fqdn);
   g_free (hostinfo->ip);
-  g_strfreev (hostinfo->vhosts);
+  g_slist_free_full (hostinfo->vhosts, g_free);
 }

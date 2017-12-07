@@ -228,7 +228,7 @@ nvti_category_is_safe (int category)
  */
 static int
 launch_plugin (struct scan_globals *globals, struct scheduler_plugin *plugin,
-               char *hostname, struct host_info *hostinfos, kb_t kb)
+               char *ip_str, struct host_info *hostinfos, kb_t kb)
 {
   int optimize = prefs_get_bool ("optimize_test"), category, pid;
   char *oid, *name, *error = NULL, *src;
@@ -256,7 +256,7 @@ launch_plugin (struct scan_globals *globals, struct scheduler_plugin *plugin,
     {
       if (prefs_get_bool ("log_whole_attack"))
         g_message ("Not launching %s (%s) against %s because safe checks are"
-                   " enabled (this is not an error)", name, oid, hostname);
+                   " enabled (this is not an error)", name, oid, ip_str);
       plugin->running_state = PLUGIN_STATUS_DONE;
       g_free (name);
       return 0;
@@ -274,7 +274,7 @@ launch_plugin (struct scan_globals *globals, struct scheduler_plugin *plugin,
           if (prefs_get_bool ("log_whole_attack"))
             g_message ("Not launching %s against %s because it has already "
                        "been lanched in the past (this is not an error)",
-                       oid, hostname);
+                       oid, ip_str);
           plugin->running_state = PLUGIN_STATUS_DONE;
           g_free (name);
           return 0;
@@ -294,7 +294,7 @@ launch_plugin (struct scan_globals *globals, struct scheduler_plugin *plugin,
       plugin->running_state = PLUGIN_STATUS_DONE;
       if (prefs_get_bool ("log_whole_attack"))
         g_message ("Not launching %s (%s) against %s %s (this is not an error)",
-          name, oid, hostname, error);
+          name, oid, ip_str, error);
       g_free (name);
       return 0;
     }
@@ -302,7 +302,7 @@ launch_plugin (struct scan_globals *globals, struct scheduler_plugin *plugin,
   /* Stop the test if the host is 'dead' */
   if (kb_item_get_int (kb, "Host/dead") > 0)
     {
-      g_message ("The remote host %s (%s) is dead", hostinfos->fqdn, hostname);
+      g_message ("The remote host %s is dead", ip_str);
       pluginlaunch_stop (1);
       plugin->running_state = PLUGIN_STATUS_DONE;
       g_free (name);
@@ -321,7 +321,7 @@ launch_plugin (struct scan_globals *globals, struct scheduler_plugin *plugin,
     }
 
   if (prefs_get_bool ("log_whole_attack"))
-    g_message ("Launching %s (%s) against %s [%d]", name, oid, hostname, pid);
+    g_message ("Launching %s (%s) against %s [%d]", name, oid, ip_str, pid);
 
   g_free (name);
   return 0;

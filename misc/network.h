@@ -54,9 +54,8 @@ typedef enum openvas_encaps {
 } openvas_encaps_t;
 
 struct host_info {
-  char *fqdn;           /* Fully qualified domain name, e.g. host.domain.net */
-  char **vhosts;        /* Array of vhosts. */
   struct in6_addr *ip;  /* IP address. */
+  GSList *vhosts;       /* List of vhosts. */
 };
 
 #define IS_ENCAPS_SSL(x) ((x) >= OPENVAS_ENCAPS_SSLv23 && (x) <= OPENVAS_ENCAPS_TLScustom)

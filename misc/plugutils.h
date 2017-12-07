@@ -53,6 +53,8 @@ void plug_set_ssl_key (struct script_infos *, char *);
 void plug_set_ssl_pem_password (struct script_infos *, char *);
 void plug_set_ssl_CA_file (struct script_infos *, char *);
 
+const char *
+plug_current_vhost (void);
 
 char *plug_get_host_fqdn (struct script_infos *);
 unsigned int plug_get_host_open_port (struct script_infos *desc);

@@ -59,6 +59,18 @@
 /* Used to allow debugging for openvas-nasl */
 int global_nasl_debug = 0;
 
+/* In case of multiple vhosts fork, this holds the value of the current vhost
+ * we're scanning.
+ */
+char *current_vhost = NULL;
+
+/* @brief: Return the currently scanned vhost. */
+const char *
+plug_current_vhost (void)
+{
+  return current_vhost;
+}
+
 static int
 plug_fork_child (kb_t);
 
@@ -197,29 +209,31 @@ char *
 plug_get_host_fqdn (struct script_infos *args)
 {
   struct host_info *hinfos = args->hostname;
-  int i;
 
   if (!hinfos->vhosts)
-    return g_strdup (hinfos->fqdn);
+    return addr6_as_str (hinfos->ip);
 
-  if (g_strv_length (hinfos->vhosts) == 1)
+  if (g_slist_length (hinfos->vhosts) == 1)
     {
-      g_free (hinfos->fqdn);
-      hinfos->fqdn = g_strdup (hinfos->vhosts[0]);
-      return hinfos->vhosts[0];
+      current_vhost = g_strdup (hinfos->vhosts->data);
+      return g_strdup (current_vhost);
     }
-  for (i = 0; hinfos->vhosts[i]; i++)
+  else
     {
-      pid_t pid = plug_fork_child (args->key);
-
-      if (pid == 0)
+      GSList *vhosts = hinfos->vhosts;
+      while (vhosts)
         {
-          g_free (hinfos->fqdn);
-          hinfos->fqdn = g_strdup (hinfos->vhosts[i]);
-          return hinfos->vhosts[i];
+          pid_t pid = plug_fork_child (args->key);
+
+          if (pid == 0)
+            {
+              current_vhost = g_strdup (hinfos->vhosts->data);
+              return g_strdup (current_vhost);
+            }
+          else if (pid == -1)
+            return NULL;
+          vhosts = vhosts->next;
         }
-      else if (pid == -1)
-        return NULL;
     }
   exit (0);
 }
@@ -269,7 +283,7 @@ proto_post_wrapped (const char *oid, struct script_infos *desc, int port,
                     const char *proto, const char *action, const char *what)
 {
   int soc;
-  const char *prepend_tags, *append_tags;
+  const char *prepend_tags, *append_tags, *hostname = "";
   char *buffer, *data, **nvti_tags = NULL, port_s[16] = "general";
   char ip_str[INET6_ADDRSTRLEN];
   struct scan_globals *globals;
@@ -378,11 +392,14 @@ proto_post_wrapped (const char *oid, struct script_infos *desc, int port,
 
   if (port > 0)
     snprintf (port_s, sizeof (port_s), "%d", port);
+  if (current_vhost)
+    hostname = current_vhost;
+  else if (desc->hostname->vhosts)
+    hostname = desc->hostname->vhosts->data;
   addr6_to_str (plug_get_host_ip (desc), ip_str);
   buffer = g_strdup_printf
             ("SERVER <|> %s <|> %s <|> %s <|> %s/%s <|> %s <|> %s <|> SERVER\n",
-             what, ip_str, desc->hostname->fqdn ?: "", port_s, proto,
-             action_str->str, oid ?: "");
+             what, ip_str, hostname, port_s, proto, action_str->str, oid ?: "");
   mark_post (oid, desc, what, action);
   globals = desc->globals;
   soc = globals->global_socket;

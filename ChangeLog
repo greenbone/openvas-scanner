@@ -1,3 +1,18 @@
+2017-12-07  Hani Benhabiles  <hani.benhabiles@greenbone.net>
+
+	* misc/network.h: Remove fqdn element. Make vhosts a linked-list.
+
+	* misc/network.c (socket_negotiate_ssl): Free hostname.
+	(open_sock_tcp): Use plug_current_vhost().
+	(host_info_init, host_info_free): Adjust for struct host_info change.
+
+	* misc/plugutils.c (plug_current_vhost): New function.
+	(plug_get_host_fqdn, proto_post_wrapped): Adjust to host_info change.
+
+	* misc/plugutils.h: Add function prototype.
+
+	* src/attack.c (launch_plugin): Rename hostname to ip_str for clarity.
+
 2017-12-06  Juan Jose Nicola  <juan.nicola@greenbone.net>
 
 	* src/utils.c (is_scanner_only_pref): The preference is log_whole_attack
