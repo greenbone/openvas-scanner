@@ -341,7 +341,7 @@ pluginlaunch_stop (int soft_stop)
  */
 int
 plugin_launch (struct scan_globals *globals, struct scheduler_plugin *plugin,
-               struct host_info *hostinfo, kb_t kb, char *name)
+               struct in6_addr *ip, char *hostname, kb_t kb, char *name)
 {
   int p;
 
@@ -368,7 +368,7 @@ plugin_launch (struct scan_globals *globals, struct scheduler_plugin *plugin,
   gettimeofday (&(processes[p].start), NULL);
   processes[p].upstream_soc = globals->global_socket;
   processes[p].pid =
-    nasl_plugin_launch (globals, hostinfo, kb, name, plugin->oid,
+    nasl_plugin_launch (globals, ip, hostname, kb, name, plugin->oid,
                         globals->global_socket);
 
   processes[p].alive = 1;

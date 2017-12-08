@@ -228,10 +228,10 @@ nvti_category_is_safe (int category)
  */
 static int
 launch_plugin (struct scan_globals *globals, struct scheduler_plugin *plugin,
-               char *ip_str, struct host_info *hostinfos, kb_t kb)
+               struct in6_addr *ip, char *hostname, kb_t kb)
 {
   int optimize = prefs_get_bool ("optimize_test"), category, pid;
-  char *oid, *name, *error = NULL, *src;
+  char *oid, *name, *error = NULL, *src, ip_str[INET6_ADDRSTRLEN];
   gboolean network_scan = FALSE;
 
   oid = plugin->oid;
@@ -311,7 +311,7 @@ launch_plugin (struct scan_globals *globals, struct scheduler_plugin *plugin,
 
   src = nvticache_get_src (oid);
   /* Start the plugin */
-  pid = plugin_launch (globals, plugin, hostinfos, kb, src);
+  pid = plugin_launch (globals, plugin, ip, hostname, kb, src);
   g_free (src);
   if (pid < 0)
     {
@@ -407,15 +407,16 @@ init_host_kb (struct scan_globals *globals, char *ip_str, kb_t *network_kb)
  * @brief Attack one host.
  */
 static void
-attack_host (struct scan_globals *globals, struct host_info *hostinfos,
-             char *ip_str, plugins_scheduler_t sched, kb_t *net_kb)
+attack_host (struct scan_globals *globals, struct in6_addr *ip,
+             char *hostname, plugins_scheduler_t sched, kb_t *net_kb)
 {
   /* Used for the status */
   int num_plugs, forks_retry = 0, global_socket;
+  char ip_str[INET6_ADDRSTRLEN];
   kb_t kb;
 
+  addr6_to_str (ip, ip_str);
   proctitle_set ("openvassd: testing %s", ip_str);
-
   global_socket = globals->global_socket;
   kb = init_host_kb (globals, ip_str, net_kb);
   if (kb == NULL)
@@ -448,7 +449,7 @@ attack_host (struct scan_globals *globals, struct host_info *hostinfos,
           static int last_status = 0, cur_plug = 0;
 
         again:
-          e = launch_plugin (globals, plugin, ip_str, hostinfos, kb);
+          e = launch_plugin (globals, plugin, ip, hostname, kb);
           if (e < 0)
             {
               /*
@@ -559,7 +560,6 @@ attack_start (struct attack_start_args *args)
   struct scan_globals *globals = args->globals;
   char ip_str[INET6_ADDRSTRLEN], *hostname;
   struct in6_addr hostip;
-  struct host_info *hostinfos;
   int thread_socket;
   struct timeval then;
   plugins_scheduler_t sched = args->sched;
@@ -616,12 +616,10 @@ attack_start (struct attack_start_args *args)
   gvm_hosts_free (sys_hosts_deny);
 
   addr6_to_str (&hostip, ip_str);
-  hostinfos = host_info_init (&hostip, hostname);
   ntp_timestamp_host_scan_starts (thread_socket, ip_str);
   // Start scan
   g_message ("Testing %s (%s) [%d]", ip_str, hostname, getpid ());
-  attack_host (globals, hostinfos, ip_str, sched, net_kb);
-  host_info_free (hostinfos);
+  attack_host (globals, &hostip, hostname, sched, net_kb);
 
   if (!scan_is_stopped () && !all_scans_are_stopped ())
     {

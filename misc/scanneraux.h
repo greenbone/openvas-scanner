@@ -42,14 +42,14 @@ struct scan_globals {
 struct host_info;
 
 struct script_infos {
-  struct host_info *hostname;
   struct scan_globals *globals;
   kb_t key;
   nvti_t *nvti;
   char *oid;
   char *name;
   GHashTable *udp_data;
-  gchar **vhosts;
+  struct in6_addr *ip;
+  GSList *vhosts;
   int standalone;
   int denial_port;
   int alive;

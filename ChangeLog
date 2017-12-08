@@ -1,5 +1,24 @@
 2017-12-07  Hani Benhabiles  <hani.benhabiles@greenbone.net>
 
+	* misc/network.c (host_info_init, host_info_free): Remove functions.
+	(open_sock_tcp): Adjust for host_info removal.
+
+	* misc/network.h: Remove struct host_info and functions headers.
+
+	* misc/plugutils.c (plug_get_host_fqdn, plug_get_host_ip)
+	(proto_post_wrapped), nasl/nasl.c (init),
+	nasl/nasl_builtin_openvas_tcp_scanner (plugin_run_openvas_tcp_scanner),
+	src/attack.c (launch_plugin, attack_host, attack_start),
+	src/nasl_plugins.c (nasl_plugin_launch, nasl_thread, src/pluginlaunch.c
+	(plugin_launch): Adjust for host_info removal.
+
+	* misc/scanneraux.h: Remove hostname field, add ip field and make vhosts
+	a linked-list.
+
+	* src/pluginlaunch.h, src/pluginload.h: Adjust functions headers.
+
+2017-12-07  Hani Benhabiles  <hani.benhabiles@greenbone.net>
+
 	* misc/network.h: Remove fqdn element. Make vhosts a linked-list.
 
 	* misc/network.c (socket_negotiate_ssl): Free hostname.

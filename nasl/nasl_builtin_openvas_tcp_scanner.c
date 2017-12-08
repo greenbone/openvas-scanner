@@ -1277,7 +1277,6 @@ tree_cell *
 plugin_run_openvas_tcp_scanner (lex_ctxt * lexic)
 {
   struct script_infos *desc = lexic->script_infos;
-  struct host_info *hostinfo = desc->hostname;
   const char * port_range = prefs_get ("port_range");
   const char * p;
   struct in6_addr *p_addr;
@@ -1433,7 +1432,7 @@ plugin_run_openvas_tcp_scanner (lex_ctxt * lexic)
 #endif
   }
 
-  p_addr = hostinfo->ip;
+  p_addr = desc->ip;
   if( p_addr == NULL )
     return NULL; // TODO: before it returned "1";
   if (banner_grab(p_addr, port_range, timeout, min_cnx, max_cnx, desc) < 0)

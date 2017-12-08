@@ -1918,7 +1918,7 @@ open_sock_tcp (struct script_infos *args, unsigned int port, int timeout)
                          "This port will be set to closed.", ip_str, port);
               kb_item_set_int (kb, buffer, 0);
 
-              addr6_to_str (args->hostname->ip, ip_str);
+              addr6_to_str (args->ip, ip_str);
               snprintf (buffer, sizeof (buffer),
                         "SERVER <|> ERRMSG <|> %s <|> %s <|> %d/tcp <|> "
                         "Too many timeouts. The port was set to closed."
@@ -2455,41 +2455,4 @@ getpts (char *origexpr, int *len)
   last_expr = g_strdup (origexpr);
   last_num = i - 1;
   return tmp;
-}
-
-/**
- * @brief Initializes a host_info.
- *
- * @param[in]   ip          IP address.
- * @param[in]   fqdn        Fully qualified domain name.
- *
- * @return host_info pointer.
- */
-struct host_info *
-host_info_init (const struct in6_addr *ip, const char *fqdn)
-{
-  struct host_info *hostinfo;
-
-  hostinfo = g_malloc0 (sizeof (struct host_info));
-  hostinfo->vhosts = g_slist_prepend (hostinfo->vhosts, g_strdup (fqdn));
-  if (ip)
-    {
-      hostinfo->ip = g_malloc0 (sizeof (struct in6_addr));
-      memcpy (hostinfo->ip, ip, sizeof (struct in6_addr));
-    }
-  return hostinfo;
-}
-
-/**
- * @brief Free a host_info struct.
- *
- * @param[in]   hostinfo    Host info to free.
- */
-void
-host_info_free (struct host_info *hostinfo)
-{
-  if (!hostinfo)
-    return;
-  g_free (hostinfo->ip);
-  g_slist_free_full (hostinfo->vhosts, g_free);
 }

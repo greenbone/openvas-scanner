@@ -184,15 +184,17 @@ nasl_thread (struct nasl_thread_args *);
  * @brief Launch a NASL plugin.
  */
 int
-nasl_plugin_launch (struct scan_globals *globals, struct host_info *hostinfo,
-                    kb_t kb, char *name, const char *oid, int soc)
+nasl_plugin_launch (struct scan_globals *globals, struct in6_addr *ip,
+                    char *hostname, kb_t kb, char *name, const char *oid,
+                    int soc)
 {
   int module;
   struct nasl_thread_args nargs;
   struct script_infos *infos;
 
   infos = g_malloc0 (sizeof (struct script_infos));
-  infos->hostname = hostinfo;
+  infos->ip = ip;
+  infos->vhosts = g_slist_prepend (infos->vhosts, hostname);
   infos->globals = globals;
   infos->key = kb;
 
@@ -211,7 +213,6 @@ nasl_thread (struct nasl_thread_args *nargs)
 {
   struct script_infos *args = nargs->args;
   struct scan_globals *globals = args->globals;
-  struct host_info *hostinfo = args->hostname;
   char *name = nargs->name, ip_str[INET6_ADDRSTRLEN];
   int nasl_mode = 0;
   kb_t kb;
@@ -232,7 +233,7 @@ nasl_thread (struct nasl_thread_args *nargs)
   kb = args->key;
   kb_lnk_reset (kb);
   globals->global_socket = nargs->soc;
-  addr6_to_str (hostinfo->ip, ip_str);
+  addr6_to_str (args->ip, ip_str);
   proctitle_set ("openvassd: testing %s (%s)", ip_str, name);
 
   if (prefs_get_bool ("nasl_no_signature_check"))

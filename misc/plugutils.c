@@ -208,26 +208,24 @@ host_get_port_state_udp (struct script_infos *plugdata, int portnum)
 char *
 plug_get_host_fqdn (struct script_infos *args)
 {
-  struct host_info *hinfos = args->hostname;
+  if (!args->vhosts)
+    return addr6_as_str (args->ip);
 
-  if (!hinfos->vhosts)
-    return addr6_as_str (hinfos->ip);
-
-  if (g_slist_length (hinfos->vhosts) == 1)
+  if (g_slist_length (args->vhosts) == 1)
     {
-      current_vhost = g_strdup (hinfos->vhosts->data);
+      current_vhost = g_strdup (args->vhosts->data);
       return g_strdup (current_vhost);
     }
   else
     {
-      GSList *vhosts = hinfos->vhosts;
+      GSList *vhosts = args->vhosts;
       while (vhosts)
         {
           pid_t pid = plug_fork_child (args->key);
 
           if (pid == 0)
             {
-              current_vhost = g_strdup (hinfos->vhosts->data);
+              current_vhost = g_strdup (args->vhosts->data);
               return g_strdup (current_vhost);
             }
           else if (pid == -1)
@@ -242,10 +240,7 @@ plug_get_host_fqdn (struct script_infos *args)
 struct in6_addr *
 plug_get_host_ip (struct script_infos *args)
 {
-  struct host_info *hinfos = args->hostname;
-  if (hinfos)
-    return hinfos->ip;
-  return NULL;
+  return args->ip;
 }
 
 char *
@@ -394,8 +389,8 @@ proto_post_wrapped (const char *oid, struct script_infos *desc, int port,
     snprintf (port_s, sizeof (port_s), "%d", port);
   if (current_vhost)
     hostname = current_vhost;
-  else if (desc->hostname->vhosts)
-    hostname = desc->hostname->vhosts->data;
+  else if (desc->vhosts)
+    hostname = desc->vhosts->data;
   addr6_to_str (plug_get_host_ip (desc), ip_str);
   buffer = g_strdup_printf
             ("SERVER <|> %s <|> %s <|> %s <|> %s/%s <|> %s <|> %s <|> SERVER\n",
