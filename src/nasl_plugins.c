@@ -185,7 +185,7 @@ nasl_thread (struct nasl_thread_args *);
  */
 int
 nasl_plugin_launch (struct scan_globals *globals, struct in6_addr *ip,
-                    char *hostname, kb_t kb, char *name, const char *oid,
+                    GSList *vhosts, kb_t kb, char *name, const char *oid,
                     int soc)
 {
   int module;
@@ -194,7 +194,7 @@ nasl_plugin_launch (struct scan_globals *globals, struct in6_addr *ip,
 
   infos = g_malloc0 (sizeof (struct script_infos));
   infos->ip = ip;
-  infos->vhosts = g_slist_prepend (infos->vhosts, hostname);
+  infos->vhosts = vhosts;
   infos->globals = globals;
   infos->key = kb;
 

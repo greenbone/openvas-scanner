@@ -228,7 +228,7 @@ nvti_category_is_safe (int category)
  */
 static int
 launch_plugin (struct scan_globals *globals, struct scheduler_plugin *plugin,
-               struct in6_addr *ip, char *hostname, kb_t kb)
+               struct in6_addr *ip, GSList *vhosts, kb_t kb)
 {
   int optimize = prefs_get_bool ("optimize_test"), category, pid;
   char *oid, *name, *error = NULL, *src, ip_str[INET6_ADDRSTRLEN];
@@ -311,7 +311,7 @@ launch_plugin (struct scan_globals *globals, struct scheduler_plugin *plugin,
 
   src = nvticache_get_src (oid);
   /* Start the plugin */
-  pid = plugin_launch (globals, plugin, ip, hostname, kb, src);
+  pid = plugin_launch (globals, plugin, ip, vhosts, kb, src);
   g_free (src);
   if (pid < 0)
     {
@@ -408,7 +408,7 @@ init_host_kb (struct scan_globals *globals, char *ip_str, kb_t *network_kb)
  */
 static void
 attack_host (struct scan_globals *globals, struct in6_addr *ip,
-             char *hostname, plugins_scheduler_t sched, kb_t *net_kb)
+             GSList *vhosts, plugins_scheduler_t sched, kb_t *net_kb)
 {
   /* Used for the status */
   int num_plugs, forks_retry = 0, global_socket;
@@ -449,7 +449,7 @@ attack_host (struct scan_globals *globals, struct in6_addr *ip,
           static int last_status = 0, cur_plug = 0;
 
         again:
-          e = launch_plugin (globals, plugin, ip, hostname, kb);
+          e = launch_plugin (globals, plugin, ip, vhosts, kb);
           if (e < 0)
             {
               /*
@@ -551,6 +551,33 @@ host_authorized (const gvm_host_t *host, const struct in6_addr *addr,
   return 1;
 }
 
+/*
+ * Converts a linked-list into a comma-separated char string.
+ *
+ * @param[in]   list    Linked-list to convert.
+ *
+ * @return NULL if empty list, char string otherwise.
+ */
+static char *
+list_to_str (GSList *list)
+{
+  GString *string;
+
+  if (!list)
+    return NULL;
+  string = g_string_new (list->data);
+  if (g_slist_length (list) == 1)
+    return g_string_free (string, FALSE);
+  list = list->next;
+  while (list)
+    {
+      g_string_append (string, ", ");
+      g_string_append (string, list->data);
+      list = list->next;
+    }
+  return g_string_free (string, FALSE);
+}
+
 /**
  * @brief Set up some data and jump into attack_host()
  */
@@ -558,7 +585,7 @@ static void
 attack_start (struct attack_start_args *args)
 {
   struct scan_globals *globals = args->globals;
-  char ip_str[INET6_ADDRSTRLEN], *hostname;
+  char ip_str[INET6_ADDRSTRLEN], *hostnames;
   struct in6_addr hostip;
   int thread_socket;
   struct timeval then;
@@ -578,25 +605,16 @@ attack_start (struct attack_start_args *args)
   openvas_deregister_connection (globals->global_socket);
   globals->global_socket = thread_socket;
 
-  hostname = gvm_host_reverse_lookup (args->host);
-  if (!hostname)
-    hostname = gvm_host_value_str (args->host);
-  if (gvm_host_get_addr6 (args->host, &hostip) == -1)
-    {
-      g_warning ("Couldn't resolve target %s", hostname);
-      error_message_to_client (thread_socket, "Couldn't resolve hostname.",
-                               hostname, NULL);
-      return;
-    }
-
+  gvm_host_get_addr6 (args->host, &hostip);
+  addr6_to_str (&hostip, ip_str);
   /* Do we have the right to test this host ? */
   hosts_allow = gvm_hosts_new (prefs_get ("hosts_allow"));
   hosts_deny = gvm_hosts_new (prefs_get ("hosts_deny"));
   if (!host_authorized (args->host, &hostip, hosts_allow, hosts_deny))
     {
       error_message_to_client
-       (thread_socket, "Host access denied.", hostname, NULL);
-      g_warning ("Host %s access denied.", hostname);
+       (thread_socket, "Host access denied.", ip_str, NULL);
+      g_warning ("Host %s access denied.", ip_str);
       return;
     }
   sys_hosts_allow = gvm_hosts_new (prefs_get ("sys_hosts_allow"));
@@ -605,9 +623,9 @@ attack_start (struct attack_start_args *args)
     {
       error_message_to_client
        (thread_socket, "Host access denied (system-wide restriction.)",
-        hostname, NULL);
+        ip_str, NULL);
       g_warning ("Host %s access denied (sys_* preference restriction.)",
-                 hostname);
+                 ip_str);
       return;
     }
   gvm_hosts_free (hosts_allow);
@@ -615,11 +633,14 @@ attack_start (struct attack_start_args *args)
   gvm_hosts_free (sys_hosts_allow);
   gvm_hosts_free (sys_hosts_deny);
 
-  addr6_to_str (&hostip, ip_str);
   ntp_timestamp_host_scan_starts (thread_socket, ip_str);
-  // Start scan
-  g_message ("Testing %s (%s) [%d]", ip_str, hostname, getpid ());
-  attack_host (globals, &hostip, hostname, sched, net_kb);
+  hostnames = list_to_str (args->host->vhosts);
+  if (hostnames)
+    g_message ("Testing %s (Vhosts: %s) [%d]", ip_str, hostnames, getpid ());
+  else
+    g_message ("Testing %s [%d]", ip_str, getpid ());
+  g_free (hostnames);
+  attack_host (globals, &hostip, args->host->vhosts, sched, net_kb);
 
   if (!scan_is_stopped () && !all_scans_are_stopped ())
     {
@@ -632,13 +653,12 @@ attack_start (struct attack_start_args *args)
           then.tv_sec++;
           now.tv_usec += 1000000;
         }
-      g_message ("Finished testing %s (%s). Time : %ld.%.2ld secs",
-                 hostname, ip_str, (long) (now.tv_sec - then.tv_sec),
+      g_message ("Finished testing %s. Time : %ld.%.2ld secs",
+                 ip_str, (long) (now.tv_sec - then.tv_sec),
                  (long) ((now.tv_usec - then.tv_usec) / 10000));
     }
   shutdown (thread_socket, 2);
   close (thread_socket);
-  g_free (hostname);
 }
 
 static void
@@ -962,6 +982,7 @@ attack_network (struct scan_globals *globals, kb_t *network_kb)
                "max_checks = %d", hostlist, max_hosts, max_checks);
 
   hosts = gvm_hosts_new (hostlist);
+  gvm_hosts_resolve (hosts);
   /* Apply Hosts preferences. */
   apply_hosts_preferences (hosts);
 

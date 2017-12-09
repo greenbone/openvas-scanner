@@ -1,3 +1,16 @@
+2017-12-08  Hani Benhabiles  <hani.benhabiles@greenbone.net>
+
+	Handle multiple hostnames per target host.
+
+	* src/attack.c (launch_plugin, attack_host, attack_start): Adjust to use
+	the host's vhosts list instead of single hostname.
+	(list_to_str): New function.
+
+	* src/nasl_plugins.c (nasl_plugin_launch), src/pluginlaunch.c
+	(plugin_launch): Adjust functions headers.
+
+	* src/pluginlaunch.h, src/pluginload.h: Adjust functions headers.
+
 2017-12-07  Hani Benhabiles  <hani.benhabiles@greenbone.net>
 
 	* misc/network.c (host_info_init, host_info_free): Remove functions.
