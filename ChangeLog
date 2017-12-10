@@ -1,3 +1,8 @@
+2017-12-09  Hani Benhabiles  <hani.benhabiles@greenbone.net>
+
+	* src/attack.c (attack_start): Add reverse-lookup name to the host's
+	vhosts list.
+
 2017-12-08  Hani Benhabiles  <hani.benhabiles@greenbone.net>
 
 	Handle multiple hostnames per target host.

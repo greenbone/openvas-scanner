@@ -605,6 +605,9 @@ attack_start (struct attack_start_args *args)
   openvas_deregister_connection (globals->global_socket);
   globals->global_socket = thread_socket;
 
+  /* The reverse lookup is delayed to this step in order to not slow down the
+   * main scan process eg. case of target with big range of IP addresses. */
+  gvm_host_add_reverse_lookup (args->host);
   gvm_host_get_addr6 (args->host, &hostip);
   addr6_to_str (&hostip, ip_str);
   /* Do we have the right to test this host ? */
