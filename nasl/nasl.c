@@ -325,28 +325,19 @@ main (int argc, char **argv)
   prefs_config (config_file ?: OPENVASSD_CONF);
   while ((host = gvm_hosts_next (hosts)))
     {
+      char fqdn[INET6_ADDRSTRLEN];
       struct in6_addr ip6;
-      char *fqdn;
       kb_t kb;
       int rc;
 
-      fqdn = gvm_host_reverse_lookup (host);
-      if (!fqdn)
-        fqdn = gvm_host_value_str (host);
-      if (gvm_host_get_addr6 (host, &ip6) == -1)
-        {
-          fprintf (stderr, "Couldn't resolve %s\n", fqdn);
-          g_free (fqdn);
-          err++;
-          continue;
-        }
-
+      gvm_host_add_reverse_lookup (host);
+      gvm_host_get_addr6 (host, &ip6);
+      addr6_to_str (&ip6, fqdn);
       rc = kb_new (&kb, prefs_get ("kb_location") ?: KB_PATH_DEFAULT);
       if (rc)
         exit (1);
 
       script_infos = init (&ip6, fqdn, kb);
-      g_free (fqdn);
       while (nasl_filenames[n])
         {
           pid_t pid;

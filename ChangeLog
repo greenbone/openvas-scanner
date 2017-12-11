@@ -1,3 +1,8 @@
+2017-12-11  Hani Benhabiles  <hani.benhabiles@greenbone.net>
+
+	* nasl/nasl.c (main): Add reverse-lookup result to the host's vhosts
+	list like the scanner does.
+
 2017-12-09  Hani Benhabiles  <hani.benhabiles@greenbone.net>
 
 	* src/attack.c (attack_start): Add reverse-lookup name to the host's
