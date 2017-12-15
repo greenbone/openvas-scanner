@@ -1348,11 +1348,13 @@ nasl_array_iterator (void *ctxt, tree_cell * c)
       v = c->x.ref_val;
       if (v == NULL || v->var_type != VAR2_ARRAY)
         return it;
-      it.a = &v->v.v_arr;
+      it.a = g_malloc0 (sizeof (nasl_array));
+      copy_array (it.a, &v->v.v_arr, 1);
     }
   else if (c->type == REF_ARRAY || c->type == DYN_ARRAY)
     {
-      it.a = c->x.ref_val;
+      it.a = g_malloc0 (sizeof (nasl_array));
+      copy_array (it.a, c->x.ref_val, 1);
     }
   else
     {
@@ -1383,7 +1385,7 @@ nasl_iterate_array (nasl_iterator * it)
     }
 
   if (it->a->hash_elt == NULL)
-    return NULL;
+    goto finish_iterate;
 
   if (it->v != NULL)
     it->v = it->v->next_var;
@@ -1391,7 +1393,7 @@ nasl_iterate_array (nasl_iterator * it)
     {
       while (it->v == NULL)
         if (it->iH >= VAR_NAME_HASH)
-          return NULL;
+          goto finish_iterate;
         else
           it->v = it->a->hash_elt[it->iH++];
 
@@ -1401,6 +1403,10 @@ nasl_iterate_array (nasl_iterator * it)
   while (it->v == NULL);
 
   return var2cell (&it->v->u);
+
+finish_iterate:
+  free_array (it->a);
+  return NULL;
 }
 
 int

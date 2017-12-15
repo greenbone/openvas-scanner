@@ -1,3 +1,10 @@
+2017-12-15  Hani Benhabiles  <hani.benhabiles@greenbone.net>
+
+	* nasl/nasl_var.c (nasl_array_iterator): Make a deep copy of the array,
+	instead of shallow one. This fixes the issue of using the array's
+	variable for another value or value type during the loop.
+	(nasl_iterate_array): Free the array.
+
 2017-12-11  Hani Benhabiles  <hani.benhabiles@greenbone.net>
 
 	* nasl/nasl.c (main): Add reverse-lookup result to the host's vhosts
