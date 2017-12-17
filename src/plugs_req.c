@@ -131,7 +131,7 @@ kb_missing_keyname_of_namelist (kb_t kb, char *keys, char **keyname)
 {
   int i;
   char **keynames;
-  if (!kb || !keys)
+  if (!kb || !keys || !*keys)
     return 0;
 
   keynames = g_strsplit (keys, ", ", 0);
@@ -170,7 +170,7 @@ kb_present_keyname_of_namelist (kb_t kb, char *keys, char **keyname)
   int i;
   char **keynames;
 
-  if (!kb || !keys)
+  if (!kb || !keys || !*keys)
     return 0;
 
   keynames = g_strsplit (keys, ", ", 0);
@@ -237,7 +237,7 @@ requirements_plugin (kb_t kb, struct scheduler_plugin *plugin)
    */
   error[sizeof (error) - 1] = '\0';
   tcp = nvticache_get_required_ports (plugin->oid);
-  if (tcp != NULL && (get_closed_ports (kb, tcp)) == 0)
+  if (tcp && *tcp && (get_closed_ports (kb, tcp)) == 0)
     {
       strncpy (error, "none of the required tcp ports are open",
                sizeof (error) - 1);
@@ -247,7 +247,7 @@ requirements_plugin (kb_t kb, struct scheduler_plugin *plugin)
   g_free (tcp);
 
   udp = nvticache_get_required_udp_ports (plugin->oid);
-  if (udp != NULL && (get_closed_udp_ports (kb, udp)) == 0)
+  if (udp && *udp && (get_closed_udp_ports (kb, udp)) == 0)
     {
       strncpy (error, "none of the required udp ports are open",
                sizeof (error) - 1);

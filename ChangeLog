@@ -1,3 +1,8 @@
+2017-12-17  Hani Benhabiles  <hani.benhabiles@greenbone.net>
+
+	* src/plugs_req.c (kb_missing_keyname_of_namelist, requirements_plugin)
+	(kb_present_keyname_of_namelist): Check for empty string too.
+
 2017-12-15  Hani Benhabiles  <hani.benhabiles@greenbone.net>
 
 	* nasl/nasl_var.c (nasl_array_iterator): Make a deep copy of the array,
