@@ -1,3 +1,9 @@
+2017-12-19  Hani Benhabiles  <hani.benhabiles@greenbone.net>
+
+	* nasl/exec.c (cell_cmp): Fix regression introduced in r29164. Don't
+	call cell2str() before cell2atom() as it leads to executing expressions
+	such as incrementations and function calls twice.
+
 2017-12-17  Hani Benhabiles  <hani.benhabiles@greenbone.net>
 
 	* src/plugs_req.c (kb_missing_keyname_of_namelist, requirements_plugin)
