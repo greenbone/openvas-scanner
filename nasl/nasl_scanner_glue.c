@@ -497,6 +497,7 @@ script_get_preference (lex_ctxt * lexic)
           retc->size = strlen (value);
           retc->x.str_val = g_strdup (value);
         }
+      g_free (value);
       return retc;
     }
   else

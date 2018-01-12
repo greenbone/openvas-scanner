@@ -1119,7 +1119,7 @@ var2int (anon_nasl_var * v, int defval)
     }
  /*NOTREACHED*/}
 
-const char *
+char *
 array2str (const nasl_array * a)
 {
   GString *str;
@@ -1128,7 +1128,7 @@ array2str (const nasl_array * a)
   named_nasl_var *v;
 
   if (a == NULL)
-    return "";
+    return NULL;
 
   str = g_string_new ("[ ");
   if (a->num_elt != NULL)
@@ -1385,7 +1385,7 @@ nasl_iterate_array (nasl_iterator * it)
     }
 
   if (it->a->hash_elt == NULL)
-    goto finish_iterate;
+    return NULL;
 
   if (it->v != NULL)
     it->v = it->v->next_var;
@@ -1393,7 +1393,7 @@ nasl_iterate_array (nasl_iterator * it)
     {
       while (it->v == NULL)
         if (it->iH >= VAR_NAME_HASH)
-          goto finish_iterate;
+          return NULL;
         else
           it->v = it->a->hash_elt[it->iH++];
 
@@ -1403,10 +1403,6 @@ nasl_iterate_array (nasl_iterator * it)
   while (it->v == NULL);
 
   return var2cell (&it->v->u);
-
-finish_iterate:
-  free_array (it->a);
-  return NULL;
 }
 
 int

@@ -624,10 +624,15 @@ var_cmp (const void *a, const void *b)
 {
   anon_nasl_var **pv1 = (anon_nasl_var **) a, **pv2 = (anon_nasl_var **) b;
   tree_cell *t1, *t2;
+  int ret;
 
   t1 = var2cell ((anon_nasl_var *) * pv1);
   t2 = var2cell ((anon_nasl_var *) * pv2);
-  return cell_cmp (mylexic, t1, t2);
+  ret = cell_cmp (mylexic, t1, t2);
+  deref_cell (t1);
+  deref_cell (t2);
+
+  return ret;
 }
 
 tree_cell *

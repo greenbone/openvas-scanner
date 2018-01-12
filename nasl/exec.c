@@ -204,8 +204,7 @@ cell2str (lex_ctxt * lexic, tree_cell * c)
     case REF_ARRAY:
     case DYN_ARRAY:
       a = c->x.ref_val;
-      p = (char *) array2str (a);
-      return g_strdup (p);
+      return array2str (a);
 
     default:
       c2 = nasl_exec (lexic, c);
@@ -1038,6 +1037,8 @@ nasl_exec (lex_ctxt * lexic, tree_cell * st)
               }
             lexic->cont_flag = 0;
           }
+        free_array (ai.a);
+        g_free (ai.a);
         deref_cell (a);
         deref_cell (v);
       }

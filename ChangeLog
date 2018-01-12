@@ -1,3 +1,18 @@
+2018-01-12  Hani Benhabiles  <hani.benhabiles@greenbone.net>
+
+	* misc/plugutils.c (get_plugin_preference), src/openvassd.c
+	(check_kb_status), nasl/nasl_func.c (nasl_func_call),
+	nasl/nasl_misc_funcs.c (var_cmp), nasl/nasl_scanner_glue.c
+	(script_get_preference): Fix memory leaks.
+
+	* nasl/exec.c (cell2str): Do not duplicate array2str() return value.
+	(nasl_exec): Fix memory leak.
+
+	* nasl/nasl_var.c (array2str): Do not return const string.
+	(nasl_iterate_array): Do not free array inside function.
+
+	* nasl/nasl_var.h: Adjust function header.
+
 2017-12-19  Hani Benhabiles  <hani.benhabiles@greenbone.net>
 
 	* nasl/exec.c (cell_cmp): Fix regression introduced in r29164. Don't

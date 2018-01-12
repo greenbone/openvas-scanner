@@ -510,6 +510,7 @@ get_plugin_preference (const char *oid, const char *name)
             }
         }
     }
+  g_free (plug_name);
   /* If no value set by the user, get the default one. */
   if (!retval)
     {
