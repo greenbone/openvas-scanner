@@ -180,7 +180,7 @@ nasl_plugin_add (char *folder, char *name)
     {
       char *pref, *cname, def_val[5];
       snprintf (def_val, 5, "%d", nvti->timeout);
-      const nvtpref_t *np = nvtpref_new ("Timeout", "entry", def_val);
+      nvtpref_t *np = nvtpref_new ("Timeout", "entry", def_val);
 
       cname = g_strdup (nvtpref_name (np));
       g_strchomp (cname);
@@ -188,6 +188,7 @@ nasl_plugin_add (char *folder, char *name)
                               cname);
       prefs_set (pref, nvtpref_default (np));
 
+      nvtpref_free (np);
       g_free (cname);
       g_free (pref);
     }

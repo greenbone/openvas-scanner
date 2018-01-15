@@ -1,3 +1,7 @@
+2018-01-15  Hani Benhabiles  <hani.benhabiles@greenbone.net>
+
+	* src/nasl_plugins.c (nasl_plugin_add): Fix memory leak.
+
 2017-12-06  Juan Jose Nicola  <juan.nicola@greenbone.net>
 
 	Backport r30008.
