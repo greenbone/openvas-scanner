@@ -573,8 +573,11 @@ check_kb_status ()
       stop_all_scans ();
       reload_openvassd ();
     }
-  kb_lnk_reset (kb_access_aux);
-  g_free (kb_access_aux);
+  if (kb_access_aux)
+    {
+      kb_lnk_reset (kb_access_aux);
+      g_free (kb_access_aux);
+    }
 }
 
 

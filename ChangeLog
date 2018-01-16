@@ -1,3 +1,8 @@
+2018-01-16  Hani Benhabiles  <hani.benhabiles@greenbone.net>
+
+	* src/openvassd.c (check_kb_status): Disconnect and free nvticache kb
+	only if it was found.
+
 2018-01-12  Hani Benhabiles  <hani.benhabiles@greenbone.net>
 
 	* misc/plugutils.c (get_plugin_preference), src/openvassd.c
