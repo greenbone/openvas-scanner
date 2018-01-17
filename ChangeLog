@@ -1,5 +1,15 @@
 2018-01-17  Hani Benhabiles  <hani.benhabiles@greenbone.net>
 
+	Backport src/ part of r29656.
+
+	* src/comm.c (send_plugin_preferences): New function.
+	(comm_send_preferences): Call new function.
+
+	* src/nasl_plugins.c (prefs_add_nvti): Remove functions.
+	(nasl_plugin_add): Don't add plugin preferences in memory.
+
+2018-01-17  Hani Benhabiles  <hani.benhabiles@greenbone.net>
+
 	Backport r29584.
 
 	* src/pluginload.c (plugins_reload_from_dir): Don't call

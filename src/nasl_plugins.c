@@ -56,35 +56,6 @@
 #include "log.h"
 
 /**
- * @brief Add a nvti's preferences to the global preferences.
- *
- * @param nvti  NVTI pointer.
- */
-static void
-prefs_add_nvti (const nvti_t *nvti)
-{
-  unsigned int i;
-
-  if (!nvti)
-    return;
-
-  for (i = 0; i < nvti_pref_len (nvti); i++)
-    {
-      char *pref, *cname;
-      const nvtpref_t *np = nvti_pref (nvti, i);
-
-      cname = g_strdup (nvtpref_name (np));
-      g_strchomp (cname);
-      pref = g_strdup_printf ("%s[%s]:%s", nvti_name (nvti), nvtpref_type (np),
-                              cname);
-      prefs_set (pref, nvtpref_default (np));
-
-      g_free (cname);
-      g_free (pref);
-    }
-}
-
-/**
  * @brief Add *one* .nasl plugin to the plugin list.
  *
  * The plugin is first attempted to be loaded from the cache.
@@ -175,25 +146,6 @@ nasl_plugin_add (char *folder, char *name)
       nvti_free (nvti);
       return -1;
     }
-
-  if (nvti->timeout)
-    {
-      char *pref, *cname, def_val[5];
-      snprintf (def_val, 5, "%d", nvti->timeout);
-      nvtpref_t *np = nvtpref_new ("Timeout", "entry", def_val);
-
-      cname = g_strdup (nvtpref_name (np));
-      g_strchomp (cname);
-      pref = g_strdup_printf ("%s[%s]:%s", nvti_name (nvti), nvtpref_type (np),
-                              cname);
-      prefs_set (pref, nvtpref_default (np));
-
-      nvtpref_free (np);
-      g_free (cname);
-      g_free (pref);
-    }
-
-  prefs_add_nvti (nvti);
 
   nvti_free (nvti);
   return 0;

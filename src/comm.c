@@ -281,6 +281,41 @@ comm_send_pluginlist (int soc)
   g_slist_free_full (list, g_free);
 }
 
+void
+send_plugins_preferences (int soc)
+{
+  GSList *list, *element;
+
+  list = element = nvticache_get_oids ();
+  while (element)
+    {
+      char *oid = element->data;
+      int timeout;
+      nvti_t *nvti = nvticache_get_by_oid_full (oid);
+
+      timeout = nvti_timeout (nvti);
+      if (nvti_pref_len (nvti) || (timeout > 0))
+        {
+          unsigned int i;
+          char *name = nvti_name (nvti);
+
+          if (timeout > 0)
+            send_printf (soc, "%s[%s]:%s <|> %d\n", name, "entry", "Timeout",
+                         timeout);
+          for (i = 0; i < nvti_pref_len (nvti); i++)
+            {
+              const nvtpref_t *pref = nvti_pref (nvti, i);
+              send_printf (soc, "%s[%s]:%s <|> %s\n", name, nvtpref_type (pref),
+                           g_strchomp (nvtpref_name (pref)),
+                           nvtpref_default (pref));
+            }
+        }
+      element = element->next;
+      nvti_free (nvti);
+    }
+  g_slist_free_full (list, g_free);
+}
+
 /**
  * @brief Sends the preferences of the scanner.
  * @param soc Socket to use for sending.
@@ -300,6 +335,7 @@ comm_send_preferences (int soc)
                      (const char *) prefs->value);
       prefs = prefs->next;
     }
+  send_plugins_preferences (soc);
   send_printf (soc, "<|> SERVER\n");
 }
 
