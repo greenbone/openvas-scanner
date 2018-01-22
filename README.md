@@ -1,5 +1,4 @@
-openvas-scanner
-===============
+# openvas-scanner
 
 This is the scanner module for the Open Vulnerability Assessment System
 (OpenVAS).
