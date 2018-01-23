@@ -1,0 +1,18 @@
+version: 2
+jobs:
+  build:
+    docker:
+      - image: wiegandm/openvas-scanner-core-debian-stretch
+    steps:
+      - run:
+          working_directory: ~/gvm-libs
+          name: Checkout gvm-libs
+          command: git clone https://github.com/greenbone/gvm-libs.git
+      - run:
+          working_directory: ~/gvm-libs
+          name: Configure and compile gvm-libs
+          command: pushd gvm-libs && mkdir build && cd build/ && cmake -DCMAKE_BUILD_TYPE=Release .. && make install && popd
+      - checkout
+      - run:
+          name: Configure and Compile
+          command: mkdir build && cd build/ && cmake -DCMAKE_BUILD_TYPE=Release .. && make install
