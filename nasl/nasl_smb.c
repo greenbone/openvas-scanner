@@ -382,10 +382,11 @@ nasl_win_cmd_exec (lex_ctxt * lexic)
 {
   struct script_infos *script_infos = lexic->script_infos;
   struct in6_addr *host = plug_get_host_ip (script_infos);
-  char *ip, *command, *unicode, *quoted_pass;
+  char *ip, *argv[4], *unicode;
   tree_cell *retc;
-  FILE *fp;
   GString *string = NULL;
+  int sout, ret;
+  GError *err = NULL;
 
   IMPORT (username);
   IMPORT (password);
@@ -406,26 +407,32 @@ nasl_win_cmd_exec (lex_ctxt * lexic)
       return NULL;
     }
 
-  quoted_pass = g_shell_quote (password);
-  command = g_strdup_printf ("wmiexec.py %s:%s@%s '%s'", username, quoted_pass,
-                             ip, cmd);
-  g_free (quoted_pass);
-  fp = popen (command, "r");
-  g_free (command);
+  argv[0] = g_strdup ("wmiexec.py");
+  argv[1] = g_strdup_printf ("%s:%s@%s", username, password, ip);
+  argv[2] = g_strdup_printf ("%s", cmd);
+  argv[3] = NULL;
+  ret = g_spawn_async_with_pipes (NULL, argv, NULL, G_SPAWN_SEARCH_PATH, NULL,
+                                  NULL, NULL, NULL, &sout, NULL, &err);
   g_free (ip);
-  if (!fp)
+  g_free (argv[0]);
+  g_free (argv[1]);
+  g_free (argv[2]);
+  if (ret == FALSE)
     {
-      g_warning ("win_cmd_exec: %s", strerror (errno));
+      g_warning ("win_cmd_exec: %s", err ? err->message : "Error");
+      if (err)
+        g_error_free (err);
       return NULL;
     }
+
   string = g_string_new ("");
   while (1)
     {
       char buf[4096];
       size_t bytes;
 
-      bytes = read (fileno (fp), buf, sizeof (buf));
-      if (bytes == 0)
+      bytes = read (sout, buf, sizeof (buf));
+      if (!bytes)
         break;
       else if (bytes > 0)
         g_string_append_len (string, buf, bytes);
@@ -433,9 +440,11 @@ nasl_win_cmd_exec (lex_ctxt * lexic)
         {
           g_warning ("win_cmd_exec: %s", strerror (errno));
           g_string_free (string, TRUE);
+          close (sout);
           return NULL;
         }
     }
+  close (sout);
 
   if (g_str_has_prefix (string->str, "[-]"))
     {
