@@ -169,7 +169,5 @@ misc/pcap.c: LGPL-2+
 misc/pcap_openvas.h: LGPL-2+
 misc/plugutils.c: LGPL-2+
 misc/plugutils.h: LGPL-2+
-misc/popen.c: LGPL-2+
-misc/popen.h: LGPL-2+
 misc/scanneraux.h: GPL-2+
 misc/support.h: GPL-2+
