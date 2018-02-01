@@ -110,7 +110,7 @@ endif (NOT MINGW)
 if (MINGW)
 else (MINGW)
   set (FILES bpf_share.c ftp_funcs.c vendorversion.c network.c plugutils.c
-             popen.c pcap.c)
+             pcap.c)
 endif (MINGW)
 
 # Indentation targets

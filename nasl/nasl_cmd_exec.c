@@ -33,7 +33,6 @@
 #include <unistd.h>             /* for getcwd */
 
 #include "../misc/plugutils.h"          /* for find_in_path */
-#include "../misc/popen.h"              /* for openvas_popen4 */
 
 #include "nasl_tree.h"
 #include "nasl_global_ctxt.h"
@@ -68,7 +67,7 @@ nasl_pread (lex_ctxt * lexic)
   tree_cell *retc = NULL, *a;
   anon_nasl_var *v;
   nasl_array *av;
-  int i, j, n, sz, sz2, cd, nice;
+  int i, j, n, sz, sz2, cd, fd = 0;
   char **args = NULL, *cmd, *str, *str2, buf[8192];
   FILE *fp;
   char cwd[MAXPATHLEN], newdir[MAXPATHLEN];
@@ -88,8 +87,6 @@ nasl_pread (lex_ctxt * lexic)
       return NULL;
     }
   deref_cell (a);
-
-  nice = get_int_local_var_by_name (lexic, "nice", 0);
 
   if (v->var_type == VAR2_ARRAY)
     av = &v->v.v_arr;
@@ -151,23 +148,24 @@ nasl_pread (lex_ctxt * lexic)
     nasl_perror (lexic, "pread: named elements in 'cmd' are ignored!\n");
   n = av->max_idx;
   args = g_malloc0 (sizeof (char **) * (n + 2));  /* Last arg is NULL */
-  for (j = 0, i = 0; i < n; i++)
+  for (j = 1, i = 0; i < n; i++)
     {
       str = (char *) var2str (av->num_elt[i]);
       if (str != NULL)
         args[j++] = g_strdup (str);
     }
-  args[j++] = NULL;
+  args[0] = g_strdup (cmd);
+  args[j] = NULL;
 
   old_sig_t = signal (SIGTERM, sig_h);
   old_sig_i = signal (SIGINT, sig_h);
   old_sig_c = signal (SIGCHLD, sig_c);
 
-  fp = openvas_popen4 ((const char *) cmd, args, &pid, nice);
-
-  for (i = 0; i < n; i++)
-    g_free (args[i]);
-  g_free (args);
+  if (g_spawn_async_with_pipes
+       (NULL, args, NULL, G_SPAWN_SEARCH_PATH, NULL, NULL, &pid, NULL, &fd,
+        NULL, NULL) == FALSE)
+    goto finish_pread;
+  fp = fdopen (fd, "r");
 
   if (fp != NULL)
     {
@@ -191,9 +189,6 @@ nasl_pread (lex_ctxt * lexic)
       if (ferror (fp) && errno != EINTR)
         nasl_perror (lexic, "nasl_pread: fread(): %s\n", strerror (errno));
 
-      (void) openvas_pclose (fp, pid);
-      pid = 0;
-
       if (*cwd != '\0')
         if (chdir (cwd) < 0)
           nasl_perror (lexic, "pread(): chdir(%s): %s\n", cwd,
@@ -204,6 +199,13 @@ nasl_pread (lex_ctxt * lexic)
       retc->size = sz;
     }
 
+finish_pread:
+  for (i = 0; i < n; i++)
+    g_free (args[i]);
+  g_free (args);
+
+  g_spawn_close_pid (pid);
+  pid = 0;
   signal (SIGINT, old_sig_i);
   signal (SIGTERM, old_sig_t);
   signal (SIGCHLD, old_sig_c);

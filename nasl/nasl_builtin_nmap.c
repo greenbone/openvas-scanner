@@ -55,6 +55,7 @@
 #include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
+#include <unistd.h>
 #include <signal.h>
 #include <sys/types.h>
 #include <sys/wait.h>
@@ -65,7 +66,6 @@
 #include <gvm/util/kb.h>
 
 #include "../misc/plugutils.h"
-#include "../misc/popen.h"
 
 #include "nasl_lex_ctxt.h"
 
@@ -472,7 +472,7 @@ static void save_hostscripts (nmap_t * nmap);
 /* -------------------------------------------------------------------------- */
 
 /* PID of the nmap subprocess. Declared global for access from within sighandlers. */
-static pid_t pid;
+static pid_t pid = 0;
 
 /**
  * @brief Run the nmap_net subsystem.
@@ -1092,6 +1092,7 @@ int
 nmap_run_and_parse (nmap_t * nmap)
 {
   FILE *fproc;
+  int fd = 0;
   size_t len;
   int ret = 1; /* success */
   gchar chunk[CHUNK_LEN];
@@ -1121,7 +1122,11 @@ nmap_run_and_parse (nmap_t * nmap)
       old_sig_c = signal (SIGCHLD, sig_c);
 
       /* execute nmap and read results from the process output */
-      fproc = openvas_popen4 (nmap->args[0], nmap->args, &pid, 0);
+      if (g_spawn_async_with_pipes
+           (NULL, nmap->args, NULL, G_SPAWN_SEARCH_PATH, NULL, NULL, &pid, NULL,
+            &fd, NULL, NULL) == FALSE)
+        return -1;
+      fproc = fdopen (fd, "r");
     }
 
   if (!fproc)
@@ -1166,8 +1171,8 @@ nmap_run_and_parse (nmap_t * nmap)
     }
   else
     {
-      openvas_pclose (fproc, pid);
-
+      fclose (fproc);
+      g_spawn_close_pid (pid);
       signal (SIGINT, old_sig_i);
       signal (SIGTERM, old_sig_t);
       signal (SIGCHLD, old_sig_c);
