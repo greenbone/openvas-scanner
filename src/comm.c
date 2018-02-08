@@ -290,18 +290,13 @@ send_plugins_preferences (int soc)
   while (element)
     {
       char *oid = element->data;
-      int timeout;
       nvti_t *nvti = nvticache_get_by_oid_full (oid);
 
-      timeout = nvti_timeout (nvti);
-      if (nvti_pref_len (nvti) || (timeout > 0))
+      if (nvti_pref_len (nvti))
         {
           unsigned int i;
           char *name = nvti_name (nvti);
 
-          if (timeout > 0)
-            send_printf (soc, "%s[%s]:%s <|> %d\n", name, "entry", "Timeout",
-                         timeout);
           for (i = 0; i < nvti_pref_len (nvti); i++)
             {
               const nvtpref_t *pref = nvti_pref (nvti, i);
