@@ -7,7 +7,7 @@ jobs:
       - run:
           working_directory: ~/gvm-libs
           name: Checkout gvm-libs
-          command: git clone https://github.com/greenbone/gvm-libs.git
+          command: git clone --depth 1 https://github.com/greenbone/gvm-libs.git
       - run:
           working_directory: ~/gvm-libs
           name: Configure and compile gvm-libs
