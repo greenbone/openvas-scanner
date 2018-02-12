@@ -234,6 +234,7 @@ launch_plugin (struct scan_globals *globals, struct scheduler_plugin *plugin,
   char *oid, *name, *error = NULL, *src, ip_str[INET6_ADDRSTRLEN];
   gboolean network_scan = FALSE;
 
+  addr6_to_str (ip, ip_str);
   oid = plugin->oid;
   category = nvticache_get_category (oid);
   name = nvticache_get_filename (oid);
