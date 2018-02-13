@@ -508,7 +508,7 @@ stop_all_scans (void)
         {
           contents_split = g_strsplit (contents," ", 6);
           parentID = g_strdup (contents_split[3]);
-          processID = g_strdup (contents_split[4]);
+          processID = g_strdup (contents_split[0]);
 
           g_free (pidstatfn);
           pidstatfn = NULL;
