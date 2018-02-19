@@ -65,32 +65,29 @@
  * arglist, it will be replaced.
  *
  * @param folder  Path to the plugin folder.
- * @param name    File-name of the plugin
+ * @param filename  File-name of the plugin
  *
  * @return 0 on success, -1 on error.
  */
 int
-nasl_plugin_add (char *folder, char *name)
+nasl_plugin_add (char *folder, char *filename)
 {
   char fullname[PATH_MAX + 1];
   int nasl_mode;
   nasl_mode = NASL_EXEC_DESCR;
-  nvti_t *nvti;
 
-  snprintf (fullname, sizeof (fullname), "%s/%s", folder, name);
+  snprintf (fullname, sizeof (fullname), "%s/%s", folder, filename);
 
   if (prefs_get_bool ("nasl_no_signature_check"))
     {
       nasl_mode |= NASL_ALWAYS_SIGNED;
     }
 
-  nvti = nvticache_get (name);
-  if (nvti == NULL)
+  if (!nvticache_check (filename))
     {
       nvti_t *new_nvti;
       struct arglist *plugin_args;
 
-      g_free (nvti);
       plugin_args = g_malloc0 (sizeof (struct arglist));
       arg_add_value (plugin_args, "key", ARG_PTR, nvticache_get_kb ());
       new_nvti = nvti_new ();
@@ -120,34 +117,14 @@ nasl_plugin_add (char *folder, char *name)
             log_write ("The timestamp for %s is from the future and could not be fixed.", fullname);
         }
 
-      if (nvti_oid (new_nvti) != NULL)
-        {
-          nvticache_add (new_nvti, name);
-          nvti = nvticache_get (name);
-        }
+      if (nvti_oid (new_nvti))
+        nvticache_add (new_nvti, filename);
       else
         // Most likely an exit was hit before the description could be parsed.
         log_write ("\r%s could not be added to the cache and is likely to stay"
-                   " invisible to the client.", name);
+                   " invisible to the client.", filename);
       nvti_free (new_nvti);
     }
-
-  if (nvti == NULL)
-    {
-      /* Discard invalid plugins */
-      log_write ("%s: Failed to load", name);
-      return -1;
-    }
-
-  if (nvti_oid (nvti) == NULL)
-    {
-      /* Discard invalid plugins */
-      log_write ("%s: Failed to load, no OID", name);
-      nvti_free (nvti);
-      return -1;
-    }
-
-  nvti_free (nvti);
   return 0;
 }
 

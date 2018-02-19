@@ -234,7 +234,7 @@ launch_plugin (struct arglist *globals, struct scheduler_plugin *plugin,
 
   oid = plugin->oid;
   category = nvticache_get_category (oid);
-  name = nvticache_get_name (oid);
+  name = nvticache_get_filename (oid);
   if (scan_is_stopped () || all_scans_are_stopped())
     {
       if (category != ACT_LAST)
