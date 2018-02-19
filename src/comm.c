@@ -161,102 +161,65 @@ comm_terminate (int soc)
  * @brief Sends a plugin info.
  */
 void
-send_plug_info (int soc, const char *filename)
+send_plug_info (int soc, const char *oid)
 {
-  int j, ignored = 0;
-  const char *name, *copyright, *version, *family;
-  nvti_t *nvti = nvticache_get_by_name_full (filename);
+  int category;
+  char *name = NULL, *copyright = NULL, *version = NULL, *family = NULL;
+  char *cve_id = NULL, *bid = NULL, *xref = NULL, *tag = NULL;
 
-  if (!nvti)
+  category = nvticache_get_category (oid);
+  if (category >= ACT_UNKNOWN || category < ACT_FIRST)
+    category = ACT_UNKNOWN;
+  version = nvticache_get_version (oid);
+  name = nvticache_get_name (oid);
+  if (!name || strchr (name, '\n'))
     {
-      log_write ("NVTI not found for %s. Will not be sent.", filename);
-      return;
+      log_write ("Erroneous name for plugin %s", oid);
+      goto send_cleanup;
+    }
+  copyright = nvticache_get_copyright (oid);
+  if (!copyright || strchr (copyright, '\n'))
+    {
+      log_write ("Erroneous copyright for plugin %s", oid);
+      goto send_cleanup;
+    }
+  family = nvticache_get_family (oid);
+  if (!family)
+    {
+      log_write ("Missing family for plugin %s", oid);
+      goto send_cleanup;
     }
 
-  j = nvti_category (nvti);
-  if (j >= ACT_UNKNOWN || j < ACT_FIRST)
-    j = ACT_UNKNOWN;
-
-  version = nvti_version (nvti);
-  if (!version)
-    version = "?";
-
-  if ((name = nvti_name (nvti)) == NULL)
+  cve_id = nvticache_get_cves (oid);
+  bid = nvticache_get_bids (oid);
+  xref = nvticache_get_xrefs (oid);
+  tag = nvticache_get_tags (oid);
+  if (tag)
     {
-      log_write ("Inconsistent data (no name): %s - not applying this plugin",
-                 nvti_oid (nvti));
-      ignored = 1;
-    }
-  else if (strchr (name, '\n') != NULL)
-    {
-      log_write ("%s: Newline in name\n", nvti_oid (nvti));
-      ignored = 1;
+      char *index = tag;
+      while (*index)
+        {
+          if (*index == '\n')
+            *index = ';';
+          index++;
+        }
     }
 
+  send_printf
+   (soc, "%s <|> %s <|> %d <|> %s <|> %s <|> %s <|> %s <|> %s <|> "
+    "%s <|> %s\n", oid, name, category, copyright, family, version,
+    (cve_id && *cve_id) ? cve_id : "NOCVE", (bid && *bid) ? bid : "NOBID",
+    (xref && *xref) ? xref: "NOXREF", (tag && *tag) ? tag : "NOTAG");
 
-  if ((copyright = nvti_copyright (nvti)) == NULL)
-    {
-      log_write
-        ("Inconsistent data (no copyright): %s - not applying this plugin",
-         name ? name : nvti_oid (nvti));
-      ignored = 1;
-    }
-
-  if ((family = nvti_family (nvti)) == NULL)
-    {
-      log_write
-        ("Inconsistent data (no family): %s - not applying this plugin",
-         name ? name : nvti_oid (nvti));
-      ignored = 1;
-    }
-
-  if ((copyright != NULL) && (strchr (copyright, '\n') != NULL))
-    {
-      log_write ("%s: Newline in copyright\n", nvti_oid (nvti));
-      ignored = 1;
-    }
-
-  if (!ignored)
-    {
-      char *cve_id, *bid, *xref, *tag;
-      static const char *categories[] = { ACT_STRING_LIST_ALL };
-
-      cve_id = nvti_cve (nvti);
-      if (cve_id == NULL || strcmp (cve_id, "") == 0)
-        cve_id = "NOCVE";
-
-      bid = nvti_bid (nvti);
-      if (bid == NULL || strcmp (bid, "") == 0)
-        bid = "NOBID";
-
-      xref = nvti_xref (nvti);
-      if (xref == NULL || strcmp (xref, "") == 0)
-        xref = "NOXREF";
-
-      {
-        char *index;
-        tag = g_strdup (nvti_tag (nvti));
-        index = tag;
-        if (tag == NULL || strcmp (tag, "") == 0)
-          tag = "NOTAG";
-        else
-          while (*index)
-            {
-              if (*index == '\n')
-                *index = ';';
-              index++;
-            }
-      }
-
-      send_printf
-       (soc, "%s <|> %s <|> %s <|> %s <|> %s <|> %s <|> %s <|> %s <|> "
-        "%s <|> %s\n", nvti_oid (nvti), name, categories[j], copyright,
-        family, version, cve_id, bid, xref, tag);
-      if (tag != NULL && strcmp (tag, "NOTAG"))
-        g_free (tag);
-    }
-
-  nvti_free (nvti);
+send_cleanup:
+  g_free (name);
+  g_free (copyright);
+  g_free (family);
+  g_free (version);
+  g_free (cve_id);
+  g_free (bid);
+  g_free (xref);
+  g_free (tag);
 }
 
 /**
@@ -270,7 +233,7 @@ comm_send_pluginlist (int soc)
 {
   GSList *list, *element;
 
-  list = element = nvticache_get_names ();
+  list = element = nvticache_get_oids ();
   send_printf (soc, "SERVER <|> PLUGIN_LIST <|>\n");
   while (element)
     {
@@ -289,24 +252,21 @@ send_plugins_preferences (int soc)
   list = element = nvticache_get_oids ();
   while (element)
     {
-      char *oid = element->data;
-      nvti_t *nvti = nvticache_get_by_oid_full (oid);
+      GSList *tmp, *nprefs;
+      char *name = nvticache_get_name (element->data);
 
-      if (nvti_pref_len (nvti))
+      tmp = nprefs = nvticache_get_prefs (element->data);
+      while (tmp)
         {
-          unsigned int i;
-          char *name = nvti_name (nvti);
-
-          for (i = 0; i < nvti_pref_len (nvti); i++)
-            {
-              const nvtpref_t *pref = nvti_pref (nvti, i);
-              send_printf (soc, "%s[%s]:%s <|> %s\n", name, nvtpref_type (pref),
-                           g_strchomp (nvtpref_name (pref)),
-                           nvtpref_default (pref));
-            }
+          const nvtpref_t *nvtpref = tmp->data;
+          send_printf (soc, "%s[%s]:%s <|> %s\n", name, nvtpref_type (nvtpref),
+                       g_strchomp (nvtpref_name (nvtpref)),
+                       nvtpref_default (nvtpref));
+          tmp = tmp->next;
         }
+      g_free (name);
+      g_slist_free_full (nprefs, (void (*) (void *)) nvtpref_free);
       element = element->next;
-      nvti_free (nvti);
     }
   g_slist_free_full (list, g_free);
 }
