@@ -354,7 +354,7 @@ plugin_next_unrun_dependency (plugins_scheduler_t sched,
             if (deps_ptr == NULL)
               return plugin;
 
-            ret = plugin_next_unrun_dependency (sched, deps_ptr, calls++);
+            ret = plugin_next_unrun_dependency (sched, deps_ptr, calls + 1);
             if (ret == NULL)
               return plugin;
 
