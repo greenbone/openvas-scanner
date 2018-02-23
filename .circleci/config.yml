@@ -1,0 +1,18 @@
+version: 2
+jobs:
+  build:
+    docker:
+      - image: wiegandm/openvas-libraries-9.0-core-debian-jessie
+    steps:
+      - run:
+          working_directory: ~/gvm-libs
+          name: Checkout openvas-libraries-9.0
+          command: git clone --depth 1 https://github.com/greenbone/gvm-libs.git -b openvas-libraries-9.0
+      - run:
+          working_directory: ~/gvm-libs
+          name: Configure and compile openvas-libraries-9.0
+          command: pushd gvm-libs && mkdir build && cd build/ && cmake -DCMAKE_BUILD_TYPE=Release .. && make install && popd
+      - checkout
+      - run:
+          name: Configure and Compile
+          command: mkdir build && cd build/ && cmake -DCMAKE_BUILD_TYPE=Release .. && make install
