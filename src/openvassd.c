@@ -351,7 +351,6 @@ reload_openvassd ()
   prefs_config (config_file);
 
   /* Reload the plugins */
-  nvticache_free ();
   ret = plugins_init ();
   set_globals_from_preferences ();
   loading_handler_stop (handler_pid);
