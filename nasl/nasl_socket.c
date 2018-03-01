@@ -43,10 +43,14 @@
 #include <netinet/in.h>         /* for sockaddr_in */
 #include <string.h>             /* for bzero */
 #include <unistd.h>             /* for close */
+#include <stdlib.h>             /* for atoi() */
+#include <sys/time.h>
+
 
 #include <gnutls/gnutls.h>
 #include <gvm/base/networking.h> /* for gvm_source_set_socket */
 #include <gvm/base/logging.h>
+#include <gvm/base/prefs.h>      /* for prefs_get */
 
 #include "../misc/network.h"
 #include "../misc/plugutils.h"          /* for plug_get_host_ip */
@@ -109,6 +113,50 @@ block_socket (int soc)
   return 0;
 }
 
+static void
+wait_before_next_probe ()
+{
+
+  const char *time_between_request;
+  int minwaittime = 0;
+
+  time_between_request = prefs_get ("time_between_request");
+  if (time_between_request)
+    minwaittime = atoi (time_between_request);
+
+  if (minwaittime > 0)
+    {
+      static double lastprobesec = 0;
+      static double lastprobeusec = 0;
+      struct timeval tvnow, tvdiff;
+      double diff_msec;
+      int time2wait = 0;
+
+      gettimeofday(&tvnow, NULL);
+      if (lastprobesec <= 0)
+        {
+         lastprobesec = tvnow.tv_sec - 10;
+         lastprobeusec = tvnow.tv_usec;
+        }
+
+      tvdiff.tv_sec = tvnow.tv_sec - lastprobesec;
+      tvdiff.tv_usec = tvnow.tv_usec - lastprobeusec;
+      if (tvdiff.tv_usec <= 0)
+        {
+          tvdiff.tv_sec += 1;
+          tvdiff.tv_usec *= -1;
+        }
+
+      diff_msec = tvdiff.tv_sec * 1000 + tvdiff.tv_usec / 1000;
+      time2wait  = (minwaittime - diff_msec)*1000;
+      if (time2wait > 0)
+        usleep (time2wait);
+
+      gettimeofday(&tvnow, NULL);
+      lastprobesec = tvnow.tv_sec;
+      lastprobeusec = tvnow.tv_usec;
+    }
+}
 
 /*
  * NASL automatically re-send data when a recv() on a UDP packet
@@ -218,6 +266,8 @@ nasl_open_privileged_socket (lex_ctxt * lexic, int proto)
 
 
 restart:
+  if (proto == IPPROTO_TCP)
+    wait_before_next_probe ();
   p = plug_get_host_ip (script_infos);
   if (IN6_IS_ADDR_V4MAPPED (p))
     {
@@ -416,6 +466,8 @@ nasl_open_sock_tcp_bufsz (lex_ctxt * lexic, int bufsz)
   port = get_int_var_by_num (lexic, 0, -1);
   if (port < 0)
     return NULL;
+
+  wait_before_next_probe ();
 
   /* If "transport" has not been given, use auto detection if enabled
      in the KB. if "transport" has been given with a value of 0 force
@@ -865,7 +917,6 @@ nasl_send (lex_ctxt * lexic)
   int type;
   unsigned int type_len = sizeof (type);
 
-
   if (soc <= 0 || data == NULL)
     {
       nasl_perror (lexic, "Syntax error with the send() function\n");
@@ -886,7 +937,10 @@ nasl_send (lex_ctxt * lexic)
       add_udp_data (lexic->script_infos, soc, data, length);
     }
   else
-    n = nsend (soc, data, length, option);
+    {
+      wait_before_next_probe ();
+      n = nsend (soc, data, length, option);
+    }
 
   retc = alloc_tree_cell ();
   retc->type = CONST_INT;
@@ -907,8 +961,10 @@ nasl_close_socket (lex_ctxt * lexic)
 
   soc = get_int_var_by_num (lexic, 0, -1);
   if (fd_is_stream (soc))
-    return close_stream_connection (soc) < 0 ? NULL : FAKE_CELL;
-
+    {
+      wait_before_next_probe ();
+      return close_stream_connection (soc) < 0 ? NULL : FAKE_CELL;
+    }
   if (lowest_socket == 0 || soc < lowest_socket)
     {
       nasl_perror (lexic, "close(%d): Invalid socket value\n", soc);
