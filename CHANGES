@@ -1,10 +1,10 @@
-openvas-scanner 5.1.2 (2017-07-XX)
+openvas-scanner 5.1.2 (2018-03-XX)
 
 This is the second maintenance release of the openvas-scanner 5.1 module
 for the Open Vulnerability Assessment System 9 (OpenVAS-9).
 
 Many thanks to everyone who has contributed to this release:
-Hani Benhabiles and Juan Jose Nicola.
+Hani Benhabiles, Björn Ricks, Michael Wiegand, and Juan Jose Nicola.
 
 Main changes compared to 5.1.1:
 * Plugin scheduling has been improved.
@@ -15,6 +15,20 @@ Main changes compared to 5.1.1:
 * An issue which caused the main scanner process to terminate prematurely when
   receiving a SIGHUP signal under certain circumstances has been addressed.
 * Increased dependency for openvas-libraries from 9.0.0 to 9.0.2.
+* A Redis error is considered fatal and all running scans are stopped. A
+  message is sent to the client and the NVTs are reloaded.
+* A new progress bar style in which dead host are not taken in account was
+  added, which makes more time realistic the progress bar.
+* An issue which caused low scan performance has been addressed.
+* The preference log_whole_attack is now an scanner-only preference.
+* Several memory management issues have been addressed.
+* Load-up plugins process is now a forked child process, which prevent main
+  process memory footprint growth.
+* Plugin preferences are sent directly to the client.
+* Full nvticache has been moved from .nvti files to Redis.
+* An issue with dependency cycle detection has been addressed.
+* An issue which cause complete deletion of nvticache before reloading has
+  been addressed.
 
 
 openvas-scanner 5.1.1 (2017-03-07)
