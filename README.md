@@ -1,3 +1,5 @@
+[![CircleCI](https://circleci.com/gh/greenbone/openvas-scanner/tree/master.svg?style=svg)](https://circleci.com/gh/greenbone/openvas-scanner/tree/master)
+
 # openvas-scanner
 
 This is the scanner module for the Open Vulnerability Assessment System
