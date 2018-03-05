@@ -554,7 +554,7 @@ stop_all_scans (void)
 void
 check_kb_status ()
 {
-  int  waitredis = 5, ret = 0;
+  int  waitredis = 5, waitkb = 5, ret = 0;
   kb_t kb_access_aux;
 
   while (waitredis != 0)
@@ -562,6 +562,7 @@ check_kb_status ()
       ret = kb_new (&kb_access_aux, prefs_get ("kb_location"));
       if (ret)
         {
+          log_write ("Redis connection lost. Trying to reconnect.");
           waitredis--;
           sleep (5);
           continue;
@@ -573,16 +574,34 @@ check_kb_status ()
         }
     }
 
-  /* The function kb_no_empty() used here was written in openvas-libraries-9
-   * and it is used only in this branch for openvas-scanner-5.1. In the Trunk 
-   * version a new function kb_find() is used instead of this.
-   */
-  if (waitredis == 0 || kb_no_empty (prefs_get ("kb_location")) == -1)
-    exit (1);
-  if (waitredis != 5 || kb_no_empty (prefs_get ("kb_location")) == 0)
+  if (waitredis == 0)
+    {
+      log_write ("Critical Redis connection error.");
+      exit (1);
+    }
+
+  while (waitkb != 0)
+    {
+      kb_access_aux = kb_find (prefs_get ("kb_location"), "nvticache");
+      if (!kb_access_aux)
+        {
+          log_write ("Redis kb not found. Trying again in 2 seconds.");
+          waitkb--;
+          sleep (2);
+          continue;
+        }
+      else
+        {
+          kb_lnk_reset (kb_access_aux);
+          g_free (kb_access_aux);
+          break;
+        }
+    }
+
+  if (waitredis != 5 || waitkb == 0)
     {
       log_write ("Redis connection error. Stopping all the running scans.");
-      stop_all_scans();
+      stop_all_scans ();
       reload_openvassd ();
     }
 }
