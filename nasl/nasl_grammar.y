@@ -685,7 +685,7 @@ load_checksums (kb_t kb)
       else
         g_snprintf (buffer, sizeof (buffer), "%s:%s/%s", prefix, base,
                     splits[1]);
-      kb_item_add_str (kb, buffer, splits[0], 0);
+      kb_item_set_str (kb, buffer, splits[0], 0);
       g_strfreev (splits);
     }
   fclose (file);
