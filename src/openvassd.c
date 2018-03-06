@@ -546,7 +546,8 @@ stop_all_scans (void)
 void
 check_kb_status ()
 {
-  int  waitredis = 5, ret = 0;
+  int  waitredis = 5, waitkb = 5, ret = 0;
+
   kb_t kb_access_aux;
 
   while (waitredis != 0)
@@ -554,6 +555,7 @@ check_kb_status ()
       ret = kb_new (&kb_access_aux, prefs_get ("kb_location"));
       if (ret)
         {
+          g_message ("Redis connection lost. Trying to reconnect.");
           waitredis--;
           sleep (5);
           continue;
@@ -566,17 +568,34 @@ check_kb_status ()
     }
 
   if (waitredis == 0)
-    exit (1);
-  kb_access_aux = kb_find (prefs_get ("kb_location"), "nvticache");
-  if (waitredis != 5 || !kb_access_aux)
     {
+      g_message ("Critical Redis connection error.");
+      exit (1);
+    }
+
+  while (waitkb != 0)
+    {
+      kb_access_aux = kb_find (prefs_get ("kb_location"), "nvticache");
+      if (!kb_access_aux)
+        {
+          g_message ("Redis kb not found. Trying again in 2 seconds.");
+          waitkb--;
+          sleep (2);
+          continue;
+        }
+      else
+        {
+          kb_lnk_reset (kb_access_aux);
+          g_free (kb_access_aux);
+          break;
+        }
+    }
+
+  if (waitredis != 5 || waitkb == 0)
+    {
+      g_message ("Redis connection error. Stopping all the running scans.");
       stop_all_scans ();
       reload_openvassd ();
-    }
-  if (kb_access_aux)
-    {
-      kb_lnk_reset (kb_access_aux);
-      g_free (kb_access_aux);
     }
 }
 
