@@ -361,38 +361,6 @@ comm_wait_order (struct scan_globals *globals)
 
 
 /**
- * @brief Determine the version of the NVT feed.
- * @param[out] feed_version Buffer to contain feed_version.
- * @param[in]  feed_size    Size of feed_version buffer.
- *
- * @return Feed version. Free on caller.
- */
-static int
-nvt_feed_version (char *feed_version, int feed_size)
-{
-  FILE *foutput;
-  gchar *command, *info_file;
-  info_file = g_build_filename (OPENVAS_NVT_DIR, "plugin_feed_info.inc", NULL);
-  command = g_strdup_printf ("grep PLUGIN_SET %s | sed -e 's/[^0-9]//g'",
-                             info_file);
-
-  foutput = popen (command, "r");
-  if (fgets (feed_version, feed_size, foutput) == NULL)
-    {
-      pclose (foutput);
-      g_free (info_file);
-      g_free (command);
-      return 1;
-    }
-
-  feed_version[strlen (feed_version) - 1] = '\0';
-  pclose (foutput);
-  g_free (info_file);
-  g_free (command);
-  return 0;
-}
-
-/**
  * @brief Determine whether a buffer contains a valid feed version.
  *
  * @param[in] feed_version Buffer containing feed_version.
@@ -417,17 +385,12 @@ is_valid_feed_version (const char *feed_version)
 void
 comm_send_nvt_info (int soc)
 {
-  char buf[2048];
-  gchar *feed_version;
-  int feed_size = 32;
+  char buf[2048], *feed_version;
 
-  feed_version = g_malloc0 (feed_size);
-  nvt_feed_version (feed_version, feed_size);
-
+  feed_version = nvticache_feed_version ();
   send_printf (soc, "SERVER <|> NVT_INFO <|> %s <|> SERVER\n",
                is_valid_feed_version (feed_version)
                 ? feed_version : "NOVERSION");
-
   g_free (feed_version);
 
   if (!is_client_present (soc))

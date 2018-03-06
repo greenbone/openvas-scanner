@@ -574,7 +574,7 @@ check_kb_status ()
 
   while (waitkb != 0)
     {
-      kb_access_aux = kb_find (prefs_get ("kb_location"), "nvticache");
+      kb_access_aux = kb_find (prefs_get ("kb_location"), NVTICACHE_STR);
       if (!kb_access_aux)
         {
           g_message ("Redis kb not found. Trying again in 2 seconds.");
@@ -785,7 +785,7 @@ flush_all_kbs ()
   if (rc)
     return rc;
 
-  rc = kb_flush (kb, "nvticache");
+  rc = kb_flush (kb, NVTICACHE_STR);
   return rc;
 }
 
