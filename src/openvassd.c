@@ -146,6 +146,7 @@ static openvassd_option openvassd_defaults[] = {
   {"kb_location", KB_PATH_DEFAULT},
   {"timeout_retry", "3"},
   {"open_sock_max_attempts", "5"},
+  {"time_between_request", "0"},
   {NULL, NULL}
 };
 
