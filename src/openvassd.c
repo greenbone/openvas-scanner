@@ -132,6 +132,7 @@ static openvassd_option openvassd_defaults[] = {
   {"report_host_details", "yes"},
   {"kb_location", KB_PATH_DEFAULT},
   {"timeout_retry", "3"},
+  {"time_between_request", "0"},
   {NULL, NULL}
 };
 
