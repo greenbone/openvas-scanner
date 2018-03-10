@@ -220,6 +220,15 @@ will include Warnings, Critical situations and Errors.
 To get absolutely all logging, set the level to 128 for all domains in the
 configuration file.
 
+Logging to "syslog" can be enabled in each domain like:
+
+    [sd   main]
+    prepend=%t %p
+    prepend_time_format=%Y-%m-%d %Hh%M.%S %Z
+    file=syslog
+    syslog_facility=daemon
+    level=128
+
 Static code analysis with the Clang Static Analyzer
 ---------------------------------------------------
 
