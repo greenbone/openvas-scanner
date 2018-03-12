@@ -17,7 +17,7 @@ Prerequisites:
 * gio-2.0
 * bison
 * flex
-* libgcrypt
+* libgcrypt >= 1.6
 * pkg-config
 * libpcap
 * libgpgme >= 1.1.2
