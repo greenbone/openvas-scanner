@@ -338,19 +338,20 @@ inc: INCLUDE '(' string ')'
           $$ = NULL;
           tmp = g_strdup (nasl_get_filename (NULL));
           nasl_set_filename ($3);
-          if (init_nasl_ctx(&subctx, $3) >= 0)
+          if (!includes_hash)
+            includes_hash = g_hash_table_new_full
+                             (g_str_hash, g_str_equal, g_free,
+                              (GDestroyNotify) deref_cell);
+
+          if ((subctx.tree = g_hash_table_lookup (includes_hash, $3)))
             {
-              if (!includes_hash)
-                includes_hash = g_hash_table_new_full
-                                 (g_str_hash, g_str_equal, g_free,
-                                  (GDestroyNotify) deref_cell);
-              if ((subctx.tree = g_hash_table_lookup (includes_hash, $3)))
-                {
-                  $$ = subctx.tree;
-                  ref_cell ($$);
-                  g_free ($3);
-                }
-              else if (!naslparse (&subctx))
+              $$ = subctx.tree;
+              ref_cell ($$);
+              g_free ($3);
+            }
+          else if (init_nasl_ctx (&subctx, $3) >= 0)
+            {
+              if (!naslparse (&subctx))
                 {
                   $$ = subctx.tree;
                   g_hash_table_insert (includes_hash, $3, $$);
