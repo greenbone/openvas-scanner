@@ -148,13 +148,12 @@ nasl_pread (lex_ctxt * lexic)
     nasl_perror (lexic, "pread: named elements in 'cmd' are ignored!\n");
   n = av->max_idx;
   args = g_malloc0 (sizeof (char **) * (n + 2));  /* Last arg is NULL */
-  for (j = 1, i = 0; i < n; i++)
+  for (j = 0, i = 0; i < n; i++)
     {
       str = (char *) var2str (av->num_elt[i]);
       if (str != NULL)
         args[j++] = g_strdup (str);
     }
-  args[0] = g_strdup (cmd);
   args[j] = NULL;
 
   old_sig_t = signal (SIGTERM, sig_h);
