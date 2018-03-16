@@ -58,7 +58,7 @@ struct plugins_scheduler
 };
 
 struct scheduler_plugin *
-plugin_next_unrun_dependency (plugins_scheduler_t sched, GSList *deps)
+plugin_next_unrun_dependency (GSList *deps)
 {
   int flag = 0;
 
@@ -80,11 +80,11 @@ plugin_next_unrun_dependency (plugins_scheduler_t sched, GSList *deps)
             GSList *deps_ptr;
             struct scheduler_plugin *ret;
 
-            deps_ptr = ((struct scheduler_plugin *) deps->data)->deps;
+            deps_ptr = plugin->deps;
             if (deps_ptr == NULL)
               return plugin;
 
-            ret = plugin_next_unrun_dependency (sched, deps_ptr);
+            ret = plugin_next_unrun_dependency (deps_ptr);
             if (ret == NULL)
               return plugin;
 
@@ -362,8 +362,7 @@ plugins_scheduler_count_active (plugins_scheduler_t sched)
 }
 
 static struct scheduler_plugin *
-get_next_plugin (plugins_scheduler_t h, struct scheduler_plugin *plugin,
-                 int *still_running)
+get_next_plugin (struct scheduler_plugin *plugin, int *still_running)
 {
   assert (plugin);
 
@@ -380,7 +379,7 @@ get_next_plugin (plugins_scheduler_t h, struct scheduler_plugin *plugin,
             return plugin;
           }
 
-        p = plugin_next_unrun_dependency (h, deps_ptr);
+        p = plugin_next_unrun_dependency (deps_ptr);
         switch (GPOINTER_TO_SIZE (p))
           {
           case GPOINTER_TO_SIZE (NULL):
@@ -425,7 +424,7 @@ get_next_in_range (plugins_scheduler_t h, int start, int end)
         pluginlaunch_disable_parallel_checks ();
       while (element)
         {
-          struct scheduler_plugin *plugin = get_next_plugin (h, element->data,
+          struct scheduler_plugin *plugin = get_next_plugin (element->data,
                                                              &still_running);
           if (plugin)
             return plugin;
