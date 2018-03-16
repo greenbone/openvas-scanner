@@ -365,6 +365,7 @@ tree_cell *
 script_mandatory_keys (lex_ctxt * lexic)
 {
   char *keys = get_str_var_by_num (lexic, 0);
+  char **splits = NULL, *re = get_str_var_by_name (lexic, "re");
   int i;
 
   if (keys == NULL)
@@ -377,12 +378,32 @@ script_mandatory_keys (lex_ctxt * lexic)
       return FAKE_CELL;
     }
 
+  if (re)
+    {
+      splits = g_strsplit (re, "=", 0);
+
+      if (!splits[0] || !splits[1] || !*splits[1] || splits[2])
+        {
+          nasl_perror (lexic, "Erroneous re argument");
+          return FAKE_CELL;
+        }
+    }
   for (i = 0; keys != NULL; i++)
     {
       keys = get_str_var_by_num (lexic, i);
-      nvti_add_mandatory_keys (lexic->script_infos->nvti, keys);
-    }
 
+      if (splits && keys && !strcmp (keys, splits[0]))
+        {
+          nvti_add_mandatory_keys (lexic->script_infos->nvti, re);
+          re = NULL;
+        }
+      else
+        nvti_add_mandatory_keys (lexic->script_infos->nvti, keys);
+    }
+  if (re)
+    nvti_add_mandatory_keys (lexic->script_infos->nvti, re);
+
+  g_strfreev (splits);
   return FAKE_CELL;
 }
 
