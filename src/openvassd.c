@@ -572,7 +572,7 @@ check_kb_status ()
       g_message ("Critical Redis connection error.");
       exit (1);
     }
-
+  usleep (500000);
   while (waitkb != 0)
     {
       kb_access_aux = kb_find (prefs_get ("kb_location"), NVTICACHE_STR);
