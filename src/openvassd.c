@@ -259,17 +259,6 @@ loading_handler_start ()
 
   proctitle_set ("openvassd (Loading Handler)");
   openvas_signal (SIGTERM, handle_loading_stop_signal);
-  if ((opts = fcntl (global_iana_socket, F_GETFL, 0)) < 0)
-    {
-      g_critical ("fcntl: %s", strerror (errno));
-      exit (0);
-    }
-
-  if (fcntl (global_iana_socket, F_SETFL, opts | O_NONBLOCK) < 0)
-    {
-      g_critical ("fcntl: %s", strerror (errno));
-      exit (0);
-    }
 
   /*
    * Forked process will handle client requests until parent dies or stops it
@@ -280,18 +269,58 @@ loading_handler_start ()
       unsigned int lg_address;
       struct sockaddr_un address;
       int soc;
+      fd_set set;
+      struct timeval timeout;
+      int rv, ret;
+      pid_t child_pid1;
 
       if (loading_stop_signal || kill (parent_pid, 0) < 0)
         break;
       lg_address = sizeof (struct sockaddr_un);
-      soc = accept (global_iana_socket, (struct sockaddr *) (&address),
-                    &lg_address);
-      loading_client_handle (soc);
-      sleep (1);
-    }
-  if (fcntl (global_iana_socket, F_SETFL, opts) < 0)
-    g_critical ("fcntl: %s", strerror (errno));
 
+      if ((opts = fcntl (global_iana_socket, F_GETFL, 0)) < 0)
+        {
+          g_critical ("fcntl: %s", strerror (errno));
+          exit (0);
+        }
+      if (fcntl (global_iana_socket, F_SETFL, opts | O_NONBLOCK) < 0)
+        {
+          g_critical ("fcntl: %s", strerror (errno));
+          exit (0);
+        }
+
+      if (listen (global_iana_socket, 5) < 0)
+        continue;
+
+      FD_ZERO(&set);
+      FD_SET(global_iana_socket, &set);
+
+      timeout.tv_sec = 0;
+      timeout.tv_usec = 500000;
+
+      rv = select(global_iana_socket + 1, &set, NULL, NULL, &timeout);
+      if(rv == -1) /* Select error. */
+        continue;
+      else if(rv == 0) /* Timeout. */
+        continue;
+      else
+        soc = accept (global_iana_socket, (struct sockaddr *) (&address),
+                    &lg_address);
+      if (soc == -1)
+        continue;
+
+      child_pid1 = fork ();
+      if (child_pid1 == 0)
+        {
+          loading_client_handle (soc);
+          close (soc);
+          exit (0);
+        }
+      waitpid (child_pid1, &ret, WNOHANG);
+
+      if (fcntl (global_iana_socket, F_SETFL, opts) < 0)
+        g_critical ("fcntl: %s", strerror (errno));
+    }
   exit (0);
 }
 
