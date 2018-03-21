@@ -113,19 +113,18 @@ static void
 plugin_add (plugins_scheduler_t sched, GHashTable *oids_table, int autoload,
             char *oid)
 {
-  char **tags, *tags_str;
   struct scheduler_plugin *plugin;
   int category;
+  nvti_t *nvti;
 
   if (g_hash_table_lookup (oids_table, oid))
     return;
 
   /* Check if the plugin is deprecated */
-  tags_str = nvticache_get_tags (oid);
-  if (tags_str)
+  nvti = nvticache_get_nvt (oid);
+  if (nvti_tag (nvti))
     {
-      tags = g_strsplit (tags_str, "| ", 0);
-      g_free (tags_str);
+      char **tags = g_strsplit (nvti_tag (nvti), "| ", 0);
       if (tags)
         {
           int j;
@@ -138,13 +137,14 @@ plugin_add (plugins_scheduler_t sched, GHashTable *oids_table, int autoload,
                              "It will neither loaded nor launched.", name);
                 g_strfreev (tags);
                 g_free (name);
+                nvti_free (nvti);
                 return;
               }
         }
       g_strfreev (tags);
     }
 
-  category = nvticache_get_category (oid);
+  category = nvti_category (nvti);
   plugin = g_malloc0 (sizeof (struct scheduler_plugin));
   plugin->running_state = PLUGIN_STATUS_UNRUN;
   plugin->oid = g_strdup (oid);
@@ -158,7 +158,7 @@ plugin_add (plugins_scheduler_t sched, GHashTable *oids_table, int autoload,
   /* Add the plugin's dependencies too. */
   if (autoload)
     {
-      char *deps = nvticache_get_dependencies (oid);
+      char *deps = nvti_dependencies (nvti);
 
       if (deps)
         {
@@ -190,9 +190,9 @@ plugin_add (plugins_scheduler_t sched, GHashTable *oids_table, int autoload,
                            "This may be due to a parse error.", array[i]);
             }
           g_strfreev(array);
-          g_free (deps);
         }
     }
+  nvti_free (nvti);
 }
 
 static void
