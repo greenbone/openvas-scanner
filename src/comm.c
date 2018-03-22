@@ -174,37 +174,44 @@ void
 send_plug_info (int soc, const char *oid)
 {
   int category;
-  char *name = NULL, *copyright = NULL, *version = NULL, *family = NULL;
+  char *name = NULL, *copyright = NULL, *family = NULL;
   char *cve_id = NULL, *bid = NULL, *xref = NULL, *tag = NULL;
+  nvti_t *nvti;
 
-  category = nvticache_get_category (oid);
+  nvti = nvticache_get_nvt (oid);
+  if (!nvti)
+    {
+      g_warning ("Couldn't fetch plugin %s", oid);
+      goto send_cleanup;
+    }
+
+  category = nvti_category (nvti);
   if (category >= ACT_UNKNOWN || category < ACT_FIRST)
     category = ACT_UNKNOWN;
 
-  version = nvticache_get_version (oid);
-  name = nvticache_get_name (oid);
+  name = nvti_name (nvti);
   if (!name || strchr (name, '\n'))
     {
       g_warning ("Erroneous name for plugin %s", oid);
       goto send_cleanup;
     }
-  copyright = nvticache_get_copyright (oid);
+  copyright = nvti_copyright (nvti);
   if (!copyright || strchr (copyright, '\n'))
     {
       g_warning ("Erroneous copyright for plugin %s", oid);
       goto send_cleanup;
     }
-  family = nvticache_get_family (oid);
+  family = nvti_family (nvti);
   if (!family)
     {
       g_warning ("Missing family for plugin %s", oid);
       goto send_cleanup;
     }
 
-  cve_id = nvticache_get_cves (oid);
-  bid = nvticache_get_bids (oid);
-  xref = nvticache_get_xrefs (oid);
-  tag = nvticache_get_tags (oid);
+  cve_id = nvti_cve (nvti);
+  bid = nvti_bid (nvti);
+  xref = nvti_xref (nvti);
+  tag = nvti_tag (nvti);
   if (tag)
     {
       char *index = tag;
@@ -218,19 +225,12 @@ send_plug_info (int soc, const char *oid)
 
   send_printf
    (soc, "%s <|> %s <|> %d <|> %s <|> %s <|> %s <|> %s <|> %s <|> "
-    "%s <|> %s\n", oid, name, category, copyright, family, version,
+    "%s <|> %s\n", oid, name, category, copyright, family, nvti_version (nvti),
     (cve_id && *cve_id) ? cve_id : "NOCVE", (bid && *bid) ? bid : "NOBID",
     (xref && *xref) ? xref: "NOXREF", (tag && *tag) ? tag : "NOTAG");
 
 send_cleanup:
-  g_free (name);
-  g_free (copyright);
-  g_free (family);
-  g_free (version);
-  g_free (cve_id);
-  g_free (bid);
-  g_free (xref);
-  g_free (tag);
+  nvti_free (nvti);
 }
 
 /**
