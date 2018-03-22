@@ -28,6 +28,7 @@
 #include <stdlib.h> /* for atoi() */
 #include <string.h> /* for strcmp() */
 #include <stdio.h>  /* for snprintf() */
+#include <regex.h>  /* for regcomp() */
 
 #include <openvas/misc/prefs.h>          /* for prefs_get() */
 #include <openvas/base/nvticache.h>
@@ -246,6 +247,77 @@ kb_present_keyname_of_namelist (kb_t kb, char *keys, char **keyname)
 }
 
 /**
+ * @brief Checks mandatory keys presence and value in the KB.
+ * @param[in]   kb      KB handle where to search for the keys.
+ * @param[in]   keys    Comma separated list of mandatory keys.
+ *
+ * @return 1 if a key is missing or not matching its value, 0 otherwise.
+ */
+static int
+check_mandatory_keys (kb_t kb, char *keys)
+{
+  int i;
+  char **keynames;
+
+  if (!kb || !keys || !*keys)
+    return 0;
+  keynames = g_strsplit (keys, ", ", 0);
+  if (!keynames)
+    return 0;
+  for (i = 0; keynames[i] != NULL; i ++)
+    {
+      struct kb_item *kbi;
+      char *re_str = NULL, *pos;
+
+      /* Split, if key requires RE matching. */
+      if ((pos = strstr (keynames[i], "=")))
+        {
+          re_str = pos + 1;
+          *pos = '\0';
+        }
+
+      kbi = kb_item_get_single (kb, keynames[i], KB_TYPE_UNSPEC);
+      if (!kbi)
+        {
+          g_strfreev (keynames);
+          return 1;
+        }
+
+      if (re_str)
+        {
+          regex_t re;
+
+          /* Check if RE matches. */
+          if (kbi->type != KB_TYPE_STR || !kbi->v_str)
+            {
+              g_strfreev (keynames);
+              kb_item_free (kbi);
+              return 1;
+            }
+          if (regcomp (&re, re_str, REG_EXTENDED | REG_NOSUB | REG_ICASE))
+            {
+              g_warning ("Couldn't compile regex %s", re_str);
+              g_strfreev (keynames);
+              kb_item_free (kbi);
+              return 1;
+            }
+          if (regexec (&re, kbi->v_str, 0, NULL, 0) == REG_NOMATCH)
+            {
+              g_strfreev (keynames);
+              kb_item_free (kbi);
+              regfree (&re);
+              return 1;
+            }
+          regfree (&re);
+        }
+      kb_item_free (kbi);
+    }
+
+  g_strfreev (keynames);
+  return 0;
+}
+
+/**
  * @brief Check whether mandatory requirements for plugin are met.
  *
  * @param kb     The arglist knowledge base with all keys.
@@ -263,7 +335,7 @@ mandatory_requirements_met (kb_t kb,
   int ret;
 
   mandatory_keys = nvticache_get_mandatory_keys (plugin->oid);
-  ret = kb_missing_keyname_of_namelist (kb, mandatory_keys, NULL);
+  ret = check_mandatory_keys (kb, mandatory_keys);
 
   g_free (mandatory_keys);
   if (ret)
