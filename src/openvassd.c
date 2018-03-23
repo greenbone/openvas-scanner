@@ -74,8 +74,8 @@
 #include "utils.h"        /* for wait_for_children1 */
 #include "pluginlaunch.h" /* for init_loading_shm */
 
-#ifdef SVN_REV_AVAILABLE
-#include "svnrevision.h"
+#ifdef GIT_REV_AVAILABLE
+#include "gitrevision.h"
 #endif
 
 #if GNUTLS_VERSION_NUMBER < 0x030300
@@ -632,10 +632,10 @@ check_kb_status ()
 static void
 main_loop ()
 {
-#ifdef OPENVASSD_SVN_REVISION
-  g_message ("openvassd %s (SVN revision %i) started",
+#ifdef OPENVASSD_GIT_REVISION
+  g_message ("openvassd %s (GIT revision %s) started",
              OPENVASSD_VERSION,
-             OPENVASSD_SVN_REVISION);
+             OPENVASSD_GIT_REVISION);
 #else
   g_message ("openvassd %s started", OPENVASSD_VERSION);
 #endif
@@ -913,8 +913,8 @@ main (int argc, char *argv[])
   if (display_version)
     {
       printf ("OpenVAS Scanner %s\n", OPENVASSD_VERSION);
-#ifdef OPENVASSD_SVN_REVISION
-      printf ("SVN revision %i\n", OPENVASSD_SVN_REVISION);
+#ifdef OPENVASSD_GIT_REVISION
+      printf ("GIT revision %s\n", OPENVASSD_GIT_REVISION);
 #endif
       printf
         ("Most new code since 2005: (C) 2016 Greenbone Networks GmbH\n");
