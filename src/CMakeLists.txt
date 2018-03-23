@@ -64,24 +64,24 @@ include_directories (${GLIB_INCLUDE_DIRS} ${LIBOPENVAS_NASL_INCLUDE_DIRS}
                      ${LIBOPENVAS_MISC_INCLUDE_DIRS})
 
 if (NOT CMAKE_BUILD_TYPE MATCHES "Release")
-  # If we got SVN_REVISION at configure time,
+  # If we got GIT_REVISION at configure time,
   # assume we can get it at build time as well
-  if (SVN_REVISION)
+  if (GIT_REVISION)
     # a custom target that is always built
     add_custom_target (revisiontag ALL)
 
-    # creates svnversion.h using cmake script
+    # creates gitversion.h using cmake script
     add_custom_command (TARGET revisiontag COMMAND ${CMAKE_COMMAND}
                         -DSOURCE_DIR=${CMAKE_SOURCE_DIR}
-                        -P ${CMAKE_SOURCE_DIR}/getsvn.cmake)
+                        -P ${CMAKE_SOURCE_DIR}/getgit.cmake)
 
     # explicitly say that the executable depends on custom target
     add_dependencies (openvassd revisiontag)
 
-    # include the output directory, where the svnversion.h file is generated
+    # include the output directory, where the gitversion.h file is generated
     include_directories (${CMAKE_CURRENT_BINARY_DIR})
-    add_definitions (-DSVN_REV_AVAILABLE)
-  endif (SVN_REVISION)
+    add_definitions (-DGIT_REV_AVAILABLE)
+  endif (GIT_REVISION)
 endif (NOT CMAKE_BUILD_TYPE MATCHES "Release")
 
 set (CMAKE_C_FLAGS_DEBUG        "${CMAKE_C_FLAGS_DEBUG} -Werror -Wextra")
