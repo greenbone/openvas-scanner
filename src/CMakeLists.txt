@@ -73,7 +73,7 @@ if (NOT CMAKE_BUILD_TYPE MATCHES "Release")
     # creates gitversion.h using cmake script
     add_custom_command (TARGET revisiontag COMMAND ${CMAKE_COMMAND}
                         -DSOURCE_DIR=${CMAKE_SOURCE_DIR}
-                        -P ${CMAKE_SOURCE_DIR}/getgit.cmake)
+                        -P ${CMAKE_SOURCE_DIR}/cmake/GetGit.cmake)
 
     # explicitly say that the executable depends on custom target
     add_dependencies (openvassd revisiontag)
