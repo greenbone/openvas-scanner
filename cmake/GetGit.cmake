@@ -22,7 +22,7 @@
 # along with this program; if not, write to the Free Software
 # Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA 02110-1301 USA.
 
-find_program (GIT_EXECUTABLE git DOC "git command line client")
+find_package (Git)
 
 macro (Git_GET_REVISION dir variable)
   execute_process(COMMAND ${GIT_EXECUTABLE} rev-parse --abbrev-ref HEAD
@@ -37,9 +37,9 @@ macro (Git_GET_REVISION dir variable)
 endmacro (Git_GET_REVISION)
 
 if (EXISTS "${SOURCE_DIR}/.git/")
-  if (GIT_EXECUTABLE)
+  if (GIT_FOUND)
     Git_GET_REVISION (${SOURCE_DIR} GIT_REVISION)
-  endif (GIT_EXECUTABLE)
+  endif (GIT_FOUND)
 endif (EXISTS "${SOURCE_DIR}/.git/")
 
 if (GIT_REVISION)

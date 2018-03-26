@@ -33,6 +33,8 @@ if (POLICY CMP0005)
   cmake_policy (SET CMP0005 NEW)
 endif (POLICY CMP0005)
 
+SET(CMAKE_MODULE_PATH ${PROJECT_SOURCE_DIR}/cmake)
+
 include (FindPkgConfig)
 
 if (NOT PKG_CONFIG_FOUND)
@@ -44,29 +46,14 @@ if (NOT CMAKE_BUILD_TYPE)
 endif (NOT CMAKE_BUILD_TYPE)
 
 ## Retrieve git revision (at configure time)
-find_program (GIT_EXECUTABLE git DOC "git command line client")
-
-macro (Git_GET_REVISION dir variable)
-  execute_process(COMMAND ${GIT_EXECUTABLE} rev-parse --abbrev-ref HEAD
-                  WORKING_DIRECTORY ${dir}
-                  OUTPUT_VARIABLE GIT_BRANCH
-                  OUTPUT_STRIP_TRAILING_WHITESPACE)
-  execute_process(COMMAND ${GIT_EXECUTABLE} log -1 --format=%h
-                  WORKING_DIRECTORY ${dir}
-                  OUTPUT_VARIABLE GIT_COMMIT_HASH
-                  OUTPUT_STRIP_TRAILING_WHITESPACE)
-  set (${variable} "${GIT_COMMIT_HASH}-${GIT_BRANCH}")
-endmacro (Git_GET_REVISION)
-
+include (GetGit)
 
 if (NOT CMAKE_BUILD_TYPE MATCHES "Release")
   if (EXISTS "${CMAKE_SOURCE_DIR}/.git/")
-    if (GIT_EXECUTABLE)
+    if (GIT_FOUND)
       Git_GET_REVISION(. ProjectRevision)
       set (GIT_REVISION "~git-${ProjectRevision}")
-    else (GIT_EXECUTABLE)
-      set (GIT_REVISION "~git")
-    endif (GIT_EXECUTABLE)
+    endif (GIT_FOUND)
   endif (EXISTS "${CMAKE_SOURCE_DIR}/.git/")
 endif (NOT CMAKE_BUILD_TYPE MATCHES "Release")
 
@@ -85,6 +72,8 @@ set (PROJECT_BETA_RELEASE 1)
 
 if (GIT_REVISION)
   set (PROJECT_VERSION_GIT "${GIT_REVISION}")
+else (GIT_REVISION)
+  set (PROJECT_VERSION_GIT "~git")
 endif (GIT_REVISION)
 
 # If PROJECT_BETA_RELEASE is set, the version string will be set to:
