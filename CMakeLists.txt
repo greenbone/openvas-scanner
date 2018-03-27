@@ -43,27 +43,31 @@ if (NOT CMAKE_BUILD_TYPE)
   set (CMAKE_BUILD_TYPE Debug)
 endif (NOT CMAKE_BUILD_TYPE)
 
-## Retrieve svn revision (at configure time)
-#  Not using Subversion_WC_INFO, as it would have to connect to the repo
-find_program (SVN_EXECUTABLE svn DOC "subversion command line client")
+## Retrieve git revision (at configure time)
+#  Not using Git_WC_INFO, as it would have to connect to the repo
+find_program (GIT_EXECUTABLE git DOC "git command line client")
 
-macro (Subversion_GET_REVISION dir variable)
-  execute_process (COMMAND ${SVN_EXECUTABLE} info ${CMAKE_SOURCE_DIR}/${dir}
-    OUTPUT_VARIABLE ${variable}
-    OUTPUT_STRIP_TRAILING_WHITESPACE)
-  string (REGEX REPLACE "^(.*\n)?Revision: ([^\n]+).*"
-    "\\2" ${variable} "${${variable}}")
-endmacro (Subversion_GET_REVISION)
+macro (Git_GET_REVISION dir variable)
+  execute_process(COMMAND ${GIT_EXECUTABLE} rev-parse --abbrev-ref HEAD
+                  WORKING_DIRECTORY ${dir}
+                  OUTPUT_VARIABLE GIT_BRANCH
+                  OUTPUT_STRIP_TRAILING_WHITESPACE)
+  execute_process(COMMAND ${GIT_EXECUTABLE} log -1 --format=%h
+                  WORKING_DIRECTORY ${dir}
+                  OUTPUT_VARIABLE GIT_COMMIT_HASH
+                  OUTPUT_STRIP_TRAILING_WHITESPACE)
+  set (${variable} "${GIT_COMMIT_HASH}-${GIT_BRANCH}")
+endmacro (Git_GET_REVISION)
 
 if (NOT CMAKE_BUILD_TYPE MATCHES "Release")
-  if (EXISTS "${CMAKE_SOURCE_DIR}/.svn/")
-    if (SVN_EXECUTABLE)
-      Subversion_GET_REVISION(. ProjectRevision)
-      set (SVN_REVISION ".SVN.r${ProjectRevision}")
-    else (SVN_EXECUTABLE)
-      set (SVN_REVISION ".SVN")
-    endif (SVN_EXECUTABLE)
-  endif (EXISTS "${CMAKE_SOURCE_DIR}/.svn/")
+  if (EXISTS "${CMAKE_SOURCE_DIR}/.git/")
+    if (GIT_EXECUTABLE)
+      Git_GET_REVISION(. ProjectRevision)
+      set (GIT_REVISION "~git-${ProjectRevision}")
+    else (GIT_EXECUTABLE)
+      set (GIT_REVISION "~git")
+    endif (GIT_EXECUTABLE)
+  endif (EXISTS "${CMAKE_SOURCE_DIR}/.git/")
 endif (NOT CMAKE_BUILD_TYPE MATCHES "Release")
 
 # TODO: Check pkg-config (maybe with code like in gsa/CMakeLists.txt).
@@ -85,17 +89,17 @@ set (CPACK_PACKAGE_VERSION_MAJOR "5")
 set (CPACK_PACKAGE_VERSION_MINOR "0")
 
 # Use this scheme for stable releases
-set (CPACK_PACKAGE_VERSION_PATCH "9${SVN_REVISION}")
+set (CPACK_PACKAGE_VERSION_PATCH "9${GIT_REVISION}")
 set (CPACK_PACKAGE_VERSION "${CPACK_PACKAGE_VERSION_MAJOR}.${CPACK_PACKAGE_VERSION_MINOR}.${CPACK_PACKAGE_VERSION_PATCH}")
 # Use this scheme for +betaN and +rcN releases:
-#set (CPACK_PACKAGE_VERSION_PATCH "+beta1${SVN_REVISION}")
+#set (CPACK_PACKAGE_VERSION_PATCH "+beta1${GIT_REVISION}")
 #set (CPACK_PACKAGE_VERSION "${CPACK_PACKAGE_VERSION_MAJOR}.${CPACK_PACKAGE_VERSION_MINOR}${CPACK_PACKAGE_VERSION_PATCH}")
 
 set (CPACK_PACKAGE_FILE_NAME "${PROJECT_NAME}-${CPACK_PACKAGE_VERSION}")
 set (CPACK_SOURCE_PACKAGE_FILE_NAME "${PROJECT_NAME}-${CPACK_PACKAGE_VERSION}")
 set (CPACK_PACKAGE_VENDOR "The OpenVAS Project")
 set (CPACK_SOURCE_IGNORE_FILES
-"/.svn/"
+"/.git/"
 "/_CPack_Packages/"
 "/CMakeFiles/"
 "cmake$"
