@@ -1,3 +1,26 @@
+SUMMARY OF RELEASE CHANGES FOR OPENVAS-SCANNER-5.0
+====================================================
+
+For detailed code changes, please visit
+ https://github.com/greenbone/openvas-scanner/commits/openvas-scanner-5.0
+ or get the entire source code repository and view log history:
+ $ git clone https://github.com/greenbone/openvas-scanner.git
+ $ cd openvas-scanner && git checkout openvas-scanner-5.0 && git log
+
+openvas-scanner 5.0.9 (2018-03-27)
+
+This is the ninth maintenance release of the openvas-scanner 5.0 module for
+the Open Vulnerability Assessment System release 8 (OpenVAS-8).
+
+Many thanks to everyone who contributed to this release:
+Hani Benhabiles, Christian Fischer, Jan-Oliver Wagner and Juan Jose Nicola.
+
+Main changes compared to 5.0.8:
+* Redis performance has been improved reducing the number of queries during
+  a scan.
+* An issue related to the dependency cycle detection has been addressed.
+
+
 openvas-scanner 5.0.8 (2017-05-05)
 
 This is the eighth maintenance release of the openvas-scanner 5.0 module for
