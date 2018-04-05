@@ -382,7 +382,7 @@ nasl_win_cmd_exec (lex_ctxt * lexic)
 {
   struct script_infos *script_infos = lexic->script_infos;
   struct in6_addr *host = plug_get_host_ip (script_infos);
-  char *ip, *argv[4], *unicode, target[2048];
+  char *ip, *argv[4], *unicode, target[2048], *c;
   tree_cell *retc;
   GString *string = NULL;
   int sout, ret;
@@ -406,6 +406,10 @@ nasl_win_cmd_exec (lex_ctxt * lexic)
       g_free(ip);
       return NULL;
     }
+
+  /* wmiexec.py uses domain/username format. */
+  if ((c = strchr (username, '\\')))
+    *c = '/';
   argv[0] = "wmiexec.py";
   snprintf (target, sizeof (target), "%s:%s@%s", username, password, ip);
   argv[1] = target;
