@@ -27,7 +27,6 @@ tree_cell *script_tag (lex_ctxt *);
 tree_cell *script_name (lex_ctxt *);
 tree_cell *script_version (lex_ctxt *);
 tree_cell *script_copyright (lex_ctxt *);
-tree_cell *script_summary (lex_ctxt *);
 tree_cell *script_category (lex_ctxt *);
 tree_cell *script_family (lex_ctxt *);
 tree_cell *script_dependencies (lex_ctxt *);

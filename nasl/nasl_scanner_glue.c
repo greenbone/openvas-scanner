@@ -263,14 +263,6 @@ script_copyright (lex_ctxt * lexic)
 }
 
 tree_cell *
-script_summary (lex_ctxt * lexic)
-{
-  /* XXX: For backward compatibility. */
-  (void) lexic;
-  return FAKE_CELL;
-}
-
-tree_cell *
 script_category (lex_ctxt * lexic)
 {
   struct script_infos *script_infos = lexic->script_infos;

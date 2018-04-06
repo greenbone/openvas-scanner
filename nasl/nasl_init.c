@@ -73,7 +73,6 @@ static init_func libfuncs[] = {
   {"script_version", script_version},
   {"script_timeout", script_timeout},
   {"script_copyright", script_copyright},
-  {"script_summary", script_summary},
   {"script_category", script_category},
   {"script_family", script_family},
   {"script_dependencies", script_dependencies},
