@@ -86,7 +86,6 @@ static init_func libfuncs[] = {
   {"script_get_preference", script_get_preference},
   {"script_get_preference_file_content", script_get_preference_file_content},
   {"script_get_preference_file_location", script_get_preference_file_location},
-  {"script_id", script_id},
   {"script_oid", script_oid},
   {"script_cve_id", script_cve_id},
   {"script_bugtraq_id", script_bugtraq_id},

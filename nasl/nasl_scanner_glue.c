@@ -106,23 +106,6 @@ script_timeout (lex_ctxt * lexic)
 
 
 tree_cell *
-script_id (lex_ctxt * lexic)
-{
-  int id;
-  char * oid;
-
-  id = get_int_var_by_num (lexic, 0, -1);
-  if (id > 0)
-    {
-      oid = g_strdup_printf ("%s%i", LEGACY_OID, id);
-      nvti_set_oid (lexic->script_infos->nvti, oid);
-      g_free (oid);
-    }
-
-  return FAKE_CELL;
-}
-
-tree_cell *
 script_oid (lex_ctxt * lexic)
 {
   nvti_set_oid (lexic->script_infos->nvti, get_str_var_by_num (lexic, 0));
