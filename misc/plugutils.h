@@ -86,10 +86,6 @@ void post_log (const char *, struct script_infos *, int, const char *);
 int host_get_port_state (struct script_infos *, int);
 int host_get_port_state_udp (struct script_infos *, int);
 
-/* Not implemented
-char * host_get_port_banner(struct script_infos *, int);
-*/
-
 
 /*
  * Inter Plugins Communication functions
