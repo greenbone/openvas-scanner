@@ -19,7 +19,6 @@
 #ifndef NASL_SCANNER_GLUE_H
 #define NASL_SCANNER_GLUE_H
 tree_cell *script_timeout (lex_ctxt *);
-tree_cell *script_id (lex_ctxt *);
 tree_cell *script_oid (lex_ctxt *);
 tree_cell *script_cve_id (lex_ctxt *);
 tree_cell *script_bugtraq_id (lex_ctxt *);
@@ -28,7 +27,6 @@ tree_cell *script_tag (lex_ctxt *);
 tree_cell *script_name (lex_ctxt *);
 tree_cell *script_version (lex_ctxt *);
 tree_cell *script_copyright (lex_ctxt *);
-tree_cell *script_summary (lex_ctxt *);
 tree_cell *script_category (lex_ctxt *);
 tree_cell *script_family (lex_ctxt *);
 tree_cell *script_dependencies (lex_ctxt *);
