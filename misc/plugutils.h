@@ -26,12 +26,9 @@
 #ifndef OPENVAS_PLUGUTILS_H
 #define OPENVAS_PLUGUTILS_H
 
-#include "scanneraux.h"
+#include "scanneraux.h"     /* for struct script_infos */
 
 #include <gvm/base/nvti.h>  /* for nvti_t */
-#include <gvm/util/kb.h>
-
-#define LEGACY_OID "1.3.6.1.4.1.25623.1.0."
 
 #define ARG_STRING  1
 #define ARG_INT     2
@@ -88,10 +85,6 @@ void post_log (const char *, struct script_infos *, int, const char *);
  */
 int host_get_port_state (struct script_infos *, int);
 int host_get_port_state_udp (struct script_infos *, int);
-
-/* Not implemented
-char * host_get_port_banner(struct script_infos *, int);
-*/
 
 
 /*
