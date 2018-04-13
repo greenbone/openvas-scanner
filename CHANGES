@@ -1,3 +1,27 @@
+SUMMARY OF RELEASE CHANGES FOR OPENVAS-SCANNER
+==============================================
+
+For detailed code changes, please visit
+ https://github.com/greenbone/openvas-scanner/commits/master
+or get the entire source code repository and view log history:
+$ git clone https://github.com/greenbone/openvas-scanner.git
+$ cd openvas-scanner && git log
+
+openvas-scanner 5.2+beta1 (2018-XX-XX)
+
+This is the first beta release of the openvas-scanner module 5.2 for the
+Greenbone Vulnerability Management (GVM) framework.
+
+This version inherits all elements of te former openvas-libraries that were
+used by OpenVAS Scanner only.
+ 
+Apart from this, the module covers a number of significant advances
+and clean-ups.
+
+Many thanks to everyone who has contributed to this release:
+TODO
+
+
 openvas-scanner 5.1.0 (2016-11-09)
 
 This is the first release of the openvas-scanner 5.1 module for the Open
