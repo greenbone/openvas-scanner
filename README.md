@@ -2,8 +2,10 @@
 
 # openvas-scanner
 
-This is the scanner module for the Open Vulnerability Assessment System
-(OpenVAS).
+This is the Open Vulnerability Assessment System (OpenVAS) Scanner of the
+Greenbone Vulnerability Management (GVM) Solution. It is used for the Greenbone
+Security Manager appliances and is a full-featured scan engine that executes
+a continously updated and extended feed of Network Vulnerability Tests (NVTs).
 
 For more information, please refer to the OpenVAS website available at
 http://www.openvas.org/.
@@ -22,7 +24,7 @@ modules to compile openvas-scanner. Further information about these modules is
 available from the OpenVAS website as well.
 
 If you have any question or suggestions, please feel free to use the mailing
-list and the IRC chat to contact the OpenVAS developers.
+list and the IRC chat to contact the GVM developers.
 
 Please use the bug tracker located at
 https://github.com/greenbone/openvas-scanner/issues to report bugs.
