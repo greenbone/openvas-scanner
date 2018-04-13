@@ -249,7 +249,6 @@ static pid_t
 loading_handler_start ()
 {
   pid_t child_pid, parent_pid;
-  int opts;
 
   init_loading_shm ();
   parent_pid = getpid ();
@@ -277,17 +276,6 @@ loading_handler_start ()
       if (loading_stop_signal || kill (parent_pid, 0) < 0)
         break;
       lg_address = sizeof (struct sockaddr_un);
-
-      if ((opts = fcntl (global_iana_socket, F_GETFL, 0)) < 0)
-        {
-          g_critical ("fcntl: %s", strerror (errno));
-          exit (0);
-        }
-      if (fcntl (global_iana_socket, F_SETFL, opts | O_NONBLOCK) < 0)
-        {
-          g_critical ("fcntl: %s", strerror (errno));
-          exit (0);
-        }
 
       if (listen (global_iana_socket, 5) < 0)
         continue;
@@ -318,8 +306,6 @@ loading_handler_start ()
         }
       waitpid (child_pid1, &ret, WNOHANG);
 
-      if (fcntl (global_iana_socket, F_SETFL, opts) < 0)
-        g_critical ("fcntl: %s", strerror (errno));
     }
   exit (0);
 }
@@ -601,7 +587,6 @@ check_kb_status ()
       g_message ("Critical Redis connection error.");
       exit (1);
     }
-  usleep (500000);
   while (waitkb != 0)
     {
       kb_access_aux = kb_find (prefs_get ("kb_location"), NVTICACHE_STR);
