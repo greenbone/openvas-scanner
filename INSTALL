@@ -1,10 +1,9 @@
 INSTALLATION INSTRUCTIONS FOR OPENVAS-SCANNER
 =============================================
 
-Please note: The reference system used by most of the developers is Debian 
-GNU/Linux 'Jessie' 8. The build might fail on any other systems.
-Also it is necessary to install dependent development packages.
-
+Please note: The reference system used by most of the developers is Debian
+GNU/Linux 'Stretch' 9. The build might fail on any other system. Also it is
+necessary to install dependent development packages.
 
 Prerequisites for openvas-scanner
 ---------------------------------
@@ -40,10 +39,9 @@ Recommended for extended Windows support (e.g. automatically start the remote re
 Recommended to have improved SNMP support:
 * netsnmp
 
-Install prerequisites on Debian GNU/Linux 'Jessie' 8:
+Install prerequisites on Debian GNU/Linux 'Stretch' 9:
 # apt-get install gcc pkg-config libssh-gcrypt-dev libgnutls28-dev libglib2.0-dev \
-  libpcap-dev libgpgme11-dev bison libksba-dev \
-  libsnmp-dev libgcrypt20-dev
+  libpcap-dev libgpgme-dev bison libksba-dev libsnmp-dev libgcrypt20-dev
 
 
 Compiling openvas-scanner
@@ -166,7 +164,7 @@ Setting up an openvas-scanner requires the following steps:
    feed content and of the scanner preferences. This will not affect running
    scans. The NVT synchronisation routine will try to send the SIGHUP to the
    scanner on its own. This works only if the pid-file of scanner is found
-   which is expected to be /var/run/openvas/openvassd.pid.
+   which is expected to be /var/run/openvassd.pid.
 
    Please note that although you can start openvassd as a user without elevated
    privileges, it is recommended that you start openvassd as root since a number
@@ -175,9 +173,9 @@ Setting up an openvas-scanner requires the following steps:
    without permission to perform these operations, your scan results are likely
    to be incomplete.
 
-5) Once the scanner has started, openvas-manager can act as a client and control
-   the scanner. The actual user interfaces (for example GSA or CLI-OMP)
-   will only interact with the manager, not the scanner.
+5) Once the scanner has started, gvmd can act as a client and control
+   the scanner. The actual user interfaces (for example GSA or GVM-Tools)
+   will only interact with gvmd, not the scanner.
 
 Logging Configuration
 ---------------------
@@ -188,9 +186,10 @@ If you encounter problems, by default the scanner writes logs to the file
 
 It may contain useful information.The exact location of this file may differ
 depending on your distribution and installation method. Please have this file
-ready when contacting the OpenVAS developers through the OpenVAS mailing list
-or the online chat or submitting bug reports at http://bugs.openvas.org/ as they
-may help to pinpoint the source of your issue.
+ready when contacting the GVM developers through the OpenVAS mailing list
+or the online chat or submitting bug reports at
+  https://github.com/greenbone/openvas-scanner/issues
+as they may help to pinpoint the source of your issue.
 
 Logging is configured entirely by the file
 
