@@ -58,25 +58,19 @@ else (PCAP_CONFIG)
   set (PCAP_CFLAGS "-I/usr/include")
 endif (PCAP_CONFIG)
 
-if (NOT MINGW)
-  # TODO: We do not have a library lookup for those modules
-  # which also works when cross compiling. Library names
-  # are hardcoded in the corresponding linker commands.
-  message (STATUS "Looking for gpgme...")
-  find_library (GPGME gpgme)
-  message (STATUS "Looking for gpgme... ${GPGME}")
-  if (NOT GPGME)
-    message (SEND_ERROR "The gpgme library is required.")
-  endif (NOT GPGME)
+message (STATUS "Looking for gpgme...")
+find_library (GPGME gpgme)
+message (STATUS "Looking for gpgme... ${GPGME}")
+if (NOT GPGME)
+  message (SEND_ERROR "The gpgme library is required.")
+endif (NOT GPGME)
 
-  execute_process (COMMAND gpgme-config --libs
-    OUTPUT_VARIABLE GPGME_LDFLAGS
-    OUTPUT_STRIP_TRAILING_WHITESPACE)
-  execute_process (COMMAND gpgme-config --cflags
-    OUTPUT_VARIABLE GPGME_CFLAGS
-    OUTPUT_STRIP_TRAILING_WHITESPACE)
-
-endif (NOT MINGW)
+execute_process (COMMAND gpgme-config --libs
+  OUTPUT_VARIABLE GPGME_LDFLAGS
+  OUTPUT_STRIP_TRAILING_WHITESPACE)
+execute_process (COMMAND gpgme-config --cflags
+  OUTPUT_VARIABLE GPGME_CFLAGS
+  OUTPUT_STRIP_TRAILING_WHITESPACE)
 
 set (CMAKE_C_FLAGS_DEBUG "${CMAKE_C_FLAGS_DEBUG} -Werror")
 
@@ -87,31 +81,14 @@ include_directories (${GLIB_INCLUDE_DIRS}
                      ${LIBGVM_BASE_INCLUDE_DIRS}
                      ${GNUTLS_INCLUDE_DIRS})
 
-if (MINGW)
-  if (CROSS_ENV)
-    include_directories (${CROSS_ENV}/include)
-    include_directories (${CROSS_ENV}/include/glib-2.0)
-    include_directories (${CROSS_ENV}/lib/glib-2.0/include)
-  else (CROSS_ENV)
-    message (FATAL_ERROR "Could not find include path for WIN32. Consider"
-             " building with -DCROSS_ENV=path/to win32/environment")
-  endif (CROSS_ENV)
-endif (MINGW)
-
 # Library
 
+set (FILES bpf_share.c ftp_funcs.c vendorversion.c network.c plugutils.c pcap.c)
 
-if (NOT MINGW)
-  # On windows we are always PIC and stack-protector is replaces by DEP
-  # Also stack protection needs a shared library to work
-  set (CMAKE_C_FLAGS              "${CMAKE_C_FLAGS} -Wall -Wextra -fPIC")
-endif (NOT MINGW)
 
-if (MINGW)
-else (MINGW)
-  set (FILES bpf_share.c ftp_funcs.c vendorversion.c network.c plugutils.c
-             pcap.c)
-endif (MINGW)
+# On windows we are always PIC and stack-protector is replaces by DEP
+# Also stack protection needs a shared library to work
+set (CMAKE_C_FLAGS              "${CMAKE_C_FLAGS} -Wall -Wextra -fPIC")
 
 ## Project version
 # The following three variables should be set through the project command once
@@ -140,16 +117,9 @@ set_target_properties (openvas_misc_shared PROPERTIES CLEAN_DIRECT_OUTPUT 1)
 set_target_properties (openvas_misc_shared PROPERTIES SOVERSION "${MISC_VERSION_MAJOR}")
 set_target_properties (openvas_misc_shared PROPERTIES VERSION "${MISC_PACKAGE_VERSION}")
 
-if (MINGW)
-  set (GLIB_LDFLAGS -Wl,--start-group ${GLIB_LDFLAGS} gmodule-2.0 -Wl,--end-group)
-  set (W32LIBS ${GLIB_LDFLAGS} gnutls intl iconv tasn1
-     gcrypt gpgme assuan libgpg-error ole32 ws2_32 ffi z shlwapi dnsapi winmm)
-  target_link_libraries (openvas_misc_shared ${W32LIBS})
-else (MINGW)
-  target_link_libraries (openvas_misc_shared LINK_PRIVATE ${GNUTLS_LDFLAGS} ${UUID_LDFLAGS}
-                         ${GLIB_LDFLAGS} ${PCAP_LDFLAGS}
-                         ${LINKER_HARDENING_FLAGS})
-endif (MINGW)
+target_link_libraries (openvas_misc_shared LINK_PRIVATE ${GNUTLS_LDFLAGS} ${UUID_LDFLAGS}
+                       ${GLIB_LDFLAGS} ${PCAP_LDFLAGS}
+                       ${LINKER_HARDENING_FLAGS})
 
 if (OPENVAS_STATE_DIR)
   add_definitions (-DOPENVAS_STATE_DIR="${OPENVAS_STATE_DIR}")
