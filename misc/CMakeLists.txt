@@ -6,7 +6,7 @@
 # Matthew Mundell <matthew.mundell@greenbone.net>
 #
 # Copyright:
-# Copyright (C) 2010, 2011 Greenbone Networks GmbH
+# Copyright (C) 2010, 2011, 2018 Greenbone Networks GmbH
 #
 # This program is free software; you can redistribute it and/or
 # modify it under the terms of the GNU General Public License
@@ -24,12 +24,12 @@
 
 ## Dependency checks
 ##
-## TODO Also check for headers where needed.
 
-pkg_check_modules (GLIB REQUIRED glib-2.0>=2.32)
+pkg_check_modules (GLIB REQUIRED glib-2.0>=2.42)
 pkg_check_modules (GNUTLS REQUIRED gnutls>=3.2.15)
 
 pkg_check_modules (LIBGVM_BASE REQUIRED libgvm_base>=1.0.0)
+pkg_check_modules (LIBGVM_UTIL REQUIRED libgvm_util>=1.0.0)
 
 pkg_check_modules (OPENVAS_WMICLIENT libopenvas_wmiclient>=1.0.1)
 pkg_check_modules (OPENVAS_WINCMD libopenvas_wincmd>=1.0.1)
@@ -112,11 +112,6 @@ else (MINGW)
   set (FILES bpf_share.c ftp_funcs.c vendorversion.c network.c plugutils.c
              pcap.c)
 endif (MINGW)
-
-# Indentation targets
-# TODO: Commented out as it provokes error. Unclear
-# what this directive is good for.
-#add_custom_indent_targets (${FILES})
 
 ## Project version
 # The following three variables should be set through the project command once

@@ -190,10 +190,6 @@ main (int argc, char **argv)
     }
   g_option_context_free (option_context);
 
-#if !GLIB_CHECK_VERSION(2, 35, 0)
-  g_type_init();
-#endif
-
   mode |= NASL_COMMAND_LINE;
   /* authenticated mode */
   mode |= NASL_ALWAYS_SIGNED;
