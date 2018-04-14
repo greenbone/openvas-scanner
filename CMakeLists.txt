@@ -7,7 +7,7 @@
 # Jan-Oliver Wagner <jan-oliver.wagner@greenbone.net>
 #
 # Copyright:
-# Copyright (C) 2011-2016 Greenbone Networks GmbH
+# Copyright (C) 2011-2018 Greenbone Networks GmbH
 #
 # This program is free software; you can redistribute it and/or
 # modify it under the terms of the GNU General Public License
@@ -23,11 +23,13 @@
 # along with this program; if not, write to the Free Software
 # Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA 02110-1301 USA.
 
+cmake_minimum_required (VERSION 3.0)
+
 message ("-- Configuring the Scanner...")
 
-project (openvas-scanner C)
-
-cmake_minimum_required (VERSION 2.8)
+project (openvas-scanner
+  VERSION 5.2.0
+  LANGUAGES C)
 
 if (POLICY CMP0005)
   cmake_policy (SET CMP0005 NEW)
@@ -56,15 +58,6 @@ if (NOT CMAKE_BUILD_TYPE MATCHES "Release")
     endif (GIT_FOUND)
   endif (EXISTS "${CMAKE_SOURCE_DIR}/.git/")
 endif (NOT CMAKE_BUILD_TYPE MATCHES "Release")
-
-# TODO: Check pkg-config (maybe with code like in gsa/CMakeLists.txt).
-
-## Project version
-# The following three variables should be set through the project command once
-# we require CMake >= 3.0
-set (PROJECT_VERSION_MAJOR 5)
-set (PROJECT_VERSION_MINOR 2)
-set (PROJECT_VERSION_PATCH 0)
 
 # Set beta version if this is a beta release series,
 # unset if this is a stable release series.
@@ -161,9 +154,6 @@ if (NOT DATADIR)
   set (DATADIR "${CMAKE_INSTALL_PREFIX}/share")
 endif (NOT DATADIR)
 
-#if (NOT SYSCONFDIR)
-#  set (SYSCONFDIR "${CMAKE_INSTALL_PREFIX}/etc")
-#endif (NOT SYSCONFDIR)
 if (NOT OPENVAS_RUN_DIR)
   set (OPENVAS_RUN_DIR "${LOCALSTATEDIR}/run")
 endif (NOT OPENVAS_RUN_DIR)
