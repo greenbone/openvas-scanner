@@ -106,7 +106,6 @@ ntp_parse_input (struct scan_globals *globals, char *input)
         case CREQ_NVT_INFO:
           {
             comm_send_nvt_info (soc);
-            comm_send_preferences (soc);
             break;
           }
 
