@@ -237,37 +237,32 @@ send_cleanup:
  * @brief Sends the list of plugins that the scanner could load to the client,
  * @brief using the OTP format (calls send_plug_info for each).
  * @param soc    Socket to use for sending list of plugins.
+ * @param oids   List of OIDs to send.
  * @see send_plug_info
  */
-void
-comm_send_pluginlist (int soc)
+static void
+comm_send_pluginlist (int soc, GSList *oids)
 {
-  GSList *list, *element;
-
-  list = element = nvticache_get_oids ();
   send_printf (soc, "SERVER <|> PLUGIN_LIST <|>\n");
-  while (element)
+  while (oids)
     {
-      send_plug_info (soc, element->data);
-      element = element->next;
+      send_plug_info (soc, oids->data);
+      oids = oids->next;
     }
   send_printf (soc, "<|> SERVER\n");
-  g_slist_free_full (list, g_free);
 }
 
 /**
  * @brief Sends the list of plugins preferences to the client.
- * @param soc    Socket to use for sending list of preferences.
+ * @param soc   Socket to use for sending list of preferences.
+ * @param oids  List OIDs to send.
  */
-void
-send_plugins_preferences (int soc)
+static void
+send_plugins_preferences (int soc, GSList *oids)
 {
-  GSList *list, *element;
-
-  list = element = nvticache_get_oids ();
-  while (element)
+  while (oids)
     {
-      char *oid = element->data;
+      char *oid = oids->data;
       GSList *nprefs = nvticache_get_prefs (oid);
       int timeout = nvticache_get_timeout (oid);
 
@@ -290,17 +285,17 @@ send_plugins_preferences (int soc)
           g_free (name);
         }
       g_slist_free_full (nprefs, (void (*) (void *)) nvtpref_free);
-      element = element->next;
+      oids = oids->next;
     }
-  g_slist_free_full (list, g_free);
 }
 
 /**
  * @brief Sends the preferences of the scanner.
- * @param soc Socket to use for sending.
+ * @param soc   Socket to use for sending.
+ * @param oids  List of OIDs to send.
  */
-void
-comm_send_preferences (int soc)
+static void
+comm_send_preferences (int soc, GSList *oids)
 {
   GHashTableIter iter;
   void *itername, *itervalue;
@@ -317,7 +312,7 @@ comm_send_preferences (int soc)
       if (!is_scanner_only_pref (itername))
         send_printf (soc, "%s <|> %s\n", (char *) itername, (char *) itervalue);
     }
-  send_plugins_preferences (soc);
+  send_plugins_preferences (soc, oids);
   send_printf (soc, "<|> SERVER\n");
 }
 
@@ -386,6 +381,7 @@ void
 comm_send_nvt_info (int soc)
 {
   char buf[2048], *feed_version;
+  GSList *oids;
 
   feed_version = nvticache_feed_version ();
   send_printf (soc, "SERVER <|> NVT_INFO <|> %s <|> SERVER\n",
@@ -395,13 +391,16 @@ comm_send_nvt_info (int soc)
 
   if (!is_client_present (soc))
     return;
+  oids = nvticache_get_oids ();
   for (;;)
     {
       bzero (buf, sizeof (buf));
       recv_line (soc, buf, sizeof (buf) - 1);
       if (strstr (buf, "COMPLETE_LIST"))
-        comm_send_pluginlist (soc);
+        comm_send_pluginlist (soc, oids);
       else
         break;
     }
+  comm_send_preferences (soc, oids);
+  g_slist_free_full (oids, g_free);
 }
