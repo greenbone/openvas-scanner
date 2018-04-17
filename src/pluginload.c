@@ -220,6 +220,36 @@ set_total_loading_plugins (int total)
     loading_shm[1] = total;
 }
 
+/*
+ * @brief Clean leftover NVTs.
+ *
+ * @param[in]   num_files   Number of NVT files found in the folder.
+ */
+static void
+cleanup_leftovers (int num_files)
+{
+  size_t count;
+  GSList *oids, *element;
+
+  proctitle_set ("openvassd: Cleaning leftover NVTs.");
+
+  count = nvticache_count ();
+  if ((int) count <= num_files)
+    return;
+
+  oids = element = nvticache_get_oids ();
+  while (element)
+    {
+      char *path = nvticache_get_src (element->data);
+
+      if (!g_file_test (path, G_FILE_TEST_EXISTS))
+        nvticache_delete (element->data);
+      g_free (path);
+      element = element->next;
+    }
+  g_slist_free_full (oids, g_free);
+}
+
 static int
 plugins_reload_from_dir (void *folder)
 {
@@ -288,6 +318,7 @@ plugins_reload_from_dir (void *folder)
       f = g_slist_next (f);
     }
 
+  cleanup_leftovers (num_files);
   g_slist_free_full (files, g_free);
 
   proctitle_set ("openvassd: Reloaded all the NVTs.");
