@@ -161,7 +161,6 @@ endif (NOT OPENVAS_RUN_DIR)
 set (OPENVAS_DATA_DIR    "${DATADIR}/openvas")
 set (OPENVAS_STATE_DIR   "${LOCALSTATEDIR}/lib/openvas")
 set (GVM_LOG_DIR         "${LOCALSTATEDIR}/log/gvm")
-set (OPENVAS_CACHE_DIR   "${LOCALSTATEDIR}/cache/openvas")
 set (OPENVAS_SYSCONF_DIR "${SYSCONFDIR}/openvas")
 set (GVM_SYSCONF_DIR     "${SYSCONFDIR}/gvm")
 

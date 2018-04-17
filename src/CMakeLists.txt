@@ -97,10 +97,6 @@ if (OPENVAS_NVT_DIR)
   add_definitions (-DOPENVAS_NVT_DIR="${OPENVAS_NVT_DIR}")
 endif (OPENVAS_NVT_DIR)
 
-if (OPENVAS_CACHE_DIR)
-  add_definitions (-DOPENVAS_CACHE_DIR="${OPENVAS_CACHE_DIR}")
-endif (OPENVAS_CACHE_DIR)
-
 if (OPENVASSD_CONF)
   add_definitions (-DOPENVASSD_CONF="${OPENVASSD_CONF}")
 endif (OPENVASSD_CONF)
@@ -198,7 +194,6 @@ install (FILES ${CMAKE_BINARY_DIR}/doc/example_redis_2_4.conf
          DESTINATION ${DATADIR}/doc/openvas-scanner/ )
 
 install (DIRECTORY DESTINATION ${OPENVAS_NVT_DIR})
-install (DIRECTORY DESTINATION ${OPENVAS_CACHE_DIR})
 
 ## End
 
