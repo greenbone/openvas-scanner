@@ -81,51 +81,48 @@ endif (NOT KSBA)
 message (STATUS "Looking for pcap...")
 find_library (PCAP pcap)
 
-if (NOT MINGW)
- find_library (GPGME gpgme)
-  message (STATUS "Looking for gpgme... ${GPGME}")
-  if (NOT GPGME)
-    message (SEND_ERROR "The gpgme library is required.")
-  endif (NOT GPGME)
+find_library (GPGME gpgme)
+message (STATUS "Looking for gpgme... ${GPGME}")
+if (NOT GPGME)
+  message (SEND_ERROR "The gpgme library is required.")
+endif (NOT GPGME)
 
-  execute_process (COMMAND gpgme-config --libs
-    OUTPUT_VARIABLE GPGME_LDFLAGS
+execute_process (COMMAND gpgme-config --libs
+  OUTPUT_VARIABLE GPGME_LDFLAGS
+  OUTPUT_STRIP_TRAILING_WHITESPACE)
+execute_process (COMMAND gpgme-config --cflags
+  OUTPUT_VARIABLE GPGME_CFLAGS
+  OUTPUT_STRIP_TRAILING_WHITESPACE)
+
+message (STATUS "Looking for netsnmp...")
+find_library (SNMP snmp)
+message (STATUS "Looking for netsnmp... ${SNMP}")
+if (SNMP)
+  execute_process (COMMAND net-snmp-config --libs
+    OUTPUT_VARIABLE SNMP_LDFLAGS
     OUTPUT_STRIP_TRAILING_WHITESPACE)
-  execute_process (COMMAND gpgme-config --cflags
-    OUTPUT_VARIABLE GPGME_CFLAGS
+endif (SNMP)
+
+message (STATUS "Looking for libgcrypt...")
+find_library (GCRYPT gcrypt)
+message (STATUS "Looking for libgcrypt... ${GCRYPT}")
+if (NOT GCRYPT)
+  message (SEND_ERROR "The libgcrypt library is required.")
+else (NOT GCRYPT)
+  execute_process (COMMAND libgcrypt-config --libs
+    OUTPUT_VARIABLE GCRYPT_LDFLAGS
     OUTPUT_STRIP_TRAILING_WHITESPACE)
-
-  message (STATUS "Looking for netsnmp...")
-  find_library (SNMP snmp)
-  message (STATUS "Looking for netsnmp... ${SNMP}")
-  if (SNMP)
-    execute_process (COMMAND net-snmp-config --libs
-      OUTPUT_VARIABLE SNMP_LDFLAGS
-      OUTPUT_STRIP_TRAILING_WHITESPACE)
-  endif (SNMP)
-
-  message (STATUS "Looking for libgcrypt...")
-  find_library (GCRYPT gcrypt)
-  message (STATUS "Looking for libgcrypt... ${GCRYPT}")
-  if (NOT GCRYPT)
-    message (SEND_ERROR "The libgcrypt library is required.")
-  else (NOT GCRYPT)
-    execute_process (COMMAND libgcrypt-config --libs
-      OUTPUT_VARIABLE GCRYPT_LDFLAGS
-      OUTPUT_STRIP_TRAILING_WHITESPACE)
-    execute_process (COMMAND libgcrypt-config --cflags
-      OUTPUT_VARIABLE GCRYPT_CFLAGS
-      OUTPUT_STRIP_TRAILING_WHITESPACE)
-    execute_process (COMMAND libgcrypt-config --version
-      OUTPUT_VARIABLE GCRYPT_VERSION
-      OUTPUT_STRIP_TRAILING_WHITESPACE)
-    message (STATUS "  found libgcrypt, version ${GCRYPT_VERSION}")
-    if (GCRYPT_VERSION VERSION_LESS "1.6")
-      message (SEND_ERROR "libgcrypt 1.6 or greater is required")
-    endif (GCRYPT_VERSION VERSION_LESS "1.6")
-  endif (NOT GCRYPT)
-
-endif (NOT MINGW)
+  execute_process (COMMAND libgcrypt-config --cflags
+    OUTPUT_VARIABLE GCRYPT_CFLAGS
+    OUTPUT_STRIP_TRAILING_WHITESPACE)
+  execute_process (COMMAND libgcrypt-config --version
+    OUTPUT_VARIABLE GCRYPT_VERSION
+    OUTPUT_STRIP_TRAILING_WHITESPACE)
+  message (STATUS "  found libgcrypt, version ${GCRYPT_VERSION}")
+  if (GCRYPT_VERSION VERSION_LESS "1.6")
+    message (SEND_ERROR "libgcrypt 1.6 or greater is required")
+  endif (GCRYPT_VERSION VERSION_LESS "1.6")
+endif (NOT GCRYPT)
 
 
 ## Library
