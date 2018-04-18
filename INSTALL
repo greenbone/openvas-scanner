@@ -10,9 +10,9 @@ Prerequisites for openvas-scanner
 
 Prerequisites:
 * a C compiler (e.g. gcc)
-* cmake >= 2.8
+* cmake >= 3.0
 * libgvm_base, libgvm_util >= 1.0.0
-* glib-2.0 >= 2.32
+* glib-2.0 >= 2.42
 * gio-2.0
 * bison
 * flex

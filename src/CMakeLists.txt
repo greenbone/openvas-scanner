@@ -7,7 +7,7 @@
 # Jan-Oliver Wagner <jan-oliver.wagner@greenbone.net>
 #
 # Copyright:
-# Copyright (C) 2011 Greenbone Networks GmbH
+# Copyright (C) 2011, 2018 Greenbone Networks GmbH
 #
 # This program is free software; you can redistribute it and/or
 # modify it under the terms of the GNU General Public License
@@ -28,7 +28,8 @@
 ## Dependency checks
 
 pkg_check_modules (LIBGVM_BASE REQUIRED libgvm_base>=1.0.0)
-pkg_check_modules (GLIB REQUIRED glib-2.0>=2.32)
+pkg_check_modules (LIBGVM_UTIL REQUIRED libgvm_util>=1.0.0)
+pkg_check_modules (GLIB REQUIRED glib-2.0>=2.42)
 
 message (STATUS "Looking for libgcrypt...")
 find_library (GCRYPT gcrypt)
