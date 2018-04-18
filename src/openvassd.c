@@ -468,12 +468,12 @@ check_termination ()
 }
 
 /*
- * @brief Reloads the scanner if a reload was requested.
+ * @brief Reloads the scanner if a reload was requested or the feed was updated.
  */
 static void
 check_reload ()
 {
-  if (reload_signal)
+  if (reload_signal || nvticache_check_feed ())
     {
       proctitle_set ("openvassd: Reloading");
       reload_openvassd ();
@@ -632,7 +632,6 @@ main_loop ()
       struct scan_globals *globals;
 
       check_termination ();
-      check_reload ();
       check_kb_status ();
       wait_for_children1 ();
       lg_address = sizeof (struct sockaddr_un);
@@ -644,7 +643,10 @@ main_loop ()
       globals = g_malloc0 (sizeof (struct scan_globals));
       globals->global_socket = soc;
 
-      /* we do not want to create an io thread, yet so the last argument is -1 */
+      /* Check for reload after accept() but before we fork, to ensure that
+       * Manager gets full updated feed in case of NVT update connection.
+       */
+      check_reload ();
       if (create_process ((process_func_t) scanner_thread, globals) < 0)
         {
           g_debug ("Could not fork - client won't be served");
