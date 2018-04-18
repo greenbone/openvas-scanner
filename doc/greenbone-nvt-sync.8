@@ -18,9 +18,8 @@ In case no subscription key is present, the update synchronisation will use the 
 The script 
 .B greenbone-nvt-sync
 will fetch all new and updated security checks and install them at the proper
-location. Once this is done it will send a signal to the OpenVAS Scanner, openvassd(8)
-so that the new NVTs are loaded and considered for new security scans. If your installation
-does not allow automatic restart, you need to restart the scanner manually.
+location. Once this is done OpenVAS Scanner, openvassd(8) will automatically detect
+that new and updated NVTs are present and consider them for next activities.
 
 .SH SEE ALSO
 For more information see:

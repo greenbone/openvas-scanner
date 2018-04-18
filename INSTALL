@@ -155,16 +155,9 @@ Setting up an openvas-scanner requires the following steps:
 
    $ openvassd
 
-   Be aware that the first launch of openvas-scanner after the initial feed
-   synchronization or after large feed updates will take longer than usual since
-   the internal scanner cache has to be updated. Subsequent launches will be
-   much quicker.
-
    Sending SIGHUP to the scanner main process will initiate a reload of the
    feed content and of the scanner preferences. This will not affect running
-   scans. The NVT synchronisation routine will try to send the SIGHUP to the
-   scanner on its own. This works only if the pid-file of scanner is found
-   which is expected to be /var/run/openvassd.pid.
+   scans.
 
    Please note that although you can start openvassd as a user without elevated
    privileges, it is recommended that you start openvassd as root since a number

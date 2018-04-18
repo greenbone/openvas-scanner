@@ -73,9 +73,6 @@ SELFTEST_FAIL=0
 # Port to use for synchronization. Default value is 24.
 PORT=24
 
-# Directory where pidfiles are located
-PIDFILEDIR="@OPENVAS_RUN_DIR@"
-
 # Directory where the OpenVAS Scanner configuration is located
 OPENVAS_SYSCONF_DIR="@OPENVAS_SYSCONF_DIR@"
 
@@ -89,11 +86,6 @@ ENABLED=1
 # rather only update OpenVAS Scanner. This can be controlled via the --refresh
 # parameter.
 REFRESH_ONLY=0
-
-# If SYNC_ONLY is set to 1, the sync script will only perform the
-# synchronization but will not update OpenVAS Scanner.
-# This can be controlled via the --sync-only parameter.
-SYNC_ONLY=0
 
 # LOG_CMD defines the command to use for logging. To have logger log to stderr
 # as well as syslog, add "-s" here.
@@ -600,25 +592,6 @@ sync_nvts(){
   fi
 }
 
-update_openvassd (){
-  if [ $SYNC_ONLY -eq 1 ]
-  then
-    return
-  fi
-
-  SCANNER_PIDFILE="$PIDFILEDIR/openvassd.pid"
-  if [ -r "$SCANNER_PIDFILE" ]
-  then
-    SCANNER_PID=`cat $SCANNER_PIDFILE`
-    kill -HUP $SCANNER_PID
-    log_write "Sent signal to OpenVAS Scanner to update (PID $SCANNER_PID)."
-  else
-    log_err "$PIDFILEDIR/openvassd.pid not found, not updating OpenVAS Scanner."
-    log_write "Please restart OpenVAS Scanner or send SIGHUP to it"
-    SYNC_ONLY=1
-  fi
-}
-
 do_self_test ()
 {
   MD5SUM_AVAIL=`command -v md5sum`
@@ -668,7 +641,6 @@ do_sync ()
     log_write "Feed is already current, skipping synchronization."
   else
     sync_nvts
-    update_openvassd
   fi
 }
 
@@ -684,7 +656,6 @@ do_help () {
   echo " --refresh      update OpenVAS Scanner without downloading new state"
   echo " --rsync        only use rsync to download feed files"
   echo " --selftest     perform self-test"
-  echo " --sync-only    download new state without updating OpenVAS Scanner"
   echo " --verbose      makes the sync process print details"
   echo " --version      display version"
   echo " --wget         only use wget to download feed files"
@@ -733,9 +704,6 @@ while test $# -gt 0; do
     --help)
       do_help
       exit 0
-      ;;
-    --sync-only)
-      SYNC_ONLY=1
       ;;
     --refresh)
       REFRESH_ONLY=1
