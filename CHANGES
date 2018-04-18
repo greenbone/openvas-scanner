@@ -7,19 +7,69 @@ or get the entire source code repository and view log history:
 $ git clone https://github.com/greenbone/openvas-scanner.git
 $ cd openvas-scanner && git log
 
-openvas-scanner 5.2+beta1 (2018-XX-XX)
+openvas-scanner 6.0+beta1 (2018-04-18)
 
-This is the first beta release of the openvas-scanner module 5.2 for the
+This is the first beta release of the openvas-scanner module 6.0 for the
 Greenbone Vulnerability Management (GVM) framework.
 
-This version inherits all elements of te former openvas-libraries that were
+This version inherits all elements of the former openvas-libraries that were
 used by OpenVAS Scanner only.
- 
+
 Apart from this, the module covers a number of significant advances
 and clean-ups.
 
 Many thanks to everyone who has contributed to this release:
-TODO
+Hani Benhabiles, Christian Fischer, Juan Jose Nicola, Bjoern Ricks,
+Jan-Oliver Wagner and Michael Wiegand.
+
+Main changes compared to 5.1:
+* The required minimum version of new dependency GVM Libraries is 1.0.
+* Many files which are only used for openvas-scaner have been moved to this
+  module from openvas-libraries. Therefore many include directives have been
+  adapted to the new source code. The dependency to module openvas-libraries
+  was removed.
+* OTP has been changed regarding the NVT category: It is now sent as integer
+  instead of as a string.
+* Plugin scheduler has been improved.
+* NASL cryptography support has been updated.
+* The use of winexe has been replaced with using wmiexec.py.
+* Support for bigger numbers has been added to nasl_int function.
+* The logging method has been completely re-arranged to follow the standard
+  logging methodology like all other GVM modules. Apart from unification,
+  essentially the scanner log now has timestamps.
+  * openvassd.dump does not exist anymore: The log information are now handled
+    via central logging with respective log domain.
+  * Log location has been moved to /var/log/gvm/.
+  * Support for using GLIB based logging has been added and logging messages
+    have been reviewed and improved.
+  * It is now possible to configure the logging via /etc/openvas/openvassd_log.conf
+* openvas-nasl-lint has been improved.
+* Handling of vhost has been improved.
+* The scanner inter-process communication has been simplified.
+* The use of struct arglist has been reduced, among others global struct for scans
+  has been changed to struct global_scan. Other uses of arglist we transformed
+  into redis-based data handling.
+* Handling of non_simultaneous_ports_list has been improved.
+* Handling of the plugin preferences and their communication to the client have
+  been improved.
+* Host/dead and Host/ping_failed are checked before attempting to launch the
+  plugin.
+* Greenbone NVT sync process has been improved: The scanner detects now on its own
+  when the feed was updated and automatically loads new and changed NVTs.
+* Location of access key is now configurable.
+* The NASL command script_id has been removed.
+* The NASL command script_summary has been removed.
+* Command line option --gnupg-home has been removed.
+* openvas_popen has been replaced with GLib routine.
+* Error handling has been improved.
+* Documentation has been updated.
+* Several memory management aspects have been improved.
+* Various code cleanups and improvements, partly derived from static code analysis.
+* The CMake building process was improved.
+* Compilation issue with gcc 7 due to a switch fallthrough has been addressed.
+* Minimum required version of glib has been raised to 2.42.
+* Minimum required version of cmake has been raised to 3.0.
+* Minimum required version of libssh has been raised to 0.6.0.
 
 
 openvas-scanner 5.1.0 (2016-11-09)
@@ -40,7 +90,7 @@ Main changes compared to the 5.0 series:
   a unix file socket based service.
 * Moved the TLS certificate management script to module openvas-manager.
 * Merged the two feed sync scripts into a single one that can handle
-  both, the Community Feed and the Greenbone Security Feed. 
+  both, the Community Feed and the Greenbone Security Feed.
 * New command line options --unix-socket, --listen-mode,
   --listen-group, --listen-owner and --gnupg-home.
 * Removed command line options --listen, --port, --gnutls-priorities and
@@ -50,7 +100,7 @@ Main changes compared to the 5.0 series:
 * Dropped scanner preferences cert_file, key_file and ca_file.
 * Add scanner preferences timeout_retry and scanner_plugins_timeout.
 * Reduced memory consumption and improved performance
-* Numerous build and code improvements 
+* Numerous build and code improvements
 * Increased dependency for glib from 2.16 to 2.32.
 * Increased dependency for openvas-libraries from 8.0 to 9.0.0.
 
