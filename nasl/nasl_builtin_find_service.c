@@ -2490,22 +2490,6 @@ sigchld (int s)
     }
 }
 
-static int
-fwd_data (int in, int out)
-{
-  int e;
-  char *buf = NULL;
-  int bufsz = 0;
-
-  e = internal_recv (in, &buf, &bufsz);
-  if (e <= 0)
-    return -1;
-
-  internal_send (out, buf);
-  g_free (buf);
-  return 0;
-}
-
 tree_cell *
 plugin_run_find_service (lex_ctxt * lexic)
 {
@@ -2517,14 +2501,11 @@ plugin_run_find_service (lex_ctxt * lexic)
   struct kb_item *kbitem, *kbitem_tmp;
 
   GSList *sons_args[MAX_SONS];
-  int sons_pipe[MAX_SONS][2];
   int num_ports = 0;
   char *num_sons_s = get_plugin_preference (oid, NUM_CHILDREN);
   int num_sons = 6;
   int port_per_son;
   int i;
-  struct scan_globals *globals = desc->globals;
-  int unix_sock = globals->global_socket;
   int test_ssl = 1;
   char *key = get_plugin_preference (oid, KEY_FILE);
   char *cert = get_plugin_preference (oid, CERT_FILE);
@@ -2650,30 +2631,17 @@ plugin_run_find_service (lex_ctxt * lexic)
       usleep (5000);
       if (sons_args[i] != NULL)
         {
-          if (socketpair (AF_UNIX, SOCK_STREAM, 0, sons_pipe[i]) < 0)
-            {
-              perror ("socketpair ");
-              break;
-            }
           sons[i] = fork ();
           if (sons[i] == 0)
             {
-              int soc;
-
               kb_lnk_reset (kb);
               nvticache_reset ();
-              soc = globals->global_socket;
-              close (sons_pipe[i][1]);
-              close (soc);
-              soc = sons_pipe[i][0];
-              globals->global_socket = soc;
               signal (SIGTERM, _exit);
               plugin_do_run (desc, sons_args[i], test_ssl);
               exit (0);
             }
           else
             {
-              close (sons_pipe[i][0]);
               if (sons[i] < 0)
                 sons[i] = 0;    /* Fork failed */
             }
@@ -2686,69 +2654,21 @@ plugin_run_find_service (lex_ctxt * lexic)
   for (;;)
     {
       int flag = 0;
-      fd_set rd;
-      struct timeval tv;
-      int max = -1;
-      int e;
 
-
-      FD_ZERO (&rd);
-      for (i = 0; i < num_sons; i++)
-        {
-          if (sons[i] != 0 && (sons_pipe[i][1] >= 0))
-            {
-              FD_SET (sons_pipe[i][1], &rd);
-              if (sons_pipe[i][1] > max)
-                max = sons_pipe[i][1];
-            }
-        }
-
-    again:
-      tv.tv_usec = 100000;
-      tv.tv_sec = 0;
-      e = select (max + 1, &rd, NULL, NULL, &tv);
-      if (e < 0 && errno == EINTR)
-        goto again;
-
-      if (e > 0)
-        {
-          for (i = 0; i < num_sons; i++)
-            {
-              if (sons[i] != 0 && sons_pipe[i][1] >= 0
-                  && FD_ISSET (sons_pipe[i][1], &rd) != 0)
-                {
-                  if (fwd_data (sons_pipe[i][1], unix_sock) < 0)
-                    {
-                      close (sons_pipe[i][1]);
-                      sons_pipe[i][1] = -1;
-                      while (waitpid (sons[i], NULL, WNOHANG)
-                             && errno == EINTR);
-                      sons[i] = 0;
-                    }
-                }
-            }
-        }
       for (i = 0; i < num_sons; i++)
         {
           if (sons[i] != 0)
             {
               while (waitpid (sons[i], NULL, WNOHANG) && errno == EINTR);
 
-              if (kill (sons[i], 0) < 0)
-                {
-                  fwd_data (sons_pipe[i][1], unix_sock);
-                  close (sons_pipe[i][1]);
-                  sons_pipe[i][1] = -1;
-                  sons[i] = 0;
-                }
-              else
+              if (kill (sons[i], 0) >= 0)
                 flag++;
             }
         }
 
-
       if (flag == 0)
         break;
+      usleep (100000);
     }
 
   return NULL;
