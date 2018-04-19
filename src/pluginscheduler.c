@@ -267,7 +267,8 @@ plugins_scheduler_enable (plugins_scheduler_t sched, const char *oid_list,
 }
 
 int
-find_plugin_in_deps (struct scheduler_plugin **array, int pos)
+find_plugin_in_deps (GHashTable *checked, struct scheduler_plugin **array,
+                     int pos)
 {
   GSList *element = array[pos]->deps;
   int i;
@@ -276,16 +277,19 @@ find_plugin_in_deps (struct scheduler_plugin **array, int pos)
     if (array[i] == array[pos])
       return pos;
 
+  if (g_hash_table_lookup (checked, array[pos]))
+    return -1;
   while (element)
     {
       int ret;
 
       array[pos + 1] = element->data;
-      ret = find_plugin_in_deps (array, pos + 1);
+      ret = find_plugin_in_deps (checked, array, pos + 1);
       if (ret != -1)
         return ret;
       element = element->next;
     }
+  g_hash_table_insert (checked, array[pos], array[pos]);
   return -1;
 }
 
@@ -293,7 +297,9 @@ int
 check_dependency_cycles (plugins_scheduler_t sched)
 {
   int i, j;
+  GHashTable *checked;
 
+  checked = g_hash_table_new_full (g_str_hash, g_direct_equal, NULL, NULL);
   for (i = ACT_FIRST; i <= ACT_LAST; i++)
     {
       GSList *element = sched->list[i];
@@ -304,7 +310,7 @@ check_dependency_cycles (plugins_scheduler_t sched)
           int pos;
 
           array[0] = element->data;
-          pos = find_plugin_in_deps (array, 0);
+          pos = find_plugin_in_deps (checked, array, 0);
           if (pos >= 0)
             {
               g_warning ("Dependency cycle:");
@@ -316,11 +322,13 @@ check_dependency_cycles (plugins_scheduler_t sched)
                   g_free (name);
                 }
 
+              g_hash_table_destroy (checked);
               return 1;
             }
           element = element->next;
         }
     }
+  g_hash_table_destroy (checked);
   return 0;
 }
 
