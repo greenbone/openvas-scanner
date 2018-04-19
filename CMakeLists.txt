@@ -61,7 +61,7 @@ endif (NOT CMAKE_BUILD_TYPE MATCHES "Release")
 
 # Set beta version if this is a beta release series,
 # unset if this is a stable release series.
-set (PROJECT_BETA_RELEASE 1)
+set (PROJECT_BETA_RELEASE 2)
 
 if (GIT_REVISION)
   set (PROJECT_VERSION_GIT "${GIT_REVISION}")
