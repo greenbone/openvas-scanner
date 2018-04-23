@@ -3,9 +3,13 @@ If reporting an issue please try to provide the information asked below.
 
 Before reporting an issue please:
 
-1. make sure that you're using the latest available OpenVAS / GVM components listed at http://openvas.org/install-source.html.
-2. be aware that this is not a support forum. If you have any questions see http://openvas.org/ for available support options.
---> 
+1. make sure that you're using the latest published GVM components for the
+   release you are using: http://openvas.org/install-source.html.
+2. check the list of issues whether it isn't already reported.
+3. be aware that this is not a support forum. If your issue is more a question
+   than a bug report, please check http://openvas.org/ for available support
+   options.
+-->
 
 ### Expected behavior
 
@@ -16,10 +20,10 @@ Before reporting an issue please:
 2.
 3.
 
-### OpenVAS / GVM versions
+### GVM versions
 **gsa:** (gsad --version)
 
-**gvm:** (openvasmd --version / gvmd --version)
+**gvm:** (gvmd --version)
 
 **openvas-scanner:** (openvassd --version)
 
