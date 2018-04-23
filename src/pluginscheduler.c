@@ -122,26 +122,19 @@ plugin_add (plugins_scheduler_t sched, GHashTable *oids_table, int autoload,
 
   /* Check if the plugin is deprecated */
   nvti = nvticache_get_nvt (oid);
-  if (nvti_tag (nvti))
+  if (nvti_tag (nvti)
+      && (g_str_has_prefix (nvti_tag (nvti), "deprecated=1")
+          || strstr (nvti_tag (nvti), "|deprecated=1")))
     {
-      char **tags = g_strsplit (nvti_tag (nvti), "| ", 0);
-      if (tags)
+      if (prefs_get_bool ("log_whole_attack"))
         {
-          int j;
-          for (j = 0; tags[j]; j++)
-            if (strstr (tags[j],"deprecated=1"))
-              {
-                char *name = nvticache_get_filename (oid);
-                if (prefs_get_bool ("log_whole_attack"))
-                  g_message ("Plugin %s is deprecated. "
-                             "It will neither loaded nor launched.", name);
-                g_strfreev (tags);
-                g_free (name);
-                nvti_free (nvti);
-                return;
-              }
+          char *name = nvticache_get_filename (oid);
+          g_message ("Plugin %s is deprecated. "
+                     "It will neither loaded nor launched.", name);
+          g_free (name);
         }
-      g_strfreev (tags);
+      nvti_free (nvti);
+      return;
     }
 
   category = nvti_category (nvti);
