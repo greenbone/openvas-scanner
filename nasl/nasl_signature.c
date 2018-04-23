@@ -90,7 +90,6 @@ examine_signatures (gpgme_verify_result_t result, int sig_count)
   else
     {
       nasl_trace (NULL, "examine_signatures: signature is invalid\n");
-      /** @todo Early stop might be possible. Can return here. */
     }
 
   return 0;
