@@ -1108,33 +1108,27 @@ nasl_split (lex_ctxt * lexic)
   return retc;
 }
 
+/**
+ * @brief  Takes an unnamed string argument and removes any spaces at the end of
+           it. "Space" means white space, vertical or horizontal tabulation,
+           carriage return or line feed.
+ */
 tree_cell *
 nasl_chomp (lex_ctxt * lexic)
 {
   tree_cell *retc;
-  char *p = NULL, *str;
-  int i, len;
+  char *str;
+  int len;
 
   str = get_str_var_by_num (lexic, 0);
   if (str == NULL)
     return NULL;
-  len = get_var_size_by_num (lexic, 0);
 
   retc = alloc_tree_cell ();
   retc->type = CONST_DATA;
 
-  for (i = 0; i < len; i++)
-    /** @todo evaluate early break */
-    if (isspace (str[i]))
-      {
-        if (p == NULL)
-          p = str + i;
-      }
-    else
-      p = NULL;
-
-  if (p != NULL)
-    len = (p - str);
+  g_strchomp (str);
+  len = strlen (str);
 
   retc->x.str_val = g_malloc0 (len + 1);
   retc->size = len;
