@@ -170,7 +170,7 @@ main (int argc, char **argv)
   static gchar *source_iface = NULL;
   static gchar *vendor_version_string = NULL;
   static gboolean with_safe_checks = FALSE;
-  static gboolean authenticated_mode = FALSE;
+  static gboolean signing_mode = FALSE;
   static gchar *include_dir = NULL;
   static gchar **nasl_filenames = NULL;
   static gchar **kb_values = NULL;
@@ -204,8 +204,8 @@ main (int argc, char **argv)
     {"safe", 's', 0, G_OPTION_ARG_NONE, &with_safe_checks,
      "Specifies that the script should be run with 'safe checks' enabled",
      NULL},
-    {"authenticated", 'X', 0, G_OPTION_ARG_NONE, &authenticated_mode,
-     "Run the script in 'authenticated' mode", NULL},
+    {"disable-signing", 'X', 0, G_OPTION_ARG_NONE, &signing_mode,
+     "Run the script with disabled signature verification", NULL},
     {"include-dir", 'i', 0, G_OPTION_ARG_STRING, &include_dir,
      "Search for includes in <dir>", "<dir>"},
     {"debug-tls", 0, 0, G_OPTION_ARG_INT, &debug_tls,
@@ -248,7 +248,7 @@ main (int argc, char **argv)
   if (nasl_debug)
     global_nasl_debug = 1;
   mode |= NASL_COMMAND_LINE;
-  if (authenticated_mode)
+  if (signing_mode)
     mode |= NASL_ALWAYS_SIGNED;
   if (description_only)
     mode |= NASL_EXEC_DESCR;

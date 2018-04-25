@@ -26,7 +26,7 @@
 typedef struct
 {
   int line_nb;
-  int always_authenticated;
+  int always_signed;
   int index;
   tree_cell *tree;
   char *buffer;
