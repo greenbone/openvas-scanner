@@ -191,7 +191,7 @@ main (int argc, char **argv)
   g_option_context_free (option_context);
 
   mode |= NASL_COMMAND_LINE;
-  /* authenticated mode */
+  /* signing mode */
   mode |= NASL_ALWAYS_SIGNED;
   /* linter on */
   mode |= NASL_LINT;

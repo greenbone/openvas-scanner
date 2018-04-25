@@ -1759,7 +1759,7 @@ exec_nasl_script (struct script_infos *script_infos, const char *name,
 
   bzero (&ctx, sizeof (ctx));
   if (mode & NASL_ALWAYS_SIGNED)
-    ctx.always_authenticated = 1;
+    ctx.always_signed = 1;
   if (nvticache_initialized ())
     ctx.kb = nvticache_get_kb ();
   else

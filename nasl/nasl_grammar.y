@@ -332,7 +332,7 @@ inc: INCLUDE '(' string ')'
 	  naslctxt	subctx;
 
           bzero (&subctx, sizeof (subctx));
-          subctx.always_authenticated = ((naslctxt*)parm)->always_authenticated;
+          subctx.always_signed = ((naslctxt*)parm)->always_signed;
           subctx.kb = ((naslctxt *) parm)->kb;
           subctx.tree = ((naslctxt*) parm)->tree;
           $$ = NULL;
@@ -776,7 +776,7 @@ init_nasl_ctx(naslctxt* pc, const char* name)
     return -1;
   }
 
-  if (pc->always_authenticated)
+  if (pc->always_signed)
     {
       g_free(full_name);
       return 0;
