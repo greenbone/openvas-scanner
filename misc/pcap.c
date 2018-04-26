@@ -709,7 +709,6 @@ getipv6routes (struct myroute *myroutes, int *numroutes)
   int numinterfaces;
   char buf[1024];
   char *endptr;
-  char iface[64];
   FILE *routez;
   char v6addr[INET6_ADDRSTRLEN];
   char *token;
@@ -723,6 +722,7 @@ getipv6routes (struct myroute *myroutes, int *numroutes)
       /* linux style /proc/net/ipv6_route ... we can handle this too... */
       while (fgets (buf, sizeof (buf), routez) != NULL)
         {
+          char iface[64];
 #if TCPIP_DEBUGGING
           printf ("%s\n", buf);
 #endif
@@ -766,6 +766,7 @@ getipv6routes (struct myroute *myroutes, int *numroutes)
                 g_message ("getipv6routes error");
             }
 
+          bzero (iface, sizeof (iface));
           token = strtok (NULL, " \t\n");
           if (token)
             {
