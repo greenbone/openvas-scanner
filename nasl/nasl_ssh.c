@@ -1513,8 +1513,6 @@ nasl_ssh_get_server_banner (lex_ctxt *lexic)
   retc->x.str_val = g_strdup (banner);
   retc->size = strlen (banner);
   return retc;
-  (void)lexic;
-  return NULL;
 }
 
 
