@@ -769,7 +769,7 @@ getipv6routes (struct myroute *myroutes, int *numroutes)
           token = strtok (NULL, " \t\n");
           if (token)
             {
-              strcpy (iface, token);
+              strncpy (iface, token, sizeof (iface));
 #ifdef _DEBUG
               printf ("name token is %s\n", token);
 #endif
