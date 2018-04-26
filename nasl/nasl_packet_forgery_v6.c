@@ -611,9 +611,15 @@ get_tcp_v6_element (lex_ctxt * lexic)
     {
       retc = alloc_tree_cell ();
       retc->type = CONST_DATA;
-      retc->size = UNFIX (ip6->ip6_plen) - ntohl (tcp->th_off) * 4;
+      retc->size = UNFIX (ip6->ip6_plen) - tcp->th_off * 4;
+      if (retc->size <= 0 || retc->size > ipsz - 40 - tcp->th_off * 4)
+        {
+          nasl_perror (lexic, "Erroneous tcp header offset %d", retc->size);
+          deref_cell (retc);
+          return NULL;
+        }
       retc->x.str_val = g_malloc0 (retc->size);
-      bcopy (tcp + ntohl (tcp->th_off) * 4, retc->x.str_val, retc->size);
+      bcopy ((char *) tcp + tcp->th_off * 4, retc->x.str_val, retc->size);
       return retc;
     }
   else
