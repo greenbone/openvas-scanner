@@ -580,6 +580,8 @@ nasl_open_sock_udp (lex_ctxt * lexic)
       soca6.sin6_family = AF_INET6;
 
       soc = socket (AF_INET6, SOCK_DGRAM, 0);
+      if (soc < 0)
+        return NULL;
       gvm_source_set_socket (soc, 0, AF_INET6);
       connect (soc, (struct sockaddr *) &soca6, sizeof (soca6));
     }

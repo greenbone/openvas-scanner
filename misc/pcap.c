@@ -486,7 +486,6 @@ v6_getsourceip (struct in6_addr *src, struct in6_addr *dst)
 {
   int sd;
   struct sockaddr_in sock;
-  struct sockaddr_in6 sock6;
   unsigned int socklen;
   unsigned short p1;
 
@@ -536,11 +535,13 @@ v6_getsourceip (struct in6_addr *src, struct in6_addr *dst)
     }
   else
     {
+      struct sockaddr_in6 sock6;
       if ((sd = socket (AF_INET6, SOCK_DGRAM, 0)) == -1)
         {
           perror ("Socket troubles");
           return 0;
         }
+      bzero (&sock6, sizeof (sock6));
       sock6.sin6_family = AF_INET6;
       sock6.sin6_addr.s6_addr32[0] = dst->s6_addr32[0];
       sock6.sin6_addr.s6_addr32[1] = dst->s6_addr32[1];
@@ -709,7 +710,6 @@ getipv6routes (struct myroute *myroutes, int *numroutes)
   int numinterfaces;
   char buf[1024];
   char *endptr;
-  char iface[64];
   FILE *routez;
   char v6addr[INET6_ADDRSTRLEN];
   char *token;
@@ -723,6 +723,7 @@ getipv6routes (struct myroute *myroutes, int *numroutes)
       /* linux style /proc/net/ipv6_route ... we can handle this too... */
       while (fgets (buf, sizeof (buf), routez) != NULL)
         {
+          char iface[64];
 #if TCPIP_DEBUGGING
           printf ("%s\n", buf);
 #endif
@@ -766,6 +767,7 @@ getipv6routes (struct myroute *myroutes, int *numroutes)
                 g_message ("getipv6routes error");
             }
 
+          bzero (iface, sizeof (iface));
           token = strtok (NULL, " \t\n");
           if (token)
             {

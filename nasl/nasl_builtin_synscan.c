@@ -661,7 +661,14 @@ v6_sendpacket (int soc, int bpf, int skip, struct in6_addr *dst,
         scanner_add_port(env, sport, "tcp");
         /* Send a RST to make sure the connection is closed on the remote side */
         rst = mktcpv6 (magic, sport, ack + 1, TH_RST);
-        sendto(soc, rst, sizeof(struct tcphdr), 0, (struct sockaddr *) & soca, sizeof(soca));
+        if (sendto (soc, rst, sizeof (struct tcphdr), 0,
+                    (struct sockaddr *) &soca, sizeof (soca)) < 0)
+          {
+            perror ("sendto ");
+            close (soc);
+            bpf_close (bpf);
+            return NULL;
+          }
       }
       packets = rm_packet(packets, sport);
     }
