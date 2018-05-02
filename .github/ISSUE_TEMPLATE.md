@@ -37,7 +37,7 @@ Before reporting an issue please:
 **Installation method / source:** (packages, source installation)
 
 ### Logfiles
-
+<!-- in most cases you'll find the logs in /var/log/gvm/ -->
 ```
 
 ```
