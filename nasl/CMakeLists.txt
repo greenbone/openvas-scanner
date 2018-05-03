@@ -42,6 +42,12 @@ set (NASL_VERSION_STRING "${NASL_VERSION_MAJOR}.${NASL_VERSION_MINOR}${NASL_VERS
 set (NASL_PACKAGE_VERSION "${NASL_VERSION_STRING}${PROJECT_VERSION_GIT}")
 set (NASL_VERSION "${NASL_VERSION_STRING}")
 
+include (FindPkgConfig)
+
+if (NOT PKG_CONFIG_FOUND)
+  message(FATAL_ERROR "pkg-config executable not found. Aborting.")
+endif (NOT PKG_CONFIG_FOUND)
+
 pkg_check_modules (GLIB REQUIRED glib-2.0>=2.42)
 pkg_check_modules (GIO REQUIRED gio-2.0)
 pkg_check_modules (GNUTLS REQUIRED gnutls>=3.2.15)
