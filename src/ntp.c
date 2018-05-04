@@ -394,7 +394,7 @@ __ntp_timestamp_scan (int soc, char *msg)
 
 
 static int
-__ntp_timestamp_scan_host (int soc, char *msg, char *host)
+__ntp_timestamp_scan_host (kb_t kb, char *msg, char *host)
 {
   char timestr[1024];
   char *tmp;
@@ -413,8 +413,7 @@ __ntp_timestamp_scan_host (int soc, char *msg, char *host)
   snprintf (buf, sizeof (buf),
             "SERVER <|> TIME <|> %s <|> %s <|> %s <|> SERVER\n", msg, host,
             timestr);
-
-  internal_send (soc, buf);
+  kb_item_push_str (kb, "internal/forward", buf);
 
   return 0;
 }
@@ -433,13 +432,13 @@ ntp_timestamp_scan_ends (int soc)
 }
 
 int
-ntp_timestamp_host_scan_starts (int soc, char *host)
+ntp_timestamp_host_scan_starts (kb_t kb, char *host)
 {
-  return __ntp_timestamp_scan_host (soc, "HOST_START", host);
+  return __ntp_timestamp_scan_host (kb, "HOST_START", host);
 }
 
 int
-ntp_timestamp_host_scan_ends (int soc, char *host)
+ntp_timestamp_host_scan_ends (kb_t kb, char *host)
 {
-  return __ntp_timestamp_scan_host (soc, "HOST_END", host);
+  return __ntp_timestamp_scan_host (kb, "HOST_END", host);
 }

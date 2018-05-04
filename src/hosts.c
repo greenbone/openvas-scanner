@@ -50,8 +50,8 @@
 struct host
 {
   char *name;
-  int soc;
   pid_t pid;
+  kb_t host_kb;
   struct host *next;
   struct host *prev;
 };
@@ -66,41 +66,39 @@ static int g_max_hosts = 15;
 
 /*-------------------------------------------------------------------------*/
 static int
-forward (int in, int out)
+forward (kb_t kb, int out)
 {
   char *buf = NULL;
-  int bufsz = 0;
-  int len;
+  int len = 0;
 
-  if (internal_recv (in, &buf, &bufsz) < 0)
-    return -1;
-
-  len = strlen (buf);
-  if (out > 0)
+  while (1)
     {
-      int n;
-      for (n = 0; n < len;)
+      buf = kb_item_pop_str (kb, "internal/forward");
+      if (!buf)
+        return 0;
+      len = strlen (buf);
+      if (out > 0)
         {
-          int e;
-          e = nsend (out, buf + n, len - n, 0);
-          if (e < 0 && errno == EINTR)
-            continue;
-          else if (e < 0)
-            return -1;
-          else
-            n += e;
+          int n;
+          for (n = 0; n < len;)
+            {
+              int e;
+              e = nsend (out, buf + n, len - n, 0);
+              if (e < 0 && errno == EINTR)
+                continue;
+              else if (e < 0)
+                {
+                  g_free (buf);
+                  return -1;
+                }
+              else
+                n += e;
+            }
         }
+      g_free (buf);
     }
 
-  g_free (buf);
-  return 0;
-}
-
-
-static void
-forward_all (int in, int out)
-{
-  while (forward (in, out) == 0);
+  return 1;
 }
 
 /*-------------------------------------------------------------------*/
@@ -111,9 +109,9 @@ host_rm (struct host *h)
 {
   if (h->pid != 0)
     waitpid (h->pid, NULL, WNOHANG);
-  forward_all (h->soc, g_soc);
 
-  close (h->soc);
+  while (forward (h->host_kb, g_soc) > 0)
+    ;
   if (h->next != NULL)
     h->next->prev = h->prev;
 
@@ -168,7 +166,7 @@ hosts_init (int soc, int max_hosts)
 extern int global_scan_stop;
 
 int
-hosts_new (struct scan_globals *globals, char *name, int soc)
+hosts_new (struct scan_globals *globals, char *name, kb_t kb)
 {
   struct host *h;
 
@@ -183,7 +181,7 @@ hosts_new (struct scan_globals *globals, char *name, int soc)
   h = g_malloc0 (sizeof (struct host));
   h->name = g_strdup (name);
   h->pid = 0;
-  h->soc = soc;
+  h->host_kb = kb;
   if (hosts != NULL)
     hosts->prev = h;
   h->next = hosts;
@@ -234,22 +232,16 @@ hosts_stop_all (void)
 
 /*-----------------------------------------------------------------*/
 
-static int
+static void
 hosts_read_data (void)
 {
-  fd_set rd;
-  struct timeval tv;
-  int max = -1;
   struct host *h = hosts;
-  int e;
-  int ret = 0;
 
   waitpid (-1, NULL, WNOHANG);
 
   if (h == NULL)
-    return 0;
+    return;
 
-  FD_ZERO (&rd);
   while (h != NULL)
     {
       if (kill (h->pid, 0) < 0) /* Process is dead */
@@ -258,44 +250,17 @@ hosts_read_data (void)
             hosts = hosts->next;
           host_rm (h);
           h = hosts;
-        }
-      else
-        {
-          FD_SET (h->soc, &rd);
-          if (h->soc > max)
-            max = h->soc;
-          h = h->next;
-        }
-    }
-
-  for (;;)
-    {
-      tv.tv_sec = 0;
-      tv.tv_usec = 10000;
-      e = select (max + 1, &rd, NULL, NULL, &tv);
-
-      if (e < 0 && errno == EINTR)
-        continue;
-      else
-        break;
-    }
-
-  if (e <= 0)
-    return -1;
-
-  h = hosts;
-  while (h != NULL)
-    {
-      if (FD_ISSET (h->soc, &rd) != 0)
-        {
-          if ((data_left (h->soc) != 0)
-              && (forward (h->soc, g_soc) == 0))
-            ret++;
+          if (!h)
+            break;
         }
       h = h->next;
     }
-
-  return ret;
+  h = hosts;
+  while (h)
+    {
+      forward (h->host_kb, g_soc);
+      h = h->next;
+    }
 }
 
 /**
@@ -360,6 +325,7 @@ hosts_read (struct scan_globals *globals)
     return -1;
 
   hosts_read_data ();
+  usleep (500000);
 
   return 0;
 }

@@ -89,9 +89,8 @@ struct attack_start_args
 {
   struct scan_globals *globals;
   plugins_scheduler_t sched;
-  int thread_socket;
-  int parent_socket;
   kb_t *net_kb;
+  kb_t host_kb;
   gvm_host_t *host;
 };
 
@@ -111,11 +110,11 @@ enum net_scan_status {
  * @brief Sends the status of a host's scan.
  */
 static int
-comm_send_status (int soc, char *hostname, int curr, int max)
+comm_send_status (kb_t kb, char *hostname, int curr, int max)
 {
   char buffer[2048];
 
-  if (!hostname || soc < 0 || soc > 1024)
+  if (!hostname || !kb)
     return -1;
 
   if (strlen (hostname) > (sizeof (buffer) - 50))
@@ -124,8 +123,7 @@ comm_send_status (int soc, char *hostname, int curr, int max)
   snprintf (buffer, sizeof (buffer),
             "SERVER <|> STATUS <|> %s <|> %d/%d <|> SERVER\n",
             hostname, curr, max);
-
-  internal_send (soc, buffer);
+  kb_item_push_str (kb, "internal/forward", buffer);
 
   return 0;
 }
@@ -137,6 +135,17 @@ error_message_to_client (int soc, const char *msg, const char *hostname,
   send_printf
    (soc, "SERVER <|> ERRMSG <|> %s <|>  <|> %s <|> %s <|>  <|> SERVER\n",
     hostname ?: "", port ?: "", msg ?: "No error.");
+}
+
+static void
+error_message_to_client2 (kb_t kb, const char *msg, const char *hostname,
+                          const char *port)
+{
+  char *buf = g_strdup_printf
+               ("SERVER <|> ERRMSG <|> %s <|>  <|> %s <|> %s <|>  <|> SERVER\n",
+                hostname ?: "", port ?: "", msg ?: "No error.");
+  kb_item_push_str (kb, "internal/forward", buf);
+  g_free (buf);
 }
 
 static void
@@ -409,20 +418,22 @@ init_host_kb (struct scan_globals *globals, char *ip_str, kb_t *network_kb)
  */
 static void
 attack_host (struct scan_globals *globals, struct in6_addr *ip,
-             GSList *vhosts, plugins_scheduler_t sched, kb_t *net_kb)
+             GSList *vhosts, plugins_scheduler_t sched, kb_t kb, kb_t *net_kb)
 {
   /* Used for the status */
-  int num_plugs, forks_retry = 0, global_socket;
+  int num_plugs, forks_retry = 0;
   char ip_str[INET6_ADDRSTRLEN];
-  kb_t kb;
 
   addr6_to_str (ip, ip_str);
+  ntp_timestamp_host_scan_starts (kb, ip_str);
   proctitle_set ("openvassd: testing %s", ip_str);
-  global_socket = globals->global_socket;
-  kb = init_host_kb (globals, ip_str, net_kb);
-  if (kb == NULL)
-    return;
-
+  if (net_kb && *net_kb)
+    {
+      kb_delete (kb);
+      kb = init_host_kb (globals, ip_str, net_kb);
+      if (kb == NULL)
+        return;
+    }
   kb_lnk_reset (kb);
 
   /* launch the plugins */
@@ -470,9 +481,9 @@ attack_host (struct scan_globals *globals, struct in6_addr *ip,
                   /* In case of a dead host, it sends max_ports = -1 to the
                      manager. The host will not be taken into account to
                      calculate the scan progress. */
-                  comm_send_status(global_socket, ip_str, 0, -1);
+                  comm_send_status (kb, ip_str, 0, -1);
 #endif
-                  internal_send (global_socket, buffer);
+                  kb_item_push_str (kb, "internal/forward", buffer);
                   goto host_died;
                 }
               else if (e == ERR_CANT_FORK)
@@ -498,7 +509,7 @@ attack_host (struct scan_globals *globals, struct in6_addr *ip,
             {
               last_status = (cur_plug * 100) / num_plugs + 2;
               if (comm_send_status
-                   (global_socket, ip_str, cur_plug, num_plugs) < 0)
+                   (kb, ip_str, cur_plug, num_plugs) < 0)
                 {
                   pluginlaunch_stop (1);
                   goto host_died;
@@ -514,12 +525,13 @@ attack_host (struct scan_globals *globals, struct in6_addr *ip,
 
   pluginlaunch_wait ();
   if (!scan_is_stopped () && !all_scans_are_stopped ())
-    comm_send_status (global_socket, ip_str, num_plugs, num_plugs);
+    comm_send_status (kb, ip_str, num_plugs, num_plugs);
 
 host_died:
   pluginlaunch_stop (1);
   plugins_scheduler_free (sched);
 
+  ntp_timestamp_host_scan_ends (kb, ip_str);
   if (net_kb == NULL || kb != *net_kb)
     kb_delete (kb);
 }
@@ -588,23 +600,15 @@ attack_start (struct attack_start_args *args)
   struct scan_globals *globals = args->globals;
   char ip_str[INET6_ADDRSTRLEN], *hostnames;
   struct in6_addr hostip;
-  int thread_socket;
   struct timeval then;
   plugins_scheduler_t sched = args->sched;
   kb_t *net_kb = args->net_kb;
+  kb_t kb = args->host_kb;
   gvm_hosts_t *hosts_allow, *hosts_deny;
   gvm_hosts_t *sys_hosts_allow, *sys_hosts_deny;
 
   nvticache_reset ();
-  close (args->parent_socket);
-  thread_socket = args->thread_socket;
   gettimeofday (&then, NULL);
-
-  /* Options regarding the communication with our parent */
-  close (globals->parent_socket);
-  globals->parent_socket = 0;
-  openvas_deregister_connection (globals->global_socket);
-  globals->global_socket = thread_socket;
 
   /* The reverse lookup is delayed to this step in order to not slow down the
    * main scan process eg. case of target with big range of IP addresses. */
@@ -616,8 +620,7 @@ attack_start (struct attack_start_args *args)
   hosts_deny = gvm_hosts_new (prefs_get ("hosts_deny"));
   if (!host_authorized (args->host, &hostip, hosts_allow, hosts_deny))
     {
-      error_message_to_client
-       (thread_socket, "Host access denied.", ip_str, NULL);
+      error_message_to_client2 (kb, "Host access denied.", ip_str, NULL);
       g_warning ("Host %s access denied.", ip_str);
       return;
     }
@@ -625,9 +628,8 @@ attack_start (struct attack_start_args *args)
   sys_hosts_deny = gvm_hosts_new (prefs_get ("sys_hosts_deny"));
   if (!host_authorized (args->host, &hostip, sys_hosts_allow, sys_hosts_deny))
     {
-      error_message_to_client
-       (thread_socket, "Host access denied (system-wide restriction.)",
-        ip_str, NULL);
+      error_message_to_client2
+       (kb, "Host access denied (system-wide restriction.)", ip_str, NULL);
       g_warning ("Host %s access denied (sys_* preference restriction.)",
                  ip_str);
       return;
@@ -637,20 +639,18 @@ attack_start (struct attack_start_args *args)
   gvm_hosts_free (sys_hosts_allow);
   gvm_hosts_free (sys_hosts_deny);
 
-  ntp_timestamp_host_scan_starts (thread_socket, ip_str);
   hostnames = list_to_str (args->host->vhosts);
   if (hostnames)
     g_message ("Testing %s (Vhosts: %s) [%d]", ip_str, hostnames, getpid ());
   else
     g_message ("Testing %s [%d]", ip_str, getpid ());
   g_free (hostnames);
-  attack_host (globals, &hostip, args->host->vhosts, sched, net_kb);
+  attack_host (globals, &hostip, args->host->vhosts, sched, kb, net_kb);
 
   if (!scan_is_stopped () && !all_scans_are_stopped ())
     {
       struct timeval now;
 
-      ntp_timestamp_host_scan_ends (thread_socket, ip_str);
       gettimeofday (&now, NULL);
       if (now.tv_usec < then.tv_usec)
         {
@@ -661,8 +661,6 @@ attack_start (struct attack_start_args *args)
                  ip_str, (long) (now.tv_sec - then.tv_sec),
                  (long) ((now.tv_usec - then.tv_usec) / 10000));
     }
-  shutdown (thread_socket, 2);
-  close (thread_socket);
 }
 
 static void
@@ -885,6 +883,7 @@ attack_network (struct scan_globals *globals, kb_t *network_kb)
   const gchar *network_targets, *port_range;
   gboolean network_phase = FALSE;
   gboolean do_network_scan = FALSE;
+  kb_t host_kb;
 
   gettimeofday (&then, NULL);
 
@@ -1009,15 +1008,18 @@ attack_network (struct scan_globals *globals, kb_t *network_kb)
   openvas_signal (SIGUSR2, handle_stop_all_scans_signal);
   while (host && !scan_is_stopped () && !all_scans_are_stopped ())
     {
-      int pid;
+      int pid, rc;
       struct attack_start_args args;
       char *host_str;
-      int soc[2];
 
-
+      rc = kb_new (&host_kb, prefs_get ("kb_location"));
+      if (rc)
+        {
+          report_kb_failure (global_socket, rc);
+          goto scan_stop;
+        }
       host_str = gvm_host_value_str (host);
-      if (socketpair (AF_UNIX, SOCK_STREAM, 0, soc) < 0
-          || hosts_new (globals, host_str, soc[1]) < 0)
+      if (hosts_new (globals, host_str, host_kb) < 0)
         {
           g_free (host_str);
           goto scan_stop;
@@ -1025,22 +1027,18 @@ attack_network (struct scan_globals *globals, kb_t *network_kb)
 
       if (scan_is_stopped () || all_scans_are_stopped ())
         {
-          close (soc[0]);
-          close (soc[1]);
           g_free (host_str);
           continue;
         }
       args.host = host;
       args.globals = globals;
       args.sched = sched;
-      args.thread_socket = soc[0];
-      args.parent_socket = soc[1];
       args.net_kb = network_kb;
+      args.host_kb = host_kb;
 
     forkagain:
       pid = create_process ((process_func_t) attack_start, &args);
       /* Close child process' socket. */
-      close (args.thread_socket);
       if (pid < 0)
         {
           fork_retries++;
