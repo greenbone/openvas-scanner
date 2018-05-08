@@ -1,6 +1,6 @@
 version: 2
 jobs:
-  build:
+  build_gcc_core:
     docker:
       - image: greenbone/build-env-openvas-scanner-master-debian-stretch-gcc-core
     steps:
@@ -16,3 +16,27 @@ jobs:
       - run:
           name: Configure and Compile
           command: mkdir build && cd build/ && cmake -DCMAKE_BUILD_TYPE=Release .. && make install
+  scan_build:
+    docker:
+      - image: greenbone/build-env-openvas-scanner-master-debian-stretch-clang-core
+    steps:
+      - run:
+          working_directory: ~/gvm-libs
+          name: Checkout gvm-libs
+          command: git clone --depth 1 https://github.com/greenbone/gvm-libs.git
+      - run:
+          working_directory: ~/gvm-libs
+          name: Configure and compile gvm-libs
+          command: pushd gvm-libs && mkdir build && cd build/ && cmake -DCMAKE_BUILD_TYPE=Debug .. && make install && popd
+      - checkout
+      - run:
+          name: Configure and Scan Build
+          command: mkdir build && cd build/ && scan-build cmake -DCMAKE_BUILD_TYPE=Debug .. && scan-build -o ~/scan-build-report make
+      - store_artifacts:
+          path: ~/scan-build-report
+workflows:
+  version: 2
+  build_and_test:
+    jobs:
+      - build_gcc_core
+      - scan_build
