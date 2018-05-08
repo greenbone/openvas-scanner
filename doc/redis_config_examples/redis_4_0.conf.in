@@ -1,4 +1,4 @@
-# Redis configuration file example.
+# Redis 4.0 configuration file example for OpenVAS.
 #
 # Note that in order to read the configuration file, Redis must be
 # started with the file path as first argument:
@@ -89,7 +89,7 @@ protected-mode yes
 
 # Accept connections on the specified port, default is 6379 (IANA #815344).
 # If port 0 is specified Redis will not listen on a TCP socket.
-port 6379
+port 0
 
 # TCP listen() backlog.
 #
@@ -106,8 +106,8 @@ tcp-backlog 511
 # incoming connections. There is no default, so Redis will not listen
 # on a unix socket when not specified.
 #
-# unixsocket /tmp/redis.sock
-# unixsocketperm 700
+unixsocket /tmp/redis.sock
+unixsocketperm 700
 
 # Close the connection after a client is idle for N seconds (0 to disable)
 timeout 0
@@ -133,7 +133,7 @@ tcp-keepalive 300
 
 # By default Redis does not run as a daemon. Use 'yes' if you need it.
 # Note that Redis will write a pid file in /var/run/redis.pid when daemonized.
-daemonize no
+daemonize yes
 
 # If you run Redis from upstart or systemd, Redis can interact with your
 # supervision tree. Options:
@@ -155,7 +155,7 @@ supervised no
 #
 # Creating a pid file is best effort: if Redis is not able to create it
 # nothing bad happens, the server will start and run normally.
-pidfile /var/run/redis_6379.pid
+pidfile @LOCALSTATEDIR@/run/openvas-redis.pid
 
 # Specify the server verbosity level.
 # This can be one of:
@@ -168,11 +168,11 @@ loglevel notice
 # Specify the log file name. Also the empty string can be used to force
 # Redis to log on the standard output. Note that if you use standard
 # output for logging but daemonize, logs will be sent to /dev/null
-logfile ""
+# logfile ""
 
 # To enable logging to the system logger, just set 'syslog-enabled' to yes,
 # and optionally update the other syslog parameters to suit your needs.
-# syslog-enabled no
+syslog-enabled yes
 
 # Specify the syslog identity.
 # syslog-ident redis
@@ -183,7 +183,7 @@ logfile ""
 # Set the number of databases. The default database is DB 0, you can select
 # a different one on a per-connection basis using SELECT <dbid> where
 # dbid is a number between 0 and 'databases'-1
-databases 16
+databases 513
 
 # By default Redis shows an ASCII art logo only when started to log to the
 # standard output and if the standard output is a TTY. Basically this means
@@ -215,9 +215,9 @@ always-show-logo yes
 #
 #   save ""
 
-save 900 1
-save 300 10
-save 60 10000
+# save 900 1
+# save 300 10
+# save 60 10000
 
 # By default Redis will stop accepting writes if RDB snapshots are enabled
 # (at least one save point) and the latest background save failed.
@@ -529,7 +529,7 @@ slave-priority 100
 # Once the limit is reached Redis will close all the new connections sending
 # an error 'max number of clients reached'.
 #
-# maxclients 10000
+maxclients 10000
 
 ############################## MEMORY MANAGEMENT ################################
 
