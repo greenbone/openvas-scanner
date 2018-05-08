@@ -2,7 +2,7 @@ version: 2
 jobs:
   build:
     docker:
-      - image: wiegandm/openvas-scanner-core-debian-stretch
+      - image: greenbone/build-env-openvas-scanner-master-debian-stretch-gcc-core
     steps:
       - run:
           working_directory: ~/gvm-libs
