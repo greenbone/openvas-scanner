@@ -182,6 +182,7 @@ set (OPENVASSD_VERSION "${PROJECT_VERSION_STRING}")
 # Configure Doxyfile with version number
 configure_file (doc/Doxyfile.in doc/Doxyfile @ONLY)
 configure_file (doc/Doxyfile_full.in doc/Doxyfile_full @ONLY)
+configure_file (doc/Doxyfile_xml.in doc/Doxyfile_xml @ONLY)
 configure_file (doc/openvassd.8.in doc/openvassd.8 @ONLY)
 configure_file (doc/redis_config_examples/redis_2_4.conf.in doc/redis_config_examples/redis_2_4.conf @ONLY)
 configure_file (doc/redis_config_examples/redis_2_6.conf.in doc/redis_config_examples/redis_2_6.conf @ONLY)

@@ -45,4 +45,12 @@ else (NOT DOXYGEN_EXECUTABLE)
     COMMAND sh
     ARGS -c \"${DOXYGEN_EXECUTABLE} ${CMAKE_CURRENT_BINARY_DIR}/Doxyfile_full && touch ${CMAKE_CURRENT_BINARY_DIR}/.built-html_full\;\"
     DEPENDS ${CMAKE_CURRENT_BINARY_DIR}/Doxyfile_full)
+
+  add_custom_target (doc-xml COMMENT "Building documentation (XML)..."
+    DEPENDS ${CMAKE_CURRENT_BINARY_DIR}/Doxyfile_xml ${CMAKE_CURRENT_BINARY_DIR}/.built-xml)
+
+  add_custom_command (OUTPUT .built-xml
+    COMMAND sh
+    ARGS -c \"${DOXYGEN_EXECUTABLE} ${CMAKE_CURRENT_BINARY_DIR}/Doxyfile_xml && touch ${CMAKE_CURRENT_BINARY_DIR}/.built-xml\;\"
+    DEPENDS ${CMAKE_CURRENT_BINARY_DIR}/Doxyfile_xml)
 endif (NOT DOXYGEN_EXECUTABLE)
