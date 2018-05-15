@@ -33,6 +33,7 @@ macro (Git_GET_REVISION dir variable)
                   WORKING_DIRECTORY ${dir}
                   OUTPUT_VARIABLE GIT_COMMIT_HASH
                   OUTPUT_STRIP_TRAILING_WHITESPACE)
+  string (REPLACE "/" "_" GIT_BRANCH ${GIT_BRANCH})
   set (${variable} "${GIT_COMMIT_HASH}-${GIT_BRANCH}")
 endmacro (Git_GET_REVISION)
 
