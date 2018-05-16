@@ -2,7 +2,7 @@ version: 2
 jobs:
   build:
     docker:
-      - image: wiegandm/openvas-libraries-9.0-core-debian-jessie
+      - image: greenbone/build-env-gvm-libs-openvas-libraries-9.0-debian-jessie-gcc-core
     steps:
       - run:
           working_directory: ~/gvm-libs
