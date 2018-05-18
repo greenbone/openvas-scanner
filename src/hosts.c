@@ -139,6 +139,7 @@ host_rm (struct host *h)
 
   while (forward (h, g_soc) > 0)
     ;
+  ntp_timestamp_host_scan_ends (h->host_kb, h->ip);
   if (h->next != NULL)
     h->next->prev = h->prev;
 
@@ -288,7 +289,12 @@ hosts_read_data (void)
   while (h)
     {
       if (!h->ip)
-        h->ip = kb_item_get_str (h->host_kb, "internal/ip");
+        {
+          /* Scan started. */
+          h->ip = kb_item_get_str (h->host_kb, "internal/ip");
+          if (h->ip)
+            ntp_timestamp_host_scan_starts (h->host_kb, h->ip);
+        }
       if (h->ip)
         forward (h, g_soc);
       h = h->next;
