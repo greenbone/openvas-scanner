@@ -50,6 +50,7 @@
 struct host
 {
   char *name;
+  char *ip;
   pid_t pid;
   kb_t host_kb;
   struct host *next;
@@ -120,6 +121,7 @@ host_rm (struct host *h)
 
   g_free (h->name);
   kb_delete (h->host_kb);
+  g_free (h->ip);
   g_free (h);
 }
 
@@ -259,7 +261,10 @@ hosts_read_data (void)
   h = hosts;
   while (h)
     {
-      forward (h->host_kb, g_soc);
+      if (!h->ip)
+        h->ip = kb_item_get_str (h->host_kb, "internal/ip");
+      if (h->ip)
+        forward (h->host_kb, g_soc);
       h = h->next;
     }
 }

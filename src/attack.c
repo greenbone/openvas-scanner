@@ -426,6 +426,7 @@ attack_host (struct scan_globals *globals, struct in6_addr *ip,
 
   addr6_to_str (ip, ip_str);
   ntp_timestamp_host_scan_starts (kb, ip_str);
+  kb_item_set_str (kb, "internal/ip", ip_str, 0);
   proctitle_set ("openvassd: testing %s", ip_str);
   if (net_kb && *net_kb)
     {
