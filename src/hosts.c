@@ -66,35 +66,61 @@ static int g_max_hosts = 15;
 
 
 /*-------------------------------------------------------------------------*/
-static int
-forward (kb_t kb, int out)
-{
-  char *buf = NULL;
-  int len = 0;
 
+static int
+send_to_client (int out, char *buf)
+{
+  int n, len = strlen (buf);
+
+  assert (out);
+  for (n = 0; n < len;)
+    {
+      int e;
+      e = nsend (out, buf + n, len - n, 0);
+      if (e < 0 && errno == EINTR)
+        continue;
+      else if (e < 0)
+        return -1;
+      else
+        n += e;
+    }
+  return 0;
+}
+
+static int
+forward_status (struct host *h, int out)
+{
+  char *status = NULL, *buf = NULL;
+
+  status = kb_item_pop_str (h->host_kb, "internal/status");
+  if (!status)
+    return 0;
+  buf = g_strdup_printf ("SERVER <|> STATUS <|> %s <|> %s <|> SERVER\n",
+                         h->ip, status);
+  g_free (status);
+  if (send_to_client (out, buf) < 0)
+    {
+      g_free (buf);
+      return -1;
+    }
+  g_free (buf);
+  return 0;
+}
+
+static int
+forward (struct host *h, int out)
+{
+  forward_status (h, out);
   while (1)
     {
-      buf = kb_item_pop_str (kb, "internal/forward");
+      char *buf = kb_item_pop_str (h->host_kb, "internal/forward");
       if (!buf)
         return 0;
-      len = strlen (buf);
-      if (out > 0)
+
+      if (send_to_client (out, buf) < 0)
         {
-          int n;
-          for (n = 0; n < len;)
-            {
-              int e;
-              e = nsend (out, buf + n, len - n, 0);
-              if (e < 0 && errno == EINTR)
-                continue;
-              else if (e < 0)
-                {
-                  g_free (buf);
-                  return -1;
-                }
-              else
-                n += e;
-            }
+          g_free (buf);
+          return -1;
         }
       g_free (buf);
     }
@@ -111,7 +137,7 @@ host_rm (struct host *h)
   if (h->pid != 0)
     waitpid (h->pid, NULL, WNOHANG);
 
-  while (forward (h->host_kb, g_soc) > 0)
+  while (forward (h, g_soc) > 0)
     ;
   if (h->next != NULL)
     h->next->prev = h->prev;
@@ -264,7 +290,7 @@ hosts_read_data (void)
       if (!h->ip)
         h->ip = kb_item_get_str (h->host_kb, "internal/ip");
       if (h->ip)
-        forward (h->host_kb, g_soc);
+        forward (h, g_soc);
       h = h->next;
     }
 }

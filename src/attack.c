@@ -120,10 +120,8 @@ comm_send_status (kb_t kb, char *hostname, int curr, int max)
   if (strlen (hostname) > (sizeof (buffer) - 50))
     return -1;
 
-  snprintf (buffer, sizeof (buffer),
-            "SERVER <|> STATUS <|> %s <|> %d/%d <|> SERVER\n",
-            hostname, curr, max);
-  kb_item_push_str (kb, "internal/forward", buffer);
+  snprintf (buffer, sizeof (buffer), "%d/%d", curr, max);
+  kb_item_push_str (kb, "internal/status", buffer);
 
   return 0;
 }
