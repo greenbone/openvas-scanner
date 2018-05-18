@@ -41,6 +41,8 @@ if (NOT CMAKE_BUILD_TYPE)
   set (CMAKE_BUILD_TYPE Debug)
 endif (NOT CMAKE_BUILD_TYPE)
 
+OPTION (ENABLE_COVERAGE "Enable support for coverage analysis" OFF)
+
 ## Retrieve git revision (at configure time)
 include (GetGit)
 
@@ -196,13 +198,17 @@ configure_file (src/openvassd_log_conf.cmake_in src/openvassd_log.conf)
 
 ## Program
 
+if (ENABLE_COVERAGE)
+  set (COVERAGE_FLAGS "--coverage")
+endif (ENABLE_COVERAGE)
+
 set (HARDENING_FLAGS            "-Wformat -Wformat-security -D_FORTIFY_SOURCE=2 -fstack-protector")
 set (LINKER_HARDENING_FLAGS     "-Wl,-z,relro -Wl,-z,now")
 # The "-D_FILE_OFFSET_BITS=64 -DLARGEFILE_SOURCE=1" is necessary for GPGME!
 set (GPGME_C_FLAGS              "-D_FILE_OFFSET_BITS=64 -DLARGEFILE_SOURCE=1")
 
 set (CMAKE_C_FLAGS_RELEASE      "${CMAKE_C_FLAGS_RELEASE} ${HARDENING_FLAGS}")
-
+set (CMAKE_C_FLAGS_DEBUG        "${CMAKE_C_FLAGS_DEBUG} ${COVERAGE_FLAGS}")
 set (CMAKE_C_FLAGS              "${CMAKE_C_FLAGS} ${GPGME_C_FLAGS} -Wall -D_BSD_SOURCE -D_ISOC99_SOURCE -D_SVID_SOURCE -D_DEFAULT_SOURCE")
 
 if (NOT SKIP_SRC)
