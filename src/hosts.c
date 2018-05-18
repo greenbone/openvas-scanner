@@ -119,6 +119,7 @@ host_rm (struct host *h)
     h->prev->next = h->next;
 
   g_free (h->name);
+  kb_delete (h->host_kb);
   g_free (h);
 }
 

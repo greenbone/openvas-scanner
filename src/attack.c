@@ -532,8 +532,6 @@ host_died:
   plugins_scheduler_free (sched);
 
   ntp_timestamp_host_scan_ends (kb, ip_str);
-  if (net_kb == NULL || kb != *net_kb)
-    kb_delete (kb);
 }
 
 /*
