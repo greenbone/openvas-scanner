@@ -51,7 +51,6 @@
 #include "attack.h"
 #include "comm.h"
 #include "hosts.h"
-#include "ntp.h"
 #include "pluginlaunch.h"
 #include "pluginload.h"
 #include "pluginscheduler.h"
@@ -120,10 +119,8 @@ comm_send_status (kb_t kb, char *hostname, int curr, int max)
   if (strlen (hostname) > (sizeof (buffer) - 50))
     return -1;
 
-  snprintf (buffer, sizeof (buffer),
-            "SERVER <|> STATUS <|> %s <|> %d/%d <|> SERVER\n",
-            hostname, curr, max);
-  kb_item_push_str (kb, "internal/forward", buffer);
+  snprintf (buffer, sizeof (buffer), "%d/%d", curr, max);
+  kb_item_push_str (kb, "internal/status", buffer);
 
   return 0;
 }
@@ -425,7 +422,7 @@ attack_host (struct scan_globals *globals, struct in6_addr *ip,
   char ip_str[INET6_ADDRSTRLEN];
 
   addr6_to_str (ip, ip_str);
-  ntp_timestamp_host_scan_starts (kb, ip_str);
+  kb_item_set_str (kb, "internal/ip", ip_str, 0);
   proctitle_set ("openvassd: testing %s", ip_str);
   if (net_kb && *net_kb)
     {
@@ -530,10 +527,6 @@ attack_host (struct scan_globals *globals, struct in6_addr *ip,
 host_died:
   pluginlaunch_stop (1);
   plugins_scheduler_free (sched);
-
-  ntp_timestamp_host_scan_ends (kb, ip_str);
-  if (net_kb == NULL || kb != *net_kb)
-    kb_delete (kb);
 }
 
 /*
