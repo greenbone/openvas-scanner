@@ -70,7 +70,6 @@ struct running
   int pid;                   /**< Process ID. */
   int timeout;               /**< Timeout after which to kill process
                               * (NVT preference). If -1, never kill. it*/
-  int upstream_soc;
   int alive;                 /**< 0 if dead. */
 };
 
@@ -85,7 +84,7 @@ const char *hostname = NULL;
  *
  */
 static void
-update_running_processes (void)
+update_running_processes (kb_t kb)
 {
   int i;
   struct timeval now;
@@ -125,7 +124,7 @@ update_running_processes (void)
                           " <|> NVT timed out after %d seconds."
                           " <|> %s <|> SERVER\n",
                           hostname, processes[i].timeout, oid ?: "0");
-                  internal_send (processes[i].upstream_soc, msg);
+                  kb_item_push_str (kb, "internal/forward", msg);
                   g_free (msg);
 
                   terminate_process (processes[i].pid);
@@ -219,30 +218,20 @@ required_ports_in_list (const char *oid, GSList *list)
   return common_ports;
 }
 
-static void
-wait_if_simult_ports (int pid, const char *oid, const char *next_oid)
+static int
+simult_ports (const char *oid, const char *next_oid)
 {
+  int ret = 0;
   GSList *common_ports1 = NULL, *common_ports2 = NULL;
 
   common_ports1 = required_ports_in_list (oid, non_simult_ports);
   if (common_ports1)
     common_ports2 = required_ports_in_list (next_oid, non_simult_ports);
   if (common_ports1 && common_ports2 && common (common_ports1, common_ports2))
-    {
-#ifdef DEBUG_CONFLICT
-      g_debug ("Waiting has been initiated...\n");
-      g_debug ("Ports in common - waiting...");
-#endif
-      while (process_alive (pid))
-        {
-          update_running_processes ();
-        }
-#ifdef DEBUG_CONFLICT
-       g_debug ("End of the wait - was that long ?\n");
-#endif
-    }
+    ret = 1;
   g_slist_free_full (common_ports1, g_free);
   g_slist_free_full (common_ports2, g_free);
+  return ret;
 }
 
 /**
@@ -252,15 +241,18 @@ wait_if_simult_ports (int pid, const char *oid, const char *next_oid)
  *          in the processes array otherwise.
  */
 static int
-next_free_process (struct scheduler_plugin *upcoming)
+next_free_process (kb_t kb, struct scheduler_plugin *upcoming)
 {
   int r;
 
   for (r = 0; r < MAX_PROCESSES; r++)
     {
-      if (processes[r].pid > 0)
-        wait_if_simult_ports (processes[r].pid, processes[r].plugin->oid,
-                              upcoming->oid);
+      if (processes[r].pid > 0
+          && simult_ports (processes[r].plugin->oid, upcoming->oid))
+        {
+          while (process_alive (processes[r].pid))
+            update_running_processes (kb);
+        }
     }
   for (r = 0; r < MAX_PROCESSES; r++)
     if (processes[r].pid <= 0)
@@ -347,9 +339,9 @@ plugin_launch (struct scan_globals *globals, struct scheduler_plugin *plugin,
 
   /* Wait for a free slot */
   while (num_running_processes >= max_running_processes)
-    update_running_processes ();
+    update_running_processes (kb);
 
-  p = next_free_process (plugin);
+  p = next_free_process (kb, plugin);
   processes[p].plugin = plugin;
   processes[p].timeout = prefs_nvt_timeout (plugin->oid);
   if (processes[p].timeout == 0)
@@ -366,10 +358,8 @@ plugin_launch (struct scan_globals *globals, struct scheduler_plugin *plugin,
     }
 
   gettimeofday (&(processes[p].start), NULL);
-  processes[p].upstream_soc = globals->global_socket;
   processes[p].pid =
-    nasl_plugin_launch (globals, ip, vhosts, kb, name, plugin->oid,
-                        globals->global_socket);
+    nasl_plugin_launch (globals, ip, vhosts, kb, name, plugin->oid);
 
   processes[p].alive = 1;
   if (processes[p].pid > 0)
@@ -385,10 +375,10 @@ plugin_launch (struct scan_globals *globals, struct scheduler_plugin *plugin,
  * @brief Waits and 'pushes' processes until num_running_processes is 0.
  */
 void
-pluginlaunch_wait (void)
+pluginlaunch_wait (kb_t kb)
 {
   while (num_running_processes != 0)
-    update_running_processes ();
+    update_running_processes (kb);
 }
 
 /**
@@ -396,10 +386,10 @@ pluginlaunch_wait (void)
  *        changed.
  */
 void
-pluginlaunch_wait_for_free_process (void)
+pluginlaunch_wait_for_free_process (kb_t kb)
 {
   int num = num_running_processes;
 
   while (num_running_processes == num)
-    update_running_processes ();
+    update_running_processes (kb);
 }

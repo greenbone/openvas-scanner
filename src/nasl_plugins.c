@@ -185,8 +185,7 @@ nasl_thread (struct nasl_thread_args *);
  */
 int
 nasl_plugin_launch (struct scan_globals *globals, struct in6_addr *ip,
-                    GSList *vhosts, kb_t kb, char *name, const char *oid,
-                    int soc)
+                    GSList *vhosts, kb_t kb, char *name, const char *oid)
 {
   int module;
   struct nasl_thread_args nargs;
@@ -201,7 +200,6 @@ nasl_plugin_launch (struct scan_globals *globals, struct in6_addr *ip,
   nargs.args = infos;
   nargs.name = name;
   nargs.oid = oid;
-  nargs.soc = soc;
 
   module = create_process ((process_func_t) nasl_thread, &nargs);
   g_free (infos);
@@ -212,7 +210,6 @@ static void
 nasl_thread (struct nasl_thread_args *nargs)
 {
   struct script_infos *args = nargs->args;
-  struct scan_globals *globals = args->globals;
   char *name = nargs->name, ip_str[INET6_ADDRSTRLEN];
   int nasl_mode = 0;
   kb_t kb;
@@ -232,7 +229,6 @@ nasl_thread (struct nasl_thread_args *nargs)
 
   kb = args->key;
   kb_lnk_reset (kb);
-  globals->global_socket = nargs->soc;
   addr6_to_str (args->ip, ip_str);
   proctitle_set ("openvassd: testing %s (%s)", ip_str, name);
 

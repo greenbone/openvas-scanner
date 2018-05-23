@@ -36,7 +36,6 @@ struct scan_globals {
   GHashTable *files_translation;
   GHashTable *files_size_translation;
   int global_socket;
-  int parent_socket;
 };
 
 struct host_info;
