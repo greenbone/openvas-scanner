@@ -517,10 +517,10 @@ attack_host (struct scan_globals *globals, struct in6_addr *ip,
       else if (plugin == NULL)
         break;
       else
-        pluginlaunch_wait_for_free_process ();
+        pluginlaunch_wait_for_free_process (kb);
     }
 
-  pluginlaunch_wait ();
+  pluginlaunch_wait (kb);
   if (!scan_is_stopped () && !all_scans_are_stopped ())
     comm_send_status (kb, ip_str, num_plugs, num_plugs);
 

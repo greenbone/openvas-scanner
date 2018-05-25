@@ -34,8 +34,8 @@
 #include "pluginscheduler.h"    /* for struct plugins_scheduler_t */
 
 void pluginlaunch_init (const char *);
-void pluginlaunch_wait (void);
-void pluginlaunch_wait_for_free_process (void);
+void pluginlaunch_wait (kb_t);
+void pluginlaunch_wait_for_free_process (kb_t);
 void pluginlaunch_stop (int);
 int plugin_launch (struct scan_globals *, struct scheduler_plugin *,
                    struct in6_addr *, GSList *, kb_t, char *);
