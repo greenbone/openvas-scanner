@@ -135,14 +135,12 @@ error_message_to_client (int soc, const char *msg, const char *hostname,
 }
 
 static void
-error_message_to_client2 (kb_t kb, const char *msg, const char *hostname,
-                          const char *port)
+error_message_to_client2 (kb_t kb, const char *msg, const char *port)
 {
-  char *buf = g_strdup_printf
-               ("SERVER <|> ERRMSG <|> %s <|>  <|> %s <|> %s <|>  <|> SERVER\n",
-                hostname ?: "", port ?: "", msg ?: "No error.");
-  kb_item_push_str (kb, "internal/forward", buf);
-  g_free (buf);
+  char buf[2048];
+
+  sprintf (buf, "ERRMSG||| |||%s||| |||%s", port ?: " ", msg ?: "No error.");
+  kb_item_push_str (kb, "internal/results", buf);
 }
 
 static void
@@ -469,18 +467,16 @@ attack_host (struct scan_globals *globals, struct in6_addr *ip,
                   char buffer[2048];
                   snprintf
                    (buffer, sizeof (buffer),
-                    "SERVER <|> LOG <|> %s <|>  <|> general/Host_Details"
-                    " <|> <host><detail><name>Host dead</name>"
-                    "<value>1</value><source><description/><type/>"
-                    "<name/></source></detail></host> <|>  <|> SERVER\n",
-                    ip_str);
+                    "LOG||| |||general/Host_Details||| |||<host><detail>"
+                    "<name>Host dead</name><value>1</value><source>"
+                    "<description/><type/><name/></source></detail></host>");
 #if (PROGRESS_BAR_STYLE == 1)
                   /* In case of a dead host, it sends max_ports = -1 to the
                      manager. The host will not be taken into account to
                      calculate the scan progress. */
                   comm_send_status (kb, ip_str, 0, -1);
 #endif
-                  kb_item_push_str (kb, "internal/forward", buffer);
+                  kb_item_push_str (kb, "internal/results", buffer);
                   goto host_died;
                 }
               else if (e == ERR_CANT_FORK)
@@ -613,7 +609,7 @@ attack_start (struct attack_start_args *args)
   hosts_deny = gvm_hosts_new (prefs_get ("hosts_deny"));
   if (!host_authorized (args->host, &hostip, hosts_allow, hosts_deny))
     {
-      error_message_to_client2 (kb, "Host access denied.", ip_str, NULL);
+      error_message_to_client2 (kb, "Host access denied.", NULL);
       g_warning ("Host %s access denied.", ip_str);
       return;
     }
@@ -622,7 +618,7 @@ attack_start (struct attack_start_args *args)
   if (!host_authorized (args->host, &hostip, sys_hosts_allow, sys_hosts_deny))
     {
       error_message_to_client2
-       (kb, "Host access denied (system-wide restriction.)", ip_str, NULL);
+       (kb, "Host access denied (system-wide restriction.)", NULL);
       g_warning ("Host %s access denied (sys_* preference restriction.)",
                  ip_str);
       return;
