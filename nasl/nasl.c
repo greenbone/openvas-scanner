@@ -76,7 +76,7 @@ my_gnutls_log_func (int level, const char *text)
 }
 
 struct script_infos *
-init (struct in6_addr *ip, char *fqdn, kb_t kb)
+init (struct in6_addr *ip, GSList *vhosts, kb_t kb)
 {
   struct script_infos *infos = g_malloc0 (sizeof (struct script_infos));
 
@@ -84,7 +84,7 @@ init (struct in6_addr *ip, char *fqdn, kb_t kb)
   infos->standalone = 1;
   infos->key = kb;
   infos->ip = ip;
-  infos->vhosts = g_slist_prepend (infos->vhosts, g_strdup (fqdn));
+  infos->vhosts = vhosts;
   infos->globals = g_malloc0 (sizeof (struct scan_globals));
 
   return infos;
@@ -313,6 +313,7 @@ main (int argc, char **argv)
     target = g_strdup (default_target);
 
   hosts = gvm_hosts_new (target);
+  gvm_hosts_resolve (hosts);
   g_free (target);
 
   // for absolute and relative paths
@@ -337,7 +338,7 @@ main (int argc, char **argv)
       if (rc)
         exit (1);
 
-      script_infos = init (&ip6, fqdn, kb);
+      script_infos = init (&ip6, host->vhosts, kb);
       while (nasl_filenames[n])
         {
           pid_t pid;
