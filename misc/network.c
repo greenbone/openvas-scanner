@@ -1918,11 +1918,10 @@ open_sock_tcp (struct script_infos *args, unsigned int port, int timeout)
 
               addr6_to_str (args->ip, ip_str);
               snprintf (buffer, sizeof (buffer),
-                        "SERVER <|> ERRMSG <|> %s <|> %s <|> %d/tcp <|> "
-                        "Too many timeouts. The port was set to closed."
-                        "<|>  <|> SERVER\n", ip_str, plug_current_vhost() ?: "",
-                        port);
-              kb_item_push_str (args->key, "internal/forward", buffer);
+                        "ERRMSG|||%s|||%d/tcp||| |||Too many timeouts. The port"
+                        " was set to closed.",
+                        plug_current_vhost() ?: " ", port);
+              kb_item_push_str (args->key, "internal/results", buffer);
             }
         }
       g_free (ip_str);
