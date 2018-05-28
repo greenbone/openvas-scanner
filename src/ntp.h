@@ -35,8 +35,8 @@
 
 int ntp_parse_input (struct scan_globals *, char *);
 
-int ntp_timestamp_host_scan_starts (kb_t, char *);
-int ntp_timestamp_host_scan_ends (kb_t, char *);
+int ntp_timestamp_host_scan_starts (int, kb_t, char *);
+int ntp_timestamp_host_scan_ends (int, kb_t, char *);
 
 int ntp_timestamp_scan_starts (int);
 int ntp_timestamp_scan_ends (int);

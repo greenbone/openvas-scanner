@@ -113,19 +113,17 @@ update_running_processes (kb_t kb)
 
               if (processes[i].alive)
                 {
-                  gchar *msg;
+                  char msg[2048];
 
                   if (log_whole)
                     g_message ("%s (pid %d) is slow to finish - killing it",
                                oid, processes[i].pid);
 
-                  msg = g_strdup_printf
-                         ("SERVER <|> ERRMSG <|> %s <|>  <|> general/tcp"
-                          " <|> NVT timed out after %d seconds."
-                          " <|> %s <|> SERVER\n",
-                          hostname, processes[i].timeout, oid ?: "0");
-                  kb_item_push_str (kb, "internal/forward", msg);
-                  g_free (msg);
+                  sprintf (msg,
+                           "ERRMSG||| |||general/tcp|||%s|||"
+                           "NVT timed out after %d seconds.",
+                           oid ?: " ", processes[i].timeout);
+                  kb_item_push_str (kb, "internal/results", msg);
 
                   terminate_process (processes[i].pid);
                   processes[i].alive = 0;

@@ -113,10 +113,18 @@ forward (struct host *h, int out)
   forward_status (h, out);
   while (1)
     {
-      char *buf = kb_item_pop_str (h->host_kb, "internal/forward");
+      char **values, *buf = kb_item_pop_str (h->host_kb, "internal/results");
       if (!buf)
         return 0;
 
+      /* Type|||Hostname|||Port/Proto|||OID|||Message */
+      values = g_strsplit (buf, "|||", 5);
+      assert (values && values[0] && !values[5]);
+      g_free (buf);
+      /* OTP: Type <|> IP <|> Hostname <|> Port/Proto <|> Message <|> OID */
+      buf = g_strdup_printf
+             ("SERVER <|> %s <|> %s <|> %s <|> %s <|> %s <|> %s <|> SERVER\n",
+              values[0], h->ip, values[1], values[2], values[4], values[3]);
       if (send_to_client (out, buf) < 0)
         {
           g_free (buf);
@@ -139,7 +147,7 @@ host_rm (struct host *h)
 
   while (forward (h, g_soc) > 0)
     ;
-  ntp_timestamp_host_scan_ends (h->host_kb, h->ip);
+  ntp_timestamp_host_scan_ends (g_soc, h->host_kb, h->ip);
   if (h->next != NULL)
     h->next->prev = h->prev;
 
@@ -293,7 +301,7 @@ hosts_read_data (void)
           /* Scan started. */
           h->ip = kb_item_get_str (h->host_kb, "internal/ip");
           if (h->ip)
-            ntp_timestamp_host_scan_starts (h->host_kb, h->ip);
+            ntp_timestamp_host_scan_starts (g_soc, h->host_kb, h->ip);
         }
       if (h->ip)
         forward (h, g_soc);
