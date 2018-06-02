@@ -225,7 +225,7 @@ plug_get_host_fqdn (struct script_infos *args)
 
           if (pid == 0)
             {
-              current_vhost = g_strdup (args->vhosts->data);
+              current_vhost = g_strdup (vhosts->data);
               return g_strdup (current_vhost);
             }
           else if (pid == -1)
