@@ -129,9 +129,10 @@ static void
 error_message_to_client (int soc, const char *msg, const char *hostname,
                          const char *port)
 {
-  send_printf
-   (soc, "SERVER <|> ERRMSG <|> %s <|>  <|> %s <|> %s <|>  <|> SERVER\n",
-    hostname ?: "", port ?: "", msg ?: "No error.");
+  if (is_otp_scan ())
+    send_printf
+      (soc, "SERVER <|> ERRMSG <|> %s <|>  <|> %s <|> %s <|>  <|> SERVER\n",
+       hostname ?: "", port ?: "", msg ?: "No error.");
 }
 
 static void
@@ -595,9 +596,12 @@ attack_start (struct attack_start_args *args)
   kb_t kb = args->host_kb;
   gvm_hosts_t *hosts_allow, *hosts_deny;
   gvm_hosts_t *sys_hosts_allow, *sys_hosts_deny;
+  char key[1024];
 
   nvticache_reset ();
   gettimeofday (&then, NULL);
+
+  kb_item_add_str (kb, "internal/scan_id", globals->scan_id, 0);
 
   /* The reverse lookup is delayed to this step in order to not slow down the
    * main scan process eg. case of target with big range of IP addresses. */
@@ -635,6 +639,9 @@ attack_start (struct attack_start_args *args)
     g_message ("Testing %s [%d]", ip_str, getpid ());
   g_free (hostnames);
   attack_host (globals, &hostip, args->host->vhosts, sched, kb, net_kb);
+
+  snprintf (key, sizeof (key), "internal/%s", globals->scan_id);
+  kb_item_add_str (kb, key, "finished", 0);
 
   if (!scan_is_stopped () && !all_scans_are_stopped ())
     {

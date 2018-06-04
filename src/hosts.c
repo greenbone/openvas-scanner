@@ -64,7 +64,6 @@ static struct host *hosts = NULL;
 static int g_soc = -1;
 static int g_max_hosts = 15;
 
-
 /*-------------------------------------------------------------------------*/
 
 static int
@@ -92,6 +91,10 @@ forward_status (struct host *h, int out)
 {
   char *status = NULL, *buf = NULL;
 
+  /* Send the message to the client only if it is a OTP scan. */
+  if (!is_otp_scan ())
+    return 0;
+
   status = kb_item_pop_str (h->host_kb, "internal/status");
   if (!status)
     return 0;
@@ -110,6 +113,10 @@ forward_status (struct host *h, int out)
 static int
 forward (struct host *h, int out)
 {
+  /* Send the message to the client only if it is a OTP scan. */
+  if (!is_otp_scan ())
+    return 0;
+
   forward_status (h, out);
   while (1)
     {
@@ -154,8 +161,10 @@ host_rm (struct host *h)
   if (h->prev != NULL)
     h->prev->next = h->next;
 
+  if (is_otp_scan ())
+    kb_delete (h->host_kb);
+
   g_free (h->name);
-  kb_delete (h->host_kb);
   g_free (h->ip);
   g_free (h);
 }
@@ -360,7 +369,7 @@ hosts_read_client (struct scan_globals *globals)
 int
 hosts_read (struct scan_globals *globals)
 {
-  if (hosts_read_client (globals) < 0)
+  if (hosts_read_client (globals) < 0 && is_otp_scan ())
     {
       hosts_stop_all ();
       g_debug ("Client abruptly closed the communication");

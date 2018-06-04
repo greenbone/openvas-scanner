@@ -409,8 +409,10 @@ __ntp_timestamp_scan_host (int soc, kb_t kb, char *msg, char *host)
   if (timestr[len - 1] == '\n')
     timestr[len - 1] = '\0';
 
-  send_printf (soc, "SERVER <|> TIME <|> %s <|> %s <|> %s <|> SERVER\n", msg,
-               host, timestr);
+  /* Send the message to the client only if it is a OTP scan. */
+  if (is_otp_scan ())
+    send_printf (soc, "SERVER <|> TIME <|> %s <|> %s <|> %s <|> SERVER\n", msg,
+                 host, timestr);
   /* For external tools */
   if (!strcmp (msg, "HOST_START"))
     kb_item_push_str (kb, "internal/start_time", timestr);
