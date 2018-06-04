@@ -93,16 +93,16 @@ init (struct in6_addr *ip, GSList *vhosts, kb_t kb)
 extern FILE *nasl_trace_fp;
 
 static nvti_t *
-parse_script_infos (const char *file, struct script_infos *infos)
+parse_script_infos (struct script_infos *infos)
 {
   nvti_t *nvti;
   int mode = NASL_EXEC_DESCR | NASL_ALWAYS_SIGNED;
 
   nvti = nvti_new ();
   infos->nvti = nvti;
-  if (exec_nasl_script (infos, file, NULL, mode) < 0)
+  if (exec_nasl_script (infos, mode) < 0)
     {
-      printf ("%s could not be loaded\n", file);
+      printf ("%s could not be loaded\n", infos->name);
       return NULL;
     }
   infos->nvti = NULL;
@@ -343,10 +343,10 @@ main (int argc, char **argv)
         {
           pid_t pid;
 
+          script_infos->name = nasl_filenames[n];
           if (both_modes || with_safe_checks)
             {
-              nvti_t *nvti = parse_script_infos (nasl_filenames[n],
-                                                 script_infos);
+              nvti_t *nvti = parse_script_infos (script_infos);
               if (!nvti)
                 {
                   err++;
@@ -382,8 +382,7 @@ main (int argc, char **argv)
 
           if ((pid = fork ()) == 0)
             {
-              if (exec_nasl_script (script_infos, nasl_filenames[n],
-                                    script_infos->oid, mode) < 0)
+              if (exec_nasl_script (script_infos, mode) < 0)
                 exit (1);
               else
                 exit (0);

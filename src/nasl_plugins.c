@@ -139,7 +139,8 @@ nasl_plugin_add (char *folder, char *filename)
       args->key = nvticache_get_kb ();
       new_nvti = nvti_new ();
       args->nvti = new_nvti;
-      if (exec_nasl_script (args, fullname, NULL, nasl_mode) < 0)
+      args->name = fullname;
+      if (exec_nasl_script (args, nasl_mode) < 0)
         {
           g_debug ("%s: Could not be loaded", fullname);
           g_free (args);
@@ -170,15 +171,8 @@ nasl_plugin_add (char *folder, char *filename)
   return 0;
 }
 
-struct nasl_thread_args {
-  struct script_infos *args;
-  char *name;
-  const char *oid;
-  int soc;
-};
-
 static void
-nasl_thread (struct nasl_thread_args *);
+nasl_thread (struct script_infos *);
 
 /**
  * @brief Launch a NASL plugin.
@@ -188,7 +182,6 @@ nasl_plugin_launch (struct scan_globals *globals, struct in6_addr *ip,
                     GSList *vhosts, kb_t kb, char *name, const char *oid)
 {
   int module;
-  struct nasl_thread_args nargs;
   struct script_infos *infos;
 
   infos = g_malloc0 (sizeof (struct script_infos));
@@ -196,21 +189,18 @@ nasl_plugin_launch (struct scan_globals *globals, struct in6_addr *ip,
   infos->vhosts = vhosts;
   infos->globals = globals;
   infos->key = kb;
+  infos->oid = (char *) oid;
+  infos->name = name;
 
-  nargs.args = infos;
-  nargs.name = name;
-  nargs.oid = oid;
-
-  module = create_process ((process_func_t) nasl_thread, &nargs);
+  module = create_process ((process_func_t) nasl_thread, infos);
   g_free (infos);
   return module;
 }
 
 static void
-nasl_thread (struct nasl_thread_args *nargs)
+nasl_thread (struct script_infos *args)
 {
-  struct script_infos *args = nargs->args;
-  char *name = nargs->name, ip_str[INET6_ADDRSTRLEN];
+  char ip_str[INET6_ADDRSTRLEN];
   int nasl_mode = 0;
   kb_t kb;
   GError *error = NULL;
@@ -230,7 +220,7 @@ nasl_thread (struct nasl_thread_args *nargs)
   kb = args->key;
   kb_lnk_reset (kb);
   addr6_to_str (args->ip, ip_str);
-  proctitle_set ("openvassd: testing %s (%s)", ip_str, name);
+  proctitle_set ("openvassd: testing %s (%s)", ip_str, args->name);
 
   if (prefs_get_bool ("nasl_no_signature_check"))
     nasl_mode |= NASL_ALWAYS_SIGNED;
@@ -241,10 +231,10 @@ nasl_thread (struct nasl_thread_args *nargs)
       if (drop_priv_res != GVM_DROP_PRIVILEGES_OK)
         {
           if (drop_priv_res != GVM_DROP_PRIVILEGES_FAIL_NOT_ROOT)
-            g_debug ("Failed to drop privileges for %s", name);
+            g_debug ("Failed to drop privileges for %s", args->name);
           g_error_free (error);
         }
     }
 
-  exec_nasl_script (args, name, nargs->oid, nasl_mode);
+  exec_nasl_script (args, nasl_mode);
 }

@@ -36,7 +36,7 @@ void
 nasl_clean_inc (void);
 
 int
-exec_nasl_script (struct script_infos *, const char *, const char *, int);
+exec_nasl_script (struct script_infos *, int);
 
 char *
 nasl_version (void);

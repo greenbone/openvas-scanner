@@ -68,7 +68,8 @@ static gboolean
 process_file (const gchar* filepath, int mode, struct script_infos* script_args)
 {
   g_debug("Processing %s", filepath);
-  if (exec_nasl_script (script_args, filepath, NULL, mode) < 0)
+  script_args->name = (char *) filepath;
+  if (exec_nasl_script (script_args, mode) < 0)
     {
       g_print ("Error while processing %s.\n", filepath);
       return TRUE;
