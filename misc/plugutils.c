@@ -213,19 +213,24 @@ plug_get_host_fqdn (struct script_infos *args)
 
   if (g_slist_length (args->vhosts) == 1)
     {
-      current_vhost = g_strdup (args->vhosts->data);
+      current_vhost = args->vhosts->data;
       return g_strdup (current_vhost);
     }
   else
     {
       GSList *vhosts = args->vhosts;
+
+      /* Workaround for rapid growth of forked processes ie. http_get() calls
+       * within foreach() loops. */
+      if (current_vhost)
+        return g_strdup (current_vhost);
       while (vhosts)
         {
           pid_t pid = plug_fork_child (args->key);
 
           if (pid == 0)
             {
-              current_vhost = g_strdup (vhosts->data);
+              current_vhost = vhosts->data;
               return g_strdup (current_vhost);
             }
           else if (pid == -1)
