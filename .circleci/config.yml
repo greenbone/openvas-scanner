@@ -34,9 +34,26 @@ jobs:
           command: mkdir build && cd build/ && scan-build cmake -DCMAKE_BUILD_TYPE=Debug .. && scan-build -o ~/scan-build-report make
       - store_artifacts:
           path: ~/scan-build-report
+  doc_coverage:
+    docker:
+      - image: greenbone/code-metrics-doxy-coverage-debian-stretch
+    steps:
+      - checkout
+      - run:
+          name: Generate documentation (XML)
+          command: mkdir build && cd build/ && cmake -DSKIP_SRC=1 .. && make doc-xml 2> ~/doxygen-stderr.txt
+      - run:
+          name: Establish coverage
+          command: ~/doxy-coverage/doxy-coverage.py --threshold 28 ~/project/build/doc/generated/xml/ > ~/documentation-coverage.txt
+      - store_artifacts:
+          path: ~/doxygen-stderr.txt
+      - store_artifacts:
+          path: ~/documentation-coverage.txt
 workflows:
   version: 2
   build_and_test:
     jobs:
       - build_gcc_core
       - scan_build
+      - doc_coverage
+
