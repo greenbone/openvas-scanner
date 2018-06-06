@@ -205,13 +205,13 @@ rawsocket (int family)
   else
     {
       soc = socket (AF_INET6, SOCK_RAW, IPPROTO_TCP);
-      if (soc < 0)
+      if (soc < 0 || setsockopt (soc, IPPROTO_IPV6, IPV6_CHECKSUM, &offset,
+                                 sizeof (offset)) < 0)
         {
           perror ("socket ");
           printf ("error opeinig socket\n");
           return -1;
         }
-      setsockopt (soc, IPPROTO_IPV6, IPV6_CHECKSUM, &offset, sizeof (offset));
     }
 
   return soc;

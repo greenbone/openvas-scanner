@@ -96,8 +96,6 @@ get_closed_udp_ports (kb_t kb, char *ports_list)
   if (!ports_list)
     return -1;
   ports = g_strsplit (ports_list, ", ", 0);
-  if (!ports_list)
-    return -1;
 
   for (i = 0; ports[i] != NULL; i ++)
     {
