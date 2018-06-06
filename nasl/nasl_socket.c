@@ -1367,7 +1367,7 @@ nasl_get_sock_info (lex_ctxt * lexic)
             default:                     s = "[?]";  break;
             }
         }
-      strval = g_strdup (s?s:"");
+      strval = g_strdup (s);
     }
   else if (!strcmp (keyword, "tls-cert"))
     {
