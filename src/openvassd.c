@@ -61,6 +61,7 @@
 #include <gvm/base/nvti.h>       /* for prefs_get() */
 #include <gvm/util/kb.h>         /* for KB_PATH_DEFAULT */
 #include <gvm/util/nvticache.h>  /* nvticache_free */
+#include <gvm/util/uuidutils.h>  /* gvm_uuid_make */
 #include "../misc/plugutils.h"   /* nvticache_free */
 #include "../misc/vendorversion.h" /* for vendor_version_set */
 
@@ -95,7 +96,6 @@
 int global_max_hosts = 15;
 int global_max_checks = 10;
 
-
 /**
  * @brief Logging parameters, as passed to setup_log_handlers.
  */
@@ -107,6 +107,7 @@ static int global_iana_socket = -1;
 static volatile int loading_stop_signal = 0;
 static volatile int reload_signal = 0;
 static volatile int termination_signal = 0;
+static char *global_scan_id = NULL;
 
 typedef struct
 {
@@ -377,6 +378,48 @@ reload_openvassd ()
     exit (1);
 }
 
+
+/**
+ * @brief Read the scan preferences from redis
+ * @input scan_id Scan ID used as key to find the corresponding KB where
+ *                to take the preferences from.
+ * @return 0 on success, -1 if the kb is not found or no prefs are found in
+ *         the kb.
+ */
+static int
+load_scan_preferences (const char *scan_id)
+{
+  char key[1024];
+  kb_t kb;
+  struct kb_item *res = NULL;
+
+  g_debug ("Start loading scan preferences.");
+  if (!scan_id)
+    return -1;
+
+  snprintf (key, sizeof (key), "internal/%s/scanprefs", scan_id);
+  kb = kb_find (prefs_get ("kb_location"), key);
+  if (!kb)
+    return -1;
+
+  res = kb_item_get_all (kb, key);
+  if (!res)
+    return -1;
+
+  while (res)
+    {
+      gchar **pref = g_strsplit (res->v_str, "|||", 2);
+      if (pref[0])
+        prefs_set (pref[0], pref[1] ?: "");
+      g_strfreev (pref);
+      res = res->next;
+    }
+  g_debug ("End loading scan preferences.");
+
+  kb_item_free (res);
+  return 0;
+}
+
 static void
 handle_client (struct scan_globals *globals)
 {
@@ -384,18 +427,33 @@ handle_client (struct scan_globals *globals)
   int soc = globals->global_socket;
 
   /* Become process group leader and the like ... */
-  start_daemon_mode ();
-  if (comm_wait_order (globals))
-    return;
-  ntp_timestamp_scan_starts (soc);
+  if (is_otp_scan ())
+    {
+      start_daemon_mode ();
+      if (comm_wait_order (globals))
+        return;
+      ntp_timestamp_scan_starts (soc);
+    }
+  else
+    {
+      /* Load preferences from Redis. Scan started with a scan_id. */
+      if (load_scan_preferences (globals->scan_id))
+        {
+          g_warning ("No preferences found for the scan %s", globals->scan_id);
+          exit (0);
+        }
+    }
   attack_network (globals, &net_kb);
   if (net_kb != NULL)
     {
       kb_delete (net_kb);
       net_kb = NULL;
     }
-  ntp_timestamp_scan_ends (soc);
-  comm_terminate (soc);
+  if (is_otp_scan ())
+    {
+      ntp_timestamp_scan_ends (soc);
+      comm_terminate (soc);
+    }
 }
 
 static void
@@ -404,8 +462,29 @@ scanner_thread (struct scan_globals *globals)
   int opt = 1, soc;
 
   nvticache_reset ();
-  soc = globals->global_socket;
-  proctitle_set ("openvassd: Serving %s", unix_socket_path);
+
+  if (is_otp_scan () && !global_scan_id)
+    {
+      globals->scan_id = (char *) gvm_uuid_make ();
+      soc = globals->global_socket;
+      proctitle_set ("openvassd: Serving %s", unix_socket_path);
+
+      /* Close the scanner thread - it is useless for us now */
+      close (global_iana_socket);
+
+      if (soc < 0)
+        goto shutdown_and_exit;
+
+      if (setsockopt (soc, SOL_SOCKET, SO_KEEPALIVE, &opt, sizeof (opt)) < 0)
+        goto shutdown_and_exit;
+
+      globals->global_socket = soc;
+
+      if (comm_init (soc) < 0)
+        exit (0);
+    }
+  else
+    globals->scan_id = g_strdup (global_scan_id);
 
   /* Everyone runs with a nicelevel of 10 */
   if (prefs_get_bool ("be_nice"))
@@ -417,27 +496,16 @@ scanner_thread (struct scan_globals *globals)
         }
     }
 
-  /* Close the scanner thread - it is useless for us now */
-  close (global_iana_socket);
-
-  if (soc < 0)
-    goto shutdown_and_exit;
-
-  if (setsockopt (soc, SOL_SOCKET, SO_KEEPALIVE, &opt, sizeof (opt)) < 0)
-    goto shutdown_and_exit;
-
-  globals->global_socket = soc;
-
-  if (comm_init (soc) < 0)
-    exit (0);
   handle_client (globals);
 
 shutdown_and_exit:
-  shutdown (soc, 2);
-  close (soc);
-
-  /* Kill left overs */
-  end_daemon_mode ();
+  if (is_otp_scan ())
+    {
+      shutdown (soc, 2);
+      close (soc);
+      /* Kill left overs */
+      end_daemon_mode ();
+    }
   exit (0);
 }
 
@@ -643,6 +711,8 @@ main_loop ()
 
       globals = g_malloc0 (sizeof (struct scan_globals));
       globals->global_socket = soc;
+      /* Set scan type 1:OTP, 0:OSP */
+      set_scan_type (1);
 
       /* Check for reload after accept() but before we fork, to ensure that
        * Manager gets full updated feed in case of NVT update connection.
@@ -818,6 +888,40 @@ gcrypt_init ()
   gcry_control (GCRYCTL_INITIALIZATION_FINISHED);
 }
 
+void
+start_single_task_scan ()
+{
+  struct scan_globals *globals;
+  int ret = 0;
+
+#if GNUTLS_VERSION_NUMBER < 0x030300
+  if (openvas_SSL_init () < 0)
+    g_message ("Could not initialize openvas SSL!");
+#endif
+
+#ifdef OPENVASSD_GIT_REVISION
+  g_message ("openvassd %s (GIT revision %s) started",
+             OPENVASSD_VERSION,
+             OPENVASSD_GIT_REVISION);
+#else
+  g_message ("openvassd %s started", OPENVASSD_VERSION);
+#endif
+
+  pidfile_create ("openvassd");
+  openvas_signal (SIGHUP, SIG_IGN);
+  ret = plugins_init ();
+  if (ret)
+    exit (0);
+  init_signal_handlers ();
+
+  globals = g_malloc0 (sizeof (struct scan_globals));
+
+  /* Set scan type 1:OTP, 0:OSP */
+  set_scan_type (0);
+  scanner_thread (globals);
+  exit (0);
+}
+
 /**
  * @brief openvassd.
  * @param argc Argument count.
@@ -839,6 +943,7 @@ main (int argc, char *argv[])
   static gchar *listen_owner = NULL;
   static gchar *listen_group = NULL;
   static gchar *listen_mode = NULL;
+  static gchar *scan_id = NULL;
   static gboolean print_specs = FALSE;
   static gboolean print_sysconfdir = FALSE;
   static gboolean only_cache = FALSE;
@@ -867,6 +972,8 @@ main (int argc, char *argv[])
      "Group of the unix socket", "<string>"},
     {"listen-mode", '\0', 0, G_OPTION_ARG_STRING, &listen_mode,
      "File mode of the unix socket", "<string>"},
+    {"scan-start", '\0', 0, G_OPTION_ARG_STRING, &scan_id,
+     "ID for this scan taks", "<string>"},
     {NULL, 0, 0, 0, NULL, NULL, NULL}
   };
 
@@ -930,6 +1037,14 @@ main (int argc, char *argv[])
 
   if (init_openvassd (config_file))
     return 1;
+
+  if (scan_id)
+    {
+      global_scan_id = g_strdup (scan_id);
+      start_single_task_scan ();
+      exit (0);
+    }
+
   if (!print_specs)
     {
       if (init_unix_network (&global_iana_socket, listen_owner, listen_group,
@@ -951,7 +1066,7 @@ main (int argc, char *argv[])
   if (openvas_SSL_init () < 0)
     g_message ("Could not initialize openvas SSL!");
 #endif
-  
+
   // Daemon mode:
   if (dont_fork == FALSE)
     set_daemon_mode ();

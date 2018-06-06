@@ -43,12 +43,32 @@
 
 extern int global_max_hosts;
 extern int global_max_checks;
+int global_scan_type = 1;
 
 #undef G_LOG_DOMAIN
 /**
  * @brief GLib log domain.
  */
 #define G_LOG_DOMAIN "sd   main"
+
+/**
+ * @brief Check the scan type
+ * @return 1 if OTP type, 0 if OSP.
+ */
+int
+is_otp_scan ()
+{
+  return global_scan_type;
+}
+
+/**
+ * @brief Set the scan type
+ */
+void
+set_scan_type (int type)
+{
+  global_scan_type = type;
+}
 
 /**
  * Get the max number of hosts to test at the same time.

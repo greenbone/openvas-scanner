@@ -31,6 +31,9 @@
 #ifndef _OPENVAS_UTILS_H
 #define _OPENVAS_UTILS_H
 
+int is_otp_scan (void);
+void set_scan_type (int);
+
 int get_max_hosts_number (void);
 int get_max_checks_number (void);
 
