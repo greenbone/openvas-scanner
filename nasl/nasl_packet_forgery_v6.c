@@ -1662,9 +1662,10 @@ nasl_tcp_v6_ping (lex_ctxt * lexic)
           bzero (&soca, sizeof (soca));
           soca.sin6_family = AF_INET6;
           soca.sin6_addr = ip->ip6_dst;
-          sendto (soc, (const void *) ip,
+          if (sendto (soc, (const void *) ip,
                   sizeof (struct tcphdr) + sizeof (struct ip6_hdr), 0,
-                  (struct sockaddr *) &soca, sizeof (struct sockaddr_in6));
+                  (struct sockaddr *) &soca, sizeof (struct sockaddr_in6)) < 0)
+            return NULL;
           tv.tv_sec = 0;
           tv.tv_usec = 100000;
           if (bpf >= 0 && bpf_next_tv (bpf, &len, &tv))
