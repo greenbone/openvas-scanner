@@ -32,7 +32,7 @@ init_empty_lex_ctxt ()
 {
   lex_ctxt *c = g_malloc0 (sizeof (lex_ctxt));
 
-  c->ctx_vars.hash_elt = g_malloc0 (sizeof (named_nasl_var) * VAR_NAME_HASH);
+  c->ctx_vars.hash_elt = g_malloc0 (sizeof (named_nasl_var *) * VAR_NAME_HASH);
   c->ctx_vars.num_elt = NULL;
   c->ctx_vars.max_idx = 0;
   c->functions = g_hash_table_new_full (g_str_hash, g_str_equal, NULL,

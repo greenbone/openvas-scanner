@@ -479,6 +479,7 @@ banner_grab(const struct in6_addr *pia, const char* portrange,
 	      if (setsockopt(s, SOL_IP, IP_TOS, &x, sizeof(x)) < 0)
 		perror("setsockopt(IP_TOS");
 #endif
+        bzero (&sa, sizeof (sa));
         if(IN6_IS_ADDR_V4MAPPED(pia))
         {
           sa.sin_addr.s_addr = pia->s6_addr32[3];
@@ -1301,6 +1302,8 @@ plugin_run_openvas_tcp_scanner (lex_ctxt * lexic)
     int         stderr_fd = dup(2);
     int         devnull_fd = open("/dev/null", O_WRONLY);
     /* Avoid error messages from sysctl */
+    if (!devnull_fd)
+      return NULL;
     dup2(devnull_fd, 2);
 #endif
 
