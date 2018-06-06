@@ -1301,6 +1301,8 @@ plugin_run_openvas_tcp_scanner (lex_ctxt * lexic)
     int         stderr_fd = dup(2);
     int         devnull_fd = open("/dev/null", O_WRONLY);
     /* Avoid error messages from sysctl */
+    if (!devnull_fd)
+      return NULL;
     dup2(devnull_fd, 2);
 #endif
 
