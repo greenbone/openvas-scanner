@@ -433,7 +433,10 @@ getinterfaces (int *howmany)
   sd = socket (AF_INET, SOCK_DGRAM, 0);
   bzero (buf, sizeof (buf));
   if (sd < 0)
-    g_message ("socket in getinterfaces");
+    {
+      g_message ("socket in getinterfaces");
+      return NULL;
+    }
 
   ifc.ifc_len = sizeof (buf);
   ifc.ifc_buf = buf;
@@ -504,6 +507,7 @@ v6_getsourceip (struct in6_addr *src, struct in6_addr *dst)
           perror ("Socket troubles");
           return 0;
         }
+      bzero (&sock, sizeof (struct sockaddr_in));
       sock.sin_family = AF_INET;
       sock.sin_addr.s_addr = dst->s6_addr32[3];
       sock.sin_port = htons (p1);
@@ -733,7 +737,7 @@ getipv6routes (struct myroute *myroutes, int *numroutes)
 #if TCPIP_DEBUGGING
               printf ("first token is %s\n", token);
 #endif
-              strcpy (destaddr, token);
+              strncpy (destaddr, token, sizeof (destaddr) - 1);
               len = strlen (destaddr);
               for (i = 0, j = 0; j < len; j++)
                 {
@@ -1028,6 +1032,8 @@ routethrough (struct in_addr *dest, struct in_addr *source)
       /* Dummy socket for ioctl */
       initialized = 1;
       mydevs = getinterfaces (&numinterfaces);
+      if (!mydevs)
+        return NULL;
 
       routez = fopen ("/proc/net/route", "r");
       if (routez)
@@ -1115,7 +1121,7 @@ routethrough (struct in_addr *dest, struct in_addr *source)
     mydevs = getinterfaces (&numinterfaces);
   /* WHEW, that takes care of initializing, now we have the easy job of
      finding which route matches */
-  if (islocalhost (dest))
+  if (mydevs && islocalhost (dest))
     {
       if (source)
         source->s_addr = htonl (0x7F000001);

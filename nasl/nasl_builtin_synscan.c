@@ -593,7 +593,14 @@ again:
 			   scanner_add_port (env, sport, "tcp");
 			  /* Send a RST to make sure the connection is closed on the remote side */
 			  rst = mktcp(src, magic, dst, sport, ack + 1, TH_RST);
-			  sendto(soc, rst, sizeof(struct ip) + sizeof(struct tcphdr), 0, (struct sockaddr *) & soca, sizeof(soca));
+			  if (sendto (soc, rst, sizeof(struct ip) + sizeof(struct tcphdr), 0,
+                                      (struct sockaddr *) &soca, sizeof (soca)) < 0)
+                            {
+                              perror ("sendto ");
+                              close (soc);
+                              bpf_close (bpf);
+                              return NULL;
+                            }
 
 			  /* Adjust the rtt */
 			  *rtt = compute_rtt(rack);
@@ -730,6 +737,8 @@ scan (struct script_infos * env, char* portrange, struct in6_addr *dst6,
     bpf = openbpf (dst, &src, magic);
   else
     bpf = v6_openbpf (dst6, &src6, magic);
+  if (bpf < 0)
+    return -1;
   skip = get_datalink_size (bpf_datalink (bpf));
 
   /** This will send packets to ports not in ports list, will it? */

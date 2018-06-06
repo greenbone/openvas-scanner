@@ -199,6 +199,7 @@ void generate_random_buffer_ntlmssp( unsigned char *out, int len)
 	while(len > 0) {
 		int copy_len = len > 16 ? 16 : len;
 
+                bzero (md4_buf, sizeof (md4_buf));
 		smb_arc4_crypt_ntlmssp(smb_arc4_state, md4_buf, sizeof(md4_buf));
 		mdfour_ntlmssp(tmp_buf, md4_buf, sizeof(md4_buf));
 		memcpy(p, tmp_buf, copy_len);

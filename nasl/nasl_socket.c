@@ -569,6 +569,8 @@ nasl_open_sock_udp (lex_ctxt * lexic)
       soca.sin_family = AF_INET;
 
       soc = socket (AF_INET, SOCK_DGRAM, 0);
+      if (soc < 0)
+        return NULL;
       gvm_source_set_socket (soc, 0, AF_INET);
       connect (soc, (struct sockaddr *) &soca, sizeof (soca));
     }

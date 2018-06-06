@@ -1556,8 +1556,8 @@ nasl_tcp_v6_ping (lex_ctxt * lexic)
   struct ip6_hdr *ip = (struct ip6_hdr *) packet;
   struct tcphdr *tcp = (struct tcphdr *) (packet + sizeof (struct ip6_hdr));
   struct script_infos *script_infos = lexic->script_infos;
-  struct in6_addr *dst = plug_get_host_ip (script_infos);
-  struct in6_addr src;
+  struct in6_addr *destination = plug_get_host_ip (script_infos);
+  struct in6_addr source;
   struct sockaddr_in6 soca;
   int flag = 0;
   unsigned int i = 0;
@@ -1575,10 +1575,9 @@ nasl_tcp_v6_ping (lex_ctxt * lexic)
   int ports[] =
     { 139, 135, 445, 80, 22, 515, 23, 21, 6000, 1025, 25, 111, 1028, 9100, 1029,
 79, 497, 548, 5000, 1917, 53, 161, 9001, 65535, 443, 113, 993, 8080, 0 };
-  int num_ports = 0;
   char addr[INET6_ADDRSTRLEN];
 
-  if (dst == NULL || (IN6_IS_ADDR_V4MAPPED (dst) == 1))
+  if (!destination || (IN6_IS_ADDR_V4MAPPED (destination) == 1))
     return NULL;
 
   for (i = 0; i < sizeof (sports) / sizeof (int); i++)
@@ -1586,9 +1585,6 @@ nasl_tcp_v6_ping (lex_ctxt * lexic)
       if (sports[i] == 0)
         sports[i] = rnd_tcp_port ();
     }
-
-  for (i = 0; ports[i]; i++)
-    num_ports++;
 
   soc = socket (AF_INET6, SOCK_RAW, IPPROTO_RAW);
   if (soc < 0)
@@ -1601,36 +1597,38 @@ nasl_tcp_v6_ping (lex_ctxt * lexic)
   port = get_int_local_var_by_name (lexic, "port", -1);
   if (port == -1)
     port = plug_get_host_open_port (script_infos);
-  if (v6_islocalhost (dst) > 0)
-    src = *dst;
+  if (v6_islocalhost (destination) > 0)
+    source = *destination;
   else
     {
-      bzero (&src, sizeof (src));
-      v6_routethrough (dst, &src);
+      bzero (&source, sizeof (source));
+      v6_routethrough (destination, &source);
     }
 
-  snprintf (filter, sizeof (filter), "ip6 and src host %s", inet_ntop (AF_INET6, dst, addr, sizeof (addr)));
-  bpf = init_v6_capture_device (*dst, src, filter);
+  snprintf (filter, sizeof (filter), "ip6 and src host %s",
+            inet_ntop (AF_INET6, destination, addr, sizeof (addr)));
+  bpf = init_v6_capture_device (*destination, source, filter);
 
-  if (v6_islocalhost (dst) != 0)
+  if (v6_islocalhost (destination) != 0)
     flag++;
   else
     {
-      for (i = 0; i < sizeof (sports) / sizeof (int) && !flag; i++)
+      unsigned int num_ports = sizeof (sports) / sizeof (int);
+      for (i = 0; i < num_ports && !flag; i++)
         {
           bzero (packet, sizeof (packet));
           /* IPv6 */
           int version = 0x60, tc = 0, fl = 0;
           ip->ip6_ctlun.ip6_un1.ip6_un1_flow = version | tc | fl;
-          ip->ip6_nxt = 0x06, ip->ip6_hlim = 0x40, ip->ip6_src = src;
-          ip->ip6_dst = *dst;
+          ip->ip6_nxt = 0x06, ip->ip6_hlim = 0x40, ip->ip6_src = source;
+          ip->ip6_dst = *destination;
           ip->ip6_ctlun.ip6_un1.ip6_un1_plen = FIX (sizeof (struct tcphdr));
 
           /* TCP */
           tcp->th_sport =
-            port ? htons (rnd_tcp_port ()) : htons (sports[i % num_ports]);
+            port ? htons (rnd_tcp_port ()) : htons (sports[i]);
           tcp->th_flags = TH_SYN;
-          tcp->th_dport = port ? htons (port) : htons (ports[i % num_ports]);
+          tcp->th_dport = port ? htons (port) : htons (ports[i]);
           tcp->th_seq = rand ();
           tcp->th_ack = 0;
           tcp->th_x2 = 0;
@@ -1661,9 +1659,10 @@ nasl_tcp_v6_ping (lex_ctxt * lexic)
           bzero (&soca, sizeof (soca));
           soca.sin6_family = AF_INET6;
           soca.sin6_addr = ip->ip6_dst;
-          sendto (soc, (const void *) ip,
+          if (sendto (soc, (const void *) ip,
                   sizeof (struct tcphdr) + sizeof (struct ip6_hdr), 0,
-                  (struct sockaddr *) &soca, sizeof (struct sockaddr_in6));
+                  (struct sockaddr *) &soca, sizeof (struct sockaddr_in6)) < 0)
+            return NULL;
           tv.tv_sec = 0;
           tv.tv_usec = 100000;
           if (bpf >= 0 && bpf_next_tv (bpf, &len, &tv))
