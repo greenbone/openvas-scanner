@@ -433,7 +433,10 @@ getinterfaces (int *howmany)
   sd = socket (AF_INET, SOCK_DGRAM, 0);
   bzero (buf, sizeof (buf));
   if (sd < 0)
-    g_message ("socket in getinterfaces");
+    {
+      g_message ("socket in getinterfaces");
+      return NULL;
+    }
 
   ifc.ifc_len = sizeof (buf);
   ifc.ifc_buf = buf;
@@ -1028,6 +1031,8 @@ routethrough (struct in_addr *dest, struct in_addr *source)
       /* Dummy socket for ioctl */
       initialized = 1;
       mydevs = getinterfaces (&numinterfaces);
+      if (!mydevs)
+        return NULL;
 
       routez = fopen ("/proc/net/route", "r");
       if (routez)
@@ -1115,7 +1120,7 @@ routethrough (struct in_addr *dest, struct in_addr *source)
     mydevs = getinterfaces (&numinterfaces);
   /* WHEW, that takes care of initializing, now we have the easy job of
      finding which route matches */
-  if (islocalhost (dest))
+  if (mydevs && islocalhost (dest))
     {
       if (source)
         source->s_addr = htonl (0x7F000001);
