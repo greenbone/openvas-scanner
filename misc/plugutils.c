@@ -925,8 +925,6 @@ plug_get_host_open_port (struct script_infos *desc)
         return 21;
       else if (open80)
         return 80;
-      else
-        return 0;
     }
 
   /* Not reachable */
