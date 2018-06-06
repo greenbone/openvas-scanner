@@ -596,9 +596,9 @@ again:
 			  if (sendto (soc, rst, sizeof(struct ip) + sizeof(struct tcphdr), 0,
                                       (struct sockaddr *) &soca, sizeof (soca)) < 0)
                             {
-                              perror("sendto ");
-                              close(soc);
-                              bpf_close(bpf);
+                              perror ("sendto ");
+                              close (soc);
+                              bpf_close (bpf);
                               return NULL;
                             }
 

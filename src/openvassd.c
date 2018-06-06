@@ -423,7 +423,9 @@ scanner_thread (struct scan_globals *globals)
   if (soc < 0)
     goto shutdown_and_exit;
 
-  setsockopt (soc, SOL_SOCKET, SO_KEEPALIVE, &opt, sizeof (opt));
+  if (setsockopt (soc, SOL_SOCKET, SO_KEEPALIVE, &opt, sizeof (opt)) < 0)
+    goto shutdown_and_exit;
+
   globals->global_socket = soc;
 
   if (comm_init (soc) < 0)
