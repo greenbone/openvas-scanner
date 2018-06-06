@@ -1575,7 +1575,6 @@ nasl_tcp_v6_ping (lex_ctxt * lexic)
   int ports[] =
     { 139, 135, 445, 80, 22, 515, 23, 21, 6000, 1025, 25, 111, 1028, 9100, 1029,
 79, 497, 548, 5000, 1917, 53, 161, 9001, 65535, 443, 113, 993, 8080, 0 };
-  int num_ports = 0;
   char addr[INET6_ADDRSTRLEN];
 
   if (!destination || (IN6_IS_ADDR_V4MAPPED (destination) == 1))
@@ -1586,9 +1585,6 @@ nasl_tcp_v6_ping (lex_ctxt * lexic)
       if (sports[i] == 0)
         sports[i] = rnd_tcp_port ();
     }
-
-  for (i = 0; ports[i]; i++)
-    num_ports++;
 
   soc = socket (AF_INET6, SOCK_RAW, IPPROTO_RAW);
   if (soc < 0)
@@ -1617,7 +1613,8 @@ nasl_tcp_v6_ping (lex_ctxt * lexic)
     flag++;
   else
     {
-      for (i = 0; i < sizeof (sports) / sizeof (int) && !flag; i++)
+      unsigned int num_ports = sizeof (sports) / sizeof (int);
+      for (i = 0; i < num_ports && !flag; i++)
         {
           bzero (packet, sizeof (packet));
           /* IPv6 */
@@ -1629,9 +1626,9 @@ nasl_tcp_v6_ping (lex_ctxt * lexic)
 
           /* TCP */
           tcp->th_sport =
-            port ? htons (rnd_tcp_port ()) : htons (sports[i % num_ports]);
+            port ? htons (rnd_tcp_port ()) : htons (sports[i]);
           tcp->th_flags = TH_SYN;
-          tcp->th_dport = port ? htons (port) : htons (ports[i % num_ports]);
+          tcp->th_dport = port ? htons (port) : htons (ports[i]);
           tcp->th_seq = rand ();
           tcp->th_ack = 0;
           tcp->th_x2 = 0;
