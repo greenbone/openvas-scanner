@@ -593,7 +593,14 @@ again:
 			   scanner_add_port (env, sport, "tcp");
 			  /* Send a RST to make sure the connection is closed on the remote side */
 			  rst = mktcp(src, magic, dst, sport, ack + 1, TH_RST);
-			  sendto(soc, rst, sizeof(struct ip) + sizeof(struct tcphdr), 0, (struct sockaddr *) & soca, sizeof(soca));
+			  if (sendto (soc, rst, sizeof(struct ip) + sizeof(struct tcphdr), 0,
+                                      (struct sockaddr *) &soca, sizeof (soca)) < 0)
+                            {
+                              perror("sendto ");
+                              close(soc);
+                              bpf_close(bpf);
+                              return NULL;
+                            }
 
 			  /* Adjust the rtt */
 			  *rtt = compute_rtt(rack);
