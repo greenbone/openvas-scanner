@@ -134,6 +134,8 @@ nasl_plugin_add (char *folder, char *filename)
     {
       nvti_t *new_nvti;
       struct script_infos *args;
+      time_t now;
+      struct utimbuf updated_timestamp;
 
       args = g_malloc0 (sizeof (struct script_infos));
       args->key = nvticache_get_kb ();
@@ -148,21 +150,10 @@ nasl_plugin_add (char *folder, char *filename)
         }
       g_free (args);
 
-      // Check mtime of plugin before caching it
-      // Set to now if mtime is in the future
-      struct stat plug_stat;
-      time_t now = time (NULL) - 1;
-      stat (fullname, &plug_stat);
-      if (plug_stat.st_mtime > now)
-        {
-          struct utimbuf fixed_timestamp;
-          fixed_timestamp.actime = now;
-          fixed_timestamp.modtime = now;
-          if (utime (fullname, &fixed_timestamp) == 0)
-            g_debug ("The timestamp for %s was from the future. This has been fixed.", fullname);
-          else
-            g_debug ("The timestamp for %s is from the future and could not be fixed.", fullname);
-        }
+      now = time (NULL) - 1;
+      updated_timestamp.actime = now;
+      updated_timestamp.modtime = now;
+      utime (fullname, &updated_timestamp);
 
       if (!check_nvti (filename, new_nvti))
         nvticache_add (new_nvti, filename);
