@@ -1389,8 +1389,7 @@ nasl_tcp_ping (lex_ctxt * lexic)
 20, 0, 25, 0, 0, 0 };
   int ports[] =
     { 139, 135, 445, 80, 22, 515, 23, 21, 6000, 1025, 25, 111, 1028, 9100, 1029,
-79, 497, 548, 5000, 1917, 53, 161, 9001, 65535, 443, 113, 993, 8080, 0 };
-  int num_ports = 0;
+79, 497, 548, 5000, 1917, 53, 161, 9001, 65535, 443, 113, 993, 8080 };
   struct in_addr inaddr;
 
   if (dst == NULL || (IN6_IS_ADDR_V4MAPPED (dst) != 1))
@@ -1401,10 +1400,6 @@ nasl_tcp_ping (lex_ctxt * lexic)
       if (sports[i] == 0)
         sports[i] = rnd_tcp_port ();
     }
-
-
-  for (i = 0; ports[i]; i++)
-    num_ports++;
 
   soc = socket (AF_INET, SOCK_RAW, IPPROTO_RAW);
   if (soc < 0)
@@ -1451,10 +1446,9 @@ nasl_tcp_ping (lex_ctxt * lexic)
 
 
           /* TCP */
-          tcp->th_sport =
-            port ? htons (rnd_tcp_port ()) : htons (sports[i % num_ports]);
+          tcp->th_sport = port ? htons (rnd_tcp_port ()) : htons (sports[i]);
           tcp->th_flags = TH_SYN;
-          tcp->th_dport = port ? htons (port) : htons (ports[i % num_ports]);
+          tcp->th_dport = port ? htons (port) : htons (ports[i]);
           tcp->th_seq = rand ();
           tcp->th_ack = 0;
           tcp->th_x2 = 0;
