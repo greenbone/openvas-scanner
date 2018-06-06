@@ -420,7 +420,7 @@ nasl_type_name (int t)
   static int i = 0;
   char *txt;
 
-  if (++i > 4)
+  if (i >= 4)
     i = 0;
   txt = txt4[i];
 
@@ -428,6 +428,7 @@ nasl_type_name (int t)
     snprintf (txt, 32, "%s (%d)", node_names[t], t);
   else
     snprintf (txt, 32, "*UNKNOWN* (%d)", t);
+  i++;
   return txt;
 }
 
