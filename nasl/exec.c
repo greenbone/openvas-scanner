@@ -1264,12 +1264,6 @@ nasl_exec (lex_ctxt * lexic, tree_cell * st)
       deref_cell (tc2);
       return ret;
 
-      if (st->link[0] == NULL)
-        ret = nasl_incr_variable (lexic, st->link[1], 1, 1);
-      else
-        ret = nasl_incr_variable (lexic, st->link[1], 0, 1);
-      break;
-
     case EXPR_PLUS:
       s1 = s2 = NULL;
       tc1 = cell2atom (lexic, st->link[0]);
