@@ -1556,8 +1556,8 @@ nasl_tcp_v6_ping (lex_ctxt * lexic)
   struct ip6_hdr *ip = (struct ip6_hdr *) packet;
   struct tcphdr *tcp = (struct tcphdr *) (packet + sizeof (struct ip6_hdr));
   struct script_infos *script_infos = lexic->script_infos;
-  struct in6_addr *dst = plug_get_host_ip (script_infos);
-  struct in6_addr src;
+  struct in6_addr *destination = plug_get_host_ip (script_infos);
+  struct in6_addr source;
   struct sockaddr_in6 soca;
   int flag = 0;
   unsigned int i = 0;
@@ -1578,7 +1578,7 @@ nasl_tcp_v6_ping (lex_ctxt * lexic)
   int num_ports = 0;
   char addr[INET6_ADDRSTRLEN];
 
-  if (dst == NULL || (IN6_IS_ADDR_V4MAPPED (dst) == 1))
+  if (!destination || (IN6_IS_ADDR_V4MAPPED (destination) == 1))
     return NULL;
 
   for (i = 0; i < sizeof (sports) / sizeof (int); i++)
@@ -1601,18 +1601,19 @@ nasl_tcp_v6_ping (lex_ctxt * lexic)
   port = get_int_local_var_by_name (lexic, "port", -1);
   if (port == -1)
     port = plug_get_host_open_port (script_infos);
-  if (v6_islocalhost (dst) > 0)
-    src = *dst;
+  if (v6_islocalhost (destination) > 0)
+    source = *destination;
   else
     {
-      bzero (&src, sizeof (src));
-      v6_routethrough (dst, &src);
+      bzero (&source, sizeof (source));
+      v6_routethrough (destination, &source);
     }
 
-  snprintf (filter, sizeof (filter), "ip6 and src host %s", inet_ntop (AF_INET6, dst, addr, sizeof (addr)));
-  bpf = init_v6_capture_device (*dst, src, filter);
+  snprintf (filter, sizeof (filter), "ip6 and src host %s",
+            inet_ntop (AF_INET6, destination, addr, sizeof (addr)));
+  bpf = init_v6_capture_device (*destination, source, filter);
 
-  if (v6_islocalhost (dst) != 0)
+  if (v6_islocalhost (destination) != 0)
     flag++;
   else
     {
@@ -1622,8 +1623,8 @@ nasl_tcp_v6_ping (lex_ctxt * lexic)
           /* IPv6 */
           int version = 0x60, tc = 0, fl = 0;
           ip->ip6_ctlun.ip6_un1.ip6_un1_flow = version | tc | fl;
-          ip->ip6_nxt = 0x06, ip->ip6_hlim = 0x40, ip->ip6_src = src;
-          ip->ip6_dst = *dst;
+          ip->ip6_nxt = 0x06, ip->ip6_hlim = 0x40, ip->ip6_src = source;
+          ip->ip6_dst = *destination;
           ip->ip6_ctlun.ip6_un1.ip6_un1_plen = FIX (sizeof (struct tcphdr));
 
           /* TCP */
