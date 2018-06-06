@@ -750,6 +750,7 @@ init_unix_network (int *sock, const char *owner, const char *group,
   if (unix_socket == -1)
     {
       g_debug ("%s: Couldn't create UNIX socket", __FUNCTION__);
+      close (unix_socket);
       return -1;
     }
   addr.sun_family = AF_UNIX;
