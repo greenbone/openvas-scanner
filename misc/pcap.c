@@ -507,6 +507,7 @@ v6_getsourceip (struct in6_addr *src, struct in6_addr *dst)
           perror ("Socket troubles");
           return 0;
         }
+      bzero (&sock, sizeof (struct sockaddr_in));
       sock.sin_family = AF_INET;
       sock.sin_addr.s_addr = dst->s6_addr32[3];
       sock.sin_port = htons (p1);
