@@ -252,6 +252,7 @@ string2isotime (my_isotime_t atime, const char *string)
   if (!atime)
     atime = dummyatime;
 
+  memset (atime, '\0', sizeof (my_isotime_t));
   atime[0] = 0;
   if (isotime_p (string))
     {
@@ -270,8 +271,6 @@ string2isotime (my_isotime_t atime, const char *string)
   atime[6] = string[8];
   atime[7] = string[9];
   atime[8] = 'T';
-  memset (atime+9, '0', 6);
-  atime[15] = 0;
   if (!spacep (string+10))
     return 10;
   if (spacep (string+11))
