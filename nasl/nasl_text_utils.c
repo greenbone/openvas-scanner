@@ -178,6 +178,8 @@ nasl_rawstring (lex_ctxt * lexic)
           char str[RAW_STR_LEN];
 
           s = get_str_var_by_num (lexic, vi);
+          if (!s)
+            continue;
           if (sz <= 0)
             sz = strlen (s);
 
