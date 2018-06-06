@@ -733,7 +733,7 @@ getipv6routes (struct myroute *myroutes, int *numroutes)
 #if TCPIP_DEBUGGING
               printf ("first token is %s\n", token);
 #endif
-              strcpy (destaddr, token);
+              strncpy (destaddr, token, sizeof (destaddr) - 1);
               len = strlen (destaddr);
               for (i = 0, j = 0; j < len; j++)
                 {
