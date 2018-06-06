@@ -1712,17 +1712,15 @@ extern tree_cell *nasl_lint (lex_ctxt *, tree_cell *);
  * bit #0 (1) is "description"
  * Bit #1 (2) is "parse only"
  *
- * @param script_infos The plugin script_infos.
- * @param name         Filename.
- * @param mode         Bit field describing launch mode (description, parse
- *                     always signed).
+ * @param   script_infos    The plugin script_infos.
+ * #param   mode            Flags for different execution modes (Description,
+ *                          parse-only, always-signed, command-line, lint)
  *
  * @return 0 if the script was executed successfully, negative values if an
  * error occurred.
  */
 int
-exec_nasl_script (struct script_infos *script_infos, const char *name,
-                  const char *oid, int mode)
+exec_nasl_script (struct script_infos *script_infos, int mode)
 {
   naslctxt ctx;
   nasl_func *pf;
@@ -1732,7 +1730,7 @@ exec_nasl_script (struct script_infos *script_infos, const char *name,
   gchar *old_dir;
   gchar *newdir;
   tree_cell tc;
-  const char *str;
+  const char *str, *name = script_infos->name, *oid = script_infos->oid;
 
   srand48 (getpid () + getppid () + (long) time (NULL));
 
@@ -1741,9 +1739,6 @@ exec_nasl_script (struct script_infos *script_infos, const char *name,
 #if NASL_DEBUG > 2
   nasl_trace_fp = stderr;
 #endif
-  if (script_infos->name)
-    g_free (script_infos->name);
-  script_infos->name = g_strdup (name);
 
   newdir = g_path_get_dirname (name);
 
