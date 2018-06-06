@@ -307,9 +307,11 @@ tryagain:
    */
   if (e < 0)
     {
-      close (sock);
       if (sport > 0)
-        return NULL;
+        {
+          close (sock);
+          return NULL;
+        }
       else
         goto tryagain;
     }
