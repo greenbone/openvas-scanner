@@ -298,7 +298,10 @@ restart:
 
 tryagain:
   if (current_sport < 128 && sport < 0)
-    return NULL;
+    {
+      close (sock);
+      return NULL;
+    }
   e =
     gvm_source_set_socket (sock, sport > 0 ? sport : current_sport--, family);
 
