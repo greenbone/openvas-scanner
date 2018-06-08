@@ -954,7 +954,7 @@ v6_routethrough (struct in6_addr *dest, struct in6_addr *source)
           myhostent = gethostbyname (myname);
           if (gethostname (myname, MAXHOSTNAMELEN) || !myhostent)
             g_message ("Cannot get hostname!");
-          if (myhostent->h_addrtype == AF_INET)
+          else if (myhostent->h_addrtype == AF_INET)
             {
               addy.s6_addr32[0] = 0;
               addy.s6_addr32[1] = 0;
