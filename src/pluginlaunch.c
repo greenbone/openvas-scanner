@@ -340,6 +340,8 @@ plugin_launch (struct scan_globals *globals, struct scheduler_plugin *plugin,
     update_running_processes (kb);
 
   p = next_free_process (kb, plugin);
+  if (p < 0)
+    return -1;
   processes[p].plugin = plugin;
   processes[p].timeout = prefs_nvt_timeout (plugin->oid);
   if (processes[p].timeout == 0)
