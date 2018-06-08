@@ -442,11 +442,13 @@ banner_grab(const struct in6_addr *pia, const char* portrange,
 	      if ((x = fcntl(s, F_GETFL)) < 0)
 		{
 		  perror("fcntl(F_GETFL)");
+                  close (s);
 		  return -1;
 		}
 	      if (fcntl(s, F_SETFL, x | O_NONBLOCK) < 0)
 		{
 		  perror("fcntl(F_SETFL)");
+                  close (s);
 		  return -1;
 		}
 

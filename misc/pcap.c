@@ -358,8 +358,8 @@ v6_getinterfaces (int *howmany)
           family = ifa->ifa_addr->sa_family;
           if (family == AF_INET)
             {
-              memcpy (mydevs[numinterfaces].name, ifa->ifa_name,
-                      strlen (ifa->ifa_name));
+              strncpy (mydevs[numinterfaces].name, ifa->ifa_name,
+                       sizeof (mydevs[numinterfaces].name));
               saddr = (struct sockaddr_in *) ifa->ifa_addr;
               mydevs[numinterfaces].addr6.s6_addr32[0] = 0;
               mydevs[numinterfaces].addr6.s6_addr32[1] = 0;
@@ -380,8 +380,8 @@ v6_getinterfaces (int *howmany)
             }
           else if (family == AF_INET6)
             {
-              memcpy (mydevs[numinterfaces].name, ifa->ifa_name,
-                      strlen (ifa->ifa_name));
+              strncpy (mydevs[numinterfaces].name, ifa->ifa_name,
+                       sizeof (mydevs[numinterfaces].name));
               s6addr = (struct sockaddr_in6 *) ifa->ifa_addr;
               memcpy (&(mydevs[numinterfaces].addr6),
                       (char *) &(s6addr->sin6_addr), sizeof (struct in6_addr));
@@ -775,7 +775,7 @@ getipv6routes (struct myroute *myroutes, int *numroutes)
           token = strtok (NULL, " \t\n");
           if (token)
             {
-              strncpy (iface, token, sizeof (iface));
+              strncpy (iface, token, sizeof (iface) - 1);
 #ifdef _DEBUG
               printf ("name token is %s\n", token);
 #endif
@@ -838,7 +838,10 @@ v6_routethrough (struct in6_addr *dest, struct in6_addr *source)
   struct in6_addr src;
 
   if (!dest)
-    g_message ("ipaddr2devname passed a NULL dest address");
+    {
+      g_message ("ipaddr2devname passed a NULL dest address");
+      return NULL;
+    }
 
   if (IN6_IS_ADDR_V4MAPPED (dest))
     gvm_source_addr_as_addr6 (&src);
@@ -954,7 +957,7 @@ v6_routethrough (struct in6_addr *dest, struct in6_addr *source)
           myhostent = gethostbyname (myname);
           if (gethostname (myname, MAXHOSTNAMELEN) || !myhostent)
             g_message ("Cannot get hostname!");
-          if (myhostent->h_addrtype == AF_INET)
+          else if (myhostent->h_addrtype == AF_INET)
             {
               addy.s6_addr32[0] = 0;
               addy.s6_addr32[1] = 0;
