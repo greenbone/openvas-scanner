@@ -1137,11 +1137,10 @@ dump_udp_v6_packet (lex_ctxt * lexic)
       printf ("\tuh_sum   : 0x%x\n", udp->uh_sum);
       printf ("\tuh_ulen  : %d\n", ntohs (udp->uh_ulen));
       printf ("\tdata     : ");
-      c = (char *) (udp + sizeof (struct udphdr));
+      c = (char *) udp;
       if (udp->uh_ulen > sizeof (struct udphdr))
-        for (j = 0;
-             j < (ntohs (udp->uh_ulen) - sizeof (struct udphdr)) && j < limit;
-             j++)
+        for (j = sizeof (struct udphdr);
+             j < ntohs (udp->uh_ulen) && j < limit; j++)
           printf ("%c", isprint (c[j]) ? c[j] : '.');
 
       printf ("\n");
