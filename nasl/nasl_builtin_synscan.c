@@ -501,7 +501,7 @@ mktcp (struct in_addr src, int sport, struct in_addr dst, int dport,
 	tcp->th_sum = 0;
 	tcp->th_urp = 0;
 
-	bzero(&pseudohdr, 12);
+	bzero(&pseudohdr, sizeof (pseudohdr));
 	pseudohdr.saddr.s_addr = src.s_addr;
 	pseudohdr.daddr.s_addr = dst.s_addr;
 	pseudohdr.protocol = IPPROTO_TCP;
