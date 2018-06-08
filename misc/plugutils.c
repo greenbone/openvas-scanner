@@ -208,35 +208,39 @@ host_get_port_state_udp (struct script_infos *plugdata, int portnum)
 char *
 plug_get_host_fqdn (struct script_infos *args)
 {
+  GSList *vhosts = args->vhosts;
+
   if (!args->vhosts)
     return addr6_as_str (args->ip);
 
-  if (g_slist_length (args->vhosts) == 1)
+  /* Workaround for rapid growth of forked processes ie. http_get() calls
+   * within foreach() loops. */
+  if (current_vhost)
+    return g_strdup (current_vhost);
+  while (vhosts)
     {
-      current_vhost = args->vhosts->data;
-      return g_strdup (current_vhost);
-    }
-  else
-    {
-      GSList *vhosts = args->vhosts;
+      pid_t pid = plug_fork_child (args->key);
 
-      /* Workaround for rapid growth of forked processes ie. http_get() calls
-       * within foreach() loops. */
-      if (current_vhost)
-        return g_strdup (current_vhost);
-      while (vhosts)
+      if (pid == 0)
         {
-          pid_t pid = plug_fork_child (args->key);
-
-          if (pid == 0)
-            {
-              current_vhost = vhosts->data;
-              return g_strdup (current_vhost);
-            }
-          else if (pid == -1)
-            return NULL;
-          vhosts = vhosts->next;
+          current_vhost = vhosts->data;
+          return g_strdup (current_vhost);
         }
+      else if (pid == -1)
+        return NULL;
+      vhosts = vhosts->next;
+    }
+  if (prefs_get_bool ("test_empty_vhost"))
+    {
+      pid_t pid = plug_fork_child (args->key);
+
+      if (pid == 0)
+        {
+          current_vhost = addr6_as_str (args->ip);
+          return g_strdup (current_vhost);
+        }
+      else if (pid == -1)
+        return NULL;
     }
   exit (0);
 }
