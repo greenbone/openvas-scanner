@@ -358,8 +358,8 @@ v6_getinterfaces (int *howmany)
           family = ifa->ifa_addr->sa_family;
           if (family == AF_INET)
             {
-              memcpy (mydevs[numinterfaces].name, ifa->ifa_name,
-                      strlen (ifa->ifa_name));
+              strncpy (mydevs[numinterfaces].name, ifa->ifa_name,
+                       sizeof (mydevs[numinterfaces].name));
               saddr = (struct sockaddr_in *) ifa->ifa_addr;
               mydevs[numinterfaces].addr6.s6_addr32[0] = 0;
               mydevs[numinterfaces].addr6.s6_addr32[1] = 0;
@@ -380,8 +380,8 @@ v6_getinterfaces (int *howmany)
             }
           else if (family == AF_INET6)
             {
-              memcpy (mydevs[numinterfaces].name, ifa->ifa_name,
-                      strlen (ifa->ifa_name));
+              strncpy (mydevs[numinterfaces].name, ifa->ifa_name,
+                       sizeof (mydevs[numinterfaces].name));
               s6addr = (struct sockaddr_in6 *) ifa->ifa_addr;
               memcpy (&(mydevs[numinterfaces].addr6),
                       (char *) &(s6addr->sin6_addr), sizeof (struct in6_addr));
