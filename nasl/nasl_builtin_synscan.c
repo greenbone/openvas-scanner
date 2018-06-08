@@ -738,7 +738,10 @@ scan (struct script_infos * env, char* portrange, struct in6_addr *dst6,
   else
     bpf = v6_openbpf (dst6, &src6, magic);
   if (bpf < 0)
-    return -1;
+    {
+      close (soc);
+      return -1;
+    }
   skip = get_datalink_size (bpf_datalink (bpf));
 
   /** This will send packets to ports not in ports list, will it? */
