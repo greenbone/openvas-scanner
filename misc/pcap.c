@@ -1028,7 +1028,10 @@ routethrough (struct in_addr *dest, struct in_addr *source)
 
   gvm_source_addr (&src);
   if (!dest)
-    g_message ("ipaddr2devname passed a NULL dest address");
+    {
+      g_message ("ipaddr2devname passed a NULL dest address");
+      return NULL;
+    }
 
   if (!initialized)
     {
