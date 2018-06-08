@@ -1182,6 +1182,8 @@ nasl_socket_get_error (lex_ctxt * lexic)
     case EHOSTUNREACH:
       retc->x.i_val = NASL_ERR_EUNREACH;
       break;
+    case -1:
+      g_message ("socket_get_error: Erroneous socket value %d", soc);
 
     default:
       g_message ("Unknown error %d %s", err, strerror (err));
