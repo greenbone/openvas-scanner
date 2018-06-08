@@ -218,7 +218,8 @@ loading_client_handle (int soc)
   if (soc <= 0)
     return;
 
-  setsockopt (soc, SOL_SOCKET, SO_KEEPALIVE, &opt, sizeof (opt));
+  if (setsockopt (soc, SOL_SOCKET, SO_KEEPALIVE, &opt, sizeof (opt)) < 0)
+    g_warning ("setsockopt: %s", strerror (errno));
   comm_loading (soc);
   shutdown (soc, 2);
   close (soc);
