@@ -209,7 +209,9 @@ rawsocket (int family)
                                  sizeof (offset)) < 0)
         {
           perror ("socket ");
-          printf ("error opeinig socket\n");
+          printf ("error opening socket\n");
+          if (soc > 0)
+            close (soc);
           return -1;
         }
     }
