@@ -147,7 +147,7 @@ nasl_pread (lex_ctxt * lexic)
   if (av->hash_elt != NULL)
     nasl_perror (lexic, "pread: named elements in 'cmd' are ignored!\n");
   n = av->max_idx;
-  args = g_malloc0 (sizeof (char **) * (n + 2));  /* Last arg is NULL */
+  args = g_malloc0 (sizeof (char *) * (n + 2));  /* Last arg is NULL */
   for (j = 0, i = 0; i < n; i++)
     {
       str = (char *) var2str (av->num_elt[i]);
