@@ -838,7 +838,10 @@ v6_routethrough (struct in6_addr *dest, struct in6_addr *source)
   struct in6_addr src;
 
   if (!dest)
-    g_message ("ipaddr2devname passed a NULL dest address");
+    {
+      g_message ("ipaddr2devname passed a NULL dest address");
+      return NULL;
+    }
 
   if (IN6_IS_ADDR_V4MAPPED (dest))
     gvm_source_addr_as_addr6 (&src);
