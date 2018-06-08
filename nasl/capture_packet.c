@@ -43,7 +43,7 @@ extern int islocalhost (struct in_addr *);
  *
  */
 int
-init_capture_device (struct in_addr src, struct in_addr dst, char *filter)
+init_capture_device (struct in_addr src, struct in_addr dest, char *filter)
 {
   int ret = -1;
   char *interface = NULL;
@@ -52,7 +52,7 @@ init_capture_device (struct in_addr src, struct in_addr dst, char *filter)
   int free_filter = 0;
 
   a_src = g_strdup (inet_ntoa (src));
-  a_dst = g_strdup (inet_ntoa (dst));
+  a_dst = g_strdup (inet_ntoa (dest));
 
   if ((filter == NULL) || (filter[0] == '\0') || (filter[0] == '0'))
     {
@@ -75,7 +75,7 @@ init_capture_device (struct in_addr src, struct in_addr dst, char *filter)
   g_free (a_dst);
   g_free (a_src);
 
-  if ((interface = routethrough (&src, &dst))
+  if ((interface = routethrough (&src, &dest))
       || (interface = pcap_lookupdev (errbuf)))
     ret = bpf_open_live (interface, filter);
 
