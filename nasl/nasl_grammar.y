@@ -1045,8 +1045,6 @@ mylex (YYSTYPE *lvalp, void *parm)
 		default:
 		  nasl_perror(NULL, "Unknown escape sequence \\%c\n", c);
                   ctx->index--;
-		  if (c == '\n')
-		    ctx->line_nb --;
 		  goto exit_loop;
 		}
 	    }

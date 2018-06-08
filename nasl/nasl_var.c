@@ -898,7 +898,7 @@ add_numbered_var_to_ctxt (lex_ctxt * lexic, int num, tree_cell * val)
     }
   else
     {
-      a->num_elt = g_realloc (a->num_elt, (num + 1) * sizeof (anon_nasl_var));
+      a->num_elt = g_realloc (a->num_elt, (num + 1) * sizeof (anon_nasl_var *));
       bzero (a->num_elt + a->max_idx,
              sizeof (anon_nasl_var *) * (num + 1 - a->max_idx));
       a->max_idx = num + 1;

@@ -25,6 +25,7 @@
 #include <string.h>             /* for bcopy */
 #include <sys/time.h>           /* for gettimeofday */
 #include <unistd.h>             /* for close */
+#include <errno.h>              /* for errno */
 
 #include "../misc/bpf_share.h"          /* for bpf_open_live */
 #include "../misc/pcap_openvas.h"       /* for routethrough */
@@ -1480,8 +1481,9 @@ nasl_tcp_ping (lex_ctxt * lexic)
           bzero (&soca, sizeof (soca));
           soca.sin_family = AF_INET;
           soca.sin_addr = ip->ip_dst;
-          sendto (soc, (const void *) ip, 40, 0, (struct sockaddr *) &soca,
-                  sizeof (soca));
+          if (sendto (soc, (const void *) ip, 40, 0, (struct sockaddr *) &soca,
+                  sizeof (soca)) < 0)
+            g_warning ("sendto: %s", strerror (errno));
           tv.tv_sec = 0;
           tv.tv_usec = 100000;
           if (bpf >= 0 && bpf_next_tv (bpf, &len, &tv))

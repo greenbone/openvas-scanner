@@ -1833,6 +1833,7 @@ plugin_do_run (struct script_infos *desc, GSList *h, int test_ssl)
 
               if (len > 0)
                 {
+                  char *t;
                   banner = g_malloc0 (len + 1);
                   memcpy (banner, buffer, len);
                   banner[len] = '\0';
@@ -1842,11 +1843,9 @@ plugin_do_run (struct script_infos *desc, GSList *h, int test_ssl)
 
                   line = g_strdup (buffer);
 
-                  if (strchr (line, '\n') != NULL)
-                    {
-                      char *t = strchr (line, '\n');
-                      t[0] = '\0';
-                    }
+                  t = strchr (line, '\n');
+                  if (t)
+                    t[0] = '\0';
                   if (isdigit (banner[0]) && isdigit (banner[1])
                       && isdigit (banner[2]) && (banner[3] == '\0'
                                                  || isspace (banner[3])
@@ -1898,11 +1897,9 @@ plugin_do_run (struct script_infos *desc, GSList *h, int test_ssl)
                   }
 
                   origline = g_strdup ((char *) banner);
-                  if (strchr (origline, '\n') != NULL)
-                    {
-                      char *t = strchr (origline, '\n');
-                      t[0] = '\0';
-                    }
+                  t = strchr (origline, '\n');
+                  if (t)
+                    t[0] = '\0';
                   line_len = strlen (origline);
 
                   /*

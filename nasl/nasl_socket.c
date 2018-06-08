@@ -298,7 +298,10 @@ restart:
 
 tryagain:
   if (current_sport < 128 && sport < 0)
-    return NULL;
+    {
+      close (sock);
+      return NULL;
+    }
   e =
     gvm_source_set_socket (sock, sport > 0 ? sport : current_sport--, family);
 
@@ -587,7 +590,8 @@ nasl_open_sock_udp (lex_ctxt * lexic)
       if (soc < 0)
         return NULL;
       gvm_source_set_socket (soc, 0, AF_INET6);
-      connect (soc, (struct sockaddr *) &soca6, sizeof (soca6));
+      if (connect (soc, (struct sockaddr *) &soca6, sizeof (soca6)) < 0)
+        return NULL;
     }
 
   if (soc > 0 && lowest_socket == 0)
@@ -1178,6 +1182,8 @@ nasl_socket_get_error (lex_ctxt * lexic)
     case EHOSTUNREACH:
       retc->x.i_val = NASL_ERR_EUNREACH;
       break;
+    case -1:
+      g_message ("socket_get_error: Erroneous socket value %d", soc);
 
     default:
       g_message ("Unknown error %d %s", err, strerror (err));

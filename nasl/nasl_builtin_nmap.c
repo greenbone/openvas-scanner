@@ -697,7 +697,7 @@ add_arg (nmap_t * nmap, const gchar * name, const gchar * value)
   if (!nmap->args)
     {
       /* Initial call, instanciate the NULL terminated list of arguments */
-      nmap->args = (gchar **) g_malloc (sizeof (gchar **));
+      nmap->args = g_malloc (sizeof (nmap->args));
       nmap->arg_idx = 0;
     }
 

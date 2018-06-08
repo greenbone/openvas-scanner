@@ -43,7 +43,7 @@ extern int islocalhost (struct in_addr *);
  *
  */
 int
-init_capture_device (struct in_addr src, struct in_addr dst, char *filter)
+init_capture_device (struct in_addr src, struct in_addr dest, char *filter)
 {
   int ret = -1;
   char *interface = NULL;
@@ -52,7 +52,7 @@ init_capture_device (struct in_addr src, struct in_addr dst, char *filter)
   int free_filter = 0;
 
   a_src = g_strdup (inet_ntoa (src));
-  a_dst = g_strdup (inet_ntoa (dst));
+  a_dst = g_strdup (inet_ntoa (dest));
 
   if ((filter == NULL) || (filter[0] == '\0') || (filter[0] == '0'))
     {
@@ -75,7 +75,7 @@ init_capture_device (struct in_addr src, struct in_addr dst, char *filter)
   g_free (a_dst);
   g_free (a_src);
 
-  if ((interface = routethrough (&src, &dst))
+  if ((interface = routethrough (&src, &dest))
       || (interface = pcap_lookupdev (errbuf)))
     ret = bpf_open_live (interface, filter);
 
@@ -146,7 +146,7 @@ capture_next_packet (int bpf, int timeout, int *sz)
 
 
 int
-init_v6_capture_device (struct in6_addr src, struct in6_addr dst, char *filter)
+init_v6_capture_device (struct in6_addr src, struct in6_addr dest, char *filter)
 {
   int ret = -1;
   char *interface = NULL;
@@ -156,7 +156,7 @@ init_v6_capture_device (struct in6_addr src, struct in6_addr dst, char *filter)
   char errbuf[PCAP_ERRBUF_SIZE];
 
   a_src = g_strdup (inet_ntop (AF_INET6, &src, name, INET6_ADDRSTRLEN));
-  a_dst = g_strdup (inet_ntop (AF_INET6, &dst, name, INET6_ADDRSTRLEN));
+  a_dst = g_strdup (inet_ntop (AF_INET6, &dest, name, INET6_ADDRSTRLEN));
 
   if ((filter == NULL) || (filter[0] == '\0') || (filter[0] == '0'))
     {
@@ -178,7 +178,7 @@ init_v6_capture_device (struct in6_addr src, struct in6_addr dst, char *filter)
   g_free (a_dst);
   g_free (a_src);
 
-  if ((interface = v6_routethrough (&src, &dst))
+  if ((interface = v6_routethrough (&src, &dest))
       || (interface = pcap_lookupdev (errbuf)))
     ret = bpf_open_live (interface, filter);
 
