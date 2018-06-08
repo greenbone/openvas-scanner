@@ -203,6 +203,7 @@ finish_pread:
     g_free (args[i]);
   g_free (args);
 
+  fclose (fp);
   g_spawn_close_pid (pid);
   pid = 0;
   signal (SIGINT, old_sig_i);
