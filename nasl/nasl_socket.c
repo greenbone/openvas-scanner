@@ -1187,6 +1187,7 @@ nasl_socket_get_error (lex_ctxt * lexic)
       break;
     case -1:
       g_message ("socket_get_error: Erroneous socket value %d", soc);
+      break;
 
     default:
       g_message ("Unknown error %d %s", err, strerror (err));
