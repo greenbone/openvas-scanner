@@ -751,7 +751,6 @@ init_unix_network (int *sock, const char *owner, const char *group,
   if (unix_socket == -1)
     {
       g_debug ("%s: Couldn't create UNIX socket", __FUNCTION__);
-      close (unix_socket);
       return -1;
     }
   addr.sun_family = AF_UNIX;
@@ -766,7 +765,7 @@ init_unix_network (int *sock, const char *owner, const char *group,
     {
       g_debug ("%s: Error on bind(%s): %s", __FUNCTION__,
                  unix_socket_path, strerror (errno));
-      return -1;
+      goto init_unix_err;
     }
 
   if (owner)
@@ -775,12 +774,12 @@ init_unix_network (int *sock, const char *owner, const char *group,
       if (!pwd)
         {
           g_debug ("%s: User %s not found.", __FUNCTION__, owner);
-          return -1;
+          goto init_unix_err;
         }
       if (chown (unix_socket_path, pwd->pw_uid, -1) == -1)
         {
           g_debug ("%s: chown: %s", __FUNCTION__, strerror (errno));
-          return -1;
+          goto init_unix_err;
         }
     }
 
@@ -790,12 +789,12 @@ init_unix_network (int *sock, const char *owner, const char *group,
       if (!grp)
         {
           g_debug ("%s: Group %s not found.", __FUNCTION__, group);
-          return -1;
+          goto init_unix_err;
         }
       if (chown (unix_socket_path, -1, grp->gr_gid) == -1)
         {
           g_debug ("%s: chown: %s", __FUNCTION__, strerror (errno));
-          return -1;
+          goto init_unix_err;
         }
     }
 
@@ -805,22 +804,26 @@ init_unix_network (int *sock, const char *owner, const char *group,
  if (omode <= 0 || omode > 4095)
    {
      g_debug ("%s: Erroneous liste-mode value", __FUNCTION__);
-     return -1;
+     goto init_unix_err;
    }
  if (chmod (unix_socket_path, strtol (mode, 0, 8)) == -1)
    {
      g_debug ("%s: chmod: %s", __FUNCTION__, strerror (errno));
-     return -1;
+     goto init_unix_err;
    }
 
   if (listen (unix_socket, 128) == -1)
     {
       g_debug ("%s: Error on listen(): %s", __FUNCTION__, strerror (errno));
-      return -1;
+      goto init_unix_err;
     }
 
   *sock = unix_socket;
   return 0;
+
+init_unix_err:
+  close (unix_socket);
+  return -1;
 }
 
 /**
