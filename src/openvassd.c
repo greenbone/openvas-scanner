@@ -755,7 +755,7 @@ init_unix_network (int *sock, const char *owner, const char *group,
       return -1;
     }
   addr.sun_family = AF_UNIX;
-  strncpy (addr.sun_path, unix_socket_path, sizeof (addr.sun_path));
+  strncpy (addr.sun_path, unix_socket_path, sizeof (addr.sun_path) - 1);
   if (!stat (addr.sun_path, &ustat))
     {
       /* Remove socket so we can bind(). */
