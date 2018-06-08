@@ -602,7 +602,7 @@ nasl_open_sock_udp (lex_ctxt * lexic)
 
   retc = alloc_tree_cell ();
   retc->type = CONST_INT;
-  retc->x.i_val = soc < 0 ? 0 : soc;
+  retc->x.i_val = soc;
   return retc;
 }
 
