@@ -310,10 +310,8 @@ static size_t convert_string_internal_ntlmssp(charset_t from, charset_t to,
   }
 
 
-  if (descriptor == (smb_iconv_t)-1 || descriptor == (smb_iconv_t)0) {
-    if (!conv_silent_ntlmssp)
-      return (size_t)-1;
-  }
+  if (descriptor == (smb_iconv_t)-1 || descriptor == (smb_iconv_t)0)
+    return (size_t) -1;
 
   i_len=srclen;
   o_len=destlen;

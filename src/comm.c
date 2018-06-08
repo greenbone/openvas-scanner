@@ -395,7 +395,8 @@ comm_send_nvt_info (int soc)
   for (;;)
     {
       bzero (buf, sizeof (buf));
-      recv_line (soc, buf, sizeof (buf) - 1);
+      if (recv_line (soc, buf, sizeof (buf) - 1) < 0)
+        g_warning ("recv_line: %s", strerror (errno));
       if (strstr (buf, "COMPLETE_LIST"))
         comm_send_pluginlist (soc, oids);
       else

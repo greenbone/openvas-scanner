@@ -133,7 +133,8 @@ ftp_get_pasv_address (int soc, struct sockaddr_in *addr)
   write_stream_connection (soc, buf, strlen (buf));
   bzero (buf, sizeof (buf));
   bzero (addr, sizeof (struct sockaddr_in));
-  recv_line (soc, buf, sizeof (buf) - 1);
+  if (recv_line (soc, buf, sizeof (buf) - 1) < 0)
+    return 1;
 
   if (strncmp (buf, "227", 3) != 0)
     return 1;

@@ -227,5 +227,6 @@ nasl_thread (struct script_infos *args)
         }
     }
 
-  exec_nasl_script (args, nasl_mode);
+  if (exec_nasl_script (args, nasl_mode))
+    g_debug ("exec_nasl_script: %s error", args->name);
 }

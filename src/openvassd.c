@@ -218,7 +218,8 @@ loading_client_handle (int soc)
   if (soc <= 0)
     return;
 
-  setsockopt (soc, SOL_SOCKET, SO_KEEPALIVE, &opt, sizeof (opt));
+  if (setsockopt (soc, SOL_SOCKET, SO_KEEPALIVE, &opt, sizeof (opt)) < 0)
+    g_warning ("setsockopt: %s", strerror (errno));
   comm_loading (soc);
   shutdown (soc, 2);
   close (soc);
@@ -754,7 +755,7 @@ init_unix_network (int *sock, const char *owner, const char *group,
       return -1;
     }
   addr.sun_family = AF_UNIX;
-  strncpy (addr.sun_path, unix_socket_path, sizeof (addr.sun_path));
+  strncpy (addr.sun_path, unix_socket_path, sizeof (addr.sun_path) - 1);
   if (!stat (addr.sun_path, &ustat))
     {
       /* Remove socket so we can bind(). */
