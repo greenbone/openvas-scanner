@@ -500,7 +500,7 @@ scanner_thread (struct scan_globals *globals)
   handle_client (globals);
 
 shutdown_and_exit:
-  if (is_otp_scan ())
+  if (is_otp_scan () && !global_scan_id)
     {
       shutdown (soc, 2);
       close (soc);
