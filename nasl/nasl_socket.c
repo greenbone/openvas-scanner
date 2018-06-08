@@ -587,7 +587,8 @@ nasl_open_sock_udp (lex_ctxt * lexic)
       if (soc < 0)
         return NULL;
       gvm_source_set_socket (soc, 0, AF_INET6);
-      connect (soc, (struct sockaddr *) &soca6, sizeof (soca6));
+      if (connect (soc, (struct sockaddr *) &soca6, sizeof (soca6)) < 0)
+        return NULL;
     }
 
   if (soc > 0 && lowest_socket == 0)
