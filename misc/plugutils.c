@@ -1039,7 +1039,7 @@ find_in_path (char *name, int safe)
         /* path too long: cannot be reached */
         continue;
 
-      snprintf (p2, MAXPATHLEN, "/%s", name);
+      snprintf (p2, p2 - cmd, "/%s", name);
       if (access (cmd, X_OK) == 0)
         {
           struct stat st;
