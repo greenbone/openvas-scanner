@@ -591,7 +591,10 @@ nasl_open_sock_udp (lex_ctxt * lexic)
         return NULL;
       gvm_source_set_socket (soc, 0, AF_INET6);
       if (connect (soc, (struct sockaddr *) &soca6, sizeof (soca6)) < 0)
-        return NULL;
+        {
+          close (soc);
+          return NULL;
+        }
     }
 
   if (soc > 0 && lowest_socket == 0)
@@ -599,7 +602,7 @@ nasl_open_sock_udp (lex_ctxt * lexic)
 
   retc = alloc_tree_cell ();
   retc->type = CONST_INT;
-  retc->x.i_val = soc < 0 ? 0 : soc;
+  retc->x.i_val = soc;
   return retc;
 }
 
@@ -1184,6 +1187,7 @@ nasl_socket_get_error (lex_ctxt * lexic)
       break;
     case -1:
       g_message ("socket_get_error: Erroneous socket value %d", soc);
+      break;
 
     default:
       g_message ("Unknown error %d %s", err, strerror (err));

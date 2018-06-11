@@ -359,7 +359,7 @@ v6_getinterfaces (int *howmany)
           if (family == AF_INET)
             {
               strncpy (mydevs[numinterfaces].name, ifa->ifa_name,
-                       sizeof (mydevs[numinterfaces].name));
+                       sizeof (mydevs[numinterfaces].name) - 1);
               saddr = (struct sockaddr_in *) ifa->ifa_addr;
               mydevs[numinterfaces].addr6.s6_addr32[0] = 0;
               mydevs[numinterfaces].addr6.s6_addr32[1] = 0;
@@ -1028,7 +1028,10 @@ routethrough (struct in_addr *dest, struct in_addr *source)
 
   gvm_source_addr (&src);
   if (!dest)
-    g_message ("ipaddr2devname passed a NULL dest address");
+    {
+      g_message ("ipaddr2devname passed a NULL dest address");
+      return NULL;
+    }
 
   if (!initialized)
     {

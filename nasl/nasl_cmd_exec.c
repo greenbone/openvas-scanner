@@ -196,6 +196,7 @@ nasl_pread (lex_ctxt * lexic)
       retc = alloc_typed_cell (CONST_DATA);
       retc->x.str_val = str;
       retc->size = sz;
+      fclose (fp);
     }
 
 finish_pread:
@@ -203,7 +204,6 @@ finish_pread:
     g_free (args[i]);
   g_free (args);
 
-  fclose (fp);
   g_spawn_close_pid (pid);
   pid = 0;
   signal (SIGINT, old_sig_i);
