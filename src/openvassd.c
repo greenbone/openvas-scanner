@@ -143,7 +143,7 @@ static openvassd_option openvassd_defaults[] = {
   // Empty options must be "\0", not NULL, to match the behavior of
   // prefs_init.
   {"report_host_details", "yes"},
-  {"kb_location", KB_PATH_DEFAULT},
+  {"db_address", KB_PATH_DEFAULT},
   {"timeout_retry", "3"},
   {"open_sock_max_attempts", "5"},
   {"time_between_request", "0"},
@@ -636,7 +636,7 @@ check_kb_status ()
 
   while (waitredis != 0)
     {
-      ret = kb_new (&kb_access_aux, prefs_get ("kb_location"));
+      ret = kb_new (&kb_access_aux, prefs_get ("db_address"));
       if (ret)
         {
           g_message ("Redis connection lost. Trying to reconnect.");
@@ -658,7 +658,7 @@ check_kb_status ()
     }
   while (waitkb != 0)
     {
-      kb_access_aux = kb_find (prefs_get ("kb_location"), NVTICACHE_STR);
+      kb_access_aux = kb_find (prefs_get ("db_address"), NVTICACHE_STR);
       if (!kb_access_aux)
         {
           g_message ("Redis kb not found. Trying again in 2 seconds.");
@@ -873,7 +873,7 @@ flush_all_kbs ()
   kb_t kb;
   int rc;
 
-  rc = kb_new (&kb, prefs_get ("kb_location"));
+  rc = kb_new (&kb, prefs_get ("db_address"));
   if (rc)
     return rc;
 
