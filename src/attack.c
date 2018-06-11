@@ -151,7 +151,7 @@ report_kb_failure (int soc, int errcode)
 
   errcode = abs (errcode);
   msg = g_strdup_printf ("WARNING: Cannot connect to KB at '%s': %s'",
-                         prefs_get ("kb_location"), strerror (errcode));
+                         prefs_get ("db_address"), strerror (errcode));
   g_warning ("%s", msg);
   error_message_to_client (soc, msg, NULL, NULL);
   g_free (msg);
@@ -371,7 +371,7 @@ init_host_kb (struct scan_globals *globals, char *ip_str, kb_t *network_kb)
   kb_t kb;
   gchar *hostname_pattern;
   enum net_scan_status nss;
-  const gchar *kb_path = prefs_get ("kb_location");
+  const gchar *kb_path = prefs_get ("db_address");
   int rc, soc;
 
   nss = network_scan_status (globals);
@@ -838,7 +838,7 @@ check_kb_access (int soc)
   int rc;
   kb_t kb;
 
-  rc = kb_new (&kb, prefs_get ("kb_location"));
+  rc = kb_new (&kb, prefs_get ("db_address"));
   if (rc)
       report_kb_failure (soc, rc);
   else
@@ -966,7 +966,7 @@ attack_network (struct scan_globals *globals, kb_t *network_kb)
                      "in network phase with target %s",
                      hostlist, network_targets);
 
-          rc = kb_new (network_kb, prefs_get ("kb_location"));
+          rc = kb_new (network_kb, prefs_get ("db_address"));
           if (rc)
             {
               report_kb_failure (global_socket, rc);
@@ -1008,7 +1008,7 @@ attack_network (struct scan_globals *globals, kb_t *network_kb)
       struct attack_start_args args;
       char *host_str;
 
-      rc = kb_new (&host_kb, prefs_get ("kb_location"));
+      rc = kb_new (&host_kb, prefs_get ("db_address"));
       if (rc)
         {
           report_kb_failure (global_socket, rc);
