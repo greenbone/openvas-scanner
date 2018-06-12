@@ -16,7 +16,7 @@ made for the sake of speed and security. No authentication is supported yet, we
 rely on filesystem permissions to protect the KBs.
 
 The path to the unix socket is '/tmp/redis.sock' by default, and can be changed
-using the 'kb_location' parameter.
+using the 'db_address' parameter.
 
 On the redis side, use the following directives:
 
