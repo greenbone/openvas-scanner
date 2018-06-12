@@ -399,7 +399,7 @@ load_scan_preferences (const char *scan_id)
     return -1;
 
   snprintf (key, sizeof (key), "internal/%s/scanprefs", scan_id);
-  kb = kb_find (prefs_get ("kb_location"), key);
+  kb = kb_find (prefs_get ("db_address"), key);
   if (!kb)
     return -1;
 
