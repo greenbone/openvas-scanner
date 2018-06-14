@@ -50,25 +50,21 @@ extern int kb_get_port_state_proto (kb_t, int, char *);
  * @return Whether a port in a port list is closed or not.
  */
 static int
-get_closed_ports (kb_t kb, char *ports_list)
+get_closed_ports (kb_t kb, char *ports_list, char *proto)
 {
   int i;
   char **ports;
 
   if (!ports_list)
     return -1;
-
   ports = g_strsplit (ports_list, ", ", 0);
   for (i = 0; ports[i] != NULL; i ++)
     {
       int iport = atoi (ports[i]);
-      if (iport != 0)
+      if (iport > 0 && kb_get_port_state_proto (kb, iport, proto) != 0)
         {
-          if (kb_get_port_state_proto (kb, iport, "tcp") != 0)
-            {
-              g_strfreev (ports);
-              return iport;
-            }
+          g_strfreev (ports);
+          return iport;
         }
       else
         {
@@ -83,34 +79,6 @@ get_closed_ports (kb_t kb, char *ports_list)
   return 0;                     /* found nothing */
 }
 
-
-/**
- * @brief Returns whether a port in a port list is closed or not.
- */
-static int
-get_closed_udp_ports (kb_t kb, char *ports_list)
-{
-  int i;
-  char **ports;
-
-  if (!ports_list)
-    return -1;
-  ports = g_strsplit (ports_list, ", ", 0);
-  if (!ports_list)
-    return -1;
-
-  for (i = 0; ports[i] != NULL; i ++)
-    {
-      int iport = atoi (ports[i]);
-      if (iport > 0 && kb_get_port_state_proto (kb, iport, "udp"))
-        {
-          g_strfreev (ports);
-          return iport;
-        }
-    }
-  g_strfreev (ports);
-  return 0;                     /* found nothing */
-}
 
 /**********************************************************
 
@@ -360,7 +328,7 @@ requirements_plugin (kb_t kb, struct scheduler_plugin *plugin)
    */
   error[sizeof (error) - 1] = '\0';
   tcp = nvticache_get_required_ports (plugin->oid);
-  if (tcp && *tcp && (get_closed_ports (kb, tcp)) == 0)
+  if (tcp && *tcp && (get_closed_ports (kb, tcp, "tcp")) == 0)
     {
       strncpy (error, "none of the required tcp ports are open",
                sizeof (error) - 1);
@@ -370,7 +338,7 @@ requirements_plugin (kb_t kb, struct scheduler_plugin *plugin)
   g_free (tcp);
 
   udp = nvticache_get_required_udp_ports (plugin->oid);
-  if (udp && *udp && (get_closed_udp_ports (kb, udp)) == 0)
+  if (udp && *udp && (get_closed_ports (kb, udp, "udp")) == 0)
     {
       strncpy (error, "none of the required udp ports are open",
                sizeof (error) - 1);
