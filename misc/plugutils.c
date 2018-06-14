@@ -727,26 +727,6 @@ plug_get_kb (struct script_infos *args)
   return args->key;
 }
 
-/*
- * plug_get_key() may fork(). We use this signal handler to kill
- * its son in case the process which calls this function is killed
- * itself
- */
-static int _plug_get_key_son = 0;
-
-static void
-plug_get_key_sighand_term ()
-{
-  int son = _plug_get_key_son;
-
-  if (son != 0)
-    {
-      kill (son, SIGTERM);
-      _plug_get_key_son = 0;
-    }
-  _exit (0);
-}
-
 static void
 plug_get_key_sigchld ()
 {
@@ -782,7 +762,9 @@ static int
 plug_fork_child (kb_t kb)
 {
   pid_t pid;
+  char key[128];
 
+  snprintf (key, sizeof (key), "internal/child/%d", getpid ());
   if ((pid = fork ()) == 0)
     {
       sig_term (_exit);
@@ -798,11 +780,9 @@ plug_fork_child (kb_t kb)
     }
   else
     {
-      _plug_get_key_son = pid;
-      sig_term (plug_get_key_sighand_term);
+      kb_item_set_int (kb, key, pid);
       waitpid (pid, NULL, 0);
-      _plug_get_key_son = 0;
-      sig_term (_exit);
+      kb_del_items (kb, key);
     }
   return 1;
 }

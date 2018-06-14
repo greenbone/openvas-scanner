@@ -80,6 +80,20 @@ static int old_max_running_processes;
 static GSList *non_simult_ports = NULL;
 const char *hostname = NULL;
 
+static void
+cleanup_process_children (kb_t kb, pid_t pid)
+{
+  char key[128];
+  pid_t child;
+
+  snprintf (key, sizeof (key), "internal/child/%d", pid);
+  child = kb_item_get_int (kb, key);
+  if (child > 0)
+    {
+      g_warning ("Terminating leftover child process %d", child);
+      terminate_process (child);
+    }
+}
 /**
  *
  */
@@ -158,6 +172,7 @@ update_running_processes (kb_t kb)
                 }
               num_running_processes--;
               processes[i].plugin->running_state = PLUGIN_STATUS_DONE;
+              cleanup_process_children (kb, processes[i].pid);
               bzero (&(processes[i]), sizeof (processes[i]));
             }
         }
