@@ -82,6 +82,9 @@ This is the default range of ports that the scanner plugins will probe. The synt
 .IP optimize_test
 By default, openvassd does not trust the remote host banners. It means that it will check a webserver claiming to be IIS for Apache flaws, and so on. This behavior might generate false positive and will slow the scan down somehow. If you are sure the banners of the remote host have not been tampered with, you can safely enable this option, which will force the plugins to perform their job only against the services they have been designed to check.
 
+.IP test_empty_vhost
+If set to yes, the scanner will also test the target by using empty vhost value in addition to the target's associated vhost values.
+
 .IP checks_read_timeout
 Number of seconds that the security checks will wait for when doing a recv(). You should increase this value if you are running openvassd across a slow network slink (testing a host via a dialup connection for instance)
 

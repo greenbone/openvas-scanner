@@ -143,6 +143,7 @@ static openvassd_option openvassd_defaults[] = {
   // Empty options must be "\0", not NULL, to match the behavior of
   // prefs_init.
   {"report_host_details", "yes"},
+  {"test_empty_vhost", "no"},
   {"db_address", KB_PATH_DEFAULT},
   {"timeout_retry", "3"},
   {"open_sock_max_attempts", "5"},
