@@ -44,21 +44,6 @@
 #include "nasl_debug.h"
 
 static pid_t pid = 0;
-static void (*old_sig_t) () = NULL, (*old_sig_i) () = NULL, (*old_sig_c) = NULL;
-
-static void
-sig_h ()
-{
-  if (pid > 0)
-    (void) kill (pid, SIGKILL);
-}
-
-static void
-sig_c ()
-{
-  if (pid > 0)
-    (void) waitpid (pid, NULL, WNOHANG);
-}
 
 /** @todo Supspects to glib replacements, all path related stuff. */
 tree_cell *
@@ -70,7 +55,7 @@ nasl_pread (lex_ctxt * lexic)
   int i, j, n, sz, sz2, cd, fd = 0;
   char **args = NULL, *cmd, *str, *str2, buf[8192];
   FILE *fp;
-  char cwd[MAXPATHLEN], newdir[MAXPATHLEN];
+  char cwd[MAXPATHLEN], newdir[MAXPATHLEN], key[128];
 
   if (pid != 0)
     {
@@ -156,14 +141,13 @@ nasl_pread (lex_ctxt * lexic)
     }
   args[j] = NULL;
 
-  old_sig_t = signal (SIGTERM, sig_h);
-  old_sig_i = signal (SIGINT, sig_h);
-  old_sig_c = signal (SIGCHLD, sig_c);
-
   if (g_spawn_async_with_pipes
        (NULL, args, NULL, G_SPAWN_SEARCH_PATH, NULL, NULL, &pid, NULL, &fd,
         NULL, NULL) == FALSE)
     goto finish_pread;
+
+  snprintf (key, sizeof (key), "internal/child/%d", getpid ());
+  kb_item_set_int (lexic->script_infos->key, key, pid);
   fp = fdopen (fd, "r");
 
   if (fp != NULL)
@@ -206,9 +190,7 @@ finish_pread:
 
   g_spawn_close_pid (pid);
   pid = 0;
-  signal (SIGINT, old_sig_i);
-  signal (SIGTERM, old_sig_t);
-  signal (SIGCHLD, old_sig_c);
+  kb_del_items (lexic->script_infos->key, key);
 
   return retc;
 }
