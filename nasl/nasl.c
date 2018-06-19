@@ -85,6 +85,8 @@ init (struct in6_addr *ip, GSList *vhosts, kb_t kb)
   infos->key = kb;
   infos->ip = ip;
   infos->vhosts = vhosts;
+  if (prefs_get_bool ("test_empty_vhost"))
+    infos->vhosts = g_slist_prepend (infos->vhosts, addr6_as_str (ip));
   infos->globals = g_malloc0 (sizeof (struct scan_globals));
 
   return infos;
