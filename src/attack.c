@@ -632,6 +632,8 @@ attack_start (struct attack_start_args *args)
   gvm_hosts_free (sys_hosts_allow);
   gvm_hosts_free (sys_hosts_deny);
 
+  if (prefs_get_bool ("test_empty_vhost"))
+    args->host->vhosts = g_slist_prepend (args->host->vhosts, g_strdup (ip_str));
   hostnames = list_to_str (args->host->vhosts);
   if (hostnames)
     g_message ("Testing %s (Vhosts: %s) [%d]", ip_str, hostnames, getpid ());

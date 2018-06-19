@@ -230,18 +230,6 @@ plug_get_host_fqdn (struct script_infos *args)
         return NULL;
       vhosts = vhosts->next;
     }
-  if (prefs_get_bool ("test_empty_vhost"))
-    {
-      pid_t pid = plug_fork_child (args->key);
-
-      if (pid == 0)
-        {
-          current_vhost = addr6_as_str (args->ip);
-          return g_strdup (current_vhost);
-        }
-      else if (pid == -1)
-        return NULL;
-    }
   exit (0);
 }
 
