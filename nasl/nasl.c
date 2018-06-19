@@ -156,7 +156,7 @@ main (int argc, char **argv)
   gvm_host_t *host;
   static gchar *target = NULL;
   gchar *default_target = "127.0.0.1";
-  int mode = 0, n = 0, err = 0;
+  int mode = 0, err = 0;
   extern int global_nasl_debug;
 
   static gboolean display_version = FALSE;
@@ -328,7 +328,7 @@ main (int argc, char **argv)
     {
       struct in6_addr ip6;
       kb_t kb;
-      int rc;
+      int rc, i = 0;
 
       gvm_host_add_reverse_lookup (host);
       gvm_host_get_addr6 (host, &ip6);
@@ -337,27 +337,27 @@ main (int argc, char **argv)
         exit (1);
 
       script_infos = init (&ip6, host->vhosts, kb);
-      while (nasl_filenames[n])
+      while (nasl_filenames[i])
         {
           pid_t pid;
 
-          script_infos->name = nasl_filenames[n];
+          script_infos->name = nasl_filenames[i];
           if (both_modes || with_safe_checks)
             {
               nvti_t *nvti = parse_script_infos (script_infos);
               if (!nvti)
                 {
                   err++;
-                  n++;
+                  i++;
                   continue;
                 }
               else if (with_safe_checks
                        && !nvti_category_is_safe (nvti_category (nvti)))
                 {
-                  printf ("%s isn't safe\n", nasl_filenames[n]);
+                  printf ("%s isn't safe\n", nasl_filenames[i]);
                   nvti_free (nvti);
                   err++;
-                  n++;
+                  i++;
                   continue;
                 }
               nvti_free (nvti);
@@ -397,7 +397,7 @@ main (int argc, char **argv)
               if (status)
                 err++;
             }
-          n++;
+          i++;
         }
       kb_delete (kb);
     }
