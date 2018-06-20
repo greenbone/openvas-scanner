@@ -224,8 +224,8 @@ send_plug_info (int soc, const char *oid)
     }
 
   send_printf
-   (soc, "%s <|> %s <|> %d <|> %s <|> %s <|> %s <|> %s <|> %s <|> "
-    "%s <|> %s\n", oid, name, category, copyright, family, nvti_version (nvti),
+   (soc, "%s <|> %s <|> %d <|> %s <|> %s <|> %s <|> %s <|> %s <|> %s\n",
+    oid, name, category, copyright, family,
     (cve_id && *cve_id) ? cve_id : "NOCVE", (bid && *bid) ? bid : "NOBID",
     (xref && *xref) ? xref: "NOXREF", (tag && *tag) ? tag : "NOTAG");
 

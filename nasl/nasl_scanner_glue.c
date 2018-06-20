@@ -240,18 +240,7 @@ script_name (lex_ctxt * lexic)
 tree_cell *
 script_version (lex_ctxt * lexic)
 {
-  nvti_t *nvti = lexic->script_infos->nvti;
-
-  char *version = get_str_var_by_num (lexic, 0);
-  if (version == NULL)
-    {
-      nasl_perror (lexic, "Argument error in function script_version()\n");
-      nasl_perror (lexic, "Function usage is : script_version(<version>)\n");
-      nasl_perror (lexic, "Where <version> is the version of this script\n");
-    }
-  else
-    nvti_set_version (nvti, version);
-
+  (void) lexic;
   return FAKE_CELL;
 }
 

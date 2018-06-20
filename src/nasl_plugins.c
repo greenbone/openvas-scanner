@@ -86,11 +86,6 @@ check_nvti (const char *filename, nvti_t *nvt)
       g_warning ("%s: Missing name", filename);
       return -1;
     }
-  else if (!nvti_version (nvt))
-    {
-      g_warning ("%s: Missing version", filename);
-      return -1;
-    }
   else if (!nvti_family (nvt))
     {
       g_warning ("%s: Missing family", filename);
