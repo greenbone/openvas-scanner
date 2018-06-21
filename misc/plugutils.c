@@ -42,6 +42,7 @@
 
 #include <gvm/base/networking.h>
 #include <gvm/base/logging.h>
+#include <gvm/base/hosts.h>
 #include <gvm/base/prefs.h>          /* for prefs_get_bool */
 #include <gvm/util/kb.h>
 #include <gvm/util/nvticache.h>      /* for nvticache_get_by_oid() */
@@ -62,13 +63,13 @@ int global_nasl_debug = 0;
 /* In case of multiple vhosts fork, this holds the value of the current vhost
  * we're scanning.
  */
-char *current_vhost = NULL;
+gvm_vhost_t *current_vhost = NULL;
 
 /* @brief: Return the currently scanned vhost. */
 const char *
 plug_current_vhost (void)
 {
-  return current_vhost;
+  return current_vhost->value;
 }
 
 static int
@@ -216,7 +217,7 @@ plug_get_host_fqdn (struct script_infos *args)
   /* Workaround for rapid growth of forked processes ie. http_get() calls
    * within foreach() loops. */
   if (current_vhost)
-    return g_strdup (current_vhost);
+    return g_strdup (current_vhost->value);
   while (vhosts)
     {
       pid_t pid = plug_fork_child (args->key);
@@ -224,13 +225,26 @@ plug_get_host_fqdn (struct script_infos *args)
       if (pid == 0)
         {
           current_vhost = vhosts->data;
-          return g_strdup (current_vhost);
+          return g_strdup (current_vhost->value);
         }
       else if (pid == -1)
         return NULL;
       vhosts = vhosts->next;
     }
   exit (0);
+}
+
+char *
+plug_get_host_source (struct script_infos *args)
+{
+  if (!args->vhosts)
+    return g_strdup ("IP-address");
+
+  /* Call pug_get_host_fqdn() to set current_vhost (and fork, in case of
+   * multiple vhosts.) */
+  if (!current_vhost)
+    g_free (plug_get_host_fqdn (args));
+  return g_strdup (current_vhost->source);
 }
 
 
@@ -384,9 +398,9 @@ proto_post_wrapped (const char *oid, struct script_infos *desc, int port,
   if (port > 0)
     snprintf (port_s, sizeof (port_s), "%d", port);
   if (current_vhost)
-    hostname = current_vhost;
+    hostname = current_vhost->value;
   else if (desc->vhosts)
-    hostname = desc->vhosts->data;
+    hostname = ((gvm_vhost_t *) desc->vhosts->data)->value;
   addr6_to_str (plug_get_host_ip (desc), ip_str);
   buffer = g_strdup_printf ("%s|||%s|||%s/%s|||%s|||%s", what, hostname ?: " ",
                             port_s, proto, oid, action_str->str);

@@ -65,6 +65,23 @@ get_hostname (lex_ctxt * lexic)
   return retc;
 }
 
+tree_cell *
+get_hostname_source (lex_ctxt * lexic)
+{
+  struct script_infos *script_infos = lexic->script_infos;
+  char *source = plug_get_host_source (script_infos);
+  tree_cell *retc;
+
+  if (!source)
+    return NULL;
+
+  retc = alloc_tree_cell ();
+  retc->type = CONST_STR;
+  retc->size = strlen (source);
+  retc->x.str_val = source;
+  return retc;
+}
+
 
 tree_cell *
 get_host_ip (lex_ctxt * lexic)
