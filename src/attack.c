@@ -599,6 +599,7 @@ attack_start (struct attack_start_args *args)
   char key[1024];
 
   nvticache_reset ();
+  kb_lnk_reset (kb);
   gettimeofday (&then, NULL);
 
   kb_item_add_str (kb, "internal/scan_id", globals->scan_id, 0);
