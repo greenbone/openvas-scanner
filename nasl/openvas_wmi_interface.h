@@ -38,17 +38,18 @@
 
 #include <stdint.h> /* for uint32_t, uint64_t */
 
-typedef int WMI_HANDLE;
+typedef void * WMI_HANDLE;
 
 char *wmi_versioninfo (void);
-int wmi_connect (int argc, char **argv, WMI_HANDLE * handle);
+WMI_HANDLE
+wmi_connect (int argc, char **argv);
 int wmi_close (WMI_HANDLE);
 int wmi_query (WMI_HANDLE, const char *, char **);
 
-int wmi_connect_rsop (int argc, char **argv, WMI_HANDLE * handle);
+WMI_HANDLE wmi_connect_rsop (int argc, char **argv);
 int wmi_query_rsop (WMI_HANDLE, const char *, char **);
 
-int wmi_connect_reg (int argc, char **argv, WMI_HANDLE * handle);
+WMI_HANDLE wmi_connect_reg (int argc, char **argv);
 int wmi_reg_get_sz (WMI_HANDLE, unsigned int, const char *, const char *,
                     char **);
 int wmi_reg_enum_value (WMI_HANDLE, unsigned int, const char *, char **);
