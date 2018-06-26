@@ -53,17 +53,18 @@ wmi_versioninfo ()
 /**
  * @brief Establish connection to a WMI service.
  *
- * @param[out] handle - A connection handle in case of success.
+ * @param[in] argc  Number of arguments.
  *
- * @return, 0 on success, -1 on failure
+ * @param[in] argv  Array of arguments.
+ *
+ * @return, WMI_HANDLE on success, NULL on failure.
  */
-int
-wmi_connect (int argc, char **argv, WMI_HANDLE * handle)
+WMI_HANDLE
+wmi_connect (int argc, char **argv)
 {
   (void) argc;
   (void) argv;
-  (void) handle;
-  return -1;
+  return NULL;
 }
 
 /**
@@ -103,17 +104,18 @@ wmi_query (WMI_HANDLE handle, const char *query, char **result)
 /**
  * @brief Establish connection to a WMI RSOP service.
  *
- * @param[out] handle - A connection handle in case of success.
+ * @param[in] argc  Number of arguments.
  *
- * @return, 0 on success, -1 on failure
+ * @param[in] argv  Array of arguments.
+ *
+ * @return, WMI_HANDLE on success, NULL on failure.
  */
-int
-wmi_connect_rsop (int argc, char **argv, WMI_HANDLE * handle)
+WMI_HANDLE
+wmi_connect_rsop (int argc, char **argv)
 {
   (void) argc;
   (void) argv;
-  (void) handle;
-  return -1;
+  return NULL;
 }
 
 /**
@@ -139,17 +141,18 @@ wmi_query_rsop (WMI_HANDLE handle, const char *query, char **res)
 /**
  * @brief Establish connection to a WMI Registry service.
  *
- * @param[out] handle - A connection handle in case of success.
+ * @param[in] argc  Number of arguments.
  *
- * @return, 0 on success, -1 on failure
+ * @param[in] argv  Array of arguments.
+ *
+ * @return, WMI_HANDLE on success, NULL on failure.
  */
-int
-wmi_connect_reg (int argc, char **argv, WMI_HANDLE * handle)
+WMI_HANDLE
+wmi_connect_reg (int argc, char **argv)
 {
   (void) argc;
   (void) argv;
-  (void) handle;
-  return -1;
+  return NULL;
 }
 
 /**
