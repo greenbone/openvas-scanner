@@ -1,0 +1,27 @@
+# Options to pass to the openvassd daemon
+OPTIONS=""
+
+# Set to yes if plugins should be automatically updated via a cron job
+auto_plugin_update=no
+
+# Notify OpenVAS scanner after update by seding it SIGHUP?
+notify_openvas_scanner=yes
+
+# Method to use to get updates. The default is via rsync
+# Note that only wget and curl support retrieval via proxy
+# update_method=rsync|wget|curl
+
+# Additionaly, you can specify the following variables
+#NVT_DIR		where to extract plugins (absolute path)
+#OV_RSYNC_FEED		URL of rsync feed
+#OV_HTTP_FEED		URL of http feed
+
+# First time install token
+FIRSTBOOT=no
+
+# TLS Encryption options
+# Somewhat paranoid defaults. TLS1.2 only
+GNUTLS_PRIORITIES="SECURE256:+SUITEB192:+SECURE192:+SECURE128:+SUITEB128:-MD5:-SHA1:-VERS-TLS1.0:-VERS-TLS1.1:-VERS-SSL3.0"
+
+# Reasonably secure, if you need to connect with an old web browser.
+#GNUTLS_PRIORITIES="SECURE256:+SUITEB192:+SECURE192:+SECURE128:+SUITEB128:-MD5:+VERS-TLS1.0:+VERS-TLS1.1:-VERS-SSL3.0"
