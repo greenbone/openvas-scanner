@@ -234,6 +234,24 @@ plug_get_host_fqdn (struct script_infos *args)
   exit (0);
 }
 
+GSList *
+plug_get_host_fqdn_list (struct script_infos *args)
+{
+  GSList *results = NULL, *vhosts = args->vhosts;
+
+  if (!args->vhosts)
+    results = g_slist_prepend (results, addr6_as_str (args->ip));
+
+  while (vhosts)
+    {
+      gvm_vhost_t *vhost = vhosts->data;
+
+      results = g_slist_prepend (results, g_strdup (vhost->value));
+      vhosts = vhosts->next;
+    }
+  return results;
+}
+
 char *
 plug_get_host_source (struct script_infos *args, const char *hostname)
 {

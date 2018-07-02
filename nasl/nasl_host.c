@@ -49,6 +49,37 @@
 #include "nasl_host.h"
 
 tree_cell *
+get_hostnames (lex_ctxt * lexic)
+{
+  struct script_infos *script_infos = lexic->script_infos;
+  tree_cell *retc;
+  int i = 0;
+  nasl_array *arr;
+  GSList *tmp, *hostnames;
+
+  hostnames = tmp = plug_get_host_fqdn_list (script_infos);
+  if (!hostnames)
+    return NULL;
+
+  retc = alloc_tree_cell ();
+  retc->type = DYN_ARRAY;
+  retc->x.ref_val = arr = g_malloc0 (sizeof (nasl_array));
+  while (tmp)
+    {
+      anon_nasl_var v;
+
+      v.var_type = VAR2_DATA;
+      v.v.v_str.s_siz = strlen (tmp->data);
+      v.v.v_str.s_val = tmp->data;
+      add_var_to_list (arr, i++, &v);
+      tmp = tmp->next;
+    }
+
+  g_slist_free (hostnames);
+  return retc;
+}
+
+tree_cell *
 get_hostname (lex_ctxt * lexic)
 {
   struct script_infos *script_infos = lexic->script_infos;
