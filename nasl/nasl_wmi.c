@@ -189,11 +189,11 @@ nasl_wmi_connect (lex_ctxt * lexic)
       return NULL;
     }
 
-  argv[0] = (char *) g_malloc0 (strlen (argv1));
-  argv[1] = (char *) g_malloc0 (strlen (argv2));
-  argv[2] = (char *) g_malloc0 (strlen (username) + strlen (password) + 1);
-  argv[3] = (char *) g_malloc0 (strlen (ip) + 2);
-  argv[4] = (char *) g_malloc0 (strlen (ns));
+  argv[0] = (char *) g_malloc0 (strlen (argv1) + 1);
+  argv[1] = (char *) g_malloc0 (strlen (argv2) + 1);
+  argv[2] = (char *) g_malloc0 (strlen (username) + strlen (password) + 2);
+  argv[3] = (char *) g_malloc0 (strlen (ip) + 3);
+  argv[4] = (char *) g_malloc0 (strlen (ns) + 1);
 
   // Construct the WMI query
   strcpy (argv[0], argv1);
@@ -343,10 +343,10 @@ nasl_wmi_connect_rsop (lex_ctxt * lexic)
       return NULL;
     }
 
-  argv[0] = (char *) g_malloc0 (strlen (argv1));
-  argv[1] = (char *) g_malloc0 (strlen (argv2));
-  argv[2] = (char *) g_malloc0 (strlen (username) + strlen (password) + 1);
-  argv[3] = (char *) g_malloc0 (strlen (ip) + 2);
+  argv[0] = (char *) g_malloc0 (strlen (argv1) + 1);
+  argv[1] = (char *) g_malloc0 (strlen (argv2) + 1);
+  argv[2] = (char *) g_malloc0 (strlen (username) + strlen (password) + 2);
+  argv[3] = (char *) g_malloc0 (strlen (ip) + 3);
 
   // Construct the WMI query
   strcpy (argv[0], argv1);
@@ -460,10 +460,10 @@ nasl_wmi_connect_reg (lex_ctxt * lexic)
       return NULL;
     }
 
-  argv[0] = (char *) g_malloc0 (strlen (argv1));
-  argv[1] = (char *) g_malloc0 (strlen (argv2));
-  argv[2] = (char *) g_malloc0 (strlen (username) + strlen (password) + 1);
-  argv[3] = (char *) g_malloc0 (strlen (ip) + 2);
+  argv[0] = (char *) g_malloc0 (strlen (argv1) + 1);
+  argv[1] = (char *) g_malloc0 (strlen (argv2) + 1);
+  argv[2] = (char *) g_malloc0 (strlen (username) + strlen (password) + 2);
+  argv[3] = (char *) g_malloc0 (strlen (ip) + 3);
 
   // Construct the WMI query
   strcpy (argv[0], argv1);
