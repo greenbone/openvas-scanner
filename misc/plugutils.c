@@ -235,12 +235,27 @@ plug_get_host_fqdn (struct script_infos *args)
 }
 
 char *
-plug_get_host_source (struct script_infos *args)
+plug_get_host_source (struct script_infos *args, const char *hostname)
 {
   if (!args->vhosts)
     return g_strdup ("IP-address");
 
-  /* Call pug_get_host_fqdn() to set current_vhost (and fork, in case of
+  if (hostname)
+    {
+      GSList *vhosts = args->vhosts;
+
+      /* Search for source of specified hostname/vhost. */
+      while (vhosts)
+        {
+          gvm_vhost_t *vhost = vhosts->data;
+
+          if (!strcmp (vhost->value, hostname))
+            return g_strdup (vhost->source);
+          vhosts = vhosts->next;
+        }
+      return NULL;
+    }
+  /* Call plug_get_host_fqdn() to set current_vhost (and fork, in case of
    * multiple vhosts.) */
   if (!current_vhost)
     g_free (plug_get_host_fqdn (args));

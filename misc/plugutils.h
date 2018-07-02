@@ -55,7 +55,7 @@ plug_current_vhost (void);
 
 char *plug_get_host_fqdn (struct script_infos *);
 char *
-plug_get_host_source (struct script_infos *);
+plug_get_host_source (struct script_infos *, const char *);
 unsigned int plug_get_host_open_port (struct script_infos *desc);
 
 void plug_set_port_transport (struct script_infos *, int, int);

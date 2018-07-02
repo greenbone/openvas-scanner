@@ -69,9 +69,11 @@ tree_cell *
 get_hostname_source (lex_ctxt * lexic)
 {
   struct script_infos *script_infos = lexic->script_infos;
-  char *source = plug_get_host_source (script_infos);
+  char *source;
   tree_cell *retc;
 
+  source = plug_get_host_source
+            (script_infos, get_str_var_by_name (lexic, "hostname"));
   if (!source)
     return NULL;
 
