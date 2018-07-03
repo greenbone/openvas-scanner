@@ -160,19 +160,15 @@ nasl_wmi_connect (lex_ctxt * lexic)
   struct script_infos *script_infos = lexic->script_infos;
   struct in6_addr *host = plug_get_host_ip (script_infos);
   char *ip;
+  char *argv[max];
+  WMI_HANDLE handle;
+  int argc = 5;
   IMPORT (username);
   IMPORT (password);
   IMPORT(ns);
 
   if (ns == NULL)
     ns = "root\\cimv2";
-
-  char *argv[max];
-
-  WMI_HANDLE handle;
-  int argc = 5;
-  char *argv1 = "wmic";
-  char *argv2 = "-U";
 
   if ((host == NULL) || (username == NULL) || (password == NULL))
     {
@@ -189,21 +185,12 @@ nasl_wmi_connect (lex_ctxt * lexic)
       return NULL;
     }
 
-  argv[0] = (char *) g_malloc0 (strlen (argv1));
-  argv[1] = (char *) g_malloc0 (strlen (argv2));
-  argv[2] = (char *) g_malloc0 (strlen (username) + strlen (password) + 1);
-  argv[3] = (char *) g_malloc0 (strlen (ip) + 2);
-  argv[4] = (char *) g_malloc0 (strlen (ns));
-
   // Construct the WMI query
-  strcpy (argv[0], argv1);
-  strcpy (argv[1], "-U");
-  strcpy (argv[2], username);
-  strcat (argv[2], "%");
-  strcat (argv[2], password);
-  strcpy (argv[3], "//");
-  strcat (argv[3], ip);
-  strcpy (argv[4], ns);
+  argv[0] = g_strdup ("wmic");
+  argv[1] = g_strdup ("-U");
+  argv[2] = g_strdup_printf ("%s%%%s", username, password);
+  argv[3] = g_strdup_printf ("//%s", ip);
+  argv[4] = g_strdup (ns);
   g_free (ip);
 
   tree_cell *retc = alloc_tree_cell ();
@@ -322,11 +309,8 @@ nasl_wmi_connect_rsop (lex_ctxt * lexic)
   IMPORT (username);
   IMPORT (password);
   char *argv[4];
-
   WMI_HANDLE handle;
   int argc = 4;
-  char *argv1 = "wmic";
-  char *argv2 = "-U";
 
   if ((host == NULL) || (username == NULL) || (password == NULL))
     {
@@ -343,19 +327,11 @@ nasl_wmi_connect_rsop (lex_ctxt * lexic)
       return NULL;
     }
 
-  argv[0] = (char *) g_malloc0 (strlen (argv1));
-  argv[1] = (char *) g_malloc0 (strlen (argv2));
-  argv[2] = (char *) g_malloc0 (strlen (username) + strlen (password) + 1);
-  argv[3] = (char *) g_malloc0 (strlen (ip) + 2);
-
   // Construct the WMI query
-  strcpy (argv[0], argv1);
-  strcpy (argv[1], "-U");
-  strcpy (argv[2], username);
-  strcat (argv[2], "%");
-  strcat (argv[2], password);
-  strcpy (argv[3], "//");
-  strcat (argv[3], ip);
+  argv[0] = g_strdup ("wmic");
+  argv[1] = g_strdup ("-U");
+  argv[2] = g_strdup_printf ("%s%%%s", username, password);
+  argv[3] = g_strdup_printf ("//%s", ip);
   g_free (ip);
 
   tree_cell *retc = alloc_tree_cell ();
@@ -439,11 +415,8 @@ nasl_wmi_connect_reg (lex_ctxt * lexic)
   IMPORT (username);
   IMPORT (password);
   char *argv[4];
-
   WMI_HANDLE handle;
   int argc = 4;
-  char *argv1 = "wmic";
-  char *argv2 = "-U";
 
   if ((host == NULL) || (username == NULL) || (password == NULL))
     {
@@ -460,19 +433,11 @@ nasl_wmi_connect_reg (lex_ctxt * lexic)
       return NULL;
     }
 
-  argv[0] = (char *) g_malloc0 (strlen (argv1));
-  argv[1] = (char *) g_malloc0 (strlen (argv2));
-  argv[2] = (char *) g_malloc0 (strlen (username) + strlen (password) + 1);
-  argv[3] = (char *) g_malloc0 (strlen (ip) + 2);
-
   // Construct the WMI query
-  strcpy (argv[0], argv1);
-  strcpy (argv[1], "-U");
-  strcpy (argv[2], username);
-  strcat (argv[2], "%");
-  strcat (argv[2], password);
-  strcpy (argv[3], "//");
-  strcat (argv[3], ip);
+  argv[0] = g_strdup ("wmic");
+  argv[1] = g_strdup ("-U");
+  argv[2] = g_strdup_printf ("%s%%%s", username, password);
+  argv[3] = g_strdup_printf ("//%s", ip);
   g_free (ip);
 
   tree_cell *retc = alloc_tree_cell ();
