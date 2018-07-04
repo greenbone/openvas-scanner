@@ -87,9 +87,8 @@ init (struct in6_addr *ip, GSList *vhosts, kb_t kb)
   infos->vhosts = vhosts;
   if (prefs_get_bool ("test_empty_vhost"))
     {
-      gvm_vhost_t *vhost = g_malloc0 (sizeof (*vhost));
-      vhost->value = addr6_as_str (ip);
-      vhost->source = "IP-address";
+      gvm_vhost_t *vhost = gvm_vhost_new
+                            (addr6_as_str (ip), g_strdup ("IP-address"));
       infos->vhosts = g_slist_prepend (infos->vhosts, vhost);
     }
   infos->globals = g_malloc0 (sizeof (struct scan_globals));

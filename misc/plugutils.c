@@ -227,9 +227,7 @@ plug_add_host_fqdn (struct script_infos *args, const char *hostname,
         }
       vhosts = vhosts->next;
     }
-  vhost = g_malloc0 (sizeof (gvm_vhost_t));
-  vhost->value = g_strdup (hostname);
-  vhost->source = g_strdup (source);
+  vhost = gvm_vhost_new (g_strdup (hostname), g_strdup (source));
   args->vhosts = g_slist_prepend (args->vhosts, vhost);
 }
 
