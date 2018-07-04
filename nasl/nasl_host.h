@@ -22,6 +22,7 @@
 #include "nasl_lex_ctxt.h"      /* for lex_ctxt */
 #include "nasl_tree.h"          /* for tree_cell */
 
+tree_cell *add_hostname (lex_ctxt *);
 tree_cell *get_hostname (lex_ctxt *);
 tree_cell *get_hostnames (lex_ctxt *);
 tree_cell *get_hostname_source (lex_ctxt *);

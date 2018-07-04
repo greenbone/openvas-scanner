@@ -205,6 +205,33 @@ host_get_port_state_udp (struct script_infos *plugdata, int portnum)
   return (host_get_port_state_proto (plugdata, portnum, "udp"));
 }
 
+void
+plug_add_host_fqdn (struct script_infos *args, const char *hostname,
+                    const char *source)
+{
+  gvm_vhost_t *vhost;
+  GSList *vhosts;
+
+  if (!hostname || !source)
+    return;
+
+  vhosts = args->vhosts;
+  while (vhosts)
+    {
+      gvm_vhost_t *tmp = vhosts->data;
+
+      if (!strcmp (tmp->value, hostname))
+        {
+          g_warning ("%s: Value '%s' exists already", __FUNCTION__, hostname);
+          return;
+        }
+      vhosts = vhosts->next;
+    }
+  vhost = g_malloc0 (sizeof (gvm_vhost_t));
+  vhost->value = g_strdup (hostname);
+  vhost->source = g_strdup (source);
+  args->vhosts = g_slist_prepend (args->vhosts, vhost);
+}
 
 char *
 plug_get_host_fqdn (struct script_infos *args)
