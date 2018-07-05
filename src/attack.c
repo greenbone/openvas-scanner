@@ -431,9 +431,7 @@ check_new_vhosts (kb_t kb, GSList *vhosts)
       g_snprintf (buffer, sizeof (buffer), "internal/source/%s", value);
       source = kb_item_pop_str (kb, buffer);
       assert (source);
-      vhost = g_malloc0 (sizeof (*vhost));
-      vhost->value = value;
-      vhost->source = source;
+      vhost = gvm_vhost_new (value, source);
       vhosts = g_slist_prepend (vhosts, vhost);
     }
   return vhosts;
@@ -666,9 +664,8 @@ attack_start (struct attack_start_args *args)
 
   if (prefs_get_bool ("test_empty_vhost"))
     {
-      gvm_vhost_t *vhost = g_malloc0 (sizeof (*vhost));
-      vhost->value = g_strdup (ip_str);
-      vhost->source = "IP-address";
+      gvm_vhost_t *vhost = gvm_vhost_new
+                            (g_strdup (ip_str), g_strdup ("IP-address"));
       args->host->vhosts = g_slist_prepend (args->host->vhosts, vhost);
     }
   hostnames = vhosts_to_str (args->host->vhosts);
