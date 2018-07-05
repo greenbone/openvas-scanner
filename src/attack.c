@@ -555,27 +555,27 @@ host_authorized (const gvm_host_t *host, const struct in6_addr *addr,
 }
 
 /*
- * Converts a linked-list into a comma-separated char string.
+ * Converts the vhosts list to a comma-separated char string.
  *
  * @param[in]   list    Linked-list to convert.
  *
  * @return NULL if empty list, char string otherwise.
  */
 static char *
-list_to_str (GSList *list)
+vhosts_to_str (GSList *list)
 {
   GString *string;
 
   if (!list)
     return NULL;
-  string = g_string_new (list->data);
+  string = g_string_new (((gvm_vhost_t *) list->data)->value);
   if (g_slist_length (list) == 1)
     return g_string_free (string, FALSE);
   list = list->next;
   while (list)
     {
       g_string_append (string, ", ");
-      g_string_append (string, list->data);
+      g_string_append (string, ((gvm_vhost_t *) list->data)->value);
       list = list->next;
     }
   return g_string_free (string, FALSE);
@@ -634,8 +634,13 @@ attack_start (struct attack_start_args *args)
   gvm_hosts_free (sys_hosts_deny);
 
   if (prefs_get_bool ("test_empty_vhost"))
-    args->host->vhosts = g_slist_prepend (args->host->vhosts, g_strdup (ip_str));
-  hostnames = list_to_str (args->host->vhosts);
+    {
+      gvm_vhost_t *vhost = g_malloc0 (sizeof (*vhost));
+      vhost->value = g_strdup (ip_str);
+      vhost->source = "IP-address";
+      args->host->vhosts = g_slist_prepend (args->host->vhosts, vhost);
+    }
+  hostnames = vhosts_to_str (args->host->vhosts);
   if (hostnames)
     g_message ("Testing %s (Vhosts: %s) [%d]", ip_str, hostnames, getpid ());
   else
