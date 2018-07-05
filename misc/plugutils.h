@@ -56,6 +56,9 @@ plug_current_vhost (void);
 char *
 plug_get_host_fqdn (struct script_infos *);
 
+void
+plug_add_host_fqdn (struct script_infos *, const char *, const char *);
+
 GSList *
 plug_get_host_fqdn_list (struct script_infos *);
 

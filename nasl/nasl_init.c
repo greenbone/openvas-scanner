@@ -129,6 +129,7 @@ static init_func libfuncs[] = {
   {"http_delete", http_delete},
   {"http_put", http_put},
   {"http_close_socket", http_close_socket},
+  {"add_host_name", add_hostname},
   {"get_host_name", get_hostname},
   {"get_host_names", get_hostnames},
   {"get_host_name_source", get_hostname_source},

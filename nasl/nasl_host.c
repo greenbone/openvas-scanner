@@ -34,6 +34,7 @@
 #include <unistd.h>             /* for gethostname */
 
 #include <gvm/base/networking.h>
+#include <gvm/util/kb.h>
 
 #include "../misc/network.h"
 #include "../misc/plugutils.h"          /* for plug_get_host_fqdn */
@@ -115,6 +116,30 @@ get_hostname_source (lex_ctxt * lexic)
   return retc;
 }
 
+tree_cell *
+add_hostname (lex_ctxt * lexic)
+{
+  char buffer[4096];
+  char *value = get_str_var_by_name (lexic, "hostname");
+  char *source = get_str_var_by_name (lexic, "source");
+
+  if (!value)
+    {
+      nasl_perror (lexic, "%s: Empty hostname\n", __FUNCTION__);
+      return NULL;
+    }
+  if (!source || !*source)
+    source = "NASL";
+
+  /* Push to KB. To be fetched by scan host process. */
+  kb_item_push_str (lexic->script_infos->key, "internal/vhosts", value);
+  snprintf (buffer, sizeof (buffer), "internal/source/%s", value);
+  kb_item_push_str (lexic->script_infos->key, buffer, source);
+
+  /* Add to current process' vhosts list. */
+  plug_add_host_fqdn (lexic->script_infos, value, source);
+  return NULL;
+}
 
 tree_cell *
 get_host_ip (lex_ctxt * lexic)

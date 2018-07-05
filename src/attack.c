@@ -410,6 +410,36 @@ init_host_kb (struct scan_globals *globals, char *ip_str, kb_t *network_kb)
 }
 
 /**
+ * @brief Check if a plugin process pushed a new vhost value.
+ *
+ * @param kb        Host scan KB.
+ * @param vhosts    List of vhosts to add new vhosts to.
+ *
+ * @return New vhosts list.
+ */
+static GSList *
+check_new_vhosts (kb_t kb, GSList *vhosts)
+{
+  char *value;
+
+  while ((value = kb_item_pop_str (kb, "internal/vhosts")))
+    {
+      /* Get the source. */
+      char buffer[4096], *source;
+      gvm_vhost_t *vhost;
+
+      g_snprintf (buffer, sizeof (buffer), "internal/source/%s", value);
+      source = kb_item_pop_str (kb, buffer);
+      assert (source);
+      vhost = g_malloc0 (sizeof (*vhost));
+      vhost->value = value;
+      vhost->source = source;
+      vhosts = g_slist_prepend (vhosts, vhost);
+    }
+  return vhosts;
+}
+
+/**
  * @brief Attack one host.
  */
 static void
@@ -498,6 +528,7 @@ attack_host (struct scan_globals *globals, struct in6_addr *ip,
                 }
             }
 
+          vhosts = check_new_vhosts (kb, vhosts);
           if ((cur_plug * 100) / num_plugs >= last_status
               && !scan_is_stopped () && !all_scans_are_stopped ())
             {
