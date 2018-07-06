@@ -89,13 +89,9 @@ nasl_pread (lex_ctxt * lexic)
     {
       char *p;
 
+      bzero (newdir, sizeof (newdir));
       if (cmd[0] == '/')
-        {
-          strncpy (newdir, cmd, sizeof (newdir) - 1);
-          p = strrchr (newdir, '/');
-          if (p != newdir)
-            *p = '\0';
-        }
+        strncpy (newdir, cmd, sizeof (newdir) - 1);
       else
         {
           p = g_find_program_in_path (cmd);
@@ -108,8 +104,9 @@ nasl_pread (lex_ctxt * lexic)
             }
 
         }
-      newdir[sizeof (newdir) - 1] = '\0';
-
+      p = strrchr (newdir, '/');
+      if (p && p != newdir)
+        *p = '\0';
       if (getcwd (cwd, sizeof (cwd)) == NULL)
         {
           nasl_perror (lexic, "pread(): getcwd: %s\n", strerror (errno));
