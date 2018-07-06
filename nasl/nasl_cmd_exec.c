@@ -32,7 +32,7 @@
 #include <sys/param.h>          /* for MAXPATHLEN */
 #include <unistd.h>             /* for getcwd */
 
-#include "../misc/plugutils.h"          /* for find_in_path */
+#include "../misc/plugutils.h"
 
 #include "nasl_tree.h"
 #include "nasl_global_ctxt.h"
@@ -98,7 +98,7 @@ nasl_pread (lex_ctxt * lexic)
         }
       else
         {
-          p = find_in_path (cmd, 0);
+          p = g_find_program_in_path (cmd);
           if (p != NULL)
             strncpy (newdir, p, sizeof (newdir) - 1);
           else
@@ -199,7 +199,7 @@ tree_cell *
 nasl_find_in_path (lex_ctxt * lexic)
 {
   tree_cell *retc;
-  char *cmd;
+  char *cmd, *result;
 
   cmd = get_str_var_by_num (lexic, 0);
   if (cmd == NULL)
@@ -209,7 +209,9 @@ nasl_find_in_path (lex_ctxt * lexic)
     }
 
   retc = alloc_typed_cell (CONST_INT);
-  retc->x.i_val = (find_in_path (cmd, 0) != NULL);
+  result = g_find_program_in_path (cmd);
+  retc->x.i_val = !!result;
+  g_free (result);
   return retc;
 }
 

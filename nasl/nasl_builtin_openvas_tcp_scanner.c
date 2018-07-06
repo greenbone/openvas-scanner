@@ -33,7 +33,7 @@
 #include <gvm/base/logging.h>
 #include <gvm/base/prefs.h>    /* for prefs_get */
 
-#include "../misc/plugutils.h" /* for find_in_path */
+#include "../misc/plugutils.h"
 #include "../misc/network.h"
 
 #include "nasl_lex_ctxt.h"
@@ -1338,7 +1338,7 @@ plugin_run_openvas_tcp_scanner (lex_ctxt * lexic)
 
     if (max_sys_fd <= 0)
       {
-	if ( find_in_path("sysctl", 0) != NULL )
+	if (g_find_program_in_path ("sysctl"))
 	  fp = popen("sysctl fs.file-nr", "r");
 	else
 	  fp = NULL;
@@ -1354,7 +1354,7 @@ plugin_run_openvas_tcp_scanner (lex_ctxt * lexic)
       }
     if (max_sys_fd <= 0)
       {
-	if ( find_in_path("sysctl", 0) )
+	if (g_find_program_in_path ("sysctl"))
 	  fp = popen("sysctl fs.file-max", "r");
 	else
 	  fp = NULL;
@@ -1369,7 +1369,7 @@ plugin_run_openvas_tcp_scanner (lex_ctxt * lexic)
 
     if (max_sys_fd <= 0)
       {
-	if ( find_in_path("sysctl", 0) )
+	if (g_find_program_in_path ("sysctl"))
 	  fp = popen("sysctl kern.maxfiles", "r");
 	else
 	  fp = NULL;

@@ -117,6 +117,4 @@ const char *get_plugin_preference_fname (struct script_infos *, const char *);
 char *get_plugin_preference_file_content (struct script_infos *, const char *);
 long get_plugin_preference_file_size (struct script_infos *, const char *);
 
-char *find_in_path (char *, int);
-
 #endif
