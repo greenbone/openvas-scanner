@@ -542,8 +542,7 @@ attack_host (struct scan_globals *globals, struct in6_addr *ip,
         }
       else if (plugin == NULL)
         break;
-      else
-        pluginlaunch_wait_for_free_process (kb);
+      pluginlaunch_wait_for_free_process (kb);
     }
 
   pluginlaunch_wait (kb);
