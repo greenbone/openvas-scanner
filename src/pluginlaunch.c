@@ -104,12 +104,10 @@ update_running_processes (kb_t kb)
   struct timeval now;
   int log_whole =  prefs_get_bool ("log_whole_attack");
 
-  gettimeofday (&now, NULL);
-
   if (num_running_processes == 0)
     return;
 
-  usleep (250000);
+  gettimeofday (&now, NULL);
   for (i = 0; i < MAX_PROCESSES; i++)
     {
       if (processes[i].pid > 0)
@@ -264,7 +262,10 @@ next_free_process (kb_t kb, struct scheduler_plugin *upcoming)
           && simult_ports (processes[r].plugin->oid, upcoming->oid))
         {
           while (process_alive (processes[r].pid))
-            update_running_processes (kb);
+            {
+              update_running_processes (kb);
+              usleep (250000);
+            }
         }
     }
   for (r = 0; r < MAX_PROCESSES; r++)
@@ -352,7 +353,10 @@ plugin_launch (struct scan_globals *globals, struct scheduler_plugin *plugin,
 
   /* Wait for a free slot */
   while (num_running_processes >= max_running_processes)
-    update_running_processes (kb);
+    {
+      update_running_processes (kb);
+      usleep (250000);
+    }
 
   p = next_free_process (kb, plugin);
   if (p < 0)
@@ -393,7 +397,10 @@ void
 pluginlaunch_wait (kb_t kb)
 {
   while (num_running_processes != 0)
-    update_running_processes (kb);
+    {
+      update_running_processes (kb);
+      usleep (250000);
+    }
 }
 
 /**
@@ -403,8 +410,15 @@ pluginlaunch_wait (kb_t kb)
 void
 pluginlaunch_wait_for_free_process (kb_t kb)
 {
-  int num = num_running_processes;
-
-  while (num_running_processes == num)
-    update_running_processes (kb);
+  if (!num_running_processes)
+    return;
+  while (1)
+    {
+      update_running_processes (kb);
+      /* Max number of processes are still running. */
+      if (num_running_processes == max_running_processes)
+        usleep (250000);
+      else
+        break;
+    }
 }
