@@ -1338,11 +1338,7 @@ plugin_run_openvas_tcp_scanner (lex_ctxt * lexic)
 
     if (max_sys_fd <= 0)
       {
-	if (g_find_program_in_path ("sysctl"))
-	  fp = popen("sysctl fs.file-nr", "r");
-	else
-	  fp = NULL;
-
+	fp = popen ("sysctl fs.file-nr", "r");
 	if (fp != NULL)
 	  {
 	    if (fscanf(fp, "%*s = %*d %d %d", &cur_sys_fd, &max_sys_fd) == 1)
@@ -1354,11 +1350,7 @@ plugin_run_openvas_tcp_scanner (lex_ctxt * lexic)
       }
     if (max_sys_fd <= 0)
       {
-	if (g_find_program_in_path ("sysctl"))
-	  fp = popen("sysctl fs.file-max", "r");
-	else
-	  fp = NULL;
-
+	fp = popen ("sysctl fs.file-max", "r");
 	if (fp != NULL)
 	  {
 	    if (fscanf(fp, "%*s = %d", &max_sys_fd) < 1)
@@ -1369,11 +1361,7 @@ plugin_run_openvas_tcp_scanner (lex_ctxt * lexic)
 
     if (max_sys_fd <= 0)
       {
-	if (g_find_program_in_path ("sysctl"))
-	  fp = popen("sysctl kern.maxfiles", "r");
-	else
-	  fp = NULL;
-
+	fp = popen ("sysctl kern.maxfiles", "r");
 	if (fp != NULL)
 	  {
 	    if (fscanf(fp, "%*s = %d", &max_sys_fd) < 1)
