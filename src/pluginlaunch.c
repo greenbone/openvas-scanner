@@ -41,6 +41,7 @@
 #include "../misc/nvt_categories.h"  /* for ACT_SCANNER */
 
 #include "pluginload.h"
+#include "pluginlaunch.h"
 #include "utils.h"
 #include "sighand.h"
 #include "processes.h"
@@ -352,12 +353,7 @@ plugin_launch (struct scan_globals *globals, struct scheduler_plugin *plugin,
   int p;
 
   /* Wait for a free slot */
-  while (num_running_processes >= max_running_processes)
-    {
-      update_running_processes (kb);
-      usleep (250000);
-    }
-
+  pluginlaunch_wait_for_free_process (kb);
   p = next_free_process (kb, plugin);
   if (p < 0)
     return -1;
@@ -396,10 +392,11 @@ plugin_launch (struct scan_globals *globals, struct scheduler_plugin *plugin,
 void
 pluginlaunch_wait (kb_t kb)
 {
-  while (num_running_processes != 0)
+  while (num_running_processes)
     {
       update_running_processes (kb);
-      usleep (250000);
+      if (num_running_processes)
+        waitpid (-1, NULL, 0);
     }
 }
 
@@ -412,13 +409,11 @@ pluginlaunch_wait_for_free_process (kb_t kb)
 {
   if (!num_running_processes)
     return;
-  while (1)
+  update_running_processes (kb);
+  /* Max number of processes are still running. */
+  if (num_running_processes == max_running_processes)
     {
+      waitpid (-1, NULL, 0);
       update_running_processes (kb);
-      /* Max number of processes are still running. */
-      if (num_running_processes == max_running_processes)
-        usleep (250000);
-      else
-        break;
     }
 }
