@@ -482,6 +482,7 @@ banner_grab(const struct in6_addr *pia, const char* portrange,
 		perror("setsockopt(IP_TOS");
 #endif
         bzero (&sa, sizeof (sa));
+        bzero (&sa6, sizeof (sa6));
         if(IN6_IS_ADDR_V4MAPPED(pia))
         {
           sa.sin_addr.s_addr = pia->s6_addr32[3];
