@@ -36,6 +36,7 @@
 #include "../misc/plugutils.h"  /* for plug_get_launch */
 
 #include <glib.h>
+#include <malloc.h>
 
 #include "pluginscheduler.h"
 #include "pluginload.h"
@@ -345,6 +346,7 @@ plugins_scheduler_init (const char *plugins_list, int autoload, int only_network
       plugins_scheduler_free (ret);
       return NULL;
     }
+  malloc_trim (0);
   return ret;
 }
 
@@ -435,6 +437,31 @@ get_next_in_range (plugins_scheduler_t h, int start, int end)
   return NULL;
 }
 
+static void
+scheduler_phase_cleanup (plugins_scheduler_t sched, int start, int end)
+{
+  int category;
+
+  assert (sched);
+  for (category = start; category <= end; category++)
+    {
+      GSList *element = sched->list[category];
+      while (element)
+        {
+          struct scheduler_plugin *plugin = element->data;
+
+          g_free (plugin->oid);
+          g_slist_free (plugin->deps);
+          plugin->oid = NULL;
+          plugin->deps = NULL;
+          element = element->next;
+        }
+      g_slist_free (sched->list[category]);
+      sched->list[category] = NULL;
+    }
+  malloc_trim (0);
+}
+
 struct scheduler_plugin *
 plugins_scheduler_next (plugins_scheduler_t h)
 {
@@ -450,6 +477,7 @@ plugins_scheduler_next (plugins_scheduler_t h)
       if (ret)
         return ret;
       scheduler_phase = 1;
+      scheduler_phase_cleanup (h, ACT_INIT, ACT_INIT);
     }
   if (scheduler_phase <= 1)
     {
@@ -457,6 +485,7 @@ plugins_scheduler_next (plugins_scheduler_t h)
       if (ret)
         return ret;
       scheduler_phase = 2;
+      scheduler_phase_cleanup (h, ACT_SCANNER, ACT_SCANNER);
     }
   if (scheduler_phase <= 2)
     {
@@ -464,6 +493,7 @@ plugins_scheduler_next (plugins_scheduler_t h)
       if (ret)
         return ret;
       scheduler_phase = 3;
+      scheduler_phase_cleanup (h, ACT_SETTINGS, ACT_GATHER_INFO);
     }
   if (scheduler_phase <= 3)
     {
@@ -471,6 +501,7 @@ plugins_scheduler_next (plugins_scheduler_t h)
       if (ret)
         return ret;
       scheduler_phase = 4;
+      scheduler_phase_cleanup (h, ACT_ATTACK, ACT_FLOOD);
     }
   if (scheduler_phase <= 4)
     {
@@ -478,6 +509,7 @@ plugins_scheduler_next (plugins_scheduler_t h)
       if (ret)
         return ret;
       scheduler_phase = 5;
+      scheduler_phase_cleanup (h, ACT_END, ACT_END);
     }
   return NULL;
 }
