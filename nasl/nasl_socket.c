@@ -800,14 +800,9 @@ nasl_recv (lex_ctxt * lexic)
                       g_free (data);
                       return NULL;
                     }
-                  else
-                    break;
                 }
               else
                 new_len += e;
-
-              if (new_len >= len)
-                break;
 
               break;            /* UDP data is never fragmented */
             }
