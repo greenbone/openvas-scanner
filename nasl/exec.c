@@ -1691,10 +1691,6 @@ nasl_exec (lex_ctxt * lexic, tree_cell * st)
       abort ();
       return NULL;
     }
-
-  deref_cell (ret);
-  deref_cell (ret2);
-  return NULL;
 }
 
 extern tree_cell *nasl_lint (lex_ctxt *, tree_cell *);

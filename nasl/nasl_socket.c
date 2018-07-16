@@ -577,7 +577,11 @@ nasl_open_sock_udp (lex_ctxt * lexic)
       if (soc < 0)
         return NULL;
       gvm_source_set_socket (soc, 0, AF_INET);
-      connect (soc, (struct sockaddr *) &soca, sizeof (soca));
+      if (connect (soc, (struct sockaddr *) &soca, sizeof (soca)) < 0)
+        {
+          close (soc);
+          return NULL;
+        }
     }
   else
     {
@@ -796,14 +800,9 @@ nasl_recv (lex_ctxt * lexic)
                       g_free (data);
                       return NULL;
                     }
-                  else
-                    break;
                 }
               else
                 new_len += e;
-
-              if (new_len >= len)
-                break;
 
               break;            /* UDP data is never fragmented */
             }

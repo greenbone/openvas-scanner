@@ -381,7 +381,7 @@ v6_getinterfaces (int *howmany)
           else if (family == AF_INET6)
             {
               strncpy (mydevs[numinterfaces].name, ifa->ifa_name,
-                       sizeof (mydevs[numinterfaces].name));
+                       sizeof (mydevs[numinterfaces].name) - 1);
               s6addr = (struct sockaddr_in6 *) ifa->ifa_addr;
               memcpy (&(mydevs[numinterfaces].addr6),
                       (char *) &(s6addr->sin6_addr), sizeof (struct in6_addr));

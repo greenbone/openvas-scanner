@@ -210,7 +210,7 @@ rawsocket (int family)
         {
           perror ("socket ");
           printf ("error opening socket\n");
-          if (soc > 0)
+          if (soc >= 0)
             close (soc);
           return -1;
         }
