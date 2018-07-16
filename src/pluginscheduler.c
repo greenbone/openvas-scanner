@@ -36,6 +36,7 @@
 #include "../misc/plugutils.h"  /* for plug_get_launch */
 
 #include <glib.h>
+#include <malloc.h>
 
 #include "pluginscheduler.h"
 #include "pluginload.h"
@@ -151,38 +152,35 @@ plugin_add (plugins_scheduler_t sched, GHashTable *oids_table, int autoload,
   /* Add the plugin's dependencies too. */
   if (autoload)
     {
-      char *deps = nvti_dependencies (nvti);
+      char *saveptr, *dep_name = NULL, *deps = nvti_dependencies (nvti);
 
       if (deps)
+        dep_name = strtok_r (deps, ", ", &saveptr);
+      while (dep_name)
         {
-          int i;
-          char **array = g_strsplit (deps, ", ", 0);
+          struct scheduler_plugin *dep_plugin;
+          char *dep_oid;
 
-          for (i = 0; array[i]; i++)
+          if ((dep_oid = nvticache_get_oid (dep_name)))
             {
-              struct scheduler_plugin *dep_plugin;
-              char *dep_oid = nvticache_get_oid (array[i]);
-              if (dep_oid)
-                {
-                  plugin_add (sched, oids_table, autoload, dep_oid);
-                  dep_plugin = g_hash_table_lookup (oids_table, dep_oid);
-                  /* In case of autoload, no need to wait for plugin_add() to
-                   * fill all enabled plugins to start filling dependencies
-                   * lists. */
-                  if (dep_plugin)
-                    plugin->deps = g_slist_prepend (plugin->deps, dep_plugin);
-                  else
-                    g_warning ("There was a problem loading %s (%s), a "
-                               "dependency of %s. This can happen e.g. when "
-                               "depending on a deprecated NVT.",
-                               array[i], dep_oid, oid);
-                  g_free (dep_oid);
-                }
+              plugin_add (sched, oids_table, autoload, dep_oid);
+              dep_plugin = g_hash_table_lookup (oids_table, dep_oid);
+              /* In case of autoload, no need to wait for plugin_add() to
+               * fill all enabled plugins to start filling dependencies
+               * lists. */
+              if (dep_plugin)
+                plugin->deps = g_slist_prepend (plugin->deps, dep_plugin);
               else
-                g_warning ("There was a problem trying to load %s. "
-                           "This may be due to a parse error.", array[i]);
+                g_warning ("There was a problem loading %s (%s), a "
+                           "dependency of %s. This can happen e.g. when "
+                           "depending on a deprecated NVT.",
+                           dep_name, dep_oid, oid);
+              g_free (dep_oid);
             }
-          g_strfreev(array);
+          else
+            g_warning ("There was a problem trying to load %s. "
+                       "This may be due to a parse error.", dep_name);
+          dep_name = strtok_r (NULL, ", ", &saveptr);
         }
     }
   nvti_free (nvti);
@@ -237,18 +235,18 @@ static void
 plugins_scheduler_enable (plugins_scheduler_t sched, const char *oid_list,
                           int autoload)
 {
-  char *oids, *oid;
+  char *oids, *oid, *saveptr;
   GHashTable *oids_table;
 
   oids_table = g_hash_table_new_full (g_str_hash, g_str_equal, NULL, NULL);
 
   /* Store list of plugins in hashtable. */
   oids = g_strdup (oid_list);
-  oid = strtok (oids, ";");
+  oid = strtok_r (oids, ";", &saveptr);
   while (oid)
     {
       plugin_add (sched, oids_table, autoload, oid);
-      oid = strtok (NULL, ";");
+      oid = strtok_r (NULL, ";", &saveptr);
     }
 
   /* When autoload is disabled, each plugin's deps list is still empty. */
@@ -348,6 +346,7 @@ plugins_scheduler_init (const char *plugins_list, int autoload, int only_network
       plugins_scheduler_free (ret);
       return NULL;
     }
+  malloc_trim (0);
   return ret;
 }
 
@@ -438,6 +437,31 @@ get_next_in_range (plugins_scheduler_t h, int start, int end)
   return NULL;
 }
 
+static void
+scheduler_phase_cleanup (plugins_scheduler_t sched, int start, int end)
+{
+  int category;
+
+  assert (sched);
+  for (category = start; category <= end; category++)
+    {
+      GSList *element = sched->list[category];
+      while (element)
+        {
+          struct scheduler_plugin *plugin = element->data;
+
+          g_free (plugin->oid);
+          g_slist_free (plugin->deps);
+          plugin->oid = NULL;
+          plugin->deps = NULL;
+          element = element->next;
+        }
+      g_slist_free (sched->list[category]);
+      sched->list[category] = NULL;
+    }
+  malloc_trim (0);
+}
+
 struct scheduler_plugin *
 plugins_scheduler_next (plugins_scheduler_t h)
 {
@@ -453,6 +477,7 @@ plugins_scheduler_next (plugins_scheduler_t h)
       if (ret)
         return ret;
       scheduler_phase = 1;
+      scheduler_phase_cleanup (h, ACT_INIT, ACT_INIT);
     }
   if (scheduler_phase <= 1)
     {
@@ -460,6 +485,7 @@ plugins_scheduler_next (plugins_scheduler_t h)
       if (ret)
         return ret;
       scheduler_phase = 2;
+      scheduler_phase_cleanup (h, ACT_SCANNER, ACT_SCANNER);
     }
   if (scheduler_phase <= 2)
     {
@@ -467,6 +493,7 @@ plugins_scheduler_next (plugins_scheduler_t h)
       if (ret)
         return ret;
       scheduler_phase = 3;
+      scheduler_phase_cleanup (h, ACT_SETTINGS, ACT_GATHER_INFO);
     }
   if (scheduler_phase <= 3)
     {
@@ -474,6 +501,7 @@ plugins_scheduler_next (plugins_scheduler_t h)
       if (ret)
         return ret;
       scheduler_phase = 4;
+      scheduler_phase_cleanup (h, ACT_ATTACK, ACT_FLOOD);
     }
   if (scheduler_phase <= 4)
     {
@@ -481,6 +509,7 @@ plugins_scheduler_next (plugins_scheduler_t h)
       if (ret)
         return ret;
       scheduler_phase = 5;
+      scheduler_phase_cleanup (h, ACT_END, ACT_END);
     }
   return NULL;
 }
