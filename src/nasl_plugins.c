@@ -165,7 +165,7 @@ nasl_thread (struct script_infos *);
  */
 int
 nasl_plugin_launch (struct scan_globals *globals, struct in6_addr *ip,
-                    GSList *vhosts, kb_t kb, char *name, const char *oid)
+                    GSList *vhosts, kb_t kb, const char *oid)
 {
   int module;
   struct script_infos *infos;
@@ -176,7 +176,7 @@ nasl_plugin_launch (struct scan_globals *globals, struct in6_addr *ip,
   infos->globals = globals;
   infos->key = kb;
   infos->oid = (char *) oid;
-  infos->name = name;
+  infos->name = nvticache_get_src (oid);
 
   module = create_process ((process_func_t) nasl_thread, infos);
   g_free (infos);

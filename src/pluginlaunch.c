@@ -348,7 +348,7 @@ pluginlaunch_stop (int soft_stop)
  */
 int
 plugin_launch (struct scan_globals *globals, struct scheduler_plugin *plugin,
-               struct in6_addr *ip, GSList *vhosts, kb_t kb, char *name)
+               struct in6_addr *ip, GSList *vhosts, kb_t kb, nvti_t *nvti)
 {
   int p;
 
@@ -360,12 +360,11 @@ plugin_launch (struct scan_globals *globals, struct scheduler_plugin *plugin,
   processes[p].plugin = plugin;
   processes[p].timeout = prefs_nvt_timeout (plugin->oid);
   if (processes[p].timeout == 0)
-    processes[p].timeout = nvticache_get_timeout (plugin->oid);
+    processes[p].timeout = nvti_timeout (nvti);
 
   if (processes[p].timeout == 0)
     {
-      int category = nvticache_get_category (plugin->oid);
-      if (category == ACT_SCANNER)
+      if (nvti_category (nvti) == ACT_SCANNER)
         processes[p].timeout = atoi (prefs_get ("scanner_plugins_timeout")
                                      ?: "-1");
       else
@@ -374,7 +373,7 @@ plugin_launch (struct scan_globals *globals, struct scheduler_plugin *plugin,
 
   gettimeofday (&(processes[p].start), NULL);
   processes[p].pid =
-    nasl_plugin_launch (globals, ip, vhosts, kb, name, plugin->oid);
+    nasl_plugin_launch (globals, ip, vhosts, kb, plugin->oid);
 
   processes[p].alive = 1;
   if (processes[p].pid > 0)

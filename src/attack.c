@@ -235,17 +235,18 @@ static int
 launch_plugin (struct scan_globals *globals, struct scheduler_plugin *plugin,
                struct in6_addr *ip, GSList *vhosts, kb_t kb)
 {
-  int optimize = prefs_get_bool ("optimize_test"), category, pid;
-  char *oid, *name, *error = NULL, *src, ip_str[INET6_ADDRSTRLEN];
+  int optimize = prefs_get_bool ("optimize_test"), pid;
+  char *oid, *name, *error = NULL, ip_str[INET6_ADDRSTRLEN];
   gboolean network_scan = FALSE;
+  nvti_t *nvti;
 
   addr6_to_str (ip, ip_str);
   oid = plugin->oid;
-  category = nvticache_get_category (oid);
+  nvti = nvticache_get_nvt (oid);
   name = nvticache_get_filename (oid);
   if (scan_is_stopped () || all_scans_are_stopped ())
     {
-      if (category != ACT_LAST)
+      if (nvti->category != ACT_LAST)
         {
           plugin->running_state = PLUGIN_STATUS_DONE;
           g_free (name);
@@ -258,7 +259,7 @@ launch_plugin (struct scan_globals *globals, struct scheduler_plugin *plugin,
   if (network_scan_status (globals) == NSS_BUSY)
     network_scan = TRUE;
 
-  if (prefs_get_bool ("safe_checks") && !nvti_category_is_safe (category))
+  if (prefs_get_bool ("safe_checks") && !nvti_category_is_safe (nvti->category))
     {
       if (prefs_get_bool ("log_whole_attack"))
         g_message ("Not launching %s (%s) against %s because safe checks are"
@@ -293,9 +294,9 @@ launch_plugin (struct scan_globals *globals, struct scheduler_plugin *plugin,
 
   /* Do not launch NVT if mandatory key is missing (e.g. an important tool
    * was not found). This is ignored during network wide scanning phases. */
-  if (!network_scan && !mandatory_requirements_met (kb, plugin))
+  if (!network_scan && !mandatory_requirements_met (kb, nvti))
     error = "because a mandatory key is missing";
-  if (error || (optimize && (error = requirements_plugin (kb, plugin))))
+  if (error || (optimize && (error = requirements_plugin (kb, nvti))))
     {
       plugin->running_state = PLUGIN_STATUS_DONE;
       if (prefs_get_bool ("log_whole_attack"))
@@ -315,10 +316,9 @@ launch_plugin (struct scan_globals *globals, struct scheduler_plugin *plugin,
       return ERR_HOST_DEAD;
     }
 
-  src = nvticache_get_src (oid);
   /* Start the plugin */
-  pid = plugin_launch (globals, plugin, ip, vhosts, kb, src);
-  g_free (src);
+  pid = plugin_launch (globals, plugin, ip, vhosts, kb, nvti);
+  nvti_free (nvti);
   if (pid < 0)
     {
       plugin->running_state = PLUGIN_STATUS_UNRUN;
