@@ -33,8 +33,8 @@
 
 #include <gvm/util/kb.h>             /* for struct kb_item */
 
-char *requirements_plugin (kb_t, struct scheduler_plugin *);
+char *requirements_plugin (kb_t, nvti_t *);
 
-int mandatory_requirements_met (kb_t, struct scheduler_plugin *);
+int mandatory_requirements_met (kb_t, nvti_t *);
 
 #endif

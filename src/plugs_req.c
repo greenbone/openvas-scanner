@@ -245,16 +245,12 @@ check_mandatory_keys (kb_t kb, char *keys)
  *         met. 0 if it is not the case.
  */
 int
-mandatory_requirements_met (kb_t kb,
-                            struct scheduler_plugin *plugin)
+mandatory_requirements_met (kb_t kb, nvti_t *nvti)
 {
-  char *mandatory_keys;
   int ret;
 
-  mandatory_keys = nvticache_get_mandatory_keys (plugin->oid);
-  ret = check_mandatory_keys (kb, mandatory_keys);
+  ret = check_mandatory_keys (kb, nvti_mandatory_keys (nvti));
 
-  g_free (mandatory_keys);
   if (ret)
     return 0;
   return 1;
@@ -266,7 +262,7 @@ mandatory_requirements_met (kb_t kb,
  * @return Returns NULL is everything is ok, else an error message.
  */
 char *
-requirements_plugin (kb_t kb, struct scheduler_plugin *plugin)
+requirements_plugin (kb_t kb, nvti_t *nvti)
 {
   static char error[64];
   char *errkey = NULL, *keys, *tcp, *udp;
@@ -276,25 +272,21 @@ requirements_plugin (kb_t kb, struct scheduler_plugin *plugin)
    * Check wether the good ports are open
    */
   error[sizeof (error) - 1] = '\0';
-  tcp = nvticache_get_required_ports (plugin->oid);
+  tcp = nvti_required_ports (nvti);
   if (tcp && *tcp && (get_closed_ports (kb, tcp, "tcp")) == 0)
     {
       strncpy (error, "none of the required tcp ports are open",
                sizeof (error) - 1);
-      g_free (tcp);
       return error;
     }
-  g_free (tcp);
 
-  udp = nvticache_get_required_udp_ports (plugin->oid);
+  udp = nvti_required_udp_ports (nvti);
   if (udp && *udp && (get_closed_ports (kb, udp, "udp")) == 0)
     {
       strncpy (error, "none of the required udp ports are open",
                sizeof (error) - 1);
-      g_free (udp);
       return error;
     }
-  g_free (udp);
 
   if (opti != NULL && (strcmp (opti, "open_ports") == 0 || atoi (opti) == 1))
     return NULL;
@@ -302,15 +294,13 @@ requirements_plugin (kb_t kb, struct scheduler_plugin *plugin)
   /*
    * Check wether a key we wanted is missing
    */
-  keys = nvticache_get_required_keys (plugin->oid);
+  keys = nvti_required_keys (nvti);
   if (kb_missing_keyname_of_namelist (kb, keys, &errkey))
     {
       snprintf (error, sizeof (error), "because the key %s is missing", errkey);
       g_free (errkey);
-      g_free (keys);
       return error;
     }
-  g_free (keys);
 
   if (opti != NULL && (strcmp (opti, "required_keys") == 0 || atoi (opti) == 2))
     return NULL;
@@ -318,14 +308,12 @@ requirements_plugin (kb_t kb, struct scheduler_plugin *plugin)
   /*
    * Check wether a key we do not want is present
    */
-  keys = nvticache_get_excluded_keys (plugin->oid);
+  keys = nvti_excluded_keys (nvti);
   if (kb_present_keyname_of_namelist (kb, keys, &errkey))
     {
       snprintf (error, sizeof (error), "because the key %s is present", errkey);
       g_free (errkey);
-      g_free (keys);
       return error;
     }
-  g_free (keys);
   return NULL;
 }

@@ -38,7 +38,7 @@ void pluginlaunch_wait (kb_t);
 void pluginlaunch_wait_for_free_process (kb_t);
 void pluginlaunch_stop (int);
 int plugin_launch (struct scan_globals *, struct scheduler_plugin *,
-                   struct in6_addr *, GSList *, kb_t, char *);
+                   struct in6_addr *, GSList *, kb_t, nvti_t *);
 
 void pluginlaunch_disable_parallel_checks (void);
 void pluginlaunch_enable_parallel_checks (void);
