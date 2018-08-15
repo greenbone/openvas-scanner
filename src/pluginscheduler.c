@@ -178,8 +178,10 @@ plugin_add (plugins_scheduler_t sched, GHashTable *oids_table, int autoload,
               g_free (dep_oid);
             }
           else
-            g_warning ("There was a problem trying to load %s. "
-                       "This may be due to a parse error.", dep_name);
+            g_warning ("There was a problem trying to load %s, a dependency "
+                       "of  %s. This may be due to a parse error, or it failed "
+                       "to find the dependency. Please check the path to the "
+                       "file.", dep_name, oid);
           dep_name = strtok_r (NULL, ", ", &saveptr);
         }
     }
