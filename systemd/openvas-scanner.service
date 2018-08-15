@@ -1,0 +1,19 @@
+[Unit]
+Description=OpenVAS Scanner
+After=network.target
+Before=openvas-manager.service
+
+[Service]
+Type=forking
+EnvironmentFile=-/etc/sysconfig/openvas-scanner
+ExecStart=/usr/sbin/openvassd $OPTIONS
+#ExecStart=/usr/sbin/openvassd --gnutls-priorities $GNUTLS_PRIORITIES $OPTIONS
+Restart=always
+RestartSec=1
+User=root
+Group=root
+TimeoutSec=1200
+
+[Install]
+WantedBy=multi-user.target
+
