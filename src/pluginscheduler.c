@@ -111,8 +111,8 @@ plugin_next_unrun_dependency (GSList *deps)
 /*---------------------------------------------------------------------------*/
 
 static void
-plugin_add (plugins_scheduler_t sched, GHashTable *oids_table, int autoload,
-            char *oid)
+plugin_add (plugins_scheduler_t sched, GHashTable *oids_table,
+            GHashTable *names_table, int autoload, char *oid)
 {
   struct scheduler_plugin *plugin;
   int category;
@@ -161,9 +161,15 @@ plugin_add (plugins_scheduler_t sched, GHashTable *oids_table, int autoload,
           struct scheduler_plugin *dep_plugin;
           char *dep_oid;
 
-          if ((dep_oid = nvticache_get_oid (dep_name)))
+          dep_oid = g_hash_table_lookup (names_table, dep_name);
+          if (!dep_oid)
             {
-              plugin_add (sched, oids_table, autoload, dep_oid);
+              dep_oid = nvticache_get_oid (dep_name);
+              g_hash_table_insert (names_table, g_strdup (dep_name), dep_oid);
+            }
+          if (dep_oid)
+            {
+              plugin_add (sched, oids_table, names_table, autoload, dep_oid);
               dep_plugin = g_hash_table_lookup (oids_table, dep_oid);
               /* In case of autoload, no need to wait for plugin_add() to
                * fill all enabled plugins to start filling dependencies
@@ -175,7 +181,6 @@ plugin_add (plugins_scheduler_t sched, GHashTable *oids_table, int autoload,
                            "dependency of %s. This can happen e.g. when "
                            "depending on a deprecated NVT.",
                            dep_name, dep_oid, oid);
-              g_free (dep_oid);
             }
           else
             g_warning ("There was a problem trying to load %s, a dependency "
@@ -238,16 +243,17 @@ plugins_scheduler_enable (plugins_scheduler_t sched, const char *oid_list,
                           int autoload)
 {
   char *oids, *oid, *saveptr;
-  GHashTable *oids_table;
+  GHashTable *oids_table, *names_table;
 
   oids_table = g_hash_table_new_full (g_str_hash, g_str_equal, NULL, NULL);
+  names_table = g_hash_table_new_full (g_str_hash, g_str_equal, g_free, g_free);
 
   /* Store list of plugins in hashtable. */
   oids = g_strdup (oid_list);
   oid = strtok_r (oids, ";", &saveptr);
   while (oid)
     {
-      plugin_add (sched, oids_table, autoload, oid);
+      plugin_add (sched, oids_table, names_table, autoload, oid);
       oid = strtok_r (NULL, ";", &saveptr);
     }
 
@@ -256,6 +262,7 @@ plugins_scheduler_enable (plugins_scheduler_t sched, const char *oid_list,
     plugins_scheduler_fill_deps (sched, oids_table);
 
   g_hash_table_destroy (oids_table);
+  g_hash_table_destroy (names_table);
   g_free (oids);
 }
 
