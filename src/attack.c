@@ -409,6 +409,9 @@ init_host_kb (struct scan_globals *globals, char *ip_str, kb_t *network_kb)
   return kb;
 }
 
+static kb_t host_kb = NULL;
+static GSList *host_vhosts = NULL;
+
 /**
  * @brief Check if a plugin process pushed a new vhost value.
  *
@@ -417,24 +420,23 @@ init_host_kb (struct scan_globals *globals, char *ip_str, kb_t *network_kb)
  *
  * @return New vhosts list.
  */
-static GSList *
-check_new_vhosts (kb_t kb, GSList *vhosts)
+static void
+check_new_vhosts ()
 {
   char *value;
 
-  while ((value = kb_item_pop_str (kb, "internal/vhosts")))
+  while ((value = kb_item_pop_str (host_kb, "internal/vhosts")))
     {
       /* Get the source. */
       char buffer[4096], *source;
       gvm_vhost_t *vhost;
 
       g_snprintf (buffer, sizeof (buffer), "internal/source/%s", value);
-      source = kb_item_pop_str (kb, buffer);
+      source = kb_item_pop_str (host_kb, buffer);
       assert (source);
       vhost = gvm_vhost_new (value, source);
-      vhosts = g_slist_prepend (vhosts, vhost);
+      host_vhosts = g_slist_append (host_vhosts, vhost);
     }
-  return vhosts;
 }
 
 /**
@@ -449,7 +451,11 @@ attack_host (struct scan_globals *globals, struct in6_addr *ip,
   char ip_str[INET6_ADDRSTRLEN];
 
   addr6_to_str (ip, ip_str);
+  openvas_signal (SIGUSR1, check_new_vhosts);
+  host_kb = kb;
+  host_vhosts = vhosts;
   kb_item_set_str (kb, "internal/ip", ip_str, 0);
+  kb_item_set_int (kb, "internal/hostpid", getpid ());
   proctitle_set ("openvassd: testing %s", ip_str);
   if (net_kb && *net_kb)
     {
@@ -526,7 +532,6 @@ attack_host (struct scan_globals *globals, struct in6_addr *ip,
                 }
             }
 
-          vhosts = check_new_vhosts (kb, vhosts);
           if ((cur_plug * 100) / num_plugs >= last_status
               && !scan_is_stopped () && !all_scans_are_stopped ())
             {
