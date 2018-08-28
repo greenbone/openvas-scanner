@@ -334,6 +334,8 @@ plugin_next_unrun_dependency (plugins_scheduler_t sched,
                  dependencies_ptr[0]->plugin->oid);
       return NULL;
     }
+  if (calls && calls % 15 == 0)
+    pluginlaunch_wait_for_free_process ();
 
   for (i = 0; dependencies_ptr[i] != NULL; i++)
     {
