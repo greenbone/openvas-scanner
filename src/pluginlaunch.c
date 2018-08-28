@@ -499,11 +499,10 @@ void
 pluginlaunch_wait_for_free_process (void)
 {
   int num = num_running_processes;
-  do
+  while (num && num_running_processes == num)
     {
       wait_for_children ();
       read_running_processes ();
       update_running_processes ();
     }
-  while (num_running_processes == num);
 }
