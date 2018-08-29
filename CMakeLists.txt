@@ -186,9 +186,9 @@ message ("-- Install prefix: ${CMAKE_INSTALL_PREFIX}")
 
 ## Dependency checks
 
-pkg_check_modules (LIBOPENVAS_NASL REQUIRED libopenvas_nasl>=9.0.2)
-pkg_check_modules (LIBOPENVAS_BASE REQUIRED libopenvas_base>=9.0.2)
-pkg_check_modules (LIBOPENVAS_MISC REQUIRED libopenvas_misc>=9.0.2)
+pkg_check_modules (LIBOPENVAS_NASL REQUIRED libopenvas_nasl>=9.0.3)
+pkg_check_modules (LIBOPENVAS_BASE REQUIRED libopenvas_base>=9.0.3)
+pkg_check_modules (LIBOPENVAS_MISC REQUIRED libopenvas_misc>=9.0.3)
 pkg_check_modules (GLIB REQUIRED glib-2.0>=2.32)
 
 message (STATUS "Looking for libgcrypt...")
