@@ -675,7 +675,10 @@ get_kb_list (lex_ctxt * lexic)
   retc->type = DYN_ARRAY;
   retc->x.ref_val = a = g_malloc0 (sizeof (nasl_array));
 
-  top = res = kb_item_get_pattern (kb, kb_mask);
+  if (strchr (kb_mask, '*'))
+    top = res = kb_item_get_pattern (kb, kb_mask);
+  else
+    top = res = kb_item_get_all (kb, kb_mask);
 
   while (res != NULL)
     {
