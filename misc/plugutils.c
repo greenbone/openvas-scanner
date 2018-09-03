@@ -318,19 +318,6 @@ plug_get_host_ip_str (struct script_infos *desc)
   return addr6_as_str (plug_get_host_ip (desc));
 }
 
-static void
-mark_post (const char *oid, struct script_infos *desc, const char *action,
-           const char *content)
-{
-  char entry_name[255];
-
-  if (strlen (action) > (sizeof (entry_name) - 20))
-    return;
-
-  snprintf (entry_name, sizeof (entry_name), "SentData/%s/%s", oid, action);
-  plug_set_key (desc, entry_name, ARG_STRING, content);
-}
-
 /**
  * @brief Post a security message (e.g. LOG, NOTE, WARNING ...).
  *
@@ -462,7 +449,6 @@ proto_post_wrapped (const char *oid, struct script_infos *desc, int port,
   addr6_to_str (plug_get_host_ip (desc), ip_str);
   buffer = g_strdup_printf ("%s|||%s|||%s/%s|||%s|||%s", what, hostname ?: " ",
                             port_s, proto, oid, action_str->str);
-  mark_post (oid, desc, what, action);
   /* Convert to UTF-8 before sending to Manager. */
   data = g_convert (buffer, -1, "UTF-8", "ISO_8859-1", NULL, &length, NULL);
   kb = plug_get_kb (desc);
