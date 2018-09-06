@@ -27,10 +27,5 @@ tree_cell *nasl_fwrite (lex_ctxt *);
 tree_cell *nasl_unlink (lex_ctxt *);
 tree_cell *nasl_get_tmp_dir (lex_ctxt *);
 tree_cell *nasl_file_stat (lex_ctxt *);
-tree_cell *nasl_file_open (lex_ctxt *);
-tree_cell *nasl_file_close (lex_ctxt *);
-tree_cell *nasl_file_read (lex_ctxt *);
-tree_cell *nasl_file_write (lex_ctxt *);
-tree_cell *nasl_file_seek (lex_ctxt *);
 
 #endif
