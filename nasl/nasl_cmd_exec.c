@@ -223,12 +223,9 @@ tree_cell *
 nasl_fread (lex_ctxt * lexic)
 {
   tree_cell *retc;
-  char *fname;
-  struct stat lstat_info, fstat_info;
-  int fd;
-  char *buf, *p;
-  int alen, len, n;
-  FILE *fp;
+  char *fname, *fcontent;
+  size_t flen;
+  GError *ferror = NULL;
 
   fname = get_str_var_by_num (lexic, 0);
   if (fname == NULL)
@@ -237,82 +234,17 @@ nasl_fread (lex_ctxt * lexic)
       return NULL;
     }
 
-  if (lstat (fname, &lstat_info) == -1)
+  if (!g_file_get_contents (fname, &fcontent, &flen, &ferror))
     {
-      if (errno != ENOENT)
-        {
-          nasl_perror (lexic, "fread: %s: %s\n", fname, strerror (errno));
-          return NULL;
-        }
-      fd = open (fname, O_RDONLY | O_EXCL, 0600);
-      if (fd < 0)
-        {
-          nasl_perror (lexic, "fread: %s: %s\n", fname, strerror (errno));
-          return NULL;
-        }
-    }
-  else
-    {
-      fd = open (fname, O_RDONLY | O_EXCL, 0600);
-      if (fd < 0)
-        {
-          nasl_perror (lexic, "fread: %s: possible symlink attack!?! %s\n",
-                       fname, strerror (errno));
-          return NULL;
-        }
-      if (fstat (fd, &fstat_info) == -1)
-        {
-          close (fd);
-          nasl_perror (lexic, "fread: %s: possible symlink attack!?! %s\n",
-                       fname, strerror (errno));
-          return NULL;
-        }
-      else
-        {
-          if (lstat_info.st_mode != fstat_info.st_mode
-              || lstat_info.st_ino != fstat_info.st_ino
-              || lstat_info.st_dev != fstat_info.st_dev)
-            {
-              close (fd);
-              nasl_perror (lexic, "fread: %s: possible symlink attack!?!\n",
-                           fname);
-              return NULL;
-            }
-        }
-    }
-  fp = fdopen (fd, "r");
-  if (fp == NULL)
-    {
-      close (fd);
-      nasl_perror (lexic, "fread: %s: %s\n", fname, strerror (errno));
+      nasl_perror (lexic, "fread: %s", ferror ? ferror->message : "Error");
+      if (ferror)
+        g_error_free (ferror);
       return NULL;
     }
 
-  alen = lstat_info.st_size + 1;
-  buf = g_malloc0 (alen);
-  len = 0;
-  while ((n = fread (buf + len, 1, alen - len, fp)) > 0)
-    {
-      len += n;
-      if (alen <= len)
-        {
-          alen += 4096;
-          p = g_realloc (buf, alen);
-          buf = p;
-        }
-    }
-
-  buf[len] = '\0';
-  if (alen > len + 1)
-    {
-      p = g_realloc (buf, len + 1);
-      buf = p;
-    }
-
   retc = alloc_typed_cell (CONST_DATA);
-  retc->size = len;
-  retc->x.str_val = buf;
-  fclose (fp);
+  retc->size = flen;
+  retc->x.str_val = fcontent;
   return retc;
 }
 
