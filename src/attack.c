@@ -106,6 +106,27 @@ enum net_scan_status {
 ********************************************************/
 
 /**
+ * @brief Add the Host KB index to the list of readable KBs
+ * used by ospd-openvas.
+ */
+static int
+set_kb_readable (int host_kb_index)
+{
+  int i = atoi (prefs_get ("ov_maindbid"));
+  kb_t main_kb = NULL;
+
+  main_kb = kb_direct_conn (prefs_get ("db_address"), i);
+  if (main_kb)
+    {
+      kb_item_add_int (main_kb, "internal/dbindex", host_kb_index);
+      return 0;
+    }
+  g_warning ("Not possible to add the kb index %d to the list of "
+             "ready to read kb", host_kb_index);
+  return -1;
+}
+
+/**
  * @brief Sends the status of a host's scan.
  */
 static int
@@ -121,6 +142,10 @@ comm_send_status (kb_t kb, char *hostname, int curr, int max)
 
   snprintf (buffer, sizeof (buffer), "%d/%d", curr, max);
   kb_item_push_str (kb, "internal/status", buffer);
+
+  if (!is_otp_scan ())
+    if (set_kb_readable (kb_get_kb_index (kb)) == -1)
+        return -1;
 
   return 0;
 }
@@ -682,6 +707,8 @@ attack_start (struct attack_start_args *args)
 
   snprintf (key, sizeof (key), "internal/%s", globals->scan_id);
   kb_item_add_str (kb, key, "finished", 0);
+  if (!is_otp_scan ())
+    if (set_kb_readable (kb_get_kb_index (kb)) == -1)
 
   if (!scan_is_stopped () && !all_scans_are_stopped ())
     {

@@ -416,6 +416,8 @@ load_scan_preferences (const char *scan_id)
       g_strfreev (pref);
       res = res->next;
     }
+  snprintf (key, sizeof (key), "internal/%s", scan_id);
+  kb_item_set_str (kb, key, "ready", 0);
   g_debug ("End loading scan preferences.");
 
   kb_item_free (res);
