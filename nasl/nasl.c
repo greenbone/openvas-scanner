@@ -319,6 +319,11 @@ main (int argc, char **argv)
     target = g_strdup (default_target);
 
   hosts = gvm_hosts_new (target);
+  if (!hosts)
+    {
+      fprintf (stderr, "Erroneous target %s\n", target);
+      exit (1);
+    }
   gvm_hosts_resolve (hosts);
   g_free (target);
 
