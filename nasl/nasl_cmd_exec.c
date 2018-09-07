@@ -45,6 +45,30 @@
 
 static pid_t pid = 0;
 
+static char *
+pread_streams (int fdin, int fderr)
+{
+  char buf[8192];
+  GString *str;
+
+  str = g_string_new ("");
+  errno = 0;
+  bzero (buf, sizeof (buf));
+  while ((read (fdin, buf, sizeof (buf))) > 0
+         || read (fderr, buf, sizeof (buf)) > 0 || errno == EINTR)
+    {
+      if (errno == EINTR)
+        {
+          errno = 0;
+          continue;
+        }
+      g_string_append (str, buf);
+      bzero (buf, sizeof (buf));
+    }
+
+  return g_string_free (str, FALSE);
+}
+
 /** @todo Supspects to glib replacements, all path related stuff. */
 tree_cell *
 nasl_pread (lex_ctxt * lexic)
@@ -52,9 +76,8 @@ nasl_pread (lex_ctxt * lexic)
   tree_cell *retc = NULL, *a;
   anon_nasl_var *v;
   nasl_array *av;
-  int i, j, n, sz, sz2, cd, fd = 0;
-  char **args = NULL, *cmd, *str, *str2, buf[8192];
-  FILE *fp;
+  int i, j, n, cd, fdin = 0, fderr = 0;
+  char **args = NULL, *cmd, *str;
   char cwd[MAXPATHLEN], newdir[MAXPATHLEN], key[128];
 
   if (pid != 0)
@@ -139,46 +162,27 @@ nasl_pread (lex_ctxt * lexic)
   args[j] = NULL;
 
   if (g_spawn_async_with_pipes
-       (NULL, args, NULL, G_SPAWN_SEARCH_PATH, NULL, NULL, &pid, NULL, &fd,
-        NULL, NULL) == FALSE)
+       (NULL, args, NULL, G_SPAWN_SEARCH_PATH, NULL, NULL, &pid, NULL, &fdin,
+        &fderr, NULL) == FALSE)
     goto finish_pread;
 
   snprintf (key, sizeof (key), "internal/child/%d", getpid ());
   kb_item_set_int (lexic->script_infos->key, key, pid);
-  fp = fdopen (fd, "r");
-
-  if (fp != NULL)
+  str = pread_streams (fdin, fderr);
+  if (str)
     {
-      sz = 0;
-      str = g_malloc0 (1);
-
-      errno = 0;
-      while ((n = fread (buf, 1, sizeof (buf), fp)) > 0 || errno == EINTR)      /* && kill(pid, 0) >= 0) */
-        {
-          if (errno == EINTR)
-            {
-              errno = 0;
-              continue;
-            }
-          sz2 = sz + n;
-          str2 = g_realloc (str, sz2);
-          str = str2;
-          memcpy (str + sz, buf, n);
-          sz = sz2;
-        }
-      if (ferror (fp) && errno != EINTR)
-        nasl_perror (lexic, "nasl_pread: fread(): %s\n", strerror (errno));
-
-      if (*cwd != '\0')
-        if (chdir (cwd) < 0)
-          nasl_perror (lexic, "pread(): chdir(%s): %s\n", cwd,
-                       strerror (errno));
-
       retc = alloc_typed_cell (CONST_DATA);
       retc->x.str_val = str;
-      retc->size = sz;
-      fclose (fp);
+      retc->size = strlen (str);
     }
+  else if (errno && errno != EINTR)
+    nasl_perror (lexic, "nasl_pread: fread(): %s\n", strerror (errno));
+  close (fdin);
+  if (*cwd != '\0')
+    if (chdir (cwd) < 0)
+      nasl_perror (lexic, "pread(): chdir(%s): %s\n", cwd,
+                   strerror (errno));
+
 
 finish_pread:
   for (i = 0; i < n; i++)
