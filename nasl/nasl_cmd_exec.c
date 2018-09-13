@@ -43,6 +43,11 @@
 #include "nasl_cmd_exec.h"
 #include "nasl_debug.h"
 
+/* MAXPATHLEN doesn't exist on some architectures like hurd i386 */
+#ifndef MAXPATHLEN
+#define MAXPATHLEN 4096
+#endif
+
 static pid_t pid = 0;
 
 static char *
