@@ -137,7 +137,7 @@ add_hostname (lex_ctxt * lexic)
   snprintf (buffer, sizeof (buffer), "internal/source/%s", value);
   kb_item_push_str (lexic->script_infos->key, buffer, source);
   host_pid = kb_item_get_int (lexic->script_infos->key, "internal/hostpid");
-  if (host_pid)
+  if (host_pid > 0)
     kill (host_pid, SIGUSR1);
 
   /* Add to current process' vhosts list. */
