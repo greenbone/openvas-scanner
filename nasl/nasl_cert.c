@@ -811,7 +811,7 @@ nasl_cert_query (lex_ctxt *lexic)
     }
 
   /* Get the index which defaults to 0.  */
-  cmdidx = get_int_local_var_by_name (lexic, "idx", 0);
+  cmdidx = get_int_var_by_name (lexic, "idx", 0);
 
   /* Command dispatcher.  */
   retc = NULL;
