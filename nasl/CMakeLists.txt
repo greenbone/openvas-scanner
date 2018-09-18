@@ -101,7 +101,7 @@ execute_process (COMMAND gpgme-config --cflags
   OUTPUT_STRIP_TRAILING_WHITESPACE)
 
 message (STATUS "Looking for netsnmp...")
-find_library (SNMP snmp)
+find_library (SNMP netsnmp)
 message (STATUS "Looking for netsnmp... ${SNMP}")
 if (SNMP)
   execute_process (COMMAND net-snmp-config --libs
