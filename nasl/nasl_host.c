@@ -146,6 +146,29 @@ add_hostname (lex_ctxt * lexic)
 }
 
 tree_cell *
+resolve_hostname (lex_ctxt *lexic)
+{
+  struct in6_addr in6addr;
+  char *value = get_str_var_by_name (lexic, "hostname");
+
+  if (!value)
+    {
+      nasl_perror (lexic, "%s: Empty hostname\n", __FUNCTION__);
+      return NULL;
+    }
+
+  if (!gvm_resolve_as_addr6 (value, &in6addr))
+    {
+      tree_cell *retc = alloc_tree_cell ();
+      retc->type = CONST_STR;
+      retc->x.str_val = addr6_as_str (&in6addr);
+      retc->size = strlen (retc->x.str_val);
+      return retc;
+    }
+  return NULL;
+}
+
+tree_cell *
 get_host_ip (lex_ctxt * lexic)
 {
   struct script_infos *script_infos = lexic->script_infos;
