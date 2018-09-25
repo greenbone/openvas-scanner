@@ -166,7 +166,6 @@ endif (NOT OPENVAS_RUN_DIR)
 set (OPENVAS_DATA_DIR    "${DATADIR}/openvas")
 set (OPENVAS_STATE_DIR   "${LOCALSTATEDIR}/lib/openvas")
 set (OPENVAS_LOG_DIR     "${LOCALSTATEDIR}/log/openvas")
-set (OPENVAS_CACHE_DIR   "${LOCALSTATEDIR}/cache/openvas")
 set (OPENVAS_SYSCONF_DIR "${SYSCONFDIR}/openvas")
 
 if (NOT OPENVAS_NVT_DIR)
@@ -265,7 +264,6 @@ install (FILES ${CMAKE_BINARY_DIR}/doc/example_redis_2_4.conf
          DESTINATION ${DATADIR}/doc/openvas-scanner/ )
 
 install (DIRECTORY DESTINATION ${OPENVAS_NVT_DIR})
-install (DIRECTORY DESTINATION ${OPENVAS_CACHE_DIR})
 
 ## Tests
 
