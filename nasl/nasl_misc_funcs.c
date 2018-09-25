@@ -92,15 +92,15 @@ nasl_ftp_log_in (lex_ctxt * lexic)
   tree_cell *retc;
   int res;
 
-  soc = get_int_local_var_by_name (lexic, "socket", 0);
+  soc = get_int_var_by_name (lexic, "socket", 0);
   if (soc <= 0)
     return NULL;
 
-  u = get_str_local_var_by_name (lexic, "user");
+  u = get_str_var_by_name (lexic, "user");
   if (u == NULL)
     u = "";
 
-  p = get_str_local_var_by_name (lexic, "pass");
+  p = get_str_var_by_name (lexic, "pass");
   if (p == NULL)
     p = "";
 
@@ -120,7 +120,7 @@ nasl_ftp_get_pasv_address (lex_ctxt * lexic)
   struct sockaddr_in addr;
   tree_cell *retc;
 
-  soc = get_int_local_var_by_name (lexic, "socket", 0);
+  soc = get_int_var_by_name (lexic, "socket", 0);
   if (soc <= 0)
     return NULL;
 
@@ -702,7 +702,7 @@ nasl_localtime (lex_ctxt * lexic)
   tictac = get_int_var_by_num (lexic, 0, 0);
   if (tictac == 0)
     tictac = time (NULL);
-  utc = get_int_local_var_by_name (lexic, "utc", 0);
+  utc = get_int_var_by_name (lexic, "utc", 0);
 
   if (utc)
     ptm = gmtime (&tictac);
@@ -751,16 +751,16 @@ nasl_mktime (lex_ctxt * lexic)
   tree_cell *retc;
   time_t tictac;
 
-  tm.tm_sec = get_int_local_var_by_name (lexic, "sec", 0);      /* seconds */
-  tm.tm_min = get_int_local_var_by_name (lexic, "min", 0);      /* minutes */
-  tm.tm_hour = get_int_local_var_by_name (lexic, "hour", 0);    /* hours */
-  tm.tm_mday = get_int_local_var_by_name (lexic, "mday", 0);    /* day of the month */
-  tm.tm_mon = get_int_local_var_by_name (lexic, "mon", 1);      /* month */
+  tm.tm_sec = get_int_var_by_name (lexic, "sec", 0);      /* seconds */
+  tm.tm_min = get_int_var_by_name (lexic, "min", 0);      /* minutes */
+  tm.tm_hour = get_int_var_by_name (lexic, "hour", 0);    /* hours */
+  tm.tm_mday = get_int_var_by_name (lexic, "mday", 0);    /* day of the month */
+  tm.tm_mon = get_int_var_by_name (lexic, "mon", 1);      /* month */
   tm.tm_mon -= 1;
-  tm.tm_year = get_int_local_var_by_name (lexic, "year", 0);    /* year */
+  tm.tm_year = get_int_var_by_name (lexic, "year", 0);    /* year */
   if (tm.tm_year >= 1900)
     tm.tm_year -= 1900;
-  tm.tm_isdst = get_int_local_var_by_name (lexic, "isdst", -1); /* daylight saving time */
+  tm.tm_isdst = get_int_var_by_name (lexic, "isdst", -1); /* daylight saving time */
   errno = 0;
   tictac = mktime (&tm);
   if (tictac == (time_t) (-1))
@@ -827,7 +827,7 @@ nasl_gunzip (lex_ctxt * lexic)
   void *data, *uncompressed;
   unsigned long datalen, uncomplen;
 
-  data = get_str_local_var_by_name (lexic, "data");
+  data = get_str_var_by_name (lexic, "data");
   if (data == NULL)
     return NULL;
   datalen = get_var_size_by_name (lexic, "data");
@@ -853,14 +853,14 @@ nasl_gzip (lex_ctxt * lexic)
   void *data, *compressed, *headerformat;
   unsigned long datalen, complen;
 
-  data = get_str_local_var_by_name (lexic, "data");
+  data = get_str_var_by_name (lexic, "data");
   if (data == NULL)
     return NULL;
   datalen = get_var_size_by_name (lexic, "data");
   if (datalen <= 0)
     return NULL;
 
-  headerformat = get_str_local_var_by_name (lexic, "headformat");
+  headerformat = get_str_var_by_name (lexic, "headformat");
   if (!g_strcmp0 (headerformat, "gzip"))
     {
       compressed = gvm_compress_gzipheader (data, datalen, &complen);
@@ -890,7 +890,7 @@ nasl_dec2str (lex_ctxt * lexic)
 {
   /*converts integer to 4 byte buffer */
   (void) lexic;
-  int num = get_int_local_var_by_name (lexic, "num", -1);
+  int num = get_int_var_by_name (lexic, "num", -1);
   if (num == -1)
     {
       nasl_perror (lexic, "Syntax : dec2str(num:<n>)\n");

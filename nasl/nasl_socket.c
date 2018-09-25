@@ -241,7 +241,7 @@ nasl_open_privileged_socket (lex_ctxt * lexic, int proto)
   struct sockaddr_in addr, daddr;
   struct sockaddr_in6 addr6, daddr6;
   struct in6_addr *p;
-  int to = get_int_local_var_by_name (lexic, "timeout", lexic->recv_timeout);
+  int to = get_int_var_by_name (lexic, "timeout", lexic->recv_timeout);
   tree_cell *retc;
   struct timeval tv;
   fd_set rd;
@@ -251,8 +251,8 @@ nasl_open_privileged_socket (lex_ctxt * lexic, int proto)
 
 
 
-  sport = get_int_local_var_by_name (lexic, "sport", -1);
-  dport = get_int_local_var_by_name (lexic, "dport", -1);
+  sport = get_int_var_by_name (lexic, "sport", -1);
+  dport = get_int_var_by_name (lexic, "dport", -1);
   if (dport <= 0)
     {
       nasl_perror (lexic,
@@ -445,19 +445,19 @@ nasl_open_sock_tcp_bufsz (lex_ctxt * lexic, int bufsz)
   const char *priority;
   tree_cell *retc;
 
-  to = get_int_local_var_by_name (lexic, "timeout", lexic->recv_timeout * 2);
+  to = get_int_var_by_name (lexic, "timeout", lexic->recv_timeout * 2);
   if (to < 0)
     to = 10;
 
-  transport = get_int_local_var_by_name (lexic, "transport", -1);
+  transport = get_int_var_by_name (lexic, "transport", -1);
 
   if (transport == OPENVAS_ENCAPS_TLScustom)
     {
       int type;
-      priority = get_str_local_var_by_name (lexic, "priority");
+      priority = get_str_var_by_name (lexic, "priority");
       if (!priority)
         priority = NULL;
-      type = get_local_var_type_by_name (lexic, "priority");
+      type = get_var_type_by_name (lexic, "priority");
       if (type != VAR2_STRING && type != VAR2_DATA)
         priority = NULL;
     }
@@ -465,7 +465,7 @@ nasl_open_sock_tcp_bufsz (lex_ctxt * lexic, int bufsz)
     priority = NULL;
 
   if (bufsz < 0)
-    bufsz = get_int_local_var_by_name (lexic, "bufsz", 0);
+    bufsz = get_int_var_by_name (lexic, "bufsz", 0);
 
   port = get_int_var_by_num (lexic, 0, -1);
   if (port < 0)
@@ -617,9 +617,9 @@ nasl_socket_negotiate_ssl (lex_ctxt * lexic)
   tree_cell *retc;
 
 
-  soc = get_int_local_var_by_name (lexic, "socket", -1);
-  transport = get_int_local_var_by_name (lexic, "transport",
-                                         OPENVAS_ENCAPS_TLScustom);
+  soc = get_int_var_by_name (lexic, "socket", -1);
+  transport = get_int_var_by_name (lexic, "transport",
+                                   OPENVAS_ENCAPS_TLScustom);
   if (soc < 0)
     {
       nasl_perror (lexic, "socket_ssl_negotiate: Erroneous socket value %d\n",
@@ -651,7 +651,7 @@ nasl_socket_get_cert (lex_ctxt * lexic)
   tree_cell *retc;
   void *cert;
 
-  soc = get_int_local_var_by_name (lexic, "socket", -1);
+  soc = get_int_var_by_name (lexic, "socket", -1);
   if (soc < 0)
     {
       nasl_perror (lexic, "socket_get_cert: Erroneous socket value %d\n",
@@ -676,7 +676,7 @@ nasl_socket_get_ssl_session_id (lex_ctxt * lexic)
   tree_cell *retc;
   void *sid;
 
-  soc = get_int_local_var_by_name (lexic, "socket", -1);
+  soc = get_int_var_by_name (lexic, "socket", -1);
   if (soc < 0)
     {
       nasl_perror (lexic, "socket_get_cert: Erroneous socket value %d\n",
@@ -699,7 +699,7 @@ nasl_socket_get_ssl_compression (lex_ctxt * lexic)
   int soc;
   tree_cell *retc;
 
-  soc = get_int_local_var_by_name (lexic, "socket", -1);
+  soc = get_int_var_by_name (lexic, "socket", -1);
   if (soc < 0)
     {
       nasl_perror (lexic, "socket_get_cert: Erroneous socket value %d\n",
@@ -719,7 +719,7 @@ nasl_socket_get_ssl_version (lex_ctxt * lexic)
   int version;
   tree_cell *retc;
 
-  soc = get_int_local_var_by_name (lexic, "socket", -1);
+  soc = get_int_var_by_name (lexic, "socket", -1);
   version = socket_get_ssl_version (soc);
   if (version < 0)
     return NULL;
@@ -735,7 +735,7 @@ nasl_socket_get_ssl_ciphersuite (lex_ctxt * lexic)
   int soc, result;
   tree_cell *retc;
 
-  soc = get_int_local_var_by_name (lexic, "socket", -1);
+  soc = get_int_var_by_name (lexic, "socket", -1);
   result = socket_get_ssl_ciphersuite (soc);
   if (result < 0)
     return NULL;
@@ -751,10 +751,10 @@ tree_cell *
 nasl_recv (lex_ctxt * lexic)
 {
   char *data;
-  int len = get_int_local_var_by_name (lexic, "length", -1);
-  int min_len = get_int_local_var_by_name (lexic, "min", -1);
-  int soc = get_int_local_var_by_name (lexic, "socket", 0);
-  int to = get_int_local_var_by_name (lexic, "timeout", lexic->recv_timeout);
+  int len = get_int_var_by_name (lexic, "length", -1);
+  int min_len = get_int_var_by_name (lexic, "min", -1);
+  int soc = get_int_var_by_name (lexic, "socket", 0);
+  int to = get_int_var_by_name (lexic, "timeout", lexic->recv_timeout);
   fd_set rd;
   struct timeval tv;
   int new_len = 0;
@@ -847,9 +847,9 @@ nasl_recv (lex_ctxt * lexic)
 tree_cell *
 nasl_recv_line (lex_ctxt * lexic)
 {
-  int len = get_int_local_var_by_name (lexic, "length", -1);
-  int soc = get_int_local_var_by_name (lexic, "socket", 0);
-  int timeout = get_int_local_var_by_name (lexic, "timeout", -1);
+  int len = get_int_var_by_name (lexic, "length", -1);
+  int soc = get_int_var_by_name (lexic, "socket", 0);
+  int timeout = get_int_var_by_name (lexic, "timeout", -1);
   char *data;
   int new_len = 0;
   int n = 0;
@@ -918,10 +918,10 @@ nasl_recv_line (lex_ctxt * lexic)
 tree_cell *
 nasl_send (lex_ctxt * lexic)
 {
-  int soc = get_int_local_var_by_name (lexic, "socket", 0);
-  char *data = get_str_local_var_by_name (lexic, "data");
-  int option = get_int_local_var_by_name (lexic, "option", 0);
-  int length = get_int_local_var_by_name (lexic, "length", 0);
+  int soc = get_int_var_by_name (lexic, "socket", 0);
+  char *data = get_str_var_by_name (lexic, "data");
+  int option = get_int_var_by_name (lexic, "option", 0);
+  int length = get_int_var_by_name (lexic, "length", 0);
   int data_length = get_var_size_by_name (lexic, "data");
   int n;
   tree_cell *retc;
@@ -1287,7 +1287,7 @@ nasl_get_sock_info (lex_ctxt * lexic)
       return NULL;
     }
 
-  as_string = !!get_int_local_var_by_name (lexic, "asstring", 0);
+  as_string = !!get_int_var_by_name (lexic, "asstring", 0);
 
   transport = 0;
   strval = NULL;
@@ -1472,7 +1472,7 @@ nasl_socket_cert_verify (lex_ctxt *lexic)
   int transport;
   gnutls_session_t tls_session;
 
-  soc = get_int_local_var_by_name (lexic, "socket", -1);
+  soc = get_int_var_by_name (lexic, "socket", -1);
   if (soc < 0)
     {
       nasl_perror (lexic, "socket_get_cert: Erroneous socket value %d\n",

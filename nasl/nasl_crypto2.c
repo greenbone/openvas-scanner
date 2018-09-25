@@ -121,7 +121,7 @@ mpi_from_named_parameter (lex_ctxt * lexic, gcry_mpi_t * dest,
   long size;
   char *s;
 
-  s = get_str_local_var_by_name (lexic, parameter);
+  s = get_str_var_by_name (lexic, parameter);
   size = get_var_size_by_name (lexic, parameter);
 
   if (!s)
@@ -223,7 +223,7 @@ nasl_bn_random (lex_ctxt * lexic)
   retc->type = CONST_DATA;
 
   /* number of random bits */
-  need = get_int_local_var_by_name (lexic, "need", 0);
+  need = get_int_var_by_name (lexic, "need", 0);
 
   key = gcry_mpi_new (0);
   if (!key)
@@ -263,11 +263,11 @@ nasl_load_privkey_param (lex_ctxt * lexic, const char *priv_name,
   int err;
 
   /* PEM encoded privkey */
-  priv = get_str_local_var_by_name (lexic, priv_name);
+  priv = get_str_var_by_name (lexic, priv_name);
   privlen = get_var_size_by_name (lexic, priv_name);
 
   /* passphrase */
-  passphrase = get_str_local_var_by_name (lexic, passphrase_name);
+  passphrase = get_str_var_by_name (lexic, passphrase_name);
   pem.data = (unsigned char *) priv;
   pem.size = privlen;
 
@@ -995,7 +995,7 @@ nasl_rsa_sign (lex_ctxt * lexic)
   retc = alloc_tree_cell ();
   retc->type = CONST_DATA;
 
-  data = get_str_local_var_by_name (lexic, "data");
+  data = get_str_var_by_name (lexic, "data");
   data_size = get_var_size_by_name (lexic, "data");
   if (!data)
     goto fail;
@@ -1268,15 +1268,15 @@ nasl_bf_cbc (lex_ctxt * lexic, int enc)
   retc->type = CONST_DATA;
 
   /* key */
-  enckey = get_str_local_var_by_name (lexic, "key");
+  enckey = get_str_var_by_name (lexic, "key");
   enckeylen = get_var_size_by_name (lexic, "key");
 
   /* initialization vector */
-  iv = get_str_local_var_by_name (lexic, "iv");
+  iv = get_str_var_by_name (lexic, "iv");
   ivlen = get_var_size_by_name (lexic, "iv");
 
   /* data to decrypt/encrypt */
-  data = get_str_local_var_by_name (lexic, "data");
+  data = get_str_var_by_name (lexic, "data");
   datalen = get_var_size_by_name (lexic, "data");
 
   if (enckey == NULL || data == NULL || iv == NULL)

@@ -207,10 +207,10 @@ nasl_cipher_des (lex_ctxt *lexic)
 static tree_cell *
 nasl_hmac (lex_ctxt * lexic, int algorithm)
 {
-  char *data = get_str_local_var_by_name (lexic, "data");
-  char *key = get_str_local_var_by_name (lexic, "key");
-  int data_len = get_local_var_size_by_name (lexic, "data");
-  int key_len = get_local_var_size_by_name (lexic, "key");
+  char *data = get_str_var_by_name (lexic, "data");
+  char *key = get_str_var_by_name (lexic, "key");
+  int data_len = get_var_size_by_name (lexic, "data");
+  int key_len = get_var_size_by_name (lexic, "key");
 
   return nasl_gcrypt_hash (lexic, algorithm, data, data_len, key, key_len);
 }
@@ -358,8 +358,8 @@ nasl_hmac_sha256 (lex_ctxt * lexic)
 
   key = get_str_var_by_name (lexic, "key");
   data = get_str_var_by_name (lexic, "data");
-  datalen = get_local_var_size_by_name (lexic, "data");
-  keylen = get_local_var_size_by_name (lexic, "key");
+  datalen = get_var_size_by_name (lexic, "data");
+  keylen = get_var_size_by_name (lexic, "key");
   if (!key || !data || keylen <= 0 || datalen <= 0)
     {
       nasl_perror (lexic,
@@ -526,9 +526,9 @@ nasl_prf (lex_ctxt * lexic, int hmac)
   seed = get_str_var_by_name (lexic, "seed");
   label = get_str_var_by_name (lexic, "label");
   outlen = get_int_var_by_name (lexic, "outlen", -1);
-  seed_len = get_local_var_size_by_name (lexic, "seed");
-  secret_len = get_local_var_size_by_name (lexic, "secret");
-  label_len = get_local_var_size_by_name (lexic, "label");
+  seed_len = get_var_size_by_name (lexic, "seed");
+  secret_len = get_var_size_by_name (lexic, "secret");
+  label_len = get_var_size_by_name (lexic, "label");
   if (!secret || !seed || secret_len <= 0 || seed_len <= 0 || !label
       || label_len <= 0 || outlen <= 0)
     {
