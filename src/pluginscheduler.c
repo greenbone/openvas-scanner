@@ -138,6 +138,7 @@ plugin_add (plugins_scheduler_t sched, GHashTable *oids_table,
     }
 
   category = nvti_category (nvti);
+  assert (category >= 0);
   plugin = g_malloc0 (sizeof (struct scheduler_plugin));
   plugin->running_state = PLUGIN_STATUS_UNRUN;
   plugin->oid = g_strdup (oid);
