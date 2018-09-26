@@ -92,7 +92,7 @@ nasl_pread (lex_ctxt * lexic)
     }
 
   a = get_variable_by_name (lexic, "argv");
-  cmd = get_str_local_var_by_name (lexic, "cmd");
+  cmd = get_str_var_by_name (lexic, "cmd");
   if (cmd == NULL || a == NULL || (v = a->x.ref_val) == NULL)
     {
       deref_cell (a);
@@ -110,7 +110,7 @@ nasl_pread (lex_ctxt * lexic)
       return NULL;
     }
 
-  cd = get_int_local_var_by_name (lexic, "cd", 0);
+  cd = get_int_var_by_name (lexic, "cd", 0);
 
   cwd[0] = '\0';
   if (cd)
@@ -297,8 +297,8 @@ nasl_fwrite (lex_ctxt * lexic)
   size_t flen;
   GError *ferror = NULL;
 
-  fcontent = get_str_local_var_by_name (lexic, "data");
-  fname = get_str_local_var_by_name (lexic, "file");
+  fcontent = get_str_var_by_name (lexic, "data");
+  fname = get_str_var_by_name (lexic, "file");
   if (!fcontent || !fname)
     {
       nasl_perror (lexic, "fwrite: need two arguments 'data' and 'file'\n");
@@ -385,14 +385,14 @@ nasl_file_open (lex_ctxt * lexic)
   int fd;
   int imode = O_RDONLY;
 
-  fname = get_str_local_var_by_name (lexic, "name");
+  fname = get_str_var_by_name (lexic, "name");
   if (fname == NULL)
     {
       nasl_perror (lexic, "file_open: need file name argument\n");
       return NULL;
     }
 
-  mode = get_str_local_var_by_name (lexic, "mode");
+  mode = get_str_var_by_name (lexic, "mode");
   if (mode == NULL)
     {
       nasl_perror (lexic, "file_open: need file mode argument\n");
@@ -499,14 +499,14 @@ nasl_file_read (lex_ctxt * lexic)
   int flength;
   int n;
 
-  fd = get_int_local_var_by_name (lexic, "fp", -1);
+  fd = get_int_var_by_name (lexic, "fp", -1);
   if (fd < 0)
     {
       nasl_perror (lexic, "file_read: need file pointer argument\n");
       return NULL;
     }
 
-  flength = get_int_local_var_by_name (lexic, "length", 0);
+  flength = get_int_var_by_name (lexic, "length", 0);
 
   buf = g_malloc0 (flength + 1);
 
@@ -542,8 +542,8 @@ nasl_file_write (lex_ctxt * lexic)
   int fd;
   int n;
 
-  content = get_str_local_var_by_name (lexic, "data");
-  fd = get_int_local_var_by_name (lexic, "fp", -1);
+  content = get_str_var_by_name (lexic, "data");
+  fd = get_int_var_by_name (lexic, "fp", -1);
   if (content == NULL || fd < 0)
     {
       nasl_perror (lexic, "file_write: need two arguments 'fp' and 'data'\n");
@@ -586,8 +586,8 @@ nasl_file_seek (lex_ctxt * lexic)
   int fd;
   int foffset;
 
-  foffset = get_int_local_var_by_name (lexic, "offset", 0);
-  fd = get_int_local_var_by_name (lexic, "fp", -1);
+  foffset = get_int_var_by_name (lexic, "offset", 0);
+  fd = get_int_var_by_name (lexic, "fp", -1);
   if (fd < 0)
     {
       nasl_perror (lexic, "file_seek: need one arguments 'fp'\n");

@@ -1236,13 +1236,6 @@ get_int_var_by_num (lex_ctxt * lexic, int num, int defval)
 long int
 get_int_var_by_name (lex_ctxt * lexic, const char *name, int defval)
 {
-  named_nasl_var *v = get_var_ref_by_name (lexic, name, 1);
-  return var2int (&v->u, defval);
-}
-
-long int
-get_int_local_var_by_name (lex_ctxt * lexic, const char *name, int defval)
-{
   named_nasl_var *v = get_var_ref_by_name (lexic, name, 0);
   return var2int (&v->u, defval);
 }
@@ -1258,17 +1251,9 @@ get_str_var_by_num (lex_ctxt * lexic, int num)
 char *
 get_str_var_by_name (lex_ctxt * lexic, const char *name)
 {
-  named_nasl_var *v = get_var_ref_by_name (lexic, name, 1);
-  return (char *) var2str (&v->u);
-}
-
-char *
-get_str_local_var_by_name (lex_ctxt * lexic, const char *name)
-{
   named_nasl_var *v = get_var_ref_by_name (lexic, name, 0);
   return (char *) var2str (&v->u);
 }
-
 static int
 get_var_size (const anon_nasl_var * v)
 {
@@ -1294,13 +1279,6 @@ get_var_size (const anon_nasl_var * v)
 int
 get_var_size_by_name (lex_ctxt * lexic, const char *name)
 {
-  named_nasl_var *v = get_var_ref_by_name (lexic, name, 1);
-  return get_var_size (&v->u);
-}
-
-int
-get_local_var_size_by_name (lex_ctxt * lexic, const char *name)
-{
   named_nasl_var *v = get_var_ref_by_name (lexic, name, 0);
   return get_var_size (&v->u);
 }
@@ -1323,7 +1301,7 @@ get_var_type_by_num (lex_ctxt * lexic, int num)
 }
 
 int
-get_local_var_type_by_name (lex_ctxt * lexic, const char *name)
+get_var_type_by_name (lex_ctxt * lexic, const char *name)
 {
   named_nasl_var *v = get_var_ref_by_name (lexic, name, 0);
   return v == NULL ? VAR2_UNDEF : v->u.var_type;
