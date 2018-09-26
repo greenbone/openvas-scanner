@@ -1001,7 +1001,7 @@ open_stream_connection_ext (struct script_infos *args, unsigned int port,
 
     default:
       g_message ("open_stream_connection_ext(): unsupported transport"
-                 " layer %d", transport);
+                 " layer %d passed by %s", transport, args->name);
       errno = EINVAL;
       return -1;
     }
