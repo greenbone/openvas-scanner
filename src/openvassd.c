@@ -135,7 +135,6 @@ static openvassd_option openvassd_defaults[] = {
   {"scanner_plugins_timeout", G_STRINGIFY (SCANNER_NVT_TIMEOUT)},
   {"safe_checks", "yes"},
   {"auto_enable_dependencies", "yes"},
-  {"use_mac_addr", "no"},
   {"nasl_no_signature_check", "yes"},
   {"drop_privileges", "no"},
   {"unscanned_closed", "yes"},
