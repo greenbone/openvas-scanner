@@ -103,7 +103,6 @@ typedef struct
  */
 static openvassd_option openvassd_defaults[] = {
   {"plugins_folder", OPENVAS_NVT_DIR},
-  {"cache_folder", OPENVAS_CACHE_DIR},
   {"include_folders", OPENVAS_NVT_DIR},
   {"max_hosts", "30"},
   {"max_checks", "10"},

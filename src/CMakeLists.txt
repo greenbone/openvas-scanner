@@ -68,10 +68,6 @@ if (OPENVAS_NVT_DIR)
   add_definitions (-DOPENVAS_NVT_DIR=\\\"${OPENVAS_NVT_DIR}\\\")
 endif (OPENVAS_NVT_DIR)
 
-if (OPENVAS_CACHE_DIR)
-  add_definitions (-DOPENVAS_CACHE_DIR=\\\"${OPENVAS_CACHE_DIR}\\\")
-endif (OPENVAS_CACHE_DIR)
-
 if (OPENVAS_LOG_DIR)
   add_definitions (-DOPENVAS_LOG_DIR=\\\"${OPENVAS_LOG_DIR}\\\")
 endif (OPENVAS_LOG_DIR)
