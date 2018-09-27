@@ -137,11 +137,34 @@ add_hostname (lex_ctxt * lexic)
   snprintf (buffer, sizeof (buffer), "internal/source/%s", value);
   kb_item_push_str (lexic->script_infos->key, buffer, source);
   host_pid = kb_item_get_int (lexic->script_infos->key, "internal/hostpid");
-  if (host_pid)
+  if (host_pid > 0)
     kill (host_pid, SIGUSR1);
 
   /* Add to current process' vhosts list. */
   plug_add_host_fqdn (lexic->script_infos, value, source);
+  return NULL;
+}
+
+tree_cell *
+resolve_hostname (lex_ctxt *lexic)
+{
+  struct in6_addr in6addr;
+  char *value = get_str_var_by_name (lexic, "hostname");
+
+  if (!value)
+    {
+      nasl_perror (lexic, "%s: Empty hostname\n", __FUNCTION__);
+      return NULL;
+    }
+
+  if (!gvm_resolve_as_addr6 (value, &in6addr))
+    {
+      tree_cell *retc = alloc_tree_cell ();
+      retc->type = CONST_STR;
+      retc->x.str_val = addr6_as_str (&in6addr);
+      retc->size = strlen (retc->x.str_val);
+      return retc;
+    }
   return NULL;
 }
 
@@ -366,7 +389,7 @@ get_port_transport (lex_ctxt * lexic)
       int trp = plug_get_port_transport (script_infos, port);
 
       retc = alloc_tree_cell ();
-      if (get_int_local_var_by_name (lexic, "asstring", 0))
+      if (get_int_var_by_name (lexic, "asstring", 0))
         {
           const char *s = get_encaps_name (trp);
           retc->type = CONST_STR;
@@ -392,7 +415,7 @@ nasl_same_host (lex_ctxt * lexic)
   char *hn[2], **names[2];
   struct in_addr ia, *a[2];
   int i, j, n[2], names_nb[2], flag;
-  int cmp_hostname = get_int_local_var_by_name (lexic, "cmp_hostname", 0);
+  int cmp_hostname = get_int_var_by_name (lexic, "cmp_hostname", 0);
 
   memset (names_nb, '\0', sizeof (names_nb));
   memset (names, '\0', sizeof (names));

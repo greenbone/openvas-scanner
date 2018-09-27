@@ -112,9 +112,6 @@ Most of the time, openvassd attempts to reproduce an exceptional condition to de
 .IP auto_enable_dependencies
 OpenVAS plugins use the result of each other to execute their job. For instance, a plugin which logs into the remote SMB registry will need the results of the plugin which finds the SMB name of the remote host and the results of the plugin which attempts to log into the remote host. If you want to only select a subset of the plugins available, tracking the dependencies can quickly become tiresome. If you set this option to 'yes', openvassd will automatically enable the plugins that are depended on.
 
-.IP use_mac_addr
-Set this option to 'yes' if you are testing your local network and each local host has a dynamic IP address (affected by DHCP or BOOTP), and all the tested hosts will be referred to by their MAC address.
-
 .IP source_iface
 Name of the network interface that will be used as the source of connections
 established by OpenVAS. The scan won't be launched if the value isn't authorized

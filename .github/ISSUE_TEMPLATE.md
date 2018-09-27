@@ -7,8 +7,7 @@ Before reporting an issue please:
    release you are using: http://openvas.org/install-source.html.
 2. check the list of issues whether it isn't already reported.
 3. be aware that this is not a support forum. If your issue is more a question
-   than a bug report, please check http://openvas.org/ for available support
-   options.
+   than a bug report, please use https://community.greenbone.net/c/gse instead.
 -->
 
 ### Expected behavior

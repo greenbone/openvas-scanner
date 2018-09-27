@@ -26,6 +26,7 @@ tree_cell *add_hostname (lex_ctxt *);
 tree_cell *get_hostname (lex_ctxt *);
 tree_cell *get_hostnames (lex_ctxt *);
 tree_cell *get_hostname_source (lex_ctxt *);
+tree_cell *resolve_hostname (lex_ctxt *);
 tree_cell *get_host_ip (lex_ctxt *);
 tree_cell *get_host_open_port (lex_ctxt *);
 tree_cell *get_port_state (lex_ctxt *);

@@ -2,10 +2,11 @@
 * $Id$
 * Description: Runs the OpenVAS-scanner.
 *
-* Authors: - Renaud Deraison <deraison@nessus.org> (Original pre-fork develoment)
-*          - Tim Brown <mailto:timb@openvas.org> (Initial fork)
-*          - Laban Mwangi <mailto:labanm@openvas.org> (Renaming work)
-*          - Tarik El-Yassem <mailto:tarik@openvas.org> (Headers section)
+* Authors: 
+* Renaud Deraison <deraison@nessus.org> (Original pre-fork develoment)
+* Tim Brown (Initial fork)
+* Laban Mwangi (Renaming work)
+* Tarik El-Yassem (Headers section)
 *
 * Copyright:
 * Portions Copyright (C) 2006 Software in the Public Interest, Inc.
@@ -135,7 +136,6 @@ static openvassd_option openvassd_defaults[] = {
   {"scanner_plugins_timeout", G_STRINGIFY (SCANNER_NVT_TIMEOUT)},
   {"safe_checks", "yes"},
   {"auto_enable_dependencies", "yes"},
-  {"use_mac_addr", "no"},
   {"nasl_no_signature_check", "yes"},
   {"drop_privileges", "no"},
   {"unscanned_closed", "yes"},

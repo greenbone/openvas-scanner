@@ -435,9 +435,9 @@ script_require_udp_ports (lex_ctxt * lexic)
 tree_cell *
 script_add_preference (lex_ctxt * lexic)
 {
-  char *name = get_str_local_var_by_name (lexic, "name");
-  char *type = get_str_local_var_by_name (lexic, "type");
-  char *value = get_str_local_var_by_name (lexic, "value");
+  char *name = get_str_var_by_name (lexic, "name");
+  char *type = get_str_var_by_name (lexic, "type");
+  char *value = get_str_var_by_name (lexic, "value");
   struct script_infos *script_infos = lexic->script_infos;
 
   if (name == NULL || type == NULL || value == NULL)
@@ -764,8 +764,8 @@ tree_cell *
 replace_kb_item (lex_ctxt * lexic)
 {
   struct script_infos *script_infos = lexic->script_infos;
-  char *name = get_str_local_var_by_name (lexic, "name");
-  int type = get_local_var_type_by_name (lexic, "value");
+  char *name = get_str_var_by_name (lexic, "name");
+  int type = get_var_type_by_name (lexic, "value");
 
   if (name == NULL)
     {
@@ -776,7 +776,7 @@ replace_kb_item (lex_ctxt * lexic)
 
   if (type == VAR2_INT)
     {
-      int value = get_int_local_var_by_name (lexic, "value", -1);
+      int value = get_int_var_by_name (lexic, "value", -1);
       if (value != -1)
         plug_replace_key (script_infos, name, ARG_INT,
                           GSIZE_TO_POINTER (value));
@@ -787,8 +787,8 @@ replace_kb_item (lex_ctxt * lexic)
     }
   else
     {
-      char *value = get_str_local_var_by_name (lexic, "value");
-      int len = get_local_var_size_by_name (lexic, "value");
+      char *value = get_str_var_by_name (lexic, "value");
+      int len = get_var_size_by_name (lexic, "value");
 
       if (value == NULL)
         {
@@ -807,8 +807,8 @@ tree_cell *
 set_kb_item (lex_ctxt * lexic)
 {
   struct script_infos *script_infos = lexic->script_infos;
-  char *name = get_str_local_var_by_name (lexic, "name");
-  int type = get_local_var_type_by_name (lexic, "value");
+  char *name = get_str_var_by_name (lexic, "name");
+  int type = get_var_type_by_name (lexic, "value");
 
   if (name == NULL)
     {
@@ -819,7 +819,7 @@ set_kb_item (lex_ctxt * lexic)
 
   if (type == VAR2_INT)
     {
-      int value = get_int_local_var_by_name (lexic, "value", -1);
+      int value = get_int_var_by_name (lexic, "value", -1);
       if (value != -1)
         plug_set_key (script_infos, name, ARG_INT, GSIZE_TO_POINTER (value));
       else
@@ -829,8 +829,8 @@ set_kb_item (lex_ctxt * lexic)
     }
   else
     {
-      char *value = get_str_local_var_by_name (lexic, "value");
-      int len = get_local_var_size_by_name (lexic, "value");
+      char *value = get_str_var_by_name (lexic, "value");
+      int len = get_var_size_by_name (lexic, "value");
       if (value == NULL)
         {
           nasl_perror (lexic,
@@ -864,14 +864,14 @@ security_something (lex_ctxt * lexic, proto_post_something_t proto_post_func,
 {
   struct script_infos *script_infos = lexic->script_infos;
 
-  char *proto = get_str_local_var_by_name (lexic, "protocol");
-  char *data = get_str_local_var_by_name (lexic, "data");
-  int port = get_int_local_var_by_name (lexic, "port", -1);
+  char *proto = get_str_var_by_name (lexic, "protocol");
+  char *data = get_str_var_by_name (lexic, "data");
+  int port = get_int_var_by_name (lexic, "port", -1);
   char *dup = NULL;
 
   if (data != NULL)
     {
-      int len = get_local_var_size_by_name (lexic, "data");
+      int len = get_var_size_by_name (lexic, "data");
       int i;
 
       dup = g_memdup (data, len + 1);
@@ -889,7 +889,7 @@ security_something (lex_ctxt * lexic, proto_post_something_t proto_post_func,
     }
 
   if (proto == NULL)
-    proto = get_str_local_var_by_name (lexic, "proto");
+    proto = get_str_var_by_name (lexic, "proto");
 
   if (port < 0)
     port = get_int_var_by_num (lexic, 0, -1);
@@ -1029,8 +1029,8 @@ nasl_scanner_add_port (lex_ctxt * lexic)
 {
   struct script_infos *script_infos = lexic->script_infos;
 
-  int port = get_int_local_var_by_name (lexic, "port", -1);
-  char *proto = get_str_local_var_by_name (lexic, "proto");
+  int port = get_int_var_by_name (lexic, "port", -1);
+  char *proto = get_str_var_by_name (lexic, "proto");
 
   if (port >= 0)
     {

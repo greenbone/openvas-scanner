@@ -784,9 +784,9 @@ nasl_isotime_add (lex_ctxt *lexic)
   memcpy (timebuf, string, ISOTIME_SIZE -1);
   timebuf[ISOTIME_SIZE - 1] = 0;
 
-  nyears = get_int_local_var_by_name (lexic, "years", 0);
-  ndays = get_int_local_var_by_name (lexic, "days", 0);
-  nseconds = get_int_local_var_by_name (lexic, "seconds", 0);
+  nyears = get_int_var_by_name (lexic, "years", 0);
+  ndays = get_int_var_by_name (lexic, "days", 0);
+  nseconds = get_int_var_by_name (lexic, "seconds", 0);
 
   if (nyears && add_years_to_isotime (timebuf, nyears))
     return NULL;
