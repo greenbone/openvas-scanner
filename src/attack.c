@@ -640,7 +640,8 @@ attack_start (struct attack_start_args *args)
 
   /* The reverse lookup is delayed to this step in order to not slow down the
    * main scan process eg. case of target with big range of IP addresses. */
-  gvm_host_add_reverse_lookup (args->host);
+  if (prefs_get_bool ("expand_vhosts"))
+    gvm_host_add_reverse_lookup (args->host);
   gvm_host_get_addr6 (args->host, &hostip);
   addr6_to_str (&hostip, ip_str);
   /* Do we have the right to test this host ? */
