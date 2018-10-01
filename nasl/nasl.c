@@ -341,7 +341,8 @@ main (int argc, char **argv)
       kb_t kb;
       int rc, i = 0;
 
-      gvm_host_add_reverse_lookup (host);
+      if (prefs_get_bool ("expand_vhosts"))
+        gvm_host_add_reverse_lookup (host);
       gvm_host_get_addr6 (host, &ip6);
       rc = kb_new (&kb, prefs_get ("db_address") ?: KB_PATH_DEFAULT);
       if (rc)
