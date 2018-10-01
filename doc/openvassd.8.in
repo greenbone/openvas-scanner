@@ -1,14 +1,14 @@
-.TH OpenVASSD 8 "January 2011" "The OpenVAS Project" "User Manuals"
+.TH OpenVASSD 8 "January 2011" "Greenbone Vulnerability Management" "User Manuals"
 .SH NAME
-openvassd \- The Scanner of the Open Vulnerability Assessment System (OpenVAS)
+openvassd \- The Scanner of the Greenbone Vulnerability Management
 .SH SYNOPSIS
 .BI "openvassd [\|-v\|] [\|-h\|]  [\|-c " config-file\| "]
 .BI " [\|-D\|] [\|-R\|] [\|-P\|] [\|-q\|] [\|-f\|]"
 
 .SH DESCRIPTION
-.B OpenVAS
-is a security auditing framework made up of several modules.
-The Scanner,
+.B Greenbone Vulnerability Management (GVM)
+is a vulnerability auditing and mangement framework made up of several modules.
+The OpenVAS Scanner,
 .BR openvassd
 is in charge of executing many security tests against many
 target hosts in a highly optimized way.
@@ -172,7 +172,7 @@ hardware system can produce) or otherwise will get erratic results. There are
 several parameters that can be modified to reduce network load:
 
 .IP checks_read_timeout
-(Introduced in OpenVAS 0.99.4) The default value is set to 5 seconds, that can
+The default value is set to 5 seconds, that can
 (should) be increased if network bandwidth is low in the
 openvassd.conf or openvasrc configuration files. Notice that it is recommended
 to increase this this value, if you are running a test outside your LAN 
@@ -184,11 +184,10 @@ GUI client or by .openvasrc) it can be as low as you want it to be
 (obviously 1 is the minimum)
 
 .IP max_checks
-Number of checks to test at the same time (this value is also set by 
-the OpenVAS GUI client or by .openvasrc ) it can be as low as you want it
+Number of checks to test at the same time it can be as low as you want it
 to be and it will also reduce network load and improve performance
 (obviously 1 is the minimum)
-Notice that the OpenVAS scanner will spawn max_hosts * max_checks processes.
+Notice that the OpenVAS Scanner will spawn max_hosts * max_checks processes.
 
 Other options might be using the QoS features offered by your server
 operating system or your network to improve the bandwidth use.
@@ -206,28 +205,28 @@ all NASL scripts may result in 8 to 32 MB worth of traffic per scanned host.
 Reducing the amount of tested part and such will reduce the amount of data
 to be transferred significantly.
 
-.SH MORE INFORMATION ABOUT THE OpenVAS PROJECT
+.SH MORE INFORMATION ABOUT Greenbone Vulnerability Management
 
 The canonical places where you will find more information 
-about the OpenVAS project are: 
+about the OpenVAS Scanner are: 
 
 .RS
 .UR
-http://www.openvas.org/
+https://community.greenbone.net
 .UE
-(Official site)
+(Community site)
 .br
 .UR
-http://wald.intevation.org/projects/openvas/
+https://github.com/greenbone/
 .UE
-(Developers site)
+(Development site)
 .br
 .UR
-http://bugs.openvas.org
+https://www.openvas.org/
 .UE
-(Bug Tracker)
+(Traditional home site)
 .RE
 	
 .SH AUTHORS
 
-openvassd was forked from nessusd in 2005. Nessusd was written by Renaud Deraison <deraison@cvs.nessus.org>. Since 2005 the OpenVAS development team improved and extended the tool.
+openvassd was forked from nessusd in 2005. Nessusd was written by Renaud Deraison <deraison@cvs.nessus.org>. Most new code since 2005 developed by Greenbone Networks GmbH.
