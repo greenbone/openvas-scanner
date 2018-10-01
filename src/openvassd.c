@@ -148,6 +148,7 @@ static openvassd_option openvassd_defaults[] = {
   {"timeout_retry", "3"},
   {"open_sock_max_attempts", "5"},
   {"time_between_request", "0"},
+  {"expand_vhosts", "yes"},
   {NULL, NULL}
 };
 
