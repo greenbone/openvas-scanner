@@ -667,6 +667,7 @@ attack_start (struct attack_start_args *args)
    * main scan process eg. case of target with big range of IP addresses. */
   if (prefs_get_bool ("expand_vhosts"))
     gvm_host_add_reverse_lookup (args->host);
+  gvm_vhosts_exclude (args->host, prefs_get ("exclude_hosts"));
   gvm_host_get_addr6 (args->host, &hostip);
   addr6_to_str (&hostip, ip_str);
   /* Do we have the right to test this host ? */
@@ -758,7 +759,7 @@ apply_hosts_preferences (gvm_hosts_t *hosts)
   if (exclude_hosts)
     {
       /* Exclude hosts, resolving hostnames. */
-      int ret = gvm_hosts_exclude (hosts, exclude_hosts, 1);
+      int ret = gvm_hosts_exclude (hosts, exclude_hosts);
 
       if (ret >= 0)
         g_message ("exclude_hosts: Skipped %d host(s).", ret);
