@@ -135,6 +135,10 @@ add_hostname (lex_ctxt * lexic)
   if (!source || !*source)
     source = "NASL";
 
+  /* Add to current process' vhosts list. */
+  if (plug_add_host_fqdn (lexic->script_infos, value, source))
+    return NULL;
+
   /* Push to KB. Signal host process to fetch it. */
   kb_item_push_str (lexic->script_infos->key, "internal/vhosts", value);
   snprintf (buffer, sizeof (buffer), "internal/source/%s", value);
@@ -143,8 +147,6 @@ add_hostname (lex_ctxt * lexic)
   if (host_pid > 0)
     kill (host_pid, SIGUSR2);
 
-  /* Add to current process' vhosts list. */
-  plug_add_host_fqdn (lexic->script_infos, value, source);
   return NULL;
 }
 
