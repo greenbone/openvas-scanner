@@ -1,4 +1,4 @@
-.TH NASL 1 "May 2006" "OpenVAS Project" "Nessus Attack Scripting Language"
+.TH NASL 1 "October 2018" "Greenbone Vulnerability Management" "Nessus Attack Scripting Language"
 .SH NAME
 openvas-nasl \- Nessus Attack Scripting Language
 .SH SYNOPSIS
@@ -32,7 +32,7 @@ connections.
 
 .TP
 .B \-s
-Sets the return value of safe_checks() to 1. (See the OpenVAS documentation to know
+Sets the return value of safe_checks() to 1. (See the OpenVAS Scanner documentation to know
 what the safe checks are) Implies \-B.
 
 .TP
@@ -67,7 +67,6 @@ Output debug information to stderr.
 Set KB key to value. Can be used multiple times.
 
 .SH SEE ALSO
-.BR The\ NASL2\ reference\ manual
 .BR openvassd (8).
 .SH HISTORY
 NASL comes from a private project called 'pkt_forge', which was written in late 1998 by Renaud Deraison and which was an interactive shell to forge and send raw IP packets (this pre-dates Perl's Net::RawIP by a couple of weeks). It was then extended to do a wide range of network-related operations and integrated into Nessus as 'NASL'. 
@@ -75,6 +74,9 @@ NASL comes from a private project called 'pkt_forge', which was written in late 
 The parser was completely hand-written and a pain to work with. In Mid-2002, Michel Arboi wrote a bison parser for NASL, and he and Renaud Deraison re-wrote NASL from scratch. Although the "new" NASL was nearly working as early as 
 August 2002, Michel's laziness made us wait for early 2003 to have it working completely.
 
+After the original authors decided to stop the Open Source development in 2005, most changes and maintenance works were done by Greenbone Networks.
+
 .SH AUTHOR
 Most of the engine is (C) 2003 Michel Arboi, most of the built-in functions
-are (C) 2003 Renaud Deraison
+are (C) 2003 Renaud Deraison.
+Most new code since 2005 developed by Greenbone Networks GmbH.
