@@ -141,7 +141,7 @@ add_hostname (lex_ctxt * lexic)
   kb_item_push_str (lexic->script_infos->key, buffer, source);
   host_pid = kb_item_get_int (lexic->script_infos->key, "internal/hostpid");
   if (host_pid > 0)
-    kill (host_pid, SIGUSR1);
+    kill (host_pid, SIGUSR2);
 
   /* Add to current process' vhosts list. */
   plug_add_host_fqdn (lexic->script_infos, value, source);
