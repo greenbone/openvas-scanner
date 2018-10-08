@@ -477,7 +477,7 @@ attack_host (struct scan_globals *globals, struct in6_addr *ip,
   char ip_str[INET6_ADDRSTRLEN];
 
   addr6_to_str (ip, ip_str);
-  openvas_signal (SIGUSR1, check_new_vhosts);
+  openvas_signal (SIGUSR2, check_new_vhosts);
   host_kb = kb;
   host_vhosts = vhosts;
   kb_item_set_str (kb, "internal/ip", ip_str, 0);
@@ -517,7 +517,7 @@ attack_host (struct scan_globals *globals, struct in6_addr *ip,
           static int last_status = 0, cur_plug = 0;
 
         again:
-          e = launch_plugin (globals, plugin, ip, vhosts, kb);
+          e = launch_plugin (globals, plugin, ip, host_vhosts, kb);
           if (e < 0)
             {
               /*
