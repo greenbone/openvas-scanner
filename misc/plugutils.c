@@ -205,16 +205,19 @@ host_get_port_state_udp (struct script_infos *plugdata, int portnum)
   return (host_get_port_state_proto (plugdata, portnum, "udp"));
 }
 
-void
+int
 plug_add_host_fqdn (struct script_infos *args, const char *hostname,
                     const char *source)
 {
   gvm_vhost_t *vhost;
   GSList *vhosts;
+  char **excluded;
 
-  if (!hostname || !source)
-    return;
+  if ((prefs_get ("expand_vhosts") && !prefs_get_bool ("expand_vhosts"))
+      || !hostname || !source)
+    return -1;
 
+  /* Check for duplicate vhost value. */
   vhosts = args->vhosts;
   while (vhosts)
     {
@@ -223,12 +226,29 @@ plug_add_host_fqdn (struct script_infos *args, const char *hostname,
       if (!strcmp (tmp->value, hostname))
         {
           g_warning ("%s: Value '%s' exists already", __FUNCTION__, hostname);
-          return;
+          return -1;
         }
       vhosts = vhosts->next;
     }
+  /* Check for excluded vhost value. */
+  if (prefs_get ("exclude_hosts"))
+    {
+      char **tmp = excluded = g_strsplit (prefs_get ("exclude_hosts"), ",", 0);
+
+      while (*tmp)
+        {
+          if (!strcmp (g_strstrip (*tmp), hostname))
+            {
+              g_strfreev (excluded);
+              return -1;
+            }
+          tmp++;
+        }
+      g_strfreev (excluded);
+    }
   vhost = gvm_vhost_new (g_strdup (hostname), g_strdup (source));
   args->vhosts = g_slist_prepend (args->vhosts, vhost);
+  return 0;
 }
 
 char *

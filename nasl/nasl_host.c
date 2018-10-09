@@ -34,7 +34,6 @@
 #include <unistd.h>             /* for gethostname */
 
 #include <gvm/base/networking.h>
-#include <gvm/base/prefs.h>
 #include <gvm/util/kb.h>
 
 #include "../misc/network.h"
@@ -125,8 +124,6 @@ add_hostname (lex_ctxt * lexic)
   char *value = get_str_var_by_name (lexic, "hostname");
   char *source = get_str_var_by_name (lexic, "source");
 
-  if (!prefs_get_bool ("expand_vhosts"))
-    return NULL;
   if (!value)
     {
       nasl_perror (lexic, "%s: Empty hostname\n", __FUNCTION__);
@@ -134,6 +131,10 @@ add_hostname (lex_ctxt * lexic)
     }
   if (!source || !*source)
     source = "NASL";
+
+  /* Add to current process' vhosts list. */
+  if (plug_add_host_fqdn (lexic->script_infos, value, source))
+    return NULL;
 
   /* Push to KB. Signal host process to fetch it. */
   kb_item_push_str (lexic->script_infos->key, "internal/vhosts", value);
@@ -143,8 +144,6 @@ add_hostname (lex_ctxt * lexic)
   if (host_pid > 0)
     kill (host_pid, SIGUSR2);
 
-  /* Add to current process' vhosts list. */
-  plug_add_host_fqdn (lexic->script_infos, value, source);
   return NULL;
 }
 
