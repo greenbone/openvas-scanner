@@ -1,4 +1,4 @@
-/* Nessus Attack Scripting Language
+/* NASL Attack Scripting Language
  *
  * Copyright (C) 2002 - 2003 Michel Arboi and Renaud Deraison
  *

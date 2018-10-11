@@ -1,4 +1,4 @@
-/* Nessus Attack Scripting Language "lint"
+/* NASL Attack Scripting Language "lint"
  *
  * Copyright (C) 2004 Michel Arboi
  *

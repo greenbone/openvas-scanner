@@ -3,7 +3,7 @@
 %lex-param {naslctxt * parm}
 %expect 1
 %{
-/* Nessus Attack Scripting Language version 2
+/* NASL Attack Scripting Language version 2
  *
  * Copyright (C) 2002 - 2004 Michel Arboi and Renaud Deraison
  *
