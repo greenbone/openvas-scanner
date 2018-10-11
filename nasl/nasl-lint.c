@@ -1,4 +1,4 @@
-/* Nessus Attack Scripting Language Linter
+/* NASL Attack Scripting Language Linter
  *
  * Copyright (C) 2013 Greenbone Networks GmbH
  *

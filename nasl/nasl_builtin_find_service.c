@@ -788,7 +788,7 @@ mark_whois_plus2_server (struct script_infos *desc, int port, char *buffer, int 
  * (http://www.kernel.org/software/mon/)
  *
  * An unknown server is running on this port. If you know what it is, please
- * send this banner to the Nessus team: 00: 35 32 30 20 63 6f 6d 6d 61 6e 64
+ * send this banner to the development team: 00: 35 32 30 20 63 6f 6d 6d 61 6e 64
  * 20 63 6f 75 6c 520 command coul 10: 64 20 6e 6f 74 20 62 65 20 65 78 65 63
  * 75 74 65 d not be execute 20: 64 0a d.
  */
