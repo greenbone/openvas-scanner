@@ -1,3 +1,4 @@
+[![Code Documentation Coverage](https://codecov.io/gh/greenbone/openvas-scanner/branch/master/graphs/badge.svg?flag=documentation)](https://codecov.io/gh/greenbone/openvas-scanner)`(Documentation Coverage)`
 [![CircleCI](https://circleci.com/gh/greenbone/openvas-scanner/tree/master.svg?style=svg)](https://circleci.com/gh/greenbone/openvas-scanner/tree/master)
 
 # openvas-scanner
