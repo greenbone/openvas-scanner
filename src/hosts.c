@@ -145,7 +145,7 @@ forward (struct host *h, int out)
 }
 
 /*-------------------------------------------------------------------*/
-
+extern int global_scan_stop;
 
 static void
 host_rm (struct host *h)
@@ -162,7 +162,7 @@ host_rm (struct host *h)
   if (h->prev != NULL)
     h->prev->next = h->next;
 
-  if (is_otp_scan ())
+  if (is_otp_scan () || global_scan_stop == 1)
     kb_delete (h->host_kb);
 
   g_free (h->name);
@@ -210,8 +210,6 @@ hosts_init (int soc, int max_hosts)
   g_max_hosts = max_hosts;
   return 0;
 }
-
-extern int global_scan_stop;
 
 int
 hosts_new (struct scan_globals *globals, char *name, kb_t kb)
