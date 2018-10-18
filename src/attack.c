@@ -144,10 +144,6 @@ comm_send_status (kb_t kb, char *hostname, int curr, int max)
   snprintf (buffer, sizeof (buffer), "%d/%d", curr, max);
   kb_item_push_str (kb, "internal/status", buffer);
 
-  if (!is_otp_scan ())
-    if (set_kb_readable (kb_get_kb_index (kb)) == -1)
-        return -1;
-
   return 0;
 }
 
@@ -662,7 +658,7 @@ attack_start (struct attack_start_args *args)
   gettimeofday (&then, NULL);
 
   kb_item_add_str (kb, "internal/scan_id", globals->scan_id, 0);
-
+  set_kb_readable (kb_get_kb_index (kb));
   /* The reverse lookup is delayed to this step in order to not slow down the
    * main scan process eg. case of target with big range of IP addresses. */
   if (prefs_get_bool ("expand_vhosts"))
@@ -708,13 +704,13 @@ attack_start (struct attack_start_args *args)
   g_free (hostnames);
   attack_host (globals, &hostip, args->host->vhosts, sched, kb, net_kb);
 
-  snprintf (key, sizeof (key), "internal/%s", globals->scan_id);
-  kb_item_add_str (kb, key, "finished", 0);
-  if (!is_otp_scan ())
-    if (set_kb_readable (kb_get_kb_index (kb)) == -1)
-
   if (!scan_is_stopped () && !all_scans_are_stopped ())
     {
+      if (!is_otp_scan ())
+        {
+          snprintf (key, sizeof (key), "internal/%s", globals->scan_id);
+          kb_item_add_str (kb, key, "finished", 0);
+        }
       struct timeval now;
 
       gettimeofday (&now, NULL);
