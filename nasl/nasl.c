@@ -80,7 +80,6 @@ init (struct in6_addr *ip, GSList *vhosts, kb_t kb)
 {
   struct script_infos *infos = g_malloc0 (sizeof (struct script_infos));
 
-  prefs_set ("checks_read_timeout", "5");
   infos->standalone = 1;
   infos->key = kb;
   infos->ip = ip;
@@ -341,7 +340,7 @@ main (int argc, char **argv)
       kb_t kb;
       int rc, i = 0;
 
-      if (!prefs_get ("expand_vhosts") || prefs_get_bool ("expand_vhosts"))
+      if (prefs_get_bool ("expand_vhosts"))
         gvm_host_add_reverse_lookup (host);
       gvm_vhosts_exclude (host, prefs_get ("exclude_hosts"));
       gvm_host_get_addr6 (host, &ip6);
