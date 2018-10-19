@@ -658,7 +658,9 @@ attack_start (struct attack_start_args *args)
   gettimeofday (&then, NULL);
 
   kb_item_add_str (kb, "internal/scan_id", globals->scan_id, 0);
-  set_kb_readable (kb_get_kb_index (kb));
+  if (!is_otp_scan ())
+    set_kb_readable (kb_get_kb_index (kb));
+
   /* The reverse lookup is delayed to this step in order to not slow down the
    * main scan process eg. case of target with big range of IP addresses. */
   if (prefs_get_bool ("expand_vhosts"))
