@@ -213,8 +213,7 @@ plug_add_host_fqdn (struct script_infos *args, const char *hostname,
   GSList *vhosts;
   char **excluded;
 
-  if ((prefs_get ("expand_vhosts") && !prefs_get_bool ("expand_vhosts"))
-      || !hostname || !source)
+  if (!prefs_get_bool ("expand_vhosts") || !hostname || !source)
     return -1;
 
   /* Check for duplicate vhost value. */

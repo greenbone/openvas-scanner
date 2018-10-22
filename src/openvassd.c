@@ -127,28 +127,18 @@ static openvassd_option openvassd_defaults[] = {
   {"be_nice", "no"},
   {"log_whole_attack", "no"},
   {"log_plugins_name_at_load", "no"},
-  {"cgi_path", "/cgi-bin:/scripts"},
   {"optimize_test", "yes"},
-  {"checks_read_timeout", "5"},
   {"network_scan", "no"},
   {"non_simult_ports", "139, 445, 3389, Services/irc"},
   {"plugins_timeout", G_STRINGIFY (NVT_TIMEOUT)},
   {"scanner_plugins_timeout", G_STRINGIFY (SCANNER_NVT_TIMEOUT)},
   {"safe_checks", "yes"},
   {"auto_enable_dependencies", "yes"},
-  {"nasl_no_signature_check", "yes"},
   {"drop_privileges", "no"},
-  {"unscanned_closed", "yes"},
-  {"unscanned_closed_udp", "yes"},
   // Empty options must be "\0", not NULL, to match the behavior of
   // prefs_init.
   {"report_host_details", "yes"},
-  {"test_empty_vhost", "no"},
   {"db_address", KB_PATH_DEFAULT},
-  {"timeout_retry", "3"},
-  {"open_sock_max_attempts", "5"},
-  {"time_between_request", "0"},
-  {"expand_vhosts", "yes"},
   {NULL, NULL}
 };
 
