@@ -687,6 +687,7 @@ attack_start (struct attack_start_args *args)
   struct in6_addr hostip;
   struct timeval then;
   kb_t *net_kb = args->net_kb, kb = args->host_kb;
+  int ret;
 
   nvticache_reset ();
   kb_lnk_reset (kb);
@@ -700,7 +701,8 @@ attack_start (struct attack_start_args *args)
    * main scan process eg. case of target with big range of IP addresses. */
   if (prefs_get_bool ("expand_vhosts"))
     gvm_host_add_reverse_lookup (args->host);
-  gvm_vhosts_exclude (args->host, prefs_get ("exclude_hosts"));
+  if ((ret = gvm_vhosts_exclude (args->host, prefs_get ("exclude_hosts"))) > 0)
+    g_message ("exclude_hosts: Skipped %d vhost(s).", ret);
   gvm_host_get_addr6 (args->host, &hostip);
   addr6_to_str (&hostip, ip_str);
   if (check_host_authorization (args->host, &hostip, kb))
@@ -776,9 +778,9 @@ apply_hosts_preferences (gvm_hosts_t *hosts)
       /* Exclude hosts, resolving hostnames. */
       int ret = gvm_hosts_exclude (hosts, exclude_hosts);
 
-      if (ret >= 0)
+      if (ret > 0)
         g_message ("exclude_hosts: Skipped %d host(s).", ret);
-      else
+      if (ret < 0)
         g_message ("exclude_hosts: Error.");
     }
 
