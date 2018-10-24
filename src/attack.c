@@ -636,6 +636,46 @@ vhosts_to_str (GSList *list)
   return g_string_free (string, FALSE);
 }
 
+/*
+ * Check if a scan is authorized on a host.
+ *
+ * @param[in]   host    Host to check access to.
+ * @param[in]   addr    Pointer to address so a hostname isn't resolved multiple
+ *                      times.
+ * @param[in]   kb      Host scan KB.
+ *
+ * @return 0 if authorized, -1 otherwise.
+ */
+static int
+check_host_authorization (gvm_host_t *host, const struct in6_addr *addr, kb_t kb)
+{
+  gvm_hosts_t *hosts_allow, *hosts_deny;
+  gvm_hosts_t *sys_hosts_allow, *sys_hosts_deny;
+
+  /* Do we have the right to test this host ? */
+  hosts_allow = gvm_hosts_new (prefs_get ("hosts_allow"));
+  hosts_deny = gvm_hosts_new (prefs_get ("hosts_deny"));
+  if (!host_authorized (host, addr, hosts_allow, hosts_deny))
+    {
+      error_message_to_client2 (kb, "Host access denied.", NULL);
+      return -1;
+    }
+  sys_hosts_allow = gvm_hosts_new (prefs_get ("sys_hosts_allow"));
+  sys_hosts_deny = gvm_hosts_new (prefs_get ("sys_hosts_deny"));
+  if (!host_authorized (host, addr, sys_hosts_allow, sys_hosts_deny))
+    {
+      error_message_to_client2
+       (kb, "Host access denied (system-wide restriction.)", NULL);
+      return -1;
+    }
+
+  gvm_hosts_free (hosts_allow);
+  gvm_hosts_free (hosts_deny);
+  gvm_hosts_free (sys_hosts_allow);
+  gvm_hosts_free (sys_hosts_deny);
+  return 0;
+}
+
 /**
  * @brief Set up some data and jump into attack_host()
  */
@@ -646,12 +686,7 @@ attack_start (struct attack_start_args *args)
   char ip_str[INET6_ADDRSTRLEN], *hostnames;
   struct in6_addr hostip;
   struct timeval then;
-  plugins_scheduler_t sched = args->sched;
-  kb_t *net_kb = args->net_kb;
-  kb_t kb = args->host_kb;
-  gvm_hosts_t *hosts_allow, *hosts_deny;
-  gvm_hosts_t *sys_hosts_allow, *sys_hosts_deny;
-  char key[1024];
+  kb_t *net_kb = args->net_kb, kb = args->host_kb;
 
   nvticache_reset ();
   kb_lnk_reset (kb);
@@ -668,30 +703,11 @@ attack_start (struct attack_start_args *args)
   gvm_vhosts_exclude (args->host, prefs_get ("exclude_hosts"));
   gvm_host_get_addr6 (args->host, &hostip);
   addr6_to_str (&hostip, ip_str);
-  /* Do we have the right to test this host ? */
-  hosts_allow = gvm_hosts_new (prefs_get ("hosts_allow"));
-  hosts_deny = gvm_hosts_new (prefs_get ("hosts_deny"));
-  if (!host_authorized (args->host, &hostip, hosts_allow, hosts_deny))
+  if (check_host_authorization (args->host, &hostip, kb))
     {
-      error_message_to_client2 (kb, "Host access denied.", NULL);
       g_warning ("Host %s access denied.", ip_str);
       return;
     }
-  sys_hosts_allow = gvm_hosts_new (prefs_get ("sys_hosts_allow"));
-  sys_hosts_deny = gvm_hosts_new (prefs_get ("sys_hosts_deny"));
-  if (!host_authorized (args->host, &hostip, sys_hosts_allow, sys_hosts_deny))
-    {
-      error_message_to_client2
-       (kb, "Host access denied (system-wide restriction.)", NULL);
-      g_warning ("Host %s access denied (sys_* preference restriction.)",
-                 ip_str);
-      return;
-    }
-  gvm_hosts_free (hosts_allow);
-  gvm_hosts_free (hosts_deny);
-  gvm_hosts_free (sys_hosts_allow);
-  gvm_hosts_free (sys_hosts_deny);
-
   if (prefs_get_bool ("test_empty_vhost"))
     {
       gvm_vhost_t *vhost = gvm_vhost_new
@@ -704,12 +720,13 @@ attack_start (struct attack_start_args *args)
   else
     g_message ("Testing %s [%d]", ip_str, getpid ());
   g_free (hostnames);
-  attack_host (globals, &hostip, args->host->vhosts, sched, kb, net_kb);
+  attack_host (globals, &hostip, args->host->vhosts, args->sched, kb, net_kb);
 
   if (!scan_is_stopped () && !all_scans_are_stopped ())
     {
       if (!is_otp_scan ())
         {
+          char key[1024];
           snprintf (key, sizeof (key), "internal/%s", globals->scan_id);
           kb_item_add_str (kb, key, "finished", 0);
         }
