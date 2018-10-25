@@ -209,21 +209,6 @@ mark_gopher_server (struct script_infos *desc, int port)
   post_log (oid, desc, port, "A gopher server is running on this port");
 }
 
-#if 0
-static void
-mark_gnutella_servent (struct script_infos *desc, int port, char *buffer, int trp)
-{
-  char ban[256];
-
-  register_service (desc, port, "gnutella");
-  snprintf (ban, sizeof (ban), "www/banner/%d", port);
-  plug_replace_key (desc, ban, ARG_STRING, buffer);
-  snprintf (ban, sizeof (ban), "A Gnutella servent is running on this port%s",
-            get_encaps_through (trp));
-  post_log (oid, desc, port, ban);
-}
-#endif
-
 void
 mark_rmserver (struct script_infos *desc, int port, char *buffer, int trp)
 {
@@ -1218,10 +1203,6 @@ port_to_name (int port)
       return "IMAPS";
     case 995:
       return "POP3S";
-#if 0
-    case 1080:
-      return "SOCKS";
-#endif
     case 1109:
       return "KPOP";            /* ? */
     case 2309:
@@ -2121,11 +2102,6 @@ plugin_do_run (struct script_infos *desc, GSList *h, int test_ssl)
                            && strstr (buffer, "cache")
                            && strstr (line, "bad request"))
                     mark_http_proxy (desc, port, trp);
-#if 0
-                  else if (strncmp (line, "http/1.", 7) == 0 &&
-                           strstr (buffer, "gnutella") != NULL)
-                    mark_gnutella_servent (desc, port, banner, trp);
-#endif
                   else if (!strncmp (origline, "RFB 00", 6)
                            && strstr (line, ".00"))
                     mark_vnc_server (desc, port, origline);
@@ -2321,10 +2297,6 @@ plugin_do_run (struct script_infos *desc, GSList *h, int test_ssl)
                   unindentified_service = 1;
 #define TESTSTRING	"OpenVAS Wrap Test"
                   if (trp == OPENVAS_ENCAPS_IP && wrap_timeout > 0)
-#if 0
-                    if (write_stream_connection
-                        (cnx, TESTSTRING, sizeof (TESTSTRING) - 1) <= 0)
-#endif
                       maybe_wrapped = 1;
                 }
               if (cnx > 0)

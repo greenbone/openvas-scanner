@@ -1290,18 +1290,6 @@ nasl_bf_cbc (lex_ctxt * lexic, int enc)
                    enckeylen);
       goto fail;
     }
-#if 0
-  else if (enckeylen > 16)
-    {
-      /* Ideally we would warn about this.  However, the old OpenSSL
-       * based code also silently used only the first 16 bytes and this
-       * function is actually called from ssh_funcs.inc with keys longer
-       * than 16 bytes for some reason */
-      nasl_perror (lexic,
-                   "nasl_bf_cbc: unexpected enckeylen = %d;"
-                   " will only use the first 16 bytes\n", enckeylen);
-    }
-#endif
   if (ivlen < 8)
     {
       nasl_perror (lexic, "nasl_bf_cbc: unexpected ivlen = %d; must >= 8\n",

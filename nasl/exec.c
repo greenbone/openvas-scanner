@@ -68,10 +68,6 @@ cell2bool (lex_ctxt * lexic, tree_cell * c)
   tree_cell *c2;
   int flag;
 
-#if 0
-  nasl_dump_tree (c);
-#endif
-
   if (c == NULL || c == FAKE_CELL)
     return 0;
 
@@ -813,13 +809,8 @@ nasl_exec (lex_ctxt * lexic, tree_cell * st)
   char *p1, *p2;
   int len1, len2;
   nasl_func *pf = NULL;
-  int i;
   long int x, y, n;
-  int lint_mode = 0;
-
-#if 0
-  nasl_dump_tree (st);          /* See rt.value, rt.type, rt.length */
-#endif
+  int i, lint_mode = 0;
 
   if (st)
     if (st->line_nb != 0)
@@ -1058,11 +1049,6 @@ nasl_exec (lex_ctxt * lexic, tree_cell * st)
           return NULL;
         }
       args = st->link[0];
-#if 0
-      printf ("****************\n");
-      nasl_dump_tree (args);
-      printf ("****************\n");
-#endif
       ret = nasl_func_call (lexic, pf, args);
       return ret;
 

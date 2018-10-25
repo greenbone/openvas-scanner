@@ -840,9 +840,6 @@ init_nasl_ctx(naslctxt* pc, const char* name)
 void
 nasl_clean_ctx(naslctxt* c)
 {
-#if 0
-  nasl_dump_tree(c->tree);
-#endif
   deref_cell(c->tree);
   g_free (c->buffer);
 }

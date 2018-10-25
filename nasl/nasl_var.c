@@ -38,14 +38,6 @@
 static void copy_array (nasl_array *, const nasl_array *, int);
 
 
-#if 0
-static int
-hash_int (int x)
-{
-  return (unsigned) x % VAR_NAME_HASH;
-}
-#endif
-
 /** @TODO Consider using GLibs string hash function. */
 int
 hash_str2 (const char *s, int n)
@@ -749,12 +741,6 @@ affect_to_anon_var (anon_nasl_var * v1, tree_cell * rval)
         break;
       case VAR2_ARRAY:
         copy_array (&v1->v.v_arr, a, 1);
-#if 0
-        /* MA 2004-08-13: I guess that the code changed somewhere some day and
-         * this part created a memory leak */
-        if (v0.var_type == VAR2_ARRAY)
-          bzero (&v0, sizeof (v0));     /* So that we don't clear the variable twice */
-#endif
         break;
       }
 
@@ -1264,14 +1250,6 @@ get_var_size (const anon_nasl_var * v)
     case VAR2_DATA:
     case VAR2_STRING:
       return v->v.v_str.s_siz;
-#if 0
-      /*
-       * This code confuses nasl_string() because it does not returns the same
-       * length as array2str
-       */
-    case VAR2_ARRAY:
-      return v->v.v_arr.max_idx;        /* Do not count 'named' elements yet */
-#endif
     }
   return 0;
 }

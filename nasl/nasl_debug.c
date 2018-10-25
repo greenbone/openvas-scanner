@@ -137,12 +137,6 @@ nasl_perror (lex_ctxt * lexic, char *msg, ...)
     g_message ("[%d](%s)(%s:%d) %s", getpid (), script_name,
                debug_filename, line_nb, final_message);
   g_free (final_message);
-  /** @todo Enable this when the NVTs are ready.  Sends ERRMSG to client. */
-#if 0
-  if (lexic != NULL)
-    post_error (lexic->script_infos, 1, debug_message);
-#endif
-
   va_end (param);
 }
 

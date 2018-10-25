@@ -118,10 +118,6 @@ nasl_func_call (lex_ctxt * lexic, const nasl_func * f, tree_cell * arg_list)
   int trace_buf_len = 0, tn;
 #define TRACE_BUF_SZ	255
 
-#if 0
-  nasl_dump_tree (arg_list);
-#endif
-
   /* 1. Create a new context */
   lexic2 = init_empty_lex_ctxt ();
   lexic2->script_infos = lexic->script_infos;

@@ -461,16 +461,6 @@ banner_grab(const struct in6_addr *pia, const char* portrange,
 		  perror("setsockopt(SO_LINGER)");
 	      }
 #endif
-#if 0 /* defined TCP_NODELAY */
-	      x = 1;
-	      if (setsockopt(s, SOL_TCP, TCP_NODELAY, &x, sizeof(x)) < 0)
-		perror("setsockopt(TCP_NODELAY");
-#endif
-#if 0 /* defined TCP_QUICKACK */
-	      x = 1;
-	      if (setsockopt(s, SOL_TCP, TCP_QUICKACK, &x, sizeof(x)) < 0)
-		perror("setsockopt(TCP_QUICKACK");
-#endif
 #if defined LINUX && defined IPTOS_RELIABILITY
 	      /*
 	       * IP TOS (RFC791) is obsoleted by RFC2474
@@ -1002,9 +992,6 @@ banner_grab(const struct in6_addr *pia, const char* portrange,
 #endif
 	      open_sock_max += dropped_nb;
 	      if (open_sock_max2 < max_cnx) open_sock_max2 ++;
-#if 0
-	      dropped_flag = 0;
-#endif
 	    }
 	  else if (dropped_nb > 0)
 	    {
@@ -1012,13 +999,6 @@ banner_grab(const struct in6_addr *pia, const char* portrange,
 	      open_sock_max -= (dropped_nb + 2) / 3;
 	      if (open_sock_max < min_cnx) open_sock_max = min_cnx;
 	      open_sock_max2 = (open_sock_max  + 3 * open_sock_max2) / 4;
-#if 0
-	      if (open_sock_max2 <= min_cnx)
-		if (open_sock_max2 > 0)
-		  min_cnx = open_sock_max2;
-		else
-		  open_sock_max2 = min_cnx;
-#endif
 #if DEBUG > 0
 	      if (min_cnx < open_sock_max)
 		g_message ("openvas_tcp_scanner(%s): %d connections dropped. Slowing down - min_cnx=%d - open_sock_nb=%d - open_sock_max=%d - open_sock_max2=%d", inet_ntoa(*pia), dropped_nb, min_cnx, open_sock_nb, open_sock_max, open_sock_max2);
@@ -1028,9 +1008,6 @@ banner_grab(const struct in6_addr *pia, const char* portrange,
 	    {
 	      /* re-increase number of open sockets */
 	      open_sock_max ++;
-#if 0
-	      open_sock_max2 ++;
-#endif
 	    }
 	  open_sock_max += timeout_nb;
 	  if (open_sock_max > open_sock_max2)
@@ -1406,9 +1383,6 @@ plugin_run_openvas_tcp_scanner (lex_ctxt * lexic)
 	x = max_sys_fd / max_host;
       }
     if (max_cnx > x) max_cnx = x;
-#if 0
-    g_message ("min_cnx = %d ; max_cnx = %d", min_cnx, max_cnx);
-#endif
     if (max_cnx > GRAB_MAX_SOCK) max_cnx = GRAB_MAX_SOCK;
     if (max_cnx < GRAB_MIN_SOCK) max_cnx = GRAB_MIN_SOCK;
 

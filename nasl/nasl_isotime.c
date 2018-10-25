@@ -288,45 +288,6 @@ string2isotime (my_isotime_t atime, const char *string)
   return 19;
 }
 
-
-/* Scan an ISO timestamp and return an Epoch based timestamp.  The only
-   supported format is "yyyymmddThhmmss" delimited by white space, nul, a
-   colon or a comma.  Returns (time_t)(-1) for an invalid string.  */
-#if 0 /* Not yet used.  */
-static time_t
-isotime2epoch (const char *string)
-{
-  int year, month, day, hour, minu, sec;
-  struct tm tmbuf;
-
-  if (!isotime_p (string))
-    return (time_t)(-1);
-
-  year  = atoi_4 (string);
-  month = atoi_2 (string + 4);
-  day   = atoi_2 (string + 6);
-  hour  = atoi_2 (string + 9);
-  minu  = atoi_2 (string + 11);
-  sec   = atoi_2 (string + 13);
-
-  /* Basic checks.  */
-  if (year < 1970 || month < 1 || month > 12 || day < 1 || day > 31
-      || hour > 23 || minu > 59 || sec > 61 )
-    return (time_t)(-1);
-
-  memset (&tmbuf, 0, sizeof tmbuf);
-  tmbuf.tm_sec  = sec;
-  tmbuf.tm_min  = minu;
-  tmbuf.tm_hour = hour;
-  tmbuf.tm_mday = day;
-  tmbuf.tm_mon  = month-1;
-  tmbuf.tm_year = year - 1900;
-  tmbuf.tm_isdst = -1;
-  return timegm (&tmbuf);
-}
-#endif /* 0 */
-
-
 /* Helper for jd2date.  */
 static int
 days_per_year (int y)
