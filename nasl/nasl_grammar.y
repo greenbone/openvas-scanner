@@ -31,6 +31,8 @@
 #include <string.h> /* for strlen */
 #include <sys/stat.h> /* for stat */
 
+#include <gvm/util/nvticache.h>
+
 #include <glib.h>
 
 #include "nasl_tree.h"
@@ -758,16 +760,28 @@ init_nasl_ctx(naslctxt* pc, const char* name)
 
 
   nasl_set_filename (name);
-  while (inc_dir != NULL) {
-    if (full_name)
+  while (inc_dir)
+    {
       g_free (full_name);
-    full_name = g_build_filename(inc_dir->data, name, NULL);
+      full_name = g_build_filename (inc_dir->data, name, NULL);
 
-    if ((g_file_get_contents (full_name, &pc->buffer, &flen, NULL)))
-      break;
+      if (g_str_has_suffix (name, ".inc"))
+        pc->buffer = nvticache_get_file (basename (full_name));
+      else
+        pc->buffer = nvticache_get_file (full_name);
+      if (pc->buffer)
+        break;
+      else if (g_file_get_contents (full_name, &pc->buffer, &flen, NULL))
+        {
+          if (g_str_has_suffix (name, ".inc"))
+            nvticache_add_file (pc->buffer, basename (full_name));
+          else
+            nvticache_add_file (pc->buffer, full_name);
+          break;
+        }
+      inc_dir = g_slist_next(inc_dir);
+    }
 
-    inc_dir = g_slist_next(inc_dir);
-  }
 
   if (!full_name || !pc->buffer) {
     g_message ("%s: Not able to open nor to locate it in include paths",
