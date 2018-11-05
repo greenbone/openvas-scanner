@@ -1131,20 +1131,13 @@ stream_set_timeout (int fd, int timeout)
 static int
 read_stream_connection_unbuffered (int fd, void *buf0, int min_len, int max_len)
 {
-  int ret, realfd, trp, t;
+  int ret, realfd, trp, t, select_status;
   int total = 0, flag = 0, timeout = TIMEOUT, waitall = 0;
   unsigned char *buf = (unsigned char *) buf0;
   openvas_connection *fp = NULL;
   fd_set fdr, fdw;
   struct timeval tv;
   time_t now, then;
-
-  int select_status;
-
-#if 0
-  log_lecacy_write ("read_stream_connection(%d, 0x%x, %d, %d)\n", fd, buf,
-                    min_len, max_len);
-#endif
 
   if (OPENVAS_STREAM (fd))
     {
@@ -1157,10 +1150,6 @@ read_stream_connection_unbuffered (int fd, void *buf0, int min_len, int max_len)
     }
   else
     {
-#if 0
-      log_lecacy_write ("read_stream_connection[%d] : supposedly bad fd %d\n",
-                        getpid (), fd);
-#endif
       trp = OPENVAS_ENCAPS_IP;
       if (fd < 0 || fd > 1024)
         {
@@ -1391,9 +1380,6 @@ write_stream_connection4 (int fd, void *buf0, int n, int i_opt)
     {
 #if DEBUG_SSL > 0
       log_lecacy_write ("write_stream_connection: fd <%d> invalid\n", fd);
-# if 0
-      abort ();
-# endif
 #endif
       errno = EINVAL;
       return -1;
@@ -1939,16 +1925,6 @@ open_sock_option (struct script_infos *args, unsigned int port, int type,
   struct sockaddr_in6 addr6;
   struct in6_addr *t;
 
-#if 0
-  /*
-   * MA 2004-08-15: IMHO, as this is often (always?) tested in the NASL scripts
-   * this should not be here.
-   * If it has to be somewhere else, I'd rather put it in libnasl (and add
-   * a parameter to "force" the connection)
-   */
-  if (host_get_port_state (args, port) <= 0)
-    return (-1);
-#endif
   t = plug_get_host_ip (args);
   if (!t)
     {

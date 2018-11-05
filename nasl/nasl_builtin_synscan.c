@@ -51,11 +51,6 @@
 
 #define NUM_RETRIES 2
 
-#if 0
-/* Enable when running standalone. */
-#define DEBUG 1
-#endif
-
 #undef G_LOG_DOMAIN
 /**
  * @brief GLib logging domain.

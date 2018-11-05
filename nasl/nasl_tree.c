@@ -126,9 +126,6 @@ free_tree (tree_cell * c)
 
   if (c == NULL || c == FAKE_CELL)
     return;
-#if 0
-  nasl_dump_tree (c);
-#endif
   for (i = 0; i < 4; i++)
     if (c->link[i] != NULL)
       deref_cell (c->link[i]);
@@ -344,13 +341,6 @@ dump_tree (const tree_cell * c, int n, int idx)
   if (c->line_nb > 0)
     printf ("L%d: ", c->line_nb);
 
-#if 0
-  if ((int) c < 0x1000)
-    {
-      printf ("* INVALID PTR 0x%x *\n", (int) c);
-      return;
-    }
-#endif
   if (c->type < 0
       || (unsigned int) c->type >= sizeof (node_names) / sizeof (node_names[0]))
     printf ("* UNKNOWN %d (0x%x)*\n", c->type, c->type);
