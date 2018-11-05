@@ -50,7 +50,7 @@ static struct charset_functions_ntlmssp *find_charset_functions_ntlmssp(const ch
 }
 
 /**
- * This is a simple portable iconv() implementaion.
+ * This is a simple portable iconv() implementation.
  *
  * It only knows about a very small number of character sets - just
  * enough that Samba works on systems that don't have iconv.

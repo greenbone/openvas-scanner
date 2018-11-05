@@ -26,7 +26,7 @@
 
 /**
  * @file wmi_interface_stub.c
- * @brief Stub implementatin for a wmi interface.
+ * @brief Stub implementation for a wmi interface.
  *
  * This file contains an empty implementation that
  * fulfills the wmi interface specfified in \ref openvas_wmi_interface.h
@@ -40,7 +40,7 @@
 /**
  * @brief Return version info for WMI implementation.
  *
- * @return NULL if this the impementation is a non-functional stub,
+ * @return NULL if this the implementation is a non-functional stub,
  *         else a arbitrary string that explains the version of the
  *         implementation.
  */

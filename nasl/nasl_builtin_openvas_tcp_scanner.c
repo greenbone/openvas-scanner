@@ -132,7 +132,7 @@ my_socket_close(int s)
 static int std_port(int port)
 {
   (void) port;
-  return 0; /** @todo: We are not able anymore to judge wether a port is a standard
+  return 0; /** @todo: We are not able anymore to judge whether a port is a standard
              * port. Previously a port was believed to be a standard port
              * when it occurred in the currently configured list of ports.
              * This needs to be resolved.

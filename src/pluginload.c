@@ -3,7 +3,7 @@
 * Description: Loads plugins from disk into memory.
 *
 * Authors: 
-* Renaud Deraison <deraison@nessus.org> (Original pre-fork develoment)
+* Renaud Deraison <deraison@nessus.org> (Original pre-fork development)
 * Tim Brown (Initial fork)
 * Laban Mwangi (Renaming work)
 * Tarik El-Yassem (Headers section)

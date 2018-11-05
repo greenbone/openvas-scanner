@@ -3,7 +3,7 @@
 * Description: Launches the plugins, and manages multithreading.
 *
 * Authors: 
-* Renaud Deraison <deraison@nessus.org> (Original pre-fork develoment)
+* Renaud Deraison <deraison@nessus.org> (Original pre-fork development)
 * Tim Brown (Initial fork)
 * Laban Mwangi (Renaming work)
 * Tarik El-Yassem (Headers section)
@@ -67,7 +67,7 @@
 #define MAX_FORK_RETRIES 10
 
 /**
- * It switchs progress bar styles.
+ * It switches progress bar styles.
  * If set to 1, time oriented style and it take into account only alive host.
  * If set to 0, it not reflect progress adequately in case of dead host,
  * which will take into account with 0% processed, producing jumps in the
@@ -842,7 +842,7 @@ iface_authorized (const char *iface)
   ifaces_list = prefs_get ("ifaces_allow");
   if (ifaces_list && !str_in_comma_list (iface, ifaces_list))
     return -1;
-  /* sys_* preferences are similar, but can't be overriden by the client. */
+  /* sys_* preferences are similar, but can't be overridden by the client. */
   ifaces_list = prefs_get ("sys_ifaces_deny");
   if (ifaces_list && str_in_comma_list (iface, ifaces_list))
     return -2;

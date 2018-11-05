@@ -3,7 +3,7 @@
 * Description: Port scanner Synscan
 *
 * Authors:
-* Renaud Deraison <deraison@nessus.org> (Original pre-fork develoment)
+* Renaud Deraison <deraison@nessus.org> (Original pre-fork development)
 *
 * Copyright:
 * Based on work Copyright (C) 1998 - 2006 Tenable Network Security, Inc.

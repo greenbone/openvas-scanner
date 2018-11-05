@@ -3,7 +3,7 @@
 * Description: Tells openvassd which plugin should be executed next.
 *
 * Authors: 
-* Renaud Deraison <deraison@nessus.org> (Original pre-fork develoment)
+* Renaud Deraison <deraison@nessus.org> (Original pre-fork development)
 * Tim Brown (Initial fork)
 * Laban Mwangi (Renaming work)
 * Tarik El-Yassem (Headers section)

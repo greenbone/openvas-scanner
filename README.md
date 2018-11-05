@@ -6,7 +6,7 @@
 This is the Open Vulnerability Assessment System (OpenVAS) Scanner of the
 Greenbone Vulnerability Management (GVM) Solution. It is used for the Greenbone
 Security Manager appliances and is a full-featured scan engine that executes
-a continously updated and extended feed of Network Vulnerability Tests (NVTs).
+a continuously updated and extended feed of Network Vulnerability Tests (NVTs).
 
 For more information, please refer to the OpenVAS website available at
 http://www.openvas.org/.

@@ -47,7 +47,7 @@ void simple_packet_signature_ntlmssp(uint8_t *mac_key, const uchar *buf, uint32 
    	*/
 	MD5Init(&md5_ctx);
 
-	/* intialise with the key */
+	/* initialise with the key */
 	MD5Update(&md5_ctx, mac_key, 16);
 
 	/* copy in the first bit of the SMB header */

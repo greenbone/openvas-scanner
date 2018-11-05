@@ -812,7 +812,7 @@ getipv6routes (struct myroute *myroutes, int *numroutes)
  *  destination should be routed through.
  *
  * It returns NULL if no appropriate
- *  interface is found, oterwise it returns the device name and fills in the
+ *  interface is found, otherwise it returns the device name and fills in the
  *   source parameter.   Some of the stuff is
  *  from Stevens' Unix Network Programming V2.  He had an easier suggestion
  *  for doing this (in the book), but it isn't portable :(
@@ -998,7 +998,7 @@ v6_routethrough (struct in6_addr *dest, struct in6_addr *source)
  *  destination should be routed through.
  *
  * It returns NULL if no appropriate
- *  interface is found, oterwise it returns the device name and fills in the
+ *  interface is found, otherwise it returns the device name and fills in the
  *   source parameter.   Some of the stuff is
  *  from Stevens' Unix Network Programming V2.  He had an easier suggestion
  *  for doing this (in the book), but it isn't portable :(

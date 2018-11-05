@@ -212,7 +212,7 @@ set_target_properties (openvas_nasl_shared PROPERTIES OUTPUT_NAME "openvas_nasl"
 set_target_properties (openvas_nasl_shared PROPERTIES CLEAN_DIRECT_OUTPUT 1)
 set_target_properties (openvas_nasl_shared PROPERTIES SOVERSION "${NASL_VERSION_MAJOR}")
 set_target_properties (openvas_nasl_shared PROPERTIES VERSION "${NASL_PACKAGE_VERSION}")
-# line bellow is needed so it also works with no-undefined which is e.g. used by Mandriva
+# line below is needed so it also works with no-undefined which is e.g. used by Mandriva
 target_link_libraries (openvas_nasl_shared openvas_misc_shared ${GLIB_LDFLAGS}
                          ${GCRYPT_LDFLAGS} ${GPGME_LDFLAGS} m
                          ${LIBGVM_BASE_LDFLAGS}

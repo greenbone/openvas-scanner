@@ -3,7 +3,7 @@
 * Description: Runs the OpenVAS-scanner.
 *
 * Authors: 
-* Renaud Deraison <deraison@nessus.org> (Original pre-fork develoment)
+* Renaud Deraison <deraison@nessus.org> (Original pre-fork development)
 * Tim Brown (Initial fork)
 * Laban Mwangi (Renaming work)
 * Tarik El-Yassem (Headers section)
@@ -972,7 +972,7 @@ main (int argc, char *argv[])
     {"listen-mode", '\0', 0, G_OPTION_ARG_STRING, &listen_mode,
      "File mode of the unix socket", "<string>"},
     {"scan-start", '\0', 0, G_OPTION_ARG_STRING, &scan_id,
-     "ID for this scan taks", "<string>"},
+     "ID for this scan task", "<string>"},
     {NULL, 0, 0, 0, NULL, NULL, NULL}
   };
 

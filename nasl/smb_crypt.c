@@ -453,7 +453,7 @@ bool E_deshash_ntlmssp (const char *passwd, uint8_t pass_len, uchar p16[16])
   memcpy (dospwd, dpass, pass_len);
   g_free (dpass);
 
-  /* Only the fisrt 14 chars are considered, password need not be null terminated. */
+  /* Only the first 14 chars are considered, password need not be null terminated. */
   E_P16((unsigned char *)dospwd, p16);
 
   if (strlen(dospwd) > 14) {
