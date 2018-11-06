@@ -29,7 +29,7 @@
  *
  * @brief Implementation of an API for SSH functions.
  *
- * This file contains the implementaion of the Secure Shell related
+ * This file contains the implementation of the Secure Shell related
  * NASL builtin functions.  They are only available if build with
  * libssh support.
  */
@@ -215,7 +215,7 @@ extern int lowest_socket;
  * If the named argument "socket" is given, that socket will be used
  * instead of a creating a new TCP connection.  If socket is not given
  * or 0, the port is looked up in the preferences and the KB unless
- * overriden by the named parameter "port".
+ * overridden by the named parameter "port".
  *
  * On success an ssh session to the host has been established; the
  * caller may then run an authentication function.  If the connection
@@ -686,8 +686,8 @@ get_authmethods (int tbl_slot)
  * This is an optional function and usuallay not required.  However,
  * if you want to get the banner before starting the authentication,
  * you need to tell libssh the user because it is often not possible
- * to chnage the user after the first call to an authentication
- * methods - getting the banner usees an authntication function.
+ * to change the user after the first call to an authentication
+ * methods - getting the banner uses an authentication function.
  *
  * The named argument "login" is used for the login name; it defaults
  * the KB entry "Secret/SSH/login".  It should contain the user name

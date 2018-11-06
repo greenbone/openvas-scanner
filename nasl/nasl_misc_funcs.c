@@ -430,7 +430,7 @@ nasl_make_list (lex_ctxt * lexic)
  * This function takes any _even_ number of arguments and makes
  * an array from them. In each pair, the 1st argument is the index, the
  * 2nd the value.
- * Illegal types are droped with a warning
+ * Illegal types are dropped with a warning
  */
 
 tree_cell *

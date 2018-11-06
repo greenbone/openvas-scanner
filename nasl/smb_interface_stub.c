@@ -26,7 +26,7 @@
 
 /**
  * @file smb_interface_stub.c
- * @brief Stub implementatin for SMB interface.
+ * @brief Stub implementation for SMB interface.
  *
  * This file contains an empty implementation that
  * fulfills the SMB interface specfified in \ref openvas_smb_interface.h
@@ -40,7 +40,7 @@
 /**
  * @brief Return version info for SMB implementation.
  *
- * @return NULL if this the impementation is a non-functional stub,
+ * @return NULL if this the implementation is a non-functional stub,
  *         else a arbitrary string that explains the version of the
  *         implementation.
  */

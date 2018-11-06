@@ -21,7 +21,7 @@
  * This file contains all the cryptographic functions NASL has.
  */
 
-/* MODIFICATION: added definitions for implemention NTLMSSP features */
+/* MODIFICATION: added definitions for implementing NTLMSSP features */
 
 #include <gcrypt.h>
 #include <glib.h>

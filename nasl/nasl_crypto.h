@@ -15,7 +15,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
  *
- * MODIFICATION: added definitions for implemention NTLMSSP features
+ * MODIFICATION: added definitions for implementing NTLMSSP features
  */
 #ifndef NASL_CRYPTO_H
 #define NASL_CRYPTO_H

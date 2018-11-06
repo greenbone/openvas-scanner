@@ -24,7 +24,7 @@
  *       be moved (e.g. to misc).
  */
 
-/** @todo In parts replacable by g_pattern_match function (when not icase) */
+/** @todo In parts replaceable by g_pattern_match function (when not icase) */
 int
 str_match (const char *string, const char *pattern, int icase)
 {

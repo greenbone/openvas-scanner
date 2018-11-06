@@ -28,7 +28,7 @@
 #include <stdio.h>
 
 /* this works for libc6 systems, unclear
- * wether it will not work on other systems */
+ * whether it will not work on other systems */
 #include <netinet/in.h>
 
 #include "network.h"

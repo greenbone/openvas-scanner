@@ -3,7 +3,7 @@
 * Description: Performs various checks for requirements set in a given plugin.
 *
 * Authors: 
-* Renaud Deraison <deraison@nessus.org> (Original pre-fork develoment)
+* Renaud Deraison <deraison@nessus.org> (Original pre-fork development)
 * Tim Brown (Initial fork)
 * Laban Mwangi (Renaming work)
 * Tarik El-Yassem (Headers section)
@@ -270,7 +270,7 @@ requirements_plugin (kb_t kb, nvti_t *nvti)
   const char *opti = prefs_get ("optimization_level");
 
   /*
-   * Check wether the good ports are open
+   * Check whether the good ports are open
    */
   error[sizeof (error) - 1] = '\0';
   tcp = nvti_required_ports (nvti);
@@ -293,7 +293,7 @@ requirements_plugin (kb_t kb, nvti_t *nvti)
     return NULL;
 
   /*
-   * Check wether a key we wanted is missing
+   * Check whether a key we wanted is missing
    */
   keys = nvti_required_keys (nvti);
   if (kb_missing_keyname_of_namelist (kb, keys, &errkey))
@@ -307,7 +307,7 @@ requirements_plugin (kb_t kb, nvti_t *nvti)
     return NULL;
 
   /*
-   * Check wether a key we do not want is present
+   * Check whether a key we do not want is present
    */
   keys = nvti_excluded_keys (nvti);
   if (kb_present_keyname_of_namelist (kb, keys, &errkey))
