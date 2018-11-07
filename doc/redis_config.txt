@@ -9,7 +9,6 @@ The feature has been developed with neither cluster mode nor replication
 enabled. Redis 2.4 and 2.6 are supported. Versions 2.6 and higher are
 recommended.
 
-
 == Connection ==
 OpenVAS can currently only access redis via a unix socket. This choice has been
 made for the sake of speed and security. No authentication is supported yet, we
@@ -24,7 +23,6 @@ On the redis side, use the following directives:
   unixsocket /tmp/redis.sock
   unixsocketperm 700
   timeout 0
-
 
 == Database number ==
 Multiple KBs can be served in parallel, for multiple hosts scanned by one or
@@ -52,7 +50,6 @@ For instance:
 
   databases 128
 
-
 == Clients numbers ==
 Redis can limit the number of clients served concurrently. This can be safely
 set to a pretty high number. You can estimate the number of clients that the
@@ -64,13 +61,12 @@ For instance:
 
   maxclients    512
 
-
 == Debugging and monitoring a scan via redis ==
 
 Once redis-server is started, you can issue the following command to see
 everything that happens during the execution.
 
-$ redis-cli -s <path to the redis server socket> MONITOR
+  $ redis-cli -s <path to the redis server socket> MONITOR
 
 The default path is /tmp/redis.sock. Then start the scan or
 openvas-nasl. You should be able to follow precisely the interactions
@@ -81,17 +77,18 @@ See also: http://redis.io/commands/MONITOR
 
 To enter an interactive mode type
 
-$ redis-cli -s <path to the redis server socket>
+  $ redis-cli -s <path to the redis server socket>
 
-redis /tmp/redis.sock> keys *
-1) "OpenVAS.__GlobalDBIndex"
-redis /tmp/redis.sock> select 1
-OK
+  redis /tmp/redis.sock> keys *
+  1) "OpenVAS.__GlobalDBIndex"
+
+  redis /tmp/redis.sock> select 1
+  OK
 
 Then you can search for keys with a pattern ("keys *" will dump all
 keys present):
 
-redis /tmp/redis.sock[1]> keys "*ALARM*"
+  redis /tmp/redis.sock[1]> keys "*ALARM*"
 
 Note that keys will disappear once a scan of a host finished.
 When the scanner is not active, the store is empty.
@@ -99,5 +96,5 @@ When the scanner is not active, the store is empty.
 The keys contain sets, not strings. So instead of the "get" command
 you need to use "smembers" to view the content:
 
-redis /tmp/redis.sock[1]> smembers Sun/VirtualBox/Lin/Ver
-1) "4.3.12.93733"
+  redis /tmp/redis.sock[1]> smembers Sun/VirtualBox/Lin/Ver
+  1) "4.3.12.93733"
