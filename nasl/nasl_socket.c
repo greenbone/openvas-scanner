@@ -694,25 +694,6 @@ nasl_socket_get_ssl_session_id (lex_ctxt * lexic)
 }
 
 tree_cell *
-nasl_socket_get_ssl_compression (lex_ctxt * lexic)
-{
-  int soc;
-  tree_cell *retc;
-
-  soc = get_int_var_by_name (lexic, "socket", -1);
-  if (soc < 0)
-    {
-      nasl_perror (lexic, "socket_get_cert: Erroneous socket value %d\n",
-                   soc);
-      return NULL;
-    }
-  retc = alloc_tree_cell ();
-  retc->type = CONST_INT;
-  retc->x.i_val = socket_get_ssl_compression (soc);
-  return retc;
-}
-
-tree_cell *
 nasl_socket_get_ssl_version (lex_ctxt * lexic)
 {
   int soc;
@@ -1231,9 +1212,6 @@ nasl_socket_get_error (lex_ctxt * lexic)
  * - @a tls-mac Return the message authentication algorithms used by
  *   the session.  Example output: "SHA1".
  *
- * - @a tls-comp Return the compression algorithms in use by the
- *   session.  Example output: "DEFLATE".
- *
  * - @a tls-auth Return the peer's authentication type.  Example
  *   output: "CERT".
  *
@@ -1352,15 +1330,6 @@ nasl_get_sock_info (lex_ctxt * lexic)
         s = "n/a";
       else
         s = gnutls_mac_get_name (gnutls_mac_get (tls_session));
-      strval = g_strdup (s?s:"");
-    }
-  else if (!strcmp (keyword, "tls-comp"))
-    {
-      if (!tls_session)
-        s = "n/a";
-      else
-        s = gnutls_compression_get_name
-          (gnutls_compression_get (tls_session));
       strval = g_strdup (s?s:"");
     }
   else if (!strcmp (keyword, "tls-auth"))

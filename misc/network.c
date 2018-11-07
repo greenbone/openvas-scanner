@@ -882,41 +882,6 @@ socket_get_ssl_session_id (int fd, void **sid, size_t *ssize)
 }
 
 /*
- * @brief Get the compression method of an SSL/TLS connection.
- *
- * @param[in]   fd  Socket file descriptor.
- *
- * @return 0 if null compression, 1 if deflate, 2 if lzs, -1 if error.
- */
-int
-socket_get_ssl_compression (int fd)
-{
-  gnutls_session_t session;
-
-  if (!fd_is_stream (fd))
-    {
-      g_message ("Socket %d is not stream", fd);
-      return -1;
-    }
-  session = ovas_get_tlssession_from_connection (fd);
-  if (!session)
-    {
-      g_message ("Socket %d is not SSL/TLS encapsulated", fd);
-      return -1;
-    }
-
-  switch (gnutls_compression_get (session))
-    {
-      case GNUTLS_COMP_NULL:
-        return 0;
-      case GNUTLS_COMP_DEFLATE:
-        return 1;
-      default:
-        return -1;
-    }
-}
-
-/*
  * @brief Get the cipher suite used by a SSL/TLS connection.
  *
  * @param[in]   fd  Socket file descriptor.

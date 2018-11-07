@@ -45,7 +45,6 @@ function test_open_sock_tcp_tlscustom()
                        transport:ENCAPS_TLScustom,
                        priority:strcat("NONE:+VERS-TLS1.0:",
                                        "+AES-256-CBC:+AES-128-CBC:",
-                                       "+COMP-DEFLATE:+COMP-NULL:",
                                        "+RSA:+DHE-RSA:+DHE-DSS:+SHA1"));
   if (sock > 0) {
       testcase_ok();
