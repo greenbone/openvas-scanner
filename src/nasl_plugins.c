@@ -92,11 +92,6 @@ check_nvti (const char *filename, nvti_t *nvt)
       g_warning ("%s: Missing family", filename);
       return -1;
     }
-  else if (!nvti_copyright (nvt))
-    {
-      g_warning ("%s: Missing copyright", filename);
-      return -1;
-    }
   return 0;
 }
 

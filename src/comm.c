@@ -175,7 +175,7 @@ void
 send_plug_info (int soc, const char *oid)
 {
   int category;
-  char *name = NULL, *copyright = NULL, *family = NULL;
+  char *name = NULL, *family = NULL;
   char *cve_id = NULL, *bid = NULL, *xref = NULL, *tag = NULL;
   nvti_t *nvti;
 
@@ -194,12 +194,6 @@ send_plug_info (int soc, const char *oid)
   if (!name || strchr (name, '\n'))
     {
       g_warning ("Erroneous name for plugin %s", oid);
-      goto send_cleanup;
-    }
-  copyright = nvti_copyright (nvti);
-  if (!copyright || strchr (copyright, '\n'))
-    {
-      g_warning ("Erroneous copyright for plugin %s", oid);
       goto send_cleanup;
     }
   family = nvti_family (nvti);
@@ -225,8 +219,8 @@ send_plug_info (int soc, const char *oid)
     }
 
   send_printf
-   (soc, "%s <|> %s <|> %d <|> %s <|> %s <|> %s <|> %s <|> %s <|> %s\n",
-    oid, name, category, copyright, family,
+   (soc, "%s <|> %s <|> %d <|>  %s <|> %s <|> %s <|> %s <|> %s\n",
+    oid, name, category, family,
     (cve_id && *cve_id) ? cve_id : "NOCVE", (bid && *bid) ? bid : "NOBID",
     (xref && *xref) ? xref: "NOXREF", (tag && *tag) ? tag : "NOTAG");
 
