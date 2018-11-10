@@ -247,7 +247,7 @@ script_version (lex_ctxt * lexic)
 tree_cell *
 script_copyright (lex_ctxt * lexic)
 {
-  nvti_set_copyright (lexic->script_infos->nvti, get_str_var_by_num (lexic, 0));
+  (void) lexic;
   return FAKE_CELL;
 }
 
