@@ -1041,7 +1041,7 @@ open_stream_connection (struct script_infos *args, unsigned int port,
                         int transport, int timeout)
 {
   return open_stream_connection_ext (args, port, transport, timeout,
-                                     "NORMAL:+ARCFOUR-128");
+                                     "NORMAL:+ARCFOUR-128:%COMPAT");
 }
 
 /* Same as open_stream_auto_encaps but allows to force auto detection
