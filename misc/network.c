@@ -450,19 +450,19 @@ set_gnutls_protocol (gnutls_session_t session, openvas_encaps_t encaps,
   switch (encaps)
     {
       case OPENVAS_ENCAPS_SSLv3:
-        priorities = "NORMAL:-VERS-TLS-ALL:+VERS-SSL3.0";
+        priorities = "NORMAL:-VERS-TLS-ALL:+VERS-SSL3.0:+ARCFOUR-128:%COMPAT";
         break;
       case OPENVAS_ENCAPS_TLSv1:
-        priorities = "NORMAL:-VERS-TLS-ALL:+VERS-TLS1.0";
+        priorities = "NORMAL:-VERS-TLS-ALL:+VERS-TLS1.0:+ARCFOUR-128:%COMPAT";
         break;
       case OPENVAS_ENCAPS_TLSv11:
-        priorities = "NORMAL:-VERS-TLS-ALL:+VERS-TLS1.1";
+        priorities = "NORMAL:-VERS-TLS-ALL:+VERS-TLS1.1:+ARCFOUR-128:%COMPAT";
         break;
       case OPENVAS_ENCAPS_TLSv12:
-        priorities = "NORMAL:-VERS-TLS-ALL:+VERS-TLS1.2";
+        priorities = "NORMAL:-VERS-TLS-ALL:+VERS-TLS1.2:+ARCFOUR-128:%COMPAT";
         break;
       case OPENVAS_ENCAPS_SSLv23:        /* Compatibility mode */
-        priorities = "NORMAL:-VERS-TLS-ALL:+VERS-TLS1.0:+VERS-SSL3.0";
+        priorities = "NORMAL:-VERS-TLS-ALL:+VERS-TLS1.0:+VERS-SSL3.0:+ARCFOUR-128:%COMPAT";
         break;
       default:
 #if DEBUG_SSL > 0
