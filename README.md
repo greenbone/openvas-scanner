@@ -21,7 +21,7 @@ This module can be configured, built and installed with following commands:
     make install
 
 For detailed installation requirements and instructions, please see the file
-[INSTALL](INSTALL). The file also contains instructions for setting up
+[INSTALL.md](INSTALL.md). The file also contains instructions for setting up
 `openvas-scanner` and for making the scanner available to other GVM modules.
 
 If you are not familiar or comfortable building from source code, we recommend
