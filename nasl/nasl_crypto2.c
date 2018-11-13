@@ -747,7 +747,7 @@ ret:
  *  rsa_private_decrypt(data:data, d:mpi_d, e:mpi_e, n:mpi_n, padd:<TRUE:FALSE>)
  *
  * Decrypt the provided data with the private RSA key given by its parameters
- * d, e and n. The return value is the decrypted data in plantext format.
+ * d, e and n. The return value is the decrypted data in plaintext format.
  */
 tree_cell *
 nasl_rsa_private_decrypt (lex_ctxt * lexic)
@@ -1382,7 +1382,7 @@ ret:
  *
  *   bf_cbc_encrypt(key:key, iv:iv, data:data)
  *
- * Encrypt the plain text data using the blowfish algorithm in CBC mode
+ * Encrypt the plaintext data using the blowfish algorithm in CBC mode
  * with the key key and the initialization vector iv.  The key must be
  * 16 bytes long.  The iv must be at least 8 bytes long.  data must be a
  * multiple of 8 bytes long.
@@ -1408,7 +1408,7 @@ nasl_bf_cbc_encrypt (lex_ctxt * lexic)
  * 16 bytes long.  The iv must be at least 8 bytes long.  data must be a
  * multiple of 8 bytes long.
  *
- * The return value is an array a with a[0] being the plain text data
+ * The return value is an array a with a[0] being the plaintext data
  * and a[1] the new initialization vector to use for the next part of
  * the data.
  */
