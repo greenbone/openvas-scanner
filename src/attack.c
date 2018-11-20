@@ -996,6 +996,14 @@ attack_network (struct arglist *globals, kb_t *network_kb)
   sched = plugins_scheduler_init
            (prefs_get ("plugin_set"), prefs_get_bool ("auto_enable_dependencies"),
             network_phase);
+  if (sched == NULL)
+    {
+      error_message_to_client (global_socket,
+                               "Failed to initialize the plugins scheduler.",
+                               NULL, NULL);
+      return;
+    }
+
 
   max_hosts = get_max_hosts_number ();
   max_checks = get_max_checks_number ();
