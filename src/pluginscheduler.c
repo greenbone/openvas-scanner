@@ -486,7 +486,7 @@ plugins_scheduler_enable (plugins_scheduler_t sched, const char *oid_list,
     }
 }
 
-static void
+static int
 plugins_scheduler_fill (plugins_scheduler_t sched)
 {
   int i;
@@ -500,6 +500,15 @@ plugins_scheduler_fill (plugins_scheduler_t sched)
       int category;
 
       category = nvticache_get_category (element->data);
+      if (category < 0)
+        {
+          log_write ("The NVT with oid %s has not category assigned. This is "
+                     "considered a fatal error, since the NVTI Cache "
+                     "structure stored in Redis is out dated or corrupted.",
+                     (char *) element->data);
+          g_slist_free_full (list, g_free);
+          return 1;
+        }
       scheduler_plugin = g_malloc0 (sizeof (struct scheduler_plugin));
       scheduler_plugin->running_state = PLUGIN_STATUS_UNRUN;
       scheduler_plugin->oid = g_strdup (element->data);
@@ -529,6 +538,7 @@ plugins_scheduler_fill (plugins_scheduler_t sched)
         }
     }
 
+  return 0;
 }
 
 plugins_scheduler_t
@@ -540,7 +550,11 @@ plugins_scheduler_init (const char *plugins_list, int autoload, int only_network
   /* Fill our lists */
   ret = g_malloc0 (sizeof (*ret));
   ret->hash = hash_init ();
-  plugins_scheduler_fill (ret);
+  if (plugins_scheduler_fill (ret))
+    {
+      plugins_scheduler_free (ret);
+      return NULL;
+    }
 
   plugins_scheduler_enable (ret, plugins_list, autoload);
 
@@ -729,9 +743,12 @@ list_destroy (struct list *list)
 void
 plugins_scheduler_free (plugins_scheduler_t sched)
 {
-  int i;
-  hash_destroy (sched->hash);
-  for (i = ACT_FIRST; i <= ACT_LAST; i++)
-    list_destroy (sched->list[i]);
-  g_free (sched);
+  if (sched)
+    {
+      int i;
+      hash_destroy (sched->hash);
+      for (i = ACT_FIRST; i <= ACT_LAST; i++)
+        list_destroy (sched->list[i]);
+      g_free (sched);
+    }
 }
