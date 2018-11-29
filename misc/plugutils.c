@@ -865,12 +865,15 @@ plug_get_key (struct script_infos *args, char *name, int *type, size_t *len,
   if (kb == NULL)
     return NULL;
 
-  res = kb_item_get_all (kb, name);
+  if (single)
+    res = kb_item_get_single (kb, name, KB_TYPE_UNSPEC);
+  else
+    res = kb_item_get_all (kb, name);
 
   if (res == NULL)
     return NULL;
 
-  if (res->next == NULL || single)        /* No fork - good */
+  if (!res->next)        /* No fork - good */
     {
       void *ret;
       if (res->type == KB_TYPE_INT)
