@@ -7,6 +7,48 @@ or get the entire source code repository and view log history:
 $ git clone https://github.com/greenbone/openvas-scanner.git
 $ cd openvas-scanner && git log
 
+openvas-scanner 6.0+beta2 (2018-12-04)
+
+This is the second beta release of the openvas-scanner module 6.0 for the
+Greenbone Vulnerability Management (GVM) framework.
+
+The module covers a number of significant advances and clean-ups.
+
+Many thanks to everyone who has contributed to this release:
+Hani Benhabiles, Christian Fischer, Matt Mundell, Juan Jose Nicola,
+Bjoern Ricks, Jan-Oliver Wagner and Michael Wiegand.
+
+Main changes compared to openvas-scanner 6.0+beta1:
+* A new command line option 'scan-start' with a scan ID has been added. This
+  add support for non-OTP clients.
+* Handling of vhosts and multiple domain names has been improved.
+* Setting 'kb_location' has been renamed to 'db_address'.
+* Cleanup of plugin child processes has been improved.
+* Routines for tcp and udp required ports checks have been improved.
+* An issue caused by password quotation has been addressed.
+* Script version has been removed.
+* Script copyright has been removed.
+* An issue which caused a hanging scan process has been addressed.
+* An issue related to WMI_HANDLE which caused a segmentation fault has
+  been addressed.
+* NASL get_host_names() API has been added.
+* Several code style improvements have been done.
+* Several performance improvements have been done.
+* The plugin scheduler has been improved.
+* Define MAXPATHLEN for specific downstream architectures.
+* An issue which caused parameter pollution in certain NASL functions
+  has been addressed.
+* NASL function resolve_host_name() has been added.
+* Unused preference use_mac_addr has been removed.
+* Issues in building process have been addressed.
+* Defaults to expand_vhosts if no preference was given is set to `yes`.
+* NASL function get_ssl_compression() has been removed.
+* Compatibility mode in GnuTLS priority string has been enabled.
+* GnuTLS RC4 + COMPAT in set_gnutls_protocol() have been enabled.
+* Several issues reported by Coverity have been addressed.
+* Documentation has been improved.
+
+
 openvas-scanner 6.0+beta1 (2018-04-18)
 
 This is the first beta release of the openvas-scanner module 6.0 for the
