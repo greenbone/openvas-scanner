@@ -16,6 +16,7 @@
  *
  */
 
+/* macro for stdlib */
 #define _SVID_SOURCE 1
 
 #include <unistd.h>       /* for close() */
