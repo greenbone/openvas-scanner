@@ -62,6 +62,7 @@ else (NOT GCRYPT)
   if (GCRYPT_VERSION VERSION_LESS "1.6")
     message (SEND_ERROR "libgcrypt 1.6 or greater is required")
   endif (GCRYPT_VERSION VERSION_LESS "1.6")
+string(REPLACE "-I" "" GCRYPT_INCLUDE_DIRS "${GCRYPT_CFLAGS}")
 endif (NOT GCRYPT)
 
 add_executable (openvassd attack.c comm.c hosts.c
@@ -74,7 +75,8 @@ set_target_properties (openvassd PROPERTIES LINKER_LANGUAGE C)
 
 include_directories (${GLIB_INCLUDE_DIRS} ${LIBOPENVAS_NASL_INCLUDE_DIRS}
                      ${LIBGVM_BASE_INCLUDE_DIRS}
-                     ${LIBOPENVAS_MISC_INCLUDE_DIRS})
+                     ${LIBOPENVAS_MISC_INCLUDE_DIRS}
+                     ${GCRYPT_INCLUDE_DIRS})
 
 if (NOT CMAKE_BUILD_TYPE MATCHES "Release")
   # If we got GIT_REVISION at configure time,
