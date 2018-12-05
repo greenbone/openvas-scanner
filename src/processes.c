@@ -26,6 +26,9 @@
 * Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA 02110-1301 USA.
 */
 
+/* macro for stdlib */
+#define _SVID_SOURCE    1
+
 #include <signal.h>   /* for kill() */
 #include <sys/wait.h> /* for waitpid() */
 #include <unistd.h>   /* for fork() */
