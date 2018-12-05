@@ -16,6 +16,8 @@
  *
  */
 
+#define _SVID_SOURCE 1
+
 #include <unistd.h>       /* for close() */
 #include <fcntl.h>        /* for fcntl() */
 #include <string.h>       /* for strcmp() */

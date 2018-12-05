@@ -20,6 +20,8 @@
   * This file contains all the misc. functions found in NASL
   */
 
+#define _SVID_SOURCE 1
+
 #include <glib.h>
 
 #include <errno.h>              /* for errno */
