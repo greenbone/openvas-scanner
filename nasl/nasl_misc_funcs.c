@@ -20,7 +20,7 @@
   * This file contains all the misc. functions found in NASL
   */
 
-#define _SVID_SOURCE 1
+#define _SVID_SOURCE 1 /* macro for stdlib*/
 
 #include <glib.h>
 
