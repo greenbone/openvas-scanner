@@ -17,7 +17,6 @@
  *
  */
 
-#include <search.h>             /* for qsort, lfind */
 #include <stdlib.h>             /* for free */
 #include <string.h>             /* for strcmp */
 
@@ -51,8 +50,6 @@ get_func (lex_ctxt * ctxt, const char *name)
 
   return func_is_internal (name);
 }
-
-typedef int(*qsortcmp)(const void *, const void *);
 
 nasl_func *
 insert_nasl_func (lex_ctxt * lexic, const char *fname, tree_cell * decl_node, int lint_mode)
