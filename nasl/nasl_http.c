@@ -25,6 +25,7 @@
 #include <gvm/util/kb.h>         /* for kb_item_get_str */
 
 #include "../misc/plugutils.h"  /* plug_get_host_fqdn */
+#include "../misc/vendorversion.h" /* for vendor_version_get */
 
 #include "nasl_tree.h"
 #include "nasl_global_ctxt.h"
@@ -136,15 +137,25 @@ _http_req (lex_ctxt * lexic, char *keyword)
 
   if ((ver <= 0) || (ver == 11))
     {
-      char *hostname, *ua, *hostheader;
+      char *hostname, *ua, *ua_vendor, *hostheader, *vendor;
 
       hostname = plug_get_host_fqdn (script_infos);
       if (hostname == NULL)
         return NULL;
       ua = kb_item_get_str (kb, "http/user-agent");
-#define OPENVAS_USER_AGENT	"Mozilla/5.0 [en] (X11, U; OpenVAS)"
+      vendor = g_strdup (vendor_version_get ());
+      if (!vendor || *vendor == '\0')
+        ua_vendor = g_strdup_printf ("Mozilla/5.0 [en] (X11, U; OpenVAS-VT %s)",
+                                     OPENVAS_NASL_VERSION);
+      else
+        ua_vendor = g_strdup_printf ("Mozilla/5.0 [en] (X11, U; %s)", vendor);
+      g_free (vendor);
+
       if (ua == NULL)
-        ua = g_strdup (OPENVAS_USER_AGENT);
+        {
+          ua = g_strdup (ua_vendor);
+          g_free (ua_vendor);
+        }
       else
         {
           while (isspace (*ua))
@@ -152,7 +163,8 @@ _http_req (lex_ctxt * lexic, char *keyword)
           if (*ua == '\0')
             {
               g_free (ua);
-              ua = g_strdup (OPENVAS_USER_AGENT);
+              ua = g_strdup (ua_vendor);
+              g_free (ua_vendor);
             }
         }
 
