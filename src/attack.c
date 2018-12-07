@@ -2,7 +2,7 @@
 * $Id$
 * Description: Launches the plugins, and manages multithreading.
 *
-* Authors: 
+* Authors:
 * Renaud Deraison <deraison@nessus.org> (Original pre-fork development)
 * Tim Brown (Initial fork)
 * Laban Mwangi (Renaming work)
@@ -48,6 +48,7 @@
 #include "../misc/nvt_categories.h" /* for ACT_INIT */
 #include "../misc/pcap_openvas.h"   /* for v6_is_local_ip */
 #include "../misc/scanneraux.h"
+#include "../misc/useragent.h"     /* for user_agent_set/get */
 
 #include "attack.h"
 #include "comm.h"
@@ -243,7 +244,6 @@ nvti_category_is_safe (int category)
   return 1;
 }
 
-
 /**
  * @brief Launches a nvt. Respects safe check preference (i.e. does not try
  * @brief destructive nvt if save_checks is yes).
@@ -257,6 +257,7 @@ static int
 launch_plugin (struct scan_globals *globals, struct scheduler_plugin *plugin,
                struct in6_addr *ip, GSList *vhosts, kb_t kb)
 {
+  static int ua_flag = 0;
   int optimize = prefs_get_bool ("optimize_test"), pid;
   char *oid, *name, *error = NULL, ip_str[INET6_ADDRSTRLEN];
   gboolean network_scan = FALSE;
@@ -334,6 +335,17 @@ launch_plugin (struct scan_globals *globals, struct scheduler_plugin *plugin,
       plugin->running_state = PLUGIN_STATUS_DONE;
       g_free (name);
       return ERR_HOST_DEAD;
+    }
+
+  if (nvti->category > ACT_SETTINGS && ua_flag == 0)
+    {
+      char *ua;
+
+      ua = kb_item_get_str (kb, "http/user-agent");
+      if (ua != NULL)
+        user_agent_set (ua);
+      g_free (ua);
+      ua_flag = 1;
     }
 
   /* Start the plugin */

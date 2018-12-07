@@ -26,6 +26,7 @@
 
 #include "../misc/plugutils.h"  /* plug_get_host_fqdn */
 #include "../misc/vendorversion.h" /* for vendor_version_get */
+#include "../misc/useragent.h" /* for user_agent_get */
 
 #include "nasl_tree.h"
 #include "nasl_global_ctxt.h"
@@ -142,7 +143,7 @@ _http_req (lex_ctxt * lexic, char *keyword)
       hostname = plug_get_host_fqdn (script_infos);
       if (hostname == NULL)
         return NULL;
-      ua = kb_item_get_str (kb, "http/user-agent");
+
       vendor = g_strdup (vendor_version_get ());
       if (!vendor || *vendor == '\0')
         ua_vendor = g_strdup_printf ("Mozilla/5.0 [en] (X11, U; OpenVAS-VT %s)",
@@ -151,13 +152,14 @@ _http_req (lex_ctxt * lexic, char *keyword)
         ua_vendor = g_strdup_printf ("Mozilla/5.0 [en] (X11, U; %s)", vendor);
       g_free (vendor);
 
-      if (ua == NULL)
+      if (user_agent_get () == NULL)
         {
           ua = g_strdup (ua_vendor);
           g_free (ua_vendor);
         }
       else
         {
+          ua = g_strdup (user_agent_get ());
           while (isspace (*ua))
             ua++;
           if (*ua == '\0')
