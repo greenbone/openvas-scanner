@@ -119,7 +119,7 @@ set_kb_readable (int host_kb_index)
   main_kb = kb_direct_conn (prefs_get ("db_address"), i);
   if (main_kb)
     {
-      kb_item_add_int (main_kb, "internal/dbindex", host_kb_index);
+      kb_item_add_int_unique (main_kb, "internal/dbindex", host_kb_index);
       return 0;
     }
   g_warning ("Not possible to add the kb index %d to the list of "
@@ -309,9 +309,7 @@ launch_plugin (struct scan_globals *globals, struct scheduler_plugin *plugin,
           return 0;
         }
       else
-        {
-          kb_item_add_int (kb, asc_id, 1);
-        }
+        kb_item_set_int (kb, asc_id, 1);
     }
 
   /* Do not launch NVT if mandatory key is missing (e.g. an important tool
@@ -693,7 +691,7 @@ attack_start (struct attack_start_args *args)
   kb_lnk_reset (kb);
   gettimeofday (&then, NULL);
 
-  kb_item_add_str (kb, "internal/scan_id", globals->scan_id, 0);
+  kb_item_set_str (kb, "internal/scan_id", globals->scan_id, 0);
   if (!is_otp_scan ())
     set_kb_readable (kb_get_kb_index (kb));
 
@@ -730,7 +728,7 @@ attack_start (struct attack_start_args *args)
         {
           char key[1024];
           snprintf (key, sizeof (key), "internal/%s", globals->scan_id);
-          kb_item_add_str (kb, key, "finished", 0);
+          kb_item_set_str (kb, key, "finished", 0);
         }
       struct timeval now;
 
