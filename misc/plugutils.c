@@ -730,9 +730,9 @@ plug_set_key_len (struct script_infos *args, char *name, int type,
     return;
 
   if (type == ARG_STRING)
-    kb_item_add_str (kb, name, value, len);
+    kb_item_add_str_unique (kb, name, value, len);
   else if (type == ARG_INT)
-    kb_item_add_int (kb, name, GPOINTER_TO_SIZE (value));
+    kb_item_add_int_unique (kb, name, GPOINTER_TO_SIZE (value));
   if (global_nasl_debug == 1)
     {
       if (type == ARG_STRING)

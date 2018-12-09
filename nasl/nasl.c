@@ -384,7 +384,7 @@ main (int argc, char **argv)
                       fprintf (stderr, "Erroneous --kb entry %s\n", *kb_values);
                       exit (1);
                     }
-                  kb_item_add_str (kb, splits[0], splits[1], 0);
+                  kb_item_add_str_unique (kb, splits[0], splits[1], 0);
                   kb_values++;
                   g_strfreev (splits);
                 }
