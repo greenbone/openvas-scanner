@@ -573,7 +573,7 @@ get_plugin_preference (const char *oid, const char *name)
               if (!strcmp (itername, plug_name))
                 {
                   a[0] = old;
-                  retval = itervalue;
+                  retval = g_strdup (itervalue);
                   break;
                 }
               a[0] = old;
