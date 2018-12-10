@@ -141,19 +141,12 @@ _http_req (lex_ctxt * lexic, char *keyword)
       hostname = plug_get_host_fqdn (script_infos);
       if (hostname == NULL)
         return NULL;
-      ua = kb_item_get_str (kb, "http/user-agent");
-#define OPENVAS_USER_AGENT	"Mozilla/5.0 [en] (X11, U; OpenVAS)"
-      if (ua == NULL)
-        ua = g_strdup (OPENVAS_USER_AGENT);
-      else
+      /* global_settings.nasl */
+      ua = get_plugin_preference ("1.3.6.1.4.1.25623.1.0.12288", "HTTP User-Agent");
+      if (!ua || strlen (g_strstrip (ua)) == 0)
         {
-          while (isspace (*ua))
-            ua++;
-          if (*ua == '\0')
-            {
-              g_free (ua);
-              ua = g_strdup (OPENVAS_USER_AGENT);
-            }
+          g_free (ua);
+          ua = g_strdup ("Mozilla/5.0 [en] (X11, U; OpenVAS)");
         }
 
       /* Servers should not have a problem with port 80 or 443 appended.
