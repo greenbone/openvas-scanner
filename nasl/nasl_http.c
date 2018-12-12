@@ -77,19 +77,13 @@ static tree_cell *
 _http_req (lex_ctxt * lexic, char *keyword)
 {
   tree_cell *retc;
-  char *str;
+  char *request, *auth, tmp[32];
   char *item = get_str_var_by_name (lexic, "item");
   char *data = get_str_var_by_name (lexic, "data");
   int port = get_int_var_by_name (lexic, "port", -1);
-  char *url = NULL;
   struct script_infos *script_infos = lexic->script_infos;
-  char *auth, tmp[32];
   int ver;
-  int cl;
-  int al;
-  char content_l_str[32];
   kb_t kb;
-  int str_length = 0;
 
 
   if (item == NULL || port < 0)
@@ -111,49 +105,25 @@ _http_req (lex_ctxt * lexic, char *keyword)
   g_snprintf (tmp, sizeof (tmp), "/tmp/http/auth/%d", port);
   auth = kb_item_get_str (kb, tmp);
 
-  if (auth == NULL)
+  if (!auth)
     auth = kb_item_get_str (kb, "http/auth");
 
   g_snprintf (tmp, sizeof (tmp), "http/%d", port);
   ver = kb_item_get_int (kb, tmp);
 
-  if (data == NULL)
-    {
-      cl = 0;
-      *content_l_str = '\0';
-    }
-  else
-    {
-      cl = strlen (data);
-      g_snprintf (content_l_str, sizeof (content_l_str),
-                  "Content-Length: %d\r\n", cl);
-    }
-
-  if (auth != NULL)
-    al = strlen (auth);
-  else
-    al = 0;
-
   if ((ver <= 0) || (ver == 11))
     {
-      char *hostname, *ua, *hostheader;
+      char *hostname, *ua, *hostheader, *url;
 
       hostname = plug_get_host_fqdn (script_infos);
       if (hostname == NULL)
         return NULL;
-      ua = kb_item_get_str (kb, "http/user-agent");
-#define OPENVAS_USER_AGENT	"Mozilla/5.0 [en] (X11, U; OpenVAS)"
-      if (ua == NULL)
-        ua = g_strdup (OPENVAS_USER_AGENT);
-      else
+      /* global_settings.nasl */
+      ua = get_plugin_preference ("1.3.6.1.4.1.25623.1.0.12288", "HTTP User-Agent");
+      if (!ua || strlen (g_strstrip (ua)) == 0)
         {
-          while (isspace (*ua))
-            ua++;
-          if (*ua == '\0')
-            {
-              g_free (ua);
-              ua = g_strdup (OPENVAS_USER_AGENT);
-            }
+          g_free (ua);
+          ua = g_strdup ("Mozilla/5.0 [en] (X11, U; OpenVAS)");
         }
 
       /* Servers should not have a problem with port 80 or 443 appended.
@@ -169,10 +139,7 @@ _http_req (lex_ctxt * lexic, char *keyword)
         hostheader = g_strdup_printf ("%s:%d", hostname, port);
 
       url = build_encode_URL (keyword, NULL, item, "HTTP/1.1");
-      str_length =
-        strlen (url) + strlen (hostname) + al + cl + strlen (ua) + 1024;
-      str = g_malloc0 (str_length);
-      g_snprintf (str, str_length, "%s\r\n\
+      request = g_strdup_printf ("%s\r\n\
 Connection: Close\r\n\
 Host: %s\r\n\
 Pragma: no-cache\r\n\
@@ -184,37 +151,38 @@ Accept-Charset: iso-8859-1,*,utf-8\r\n", url, hostheader, ua);
       g_free (hostname);
       g_free (hostheader);
       g_free (ua);
+      g_free (url);
+    }
+  else
+    request = build_encode_URL (keyword, NULL, item, "HTTP/1.0\r\n");
+
+  if (auth)
+    {
+      char *tmp = g_strconcat (request, auth, "\r\n", NULL);
+      g_free (request);
+      request = tmp;
+    }
+  if (data)
+    {
+      char content_length[128], *tmp;
+
+      g_snprintf (content_length, sizeof (content_length),
+                  "Content-Length: %lu\r\n\r\n", strlen (data));
+      tmp = g_strconcat (request, content_length, data, NULL);
+      g_free (request);
+      request = tmp;
     }
   else
     {
-      url = build_encode_URL (keyword, NULL, item, "HTTP/1.0\r\n");
-
-      str_length = strlen (url) + al + cl + 120;
-      str = g_malloc0 (str_length);
-      g_strlcpy (str, url, str_length);
-    }
-  g_free (url);
-
-  if (auth != NULL)
-    {
-      g_strlcat (str, auth, str_length);
-      g_strlcat (str, "\r\n", str_length);
-    }
-
-  if (data != NULL)
-    g_strlcat (str, content_l_str, str_length);
-
-  g_strlcat (str, "\r\n", str_length);
-
-  if (data != NULL)
-    {
-      g_strlcat (str, data, str_length);
+      char *tmp = g_strconcat (request, "\r\n", NULL);
+      g_free (request);
+      request = tmp;
     }
 
   retc = alloc_tree_cell ();
   retc->type = CONST_DATA;
-  retc->size = strlen (str);
-  retc->x.str_val = str;
+  retc->size = strlen (request);
+  retc->x.str_val = request;
   return retc;
 }
 
