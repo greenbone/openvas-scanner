@@ -25,6 +25,7 @@
 #include <gvm/util/kb.h>         /* for kb_item_get_str */
 
 #include "../misc/plugutils.h"  /* plug_get_host_fqdn */
+#include "../misc/vendorversion.h" /* for vendor_version_get */
 
 #include "nasl_tree.h"
 #include "nasl_global_ctxt.h"
@@ -123,7 +124,12 @@ _http_req (lex_ctxt * lexic, char *keyword)
       if (!ua || strlen (g_strstrip (ua)) == 0)
         {
           g_free (ua);
-          ua = g_strdup ("Mozilla/5.0 [en] (X11, U; OpenVAS)");
+          if (!vendor_version_get () || *vendor_version_get () == '\0')
+            ua = g_strdup_printf ("Mozilla/5.0 [en] (X11, U; OpenVAS-VT %s)",
+                                  OPENVAS_NASL_VERSION);
+          else
+            ua = g_strdup_printf ("Mozilla/5.0 [en] (X11, U; %s)",
+                                  vendor_version_get ());
         }
 
       /* Servers should not have a problem with port 80 or 443 appended.
