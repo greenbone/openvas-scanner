@@ -3,7 +3,7 @@
 # OpenVAS Scanner
 
 [![GitHub releases](https://img.shields.io/github/release/greenbone/openvas-scanner.svg)](https://github.com/greenbone/openvas-scanner/releases)
-[![Code Documentation Coverage](https://codecov.io/gh/greenbone/openvas-scanner/branch/master/graphs/badge.svg?flag=documentation)](https://codecov.io/gh/greenbone/openvas-scanner)`(Documentation Coverage)`
+[![Code Documentation Coverage](https://img.shields.io/codecov/c/github/greenbone/openvas-scanner.svg?label=Doc%20Coverage&logo=codecov)](https://codecov.io/gh/greenbone/openvas-scanner)
 [![CircleCI](https://circleci.com/gh/greenbone/openvas-scanner/tree/master.svg?style=svg)](https://circleci.com/gh/greenbone/openvas-scanner/tree/master)
 
 This is the Open Vulnerability Assessment System (OpenVAS) Scanner of the
