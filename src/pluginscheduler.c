@@ -502,7 +502,7 @@ plugins_scheduler_fill (plugins_scheduler_t sched)
       category = nvticache_get_category (element->data);
       if (category < 0)
         {
-          log_write ("The NVT with oid %s has not category assigned. This is "
+          log_write ("The NVT with oid %s has no category assigned. This is "
                      "considered a fatal error, since the NVTI Cache "
                      "structure stored in Redis is out dated or corrupted.",
                      (char *) element->data);
