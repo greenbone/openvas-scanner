@@ -265,17 +265,19 @@ launch_plugin (struct scan_globals *globals, struct scheduler_plugin *plugin,
   addr6_to_str (ip, ip_str);
   oid = plugin->oid;
   nvti = nvticache_get_nvt (oid);
-  name = nvticache_get_filename (oid);
   if (scan_is_stopped () || all_scans_are_stopped ())
     {
       if (nvti->category != ACT_LAST)
         {
           plugin->running_state = PLUGIN_STATUS_DONE;
-          g_free (name);
           return 0;
         }
       else
-        g_message ("Stopped scan wrap-up: Launching %s (%s)", name, oid);
+        {
+          name = nvticache_get_filename (oid);
+          g_message ("Stopped scan wrap-up: Launching %s (%s)", name, oid);
+          g_free (name);
+        }
     }
 
   if (network_scan_status (globals) == NSS_BUSY)
@@ -284,10 +286,13 @@ launch_plugin (struct scan_globals *globals, struct scheduler_plugin *plugin,
   if (prefs_get_bool ("safe_checks") && !nvti_category_is_safe (nvti->category))
     {
       if (prefs_get_bool ("log_whole_attack"))
-        g_message ("Not launching %s (%s) against %s because safe checks are"
+        {
+          name = nvticache_get_filename (oid);
+          g_message ("Not launching %s (%s) against %s because safe checks are"
                    " enabled (this is not an error)", name, oid, ip_str);
+          g_free (name);
+        }
       plugin->running_state = PLUGIN_STATUS_DONE;
-      g_free (name);
       return 0;
     }
 
@@ -305,7 +310,6 @@ launch_plugin (struct scan_globals *globals, struct scheduler_plugin *plugin,
                        "been lanched in the past (this is not an error)",
                        oid, ip_str);
           plugin->running_state = PLUGIN_STATUS_DONE;
-          g_free (name);
           return 0;
         }
       else
@@ -320,9 +324,12 @@ launch_plugin (struct scan_globals *globals, struct scheduler_plugin *plugin,
     {
       plugin->running_state = PLUGIN_STATUS_DONE;
       if (prefs_get_bool ("log_whole_attack"))
-        g_message ("Not launching %s (%s) against %s %s (this is not an error)",
-          name, oid, ip_str, error);
-      g_free (name);
+        {
+          name = nvticache_get_filename (oid);
+          g_message ("Not launching %s (%s) against %s %s (this is not an error)",
+                    name, oid, ip_str, error);
+          g_free (name);
+        }
       return 0;
     }
 
@@ -332,7 +339,6 @@ launch_plugin (struct scan_globals *globals, struct scheduler_plugin *plugin,
       g_message ("The remote host %s is dead", ip_str);
       pluginlaunch_stop (1);
       plugin->running_state = PLUGIN_STATUS_DONE;
-      g_free (name);
       return ERR_HOST_DEAD;
     }
 
@@ -342,14 +348,16 @@ launch_plugin (struct scan_globals *globals, struct scheduler_plugin *plugin,
   if (pid < 0)
     {
       plugin->running_state = PLUGIN_STATUS_UNRUN;
-      g_free (name);
       return ERR_CANT_FORK;
     }
 
   if (prefs_get_bool ("log_whole_attack"))
-    g_message ("Launching %s (%s) against %s [%d]", name, oid, ip_str, pid);
+    {
+      name = nvticache_get_filename (oid);
+      g_message ("Launching %s (%s) against %s [%d]", name, oid, ip_str, pid);
+      g_free (name);
+    }
 
-  g_free (name);
   return 0;
 }
 
