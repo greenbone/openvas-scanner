@@ -391,7 +391,7 @@ __ntp_timestamp_scan (int soc, char *msg)
 static int
 __ntp_timestamp_scan_host (int soc, char *msg, char *host)
 {
-  char timestr[1024];
+  char timestr[64];
   char *tmp;
   time_t t;
   int len;
