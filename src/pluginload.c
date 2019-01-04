@@ -250,7 +250,7 @@ cleanup_leftovers (int num_files)
   g_slist_free_full (oids, g_free);
 }
 
-static int
+static void
 plugins_reload_from_dir (void *folder)
 {
   GSList *files = NULL, *f;
