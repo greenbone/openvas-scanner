@@ -125,6 +125,13 @@ update_running_processes (kb_t kb)
             {
               char *oid = processes[i].plugin->oid;
 
+              if (prefs_get_bool ("advanced_log"))
+                {
+                  char buf[2048], buf2[2048];
+                  snprintf (buf, sizeof (buf), "log/launched/%s/end", oid);
+                  snprintf (buf2, sizeof (buf2), "%lu", time (NULL));
+                  kb_item_add_str (kb, buf, buf2, 0);
+                }
               if (processes[i].alive)
                 {
                   char msg[2048];
@@ -132,6 +139,8 @@ update_running_processes (kb_t kb)
                   if (log_whole)
                     g_message ("%s (pid %d) is slow to finish - killing it",
                                oid, processes[i].pid);
+                  if (prefs_get_bool ("advanced_log"))
+                    kb_item_add_str (kb, "log/timedout", oid, 0);
 
                   sprintf (msg,
                            "ERRMSG||| |||general/tcp|||%s|||"

@@ -145,6 +145,8 @@ _http_req (lex_ctxt * lexic, char *keyword)
         hostheader = g_strdup_printf ("%s:%d", hostname, port);
 
       url = build_encode_URL (keyword, NULL, item, "HTTP/1.1");
+      if (prefs_get_bool ("advanced_log"))
+        kb_item_add_str (kb, "log/http/short", url, 0);
       request = g_strdup_printf ("%s\r\n\
 Connection: Close\r\n\
 Host: %s\r\n\
@@ -160,7 +162,11 @@ Accept-Charset: iso-8859-1,*,utf-8\r\n", url, hostheader, ua);
       g_free (url);
     }
   else
-    request = build_encode_URL (keyword, NULL, item, "HTTP/1.0\r\n");
+    {
+      request = build_encode_URL (keyword, NULL, item, "HTTP/1.0\r\n");
+      if (prefs_get_bool ("advanced_log"))
+        kb_item_add_str (kb, "log/http/short", request, 0);
+    }
 
   if (auth)
     {
@@ -185,6 +191,8 @@ Accept-Charset: iso-8859-1,*,utf-8\r\n", url, hostheader, ua);
       request = tmp;
     }
 
+  if (prefs_get_bool ("advanced_log"))
+    kb_item_add_str (kb, "log/http/full", request, 0);
   retc = alloc_tree_cell ();
   retc->type = CONST_DATA;
   retc->size = strlen (request);
