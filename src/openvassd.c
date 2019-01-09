@@ -90,6 +90,10 @@
  */
 #define G_LOG_DOMAIN "sd   main"
 
+#define PROCTITLE_WAITING "openvassd: Waiting for incoming connections"
+#define PROCTITLE_LOADING "openvassd: Loading Handler"
+#define PROCTITLE_RELOADING "openvassd: Reloading"
+#define PROCTITLE_SERVING "openvassd: Serving %s"
 
 /**
  * Globals that should not be touched (used in utils module).
@@ -106,7 +110,6 @@ GSList *log_config = NULL;
 static int global_iana_socket = -1;
 
 static volatile int loading_stop_signal = 0;
-static volatile int reload_signal = 0;
 static volatile int termination_signal = 0;
 static char *global_scan_id = NULL;
 
@@ -187,9 +190,13 @@ set_globals_from_preferences (void)
 }
 
 static void
+reload_openvassd (void);
+
+static void
 handle_reload_signal (int sig)
 {
-  reload_signal = sig;
+  (void) sig;
+  reload_openvassd ();
 }
 
 static void
@@ -249,7 +256,7 @@ loading_handler_start ()
   if (child_pid != 0)
     return child_pid;
 
-  proctitle_set ("openvassd (Loading Handler)");
+  proctitle_set (PROCTITLE_WAITING);
   openvas_signal (SIGTERM, handle_loading_stop_signal);
 
   /*
@@ -340,6 +347,7 @@ reload_openvassd ()
   /* Ignore SIGHUP while reloading. */
   openvas_signal (SIGHUP, SIG_IGN);
 
+  proctitle_set (PROCTITLE_RELOADING);
   /* Setup logging. */
   rc_name = g_build_filename (OPENVAS_SYSCONF_DIR,
                               "openvassd_log.conf",
@@ -365,12 +373,11 @@ reload_openvassd ()
   loading_handler_stop (handler_pid);
 
   g_message ("Finished reloading the scanner.");
-  reload_signal = 0;
   openvas_signal (SIGHUP, handle_reload_signal);
+  proctitle_set (PROCTITLE_WAITING);
   if (ret)
     exit (1);
 }
-
 
 /**
  * @brief Read the scan preferences from redis
@@ -463,7 +470,7 @@ scanner_thread (struct scan_globals *globals)
     {
       globals->scan_id = (char *) gvm_uuid_make ();
       soc = globals->global_socket;
-      proctitle_set ("openvassd: Serving %s", unix_socket_path);
+      proctitle_set (PROCTITLE_SERVING, unix_socket_path);
 
       /* Close the scanner thread - it is useless for us now */
       close (global_iana_socket);
@@ -538,12 +545,8 @@ check_termination ()
 static void
 check_reload ()
 {
-  if (reload_signal || nvticache_check_feed ())
-    {
-      proctitle_set ("openvassd: Reloading");
-      reload_openvassd ();
-      proctitle_set ("openvassd: Waiting for incoming connections");
-    }
+  if (nvticache_check_feed ())
+    reload_openvassd ();
 }
 
 /**
@@ -688,7 +691,7 @@ main_loop ()
 #else
   g_message ("openvassd %s started", OPENVASSD_VERSION);
 #endif
-  proctitle_set ("openvassd: Waiting for incoming connections");
+  proctitle_set (PROCTITLE_WAITING);
   for (;;)
     {
       int soc;
