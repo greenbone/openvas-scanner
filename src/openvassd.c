@@ -454,7 +454,8 @@ handle_client (struct scan_globals *globals)
 static void
 scanner_thread (struct scan_globals *globals)
 {
-  int opt = 1, soc;
+  int opt = 1;
+  int soc = -1;
 
   nvticache_reset ();
 
