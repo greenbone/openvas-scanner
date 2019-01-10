@@ -1,12 +1,6 @@
-# OpenVAS Testsuite for the NASL interpreter
-# $Id$
-# Description: Tests for the nasl functions pem_to_rsa and pem_to_dsa
+# Copyright (C) 2008-2019 Greenbone Networks GmbH
 #
-# Authors:
-# Bernhard Herzog <bernhard.herzog@intevation.de>
-#
-# Copyright:
-# Copyright (c) 2008 Greenbone Networks GmbH
+# SPDX-License-Identifier: GPL-2.0-or-later
 #
 # This program is free software; you can redistribute it and/or
 # modify it under the terms of the GNU General Public License
@@ -21,6 +15,9 @@
 # You should have received a copy of the GNU General Public License
 # along with this program; if not, write to the Free Software
 # Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA 02110-1301 USA.
+
+# OpenVAS Testsuite for the NASL interpreter
+# Description: Tests for the nasl functions pem_to_rsa and pem_to_dsa
 
 # unencrypted RSA key. GnuTLS command:
 # certtool -p --outfile key-p8-rsa-unenc.pem
