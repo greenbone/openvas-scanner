@@ -500,6 +500,9 @@ sync_nvts(){
     return
   fi
 
+  # Sleep for ten seconds to prevent IP blocking.
+  sleep 10
+  
   if [ -e $ACCESS_KEY ]
   then
     if [ -n "$FIXED_METHOD" ] && [ "rsync" != "$FIXED_METHOD" ]
