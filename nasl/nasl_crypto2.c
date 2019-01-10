@@ -672,15 +672,25 @@ nasl_rsa_public_encrypt (lex_ctxt * lexic)
   gcry_mpi_t e = NULL, n = NULL, dt = NULL;
   gcry_sexp_t key = NULL, data = NULL, encrypted = NULL;
   gcry_error_t err;
-  char *pad = (char *) get_str_var_by_name (lexic, "pad");
+  int type = get_var_type_by_name (lexic, "pad");
+  int pad = 0;
 
-  if (pad == NULL)
+  if (type == VAR2_INT)
+    pad = get_int_var_by_name (lexic, "pad", 0);
+  /** TODO: In future releases, string support for padding should be removed */
+  else if (type == VAR2_STRING)
+    {
+      if (!strcmp (get_str_var_by_name (lexic, "pad"), "TRUE"))
+        pad = 1;
+    }
+  else
     {
       nasl_perror (lexic,
                    "Syntax : rsa_public_encrypt(data:<d>,"
-                   "n:<n>, e:<e>, pad:<pad>)");
+                   "n:<n>, e:<e>, pad:<TRUE:FALSE>)");
       return NULL;
     }
+
   retc = alloc_tree_cell ();
   retc->type = CONST_DATA;
 
@@ -699,7 +709,7 @@ nasl_rsa_public_encrypt (lex_ctxt * lexic)
       goto fail;
     }
 
-  if (strcmp (pad,"TRUE") == 0)
+  if (pad == 1)
     err = gcry_sexp_build (&data, NULL, "(data (flags pkcs1) (value %m))", dt);
   else
     err = gcry_sexp_build (&data, NULL, "(data (flags raw) (value %m))", dt);
@@ -716,7 +726,7 @@ nasl_rsa_public_encrypt (lex_ctxt * lexic)
       goto fail;
     }
 
-  if (strcmp (pad,"TRUE") == 0)
+  if (pad == 1)
     {
       if (set_retc_from_sexp (retc, encrypted, "a") >= 0 &&
         strip_pkcs1_padding (retc) >= 0)
@@ -756,15 +766,25 @@ nasl_rsa_private_decrypt (lex_ctxt * lexic)
   gcry_mpi_t e = NULL, n = NULL, d = NULL, dt = NULL;
   gcry_sexp_t key = NULL, data = NULL, decrypted = NULL;
   gcry_error_t err;
-  char *pad = (char *) get_str_var_by_name (lexic, "pad");
+  int type = get_var_type_by_name (lexic, "pad");
+  int pad = 0;
 
-  if (pad == NULL)
-  {
-    nasl_perror (lexic,
-                 "Syntax : rsa_public_encrypt(data:<d>,"
-                 "n:<n>, d:<d>, e:<e>, pad:<pad>)");
-    return NULL;
-  }
+  if (type == VAR2_INT)
+    pad = get_int_var_by_name (lexic, "pad", 0);
+  /** TODO: In future releases, string support for padding should be removed */
+  else if (type == VAR2_STRING)
+    {
+      if (!strcmp (get_str_var_by_name (lexic, "pad"), "TRUE"))
+        pad = 1;
+    }
+  else
+    {
+      nasl_perror (lexic,
+                   "Syntax : rsa_public_encrypt(data:<d>,"
+                   "n:<n>, e:<e>, pad:<TRUE:FALSE>)");
+      return NULL;
+    }
+
   retc = alloc_tree_cell ();
   retc->type = CONST_DATA;
 
@@ -786,7 +806,7 @@ nasl_rsa_private_decrypt (lex_ctxt * lexic)
       goto fail;
     }
 
-  if (strcmp (pad,"TRUE") == 0)
+  if (pad == 1)
     err = gcry_sexp_build (&data, NULL, "(enc-val (flags pkcs1) (rsa (a %m)))",
                            dt);
   else
@@ -805,7 +825,7 @@ nasl_rsa_private_decrypt (lex_ctxt * lexic)
       goto fail;
     }
 
-  if (strcmp (pad,"TRUE") == 0)
+  if (pad == 1)
     {
       if (set_retc_from_sexp (retc, decrypted, "value") >= 0 &&
           strip_pkcs1_padding (retc) >= 0)
