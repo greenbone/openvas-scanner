@@ -88,8 +88,21 @@ ENABLED=1
 REFRESH_ONLY=0
 
 # LOG_CMD defines the command to use for logging. To have logger log to stderr
-# as well as syslog, add "-s" here.
+# as well as syslog, add "-s" here. The logging facility is checked. In case of error
+# all will be logged in the standard error and the socket error check will be
+# disabled.
 LOG_CMD="logger -t $SCRIPT_NAME"
+
+check_logger () {
+  logger --socket-error=on -p daemon.info -t $SCRIPT_NAME "Checking logger" --no-act 1>/dev/null 2>&1
+  if [ $? -gt 0 ]
+  then
+    LOG_CMD="logger --socket-error=off -s -t $SCRIPT_NAME"
+    $LOG_CMD -p daemon.warning "The log facility is not working as expected. All messages will be written to the standard error stream."
+  fi
+}
+check_logger
+
 
 # Source configuration file if it is readable
 [ -r $OPENVAS_SYSCONF_DIR/greenbone-nvt-sync.conf ] && . $OPENVAS_SYSCONF_DIR/greenbone-nvt-sync.conf
