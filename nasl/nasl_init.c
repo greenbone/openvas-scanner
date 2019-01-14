@@ -17,11 +17,12 @@
  *
  */
 
-#include "nasl_raw.h"       /* to e.g. favour BSD, but also for IPPROTO_TCP
-                               and TH_FIN */
 
 #include <string.h>         /* for memset */
 #include <stdlib.h>         /* for getenv.  */
+
+#include "nasl_raw.h"       /* to e.g. favour BSD, but also for IPPROTO_TCP
+                               and TH_FIN */
 
 #include "../misc/nvt_categories.h" /* for ACT_INIT */
 #include "../misc/network.h"      /* for OPENVAS_ENCAPS_* */
