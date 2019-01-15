@@ -340,7 +340,7 @@ static void
 reload_openvassd ()
 {
   static gchar *rc_name = NULL;
-  const char *config_file;
+  char *config_file;
   pid_t handler_pid;
   int i, ret;
 
@@ -362,10 +362,11 @@ reload_openvassd ()
   if (handler_pid < 0)
     return;
   /* Reload config file. */
-  config_file = prefs_get ("config_file");
+  config_file = g_strdup (prefs_get ("config_file"));
   for (i = 0; openvassd_defaults[i].option != NULL; i++)
     prefs_set (openvassd_defaults[i].option, openvassd_defaults[i].value);
   prefs_config (config_file);
+  g_free (config_file);
 
   /* Reload the plugins */
   ret = plugins_init ();
