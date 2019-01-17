@@ -25,8 +25,6 @@
 
 #include <gvm/base/logging.h>
 
-#undef DEBUG
-#undef DEBUG_HIGH
 #define NUM_CLIENTS 128
 
 #undef G_LOG_DOMAIN

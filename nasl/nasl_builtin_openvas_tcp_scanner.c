@@ -99,12 +99,6 @@ typedef struct {
 #define GRAB_PORT_NOT_TESTED	254
 #define GRAB_PORT_TESTING	255
 
-#ifndef DEBUG
-#define DEBUG 0
-#endif
-#if DEBUG > 2
-# define DISPLAY
-#endif
 #define COMPUTE_RTT
 /*
  * RTT is always estimated (at least, the maximum is remembered)
@@ -120,11 +114,7 @@ static int
 my_socket_close(int s)
 {
 #ifndef SO_LINGER
-  if (shutdown(s, 2) < 0)
-#if DEBUG > 0
-    perror("shutdown")
-#endif
-      ;
+  shutdown(s, 2);
 #endif
   return close(s);
 }
@@ -156,10 +146,6 @@ double_check_std_ports(unsigned char* ports_states)
                    " Unknown port %d status", port);
 	tbd_nb ++;
       }
-#if DEBUG > 0
-  g_message ("opanvas_tcp_scanner: double_check_std_ports found %d"
-             " filtered standard ports", tbd_nb);
-#endif
   return tbd_nb;
 }
 
@@ -175,9 +161,6 @@ banner_grab(const struct in6_addr *pia, const char* portrange,
   struct protoent	*proto;
   fd_set		rfs, wfs, efs;
   struct timeval	timeout, ti;
-#if DEBUG > 0
-  struct timeval	ti1;
-#endif
   struct sockaddr_in	sa;
   struct sockaddr_in6	sa6;
   int len;
@@ -194,9 +177,6 @@ banner_grab(const struct in6_addr *pia, const char* portrange,
   int			old_filtered = -1, old_opened = -1;
   int			open_ports_nb, closed_ports_nb;
   int			untested_ports_nb, total_ports_nb;
-#if DEBUG > 1
-  int			done_ports_nb;
-#endif
   int			cnx_max[3], rtt_max[3], rtt_min[3], ping_rtt = 0;
 #if defined COMPUTE_RTT
   double		rtt_sum[3], rtt_sum2[3];
@@ -245,11 +225,6 @@ banner_grab(const struct in6_addr *pia, const char* portrange,
     g_free (k);
     if (ping_rtt < 0 || ping_rtt > MAX_SANE_RTT)
       ping_rtt = 0;
-#if DEBUG > 0
-    else
-	g_message ("openvas_tcp_scanner(%s): ping_rtt=%g s",
-                   inet_ntoa(*pia), ping_rtt / 1e6);
-#endif
   }
 
   {
@@ -354,25 +329,11 @@ banner_grab(const struct in6_addr *pia, const char* portrange,
 
       minport = 1;
       start_time_1pass = time(NULL);
-#if DEBUG > 0
-      g_message ("openvas_tcp_scanner(%s): pass #%d: open_sock_max=%d\topen_sock_max2=%d",
-                 inet_ntoa(*pia), pass, open_sock_max, open_sock_max2);
-#endif
-
       FD_ZERO(&rfs); FD_ZERO(&wfs); imax = -1;
 
       while (scanned_ports < 65535)
 	{
 	  total_ports_nb = unfiltered_ports_nb + filtered_ports_nb + untested_ports_nb;
-#if DEBUG > 0
-	  g_message ("openvas_tcp_scanner(%s): %d / %d = %02d%% - %d ports remaining",
-                     inet_ntoa(*pia),
-                     unfiltered_ports_nb + filtered_ports_nb,
-                     total_ports_nb,
-                     (unfiltered_ports_nb + filtered_ports_nb) * 100 /
-                     (total_ports_nb > 0 ? total_ports_nb : 1),
-                     untested_ports_nb);
-#endif
 	  while (open_sock_nb < open_sock_max)
 	    {
 	      for (port = minport; port <= 65535 && ports_states[port] != GRAB_PORT_UNKNOWN; port ++)
@@ -382,9 +343,6 @@ banner_grab(const struct in6_addr *pia, const char* portrange,
 	      minport = port;
 
 	      ports_states[port] = GRAB_PORT_TESTING;
-#if DEBUG > 2
-	      g_message ("openvas_tcp_scanner: Trying %s:%d", inet_ntoa(*pia), port);
-#endif
         if(IN6_IS_ADDR_V4MAPPED(pia))
         {
 	        s = socket(PF_INET, SOCK_STREAM, tcpproto);
@@ -399,11 +357,7 @@ banner_grab(const struct in6_addr *pia, const char* portrange,
 		    {
 		      open_sock_max = open_sock_max2 = open_sock_nb / 2 - 1;
 		      /* NB: if open_sock_max2 < 0, the scanner aborts */
-#if DEBUG > 0
 		      /* DEBUG: otherwise, we print a less frigthtening message */
-		      perror("socket");
-		      g_message ("openvas_tcp_scanner(%s): Reducing the number of maximum open connections to %d [ENFILE]", inet_ntoa(*pia), open_sock_max);
-#endif
 		      continue;
 		    }
 		  else if (errno == EMFILE)	/* Too many open files */
@@ -412,11 +366,7 @@ banner_grab(const struct in6_addr *pia, const char* portrange,
 		      open_sock_max = open_sock_max2 =
 			open_sock_nb - (x > 0 ? x : 1);
 		      /* NB: if open_sock_max2 < 0, the scanner aborts */
-#if DEBUG > 0
 		      /* DEBUG: otherwise, we print a less frigthtening message */
-		      perror("socket");
-		      g_message ("openvas_tcp_scanner(%s): Reducing the number of maximum open connections to %d [EMFILE]", inet_ntoa(*pia), open_sock_max);
-#endif
 		      continue;
 		    }
 		  else
@@ -430,9 +380,6 @@ banner_grab(const struct in6_addr *pia, const char* portrange,
 		{
 		  open_sock_max --;
 		  open_sock_max2 --;
-#if DEBUG > 0
-		  g_message ("openvas_tcp_scanner(%s): socket=%d > FD_SETSIZE=%d - reducing the number of maximum open connections to %d", inet_ntoa(*pia), s, FD_SETSIZE, open_sock_max);
-#endif
 		  if (close(s) < 0)
 		    perror("close");
 		  continue;
@@ -509,16 +456,10 @@ banner_grab(const struct in6_addr *pia, const char* portrange,
 		      open_sock_max = open_sock_max2 =
 			open_sock_nb - (x > 0 ? x : 1);
 		      /* If open_sock_max2 < 0, the scanner aborts */
-#if DEBUG > 0
-		      g_message ("openvas_tcp_scanner(%s): Reducing the number of maximum open connections to %d [EAGAIN]", inet_ntoa(*pia), open_sock_max);
-#endif
 		      continue;
 
 		    case ECONNREFUSED:
 		      ports_states[port] = GRAB_PORT_CLOSED;
-#ifdef DISPLAY
-		      printf(">>> %d: CLOSED\n", sockets[i].port);
-#endif
 		      my_socket_close(s);
 		      unfiltered_ports_nb ++;
 		      closed_ports_nb ++;
@@ -529,9 +470,6 @@ banner_grab(const struct in6_addr *pia, const char* portrange,
 		    case ENETUNREACH:
 		    case EHOSTUNREACH:
 		      ports_states[port] = GRAB_PORT_REJECTED;
-#ifdef DISPLAY
-		      printf(">>> %d: FILTERED\n", sockets[i].port);
-#endif
 		      my_socket_close(s);
 		      filtered_ports_nb ++;
 		      untested_ports_nb --;
@@ -547,9 +485,6 @@ banner_grab(const struct in6_addr *pia, const char* portrange,
 		  sockets[open_sock_nb].fd = s;
 		  sockets[open_sock_nb].port = port;
 		  sockets[open_sock_nb].state = GRAB_SOCKET_OPEN;
-#ifdef DISPLAY
-		  printf(">>> %d: OPEN\n", sockets[i].port);
-#endif
 		  (void) gettimeofday(&sockets[open_sock_nb].tictac, NULL);
 		  open_sock_nb ++;
 		  ports_states[port] = GRAB_PORT_OPEN;
@@ -564,12 +499,7 @@ banner_grab(const struct in6_addr *pia, const char* portrange,
 		{
 		  timeout.tv_sec = timeout.tv_usec = 0;
 		  if (select(imax + 1, NULL, &wfs, NULL, &timeout) > 0)
-		    {
-#if DEBUG > 1
-		      g_message ("openvas_tcp_scanner(%s): select! Breaking loop (open_sock_nb=%d / %d)", inet_ntoa(*pia), open_sock_nb, open_sock_max);
-#endif
-		      break;
-		    }
+		    break;
 		}
 	    }
 
@@ -577,12 +507,7 @@ banner_grab(const struct in6_addr *pia, const char* portrange,
 	    return -1;
 
 	  if (open_sock_nb == 0)
-	    {
-#if DEBUG > 0
-	      g_message ("openvas_tcp_scanner(%s): No more open socket", inet_ntoa(*pia));
-#endif
-		  goto end;
-	    }
+	    goto end;
 
 	  FD_ZERO(&rfs); FD_ZERO(&wfs); FD_ZERO(&efs); imax = -1;
 
@@ -609,19 +534,9 @@ banner_grab(const struct in6_addr *pia, const char* portrange,
 	  if (imax < 0)
 	    {
 	      if (untested_ports_nb > 0)
-		{
-#if DEBUG > 0
-		  g_message ("openvas_tcp_scanner(%s): No socket! %d ports remaining", inet_ntoa(*pia), untested_ports_nb);
-#endif
 		  return -1;
-		}
 	      else
-		{
-#if DEBUG > 0
-		  g_message ("openvas_tcp_scanner(%s): No socket! No port remaining", inet_ntoa(*pia));
-#endif
-		  goto end;
-		}
+		goto end;
 	    }
 
 	  timeout_nb = 0; dropped_nb = 0; dropped_flag = 0;
@@ -639,31 +554,12 @@ banner_grab(const struct in6_addr *pia, const char* portrange,
 		  em = floor(emax + 0.5);
 		  moy = floor(rtt_sum[0] / rtt_nb[0] + 0.5);
 		  if (em <= moy)
-		    {
-#if DEBUG > 0
-		      g_message ("openvas_tcp_scanner: arithmetic overflow: %g -> %d", emax, em);
-#endif
-		      em = moy;
-		    }
+		    em = moy;
 		  if (rtt_max[0] > em)
-		    {
-#if DEBUG > 0
-		      g_message ("openvas_tcp_scanner(%s): rtt_nb=%d rtt_max = %g > %g (M=%g, SD=%g)", inet_ntoa(*pia), rtt_nb[0], (double)rtt_max[0] / 1e6, emax / 1e6, mean / 1e6, sd / 1e6);
-#endif
-		      rtt_max[0] = em;
-		    }
-#if DEBUG > 1
-		  else
-		    g_message ("openvas_tcp_scanner(%s): rtt_nb=%d rtt_max = %g < %g", inet_ntoa(*pia), rtt_nb[0], (double)rtt_max[0] / 1e6, emax / 1e6);
-#endif
+		    rtt_max[0] = em;
 		}
 	      if (rtt_max[0] < rtt_min[0])
-		{
-#if DEBUG > 0
-		  g_message ("openvas_tcp_scanner(%s): absurdly low rtt_max=%g < rtt_min = %g", inet_ntoa(*pia), (double)rtt_max[0] / 1e6, (double)rtt_min[0] / 1e6);
-#endif
-		  rtt_max[0] = rtt_min[0];
-		}
+		rtt_max[0] = rtt_min[0];
 	    }
 #endif
 	  /*
@@ -674,24 +570,15 @@ banner_grab(const struct in6_addr *pia, const char* portrange,
 	  if (wait_sock_nb == 0)
 	    if (rtt_max[0] > 0 || ping_rtt > 0)
 	      {
-#if DEBUG > 1
-		int	y;
-#endif
 		if (rtt_max[0] > 0)
 		  x = rtt_max[0];
 		else
 		  x = ping_rtt;
-#if DEBUG > 1
-                y = x;
-#endif
 
 		if (doublecheck_flag)
 		  {
 		    x = 3 * x + 20000;
 		    if (x > MAX_SANE_RTT) x = MAX_SANE_RTT;
-#if DEBUG > 1
-		    g_message ("openvas_tcp_scanner(%s): basic timeout increased from %g to %g because of \"double check\"", inet_ntoa(*pia), y/1e6, x/1e6);
-#endif
 		  }
 		if (x > 1000000)	/* more that 1 s */
 		  x += (unsigned)(lrand48() & 0x7FFFFFFF) % 100000;
@@ -701,10 +588,6 @@ banner_grab(const struct in6_addr *pia, const char* portrange,
 		  x = 20000 + (unsigned)(lrand48() & 0x7FFFFFFF) % 20000;
 		timeout.tv_sec = x / 1000000;
 		timeout.tv_usec = x % 1000000;
-#if DEBUG > 2
-		g_message ("openvas_tcp_scanner(%s): timeout=%g -> %g",
-                           inet_ntoa(*pia), y/1e6, x/1e6);
-#endif
 	      }
 	    else
 	      {
@@ -717,24 +600,9 @@ banner_grab(const struct in6_addr *pia, const char* portrange,
 	      timeout.tv_sec = read_timeout; /* * 2 ? */
 	      timeout.tv_usec = (unsigned)(lrand48() & 0x7FFFFFFF) % 500000;
 	    }
-#if DEBUG > 1
-	  if (rtt_max[0] > 0)
-	    g_message ("openvas_tcp_scanner(%s): wait_sock_nb=%d - timeout=%u.%06u - RTT=%f/%f/%f/%f", inet_ntoa(*pia), wait_sock_nb, timeout.tv_sec, timeout.tv_usec, (double)rtt_min[0] / 1e6, rtt_sum[0] / 1e6 / (rtt_nb[0] > 0 ? rtt_nb[0] : 1), (double)rtt_max[0] / 1e6, (double)cnx_max[0] / 1e6);
-	  else
-	    g_message ("openvas_tcp_scanner(%s): wait_sock_nb=%d - timeout=%d.%06d", inet_ntoa(*pia), wait_sock_nb, timeout.tv_sec, timeout.tv_usec);
-#endif
-#if DEBUG > 0
-	  gettimeofday(&ti1, NULL);
-#endif
 	  i = 0;
 	  do
-	    {
-	      x = select(imax + 1, &rfs, &wfs, NULL, &timeout);
-#if DEBUG > 0
-	      if (errno == EINTR)
-		g_message ("openvas_tcp_scanner(%s): select interrupted (i=%d)", inet_ntoa(*pia), i);
-#endif
-	    }
+	    x = select(imax + 1, &rfs, &wfs, NULL, &timeout);
 	  while (i ++ < 10 && x < 0 && errno == EINTR);
 
 	  if (x < 0)
@@ -744,9 +612,6 @@ banner_grab(const struct in6_addr *pia, const char* portrange,
 	    }
 	  else if (x == 0)		/* timeout */
 	    {
-#if DEBUG > 1
-	      g_message ("openvas_tcp_scanner(%s): select: timeout on all (%d) sockets!", inet_ntoa(*pia), imax - 1);
-#endif
 	      for (i = 0; i < open_sock_nb; i ++)
 		{
 		  if (sockets[i].fd > 0)
@@ -756,18 +621,12 @@ banner_grab(const struct in6_addr *pia, const char* portrange,
 		      switch (sockets[i].state)
 			{
 			case  GRAB_SOCKET_OPENING:
-#ifdef DISPLAY
-			  printf(">> %d: TIMEOUT\n", sockets[i].port);
-#endif
 			  ports_states[sockets[i].port] = GRAB_PORT_SILENT;
 			  filtered_ports_nb ++;
 			  dropped_nb ++;
 			  untested_ports_nb --;
 			  break;
 			case GRAB_SOCKET_OPEN:
-#ifdef DISPLAY
-			  printf(">> %d: NO BANNER\n", sockets[i].port);
-#endif
 			  wait_sock_nb --;
 			  break;
 			}
@@ -778,9 +637,6 @@ banner_grab(const struct in6_addr *pia, const char* portrange,
 	  else			/* something to do */
 	    {
 	      (void) gettimeofday(&ti, NULL);
-#if DEBUG > 1
-	      g_message ("openvas_tcp_scanner(%s): select replied in %f s [time=%d.%06d]", inet_ntoa(*pia), DIFFTVu(ti, ti1) / 1e6, ti.tv_sec, ti.tv_usec);
-#endif
 	      for (i = 0; i < open_sock_nb; i ++)
 		{
 		  if (sockets[i].fd > 0) {
@@ -794,16 +650,9 @@ banner_grab(const struct in6_addr *pia, const char* portrange,
 			  }
 
 			x = DIFFTVu(ti, sockets[i].tictac);
-#if DEBUG > 2
-			g_message ("openvas_tcp_scanner: RTT to %s:%d: %g s",
-                                   inet_ntoa(*pia), sockets[i].port, x / 1e6);
-#endif
 			if (opt != 0)
 			  {
 			    errno = opt;
-#if DEBUG > 2
-			    perror("select->getsockopt");
-#endif
 			    if (x > cnx_max[2]) cnx_max[2] = x;
 			    if (x < rtt_min[2]) rtt_min[2] = x;
 			    if (x < MAX_SANE_RTT)
@@ -827,9 +676,6 @@ banner_grab(const struct in6_addr *pia, const char* portrange,
 			      case EHOSTUNREACH:
 				ports_states[sockets[i].port] = GRAB_PORT_REJECTED;
 				filtered_ports_nb ++;
-#ifdef DISPLAY
-				printf(">> %d: FILTERED\n", sockets[i].port);
-#endif
 				break;
 
 			      case ECONNREFUSED:
@@ -838,18 +684,12 @@ banner_grab(const struct in6_addr *pia, const char* portrange,
 				unfiltered_ports_nb ++;
 				closed_ports_nb ++;
 				closed_ports_nb1 ++;
-#ifdef DISPLAY
-				printf(">> %d: CLOSED\n", sockets[i].port);
-#endif
 				break;
 			      }
 			  }
 			else
 			  {
 			    sockets[i].state = GRAB_SOCKET_OPEN;
-#ifdef DISPLAY
-			    printf(">> %d: OPEN\n", sockets[i].port);
-#endif
 			    if (x > cnx_max[1]) cnx_max[1] = x;
 			    if (x < rtt_min[1]) rtt_min[1] = x;
 			    if (x < MAX_SANE_RTT)
@@ -910,19 +750,12 @@ banner_grab(const struct in6_addr *pia, const char* portrange,
 			    buf[x] = '\0';
 			    snprintf(kb, sizeof(kb), "Banner/%u", sockets[i].port);
 			    plug_set_key(desc, kb, ARG_STRING, buf);
-#ifdef DISPLAY
-			    printf("Banner for port %u: %s\n", sockets[i].port, buf);
-#endif
 			    x = DIFFTVu(ti, sockets[i].tictac) / 1000;
 			    snprintf(kb, sizeof(kb), "TCPScanner/RwTime1000/%u", sockets[i].port);
 			    plug_set_key(desc, kb, ARG_INT, GSIZE_TO_POINTER(x));
 			    snprintf(kb, sizeof(kb), "TCPScanner/RwTime/%u", sockets[i].port);
 			    plug_set_key(desc, kb, ARG_INT, GSIZE_TO_POINTER((x + 500) / 1000));
 			  }
-#if DEBUG > 0
-			else
-			  perror("read");
-#endif
 			wait_sock_nb --;
 			my_socket_close(sockets[i].fd);
 			sockets[i].fd = -1;
@@ -936,24 +769,15 @@ banner_grab(const struct in6_addr *pia, const char* portrange,
 	  for (i = 0; i < open_sock_nb; i ++)
 	    if (sockets[i].fd >= 0 && DIFFTV(ti, sockets[i].tictac) >= read_timeout)
 	      {
-#if DEBUG > 0
-		g_message ("openvas_tcp_scanner(%s): pass #%d: timeout on port %u: %d", inet_ntoa(*pia), pass, sockets[i].port, DIFFTV(ti, sockets[i].tictac));
-#endif
 		switch(sockets[i].state)
 		  {
 		  case GRAB_SOCKET_OPEN:
-#ifdef DISPLAY
-		    printf(">> %u: NO BANNER\n", sockets[i].port);
-#endif
 		    timeout_nb ++;
 		    wait_sock_nb --;
 		    snprintf(kb, sizeof(kb), "/tmp/NoBanner/%u", sockets[i].port);
 		    plug_set_key(desc, kb, ARG_INT, (void *) 1);
 		    break;
 		  case GRAB_SOCKET_OPENING:
-#ifdef DISPLAY
-		    printf(">> %d: TIMEOUT\n", sockets[i].port);
-#endif
 		    ports_states[sockets[i].port] = GRAB_PORT_SILENT;
 		    filtered_ports_nb ++;
 		    dropped_nb ++;
@@ -967,29 +791,12 @@ banner_grab(const struct in6_addr *pia, const char* portrange,
 		sockets[i].state = GRAB_SOCKET_UNUSED;
 	      }
 
-#if DEBUG > 1
-	  x = open_sock_max;
-	  g_message ("openvas_tcp_scanner(%s): open_sock_max=%d timeout_nb=%d dropped_nb=%d", inet_ntoa(*pia), open_sock_max, timeout_nb, dropped_nb);
-	  done_ports_nb = unfiltered_ports_nb + filtered_ports_nb;
-	  if (done_ports_nb > 0 && total_ports_nb > 0)
-	    {
-	      int	dt = time(NULL) - start_time_1pass;
-	      g_message ("openvas_tcp_scanner(%s): pass #%d: time spent so far = %d s - estimated total time = %d s - estimated time remaining = %d s",
-		      inet_ntoa(*pia),  pass,
-		      dt,
-		      dt * total_ports_nb / done_ports_nb,
-		      dt * (total_ports_nb - done_ports_nb) / done_ports_nb);
-	    }
-#endif
 	  if (dropped_nb > 0 &&
 	      dropped_nb >= (open_sock_nb * 3) / 4 &&
 	      (dropped_nb < filtered_ports_nb
 	       || dropped_nb > unfiltered_ports_nb))
 	    {
 	      /* firewalled machine? */
-#if DEBUG > 1
-	      g_message ("openvas_tcp_scanner(%s): %d connections dropped. Firewall?", inet_ntoa(*pia), dropped_nb);
-#endif
 	      open_sock_max += dropped_nb;
 	      if (open_sock_max2 < max_cnx) open_sock_max2 ++;
 	    }
@@ -999,10 +806,6 @@ banner_grab(const struct in6_addr *pia, const char* portrange,
 	      open_sock_max -= (dropped_nb + 2) / 3;
 	      if (open_sock_max < min_cnx) open_sock_max = min_cnx;
 	      open_sock_max2 = (open_sock_max  + 3 * open_sock_max2) / 4;
-#if DEBUG > 0
-	      if (min_cnx < open_sock_max)
-		g_message ("openvas_tcp_scanner(%s): %d connections dropped. Slowing down - min_cnx=%d - open_sock_nb=%d - open_sock_max=%d - open_sock_max2=%d", inet_ntoa(*pia), dropped_nb, min_cnx, open_sock_nb, open_sock_max, open_sock_max2);
-#endif
 	    }
 	  else if (dropped_nb == 0 && dropped_flag)
 	    {
@@ -1012,24 +815,10 @@ banner_grab(const struct in6_addr *pia, const char* portrange,
 	  open_sock_max += timeout_nb;
 	  if (open_sock_max > open_sock_max2)
 	    {
-#if  DEBUG > 2
-	      g_message ("openvas_tcp_scanner(%s): open_sock_max=%d > %d",
-                         inet_ntoa(*pia), open_sock_max, open_sock_max2);
-#endif
 	      open_sock_max = open_sock_max2;
 	    }
 	  if (open_sock_max < min_cnx)
-	    {
-#if  DEBUG > 2
-	      g_message ("openvas_tcp_scanner(%s): open_sock_max=%d < %d",
-                         inet_ntoa(*pia), open_sock_max, min_cnx);
-#endif
-	      open_sock_max = min_cnx;
-	    }
-#if DEBUG > 1
-	  if (x != open_sock_max)
-	    g_message ("openvas_tcp_scanner(%s): open_sock_max=%d (old value %d)", inet_ntoa(*pia), open_sock_max, x);
-#endif
+	    open_sock_max = min_cnx;
 	  for (i = 0; i < open_sock_nb; )
 	    if (sockets[i].state == GRAB_SOCKET_UNUSED || sockets[i].fd < 0)
 	      {
@@ -1049,33 +838,17 @@ banner_grab(const struct in6_addr *pia, const char* portrange,
       end_time = time(NULL);
       diff_time1 = end_time - start_time_1pass;
       diff_time = end_time - start_time;
-#if DEBUG > 0
-      g_message ("openvas_tcp_scanner(%s): pass #%d ran in %d s - filtered_ports_nb=%d closed_ports_nb=%d open_ports_nb=%d", inet_ntoa(*pia), pass, diff_time1, filtered_ports_nb, closed_ports_nb, open_ports_nb);
-#endif
       if (dropped_flag ||
 	  (pass == 1 && filtered_ports_nb > 10 && closed_ports_nb > 10) ||
 	  (pass > 1 && filtered_ports_nb > 0))
 	{
 	  if (doublecheck_flag && rst_rate_limit_flag && open_ports_nb == old_opened)
-	    {
-#if DEBUG > 0
-	      g_message ("openvas_tcp_scanner(%s): Same number of open ports! Stopping now", inet_ntoa(*pia));
-#endif
-	      break;
-	    }
+	    break;
 	  old_opened = open_ports_nb;
 
 	  doublecheck_flag = 0;
-#if DEBUG > 0
-	  g_message ("openvas_tcp_scanner(%s): pass #%d: Suspicious number of filtered ports (%d) or closed ports (%d) - running another time", inet_ntoa(*pia), pass, filtered_ports_nb, closed_ports_nb);
-#endif
 	  if (filtered_ports_nb == old_filtered)
-	    {
-#if DEBUG > 0
-	      g_message ("openvas_tcp_scanner(%s): Same number of filtered ports! Stopping now", inet_ntoa(*pia));
-#endif
-	      break;
-	    }
+	    break;
 
 	  if (pass > 1 && open_ports_nb1 == 0 &&
 	      closed_ports_nb1 >= min_cnx &&
@@ -1098,16 +871,9 @@ banner_grab(const struct in6_addr *pia, const char* portrange,
 		  doublecheck_flag = 1;
 		  break_flag = 0;
 		}
-#if DEBUG > 0
-	      g_message ("openvas_tcp_scanner(%s): system seems to be limiting RST rate - %s - min_cnx=%d - closed_ports_nb1=%d - diff_time1=%d - closed_ports_nb=%d - diff_time=%d", inet_ntoa(*pia), break_flag ? "Stopping immediately" : doublecheck_flag ? "Double checking standard ports" : "Running one last pass", min_cnx, closed_ports_nb1, diff_time1, closed_ports_nb, diff_time);
-#endif
 	      rst_rate_limit_flag ++ ;
 	      if (break_flag) break;
 	    }
-#if DEBUG > 1
-	  g_message ("openvas_tcp_scanner(%s): min_cnx=%d - open_ports_nb1=%d - closed_ports_nb1=%d - diff_time1=%d - closed_ports_nb=%d - diff_time=%d", inet_ntoa(*pia), min_cnx, open_ports_nb1, closed_ports_nb1, diff_time1, closed_ports_nb, diff_time);
-#endif
-
 	  /*
 	   * With doublecheck_flag, the range of tested port is different, so
 	   * we'd better count the number of filtered ports
@@ -1119,10 +885,6 @@ banner_grab(const struct in6_addr *pia, const char* portrange,
 		ports_states[port] = GRAB_PORT_UNKNOWN;
 		old_filtered ++;
 	      }
-#if DEBUG > 1
-	  if (old_filtered != filtered_ports_nb)
-	    g_message ("openvas_tcp_scanner(%s): old_filtered=%d filtered_ports_nb=%d", inet_ntoa(*pia), old_filtered, filtered_ports_nb);
-#endif
 	  untested_ports_nb = old_filtered;
 	  filtered_ports_nb = 0;
 	  open_sock_max = min_cnx / (pass + 1);
@@ -1151,16 +913,7 @@ banner_grab(const struct in6_addr *pia, const char* portrange,
 	  /* Double check standard ports, just to avoid being ridiculous */
 
 	  if ((tbd_nb = double_check_std_ports(ports_states)) == 0)
-	    {
-#if DEBUG > 0
-	      g_message ("openvas_tcp_scanner(%s): pass #%d - No filtered standard ports - stopping", inet_ntoa(*pia), pass);
-#endif
-	      break;
-	    }
-#if DEBUG > 0
-	  else
-	    g_message ("openvas_tcp_scanner(%s): pass #%d - Double checking %d standard ports", inet_ntoa(*pia), pass, tbd_nb);
-#endif
+	    break;
 	  old_filtered = untested_ports_nb = tbd_nb;
 	  filtered_ports_nb = 0;
 	  open_sock_max = min_cnx / pass;
@@ -1179,16 +932,11 @@ banner_grab(const struct in6_addr *pia, const char* portrange,
   if (pass > MAX_PASS_NB)
     {
       pass --;
-      /*g_message ("openvas_tcp_scanner(%s): gave up after %d pass",
-                   inet_ntoa(*pia), pass);*/
       filtered_ports_nb = old_filtered;
     }
 
   plug_set_key(desc, "TCPScanner/NbPasses", ARG_INT, GSIZE_TO_POINTER(pass));
 
-#if DEBUG > 0
-  g_message ("openvas_tcp_scanner(%s): ran in %d pass(es) in %d s - min_cnx=%d max_cnx=%d read_timeout=%d - open_ports_nb=%d closed_ports_nb=%d filtered_ports_nb=%d - rtt_min=%f rtt_max=%f cnx_max=%f", inet_ntoa(*pia), pass, diff_time, min_cnx, max_cnx, read_timeout, open_ports_nb, closed_ports_nb, filtered_ports_nb, rtt_min[0] / 1e6, rtt_max[0] / 1e6, cnx_max[0] / 1e6);
-#endif
 
 #if defined COMPUTE_RTT
   for (i = 0; i < 3; i ++)
@@ -1201,7 +949,6 @@ banner_grab(const struct in6_addr *pia, const char* portrange,
 	rtt_sum[i] /= 1e6; rtt_sum2[i] /= 1e12;
 
 	mean = rtt_sum[i] / rtt_nb[i];
-#if 1
 	snprintf(rep, sizeof(rep), "%6g", mean);
 	snprintf(kb, sizeof(kb), "TCPScanner/%s/MeanRTT", rtt_type[i]);
 	plug_set_key(desc, kb, ARG_STRING, rep);
@@ -1214,12 +961,10 @@ banner_grab(const struct in6_addr *pia, const char* portrange,
 	snprintf(rep, sizeof(rep), "%6g", (rtt_max[i] + 500000.0) / 1000000.0);
 	snprintf(kb, sizeof(kb), "TCPScanner/%s/MaxRTT", rtt_type[i]);
 	plug_set_key(desc, kb, ARG_STRING, rep);
-#endif
 	if (rtt_nb[i] > 1)
 	  {
 	    sd = sqrt((rtt_sum2[i] / rtt_nb[i] - mean * mean) * rtt_nb[i] / (rtt_nb[i] - 1));
 	    emax = mean + 3 * sd;
-#if 1
 	    snprintf(rep, sizeof(rep), "%6g", sd);
 	    snprintf(kb, sizeof(kb), "TCPScanner/%s/SDRTT", rtt_type[i]);
 	    plug_set_key(desc, kb, ARG_STRING, rep);
@@ -1232,15 +977,7 @@ banner_grab(const struct in6_addr *pia, const char* portrange,
 	    x = floor(emax * 1000 + 0.5);
 	    snprintf(kb, sizeof(kb), "TCPScanner/%s/EstimatedMaxRTT1000", rtt_type[i]);
 	    plug_set_key(desc, kb, ARG_INT, GSIZE_TO_POINTER(x));
-#endif
 	  }
-#if DEBUG > 0
-	if (rtt_nb[i] > 0)
-	  g_message ("openvas_tcp_scanner: Mean RTT to %s = %g - [%g, %g] - SD = %g - +3SD = %g [%d %s ports]",
-		  inet_ntoa(*pia), mean,
-		  rtt_min[i] / 1e6, cnx_max[i] / 1e6,
-		  sd, emax, rtt_nb[i], rtt_type[i]);
-#endif
       }
 #endif
   plug_set_key(desc, "TCPScanner/OpenPortsNb", ARG_INT, GSIZE_TO_POINTER(open_ports_nb));
@@ -1268,17 +1005,12 @@ plugin_run_openvas_tcp_scanner (lex_ctxt * lexic)
   if (p != NULL) timeout = atoi(p);
   if (timeout <= 0)
     timeout = 5;
-#if DEBUG > 0
-  g_message ("openvas_tcp_scanner: safe_checks=%d checks_read_timeout=%d", safe_checks, timeout);
-#endif
-
   {
     int		max_host = 0, max_checks = 0, cur_sys_fd = 0, max_sys_fd = 0;
     struct rlimit	rlim;
     FILE	*fp;
     int		i;
     double	loadavg[3], maxloadavg = -1.0;
-#if DEBUG == 0
     int         stderr_fd = dup(2);
     int         devnull_fd = open("/dev/null", O_WRONLY);
     /* Avoid error messages from sysctl */
@@ -1289,7 +1021,6 @@ plugin_run_openvas_tcp_scanner (lex_ctxt * lexic)
         return NULL;
       }
     dup2(devnull_fd, 2);
-#endif
 
     p = prefs_get ("max_hosts");
     if (p != NULL) max_host = atoi(p);
@@ -1300,9 +1031,7 @@ plugin_run_openvas_tcp_scanner (lex_ctxt * lexic)
     if (max_checks <= 0 || max_checks > 5)
       {
 	max_checks = 5; /* bigger values do not make sense */
-#if DEBUG > 0
-	g_message ("openvas_tcp_scanner: max_checks forced to %d", max_checks);
-#endif
+	g_debug ("openvas_tcp_scanner: max_checks forced to %d", max_checks);
       }
 
     min_cnx = 8 * max_checks;
@@ -1350,29 +1079,15 @@ plugin_run_openvas_tcp_scanner (lex_ctxt * lexic)
       }
 
     /* Restore stderr */
-#if DEBUG == 0
     close(devnull_fd);
     dup2(stderr_fd, 2);
     close(stderr_fd);
-#endif
 
     if (maxloadavg >= 0.0)
-      {
-#if DEBUG > 0
-	int	x = max_cnx;
-#endif
-	max_cnx /= (1.0 + maxloadavg);
-#if DEBUG > 0
-	/* Useless, as stderr is temporarily closed */
-	g_message ("openvas_tcp_scanner: max_cnx reduced from %d to %d because of maxloadavg=%f", x, max_cnx, maxloadavg);
-#endif
-      }
+      max_cnx /= (1.0 + maxloadavg);
 
 
 
-#if DEBUG > 0
-    g_message ("openvas_tcp_scanner: max_sys_fd=%d", max_sys_fd);
-#endif
     if (max_sys_fd <= 0) max_sys_fd = 16384; /* reasonable default */
     /* Let's leave at least 1024 FD for other processes */
     if (max_sys_fd < 1024)
@@ -1399,9 +1114,6 @@ plugin_run_openvas_tcp_scanner (lex_ctxt * lexic)
       }
     x = max_cnx / 2;
     if (min_cnx > x) min_cnx = x > 0 ? x : 1;
-#if DEBUG > 0
-    g_message ("openvas_tcp_scanner: min_cnx = %d ; max_cnx = %d", min_cnx, max_cnx);
-#endif
   }
 
   p_addr = desc->ip;

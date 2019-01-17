@@ -130,9 +130,7 @@ ntp_long_attack (int soc)
   if (n <= 0)
     return -1;
 
-#if DEBUGMORE
   g_debug ("long_attack :%s\n", input);
-#endif
   if (!strncmp (input, "<|> CLIENT", sizeof ("<|> CLIENT")))
     return 1;
   size = atoi (input);
