@@ -1,10 +1,10 @@
-/* NASL Attack Scripting Language
+/* Based on work Copyright (C) 2002 - 2004 Tenable Network Security
  *
- * Copyright (C) 2002 - 2004 Tenable Network Security
+ * SPDX-License-Identifier: GPL-2.0-only
  *
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License version 2,
- * as published by the Free Software Foundation
+ * This program is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU General Public License
+ * version 2 as published by the Free Software Foundation.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -13,15 +13,7 @@
  *
  * You should have received a copy of the GNU General Public License
  * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
- *
- *
- * Modified for IPv6 packet forgery - 04/02/2010
- * Preeti Subramanian <spreeti@secpod.com>
- * Srinivas NL <nl.srinivas@gmail.com>
- *
- * Modified for ICMPv6, IPv6 packet forgery support for IGMP and UDP - 09/02/2010
- * Preeti Subramanian <spreeti@secpod.com>
+ * Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA 02110-1301 USA.
  */
 
 /**
@@ -33,6 +25,15 @@
  * The API set offers forgery for,
  * 1. TCP
  * 2. IPv6
+ */
+
+/*
+ * Modified for IPv6 packet forgery - 04/02/2010
+ * Preeti Subramanian <spreeti@secpod.com>
+ * Srinivas NL <nl.srinivas@gmail.com>
+ *
+ * Modified for ICMPv6, IPv6 packet forgery support for IGMP and UDP - 09/02/2010
+ * Preeti Subramanian <spreeti@secpod.com>
  */
 
 

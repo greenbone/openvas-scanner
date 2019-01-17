@@ -1,13 +1,7 @@
-/* openvas-scanner/nasl
- * $Id$
- * Description: Implementation of an API for ISOTIME values.
+/* Portions Copyright (C) 2012-2019 Greenbone Networks GmbH
+ * Based on work Copyright (C) 1998, 2002, 2007, 2011 Free Software Foundation, Inc.
  *
- * Authors:
- * Werner Koch <wk@gnupg.org>
- *
- * Copyright:
- * Copyright (C) 1998, 2002, 2007, 2011 Free Software Foundation, Inc.
- * Copyright (C) 2012 Greenbone Networks GmbH
+ * SPDX-License-Identifier: GPL-2.0-or-later
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -20,7 +14,8 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, see <http://www.gnu.org/licenses/>.
+ * along with this program; if not, write to the Free Software
+ * Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA 02110-1301 USA.
  */
 
 /* This code is based on code from GnuPG 2.x, file common/gettime.c,

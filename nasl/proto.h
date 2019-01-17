@@ -1,13 +1,6 @@
-/* OpenVAS
+/* Copyright (C) 2010-2019 Greenbone Networks GmbH
  *
- * $Id$
- * Description: Implementation for NTLMSSP support
- *
- * Author:
- * Preeti Subramanian <spreeti@secpod.com>
- *
- * Copyright:
- * Copyright (c) 2010 Greenbone Networks GmbH, http://www.greenbone.net
+ * SPDX-License-Identifier: GPL-2.0-or-later
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -16,7 +9,7 @@
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
