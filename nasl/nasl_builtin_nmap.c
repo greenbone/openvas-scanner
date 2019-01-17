@@ -70,15 +70,6 @@
 #include "nasl_lex_ctxt.h"
 
 
-#ifndef NDEBUG
-  #define dbg(...) do { g_message (__VA_ARGS__); } while (0)
-  #define err(x) do { perror (x); } while (0)
-#else
-  #define dbg(...)
-  #define err(x)
-#endif
-
-
 /**
  * @brief Input chunks size for the XML parser.
  */
@@ -486,12 +477,12 @@ plugin_run_nmap (lex_ctxt * lexic)
 {
   nmap_t *nmap;
 
-  dbg ("Starting Nmap builtin wrapper\n");
+  g_debug ("Starting Nmap builtin wrapper\n");
 
   /* Initialize our nmap handler */
   if ((nmap = nmap_create (lexic)) == NULL)
     {
-      dbg ("Unable to initialize Nmap\n");
+      g_debug ("Unable to initialize Nmap\n");
       return NULL;
     }
 
@@ -535,14 +526,14 @@ nmap_create (lex_ctxt * lexic)
         }
 
       /* Display command line to use */
-      dbg ("Nmap initialized: ");
+      g_debug ("Nmap initialized: ");
       dbg_display_cmdline (nmap);
     }
   else
     {
       /* yes: store filename */
       nmap->filename = get_plugin_preference_fname (nmap->env, pref);
-      dbg ("Reading nmap results from file: %s\n", nmap->filename);
+      g_debug ("Reading nmap results from file: %s\n", nmap->filename);
     }
 
   setup_xml_parser (nmap);
@@ -918,7 +909,7 @@ add_portrange (nmap_t * nmap)
 
   if (!portrange)
     {
-      dbg ("Invalid environment: unavailable \"port_range\"\n");
+      g_debug ("Invalid environment: unavailable \"port_range\"\n");
       return -1;
     }
 
@@ -1025,14 +1016,14 @@ add_target (nmap_t * nmap)
   globals = nmap->env->globals;
   if (!globals)
     {
-      dbg ("Invalid environment: unavailable \"globals\"\n");
+      g_debug ("Invalid environment: unavailable \"globals\"\n");
       return -1;
     }
 
   network = globals->network_targets;
   if (!network)
     {
-      dbg ("Invalid environment: unavailable \"network_targets\"\n");
+      g_debug ("Invalid environment: unavailable \"network_targets\"\n");
       return -1;
     }
 
@@ -1050,14 +1041,12 @@ dbg_display_cmdline (nmap_t * nmap)
   int i;
 
   for (i = 0; nmap->args[i]; i++)
-    dbg ("%s ", nmap->args[i]);
+    g_debug ("%s ", nmap->args[i]);
 
   if (i == 0)
     {
-      dbg ("<empty>");
+      g_debug ("<empty>");
     }
-
-  dbg ("\n");
 }
 
 /**
@@ -1131,7 +1120,7 @@ nmap_run_and_parse (nmap_t * nmap)
 
   if (!fproc)
     {
-      err ("nmap_run_and_parse()");
+      perror ("nmap_run_and_parse()");
       return -1;
     }
 
@@ -1145,13 +1134,13 @@ nmap_run_and_parse (nmap_t * nmap)
         {
           if (err)
             {
-              dbg ("g_markup_parse_context_parse() failed (%s)\n",
-                   err->message);
+              g_debug ("g_markup_parse_context_parse() failed (%s)\n",
+                       err->message);
               g_error_free (err);
 
               /* display the problematic chunk */
               chunk[len] = '\0';
-              dbg ("Error occurred while parsing: %s\n", chunk);
+              g_debug ("Error occurred while parsing: %s\n", chunk);
 
               ret = -1;
             }
@@ -1161,7 +1150,7 @@ nmap_run_and_parse (nmap_t * nmap)
 
   if (nmap->filename && ferror (fproc))
     {
-      err ("nmap_run_and_parse()");
+      perror ("nmap_run_and_parse()");
       ret = -1;
     }
 
@@ -1458,7 +1447,7 @@ xmltag_open_status (nmap_t * nmap, const gchar ** attrnames,
                     const gchar ** attrval)
 {
   if (!nmap->parser.in_host)
-    dbg ("Error: opening <status> tag out of host description\n");
+    g_debug ("Error: opening <status> tag out of host description\n");
   else
     nmap->tmphost.state = get_attr_value ("state", attrnames, attrval);
 }
@@ -1475,7 +1464,7 @@ xmltag_open_address (nmap_t * nmap, const gchar ** attrnames,
                      const gchar ** attrval)
 {
   if (!nmap->parser.in_host)
-    dbg ("Error: opening <address> tag out of host description\n");
+    g_debug ("Error: opening <address> tag out of host description\n");
   else
     nmap->tmphost.addr = get_attr_value ("addr", attrnames, attrval);
 }
@@ -1524,7 +1513,7 @@ xmltag_open_state (nmap_t * nmap, const gchar ** attrnames,
                    const gchar ** attrval)
 {
   if (!nmap->parser.in_port || !nmap->tmpport.proto || !nmap->tmpport.portno)
-    dbg ("Error: opening <state> tag out of port description\n");
+    g_debug ("Error: opening <state> tag out of port description\n");
   else
     nmap->tmpport.state = get_attr_value ("state", attrnames, attrval);
 }
@@ -1541,7 +1530,7 @@ xmltag_open_service (nmap_t * nmap, const gchar ** attrnames,
                      const gchar ** attrval)
 {
   if (!nmap->parser.in_port || !nmap->tmpport.proto || !nmap->tmpport.portno)
-    dbg ("Error: opening <service> tag out of port description\n");
+    g_debug ("Error: opening <service> tag out of port description\n");
   else
     {
       gchar *product, *version, *extrainfo;
@@ -1755,14 +1744,10 @@ xmltag_open_hop (nmap_t * nmap, const gchar ** attrnames,
                                                          attrval);
         }
       else
-        {
-          dbg ("Inconsistent results: duplicate traceroute information!");
-        }
+        g_debug ("Inconsistent results: duplicate traceroute information!");
     }
   else
-    {
-      dbg ("Trace TTL out of bounds: %d (max=%d)", ttl, MAX_TRACE_HOPS);
-    }
+    g_debug ("Trace TTL out of bounds: %d (max=%d)", ttl, MAX_TRACE_HOPS);
 }
 
 /**
