@@ -139,7 +139,6 @@ static openvassd_option openvassd_defaults[] = {
   {"drop_privileges", "no"},
   // Empty options must be "\0", not NULL, to match the behavior of
   // prefs_init.
-  {"report_host_details", "yes"},
   {"db_address", KB_PATH_DEFAULT},
   {NULL, NULL}
 };
