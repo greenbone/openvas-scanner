@@ -30,10 +30,6 @@
 #include "exec.h"
 #include "nasl_debug.h"
 
-#ifndef NASL_DEBUG
-#define NASL_DEBUG 0
-#endif
-
 /* Local prototypes */
 static void copy_array (nasl_array *, const nasl_array *, int);
 
@@ -257,9 +253,6 @@ get_array_elem (lex_ctxt * ctxt, const char *name, tree_cell * idx)
 
   if (idx == NULL)
     {
-#if NASL_DEBUG > 0
-      nasl_perror (ctxt, "get_array_elem: NULL index\n");
-#endif
       /* Treat it as zero */
       memset (&idx0, '\0', sizeof (idx0));
       idx = &idx0;
@@ -518,12 +511,7 @@ copy_array (nasl_array * a1, const nasl_array * a2, int copy_named)
   named_nasl_var *v1, *v2, *v;
 
   if (a1 == a2)
-    {
-#if NASL_DEBUG > 1
-      nasl_perror (NULL, "copy_array: a1 == a2!\n");
-#endif
-      return;
-    }
+    return;
 
   if (a1 == NULL || a2 == NULL)
     {
@@ -580,22 +568,15 @@ affect_to_anon_var (anon_nasl_var * v1, tree_cell * rval)
 {
   anon_nasl_var *v2 = NULL, v0;
   nasl_array *a = NULL;
-  int t1, t2;
+  int t2;
   void *p;
 
 
   if (v1 == NULL || v1 == FAKE_CELL)
     return NULL;
 
-  t1 = v1->var_type;
-
   if (rval == NULL || rval == FAKE_CELL)
     {
-#if NASL_DEBUG > 1
-      nasl_perror (NULL,
-                   "nasl_affect: affecting NULL or FAKE cell undefines variable %s %s\n",
-                   get_var_name (v1), get_line_nb (rval));
-#endif
       clear_anon_var (v1);
       if (nasl_trace_enabled ())
         nasl_trace (NULL, "NASL> %s <- undef\n", get_var_name (v1));
@@ -624,14 +605,7 @@ affect_to_anon_var (anon_nasl_var * v1, tree_cell * rval)
         }
 
       if (v2 == v1)
-        {
-#if NASL_DEBUG > 1
-          nasl_perror (NULL,
-                       "Copying variable %s to itself is useless and dangerous!\n",
-                       get_var_name (v1));
-#endif
-          return FAKE_CELL;
-        }
+        return FAKE_CELL;
 
       t2 = v2->var_type;
       if (t2 == VAR2_ARRAY)
@@ -643,14 +617,7 @@ affect_to_anon_var (anon_nasl_var * v1, tree_cell * rval)
       a = rval->x.ref_val;
       t2 = VAR2_ARRAY;
       if (v1->var_type == VAR2_ARRAY && &v1->v.v_arr == a)
-        {
-#if NASL_DEBUG > 1
-          nasl_perror (NULL,
-                       "Copying array %s to itself is useless and dangerous!\n",
-                       get_var_name (v1));
-#endif
-          return FAKE_CELL;
-        }
+        return FAKE_CELL;
       break;
 
     default:
@@ -664,31 +631,6 @@ affect_to_anon_var (anon_nasl_var * v1, tree_cell * rval)
    * the rvalue will be freed before it is copied to the lvalue
    */
   v0 = *v1;
-
-  if (t1 != VAR2_UNDEF && t2 == VAR2_UNDEF)
-    {
-#if NASL_DEBUG > 0
-      nasl_perror (NULL, "Warning: Undefining defined variable %s %s\n",
-                   get_var_name (v1), get_line_nb (rval));
-#endif
-    }
-  else if (t1 == VAR2_ARRAY && t2 != VAR2_ARRAY)
-    {
-#if NASL_DEBUG > 1
-      nasl_perror (NULL,
-                   "Warning: affecting non array (0x%x) to array variable %s\n",
-                   t2, get_line_nb (rval));
-#endif
-    }
-  else if ((t1 == VAR2_INT || t1 == VAR2_STRING || t1 == VAR2_DATA)
-           && t2 == VAR2_ARRAY)
-    {
-#if NASL_DEBUG > 1
-      nasl_perror (NULL,
-                   "Warning: affecting array to atomic variable (0x%x) %s\n",
-                   t2, get_line_nb (rval));
-#endif
-    }
 
   /* Bug #146: this fake clear is necessary if we copy an array */
   memset (v1, 0, sizeof (*v1));
@@ -800,11 +742,6 @@ create_named_var (const char *name, tree_cell * val)
 
   if (val == NULL || val == FAKE_CELL)
     {
-#if NASL_DEBUG > 1
-      nasl_perror (NULL,
-                   "create_named_var: affecting NULL or FAKE cell to variable %s\n",
-                   get_var_name (v));
-#endif
       v->u.var_type = VAR2_UNDEF;
       return v;
     }
@@ -823,11 +760,6 @@ create_anon_var (tree_cell * val)
 
   if (val == NULL || val == FAKE_CELL)
     {
-#if NASL_DEBUG > 1
-      nasl_perror (NULL,
-                   "create_anon_var: affecting NULL or FAKE cell to variable %s\n",
-                   get_var_name (v));
-#endif
       v->var_type = VAR2_UNDEF;
       return v;
     }
@@ -874,10 +806,6 @@ add_numbered_var_to_ctxt (lex_ctxt * lexic, int num, tree_cell * val)
         {
           if (val != NULL)
             nasl_perror (lexic, "Cannot add existing variable %d\n", num);
-#if NASL_DEBUG > 0
-          else
-            nasl_perror (lexic, "Will not clear existing variable %d\n", num);
-#endif
           return NULL;
         }
       free_anon_var (a->num_elt[num]);
@@ -905,10 +833,6 @@ add_named_var_to_ctxt (lex_ctxt * lexic, const char *name, tree_cell * val)
       {
         if (val != NULL)
           nasl_perror (lexic, "Cannot add existing variable %s\n", name);
-#if NASL_DEBUG > 0
-        else
-          nasl_perror (lexic, "Will not clear existing variable %s\n", name);
-#endif
         return NULL;
       }
   v = create_named_var (name, val);
@@ -925,9 +849,6 @@ nasl_read_var_ref (lex_ctxt * lexic, tree_cell * tc)
 {
   tree_cell *ret;
   anon_nasl_var *v;
-#if NASL_DEBUG > 0
-  const char *name;
-#endif
 
   if (tc == NULL || tc == FAKE_CELL)
     {
@@ -944,12 +865,7 @@ nasl_read_var_ref (lex_ctxt * lexic, tree_cell * tc)
 
   v = tc->x.ref_val;
   if (v == NULL)
-    {
-#if NASL_DEBUG > 0
-      nasl_perror (lexic, "nasl_read_var_ref: NULL variable in REF_VAR\n");
-#endif
-      return NULL;
-    }
+    return NULL;
 
   ret = alloc_tree_cell ();
   ret->line_nb = tc->line_nb;
@@ -996,12 +912,6 @@ nasl_read_var_ref (lex_ctxt * lexic, tree_cell * tc)
       return ret;
 
     case VAR2_UNDEF:
-#if NASL_DEBUG > 0
-      name = get_var_name (v);
-      if (strcmp (name, "NULL") != 0)   /* special case */
-        nasl_perror (lexic, "nasl_read_var_ref: variable %s is undefined %s\n",
-                     name, get_line_nb (tc));
-#endif
       if (nasl_trace_enabled ())
         nasl_trace (lexic, "NASL> %s -> undef\n", get_var_name (v),
                     v->var_type);
@@ -1044,18 +954,9 @@ nasl_incr_variable (lex_ctxt * lexic, tree_cell * tc, int pre, int val)
       break;
     case VAR2_STRING:
     case VAR2_DATA:
-#if NASL_DEBUG > 0
-      nasl_perror (lexic,
-                   "nasl_incr_variable: variable %s is a STRING %s - converting to integer\n",
-                   "", get_line_nb (tc));
-#endif
       old_val = v->v.v_str.s_val == NULL ? 0 : atoi ((char *) v->v.v_str.s_val);
       break;
     case VAR2_UNDEF:
-#if NASL_DEBUG > 0
-      nasl_perror (lexic, "nasl_incr_variable: variable %s is undefined %s\n",
-                   "", get_line_nb (tc));
-#endif
       old_val = 0;
       break;
 
@@ -1095,10 +996,6 @@ var2int (anon_nasl_var * v, int defval)
       return atol ((char *) v->v.v_str.s_val);
 
     case VAR2_UNDEF:
-#if NASL_DEBUG > 1
-      nasl_perror (NULL, "var2int: variable %s is undefined!\n",
-                   get_var_name (v));
-#endif
     case VAR2_ARRAY:
     default:
       return defval;
@@ -1194,20 +1091,12 @@ var2str (const anon_nasl_var * v)
       return v->v.v_str.s_val == NULL ? "" : (const char *) v->v.v_str.s_val;
 
     case VAR2_UNDEF:
-#if NASL_DEBUG > 1
-      nasl_perror (NULL, "var2str: variable %s is undefined!\n",
-                   get_var_name (v));
-#endif
       return NULL;
 
     case VAR2_ARRAY:
       return array2str (&v->v.v_arr);
 
     default:
-#if NASL_DEBUG > 0
-      nasl_perror (NULL, "var2str: variable %s has unhandled type %d\n",
-                   get_var_name (v), v->var_type);
-#endif
       return "";
     }
 }

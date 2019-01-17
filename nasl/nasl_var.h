@@ -45,10 +45,6 @@ typedef struct st_nasl_array
   struct st_n_nasl_var **hash_elt;      /* VAR_NAME_HASH elements */
 } nasl_array;
 
-#if NASL_DEBUG > 0
-#define ALL_VARIABLES_NAMED
-#endif
-
 typedef struct st_a_nasl_var
 {
   int var_type;
