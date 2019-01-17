@@ -187,7 +187,6 @@ is_scanner_only_pref (const char *pref)
       || !strcmp (pref, "negot_timeout")
       || !strcmp (pref, "force_pubkey_auth")
       || !strcmp (pref, "log_whole_attack")
-      || !strcmp (pref, "be_nice")
       || !strcmp (pref, "log_plugins_name_at_load")
       || !strcmp (pref, "nasl_no_signature_check")
       /* Preferences starting with sys_ are scanner-side only. */

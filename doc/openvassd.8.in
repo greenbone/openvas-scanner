@@ -62,10 +62,6 @@ x
 .I max_hosts
 so you need to find a balance between these two options. Note that launching too many plugins at the same time may disable the remote host, either temporarily (ie: inetd closes its ports) or definitely (the remote host crash because it is asked to do too many things at the same time), so be careful.
 
-.IP be_nice
-If this option is set to 'yes', then each child forked by openvassd will
-nice(2) itself to a very low priority. This may speed up your scan as the main openvassd process will be able to continue to spew processes, and this guarantees that openvassd does not deprives other important processes from their resources.
-
 .IP log_whole_attack
 If this option is set to 'yes', openvassd will store the name, pid, date and target of each plugin launched. This is helpful for monitoring and debugging purpose, however this option might make openvassd fill your disk rather quickly. 
 
