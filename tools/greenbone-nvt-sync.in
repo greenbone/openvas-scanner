@@ -440,7 +440,7 @@ do_rsync_community_feed () {
 do_sync_community_feed () {
   if [ "rsync" = "$FIXED_METHOD" ] ; then
     if [ -z "$RSYNC" ] ; then
-      log_error "rsync requested but not found! Aborting synchronization."
+      log_err "rsync requested but not found! Aborting synchronization."
       exit 1
     else
       log_info "Will use rsync"
@@ -448,7 +448,7 @@ do_sync_community_feed () {
     fi
   elif [ "wget" = "$FIXED_METHOD" ] ; then
     if [ -z "$WGET" ] ; then
-      log_error "wget requested but not found! Aborting synchronization."
+      log_err "wget requested but not found! Aborting synchronization."
       exit 1
     else
       log_info "Will use wget"
@@ -456,7 +456,7 @@ do_sync_community_feed () {
     fi
   elif [ "curl" = "$FIXED_METHOD" ] ; then
     if [ -z "$CURL" ] ; then
-      log_error "curl requested but not found! Aborting synchronization."
+      log_err "curl requested but not found! Aborting synchronization."
       exit 1
     else
       log_info "Will use curl"
