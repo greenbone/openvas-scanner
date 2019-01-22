@@ -1256,7 +1256,6 @@ exec_ssh_cmd (ssh_session session, char *cmd, int verbose, int compat_mode,
       if ((rc = ssh_channel_read_timeout (channel, buffer, sizeof (buffer), 0,
                                           15000)) > 0)
         {
-          compat_mode = 0;
           if (to_stdout)
             g_string_append_len (response, buffer, rc);
         }
