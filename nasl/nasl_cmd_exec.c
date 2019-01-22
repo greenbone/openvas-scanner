@@ -150,7 +150,6 @@ nasl_pread (lex_ctxt * lexic)
         {
           strcat (newdir, "/");
           strcat (newdir, cmd);
-          cmd = newdir;
         }
     }
 
