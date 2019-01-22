@@ -19,7 +19,7 @@
  */
 
 /**
- * @file charcnv.h
+ * @file charset.h
  * @brief Unix SMB/CIFS implementation. charset defines
  */
 

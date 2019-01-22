@@ -19,7 +19,7 @@
  */
 
 /**
- * @file attack.c
+ * @file nasl_plugins.c
  * @brief The nasl - plugin class. Loads or launches nasl- plugins.
  */
 

@@ -17,7 +17,7 @@
  */
 
 /**
- * @file nasl_builtin_synscan.c
+ * @file nasl.c
  * @brief Source of the standalone NASL interpreter of OpenVAS.
  */
 

@@ -19,16 +19,12 @@
  */
 
 /**
- * @file hmacmd5.c
+ * @file hmacmd5.h
  * @brief Unix SMB/CIFS implementation. HMAC MD5 code for use in NTLMv2
  *
  * taken direct from rfc2104 implementation and modified for suitable use
  * for ntlmv2.
  */
-/*
-   Unix SMB/CIFS implementation.
-   Interface header: Scheduler service
-*/
 
 #ifndef _HMAC_MD5_H
 #define _HMAC_MD5_H

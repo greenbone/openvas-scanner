@@ -19,7 +19,7 @@
  */
 
 /**
- * @file plugutils.h
+ * @file plugutils.c
  * @brief Plugin-specific stuff.
  */
 

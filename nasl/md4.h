@@ -18,7 +18,7 @@
  */
 
 /**
- * @file md4.c
+ * @file md4.h
  * @brief Unix SMB/CIFS implementation.
  *
  * A implementation of MD4 designed for use in the SMB authentication protocol
