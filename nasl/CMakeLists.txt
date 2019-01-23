@@ -1,13 +1,6 @@
-# OpenVAS-libraries/nasl
-# $Id$
-# Description: Top-level cmake control for the nasl library.
+# Copyright (C) 2009-2019 Greenbone Networks GmbH
 #
-# Authors:
-# Matthew Mundell <matthew.mundell@greenbone.net>
-# Felix Wolfsteller <felix.wolfsteller@greenbone.net>
-#
-# Copyright:
-# Copyright (C) 2009-2018 Greenbone Networks GmbH
+# SPDX-License-Identifier: GPL-2.0-or-later
 #
 # This program is free software; you can redistribute it and/or
 # modify it under the terms of the GNU General Public License

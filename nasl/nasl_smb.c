@@ -1,13 +1,6 @@
-/* OpenVAS
+/* Copyright (C) 2009-2019 Greenbone Networks GmbH
  *
- * $Id$
- * Description: NASL API implementation for SMB support
- *
- * Authors:
- * Chandrashekhar B <bchandra@secpod.com>
- *
- * Copyright:
- * Copyright (c) 2009 Greenbone Networks GmbH, http://www.greenbone.net
+ * SPDX-License-Identifier: GPL-2.0-or-later
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -16,7 +9,7 @@
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
@@ -26,7 +19,6 @@
 
 /**
  * @file nasl_smb.c
- *
  * @brief API for NASL built-in SMB access focussing effective file rights
  *
  * Provides SMB API as built-in functions to NASL via calling

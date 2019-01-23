@@ -1,12 +1,6 @@
-/* openvas-scanner/nasl
- * $Id$
- * Description: API (structs and protos) for SSH functions used by NASL scripts
+/* Copyright (C) 2011-2019 Greenbone Networks GmbH
  *
- * Authors:
- * Michael Wiegand <michael.wiegand@greenbone.net>
- *
- * Copyright:
- * Copyright (C) 2011 Greenbone Networks GmbH
+ * SPDX-License-Identifier: GPL-2.0-or-later
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -23,15 +17,15 @@
  * Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA 02110-1301 USA.
  */
 
-#ifndef NASL_SSH_H
-#define NASL_SSH_H
-
 /**
  * @file nasl_ssh.h
  * @brief Protos and data structures for SSH functions used by NASL scripts
  *
  * This file contains the protos for \ref nasl_ssh.c
  */
+
+#ifndef NASL_SSH_H
+#define NASL_SSH_H
 
 #include <libssh/libssh.h>
 

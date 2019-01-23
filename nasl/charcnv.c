@@ -1,37 +1,41 @@
-/*
-   Unix SMB/CIFS implementation.
-   Character set conversion Extensions
-   Copyright (C) Igor Vergeichik <iverg@mail.ru> 2001
-   Copyright (C) Andrew Tridgell 2001
-   Copyright (C) Simo Sorce 2001
-   Copyright (C) Martin Pool 2003
+/* Copyright (C) Igor Vergeichik <iverg@mail.ru> 2001
+ * Copyright (C) Andrew Tridgell 2001
+ * Copyright (C) Simo Sorce 2001
+ * Copyright (C) Martin Pool 2003
+ *
+ * SPDX-License-Identifier: GPL-2.0-or-later
+ *
+ * This program is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU General Public License
+ * as published by the Free Software Foundation; either version 2
+ * of the License, or (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program; if not, write to the Free Software
+ * Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA 02110-1301 USA.
+ */
 
-   This program is free software; you can redistribute it and/or modify
-   it under the terms of the GNU General Public License as published by
-   the Free Software Foundation; either version 2 of the License, or
-   (at your option) any later version.
-
-   This program is distributed in the hope that it will be useful,
-   but WITHOUT ANY WARRANTY; without even the implied warranty of
-   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-   GNU General Public License for more details.
-
-   You should have received a copy of the GNU General Public License
-   along with this program; if not, write to the Free Software
-   Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
-
-   MODIFICATIONS: only those functions that are required for OpenVAS are retained, others are removed
-   Modified By Preeti Subramanian <spreeti@secpod.com>
-   1. init_valid_table taken from samba/<source>/lib/util_unistr.c, using a dynamically created valid table only
-   2. valid_table taken from samba/<source>/lib/util_unistr.c
-   3. valid_table_use_unmap taken from samba/<source>/lib/util_unistr.c, BOOL is changed to bool
-   4. check_dos_char_slowly taken from samba/<source>/lib/util_unistr.c, smb_ucs2_t is changed to uint16
-   5. strlen_w taken from samba/<source>/lib/util_unistr.c, smb_ucs2_t is changed to uint16
-   6. strupper_m taken from samba/source/lib/util_str.c, and modified for OpenVAS
-   7. charset_name function changed for OpenVAS
-   8. in lazy_initialize_conv function, loading or generating the case handling tables removed
-   9. in init_iconv, init_doschar_table not required(removed)
-*/
+/**
+ * @file charcnv.c
+ * @brief Unix SMB/CIFS implementation: Character set conversion Extensions
+ *
+ * MODIFICATIONS: only those functions that are required for OpenVAS are retained, others are removed
+ * Modified By Preeti Subramanian <spreeti@secpod.com>
+ * 1. init_valid_table taken from samba/<source>/lib/util_unistr.c, using a dynamically created valid table only
+ * 2. valid_table taken from samba/<source>/lib/util_unistr.c
+ * 3. valid_table_use_unmap taken from samba/<source>/lib/util_unistr.c, BOOL is changed to bool
+ * 4. check_dos_char_slowly taken from samba/<source>/lib/util_unistr.c, smb_ucs2_t is changed to uint16
+ * 5. strlen_w taken from samba/<source>/lib/util_unistr.c, smb_ucs2_t is changed to uint16
+ * 6. strupper_m taken from samba/source/lib/util_str.c, and modified for OpenVAS
+ * 7. charset_name function changed for OpenVAS
+ * 8. in lazy_initialize_conv function, loading or generating the case handling tables removed
+ * 9. in init_iconv, init_doschar_table not required(removed)
+ */
 #include "byteorder.h"
 #include "iconv.h"
 #include "smb.h"

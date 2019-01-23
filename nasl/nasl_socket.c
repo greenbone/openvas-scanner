@@ -1,18 +1,12 @@
-/* openvas-scanner/nasl/nasl_socket.c
- * $Id$
- * Description: NASL socket API
+/* Portions Copyright (C) 2012-2019 Greenbone Networks GmbH
+ * Based on work Copyright (C) 2002 - 2004 Tenable Network Security
  *
- * Authors:
- * Unknown
- * Werner Koch <wk@gnupg.org>
+ * SPDX-License-Identifier: GPL-2.0-or-later
  *
- * Copyright:
- * Copyright (C) 2002 - 2004 Tenable Network Security
- * Copyright (C) 2012 Greenbone Networks GmbH
- *
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License version 2,
- * as published by the Free Software Foundation
+ * This program is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU General Public License
+ * as published by the Free Software Foundation; either version 2
+ * of the License, or (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -21,13 +15,11 @@
  *
  * You should have received a copy of the GNU General Public License
  * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
- *
+ * Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA 02110-1301 USA.
  */
 
 /**
  * @file nasl_socket.c
- *
  * @brief The NASL socket API.
  *
  * This file contains all the functions related to the handling of the
