@@ -19,6 +19,8 @@
 #ifndef MISC2_STRUTILS_H__
 #define MISC2_STRUTILS_H__
 
-int str_match (const char *, const char *, int);
+#include <glib.h>
+
+int str_match (const gchar *, const gchar *, int);
 
 #endif

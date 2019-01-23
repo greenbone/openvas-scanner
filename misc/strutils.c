@@ -16,38 +16,33 @@
  * Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA 02110-1301 USA.
  */
 
-#include <ctype.h>              /* for tolower */
-
+#include <glib.h>
 /**
  * @brief Matches a string against a pattern.
- *       
+ *
+ * @param[in] string  String to match.
+ * @param[in] pattern Pattern to match against.
+ * @param[in] icase   Case insensitivity enabled.
+ *
+ * @return 1 if it matches. 0 otherwise.
  */
 
-/** @todo In parts replaceable by g_pattern_match function (when not icase) */
 int
-str_match (const char *string, const char *pattern, int icase)
+str_match (const gchar *string, const gchar *pattern, int icase)
 {
-  while (*pattern != '\0')
+  gboolean res;
+  GPatternSpec *patt = NULL;
+
+  if (icase)
     {
-      if (*pattern == '?')
-        {
-          if (*string == '\0')
-            return 0;
-        }
-      else if (*pattern == '*')
-        {
-          const char *p = string;
-          do
-            if (str_match (p, pattern + 1, icase))
-              return 1;
-          while (*p++ != '\0');
-          return 0;
-        }
-      else if ((icase && (tolower (*pattern) != tolower (*string)))
-               || (!icase && (*pattern != *string)))
-        return 0;
-      pattern++;
-      string++;
+      patt = g_pattern_spec_new (g_ascii_strdown (pattern, -1));
+      res = g_pattern_match_string (patt, g_ascii_strdown (string, -1));
     }
-  return *string == '\0';
+  else
+    {
+      patt = g_pattern_spec_new (pattern);
+      res = g_pattern_match_string (patt, string);
+    }
+  g_pattern_spec_free (patt);
+  return res;
 }
