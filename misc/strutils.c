@@ -1,6 +1,6 @@
-/* Based on work Copyright (C) 2002 - 2004 Tenable Network Security
+/* Copyright (C) 2009-2019 Greenbone Networks GmbH
  *
- * SPDX-License-Identifier: GPL-2.0-only
+ * SPDX-License-Identifier: GPL-2.0-or-later
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -17,6 +17,8 @@
  */
 
 #include <glib.h>
+
+
 /**
  * @brief Matches a string against a pattern.
  *
@@ -26,7 +28,6 @@
  *
  * @return 1 if it matches. 0 otherwise.
  */
-
 int
 str_match (const gchar *string, const gchar *pattern, int icase)
 {

@@ -1,6 +1,6 @@
-/* Based on work Copyright (C) 2002 - 2003 Michel Arboi and Renaud Deraison
+/* Copyright (C) 2009-2019 Greenbone Networks GmbH
  *
- * SPDX-License-Identifier: GPL-2.0-only
+ * SPDX-License-Identifier: GPL-2.0-or-later
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License

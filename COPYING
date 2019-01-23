@@ -136,8 +136,6 @@ nasl/smb_crypt2.c: GPL-2+
 nasl/smb_interface_stub.c: GPL-2+
 nasl/smb_signing.c: GPL-2+
 nasl/smb_signing.h: GPL-2+
-nasl/strutils.c: GPL-2
-nasl/strutils.h: GPL-2
 nasl/time.c: GPL-2+
 nasl/wmi_interface_stub.c: GPL-2+
 
@@ -170,4 +168,8 @@ misc/pcap_openvas.h: GPL-2+
 misc/plugutils.c: GPL-2+
 misc/plugutils.h: GPL-2+
 misc/scanneraux.h: GPL-2+
+misc/strutils.c: GPL-2+
+misc/strutils.h: GPL-2+
 misc/support.h: GPL-2+
+misc/vendorversion.c: GPL-2+
+misc/vendorversion.h: GPL-2+
