@@ -31,6 +31,8 @@
 #include <glib.h>               /* for g_free */
 #include <regex.h>              /* for regex_t */
 
+#include "../misc/strutils.h"   /* for str_match */
+
 #include "nasl_tree.h"
 #include "nasl_global_ctxt.h"
 #include "nasl_func.h"
@@ -38,10 +40,9 @@
 #include "nasl_lex_ctxt.h"
 #include "exec.h"
 
-#include "strutils.h"
 #include "nasl_debug.h"
-
 #include "nasl_text_utils.h"
+
 
 #undef G_LOG_DOMAIN
 /**

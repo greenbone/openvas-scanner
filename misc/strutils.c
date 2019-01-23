@@ -19,8 +19,8 @@
 #include <ctype.h>              /* for tolower */
 
 /**
- * @todo These functions are not necessarily nasl-specific and thus subject to
- *       be moved (e.g. to misc).
+ * @brief Matches a string against a pattern.
+ *       
  */
 
 /** @todo In parts replaceable by g_pattern_match function (when not icase) */
