@@ -37,6 +37,10 @@ Writes the version number and exits
 .B "-h, --help"
 Show a summary of the commands
 
+.TP
+.BI "--scan-start=" <scan-uuid>
+ID for a single scan task. openvassd is advised to execute the scan with the data already loaded in a redis KB, which will find throught the given scan-id.
+
 .SH THE CONFIGURATION FILE 
 
 The default 
