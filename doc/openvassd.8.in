@@ -69,6 +69,9 @@ nice(2) itself to a very low priority. This may speed up your scan as the main o
 .IP log_whole_attack
 If this option is set to 'yes', openvassd will store the name, pid, date and target of each plugin launched. This is helpful for monitoring and debugging purpose, however this option might make openvassd fill your disk rather quickly. 
 
+.IP advanced_log
+If this option is set to 'yes', then openvassd will store in the redis KB, information of each launched plugin, such as launched, timed-out, start time and end time.
+
 .IP log_plugins_name_at_load
 If this option is set to 'yes', openvassd will log the name of each plugin being loaded at startup, or each time it receives the HUP signal.
 
