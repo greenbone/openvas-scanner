@@ -264,7 +264,8 @@ nasl_ssh_connect (lex_ctxt *lexic)
   session = ssh_new ();
   if (!session)
     {
-      g_message ("Failed to allocate a new SSH session");
+      g_message ("%s: Failed to allocate a new SSH session",
+                 nasl_get_plugin_filename ());
       return NULL;
     }
 
@@ -281,7 +282,8 @@ nasl_ssh_connect (lex_ctxt *lexic)
 
   if (ssh_options_set (session, SSH_OPTIONS_HOST, ip_str))
     {
-      g_message ("Failed to set SSH hostname '%s': %s",
+      g_message ("%s: Failed to set SSH hostname '%s': %s",
+                 nasl_get_plugin_filename (),
                  ip_str, ssh_get_error (session));
       ssh_free (session);
       return NULL;
@@ -289,7 +291,8 @@ nasl_ssh_connect (lex_ctxt *lexic)
 
   if (ssh_options_set (session, SSH_OPTIONS_KNOWNHOSTS, "/dev/null"))
     {
-      g_message ("Failed to disable SSH known_hosts: %s",
+      g_message ("%s: Failed to disable SSH known_hosts: %s",
+                 nasl_get_plugin_filename (),
                  ssh_get_error (session));
       ssh_free (session);
       return NULL;
@@ -299,8 +302,9 @@ nasl_ssh_connect (lex_ctxt *lexic)
 
   if (key_type && ssh_options_set (session, SSH_OPTIONS_HOSTKEYS, key_type))
     {
-      g_message ("Failed to set SSH key type '%s': %s",
-                 key_type, ssh_get_error (session));
+      g_message ("%s: Failed to set SSH key type '%s': %s",
+                 nasl_get_plugin_filename (), key_type,
+                 ssh_get_error (session));
       ssh_free (session);
       return NULL;
     }
@@ -308,16 +312,18 @@ nasl_ssh_connect (lex_ctxt *lexic)
   csciphers = get_str_var_by_name (lexic, "csciphers");
   if (csciphers && ssh_options_set (session, SSH_OPTIONS_CIPHERS_C_S, csciphers))
     {
-      g_message ("Failed to set SSH client to server ciphers '%s': %s",
-                 csciphers, ssh_get_error (session));
+      g_message ("%s: Failed to set SSH client to server ciphers '%s': %s",
+                 nasl_get_plugin_filename (), csciphers,
+                 ssh_get_error (session));
       ssh_free (session);
       return NULL;
     }
   scciphers = get_str_var_by_name (lexic, "scciphers");
   if (scciphers && ssh_options_set (session, SSH_OPTIONS_CIPHERS_S_C, scciphers))
     {
-      g_message ("Failed to set SSH server to client ciphers '%s': %s",
-                 scciphers, ssh_get_error (session));
+      g_message ("%s: Failed to set SSH server to client ciphers '%s': %s",
+                 nasl_get_plugin_filename (), scciphers,
+                 ssh_get_error (session));
       ssh_free (session);
       return NULL;
     }
@@ -328,8 +334,9 @@ nasl_ssh_connect (lex_ctxt *lexic)
 
       if (ssh_options_set (session, SSH_OPTIONS_PORT, &my_port))
         {
-          g_message ("Failed to set SSH port for '%s' to %d: %s",
-                     ip_str, port, ssh_get_error (session));
+          g_message ("%s: Failed to set SSH port for '%s' to %d: %s",
+                 nasl_get_plugin_filename (), ip_str, port,
+                     ssh_get_error (session));
           ssh_free (session);
           return NULL;
         }
@@ -344,8 +351,9 @@ nasl_ssh_connect (lex_ctxt *lexic)
       if (ssh_options_set (session, SSH_OPTIONS_FD, &my_fd))
         {
           g_message
-            ("Failed to set SSH fd for '%s' to %d (NASL sock=%d): %s",
-             ip_str, my_fd, sock, ssh_get_error (session));
+            ("%s: Failed to set SSH fd for '%s' to %d (NASL sock=%d): %s",
+             nasl_get_plugin_filename (), ip_str, my_fd, sock,
+             ssh_get_error (session));
           ssh_free (session);
           return NULL;
         }
@@ -724,8 +732,9 @@ nasl_ssh_set_login (lex_ctxt *lexic)
       if (username && *username &&
           ssh_options_set (session, SSH_OPTIONS_USER, username))
         {
-          g_message ("Failed to set SSH username '%s': %s",
-                     username, ssh_get_error (session));
+          g_message ("%s: Failed to set SSH username '%s': %s",
+                     username, ssh_get_error (session),
+                     nasl_get_plugin_filename ());
           return NULL; /* Ooops.  */
         }
       /* In any case mark the user has set.  */
@@ -1200,7 +1209,8 @@ exec_ssh_cmd (ssh_session session, char *cmd, int verbose, int compat_mode,
   alarm (30);
   if ((channel = ssh_channel_new (session)) == NULL)
     {
-      g_message ("ssh_channel_new failed: %s",
+      g_message ("%s: ssh_channel_new failed: %s",
+                 nasl_get_plugin_filename (),
                  ssh_get_error (session));
       return SSH_ERROR;
     }
@@ -1337,7 +1347,8 @@ nasl_ssh_request_exec (lex_ctxt *lexic)
   cmd = get_str_var_by_name (lexic, "cmd");
   if (!cmd || !*cmd)
     {
-      g_message ("No command passed to ssh_request_exec");
+      g_message ("%s: No command passed to ssh_request_exec",
+                 nasl_get_plugin_filename ());
       return NULL;
     }
 
@@ -1402,7 +1413,8 @@ nasl_ssh_request_exec (lex_ctxt *lexic)
   p = g_string_free (response, FALSE);
   if (!p)
     {
-      g_message ("ssh_request_exec memory problem: %s", strerror (-1));
+      g_message ("%s: ssh_request_exec memory problem: %s",
+                 nasl_get_plugin_filename (), strerror (-1));
       return NULL;
     }
 
@@ -1674,15 +1686,16 @@ nasl_ssh_shell_open (lex_ctxt *lexic)
     return NULL;
   if (ssh_channel_open_session (channel))
     {
-      g_message ("ssh_channel_open_session: %s",
-                 ssh_get_error (session));
+      g_message ("%s: ssh_channel_open_session: %s",
+                 nasl_get_plugin_filename (), ssh_get_error (session));
       ssh_channel_free (channel);
       return NULL;
     }
 
   if (request_ssh_shell (channel))
     {
-      g_message ("request_ssh_shell: %s", ssh_get_error (session));
+      g_message ("%s: request_ssh_shell: %s",
+                 nasl_get_plugin_filename (), ssh_get_error (session));
       ssh_channel_free (channel);
       return NULL;
     }
@@ -1796,13 +1809,15 @@ nasl_ssh_shell_write (lex_ctxt *lexic)
   cmd = get_str_var_by_name (lexic, "cmd");
   if (!cmd || !*cmd)
     {
-      g_message ("ssh_shell_write: No command passed");
+      g_message ("%s: ssh_shell_write: No command passed",
+                 nasl_get_plugin_filename ());
       goto write_ret;
     }
   len = strlen (cmd);
   if (ssh_channel_write (channel, cmd, len) != len)
     {
-      g_message ("ssh_shell_write: %s",
+      g_message ("%s: ssh_shell_write: %s",
+                 nasl_get_plugin_filename (),
                  ssh_get_error (session_table[tbl_slot].session));
       goto write_ret;
     }

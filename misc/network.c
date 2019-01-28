@@ -49,6 +49,8 @@
 #include <gvm/util/serverutils.h> /* for load_gnutls_file */
 #include <gvm/util/kb.h>          /* for kb_item_get_str() */
 
+#include "../nasl/nasl_debug.h"          /* for nasl_*_filename */
+
 #ifdef __FreeBSD__
 #include <netinet/in.h>
 #define s6_addr32 __u6_addr.__u6_addr32
@@ -737,7 +739,8 @@ socket_negotiate_ssl (int fd, openvas_encaps_t transport,
   if (open_SSL_connection (fp, cert, key, passwd, cafile, hostname) <= 0)
     {
       g_free (hostname);
-      g_message ("socket_negotiate_ssl: SSL connection failed.");
+      g_message ("%s: socket_negotiate_ssl: SSL connection failed.",
+                 nasl_get_plugin_filename ());
       release_connection_fd (fd, 0);
       return -1;
     }
@@ -1220,8 +1223,10 @@ read_stream_connection_unbuffered (int fd, void *buf0, int min_len, int max_len)
 
     default:
       if (fp->transport || fp->fd != 0)
-        g_message ("Severe bug! Unhandled transport layer %d (fd=%d)",
-                   fp->transport, fd);
+        g_message ("Severe bug! Unhandled transport layer %d (fd=%d). "
+                   "Function %s called from %s.",
+                   fp->transport, fd, nasl_get_plugin_filename (),
+                   nasl_get_function_name ());
       else
         g_message ("read_stream_connection_unbuffered: "
                    "fd=%d is closed",
@@ -1399,8 +1404,10 @@ write_stream_connection4 (int fd, void *buf0, int n, int i_opt)
 
     default:
       if (fp->transport || fp->fd != 0)
-        g_message ("Severe bug! Unhandled transport layer %d (fd=%d)",
-                   fp->transport, fd);
+        g_message ("Severe bug! Unhandled transport layer %d (fd=%d). "
+                   "Function %s called from %s.",
+                   fp->transport, fd, nasl_get_plugin_filename (),
+                   nasl_get_function_name ());
       else
         g_message ("read_stream_connection_unbuffered: fd=%d is "
                    "closed", fd);

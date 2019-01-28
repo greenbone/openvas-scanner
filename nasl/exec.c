@@ -1635,6 +1635,10 @@ exec_nasl_script (struct script_infos *script_infos, int mode)
   gchar *newdir;
   tree_cell tc;
   const char *str, *name = script_infos->name, *oid = script_infos->oid;
+  gchar *short_name = g_path_get_basename (name);
+
+  nasl_set_plugin_filename (short_name);
+  g_free (short_name);
 
   srand48 (getpid () + getppid () + (long) time (NULL));
 

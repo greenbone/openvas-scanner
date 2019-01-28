@@ -18,6 +18,7 @@
 
 #include <stdarg.h>
 #include <unistd.h>
+#include <string.h> /* for str() */
 
 #include <gvm/base/logging.h>
 
@@ -40,8 +41,31 @@ extern FILE *nasl_trace_fp;
 
 static char *debug_filename = NULL;
 static char *debug_funname = NULL;
+static char debug_plugin_filename[PATH_MAX];
 
 static GHashTable *functions_filenames = NULL;
+
+/**
+ * @brief Get the current launched plugin filename.
+ *
+ * @return Filename of the current running plugin.
+ */
+const char *
+nasl_get_plugin_filename ()
+{
+  return debug_plugin_filename;
+}
+
+/**
+ * @brief Set the current launched plugin filename.
+ *
+ * @param[in] filename Filename of the current plugin.
+ */
+void
+nasl_set_plugin_filename (const char *filename)
+{
+  strncpy (debug_plugin_filename, filename, sizeof (debug_plugin_filename));
+}
 
 const char *
 nasl_get_filename (const char *function)
