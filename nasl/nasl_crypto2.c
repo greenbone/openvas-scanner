@@ -33,7 +33,7 @@
 #include "nasl_var.h"
 #include "nasl_lex_ctxt.h"
 
-#include "strutils.h"
+#include "../misc/strutils.h"
 #include "nasl_packet_forgery.h"
 #include "nasl_debug.h"
 #include "nasl_misc_funcs.h"

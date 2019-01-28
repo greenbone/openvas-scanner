@@ -1,6 +1,6 @@
-/* Based on work Copyright (C) 2002 - 2003 Michel Arboi and Renaud Deraison
+/* Copyright (C) 2009-2019 Greenbone Networks GmbH
  *
- * SPDX-License-Identifier: GPL-2.0-only
+ * SPDX-License-Identifier: GPL-2.0-or-later
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -16,9 +16,11 @@
  * Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA 02110-1301 USA.
  */
 
-#ifndef NASL2_STRUTILS_H__
-#define NASL2_STRUTILS_H__
+#ifndef MISC2_STRUTILS_H__
+#define MISC2_STRUTILS_H__
 
-int str_match (const char *, const char *, int);
+#include <glib.h>
+
+int str_match (const gchar *, const gchar *, int);
 
 #endif
