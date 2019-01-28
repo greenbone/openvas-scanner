@@ -264,7 +264,7 @@ launch_plugin (struct scan_globals *globals, struct scheduler_plugin *plugin,
   nvti = nvticache_get_nvt (oid);
   if (scan_is_stopped () || all_scans_are_stopped ())
     {
-      if (nvti->category != ACT_LAST)
+      if (nvti->category != ACT_END)
         {
           plugin->running_state = PLUGIN_STATUS_DONE;
           return 0;
