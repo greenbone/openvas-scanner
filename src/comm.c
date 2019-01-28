@@ -34,7 +34,7 @@
 #include <gvm/base/prefs.h>         /* for preferences_get() */
 #include <gvm/util/nvticache.h>     /* for nvticache_t */
 
-#include "../misc/nvt_categories.h"/* for ACT_FIRST */
+#include "../misc/nvt_categories.h"/* for ACT_INIT */
 #include "../misc/plugutils.h"
 #include "../misc/network.h"       /* for recv_line */
 
@@ -184,9 +184,7 @@ send_plug_info (int soc, const char *oid)
     }
 
   category = nvti_category (nvti);
-  if (category >= ACT_UNKNOWN || category < ACT_FIRST)
-    category = ACT_UNKNOWN;
-
+  assert (category >= ACT_INIT && category <= ACT_END);
   name = nvti_name (nvti);
   if (!name || strchr (name, '\n'))
     {

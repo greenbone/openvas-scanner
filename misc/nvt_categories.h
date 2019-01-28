@@ -32,26 +32,20 @@
 
 /**
  * @brief NVT 'Categories', influence execution order of NVTs.
- *
- * @todo Consider creation of an enumeration.
  */
-
-/** Last plugins actions type. */
-#define ACT_LAST                ACT_END
-/** First plugins actions type. */
-#define ACT_FIRST               ACT_INIT
-
-#define ACT_UNKNOWN             11
-#define ACT_END                 10
-#define ACT_FLOOD               9
-#define ACT_KILL_HOST           8
-#define ACT_DENIAL              7
-#define ACT_DESTRUCTIVE_ATTACK  6
-#define ACT_MIXED_ATTACK        5
-#define ACT_ATTACK              4
-#define ACT_GATHER_INFO         3
-#define ACT_SETTINGS            2
-#define ACT_SCANNER             1
-#define ACT_INIT                0
+typedef enum
+{
+  ACT_INIT = 0,
+  ACT_SCANNER,
+  ACT_SETTINGS,
+  ACT_GATHER_INFO,
+  ACT_ATTACK,
+  ACT_MIXED_ATTACK,
+  ACT_DESTRUCTIVE_ATTACK,
+  ACT_DENIAL,
+  ACT_KILL_HOST,
+  ACT_FLOOD,
+  ACT_END,
+} nvt_category;
 
 #endif /* _NVT_CATEGORIES_H */

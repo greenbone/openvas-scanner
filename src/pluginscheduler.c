@@ -50,7 +50,7 @@
 
 struct plugins_scheduler
 {
-  GSList *list[ACT_LAST + 1]; /**< Per-category linked-lists of the plugins. */
+  GSList *list[ACT_END + 1]; /**< Per-category linked-lists of the plugins. */
   int stopped;
 };
 
@@ -135,13 +135,12 @@ plugin_add (plugins_scheduler_t sched, GHashTable *oids_table,
     }
 
   category = nvti_category (nvti);
-  assert (category >= 0);
+  assert (category >= ACT_INIT && category <= ACT_END);
   plugin = g_malloc0 (sizeof (struct scheduler_plugin));
   plugin->running_state = PLUGIN_STATUS_UNRUN;
   plugin->oid = g_strdup (oid);
   g_hash_table_insert (oids_table, plugin->oid, plugin);
 
-  assert (category <= ACT_LAST);
   sched->list[category] = g_slist_prepend
                            (sched->list[category], plugin);
 
@@ -199,7 +198,7 @@ plugins_scheduler_fill_deps (plugins_scheduler_t sched, GHashTable *oids_table)
 {
   int category;
 
-  for (category = ACT_FIRST; category <= ACT_LAST; category++)
+  for (category = ACT_INIT; category <= ACT_END; category++)
     {
       GSList *element = sched->list[category];
 
@@ -301,7 +300,7 @@ check_dependency_cycles (plugins_scheduler_t sched)
   GHashTable *checked;
 
   checked = g_hash_table_new_full (g_str_hash, g_direct_equal, NULL, NULL);
-  for (i = ACT_FIRST; i <= ACT_LAST; i++)
+  for (i = ACT_INIT; i <= ACT_END; i++)
     {
       GSList *element = sched->list[i];
 
@@ -345,7 +344,7 @@ plugins_scheduler_init (const char *plugins_list, int autoload, int only_network
 
   if (only_network)
     {
-      for (i = ACT_GATHER_INFO; i <= ACT_LAST; i++)
+      for (i = ACT_GATHER_INFO; i <= ACT_END; i++)
         {
           ret->list[i] = NULL;
         }
@@ -366,7 +365,7 @@ plugins_scheduler_count_active (plugins_scheduler_t sched)
   int ret = 0, i;
   assert (sched);
 
-  for (i = ACT_FIRST; i <= ACT_LAST; i++)
+  for (i = ACT_INIT; i <= ACT_END; i++)
     ret += g_slist_length (sched->list[i]);
   return ret;
 }
@@ -536,7 +535,7 @@ plugins_scheduler_stop (plugins_scheduler_t sched)
 
   if (sched->stopped)
     return;
-  for (category = ACT_FIRST; category < ACT_END; category++)
+  for (category = ACT_INIT; category < ACT_END; category++)
     {
       GSList *element = sched->list[category];
 
@@ -569,7 +568,7 @@ plugins_scheduler_free (plugins_scheduler_t sched)
 {
   int i;
 
-  for (i = ACT_FIRST; i <= ACT_LAST; i++)
+  for (i = ACT_INIT; i <= ACT_END; i++)
     g_slist_free_full (sched->list[i], scheduler_plugin_free);
   g_free (sched);
 }
