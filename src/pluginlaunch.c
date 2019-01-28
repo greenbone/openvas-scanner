@@ -122,10 +122,14 @@ update_running_processes (kb_t kb)
 
               if (prefs_get_bool ("advanced_log"))
                 {
-                  char buf[2048], buf2[2048];
-                  snprintf (buf, sizeof (buf), "log/launched/%s/end", oid);
-                  snprintf (buf2, sizeof (buf2), "%lu", time (NULL));
-                  kb_item_add_str (kb, buf, buf2, 0);
+                  char buffer[2048];
+
+                  snprintf (buffer, sizeof (buffer),
+                            "LOG||| |||general/Host_Details||| |||<host><detail>"
+                            "<name>nvt_end_time</name><value>%lu</value><source>"
+                            "<description/><type>nvt</type><name>%s</name></source>"
+                            "</detail></host>", time (NULL), oid);
+                  kb_item_push_str (kb, "internal/results", buffer);
                 }
               if (processes[i].alive)
                 {
@@ -135,7 +139,17 @@ update_running_processes (kb_t kb)
                     g_message ("%s (pid %d) is slow to finish - killing it",
                                oid, processes[i].pid);
                   if (prefs_get_bool ("advanced_log"))
-                    kb_item_add_str (kb, "log/timedout", oid, 0);
+                    {
+                      char buffer[2048];
+
+                      snprintf (buffer, sizeof (buffer),
+                                "LOG||| |||general/Host_Details||| |||<host>"
+                                "<detail><name>nvt_end_time</name><value>"
+                                "<source><description/><type>nvt</type>"
+                                "<name>%s</name></source></detail></host>",
+                                oid);
+                      kb_item_push_str (kb, "internal/results", buffer);
+                    }
 
                   sprintf (msg,
                            "ERRMSG||| |||general/tcp|||%s|||"
