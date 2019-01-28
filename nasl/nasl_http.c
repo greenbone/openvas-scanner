@@ -65,10 +65,7 @@ build_encode_URL (char *method, char *path, char *name, char *httpver)
   else
     ret = g_strdup_printf ("%s/%s", path, name);
 
-#ifdef URL_DEBUG
-  g_message ("Request => %s", ret);
-#endif
-
+  g_debug ("Request => %s", ret);
   ret2 = g_strdup_printf ("%s %s %s", method, ret, httpver);
   g_free (ret);
   return ret2;

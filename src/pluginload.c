@@ -265,9 +265,7 @@ plugins_reload_from_dir (void *folder)
   openvas_signal (SIGTERM, SIG_DFL);
   if (folder == NULL)
     {
-#ifdef DEBUG
       g_debug ("%s:%d : folder == NULL", __FILE__, __LINE__);
-#endif
       g_debug ("Could not determine the value of <plugins_folder>. "
                  " Check %s\n", (char *) prefs_get ("config_file"));
       exit (1);

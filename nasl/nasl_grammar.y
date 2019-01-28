@@ -1425,26 +1425,14 @@ mylex (YYSTYPE *lvalp, void *parm)
        * inserting a white space after the minus operator
        * Note that strtoul would also work on negative integers */
       lvalp->num = x = strtoul (parse_buffer, NULL, 10);
-#if NASL_DEBUG > 1 && defined(ULONG_MAX) && defined(ERANGE)
-      if (x == ULONG_MAX && errno == ERANGE)
-	nasl_perror(NULL, "Integer overflow while converting %s at or near line %d\n", parse_buffer, ctx->line_nb);
-#endif
       return INTEGER;
 
     case ST_OCT:
       lvalp->num = x = strtoul (parse_buffer, NULL, 8);
-#if NASL_DEBUG > 1 && defined(ULONG_MAX) && defined(ERANGE)
-      if (x == ULONG_MAX && errno == ERANGE)
-	nasl_perror(NULL, "Integer overflow while converting %s at or near line %d\n", parse_buffer, ctx->line_nb);
-#endif
       return INTEGER;
 
     case ST_HEX:
       lvalp->num = x = strtoul (parse_buffer, NULL, 16);
-#if NASL_DEBUG > 1 && defined(ULONG_MAX)
-      if (x == ULONG_MAX)
-	nasl_perror(NULL, "Possible integer overflow while converting %s at or near line %d\n", parse_buffer, ctx->line_nb);
-#endif
       return INTEGER;
 
     case ST_ZEROX:

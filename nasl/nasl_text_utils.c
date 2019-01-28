@@ -678,12 +678,7 @@ nasl_ereg_replace (lex_ctxt * lexic)
       return NULL;
     }
   if (string == NULL)
-    {
-#if NASL_DEBUG > 1
-      nasl_perror (lexic, "ereg_replace: string == NULL\n");
-#endif
-      return NULL;
-    }
+    return NULL;
 
   r = _regreplace (pattern, replace, string, icase, 1);
   if (r == NULL)
@@ -1014,12 +1009,7 @@ nasl_split (lex_ctxt * lexic)
 
   str = get_str_var_by_num (lexic, 0);
   if (str == NULL)
-    {
-#if NASL_DEBUG > 0
-      nasl_perror (lexic, "split: missing string parameter\n");
-#endif
-      return NULL;
-    }
+    return NULL;
   len = get_var_size_by_num (lexic, 0);
   if (len <= 0)
     len = strlen (str);

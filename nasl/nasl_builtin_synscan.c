@@ -231,13 +231,7 @@ openbpf (struct in_addr dst, struct in_addr * src, int magic)
 	int             bpf;
 
 	iface = routethrough (&dst, src);
-#ifdef DEBUG
-        printf ("Source address found via routethrough: %s\n", inet_ntoa (*src));
-#endif
         snprintf (filter, sizeof (filter), "tcp and src host %s and dst port %d", inet_ntoa (dst), magic);
-#ifdef DEBUG
-        printf ("Open bpf on interface %s with filter: %s\n", iface, filter);
-#endif
 	bpf = bpf_open_live (iface, filter);
 	return bpf;
 }
@@ -330,12 +324,7 @@ rm_packet (struct list * l, unsigned short dport)
 	struct list *p = get_packet (l, dport);
 
 	if (p == NULL)
-	{
-#if DEBUG > 1
-          g_message ("Odd - no entry for %d - RTT too low ?!", dport);
-#endif
           return l;
-	}
 	if (p->next != NULL)
 		p->next->prev = p->prev;
 
@@ -582,9 +571,6 @@ again:
 			unsigned int rack = extractack(res + skip, len, family);
 			if (synack) {
 			  char * rst;
-#ifdef DEBUG
-                          printf("=> Port %d is open\n", sport);
-#endif
 			   scanner_add_port (env, sport, "tcp");
 			  /* Send a RST to make sure the connection is closed on the remote side */
 			  rst = mktcp(src, magic, dst, sport, ack + 1, TH_RST);
@@ -657,9 +643,6 @@ v6_sendpacket (int soc, int bpf, int skip, struct in6_addr *dst,
       int             synack = issynack(res + skip, len, AF_INET6);
       if (synack) {
         char * rst;
-#ifdef DEBUG
-        printf("=> Port %d is open\n", sport);
-#endif
         scanner_add_port(env, sport, "tcp");
         /* Send a RST to make sure the connection is closed on the remote side */
         rst = mktcpv6 (magic, sport, ack + 1, TH_RST);
@@ -713,12 +696,6 @@ scan (struct script_infos * env, char* portrange, struct in6_addr *dst6,
       family = AF_INET6;
       soc = rawsocket (AF_INET6);
     }
-#ifdef DEBUG
-  printf ("===> Port range = %s\n", portrange);
-  printf ("===> Target IP Family = %s\n", (family == AF_INET6) ? "v6"
-                                                               : "v4");
-  printf ("===> Target = %s\n", inet_ntoa (dst));
-#endif
 
   ports = (unsigned short *) getpts (portrange, &num);
 
@@ -742,9 +719,6 @@ scan (struct script_infos * env, char* portrange, struct in6_addr *dst6,
   /** This will send packets to ports not in ports list, will it? */
   for (i = 0; i < num ; i += 2)
     {
-#ifdef DEBUG
-      printf ("====> Sending packet to (at least) %u\n", ports[i]);
-#endif
       if (family == AF_INET)
         packets = sendpacket (soc, bpf, skip, dst, src, ports[i], magic,
                               packets, &rtt, 0, env);
@@ -753,9 +727,7 @@ scan (struct script_infos * env, char* portrange, struct in6_addr *dst6,
                                  packets, &rtt, 0, env);
       if (i + 1 < num)
         {
-#ifdef DEBUG
-          printf ("=====>> Sniffing %u\n", ports[i+1]);
-#endif
+          g_debug ("=====>> Sniffing %u\n", ports[i+1]);
           if (family == AF_INET)
             packets = sendpacket (soc, bpf, skip, dst, src, ports[i + 1],
                                   magic, packets, &rtt, 1, env);
@@ -765,18 +737,11 @@ scan (struct script_infos * env, char* portrange, struct in6_addr *dst6,
         }
     }
 
-#ifdef DEBUG
-  printf ("Done with the sending\n");
-#endif
-
   /** @TODO How to do this for ipv6? This causes much scan delay for IPv6. */
   if (family == AF_INET)
   {
     while (packets != NULL)
       {
-#ifdef DEBUG
-        printf ("===> Retry...\n");
-#endif
         i = 0;
         retry = 0;
         packets = rm_dead_packets (packets, &retry);
@@ -811,9 +776,6 @@ plugin_run_synscan (lex_ctxt * lexic)
   struct in6_addr *dst6 = plug_get_host_ip (env);
   struct in_addr  *dst;
   struct in_addr  inaddr;
-#ifdef DEBUG
-  struct timeval  tv;
-#endif
 
   inaddr.s_addr = dst6->s6_addr32[3];
   dst = &inaddr;
@@ -822,12 +784,6 @@ plugin_run_synscan (lex_ctxt * lexic)
     return NULL;
 
   rtt = htonl (1 << 28);
-
-#ifdef DEBUG
-  printf ("RTT = 0x%.8x\n", ntohl (rtt));
-  tv = timeval (rtt);
-  printf ("That's %ld seconds and %ld usecs\n", tv.tv_sec, tv.tv_usec);
-#endif
 
   const char *range = prefs_get ("port_range");
   scan (env, (char *)range, dst6, rtt);

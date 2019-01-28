@@ -162,7 +162,7 @@ renice_myself (void)
 static int
 pid_perror (const char *error)
 {
-  g_message ("[%d] %s : %s", getpid (), error, strerror (errno));
+  g_debug ("[%d] %s : %s", getpid (), error, strerror (errno));
   return 0;
 }
 
@@ -230,19 +230,15 @@ release_connection_fd (int fd, int already_closed)
  * code shall be fixed. */
   if (p->fd >= 0)
     {
-#if DEBUG_SSL > 1
-      g_message ("[%d] release_connection_fd: fd > 0 fd=%d", getpid (), p->fd);
-#endif
+      g_debug ("[%d] release_connection_fd: fd > 0 fd=%d", getpid (), p->fd);
       if (shutdown (p->fd, 2) < 0)
         {
-#if DEBUG_SSL > 1
           /*
            * It's not uncommon to see that one fail, since a lot of
            * services close the connection before we ask them to
            * (ie: http), so we don't show this error by default
            */
           pid_perror ("release_connection_fd: shutdown()");
-#endif
         }
       if (!already_closed && socket_close (p->fd) < 0)
         pid_perror ("release_connection_fd: close()");
@@ -369,13 +365,11 @@ tlserror (char *txt, int err)
   g_message ("[%d] %s: %s", getpid (), txt, gnutls_strerror (err));
 }
 
-#ifdef DEBUG_SSL
 static void
 log_message_gnutls (int level, const char *msg)
 {
-  g_message ("LEVEL %d: %s", level, msg);
+  g_debug ("LEVEL %d: %s", level, msg);
 }
-#endif
 
 /**
  * @brief Initializes SSL support.
@@ -383,10 +377,8 @@ log_message_gnutls (int level, const char *msg)
 int
 openvas_SSL_init ()
 {
-#ifdef DEBUG_SSL
   gnutls_global_set_log_level (2);
   gnutls_global_set_log_function (log_message_gnutls);
-#endif
 
   int ret = gnutls_global_init ();
   if (ret < 0)
@@ -462,10 +454,8 @@ set_gnutls_protocol (gnutls_session_t session, openvas_encaps_t encaps,
         priorities = "NORMAL:-VERS-TLS-ALL:+VERS-TLS1.0:+VERS-SSL3.0:+ARCFOUR-128:%COMPAT";
         break;
       default:
-#if DEBUG_SSL > 0
-        g_message ("*Bug* at %s:%d. Unknown transport %d", __FILE__,
-                   __LINE__, encaps);
-#endif
+        g_debug ("*Bug* at %s:%d. Unknown transport %d", __FILE__, __LINE__,
+                 encaps);
       case OPENVAS_ENCAPS_TLScustom:
         priorities = priority;
         break;
@@ -675,9 +665,7 @@ open_SSL_connection (openvas_connection * fp, const char *cert,
       if (err != GNUTLS_E_INTERRUPTED && err != GNUTLS_E_AGAIN
           && err != GNUTLS_E_WARNING_ALERT_RECEIVED)
         {
-#ifdef DEBUG_SSL
           tlserror ("gnutls_handshake", err);
-#endif
           return -1;
         }
 
@@ -698,11 +686,7 @@ open_SSL_connection (openvas_connection * fp, const char *cert,
           to.tv_usec = 0;
           errno = 0;
           if ((ret = select (fp->fd + 1, &fdr, &fdw, NULL, &to)) <= 0)
-            {
-#if DEBUG_SSL > 1
-              pid_perror ("select");
-#endif
-            }
+            pid_perror ("select");
         }
       while (ret < 0 && errno == EINTR);
 
@@ -939,11 +923,8 @@ open_stream_connection_ext (struct script_infos *args, unsigned int port,
   if (!priority)
     priority = ""; /* To us an empty string is equivalent to NULL.  */
 
-#if DEBUG_SSL > 2
-  g_message ("[%d] open_stream_connection: TCP:%d transport:%d timeout:%d "
-             " priority: '%s'",
-             getpid (), port, transport, timeout, priority);
-#endif
+  g_debug ("[%d] open_stream_connection: TCP:%d transport:%d timeout:%d "
+           " priority: '%s'", getpid (), port, transport, timeout, priority);
 
   if (timeout == -2)
     timeout = TIMEOUT;
@@ -1180,16 +1161,13 @@ read_stream_connection_unbuffered (int fd, void *buf0, int min_len, int max_len)
     case OPENVAS_ENCAPS_TLSv11:
     case OPENVAS_ENCAPS_TLSv12:
     case OPENVAS_ENCAPS_TLScustom:
-# if DEBUG_SSL > 0
       if (getpid () != fp->pid)
         {
-          log_lecacy_write ("PID %d tries to use a SSL connection established "
-                            "by PID %d\n",
-                            getpid (), fp->pid);
+          g_debug ("PID %d tries to use a SSL connection established "
+                   "by PID %d\n", getpid (), fp->pid);
           errno = EINVAL;
           return -1;
         }
-# endif
 
       then = time (NULL);
       for (t = 0; timeout <= 0 || t < timeout; t = now - then)
@@ -1224,17 +1202,10 @@ read_stream_connection_unbuffered (int fd, void *buf0, int min_len, int max_len)
                    * code which treated SSL_ERROR_ZERO_RETURN as an
                    * error too.
                    */
-#ifdef DEBUG_SSL
                   if (ret < 0)
-                    {
-                      tlserror ("gnutls_record_recv", ret);
-                    }
+                    pid_perror ("gnutls_record_recv");
                   else
-                    {
-                      log_lecacy_write ("gnutls_record_recv[%d]: EOF\n",
-                                        getpid ());
-                    }
-#endif
+                    g_debug ("gnutls_record_recv[%d]: EOF\n", getpid ());
                   fp->last_err = EPIPE;
                   return total;
                 }
@@ -1340,21 +1311,13 @@ write_stream_connection4 (int fd, void *buf0, int n, int i_opt)
 
   if (!OPENVAS_STREAM (fd))
     {
-#if DEBUG_SSL > 0
-      log_lecacy_write ("write_stream_connection: fd <%d> invalid\n", fd);
-#endif
+      g_debug ("write_stream_connection: fd <%d> invalid\n", fd);
       errno = EINVAL;
       return -1;
     }
 
   fp = OVAS_CONNECTION_FROM_FD (fd);
   fp->last_err = 0;
-
-#if DEBUG_SSL > 8
-  log_lecacy_write (
-           "> write_stream_connection(%d, %s, %d, 0x%x) \tE=%d\n", fd,
-           buf, n, i_opt, fp->transport);
-#endif
 
   switch (fp->transport)
     {
@@ -1400,16 +1363,10 @@ write_stream_connection4 (int fd, void *buf0, int n, int i_opt)
                * for compatibility with the old openvas code which
                * treated SSL_ERROR_ZERO_RETURN as an error too.
                */
-#ifdef DEBUG_SSL
               if (ret < 0)
-                {
-                  tlserror ("gnutls_record_send", ret);
-                }
+                pid_perror ("gnutls_record_send");
               else
-                {
-                  log_lecacy_write ("gnutls_record_send[%d]: EOF\n", getpid ());
-                }
-#endif
+                g_debug ("gnutls_record_send[%d]: EOF\n", getpid ());
               fp->last_err = EPIPE;
               break;
             }
@@ -1433,9 +1390,7 @@ write_stream_connection4 (int fd, void *buf0, int n, int i_opt)
 
           if (e <= 0)
             {
-#if DEBUG_SSL > 0
               pid_perror ("select");
-#endif
               fp->last_err = ETIMEDOUT;
               break;
             }
@@ -1510,9 +1465,6 @@ int
 nrecv (int fd, void *data, int length, int i_opt)
 {
   int e;
-#if DEBUG_SSL > 8
-  g_message ("nrecv: fd=%d len=%d", fd, length);
-#endif
   if (OPENVAS_STREAM (fd))
     {
       if (connections[fd - OPENVAS_FD_OFF].fd < 0)
@@ -1590,7 +1542,6 @@ run_csc_hooks (int fd)
 int
 close_stream_connection (int fd)
 {
-#if DEBUG_SSL > 2
   openvas_connection *fp;
   if (!OPENVAS_STREAM (fd))
     {
@@ -1598,8 +1549,7 @@ close_stream_connection (int fd)
       return -1;
     }
   fp = OVAS_CONNECTION_FROM_FD (fd);
-  g_message ("close_stream_connection TCP:%d (fd=%d)", fp->port, fd);
-#endif
+  g_debug ("close_stream_connection TCP:%d (fd=%d)", fp->port, fd);
 
   if (!OPENVAS_STREAM (fd))     /* Will never happen if debug is on! */
     {
@@ -1715,9 +1665,7 @@ open_socket (struct sockaddr *paddr, int type, int protocol,
 
   if (connect (soc, paddr, len) < 0)
     {
-#if DEBUG_SSL > 2
       pid_perror ("connect");
-#endif
     again:
       switch (errno)
         {
@@ -1730,9 +1678,7 @@ open_socket (struct sockaddr *paddr, int type, int protocol,
           x = select (soc + 1, NULL, &fd_w, NULL, &to);
           if (x == 0)
             {
-#if DEBUG_SSL > 2
               pid_perror ("connect->select: timeout");
-#endif
               socket_close (soc);
               errno = ETIMEDOUT;
               return -1;
@@ -1759,10 +1705,8 @@ open_socket (struct sockaddr *paddr, int type, int protocol,
             }
           if (opt == 0)
             break;
-#if DEBUG_SSL > 2
           errno = opt;
           pid_perror ("SO_ERROR");
-#endif
           /* fallthrough */
         default:
           __port_closed = 1;

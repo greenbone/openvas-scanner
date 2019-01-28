@@ -27,10 +27,6 @@
 #include "nasl_debug.h"
 #include "nasl_init.h"
 
-#ifndef NASL_DEBUG
-#define NASL_DEBUG 0
-#endif
-
 #undef G_LOG_DOMAIN
 /**
  * @brief GLib logging domain.

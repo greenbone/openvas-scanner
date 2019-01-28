@@ -398,10 +398,6 @@ nasl_make_list (lex_ctxt * lexic)
 
           if (a2->hash_elt != NULL)
             {
-#if NASL_DEBUG > 1
-              nasl_perror (lexic,
-                           "make_list: named arguments in array have no order\n");
-#endif
               for (j = 0; j < VAR_NAME_HASH; j++)
                 for (vn = a2->hash_elt[j]; vn != NULL; vn = vn->next_var)
                   if (vn->u.var_type != VAR2_UNDEF)
