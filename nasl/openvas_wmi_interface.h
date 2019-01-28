@@ -1,14 +1,6 @@
-/* OpenVAS
+/* Copyright (C) 2009-2019 Greenbone Networks GmbH
  *
- * $Id$
- * Description: API protos describing the interface of a wmi interface
- * implementation.
- *
- * Authors:
- * Jan-Oliver Wagner <jan-oliver.wagner@greenbone.net>
- *
- * Copyright:
- * Copyright (c) 2009 Greenbone Networks GmbH, http://www.greenbone.net
+ * SPDX-License-Identifier: GPL-2.0-or-later
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -17,7 +9,7 @@
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License

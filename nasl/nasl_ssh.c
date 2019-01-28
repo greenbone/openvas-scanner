@@ -1,13 +1,6 @@
-/* openvas-scanner/nasl
- * $Id$
- * Description: Implementation of API for SSH functions used by NASL scripts
+/* Portions Copyright (C) 2011-2019 Greenbone Networks GmbH
  *
- * Authors:
- * Michael Wiegand <michael.wiegand@greenbone.net>
- * Werner Koch <wk@gnupg.org>
- *
- * Copyright:
- * Copyright (C) 2011, 2012 Greenbone Networks GmbH
+ * SPDX-License-Identifier: GPL-2.0-or-later
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -26,7 +19,6 @@
 
 /**
  * @file nasl_ssh.c
- *
  * @brief Implementation of an API for SSH functions.
  *
  * This file contains the implementation of the Secure Shell related
@@ -1256,7 +1248,6 @@ exec_ssh_cmd (ssh_session session, char *cmd, int verbose, int compat_mode,
       if ((rc = ssh_channel_read_timeout (channel, buffer, sizeof (buffer), 0,
                                           15000)) > 0)
         {
-          compat_mode = 0;
           if (to_stdout)
             g_string_append_len (response, buffer, rc);
         }

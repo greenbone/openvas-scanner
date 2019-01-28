@@ -4,8 +4,7 @@
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * version 2 as published by the Free Software Foundation.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -17,38 +16,34 @@
  * Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA 02110-1301 USA.
  */
 
-/**
- * @file vendorversion.c
- * @brief Functions to set and get the vendor version.
- */
-
 #include <glib.h>
-#include "vendorversion.h"
+
 
 /**
- * @brief Vendor version, or NULL.
- */
-gchar *vendor_version = NULL;
-
-/**
- * @brief Set vendor version
+ * @brief Matches a string against a pattern.
  *
- * @param[in]  version  Vendor version.
- */
-void
-vendor_version_set (const gchar *version)
-{
-  g_free (vendor_version);
-  vendor_version = g_strdup (version);
-}
-
-/**
- * @brief Get vendor version.
+ * @param[in] string  String to match.
+ * @param[in] pattern Pattern to match against.
+ * @param[in] icase   Case insensitivity enabled.
  *
- * @return Set vendor version or empty string.
+ * @return 1 if it matches. 0 otherwise.
  */
-const gchar *
-vendor_version_get ()
+int
+str_match (const gchar *string, const gchar *pattern, int icase)
 {
-  return vendor_version ? vendor_version : "";
+  gboolean res;
+  GPatternSpec *patt = NULL;
+
+  if (icase)
+    {
+      patt = g_pattern_spec_new (g_ascii_strdown (pattern, -1));
+      res = g_pattern_match_string (patt, g_ascii_strdown (string, -1));
+    }
+  else
+    {
+      patt = g_pattern_spec_new (pattern);
+      res = g_pattern_match_string (patt, string);
+    }
+  g_pattern_spec_free (patt);
+  return res;
 }
