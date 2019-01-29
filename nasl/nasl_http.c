@@ -39,6 +39,11 @@
 
 #include "nasl_http.h"
 
+#undef G_LOG_DOMAIN
+/**
+ * @brief GLib log domain.
+ */
+#define G_LOG_DOMAIN "lib  nasl"
 
 /*-----------------[ http_* functions ]-------------------------------*/
 
