@@ -94,6 +94,8 @@ plugin_next_unrun_dependency (GSList *deps)
         case PLUGIN_STATUS_RUNNING:
           flag = 1;
           break;
+        case PLUGIN_STATUS_DONE:
+          break;
         }
       deps = deps->next;
     }
@@ -413,6 +415,8 @@ get_next_plugin (struct scheduler_plugin *plugin, int *still_running)
       break;
     case PLUGIN_STATUS_RUNNING:
       *still_running = 1;
+      break;
+    case PLUGIN_STATUS_DONE:
       break;
     }
   return NULL;
