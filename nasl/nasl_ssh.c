@@ -1365,7 +1365,7 @@ nasl_ssh_request_exec (lex_ctxt *lexic)
   cmd = get_str_var_by_name (lexic, "cmd");
   if (!cmd || !*cmd)
     {
-      g_message ("Function %s called from %s: No command passed ",
+      g_message ("Function %s called from %s: No command passed",
                  nasl_get_function_name (), nasl_get_plugin_filename ());
       return NULL;
     }
