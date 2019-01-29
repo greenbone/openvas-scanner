@@ -31,11 +31,18 @@
 struct plugins_scheduler;
 
 
+enum plugin_status
+{
+    PLUGIN_STATUS_UNRUN = 0,
+    PLUGIN_STATUS_RUNNING,
+    PLUGIN_STATUS_DONE,
+};
+
 struct scheduler_plugin
 {
   char *oid;
   GSList *deps;
-  int running_state;
+  enum plugin_status running_state;
 };
 
 
@@ -43,10 +50,6 @@ typedef struct plugins_scheduler *plugins_scheduler_t;
 
 
 #define PLUG_RUNNING ((struct scheduler_plugin*)0x02)
-#define PLUGIN_STATUS_UNRUN 		1
-#define PLUGIN_STATUS_RUNNING		2
-#define PLUGIN_STATUS_DONE		3
-
 
 plugins_scheduler_t
 plugins_scheduler_init (const char *, int, int);
