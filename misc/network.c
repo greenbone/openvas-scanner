@@ -740,7 +740,7 @@ socket_negotiate_ssl (int fd, openvas_encaps_t transport,
     {
       g_free (hostname);
       g_message ("Function socket_negotiate_ssl called from %s: "
-                 "SSL connection failed.",
+                 "SSL/TLS connection failed.",
                  nasl_get_plugin_filename ());
       release_connection_fd (fd, 0);
       return -1;
@@ -1167,7 +1167,7 @@ read_stream_connection_unbuffered (int fd, void *buf0, int min_len, int max_len)
     case OPENVAS_ENCAPS_TLScustom:
       if (getpid () != fp->pid)
         {
-          g_debug ("PID %d tries to use a SSL connection established "
+          g_debug ("PID %d tries to use a SSL/TLS connection established "
                    "by PID %d\n", getpid (), fp->pid);
           errno = EINVAL;
           return -1;
