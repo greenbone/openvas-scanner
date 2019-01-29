@@ -739,7 +739,8 @@ socket_negotiate_ssl (int fd, openvas_encaps_t transport,
   if (open_SSL_connection (fp, cert, key, passwd, cafile, hostname) <= 0)
     {
       g_free (hostname);
-      g_message ("%s: socket_negotiate_ssl: SSL connection failed.",
+      g_message ("Function socket_negotiate_ssl called from %s: "
+                 "SSL connection failed.",
                  nasl_get_plugin_filename ());
       release_connection_fd (fd, 0);
       return -1;
@@ -1223,10 +1224,11 @@ read_stream_connection_unbuffered (int fd, void *buf0, int min_len, int max_len)
 
     default:
       if (fp->transport || fp->fd != 0)
-        g_message ("Severe bug! Unhandled transport layer %d (fd=%d). "
-                   "Function %s called from %s.",
-                   fp->transport, fd, nasl_get_plugin_filename (),
-                   nasl_get_function_name ());
+        g_message ("Function %s called from %s: "
+                   "Severe bug! Unhandled transport layer %d (fd=%d).",
+                   nasl_get_function_name (),
+                   nasl_get_plugin_filename (),
+                   fp->transport, fd);
       else
         g_message ("read_stream_connection_unbuffered: "
                    "fd=%d is closed",
@@ -1404,10 +1406,11 @@ write_stream_connection4 (int fd, void *buf0, int n, int i_opt)
 
     default:
       if (fp->transport || fp->fd != 0)
-        g_message ("Severe bug! Unhandled transport layer %d (fd=%d). "
-                   "Function %s called from %s.",
-                   fp->transport, fd, nasl_get_plugin_filename (),
-                   nasl_get_function_name ());
+        g_message ("Function %s called from %s: "
+                   "Severe bug! Unhandled transport layer %d (fd=%d).",
+                   nasl_get_function_name (),
+                   nasl_get_plugin_filename (),
+                   fp->transport, fd);
       else
         g_message ("read_stream_connection_unbuffered: fd=%d is "
                    "closed", fd);
