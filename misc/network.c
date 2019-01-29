@@ -668,7 +668,8 @@ open_SSL_connection (openvas_connection * fp, const char *cert,
       if (err != GNUTLS_E_INTERRUPTED && err != GNUTLS_E_AGAIN
           && err != GNUTLS_E_WARNING_ALERT_RECEIVED)
         {
-          tlserror ("gnutls_handshake", err);
+          g_debug ("[%d] gnutls_handshake: %s", getpid (),
+                   gnutls_strerror (err));
           return -1;
         }
 
