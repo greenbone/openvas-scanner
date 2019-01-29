@@ -458,6 +458,7 @@ set_gnutls_protocol (gnutls_session_t session, openvas_encaps_t encaps,
       default:
         g_debug ("*Bug* at %s:%d. Unknown transport %d", __FILE__, __LINE__,
                  encaps);
+        /* fallthrough */
       case OPENVAS_ENCAPS_TLScustom:
         priorities = priority;
         break;
