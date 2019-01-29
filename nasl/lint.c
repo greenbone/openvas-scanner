@@ -39,8 +39,8 @@
 typedef struct st_func_info
 {
   gchar *func_name;   /**< Function name */
-  gchar *caller_func; /**< Name of the function frome where it is called */
-  gchar *caller_file; /**< Name of the file frome where it is called */
+  gchar *caller_func; /**< Name of the function from where it is called */
+  gchar *caller_file; /**< Name of the file from where it is called */
 } func_info;
 
 
