@@ -44,6 +44,7 @@
 #include "../misc/nvt_categories.h" /* for ACT_INIT */
 #include "../misc/pcap_openvas.h"   /* for v6_is_local_ip */
 #include "../misc/scanneraux.h"
+#include "../nasl/nasl_debug.h"          /* for nasl_*_filename */
 
 #include "attack.h"
 #include "comm.h"
@@ -263,7 +264,7 @@ launch_plugin (struct scan_globals *globals, struct scheduler_plugin *plugin,
   nvti = nvticache_get_nvt (oid);
   if (scan_is_stopped () || all_scans_are_stopped ())
     {
-      if (nvti->category != ACT_LAST)
+      if (nvti->category != ACT_END)
         {
           plugin->running_state = PLUGIN_STATUS_DONE;
           return 0;

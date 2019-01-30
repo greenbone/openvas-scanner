@@ -45,15 +45,6 @@
 #include "nasl_debug.h"
 #include "nasl_init.h"
 
-#ifndef NASL_DEBUG
-#define NASL_DEBUG 0
-#endif
-
-#if NASL_DEBUG > 2
-#include <sys/time.h>
-#include <sys/resource.h>
-#endif
-
 #undef G_LOG_DOMAIN
 /**
  * @brief GLib logging domain.
@@ -174,12 +165,7 @@ cell2str (lex_ctxt * lexic, tree_cell * c)
   nasl_array *a;
 
   if (c == NULL || c == FAKE_CELL)
-    {
-#if NASL_DEBUG > 0
-      nasl_perror (lexic, "Cannot convert NULL or FAKE cell to string\n");
-#endif
-      return NULL;
-    }
+    return NULL;
 
   switch (c->type)
     {
@@ -247,12 +233,10 @@ cell_cmp (lex_ctxt * lexic, tree_cell * c1, tree_cell * c2)
   char *s1, *s2;
   int len_s1, len_s2, len_min;
 
-#if NASL_DEBUG >= 0
   if (c1 == NULL || c1 == FAKE_CELL)
     nasl_perror (lexic, "cell_cmp: c1 == NULL !\n");
   if (c2 == NULL || c2 == FAKE_CELL)
     nasl_perror (lexic, "cell_cmp: c2 == NULL !\n");
-#endif
 
   /* We first convert the cell to atomic types. */
   c1 = cell2atom (lexic, c1);
@@ -288,12 +272,7 @@ cell_cmp (lex_ctxt * lexic, tree_cell * c1, tree_cell * c2)
   /* We convert an integer into a string before compare */
   else if ((typ1 == CONST_INT && (typ2 == CONST_DATA || typ2 == CONST_STR))
            || (typ2 == CONST_INT && (typ1 == CONST_DATA || typ1 == CONST_STR)))
-    {
-#if NASL_DEBUG > 0
-      nasl_perror (lexic, "cell_cmp: converting integer to string\n");
-#endif
-      typ = CONST_DATA;
-    }
+    typ = CONST_DATA;
   else if (typ1 == 0)           /* 1st argument is null */
     if (typ2 == CONST_INT || typ2 == CONST_DATA || typ2 == CONST_STR)
       typ = typ2;               /* We convert it to 0 or "" */
@@ -831,9 +810,6 @@ nasl_exec (lex_ctxt * lexic, tree_cell * st)
 
   if (st == NULL)
     {
-#if NASL_DEBUG > 0
-      nasl_perror (lexic, "nasl_exec: st == NULL\n");
-#endif
       return NULL;
     }
 
@@ -859,10 +835,6 @@ nasl_exec (lex_ctxt * lexic, tree_cell * st)
 
     case NODE_INSTR_L:         /* Block. [0] = first instr, [1] = tail */
       ret = nasl_exec (lexic, st->link[0]);
-#if NASL_DEBUG > 1
-      if (ret == NULL)
-        nasl_perror (lexic, "Instruction failed. Going on in block\n");
-#endif
       if (st->link[1] == NULL || lexic->break_flag || lexic->cont_flag)
         return ret;
       deref_cell (ret);
@@ -1283,13 +1255,6 @@ nasl_exec (lex_ctxt * lexic, tree_cell * st)
         flag = CONST_INT;
       else
         flag = NODE_EMPTY;
-#if NASL_DEBUG > 0
-      if ((flag == CONST_DATA || flag == CONST_STR)
-          && (tc1->type == CONST_INT || tc2->type == CONST_INT))
-        nasl_perror (lexic,
-                     "Horrible type conversion (int -> str) for operator + %s\n",
-                     get_line_nb (st));
-#endif
       switch (flag)
         {
         long sz;
@@ -1384,13 +1349,6 @@ nasl_exec (lex_ctxt * lexic, tree_cell * st)
         flag = CONST_INT;
       else
         flag = NODE_EMPTY;
-#if NASL_DEBUG > 0
-      if ((flag == CONST_DATA || flag == CONST_STR)
-          && (tc1->type == CONST_INT || tc2->type == CONST_INT))
-        nasl_perror (lexic,
-                     "Horrible type conversion (int -> str) for operator - %s\n",
-                     get_line_nb (st));
-#endif
       switch (flag)
         {
         case CONST_INT:
@@ -1525,40 +1483,20 @@ nasl_exec (lex_ctxt * lexic, tree_cell * st)
     case EXPR_R_SHIFT:         /* arithmetic right shift */
       x = cell2intW (lexic, st->link[0]);
       y = cell2intW (lexic, st->link[1]);
-#if NASL_DEBUG > 0
-      if (y < 0)
-        nasl_perror (lexic, "Warning: Negative count in right shift!\n");
-#endif
       z = x >> y;
 #ifndef __GNUC__
       if (x < 0 && z >= 0)      /* Fix it */
-        {
-#if NASL_DEBUG > 1
-          nasl_perror (lexic,
-                       "Warning: arithmetic right shift is buggy! Fixing...\n");
-#endif
-          z |= (~0) << (sizeof (x) * 8 - y);
-        }
+        z |= (~0) << (sizeof (x) * 8 - y);
 #endif
       return int2cell (z);
 
     case EXPR_R_USHIFT:
       x = cell2intW (lexic, st->link[0]);
       y = cell2intW (lexic, st->link[1]);
-#if NASL_DEBUG > 0
-      if (y < 0)
-        nasl_perror (lexic, "Warning: Negative count in right shift!\n");
-#endif
       z = (unsigned) x >> (unsigned) y;
 #ifndef __GNUC__
       if (x < 0 && z <= 0)      /* Fix it! */
-        {
-#if NASL_DEBUG > 1
-          nasl_perror (lexic,
-                       "Warning: Logical right shift is buggy! Fixing...\n");
-#endif
-          z &= ~((~0) << (sizeof (x) * 8 - y));
-        }
+        z &= ~((~0) << (sizeof (x) * 8 - y));
 #endif
       return int2cell (z);
 
@@ -1580,11 +1518,6 @@ nasl_exec (lex_ctxt * lexic, tree_cell * st)
         }
       else
         {
-#if NASL_DEBUG > 0
-          nasl_perror (lexic,
-                       "Horrible type conversion (%s -> str) for operator >< or >!< %s\n",
-                       nasl_type_name (tc1->type), get_line_nb (st));
-#endif
           p1 = s1 = cell2str (lexic, tc1);
           len1 = strlen (s1);
         }
@@ -1601,11 +1534,6 @@ nasl_exec (lex_ctxt * lexic, tree_cell * st)
         }
       else
         {
-#if NASL_DEBUG > 0
-          nasl_perror (lexic,
-                       "Horrible type conversion (%s -> str) for operator >< or >!< %s\n",
-                       nasl_type_name (tc2->type), get_line_nb (st));
-#endif
           p2 = s2 = cell2str (lexic, tc2);
           len2 = strlen (s2);
         }
@@ -1707,14 +1635,14 @@ exec_nasl_script (struct script_infos *script_infos, int mode)
   gchar *newdir;
   tree_cell tc;
   const char *str, *name = script_infos->name, *oid = script_infos->oid;
+  gchar *short_name = g_path_get_basename (name);
+
+  nasl_set_plugin_filename (short_name);
+  g_free (short_name);
 
   srand48 (getpid () + getppid () + (long) time (NULL));
 
   old_dir = g_get_current_dir ();
-
-#if NASL_DEBUG > 2
-  nasl_trace_fp = stderr;
-#endif
 
   newdir = g_path_get_dirname (name);
 
@@ -1755,9 +1683,6 @@ exec_nasl_script (struct script_infos *script_infos, int mode)
       return -1;
     }
 
-#if NASL_DEBUG > 4
-  nasl_dump_tree (ctx.tree);
-#endif
   lexic = init_empty_lex_ctxt ();
   lexic->script_infos = script_infos;
   lexic->oid = oid;
@@ -1813,27 +1738,6 @@ exec_nasl_script (struct script_infos *script_infos, int mode)
       if ((pf = get_func_ref_by_name (lexic, "on_exit")) != NULL)
         nasl_func_call (lexic, pf, NULL);
     }
-
-#if NASL_DEBUG > 2
-  {
-    struct rusage ru;
-
-    if (getrusage (RUSAGE_SELF, &ru) < 0)
-      perror ("getrusage");
-    else
-      {
-        nasl_perror (lexic,
-                     "rusage: utime=%d.%03d stime=%d.%03d minflt=%d majflt=%d nswap=%d\n",
-                     ru.ru_utime.tv_sec, ru.ru_utime.tv_usec / 1000,
-                     ru.ru_stime.tv_sec, ru.ru_stime.tv_usec / 1000,
-                     ru.ru_minflt, ru.ru_majflt, ru.ru_nswap);
-      }
-  }
-#endif
-
-#if NASL_DEBUG > 3
-  nasl_dump_tree (ctx.tree);
-#endif
 
   if (g_chdir (old_dir) != 0)
     {

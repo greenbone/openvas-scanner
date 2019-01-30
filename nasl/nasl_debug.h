@@ -19,9 +19,17 @@
 #ifndef NASL_DEBUG_H__
 #define NASL_DEBUG_H__
 
+#include "nasl_lex_ctxt.h"
+
 void nasl_perror (lex_ctxt *, char *, ...);
 void nasl_trace (lex_ctxt *, char *, ...);
 int nasl_trace_enabled (void);
+
+const char *
+nasl_get_plugin_filename (void);
+
+void
+nasl_set_plugin_filename (const char *);
 
 void
 nasl_set_filename (const char *);

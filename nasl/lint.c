@@ -27,10 +27,6 @@
 #include "nasl_debug.h"
 #include "nasl_init.h"
 
-#ifndef NASL_DEBUG
-#define NASL_DEBUG 0
-#endif
-
 #undef G_LOG_DOMAIN
 /**
  * @brief GLib logging domain.
@@ -43,8 +39,8 @@
 typedef struct st_func_info
 {
   gchar *func_name;   /**< Function name */
-  gchar *caller_func; /**< Name of the function frome where it is called */
-  gchar *caller_file; /**< Name of the file frome where it is called */
+  gchar *caller_func; /**< Name of the function from where it is called */
+  gchar *caller_file; /**< Name of the file from where it is called */
 } func_info;
 
 

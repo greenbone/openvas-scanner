@@ -18,7 +18,6 @@
  */
 
 #define SMART_TCP_RW
-/* #define DEBUG */
 
 #include <stdio.h>              /* for snprintf() */
 #include <string.h>             /* for strstr() */
@@ -65,17 +64,6 @@ register_service (struct script_infos *desc, int port, const char *proto)
 {
   char k[96];
 
-#ifdef DEBUG
-  int l;
-  if (port < 0 || proto == NULL ||
-      (l = strlen (proto)) == 0 || l > sizeof (k) - 10)
-    {
-      g_message
-        ("find_service->register_service: invalid value - port=%d, proto=%s",
-         port, proto == NULL ? "(null)" : proto);
-      return;
-    }
-#endif
   /* Old "magical" key set */
   snprintf (k, sizeof (k), "Services/%s", proto);
   /* Do NOT use plug_replace_key! */
@@ -1502,10 +1490,6 @@ plugin_do_run (struct script_infos *desc, GSList *h, int test_ssl)
   fd_set rfds, wfds;
   struct timeval tv;
   char k[32], *http_get;
-#ifdef DEBUG
-  struct host_info *hostinfo = desc->hostname;
-  struct in_addr *p_ip = hostinfo->ip;
-#endif
 
   host_fqdn = plug_get_host_fqdn (desc);
   http_get = g_strdup_printf ("GET / HTTP/1.0\r\nHost: %s\r\n\r\n",
@@ -1581,11 +1565,6 @@ plugin_do_run (struct script_infos *desc, GSList *h, int test_ssl)
               buffer[i] = '\0';
               if (banner_len > 0)
                 banner = (unsigned char *) buffer;
-#ifdef DEBUG
-              g_message
-                ("find_service(%s): found hex banner in KB for port %d len=%d",
-                 inet_ntoa (*p_ip), port, banner_len);
-#endif
             }
           g_free (bannerHex);
           if (banner_len == 0)
@@ -1593,32 +1572,15 @@ plugin_do_run (struct script_infos *desc, GSList *h, int test_ssl)
               snprintf (kb, sizeof (kb), "Banner/%d", port);
               banner = plug_get_key (desc, kb, &type, NULL, 0);
               if (banner)
-                {
-                  banner_len = strlen ((char *) banner);
-#ifdef DEBUG
-                  g_message
-                    ("find_service(%s): found banner in KB for port %d len=%d",
-                     inet_ntoa (*p_ip), port, banner_len);
-#endif
-                }
+                banner_len = strlen ((char *) banner);
             }
           if (banner_len > 0)
             {
-#ifdef DEBUG
-              g_message
-                ("find_service(%s): banner is known on port %d -"
-                 " will not open a new connection", inet_ntoa (*p_ip), port);
-#endif
               cnx = -1;
               trp = OPENVAS_ENCAPS_IP;
             }
           else
             {
-#ifdef DEBUG
-              g_message
-                ("find_service(%s): banner is unknown on port %d"
-                 " - connecting...", inet_ntoa (*p_ip), port);
-#endif
               if (banner != NULL)
                 {
                   g_free (banner);
@@ -1661,11 +1623,6 @@ plugin_do_run (struct script_infos *desc, GSList *h, int test_ssl)
                     plug_replace_key (desc, "/tmp/SlowFindService", ARG_INT,
                                       GSIZE_TO_POINTER (1));
                 }
-#ifdef DEBUG
-              g_message
-                ("find_service(%s): Port %d is open. \"Transport\" is %d",
-                 inet_ntoa (*p_ip), port, trp);
-#endif
               plug_set_port_transport (desc, port, trp);
               (void) stream_set_timeout (port, rw_timeout);
 
@@ -1705,11 +1662,6 @@ plugin_do_run (struct script_infos *desc, GSList *h, int test_ssl)
                         no_banner_grabbed = atoi ((char *) p);
                     }
                   g_free (p);
-#ifdef DEBUG
-                  g_message
-                    ("find_service(%s): no banner on port %d according to KB",
-                     inet_ntoa (*p_ip), port);
-#endif
 
                   if (!no_banner_grabbed)
                     {
@@ -1751,12 +1703,6 @@ plugin_do_run (struct script_infos *desc, GSList *h, int test_ssl)
                   else
                     {           /* No banner was found
                                  * by openvas_tcp_scanner */
-#ifdef DEBUG
-                      g_message
-                        ("find_service(%s): no banner was found by"
-                         " openvas_tcp_scanner on port %d - sending GET"
-                         " without waiting", inet_ntoa (*p_ip), port);
-#endif
                       len = 0;
                       timeout = 0;
                     }
@@ -1764,11 +1710,6 @@ plugin_do_run (struct script_infos *desc, GSList *h, int test_ssl)
                   if (len <= 0 && !timeout)
 #endif
                     {
-#ifdef DEBUG
-                      if (!no_banner_grabbed)
-                        g_message
-                          ("No banner on port %d - sending GET", port);
-#endif
                       write_stream_connection (cnx, http_get,
                                                strlen (http_get));
                       (void) gettimeofday (&tv1, NULL);
@@ -2290,11 +2231,6 @@ plugin_do_run (struct script_infos *desc, GSList *h, int test_ssl)
               /* len >= 0 */
               else
                 {
-#ifdef DEBUG
-                  g_message
-                    ("find_service(%s): could not read anything from port %d",
-                     inet_ntoa (*p_ip), port);
-#endif
                   unindentified_service = 1;
 #define TESTSTRING	"OpenVAS Wrap Test"
                   if (trp == OPENVAS_ENCAPS_IP && wrap_timeout > 0)
@@ -2317,11 +2253,6 @@ plugin_do_run (struct script_infos *desc, GSList *h, int test_ssl)
                   int nfd, fd, x, flag = 0;
                   char b;
 
-#ifdef DEBUG
-                  g_message
-                    ("find_service(%s): potentially wrapped service on port %d",
-                     inet_ntoa (*p_ip), port);
-#endif
                   nfd =
                     open_stream_connection (desc, port, OPENVAS_ENCAPS_IP,
                                             cnx_timeout);
@@ -2340,12 +2271,6 @@ plugin_do_run (struct script_infos *desc, GSList *h, int test_ssl)
                       x = select (fd + 1, &rfds, NULL, NULL, &tv);
                       (void) gettimeofday (&tv2, NULL);
                       diff_tv2 = DIFFTV1000 (tv2, tv1);
-#ifdef DEBUG
-                      g_message
-                        ("find_service(%s): select(port=%d)=%d after"
-                         " %d.%03d s on %d", inet_ntoa (*p_ip), port, x,
-                         diff_tv2, diff_tv2 / 1000, wrap_timeout);
-#endif
                       if (x < 0)
                         {
                           if (errno == EINTR)
@@ -2388,12 +2313,6 @@ plugin_do_run (struct script_infos *desc, GSList *h, int test_ssl)
                               mark_wrapped_svc (desc, port, diff_tv2 / 1000);
                               unindentified_service = 0;
                             }
-#ifdef DEBUG
-                          else
-                            g_message ("\
-The service on port %s:%d closes the connection in %d.%03d s when we send garbage,\n \
-and in %d.%03d when we just wait. It is  probably not wrapped", inet_ntoa (*p_ip), port, diff_tv / 1000, diff_tv % 1000, diff_tv2 / 1000, diff_tv2 % 1000);
-#endif
                         }
                     }
                 }
@@ -2415,12 +2334,6 @@ and in %d.%03d when we just wait. It is  probably not wrapped", inet_ntoa (*p_ip
                 }
               g_free (banner);
             }
-#ifdef DEBUG
-          else
-            g_message
-              ("find_service(%s): could not connect to port %d",
-               inet_ntoa (*p_ip), port);
-#endif
 
         }
       h = h->next;

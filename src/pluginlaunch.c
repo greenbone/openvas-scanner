@@ -57,8 +57,6 @@
  */
 #define MAX_PROCESSES 32
 
-#undef DEBUG_CONFLICTS
-
 /**
  * @brief Structure to represent a process in the sense of a running NVT.
  */

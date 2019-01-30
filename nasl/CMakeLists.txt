@@ -164,8 +164,7 @@ set (FILES arc4.c capture_packet.c charcnv.c exec.c genrand.c hmacmd5.c
      nasl_http.c nasl_init.c nasl_lex_ctxt.c nasl_misc_funcs.c nasl_scanner_glue.c
      nasl_packet_forgery.c nasl_packet_forgery_v6.c nasl_signature.c nasl_smb.c
      nasl_socket.c nasl_text_utils.c nasl_tree.c nasl_var.c nasl_wmi.c
-     nasl_isotime.c ntlmssp.c strutils.c smb_crypt.c smb_crypt2.c
-     smb_signing.c time.c)
+     nasl_isotime.c ntlmssp.c smb_crypt.c smb_crypt2.c smb_signing.c time.c)
 
 
 if (NOT OPENVAS_WMICLIENT_FOUND)

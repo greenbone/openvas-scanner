@@ -83,7 +83,8 @@ include_directories (${GLIB_INCLUDE_DIRS}
 
 # Library
 
-set (FILES bpf_share.c ftp_funcs.c vendorversion.c network.c plugutils.c pcap.c)
+set (FILES bpf_share.c ftp_funcs.c vendorversion.c network.c plugutils.c pcap.c
+     strutils.c)
 
 
 # On windows we are always PIC and stack-protector is replaces by DEP
