@@ -54,58 +54,6 @@ struct plugins_scheduler
   int stopped;
 };
 
-struct scheduler_plugin *
-plugin_next_unrun_dependency (GSList *deps)
-{
-  int flag = 0;
-
-  if (deps == NULL)
-    return NULL;
-
-  while (deps)
-    {
-      struct scheduler_plugin *plugin;
-
-      plugin = deps->data;
-      if (plugin == NULL)
-        continue;
-
-      switch (plugin->running_state)
-        {
-        case PLUGIN_STATUS_UNRUN:
-          {
-            GSList *deps_ptr;
-            struct scheduler_plugin *ret;
-
-            deps_ptr = plugin->deps;
-            if (deps_ptr == NULL)
-              return plugin;
-
-            ret = plugin_next_unrun_dependency (deps_ptr);
-            if (ret == NULL)
-              return plugin;
-
-            if (ret == PLUG_RUNNING)
-              flag = 1;
-            else
-              return ret;
-          }
-          break;
-        case PLUGIN_STATUS_RUNNING:
-          flag = 1;
-          break;
-        case PLUGIN_STATUS_DONE:
-          break;
-        }
-      deps = deps->next;
-    }
-
-  if (!flag)
-    return NULL;
-
-  return PLUG_RUNNING;
-}
-
 /*---------------------------------------------------------------------------*/
 
 static void
@@ -373,53 +321,45 @@ plugins_scheduler_count_active (plugins_scheduler_t sched)
 }
 
 static struct scheduler_plugin *
-get_next_plugin (struct scheduler_plugin *plugin, int *still_running)
+plugins_next_unrun (GSList *plugins)
 {
-  assert (plugin);
+  int still_running = 0;
 
-  switch (plugin->running_state)
+  while (plugins)
     {
-    case PLUGIN_STATUS_UNRUN:
-      {
-        GSList *deps_ptr = plugin->deps;
-        struct scheduler_plugin *p;
-
-        if (!deps_ptr)
+      struct scheduler_plugin *plugin = plugins->data;
+      switch (plugin->running_state)
+        {
+        case PLUGIN_STATUS_UNRUN:
           {
-            plugin->running_state = PLUGIN_STATUS_RUNNING;
-            return plugin;
-          }
+            struct scheduler_plugin *nplugin;
+            GSList *deps_list = plugin->deps;
 
-        p = plugin_next_unrun_dependency (deps_ptr);
-        switch (GPOINTER_TO_SIZE (p))
-          {
-          case GPOINTER_TO_SIZE (NULL):
-            plugin->running_state = PLUGIN_STATUS_RUNNING;
-            return plugin;
+            nplugin = plugins_next_unrun (deps_list);
 
+            if (nplugin == PLUG_RUNNING)
+              still_running = 1;
+            else if (nplugin)
+              {
+                nplugin->running_state = PLUGIN_STATUS_RUNNING;
+                return nplugin;
+              }
+            else
+              {
+                plugin->running_state = PLUGIN_STATUS_RUNNING;
+                return plugin;
+              }
             break;
-          case GPOINTER_TO_SIZE (PLUG_RUNNING):
-            {
-              /* One of the dependency is still running */
-              *still_running = 1;
-            }
-            break;
-          default:
-            {
-              /* Launch a dependency  - don't pay attention to the type */
-              p->running_state = PLUGIN_STATUS_RUNNING;
-              return p;
-            }
           }
-      }
-      break;
-    case PLUGIN_STATUS_RUNNING:
-      *still_running = 1;
-      break;
-    case PLUGIN_STATUS_DONE:
-      break;
+        case PLUGIN_STATUS_RUNNING:
+          still_running = 1;
+          break;
+        case PLUGIN_STATUS_DONE:
+          break;
+        }
+      plugins = plugins->next;
     }
-  return NULL;
+  return still_running ? PLUG_RUNNING : NULL;
 }
 
 static struct scheduler_plugin *
@@ -431,23 +371,20 @@ get_next_in_range (plugins_scheduler_t h, int start, int end)
 
   for (category = start; category <= end; category++)
     {
+      struct scheduler_plugin *plugin;
       element = h->list[category];
       if (category == ACT_SCANNER || category == ACT_KILL_HOST
           || category == ACT_FLOOD || category == ACT_DENIAL)
         pluginlaunch_disable_parallel_checks ();
-      while (element)
-        {
-          struct scheduler_plugin *plugin = get_next_plugin (element->data,
-                                                             &still_running);
-          if (plugin)
-            return plugin;
-          element = element->next;
-        }
+
+      plugin = plugins_next_unrun (element);
+      if (plugin == PLUG_RUNNING)
+        still_running = 1;
+      else if (plugin)
+        return plugin;
       pluginlaunch_enable_parallel_checks ();
     }
-  if (still_running)
-    return PLUG_RUNNING;
-  return NULL;
+  return still_running ? PLUG_RUNNING : NULL;
 }
 
 static void
