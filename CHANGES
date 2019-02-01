@@ -13,15 +13,14 @@ Main changes compared to openvas-scanner 6.0+beta2:
 * Function to get the currently running script filename has been added.
 * Debugging nasl mechanism has been improved, replacing preprocessor directives
   with g_debug facility.
-* An issue related to the log facility and greenbone-nvt-sync has been fixed
-  improved.
+* An issue related to the log facility and greenbone-nvt-sync has been fixed.
 * OpenVAS reload has been improved.
 * Code related to redis queries was improved.
-* An issued which caused failed nasl-lint in case of unneeded nested functions
+* An issue which caused nasl-lint to fail in case of unneeded nested functions
   has been addressed.
 * An issue which caused returning erroneous values by
   get_plugin_preference() has been addressed.
-* Issues reported by static code analyzer has been addressed.
+* Issues reported by static code analysis have been addressed.
 * Issues in building process have been addressed.
 * Several code improvements and clean-ups have been done.
 * Documentation has been improved.
