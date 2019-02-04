@@ -2416,6 +2416,7 @@ plugin_run_find_service (lex_ctxt * lexic)
       if (strcmp (test_ssl_s, "None") == 0)
         test_ssl = 0;
     }
+  g_free (test_ssl_s);
   if (key || cert)
     {
       if (!key)
