@@ -406,8 +406,6 @@ scheduler_phase_cleanup (plugins_scheduler_t sched, int start, int end)
           plugin->deps = NULL;
           element = element->next;
         }
-      g_slist_free (sched->list[category]);
-      sched->list[category] = NULL;
     }
   malloc_trim (0);
 }

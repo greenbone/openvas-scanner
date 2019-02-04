@@ -70,18 +70,16 @@ tree_cell *
 nasl_smb_versioninfo (lex_ctxt * lexic)
 {
   char *version = smb_versioninfo ();
-  tree_cell *retc = alloc_tree_cell ();
-
+  tree_cell *retc;
   (void) lexic;
-  if (!version)
-    {
-      return NULL;
-    }
 
+  if (!version)
+    return NULL;
+
+  retc = alloc_tree_cell ();
   retc->type = CONST_DATA;
   retc->x.str_val = strdup (version);
   retc->size = strlen (version);
-
   return retc;
 }
 

@@ -2385,7 +2385,7 @@ plugin_run_find_service (lex_ctxt * lexic)
 
   GSList *sons_args[MAX_SONS];
   int num_ports = 0;
-  char *num_sons_s = get_plugin_preference (oid, NUM_CHILDREN);
+  char *num_sons_s;
   int num_sons = 6;
   int port_per_son;
   int i;
@@ -2416,6 +2416,7 @@ plugin_run_find_service (lex_ctxt * lexic)
       if (strcmp (test_ssl_s, "None") == 0)
         test_ssl = 0;
     }
+  g_free (test_ssl_s);
   if (key || cert)
     {
       if (!key)
@@ -2433,8 +2434,10 @@ plugin_run_find_service (lex_ctxt * lexic)
 
   signal (SIGTERM, sigterm);
   signal (SIGCHLD, sigchld);
+  num_sons_s = get_plugin_preference (oid, NUM_CHILDREN);
   if (num_sons_s != NULL)
     num_sons = atoi (num_sons_s);
+  g_free (num_sons_s);
 
   if (num_sons <= 0)
     num_sons = 6;

@@ -129,7 +129,7 @@ nasl_pread (lex_ctxt * lexic)
               nasl_perror (lexic, "pread: '%s' not found in $PATH\n", cmd);
               return NULL;
             }
-
+          g_free (p);
         }
       p = strrchr (newdir, '/');
       if (p && p != newdir)

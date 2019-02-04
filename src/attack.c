@@ -254,7 +254,7 @@ static int
 launch_plugin (struct scan_globals *globals, struct scheduler_plugin *plugin,
                struct in6_addr *ip, GSList *vhosts, kb_t kb)
 {
-  int optimize = prefs_get_bool ("optimize_test"), pid;
+  int optimize = prefs_get_bool ("optimize_test"), pid, ret = 0;
   char *oid, *name, *error = NULL, ip_str[INET6_ADDRSTRLEN];
   gboolean network_scan = FALSE;
   nvti_t *nvti;
@@ -267,7 +267,7 @@ launch_plugin (struct scan_globals *globals, struct scheduler_plugin *plugin,
       if (nvti->category != ACT_END)
         {
           plugin->running_state = PLUGIN_STATUS_DONE;
-          return 0;
+          goto finish_launch_plugin;
         }
       else
         {
@@ -290,7 +290,7 @@ launch_plugin (struct scan_globals *globals, struct scheduler_plugin *plugin,
           g_free (name);
         }
       plugin->running_state = PLUGIN_STATUS_DONE;
-      return 0;
+      goto finish_launch_plugin;
     }
 
   if (network_scan)
@@ -307,7 +307,7 @@ launch_plugin (struct scan_globals *globals, struct scheduler_plugin *plugin,
                        "been lanched in the past (this is not an error)",
                        oid, ip_str);
           plugin->running_state = PLUGIN_STATUS_DONE;
-          return 0;
+          goto finish_launch_plugin;
         }
       else
         kb_item_set_int (kb, asc_id, 1);
@@ -329,7 +329,7 @@ launch_plugin (struct scan_globals *globals, struct scheduler_plugin *plugin,
         }
       if (prefs_get_bool ("advanced_log"))
         kb_item_add_str (kb, "log/notlaunched", oid, 0);
-      return 0;
+      goto finish_launch_plugin;
     }
 
   /* Stop the test if the host is 'dead' */
@@ -338,16 +338,17 @@ launch_plugin (struct scan_globals *globals, struct scheduler_plugin *plugin,
       g_message ("The remote host %s is dead", ip_str);
       pluginlaunch_stop (1);
       plugin->running_state = PLUGIN_STATUS_DONE;
-      return ERR_HOST_DEAD;
+      ret = ERR_HOST_DEAD;
+      goto finish_launch_plugin;
     }
 
   /* Start the plugin */
   pid = plugin_launch (globals, plugin, ip, vhosts, kb, nvti);
-  nvti_free (nvti);
   if (pid < 0)
     {
       plugin->running_state = PLUGIN_STATUS_UNRUN;
-      return ERR_CANT_FORK;
+      ret = ERR_CANT_FORK;
+      goto finish_launch_plugin;
     }
   if (prefs_get_bool ("advanced_log"))
     {
@@ -366,7 +367,9 @@ launch_plugin (struct scan_globals *globals, struct scheduler_plugin *plugin,
       g_free (name);
     }
 
-  return 0;
+finish_launch_plugin:
+  nvti_free (nvti);
+  return ret;
 }
 
 static int

@@ -510,9 +510,10 @@ script_get_preference_file_content (lex_ctxt * lexic)
     return NULL;
 
   content = get_plugin_preference_file_content (script_infos, value);
+  contentsize = get_plugin_preference_file_size (script_infos, value);
+  g_free (value);
   if (content == NULL)
     return FAKE_CELL;
-  contentsize = get_plugin_preference_file_size (script_infos, value);
   if (contentsize <= 0)
     {
       nasl_perror (lexic, "script_get_preference_file_content: could not get "
