@@ -157,18 +157,17 @@ nasl_plugin_launch (struct scan_globals *globals, struct in6_addr *ip,
                     GSList *vhosts, kb_t kb, const char *oid)
 {
   int module;
-  struct script_infos *infos;
+  struct script_infos infos;
 
-  infos = g_malloc0 (sizeof (struct script_infos));
-  infos->ip = ip;
-  infos->vhosts = vhosts;
-  infos->globals = globals;
-  infos->key = kb;
-  infos->oid = (char *) oid;
-  infos->name = nvticache_get_src (oid);
+  infos.ip = ip;
+  infos.vhosts = vhosts;
+  infos.globals = globals;
+  infos.key = kb;
+  infos.oid = (char *) oid;
+  infos.name = nvticache_get_src (oid);
 
-  module = create_process ((process_func_t) nasl_thread, infos);
-  g_free (infos);
+  module = create_process ((process_func_t) nasl_thread, &infos);
+  g_free (infos.name);
   return module;
 }
 
