@@ -75,7 +75,7 @@ get_hostnames (lex_ctxt * lexic)
       tmp = tmp->next;
     }
 
-  g_slist_free (hostnames);
+  g_slist_free_full (hostnames, g_free);
   return retc;
 }
 
