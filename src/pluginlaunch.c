@@ -64,10 +64,9 @@ struct running
 {
   struct scheduler_plugin *plugin;
   struct timeval start;
-  int pid;                   /**< Process ID. */
+  pid_t pid;                   /**< Process ID. */
   int timeout;               /**< Timeout after which to kill process
                               * (NVT preference). If -1, never kill. it*/
-  int alive;                 /**< 0 if dead. */
 };
 
 static struct running processes[MAX_PROCESSES];
@@ -109,11 +108,10 @@ update_running_processes (kb_t kb)
     {
       if (processes[i].pid > 0)
         {
-          if (!process_alive (processes[i].pid))
-            processes[i].alive = 0;
+          int is_alive = process_alive (processes[i].pid);
 
           // If process dead or timed out
-          if (processes[i].alive == 0
+          if (!is_alive
               || (processes[i].timeout > 0
                   && ((now.tv_sec - processes[i].start.tv_sec) >
                       processes[i].timeout)))
@@ -127,7 +125,7 @@ update_running_processes (kb_t kb)
                   snprintf (buf2, sizeof (buf2), "%lu", time (NULL));
                   kb_item_add_str (kb, buf, buf2, 0);
                 }
-              if (processes[i].alive)
+              if (is_alive)
                 {
                   char msg[2048];
 
@@ -144,7 +142,6 @@ update_running_processes (kb_t kb)
                   kb_item_push_str (kb, "internal/results", msg);
 
                   terminate_process (processes[i].pid);
-                  processes[i].alive = 0;
                 }
               else
                 {
@@ -380,7 +377,6 @@ plugin_launch (struct scan_globals *globals, struct scheduler_plugin *plugin,
   processes[p].pid =
     nasl_plugin_launch (globals, ip, vhosts, kb, plugin->oid);
 
-  processes[p].alive = 1;
   if (processes[p].pid > 0)
     num_running_processes++;
   else
