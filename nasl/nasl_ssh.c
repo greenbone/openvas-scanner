@@ -549,7 +549,7 @@ nasl_ssh_close_hook (int sock)
         break;
       }
     }
-  if (!session_id)
+  if (!session_id || tbl_slot >= DIM(session_table))
     return -1;
   do_nasl_ssh_disconnect (tbl_slot);
   return 0;
