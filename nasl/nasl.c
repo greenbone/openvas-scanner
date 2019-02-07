@@ -291,7 +291,6 @@ main (int argc, char **argv)
   if (vendor_version_string)
     vendor_version_set (vendor_version_string);
 
-#ifndef _CYGWIN_
   if (!(mode & (NASL_EXEC_PARSE_ONLY | NASL_LINT)) && geteuid ())
     {
       fprintf (stderr, "** WARNING : packet forgery will not work\n");
@@ -300,7 +299,6 @@ main (int argc, char **argv)
   signal (SIGINT, sighandler);
   signal (SIGTERM, sighandler);
   signal (SIGPIPE, SIG_IGN);
-#endif
 
   if (source_iface && gvm_source_iface_init (source_iface))
     {
