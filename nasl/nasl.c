@@ -409,6 +409,8 @@ main (int argc, char **argv)
             }
           i++;
         }
+      g_free (script_infos->globals);
+      g_free (script_infos);
       kb_delete (kb);
     }
 
