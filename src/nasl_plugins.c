@@ -159,6 +159,7 @@ nasl_plugin_launch (struct scan_globals *globals, struct in6_addr *ip,
   int module;
   struct script_infos infos;
 
+  memset (&infos, '\0', sizeof (infos));
   infos.ip = ip;
   infos.vhosts = vhosts;
   infos.globals = globals;
