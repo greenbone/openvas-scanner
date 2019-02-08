@@ -7,7 +7,7 @@ or get the entire source code repository and view log history:
 $ git clone https://github.com/greenbone/openvas-scanner.git
 $ cd openvas-scanner && git log
 
-openvas-scanner 6.0.0 (unreleased)
+openvas-scanner 6.0.0 (2019-02-08)
 
 Main changes compared to openvas-scanner 6.0+beta2:
 * Function to get the currently running script filename has been added.
