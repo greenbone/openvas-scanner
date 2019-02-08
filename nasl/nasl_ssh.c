@@ -821,17 +821,13 @@ nasl_ssh_set_login (lex_ctxt *lexic)
 tree_cell *
 nasl_ssh_userauth (lex_ctxt *lexic)
 {
-  int tbl_slot;
-  int session_id;
+  int rc, retc_val = -1, methods, verbose, tbl_slot, session_id;
   ssh_session session;
-  const char *password = NULL;
-  const char *privkeystr = NULL;
-  const char *privkeypass = NULL;
-  int rc;
+  char *password = NULL;
+  char *privkeystr = NULL;
+  char *privkeypass = NULL;
   kb_t kb;
-  int retc_val = -1;
-  int methods;
-  int verbose;
+  tree_cell *retc;
 
   session_id = get_int_var_by_num (lexic, 0, -1);
   if (!verify_session_id (session_id, "ssh_userauth", &tbl_slot, lexic))
@@ -845,9 +841,9 @@ nasl_ssh_userauth (lex_ctxt *lexic)
     return NULL;
 
   kb = plug_get_kb (lexic->script_infos);
-  password = get_str_var_by_name (lexic, "password");
-  privkeystr = get_str_var_by_name (lexic, "privatekey");
-  privkeypass = get_str_var_by_name (lexic, "passphrase");
+  password = g_strdup (get_str_var_by_name (lexic, "password"));
+  privkeystr = g_strdup (get_str_var_by_name (lexic, "privatekey"));
+  privkeypass = g_strdup (get_str_var_by_name (lexic, "passphrase"));
   if (!password && !privkeystr && !privkeypass)
     {
       password = kb_item_get_str (kb, "Secret/SSH/password");
@@ -978,14 +974,14 @@ nasl_ssh_userauth (lex_ctxt *lexic)
   if (verbose)
     g_message ("SSH authentication failed for session %d: %s",
                session_id, "No more authentication methods to try");
- leave:
-  {
-    tree_cell *retc;
 
-    retc = alloc_typed_cell (CONST_INT);
-    retc->x.i_val = retc_val;
-    return retc;
-  }
+leave:
+  g_free (password);
+  g_free (privkeystr);
+  g_free (privkeypass);
+  retc = alloc_typed_cell (CONST_INT);
+  retc->x.i_val = retc_val;
+  return retc;
 }
 
 
