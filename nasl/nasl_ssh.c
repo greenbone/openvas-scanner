@@ -738,7 +738,7 @@ nasl_ssh_set_login (lex_ctxt *lexic)
       kb_t kb;
       char *username;
 
-      username = get_str_var_by_name (lexic, "login");
+      username = g_strdup (get_str_var_by_name (lexic, "login"));
       if (!username)
         {
           kb = plug_get_kb (lexic->script_infos);
@@ -752,10 +752,12 @@ nasl_ssh_set_login (lex_ctxt *lexic)
                      nasl_get_function_name (),
                      nasl_get_plugin_filename (),
                      username, ssh_get_error (session));
+          g_free (username);
           return NULL; /* Ooops.  */
         }
       /* In any case mark the user has set.  */
       session_table[tbl_slot].user_set = 1;
+      g_free (username);
     }
   return FAKE_CELL;
 }
