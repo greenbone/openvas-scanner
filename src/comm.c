@@ -259,20 +259,17 @@ send_plugins_preferences (int soc, GSList *oids)
       if (nprefs || (timeout > 0))
         {
           GSList *tmp = nprefs;
-          char *name = nvticache_get_name (oid);
 
           if (timeout > 0)
-            send_printf (soc, "%s[%s]:%s <|> %d\n", name, "entry", "Timeout",
-                         timeout);
+            send_printf (soc, "%s:entry:Timeout <|> %d\n", oid, timeout);
           while (tmp)
             {
               nvtpref_t *pref = tmp->data;
-              send_printf (soc, "%s[%s]:%s <|> %s\n", name, nvtpref_type (pref),
+              send_printf (soc, "%s:%s:%s <|> %s\n", oid, nvtpref_type (pref),
                            g_strchomp (nvtpref_name (pref)),
                            nvtpref_default (pref));
               tmp = tmp->next;
             }
-          g_free (name);
         }
       g_slist_free_full (nprefs, (void (*) (void *)) nvtpref_free);
       oids = oids->next;
