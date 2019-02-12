@@ -436,15 +436,28 @@ script_add_preference (lex_ctxt * lexic)
   char *type = get_str_var_by_name (lexic, "type");
   char *value = get_str_var_by_name (lexic, "value");
   struct script_infos *script_infos = lexic->script_infos;
+  GSList *tmp;
 
-  if (name == NULL || type == NULL || value == NULL)
+  if (!script_infos->nvti)
+    return FAKE_CELL;
+  if (!name || !type || !value)
     {
       nasl_perror (lexic,
                    "Argument error in the call to script_add_preference()\n");
+      return FAKE_CELL;
     }
-  else
-    add_plugin_preference (script_infos, name, type, value);
+  tmp = script_infos->nvti->prefs;
+  while (tmp)
+    {
+      if (!strcmp (name, ((nvtpref_t *) tmp->data)->name))
+        {
+          nasl_perror (lexic, "Preference '%s' already exists\n", name);
+          return FAKE_CELL;
+        }
+      tmp = tmp->next;
+    }
 
+  add_plugin_preference (script_infos, name, type, value);
   return FAKE_CELL;
 }
 
