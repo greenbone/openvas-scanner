@@ -35,7 +35,7 @@
 #include <gvm/base/prefs.h>          /* for prefs_get_bool() */
 #include <gvm/util/nvticache.h>
 
-#include "../misc/network.h"    /* for internal_send */
+#include "../misc/network.h"
 #include "../misc/nvt_categories.h"  /* for ACT_SCANNER */
 
 #include "pluginload.h"
