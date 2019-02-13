@@ -40,7 +40,7 @@
 #include <gvm/base/prefs.h>           /* for prefs_get_bool */
 #include <gvm/util/nvticache.h>       /* for nvticache_add */
 
-#include "../misc/network.h"    /* for internal_send */
+#include "../misc/network.h"
 #include "../misc/plugutils.h"     /* for plug_set_launch */
 
 #include "../nasl/nasl.h"
