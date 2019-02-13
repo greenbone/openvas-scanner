@@ -391,6 +391,7 @@ free_var_chain (named_nasl_var * v)
       free_array (&v->u.v.v_arr);
       break;
     }
+  g_free (v->u.string_form);
   g_free (v);
 }
 
@@ -409,6 +410,7 @@ free_anon_var (anon_nasl_var * v)
       free_array (&v->v.v_arr);
       break;
     }
+  g_free (v->string_form);
   g_free (v);
 }
 
@@ -1072,32 +1074,33 @@ array2str (const nasl_array * a)
 }
 
 const char *
-var2str (const anon_nasl_var * v)
+var2str (anon_nasl_var *v)
 {
-  static char s1[16];
-
   if (v == NULL)
     return NULL;
 
+  if (v->string_form)
+    return v->string_form;
   switch (v->var_type)
     {
     case VAR2_INT:
-      snprintf (s1, sizeof (s1), "%ld", v->v.v_int);
-      return s1;                /* buggy if called twice in a row */
-
+      v->string_form = g_strdup_printf ("%ld", v->v.v_int);
+      break;
     case VAR2_STRING:
     case VAR2_DATA:
-      return v->v.v_str.s_val == NULL ? "" : (const char *) v->v.v_str.s_val;
-
+      v->string_form = g_memdup ((char *) v->v.v_str.s_val ?: "",
+                                 v->v.v_str.s_siz + 1);
+      break;
     case VAR2_UNDEF:
-      return NULL;
-
+      break;
     case VAR2_ARRAY:
-      return array2str (&v->v.v_arr);
-
+      v->string_form = array2str (&v->v.v_arr);
+      break;
     default:
-      return "";
+      v->string_form = g_strdup ("");
+      break;
     }
+  return v->string_form;
 }
 
 long int

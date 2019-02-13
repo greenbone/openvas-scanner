@@ -40,7 +40,7 @@
 #include <gvm/base/prefs.h>           /* for prefs_get_bool */
 #include <gvm/util/nvticache.h>       /* for nvticache_add */
 
-#include "../misc/network.h"    /* for internal_send */
+#include "../misc/network.h"
 #include "../misc/plugutils.h"     /* for plug_set_launch */
 
 #include "../nasl/nasl.h"
@@ -159,6 +159,7 @@ nasl_plugin_launch (struct scan_globals *globals, struct in6_addr *ip,
   int module;
   struct script_infos infos;
 
+  memset (&infos, '\0', sizeof (infos));
   infos.ip = ip;
   infos.vhosts = vhosts;
   infos.globals = globals;

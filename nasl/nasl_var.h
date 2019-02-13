@@ -57,6 +57,7 @@ typedef struct st_a_nasl_var
     long int v_int;             /* integer */
     nasl_array v_arr;           /* array */
   } v;
+  char *string_form;
 } anon_nasl_var;
 
 typedef struct st_n_nasl_var
@@ -81,7 +82,7 @@ typedef struct
 tree_cell *nasl_affect (tree_cell *, tree_cell *);
 
 void clear_unnamed_var (anon_nasl_var *);
-const char *var2str (const anon_nasl_var *);
+const char *var2str (anon_nasl_var *);
 
 anon_nasl_var *nasl_get_var_by_num (void *, nasl_array *, int, int);
 
