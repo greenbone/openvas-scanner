@@ -543,44 +543,29 @@ get_plugin_preference (const char *oid, const char *name)
 {
   GHashTable *prefs;
   GHashTableIter iter;
-  char *plug_name, *cname, *retval = NULL;
+  char *cname, *retval = NULL;
   void *itername, *itervalue;
+  char prefix[1024], suffix[1024];
 
   prefs = preferences_get ();
   if (!prefs || !nvticache_initialized () || !oid || !name)
     return NULL;
 
-  plug_name = nvticache_get_name (oid);
-  if (!plug_name)
-    return NULL;
   cname = g_strdup (name);
-
   g_strchomp (cname);
   g_hash_table_iter_init (&iter, prefs);
+  snprintf (prefix, sizeof(prefix), "%s:", oid);
+  snprintf (suffix, sizeof(suffix), ":%s", cname);
+  /* NVT preferences receiveed in OID:Type:Name form */
   while (g_hash_table_iter_next (&iter, &itername, &itervalue))
     {
-      char *a, *b;
-
-      a = strchr (itername, '[');
-      b = strchr (itername, ']');
-      if (a && b && b[1] == ':')
+      if (g_str_has_prefix (itername, prefix)
+          && g_str_has_suffix (itername, suffix))
         {
-          b += 2 * sizeof (char);
-          if (!strcmp (cname, b))
-            {
-              int old = a[0];
-              a[0] = 0;
-              if (!strcmp (itername, plug_name))
-                {
-                  a[0] = old;
-                  retval = g_strdup (itervalue);
-                  break;
-                }
-              a[0] = old;
-            }
+          retval = g_strdup (itervalue);
+          break;
         }
     }
-  g_free (plug_name);
   /* If no value set by the user, get the default one. */
   if (!retval)
     {
