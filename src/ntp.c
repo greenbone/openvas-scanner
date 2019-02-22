@@ -101,12 +101,6 @@ ntp_parse_input (struct scan_globals *globals, char *input)
           hosts_stop_all ();
           break;
 
-        case CREQ_NVT_INFO:
-          {
-            comm_send_nvt_info (soc);
-            break;
-          }
-
         case CREQ_UNKNOWN:
           break;
         }

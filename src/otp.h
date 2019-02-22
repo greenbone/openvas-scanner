@@ -32,7 +32,6 @@ typedef enum
   CREQ_LONG_ATTACK,
   CREQ_PREFERENCES,
   CREQ_STOP_WHOLE_TEST,
-  CREQ_NVT_INFO,
 } client_request_t;
 
 client_request_t otp_get_client_request (char *);
