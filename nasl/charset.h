@@ -28,9 +28,9 @@
 #ifndef __CHARSET_H__
 #define __CHARSET_H__
 
-#include <string.h>
-
 #include "smb.h"
+
+#include <string.h>
 
 /* this defines the charset types used in samba */
 typedef enum
