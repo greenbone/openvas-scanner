@@ -23,9 +23,8 @@
  * Eventually it needs to be analysed whether this makes sense
  * or can further be simplified. */
 
-#include <pcap.h>
-
 #include <gvm/base/logging.h>
+#include <pcap.h>
 
 #define NUM_CLIENTS 128
 
@@ -37,7 +36,6 @@
 
 /** Shared pcap_t's. */
 static pcap_t *pcaps[NUM_CLIENTS];
-
 
 void
 print_pcap_error (pcap_t *p, char *prefix)
@@ -68,7 +66,6 @@ bpf_open_live (char *iface, char *filter)
       return -1;
     }
 
-
   if (iface == NULL)
     iface = pcap_lookupdev (errbuf);
 
@@ -96,9 +93,8 @@ bpf_open_live (char *iface, char *filter)
   if (pcap_setnonblock (ret, 1, NULL) == -1)
     {
       print_pcap_error (ret, "pcap_setnonblock");
-      g_message
-        ("call to pcap_setnonblock failed, some plugins/scripts will"
-         " hang/freeze. Upgrade your version of libcap!");
+      g_message ("call to pcap_setnonblock failed, some plugins/scripts will"
+                 " hang/freeze. Upgrade your version of libcap!");
     }
 
   if (pcap_setfilter (ret, &filter_prog) < 0)
@@ -112,10 +108,8 @@ bpf_open_live (char *iface, char *filter)
   return i;
 }
 
-
-
 u_char *
-bpf_next_tv (int bpf, int *caplen, struct timeval * tv)
+bpf_next_tv (int bpf, int *caplen, struct timeval *tv)
 {
   u_char *p = NULL;
   struct pcap_pkthdr head;
@@ -138,30 +132,26 @@ bpf_next_tv (int bpf, int *caplen, struct timeval * tv)
         break;
       gettimeofday (&now, NULL);
     }
-  while (!
-         ((now.tv_sec > timeout.tv_sec)
-          || (now.tv_sec == timeout.tv_sec && now.tv_usec >= timeout.tv_usec)));
-
+  while (
+    !((now.tv_sec > timeout.tv_sec)
+      || (now.tv_sec == timeout.tv_sec && now.tv_usec >= timeout.tv_usec)));
 
   return p;
 }
 
-
 u_char *
 bpf_next (int bpf, int *caplen)
 {
-  struct timeval tv = { 0, 100000 };
+  struct timeval tv = {0, 100000};
 
   return bpf_next_tv (bpf, caplen, &tv);
 }
-
 
 int
 bpf_datalink (int bpf)
 {
   return pcap_datalink (pcaps[bpf]);
 }
-
 
 void
 bpf_close (int bpf)
