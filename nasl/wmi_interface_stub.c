@@ -26,9 +26,9 @@
  */
 
 /* for NULL */
-#include <string.h>
-
 #include "openvas_wmi_interface.h"
+
+#include <string.h>
 
 /**
  * @brief Return version info for WMI implementation.
@@ -373,8 +373,8 @@ wmi_reg_get_qword_val (WMI_HANDLE handle, unsigned int hive, const char *key,
  * @return, 0 on success, -1 on failure
  */
 int
-wmi_reg_set_dword_val(WMI_HANDLE handle, const char *key, const char *val_name,
-						uint32_t val)
+wmi_reg_set_dword_val (WMI_HANDLE handle, const char *key, const char *val_name,
+                       uint32_t val)
 {
   (void) handle;
   (void) key;
@@ -395,8 +395,8 @@ wmi_reg_set_dword_val(WMI_HANDLE handle, const char *key, const char *val_name,
  * @return, 0 on success, -1 on failure
  */
 int
-wmi_reg_set_qword_val(WMI_HANDLE handle, const char *key, const char *val_name,
-						uint64_t val)
+wmi_reg_set_qword_val (WMI_HANDLE handle, const char *key, const char *val_name,
+                       uint64_t val)
 {
   (void) handle;
   (void) key;
@@ -417,8 +417,8 @@ wmi_reg_set_qword_val(WMI_HANDLE handle, const char *key, const char *val_name,
  * @return, 0 on success, -1 on failure
  */
 int
-wmi_reg_set_ex_string_val(WMI_HANDLE handle, const char *key,
-				 const char *val_name, const char *val)
+wmi_reg_set_ex_string_val (WMI_HANDLE handle, const char *key,
+                           const char *val_name, const char *val)
 {
   (void) handle;
   (void) key;
@@ -439,8 +439,8 @@ wmi_reg_set_ex_string_val(WMI_HANDLE handle, const char *key,
  * @return, 0 on success, -1 on failure
  */
 int
-wmi_reg_set_string_val(WMI_HANDLE handle, const char *key,
-				 const char *val_name, const char *val)
+wmi_reg_set_string_val (WMI_HANDLE handle, const char *key,
+                        const char *val_name, const char *val)
 {
   (void) handle;
   (void) key;
@@ -459,7 +459,7 @@ wmi_reg_set_string_val(WMI_HANDLE handle, const char *key,
  * @return, 0 on success, -1 on failure
  */
 int
-wmi_reg_create_key(WMI_HANDLE handle, const char *key)
+wmi_reg_create_key (WMI_HANDLE handle, const char *key)
 {
   (void) handle;
   (void) key;
@@ -476,7 +476,7 @@ wmi_reg_create_key(WMI_HANDLE handle, const char *key)
  * @return, 0 on success, -1 on failure
  */
 int
-wmi_reg_delete_key(WMI_HANDLE handle, const char *key)
+wmi_reg_delete_key (WMI_HANDLE handle, const char *key)
 {
   (void) handle;
   (void) key;

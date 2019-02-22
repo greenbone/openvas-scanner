@@ -19,6 +19,8 @@
 #ifndef EXEC_H_INCLUDED
 #define EXEC_H_INCLUDED
 
+#include "nasl_lex_ctxt.h"
+
 tree_cell *
 nasl_exec (lex_ctxt *, tree_cell *);
 
