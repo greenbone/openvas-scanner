@@ -33,11 +33,11 @@
 typedef struct struct_lex_ctxt
 {
   struct struct_lex_ctxt *up_ctxt;
-  tree_cell *ret_val;           /* return value or exit flag */
-  unsigned fct_ctxt:1;          /* This is a function context */
-  unsigned break_flag:1;        /* Break from loop */
-  unsigned cont_flag:1;         /* Next iteration in loop */
-  unsigned always_signed:1;
+  tree_cell *ret_val;      /* return value or exit flag */
+  unsigned fct_ctxt : 1;   /* This is a function context */
+  unsigned break_flag : 1; /* Break from loop */
+  unsigned cont_flag : 1;  /* Next iteration in loop */
+  unsigned always_signed : 1;
   struct script_infos *script_infos;
   const char *oid;
   int recv_timeout;
@@ -48,42 +48,81 @@ typedef struct struct_lex_ctxt
   GHashTable *functions;
 } lex_ctxt;
 
-#define NASL_COMPAT_LEX_CTXT	"NASL compat lex context"
+#define NASL_COMPAT_LEX_CTXT "NASL compat lex context"
 
-lex_ctxt *init_empty_lex_ctxt (void);
-void free_lex_ctxt (lex_ctxt *);
+lex_ctxt *
+init_empty_lex_ctxt (void);
 
-void dump_ctxt (lex_ctxt *);
+void
+free_lex_ctxt (lex_ctxt *);
 
-nasl_func *get_func_ref_by_name (lex_ctxt *, const char *);
-tree_cell *decl_nasl_func (lex_ctxt *, tree_cell *, int);
-nasl_func *insert_nasl_func (lex_ctxt *, const char *, tree_cell *, int);
-tree_cell *nasl_func_call (lex_ctxt *, const nasl_func *, tree_cell *);
+void
+dump_ctxt (lex_ctxt *);
 
-tree_cell *get_variable_by_name (lex_ctxt *, const char *);
-tree_cell *get_array_elem (lex_ctxt *, const char * /*array name */ ,
-                           tree_cell *);
-anon_nasl_var *add_numbered_var_to_ctxt (lex_ctxt *, int, tree_cell *);
-named_nasl_var *add_named_var_to_ctxt (lex_ctxt *, const char *, tree_cell *);
-tree_cell *nasl_read_var_ref (lex_ctxt *, tree_cell *);
-tree_cell *nasl_incr_variable (lex_ctxt *, tree_cell *, int, int);
-tree_cell *nasl_return (lex_ctxt *, tree_cell *);
+nasl_func *
+get_func_ref_by_name (lex_ctxt *, const char *);
 
-tree_cell *decl_local_variables (lex_ctxt *, tree_cell *);
-tree_cell *decl_global_variables (lex_ctxt *, tree_cell *);
+tree_cell *
+decl_nasl_func (lex_ctxt *, tree_cell *, int);
 
-tree_cell *cell2atom (lex_ctxt *, tree_cell *);
+nasl_func *
+insert_nasl_func (lex_ctxt *, const char *, tree_cell *, int);
 
+tree_cell *
+nasl_func_call (lex_ctxt *, const nasl_func *, tree_cell *);
 
-long int get_int_var_by_num (lex_ctxt *, int, int);
-char *get_str_var_by_num (lex_ctxt *, int);
-long int get_int_var_by_name (lex_ctxt *, const char *, int);
-char *get_str_var_by_name (lex_ctxt *, const char *);
+tree_cell *
+get_variable_by_name (lex_ctxt *, const char *);
 
-int get_var_size_by_name (lex_ctxt *, const char *);
-int get_var_type_by_name (lex_ctxt *, const char *);
+tree_cell *
+get_array_elem (lex_ctxt *, const char * /*array name */, tree_cell *);
 
+anon_nasl_var *
+add_numbered_var_to_ctxt (lex_ctxt *, int, tree_cell *);
 
-int get_var_size_by_num (lex_ctxt *, int);
-int get_var_type_by_num (lex_ctxt *, int);
+named_nasl_var *
+add_named_var_to_ctxt (lex_ctxt *, const char *, tree_cell *);
+
+tree_cell *
+nasl_read_var_ref (lex_ctxt *, tree_cell *);
+
+tree_cell *
+nasl_incr_variable (lex_ctxt *, tree_cell *, int, int);
+
+tree_cell *
+nasl_return (lex_ctxt *, tree_cell *);
+
+tree_cell *
+decl_local_variables (lex_ctxt *, tree_cell *);
+
+tree_cell *
+decl_global_variables (lex_ctxt *, tree_cell *);
+
+tree_cell *
+cell2atom (lex_ctxt *, tree_cell *);
+
+long int
+get_int_var_by_num (lex_ctxt *, int, int);
+
+char *
+get_str_var_by_num (lex_ctxt *, int);
+
+long int
+get_int_var_by_name (lex_ctxt *, const char *, int);
+
+char *
+get_str_var_by_name (lex_ctxt *, const char *);
+
+int
+get_var_size_by_name (lex_ctxt *, const char *);
+
+int
+get_var_type_by_name (lex_ctxt *, const char *);
+
+int
+get_var_size_by_num (lex_ctxt *, int);
+
+int
+get_var_type_by_num (lex_ctxt *, int);
+
 #endif

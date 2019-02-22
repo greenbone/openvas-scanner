@@ -21,9 +21,14 @@
 
 #include "nasl_lex_ctxt.h"
 
-void nasl_perror (lex_ctxt *, char *, ...);
-void nasl_trace (lex_ctxt *, char *, ...);
-int nasl_trace_enabled (void);
+void
+nasl_perror (lex_ctxt *, char *, ...);
+
+void
+nasl_trace (lex_ctxt *, char *, ...);
+
+int
+nasl_trace_enabled (void);
 
 const char *
 nasl_get_plugin_filename (void);

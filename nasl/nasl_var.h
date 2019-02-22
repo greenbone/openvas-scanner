@@ -28,7 +28,7 @@ enum
   VAR2_ARRAY
 };
 
-#define VAR_NAME_HASH	17
+#define VAR_NAME_HASH 17
 
 typedef struct st_nasl_string
 {
@@ -40,9 +40,9 @@ struct st_a_nasl_var;
 
 typedef struct st_nasl_array
 {
-  int max_idx;                  /* max index - 1! */
-  struct st_a_nasl_var **num_elt;       /* max_idx elements */
-  struct st_n_nasl_var **hash_elt;      /* VAR_NAME_HASH elements */
+  int max_idx;                     /* max index - 1! */
+  struct st_a_nasl_var **num_elt;  /* max_idx elements */
+  struct st_n_nasl_var **hash_elt; /* VAR_NAME_HASH elements */
 } nasl_array;
 
 typedef struct st_a_nasl_var
@@ -53,9 +53,9 @@ typedef struct st_a_nasl_var
 #endif
   union
   {
-    nasl_string_t v_str;        /* character string / data */
-    long int v_int;             /* integer */
-    nasl_array v_arr;           /* array */
+    nasl_string_t v_str; /* character string / data */
+    long int v_int;      /* integer */
+    nasl_array v_arr;    /* array */
   } v;
   char *string_form;
 } anon_nasl_var;
@@ -66,40 +66,53 @@ typedef struct st_n_nasl_var
 #ifndef ALL_VARIABLES_NAMED
   char *var_name;
 #else
-#define var_name	u.av_name
+#define var_name u.av_name
 #endif
-  struct st_n_nasl_var *next_var;       /* next variable with same name hash */
+  struct st_n_nasl_var *next_var; /* next variable with same name hash */
 } named_nasl_var;
 
 typedef struct
 {
-  nasl_array *a;                /* array */
-  int i1;                       /* index of numbered elements */
-  int iH;                       /* index of hash */
-  named_nasl_var *v;            /* current variable in hash */
+  nasl_array *a;     /* array */
+  int i1;            /* index of numbered elements */
+  int iH;            /* index of hash */
+  named_nasl_var *v; /* current variable in hash */
 } nasl_iterator;
 
-tree_cell *nasl_affect (tree_cell *, tree_cell *);
+tree_cell *
+nasl_affect (tree_cell *, tree_cell *);
 
-void clear_unnamed_var (anon_nasl_var *);
-const char *var2str (anon_nasl_var *);
+void
+clear_unnamed_var (anon_nasl_var *);
+const char *
+var2str (anon_nasl_var *);
 
-anon_nasl_var *nasl_get_var_by_num (void *, nasl_array *, int, int);
+anon_nasl_var *
+nasl_get_var_by_num (void *, nasl_array *, int, int);
 
-nasl_iterator nasl_array_iterator (void *, tree_cell *);
-tree_cell *nasl_iterate_array (nasl_iterator *);
-int add_var_to_list (nasl_array *, int, const anon_nasl_var *);
-int add_var_to_array (nasl_array *, char *, const anon_nasl_var *);
-int array_max_index (nasl_array *);
-void free_array (nasl_array *);
+nasl_iterator
+nasl_array_iterator (void *, tree_cell *);
+tree_cell *
+nasl_iterate_array (nasl_iterator *);
+int
+add_var_to_list (nasl_array *, int, const anon_nasl_var *);
+int
+add_var_to_array (nasl_array *, char *, const anon_nasl_var *);
+int
+array_max_index (nasl_array *);
+void
+free_array (nasl_array *);
 
-tree_cell *copy_ref_array (const tree_cell *);
-int hash_str2 (const char *, int);
-tree_cell *var2cell (anon_nasl_var *);
+tree_cell *
+copy_ref_array (const tree_cell *);
+int
+hash_str2 (const char *, int);
+tree_cell *
+var2cell (anon_nasl_var *);
 
-tree_cell *make_array_from_elems (tree_cell *);
-char *array2str (const nasl_array *);
-
-
+tree_cell *
+make_array_from_elems (tree_cell *);
+char *
+array2str (const nasl_array *);
 
 #endif
