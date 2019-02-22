@@ -23,18 +23,17 @@
  * @brief Basically creates a new process for each tested host.
  */
 
-#include <errno.h>    /* for errno() */
-#include <sys/wait.h> /* for waitpid() */
-#include <string.h>   /* for strlen() */
-#include <unistd.h>   /* for close() */
-
-#include <glib.h>     /* for g_free() */
-
-#include "../misc/network.h"      /* for internal_recv */
-
-#include "utils.h" /* for data_left() */
 #include "hosts.h" /* for hosts_new() */
-#include "ntp.h"   /* for ntp_parse_input() */
+
+#include "../misc/network.h" /* for internal_recv */
+#include "ntp.h"             /* for ntp_parse_input() */
+#include "utils.h"           /* for data_left() */
+
+#include <errno.h>    /* for errno() */
+#include <glib.h>     /* for g_free() */
+#include <string.h>   /* for strlen() */
+#include <sys/wait.h> /* for waitpid() */
+#include <unistd.h>   /* for close() */
 
 #undef G_LOG_DOMAIN
 /**
@@ -56,7 +55,6 @@ struct host
 };
 /** @TODO struct hosts could be stripped down and put in a g_list, or,
  *        as a g_hash_table (name -> [soc,pid]), see hosts_get.*/
-
 
 static struct host *hosts = NULL;
 static int g_soc = -1;
@@ -96,8 +94,8 @@ forward_status (struct host *h, int out)
   status = kb_item_pop_str (h->host_kb, "internal/status");
   if (!status)
     return 0;
-  buf = g_strdup_printf ("SERVER <|> STATUS <|> %s <|> %s <|> SERVER\n",
-                         h->ip, status);
+  buf = g_strdup_printf ("SERVER <|> STATUS <|> %s <|> %s <|> SERVER\n", h->ip,
+                         status);
   g_free (status);
   if (send_to_client (out, buf) < 0)
     {
@@ -127,9 +125,9 @@ forward (struct host *h, int out)
       assert (values && values[0] && !values[5]);
       g_free (buf);
       /* OTP: Type <|> IP <|> Hostname <|> Port/Proto <|> Message <|> OID */
-      buf = g_strdup_printf
-             ("SERVER <|> %s <|> %s <|> %s <|> %s <|> %s <|> %s <|> SERVER\n",
-              values[0], h->ip, values[1], values[2], values[4], values[3]);
+      buf = g_strdup_printf (
+        "SERVER <|> %s <|> %s <|> %s <|> %s <|> %s <|> %s <|> SERVER\n",
+        values[0], h->ip, values[1], values[2], values[4], values[3]);
       if (send_to_client (out, buf) < 0)
         {
           g_free (buf);
@@ -178,7 +176,8 @@ hosts_num (void)
   struct host *h = hosts;
   int num;
 
-  for (num = 0; h != NULL; num++, h = h->next);
+  for (num = 0; h != NULL; num++, h = h->next)
+    ;
 
   return num;
 }
@@ -198,7 +197,6 @@ hosts_get (char *name)
     }
   return NULL;
 }
-
 
 int
 hosts_init (int soc, int max_hosts)
@@ -232,7 +230,6 @@ hosts_new (struct scan_globals *globals, char *name, kb_t kb)
   hosts = h;
   return 0;
 }
-
 
 int
 hosts_set_pid (char *name, pid_t pid)
@@ -327,7 +324,6 @@ hosts_read_client (struct scan_globals *globals)
   if (g_soc == -1)
     return 0;
 
-
   FD_ZERO (&rd);
   FD_SET (g_soc, &rd);
 
@@ -359,8 +355,8 @@ hosts_read_client (struct scan_globals *globals)
 }
 
 /**
- * @brief Returns -1 if client asked to stop all tests or connection was lost or error.
- *        0 otherwise.
+ * @brief Returns -1 if client asked to stop all tests or connection was lost or
+ * error. 0 otherwise.
  */
 int
 hosts_read (struct scan_globals *globals)

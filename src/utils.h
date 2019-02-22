@@ -26,6 +26,8 @@
 #ifndef _OPENVAS_UTILS_H
 #define _OPENVAS_UTILS_H
 
+#include <sys/types.h> /* for pid_t */
+
 int
 is_otp_scan (void);
 void
