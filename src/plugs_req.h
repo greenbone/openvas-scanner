@@ -26,10 +26,12 @@
 #ifndef PLUGINS_REQUIREMENTS_H__
 #define PLUGINS_REQUIREMENTS_H__
 
-#include <gvm/util/kb.h>             /* for struct kb_item */
+#include <gvm/util/kb.h> /* for struct kb_item */
 
-char *requirements_plugin (kb_t, nvti_t *);
+char *
+requirements_plugin (kb_t, nvti_t *);
 
-int mandatory_requirements_met (kb_t, nvti_t *);
+int
+mandatory_requirements_met (kb_t, nvti_t *);
 
 #endif
