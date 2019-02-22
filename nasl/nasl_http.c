@@ -16,28 +16,24 @@
  * Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA 02110-1301 USA.
  */
 
-#include <glib.h>
-
-#include <ctype.h>              /* for isspace */
-#include <string.h>             /* for strlen */
-
-#include <gvm/base/prefs.h>      /* for prefs_get */
-#include <gvm/util/kb.h>         /* for kb_item_get_str */
-
-#include "../misc/plugutils.h"  /* plug_get_host_fqdn */
-#include "../misc/vendorversion.h" /* for vendor_version_get */
-
-#include "nasl_tree.h"
-#include "nasl_global_ctxt.h"
-#include "nasl_func.h"
-#include "nasl_var.h"
-#include "nasl_lex_ctxt.h"
-#include "exec.h"
-
-#include "nasl_debug.h"
-#include "nasl_socket.h"
-
 #include "nasl_http.h"
+
+#include "../misc/plugutils.h"     /* plug_get_host_fqdn */
+#include "../misc/vendorversion.h" /* for vendor_version_get */
+#include "exec.h"
+#include "nasl_debug.h"
+#include "nasl_func.h"
+#include "nasl_global_ctxt.h"
+#include "nasl_lex_ctxt.h"
+#include "nasl_socket.h"
+#include "nasl_tree.h"
+#include "nasl_var.h"
+
+#include <ctype.h> /* for isspace */
+#include <glib.h>
+#include <gvm/base/prefs.h> /* for prefs_get */
+#include <gvm/util/kb.h>    /* for kb_item_get_str */
+#include <string.h>         /* for strlen */
 
 #undef G_LOG_DOMAIN
 /**
@@ -47,15 +43,14 @@
 
 /*-----------------[ http_* functions ]-------------------------------*/
 
-
 tree_cell *
-http_open_socket (lex_ctxt * lexic)
+http_open_socket (lex_ctxt *lexic)
 {
   return nasl_open_sock_tcp_bufsz (lexic, 65536);
 }
 
 tree_cell *
-http_close_socket (lex_ctxt * lexic)
+http_close_socket (lex_ctxt *lexic)
 {
   return nasl_close_socket (lexic);
 }
@@ -77,7 +72,7 @@ build_encode_URL (char *method, char *path, char *name, char *httpver)
 }
 
 static tree_cell *
-_http_req (lex_ctxt * lexic, char *keyword)
+_http_req (lex_ctxt *lexic, char *keyword)
 {
   tree_cell *retc;
   char *request, *auth, tmp[32];
@@ -87,7 +82,6 @@ _http_req (lex_ctxt * lexic, char *keyword)
   struct script_infos *script_infos = lexic->script_infos;
   int ver;
   kb_t kb;
-
 
   if (item == NULL || port < 0)
     {
@@ -122,7 +116,8 @@ _http_req (lex_ctxt * lexic, char *keyword)
       if (hostname == NULL)
         return NULL;
       /* global_settings.nasl */
-      ua = get_plugin_preference ("1.3.6.1.4.1.25623.1.0.12288", "HTTP User-Agent");
+      ua = get_plugin_preference ("1.3.6.1.4.1.25623.1.0.12288",
+                                  "HTTP User-Agent");
       if (!ua || strlen (g_strstrip (ua)) == 0)
         {
           g_free (ua);
@@ -157,7 +152,8 @@ Cache-Control: no-cache\r\n\
 User-Agent: %s\r\n\
 Accept: image/gif, image/x-xbitmap, image/jpeg, image/pjpeg, image/png, */*\r\n\
 Accept-Language: en\r\n\
-Accept-Charset: iso-8859-1,*,utf-8\r\n", url, hostheader, ua);
+Accept-Charset: iso-8859-1,*,utf-8\r\n",
+                                 url, hostheader, ua);
       g_free (hostname);
       g_free (hostheader);
       g_free (ua);
@@ -209,7 +205,7 @@ Accept-Charset: iso-8859-1,*,utf-8\r\n", url, hostheader, ua);
  *
  */
 tree_cell *
-http_get (lex_ctxt * lexic)
+http_get (lex_ctxt *lexic)
 {
   return _http_req (lexic, "GET");
 }
@@ -221,18 +217,17 @@ http_get (lex_ctxt * lexic)
  *
  */
 tree_cell *
-http_head (lex_ctxt * lexic)
+http_head (lex_ctxt *lexic)
 {
   return _http_req (lexic, "HEAD");
 }
-
 
 /*
  * Syntax :
  * http_post(port:<port>, item:<item>)
  */
 tree_cell *
-http_post (lex_ctxt * lexic)
+http_post (lex_ctxt *lexic)
 {
   return _http_req (lexic, "POST");
 }
@@ -241,7 +236,7 @@ http_post (lex_ctxt * lexic)
  * http_delete(port:<port>, item:<item>)
  */
 tree_cell *
-http_delete (lex_ctxt * lexic)
+http_delete (lex_ctxt *lexic)
 {
   return _http_req (lexic, "DELETE");
 }
@@ -250,17 +245,15 @@ http_delete (lex_ctxt * lexic)
  * http_put(port:<port>, item:<item>, data:<data>)
  */
 tree_cell *
-http_put (lex_ctxt * lexic)
+http_put (lex_ctxt *lexic)
 {
   return _http_req (lexic, "PUT");
 }
 
-
 /*-------------------[ cgibin() ]--------------------------------*/
 
-
 tree_cell *
-cgibin (lex_ctxt * lexic)
+cgibin (lex_ctxt *lexic)
 {
   const char *path = prefs_get ("cgi_path");
   tree_cell *retc;

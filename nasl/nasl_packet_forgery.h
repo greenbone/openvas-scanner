@@ -18,6 +18,8 @@
 
 #ifndef NASL_PACKET_FORGERY_H
 
+#include "nasl_lex_ctxt.h"
+
 tree_cell *
 forge_ip_packet (lex_ctxt *);
 tree_cell *

@@ -19,8 +19,11 @@
 #ifndef NASL_UNSAFE_H
 #define NASL_UNSAFE_H
 
+#include "nasl_lex_ctxt.h"
+
 tree_cell *
 nasl_pread (lex_ctxt *);
+
 tree_cell *
 nasl_find_in_path (lex_ctxt *);
 

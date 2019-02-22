@@ -27,6 +27,8 @@
 #ifndef NASL_SSH_H
 #define NASL_SSH_H
 
+#include "nasl_lex_ctxt.h"
+
 #include <libssh/libssh.h>
 
 tree_cell *

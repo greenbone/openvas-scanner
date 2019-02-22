@@ -27,6 +27,8 @@
 #ifndef NASL_CERT_H
 #define NASL_CERT_H
 
+#include "nasl_lex_ctxt.h"
+
 tree_cell *
 nasl_cert_open (lex_ctxt *lexic);
 

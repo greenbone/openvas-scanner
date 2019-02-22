@@ -27,6 +27,8 @@
 #ifndef NASL_ISOTIME_H
 #define NASL_ISOTIME_H
 
+#include "nasl_lex_ctxt.h"
+
 tree_cell *
 nasl_isotime_now (lex_ctxt *lexic);
 

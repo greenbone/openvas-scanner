@@ -32,43 +32,38 @@
  * Preeti Subramanian <spreeti@secpod.com>
  * Srinivas NL <nl.srinivas@gmail.com>
  *
- * Modified for ICMPv6, IPv6 packet forgery support for IGMP and UDP - 09/02/2010
- * Preeti Subramanian <spreeti@secpod.com>
+ * Modified for ICMPv6, IPv6 packet forgery support for IGMP and UDP -
+ * 09/02/2010 Preeti Subramanian <spreeti@secpod.com>
  */
 
-
-#include <arpa/inet.h>          /* for inet_aton */
-#include <ctype.h>              /* for isprint */
-#include <pcap.h>               /* for PCAP_ERRBUF_SIZE */
-#include <stdlib.h>             /* for rand */
-#include <string.h>             /* for bcopy */
-#include <sys/time.h>           /* for gettimeofday */
-#include <unistd.h>             /* for close */
-
+#include <arpa/inet.h> /* for inet_aton */
+#include <ctype.h>     /* for isprint */
+#include <pcap.h>      /* for PCAP_ERRBUF_SIZE */
+#include <stdlib.h>    /* for rand */
+#include <string.h>    /* for bcopy */
 #include <sys/param.h>
+#include <sys/time.h> /* for gettimeofday */
+#include <unistd.h>   /* for close */
 #ifdef __FreeBSD__
 #include <netinet/in.h>
 #endif
 
-#include <netinet/icmp6.h>      /* ICMPv6 */
-
-#include "../misc/bpf_share.h"          /* for bpf_open_live */
-#include "../misc/pcap_openvas.h"       /* for routethrough */
-#include "../misc/plugutils.h"          /* plug_get_host_ip */
-
-#include "nasl_raw.h"
-
-#include "nasl_tree.h"
-#include "nasl_global_ctxt.h"
-#include "nasl_func.h"
-#include "nasl_var.h"
-#include "nasl_lex_ctxt.h"
-#include "exec.h"
-#include "nasl_socket.h"
-
-#include "nasl_debug.h"
+#include "../misc/bpf_share.h"    /* for bpf_open_live */
+#include "../misc/pcap_openvas.h" /* for routethrough */
+#include "../misc/plugutils.h"    /* plug_get_host_ip */
 #include "capture_packet.h"
+#include "exec.h"
+#include "nasl_debug.h"
+#include "nasl_func.h"
+#include "nasl_global_ctxt.h"
+#include "nasl_lex_ctxt.h"
 #include "nasl_packet_forgery_v6.h"
+#include "nasl_raw.h"
+#include "nasl_socket.h"
+#include "nasl_tree.h"
+#include "nasl_var.h"
+
+#include <netinet/icmp6.h> /* ICMPv6 */
 
 /** @todo: It still needs to be taken care
  * BSD_BYTE_ORDERING gets here if defined (e.g. by config.h) */
@@ -76,8 +71,8 @@
 #define FIX(n) (n)
 #define UNFIX(n) (n)
 #else
-#define FIX(n) htons(n)
-#define UNFIX(n) ntohs(n)
+#define FIX(n) htons (n)
+#define UNFIX(n) ntohs (n)
 #endif
 
 /*--------------[ cksum ]-----------------------------------------*/
@@ -86,10 +81,8 @@
  * Checksum routine for Internet Protocol family headers (C Version)
  * From ping examples in W.Richard Stevens "UNIX NETWORK PROGRAMMING" book.
  */
-static int
-np_in_cksum (p, n)
-     u_short *p;
-     int n;
+static int np_in_cksum (p, n) u_short *p;
+int n;
 {
   register u_short answer = 0;
   register long sum = 0;
@@ -108,12 +101,11 @@ np_in_cksum (p, n)
       sum += odd_byte;
     }
 
-  sum = (sum >> 16) + (sum & 0xffff);   /* add hi 16 to low 16 */
-  sum += (sum >> 16);           /* add carry */
-  answer = (int) ~sum;          /* ones-complement, truncate */
+  sum = (sum >> 16) + (sum & 0xffff); /* add hi 16 to low 16 */
+  sum += (sum >> 16);                 /* add carry */
+  answer = (int) ~sum;                /* ones-complement, truncate */
   return (answer);
 }
-
 
 /*--------------[ IP ]--------------------------------------------*/
 /**
@@ -124,7 +116,7 @@ np_in_cksum (p, n)
  * @return tree_cell with the forged IP packet.
  */
 tree_cell *
-forge_ipv6_packet (lex_ctxt * lexic)
+forge_ipv6_packet (lex_ctxt *lexic)
 {
   tree_cell *retc;
   struct ip6_hdr *pkt;
@@ -158,7 +150,7 @@ forge_ipv6_packet (lex_ctxt * lexic)
 
   pkt->ip6_ctlun.ip6_un1.ip6_un1_flow = version | tc | fl;
 
-  pkt->ip6_plen = FIX (data_len);       /* No extension headers ? */
+  pkt->ip6_plen = FIX (data_len); /* No extension headers ? */
   pkt->ip6_nxt = get_int_var_by_name (lexic, "ip6_p", 0);
   pkt->ip6_hlim = get_int_var_by_name (lexic, "ip6_hlim", 64);
 
@@ -194,11 +186,10 @@ forge_ipv6_packet (lex_ctxt * lexic)
  * @return tree_cell with the IP header element.
  */
 tree_cell *
-get_ipv6_element (lex_ctxt * lexic)
+get_ipv6_element (lex_ctxt *lexic)
 {
   tree_cell *retc;
-  struct ip6_hdr *ip6 =
-    (struct ip6_hdr *) get_str_var_by_name (lexic, "ipv6");
+  struct ip6_hdr *ip6 = (struct ip6_hdr *) get_str_var_by_name (lexic, "ipv6");
   char *element = get_str_var_by_name (lexic, "element");
   char ret_ascii[INET6_ADDRSTRLEN];
   int ret_int = 0;
@@ -288,10 +279,9 @@ get_ipv6_element (lex_ctxt * lexic)
  * @return tree_cell with the forged IP packet.
  */
 tree_cell *
-set_ipv6_elements (lex_ctxt * lexic)
+set_ipv6_elements (lex_ctxt *lexic)
 {
-  struct ip6_hdr *o_pkt =
-    (struct ip6_hdr *) get_str_var_by_name (lexic, "ip6");
+  struct ip6_hdr *o_pkt = (struct ip6_hdr *) get_str_var_by_name (lexic, "ip6");
   int size = get_var_size_by_name (lexic, "ip6");
   tree_cell *retc = alloc_tree_cell ();
   struct ip6_hdr *pkt;
@@ -329,7 +319,7 @@ set_ipv6_elements (lex_ctxt * lexic)
  * @return Print and returns FAKE_CELL.
  */
 tree_cell *
-dump_ipv6_packet (lex_ctxt * lexic)
+dump_ipv6_packet (lex_ctxt *lexic)
 {
   int i;
   char addr[INET6_ADDRSTRLEN];
@@ -376,10 +366,9 @@ dump_ipv6_packet (lex_ctxt * lexic)
 }
 
 tree_cell *
-insert_ipv6_options (lex_ctxt * lexic)
+insert_ipv6_options (lex_ctxt *lexic)
 {
-  struct ip6_hdr *ip6 =
-    (struct ip6_hdr *) get_str_var_by_name (lexic, "ip6");
+  struct ip6_hdr *ip6 = (struct ip6_hdr *) get_str_var_by_name (lexic, "ip6");
   int code = get_int_var_by_name (lexic, "code", 0);
   int len = get_int_var_by_name (lexic, "length", 0);
   char *value = get_str_var_by_name (lexic, "value");
@@ -396,8 +385,8 @@ insert_ipv6_options (lex_ctxt * lexic)
 
   if (ip6 == NULL)
     {
-      nasl_perror (lexic,
-                   "Usage : insert_ipv6_options(ip6:<ip6>, code:<code>, length:<len>, value:<value>\n");
+      nasl_perror (lexic, "Usage : insert_ipv6_options(ip6:<ip6>, code:<code>, "
+                          "length:<len>, value:<value>\n");
       return NULL;
     }
 
@@ -412,7 +401,6 @@ insert_ipv6_options (lex_ctxt * lexic)
   uc_code = (u_char) code;
   uc_len = (u_char) len;
 
-
   p = (char *) new_packet;
   bcopy (&uc_code, p + pl, sizeof (uc_code));
   bcopy (&uc_len, p + pl + sizeof (uc_code), sizeof (uc_len));
@@ -425,12 +413,11 @@ insert_ipv6_options (lex_ctxt * lexic)
              p + pl + sizeof (uc_code) + sizeof (uc_len) + value_size + i, 1);
     }
 
-
   p = (char *) ip6;
   bcopy (p + pl,
-         new_packet + (sizeof (uc_code) + sizeof (uc_len) + value_size +
-                       pad_len) + pl, size - pl);
-
+         new_packet
+           + (sizeof (uc_code) + sizeof (uc_len) + value_size + pad_len) + pl,
+         size - pl);
 
   new_packet->ip6_plen =
     FIX (size + sizeof (uc_code) + sizeof (uc_len) + value_size + pad_len);
@@ -442,7 +429,6 @@ insert_ipv6_options (lex_ctxt * lexic)
 
   return retc;
 }
-
 
 /*--------------[   TCP   ]--------------------------------------------*/
 
@@ -458,7 +444,6 @@ struct v6pseudohdr
   struct tcphdr tcpheader;
 };
 
-
 /**
  * @brief Forge TCP packet.
  *
@@ -467,7 +452,7 @@ struct v6pseudohdr
  * @return tree_cell with the forged TCP packet containing IPv6 header.
  */
 tree_cell *
-forge_tcp_v6_packet (lex_ctxt * lexic)
+forge_tcp_v6_packet (lex_ctxt *lexic)
 {
   tree_cell *retc;
   char *data;
@@ -495,7 +480,8 @@ forge_tcp_v6_packet (lex_ctxt * lexic)
 
   retc = alloc_tree_cell ();
   retc->type = CONST_DATA;
-  tcp_packet = (struct ip6_hdr *) g_malloc0 (ipsz + sizeof (struct tcphdr) + len);
+  tcp_packet =
+    (struct ip6_hdr *) g_malloc0 (ipsz + sizeof (struct tcphdr) + len);
   retc->x.str_val = (char *) tcp_packet;
 
   bcopy (ip6, tcp_packet, ipsz);
@@ -535,9 +521,8 @@ forge_tcp_v6_packet (lex_ctxt * lexic)
       bcopy ((char *) &pseudoheader, tcpsumdata, sizeof (struct v6pseudohdr));
       if (data != NULL)
         bcopy ((char *) data, tcpsumdata + sizeof (struct v6pseudohdr), len);
-      tcp->th_sum =
-        np_in_cksum ((unsigned short *) tcpsumdata,
-                     38 + sizeof (struct tcphdr) + len);
+      tcp->th_sum = np_in_cksum ((unsigned short *) tcpsumdata,
+                                 38 + sizeof (struct tcphdr) + len);
       g_free (tcpsumdata);
     }
 
@@ -553,7 +538,7 @@ forge_tcp_v6_packet (lex_ctxt * lexic)
  * @return tree_cell with the forged IP packet.
  */
 tree_cell *
-get_tcp_v6_element (lex_ctxt * lexic)
+get_tcp_v6_element (lex_ctxt *lexic)
 {
   u_char *packet = (u_char *) get_str_var_by_name (lexic, "tcp");
   struct ip6_hdr *ip6;
@@ -576,7 +561,7 @@ get_tcp_v6_element (lex_ctxt * lexic)
 
   /* valid ipv6 header check */
   if (UNFIX (ip6->ip6_plen) > ipsz)
-    return NULL;                /* Invalid packet */
+    return NULL; /* Invalid packet */
 
   tcp = (struct tcphdr *) (packet + 40);
 
@@ -643,7 +628,7 @@ get_tcp_v6_element (lex_ctxt * lexic)
  * @return tree_cell with the forged TCP packet and IPv6.
  */
 tree_cell *
-set_tcp_v6_elements (lex_ctxt * lexic)
+set_tcp_v6_elements (lex_ctxt *lexic)
 {
   char *pkt = get_str_var_by_name (lexic, "tcp");
   struct ip6_hdr *ip6 = (struct ip6_hdr *) pkt;
@@ -679,11 +664,9 @@ set_tcp_v6_elements (lex_ctxt * lexic)
   tcp = (struct tcphdr *) (npkt + 40);
 
   tcp->th_sport =
-    htons (get_int_var_by_name
-           (lexic, "th_sport", ntohs (tcp->th_sport)));
+    htons (get_int_var_by_name (lexic, "th_sport", ntohs (tcp->th_sport)));
   tcp->th_dport =
-    htons (get_int_var_by_name
-           (lexic, "th_dport", ntohs (tcp->th_dport)));
+    htons (get_int_var_by_name (lexic, "th_dport", ntohs (tcp->th_dport)));
   tcp->th_seq =
     htonl (get_int_var_by_name (lexic, "th_seq", ntohl (tcp->th_seq)));
   tcp->th_ack =
@@ -721,9 +704,8 @@ set_tcp_v6_elements (lex_ctxt * lexic)
       if (data != NULL)
         bcopy ((char *) data, tcpsumdata + sizeof (struct v6pseudohdr),
                data_len);
-      tcp->th_sum =
-        np_in_cksum ((unsigned short *) tcpsumdata,
-                     38 + sizeof (struct tcphdr) + data_len);
+      tcp->th_sum = np_in_cksum ((unsigned short *) tcpsumdata,
+                                 38 + sizeof (struct tcphdr) + data_len);
       g_free (tcpsumdata);
     }
 
@@ -742,7 +724,7 @@ set_tcp_v6_elements (lex_ctxt * lexic)
  * @return Print and return FAKE_CELL.
  */
 tree_cell *
-dump_tcp_v6_packet (lex_ctxt * lexic)
+dump_tcp_v6_packet (lex_ctxt *lexic)
 {
   int i = 0;
   u_char *pkt;
@@ -816,8 +798,8 @@ dump_tcp_v6_packet (lex_ctxt * lexic)
       printf ("\tth_urp   : %d\n", tcp->th_urp);
       printf ("\tData     : ");
       c = (char *) ((char *) tcp + sizeof (struct tcphdr));
-      if (UNFIX (ip6->ip6_plen) >
-          (sizeof (struct ip6_hdr) + sizeof (struct tcphdr)))
+      if (UNFIX (ip6->ip6_plen)
+          > (sizeof (struct ip6_hdr) + sizeof (struct tcphdr)))
         for (j = 0;
              j < UNFIX (ip6->ip6_plen) - sizeof (struct tcphdr) && j < limit;
              j++)
@@ -842,7 +824,6 @@ struct v6pseudo_udp_hdr
   struct udphdr udpheader;
 };
 
-
 /*
  * @brief Forge v6 packet for UDP.
  *
@@ -851,11 +832,10 @@ struct v6pseudo_udp_hdr
  * @return tree_cell with the forged UDP packet containing IPv6 header.
  */
 tree_cell *
-forge_udp_v6_packet (lex_ctxt * lexic)
+forge_udp_v6_packet (lex_ctxt *lexic)
 {
   tree_cell *retc;
-  struct ip6_hdr *ip6 =
-    (struct ip6_hdr *) get_str_var_by_name (lexic, "ip6");
+  struct ip6_hdr *ip6 = (struct ip6_hdr *) get_str_var_by_name (lexic, "ip6");
 
   if (ip6 != NULL)
     {
@@ -874,9 +854,8 @@ forge_udp_v6_packet (lex_ctxt * lexic)
 
       udp->uh_sport = htons (get_int_var_by_name (lexic, "uh_sport", 0));
       udp->uh_dport = htons (get_int_var_by_name (lexic, "uh_dport", 0));
-      udp->uh_ulen =
-        htons (get_int_var_by_name
-               (lexic, "uh_ulen", data_len + sizeof (struct udphdr)));
+      udp->uh_ulen = htons (get_int_var_by_name (
+        lexic, "uh_ulen", data_len + sizeof (struct udphdr)));
 
       if (data_len != 0 && data != NULL)
         bcopy (data, (pkt + 40 + sizeof (struct udphdr)), data_len);
@@ -884,8 +863,8 @@ forge_udp_v6_packet (lex_ctxt * lexic)
       if (!udp->uh_sum)
         {
           struct v6pseudo_udp_hdr pseudohdr;
-          char *udpsumdata = g_malloc0 (sizeof (struct v6pseudo_udp_hdr)
-                                        + data_len + 1);
+          char *udpsumdata =
+            g_malloc0 (sizeof (struct v6pseudo_udp_hdr) + data_len + 1);
 
           bzero (&pseudohdr, sizeof (struct v6pseudo_udp_hdr));
           memcpy (&pseudohdr.s6addr, &ip6->ip6_src, sizeof (struct in6_addr));
@@ -900,12 +879,10 @@ forge_udp_v6_packet (lex_ctxt * lexic)
             {
               bcopy ((char *) data, udpsumdata + sizeof (pseudohdr), data_len);
             }
-          udp->uh_sum =
-            np_in_cksum ((unsigned short *) udpsumdata,
-                         38 + sizeof (struct udphdr) + data_len);
+          udp->uh_sum = np_in_cksum ((unsigned short *) udpsumdata,
+                                     38 + sizeof (struct udphdr) + data_len);
           g_free (udpsumdata);
         }
-
 
       if (UNFIX (udp_packet->ip6_ctlun.ip6_un1.ip6_un1_plen) <= 40)
         {
@@ -930,7 +907,6 @@ forge_udp_v6_packet (lex_ctxt * lexic)
   return NULL;
 }
 
-
 /*
  * @brief Get UDP Header element.
  *
@@ -939,7 +915,7 @@ forge_udp_v6_packet (lex_ctxt * lexic)
  * @return tree_cell with the forged UDP packet.
  */
 tree_cell *
-get_udp_v6_element (lex_ctxt * lexic)
+get_udp_v6_element (lex_ctxt *lexic)
 {
   tree_cell *retc;
   char *udp;
@@ -998,7 +974,6 @@ get_udp_v6_element (lex_ctxt * lexic)
   return retc;
 }
 
-
 /*
  * @brief Set UDP Header element.
  *
@@ -1007,10 +982,9 @@ get_udp_v6_element (lex_ctxt * lexic)
  * @return tree_cell with the forged UDP packet and IPv6.
  */
 tree_cell *
-set_udp_v6_elements (lex_ctxt * lexic)
+set_udp_v6_elements (lex_ctxt *lexic)
 {
-  struct ip6_hdr *ip6 =
-    (struct ip6_hdr *) get_str_var_by_name (lexic, "udp");
+  struct ip6_hdr *ip6 = (struct ip6_hdr *) get_str_var_by_name (lexic, "udp");
   unsigned int sz = get_var_size_by_name (lexic, "udp");
   char *data = get_str_var_by_name (lexic, "data");
   int data_len = get_var_size_by_name (lexic, "data");
@@ -1046,16 +1020,13 @@ set_udp_v6_elements (lex_ctxt * lexic)
       udp = (struct udphdr *) (pkt + 40);
 
       udp->uh_sport =
-        htons (get_int_var_by_name
-               (lexic, "uh_sport", ntohs (udp->uh_sport)));
+        htons (get_int_var_by_name (lexic, "uh_sport", ntohs (udp->uh_sport)));
       udp->uh_dport =
-        htons (get_int_var_by_name
-               (lexic, "uh_dport", ntohs (udp->uh_dport)));
+        htons (get_int_var_by_name (lexic, "uh_dport", ntohs (udp->uh_dport)));
 
       old_len = ntohs (udp->uh_ulen);
       udp->uh_ulen =
-        htons (get_int_var_by_name
-               (lexic, "uh_ulen", ntohs (udp->uh_ulen)));
+        htons (get_int_var_by_name (lexic, "uh_ulen", ntohs (udp->uh_ulen)));
       udp->uh_sum = get_int_var_by_name (lexic, "uh_sum", 0);
 
       if (data != NULL)
@@ -1095,10 +1066,9 @@ set_udp_v6_elements (lex_ctxt * lexic)
             {
               bcopy ((char *) ptr, udpsumdata + sizeof (pseudohdr), data_len);
             }
-          udp->uh_sum =
-            np_in_cksum ((unsigned short *) udpsumdata,
-                         38 + sizeof (struct udphdr)
-                         + ((len % 2) ? len + 1 : len));
+          udp->uh_sum = np_in_cksum ((unsigned short *) udpsumdata,
+                                     38 + sizeof (struct udphdr)
+                                       + ((len % 2) ? len + 1 : len));
           g_free (udpsumdata);
         }
       retc = alloc_tree_cell ();
@@ -1113,7 +1083,6 @@ set_udp_v6_elements (lex_ctxt * lexic)
   return NULL;
 }
 
-
 /*
  * @brief Print UDP/IPv6 packet.
  *
@@ -1122,7 +1091,7 @@ set_udp_v6_elements (lex_ctxt * lexic)
  * @return Print and return FAKE_CELL.
  */
 tree_cell *
-dump_udp_v6_packet (lex_ctxt * lexic)
+dump_udp_v6_packet (lex_ctxt *lexic)
 {
   int i = 0;
   u_char *pkt;
@@ -1140,8 +1109,8 @@ dump_udp_v6_packet (lex_ctxt * lexic)
       printf ("\tdata     : ");
       c = (char *) udp;
       if (udp->uh_ulen > sizeof (struct udphdr))
-        for (j = sizeof (struct udphdr);
-             j < ntohs (udp->uh_ulen) && j < limit; j++)
+        for (j = sizeof (struct udphdr); j < ntohs (udp->uh_ulen) && j < limit;
+             j++)
           printf ("%c", isprint (c[j]) ? c[j] : '.');
 
       printf ("\n");
@@ -1149,11 +1118,10 @@ dump_udp_v6_packet (lex_ctxt * lexic)
   return NULL;
 }
 
-
 /*--------------[  ICMP  ]--------------------------------------------*/
 /*
  * @brief ICMPv6 header.
-*/
+ */
 
 struct v6pseudo_icmp_hdr
 {
@@ -1164,7 +1132,6 @@ struct v6pseudo_icmp_hdr
   struct icmp6_hdr icmpheader;
 };
 
-
 /*
  * @brief Forge ICMPv6 packet.
  *
@@ -1173,7 +1140,7 @@ struct v6pseudo_icmp_hdr
  * @return tree_cell with the forged ICMPv6 packet containing IPv6 header.
  */
 tree_cell *
-forge_icmp_v6_packet (lex_ctxt * lexic)
+forge_icmp_v6_packet (lex_ctxt *lexic)
 {
   tree_cell *retc = NULL;
   struct ip6_hdr *ip6;
@@ -1241,7 +1208,7 @@ forge_icmp_v6_packet (lex_ctxt * lexic)
             rs->icmp6_code = icmp->icmp6_code;
             rs->icmp6_cksum = icmp->icmp6_cksum;
             size = ip6_sz + sizeof (struct nd_router_solicit) + len;
-            sz = 4;             /*type-1 byte, code-1byte, cksum-2bytes */
+            sz = 4; /*type-1 byte, code-1byte, cksum-2bytes */
           }
           break;
         case ND_ROUTER_ADVERT:
@@ -1250,7 +1217,10 @@ forge_icmp_v6_packet (lex_ctxt * lexic)
               bcopy (data, &(p[8]), len);
             routeradvert = g_malloc0 (sizeof (struct nd_router_advert));
             /*do we need lifetime?? Not taking lifetime?? */
-            pkt = g_realloc (pkt, ip6_sz + sizeof (struct nd_router_advert) - 8 + len);   /*not taking lifetime(8 bytes) into consideration */
+            pkt = g_realloc (
+              pkt,
+              ip6_sz + sizeof (struct nd_router_advert) - 8
+                + len); /*not taking lifetime(8 bytes) into consideration */
             ip6_icmp = (struct ip6_hdr *) pkt;
             p = (char *) (pkt + ip6_sz);
             struct icmp6_hdr *ra = &routeradvert->nd_ra_hdr;
@@ -1265,15 +1235,17 @@ forge_icmp_v6_packet (lex_ctxt * lexic)
             routeradvert->nd_ra_curhoplimit = ip6_icmp->ip6_hlim;
             routeradvert->nd_ra_flags_reserved =
               get_int_var_by_name (lexic, "flags", 0);
-            size = ip6_sz + sizeof (struct nd_router_advert) - 8 + len; /*not taking lifetime(8 bytes) into consideration */
-            sz = 5;             /*type-1 byte, code-1byte, cksum-2bytes, current hoplimit-1byte */
+            size = ip6_sz + sizeof (struct nd_router_advert) - 8
+                   + len; /*not taking lifetime(8 bytes) into consideration */
+            sz = 5;       /*type-1 byte, code-1byte, cksum-2bytes, current
+                             hoplimit-1byte */
           }
           break;
         case ND_NEIGHBOR_SOLICIT:
           {
             neighborsolicit = g_malloc0 (sizeof (struct nd_neighbor_solicit));
-            pkt =
-              g_realloc (pkt, ip6_sz + sizeof (struct nd_neighbor_solicit) + len);
+            pkt = g_realloc (pkt, ip6_sz + sizeof (struct nd_neighbor_solicit)
+                                    + len);
             ip6_icmp = (struct ip6_hdr *) pkt;
             p = (char *) (pkt + ip6_sz);
             struct icmp6_hdr *ns = &neighborsolicit->nd_ns_hdr;
@@ -1283,16 +1255,17 @@ forge_icmp_v6_packet (lex_ctxt * lexic)
             ns->icmp6_type = icmp->icmp6_type;
             ns->icmp6_code = icmp->icmp6_code;
             ns->icmp6_cksum = icmp->icmp6_cksum;
-            memcpy (&neighborsolicit->nd_ns_target, &ip6_icmp->ip6_dst, sizeof (struct in6_addr));      /*dst ip should be link local */
+            memcpy (&neighborsolicit->nd_ns_target, &ip6_icmp->ip6_dst,
+                    sizeof (struct in6_addr)); /*dst ip should be link local */
             size = ip6_sz + sizeof (struct nd_neighbor_solicit) + len;
-            sz = 4;             /*type-1 byte, code-1byte, cksum-2bytes */
+            sz = 4; /*type-1 byte, code-1byte, cksum-2bytes */
           }
           break;
         case ND_NEIGHBOR_ADVERT:
           {
             neighboradvert = g_malloc0 (sizeof (struct nd_neighbor_advert));
-            pkt =
-              g_realloc (pkt, ip6_sz + sizeof (struct nd_neighbor_advert) + len);
+            pkt = g_realloc (pkt,
+                             ip6_sz + sizeof (struct nd_neighbor_advert) + len);
             ip6_icmp = (struct ip6_hdr *) pkt;
             p = (char *) (pkt + 40);
             struct icmp6_hdr *na = &neighboradvert->nd_na_hdr;
@@ -1303,23 +1276,26 @@ forge_icmp_v6_packet (lex_ctxt * lexic)
             neighboradvert->nd_na_flags_reserved =
               get_int_var_by_name (lexic, "flags", 0);
             if (neighboradvert->nd_na_flags_reserved & 0x00000020)
-              memcpy (&neighboradvert->nd_na_target, &ip6_icmp->ip6_src, sizeof (struct in6_addr));     /*dst ip should be link local */
+              memcpy (
+                &neighboradvert->nd_na_target, &ip6_icmp->ip6_src,
+                sizeof (struct in6_addr)); /*dst ip should be link local */
             else
               {
                 if (get_var_size_by_name (lexic, "target") != 0)
-                  inet_pton (AF_INET6,
-                             get_str_var_by_name (lexic, "target"),
+                  inet_pton (AF_INET6, get_str_var_by_name (lexic, "target"),
                              &neighboradvert->nd_na_target);
                 else
                   {
                     nasl_perror (lexic,
-                                 "forge_icmp_v6_packet: missing 'target' parameter required for constructing response to a Neighbor Solicitation\n");
+                                 "forge_icmp_v6_packet: missing 'target' "
+                                 "parameter required for constructing response "
+                                 "to a Neighbor Solicitation\n");
                     g_free (ip6_icmp);
                     return NULL;
                   }
               }
             size = ip6_sz + sizeof (struct nd_neighbor_advert) + len;
-            sz = 4;             /*type-1 byte, code-1byte, cksum-2bytes */
+            sz = 4; /*type-1 byte, code-1byte, cksum-2bytes */
           }
           break;
         default:
@@ -1338,14 +1314,14 @@ forge_icmp_v6_packet (lex_ctxt * lexic)
       if (get_int_var_by_name (lexic, "icmp_cksum", -1) == -1)
         {
           struct v6pseudo_icmp_hdr pseudohdr;
-          char *icmpsumdata = g_malloc0 (sizeof (struct v6pseudo_icmp_hdr) +
-                                         len + 1);
+          char *icmpsumdata =
+            g_malloc0 (sizeof (struct v6pseudo_icmp_hdr) + len + 1);
 
           bzero (&pseudohdr, sizeof (struct v6pseudo_icmp_hdr));
           memcpy (&pseudohdr.s6addr, &ip6->ip6_src, sizeof (struct in6_addr));
           memcpy (&pseudohdr.d6addr, &ip6->ip6_dst, sizeof (struct in6_addr));
 
-          pseudohdr.proto = 0x3a;       /*ICMPv6 */
+          pseudohdr.proto = 0x3a; /*ICMPv6 */
           pseudohdr.len = htons (size - ip6_sz);
           bcopy ((char *) icmp, (char *) &pseudohdr.icmpheader, sz);
           bcopy ((char *) &pseudohdr, icmpsumdata, sizeof (pseudohdr));
@@ -1396,7 +1372,6 @@ forge_icmp_v6_packet (lex_ctxt * lexic)
   return retc;
 }
 
-
 /*
  * @brief Obtain ICMPv6 header element.
  *
@@ -1405,11 +1380,10 @@ forge_icmp_v6_packet (lex_ctxt * lexic)
  * @return tree_cell with the ICMPv6 header element.
  */
 tree_cell *
-get_icmp_v6_element (lex_ctxt * lexic)
+get_icmp_v6_element (lex_ctxt *lexic)
 {
   struct icmp6_hdr *icmp;
   char *p;
-
 
   if ((p = get_str_var_by_name (lexic, "icmp")) != NULL)
     {
@@ -1458,7 +1432,6 @@ get_icmp_v6_element (lex_ctxt * lexic)
   return NULL;
 }
 
-
 /*--------------[  IGMP  ]--------------------------------------------*/
 /*
  * @brief Forge v6 IGMP packet.
@@ -1472,7 +1445,6 @@ struct igmp6_hdr
   struct in6_addr group;
 };
 
-
 /*
  * @brief Forge IGMPv6 packet.
  *
@@ -1481,10 +1453,9 @@ struct igmp6_hdr
  * @return tree_cell with the forged IGMPv6 packet containing IPv6 header.
  */
 tree_cell *
-forge_igmp_v6_packet (lex_ctxt * lexic)
+forge_igmp_v6_packet (lex_ctxt *lexic)
 {
-  struct ip6_hdr *ip6 =
-    (struct ip6_hdr *) get_str_var_by_name (lexic, "ip6");
+  struct ip6_hdr *ip6 = (struct ip6_hdr *) get_str_var_by_name (lexic, "ip6");
 
   if (ip6 != NULL)
     {
@@ -1499,7 +1470,6 @@ forge_igmp_v6_packet (lex_ctxt * lexic)
       int ipsz = get_var_size_by_name (lexic, "ip6");
 
       bcopy (ip6, ip6_igmp, ipsz);
-
 
       if (UNFIX (ip6_igmp->ip6_ctlun.ip6_un1.ip6_un1_plen) <= 40)
         {
@@ -1538,7 +1508,6 @@ forge_igmp_v6_packet (lex_ctxt * lexic)
   return NULL;
 }
 
-
 /**
  * @brief Performs TCP Connect to test if host is alive.
  *
@@ -1548,7 +1517,7 @@ forge_igmp_v6_packet (lex_ctxt * lexic)
  */
 /*---------------------------------------------------------------------------*/
 tree_cell *
-nasl_tcp_v6_ping (lex_ctxt * lexic)
+nasl_tcp_v6_ping (lex_ctxt *lexic)
 {
   int port;
   u_char packet[sizeof (struct ip6_hdr) + sizeof (struct tcphdr)];
@@ -1568,13 +1537,12 @@ nasl_tcp_v6_ping (lex_ctxt * lexic)
   struct timeval tv;
   int len;
 
-#define rnd_tcp_port() (rand() % 65535 + 1024)
-  int sports[] =
-    { 0, 0, 0, 0, 0, 1023, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 53, 0, 0,
-20, 0, 25, 0, 0, 0 };
-  int ports[] =
-    { 139, 135, 445, 80, 22, 515, 23, 21, 6000, 1025, 25, 111, 1028, 9100, 1029,
-79, 497, 548, 5000, 1917, 53, 161, 9001, 65535, 443, 113, 993, 8080, 0 };
+#define rnd_tcp_port() (rand () % 65535 + 1024)
+  int sports[] = {0, 0, 0, 0, 0, 1023, 0, 0, 0,  0, 0,  0, 0, 0, 0,
+                  0, 0, 0, 0, 0, 53,   0, 0, 20, 0, 25, 0, 0, 0};
+  int ports[] = {139, 135, 445,  80,    22,   515, 23,  21,   6000, 1025,
+                 25,  111, 1028, 9100,  1029, 79,  497, 548,  5000, 1917,
+                 53,  161, 9001, 65535, 443,  113, 993, 8080, 0};
   char addr[INET6_ADDRSTRLEN];
 
   if (!destination || (IN6_IS_ADDR_V4MAPPED (destination) == 1))
@@ -1590,8 +1558,8 @@ nasl_tcp_v6_ping (lex_ctxt * lexic)
   if (soc < 0)
     return NULL;
 
-  if (setsockopt (soc, IPPROTO_IPV6, IP_HDRINCL, (char *) &opt, sizeof (opt)) <
-      0)
+  if (setsockopt (soc, IPPROTO_IPV6, IP_HDRINCL, (char *) &opt, sizeof (opt))
+      < 0)
     perror ("setsockopt");
 
   port = get_int_var_by_name (lexic, "port", -1);
@@ -1625,8 +1593,7 @@ nasl_tcp_v6_ping (lex_ctxt * lexic)
           ip->ip6_ctlun.ip6_un1.ip6_un1_plen = FIX (sizeof (struct tcphdr));
 
           /* TCP */
-          tcp->th_sport =
-            port ? htons (rnd_tcp_port ()) : htons (sports[i]);
+          tcp->th_sport = port ? htons (rnd_tcp_port ()) : htons (sports[i]);
           tcp->th_flags = TH_SYN;
           tcp->th_dport = port ? htons (port) : htons (ports[i]);
           tcp->th_seq = rand ();
@@ -1651,17 +1618,17 @@ nasl_tcp_v6_ping (lex_ctxt * lexic)
             pseudoheader.length = htons (sizeof (struct tcphdr));
             bcopy ((char *) tcp, (char *) &pseudoheader.tcpheader,
                    sizeof (struct tcphdr));
-            tcp->th_sum =
-              np_in_cksum ((unsigned short *) &pseudoheader,
-                           38 + sizeof (struct tcphdr));
+            tcp->th_sum = np_in_cksum ((unsigned short *) &pseudoheader,
+                                       38 + sizeof (struct tcphdr));
           }
 
           bzero (&soca, sizeof (soca));
           soca.sin6_family = AF_INET6;
           soca.sin6_addr = ip->ip6_dst;
           if (sendto (soc, (const void *) ip,
-                  sizeof (struct tcphdr) + sizeof (struct ip6_hdr), 0,
-                  (struct sockaddr *) &soca, sizeof (struct sockaddr_in6)) < 0)
+                      sizeof (struct tcphdr) + sizeof (struct ip6_hdr), 0,
+                      (struct sockaddr *) &soca, sizeof (struct sockaddr_in6))
+              < 0)
             {
               close (soc);
               return NULL;
@@ -1690,7 +1657,7 @@ nasl_tcp_v6_ping (lex_ctxt * lexic)
  * @return tree_cell with the response to the sent packet.
  */
 tree_cell *
-nasl_send_v6packet (lex_ctxt * lexic)
+nasl_send_v6packet (lex_ctxt *lexic)
 {
   tree_cell *retc = FAKE_CELL;
   int bpf = -1;
@@ -1716,8 +1683,9 @@ nasl_send_v6packet (lex_ctxt * lexic)
   if (soc < 0)
     return NULL;
 
-  if (setsockopt
-      (soc, IPPROTO_IPV6, IP_HDRINCL, (char *) &offset, sizeof (offset)) < 0)
+  if (setsockopt (soc, IPPROTO_IPV6, IP_HDRINCL, (char *) &offset,
+                  sizeof (offset))
+      < 0)
     perror ("setsockopt");
   while ((ip = get_str_var_by_num (lexic, vi)) != NULL)
     {
@@ -1740,15 +1708,17 @@ nasl_send_v6packet (lex_ctxt * lexic)
       if (dstip != NULL && !IN6_ARE_ADDR_EQUAL (&sockaddr.sin6_addr, dstip))
         {
           char txt1[64], txt2[64];
-          strncpy (txt1,
-                   inet_ntop (AF_INET6, &sockaddr.sin6_addr, name,
-                              INET6_ADDRSTRLEN), sizeof (txt1));
+          strncpy (
+            txt1,
+            inet_ntop (AF_INET6, &sockaddr.sin6_addr, name, INET6_ADDRSTRLEN),
+            sizeof (txt1));
           txt1[sizeof (txt1) - 1] = '\0';
           strncpy (txt2, inet_ntop (AF_INET6, dstip, name, INET6_ADDRSTRLEN),
                    sizeof (txt2));
           txt2[sizeof (txt2) - 1] = '\0';
           nasl_perror (lexic,
-                       "send_packet: malicious or buggy script is trying to send packet to %s instead of designated target %s\n",
+                       "send_packet: malicious or buggy script is trying to "
+                       "send packet to %s instead of designated target %s\n",
                        txt1, txt2);
           if (bpf >= 0)
             bpf_close (bpf);
@@ -1761,18 +1731,17 @@ nasl_send_v6packet (lex_ctxt * lexic)
       else
         len = sz;
 
-      b =
-        sendto (soc, (u_char *) ip, len, 0, (struct sockaddr *) &sockaddr,
-                sizeof (struct sockaddr_in6));
+      b = sendto (soc, (u_char *) ip, len, 0, (struct sockaddr *) &sockaddr,
+                  sizeof (struct sockaddr_in6));
       /* if(b < 0) perror("sendto "); */
       if (b >= 0 && use_pcap != 0 && bpf >= 0)
         {
           if (v6_islocalhost (&sip->ip6_dst))
             {
               answer = (u_char *) capture_next_v6_packet (bpf, to, &answer_sz);
-              while (answer != NULL
-                     &&
-                     (!memcmp (answer, (char *) ip, sizeof (struct ip6_hdr))))
+              while (
+                answer != NULL
+                && (!memcmp (answer, (char *) ip, sizeof (struct ip6_hdr))))
                 {
                   g_free (answer);
                   answer =

@@ -19,6 +19,8 @@
 #ifndef NASL_HTTP_H
 #define NASL_HTTP_H
 
+#include "nasl_lex_ctxt.h"
+
 tree_cell *
 http_open_socket (lex_ctxt *);
 

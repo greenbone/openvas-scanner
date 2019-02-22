@@ -24,14 +24,13 @@
 
 #ifdef HAVE_NETSNMP
 
-#include <net-snmp/net-snmp-config.h>
-#include <net-snmp/net-snmp-includes.h>
-
-#include <gvm/base/logging.h>
 #include "../misc/plugutils.h"
+#include "nasl_lex_ctxt.h"
 
 #include <assert.h>
-#include "nasl_lex_ctxt.h"
+#include <gvm/base/logging.h>
+#include <net-snmp/net-snmp-config.h>
+#include <net-snmp/net-snmp-includes.h>
 
 /*
  * @brief SNMP Get query value.
@@ -74,8 +73,8 @@ snmp_get (struct snmp_session *session, const char *oid_str, char **result)
       struct variable_list *vars = response->variables;
       size_t res_len = 0, buf_len = 0;
 
-      netsnmp_ds_set_boolean(NETSNMP_DS_LIBRARY_ID,
-                             NETSNMP_DS_LIB_QUICK_PRINT, 1);
+      netsnmp_ds_set_boolean (NETSNMP_DS_LIBRARY_ID, NETSNMP_DS_LIB_QUICK_PRINT,
+                              1);
       sprint_realloc_value ((u_char **) result, &buf_len, &res_len, 1,
                             vars->name, vars->name_length, vars);
       snmp_free_pdu (response);
@@ -123,7 +122,7 @@ snmpv3_get (const char *peername, const char *username, const char *authpass,
   session.securityNameLen = strlen (session.securityName);
 
   if (privpass)
-      session.securityLevel = SNMP_SEC_LEVEL_AUTHPRIV;
+    session.securityLevel = SNMP_SEC_LEVEL_AUTHPRIV;
   else
     session.securityLevel = SNMP_SEC_LEVEL_AUTHNOPRIV;
   if (authproto == 0)
@@ -137,14 +136,14 @@ snmpv3_get (const char *peername, const char *username, const char *authpass,
       session.securityAuthProtoLen = USM_AUTH_PROTO_SHA_LEN;
     }
   session.securityAuthKeyLen = USM_AUTH_KU_LEN;
-  if (generate_Ku(session.securityAuthProto, session.securityAuthProtoLen,
-                  (u_char *) authpass, strlen (authpass),
-                  session.securityAuthKey, &session.securityAuthKeyLen)
+  if (generate_Ku (session.securityAuthProto, session.securityAuthProtoLen,
+                   (u_char *) authpass, strlen (authpass),
+                   session.securityAuthKey, &session.securityAuthKeyLen)
       != SNMPERR_SUCCESS)
-   {
-     *result = g_strdup ("generate_Ku: Error");
-     return -1;
-   }
+    {
+      *result = g_strdup ("generate_Ku: Error");
+      return -1;
+    }
   if (privpass)
     {
       if (privproto)
@@ -158,10 +157,9 @@ snmpv3_get (const char *peername, const char *username, const char *authpass,
           session.securityPrivProtoLen = USM_PRIV_PROTO_DES_LEN;
         }
       session.securityPrivKeyLen = USM_PRIV_KU_LEN;
-      if (generate_Ku
-           (session.securityAuthProto, session.securityAuthProtoLen,
-            (unsigned char *) privpass, strlen(privpass),
-            session.securityPrivKey, &session.securityPrivKeyLen)
+      if (generate_Ku (session.securityAuthProto, session.securityAuthProtoLen,
+                       (unsigned char *) privpass, strlen (privpass),
+                       session.securityPrivKey, &session.securityPrivKeyLen)
           != SNMPERR_SUCCESS)
         {
           *result = g_strdup ("generate_Ku: Error");
@@ -185,7 +183,7 @@ snmpv3_get (const char *peername, const char *username, const char *authpass,
  */
 static int
 snmpv1v2c_get (const char *peername, const char *community, const char *oid_str,
-               int version,  char **result)
+               int version, char **result)
 {
   struct snmp_session session;
 
