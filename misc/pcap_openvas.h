@@ -27,18 +27,24 @@
 #define OPENVAS_PCAP_H
 
 #include <pcap.h>
-
 #include <sys/param.h>
 #ifdef __FreeBSD__
 #include <netinet/in.h>
 #endif
 
-int v6_is_local_ip (struct in6_addr *);
-int islocalhost (struct in_addr *);
-int v6_islocalhost (struct in6_addr *);
-int get_datalink_size (int);
-char *routethrough (struct in_addr *, struct in_addr *);
-char *v6_routethrough (struct in6_addr *, struct in6_addr *);
-int v6_getsourceip (struct in6_addr *, struct in6_addr *);
+int
+v6_is_local_ip (struct in6_addr *);
+int
+islocalhost (struct in_addr *);
+int
+v6_islocalhost (struct in6_addr *);
+int
+get_datalink_size (int);
+char *
+routethrough (struct in_addr *, struct in_addr *);
+char *
+v6_routethrough (struct in6_addr *, struct in6_addr *);
+int
+v6_getsourceip (struct in6_addr *, struct in6_addr *);
 
 #endif
