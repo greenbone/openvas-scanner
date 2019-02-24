@@ -26,14 +26,15 @@
 /*
    Modified by Preeti Subramanian <spreeti@secpod.com> for OpenVAS:
       simple packet signature function argument struct smb_basic_signing_context
-      *data to uint8_t* mac_key and henceforth used mac_key in the implementation
+      *data to uint8_t* mac_key and henceforth used mac_key in the
+   implementation
 */
 
 #ifndef _SMB_SIGNING_H
 #define _SMB_SIGNING_H
 
-#include "md5.h"
 #include "byteorder.h"
+#include "md5.h"
 #include "smb.h"
 
 #ifndef uchar
@@ -44,6 +45,9 @@
 #define uint8 uint8_t
 #endif
 
-void simple_packet_signature_ntlmssp(uint8_t *mac_key, const uchar *buf, uint32 seq_number, unsigned char *calc_md5_mac);
+void
+simple_packet_signature_ntlmssp (uint8_t *mac_key, const uchar *buf,
+                                 uint32 seq_number,
+                                 unsigned char *calc_md5_mac);
 
 #endif
