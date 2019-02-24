@@ -26,19 +26,29 @@
 #ifndef _OPENVAS_UTILS_H
 #define _OPENVAS_UTILS_H
 
-int is_otp_scan (void);
-void set_scan_type (int);
+int
+is_otp_scan (void);
+void
+set_scan_type (int);
 
-int get_max_hosts_number (void);
-int get_max_checks_number (void);
+int
+get_max_hosts_number (void);
+
+int
+get_max_checks_number (void);
 
 int process_alive (pid_t);
-int data_left (int);
 
-void wait_for_children1 (void);
+int
+data_left (int);
 
-int is_scanner_only_pref (const char *);
+void
+wait_for_children1 (void);
 
-void send_printf (int, char *, ...) __attribute__ ((format (printf, 2, 3)));
+int
+is_scanner_only_pref (const char *);
+
+void
+send_printf (int, char *, ...) __attribute__ ((format (printf, 2, 3)));
 
 #endif
