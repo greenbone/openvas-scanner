@@ -18,15 +18,12 @@
  * Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA 02110-1301 USA.
  */
 
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-
-/* this works for libc6 systems, unclear
- * whether it will not work on other systems */
 #include "network.h"
 
 #include <netinet/in.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
 
 int
 ftp_log_in (int soc, char *username, char *passwd)
