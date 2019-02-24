@@ -16,9 +16,6 @@
  * Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA 02110-1301 USA.
  */
 
-#include <stdlib.h> /* for getenv.  */
-#include <string.h> /* for memset */
-
 #include "../misc/network.h"        /* for OPENVAS_ENCAPS_* */
 #include "../misc/nvt_categories.h" /* for ACT_INIT */
 #include "exec.h"
@@ -38,6 +35,9 @@
 #include "nasl_misc_funcs.h"
 #include "nasl_packet_forgery.h"
 #include "nasl_packet_forgery_v6.h"
+
+#include <stdlib.h> /* for getenv.  */
+#include <string.h> /* for memset */
 /* to e.g. favour BSD, but also for IPPROTO_TCP and TH_FIN */
 #include "nasl_raw.h"
 #include "nasl_scanner_glue.h"
