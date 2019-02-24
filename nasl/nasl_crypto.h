@@ -23,6 +23,8 @@
 #ifndef NASL_CRYPTO_H
 #define NASL_CRYPTO_H
 
+#include "nasl_lex_ctxt.h"
+
 #define MD4_DIGEST_LENGTH 16
 
 tree_cell *

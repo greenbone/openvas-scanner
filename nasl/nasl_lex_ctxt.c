@@ -16,15 +16,17 @@
  * Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA 02110-1301 USA.
  */
 
-#include <glib.h>  /* for g_free() */
-
-#include "nasl_func.h"
-#include "nasl_tree.h"
-#include "nasl_var.h"
-#include "nasl_global_ctxt.h"
 #include "nasl_lex_ctxt.h"
 
-void init_nasl_library (lex_ctxt *);
+#include "nasl_func.h"
+#include "nasl_global_ctxt.h"
+#include "nasl_tree.h"
+#include "nasl_var.h"
+
+#include <glib.h> /* for g_free() */
+
+void
+init_nasl_library (lex_ctxt *);
 
 lex_ctxt *
 init_empty_lex_ctxt ()
@@ -50,7 +52,7 @@ init_empty_lex_ctxt ()
 }
 
 void
-free_lex_ctxt (lex_ctxt * c)
+free_lex_ctxt (lex_ctxt *c)
 {
   deref_cell (c->ret_val);
   free_array (&c->ctx_vars);
@@ -59,7 +61,7 @@ free_lex_ctxt (lex_ctxt * c)
 }
 
 void
-dump_ctxt (lex_ctxt * c)
+dump_ctxt (lex_ctxt *c)
 {
   int i;
   named_nasl_var *v;

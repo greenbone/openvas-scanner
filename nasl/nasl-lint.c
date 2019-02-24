@@ -22,37 +22,36 @@
  * @brief Source of the NASL linter of OpenVAS.
  */
 
-#include <stdio.h> /* for printf */
-#include <stdlib.h> /* for exit */
-
 #include "nasl.h" /* exec_nasl_script */
 
-#include <glib.h> /* gchar, g_malloc, g_error, g_print, ... */
-
 #include <gio/gio.h> /* g_file_... */
+#include <glib.h>    /* gchar, g_malloc, g_error, g_print, ... */
+#include <stdio.h>   /* for printf */
+#include <stdlib.h>  /* for exit */
 
 /**
  * @brief Returns a GDataInputStream* for a given filepath
  * @param filename the path to the file to open
  * @returns a GDataInputStream corresponding to the filepath
  */
-static GDataInputStream*
-get_DIS_from_filename (const gchar* filename)
+static GDataInputStream *
+get_DIS_from_filename (const gchar *filename)
 {
-  GFile* file = NULL;
-  GFileInputStream* fis = NULL;
-  GDataInputStream* dis = NULL;
-  GError* error = NULL;
+  GFile *file = NULL;
+  GFileInputStream *fis = NULL;
+  GDataInputStream *dis = NULL;
+  GError *error = NULL;
 
   file = g_file_new_for_path (filename);
   fis = g_file_read (file, NULL, &error);
-  if (error != NULL) {
-    if (fis != NULL)
-      g_object_unref (fis);
+  if (error != NULL)
+    {
+      if (fis != NULL)
+        g_object_unref (fis);
 
-    g_error ("%s\n\n", error->message);
-  }
-  dis = g_data_input_stream_new (G_INPUT_STREAM(fis));
+      g_error ("%s\n\n", error->message);
+    }
+  dis = g_data_input_stream_new (G_INPUT_STREAM (fis));
   g_object_unref (fis);
   return dis;
 }
@@ -64,9 +63,9 @@ get_DIS_from_filename (const gchar* filename)
  * @return TRUE if the file contains error(s)
  */
 static gboolean
-process_file (const gchar* filepath, int mode, struct script_infos* script_args)
+process_file (const gchar *filepath, int mode, struct script_infos *script_args)
 {
-  g_debug("Processing %s", filepath);
+  g_debug ("Processing %s", filepath);
   script_args->name = (char *) filepath;
   if (exec_nasl_script (script_args, mode) < 0)
     {
@@ -84,17 +83,17 @@ process_file (const gchar* filepath, int mode, struct script_infos* script_args)
  * @return The amount of scripts that contain errors
  */
 static int
-process_file_list (const gchar* list_file, int mode,
-                   struct script_infos* script_args)
+process_file_list (const gchar *list_file, int mode,
+                   struct script_infos *script_args)
 {
   int err = 0;
-  GError* error = NULL;
-  GDataInputStream* nvt_list = get_DIS_from_filename(list_file);
+  GError *error = NULL;
+  GDataInputStream *nvt_list = get_DIS_from_filename (list_file);
 
-  while(TRUE)
+  while (TRUE)
     {
-      gchar* line = g_data_input_stream_read_line (nvt_list, NULL, NULL,
-                                                   &error);
+      gchar *line =
+        g_data_input_stream_read_line (nvt_list, NULL, NULL, &error);
       if (error != NULL)
         {
           if (line != NULL)
@@ -106,7 +105,7 @@ process_file_list (const gchar* list_file, int mode,
       if (line == NULL)
         break;
 
-      if (process_file(line, mode, script_args))
+      if (process_file (line, mode, script_args))
         err++;
 
       g_free (line);
@@ -123,13 +122,13 @@ process_file_list (const gchar* list_file, int mode,
  * @return The amount of script that contains errors
  */
 static int
-process_files(const gchar** files, int mode, struct script_infos* script_args)
+process_files (const gchar **files, int mode, struct script_infos *script_args)
 {
   int n = 0;
   int err = 0;
   while (files[n])
     {
-      if (process_file(files[n], mode, script_args))
+      if (process_file (files[n], mode, script_args))
         err++;
       n++;
     }
@@ -143,14 +142,12 @@ process_files(const gchar** files, int mode, struct script_infos* script_args)
  * the other ones to the default handler.
  */
 static void
-custom_log_handler(const gchar *log_domain,
-                   GLogLevelFlags log_level,
-                   const gchar *message,
-                   gpointer user_data )
+custom_log_handler (const gchar *log_domain, GLogLevelFlags log_level,
+                    const gchar *message, gpointer user_data)
 {
   gint log_mask = GPOINTER_TO_INT (user_data);
   if ((log_level & log_mask) != 0)
-    g_log_default_handler(log_domain, log_level, message, user_data);
+    g_log_default_handler (log_domain, log_level, message, user_data);
 }
 
 /**
@@ -170,16 +167,15 @@ main (int argc, char **argv)
   GError *error = NULL;
   GOptionContext *option_context;
   static GOptionEntry entries[] = {
-    {"debug", 'd', 0, G_OPTION_ARG_NONE, &debug,
-     "Output debug log messages.", NULL},
+    {"debug", 'd', 0, G_OPTION_ARG_NONE, &debug, "Output debug log messages.",
+     NULL},
     {"nvt-list", 'l', 0, G_OPTION_ARG_STRING, &nvt_file_list,
      "Process files from <file>", "<file>"},
     {"include-dir", 'i', 0, G_OPTION_ARG_STRING, &include_dir,
      "Search for includes in <dir>", "<dir>"},
     {G_OPTION_REMAINING, 0, 0, G_OPTION_ARG_FILENAME_ARRAY, &nvt_files,
      "Absolute path to one or more nasl scripts", "NASL_FILE..."},
-    {NULL, 0, 0, 0, NULL, NULL, NULL}
-  };
+    {NULL, 0, 0, 0, NULL, NULL, NULL}};
 
   option_context =
     g_option_context_new ("- standalone NASL linter for OpenVAS");
@@ -203,29 +199,24 @@ main (int argc, char **argv)
     add_nasl_inc_dir (include_dir);
 
   if (debug)
-    g_log_set_handler (NULL,
-                       G_LOG_LEVEL_MASK,
-                       custom_log_handler,
-                       GINT_TO_POINTER (G_LOG_LEVEL_DEBUG|G_LOG_LEVEL_INFO|
-                                        G_LOG_LEVEL_MESSAGE|
-                                        G_LOG_LEVEL_WARNING|
-                                        G_LOG_LEVEL_CRITICAL|
-                                        G_LOG_LEVEL_ERROR));
+    g_log_set_handler (
+      NULL, G_LOG_LEVEL_MASK, custom_log_handler,
+      GINT_TO_POINTER (G_LOG_LEVEL_DEBUG | G_LOG_LEVEL_INFO
+                       | G_LOG_LEVEL_MESSAGE | G_LOG_LEVEL_WARNING
+                       | G_LOG_LEVEL_CRITICAL | G_LOG_LEVEL_ERROR));
   else
-    g_log_set_handler (NULL,
-                       G_LOG_LEVEL_MASK,
-                       custom_log_handler,
-                       GINT_TO_POINTER (G_LOG_LEVEL_WARNING|
-                                        G_LOG_LEVEL_CRITICAL|
-                                        G_LOG_LEVEL_ERROR));
+    g_log_set_handler (NULL, G_LOG_LEVEL_MASK, custom_log_handler,
+                       GINT_TO_POINTER (G_LOG_LEVEL_WARNING
+                                        | G_LOG_LEVEL_CRITICAL
+                                        | G_LOG_LEVEL_ERROR));
 
   /* Process the files from the list */
   if (nvt_file_list != NULL)
-    err += process_file_list(nvt_file_list, mode, script_infos);
+    err += process_file_list (nvt_file_list, mode, script_infos);
 
   /* process the files from the command line */
   if (nvt_files != NULL)
-    err += process_files(nvt_files, mode, script_infos);
+    err += process_files (nvt_files, mode, script_infos);
 
   g_print ("%d errors found\n", err);
   return err;

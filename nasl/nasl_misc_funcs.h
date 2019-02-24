@@ -19,6 +19,8 @@
 #ifndef NASL_MISC_FUNCS_H
 #define NASL_MISC_FUNCS_H
 
+#include "nasl_lex_ctxt.h"
+
 tree_cell *
 nasl_rand (lex_ctxt *);
 
