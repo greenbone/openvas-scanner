@@ -18,27 +18,26 @@
  * Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA 02110-1301 USA.
  */
 
-#include <netinet/in.h>
-#include <resolv.h>
-#include <pcap.h>
-#include <net/if.h>
+#include "bpf_share.h"
+#include "network.h"
+#include "pcap_openvas.h"
+#include "support.h"
+
 #include <arpa/inet.h>
-#include <sys/ioctl.h>
+#include <gvm/base/logging.h>
+#include <gvm/base/networking.h>
+#include <ifaddrs.h>
+#include <net/if.h>
 #include <netdb.h>
+#include <netinet/in.h>
+#include <pcap.h>
+#include <resolv.h>
 #include <stdlib.h>
 #include <string.h>
-#include <unistd.h>
+#include <sys/ioctl.h>
 #include <sys/param.h>
 #include <sys/types.h>
-#include <ifaddrs.h>
-
-#include <gvm/base/networking.h>
-#include <gvm/base/logging.h>
-
-#include "bpf_share.h"
-#include "pcap_openvas.h"
-#include "network.h"
-#include "support.h"
+#include <unistd.h>
 
 #define MAXROUTES 1024
 
@@ -64,9 +63,12 @@ struct myroute
   unsigned long dest;
 };
 
-struct interface_info *getinterfaces (int *howmany);
-struct interface_info *v6_getinterfaces (int *howmany);
-int getipv6routes (struct myroute *myroutes, int *numroutes);
+struct interface_info *
+getinterfaces (int *howmany);
+struct interface_info *
+v6_getinterfaces (int *howmany);
+int
+getipv6routes (struct myroute *myroutes, int *numroutes);
 
 static void
 ipv6addrmask (struct in6_addr *in6addr, int mask)
@@ -308,7 +310,7 @@ get_datalink_size (int datalink)
 #if (FREEBSD || OPENBSD || NETBSD || BSDI || DARWIN)
       offset = 16;
 #else
-      offset = 24;              /* Anyone use this??? */
+      offset = 24; /* Anyone use this??? */
 #endif
       break;
     case DLT_PPP:
@@ -318,7 +320,7 @@ get_datalink_size (int datalink)
 #ifdef SOLARIS
       offset = 8;
 #else
-      offset = 24;              /* Anyone use this? */
+      offset = 24; /* Anyone use this? */
 #endif /* ifdef solaris */
 #endif /* if freebsd || openbsd || netbsd || bsdi */
       break;
@@ -348,7 +350,7 @@ v6_getinterfaces (int *howmany)
       for (ifa = ifaddr; ifa != NULL; ifa = ifa->ifa_next)
         {
           if (ifa->ifa_addr == NULL)
-              continue;
+            continue;
 
           family = ifa->ifa_addr->sa_family;
           if (family == AF_INET)
@@ -434,8 +436,8 @@ getinterfaces (int *howmany)
 
   close (sd);
   if (ifc.ifc_len == 0)
-    g_message
-      ("getinterfaces: SIOCGIFCONF claims you have no network interfaces!");
+    g_message (
+      "getinterfaces: SIOCGIFCONF claims you have no network interfaces!");
 
 #ifndef __FreeBSD__
   len = sizeof (struct ifmap);
@@ -458,9 +460,8 @@ getinterfaces (int *howmany)
       numinterfaces++;
       if (numinterfaces == 1023)
         {
-          g_message
-            ("You seem to have more than 1023 network interfaces."
-             " Things may not work right.");
+          g_message ("You seem to have more than 1023 network interfaces."
+                     " Things may not work right.");
           break;
         }
       mydevs[numinterfaces].name[0] = '\0';
@@ -513,7 +514,6 @@ v6_getsourceip (struct in6_addr *src, struct in6_addr *dst)
           return 0;
         }
 
-
       src->s6_addr32[0] = 0;
       src->s6_addr32[1] = 0;
       src->s6_addr32[2] = htonl (0xffff);
@@ -563,7 +563,7 @@ v6_getsourceip (struct in6_addr *src, struct in6_addr *dst)
                inet_ntop (AF_INET6, src, name, sizeof (name)));
       close (sd);
     }
-  return 1;                     /* Calling function responsible for checking validity */
+  return 1; /* Calling function responsible for checking validity */
 }
 
 int
@@ -591,7 +591,7 @@ getipv4routes (struct myroute *myroutes, int *numroutes)
     {
       /* OK, linux style /proc/net/route ... we can handle this ... */
       /* Now that we've got the interfaces, we g0 after the r0ut3Z */
-      if (fgets (buf, sizeof (buf), routez) == NULL)  /* Kill the first line */
+      if (fgets (buf, sizeof (buf), routez) == NULL) /* Kill the first line */
         {
           // /proc/net/route was empty or an error occurred.
           g_message ("Could not read from /proc/net/route");
@@ -610,7 +610,7 @@ getipv4routes (struct myroute *myroutes, int *numroutes)
           strncpy (iface, p, sizeof (iface));
           if ((p = strchr (iface, ':')))
             {
-              *p = '\0';        /* To support IP aliasing */
+              *p = '\0'; /* To support IP aliasing */
             }
           p = strtok (NULL, " \t\n");
           endptr = NULL;
@@ -636,7 +636,8 @@ getipv4routes (struct myroute *myroutes, int *numroutes)
           if (!p)
             {
               g_message ("Failed to find field %d in"
-                         " /proc/net/route", i + 2);
+                         " /proc/net/route",
+                         i + 2);
               continue;
             }
           endptr = NULL;
@@ -654,7 +655,6 @@ getipv4routes (struct myroute *myroutes, int *numroutes)
               continue;
             }
 
-
           g_debug ("#%d: for dev %s, The dest is %lX and the mask is %lX\n",
                    *numroutes, iface, myroutes[*numroutes].dest,
                    myroutes[*numroutes].mask);
@@ -665,9 +665,9 @@ getipv4routes (struct myroute *myroutes, int *numroutes)
                 break;
               }
           if (i == numinterfaces)
-            g_message
-              ("Failed to find interface %s mentioned in /proc/net/route",
-               iface);
+            g_message (
+              "Failed to find interface %s mentioned in /proc/net/route",
+              iface);
           (*numroutes)++;
           if (*numroutes >= MAXROUTES)
             {
@@ -756,9 +756,9 @@ getipv6routes (struct myroute *myroutes, int *numroutes)
                 break;
               }
           if (i == numinterfaces)
-            g_message
-              ("Failed to find interface %s mentioned in /proc/net/route\n",
-               iface);
+            g_message (
+              "Failed to find interface %s mentioned in /proc/net/route\n",
+              iface);
           (*numroutes)++;
           if (*numroutes >= MAXROUTES)
             {
@@ -791,16 +791,17 @@ v6_routethrough (struct in6_addr *dest, struct in6_addr *source)
   static int initialized = 0;
   int i;
   struct in6_addr addy;
-  static enum
-  { procroutetechnique, connectsockettechnique, guesstechnique } technique =
-    procroutetechnique;
+  static enum {
+    procroutetechnique,
+    connectsockettechnique,
+    guesstechnique
+  } technique = procroutetechnique;
   struct interface_info *mydevs;
   static struct myroute myroutes[MAXROUTES];
   int numinterfaces = 0;
   static int numroutes = 0;
   struct in6_addr in6addr;
   struct in6_addr src;
-
 
   if (!dest)
     {
@@ -881,10 +882,10 @@ v6_routethrough (struct in6_addr *dest, struct in6_addr *source)
 
           memcpy (&in6addr, dest, sizeof (struct in6_addr));
           ipv6addrmask (&in6addr, myroutes[i].mask);
-          g_debug ("comparing addresses %s and %s\n",
-                   inet_ntop (AF_INET6, &in6addr, addr1, sizeof (addr1)),
-                   inet_ntop (AF_INET6, &myroutes[i].dest6, addr2,
-                             sizeof (addr2)));
+          g_debug (
+            "comparing addresses %s and %s\n",
+            inet_ntop (AF_INET6, &in6addr, addr1, sizeof (addr1)),
+            inet_ntop (AF_INET6, &myroutes[i].dest6, addr2, sizeof (addr2)));
           if (IN6_ARE_ADDR_EQUAL (&in6addr, &myroutes[i].dest6))
             {
               if (source)
@@ -939,9 +940,10 @@ v6_routethrough (struct in6_addr *dest, struct in6_addr *source)
           char addr1[INET6_ADDRSTRLEN];
           char addr2[INET6_ADDRSTRLEN];
 
-          g_debug ("comparing addresses %s and %s\n",
-                   inet_ntop (AF_INET6, &mydevs[i].addr6, addr1, sizeof (addr1)),
-                   inet_ntop (AF_INET6, &addy, addr2, sizeof (addr2)));
+          g_debug (
+            "comparing addresses %s and %s\n",
+            inet_ntop (AF_INET6, &mydevs[i].addr6, addr1, sizeof (addr1)),
+            inet_ntop (AF_INET6, &addy, addr2, sizeof (addr2)));
           if (IN6_ARE_ADDR_EQUAL (&mydevs[i].addr6, &addy))
             {
               if (source)
@@ -955,7 +957,8 @@ v6_routethrough (struct in6_addr *dest, struct in6_addr *source)
     }
   else
     g_message ("%s: Provided technique is neither proc route nor"
-               " connect socket", __FUNCTION__);
+               " connect socket",
+               __FUNCTION__);
   return NULL;
 }
 
@@ -1011,7 +1014,8 @@ routethrough (struct in_addr *dest, struct in_addr *source)
         {
           /* OK, linux style /proc/net/route ... we can handle this ... */
           /* Now that we've got the interfaces, we g0 after the r0ut3Z */
-          if (fgets (buf, sizeof (buf), routez) == NULL)  /* Kill the first line */
+          if (fgets (buf, sizeof (buf), routez)
+              == NULL) /* Kill the first line */
             g_message ("Could not read from /proc/net/route");
           while (fgets (buf, sizeof (buf), routez))
             {
@@ -1025,15 +1029,15 @@ routethrough (struct in_addr *dest, struct in_addr *source)
               strncpy (iface, p, sizeof (iface));
               if ((p = strchr (iface, ':')))
                 {
-                  *p = '\0';    /* To support IP aliasing */
+                  *p = '\0'; /* To support IP aliasing */
                 }
               p = strtok (NULL, " \t\n");
               endptr = NULL;
               myroutes[numroutes].dest = strtoul (p, &endptr, 16);
               if (!endptr || *endptr)
                 {
-                  g_message
-                    ("Failed to determine Destination from /proc/net/route");
+                  g_message (
+                    "Failed to determine Destination from /proc/net/route");
                   continue;
                 }
               for (i = 0; i < 6; i++)
@@ -1045,7 +1049,8 @@ routethrough (struct in_addr *dest, struct in_addr *source)
               if (!p)
                 {
                   g_message ("Failed to find field %d in"
-                             " /proc/net/route", i + 2);
+                             " /proc/net/route",
+                             i + 2);
                   continue;
                 }
               endptr = NULL;
@@ -1057,7 +1062,6 @@ routethrough (struct in_addr *dest, struct in_addr *source)
                   continue;
                 }
 
-
               g_debug ("#%d: for dev %s, The dest is %lX and the mask is %lX\n",
                        numroutes, iface, myroutes[numroutes].dest,
                        myroutes[numroutes].mask);
@@ -1068,8 +1072,8 @@ routethrough (struct in_addr *dest, struct in_addr *source)
                     break;
                   }
               if (i == numinterfaces)
-                g_message
-                  ("Failed to find interface %s mentioned in /proc/net/route",
+                g_message (
+                  "Failed to find interface %s mentioned in /proc/net/route",
                   iface);
               numroutes++;
               if (numroutes >= MAXROUTES)
@@ -1108,7 +1112,8 @@ routethrough (struct in_addr *dest, struct in_addr *source)
 
   for (i = 0; i < numroutes; i++)
     {
-      if ((dest->s_addr & myroutes[i].mask) == myroutes[i].dest && myroutes[i].mask >= bestmatch)
+      if ((dest->s_addr & myroutes[i].mask) == myroutes[i].dest
+          && myroutes[i].mask >= bestmatch)
         {
           if (source)
             {
@@ -1122,6 +1127,6 @@ routethrough (struct in_addr *dest, struct in_addr *source)
         }
     }
   if (match != -1)
-      return myroutes[match].dev->name;
+    return myroutes[match].dev->name;
   return NULL;
 }

@@ -19,6 +19,8 @@
 #ifndef _NASL_LEX_CTXT_H
 #define _NASL_LEX_CTXT_H
 
+#include <glib.h>
+
 /* for tree_cell */
 #include "nasl_tree.h"
 
