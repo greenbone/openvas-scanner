@@ -23,33 +23,30 @@
  * @brief Loads plugins from disk into memory.
  */
 
-#include <stdio.h>
-
-#include <gvm/base/proctitle.h>
-#include <gvm/base/prefs.h>       /* for prefs_get() */
-#include <gvm/util/nvticache.h>   /* for nvticache_new */
-
-#include <glib.h>
-#include <stdlib.h>
-#include <sys/time.h>
-#include <sys/wait.h>
-#include <sys/shm.h>     /* for shmget */
-#include <string.h>
-#include <errno.h>
-
-#include "utils.h"
 #include "pluginload.h"
-#include "processes.h"
-#include "sighand.h"
 
 #include "../nasl/nasl.h"
+#include "processes.h"
+#include "sighand.h"
+#include "utils.h"
+
+#include <errno.h>
+#include <glib.h>
+#include <gvm/base/prefs.h> /* for prefs_get() */
+#include <gvm/base/proctitle.h>
+#include <gvm/util/nvticache.h> /* for nvticache_new */
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <sys/shm.h> /* for shmget */
+#include <sys/time.h>
+#include <sys/wait.h>
 
 #undef G_LOG_DOMAIN
 /**
  * @brief GLib log domain.
  */
 #define G_LOG_DOMAIN "sd   main"
-
 
 /**
  * @brief Collects all NVT files in a directory and recurses into subdirs.
@@ -68,7 +65,7 @@
  *         NVT files are identified by the defined filename suffixes.
  */
 GSList *
-collect_nvts (const char *folder, const char *subdir, GSList * files)
+collect_nvts (const char *folder, const char *subdir, GSList *files)
 {
   GDir *dir;
   const gchar *fname;
@@ -101,8 +98,7 @@ collect_nvts (const char *folder, const char *subdir, GSList * files)
             g_free (new_subdir);
         }
       else if (g_str_has_suffix (fname, ".nasl"))
-        files = g_slist_prepend (files,
-                                 g_build_filename (subdir, fname, NULL));
+        files = g_slist_prepend (files, g_build_filename (subdir, fname, NULL));
       g_free (path);
       fname = g_dir_read_name (dir);
     }
@@ -267,7 +263,8 @@ plugins_reload_from_dir (void *folder)
     {
       g_debug ("%s:%d : folder == NULL", __FILE__, __LINE__);
       g_debug ("Could not determine the value of <plugins_folder>. "
-                 " Check %s\n", (char *) prefs_get ("config_file"));
+               " Check %s\n",
+               (char *) prefs_get ("config_file"));
       exit (1);
     }
 
@@ -299,8 +296,9 @@ plugins_reload_from_dir (void *folder)
           percentile = (loaded_files * 100) / num_files;
           eta = calculate_eta (start_time, loaded_files, num_files);
           proctitle_set ("openvassd: Reloaded %d of %d NVTs"
-                         " (%d%% / ETA: %02d:%02d)", loaded_files, num_files,
-                         percentile, eta / 60, eta % 60);
+                         " (%d%% / ETA: %02d:%02d)",
+                         loaded_files, num_files, percentile, eta / 60,
+                         eta % 60);
         }
       if (prefs_get_bool ("log_plugins_name_at_load"))
         g_message ("Loading %s", name);
@@ -334,7 +332,7 @@ include_dirs (void)
 {
   const gchar *pref_include_folders;
 
-  add_nasl_inc_dir ("");        // for absolute and relative paths
+  add_nasl_inc_dir (""); // for absolute and relative paths
   pref_include_folders = prefs_get ("include_folders");
   if (pref_include_folders != NULL)
     {
@@ -346,8 +344,8 @@ include_dirs (void)
           int result = add_nasl_inc_dir (include_folders[i]);
           if (result < 0)
             g_debug ("Could not add %s to the list of include folders.\n"
-                       "Make sure %s exists and is a directory.\n",
-                       include_folders[i], include_folders[i]);
+                     "Make sure %s exists and is a directory.\n",
+                     include_folders[i], include_folders[i]);
         }
 
       g_strfreev (include_folders);
