@@ -26,10 +26,11 @@
 #define _OPENVAS_SCANNERAUX_H
 
 #include <glib.h>
-#include <gvm/util/kb.h>
 #include <gvm/base/nvti.h>
+#include <gvm/util/kb.h>
 
-struct scan_globals {
+struct scan_globals
+{
   char *network_targets;
   char *network_scan_status;
   GHashTable *files_translation;
@@ -40,7 +41,8 @@ struct scan_globals {
 
 struct host_info;
 
-struct script_infos {
+struct script_infos
+{
   struct scan_globals *globals;
   kb_t key;
   nvti_t *nvti;

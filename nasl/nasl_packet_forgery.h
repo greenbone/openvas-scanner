@@ -18,35 +18,52 @@
 
 #ifndef NASL_PACKET_FORGERY_H
 
-tree_cell *forge_ip_packet (lex_ctxt *);
-tree_cell *set_ip_elements (lex_ctxt *);
-tree_cell *get_ip_element (lex_ctxt *);
-tree_cell *dump_ip_packet (lex_ctxt *);
-tree_cell *insert_ip_options (lex_ctxt *);
+#include "nasl_lex_ctxt.h"
 
+tree_cell *
+forge_ip_packet (lex_ctxt *);
+tree_cell *
+set_ip_elements (lex_ctxt *);
+tree_cell *
+get_ip_element (lex_ctxt *);
+tree_cell *
+dump_ip_packet (lex_ctxt *);
+tree_cell *
+insert_ip_options (lex_ctxt *);
 
-tree_cell *forge_tcp_packet (lex_ctxt *);
-tree_cell *get_tcp_element (lex_ctxt *);
-tree_cell *set_tcp_elements (lex_ctxt *);
-tree_cell *dump_tcp_packet (lex_ctxt *);
+tree_cell *
+forge_tcp_packet (lex_ctxt *);
+tree_cell *
+get_tcp_element (lex_ctxt *);
+tree_cell *
+set_tcp_elements (lex_ctxt *);
+tree_cell *
+dump_tcp_packet (lex_ctxt *);
 
+tree_cell *
+forge_udp_packet (lex_ctxt *);
+tree_cell *
+set_udp_elements (lex_ctxt *);
+tree_cell *
+dump_udp_packet (lex_ctxt *);
+tree_cell *
+get_udp_element (lex_ctxt *);
 
-tree_cell *forge_udp_packet (lex_ctxt *);
-tree_cell *set_udp_elements (lex_ctxt *);
-tree_cell *dump_udp_packet (lex_ctxt *);
-tree_cell *get_udp_element (lex_ctxt *);
+tree_cell *
+forge_icmp_packet (lex_ctxt *);
+tree_cell *
+get_icmp_element (lex_ctxt *);
 
+tree_cell *
+forge_igmp_packet (lex_ctxt *);
 
-tree_cell *forge_icmp_packet (lex_ctxt *);
-tree_cell *get_icmp_element (lex_ctxt *);
+tree_cell *
+nasl_tcp_ping (lex_ctxt *);
 
-
-tree_cell *forge_igmp_packet (lex_ctxt *);
-
-
-tree_cell *nasl_tcp_ping (lex_ctxt *);
-
-tree_cell *nasl_send_packet (lex_ctxt *);
-tree_cell *nasl_pcap_next (lex_ctxt *);
-tree_cell *nasl_send_capture (lex_ctxt *);
+tree_cell *
+nasl_send_packet (lex_ctxt *);
+tree_cell *
+nasl_pcap_next (lex_ctxt *);
+tree_cell *
+nasl_send_capture (lex_ctxt *);
 #endif

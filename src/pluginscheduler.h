@@ -30,12 +30,11 @@
 
 struct plugins_scheduler;
 
-
 enum plugin_status
 {
-    PLUGIN_STATUS_UNRUN = 0,
-    PLUGIN_STATUS_RUNNING,
-    PLUGIN_STATUS_DONE,
+  PLUGIN_STATUS_UNRUN = 0,
+  PLUGIN_STATUS_RUNNING,
+  PLUGIN_STATUS_DONE,
 };
 
 struct scheduler_plugin
@@ -45,25 +44,19 @@ struct scheduler_plugin
   enum plugin_status running_state;
 };
 
-
 typedef struct plugins_scheduler *plugins_scheduler_t;
 
-
-#define PLUG_RUNNING ((struct scheduler_plugin*)0x02)
+#define PLUG_RUNNING ((struct scheduler_plugin *) 0x02)
 
 plugins_scheduler_t
 plugins_scheduler_init (const char *, int, int);
 
-struct scheduler_plugin *
-plugins_scheduler_next (plugins_scheduler_t);
+struct scheduler_plugin *plugins_scheduler_next (plugins_scheduler_t);
 
-int
-plugins_scheduler_count_active (plugins_scheduler_t);
+int plugins_scheduler_count_active (plugins_scheduler_t);
 
-void
-plugins_scheduler_stop (plugins_scheduler_t);
+void plugins_scheduler_stop (plugins_scheduler_t);
 
-void
-plugins_scheduler_free (plugins_scheduler_t);
+void plugins_scheduler_free (plugins_scheduler_t);
 
 #endif

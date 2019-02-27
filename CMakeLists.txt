@@ -48,6 +48,18 @@ if (NOT CMAKE_BUILD_TYPE MATCHES "Release")
   endif (EXISTS "${CMAKE_SOURCE_DIR}/.git/")
 endif (NOT CMAKE_BUILD_TYPE MATCHES "Release")
 
+## make format
+message (STATUS "Looking for clang-format...")
+find_program (CLANG_FORMAT clang-format)
+if (CLANG_FORMAT)
+  message (STATUS "Looking for clang-format... ${CLANG_FORMAT}")
+  add_custom_target(format COMMAND ${CLANG_FORMAT} "-i" "./src/*.c" "./misc/*.c"
+                    "./nasl/*.c" "./src/*.h" "./misc/*.h" "./nasl/*.h"
+                    WORKING_DIRECTORY "${CMAKE_SOURCE_DIR}")
+else (CLANG_FORMAT)
+  message (STATUS "clang-format not found...")
+endif (CLANG_FORMAT)
+
 # Set beta version if this is a beta release series,
 # unset if this is a stable release series.
 set (PROJECT_BETA_RELEASE 3)

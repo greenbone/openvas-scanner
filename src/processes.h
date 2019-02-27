@@ -26,8 +26,11 @@
 #ifndef _OPENVAS_THREADS_H
 #define _OPENVAS_THREADS_H
 
+#include <sys/types.h> /* for pid_t */
+
 typedef void (*process_func_t) (void *);
-pid_t create_process (process_func_t, void *);
+pid_t
+create_process (process_func_t, void *);
 int terminate_process (pid_t);
 
 #endif

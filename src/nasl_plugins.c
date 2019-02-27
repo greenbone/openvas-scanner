@@ -23,32 +23,27 @@
  * @brief The nasl - plugin class. Loads or launches nasl- plugins.
  */
 
-#include <errno.h>    /* for errno */
-#include <unistd.h>   /* for close() */
-#include <string.h>   /* for strlen() */
-#include <stdio.h>    /* for snprintf() */
-#include <sys/stat.h>
-
-#include <glib.h>
-
-#include <sys/types.h>
-#include <utime.h>
-
-#include <gvm/base/drop_privileges.h> /* for drop_privileges */
-#include <gvm/base/proctitle.h>
-#include <gvm/base/networking.h>
-#include <gvm/base/prefs.h>           /* for prefs_get_bool */
-#include <gvm/util/nvticache.h>       /* for nvticache_add */
-
 #include "../misc/network.h"
-#include "../misc/plugutils.h"     /* for plug_set_launch */
-
+#include "../misc/plugutils.h" /* for plug_set_launch */
 #include "../nasl/nasl.h"
-
+#include "pluginlaunch.h"
 #include "pluginload.h"
 #include "pluginscheduler.h"
-#include "pluginlaunch.h"
 #include "processes.h"
+
+#include <errno.h> /* for errno */
+#include <glib.h>
+#include <gvm/base/drop_privileges.h> /* for drop_privileges */
+#include <gvm/base/networking.h>
+#include <gvm/base/prefs.h> /* for prefs_get_bool */
+#include <gvm/base/proctitle.h>
+#include <gvm/util/nvticache.h> /* for nvticache_add */
+#include <stdio.h>              /* for snprintf() */
+#include <string.h>             /* for strlen() */
+#include <sys/stat.h>
+#include <sys/types.h>
+#include <unistd.h> /* for close() */
+#include <utime.h>
 
 #undef G_LOG_DOMAIN
 /**

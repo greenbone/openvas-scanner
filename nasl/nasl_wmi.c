@@ -36,23 +36,22 @@
  *       has to evaluated if that is okay or leads to memory leaks.
  */
 
-#include <string.h>
-#include <stdio.h>
-#include <netinet/in.h>
-#include <sys/socket.h>
-#include <arpa/inet.h>
-#include <ctype.h>
-#include <inttypes.h>
-
-#include <gvm/base/networking.h>
-#include <gvm/base/logging.h>
+#include "nasl_wmi.h"
 
 #include "../misc/plugutils.h"
-
-#include "nasl_wmi.h"
 #include "openvas_wmi_interface.h"
 
-#define IMPORT(var) char *var = get_str_var_by_name(lexic, #var)
+#include <arpa/inet.h>
+#include <ctype.h>
+#include <gvm/base/logging.h>
+#include <gvm/base/networking.h>
+#include <inttypes.h>
+#include <netinet/in.h>
+#include <stdio.h>
+#include <string.h>
+#include <sys/socket.h>
+
+#define IMPORT(var) char *var = get_str_var_by_name (lexic, #var)
 #define max 5
 
 #undef G_LOG_DOMAIN
@@ -64,40 +63,43 @@
 /**
  * Returns 0 if any alphabets are present
  */
-int check_alpha(char *val)
+int
+check_alpha (char *val)
 {
   int i, val_len;
-  val_len = strlen(val);
+  val_len = strlen (val);
 
-  if((strcmp(val,"-1")) != 0 )
-  {
-    for(i = 0; i < val_len; i++)
-      if(!isdigit(val[i]))
-        return 0;
-  }
+  if ((strcmp (val, "-1")) != 0)
+    {
+      for (i = 0; i < val_len; i++)
+        if (!isdigit (val[i]))
+          return 0;
+    }
   else
-     return 0;
+    return 0;
 
- return 1;
+  return 1;
 }
 
-/** 
- * Convert string to unsign int 32 bit 
+/**
+ * Convert string to unsign int 32 bit
  */
-uint32_t stoi_uint32_t(char * s)
+uint32_t
+stoi_uint32_t (char *s)
 {
   uint32_t v;
-  sscanf(s, "%" PRIu32, &v);
+  sscanf (s, "%" PRIu32, &v);
   return v;
 }
 
-/** 
- * Convert string to unsign int 64 bit 
+/**
+ * Convert string to unsign int 64 bit
  */
-uint64_t stoi_uint64_t(char * s)
+uint64_t
+stoi_uint64_t (char *s)
 {
   uint64_t v;
-  sscanf(s, "%" PRIu64, &v);
+  sscanf (s, "%" PRIu64, &v);
   return v;
 }
 
@@ -110,7 +112,7 @@ uint64_t stoi_uint64_t(char * s)
  *         Else a tree_cell with the version as string.
  */
 tree_cell *
-nasl_wmi_versioninfo (lex_ctxt * lexic)
+nasl_wmi_versioninfo (lex_ctxt *lexic)
 {
   char *version = wmi_versioninfo ();
   tree_cell *retc;
@@ -145,7 +147,7 @@ nasl_wmi_versioninfo (lex_ctxt * lexic)
  * WMI service returning a handle for the service as integer.
  */
 tree_cell *
-nasl_wmi_connect (lex_ctxt * lexic)
+nasl_wmi_connect (lex_ctxt *lexic)
 {
   struct script_infos *script_infos = lexic->script_infos;
   struct in6_addr *host = plug_get_host_ip (script_infos);
@@ -155,7 +157,7 @@ nasl_wmi_connect (lex_ctxt * lexic)
   int argc = 5;
   IMPORT (username);
   IMPORT (password);
-  IMPORT(ns);
+  IMPORT (ns);
 
   if (ns == NULL)
     ns = "root\\cimv2";
@@ -167,8 +169,7 @@ nasl_wmi_connect (lex_ctxt * lexic)
     }
 
   ip = addr6_as_str (host);
-  if ((strlen (password) == 0) || (strlen (username) == 0)
-        || strlen (ip) == 0)
+  if ((strlen (password) == 0) || (strlen (username) == 0) || strlen (ip) == 0)
     {
       g_message ("nasl_wmi_connect: Invalid input arguments");
       g_free (ip);
@@ -209,10 +210,9 @@ nasl_wmi_connect (lex_ctxt * lexic)
  * and closes the respective handle.
  */
 tree_cell *
-nasl_wmi_close (lex_ctxt * lexic)
+nasl_wmi_close (lex_ctxt *lexic)
 {
-  WMI_HANDLE handle =
-    (WMI_HANDLE) get_int_var_by_name (lexic, "wmi_handle", 0);
+  WMI_HANDLE handle = (WMI_HANDLE) get_int_var_by_name (lexic, "wmi_handle", 0);
   if (!handle)
     return NULL;
 
@@ -241,10 +241,9 @@ nasl_wmi_close (lex_ctxt * lexic)
  * result as a string.
  */
 tree_cell *
-nasl_wmi_query (lex_ctxt * lexic)
+nasl_wmi_query (lex_ctxt *lexic)
 {
-  WMI_HANDLE handle =
-    (WMI_HANDLE) get_int_var_by_name (lexic, "wmi_handle", 0);
+  WMI_HANDLE handle = (WMI_HANDLE) get_int_var_by_name (lexic, "wmi_handle", 0);
   char *query = get_str_var_by_name (lexic, "query");
   char *res = NULL;
   int value;
@@ -291,7 +290,7 @@ nasl_wmi_query (lex_ctxt * lexic)
  * WMI service returning a handle for the service as integer.
  */
 tree_cell *
-nasl_wmi_connect_rsop (lex_ctxt * lexic)
+nasl_wmi_connect_rsop (lex_ctxt *lexic)
 {
   struct script_infos *script_infos = lexic->script_infos;
   struct in6_addr *host = plug_get_host_ip (script_infos);
@@ -309,8 +308,7 @@ nasl_wmi_connect_rsop (lex_ctxt * lexic)
     }
 
   ip = addr6_as_str (host);
-  if ((strlen (password) == 0) || (strlen (username) == 0)
-      || strlen (ip) == 0)
+  if ((strlen (password) == 0) || (strlen (username) == 0) || strlen (ip) == 0)
     {
       g_message ("nasl_wmi_connect_rsop: Invalid input arguments");
       g_free (ip);
@@ -350,14 +348,13 @@ nasl_wmi_connect_rsop (lex_ctxt * lexic)
  * results in string format.
  */
 tree_cell *
-nasl_wmi_query_rsop (lex_ctxt * lexic)
+nasl_wmi_query_rsop (lex_ctxt *lexic)
 {
-  WMI_HANDLE handle =
-    (WMI_HANDLE) get_int_var_by_name (lexic, "wmi_handle", 0);
+  WMI_HANDLE handle = (WMI_HANDLE) get_int_var_by_name (lexic, "wmi_handle", 0);
   if (!handle)
     return NULL;
 
-  char *query = get_str_var_by_name (lexic, "query");     // WQL query
+  char *query = get_str_var_by_name (lexic, "query"); // WQL query
   char *res = NULL;
   int value;
   tree_cell *retc = alloc_tree_cell ();
@@ -397,7 +394,7 @@ nasl_wmi_query_rsop (lex_ctxt * lexic)
  * WMI service returning a handle for the service as integer.
  */
 tree_cell *
-nasl_wmi_connect_reg (lex_ctxt * lexic)
+nasl_wmi_connect_reg (lex_ctxt *lexic)
 {
   struct script_infos *script_infos = lexic->script_infos;
   struct in6_addr *host = plug_get_host_ip (script_infos);
@@ -415,8 +412,7 @@ nasl_wmi_connect_reg (lex_ctxt * lexic)
     }
 
   ip = addr6_as_str (host);
-  if ((strlen (password) == 0) || (strlen (username) == 0)
-      || strlen (ip) == 0)
+  if ((strlen (password) == 0) || (strlen (username) == 0) || strlen (ip) == 0)
     {
       g_message ("nasl_wmi_connect_reg: Invalid input arguments");
       g_free (ip);
@@ -457,17 +453,17 @@ nasl_wmi_connect_reg (lex_ctxt * lexic)
  * returning a string value.
  */
 tree_cell *
-nasl_wmi_reg_get_sz (lex_ctxt * lexic)
+nasl_wmi_reg_get_sz (lex_ctxt *lexic)
 {
-  WMI_HANDLE handle =
-    (WMI_HANDLE) get_int_var_by_name (lexic, "wmi_handle", 0);
+  WMI_HANDLE handle = (WMI_HANDLE) get_int_var_by_name (lexic, "wmi_handle", 0);
 
   if (!handle)
     return NULL;
 
-  unsigned int hive = get_int_var_by_name (lexic, "hive", 0);     // REGISTRY Hive
-  char *key = get_str_var_by_name (lexic, "key"); // REGISTRY KEY
-  char *key_name = get_str_var_by_name (lexic, "key_name");       // REGISTRY value name
+  unsigned int hive = get_int_var_by_name (lexic, "hive", 0); // REGISTRY Hive
+  char *key = get_str_var_by_name (lexic, "key");             // REGISTRY KEY
+  char *key_name =
+    get_str_var_by_name (lexic, "key_name"); // REGISTRY value name
 
   char *res = NULL;
   int value;
@@ -504,16 +500,15 @@ nasl_wmi_reg_get_sz (lex_ctxt * lexic)
  * returning a string value.
  */
 tree_cell *
-nasl_wmi_reg_enum_value (lex_ctxt * lexic)
+nasl_wmi_reg_enum_value (lex_ctxt *lexic)
 {
-  WMI_HANDLE handle =
-    (WMI_HANDLE) get_int_var_by_name (lexic, "wmi_handle", 0);
+  WMI_HANDLE handle = (WMI_HANDLE) get_int_var_by_name (lexic, "wmi_handle", 0);
 
   if (!handle)
     return NULL;
 
-  unsigned int hive = get_int_var_by_name (lexic, "hive", 0);     // REGISTRY Hive
-  char *key = get_str_var_by_name (lexic, "key"); // REGISTRY KEY
+  unsigned int hive = get_int_var_by_name (lexic, "hive", 0); // REGISTRY Hive
+  char *key = get_str_var_by_name (lexic, "key");             // REGISTRY KEY
 
   char *res = NULL;
   int value;
@@ -550,16 +545,15 @@ nasl_wmi_reg_enum_value (lex_ctxt * lexic)
  * returning a string value.
  */
 tree_cell *
-nasl_wmi_reg_enum_key (lex_ctxt * lexic)
+nasl_wmi_reg_enum_key (lex_ctxt *lexic)
 {
-  WMI_HANDLE handle =
-    (WMI_HANDLE) get_int_var_by_name (lexic, "wmi_handle", 0);
+  WMI_HANDLE handle = (WMI_HANDLE) get_int_var_by_name (lexic, "wmi_handle", 0);
 
   if (!handle)
     return NULL;
 
-  unsigned int hive = get_int_var_by_name (lexic, "hive", 0);     // REGISTRY Hive
-  char *key = get_str_var_by_name (lexic, "key"); // REGISTRY KEY
+  unsigned int hive = get_int_var_by_name (lexic, "hive", 0); // REGISTRY Hive
+  char *key = get_str_var_by_name (lexic, "key");             // REGISTRY KEY
 
   char *res = NULL;
   int value;
@@ -596,17 +590,17 @@ nasl_wmi_reg_enum_key (lex_ctxt * lexic)
  * querying binary value.
  */
 tree_cell *
-nasl_wmi_reg_get_bin_val (lex_ctxt * lexic)
+nasl_wmi_reg_get_bin_val (lex_ctxt *lexic)
 {
-  WMI_HANDLE handle =
-    (WMI_HANDLE) get_int_var_by_name (lexic, "wmi_handle", 0);
+  WMI_HANDLE handle = (WMI_HANDLE) get_int_var_by_name (lexic, "wmi_handle", 0);
 
   if (!handle)
     return NULL;
 
-  unsigned int hive = get_int_var_by_name (lexic, "hive", 0);     // REGISTRY Hive
-  char *key = get_str_var_by_name (lexic, "key"); // REGISTRY KEY
-  char *val_name = get_str_var_by_name (lexic, "val_name");       // REGISTRY VALUE NAME
+  unsigned int hive = get_int_var_by_name (lexic, "hive", 0); // REGISTRY Hive
+  char *key = get_str_var_by_name (lexic, "key");             // REGISTRY KEY
+  char *val_name =
+    get_str_var_by_name (lexic, "val_name"); // REGISTRY VALUE NAME
 
   char *res = NULL;
   int value;
@@ -643,17 +637,17 @@ nasl_wmi_reg_get_bin_val (lex_ctxt * lexic)
  * querying DWORD value.
  */
 tree_cell *
-nasl_wmi_reg_get_dword_val (lex_ctxt * lexic)
+nasl_wmi_reg_get_dword_val (lex_ctxt *lexic)
 {
-  WMI_HANDLE handle =
-    (WMI_HANDLE) get_int_var_by_name (lexic, "wmi_handle", 0);
+  WMI_HANDLE handle = (WMI_HANDLE) get_int_var_by_name (lexic, "wmi_handle", 0);
 
   if (!handle)
     return NULL;
 
-  unsigned int hive = get_int_var_by_name (lexic, "hive", 0);     // REGISTRY Hive
-  char *key = get_str_var_by_name (lexic, "key"); // REGISTRY KEY
-  char *val_name = get_str_var_by_name (lexic, "val_name");       // REGISTRY VALUE NAME
+  unsigned int hive = get_int_var_by_name (lexic, "hive", 0); // REGISTRY Hive
+  char *key = get_str_var_by_name (lexic, "key");             // REGISTRY KEY
+  char *val_name =
+    get_str_var_by_name (lexic, "val_name"); // REGISTRY VALUE NAME
 
   char *res = NULL;
   int value;
@@ -693,17 +687,17 @@ nasl_wmi_reg_get_dword_val (lex_ctxt * lexic)
  * querying Expanded string value.
  */
 tree_cell *
-nasl_wmi_reg_get_ex_string_val (lex_ctxt * lexic)
+nasl_wmi_reg_get_ex_string_val (lex_ctxt *lexic)
 {
-  WMI_HANDLE handle =
-    (WMI_HANDLE) get_int_var_by_name (lexic, "wmi_handle", 0);
+  WMI_HANDLE handle = (WMI_HANDLE) get_int_var_by_name (lexic, "wmi_handle", 0);
 
   if (!handle)
     return NULL;
 
-  unsigned int hive = get_int_var_by_name (lexic, "hive", 0);     // REGISTRY Hive
-  char *key = get_str_var_by_name (lexic, "key"); // REGISTRY KEY
-  char *val_name = get_str_var_by_name (lexic, "val_name");       // REGISTRY VALUE NAME
+  unsigned int hive = get_int_var_by_name (lexic, "hive", 0); // REGISTRY Hive
+  char *key = get_str_var_by_name (lexic, "key");             // REGISTRY KEY
+  char *val_name =
+    get_str_var_by_name (lexic, "val_name"); // REGISTRY VALUE NAME
 
   char *res = NULL;
   int value;
@@ -740,17 +734,17 @@ nasl_wmi_reg_get_ex_string_val (lex_ctxt * lexic)
  * querying Expanded string value.
  */
 tree_cell *
-nasl_wmi_reg_get_mul_string_val (lex_ctxt * lexic)
+nasl_wmi_reg_get_mul_string_val (lex_ctxt *lexic)
 {
-  WMI_HANDLE handle =
-    (WMI_HANDLE) get_int_var_by_name (lexic, "wmi_handle", 0);
+  WMI_HANDLE handle = (WMI_HANDLE) get_int_var_by_name (lexic, "wmi_handle", 0);
 
   if (!handle)
     return NULL;
 
-  unsigned int hive = get_int_var_by_name (lexic, "hive", 0);     // REGISTRY Hive
-  char *key = get_str_var_by_name (lexic, "key"); // REGISTRY KEY
-  char *val_name = get_str_var_by_name (lexic, "val_name");       // REGISTRY VALUE NAME
+  unsigned int hive = get_int_var_by_name (lexic, "hive", 0); // REGISTRY Hive
+  char *key = get_str_var_by_name (lexic, "key");             // REGISTRY KEY
+  char *val_name =
+    get_str_var_by_name (lexic, "val_name"); // REGISTRY VALUE NAME
 
   char *res = NULL;
   int value;
@@ -787,17 +781,17 @@ nasl_wmi_reg_get_mul_string_val (lex_ctxt * lexic)
  * querying 64-bit unsigned integer.
  */
 tree_cell *
-nasl_wmi_reg_get_qword_val (lex_ctxt * lexic)
+nasl_wmi_reg_get_qword_val (lex_ctxt *lexic)
 {
-  WMI_HANDLE handle =
-    (WMI_HANDLE) get_int_var_by_name (lexic, "wmi_handle", 0);
+  WMI_HANDLE handle = (WMI_HANDLE) get_int_var_by_name (lexic, "wmi_handle", 0);
 
   if (!handle)
     return NULL;
 
-  unsigned int hive = get_int_var_by_name (lexic, "hive", 0);     // REGISTRY Hive
-  char *key = get_str_var_by_name (lexic, "key"); // REGISTRY KEY
-  char *val_name = get_str_var_by_name (lexic, "val_name");       // REGISTRY VALUE NAME
+  unsigned int hive = get_int_var_by_name (lexic, "hive", 0); // REGISTRY Hive
+  char *key = get_str_var_by_name (lexic, "key");             // REGISTRY KEY
+  char *val_name =
+    get_str_var_by_name (lexic, "val_name"); // REGISTRY VALUE NAME
 
   char *res = NULL;
   int value;
@@ -835,27 +829,27 @@ nasl_wmi_reg_get_qword_val (lex_ctxt * lexic)
  * It will work only if the key exist
  */
 tree_cell *
-nasl_wmi_reg_set_dword_val (lex_ctxt * lexic)
+nasl_wmi_reg_set_dword_val (lex_ctxt *lexic)
 {
-  WMI_HANDLE handle =
-    (WMI_HANDLE) get_int_var_by_name (lexic, "wmi_handle", 0);
+  WMI_HANDLE handle = (WMI_HANDLE) get_int_var_by_name (lexic, "wmi_handle", 0);
 
   if (!handle)
     return NULL;
 
   char *key = get_str_var_by_name (lexic, "key"); // REGISTRY KEY
-  char *val_name = get_str_var_by_name (lexic, "val_name");       // REGISTRY VALUE NAME
-  char *val = get_str_var_by_name (lexic, "val");  //REGISTERY VALUE TO SET
+  char *val_name =
+    get_str_var_by_name (lexic, "val_name");      // REGISTRY VALUE NAME
+  char *val = get_str_var_by_name (lexic, "val"); // REGISTERY VALUE TO SET
 
   uint32_t val1;
   int value;
 
   // Return NULL if any alphabet is present
-  if (check_alpha(val) == 0)
+  if (check_alpha (val) == 0)
     return NULL;
 
   // Convert string to proper 64 bit integer
-  val1 = stoi_uint32_t(val);
+  val1 = stoi_uint32_t (val);
 
   tree_cell *retc = alloc_tree_cell ();
 
@@ -887,27 +881,27 @@ nasl_wmi_reg_set_dword_val (lex_ctxt * lexic)
  * It will work only if the key exist
  */
 tree_cell *
-nasl_wmi_reg_set_qword_val (lex_ctxt * lexic)
+nasl_wmi_reg_set_qword_val (lex_ctxt *lexic)
 {
-  WMI_HANDLE handle =
-    (WMI_HANDLE) get_int_var_by_name (lexic, "wmi_handle", 0);
+  WMI_HANDLE handle = (WMI_HANDLE) get_int_var_by_name (lexic, "wmi_handle", 0);
 
   if (!handle)
     return NULL;
 
   char *key = get_str_var_by_name (lexic, "key"); // REGISTRY KEY
-  char *val_name = get_str_var_by_name (lexic, "val_name");       // REGISTRY VALUE NAME
-  char *val = get_str_var_by_name (lexic, "val");  //REGISTERY VALUE TO SET
+  char *val_name =
+    get_str_var_by_name (lexic, "val_name");      // REGISTRY VALUE NAME
+  char *val = get_str_var_by_name (lexic, "val"); // REGISTERY VALUE TO SET
 
   uint64_t val1;
   int value;
 
   // Return if alphabets present
-  if (check_alpha(val) == 0)
+  if (check_alpha (val) == 0)
     return NULL;
 
   // Convert string to proper integer
-  val1 = stoi_uint64_t(val);
+  val1 = stoi_uint64_t (val);
 
   tree_cell *retc = alloc_tree_cell ();
 
@@ -939,17 +933,17 @@ nasl_wmi_reg_set_qword_val (lex_ctxt * lexic)
  * It will work only if the key exist
  */
 tree_cell *
-nasl_wmi_reg_set_ex_string_val (lex_ctxt * lexic)
+nasl_wmi_reg_set_ex_string_val (lex_ctxt *lexic)
 {
-  WMI_HANDLE handle =
-    (WMI_HANDLE) get_int_var_by_name (lexic, "wmi_handle", 0);
+  WMI_HANDLE handle = (WMI_HANDLE) get_int_var_by_name (lexic, "wmi_handle", 0);
 
   if (!handle)
     return NULL;
 
   char *key = get_str_var_by_name (lexic, "key"); // REGISTRY KEY
-  char *val_name = get_str_var_by_name (lexic, "val_name");       // REGISTRY VALUE NAME
-  char *val = get_str_var_by_name (lexic, "val");  //REGISTERY VALUE TO SET
+  char *val_name =
+    get_str_var_by_name (lexic, "val_name");      // REGISTRY VALUE NAME
+  char *val = get_str_var_by_name (lexic, "val"); // REGISTERY VALUE TO SET
 
   int value;
 
@@ -962,7 +956,8 @@ nasl_wmi_reg_set_ex_string_val (lex_ctxt * lexic)
 
   if (value == -1)
     {
-      g_message ("nasl_wmi_reg_set_ex_string_val: WMI registery set operation failed");
+      g_message (
+        "nasl_wmi_reg_set_ex_string_val: WMI registery set operation failed");
       return NULL;
     }
   return retc;
@@ -982,17 +977,17 @@ nasl_wmi_reg_set_ex_string_val (lex_ctxt * lexic)
  * It will work only if the key exist
  */
 tree_cell *
-nasl_wmi_reg_set_string_val (lex_ctxt * lexic)
+nasl_wmi_reg_set_string_val (lex_ctxt *lexic)
 {
-  WMI_HANDLE handle =
-    (WMI_HANDLE) get_int_var_by_name (lexic, "wmi_handle", 0);
+  WMI_HANDLE handle = (WMI_HANDLE) get_int_var_by_name (lexic, "wmi_handle", 0);
 
   if (!handle)
     return NULL;
 
   char *key = get_str_var_by_name (lexic, "key"); // REGISTRY KEY
-  char *val_name = get_str_var_by_name (lexic, "val_name");       // REGISTRY VALUE NAME
-  char *val = get_str_var_by_name (lexic, "val");  //REGISTERY VALUE TO SET
+  char *val_name =
+    get_str_var_by_name (lexic, "val_name");      // REGISTRY VALUE NAME
+  char *val = get_str_var_by_name (lexic, "val"); // REGISTERY VALUE TO SET
 
   int value;
 
@@ -1009,7 +1004,7 @@ nasl_wmi_reg_set_string_val (lex_ctxt * lexic)
                  " set operation failed");
       return NULL;
     }
-    return retc;
+  return retc;
 }
 
 /**
@@ -1024,10 +1019,9 @@ nasl_wmi_reg_set_string_val (lex_ctxt * lexic)
  * for the key.
  */
 tree_cell *
-nasl_wmi_reg_create_key (lex_ctxt * lexic)
+nasl_wmi_reg_create_key (lex_ctxt *lexic)
 {
-  WMI_HANDLE handle =
-    (WMI_HANDLE) get_int_var_by_name (lexic, "wmi_handle", 0);
+  WMI_HANDLE handle = (WMI_HANDLE) get_int_var_by_name (lexic, "wmi_handle", 0);
 
   if (!handle)
     return NULL;
@@ -1049,7 +1043,7 @@ nasl_wmi_reg_create_key (lex_ctxt * lexic)
                  " operation failed");
       return NULL;
     }
-    return retc;
+  return retc;
 }
 
 /**
@@ -1066,10 +1060,9 @@ nasl_wmi_reg_create_key (lex_ctxt * lexic)
  * It will work only if the key exist
  */
 tree_cell *
-nasl_wmi_reg_delete_key (lex_ctxt * lexic)
+nasl_wmi_reg_delete_key (lex_ctxt *lexic)
 {
-  WMI_HANDLE handle =
-    (WMI_HANDLE) get_int_var_by_name (lexic, "wmi_handle", 0);
+  WMI_HANDLE handle = (WMI_HANDLE) get_int_var_by_name (lexic, "wmi_handle", 0);
 
   if (!handle)
     return NULL;
@@ -1091,5 +1084,5 @@ nasl_wmi_reg_delete_key (lex_ctxt * lexic)
                  " delete operation failed");
       return NULL;
     }
-    return retc;
+  return retc;
 }

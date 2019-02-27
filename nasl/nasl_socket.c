@@ -27,37 +27,31 @@
  * the NASL built-ins open_sock_tcp, send, recv, recv_line, and close.
  */
 
-
 /*--------------------------------------------------------------------------*/
-#include <arpa/inet.h>          /* for inet_aton */
-#include <errno.h>              /* for errno */
-#include <fcntl.h>              /* for fnctl */
-#include <netinet/in.h>         /* for sockaddr_in */
-#include <string.h>             /* for bzero */
-#include <unistd.h>             /* for close */
-#include <stdlib.h>             /* for atoi() */
-#include <sys/time.h>
-
-
-#include <gnutls/gnutls.h>
-#include <gvm/base/networking.h> /* for gvm_source_set_socket */
-#include <gvm/base/logging.h>
-#include <gvm/base/prefs.h>      /* for prefs_get */
-
 #include "../misc/network.h"
-#include "../misc/plugutils.h"          /* for plug_get_host_ip */
-
-#include "nasl.h"
-
-#include "nasl_tree.h"
-#include "nasl_global_ctxt.h"
-#include "nasl_func.h"
-#include "nasl_var.h"
-#include "nasl_lex_ctxt.h"
+#include "../misc/plugutils.h" /* for plug_get_host_ip */
 #include "exec.h"
-
-#include "nasl_packet_forgery.h"
+#include "nasl.h"
 #include "nasl_debug.h"
+#include "nasl_func.h"
+#include "nasl_global_ctxt.h"
+#include "nasl_lex_ctxt.h"
+#include "nasl_packet_forgery.h"
+#include "nasl_tree.h"
+#include "nasl_var.h"
+
+#include <arpa/inet.h> /* for inet_aton */
+#include <errno.h>     /* for errno */
+#include <fcntl.h>     /* for fnctl */
+#include <gnutls/gnutls.h>
+#include <gvm/base/logging.h>
+#include <gvm/base/networking.h> /* for gvm_source_set_socket */
+#include <gvm/base/prefs.h>      /* for prefs_get */
+#include <netinet/in.h>          /* for sockaddr_in */
+#include <stdlib.h>              /* for atoi() */
+#include <string.h>              /* for bzero */
+#include <sys/time.h>
+#include <unistd.h> /* for close */
 
 #ifndef EADDRNOTAVAIL
 #define EADDRNOTAVAIL EADDRINUSE
@@ -139,11 +133,11 @@ wait_before_next_probe ()
         }
 
       diff_msec = tvdiff.tv_sec * 1000 + tvdiff.tv_usec / 1000;
-      time2wait  = (minwaittime - diff_msec) * 1000;
+      time2wait = (minwaittime - diff_msec) * 1000;
       if (time2wait > 0)
         usleep (time2wait);
 
-      gettimeofday(&tvnow, NULL);
+      gettimeofday (&tvnow, NULL);
       lastprobesec = tvnow.tv_sec;
       lastprobeusec = tvnow.tv_usec;
     }
@@ -159,29 +153,31 @@ wait_before_next_probe ()
  *
  */
 
-struct udp_record {
+struct udp_record
+{
   int len;
-  char * data;
+  char *data;
 };
 
 /* add udp data in our cache */
 static int
 add_udp_data (struct script_infos *script_infos, int soc, char *data, int len)
 {
-  GHashTable * udp_data = script_infos->udp_data;
-  struct udp_record * data_record = g_malloc0 (sizeof(struct udp_record));
-  int * key = g_memdup (&soc, sizeof(int));
+  GHashTable *udp_data = script_infos->udp_data;
+  struct udp_record *data_record = g_malloc0 (sizeof (struct udp_record));
+  int *key = g_memdup (&soc, sizeof (int));
 
   data_record->len = len;
-  data_record->data = g_memdup ((gconstpointer)data, (guint)len);
+  data_record->data = g_memdup ((gconstpointer) data, (guint) len);
 
   if (udp_data == NULL)
     {
-      udp_data = g_hash_table_new_full (g_int_hash, g_int_equal, g_free, g_free);
+      udp_data =
+        g_hash_table_new_full (g_int_hash, g_int_equal, g_free, g_free);
       script_infos->udp_data = udp_data;
     }
 
-  g_hash_table_replace (udp_data, (gpointer)key, (gpointer)data_record);
+  g_hash_table_replace (udp_data, (gpointer) key, (gpointer) data_record);
 
   return 0;
 }
@@ -195,13 +191,15 @@ get_udp_data (struct script_infos *script_infos, int soc, int *len)
 
   if ((udp_data = script_infos->udp_data) == NULL)
     {
-      udp_data = g_hash_table_new_full (g_int_hash, g_int_equal, g_free, g_free);
+      udp_data =
+        g_hash_table_new_full (g_int_hash, g_int_equal, g_free, g_free);
       script_infos->udp_data = udp_data;
       return NULL;
     }
-  data_record = g_hash_table_lookup (udp_data, (gconstpointer)&soc);
+  data_record = g_hash_table_lookup (udp_data, (gconstpointer) &soc);
 
-  if (!data_record) return NULL;
+  if (!data_record)
+    return NULL;
 
   *len = data_record->len;
   return data_record->data;
@@ -214,16 +212,15 @@ rm_udp_data (struct script_infos *script_infos, int soc)
   GHashTable *udp_data = script_infos->udp_data;
 
   if (udp_data)
-    g_hash_table_remove (udp_data, (gconstpointer)&soc);
+    g_hash_table_remove (udp_data, (gconstpointer) &soc);
 }
-
 
 /*-------------------------------------------------------------------*/
 
 int lowest_socket = 0;
 
 static tree_cell *
-nasl_open_privileged_socket (lex_ctxt * lexic, int proto)
+nasl_open_privileged_socket (lex_ctxt *lexic, int proto)
 {
   struct script_infos *script_infos = lexic->script_infos;
   int sport, current_sport = -1;
@@ -241,20 +238,17 @@ nasl_open_privileged_socket (lex_ctxt * lexic, int proto)
   unsigned int opt_sz;
   int family;
 
-
-
   sport = get_int_var_by_name (lexic, "sport", -1);
   dport = get_int_var_by_name (lexic, "dport", -1);
   if (dport <= 0)
     {
-      nasl_perror (lexic,
-                   "open_private_socket: missing or undefined parameter dport!\n");
+      nasl_perror (
+        lexic, "open_private_socket: missing or undefined parameter dport!\n");
       return NULL;
     }
 
   if (sport < 0)
     current_sport = 1023;
-
 
 restart:
   if (proto == IPPROTO_TCP)
@@ -279,7 +273,6 @@ restart:
         sock = socket (AF_INET6, SOCK_DGRAM, IPPROTO_UDP);
     }
 
-
   /*
    * We will bind to a privileged port. Let's declare
    * our socket ready for reuse
@@ -294,8 +287,7 @@ tryagain:
       close (sock);
       return NULL;
     }
-  e =
-    gvm_source_set_socket (sock, sport > 0 ? sport : current_sport--, family);
+  e = gvm_source_set_socket (sock, sport > 0 ? sport : current_sport--, family);
 
   /*
    * bind() failed - try again on a lower port
@@ -310,7 +302,6 @@ tryagain:
       else
         goto tryagain;
     }
-
 
   /*
    * Connect to the other end
@@ -335,7 +326,6 @@ tryagain:
       unblock_socket (sock);
       e = connect (sock, (struct sockaddr *) &daddr6, sizeof (daddr6));
     }
-
 
   if (e < 0)
     {
@@ -375,12 +365,11 @@ tryagain:
 
   if (getsockopt (sock, SOL_SOCKET, SO_ERROR, &opt, &opt_sz) < 0)
     {
-      g_message ("[%d] open_priv_sock()->getsockopt() failed : %s",
-                 getpid (), strerror (errno));
+      g_message ("[%d] open_priv_sock()->getsockopt() failed : %s", getpid (),
+                 strerror (errno));
       close (sock);
       return NULL;
     }
-
 
   switch (opt)
     {
@@ -411,24 +400,22 @@ tryagain:
   return retc;
 }
 
-
 tree_cell *
-nasl_open_priv_sock_tcp (lex_ctxt * lexic)
+nasl_open_priv_sock_tcp (lex_ctxt *lexic)
 {
   return nasl_open_privileged_socket (lexic, IPPROTO_TCP);
 }
 
 tree_cell *
-nasl_open_priv_sock_udp (lex_ctxt * lexic)
+nasl_open_priv_sock_udp (lex_ctxt *lexic)
 {
   return nasl_open_privileged_socket (lexic, IPPROTO_UDP);
 }
 
-
 /*--------------------------------------------------------------------------*/
 
 tree_cell *
-nasl_open_sock_tcp_bufsz (lex_ctxt * lexic, int bufsz)
+nasl_open_sock_tcp_bufsz (lex_ctxt *lexic, int bufsz)
 {
   int soc = -1;
   struct script_infos *script_infos = lexic->script_infos;
@@ -473,8 +460,8 @@ nasl_open_sock_tcp_bufsz (lex_ctxt * lexic, int bufsz)
   else if (transport == 0)
     soc = open_stream_auto_encaps_ext (script_infos, port, to, 1);
   else
-    soc = open_stream_connection_ext (script_infos, port, transport, to,
-                                      priority);
+    soc =
+      open_stream_connection_ext (script_infos, port, transport, to, priority);
   if (bufsz > 0 && soc >= 0)
     {
       if (stream_set_buffer (soc, bufsz) < 0)
@@ -529,7 +516,7 @@ nasl_open_sock_tcp_bufsz (lex_ctxt * lexic, int bufsz)
  * @return A tree cell.
  */
 tree_cell *
-nasl_open_sock_tcp (lex_ctxt * lexic)
+nasl_open_sock_tcp (lex_ctxt *lexic)
 {
   return nasl_open_sock_tcp_bufsz (lexic, -1);
 }
@@ -541,7 +528,7 @@ nasl_open_sock_tcp (lex_ctxt * lexic)
  * Our goal is to hide this difference for the end-user
  */
 tree_cell *
-nasl_open_sock_udp (lex_ctxt * lexic)
+nasl_open_sock_udp (lex_ctxt *lexic)
 {
   int soc;
   tree_cell *retc;
@@ -603,15 +590,14 @@ nasl_open_sock_udp (lex_ctxt * lexic)
 }
 
 tree_cell *
-nasl_socket_negotiate_ssl (lex_ctxt * lexic)
+nasl_socket_negotiate_ssl (lex_ctxt *lexic)
 {
   int soc, transport, ret;
   tree_cell *retc;
 
-
   soc = get_int_var_by_name (lexic, "socket", -1);
-  transport = get_int_var_by_name (lexic, "transport",
-                                   OPENVAS_ENCAPS_TLScustom);
+  transport =
+    get_int_var_by_name (lexic, "transport", OPENVAS_ENCAPS_TLScustom);
   if (soc < 0)
     {
       nasl_perror (lexic, "socket_ssl_negotiate: Erroneous socket value %d\n",
@@ -622,7 +608,8 @@ nasl_socket_negotiate_ssl (lex_ctxt * lexic)
     transport = OPENVAS_ENCAPS_TLScustom;
   else if (!IS_ENCAPS_SSL (transport))
     {
-      nasl_perror (lexic, "socket_ssl_negotiate: Erroneous transport value %d\n",
+      nasl_perror (lexic,
+                   "socket_ssl_negotiate: Erroneous transport value %d\n",
                    transport);
       return NULL;
     }
@@ -637,7 +624,7 @@ nasl_socket_negotiate_ssl (lex_ctxt * lexic)
 }
 
 tree_cell *
-nasl_socket_get_cert (lex_ctxt * lexic)
+nasl_socket_get_cert (lex_ctxt *lexic)
 {
   int soc, cert_len = 0;
   tree_cell *retc;
@@ -646,8 +633,7 @@ nasl_socket_get_cert (lex_ctxt * lexic)
   soc = get_int_var_by_name (lexic, "socket", -1);
   if (soc < 0)
     {
-      nasl_perror (lexic, "socket_get_cert: Erroneous socket value %d\n",
-                   soc);
+      nasl_perror (lexic, "socket_get_cert: Erroneous socket value %d\n", soc);
       return NULL;
     }
   socket_get_cert (soc, &cert, &cert_len);
@@ -661,7 +647,7 @@ nasl_socket_get_cert (lex_ctxt * lexic)
 }
 
 tree_cell *
-nasl_socket_get_ssl_session_id (lex_ctxt * lexic)
+nasl_socket_get_ssl_session_id (lex_ctxt *lexic)
 {
   int soc;
   size_t sid_len = 0;
@@ -671,8 +657,7 @@ nasl_socket_get_ssl_session_id (lex_ctxt * lexic)
   soc = get_int_var_by_name (lexic, "socket", -1);
   if (soc < 0)
     {
-      nasl_perror (lexic, "socket_get_cert: Erroneous socket value %d\n",
-                   soc);
+      nasl_perror (lexic, "socket_get_cert: Erroneous socket value %d\n", soc);
       return NULL;
     }
   socket_get_ssl_session_id (soc, &sid, &sid_len);
@@ -686,7 +671,7 @@ nasl_socket_get_ssl_session_id (lex_ctxt * lexic)
 }
 
 tree_cell *
-nasl_socket_get_ssl_version (lex_ctxt * lexic)
+nasl_socket_get_ssl_version (lex_ctxt *lexic)
 {
   int soc;
   int version;
@@ -703,7 +688,7 @@ nasl_socket_get_ssl_version (lex_ctxt * lexic)
 }
 
 tree_cell *
-nasl_socket_get_ssl_ciphersuite (lex_ctxt * lexic)
+nasl_socket_get_ssl_ciphersuite (lex_ctxt *lexic)
 {
   int soc, result;
   tree_cell *retc;
@@ -721,7 +706,7 @@ nasl_socket_get_ssl_ciphersuite (lex_ctxt * lexic)
 /*---------------------------------------------------------------------*/
 
 tree_cell *
-nasl_recv (lex_ctxt * lexic)
+nasl_recv (lex_ctxt *lexic)
 {
   char *data;
   int len = get_int_var_by_name (lexic, "length", -1);
@@ -777,7 +762,7 @@ nasl_recv (lex_ctxt * lexic)
               else
                 new_len += e;
 
-              break;            /* UDP data is never fragmented */
+              break; /* UDP data is never fragmented */
             }
           else
             {
@@ -815,10 +800,8 @@ nasl_recv (lex_ctxt * lexic)
     }
 }
 
-
-
 tree_cell *
-nasl_recv_line (lex_ctxt * lexic)
+nasl_recv_line (lex_ctxt *lexic)
 {
   int len = get_int_var_by_name (lexic, "length", -1);
   int soc = get_int_var_by_name (lexic, "socket", 0);
@@ -836,7 +819,7 @@ nasl_recv_line (lex_ctxt * lexic)
       return NULL;
     }
 
-  if (timeout >= 0)             /* sycalls are much more expensive than simple tests */
+  if (timeout >= 0) /* sycalls are much more expensive than simple tests */
     t1 = time (NULL);
 
   if (fd_is_stream (soc) != 0)
@@ -864,8 +847,6 @@ nasl_recv_line (lex_ctxt * lexic)
         break;
     }
 
-
-
   if (n <= 0)
     {
       g_free (data);
@@ -873,8 +854,6 @@ nasl_recv_line (lex_ctxt * lexic)
     }
 
   new_len = n;
-
-
 
   retc = alloc_tree_cell ();
   retc->type = CONST_DATA;
@@ -889,7 +868,7 @@ nasl_recv_line (lex_ctxt * lexic)
 /*---------------------------------------------------------------------*/
 
 tree_cell *
-nasl_send (lex_ctxt * lexic)
+nasl_send (lex_ctxt *lexic)
 {
   int soc = get_int_var_by_name (lexic, "socket", 0);
   char *data = get_str_var_by_name (lexic, "data");
@@ -912,7 +891,6 @@ nasl_send (lex_ctxt * lexic)
   if (length <= 0 || length > data_length)
     length = data_length;
 
-
   if (!fd_is_stream (soc)
       && getsockopt (soc, SOL_SOCKET, SO_TYPE, &type, &type_len) == 0
       && type == SOCK_DGRAM)
@@ -933,10 +911,9 @@ nasl_send (lex_ctxt * lexic)
   return retc;
 }
 
-
 /*---------------------------------------------------------------------*/
 tree_cell *
-nasl_close_socket (lex_ctxt * lexic)
+nasl_close_socket (lex_ctxt *lexic)
 {
   int soc;
   int type;
@@ -972,7 +949,6 @@ nasl_close_socket (lex_ctxt * lexic)
   return NULL;
 }
 
-
 static struct jmg
 {
   struct in_addr in;
@@ -982,7 +958,7 @@ static struct jmg
 static int jmg_max = 0;
 
 tree_cell *
-nasl_join_multicast_group (lex_ctxt * lexic)
+nasl_join_multicast_group (lex_ctxt *lexic)
 {
   char *a;
   int i, j;
@@ -1013,7 +989,6 @@ nasl_join_multicast_group (lex_ctxt * lexic)
     else if (jmg_desc[i].count <= 0)
       j = i;
 
-
   if (i >= jmg_max)
     {
       int s = socket (AF_INET, SOCK_DGRAM, 0);
@@ -1026,9 +1001,9 @@ nasl_join_multicast_group (lex_ctxt * lexic)
 
       if (setsockopt (s, IPPROTO_IP, IP_ADD_MEMBERSHIP, &m, sizeof (m)) < 0)
         {
-          nasl_perror (lexic,
-                       "join_multicast_group: setsockopt(IP_ADD_MEMBERSHIP): %s\n",
-                       strerror (errno));
+          nasl_perror (
+            lexic, "join_multicast_group: setsockopt(IP_ADD_MEMBERSHIP): %s\n",
+            strerror (errno));
           close (s);
           return NULL;
         }
@@ -1048,9 +1023,8 @@ nasl_join_multicast_group (lex_ctxt * lexic)
   return retc;
 }
 
-
 tree_cell *
-nasl_leave_multicast_group (lex_ctxt * lexic)
+nasl_leave_multicast_group (lex_ctxt *lexic)
 {
   char *a;
   struct in_addr ia;
@@ -1080,10 +1054,9 @@ nasl_leave_multicast_group (lex_ctxt * lexic)
   return NULL;
 }
 
-
 /* Fixme: Merge this into nasl_get_sock_info.  */
 tree_cell *
-nasl_get_source_port (lex_ctxt * lexic)
+nasl_get_source_port (lex_ctxt *lexic)
 {
   struct sockaddr_in ia;
   int s, fd;
@@ -1105,7 +1078,6 @@ nasl_get_source_port (lex_ctxt * lexic)
   else
     fd = openvas_get_socket_from_connection (s);
 
-
   if (fd < 0)
     {
       nasl_perror (lexic, "get_source_port: invalid socket parameter %d\n", s);
@@ -1123,10 +1095,8 @@ nasl_get_source_port (lex_ctxt * lexic)
   return retc;
 }
 
-
-
 tree_cell *
-nasl_socket_get_error (lex_ctxt * lexic)
+nasl_socket_get_error (lex_ctxt *lexic)
 {
   int soc = get_int_var_by_num (lexic, 0, -1);
   tree_cell *retc;
@@ -1167,7 +1137,6 @@ nasl_socket_get_error (lex_ctxt * lexic)
 
   return retc;
 }
-
 
 /**
  * @brief Get info pertaining to a socket.
@@ -1229,7 +1198,7 @@ nasl_socket_get_error (lex_ctxt * lexic)
  * @return A tree cell.
  */
 tree_cell *
-nasl_get_sock_info (lex_ctxt * lexic)
+nasl_get_sock_info (lex_ctxt *lexic)
 {
   int sock;
   int type;
@@ -1250,8 +1219,9 @@ nasl_get_sock_info (lex_ctxt * lexic)
     }
 
   keyword = get_str_var_by_num (lexic, 1);
-  if (!keyword || !((type = get_var_type_by_num (lexic, 1)) == VAR2_STRING
-                    || type == VAR2_DATA))
+  if (!keyword
+      || !((type = get_var_type_by_num (lexic, 1)) == VAR2_STRING
+           || type == VAR2_DATA))
     {
       nasl_perror (lexic, "error: second argument is not of type string\n");
       return NULL;
@@ -1271,8 +1241,8 @@ nasl_get_sock_info (lex_ctxt * lexic)
   }
   if (err)
     {
-      nasl_perror (lexic, "error retrieving infos for socket %d: %s\n",
-                   sock, strerror (err));
+      nasl_perror (lexic, "error retrieving infos for socket %d: %s\n", sock,
+                   strerror (err));
       retc = NULL;
     }
   else if (!strcmp (keyword, "encaps"))
@@ -1287,9 +1257,9 @@ nasl_get_sock_info (lex_ctxt * lexic)
       if (!tls_session)
         s = "n/a";
       else
-        s = gnutls_protocol_get_name
-          (gnutls_protocol_get_version (tls_session));
-      strval = g_strdup (s?s:"[?]");
+        s =
+          gnutls_protocol_get_name (gnutls_protocol_get_version (tls_session));
+      strval = g_strdup (s ? s : "[?]");
     }
   else if (!strcmp (keyword, "tls-kx"))
     {
@@ -1297,16 +1267,16 @@ nasl_get_sock_info (lex_ctxt * lexic)
         s = "n/a";
       else
         s = gnutls_kx_get_name (gnutls_kx_get (tls_session));
-      strval = g_strdup (s?s:"");
+      strval = g_strdup (s ? s : "");
     }
   else if (!strcmp (keyword, "tls-certtype"))
     {
       if (!tls_session)
         s = "n/a";
       else
-        s = gnutls_certificate_type_get_name
-          (gnutls_certificate_type_get (tls_session));
-      strval = g_strdup (s?s:"");
+        s = gnutls_certificate_type_get_name (
+          gnutls_certificate_type_get (tls_session));
+      strval = g_strdup (s ? s : "");
     }
   else if (!strcmp (keyword, "tls-cipher"))
     {
@@ -1314,7 +1284,7 @@ nasl_get_sock_info (lex_ctxt * lexic)
         s = "n/a";
       else
         s = gnutls_cipher_get_name (gnutls_cipher_get (tls_session));
-      strval = g_strdup (s?s:"");
+      strval = g_strdup (s ? s : "");
     }
   else if (!strcmp (keyword, "tls-mac"))
     {
@@ -1322,7 +1292,7 @@ nasl_get_sock_info (lex_ctxt * lexic)
         s = "n/a";
       else
         s = gnutls_mac_get_name (gnutls_mac_get (tls_session));
-      strval = g_strdup (s?s:"");
+      strval = g_strdup (s ? s : "");
     }
   else if (!strcmp (keyword, "tls-auth"))
     {
@@ -1332,11 +1302,21 @@ nasl_get_sock_info (lex_ctxt * lexic)
         {
           switch (gnutls_auth_get_type (tls_session))
             {
-            case GNUTLS_CRD_ANON:        s = "ANON"; break;
-            case GNUTLS_CRD_CERTIFICATE: s = "CERT"; break;
-            case GNUTLS_CRD_PSK:         s = "PSK";  break;
-            case GNUTLS_CRD_SRP:         s = "SRP";  break;
-            default:                     s = "[?]";  break;
+            case GNUTLS_CRD_ANON:
+              s = "ANON";
+              break;
+            case GNUTLS_CRD_CERTIFICATE:
+              s = "CERT";
+              break;
+            case GNUTLS_CRD_PSK:
+              s = "PSK";
+              break;
+            case GNUTLS_CRD_SRP:
+              s = "SRP";
+              break;
+            default:
+              s = "[?]";
+              break;
             }
         }
       strval = g_strdup (s);
@@ -1355,7 +1335,7 @@ nasl_get_sock_info (lex_ctxt * lexic)
 
           list = gnutls_certificate_get_peers (tls_session, &nlist);
           if (!list)
-            retc = NULL;  /* No certificate or other error.  */
+            retc = NULL; /* No certificate or other error.  */
           else
             {
               unsigned int i;
@@ -1363,7 +1343,7 @@ nasl_get_sock_info (lex_ctxt * lexic)
               retc->type = DYN_ARRAY;
               retc->x.ref_val = a = g_malloc0 (sizeof *a);
 
-              for (i=0; i < nlist; i++)
+              for (i = 0; i < nlist; i++)
                 {
                   memset (&v, 0, sizeof v);
                   v.var_type = VAR2_DATA;
@@ -1436,8 +1416,7 @@ nasl_socket_cert_verify (lex_ctxt *lexic)
   soc = get_int_var_by_name (lexic, "socket", -1);
   if (soc < 0)
     {
-      nasl_perror (lexic, "socket_get_cert: Erroneous socket value %d\n",
-                   soc);
+      nasl_perror (lexic, "socket_get_cert: Erroneous socket value %d\n", soc);
       return NULL;
     }
 
@@ -1460,13 +1439,13 @@ nasl_socket_cert_verify (lex_ctxt *lexic)
     {
       certs = gnutls_certificate_get_peers (tls_session, &cert_n);
       if (!certs)
-        return NULL;  /* No certificate or other error.  */
+        return NULL; /* No certificate or other error.  */
     }
   else
     return NULL;
 
-  cert = g_malloc0 (sizeof(*cert) * cert_n);
-  for (i = 0; i < cert_n; i++ )
+  cert = g_malloc0 (sizeof (*cert) * cert_n);
+  for (i = 0; i < cert_n; i++)
     {
       if (gnutls_x509_crt_init (&cert[i]) != GNUTLS_E_SUCCESS)
         return NULL;
@@ -1483,8 +1462,7 @@ nasl_socket_cert_verify (lex_ctxt *lexic)
     return NULL;
 
   /* Certificate verification against a trust list*/
-  if (gnutls_x509_trust_list_verify_crt (ca_list, cert, cert_n,
-                                         0, &voutput ,
+  if (gnutls_x509_trust_list_verify_crt (ca_list, cert, cert_n, 0, &voutput,
                                          NULL)
       != GNUTLS_E_SUCCESS)
     return NULL;

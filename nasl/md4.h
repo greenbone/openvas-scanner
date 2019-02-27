@@ -24,4 +24,5 @@
  * A implementation of MD4 designed for use in the SMB authentication protocol
  */
 
-void mdfour_ntlmssp(unsigned char *out, const unsigned char *in, int n);
+void
+mdfour_ntlmssp (unsigned char *out, const unsigned char *in, int n);

@@ -21,35 +21,33 @@
  * @brief Source of the standalone NASL interpreter of OpenVAS.
  */
 
-#include <errno.h>              /* for errno */
-#include <signal.h>             /* for SIGINT */
-#include <string.h>             /* for strlen */
-#include <stdlib.h>             /* for exit */
-#include <unistd.h>             /* for geteuid */
-#include <libssh/libssh.h>      /* for ssh_version */
-#include <gnutls/gnutls.h>      /* for gnutls_check_version */
-#include <sys/wait.h>
+#include "nasl.h"
 
-#include <gcrypt.h>             /* for gcry_control */
+#include "../misc/network.h"
+#include "../misc/nvt_categories.h"
+#include "../misc/vendorversion.h"
+#include "exec.h"
+#include "nasl_lex_ctxt.h"
+
+#include <errno.h>  /* for errno */
+#include <gcrypt.h> /* for gcry_control */
 #include <glib.h>
-#include <gpgme.h>              /* for gpgme_check_version */
-
-#include <gvm/base/hosts.h>     /* for gvm_hosts_* and gvm_host_* */
+#include <gnutls/gnutls.h>       /* for gnutls_check_version */
+#include <gpgme.h>               /* for gpgme_check_version */
+#include <gvm/base/hosts.h>      /* for gvm_hosts_* and gvm_host_* */
 #include <gvm/base/networking.h> /* for gvm_source_iface_init */
 #include <gvm/base/nvti.h>
-#include <gvm/base/prefs.h>     /* for prefs_get */
-#include <gvm/util/kb.h>        /* for kb_new */
-
-#include "../misc/nvt_categories.h"
-#include "../misc/network.h"
-#include "../misc/vendorversion.h"
-
-#include "nasl.h"
-#include "nasl_lex_ctxt.h"
-#include "exec.h"
+#include <gvm/base/prefs.h> /* for prefs_get */
+#include <gvm/util/kb.h>    /* for kb_new */
+#include <libssh/libssh.h>  /* for ssh_version */
+#include <signal.h>         /* for SIGINT */
+#include <stdlib.h>         /* for exit */
+#include <string.h>         /* for strlen */
+#include <sys/wait.h>
+#include <unistd.h> /* for geteuid */
 
 #ifndef MAP_FAILED
-#define MAP_FAILED ((void*)-1)
+#define MAP_FAILED ((void *) -1)
 #endif
 
 #undef G_LOG_DOMAIN
@@ -58,8 +56,8 @@
  */
 #define G_LOG_DOMAIN "lib  nasl"
 
-extern char *nasl_version (void);
-
+extern char *
+nasl_version (void);
 
 void
 sighandler ()
@@ -71,7 +69,7 @@ static void
 my_gnutls_log_func (int level, const char *text)
 {
   fprintf (stderr, "[%d] (%d) %s", getpid (), level, text);
-  if (*text && text[strlen (text) -1] != '\n')
+  if (*text && text[strlen (text) - 1] != '\n')
     putc ('\n', stderr);
 }
 
@@ -86,8 +84,8 @@ init (struct in6_addr *ip, GSList *vhosts, kb_t kb)
   infos->vhosts = vhosts;
   if (prefs_get_bool ("test_empty_vhost"))
     {
-      gvm_vhost_t *vhost = gvm_vhost_new
-                            (addr6_as_str (ip), g_strdup ("IP-address"));
+      gvm_vhost_t *vhost =
+        gvm_vhost_new (addr6_as_str (ip), g_strdup ("IP-address"));
       infos->vhosts = g_slist_prepend (infos->vhosts, vhost);
     }
   infos->globals = g_malloc0 (sizeof (struct scan_globals));
@@ -115,7 +113,6 @@ parse_script_infos (struct script_infos *infos)
 
   return nvti;
 }
-
 
 /**
  * @brief Checks that an NVT category is safe.
@@ -202,8 +199,7 @@ main (int argc, char **argv)
     {"config-file", 'c', 0, G_OPTION_ARG_FILENAME, &config_file,
      "Configuration file", "<filename>"},
     {"source-iface", 'e', 0, G_OPTION_ARG_STRING, &source_iface,
-     "Source network interface for established connections.",
-     "<iface_name>"},
+     "Source network interface for established connections.", "<iface_name>"},
     {"vendor-version", '\0', 0, G_OPTION_ARG_STRING, &vendor_version_string,
      "Use <string> as vendor version.", "<string>"},
     {"safe", 's', 0, G_OPTION_ARG_NONE, &with_safe_checks,
@@ -219,8 +215,7 @@ main (int argc, char **argv)
      "Set KB key to value. Can be used multiple times", "<key=value>"},
     {G_OPTION_REMAINING, 0, 0, G_OPTION_ARG_FILENAME_ARRAY, &nasl_filenames,
      "Absolute path to one or more nasl scripts", "NASL_FILE..."},
-    {NULL, 0, 0, 0, NULL, NULL, NULL}
-  };
+    {NULL, 0, 0, 0, NULL, NULL, NULL}};
 
   option_context =
     g_option_context_new ("- standalone NASL interpreter for OpenVAS");
@@ -231,9 +226,9 @@ main (int argc, char **argv)
       exit (0);
     }
   g_option_context_free (option_context);
- /*--------------------------------------------
- 	Command-line options
-  ---------------------------------------------*/
+  /*--------------------------------------------
+         Command-line options
+   ---------------------------------------------*/
 
   if (display_version)
     {
@@ -280,7 +275,7 @@ main (int argc, char **argv)
   if (with_safe_checks)
     prefs_set ("safe_checks", "yes");
 
-  gcrypt_init();
+  gcrypt_init ();
   openvas_SSL_init ();
   if (!nasl_filenames)
     {

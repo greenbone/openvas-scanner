@@ -21,6 +21,7 @@
 
 #include <glib.h>
 
-int str_match (const gchar *, const gchar *, int);
+int
+str_match (const gchar *, const gchar *, int);
 
 #endif

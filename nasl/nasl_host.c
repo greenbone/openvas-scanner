@@ -26,30 +26,28 @@
  * transport is on the remote port, and so on...
  */
 
-#include <arpa/inet.h>          /* for inet_aton */
-#include <netdb.h>              /* for gethostbyaddr */
-#include <netinet/in.h>         /* for in_addr */
-#include <string.h>             /* for strlen */
-#include <unistd.h>             /* for gethostname */
-
-#include <gvm/base/networking.h>
-#include <gvm/util/kb.h>
-
-#include "../misc/network.h"
-#include "../misc/plugutils.h"          /* for plug_get_host_fqdn */
-#include "../misc/pcap_openvas.h"       /* for v6_is_local_ip */
-
-#include "nasl_tree.h"
-#include "nasl_global_ctxt.h"
-#include "nasl_func.h"
-#include "nasl_var.h"
-#include "nasl_lex_ctxt.h"
-#include "nasl_debug.h"
-
 #include "nasl_host.h"
 
+#include "../misc/network.h"
+#include "../misc/pcap_openvas.h" /* for v6_is_local_ip */
+#include "../misc/plugutils.h"    /* for plug_get_host_fqdn */
+#include "nasl_debug.h"
+#include "nasl_func.h"
+#include "nasl_global_ctxt.h"
+#include "nasl_lex_ctxt.h"
+#include "nasl_tree.h"
+#include "nasl_var.h"
+
+#include <arpa/inet.h> /* for inet_aton */
+#include <gvm/base/networking.h>
+#include <gvm/util/kb.h>
+#include <netdb.h>      /* for gethostbyaddr */
+#include <netinet/in.h> /* for in_addr */
+#include <string.h>     /* for strlen */
+#include <unistd.h>     /* for gethostname */
+
 tree_cell *
-get_hostnames (lex_ctxt * lexic)
+get_hostnames (lex_ctxt *lexic)
 {
   struct script_infos *script_infos = lexic->script_infos;
   tree_cell *retc;
@@ -80,7 +78,7 @@ get_hostnames (lex_ctxt * lexic)
 }
 
 tree_cell *
-get_hostname (lex_ctxt * lexic)
+get_hostname (lex_ctxt *lexic)
 {
   struct script_infos *script_infos = lexic->script_infos;
   char *hostname = plug_get_host_fqdn (script_infos);
@@ -97,14 +95,14 @@ get_hostname (lex_ctxt * lexic)
 }
 
 tree_cell *
-get_hostname_source (lex_ctxt * lexic)
+get_hostname_source (lex_ctxt *lexic)
 {
   struct script_infos *script_infos = lexic->script_infos;
   char *source;
   tree_cell *retc;
 
-  source = plug_get_host_source
-            (script_infos, get_str_var_by_name (lexic, "hostname"));
+  source = plug_get_host_source (script_infos,
+                                 get_str_var_by_name (lexic, "hostname"));
   if (!source)
     return NULL;
 
@@ -116,7 +114,7 @@ get_hostname_source (lex_ctxt * lexic)
 }
 
 tree_cell *
-add_hostname (lex_ctxt * lexic)
+add_hostname (lex_ctxt *lexic)
 {
   pid_t host_pid;
   char buffer[4096];
@@ -170,13 +168,13 @@ resolve_hostname (lex_ctxt *lexic)
 }
 
 tree_cell *
-get_host_ip (lex_ctxt * lexic)
+get_host_ip (lex_ctxt *lexic)
 {
   struct script_infos *script_infos = lexic->script_infos;
   struct in6_addr *ip = plug_get_host_ip (script_infos);
   tree_cell *retc;
 
-  if (ip == NULL)               /* WTF ? */
+  if (ip == NULL) /* WTF ? */
     {
       return FAKE_CELL;
     }
@@ -189,9 +187,8 @@ get_host_ip (lex_ctxt * lexic)
   return retc;
 }
 
-
 tree_cell *
-get_host_open_port (lex_ctxt * lexic)
+get_host_open_port (lex_ctxt *lexic)
 {
   struct script_infos *script_infos = lexic->script_infos;
   unsigned int port = plug_get_host_open_port (script_infos);
@@ -204,9 +201,8 @@ get_host_open_port (lex_ctxt * lexic)
   return retc;
 }
 
-
 tree_cell *
-get_port_state (lex_ctxt * lexic)
+get_port_state (lex_ctxt *lexic)
 {
   int open;
   struct script_infos *script_infos = lexic->script_infos;
@@ -225,7 +221,7 @@ get_port_state (lex_ctxt * lexic)
 }
 
 tree_cell *
-get_udp_port_state (lex_ctxt * lexic)
+get_udp_port_state (lex_ctxt *lexic)
 {
   int open;
   struct script_infos *script_infos = lexic->script_infos;
@@ -243,9 +239,8 @@ get_udp_port_state (lex_ctxt * lexic)
   return retc;
 }
 
-
 tree_cell *
-nasl_islocalhost (lex_ctxt * lexic)
+nasl_islocalhost (lex_ctxt *lexic)
 {
   struct script_infos *script_infos = lexic->script_infos;
   struct in6_addr *dst = plug_get_host_ip (script_infos);
@@ -257,9 +252,8 @@ nasl_islocalhost (lex_ctxt * lexic)
   return retc;
 }
 
-
 tree_cell *
-nasl_islocalnet (lex_ctxt * lexic)
+nasl_islocalnet (lex_ctxt *lexic)
 {
   struct script_infos *script_infos = lexic->script_infos;
   struct in6_addr *ip = plug_get_host_ip (script_infos);
@@ -271,9 +265,8 @@ nasl_islocalnet (lex_ctxt * lexic)
   return retc;
 }
 
-
 tree_cell *
-nasl_this_host (lex_ctxt * lexic)
+nasl_this_host (lex_ctxt *lexic)
 {
   struct script_infos *script_infos = lexic->script_infos;
   tree_cell *retc;
@@ -326,9 +319,8 @@ nasl_this_host (lex_ctxt * lexic)
   return retc;
 }
 
-
 tree_cell *
-nasl_this_host_name (lex_ctxt * lexic)
+nasl_this_host_name (lex_ctxt *lexic)
 {
   char *hostname;
   tree_cell *retc;
@@ -344,7 +336,6 @@ nasl_this_host_name (lex_ctxt * lexic)
   retc->size = strlen (hostname);
   return retc;
 }
-
 
 /**
  * @brief Return the encapsulation mode of a port.
@@ -379,7 +370,7 @@ nasl_this_host_name (lex_ctxt * lexic)
  * @return A tree cell.
  */
 tree_cell *
-get_port_transport (lex_ctxt * lexic)
+get_port_transport (lex_ctxt *lexic)
 {
   struct script_infos *script_infos = lexic->script_infos;
   tree_cell *retc;
@@ -407,9 +398,8 @@ get_port_transport (lex_ctxt * lexic)
   return NULL;
 }
 
-
 tree_cell *
-nasl_same_host (lex_ctxt * lexic)
+nasl_same_host (lex_ctxt *lexic)
 {
   tree_cell *retc;
   struct hostent *h;
@@ -437,7 +427,7 @@ nasl_same_host (lex_ctxt * lexic)
     }
   for (i = 0; i < 2; i++)
     {
-      if (!inet_aton (hn[i], &ia))      /* Not an IP address */
+      if (!inet_aton (hn[i], &ia)) /* Not an IP address */
         {
           h = gethostbyname (hn[i]);
           if (h == NULL)
@@ -538,7 +528,7 @@ nasl_same_host (lex_ctxt * lexic)
 }
 
 tree_cell *
-nasl_target_is_ipv6 (lex_ctxt * lexic)
+nasl_target_is_ipv6 (lex_ctxt *lexic)
 {
   tree_cell *retc;
   struct script_infos *script_infos = lexic->script_infos;

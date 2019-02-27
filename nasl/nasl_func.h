@@ -25,11 +25,13 @@
 typedef struct st_nasl_func
 {
   char *func_name;
-  void *block;                  /* Can be pointer to a C function! */
+  void *block; /* Can be pointer to a C function! */
 } nasl_func;
 
-nasl_func *func_is_internal (const char *);
+nasl_func *
+func_is_internal (const char *);
 
-void free_func (nasl_func *);
+void
+free_func (nasl_func *);
 
 #endif

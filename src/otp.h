@@ -35,6 +35,7 @@ typedef enum
   CREQ_NVT_INFO,
 } client_request_t;
 
-client_request_t otp_get_client_request (char *);
+client_request_t
+otp_get_client_request (char *);
 
 #endif

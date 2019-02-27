@@ -23,24 +23,22 @@
  * @brief OpenVAS Transfer Protocol handling.
  */
 
-#include <string.h> /* for strlen() */
-#include <stdlib.h> /* for atoi() */
-#include <stdio.h>  /* for snprintf() */
+#include "ntp.h"
+
+#include "../misc/network.h" /* for recv_line */
+#include "comm.h"
+#include "hosts.h"
+#include "otp.h"
+#include "utils.h"
 
 #include <glib.h>
-
-#include <gvm/base/prefs.h>         /* for prefs_set() */
-
-#include "../misc/network.h"    /* for recv_line */
-
-#include "ntp.h"
-#include "otp.h"
-#include "comm.h"
-#include "utils.h"
-#include "hosts.h"
+#include <gvm/base/prefs.h> /* for prefs_set() */
+#include <stdio.h>          /* for snprintf() */
+#include <stdlib.h>         /* for atoi() */
+#include <string.h>         /* for strlen() */
 
 #ifndef MIN
-#define MIN(x,y) ((x) < (y) ? (x):(y))
+#define MIN(x, y) ((x) < (y) ? (x) : (y))
 #endif
 
 #undef G_LOG_DOMAIN
@@ -49,10 +47,12 @@
  */
 #define G_LOG_DOMAIN "sd   main"
 
-
-static int ntp_read_prefs (int);
-static int ntp_long_attack (int);
-static int ntp_recv_file (struct scan_globals *);
+static int
+ntp_read_prefs (int);
+static int
+ntp_long_attack (int);
+static int
+ntp_recv_file (struct scan_globals *);
 
 /**
  * @brief Parses the input sent by the client before the NEW_ATTACK message.
@@ -61,7 +61,7 @@ int
 ntp_parse_input (struct scan_globals *globals, char *input)
 {
   char *str;
-  int result = 1;               /* default return value is 1 */
+  int result = 1; /* default return value is 1 */
   int soc = globals->global_socket;
 
   if (*input == '\0')
@@ -165,7 +165,7 @@ ntp_read_prefs (int soc)
 {
   char *input;
   int input_sz = 1024 * 1024 * 2; /* this is sufficient for a plugin_set
-                                     for up to 69K OIDs */ 
+                                     for up to 69K OIDs */
 
   input = g_malloc0 (input_sz);
   for (;;)
@@ -367,7 +367,6 @@ ntp_recv_file (struct scan_globals *globals)
 
  ----------------------------------------------------------*/
 
-
 static int
 __ntp_timestamp_scan (int soc, char *msg)
 {
@@ -387,7 +386,6 @@ __ntp_timestamp_scan (int soc, char *msg)
   send_printf (soc, "SERVER <|> TIME <|> %s <|> %s <|> SERVER\n", msg, timestr);
   return 0;
 }
-
 
 static int
 __ntp_timestamp_scan_host (int soc, kb_t kb, char *msg, char *host)
@@ -417,7 +415,6 @@ __ntp_timestamp_scan_host (int soc, kb_t kb, char *msg, char *host)
 
   return 0;
 }
-
 
 int
 ntp_timestamp_scan_starts (int soc)

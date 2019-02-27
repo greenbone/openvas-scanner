@@ -23,21 +23,20 @@
  * @brief A bunch of miscellaneous functions, mostly file conversions.
  */
 
-#include <stdlib.h>    /* for atoi() */
-#include <string.h>    /* for strchr() */
-#include <sys/wait.h>  /* for waitpid() */
-#include <errno.h>     /* for errno() */
-#include <sys/ioctl.h> /* for ioctl() */
-#include <sys/stat.h>  /* for stat() */
+#include "utils.h"
 
-#include <gvm/base/prefs.h>      /* for prefs_get() */
-
-#include "../misc/network.h"    /* for stream_zero */
-
+#include "../misc/network.h" /* for stream_zero */
 #include "comm.h"
 #include "ntp.h"
-#include "utils.h"
 #include "pluginscheduler.h"
+
+#include <errno.h>          /* for errno() */
+#include <gvm/base/prefs.h> /* for prefs_get() */
+#include <stdlib.h>         /* for atoi() */
+#include <string.h>         /* for strchr() */
+#include <sys/ioctl.h>      /* for ioctl() */
+#include <sys/stat.h>       /* for stat() */
+#include <sys/wait.h>       /* for waitpid() */
 
 extern int global_max_hosts;
 extern int global_max_checks;
@@ -81,14 +80,15 @@ get_max_hosts_number (void)
       if (max_hosts <= 0)
         {
           g_debug ("Error ! max_hosts = %d -- check %s", max_hosts,
-                     (char *) prefs_get ("config_file"));
+                   (char *) prefs_get ("config_file"));
           max_hosts = global_max_hosts;
         }
       else if (max_hosts > global_max_hosts)
         {
           g_debug ("Client tried to raise the maximum hosts number - %d."
-                     " Using %d. Change 'max_hosts' in openvassd.conf if you"
-                     " believe this is incorrect", max_hosts, global_max_hosts);
+                   " Using %d. Change 'max_hosts' in openvassd.conf if you"
+                   " believe this is incorrect",
+                   max_hosts, global_max_hosts);
           max_hosts = global_max_hosts;
         }
     }
@@ -111,14 +111,15 @@ get_max_checks_number (void)
       if (max_checks <= 0)
         {
           g_debug ("Error ! max_hosts = %d -- check %s", max_checks,
-                     (char *) prefs_get ("config_file"));
+                   (char *) prefs_get ("config_file"));
           max_checks = global_max_checks;
         }
       else if (max_checks > global_max_checks)
         {
           g_debug ("Client tried to raise the maximum checks number - %d."
-                     " Using %d. Change 'max_checks' in openvassd.conf if you"
-                     " believe this is incorrect", max_checks, global_max_checks);
+                   " Using %d. Change 'max_checks' in openvassd.conf if you"
+                   " believe this is incorrect",
+                   max_checks, global_max_checks);
           max_checks = global_max_checks;
         }
     }
@@ -126,7 +127,6 @@ get_max_checks_number (void)
     max_checks = global_max_checks;
   return (max_checks);
 }
-
 
 /**
  * Determines if a process is alive - as reliably as we can
@@ -144,9 +144,7 @@ process_alive (pid_t pid)
   return kill (pid, 0) == 0;
 }
 
-int
-data_left (soc)
-     int soc;
+int data_left (soc) int soc;
 {
   int data = 0;
   ioctl (soc, FIONREAD, &data);
@@ -179,12 +177,12 @@ is_scanner_only_pref (const char *pref)
     return 0;
   if (!strcmp (pref, "logfile") || !strcmp (pref, "config_file")
       || !strcmp (pref, "plugins_folder")
-      || !strcmp (pref, "kb_location") // old name of db_address, ignore from old conf's
-      || !strcmp (pref, "db_address")
-      || !strcmp (pref, "negot_timeout")
+      || !strcmp (
+           pref,
+           "kb_location") // old name of db_address, ignore from old conf's
+      || !strcmp (pref, "db_address") || !strcmp (pref, "negot_timeout")
       || !strcmp (pref, "force_pubkey_auth")
-      || !strcmp (pref, "log_whole_attack")
-      || !strcmp (pref, "be_nice")
+      || !strcmp (pref, "log_whole_attack") || !strcmp (pref, "be_nice")
       || !strcmp (pref, "log_plugins_name_at_load")
       || !strcmp (pref, "nasl_no_signature_check")
       /* Preferences starting with sys_ are scanner-side only. */

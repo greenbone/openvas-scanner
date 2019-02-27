@@ -28,10 +28,19 @@
 
 #include "../misc/scanneraux.h"
 
-int hosts_init (int, int);
-int hosts_new (struct scan_globals *, char *, kb_t);
-int hosts_set_pid (char *, pid_t);
-int hosts_read (struct scan_globals *);
-void hosts_stop_all (void);
+int
+hosts_init (int, int);
+
+int
+hosts_new (struct scan_globals *, char *, kb_t);
+
+int
+hosts_set_pid (char *, pid_t);
+
+int
+hosts_read (struct scan_globals *);
+
+void
+hosts_stop_all (void);
 
 #endif
