@@ -158,9 +158,6 @@ plug_get_host_ip (struct script_infos *);
 char *
 plug_get_host_ip_str (struct script_infos *);
 
-void
-add_plugin_preference (struct script_infos *, const char *, const char *,
-                       const char *);
 char *
 get_plugin_preference (const char *, const char *);
 
