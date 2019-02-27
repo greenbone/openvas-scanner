@@ -955,7 +955,7 @@ main (int argc, char *argv[])
     {NULL, 0, 0, 0, NULL, NULL, NULL}};
 
   option_context = g_option_context_new (
-    "- Scanner of the Open Vulnerability Assessment System");
+    "- Open Vulnerability Assessment System");
   g_option_context_add_main_entries (option_context, entries, NULL);
   if (!g_option_context_parse (option_context, &argc, &argv, &error))
     {
@@ -988,9 +988,10 @@ main (int argc, char *argv[])
 #ifdef OPENVASSD_GIT_REVISION
       printf ("GIT revision %s\n", OPENVASSD_GIT_REVISION);
 #endif
-      printf ("Most new code since 2005: (C) 2018 Greenbone Networks GmbH\n");
-      printf (
-        "Nessus origin: (C) 2004 Renaud Deraison <deraison@nessus.org>\n");
+      printf
+        ("Most new code since 2005: (C) 2019 Greenbone Networks GmbH\n");
+      printf
+        ("Nessus origin: (C) 2004 Renaud Deraison <deraison@nessus.org>\n");
       printf ("License GPLv2: GNU GPL version 2\n");
       printf (
         "This is free software: you are free to change and redistribute it.\n"
