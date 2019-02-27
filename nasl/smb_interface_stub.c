@@ -26,9 +26,9 @@
  */
 
 /* for NULL */
-#include <string.h>
-
 #include "openvas_smb_interface.h"
+
+#include <string.h>
 
 /**
  * @brief Return version info for SMB implementation.
@@ -58,9 +58,9 @@ smb_versioninfo ()
  *
  * @return, 0 on success, -1 on failure
  */
-int smb_connect(const char *server, const char *share,
-                const char *username, const char *password,
-                SMB_HANDLE *con)
+int
+smb_connect (const char *server, const char *share, const char *username,
+             const char *password, SMB_HANDLE *con)
 {
   (void) server;
   (void) share;
@@ -77,7 +77,8 @@ int smb_connect(const char *server, const char *share,
  *
  * @return, 0 on success, -1 on failure
  */
-int smb_close(SMB_HANDLE handle)
+int
+smb_close (SMB_HANDLE handle)
 {
   (void) handle;
   return -1;
@@ -92,7 +93,8 @@ int smb_close(SMB_HANDLE handle)
  *
  * @return, Security Descriptor in SDDL format on success, NULL on failure.
  */
-char *smb_file_SDDL(SMB_HANDLE handle, const char *filename)
+char *
+smb_file_SDDL (SMB_HANDLE handle, const char *filename)
 {
   (void) handle;
   (void) filename;
@@ -108,13 +110,13 @@ char *smb_file_SDDL(SMB_HANDLE handle, const char *filename)
  *
  * @return, Owner SID string on success, NULL on failure.
  */
-char *smb_file_OwnerSID(SMB_HANDLE handle, const char *filename)
+char *
+smb_file_OwnerSID (SMB_HANDLE handle, const char *filename)
 {
   (void) handle;
   (void) filename;
   return NULL;
 }
-
 
 /**
  * @brief Obtain the SID of the Group for a given file/path
@@ -125,7 +127,8 @@ char *smb_file_OwnerSID(SMB_HANDLE handle, const char *filename)
  *
  * @return, Group SID string on success, NULL on failure.
  */
-char *smb_file_GroupSID(SMB_HANDLE handle, const char *filename)
+char *
+smb_file_GroupSID (SMB_HANDLE handle, const char *filename)
 {
   (void) handle;
   (void) filename;
@@ -141,7 +144,8 @@ char *smb_file_GroupSID(SMB_HANDLE handle, const char *filename)
  *
  * @return, Trustee SID:Access_Mask string on success, NULL on failure.
  */
-char *smb_file_TrusteeRights(SMB_HANDLE handle, const char *filename)
+char *
+smb_file_TrusteeRights (SMB_HANDLE handle, const char *filename)
 {
   (void) handle;
   (void) filename;
@@ -158,7 +162,7 @@ char *smb_file_TrusteeRights(SMB_HANDLE handle, const char *filename)
  * @return, 0 on success, -1 on failure
  */
 int
-wincmd(int argc, char *argv[], char **res)
+wincmd (int argc, char *argv[], char **res)
 {
   (void) argc;
   (void) argv;

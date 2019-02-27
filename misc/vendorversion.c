@@ -22,8 +22,9 @@
  * @brief Functions to set and get the vendor version.
  */
 
-#include <glib.h>
 #include "vendorversion.h"
+
+#include <glib.h>
 
 /**
  * @brief Vendor version, or NULL.

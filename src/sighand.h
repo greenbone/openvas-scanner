@@ -27,9 +27,13 @@
 #define _OPENVAS_SIGHAND_H
 
 void (*openvas_signal (int signum, void (*handler) (int))) (int);
-void sighand_chld ();
-void sighand_segv ();
+void
+sighand_chld ();
+void
+sighand_segv ();
 
-void let_em_die (int pid);
-void make_em_die (int sig);
+void
+let_em_die (int pid);
+void
+make_em_die (int sig);
 #endif

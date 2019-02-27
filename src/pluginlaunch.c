@@ -23,28 +23,27 @@
  * @brief Manages the launching of plugins within processes.
  */
 
-#include <stdio.h>    /* for perror() */
-#include <stdlib.h>   /* for atoi() */
-#include <unistd.h>   /* for close() */
-#include <sys/wait.h> /* for waitpid() */
-#include <strings.h>  /* for bzero() */
-#include <errno.h>    /* for errno() */
-#include <sys/time.h> /* for gettimeofday() */
-#include <string.h>
-
-#include <gvm/base/prefs.h>          /* for prefs_get_bool() */
-#include <gvm/util/nvticache.h>
+#include "pluginlaunch.h"
 
 #include "../misc/network.h"
-#include "../misc/nvt_categories.h"  /* for ACT_SCANNER */
-
+#include "../misc/nvt_categories.h" /* for ACT_SCANNER */
 #include "pluginload.h"
-#include "pluginlaunch.h"
-#include "utils.h"
-#include "sighand.h"
-#include "processes.h"
 #include "pluginscheduler.h"
 #include "plugs_req.h"
+#include "processes.h"
+#include "sighand.h"
+#include "utils.h"
+
+#include <errno.h>          /* for errno() */
+#include <gvm/base/prefs.h> /* for prefs_get_bool() */
+#include <gvm/util/nvticache.h>
+#include <stdio.h>  /* for perror() */
+#include <stdlib.h> /* for atoi() */
+#include <string.h>
+#include <strings.h>  /* for bzero() */
+#include <sys/time.h> /* for gettimeofday() */
+#include <sys/wait.h> /* for waitpid() */
+#include <unistd.h>   /* for close() */
 
 #undef G_LOG_DOMAIN
 /**
@@ -64,9 +63,9 @@ struct running
 {
   struct scheduler_plugin *plugin;
   struct timeval start;
-  pid_t pid;                   /**< Process ID. */
-  int timeout;               /**< Timeout after which to kill process
-                              * (NVT preference). If -1, never kill. it*/
+  pid_t pid;   /**< Process ID. */
+  int timeout; /**< Timeout after which to kill process
+                * (NVT preference). If -1, never kill. it*/
 };
 
 static struct running processes[MAX_PROCESSES];
@@ -98,7 +97,7 @@ update_running_processes (kb_t kb)
 {
   int i;
   struct timeval now;
-  int log_whole =  prefs_get_bool ("log_whole_attack");
+  int log_whole = prefs_get_bool ("log_whole_attack");
 
   if (num_running_processes == 0)
     return;
@@ -113,8 +112,8 @@ update_running_processes (kb_t kb)
           // If process dead or timed out
           if (!is_alive
               || (processes[i].timeout > 0
-                  && ((now.tv_sec - processes[i].start.tv_sec) >
-                      processes[i].timeout)))
+                  && ((now.tv_sec - processes[i].start.tv_sec)
+                      > processes[i].timeout)))
             {
               char *oid = processes[i].plugin->oid;
 
@@ -155,12 +154,12 @@ update_running_processes (kb_t kb)
                   if (log_whole)
                     {
                       char *name = nvticache_get_filename (oid);
-                      g_message
-                        ("%s (%s) [%d] finished its job in %ld.%.3ld seconds",
-                         name, oid, processes[i].pid,
-                         (long) (now.tv_sec - processes[i].start.tv_sec),
-                         (long) ((now.tv_usec -
-                                  processes[i].start.tv_usec) / 1000));
+                      g_message (
+                        "%s (%s) [%d] finished its job in %ld.%.3ld seconds",
+                        name, oid, processes[i].pid,
+                        (long) (now.tv_sec - processes[i].start.tv_sec),
+                        (long) ((now.tv_usec - processes[i].start.tv_usec)
+                                / 1000));
                       g_free (name);
                     }
                   now = old_now;
@@ -169,7 +168,6 @@ update_running_processes (kb_t kb)
                       e = waitpid (processes[i].pid, NULL, 0);
                     }
                   while (e < 0 && errno == EINTR);
-
                 }
               num_running_processes--;
               processes[i].plugin->running_state = PLUGIN_STATUS_DONE;
@@ -292,12 +290,11 @@ pluginlaunch_init (const char *host)
 
   if (max_running_processes >= MAX_PROCESSES)
     {
-      g_debug
-        ("max_checks (%d) > MAX_PROCESSES (%d) - modify openvas-scanner/openvassd/pluginlaunch.c",
-         max_running_processes, MAX_PROCESSES);
+      g_debug ("max_checks (%d) > MAX_PROCESSES (%d) - modify "
+               "openvas-scanner/openvassd/pluginlaunch.c",
+               max_running_processes, MAX_PROCESSES);
       max_running_processes = MAX_PROCESSES - 1;
     }
-
 
   num_running_processes = 0;
   bzero (&(processes), sizeof (processes));
@@ -314,7 +311,6 @@ pluginlaunch_enable_parallel_checks (void)
 {
   max_running_processes = old_max_running_processes;
 }
-
 
 void
 pluginlaunch_stop (int soft_stop)
@@ -343,7 +339,6 @@ pluginlaunch_stop (int soft_stop)
     }
 }
 
-
 /**
  * @return PID of process that is connected to the plugin as returned by plugin
  *         classes pl_launch function (<=0 means there was a problem).
@@ -367,15 +362,14 @@ plugin_launch (struct scan_globals *globals, struct scheduler_plugin *plugin,
   if (processes[p].timeout == 0)
     {
       if (nvti_category (nvti) == ACT_SCANNER)
-        processes[p].timeout = atoi (prefs_get ("scanner_plugins_timeout")
-                                     ?: "-1");
+        processes[p].timeout =
+          atoi (prefs_get ("scanner_plugins_timeout") ?: "-1");
       else
         processes[p].timeout = atoi (prefs_get ("plugins_timeout") ?: "-1");
     }
 
   gettimeofday (&(processes[p].start), NULL);
-  processes[p].pid =
-    nasl_plugin_launch (globals, ip, vhosts, kb, plugin->oid);
+  processes[p].pid = nasl_plugin_launch (globals, ip, vhosts, kb, plugin->oid);
 
   if (processes[p].pid > 0)
     num_running_processes++;
@@ -384,7 +378,6 @@ plugin_launch (struct scan_globals *globals, struct scheduler_plugin *plugin,
 
   return processes[p].pid;
 }
-
 
 /**
  * @brief Waits and 'pushes' processes until num_running_processes is 0.

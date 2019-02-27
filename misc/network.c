@@ -24,40 +24,34 @@
  * @brief Network Functions.
  */
 
-#include <errno.h>
-#include <sys/types.h>
-#include <unistd.h>
-#include <stdarg.h>
-#include <string.h>
+#include "../nasl/nasl_debug.h" /* for nasl_*_filename */
+
+#include <arpa/inet.h> /* for inet_pton */
 #include <errno.h>
 #include <fcntl.h>
-#include <stdlib.h>
-#include <signal.h>
-#include <stdio.h>              /* for FILE */
-#include <sys/time.h>           /* for gettimeofday */
-
-#include <arpa/inet.h>          /* for inet_pton */
-
 #include <glib.h>
-
 #include <gnutls/gnutls.h>
 #include <gnutls/x509.h>
-
-#include <gvm/base/networking.h>
 #include <gvm/base/logging.h>
+#include <gvm/base/networking.h>
 #include <gvm/base/prefs.h>
-#include <gvm/util/serverutils.h> /* for load_gnutls_file */
 #include <gvm/util/kb.h>          /* for kb_item_get_str() */
-
-#include "../nasl/nasl_debug.h"          /* for nasl_*_filename */
+#include <gvm/util/serverutils.h> /* for load_gnutls_file */
+#include <signal.h>
+#include <stdarg.h>
+#include <stdio.h> /* for FILE */
+#include <stdlib.h>
+#include <string.h>
+#include <sys/time.h> /* for gettimeofday */
+#include <sys/types.h>
+#include <unistd.h>
 
 #ifdef __FreeBSD__
 #include <netinet/in.h>
 #define s6_addr32 __u6_addr.__u6_addr32
 #endif
 
-#include "network.h"            /* for socket_close() */
-
+#include "network.h" /* for socket_close() */
 #include "plugutils.h"
 #include "support.h"
 
@@ -80,23 +74,23 @@
 /** OpenVAS "FILE" structure */
 typedef struct
 {
-  int fd;        /**< socket number, or whatever */
+  int fd; /**< socket number, or whatever */
   /*
    * "transport" layer code when stream is encapsultated. Negative transport
    * signals a free descriptor.
    */
   openvas_encaps_t transport;
-  char *priority;/**< Malloced "priority" string for certain transports.  */
-  int timeout;   /**< timeout, in seconds. Special values: -2 for default */
+  char *priority; /**< Malloced "priority" string for certain transports.  */
+  int timeout;    /**< timeout, in seconds. Special values: -2 for default */
 
   int port;
 
   gnutls_session_t tls_session;              /**< GnuTLS session */
   gnutls_certificate_credentials_t tls_cred; /**< GnuTLS credentials */
 
-  pid_t pid;    /**< Owner - for debugging only */
+  pid_t pid; /**< Owner - for debugging only */
 
-  char *buf;    /**< NULL if unbuffered */
+  char *buf; /**< NULL if unbuffered */
   int bufsz, bufcnt, bufptr;
   int last_err;
 } openvas_connection;
@@ -118,7 +112,7 @@ static openvas_connection connections[OPENVAS_FD_MAX];
 struct csc_hook_s
 {
   struct csc_hook_s *next;
-  int (*fnc)(int fd);
+  int (*fnc) (int fd);
 };
 
 /**
@@ -126,16 +120,16 @@ struct csc_hook_s
  */
 static struct csc_hook_s *csc_hooks;
 
-
 /**
  * OPENVAS_STREAM(x) is TRUE if \<x\> is a OpenVAS-ified fd
  */
-#define OPENVAS_STREAM(x) (((x - OPENVAS_FD_OFF) < OPENVAS_FD_MAX) && ((x - OPENVAS_FD_OFF) >=0))
+#define OPENVAS_STREAM(x) \
+  (((x - OPENVAS_FD_OFF) < OPENVAS_FD_MAX) && ((x - OPENVAS_FD_OFF) >= 0))
 
 /**
  * determine the openvas_connection* from the openvas fd
  */
-#define OVAS_CONNECTION_FROM_FD(fd) (connections + ((fd) - OPENVAS_FD_OFF))
+#define OVAS_CONNECTION_FROM_FD(fd) (connections + ((fd) -OPENVAS_FD_OFF))
 
 static void
 renice_myself (void)
@@ -193,20 +187,18 @@ get_connection_fd (void)
 
   for (i = 0; i < OPENVAS_FD_MAX; i++)
     {
-      if (connections[i].pid == 0)        /* Not used */
+      if (connections[i].pid == 0) /* Not used */
         {
           bzero (&(connections[i]), sizeof (connections[i]));
           connections[i].pid = getpid ();
           return i + OPENVAS_FD_OFF;
         }
     }
-  g_message ("[%d] %s:%d : Out of OpenVAS file descriptors",
-             getpid (), __FILE__, __LINE__);
+  g_message ("[%d] %s:%d : Out of OpenVAS file descriptors", getpid (),
+             __FILE__, __LINE__);
   errno = EMFILE;
   return -1;
 }
-
-
 
 static int
 release_connection_fd (int fd, int already_closed)
@@ -228,8 +220,8 @@ release_connection_fd (int fd, int already_closed)
    * (libopenvas nor elsewhere) code either.
    */
 
-/* So far, fd is always a socket. If this is changed in the future, this
- * code shall be fixed. */
+  /* So far, fd is always a socket. If this is changed in the future, this
+   * code shall be fixed. */
   if (p->fd >= 0)
     {
       g_debug ("[%d] release_connection_fd: fd > 0 fd=%d", getpid (), p->fd);
@@ -265,7 +257,7 @@ release_connection_fd (int fd, int already_closed)
 
 /** @todo TLS FIXME: migrate this to TLS */
 /** @todo Fix the voidness of the ssl parameter (problematic in 64bit env.)
-  *       here or on caller-side */
+ *       here or on caller-side */
 /**
  * @param soc Socket to use.
  */
@@ -284,8 +276,8 @@ openvas_register_connection (int soc, void *ssl,
   p->tls_session = ssl;
   p->tls_cred = certcred;
 
-  p->timeout = TIMEOUT;         /* default value */
-  p->port = 0;                  /* just used for debug */
+  p->timeout = TIMEOUT; /* default value */
+  p->port = 0;          /* just used for debug */
   p->fd = soc;
   p->transport = encaps;
   p->priority = NULL;
@@ -392,7 +384,6 @@ openvas_SSL_init ()
   return 0;
 }
 
-
 int
 openvas_get_socket_from_connection (int fd)
 {
@@ -434,40 +425,41 @@ static int
 set_gnutls_protocol (gnutls_session_t session, openvas_encaps_t encaps,
                      const char *priority)
 {
-  const char * priorities;
-  const char * errloc;
+  const char *priorities;
+  const char *errloc;
   int err;
 
   switch (encaps)
     {
-      case OPENVAS_ENCAPS_SSLv3:
-        priorities = "NORMAL:-VERS-TLS-ALL:+VERS-SSL3.0:+ARCFOUR-128:%COMPAT";
-        break;
-      case OPENVAS_ENCAPS_TLSv1:
-        priorities = "NORMAL:-VERS-TLS-ALL:+VERS-TLS1.0:+ARCFOUR-128:%COMPAT";
-        break;
-      case OPENVAS_ENCAPS_TLSv11:
-        priorities = "NORMAL:-VERS-TLS-ALL:+VERS-TLS1.1:+ARCFOUR-128:%COMPAT";
-        break;
-      case OPENVAS_ENCAPS_TLSv12:
-        priorities = "NORMAL:-VERS-TLS-ALL:+VERS-TLS1.2:+ARCFOUR-128:%COMPAT";
-        break;
-      case OPENVAS_ENCAPS_SSLv23:        /* Compatibility mode */
-        priorities = "NORMAL:-VERS-TLS-ALL:+VERS-TLS1.0:+VERS-SSL3.0:+ARCFOUR-128:%COMPAT";
-        break;
-      default:
-        g_debug ("*Bug* at %s:%d. Unknown transport %d", __FILE__, __LINE__,
-                 encaps);
-        /* fallthrough */
-      case OPENVAS_ENCAPS_TLScustom:
-        priorities = priority;
-        break;
+    case OPENVAS_ENCAPS_SSLv3:
+      priorities = "NORMAL:-VERS-TLS-ALL:+VERS-SSL3.0:+ARCFOUR-128:%COMPAT";
+      break;
+    case OPENVAS_ENCAPS_TLSv1:
+      priorities = "NORMAL:-VERS-TLS-ALL:+VERS-TLS1.0:+ARCFOUR-128:%COMPAT";
+      break;
+    case OPENVAS_ENCAPS_TLSv11:
+      priorities = "NORMAL:-VERS-TLS-ALL:+VERS-TLS1.1:+ARCFOUR-128:%COMPAT";
+      break;
+    case OPENVAS_ENCAPS_TLSv12:
+      priorities = "NORMAL:-VERS-TLS-ALL:+VERS-TLS1.2:+ARCFOUR-128:%COMPAT";
+      break;
+    case OPENVAS_ENCAPS_SSLv23: /* Compatibility mode */
+      priorities =
+        "NORMAL:-VERS-TLS-ALL:+VERS-TLS1.0:+VERS-SSL3.0:+ARCFOUR-128:%COMPAT";
+      break;
+    default:
+      g_debug ("*Bug* at %s:%d. Unknown transport %d", __FILE__, __LINE__,
+               encaps);
+      /* fallthrough */
+    case OPENVAS_ENCAPS_TLScustom:
+      priorities = priority;
+      break;
     }
 
   if ((err = gnutls_priority_set_direct (session, priorities, &errloc)))
     {
-      g_message ("[%d] setting session priorities '%.20s': %s",
-                 getpid (), errloc, gnutls_strerror (err));
+      g_message ("[%d] setting session priorities '%.20s': %s", getpid (),
+                 errloc, gnutls_strerror (err));
       return -1;
     }
 
@@ -519,8 +511,8 @@ load_cert_and_key (gnutls_certificate_credentials_t xcred, const char *cert,
 
   if (load_gnutls_file (key, &data))
     {
-      g_message ("[%d] load_cert_and_key: Error loading key file %s",
-                 getpid (), key);
+      g_message ("[%d] load_cert_and_key: Error loading key file %s", getpid (),
+                 key);
       result = -1;
       goto cleanup;
     }
@@ -535,9 +527,8 @@ load_cert_and_key (gnutls_certificate_credentials_t xcred, const char *cert,
     }
   if (passwd)
     {
-      ret =
-        gnutls_x509_privkey_import_pkcs8 (x509_key, &data, GNUTLS_X509_FMT_PEM,
-                                          passwd, 0);
+      ret = gnutls_x509_privkey_import_pkcs8 (x509_key, &data,
+                                              GNUTLS_X509_FMT_PEM, passwd, 0);
       if (ret < 0)
         {
           tlserror ("gnutls_x509_privkey_import_pkcs8", ret);
@@ -588,8 +579,8 @@ is_ip_address (const char *str)
 }
 
 static int
-open_SSL_connection (openvas_connection * fp, const char *cert,
-                     const char *key, const char *passwd, const char *cafile,
+open_SSL_connection (openvas_connection *fp, const char *cert, const char *key,
+                     const char *passwd, const char *cafile,
                      const char *hostname)
 {
   int ret, err, d;
@@ -624,9 +615,8 @@ open_SSL_connection (openvas_connection * fp, const char *cert,
       tlserror ("gnutls_certificate_allocate_credentials", ret);
       return -1;
     }
-  ret =
-    gnutls_credentials_set (fp->tls_session, GNUTLS_CRD_CERTIFICATE,
-                            fp->tls_cred);
+  ret = gnutls_credentials_set (fp->tls_session, GNUTLS_CRD_CERTIFICATE,
+                                fp->tls_cred);
   if (ret < 0)
     {
       tlserror ("gnutls_credentials_set", ret);
@@ -641,9 +631,8 @@ open_SSL_connection (openvas_connection * fp, const char *cert,
 
   if (cafile != NULL)
     {
-      ret =
-        gnutls_certificate_set_x509_trust_file (fp->tls_cred, cafile,
-                                                GNUTLS_X509_FMT_PEM);
+      ret = gnutls_certificate_set_x509_trust_file (fp->tls_cred, cafile,
+                                                    GNUTLS_X509_FMT_PEM);
       if (ret < 0)
         {
           tlserror ("gnutls_certificate_set_x509_trust_file", ret);
@@ -700,7 +689,7 @@ open_SSL_connection (openvas_connection * fp, const char *cert,
           return -1;
         }
     }
- /*NOTREACHED*/}
+}
 
 /*
  * @brief Upgrade an ENCAPS_IP socket to an SSL/TLS encapsulated one.
@@ -726,7 +715,7 @@ socket_negotiate_ssl (int fd, openvas_encaps_t transport,
       g_message ("Socket %d is not stream", fd);
       return -1;
     }
-  fp = OVAS_CONNECTION_FROM_FD(fd);
+  fp = OVAS_CONNECTION_FROM_FD (fd);
   kb = plug_get_kb (args);
   cert = kb_item_get_str (kb, "SSL/cert");
   key = kb_item_get_str (kb, "SSL/key");
@@ -815,16 +804,16 @@ socket_get_ssl_version (int fd)
   version = gnutls_protocol_get_version (session);
   switch (version)
     {
-      case GNUTLS_SSL3:
-        return OPENVAS_ENCAPS_SSLv3;
-      case GNUTLS_TLS1:
-        return OPENVAS_ENCAPS_TLSv1;
-      case GNUTLS_TLS1_1:
-        return OPENVAS_ENCAPS_TLSv11;
-      case GNUTLS_TLS1_2:
-        return OPENVAS_ENCAPS_TLSv12;
-      default:
-        return -1;
+    case GNUTLS_SSL3:
+      return OPENVAS_ENCAPS_SSLv3;
+    case GNUTLS_TLS1:
+      return OPENVAS_ENCAPS_TLSv1;
+    case GNUTLS_TLS1_1:
+      return OPENVAS_ENCAPS_TLSv11;
+    case GNUTLS_TLS1_2:
+      return OPENVAS_ENCAPS_TLSv12;
+    default:
+      return -1;
     }
 }
 
@@ -900,8 +889,8 @@ socket_get_ssl_ciphersuite (int fd)
   kx = gnutls_kx_get (session);
   cipher = gnutls_cipher_get (session);
   mac = gnutls_mac_get (session);
-  while (gnutls_cipher_suite_info (idx, (void *) cs_id, &kx2, &cipher2, &mac2,
-                                   NULL))
+  while (
+    gnutls_cipher_suite_info (idx, (void *) cs_id, &kx2, &cipher2, &mac2, NULL))
     {
       if (kx == kx2 && cipher == cipher2 && mac == mac2)
         return cs_id[0] + cs_id[1];
@@ -930,7 +919,8 @@ open_stream_connection_ext (struct script_infos *args, unsigned int port,
     priority = ""; /* To us an empty string is equivalent to NULL.  */
 
   g_debug ("[%d] open_stream_connection: TCP:%d transport:%d timeout:%d "
-           " priority: '%s'", getpid (), port, transport, timeout, priority);
+           " priority: '%s'",
+           getpid (), port, transport, timeout, priority);
 
   if (timeout == -2)
     timeout = TIMEOUT;
@@ -950,7 +940,8 @@ open_stream_connection_ext (struct script_infos *args, unsigned int port,
 
     default:
       g_message ("open_stream_connection_ext(): unsupported transport"
-                 " layer %d passed by %s", transport, args->name);
+                 " layer %d passed by %s",
+                 transport, args->name);
       errno = EINVAL;
       return -1;
     }
@@ -976,8 +967,8 @@ open_stream_connection_ext (struct script_infos *args, unsigned int port,
   kb_t kb = plug_get_kb (args);
   switch (transport)
     {
-    int ret;
-    char buf[1024];
+      int ret;
+      char buf[1024];
 
     case OPENVAS_ENCAPS_IP:
       break;
@@ -1019,7 +1010,6 @@ failed:
   return -1;
 }
 
-
 int
 open_stream_connection (struct script_infos *args, unsigned int port,
                         int transport, int timeout)
@@ -1058,7 +1048,7 @@ open_stream_auto_encaps_ext (struct script_infos *args, unsigned int port,
       fd = open_stream_connection (args, port, transport, timeout);
       return fd;
     }
- /*NOTREACHED*/
+  /*NOTREACHED*/
 }
 
 int
@@ -1109,7 +1099,7 @@ read_stream_connection_unbuffered (int fd, void *buf0, int min_len, int max_len)
     }
 
 #ifndef INCR_TIMEOUT
-# define INCR_TIMEOUT	1
+#define INCR_TIMEOUT 1
 #endif
 
   if (min_len == max_len || timeout <= 0)
@@ -1118,12 +1108,12 @@ read_stream_connection_unbuffered (int fd, void *buf0, int min_len, int max_len)
     {
       for (t = 0; total < max_len && (timeout <= 0 || t < timeout);)
         {
-          tv.tv_sec = INCR_TIMEOUT;     /* Not timeout! */
+          tv.tv_sec = INCR_TIMEOUT; /* Not timeout! */
           tv.tv_usec = 0;
           FD_ZERO (&fdr);
           FD_SET (realfd, &fdr);
-          if (select (realfd + 1, &fdr, NULL, NULL, timeout > 0 ? &tv : NULL) <=
-              0)
+          if (select (realfd + 1, &fdr, NULL, NULL, timeout > 0 ? &tv : NULL)
+              <= 0)
             {
               t += INCR_TIMEOUT;
               /* Try to be smart */
@@ -1143,7 +1133,7 @@ read_stream_connection_unbuffered (int fd, void *buf0, int min_len, int max_len)
                   }
                 else
                   ret = 0;
-              else if (ret == 0)        /* EOF */
+              else if (ret == 0) /* EOF */
                 {
                   return total;
                 }
@@ -1170,7 +1160,8 @@ read_stream_connection_unbuffered (int fd, void *buf0, int min_len, int max_len)
       if (getpid () != fp->pid)
         {
           g_debug ("PID %d tries to use a SSL/TLS connection established "
-                   "by PID %d\n", getpid (), fp->pid);
+                   "by PID %d\n",
+                   getpid (), fp->pid);
           errno = EINVAL;
           return -1;
         }
@@ -1191,9 +1182,8 @@ read_stream_connection_unbuffered (int fd, void *buf0, int min_len, int max_len)
           if (select_status > 0)
             {
               /* TLS FIXME: handle rehandshake */
-              ret =
-                gnutls_record_recv (fp->tls_session, buf + total,
-                                    max_len - total);
+              ret = gnutls_record_recv (fp->tls_session, buf + total,
+                                        max_len - total);
               if (ret > 0)
                 {
                   total += ret;
@@ -1228,8 +1218,7 @@ read_stream_connection_unbuffered (int fd, void *buf0, int min_len, int max_len)
       if (fp->transport || fp->fd != 0)
         g_message ("Function %s called from %s: "
                    "Severe bug! Unhandled transport layer %d (fd=%d).",
-                   nasl_get_function_name (),
-                   nasl_get_plugin_filename (),
+                   nasl_get_function_name (), nasl_get_plugin_filename (),
                    fp->transport, fd);
       else
         g_message ("read_stream_connection_unbuffered: "
@@ -1238,7 +1227,7 @@ read_stream_connection_unbuffered (int fd, void *buf0, int min_len, int max_len)
       errno = EINVAL;
       return -1;
     }
- /*NOTREACHED*/
+  /*NOTREACHED*/
 }
 
 int
@@ -1254,7 +1243,7 @@ read_stream_connection_min (int fd, void *buf0, int min_len, int max_len)
           int l1, l2;
 
           if (max_len == 1)
-            min_len = 1;        /* avoid "magic read" later */
+            min_len = 1; /* avoid "magic read" later */
           l2 = max_len > fp->bufcnt ? fp->bufcnt : max_len;
           if (l2 > 0)
             {
@@ -1263,7 +1252,7 @@ read_stream_connection_min (int fd, void *buf0, int min_len, int max_len)
               if (fp->bufcnt == 0)
                 {
                   fp->bufptr = 0;
-                  fp->buf[0] = '\0';    /* debug */
+                  fp->buf[0] = '\0'; /* debug */
                 }
               else
                 fp->bufptr += l2;
@@ -1274,9 +1263,8 @@ read_stream_connection_min (int fd, void *buf0, int min_len, int max_len)
             }
           if (min_len > fp->bufsz)
             {
-              l1 =
-                read_stream_connection_unbuffered (fd, (char *) buf0 + l2,
-                                                   min_len, max_len);
+              l1 = read_stream_connection_unbuffered (fd, (char *) buf0 + l2,
+                                                      min_len, max_len);
               if (l1 > 0)
                 return l1 + l2;
               else
@@ -1410,12 +1398,12 @@ write_stream_connection4 (int fd, void *buf0, int n, int i_opt)
       if (fp->transport || fp->fd != 0)
         g_message ("Function %s called from %s: "
                    "Severe bug! Unhandled transport layer %d (fd=%d).",
-                   nasl_get_function_name (),
-                   nasl_get_plugin_filename (),
+                   nasl_get_function_name (), nasl_get_plugin_filename (),
                    fp->transport, fd);
       else
         g_message ("read_stream_connection_unbuffered: fd=%d is "
-                   "closed", fd);
+                   "closed",
+                   fd);
       errno = EINVAL;
       return -1;
     }
@@ -1445,12 +1433,10 @@ nsend (int fd, void *data, int length, int i_opt)
         return write_stream_connection4 (fd, data, length, i_opt);
     }
   /* Trying OS's send() */
-  block_socket (fd);            /* ??? */
+  block_socket (fd); /* ??? */
   do
     {
-      struct timeval tv = {
-        0, 5
-      };
+      struct timeval tv = {0, 5};
       fd_set wr;
       int e;
 
@@ -1498,7 +1484,6 @@ nrecv (int fd, void *data, int length, int i_opt)
   return e;
 }
 
-
 /**
  * @brief Register a hook function for close_stream_connection.
  *
@@ -1513,7 +1498,7 @@ nrecv (int fd, void *data, int length, int i_opt)
  * @param fnc  The hook function.  See above for details.
  */
 void
-add_close_stream_connection_hook (int (*fnc)(int fd))
+add_close_stream_connection_hook (int (*fnc) (int fd))
 {
   struct csc_hook_s *hook;
 
@@ -1563,7 +1548,7 @@ close_stream_connection (int fd)
   fp = OVAS_CONNECTION_FROM_FD (fd);
   g_debug ("close_stream_connection TCP:%d (fd=%d)", fp->port, fd);
 
-  if (!OPENVAS_STREAM (fd))     /* Will never happen if debug is on! */
+  if (!OPENVAS_STREAM (fd)) /* Will never happen if debug is on! */
     {
       if (fd < 0 || fd > 1024)
         {
@@ -1604,7 +1589,8 @@ get_encaps_name (openvas_encaps_t code)
     case OPENVAS_ENCAPS_TLScustom:
       return "TLScustom";
     default:
-      snprintf (str, sizeof (str), "[unknown transport layer - code %d (0x%x)]", code, code);
+      snprintf (str, sizeof (str), "[unknown transport layer - code %d (0x%x)]",
+                code, code);
       return str;
     }
 }
@@ -1626,14 +1612,16 @@ get_encaps_through (openvas_encaps_t code)
     case OPENVAS_ENCAPS_TLScustom:
       return " through SSL";
     default:
-      snprintf (str, sizeof (str), " through unknown transport layer - code %d (0x%x)", code, code);
+      snprintf (str, sizeof (str),
+                " through unknown transport layer - code %d (0x%x)", code,
+                code);
       return str;
     }
 }
 
 static int
-open_socket (struct sockaddr *paddr, int type, int protocol,
-             int timeout, int len)
+open_socket (struct sockaddr *paddr, int type, int protocol, int timeout,
+             int len)
 {
   fd_set fd_w;
   struct timeval to;
@@ -1730,8 +1718,6 @@ open_socket (struct sockaddr *paddr, int type, int protocol,
   return soc;
 }
 
-
-
 int
 open_sock_opt_hn (const char *hostname, unsigned int port, int type,
                   int protocol, int timeout)
@@ -1747,8 +1733,8 @@ open_sock_opt_hn (const char *hostname, unsigned int port, int type,
       addr.sin_family = AF_INET;
       addr.sin_port = htons ((unsigned short) port);
       addr.sin_addr.s_addr = in6addr.s6_addr32[3];
-      return open_socket ((struct sockaddr *) &addr, type, protocol,
-                          timeout, sizeof (struct sockaddr_in));
+      return open_socket ((struct sockaddr *) &addr, type, protocol, timeout,
+                          sizeof (struct sockaddr_in));
     }
   else
     {
@@ -1756,10 +1742,9 @@ open_sock_opt_hn (const char *hostname, unsigned int port, int type,
       addr6.sin6_family = AF_INET6;
       addr6.sin6_port = htons ((unsigned short) port);
       memcpy (&addr6.sin6_addr, &in6addr, sizeof (struct in6_addr));
-      return open_socket ((struct sockaddr *) &addr6, type, protocol,
-                          timeout, sizeof (struct sockaddr_in6));
+      return open_socket ((struct sockaddr *) &addr6, type, protocol, timeout,
+                          sizeof (struct sockaddr_in6));
     }
-
 }
 
 int
@@ -1817,14 +1802,15 @@ open_sock_tcp (struct script_infos *args, unsigned int port, int timeout)
 
               g_snprintf (buffer, sizeof (buffer), "Ports/tcp/%d", port);
               g_message ("open_sock_tcp: %s:%d too many timeouts. "
-                         "This port will be set to closed.", ip_str, port);
+                         "This port will be set to closed.",
+                         ip_str, port);
               kb_item_set_int (kb, buffer, 0);
 
               addr6_to_str (args->ip, ip_str);
               snprintf (buffer, sizeof (buffer),
                         "ERRMSG|||%s|||%d/tcp||| |||Too many timeouts. The port"
                         " was set to closed.",
-                        plug_current_vhost() ?: " ", port);
+                        plug_current_vhost () ?: " ", port);
               kb_item_push_str (args->key, "internal/results", buffer);
             }
         }
@@ -1833,7 +1819,6 @@ open_sock_tcp (struct script_infos *args, unsigned int port, int timeout)
 
   return ret;
 }
-
 
 int
 open_sock_option (struct script_infos *args, unsigned int port, int type,
@@ -1857,8 +1842,8 @@ open_sock_option (struct script_infos *args, unsigned int port, int type,
       addr.sin_family = AF_INET;
       addr.sin_port = htons ((unsigned short) port);
       addr.sin_addr.s_addr = t->s6_addr32[3];
-      return open_socket ((struct sockaddr *) &addr, type, protocol,
-                          timeout, sizeof (struct sockaddr_in));
+      return open_socket ((struct sockaddr *) &addr, type, protocol, timeout,
+                          sizeof (struct sockaddr_in));
     }
   else
     {
@@ -1866,12 +1851,10 @@ open_sock_option (struct script_infos *args, unsigned int port, int type,
       addr6.sin6_family = AF_INET6;
       addr6.sin6_port = htons ((unsigned short) port);
       memcpy (&addr6.sin6_addr, t, sizeof (struct in6_addr));
-      return open_socket ((struct sockaddr *) &addr6, type, protocol,
-                          timeout, sizeof (struct sockaddr_in6));
+      return open_socket ((struct sockaddr *) &addr6, type, protocol, timeout,
+                          sizeof (struct sockaddr_in6));
     }
-
 }
-
 
 /**
  * @brief Reads a text from the socket stream into the argument buffer, always
@@ -1997,9 +1980,8 @@ socket_close (int soc)
 int
 fd_is_stream (int fd)
 {
-  return OPENVAS_STREAM (fd);   /* Should probably be smarter... */
+  return OPENVAS_STREAM (fd); /* Should probably be smarter... */
 }
-
 
 int
 stream_get_buffer_sz (int fd)
@@ -2022,7 +2004,7 @@ stream_set_buffer (int fd, int sz)
 
   p = OVAS_CONNECTION_FROM_FD (fd);
   if (sz < p->bufcnt)
-    return -1;                  /* Do not want to lose data */
+    return -1; /* Do not want to lose data */
 
   if (sz == 0)
     {
@@ -2055,12 +2037,9 @@ stream_set_buffer (int fd, int sz)
       p->bufsz = sz;
       return 0;
     }
- /*NOTREACHED*/}
-
-
+}
 
 /*------------------------------------------------------------------*/
-
 
 int
 os_send (int soc, void *buf, int len, int opt)

@@ -18,7 +18,6 @@
 
 #include <glib.h>
 
-
 /**
  * @brief Matches a string against a pattern.
  *

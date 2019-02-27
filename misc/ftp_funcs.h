@@ -26,15 +26,17 @@
 #ifndef OPENVAS_FTP_FUNCS_H
 #define OPENVAS_FTP_FUNCS_H
 
-#include <sys/socket.h>
 #include <arpa/inet.h>
-
 #include <sys/param.h>
+#include <sys/socket.h>
 #ifdef __FreeBSD__
 #include <netinet/in.h>
 #endif
 
-int ftp_log_in (int, char *, char *);
-int ftp_get_pasv_address (int, struct sockaddr_in *);
+int
+ftp_log_in (int, char *, char *);
+
+int
+ftp_get_pasv_address (int, struct sockaddr_in *);
 
 #endif

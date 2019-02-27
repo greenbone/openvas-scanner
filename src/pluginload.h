@@ -26,10 +26,10 @@
 #ifndef _OPENVAS_PLUGINLOAD_H
 #define _OPENVAS_PLUGINLOAD_H
 
-#include <gvm/util/kb.h>             /* for struct kb_item */
-
 #include "../misc/network.h"
 #include "../misc/scanneraux.h"
+
+#include <gvm/util/kb.h> /* for struct kb_item */
 
 int
 plugins_init (void);

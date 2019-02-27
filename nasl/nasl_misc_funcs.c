@@ -21,41 +21,38 @@
  * @brief This file contains all the misc. functions found in NASL
  */
 
+#include "nasl_misc_funcs.h"
+
+#include "../misc/ftp_funcs.h" /* for ftp_log_in */
+#include "../misc/network.h"   /* read_stream_connection_min */
+#include "../misc/plugutils.h" /* plug_get_host_open_port */
+#include "byteorder.h"
+#include "exec.h"
+#include "nasl_debug.h"
+#include "nasl_func.h"
+#include "nasl_global_ctxt.h"
+#include "nasl_lex_ctxt.h"
+#include "nasl_packet_forgery.h"
+#include "nasl_tree.h"
+#include "nasl_var.h"
+
+#include <errno.h> /* for errno */
 #include <glib.h>
-
-#include <errno.h>              /* for errno */
-#include <stdlib.h>             /* for lrand48 */
-#include <string.h>             /* for bzero */
-#include <sys/time.h>           /* for gettimeofday */
-#include <unistd.h>             /* for usleep */
-
 #include <gvm/util/compressutils.h> /* for gvm_uncompress */
 #include <gvm/util/kb.h>            /* for KB_TYPE_STR */
-
-#include "../misc/ftp_funcs.h"          /* for ftp_log_in */
-#include "../misc/network.h"            /* read_stream_connection_min */
-#include "../misc/plugutils.h"          /* plug_get_host_open_port */
-
-#include "nasl_tree.h"
-#include "nasl_global_ctxt.h"
-#include "nasl_func.h"
-#include "nasl_var.h"
-#include "nasl_lex_ctxt.h"
-#include "exec.h"
-
-#include "nasl_packet_forgery.h"
-#include "nasl_debug.h"
-#include "nasl_misc_funcs.h"
-#include "byteorder.h"
+#include <stdlib.h>                 /* for lrand48 */
+#include <string.h>                 /* for bzero */
+#include <sys/time.h>               /* for gettimeofday */
+#include <unistd.h>                 /* for usleep */
 
 #define uint32 unsigned int
 
 #define NASL_EXIT_DEPRECATED 66
-#define NASL_EXIT_NOTVULN    99
+#define NASL_EXIT_NOTVULN 99
 
 /*---------------------------------------------------------------------*/
 tree_cell *
-nasl_rand (lex_ctxt * lexic)
+nasl_rand (lex_ctxt *lexic)
 {
   (void) lexic;
   tree_cell *retc;
@@ -67,7 +64,7 @@ nasl_rand (lex_ctxt * lexic)
 
 /*---------------------------------------------------------------------*/
 tree_cell *
-nasl_usleep (lex_ctxt * lexic)
+nasl_usleep (lex_ctxt *lexic)
 {
   int slp = get_int_var_by_num (lexic, 0, 0);
   usleep (slp);
@@ -75,18 +72,17 @@ nasl_usleep (lex_ctxt * lexic)
 }
 
 tree_cell *
-nasl_sleep (lex_ctxt * lexic)
+nasl_sleep (lex_ctxt *lexic)
 {
   int slp = get_int_var_by_num (lexic, 0, 0);
   sleep (slp);
   return FAKE_CELL;
 }
 
-
 /*---------------------------------------------------------------------*/
 
 tree_cell *
-nasl_ftp_log_in (lex_ctxt * lexic)
+nasl_ftp_log_in (lex_ctxt *lexic)
 {
   char *u, *p;
   int soc;
@@ -115,7 +111,7 @@ nasl_ftp_log_in (lex_ctxt * lexic)
 }
 
 tree_cell *
-nasl_ftp_get_pasv_address (lex_ctxt * lexic)
+nasl_ftp_get_pasv_address (lex_ctxt *lexic)
 {
   int soc;
   struct sockaddr_in addr;
@@ -137,10 +133,10 @@ nasl_ftp_get_pasv_address (lex_ctxt * lexic)
 /*---------------------------------------------------------------------*/
 
 tree_cell *
-nasl_telnet_init (lex_ctxt * lexic)
+nasl_telnet_init (lex_ctxt *lexic)
 {
   int soc = get_int_var_by_num (lexic, 0, -1);
-  int opts;                     /* number of options recorded */
+  int opts; /* number of options recorded */
   unsigned char buffer[1024];
 #define iac buffer[0]
 #define code buffer[1]
@@ -165,9 +161,9 @@ nasl_telnet_init (lex_ctxt * lexic)
       if ((iac != 255) || (n <= 0) || (n != 3))
         break;
       if ((code == 251) || (code == 252))
-        code = 254;             /* WILL , WONT -> DON'T */
+        code = 254; /* WILL , WONT -> DON'T */
       else if ((code == 253) || (code == 254))
-        code = 252;             /* DO,DONT -> WONT */
+        code = 252; /* DO,DONT -> WONT */
       write_stream_connection (soc, buffer, 3);
       if (lm == 0)
         {
@@ -188,10 +184,10 @@ nasl_telnet_init (lex_ctxt * lexic)
         n = 0;
     }
 
-  if (opts > 100)               /* remote telnet server is crazy */
+  if (opts > 100) /* remote telnet server is crazy */
     {
-      nasl_perror (lexic,
-                   "More than 100 options received by telnet_init() function! exiting telnet_init.\n");
+      nasl_perror (lexic, "More than 100 options received by telnet_init() "
+                          "function! exiting telnet_init.\n");
       return NULL;
     }
 
@@ -211,7 +207,7 @@ nasl_telnet_init (lex_ctxt * lexic)
 /*---------------------------------------------------------------------*/
 
 tree_cell *
-nasl_start_denial (lex_ctxt * lexic)
+nasl_start_denial (lex_ctxt *lexic)
 {
   struct script_infos *script_infos = lexic->script_infos;
   int to = lexic->recv_timeout;
@@ -243,7 +239,7 @@ nasl_start_denial (lex_ctxt * lexic)
 }
 
 tree_cell *
-nasl_end_denial (lex_ctxt * lexic)
+nasl_end_denial (lex_ctxt *lexic)
 {
   int port = lexic->script_infos->denial_port;
   int soc;
@@ -293,33 +289,31 @@ nasl_end_denial (lex_ctxt * lexic)
   return retc;
 }
 
-
 /*---------------------------------------------------------------------*/
 
 tree_cell *
-nasl_dump_ctxt (lex_ctxt * lexic)
+nasl_dump_ctxt (lex_ctxt *lexic)
 {
   dump_ctxt (lexic->up_ctxt);
   return FAKE_CELL;
 }
 
-
-
 static void
-simple_register_host_detail(lex_ctxt *lexic, char *name, char *value)
+simple_register_host_detail (lex_ctxt *lexic, char *name, char *value)
 {
   char detail[128];
   const char *oid = lexic->oid;
 
   plug_set_key (lexic->script_infos, "HostDetails", ARG_STRING, name);
-  plug_set_key (lexic->script_infos, "HostDetails/NVT", ARG_STRING, (void *)oid);
+  plug_set_key (lexic->script_infos, "HostDetails/NVT", ARG_STRING,
+                (void *) oid);
 
   g_snprintf (detail, sizeof (detail), "HostDetails/NVT/%s/%s", oid, name);
   plug_set_key (lexic->script_infos, detail, ARG_STRING, value);
 }
 
 tree_cell *
-nasl_do_exit (lex_ctxt * lexic)
+nasl_do_exit (lex_ctxt *lexic)
 {
   int retcode = get_int_var_by_num (lexic, 0, 0);
   tree_cell *retc = alloc_tree_cell ();
@@ -328,10 +322,10 @@ nasl_do_exit (lex_ctxt * lexic)
   retc->x.i_val = retcode;
 
   if (retcode == NASL_EXIT_NOTVULN)
-    simple_register_host_detail(lexic, "EXIT_CODE", "EXIT_NOTVULN");
+    simple_register_host_detail (lexic, "EXIT_CODE", "EXIT_NOTVULN");
 
-//  if (retcode == NASL_EXIT_DEPRECATED)
-    // This return code is reserved for future handling.
+  //  if (retcode == NASL_EXIT_DEPRECATED)
+  // This return code is reserved for future handling.
 
   while (lexic != NULL)
     {
@@ -342,12 +336,10 @@ nasl_do_exit (lex_ctxt * lexic)
   return retc;
 }
 
-
-
 /*---------------------------------------------------------------------*/
 
 tree_cell *
-nasl_isnull (lex_ctxt * lexic)
+nasl_isnull (lex_ctxt *lexic)
 {
   int t;
   tree_cell *retc;
@@ -365,7 +357,7 @@ nasl_isnull (lex_ctxt * lexic)
  * If an argument is an array, its index are lost
  */
 tree_cell *
-nasl_make_list (lex_ctxt * lexic)
+nasl_make_list (lex_ctxt *lexic)
 {
   tree_cell *retc = NULL;
   int i, j, vi;
@@ -373,13 +365,12 @@ nasl_make_list (lex_ctxt * lexic)
   named_nasl_var *vn;
   nasl_array *a, *a2;
 
-
   retc = alloc_tree_cell ();
   retc->type = DYN_ARRAY;
   retc->x.ref_val = a = g_malloc0 (sizeof (nasl_array));
 
-  for (i = vi = 0; (v = nasl_get_var_by_num (lexic, &lexic->ctx_vars, vi, 0)) != NULL;
-       vi++)
+  for (i = vi = 0;
+       (v = nasl_get_var_by_num (lexic, &lexic->ctx_vars, vi, 0)) != NULL; vi++)
     {
       switch (v->var_type)
         {
@@ -413,9 +404,9 @@ nasl_make_list (lex_ctxt * lexic)
           continue;
 
         default:
-          nasl_perror (lexic,
-                       "nasl_make_list: unhandled variable type 0x%x - skipped\n",
-                       v->var_type);
+          nasl_perror (
+            lexic, "nasl_make_list: unhandled variable type 0x%x - skipped\n",
+            v->var_type);
           continue;
         }
     }
@@ -431,13 +422,12 @@ nasl_make_list (lex_ctxt * lexic)
  */
 
 tree_cell *
-nasl_make_array (lex_ctxt * lexic)
+nasl_make_array (lex_ctxt *lexic)
 {
   tree_cell *retc = NULL;
   int vi;
   anon_nasl_var *v, *v2;
   nasl_array *a;
-
 
   retc = alloc_tree_cell ();
   retc->type = DYN_ARRAY;
@@ -480,9 +470,8 @@ nasl_make_array (lex_ctxt * lexic)
   return retc;
 }
 
-
 tree_cell *
-nasl_keys (lex_ctxt * lexic)
+nasl_keys (lex_ctxt *lexic)
 {
   tree_cell *retc = NULL;
   anon_nasl_var *v, myvar;
@@ -496,8 +485,8 @@ nasl_keys (lex_ctxt * lexic)
 
   bzero (&myvar, sizeof (myvar));
 
-  for (i = vi = 0; (v = nasl_get_var_by_num (lexic, &lexic->ctx_vars, vi, 0)) != NULL;
-       vi++)
+  for (i = vi = 0;
+       (v = nasl_get_var_by_num (lexic, &lexic->ctx_vars, vi, 0)) != NULL; vi++)
     {
       if (v->var_type == VAR2_ARRAY)
         {
@@ -530,7 +519,7 @@ nasl_keys (lex_ctxt * lexic)
 }
 
 tree_cell *
-nasl_max_index (lex_ctxt * lexic)
+nasl_max_index (lex_ctxt *lexic)
 {
   tree_cell *retc;
   anon_nasl_var *v;
@@ -552,7 +541,7 @@ nasl_max_index (lex_ctxt * lexic)
 }
 
 tree_cell *
-nasl_typeof (lex_ctxt * lexic)
+nasl_typeof (lex_ctxt *lexic)
 {
   tree_cell *retc;
   anon_nasl_var *u;
@@ -592,7 +581,7 @@ nasl_typeof (lex_ctxt * lexic)
 }
 
 tree_cell *
-nasl_defined_func (lex_ctxt * lexic)
+nasl_defined_func (lex_ctxt *lexic)
 {
   void *f;
   char *s;
@@ -623,8 +612,8 @@ var_cmp (const void *a, const void *b)
   tree_cell *t1, *t2;
   int ret;
 
-  t1 = var2cell ((anon_nasl_var *) * pv1);
-  t2 = var2cell ((anon_nasl_var *) * pv2);
+  t1 = var2cell ((anon_nasl_var *) *pv1);
+  t2 = var2cell ((anon_nasl_var *) *pv2);
   ret = cell_cmp (mylexic, t1, t2);
   deref_cell (t1);
   deref_cell (t2);
@@ -633,7 +622,7 @@ var_cmp (const void *a, const void *b)
 }
 
 tree_cell *
-nasl_sort_array (lex_ctxt * lexic)
+nasl_sort_array (lex_ctxt *lexic)
 {
   tree_cell *retc = NULL;
   nasl_array *a;
@@ -655,7 +644,7 @@ nasl_sort_array (lex_ctxt * lexic)
 }
 
 tree_cell *
-nasl_unixtime (lex_ctxt * lexic)
+nasl_unixtime (lex_ctxt *lexic)
 {
   tree_cell *retc;
 
@@ -666,7 +655,7 @@ nasl_unixtime (lex_ctxt * lexic)
 }
 
 tree_cell *
-nasl_gettimeofday (lex_ctxt * lexic)
+nasl_gettimeofday (lex_ctxt *lexic)
 {
   tree_cell *retc;
   struct timeval t;
@@ -686,7 +675,7 @@ nasl_gettimeofday (lex_ctxt * lexic)
 }
 
 tree_cell *
-nasl_localtime (lex_ctxt * lexic)
+nasl_localtime (lex_ctxt *lexic)
 {
   tree_cell *retc;
   struct tm *ptm;
@@ -694,7 +683,6 @@ nasl_localtime (lex_ctxt * lexic)
   int utc;
   nasl_array *a;
   anon_nasl_var v;
-
 
   tictac = get_int_var_by_num (lexic, 0, 0);
   if (tictac == 0)
@@ -719,51 +707,52 @@ nasl_localtime (lex_ctxt * lexic)
   v.var_type = VAR2_INT;
 
   v.v.v_int = ptm->tm_sec;
-  add_var_to_array (a, "sec", &v);      /* seconds */
+  add_var_to_array (a, "sec", &v); /* seconds */
   v.v.v_int = ptm->tm_min;
-  add_var_to_array (a, "min", &v);      /* minutes */
+  add_var_to_array (a, "min", &v); /* minutes */
   v.v.v_int = ptm->tm_hour;
-  add_var_to_array (a, "hour", &v);     /* hours */
+  add_var_to_array (a, "hour", &v); /* hours */
   v.v.v_int = ptm->tm_mday;
-  add_var_to_array (a, "mday", &v);     /* day of the month */
+  add_var_to_array (a, "mday", &v); /* day of the month */
   v.v.v_int = ptm->tm_mon + 1;
-  add_var_to_array (a, "mon", &v);      /* month */
+  add_var_to_array (a, "mon", &v); /* month */
   v.v.v_int = ptm->tm_year + 1900;
-  add_var_to_array (a, "year", &v);     /* year */
+  add_var_to_array (a, "year", &v); /* year */
   v.v.v_int = ptm->tm_wday;
-  add_var_to_array (a, "wday", &v);     /* day of the week */
+  add_var_to_array (a, "wday", &v); /* day of the week */
   v.v.v_int = ptm->tm_yday + 1;
-  add_var_to_array (a, "yday", &v);     /* day in the year */
+  add_var_to_array (a, "yday", &v); /* day in the year */
   v.v.v_int = ptm->tm_isdst;
-  add_var_to_array (a, "isdst", &v);    /* daylight saving time */
+  add_var_to_array (a, "isdst", &v); /* daylight saving time */
 
   return retc;
 }
 
-
 tree_cell *
-nasl_mktime (lex_ctxt * lexic)
+nasl_mktime (lex_ctxt *lexic)
 {
   struct tm tm;
   tree_cell *retc;
   time_t tictac;
 
-  tm.tm_sec = get_int_var_by_name (lexic, "sec", 0);      /* seconds */
-  tm.tm_min = get_int_var_by_name (lexic, "min", 0);      /* minutes */
-  tm.tm_hour = get_int_var_by_name (lexic, "hour", 0);    /* hours */
-  tm.tm_mday = get_int_var_by_name (lexic, "mday", 0);    /* day of the month */
-  tm.tm_mon = get_int_var_by_name (lexic, "mon", 1);      /* month */
+  tm.tm_sec = get_int_var_by_name (lexic, "sec", 0);   /* seconds */
+  tm.tm_min = get_int_var_by_name (lexic, "min", 0);   /* minutes */
+  tm.tm_hour = get_int_var_by_name (lexic, "hour", 0); /* hours */
+  tm.tm_mday = get_int_var_by_name (lexic, "mday", 0); /* day of the month */
+  tm.tm_mon = get_int_var_by_name (lexic, "mon", 1);   /* month */
   tm.tm_mon -= 1;
-  tm.tm_year = get_int_var_by_name (lexic, "year", 0);    /* year */
+  tm.tm_year = get_int_var_by_name (lexic, "year", 0); /* year */
   if (tm.tm_year >= 1900)
     tm.tm_year -= 1900;
-  tm.tm_isdst = get_int_var_by_name (lexic, "isdst", -1); /* daylight saving time */
+  tm.tm_isdst =
+    get_int_var_by_name (lexic, "isdst", -1); /* daylight saving time */
   errno = 0;
   tictac = mktime (&tm);
   if (tictac == (time_t) (-1))
     {
       nasl_perror (lexic,
-                   "mktime(sec=%02d min=%02d hour=%02d mday=%02d mon=%02d year=%04d isdst=%d): %s\n",
+                   "mktime(sec=%02d min=%02d hour=%02d mday=%02d mon=%02d "
+                   "year=%04d isdst=%d): %s\n",
                    tm.tm_sec, tm.tm_min, tm.tm_hour, tm.tm_mday, tm.tm_mon + 1,
                    tm.tm_year + 1900, tm.tm_isdst,
                    errno ? strerror (errno) : "invalid value?");
@@ -774,14 +763,13 @@ nasl_mktime (lex_ctxt * lexic)
   return retc;
 }
 
-
 tree_cell *
-nasl_open_sock_kdc (lex_ctxt * lexic)
+nasl_open_sock_kdc (lex_ctxt *lexic)
 {
   tree_cell *retc;
   int ret, type;
   int timeout = 30, port = 88, tcp = 0;
-  char *hostname = NULL, *port_str, *tcp_str;   /* Domain name for windows */
+  char *hostname = NULL, *port_str, *tcp_str; /* Domain name for windows */
   struct script_infos *script_infos;
 
   script_infos = lexic->script_infos;
@@ -795,7 +783,6 @@ nasl_open_sock_kdc (lex_ctxt * lexic)
   g_free (port_str);
   if (port <= 0 || type != KB_TYPE_INT)
     return NULL;
-
 
   tcp_str = plug_get_key (script_infos, "Secret/kdc_use_tcp", &type, NULL, 0);
   tcp = GPOINTER_TO_SIZE (tcp_str);
@@ -818,7 +805,7 @@ nasl_open_sock_kdc (lex_ctxt * lexic)
 }
 
 tree_cell *
-nasl_gunzip (lex_ctxt * lexic)
+nasl_gunzip (lex_ctxt *lexic)
 {
   tree_cell *retc;
   void *data, *uncompressed;
@@ -844,7 +831,7 @@ nasl_gunzip (lex_ctxt * lexic)
 }
 
 tree_cell *
-nasl_gzip (lex_ctxt * lexic)
+nasl_gzip (lex_ctxt *lexic)
 {
   tree_cell *retc;
   void *data, *compressed, *headerformat;
@@ -870,8 +857,6 @@ nasl_gzip (lex_ctxt * lexic)
       if (compressed == NULL)
         return NULL;
     }
-  
-   
 
   retc = alloc_tree_cell ();
   retc->type = CONST_DATA;
@@ -881,9 +866,8 @@ nasl_gzip (lex_ctxt * lexic)
   return retc;
 }
 
-
 tree_cell *
-nasl_dec2str (lex_ctxt * lexic)
+nasl_dec2str (lex_ctxt *lexic)
 {
   /*converts integer to 4 byte buffer */
   (void) lexic;
@@ -907,7 +891,7 @@ nasl_dec2str (lex_ctxt * lexic)
  * This function returns 1 on little-endian systems, 0 otherwise
  */
 tree_cell *
-nasl_get_byte_order (lex_ctxt * lexic)
+nasl_get_byte_order (lex_ctxt *lexic)
 {
   (void) lexic;
   tree_cell *retc;

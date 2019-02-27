@@ -23,20 +23,18 @@
  * @brief Tells openvassd which plugin should be executed next.
  */
 
-#include <string.h> /* for strcmp() */
+#include "pluginscheduler.h"
 
-#include <gvm/util/nvticache.h>     /* for nvticache_t */
-#include <gvm/base/prefs.h>         /* for prefs_get() */
-
-#include "../misc/nvt_categories.h"  /* for ACT_SCANNER */
-#include "../misc/plugutils.h"  /* for plug_get_launch */
+#include "../misc/nvt_categories.h" /* for ACT_SCANNER */
+#include "../misc/plugutils.h"      /* for plug_get_launch */
+#include "pluginlaunch.h"
+#include "pluginload.h"
 
 #include <glib.h>
+#include <gvm/base/prefs.h>     /* for prefs_get() */
+#include <gvm/util/nvticache.h> /* for nvticache_t */
 #include <malloc.h>
-
-#include "pluginscheduler.h"
-#include "pluginload.h"
-#include "pluginlaunch.h"
+#include <string.h> /* for strcmp() */
 
 #undef G_LOG_DOMAIN
 /**
@@ -77,7 +75,8 @@ plugin_add (plugins_scheduler_t sched, GHashTable *oids_table,
         {
           char *name = nvticache_get_filename (oid);
           g_message ("Plugin %s is deprecated. "
-                     "It will neither loaded nor launched.", name);
+                     "It will neither loaded nor launched.",
+                     name);
           g_free (name);
         }
       nvti_free (nvti);
@@ -91,9 +90,7 @@ plugin_add (plugins_scheduler_t sched, GHashTable *oids_table,
   plugin->oid = g_strdup (oid);
   g_hash_table_insert (oids_table, plugin->oid, plugin);
 
-  sched->list[category] = g_slist_prepend
-                           (sched->list[category], plugin);
-
+  sched->list[category] = g_slist_prepend (sched->list[category], plugin);
 
   /* Add the plugin's dependencies too. */
   if (autoload)
@@ -131,10 +128,12 @@ plugin_add (plugins_scheduler_t sched, GHashTable *oids_table,
           else
             {
               char *name = nvticache_get_name (oid);
-              g_warning ("There was a problem trying to load %s, a dependency "
-                         "of %s. This may be due to a parse error, or it failed "
-                         "to find the dependency. Please check the path to the "
-                         "file.", dep_name, name);
+              g_warning (
+                "There was a problem trying to load %s, a dependency "
+                "of %s. This may be due to a parse error, or it failed "
+                "to find the dependency. Please check the path to the "
+                "file.",
+                dep_name, name);
               g_free (name);
             }
           dep_name = strtok_r (NULL, ", ", &saveptr);
@@ -153,31 +152,31 @@ plugins_scheduler_fill_deps (plugins_scheduler_t sched, GHashTable *oids_table)
       GSList *element = sched->list[category];
 
       while (element)
-      {
-        char *deps;
-        struct scheduler_plugin *plugin = element->data;
+        {
+          char *deps;
+          struct scheduler_plugin *plugin = element->data;
 
-        assert (plugin->deps == NULL);
-        deps = nvticache_get_dependencies (plugin->oid);
-        if (deps)
-          {
-            int i;
-            char **array = g_strsplit (deps, ", ", 0);
+          assert (plugin->deps == NULL);
+          deps = nvticache_get_dependencies (plugin->oid);
+          if (deps)
+            {
+              int i;
+              char **array = g_strsplit (deps, ", ", 0);
 
-            for (i = 0; array[i]; i++)
-              {
-                struct scheduler_plugin *dep_plugin;
-                char *dep_oid = nvticache_get_oid (array[i]);
-                dep_plugin = g_hash_table_lookup (oids_table, dep_oid);
-                if (dep_plugin)
-                  plugin->deps = g_slist_prepend (plugin->deps, dep_plugin);
-                g_free (dep_oid);
-              }
-            g_strfreev(array);
-            g_free (deps);
-          }
-        element = element->next;
-      }
+              for (i = 0; array[i]; i++)
+                {
+                  struct scheduler_plugin *dep_plugin;
+                  char *dep_oid = nvticache_get_oid (array[i]);
+                  dep_plugin = g_hash_table_lookup (oids_table, dep_oid);
+                  if (dep_plugin)
+                    plugin->deps = g_slist_prepend (plugin->deps, dep_plugin);
+                  g_free (dep_oid);
+                }
+              g_strfreev (array);
+              g_free (deps);
+            }
+          element = element->next;
+        }
     }
 }
 
@@ -283,7 +282,8 @@ check_dependency_cycles (plugins_scheduler_t sched)
 }
 
 plugins_scheduler_t
-plugins_scheduler_init (const char *plugins_list, int autoload, int only_network)
+plugins_scheduler_init (const char *plugins_list, int autoload,
+                        int only_network)
 {
   plugins_scheduler_t ret;
   int i;
@@ -479,12 +479,12 @@ plugins_scheduler_stop (plugins_scheduler_t sched)
       GSList *element = sched->list[category];
 
       while (element)
-      {
-        struct scheduler_plugin *plugin = element->data;
+        {
+          struct scheduler_plugin *plugin = element->data;
 
-        plugin->running_state = PLUGIN_STATUS_DONE;
-        element = element->next;
-      }
+          plugin->running_state = PLUGIN_STATUS_DONE;
+          element = element->next;
+        }
     }
   sched->stopped = 1;
 }

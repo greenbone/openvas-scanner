@@ -23,28 +23,27 @@
 
 /* MODIFICATION: added definitions for implementing NTLMSSP features */
 
+#include "nasl_crypto.h"
+
+#include "exec.h"
+#include "hmacmd5.h"
+#include "nasl_debug.h"
+#include "nasl_func.h"
+#include "nasl_global_ctxt.h"
+#include "nasl_lex_ctxt.h"
+#include "nasl_tree.h"
+#include "nasl_var.h"
+#include "ntlmssp.h"
+#include "smb.h"
+#include "smb_crypt.h"
+#include "smb_signing.h"
+
+#include <assert.h>
+#include <ctype.h>
 #include <gcrypt.h>
 #include <glib.h>
-
 #include <gvm/base/logging.h>
-
-#include "nasl_tree.h"
-#include "nasl_global_ctxt.h"
-#include "nasl_func.h"
-#include "nasl_var.h"
-#include "nasl_lex_ctxt.h"
-#include "exec.h"
-#include "nasl_crypto.h"
-#include "hmacmd5.h"
-#include "smb_crypt.h"
-#include "nasl_debug.h"
-
-#include <ctype.h>
 #include <stdlib.h>
-#include <assert.h>
-#include "smb.h"
-#include "smb_signing.h"
-#include "ntlmssp.h"
 
 #ifndef uchar
 #define uchar unsigned char
@@ -66,7 +65,7 @@
 
 /*-------------------[  Std. HASH ]-------------------------------------*/
 static tree_cell *
-nasl_gcrypt_hash (lex_ctxt * lexic, int algorithm, void *data, size_t datalen,
+nasl_gcrypt_hash (lex_ctxt *lexic, int algorithm, void *data, size_t datalen,
                   void *key, size_t keylen)
 {
   gcry_md_hd_t hd;
@@ -91,7 +90,8 @@ nasl_gcrypt_hash (lex_ctxt * lexic, int algorithm, void *data, size_t datalen,
       if (err)
         {
           nasl_perror (lexic,
-                       "nasl_gcrypt_hash():" " gcry_md_setkey failed: %s/%s\n",
+                       "nasl_gcrypt_hash():"
+                       " gcry_md_setkey failed: %s/%s\n",
                        gcry_strsource (err), gcry_strerror (err));
           return NULL;
         }
@@ -110,7 +110,7 @@ nasl_gcrypt_hash (lex_ctxt * lexic, int algorithm, void *data, size_t datalen,
 }
 
 static tree_cell *
-nasl_hash (lex_ctxt * lexic, int algorithm)
+nasl_hash (lex_ctxt *lexic, int algorithm)
 {
   char *data = get_str_var_by_num (lexic, 0);
   int len = get_var_size_by_num (lexic, 0);
@@ -119,37 +119,37 @@ nasl_hash (lex_ctxt * lexic, int algorithm)
 }
 
 tree_cell *
-nasl_md2 (lex_ctxt * lexic)
+nasl_md2 (lex_ctxt *lexic)
 {
   return nasl_hash (lexic, GCRY_MD_MD2);
 }
 
 tree_cell *
-nasl_md4 (lex_ctxt * lexic)
+nasl_md4 (lex_ctxt *lexic)
 {
   return nasl_hash (lexic, GCRY_MD_MD4);
 }
 
 tree_cell *
-nasl_md5 (lex_ctxt * lexic)
+nasl_md5 (lex_ctxt *lexic)
 {
   return nasl_hash (lexic, GCRY_MD_MD5);
 }
 
 tree_cell *
-nasl_sha1 (lex_ctxt * lexic)
+nasl_sha1 (lex_ctxt *lexic)
 {
   return nasl_hash (lexic, GCRY_MD_SHA1);
 }
 
 tree_cell *
-nasl_sha256 (lex_ctxt * lexic)
+nasl_sha256 (lex_ctxt *lexic)
 {
   return nasl_hash (lexic, GCRY_MD_SHA256);
 }
 
 tree_cell *
-nasl_ripemd160 (lex_ctxt * lexic)
+nasl_ripemd160 (lex_ctxt *lexic)
 {
   return nasl_hash (lexic, GCRY_MD_RMD160);
 }
@@ -202,10 +202,8 @@ nasl_cipher_des (lex_ctxt *lexic)
 
 /*-------------------[  HMAC ]-------------------------------------*/
 
-
-
 static tree_cell *
-nasl_hmac (lex_ctxt * lexic, int algorithm)
+nasl_hmac (lex_ctxt *lexic, int algorithm)
 {
   char *data = get_str_var_by_name (lexic, "data");
   char *key = get_str_var_by_name (lexic, "key");
@@ -216,38 +214,38 @@ nasl_hmac (lex_ctxt * lexic, int algorithm)
 }
 
 tree_cell *
-nasl_hmac_md2 (lex_ctxt * lexic)
+nasl_hmac_md2 (lex_ctxt *lexic)
 {
   return nasl_hmac (lexic, GCRY_MD_MD2);
 }
 
 tree_cell *
-nasl_hmac_md5 (lex_ctxt * lexic)
+nasl_hmac_md5 (lex_ctxt *lexic)
 {
   return nasl_hmac (lexic, GCRY_MD_MD5);
 }
 
 tree_cell *
-nasl_hmac_sha1 (lex_ctxt * lexic)
+nasl_hmac_sha1 (lex_ctxt *lexic)
 {
   return nasl_hmac (lexic, GCRY_MD_SHA1);
 }
 
 tree_cell *
-nasl_hmac_sha384 (lex_ctxt * lexic)
+nasl_hmac_sha384 (lex_ctxt *lexic)
 {
   return nasl_hmac (lexic, GCRY_MD_SHA384);
 }
 
 tree_cell *
-nasl_hmac_ripemd160 (lex_ctxt * lexic)
+nasl_hmac_ripemd160 (lex_ctxt *lexic)
 {
   return nasl_hmac (lexic, GCRY_MD_RMD160);
 }
 
 /*-------------------[ Windows ]-------------------------------------*/
 tree_cell *
-nasl_get_sign (lex_ctxt * lexic)
+nasl_get_sign (lex_ctxt *lexic)
 {
   char *mac_key = (char *) get_str_var_by_name (lexic, "key");
   uint8_t *buf = (uint8_t *) get_str_var_by_name (lexic, "buf");
@@ -255,12 +253,13 @@ nasl_get_sign (lex_ctxt * lexic)
   int seq_num = get_int_var_by_name (lexic, "seq_number", -1);
   if (mac_key == NULL || buf == NULL || buflen == -1 || seq_num <= -1)
     {
-      nasl_perror (lexic,
-                   "Syntax : get_signature(key:<k>, buf:<b>, buflen:<bl>, seq_number:<s>)\n");
+      nasl_perror (lexic, "Syntax : get_signature(key:<k>, buf:<b>, "
+                          "buflen:<bl>, seq_number:<s>)\n");
       return NULL;
     }
   uint8_t calc_md5_mac[16];
-  simple_packet_signature_ntlmssp ((uint8_t *) mac_key, buf, seq_num, calc_md5_mac);
+  simple_packet_signature_ntlmssp ((uint8_t *) mac_key, buf, seq_num,
+                                   calc_md5_mac);
   memcpy (buf + 18, calc_md5_mac, 8);
   char *ret = g_malloc0 (buflen);
   memcpy (ret, buf, buflen);
@@ -350,7 +349,7 @@ hmac_sha384 (const void *key, int keylen, const void *buf, int buflen)
 }
 
 tree_cell *
-nasl_hmac_sha256 (lex_ctxt * lexic)
+nasl_hmac_sha256 (lex_ctxt *lexic)
 {
   void *key, *data, *signature;
   int keylen, datalen;
@@ -362,8 +361,7 @@ nasl_hmac_sha256 (lex_ctxt * lexic)
   keylen = get_var_size_by_name (lexic, "key");
   if (!key || !data || keylen <= 0 || datalen <= 0)
     {
-      nasl_perror (lexic,
-                   "Syntax : hmac_sha256(data:<b>, key:<k>)\n");
+      nasl_perror (lexic, "Syntax : hmac_sha256(data:<b>, key:<k>)\n");
       return NULL;
     }
   signature = hmac_sha256 (key, keylen, data, datalen);
@@ -388,7 +386,7 @@ tls_prf (const void *secret, size_t secret_len, const void *seed,
   size_t pos = 0, lslen, hmac_size;
   void *Ai;
   void *lseed;
-  void *(* hmac_func) (const void *, int, const void *, int);
+  void *(*hmac_func) (const void *, int, const void *, int);
 
   if (hmac == 0)
     {
@@ -465,14 +463,14 @@ tls_prf (const void *secret, size_t secret_len, const void *seed,
  * */
 static void *
 tls1_prf (const void *secret, size_t secret_len, const void *seed,
-         size_t seed_len, const void *label, size_t outlen)
+          size_t seed_len, const void *label, size_t outlen)
 {
   void *result, *secret1 = NULL, *secret2 = NULL;
   unsigned int half_slen, odd = 0, i;
   char *resultmd5 = NULL, *resultsha1 = NULL, *aux_res = NULL;
 
-  if (secret_len % 2 == 0 )
-    half_slen =  secret_len / 2;
+  if (secret_len % 2 == 0)
+    half_slen = secret_len / 2;
   else
     {
       half_slen = (secret_len + 1) / 2;
@@ -516,7 +514,7 @@ tls1_prf (const void *secret, size_t secret_len, const void *seed,
 }
 
 static tree_cell *
-nasl_prf (lex_ctxt * lexic, int hmac)
+nasl_prf (lex_ctxt *lexic, int hmac)
 {
   void *secret, *seed, *label, *result;
   int secret_len, seed_len, label_len, outlen;
@@ -532,8 +530,7 @@ nasl_prf (lex_ctxt * lexic, int hmac)
   if (!secret || !seed || secret_len <= 0 || seed_len <= 0 || !label
       || label_len <= 0 || outlen <= 0)
     {
-      nasl_perror (lexic,
-                   "Syntax : prf(secret, seed, label, outlen)\n");
+      nasl_perror (lexic, "Syntax : prf(secret, seed, label, outlen)\n");
       return NULL;
     }
   if (hmac != 2)
@@ -552,31 +549,31 @@ nasl_prf (lex_ctxt * lexic, int hmac)
 }
 
 tree_cell *
-nasl_prf_sha256 (lex_ctxt * lexic)
+nasl_prf_sha256 (lex_ctxt *lexic)
 {
   return nasl_prf (lexic, 0);
 }
 
 tree_cell *
-nasl_prf_sha384 (lex_ctxt * lexic)
+nasl_prf_sha384 (lex_ctxt *lexic)
 {
   return nasl_prf (lexic, 1);
 }
 
 tree_cell *
-nasl_tls1_prf (lex_ctxt * lexic)
+nasl_tls1_prf (lex_ctxt *lexic)
 {
   return nasl_prf (lexic, 2);
 }
 
 tree_cell *
-nasl_hmac_sha512 (lex_ctxt * lexic)
+nasl_hmac_sha512 (lex_ctxt *lexic)
 {
   return nasl_hmac (lexic, GCRY_MD_SHA512);
 }
 
 tree_cell *
-nasl_get_smb2_sign (lex_ctxt * lexic)
+nasl_get_smb2_sign (lex_ctxt *lexic)
 {
   void *key, *buf, *signature, *ret;
   int keylen, buflen;
@@ -588,8 +585,7 @@ nasl_get_smb2_sign (lex_ctxt * lexic)
   buflen = get_var_size_by_name (lexic, "buf");
   if (!key || !buf || keylen <= 0)
     {
-      nasl_perror (lexic,
-                   "Syntax : get_smb2_signature(buf:<b>, key:<k>)");
+      nasl_perror (lexic, "Syntax : get_smb2_signature(buf:<b>, key:<k>)");
       return NULL;
     }
   if (buflen < 64)
@@ -599,7 +595,7 @@ nasl_get_smb2_sign (lex_ctxt * lexic)
     }
 
   /* Zero the SMB2 signature field, then calculate signature */
-  memset((char *) buf + 48, 0, 16);
+  memset ((char *) buf + 48, 0, 16);
   signature = hmac_sha256 (key, keylen, buf, buflen);
 
   /* Return the header with signature included. */
@@ -615,7 +611,7 @@ nasl_get_smb2_sign (lex_ctxt * lexic)
 }
 
 tree_cell *
-nasl_ntlmv2_response (lex_ctxt * lexic)
+nasl_ntlmv2_response (lex_ctxt *lexic)
 {
   char *cryptkey = (char *) get_str_var_by_name (lexic, "cryptkey");
   char *user = (char *) get_str_var_by_name (lexic, "user");
@@ -628,8 +624,9 @@ nasl_ntlmv2_response (lex_ctxt * lexic)
   if (cryptkey == NULL || user == NULL || domain == NULL || ntlmv2_hash == NULL
       || address_list == NULL || address_list_len < 0)
     {
-      nasl_perror (lexic,
-                   "Syntax : ntlmv2_response(cryptkey:<c>, user:<u>, domain:<d>, ntlmv2_hash:<n>, address_list:<a>, address_list_len:<len>)\n");
+      nasl_perror (
+        lexic, "Syntax : ntlmv2_response(cryptkey:<c>, user:<u>, domain:<d>, "
+               "ntlmv2_hash:<n>, address_list:<a>, address_list_len:<len>)\n");
       return NULL;
     }
   uint8_t lm_response[24];
@@ -659,7 +656,7 @@ nasl_ntlmv2_response (lex_ctxt * lexic)
 }
 
 tree_cell *
-nasl_ntlm2_response (lex_ctxt * lexic)
+nasl_ntlm2_response (lex_ctxt *lexic)
 {
   char *cryptkey = (char *) get_str_var_by_name (lexic, "cryptkey");
   char *password = get_str_var_by_name (lexic, "password");
@@ -669,8 +666,8 @@ nasl_ntlm2_response (lex_ctxt * lexic)
 
   if (!cryptkey || !password || !nt_hash || hash_len < 16)
     {
-      nasl_perror
-       (lexic, "Syntax : ntlm2_response(cryptkey:<c>, password:<p>, nt_hash:<n[16]>)\n");
+      nasl_perror (lexic, "Syntax : ntlm2_response(cryptkey:<c>, password:<p>, "
+                          "nt_hash:<n[16]>)\n");
       return NULL;
     }
 
@@ -679,8 +676,8 @@ nasl_ntlm2_response (lex_ctxt * lexic)
   uint8_t session_key[16];
 
   tree_cell *retc;
-  ntlmssp_genauth_ntlm2 (password, pass_len, lm_response, nt_response, session_key,
-                         cryptkey, nt_hash);
+  ntlmssp_genauth_ntlm2 (password, pass_len, lm_response, nt_response,
+                         session_key, cryptkey, nt_hash);
   int len = sizeof (lm_response) + sizeof (nt_response) + sizeof (session_key);
   char *ret = g_malloc0 (len);
   memcpy (ret, lm_response, sizeof (lm_response));
@@ -695,7 +692,7 @@ nasl_ntlm2_response (lex_ctxt * lexic)
 }
 
 tree_cell *
-nasl_ntlm_response (lex_ctxt * lexic)
+nasl_ntlm_response (lex_ctxt *lexic)
 {
   char *cryptkey = (char *) get_str_var_by_name (lexic, "cryptkey");
   char *password = get_str_var_by_name (lexic, "password");
@@ -706,8 +703,8 @@ nasl_ntlm_response (lex_ctxt * lexic)
 
   if (!cryptkey || !password || !nt_hash || hash_len < 16 || neg_flags < 0)
     {
-      nasl_perror (lexic,
-                   "Syntax : ntlm_response(cryptkey:<c>, password:<p>, nt_hash:<n[16]>, neg_flags:<nf>)\n");
+      nasl_perror (lexic, "Syntax : ntlm_response(cryptkey:<c>, password:<p>, "
+                          "nt_hash:<n[16]>, neg_flags:<nf>)\n");
       return NULL;
     }
 
@@ -717,8 +714,8 @@ nasl_ntlm_response (lex_ctxt * lexic)
 
   tree_cell *retc;
 
-  ntlmssp_genauth_ntlm (password, pass_len, lm_response, nt_response, session_key,
-                        cryptkey, nt_hash, neg_flags);
+  ntlmssp_genauth_ntlm (password, pass_len, lm_response, nt_response,
+                        session_key, cryptkey, nt_hash, neg_flags);
 
   int len = sizeof (lm_response) + sizeof (nt_response) + sizeof (session_key);
   char *ret = g_malloc0 (len);
@@ -734,7 +731,7 @@ nasl_ntlm_response (lex_ctxt * lexic)
 }
 
 tree_cell *
-nasl_keyexchg (lex_ctxt * lexic)
+nasl_keyexchg (lex_ctxt *lexic)
 {
   char *cryptkey = (char *) get_str_var_by_name (lexic, "cryptkey");
   uint8_t *session_key = (uint8_t *) get_str_var_by_name (lexic, "session_key");
@@ -743,16 +740,16 @@ nasl_keyexchg (lex_ctxt * lexic)
 
   if (cryptkey == NULL || session_key == NULL || nt_hash == NULL)
     {
-      nasl_perror (lexic,
-                   "Syntax : key_exchange(cryptkey:<c>, session_key:<s>, nt_hash:<n> )\n");
+      nasl_perror (
+        lexic,
+        "Syntax : key_exchange(cryptkey:<c>, session_key:<s>, nt_hash:<n> )\n");
       return NULL;
     }
   uint8_t new_sess_key[16];
   tree_cell *retc;
   uint8_t *encrypted_session_key = NULL;
-  encrypted_session_key =
-    ntlmssp_genauth_keyexchg (session_key, cryptkey, nt_hash,
-                              (uint8_t *) & new_sess_key);
+  encrypted_session_key = ntlmssp_genauth_keyexchg (
+    session_key, cryptkey, nt_hash, (uint8_t *) &new_sess_key);
   int len = 16 + 16;
   char *ret = g_malloc0 (len);
   memcpy (ret, new_sess_key, 16);
@@ -765,7 +762,7 @@ nasl_keyexchg (lex_ctxt * lexic)
 }
 
 tree_cell *
-nasl_ntlmv1_hash (lex_ctxt * lexic)
+nasl_ntlmv1_hash (lex_ctxt *lexic)
 {
   const uchar *cryptkey = (uchar *) get_str_var_by_name (lexic, "cryptkey");
   char *password = get_str_var_by_name (lexic, "passhash");
@@ -798,7 +795,7 @@ nasl_ntlmv1_hash (lex_ctxt * lexic)
 }
 
 tree_cell *
-nasl_nt_owf_gen (lex_ctxt * lexic)
+nasl_nt_owf_gen (lex_ctxt *lexic)
 {
   char *pass = get_str_var_by_num (lexic, 0);
   gunichar2 *upass;
@@ -817,7 +814,7 @@ nasl_nt_owf_gen (lex_ctxt * lexic)
 }
 
 tree_cell *
-nasl_lm_owf_gen (lex_ctxt * lexic)
+nasl_lm_owf_gen (lex_ctxt *lexic)
 {
   char *pass = get_str_var_by_num (lexic, 0);
   int pass_len = get_var_size_by_num (lexic, 0);
@@ -847,7 +844,7 @@ nasl_lm_owf_gen (lex_ctxt * lexic)
 }
 
 tree_cell *
-nasl_insert_hexzeros (lex_ctxt * lexic)
+nasl_insert_hexzeros (lex_ctxt *lexic)
 {
   const uchar *in = (uchar *) get_str_var_by_name (lexic, "in");
   int in_len = get_var_size_by_name (lexic, "in");
@@ -877,7 +874,6 @@ nasl_insert_hexzeros (lex_ctxt * lexic)
         break;
     }
 
-
   /* We don't want null termination */
   byte_len = byte_len - 2;
 
@@ -890,7 +886,7 @@ nasl_insert_hexzeros (lex_ctxt * lexic)
 
 /* Does both the NTLMv2 owfs of a user's password */
 tree_cell *
-nasl_ntv2_owf_gen (lex_ctxt * lexic)
+nasl_ntv2_owf_gen (lex_ctxt *lexic)
 {
   const uchar *owf_in = (uchar *) get_str_var_by_name (lexic, "owf");
   int owf_in_len = get_var_size_by_name (lexic, "owf");
@@ -978,7 +974,7 @@ nasl_ntv2_owf_gen (lex_ctxt * lexic)
 }
 
 tree_cell *
-nasl_ntlmv2_hash (lex_ctxt * lexic)
+nasl_ntlmv2_hash (lex_ctxt *lexic)
 {
   const uchar *server_chal = (uchar *) get_str_var_by_name (lexic, "cryptkey");
   int sc_len = get_var_size_by_name (lexic, "cryptkey");
@@ -994,8 +990,9 @@ nasl_ntlmv2_hash (lex_ctxt * lexic)
   if (sc_len < 0 || server_chal == NULL || hash_len < 0 || ntlm_v2_hash == NULL
       || client_chal_length < 0)
     {
-      nasl_perror (lexic,
-                   "Syntax : ntlmv2_hash(cryptkey:<c>, passhash:<p>, length:<l>)\n");
+      nasl_perror (
+        lexic,
+        "Syntax : ntlmv2_hash(cryptkey:<c>, passhash:<p>, length:<l>)\n");
       return NULL;
     }
 
@@ -1006,17 +1003,16 @@ nasl_ntlmv2_hash (lex_ctxt * lexic)
   for (i = 0; i < client_chal_length; i++)
     ntlmv2_client_data[i] = rand () % 256;
 
-
-
   assert (hash_len == 16);
   /* Given that data, and the challenge from the server, generate a response */
-  SMBOWFencrypt_ntv2_ntlmssp(ntlm_v2_hash, server_chal, 8, ntlmv2_client_data,
-                      client_chal_length, ntlmv2_response);
+  SMBOWFencrypt_ntv2_ntlmssp (ntlm_v2_hash, server_chal, 8, ntlmv2_client_data,
+                              client_chal_length, ntlmv2_response);
 
   /* put it into nt_response, for the code below to put into the packet */
   final_response = g_malloc0 (client_chal_length + sizeof (ntlmv2_response));
   memcpy (final_response, ntlmv2_response, sizeof (ntlmv2_response));
-  /* after the first 16 bytes is the random data we generated above, so the server can verify us with it */
+  /* after the first 16 bytes is the random data we generated above, so the
+   * server can verify us with it */
   memcpy (final_response + sizeof (ntlmv2_response), ntlmv2_client_data,
           client_chal_length);
 
