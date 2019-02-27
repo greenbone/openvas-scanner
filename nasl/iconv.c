@@ -164,9 +164,9 @@ smb_iconv_open_ntlmssp (const char *tocode, const char *fromcode)
 
   if (!ret->push || !ret->pull)
     {
-      SAFE_FREE (ret->from_name);
-      SAFE_FREE (ret->to_name);
-      SAFE_FREE (ret);
+      g_free (ret->from_name);
+      g_free (ret->to_name);
+      g_free (ret);
       errno = EINVAL;
       return (smb_iconv_t) -1;
     }
@@ -222,11 +222,11 @@ smb_iconv_close_ntlmssp (smb_iconv_t cd)
     iconv_close ((iconv_t) cd->cd_push);
 #endif
 
-  SAFE_FREE (cd->from_name);
-  SAFE_FREE (cd->to_name);
+  g_free (cd->from_name);
+  g_free (cd->to_name);
 
   memset (cd, 0, sizeof (*cd));
-  SAFE_FREE (cd);
+  g_free (cd);
   return 0;
 }
 
