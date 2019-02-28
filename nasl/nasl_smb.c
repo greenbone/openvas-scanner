@@ -27,13 +27,6 @@
  * via WMI.
  */
 
-/**
- * @todo Check for memleak and document reference counting in tree cells.
- *       In some cases, after a tree_cell (typically retc) has been allocated
- *       with alloc_tree_cell, it is not later freed or deref_tree_cell'ed. It
- *       has to evaluated if that is okay or leads to memory leaks.
- */
-
 #include "nasl_smb.h"
 
 #include "../misc/plugutils.h"
