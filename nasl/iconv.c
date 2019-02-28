@@ -29,6 +29,8 @@
 #include "charset.h"
 #include "smb.h"
 
+#include <glib.h>
+
 typedef unsigned int bool;
 
 static size_t

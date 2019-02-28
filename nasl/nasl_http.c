@@ -191,8 +191,7 @@ Accept-Charset: iso-8859-1,*,utf-8\r\n",
 
   if (prefs_get_bool ("advanced_log"))
     kb_item_add_str (kb, "log/http/full", request, 0);
-  retc = alloc_tree_cell ();
-  retc->type = CONST_DATA;
+  retc = alloc_typed_cell (CONST_DATA);
   retc->size = strlen (request);
   retc->x.str_val = request;
   return retc;
@@ -261,8 +260,7 @@ cgibin (lex_ctxt *lexic)
   (void) lexic;
   if (path == NULL)
     path = "/cgi-bin:/scripts";
-  retc = alloc_tree_cell ();
-  retc->type = CONST_DATA;
+  retc = alloc_typed_cell (CONST_DATA);
   retc->x.str_val = g_strdup (path);
   retc->size = strlen (path);
 

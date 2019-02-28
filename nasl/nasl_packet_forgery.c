@@ -105,8 +105,7 @@ forge_ip_packet (lex_ctxt *lexic)
   data = get_str_var_by_name (lexic, "data");
   data_len = get_var_size_by_name (lexic, "data");
 
-  retc = alloc_tree_cell ();
-  retc->type = CONST_DATA;
+  retc = alloc_typed_cell (CONST_DATA);
   retc->size = sizeof (struct ip) + data_len;
 
   pkt = (struct ip *) g_malloc0 (sizeof (struct ip) + data_len);
@@ -223,8 +222,7 @@ get_ip_element (lex_ctxt *lexic)
 
   if (flag != 0)
     {
-      retc = alloc_tree_cell ();
-      retc->type = CONST_INT;
+      retc = alloc_typed_cell (CONST_INT);
       retc->x.i_val = ret_int;
       return retc;
     }
@@ -246,8 +244,7 @@ get_ip_element (lex_ctxt *lexic)
       return NULL;
     }
 
-  retc = alloc_tree_cell ();
-  retc->type = CONST_DATA;
+  retc = alloc_typed_cell (CONST_DATA);
   retc->size = strlen (ret_ascii);
   retc->x.str_val = g_strdup (ret_ascii);
 
@@ -259,7 +256,7 @@ set_ip_elements (lex_ctxt *lexic)
 {
   struct ip *o_pkt = (struct ip *) get_str_var_by_name (lexic, "ip");
   int size = get_var_size_by_name (lexic, "ip");
-  tree_cell *retc = alloc_tree_cell ();
+  tree_cell *retc;
   struct ip *pkt;
   char *s;
 
@@ -291,7 +288,7 @@ set_ip_elements (lex_ctxt *lexic)
   if (pkt->ip_sum == 0)
     pkt->ip_sum = np_in_cksum ((u_short *) pkt, sizeof (struct ip));
 
-  retc->type = CONST_DATA;
+  retc = alloc_typed_cell (CONST_DATA);
   retc->size = size;
   retc->x.str_val = (char *) pkt;
 
@@ -362,8 +359,7 @@ insert_ip_options (lex_ctxt *lexic)
                               ? UNFIX (new_packet->ip_len)
                               : new_packet->ip_hl * 4);
 
-  retc = alloc_tree_cell ();
-  retc->type = CONST_DATA;
+  retc = alloc_typed_cell (CONST_DATA);
   retc->size = size + value_size + sizeof (uc_code) + sizeof (uc_len) + pad_len;
   retc->x.str_val = (char *) new_packet;
 
@@ -452,8 +448,7 @@ forge_tcp_packet (lex_ctxt *lexic)
   data = get_str_var_by_name (lexic, "data");
   len = data == NULL ? 0 : get_var_size_by_name (lexic, "data");
 
-  retc = alloc_tree_cell ();
-  retc->type = CONST_DATA;
+  retc = alloc_typed_cell (CONST_DATA);
   tcp_packet = (struct ip *) g_malloc0 (ipsz + sizeof (struct tcphdr) + len);
   retc->x.str_val = (char *) tcp_packet;
 
@@ -576,8 +571,7 @@ get_tcp_element (lex_ctxt *lexic)
     ret = tcp->th_urp;
   else if (!strcmp (element, "data"))
     {
-      retc = alloc_tree_cell ();
-      retc->type = CONST_DATA;
+      retc = alloc_typed_cell (CONST_DATA);
       retc->size = UNFIX (ip->ip_len) - ntohl (tcp->th_off) * 4;
       retc->x.str_val = g_malloc0 (retc->size);
       bcopy (tcp + ntohl (tcp->th_off) * 4, retc->x.str_val, retc->size);
@@ -589,8 +583,7 @@ get_tcp_element (lex_ctxt *lexic)
       return NULL;
     }
 
-  retc = alloc_tree_cell ();
-  retc->type = CONST_INT;
+  retc = alloc_typed_cell (CONST_INT);
   retc->x.i_val = ret;
   return retc;
 }
@@ -685,8 +678,7 @@ set_tcp_elements (lex_ctxt *lexic)
       g_free (tcpsumdata);
     }
 
-  retc = alloc_tree_cell ();
-  retc->type = CONST_DATA;
+  retc = alloc_typed_cell (CONST_DATA);
   retc->size = (ip->ip_hl * 4) + (tcp->th_off * 4) + data_len;
   retc->x.str_val = npkt;
   return retc;
@@ -860,8 +852,7 @@ forge_udp_packet (lex_ctxt *lexic)
             }
         }
 
-      retc = alloc_tree_cell ();
-      retc->type = CONST_DATA;
+      retc = alloc_typed_cell (CONST_DATA);
       retc->x.str_val = (char *) pkt;
       retc->size = 8 + ip->ip_hl * 4 + data_len;
       return retc;
@@ -910,8 +901,7 @@ get_udp_element (lex_ctxt *lexic)
   else if (!strcmp (element, "data"))
     {
       int sz;
-      retc = alloc_tree_cell ();
-      retc->type = CONST_DATA;
+      retc = alloc_typed_cell (CONST_DATA);
       sz = ntohs (udphdr->uh_ulen) - sizeof (struct udphdr);
 
       if (ntohs (udphdr->uh_ulen) - ip->ip_hl * 4 - sizeof (struct udphdr)
@@ -929,8 +919,7 @@ get_udp_element (lex_ctxt *lexic)
       return NULL;
     }
 
-  retc = alloc_tree_cell ();
-  retc->type = CONST_INT;
+  retc = alloc_typed_cell (CONST_INT);
   retc->x.i_val = ret;
   return retc;
 }
@@ -1029,8 +1018,7 @@ set_udp_elements (lex_ctxt *lexic)
                                      12 + sizeof (struct udphdr) + len);
           g_free (udpsumdata);
         }
-      retc = alloc_tree_cell ();
-      retc->type = CONST_DATA;
+      retc = alloc_typed_cell (CONST_DATA);
       retc->size = sz;
       retc->x.str_val = pkt;
       return retc;
@@ -1128,8 +1116,7 @@ forge_icmp_packet (lex_ctxt *lexic)
       else
         icmp->icmp_cksum = htons (get_int_var_by_name (lexic, "icmp_cksum", 0));
 
-      retc = alloc_tree_cell ();
-      retc->type = CONST_DATA;
+      retc = alloc_typed_cell (CONST_DATA);
       retc->x.str_val = (char *) pkt;
       retc->size = ip_sz + len + 8;
     }
@@ -1169,8 +1156,7 @@ get_icmp_element (lex_ctxt *lexic)
         value = ntohs (icmp->icmp_cksum);
       else if (!strcmp (elem, "data"))
         {
-          retc = alloc_tree_cell ();
-          retc->type = CONST_DATA;
+          retc = alloc_typed_cell (CONST_DATA);
           retc->size =
             get_var_size_by_name (lexic, "icmp") - (ip->ip_hl * 4) - 8;
           if (retc->size > 0)
@@ -1186,8 +1172,7 @@ get_icmp_element (lex_ctxt *lexic)
       else
         return NULL;
 
-      retc = alloc_tree_cell ();
-      retc->type = CONST_INT;
+      retc = alloc_typed_cell (CONST_INT);
       retc->x.i_val = value;
       return retc;
     }
@@ -1254,8 +1239,7 @@ forge_igmp_packet (lex_ctxt *lexic)
           char *p = (char *) (pkt + ip->ip_hl * 4 + sizeof (struct igmp));
           bcopy (p, data, len);
         }
-      retc = alloc_tree_cell ();
-      retc->type = CONST_DATA;
+      retc = alloc_typed_cell (CONST_DATA);
       retc->x.str_val = (char *) pkt;
       retc->size = ip->ip_hl * 4 + sizeof (struct igmp) + len;
       return retc;
@@ -1395,8 +1379,7 @@ nasl_tcp_ping (lex_ctxt *lexic)
         }
     }
 
-  retc = alloc_tree_cell ();
-  retc->type = CONST_INT;
+  retc = alloc_typed_cell (CONST_INT);
   retc->x.i_val = flag;
   if (bpf >= 0)
     bpf_close (bpf);
@@ -1501,8 +1484,7 @@ nasl_send_packet (lex_ctxt *lexic)
 
           if (answer)
             {
-              retc = alloc_tree_cell ();
-              retc->type = CONST_DATA;
+              retc = alloc_typed_cell (CONST_DATA);
               retc->x.str_val = (char *) answer;
               retc->size = answer_sz;
               break;
@@ -1638,9 +1620,7 @@ nasl_pcap_next (lex_ctxt *lexic)
         }
     }
   bpf_close (bpf);
-  retc = alloc_tree_cell ();
-
-  retc->type = CONST_DATA;
+  retc = alloc_typed_cell (CONST_DATA);
   if (v4_addr)
     retc->x.str_val = (char *) ret;
   else
@@ -1768,9 +1748,7 @@ nasl_send_capture (lex_ctxt *lexic)
         }
     }
   bpf_close (bpf);
-  retc = alloc_tree_cell ();
-
-  retc->type = CONST_DATA;
+  retc = alloc_typed_cell (CONST_DATA);
   if (v4_addr)
     retc->x.str_val = (char *) ret;
   else

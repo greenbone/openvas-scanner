@@ -59,8 +59,7 @@ get_hostnames (lex_ctxt *lexic)
   if (!hostnames)
     return NULL;
 
-  retc = alloc_tree_cell ();
-  retc->type = DYN_ARRAY;
+  retc = alloc_typed_cell (DYN_ARRAY);
   retc->x.ref_val = arr = g_malloc0 (sizeof (nasl_array));
   while (tmp)
     {
@@ -87,8 +86,7 @@ get_hostname (lex_ctxt *lexic)
   if (hostname == NULL)
     return NULL;
 
-  retc = alloc_tree_cell ();
-  retc->type = CONST_STR;
+  retc = alloc_typed_cell (CONST_STR);
   retc->size = strlen (hostname);
   retc->x.str_val = hostname;
   return retc;
@@ -106,8 +104,7 @@ get_hostname_source (lex_ctxt *lexic)
   if (!source)
     return NULL;
 
-  retc = alloc_tree_cell ();
-  retc->type = CONST_STR;
+  retc = alloc_typed_cell (CONST_STR);
   retc->size = strlen (source);
   retc->x.str_val = source;
   return retc;
@@ -158,8 +155,7 @@ resolve_hostname (lex_ctxt *lexic)
 
   if (!gvm_resolve_as_addr6 (value, &in6addr))
     {
-      tree_cell *retc = alloc_tree_cell ();
-      retc->type = CONST_STR;
+      tree_cell *retc = alloc_typed_cell (CONST_STR);
       retc->x.str_val = addr6_as_str (&in6addr);
       retc->size = strlen (retc->x.str_val);
       return retc;
@@ -179,8 +175,7 @@ get_host_ip (lex_ctxt *lexic)
       return FAKE_CELL;
     }
 
-  retc = alloc_tree_cell ();
-  retc->type = CONST_STR;
+  retc = alloc_typed_cell (CONST_STR);
   retc->x.str_val = addr6_as_str (ip);
   retc->size = strlen (retc->x.str_val);
 
@@ -194,8 +189,7 @@ get_host_open_port (lex_ctxt *lexic)
   unsigned int port = plug_get_host_open_port (script_infos);
   tree_cell *retc;
 
-  retc = alloc_tree_cell ();
-  retc->type = CONST_INT;
+  retc = alloc_typed_cell (CONST_INT);
   retc->x.i_val = port;
 
   return retc;
@@ -213,8 +207,7 @@ get_port_state (lex_ctxt *lexic)
   if (port < 0)
     return FAKE_CELL;
 
-  retc = alloc_tree_cell ();
-  retc->type = CONST_INT;
+  retc = alloc_typed_cell (CONST_INT);
   open = host_get_port_state (script_infos, port);
   retc->x.i_val = open;
   return retc;
@@ -232,8 +225,7 @@ get_udp_port_state (lex_ctxt *lexic)
   if (port < 0)
     return FAKE_CELL;
 
-  retc = alloc_tree_cell ();
-  retc->type = CONST_INT;
+  retc = alloc_typed_cell (CONST_INT);
   open = host_get_port_state_udp (script_infos, port);
   retc->x.i_val = open;
   return retc;
@@ -246,8 +238,7 @@ nasl_islocalhost (lex_ctxt *lexic)
   struct in6_addr *dst = plug_get_host_ip (script_infos);
   tree_cell *retc;
 
-  retc = alloc_tree_cell ();
-  retc->type = CONST_INT;
+  retc = alloc_typed_cell (CONST_INT);
   retc->x.i_val = v6_islocalhost (dst);
   return retc;
 }
@@ -259,8 +250,7 @@ nasl_islocalnet (lex_ctxt *lexic)
   struct in6_addr *ip = plug_get_host_ip (script_infos);
   tree_cell *retc;
 
-  retc = alloc_tree_cell ();
-  retc->type = CONST_INT;
+  retc = alloc_typed_cell (CONST_INT);
   retc->x.i_val = v6_is_local_ip (ip);
   return retc;
 }
@@ -275,8 +265,7 @@ nasl_this_host (lex_ctxt *lexic)
   struct in6_addr in6addr;
   struct in6_addr src6;
 
-  retc = alloc_tree_cell ();
-  retc->type = CONST_DATA;
+  retc = alloc_typed_cell (CONST_DATA);
 
   if (gvm_source_iface_is_set ())
     {
@@ -326,8 +315,7 @@ nasl_this_host_name (lex_ctxt *lexic)
   tree_cell *retc;
 
   (void) lexic;
-  retc = alloc_tree_cell ();
-  retc->type = CONST_DATA;
+  retc = alloc_typed_cell (CONST_DATA);
 
   hostname = g_malloc0 (256);
   gethostname (hostname, 255);
@@ -380,11 +368,10 @@ get_port_transport (lex_ctxt *lexic)
     {
       int trp = plug_get_port_transport (script_infos, port);
 
-      retc = alloc_tree_cell ();
+      retc = alloc_typed_cell (CONST_STR);
       if (get_int_var_by_name (lexic, "asstring", 0))
         {
           const char *s = get_encaps_name (trp);
-          retc->type = CONST_STR;
           retc->x.str_val = g_strdup (s);
           retc->size = strlen (s);
         }
@@ -535,8 +522,7 @@ nasl_target_is_ipv6 (lex_ctxt *lexic)
   struct in6_addr *addr;
 
   addr = plug_get_host_ip (script_infos);
-  retc = alloc_tree_cell ();
-  retc->type = CONST_INT;
+  retc = alloc_typed_cell (CONST_INT);
 
   if (addr == NULL)
     {
