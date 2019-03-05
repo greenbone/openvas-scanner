@@ -27,13 +27,6 @@
  * via WMI.
  */
 
-/**
- * @todo Check for memleak and document reference counting in tree cells.
- *       In some cases, after a tree_cell (typically retc) has been allocated
- *       with alloc_tree_cell, it is not later freed or deref_tree_cell'ed. It
- *       has to evaluated if that is okay or leads to memory leaks.
- */
-
 #include "nasl_smb.h"
 
 #include "../misc/plugutils.h"
@@ -75,8 +68,7 @@ nasl_smb_versioninfo (lex_ctxt *lexic)
   if (!version)
     return NULL;
 
-  retc = alloc_tree_cell ();
-  retc->type = CONST_DATA;
+  retc = alloc_typed_cell (CONST_DATA);
   retc->x.str_val = strdup (version);
   retc->size = strlen (version);
   return retc;
@@ -124,8 +116,7 @@ nasl_smb_connect (lex_ctxt *lexic)
       return NULL;
     }
 
-  retc = alloc_tree_cell ();
-  retc->type = CONST_INT;
+  retc = alloc_typed_cell (CONST_INT);
   value = smb_connect (ip, share, username, password, &handle);
   g_free (ip);
 
@@ -157,8 +148,7 @@ nasl_smb_close (lex_ctxt *lexic)
   int ret;
   tree_cell *retc;
 
-  retc = alloc_tree_cell ();
-  retc->type = CONST_INT;
+  retc = alloc_typed_cell (CONST_INT);
 
   ret = smb_close (handle);
   if (ret == 0)
@@ -207,8 +197,7 @@ nasl_smb_file_SDDL (lex_ctxt *lexic)
   if (buffer == NULL)
     return NULL;
 
-  retc = alloc_tree_cell ();
-  retc->type = CONST_DATA;
+  retc = alloc_typed_cell (CONST_DATA);
   retc->size = strlen (buffer);
   retc->x.str_val = strdup (buffer);
   return retc;
@@ -251,8 +240,7 @@ nasl_smb_file_owner_sid (lex_ctxt *lexic)
   if (buffer == NULL)
     return NULL;
 
-  retc = alloc_tree_cell ();
-  retc->type = CONST_DATA;
+  retc = alloc_typed_cell (CONST_DATA);
   retc->size = strlen (buffer);
   retc->x.str_val = strdup (buffer);
   return retc;
@@ -295,8 +283,7 @@ nasl_smb_file_group_sid (lex_ctxt *lexic)
   if (buffer == NULL)
     return NULL;
 
-  retc = alloc_tree_cell ();
-  retc->type = CONST_DATA;
+  retc = alloc_typed_cell (CONST_DATA);
   retc->size = strlen (buffer);
   retc->x.str_val = strdup (buffer);
   return retc;
@@ -339,8 +326,7 @@ nasl_smb_file_trustee_rights (lex_ctxt *lexic)
   if (buffer == NULL)
     return NULL;
 
-  retc = alloc_tree_cell ();
-  retc->type = CONST_DATA;
+  retc = alloc_typed_cell (CONST_DATA);
   retc->size = strlen (buffer);
   retc->x.str_val = strdup (buffer);
   return retc;
@@ -457,8 +443,7 @@ nasl_win_cmd_exec (lex_ctxt *lexic)
       string->str = tmp;
     }
 
-  retc = alloc_tree_cell ();
-  retc->type = CONST_DATA;
+  retc = alloc_typed_cell (CONST_DATA);
   retc->x.str_val = string->str;
   retc->size = string->len;
   return retc;

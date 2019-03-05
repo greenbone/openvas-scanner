@@ -46,25 +46,6 @@ typedef struct
 
 } HMACMD5Context;
 
-#ifndef SAFE_FREE
-/**
- * Free memory if the pointer and zero the pointer.
- *
- * @note You are explicitly allowed to pass NULL pointers -- they will
- * always be ignored.
- **/
-#define SAFE_FREE(x)   \
-  do                   \
-    {                  \
-      if ((x) != NULL) \
-        {              \
-          free (x);    \
-          x = NULL;    \
-        }              \
-    }                  \
-  while (0)
-#endif
-
 /*
  * Note we duplicate the size tests in the unsigned
  * case as int16 may be a typedef from rpc/rpc.h

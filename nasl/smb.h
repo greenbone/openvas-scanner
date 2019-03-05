@@ -183,19 +183,6 @@ enum protocol_types
  * aligned */
 typedef uint64_t NTTIME;
 
-/*-------------------taken from samba's
- * smb_macros.h-------------------------------*/
-#define SAFE_FREE(x)   \
-  do                   \
-    {                  \
-      if ((x) != NULL) \
-        {              \
-          free (x);    \
-          x = NULL;    \
-        }              \
-    }                  \
-  while (0)
-
 #define SMB_MALLOC_P(type) (type *) malloc (sizeof (type))
 
 #define SMB_REALLOC(p, s) \
