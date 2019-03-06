@@ -529,7 +529,7 @@ plugin_run_nmap (lex_ctxt *lexic)
 }
 
 /**
- * @brief Instanciate a new nmap handler, rebuild command line or open XML file
+ * @brief Instantiate a new nmap handler, rebuild command line or open XML file
  *        to parse.
  *
  * @param[in] lexic NASL state
@@ -719,7 +719,7 @@ add_arg (nmap_t *nmap, const gchar *name, const gchar *value)
 
   if (!nmap->args)
     {
-      /* Initial call, instanciate the NULL terminated list of arguments */
+      /* Initial call, instantiate the NULL terminated list of arguments */
       nmap->args = g_malloc (sizeof (*nmap->args));
       nmap->arg_idx = 0;
     }
