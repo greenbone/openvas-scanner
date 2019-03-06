@@ -424,12 +424,11 @@ script_add_preference (lex_ctxt *lexic)
   struct script_infos *script_infos = lexic->script_infos;
   nvtpref_t *np;
   GSList *tmp;
-  static int autoid = 100;
 
   if (!script_infos->nvti)
     return FAKE_CELL;
   if (id <= 0)
-    id = autoid++;
+    id = g_slist_length (script_infos->nvti->prefs) + 1;
   if (!name || !type || !value)
     {
       nasl_perror (lexic,
