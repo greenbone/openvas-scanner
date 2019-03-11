@@ -223,6 +223,21 @@ remove_pidfile ()
   pidfile_remove ("openvassd");
 }
 
+static int
+get_client_timedout (int sockfd, struct sockaddr *addr, socklen_t lg_address,
+                     struct timeval *timeout)
+{
+  int ret;
+  fd_set set;
+
+  FD_ZERO (&set);
+  FD_SET (sockfd, &set);
+  ret = select (sockfd + 1, &set, NULL, NULL, timeout);
+  if (ret <= 0) /* error or timeout. */
+    return -1;
+  return accept (global_iana_socket, addr, &lg_address);
+}
+
 /*
  * @brief Starts a process to handle client requests while the scanner is
  * loading.
