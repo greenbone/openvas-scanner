@@ -182,9 +182,7 @@ get_var_ref_by_num (lex_ctxt *ctxt, int num)
 tree_cell *
 var2cell (anon_nasl_var *v)
 {
-  tree_cell *tc = alloc_tree_cell ();
-
-  tc->type = REF_VAR;
+  tree_cell *tc = alloc_typed_cell (REF_VAR);
   tc->x.ref_val = v; /* No need to free this later! */
   return tc;
 }
@@ -556,8 +554,7 @@ get_variable_by_name (lex_ctxt *ctxt, const char *name)
    if (c1 == NULL || c1 == FAKE_CELL || c1->type != REF_ARRAY)
      return NULL;
 
-   c2 = alloc_tree_cell ();
-   c2->type = DYN_ARRAY;
+   c2 = alloc_typed_cell (DYN_ARRAY);
    c2->x.ref_val = a2 = g_malloc0 (sizeof (nasl_array));
    copy_array (a2, c1->x.ref_val, 1);
    return c2;
@@ -870,7 +867,7 @@ get_variable_by_name (lex_ctxt *ctxt, const char *name)
    if (v == NULL)
      return NULL;
 
-   ret = alloc_tree_cell ();
+   ret = alloc_typed_cell (NODE_EMPTY);
    ret->line_nb = tc->line_nb;
 
    switch (v->var_type)
@@ -975,8 +972,7 @@ get_variable_by_name (lex_ctxt *ctxt, const char *name)
    v->var_type = VAR2_INT;
    v->v.v_int = new_val;
 
-   retc = alloc_tree_cell ();
-   retc->type = CONST_INT;
+   retc = alloc_typed_cell (CONST_INT);
    retc->x.i_val = pre ? new_val : old_val;
 
    return retc;

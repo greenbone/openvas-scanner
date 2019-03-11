@@ -470,12 +470,9 @@ script_get_preference (lex_ctxt *lexic)
   value = get_plugin_preference (lexic->oid, pref);
   if (value != NULL)
     {
-      retc = alloc_tree_cell ();
+      retc = alloc_typed_cell (CONST_INT);
       if (isalldigit (value, strlen (value)))
-        {
-          retc->type = CONST_INT;
-          retc->x.i_val = atoi (value);
-        }
+        retc->x.i_val = atoi (value);
       else
         {
           retc->type = CONST_DATA;
@@ -526,8 +523,7 @@ script_get_preference_file_content (lex_ctxt *lexic)
       return NULL;
     }
 
-  retc = alloc_tree_cell ();
-  retc->type = CONST_DATA;
+  retc = alloc_typed_cell (CONST_DATA);
   retc->size = contentsize;
   retc->x.str_val = content;
 
@@ -577,9 +573,8 @@ tree_cell *
 safe_checks (lex_ctxt *lexic)
 {
   (void) lexic;
-  tree_cell *retc = alloc_tree_cell ();
+  tree_cell *retc = alloc_typed_cell (CONST_INT);
 
-  retc->type = CONST_INT;
   retc->x.i_val = prefs_get_bool ("safe_checks");
 
   return retc;
@@ -591,9 +586,8 @@ scan_phase (lex_ctxt *lexic)
   struct script_infos *script_infos = lexic->script_infos;
   struct scan_globals *globals = script_infos->globals;
   char *value;
-  tree_cell *retc = alloc_tree_cell ();
+  tree_cell *retc = alloc_typed_cell (CONST_INT);
 
-  retc->type = CONST_INT;
   value = globals->network_scan_status;
   if (value)
     {
@@ -674,8 +668,7 @@ get_kb_list (lex_ctxt *lexic)
   if (kb == NULL)
     return NULL;
 
-  retc = alloc_tree_cell ();
-  retc->type = DYN_ARRAY;
+  retc = alloc_typed_cell (DYN_ARRAY);
   retc->x.ref_val = a = g_malloc0 (sizeof (nasl_array));
 
   if (strchr (kb_mask, '*'))
@@ -735,10 +728,9 @@ get_kb_item (lex_ctxt *lexic)
   if (val == NULL && type == -1)
     return NULL;
 
-  retc = alloc_tree_cell ();
+  retc = alloc_typed_cell (CONST_INT);
   if (type == KB_TYPE_INT)
     {
-      retc->type = CONST_INT;
       retc->x.i_val = GPOINTER_TO_SIZE (val);
       g_free (val);
       return retc;
@@ -1017,8 +1009,7 @@ nasl_scanner_get_port (lex_ctxt *lexic)
       return NULL;
     }
 
-  retc = alloc_tree_cell ();
-  retc->type = CONST_INT;
+  retc = alloc_typed_cell (CONST_INT);
   retc->x.i_val = ports[idx];
   return retc;
 }
