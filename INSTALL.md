@@ -20,7 +20,7 @@ Prerequisites:
 * pkg-config
 * libpcap
 * libgpgme >= 1.1.2
-* redis >= 2.4.0
+* redis >= 3.2.0
 * libssh >= 0.6.0
 * libksba >= 1.0.7
 * libgnutls >= 3.2.15
@@ -138,18 +138,17 @@ Setting up an openvas-scanner requires the following steps:
    regularly to detect the latest threats.
 
 3. The scanner needs a running Redis server to temporarily store information
-   gathered on the scanned hosts. Redis 2.4 and newer is supported but 2.6
-   is recommended. See `doc/redis_config.txt` to see how to set up and run a
-   Redis server.
+   gathered on the scanned hosts. Redis 3.2 and newer are supported.
+   See `doc/redis_config.txt` to see how to set up and run a Redis server.
 
    Multiple examples for various Redis versions are installed which you may use
    directly for a quick start:
 
-       redis-server <install-prefix>/share/doc/openvas-scanner/redis_config_examples/redis_2_4.conf
+       redis-server <install-prefix>/share/doc/openvas-scanner/redis_config_examples/redis_3_2.conf
 
    or
 
-       redis-server <install-prefix>/share/doc/openvas-scanner/redis_config_examples/redis_2_6.conf
+       redis-server <install-prefix>/share/doc/openvas-scanner/redis_config_examples/redis_4_0.conf
 
    or copy the example to another location, edit and use the copy instead.
 
