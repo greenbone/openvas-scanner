@@ -21,8 +21,8 @@
 ## Project version
 # The following three variables should be set through the project command once
 # we require CMake >= 3.0
-set (NASL_VERSION_MAJOR 9)
-set (NASL_VERSION_MINOR 1)
+set (NASL_VERSION_MAJOR 10)
+set (NASL_VERSION_MINOR 0)
 set (NASL_VERSION_PATCH 0)
 
 if (PROJECT_BETA_RELEASE)
@@ -187,7 +187,7 @@ set_source_files_properties (nasl_grammar.tab.c GENERATED)
 
 ## Pass-throughs
 add_definitions (-DOPENVAS_STATE_DIR="${OPENVAS_STATE_DIR}")
-add_definitions (-DOPENVASLIB_VERSION="${OPENVASLIB_VERSION}")
+add_definitions (-DOPENVASLIB_VERSION="${NASL_VERSION_MAJOR}.${NASL_VERSION_MINOR}.${NASL_VERSION_PATCH}")
 add_definitions (-DOPENVAS_SYSCONF_DIR="${OPENVAS_SYSCONF_DIR}")
 add_definitions (-DOPENVAS_NASL_VERSION="${NASL_VERSION}")
 
