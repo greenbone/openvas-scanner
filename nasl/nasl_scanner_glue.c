@@ -417,14 +417,18 @@ script_require_udp_ports (lex_ctxt *lexic)
 tree_cell *
 script_add_preference (lex_ctxt *lexic)
 {
+  int id = get_int_var_by_name (lexic, "id", -1);
   char *name = get_str_var_by_name (lexic, "name");
   char *type = get_str_var_by_name (lexic, "type");
   char *value = get_str_var_by_name (lexic, "value");
   struct script_infos *script_infos = lexic->script_infos;
+  nvtpref_t *np;
   GSList *tmp;
 
   if (!script_infos->nvti)
     return FAKE_CELL;
+  if (id <= 0)
+    id = g_slist_length (script_infos->nvti->prefs) + 1;
   if (!name || !type || !value)
     {
       nasl_perror (lexic,
@@ -442,7 +446,8 @@ script_add_preference (lex_ctxt *lexic)
       tmp = tmp->next;
     }
 
-  add_plugin_preference (script_infos, name, type, value);
+  np = nvtpref_new (id, name, type, value);
+  nvti_add_pref (script_infos->nvti, np);
   return FAKE_CELL;
 }
 
