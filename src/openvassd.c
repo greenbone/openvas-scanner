@@ -223,6 +223,21 @@ remove_pidfile ()
   pidfile_remove ("openvassd");
 }
 
+static int
+get_client_timedout (int sockfd, struct sockaddr *addr, socklen_t lg_address,
+                     struct timeval *timeout)
+{
+  int ret;
+  fd_set set;
+
+  FD_ZERO (&set);
+  FD_SET (sockfd, &set);
+  ret = select (sockfd + 1, &set, NULL, NULL, timeout);
+  if (ret <= 0) /* error or timeout. */
+    return -1;
+  return accept (global_iana_socket, addr, &lg_address);
+}
+
 /*
  * @brief Starts a process to handle client requests while the scanner is
  * loading.
@@ -243,41 +258,31 @@ loading_handler_start ()
   proctitle_set (PROCTITLE_WAITING);
   openvas_signal (SIGTERM, handle_loading_stop_signal);
 
+  if (listen (global_iana_socket, 5) < 0)
+    {
+      g_warning ("%s: Error on listen(): %s", __FUNCTION__, strerror (errno));
+      exit (1);
+    }
+
   /*
    * Forked process will handle client requests until parent dies or stops it
    * with loading_handler_stop ().
    */
   while (1)
     {
-      unsigned int lg_address;
       struct sockaddr_un address;
       int soc;
-      fd_set set;
       struct timeval timeout;
-      int rv, ret;
       pid_t child_pid1;
 
       if (loading_stop_signal || kill (parent_pid, 0) < 0)
         break;
-      lg_address = sizeof (struct sockaddr_un);
-
-      if (listen (global_iana_socket, 5) < 0)
-        continue;
-
-      FD_ZERO (&set);
-      FD_SET (global_iana_socket, &set);
 
       timeout.tv_sec = 0;
       timeout.tv_usec = 500000;
-
-      rv = select (global_iana_socket + 1, &set, NULL, NULL, &timeout);
-      if (rv == -1) /* Select error. */
-        continue;
-      else if (rv == 0) /* Timeout. */
-        continue;
-      else
-        soc = accept (global_iana_socket, (struct sockaddr *) (&address),
-                      &lg_address);
+      soc = get_client_timedout (global_iana_socket,
+                                 (struct sockaddr *) &address, sizeof (address),
+                                 &timeout);
       if (soc == -1)
         continue;
 
@@ -289,7 +294,7 @@ loading_handler_start ()
           close (soc);
           exit (0);
         }
-      waitpid (child_pid1, &ret, WNOHANG);
+      waitpid (child_pid1, NULL, WNOHANG);
     }
   exit (0);
 }
@@ -675,28 +680,30 @@ main_loop ()
   for (;;)
     {
       int soc;
-      unsigned int lg_address;
       struct sockaddr_un address;
       struct scan_globals *globals;
+      struct timeval timeout;
 
       check_termination ();
       check_kb_status ();
       wait_for_children1 ();
-      lg_address = sizeof (struct sockaddr_un);
-      soc = accept (global_iana_socket, (struct sockaddr *) (&address),
-                    &lg_address);
+
+      timeout.tv_sec = 10;
+      timeout.tv_usec = 0;
+      soc = get_client_timedout (global_iana_socket,
+                                 (struct sockaddr *) &address, sizeof (address),
+                                 &timeout);
       if (soc == -1)
-        continue;
+        {
+          check_reload ();
+          continue;
+        }
 
       globals = g_malloc0 (sizeof (struct scan_globals));
       globals->global_socket = soc;
       /* Set scan type 1:OTP, 0:OSP */
       set_scan_type (1);
 
-      /* Check for reload after accept() but before we fork, to ensure that
-       * Manager gets full updated feed in case of NVT update connection.
-       */
-      check_reload ();
       if (create_process ((process_func_t) scanner_thread, globals) < 0)
         {
           g_debug ("Could not fork - client won't be served");
