@@ -685,7 +685,6 @@ main_loop ()
       struct timeval timeout;
 
       check_termination ();
-      check_kb_status ();
       wait_for_children1 ();
 
       timeout.tv_sec = 10;
@@ -693,6 +692,7 @@ main_loop ()
       soc = get_client_timedout (global_iana_socket,
                                  (struct sockaddr *) &address, sizeof (address),
                                  &timeout);
+      check_kb_status ();
       if (soc == -1)
         {
           check_reload ();
