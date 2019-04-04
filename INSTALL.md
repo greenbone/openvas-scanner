@@ -11,7 +11,7 @@ Prerequisites for openvas-scanner
 Prerequisites:
 * a C compiler (e.g. gcc)
 * cmake >= 3.0
-* libgvm_base, libgvm_util >= 1.0.0
+* libgvm_base, libgvm_util >= 10.0.0
 * glib-2.0 >= 2.42
 * gio-2.0
 * bison
@@ -31,7 +31,7 @@ Prerequisites for building documentation:
 * sqlfairy (optional, for producing database diagram)
 
 Recommended to have WMI support:
-* openvas-smb >= 1.0.1
+* openvas-smb >= 1.0.4
 
 Recommended for extended Windows support (e.g. automatically start the remote registry service):
 * wmiexec.py of python-impacket >= 0.9.15 found within your PATH
