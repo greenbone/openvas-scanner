@@ -680,7 +680,6 @@ main_loop ()
       struct scan_globals *globals;
 
       check_termination ();
-      check_kb_status ();
       wait_for_children1 ();
       lg_address = sizeof (struct sockaddr_un);
       soc = accept (global_iana_socket, (struct sockaddr *) (&address),
@@ -696,6 +695,7 @@ main_loop ()
       /* Check for reload after accept() but before we fork, to ensure that
        * Manager gets full updated feed in case of NVT update connection.
        */
+      check_kb_status ();
       check_reload ();
       if (create_process ((process_func_t) scanner_thread, globals) < 0)
         {
