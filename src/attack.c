@@ -981,6 +981,7 @@ attack_network (struct scan_globals *globals, kb_t *network_kb)
   gboolean network_phase = FALSE;
   gboolean do_network_scan = FALSE;
   kb_t host_kb;
+  GSList *unresolved;
 
   gettimeofday (&then, NULL);
 
@@ -1084,7 +1085,15 @@ attack_network (struct scan_globals *globals, kb_t *network_kb)
                hostlist, max_hosts, max_checks);
 
   hosts = gvm_hosts_new (hostlist);
-  gvm_hosts_resolve (hosts);
+  unresolved = gvm_hosts_resolve (hosts);
+  while (unresolved)
+    {
+      g_warning ("Couldn't resolve hostname '%s'", (char *) unresolved->data);
+      error_message_to_client (global_socket, "Couldn't resolve hostname",
+                               unresolved->data, NULL);
+      unresolved = unresolved->next;
+    }
+  g_slist_free_full (unresolved, g_free);
   /* Apply Hosts preferences. */
   apply_hosts_preferences (hosts);
 
