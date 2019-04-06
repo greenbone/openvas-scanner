@@ -160,6 +160,7 @@ main (int argc, char **argv)
   gchar *default_target = "127.0.0.1";
   int mode = 0, err = 0;
   extern int global_nasl_debug;
+  GSList *unresolved;
 
   static gboolean display_version = FALSE;
   static gboolean nasl_debug = FALSE;
@@ -316,7 +317,13 @@ main (int argc, char **argv)
       fprintf (stderr, "Erroneous target %s\n", target);
       exit (1);
     }
-  gvm_hosts_resolve (hosts);
+  unresolved = gvm_hosts_resolve (hosts);
+  while (unresolved)
+    {
+      g_warning ("Couldn't resolve hostname '%s'", (char *) unresolved->data);
+      unresolved = unresolved->next;
+    }
+  g_slist_free_full (unresolved, g_free);
   g_free (target);
 
   // for absolute and relative paths
