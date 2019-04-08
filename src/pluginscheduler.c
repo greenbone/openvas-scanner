@@ -75,7 +75,7 @@ plugin_add (plugins_scheduler_t sched, GHashTable *oids_table,
         {
           char *name = nvticache_get_filename (oid);
           g_message ("Plugin %s is deprecated. "
-                     "It will neither loaded nor launched.",
+                     "It will neither be loaded nor launched.",
                      name);
           g_free (name);
         }
