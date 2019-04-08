@@ -258,6 +258,14 @@ launch_plugin (struct scan_globals *globals, struct scheduler_plugin *plugin,
   addr6_to_str (ip, ip_str);
   oid = plugin->oid;
   nvti = nvticache_get_nvt (oid);
+
+  /* eg. When NVT was moved/removed by a feed update during the scan. */
+  if (!nvti)
+    {
+      g_message ("Plugin '%s' missing from nvticache.", oid);
+      plugin->running_state = PLUGIN_STATUS_DONE;
+      goto finish_launch_plugin;
+    }
   if (scan_is_stopped () || all_scans_are_stopped ())
     {
       if (nvti->category != ACT_END)
