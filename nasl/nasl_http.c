@@ -177,7 +177,7 @@ Accept-Charset: iso-8859-1,*,utf-8\r\n",
       char content_length[128], *tmp;
 
       g_snprintf (content_length, sizeof (content_length),
-                  "Content-Length: %lu\r\n\r\n", strlen (data));
+                  "Content-Length: %zu\r\n\r\n", strlen (data));
       tmp = g_strconcat (request, content_length, data, NULL);
       g_free (request);
       request = tmp;
