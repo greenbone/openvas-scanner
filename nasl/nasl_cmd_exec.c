@@ -188,6 +188,7 @@ nasl_pread (lex_ctxt *lexic)
   else if (errno && errno != EINTR)
     nasl_perror (lexic, "nasl_pread: fread(): %s\n", strerror (errno));
   close (fdout);
+  close (fderr);
   if (*cwd != '\0')
     if (chdir (cwd) < 0)
       nasl_perror (lexic, "pread(): chdir(%s): %s\n", cwd, strerror (errno));
