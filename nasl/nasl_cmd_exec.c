@@ -79,9 +79,10 @@ nasl_pread (lex_ctxt *lexic)
   tree_cell *retc = NULL, *a;
   anon_nasl_var *v;
   nasl_array *av;
-  int i, j, n, cd, fdin = 0, fderr = 0;
+  int i, j, n, cd, fdout = 0, fderr = 0;
   char **args = NULL, *cmd, *str;
   char cwd[MAXPATHLEN], newdir[MAXPATHLEN], key[128];
+  GError *error = NULL;
 
   if (pid != 0)
     {
@@ -115,7 +116,7 @@ nasl_pread (lex_ctxt *lexic)
     {
       char *p;
 
-      bzero (newdir, sizeof (newdir));
+      memset (newdir, '\0', sizeof (newdir));
       if (cmd[0] == '/')
         strncpy (newdir, cmd, sizeof (newdir) - 1);
       else
@@ -164,13 +165,20 @@ nasl_pread (lex_ctxt *lexic)
   args[j] = NULL;
 
   if (g_spawn_async_with_pipes (NULL, args, NULL, G_SPAWN_SEARCH_PATH, NULL,
-                                NULL, &pid, NULL, &fdin, &fderr, NULL)
+                                NULL, &pid, NULL, &fdout, &fderr, &error)
       == FALSE)
-    goto finish_pread;
+    {
+      if (error)
+        {
+          g_warning ("%s: %s", __FUNCTION__, error->message);
+          g_error_free (error);
+        }
+      goto finish_pread;
+    }
 
   snprintf (key, sizeof (key), "internal/child/%d", getpid ());
   kb_item_set_int (lexic->script_infos->key, key, pid);
-  str = pread_streams (fdin, fderr);
+  str = pread_streams (fdout, fderr);
   if (str)
     {
       retc = alloc_typed_cell (CONST_DATA);
@@ -179,7 +187,7 @@ nasl_pread (lex_ctxt *lexic)
     }
   else if (errno && errno != EINTR)
     nasl_perror (lexic, "nasl_pread: fread(): %s\n", strerror (errno));
-  close (fdin);
+  close (fdout);
   if (*cwd != '\0')
     if (chdir (cwd) < 0)
       nasl_perror (lexic, "pread(): chdir(%s): %s\n", cwd, strerror (errno));
