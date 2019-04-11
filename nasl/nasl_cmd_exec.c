@@ -49,24 +49,45 @@
 static pid_t pid = 0;
 
 static char *
-pread_streams (int fdin, int fderr)
+pread_streams (int fdout, int fderr)
 {
-  char buf[8192];
   GString *str;
 
   str = g_string_new ("");
   errno = 0;
-  bzero (buf, sizeof (buf));
-  while ((read (fdin, buf, sizeof (buf))) > 0
-         || read (fderr, buf, sizeof (buf)) > 0 || errno == EINTR)
+  for (;;)
     {
-      if (errno == EINTR)
+      fd_set fds;
+      char buf[8192];
+      int ret, ret_out, ret_err;
+      int maxfd = fdout > fderr ? fdout : fderr;
+
+      FD_ZERO (&fds);
+      FD_SET (fdout, &fds);
+      FD_SET (fderr, &fds);
+
+      ret = select (maxfd + 1, &fds, NULL, NULL, NULL);
+      if (ret == -1)
         {
-          errno = 0;
-          continue;
+          if (errno == EINTR)
+            continue;
+          return NULL;
         }
-      g_string_append (str, buf);
       bzero (buf, sizeof (buf));
+      if (FD_ISSET (fdout, &fds))
+        {
+          ret_out = read (fdout, buf, sizeof (buf));
+          if (ret_out > 0)
+            g_string_append (str, buf);
+        }
+      if (FD_ISSET (fderr, &fds))
+        {
+          ret_err = read (fderr, buf, sizeof (buf));
+          if (ret_err > 0)
+            g_string_append (str, buf);
+        }
+      if (ret_out <= 0 && ret_err <= 0)
+        break;
     }
 
   return g_string_free (str, FALSE);
