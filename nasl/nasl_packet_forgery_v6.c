@@ -1655,13 +1655,8 @@ nasl_send_v6packet (lex_ctxt *lexic)
   int to = get_int_var_by_name (lexic, "pcap_timeout", 5);
   char *filter = get_str_var_by_name (lexic, "pcap_filter");
   int dfl_len = get_int_var_by_name (lexic, "length", -1);
-  struct script_infos *script_infos = lexic->script_infos;
-  struct in6_addr *dstip = plug_get_host_ip (script_infos);
   int offset = 1;
-  char name[INET6_ADDRSTRLEN];
 
-  if (dstip == NULL || (IN6_IS_ADDR_V4MAPPED (dstip) == 1))
-    return NULL;
   soc = socket (AF_INET6, SOCK_RAW, IPPROTO_RAW);
   if (soc < 0)
     return NULL;
@@ -1688,26 +1683,6 @@ nasl_send_v6packet (lex_ctxt *lexic)
       bzero (&sockaddr, sizeof (struct sockaddr_in6));
       sockaddr.sin6_family = AF_INET6;
       sockaddr.sin6_addr = sip->ip6_dst;
-      if (dstip != NULL && !IN6_ARE_ADDR_EQUAL (&sockaddr.sin6_addr, dstip))
-        {
-          char txt1[64], txt2[64];
-          strncpy (
-            txt1,
-            inet_ntop (AF_INET6, &sockaddr.sin6_addr, name, INET6_ADDRSTRLEN),
-            sizeof (txt1));
-          txt1[sizeof (txt1) - 1] = '\0';
-          strncpy (txt2, inet_ntop (AF_INET6, dstip, name, INET6_ADDRSTRLEN),
-                   sizeof (txt2));
-          txt2[sizeof (txt2) - 1] = '\0';
-          nasl_perror (lexic,
-                       "send_packet: malicious or buggy script is trying to "
-                       "send packet to %s instead of designated target %s\n",
-                       txt1, txt2);
-          if (bpf >= 0)
-            bpf_close (bpf);
-          close (soc);
-          return NULL;
-        }
 
       if (dfl_len > 0 && dfl_len < sz)
         len = dfl_len;

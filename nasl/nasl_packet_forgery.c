@@ -1406,13 +1406,7 @@ nasl_send_packet (lex_ctxt *lexic)
   char *filter = get_str_var_by_name (lexic, "pcap_filter");
   int dfl_len = get_int_var_by_name (lexic, "length", -1);
   int i = 1;
-  struct script_infos *script_infos = lexic->script_infos;
-  struct in6_addr *dstip = plug_get_host_ip (script_infos);
-  struct in_addr inaddr;
 
-  if (dstip == NULL || (IN6_IS_ADDR_V4MAPPED (dstip) != 1))
-    return NULL;
-  inaddr.s_addr = dstip->s6_addr32[3];
   soc = socket (AF_INET, SOCK_RAW, IPPROTO_RAW);
   if (soc < 0)
     return NULL;
@@ -1437,27 +1431,6 @@ nasl_send_packet (lex_ctxt *lexic)
       bzero (&sockaddr, sizeof (struct sockaddr_in));
       sockaddr.sin_family = AF_INET;
       sockaddr.sin_addr = sip->ip_dst;
-      if (sockaddr.sin_addr.s_addr != inaddr.s_addr)
-        {
-          char txt1[64], txt2[64];
-          strncpy (txt1, inet_ntoa (sockaddr.sin_addr), sizeof (txt1));
-          txt1[sizeof (txt1) - 1] = '\0';
-          strncpy (txt2, inet_ntoa (inaddr), sizeof (txt2));
-          txt2[sizeof (txt2) - 1] = '\0';
-          nasl_perror (lexic,
-                       "send_packet: malicious or buggy script is trying to "
-                       "send packet to %s instead of designated target %s\n",
-                       txt1, txt2);
-#if 1
-          if (bpf >= 0)
-            bpf_close (bpf);
-          close (soc);
-          return NULL;
-#else
-          sip->ip_dst = inaddr;
-          sip->ip_sum = np_in_cksum ((u_short *) sip, sizeof (struct ip));
-#endif
-        }
 
       if (dfl_len > 0 && dfl_len < sz)
         len = dfl_len;
