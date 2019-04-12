@@ -1678,10 +1678,11 @@ nasl_send_v6packet (lex_ctxt *lexic)
   if (soc < 0)
     return NULL;
 
-  if (setsockopt (soc, IPPROTO_IPV6, IP_HDRINCL, (char *) &offset,
-                  sizeof (offset))
-      < 0)
+  if (setsockopt (soc, IPPROTO_IPV6, IP_HDRINCL, &offset, sizeof (offset)) < 0)
     perror ("setsockopt");
+  if (setsockopt (soc, SOL_SOCKET, SO_BROADCAST, &offset, sizeof (offset)) < 0)
+    perror ("setsockopt ");
+
   while ((ip = get_str_var_by_num (lexic, vi)) != NULL)
     {
       int sz = get_var_size_by_num (lexic, vi);

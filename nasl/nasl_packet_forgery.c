@@ -1429,6 +1429,8 @@ nasl_send_packet (lex_ctxt *lexic)
     return NULL;
   if (setsockopt (soc, IPPROTO_IP, IP_HDRINCL, (char *) &i, sizeof (i)) < 0)
     perror ("setsockopt ");
+  if (setsockopt (soc, SOL_SOCKET, SO_BROADCAST, &i, sizeof (i)) < 0)
+    perror ("setsockopt ");
 
   while ((ip = get_str_var_by_num (lexic, vi)) != NULL)
     {
