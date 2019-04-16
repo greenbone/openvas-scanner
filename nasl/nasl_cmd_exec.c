@@ -59,7 +59,7 @@ pread_streams (int fdout, int fderr)
     {
       fd_set fds;
       char buf[8192];
-      int ret, ret_out, ret_err;
+      int ret, ret_out = 0, ret_err = 0;
       int maxfd = fdout > fderr ? fdout : fderr;
 
       FD_ZERO (&fds);
