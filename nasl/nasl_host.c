@@ -117,7 +117,7 @@ tree_cell *
 add_hostname (lex_ctxt *lexic)
 {
   pid_t host_pid;
-  char buffer[4096];
+  char buffer[4096], *lower;
   char *value = get_str_var_by_name (lexic, "hostname");
   char *source = get_str_var_by_name (lexic, "source");
 
@@ -130,17 +130,20 @@ add_hostname (lex_ctxt *lexic)
     source = "NASL";
 
   /* Add to current process' vhosts list. */
-  if (plug_add_host_fqdn (lexic->script_infos, value, source))
-    return NULL;
+  lower = g_ascii_strdown (value, -1);
+  if (plug_add_host_fqdn (lexic->script_infos, lower, source))
+    goto end_add_hostname;
 
   /* Push to KB. Signal host process to fetch it. */
-  kb_item_push_str (lexic->script_infos->key, "internal/vhosts", value);
-  snprintf (buffer, sizeof (buffer), "internal/source/%s", value);
+  kb_item_push_str (lexic->script_infos->key, "internal/vhosts", lower);
+  snprintf (buffer, sizeof (buffer), "internal/source/%s", lower);
   kb_item_push_str (lexic->script_infos->key, buffer, source);
   host_pid = kb_item_get_int (lexic->script_infos->key, "internal/hostpid");
   if (host_pid > 0)
     kill (host_pid, SIGUSR2);
 
+end_add_hostname:
+  g_free (lower);
   return NULL;
 }
 
