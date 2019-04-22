@@ -116,7 +116,6 @@ static openvassd_option openvassd_defaults[] = {
   {"include_folders", OPENVAS_NVT_DIR},
   {"max_hosts", "30"},
   {"max_checks", "10"},
-  {"be_nice", "no"},
   {"log_whole_attack", "no"},
   {"log_plugins_name_at_load", "no"},
   {"optimize_test", "yes"},
@@ -475,16 +474,6 @@ scanner_thread (struct scan_globals *globals)
     }
   else
     globals->scan_id = g_strdup (global_scan_id);
-
-  /* Everyone runs with a nicelevel of 10 */
-  if (prefs_get_bool ("be_nice"))
-    {
-      errno = 0;
-      if (nice (10) == -1 && errno != 0)
-        {
-          g_warning ("Unable to renice process: %d", errno);
-        }
-    }
 
   handle_client (globals);
 
