@@ -197,7 +197,7 @@ if [ -z "$TMPDIR" ]; then
   SYNC_TMP_DIR=/tmp
   # If we have mktemp, create a temporary dir (safer)
   if [ -n "`which mktemp`" ]; then
-    SYNC_TMP_DIR=`mktemp -t -d greenbone-nvt-sync.XXXXXXXXXX` || { echo "ERROR: Cannot create temporary directory for file download" >&2; exit 1 ; }
+    SYNC_TMP_DIR=`mktemp -p /var/tmp -t -d greenbone-nvt-sync.XXXXXXXXXX` || { echo "ERROR: Cannot create temporary directory for file download" >&2; exit 1 ; }
     trap "rm -rf $SYNC_TMP_DIR" EXIT HUP INT TRAP TERM
   fi
 else
