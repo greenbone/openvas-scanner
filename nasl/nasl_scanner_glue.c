@@ -114,7 +114,7 @@ script_cve_id (lex_ctxt *lexic)
 
   for (i = 0; cve != NULL; i++)
     {
-      nvti_add_cve (script_infos->nvti, cve);
+      nvti_add_ref (script_infos->nvti, vtref_new ("cve", cve, ""));
       cve = get_str_var_by_num (lexic, i + 1);
     }
 
@@ -133,7 +133,7 @@ script_bugtraq_id (lex_ctxt *lexic)
 
   for (i = 0; bid != NULL; i++)
     {
-      nvti_add_bid (script_infos->nvti, bid);
+      nvti_add_ref (script_infos->nvti, vtref_new ("bid", bid, ""));
       bid = get_str_var_by_num (lexic, i + 1);
     }
 
