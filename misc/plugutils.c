@@ -72,21 +72,6 @@ plug_current_vhost (void)
 static int plug_fork_child (kb_t);
 
 void
-plug_set_xref (struct script_infos *args, char *name, char *value)
-{
-  nvti_t *n = args->nvti;
-  char *new;
-
-  if (nvti_xref (n))
-    new = g_strconcat (nvti_xref (n), ", ", name, ":", value, NULL);
-  else
-    new = g_strconcat (name, ":", value, NULL);
-
-  nvti_set_xref (n, new);
-  g_free (new);
-}
-
-void
 plug_set_tag (struct script_infos *args, char *name, char *value)
 {
   nvti_t *n = args->nvti;

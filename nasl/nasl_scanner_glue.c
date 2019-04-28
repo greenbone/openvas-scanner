@@ -170,7 +170,7 @@ script_xref (lex_ctxt *lexic)
       return FAKE_CELL;
     }
 
-  plug_set_xref (script_infos, name, value);
+  nvti_add_ref (script_infos->nvti, vtref_new (name, value, ""));
 
   return FAKE_CELL;
 }
