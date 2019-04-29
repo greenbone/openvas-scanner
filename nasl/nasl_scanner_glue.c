@@ -102,9 +102,6 @@ script_oid (lex_ctxt *lexic)
   return FAKE_CELL;
 }
 
-/*
- * TODO: support multiple CVE entries
- */
 tree_cell *
 script_cve_id (lex_ctxt *lexic)
 {
@@ -121,9 +118,6 @@ script_cve_id (lex_ctxt *lexic)
   return FAKE_CELL;
 }
 
-/*
- * TODO: support multiple bugtraq entries
- */
 tree_cell *
 script_bugtraq_id (lex_ctxt *lexic)
 {
@@ -140,17 +134,48 @@ script_bugtraq_id (lex_ctxt *lexic)
   return FAKE_CELL;
 }
 
+/**
+ * @brief Add a cross reference to the meta data.
+ *
+ * The parameter "name" of the command defines actually
+ * the type, for example "URL" or "OSVDB".
+ * The parameter "value" is the actual reference.
+ * Alternative to "value", "csv" can be used with a
+ * list of comma-separated values.
+ *
+ * In fact, if name is "cve" or "bid", it is equivalent
+ * to call script_cve_id() or script_bugtraq_id(), for example
+ * script_cve_id ("CVE-2019-12345");
+ * is identical to
+ * script_xref (name: "cve", value: "CVE-2019-12345");
+ *
+ * And also:
+ * script_bugtraq_id (12345);
+ * is identical to
+ * script_xref (name: "bid", value: "12345");
+ * (watch out that the number now needs to be a string).
+ *
+ * This even works with multiple comma-separated elements like
+ * script_xref (name: "cve", csv: "CVE-2019-12345,CVE-2019-54321");
+ *
+ * @param lexic The parser context.
+ *
+ * @return Always FAKE_CELL.
+ */
 tree_cell *
 script_xref (lex_ctxt *lexic)
 {
   struct script_infos *script_infos = lexic->script_infos;
   char *name = get_str_var_by_name (lexic, "name");
   char *value = get_str_var_by_name (lexic, "value");
+  char *csv = get_str_var_by_name (lexic, "csv");
 
-  if (value == NULL || name == NULL)
+  if (((value == NULL) && (csv == NULL)) || name == NULL)
     {
       nasl_perror (lexic, "script_xref() syntax error - should be"
-                          " script_xref(name:<name>, value:<value>)\n");
+                          " script_xref(name:<name>, value:<value>) or"
+                          " script_xref(name:<name>, value:<value>, csv:<CSVs>) or"
+                          " script_xref(name:<name>, csv:<CSVs>)\n");
       if (name == NULL)
         {
           nasl_perror (lexic, "  <name> is empty\n");
@@ -159,18 +184,23 @@ script_xref (lex_ctxt *lexic)
         {
           nasl_perror (lexic, "  <name> is %s\n", name);
         }
-      if (value == NULL)
+      if ((value == NULL) && (csv == NULL))
         {
-          nasl_perror (lexic, "  <value> is empty)\n");
+          nasl_perror (lexic, "  <value> and <csv> is empty)\n");
         }
       else
         {
           nasl_perror (lexic, "  <value> is %s\n)", value);
+          nasl_perror (lexic, "  <csv> is %s\n)", csv);
         }
       return FAKE_CELL;
     }
 
-  nvti_add_ref (script_infos->nvti, vtref_new (name, value, ""));
+  if (csv)
+    nvti_add_refs_from_csv (script_infos->nvti, name, csv, "");
+
+  if (value)
+    nvti_add_ref (script_infos->nvti, vtref_new (name, value, ""));
 
   return FAKE_CELL;
 }
