@@ -32,7 +32,7 @@ int
 hosts_init (int, int);
 
 int
-hosts_new (struct scan_globals *, char *, kb_t);
+hosts_new (struct scan_globals *, char *, kb_t *);
 
 int
 hosts_set_pid (char *, pid_t);
