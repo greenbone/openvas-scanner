@@ -195,8 +195,8 @@ send_plug_info (int soc, const char *oid)
       goto send_cleanup;
     }
 
-  cve_id = nvti_cve (nvti);
-  bid = nvti_bid (nvti);
+  cve_id = nvti_refs (nvti, "cve");
+  bid = nvti_refs (nvti, "bid");
   xref = nvti_xref (nvti);
   tag = nvti_tag (nvti);
   if (tag)
@@ -215,6 +215,9 @@ send_plug_info (int soc, const char *oid)
                (cve_id && *cve_id) ? cve_id : "NOCVE",
                (bid && *bid) ? bid : "NOBID", (xref && *xref) ? xref : "NOXREF",
                (tag && *tag) ? tag : "NOTAG");
+
+  g_free (cve_id);
+  g_free (bid);
 
 send_cleanup:
   nvti_free (nvti);
