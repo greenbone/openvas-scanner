@@ -197,7 +197,7 @@ script_xref (lex_ctxt *lexic)
     }
 
   if (csv)
-    nvti_add_refs_from_csv (script_infos->nvti, name, csv, "");
+    nvti_add_refs (script_infos->nvti, name, csv, "");
 
   if (value)
     nvti_add_ref (script_infos->nvti, vtref_new (name, value, ""));
