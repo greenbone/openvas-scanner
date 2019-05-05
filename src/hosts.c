@@ -283,20 +283,6 @@ hosts_read_data (void)
   if (h == NULL)
     return;
 
-  while (h != NULL)
-    {
-      if (h->ip && kill (h->pid, 0) < 0) /* Process is dead */
-        {
-          if (!h->prev)
-            hosts = hosts->next;
-          host_rm (h);
-          h = hosts;
-          if (!h)
-            break;
-        }
-      h = h->next;
-    }
-  h = hosts;
   while (h)
     {
       if (!h->ip)
@@ -307,7 +293,18 @@ hosts_read_data (void)
             ntp_timestamp_host_scan_starts (g_soc, h->host_kb, h->ip);
         }
       if (h->ip)
-        forward (h, g_soc);
+        {
+          forward (h, g_soc);
+          if (kill (h->pid, 0) < 0) /* Process is dead */
+            {
+              if (!h->prev)
+                hosts = hosts->next;
+              host_rm (h);
+              h = hosts;
+              if (!h)
+                break;
+            }
+        }
       h = h->next;
     }
 }
