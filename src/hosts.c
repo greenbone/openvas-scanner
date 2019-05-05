@@ -285,7 +285,7 @@ hosts_read_data (void)
 
   while (h != NULL)
     {
-      if (kill (h->pid, 0) < 0) /* Process is dead */
+      if (h->ip && kill (h->pid, 0) < 0) /* Process is dead */
         {
           if (!h->prev)
             hosts = hosts->next;
