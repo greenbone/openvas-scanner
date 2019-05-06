@@ -23,19 +23,19 @@
  * @brief Provides signal handling functions.
  */
 
-#include <signal.h>     /* for kill() */
-#include <unistd.h>     /* for getpid() */
-#include <errno.h>      /* for errno() */
-#include <glib.h>       /* for G_LOG_DOMAIN, for g_critical() */
-#include <sys/wait.h>   /* for wait() */
-#include <sys/socket.h> /* for shutdown() */
-#include <execinfo.h>
-
 #include "sighand.h"
-#include "utils.h"
-#include "string.h"
 
+#include "string.h"
+#include "utils.h"
+
+#include <errno.h> /* for errno() */
+#include <execinfo.h>
+#include <glib.h> /* for G_LOG_DOMAIN, for g_critical() */
 #include <gvm/base/pidfile.h>
+#include <signal.h>     /* for kill() */
+#include <sys/socket.h> /* for shutdown() */
+#include <sys/wait.h>   /* for wait() */
+#include <unistd.h>     /* for getpid() */
 
 #undef G_LOG_DOMAIN
 /**
@@ -51,7 +51,6 @@ let_em_die (int pid)
 
   waitpid (pid, &status, WNOHANG);
 }
-
 
 void
 make_em_die (int sig)
@@ -99,7 +98,7 @@ void (*openvas_signal (int signum, void (*handler) (int))) (int)
 
   /* Init new handler */
   sigfillset (&saNew.sa_mask);
-  sigdelset (&saNew.sa_mask, SIGALRM);  /* make sleep() work */
+  sigdelset (&saNew.sa_mask, SIGALRM); /* make sleep() work */
 
   saNew.sa_flags = 0;
   saNew.sa_handler = handler;
@@ -107,7 +106,6 @@ void (*openvas_signal (int signum, void (*handler) (int))) (int)
   sigaction (signum, &saNew, &saOld);
   return saOld.sa_handler;
 }
-
 
 void
 sighand_chld (pid_t pid)
@@ -130,7 +128,7 @@ print_trace ()
   strings = backtrace_symbols (array, ret);
   g_warning ("%s", message);
 
-  for (left = 0; left < 10 ; left++)
+  for (left = 0; left < 10; left++)
     g_warning ("%s\n", strings[left]);
 
   g_free (strings);

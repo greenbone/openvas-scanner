@@ -23,33 +23,30 @@
  * @brief Plugin-specific stuff.
  */
 
+#include "plugutils.h"
+
+#include "network.h"
+
+#include <ctype.h>
+#include <errno.h>
+#include <glib.h>
+#include <gvm/base/hosts.h>
+#include <gvm/base/logging.h>
+#include <gvm/base/networking.h>
+#include <gvm/base/prefs.h> /* for prefs_get_bool */
+#include <gvm/util/kb.h>
+#include <gvm/util/nvticache.h> /* for nvticache_get_by_oid() */
+#include <signal.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <ctype.h>
-
-#include <sys/types.h>
-#include <sys/socket.h>
 #include <sys/param.h>
+#include <sys/socket.h>
 #include <sys/stat.h>
-#include <unistd.h>
-#include <errno.h>
-#include <signal.h>
+#include <sys/types.h>
 #include <sys/wait.h>
 #include <time.h>
-
-#include <glib.h>
-
-#include <gvm/base/networking.h>
-#include <gvm/base/logging.h>
-#include <gvm/base/hosts.h>
-#include <gvm/base/prefs.h>          /* for prefs_get_bool */
-#include <gvm/util/kb.h>
-#include <gvm/util/nvticache.h>      /* for nvticache_get_by_oid() */
-
-#include "network.h"
-#include "plugutils.h"
-
+#include <unistd.h>
 
 #undef G_LOG_DOMAIN
 /**
@@ -72,8 +69,7 @@ plug_current_vhost (void)
   return current_vhost->value;
 }
 
-static int
-plug_fork_child (kb_t);
+static int plug_fork_child (kb_t);
 
 void
 plug_set_xref (struct script_infos *args, char *name, char *value)
@@ -109,10 +105,11 @@ void
 plug_set_dep (struct script_infos *args, const char *depname)
 {
   nvti_t *n = args->nvti;
-  gchar * old = nvti_dependencies (n);
-  gchar * new;
+  gchar *old = nvti_dependencies (n);
+  gchar *new;
 
-  if (!depname) return;
+  if (!depname)
+    return;
 
   if (old)
     {
@@ -324,7 +321,6 @@ plug_get_host_source (struct script_infos *args, const char *hostname)
   return g_strdup (current_vhost->source);
 }
 
-
 struct in6_addr *
 plug_get_host_ip (struct script_infos *args)
 {
@@ -411,8 +407,8 @@ proto_post_wrapped (const char *oid, struct script_infos *desc, int port,
               if (tag_value != NULL)
                 {
                   tag_value = tag_value + 1;
-                  gchar *tag_line = g_strdup_printf ("%s:\n%s\n\n", tags[i],
-                                                     tag_value);
+                  gchar *tag_line =
+                    g_strdup_printf ("%s:\n%s\n\n", tags[i], tag_value);
                   g_string_prepend (action_str, tag_line);
 
                   g_free (tag_line);
@@ -447,8 +443,8 @@ proto_post_wrapped (const char *oid, struct script_infos *desc, int port,
               if (tag_value != NULL)
                 {
                   tag_value = tag_value + 1;
-                  gchar *tag_line = g_strdup_printf ("%s:\n%s\n\n", tags[i],
-                                                     tag_value);
+                  gchar *tag_line =
+                    g_strdup_printf ("%s:\n%s\n\n", tags[i], tag_value);
                   g_string_append (action_str, tag_line);
 
                   g_free (tag_line);
@@ -491,7 +487,6 @@ post_alarm (const char *oid, struct script_infos *desc, int port,
   proto_post_alarm (oid, desc, port, "tcp", action);
 }
 
-
 /**
  * @brief Post a log message
  */
@@ -519,7 +514,6 @@ proto_post_error (const char *oid, struct script_infos *desc, int port,
   proto_post_wrapped (oid, desc, port, proto, action, "ERRMSG");
 }
 
-
 void
 post_error (const char *oid, struct script_infos *desc, int port,
             const char *action)
@@ -527,76 +521,50 @@ post_error (const char *oid, struct script_infos *desc, int port,
   proto_post_error (oid, desc, port, "tcp", action);
 }
 
-void
-add_plugin_preference (struct script_infos *desc, const char *name,
-                       const char *type, const char *defaul)
-{
-  nvti_t *n = desc->nvti;
-  nvtpref_t *np = nvtpref_new ((gchar *)name, (gchar *)type, (gchar *)defaul);
-
-  nvti_add_pref (n, np);
-}
-
-
 char *
 get_plugin_preference (const char *oid, const char *name)
 {
   GHashTable *prefs;
   GHashTableIter iter;
-  char *plug_name, *cname, *retval = NULL;
+  char *cname, *retval = NULL;
   void *itername, *itervalue;
+  char prefix[1024], suffix[1024];
 
   prefs = preferences_get ();
   if (!prefs || !nvticache_initialized () || !oid || !name)
     return NULL;
 
-  plug_name = nvticache_get_name (oid);
-  if (!plug_name)
-    return NULL;
   cname = g_strdup (name);
-
   g_strchomp (cname);
   g_hash_table_iter_init (&iter, prefs);
+  snprintf (prefix, sizeof (prefix), "%s:", oid);
+  snprintf (suffix, sizeof (suffix), ":%s", cname);
+  /* NVT preferences receiveed in OID:PrefID:PrefType:PrefName form */
   while (g_hash_table_iter_next (&iter, &itername, &itervalue))
     {
-      char *a, *b;
-
-      a = strchr (itername, '[');
-      b = strchr (itername, ']');
-      if (a && b && b[1] == ':')
+      if (g_str_has_prefix (itername, prefix)
+          && g_str_has_suffix (itername, suffix))
         {
-          b += 2 * sizeof (char);
-          if (!strcmp (cname, b))
-            {
-              int old = a[0];
-              a[0] = 0;
-              if (!strcmp (itername, plug_name))
-                {
-                  a[0] = old;
-                  retval = g_strdup (itervalue);
-                  break;
-                }
-              a[0] = old;
-            }
+          retval = g_strdup (itervalue);
+          break;
         }
     }
-  g_free (plug_name);
   /* If no value set by the user, get the default one. */
   if (!retval)
     {
-       GSList *nprefs, *tmp;
+      GSList *nprefs, *tmp;
 
-       tmp = nprefs = nvticache_get_prefs (oid);
-       while (tmp)
-         {
-           if (!strcmp (cname, nvtpref_name (tmp->data)))
-              {
-                retval = g_strdup (nvtpref_default (tmp->data));
-                break;
-              }
-           tmp = tmp->next;
-         }
-       g_slist_free_full (nprefs,  (void (*) (void *)) nvtpref_free);
+      tmp = nprefs = nvticache_get_prefs (oid);
+      while (tmp)
+        {
+          if (!strcmp (cname, nvtpref_name (tmp->data)))
+            {
+              retval = g_strdup (nvtpref_default (tmp->data));
+              break;
+            }
+          tmp = tmp->next;
+        }
+      g_slist_free_full (nprefs, (void (*) (void *)) nvtpref_free);
     }
   g_free (cname);
   return retval;
@@ -635,7 +603,8 @@ get_plugin_preference_fname (struct script_infos *desc, const char *filename)
   if (tmpfile == -1)
     {
       g_message ("get_plugin_preference_fname: Could not open temporary"
-                 " file for %s: %s", filename, error->message);
+                 " file for %s: %s",
+                 filename, error->message);
       g_error_free (error);
       return NULL;
     }
@@ -644,14 +613,14 @@ get_plugin_preference_fname (struct script_infos *desc, const char *filename)
   if (!g_file_set_contents (tmpfilename, content, contentsize, &error))
     {
       g_message ("get_plugin_preference_fname: could set contents of"
-                 " temporary file for %s: %s", filename, error->message);
+                 " temporary file for %s: %s",
+                 filename, error->message);
       g_error_free (error);
       return NULL;
     }
 
   return tmpfilename;
 }
-
 
 /**
  * @brief Get the file contents of a plugins preference that is of type "file".
@@ -663,8 +632,8 @@ get_plugin_preference_fname (struct script_infos *desc, const char *filename)
  * @param identifier Identifier that was supplied by the client when the file
  *                   was uploaded.
  *
- * @return Contents of the file identified by \p identifier, NULL if not found or setup
- *         broken.
+ * @return Contents of the file identified by \p identifier, NULL if not found
+ * or setup broken.
  */
 char *
 get_plugin_preference_file_content (struct script_infos *desc,
@@ -682,7 +651,6 @@ get_plugin_preference_file_content (struct script_infos *desc,
 
   return g_hash_table_lookup (trans, identifier);
 }
-
 
 /**
  * @brief Get the file size of a plugins preference that is of type "file".
@@ -738,8 +706,7 @@ plug_set_key_len (struct script_infos *args, char *name, int type,
       if (type == ARG_STRING)
         g_message ("set key %s -> %s", name, (char *) value);
       else if (type == ARG_INT)
-        g_message ("set key %s -> %d", name,
-                   (int) GPOINTER_TO_SIZE (value));
+        g_message ("set key %s -> %d", name, (int) GPOINTER_TO_SIZE (value));
     }
 }
 
@@ -784,7 +751,6 @@ scanner_add_port (struct script_infos *args, int port, char *proto)
 {
   host_add_port_proto (args, port, proto);
 }
-
 
 kb_t
 plug_get_kb (struct script_infos *args)
@@ -873,7 +839,7 @@ plug_get_key (struct script_infos *args, char *name, int *type, size_t *len,
   if (res == NULL)
     return NULL;
 
-  if (!res->next)        /* No fork - good */
+  if (!res->next) /* No fork - good */
     {
       void *ret;
       if (res->type == KB_TYPE_INT)
@@ -893,7 +859,6 @@ plug_get_key (struct script_infos *args, char *name, int *type, size_t *len,
       kb_item_free (res);
       return ret;
     }
-
 
   /* More than  one value - we will fork() then */
   sig_chld (plug_get_key_sigchld);
@@ -988,8 +953,6 @@ plug_get_host_open_port (struct script_infos *desc)
   return 0;
 }
 
-
-
 /** @todo
  * Those brain damaged functions should probably be in another file
  * They are use to remember who speaks SSL or not
@@ -1003,7 +966,6 @@ plug_set_port_transport (struct script_infos *args, int port, int tr)
   snprintf (s, sizeof (s), "Transports/TCP/%d", port);
   plug_set_key (args, s, ARG_INT, GSIZE_TO_POINTER (tr));
 }
-
 
 /* Return the transport encapsulation mode (OPENVAS_ENCAPS_*) for the
    given PORT.  If no such encapsulation mode has been stored in the
@@ -1020,8 +982,9 @@ plug_get_port_transport (struct script_infos *args, int port)
   if (trp >= 0)
     return trp;
   else
-    return OPENVAS_ENCAPS_IP;   /* Change this to 0 for ultra smart SSL negotiation, at the expense
-                                   of possibly breaking stuff */
+    return OPENVAS_ENCAPS_IP; /* Change this to 0 for ultra smart SSL
+                                 negotiation, at the expense of possibly
+                                 breaking stuff */
 }
 
 static void

@@ -25,33 +25,29 @@
  * (script_*(), *kb*(), scanner_*())
  */
 
-#include <ctype.h>              /* for isdigit */
-#include <errno.h>              /* for errno */
-#include <fcntl.h>              /* for open */
-#include <stdlib.h>             /* for atoi */
-#include <string.h>             /* for strcmp */
-#include <sys/stat.h>           /* for stat */
-#include <unistd.h>             /* for close */
-
-#include <glib.h>
-
-#include <gvm/base/logging.h>
-#include <gvm/base/prefs.h>     /* for prefs_get */
-#include <gvm/util/kb.h>        /* for KB_TYPE_INT */
-
-#include "../misc/plugutils.h"          /* for plug_set_id */
-#include "../misc/network.h"            /* for getpts */
-#include "../misc/vendorversion.h"      /* for vendor_version_get */
-
-#include "nasl_tree.h"
-#include "nasl_global_ctxt.h"
-#include "nasl_func.h"
-#include "nasl_var.h"
-#include "nasl_lex_ctxt.h"
-
-#include "nasl_debug.h"
 #include "nasl_scanner_glue.h"
 
+#include "../misc/network.h"       /* for getpts */
+#include "../misc/plugutils.h"     /* for plug_set_id */
+#include "../misc/vendorversion.h" /* for vendor_version_get */
+#include "nasl_debug.h"
+#include "nasl_func.h"
+#include "nasl_global_ctxt.h"
+#include "nasl_lex_ctxt.h"
+#include "nasl_tree.h"
+#include "nasl_var.h"
+
+#include <ctype.h> /* for isdigit */
+#include <errno.h> /* for errno */
+#include <fcntl.h> /* for open */
+#include <glib.h>
+#include <gvm/base/logging.h>
+#include <gvm/base/prefs.h> /* for prefs_get */
+#include <gvm/util/kb.h>    /* for KB_TYPE_INT */
+#include <stdlib.h>         /* for atoi */
+#include <string.h>         /* for strcmp */
+#include <sys/stat.h>       /* for stat */
+#include <unistd.h>         /* for close */
 
 #undef G_LOG_DOMAIN
 /**
@@ -79,17 +75,15 @@ isalldigit (char *str, int len)
     return 1;
 }
 
-
-
 /*-------------------[ script_*() functions ]----------------------------*/
 
- /*
-  * These functions are used when the script registers itself to openvas
-  * scanner.
-  */
+/*
+ * These functions are used when the script registers itself to openvas
+ * scanner.
+ */
 
 tree_cell *
-script_timeout (lex_ctxt * lexic)
+script_timeout (lex_ctxt *lexic)
 {
   nvti_t *nvti = lexic->script_infos->nvti;
   int to = get_int_var_by_num (lexic, 0, -65535);
@@ -101,9 +95,8 @@ script_timeout (lex_ctxt * lexic)
   return FAKE_CELL;
 }
 
-
 tree_cell *
-script_oid (lex_ctxt * lexic)
+script_oid (lex_ctxt *lexic)
 {
   nvti_set_oid (lexic->script_infos->nvti, get_str_var_by_num (lexic, 0));
   return FAKE_CELL;
@@ -113,7 +106,7 @@ script_oid (lex_ctxt * lexic)
  * TODO: support multiple CVE entries
  */
 tree_cell *
-script_cve_id (lex_ctxt * lexic)
+script_cve_id (lex_ctxt *lexic)
 {
   struct script_infos *script_infos = lexic->script_infos;
   char *cve = get_str_var_by_num (lexic, 0);
@@ -132,7 +125,7 @@ script_cve_id (lex_ctxt * lexic)
  * TODO: support multiple bugtraq entries
  */
 tree_cell *
-script_bugtraq_id (lex_ctxt * lexic)
+script_bugtraq_id (lex_ctxt *lexic)
 {
   struct script_infos *script_infos = lexic->script_infos;
   char *bid = get_str_var_by_num (lexic, 0);
@@ -147,20 +140,17 @@ script_bugtraq_id (lex_ctxt * lexic)
   return FAKE_CELL;
 }
 
-
 tree_cell *
-script_xref (lex_ctxt * lexic)
+script_xref (lex_ctxt *lexic)
 {
   struct script_infos *script_infos = lexic->script_infos;
   char *name = get_str_var_by_name (lexic, "name");
   char *value = get_str_var_by_name (lexic, "value");
 
-
   if (value == NULL || name == NULL)
     {
-      nasl_perror (lexic,
-                   "script_xref() syntax error - should be"
-                   " script_xref(name:<name>, value:<value>)\n");
+      nasl_perror (lexic, "script_xref() syntax error - should be"
+                          " script_xref(name:<name>, value:<value>)\n");
       if (name == NULL)
         {
           nasl_perror (lexic, "  <name> is empty\n");
@@ -186,7 +176,7 @@ script_xref (lex_ctxt * lexic)
 }
 
 tree_cell *
-script_tag (lex_ctxt * lexic)
+script_tag (lex_ctxt *lexic)
 {
   struct script_infos *script_infos = lexic->script_infos;
   char *name = get_str_var_by_name (lexic, "name");
@@ -225,31 +215,29 @@ script_tag (lex_ctxt * lexic)
   return FAKE_CELL;
 }
 
-
 tree_cell *
-script_name (lex_ctxt * lexic)
+script_name (lex_ctxt *lexic)
 {
   nvti_set_name (lexic->script_infos->nvti, get_str_var_by_num (lexic, 0));
   return FAKE_CELL;
 }
 
-
 tree_cell *
-script_version (lex_ctxt * lexic)
+script_version (lex_ctxt *lexic)
 {
   (void) lexic;
   return FAKE_CELL;
 }
 
 tree_cell *
-script_copyright (lex_ctxt * lexic)
+script_copyright (lex_ctxt *lexic)
 {
   (void) lexic;
   return FAKE_CELL;
 }
 
 tree_cell *
-script_category (lex_ctxt * lexic)
+script_category (lex_ctxt *lexic)
 {
   struct script_infos *script_infos = lexic->script_infos;
 
@@ -266,14 +254,14 @@ script_category (lex_ctxt * lexic)
 }
 
 tree_cell *
-script_family (lex_ctxt * lexic)
+script_family (lex_ctxt *lexic)
 {
   nvti_set_family (lexic->script_infos->nvti, get_str_var_by_num (lexic, 0));
   return FAKE_CELL;
 }
 
 tree_cell *
-script_dependencies (lex_ctxt * lexic)
+script_dependencies (lex_ctxt *lexic)
 {
   struct script_infos *script_infos = lexic->script_infos;
   char *dep = get_str_var_by_num (lexic, 0);
@@ -298,9 +286,8 @@ script_dependencies (lex_ctxt * lexic)
   return FAKE_CELL;
 }
 
-
 tree_cell *
-script_require_keys (lex_ctxt * lexic)
+script_require_keys (lex_ctxt *lexic)
 {
   char *keys = get_str_var_by_num (lexic, 0);
   int i;
@@ -323,7 +310,7 @@ script_require_keys (lex_ctxt * lexic)
 }
 
 tree_cell *
-script_mandatory_keys (lex_ctxt * lexic)
+script_mandatory_keys (lex_ctxt *lexic)
 {
   char *keys = get_str_var_by_num (lexic, 0);
   char **splits = NULL, *re = get_str_var_by_name (lexic, "re");
@@ -369,7 +356,7 @@ script_mandatory_keys (lex_ctxt * lexic)
 }
 
 tree_cell *
-script_exclude_keys (lex_ctxt * lexic)
+script_exclude_keys (lex_ctxt *lexic)
 {
   char *keys = get_str_var_by_num (lexic, 0);
   int i;
@@ -391,9 +378,8 @@ script_exclude_keys (lex_ctxt * lexic)
   return FAKE_CELL;
 }
 
-
 tree_cell *
-script_require_ports (lex_ctxt * lexic)
+script_require_ports (lex_ctxt *lexic)
 {
   char *port;
   int i;
@@ -410,9 +396,8 @@ script_require_ports (lex_ctxt * lexic)
   return FAKE_CELL;
 }
 
-
 tree_cell *
-script_require_udp_ports (lex_ctxt * lexic)
+script_require_udp_ports (lex_ctxt *lexic)
 {
   int i;
   char *port;
@@ -430,26 +415,44 @@ script_require_udp_ports (lex_ctxt * lexic)
 }
 
 tree_cell *
-script_add_preference (lex_ctxt * lexic)
+script_add_preference (lex_ctxt *lexic)
 {
+  int id = get_int_var_by_name (lexic, "id", -1);
   char *name = get_str_var_by_name (lexic, "name");
   char *type = get_str_var_by_name (lexic, "type");
   char *value = get_str_var_by_name (lexic, "value");
   struct script_infos *script_infos = lexic->script_infos;
+  nvtpref_t *np;
+  GSList *tmp;
 
-  if (name == NULL || type == NULL || value == NULL)
+  if (!script_infos->nvti)
+    return FAKE_CELL;
+  if (id <= 0)
+    id = g_slist_length (script_infos->nvti->prefs) + 1;
+  if (!name || !type || !value)
     {
       nasl_perror (lexic,
                    "Argument error in the call to script_add_preference()\n");
+      return FAKE_CELL;
     }
-  else
-    add_plugin_preference (script_infos, name, type, value);
+  tmp = script_infos->nvti->prefs;
+  while (tmp)
+    {
+      if (!strcmp (name, ((nvtpref_t *) tmp->data)->name))
+        {
+          nasl_perror (lexic, "Preference '%s' already exists\n", name);
+          return FAKE_CELL;
+        }
+      tmp = tmp->next;
+    }
 
+  np = nvtpref_new (id, name, type, value);
+  nvti_add_pref (script_infos->nvti, np);
   return FAKE_CELL;
 }
 
 tree_cell *
-script_get_preference (lex_ctxt * lexic)
+script_get_preference (lex_ctxt *lexic)
 {
   tree_cell *retc;
   char *pref = get_str_var_by_num (lexic, 0);
@@ -459,20 +462,17 @@ script_get_preference (lex_ctxt * lexic)
     {
       nasl_perror (lexic,
                    "Argument error in the function script_get_preference()\n");
-      nasl_perror (lexic,
-                   "Function usage is : pref = script_get_preference(<name>)\n");
+      nasl_perror (
+        lexic, "Function usage is : pref = script_get_preference(<name>)\n");
       return FAKE_CELL;
     }
 
   value = get_plugin_preference (lexic->oid, pref);
   if (value != NULL)
     {
-      retc = alloc_tree_cell ();
+      retc = alloc_typed_cell (CONST_INT);
       if (isalldigit (value, strlen (value)))
-        {
-          retc->type = CONST_INT;
-          retc->x.i_val = atoi (value);
-        }
+        retc->x.i_val = atoi (value);
       else
         {
           retc->type = CONST_DATA;
@@ -487,7 +487,7 @@ script_get_preference (lex_ctxt * lexic)
 }
 
 tree_cell *
-script_get_preference_file_content (lex_ctxt * lexic)
+script_get_preference_file_content (lex_ctxt *lexic)
 {
   struct script_infos *script_infos = lexic->script_infos;
   tree_cell *retc;
@@ -500,8 +500,8 @@ script_get_preference_file_content (lex_ctxt * lexic)
     {
       nasl_perror (lexic,
                    "Argument error in the function script_get_preference()\n");
-      nasl_perror (lexic,
-                   "Function usage is : pref = script_get_preference_file_content(<name>)\n");
+      nasl_perror (lexic, "Function usage is : pref = "
+                          "script_get_preference_file_content(<name>)\n");
       return NULL;
     }
 
@@ -516,22 +516,22 @@ script_get_preference_file_content (lex_ctxt * lexic)
     return FAKE_CELL;
   if (contentsize <= 0)
     {
-      nasl_perror (lexic, "script_get_preference_file_content: could not get "
-                          " size of file from preference %s\n", pref);
+      nasl_perror (lexic,
+                   "script_get_preference_file_content: could not get "
+                   " size of file from preference %s\n",
+                   pref);
       return NULL;
     }
 
-  retc = alloc_tree_cell ();
-  retc->type = CONST_DATA;
+  retc = alloc_typed_cell (CONST_DATA);
   retc->size = contentsize;
   retc->x.str_val = content;
 
   return retc;
 }
 
-
 tree_cell *
-script_get_preference_file_location (lex_ctxt * lexic)
+script_get_preference_file_location (lex_ctxt *lexic)
 {
   struct script_infos *script_infos = lexic->script_infos;
   tree_cell *retc;
@@ -541,17 +541,18 @@ script_get_preference_file_location (lex_ctxt * lexic)
 
   if (pref == NULL)
     {
-      nasl_perror (lexic,
-                   "script_get_preference_file_location: no preference name!\n");
+      nasl_perror (
+        lexic, "script_get_preference_file_location: no preference name!\n");
       return NULL;
     }
 
   value = get_plugin_preference (lexic->oid, pref);
   if (value == NULL)
     {
-      nasl_perror (lexic,
-                   "script_get_preference_file_location: could not get preference %s\n",
-                   pref);
+      nasl_perror (
+        lexic,
+        "script_get_preference_file_location: could not get preference %s\n",
+        pref);
       return NULL;
     }
   local = get_plugin_preference_fname (script_infos, value);
@@ -569,26 +570,24 @@ script_get_preference_file_location (lex_ctxt * lexic)
 
 /* Are safe checks enabled ? */
 tree_cell *
-safe_checks (lex_ctxt * lexic)
+safe_checks (lex_ctxt *lexic)
 {
   (void) lexic;
-  tree_cell *retc = alloc_tree_cell ();
+  tree_cell *retc = alloc_typed_cell (CONST_INT);
 
-  retc->type = CONST_INT;
   retc->x.i_val = prefs_get_bool ("safe_checks");
 
   return retc;
 }
 
 tree_cell *
-scan_phase (lex_ctxt * lexic)
+scan_phase (lex_ctxt *lexic)
 {
   struct script_infos *script_infos = lexic->script_infos;
   struct scan_globals *globals = script_infos->globals;
   char *value;
-  tree_cell *retc = alloc_tree_cell ();
+  tree_cell *retc = alloc_typed_cell (CONST_INT);
 
-  retc->type = CONST_INT;
   value = globals->network_scan_status;
   if (value)
     {
@@ -604,7 +603,7 @@ scan_phase (lex_ctxt * lexic)
 }
 
 tree_cell *
-network_targets (lex_ctxt * lexic)
+network_targets (lex_ctxt *lexic)
 {
   struct script_infos *script_infos = lexic->script_infos;
   struct scan_globals *globals = script_infos->globals;
@@ -632,7 +631,7 @@ network_targets (lex_ctxt * lexic)
  * @return lex cell containing the OID as a string.
  */
 tree_cell *
-get_script_oid (lex_ctxt * lexic)
+get_script_oid (lex_ctxt *lexic)
 {
   const char *oid = lexic->oid;
   tree_cell *retc = NULL;
@@ -650,7 +649,7 @@ get_script_oid (lex_ctxt * lexic)
 /*--------------------[ KB ]---------------------------------------*/
 
 tree_cell *
-get_kb_list (lex_ctxt * lexic)
+get_kb_list (lex_ctxt *lexic)
 {
   struct script_infos *script_infos = lexic->script_infos;
   kb_t kb = plug_get_kb (script_infos);
@@ -669,8 +668,7 @@ get_kb_list (lex_ctxt * lexic)
   if (kb == NULL)
     return NULL;
 
-  retc = alloc_tree_cell ();
-  retc->type = DYN_ARRAY;
+  retc = alloc_typed_cell (DYN_ARRAY);
   retc->x.ref_val = a = g_malloc0 (sizeof (nasl_array));
 
   if (strchr (kb_mask, '*'))
@@ -712,7 +710,7 @@ get_kb_list (lex_ctxt * lexic)
 }
 
 tree_cell *
-get_kb_item (lex_ctxt * lexic)
+get_kb_item (lex_ctxt *lexic)
 {
   struct script_infos *script_infos = lexic->script_infos;
 
@@ -727,15 +725,12 @@ get_kb_item (lex_ctxt * lexic)
 
   val = plug_get_key (script_infos, kb_entry, &type, &len, !!single);
 
-
   if (val == NULL && type == -1)
     return NULL;
 
-
-  retc = alloc_tree_cell ();
+  retc = alloc_typed_cell (CONST_INT);
   if (type == KB_TYPE_INT)
     {
-      retc->type = CONST_INT;
       retc->x.i_val = GPOINTER_TO_SIZE (val);
       g_free (val);
       return retc;
@@ -759,7 +754,7 @@ get_kb_item (lex_ctxt * lexic)
 }
 
 tree_cell *
-replace_kb_item (lex_ctxt * lexic)
+replace_kb_item (lex_ctxt *lexic)
 {
   struct script_infos *script_infos = lexic->script_infos;
   char *name = get_str_var_by_name (lexic, "name");
@@ -779,9 +774,8 @@ replace_kb_item (lex_ctxt * lexic)
         plug_replace_key (script_infos, name, ARG_INT,
                           GSIZE_TO_POINTER (value));
       else
-        nasl_perror (lexic,
-                     "Syntax error with replace_kb_item(%s) [value=-1]\n",
-                     name);
+        nasl_perror (
+          lexic, "Syntax error with replace_kb_item(%s) [value=-1]\n", name);
     }
   else
     {
@@ -802,7 +796,7 @@ replace_kb_item (lex_ctxt * lexic)
 }
 
 tree_cell *
-set_kb_item (lex_ctxt * lexic)
+set_kb_item (lex_ctxt *lexic)
 {
   struct script_infos *script_infos = lexic->script_infos;
   char *name = get_str_var_by_name (lexic, "name");
@@ -821,9 +815,9 @@ set_kb_item (lex_ctxt * lexic)
       if (value != -1)
         plug_set_key (script_infos, name, ARG_INT, GSIZE_TO_POINTER (value));
       else
-        nasl_perror (lexic,
-                     "Syntax error with set_kb_item() [value=-1 for name '%s']\n",
-                     name);
+        nasl_perror (
+          lexic, "Syntax error with set_kb_item() [value=-1 for name '%s']\n",
+          name);
     }
   else
     {
@@ -831,9 +825,10 @@ set_kb_item (lex_ctxt * lexic)
       int len = get_var_size_by_name (lexic, "value");
       if (value == NULL)
         {
-          nasl_perror (lexic,
-                       "Syntax error with set_kb_item() [null value for name '%s']\n",
-                       name);
+          nasl_perror (
+            lexic,
+            "Syntax error with set_kb_item() [null value for name '%s']\n",
+            name);
           return FAKE_CELL;
         }
       plug_set_key_len (script_infos, name, ARG_STRING, value, len);
@@ -844,20 +839,19 @@ set_kb_item (lex_ctxt * lexic)
 
 /*------------------------[ Reporting a problem ]---------------------------*/
 
-
 /**
  * Function is used when the script wants to report a problem back to openvassd.
  */
-typedef void (*proto_post_something_t) (const char *, struct script_infos *, int,
-                                        const char *, const char *);
+typedef void (*proto_post_something_t) (const char *, struct script_infos *,
+                                        int, const char *, const char *);
 /**
  * Function is used when the script wants to report a problem back to openvassd.
  */
-typedef void (*post_something_t) (const char *, struct script_infos *, int, const char *);
-
+typedef void (*post_something_t) (const char *, struct script_infos *, int,
+                                  const char *);
 
 static tree_cell *
-security_something (lex_ctxt * lexic, proto_post_something_t proto_post_func,
+security_something (lex_ctxt *lexic, proto_post_something_t proto_post_func,
                     post_something_t post_func)
 {
   struct script_infos *script_infos = lexic->script_infos;
@@ -919,25 +913,25 @@ security_something (lex_ctxt * lexic, proto_post_something_t proto_post_func,
  * @return FAKE_CELL.
  */
 tree_cell *
-security_message (lex_ctxt * lexic)
+security_message (lex_ctxt *lexic)
 {
   return security_something (lexic, proto_post_alarm, post_alarm);
 }
 
 tree_cell *
-log_message (lex_ctxt * lexic)
+log_message (lex_ctxt *lexic)
 {
   return security_something (lexic, proto_post_log, post_log);
 }
 
 tree_cell *
-error_message (lex_ctxt * lexic)
+error_message (lex_ctxt *lexic)
 {
   return security_something (lexic, proto_post_error, post_error);
 }
 
 tree_cell *
-nasl_get_preference (lex_ctxt * lexic)
+nasl_get_preference (lex_ctxt *lexic)
 {
   tree_cell *retc;
   char *name;
@@ -960,7 +954,7 @@ nasl_get_preference (lex_ctxt * lexic)
 }
 
 tree_cell *
-nasl_vendor_version (lex_ctxt * lexic)
+nasl_vendor_version (lex_ctxt *lexic)
 {
   tree_cell *retc;
   gchar *version = g_strdup (vendor_version_get ());
@@ -981,7 +975,7 @@ nasl_vendor_version (lex_ctxt * lexic)
  * to be scanned.
  */
 tree_cell *
-nasl_scanner_get_port (lex_ctxt * lexic)
+nasl_scanner_get_port (lex_ctxt *lexic)
 {
   tree_cell *retc;
   int idx = get_int_var_by_num (lexic, 0, -1);
@@ -1003,7 +997,7 @@ nasl_scanner_get_port (lex_ctxt * lexic)
 
   if (ports == NULL)
     {
-      ports = (u_short *) getpts ((char *)prange, &num);
+      ports = (u_short *) getpts ((char *) prange, &num);
       if (ports == NULL)
         {
           return NULL;
@@ -1015,15 +1009,13 @@ nasl_scanner_get_port (lex_ctxt * lexic)
       return NULL;
     }
 
-  retc = alloc_tree_cell ();
-  retc->type = CONST_INT;
+  retc = alloc_typed_cell (CONST_INT);
   retc->x.i_val = ports[idx];
   return retc;
 }
 
-
 tree_cell *
-nasl_scanner_add_port (lex_ctxt * lexic)
+nasl_scanner_add_port (lex_ctxt *lexic)
 {
   struct script_infos *script_infos = lexic->script_infos;
 
@@ -1039,7 +1031,7 @@ nasl_scanner_add_port (lex_ctxt * lexic)
 }
 
 tree_cell *
-nasl_scanner_status (lex_ctxt * lexic)
+nasl_scanner_status (lex_ctxt *lexic)
 {
   /* Kept for backward compatibility. */
   (void) lexic;

@@ -33,47 +33,45 @@
  * OpenVAS Scanner main module, runs the scanner.
  */
 
-#include <stdlib.h>    /* for atoi() */
-#include <stdio.h>     /* for fflush() */
-#include <unistd.h>    /* for close() */
-#include <errno.h>     /* for errno() */
-#include <fcntl.h>     /* for open() */
-#include <signal.h>    /* for SIGTERM */
-#include <netdb.h>     /* for addrinfo */
-#include <sys/wait.h>     /* for waitpid */
-#include <sys/un.h>
-#include <sys/stat.h>
-#include <pwd.h>
-#include <grp.h>
-#include <glib.h>
-
-#include <gvm/base/pidfile.h>    /* for pidfile_create */
-#include <gvm/base/logging.h>    /* for setup_log_handler, load_log_configuration, free_log_configuration*/
-#include <gvm/base/proctitle.h>  /* for proctitle_set */
-#include <gvm/base/prefs.h>      /* for prefs_get() */
-#include <gvm/base/nvti.h>       /* for prefs_get() */
-#include <gvm/util/kb.h>         /* for KB_PATH_DEFAULT */
-#include <gvm/util/nvticache.h>  /* nvticache_free */
-#include <gvm/util/uuidutils.h>  /* gvm_uuid_make */
-#include "../misc/plugutils.h"   /* nvticache_free */
+#include "../misc/plugutils.h"     /* nvticache_free */
 #include "../misc/vendorversion.h" /* for vendor_version_set */
+#include "attack.h"                /* for attack_network */
+#include "comm.h"                  /* for comm_loading */
+#include "ntp.h"                   /* for ntp_timestamp_scan_starts */
+#include "pluginlaunch.h"          /* for init_loading_shm */
+#include "processes.h"             /* for create_process */
+#include "sighand.h"               /* for openvas_signal */
+#include "utils.h"                 /* for wait_for_children1 */
 
+#include <errno.h>  /* for errno() */
+#include <fcntl.h>  /* for open() */
 #include <gcrypt.h> /* for gcry_control */
-
-#include "comm.h"         /* for comm_loading */
-#include "attack.h"       /* for attack_network */
-#include "sighand.h"      /* for openvas_signal */
-#include "processes.h"    /* for create_process */
-#include "ntp.h"          /* for ntp_timestamp_scan_starts */
-#include "utils.h"        /* for wait_for_children1 */
-#include "pluginlaunch.h" /* for init_loading_shm */
+#include <glib.h>
+#include <grp.h>
+#include <gvm/base/logging.h> /* for setup_log_handler, load_log_configuration, free_log_configuration*/
+#include <gvm/base/nvti.h>      /* for prefs_get() */
+#include <gvm/base/pidfile.h>   /* for pidfile_create */
+#include <gvm/base/prefs.h>     /* for prefs_get() */
+#include <gvm/base/proctitle.h> /* for proctitle_set */
+#include <gvm/util/kb.h>        /* for KB_PATH_DEFAULT */
+#include <gvm/util/nvticache.h> /* nvticache_free */
+#include <gvm/util/uuidutils.h> /* gvm_uuid_make */
+#include <netdb.h>              /* for addrinfo */
+#include <pwd.h>
+#include <signal.h> /* for SIGTERM */
+#include <stdio.h>  /* for fflush() */
+#include <stdlib.h> /* for atoi() */
+#include <sys/stat.h>
+#include <sys/un.h>
+#include <sys/wait.h> /* for waitpid */
+#include <unistd.h>   /* for close() */
 
 #ifdef GIT_REV_AVAILABLE
 #include "gitrevision.h"
 #endif
 
 #if GNUTLS_VERSION_NUMBER < 0x030300
-#include "../misc/network.h"     /* openvas_SSL_init */
+#include "../misc/network.h" /* openvas_SSL_init */
 #endif
 
 #undef G_LOG_DOMAIN
@@ -97,7 +95,6 @@ int global_max_checks = 10;
  * @brief Logging parameters, as passed to setup_log_handlers.
  */
 GSList *log_config = NULL;
-
 
 static int global_iana_socket = -1;
 
@@ -134,8 +131,7 @@ static openvassd_option openvassd_defaults[] = {
   // prefs_init.
   {"report_host_details", "yes"},
   {"db_address", KB_PATH_DEFAULT},
-  {NULL, NULL}
-};
+  {NULL, NULL}};
 
 gchar *unix_socket_path = NULL;
 
@@ -148,11 +144,9 @@ start_daemon_mode (void)
   /* become process group leader */
   if (setsid () < 0)
     {
-      g_warning ("Cannot set process group leader (%s)\n",
-                 strerror (errno));
+      g_warning ("Cannot set process group leader (%s)\n", strerror (errno));
     }
 }
-
 
 static void
 end_daemon_mode (void)
@@ -229,6 +223,21 @@ remove_pidfile ()
   pidfile_remove ("openvassd");
 }
 
+static int
+get_client_timedout (int sockfd, struct sockaddr *addr, socklen_t lg_address,
+                     struct timeval *timeout)
+{
+  int ret;
+  fd_set set;
+
+  FD_ZERO (&set);
+  FD_SET (sockfd, &set);
+  ret = select (sockfd + 1, &set, NULL, NULL, timeout);
+  if (ret <= 0) /* error or timeout. */
+    return -1;
+  return accept (global_iana_socket, addr, &lg_address);
+}
+
 /*
  * @brief Starts a process to handle client requests while the scanner is
  * loading.
@@ -249,41 +258,31 @@ loading_handler_start ()
   proctitle_set (PROCTITLE_WAITING);
   openvas_signal (SIGTERM, handle_loading_stop_signal);
 
+  if (listen (global_iana_socket, 5) < 0)
+    {
+      g_warning ("%s: Error on listen(): %s", __FUNCTION__, strerror (errno));
+      exit (1);
+    }
+
   /*
    * Forked process will handle client requests until parent dies or stops it
    * with loading_handler_stop ().
    */
   while (1)
     {
-      unsigned int lg_address;
       struct sockaddr_un address;
       int soc;
-      fd_set set;
       struct timeval timeout;
-      int rv, ret;
       pid_t child_pid1;
 
       if (loading_stop_signal || kill (parent_pid, 0) < 0)
         break;
-      lg_address = sizeof (struct sockaddr_un);
-
-      if (listen (global_iana_socket, 5) < 0)
-        continue;
-
-      FD_ZERO(&set);
-      FD_SET(global_iana_socket, &set);
 
       timeout.tv_sec = 0;
       timeout.tv_usec = 500000;
-
-      rv = select(global_iana_socket + 1, &set, NULL, NULL, &timeout);
-      if(rv == -1) /* Select error. */
-        continue;
-      else if(rv == 0) /* Timeout. */
-        continue;
-      else
-        soc = accept (global_iana_socket, (struct sockaddr *) (&address),
-                    &lg_address);
+      soc = get_client_timedout (global_iana_socket,
+                                 (struct sockaddr *) &address, sizeof (address),
+                                 &timeout);
       if (soc == -1)
         continue;
 
@@ -295,8 +294,7 @@ loading_handler_start ()
           close (soc);
           exit (0);
         }
-      waitpid (child_pid1, &ret, WNOHANG);
-
+      waitpid (child_pid1, NULL, WNOHANG);
     }
   exit (0);
 }
@@ -340,9 +338,7 @@ reload_openvassd ()
 
   proctitle_set (PROCTITLE_RELOADING);
   /* Setup logging. */
-  rc_name = g_build_filename (OPENVAS_SYSCONF_DIR,
-                              "openvassd_log.conf",
-                              NULL);
+  rc_name = g_build_filename (OPENVAS_SYSCONF_DIR, "openvassd_log.conf", NULL);
   if (g_file_test (rc_name, G_FILE_TEST_EXISTS))
     log_config = load_log_configuration (rc_name);
   g_free (rc_name);
@@ -484,7 +480,7 @@ scanner_thread (struct scan_globals *globals)
   if (prefs_get_bool ("be_nice"))
     {
       errno = 0;
-      if (nice(10) == -1 && errno != 0)
+      if (nice (10) == -1 && errno != 0)
         {
           g_warning ("Unable to renice process: %d", errno);
         }
@@ -513,7 +509,6 @@ log_config_free ()
   log_config = NULL;
 }
 
-
 /*
  * @brief Terminates the scanner if a termination signal was received.
  */
@@ -523,7 +518,8 @@ check_termination ()
   if (termination_signal)
     {
       g_debug ("Received the %s signal", strsignal (termination_signal));
-      if (log_config) log_config_free ();
+      if (log_config)
+        log_config_free ();
       remove_pidfile ();
       make_em_die (SIGTERM);
       _exit (0);
@@ -559,15 +555,15 @@ stop_all_scans (void)
 
   proc = g_dir_open ("/proc", 0, &error);
   if (error != NULL)
-  {
-    g_message ("Unable to open directory: %s\n", error->message);
-    g_error_free (error);
-    return;
-  }
+    {
+      g_message ("Unable to open directory: %s\n", error->message);
+      g_error_free (error);
+      return;
+    }
   while ((piddir = g_dir_read_name (proc)) != NULL)
     {
       ispid = 1;
-      for (i = 0; i < (int)strlen (piddir); i++)
+      for (i = 0; i < (int) strlen (piddir); i++)
         if (!g_ascii_isdigit (piddir[i]))
           {
             ispid = 0;
@@ -579,21 +575,21 @@ stop_all_scans (void)
       pidstatfn = g_strconcat ("/proc/", piddir, "/stat", NULL);
       if (g_file_get_contents (pidstatfn, &contents, NULL, NULL))
         {
-          contents_split = g_strsplit (contents," ", 6);
+          contents_split = g_strsplit (contents, " ", 6);
           parentID = g_strdup (contents_split[3]);
           processID = g_strdup (contents_split[0]);
 
           g_free (pidstatfn);
           pidstatfn = NULL;
           g_free (contents);
-          contents  = NULL;
+          contents = NULL;
           g_strfreev (contents_split);
-          contents_split  = NULL;
+          contents_split = NULL;
 
-          if (atoi(parentID) == (int)getpid())
+          if (atoi (parentID) == (int) getpid ())
             {
               g_message ("Stopping running scan with PID: %s", processID);
-              kill (atoi(processID), SIGUSR2);
+              kill (atoi (processID), SIGUSR2);
             }
           g_free (parentID);
           parentID = NULL;
@@ -619,7 +615,7 @@ stop_all_scans (void)
 void
 check_kb_status ()
 {
-  int  waitredis = 5, waitkb = 5, ret = 0;
+  int waitredis = 5, waitkb = 5, ret = 0;
 
   kb_t kb_access_aux;
 
@@ -671,13 +667,11 @@ check_kb_status ()
     }
 }
 
-
 static void
 main_loop ()
 {
 #ifdef OPENVASSD_GIT_REVISION
-  g_message ("openvassd %s (GIT revision %s) started",
-             OPENVASSD_VERSION,
+  g_message ("openvassd %s (GIT revision %s) started", OPENVASSD_VERSION,
              OPENVASSD_GIT_REVISION);
 #else
   g_message ("openvassd %s started", OPENVASSD_VERSION);
@@ -686,28 +680,30 @@ main_loop ()
   for (;;)
     {
       int soc;
-      unsigned int lg_address;
       struct sockaddr_un address;
       struct scan_globals *globals;
+      struct timeval timeout;
 
       check_termination ();
-      check_kb_status ();
       wait_for_children1 ();
-      lg_address = sizeof (struct sockaddr_un);
-      soc = accept (global_iana_socket, (struct sockaddr *) (&address),
-                    &lg_address);
+
+      timeout.tv_sec = 10;
+      timeout.tv_usec = 0;
+      soc = get_client_timedout (global_iana_socket,
+                                 (struct sockaddr *) &address, sizeof (address),
+                                 &timeout);
+      check_kb_status ();
       if (soc == -1)
-        continue;
+        {
+          check_reload ();
+          continue;
+        }
 
       globals = g_malloc0 (sizeof (struct scan_globals));
       globals->global_socket = soc;
       /* Set scan type 1:OTP, 0:OSP */
       set_scan_type (1);
 
-      /* Check for reload after accept() but before we fork, to ensure that
-       * Manager gets full updated feed in case of NVT update connection.
-       */
-      check_reload ();
       if (create_process ((process_func_t) scanner_thread, globals) < 0)
         {
           g_debug ("Could not fork - client won't be served");
@@ -752,8 +748,8 @@ init_unix_network (int *sock, const char *owner, const char *group,
   if (bind (unix_socket, (struct sockaddr *) &addr, sizeof (struct sockaddr_un))
       == -1)
     {
-      g_debug ("%s: Error on bind(%s): %s", __FUNCTION__,
-                 unix_socket_path, strerror (errno));
+      g_debug ("%s: Error on bind(%s): %s", __FUNCTION__, unix_socket_path,
+               strerror (errno));
       goto init_unix_err;
     }
 
@@ -789,17 +785,17 @@ init_unix_network (int *sock, const char *owner, const char *group,
 
   if (!mode)
     mode = "660";
- omode = strtol (mode, 0, 8);
- if (omode <= 0 || omode > 4095)
-   {
-     g_debug ("%s: Erroneous liste-mode value", __FUNCTION__);
-     goto init_unix_err;
-   }
- if (chmod (unix_socket_path, strtol (mode, 0, 8)) == -1)
-   {
-     g_debug ("%s: chmod: %s", __FUNCTION__, strerror (errno));
-     goto init_unix_err;
-   }
+  omode = strtol (mode, 0, 8);
+  if (omode <= 0 || omode > 4095)
+    {
+      g_debug ("%s: Erroneous liste-mode value", __FUNCTION__);
+      goto init_unix_err;
+    }
+  if (chmod (unix_socket_path, strtol (mode, 0, 8)) == -1)
+    {
+      g_debug ("%s: chmod: %s", __FUNCTION__, strerror (errno));
+      goto init_unix_err;
+    }
 
   if (listen (unix_socket, 128) == -1)
     {
@@ -830,12 +826,8 @@ init_openvassd (const char *config_file)
     prefs_set (openvassd_defaults[i].option, openvassd_defaults[i].value);
   prefs_config (config_file);
 
-
-
   /* Setup logging. */
-  rc_name = g_build_filename (OPENVAS_SYSCONF_DIR,
-                              "openvassd_log.conf",
-                              NULL);
+  rc_name = g_build_filename (OPENVAS_SYSCONF_DIR, "openvassd_log.conf", NULL);
   if (g_file_test (rc_name, G_FILE_TEST_EXISTS))
     log_config = load_log_configuration (rc_name);
   g_free (rc_name);
@@ -894,8 +886,7 @@ start_single_task_scan ()
 #endif
 
 #ifdef OPENVASSD_GIT_REVISION
-  g_message ("openvassd %s (GIT revision %s) started",
-             OPENVASSD_VERSION,
+  g_message ("openvassd %s (GIT revision %s) started", OPENVASSD_VERSION,
              OPENVASSD_GIT_REVISION);
 #else
   g_message ("openvassd %s started", OPENVASSD_VERSION);
@@ -968,11 +959,10 @@ main (int argc, char *argv[])
      "File mode of the unix socket", "<string>"},
     {"scan-start", '\0', 0, G_OPTION_ARG_STRING, &scan_id,
      "ID for this scan task", "<string>"},
-    {NULL, 0, 0, 0, NULL, NULL, NULL}
-  };
+    {NULL, 0, 0, 0, NULL, NULL, NULL}};
 
-  option_context =
-    g_option_context_new ("- Scanner of the Open Vulnerability Assessment System");
+  option_context = g_option_context_new (
+    "- Open Vulnerability Assessment System");
   g_option_context_add_main_entries (option_context, entries, NULL);
   if (!g_option_context_parse (option_context, &argc, &argv, &error))
     {
@@ -996,7 +986,8 @@ main (int argc, char *argv[])
   tzset ();
 
   if (!unix_socket_path)
-    unix_socket_path = g_build_filename (OPENVAS_RUN_DIR, "openvassd.sock", NULL);
+    unix_socket_path =
+      g_build_filename (OPENVAS_RUN_DIR, "openvassd.sock", NULL);
 
   if (display_version)
     {
@@ -1005,13 +996,13 @@ main (int argc, char *argv[])
       printf ("GIT revision %s\n", OPENVASSD_GIT_REVISION);
 #endif
       printf
-        ("Most new code since 2005: (C) 2018 Greenbone Networks GmbH\n");
+        ("Most new code since 2005: (C) 2019 Greenbone Networks GmbH\n");
       printf
         ("Nessus origin: (C) 2004 Renaud Deraison <deraison@nessus.org>\n");
       printf ("License GPLv2: GNU GPL version 2\n");
-      printf
-        ("This is free software: you are free to change and redistribute it.\n"
-         "There is NO WARRANTY, to the extent permitted by law.\n\n");
+      printf (
+        "This is free software: you are free to change and redistribute it.\n"
+        "There is NO WARRANTY, to the extent permitted by law.\n\n");
       exit (0);
     }
 
@@ -1055,7 +1046,6 @@ main (int argc, char *argv[])
   if (flush_all_kbs ())
     exit (1);
 
-
 #if GNUTLS_VERSION_NUMBER < 0x030300
   if (openvas_SSL_init () < 0)
     g_message ("Could not initialize openvas SSL!");
@@ -1066,7 +1056,7 @@ main (int argc, char *argv[])
     set_daemon_mode ();
   pidfile_create ("openvassd");
 
-    /* Ignore SIGHUP while reloading. */
+  /* Ignore SIGHUP while reloading. */
   openvas_signal (SIGHUP, SIG_IGN);
 
   handler_pid = loading_handler_start ();

@@ -26,6 +26,11 @@
 #ifndef __OPENVAS_ATTACK_H__
 #define __OPENVAS_ATTACK_H__
 
-void attack_network (struct scan_globals *, kb_t *network_kb);
+#include "../misc/scanneraux.h"
+
+#include <gvm/util/kb.h>
+
+void
+attack_network (struct scan_globals *, kb_t *network_kb);
 
 #endif

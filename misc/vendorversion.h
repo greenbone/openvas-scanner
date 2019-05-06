@@ -31,6 +31,6 @@ const gchar *
 vendor_version_get (void);
 
 void
-vendor_version_set (const gchar*);
+vendor_version_set (const gchar *);
 
 #endif /* not _OPENVAS_VENDORVERSION_H */

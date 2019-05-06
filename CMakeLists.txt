@@ -21,7 +21,7 @@ cmake_minimum_required (VERSION 3.0)
 message ("-- Configuring the Scanner...")
 
 project (openvas-scanner
-  VERSION 6.0.0
+  VERSION 7.0.0
   LANGUAGES C)
 
 if (POLICY CMP0005)
@@ -48,9 +48,21 @@ if (NOT CMAKE_BUILD_TYPE MATCHES "Release")
   endif (EXISTS "${CMAKE_SOURCE_DIR}/.git/")
 endif (NOT CMAKE_BUILD_TYPE MATCHES "Release")
 
+## make format
+message (STATUS "Looking for clang-format...")
+find_program (CLANG_FORMAT clang-format)
+if (CLANG_FORMAT)
+  message (STATUS "Looking for clang-format... ${CLANG_FORMAT}")
+  add_custom_target(format COMMAND ${CLANG_FORMAT} "-i" "./src/*.c" "./misc/*.c"
+                    "./nasl/*.c" "./src/*.h" "./misc/*.h" "./nasl/*.h"
+                    WORKING_DIRECTORY "${CMAKE_SOURCE_DIR}")
+else (CLANG_FORMAT)
+  message (STATUS "clang-format not found...")
+endif (CLANG_FORMAT)
+
 # Set beta version if this is a beta release series,
 # unset if this is a stable release series.
-set (PROJECT_BETA_RELEASE 3)
+set (PROJECT_BETA_RELEASE 1)
 
 if (GIT_REVISION)
   set (PROJECT_VERSION_GIT "${GIT_REVISION}")
@@ -149,7 +161,9 @@ endif (NOT OPENVAS_RUN_DIR)
 
 set (OPENVAS_DATA_DIR    "${DATADIR}/openvas")
 set (OPENVAS_STATE_DIR   "${LOCALSTATEDIR}/lib/openvas")
-set (GVM_LOG_DIR         "${LOCALSTATEDIR}/log/gvm")
+if (NOT GVM_LOG_DIR)
+	set (GVM_LOG_DIR         "${LOCALSTATEDIR}/log/gvm")
+endif (NOT GVM_LOG_DIR)
 set (OPENVAS_SYSCONF_DIR "${SYSCONFDIR}/openvas")
 set (GVM_SYSCONF_DIR     "${SYSCONFDIR}/gvm")
 
@@ -179,10 +193,6 @@ configure_file (doc/Doxyfile.in doc/Doxyfile @ONLY)
 configure_file (doc/Doxyfile_full.in doc/Doxyfile_full @ONLY)
 configure_file (doc/Doxyfile_xml.in doc/Doxyfile_xml @ONLY)
 configure_file (doc/openvassd.8.in doc/openvassd.8 @ONLY)
-configure_file (doc/redis_config_examples/redis_2_4.conf.in doc/redis_config_examples/redis_2_4.conf @ONLY)
-configure_file (doc/redis_config_examples/redis_2_6.conf.in doc/redis_config_examples/redis_2_6.conf @ONLY)
-configure_file (doc/redis_config_examples/redis_2_8.conf.in doc/redis_config_examples/redis_2_8.conf @ONLY)
-configure_file (doc/redis_config_examples/redis_3_0.conf.in doc/redis_config_examples/redis_3_0.conf @ONLY)
 configure_file (doc/redis_config_examples/redis_3_2.conf.in doc/redis_config_examples/redis_3_2.conf @ONLY)
 configure_file (doc/redis_config_examples/redis_4_0.conf.in doc/redis_config_examples/redis_4_0.conf @ONLY)
 configure_file (VERSION.in VERSION @ONLY)

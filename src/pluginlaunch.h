@@ -26,18 +26,24 @@
 #ifndef __PLUGINLAUNCH_H__
 #define __PLUGINLAUNCH_H__
 
-#include "pluginload.h"         /* for struct pl_class_t */
-#include "pluginscheduler.h"    /* for struct plugins_scheduler_t */
+#include "pluginload.h"      /* for struct pl_class_t */
+#include "pluginscheduler.h" /* for struct plugins_scheduler_t */
 
-void pluginlaunch_init (const char *);
+void
+pluginlaunch_init (const char *);
 void pluginlaunch_wait (kb_t);
 void pluginlaunch_wait_for_free_process (kb_t);
-void pluginlaunch_stop (int);
-int plugin_launch (struct scan_globals *, struct scheduler_plugin *,
-                   struct in6_addr *, GSList *, kb_t, nvti_t *);
+void
+pluginlaunch_stop (int);
+int
+plugin_launch (struct scan_globals *, struct scheduler_plugin *,
+               struct in6_addr *, GSList *, kb_t, nvti_t *);
 
-void pluginlaunch_disable_parallel_checks (void);
-void pluginlaunch_enable_parallel_checks (void);
+void
+pluginlaunch_disable_parallel_checks (void);
+void
+pluginlaunch_enable_parallel_checks (void);
 
-int wait_for_children (void);
+int
+wait_for_children (void);
 #endif

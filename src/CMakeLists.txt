@@ -26,8 +26,8 @@ if (NOT PKG_CONFIG_FOUND)
   message(FATAL_ERROR "pkg-config executable not found. Aborting.")
 endif (NOT PKG_CONFIG_FOUND)
 
-pkg_check_modules (LIBGVM_BASE REQUIRED libgvm_base>=1.0.0)
-pkg_check_modules (LIBGVM_UTIL REQUIRED libgvm_util>=1.0.0)
+pkg_check_modules (LIBGVM_BASE REQUIRED libgvm_base>=11.0.0)
+pkg_check_modules (LIBGVM_UTIL REQUIRED libgvm_util>=11.0.0)
 pkg_check_modules (GLIB REQUIRED glib-2.0>=2.42)
 
 # set NVTICACHE_STR with version.
@@ -194,11 +194,7 @@ install (FILES ${CMAKE_BINARY_DIR}/doc/openvassd.8
 install (FILES ${CMAKE_SOURCE_DIR}/doc/greenbone-nvt-sync.8
          DESTINATION ${DATADIR}/man/man8 )
 
-install (FILES ${CMAKE_BINARY_DIR}/doc/redis_config_examples/redis_2_4.conf
-               ${CMAKE_BINARY_DIR}/doc/redis_config_examples/redis_2_6.conf
-               ${CMAKE_BINARY_DIR}/doc/redis_config_examples/redis_2_8.conf
-               ${CMAKE_BINARY_DIR}/doc/redis_config_examples/redis_3_0.conf
-               ${CMAKE_BINARY_DIR}/doc/redis_config_examples/redis_3_2.conf
+install (FILES ${CMAKE_BINARY_DIR}/doc/redis_config_examples/redis_3_2.conf
                ${CMAKE_BINARY_DIR}/doc/redis_config_examples/redis_4_0.conf
          DESTINATION ${DATADIR}/doc/openvas-scanner/redis_config_examples/ )
 

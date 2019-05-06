@@ -20,6 +20,7 @@
 #ifndef NASL_SIGNATURE_H
 #define NASL_SIGNATURE_H
 
-int nasl_verify_signature (const char *, const char *, size_t);
+int
+nasl_verify_signature (const char *, const char *, size_t);
 
 #endif

@@ -21,26 +21,25 @@
  * @brief This file contains all the "unsafe" functions found in NASL.
  */
 
-#include <errno.h>              /* for errno */
-#include <fcntl.h>              /* for open */
-#include <glib.h>               /* for g_get_tmp_dir */
-#include <signal.h>             /* for kill */
-#include <string.h>             /* for strncpy */
-#include <sys/wait.h>           /* for waitpid */
-#include <sys/stat.h>           /* for stat */
-#include <sys/param.h>          /* for MAXPATHLEN */
-#include <unistd.h>             /* for getcwd */
+#include "nasl_cmd_exec.h"
 
 #include "../misc/plugutils.h"
-
-#include "nasl_tree.h"
-#include "nasl_global_ctxt.h"
-#include "nasl_func.h"
-#include "nasl_var.h"
-#include "nasl_lex_ctxt.h"
-
-#include "nasl_cmd_exec.h"
 #include "nasl_debug.h"
+#include "nasl_func.h"
+#include "nasl_global_ctxt.h"
+#include "nasl_lex_ctxt.h"
+#include "nasl_tree.h"
+#include "nasl_var.h"
+
+#include <errno.h>     /* for errno */
+#include <fcntl.h>     /* for open */
+#include <glib.h>      /* for g_get_tmp_dir */
+#include <signal.h>    /* for kill */
+#include <string.h>    /* for strncpy */
+#include <sys/param.h> /* for MAXPATHLEN */
+#include <sys/stat.h>  /* for stat */
+#include <sys/wait.h>  /* for waitpid */
+#include <unistd.h>    /* for getcwd */
 
 /* MAXPATHLEN doesn't exist on some architectures like hurd i386 */
 #ifndef MAXPATHLEN
@@ -50,24 +49,45 @@
 static pid_t pid = 0;
 
 static char *
-pread_streams (int fdin, int fderr)
+pread_streams (int fdout, int fderr)
 {
-  char buf[8192];
   GString *str;
 
   str = g_string_new ("");
   errno = 0;
-  bzero (buf, sizeof (buf));
-  while ((read (fdin, buf, sizeof (buf))) > 0
-         || read (fderr, buf, sizeof (buf)) > 0 || errno == EINTR)
+  for (;;)
     {
-      if (errno == EINTR)
+      fd_set fds;
+      char buf[8192];
+      int ret, ret_out = 0, ret_err = 0;
+      int maxfd = fdout > fderr ? fdout : fderr;
+
+      FD_ZERO (&fds);
+      FD_SET (fdout, &fds);
+      FD_SET (fderr, &fds);
+
+      ret = select (maxfd + 1, &fds, NULL, NULL, NULL);
+      if (ret == -1)
         {
-          errno = 0;
-          continue;
+          if (errno == EINTR)
+            continue;
+          return NULL;
         }
-      g_string_append (str, buf);
       bzero (buf, sizeof (buf));
+      if (FD_ISSET (fdout, &fds))
+        {
+          ret_out = read (fdout, buf, sizeof (buf));
+          if (ret_out > 0)
+            g_string_append (str, buf);
+        }
+      if (FD_ISSET (fderr, &fds))
+        {
+          ret_err = read (fderr, buf, sizeof (buf));
+          if (ret_err > 0)
+            g_string_append (str, buf);
+        }
+      if (ret_out <= 0 && ret_err <= 0)
+        break;
     }
 
   return g_string_free (str, FALSE);
@@ -75,14 +95,15 @@ pread_streams (int fdin, int fderr)
 
 /** @todo Supspects to glib replacements, all path related stuff. */
 tree_cell *
-nasl_pread (lex_ctxt * lexic)
+nasl_pread (lex_ctxt *lexic)
 {
   tree_cell *retc = NULL, *a;
   anon_nasl_var *v;
   nasl_array *av;
-  int i, j, n, cd, fdin = 0, fderr = 0;
+  int i, j, n, cd, fdout = 0, fderr = 0;
   char **args = NULL, *cmd, *str;
   char cwd[MAXPATHLEN], newdir[MAXPATHLEN], key[128];
+  GError *error = NULL;
 
   if (pid != 0)
     {
@@ -116,7 +137,7 @@ nasl_pread (lex_ctxt * lexic)
     {
       char *p;
 
-      bzero (newdir, sizeof (newdir));
+      memset (newdir, '\0', sizeof (newdir));
       if (cmd[0] == '/')
         strncpy (newdir, cmd, sizeof (newdir) - 1);
       else
@@ -155,7 +176,7 @@ nasl_pread (lex_ctxt * lexic)
   if (av->hash_elt != NULL)
     nasl_perror (lexic, "pread: named elements in 'cmd' are ignored!\n");
   n = av->max_idx;
-  args = g_malloc0 (sizeof (char *) * (n + 2));  /* Last arg is NULL */
+  args = g_malloc0 (sizeof (char *) * (n + 2)); /* Last arg is NULL */
   for (j = 0, i = 0; i < n; i++)
     {
       str = (char *) var2str (av->num_elt[i]);
@@ -164,14 +185,21 @@ nasl_pread (lex_ctxt * lexic)
     }
   args[j] = NULL;
 
-  if (g_spawn_async_with_pipes
-       (NULL, args, NULL, G_SPAWN_SEARCH_PATH, NULL, NULL, &pid, NULL, &fdin,
-        &fderr, NULL) == FALSE)
-    goto finish_pread;
+  if (g_spawn_async_with_pipes (NULL, args, NULL, G_SPAWN_SEARCH_PATH, NULL,
+                                NULL, &pid, NULL, &fdout, &fderr, &error)
+      == FALSE)
+    {
+      if (error)
+        {
+          g_warning ("%s: %s", __FUNCTION__, error->message);
+          g_error_free (error);
+        }
+      goto finish_pread;
+    }
 
   snprintf (key, sizeof (key), "internal/child/%d", getpid ());
   kb_item_set_int (lexic->script_infos->key, key, pid);
-  str = pread_streams (fdin, fderr);
+  str = pread_streams (fdout, fderr);
   if (str)
     {
       retc = alloc_typed_cell (CONST_DATA);
@@ -180,12 +208,11 @@ nasl_pread (lex_ctxt * lexic)
     }
   else if (errno && errno != EINTR)
     nasl_perror (lexic, "nasl_pread: fread(): %s\n", strerror (errno));
-  close (fdin);
+  close (fdout);
+  close (fderr);
   if (*cwd != '\0')
     if (chdir (cwd) < 0)
-      nasl_perror (lexic, "pread(): chdir(%s): %s\n", cwd,
-                   strerror (errno));
-
+      nasl_perror (lexic, "pread(): chdir(%s): %s\n", cwd, strerror (errno));
 
 finish_pread:
   for (i = 0; i < n; i++)
@@ -200,7 +227,7 @@ finish_pread:
 }
 
 tree_cell *
-nasl_find_in_path (lex_ctxt * lexic)
+nasl_find_in_path (lex_ctxt *lexic)
 {
   tree_cell *retc;
   char *cmd, *result;
@@ -227,7 +254,7 @@ nasl_find_in_path (lex_ctxt * lexic)
  * @ingroup nasl_implement
  */
 tree_cell *
-nasl_fread (lex_ctxt * lexic)
+nasl_fread (lex_ctxt *lexic)
 {
   tree_cell *retc;
   char *fname, *fcontent;
@@ -263,7 +290,7 @@ nasl_fread (lex_ctxt * lexic)
  * @ingroup nasl_implement
  */
 tree_cell *
-nasl_unlink (lex_ctxt * lexic)
+nasl_unlink (lex_ctxt *lexic)
 {
   char *fname;
 
@@ -288,7 +315,7 @@ nasl_unlink (lex_ctxt * lexic)
  * @brief Write file
  */
 tree_cell *
-nasl_fwrite (lex_ctxt * lexic)
+nasl_fwrite (lex_ctxt *lexic)
 {
   tree_cell *retc;
   char *fcontent, *fname;
@@ -316,10 +343,8 @@ nasl_fwrite (lex_ctxt * lexic)
   return retc;
 }
 
-
-
 tree_cell *
-nasl_get_tmp_dir (lex_ctxt * lexic)
+nasl_get_tmp_dir (lex_ctxt *lexic)
 {
   tree_cell *retc;
   char path[MAXPATHLEN];
@@ -327,9 +352,10 @@ nasl_get_tmp_dir (lex_ctxt * lexic)
   snprintf (path, sizeof (path), "%s/", g_get_tmp_dir ());
   if (access (path, R_OK | W_OK | X_OK) < 0)
     {
-      nasl_perror (lexic,
-                   "get_tmp_dir(): %s not available - check your OpenVAS installation\n",
-                   path);
+      nasl_perror (
+        lexic,
+        "get_tmp_dir(): %s not available - check your OpenVAS installation\n",
+        path);
       return NULL;
     }
 
@@ -340,7 +366,6 @@ nasl_get_tmp_dir (lex_ctxt * lexic)
   return retc;
 }
 
-
 /*
  *  File access functions : Dangerous
  */
@@ -350,7 +375,7 @@ nasl_get_tmp_dir (lex_ctxt * lexic)
  * @ingroup nasl_implement
  */
 tree_cell *
-nasl_file_stat (lex_ctxt * lexic)
+nasl_file_stat (lex_ctxt *lexic)
 {
   tree_cell *retc;
   char *fname;
@@ -375,7 +400,7 @@ nasl_file_stat (lex_ctxt * lexic)
  * @brief Open file
  */
 tree_cell *
-nasl_file_open (lex_ctxt * lexic)
+nasl_file_open (lex_ctxt *lexic)
 {
   tree_cell *retc;
   char *fname, *mode;
@@ -461,7 +486,7 @@ nasl_file_open (lex_ctxt * lexic)
  * @brief Close file
  */
 tree_cell *
-nasl_file_close (lex_ctxt * lexic)
+nasl_file_close (lex_ctxt *lexic)
 {
   tree_cell *retc;
   int fd;
@@ -484,12 +509,11 @@ nasl_file_close (lex_ctxt * lexic)
   return retc;
 }
 
-
 /**
  * @brief Read file
  */
 tree_cell *
-nasl_file_read (lex_ctxt * lexic)
+nasl_file_read (lex_ctxt *lexic)
 {
   tree_cell *retc;
   char *buf;
@@ -527,12 +551,11 @@ nasl_file_read (lex_ctxt * lexic)
   return retc;
 }
 
-
 /**
  * @brief Write file
  */
 tree_cell *
-nasl_file_write (lex_ctxt * lexic)
+nasl_file_write (lex_ctxt *lexic)
 {
   tree_cell *retc;
   char *content;
@@ -548,7 +571,6 @@ nasl_file_write (lex_ctxt * lexic)
       return NULL;
     }
   len = get_var_size_by_name (lexic, "data");
-
 
   for (n = 0; n < len;)
     {
@@ -567,8 +589,6 @@ nasl_file_write (lex_ctxt * lexic)
         n += e;
     }
 
-
-
   retc = alloc_typed_cell (CONST_INT);
   retc->x.i_val = n;
   return retc;
@@ -578,7 +598,7 @@ nasl_file_write (lex_ctxt * lexic)
  * @brief Seek in file.
  */
 tree_cell *
-nasl_file_seek (lex_ctxt * lexic)
+nasl_file_seek (lex_ctxt *lexic)
 {
   tree_cell *retc;
   int fd;

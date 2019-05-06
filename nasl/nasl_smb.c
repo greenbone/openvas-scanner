@@ -27,30 +27,22 @@
  * via WMI.
  */
 
-/**
- * @todo Check for memleak and document reference counting in tree cells.
- *       In some cases, after a tree_cell (typically retc) has been allocated
- *       with alloc_tree_cell, it is not later freed or deref_tree_cell'ed. It
- *       has to evaluated if that is okay or leads to memory leaks.
- */
-
-#include <stdio.h>
-#include <string.h>
-#include <netinet/in.h>
-#include <sys/socket.h>
-#include <arpa/inet.h>
-#include <errno.h>
-#include <unistd.h>
-
-#include <gvm/base/networking.h>
-#include <gvm/base/logging.h>
+#include "nasl_smb.h"
 
 #include "../misc/plugutils.h"
-
-#include "nasl_smb.h"
 #include "openvas_smb_interface.h"
 
-#define IMPORT(var) char *var = get_str_var_by_name(lexic, #var)
+#include <arpa/inet.h>
+#include <errno.h>
+#include <gvm/base/logging.h>
+#include <gvm/base/networking.h>
+#include <netinet/in.h>
+#include <stdio.h>
+#include <string.h>
+#include <sys/socket.h>
+#include <unistd.h>
+
+#define IMPORT(var) char *var = get_str_var_by_name (lexic, #var)
 
 #undef G_LOG_DOMAIN
 /**
@@ -67,7 +59,7 @@
  *         Else a tree_cell with the version as string.
  */
 tree_cell *
-nasl_smb_versioninfo (lex_ctxt * lexic)
+nasl_smb_versioninfo (lex_ctxt *lexic)
 {
   char *version = smb_versioninfo ();
   tree_cell *retc;
@@ -76,8 +68,7 @@ nasl_smb_versioninfo (lex_ctxt * lexic)
   if (!version)
     return NULL;
 
-  retc = alloc_tree_cell ();
-  retc->type = CONST_DATA;
+  retc = alloc_typed_cell (CONST_DATA);
   retc->x.str_val = strdup (version);
   retc->size = strlen (version);
   return retc;
@@ -96,7 +87,7 @@ nasl_smb_versioninfo (lex_ctxt * lexic)
  * SMB service returning a handle for the service as integer.
  */
 tree_cell *
-nasl_smb_connect (lex_ctxt * lexic)
+nasl_smb_connect (lex_ctxt *lexic)
 {
   struct script_infos *script_infos = lexic->script_infos;
   struct in6_addr *host = plug_get_host_ip (script_infos);
@@ -117,16 +108,15 @@ nasl_smb_connect (lex_ctxt * lexic)
     }
 
   ip = addr6_as_str (host);
-  if ((strlen (password) == 0) || (strlen (username) == 0)
-      || (strlen (ip) == 0) || (strlen (share) == 0))
+  if ((strlen (password) == 0) || (strlen (username) == 0) || (strlen (ip) == 0)
+      || (strlen (share) == 0))
     {
       g_message ("nasl_smb_connect: Invalid input arguments");
       g_free (ip);
       return NULL;
     }
 
-  retc = alloc_tree_cell ();
-  retc->type = CONST_INT;
+  retc = alloc_typed_cell (CONST_INT);
   value = smb_connect (ip, share, username, password, &handle);
   g_free (ip);
 
@@ -152,15 +142,13 @@ nasl_smb_connect (lex_ctxt * lexic)
  * and closes the respective handle.
  */
 tree_cell *
-nasl_smb_close (lex_ctxt * lexic)
+nasl_smb_close (lex_ctxt *lexic)
 {
-  SMB_HANDLE handle =
-    (SMB_HANDLE) get_int_var_by_name (lexic, "smb_handle", 0);
+  SMB_HANDLE handle = (SMB_HANDLE) get_int_var_by_name (lexic, "smb_handle", 0);
   int ret;
   tree_cell *retc;
 
-  retc = alloc_tree_cell ();
-  retc->type = CONST_INT;
+  retc = alloc_typed_cell (CONST_INT);
 
   ret = smb_close (handle);
   if (ret == 0)
@@ -184,10 +172,9 @@ nasl_smb_close (lex_ctxt * lexic)
  * and perform file rights query.
  */
 tree_cell *
-nasl_smb_file_SDDL (lex_ctxt * lexic)
+nasl_smb_file_SDDL (lex_ctxt *lexic)
 {
-  SMB_HANDLE handle =
-    (SMB_HANDLE) get_int_var_by_name (lexic, "smb_handle", 0);
+  SMB_HANDLE handle = (SMB_HANDLE) get_int_var_by_name (lexic, "smb_handle", 0);
   char *filename = get_str_var_by_name (lexic, "filename");
 
   if (!filename)
@@ -210,8 +197,7 @@ nasl_smb_file_SDDL (lex_ctxt * lexic)
   if (buffer == NULL)
     return NULL;
 
-  retc = alloc_tree_cell ();
-  retc->type = CONST_DATA;
+  retc = alloc_typed_cell (CONST_DATA);
   retc->size = strlen (buffer);
   retc->x.str_val = strdup (buffer);
   return retc;
@@ -229,10 +215,9 @@ nasl_smb_file_SDDL (lex_ctxt * lexic)
  * and perform file rights query.
  */
 tree_cell *
-nasl_smb_file_owner_sid (lex_ctxt * lexic)
+nasl_smb_file_owner_sid (lex_ctxt *lexic)
 {
-  SMB_HANDLE handle =
-    (SMB_HANDLE) get_int_var_by_name (lexic, "smb_handle", 0);
+  SMB_HANDLE handle = (SMB_HANDLE) get_int_var_by_name (lexic, "smb_handle", 0);
   char *filename = get_str_var_by_name (lexic, "filename");
 
   if (!filename)
@@ -255,8 +240,7 @@ nasl_smb_file_owner_sid (lex_ctxt * lexic)
   if (buffer == NULL)
     return NULL;
 
-  retc = alloc_tree_cell ();
-  retc->type = CONST_DATA;
+  retc = alloc_typed_cell (CONST_DATA);
   retc->size = strlen (buffer);
   retc->x.str_val = strdup (buffer);
   return retc;
@@ -274,10 +258,9 @@ nasl_smb_file_owner_sid (lex_ctxt * lexic)
  * and perform file rights query.
  */
 tree_cell *
-nasl_smb_file_group_sid (lex_ctxt * lexic)
+nasl_smb_file_group_sid (lex_ctxt *lexic)
 {
-  SMB_HANDLE handle =
-    (SMB_HANDLE) get_int_var_by_name (lexic, "smb_handle", 0);
+  SMB_HANDLE handle = (SMB_HANDLE) get_int_var_by_name (lexic, "smb_handle", 0);
   char *filename = get_str_var_by_name (lexic, "filename");
 
   if (!filename)
@@ -300,13 +283,11 @@ nasl_smb_file_group_sid (lex_ctxt * lexic)
   if (buffer == NULL)
     return NULL;
 
-  retc = alloc_tree_cell ();
-  retc->type = CONST_DATA;
+  retc = alloc_typed_cell (CONST_DATA);
   retc->size = strlen (buffer);
   retc->x.str_val = strdup (buffer);
   return retc;
 }
-
 
 /**
  * @brief Obtain File Trustee SID with Access Mask
@@ -320,10 +301,9 @@ nasl_smb_file_group_sid (lex_ctxt * lexic)
  * and perform file rights query.
  */
 tree_cell *
-nasl_smb_file_trustee_rights (lex_ctxt * lexic)
+nasl_smb_file_trustee_rights (lex_ctxt *lexic)
 {
-  SMB_HANDLE handle =
-    (SMB_HANDLE) get_int_var_by_name (lexic, "smb_handle", 0);
+  SMB_HANDLE handle = (SMB_HANDLE) get_int_var_by_name (lexic, "smb_handle", 0);
   char *filename = get_str_var_by_name (lexic, "filename");
 
   if (!filename)
@@ -346,13 +326,11 @@ nasl_smb_file_trustee_rights (lex_ctxt * lexic)
   if (buffer == NULL)
     return NULL;
 
-  retc = alloc_tree_cell ();
-  retc->type = CONST_DATA;
+  retc = alloc_typed_cell (CONST_DATA);
   retc->size = strlen (buffer);
   retc->x.str_val = strdup (buffer);
   return retc;
 }
-
 
 /**
  * @brief Execute the command in windows
@@ -368,7 +346,7 @@ nasl_smb_file_trustee_rights (lex_ctxt * lexic)
  */
 
 tree_cell *
-nasl_win_cmd_exec (lex_ctxt * lexic)
+nasl_win_cmd_exec (lex_ctxt *lexic)
 {
   struct script_infos *script_infos = lexic->script_infos;
   struct in6_addr *host = plug_get_host_ip (script_infos);
@@ -382,18 +360,18 @@ nasl_win_cmd_exec (lex_ctxt * lexic)
   IMPORT (password);
   IMPORT (cmd);
 
-  if ((host == NULL) || (username == NULL) || (password == NULL) || (cmd == NULL))
+  if ((host == NULL) || (username == NULL) || (password == NULL)
+      || (cmd == NULL))
     {
       g_message ("win_cmd_exec: Invalid input arguments");
       return NULL;
     }
 
   ip = addr6_as_str (host);
-  if ((strlen (password) == 0) || (strlen (username) == 0)
-      || strlen (ip) == 0)
+  if ((strlen (password) == 0) || (strlen (username) == 0) || strlen (ip) == 0)
     {
       g_message ("win_cmd_exec: Invalid input arguments");
-      g_free(ip);
+      g_free (ip);
       return NULL;
     }
 
@@ -465,8 +443,7 @@ nasl_win_cmd_exec (lex_ctxt * lexic)
       string->str = tmp;
     }
 
-  retc = alloc_tree_cell ();
-  retc->type = CONST_DATA;
+  retc = alloc_typed_cell (CONST_DATA);
   retc->x.str_val = string->str;
   retc->size = string->len;
   return retc;

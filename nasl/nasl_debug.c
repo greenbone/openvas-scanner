@@ -16,20 +16,18 @@
  * Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA 02110-1301 USA.
  */
 
-#include <stdarg.h>
-#include <unistd.h>
-#include <string.h> /* for str() */
+#include "../misc/plugutils.h"
+#include "exec.h"
+#include "nasl_func.h"
+#include "nasl_global_ctxt.h"
+#include "nasl_lex_ctxt.h"
+#include "nasl_tree.h"
+#include "nasl_var.h"
 
 #include <gvm/base/logging.h>
-
-#include "../misc/plugutils.h"
-
-#include "nasl_tree.h"
-#include "nasl_global_ctxt.h"
-#include "nasl_func.h"
-#include "nasl_var.h"
-#include "nasl_lex_ctxt.h"
-#include "exec.h"
+#include <stdarg.h>
+#include <string.h> /* for str() */
+#include <unistd.h>
 
 #undef G_LOG_DOMAIN
 /**
@@ -112,14 +110,14 @@ nasl_set_function_filename (const char *function)
   assert (function);
 
   if (!functions_filenames)
-    functions_filenames = g_hash_table_new_full
-                           (g_str_hash, g_str_equal, g_free, g_free);
+    functions_filenames =
+      g_hash_table_new_full (g_str_hash, g_str_equal, g_free, g_free);
   g_hash_table_insert (functions_filenames, g_strdup (function),
                        g_strdup (debug_filename));
 }
 
 void
-nasl_perror (lex_ctxt * lexic, char *msg, ...)
+nasl_perror (lex_ctxt *lexic, char *msg, ...)
 {
   va_list param;
   gchar debug_message[4096];
@@ -154,11 +152,11 @@ nasl_perror (lex_ctxt * lexic, char *msg, ...)
     final_message = g_strdup (debug_message);
 
   if (g_strcmp0 (debug_filename, script_name) == 0)
-    g_message ("[%d](%s:%d) %s", getpid (), script_name,
-               line_nb, final_message);
+    g_message ("[%d](%s:%d) %s", getpid (), script_name, line_nb,
+               final_message);
   else
-    g_message ("[%d](%s)(%s:%d) %s", getpid (), script_name,
-               debug_filename, line_nb, final_message);
+    g_message ("[%d](%s)(%s:%d) %s", getpid (), script_name, debug_filename,
+               line_nb, final_message);
   g_free (final_message);
   va_end (param);
 }
@@ -183,7 +181,7 @@ nasl_trace_enabled (void)
  * Like @ref nasl_perror, but to the nasl_trace_fp.
  */
 void
-nasl_trace (lex_ctxt * lexic, char *msg, ...)
+nasl_trace (lex_ctxt *lexic, char *msg, ...)
 {
   va_list param;
   char debug_message[4096];

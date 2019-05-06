@@ -27,9 +27,15 @@
 #ifndef NASL_CERT_H
 #define NASL_CERT_H
 
-tree_cell *nasl_cert_open (lex_ctxt *lexic);
-tree_cell *nasl_cert_close (lex_ctxt *lexic);
-tree_cell *nasl_cert_query (lex_ctxt *lexic);
+#include "nasl_lex_ctxt.h"
 
+tree_cell *
+nasl_cert_open (lex_ctxt *lexic);
+
+tree_cell *
+nasl_cert_close (lex_ctxt *lexic);
+
+tree_cell *
+nasl_cert_query (lex_ctxt *lexic);
 
 #endif /*NASL_CERT_H*/

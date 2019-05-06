@@ -20,32 +20,29 @@
 
 /**
  * @file comm.c
- * @brief Communication manager; it manages the NTP Protocol version 1.0 and 1.1.
+ * @brief Communication manager; it manages the NTP Protocol version 1.0
+ * and 1.1.
  */
 
-#include <string.h> /* for strchr() */
-#include <stdlib.h> /* for atoi() */
-
-#include <stdio.h>  /* for FILE */
-#include <errno.h>  /* for errno */
-
-#include <glib.h>
-
-#include <gvm/base/prefs.h>         /* for preferences_get() */
-#include <gvm/util/nvticache.h>     /* for nvticache_t */
-
-#include "../misc/nvt_categories.h"/* for ACT_INIT */
-#include "../misc/plugutils.h"
-#include "../misc/network.h"       /* for recv_line */
-
 #include "comm.h"
+
+#include "../misc/network.h"        /* for recv_line */
+#include "../misc/nvt_categories.h" /* for ACT_INIT */
+#include "../misc/plugutils.h"
+#include "../nasl/nasl.h"
 #include "ntp.h"
+#include "pluginload.h" /* for current_loading_plugins */
 #include "pluginscheduler.h"
-#include "pluginload.h"    /* for current_loading_plugins */
 #include "sighand.h"
 #include "utils.h"
 
-#include "../nasl/nasl.h"
+#include <errno.h> /* for errno */
+#include <glib.h>
+#include <gvm/base/prefs.h>     /* for preferences_get() */
+#include <gvm/util/nvticache.h> /* for nvticache_t */
+#include <stdio.h>              /* for FILE */
+#include <stdlib.h>             /* for atoi() */
+#include <string.h>             /* for strchr() */
 
 #undef G_LOG_DOMAIN
 /**
@@ -213,11 +210,11 @@ send_plug_info (int soc, const char *oid)
         }
     }
 
-  send_printf
-   (soc, "%s <|> %s <|> %d <|>  %s <|> %s <|> %s <|> %s <|> %s\n",
-    oid, name, category, family,
-    (cve_id && *cve_id) ? cve_id : "NOCVE", (bid && *bid) ? bid : "NOBID",
-    (xref && *xref) ? xref: "NOXREF", (tag && *tag) ? tag : "NOTAG");
+  send_printf (soc, "%s <|> %s <|> %d <|>  %s <|> %s <|> %s <|> %s <|> %s\n",
+               oid, name, category, family,
+               (cve_id && *cve_id) ? cve_id : "NOCVE",
+               (bid && *bid) ? bid : "NOBID", (xref && *xref) ? xref : "NOXREF",
+               (tag && *tag) ? tag : "NOTAG");
 
 send_cleanup:
   nvti_free (nvti);
@@ -259,20 +256,18 @@ send_plugins_preferences (int soc, GSList *oids)
       if (nprefs || (timeout > 0))
         {
           GSList *tmp = nprefs;
-          char *name = nvticache_get_name (oid);
 
           if (timeout > 0)
-            send_printf (soc, "%s[%s]:%s <|> %d\n", name, "entry", "Timeout",
-                         timeout);
+            send_printf (soc, "%s:0:entry:Timeout <|> %d\n", oid, timeout);
           while (tmp)
             {
               nvtpref_t *pref = tmp->data;
-              send_printf (soc, "%s[%s]:%s <|> %s\n", name, nvtpref_type (pref),
+              send_printf (soc, "%s:%d:%s:%s <|> %s\n", oid, nvtpref_id (pref),
+                           nvtpref_type (pref),
                            g_strchomp (nvtpref_name (pref)),
                            nvtpref_default (pref));
               tmp = tmp->next;
             }
-          g_free (name);
         }
       g_slist_free_full (nprefs, (void (*) (void *)) nvtpref_free);
       oids = oids->next;
@@ -305,7 +300,6 @@ comm_send_preferences (int soc, GSList *oids)
   send_plugins_preferences (soc, oids);
   send_printf (soc, "<|> SERVER\n");
 }
-
 
 /**
  * @brief This function waits for the attack order of the client.
@@ -344,7 +338,6 @@ comm_wait_order (struct scan_globals *globals)
 
 /*-------------------------------------------------------------------------------*/
 
-
 /**
  * @brief Determine whether a buffer contains a valid feed version.
  *
@@ -375,8 +368,8 @@ comm_send_nvt_info (int soc)
 
   feed_version = nvticache_feed_version ();
   send_printf (soc, "SERVER <|> NVT_INFO <|> %s <|> SERVER\n",
-               is_valid_feed_version (feed_version)
-                ? feed_version : "NOVERSION");
+               is_valid_feed_version (feed_version) ? feed_version
+                                                    : "NOVERSION");
   g_free (feed_version);
 
   if (!is_client_present (soc))

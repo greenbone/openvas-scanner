@@ -24,27 +24,45 @@
 
 #ifndef NASL_PACKET_FORGERY_H
 
-tree_cell *forge_ipv6_packet (lex_ctxt *);
-tree_cell *set_ipv6_elements (lex_ctxt *);
-tree_cell *get_ipv6_element (lex_ctxt *);
-tree_cell *dump_ipv6_packet (lex_ctxt *);
-tree_cell *insert_ipv6_options (lex_ctxt *);
+tree_cell *
+forge_ipv6_packet (lex_ctxt *);
+tree_cell *
+set_ipv6_elements (lex_ctxt *);
+tree_cell *
+get_ipv6_element (lex_ctxt *);
+tree_cell *
+dump_ipv6_packet (lex_ctxt *);
+tree_cell *
+insert_ipv6_options (lex_ctxt *);
 
-tree_cell *forge_tcp_v6_packet (lex_ctxt *);
-tree_cell *get_tcp_v6_element (lex_ctxt *);
-tree_cell *set_tcp_v6_elements (lex_ctxt *);
-tree_cell *dump_tcp_v6_packet (lex_ctxt *);
+tree_cell *
+forge_tcp_v6_packet (lex_ctxt *);
+tree_cell *
+get_tcp_v6_element (lex_ctxt *);
+tree_cell *
+set_tcp_v6_elements (lex_ctxt *);
+tree_cell *
+dump_tcp_v6_packet (lex_ctxt *);
 
-tree_cell *forge_udp_v6_packet (lex_ctxt *);
-tree_cell *set_udp_v6_elements (lex_ctxt *);
-tree_cell *dump_udp_v6_packet (lex_ctxt *);
-tree_cell *get_udp_v6_element (lex_ctxt *);
+tree_cell *
+forge_udp_v6_packet (lex_ctxt *);
+tree_cell *
+set_udp_v6_elements (lex_ctxt *);
+tree_cell *
+dump_udp_v6_packet (lex_ctxt *);
+tree_cell *
+get_udp_v6_element (lex_ctxt *);
 
-tree_cell *forge_icmp_v6_packet (lex_ctxt *);
-tree_cell *get_icmp_v6_element (lex_ctxt *);
+tree_cell *
+forge_icmp_v6_packet (lex_ctxt *);
+tree_cell *
+get_icmp_v6_element (lex_ctxt *);
 
-tree_cell *forge_igmp_v6_packet (lex_ctxt *);
+tree_cell *
+forge_igmp_v6_packet (lex_ctxt *);
 
-tree_cell *nasl_tcp_v6_ping (lex_ctxt *);
-tree_cell *nasl_send_v6packet (lex_ctxt *);
+tree_cell *
+nasl_tcp_v6_ping (lex_ctxt *);
+tree_cell *
+nasl_send_v6packet (lex_ctxt *);
 #endif

@@ -22,13 +22,12 @@
  * @brief Implements OpenVAS Transfer Protocol.
  */
 
-#include <string.h>
+#include "otp.h"
 
 #include "../misc/network.h"
 
-#include "otp.h"
-
 #include <glib.h>
+#include <string.h>
 
 /**
  * @brief Find the enum identifier for the client request which is given

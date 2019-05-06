@@ -20,8 +20,8 @@
 #define _NASL_CTX_H
 
 /* for FILE */
-#include <stdio.h>
 #include <gvm/util/kb.h>
+#include <stdio.h>
 
 typedef struct
 {
@@ -33,7 +33,10 @@ typedef struct
   kb_t kb;
 } naslctxt;
 
-int init_nasl_ctx (naslctxt *, const char *);
-void nasl_clean_ctx (naslctxt *);
+int
+init_nasl_ctx (naslctxt *, const char *);
+
+void
+nasl_clean_ctx (naslctxt *);
 
 #endif

@@ -16,33 +16,31 @@
  * Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA 02110-1301 USA.
  */
 
-#include <arpa/inet.h>          /* for inet_aton */
-#include <ctype.h>              /* for isprint */
-#include <pcap.h>               /* for PCAP_ERRBUF_SIZE */
-#include <stdlib.h>             /* for rand */
-#include <string.h>             /* for bcopy */
-#include <sys/time.h>           /* for gettimeofday */
-#include <unistd.h>             /* for close */
-#include <errno.h>              /* for errno */
-
-#include "../misc/bpf_share.h"          /* for bpf_open_live */
-#include "../misc/pcap_openvas.h"       /* for routethrough */
-#include "../misc/plugutils.h"          /* plug_get_host_ip */
-
-#include "nasl_raw.h"
-
-#include "nasl_tree.h"
-#include "nasl_global_ctxt.h"
-#include "nasl_func.h"
-#include "nasl_var.h"
-#include "nasl_lex_ctxt.h"
-#include "exec.h"
-#include "nasl_socket.h"
-
-#include "nasl_debug.h"
-#include "capture_packet.h"
 #include "nasl_packet_forgery.h"
+
+#include "../misc/bpf_share.h"    /* for bpf_open_live */
+#include "../misc/pcap_openvas.h" /* for routethrough */
+#include "../misc/plugutils.h"    /* plug_get_host_ip */
+#include "capture_packet.h"
+#include "exec.h"
+#include "nasl_debug.h"
+#include "nasl_func.h"
+#include "nasl_global_ctxt.h"
+#include "nasl_lex_ctxt.h"
 #include "nasl_packet_forgery_v6.h"
+#include "nasl_raw.h"
+#include "nasl_socket.h"
+#include "nasl_tree.h"
+#include "nasl_var.h"
+
+#include <arpa/inet.h> /* for inet_aton */
+#include <ctype.h>     /* for isprint */
+#include <errno.h>     /* for errno */
+#include <pcap.h>      /* for PCAP_ERRBUF_SIZE */
+#include <stdlib.h>    /* for rand */
+#include <string.h>    /* for bcopy */
+#include <sys/time.h>  /* for gettimeofday */
+#include <unistd.h>    /* for close */
 
 /** @todo: It still needs to be taken care
  * BSD_BYTE_ORDERING gets here if defined (e.g. by config.h) */
@@ -50,8 +48,8 @@
 #define FIX(n) (n)
 #define UNFIX(n) (n)
 #else
-#define FIX(n) htons(n)
-#define UNFIX(n) ntohs(n)
+#define FIX(n) htons (n)
+#define UNFIX(n) ntohs (n)
 #endif
 
 /*--------------[ cksum ]-----------------------------------------*/
@@ -60,10 +58,8 @@
  * Checksum routine for Internet Protocol family headers (C Version)
  * From ping examples in W.Richard Stevens "UNIX NETWORK PROGRAMMING" book.
  */
-static int
-np_in_cksum (p, n)
-     u_short *p;
-     int n;
+static int np_in_cksum (p, n) u_short *p;
+int n;
 {
   register u_short answer;
   register long sum = 0;
@@ -82,20 +78,16 @@ np_in_cksum (p, n)
       sum += odd_byte;
     }
 
-  sum = (sum >> 16) + (sum & 0xffff);   /* add hi 16 to low 16 */
-  sum += (sum >> 16);           /* add carry */
-  answer = (int) ~sum;          /* ones-complement, truncate */
+  sum = (sum >> 16) + (sum & 0xffff); /* add hi 16 to low 16 */
+  sum += (sum >> 16);                 /* add carry */
+  answer = (int) ~sum;                /* ones-complement, truncate */
   return (answer);
 }
 
-
-
 /*--------------[ IP ]--------------------------------------------*/
 
-
-
 tree_cell *
-forge_ip_packet (lex_ctxt * lexic)
+forge_ip_packet (lex_ctxt *lexic)
 {
   tree_cell *retc;
   struct ip *pkt;
@@ -113,8 +105,7 @@ forge_ip_packet (lex_ctxt * lexic)
   data = get_str_var_by_name (lexic, "data");
   data_len = get_var_size_by_name (lexic, "data");
 
-  retc = alloc_tree_cell ();
-  retc->type = CONST_DATA;
+  retc = alloc_typed_cell (CONST_DATA);
   retc->size = sizeof (struct ip) + data_len;
 
   pkt = (struct ip *) g_malloc0 (sizeof (struct ip) + data_len);
@@ -152,7 +143,6 @@ forge_ip_packet (lex_ctxt * lexic)
       bcopy (data, retc->x.str_val + sizeof (struct ip), data_len);
     }
 
-
   if (!pkt->ip_sum)
     {
       if (get_int_var_by_name (lexic, "ip_sum", -1) < 0)
@@ -162,9 +152,8 @@ forge_ip_packet (lex_ctxt * lexic)
   return retc;
 }
 
-
 tree_cell *
-get_ip_element (lex_ctxt * lexic)
+get_ip_element (lex_ctxt *lexic)
 {
   tree_cell *retc;
   struct ip *ip = (struct ip *) get_str_var_by_name (lexic, "ip");
@@ -233,13 +222,10 @@ get_ip_element (lex_ctxt * lexic)
 
   if (flag != 0)
     {
-      retc = alloc_tree_cell ();
-      retc->type = CONST_INT;
+      retc = alloc_typed_cell (CONST_INT);
       retc->x.i_val = ret_int;
       return retc;
     }
-
-
 
   if (!strcmp (element, "ip_src"))
     {
@@ -252,32 +238,27 @@ get_ip_element (lex_ctxt * lexic)
       flag++;
     }
 
-
   if (flag == 0)
     {
       printf ("%s : unknown element\n", element);
       return NULL;
     }
 
-  retc = alloc_tree_cell ();
-  retc->type = CONST_DATA;
+  retc = alloc_typed_cell (CONST_DATA);
   retc->size = strlen (ret_ascii);
   retc->x.str_val = g_strdup (ret_ascii);
 
   return retc;
 }
 
-
 tree_cell *
-set_ip_elements (lex_ctxt * lexic)
+set_ip_elements (lex_ctxt *lexic)
 {
   struct ip *o_pkt = (struct ip *) get_str_var_by_name (lexic, "ip");
   int size = get_var_size_by_name (lexic, "ip");
-  tree_cell *retc = alloc_tree_cell ();
+  tree_cell *retc;
   struct ip *pkt;
   char *s;
-
-
 
   if (o_pkt == NULL)
     {
@@ -287,7 +268,6 @@ set_ip_elements (lex_ctxt * lexic)
 
   pkt = (struct ip *) g_malloc0 (size);
   bcopy (o_pkt, pkt, size);
-
 
   pkt->ip_hl = get_int_var_by_name (lexic, "ip_hl", pkt->ip_hl);
   pkt->ip_v = get_int_var_by_name (lexic, "ip_v", pkt->ip_v);
@@ -308,16 +288,15 @@ set_ip_elements (lex_ctxt * lexic)
   if (pkt->ip_sum == 0)
     pkt->ip_sum = np_in_cksum ((u_short *) pkt, sizeof (struct ip));
 
-  retc->type = CONST_DATA;
+  retc = alloc_typed_cell (CONST_DATA);
   retc->size = size;
   retc->x.str_val = (char *) pkt;
 
   return retc;
 }
 
-
 tree_cell *
-insert_ip_options (lex_ctxt * lexic)
+insert_ip_options (lex_ctxt *lexic)
 {
   struct ip *ip = (struct ip *) get_str_var_by_name (lexic, "ip");
   int code = get_int_var_by_name (lexic, "code", 0);
@@ -334,13 +313,10 @@ insert_ip_options (lex_ctxt * lexic)
   int i;
   int hl;
 
-
-
-
   if (ip == NULL)
     {
-      nasl_perror (lexic,
-                   "Usage : insert_ip_options(ip:<ip>, code:<code>, length:<len>, value:<value>\n");
+      nasl_perror (lexic, "Usage : insert_ip_options(ip:<ip>, code:<code>, "
+                          "length:<len>, value:<value>\n");
       return NULL;
     }
 
@@ -355,13 +331,10 @@ insert_ip_options (lex_ctxt * lexic)
   uc_code = (u_char) code;
   uc_len = (u_char) len;
 
-
   p = (char *) new_packet;
   bcopy (&uc_code, p + hl, sizeof (uc_code));
   bcopy (&uc_len, p + hl + sizeof (uc_code), sizeof (uc_len));
   bcopy (value, p + hl + sizeof (uc_code) + sizeof (uc_len), value_size);
-
-
 
   zero = 0;
   for (i = 0; i < pad_len; i++)
@@ -370,37 +343,31 @@ insert_ip_options (lex_ctxt * lexic)
              p + hl + sizeof (uc_code) + sizeof (uc_len) + value_size + i, 1);
     }
 
-
   p = (char *) ip;
   bcopy (p + hl,
-         new_packet + (sizeof (uc_code) + sizeof (uc_len) + value_size +
-                       pad_len) + hl, size - hl);
-
+         new_packet
+           + (sizeof (uc_code) + sizeof (uc_len) + value_size + pad_len) + hl,
+         size - hl);
 
   new_packet->ip_hl =
     (hl + (sizeof (uc_code) + sizeof (uc_len) + value_size + pad_len)) / 4;
   new_packet->ip_len =
     FIX (size + sizeof (uc_code) + sizeof (uc_len) + value_size + pad_len);
   new_packet->ip_sum = 0;
-  new_packet->ip_sum =
-    np_in_cksum ((u_short *) new_packet,
-                 new_packet->ip_hl * 4 >
-                 UNFIX (new_packet->ip_len) ? UNFIX (new_packet->
-                                                     ip_len) : new_packet->
-                 ip_hl * 4);
+  new_packet->ip_sum = np_in_cksum (
+    (u_short *) new_packet, new_packet->ip_hl * 4 > UNFIX (new_packet->ip_len)
+                              ? UNFIX (new_packet->ip_len)
+                              : new_packet->ip_hl * 4);
 
-  retc = alloc_tree_cell ();
-  retc->type = CONST_DATA;
+  retc = alloc_typed_cell (CONST_DATA);
   retc->size = size + value_size + sizeof (uc_code) + sizeof (uc_len) + pad_len;
   retc->x.str_val = (char *) new_packet;
 
   return retc;
 }
 
-
-
 tree_cell *
-dump_ip_packet (lex_ctxt * lexic)
+dump_ip_packet (lex_ctxt *lexic)
 {
   int i;
 
@@ -457,7 +424,7 @@ struct pseudohdr
 };
 
 tree_cell *
-forge_tcp_packet (lex_ctxt * lexic)
+forge_tcp_packet (lex_ctxt *lexic)
 {
   tree_cell *retc;
   char *data;
@@ -465,7 +432,6 @@ forge_tcp_packet (lex_ctxt * lexic)
   struct ip *ip, *tcp_packet;
   struct tcphdr *tcp;
   int ipsz;
-
 
   ip = (struct ip *) get_str_var_by_name (lexic, "ip");
   if (ip == NULL)
@@ -479,13 +445,10 @@ forge_tcp_packet (lex_ctxt * lexic)
   if (ipsz > ip->ip_hl * 4)
     ipsz = ip->ip_hl * 4;
 
-
-
   data = get_str_var_by_name (lexic, "data");
   len = data == NULL ? 0 : get_var_size_by_name (lexic, "data");
 
-  retc = alloc_tree_cell ();
-  retc->type = CONST_DATA;
+  retc = alloc_typed_cell (CONST_DATA);
   tcp_packet = (struct ip *) g_malloc0 (ipsz + sizeof (struct tcphdr) + len);
   retc->x.str_val = (char *) tcp_packet;
 
@@ -518,7 +481,6 @@ forge_tcp_packet (lex_ctxt * lexic)
   if (data != NULL)
     bcopy (data, (char *) tcp + sizeof (struct tcphdr), len);
 
-
   if (!tcp->th_sum)
     {
       struct pseudohdr pseudoheader;
@@ -540,20 +502,17 @@ forge_tcp_packet (lex_ctxt * lexic)
       bcopy ((char *) &pseudoheader, tcpsumdata, sizeof (struct pseudohdr));
       if (data != NULL)
         bcopy ((char *) data, tcpsumdata + sizeof (struct pseudohdr), len);
-      tcp->th_sum =
-        np_in_cksum ((unsigned short *) tcpsumdata,
-                     12 + sizeof (struct tcphdr) + len);
+      tcp->th_sum = np_in_cksum ((unsigned short *) tcpsumdata,
+                                 12 + sizeof (struct tcphdr) + len);
       g_free (tcpsumdata);
     }
-
-
 
   retc->size = ipsz + sizeof (struct tcphdr) + len;
   return retc;
 }
 
 tree_cell *
-get_tcp_element (lex_ctxt * lexic)
+get_tcp_element (lex_ctxt *lexic)
 {
   u_char *packet = (u_char *) get_str_var_by_name (lexic, "tcp");
   struct ip *ip;
@@ -563,9 +522,7 @@ get_tcp_element (lex_ctxt * lexic)
   int ret;
   tree_cell *retc;
 
-
   ipsz = get_var_size_by_name (lexic, "tcp");
-
 
   if (packet == NULL)
     {
@@ -577,10 +534,10 @@ get_tcp_element (lex_ctxt * lexic)
   ip = (struct ip *) packet;
 
   if (ip->ip_hl * 4 > ipsz)
-    return NULL;                /* Invalid packet */
+    return NULL; /* Invalid packet */
 
   if (UNFIX (ip->ip_len) > ipsz)
-    return NULL;                /* Invalid packet */
+    return NULL; /* Invalid packet */
 
   tcp = (struct tcphdr *) (packet + ip->ip_hl * 4);
 
@@ -591,7 +548,6 @@ get_tcp_element (lex_ctxt * lexic)
                    "get_tcp_element : Error ! No valid 'element' argument !\n");
       return NULL;
     }
-
 
   if (!strcmp (element, "th_sport"))
     ret = ntohs (tcp->th_sport);
@@ -615,8 +571,7 @@ get_tcp_element (lex_ctxt * lexic)
     ret = tcp->th_urp;
   else if (!strcmp (element, "data"))
     {
-      retc = alloc_tree_cell ();
-      retc->type = CONST_DATA;
+      retc = alloc_typed_cell (CONST_DATA);
       retc->size = UNFIX (ip->ip_len) - ntohl (tcp->th_off) * 4;
       retc->x.str_val = g_malloc0 (retc->size);
       bcopy (tcp + ntohl (tcp->th_off) * 4, retc->x.str_val, retc->size);
@@ -628,14 +583,13 @@ get_tcp_element (lex_ctxt * lexic)
       return NULL;
     }
 
-  retc = alloc_tree_cell ();
-  retc->type = CONST_INT;
+  retc = alloc_typed_cell (CONST_INT);
   retc->x.i_val = ret;
   return retc;
 }
 
 tree_cell *
-set_tcp_elements (lex_ctxt * lexic)
+set_tcp_elements (lex_ctxt *lexic)
 {
   char *pkt = get_str_var_by_name (lexic, "tcp");
   struct ip *ip = (struct ip *) pkt;
@@ -654,14 +608,14 @@ set_tcp_elements (lex_ctxt * lexic)
     }
 
   if (ip->ip_hl * 4 > pktsz)
-    tcp = (struct tcphdr *) (pkt + 20); /* ip->ip_hl is bogus, we work around that */
+    tcp =
+      (struct tcphdr *) (pkt
+                         + 20); /* ip->ip_hl is bogus, we work around that */
   else
     tcp = (struct tcphdr *) (pkt + ip->ip_hl * 4);
 
-
   if (pktsz < UNFIX (ip->ip_len))
     return NULL;
-
 
   if (data_len == 0)
     {
@@ -676,11 +630,9 @@ set_tcp_elements (lex_ctxt * lexic)
   tcp = (struct tcphdr *) (npkt + ip->ip_hl * 4);
 
   tcp->th_sport =
-    htons (get_int_var_by_name
-           (lexic, "th_sport", ntohs (tcp->th_sport)));
+    htons (get_int_var_by_name (lexic, "th_sport", ntohs (tcp->th_sport)));
   tcp->th_dport =
-    htons (get_int_var_by_name
-           (lexic, "th_dport", ntohs (tcp->th_dport)));
+    htons (get_int_var_by_name (lexic, "th_dport", ntohs (tcp->th_dport)));
   tcp->th_seq =
     htonl (get_int_var_by_name (lexic, "th_seq", ntohl (tcp->th_seq)));
   tcp->th_ack =
@@ -704,8 +656,7 @@ set_tcp_elements (lex_ctxt * lexic)
   if (tcp->th_sum == 0)
     {
       struct pseudohdr pseudoheader;
-      char *tcpsumdata =
-        g_malloc0 (sizeof (struct pseudohdr) + data_len + 1);
+      char *tcpsumdata = g_malloc0 (sizeof (struct pseudohdr) + data_len + 1);
       struct in_addr source, dest;
 
       source.s_addr = ip->ip_src.s_addr;
@@ -722,23 +673,19 @@ set_tcp_elements (lex_ctxt * lexic)
       /* fill tcpsumdata with data to checksum */
       bcopy ((char *) &pseudoheader, tcpsumdata, sizeof (struct pseudohdr));
       bcopy ((char *) data, tcpsumdata + sizeof (struct pseudohdr), data_len);
-      tcp->th_sum =
-        np_in_cksum ((unsigned short *) tcpsumdata,
-                     sizeof (pseudoheader) + data_len);
+      tcp->th_sum = np_in_cksum ((unsigned short *) tcpsumdata,
+                                 sizeof (pseudoheader) + data_len);
       g_free (tcpsumdata);
     }
 
-  retc = alloc_tree_cell ();
-  retc->type = CONST_DATA;
+  retc = alloc_typed_cell (CONST_DATA);
   retc->size = (ip->ip_hl * 4) + (tcp->th_off * 4) + data_len;
   retc->x.str_val = npkt;
   return retc;
 }
 
-
-
 tree_cell *
-dump_tcp_packet (lex_ctxt * lexic)
+dump_tcp_packet (lex_ctxt *lexic)
 {
   int i = 0;
   u_char *pkt;
@@ -810,15 +757,14 @@ dump_tcp_packet (lex_ctxt * lexic)
       printf ("\tData     : ");
       c = (char *) ((char *) tcp + sizeof (struct tcphdr));
       if (UNFIX (ip->ip_len) > (sizeof (struct ip) + sizeof (struct tcphdr)))
-        for (j = 0;
-             j <
-             UNFIX (ip->ip_len) - sizeof (struct ip) - sizeof (struct tcphdr)
-             && j < limit; j++)
+        for (j = 0; j < UNFIX (ip->ip_len) - sizeof (struct ip)
+                          - sizeof (struct tcphdr)
+                    && j < limit;
+             j++)
           printf ("%c", isprint (c[j]) ? c[j] : '.');
       printf ("\n");
 
       printf ("\n");
-
     }
   return NULL;
 }
@@ -834,9 +780,8 @@ struct pseudo_udp_hdr
   struct udphdr udpheader;
 };
 
-
 tree_cell *
-forge_udp_packet (lex_ctxt * lexic)
+forge_udp_packet (lex_ctxt *lexic)
 {
   tree_cell *retc;
   struct ip *ip = (struct ip *) get_str_var_by_name (lexic, "ip");
@@ -849,19 +794,16 @@ forge_udp_packet (lex_ctxt * lexic)
       struct ip *udp_packet;
       struct udphdr *udp;
 
-      pkt = g_malloc0 (sizeof (struct udphdr) + ip->ip_hl * 4 +
-                       sizeof (struct udphdr) + data_len);
+      pkt = g_malloc0 (sizeof (struct udphdr) + ip->ip_hl * 4
+                       + sizeof (struct udphdr) + data_len);
 
       udp_packet = (struct ip *) pkt;
       udp = (struct udphdr *) (pkt + ip->ip_hl * 4);
 
-
       udp->uh_sport = htons (get_int_var_by_name (lexic, "uh_sport", 0));
       udp->uh_dport = htons (get_int_var_by_name (lexic, "uh_dport", 0));
-      udp->uh_ulen =
-        htons (get_int_var_by_name
-               (lexic, "uh_ulen", data_len + sizeof (struct udphdr)));
-
+      udp->uh_ulen = htons (get_int_var_by_name (
+        lexic, "uh_ulen", data_len + sizeof (struct udphdr)));
 
       /* printf("len : %d %s\n", len, data); */
       if (data_len != 0 && data != NULL)
@@ -873,8 +815,8 @@ forge_udp_packet (lex_ctxt * lexic)
         {
           struct pseudo_udp_hdr pseudohdr;
           struct in_addr source, dest;
-          char *udpsumdata = g_malloc0 (sizeof (struct pseudo_udp_hdr) +
-                                        data_len + 1);
+          char *udpsumdata =
+            g_malloc0 (sizeof (struct pseudo_udp_hdr) + data_len + 1);
 
           source.s_addr = ip->ip_src.s_addr;
           dest.s_addr = ip->ip_dst.s_addr;
@@ -892,12 +834,10 @@ forge_udp_packet (lex_ctxt * lexic)
             {
               bcopy ((char *) data, udpsumdata + sizeof (pseudohdr), data_len);
             }
-          udp->uh_sum =
-            np_in_cksum ((unsigned short *) udpsumdata,
-                         12 + sizeof (struct udphdr) + data_len);
+          udp->uh_sum = np_in_cksum ((unsigned short *) udpsumdata,
+                                     12 + sizeof (struct udphdr) + data_len);
           g_free (udpsumdata);
         }
-
 
       if (UNFIX (udp_packet->ip_len) <= udp_packet->ip_hl * 4)
         {
@@ -912,8 +852,7 @@ forge_udp_packet (lex_ctxt * lexic)
             }
         }
 
-      retc = alloc_tree_cell ();
-      retc->type = CONST_DATA;
+      retc = alloc_typed_cell (CONST_DATA);
       retc->x.str_val = (char *) pkt;
       retc->size = 8 + ip->ip_hl * 4 + data_len;
       return retc;
@@ -924,9 +863,8 @@ forge_udp_packet (lex_ctxt * lexic)
   return NULL;
 }
 
-
 tree_cell *
-get_udp_element (lex_ctxt * lexic)
+get_udp_element (lex_ctxt *lexic)
 {
   tree_cell *retc;
   char *udp;
@@ -936,10 +874,8 @@ get_udp_element (lex_ctxt * lexic)
   struct udphdr *udphdr;
   int ret;
 
-
   udp = get_str_var_by_name (lexic, "udp");
   ipsz = get_var_size_by_name (lexic, "udp");
-
 
   element = get_str_var_by_name (lexic, "element");
   if (udp == NULL || element == NULL)
@@ -953,7 +889,6 @@ get_udp_element (lex_ctxt * lexic)
   if (ip->ip_hl * 4 + sizeof (struct udphdr) > ipsz)
     return NULL;
 
-
   udphdr = (struct udphdr *) (udp + ip->ip_hl * 4);
   if (!strcmp (element, "uh_sport"))
     ret = ntohs (udphdr->uh_sport);
@@ -966,13 +901,11 @@ get_udp_element (lex_ctxt * lexic)
   else if (!strcmp (element, "data"))
     {
       int sz;
-      retc = alloc_tree_cell ();
-      retc->type = CONST_DATA;
+      retc = alloc_typed_cell (CONST_DATA);
       sz = ntohs (udphdr->uh_ulen) - sizeof (struct udphdr);
 
-
-      if (ntohs (udphdr->uh_ulen) - ip->ip_hl * 4 - sizeof (struct udphdr) >
-          ipsz)
+      if (ntohs (udphdr->uh_ulen) - ip->ip_hl * 4 - sizeof (struct udphdr)
+          > ipsz)
         sz = ipsz - ip->ip_hl * 4 - sizeof (struct udphdr);
 
       retc->x.str_val = g_malloc0 (sz);
@@ -986,16 +919,13 @@ get_udp_element (lex_ctxt * lexic)
       return NULL;
     }
 
-  retc = alloc_tree_cell ();
-  retc->type = CONST_INT;
+  retc = alloc_typed_cell (CONST_INT);
   retc->x.i_val = ret;
   return retc;
 }
 
-
-
 tree_cell *
-set_udp_elements (lex_ctxt * lexic)
+set_udp_elements (lex_ctxt *lexic)
 {
   struct ip *ip = (struct ip *) get_str_var_by_name (lexic, "udp");
   unsigned int sz = get_var_size_by_name (lexic, "udp");
@@ -1008,7 +938,6 @@ set_udp_elements (lex_ctxt * lexic)
       struct udphdr *udp;
       tree_cell *retc;
       int old_len;
-
 
       if (ip->ip_hl * 4 + sizeof (struct udphdr) > sz)
         return NULL;
@@ -1025,8 +954,6 @@ set_udp_elements (lex_ctxt * lexic)
           bcopy (ip, pkt, sz);
         }
 
-
-
       ip = (struct ip *) pkt;
       if (data != NULL)
         {
@@ -1036,17 +963,13 @@ set_udp_elements (lex_ctxt * lexic)
         }
       udp = (struct udphdr *) (pkt + ip->ip_hl * 4);
 
-
       udp->uh_sport =
-        htons (get_int_var_by_name
-               (lexic, "uh_sport", ntohs (udp->uh_sport)));
+        htons (get_int_var_by_name (lexic, "uh_sport", ntohs (udp->uh_sport)));
       udp->uh_dport =
-        htons (get_int_var_by_name
-               (lexic, "uh_dport", ntohs (udp->uh_dport)));
+        htons (get_int_var_by_name (lexic, "uh_dport", ntohs (udp->uh_dport)));
       old_len = ntohs (udp->uh_ulen);
       udp->uh_ulen =
-        htons (get_int_var_by_name
-               (lexic, "uh_ulen", ntohs (udp->uh_ulen)));
+        htons (get_int_var_by_name (lexic, "uh_ulen", ntohs (udp->uh_ulen)));
       udp->uh_sum = get_int_var_by_name (lexic, "uh_sum", 0);
 
       if (data != NULL)
@@ -1073,7 +996,6 @@ set_udp_elements (lex_ctxt * lexic)
               ptr = (char *) udp + sizeof (struct udphdr);
             }
 
-
           udpsumdata = g_malloc0 (sizeof (struct pseudo_udp_hdr) + len + 1);
 
           source.s_addr = ip->ip_src.s_addr;
@@ -1092,13 +1014,11 @@ set_udp_elements (lex_ctxt * lexic)
             {
               bcopy ((char *) ptr, udpsumdata + sizeof (pseudohdr), len);
             }
-          udp->uh_sum =
-            np_in_cksum ((unsigned short *) udpsumdata,
-                         12 + sizeof (struct udphdr) + len);
+          udp->uh_sum = np_in_cksum ((unsigned short *) udpsumdata,
+                                     12 + sizeof (struct udphdr) + len);
           g_free (udpsumdata);
         }
-      retc = alloc_tree_cell ();
-      retc->type = CONST_DATA;
+      retc = alloc_typed_cell (CONST_DATA);
       retc->size = sz;
       retc->x.str_val = pkt;
       return retc;
@@ -1109,9 +1029,8 @@ set_udp_elements (lex_ctxt * lexic)
   return NULL;
 }
 
-
 tree_cell *
-dump_udp_packet (lex_ctxt * lexic)
+dump_udp_packet (lex_ctxt *lexic)
 {
   int i = 0;
   u_char *pkt;
@@ -1141,7 +1060,7 @@ dump_udp_packet (lex_ctxt * lexic)
 /*--------------[  ICMP  ]--------------------------------------------*/
 
 tree_cell *
-forge_icmp_packet (lex_ctxt * lexic)
+forge_icmp_packet (lex_ctxt *lexic)
 {
   tree_cell *retc = NULL;
   struct ip *ip;
@@ -1160,7 +1079,6 @@ forge_icmp_packet (lex_ctxt * lexic)
       data = get_str_var_by_name (lexic, "data");
       len = data == NULL ? 0 : get_var_size_by_name (lexic, "data");
 
-
       t = get_int_var_by_name (lexic, "icmp_type", 0);
       if (t == 13 || t == 14)
         len += 3 * sizeof (time_t);
@@ -1170,7 +1088,6 @@ forge_icmp_packet (lex_ctxt * lexic)
 
       pkt = g_malloc0 (sizeof (struct icmp) + ip_sz + len);
       ip_icmp = (struct ip *) pkt;
-
 
       bcopy (ip, ip_icmp, ip_sz);
       if (UNFIX (ip_icmp->ip_len) <= (ip_icmp->ip_hl * 4))
@@ -1197,12 +1114,9 @@ forge_icmp_packet (lex_ctxt * lexic)
       if (get_int_var_by_name (lexic, "icmp_cksum", -1) == -1)
         icmp->icmp_cksum = np_in_cksum ((u_short *) icmp, len + 8);
       else
-        icmp->icmp_cksum =
-          htons (get_int_var_by_name (lexic, "icmp_cksum", 0));
+        icmp->icmp_cksum = htons (get_int_var_by_name (lexic, "icmp_cksum", 0));
 
-
-      retc = alloc_tree_cell ();
-      retc->type = CONST_DATA;
+      retc = alloc_typed_cell (CONST_DATA);
       retc->x.str_val = (char *) pkt;
       retc->size = ip_sz + len + 8;
     }
@@ -1213,11 +1127,10 @@ forge_icmp_packet (lex_ctxt * lexic)
 }
 
 tree_cell *
-get_icmp_element (lex_ctxt * lexic)
+get_icmp_element (lex_ctxt *lexic)
 {
   struct icmp *icmp;
   char *p;
-
 
   if ((p = get_str_var_by_name (lexic, "icmp")) != NULL)
     {
@@ -1243,8 +1156,7 @@ get_icmp_element (lex_ctxt * lexic)
         value = ntohs (icmp->icmp_cksum);
       else if (!strcmp (elem, "data"))
         {
-          retc = alloc_tree_cell ();
-          retc->type = CONST_DATA;
+          retc = alloc_typed_cell (CONST_DATA);
           retc->size =
             get_var_size_by_name (lexic, "icmp") - (ip->ip_hl * 4) - 8;
           if (retc->size > 0)
@@ -1260,8 +1172,7 @@ get_icmp_element (lex_ctxt * lexic)
       else
         return NULL;
 
-      retc = alloc_tree_cell ();
-      retc->type = CONST_INT;
+      retc = alloc_typed_cell (CONST_INT);
       retc->x.i_val = value;
       return retc;
     }
@@ -1269,22 +1180,7 @@ get_icmp_element (lex_ctxt * lexic)
   return NULL;
 }
 
-
-
-
-
-
-
-
-
-
 /*--------------[  IGMP  ]--------------------------------------------*/
-
-
-
-
-
-
 
 struct igmp
 {
@@ -1295,7 +1191,7 @@ struct igmp
 };
 
 tree_cell *
-forge_igmp_packet (lex_ctxt * lexic)
+forge_igmp_packet (lex_ctxt *lexic)
 {
   struct ip *ip = (struct ip *) get_str_var_by_name (lexic, "ip");
 
@@ -1312,7 +1208,6 @@ forge_igmp_packet (lex_ctxt * lexic)
       int ipsz = get_var_size_by_name (lexic, "ip");
 
       bcopy (ip, ip_igmp, ipsz);
-
 
       if (UNFIX (ip_igmp->ip_len) <= ip_igmp->ip_hl * 4)
         {
@@ -1344,8 +1239,7 @@ forge_igmp_packet (lex_ctxt * lexic)
           char *p = (char *) (pkt + ip->ip_hl * 4 + sizeof (struct igmp));
           bcopy (p, data, len);
         }
-      retc = alloc_tree_cell ();
-      retc->type = CONST_DATA;
+      retc = alloc_typed_cell (CONST_DATA);
       retc->x.str_val = (char *) pkt;
       retc->size = ip->ip_hl * 4 + sizeof (struct igmp) + len;
       return retc;
@@ -1354,11 +1248,10 @@ forge_igmp_packet (lex_ctxt * lexic)
   return NULL;
 }
 
-
 /*---------------------------------------------------------------------------*/
 
 tree_cell *
-nasl_tcp_ping (lex_ctxt * lexic)
+nasl_tcp_ping (lex_ctxt *lexic)
 {
   struct script_infos *script_infos = lexic->script_infos;
   struct in6_addr *dst = plug_get_host_ip (script_infos);
@@ -1382,13 +1275,12 @@ nasl_tcp_ping (lex_ctxt * lexic)
   int opt = 1;
   struct timeval tv;
   int len;
-#define rnd_tcp_port() (rand() % 65535 + 1024)
-  int sports[] =
-    { 0, 0, 0, 0, 0, 1023, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 53, 0, 0,
-20, 0, 25, 0, 0, 0 };
-  int ports[] =
-    { 139, 135, 445, 80, 22, 515, 23, 21, 6000, 1025, 25, 111, 1028, 9100, 1029,
-79, 497, 548, 5000, 1917, 53, 161, 9001, 65535, 443, 113, 993, 8080 };
+#define rnd_tcp_port() (rand () % 65535 + 1024)
+  int sports[] = {0, 0, 0, 0, 0, 1023, 0, 0, 0,  0, 0,  0, 0, 0, 0,
+                  0, 0, 0, 0, 0, 53,   0, 0, 20, 0, 25, 0, 0, 0};
+  int ports[] = {139, 135, 445,  80,    22,   515, 23,  21,  6000, 1025,
+                 25,  111, 1028, 9100,  1029, 79,  497, 548, 5000, 1917,
+                 53,  161, 9001, 65535, 443,  113, 993, 8080};
   struct in_addr inaddr;
 
   if (dst == NULL || (IN6_IS_ADDR_V4MAPPED (dst) != 1))
@@ -1421,7 +1313,6 @@ nasl_tcp_ping (lex_ctxt * lexic)
   snprintf (filter, sizeof (filter), "ip and src host %s", inet_ntoa (inaddr));
   bpf = init_capture_device (inaddr, src, filter);
 
-
   if (islocalhost (&inaddr) != 0)
     flag++;
   else
@@ -1442,7 +1333,6 @@ nasl_tcp_ping (lex_ctxt * lexic)
           ip->ip_dst = inaddr;
           ip->ip_sum = 0;
           ip->ip_sum = np_in_cksum ((u_short *) ip, 20);
-
 
           /* TCP */
           tcp->th_sport = port ? htons (rnd_tcp_port ()) : htons (sports[i]);
@@ -1471,16 +1361,16 @@ nasl_tcp_ping (lex_ctxt * lexic)
             pseudoheader.length = htons (sizeof (struct tcphdr));
             bcopy ((char *) tcp, (char *) &pseudoheader.tcpheader,
                    sizeof (struct tcphdr));
-            tcp->th_sum =
-              np_in_cksum ((unsigned short *) &pseudoheader,
-                           12 + sizeof (struct tcphdr));
+            tcp->th_sum = np_in_cksum ((unsigned short *) &pseudoheader,
+                                       12 + sizeof (struct tcphdr));
           }
 
           bzero (&soca, sizeof (soca));
           soca.sin_family = AF_INET;
           soca.sin_addr = ip->ip_dst;
           if (sendto (soc, (const void *) ip, 40, 0, (struct sockaddr *) &soca,
-                  sizeof (soca)) < 0)
+                      sizeof (soca))
+              < 0)
             g_warning ("sendto: %s", strerror (errno));
           tv.tv_sec = 0;
           tv.tv_usec = 100000;
@@ -1489,9 +1379,7 @@ nasl_tcp_ping (lex_ctxt * lexic)
         }
     }
 
-
-  retc = alloc_tree_cell ();
-  retc->type = CONST_INT;
+  retc = alloc_typed_cell (CONST_INT);
   retc->x.i_val = flag;
   if (bpf >= 0)
     bpf_close (bpf);
@@ -1502,7 +1390,7 @@ nasl_tcp_ping (lex_ctxt * lexic)
 /*---------------------------------------------------------------------------*/
 
 tree_cell *
-nasl_send_packet (lex_ctxt * lexic)
+nasl_send_packet (lex_ctxt *lexic)
 {
   tree_cell *retc = FAKE_CELL;
   int bpf = -1;
@@ -1521,7 +1409,6 @@ nasl_send_packet (lex_ctxt * lexic)
   struct script_infos *script_infos = lexic->script_infos;
   struct in6_addr *dstip = plug_get_host_ip (script_infos);
   struct in_addr inaddr;
-
 
   if (dstip == NULL || (IN6_IS_ADDR_V4MAPPED (dstip) != 1))
     return NULL;
@@ -1547,7 +1434,6 @@ nasl_send_packet (lex_ctxt * lexic)
       if (use_pcap != 0 && bpf < 0)
         bpf = init_capture_device (sip->ip_dst, sip->ip_src, filter);
 
-
       bzero (&sockaddr, sizeof (struct sockaddr_in));
       sockaddr.sin_family = AF_INET;
       sockaddr.sin_addr = sip->ip_dst;
@@ -1559,7 +1445,8 @@ nasl_send_packet (lex_ctxt * lexic)
           strncpy (txt2, inet_ntoa (inaddr), sizeof (txt2));
           txt2[sizeof (txt2) - 1] = '\0';
           nasl_perror (lexic,
-                       "send_packet: malicious or buggy script is trying to send packet to %s instead of designated target %s\n",
+                       "send_packet: malicious or buggy script is trying to "
+                       "send packet to %s instead of designated target %s\n",
                        txt1, txt2);
 #if 1
           if (bpf >= 0)
@@ -1577,11 +1464,8 @@ nasl_send_packet (lex_ctxt * lexic)
       else
         len = sz;
 
-
-
-      b =
-        sendto (soc, (u_char *) ip, len, 0, (struct sockaddr *) &sockaddr,
-                sizeof (sockaddr));
+      b = sendto (soc, (u_char *) ip, len, 0, (struct sockaddr *) &sockaddr,
+                  sizeof (sockaddr));
       /* if(b < 0) perror("sendto "); */
       if (b >= 0 && use_pcap != 0 && bpf >= 0)
         {
@@ -1594,15 +1478,13 @@ nasl_send_packet (lex_ctxt * lexic)
                   g_free (answer);
                   answer = (u_char *) capture_next_packet (bpf, to, &answer_sz);
                 }
-
             }
           else
             answer = (u_char *) capture_next_packet (bpf, to, &answer_sz);
 
           if (answer)
             {
-              retc = alloc_tree_cell ();
-              retc->type = CONST_DATA;
+              retc = alloc_typed_cell (CONST_DATA);
               retc->x.str_val = (char *) answer;
               retc->size = answer_sz;
               break;
@@ -1615,11 +1497,10 @@ nasl_send_packet (lex_ctxt * lexic)
   return retc;
 }
 
-
 /*---------------------------------------------------------------------------*/
 
 tree_cell *
-nasl_pcap_next (lex_ctxt * lexic)
+nasl_pcap_next (lex_ctxt *lexic)
 {
   char *interface = get_str_var_by_name (lexic, "interface");
   int bpf = -1;
@@ -1673,7 +1554,6 @@ nasl_pcap_next (lex_ctxt * lexic)
       int dl_len = get_datalink_size (bpf_datalink (bpf));
       char *packet;
       struct timeval then, now;
-
 
       gettimeofday (&then, NULL);
       for (;;)
@@ -1731,7 +1611,6 @@ nasl_pcap_next (lex_ctxt * lexic)
                   sz = len - dl_len;
                   bcopy (ip, ret6, sz);
                 }
-
             }
         }
       else
@@ -1741,9 +1620,7 @@ nasl_pcap_next (lex_ctxt * lexic)
         }
     }
   bpf_close (bpf);
-  retc = alloc_tree_cell ();
-
-  retc->type = CONST_DATA;
+  retc = alloc_typed_cell (CONST_DATA);
   if (v4_addr)
     retc->x.str_val = (char *) ret;
   else
@@ -1753,9 +1630,8 @@ nasl_pcap_next (lex_ctxt * lexic)
   return retc;
 }
 
-
 tree_cell *
-nasl_send_capture (lex_ctxt * lexic)
+nasl_send_capture (lex_ctxt *lexic)
 {
   char *interface = get_str_var_by_name (lexic, "interface");
   int bpf = -1;
@@ -1872,9 +1748,7 @@ nasl_send_capture (lex_ctxt * lexic)
         }
     }
   bpf_close (bpf);
-  retc = alloc_tree_cell ();
-
-  retc->type = CONST_DATA;
+  retc = alloc_typed_cell (CONST_DATA);
   if (v4_addr)
     retc->x.str_val = (char *) ret;
   else

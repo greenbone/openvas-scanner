@@ -36,25 +36,15 @@
 #endif
 
 /* zero a structure */
-#define ZERO_STRUCT(x) memset((char *)&(x), 0, sizeof(x))
+#define ZERO_STRUCT(x) memset ((char *) &(x), 0, sizeof (x))
 
 typedef struct
 {
-        struct MD5Context ctx;
-        uchar k_ipad[65];
-        uchar k_opad[65];
+  struct MD5Context ctx;
+  uchar k_ipad[65];
+  uchar k_opad[65];
 
 } HMACMD5Context;
-
-#ifndef SAFE_FREE
-/**
- * Free memory if the pointer and zero the pointer.
- *
- * @note You are explicitly allowed to pass NULL pointers -- they will
- * always be ignored.
- **/
-#define SAFE_FREE(x) do { if ((x) != NULL) {free(x); x=NULL;} } while(0)
-#endif
 
 /*
  * Note we duplicate the size tests in the unsigned
@@ -82,11 +72,15 @@ typedef uint16 smb_ucs2_t;
 
 /* turn a 7 bit character into a ucs2 character */
 #define UCS2_CHAR(c) ((c) << UCS2_SHIFT)
-void hmac_md5_init_limK_to_64(const uchar* key, int key_len, HMACMD5Context *ctx);
+void
+hmac_md5_init_limK_to_64 (const uchar *key, int key_len, HMACMD5Context *ctx);
 
-void hmac_md5_update(const uchar* text, int text_len, HMACMD5Context *ctx);
-void hmac_md5_final(uchar *digest, HMACMD5Context *ctx);
+void
+hmac_md5_update (const uchar *text, int text_len, HMACMD5Context *ctx);
+void
+hmac_md5_final (uchar *digest, HMACMD5Context *ctx);
 
-void hmac_md5( uchar key[16], uchar* data, int data_len, uchar* digest);
+void
+hmac_md5 (uchar key[16], uchar *data, int data_len, uchar *digest);
 
 #endif /* _HMAC_MD5_H */

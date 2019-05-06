@@ -16,21 +16,19 @@
  * Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA 02110-1301 USA.
  */
 
-#include <stdlib.h>             /* for abort */
-#include <string.h>             /* for memcpy */
-
-#include <glib.h>               /* for g_free */
-
-#include <regex.h>
-
 #include "nasl_tree.h"
-#include "nasl_global_ctxt.h"
-#include "nasl_func.h"
-#include "nasl_var.h"
-#include "nasl_lex_ctxt.h"
-#include "exec.h"
 
+#include "exec.h"
 #include "nasl_debug.h"
+#include "nasl_func.h"
+#include "nasl_global_ctxt.h"
+#include "nasl_lex_ctxt.h"
+#include "nasl_var.h"
+
+#include <glib.h> /* for g_free */
+#include <regex.h>
+#include <stdlib.h> /* for abort */
+#include <string.h> /* for memcpy */
 
 tree_cell *
 alloc_tree_cell ()
@@ -47,14 +45,14 @@ alloc_typed_cell (int typ)
 }
 
 tree_cell *
-alloc_RE_cell (int lnb, int t, tree_cell * l, char *re_str)
+alloc_RE_cell (int lnb, int t, tree_cell *l, char *re_str)
 {
   regex_t *re = g_malloc0 (sizeof (regex_t));
   int e;
 
   tree_cell *c = alloc_tree_cell ();
   c->line_nb = lnb;
-  c->type = t;                  /* We could check the type... */
+  c->type = t; /* We could check the type... */
   c->link[0] = l;
   c->link[1] = FAKE_CELL;
   e = regcomp (re, re_str, REG_EXTENDED | REG_NOSUB | REG_ICASE);
@@ -73,7 +71,7 @@ alloc_RE_cell (int lnb, int t, tree_cell * l, char *re_str)
 }
 
 tree_cell *
-alloc_expr_cell (int lnb, int t, tree_cell * l, tree_cell * r)
+alloc_expr_cell (int lnb, int t, tree_cell *l, tree_cell *r)
 {
   tree_cell *c = alloc_tree_cell ();
   c->line_nb = lnb;
@@ -85,7 +83,7 @@ alloc_expr_cell (int lnb, int t, tree_cell * l, tree_cell * r)
 }
 
 tree_cell *
-dup_cell (const tree_cell * tc)
+dup_cell (const tree_cell *tc)
 {
   tree_cell *r;
   int i;
@@ -118,7 +116,7 @@ dup_cell (const tree_cell * tc)
 }
 
 static void
-free_tree (tree_cell * c)
+free_tree (tree_cell *c)
 {
   int i;
   nasl_array *a;
@@ -177,7 +175,7 @@ free_tree (tree_cell * c)
 }
 
 void
-ref_cell (tree_cell * c)
+ref_cell (tree_cell *c)
 {
   if (c == NULL || c == FAKE_CELL)
     return;
@@ -191,7 +189,7 @@ ref_cell (tree_cell * c)
 }
 
 void
-deref_cell (tree_cell * c)
+deref_cell (tree_cell *c)
 {
   if (c == NULL || c == FAKE_CELL)
     return;
@@ -202,80 +200,34 @@ deref_cell (tree_cell * c)
 /* Debug */
 
 static char *node_names[] = {
-  "NODE_EMPTY",
-  "NODE_IF_ELSE",
-  "NODE_INSTR_L",
-  "NODE_FOR",
-  "NODE_WHILE",
-  "NODE_FOREACH",
-  "NODE_REPEAT_UNTIL",
-  "NODE_REPEATED",
-  "NODE_FUN_DEF",
-  "NODE_FUN_CALL",
-  "NODE_DECL",
-  "NODE_ARG",
-  "NODE_RETURN",
-  "NODE_BREAK",
-  "NODE_CONTINUE",
+  "NODE_EMPTY",      "NODE_IF_ELSE",    "NODE_INSTR_L",      "NODE_FOR",
+  "NODE_WHILE",      "NODE_FOREACH",    "NODE_REPEAT_UNTIL", "NODE_REPEATED",
+  "NODE_FUN_DEF",    "NODE_FUN_CALL",   "NODE_DECL",         "NODE_ARG",
+  "NODE_RETURN",     "NODE_BREAK",      "NODE_CONTINUE",
 
-  "NODE_ARRAY_EL",
-  "NODE_AFF",
-  "NODE_VAR",
-  "NODE_LOCAL",
-  "NODE_GLOBAL",
-  "NODE_PLUS_EQ",
-  "NODE_MINUS_EQ",
-  "NODE_MULT_EQ",
-  "NODE_DIV_EQ",
-  "NODE_MODULO_EQ",
+  "NODE_ARRAY_EL",   "NODE_AFF",        "NODE_VAR",          "NODE_LOCAL",
+  "NODE_GLOBAL",     "NODE_PLUS_EQ",    "NODE_MINUS_EQ",     "NODE_MULT_EQ",
+  "NODE_DIV_EQ",     "NODE_MODULO_EQ",
 
-  "NODE_L_SHIFT_EQ",
-  "NODE_R_SHIFT_EQ",
-  "NODE_R_USHIFT_EQ",
-  "EXPR_AND",
-  "EXPR_OR",
-  "EXPR_NOT",
+  "NODE_L_SHIFT_EQ", "NODE_R_SHIFT_EQ", "NODE_R_USHIFT_EQ",  "EXPR_AND",
+  "EXPR_OR",         "EXPR_NOT",
 
-  "EXPR_PLUS",
-  "EXPR_MINUS",
-  "EXPR_U_MINUS",
-  "EXPR_MULT",
-  "EXPR_DIV",
-  "EXPR_MODULO",
-  "EXPR_EXPO",
+  "EXPR_PLUS",       "EXPR_MINUS",      "EXPR_U_MINUS",      "EXPR_MULT",
+  "EXPR_DIV",        "EXPR_MODULO",     "EXPR_EXPO",
 
-  "EXPR_BIT_AND",
-  "EXPR_BIT_OR",
-  "EXPR_BIT_XOR",
-  "EXPR_BIT_NOT",
-  "EXPR_INCR",
-  "EXPR_DECR",
-  "EXPR_L_SHIFT",
-  "EXPR_R_SHIFT",
+  "EXPR_BIT_AND",    "EXPR_BIT_OR",     "EXPR_BIT_XOR",      "EXPR_BIT_NOT",
+  "EXPR_INCR",       "EXPR_DECR",       "EXPR_L_SHIFT",      "EXPR_R_SHIFT",
   "EXPR_R_USHIFT",
 
-  "COMP_MATCH",
-  "COMP_NOMATCH",
-  "COMP_RE_MATCH",
-  "COMP_RE_NOMATCH",
+  "COMP_MATCH",      "COMP_NOMATCH",    "COMP_RE_MATCH",     "COMP_RE_NOMATCH",
 
-  "COMP_LT",
-  "COMP_LE",
-  "COMP_EQ",
-  "COMP_NE",
-  "COMP_GT",
-  "COMP_GE",
-  "CONST_INT",
-  "CONST_STR",
-  "CONST_DATA",
-  "CONST_REGEX",
+  "COMP_LT",         "COMP_LE",         "COMP_EQ",           "COMP_NE",
+  "COMP_GT",         "COMP_GE",         "CONST_INT",         "CONST_STR",
+  "CONST_DATA",      "CONST_REGEX",
 
   "ARRAY_ELEM",
 
-  "REF_VAR",
-  "REF_ARRAY",
-  "DYN_ARRAY"
-};
+  "REF_VAR",         "REF_ARRAY",       "DYN_ARRAY"};
 
 static void
 prefix (int n, int i)
@@ -290,7 +242,7 @@ prefix (int n, int i)
 }
 
 char *
-dump_cell_val (const tree_cell * c)
+dump_cell_val (const tree_cell *c)
 {
   static char txt[80];
 
@@ -305,7 +257,7 @@ dump_cell_val (const tree_cell * c)
         snprintf (txt, sizeof (txt), "%ld", c->x.i_val);
         break;
       case CONST_STR:
-      case CONST_DATA:         /* Beurk (English: Yuck) */
+      case CONST_DATA: /* Beurk (English: Yuck) */
         if ((unsigned int) c->size >= sizeof (txt) + 2)
           {
             snprintf (txt, sizeof (txt), "\"%s", c->x.str_val);
@@ -322,7 +274,7 @@ dump_cell_val (const tree_cell * c)
 }
 
 static void
-dump_tree (const tree_cell * c, int n, int idx)
+dump_tree (const tree_cell *c, int n, int idx)
 {
   int i;
 
@@ -345,7 +297,6 @@ dump_tree (const tree_cell * c, int n, int idx)
     printf ("* UNKNOWN %d (0x%x)*\n", c->type, c->type);
   else
     printf ("%s (%d)\n", node_names[c->type], c->type);
-
 
   prefix (n, idx);
   printf ("Ref_count=%d", c->ref_count);
@@ -405,7 +356,8 @@ dump_tree (const tree_cell * c, int n, int idx)
 const char *
 nasl_type_name (int t)
 {
-  static char txt4[4][32];      /*  This function may be called 4 times in the same expression */
+  static char txt4[4][32]; /*  This function may be called 4 times in the same
+                              expression */
   static int i = 0;
   char *txt;
 
@@ -421,9 +373,8 @@ nasl_type_name (int t)
   return txt;
 }
 
-
 void
-nasl_dump_tree (const tree_cell * c)
+nasl_dump_tree (const tree_cell *c)
 {
   printf ("^^^^ %p ^^^^^\n", c);
   if (c == NULL)
@@ -436,7 +387,7 @@ nasl_dump_tree (const tree_cell * c)
 }
 
 char *
-get_line_nb (const tree_cell * c)
+get_line_nb (const tree_cell *c)
 {
   static char txt[32];
   if (c == NULL || c == FAKE_CELL || c->line_nb <= 0)
@@ -445,9 +396,8 @@ get_line_nb (const tree_cell * c)
   return txt;
 }
 
-
 int
-nasl_is_leaf (const tree_cell * pc)
+nasl_is_leaf (const tree_cell *pc)
 {
   if (pc == NULL || pc == FAKE_CELL)
     return 1;
@@ -464,11 +414,11 @@ nasl_is_leaf (const tree_cell * pc)
     }
  /*NOTREACHED*/}
 
-int
-cell_type (const tree_cell * c)
-{
-  if (c == NULL || c == FAKE_CELL)
-    return 0;
-  else
-    return c->type;
-}
+ int
+ cell_type (const tree_cell *c)
+ {
+   if (c == NULL || c == FAKE_CELL)
+     return 0;
+   else
+     return c->type;
+ }

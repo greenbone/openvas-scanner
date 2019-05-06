@@ -23,18 +23,19 @@
  * @brief Creates new threads.
  */
 
-#include <signal.h>   /* for kill() */
-#include <sys/wait.h> /* for waitpid() */
-#include <unistd.h>   /* for fork() */
-#include <errno.h>    /* for errno() */
-#include <time.h>     /* for time() */
-#include <string.h>   /* for strerror() */
-#include <stdlib.h>   /* for exit() */
-#include <glib.h>     /* for g_error */
-
-#include <setjmp.h>
 #include "processes.h"
+
 #include "sighand.h"
+
+#include <errno.h> /* for errno() */
+#include <glib.h>  /* for g_error */
+#include <setjmp.h>
+#include <signal.h>   /* for kill() */
+#include <stdlib.h>   /* for exit() */
+#include <string.h>   /* for strerror() */
+#include <sys/wait.h> /* for waitpid() */
+#include <time.h>     /* for time() */
+#include <unistd.h>   /* for fork() */
 
 #undef G_LOG_DOMAIN
 /**
