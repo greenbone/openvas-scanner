@@ -150,7 +150,8 @@ host_rm (struct host *h)
 
   while (forward (h, g_soc) > 0)
     ;
-  ntp_timestamp_host_scan_ends (g_soc, h->host_kb, h->ip);
+  if (!global_scan_stop)
+    ntp_timestamp_host_scan_ends (g_soc, h->host_kb, h->ip);
   if (h->next != NULL)
     h->next->prev = h->prev;
 
