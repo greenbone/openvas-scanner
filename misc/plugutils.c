@@ -521,17 +521,6 @@ post_error (const char *oid, struct script_infos *desc, int port,
   proto_post_error (oid, desc, port, "tcp", action);
 }
 
-void
-add_plugin_preference (struct script_infos *desc, const char *name,
-                       const char *type, const char *defaul)
-{
-  nvti_t *n = desc->nvti;
-  nvtpref_t *np =
-    nvtpref_new ((gchar *) name, (gchar *) type, (gchar *) defaul);
-
-  nvti_add_pref (n, np);
-}
-
 char *
 get_plugin_preference (const char *oid, const char *name)
 {
@@ -550,7 +539,7 @@ get_plugin_preference (const char *oid, const char *name)
   g_hash_table_iter_init (&iter, prefs);
   snprintf (prefix, sizeof (prefix), "%s:", oid);
   snprintf (suffix, sizeof (suffix), ":%s", cname);
-  /* NVT preferences receiveed in OID:Type:Name form */
+  /* NVT preferences receiveed in OID:PrefID:PrefType:PrefName form */
   while (g_hash_table_iter_next (&iter, &itername, &itervalue))
     {
       if (g_str_has_prefix (itername, prefix)

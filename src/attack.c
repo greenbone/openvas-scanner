@@ -258,6 +258,14 @@ launch_plugin (struct scan_globals *globals, struct scheduler_plugin *plugin,
   addr6_to_str (ip, ip_str);
   oid = plugin->oid;
   nvti = nvticache_get_nvt (oid);
+
+  /* eg. When NVT was moved/removed by a feed update during the scan. */
+  if (!nvti)
+    {
+      g_message ("Plugin '%s' missing from nvticache.", oid);
+      plugin->running_state = PLUGIN_STATUS_DONE;
+      goto finish_launch_plugin;
+    }
   if (scan_is_stopped () || all_scans_are_stopped ())
     {
       if (nvti->category != ACT_END)
@@ -981,6 +989,7 @@ attack_network (struct scan_globals *globals, kb_t *network_kb)
   gboolean network_phase = FALSE;
   gboolean do_network_scan = FALSE;
   kb_t host_kb;
+  GSList *unresolved;
 
   gettimeofday (&then, NULL);
 
@@ -1045,6 +1054,9 @@ attack_network (struct scan_globals *globals, kb_t *network_kb)
                                   network_phase);
   if (!sched)
     {
+      error_message_to_client (global_socket, "Couldn't initialize "
+                               "the plugin scheduler", NULL,
+                               NULL);
       g_message ("Couldn't initialize the plugin scheduler");
       return;
     }
@@ -1084,7 +1096,15 @@ attack_network (struct scan_globals *globals, kb_t *network_kb)
                hostlist, max_hosts, max_checks);
 
   hosts = gvm_hosts_new (hostlist);
-  gvm_hosts_resolve (hosts);
+  unresolved = gvm_hosts_resolve (hosts);
+  while (unresolved)
+    {
+      g_warning ("Couldn't resolve hostname '%s'", (char *) unresolved->data);
+      error_message_to_client (global_socket, "Couldn't resolve hostname",
+                               unresolved->data, NULL);
+      unresolved = unresolved->next;
+    }
+  g_slist_free_full (unresolved, g_free);
   /* Apply Hosts preferences. */
   apply_hosts_preferences (hosts);
 

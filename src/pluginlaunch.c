@@ -394,6 +394,24 @@ pluginlaunch_wait (kb_t kb)
 }
 
 /**
+ * @brief Return shortest timeout of the running processes.
+ */
+static int
+timeout_running_processes ()
+{
+  int i, timeout = 0;
+
+  for (i = 0; i < MAX_PROCESSES; i++)
+    {
+      if (processes[i].pid <= 0)
+        continue;
+      if (!timeout || processes[i].timeout < timeout)
+        timeout = processes[i].timeout;
+    }
+  return timeout;
+}
+
+/**
  * @brief Waits and 'pushes' processes until the number of running processes has
  *        changed.
  */
@@ -403,10 +421,19 @@ pluginlaunch_wait_for_free_process (kb_t kb)
   if (!num_running_processes)
     return;
   update_running_processes (kb);
-  /* Max number of processes are still running. */
+  /* Max number of processes are still running, wait for a child to exit or
+   * to timeout. */
   if (num_running_processes == max_running_processes)
     {
-      waitpid (-1, NULL, 0);
+      sigset_t mask;
+      struct timespec ts = {0, 0};
+
+      ts.tv_sec = timeout_running_processes ();
+      assert (ts.tv_sec);
+      sigemptyset (&mask);
+      sigaddset (&mask, SIGCHLD);
+      if (sigtimedwait (&mask, NULL, &ts) < 0 && errno != EAGAIN)
+        g_warning ("%s: %s", __FUNCTION__, strerror (errno));
       update_running_processes (kb);
     }
 }

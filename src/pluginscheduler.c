@@ -54,16 +54,16 @@ struct plugins_scheduler
 
 /*---------------------------------------------------------------------------*/
 
-static void
+static int
 plugin_add (plugins_scheduler_t sched, GHashTable *oids_table,
             GHashTable *names_table, int autoload, char *oid)
 {
   struct scheduler_plugin *plugin;
   int category;
   nvti_t *nvti;
-
+  int ret = 0;
   if (g_hash_table_lookup (oids_table, oid))
-    return;
+    return 0;
 
   /* Check if the plugin is deprecated */
   nvti = nvticache_get_nvt (oid);
@@ -75,16 +75,24 @@ plugin_add (plugins_scheduler_t sched, GHashTable *oids_table,
         {
           char *name = nvticache_get_filename (oid);
           g_message ("Plugin %s is deprecated. "
-                     "It will neither loaded nor launched.",
+                     "It will neither be loaded nor launched.",
                      name);
           g_free (name);
         }
       nvti_free (nvti);
-      return;
+      return 0;
     }
 
   category = nvti_category (nvti);
-  assert (category >= ACT_INIT && category <= ACT_END);
+  if (!(category >= ACT_INIT && category <= ACT_END))
+    {
+      g_message ("The NVT with oid %s has no category assigned. This is "
+                 "considered a fatal error, since the NVTI Cache "
+                 "structure stored in Redis is out dated or corrupted.",
+                 oid);
+      nvti_free (nvti);
+      return 1;
+    }
   plugin = g_malloc0 (sizeof (struct scheduler_plugin));
   plugin->running_state = PLUGIN_STATUS_UNRUN;
   plugin->oid = g_strdup (oid);
@@ -112,7 +120,9 @@ plugin_add (plugins_scheduler_t sched, GHashTable *oids_table,
             }
           if (dep_oid)
             {
-              plugin_add (sched, oids_table, names_table, autoload, dep_oid);
+              ret = plugin_add (sched, oids_table, names_table, autoload, dep_oid);
+              if (ret)
+                return 1;
               dep_plugin = g_hash_table_lookup (oids_table, dep_oid);
               /* In case of autoload, no need to wait for plugin_add() to
                * fill all enabled plugins to start filling dependencies
@@ -140,6 +150,7 @@ plugin_add (plugins_scheduler_t sched, GHashTable *oids_table,
         }
     }
   nvti_free (nvti);
+  return 0;
 }
 
 static void
@@ -187,12 +198,13 @@ plugins_scheduler_fill_deps (plugins_scheduler_t sched, GHashTable *oids_table)
  * param[in]    oid_list    List of plugins to enable.
  * param[in]    autoload    Whether to autoload dependencies.
  */
-static void
+static int
 plugins_scheduler_enable (plugins_scheduler_t sched, const char *oid_list,
                           int autoload)
 {
   char *oids, *oid, *saveptr;
   GHashTable *oids_table, *names_table;
+  int ret = 0;
 
   oids_table = g_hash_table_new_full (g_str_hash, g_str_equal, NULL, NULL);
   names_table = g_hash_table_new_full (g_str_hash, g_str_equal, g_free, g_free);
@@ -202,7 +214,9 @@ plugins_scheduler_enable (plugins_scheduler_t sched, const char *oid_list,
   oid = strtok_r (oids, ";", &saveptr);
   while (oid)
     {
-      plugin_add (sched, oids_table, names_table, autoload, oid);
+      ret = plugin_add (sched, oids_table, names_table, autoload, oid);
+      if (ret)
+        goto error;
       oid = strtok_r (NULL, ";", &saveptr);
     }
 
@@ -210,9 +224,11 @@ plugins_scheduler_enable (plugins_scheduler_t sched, const char *oid_list,
   if (!autoload)
     plugins_scheduler_fill_deps (sched, oids_table);
 
+ error:
   g_hash_table_destroy (oids_table);
   g_hash_table_destroy (names_table);
   g_free (oids);
+  return ret;
 }
 
 int
@@ -286,11 +302,16 @@ plugins_scheduler_init (const char *plugins_list, int autoload,
                         int only_network)
 {
   plugins_scheduler_t ret;
-  int i;
+  int i, err = 0;
 
   /* Fill our lists */
   ret = g_malloc0 (sizeof (*ret));
-  plugins_scheduler_enable (ret, plugins_list, autoload);
+  err = plugins_scheduler_enable (ret, plugins_list, autoload);
+  if (err)
+    {
+      plugins_scheduler_free (ret);
+      return NULL;
+    }
 
   if (only_network)
     {

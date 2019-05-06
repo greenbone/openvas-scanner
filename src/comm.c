@@ -258,11 +258,12 @@ send_plugins_preferences (int soc, GSList *oids)
           GSList *tmp = nprefs;
 
           if (timeout > 0)
-            send_printf (soc, "%s:entry:Timeout <|> %d\n", oid, timeout);
+            send_printf (soc, "%s:0:entry:Timeout <|> %d\n", oid, timeout);
           while (tmp)
             {
               nvtpref_t *pref = tmp->data;
-              send_printf (soc, "%s:%s:%s <|> %s\n", oid, nvtpref_type (pref),
+              send_printf (soc, "%s:%d:%s:%s <|> %s\n", oid, nvtpref_id (pref),
+                           nvtpref_type (pref),
                            g_strchomp (nvtpref_name (pref)),
                            nvtpref_default (pref));
               tmp = tmp->next;

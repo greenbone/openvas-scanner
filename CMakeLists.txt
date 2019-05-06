@@ -21,7 +21,7 @@ cmake_minimum_required (VERSION 3.0)
 message ("-- Configuring the Scanner...")
 
 project (openvas-scanner
-  VERSION 6.0.0
+  VERSION 7.0.0
   LANGUAGES C)
 
 if (POLICY CMP0005)
@@ -62,7 +62,7 @@ endif (CLANG_FORMAT)
 
 # Set beta version if this is a beta release series,
 # unset if this is a stable release series.
-set (PROJECT_BETA_RELEASE 3)
+set (PROJECT_BETA_RELEASE 1)
 
 if (GIT_REVISION)
   set (PROJECT_VERSION_GIT "${GIT_REVISION}")
@@ -161,7 +161,9 @@ endif (NOT OPENVAS_RUN_DIR)
 
 set (OPENVAS_DATA_DIR    "${DATADIR}/openvas")
 set (OPENVAS_STATE_DIR   "${LOCALSTATEDIR}/lib/openvas")
-set (GVM_LOG_DIR         "${LOCALSTATEDIR}/log/gvm")
+if (NOT GVM_LOG_DIR)
+	set (GVM_LOG_DIR         "${LOCALSTATEDIR}/log/gvm")
+endif (NOT GVM_LOG_DIR)
 set (OPENVAS_SYSCONF_DIR "${SYSCONFDIR}/openvas")
 set (GVM_SYSCONF_DIR     "${SYSCONFDIR}/gvm")
 
