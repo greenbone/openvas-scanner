@@ -97,9 +97,10 @@ to error checking. While this is a good thing and the developers aim to address
 all compiler warnings, it may lead the build process to abort on your system.
 
 Should you notice error messages causing your build process to abort, do not
-hesitate to contact the developers using the [Greenbone Community
-Portal](https://community.greenbone.net/c/gse). Don't forget to include the
-name and version of your compiler and distribution in your message.
+hesitate to contact the developers by creating a 
+[new issue report](https://github.com/greenbone/openvas-scanner/issues/new).
+Don't forget to include the name and version of your compiler and distribution in your
+message.
 
 
 Setting up openvas-scanner
