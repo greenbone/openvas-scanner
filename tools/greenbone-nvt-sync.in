@@ -20,6 +20,16 @@
 # This script updates the local Network Vulnerability Tests (NVTs) from the
 # Greenbone Security Feed (GSF) or the Greenbone Community Feed (GCF). 
 
+if [ "`id -u`" -eq "0" ]
+then
+  echo "$0 must not be executed as privileged user root"
+  echo
+  echo "Unlike the actual scanner the sync routine does not need privileges."
+  echo "Accidental executation as root would prevent later overwriting of"
+  echo "files with a non-privileged user."
+  exit 1
+fi
+
 VERSION=@OPENVASSD_VERSION@
 
 # SETTINGS
