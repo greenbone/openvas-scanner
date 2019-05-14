@@ -160,6 +160,19 @@ get_feed_info ()
   fi
 }
 
+# Prevent that root executes this script
+if [ "`id -u`" -eq "0" ]
+then
+  stderr_write "$0 must not be executed as privileged user root"
+  stderr_write
+  stderr_write "Unlike the actual scanner the sync routine does not need privileges."
+  stderr_write "Accidental executation as root would prevent later overwriting of"
+  stderr_write "files with a non-privileged user."
+
+  log_err "Denied to run as root"
+  exit 1
+fi
+
 # Always try to get the information when started.
 # This also ensures variables like FEED_PRESENT are set.
 get_feed_info
