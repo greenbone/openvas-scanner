@@ -102,7 +102,7 @@ nasl_pread (lex_ctxt *lexic)
   nasl_array *av;
   int i, j, n, cd, fdout = 0, fderr = 0;
   char **args = NULL, *cmd, *str;
-  char cwd[MAXPATHLEN], newdir[MAXPATHLEN], key[128];
+  char cwd[MAXPATHLEN], newdir[MAXPATHLEN];
   GError *error = NULL;
 
   if (pid != 0)
@@ -197,8 +197,6 @@ nasl_pread (lex_ctxt *lexic)
       goto finish_pread;
     }
 
-  snprintf (key, sizeof (key), "internal/child/%d", getpid ());
-  kb_item_set_int (lexic->script_infos->key, key, pid);
   str = pread_streams (fdout, fderr);
   if (str)
     {
@@ -221,7 +219,6 @@ finish_pread:
 
   g_spawn_close_pid (pid);
   pid = 0;
-  kb_del_items (lexic->script_infos->key, key);
 
   return retc;
 }
