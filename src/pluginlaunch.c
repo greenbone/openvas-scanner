@@ -130,8 +130,6 @@ update_running_processes (kb_t kb)
                            "NVT timed out after %d seconds.",
                            oid ?: " ", processes[i].timeout);
                   kb_item_push_str (kb, "internal/results", msg);
-
-                  terminate_process (processes[i].pid);
                 }
               else
                 {
@@ -160,6 +158,7 @@ update_running_processes (kb_t kb)
                     }
                   while (e < 0 && errno == EINTR);
                 }
+              terminate_process (processes[i].pid * -1);
               num_running_processes--;
               processes[i].plugin->running_state = PLUGIN_STATUS_DONE;
               cleanup_process_children (kb, processes[i].pid);
