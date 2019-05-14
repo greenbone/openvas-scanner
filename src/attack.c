@@ -333,8 +333,6 @@ launch_plugin (struct scan_globals *globals, struct scheduler_plugin *plugin,
             oid, ip_str, error);
           g_free (name);
         }
-      if (prefs_get_bool ("advanced_log"))
-        kb_item_add_str (kb, "log/notlaunched", oid, 0);
       goto finish_launch_plugin;
     }
 
@@ -355,15 +353,6 @@ launch_plugin (struct scan_globals *globals, struct scheduler_plugin *plugin,
       plugin->running_state = PLUGIN_STATUS_UNRUN;
       ret = ERR_CANT_FORK;
       goto finish_launch_plugin;
-    }
-  if (prefs_get_bool ("advanced_log"))
-    {
-      char buf[2048], buf2[2048];
-
-      kb_item_add_str (kb, "log/launched", oid, 0);
-      snprintf (buf, sizeof (buf), "log/launched/%s/start", oid);
-      snprintf (buf2, sizeof (buf2), "%lu", time (NULL));
-      kb_item_add_str (kb, buf, buf2, 0);
     }
 
   if (prefs_get_bool ("log_whole_attack"))
