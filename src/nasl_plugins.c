@@ -175,6 +175,9 @@ nasl_thread (struct script_infos *args)
   kb_t kb;
   GError *error = NULL;
 
+  /* Make plugin process a group leader, to make it easier to cleanup forked
+   * processes & their children. */
+  setpgid (0, 0);
   nvticache_reset ();
   if (prefs_get_bool ("be_nice"))
     {
