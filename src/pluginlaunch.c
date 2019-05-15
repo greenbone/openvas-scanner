@@ -183,7 +183,6 @@ update_running_processes (void)
                                  msg, INTERNAL_COMM_MSG_TYPE_DATA);
                   g_free (msg);
 
-                  terminate_process (processes[i].pid);
                   processes[i].alive = 0;
                 }
               else
@@ -214,6 +213,7 @@ update_running_processes (void)
                   while (e < 0 && errno == EINTR);
 
                 }
+              terminate_process (processes[i].pid * -1);
               num_running_processes--;
               processes[i].plugin->running_state = PLUGIN_STATUS_DONE;
               close (processes[i].internal_soc);
