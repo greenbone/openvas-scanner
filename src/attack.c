@@ -340,7 +340,7 @@ launch_plugin (struct scan_globals *globals, struct scheduler_plugin *plugin,
   if (kb_item_get_int (kb, "Host/dead") > 0)
     {
       g_message ("The remote host %s is dead", ip_str);
-      pluginlaunch_stop (1);
+      pluginlaunch_stop ();
       plugin->running_state = PLUGIN_STATUS_DONE;
       ret = ERR_HOST_DEAD;
       goto finish_launch_plugin;
@@ -512,7 +512,7 @@ attack_host (struct scan_globals *globals, struct in6_addr *ip, GSList *vhosts,
       parent = getppid ();
       if (parent <= 1 || process_alive (parent) == 0)
         {
-          pluginlaunch_stop (1);
+          pluginlaunch_stop ();
           return;
         }
 
@@ -572,7 +572,7 @@ attack_host (struct scan_globals *globals, struct in6_addr *ip, GSList *vhosts,
               last_status = (cur_plug * 100) / num_plugs + 2;
               if (comm_send_status (kb, ip_str, cur_plug, num_plugs) < 0)
                 {
-                  pluginlaunch_stop (1);
+                  pluginlaunch_stop ();
                   goto host_died;
                 }
             }
@@ -588,7 +588,7 @@ attack_host (struct scan_globals *globals, struct in6_addr *ip, GSList *vhosts,
     comm_send_status (kb, ip_str, num_plugs, num_plugs);
 
 host_died:
-  pluginlaunch_stop (1);
+  pluginlaunch_stop ();
   plugins_scheduler_free (sched);
 }
 
@@ -948,7 +948,7 @@ check_kb_access (int soc)
 static void
 handle_scan_stop_signal ()
 {
-  pluginlaunch_stop (0);
+  pluginlaunch_stop ();
   global_scan_stop = 1;
 }
 
