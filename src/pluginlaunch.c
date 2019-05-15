@@ -288,25 +288,15 @@ pluginlaunch_enable_parallel_checks (void)
 }
 
 void
-pluginlaunch_stop (int soft_stop)
+pluginlaunch_stop ()
 {
   int i;
-
-  if (soft_stop)
-    {
-      for (i = 0; i < MAX_PROCESSES; i++)
-        {
-          if (processes[i].pid > 0)
-            kill (processes[i].pid, SIGTERM);
-        }
-      usleep (20000);
-    }
 
   for (i = 0; i < MAX_PROCESSES; i++)
     {
       if (processes[i].pid > 0)
         {
-          kill (processes[i].pid, SIGKILL);
+          terminate_process (processes[i].pid * -1);
           num_running_processes--;
           processes[i].plugin->running_state = PLUGIN_STATUS_DONE;
           bzero (&(processes[i]), sizeof (struct running));
