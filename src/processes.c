@@ -44,7 +44,7 @@ terminate_process (pid_t pid)
 {
   int ret;
 
-  if (pid <= 0)
+  if (pid == 0)
     return 0;
 
   ret = kill (pid, SIGTERM);
