@@ -793,9 +793,7 @@ static int
 plug_fork_child (kb_t kb)
 {
   pid_t pid;
-  char key[128];
 
-  snprintf (key, sizeof (key), "internal/child/%d", getpid ());
   if ((pid = fork ()) == 0)
     {
       sig_term (_exit);
@@ -810,11 +808,7 @@ plug_fork_child (kb_t kb)
       return -1;
     }
   else
-    {
-      kb_item_set_int (kb, key, pid);
-      waitpid (pid, NULL, 0);
-      kb_del_items (kb, key);
-    }
+    waitpid (pid, NULL, 0);
   return 1;
 }
 
