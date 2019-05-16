@@ -44,9 +44,6 @@ void
 plug_set_dep (struct script_infos *, const char *);
 
 void
-plug_set_xref (struct script_infos *, char *, char *);
-
-void
 plug_set_tag (struct script_infos *, char *, char *);
 
 void
