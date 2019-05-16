@@ -304,6 +304,26 @@ pluginlaunch_stop ()
     }
 }
 
+static int
+plugin_timeout (nvti_t *nvti)
+{
+  int timeout;
+
+  assert (nvti);
+  timeout = prefs_nvt_timeout (nvti->oid);
+  if (timeout == 0)
+    timeout = nvti_timeout (nvti);
+  if (timeout == 0)
+    {
+      if (nvti_category (nvti) == ACT_SCANNER)
+        timeout = atoi (prefs_get ("scanner_plugins_timeout"))
+                   ?: SCANNER_NVT_TIMEOUT;
+      else
+        timeout = atoi (prefs_get ("plugins_timeout")) ?: NVT_TIMEOUT;
+    }
+  return timeout;
+}
+
 /**
  * @return PID of process that is connected to the plugin as returned by plugin
  *         classes pl_launch function (<=0 means there was a problem).
@@ -320,19 +340,7 @@ plugin_launch (struct scan_globals *globals, struct scheduler_plugin *plugin,
   if (p < 0)
     return -1;
   processes[p].plugin = plugin;
-  processes[p].timeout = prefs_nvt_timeout (plugin->oid);
-  if (processes[p].timeout == 0)
-    processes[p].timeout = nvti_timeout (nvti);
-
-  if (processes[p].timeout == 0)
-    {
-      if (nvti_category (nvti) == ACT_SCANNER)
-        processes[p].timeout =
-          atoi (prefs_get ("scanner_plugins_timeout") ?: "-1");
-      else
-        processes[p].timeout = atoi (prefs_get ("plugins_timeout") ?: "-1");
-    }
-
+  processes[p].timeout = plugin_timeout (nvti);
   gettimeofday (&(processes[p].start), NULL);
   processes[p].pid = nasl_plugin_launch (globals, ip, vhosts, kb, plugin->oid);
 
