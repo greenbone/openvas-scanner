@@ -103,7 +103,7 @@ Number of retries when a socket connection attempt timesout.
 When a port  is found as opened at the beginning of the scan, and for some reason the status changes to filtered/closed, it will not be possible to open a socket. This is the number of unsuccessful retries to open the socket before to set the port as closed. This avoids to launch plugins which need the opened port as a mandatory key, therefore it avoids an overlong scan duration. If the set value is 0 or a negative value, this option is disabled. It should be take in account that one unsuccessful attempt needs the number of retries set in "timeout_retry".
 
 .IP time_between_request
-Some devices do not appreciate quick connection establishment and termination neither quick request. This option allows you to set a wait time between two actions like to open a tcp socket, to send a request trought the open tcp socket, and to close the tcp socket. This value should be given in milliseconds. If the set value is 0 (default value), this option is disabled and there is no wait time between requests.
+Some devices do not appreciate quick connection establishment and termination neither quick request. This option allows you to set a wait time between two actions like to open a tcp socket, to send a request through the open tcp socket, and to close the tcp socket. This value should be given in milliseconds. If the set value is 0 (default value), this option is disabled and there is no wait time between requests.
 
 .IP expand_vhosts
 Whether to expand the target host's list of vhosts with values gathered from sources such as reverse-lookup queries and VT checks for SSL/TLS certificates.

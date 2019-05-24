@@ -632,7 +632,7 @@ strip_pkcs1_padding (tree_cell *retc)
       char *temp;
       while (i < retc->size && p[i])
         i++;
-      /* skipt the zero byte */
+      /* skip the zero byte */
       i++;
       if (i <= retc->size)
         {
