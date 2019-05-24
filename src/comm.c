@@ -24,25 +24,13 @@
  * and 1.1.
  */
 
-#include "comm.h"
+#include "ntp.h"                /* for ntp_parse_input() */
+#include "pluginload.h"         /* for current_loading_plugins() */
+#include "utils.h"              /* for send_printf() */
 
-#include "../misc/network.h"        /* for recv_line */
-#include "../misc/nvt_categories.h" /* for ACT_INIT */
-#include "../misc/plugutils.h"
-#include "../nasl/nasl.h"
-#include "ntp.h"
-#include "pluginload.h" /* for current_loading_plugins */
-#include "pluginscheduler.h"
-#include "sighand.h"
-#include "utils.h"
-
-#include <errno.h> /* for errno */
-#include <glib.h>
-#include <gvm/base/prefs.h>     /* for preferences_get() */
-#include <gvm/util/nvticache.h> /* for nvticache_t */
+#include <errno.h>              /* for errno */
 #include <stdio.h>              /* for FILE */
-#include <stdlib.h>             /* for atoi() */
-#include <string.h>             /* for strchr() */
+#include <string.h>             /* for strncmp() */
 
 #undef G_LOG_DOMAIN
 /**
