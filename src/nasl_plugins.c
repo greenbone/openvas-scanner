@@ -179,17 +179,6 @@ nasl_thread (struct script_infos *args)
    * processes & their children. */
   setpgid (0, 0);
   nvticache_reset ();
-  if (prefs_get_bool ("be_nice"))
-    {
-      int nice_retval;
-      errno = 0;
-      nice_retval = nice (-5);
-      if (nice_retval == -1 && errno != 0)
-        {
-          g_debug ("Unable to renice process: %d", errno);
-        }
-    }
-
   kb = args->key;
   kb_lnk_reset (kb);
   addr6_to_str (args->ip, ip_str);
