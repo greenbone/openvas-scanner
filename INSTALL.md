@@ -20,7 +20,7 @@ Prerequisites:
 * pkg-config
 * libpcap
 * libgpgme >= 1.1.2
-* redis >= 2.4.0
+* redis >= 3.2.0
 * libssh >= 0.6.0
 * libksba >= 1.0.7
 * libgnutls >= 3.2.15
@@ -97,9 +97,10 @@ to error checking. While this is a good thing and the developers aim to address
 all compiler warnings, it may lead the build process to abort on your system.
 
 Should you notice error messages causing your build process to abort, do not
-hesitate to contact the developers using the [Greenbone Community
-Portal](https://community.greenbone.net/c/gse). Don't forget to include the
-name and version of your compiler and distribution in your message.
+hesitate to contact the developers by creating a 
+[new issue report](https://github.com/greenbone/openvas-scanner/issues/new).
+Don't forget to include the name and version of your compiler and distribution in your
+message.
 
 
 Setting up openvas-scanner
@@ -138,18 +139,17 @@ Setting up an openvas-scanner requires the following steps:
    regularly to detect the latest threats.
 
 3. The scanner needs a running Redis server to temporarily store information
-   gathered on the scanned hosts. Redis 2.4 and newer is supported but 2.6
-   is recommended. See `doc/redis_config.txt` to see how to set up and run a
-   Redis server.
+   gathered on the scanned hosts. Redis 3.2 and newer are supported.
+   See `doc/redis_config.txt` to see how to set up and run a Redis server.
 
    Multiple examples for various Redis versions are installed which you may use
    directly for a quick start:
 
-       redis-server <install-prefix>/share/doc/openvas-scanner/redis_config_examples/redis_2_4.conf
+       redis-server <install-prefix>/share/doc/openvas-scanner/redis_config_examples/redis_3_2.conf
 
    or
 
-       redis-server <install-prefix>/share/doc/openvas-scanner/redis_config_examples/redis_2_6.conf
+       redis-server <install-prefix>/share/doc/openvas-scanner/redis_config_examples/redis_4_0.conf
 
    or copy the example to another location, edit and use the copy instead.
 

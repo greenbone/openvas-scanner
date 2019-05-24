@@ -72,21 +72,6 @@ plug_current_vhost (void)
 static int plug_fork_child (kb_t);
 
 void
-plug_set_xref (struct script_infos *args, char *name, char *value)
-{
-  nvti_t *n = args->nvti;
-  char *new;
-
-  if (nvti_xref (n))
-    new = g_strconcat (nvti_xref (n), ", ", name, ":", value, NULL);
-  else
-    new = g_strconcat (name, ":", value, NULL);
-
-  nvti_set_xref (n, new);
-  g_free (new);
-}
-
-void
 plug_set_tag (struct script_infos *args, char *name, char *value)
 {
   nvti_t *n = args->nvti;
@@ -793,9 +778,7 @@ static int
 plug_fork_child (kb_t kb)
 {
   pid_t pid;
-  char key[128];
 
-  snprintf (key, sizeof (key), "internal/child/%d", getpid ());
   if ((pid = fork ()) == 0)
     {
       sig_term (_exit);
@@ -810,11 +793,7 @@ plug_fork_child (kb_t kb)
       return -1;
     }
   else
-    {
-      kb_item_set_int (kb, key, pid);
-      waitpid (pid, NULL, 0);
-      kb_del_items (kb, key);
-    }
+    waitpid (pid, NULL, 0);
   return 1;
 }
 

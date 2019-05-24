@@ -6,8 +6,7 @@ they cannot access the server and might be significantly slowed down if redis is
 not properly configured.
 
 The feature has been developed with neither cluster mode nor replication
-enabled. Redis 2.4 and 2.6 are supported. Versions 2.6 and higher are
-recommended.
+enabled. Redis 3.2 and higher are supported.
 
 == Connection ==
 OpenVAS can currently only access redis via a unix socket. This choice has been

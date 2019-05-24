@@ -41,6 +41,10 @@ Show a summary of the commands
 .BI "--scan-start=" <scan-uuid>
 ID for a single scan task. The scanner will start the scan with the data already loaded in a redis KB, which will be found using the given scan-id.
 
+.TP
+.BI "--vendor-version=" <vendor-version>
+Use the alternate vendor instead of the default one during scans.
+
 .SH THE CONFIGURATION FILE 
 
 The default 

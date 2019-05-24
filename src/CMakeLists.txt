@@ -1,4 +1,4 @@
-# Copyright (C) 2011-2018 Greenbone Networks GmbH
+# Copyright (C) 2011-2019 Greenbone Networks GmbH
 #
 # SPDX-License-Identifier: GPL-2.0-or-later
 #
@@ -183,7 +183,7 @@ install (FILES ${CMAKE_BINARY_DIR}/src/openvassd_log.conf
          DESTINATION ${OPENVAS_SYSCONF_DIR})
 
 install (FILES ${CMAKE_BINARY_DIR}/tools/greenbone-nvt-sync
-         DESTINATION ${SBINDIR}
+         DESTINATION ${BINDIR}
          PERMISSIONS OWNER_EXECUTE OWNER_READ OWNER_WRITE
                      GROUP_READ GROUP_EXECUTE WORLD_READ WORLD_EXECUTE)
 
@@ -194,11 +194,7 @@ install (FILES ${CMAKE_BINARY_DIR}/doc/openvassd.8
 install (FILES ${CMAKE_SOURCE_DIR}/doc/greenbone-nvt-sync.8
          DESTINATION ${DATADIR}/man/man8 )
 
-install (FILES ${CMAKE_BINARY_DIR}/doc/redis_config_examples/redis_2_4.conf
-               ${CMAKE_BINARY_DIR}/doc/redis_config_examples/redis_2_6.conf
-               ${CMAKE_BINARY_DIR}/doc/redis_config_examples/redis_2_8.conf
-               ${CMAKE_BINARY_DIR}/doc/redis_config_examples/redis_3_0.conf
-               ${CMAKE_BINARY_DIR}/doc/redis_config_examples/redis_3_2.conf
+install (FILES ${CMAKE_BINARY_DIR}/doc/redis_config_examples/redis_3_2.conf
                ${CMAKE_BINARY_DIR}/doc/redis_config_examples/redis_4_0.conf
          DESTINATION ${DATADIR}/doc/openvas-scanner/redis_config_examples/ )
 
