@@ -163,68 +163,6 @@ comm_terminate (int soc)
 }
 
 /**
- * @brief Sends a plugin info.
- */
-void
-send_plug_info (int soc, const char *oid)
-{
-  int category;
-  char *name = NULL, *family = NULL;
-  char *cve_id = NULL, *bid = NULL, *xref = NULL, *tag = NULL;
-  nvti_t *nvti;
-
-  nvti = nvticache_get_nvt (oid);
-  if (!nvti)
-    {
-      g_warning ("Couldn't fetch plugin %s", oid);
-      goto send_cleanup;
-    }
-
-  category = nvti_category (nvti);
-  assert (category >= ACT_INIT && category <= ACT_END);
-  name = nvti_name (nvti);
-  if (!name || strchr (name, '\n'))
-    {
-      g_warning ("Erroneous name for plugin %s", oid);
-      goto send_cleanup;
-    }
-  family = nvti_family (nvti);
-  if (!family)
-    {
-      g_warning ("Missing family for plugin %s", oid);
-      goto send_cleanup;
-    }
-
-  cve_id = nvti_refs (nvti, "cve", "", 0);
-  bid = nvti_refs (nvti, "bid", "", 0);
-  xref = nvti_refs (nvti, NULL, "bid,cve", 1);
-  tag = nvti_tag (nvti);
-  if (tag)
-    {
-      char *index = tag;
-      while (*index)
-        {
-          if (*index == '\n')
-            *index = ';';
-          index++;
-        }
-    }
-
-  send_printf (soc, "%s <|> %s <|> %d <|>  %s <|> %s <|> %s <|> %s <|> %s\n",
-               oid, name, category, family,
-               (cve_id && *cve_id) ? cve_id : "NOCVE",
-               (bid && *bid) ? bid : "NOBID", (xref && *xref) ? xref : "NOXREF",
-               (tag && *tag) ? tag : "NOTAG");
-
-  g_free (cve_id);
-  g_free (bid);
-  g_free (xref);
-
-send_cleanup:
-  nvti_free (nvti);
-}
-
-/**
  * @brief This function waits for the attack order of the client.
  * Meanwhile, it processes all the messages the client could send.
  */
