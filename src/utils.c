@@ -182,7 +182,7 @@ is_scanner_only_pref (const char *pref)
            "kb_location") // old name of db_address, ignore from old conf's
       || !strcmp (pref, "db_address") || !strcmp (pref, "negot_timeout")
       || !strcmp (pref, "force_pubkey_auth")
-      || !strcmp (pref, "log_whole_attack") || !strcmp (pref, "be_nice")
+      || !strcmp (pref, "log_whole_attack")
       || !strcmp (pref, "log_plugins_name_at_load")
       || !strcmp (pref, "nasl_no_signature_check")
       /* Preferences starting with sys_ are scanner-side only. */
