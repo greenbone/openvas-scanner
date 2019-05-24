@@ -431,7 +431,16 @@ handle_client (struct scan_globals *globals)
           exit (0);
         }
     }
+
+  /* Main scan process run with a niceness of 10 */
+  errno = 0;
+  if (nice (10) == -1 && errno != 0)
+    {
+      g_warning ("Unable to renice process: %d", errno);
+    }
+
   attack_network (globals, &net_kb);
+
   if (net_kb != NULL)
     {
       kb_delete (net_kb);
