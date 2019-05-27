@@ -1,5 +1,13 @@
 version: 2
 jobs:
+  check_format:
+    docker:
+      - image: greenbone/build-env-gvm-libs-master-debian-buster-clang-core
+    steps:
+      - checkout
+      - run:
+          name: Check Source Format
+          command: clang-format -i -style=file src/*.{c,h} misc/*.{c,h} nasl/*.{c,h} && git diff --exit-code
   build_gcc_core:
     docker:
       - image: greenbone/build-env-openvas-scanner-master-debian-stretch-gcc-core
@@ -75,6 +83,7 @@ workflows:
   version: 2
   build_and_test:
     jobs:
+      - check_format
       - build_gcc_core
       - scan_build
       - gen_xml_doc
