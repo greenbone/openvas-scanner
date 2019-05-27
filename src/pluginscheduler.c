@@ -120,7 +120,8 @@ plugin_add (plugins_scheduler_t sched, GHashTable *oids_table,
             }
           if (dep_oid)
             {
-              ret = plugin_add (sched, oids_table, names_table, autoload, dep_oid);
+              ret =
+                plugin_add (sched, oids_table, names_table, autoload, dep_oid);
               if (ret)
                 return 1;
               dep_plugin = g_hash_table_lookup (oids_table, dep_oid);
@@ -224,7 +225,7 @@ plugins_scheduler_enable (plugins_scheduler_t sched, const char *oid_list,
   if (!autoload)
     plugins_scheduler_fill_deps (sched, oids_table);
 
- error:
+error:
   g_hash_table_destroy (oids_table);
   g_hash_table_destroy (names_table);
   g_free (oids);
