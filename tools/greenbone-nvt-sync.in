@@ -502,6 +502,8 @@ do_sync_community_feed () {
 }
 
 sync_nvts(){
+  # Sleep for ten seconds to prevent IP blocking.
+  sleep 10
   if [ $ENABLED -ne 1 ]
   then
     log_write "NVT synchronization is disabled, exiting."
