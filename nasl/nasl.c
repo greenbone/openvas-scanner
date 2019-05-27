@@ -146,7 +146,7 @@ gcrypt_init ()
 }
 
 /**
- * @brief Main of the standalone nasl interpretor.
+ * @brief Main of the standalone nasl interpreter.
  * @return The number of times a NVT was launched
  *         (should be (number of targets) * (number of NVTS provided)).
  */
