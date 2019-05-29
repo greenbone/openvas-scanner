@@ -166,7 +166,7 @@ then
   stderr_write "$0 must not be executed as privileged user root"
   stderr_write
   stderr_write "Unlike the actual scanner the sync routine does not need privileges."
-  stderr_write "Accidental executation as root would prevent later overwriting of"
+  stderr_write "Accidental execution as root would prevent later overwriting of"
   stderr_write "files with a non-privileged user."
 
   log_err "Denied to run as root"
