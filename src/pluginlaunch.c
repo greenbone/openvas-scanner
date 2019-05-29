@@ -316,8 +316,8 @@ plugin_timeout (nvti_t *nvti)
   if (timeout == 0)
     {
       if (nvti_category (nvti) == ACT_SCANNER)
-        timeout = atoi (prefs_get ("scanner_plugins_timeout"))
-                   ?: SCANNER_NVT_TIMEOUT;
+        timeout =
+          atoi (prefs_get ("scanner_plugins_timeout")) ?: SCANNER_NVT_TIMEOUT;
       else
         timeout = atoi (prefs_get ("plugins_timeout")) ?: NVT_TIMEOUT;
     }
