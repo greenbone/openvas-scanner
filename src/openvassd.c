@@ -936,7 +936,6 @@ main (int argc, char *argv[])
   loading_handler_stop (handler_pid);
   if (ret)
     return 1;
-  init_signal_handlers ();
 
   exit (0);
 }
