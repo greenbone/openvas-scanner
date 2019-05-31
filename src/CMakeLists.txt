@@ -58,7 +58,7 @@ else (NOT GCRYPT)
 endif (NOT GCRYPT)
 
 add_executable (openvassd attack.c hosts.c
-                nasl_plugins.c ntp.c openvassd.c otp.c
+                nasl_plugins.c ntp.c openvassd.c
                 pluginlaunch.c pluginload.c
                 pluginscheduler.c plugs_req.c
                 processes.c sighand.c utils.c)
@@ -161,7 +161,7 @@ add_dependencies (check cppcheck)
 ## Tag files
 
 set (C_FILES "attack.c" "hosts.c"
-     "nasl_plugins.c" "ntp.c" "openvassd.c" "otp.c"
+     "nasl_plugins.c" "ntp.c" "openvassd.c"
      "pluginlaunch.c" "pluginload.c"
      "pluginscheduler.c" "plugs_req.c"
      "processes.c" "sighand.c" "utils.c")

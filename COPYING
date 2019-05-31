@@ -25,8 +25,6 @@ src/nasl_plugins.c: GPL-2
 src/ntp.c: GPL-2
 src/ntp.h: GPL-2
 src/openvassd.c: GPL-2
-src/otp.c: GPL-2+
-src/otp.h: GPL-2+
 src/pluginlaunch.c: GPL-2
 src/pluginlaunch.h: GPL-2
 src/pluginload.c: GPL-2
