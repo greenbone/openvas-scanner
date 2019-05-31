@@ -826,17 +826,6 @@ init_openvassd (const char *config_file)
   return 0;
 }
 
-static void
-set_daemon_mode ()
-{
-  if (fork ())
-    { /* Parent. */
-      log_config_free ();
-      exit (0);
-    }
-  setsid ();
-}
-
 static int
 flush_all_kbs ()
 {
@@ -911,7 +900,6 @@ main (int argc, char *argv[])
   gcrypt_init ();
 
   static gboolean display_version = FALSE;
-  static gboolean dont_fork = FALSE;
   static gchar *config_file = NULL;
   static gchar *vendor_version_string = NULL;
   static gchar *listen_owner = NULL;
@@ -926,8 +914,6 @@ main (int argc, char *argv[])
   static GOptionEntry entries[] = {
     {"version", 'V', 0, G_OPTION_ARG_NONE, &display_version,
      "Display version information", NULL},
-    {"foreground", 'f', 0, G_OPTION_ARG_NONE, &dont_fork,
-     "Do not run in daemon mode but stay in foreground", NULL},
     {"config-file", 'c', 0, G_OPTION_ARG_FILENAME, &config_file,
      "Configuration file", "<filename>"},
     {"vendor-version", '\0', 0, G_OPTION_ARG_STRING, &vendor_version_string,
@@ -1039,9 +1025,6 @@ main (int argc, char *argv[])
     g_message ("Could not initialize openvas SSL!");
 #endif
 
-  // Daemon mode:
-  if (dont_fork == FALSE)
-    set_daemon_mode ();
   pidfile_create ("openvassd");
 
   /* Ignore SIGHUP while reloading. */

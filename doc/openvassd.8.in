@@ -1,4 +1,4 @@
-.TH OpenVASSD 8 "January 2011" "Greenbone Vulnerability Management" "User Manuals"
+.TH OpenVASSD 8 "June 2019" "Greenbone Vulnerability Management" "User Manuals"
 .SH NAME
 openvassd \- The Scanner of the Greenbone Vulnerability Management
 .SH SYNOPSIS
@@ -24,10 +24,6 @@ by default (unless you specify \-f as an option).
 .BI "-c " <config-file> ", --config-file=" <config-file>
 Use the alternate configuration file instead of 
 .I @OPENVASSD_CONF@
-
-.TP 
-.B "-f, --foreground"
-Make the scanner stay in foreground (non-daemon mode)
 
 .TP 
 .B "-v, --version"
