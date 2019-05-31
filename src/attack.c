@@ -949,7 +949,6 @@ attack_network (struct scan_globals *globals, kb_t *network_kb)
   int max_hosts = 0, max_checks;
   const char *hostlist;
   gvm_host_t *host;
-  int global_socket = -1;
   plugins_scheduler_t sched;
   int fork_retries = 0;
   GHashTable *files;
@@ -996,7 +995,6 @@ attack_network (struct scan_globals *globals, kb_t *network_kb)
   else
     network_kb = NULL;
 
-  global_socket = globals->global_socket;
   if (check_kb_access ())
     return;
 
@@ -1078,7 +1076,7 @@ attack_network (struct scan_globals *globals, kb_t *network_kb)
   host = gvm_hosts_next (hosts);
   if (host == NULL)
     goto stop;
-  hosts_init (global_socket, max_hosts);
+  hosts_init (max_hosts);
   /*
    * Start the attack !
    */

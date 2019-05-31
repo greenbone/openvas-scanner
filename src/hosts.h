@@ -29,7 +29,7 @@
 #include "../misc/scanneraux.h"
 
 int
-hosts_init (int, int);
+hosts_init (int);
 
 int
 hosts_new (char *, kb_t);

@@ -56,7 +56,6 @@ struct host
  *        as a g_hash_table (name -> [soc,pid]), see hosts_get.*/
 
 static struct host *hosts = NULL;
-static int g_soc = -1;
 static int g_max_hosts = 15;
 
 /*-------------------------------------------------------------------*/
@@ -134,9 +133,8 @@ hosts_get (char *name)
 }
 
 int
-hosts_init (int soc, int max_hosts)
+hosts_init (int max_hosts)
 {
-  g_soc = soc;
   g_max_hosts = max_hosts;
   return 0;
 }
