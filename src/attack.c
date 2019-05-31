@@ -29,7 +29,6 @@
 #include "../misc/nvt_categories.h" /* for ACT_INIT */
 #include "../misc/pcap_openvas.h"   /* for v6_is_local_ip */
 #include "../nasl/nasl_debug.h"     /* for nasl_*_filename */
-#include "comm.h"
 #include "hosts.h"
 #include "pluginlaunch.h"
 #include "pluginload.h"

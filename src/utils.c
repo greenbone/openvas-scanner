@@ -26,8 +26,6 @@
 #include "utils.h"
 
 #include "../misc/network.h" /* for stream_zero */
-#include "comm.h"
-#include "ntp.h"
 #include "pluginscheduler.h"
 
 #include <errno.h>          /* for errno() */

@@ -26,7 +26,6 @@
 #include "ntp.h"
 
 #include "../misc/network.h" /* for recv_line */
-#include "comm.h"
 #include "hosts.h"
 #include "otp.h"
 #include "utils.h"
