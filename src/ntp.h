@@ -26,10 +26,7 @@
 #ifndef _OPENVAS_NTP_H
 #define _OPENVAS_NTP_H
 
-#include "../misc/scanneraux.h"
-
-int
-ntp_parse_input (struct scan_globals *, char *);
+#include <gvm/util/kb.h>
 
 int
 ntp_timestamp_host_scan_starts (kb_t);
@@ -37,9 +34,4 @@ ntp_timestamp_host_scan_starts (kb_t);
 int
 ntp_timestamp_host_scan_ends (kb_t);
 
-int
-ntp_timestamp_scan_starts (int);
-
-int
-ntp_timestamp_scan_ends (int);
 #endif
