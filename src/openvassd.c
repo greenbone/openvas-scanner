@@ -41,7 +41,6 @@
 #include "pluginlaunch.h"          /* for init_loading_shm */
 #include "processes.h"             /* for create_process */
 #include "sighand.h"               /* for openvas_signal */
-#include "utils.h"                 /* for set_scan_type */
 
 #include <errno.h>  /* for errno() */
 #include <fcntl.h>  /* for open() */
@@ -622,8 +621,6 @@ start_single_task_scan ()
 
   globals = g_malloc0 (sizeof (struct scan_globals));
 
-  /* Set scan type 1:OTP, 0:OSP */
-  set_scan_type (0);
   scanner_thread (globals);
   exit (0);
 }
