@@ -381,7 +381,7 @@ __ntp_timestamp_scan (int soc, char *msg)
 }
 
 static int
-__ntp_timestamp_scan_host (int soc, kb_t kb, char *msg, char *host)
+__ntp_timestamp_scan_host (kb_t kb, char *msg)
 {
   char timestr[1024];
   char *tmp;
@@ -396,10 +396,6 @@ __ntp_timestamp_scan_host (int soc, kb_t kb, char *msg, char *host)
   if (timestr[len - 1] == '\n')
     timestr[len - 1] = '\0';
 
-  /* Send the message to the client only if it is a OTP scan. */
-  if (is_otp_scan ())
-    send_printf (soc, "SERVER <|> TIME <|> %s <|> %s <|> %s <|> SERVER\n", msg,
-                 host, timestr);
   /* For external tools */
   if (!strcmp (msg, "HOST_START"))
     kb_item_push_str (kb, "internal/start_time", timestr);
@@ -422,13 +418,13 @@ ntp_timestamp_scan_ends (int soc)
 }
 
 int
-ntp_timestamp_host_scan_starts (int soc, kb_t kb, char *host)
+ntp_timestamp_host_scan_starts (kb_t kb)
 {
-  return __ntp_timestamp_scan_host (soc, kb, "HOST_START", host);
+  return __ntp_timestamp_scan_host (kb, "HOST_START");
 }
 
 int
-ntp_timestamp_host_scan_ends (int soc, kb_t kb, char *host)
+ntp_timestamp_host_scan_ends (kb_t kb)
 {
-  return __ntp_timestamp_scan_host (soc, kb, "HOST_END", host);
+  return __ntp_timestamp_scan_host (kb, "HOST_END");
 }

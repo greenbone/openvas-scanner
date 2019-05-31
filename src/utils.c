@@ -46,16 +46,6 @@ extern int global_max_checks;
 #define G_LOG_DOMAIN "sd   main"
 
 /**
- * @brief Check the scan type
- * @return 1 if OTP type, 0 if OSP.
- */
-int
-is_otp_scan ()
-{
-  return 0;
-}
-
-/**
  * Get the max number of hosts to test at the same time.
  */
 int

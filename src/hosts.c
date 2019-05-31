@@ -60,85 +60,6 @@ static struct host *hosts = NULL;
 static int g_soc = -1;
 static int g_max_hosts = 15;
 
-/*-------------------------------------------------------------------------*/
-
-static int
-send_to_client (int out, char *buf)
-{
-  int n, len = strlen (buf);
-
-  assert (out);
-  for (n = 0; n < len;)
-    {
-      int e;
-      e = nsend (out, buf + n, len - n, 0);
-      if (e < 0 && errno == EINTR)
-        continue;
-      else if (e < 0)
-        return -1;
-      else
-        n += e;
-    }
-  return 0;
-}
-
-static int
-forward_status (struct host *h, int out)
-{
-  char *status = NULL, *buf = NULL;
-
-  /* Send the message to the client only if it is a OTP scan. */
-  if (!is_otp_scan ())
-    return 0;
-
-  status = kb_item_pop_str (h->host_kb, "internal/status");
-  if (!status)
-    return 0;
-  buf = g_strdup_printf ("SERVER <|> STATUS <|> %s <|> %s <|> SERVER\n", h->ip,
-                         status);
-  g_free (status);
-  if (send_to_client (out, buf) < 0)
-    {
-      g_free (buf);
-      return -1;
-    }
-  g_free (buf);
-  return 0;
-}
-
-static int
-forward (struct host *h, int out)
-{
-  /* Send the message to the client only if it is a OTP scan. */
-  if (!is_otp_scan ())
-    return 0;
-
-  forward_status (h, out);
-  while (1)
-    {
-      char **values, *buf = kb_item_pop_str (h->host_kb, "internal/results");
-      if (!buf)
-        return 0;
-
-      /* Type|||Hostname|||Port/Proto|||OID|||Message */
-      values = g_strsplit (buf, "|||", 5);
-      assert (values && values[0] && !values[5]);
-      g_free (buf);
-      /* OTP: Type <|> IP <|> Hostname <|> Port/Proto <|> Message <|> OID */
-      buf = g_strdup_printf (
-        "SERVER <|> %s <|> %s <|> %s <|> %s <|> %s <|> %s <|> SERVER\n",
-        values[0], h->ip, values[1], values[2], values[4], values[3]);
-      if (send_to_client (out, buf) < 0)
-        {
-          g_free (buf);
-          return -1;
-        }
-      g_free (buf);
-    }
-
-  return 1;
-}
-
 /*-------------------------------------------------------------------*/
 extern int global_scan_stop;
 
@@ -148,18 +69,13 @@ host_rm (struct host *h)
   if (h->pid != 0)
     waitpid (h->pid, NULL, WNOHANG);
 
-  while (forward (h, g_soc) > 0)
-    ;
   if (!global_scan_stop)
-    ntp_timestamp_host_scan_ends (g_soc, h->host_kb, h->ip);
+    ntp_timestamp_host_scan_ends (h->host_kb);
   if (h->next != NULL)
     h->next->prev = h->prev;
 
   if (h->prev != NULL)
     h->prev->next = h->next;
-
-  if (is_otp_scan () || global_scan_stop == 1)
-    kb_delete (h->host_kb);
 
   g_free (h->name);
   g_free (h->ip);
@@ -208,13 +124,13 @@ hosts_init (int soc, int max_hosts)
 }
 
 int
-hosts_new (struct scan_globals *globals, char *name, kb_t kb)
+hosts_new (char *name, kb_t kb)
 {
   struct host *h;
 
   while (hosts_num () >= g_max_hosts)
     {
-      if (hosts_read (globals) < 0)
+      if (hosts_read () < 0)
         return -1;
     }
   if (global_scan_stop)
@@ -290,11 +206,10 @@ hosts_read_data (void)
           /* Scan started. */
           h->ip = kb_item_get_str (h->host_kb, "internal/ip");
           if (h->ip)
-            ntp_timestamp_host_scan_starts (g_soc, h->host_kb, h->ip);
+            ntp_timestamp_host_scan_starts (h->host_kb);
         }
       if (h->ip)
         {
-          forward (h, g_soc);
           if (kill (h->pid, 0) < 0) /* Process is dead */
             {
               if (!h->prev)
@@ -310,62 +225,12 @@ hosts_read_data (void)
 }
 
 /**
- * Returns -1 if no socket, error or client asked to stop tests, 0 otherwise.
- */
-static int
-hosts_read_client (struct scan_globals *globals)
-{
-  struct timeval tv;
-  int e = 0;
-  fd_set rd;
-
-  if (g_soc == -1)
-    return 0;
-
-  FD_ZERO (&rd);
-  FD_SET (g_soc, &rd);
-
-  for (;;)
-    {
-      tv.tv_sec = 0;
-      tv.tv_usec = 1000;
-      e = select (g_soc + 1, &rd, NULL, NULL, &tv);
-      if (e < 0 && errno == EINTR)
-        continue;
-      else
-        break;
-    }
-
-  if (e > 0 && FD_ISSET (g_soc, &rd) != 0)
-    {
-      int result;
-      char buf[4096];
-
-      result = recv_line (g_soc, buf, sizeof (buf) - 1);
-      if (result <= 0)
-        return -1;
-      result = ntp_parse_input (globals, buf);
-      if (result == -1)
-        return -1;
-    }
-
-  return 0;
-}
-
-/**
  * @brief Returns -1 if client asked to stop all tests or connection was lost or
  * error. 0 otherwise.
  */
 int
-hosts_read (struct scan_globals *globals)
+hosts_read (void)
 {
-  if (hosts_read_client (globals) < 0 && is_otp_scan ())
-    {
-      hosts_stop_all ();
-      g_debug ("Client abruptly closed the communication");
-      return -1;
-    }
-
   if (hosts == NULL)
     return -1;
 
