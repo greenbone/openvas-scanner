@@ -832,14 +832,6 @@ main (int argc, char *argv[])
      "Print system configuration directory (set at compile time)", NULL},
     {"update-vt-info", 'u', 0, G_OPTION_ARG_NONE, &update_vt_info,
      "Updates VT info into redis store from VT files", NULL},
-    {"unix-socket", 'c', 0, G_OPTION_ARG_FILENAME, &unix_socket_path,
-     "Path of unix socket to listen on", "<filename>"},
-    {"listen-owner", '\0', 0, G_OPTION_ARG_STRING, &listen_owner,
-     "Owner of the unix socket", "<string>"},
-    {"listen-group", '\0', 0, G_OPTION_ARG_STRING, &listen_group,
-     "Group of the unix socket", "<string>"},
-    {"listen-mode", '\0', 0, G_OPTION_ARG_STRING, &listen_mode,
-     "File mode of the unix socket", "<string>"},
     {"scan-start", '\0', 0, G_OPTION_ARG_STRING, &scan_id,
      "ID for this scan task", "<string>"},
     {NULL, 0, 0, 0, NULL, NULL, NULL}};
@@ -868,9 +860,8 @@ main (int argc, char *argv[])
     }
   tzset ();
 
-  if (!unix_socket_path)
-    unix_socket_path =
-      g_build_filename (OPENVAS_RUN_DIR, "openvassd.sock", NULL);
+  unix_socket_path =
+    g_build_filename (OPENVAS_RUN_DIR, "openvassd.sock", NULL);
 
   if (display_version)
     {
