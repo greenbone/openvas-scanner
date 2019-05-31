@@ -36,7 +36,6 @@
 #include "../misc/plugutils.h"     /* nvticache_free */
 #include "../misc/vendorversion.h" /* for vendor_version_set */
 #include "attack.h"                /* for attack_network */
-#include "comm.h"                  /* for comm_loading */
 #include "pluginlaunch.h"          /* for init_loading_shm */
 #include "processes.h"             /* for create_process */
 #include "sighand.h"               /* for openvas_signal */
@@ -92,8 +91,6 @@ int global_max_checks = 10;
  * @brief Logging parameters, as passed to setup_log_handlers.
  */
 GSList *log_config = NULL;
-
-static int global_iana_socket = -1;
 
 static volatile int loading_stop_signal = 0;
 static volatile int termination_signal = 0;
@@ -167,120 +164,6 @@ handle_termination_signal (int sig)
   termination_signal = sig;
 }
 
-/*
- * @brief Handles a client request when the scanner is still loading.
- *
- * @param[in]   soc Client socket to send and receive from.
- */
-static void
-loading_client_handle (int soc)
-{
-  int opt = 1;
-  if (soc <= 0)
-    return;
-
-  if (setsockopt (soc, SOL_SOCKET, SO_KEEPALIVE, &opt, sizeof (opt)) < 0)
-    g_warning ("setsockopt: %s", strerror (errno));
-  comm_loading (soc);
-}
-
-/*
- * @brief Handles term signal received by loading handler child process.
- */
-static void
-handle_loading_stop_signal (int sig)
-{
-  loading_stop_signal = sig;
-}
-
-static int
-get_client_timedout (int sockfd, struct sockaddr *addr, socklen_t lg_address,
-                     struct timeval *timeout)
-{
-  int ret;
-  fd_set set;
-
-  FD_ZERO (&set);
-  FD_SET (sockfd, &set);
-  ret = select (sockfd + 1, &set, NULL, NULL, timeout);
-  if (ret <= 0) /* error or timeout. */
-    return -1;
-  return accept (global_iana_socket, addr, &lg_address);
-}
-
-/*
- * @brief Starts a process to handle client requests while the scanner is
- * loading.
- *
- * @return process id of loading handler.
- */
-static pid_t
-loading_handler_start ()
-{
-  pid_t child_pid, parent_pid;
-
-  init_loading_shm ();
-  parent_pid = getpid ();
-  child_pid = fork ();
-  if (child_pid != 0)
-    return child_pid;
-
-  proctitle_set (PROCTITLE_WAITING);
-  openvas_signal (SIGTERM, handle_loading_stop_signal);
-
-  if (listen (global_iana_socket, 5) < 0)
-    {
-      g_warning ("%s: Error on listen(): %s", __FUNCTION__, strerror (errno));
-      exit (1);
-    }
-
-  /*
-   * Forked process will handle client requests until parent dies or stops it
-   * with loading_handler_stop ().
-   */
-  while (1)
-    {
-      struct sockaddr_un address;
-      int soc;
-      struct timeval timeout;
-      pid_t child_pid1;
-
-      if (loading_stop_signal || kill (parent_pid, 0) < 0)
-        break;
-
-      timeout.tv_sec = 0;
-      timeout.tv_usec = 500000;
-      soc =
-        get_client_timedout (global_iana_socket, (struct sockaddr *) &address,
-                             sizeof (address), &timeout);
-      if (soc == -1)
-        continue;
-
-      child_pid1 = fork ();
-      if (child_pid1 == 0)
-        {
-          loading_client_handle (soc);
-          shutdown (soc, 2);
-          close (soc);
-          exit (0);
-        }
-      waitpid (child_pid1, NULL, WNOHANG);
-    }
-  exit (0);
-}
-
-/*
- * @brief Stops the loading handler process.
- *
- * @param[in]   handler_pid Pid of loading handler.
- */
-void
-loading_handler_stop (pid_t handler_pid)
-{
-  terminate_process (handler_pid);
-  destroy_loading_shm ();
-}
-
 /**
  * @brief Initializes main scanner process' signal handlers.
  */
@@ -300,7 +183,6 @@ reload_openvassd ()
 {
   static gchar *rc_name = NULL;
   const char *config_file;
-  pid_t handler_pid;
   int i, ret;
 
   /* Ignore SIGHUP while reloading. */
@@ -315,9 +197,6 @@ reload_openvassd ()
   setup_log_handlers (log_config);
   g_message ("Reloading the scanner.\n");
 
-  handler_pid = loading_handler_start ();
-  if (handler_pid < 0)
-    return;
   /* Reload config file. */
   config_file = prefs_get ("config_file");
   for (i = 0; openvassd_defaults[i].option != NULL; i++)
@@ -327,7 +206,6 @@ reload_openvassd ()
   /* Reload the plugins */
   ret = plugins_init ();
   set_globals_from_preferences ();
-  loading_handler_stop (handler_pid);
 
   g_message ("Finished reloading the scanner.");
   openvas_signal (SIGHUP, handle_reload_signal);
@@ -633,7 +511,6 @@ int
 main (int argc, char *argv[])
 {
   int ret;
-  pid_t handler_pid;
 
   proctitle_init (argc, argv);
   gcrypt_init ();
@@ -750,11 +627,7 @@ main (int argc, char *argv[])
   /* Ignore SIGHUP while reloading. */
   openvas_signal (SIGHUP, SIG_IGN);
 
-  handler_pid = loading_handler_start ();
-  if (handler_pid < 0)
-    return 1;
   ret = plugins_init ();
-  loading_handler_stop (handler_pid);
   if (ret)
     return 1;
 
