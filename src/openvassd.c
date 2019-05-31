@@ -846,23 +846,14 @@ main (int argc, char *argv[])
     }
   g_option_context_free (option_context);
 
+  /* --sysconfdir */
   if (print_sysconfdir)
     {
       g_print ("%s\n", SYSCONFDIR);
       exit (0);
     }
 
-  /* Switch to UTC so that OTP times are always in UTC. */
-  if (setenv ("TZ", "utc 0", 1) == -1)
-    {
-      g_print ("%s\n\n", strerror (errno));
-      exit (0);
-    }
-  tzset ();
-
-  unix_socket_path =
-    g_build_filename (OPENVAS_RUN_DIR, "openvassd.sock", NULL);
-
+  /* --version */
   if (display_version)
     {
       printf ("OpenVAS Scanner %s\n", OPENVASSD_VERSION);
@@ -878,6 +869,17 @@ main (int argc, char *argv[])
         "There is NO WARRANTY, to the extent permitted by law.\n\n");
       exit (0);
     }
+
+  /* Switch to UTC so that OTP times are always in UTC. */
+  if (setenv ("TZ", "utc 0", 1) == -1)
+    {
+      g_print ("%s\n\n", strerror (errno));
+      exit (0);
+    }
+  tzset ();
+
+  unix_socket_path =
+    g_build_filename (OPENVAS_RUN_DIR, "openvassd.sock", NULL);
 
   if (vendor_version_string)
     vendor_version_set (vendor_version_string);
