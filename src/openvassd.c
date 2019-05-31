@@ -41,7 +41,7 @@
 #include "pluginlaunch.h"          /* for init_loading_shm */
 #include "processes.h"             /* for create_process */
 #include "sighand.h"               /* for openvas_signal */
-#include "utils.h"                 /* for wait_for_children1 */
+#include "utils.h"                 /* for is_otp_scan */
 
 #include <errno.h>  /* for errno() */
 #include <fcntl.h>  /* for open() */
@@ -214,12 +214,6 @@ static void
 handle_loading_stop_signal (int sig)
 {
   loading_stop_signal = sig;
-}
-
-static void
-remove_pidfile ()
-{
-  pidfile_remove ("openvassd");
 }
 
 static int
@@ -489,43 +483,6 @@ shutdown_and_exit:
 }
 
 /**
- * @brief Free logging configuration.
- */
-static void
-log_config_free ()
-{
-  free_log_configuration (log_config);
-  log_config = NULL;
-}
-
-/*
- * @brief Terminates the scanner if a termination signal was received.
- */
-static void
-check_termination ()
-{
-  if (termination_signal)
-    {
-      g_debug ("Received the %s signal", strsignal (termination_signal));
-      if (log_config)
-        log_config_free ();
-      remove_pidfile ();
-      make_em_die (SIGTERM);
-      _exit (0);
-    }
-}
-
-/*
- * @brief Reloads the scanner if a reload was requested or the feed was updated.
- */
-static void
-check_reload ()
-{
-  if (nvticache_check_feed ())
-    reload_openvassd ();
-}
-
-/**
  * @brief Get the pid and ppid from /proc to find the running scan pids.
  *        Send SIGUSR2 kill signal to all running scans to stop them.
  */
@@ -653,53 +610,6 @@ check_kb_status ()
       g_message ("Redis connection error. Stopping all the running scans.");
       stop_all_scans ();
       reload_openvassd ();
-    }
-}
-
-static void
-main_loop ()
-{
-#ifdef OPENVASSD_GIT_REVISION
-  g_message ("openvassd %s (GIT revision %s) started", OPENVASSD_VERSION,
-             OPENVASSD_GIT_REVISION);
-#else
-  g_message ("openvassd %s started", OPENVASSD_VERSION);
-#endif
-  proctitle_set (PROCTITLE_WAITING);
-  for (;;)
-    {
-      int soc;
-      struct sockaddr_un address;
-      struct scan_globals *globals;
-      struct timeval timeout;
-
-      check_termination ();
-      wait_for_children1 ();
-
-      timeout.tv_sec = 10;
-      timeout.tv_usec = 0;
-      soc =
-        get_client_timedout (global_iana_socket, (struct sockaddr *) &address,
-                             sizeof (address), &timeout);
-      check_kb_status ();
-      if (soc == -1)
-        {
-          check_reload ();
-          continue;
-        }
-
-      globals = g_malloc0 (sizeof (struct scan_globals));
-      globals->global_socket = soc;
-      /* Set scan type 1:OTP, 0:OSP */
-      set_scan_type (1);
-
-      if (create_process ((process_func_t) scanner_thread, globals) < 0)
-        {
-          g_debug ("Could not fork - client won't be served");
-          sleep (2);
-        }
-      close (soc);
-      g_free (globals);
     }
 }
 
@@ -1038,6 +948,6 @@ main (int argc, char *argv[])
   if (ret)
     return 1;
   init_signal_handlers ();
-  main_loop ();
+
   exit (0);
 }
