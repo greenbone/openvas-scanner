@@ -613,103 +613,6 @@ check_kb_status ()
 }
 
 /**
- * Initialization of the network in unix socket case:
- * we setup the socket that will listen for incoming connections on
- * unix_socket_path.
- *
- * @param[out] sock Socket to be initialized.
- *
- * @return 0 on success. -1 on failure.
- */
-static int
-init_unix_network (int *sock, const char *owner, const char *group,
-                   const char *mode)
-{
-  struct sockaddr_un addr;
-  struct stat ustat;
-  int unix_socket;
-  mode_t omode;
-
-  unix_socket = socket (AF_UNIX, SOCK_STREAM, 0);
-  if (unix_socket == -1)
-    {
-      g_debug ("%s: Couldn't create UNIX socket", __FUNCTION__);
-      return -1;
-    }
-  addr.sun_family = AF_UNIX;
-  strncpy (addr.sun_path, unix_socket_path, sizeof (addr.sun_path) - 1);
-  if (!stat (addr.sun_path, &ustat))
-    {
-      /* Remove socket so we can bind(). */
-      unlink (addr.sun_path);
-    }
-  if (bind (unix_socket, (struct sockaddr *) &addr, sizeof (struct sockaddr_un))
-      == -1)
-    {
-      g_debug ("%s: Error on bind(%s): %s", __FUNCTION__, unix_socket_path,
-               strerror (errno));
-      goto init_unix_err;
-    }
-
-  if (owner)
-    {
-      struct passwd *pwd = getpwnam (owner);
-      if (!pwd)
-        {
-          g_debug ("%s: User %s not found.", __FUNCTION__, owner);
-          goto init_unix_err;
-        }
-      if (chown (unix_socket_path, pwd->pw_uid, -1) == -1)
-        {
-          g_debug ("%s: chown: %s", __FUNCTION__, strerror (errno));
-          goto init_unix_err;
-        }
-    }
-
-  if (group)
-    {
-      struct group *grp = getgrnam (group);
-      if (!grp)
-        {
-          g_debug ("%s: Group %s not found.", __FUNCTION__, group);
-          goto init_unix_err;
-        }
-      if (chown (unix_socket_path, -1, grp->gr_gid) == -1)
-        {
-          g_debug ("%s: chown: %s", __FUNCTION__, strerror (errno));
-          goto init_unix_err;
-        }
-    }
-
-  if (!mode)
-    mode = "660";
-  omode = strtol (mode, 0, 8);
-  if (omode <= 0 || omode > 4095)
-    {
-      g_debug ("%s: Erroneous liste-mode value", __FUNCTION__);
-      goto init_unix_err;
-    }
-  if (chmod (unix_socket_path, strtol (mode, 0, 8)) == -1)
-    {
-      g_debug ("%s: chmod: %s", __FUNCTION__, strerror (errno));
-      goto init_unix_err;
-    }
-
-  if (listen (unix_socket, 128) == -1)
-    {
-      g_debug ("%s: Error on listen(): %s", __FUNCTION__, strerror (errno));
-      goto init_unix_err;
-    }
-
-  *sock = unix_socket;
-  return 0;
-
-init_unix_err:
-  close (unix_socket);
-  return -1;
-}
-
-/**
  * @brief Initialize everything.
  *
  * @param config_file Path to config file for initialization
@@ -810,9 +713,6 @@ main (int argc, char *argv[])
   static gboolean display_version = FALSE;
   static gchar *config_file = NULL;
   static gchar *vendor_version_string = NULL;
-  static gchar *listen_owner = NULL;
-  static gchar *listen_group = NULL;
-  static gchar *listen_mode = NULL;
   static gchar *scan_id = NULL;
   static gboolean print_specs = FALSE;
   static gboolean print_sysconfdir = FALSE;
@@ -903,13 +803,6 @@ main (int argc, char *argv[])
       global_scan_id = g_strdup (scan_id);
       start_single_task_scan ();
       exit (0);
-    }
-
-  if (!print_specs)
-    {
-      if (init_unix_network (&global_iana_socket, listen_owner, listen_group,
-                             listen_mode))
-        return 1;
     }
 
   /* special treatment */
