@@ -816,7 +816,7 @@ main (int argc, char *argv[])
   static gchar *scan_id = NULL;
   static gboolean print_specs = FALSE;
   static gboolean print_sysconfdir = FALSE;
-  static gboolean only_cache = FALSE;
+  static gboolean update_vt_info = FALSE;
   GError *error = NULL;
   GOptionContext *option_context;
   static GOptionEntry entries[] = {
@@ -830,8 +830,8 @@ main (int argc, char *argv[])
      "Print configuration settings", NULL},
     {"sysconfdir", 'y', 0, G_OPTION_ARG_NONE, &print_sysconfdir,
      "Print system configuration directory (set at compile time)", NULL},
-    {"only-cache", 'C', 0, G_OPTION_ARG_NONE, &only_cache,
-     "Exit once the NVT cache has been initialized or updated", NULL},
+    {"update-vt-info", 'u', 0, G_OPTION_ARG_NONE, &update_vt_info,
+     "Updates VT info into redis store from VT files", NULL},
     {"unix-socket", 'c', 0, G_OPTION_ARG_FILENAME, &unix_socket_path,
      "Path of unix socket to listen on", "<filename>"},
     {"listen-owner", '\0', 0, G_OPTION_ARG_STRING, &listen_owner,
@@ -893,7 +893,7 @@ main (int argc, char *argv[])
 
   if (!config_file)
     config_file = OPENVASSD_CONF;
-  if (only_cache)
+  if (update_vt_info)
     {
       if (init_openvassd (config_file))
         return 1;
