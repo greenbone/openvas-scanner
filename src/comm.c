@@ -24,13 +24,13 @@
  * and 1.1.
  */
 
-#include "ntp.h"                /* for ntp_parse_input() */
-#include "pluginload.h"         /* for current_loading_plugins() */
-#include "utils.h"              /* for send_printf() */
+#include "ntp.h"        /* for ntp_parse_input() */
+#include "pluginload.h" /* for current_loading_plugins() */
+#include "utils.h"      /* for send_printf() */
 
-#include <errno.h>              /* for errno */
-#include <stdio.h>              /* for FILE */
-#include <string.h>             /* for strncmp() */
+#include <errno.h>  /* for errno */
+#include <stdio.h>  /* for FILE */
+#include <string.h> /* for strncmp() */
 
 #undef G_LOG_DOMAIN
 /**
