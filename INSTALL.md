@@ -109,10 +109,10 @@ Setting up openvas-scanner
 Setting up an openvas-scanner requires the following steps:
 
 1. (optional) You may decide to change the default scanner preferences
-   by setting them in the file `$prefix/etc/openvassd.conf`. If that file does
+   by setting them in the file `$prefix/etc/openvas.conf`. If that file does
    not exist (default), then the default settings are used. You can view
-   them with `openvassd -s`. The output of that command is a valid configuration
-   file. The man page (`man openvassd`) provides details about the available
+   them with `openvas -s`. The output of that command is a valid configuration
+   file. The man page (`man openvas`) provides details about the available
    settings, among these opportunities to restrict access of scanner regarding
    scan targets and interfaces.
 
@@ -155,16 +155,16 @@ Setting up an openvas-scanner requires the following steps:
 
 4. You can launch openvas-scanner using the following command:
 
-       openvassd
+       openvas
 
    Sending `SIGHUP` to the scanner main process will initiate a reload of the
    feed content and of the scanner preferences. This will not affect running
    scans.
 
-   Please note that although you can start `openvassd` as a user without elevated
-   privileges, it is recommended that you start `openvassd` as `root` since a number
+   Please note that although you can start `openvas` as a user without elevated
+   privileges, it is recommended that you start `openvas` as `root` since a number
    of Network Vulnerability Tests (NVTs) require root privileges to perform
-   certain operations like packet forgery. If you run `openvassd` as a user
+   certain operations like packet forgery. If you run `openvas` as a user
    without permission to perform these operations, your scan results are likely
    to be incomplete.
 
@@ -177,7 +177,7 @@ Logging Configuration
 
 If you encounter problems, by default the scanner writes logs to the file
 
-    <install-prefix>/var/log/gvm/openvassd.log
+    <install-prefix>/var/log/gvm/openvas.log
 
 It may contain useful information.The exact location of this file may differ
 depending on your distribution and installation method. Please have this file
@@ -188,14 +188,14 @@ pinpoint the source of your issue.
 
 Logging is configured entirely by the file
 
-    <install-prefix>/etc/openvas/openvassd_log.conf
+    <install-prefix>/etc/openvas/openvas_log.conf
 
 The configuration is divided into domains like this one
 
     [sd   main]
     prepend=%t %p
     prepend_time_format=%Y-%m-%d %Hh%M.%S %Z
-    file=/var/log/gvm/openvassd.log
+    file=/var/log/gvm/openvas.log
     level=128
 
 The `level` field controls the amount of logging that is written.

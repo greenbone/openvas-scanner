@@ -64,7 +64,7 @@ get_max_hosts_number (void)
       else if (max_hosts > global_max_hosts)
         {
           g_debug ("Client tried to raise the maximum hosts number - %d."
-                   " Using %d. Change 'max_hosts' in openvassd.conf if you"
+                   " Using %d. Change 'max_hosts' in openvas.conf if you"
                    " believe this is incorrect",
                    max_hosts, global_max_hosts);
           max_hosts = global_max_hosts;
@@ -95,7 +95,7 @@ get_max_checks_number (void)
       else if (max_checks > global_max_checks)
         {
           g_debug ("Client tried to raise the maximum checks number - %d."
-                   " Using %d. Change 'max_checks' in openvassd.conf if you"
+                   " Using %d. Change 'max_checks' in openvas.conf if you"
                    " believe this is incorrect",
                    max_checks, global_max_checks);
           max_checks = global_max_checks;

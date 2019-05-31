@@ -92,9 +92,9 @@ endif (NOT CMAKE_BUILD_TYPE MATCHES "Release")
 
 set (CMAKE_C_FLAGS_DEBUG        "${CMAKE_C_FLAGS_DEBUG} -Werror -Wextra")
 
-if (OPENVASSD_VERSION)
-  add_definitions (-DOPENVASSD_VERSION="${OPENVASSD_VERSION}")
-endif (OPENVASSD_VERSION)
+if (OPENVAS_VERSION)
+  add_definitions (-DOPENVAS_VERSION="${OPENVAS_VERSION}")
+endif (OPENVAS_VERSION)
 
 add_definitions (-DPREFIX="${CMAKE_INSTALL_PREFIX}")
 
@@ -102,9 +102,9 @@ if (OPENVAS_NVT_DIR)
   add_definitions (-DOPENVAS_NVT_DIR="${OPENVAS_NVT_DIR}")
 endif (OPENVAS_NVT_DIR)
 
-if (OPENVASSD_CONF)
-  add_definitions (-DOPENVASSD_CONF="${OPENVASSD_CONF}")
-endif (OPENVASSD_CONF)
+if (OPENVAS_CONF)
+  add_definitions (-DOPENVAS_CONF="${OPENVAS_CONF}")
+endif (OPENVAS_CONF)
 
 if (OPENVAS_STATE_DIR)
   add_definitions (-DOPENVAS_STATE_DIR="${OPENVAS_STATE_DIR}")
@@ -179,7 +179,7 @@ install (TARGETS openvas
          PERMISSIONS OWNER_EXECUTE OWNER_READ OWNER_WRITE
          GROUP_READ GROUP_EXECUTE WORLD_READ WORLD_EXECUTE)
 
-install (FILES ${CMAKE_BINARY_DIR}/src/openvassd_log.conf
+install (FILES ${CMAKE_BINARY_DIR}/src/openvas_log.conf
          DESTINATION ${OPENVAS_SYSCONF_DIR})
 
 install (FILES ${CMAKE_BINARY_DIR}/tools/greenbone-nvt-sync

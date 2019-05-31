@@ -23,7 +23,7 @@ by default (unless you specify \-f as an option).
 .TP 
 .BI "-c " <config-file> ", --config-file=" <config-file>
 Use the alternate configuration file instead of 
-.I @OPENVASSD_CONF@
+.I @OPENVAS_CONF@
 
 .TP 
 .B "-v, --version"
@@ -46,7 +46,7 @@ Use the alternate vendor instead of the default one during scans.
 The default 
 .B openvas
 configuration file,
-.I @OPENVASSD_CONF@
+.I @OPENVAS_CONF@
 contains these options:
 
 .IP plugins_folder
@@ -174,7 +174,7 @@ several parameters that can be modified to reduce network load:
 .IP checks_read_timeout
 The default value is set to 5 seconds, that can
 (should) be increased if network bandwidth is low in the
-openvassd.conf or openvasrc configuration files. Notice that it is recommended
+openvas.conf or openvasrc configuration files. Notice that it is recommended
 to increase this this value, if you are running a test outside your LAN 
 (i.e. to Internet hosts through an Internet connection), to over 10 seconds.
 

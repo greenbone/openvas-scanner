@@ -20,7 +20,7 @@
 
 /**
  * @file pluginscheduler.c
- * @brief Tells openvassd which plugin should be executed next.
+ * @brief Tells openvas which plugin should be executed next.
  */
 
 #include "pluginscheduler.h"

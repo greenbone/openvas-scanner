@@ -190,7 +190,7 @@ reload_openvas ()
 
   proctitle_set (PROCTITLE_RELOADING);
   /* Setup logging. */
-  rc_name = g_build_filename (OPENVAS_SYSCONF_DIR, "openvassd_log.conf", NULL);
+  rc_name = g_build_filename (OPENVAS_SYSCONF_DIR, "openvas_log.conf", NULL);
   if (g_file_test (rc_name, G_FILE_TEST_EXISTS))
     log_config = load_log_configuration (rc_name);
   g_free (rc_name);
@@ -436,7 +436,7 @@ init_openvas (const char *config_file)
   prefs_config (config_file);
 
   /* Setup logging. */
-  rc_name = g_build_filename (OPENVAS_SYSCONF_DIR, "openvassd_log.conf", NULL);
+  rc_name = g_build_filename (OPENVAS_SYSCONF_DIR, "openvas_log.conf", NULL);
   if (g_file_test (rc_name, G_FILE_TEST_EXISTS))
     log_config = load_log_configuration (rc_name);
   g_free (rc_name);
@@ -483,11 +483,11 @@ start_single_task_scan ()
     g_message ("Could not initialize openvas SSL!");
 #endif
 
-#ifdef OPENVASSD_GIT_REVISION
-  g_message ("openvas %s (GIT revision %s) started", OPENVASSD_VERSION,
-             OPENVASSD_GIT_REVISION);
+#ifdef OPENVAS_GIT_REVISION
+  g_message ("openvas %s (GIT revision %s) started", OPENVAS_VERSION,
+             OPENVAS_GIT_REVISION);
 #else
-  g_message ("openvas %s started", OPENVASSD_VERSION);
+  g_message ("openvas %s started", OPENVAS_VERSION);
 #endif
 
   openvas_signal (SIGHUP, SIG_IGN);
@@ -561,9 +561,9 @@ main (int argc, char *argv[])
   /* --version */
   if (display_version)
     {
-      printf ("OpenVAS Scanner %s\n", OPENVASSD_VERSION);
-#ifdef OPENVASSD_GIT_REVISION
-      printf ("GIT revision %s\n", OPENVASSD_GIT_REVISION);
+      printf ("OpenVAS Scanner %s\n", OPENVAS_VERSION);
+#ifdef OPENVAS_GIT_REVISION
+      printf ("GIT revision %s\n", OPENVAS_GIT_REVISION);
 #endif
       printf ("Most new code since 2005: (C) 2019 Greenbone Networks GmbH\n");
       printf (
@@ -584,13 +584,13 @@ main (int argc, char *argv[])
   tzset ();
 
   unix_socket_path =
-    g_build_filename (OPENVAS_RUN_DIR, "openvassd.sock", NULL);
+    g_build_filename (OPENVAS_RUN_DIR, "openvas.sock", NULL);
 
   if (vendor_version_string)
     vendor_version_set (vendor_version_string);
 
   if (!config_file)
-    config_file = OPENVASSD_CONF;
+    config_file = OPENVAS_CONF;
   if (update_vt_info)
     {
       if (init_openvas (config_file))

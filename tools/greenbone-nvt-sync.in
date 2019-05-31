@@ -20,7 +20,7 @@
 # This script updates the local Network Vulnerability Tests (NVTs) from the
 # Greenbone Security Feed (GSF) or the Greenbone Community Feed (GCF). 
 
-VERSION=@OPENVASSD_VERSION@
+VERSION=@OPENVAS_VERSION@
 
 # SETTINGS
 # ========

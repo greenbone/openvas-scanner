@@ -18,10 +18,10 @@
 
 /**
  * @file nasl_scanner_glue.c
- * @brief glue between openvassd and nasl scripts.
+ * @brief glue between openvas and nasl scripts.
  *
  * This file contains all the functions that make the "glue" between
- * as NASL script and openvassd.
+ * as NASL script and openvas.
  * (script_*(), *kb*(), scanner_*())
  */
 
@@ -871,12 +871,12 @@ set_kb_item (lex_ctxt *lexic)
 /*------------------------[ Reporting a problem ]---------------------------*/
 
 /**
- * Function is used when the script wants to report a problem back to openvassd.
+ * Function is used when the script wants to report a problem back to openvas.
  */
 typedef void (*proto_post_something_t) (const char *, struct script_infos *,
                                         int, const char *, const char *);
 /**
- * Function is used when the script wants to report a problem back to openvassd.
+ * Function is used when the script wants to report a problem back to openvas.
  */
 typedef void (*post_something_t) (const char *, struct script_infos *, int,
                                   const char *);

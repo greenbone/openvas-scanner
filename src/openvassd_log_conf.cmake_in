@@ -7,12 +7,12 @@
 prepend=%t %s %p
 separator=:
 prepend_time_format=%Y-%m-%d %Hh%M.%S %Z
-file=${GVM_LOG_DIR}/openvassd.log
+file=${GVM_LOG_DIR}/openvas.log
 level=127
 
 [*]
 prepend=%t %s %p
 separator=:
 prepend_time_format=%Y-%m-%d %Hh%M.%S %Z
-file=${GVM_LOG_DIR}/openvassd.log
+file=${GVM_LOG_DIR}/openvas.log
 level=127

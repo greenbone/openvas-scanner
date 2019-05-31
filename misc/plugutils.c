@@ -584,7 +584,7 @@ get_plugin_preference_fname (struct script_infos *desc, const char *filename)
     return NULL;
 
   tmpfile =
-    g_file_open_tmp ("openvassd-file-upload.XXXXXX", &tmpfilename, &error);
+    g_file_open_tmp ("openvas-file-upload.XXXXXX", &tmpfilename, &error);
   if (tmpfile == -1)
     {
       g_message ("get_plugin_preference_fname: Could not open temporary"
