@@ -41,7 +41,7 @@
 #include "pluginlaunch.h"          /* for init_loading_shm */
 #include "processes.h"             /* for create_process */
 #include "sighand.h"               /* for openvas_signal */
-#include "utils.h"                 /* for is_otp_scan */
+#include "utils.h"                 /* for set_scan_type */
 
 #include <errno.h>  /* for errno() */
 #include <fcntl.h>  /* for open() */
@@ -132,26 +132,6 @@ static openvassd_option openvassd_defaults[] = {
   {NULL, NULL}};
 
 gchar *unix_socket_path = NULL;
-
-static void
-start_daemon_mode (void)
-{
-  /* do not block the listener port for subsequent scanners */
-  close (global_iana_socket);
-
-  /* become process group leader */
-  if (setsid () < 0)
-    {
-      g_warning ("Cannot set process group leader (%s)\n", strerror (errno));
-    }
-}
-
-static void
-end_daemon_mode (void)
-{
-  /* clean up all processes the process group */
-  make_em_die (SIGTERM);
-}
 
 static void
 set_globals_from_preferences (void)
@@ -405,79 +385,31 @@ static void
 handle_client (struct scan_globals *globals)
 {
   kb_t net_kb = NULL;
-  int soc = globals->global_socket;
 
-  /* Become process group leader and the like ... */
-  if (is_otp_scan ())
+  /* Load preferences from Redis. Scan started with a scan_id. */
+  if (load_scan_preferences (globals->scan_id))
     {
-      start_daemon_mode ();
-      if (comm_wait_order (globals))
-        return;
-      ntp_timestamp_scan_starts (soc);
+      g_warning ("No preferences found for the scan %s", globals->scan_id);
+      exit (0);
     }
-  else
-    {
-      /* Load preferences from Redis. Scan started with a scan_id. */
-      if (load_scan_preferences (globals->scan_id))
-        {
-          g_warning ("No preferences found for the scan %s", globals->scan_id);
-          exit (0);
-        }
-    }
+
   attack_network (globals, &net_kb);
   if (net_kb != NULL)
     {
       kb_delete (net_kb);
       net_kb = NULL;
     }
-  if (is_otp_scan ())
-    {
-      ntp_timestamp_scan_ends (soc);
-      comm_terminate (soc);
-    }
 }
 
 static void
 scanner_thread (struct scan_globals *globals)
 {
-  int opt = 1;
-  int soc = -1;
-
   nvticache_reset ();
 
-  if (is_otp_scan () && !global_scan_id)
-    {
-      globals->scan_id = (char *) gvm_uuid_make ();
-      soc = globals->global_socket;
-      proctitle_set (PROCTITLE_SERVING, unix_socket_path);
-
-      /* Close the scanner thread - it is useless for us now */
-      close (global_iana_socket);
-
-      if (soc < 0)
-        goto shutdown_and_exit;
-
-      if (setsockopt (soc, SOL_SOCKET, SO_KEEPALIVE, &opt, sizeof (opt)) < 0)
-        goto shutdown_and_exit;
-
-      globals->global_socket = soc;
-
-      if (comm_init (soc) < 0)
-        exit (0);
-    }
-  else
-    globals->scan_id = g_strdup (global_scan_id);
+  globals->scan_id = g_strdup (global_scan_id);
 
   handle_client (globals);
 
-shutdown_and_exit:
-  if (is_otp_scan () && !global_scan_id)
-    {
-      shutdown (soc, 2);
-      close (soc);
-      /* Kill left overs */
-      end_daemon_mode ();
-    }
   exit (0);
 }
 
