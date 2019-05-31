@@ -24,25 +24,13 @@
  * and 1.1.
  */
 
-#include "comm.h"
+#include "ntp.h"        /* for ntp_parse_input() */
+#include "pluginload.h" /* for current_loading_plugins() */
+#include "utils.h"      /* for send_printf() */
 
-#include "../misc/network.h"        /* for recv_line */
-#include "../misc/nvt_categories.h" /* for ACT_INIT */
-#include "../misc/plugutils.h"
-#include "../nasl/nasl.h"
-#include "ntp.h"
-#include "pluginload.h" /* for current_loading_plugins */
-#include "pluginscheduler.h"
-#include "sighand.h"
-#include "utils.h"
-
-#include <errno.h> /* for errno */
-#include <glib.h>
-#include <gvm/base/prefs.h>     /* for preferences_get() */
-#include <gvm/util/nvticache.h> /* for nvticache_t */
-#include <stdio.h>              /* for FILE */
-#include <stdlib.h>             /* for atoi() */
-#include <string.h>             /* for strchr() */
+#include <errno.h>  /* for errno */
+#include <stdio.h>  /* for FILE */
+#include <string.h> /* for strncmp() */
 
 #undef G_LOG_DOMAIN
 /**
@@ -163,149 +151,6 @@ comm_terminate (int soc)
 }
 
 /**
- * @brief Sends a plugin info.
- */
-void
-send_plug_info (int soc, const char *oid)
-{
-  int category;
-  char *name = NULL, *family = NULL;
-  char *cve_id = NULL, *bid = NULL, *xref = NULL, *tag = NULL;
-  nvti_t *nvti;
-
-  nvti = nvticache_get_nvt (oid);
-  if (!nvti)
-    {
-      g_warning ("Couldn't fetch plugin %s", oid);
-      goto send_cleanup;
-    }
-
-  category = nvti_category (nvti);
-  assert (category >= ACT_INIT && category <= ACT_END);
-  name = nvti_name (nvti);
-  if (!name || strchr (name, '\n'))
-    {
-      g_warning ("Erroneous name for plugin %s", oid);
-      goto send_cleanup;
-    }
-  family = nvti_family (nvti);
-  if (!family)
-    {
-      g_warning ("Missing family for plugin %s", oid);
-      goto send_cleanup;
-    }
-
-  cve_id = nvti_refs (nvti, "cve", "", 0);
-  bid = nvti_refs (nvti, "bid", "", 0);
-  xref = nvti_refs (nvti, NULL, "bid,cve", 1);
-  tag = nvti_tag (nvti);
-  if (tag)
-    {
-      char *index = tag;
-      while (*index)
-        {
-          if (*index == '\n')
-            *index = ';';
-          index++;
-        }
-    }
-
-  send_printf (soc, "%s <|> %s <|> %d <|>  %s <|> %s <|> %s <|> %s <|> %s\n",
-               oid, name, category, family,
-               (cve_id && *cve_id) ? cve_id : "NOCVE",
-               (bid && *bid) ? bid : "NOBID", (xref && *xref) ? xref : "NOXREF",
-               (tag && *tag) ? tag : "NOTAG");
-
-  g_free (cve_id);
-  g_free (bid);
-  g_free (xref);
-
-send_cleanup:
-  nvti_free (nvti);
-}
-
-/**
- * @brief Sends the list of plugins that the scanner could load to the client,
- * @brief using the OTP format (calls send_plug_info for each).
- * @param soc    Socket to use for sending list of plugins.
- * @param oids   List of OIDs to send.
- * @see send_plug_info
- */
-static void
-comm_send_pluginlist (int soc, GSList *oids)
-{
-  send_printf (soc, "SERVER <|> PLUGIN_LIST <|>\n");
-  while (oids)
-    {
-      send_plug_info (soc, oids->data);
-      oids = oids->next;
-    }
-  send_printf (soc, "<|> SERVER\n");
-}
-
-/**
- * @brief Sends the list of plugins preferences to the client.
- * @param soc   Socket to use for sending list of preferences.
- * @param oids  List OIDs to send.
- */
-static void
-send_plugins_preferences (int soc, GSList *oids)
-{
-  while (oids)
-    {
-      char *oid = oids->data;
-      GSList *nprefs = nvticache_get_prefs (oid);
-      int timeout = nvticache_get_timeout (oid);
-
-      if (nprefs || (timeout > 0))
-        {
-          GSList *tmp = nprefs;
-
-          if (timeout > 0)
-            send_printf (soc, "%s:0:entry:Timeout <|> %d\n", oid, timeout);
-          while (tmp)
-            {
-              nvtpref_t *pref = tmp->data;
-              send_printf (soc, "%s:%d:%s:%s <|> %s\n", oid, nvtpref_id (pref),
-                           nvtpref_type (pref),
-                           g_strchomp (nvtpref_name (pref)),
-                           nvtpref_default (pref));
-              tmp = tmp->next;
-            }
-        }
-      g_slist_free_full (nprefs, (void (*) (void *)) nvtpref_free);
-      oids = oids->next;
-    }
-}
-
-/**
- * @brief Sends the preferences of the scanner.
- * @param soc   Socket to use for sending.
- * @param oids  List of OIDs to send.
- */
-static void
-comm_send_preferences (int soc, GSList *oids)
-{
-  GHashTableIter iter;
-  void *itername, *itervalue;
-  GHashTable *prefs = preferences_get ();
-
-  if (!is_client_present (soc))
-    return;
-  /* We have to be backward compatible with the NTP/1.0 */
-  send_printf (soc, "SERVER <|> PREFERENCES <|>\n");
-
-  g_hash_table_iter_init (&iter, prefs);
-  while (g_hash_table_iter_next (&iter, &itername, &itervalue))
-    {
-      if (!is_scanner_only_pref (itername))
-        send_printf (soc, "%s <|> %s\n", (char *) itername, (char *) itervalue);
-    }
-  send_plugins_preferences (soc, oids);
-  send_printf (soc, "<|> SERVER\n");
-}
-
-/**
  * @brief This function waits for the attack order of the client.
  * Meanwhile, it processes all the messages the client could send.
  */
@@ -338,57 +183,4 @@ comm_wait_order (struct scan_globals *globals)
           return -1;
         }
     }
-}
-
-/*-------------------------------------------------------------------------------*/
-
-/**
- * @brief Determine whether a buffer contains a valid feed version.
- *
- * @param[in] feed_version Buffer containing feed_version.
- *
- * @return 1 is valid feed_version, 0 otherwise.
- */
-static int
-is_valid_feed_version (const char *feed_version)
-{
-  if (feed_version == NULL)
-    return 0;
-
-  while (*feed_version)
-    if (!g_ascii_isdigit (*feed_version++))
-      return 0;
-  return 1;
-}
-
-/**
- * @brief Send the OTP NVT_INFO message and then handle any COMPLETE_LIST.
- */
-void
-comm_send_nvt_info (int soc)
-{
-  char buf[2048], *feed_version;
-  GSList *oids;
-
-  feed_version = nvticache_feed_version ();
-  send_printf (soc, "SERVER <|> NVT_INFO <|> %s <|> SERVER\n",
-               is_valid_feed_version (feed_version) ? feed_version
-                                                    : "NOVERSION");
-  g_free (feed_version);
-
-  if (!is_client_present (soc))
-    return;
-  oids = nvticache_get_oids ();
-  for (;;)
-    {
-      bzero (buf, sizeof (buf));
-      if (recv_line (soc, buf, sizeof (buf) - 1) < 0)
-        g_warning ("recv_line: %s", strerror (errno));
-      if (strstr (buf, "COMPLETE_LIST"))
-        comm_send_pluginlist (soc, oids);
-      else
-        break;
-    }
-  comm_send_preferences (soc, oids);
-  g_slist_free_full (oids, g_free);
 }

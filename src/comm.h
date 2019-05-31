@@ -40,10 +40,4 @@ comm_terminate (int);
 int
 comm_wait_order (struct scan_globals *);
 
-void
-comm_send_nvt_info (int);
-
-void
-send_plug_info (int, const char *);
-
 #endif
