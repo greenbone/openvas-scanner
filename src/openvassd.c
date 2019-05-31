@@ -50,7 +50,6 @@
 #include <grp.h>
 #include <gvm/base/logging.h> /* for setup_log_handler, load_log_configuration, free_log_configuration*/
 #include <gvm/base/nvti.h>      /* for prefs_get() */
-#include <gvm/base/pidfile.h>   /* for pidfile_create */
 #include <gvm/base/prefs.h>     /* for prefs_get() */
 #include <gvm/base/proctitle.h> /* for proctitle_set */
 #include <gvm/util/kb.h>        /* for KB_PATH_DEFAULT */
@@ -780,7 +779,6 @@ start_single_task_scan ()
   g_message ("openvassd %s started", OPENVASSD_VERSION);
 #endif
 
-  pidfile_create ("openvassd");
   openvas_signal (SIGHUP, SIG_IGN);
   ret = plugins_init ();
   if (ret)
@@ -934,8 +932,6 @@ main (int argc, char *argv[])
   if (openvas_SSL_init () < 0)
     g_message ("Could not initialize openvas SSL!");
 #endif
-
-  pidfile_create ("openvassd");
 
   /* Ignore SIGHUP while reloading. */
   openvas_signal (SIGHUP, SIG_IGN);
