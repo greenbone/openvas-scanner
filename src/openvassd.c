@@ -37,7 +37,6 @@
 #include "../misc/vendorversion.h" /* for vendor_version_set */
 #include "attack.h"                /* for attack_network */
 #include "comm.h"                  /* for comm_loading */
-#include "ntp.h"                   /* for ntp_timestamp_scan_starts */
 #include "pluginlaunch.h"          /* for init_loading_shm */
 #include "processes.h"             /* for create_process */
 #include "sighand.h"               /* for openvas_signal */
