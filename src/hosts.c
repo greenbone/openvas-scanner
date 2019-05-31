@@ -26,7 +26,6 @@
 #include "hosts.h" /* for hosts_new() */
 
 #include "../misc/network.h" /* for internal_recv */
-#include "ntp.h"             /* for ntp_parse_input() */
 #include "utils.h"           /* for data_left() */
 
 #include <errno.h>    /* for errno() */
@@ -64,13 +63,32 @@ static int g_max_hosts = 15;
 extern int global_scan_stop;
 
 static void
+host_set_time (kb_t kb, char *key)
+{
+  char timestr[1024];
+  char *tmp;
+  time_t t;
+  int len;
+
+  t = time (NULL);
+  tmp = ctime (&t);
+  timestr[sizeof (timestr) - 1] = '\0';
+  strncpy (timestr, tmp, sizeof (timestr) - 1);
+  len = strlen (timestr);
+  if (timestr[len - 1] == '\n')
+    timestr[len - 1] = '\0';
+
+  kb_item_push_str (kb, key, timestr);
+}
+
+static void
 host_rm (struct host *h)
 {
   if (h->pid != 0)
     waitpid (h->pid, NULL, WNOHANG);
 
   if (!global_scan_stop)
-    ntp_timestamp_host_scan_ends (h->host_kb);
+    host_set_time (h->host_kb, "internal/start_time");
   if (h->next != NULL)
     h->next->prev = h->prev;
 
@@ -206,7 +224,7 @@ hosts_read_data (void)
           /* Scan started. */
           h->ip = kb_item_get_str (h->host_kb, "internal/ip");
           if (h->ip)
-            ntp_timestamp_host_scan_starts (h->host_kb);
+            host_set_time (h->host_kb, "internal/start_time");
         }
       if (h->ip)
         {
