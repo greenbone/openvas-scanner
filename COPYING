@@ -19,8 +19,6 @@ tool with the following command:
 src/CMakeLists.txt: GPL-2+
 src/attack.c: GPL-2
 src/attack.h: GPL-2
-src/comm.c: GPL-2
-src/comm.h: GPL-2
 src/hosts.c: GPL-2
 src/hosts.h: GPL-2
 src/nasl_plugins.c: GPL-2
