@@ -76,10 +76,10 @@
  */
 #define G_LOG_DOMAIN "sd   main"
 
-#define PROCTITLE_WAITING "openvassd: Waiting for incoming connections"
-#define PROCTITLE_LOADING "openvassd: Loading Handler"
-#define PROCTITLE_RELOADING "openvassd: Reloading"
-#define PROCTITLE_SERVING "openvassd: Serving %s"
+#define PROCTITLE_WAITING "openvas: Waiting for incoming connections"
+#define PROCTITLE_LOADING "openvas: Loading Handler"
+#define PROCTITLE_RELOADING "openvas: Reloading"
+#define PROCTITLE_SERVING "openvas: Serving %s"
 
 /**
  * Globals that should not be touched (used in utils module).
@@ -100,12 +100,12 @@ typedef struct
 {
   char *option;
   char *value;
-} openvassd_option;
+} openvas_option;
 
 /**
  * @brief Default values for scanner options. Must be NULL terminated.
  */
-static openvassd_option openvassd_defaults[] = {
+static openvas_option openvas_defaults[] = {
   {"plugins_folder", OPENVAS_NVT_DIR},
   {"include_folders", OPENVAS_NVT_DIR},
   {"max_hosts", "30"},
@@ -149,13 +149,13 @@ set_globals_from_preferences (void)
 }
 
 static void
-reload_openvassd (void);
+reload_openvas (void);
 
 static void
 handle_reload_signal (int sig)
 {
   (void) sig;
-  reload_openvassd ();
+  reload_openvas ();
 }
 
 static void
@@ -179,7 +179,7 @@ init_signal_handlers ()
 
 /* Restarts the scanner by reloading the configuration. */
 static void
-reload_openvassd ()
+reload_openvas ()
 {
   static gchar *rc_name = NULL;
   const char *config_file;
@@ -199,8 +199,8 @@ reload_openvassd ()
 
   /* Reload config file. */
   config_file = prefs_get ("config_file");
-  for (i = 0; openvassd_defaults[i].option != NULL; i++)
-    prefs_set (openvassd_defaults[i].option, openvassd_defaults[i].value);
+  for (i = 0; openvas_defaults[i].option != NULL; i++)
+    prefs_set (openvas_defaults[i].option, openvas_defaults[i].value);
   prefs_config (config_file);
 
   /* Reload the plugins */
@@ -416,7 +416,7 @@ check_kb_status ()
     {
       g_message ("Redis connection error. Stopping all the running scans.");
       stop_all_scans ();
-      reload_openvassd ();
+      reload_openvas ();
     }
 }
 
@@ -426,13 +426,13 @@ check_kb_status ()
  * @param config_file Path to config file for initialization
  */
 static int
-init_openvassd (const char *config_file)
+init_openvas (const char *config_file)
 {
   static gchar *rc_name = NULL;
   int i;
 
-  for (i = 0; openvassd_defaults[i].option != NULL; i++)
-    prefs_set (openvassd_defaults[i].option, openvassd_defaults[i].value);
+  for (i = 0; openvas_defaults[i].option != NULL; i++)
+    prefs_set (openvas_defaults[i].option, openvas_defaults[i].value);
   prefs_config (config_file);
 
   /* Setup logging. */
@@ -484,10 +484,10 @@ start_single_task_scan ()
 #endif
 
 #ifdef OPENVASSD_GIT_REVISION
-  g_message ("openvassd %s (GIT revision %s) started", OPENVASSD_VERSION,
+  g_message ("openvas %s (GIT revision %s) started", OPENVASSD_VERSION,
              OPENVASSD_GIT_REVISION);
 #else
-  g_message ("openvassd %s started", OPENVASSD_VERSION);
+  g_message ("openvas %s started", OPENVASSD_VERSION);
 #endif
 
   openvas_signal (SIGHUP, SIG_IGN);
@@ -503,7 +503,7 @@ start_single_task_scan ()
 }
 
 /**
- * @brief openvassd.
+ * @brief openvas.
  * @param argc Argument count.
  * @param argv Argument vector.
  */
@@ -593,14 +593,14 @@ main (int argc, char *argv[])
     config_file = OPENVASSD_CONF;
   if (update_vt_info)
     {
-      if (init_openvassd (config_file))
+      if (init_openvas (config_file))
         return 1;
       if (plugins_init ())
         return 1;
       return 0;
     }
 
-  if (init_openvassd (config_file))
+  if (init_openvas (config_file))
     return 1;
 
   if (scan_id)

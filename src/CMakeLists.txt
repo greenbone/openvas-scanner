@@ -57,13 +57,13 @@ else (NOT GCRYPT)
   endif (GCRYPT_VERSION VERSION_LESS "1.6")
 endif (NOT GCRYPT)
 
-add_executable (openvassd attack.c hosts.c
+add_executable (openvas attack.c hosts.c
                 nasl_plugins.c openvassd.c
                 pluginlaunch.c pluginload.c
                 pluginscheduler.c plugs_req.c
                 processes.c sighand.c utils.c)
 
-set_target_properties (openvassd PROPERTIES LINKER_LANGUAGE C)
+set_target_properties (openvas PROPERTIES LINKER_LANGUAGE C)
 
 include_directories (${GLIB_INCLUDE_DIRS} ${LIBOPENVAS_NASL_INCLUDE_DIRS}
                      ${LIBGVM_BASE_INCLUDE_DIRS}
@@ -82,7 +82,7 @@ if (NOT CMAKE_BUILD_TYPE MATCHES "Release")
                         -P ${CMAKE_SOURCE_DIR}/cmake/GetGit.cmake)
 
     # explicitly say that the executable depends on custom target
-    add_dependencies (openvassd revisiontag)
+    add_dependencies (openvas revisiontag)
 
     # include the output directory, where the gitversion.h file is generated
     include_directories (${CMAKE_CURRENT_BINARY_DIR})
@@ -139,7 +139,7 @@ if (CMAKE_SYSTEM_NAME MATCHES "FreeBSD")
 endif (CMAKE_SYSTEM_NAME MATCHES "FreeBSD")
 
 
-target_link_libraries (openvassd openvas_nasl_shared ${LIBOPENVAS_NASL_LDFLAGS}
+target_link_libraries (openvas openvas_nasl_shared ${LIBOPENVAS_NASL_LDFLAGS}
                        ${LIBOPENVAS_MISC_LDFLAGS}
                        ${LIBGVM_BASE_LDFLAGS}
                        ${GLIB_LDFLAGS} ${GCRYPT_LDFLAGS}
@@ -174,7 +174,7 @@ add_dependencies (tags etags ctags)
 
 ## Install
 
-install (TARGETS openvassd
+install (TARGETS openvas
          RUNTIME DESTINATION ${SBINDIR}
          PERMISSIONS OWNER_EXECUTE OWNER_READ OWNER_WRITE
          GROUP_READ GROUP_EXECUTE WORLD_READ WORLD_EXECUTE)

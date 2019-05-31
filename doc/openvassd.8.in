@@ -1,22 +1,22 @@
-.TH OpenVASSD 8 "June 2019" "Greenbone Vulnerability Management" "User Manuals"
+.TH OpenVAS 8 "June 2019" "Greenbone Vulnerability Management" "User Manuals"
 .SH NAME
-openvassd \- The Scanner of the Greenbone Vulnerability Management
+openvas \- The Scanner of the Greenbone Vulnerability Management
 .SH SYNOPSIS
-.BI "openvassd [\|-v\|] [\|-h\|]  [\|-c " config-file\| "]
+.BI "openvas [\|-v\|] [\|-h\|]  [\|-c " config-file\| "]
 .BI " [\|-D\|] [\|-R\|] [\|-P\|] [\|-q\|] [\|-f\|]"
 
 .SH DESCRIPTION
 .B Greenbone Vulnerability Management (GVM)
 is a vulnerability auditing and management framework made up of several modules.
 The OpenVAS Scanner,
-.BR openvassd
+.BR openvas
 is in charge of executing many security tests against many
 target hosts in a highly optimized way.
 
 
-.BR openvassd
+.BR openvas
 inspects the remote hosts and attempts to list all the vulnerabilities and common
-misconfigurations that affects them. Note that openvassd will run in daemon mode
+misconfigurations that affects them. Note that openvas will run in daemon mode
 by default (unless you specify \-f as an option).
 
 .SH OPTIONS
@@ -44,7 +44,7 @@ Use the alternate vendor instead of the default one during scans.
 .SH THE CONFIGURATION FILE 
 
 The default 
-.B openvassd 
+.B openvas
 configuration file,
 .I @OPENVASSD_CONF@
 contains these options:
@@ -67,26 +67,26 @@ x
 so you need to find a balance between these two options. Note that launching too many plugins at the same time may disable the remote host, either temporarily (ie: inetd closes its ports) or definitely (the remote host crash because it is asked to do too many things at the same time), so be careful.
 
 .IP log_whole_attack
-If this option is set to 'yes', openvassd will store the name, pid, date and target of each plugin launched. This is helpful for monitoring and debugging purpose, however this option might make openvassd fill your disk rather quickly. 
+If this option is set to 'yes', openvas will store the name, pid, date and target of each plugin launched. This is helpful for monitoring and debugging purpose, however this option might make openvas fill your disk rather quickly. 
 
 .IP log_plugins_name_at_load
-If this option is set to 'yes', openvassd will log the name of each plugin being loaded at startup, or each time it receives the HUP signal.
+If this option is set to 'yes', openvas will log the name of each plugin being loaded at startup, or each time it receives the HUP signal.
 
 .IP cgi_path
-By default, openvassd looks for default CGIs in /cgi-bin and /scripts. You may
+By default, openvas looks for default CGIs in /cgi-bin and /scripts. You may
 change these to something else to reflect the policy of your site. The syntax of this option is the same as the shell $PATH variable: path1:path2:...
 
 .IP port_range
-This is the default range of ports that the scanner plugins will probe. The syntax of this option is flexible, it can be a single range ("1-1500"), several ports ("21,23,80"), several ranges of ports ("1-1500,32000-33000"). Note that you can specify UDP and TCP ports by prefixing each range by T or U. For instance, the following range will make openvassd scan UDP ports 1 to 1024 and TCP ports 1 to 65535 : "T:1-65535,U:1-1024".
+This is the default range of ports that the scanner plugins will probe. The syntax of this option is flexible, it can be a single range ("1-1500"), several ports ("21,23,80"), several ranges of ports ("1-1500,32000-33000"). Note that you can specify UDP and TCP ports by prefixing each range by T or U. For instance, the following range will make openvas scan UDP ports 1 to 1024 and TCP ports 1 to 65535 : "T:1-65535,U:1-1024".
 
 .IP optimize_test
-By default, openvassd does not trust the remote host banners. It means that it will check a webserver claiming to be IIS for Apache flaws, and so on. This behavior might generate false positive and will slow the scan down somehow. If you are sure the banners of the remote host have not been tampered with, you can safely enable this option, which will force the plugins to perform their job only against the services they have been designed to check.
+By default, openvas does not trust the remote host banners. It means that it will check a webserver claiming to be IIS for Apache flaws, and so on. This behavior might generate false positive and will slow the scan down somehow. If you are sure the banners of the remote host have not been tampered with, you can safely enable this option, which will force the plugins to perform their job only against the services they have been designed to check.
 
 .IP test_empty_vhost
 If set to yes, the scanner will also test the target by using empty vhost value in addition to the target's associated vhost values.
 
 .IP checks_read_timeout
-Number of seconds that the security checks will wait for when doing a recv(). You should increase this value if you are running openvassd across a slow network slink (testing a host via a dialup connection for instance)
+Number of seconds that the security checks will wait for when doing a recv(). You should increase this value if you are running openvas across a slow network slink (testing a host via a dialup connection for instance)
 
 .IP timeout_retry
 Number of retries when a socket connection attempt timesout.
@@ -101,7 +101,7 @@ Some devices do not appreciate quick connection establishment and termination ne
 Whether to expand the target host's list of vhosts with values gathered from sources such as reverse-lookup queries and VT checks for SSL/TLS certificates.
 
 .IP non_simult_ports
-Some services (in particular SMB) do not appreciate multiple connections at the same time coming from the same host. This option allows you to prevent openvassd to make two connections on the same given ports at the same time. The syntax of this option is "port1[, port2....]". Note that you can use the KB notation of openvassd to designate a service formally. Ex: "139, Services/www", will prevent openvassd from making two connections at the same time on port 139 and on every port which hosts a web server.
+Some services (in particular SMB) do not appreciate multiple connections at the same time coming from the same host. This option allows you to prevent openvas to make two connections on the same given ports at the same time. The syntax of this option is "port1[, port2....]". Note that you can use the KB notation of openvas to designate a service formally. Ex: "139, Services/www", will prevent openvas from making two connections at the same time on port 139 and on every port which hosts a web server.
 
 .IP plugins_timeout
 This is the maximum lifetime, in seconds of a plugin. It may happen that some plugins are slow because of the way they are written or the way the remote server behaves. This option allows you to make sure your scan is never caught in an endless loop because of a non-finishing plugin. Doesn't affect ACT_SCANNER plugins.
@@ -110,10 +110,10 @@ This is the maximum lifetime, in seconds of a plugin. It may happen that some pl
 Like plugins_timeout, but for ACT_SCANNER plugins.
 
 .IP safe_checks
-Most of the time, openvassd attempts to reproduce an exceptional condition to determine if the remote services are vulnerable to certain flaws. This includes the reproduction of buffer overflows or format strings, which may make the remote server crash. If you set this option to 'yes', openvassd will disable the plugins which have the potential to crash the remote services, and will at the same time make several checks rely on the banner of the service tested instead of its behavior towards a certain input. This reduces false positives and makes openvassd nicer towards your network, however this may make you miss important vulnerabilities (as a vulnerability affecting a given service may also affect another one).
+Most of the time, openvas attempts to reproduce an exceptional condition to determine if the remote services are vulnerable to certain flaws. This includes the reproduction of buffer overflows or format strings, which may make the remote server crash. If you set this option to 'yes', openvas will disable the plugins which have the potential to crash the remote services, and will at the same time make several checks rely on the banner of the service tested instead of its behavior towards a certain input. This reduces false positives and makes openvas nicer towards your network, however this may make you miss important vulnerabilities (as a vulnerability affecting a given service may also affect another one).
 
 .IP auto_enable_dependencies
-OpenVAS plugins use the result of each other to execute their job. For instance, a plugin which logs into the remote SMB registry will need the results of the plugin which finds the SMB name of the remote host and the results of the plugin which attempts to log into the remote host. If you want to only select a subset of the plugins available, tracking the dependencies can quickly become tiresome. If you set this option to 'yes', openvassd will automatically enable the plugins that are depended on.
+OpenVAS plugins use the result of each other to execute their job. For instance, a plugin which logs into the remote SMB registry will need the results of the plugin which finds the SMB name of the remote host and the results of the plugin which attempts to log into the remote host. If you want to only select a subset of the plugins available, tracking the dependencies can quickly become tiresome. If you set this option to 'yes', openvas will automatically enable the plugins that are depended on.
 
 .IP source_iface
 Name of the network interface that will be used as the source of connections
@@ -152,7 +152,7 @@ Like hosts_deny. Can't be overridden by the client.
 
 The other options in this file can usually be redefined by the client.
 
-At  log in attempt, openvassd checks that the certificate has been signed by a recognized authority.
+At  log in attempt, openvas checks that the certificate has been signed by a recognized authority.
 
 .SH NETWORK USAGE
 
@@ -229,4 +229,4 @@ https://www.openvas.org/
 	
 .SH AUTHORS
 
-openvassd was forked from nessusd in 2005. Nessusd was written by Renaud Deraison <deraison@cvs.nessus.org>. Most new code since 2005 developed by Greenbone Networks GmbH.
+openvas was forked from nessusd in 2005. Nessusd was written by Renaud Deraison <deraison@cvs.nessus.org>. Most new code since 2005 developed by Greenbone Networks GmbH.

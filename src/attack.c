@@ -477,7 +477,7 @@ attack_host (struct scan_globals *globals, struct in6_addr *ip, GSList *vhosts,
   host_vhosts = vhosts;
   kb_item_set_str (kb, "internal/ip", ip_str, 0);
   kb_item_set_int (kb, "internal/hostpid", getpid ());
-  proctitle_set ("openvassd: testing %s", ip_str);
+  proctitle_set ("openvas: testing %s", ip_str);
   if (net_kb && *net_kb)
     {
       kb_delete (kb);
