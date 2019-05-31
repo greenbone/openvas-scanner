@@ -58,7 +58,7 @@ else (NOT GCRYPT)
 endif (NOT GCRYPT)
 
 add_executable (openvas attack.c hosts.c
-                nasl_plugins.c openvassd.c
+                nasl_plugins.c openvas.c
                 pluginlaunch.c pluginload.c
                 pluginscheduler.c plugs_req.c
                 processes.c sighand.c utils.c)
@@ -161,7 +161,7 @@ add_dependencies (check cppcheck)
 ## Tag files
 
 set (C_FILES "attack.c" "hosts.c"
-     "nasl_plugins.c" "openvassd.c"
+     "nasl_plugins.c" "openvas.c"
      "pluginlaunch.c" "pluginload.c"
      "pluginscheduler.c" "plugs_req.c"
      "processes.c" "sighand.c" "utils.c")
@@ -187,7 +187,7 @@ install (FILES ${CMAKE_BINARY_DIR}/tools/greenbone-nvt-sync
          PERMISSIONS OWNER_EXECUTE OWNER_READ OWNER_WRITE
                      GROUP_READ GROUP_EXECUTE WORLD_READ WORLD_EXECUTE)
 
-install (FILES ${CMAKE_BINARY_DIR}/doc/openvassd.8
+install (FILES ${CMAKE_BINARY_DIR}/doc/openvas.8
          DESTINATION ${DATADIR}/man/man8 )
 
 
