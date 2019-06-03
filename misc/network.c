@@ -131,27 +131,6 @@ static struct csc_hook_s *csc_hooks;
  */
 #define OVAS_CONNECTION_FROM_FD(fd) (connections + ((fd) -OPENVAS_FD_OFF))
 
-static void
-renice_myself (void)
-{
-  static pid_t pid = 0;
-  pid_t cpid = getpid ();
-
-  if (pid != cpid)
-    {
-      int renice_result;
-      if (nice (0) >= 10)
-        return;
-      pid = cpid;
-      errno = 0;
-      renice_result = nice (1);
-      if (renice_result == -1 && errno != 0)
-        {
-          g_message ("Unable to renice process: %d", errno);
-        }
-    }
-}
-
 /**
  * Same as perror(), but prefixes the data by our pid.
  */
@@ -978,7 +957,6 @@ open_stream_connection_ext (struct script_infos *args, unsigned int port,
     case OPENVAS_ENCAPS_TLSv11:
     case OPENVAS_ENCAPS_TLSv12:
     case OPENVAS_ENCAPS_TLScustom:
-      renice_myself ();
       cert = kb_item_get_str (kb, "SSL/cert");
       key = kb_item_get_str (kb, "SSL/key");
       passwd = kb_item_get_str (kb, "SSL/password");

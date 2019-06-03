@@ -1,3 +1,7 @@
+# clang-format configuration for Greenbone C code
+#
+# Minimum required clang-format version: 6.0
+
 ---
 AlignAfterOpenBracket: Align
 AlignConsecutiveAssignments: 'false'

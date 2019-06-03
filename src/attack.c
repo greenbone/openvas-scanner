@@ -1043,9 +1043,10 @@ attack_network (struct scan_globals *globals, kb_t *network_kb)
                                   network_phase);
   if (!sched)
     {
-      error_message_to_client (global_socket, "Couldn't initialize "
-                               "the plugin scheduler", NULL,
-                               NULL);
+      error_message_to_client (global_socket,
+                               "Couldn't initialize "
+                               "the plugin scheduler",
+                               NULL, NULL);
       g_message ("Couldn't initialize the plugin scheduler");
       return;
     }

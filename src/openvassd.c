@@ -117,7 +117,6 @@ static openvassd_option openvassd_defaults[] = {
   {"include_folders", OPENVAS_NVT_DIR},
   {"max_hosts", "30"},
   {"max_checks", "10"},
-  {"be_nice", "no"},
   {"log_whole_attack", "no"},
   {"log_plugins_name_at_load", "no"},
   {"optimize_test", "yes"},
@@ -281,9 +280,9 @@ loading_handler_start ()
 
       timeout.tv_sec = 0;
       timeout.tv_usec = 500000;
-      soc = get_client_timedout (global_iana_socket,
-                                 (struct sockaddr *) &address, sizeof (address),
-                                 &timeout);
+      soc =
+        get_client_timedout (global_iana_socket, (struct sockaddr *) &address,
+                             sizeof (address), &timeout);
       if (soc == -1)
         continue;
 
@@ -476,16 +475,6 @@ scanner_thread (struct scan_globals *globals)
     }
   else
     globals->scan_id = g_strdup (global_scan_id);
-
-  /* Everyone runs with a nicelevel of 10 */
-  if (prefs_get_bool ("be_nice"))
-    {
-      errno = 0;
-      if (nice (10) == -1 && errno != 0)
-        {
-          g_warning ("Unable to renice process: %d", errno);
-        }
-    }
 
   handle_client (globals);
 
@@ -701,9 +690,9 @@ main_loop ()
 
       timeout.tv_sec = 10;
       timeout.tv_usec = 0;
-      soc = get_client_timedout (global_iana_socket,
-                                 (struct sockaddr *) &address, sizeof (address),
-                                 &timeout);
+      soc =
+        get_client_timedout (global_iana_socket, (struct sockaddr *) &address,
+                             sizeof (address), &timeout);
       check_kb_status ();
       if (soc == -1)
         {
@@ -973,8 +962,8 @@ main (int argc, char *argv[])
      "ID for this scan task", "<string>"},
     {NULL, 0, 0, 0, NULL, NULL, NULL}};
 
-  option_context = g_option_context_new (
-    "- Open Vulnerability Assessment System");
+  option_context =
+    g_option_context_new ("- Open Vulnerability Assessment System");
   g_option_context_add_main_entries (option_context, entries, NULL);
   if (!g_option_context_parse (option_context, &argc, &argv, &error))
     {
@@ -1007,10 +996,9 @@ main (int argc, char *argv[])
 #ifdef OPENVASSD_GIT_REVISION
       printf ("GIT revision %s\n", OPENVASSD_GIT_REVISION);
 #endif
-      printf
-        ("Most new code since 2005: (C) 2019 Greenbone Networks GmbH\n");
-      printf
-        ("Nessus origin: (C) 2004 Renaud Deraison <deraison@nessus.org>\n");
+      printf ("Most new code since 2005: (C) 2019 Greenbone Networks GmbH\n");
+      printf (
+        "Nessus origin: (C) 2004 Renaud Deraison <deraison@nessus.org>\n");
       printf ("License GPLv2: GNU GPL version 2\n");
       printf (
         "This is free software: you are free to change and redistribute it.\n"
