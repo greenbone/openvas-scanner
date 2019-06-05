@@ -87,7 +87,7 @@ host_rm (struct host *h)
     waitpid (h->pid, NULL, WNOHANG);
 
   if (!global_scan_stop)
-    host_set_time (h->host_kb, "internal/start_time");
+    host_set_time (h->host_kb, "internal/end_time");
   if (h->next != NULL)
     h->next->prev = h->prev;
 
