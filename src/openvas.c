@@ -538,7 +538,8 @@ main (int argc, char *argv[])
     {"update-vt-info", 'u', 0, G_OPTION_ARG_NONE, &update_vt_info,
      "Updates VT info into redis store from VT files", NULL},
     {"scan-start", '\0', 0, G_OPTION_ARG_STRING, &scan_id,
-     "ID of scan to start. ID and related data must be stored into redis before.", "<string>"},
+     "ID of scan to start. ID and related data must be stored into redis "
+     "before.", "<string>"},
     {NULL, 0, 0, 0, NULL, NULL, NULL}};
 
   option_context =
@@ -583,8 +584,7 @@ main (int argc, char *argv[])
     }
   tzset ();
 
-  unix_socket_path =
-    g_build_filename (OPENVAS_RUN_DIR, "openvas.sock", NULL);
+  unix_socket_path = g_build_filename (OPENVAS_RUN_DIR, "openvas.sock", NULL);
 
   if (vendor_version_string)
     vendor_version_set (vendor_version_string);
