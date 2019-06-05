@@ -539,7 +539,8 @@ main (int argc, char *argv[])
      "Updates VT info into redis store from VT files", NULL},
     {"scan-start", '\0', 0, G_OPTION_ARG_STRING, &scan_id,
      "ID of scan to start. ID and related data must be stored into redis "
-     "before.", "<string>"},
+     "before.",
+     "<string>"},
     {NULL, 0, 0, 0, NULL, NULL, NULL}};
 
   option_context =
