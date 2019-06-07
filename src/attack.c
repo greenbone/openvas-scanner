@@ -29,7 +29,6 @@
 #include "../misc/nvt_categories.h" /* for ACT_INIT */
 #include "../misc/pcap_openvas.h"   /* for v6_is_local_ip */
 #include "../nasl/nasl_debug.h"     /* for nasl_*_filename */
-#include "comm.h"
 #include "hosts.h"
 #include "pluginlaunch.h"
 #include "pluginload.h"
@@ -142,16 +141,6 @@ comm_send_status (kb_t kb, char *hostname, int curr, int max)
 }
 
 static void
-error_message_to_client (int soc, const char *msg, const char *hostname,
-                         const char *port)
-{
-  if (is_otp_scan ())
-    send_printf (
-      soc, "SERVER <|> ERRMSG <|> %s <|>  <|> %s <|> %s <|>  <|> SERVER\n",
-      hostname ?: "", port ?: "", msg ?: "No error.");
-}
-
-static void
 error_message_to_client2 (kb_t kb, const char *msg, const char *port)
 {
   char buf[2048];
@@ -161,7 +150,7 @@ error_message_to_client2 (kb_t kb, const char *msg, const char *port)
 }
 
 static void
-report_kb_failure (int soc, int errcode)
+report_kb_failure (int errcode)
 {
   gchar *msg;
 
@@ -169,7 +158,6 @@ report_kb_failure (int soc, int errcode)
   msg = g_strdup_printf ("WARNING: Cannot connect to KB at '%s': %s'",
                          prefs_get ("db_address"), strerror (errcode));
   g_warning ("%s", msg);
-  error_message_to_client (soc, msg, NULL, NULL);
   g_free (msg);
 }
 
@@ -406,17 +394,16 @@ init_host_kb (struct scan_globals *globals, char *ip_str, kb_t *network_kb)
   gchar *hostname_pattern;
   enum net_scan_status nss;
   const gchar *kb_path = prefs_get ("db_address");
-  int rc, soc;
+  int rc;
 
   nss = network_scan_status (globals);
-  soc = globals->global_socket;
   switch (nss)
     {
     case NSS_DONE:
       rc = kb_new (&kb, kb_path);
       if (rc)
         {
-          report_kb_failure (soc, rc);
+          report_kb_failure (rc);
           return NULL;
         }
 
@@ -435,7 +422,7 @@ init_host_kb (struct scan_globals *globals, char *ip_str, kb_t *network_kb)
       rc = kb_new (&kb, kb_path);
       if (rc)
         {
-          report_kb_failure (soc, rc);
+          report_kb_failure (rc);
           return NULL;
         }
     }
@@ -490,7 +477,7 @@ attack_host (struct scan_globals *globals, struct in6_addr *ip, GSList *vhosts,
   host_vhosts = vhosts;
   kb_item_set_str (kb, "internal/ip", ip_str, 0);
   kb_item_set_int (kb, "internal/hostpid", getpid ());
-  proctitle_set ("openvassd: testing %s", ip_str);
+  proctitle_set ("openvas: testing %s", ip_str);
   if (net_kb && *net_kb)
     {
       kb_delete (kb);
@@ -705,8 +692,7 @@ attack_start (struct attack_start_args *args)
   gettimeofday (&then, NULL);
 
   kb_item_set_str (kb, "internal/scan_id", globals->scan_id, 0);
-  if (!is_otp_scan ())
-    set_kb_readable (kb_get_kb_index (kb));
+  set_kb_readable (kb_get_kb_index (kb));
 
   /* The reverse lookup is delayed to this step in order to not slow down the
    * main scan process eg. case of target with big range of IP addresses. */
@@ -737,13 +723,11 @@ attack_start (struct attack_start_args *args)
 
   if (!scan_is_stopped () && !all_scans_are_stopped ())
     {
-      if (!is_otp_scan ())
-        {
-          char key[1024];
-          snprintf (key, sizeof (key), "internal/%s", globals->scan_id);
-          kb_item_set_str (kb, key, "finished", 0);
-        }
+      char key[1024];
       struct timeval now;
+
+      snprintf (key, sizeof (key), "internal/%s", globals->scan_id);
+      kb_item_set_str (kb, key, "finished", 0);
 
       gettimeofday (&now, NULL);
       if (now.tv_usec < then.tv_usec)
@@ -872,7 +856,7 @@ iface_authorized (const char *iface)
  * unauthorized value, -2 if iface can't be used.
  */
 static int
-apply_source_iface_preference (int soc)
+apply_source_iface_preference ()
 {
   const char *source_iface = prefs_get ("source_iface");
   int ret;
@@ -887,7 +871,6 @@ apply_source_iface_preference (int soc)
         g_strdup_printf ("Unauthorized source interface: %s", source_iface);
       g_warning ("source_iface: Unauthorized source interface %s.",
                  source_iface);
-      error_message_to_client (soc, msg, NULL, NULL);
 
       g_free (msg);
       return -1;
@@ -900,7 +883,6 @@ apply_source_iface_preference (int soc)
       g_warning ("source_iface: Unauthorized source interface %s."
                  " (sys_* preference restriction.)",
                  source_iface);
-      error_message_to_client (soc, msg, NULL, NULL);
 
       g_free (msg);
       return -1;
@@ -911,7 +893,6 @@ apply_source_iface_preference (int soc)
       gchar *msg =
         g_strdup_printf ("Erroneous source interface: %s", source_iface);
       g_debug ("source_iface: Error with %s interface.", source_iface);
-      error_message_to_client (soc, msg, NULL, NULL);
 
       g_free (msg);
       return -2;
@@ -931,14 +912,14 @@ apply_source_iface_preference (int soc)
 }
 
 static int
-check_kb_access (int soc)
+check_kb_access ()
 {
   int rc;
   kb_t kb;
 
   rc = kb_new (&kb, prefs_get ("db_address"));
   if (rc)
-    report_kb_failure (soc, rc);
+    report_kb_failure (rc);
   else
     kb_delete (kb);
 
@@ -968,7 +949,6 @@ attack_network (struct scan_globals *globals, kb_t *network_kb)
   int max_hosts = 0, max_checks;
   const char *hostlist;
   gvm_host_t *host;
-  int global_socket = -1;
   plugins_scheduler_t sched;
   int fork_retries = 0;
   GHashTable *files;
@@ -1015,16 +995,13 @@ attack_network (struct scan_globals *globals, kb_t *network_kb)
   else
     network_kb = NULL;
 
-  global_socket = globals->global_socket;
-  if (check_kb_access (global_socket))
+  if (check_kb_access ())
     return;
 
   /* Init and check Target List */
   hostlist = prefs_get ("TARGET");
   if (hostlist == NULL)
     {
-      error_message_to_client (global_socket, "Missing target hosts", NULL,
-                               NULL);
       return;
     }
 
@@ -1032,8 +1009,6 @@ attack_network (struct scan_globals *globals, kb_t *network_kb)
   port_range = prefs_get ("port_range");
   if (validate_port_range (port_range))
     {
-      error_message_to_client (global_socket, "Invalid port range", NULL,
-                               port_range);
       return;
     }
 
@@ -1043,10 +1018,6 @@ attack_network (struct scan_globals *globals, kb_t *network_kb)
                                   network_phase);
   if (!sched)
     {
-      error_message_to_client (global_socket,
-                               "Couldn't initialize "
-                               "the plugin scheduler",
-                               NULL, NULL);
       g_message ("Couldn't initialize the plugin scheduler");
       return;
     }
@@ -1073,7 +1044,7 @@ attack_network (struct scan_globals *globals, kb_t *network_kb)
           rc = kb_new (network_kb, prefs_get ("db_address"));
           if (rc)
             {
-              report_kb_failure (global_socket, rc);
+              report_kb_failure (rc);
               host = NULL;
             }
           else
@@ -1090,8 +1061,6 @@ attack_network (struct scan_globals *globals, kb_t *network_kb)
   while (unresolved)
     {
       g_warning ("Couldn't resolve hostname '%s'", (char *) unresolved->data);
-      error_message_to_client (global_socket, "Couldn't resolve hostname",
-                               unresolved->data, NULL);
       unresolved = unresolved->next;
     }
   g_slist_free_full (unresolved, g_free);
@@ -1099,17 +1068,15 @@ attack_network (struct scan_globals *globals, kb_t *network_kb)
   apply_hosts_preferences (hosts);
 
   /* Don't start if the provided interface is unauthorized. */
-  if (apply_source_iface_preference (global_socket) != 0)
+  if (apply_source_iface_preference () != 0)
     {
       gvm_hosts_free (hosts);
-      error_message_to_client (
-        global_socket, "Interface not authorized for scanning", NULL, NULL);
       return;
     }
   host = gvm_hosts_next (hosts);
   if (host == NULL)
     goto stop;
-  hosts_init (global_socket, max_hosts);
+  hosts_init (max_hosts);
   /*
    * Start the attack !
    */
@@ -1124,11 +1091,11 @@ attack_network (struct scan_globals *globals, kb_t *network_kb)
       rc = kb_new (&host_kb, prefs_get ("db_address"));
       if (rc)
         {
-          report_kb_failure (global_socket, rc);
+          report_kb_failure (rc);
           goto scan_stop;
         }
       host_str = gvm_host_value_str (host);
-      if (hosts_new (globals, host_str, host_kb) < 0)
+      if (hosts_new (host_str, host_kb) < 0)
         {
           g_free (host_str);
           goto scan_stop;
@@ -1182,7 +1149,7 @@ attack_network (struct scan_globals *globals, kb_t *network_kb)
 
   /* Every host is being tested... We have to wait for the processes
    * to terminate. */
-  while (hosts_read (globals) == 0)
+  while (hosts_read () == 0)
     ;
   g_message ("Test complete");
 
@@ -1196,10 +1163,6 @@ stop:
 
   if (all_scans_are_stopped ())
     {
-      error_message_to_client (global_socket,
-                               "The whole scan was stopped. "
-                               "Fatal Redis connection error.",
-                               "", NULL);
     }
 
   gvm_hosts_free (hosts);

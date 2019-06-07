@@ -232,7 +232,7 @@ cleanup_leftovers (int num_files)
   size_t count;
   GSList *oids, *element;
 
-  proctitle_set ("openvassd: Cleaning leftover NVTs.");
+  proctitle_set ("openvas: Cleaning leftover NVTs.");
 
   count = nvticache_count ();
   if ((int) count <= num_files)
@@ -295,7 +295,7 @@ plugins_reload_from_dir (void *folder)
           set_current_loading_plugins (loaded_files);
           percentile = (loaded_files * 100) / num_files;
           eta = calculate_eta (start_time, loaded_files, num_files);
-          proctitle_set ("openvassd: Reloaded %d of %d NVTs"
+          proctitle_set ("openvas: Reloaded %d of %d NVTs"
                          " (%d%% / ETA: %02d:%02d)",
                          loaded_files, num_files, percentile, eta / 60,
                          eta % 60);
@@ -311,7 +311,7 @@ plugins_reload_from_dir (void *folder)
       if (err_count == 20)
         {
           g_debug ("Stopped loading plugins: High number of errors.");
-          proctitle_set ("openvassd: Error loading NVTs.");
+          proctitle_set ("openvas: Error loading NVTs.");
           g_slist_free_full (files, g_free);
           exit (1);
         }
@@ -322,7 +322,7 @@ plugins_reload_from_dir (void *folder)
   g_slist_free_full (files, g_free);
   nasl_clean_inc ();
 
-  proctitle_set ("openvassd: Reloaded all the NVTs.");
+  proctitle_set ("openvas: Reloaded all the NVTs.");
 
   exit (0);
 }

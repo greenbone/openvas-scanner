@@ -179,9 +179,9 @@ if (KSBA)
   add_definitions (-DHAVE_LIBKSBA)
 endif (KSBA)
 
-if (OPENVASSD_CONF)
-  add_definitions (-DOPENVASSD_CONF="${OPENVASSD_CONF}")
-endif (OPENVASSD_CONF)
+if (OPENVAS_CONF)
+  add_definitions (-DOPENVAS_CONF="${OPENVAS_CONF}")
+endif (OPENVAS_CONF)
 
 set_source_files_properties (nasl_grammar.tab.c GENERATED)
 

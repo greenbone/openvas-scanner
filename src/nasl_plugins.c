@@ -182,7 +182,7 @@ nasl_thread (struct script_infos *args)
   kb = args->key;
   kb_lnk_reset (kb);
   addr6_to_str (args->ip, ip_str);
-  proctitle_set ("openvassd: testing %s (%s)", ip_str, args->name);
+  proctitle_set ("openvas: testing %s (%s)", ip_str, args->name);
 
   if (prefs_get_bool ("nasl_no_signature_check"))
     nasl_mode |= NASL_ALWAYS_SIGNED;

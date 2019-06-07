@@ -266,7 +266,7 @@ pluginlaunch_init (const char *host)
   if (max_running_processes >= MAX_PROCESSES)
     {
       g_debug ("max_checks (%d) > MAX_PROCESSES (%d) - modify "
-               "openvas-scanner/openvassd/pluginlaunch.c",
+               "openvas-scanner/openvas/pluginlaunch.c",
                max_running_processes, MAX_PROCESSES);
       max_running_processes = MAX_PROCESSES - 1;
     }

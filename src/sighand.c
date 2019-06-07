@@ -23,19 +23,11 @@
  * @brief Provides signal handling functions.
  */
 
-#include "sighand.h"
-
-#include "string.h"
-#include "utils.h"
-
-#include <errno.h> /* for errno() */
-#include <execinfo.h>
-#include <glib.h> /* for G_LOG_DOMAIN, for g_critical() */
-#include <gvm/base/pidfile.h>
-#include <signal.h>     /* for kill() */
-#include <sys/socket.h> /* for shutdown() */
-#include <sys/wait.h>   /* for wait() */
-#include <unistd.h>     /* for getpid() */
+#include <execinfo.h> /* for backtrace() */
+#include <glib.h>     /* for G_LOG_DOMAIN, for g_critical() */
+#include <signal.h>   /* for kill() */
+#include <sys/wait.h> /* for waitpid() */
+#include <unistd.h>   /* for getpid() */
 
 #undef G_LOG_DOMAIN
 /**

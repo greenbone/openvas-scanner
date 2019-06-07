@@ -19,16 +19,10 @@ tool with the following command:
 src/CMakeLists.txt: GPL-2+
 src/attack.c: GPL-2
 src/attack.h: GPL-2
-src/comm.c: GPL-2
-src/comm.h: GPL-2
 src/hosts.c: GPL-2
 src/hosts.h: GPL-2
 src/nasl_plugins.c: GPL-2
-src/ntp.c: GPL-2
-src/ntp.h: GPL-2
-src/openvassd.c: GPL-2
-src/otp.c: GPL-2+
-src/otp.h: GPL-2+
+src/openvas.c: GPL-2
 src/pluginlaunch.c: GPL-2
 src/pluginlaunch.h: GPL-2
 src/pluginload.c: GPL-2

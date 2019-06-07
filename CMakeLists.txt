@@ -177,7 +177,7 @@ endif (NOT GVM_ACCESS_KEY_DIR)
 
 set (OPENVAS_LIB_INSTALL_DIR     "${LIBDIR}")
 
-set (OPENVASSD_CONF     "${OPENVAS_SYSCONF_DIR}/openvassd.conf")
+set (OPENVAS_CONF     "${OPENVAS_SYSCONF_DIR}/openvas.conf")
 
 set (NVT_TIMEOUT "320")
 set (SCANNER_NVT_TIMEOUT "36000")
@@ -186,18 +186,18 @@ message ("-- Install prefix: ${CMAKE_INSTALL_PREFIX}")
 
 ## Version
 
-set (OPENVASSD_VERSION "${PROJECT_VERSION_STRING}")
+set (OPENVAS_VERSION "${PROJECT_VERSION_STRING}")
 
 # Configure Doxyfile with version number
 configure_file (doc/Doxyfile.in doc/Doxyfile @ONLY)
 configure_file (doc/Doxyfile_full.in doc/Doxyfile_full @ONLY)
 configure_file (doc/Doxyfile_xml.in doc/Doxyfile_xml @ONLY)
-configure_file (doc/openvassd.8.in doc/openvassd.8 @ONLY)
+configure_file (doc/openvas.8.in doc/openvas.8 @ONLY)
 configure_file (doc/redis_config_examples/redis_3_2.conf.in doc/redis_config_examples/redis_3_2.conf @ONLY)
 configure_file (doc/redis_config_examples/redis_4_0.conf.in doc/redis_config_examples/redis_4_0.conf @ONLY)
 configure_file (VERSION.in VERSION @ONLY)
 configure_file (tools/greenbone-nvt-sync.in tools/greenbone-nvt-sync @ONLY)
-configure_file (src/openvassd_log_conf.cmake_in src/openvassd_log.conf)
+configure_file (src/openvas_log_conf.cmake_in src/openvas_log.conf)
 
 ## Program
 

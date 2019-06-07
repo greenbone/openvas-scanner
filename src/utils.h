@@ -29,11 +29,6 @@
 #include <sys/types.h> /* for pid_t */
 
 int
-is_otp_scan (void);
-void
-set_scan_type (int);
-
-int
 get_max_hosts_number (void);
 
 int
