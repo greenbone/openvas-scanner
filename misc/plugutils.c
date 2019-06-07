@@ -804,14 +804,16 @@ plug_get_key (struct script_infos *args, char *name, int *type, size_t *len,
   kb_t kb = args->key;
   struct kb_item *res = NULL, *res_list;
 
-  if (type != NULL)
+  if (type != NULL && *type != KB_TYPE_INT)
     *type = -1;
 
   if (kb == NULL)
     return NULL;
 
-  if (single)
+  if (single && *type != KB_TYPE_INT)
     res = kb_item_get_single (kb, name, KB_TYPE_UNSPEC);
+  else if (*type == KB_TYPE_INT)
+    res = kb_item_get_single (kb, name, KB_TYPE_INT);
   else
     res = kb_item_get_all (kb, name);
 

@@ -753,9 +753,10 @@ tree_cell *
 nasl_open_sock_kdc (lex_ctxt *lexic)
 {
   tree_cell *retc;
-  int ret, type;
-  int timeout = 30, port = 88, tcp = 0;
-  char *hostname = NULL, *port_str, *tcp_str; /* Domain name for windows */
+  int ret, type, forced_type = KB_TYPE_INT;
+  int timeout = 30, tcp = 0;
+  unsigned short port = 88, *port_aux = NULL;
+  char *hostname = NULL, *tcp_str; /* Domain name for windows */
   struct script_infos *script_infos;
 
   script_infos = lexic->script_infos;
@@ -764,10 +765,14 @@ nasl_open_sock_kdc (lex_ctxt *lexic)
   if (!hostname || type != KB_TYPE_STR)
     return NULL;
 
-  port_str = plug_get_key (script_infos, "Secret/kdc_port", &type, NULL, 0);
-  port = GPOINTER_TO_SIZE (port_str);
-  g_free (port_str);
-  if (port <= 0 || type != KB_TYPE_INT)
+  port_aux = (unsigned short *) plug_get_key (script_infos, "Secret/kdc_port",
+                                              &forced_type, NULL, 0);
+  if (port_aux)
+    {
+      port = *port_aux;
+      g_free (port_aux);
+    }
+  if (port <= 0 || forced_type != KB_TYPE_INT)
     return NULL;
 
   tcp_str = plug_get_key (script_infos, "Secret/kdc_use_tcp", &type, NULL, 0);
