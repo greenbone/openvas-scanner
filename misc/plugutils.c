@@ -797,6 +797,18 @@ plug_fork_child (kb_t kb)
   return 1;
 }
 
+/**
+ * @brief Get values from a kb under the given key name.
+ *
+ * @param[in]     args   The script infos where to get the kb from.
+ * @param[in]     name   Key name to search in the kb.
+ * @param[in/out] type   If 1 is given, the answer is forced to be KB_TYPE_INT
+ *                       type. Otherwise it returns the fetched type.
+ * @param[in]     len    Desired string lenght to be returned.
+ * @param[in]     single In case of a list, fetch only the last element
+ *
+ * @return Null if no result, or a void pointer to the result in success.
+ */
 void *
 plug_get_key (struct script_infos *args, char *name, int *type, size_t *len,
               int single)
