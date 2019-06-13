@@ -221,7 +221,7 @@ all_scans_are_stopped ()
 static int
 nvti_category_is_safe (int category)
 {
-  /* XXX: Duplicated from openvas-scanner/nasl. */
+  /* XXX: Duplicated from openvas/nasl. */
   if (category == ACT_DESTRUCTIVE_ATTACK || category == ACT_KILL_HOST
       || category == ACT_FLOOD || category == ACT_DENIAL)
     return 0;

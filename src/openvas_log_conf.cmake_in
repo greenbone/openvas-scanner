@@ -1,4 +1,4 @@
-# OpenVAS Scanner logging configuration
+# OpenVAS logging configuration
 #
 # WARNING: Setting the level of any group (besides event*) to include debug
 #          may reveal passwords in the logs.

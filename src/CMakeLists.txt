@@ -196,7 +196,7 @@ install (FILES ${CMAKE_SOURCE_DIR}/doc/greenbone-nvt-sync.8
 
 install (FILES ${CMAKE_BINARY_DIR}/doc/redis_config_examples/redis_3_2.conf
                ${CMAKE_BINARY_DIR}/doc/redis_config_examples/redis_4_0.conf
-         DESTINATION ${DATADIR}/doc/openvas-scanner/redis_config_examples/ )
+         DESTINATION ${DATADIR}/doc/openvas/redis_config_examples/ )
 
 install (DIRECTORY DESTINATION ${OPENVAS_NVT_DIR})
 

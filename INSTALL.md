@@ -1,12 +1,12 @@
-INSTALLATION INSTRUCTIONS FOR OPENVAS-SCANNER
-=============================================
+INSTALLATION INSTRUCTIONS FOR OPENVAS
+=====================================
 
 Please note: The reference system used by most of the developers is Debian
 GNU/Linux 'Stretch' 9. The build might fail on any other system. Also, it is
 necessary to install dependent development packages.
 
-Prerequisites for openvas-scanner
----------------------------------
+Prerequisites for openvas
+-------------------------
 
 Prerequisites:
 * a C compiler (e.g. gcc)
@@ -45,8 +45,8 @@ Install prerequisites on Debian GNU/Linux 'Stretch' 9:
     libpcap-dev libgpgme-dev bison libksba-dev libsnmp-dev libgcrypt20-dev
 
 
-Compiling openvas-scanner
--------------------------
+Compiling openvas
+-----------------
 
 If you have installed required libraries to a non-standard location, remember to
 set the `PKG_CONFIG_PATH` environment variable to the location of you pkg-config
@@ -98,15 +98,15 @@ all compiler warnings, it may lead the build process to abort on your system.
 
 Should you notice error messages causing your build process to abort, do not
 hesitate to contact the developers by creating a 
-[new issue report](https://github.com/greenbone/openvas-scanner/issues/new).
+[new issue report](https://github.com/greenbone/openvas/issues/new).
 Don't forget to include the name and version of your compiler and distribution in your
 message.
 
 
-Setting up openvas-scanner
---------------------------
+Setting up openvas
+------------------
 
-Setting up an openvas-scanner requires the following steps:
+Setting up an openvas requires the following steps:
 
 1. (optional) You may decide to change the default scanner preferences
    by setting them in the file `$prefix/etc/openvas.conf`. If that file does
@@ -117,9 +117,9 @@ Setting up an openvas-scanner requires the following steps:
    scan targets and interfaces.
 
 2. In order to run vulnerability scans, you will need a collection of Network
-   Vulnerability Tests (NVTs) that can be run by openvas-scanner. Initially,
+   Vulnerability Tests (NVTs) that can be run by openvas. Initially,
    your NVT collection will be empty. It is recommended that you synchronize
-   with an NVT feed service before starting openvas-scanner for the first time.
+   with an NVT feed service before starting openvas for the first time.
 
    Simply execute the following command to retrieve the initial NVT collection:
 
@@ -145,15 +145,15 @@ Setting up an openvas-scanner requires the following steps:
    Multiple examples for various Redis versions are installed which you may use
    directly for a quick start:
 
-       redis-server <install-prefix>/share/doc/openvas-scanner/redis_config_examples/redis_3_2.conf
+       redis-server <install-prefix>/share/doc/openvas/redis_config_examples/redis_3_2.conf
 
    or
 
-       redis-server <install-prefix>/share/doc/openvas-scanner/redis_config_examples/redis_4_0.conf
+       redis-server <install-prefix>/share/doc/openvas/redis_config_examples/redis_4_0.conf
 
    or copy the example to another location, edit and use the copy instead.
 
-4. You can launch openvas-scanner using the following command:
+4. You can launch openvas using the following command:
 
        openvas
 
@@ -181,10 +181,9 @@ If you encounter problems, by default the scanner writes logs to the file
 
 It may contain useful information.The exact location of this file may differ
 depending on your distribution and installation method. Please have this file
-ready when contacting the GVM developers through the OpenVAS mailing list
-or the online chat or submitting bug reports at
-<https://github.com/greenbone/openvas-scanner/issues> as they may help to
-pinpoint the source of your issue.
+ready when contacting the GVM developers via the Greenbone Community Portal
+or submitting bug reports at <https://github.com/greenbone/openvas/issues> as
+they may help to pinpoint the source of your issue.
 
 Logging is configured entirely by the file
 
