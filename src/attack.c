@@ -56,7 +56,10 @@
 #define ERR_CANT_FORK -2
 
 #define MAX_FORK_RETRIES 10
-
+/**
+ * Wait KB_RETRY_DELAY seconds until trying again to get a new kb.
+ */
+#define KB_RETRY_DELAY 3 /*In sec*/
 /**
  * It switches progress bar styles.
  * If set to 1, time oriented style and it take into account only alive host.
@@ -1088,12 +1091,23 @@ attack_network (struct scan_globals *globals, kb_t *network_kb)
       struct attack_start_args args;
       char *host_str;
 
-      rc = kb_new (&host_kb, prefs_get ("db_address"));
-      if (rc)
+      do
         {
-          report_kb_failure (rc);
-          goto scan_stop;
+          rc = kb_new (&host_kb, prefs_get ("db_address"));
+          if (rc < 0 && rc != -2)
+            {
+              report_kb_failure (rc);
+              goto scan_stop;
+            }
+          else if (rc == -2)
+            {
+              sleep (KB_RETRY_DELAY);
+              continue;
+            }
+          break;
         }
+      while (1);
+
       host_str = gvm_host_value_str (host);
       if (hosts_new (host_str, host_kb) < 0)
         {
