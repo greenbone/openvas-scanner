@@ -1,11 +1,11 @@
-SUMMARY OF RELEASE CHANGES FOR OPENVAS-SCANNER
-==============================================
+SUMMARY OF RELEASE CHANGES FOR OPENVAS
+======================================
 
 For detailed code changes, please visit
- https://github.com/greenbone/openvas-scanner/commits/master
+ https://github.com/greenbone/openvas/commits/master
 or get the entire source code repository and view log history:
-$ git clone https://github.com/greenbone/openvas-scanner.git
-$ cd openvas-scanner && git log
+$ git clone https://github.com/greenbone/openvas.git
+$ cd openvas && git log
 
 openvas-scanner 7.0+beta1 (unreleased)
 

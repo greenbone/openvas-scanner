@@ -20,7 +20,7 @@ cmake_minimum_required (VERSION 3.0)
 
 message ("-- Configuring the Scanner...")
 
-project (openvas-scanner
+project (openvas
   VERSION 7.0.0
   LANGUAGES C)
 
@@ -86,7 +86,7 @@ set (PROJECT_VERSION_STRING "${PROJECT_VERSION_MAJOR}.${PROJECT_VERSION_MINOR}${
 
 set (CPACK_CMAKE_GENERATOR "Unix Makefiles")
 set (CPACK_GENERATOR "TGZ")
-set (CPACK_INSTALL_CMAKE_PROJECTS ".;openvas-scanner;ALL;/")
+set (CPACK_INSTALL_CMAKE_PROJECTS ".;openvas;ALL;/")
 set (CPACK_MODULE_PATH "")
 set (CPACK_RESOURCE_FILE_LICENSE "${CMAKE_SOURCE_DIR}/COPYING")
 set (CPACK_RESOURCE_FILE_README "${CMAKE_SOURCE_DIR}/README.md")

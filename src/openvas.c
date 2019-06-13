@@ -30,7 +30,7 @@
 
 /**
  * @file
- * OpenVAS Scanner main module, runs the scanner.
+ * OpenVAS main module, runs the scanner.
  */
 
 #include "../misc/plugutils.h"     /* nvticache_free */
@@ -413,7 +413,7 @@ main (int argc, char *argv[])
     {NULL, 0, 0, 0, NULL, NULL, NULL}};
 
   option_context =
-    g_option_context_new ("- Open Vulnerability Assessment System");
+    g_option_context_new ("- Open Vulnerability Assessment Scanner");
   g_option_context_add_main_entries (option_context, entries, NULL);
   if (!g_option_context_parse (option_context, &argc, &argv, &error))
     {
@@ -432,7 +432,7 @@ main (int argc, char *argv[])
   /* --version */
   if (display_version)
     {
-      printf ("OpenVAS Scanner %s\n", OPENVAS_VERSION);
+      printf ("OpenVAS %s\n", OPENVAS_VERSION);
 #ifdef OPENVAS_GIT_REVISION
       printf ("GIT revision %s\n", OPENVAS_GIT_REVISION);
 #endif
