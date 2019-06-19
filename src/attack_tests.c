@@ -113,8 +113,7 @@ main (int argc, char **argv)
                          comm_send_status_returns_neg1_for_null_args);
   add_test_with_context (suite, attack,
                          comm_send_status_error_if_hostname_too_big);
-  add_test_with_context (suite, attack,
-                         comm_send_status_sends_correct_text);
+  add_test_with_context (suite, attack, comm_send_status_sends_correct_text);
 
   if (argc > 1)
     return run_single_test (suite, argv[1], create_text_reporter ());
