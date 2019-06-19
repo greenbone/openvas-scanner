@@ -71,11 +71,9 @@ main (int argc, char **argv)
 
   suite = create_test_suite ();
 
-  add_test_with_context (suite,
-                         attack,
+  add_test_with_context (suite, attack,
                          comm_send_status_returns_neg1_for_null_args);
-  add_test_with_context (suite,
-                         attack,
+  add_test_with_context (suite, attack,
                          comm_send_status_error_if_hostname_too_big);
 
   if (argc > 1)
