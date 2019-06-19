@@ -58,7 +58,7 @@ else (NOT GCRYPT)
 endif (NOT GCRYPT)
 
 add_executable (openvas attack.c hosts.c
-                nasl_plugins.c openvas.c
+                main.c nasl_plugins.c openvas.c
                 pluginlaunch.c pluginload.c
                 pluginscheduler.c plugs_req.c
                 processes.c sighand.c utils.c)
@@ -148,7 +148,29 @@ target_link_libraries (openvas openvas_nasl_shared ${LIBOPENVAS_NASL_LDFLAGS}
 
 ## Tests
 
-enable_testing ()
+add_executable (attack-test
+                EXCLUDE_FROM_ALL
+                attack_tests.c
+
+                hosts.c nasl_plugins.c openvas.c
+                pluginlaunch.c pluginload.c
+                pluginscheduler.c plugs_req.c
+                processes.c sighand.c utils.c)
+
+set_target_properties (attack-test PROPERTIES LINKER_LANGUAGE C)
+
+add_test (attack-test attack-test)
+
+target_link_libraries (attack-test openvas_nasl_shared cgreen
+                       ${LIBOPENVAS_NASL_LDFLAGS}
+                       ${LIBOPENVAS_MISC_LDFLAGS}
+                       ${LIBGVM_BASE_LDFLAGS}
+                       ${GLIB_LDFLAGS} ${GCRYPT_LDFLAGS}
+                       ${EXECINFO_LDFLAGS}
+                       ${LINKER_HARDENING_FLAGS})
+
+add_custom_target (tests
+                   DEPENDS attack-test)
 
 ## Static analysis
 
