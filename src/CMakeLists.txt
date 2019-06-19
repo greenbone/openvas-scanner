@@ -167,7 +167,8 @@ target_link_libraries (attack-test openvas_nasl_shared cgreen
                        ${LIBGVM_BASE_LDFLAGS}
                        ${GLIB_LDFLAGS} ${GCRYPT_LDFLAGS}
                        ${EXECINFO_LDFLAGS}
-                       ${LINKER_HARDENING_FLAGS})
+                       ${LINKER_HARDENING_FLAGS}
+                       -Wl,--wrap=redis_push_str)
 
 add_custom_target (tests
                    DEPENDS attack-test)
