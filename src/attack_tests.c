@@ -47,10 +47,11 @@ __wrap_redis_push_str (kb_t kb, const char *name, const char *value)
 
 Ensure (attack, comm_send_status_returns_neg1_for_null_args)
 {
+  struct kb kb_struct;
   kb_t kb;
 
   /* Create a dummy kb. */
-  kb = NULL;
+  kb = &kb_struct;
 
   never_expect (__wrap_redis_push_str);
   assert_that (comm_send_status (NULL, "example", 0, 100), is_equal_to (-1));
@@ -59,15 +60,16 @@ Ensure (attack, comm_send_status_returns_neg1_for_null_args)
 
 Ensure (attack, comm_send_status_error_if_hostname_too_big)
 {
+  struct kb kb_struct;
   kb_t kb;
   gchar *long_host;
   int index;
 
   /* Create a dummy kb. */
-  kb = NULL;
+  kb = &kb_struct;
 
   long_host = g_malloc (2049);
-  for (index = 0; index < 2048; index++)
+  for (index = 0; index < 2049; index++)
     long_host[index] = 'a';
   long_host[2048] = '\0';
 
