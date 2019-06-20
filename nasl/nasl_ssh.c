@@ -169,19 +169,20 @@ static unsigned short
 get_ssh_port (lex_ctxt *lexic)
 {
   const char *value;
-  char *port_str;
-  int type;
-  unsigned short port;
+  int type = KB_TYPE_INT;
+  unsigned short port, *port_aux = NULL;
 
   value = prefs_get ("auth_port_ssh");
   if (value && (port = (unsigned short) strtoul (value, NULL, 10)) > 0)
     return port;
 
-  port_str = plug_get_key (lexic->script_infos, "Services/ssh", &type, NULL, 0);
-  if (port_str)
+  port_aux = (unsigned short *) plug_get_key (lexic->script_infos,
+                                              "Services/ssh", &type, NULL, 0);
+
+  if (port_aux)
     {
-      port = GPOINTER_TO_SIZE (port_str);
-      g_free (port_str);
+      port = *port_aux;
+      g_free (port_aux);
       if (type == KB_TYPE_INT && port > 0)
         return port;
     }
