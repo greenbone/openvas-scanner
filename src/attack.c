@@ -1111,16 +1111,16 @@ attack_network (struct scan_globals *globals, kb_t *network_kb)
       struct attack_start_args args;
       char *host_str;
 
-      rc = kb_new (&host_kb, prefs_get ("db_address"));
-      if (rc)
-        {
-          report_kb_failure (global_socket, rc);
-          goto scan_stop;
-        }
       host_str = gvm_host_value_str (host);
-      if (hosts_new (globals, host_str, host_kb) < 0)
+      rc = hosts_new (globals, host_str, &host_kb);
+      if (rc == -1)
         {
           g_free (host_str);
+          goto scan_stop;
+        }
+      if (rc == -2)
+        {
+          report_kb_failure (global_socket, rc);
           goto scan_stop;
         }
 

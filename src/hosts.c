@@ -34,6 +34,7 @@
 #include <string.h>   /* for strlen() */
 #include <sys/wait.h> /* for waitpid() */
 #include <unistd.h>   /* for close() */
+#include <gvm/base/prefs.h> /* for prefs_get() */
 
 #undef G_LOG_DOMAIN
 /**
@@ -41,6 +42,7 @@
  */
 #define G_LOG_DOMAIN "sd   main"
 
+#define KB_RETRY_DELAY 60
 /**
  * @brief Host information, implemented as doubly linked list.
  */
@@ -208,22 +210,35 @@ hosts_init (int soc, int max_hosts)
 }
 
 int
-hosts_new (struct scan_globals *globals, char *name, kb_t kb)
+hosts_new (struct scan_globals *globals, char *name, kb_t *kb)
 {
   struct host *h;
+  int rc = 0;
 
-  while (hosts_num () >= g_max_hosts)
+  do
     {
-      if (hosts_read (globals) < 0)
-        return -1;
+      rc = kb_new (kb, prefs_get ("db_address"));
+      if (rc < 0 && rc != -2)
+        return -2;
+      else if (rc == -2)
+        sleep(KB_RETRY_DELAY);
+
+      if (hosts_num () > 0)
+        if (hosts_read (globals) < 0)
+          return -1;
+
+      if (hosts_num () >= g_max_hosts)
+        kb_delete(*kb);
     }
+  while (hosts_num () >= g_max_hosts || rc == -2);
+
   if (global_scan_stop)
     return 0;
 
   h = g_malloc0 (sizeof (struct host));
   h->name = g_strdup (name);
   h->pid = 0;
-  h->host_kb = kb;
+  h->host_kb = *kb;
   if (hosts != NULL)
     hosts->prev = h;
   h->next = hosts;

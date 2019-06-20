@@ -85,6 +85,7 @@
 #define PROCTITLE_RELOADING "openvassd: Reloading"
 #define PROCTITLE_SERVING "openvassd: Serving %s"
 
+#define KB_RETRY_DELAY 60
 /**
  * Globals that should not be touched (used in utils module).
  */
@@ -610,13 +611,23 @@ stop_all_scans (void)
 void
 check_kb_status ()
 {
-  int waitredis = 5, waitkb = 5, ret = 0;
-
+  int waitredis = 5, waitkb = 5, ret = 0, log_flag = 1;
   kb_t kb_access_aux;
 
   while (waitredis != 0)
     {
       ret = kb_new (&kb_access_aux, prefs_get ("db_address"));
+      if (ret == -2)
+        {
+          if (log_flag)
+            {
+              g_warning ("No redis DB available, It will retry every %ds...",
+                         KB_RETRY_DELAY);
+              log_flag = 0;
+            }
+          sleep (KB_RETRY_DELAY);
+          continue;
+        }
       if (ret)
         {
           g_message ("Redis connection lost. Trying to reconnect.");
@@ -629,6 +640,7 @@ check_kb_status ()
           kb_delete (kb_access_aux);
           break;
         }
+      log_flag = 1;
     }
 
   if (waitredis == 0)
