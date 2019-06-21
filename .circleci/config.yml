@@ -10,7 +10,7 @@ jobs:
           command: clang-format -i -style=file src/*.{c,h} misc/*.{c,h} nasl/*.{c,h} && git diff --exit-code
   test_units:
     docker:
-      - image: greenbone/build-env-gvm-master-debian-stretch-gcc-postgresql
+      - image: greenbone/build-env-openvas-scanner-master-debian-stretch-gcc-core
     steps:
       - run:
           working_directory: ~/gvm-libs
