@@ -377,7 +377,7 @@ start_single_task_scan ()
  * @param argv Argument vector.
  */
 int
-main (int argc, char *argv[])
+openvas (int argc, char *argv[])
 {
   int ret;
 
