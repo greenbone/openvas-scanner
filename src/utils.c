@@ -23,17 +23,11 @@
  * @brief A bunch of miscellaneous functions, mostly file conversions.
  */
 
-#include "utils.h"
-
-#include "../misc/network.h" /* for stream_zero */
-#include "pluginscheduler.h"
-
 #include <errno.h>          /* for errno() */
 #include <gvm/base/prefs.h> /* for prefs_get() */
 #include <stdlib.h>         /* for atoi() */
-#include <string.h>         /* for strchr() */
+#include <string.h>         /* for strcmp() */
 #include <sys/ioctl.h>      /* for ioctl() */
-#include <sys/stat.h>       /* for stat() */
 #include <sys/wait.h>       /* for waitpid() */
 
 extern int global_max_hosts;
