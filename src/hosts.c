@@ -187,6 +187,7 @@ hosts_stop_host (struct host *h)
 
   g_message ("Stopping host %s scan", h->name);
   kill (h->pid, SIGUSR1);
+  kb_delete (h->host_kb);
   return 0;
 }
 
