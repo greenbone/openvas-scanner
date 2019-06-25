@@ -23,17 +23,11 @@
  * @brief A bunch of miscellaneous functions, mostly file conversions.
  */
 
-#include "utils.h"
-
-#include "../misc/network.h" /* for stream_zero */
-#include "pluginscheduler.h"
-
 #include <errno.h>          /* for errno() */
 #include <gvm/base/prefs.h> /* for prefs_get() */
 #include <stdlib.h>         /* for atoi() */
-#include <string.h>         /* for strchr() */
+#include <string.h>         /* for strcmp() */
 #include <sys/ioctl.h>      /* for ioctl() */
-#include <sys/stat.h>       /* for stat() */
 #include <sys/wait.h>       /* for waitpid() */
 
 extern int global_max_hosts;
@@ -167,52 +161,4 @@ is_scanner_only_pref (const char *pref)
       || !strncmp (pref, "sys_", 4))
     return 1;
   return 0;
-}
-
-/**
- * @brief Writes data to a socket.
- */
-static void
-auth_send (int soc, char *data)
-{
-  unsigned int sent = 0;
-  gsize length;
-
-  if (soc < 0)
-    return;
-
-  /* Convert to UTF-8 before sending to Manager. */
-  data = g_convert (data, -1, "UTF-8", "ISO_8859-1", NULL, &length, NULL);
-  while (sent < length)
-    {
-      int n = nsend (soc, data + sent, length - sent, 0);
-      if (n < 0)
-        {
-          if ((errno != ENOMEM) && (errno != ENOBUFS))
-            {
-              g_free (data);
-              return;
-            }
-        }
-      else
-        sent += n;
-    }
-  g_free (data);
-}
-
-/**
- * @brief Writes data to a socket.
- */
-void
-send_printf (int soc, char *data, ...)
-{
-  va_list param;
-  char *buffer;
-
-  va_start (param, data);
-  buffer = g_strdup_vprintf (data, param);
-  va_end (param);
-
-  auth_send (soc, buffer);
-  g_free (buffer);
 }

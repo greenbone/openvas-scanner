@@ -45,7 +45,4 @@ wait_for_children1 (void);
 int
 is_scanner_only_pref (const char *);
 
-void
-send_printf (int, char *, ...) __attribute__ ((format (printf, 2, 3)));
-
 #endif
