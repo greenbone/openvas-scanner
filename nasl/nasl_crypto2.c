@@ -88,6 +88,70 @@ print_gcrypt_error (lex_ctxt *lexic, char *function, int err)
                gcry_strerror (err));
 }
 
+static int
+find_cipher_hd (cipher_table_item_t *cipher_elem, int *id)
+{
+  if (cipher_elem->id == *id)
+    return 0;
+
+  return -1;
+}
+
+/**
+ * @brief Helper function to validate the cipher id.
+ *
+ * @param[in] cipher_id The cipher ID to validate.
+ * @return Handler on success, Null on error.
+ */
+static gcry_cipher_hd_t
+verify_cipher_id (lex_ctxt *lexic, int cipher_id)
+{
+  cipher_table_item_t *hd;
+  GList *hd_aux;
+
+  hd_aux = g_list_find_custom (cipher_table, &cipher_id,
+                               (GCompareFunc) find_cipher_hd);
+  if (!hd_aux)
+    {
+      nasl_perror (lexic, "Cipher handle %d not found.\n", cipher_id);
+      return NULL;
+    }
+  hd = (cipher_table_item_t *) hd_aux->data;
+
+  return hd->hd;
+}
+
+/**
+ * @brief Create a new cipher handler item parameter.
+ *
+ * @return New cipher handler item.
+ */
+static cipher_table_item_t *
+cipher_table_item_new (void)
+{
+  return g_malloc0 (sizeof (cipher_table_item_t));
+}
+
+/**
+ * @brief Free and remove a cipher handler from the cipher table.
+ *
+ * @param[in] cipher_id ID of the cipher handler to free and remove.
+ * @return 0 on success, -1 on error.
+ */
+static void
+delete_cipher_item (int cipher_id)
+{
+  GList *hd_item;
+  cipher_table_item_t *hd;
+
+  hd_item = g_list_find_custom (cipher_table, &cipher_id,
+                                (GCompareFunc) find_cipher_hd);
+  hd = (cipher_table_item_t *) hd_item->data;
+  gcry_cipher_close ((gcry_cipher_hd_t) hd->hd);
+  g_free (hd_item->data);
+  cipher_table = g_list_remove (cipher_table, hd_item->data);
+}
+
 /**
  * @brief Converts a string to a gcry_mpi_t.
  *
