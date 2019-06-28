@@ -1749,10 +1749,48 @@ encrypt_data (lex_ctxt *lexic, int cipher, int mode)
   return retc;
 }
 
+/**
+ * @brief Nasl function to encrypt data with a RC4 cipher. If an hd param
+ * exist in the lexix context, it will use this handler to encrypt the data
+ * as part of a stream data.
+ * e.g.: rc4_encypt(data: data, hd: hd)
+ *
+ * Otherwise encrypts the data as block and the key is mandatory:
+ * e.g.: rc4_encypt(data: data, key: key)
+ *
+ * @return Returns the encrypted data on success. Otherwise NULL.
+ */
 tree_cell *
 nasl_rc4_encrypt (lex_ctxt *lexic)
 {
+  int cipher_id;
+  gcry_cipher_hd_t hd;
+  cipher_id = get_int_var_by_name (lexic, "hd", -1);
+
+  if (cipher_id >= 0)
+    {
+      hd = verify_cipher_id (lexic, cipher_id);
+      if (hd == NULL)
+        return NULL;
+      return encrypt_stream_data (lexic, GCRY_CIPHER_ARCFOUR);
+    }
+
   return encrypt_data (lexic, GCRY_CIPHER_ARCFOUR, GCRY_CIPHER_MODE_STREAM);
+}
+
+/**
+ * @brief Nasl function to open RC4 cipher to encrypt a stream of data.
+ * The handler can be used to encrypt stream data.
+ * Open cipher must be close with close_stream_cipher() when it is not usefull
+ * anymore.
+ * @return Returns the id of the cipher handler encrypted data on success.
+ * Otherwise NULL.
+ */
+tree_cell *
+nasl_open_rc4_cipher (lex_ctxt *lexic)
+{
+  return nasl_open_stream_cipher (lexic, GCRY_CIPHER_ARCFOUR,
+                                  GCRY_CIPHER_MODE_STREAM);
 }
 
 tree_cell *
