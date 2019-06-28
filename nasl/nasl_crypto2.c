@@ -49,6 +49,23 @@
 #define G_LOG_DOMAIN "lib  nasl"
 
 /**
+ * @brief List of open cipher handler.
+ */
+static GList *cipher_table = NULL;
+
+/**
+ * @brief Struct holding a cipher handler.
+ */
+struct cipher_table_item
+{
+  gcry_cipher_hd_t hd;
+  int id;
+};
+
+/* Type definitions */
+typedef struct cipher_table_item cipher_table_item_t;
+
+/**
  * @brief Prints a GnuTLS error.
  *
  * The parameter err should be the GnuTLS error code
