@@ -206,6 +206,7 @@ plugins_scheduler_enable (plugins_scheduler_t sched, const char *oid_list,
   char *oids, *oid, *saveptr;
   GHashTable *oids_table, *names_table;
   int ret = 0;
+  static int error_counter = 0;
 
   oids_table = g_hash_table_new_full (g_str_hash, g_str_equal, NULL, NULL);
   names_table = g_hash_table_new_full (g_str_hash, g_str_equal, g_free, g_free);
@@ -217,7 +218,14 @@ plugins_scheduler_enable (plugins_scheduler_t sched, const char *oid_list,
     {
       ret = plugin_add (sched, oids_table, names_table, autoload, oid);
       if (ret)
-        goto error;
+        {
+          error_counter++;
+          if (error_counter >= 5)
+            {
+              g_message ("Stopped plugin scheduler: High number of errors.");
+              goto error;
+            }
+        }
       oid = strtok_r (NULL, ";", &saveptr);
     }
 
