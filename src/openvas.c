@@ -370,6 +370,33 @@ start_single_task_scan ()
   scanner_thread (globals);
   exit (0);
 }
+/**
+ * @brief Search in redis the process ID of a running scan and
+ * sends it the kill signal SIGUSR2, which will stop the scan.
+ * To find the process ID, it uses the scan_id passed with the
+ * --scan-stop option.
+ */
+static void
+stop_single_task_scan ()
+{
+  char key[1024];
+  kb_t kb;
+  int pid;
+
+  if (!global_scan_id)
+    exit (1);
+
+  snprintf (key, sizeof (key), "internal/%s/scanprefs", global_scan_id);
+  kb = kb_find (prefs_get ("db_address"), key);
+
+  if (!kb)
+    exit (1);
+
+  pid = kb_item_get_int (kb, "internal/ovas_pid");
+  kill (pid, SIGUSR2);
+
+  exit (0);
+}
 
 /**
  * @brief openvas.
@@ -388,6 +415,7 @@ openvas (int argc, char *argv[])
   static gchar *config_file = NULL;
   static gchar *vendor_version_string = NULL;
   static gchar *scan_id = NULL;
+  static gchar *stop_scan_id = NULL;
   static gboolean print_specs = FALSE;
   static gboolean print_sysconfdir = FALSE;
   static gboolean update_vt_info = FALSE;
@@ -410,6 +438,9 @@ openvas (int argc, char *argv[])
      "ID of scan to start. ID and related data must be stored into redis "
      "before.",
      "<string>"},
+    {"scan-stop", '\0', 0, G_OPTION_ARG_STRING, &stop_scan_id,
+     "ID of scan to stop", "<string>"},
+
     {NULL, 0, 0, 0, NULL, NULL, NULL}};
 
   option_context =
@@ -472,6 +503,13 @@ openvas (int argc, char *argv[])
 
   if (init_openvas (config_file))
     return 1;
+
+  if (stop_scan_id)
+    {
+      global_scan_id = g_strdup (stop_scan_id);
+      stop_single_task_scan ();
+      exit (0);
+    }
 
   if (scan_id)
     {
