@@ -4,8 +4,37 @@ SUMMARY OF RELEASE CHANGES FOR OPENVAS-SCANNER
 For detailed code changes, please visit
  https://github.com/greenbone/openvas-scanner/commits/master
 or get the entire source code repository and view log history:
-$ git clone https://github.com/greenbone/openvas-scanner.git
-$ cd openvas-scanner && git checkout openvas-scanner-6.0 && git log
+$ git clone https://github.com/greenbone/openvas.git
+$ cd openvas && git checkout openvas-scanner-6.0 && git log
+
+
+openvas-scanner 6.0.1 (2019-07-17)
+
+This is the first patch release of the openvas-scanner module 6.0 for the
+Greenbone Vulnerability Management (GVM) framework.
+
+Main changes compared to openvas-scanner 6.0.0:
+* An issue which caused the scanner to crash when a plugin is missing
+  during a scan has been addressed.
+* An issue which caused a plugin to hang in nasl_pread() has been addressed.
+* Lower-case format is used for values added from add_host_name().
+* Do not launch the scan if the nvticache is corrupted or an error is detected
+  during the plugin schedule process.
+* Issues in building process have been addressed.
+* An issue which caused the manager to consider a scan as finished when it was
+  actually stopped has been addressed.
+* An issue which caused possible null IP values in OTP results has been
+  addressed.
+* An issue which caused forgotten children of children processes has been
+  addressed.
+* The unfinished Advanced log feature has been removed.
+* An issue which caused a plugin to finished immediately when a wrong
+  custom timeout was sent from the manager has been addressed.
+* An issue which caused a scan to hang for ever if there was no redis kb
+  available has been addressed.
+* An issue which caused a plugin to use the default port when a custom port
+  is given has been addressed.
+
 
 openvas-scanner 6.0.0 (2019-04-05)
 

@@ -21,7 +21,7 @@ cmake_minimum_required (VERSION 3.0)
 message ("-- Configuring the Scanner...")
 
 project (openvas-scanner
-  VERSION 6.0.0
+  VERSION 6.0.1
   LANGUAGES C)
 
 if (POLICY CMP0005)
@@ -66,8 +66,6 @@ set (PROJECT_BETA_RELEASE 0)
 
 if (GIT_REVISION)
   set (PROJECT_VERSION_GIT "${GIT_REVISION}")
-else (GIT_REVISION)
-  set (PROJECT_VERSION_GIT "~git")
 endif (GIT_REVISION)
 
 # If PROJECT_BETA_RELEASE is set, the version string will be set to:
