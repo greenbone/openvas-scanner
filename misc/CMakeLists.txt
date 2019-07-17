@@ -96,7 +96,7 @@ set (CMAKE_C_FLAGS              "${CMAKE_C_FLAGS} -Wall -Wextra -fPIC")
 # we require CMake >= 3.0
 set (MISC_VERSION_MAJOR 10)
 set (MISC_VERSION_MINOR 0)
-set (MISC_VERSION_PATCH 0)
+set (MISC_VERSION_PATCH 1)
 
 if (PROJECT_BETA_RELEASE)
   set (MISC_VERSION_SUFFIX "+beta${PROJECT_BETA_RELEASE}")
