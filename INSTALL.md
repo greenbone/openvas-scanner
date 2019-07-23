@@ -34,7 +34,7 @@ Recommended to have WMI support:
 * openvas-smb >= 1.0.4
 
 Recommended for extended Windows support (e.g. automatically start the remote registry service):
-* wmiexec.py of python-impacket >= 0.9.15 found within your PATH
+* impacket-wmiexec of python-impacket >= 0.9.15 found within your PATH
 
 Recommended to have improved SNMP support:
 * netsnmp

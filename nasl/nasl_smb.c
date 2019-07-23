@@ -392,7 +392,7 @@ nasl_win_cmd_exec (lex_ctxt *lexic)
   /* wmiexec.py uses domain/username format. */
   if ((c = strchr (username, '\\')))
     *c = '/';
-  argv[0] = "wmiexec.py";
+  argv[0] = "impacket-wmiexec";
   snprintf (target, sizeof (target), "%s:%s@%s", username, password, ip);
   argv[1] = target;
   argv[2] = cmd;
