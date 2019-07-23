@@ -35,7 +35,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 ### Changes
 - The call to wmiexec.py has been replaced with impacket-wmiexec, because the symlink has been added in Debian Stretch with python-impacket 0.9.15-1.
 
-[6.0.2]: https://github.com/greenbone/openvas/compare/v6.0.0...openvas-scanner-6.0
+[6.0.2]: https://github.com/greenbone/openvas/compare/v6.0.1...openvas-scanner-6.0
 
 ## [6.0.1] (2019-07-17)
 
