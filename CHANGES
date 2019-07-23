@@ -7,6 +7,14 @@ or get the entire source code repository and view log history:
 $ git clone https://github.com/greenbone/openvas.git
 $ cd openvas && git checkout openvas-scanner-6.0 && git log
 
+openvas-scanner 6.0.2 (unreleased)
+
+This is the second patch release of the openvas-scanner module 6.0 for the
+Greenbone Vulnerability Management (GVM) framework.
+
+Main changes compared to openvas-scanner 6.0.1:
+* The call to wmiexec.py has been replaced with impacket-wmiexec, because
+  the symlink has been added in Debian Stretch with python-impacket 0.9.15-1.
 
 openvas-scanner 6.0.1 (2019-07-17)
 
