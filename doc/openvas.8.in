@@ -2,7 +2,7 @@
 .SH NAME
 openvas \- The Scanner of the Greenbone Vulnerability Management
 .SH SYNOPSIS
-.BI "openvas [\|-v\|] [\|-h\|]  [\|-c " config-file\| "] [\|--vendor-version " string\| "] [\|--scan-start " scan-uuid\| "]
+.BI "openvas [\|-v\|] [\|-h\|]  [\|-c " config-file\| "] [\|--scan-start " scan-uuid\| "]
 .BI " [\|-u\|] [\|-s\|] [\|-y\|]"
 
 .SH DESCRIPTION
@@ -47,10 +47,6 @@ ID for a single scan task. The scanner will search the redis kb associated to th
 .TP
 .B "-u, --update-vt-info"
 Updates VT info into redis store from VT files.
-
-.TP
-.BI "--vendor-version=" <vendor-version>
-Use the alternate vendor instead of the default one during scans.
 
 .SH THE CONFIGURATION FILE 
 
@@ -196,6 +192,9 @@ Number of checks to test at the same time it can be as low as you want it
 to be and it will also reduce network load and improve performance
 (obviously 1 is the minimum)
 Notice that OpenVAS will spawn max_hosts * max_checks processes.
+
+.IP vendor_version
+Use the alternate vendor instead of the default one during scans.
 
 Other options might be using the QoS features offered by your server
 operating system or your network to improve the bandwidth use.
