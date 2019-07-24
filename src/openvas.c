@@ -124,6 +124,7 @@ static openvas_option openvas_defaults[] = {
   // prefs_init.
   {"report_host_details", "yes"},
   {"db_address", KB_PATH_DEFAULT},
+  {"vendor_version", "\0"},
   {NULL, NULL}};
 
 gchar *unix_socket_path = NULL;
@@ -413,7 +414,6 @@ openvas (int argc, char *argv[])
 
   static gboolean display_version = FALSE;
   static gchar *config_file = NULL;
-  static gchar *vendor_version_string = NULL;
   static gchar *scan_id = NULL;
   static gchar *stop_scan_id = NULL;
   static gboolean print_specs = FALSE;
@@ -426,8 +426,6 @@ openvas (int argc, char *argv[])
      "Display version information", NULL},
     {"config-file", 'c', 0, G_OPTION_ARG_FILENAME, &config_file,
      "Configuration file", "<filename>"},
-    {"vendor-version", '\0', 0, G_OPTION_ARG_STRING, &vendor_version_string,
-     "Use <string> as vendor version.", "<string>"},
     {"cfg-specs", 's', 0, G_OPTION_ARG_NONE, &print_specs,
      "Print configuration settings", NULL},
     {"sysconfdir", 'y', 0, G_OPTION_ARG_NONE, &print_sysconfdir,
@@ -487,9 +485,6 @@ openvas (int argc, char *argv[])
 
   unix_socket_path = g_build_filename (OPENVAS_RUN_DIR, "openvas.sock", NULL);
 
-  if (vendor_version_string)
-    vendor_version_set (vendor_version_string);
-
   if (!config_file)
     config_file = OPENVAS_CONF;
   if (update_vt_info)
@@ -503,6 +498,9 @@ openvas (int argc, char *argv[])
 
   if (init_openvas (config_file))
     return 1;
+
+  if (prefs_get ("vendor_version") != NULL)
+    vendor_version_set (prefs_get ("vendor_version"));
 
   if (stop_scan_id)
     {
