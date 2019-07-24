@@ -11,6 +11,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 - A new NVT cross references data handling has been added.[#317](https://github.com/greenbone/openvas/pull/317)
 
 ### Changes
+- Vendor version is now an option in the config file. [#363](https://github.com/greenbone/openvas/pull/363)
 - The NVT preference format has been changed. [#275](https://github.com/greenbone/openvas/pull/275)
 - Redis supported versions must be 3.2 or higher. [#287](https://github.com/greenbone/openvas/pull/287)
 - Log directory is now configurable. [#316](https://github.com/greenbone/openvas/pull/316)
