@@ -97,7 +97,7 @@ to error checking. While this is a good thing and the developers aim to address
 all compiler warnings, it may lead the build process to abort on your system.
 
 Should you notice error messages causing your build process to abort, do not
-hesitate to contact the developers by creating a 
+hesitate to contact the developers by creating a
 [new issue report](https://github.com/greenbone/openvas/issues/new).
 Don't forget to include the name and version of your compiler and distribution in your
 message.
@@ -153,24 +153,40 @@ Setting up an openvas requires the following steps:
 
    or copy the example to another location, edit and use the copy instead.
 
-4. You can launch openvas using the following command:
+4. The scanner module does not run as a service as before any more. `gvmd`
+   can act as a client and control the scanner through the `OSPD-OpenVAS`
+   module. The actual user interfaces (for example GSA or GVM-Tools) will
+   only interact with `gvmd` and/or ospd-openvas, not the scanner.
+   You can launch openvas to upload the plugins in redis using the
+   following command:
 
-       openvas
+       openvas -u
 
-   Sending `SIGHUP` to the scanner main process will initiate a reload of the
-   feed content and of the scanner preferences. This will not affect running
-   scans.
+   but ospd-openvas will do the update automatically each time a new feed
+   is detected.
 
-   Please note that although you can start `openvas` as a user without elevated
-   privileges, it is recommended that you start `openvas` as `root` since a number
-   of Network Vulnerability Tests (NVTs) require root privileges to perform
-   certain operations like packet forgery. If you run `openvas` as a user
-   without permission to perform these operations, your scan results are likely
-   to be incomplete.
+5. Please note that although you can run `openvas` as a user without elevated
+   privileges, it is recommended that you start `openvas` as `root` since a
+   number of Network Vulnerability Tests (NVTs) require root privileges to
+   perform certain operations like packet forgery. If you run `openvas` as
+   a user without permission to perform these operations, your scan results
+   are likely to be incomplete.
 
-5. Once the scanner has started, `gvmd` can act as a client and control
-   the scanner. The actual user interfaces (for example GSA or GVM-Tools)
-   will only interact with `gvmd`, not the scanner.
+   As `openvas` will be launched from an ospd-openvas process with sudo,
+   the next configuration is required in the sudoers file:
+
+       sudo visudo
+
+   add this line to allow the user running `ospd-openvas`, to launch `openvas`
+   with root permissions
+
+       <user> ALL = NOPASSWD: <install prefix>/sbin/openvas
+
+   If you set an install prefix, you have to update the path in the sudoers
+   file too:
+
+       Defaults        secure_path=<existing paths...>:<install prefix>/sbin
+
 
 Logging Configuration
 ---------------------
