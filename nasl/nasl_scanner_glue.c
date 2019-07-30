@@ -466,9 +466,9 @@ script_add_preference (lex_ctxt *lexic)
                    "Argument error in the call to script_add_preference()\n");
       return FAKE_CELL;
     }
-  for (i = 0; i < nvti_pref_len (script_infos->nvti); i ++)
+  for (i = 0; i < nvti_pref_len (script_infos->nvti); i++)
     {
-      if (!strcmp (name, nvtpref_name (nvti_pref (script_infos->nvti,i))))
+      if (!strcmp (name, nvtpref_name (nvti_pref (script_infos->nvti, i))))
         {
           nasl_perror (lexic, "Preference '%s' already exists\n", name);
           return FAKE_CELL;

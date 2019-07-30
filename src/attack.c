@@ -275,7 +275,8 @@ launch_plugin (struct scan_globals *globals, struct scheduler_plugin *plugin,
   if (network_scan_status (globals) == NSS_BUSY)
     network_scan = TRUE;
 
-  if (prefs_get_bool ("safe_checks") && !nvti_category_is_safe (nvti_category (nvti)))
+  if (prefs_get_bool ("safe_checks")
+      && !nvti_category_is_safe (nvti_category (nvti)))
     {
       if (prefs_get_bool ("log_whole_attack"))
         {
