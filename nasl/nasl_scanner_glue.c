@@ -454,27 +454,25 @@ script_add_preference (lex_ctxt *lexic)
   char *value = get_str_var_by_name (lexic, "value");
   struct script_infos *script_infos = lexic->script_infos;
   nvtpref_t *np;
-  GSList *tmp;
+  unsigned int i;
 
   if (!script_infos->nvti)
     return FAKE_CELL;
   if (id <= 0)
-    id = g_slist_length (script_infos->nvti->prefs) + 1;
+    id = nvti_pref_len (script_infos->nvti) + 1;
   if (!name || !type || !value)
     {
       nasl_perror (lexic,
                    "Argument error in the call to script_add_preference()\n");
       return FAKE_CELL;
     }
-  tmp = script_infos->nvti->prefs;
-  while (tmp)
+  for (i = 0; i < nvti_pref_len (script_infos->nvti); i ++)
     {
-      if (!strcmp (name, ((nvtpref_t *) tmp->data)->name))
+      if (!strcmp (name, nvtpref_name (nvti_pref (script_infos->nvti,i))))
         {
           nasl_perror (lexic, "Preference '%s' already exists\n", name);
           return FAKE_CELL;
         }
-      tmp = tmp->next;
     }
 
   np = nvtpref_new (id, name, type, value);

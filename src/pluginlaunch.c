@@ -310,7 +310,7 @@ plugin_timeout (nvti_t *nvti)
   int timeout;
 
   assert (nvti);
-  timeout = prefs_nvt_timeout (nvti->oid);
+  timeout = prefs_nvt_timeout (nvti_oid (nvti));
   if (timeout == 0)
     timeout = nvti_timeout (nvti);
   if (timeout == 0)
