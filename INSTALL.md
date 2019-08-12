@@ -142,16 +142,15 @@ Setting up an openvas requires the following steps:
    gathered on the scanned hosts. Redis 3.2 and newer are supported.
    See `doc/redis_config.txt` to see how to set up and run a Redis server.
 
-   Multiple examples for various Redis versions are installed which you may use
-   directly for a quick start:
+   The easiest and most reliable way to start redis under Ubuntu and Debian is
+   to use systemd.
 
-       redis-server <install-prefix>/share/doc/openvas/redis_config_examples/redis_3_2.conf
-
-   or
-
-       redis-server <install-prefix>/share/doc/openvas/redis_config_examples/redis_4_0.conf
-
-   or copy the example to another location, edit and use the copy instead.
+   ```bash
+   sudo cp redis-openvas.conf /etc/redis/
+   sudo chown redis:redis /etc/redis/redis-openvas.conf
+   sudo echo "db_address = /run/redis-openvas/redis.sock" > /etc/openvas/openvas.conf
+   sudo systemctl start redis-server@openvas.service
+   ```
 
 4. The scanner module does not run as a service as before any more. `gvmd`
    can act as a client and control the scanner through the `OSPD-OpenVAS`
