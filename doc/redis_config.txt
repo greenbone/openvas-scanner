@@ -20,7 +20,7 @@ On the redis side, use the following directives:
 
   port 0 # prevent redis from listening on a TCP socket
   unixsocket /tmp/redis.sock
-  unixsocketperm 700
+  unixsocketperm 770
   timeout 0
 
 == Database number ==
