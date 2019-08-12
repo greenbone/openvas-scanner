@@ -13,13 +13,13 @@ OpenVAS can currently only access redis via a unix socket. This choice has been
 made for the sake of speed and security. No authentication is supported yet, we
 rely on filesystem permissions to protect the KBs.
 
-The path to the unix socket is '/tmp/redis.sock' by default, and can be changed
-using the 'db_address' parameter.
+The path to the unix socket is '/run/redis-openvas/redis.sock' by default, and
+can be changed using the 'db_address' parameter.
 
 On the redis side, use the following directives:
 
   port 0 # prevent redis from listening on a TCP socket
-  unixsocket /tmp/redis.sock
+  unixsocket /run/redis-openvas/redis.sock
   unixsocketperm 770
   timeout 0
 
