@@ -1588,10 +1588,7 @@ encrypt_stream_data (lex_ctxt *lexic, int cipher)
 
   hd = verify_cipher_id (lexic, cipher_id);
   if (hd == NULL)
-    {
-      nasl_perror (lexic, "Cipher handle %d not found.\n", cipher_id);
       return NULL;
-    }
 
   if (cipher == GCRY_CIPHER_ARCFOUR)
     {
@@ -1633,8 +1630,8 @@ nasl_close_stream_cipher (lex_ctxt *lexic)
   gcry_cipher_hd_t hd;
 
   cipher_id = get_int_var_by_name (lexic, "hd", 0);
-  hd = verify_cipher_id (lexic, cipher_id);
 
+  hd = verify_cipher_id (lexic, cipher_id);
   if (hd == NULL)
     return NULL;
 
