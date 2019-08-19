@@ -1,13 +1,6 @@
-/* OpenVAS
+/* Copyright (C) 2009-2019 Greenbone Networks GmbH
  *
- * $Id$
- * Description: NASL API implementation for WMI support
- *
- * Authors:
- * Chandrashekhar B <bchandra@secpod.com>
- *
- * Copyright:
- * Copyright (c) 2009 Greenbone Networks GmbH, http://www.greenbone.net
+ * SPDX-License-Identifier: GPL-2.0-or-later
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -16,7 +9,7 @@
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
@@ -40,28 +33,49 @@
 /* for tree_cell */
 #include "nasl_tree.h"
 
-tree_cell *nasl_wmi_versioninfo (lex_ctxt * lexic);
-tree_cell *nasl_wmi_connect (lex_ctxt * lexic);
-tree_cell *nasl_wmi_close (lex_ctxt * lexic);
-tree_cell *nasl_wmi_query (lex_ctxt * lexic);
+tree_cell *
+nasl_wmi_versioninfo (lex_ctxt *lexic);
+tree_cell *
+nasl_wmi_connect (lex_ctxt *lexic);
+tree_cell *
+nasl_wmi_close (lex_ctxt *lexic);
+tree_cell *
+nasl_wmi_query (lex_ctxt *lexic);
 
-tree_cell *nasl_wmi_connect_rsop (lex_ctxt * lexic);
-tree_cell *nasl_wmi_query_rsop (lex_ctxt * lexic);
+tree_cell *
+nasl_wmi_connect_rsop (lex_ctxt *lexic);
+tree_cell *
+nasl_wmi_query_rsop (lex_ctxt *lexic);
 
-tree_cell *nasl_wmi_connect_reg (lex_ctxt * lexic);
-tree_cell *nasl_wmi_reg_get_sz (lex_ctxt * lexic);
-tree_cell *nasl_wmi_reg_enum_value (lex_ctxt * lexic);
-tree_cell *nasl_wmi_reg_enum_key (lex_ctxt * lexic);
-tree_cell *nasl_wmi_reg_get_bin_val (lex_ctxt * lexic);
-tree_cell *nasl_wmi_reg_get_dword_val (lex_ctxt * lexic);
-tree_cell *nasl_wmi_reg_get_ex_string_val (lex_ctxt * lexic);
-tree_cell *nasl_wmi_reg_get_mul_string_val (lex_ctxt * lexic);
-tree_cell *nasl_wmi_reg_get_qword_val (lex_ctxt * lexic);
-tree_cell *nasl_wmi_reg_set_dword_val (lex_ctxt * lexic);
-tree_cell *nasl_wmi_reg_set_qword_val (lex_ctxt * lexic);
-tree_cell *nasl_wmi_reg_set_ex_string_val (lex_ctxt * lexic);
-tree_cell *nasl_wmi_reg_set_string_val (lex_ctxt * lexic);
-tree_cell *nasl_wmi_reg_create_key (lex_ctxt * lexic);
-tree_cell *nasl_wmi_reg_delete_key (lex_ctxt * lexic);
+tree_cell *
+nasl_wmi_connect_reg (lex_ctxt *lexic);
+tree_cell *
+nasl_wmi_reg_get_sz (lex_ctxt *lexic);
+tree_cell *
+nasl_wmi_reg_enum_value (lex_ctxt *lexic);
+tree_cell *
+nasl_wmi_reg_enum_key (lex_ctxt *lexic);
+tree_cell *
+nasl_wmi_reg_get_bin_val (lex_ctxt *lexic);
+tree_cell *
+nasl_wmi_reg_get_dword_val (lex_ctxt *lexic);
+tree_cell *
+nasl_wmi_reg_get_ex_string_val (lex_ctxt *lexic);
+tree_cell *
+nasl_wmi_reg_get_mul_string_val (lex_ctxt *lexic);
+tree_cell *
+nasl_wmi_reg_get_qword_val (lex_ctxt *lexic);
+tree_cell *
+nasl_wmi_reg_set_dword_val (lex_ctxt *lexic);
+tree_cell *
+nasl_wmi_reg_set_qword_val (lex_ctxt *lexic);
+tree_cell *
+nasl_wmi_reg_set_ex_string_val (lex_ctxt *lexic);
+tree_cell *
+nasl_wmi_reg_set_string_val (lex_ctxt *lexic);
+tree_cell *
+nasl_wmi_reg_create_key (lex_ctxt *lexic);
+tree_cell *
+nasl_wmi_reg_delete_key (lex_ctxt *lexic);
 
 #endif

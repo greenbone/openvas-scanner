@@ -1,10 +1,10 @@
-/* NASL Attack Scripting Language
+/* Based on work Copyright (C) 2002 - 2005 Tenable Network Security
  *
- * Copyright (C) 2002 - 2005 Tenable Network Security
+ * SPDX-License-Identifier: GPL-2.0-only
  *
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License version 2,
- * as published by the Free Software Foundation
+ * This program is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU General Public License
+ * version 2 as published by the Free Software Foundation.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -13,43 +13,41 @@
  *
  * You should have received a copy of the GNU General Public License
  * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
+ * Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA 02110-1301 USA.
  */
 
- /**
-  * @file
-  * Source of the standalone NASL interpreter of OpenVAS.
-  */
-
-#include <errno.h>              /* for errno */
-#include <signal.h>             /* for SIGINT */
-#include <string.h>             /* for strlen */
-#include <stdlib.h>             /* for exit */
-#include <unistd.h>             /* for geteuid */
-#include <libssh/libssh.h>      /* for ssh_version */
-#include <gnutls/gnutls.h>      /* for gnutls_check_version */
-#include <sys/wait.h>
-
-#include <gcrypt.h>             /* for gcry_control */
-#include <glib.h>
-#include <gpgme.h>              /* for gpgme_check_version */
-
-#include <gvm/base/hosts.h>     /* for gvm_hosts_* and gvm_host_* */
-#include <gvm/base/networking.h> /* for gvm_source_iface_init */
-#include <gvm/base/nvti.h>
-#include <gvm/base/prefs.h>     /* for prefs_get */
-#include <gvm/util/kb.h>        /* for kb_new */
-
-#include "../misc/nvt_categories.h"
-#include "../misc/network.h"
-#include "../misc/vendorversion.h"
+/**
+ * @file nasl.c
+ * @brief Source of the standalone NASL interpreter of OpenVAS.
+ */
 
 #include "nasl.h"
-#include "nasl_lex_ctxt.h"
+
+#include "../misc/network.h"
+#include "../misc/nvt_categories.h"
+#include "../misc/vendorversion.h"
 #include "exec.h"
+#include "nasl_lex_ctxt.h"
+
+#include <errno.h>  /* for errno */
+#include <gcrypt.h> /* for gcry_control */
+#include <glib.h>
+#include <gnutls/gnutls.h>       /* for gnutls_check_version */
+#include <gpgme.h>               /* for gpgme_check_version */
+#include <gvm/base/hosts.h>      /* for gvm_hosts_* and gvm_host_* */
+#include <gvm/base/networking.h> /* for gvm_source_iface_init */
+#include <gvm/base/nvti.h>
+#include <gvm/base/prefs.h> /* for prefs_get */
+#include <gvm/util/kb.h>    /* for kb_new */
+#include <libssh/libssh.h>  /* for ssh_version */
+#include <signal.h>         /* for SIGINT */
+#include <stdlib.h>         /* for exit */
+#include <string.h>         /* for strlen */
+#include <sys/wait.h>
+#include <unistd.h> /* for geteuid */
 
 #ifndef MAP_FAILED
-#define MAP_FAILED ((void*)-1)
+#define MAP_FAILED ((void *) -1)
 #endif
 
 #undef G_LOG_DOMAIN
@@ -58,8 +56,8 @@
  */
 #define G_LOG_DOMAIN "lib  nasl"
 
-extern char *nasl_version (void);
-
+extern char *
+nasl_version (void);
 
 void
 sighandler ()
@@ -71,7 +69,7 @@ static void
 my_gnutls_log_func (int level, const char *text)
 {
   fprintf (stderr, "[%d] (%d) %s", getpid (), level, text);
-  if (*text && text[strlen (text) -1] != '\n')
+  if (*text && text[strlen (text) - 1] != '\n')
     putc ('\n', stderr);
 }
 
@@ -86,8 +84,8 @@ init (struct in6_addr *ip, GSList *vhosts, kb_t kb)
   infos->vhosts = vhosts;
   if (prefs_get_bool ("test_empty_vhost"))
     {
-      gvm_vhost_t *vhost = gvm_vhost_new
-                            (addr6_as_str (ip), g_strdup ("IP-address"));
+      gvm_vhost_t *vhost =
+        gvm_vhost_new (addr6_as_str (ip), g_strdup ("IP-address"));
       infos->vhosts = g_slist_prepend (infos->vhosts, vhost);
     }
   infos->globals = g_malloc0 (sizeof (struct scan_globals));
@@ -115,7 +113,6 @@ parse_script_infos (struct script_infos *infos)
 
   return nvti;
 }
-
 
 /**
  * @brief Checks that an NVT category is safe.
@@ -149,7 +146,7 @@ gcrypt_init ()
 }
 
 /**
- * @brief Main of the standalone nasl interpretor.
+ * @brief Main of the standalone nasl interpreter.
  * @return The number of times a NVT was launched
  *         (should be (number of targets) * (number of NVTS provided)).
  */
@@ -163,6 +160,7 @@ main (int argc, char **argv)
   gchar *default_target = "127.0.0.1";
   int mode = 0, err = 0;
   extern int global_nasl_debug;
+  GSList *unresolved;
 
   static gboolean display_version = FALSE;
   static gboolean nasl_debug = FALSE;
@@ -173,7 +171,6 @@ main (int argc, char **argv)
   static gchar *trace_file = NULL;
   static gchar *config_file = NULL;
   static gchar *source_iface = NULL;
-  static gchar *vendor_version_string = NULL;
   static gboolean with_safe_checks = FALSE;
   static gboolean signing_mode = FALSE;
   static gchar *include_dir = NULL;
@@ -202,10 +199,7 @@ main (int argc, char **argv)
     {"config-file", 'c', 0, G_OPTION_ARG_FILENAME, &config_file,
      "Configuration file", "<filename>"},
     {"source-iface", 'e', 0, G_OPTION_ARG_STRING, &source_iface,
-     "Source network interface for established connections.",
-     "<iface_name>"},
-    {"vendor-version", '\0', 0, G_OPTION_ARG_STRING, &vendor_version_string,
-     "Use <string> as vendor version.", "<string>"},
+     "Source network interface for established connections.", "<iface_name>"},
     {"safe", 's', 0, G_OPTION_ARG_NONE, &with_safe_checks,
      "Specifies that the script should be run with 'safe checks' enabled",
      NULL},
@@ -219,8 +213,7 @@ main (int argc, char **argv)
      "Set KB key to value. Can be used multiple times", "<key=value>"},
     {G_OPTION_REMAINING, 0, 0, G_OPTION_ARG_FILENAME_ARRAY, &nasl_filenames,
      "Absolute path to one or more nasl scripts", "NASL_FILE..."},
-    {NULL, 0, 0, 0, NULL, NULL, NULL}
-  };
+    {NULL, 0, 0, 0, NULL, NULL, NULL}};
 
   option_context =
     g_option_context_new ("- standalone NASL interpreter for OpenVAS");
@@ -231,9 +224,9 @@ main (int argc, char **argv)
       exit (0);
     }
   g_option_context_free (option_context);
- /*--------------------------------------------
- 	Command-line options
-  ---------------------------------------------*/
+  /*--------------------------------------------
+         Command-line options
+   ---------------------------------------------*/
 
   if (display_version)
     {
@@ -280,7 +273,7 @@ main (int argc, char **argv)
   if (with_safe_checks)
     prefs_set ("safe_checks", "yes");
 
-  gcrypt_init();
+  gcrypt_init ();
   openvas_SSL_init ();
   if (!nasl_filenames)
     {
@@ -288,10 +281,6 @@ main (int argc, char **argv)
       exit (1);
     }
 
-  if (vendor_version_string)
-    vendor_version_set (vendor_version_string);
-
-#ifndef _CYGWIN_
   if (!(mode & (NASL_EXEC_PARSE_ONLY | NASL_LINT)) && geteuid ())
     {
       fprintf (stderr, "** WARNING : packet forgery will not work\n");
@@ -300,7 +289,6 @@ main (int argc, char **argv)
   signal (SIGINT, sighandler);
   signal (SIGTERM, sighandler);
   signal (SIGPIPE, SIG_IGN);
-#endif
 
   if (source_iface && gvm_source_iface_init (source_iface))
     {
@@ -323,7 +311,13 @@ main (int argc, char **argv)
       fprintf (stderr, "Erroneous target %s\n", target);
       exit (1);
     }
-  gvm_hosts_resolve (hosts);
+  unresolved = gvm_hosts_resolve (hosts);
+  while (unresolved)
+    {
+      g_warning ("Couldn't resolve hostname '%s'", (char *) unresolved->data);
+      unresolved = unresolved->next;
+    }
+  g_slist_free_full (unresolved, g_free);
   g_free (target);
 
   // for absolute and relative paths
@@ -333,7 +327,11 @@ main (int argc, char **argv)
       add_nasl_inc_dir (include_dir);
     }
 
-  prefs_config (config_file ?: OPENVASSD_CONF);
+  prefs_config (config_file ?: OPENVAS_CONF);
+
+  if (prefs_get ("vendor_version") != NULL)
+    vendor_version_set (prefs_get ("vendor_version"));
+
   while ((host = gvm_hosts_next (hosts)))
     {
       struct in6_addr ip6;
@@ -384,7 +382,7 @@ main (int argc, char **argv)
                       fprintf (stderr, "Erroneous --kb entry %s\n", *kb_values);
                       exit (1);
                     }
-                  kb_item_add_str (kb, splits[0], splits[1], 0);
+                  kb_item_add_str_unique (kb, splits[0], splits[1], 0);
                   kb_values++;
                   g_strfreev (splits);
                 }
@@ -411,6 +409,8 @@ main (int argc, char **argv)
             }
           i++;
         }
+      g_free (script_infos->globals);
+      g_free (script_infos);
       kb_delete (kb);
     }
 

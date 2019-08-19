@@ -1,12 +1,6 @@
-/* openvas-scanner/misc
- * $Id$
- * Description: Functions to set and get the vendor version.
+/* Copyright (C) 2009-2019 Greenbone Networks GmbH
  *
- * Authors:
- * Juan Jose Nicola <juan.nicola@greenbone.net>
- *
- * Copyright:
- * Copyright (C) 2017 Greenbone Networks GmbH
+ * SPDX-License-Identifier: GPL-2.0-or-later
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -23,8 +17,14 @@
  * Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA 02110-1301 USA.
  */
 
-#include <glib.h>
+/**
+ * @file vendorversion.c
+ * @brief Functions to set and get the vendor version.
+ */
+
 #include "vendorversion.h"
+
+#include <glib.h>
 
 /**
  * @brief Vendor version, or NULL.

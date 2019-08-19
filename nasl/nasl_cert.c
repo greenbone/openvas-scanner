@@ -1,12 +1,6 @@
-/* openvas-scanner/nasl
- * $Id$
- * Description: Implementation of an API for X.509 certificates
+/* Copyright (C) 2012-2019 Greenbone Networks GmbH
  *
- * Authors:
- * Werner Koch <wk@gnupg.org>
- *
- * Copyright:
- * Copyright (C) 2012, 2013 Greenbone Networks GmbH
+ * SPDX-License-Identifier: GPL-2.0-or-later
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -19,7 +13,8 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, see <http://www.gnu.org/licenses/>.
+ * along with this program; if not, write to the Free Software
+ * Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA 02110-1301 USA.
  */
 
 /**
@@ -32,29 +27,27 @@
  */
 
 #ifdef HAVE_LIBKSBA
-#include <stdlib.h>
+#include "nasl_cert.h"
+
+#include "nasl_debug.h"
+#include "nasl_func.h"
+#include "nasl_global_ctxt.h"
+#include "nasl_lex_ctxt.h"
+#include "nasl_tree.h"
+#include "nasl_var.h"
+
 #include <errno.h>
-#include <stdio.h>
-#include <string.h>
-#include <unistd.h>
+#include <gcrypt.h>
 #include <glib.h>
 #include <glib/gstdio.h>
-
-#include <ksba.h>
-#include <gcrypt.h>
 #include <gnutls/gnutls.h>
 #include <gnutls/x509.h>
-
 #include <gvm/base/logging.h>
-
-#include "nasl_tree.h"
-#include "nasl_global_ctxt.h"
-#include "nasl_func.h"
-#include "nasl_var.h"
-#include "nasl_lex_ctxt.h"
-#include "nasl_debug.h"
-
-#include "nasl_cert.h"
+#include <ksba.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <unistd.h>
 
 #undef G_LOG_DOMAIN
 /**
@@ -62,31 +55,30 @@
  */
 #define G_LOG_DOMAIN "lib  nasl"
 
-
 #ifndef DIM
-# define DIM(v)		     (sizeof(v)/sizeof((v)[0]))
-# define DIMof(type,member)   DIM(((type *)0)->member)
+#define DIM(v) (sizeof (v) / sizeof ((v)[0]))
+#define DIMof(type, member) DIM (((type *) 0)->member)
 #endif
 
 /* Useful helper macros to avoid problems with locales.  */
-#define spacep(p)   (*(p) == ' ' || *(p) == '\t')
-#define digitp(p)   (*(p) >= '0' && *(p) <= '9')
-#define hexdigitp(a) (digitp (a)                       \
-                      || (*(a) >= 'A' && *(a) <= 'F')  \
-                      || (*(a) >= 'a' && *(a) <= 'f'))
+#define spacep(p) (*(p) == ' ' || *(p) == '\t')
+#define digitp(p) (*(p) >= '0' && *(p) <= '9')
+#define hexdigitp(a) \
+  (digitp (a) || (*(a) >= 'A' && *(a) <= 'F') || (*(a) >= 'a' && *(a) <= 'f'))
 
 /* The atoi macros assume that the buffer has only valid digits. */
-#define atoi_1(p)   (*(p) - '0' )
-#define atoi_2(p)   ((atoi_1(p) * 10) + atoi_1((p)+1))
-#define atoi_4(p)   ((atoi_2(p) * 100) + atoi_2((p)+2))
-#define xtoi_1(p)   (*(p) <= '9'? (*(p)- '0'):                  \
-                     *(p) <= 'F'? (*(p)-'A'+10):(*(p)-'a'+10))
-#define xtoi_2(p)   ((xtoi_1((const unsigned char *)(p)) * 16)  \
-                     + xtoi_1((const unsigned char *)(p)+1))
+#define atoi_1(p) (*(p) - '0')
+#define atoi_2(p) ((atoi_1 (p) * 10) + atoi_1 ((p) + 1))
+#define atoi_4(p) ((atoi_2 (p) * 100) + atoi_2 ((p) + 2))
+#define xtoi_1(p)             \
+  (*(p) <= '9' ? (*(p) - '0') \
+               : *(p) <= 'F' ? (*(p) - 'A' + 10) : (*(p) - 'a' + 10))
+#define xtoi_2(p)                              \
+  ((xtoi_1 ((const unsigned char *) (p)) * 16) \
+   + xtoi_1 ((const unsigned char *) (p) + 1))
 
 /* Convert N to a hex digit.  N must be in the range 0..15.  */
-#define tohex(n) ((n) < 10 ? ((n) + '0') : (((n) - 10) + 'A'))
-
+#define tohex(n) ((n) < 10 ? ((n) + '0') : (((n) -10) + 'A'))
 
 /* This object is used to keep track of KSBA certificate objects.
    Because they are pointers they can't be mapped easily to the NASL
@@ -114,8 +106,6 @@ struct object_desc_s
 /* A linked list of all used certificate objects.  */
 static object_desc_t object_list;
 
-
-
 /* Return the next object id.  */
 static int
 next_object_id (void)
@@ -123,7 +113,7 @@ next_object_id (void)
   static int last;
   static int wrapped;
 
- again:
+again:
   last++;
   /* Because we don't have an unsigned type, it is better to avoid
      negative values.  Thus if LAST turns negative we wrap around to
@@ -149,7 +139,6 @@ next_object_id (void)
     }
   return last;
 }
-
 
 /**
  * @brief Create a certificate object.
@@ -200,8 +189,7 @@ nasl_cert_open (lex_ctxt *lexic)
   err = ksba_reader_new (&reader);
   if (err)
     {
-      g_message ("Opening reader object failed: %s",
-                 gpg_strerror (err));
+      g_message ("Opening reader object failed: %s", gpg_strerror (err));
       return NULL;
     }
   err = ksba_reader_set_mem (reader, data, datalen);
@@ -249,7 +237,6 @@ nasl_cert_open (lex_ctxt *lexic)
   return retc;
 }
 
-
 /**
  * @brief Release a certificate object.
  * @naslfn{cert_close}
@@ -287,8 +274,7 @@ nasl_cert_close (lex_ctxt *lexic)
       break;
   if (!obj)
     {
-      g_message ("Unused object id %d passed to cert_close",
-                 object_id);
+      g_message ("Unused object id %d passed to cert_close", object_id);
       return FAKE_CELL;
     }
 
@@ -303,7 +289,6 @@ nasl_cert_close (lex_ctxt *lexic)
   return FAKE_CELL;
 }
 
-
 /* Helper to get the value of the Common Name part.  */
 static const char *
 parse_dn_part_for_CN (const char *string, char **r_value)
@@ -316,7 +301,7 @@ parse_dn_part_for_CN (const char *string, char **r_value)
   *r_value = NULL;
 
   /* Parse attributeType */
-  for (s = string+1; *s && *s != '='; s++)
+  for (s = string + 1; *s && *s != '='; s++)
     ;
   if (!*s)
     return NULL; /* Error */
@@ -330,7 +315,7 @@ parse_dn_part_for_CN (const char *string, char **r_value)
   if (*string == '#') /* Hex encoded value.  */
     {
       string++;
-      for (s=string; hexdigitp (s); s++)
+      for (s = string; hexdigitp (s); s++)
         s++;
       n = s - string;
       if (!n || (n & 1))
@@ -339,11 +324,11 @@ parse_dn_part_for_CN (const char *string, char **r_value)
       if (found)
         *r_value = p = g_malloc0 (n + 1);
 
-      for (s1=string; n; s1 += 2, n--, p++)
+      for (s1 = string; n; s1 += 2, n--, p++)
         {
           if (found)
             {
-              *(unsigned char *)p = xtoi_2 (s1);
+              *(unsigned char *) p = xtoi_2 (s1);
               if (!*p)
                 *p = 0x01; /* Better return a wrong value than
                               truncate the string. */
@@ -351,19 +336,19 @@ parse_dn_part_for_CN (const char *string, char **r_value)
         }
       if (found)
         *p = 0;
-   }
+    }
   else /* Regular V3 quoted string */
     {
-      for (n=0, s=string; *s; s++)
+      for (n = 0, s = string; *s; s++)
         {
           if (*s == '\\') /* Pair */
             {
               s++;
-              if (*s == ',' || *s == '=' || *s == '+'
-                  || *s == '<' || *s == '>' || *s == '#' || *s == ';'
-                  || *s == '\\' || *s == '\"' || *s == ' ')
+              if (*s == ',' || *s == '=' || *s == '+' || *s == '<' || *s == '>'
+                  || *s == '#' || *s == ';' || *s == '\\' || *s == '\"'
+                  || *s == ' ')
                 n++;
-              else if (hexdigitp (s) && hexdigitp (s+1))
+              else if (hexdigitp (s) && hexdigitp (s + 1))
                 {
                   s++;
                   n++;
@@ -372,9 +357,9 @@ parse_dn_part_for_CN (const char *string, char **r_value)
                 return NULL; /* Invalid escape sequence. */
             }
           else if (*s == '\"')
-            return NULL;     /* Invalid encoding.  */
-          else if (*s == ',' || *s == '=' || *s == '+'
-                   || *s == '<' || *s == '>' || *s == ';' )
+            return NULL; /* Invalid encoding.  */
+          else if (*s == ',' || *s == '=' || *s == '+' || *s == '<' || *s == '>'
+                   || *s == ';')
             break; /* End of that part.  */
           else
             n++;
@@ -383,7 +368,7 @@ parse_dn_part_for_CN (const char *string, char **r_value)
       if (found)
         *r_value = p = g_malloc0 (n + 1);
 
-      for (s=string; n; s++, n--)
+      for (s = string; n; s++, n--)
         {
           if (*s == '\\')
             {
@@ -392,7 +377,7 @@ parse_dn_part_for_CN (const char *string, char **r_value)
                 {
                   if (found)
                     {
-                      *(unsigned char *)p = xtoi_2 (s);
+                      *(unsigned char *) p = xtoi_2 (s);
                       if (!*p)
                         *p = 0x01; /* Better return a wrong value than
                                       truncate the string. */
@@ -411,7 +396,6 @@ parse_dn_part_for_CN (const char *string, char **r_value)
     }
   return s;
 }
-
 
 /* Parse a DN and return the value of the CommonName.  Note that this
    is not a validating parser and it does not support any old-stylish
@@ -443,11 +427,10 @@ parse_dn_for_CN (const char *string)
     }
   return value;
 
- failure:
+failure:
   g_free (value);
   return NULL;
 }
-
 
 /* Given a CERT object, build an array with all hostnames identified
    by the certifciate.  */
@@ -465,8 +448,7 @@ build_hostname_list (ksba_cert_t cert)
   if (!name)
     return NULL; /* No valid subject.  */
 
-  retc = alloc_tree_cell ();
-  retc->type = DYN_ARRAY;
+  retc = alloc_typed_cell (DYN_ARRAY);
   retc->x.ref_val = a = g_malloc0 (sizeof *a);
   arridx = 0;
 
@@ -478,23 +460,23 @@ build_hostname_list (ksba_cert_t cert)
     {
       memset (&v, 0, sizeof v);
       v.var_type = VAR2_DATA;
-      v.v.v_str.s_val = (unsigned char*)value;
+      v.v.v_str.s_val = (unsigned char *) value;
       v.v.v_str.s_siz = strlen (value);
       add_var_to_list (a, arridx++, &v);
     }
   g_free (value);
   value = NULL;
 
-  for (idx=1; (name = ksba_cert_get_subject (cert, idx)); idx++)
+  for (idx = 1; (name = ksba_cert_get_subject (cert, idx)); idx++)
     {
       /* Poor man's s-expression parser.  Despite it simple code, it
          is correct in this case because ksba will always return a
          valid s-expression.  */
       if (*name == '(' && name[1] == '8' && name[2] == ':'
-          && !memcmp (name+3, "dns-name", 8))
+          && !memcmp (name + 3, "dns-name", 8))
         {
           char *endp;
-          unsigned long n = strtoul (name+11, &endp, 10);
+          unsigned long n = strtoul (name + 11, &endp, 10);
 
           if (*endp != ':')
             {
@@ -504,7 +486,7 @@ build_hostname_list (ksba_cert_t cert)
           endp++;
           memset (&v, 0, sizeof v);
           v.var_type = VAR2_DATA;
-          v.v.v_str.s_val = (unsigned char*)endp;
+          v.v.v_str.s_val = (unsigned char *) endp;
           v.v.v_str.s_siz = n;
           add_var_to_list (a, arridx++, &v);
         }
@@ -526,20 +508,18 @@ make_hexstring (const void *buffer, size_t length)
   char *p;
 
   retc = alloc_typed_cell (CONST_STR);
-  retc->size = length*2;
-  retc->x.str_val = p = g_malloc0 (length*2 + 1);
+  retc->size = length * 2;
+  retc->x.str_val = p = g_malloc0 (length * 2 + 1);
 
   for (s = buffer; length; length--, s++)
     {
-      *p++ = tohex ((*s>>4)&15);
-      *p++ = tohex (*s&15);
+      *p++ = tohex ((*s >> 4) & 15);
+      *p++ = tohex (*s & 15);
     }
   *p = 0;
 
   return retc;
 }
-
-
 
 /**
  * @brief Take a certificate object and return its fingerprint.
@@ -676,9 +656,9 @@ get_name (const char *string)
       size_t len;
       char *buffer;
 
-      len = gcry_sexp_canon_len ((const unsigned char*)string, 0, NULL, NULL);
+      len = gcry_sexp_canon_len ((const unsigned char *) string, 0, NULL, NULL);
       if (gcry_sexp_sscan (&sexp, NULL, string, len))
-        return NULL;  /* Invalid encoding.  */
+        return NULL; /* Invalid encoding.  */
       len = gcry_sexp_sprint (sexp, GCRYSEXP_FMT_ADVANCED, NULL, 0);
       if (!len)
         return NULL;
@@ -688,7 +668,7 @@ get_name (const char *string)
         return NULL;
       len = strlen (buffer);
       /* Strip a trailing linefeed.  */
-      if (len && buffer[len-1] == '\n')
+      if (len && buffer[len - 1] == '\n')
         buffer[--len] = 0;
       gcry_sexp_release (sexp);
       retc = alloc_typed_cell (CONST_STR);
@@ -826,8 +806,8 @@ nasl_cert_query (lex_ctxt *lexic)
       if (!s || *s != '(')
         return NULL; /* Ooops.  */
       s++;
-      n = strtoul ((const char*)s, &endp, 10);
-      s = (const unsigned char *)endp;
+      n = strtoul ((const char *) s, &endp, 10);
+      s = (const unsigned char *) endp;
       if (*s == ':')
         {
           s++;
@@ -915,8 +895,8 @@ nasl_cert_query (lex_ctxt *lexic)
       gnutls_datum_t datum, m, e;
       gnutls_x509_crt_t cert = NULL;
 
-      datum.data = (void *) ksba_cert_get_image (obj->cert, (size_t *)
-                                                 &datum.size);
+      datum.data =
+        (void *) ksba_cert_get_image (obj->cert, (size_t *) &datum.size);
       if (!datum.data)
         return NULL;
       if (gnutls_x509_crt_init (&cert) != GNUTLS_E_SUCCESS)
@@ -939,8 +919,8 @@ nasl_cert_query (lex_ctxt *lexic)
       gnutls_datum_t datum, m, e;
       gnutls_x509_crt_t cert = NULL;
 
-      datum.data = (void *) ksba_cert_get_image (obj->cert, (size_t *)
-                                                 &datum.size);
+      datum.data =
+        (void *) ksba_cert_get_image (obj->cert, (size_t *) &datum.size);
       if (!datum.data)
         return NULL;
       if (gnutls_x509_crt_init (&cert) != GNUTLS_E_SUCCESS)
@@ -964,8 +944,8 @@ nasl_cert_query (lex_ctxt *lexic)
       gnutls_x509_crt_t cert = NULL;
       unsigned int bits = 0;
 
-      datum.data = (void *) ksba_cert_get_image (obj->cert, (size_t *)
-                                                 &datum.size);
+      datum.data =
+        (void *) ksba_cert_get_image (obj->cert, (size_t *) &datum.size);
       if (!datum.data)
         return NULL;
       if (gnutls_x509_crt_init (&cert) != GNUTLS_E_SUCCESS)

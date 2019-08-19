@@ -1,61 +1,49 @@
-/* OpenVAS
-* $Id$
-* Description: Launches NASL plugins.
-*
-* Authors: 
-* Renaud Deraison <deraison@nessus.org> (Original pre-fork development)
-* Tim Brown (Initial fork)
-* Laban Mwangi (Renaming work)
-* Tarik El-Yassem (Headers section)
-*
-* Copyright:
-* Portions Copyright (C) 2006 Software in the Public Interest, Inc.
-* Based on work Copyright (C) 1998 - 2006 Tenable Network Security, Inc.
-*
-* This program is free software; you can redistribute it and/or modify
-* it under the terms of the GNU General Public License version 2,
-* as published by the Free Software Foundation
-*
-* This program is distributed in the hope that it will be useful,
-* but WITHOUT ANY WARRANTY; without even the implied warranty of
-* MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-* GNU General Public License for more details.
-*
-* You should have received a copy of the GNU General Public License
-* along with this program; if not, write to the Free Software
-* Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA 02110-1301 USA.
-*/
+/* Portions Copyright (C) 2009-2019 Greenbone Networks GmbH
+ * Portions Copyright (C) 2006 Software in the Public Interest, Inc.
+ * Based on work Copyright (C) 1998 - 2006 Tenable Network Security, Inc.
+ *
+ * SPDX-License-Identifier: GPL-2.0-only
+ *
+ * This program is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU General Public License
+ * version 2 as published by the Free Software Foundation.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program; if not, write to the Free Software
+ * Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA 02110-1301 USA.
+ */
 
 /**
+ * @file nasl_plugins.c
  * @brief The nasl - plugin class. Loads or launches nasl- plugins.
  */
 
-#include <errno.h>    /* for errno */
-#include <unistd.h>   /* for close() */
-#include <string.h>   /* for strlen() */
-#include <stdio.h>    /* for snprintf() */
-#include <sys/stat.h>
-
-#include <glib.h>
-
-#include <sys/types.h>
-#include <utime.h>
-
-#include <gvm/base/drop_privileges.h> /* for drop_privileges */
-#include <gvm/base/proctitle.h>
-#include <gvm/base/networking.h>
-#include <gvm/base/prefs.h>           /* for prefs_get_bool */
-#include <gvm/util/nvticache.h>       /* for nvticache_add */
-
-#include "../misc/network.h"    /* for internal_send */
-#include "../misc/plugutils.h"     /* for plug_set_launch */
-
+#include "../misc/network.h"
+#include "../misc/plugutils.h" /* for plug_set_launch */
 #include "../nasl/nasl.h"
-
+#include "pluginlaunch.h"
 #include "pluginload.h"
 #include "pluginscheduler.h"
-#include "pluginlaunch.h"
 #include "processes.h"
+
+#include <errno.h> /* for errno */
+#include <glib.h>
+#include <gvm/base/drop_privileges.h> /* for drop_privileges */
+#include <gvm/base/networking.h>
+#include <gvm/base/prefs.h> /* for prefs_get_bool */
+#include <gvm/base/proctitle.h>
+#include <gvm/util/nvticache.h> /* for nvticache_add */
+#include <stdio.h>              /* for snprintf() */
+#include <string.h>             /* for strlen() */
+#include <sys/stat.h>
+#include <sys/types.h>
+#include <unistd.h> /* for close() */
+#include <utime.h>
 
 #undef G_LOG_DOMAIN
 /**
@@ -164,18 +152,18 @@ nasl_plugin_launch (struct scan_globals *globals, struct in6_addr *ip,
                     GSList *vhosts, kb_t kb, const char *oid)
 {
   int module;
-  struct script_infos *infos;
+  struct script_infos infos;
 
-  infos = g_malloc0 (sizeof (struct script_infos));
-  infos->ip = ip;
-  infos->vhosts = vhosts;
-  infos->globals = globals;
-  infos->key = kb;
-  infos->oid = (char *) oid;
-  infos->name = nvticache_get_src (oid);
+  memset (&infos, '\0', sizeof (infos));
+  infos.ip = ip;
+  infos.vhosts = vhosts;
+  infos.globals = globals;
+  infos.key = kb;
+  infos.oid = (char *) oid;
+  infos.name = nvticache_get_src (oid);
 
-  module = create_process ((process_func_t) nasl_thread, infos);
-  g_free (infos);
+  module = create_process ((process_func_t) nasl_thread, &infos);
+  g_free (infos.name);
   return module;
 }
 
@@ -187,22 +175,14 @@ nasl_thread (struct script_infos *args)
   kb_t kb;
   GError *error = NULL;
 
+  /* Make plugin process a group leader, to make it easier to cleanup forked
+   * processes & their children. */
+  setpgid (0, 0);
   nvticache_reset ();
-  if (prefs_get_bool ("be_nice"))
-    {
-      int nice_retval;
-      errno = 0;
-      nice_retval = nice (-5);
-      if (nice_retval == -1 && errno != 0)
-        {
-          g_debug ("Unable to renice process: %d", errno);
-        }
-    }
-
   kb = args->key;
   kb_lnk_reset (kb);
   addr6_to_str (args->ip, ip_str);
-  proctitle_set ("openvassd: testing %s (%s)", ip_str, args->name);
+  proctitle_set ("openvas: testing %s (%s)", ip_str, args->name);
 
   if (prefs_get_bool ("nasl_no_signature_check"))
     nasl_mode |= NASL_ALWAYS_SIGNED;

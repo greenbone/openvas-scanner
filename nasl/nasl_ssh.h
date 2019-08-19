@@ -1,12 +1,6 @@
-/* openvas-scanner/nasl
- * $Id$
- * Description: API (structs and protos) for SSH functions used by NASL scripts
+/* Copyright (C) 2011-2019 Greenbone Networks GmbH
  *
- * Authors:
- * Michael Wiegand <michael.wiegand@greenbone.net>
- *
- * Copyright:
- * Copyright (C) 2011 Greenbone Networks GmbH
+ * SPDX-License-Identifier: GPL-2.0-or-later
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -23,9 +17,6 @@
  * Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA 02110-1301 USA.
  */
 
-#ifndef NASL_SSH_H
-#define NASL_SSH_H
-
 /**
  * @file nasl_ssh.h
  * @brief Protos and data structures for SSH functions used by NASL scripts
@@ -33,27 +24,50 @@
  * This file contains the protos for \ref nasl_ssh.c
  */
 
+#ifndef NASL_SSH_H
+#define NASL_SSH_H
+
+#include "nasl_lex_ctxt.h"
+
 #include <libssh/libssh.h>
 
-tree_cell *nasl_ssh_connect (lex_ctxt *lexic);
-tree_cell *nasl_ssh_disconnect (lex_ctxt *lexic);
-tree_cell *nasl_ssh_session_id_from_sock (lex_ctxt *lexic);
-tree_cell *nasl_ssh_get_sock (lex_ctxt *lexic);
-tree_cell *nasl_ssh_set_login (lex_ctxt *lexic);
-tree_cell *nasl_ssh_userauth (lex_ctxt *lexic);
-tree_cell *nasl_ssh_request_exec (lex_ctxt *lexic);
-tree_cell *nasl_ssh_shell_open (lex_ctxt *lexic);
-tree_cell *nasl_ssh_shell_read (lex_ctxt *lexic);
-tree_cell *nasl_ssh_shell_write (lex_ctxt *lexic);
-tree_cell *nasl_ssh_shell_close (lex_ctxt *lexic);
-tree_cell *nasl_ssh_login_interactive (lex_ctxt *lexic);
-tree_cell *nasl_ssh_login_interactive_pass (lex_ctxt *lexic);
+tree_cell *
+nasl_ssh_connect (lex_ctxt *lexic);
+tree_cell *
+nasl_ssh_disconnect (lex_ctxt *lexic);
+tree_cell *
+nasl_ssh_session_id_from_sock (lex_ctxt *lexic);
+tree_cell *
+nasl_ssh_get_sock (lex_ctxt *lexic);
+tree_cell *
+nasl_ssh_set_login (lex_ctxt *lexic);
+tree_cell *
+nasl_ssh_userauth (lex_ctxt *lexic);
+tree_cell *
+nasl_ssh_request_exec (lex_ctxt *lexic);
+tree_cell *
+nasl_ssh_shell_open (lex_ctxt *lexic);
+tree_cell *
+nasl_ssh_shell_read (lex_ctxt *lexic);
+tree_cell *
+nasl_ssh_shell_write (lex_ctxt *lexic);
+tree_cell *
+nasl_ssh_shell_close (lex_ctxt *lexic);
+tree_cell *
+nasl_ssh_login_interactive (lex_ctxt *lexic);
+tree_cell *
+nasl_ssh_login_interactive_pass (lex_ctxt *lexic);
 
-tree_cell *nasl_ssh_exec (lex_ctxt *);
+tree_cell *
+nasl_ssh_exec (lex_ctxt *);
 
-tree_cell *nasl_ssh_get_issue_banner (lex_ctxt *lexic);
-tree_cell *nasl_ssh_get_server_banner (lex_ctxt *lexic);
-tree_cell *nasl_ssh_get_auth_methods (lex_ctxt *lexic);
-tree_cell *nasl_ssh_get_host_key (lex_ctxt *lexic);
+tree_cell *
+nasl_ssh_get_issue_banner (lex_ctxt *lexic);
+tree_cell *
+nasl_ssh_get_server_banner (lex_ctxt *lexic);
+tree_cell *
+nasl_ssh_get_auth_methods (lex_ctxt *lexic);
+tree_cell *
+nasl_ssh_get_host_key (lex_ctxt *lexic);
 
 #endif /*NASL_SSH_H*/

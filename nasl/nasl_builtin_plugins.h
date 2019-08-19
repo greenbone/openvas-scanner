@@ -1,12 +1,6 @@
-/* openvas-scanner/nasl
- * $Id$
- * Description: Built-in Plugins header file.
+/* Copyright (C) 2010-2019 Greenbone Networks GmbH
  *
- * Authors:
- * Jan-Oliver Wagner <Jan-Oliver.Wagner@greenbone.net>
- *
- * Copyright:
- * Copyright (C) 2010 Greenbone Networks GmbH
+ * SPDX-License-Identifier: GPL-2.0-or-later
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -31,12 +25,16 @@
 #ifndef _NASL_BUILTIN_PLUGINS_H
 #define _NASL_BUILTIN_PLUGINS_H
 
-tree_cell * plugin_run_find_service (lex_ctxt *);
+tree_cell *
+plugin_run_find_service (lex_ctxt *);
 
-tree_cell * plugin_run_openvas_tcp_scanner (lex_ctxt *);
+tree_cell *
+plugin_run_openvas_tcp_scanner (lex_ctxt *);
 
-tree_cell * plugin_run_synscan (lex_ctxt *);
+tree_cell *
+plugin_run_synscan (lex_ctxt *);
 
-tree_cell * plugin_run_nmap (lex_ctxt *);
+tree_cell *
+plugin_run_nmap (lex_ctxt *);
 
 #endif /* not _NASL_BUILTIN_PLUGINS_H */

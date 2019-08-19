@@ -1,12 +1,6 @@
-# OpenVAS Testsuite for the NASL interpreter
-# $Id$
-# Description: Makefile to run the testsuite
+# Copyright (C) 2009-2019 Greenbone Networks GmbH
 #
-# Authors:
-# Bernhard Herzog <bernhard.herzog@intevation.de>
-#
-# Copyright:
-# Copyright (c) 2009 Greenbone Networks GmbH
+# SPDX-License-Identifier: GPL-2.0-or-later
 #
 # This program is free software; you can redistribute it and/or
 # modify it under the terms of the GNU General Public License
@@ -21,6 +15,9 @@
 # You should have received a copy of the GNU General Public License
 # along with this program; if not, write to the Free Software
 # Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA 02110-1301 USA.
+
+# Testsuite for the NASL interpreter
+# Makefile to run the testsuite
 
 TEST_SCRIPTS = test_bn.nasl test_md.nasl test_dh.nasl test_blowfish.nasl \
                test_dsa.nasl test_privkey.nasl test_rsa.nasl test_hexstr.nasl \

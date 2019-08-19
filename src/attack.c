@@ -1,56 +1,34 @@
-/* OpenVAS
-* $Id$
-* Description: Launches the plugins, and manages multithreading.
-*
-* Authors: 
-* Renaud Deraison <deraison@nessus.org> (Original pre-fork development)
-* Tim Brown (Initial fork)
-* Laban Mwangi (Renaming work)
-* Tarik El-Yassem (Headers section)
-* Geoff Galitz <mailto:geoff@eifel-consulting.eu (Minor debug edits)
-*
-* Copyright:
-* Portions Copyright (C) 2006 Software in the Public Interest, Inc.
-* Based on work Copyright (C) 1998 - 2006 Tenable Network Security, Inc.
-*
-* This program is free software; you can redistribute it and/or modify
-* it under the terms of the GNU General Public License version 2,
-* as published by the Free Software Foundation
-*
-* This program is distributed in the hope that it will be useful,
-* but WITHOUT ANY WARRANTY; without even the implied warranty of
-* MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-* GNU General Public License for more details.
-*
-* You should have received a copy of the GNU General Public License
-* along with this program; if not, write to the Free Software
-* Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA 02110-1301 USA.
-*/
+/* Portions Copyright (C) 2009-2019 Greenbone Networks GmbH
+ * Portions Copyright (C) 2006 Software in the Public Interest, Inc.
+ * Based on work Copyright (C) 1998 - 2006 Tenable Network Security, Inc.
+ *
+ * SPDX-License-Identifier: GPL-2.0-only
+ *
+ * This program is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU General Public License
+ * version 2 as published by the Free Software Foundation.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program; if not, write to the Free Software
+ * Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA 02110-1301 USA.
+ */
 
-#include <string.h>    /* for strlen() */
-#include <unistd.h>    /* for close() */
-#include <errno.h>     /* for errno() */
-#include <sys/wait.h>  /* for waitpid() */
-#include <arpa/inet.h> /* for inet_ntoa() */
-#include <stdlib.h>    /* for exit() */
+/**
+ * @file attack.c
+ * @brief Launches the plugins, and manages multithreading.
+ */
 
-#include <glib.h>
-#include <fcntl.h>
-
-#include <gvm/base/networking.h>
-#include <gvm/base/hosts.h>
-#include <gvm/base/proctitle.h>
-#include <gvm/base/prefs.h>              /* for prefs_get() */
-#include <gvm/util/kb.h>
-#include <gvm/util/nvticache.h>          /* for nvticache_t */
+#include "attack.h"
 
 #include "../misc/network.h"        /* for auth_printf */
 #include "../misc/nvt_categories.h" /* for ACT_INIT */
 #include "../misc/pcap_openvas.h"   /* for v6_is_local_ip */
-#include "../misc/scanneraux.h"
-
-#include "attack.h"
-#include "comm.h"
+#include "../nasl/nasl_debug.h"     /* for nasl_*_filename */
 #include "hosts.h"
 #include "pluginlaunch.h"
 #include "pluginload.h"
@@ -60,12 +38,28 @@
 #include "sighand.h"
 #include "utils.h"
 
+#include <arpa/inet.h> /* for inet_ntoa() */
+#include <errno.h>     /* for errno() */
+#include <fcntl.h>
+#include <glib.h>
+#include <gvm/base/hosts.h>
+#include <gvm/base/networking.h>
+#include <gvm/base/prefs.h> /* for prefs_get() */
+#include <gvm/base/proctitle.h>
+#include <gvm/util/nvticache.h> /* for nvticache_t */
+#include <stdlib.h>             /* for exit() */
+#include <string.h>             /* for strlen() */
+#include <sys/wait.h>           /* for waitpid() */
+#include <unistd.h>             /* for close() */
 
 #define ERR_HOST_DEAD -1
 #define ERR_CANT_FORK -2
 
 #define MAX_FORK_RETRIES 10
-
+/**
+ * Wait KB_RETRY_DELAY seconds until trying again to get a new kb.
+ */
+#define KB_RETRY_DELAY 3 /*In sec*/
 /**
  * It switches progress bar styles.
  * If set to 1, time oriented style and it take into account only alive host.
@@ -94,7 +88,8 @@ struct attack_start_args
   gvm_host_t *host;
 };
 
-enum net_scan_status {
+enum net_scan_status
+{
   NSS_NONE = 0,
   NSS_BUSY,
   NSS_DONE,
@@ -119,11 +114,12 @@ set_kb_readable (int host_kb_index)
   main_kb = kb_direct_conn (prefs_get ("db_address"), i);
   if (main_kb)
     {
-      kb_item_add_int (main_kb, "internal/dbindex", host_kb_index);
+      kb_item_add_int_unique (main_kb, "internal/dbindex", host_kb_index);
       return 0;
     }
   g_warning ("Not possible to add the kb index %d to the list of "
-             "ready to read kb", host_kb_index);
+             "ready to read kb",
+             host_kb_index);
   return -1;
 }
 
@@ -148,16 +144,6 @@ comm_send_status (kb_t kb, char *hostname, int curr, int max)
 }
 
 static void
-error_message_to_client (int soc, const char *msg, const char *hostname,
-                         const char *port)
-{
-  if (is_otp_scan ())
-    send_printf
-      (soc, "SERVER <|> ERRMSG <|> %s <|>  <|> %s <|> %s <|>  <|> SERVER\n",
-       hostname ?: "", port ?: "", msg ?: "No error.");
-}
-
-static void
 error_message_to_client2 (kb_t kb, const char *msg, const char *port)
 {
   char buf[2048];
@@ -167,7 +153,7 @@ error_message_to_client2 (kb_t kb, const char *msg, const char *port)
 }
 
 static void
-report_kb_failure (int soc, int errcode)
+report_kb_failure (int errcode)
 {
   gchar *msg;
 
@@ -175,7 +161,6 @@ report_kb_failure (int soc, int errcode)
   msg = g_strdup_printf ("WARNING: Cannot connect to KB at '%s': %s'",
                          prefs_get ("db_address"), strerror (errcode));
   g_warning ("%s", msg);
-  error_message_to_client (soc, msg, NULL, NULL);
   g_free (msg);
 }
 
@@ -215,7 +200,7 @@ int global_scan_stop = 0;
 static int
 scan_is_stopped ()
 {
- return global_scan_stop;
+  return global_scan_stop;
 }
 
 int global_stop_all_scans = 0;
@@ -223,7 +208,7 @@ int global_stop_all_scans = 0;
 static int
 all_scans_are_stopped ()
 {
- return global_stop_all_scans;
+  return global_stop_all_scans;
 }
 
 /**
@@ -236,13 +221,12 @@ all_scans_are_stopped ()
 static int
 nvti_category_is_safe (int category)
 {
-  /* XXX: Duplicated from openvas-scanner/nasl. */
+  /* XXX: Duplicated from openvas/nasl. */
   if (category == ACT_DESTRUCTIVE_ATTACK || category == ACT_KILL_HOST
       || category == ACT_FLOOD || category == ACT_DENIAL)
     return 0;
   return 1;
 }
-
 
 /**
  * @brief Launches a nvt. Respects safe check preference (i.e. does not try
@@ -257,7 +241,7 @@ static int
 launch_plugin (struct scan_globals *globals, struct scheduler_plugin *plugin,
                struct in6_addr *ip, GSList *vhosts, kb_t kb)
 {
-  int optimize = prefs_get_bool ("optimize_test"), pid;
+  int optimize = prefs_get_bool ("optimize_test"), pid, ret = 0;
   char *oid, *name, *error = NULL, ip_str[INET6_ADDRSTRLEN];
   gboolean network_scan = FALSE;
   nvti_t *nvti;
@@ -265,30 +249,45 @@ launch_plugin (struct scan_globals *globals, struct scheduler_plugin *plugin,
   addr6_to_str (ip, ip_str);
   oid = plugin->oid;
   nvti = nvticache_get_nvt (oid);
-  name = nvticache_get_filename (oid);
+
+  /* eg. When NVT was moved/removed by a feed update during the scan. */
+  if (!nvti)
+    {
+      g_message ("Plugin '%s' missing from nvticache.", oid);
+      plugin->running_state = PLUGIN_STATUS_DONE;
+      goto finish_launch_plugin;
+    }
   if (scan_is_stopped () || all_scans_are_stopped ())
     {
-      if (nvti->category != ACT_LAST)
+      if (nvti_category (nvti) != ACT_END)
         {
           plugin->running_state = PLUGIN_STATUS_DONE;
-          g_free (name);
-          return 0;
+          goto finish_launch_plugin;
         }
       else
-        g_message ("Stopped scan wrap-up: Launching %s (%s)", name, oid);
+        {
+          name = nvticache_get_filename (oid);
+          g_message ("Stopped scan wrap-up: Launching %s (%s)", name, oid);
+          g_free (name);
+        }
     }
 
   if (network_scan_status (globals) == NSS_BUSY)
     network_scan = TRUE;
 
-  if (prefs_get_bool ("safe_checks") && !nvti_category_is_safe (nvti->category))
+  if (prefs_get_bool ("safe_checks")
+      && !nvti_category_is_safe (nvti_category (nvti)))
     {
       if (prefs_get_bool ("log_whole_attack"))
-        g_message ("Not launching %s (%s) against %s because safe checks are"
-                   " enabled (this is not an error)", name, oid, ip_str);
+        {
+          name = nvticache_get_filename (oid);
+          g_message ("Not launching %s (%s) against %s because safe checks are"
+                     " enabled (this is not an error)",
+                     name, oid, ip_str);
+          g_free (name);
+        }
       plugin->running_state = PLUGIN_STATUS_DONE;
-      g_free (name);
-      return 0;
+      goto finish_launch_plugin;
     }
 
   if (network_scan)
@@ -305,13 +304,10 @@ launch_plugin (struct scan_globals *globals, struct scheduler_plugin *plugin,
                        "been lanched in the past (this is not an error)",
                        oid, ip_str);
           plugin->running_state = PLUGIN_STATUS_DONE;
-          g_free (name);
-          return 0;
+          goto finish_launch_plugin;
         }
       else
-        {
-          kb_item_add_int (kb, asc_id, 1);
-        }
+        kb_item_set_int (kb, asc_id, 1);
     }
 
   /* Do not launch NVT if mandatory key is missing (e.g. an important tool
@@ -322,56 +318,64 @@ launch_plugin (struct scan_globals *globals, struct scheduler_plugin *plugin,
     {
       plugin->running_state = PLUGIN_STATUS_DONE;
       if (prefs_get_bool ("log_whole_attack"))
-        g_message ("Not launching %s (%s) against %s %s (this is not an error)",
-          name, oid, ip_str, error);
-      g_free (name);
-      return 0;
+        {
+          name = nvticache_get_filename (oid);
+          g_message (
+            "Not launching %s (%s) against %s %s (this is not an error)", name,
+            oid, ip_str, error);
+          g_free (name);
+        }
+      goto finish_launch_plugin;
     }
 
   /* Stop the test if the host is 'dead' */
   if (kb_item_get_int (kb, "Host/dead") > 0)
     {
       g_message ("The remote host %s is dead", ip_str);
-      pluginlaunch_stop (1);
+      pluginlaunch_stop ();
       plugin->running_state = PLUGIN_STATUS_DONE;
-      g_free (name);
-      return ERR_HOST_DEAD;
+      ret = ERR_HOST_DEAD;
+      goto finish_launch_plugin;
     }
 
   /* Start the plugin */
   pid = plugin_launch (globals, plugin, ip, vhosts, kb, nvti);
-  nvti_free (nvti);
   if (pid < 0)
     {
       plugin->running_state = PLUGIN_STATUS_UNRUN;
-      g_free (name);
-      return ERR_CANT_FORK;
+      ret = ERR_CANT_FORK;
+      goto finish_launch_plugin;
     }
 
   if (prefs_get_bool ("log_whole_attack"))
-    g_message ("Launching %s (%s) against %s [%d]", name, oid, ip_str, pid);
+    {
+      name = nvticache_get_filename (oid);
+      g_message ("Launching %s (%s) against %s [%d]", name, oid, ip_str, pid);
+      g_free (name);
+    }
 
-  g_free (name);
-  return 0;
+finish_launch_plugin:
+  nvti_free (nvti);
+  return ret;
 }
 
 static int
-kb_duplicate(kb_t dst, kb_t src, const gchar *filter)
+kb_duplicate (kb_t dst, kb_t src, const gchar *filter)
 {
   struct kb_item *items, *p_itm;
 
-  items = kb_item_get_pattern(src, filter ? filter : "*");
+  items = kb_item_get_pattern (src, filter ? filter : "*");
   for (p_itm = items; p_itm != NULL; p_itm = p_itm->next)
     {
       gchar *newname;
 
-      newname = strstr(p_itm->name, "/");
+      newname = strstr (p_itm->name, "/");
       if (newname == NULL)
         newname = p_itm->name;
       else
         newname += 1; /* Skip the '/' */
 
-      kb_item_add_str(dst, newname, p_itm->v_str, 0);
+      kb_item_add_str (dst, newname, p_itm->v_str, 0);
     }
   return 0;
 }
@@ -394,38 +398,37 @@ init_host_kb (struct scan_globals *globals, char *ip_str, kb_t *network_kb)
   gchar *hostname_pattern;
   enum net_scan_status nss;
   const gchar *kb_path = prefs_get ("db_address");
-  int rc, soc;
+  int rc;
 
   nss = network_scan_status (globals);
-  soc = globals->global_socket;
   switch (nss)
     {
-      case NSS_DONE:
-        rc = kb_new (&kb, kb_path);
-        if (rc)
-          {
-            report_kb_failure (soc, rc);
-            return NULL;
-          }
+    case NSS_DONE:
+      rc = kb_new (&kb, kb_path);
+      if (rc)
+        {
+          report_kb_failure (rc);
+          return NULL;
+        }
 
-        hostname_pattern = g_strdup_printf ("%s/*", ip_str);
-        kb_duplicate(kb, *network_kb, hostname_pattern);
-        g_free(hostname_pattern);
-        break;
+      hostname_pattern = g_strdup_printf ("%s/*", ip_str);
+      kb_duplicate (kb, *network_kb, hostname_pattern);
+      g_free (hostname_pattern);
+      break;
 
-      case NSS_BUSY:
-        assert (network_kb != NULL);
-        assert (*network_kb != NULL);
-        kb = *network_kb;
-        break;
+    case NSS_BUSY:
+      assert (network_kb != NULL);
+      assert (*network_kb != NULL);
+      kb = *network_kb;
+      break;
 
-      default:
-        rc = kb_new (&kb, kb_path);
-        if (rc)
-          {
-            report_kb_failure (soc, rc);
-            return NULL;
-          }
+    default:
+      rc = kb_new (&kb, kb_path);
+      if (rc)
+        {
+          report_kb_failure (rc);
+          return NULL;
+        }
     }
 
   return kb;
@@ -465,8 +468,8 @@ check_new_vhosts ()
  * @brief Attack one host.
  */
 static void
-attack_host (struct scan_globals *globals, struct in6_addr *ip,
-             GSList *vhosts, plugins_scheduler_t sched, kb_t kb, kb_t *net_kb)
+attack_host (struct scan_globals *globals, struct in6_addr *ip, GSList *vhosts,
+             plugins_scheduler_t sched, kb_t kb, kb_t *net_kb)
 {
   /* Used for the status */
   int num_plugs, forks_retry = 0;
@@ -478,7 +481,7 @@ attack_host (struct scan_globals *globals, struct in6_addr *ip,
   host_vhosts = vhosts;
   kb_item_set_str (kb, "internal/ip", ip_str, 0);
   kb_item_set_int (kb, "internal/hostpid", getpid ());
-  proctitle_set ("openvassd: testing %s", ip_str);
+  proctitle_set ("openvas: testing %s", ip_str);
   if (net_kb && *net_kb)
     {
       kb_delete (kb);
@@ -500,7 +503,7 @@ attack_host (struct scan_globals *globals, struct in6_addr *ip,
       parent = getppid ();
       if (parent <= 1 || process_alive (parent) == 0)
         {
-          pluginlaunch_stop (1);
+          pluginlaunch_stop ();
           return;
         }
 
@@ -522,8 +525,8 @@ attack_host (struct scan_globals *globals, struct in6_addr *ip,
               if (e == ERR_HOST_DEAD)
                 {
                   char buffer[2048];
-                  snprintf
-                   (buffer, sizeof (buffer),
+                  snprintf (
+                    buffer, sizeof (buffer),
                     "LOG||| |||general/Host_Details||| |||<host><detail>"
                     "<name>Host dead</name><value>1</value><source>"
                     "<description/><type/><name/></source></detail></host>");
@@ -542,7 +545,7 @@ attack_host (struct scan_globals *globals, struct in6_addr *ip,
                     {
                       forks_retry++;
                       g_debug ("fork() failed - sleeping %d seconds (%s)",
-                                 forks_retry, strerror (errno));
+                               forks_retry, strerror (errno));
                       fork_sleep (forks_retry);
                       goto again;
                     }
@@ -554,14 +557,13 @@ attack_host (struct scan_globals *globals, struct in6_addr *ip,
                 }
             }
 
-          if ((cur_plug * 100) / num_plugs >= last_status
-              && !scan_is_stopped () && !all_scans_are_stopped ())
+          if ((cur_plug * 100) / num_plugs >= last_status && !scan_is_stopped ()
+              && !all_scans_are_stopped ())
             {
               last_status = (cur_plug * 100) / num_plugs + 2;
-              if (comm_send_status
-                   (kb, ip_str, cur_plug, num_plugs) < 0)
+              if (comm_send_status (kb, ip_str, cur_plug, num_plugs) < 0)
                 {
-                  pluginlaunch_stop (1);
+                  pluginlaunch_stop ();
                   goto host_died;
                 }
             }
@@ -577,7 +579,7 @@ attack_host (struct scan_globals *globals, struct in6_addr *ip,
     comm_send_status (kb, ip_str, num_plugs, num_plugs);
 
 host_died:
-  pluginlaunch_stop (1);
+  pluginlaunch_stop ();
   plugins_scheduler_free (sched);
 }
 
@@ -594,8 +596,7 @@ host_died:
  */
 static int
 host_authorized (const gvm_host_t *host, const struct in6_addr *addr,
-                 const gvm_hosts_t *hosts_allow,
-                 const gvm_hosts_t *hosts_deny)
+                 const gvm_hosts_t *hosts_allow, const gvm_hosts_t *hosts_deny)
 {
   /* Check Hosts Access. */
   if (host == NULL)
@@ -647,7 +648,8 @@ vhosts_to_str (GSList *list)
  * @return 0 if authorized, -1 otherwise.
  */
 static int
-check_host_authorization (gvm_host_t *host, const struct in6_addr *addr, kb_t kb)
+check_host_authorization (gvm_host_t *host, const struct in6_addr *addr,
+                          kb_t kb)
 {
   gvm_hosts_t *hosts_allow, *hosts_deny;
   gvm_hosts_t *sys_hosts_allow, *sys_hosts_deny;
@@ -664,8 +666,8 @@ check_host_authorization (gvm_host_t *host, const struct in6_addr *addr, kb_t kb
   sys_hosts_deny = gvm_hosts_new (prefs_get ("sys_hosts_deny"));
   if (!host_authorized (host, addr, sys_hosts_allow, sys_hosts_deny))
     {
-      error_message_to_client2
-       (kb, "Host access denied (system-wide restriction.)", NULL);
+      error_message_to_client2 (
+        kb, "Host access denied (system-wide restriction.)", NULL);
       return -1;
     }
 
@@ -693,9 +695,8 @@ attack_start (struct attack_start_args *args)
   kb_lnk_reset (kb);
   gettimeofday (&then, NULL);
 
-  kb_item_add_str (kb, "internal/scan_id", globals->scan_id, 0);
-  if (!is_otp_scan ())
-    set_kb_readable (kb_get_kb_index (kb));
+  kb_item_set_str (kb, "internal/scan_id", globals->scan_id, 0);
+  set_kb_readable (kb_get_kb_index (kb));
 
   /* The reverse lookup is delayed to this step in order to not slow down the
    * main scan process eg. case of target with big range of IP addresses. */
@@ -712,8 +713,8 @@ attack_start (struct attack_start_args *args)
     }
   if (prefs_get_bool ("test_empty_vhost"))
     {
-      gvm_vhost_t *vhost = gvm_vhost_new
-                            (g_strdup (ip_str), g_strdup ("IP-address"));
+      gvm_vhost_t *vhost =
+        gvm_vhost_new (g_strdup (ip_str), g_strdup ("IP-address"));
       args->host->vhosts = g_slist_prepend (args->host->vhosts, vhost);
     }
   hostnames = vhosts_to_str (args->host->vhosts);
@@ -726,13 +727,11 @@ attack_start (struct attack_start_args *args)
 
   if (!scan_is_stopped () && !all_scans_are_stopped ())
     {
-      if (!is_otp_scan ())
-        {
-          char key[1024];
-          snprintf (key, sizeof (key), "internal/%s", globals->scan_id);
-          kb_item_add_str (kb, key, "finished", 0);
-        }
+      char key[1024];
       struct timeval now;
+
+      snprintf (key, sizeof (key), "internal/%s", globals->scan_id);
+      kb_item_set_str (kb, key, "finished", 0);
 
       gettimeofday (&now, NULL);
       if (now.tv_usec < then.tv_usec)
@@ -740,8 +739,8 @@ attack_start (struct attack_start_args *args)
           then.tv_sec++;
           now.tv_usec += 1000000;
         }
-      g_message ("Finished testing %s. Time : %ld.%.2ld secs",
-                 ip_str, (long) (now.tv_sec - then.tv_sec),
+      g_message ("Finished testing %s. Time : %ld.%.2ld secs", ip_str,
+                 (long) (now.tv_sec - then.tv_sec),
                  (long) ((now.tv_usec - then.tv_usec) / 10000));
     }
 }
@@ -861,7 +860,7 @@ iface_authorized (const char *iface)
  * unauthorized value, -2 if iface can't be used.
  */
 static int
-apply_source_iface_preference (int soc)
+apply_source_iface_preference ()
 {
   const char *source_iface = prefs_get ("source_iface");
   int ret;
@@ -872,11 +871,10 @@ apply_source_iface_preference (int soc)
   ret = iface_authorized (source_iface);
   if (ret == -1)
     {
-      gchar *msg = g_strdup_printf ("Unauthorized source interface: %s",
-                                    source_iface);
+      gchar *msg =
+        g_strdup_printf ("Unauthorized source interface: %s", source_iface);
       g_warning ("source_iface: Unauthorized source interface %s.",
                  source_iface);
-      error_message_to_client (soc, msg, NULL, NULL);
 
       g_free (msg);
       return -1;
@@ -889,7 +887,6 @@ apply_source_iface_preference (int soc)
       g_warning ("source_iface: Unauthorized source interface %s."
                  " (sys_* preference restriction.)",
                  source_iface);
-      error_message_to_client (soc, msg, NULL, NULL);
 
       g_free (msg);
       return -1;
@@ -897,10 +894,9 @@ apply_source_iface_preference (int soc)
 
   if (gvm_source_iface_init (source_iface))
     {
-      gchar *msg = g_strdup_printf ("Erroneous source interface: %s",
-                                    source_iface);
+      gchar *msg =
+        g_strdup_printf ("Erroneous source interface: %s", source_iface);
       g_debug ("source_iface: Error with %s interface.", source_iface);
-      error_message_to_client (soc, msg, NULL, NULL);
 
       g_free (msg);
       return -2;
@@ -910,8 +906,8 @@ apply_source_iface_preference (int soc)
       char *ipstr, *ip6str;
       ipstr = gvm_source_addr_str ();
       ip6str = gvm_source_addr6_str ();
-      g_debug ("source_iface: Using %s (%s / %s).", source_iface,
-                 ipstr, ip6str);
+      g_debug ("source_iface: Using %s (%s / %s).", source_iface, ipstr,
+               ip6str);
 
       g_free (ipstr);
       g_free (ip6str);
@@ -920,14 +916,14 @@ apply_source_iface_preference (int soc)
 }
 
 static int
-check_kb_access (int soc)
+check_kb_access ()
 {
   int rc;
   kb_t kb;
 
   rc = kb_new (&kb, prefs_get ("db_address"));
   if (rc)
-      report_kb_failure (soc, rc);
+    report_kb_failure (rc);
   else
     kb_delete (kb);
 
@@ -937,7 +933,7 @@ check_kb_access (int soc)
 static void
 handle_scan_stop_signal ()
 {
-  pluginlaunch_stop (0);
+  pluginlaunch_stop ();
   global_scan_stop = 1;
 }
 
@@ -957,7 +953,6 @@ attack_network (struct scan_globals *globals, kb_t *network_kb)
   int max_hosts = 0, max_checks;
   const char *hostlist;
   gvm_host_t *host;
-  int global_socket = -1;
   plugins_scheduler_t sched;
   int fork_retries = 0;
   GHashTable *files;
@@ -967,6 +962,7 @@ attack_network (struct scan_globals *globals, kb_t *network_kb)
   gboolean network_phase = FALSE;
   gboolean do_network_scan = FALSE;
   kb_t host_kb;
+  GSList *unresolved;
 
   gettimeofday (&then, NULL);
 
@@ -986,33 +982,30 @@ attack_network (struct scan_globals *globals, kb_t *network_kb)
       nss = network_scan_status (globals);
       switch (nss)
         {
-          case NSS_DONE:
-            network_phase = FALSE;
-            break;
+        case NSS_DONE:
+          network_phase = FALSE;
+          break;
 
-          case NSS_BUSY:
-            network_phase = TRUE;
-            break;
+        case NSS_BUSY:
+          network_phase = TRUE;
+          break;
 
-          default:
-            globals->network_scan_status = g_strdup ("busy");
-            network_phase = TRUE;
-            break;
+        default:
+          globals->network_scan_status = g_strdup ("busy");
+          network_phase = TRUE;
+          break;
         }
     }
   else
     network_kb = NULL;
 
-  global_socket = globals->global_socket;
-  if (check_kb_access(global_socket))
-      return;
+  if (check_kb_access ())
+    return;
 
   /* Init and check Target List */
   hostlist = prefs_get ("TARGET");
   if (hostlist == NULL)
     {
-      error_message_to_client (global_socket, "Missing target hosts", NULL,
-                               NULL);
       return;
     }
 
@@ -1020,15 +1013,13 @@ attack_network (struct scan_globals *globals, kb_t *network_kb)
   port_range = prefs_get ("port_range");
   if (validate_port_range (port_range))
     {
-      error_message_to_client (global_socket, "Invalid port range", NULL,
-                               port_range);
       return;
     }
 
   /* Initialize the attack. */
-  sched = plugins_scheduler_init
-           (prefs_get ("plugin_set"), prefs_get_bool ("auto_enable_dependencies"),
-            network_phase);
+  sched = plugins_scheduler_init (prefs_get ("plugin_set"),
+                                  prefs_get_bool ("auto_enable_dependencies"),
+                                  network_phase);
   if (!sched)
     {
       g_message ("Couldn't initialize the plugin scheduler");
@@ -1042,7 +1033,8 @@ attack_network (struct scan_globals *globals, kb_t *network_kb)
     {
       if (network_targets == NULL)
         {
-          g_warning ("WARNING: In network phase, but without targets! Stopping.");
+          g_warning (
+            "WARNING: In network phase, but without targets! Stopping.");
           host = NULL;
         }
       else
@@ -1056,7 +1048,7 @@ attack_network (struct scan_globals *globals, kb_t *network_kb)
           rc = kb_new (network_kb, prefs_get ("db_address"));
           if (rc)
             {
-              report_kb_failure (global_socket, rc);
+              report_kb_failure (rc);
               host = NULL;
             }
           else
@@ -1065,25 +1057,30 @@ attack_network (struct scan_globals *globals, kb_t *network_kb)
     }
   else
     g_message ("Starts a new scan. Target(s) : %s, with max_hosts = %d and "
-               "max_checks = %d", hostlist, max_hosts, max_checks);
+               "max_checks = %d",
+               hostlist, max_hosts, max_checks);
 
   hosts = gvm_hosts_new (hostlist);
-  gvm_hosts_resolve (hosts);
+  unresolved = gvm_hosts_resolve (hosts);
+  while (unresolved)
+    {
+      g_warning ("Couldn't resolve hostname '%s'", (char *) unresolved->data);
+      unresolved = unresolved->next;
+    }
+  g_slist_free_full (unresolved, g_free);
   /* Apply Hosts preferences. */
   apply_hosts_preferences (hosts);
 
   /* Don't start if the provided interface is unauthorized. */
-  if (apply_source_iface_preference (global_socket) != 0)
+  if (apply_source_iface_preference () != 0)
     {
       gvm_hosts_free (hosts);
-      error_message_to_client
-       (global_socket, "Interface not authorized for scanning", NULL, NULL);
       return;
     }
   host = gvm_hosts_next (hosts);
   if (host == NULL)
     goto stop;
-  hosts_init (global_socket, max_hosts);
+  hosts_init (max_hosts);
   /*
    * Start the attack !
    */
@@ -1095,14 +1092,25 @@ attack_network (struct scan_globals *globals, kb_t *network_kb)
       struct attack_start_args args;
       char *host_str;
 
-      rc = kb_new (&host_kb, prefs_get ("db_address"));
-      if (rc)
+      do
         {
-          report_kb_failure (global_socket, rc);
-          goto scan_stop;
+          rc = kb_new (&host_kb, prefs_get ("db_address"));
+          if (rc < 0 && rc != -2)
+            {
+              report_kb_failure (rc);
+              goto scan_stop;
+            }
+          else if (rc == -2)
+            {
+              sleep (KB_RETRY_DELAY);
+              continue;
+            }
+          break;
         }
+      while (1);
+
       host_str = gvm_host_value_str (host);
-      if (hosts_new (globals, host_str, host_kb) < 0)
+      if (hosts_new (host_str, host_kb) < 0)
         {
           g_free (host_str);
           goto scan_stop;
@@ -1129,21 +1137,20 @@ attack_network (struct scan_globals *globals, kb_t *network_kb)
             {
               /* Forking failed - we go to the wait queue. */
               g_debug ("fork() failed - %s. %s won't be tested",
-                         strerror (errno), host_str);
+                       strerror (errno), host_str);
               g_free (host_str);
               goto stop;
             }
 
           g_debug ("fork() failed - "
-                     "sleeping %d seconds and trying again...",
-                     fork_retries);
+                   "sleeping %d seconds and trying again...",
+                   fork_retries);
           fork_sleep (fork_retries);
           goto forkagain;
         }
       hosts_set_pid (host_str, pid);
       if (network_phase)
-        g_message ("Testing %s (network level) [%d]",
-                   network_targets, pid);
+        g_message ("Testing %s (network level) [%d]", network_targets, pid);
 
       if (network_phase)
         {
@@ -1157,10 +1164,9 @@ attack_network (struct scan_globals *globals, kb_t *network_kb)
 
   /* Every host is being tested... We have to wait for the processes
    * to terminate. */
-  while (hosts_read (globals) == 0)
+  while (hosts_read () == 0)
     ;
   g_message ("Test complete");
-
 
 scan_stop:
   /* Free the memory used by the files uploaded by the user, if any. */
@@ -1170,12 +1176,9 @@ scan_stop:
 
 stop:
 
- if (all_scans_are_stopped ())
-   {
-     error_message_to_client
-       (global_socket, "The whole scan was stopped. "
-        "Fatal Redis connection error.", "", NULL);
-   }
+  if (all_scans_are_stopped ())
+    {
+    }
 
   gvm_hosts_free (hosts);
   g_free (globals->network_scan_status);
@@ -1187,7 +1190,7 @@ stop:
   g_message ("Total time to scan all hosts : %ld seconds",
              now.tv_sec - then.tv_sec);
 
-  if (do_network_scan && network_phase &&
-      !scan_is_stopped () && !all_scans_are_stopped ())
+  if (do_network_scan && network_phase && !scan_is_stopped ()
+      && !all_scans_are_stopped ())
     attack_network (globals, network_kb);
 }

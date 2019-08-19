@@ -1,10 +1,10 @@
-/* NASL Attack Scripting Language
+/* Based on work Copyright (C) 2002 - 2003 Michel Arboi and Renaud Deraison
  *
- * Copyright (C) 2002 - 2003 Michel Arboi and Renaud Deraison
+ * SPDX-License-Identifier: GPL-2.0-only
  *
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License version 2,
- * as published by the Free Software Foundation
+ * This program is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU General Public License
+ * version 2 as published by the Free Software Foundation.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -13,35 +13,34 @@
  *
  * You should have received a copy of the GNU General Public License
  * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
+ * Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA 02110-1301 USA.
  */
 
 #ifndef NASLTREE_H_INCLUDED
 #define NASLTREE_H_INCLUDED
 
-
 enum node_type
 {
   NODE_EMPTY = 0,
-  NODE_IF_ELSE,                 /* [0] = cond, [1] = if_block, [2] = else_block */
-  NODE_INSTR_L,                 /* Block. [0] = first instr, [1] = tail */
-  NODE_FOR,                     /* [0] = start expr, [1] = cond, [2] = end_expr, [3] = block */
-  NODE_WHILE,                   /* [0] = cond, [1] = block */
+  NODE_IF_ELSE, /* [0] = cond, [1] = if_block, [2] = else_block */
+  NODE_INSTR_L, /* Block. [0] = first instr, [1] = tail */
+  NODE_FOR,     /* [0] = start expr, [1] = cond, [2] = end_expr, [3] = block */
+  NODE_WHILE,   /* [0] = cond, [1] = block */
   NODE_FOREACH,
   NODE_REPEAT_UNTIL,
-  NODE_REPEATED,                /* [0] = func call, [1] = repeat nb */
-  NODE_FUN_DEF,                 /* [0] = argdecl, [1] = block */
-  NODE_FUN_CALL,                /* [0] = script_infos */
-  NODE_DECL,                    /* [0] = next arg in list */
-  NODE_ARG,                     /* val = name can be NULL, [0] = val, [1] = next arg */
-  NODE_RETURN,                  /* ret val */
+  NODE_REPEATED, /* [0] = func call, [1] = repeat nb */
+  NODE_FUN_DEF,  /* [0] = argdecl, [1] = block */
+  NODE_FUN_CALL, /* [0] = script_infos */
+  NODE_DECL,     /* [0] = next arg in list */
+  NODE_ARG,      /* val = name can be NULL, [0] = val, [1] = next arg */
+  NODE_RETURN,   /* ret val */
   NODE_BREAK,
   NODE_CONTINUE,
 
-  NODE_ARRAY_EL,                /* val = array name, [0] = index */
-  NODE_AFF,                     /* [0] = lvalue, [1] = rvalue */
-  NODE_VAR,                     /* val = variable name */
-  NODE_LOCAL,                   /* [0] = argdecl */
+  NODE_ARRAY_EL, /* val = array name, [0] = index */
+  NODE_AFF,      /* [0] = lvalue, [1] = rvalue */
+  NODE_VAR,      /* val = variable name */
+  NODE_LOCAL,    /* [0] = argdecl */
   NODE_GLOBAL,
 
   NODE_PLUS_EQ,
@@ -89,13 +88,13 @@ enum node_type
   COMP_GE,
 
   CONST_INT,
-  CONST_STR,                    /* "impure" string */
+  CONST_STR, /* "impure" string */
 
-  CONST_DATA,                   /* binary data / "pure" string */
-  CONST_REGEX,                  /* Compiled regex */
+  CONST_DATA,  /* binary data / "pure" string */
+  CONST_REGEX, /* Compiled regex */
 
-  ARRAY_ELEM,                   /* val = char index or NULL if integer,
-                                 * [0] = value, [1] = next element */
+  ARRAY_ELEM, /* val = char index or NULL if integer,
+               * [0] = value, [1] = next element */
   /* For exec only */
   REF_VAR,
   REF_ARRAY,
@@ -106,34 +105,44 @@ typedef struct TC
 {
   short type;
   short line_nb;
-  short ref_count;              /* Cell is freed when count reaches zero */
+  short ref_count; /* Cell is freed when count reaches zero */
   int size;
   union
   {
     char *str_val;
     long int i_val;
-    void *ref_val;              /* internal reference */
+    void *ref_val; /* internal reference */
   } x;
   struct TC *link[4];
 } tree_cell;
 
-#define FAKE_CELL	((void*)1)
-#define EXIT_CELL	((void*)2)
+#define FAKE_CELL ((void *) 1)
+#define EXIT_CELL ((void *) 2)
 
-tree_cell *alloc_tree_cell (void);
-tree_cell *alloc_expr_cell (int, int, tree_cell *, tree_cell *);
-tree_cell *alloc_RE_cell (int, int, tree_cell *, char *);
-tree_cell *alloc_typed_cell (int);
-int nasl_is_leaf (const tree_cell *);
-char *get_line_nb (const tree_cell *);
-tree_cell *dup_cell (const tree_cell *);
-void nasl_dump_tree (const tree_cell *);
-void ref_cell (tree_cell *);
-void deref_cell (tree_cell *);
-const char *nasl_type_name (int);
-int cell_type (const tree_cell *);
+tree_cell *
+alloc_expr_cell (int, int, tree_cell *, tree_cell *);
+tree_cell *
+alloc_RE_cell (int, int, tree_cell *, char *);
+tree_cell *
+alloc_typed_cell (int);
+int
+nasl_is_leaf (const tree_cell *);
+char *
+get_line_nb (const tree_cell *);
+tree_cell *
+dup_cell (const tree_cell *);
+void
+nasl_dump_tree (const tree_cell *);
+void
+ref_cell (tree_cell *);
+void
+deref_cell (tree_cell *);
+const char *
+nasl_type_name (int);
+int
+cell_type (const tree_cell *);
 
-char *dump_cell_val (const tree_cell *);
-
+char *
+dump_cell_val (const tree_cell *);
 
 #endif

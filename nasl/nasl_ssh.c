@@ -1,13 +1,6 @@
-/* openvas-scanner/nasl
- * $Id$
- * Description: Implementation of API for SSH functions used by NASL scripts
+/* Portions Copyright (C) 2011-2019 Greenbone Networks GmbH
  *
- * Authors:
- * Michael Wiegand <michael.wiegand@greenbone.net>
- * Werner Koch <wk@gnupg.org>
- *
- * Copyright:
- * Copyright (C) 2011, 2012 Greenbone Networks GmbH
+ * SPDX-License-Identifier: GPL-2.0-or-later
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -26,7 +19,6 @@
 
 /**
  * @file nasl_ssh.c
- *
  * @brief Implementation of an API for SSH functions.
  *
  * This file contains the implementation of the Secure Shell related
@@ -34,49 +26,45 @@
  * libssh support.
  */
 
+#include "nasl_ssh.h"
+
+#include "../misc/network.h" /* for openvas_get_socket_from_connection */
+#include "../misc/plugutils.h"
+#include "exec.h"
+#include "nasl_debug.h"
+#include "nasl_func.h"
+#include "nasl_global_ctxt.h"
+#include "nasl_lex_ctxt.h"
+#include "nasl_tree.h"
+#include "nasl_var.h"
+
 #include <arpa/inet.h>
+#include <ctype.h>
+#include <errno.h>
+#include <fcntl.h>
+#include <glib.h>
+#include <glib/gstdio.h>
+#include <gvm/base/logging.h>
+#include <gvm/base/networking.h>
+#include <gvm/base/prefs.h> /* for prefs_get() */
+#include <gvm/util/kb.h>
 #include <netinet/in.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
 #include <sys/select.h>
 #include <sys/socket.h>
 #include <sys/time.h>
 #include <sys/types.h>
-#include <stdlib.h>
-#include <fcntl.h>
-#include <errno.h>
-#include <stdio.h>
-#include <string.h>
-#include <ctype.h>
 #include <unistd.h>
-#include <glib.h>
-#include <glib/gstdio.h>
-
-#include <gvm/base/logging.h>
-#include <gvm/base/networking.h>
-#include <gvm/base/prefs.h>    /* for prefs_get() */
-#include <gvm/util/kb.h>
-
-#include "../misc/network.h"    /* for openvas_get_socket_from_connection */
-#include "../misc/plugutils.h"
-
-#include "nasl_tree.h"
-#include "nasl_global_ctxt.h"
-#include "nasl_func.h"
-#include "nasl_var.h"
-#include "nasl_lex_ctxt.h"
-#include "exec.h"
-#include "nasl_debug.h"
-
-#include "nasl_ssh.h"
-
 
 #ifndef DIM
-# define DIM(v)               (sizeof(v)/sizeof((v)[0]))
-# define DIMof(type,member)   DIM(((type *)0)->member)
+#define DIM(v) (sizeof (v) / sizeof ((v)[0]))
+#define DIMof(type, member) DIM (((type *) 0)->member)
 #endif
 
-
 #if SSH_OK != 0
-# error Oops, libssh ABI changed
+#error Oops, libssh ABI changed
 #endif
 
 #undef G_LOG_DOMAIN
@@ -116,22 +104,21 @@ struct session_table_item_s
   int session_id;
   ssh_session session;
   ssh_channel channel;
-  int sock;                         /* The associated socket. */
-  int authmethods;                  /* Bit fields with available
-                                       authentication methods.  */
-  unsigned int authmethods_valid:1; /* Indicating that methods is valid.  */
-  unsigned int user_set:1;          /* Set if a user has been set for
-                                       the session.  */
-  unsigned int verbose:1;           /* Verbose diagnostics.  */
+  int sock;                           /* The associated socket. */
+  int authmethods;                    /* Bit fields with available
+                                         authentication methods.  */
+  unsigned int authmethods_valid : 1; /* Indicating that methods is valid.  */
+  unsigned int user_set : 1;          /* Set if a user has been set for
+                                         the session.  */
+  unsigned int verbose : 1;           /* Verbose diagnostics.  */
 };
-
 
 #define MAX_SSH_SESSIONS 10
 static struct session_table_item_s session_table[MAX_SSH_SESSIONS];
 
-
 /* Local prototypes.  */
-static int nasl_ssh_close_hook (int);
+static int
+nasl_ssh_close_hook (int);
 
 static void
 g_string_comma_str (GString *gstr, const char *str)
@@ -141,7 +128,6 @@ g_string_comma_str (GString *gstr, const char *str)
   g_string_append (gstr, str);
 }
 
-
 /* Return the next session id.  Note that the first session ID we will
    hand out is an arbitrary high number, this is only to help
    debugging.  This function is also used to setup a hook to the
@@ -159,8 +145,7 @@ next_session_id (void)
       initialized = 1;
     }
 
-
- again:
+again:
   last++;
   /* Because we don't have an unsigned type, it is better to avoid
      negative values.  Thus if LAST turns negative we wrap around to
@@ -170,13 +155,12 @@ next_session_id (void)
   /* Now it may happen that after wrapping there is still a session id
      with that new value in use.  We can't allow that and check for
      it.  */
-  for (i=0; i < DIM (session_table); i++)
+  for (i = 0; i < DIM (session_table); i++)
     if (session_table[i].session_id == last)
       goto again;
 
   return last;
 }
-
 
 /* Return the port for an SSH connection.  It first looks up the port
    in the preferences, then falls back to the KB, and finally resorts
@@ -185,19 +169,20 @@ static unsigned short
 get_ssh_port (lex_ctxt *lexic)
 {
   const char *value;
-  char *port_str;
-  int type;
-  unsigned short port;
+  int type = KB_TYPE_INT;
+  unsigned short port, *port_aux = NULL;
 
   value = prefs_get ("auth_port_ssh");
-  if (value && (port = (unsigned short)strtoul (value, NULL, 10)) > 0)
+  if (value && (port = (unsigned short) strtoul (value, NULL, 10)) > 0)
     return port;
 
-  port_str = plug_get_key (lexic->script_infos, "Services/ssh", &type, NULL, 0);
-  if (port_str)
+  port_aux = (unsigned short *) plug_get_key (lexic->script_infos,
+                                              "Services/ssh", &type, NULL, 0);
+
+  if (port_aux)
     {
-      port = GPOINTER_TO_SIZE (port_str);
-      g_free (port_str);
+      port = *port_aux;
+      g_free (port_aux);
       if (type == KB_TYPE_INT && port > 0)
         return port;
     }
@@ -272,7 +257,9 @@ nasl_ssh_connect (lex_ctxt *lexic)
   session = ssh_new ();
   if (!session)
     {
-      g_message ("Failed to allocate a new SSH session");
+      g_message ("Function %s called from %s: "
+                 "Failed to allocate a new SSH session",
+                 nasl_get_function_name (), nasl_get_plugin_filename ());
       return NULL;
     }
 
@@ -289,15 +276,19 @@ nasl_ssh_connect (lex_ctxt *lexic)
 
   if (ssh_options_set (session, SSH_OPTIONS_HOST, ip_str))
     {
-      g_message ("Failed to set SSH hostname '%s': %s",
-                 ip_str, ssh_get_error (session));
+      g_message ("Function %s called from %s: "
+                 "Failed to set SSH hostname '%s': %s",
+                 nasl_get_function_name (), nasl_get_plugin_filename (), ip_str,
+                 ssh_get_error (session));
       ssh_free (session);
       return NULL;
     }
 
   if (ssh_options_set (session, SSH_OPTIONS_KNOWNHOSTS, "/dev/null"))
     {
-      g_message ("Failed to disable SSH known_hosts: %s",
+      g_message ("Function %s called from %s: "
+                 "Failed to disable SSH known_hosts: %s",
+                 nasl_get_function_name (), nasl_get_plugin_filename (),
                  ssh_get_error (session));
       ssh_free (session);
       return NULL;
@@ -307,24 +298,32 @@ nasl_ssh_connect (lex_ctxt *lexic)
 
   if (key_type && ssh_options_set (session, SSH_OPTIONS_HOSTKEYS, key_type))
     {
-      g_message ("Failed to set SSH key type '%s': %s",
+      g_message ("Function %s called from %s: "
+                 "Failed to set SSH key type '%s': %s",
+                 nasl_get_function_name (), nasl_get_plugin_filename (),
                  key_type, ssh_get_error (session));
       ssh_free (session);
       return NULL;
     }
 
   csciphers = get_str_var_by_name (lexic, "csciphers");
-  if (csciphers && ssh_options_set (session, SSH_OPTIONS_CIPHERS_C_S, csciphers))
+  if (csciphers
+      && ssh_options_set (session, SSH_OPTIONS_CIPHERS_C_S, csciphers))
     {
-      g_message ("Failed to set SSH client to server ciphers '%s': %s",
+      g_message ("Function %s called from %s: "
+                 "Failed to set SSH client to server ciphers '%s': %s",
+                 nasl_get_function_name (), nasl_get_plugin_filename (),
                  csciphers, ssh_get_error (session));
       ssh_free (session);
       return NULL;
     }
   scciphers = get_str_var_by_name (lexic, "scciphers");
-  if (scciphers && ssh_options_set (session, SSH_OPTIONS_CIPHERS_S_C, scciphers))
+  if (scciphers
+      && ssh_options_set (session, SSH_OPTIONS_CIPHERS_S_C, scciphers))
     {
-      g_message ("Failed to set SSH server to client ciphers '%s': %s",
+      g_message ("Function %s called from %s: "
+                 "Failed to set SSH server to client ciphers '%s': %s",
+                 nasl_get_function_name (), nasl_get_plugin_filename (),
                  scciphers, ssh_get_error (session));
       ssh_free (session);
       return NULL;
@@ -336,7 +335,9 @@ nasl_ssh_connect (lex_ctxt *lexic)
 
       if (ssh_options_set (session, SSH_OPTIONS_PORT, &my_port))
         {
-          g_message ("Failed to set SSH port for '%s' to %d: %s",
+          g_message ("Function %s called from %s: "
+                     "Failed to set SSH port for '%s' to %d: %s",
+                     nasl_get_function_name (), nasl_get_plugin_filename (),
                      ip_str, port, ssh_get_error (session));
           ssh_free (session);
           return NULL;
@@ -347,13 +348,14 @@ nasl_ssh_connect (lex_ctxt *lexic)
       socket_t my_fd = openvas_get_socket_from_connection (sock);
 
       if (verbose)
-        g_message ("Setting SSH fd for '%s' to %d (NASL sock=%d)",
-                   ip_str, my_fd, sock);
+        g_message ("Setting SSH fd for '%s' to %d (NASL sock=%d)", ip_str,
+                   my_fd, sock);
       if (ssh_options_set (session, SSH_OPTIONS_FD, &my_fd))
         {
-          g_message
-            ("Failed to set SSH fd for '%s' to %d (NASL sock=%d): %s",
-             ip_str, my_fd, sock, ssh_get_error (session));
+          g_message ("Function %s called from %s: "
+                     "Failed to set SSH fd for '%s' to %d (NASL sock=%d): %s",
+                     nasl_get_function_name (), nasl_get_plugin_filename (),
+                     ip_str, my_fd, sock, ssh_get_error (session));
           ssh_free (session);
           return NULL;
         }
@@ -362,7 +364,7 @@ nasl_ssh_connect (lex_ctxt *lexic)
     }
 
   /* Find a place in the table to save the session.  */
-  for (tbl_slot=0; tbl_slot < DIM (session_table); tbl_slot++)
+  for (tbl_slot = 0; tbl_slot < DIM (session_table); tbl_slot++)
     if (!session_table[tbl_slot].session_id)
       break;
   if (!(tbl_slot < DIM (session_table)))
@@ -381,14 +383,14 @@ nasl_ssh_connect (lex_ctxt *lexic)
 
   /* Connect to the host.  */
   if (verbose)
-    g_message ("Connecting to SSH server '%s' (port %d, sock %d)",
-               ip_str, port, sock);
+    g_message ("Connecting to SSH server '%s' (port %d, sock %d)", ip_str, port,
+               sock);
   if (ssh_connect (session))
     {
       if (verbose)
         g_message ("Failed to connect to SSH server '%s'"
-                   " (port %d, sock %d, f=%d): %s", ip_str, port,
-                   sock, forced_sock, ssh_get_error (session));
+                   " (port %d, sock %d, f=%d): %s",
+                   ip_str, port, sock, forced_sock, ssh_get_error (session));
       if (forced_sock != -1)
         {
           /* If the caller passed us a socket we can't call ssh_free
@@ -397,9 +399,9 @@ nasl_ssh_connect (lex_ctxt *lexic)
              it will then be close it via nasl_ssh_internal_close.  */
           session_table[tbl_slot].session_id = next_session_id ();
           session_table[tbl_slot].sock = forced_sock;
-         }
-     else
-       ssh_free (session);
+        }
+      else
+        ssh_free (session);
 
       /* return 0 to indicate the error.  */
       /* FIXME: Set the last error string.  */
@@ -411,7 +413,7 @@ nasl_ssh_connect (lex_ctxt *lexic)
   /* How that we are connected, save the session.  */
   session_table[tbl_slot].session_id = next_session_id ();
   session_table[tbl_slot].sock =
-    forced_sock != -1? forced_sock : ssh_get_fd (session);
+    forced_sock != -1 ? forced_sock : ssh_get_fd (session);
   if (lowest_socket == 0 && session_table[tbl_slot].sock > 0)
     lowest_socket = session_table[tbl_slot].sock;
 
@@ -421,37 +423,35 @@ nasl_ssh_connect (lex_ctxt *lexic)
   return retc;
 }
 
-
 /* Helper function to find and validate the session id.  On error 0 is
    returned, on success the session id and in this case the slot number
    from the table is stored at R_SLOT.  */
 static int
-verify_session_id (int session_id, const char *funcname,
-                   int *r_slot, lex_ctxt *lexic)
+verify_session_id (int session_id, const char *funcname, int *r_slot,
+                   lex_ctxt *lexic)
 {
   unsigned int tbl_slot;
   if (session_id <= 0)
     {
       if (funcname)
         nasl_perror (lexic, "Invalid SSH session id %d passed to %s",
-                   session_id, funcname);
+                     session_id, funcname);
       return 0;
     }
-  for (tbl_slot=0; tbl_slot < DIM (session_table); tbl_slot++)
+  for (tbl_slot = 0; tbl_slot < DIM (session_table); tbl_slot++)
     if (session_table[tbl_slot].session_id == session_id)
       break;
   if (!(tbl_slot < DIM (session_table)))
     {
       if (funcname)
-        nasl_perror (lexic, "Bad SSH session id %d passed to %s",
-                   session_id, funcname);
+        nasl_perror (lexic, "Bad SSH session id %d passed to %s", session_id,
+                     funcname);
       return 0;
     }
 
   *r_slot = tbl_slot;
   return session_id;
 }
-
 
 /* Helper for nasl_ssh_disconnect et al.  */
 static void
@@ -466,7 +466,6 @@ do_nasl_ssh_disconnect (int tbl_slot)
   session_table[tbl_slot].channel = NULL;
   session_table[tbl_slot].sock = -1;
 }
-
 
 /**
  * @brief Disconnect an ssh connection
@@ -501,7 +500,6 @@ nasl_ssh_disconnect (lex_ctxt *lexic)
   return FAKE_CELL;
 }
 
-
 /**
  * @brief Hook to close a socket associated with an ssh connection.
  *
@@ -526,20 +524,20 @@ nasl_ssh_close_hook (int sock)
     return -1;
 
   session_id = 0;
-  for (tbl_slot=0; tbl_slot < DIM (session_table); tbl_slot++)
+  for (tbl_slot = 0; tbl_slot < DIM (session_table); tbl_slot++)
     {
       if (session_table[tbl_slot].sock == sock
-          && session_table[tbl_slot].session_id) {
-        session_id = session_table[tbl_slot].session_id;
-        break;
-      }
+          && session_table[tbl_slot].session_id)
+        {
+          session_id = session_table[tbl_slot].session_id;
+          break;
+        }
     }
-  if (!session_id)
+  if (!session_id || tbl_slot >= DIM (session_table))
     return -1;
   do_nasl_ssh_disconnect (tbl_slot);
   return 0;
 }
-
 
 /**
  * @brief Given a socket, return the corresponding session id.
@@ -565,19 +563,19 @@ nasl_ssh_session_id_from_sock (lex_ctxt *lexic)
   sock = get_int_var_by_num (lexic, 0, -1);
   if (sock != -1)
     {
-      for (tbl_slot=0; tbl_slot < DIM (session_table); tbl_slot++)
+      for (tbl_slot = 0; tbl_slot < DIM (session_table); tbl_slot++)
         if (session_table[tbl_slot].sock == sock
-            && session_table[tbl_slot].session_id) {
-          session_id = session_table[tbl_slot].session_id;
-          break;
-        }
+            && session_table[tbl_slot].session_id)
+          {
+            session_id = session_table[tbl_slot].session_id;
+            break;
+          }
     }
 
   retc = alloc_typed_cell (CONST_INT);
   retc->x.i_val = session_id;
   return retc;
 }
-
 
 /**
  * @brief Given a session id, return the corresponding socket
@@ -614,7 +612,6 @@ nasl_ssh_get_sock (lex_ctxt *lexic)
   return retc;
 }
 
-
 /* Get the list of supported authentication schemes.  Returns 0 if no
    authentication is required; otherwise non-zero.  */
 static int
@@ -645,13 +642,10 @@ get_authmethods (int tbl_slot)
   else
     {
       if (verbose)
-        g_message
-          ("SSH server did not return a list of authentication methods"
-           " - trying all");
-      methods = (SSH_AUTH_METHOD_NONE
-                 | SSH_AUTH_METHOD_PASSWORD
-                 | SSH_AUTH_METHOD_PUBLICKEY
-                 | SSH_AUTH_METHOD_HOSTBASED
+        g_message ("SSH server did not return a list of authentication methods"
+                   " - trying all");
+      methods = (SSH_AUTH_METHOD_NONE | SSH_AUTH_METHOD_PASSWORD
+                 | SSH_AUTH_METHOD_PUBLICKEY | SSH_AUTH_METHOD_HOSTBASED
                  | SSH_AUTH_METHOD_INTERACTIVE);
     }
 
@@ -671,13 +665,12 @@ get_authmethods (int tbl_slot)
       fputs ("\n", stderr);
     }
 
- leave:
+leave:
   session_table[tbl_slot].authmethods = methods;
   session_table[tbl_slot].authmethods_valid = 1;
 
   return retc_val;
 }
-
 
 /**
  * @brief Set the login name for the authentication.
@@ -716,32 +709,35 @@ nasl_ssh_set_login (lex_ctxt *lexic)
 
   session_id = get_int_var_by_num (lexic, 0, -1);
   if (!verify_session_id (session_id, "ssh_set_login", &tbl_slot, lexic))
-    return NULL;  /* Ooops.  */
+    return NULL; /* Ooops.  */
   if (!session_table[tbl_slot].user_set)
     {
       ssh_session session = session_table[tbl_slot].session;
       kb_t kb;
       char *username;
 
-      username = get_str_var_by_name (lexic, "login");
+      username = g_strdup (get_str_var_by_name (lexic, "login"));
       if (!username)
         {
           kb = plug_get_kb (lexic->script_infos);
           username = kb_item_get_str (kb, "Secret/SSH/login");
         }
-      if (username && *username &&
-          ssh_options_set (session, SSH_OPTIONS_USER, username))
+      if (username && *username
+          && ssh_options_set (session, SSH_OPTIONS_USER, username))
         {
-          g_message ("Failed to set SSH username '%s': %s",
+          g_message ("Function %s called from %s: "
+                     "Failed to set SSH username '%s': %s",
+                     nasl_get_function_name (), nasl_get_plugin_filename (),
                      username, ssh_get_error (session));
+          g_free (username);
           return NULL; /* Ooops.  */
         }
       /* In any case mark the user has set.  */
       session_table[tbl_slot].user_set = 1;
+      g_free (username);
     }
   return FAKE_CELL;
 }
-
 
 /**
  * @brief Authenticate a user on an ssh connection
@@ -803,21 +799,17 @@ nasl_ssh_set_login (lex_ctxt *lexic)
 tree_cell *
 nasl_ssh_userauth (lex_ctxt *lexic)
 {
-  int tbl_slot;
-  int session_id;
+  int rc, retc_val = -1, methods, verbose, tbl_slot, session_id;
   ssh_session session;
-  const char *password = NULL;
-  const char *privkeystr = NULL;
-  const char *privkeypass = NULL;
-  int rc;
+  char *password = NULL;
+  char *privkeystr = NULL;
+  char *privkeypass = NULL;
   kb_t kb;
-  int retc_val = -1;
-  int methods;
-  int verbose;
+  tree_cell *retc;
 
   session_id = get_int_var_by_num (lexic, 0, -1);
   if (!verify_session_id (session_id, "ssh_userauth", &tbl_slot, lexic))
-    return NULL;  /* Ooops.  */
+    return NULL; /* Ooops.  */
   session = session_table[tbl_slot].session;
   verbose = session_table[tbl_slot].verbose;
 
@@ -827,9 +819,9 @@ nasl_ssh_userauth (lex_ctxt *lexic)
     return NULL;
 
   kb = plug_get_kb (lexic->script_infos);
-  password = get_str_var_by_name (lexic, "password");
-  privkeystr = get_str_var_by_name (lexic, "privatekey");
-  privkeypass = get_str_var_by_name (lexic, "passphrase");
+  password = g_strdup (get_str_var_by_name (lexic, "password"));
+  privkeystr = g_strdup (get_str_var_by_name (lexic, "privatekey"));
+  privkeypass = g_strdup (get_str_var_by_name (lexic, "passphrase"));
   if (!password && !privkeystr && !privkeypass)
     {
       password = kb_item_get_str (kb, "Secret/SSH/password");
@@ -865,7 +857,8 @@ nasl_ssh_userauth (lex_ctxt *lexic)
 
       if (verbose)
         g_message ("SSH password authentication failed for session"
-                   " %d: %s", session_id, ssh_get_error (session));
+                   " %d: %s",
+                   session_id, ssh_get_error (session));
       /* Keep on trying.  */
     }
 
@@ -890,12 +883,12 @@ nasl_ssh_userauth (lex_ctxt *lexic)
                 g_message ("SSH kbdint instruction='%s'", s);
             }
           nprompt = ssh_userauth_kbdint_getnprompts (session);
-          for (n=0; n < nprompt; n++)
+          for (n = 0; n < nprompt; n++)
             {
               s = ssh_userauth_kbdint_getprompt (session, n, &echoflag);
               if (s && *s && verbose)
-                g_message ("SSH kbdint prompt='%s'%s",
-                           s, echoflag ? "" : " [hide input]");
+                g_message ("SSH kbdint prompt='%s'%s", s,
+                           echoflag ? "" : " [hide input]");
               if (s && *s && !echoflag && !found_prompt)
                 {
                   found_prompt = 1;
@@ -903,10 +896,9 @@ nasl_ssh_userauth (lex_ctxt *lexic)
                   if (rc != SSH_AUTH_SUCCESS)
                     {
                       if (verbose)
-                        g_message
-                          ("SSH keyboard-interactive authentication "
-                           "failed at prompt %d for session %d: %s",
-                           n, session_id, ssh_get_error (session));
+                        g_message ("SSH keyboard-interactive authentication "
+                                   "failed at prompt %d for session %d: %s",
+                                   n, session_id, ssh_get_error (session));
                     }
                 }
             }
@@ -919,33 +911,33 @@ nasl_ssh_userauth (lex_ctxt *lexic)
         }
 
       if (verbose)
-        g_message
-          ("SSH keyboard-interactive authentication failed for session %d"
-           ": %s", session_id, ssh_get_error (session));
+        g_message (
+          "SSH keyboard-interactive authentication failed for session %d"
+          ": %s",
+          session_id, ssh_get_error (session));
       /* Keep on trying.  */
     }
 
   /* If we have a private key, try public key authentication.  */
   if (privkeystr && *privkeystr && (methods & SSH_AUTH_METHOD_PUBLICKEY))
     {
-
       ssh_key key = NULL;
 
       if (ssh_pki_import_privkey_base64 (privkeystr, privkeypass, NULL, NULL,
                                          &key))
         {
           if (verbose)
-            g_message
-              ("SSH public key authentication failed for "
-               "session %d: %s", session_id, "Error converting provided key");
+            g_message ("SSH public key authentication failed for "
+                       "session %d: %s",
+                       session_id, "Error converting provided key");
         }
       else if (ssh_userauth_try_publickey (session, NULL, key)
                != SSH_AUTH_SUCCESS)
         {
           if (verbose)
-            g_message
-              ("SSH public key authentication failed for "
-               "session %d: %s", session_id, "Server does not want our key");
+            g_message ("SSH public key authentication failed for "
+                       "session %d: %s",
+                       session_id, "Server does not want our key");
         }
       else if (ssh_userauth_publickey (session, NULL, key) == SSH_AUTH_SUCCESS)
         {
@@ -958,18 +950,17 @@ nasl_ssh_userauth (lex_ctxt *lexic)
     }
 
   if (verbose)
-    g_message ("SSH authentication failed for session %d: %s",
-               session_id, "No more authentication methods to try");
- leave:
-  {
-    tree_cell *retc;
+    g_message ("SSH authentication failed for session %d: %s", session_id,
+               "No more authentication methods to try");
 
-    retc = alloc_typed_cell (CONST_INT);
-    retc->x.i_val = retc_val;
-    return retc;
-  }
+leave:
+  g_free (password);
+  g_free (privkeystr);
+  g_free (privkeypass);
+  retc = alloc_typed_cell (CONST_INT);
+  retc->x.i_val = retc_val;
+  return retc;
 }
-
 
 /**
  * @brief Authenticate a user on an ssh connection
@@ -1008,9 +999,9 @@ nasl_ssh_login_interactive (lex_ctxt *lexic)
   int verbose;
 
   session_id = get_int_var_by_num (lexic, 0, -1);
-  if (!verify_session_id (session_id, "ssh_login_interactive",
-                          &tbl_slot, lexic))
-    return NULL;  /* Ooops.  */
+  if (!verify_session_id (session_id, "ssh_login_interactive", &tbl_slot,
+                          lexic))
+    return NULL; /* Ooops.  */
   session = session_table[tbl_slot].session;
   verbose = session_table[tbl_slot].verbose;
 
@@ -1051,26 +1042,27 @@ nasl_ssh_login_interactive (lex_ctxt *lexic)
             }
 
           nprompt = ssh_userauth_kbdint_getnprompts (session);
-          for (n=0; n < nprompt; n++)
+          for (n = 0; n < nprompt; n++)
             {
               s = ssh_userauth_kbdint_getprompt (session, n, &echoflag);
               if (s && *s && verbose)
-                g_message ("SSH kbdint prompt='%s'%s",
-                           s, echoflag ? "" : " [hide input]");
+                g_message ("SSH kbdint prompt='%s'%s", s,
+                           echoflag ? "" : " [hide input]");
               if (s && *s && !echoflag && !found_prompt)
                 goto leave;
             }
         }
       if (verbose)
-        g_message
-          ("SSH keyboard-interactive authentication failed for session %d"
-           ": %s", session_id, ssh_get_error (session));
+        g_message (
+          "SSH keyboard-interactive authentication failed for session %d"
+          ": %s",
+          session_id, ssh_get_error (session));
     }
 
   if (!s)
     return NULL;
 
- leave:
+leave:
   {
     tree_cell *retc;
 
@@ -1080,7 +1072,6 @@ nasl_ssh_login_interactive (lex_ctxt *lexic)
     return retc;
   }
 }
-
 
 /**
  * @brief Authenticate a user on an ssh connection
@@ -1120,9 +1111,9 @@ nasl_ssh_login_interactive_pass (lex_ctxt *lexic)
   int verbose;
 
   session_id = get_int_var_by_num (lexic, 0, -1);
-  if (!verify_session_id (session_id, "ssh_login_interactive_pass",
-                          &tbl_slot, lexic))
-    return NULL;  /* Ooops.  */
+  if (!verify_session_id (session_id, "ssh_login_interactive_pass", &tbl_slot,
+                          lexic))
+    return NULL; /* Ooops.  */
   session = session_table[tbl_slot].session;
   verbose = session_table[tbl_slot].verbose;
 
@@ -1161,7 +1152,7 @@ nasl_ssh_login_interactive_pass (lex_ctxt *lexic)
         }
     }
 
- leave:
+leave:
   {
     tree_cell *retc;
 
@@ -1170,7 +1161,6 @@ nasl_ssh_login_interactive_pass (lex_ctxt *lexic)
     return retc;
   }
 }
-
 
 static void
 exec_ssh_cmd_alarm (int signal)
@@ -1208,7 +1198,8 @@ exec_ssh_cmd (ssh_session session, char *cmd, int verbose, int compat_mode,
   alarm (30);
   if ((channel = ssh_channel_new (session)) == NULL)
     {
-      g_message ("ssh_channel_new failed: %s",
+      g_message ("Function %s called from %s: ssh_channel_new failed: %s",
+                 nasl_get_function_name (), nasl_get_plugin_filename (),
                  ssh_get_error (session));
       return SSH_ERROR;
     }
@@ -1230,8 +1221,8 @@ exec_ssh_cmd (ssh_session session, char *cmd, int verbose, int compat_mode,
     {
       /* FIXME: Handle SSH_AGAIN.  */
       if (verbose)
-        g_message ("ssh_channel_request_exec failed for '%s': %s",
-                   cmd, ssh_get_error (session));
+        g_message ("ssh_channel_request_exec failed for '%s': %s", cmd,
+                   ssh_get_error (session));
       ssh_channel_free (channel);
       return SSH_ERROR;
     }
@@ -1240,7 +1231,8 @@ exec_ssh_cmd (ssh_session session, char *cmd, int verbose, int compat_mode,
   while (rc > 0)
     {
       if ((rc = ssh_channel_read_timeout (channel, buffer, sizeof (buffer), 1,
-                                          15000)) > 0)
+                                          15000))
+          > 0)
         {
           if (to_stderr)
             g_string_append_len (response, buffer, rc);
@@ -1254,9 +1246,9 @@ exec_ssh_cmd (ssh_session session, char *cmd, int verbose, int compat_mode,
   while (rc > 0)
     {
       if ((rc = ssh_channel_read_timeout (channel, buffer, sizeof (buffer), 0,
-                                          15000)) > 0)
+                                          15000))
+          > 0)
         {
-          compat_mode = 0;
           if (to_stdout)
             g_string_append_len (response, buffer, rc);
         }
@@ -1346,7 +1338,8 @@ nasl_ssh_request_exec (lex_ctxt *lexic)
   cmd = get_str_var_by_name (lexic, "cmd");
   if (!cmd || !*cmd)
     {
-      g_message ("No command passed to ssh_request_exec");
+      g_message ("Function %s called from %s: No command passed",
+                 nasl_get_function_name (), nasl_get_plugin_filename ());
       return NULL;
     }
 
@@ -1369,7 +1362,6 @@ nasl_ssh_request_exec (lex_ctxt *lexic)
     to_stdout = 0;
   if (to_stderr < 0)
     to_stderr = 0;
-
 
   memset (&compat_buf, '\0', sizeof (compat_buf));
   /* Allocate some space in advance.  Most commands won't output too
@@ -1411,7 +1403,9 @@ nasl_ssh_request_exec (lex_ctxt *lexic)
   p = g_string_free (response, FALSE);
   if (!p)
     {
-      g_message ("ssh_request_exec memory problem: %s", strerror (-1));
+      g_message ("Function %s called from %s: memory problem: %s",
+                 nasl_get_function_name (), nasl_get_plugin_filename (),
+                 strerror (-1));
       return NULL;
     }
 
@@ -1420,7 +1414,6 @@ nasl_ssh_request_exec (lex_ctxt *lexic)
   retc->x.str_val = p;
   return retc;
 }
-
 
 /**
  * @brief Get the issue banner
@@ -1472,7 +1465,6 @@ nasl_ssh_get_issue_banner (lex_ctxt *lexic)
   return retc;
 }
 
-
 /**
  * @brief Get the server banner
  * @naslfn{ssh_get_server_banner}
@@ -1500,8 +1492,8 @@ nasl_ssh_get_server_banner (lex_ctxt *lexic)
   tree_cell *retc;
 
   session_id = get_int_var_by_num (lexic, 0, -1);
-  if (!verify_session_id (session_id, "ssh_get_server_banner",
-                          &tbl_slot, lexic))
+  if (!verify_session_id (session_id, "ssh_get_server_banner", &tbl_slot,
+                          lexic))
     return NULL;
   session = session_table[tbl_slot].session;
 
@@ -1514,7 +1506,6 @@ nasl_ssh_get_server_banner (lex_ctxt *lexic)
   retc->size = strlen (banner);
   return retc;
 }
-
 
 /**
  * @brief Get the host key
@@ -1683,7 +1674,8 @@ nasl_ssh_shell_open (lex_ctxt *lexic)
     return NULL;
   if (ssh_channel_open_session (channel))
     {
-      g_message ("ssh_channel_open_session: %s",
+      g_message ("Function %s called from %s: ssh_channel_open_session: %s",
+                 nasl_get_function_name (), nasl_get_plugin_filename (),
                  ssh_get_error (session));
       ssh_channel_free (channel);
       return NULL;
@@ -1691,7 +1683,9 @@ nasl_ssh_shell_open (lex_ctxt *lexic)
 
   if (request_ssh_shell (channel))
     {
-      g_message ("request_ssh_shell: %s", ssh_get_error (session));
+      g_message ("Function %s called from %s: request_ssh_shell: %s",
+                 nasl_get_function_name (), nasl_get_plugin_filename (),
+                 ssh_get_error (session));
       ssh_channel_free (channel);
       return NULL;
     }
@@ -1721,13 +1715,13 @@ read_ssh_nonblocking (ssh_channel channel, GString *response)
   if (!ssh_channel_is_open (channel) || ssh_channel_is_eof (channel))
     return -1;
 
-  if ((rc = ssh_channel_read_nonblocking
-             (channel, buffer, sizeof (buffer), 1)) > 0)
+  if ((rc = ssh_channel_read_nonblocking (channel, buffer, sizeof (buffer), 1))
+      > 0)
     g_string_append_len (response, buffer, rc);
   if (rc == SSH_ERROR)
     return -1;
-  if ((rc = ssh_channel_read_nonblocking
-             (channel, buffer, sizeof (buffer), 0)) > 0)
+  if ((rc = ssh_channel_read_nonblocking (channel, buffer, sizeof (buffer), 0))
+      > 0)
     g_string_append_len (response, buffer, rc);
   if (rc == SSH_ERROR)
     return -1;
@@ -1805,13 +1799,15 @@ nasl_ssh_shell_write (lex_ctxt *lexic)
   cmd = get_str_var_by_name (lexic, "cmd");
   if (!cmd || !*cmd)
     {
-      g_message ("ssh_shell_write: No command passed");
+      g_message ("Function %s called from %s: No command passed",
+                 nasl_get_function_name (), nasl_get_plugin_filename ());
       goto write_ret;
     }
   len = strlen (cmd);
   if (ssh_channel_write (channel, cmd, len) != len)
     {
-      g_message ("ssh_shell_write: %s",
+      g_message ("Function %s called from %s: %s", nasl_get_function_name (),
+                 nasl_get_plugin_filename (),
                  ssh_get_error (session_table[tbl_slot].session));
       goto write_ret;
     }

@@ -1,12 +1,6 @@
-/* openvas-scanner/misc
- * $Id$
- * Description: Header file: vendor version functions prototypes.
+/* Copyright (C) 2009-2019 Greenbone Networks GmbH
  *
- * Authors:
- * Juan Jose Nicola <juan.nicola@greenbone.net>
- *
- * Copyright:
- * Copyright (C) 2017 Greenbone Networks GmbH
+ * SPDX-License-Identifier: GPL-2.0-or-later
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -23,6 +17,11 @@
  * Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA 02110-1301 USA.
  */
 
+/**
+ * @file vendorversion.h
+ * @brief Header file: vendor version functions prototypes.
+ */
+
 #ifndef _OPENVAS_VENDORVERSION_H
 #define _OPENVAS_VENDORVERSION_H
 
@@ -32,6 +31,6 @@ const gchar *
 vendor_version_get (void);
 
 void
-vendor_version_set (const gchar*);
+vendor_version_set (const gchar *);
 
 #endif /* not _OPENVAS_VENDORVERSION_H */

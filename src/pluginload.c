@@ -1,58 +1,52 @@
-/* OpenVAS
-* $Id$
-* Description: Loads plugins from disk into memory.
-*
-* Authors: 
-* Renaud Deraison <deraison@nessus.org> (Original pre-fork development)
-* Tim Brown (Initial fork)
-* Laban Mwangi (Renaming work)
-* Tarik El-Yassem (Headers section)
-*
-* Copyright:
-* Portions Copyright (C) 2006 Software in the Public Interest, Inc.
-* Based on work Copyright (C) 1998 - 2006 Tenable Network Security, Inc.
-*
-* This program is free software; you can redistribute it and/or modify
-* it under the terms of the GNU General Public License version 2,
-* as published by the Free Software Foundation
-*
-* This program is distributed in the hope that it will be useful,
-* but WITHOUT ANY WARRANTY; without even the implied warranty of
-* MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-* GNU General Public License for more details.
-*
-* You should have received a copy of the GNU General Public License
-* along with this program; if not, write to the Free Software
-* Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA 02110-1301 USA.
-*/
+/* Portions Copyright (C) 2009-2019 Greenbone Networks GmbH
+ * Portions Copyright (C) 2006 Software in the Public Interest, Inc.
+ * Based on work Copyright (C) 1998 - 2006 Tenable Network Security, Inc.
+ *
+ * SPDX-License-Identifier: GPL-2.0-only
+ *
+ * This program is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU General Public License
+ * version 2 as published by the Free Software Foundation.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program; if not, write to the Free Software
+ * Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA 02110-1301 USA.
+ */
 
-#include <stdio.h>
+/**
+ * @file pluginload.c
+ * @brief Loads plugins from disk into memory.
+ */
 
-#include <gvm/base/proctitle.h>
-#include <gvm/base/prefs.h>       /* for prefs_get() */
-#include <gvm/util/nvticache.h>   /* for nvticache_new */
-
-#include <glib.h>
-#include <stdlib.h>
-#include <sys/time.h>
-#include <sys/wait.h>
-#include <sys/shm.h>     /* for shmget */
-#include <string.h>
-#include <errno.h>
-
-#include "utils.h"
 #include "pluginload.h"
-#include "processes.h"
-#include "sighand.h"
 
 #include "../nasl/nasl.h"
+#include "processes.h"
+#include "sighand.h"
+#include "utils.h"
+
+#include <errno.h>
+#include <glib.h>
+#include <gvm/base/prefs.h> /* for prefs_get() */
+#include <gvm/base/proctitle.h>
+#include <gvm/util/nvticache.h> /* for nvticache_new */
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <sys/shm.h> /* for shmget */
+#include <sys/time.h>
+#include <sys/wait.h>
 
 #undef G_LOG_DOMAIN
 /**
  * @brief GLib log domain.
  */
 #define G_LOG_DOMAIN "sd   main"
-
 
 /**
  * @brief Collects all NVT files in a directory and recurses into subdirs.
@@ -71,7 +65,7 @@
  *         NVT files are identified by the defined filename suffixes.
  */
 GSList *
-collect_nvts (const char *folder, const char *subdir, GSList * files)
+collect_nvts (const char *folder, const char *subdir, GSList *files)
 {
   GDir *dir;
   const gchar *fname;
@@ -104,8 +98,7 @@ collect_nvts (const char *folder, const char *subdir, GSList * files)
             g_free (new_subdir);
         }
       else if (g_str_has_suffix (fname, ".nasl"))
-        files = g_slist_prepend (files,
-                                 g_build_filename (subdir, fname, NULL));
+        files = g_slist_prepend (files, g_build_filename (subdir, fname, NULL));
       g_free (path);
       fname = g_dir_read_name (dir);
     }
@@ -239,7 +232,7 @@ cleanup_leftovers (int num_files)
   size_t count;
   GSList *oids, *element;
 
-  proctitle_set ("openvassd: Cleaning leftover NVTs.");
+  proctitle_set ("openvas: Cleaning leftover NVTs.");
 
   count = nvticache_count ();
   if ((int) count <= num_files)
@@ -268,11 +261,10 @@ plugins_reload_from_dir (void *folder)
   openvas_signal (SIGTERM, SIG_DFL);
   if (folder == NULL)
     {
-#ifdef DEBUG
       g_debug ("%s:%d : folder == NULL", __FILE__, __LINE__);
-#endif
       g_debug ("Could not determine the value of <plugins_folder>. "
-                 " Check %s\n", (char *) prefs_get ("config_file"));
+               " Check %s\n",
+               (char *) prefs_get ("config_file"));
       exit (1);
     }
 
@@ -303,9 +295,10 @@ plugins_reload_from_dir (void *folder)
           set_current_loading_plugins (loaded_files);
           percentile = (loaded_files * 100) / num_files;
           eta = calculate_eta (start_time, loaded_files, num_files);
-          proctitle_set ("openvassd: Reloaded %d of %d NVTs"
-                         " (%d%% / ETA: %02d:%02d)", loaded_files, num_files,
-                         percentile, eta / 60, eta % 60);
+          proctitle_set ("openvas: Reloaded %d of %d NVTs"
+                         " (%d%% / ETA: %02d:%02d)",
+                         loaded_files, num_files, percentile, eta / 60,
+                         eta % 60);
         }
       if (prefs_get_bool ("log_plugins_name_at_load"))
         g_message ("Loading %s", name);
@@ -318,7 +311,7 @@ plugins_reload_from_dir (void *folder)
       if (err_count == 20)
         {
           g_debug ("Stopped loading plugins: High number of errors.");
-          proctitle_set ("openvassd: Error loading NVTs.");
+          proctitle_set ("openvas: Error loading NVTs.");
           g_slist_free_full (files, g_free);
           exit (1);
         }
@@ -329,7 +322,7 @@ plugins_reload_from_dir (void *folder)
   g_slist_free_full (files, g_free);
   nasl_clean_inc ();
 
-  proctitle_set ("openvassd: Reloaded all the NVTs.");
+  proctitle_set ("openvas: Reloaded all the NVTs.");
 
   exit (0);
 }
@@ -339,7 +332,7 @@ include_dirs (void)
 {
   const gchar *pref_include_folders;
 
-  add_nasl_inc_dir ("");        // for absolute and relative paths
+  add_nasl_inc_dir (""); // for absolute and relative paths
   pref_include_folders = prefs_get ("include_folders");
   if (pref_include_folders != NULL)
     {
@@ -351,8 +344,8 @@ include_dirs (void)
           int result = add_nasl_inc_dir (include_folders[i]);
           if (result < 0)
             g_debug ("Could not add %s to the list of include folders.\n"
-                       "Make sure %s exists and is a directory.\n",
-                       include_folders[i], include_folders[i]);
+                     "Make sure %s exists and is a directory.\n",
+                     include_folders[i], include_folders[i]);
         }
 
       g_strfreev (include_folders);

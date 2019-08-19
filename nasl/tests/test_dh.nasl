@@ -1,12 +1,6 @@
-# OpenVAS Testsuite for the NASL interpreter
-# $Id$
-# Description: Tests for the nasl functions dh_generate_key and dh_compute_key
+# Copyright (C) 2009-2019 Greenbone Networks GmbH
 #
-# Authors:
-# Bernhard Herzog <bernhard.herzog@intevation.de>
-#
-# Copyright:
-# Copyright (c) 2009 Greenbone Networks GmbH
+# SPDX-License-Identifier: GPL-2.0-or-later
 #
 # This program is free software; you can redistribute it and/or
 # modify it under the terms of the GNU General Public License
@@ -21,6 +15,9 @@
 # You should have received a copy of the GNU General Public License
 # along with this program; if not, write to the Free Software
 # Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA 02110-1301 USA.
+
+# OpenVAS Testsuite for the NASL interpreter
+# Description: Tests for the nasl functions dh_generate_key and dh_compute_key
 
 prime = raw_string(0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF,
 		   0xC9, 0x0F, 0xDA, 0xA2, 0x21, 0x68, 0xC2, 0x34,

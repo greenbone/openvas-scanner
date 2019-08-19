@@ -1,13 +1,6 @@
-/* OpenVAS
+/* Copyright (C) 2009-2019 Greenbone Networks GmbH
  *
- * $Id$
- * Description: Stub implementation for a smb interface.
- *
- * Authors:
- * Chandrashekhar B <bchandra@secpod.com>
- *
- * Copyright:
- * Copyright (c) 2009 Greenbone Networks GmbH, http://www.greenbone.net
+ * SPDX-License-Identifier: GPL-2.0-or-later
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -16,7 +9,7 @@
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
@@ -33,9 +26,9 @@
  */
 
 /* for NULL */
-#include <string.h>
-
 #include "openvas_smb_interface.h"
+
+#include <string.h>
 
 /**
  * @brief Return version info for SMB implementation.
@@ -65,9 +58,9 @@ smb_versioninfo ()
  *
  * @return, 0 on success, -1 on failure
  */
-int smb_connect(const char *server, const char *share,
-                const char *username, const char *password,
-                SMB_HANDLE *con)
+int
+smb_connect (const char *server, const char *share, const char *username,
+             const char *password, SMB_HANDLE *con)
 {
   (void) server;
   (void) share;
@@ -84,7 +77,8 @@ int smb_connect(const char *server, const char *share,
  *
  * @return, 0 on success, -1 on failure
  */
-int smb_close(SMB_HANDLE handle)
+int
+smb_close (SMB_HANDLE handle)
 {
   (void) handle;
   return -1;
@@ -99,7 +93,8 @@ int smb_close(SMB_HANDLE handle)
  *
  * @return, Security Descriptor in SDDL format on success, NULL on failure.
  */
-char *smb_file_SDDL(SMB_HANDLE handle, const char *filename)
+char *
+smb_file_SDDL (SMB_HANDLE handle, const char *filename)
 {
   (void) handle;
   (void) filename;
@@ -115,13 +110,13 @@ char *smb_file_SDDL(SMB_HANDLE handle, const char *filename)
  *
  * @return, Owner SID string on success, NULL on failure.
  */
-char *smb_file_OwnerSID(SMB_HANDLE handle, const char *filename)
+char *
+smb_file_OwnerSID (SMB_HANDLE handle, const char *filename)
 {
   (void) handle;
   (void) filename;
   return NULL;
 }
-
 
 /**
  * @brief Obtain the SID of the Group for a given file/path
@@ -132,7 +127,8 @@ char *smb_file_OwnerSID(SMB_HANDLE handle, const char *filename)
  *
  * @return, Group SID string on success, NULL on failure.
  */
-char *smb_file_GroupSID(SMB_HANDLE handle, const char *filename)
+char *
+smb_file_GroupSID (SMB_HANDLE handle, const char *filename)
 {
   (void) handle;
   (void) filename;
@@ -148,7 +144,8 @@ char *smb_file_GroupSID(SMB_HANDLE handle, const char *filename)
  *
  * @return, Trustee SID:Access_Mask string on success, NULL on failure.
  */
-char *smb_file_TrusteeRights(SMB_HANDLE handle, const char *filename)
+char *
+smb_file_TrusteeRights (SMB_HANDLE handle, const char *filename)
 {
   (void) handle;
   (void) filename;
@@ -165,7 +162,7 @@ char *smb_file_TrusteeRights(SMB_HANDLE handle, const char *filename)
  * @return, 0 on success, -1 on failure
  */
 int
-wincmd(int argc, char *argv[], char **res)
+wincmd (int argc, char *argv[], char **res)
 {
   (void) argc;
   (void) argv;

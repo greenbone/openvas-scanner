@@ -1,10 +1,10 @@
-/* NASL Attack Scripting Language
+/* Based on work Copyright (C) 2002 - 2004 Tenable Network Security
  *
- * Copyright (C) 2002 - 2004 Tenable Network Security
+ * SPDX-License-Identifier: GPL-2.0-only
  *
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License version 2,
- * as published by the Free Software Foundation
+ * This program is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU General Public License
+ * version 2 as published by the Free Software Foundation.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -13,31 +13,28 @@
  *
  * You should have received a copy of the GNU General Public License
  * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
- *
+ * Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA 02110-1301 USA.
  */
 
-#include <search.h>             /* for qsort, lfind */
-#include <stdlib.h>             /* for free */
-#include <string.h>             /* for strcmp */
-
-#include <glib.h>               /* for g_free */
-
-#include "nasl_tree.h"
-#include "nasl_global_ctxt.h"
 #include "nasl_func.h"
-#include "nasl_var.h"
-#include "nasl_lex_ctxt.h"
-#include "exec.h"
 
+#include "exec.h"
 #include "nasl_debug.h"
+#include "nasl_global_ctxt.h"
+#include "nasl_lex_ctxt.h"
+#include "nasl_tree.h"
+#include "nasl_var.h"
+
+#include <glib.h>   /* for g_free */
+#include <stdlib.h> /* for free */
+#include <string.h> /* for strcmp */
 
 /**
  * @brief This function climbs up in the context list and searches for a given
  * @brief function.
  */
 static nasl_func *
-get_func (lex_ctxt * ctxt, const char *name)
+get_func (lex_ctxt *ctxt, const char *name)
 {
   lex_ctxt *c;
 
@@ -52,19 +49,17 @@ get_func (lex_ctxt * ctxt, const char *name)
   return func_is_internal (name);
 }
 
-typedef int(*qsortcmp)(const void *, const void *);
-
 nasl_func *
-insert_nasl_func (lex_ctxt * lexic, const char *fname, tree_cell * decl_node, int lint_mode)
+insert_nasl_func (lex_ctxt *lexic, const char *fname, tree_cell *decl_node,
+                  int lint_mode)
 {
   nasl_func *pf;
 
   if (get_func (lexic, fname))
     {
       if (lint_mode == 0)
-        nasl_perror (lexic,
-                     "insert_nasl_func: function '%s' is already defined\n",
-                     fname);
+        nasl_perror (
+          lexic, "insert_nasl_func: function '%s' is already defined\n", fname);
       return NULL;
     }
   pf = g_malloc0 (sizeof (nasl_func));
@@ -80,7 +75,7 @@ insert_nasl_func (lex_ctxt * lexic, const char *fname, tree_cell * decl_node, in
 }
 
 tree_cell *
-decl_nasl_func (lex_ctxt * lexic, tree_cell * decl_node, int lint_mode)
+decl_nasl_func (lex_ctxt *lexic, tree_cell *decl_node, int lint_mode)
 {
   if (decl_node == NULL || decl_node == FAKE_CELL)
     {
@@ -88,14 +83,15 @@ decl_nasl_func (lex_ctxt * lexic, tree_cell * decl_node, int lint_mode)
       return NULL;
     }
 
-  if (insert_nasl_func (lexic, decl_node->x.str_val, decl_node, lint_mode) == NULL)
+  if (insert_nasl_func (lexic, decl_node->x.str_val, decl_node, lint_mode)
+      == NULL)
     return NULL;
   else
     return FAKE_CELL;
 }
 
 nasl_func *
-get_func_ref_by_name (lex_ctxt * ctxt, const char *name)
+get_func_ref_by_name (lex_ctxt *ctxt, const char *name)
 {
   nasl_func *f;
 
@@ -108,7 +104,7 @@ get_func_ref_by_name (lex_ctxt * ctxt, const char *name)
 extern FILE *nasl_trace_fp;
 
 tree_cell *
-nasl_func_call (lex_ctxt * lexic, const nasl_func * f, tree_cell * arg_list)
+nasl_func_call (lex_ctxt *lexic, const nasl_func *f, tree_cell *arg_list)
 {
   int nb_u = 0, nb_a = 0;
   tree_cell *pc = NULL, *pc2 = NULL, *retc = NULL;
@@ -116,7 +112,7 @@ nasl_func_call (lex_ctxt * lexic, const nasl_func * f, tree_cell * arg_list)
   char *trace_buf = NULL;
   char *temp_funname = NULL, *tmp_filename = NULL;
   int trace_buf_len = 0, tn;
-#define TRACE_BUF_SZ	255
+#define TRACE_BUF_SZ 255
 
   /* 1. Create a new context */
   lexic2 = init_empty_lex_ctxt ();
@@ -153,9 +149,9 @@ nasl_func_call (lex_ctxt * lexic, const nasl_func * f, tree_cell * arg_list)
           nb_u++;
           if (nasl_trace_fp != NULL && trace_buf_len < TRACE_BUF_SZ)
             {
-              tn = snprintf (trace_buf + trace_buf_len, TRACE_BUF_SZ -
-                             trace_buf_len, "%s%d: %s", nb_a > 0 ? ", " : "",
-                             nb_u, dump_cell_val (pc2));
+              tn = snprintf (trace_buf + trace_buf_len,
+                             TRACE_BUF_SZ - trace_buf_len, "%s%d: %s",
+                             nb_a > 0 ? ", " : "", nb_u, dump_cell_val (pc2));
               if (tn > 0)
                 trace_buf_len += tn;
             }
@@ -201,7 +197,7 @@ nasl_func_call (lex_ctxt * lexic, const nasl_func * f, tree_cell * arg_list)
     }
   else
     {
-      temp_funname = g_strdup (nasl_get_function_name());
+      temp_funname = g_strdup (nasl_get_function_name ());
       nasl_set_function_name (f->func_name);
       retc = nasl_exec (lexic2, f->block);
       deref_cell (retc);
@@ -240,7 +236,7 @@ error:
 }
 
 tree_cell *
-nasl_return (lex_ctxt * ctxt, tree_cell * retv)
+nasl_return (lex_ctxt *ctxt, tree_cell *retv)
 {
   tree_cell *c;
 
@@ -272,7 +268,8 @@ nasl_return (lex_ctxt * ctxt, tree_cell * retv)
 void
 free_func (nasl_func *f)
 {
-  if (! f) return;
+  if (!f)
+    return;
 
   g_free (f->func_name);
   g_free (f);
