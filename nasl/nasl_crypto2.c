@@ -116,8 +116,9 @@ get_new_cipher_id (void)
   for (cipher_id = 0; cipher_id < MAX_CIPHER_ID; cipher_id++)
     {
       if (g_list_find_custom (cipher_table, &cipher_id,
-                              (GCompareFunc) find_cipher_hd) == NULL)
-          return cipher_id;
+                              (GCompareFunc) find_cipher_hd)
+          == NULL)
+        return cipher_id;
     }
 
   return -1;
@@ -1622,7 +1623,7 @@ encrypt_stream_data (lex_ctxt *lexic, int cipher)
 
   hd = verify_cipher_id (lexic, cipher_id);
   if (hd == NULL)
-      return NULL;
+    return NULL;
 
   if (cipher == GCRY_CIPHER_ARCFOUR)
     {
