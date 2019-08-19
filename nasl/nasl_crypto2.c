@@ -41,6 +41,7 @@
 
 #define INTBLOB_LEN 20
 #define SIGBLOB_LEN (2 * INTBLOB_LEN)
+#define MAX_CIPHER_ID 32
 
 #undef G_LOG_DOMAIN
 /**
@@ -88,11 +89,36 @@ print_gcrypt_error (lex_ctxt *lexic, char *function, int err)
                gcry_strerror (err));
 }
 
+/**
+ * @brief Helper function to find cipher id in the table
+ *
+ * @return 0 if the cipher id exits/is in used. -1 otherwise.
+ */
 static int
 find_cipher_hd (cipher_table_item_t *cipher_elem, int *id)
 {
   if (cipher_elem->id == *id)
     return 0;
+
+  return -1;
+}
+
+/**
+ * @brief Helper function to get a free id for a new cipher.
+ *
+ * @return Id for the new cipher.
+ */
+static int
+get_new_cipher_id (void)
+{
+  int cipher_id;
+
+  for (cipher_id = 0; cipher_id < MAX_CIPHER_ID; cipher_id++)
+    {
+      if (g_list_find_custom (cipher_table, &cipher_id,
+                              (GCompareFunc) find_cipher_hd) == NULL)
+          return cipher_id;
+    }
 
   return -1;
 }
@@ -1510,8 +1536,8 @@ nasl_open_stream_cipher (lex_ctxt *lexic, int cipher, int mode)
   void *key, *iv;
   size_t keylen, ivlen;
   tree_cell *retc;
-  static int cipher_id = 32;
   cipher_table_item_t *hd_item;
+  int cipher_id;
 
   key = get_str_var_by_name (lexic, "key");
   keylen = get_var_size_by_name (lexic, "key");
@@ -1542,14 +1568,22 @@ nasl_open_stream_cipher (lex_ctxt *lexic, int cipher, int mode)
       if ((error = gcry_cipher_setiv (hd, iv, ivlen)))
         {
           nasl_perror (lexic, "gcry_cipher_setiv: %s", gcry_strerror (error));
+          gcry_cipher_close (hd);
           return NULL;
         }
+    }
+
+  cipher_id = get_new_cipher_id ();
+  if (cipher_id == -1)
+    {
+      nasl_perror (lexic, "%s: No available slot for a new cipher.", __func__);
+      gcry_cipher_close (hd);
+      return NULL;
     }
 
   hd_item = cipher_table_item_new ();
   hd_item->hd = hd;
   hd_item->id = cipher_id;
-  cipher_id--;
   cipher_table = g_list_append (cipher_table, hd_item);
 
   retc = alloc_typed_cell (CONST_INT);
