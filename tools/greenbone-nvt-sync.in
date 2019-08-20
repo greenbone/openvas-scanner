@@ -1,15 +1,7 @@
 #!/bin/sh
+# Copyright (C) 2009-2019 Greenbone Networks GmbH
 #
-# greenbone-nvt-sync
-# This script updates the local Network Vulnerability Tests (NVTs) from the
-# Greenbone Security Feed (GSF) or the Greenbone Community Feed (GCF). 
-#
-# Authors:
-# Lukas Grunwald <lukas.grunwald@greenbone.net>
-# Jan-Oliver Wagner <jan-oliver.wagner@greenbone.net>
-# Michael Wiegand <michael.wiegand@greenbone.net>
-#
-# Copyright (C) 2009-2017 Greenbone Networks GmbH
+# SPDX-License-Identifier: GPL-2.0-or-later
 #
 # This program is free software; you can redistribute it and/or
 # modify it under the terms of the GNU General Public License
@@ -25,7 +17,10 @@
 # along with this program; if not, write to the Free Software
 # Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA 02110-1301 USA.
 
-VERSION=@OPENVASSD_VERSION@
+# This script updates the local Network Vulnerability Tests (NVTs) from the
+# Greenbone Security Feed (GSF) or the Greenbone Community Feed (GCF). 
+
+VERSION=@OPENVAS_VERSION@
 
 # SETTINGS
 # ========
@@ -82,14 +77,22 @@ ACCESS_KEY="@GVM_ACCESS_KEY_DIR@/gsf-access-key"
 # If ENABLED is set to 0, the sync script will not perform a synchronization.
 ENABLED=1
 
-# If REFRESH_ONLY is set to 1, the sync script will not download the feed but
-# rather only update OpenVAS Scanner. This can be controlled via the --refresh
-# parameter.
-REFRESH_ONLY=0
-
 # LOG_CMD defines the command to use for logging. To have logger log to stderr
-# as well as syslog, add "-s" here.
+# as well as syslog, add "-s" here. The logging facility is checked. In case of error
+# all will be logged in the standard error and the socket error check will be
+# disabled.
 LOG_CMD="logger -t $SCRIPT_NAME"
+
+check_logger () {
+  logger --socket-error=on -p daemon.info -t $SCRIPT_NAME "Checking logger" --no-act 1>/dev/null 2>&1
+  if [ $? -gt 0 ]
+  then
+    LOG_CMD="logger --socket-error=off -s -t $SCRIPT_NAME"
+    $LOG_CMD -p daemon.warning "The log facility is not working as expected. All messages will be written to the standard error stream."
+  fi
+}
+check_logger
+
 
 # Source configuration file if it is readable
 [ -r $OPENVAS_SYSCONF_DIR/greenbone-nvt-sync.conf ] && . $OPENVAS_SYSCONF_DIR/greenbone-nvt-sync.conf
@@ -156,6 +159,19 @@ get_feed_info ()
     FEED_HOME="Unidentified Feed Homepage"
   fi
 }
+
+# Prevent that root executes this script
+if [ "`id -u`" -eq "0" ]
+then
+  stderr_write "$0 must not be executed as privileged user root"
+  stderr_write
+  stderr_write "Unlike the actual scanner the sync routine does not need privileges."
+  stderr_write "Accidental execution as root would prevent later overwriting of"
+  stderr_write "files with a non-privileged user."
+
+  log_err "Denied to run as root"
+  exit 1
+fi
 
 # Always try to get the information when started.
 # This also ensures variables like FEED_PRESENT are set.
@@ -250,105 +266,102 @@ cleanup_temp_access_key () {
 }
 
 is_feed_current () {
-  if [ $REFRESH_ONLY -eq 0 ]
+  if [ -z "$FEED_VERSION" ]
   then
-    if [ -z "$FEED_VERSION" ]
+    log_write "Could not determine feed version."
+    FEED_CURRENT=0
+    return $FEED_CURRENT
+  fi
+
+  FEED_INFO_TEMP_DIR=`mktemp -d`
+
+  if [ -e $ACCESS_KEY ]
+  then
+    if [ -n "$FIXED_METHOD" ] && [ "rsync" != "$FIXED_METHOD" ]
     then
-      log_write "Could not determine feed version."
-      FEED_CURRENT=0
-      return $FEED_CURRENT
-    fi
-
-    FEED_INFO_TEMP_DIR=`mktemp -d`
-
-    if [ -e $ACCESS_KEY ]
-    then
-      if [ -n "$FIXED_METHOD" ] && [ "rsync" != "$FIXED_METHOD" ]
-      then
-        log_err "Sync with access key must be run with rsync. Aborting synchronization."
-        stderr_write "Sync with access key must be run with rsync."
-        exit 1
-      fi
-
-      gsmproxy=$(get_value proxy_feed | sed -r -e 's/^.*\/\///' -e 's/:([0-9]+)$/ \1/')
-      syncport=$(get_value syncport)
-      if [ "$syncport" ]
-      then
-        PORT="$syncport"
-      fi
-
-      read feeduser < $ACCESS_KEY
-      custid=`awk -F@ 'NR > 1 { exit }; { print $1 }' $ACCESS_KEY`
-      if [ -z "$feeduser" ] || [ -z "$custid" ]
-      then
-        log_err "Could not determine credentials, aborting synchronization."
-        exit 1
-      fi
-
-      setup_temp_access_key
-
-      if [ "$gsmproxy" = "proxy_feed" ] || [ -z "$gsmproxy" ]
-      then
-        RSYNC_SSH_PROXY_CMD=""
-      else
-        if [ -e $OPENVAS_SYSCONF_DIR/proxyauth ] && [ -r $OPENVAS_SYSCONF_DIR/proxyauth ]
-        then
-          RSYNC_SSH_PROXY_CMD="-o \"ProxyCommand corkscrew $gsmproxy %h %p $OPENVAS_SYSCONF_DIR/proxyauth\""
-        else
-          RSYNC_SSH_PROXY_CMD="-o \"ProxyCommand corkscrew $gsmproxy %h %p\""
-        fi
-      fi
-
-      rsync -e "ssh $RSYNC_SSH_OPTS $RSYNC_SSH_PROXY_CMD -p $PORT -i $TEMP_ACCESS_KEY" $RSYNC_OPTIONS $RSYNC_DELETE $RSYNC_COMPRESS $RSYNC_CHMOD "$feeduser"plugin_feed_info.inc $FEED_INFO_TEMP_DIR
-
-      if [ $? -ne 0 ]
-      then
-        log_err "Error: rsync failed."
-        rm -rf "$FEED_INFO_TEMP_DIR"
-        exit 1
-      fi
-    elif [ -n "$RSYNC" ] && [ -z "$FIXED_METHOD" -o "$FIXED_METHOD" = "rsync" ]
-    then
-      log_notice "No Greenbone Security Feed access key found, falling back to Greenbone Community Feed"
-      eval "$RSYNC -ltvrP \"$COMMUNITY_NVT_RSYNC_FEED/plugin_feed_info.inc\" \"$FEED_INFO_TEMP_DIR\""
-      if [ $? -ne 0 ]
-      then
-        log_err "rsync failed, aborting synchronization."
-        rm -rf "$FEED_INFO_TEMP_DIR"
-        exit 1
-      fi
-    else
-      if [ -n "$FIXED_METHOD" ]
-      then
-        log_notice "non-rsync method selected, skipping feed version test"
-      else
-        log_notice "rsync not available, skipping feed version test"
-      fi
-      FEED_CURRENT=0
-      rm -rf $FEED_INFO_TEMP_DIR
-      cleanup_temp_access_key
-      return 0
-    fi
-
-    FEED_VERSION_SERVER=`grep PLUGIN_SET $FEED_INFO_TEMP_DIR/plugin_feed_info.inc | sed -e 's/[^0-9]//g'`
-
-    if [ -z "$FEED_VERSION_SERVER" ]
-    then
-      log_err "Could not determine server feed version."
-      rm -rf $FEED_INFO_TEMP_DIR
-      cleanup_temp_access_key
+      log_err "Sync with access key must be run with rsync. Aborting synchronization."
+      stderr_write "Sync with access key must be run with rsync."
       exit 1
     fi
-    # Check against FEED_VERSION
-    if [ $FEED_VERSION -lt $FEED_VERSION_SERVER ] ; then
-      FEED_CURRENT=0
-    else
-      FEED_CURRENT=1
+
+    gsmproxy=$(get_value proxy_feed | sed -r -e 's/^.*\/\///' -e 's/:([0-9]+)$/ \1/')
+    syncport=$(get_value syncport)
+    if [ "$syncport" ]
+    then
+      PORT="$syncport"
     fi
-    # Cleanup
-    rm -rf "$FEED_INFO_TEMP_DIR"
+
+    read feeduser < $ACCESS_KEY
+    custid=`awk -F@ 'NR > 1 { exit }; { print $1 }' $ACCESS_KEY`
+    if [ -z "$feeduser" ] || [ -z "$custid" ]
+    then
+      log_err "Could not determine credentials, aborting synchronization."
+      exit 1
+    fi
+
+    setup_temp_access_key
+
+    if [ "$gsmproxy" = "proxy_feed" ] || [ -z "$gsmproxy" ]
+    then
+      RSYNC_SSH_PROXY_CMD=""
+    else
+      if [ -e $OPENVAS_SYSCONF_DIR/proxyauth ] && [ -r $OPENVAS_SYSCONF_DIR/proxyauth ]
+      then
+        RSYNC_SSH_PROXY_CMD="-o \"ProxyCommand corkscrew $gsmproxy %h %p $OPENVAS_SYSCONF_DIR/proxyauth\""
+      else
+        RSYNC_SSH_PROXY_CMD="-o \"ProxyCommand corkscrew $gsmproxy %h %p\""
+      fi
+    fi
+
+    rsync -e "ssh $RSYNC_SSH_OPTS $RSYNC_SSH_PROXY_CMD -p $PORT -i $TEMP_ACCESS_KEY" $RSYNC_OPTIONS $RSYNC_DELETE $RSYNC_COMPRESS $RSYNC_CHMOD "$feeduser"plugin_feed_info.inc $FEED_INFO_TEMP_DIR
+
+    if [ $? -ne 0 ]
+    then
+      log_err "Error: rsync failed."
+      rm -rf "$FEED_INFO_TEMP_DIR"
+      exit 1
+    fi
+  elif [ -n "$RSYNC" ] && [ -z "$FIXED_METHOD" -o "$FIXED_METHOD" = "rsync" ]
+  then
+    log_notice "No Greenbone Security Feed access key found, falling back to Greenbone Community Feed"
+    eval "$RSYNC -ltvrP \"$COMMUNITY_NVT_RSYNC_FEED/plugin_feed_info.inc\" \"$FEED_INFO_TEMP_DIR\""
+    if [ $? -ne 0 ]
+    then
+      log_err "rsync failed, aborting synchronization."
+      rm -rf "$FEED_INFO_TEMP_DIR"
+      exit 1
+    fi
+  else
+    if [ -n "$FIXED_METHOD" ]
+    then
+      log_notice "non-rsync method selected, skipping feed version test"
+    else
+      log_notice "rsync not available, skipping feed version test"
+    fi
+    FEED_CURRENT=0
+    rm -rf $FEED_INFO_TEMP_DIR
     cleanup_temp_access_key
+    return 0
   fi
+
+  FEED_VERSION_SERVER=`grep PLUGIN_SET $FEED_INFO_TEMP_DIR/plugin_feed_info.inc | sed -e 's/[^0-9]//g'`
+
+  if [ -z "$FEED_VERSION_SERVER" ]
+  then
+    log_err "Could not determine server feed version."
+    rm -rf $FEED_INFO_TEMP_DIR
+    cleanup_temp_access_key
+    exit 1
+  fi
+  # Check against FEED_VERSION
+  if [ $FEED_VERSION -lt $FEED_VERSION_SERVER ] ; then
+    FEED_CURRENT=0
+  else
+    FEED_CURRENT=1
+  fi
+  # Cleanup
+  rm -rf "$FEED_INFO_TEMP_DIR"
+  cleanup_temp_access_key
 
   return $FEED_CURRENT
 }
@@ -440,7 +453,7 @@ do_rsync_community_feed () {
 do_sync_community_feed () {
   if [ "rsync" = "$FIXED_METHOD" ] ; then
     if [ -z "$RSYNC" ] ; then
-      log_error "rsync requested but not found! Aborting synchronization."
+      log_err "rsync requested but not found! Aborting synchronization."
       exit 1
     else
       log_info "Will use rsync"
@@ -448,7 +461,7 @@ do_sync_community_feed () {
     fi
   elif [ "wget" = "$FIXED_METHOD" ] ; then
     if [ -z "$WGET" ] ; then
-      log_error "wget requested but not found! Aborting synchronization."
+      log_err "wget requested but not found! Aborting synchronization."
       exit 1
     else
       log_info "Will use wget"
@@ -456,7 +469,7 @@ do_sync_community_feed () {
     fi
   elif [ "curl" = "$FIXED_METHOD" ] ; then
     if [ -z "$CURL" ] ; then
-      log_error "curl requested but not found! Aborting synchronization."
+      log_err "curl requested but not found! Aborting synchronization."
       exit 1
     else
       log_info "Will use curl"
@@ -489,15 +502,10 @@ do_sync_community_feed () {
 }
 
 sync_nvts(){
-  if [ $ENABLED -ne 1 ] && [ $REFRESH_ONLY -ne 1 ]
+  if [ $ENABLED -ne 1 ]
   then
     log_write "NVT synchronization is disabled, exiting."
     exit 0
-  fi
-
-  if [ $REFRESH_ONLY -eq 1 ]
-  then
-    return
   fi
 
   if [ -e $ACCESS_KEY ]
@@ -631,12 +639,7 @@ do_sync ()
     exit $SELFTEST_FAIL
   fi
 
-  if [ $REFRESH_ONLY -ne 1 ]
-  then
-    is_feed_current
-  fi
-
-  if [ $FEED_CURRENT -eq 1 ] && [ $REFRESH_ONLY -ne 1 ]
+  if [ $FEED_CURRENT -eq 1 ]
   then
     log_write "Feed is already current, skipping synchronization."
   else
@@ -653,7 +656,6 @@ do_help () {
   echo " --help         display this help"
   echo " --identify     display information"
   echo " --nvtdir dir   set dir as NVT directory"
-  echo " --refresh      update OpenVAS Scanner without downloading new state"
   echo " --rsync        only use rsync to download feed files"
   echo " --selftest     perform self-test"
   echo " --verbose      makes the sync process print details"
@@ -704,9 +706,6 @@ while test $# -gt 0; do
     --help)
       do_help
       exit 0
-      ;;
-    --refresh)
-      REFRESH_ONLY=1
       ;;
     --nvt-dir)
       NVT_DIR="$2"

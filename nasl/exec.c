@@ -1,10 +1,11 @@
-/* NASL Attack Scripting Language
+/* Portions Copyright (C) 2009-2019 Greenbone Networks GmbH
+ * Based on work Copyright (C) 2002 - 2004 Tenable Network Security
  *
- * Copyright (C) 2002 - 2004 Tenable Network Security
+ * SPDX-License-Identifier: GPL-2.0-only
  *
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License version 2,
- * as published by the Free Software Foundation
+ * This program is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU General Public License
+ * version 2 as published by the Free Software Foundation.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -13,46 +14,33 @@
  *
  * You should have received a copy of the GNU General Public License
  * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
- *
+ * Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA 02110-1301 USA.
  */
 
 #define _GNU_SOURCE
 
-#include <stdlib.h>             /* for srand48 */
-#include <string.h>             /* for strlen */
-#include <unistd.h>             /* for getpid */
-#include <string.h>             /* for memmem */
+#include "exec.h"
 
-#include <glib.h>               /* for g_get_current_dir and others */
-#include <glib/gstdio.h>        /* for g_chdir */
+#include "../misc/plugutils.h"
+#include "nasl.h"
+#include "nasl_debug.h"
+#include "nasl_func.h"
+#include "nasl_global_ctxt.h"
+#include "nasl_init.h"
+#include "nasl_lex_ctxt.h"
+#include "nasl_tree.h"
+#include "nasl_var.h"
 
-#include <regex.h>
+#include <glib.h>        /* for g_get_current_dir and others */
+#include <glib/gstdio.h> /* for g_chdir */
 #include <gvm/base/logging.h>
 #include <gvm/base/prefs.h>     /* for prefs_get */
 #include <gvm/util/nvticache.h> /* for nvticache_get_kb */
-
-#include "../misc/plugutils.h"
-
-#include "nasl.h"
-#include "nasl_tree.h"
-#include "nasl_global_ctxt.h"
-#include "nasl_func.h"
-#include "nasl_var.h"
-#include "nasl_lex_ctxt.h"
-#include "exec.h"
-
-#include "nasl_debug.h"
-#include "nasl_init.h"
-
-#ifndef NASL_DEBUG
-#define NASL_DEBUG 0
-#endif
-
-#if NASL_DEBUG > 2
-#include <sys/time.h>
-#include <sys/resource.h>
-#endif
+#include <regex.h>
+#include <stdlib.h> /* for srand48 */
+#include <string.h> /* for strlen */
+#include <string.h> /* for memmem */
+#include <unistd.h> /* for getpid */
 
 #undef G_LOG_DOMAIN
 /**
@@ -60,10 +48,11 @@
  */
 #define G_LOG_DOMAIN "lib  nasl"
 
-extern int naslparse (naslctxt *);
+extern int
+naslparse (naslctxt *);
 
 static int
-cell2bool (lex_ctxt * lexic, tree_cell * c)
+cell2bool (lex_ctxt *lexic, tree_cell *c)
 {
   tree_cell *c2;
   int flag;
@@ -82,7 +71,8 @@ cell2bool (lex_ctxt * lexic, tree_cell * c)
 
     case REF_ARRAY:
     case DYN_ARRAY:
-      /*nasl_perror(lexic, "cell2bool: converting array to boolean does not make sense!\n"); */
+      /*nasl_perror(lexic, "cell2bool: converting array to boolean does not make
+       * sense!\n"); */
       return 1;
 
     default:
@@ -94,13 +84,13 @@ cell2bool (lex_ctxt * lexic, tree_cell * c)
 }
 
 static long int
-cell2int3 (lex_ctxt * lexic, tree_cell * c, int warn, named_nasl_var *v)
+cell2int3 (lex_ctxt *lexic, tree_cell *c, int warn, named_nasl_var *v)
 {
   tree_cell *c2 = NULL;
   long int x;
   char *p = NULL;
 
-  if (c == NULL || c == FAKE_CELL)      /*  Do not SEGV on undefined variables */
+  if (c == NULL || c == FAKE_CELL) /*  Do not SEGV on undefined variables */
     return 0;
 
   switch (c->type)
@@ -118,7 +108,8 @@ cell2int3 (lex_ctxt * lexic, tree_cell * c, int warn, named_nasl_var *v)
               nasl_perror (lexic,
                            "Converting the non numeric string '%s' in variable "
                            "'%s' to integer does not make sense in this "
-                           "context", c->x.str_val,
+                           "context",
+                           c->x.str_val,
                            v->var_name != NULL ? v->var_name : "(null)");
             else
               nasl_perror (lexic,
@@ -141,13 +132,13 @@ cell2int3 (lex_ctxt * lexic, tree_cell * c, int warn, named_nasl_var *v)
 }
 
 static long int
-cell2int (lex_ctxt * lexic, tree_cell * c)
+cell2int (lex_ctxt *lexic, tree_cell *c)
 {
   return cell2int3 (lexic, c, 0, NULL);
 }
 
 static long int
-cell2intW (lex_ctxt * lexic, tree_cell * c)
+cell2intW (lex_ctxt *lexic, tree_cell *c)
 {
   return cell2int3 (lexic, c, 1, NULL);
 }
@@ -167,19 +158,14 @@ bool2cell (long int x)
 }
 
 static char *
-cell2str (lex_ctxt * lexic, tree_cell * c)
+cell2str (lex_ctxt *lexic, tree_cell *c)
 {
   char *p;
   tree_cell *c2;
   nasl_array *a;
 
   if (c == NULL || c == FAKE_CELL)
-    {
-#if NASL_DEBUG > 0
-      nasl_perror (lexic, "Cannot convert NULL or FAKE cell to string\n");
-#endif
-      return NULL;
-    }
+    return NULL;
 
   switch (c->type)
     {
@@ -216,7 +202,7 @@ cell2str (lex_ctxt * lexic, tree_cell * c)
  * @return A 'referenced' cell.
  */
 tree_cell *
-cell2atom (lex_ctxt * lexic, tree_cell * c1)
+cell2atom (lex_ctxt *lexic, tree_cell *c1)
 {
   tree_cell *c2 = NULL, *ret = NULL;
   if (c1 == NULL || c1 == FAKE_CELL)
@@ -240,19 +226,17 @@ cell2atom (lex_ctxt * lexic, tree_cell * c1)
 }
 
 long int
-cell_cmp (lex_ctxt * lexic, tree_cell * c1, tree_cell * c2)
+cell_cmp (lex_ctxt *lexic, tree_cell *c1, tree_cell *c2)
 {
   int flag, typ, typ1, typ2;
   long int x1, x2;
   char *s1, *s2;
   int len_s1, len_s2, len_min;
 
-#if NASL_DEBUG >= 0
   if (c1 == NULL || c1 == FAKE_CELL)
     nasl_perror (lexic, "cell_cmp: c1 == NULL !\n");
   if (c2 == NULL || c2 == FAKE_CELL)
     nasl_perror (lexic, "cell_cmp: c2 == NULL !\n");
-#endif
 
   /* We first convert the cell to atomic types. */
   c1 = cell2atom (lexic, c1);
@@ -273,44 +257,39 @@ cell_cmp (lex_ctxt * lexic, tree_cell * c1, tree_cell * c2)
   typ1 = cell_type (c1);
   typ2 = cell_type (c2);
 
-  if (typ1 == 0 && typ2 == 0)   /* Two NULL */
+  if (typ1 == 0 && typ2 == 0) /* Two NULL */
     {
       deref_cell (c1);
       deref_cell (c2);
       return 0;
     }
 
-  if (typ1 == typ2)             /* Same type, no problem */
+  if (typ1 == typ2) /* Same type, no problem */
     typ = typ1;
   else if ((typ1 == CONST_DATA || typ1 == CONST_STR)
            && (typ2 == CONST_DATA || typ2 == CONST_STR))
-    typ = CONST_DATA;           /* Same type in fact (string) */
+    typ = CONST_DATA; /* Same type in fact (string) */
   /* We convert an integer into a string before compare */
   else if ((typ1 == CONST_INT && (typ2 == CONST_DATA || typ2 == CONST_STR))
            || (typ2 == CONST_INT && (typ1 == CONST_DATA || typ1 == CONST_STR)))
-    {
-#if NASL_DEBUG > 0
-      nasl_perror (lexic, "cell_cmp: converting integer to string\n");
-#endif
-      typ = CONST_DATA;
-    }
-  else if (typ1 == 0)           /* 1st argument is null */
+    typ = CONST_DATA;
+  else if (typ1 == 0) /* 1st argument is null */
     if (typ2 == CONST_INT || typ2 == CONST_DATA || typ2 == CONST_STR)
-      typ = typ2;               /* We convert it to 0 or "" */
+      typ = typ2; /* We convert it to 0 or "" */
     else
       {
         deref_cell (c1);
         deref_cell (c2);
-        return -1;              /* NULL is smaller than anything else */
+        return -1; /* NULL is smaller than anything else */
       }
-  else if (typ2 == 0)           /* 2nd argument is null */
+  else if (typ2 == 0) /* 2nd argument is null */
     if (typ1 == CONST_INT || typ1 == CONST_DATA || typ1 == CONST_STR)
-      typ = typ1;               /* We convert it to 0 or "" */
+      typ = typ1; /* We convert it to 0 or "" */
     else
       {
         deref_cell (c1);
         deref_cell (c2);
-        return 1;               /* Anything else is greater than NULL  */
+        return 1; /* Anything else is greater than NULL  */
       }
   else
     {
@@ -318,7 +297,8 @@ cell_cmp (lex_ctxt * lexic, tree_cell * c1, tree_cell * c2)
 
       n1 = cell2str (lexic, c1);
       n2 = cell2str (lexic, c2);
-      nasl_perror (lexic, "cell_cmp: comparing '%s' of type %s and '%s' of "
+      nasl_perror (lexic,
+                   "cell_cmp: comparing '%s' of type %s and '%s' of "
                    "type %s does not make sense\n",
                    n1, nasl_type_name (typ1), n2, nasl_type_name (typ2));
       g_free (n1);
@@ -327,7 +307,6 @@ cell_cmp (lex_ctxt * lexic, tree_cell * c1, tree_cell * c2)
       deref_cell (c2);
       return 0;
     }
-
 
   switch (typ)
     {
@@ -391,7 +370,7 @@ FILE *nasl_trace_fp = NULL;
 lex_ctxt *truc = NULL;
 
 static void
-nasl_dump_expr (FILE * fp, const tree_cell * c)
+nasl_dump_expr (FILE *fp, const tree_cell *c)
 {
   if (c == NULL)
     fprintf (fp, "NULL");
@@ -680,7 +659,7 @@ nasl_dump_expr (FILE * fp, const tree_cell * c)
 }
 
 static void
-nasl_short_dump (FILE * fp, const tree_cell * c)
+nasl_short_dump (FILE *fp, const tree_cell *c)
 {
   if (c == NULL || c == FAKE_CELL)
     return;
@@ -772,7 +751,6 @@ nasl_short_dump (FILE * fp, const tree_cell * c)
     }
 }
 
-
 /** @todo This is an algorithm for calculating x^y, replace it if possible. */
 static long int
 expo (long int x, long int y)
@@ -800,10 +778,10 @@ expo (long int x, long int y)
  * @brief Execute a parse tree
  */
 tree_cell *
-nasl_exec (lex_ctxt * lexic, tree_cell * st)
+nasl_exec (lex_ctxt *lexic, tree_cell *st)
 {
-  tree_cell *ret = NULL, *ret2 = NULL, *tc1 = NULL, *tc2 = NULL, *tc3 =
-    NULL, *idx = NULL, *args;
+  tree_cell *ret = NULL, *ret2 = NULL, *tc1 = NULL, *tc2 = NULL, *tc3 = NULL,
+            *idx = NULL, *args;
   int flag, z;
   char *s1 = NULL, *s2 = NULL, *s3 = NULL, *p = NULL;
   char *p1, *p2;
@@ -831,9 +809,6 @@ nasl_exec (lex_ctxt * lexic, tree_cell * st)
 
   if (st == NULL)
     {
-#if NASL_DEBUG > 0
-      nasl_perror (lexic, "nasl_exec: st == NULL\n");
-#endif
       return NULL;
     }
 
@@ -850,19 +825,15 @@ nasl_exec (lex_ctxt * lexic, tree_cell * st)
 #endif
       if (cell2bool (lexic, ret))
         ret2 = nasl_exec (lexic, st->link[1]);
-      else if (st->link[2] != NULL)     /* else branch */
+      else if (st->link[2] != NULL) /* else branch */
         ret2 = nasl_exec (lexic, st->link[2]);
-      else                      /* No else */
+      else /* No else */
         ret2 = FAKE_CELL;
       deref_cell (ret);
       return ret2;
 
-    case NODE_INSTR_L:         /* Block. [0] = first instr, [1] = tail */
+    case NODE_INSTR_L: /* Block. [0] = first instr, [1] = tail */
       ret = nasl_exec (lexic, st->link[0]);
-#if NASL_DEBUG > 1
-      if (ret == NULL)
-        nasl_perror (lexic, "Instruction failed. Going on in block\n");
-#endif
       if (st->link[1] == NULL || lexic->break_flag || lexic->cont_flag)
         return ret;
       deref_cell (ret);
@@ -888,7 +859,7 @@ nasl_exec (lex_ctxt * lexic, tree_cell * st)
 
           /* condition */
           if ((ret = nasl_exec (lexic, st->link[1])) == NULL)
-            return NULL;        /* We can return here, as NULL is false */
+            return NULL; /* We can return here, as NULL is false */
           flag = cell2bool (lexic, ret);
           deref_cell (ret);
           if (!flag)
@@ -932,7 +903,7 @@ nasl_exec (lex_ctxt * lexic, tree_cell * st)
             }
           /* Condition */
           if ((ret = nasl_exec (lexic, st->link[0])) == NULL)
-            return NULL;        /* NULL is false */
+            return NULL; /* NULL is false */
           flag = cell2bool (lexic, ret);
           deref_cell (ret);
           if (!flag)
@@ -1002,7 +973,7 @@ nasl_exec (lex_ctxt * lexic, tree_cell * st)
 
         v = get_variable_by_name (lexic, st->x.str_val);
         if (v == NULL)
-          return NULL;          /* We cannot go on if we have no variable to iterate */
+          return NULL; /* We cannot go on if we have no variable to iterate */
         a = nasl_exec (lexic, st->link[0]);
         ai = nasl_array_iterator (lexic, a);
         while ((val = nasl_iterate_array (&ai)) != NULL)
@@ -1078,14 +1049,14 @@ nasl_exec (lex_ctxt * lexic, tree_cell * st)
        * I wonder...
        * Will nasl_exec be really called with NODE_EXEC or NODE_ARG?
        */
-    case NODE_DECL:            /* Used in function declarations */
+    case NODE_DECL: /* Used in function declarations */
       /* [0] = next arg in list */
       /* TBD? */
-      return st;                /* ? */
+      return st; /* ? */
 
-    case NODE_ARG:             /* Used function calls */
+    case NODE_ARG: /* Used function calls */
       /* val = name can be NULL, [0] = val, [1] = next arg */
-      ret = nasl_exec (lexic, st->link[0]);     /* Is this wise? */
+      ret = nasl_exec (lexic, st->link[0]); /* Is this wise? */
       return ret;
 
     case NODE_RETURN:
@@ -1101,21 +1072,22 @@ nasl_exec (lex_ctxt * lexic, tree_cell * st)
       lexic->cont_flag = 1;
       return FAKE_CELL;
 
-    case NODE_ARRAY_EL:        /* val = array name, [0] = index */
+    case NODE_ARRAY_EL: /* val = array name, [0] = index */
       idx = cell2atom (lexic, st->link[0]);
       ret = get_array_elem (lexic, st->x.str_val, idx);
       deref_cell (idx);
       return ret;
 
-/** @todo There is a lot of duplicated code in following cases, could be refactored. */
+      /** @todo There is a lot of duplicated code in following cases, could be
+       * refactored. */
     case NODE_AFF:
       /* [0] = lvalue, [1] = rvalue */
       tc1 = nasl_exec (lexic, st->link[0]);
       tc2 = nasl_exec (lexic, st->link[1]);
       ret = nasl_affect (tc1, tc2);
-      deref_cell (tc1);         /* Must free VAR_REF */
+      deref_cell (tc1); /* Must free VAR_REF */
       deref_cell (ret);
-      return tc2;               /* So that "a = b = e;" works */
+      return tc2; /* So that "a = b = e;" works */
 
     case NODE_PLUS_EQ:
       tc1 = nasl_exec (lexic, st->link[0]);
@@ -1123,9 +1095,9 @@ nasl_exec (lex_ctxt * lexic, tree_cell * st)
       tc3 = alloc_expr_cell (0, EXPR_PLUS, tc1, tc2);
       ret2 = nasl_exec (lexic, tc3);
       ret = nasl_affect (tc1, ret2);
-      deref_cell (tc3);         /* Frees tc1 and tc2 */
+      deref_cell (tc3); /* Frees tc1 and tc2 */
       deref_cell (ret);
-      return ret2;              /* So that "a = b += e;" works */
+      return ret2; /* So that "a = b += e;" works */
 
     case NODE_MINUS_EQ:
       tc1 = nasl_exec (lexic, st->link[0]);
@@ -1133,9 +1105,9 @@ nasl_exec (lex_ctxt * lexic, tree_cell * st)
       tc3 = alloc_expr_cell (0, EXPR_MINUS, tc1, tc2);
       ret2 = nasl_exec (lexic, tc3);
       ret = nasl_affect (tc1, ret2);
-      deref_cell (tc3);         /* Frees tc1 and tc2 */
+      deref_cell (tc3); /* Frees tc1 and tc2 */
       deref_cell (ret);
-      return ret2;              /* So that "a = b -= e;" works */
+      return ret2; /* So that "a = b -= e;" works */
 
     case NODE_MULT_EQ:
       tc1 = nasl_exec (lexic, st->link[0]);
@@ -1143,7 +1115,7 @@ nasl_exec (lex_ctxt * lexic, tree_cell * st)
       tc3 = alloc_expr_cell (0, EXPR_MULT, tc1, tc2);
       ret2 = nasl_exec (lexic, tc3);
       ret = nasl_affect (tc1, ret2);
-      deref_cell (tc3);         /* Frees tc1 and tc2 */
+      deref_cell (tc3); /* Frees tc1 and tc2 */
       deref_cell (ret);
       return ret2;
 
@@ -1153,7 +1125,7 @@ nasl_exec (lex_ctxt * lexic, tree_cell * st)
       tc3 = alloc_expr_cell (0, EXPR_DIV, tc1, tc2);
       ret2 = nasl_exec (lexic, tc3);
       ret = nasl_affect (tc1, ret2);
-      deref_cell (tc3);         /* Frees tc1 and tc2 */
+      deref_cell (tc3); /* Frees tc1 and tc2 */
       deref_cell (ret);
       return ret2;
 
@@ -1163,7 +1135,7 @@ nasl_exec (lex_ctxt * lexic, tree_cell * st)
       tc3 = alloc_expr_cell (0, EXPR_MODULO, tc1, tc2);
       ret2 = nasl_exec (lexic, tc3);
       ret = nasl_affect (tc1, ret2);
-      deref_cell (tc3);         /* Frees tc1 and tc2 */
+      deref_cell (tc3); /* Frees tc1 and tc2 */
       deref_cell (ret);
       return ret2;
 
@@ -1173,7 +1145,7 @@ nasl_exec (lex_ctxt * lexic, tree_cell * st)
       tc3 = alloc_expr_cell (0, EXPR_L_SHIFT, tc1, tc2);
       ret2 = nasl_exec (lexic, tc3);
       ret = nasl_affect (tc1, ret2);
-      deref_cell (tc3);         /* Frees tc1 and tc2 */
+      deref_cell (tc3); /* Frees tc1 and tc2 */
       deref_cell (ret);
       return ret2;
 
@@ -1183,7 +1155,7 @@ nasl_exec (lex_ctxt * lexic, tree_cell * st)
       tc3 = alloc_expr_cell (0, EXPR_R_SHIFT, tc1, tc2);
       ret2 = nasl_exec (lexic, tc3);
       ret = nasl_affect (tc1, ret2);
-      deref_cell (tc3);         /* Frees tc1 and tc2 */
+      deref_cell (tc3); /* Frees tc1 and tc2 */
       deref_cell (ret);
       return ret2;
 
@@ -1193,7 +1165,7 @@ nasl_exec (lex_ctxt * lexic, tree_cell * st)
       tc3 = alloc_expr_cell (0, EXPR_R_USHIFT, tc1, tc2);
       ret2 = nasl_exec (lexic, tc3);
       ret = nasl_affect (tc1, ret2);
-      deref_cell (tc3);         /* Frees tc1 and tc2 */
+      deref_cell (tc3); /* Frees tc1 and tc2 */
       deref_cell (ret);
       return ret2;
 
@@ -1202,11 +1174,11 @@ nasl_exec (lex_ctxt * lexic, tree_cell * st)
       ret = get_variable_by_name (lexic, st->x.str_val);
       return ret;
 
-    case NODE_LOCAL:           /* [0] = argdecl */
+    case NODE_LOCAL: /* [0] = argdecl */
       ret = decl_local_variables (lexic, st->link[0]);
       return ret;
 
-    case NODE_GLOBAL:          /* [0] = argdecl */
+    case NODE_GLOBAL: /* [0] = argdecl */
       ret = decl_global_variables (lexic, st->link[0]);
       return ret;
 
@@ -1217,7 +1189,6 @@ nasl_exec (lex_ctxt * lexic, tree_cell * st)
 
       y = cell2bool (lexic, st->link[1]);
       return bool2cell (y);
-
 
     case EXPR_OR:
       x = cell2bool (lexic, st->link[0]);
@@ -1235,12 +1206,12 @@ nasl_exec (lex_ctxt * lexic, tree_cell * st)
       x = (st->type == EXPR_INCR) ? 1 : -1;
       if (st->link[0] == NULL)
         {
-          y = 1;                /* pre */
+          y = 1; /* pre */
           tc1 = st->link[1];
         }
       else
         {
-          y = 0;                /* post */
+          y = 0; /* post */
           tc1 = st->link[0];
         }
       tc2 = nasl_exec (lexic, tc1);
@@ -1283,16 +1254,9 @@ nasl_exec (lex_ctxt * lexic, tree_cell * st)
         flag = CONST_INT;
       else
         flag = NODE_EMPTY;
-#if NASL_DEBUG > 0
-      if ((flag == CONST_DATA || flag == CONST_STR)
-          && (tc1->type == CONST_INT || tc2->type == CONST_INT))
-        nasl_perror (lexic,
-                     "Horrible type conversion (int -> str) for operator + %s\n",
-                     get_line_nb (st));
-#endif
       switch (flag)
         {
-        long sz;
+          long sz;
         case CONST_INT:
           x = tc1->x.i_val;
           y = cell2int (lexic, tc2);
@@ -1326,9 +1290,8 @@ nasl_exec (lex_ctxt * lexic, tree_cell * st)
             memcpy (s3 + len1, s2 != NULL ? s2 : tc2->x.str_val, len2);
           g_free (s1);
           g_free (s2);
-          ret = alloc_tree_cell ();
+          ret = alloc_typed_cell (flag);
           ret->x.str_val = s3;
-          ret->type = flag;
           ret->size = sz;
           break;
 
@@ -1340,7 +1303,7 @@ nasl_exec (lex_ctxt * lexic, tree_cell * st)
       deref_cell (tc2);
       return ret;
 
-    case EXPR_MINUS:           /* Infamous duplicated code */
+    case EXPR_MINUS: /* Infamous duplicated code */
       s1 = s2 = NULL;
       tc1 = cell2atom (lexic, st->link[0]);
 #ifdef STOP_AT_FIRST_ERROR
@@ -1384,13 +1347,6 @@ nasl_exec (lex_ctxt * lexic, tree_cell * st)
         flag = CONST_INT;
       else
         flag = NODE_EMPTY;
-#if NASL_DEBUG > 0
-      if ((flag == CONST_DATA || flag == CONST_STR)
-          && (tc1->type == CONST_INT || tc2->type == CONST_INT))
-        nasl_perror (lexic,
-                     "Horrible type conversion (int -> str) for operator - %s\n",
-                     get_line_nb (st));
-#endif
       switch (flag)
         {
         case CONST_INT:
@@ -1428,9 +1384,8 @@ nasl_exec (lex_ctxt * lexic, tree_cell * st)
             {
               s3 = g_malloc0 (len1 + 1);
               memcpy (s3, p1, len1);
-              ret = alloc_tree_cell ();
+              ret = alloc_typed_cell (flag);
               ret->x.str_val = s3;
-              ret->type = flag;
               ret->size = len1;
             }
           else
@@ -1449,10 +1404,9 @@ nasl_exec (lex_ctxt * lexic, tree_cell * st)
                   if (sz > p - p1)
                     memcpy (s3 + (p - p1), p + len2, sz - (p - p1));
                 }
-              ret = alloc_tree_cell ();
+              ret = alloc_typed_cell (flag);
               ret->x.str_val = s3;
               ret->size = sz;
-              ret->type = flag;
             }
 
           g_free (s1);
@@ -1522,43 +1476,23 @@ nasl_exec (lex_ctxt * lexic, tree_cell * st)
       y = cell2intW (lexic, st->link[1]);
       return int2cell (x << y);
 
-    case EXPR_R_SHIFT:         /* arithmetic right shift */
+    case EXPR_R_SHIFT: /* arithmetic right shift */
       x = cell2intW (lexic, st->link[0]);
       y = cell2intW (lexic, st->link[1]);
-#if NASL_DEBUG > 0
-      if (y < 0)
-        nasl_perror (lexic, "Warning: Negative count in right shift!\n");
-#endif
       z = x >> y;
 #ifndef __GNUC__
-      if (x < 0 && z >= 0)      /* Fix it */
-        {
-#if NASL_DEBUG > 1
-          nasl_perror (lexic,
-                       "Warning: arithmetic right shift is buggy! Fixing...\n");
-#endif
-          z |= (~0) << (sizeof (x) * 8 - y);
-        }
+      if (x < 0 && z >= 0) /* Fix it */
+        z |= (~0) << (sizeof (x) * 8 - y);
 #endif
       return int2cell (z);
 
     case EXPR_R_USHIFT:
       x = cell2intW (lexic, st->link[0]);
       y = cell2intW (lexic, st->link[1]);
-#if NASL_DEBUG > 0
-      if (y < 0)
-        nasl_perror (lexic, "Warning: Negative count in right shift!\n");
-#endif
       z = (unsigned) x >> (unsigned) y;
 #ifndef __GNUC__
-      if (x < 0 && z <= 0)      /* Fix it! */
-        {
-#if NASL_DEBUG > 1
-          nasl_perror (lexic,
-                       "Warning: Logical right shift is buggy! Fixing...\n");
-#endif
-          z &= ~((~0) << (sizeof (x) * 8 - y));
-        }
+      if (x < 0 && z <= 0) /* Fix it! */
+        z &= ~((~0) << (sizeof (x) * 8 - y));
 #endif
       return int2cell (z);
 
@@ -1580,11 +1514,6 @@ nasl_exec (lex_ctxt * lexic, tree_cell * st)
         }
       else
         {
-#if NASL_DEBUG > 0
-          nasl_perror (lexic,
-                       "Horrible type conversion (%s -> str) for operator >< or >!< %s\n",
-                       nasl_type_name (tc1->type), get_line_nb (st));
-#endif
           p1 = s1 = cell2str (lexic, tc1);
           len1 = strlen (s1);
         }
@@ -1601,11 +1530,6 @@ nasl_exec (lex_ctxt * lexic, tree_cell * st)
         }
       else
         {
-#if NASL_DEBUG > 0
-          nasl_perror (lexic,
-                       "Horrible type conversion (%s -> str) for operator >< or >!< %s\n",
-                       nasl_type_name (tc2->type), get_line_nb (st));
-#endif
           p2 = s2 = cell2str (lexic, tc2);
           len2 = strlen (s2);
         }
@@ -1665,7 +1589,7 @@ nasl_exec (lex_ctxt * lexic, tree_cell * st)
     case CONST_INT:
     case CONST_STR:
     case CONST_DATA:
-      ref_cell (st);            /* nasl_exec returns a cell that should be deref-ed */
+      ref_cell (st); /* nasl_exec returns a cell that should be deref-ed */
       return st;
 
     case REF_VAR:
@@ -1679,7 +1603,8 @@ nasl_exec (lex_ctxt * lexic, tree_cell * st)
     }
 }
 
-extern tree_cell *nasl_lint (lex_ctxt *, tree_cell *);
+extern tree_cell *
+nasl_lint (lex_ctxt *, tree_cell *);
 
 /**
  * @brief Execute a NASL script.
@@ -1707,14 +1632,14 @@ exec_nasl_script (struct script_infos *script_infos, int mode)
   gchar *newdir;
   tree_cell tc;
   const char *str, *name = script_infos->name, *oid = script_infos->oid;
+  gchar *short_name = g_path_get_basename (name);
+
+  nasl_set_plugin_filename (short_name);
+  g_free (short_name);
 
   srand48 (getpid () + getppid () + (long) time (NULL));
 
   old_dir = g_get_current_dir ();
-
-#if NASL_DEBUG > 2
-  nasl_trace_fp = stderr;
-#endif
 
   newdir = g_path_get_dirname (name);
 
@@ -1740,8 +1665,7 @@ exec_nasl_script (struct script_infos *script_infos, int mode)
     {
       if (naslparse (&ctx))
         {
-          g_message ("%s: Parse error at or near line %d",
-                     name, ctx.line_nb);
+          g_message ("%s: Parse error at or near line %d", name, ctx.line_nb);
           nasl_clean_ctx (&ctx);
           g_chdir (old_dir);
           g_free (old_dir);
@@ -1755,9 +1679,6 @@ exec_nasl_script (struct script_infos *script_infos, int mode)
       return -1;
     }
 
-#if NASL_DEBUG > 4
-  nasl_dump_tree (ctx.tree);
-#endif
   lexic = init_empty_lex_ctxt ();
   lexic->script_infos = script_infos;
   lexic->oid = oid;
@@ -1813,27 +1734,6 @@ exec_nasl_script (struct script_infos *script_infos, int mode)
       if ((pf = get_func_ref_by_name (lexic, "on_exit")) != NULL)
         nasl_func_call (lexic, pf, NULL);
     }
-
-#if NASL_DEBUG > 2
-  {
-    struct rusage ru;
-
-    if (getrusage (RUSAGE_SELF, &ru) < 0)
-      perror ("getrusage");
-    else
-      {
-        nasl_perror (lexic,
-                     "rusage: utime=%d.%03d stime=%d.%03d minflt=%d majflt=%d nswap=%d\n",
-                     ru.ru_utime.tv_sec, ru.ru_utime.tv_usec / 1000,
-                     ru.ru_stime.tv_sec, ru.ru_stime.tv_usec / 1000,
-                     ru.ru_minflt, ru.ru_majflt, ru.ru_nswap);
-      }
-  }
-#endif
-
-#if NASL_DEBUG > 3
-  nasl_dump_tree (ctx.tree);
-#endif
 
   if (g_chdir (old_dir) != 0)
     {

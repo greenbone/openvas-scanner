@@ -1,14 +1,6 @@
-# OpenVAS Testsuite for the NASL interpreter
-# $Id$
-# Description: Test script with a valid signature.
-#              If this file is modified the corresponding
-#              signature file has to be updated too.
+# Copyright (C) 2009-2019 Greenbone Networks GmbH
 #
-# Authors:
-# Bernhard Herzog <bernhard.herzog@intevation.de>
-#
-# Copyright:
-# Copyright (c) 2009 Greenbone Networks GmbH
+# SPDX-License-Identifier: GPL-2.0-or-later
 #
 # This program is free software; you can redistribute it and/or
 # modify it under the terms of the GNU General Public License
@@ -23,6 +15,11 @@
 # You should have received a copy of the GNU General Public License
 # along with this program; if not, write to the Free Software
 # Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA 02110-1301 USA.
+
+# OpenVAS Testsuite for the NASL interpreter
+# Description: Test script with a valid signature.
+#              If this file is modified the corresponding
+#              signature file has to be updated too.
 
 # Determines whether the script being executed is authenticated.
 function display_authentication_status()

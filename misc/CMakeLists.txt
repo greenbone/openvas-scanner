@@ -1,12 +1,6 @@
-# OpenVAS-libraries/misc
-# $Id$
-# Description: Makefile for misc of OpenVAS-libraries.
+# Copyright (C) 2010-2019 Greenbone Networks GmbH
 #
-# Authors:
-# Matthew Mundell <matthew.mundell@greenbone.net>
-#
-# Copyright:
-# Copyright (C) 2010, 2011, 2018 Greenbone Networks GmbH
+# SPDX-License-Identifier: GPL-2.0-or-later
 #
 # This program is free software; you can redistribute it and/or
 # modify it under the terms of the GNU General Public License
@@ -34,11 +28,11 @@ endif (NOT PKG_CONFIG_FOUND)
 pkg_check_modules (GLIB REQUIRED glib-2.0>=2.42)
 pkg_check_modules (GNUTLS REQUIRED gnutls>=3.2.15)
 
-pkg_check_modules (LIBGVM_BASE REQUIRED libgvm_base>=1.0.0)
-pkg_check_modules (LIBGVM_UTIL REQUIRED libgvm_util>=1.0.0)
+pkg_check_modules (LIBGVM_BASE REQUIRED libgvm_base>=11.0.0)
+pkg_check_modules (LIBGVM_UTIL REQUIRED libgvm_util>=11.0.0)
 
-pkg_check_modules (OPENVAS_WMICLIENT libopenvas_wmiclient>=1.0.1)
-pkg_check_modules (OPENVAS_WINCMD libopenvas_wincmd>=1.0.1)
+pkg_check_modules (OPENVAS_WMICLIENT libopenvas_wmiclient>=1.0.5)
+pkg_check_modules (OPENVAS_WINCMD libopenvas_wincmd>=1.0.5)
 
 message (STATUS "Looking for pcap...")
 find_library (PCAP pcap)
@@ -89,7 +83,8 @@ include_directories (${GLIB_INCLUDE_DIRS}
 
 # Library
 
-set (FILES bpf_share.c ftp_funcs.c vendorversion.c network.c plugutils.c pcap.c)
+set (FILES bpf_share.c ftp_funcs.c vendorversion.c network.c plugutils.c pcap.c
+     strutils.c)
 
 
 # On windows we are always PIC and stack-protector is replaces by DEP
@@ -99,8 +94,8 @@ set (CMAKE_C_FLAGS              "${CMAKE_C_FLAGS} -Wall -Wextra -fPIC")
 ## Project version
 # The following three variables should be set through the project command once
 # we require CMake >= 3.0
-set (MISC_VERSION_MAJOR 9)
-set (MISC_VERSION_MINOR 1)
+set (MISC_VERSION_MAJOR 11)
+set (MISC_VERSION_MINOR 0)
 set (MISC_VERSION_PATCH 0)
 
 if (PROJECT_BETA_RELEASE)

@@ -1,10 +1,10 @@
-/* NASL Attack Scripting Language
+/* Based on work Copyright (C) 2002 - 2004 Tenable Network Security
  *
- * Copyright (C) 2002 - 2004 Tenable Network Security
+ * SPDX-License-Identifier: GPL-2.0-only
  *
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License version 2,
- * as published by the Free Software Foundation
+ * This program is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU General Public License
+ * version 2 as published by the Free Software Foundation.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -13,46 +13,42 @@
  *
  * You should have received a copy of the GNU General Public License
  * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
- *
+ * Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA 02110-1301 USA.
  */
 
-#include "nasl_raw.h"       /* to e.g. favour BSD, but also for IPPROTO_TCP
-                               and TH_FIN */
-
-#include <string.h>         /* for memset */
-#include <stdlib.h>         /* for getenv.  */
-
+#include "../misc/network.h"        /* for OPENVAS_ENCAPS_* */
 #include "../misc/nvt_categories.h" /* for ACT_INIT */
-#include "../misc/network.h"      /* for OPENVAS_ENCAPS_* */
-
-#include "nasl.h"
-#include "nasl_tree.h"
-#include "nasl_global_ctxt.h"
-#include "nasl_func.h"
-#include "nasl_var.h"
-#include "nasl_lex_ctxt.h"
 #include "exec.h"
-#include "nasl_packet_forgery.h"
-#include "nasl_debug.h"
-#include "nasl_socket.h"
-#include "nasl_http.h"
-#include "nasl_host.h"
-#include "nasl_text_utils.h"
-#include "nasl_scanner_glue.h"
-#include "nasl_misc_funcs.h"
+#include "nasl.h"
+#include "nasl_builtin_plugins.h"
+#include "nasl_cert.h"
 #include "nasl_cmd_exec.h"
 #include "nasl_crypto.h"
 #include "nasl_crypto2.h"
-#include "nasl_wmi.h"
-#include "nasl_smb.h"
-#include "nasl_packet_forgery_v6.h"
-#include "nasl_builtin_plugins.h"
-#include "nasl_ssh.h"
-#include "nasl_snmp.h"
-#include "nasl_cert.h"
+#include "nasl_debug.h"
+#include "nasl_func.h"
+#include "nasl_global_ctxt.h"
+#include "nasl_host.h"
+#include "nasl_http.h"
 #include "nasl_isotime.h"
+#include "nasl_lex_ctxt.h"
+#include "nasl_misc_funcs.h"
+#include "nasl_packet_forgery.h"
+#include "nasl_packet_forgery_v6.h"
 
+#include <stdlib.h> /* for getenv.  */
+#include <string.h> /* for memset */
+/* to e.g. favour BSD, but also for IPPROTO_TCP and TH_FIN */
+#include "nasl_raw.h"
+#include "nasl_scanner_glue.h"
+#include "nasl_smb.h"
+#include "nasl_snmp.h"
+#include "nasl_socket.h"
+#include "nasl_ssh.h"
+#include "nasl_text_utils.h"
+#include "nasl_tree.h"
+#include "nasl_var.h"
+#include "nasl_wmi.h"
 
 /* **************************************************************** */
 
@@ -371,118 +367,70 @@ static init_func libfuncs[] = {
   {"isotime_scan", nasl_isotime_scan},
   {"isotime_print", nasl_isotime_print},
   {"isotime_add", nasl_isotime_add},
-  {NULL, NULL}
-};
+  {NULL, NULL}};
 
 /* String variables */
 static struct
 {
   const char *name;
   const char *val;
-} libsvars[] =
-{
-  {
-  "OPENVAS_VERSION", OPENVASLIB_VERSION},
-  {
-NULL, NULL},};
+} libsvars[] = {
+  {"OPENVAS_VERSION", OPENVASLIB_VERSION},
+  {NULL, NULL},
+};
 
 /* Integer variables */
 static struct
 {
   const char *name;
   int val;
-} libivars[] =
-{
-  {
-  "TRUE", 1},
-  {
-  "FALSE", 0},
-  {
-  "IPPROTO_TCP", IPPROTO_TCP},
-  {
-  "IPPROTO_UDP", IPPROTO_UDP},
-  {
-  "IPPROTO_ICMP", IPPROTO_ICMP},
-  {
-  "IPROTO_IP", IPPROTO_IP},
-  {
-  "IPPROTO_IGMP", IPPROTO_IGMP},
-  {
-  "ENCAPS_AUTO", OPENVAS_ENCAPS_AUTO},
-  {
-  "ENCAPS_IP", OPENVAS_ENCAPS_IP},
-  {
-  "ENCAPS_SSLv23", OPENVAS_ENCAPS_SSLv23},
-  {
-  "ENCAPS_SSLv2", OPENVAS_ENCAPS_SSLv2},
-  {
-  "ENCAPS_SSLv3", OPENVAS_ENCAPS_SSLv3},
-  {
-  "ENCAPS_TLSv1", OPENVAS_ENCAPS_TLSv1},
-  {
-  "ENCAPS_TLSv11", OPENVAS_ENCAPS_TLSv11},
-  {
-  "ENCAPS_TLSv12", OPENVAS_ENCAPS_TLSv12},
-  {
-  "ENCAPS_TLScustom", OPENVAS_ENCAPS_TLScustom},
-  {
-  "ENCAPS_MAX", OPENVAS_ENCAPS_MAX},
-  {
-  "TH_FIN", TH_FIN},
-  {
-  "TH_SYN", TH_SYN},
-  {
-  "TH_RST", TH_RST},
-  {
-  "TH_PUSH", TH_PUSH},
-  {
-  "TH_ACK", TH_ACK},
-  {
-  "TH_URG", TH_URG},
-  {
-  "IP_RF", IP_RF},
-  {
-  "IP_DF", IP_DF},
-  {
-  "IP_MF", IP_MF},
-  {
-  "IP_OFFMASK", IP_OFFMASK},
-  {
-  "ACT_INIT", ACT_INIT},
-  {
-  "ACT_GATHER_INFO", ACT_GATHER_INFO},
-  {
-  "ACT_ATTACK", ACT_ATTACK},
-  {
-  "ACT_MIXED_ATTACK", ACT_MIXED_ATTACK},
-  {
-  "ACT_DESTRUCTIVE_ATTACK", ACT_DESTRUCTIVE_ATTACK},
-  {
-  "ACT_DENIAL", ACT_DENIAL},
-  {
-  "ACT_SCANNER", ACT_SCANNER},
-  {
-  "ACT_SETTINGS", ACT_SETTINGS},
-  {
-  "ACT_KILL_HOST", ACT_KILL_HOST},
-  {
-  "ACT_FLOOD", ACT_FLOOD},
-  {
-  "ACT_END", ACT_END},
-  {
-  "MSG_OOB", MSG_OOB},
-  {
-  "NOERR", NASL_ERR_NOERR},
-  {
-  "ETIMEDOUT", NASL_ERR_ETIMEDOUT},
-  {
-  "ECONNRESET", NASL_ERR_ECONNRESET},
-  {
-  "EUNREACH", NASL_ERR_EUNREACH},
-  {
-  "EUNKNOWN", NASL_ERR_EUNKNOWN},
-  {
-NULL, 0},};
+} libivars[] = {
+  {"TRUE", 1},
+  {"FALSE", 0},
+  {"IPPROTO_TCP", IPPROTO_TCP},
+  {"IPPROTO_UDP", IPPROTO_UDP},
+  {"IPPROTO_ICMP", IPPROTO_ICMP},
+  {"IPROTO_IP", IPPROTO_IP},
+  {"IPPROTO_IGMP", IPPROTO_IGMP},
+  {"ENCAPS_AUTO", OPENVAS_ENCAPS_AUTO},
+  {"ENCAPS_IP", OPENVAS_ENCAPS_IP},
+  {"ENCAPS_SSLv23", OPENVAS_ENCAPS_SSLv23},
+  {"ENCAPS_SSLv2", OPENVAS_ENCAPS_SSLv2},
+  {"ENCAPS_SSLv3", OPENVAS_ENCAPS_SSLv3},
+  {"ENCAPS_TLSv1", OPENVAS_ENCAPS_TLSv1},
+  {"ENCAPS_TLSv11", OPENVAS_ENCAPS_TLSv11},
+  {"ENCAPS_TLSv12", OPENVAS_ENCAPS_TLSv12},
+  {"ENCAPS_TLScustom", OPENVAS_ENCAPS_TLScustom},
+  {"ENCAPS_MAX", OPENVAS_ENCAPS_MAX},
+  {"TH_FIN", TH_FIN},
+  {"TH_SYN", TH_SYN},
+  {"TH_RST", TH_RST},
+  {"TH_PUSH", TH_PUSH},
+  {"TH_ACK", TH_ACK},
+  {"TH_URG", TH_URG},
+  {"IP_RF", IP_RF},
+  {"IP_DF", IP_DF},
+  {"IP_MF", IP_MF},
+  {"IP_OFFMASK", IP_OFFMASK},
+  {"ACT_INIT", ACT_INIT},
+  {"ACT_GATHER_INFO", ACT_GATHER_INFO},
+  {"ACT_ATTACK", ACT_ATTACK},
+  {"ACT_MIXED_ATTACK", ACT_MIXED_ATTACK},
+  {"ACT_DESTRUCTIVE_ATTACK", ACT_DESTRUCTIVE_ATTACK},
+  {"ACT_DENIAL", ACT_DENIAL},
+  {"ACT_SCANNER", ACT_SCANNER},
+  {"ACT_SETTINGS", ACT_SETTINGS},
+  {"ACT_KILL_HOST", ACT_KILL_HOST},
+  {"ACT_FLOOD", ACT_FLOOD},
+  {"ACT_END", ACT_END},
+  {"MSG_OOB", MSG_OOB},
+  {"NOERR", NASL_ERR_NOERR},
+  {"ETIMEDOUT", NASL_ERR_ETIMEDOUT},
+  {"ECONNRESET", NASL_ERR_ECONNRESET},
+  {"EUNREACH", NASL_ERR_EUNREACH},
+  {"EUNKNOWN", NASL_ERR_EUNKNOWN},
+  {NULL, 0},
+};
 
 /* See also in exec.c:
  * COMMAND_LINE
@@ -493,7 +441,7 @@ NULL, 0},};
  * @brief Adds "built-in" variable and function definitions to a context.
  */
 void
-init_nasl_library (lex_ctxt * lexic)
+init_nasl_library (lex_ctxt *lexic)
 {
   tree_cell tc;
   unsigned i;
@@ -548,7 +496,6 @@ func_is_internal (const char *name)
   return NULL;
 }
 
-
 char *
 nasl_version ()
 {
@@ -557,7 +504,6 @@ nasl_version ()
   vers[sizeof (vers) - 1] = '\0';
   return vers;
 }
-
 
 /**
  * @brief Add "built-in" variables to a list.

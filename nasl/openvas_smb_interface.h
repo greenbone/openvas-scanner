@@ -1,14 +1,6 @@
-/* OpenVAS
+/* Copyright (C) 2009-2019 Greenbone Networks GmbH
  *
- * $Id$
- * Description: API protos describing the interface of a smb interface
- * implementation.
- *
- * Authors:
- * Chandrashekhar B <bchandra@secpod.com>
- *
- * Copyright:
- * Copyright (c) 2009 Greenbone Networks GmbH, http://www.greenbone.net
+ * SPDX-License-Identifier: GPL-2.0-or-later
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -17,7 +9,7 @@
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
@@ -38,14 +30,21 @@
 
 typedef long int SMB_HANDLE;
 
-char *smb_versioninfo (void);
-int smb_connect (const char *, const char *, const char *, const char *,
-                 SMB_HANDLE *);
+char *
+smb_versioninfo (void);
+int
+smb_connect (const char *, const char *, const char *, const char *,
+             SMB_HANDLE *);
 int smb_close (SMB_HANDLE);
-char *smb_file_SDDL (SMB_HANDLE, const char *);
-char *smb_file_OwnerSID (SMB_HANDLE, const char *);
-char *smb_file_GroupSID (SMB_HANDLE, const char *);
-char *smb_file_TrusteeRights (SMB_HANDLE, const char *);
-int wincmd(int argc, char *argv[], char **res);
+char *
+smb_file_SDDL (SMB_HANDLE, const char *);
+char *
+smb_file_OwnerSID (SMB_HANDLE, const char *);
+char *
+smb_file_GroupSID (SMB_HANDLE, const char *);
+char *
+smb_file_TrusteeRights (SMB_HANDLE, const char *);
+int
+wincmd (int argc, char *argv[], char **res);
 
 #endif

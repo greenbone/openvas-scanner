@@ -19,16 +19,10 @@ tool with the following command:
 src/CMakeLists.txt: GPL-2+
 src/attack.c: GPL-2
 src/attack.h: GPL-2
-src/comm.c: GPL-2
-src/comm.h: GPL-2
 src/hosts.c: GPL-2
 src/hosts.h: GPL-2
 src/nasl_plugins.c: GPL-2
-src/ntp.c: GPL-2
-src/ntp.h: GPL-2
-src/openvassd.c: GPL-2
-src/otp.c: GPL-2+
-src/otp.h: GPL-2+
+src/openvas.c: GPL-2
 src/pluginlaunch.c: GPL-2
 src/pluginlaunch.h: GPL-2
 src/pluginload.c: GPL-2
@@ -136,8 +130,6 @@ nasl/smb_crypt2.c: GPL-2+
 nasl/smb_interface_stub.c: GPL-2+
 nasl/smb_signing.c: GPL-2+
 nasl/smb_signing.h: GPL-2+
-nasl/strutils.c: GPL-2
-nasl/strutils.h: GPL-2
 nasl/time.c: GPL-2+
 nasl/wmi_interface_stub.c: GPL-2+
 
@@ -159,15 +151,19 @@ nasl/tests/testsuitesummary.nasl: GPL-2+
 
 misc/CMakeLists.txt: GPL-2+
 misc/bpf_share.c: GPL-2
-misc/bpf_share.h: LGPL-2+
-misc/ftp_funcs.c: LGPL-2+
-misc/ftp_funcs.h: LGPL-2+
-misc/network.c: LGPL-2+
-misc/network.h: LGPL-2+
-misc/nvt_categories.h: LGPL-2+
-misc/pcap.c: LGPL-2+
-misc/pcap_openvas.h: LGPL-2+
-misc/plugutils.c: LGPL-2+
-misc/plugutils.h: LGPL-2+
+misc/bpf_share.h: GPL-2+
+misc/ftp_funcs.c: GPL-2+
+misc/ftp_funcs.h: GPL-2+
+misc/network.c: GPL-2+
+misc/network.h: GPL-2+
+misc/nvt_categories.h: GPL-2+
+misc/pcap.c: GPL-2+
+misc/pcap_openvas.h: GPL-2+
+misc/plugutils.c: GPL-2+
+misc/plugutils.h: GPL-2+
 misc/scanneraux.h: GPL-2+
+misc/strutils.c: GPL-2+
+misc/strutils.h: GPL-2+
 misc/support.h: GPL-2+
+misc/vendorversion.c: GPL-2+
+misc/vendorversion.h: GPL-2+

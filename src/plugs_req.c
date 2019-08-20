@@ -1,49 +1,47 @@
-/* OpenVAS
-* $Id$
-* Description: Performs various checks for requirements set in a given plugin.
-*
-* Authors: 
-* Renaud Deraison <deraison@nessus.org> (Original pre-fork development)
-* Tim Brown (Initial fork)
-* Laban Mwangi (Renaming work)
-* Tarik El-Yassem (Headers section)
-*
-* Copyright:
-* Portions Copyright (C) 2006 Software in the Public Interest, Inc.
-* Based on work Copyright (C) 1998 - 2006 Tenable Network Security, Inc.
-*
-* This program is free software; you can redistribute it and/or modify
-* it under the terms of the GNU General Public License version 2,
-* as published by the Free Software Foundation
-*
-* This program is distributed in the hope that it will be useful,
-* but WITHOUT ANY WARRANTY; without even the implied warranty of
-* MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-* GNU General Public License for more details.
-*
-* You should have received a copy of the GNU General Public License
-* along with this program; if not, write to the Free Software
-* Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA 02110-1301 USA.
-*/
+/* Portions Copyright (C) 2009-2019 Greenbone Networks GmbH
+ * Portions Copyright (C) 2006 Software in the Public Interest, Inc.
+ * Based on work Copyright (C) 1998 - 2006 Tenable Network Security, Inc.
+ *
+ * SPDX-License-Identifier: GPL-2.0-only
+ *
+ * This program is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU General Public License
+ * version 2 as published by the Free Software Foundation.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program; if not, write to the Free Software
+ * Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA 02110-1301 USA.
+ */
 
-#include <stdlib.h> /* for atoi() */
-#include <string.h> /* for strcmp() */
-#include <stdio.h>  /* for snprintf() */
-#include <regex.h>  /* for regcomp() */
+/**
+ * @file plugs_req.c
+ * @brief Performs various checks for requirements set in a given plugin.
+ */
 
-#include <gvm/base/prefs.h>          /* for prefs_get() */
-#include <gvm/util/nvticache.h>
+#include "plugs_req.h"
 
 #include "pluginscheduler.h"
-#include "plugs_req.h"
+
+#include <gvm/base/prefs.h> /* for prefs_get() */
+#include <gvm/util/nvticache.h>
+#include <regex.h>  /* for regcomp() */
+#include <stdio.h>  /* for snprintf() */
+#include <stdlib.h> /* for atoi() */
+#include <string.h> /* for strcmp() */
 
 /**********************************************************
 
- 		   Private Functions
+                   Private Functions
 
 ***********************************************************/
 
-extern int kb_get_port_state_proto (kb_t, int, char *);
+extern int
+kb_get_port_state_proto (kb_t, int, char *);
 
 /**
  * @brief Returns whether a port in a port list is closed or not.
@@ -59,7 +57,7 @@ get_closed_ports (kb_t kb, char *ports_list, char *proto)
   if (!ports_list)
     return -1;
   ports = g_strsplit (ports_list, ", ", 0);
-  for (i = 0; ports[i] != NULL; i ++)
+  for (i = 0; ports[i] != NULL; i++)
     {
       int iport = atoi (ports[i]);
       if (iport > 0 && kb_get_port_state_proto (kb, iport, proto) != 0)
@@ -72,21 +70,19 @@ get_closed_ports (kb_t kb, char *ports_list, char *proto)
           if (kb_item_get_int (kb, ports[i]) > 0)
             {
               g_strfreev (ports);
-              return 1;           /* should be the actual value indeed ! */
+              return 1; /* should be the actual value indeed ! */
             }
         }
     }
   g_strfreev (ports);
-  return 0;                     /* found nothing */
+  return 0; /* found nothing */
 }
-
 
 /**********************************************************
 
- 		   Public Functions
+                   Public Functions
 
 ***********************************************************/
-
 
 /**
  * @brief Returns the name of the first key which is not present in the \p kb.
@@ -107,9 +103,10 @@ kb_missing_keyname_of_namelist (kb_t kb, char *keys, char **keyname)
   keynames = g_strsplit (keys, ", ", 0);
   if (!keynames)
     return 0;
-  for (i = 0; keynames[i] != NULL; i ++)
+  for (i = 0; keynames[i] != NULL; i++)
     {
-      struct kb_item *kbi = kb_item_get_single (kb, keynames[i], KB_TYPE_UNSPEC);
+      struct kb_item *kbi =
+        kb_item_get_single (kb, keynames[i], KB_TYPE_UNSPEC);
 
       if (kbi == NULL)
         {
@@ -146,9 +143,10 @@ kb_present_keyname_of_namelist (kb_t kb, char *keys, char **keyname)
   keynames = g_strsplit (keys, ", ", 0);
   if (!keynames)
     return 0;
-  for (i = 0; keynames[i] != NULL; i ++)
+  for (i = 0; keynames[i] != NULL; i++)
     {
-      struct kb_item *kbi = kb_item_get_single (kb, keynames[i], KB_TYPE_UNSPEC);
+      struct kb_item *kbi =
+        kb_item_get_single (kb, keynames[i], KB_TYPE_UNSPEC);
 
       if (kbi != NULL)
         {
@@ -182,7 +180,7 @@ check_mandatory_keys (kb_t kb, char *keys)
   keynames = g_strsplit (keys, ", ", 0);
   if (!keynames)
     return 0;
-  for (i = 0; keynames[i] != NULL; i ++)
+  for (i = 0; keynames[i] != NULL; i++)
     {
       struct kb_item *kbi;
       char *re_str = NULL, *pos;

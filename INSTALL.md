@@ -1,12 +1,12 @@
-INSTALLATION INSTRUCTIONS FOR OPENVAS-SCANNER
-=============================================
+INSTALLATION INSTRUCTIONS FOR OPENVAS
+=====================================
 
 Please note: The reference system used by most of the developers is Debian
 GNU/Linux 'Stretch' 9. The build might fail on any other system. Also, it is
 necessary to install dependent development packages.
 
-Prerequisites for openvas-scanner
----------------------------------
+Prerequisites for openvas
+-------------------------
 
 Prerequisites:
 * a C compiler (e.g. gcc)
@@ -20,7 +20,7 @@ Prerequisites:
 * pkg-config
 * libpcap
 * libgpgme >= 1.1.2
-* redis >= 2.4.0
+* redis >= 3.2.0
 * libssh >= 0.6.0
 * libksba >= 1.0.7
 * libgnutls >= 3.2.15
@@ -34,7 +34,7 @@ Recommended to have WMI support:
 * openvas-smb >= 1.0.1
 
 Recommended for extended Windows support (e.g. automatically start the remote registry service):
-* wmiexec.py of python-impacket >= 0.9.15 found within your PATH
+* impacket-wmiexec of python-impacket >= 0.9.15 found within your PATH
 
 Recommended to have improved SNMP support:
 * netsnmp
@@ -45,8 +45,8 @@ Install prerequisites on Debian GNU/Linux 'Stretch' 9:
     libpcap-dev libgpgme-dev bison libksba-dev libsnmp-dev libgcrypt20-dev
 
 
-Compiling openvas-scanner
--------------------------
+Compiling openvas
+-----------------
 
 If you have installed required libraries to a non-standard location, remember to
 set the `PKG_CONFIG_PATH` environment variable to the location of you pkg-config
@@ -97,28 +97,29 @@ to error checking. While this is a good thing and the developers aim to address
 all compiler warnings, it may lead the build process to abort on your system.
 
 Should you notice error messages causing your build process to abort, do not
-hesitate to contact the developers using the [Greenbone Community
-Portal](https://community.greenbone.net/c/gse). Don't forget to include the
-name and version of your compiler and distribution in your message.
+hesitate to contact the developers by creating a
+[new issue report](https://github.com/greenbone/openvas/issues/new).
+Don't forget to include the name and version of your compiler and distribution in your
+message.
 
 
-Setting up openvas-scanner
---------------------------
+Setting up openvas
+------------------
 
-Setting up an openvas-scanner requires the following steps:
+Setting up an openvas requires the following steps:
 
 1. (optional) You may decide to change the default scanner preferences
-   by setting them in the file `$prefix/etc/openvassd.conf`. If that file does
+   by setting them in the file `$prefix/etc/openvas.conf`. If that file does
    not exist (default), then the default settings are used. You can view
-   them with `openvassd -s`. The output of that command is a valid configuration
-   file. The man page (`man openvassd`) provides details about the available
+   them with `openvas -s`. The output of that command is a valid configuration
+   file. The man page (`man openvas`) provides details about the available
    settings, among these opportunities to restrict access of scanner regarding
    scan targets and interfaces.
 
 2. In order to run vulnerability scans, you will need a collection of Network
-   Vulnerability Tests (NVTs) that can be run by openvas-scanner. Initially,
+   Vulnerability Tests (NVTs) that can be run by openvas. Initially,
    your NVT collection will be empty. It is recommended that you synchronize
-   with an NVT feed service before starting openvas-scanner for the first time.
+   with an NVT feed service before starting openvas for the first time.
 
    Simply execute the following command to retrieve the initial NVT collection:
 
@@ -138,64 +139,77 @@ Setting up an openvas-scanner requires the following steps:
    regularly to detect the latest threats.
 
 3. The scanner needs a running Redis server to temporarily store information
-   gathered on the scanned hosts. Redis 2.4 and newer is supported but 2.6
-   is recommended. See `doc/redis_config.txt` to see how to set up and run a
-   Redis server.
+   gathered on the scanned hosts. Redis 3.2 and newer are supported.
+   See `doc/redis_config.txt` to see how to set up and run a Redis server.
 
-   Multiple examples for various Redis versions are installed which you may use
-   directly for a quick start:
+   The easiest and most reliable way to start redis under Ubuntu and Debian is
+   to use systemd.
 
-       redis-server <install-prefix>/share/doc/openvas-scanner/redis_config_examples/redis_2_4.conf
+   ```bash
+   sudo cp redis-openvas.conf /etc/redis/
+   sudo chown redis:redis /etc/redis/redis-openvas.conf
+   sudo echo "db_address = /run/redis-openvas/redis.sock" > /etc/openvas/openvas.conf
+   sudo systemctl start redis-server@openvas.service
+   ```
 
-   or
+4. The scanner module does not run as a service as before any more. `gvmd`
+   can act as a client and control the scanner through the `OSPD-OpenVAS`
+   module. The actual user interfaces (for example GSA or GVM-Tools) will
+   only interact with `gvmd` and/or ospd-openvas, not the scanner.
+   You can launch openvas to upload the plugins in redis using the
+   following command:
 
-       redis-server <install-prefix>/share/doc/openvas-scanner/redis_config_examples/redis_2_6.conf
+       openvas -u
 
-   or copy the example to another location, edit and use the copy instead.
+   but ospd-openvas will do the update automatically each time a new feed
+   is detected.
 
-4. You can launch openvas-scanner using the following command:
+5. Please note that although you can run `openvas` as a user without elevated
+   privileges, it is recommended that you start `openvas` as `root` since a
+   number of Network Vulnerability Tests (NVTs) require root privileges to
+   perform certain operations like packet forgery. If you run `openvas` as
+   a user without permission to perform these operations, your scan results
+   are likely to be incomplete.
 
-       openvassd
+   As `openvas` will be launched from an ospd-openvas process with sudo,
+   the next configuration is required in the sudoers file:
 
-   Sending `SIGHUP` to the scanner main process will initiate a reload of the
-   feed content and of the scanner preferences. This will not affect running
-   scans.
+       sudo visudo
 
-   Please note that although you can start `openvassd` as a user without elevated
-   privileges, it is recommended that you start `openvassd` as `root` since a number
-   of Network Vulnerability Tests (NVTs) require root privileges to perform
-   certain operations like packet forgery. If you run `openvassd` as a user
-   without permission to perform these operations, your scan results are likely
-   to be incomplete.
+   add this line to allow the user running `ospd-openvas`, to launch `openvas`
+   with root permissions
 
-5. Once the scanner has started, `gvmd` can act as a client and control
-   the scanner. The actual user interfaces (for example GSA or GVM-Tools)
-   will only interact with `gvmd`, not the scanner.
+       <user> ALL = NOPASSWD: <install prefix>/sbin/openvas
+
+   If you set an install prefix, you have to update the path in the sudoers
+   file too:
+
+       Defaults        secure_path=<existing paths...>:<install prefix>/sbin
+
 
 Logging Configuration
 ---------------------
 
 If you encounter problems, by default the scanner writes logs to the file
 
-    <install-prefix>/var/log/gvm/openvassd.log
+    <install-prefix>/var/log/gvm/openvas.log
 
 It may contain useful information.The exact location of this file may differ
 depending on your distribution and installation method. Please have this file
-ready when contacting the GVM developers through the OpenVAS mailing list
-or the online chat or submitting bug reports at
-<https://github.com/greenbone/openvas-scanner/issues> as they may help to
-pinpoint the source of your issue.
+ready when contacting the GVM developers via the Greenbone Community Portal
+or submitting bug reports at <https://github.com/greenbone/openvas/issues> as
+they may help to pinpoint the source of your issue.
 
 Logging is configured entirely by the file
 
-    <install-prefix>/etc/openvas/openvassd_log.conf
+    <install-prefix>/etc/openvas/openvas_log.conf
 
 The configuration is divided into domains like this one
 
     [sd   main]
     prepend=%t %p
     prepend_time_format=%Y-%m-%d %Hh%M.%S %Z
-    file=/var/log/gvm/openvassd.log
+    file=/var/log/gvm/openvas.log
     level=128
 
 The `level` field controls the amount of logging that is written.

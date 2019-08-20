@@ -1,11 +1,11 @@
-/* NASL Attack Scripting Language
+/* Portions Copyright (C) 2009-2019 Greenbone Networks GmbH
+ * Based on work Copyright (C) 2002 - 2004 Tenable Network Security
  *
- * Copyright (C) 2002 - 2004 Tenable Network Security
- * Copyright (C) 2009 Greenbone Networks GmbH
+ * SPDX-License-Identifier: GPL-2.0-only
  *
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License version 2,
- * as published by the Free Software Foundation
+ * This program is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU General Public License
+ * version 2 as published by the Free Software Foundation.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -14,36 +14,33 @@
  *
  * You should have received a copy of the GNU General Public License
  * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
- *
+ * Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA 02110-1301 USA.
  */
 
 /**
- * @file
- * This file implements all the functions that are related to
- * text-related utilities in the NASL functions.
+ * @file nasl_text_utils.c
+ * @brief Functions related to text-related utilities in the NASL functions.
  */
 
 #define _GNU_SOURCE
 
-#include <ctype.h>              /* for isspace */
-#include <string.h>             /* for strlen */
-#include <unistd.h>             /* for getpid */
-#include <string.h>             /* for memmem */
-#include <glib.h>               /* for g_free */
-#include <regex.h>              /* for regex_t */
-
-#include "nasl_tree.h"
-#include "nasl_global_ctxt.h"
-#include "nasl_func.h"
-#include "nasl_var.h"
-#include "nasl_lex_ctxt.h"
-#include "exec.h"
-
-#include "strutils.h"
-#include "nasl_debug.h"
-
 #include "nasl_text_utils.h"
+
+#include "../misc/strutils.h" /* for str_match */
+#include "exec.h"
+#include "nasl_debug.h"
+#include "nasl_func.h"
+#include "nasl_global_ctxt.h"
+#include "nasl_lex_ctxt.h"
+#include "nasl_tree.h"
+#include "nasl_var.h"
+
+#include <ctype.h>  /* for isspace */
+#include <glib.h>   /* for g_free */
+#include <regex.h>  /* for regex_t */
+#include <string.h> /* for strlen */
+#include <string.h> /* for memmem */
+#include <unistd.h> /* for getpid */
 
 #undef G_LOG_DOMAIN
 /**
@@ -51,9 +48,8 @@
  */
 #define G_LOG_DOMAIN "lib  nasl"
 
-
 tree_cell *
-nasl_string (lex_ctxt * lexic)
+nasl_string (lex_ctxt *lexic)
 {
   tree_cell *retc;
   int vi, vn, newlen;
@@ -61,8 +57,7 @@ nasl_string (lex_ctxt * lexic)
   const char *s, *p1;
   char *p2;
 
-  retc = alloc_tree_cell ();
-  retc->type = CONST_DATA;
+  retc = alloc_typed_cell (CONST_DATA);
   retc->size = 0;
   retc->x.str_val = g_malloc0 (1);
 
@@ -111,10 +106,11 @@ nasl_string (lex_ctxt * lexic)
                     if (isxdigit (p1[2]) && isxdigit (p1[3]))
                       {
                         *p2++ =
-                          16 * (isdigit (p1[2]) ? p1[2] - '0' : 10 +
-                                tolower (p1[2]) - 'a') +
-                          (isdigit (p1[3]) ? p1[3] - '0' : 10 +
-                           tolower (p1[3]) - 'a');
+                          16
+                            * (isdigit (p1[2]) ? p1[2] - '0'
+                                               : 10 + tolower (p1[2]) - 'a')
+                          + (isdigit (p1[3]) ? p1[3] - '0'
+                                             : 10 + tolower (p1[3]) - 'a');
                         p1 += 2;
                         retc->size -= 2;
                       }
@@ -129,7 +125,8 @@ nasl_string (lex_ctxt * lexic)
                       }
                     break;
                   default:
-                    nasl_perror (lexic, "Unknown escape sequence '\\%c' in the "
+                    nasl_perror (lexic,
+                                 "Unknown escape sequence '\\%c' in the "
                                  "string '%s'\n",
                                  isprint (p1[1]) ? p1[1] : '.', s);
                     retc->size--;
@@ -147,9 +144,9 @@ nasl_string (lex_ctxt * lexic)
 }
 
 /*---------------------------------------------------------------------*/
-#define RAW_STR_LEN	32768
+#define RAW_STR_LEN 32768
 tree_cell *
-nasl_rawstring (lex_ctxt * lexic)
+nasl_rawstring (lex_ctxt *lexic)
 {
   tree_cell *retc;
   int vi, vn, i, j, x;
@@ -157,8 +154,7 @@ nasl_rawstring (lex_ctxt * lexic)
   const char *s;
   int total_len = 0;
 
-  retc = alloc_tree_cell ();
-  retc->type = CONST_DATA;
+  retc = alloc_typed_cell (CONST_DATA);
   retc->size = 0;
   retc->x.str_val = g_malloc0 (RAW_STR_LEN + 1);
 
@@ -266,29 +262,25 @@ nasl_rawstring (lex_ctxt * lexic)
 
 /*---------------------------------------------------------------------*/
 tree_cell *
-nasl_strlen (lex_ctxt * lexic)
+nasl_strlen (lex_ctxt *lexic)
 {
   int len = get_var_size_by_num (lexic, 0);
   tree_cell *retc;
 
-  retc = alloc_tree_cell ();
-  retc->ref_count = 1;
-  retc->type = CONST_INT;
+  retc = alloc_typed_cell (CONST_INT);
   retc->x.i_val = len;
   return retc;
 }
 
-
 tree_cell *
-nasl_strcat (lex_ctxt * lexic)
+nasl_strcat (lex_ctxt *lexic)
 {
   tree_cell *retc;
   char *s;
   int vi, vn, newlen;
   int sz;
 
-  retc = alloc_tree_cell ();
-  retc->type = CONST_DATA;
+  retc = alloc_typed_cell (CONST_DATA);
   retc->size = 0;
   retc->x.str_val = g_malloc0 (1);
 
@@ -313,7 +305,7 @@ nasl_strcat (lex_ctxt * lexic)
 
 /*---------------------------------------------------------------------*/
 tree_cell *
-nasl_display (lex_ctxt * lexic)
+nasl_display (lex_ctxt *lexic)
 {
   tree_cell *r, *retc;
   int j;
@@ -322,13 +314,13 @@ nasl_display (lex_ctxt * lexic)
 
   msg = g_malloc0 (r->size + 1);
   for (j = 0; j < r->size; j++)
-    msg[j] = (isprint (r->x.str_val[j])
-             || isspace (r->x.str_val[j]) ? r->x.str_val[j] : '.');
+    msg[j] =
+      (isprint (r->x.str_val[j]) || isspace (r->x.str_val[j]) ? r->x.str_val[j]
+                                                              : '.');
 
   g_message ("%s", msg);
   g_free (msg);
-  retc = alloc_tree_cell ();
-  retc->type = CONST_INT;
+  retc = alloc_typed_cell (CONST_INT);
   retc->x.i_val = r->size;
   deref_cell (r);
   return retc;
@@ -337,7 +329,7 @@ nasl_display (lex_ctxt * lexic)
 /*---------------------------------------------------------------------*/
 
 tree_cell *
-nasl_hex (lex_ctxt * lexic)
+nasl_hex (lex_ctxt *lexic)
 {
   tree_cell *retc;
   int v = get_int_var_by_num (lexic, 0, -1);
@@ -347,19 +339,17 @@ nasl_hex (lex_ctxt * lexic)
     return NULL;
 
   snprintf (ret, sizeof (ret), "0x%02x", (unsigned char) v);
-  retc = alloc_tree_cell ();
-  retc->type = CONST_STR;
+  retc = alloc_typed_cell (CONST_STR);
   retc->size = strlen (ret);
   retc->x.str_val = g_strdup (ret);
 
   return retc;
 }
 
-
 /*---------------------------------------------------------------------*/
 
 tree_cell *
-nasl_hexstr (lex_ctxt * lexic)
+nasl_hexstr (lex_ctxt *lexic)
 {
   tree_cell *retc;
   char *s = get_str_var_by_num (lexic, 0);
@@ -377,8 +367,7 @@ nasl_hexstr (lex_ctxt * lexic)
       snprintf (ret + 2 * i, 3, "%02x", (unsigned char) s[i]);
     }
 
-  retc = alloc_tree_cell ();
-  retc->type = CONST_STR;
+  retc = alloc_typed_cell (CONST_STR);
   retc->size = strlen (ret);
   retc->x.str_val = ret;
 
@@ -387,7 +376,7 @@ nasl_hexstr (lex_ctxt * lexic)
 
 /*---------------------------------------------------------------------*/
 tree_cell *
-nasl_ord (lex_ctxt * lexic)
+nasl_ord (lex_ctxt *lexic)
 {
   tree_cell *retc;
   unsigned char *val = (unsigned char *) get_str_var_by_num (lexic, 0);
@@ -395,19 +384,18 @@ nasl_ord (lex_ctxt * lexic)
   if (val == NULL)
     {
       nasl_perror (lexic, "Usage : ord(char). The given char or string "
-                   "is NULL\n");
+                          "is NULL\n");
       return NULL;
     }
 
-  retc = alloc_tree_cell ();
-  retc->type = CONST_INT;
+  retc = alloc_typed_cell (CONST_INT);
   retc->x.i_val = val[0];
   return retc;
 }
 
 /*---------------------------------------------------------------------*/
 tree_cell *
-nasl_tolower (lex_ctxt * lexic)
+nasl_tolower (lex_ctxt *lexic)
 {
   tree_cell *retc;
   char *str = get_str_var_by_num (lexic, 0);
@@ -421,8 +409,7 @@ nasl_tolower (lex_ctxt * lexic)
   for (i = 0; i < str_len; i++)
     str[i] = tolower (str[i]);
 
-  retc = alloc_tree_cell ();
-  retc->type = CONST_DATA;
+  retc = alloc_typed_cell (CONST_DATA);
   retc->size = str_len;
   retc->x.str_val = str;
   return retc;
@@ -430,7 +417,7 @@ nasl_tolower (lex_ctxt * lexic)
 
 /*---------------------------------------------------------------------*/
 tree_cell *
-nasl_toupper (lex_ctxt * lexic)
+nasl_toupper (lex_ctxt *lexic)
 {
   tree_cell *retc;
   char *str = get_str_var_by_num (lexic, 0);
@@ -444,15 +431,13 @@ nasl_toupper (lex_ctxt * lexic)
   for (i = 0; i < str_len; i++)
     str[i] = toupper (str[i]);
 
-  retc = alloc_tree_cell ();
-  retc->type = CONST_DATA;
+  retc = alloc_typed_cell (CONST_DATA);
   retc->size = str_len;
   retc->x.str_val = str;
   return retc;
 }
 
 /*---------------------------------------------------------------------*/
-
 
 /*
  * regex syntax :
@@ -461,7 +446,7 @@ nasl_toupper (lex_ctxt * lexic)
  */
 
 tree_cell *
-nasl_ereg (lex_ctxt * lexic)
+nasl_ereg (lex_ctxt *lexic)
 {
   char *pattern = get_str_var_by_name (lexic, "pattern");
   char *string = get_str_var_by_name (lexic, "string");
@@ -484,8 +469,7 @@ nasl_ereg (lex_ctxt * lexic)
       return NULL;
     }
 
-  retc = alloc_tree_cell ();
-  retc->type = CONST_INT;
+  retc = alloc_typed_cell (CONST_INT);
   string = g_strdup (string);
   if (multiline)
     s = NULL;
@@ -510,7 +494,7 @@ nasl_ereg (lex_ctxt * lexic)
 
 /*---------------------------------------------------------------------*/
 
-#define NS	16
+#define NS 16
 /*
  * Copied from php3
  */
@@ -522,10 +506,10 @@ _regreplace (const char *pattern, const char *replace, const char *string,
   regex_t re;
   regmatch_t subs[NS];
 
-  char *buf,                    /* buf is where we build the replaced string */
-   *nbuf,                       /* nbuf is used when we grow the buffer */
-   *walkbuf;                    /* used to walk buf when replacing backrefs */
-  const char *walk;             /* used to walk replacement string for backrefs */
+  char *buf,        /* buf is where we build the replaced string */
+    *nbuf,          /* nbuf is used when we grow the buffer */
+    *walkbuf;       /* used to walk buf when replacing backrefs */
+  const char *walk; /* used to walk replacement string for backrefs */
   int buf_len;
   int pos, tmp, string_len, new_l;
   int err, copts = 0;
@@ -547,15 +531,13 @@ _regreplace (const char *pattern, const char *replace, const char *string,
   buf_len = 2 * string_len;
   buf = g_malloc0 (buf_len + 1);
 
-
   err = pos = 0;
   buf[0] = '\0';
 
   while (!err)
     {
       err =
-        regexec (&re, &string[pos], (size_t) NS, subs,
-                 (pos ? REG_NOTBOL : 0));
+        regexec (&re, &string[pos], (size_t) NS, subs, (pos ? REG_NOTBOL : 0));
 
       if (err && err != REG_NOMATCH)
         {
@@ -639,11 +621,11 @@ _regreplace (const char *pattern, const char *replace, const char *string,
             }
         }
       else
-        {                       /* REG_NOMATCH */
+        { /* REG_NOMATCH */
           new_l = strlen (buf) + strlen (&string[pos]);
           if (new_l + 1 > buf_len)
             {
-              buf_len = new_l;      /* now we know exactly how long it is */
+              buf_len = new_l; /* now we know exactly how long it is */
               nbuf = g_malloc0 (buf_len + 1);
               strncpy (nbuf, buf, buf_len);
               g_free (buf);
@@ -651,7 +633,6 @@ _regreplace (const char *pattern, const char *replace, const char *string,
             }
           /* stick that last bit of string on our output */
           strcat (buf, &string[pos]);
-
         }
     }
 
@@ -661,9 +642,8 @@ _regreplace (const char *pattern, const char *replace, const char *string,
   return (buf);
 }
 
-
 tree_cell *
-nasl_ereg_replace (lex_ctxt * lexic)
+nasl_ereg_replace (lex_ctxt *lexic)
 {
   char *pattern = get_str_var_by_name (lexic, "pattern");
   char *replace = get_str_var_by_name (lexic, "replace");
@@ -675,23 +655,18 @@ nasl_ereg_replace (lex_ctxt * lexic)
   if (pattern == NULL || replace == NULL)
     {
       nasl_perror (lexic,
-                   "Usage : ereg_replace(string:<string>, pattern:<pat>, replace:<replace>, icase:<TRUE|FALSE>\n");
+                   "Usage : ereg_replace(string:<string>, pattern:<pat>, "
+                   "replace:<replace>, icase:<TRUE|FALSE>\n");
       return NULL;
     }
   if (string == NULL)
-    {
-#if NASL_DEBUG > 1
-      nasl_perror (lexic, "ereg_replace: string == NULL\n");
-#endif
-      return NULL;
-    }
+    return NULL;
 
   r = _regreplace (pattern, replace, string, icase, 1);
   if (r == NULL)
     return FAKE_CELL;
 
-  retc = alloc_tree_cell ();
-  retc->type = CONST_DATA;
+  retc = alloc_typed_cell (CONST_DATA);
   retc->size = strlen (r);
   retc->x.str_val = r;
 
@@ -706,7 +681,7 @@ nasl_ereg_replace (lex_ctxt * lexic)
  *	egrep(pattern, string)
  */
 tree_cell *
-nasl_egrep (lex_ctxt * lexic)
+nasl_egrep (lex_ctxt *lexic)
 {
   char *pattern = get_str_var_by_name (lexic, "pattern");
   char *string = get_str_var_by_name (lexic, "string");
@@ -733,7 +708,6 @@ nasl_egrep (lex_ctxt * lexic)
   rets = g_malloc0 (max_size + 2);
   string = g_strdup (string);
 
-
   s = string;
   while (s[0] == '\n')
     s++;
@@ -751,7 +725,6 @@ nasl_egrep (lex_ctxt * lexic)
             nasl_perror (lexic, "egrep() : regcomp() failed\n");
             return NULL;
           }
-
 
         if (regexec (&re, s, (size_t) NS, subs, 0) == 0)
           {
@@ -776,7 +749,7 @@ nasl_egrep (lex_ctxt * lexic)
         if (s != NULL)
           {
             while (s[0] == '\n')
-              s++;              /* Skip empty lines */
+              s++; /* Skip empty lines */
             t = strchr (s, '\n');
           }
         else
@@ -798,8 +771,7 @@ nasl_egrep (lex_ctxt * lexic)
 #endif
   g_free (string);
 
-  retc = alloc_tree_cell ();
-  retc->type = CONST_DATA;
+  retc = alloc_typed_cell (CONST_DATA);
   retc->size = strlen (rets);
   retc->x.str_val = rets;
 
@@ -814,7 +786,7 @@ nasl_egrep (lex_ctxt * lexic)
  * In NASL, this function returns an array.
  */
 tree_cell *
-nasl_eregmatch (lex_ctxt * lexic)
+nasl_eregmatch (lex_ctxt *lexic)
 {
   char *pattern = get_str_var_by_name (lexic, "pattern");
   char *string = get_str_var_by_name (lexic, "string");
@@ -844,8 +816,7 @@ nasl_eregmatch (lex_ctxt * lexic)
       return NULL;
     }
 
-  retc = alloc_tree_cell ();
-  retc->type = DYN_ARRAY;
+  retc = alloc_typed_cell (DYN_ARRAY);
   retc->x.ref_val = a = g_malloc0 (sizeof (nasl_array));
 
   for (i = 0; i < NS; i++)
@@ -867,7 +838,7 @@ nasl_eregmatch (lex_ctxt * lexic)
  * position i2 (start of string is 0)
  */
 tree_cell *
-nasl_substr (lex_ctxt * lexic)
+nasl_substr (lex_ctxt *lexic)
 {
   char *s1;
   int sz1, sz2, i1, i2, typ;
@@ -878,7 +849,7 @@ nasl_substr (lex_ctxt * lexic)
   typ = get_var_type_by_num (lexic, 0);
   i1 = get_int_var_by_num (lexic, 1, -1);
 #ifndef MAX_INT
-#define MAX_INT (~(1 << (sizeof(int) * 8 - 1)))
+#define MAX_INT (~(1 << (sizeof (int) * 8 - 1)))
 #endif
   i2 = get_int_var_by_num (lexic, 2, MAX_INT);
   if (i2 >= sz1)
@@ -887,19 +858,22 @@ nasl_substr (lex_ctxt * lexic)
   if (s1 == NULL)
     {
       nasl_perror (lexic, "Usage: substr(string, idx_start [,idx_end])\n. "
-                   "The given string is NULL");
+                          "The given string is NULL");
       return NULL;
     }
   if (i1 < 0)
     {
-      nasl_perror (lexic, "Usage: substr(string, idx_start [,idx_end]). "
+      nasl_perror (lexic,
+                   "Usage: substr(string, idx_start [,idx_end]). "
                    "At least idx_start must be given to trim the "
-                   "string '%s'.\n", s1);
+                   "string '%s'.\n",
+                   s1);
       return NULL;
     }
 
-  retc = alloc_tree_cell ();
-  retc->type = (typ == CONST_STR ? CONST_STR : CONST_DATA);
+  retc = alloc_typed_cell (CONST_DATA);
+  if (typ == CONST_STR)
+    retc->type = CONST_STR;
   if (i1 > i2)
     {
       retc->x.str_val = g_malloc0 (1);
@@ -920,7 +894,7 @@ nasl_substr (lex_ctxt * lexic)
  * Warning: returns a CONST_DATA!
  */
 tree_cell *
-nasl_insstr (lex_ctxt * lexic)
+nasl_insstr (lex_ctxt *lexic)
 {
   char *s1, *s2, *s3;
   int sz1, sz2, sz3, i1, i2;
@@ -949,8 +923,7 @@ nasl_insstr (lex_ctxt * lexic)
       return NULL;
     }
 
-  retc = alloc_tree_cell ();
-  retc->type = CONST_DATA;
+  retc = alloc_typed_cell (CONST_DATA);
 
   if (i1 > i2)
     {
@@ -978,9 +951,8 @@ nasl_insstr (lex_ctxt * lexic)
   return retc;
 }
 
-
 tree_cell *
-nasl_match (lex_ctxt * lexic)
+nasl_match (lex_ctxt *lexic)
 {
   char *pattern = get_str_var_by_name (lexic, "pattern");
   char *string = get_str_var_by_name (lexic, "string");
@@ -998,14 +970,13 @@ nasl_match (lex_ctxt * lexic)
       return NULL;
     }
 
-  retc = alloc_tree_cell ();
-  retc->type = CONST_INT;
+  retc = alloc_typed_cell (CONST_INT);
   retc->x.i_val = str_match (string, pattern, icase);
   return retc;
 }
 
 tree_cell *
-nasl_split (lex_ctxt * lexic)
+nasl_split (lex_ctxt *lexic)
 {
   tree_cell *retc;
   nasl_array *a;
@@ -1015,12 +986,7 @@ nasl_split (lex_ctxt * lexic)
 
   str = get_str_var_by_num (lexic, 0);
   if (str == NULL)
-    {
-#if NASL_DEBUG > 0
-      nasl_perror (lexic, "split: missing string parameter\n");
-#endif
-      return NULL;
-    }
+    return NULL;
   len = get_var_size_by_num (lexic, 0);
   if (len <= 0)
     len = strlen (str);
@@ -1042,8 +1008,7 @@ nasl_split (lex_ctxt * lexic)
 
   keep = get_int_var_by_name (lexic, "keep", 1);
 
-  retc = alloc_tree_cell ();
-  retc->type = DYN_ARRAY;
+  retc = alloc_typed_cell (DYN_ARRAY);
   retc->x.ref_val = a = g_malloc0 (sizeof (nasl_array));
 
   bzero (&v, sizeof (v));
@@ -1118,7 +1083,7 @@ nasl_split (lex_ctxt * lexic)
            carriage return or line feed.
  */
 tree_cell *
-nasl_chomp (lex_ctxt * lexic)
+nasl_chomp (lex_ctxt *lexic)
 {
   tree_cell *retc;
   char *str;
@@ -1128,8 +1093,7 @@ nasl_chomp (lex_ctxt * lexic)
   if (str == NULL)
     return NULL;
 
-  retc = alloc_tree_cell ();
-  retc->type = CONST_DATA;
+  retc = alloc_typed_cell (CONST_DATA);
 
   g_strchomp (str);
   len = strlen (str);
@@ -1140,10 +1104,9 @@ nasl_chomp (lex_ctxt * lexic)
   return retc;
 }
 
-
 /*---------------------------------------------------------------------*/
 tree_cell *
-nasl_crap (lex_ctxt * lexic)
+nasl_crap (lex_ctxt *lexic)
 {
   tree_cell *retc;
   char *data = get_str_var_by_name (lexic, "data");
@@ -1177,8 +1140,7 @@ nasl_crap (lex_ctxt * lexic)
         }
     }
 
-  retc = alloc_tree_cell ();
-  retc->type = CONST_DATA /*CONST_STR */ ;
+  retc = alloc_typed_cell (CONST_DATA);
   retc->x.str_val = g_malloc0 (len + 1);
   retc->size = len;
   if (data == NULL)
@@ -1206,7 +1168,7 @@ nasl_crap (lex_ctxt * lexic)
 /*---------------------------------------------------------------------*/
 
 tree_cell *
-nasl_strstr (lex_ctxt * lexic)
+nasl_strstr (lex_ctxt *lexic)
 {
   char *a = get_str_var_by_num (lexic, 0);
   char *b = get_str_var_by_num (lexic, 1);
@@ -1226,13 +1188,11 @@ nasl_strstr (lex_ctxt * lexic)
   if (c == NULL)
     return FAKE_CELL;
 
-  retc = alloc_tree_cell ();
-  retc->type = CONST_DATA;
+  retc = alloc_typed_cell (CONST_DATA);
   retc->size = sz_a - (c - a);
   retc->x.str_val = g_memdup (c, retc->size + 1);
   return retc;
 }
-
 
 /**
  * @brief Returns index of a substring.
@@ -1246,7 +1206,7 @@ nasl_strstr (lex_ctxt * lexic)
  * @see strstr
  */
 tree_cell *
-nasl_stridx (lex_ctxt * lexic)
+nasl_stridx (lex_ctxt *lexic)
 {
   char *a = get_str_var_by_num (lexic, 0);
   int sz_a = get_var_size_by_num (lexic, 0);
@@ -1282,13 +1242,12 @@ nasl_stridx (lex_ctxt * lexic)
  * str_replace(string: s, find: f, replace: r [,count: n])
  */
 tree_cell *
-nasl_str_replace (lex_ctxt * lexic)
+nasl_str_replace (lex_ctxt *lexic)
 {
   char *a, *b, *r, *s, *c;
   int sz_a, sz_b, sz_r, count;
   int i1, i2, sz2, n, l;
   tree_cell *retc = NULL;
-
 
   a = get_str_var_by_name (lexic, "string");
   b = get_str_var_by_name (lexic, "find");
@@ -1300,8 +1259,8 @@ nasl_str_replace (lex_ctxt * lexic)
 
   if (a == NULL || b == NULL)
     {
-      nasl_perror (lexic,
-                   "Missing argument: str_replace(string: s, find: f, replace: r [,count: c])\n");
+      nasl_perror (lexic, "Missing argument: str_replace(string: s, find: f, "
+                          "replace: r [,count: c])\n");
       return NULL;
     }
 
@@ -1361,16 +1320,15 @@ nasl_str_replace (lex_ctxt * lexic)
 
 /*---------------------------------------------------------------------*/
 tree_cell *
-nasl_int (lex_ctxt * lexic)
+nasl_int (lex_ctxt *lexic)
 {
   long int r = get_int_var_by_num (lexic, 0, 0);
   tree_cell *retc;
 
-  retc = alloc_tree_cell ();
-  retc->type = CONST_INT;
+  retc = alloc_typed_cell (CONST_INT);
   retc->x.i_val = r;
 
   return retc;
 }
 
- /*EOF*/
+/*EOF*/

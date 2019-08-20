@@ -1,10 +1,10 @@
-/* NASL Attack Scripting Language
+/* Copyright (C) 2002 - 2004 Tenable Network Security
  *
- * Copyright (C) 2002 - 2004 Tenable Network Security
+ * SPDX-License-Identifier: GPL-2.0-only
  *
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License version 2,
- * as published by the Free Software Foundation
+ * This program is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU General Public License
+ * version 2 as published by the Free Software Foundation.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -13,28 +13,26 @@
  *
  * You should have received a copy of the GNU General Public License
  * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
- *
+ * Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA 02110-1301 USA.
  */
 
-#include <arpa/inet.h>          /* for inet_ntoa */
-#include <string.h>             /* for bcopy */
-#include <glib.h>               /* for gfree */
-#include "../misc/bpf_share.h"          /* for bpf_datalink */
-#include "../misc/pcap_openvas.h"       /* for get_datalink_size */
-
-#include <pcap.h>
-
 #include "capture_packet.h"
-#include <netinet/ip.h>
 
+#include "../misc/bpf_share.h"    /* for bpf_datalink */
+#include "../misc/pcap_openvas.h" /* for get_datalink_size */
+
+#include <arpa/inet.h> /* for inet_ntoa */
+#include <glib.h>      /* for gfree */
+#include <netinet/ip.h>
+#include <pcap.h>
+#include <string.h> /* for bcopy */
 #include <sys/param.h>
 #ifdef __FreeBSD__
 #include <sys/socket.h>
 #endif
 
-extern int islocalhost (struct in_addr *);
-
+extern int
+islocalhost (struct in_addr *);
 
 /**
  * @brief Set up the pcap filter, and select the correct interface.
@@ -59,9 +57,8 @@ init_capture_device (struct in_addr src, struct in_addr dest, char *filter)
       filter = g_malloc0 (256);
       free_filter = 1;
       if (islocalhost (&src) == 0)
-        snprintf (filter, 256, "ip and (src host %s and dst host %s)",
-                  a_src, a_dst);
-
+        snprintf (filter, 256, "ip and (src host %s and dst host %s)", a_src,
+                  a_dst);
     }
   else
     {
@@ -78,7 +75,6 @@ init_capture_device (struct in_addr src, struct in_addr dest, char *filter)
   if ((interface = routethrough (&src, &dest))
       || (interface = pcap_lookupdev (errbuf)))
     ret = bpf_open_live (interface, filter);
-
 
   if (free_filter != 0)
     g_free (filter);
@@ -126,7 +122,6 @@ capture_next_packet (int bpf, int timeout, int *sz)
         break;
     }
 
-
   if (packet != NULL)
     {
       struct ip *ip;
@@ -143,7 +138,6 @@ capture_next_packet (int bpf, int timeout, int *sz)
     }
   return ((struct ip *) ret);
 }
-
 
 int
 init_v6_capture_device (struct in6_addr src, struct in6_addr dest, char *filter)
@@ -187,7 +181,6 @@ init_v6_capture_device (struct in6_addr src, struct in6_addr dest, char *filter)
 
   return ret;
 }
-
 
 struct ip6_hdr *
 capture_next_v6_packet (int bpf, int timeout, int *sz)

@@ -1,10 +1,10 @@
-/* NASL Attack Scripting Language
+/* Based on work Copyright (C) 2002 - 2004 Tenable Network Security
  *
- * Copyright (C) 2002 - 2004 Tenable Network Security
+ * SPDX-License-Identifier: GPL-2.0-only
  *
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License version 2,
- * as published by the Free Software Foundation
+ * This program is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU General Public License
+ * version 2 as published by the Free Software Foundation.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -13,19 +13,20 @@
  *
  * You should have received a copy of the GNU General Public License
  * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
- *
+ * Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA 02110-1301 USA.
  */
 
-#include <glib.h>  /* for g_free() */
-
-#include "nasl_func.h"
-#include "nasl_tree.h"
-#include "nasl_var.h"
-#include "nasl_global_ctxt.h"
 #include "nasl_lex_ctxt.h"
 
-void init_nasl_library (lex_ctxt *);
+#include "nasl_func.h"
+#include "nasl_global_ctxt.h"
+#include "nasl_tree.h"
+#include "nasl_var.h"
+
+#include <glib.h> /* for g_free() */
+
+void
+init_nasl_library (lex_ctxt *);
 
 lex_ctxt *
 init_empty_lex_ctxt ()
@@ -51,7 +52,7 @@ init_empty_lex_ctxt ()
 }
 
 void
-free_lex_ctxt (lex_ctxt * c)
+free_lex_ctxt (lex_ctxt *c)
 {
   deref_cell (c->ret_val);
   free_array (&c->ctx_vars);
@@ -60,7 +61,7 @@ free_lex_ctxt (lex_ctxt * c)
 }
 
 void
-dump_ctxt (lex_ctxt * c)
+dump_ctxt (lex_ctxt *c)
 {
   int i;
   named_nasl_var *v;

@@ -1,10 +1,10 @@
-/* NASL Attack Scripting Language
+/* Based on work Copyright (C) 2002 - 2004 Tenable Network Security
  *
- * Copyright (C) 2002 - 2004 Tenable Network Security
+ * SPDX-License-Identifier: GPL-2.0-only
  *
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License version 2,
- * as published by the Free Software Foundation
+ * This program is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU General Public License
+ * version 2 as published by the Free Software Foundation.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -13,43 +13,44 @@
  *
  * You should have received a copy of the GNU General Public License
  * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
+ * Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA 02110-1301 USA.
  */
-
-#include <glib.h>
-
-#include <ctype.h>              /* for isspace */
-#include <string.h>             /* for strlen */
-
-#include <gvm/base/prefs.h>      /* for prefs_get */
-#include <gvm/util/kb.h>         /* for kb_item_get_str */
-
-#include "../misc/plugutils.h"  /* plug_get_host_fqdn */
-
-#include "nasl_tree.h"
-#include "nasl_global_ctxt.h"
-#include "nasl_func.h"
-#include "nasl_var.h"
-#include "nasl_lex_ctxt.h"
-#include "exec.h"
-
-#include "nasl_debug.h"
-#include "nasl_socket.h"
 
 #include "nasl_http.h"
 
+#include "../misc/plugutils.h"     /* plug_get_host_fqdn */
+#include "../misc/vendorversion.h" /* for vendor_version_get */
+#include "exec.h"
+#include "nasl_debug.h"
+#include "nasl_func.h"
+#include "nasl_global_ctxt.h"
+#include "nasl_lex_ctxt.h"
+#include "nasl_socket.h"
+#include "nasl_tree.h"
+#include "nasl_var.h"
+
+#include <ctype.h> /* for isspace */
+#include <glib.h>
+#include <gvm/base/prefs.h> /* for prefs_get */
+#include <gvm/util/kb.h>    /* for kb_item_get_str */
+#include <string.h>         /* for strlen */
+
+#undef G_LOG_DOMAIN
+/**
+ * @brief GLib log domain.
+ */
+#define G_LOG_DOMAIN "lib  nasl"
 
 /*-----------------[ http_* functions ]-------------------------------*/
 
-
 tree_cell *
-http_open_socket (lex_ctxt * lexic)
+http_open_socket (lex_ctxt *lexic)
 {
   return nasl_open_sock_tcp_bufsz (lexic, 65536);
 }
 
 tree_cell *
-http_close_socket (lex_ctxt * lexic)
+http_close_socket (lex_ctxt *lexic)
 {
   return nasl_close_socket (lexic);
 }
@@ -64,33 +65,23 @@ build_encode_URL (char *method, char *path, char *name, char *httpver)
   else
     ret = g_strdup_printf ("%s/%s", path, name);
 
-#ifdef URL_DEBUG
-  g_message ("Request => %s", ret);
-#endif
-
+  g_debug ("Request => %s", ret);
   ret2 = g_strdup_printf ("%s %s %s", method, ret, httpver);
   g_free (ret);
   return ret2;
 }
 
 static tree_cell *
-_http_req (lex_ctxt * lexic, char *keyword)
+_http_req (lex_ctxt *lexic, char *keyword)
 {
   tree_cell *retc;
-  char *str;
+  char *request, *auth, tmp[32];
   char *item = get_str_var_by_name (lexic, "item");
   char *data = get_str_var_by_name (lexic, "data");
   int port = get_int_var_by_name (lexic, "port", -1);
-  char *url = NULL;
   struct script_infos *script_infos = lexic->script_infos;
-  char *auth, tmp[32];
   int ver;
-  int cl;
-  int al;
-  char content_l_str[32];
   kb_t kb;
-  int str_length = 0;
-
 
   if (item == NULL || port < 0)
     {
@@ -111,49 +102,31 @@ _http_req (lex_ctxt * lexic, char *keyword)
   g_snprintf (tmp, sizeof (tmp), "/tmp/http/auth/%d", port);
   auth = kb_item_get_str (kb, tmp);
 
-  if (auth == NULL)
+  if (!auth)
     auth = kb_item_get_str (kb, "http/auth");
 
   g_snprintf (tmp, sizeof (tmp), "http/%d", port);
   ver = kb_item_get_int (kb, tmp);
 
-  if (data == NULL)
-    {
-      cl = 0;
-      *content_l_str = '\0';
-    }
-  else
-    {
-      cl = strlen (data);
-      g_snprintf (content_l_str, sizeof (content_l_str),
-                  "Content-Length: %d\r\n", cl);
-    }
-
-  if (auth != NULL)
-    al = strlen (auth);
-  else
-    al = 0;
-
   if ((ver <= 0) || (ver == 11))
     {
-      char *hostname, *ua, *hostheader;
+      char *hostname, *ua, *hostheader, *url;
 
       hostname = plug_get_host_fqdn (script_infos);
       if (hostname == NULL)
         return NULL;
-      ua = kb_item_get_str (kb, "http/user-agent");
-#define OPENVAS_USER_AGENT	"Mozilla/5.0 [en] (X11, U; OpenVAS)"
-      if (ua == NULL)
-        ua = g_strdup (OPENVAS_USER_AGENT);
-      else
+      /* global_settings.nasl */
+      ua = get_plugin_preference ("1.3.6.1.4.1.25623.1.0.12288",
+                                  "HTTP User-Agent");
+      if (!ua || strlen (g_strstrip (ua)) == 0)
         {
-          while (isspace (*ua))
-            ua++;
-          if (*ua == '\0')
-            {
-              g_free (ua);
-              ua = g_strdup (OPENVAS_USER_AGENT);
-            }
+          g_free (ua);
+          if (!vendor_version_get () || *vendor_version_get () == '\0')
+            ua = g_strdup_printf ("Mozilla/5.0 [en] (X11, U; OpenVAS-VT %s)",
+                                  OPENVAS_NASL_VERSION);
+          else
+            ua = g_strdup_printf ("Mozilla/5.0 [en] (X11, U; %s)",
+                                  vendor_version_get ());
         }
 
       /* Servers should not have a problem with port 80 or 443 appended.
@@ -169,10 +142,7 @@ _http_req (lex_ctxt * lexic, char *keyword)
         hostheader = g_strdup_printf ("%s:%d", hostname, port);
 
       url = build_encode_URL (keyword, NULL, item, "HTTP/1.1");
-      str_length =
-        strlen (url) + strlen (hostname) + al + cl + strlen (ua) + 1024;
-      str = g_malloc0 (str_length);
-      g_snprintf (str, str_length, "%s\r\n\
+      request = g_strdup_printf ("%s\r\n\
 Connection: Close\r\n\
 Host: %s\r\n\
 Pragma: no-cache\r\n\
@@ -180,41 +150,42 @@ Cache-Control: no-cache\r\n\
 User-Agent: %s\r\n\
 Accept: image/gif, image/x-xbitmap, image/jpeg, image/pjpeg, image/png, */*\r\n\
 Accept-Language: en\r\n\
-Accept-Charset: iso-8859-1,*,utf-8\r\n", url, hostheader, ua);
+Accept-Charset: iso-8859-1,*,utf-8\r\n",
+                                 url, hostheader, ua);
       g_free (hostname);
       g_free (hostheader);
       g_free (ua);
+      g_free (url);
+    }
+  else
+    request = build_encode_URL (keyword, NULL, item, "HTTP/1.0\r\n");
+
+  if (auth)
+    {
+      char *tmp = g_strconcat (request, auth, "\r\n", NULL);
+      g_free (request);
+      request = tmp;
+    }
+  if (data)
+    {
+      char content_length[128], *tmp;
+
+      g_snprintf (content_length, sizeof (content_length),
+                  "Content-Length: %zu\r\n\r\n", strlen (data));
+      tmp = g_strconcat (request, content_length, data, NULL);
+      g_free (request);
+      request = tmp;
     }
   else
     {
-      url = build_encode_URL (keyword, NULL, item, "HTTP/1.0\r\n");
-
-      str_length = strlen (url) + al + cl + 120;
-      str = g_malloc0 (str_length);
-      g_strlcpy (str, url, str_length);
-    }
-  g_free (url);
-
-  if (auth != NULL)
-    {
-      g_strlcat (str, auth, str_length);
-      g_strlcat (str, "\r\n", str_length);
+      char *tmp = g_strconcat (request, "\r\n", NULL);
+      g_free (request);
+      request = tmp;
     }
 
-  if (data != NULL)
-    g_strlcat (str, content_l_str, str_length);
-
-  g_strlcat (str, "\r\n", str_length);
-
-  if (data != NULL)
-    {
-      g_strlcat (str, data, str_length);
-    }
-
-  retc = alloc_tree_cell ();
-  retc->type = CONST_DATA;
-  retc->size = strlen (str);
-  retc->x.str_val = str;
+  retc = alloc_typed_cell (CONST_DATA);
+  retc->size = strlen (request);
+  retc->x.str_val = request;
   return retc;
 }
 
@@ -225,7 +196,7 @@ Accept-Charset: iso-8859-1,*,utf-8\r\n", url, hostheader, ua);
  *
  */
 tree_cell *
-http_get (lex_ctxt * lexic)
+http_get (lex_ctxt *lexic)
 {
   return _http_req (lexic, "GET");
 }
@@ -237,18 +208,17 @@ http_get (lex_ctxt * lexic)
  *
  */
 tree_cell *
-http_head (lex_ctxt * lexic)
+http_head (lex_ctxt *lexic)
 {
   return _http_req (lexic, "HEAD");
 }
-
 
 /*
  * Syntax :
  * http_post(port:<port>, item:<item>)
  */
 tree_cell *
-http_post (lex_ctxt * lexic)
+http_post (lex_ctxt *lexic)
 {
   return _http_req (lexic, "POST");
 }
@@ -257,7 +227,7 @@ http_post (lex_ctxt * lexic)
  * http_delete(port:<port>, item:<item>)
  */
 tree_cell *
-http_delete (lex_ctxt * lexic)
+http_delete (lex_ctxt *lexic)
 {
   return _http_req (lexic, "DELETE");
 }
@@ -266,17 +236,15 @@ http_delete (lex_ctxt * lexic)
  * http_put(port:<port>, item:<item>, data:<data>)
  */
 tree_cell *
-http_put (lex_ctxt * lexic)
+http_put (lex_ctxt *lexic)
 {
   return _http_req (lexic, "PUT");
 }
 
-
 /*-------------------[ cgibin() ]--------------------------------*/
 
-
 tree_cell *
-cgibin (lex_ctxt * lexic)
+cgibin (lex_ctxt *lexic)
 {
   const char *path = prefs_get ("cgi_path");
   tree_cell *retc;
@@ -284,8 +252,7 @@ cgibin (lex_ctxt * lexic)
   (void) lexic;
   if (path == NULL)
     path = "/cgi-bin:/scripts";
-  retc = alloc_tree_cell ();
-  retc->type = CONST_DATA;
+  retc = alloc_typed_cell (CONST_DATA);
   retc->x.str_val = g_strdup (path);
   retc->size = strlen (path);
 

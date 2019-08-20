@@ -1,11 +1,11 @@
-/*
- * Find service
+/* Portions Copyright (C) 2009-2019 Greenbone Networks GmbH
+ * Based on work Copyright (C) 2002 Renaud Deraison
  *
- * Copyright (C) 2002 Renaud Deraison <deraison@cvs.nessus.org>
+ * SPDX-License-Identifier: GPL-2.0-only
  *
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License version 2,
- * as published by the Free Software Foundation.
+ * This program is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU General Public License
+ * version 2 as published by the Free Software Foundation.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -14,42 +14,38 @@
  *
  * You should have received a copy of the GNU General Public License
  * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
+ * Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA 02110-1301 USA.
  */
+
 #define SMART_TCP_RW
-/* #define DEBUG */
 
-#include <stdio.h>              /* for snprintf() */
-#include <string.h>             /* for strstr() */
-#include <stdlib.h>             /* for atoi() */
-#include <errno.h>              /* for errno() */
-#include <signal.h>             /* for signal() */
-#include <ctype.h>              /* for tolower() */
-#include <sys/time.h>           /* for gettimeofday() */
-#include <sys/types.h>          /* for waitpid() */
-#include <sys/wait.h>           /* for waitpid() */
-#include <unistd.h>             /* for usleep() */
-
-#include <gvm/util/nvticache.h>
-
-#include "../misc/network.h"    /* for get_encaps_through */
-#include "../misc/plugutils.h"  /* for OPENVAS_ENCAPS_IP */
-
+#include "../misc/network.h"   /* for get_encaps_through */
+#include "../misc/plugutils.h" /* for OPENVAS_ENCAPS_IP */
 #include "nasl_lex_ctxt.h"
 
+#include <ctype.h> /* for tolower() */
+#include <errno.h> /* for errno() */
 #include <glib.h>
+#include <gvm/util/nvticache.h>
+#include <signal.h>    /* for signal() */
+#include <stdio.h>     /* for snprintf() */
+#include <stdlib.h>    /* for atoi() */
+#include <string.h>    /* for strstr() */
+#include <sys/time.h>  /* for gettimeofday() */
+#include <sys/types.h> /* for waitpid() */
+#include <sys/wait.h>  /* for waitpid() */
+#include <unistd.h>    /* for usleep() */
 
 #define CERT_FILE "SSL certificate : "
-#define KEY_FILE  "SSL private key : "
+#define KEY_FILE "SSL private key : "
 #define PEM_PASS "PEM password : "
-#define CA_FILE	"CA file : "
-#define CNX_TIMEOUT_PREF	"Network connection timeout : "
-#define RW_TIMEOUT_PREF		"Network read/write timeout : "
-#define WRAP_TIMEOUT_PREF	"Wrapped service read timeout : "
-#define TEST_SSL_PREF	"Test SSL based services"
+#define CA_FILE "CA file : "
+#define CNX_TIMEOUT_PREF "Network connection timeout : "
+#define RW_TIMEOUT_PREF "Network read/write timeout : "
+#define WRAP_TIMEOUT_PREF "Wrapped service read timeout : "
+#define TEST_SSL_PREF "Test SSL based services"
 
-
-#define NUM_CHILDREN		"Number of connections done in parallel : "
+#define NUM_CHILDREN "Number of connections done in parallel : "
 
 #undef G_LOG_DOMAIN
 /**
@@ -64,17 +60,6 @@ register_service (struct script_infos *desc, int port, const char *proto)
 {
   char k[96];
 
-#ifdef DEBUG
-  int l;
-  if (port < 0 || proto == NULL ||
-      (l = strlen (proto)) == 0 || l > sizeof (k) - 10)
-    {
-      g_message
-        ("find_service->register_service: invalid value - port=%d, proto=%s",
-         port, proto == NULL ? "(null)" : proto);
-      return;
-    }
-#endif
   /* Old "magical" key set */
   snprintf (k, sizeof (k), "Services/%s", proto);
   /* Do NOT use plug_replace_key! */
@@ -149,7 +134,6 @@ mark_nntp_server (struct script_infos *desc, int port, char *buffer, int trp)
   post_log (oid, desc, port, ban);
 }
 
-
 void
 mark_swat_server (struct script_infos *desc, int port)
 {
@@ -162,7 +146,6 @@ mark_vqserver (struct script_infos *desc, int port)
   register_service (desc, port, "vqServer-admin");
 }
 
-
 void
 mark_mldonkey (struct script_infos *desc, int port)
 {
@@ -171,8 +154,6 @@ mark_mldonkey (struct script_infos *desc, int port)
   snprintf (ban, sizeof (ban), "A mldonkey server is running on this port");
   post_log (oid, desc, port, ban);
 }
-
-
 
 void
 mark_http_server (struct script_infos *desc, int port, unsigned char *buffer,
@@ -186,7 +167,6 @@ mark_http_server (struct script_infos *desc, int port, unsigned char *buffer,
             get_encaps_through (trp));
   post_log (oid, desc, port, ban);
 }
-
 
 void
 mark_locked_adsubtract_server (struct script_infos *desc, int port,
@@ -238,7 +218,8 @@ mark_smtp_server (struct script_infos *desc, int port, char *buffer, int trp)
     char *t = strchr (buffer, '\n');
     if (t)
       t[0] = 0;
-    snprintf (report, 255 + strlen (buffer), "An SMTP server is running on this port%s\n\
+    snprintf (report, 255 + strlen (buffer),
+              "An SMTP server is running on this port%s\n\
 Here is its banner : \n%s",
               get_encaps_through (trp), buffer);
     post_log (oid, desc, port, report);
@@ -260,7 +241,8 @@ mark_snpp_server (struct script_infos *desc, int port, char *buffer, int trp)
     *t = '\0';
   snprintf (report, 255 + strlen (buffer),
             "An SNPP server is running on this port%s\n\
-Here is its banner : \n%s", get_encaps_through (trp), buffer);
+Here is its banner : \n%s",
+            get_encaps_through (trp), buffer);
   post_log (oid, desc, port, report);
   g_free (report);
 }
@@ -283,7 +265,8 @@ mark_ftp_server (struct script_infos *desc, int port, char *buffer, int trp)
       char *t = strchr (buffer, '\n');
       if (t != NULL)
         t[0] = '\0';
-      snprintf (report, 255 + strlen (buffer), "An FTP server is running on this port%s.\n\
+      snprintf (report, 255 + strlen (buffer),
+                "An FTP server is running on this port%s.\n\
 Here is its banner : \n%s",
                 get_encaps_through (trp), buffer);
       post_log (oid, desc, port, report);
@@ -303,8 +286,8 @@ void
 mark_ssh_server (struct script_infos *desc, int port, char *buffer)
 {
   register_service (desc, port, "ssh");
-  while ((buffer[strlen (buffer) - 1] == '\n') ||
-         (buffer[strlen (buffer) - 1] == '\r'))
+  while ((buffer[strlen (buffer) - 1] == '\n')
+         || (buffer[strlen (buffer) - 1] == '\r'))
     buffer[strlen (buffer) - 1] = '\0';
   post_log (oid, desc, port, "An ssh server is running on this port");
 }
@@ -377,7 +360,6 @@ mark_auth_server (struct script_infos *desc, int port)
   post_log (oid, desc, port, "An identd server is running on this port");
 }
 
-
 /*
  * Postgres, MySQL & CVS pserver detection by Vincent Renardias
  * <vincent@strongholdnet.com>
@@ -406,14 +388,12 @@ mark_cvspserver (struct script_infos *desc, int port)
   post_log (oid, desc, port, "A CVS pserver server is running on this port");
 }
 
-
 void
 mark_cvsupserver (struct script_infos *desc, int port)
 {
   register_service (desc, port, "cvsup");
   post_log (oid, desc, port, "A CVSup server is running on this port");
 }
-
 
 void
 mark_cvslockserver (struct script_infos *desc, int port)
@@ -430,15 +410,14 @@ mark_rsync (struct script_infos *desc, int port)
   post_log (oid, desc, port, "A rsync server is running on this port");
 }
 
-
 void
 mark_wild_shell (struct script_infos *desc, int port)
 {
-
   register_service (desc, port, "wild_shell");
 
-  post_alarm (oid, desc, port,
-              "A shell seems to be running on this port ! (this is a possible backdoor)");
+  post_alarm (
+    oid, desc, port,
+    "A shell seems to be running on this port ! (this is a possible backdoor)");
 }
 
 void
@@ -473,9 +452,10 @@ mark_eggdrop_server (struct script_infos *desc, int port, int trp)
   char ban[255];
   register_service (desc, port, "eggdrop");
   {
-    snprintf (ban, sizeof (ban),
-              "An eggdrop IRC bot seems to be running a control server on this port%s",
-              get_encaps_through (trp));
+    snprintf (
+      ban, sizeof (ban),
+      "An eggdrop IRC bot seems to be running a control server on this port%s",
+      get_encaps_through (trp));
     post_log (oid, desc, port, ban);
   }
 }
@@ -486,7 +466,6 @@ mark_netbus_server (struct script_infos *desc, int port)
   register_service (desc, port, "netbus");
   post_alarm (oid, desc, port, "NetBus is running on this port");
 }
-
 
 void
 mark_linuxconf (struct script_infos *desc, int port, unsigned char *buffer)
@@ -511,7 +490,6 @@ mark_finger_server (struct script_infos *desc, int port, int trp)
   post_log (oid, desc, port, tmp);
 }
 
-
 static void
 mark_vtun_server (struct script_infos *desc, int port, unsigned char *banner,
                   int trp)
@@ -532,7 +510,8 @@ mark_vtun_server (struct script_infos *desc, int port, unsigned char *banner,
   else
     snprintf (tmp, sizeof (tmp),
               "A VTUN server seems to be running on this port%s\n"
-              "Here is its banner:\n%s\n", get_encaps_through (trp), banner);
+              "Here is its banner:\n%s\n",
+              get_encaps_through (trp), banner);
 
   post_log (oid, desc, port, tmp);
 }
@@ -554,7 +533,6 @@ mark_uucp_server (struct script_infos *desc, int port, unsigned char *banner,
   post_log (oid, desc, port, tmp);
 }
 
-
 static void
 mark_lpd_server (struct script_infos *desc, int port, int trp)
 {
@@ -566,7 +544,6 @@ mark_lpd_server (struct script_infos *desc, int port, int trp)
             get_encaps_through (trp));
   post_log (oid, desc, port, tmp);
 }
-
 
 /* http://www.lysator.liu.se/lyskom/lyskom-server/ */
 static void
@@ -588,8 +565,7 @@ mark_ph_server (struct script_infos *desc, int port, int trp)
   char tmp[255];
 
   register_service (desc, port, "ph");
-  snprintf (tmp, sizeof (tmp),
-            "A PH server seems to be running on this port%s",
+  snprintf (tmp, sizeof (tmp), "A PH server seems to be running on this port%s",
             get_encaps_through (trp));
   post_log (oid, desc, port, tmp);
 }
@@ -606,7 +582,6 @@ mark_time_server (struct script_infos *desc, int port, int trp)
   post_log (oid, desc, port, tmp);
 }
 
-
 static void
 mark_ens_server (struct script_infos *desc, int port, int trp)
 {
@@ -614,7 +589,8 @@ mark_ens_server (struct script_infos *desc, int port, int trp)
   register_service (desc, port, "iPlanetENS");
 
   snprintf (tmp, sizeof (tmp),
-            "An iPlanet ENS (Event Notification Server) seems to be running on this port%s",
+            "An iPlanet ENS (Event Notification Server) seems to be running on "
+            "this port%s",
             get_encaps_through (trp));
   post_log (oid, desc, port, tmp);
 }
@@ -661,7 +637,6 @@ mark_exchg_routing_server (struct script_infos *desc, int port, char *buffer,
   }
 }
 
-
 static void
 mark_tcpmux_server (struct script_infos *desc, int port, int trp)
 {
@@ -673,7 +648,6 @@ mark_tcpmux_server (struct script_infos *desc, int port, int trp)
             get_encaps_through (trp));
   post_log (oid, desc, port, msg);
 }
-
 
 static void
 mark_BitTorrent_server (struct script_infos *desc, int port, int trp)
@@ -699,7 +673,6 @@ mark_smux_server (struct script_infos *desc, int port, int trp)
   post_log (oid, desc, port, msg);
 }
 
-
 /*
  * LISa is the LAN Information Server that comes
  * with KDE in Mandrake Linux 9.0. Apparently
@@ -716,7 +689,6 @@ mark_LISa_server (struct script_infos *desc, int port, int trp)
 
   post_log (oid, desc, port, tmp);
 }
-
 
 /*
  * msdtc is Microsoft Distributed Transaction Coordinator
@@ -744,7 +716,8 @@ mark_pop3pw_server (struct script_infos *desc, int port, char *buffer, int trp)
 }
 
 /*
- * whois++ server, thanks to Adam Stephens - http://roads.sourceforge.net/index.php
+ * whois++ server, thanks to Adam Stephens -
+ * http://roads.sourceforge.net/index.php
  *
  * 00: 25 20 32 32 30 20 4c 55 54 20 57 48 4f 49 53 2b    % 220 LUT WHOIS+
  * 10: 2b 20 73 65 72 76 65 72 20 76 32 2e 31 20 72 65    + server v2.1 re
@@ -757,7 +730,8 @@ mark_pop3pw_server (struct script_infos *desc, int port, char *buffer, int trp)
  */
 
 static void
-mark_whois_plus2_server (struct script_infos *desc, int port, char *buffer, int trp)
+mark_whois_plus2_server (struct script_infos *desc, int port, char *buffer,
+                         int trp)
 {
   char ban[255];
   register_service (desc, port, "whois++");
@@ -773,8 +747,8 @@ mark_whois_plus2_server (struct script_infos *desc, int port, char *buffer, int 
  * (http://www.kernel.org/software/mon/)
  *
  * An unknown server is running on this port. If you know what it is, please
- * send this banner to the development team: 00: 35 32 30 20 63 6f 6d 6d 61 6e 64
- * 20 63 6f 75 6c 520 command coul 10: 64 20 6e 6f 74 20 62 65 20 65 78 65 63
+ * send this banner to the development team: 00: 35 32 30 20 63 6f 6d 6d 61 6e
+ * 64 20 63 6f 75 6c 520 command coul 10: 64 20 6e 6f 74 20 62 65 20 65 78 65 63
  * 75 74 65 d not be execute 20: 64 0a d.
  */
 static void
@@ -789,7 +763,6 @@ mark_mon_server (struct script_infos *desc, int port, char *buffer, int trp)
   post_log (oid, desc, port, ban);
 }
 
-
 static void
 mark_fw1 (struct script_infos *desc, int port, char *buffer, int trp)
 {
@@ -797,7 +770,8 @@ mark_fw1 (struct script_infos *desc, int port, char *buffer, int trp)
   register_service (desc, port, "cpfw1");
   plug_replace_key (desc, ban, ARG_STRING, buffer);
   snprintf (ban, sizeof (ban),
-            "A CheckPoint FW1 SecureRemote or FW1 FWModule server is running on this port%s",
+            "A CheckPoint FW1 SecureRemote or FW1 FWModule server is running "
+            "on this port%s",
             get_encaps_through (trp));
   post_log (oid, desc, port, ban);
 }
@@ -831,7 +805,8 @@ mark_psybnc (struct script_infos *desc, int port, char *buffer, int trp)
  * 20: 20 73 74 72 65 61 6d 20 72 65 71 75 69 72 65 73 stream requires
  */
 static void
-mark_shoutcast_server (struct script_infos *desc, int port, char *buffer, int trp)
+mark_shoutcast_server (struct script_infos *desc, int port, char *buffer,
+                       int trp)
 {
   char ban[255];
   register_service (desc, port, "shoutcast");
@@ -840,7 +815,6 @@ mark_shoutcast_server (struct script_infos *desc, int port, char *buffer, int tr
             get_encaps_through (trp));
   post_log (oid, desc, port, ban);
 }
-
 
 /*
  * From "Hendrickson, Chris" <chendric@qssmeds.com>
@@ -854,13 +828,12 @@ mark_adsgone (struct script_infos *desc, int port, char *buffer, int trp)
   char ban[255];
   register_service (desc, port, "adsgone");
   plug_replace_key (desc, ban, ARG_STRING, buffer);
-  snprintf (ban, sizeof (ban),
-            "An AdsGone (a popup banner blocking server) is running on this port%s",
-            get_encaps_through (trp));
+  snprintf (
+    ban, sizeof (ban),
+    "An AdsGone (a popup banner blocking server) is running on this port%s",
+    get_encaps_through (trp));
   post_log (oid, desc, port, ban);
 }
-
-
 
 /*
  * Sig from  harm vos <h.vos@fwn.rug.nl> :
@@ -894,7 +867,6 @@ mark_acap_server (struct script_infos *desc, int port, char *buffer, int trp)
   }
 }
 
-
 /*
  * Sig from Cedric Foll <cedric.foll@ac-rouen.fr>
  *
@@ -917,7 +889,6 @@ mark_nagiosd_server (struct script_infos *desc, int port, int trp)
   snprintf (ban, sizeof (ban), "A nagiosd server is running on this port%s",
             get_encaps_through (trp));
   post_log (oid, desc, port, ban);
-
 }
 
 /*
@@ -932,13 +903,10 @@ mark_teamspeak2_server (struct script_infos *desc, int port, int trp)
 {
   char ban[255];
   register_service (desc, port, "teamspeak2");
-  snprintf (ban, sizeof (ban),
-            "A teamspeak2 server is running on this port%s",
+  snprintf (ban, sizeof (ban), "A teamspeak2 server is running on this port%s",
             get_encaps_through (trp));
   post_log (oid, desc, port, ban);
-
 }
-
 
 /*
  * Sig from <Gary.Crowell@experian.com>
@@ -962,7 +930,6 @@ mark_websm_server (struct script_infos *desc, int port, int trp)
   snprintf (ban, sizeof (ban), "A WEBSM server is running on this port%s",
             get_encaps_through (trp));
   post_log (oid, desc, port, ban);
-
 }
 
 /*
@@ -978,10 +945,7 @@ mark_ofa_express_server (struct script_infos *desc, int port, int trp)
             "An OFA/Express server is running on this port%s",
             get_encaps_through (trp));
   post_log (oid, desc, port, ban);
-
 }
-
-
 
 /*
  * From Pierre Abbat <phma@webjockey.net> 00: 53 75 53 45 20 4d 65 74 61 20
@@ -1036,7 +1000,6 @@ mark_sub7_server (struct script_infos *desc, int port, int trp)
   post_alarm (oid, desc, port, ban);
 }
 
-
 /*
  * From "Alex Lewis" <alex@sgl.org.au>
  *
@@ -1089,7 +1052,6 @@ mark_stonegate_auth_server (struct script_infos *desc, int port, int trp)
   post_log (oid, desc, port, ban);
 }
 
-
 void
 mark_listserv_server (struct script_infos *desc, int port, int trp)
 {
@@ -1102,7 +1064,6 @@ mark_listserv_server (struct script_infos *desc, int port, int trp)
     post_log (oid, desc, port, ban);
   }
 }
-
 
 void
 mark_fssniffer (struct script_infos *desc, int port, int trp)
@@ -1130,7 +1091,6 @@ mark_remote_nc_server (struct script_infos *desc, int port, int trp)
   }
 }
 
-
 /* Do not use register_service for unknown and wrapped services! */
 
 static void
@@ -1141,7 +1101,8 @@ mark_wrapped_svc (struct script_infos *desc, int port, int delta)
   snprintf (msg, sizeof (msg),
             "The service closed the connection after %d seconds "
             "without sending any data\n"
-            "It might be protected by some TCP wrapper\n", delta);
+            "It might be protected by some TCP wrapper\n",
+            delta);
   post_log (oid, desc, port, msg);
   /* Do NOT use plug_replace_key! */
   plug_set_key (desc, "Services/wrapped", ARG_INT, GSIZE_TO_POINTER (port));
@@ -1204,7 +1165,7 @@ port_to_name (int port)
     case 995:
       return "POP3S";
     case 1109:
-      return "KPOP";            /* ? */
+      return "KPOP"; /* ? */
     case 2309:
       return "Compaq Management Server";
     case 2401:
@@ -1224,7 +1185,8 @@ port_to_name (int port)
 }
 
 static void
-mark_unknown_svc (struct script_infos *desc, int port, const unsigned char *banner, int trp)
+mark_unknown_svc (struct script_infos *desc, int port,
+                  const unsigned char *banner, int trp)
 {
   char tmp[1600], *norm = NULL;
 
@@ -1239,7 +1201,8 @@ mark_unknown_svc (struct script_infos *desc, int port, const unsigned char *bann
     {
       snprintf (tmp, sizeof (tmp),
                 "An unknown service is running on this port%s.\n"
-                "It is usually reserved for %s", get_encaps_through (trp), norm);
+                "It is usually reserved for %s",
+                get_encaps_through (trp), norm);
     }
   if (*tmp != '\0')
     post_log (oid, desc, port, tmp);
@@ -1273,7 +1236,8 @@ mark_vmware_auth (struct script_infos *desc, int port, char *buffer, int trp)
 }
 
 static void
-mark_interscan_viruswall (struct script_infos *desc, int port, char *buffer, int trp)
+mark_interscan_viruswall (struct script_infos *desc, int port, char *buffer,
+                          int trp)
 {
   char ban[512];
 
@@ -1324,7 +1288,6 @@ mark_ircxpro_admin_server (struct script_infos *desc, int port, int trp)
   post_log (oid, desc, port, ban);
 }
 
-
 static void
 mark_gnocatan_server (struct script_infos *desc, int port, int trp)
 {
@@ -1340,7 +1303,8 @@ mark_gnocatan_server (struct script_infos *desc, int port, int trp)
 
 /* Thanks to Owell Crow */
 static void
-mark_pbmaster_server (struct script_infos *desc, int port, char *buffer, int trp)
+mark_pbmaster_server (struct script_infos *desc, int port, char *buffer,
+                      int trp)
 {
   char ban[512];
 
@@ -1360,12 +1324,10 @@ mark_dictd_server (struct script_infos *desc, int port, char *buffer, int trp)
 
   register_service (desc, port, "dicts");
 
-  snprintf (ban, sizeof (ban),
-            "A dictd server is running on this port%s:\n%s",
+  snprintf (ban, sizeof (ban), "A dictd server is running on this port%s:\n%s",
             get_encaps_through (trp), buffer);
   post_log (oid, desc, port, ban);
 }
-
 
 /* Thanks to Tony van Lingen */
 static void
@@ -1394,7 +1356,8 @@ mark_veritas_backup (struct script_infos *desc, int port, int trp)
 }
 
 static void
-mark_pblocald_server (struct script_infos *desc, int port, char *buffer, int trp)
+mark_pblocald_server (struct script_infos *desc, int port, char *buffer,
+                      int trp)
 {
   char ban[512];
 
@@ -1417,9 +1380,9 @@ mark_jabber_server (struct script_infos *desc, int port, int trp)
   post_log (oid, desc, port, ban);
 }
 
-
 static void
-mark_avotus_mm_server (struct script_infos *desc, int port, char *buffer, int trp)
+mark_avotus_mm_server (struct script_infos *desc, int port, char *buffer,
+                       int trp)
 {
   char ban[512];
 
@@ -1449,8 +1412,7 @@ mark_direct_connect_hub (struct script_infos *desc, int port, int trp)
   char str[256];
 
   register_service (desc, port, "DirectConnectHub");
-  snprintf (str, sizeof (str),
-            "A Direct Connect Hub is running on this port%s",
+  snprintf (str, sizeof (str), "A Direct Connect Hub is running on this port%s",
             get_encaps_through (trp));
   post_log (oid, desc, port, str);
 }
@@ -1465,14 +1427,14 @@ mark_direct_connect_hub (struct script_infos *desc, int port, int trp)
  * By the way, although the RFC is imprecise, it seems that the returned
  * integer is in "network byte order" (i.e. big endian)
  */
-#define MAX_SHIFT	(3*365*86400)
-#define DIFF_1970_1900	2208988800U
+#define MAX_SHIFT (3 * 365 * 86400)
+#define DIFF_1970_1900 2208988800U
 
 static int
-may_be_time (time_t * rtime)
+may_be_time (time_t *rtime)
 {
 #ifndef ABS
-#define ABS(x) (((x) < 0) ? -(x):(x))
+#define ABS(x) (((x) < 0) ? -(x) : (x))
 #endif
   time_t now = time (NULL);
   int rt70 = ntohl (*rtime) - DIFF_1970_1900;
@@ -1482,7 +1444,6 @@ may_be_time (time_t * rtime)
   else
     return 0;
 }
-
 
 static int
 plugin_do_run (struct script_infos *desc, GSList *h, int test_ssl)
@@ -1501,14 +1462,9 @@ plugin_do_run (struct script_infos *desc, GSList *h, int test_ssl)
   fd_set rfds, wfds;
   struct timeval tv;
   char k[32], *http_get;
-#ifdef DEBUG
-  struct host_info *hostinfo = desc->hostname;
-  struct in_addr *p_ip = hostinfo->ip;
-#endif
 
   host_fqdn = plug_get_host_fqdn (desc);
-  http_get = g_strdup_printf ("GET / HTTP/1.0\r\nHost: %s\r\n\r\n",
-                              host_fqdn);
+  http_get = g_strdup_printf ("GET / HTTP/1.0\r\nHost: %s\r\n\r\n", host_fqdn);
   g_free (host_fqdn);
 
   if (rw_timeout_s != NULL && (x = atoi (rw_timeout_s)) > 0)
@@ -1542,7 +1498,8 @@ plugin_do_run (struct script_infos *desc, GSList *h, int test_ssl)
           int diff_tv = 0, diff_tv2 = 0;
           int type, no_banner_grabbed = 0;
 
-#define DIFFTV1000(t1,t2)	((t1.tv_sec - t2.tv_sec)*1000 + (t1.tv_usec - t2.tv_usec)/1000)
+#define DIFFTV1000(t1, t2) \
+  ((t1.tv_sec - t2.tv_sec) * 1000 + (t1.tv_usec - t2.tv_usec) / 1000)
 
           bzero (buffer, sizeof (buffer));
           banner_len = 0;
@@ -1565,7 +1522,7 @@ plugin_do_run (struct script_infos *desc, GSList *h, int test_ssl)
                   else if (c1 >= 'A' && c1 <= 'F')
                     c1 -= 'A';
                   else
-                    banner_len = 0;     /* Invalid value */
+                    banner_len = 0; /* Invalid value */
                   c2 = bannerHex[2 * i + 1];
                   if (c2 >= 0 && c2 <= 9)
                     c2 -= '0';
@@ -1574,17 +1531,12 @@ plugin_do_run (struct script_infos *desc, GSList *h, int test_ssl)
                   else if (c2 >= 'A' && c2 <= 'F')
                     c2 -= 'A';
                   else
-                    banner_len = 0;     /* Invalid value */
+                    banner_len = 0; /* Invalid value */
                   buffer[i] = c1 << 4 | c2;
                 }
               buffer[i] = '\0';
               if (banner_len > 0)
                 banner = (unsigned char *) buffer;
-#ifdef DEBUG
-              g_message
-                ("find_service(%s): found hex banner in KB for port %d len=%d",
-                 inet_ntoa (*p_ip), port, banner_len);
-#endif
             }
           g_free (bannerHex);
           if (banner_len == 0)
@@ -1592,32 +1544,15 @@ plugin_do_run (struct script_infos *desc, GSList *h, int test_ssl)
               snprintf (kb, sizeof (kb), "Banner/%d", port);
               banner = plug_get_key (desc, kb, &type, NULL, 0);
               if (banner)
-                {
-                  banner_len = strlen ((char *) banner);
-#ifdef DEBUG
-                  g_message
-                    ("find_service(%s): found banner in KB for port %d len=%d",
-                     inet_ntoa (*p_ip), port, banner_len);
-#endif
-                }
+                banner_len = strlen ((char *) banner);
             }
           if (banner_len > 0)
             {
-#ifdef DEBUG
-              g_message
-                ("find_service(%s): banner is known on port %d -"
-                 " will not open a new connection", inet_ntoa (*p_ip), port);
-#endif
               cnx = -1;
               trp = OPENVAS_ENCAPS_IP;
             }
           else
             {
-#ifdef DEBUG
-              g_message
-                ("find_service(%s): banner is unknown on port %d"
-                 " - connecting...", inet_ntoa (*p_ip), port);
-#endif
               if (banner != NULL)
                 {
                   g_free (banner);
@@ -1648,23 +1583,17 @@ plugin_do_run (struct script_infos *desc, GSList *h, int test_ssl)
               if (cnx >= 0)
                 {
                   realfd = openvas_get_socket_from_connection (cnx);
-                  snprintf (k, sizeof (k), "FindService/CnxTime1000/%d",
-                            port);
+                  snprintf (k, sizeof (k), "FindService/CnxTime1000/%d", port);
                   plug_replace_key (desc, k, ARG_INT,
                                     GSIZE_TO_POINTER (diff_tv));
                   snprintf (k, sizeof (k), "FindService/CnxTime/%d", port);
-                  plug_replace_key (desc, k, ARG_INT,
-                                    GSIZE_TO_POINTER (((diff_tv +
-                                                        500) / 1000)));
+                  plug_replace_key (
+                    desc, k, ARG_INT,
+                    GSIZE_TO_POINTER (((diff_tv + 500) / 1000)));
                   if (diff_tv / 1000 > cnx_timeout)
                     plug_replace_key (desc, "/tmp/SlowFindService", ARG_INT,
                                       GSIZE_TO_POINTER (1));
                 }
-#ifdef DEBUG
-              g_message
-                ("find_service(%s): Port %d is open. \"Transport\" is %d",
-                 inet_ntoa (*p_ip), port, trp);
-#endif
               plug_set_port_transport (desc, port, trp);
               (void) stream_set_timeout (port, rw_timeout);
 
@@ -1704,11 +1633,6 @@ plugin_do_run (struct script_infos *desc, GSList *h, int test_ssl)
                         no_banner_grabbed = atoi ((char *) p);
                     }
                   g_free (p);
-#ifdef DEBUG
-                  g_message
-                    ("find_service(%s): no banner on port %d according to KB",
-                     inet_ntoa (*p_ip), port);
-#endif
 
                   if (!no_banner_grabbed)
                     {
@@ -1737,10 +1661,8 @@ plugin_do_run (struct script_infos *desc, GSList *h, int test_ssl)
                             {
                               if (FD_ISSET (realfd, &rfds))
                                 {
-                                  len =
-                                    read_stream_connection_min (cnx, buffer,
-                                                                1,
-                                                                sizeof (buffer) - 2);
+                                  len = read_stream_connection_min (
+                                    cnx, buffer, 1, sizeof (buffer) - 2);
                                 }
                             }
                           (void) gettimeofday (&tv2, NULL);
@@ -1748,14 +1670,8 @@ plugin_do_run (struct script_infos *desc, GSList *h, int test_ssl)
                         }
                     }
                   else
-                    {           /* No banner was found
-                                 * by openvas_tcp_scanner */
-#ifdef DEBUG
-                      g_message
-                        ("find_service(%s): no banner was found by"
-                         " openvas_tcp_scanner on port %d - sending GET"
-                         " without waiting", inet_ntoa (*p_ip), port);
-#endif
+                    { /* No banner was found
+                       * by openvas_tcp_scanner */
                       len = 0;
                       timeout = 0;
                     }
@@ -1763,19 +1679,13 @@ plugin_do_run (struct script_infos *desc, GSList *h, int test_ssl)
                   if (len <= 0 && !timeout)
 #endif
                     {
-#ifdef DEBUG
-                      if (!no_banner_grabbed)
-                        g_message
-                          ("No banner on port %d - sending GET", port);
-#endif
                       write_stream_connection (cnx, http_get,
                                                strlen (http_get));
                       (void) gettimeofday (&tv1, NULL);
                       get_sent = 1;
                       buffer[sizeof (buffer) - 1] = '\0';
-                      len =
-                        read_stream_connection (cnx, buffer,
-                                                sizeof (buffer) - 1);
+                      len = read_stream_connection (cnx, buffer,
+                                                    sizeof (buffer) - 1);
 #if 1
                       /*
                        * Try to work around broken
@@ -1785,10 +1695,8 @@ plugin_do_run (struct script_infos *desc, GSList *h, int test_ssl)
                       if (len > 0 && len < 8
                           && strncmp (buffer, "HTTP/1.", len) == 0)
                         {
-                          int len2 =
-                            read_stream_connection (cnx, buffer + len,
-                                                    sizeof (buffer) - 1 -
-                                                    len);
+                          int len2 = read_stream_connection (
+                            cnx, buffer + len, sizeof (buffer) - 1 - len);
                           if (len2 > 0)
                             len += len2;
                         }
@@ -1803,12 +1711,12 @@ plugin_do_run (struct script_infos *desc, GSList *h, int test_ssl)
                       plug_replace_key (desc, k, ARG_INT,
                                         GSIZE_TO_POINTER (diff_tv));
                       snprintf (k, sizeof (k), "FindService/RwTime/%d", port);
-                      plug_replace_key (desc, k, ARG_INT,
-                                        GSIZE_TO_POINTER ((diff_tv +
-                                                           500) / 1000));
+                      plug_replace_key (
+                        desc, k, ARG_INT,
+                        GSIZE_TO_POINTER ((diff_tv + 500) / 1000));
                       if (diff_tv / 1000 > rw_timeout)
-                        plug_replace_key (desc, "/tmp/SlowFindService",
-                                          ARG_INT, GSIZE_TO_POINTER (1));
+                        plug_replace_key (desc, "/tmp/SlowFindService", ARG_INT,
+                                          GSIZE_TO_POINTER (1));
                     }
                 }
 
@@ -1820,7 +1728,7 @@ plugin_do_run (struct script_infos *desc, GSList *h, int test_ssl)
                   banner[len] = '\0';
 
                   for (i = 0; i < len; i++)
-                    buffer[i] = ( buffer[i] == '\0' ) ? 'x' : tolower (buffer[i]);
+                    buffer[i] = (buffer[i] == '\0') ? 'x' : tolower (buffer[i]);
 
                   line = g_strdup (buffer);
 
@@ -1828,9 +1736,9 @@ plugin_do_run (struct script_infos *desc, GSList *h, int test_ssl)
                   if (t)
                     t[0] = '\0';
                   if (isdigit (banner[0]) && isdigit (banner[1])
-                      && isdigit (banner[2]) && (banner[3] == '\0'
-                                                 || isspace (banner[3])
-                                                 || banner[3] == '-'))
+                      && isdigit (banner[2])
+                      && (banner[3] == '\0' || isspace (banner[3])
+                          || banner[3] == '-'))
                     {
                       /*
                        * Do NOT use
@@ -1851,8 +1759,8 @@ plugin_do_run (struct script_infos *desc, GSList *h, int test_ssl)
                     snprintf (kb, sizeof (kb), "FindService/tcp/%d/get_http",
                               port);
                   else
-                    snprintf (kb, sizeof (kb),
-                              "FindService/tcp/%d/spontaneous", port);
+                    snprintf (kb, sizeof (kb), "FindService/tcp/%d/spontaneous",
+                              port);
                   plug_replace_key (desc, kb, ARG_STRING, banner);
 
                   {
@@ -1867,8 +1775,8 @@ plugin_do_run (struct script_infos *desc, GSList *h, int test_ssl)
 
                     for (y = 0; y < len; y++)
                       {
-                        snprintf (buf2 + 2 * y, sizeof (buf2) - (2 * y),
-                                  "%02x", (unsigned char) banner[y]);
+                        snprintf (buf2 + 2 * y, sizeof (buf2) - (2 * y), "%02x",
+                                  (unsigned char) banner[y]);
                         if (banner[y] == '\0')
                           flag = 1;
                       }
@@ -1887,23 +1795,21 @@ plugin_do_run (struct script_infos *desc, GSList *h, int test_ssl)
                    * Many services run on the top of an HTTP protocol,
                    * so the HTTP test is not an 'ELSE ... IF'
                    */
-                  if ((!strncmp (line, "http/1.", 7) ||
-                       strstr ((char *) banner,
-                               "<title>Not supported</title>")))
-                    {           /* <- broken hp
-                                 * jetdirect */
+                  if ((!strncmp (line, "http/1.", 7)
+                       || strstr ((char *) banner,
+                                  "<title>Not supported</title>")))
+                    { /* <- broken hp
+                       * jetdirect */
                       flg++;
-                      if (!
-                          (port == 5000
-                           && (strstr (line, "http/1.1 400 bad request") !=
-                               NULL))
-                          &&
-                          !(strncmp
-                            (line, "http/1.0 403 forbidden",
-                             strlen ("http/1.0 403 forbidden")) == 0
-                            && strstr (buffer, "server: adsubtract") != NULL))
+                      if (!(port == 5000
+                            && (strstr (line, "http/1.1 400 bad request")
+                                != NULL))
+                          && !(strncmp (line, "http/1.0 403 forbidden",
+                                        strlen ("http/1.0 403 forbidden"))
+                                 == 0
+                               && strstr (buffer, "server: adsubtract")
+                                    != NULL))
                         mark_http_server (desc, port, banner, trp);
-
                     }
                   /*
                    * RFC 854 defines commands between 240 and 254
@@ -1920,16 +1826,15 @@ plugin_do_run (struct script_infos *desc, GSList *h, int test_ssl)
                            && ((u_char) buffer[2] == 1)
                            && ((u_char) buffer[3] == 0))
                     mark_gnome14_server (desc, port, trp);
-                  else
-                    if (strncmp
-                        (line, "http/1.0 403 forbidden",
-                         strlen ("http/1.0 403 forbidden")) == 0
-                        && strstr (buffer, "server: adsubtract") != NULL)
+                  else if (strncmp (line, "http/1.0 403 forbidden",
+                                    strlen ("http/1.0 403 forbidden"))
+                             == 0
+                           && strstr (buffer, "server: adsubtract") != NULL)
                     {
                       mark_locked_adsubtract_server (desc, port, banner, trp);
                     }
-                  else if (strstr ((char *) banner, "Eggdrop") != NULL &&
-                           strstr ((char *) banner, "Eggheads") != NULL)
+                  else if (strstr ((char *) banner, "Eggdrop") != NULL
+                           && strstr ((char *) banner, "Eggheads") != NULL)
                     mark_eggdrop_server (desc, port, trp);
                   else if (strncmp (line, "$lock ", strlen ("$lock ")) == 0)
                     mark_direct_connect_hub (desc, port, trp);
@@ -1944,47 +1849,49 @@ plugin_do_run (struct script_infos *desc, GSList *h, int test_ssl)
                            == 0)
                     mark_shoutcast_server (desc, port, origline, trp);
                   else if ((!strncmp (line, "200", 3)
-                            &&
-                            (strstr
-                             (line, "running eudora internet mail server")))
-                           || (strstr (line, "+ok applepasswordserver") !=
-                               NULL))
+                            && (strstr (line,
+                                        "running eudora internet mail server")))
+                           || (strstr (line, "+ok applepasswordserver")
+                               != NULL))
                     mark_pop3pw_server (desc, port, origline, trp);
-                  else
-                    if ((strstr (line, "smtp")
-                         || strstr (line, "simple mail transfer")
-                         || strstr (line, "mail server")
-                         || strstr (line, "messaging")
-                         || strstr (line, "Weasel"))
-                        && !strncmp (line, "220", 3))
+                  else if ((strstr (line, "smtp")
+                            || strstr (line, "simple mail transfer")
+                            || strstr (line, "mail server")
+                            || strstr (line, "messaging")
+                            || strstr (line, "Weasel"))
+                           && !strncmp (line, "220", 3))
                     mark_smtp_server (desc, port, origline, trp);
-                  else if (strstr (line, "220 ***************") || strstr (line, "220 eSafe@")) /* CISCO SMTP (?) - see
-                                                                                                 * bug #175 */
+                  else if (strstr (line, "220 ***************")
+                           || strstr (line, "220 eSafe@")) /* CISCO SMTP (?) -
+                                                            * see bug #175 */
                     mark_smtp_server (desc, port, origline, trp);
                   else if (strstr (line, "220 esafealert") != NULL)
                     mark_smtp_server (desc, port, origline, trp);
-                  else if (strncmp (line, "220", 3) == 0 &&
-                           strstr (line, "groupwise internet agent") != NULL)
+                  else if (strncmp (line, "220", 3) == 0
+                           && strstr (line, "groupwise internet agent") != NULL)
                     mark_smtp_server (desc, port, origline, trp);
                   else if (strncmp (line, "220", 3) == 0
                            && strstr (line, " SNPP ") != NULL)
                     mark_snpp_server (desc, port, origline, trp);
-                  else if (strncmp (line, "200", 3) == 0 &&
-                           strstr (line, "mail ") != NULL)
+                  else if (strncmp (line, "200", 3) == 0
+                           && strstr (line, "mail ") != NULL)
                     mark_smtp_server (desc, port, origline, trp);
                   else if (strncmp (line, "421", 3) == 0
                            && strstr (line, "smtp ") != NULL)
                     mark_smtp_server (desc, port, origline, trp);
-                  else if ( line[0] != '\0' && ( ( strncmp (buffer + 1,"host '", 6) == 0) || ( strstr (buffer, "mysql") != NULL || strstr (buffer,"mariadb") != NULL ) ) )
-                     mark_mysql (desc, port);
+                  else if (line[0] != '\0'
+                           && ((strncmp (buffer + 1, "host '", 6) == 0)
+                               || (strstr (buffer, "mysql") != NULL
+                                   || strstr (buffer, "mariadb") != NULL)))
+                    mark_mysql (desc, port);
                   else if (!strncmp (line, "efatal", 6)
                            || !strncmp (line, "einvalid packet length",
                                         strlen ("einvalid packet length")))
                     mark_postgresql (desc, port);
                   else if (strstr (line, "cvsup server ready") != NULL)
                     mark_cvsupserver (desc, port);
-                  else if (!strncmp (line, "cvs [pserver aborted]:", 22) ||
-                           !strncmp (line, "cvs [server aborted]:", 21))
+                  else if (!strncmp (line, "cvs [pserver aborted]:", 22)
+                           || !strncmp (line, "cvs [server aborted]:", 21))
                     mark_cvspserver (desc, port);
                   else if (!strncmp (line, "cvslock ", 8))
                     mark_cvslockserver (desc, port);
@@ -1995,16 +1902,15 @@ plugin_do_run (struct script_infos *desc, GSList *h, int test_ssl)
                   else if (strstr (buffer, "rmserver")
                            || strstr (buffer, "realserver"))
                     mark_rmserver (desc, port, origline, trp);
-                  else
-                    if ((strstr (line, "ftp") || strstr (line, "winsock")
-                         || strstr (line, "axis network camera")
-                         || strstr (line, "netpresenz")
-                         || strstr (line, "serv-u")
-                         || strstr (line, "service ready for new user"))
-                        && !strncmp (line, "220", 3))
+                  else if ((strstr (line, "ftp") || strstr (line, "winsock")
+                            || strstr (line, "axis network camera")
+                            || strstr (line, "netpresenz")
+                            || strstr (line, "serv-u")
+                            || strstr (line, "service ready for new user"))
+                           && !strncmp (line, "220", 3))
                     mark_ftp_server (desc, port, origline, trp);
-                  else if (strncmp (line, "220-", 4) == 0)      /* FTP server with a
-                                                                 * long banner */
+                  else if (strncmp (line, "220-", 4) == 0) /* FTP server with a
+                                                            * long banner */
                     mark_ftp_server (desc, port, NULL, trp);
                   else if (strstr (line, "220") && strstr (line, "whois+"))
                     mark_whois_plus2_server (desc, port, origline, trp);
@@ -2013,11 +1919,9 @@ plugin_do_run (struct script_infos *desc, GSList *h, int test_ssl)
                   else if (strstr (line, "ssh-"))
                     mark_ssh_server (desc, port, origline);
                   else if (!strncmp (line, "+ok", 3)
-                           || (!strncmp (line, "+", 1)
-                               && strstr (line, "pop")))
+                           || (!strncmp (line, "+", 1) && strstr (line, "pop")))
                     mark_pop_server (desc, port, origline);
-                  else if (strstr (line, "imap4")
-                           && !strncmp (line, "* ok", 4))
+                  else if (strstr (line, "imap4") && !strncmp (line, "* ok", 4))
                     mark_imap_server (desc, port, origline, trp);
                   else if (strstr (line, "*ok iplanet messaging multiplexor"))
                     mark_imap_server (desc, port, origline, trp);
@@ -2059,38 +1963,39 @@ plugin_do_run (struct script_infos *desc, GSList *h, int test_ssl)
                     mark_linuxconf (desc, port, banner);
                   else if (strncmp (buffer, "gnudoit:", 8) == 0)
                     mark_gnuserv (desc, port);
-                  else
-                    if ((buffer[0] == '0'
-                         && strstr (buffer, "error.host\t1") != NULL)
-                        || (buffer[0] == '3'
-                            && strstr (buffer,
-                                       "That item is not currently available")))
+                  else if ((buffer[0] == '0'
+                            && strstr (buffer, "error.host\t1") != NULL)
+                           || (buffer[0] == '3'
+                               && strstr (
+                                    buffer,
+                                    "That item is not currently available")))
                     mark_gopher_server (desc, port);
-                  else
-                    if (strstr
-                        (buffer, "www-authenticate: basic realm=\"swat\""))
+                  else if (strstr (buffer,
+                                   "www-authenticate: basic realm=\"swat\""))
                     mark_swat_server (desc, port);
-                  else if (strstr (buffer, "vqserver") &&
-                           strstr (buffer, "www-authenticate: basic realm=/"))
+                  else if (strstr (buffer, "vqserver")
+                           && strstr (buffer,
+                                      "www-authenticate: basic realm=/"))
                     mark_vqserver (desc, port);
                   else if (strstr (buffer, "1invalid request") != NULL)
                     mark_mldonkey (desc, port);
                   else if (strstr (buffer, "get: command not found"))
                     mark_wild_shell (desc, port);
-                  else if (strstr (buffer, "microsoft windows") != NULL &&
-                           strstr (buffer, "c:\\") != NULL &&
-                           strstr (buffer, "(c) copyright 1985-") != NULL &&
-                           strstr (buffer, "microsoft corp.") != NULL)
+                  else if (strstr (buffer, "microsoft windows") != NULL
+                           && strstr (buffer, "c:\\") != NULL
+                           && strstr (buffer, "(c) copyright 1985-") != NULL
+                           && strstr (buffer, "microsoft corp.") != NULL)
                     mark_wild_shell (desc, port);
                   else if (strstr (buffer, "netbus"))
                     mark_netbus_server (desc, port);
-                  else if (strstr (line, "0 , 0 : error : unknown-error") ||
-                           strstr (line, "0, 0: error: unknown-error") ||
-                           strstr (line, "get : error : unknown-error") ||
-                           strstr (line, "0 , 0 : error : invalid-port"))
+                  else if (strstr (line, "0 , 0 : error : unknown-error")
+                           || strstr (line, "0, 0: error: unknown-error")
+                           || strstr (line, "get : error : unknown-error")
+                           || strstr (line, "0 , 0 : error : invalid-port"))
                     mark_auth_server (desc, port);
-                  else if (!strncmp (line, "http/1.", 7) && strstr (line, "proxy"))     /* my proxy "HTTP/1.1
-                                                                                         * 502 Proxy Error" */
+                  else if (!strncmp (line, "http/1.", 7)
+                           && strstr (line, "proxy")) /* my proxy "HTTP/1.1
+                                                       * 502 Proxy Error" */
                     mark_http_proxy (desc, port, trp);
                   else if (!strncmp (line, "http/1.", 7)
                            && strstr (buffer, "via: "))
@@ -2107,9 +2012,9 @@ plugin_do_run (struct script_infos *desc, GSList *h, int test_ssl)
                     mark_vnc_server (desc, port, origline);
                   else if (!strncmp (line, "ncacn_http/1.", 13))
                     mark_ncacn_http_server (desc, port, origline);
-                  else if (line_len >= 14 &&    /* no ending \r\n */
-                           line_len <= 18 &&    /* full GET request
-                                                 * length */
+                  else if (line_len >= 14 && /* no ending \r\n */
+                           line_len <= 18 && /* full GET request
+                                              * length */
                            strncmp (origline, http_get, line_len) == 0)
                     mark_echo_server (desc, port);
                   else if (strstr ((char *) banner, "!\"#$%&'()*+,-./")
@@ -2121,8 +2026,16 @@ plugin_do_run (struct script_infos *desc, GSList *h, int test_ssl)
                     mark_vtun_server (desc, port, banner, trp);
                   else if (strcmp (line, "login: password: ") == 0)
                     mark_uucp_server (desc, port, banner, trp);
-                  else if (strcmp (line, "bad request") == 0 || /* See bug # 387 */
-                           strstr (line, "invalid protocol request (71): gget / http/1.0") || (strncmp (line, "lpd:", 4) == 0) || (strstr (line, "lpsched") != NULL) || (strstr (line, "malformed from address") != NULL) || (strstr (line, "no connect permissions") != NULL) ||       /* <- RH 8 lpd */
+                  else if (strcmp (line, "bad request") == 0
+                           || /* See bug # 387 */
+                           strstr (
+                             line,
+                             "invalid protocol request (71): gget / http/1.0")
+                           || (strncmp (line, "lpd:", 4) == 0)
+                           || (strstr (line, "lpsched") != NULL)
+                           || (strstr (line, "malformed from address") != NULL)
+                           || (strstr (line, "no connect permissions") != NULL)
+                           || /* <- RH 8 lpd */
                            strcmp (line, "bad request") == 0)
                     mark_lpd_server (desc, port, trp);
                   else if (strstr (line, "%%lyskom unsupported protocol"))
@@ -2134,27 +2047,25 @@ plugin_do_run (struct script_infos *desc, GSList *h, int test_ssl)
                   else if (banner[0] == 'A' && banner[1] == 0x01
                            && banner[2] == 0x02 && banner[3] == '\0')
                     mark_smux_server (desc, port, trp);
-                  else
-                    if (!strncmp
-                        (line, "0 succeeded\n", strlen ("0 succeeded\n")))
+                  else if (!strncmp (line, "0 succeeded\n",
+                                     strlen ("0 succeeded\n")))
                     mark_LISa_server (desc, port, trp);
                   else if (strlen ((char *) banner) == 3 && banner[2] == '\n')
                     mark_msdtc_server (desc, port);
-                  else
-                    if ((!strncmp (line, "220", 3)
-                         && strstr (line, "poppassd")))
+                  else if ((!strncmp (line, "220", 3)
+                            && strstr (line, "poppassd")))
                     mark_pop3pw_server (desc, port, origline, trp);
                   else if (strstr (line, "welcome!psybnc@") != NULL)
                     mark_psybnc (desc, port, origline, trp);
                   else if (strncmp (line, "* acap ", strlen ("* acap ")) == 0)
                     mark_acap_server (desc, port, origline, trp);
-                  else if (strstr (origline, "Sorry, you (") != NULL &&
-                           strstr (origline,
-                                   "are not among the allowed hosts...\n") !=
-                           NULL)
+                  else if (strstr (origline, "Sorry, you (") != NULL
+                           && strstr (origline,
+                                      "are not among the allowed hosts...\n")
+                                != NULL)
                     mark_nagiosd_server (desc, port, trp);
-                  else if (strstr (line, "[ts].error") != NULL ||
-                           strstr (line, "[ts].\n") != NULL)
+                  else if (strstr (line, "[ts].error") != NULL
+                           || strstr (line, "[ts].\n") != NULL)
                     mark_teamspeak2_server (desc, port, trp);
                   else if (strstr (origline, "Language received from client:")
                            && strstr (origline, "Setlocale:"))
@@ -2163,29 +2074,27 @@ plugin_do_run (struct script_infos *desc, GSList *h, int test_ssl)
                     mark_ofa_express_server (desc, port, trp);
                   else if (strstr (line, "suse meta pppd") != NULL)
                     mark_smppd_server (desc, port, trp);
-                  else
-                    if (strncmp
-                        (origline, "ERR UNKNOWN-COMMAND",
-                         strlen ("ERR UNKNOWN-COMMAND")) == 0)
+                  else if (strncmp (origline, "ERR UNKNOWN-COMMAND",
+                                    strlen ("ERR UNKNOWN-COMMAND"))
+                           == 0)
                     mark_upsmon_server (desc, port, trp);
-                  else
-                    if (strncmp (line, "connected. ", strlen ("connected. "))
-                        == 0 && strstr (line, "legends") != NULL)
+                  else if (strncmp (line, "connected. ", strlen ("connected. "))
+                             == 0
+                           && strstr (line, "legends") != NULL)
                     mark_sub7_server (desc, port, trp);
                   else if (strncmp (line, "spamd/", strlen ("spamd/")) == 0)
                     mark_spamd_server (desc, port, trp);
                   else if (strstr (line, " dictd ")
                            && strncmp (line, "220", 3) == 0)
                     mark_dictd_server (desc, port, origline, trp);
-                  else if (strncmp (line, "220 ", 4) == 0 &&
-                           strstr (line,
-                                   "vmware authentication daemon") != NULL)
+                  else if (strncmp (line, "220 ", 4) == 0
+                           && strstr (line, "vmware authentication daemon")
+                                != NULL)
                     mark_vmware_auth (desc, port, origline, trp);
-                  else if (strncmp (line, "220 ", 4) == 0 &&
-                           strstr (line, "interscan version") != NULL)
+                  else if (strncmp (line, "220 ", 4) == 0
+                           && strstr (line, "interscan version") != NULL)
                     mark_interscan_viruswall (desc, port, origline, trp);
-                  else if ((strlen ((char *) banner) > 1)
-                           && (banner[0] == '~')
+                  else if ((strlen ((char *) banner) > 1) && (banner[0] == '~')
                            && (banner[strlen ((char *) banner) - 1] == '~')
                            && (strchr ((char *) banner, '}') != NULL))
                     mark_ppp_daemon (desc, port, trp);
@@ -2194,10 +2103,9 @@ plugin_do_run (struct script_infos *desc, GSList *h, int test_ssl)
                     mark_zebra_server (desc, port, origline, trp);
                   else if (strstr (line, "ircxpro ") != NULL)
                     mark_ircxpro_admin_server (desc, port, trp);
-                  else
-                    if (strncmp
-                        (origline, "version report",
-                         strlen ("version report")) == 0)
+                  else if (strncmp (origline, "version report",
+                                    strlen ("version report"))
+                           == 0)
                     mark_gnocatan_server (desc, port, trp);
                   else if (strncmp (origline, "RTSP/1.0", strlen ("RTSP/1.0"))
                            && strstr (origline, "QTSS/") != NULL)
@@ -2210,57 +2118,51 @@ plugin_do_run (struct script_infos *desc, GSList *h, int test_ssl)
                   else if (strncmp (line, "pbmasterd", strlen ("pbmasterd"))
                            == 0)
                     mark_pbmaster_server (desc, port, origline, trp);
-                  else if (strncmp (line, "pblocald", strlen ("pblocald")) ==
-                           0)
+                  else if (strncmp (line, "pblocald", strlen ("pblocald")) == 0)
                     mark_pblocald_server (desc, port, origline, trp);
-                  else
-                    if (strncmp
-                        (line, "<stream:error>invalid xml</stream:error>",
-                         strlen ("<stream:error>invalid xml</stream:error>"))
-                        == 0)
+                  else if (strncmp (
+                             line, "<stream:error>invalid xml</stream:error>",
+                             strlen (
+                               "<stream:error>invalid xml</stream:error>"))
+                           == 0)
                     mark_jabber_server (desc, port, trp);
-                  else
-                    if (strncmp
-                        (line, "/c -2 get ctgetoptions",
-                         strlen ("/c -2 get ctgetoptions")) == 0)
+                  else if (strncmp (line, "/c -2 get ctgetoptions",
+                                    strlen ("/c -2 get ctgetoptions"))
+                           == 0)
                     mark_avotus_mm_server (desc, port, origline, trp);
-                  else
-                    if (strncmp
-                        (line, "error:wrong password",
-                         strlen ("error:wrong password")) == 0)
+                  else if (strncmp (line, "error:wrong password",
+                                    strlen ("error:wrong password"))
+                           == 0)
                     mark_pnsclient (desc, port, trp);
-                  else
-                    if (strncmp (line, "1000      2", strlen ("1000      2"))
-                        == 0)
+                  else if (strncmp (line, "1000      2", strlen ("1000      2"))
+                           == 0)
                     mark_veritas_backup (desc, port, trp);
-                  else
-                    if (strstr
-                        (line, "the file name you specified is invalid")
-                        && strstr (line, "listserv"))
+                  else if (strstr (line,
+                                   "the file name you specified is invalid")
+                           && strstr (line, "listserv"))
                     mark_listserv_server (desc, port, trp);
-                  else
-                    if (strncmp
-                        (line, "control password:",
-                         strlen ("control password:")) == 0)
+                  else if (strncmp (line, "control password:",
+                                    strlen ("control password:"))
+                           == 0)
                     mark_fssniffer (desc, port, trp);
-                  else
-                    if (strncmp
-                        (line, "remotenc control password:",
-                         strlen ("remotenc control password:")) == 0)
+                  else if (strncmp (line, "remotenc control password:",
+                                    strlen ("remotenc control password:"))
+                           == 0)
                     mark_remote_nc_server (desc, port, trp);
-                  else
-                    if (((p =
-                          (unsigned char *) strstr ((char *) banner,
-                                                    "finger: GET: no such user"))
-                         != NULL
-                         && strstr ((char *) banner,
-                                    "finger: /: no such user") != NULL
-                         && strstr ((char *) banner,
-                                    "finger: HTTP/1.0: no such user") != NULL)
-                        || strstr ((char *) banner,
-                                   "Login       Name               TTY         Idle    When    Where")
-                        || strstr ((char *) banner, "Line     User")
-                        || strstr ((char *) banner, "Login name: GET"))
+                  else if (((p = (unsigned char *) strstr (
+                               (char *) banner, "finger: GET: no such user"))
+                              != NULL
+                            && strstr ((char *) banner,
+                                       "finger: /: no such user")
+                                 != NULL
+                            && strstr ((char *) banner,
+                                       "finger: HTTP/1.0: no such user")
+                                 != NULL)
+                           || strstr ((char *) banner,
+                                      "Login       Name               TTY      "
+                                      "   Idle    When    Where")
+                           || strstr ((char *) banner, "Line     User")
+                           || strstr ((char *) banner, "Login name: GET"))
                     {
                       char c = '\0';
                       if (p != NULL)
@@ -2275,11 +2177,10 @@ plugin_do_run (struct script_infos *desc, GSList *h, int test_ssl)
                       if (p != NULL)
                         *p = c;
                     }
-                  else if (banner[0] == 5 && banner[1] <= 8 &&
-                           banner[2] == 0 && banner[3] <= 4)
+                  else if (banner[0] == 5 && banner[1] <= 8 && banner[2] == 0
+                           && banner[3] <= 4)
                     mark_socks_proxy (desc, port, 5);
-                  else if (banner[0] == 0 && banner[1] >= 90
-                           && banner[1] <= 93)
+                  else if (banner[0] == 0 && banner[1] >= 90 && banner[1] <= 93)
                     mark_socks_proxy (desc, port, 4);
                   else
                     unindentified_service = !flg;
@@ -2289,24 +2190,19 @@ plugin_do_run (struct script_infos *desc, GSList *h, int test_ssl)
               /* len >= 0 */
               else
                 {
-#ifdef DEBUG
-                  g_message
-                    ("find_service(%s): could not read anything from port %d",
-                     inet_ntoa (*p_ip), port);
-#endif
                   unindentified_service = 1;
-#define TESTSTRING	"OpenVAS Wrap Test"
+#define TESTSTRING "OpenVAS Wrap Test"
                   if (trp == OPENVAS_ENCAPS_IP && wrap_timeout > 0)
-                      maybe_wrapped = 1;
+                    maybe_wrapped = 1;
                 }
               if (cnx > 0)
                 close_stream_connection (cnx);
 
               /*
-               * I'll clean this later. Meanwhile, we will not print a silly message
-               * for rsh and rlogin.
+               * I'll clean this later. Meanwhile, we will not print a silly
+               * message for rsh and rlogin.
                */
-              if (port == 513 /* rlogin */  || port == 514 /* rsh */ )
+              if (port == 513 /* rlogin */ || port == 514 /* rsh */)
                 maybe_wrapped = 0;
 
               if (maybe_wrapped /* && trp ==
@@ -2316,14 +2212,8 @@ plugin_do_run (struct script_infos *desc, GSList *h, int test_ssl)
                   int nfd, fd, x, flag = 0;
                   char b;
 
-#ifdef DEBUG
-                  g_message
-                    ("find_service(%s): potentially wrapped service on port %d",
-                     inet_ntoa (*p_ip), port);
-#endif
-                  nfd =
-                    open_stream_connection (desc, port, OPENVAS_ENCAPS_IP,
-                                            cnx_timeout);
+                  nfd = open_stream_connection (desc, port, OPENVAS_ENCAPS_IP,
+                                                cnx_timeout);
                   if (nfd >= 0)
                     {
                       fd = openvas_get_socket_from_connection (nfd);
@@ -2339,12 +2229,6 @@ plugin_do_run (struct script_infos *desc, GSList *h, int test_ssl)
                       x = select (fd + 1, &rfds, NULL, NULL, &tv);
                       (void) gettimeofday (&tv2, NULL);
                       diff_tv2 = DIFFTV1000 (tv2, tv1);
-#ifdef DEBUG
-                      g_message
-                        ("find_service(%s): select(port=%d)=%d after"
-                         " %d.%03d s on %d", inet_ntoa (*p_ip), port, x,
-                         diff_tv2, diff_tv2 / 1000, wrap_timeout);
-#endif
                       if (x < 0)
                         {
                           if (errno == EINTR)
@@ -2358,9 +2242,9 @@ plugin_do_run (struct script_infos *desc, GSList *h, int test_ssl)
                           if (x == 0 || (x < 0 && errno == EPIPE))
                             {
                               /*
-                               * If the service quickly closes the connection when we
-                               * send garbage but not when we don't send anything, it
-                               * is not wrapped
+                               * If the service quickly closes the connection
+                               * when we send garbage but not when we don't send
+                               * anything, it is not wrapped
                                */
                               flag = 1;
                             }
@@ -2387,12 +2271,6 @@ plugin_do_run (struct script_infos *desc, GSList *h, int test_ssl)
                               mark_wrapped_svc (desc, port, diff_tv2 / 1000);
                               unindentified_service = 0;
                             }
-#ifdef DEBUG
-                          else
-                            g_message ("\
-The service on port %s:%d closes the connection in %d.%03d s when we send garbage,\n \
-and in %d.%03d when we just wait. It is  probably not wrapped", inet_ntoa (*p_ip), port, diff_tv / 1000, diff_tv % 1000, diff_tv2 / 1000, diff_tv2 % 1000);
-#endif
                         }
                     }
                 }
@@ -2414,13 +2292,6 @@ and in %d.%03d when we just wait. It is  probably not wrapped", inet_ntoa (*p_ip
                 }
               g_free (banner);
             }
-#ifdef DEBUG
-          else
-            g_message
-              ("find_service(%s): could not connect to port %d",
-               inet_ntoa (*p_ip), port);
-#endif
-
         }
       h = h->next;
     }
@@ -2460,7 +2331,7 @@ sigchld (int s)
 }
 
 tree_cell *
-plugin_run_find_service (lex_ctxt * lexic)
+plugin_run_find_service (lex_ctxt *lexic)
 {
   struct script_infos *desc = lexic->script_infos;
 
@@ -2471,7 +2342,7 @@ plugin_run_find_service (lex_ctxt * lexic)
 
   GSList *sons_args[MAX_SONS];
   int num_ports = 0;
-  char *num_sons_s = get_plugin_preference (oid, NUM_CHILDREN);
+  char *num_sons_s;
   int num_sons = 6;
   int port_per_son;
   int i;
@@ -2502,6 +2373,7 @@ plugin_run_find_service (lex_ctxt * lexic)
       if (strcmp (test_ssl_s, "None") == 0)
         test_ssl = 0;
     }
+  g_free (test_ssl_s);
   if (key || cert)
     {
       if (!key)
@@ -2516,20 +2388,18 @@ plugin_run_find_service (lex_ctxt * lexic)
   if (cafile != NULL)
     plug_set_ssl_CA_file (desc, cafile);
 
-
   signal (SIGTERM, sigterm);
   signal (SIGCHLD, sigchld);
+  num_sons_s = get_plugin_preference (oid, NUM_CHILDREN);
   if (num_sons_s != NULL)
     num_sons = atoi (num_sons_s);
+  g_free (num_sons_s);
 
   if (num_sons <= 0)
     num_sons = 6;
 
   if (num_sons > MAX_SONS)
     num_sons = MAX_SONS;
-
-
-
 
   for (i = 0; i < num_sons; i++)
     {
@@ -2538,7 +2408,7 @@ plugin_run_find_service (lex_ctxt * lexic)
     }
 
   if (kb == NULL)
-    return NULL;                // TODO: in old days returned "1". Still relevant?
+    return NULL; // TODO: in old days returned "1". Still relevant?
 
   kbitem = kb_item_get_pattern (kb, "Ports/tcp/*");
 
@@ -2565,8 +2435,8 @@ plugin_run_find_service (lex_ctxt * lexic)
         {
           for (j = 0; j < port_per_son && kbitem_tmp != NULL;)
             {
-              sons_args[i] = g_slist_prepend (sons_args[i],
-                                              g_strdup (kbitem_tmp->name));
+              sons_args[i] =
+                g_slist_prepend (sons_args[i], g_strdup (kbitem_tmp->name));
               j++;
               kbitem_tmp = kbitem_tmp->next;
             }
@@ -2575,25 +2445,21 @@ plugin_run_find_service (lex_ctxt * lexic)
         break;
     }
 
-
   for (i = 0; (i < num_ports % num_sons) && kbitem_tmp != NULL;)
     {
-      sons_args[i] = g_slist_prepend (sons_args[i],
-                                      g_strdup (kbitem_tmp->name));
+      sons_args[i] =
+        g_slist_prepend (sons_args[i], g_strdup (kbitem_tmp->name));
       i++;
       kbitem_tmp = kbitem_tmp->next;
     }
 
   kb_item_free (kbitem);
 
-
   for (i = 0; i < num_sons; i++)
     if (sons_args[i] == NULL)
       break;
 
-
   num_sons = i;
-
 
   for (i = 0; i < num_sons; i++)
     {
@@ -2612,13 +2478,11 @@ plugin_run_find_service (lex_ctxt * lexic)
           else
             {
               if (sons[i] < 0)
-                sons[i] = 0;    /* Fork failed */
+                sons[i] = 0; /* Fork failed */
             }
           g_slist_free_full (sons_args[i], g_free);
         }
     }
-
-
 
   for (;;)
     {
@@ -2628,7 +2492,8 @@ plugin_run_find_service (lex_ctxt * lexic)
         {
           if (sons[i] != 0)
             {
-              while (waitpid (sons[i], NULL, WNOHANG) && errno == EINTR);
+              while (waitpid (sons[i], NULL, WNOHANG) && errno == EINTR)
+                ;
 
               if (kill (sons[i], 0) >= 0)
                 flag++;

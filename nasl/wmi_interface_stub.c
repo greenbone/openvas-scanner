@@ -1,13 +1,6 @@
-/* OpenVAS
+/* Copyright (C) 2009-2019 Greenbone Networks GmbH
  *
- * $Id$
- * Description: Stub implementation for a wmi interface.
- *
- * Authors:
- * Jan-Oliver Wagner <jan-oliver.wagner@greenbone.net>
- *
- * Copyright:
- * Copyright (c) 2009 Greenbone Networks GmbH, http://www.greenbone.net
+ * SPDX-License-Identifier: GPL-2.0-or-later
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -16,7 +9,7 @@
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
@@ -33,9 +26,9 @@
  */
 
 /* for NULL */
-#include <string.h>
-
 #include "openvas_wmi_interface.h"
+
+#include <string.h>
 
 /**
  * @brief Return version info for WMI implementation.
@@ -380,8 +373,8 @@ wmi_reg_get_qword_val (WMI_HANDLE handle, unsigned int hive, const char *key,
  * @return, 0 on success, -1 on failure
  */
 int
-wmi_reg_set_dword_val(WMI_HANDLE handle, const char *key, const char *val_name,
-						uint32_t val)
+wmi_reg_set_dword_val (WMI_HANDLE handle, const char *key, const char *val_name,
+                       uint32_t val)
 {
   (void) handle;
   (void) key;
@@ -402,8 +395,8 @@ wmi_reg_set_dword_val(WMI_HANDLE handle, const char *key, const char *val_name,
  * @return, 0 on success, -1 on failure
  */
 int
-wmi_reg_set_qword_val(WMI_HANDLE handle, const char *key, const char *val_name,
-						uint64_t val)
+wmi_reg_set_qword_val (WMI_HANDLE handle, const char *key, const char *val_name,
+                       uint64_t val)
 {
   (void) handle;
   (void) key;
@@ -424,8 +417,8 @@ wmi_reg_set_qword_val(WMI_HANDLE handle, const char *key, const char *val_name,
  * @return, 0 on success, -1 on failure
  */
 int
-wmi_reg_set_ex_string_val(WMI_HANDLE handle, const char *key,
-				 const char *val_name, const char *val)
+wmi_reg_set_ex_string_val (WMI_HANDLE handle, const char *key,
+                           const char *val_name, const char *val)
 {
   (void) handle;
   (void) key;
@@ -446,8 +439,8 @@ wmi_reg_set_ex_string_val(WMI_HANDLE handle, const char *key,
  * @return, 0 on success, -1 on failure
  */
 int
-wmi_reg_set_string_val(WMI_HANDLE handle, const char *key,
-				 const char *val_name, const char *val)
+wmi_reg_set_string_val (WMI_HANDLE handle, const char *key,
+                        const char *val_name, const char *val)
 {
   (void) handle;
   (void) key;
@@ -466,7 +459,7 @@ wmi_reg_set_string_val(WMI_HANDLE handle, const char *key,
  * @return, 0 on success, -1 on failure
  */
 int
-wmi_reg_create_key(WMI_HANDLE handle, const char *key)
+wmi_reg_create_key (WMI_HANDLE handle, const char *key)
 {
   (void) handle;
   (void) key;
@@ -483,7 +476,7 @@ wmi_reg_create_key(WMI_HANDLE handle, const char *key)
  * @return, 0 on success, -1 on failure
  */
 int
-wmi_reg_delete_key(WMI_HANDLE handle, const char *key)
+wmi_reg_delete_key (WMI_HANDLE handle, const char *key)
 {
   (void) handle;
   (void) key;

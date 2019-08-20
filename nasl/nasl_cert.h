@@ -1,12 +1,6 @@
-/* openvas-scanner/nasl
- * $Id$
- * Description: API for X.509 certificates
+/* Copyright (C) 2012-2019 Greenbone Networks GmbH
  *
- * Authors:
- * Werner Koch <wk@gnupg.org>
- *
- * Copyright:
- * Copyright (C) 2012 Greenbone Networks GmbH
+ * SPDX-License-Identifier: GPL-2.0-or-later
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -19,11 +13,9 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, see <http://www.gnu.org/licenses/>.
+ * along with this program; if not, write to the Free Software
+ * Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA 02110-1301 USA.
  */
-
-#ifndef NASL_CERT_H
-#define NASL_CERT_H
 
 /**
  * @file nasl_cert.h
@@ -32,9 +24,18 @@
  * This file contains the protos for \ref nasl_cert.c
  */
 
-tree_cell *nasl_cert_open (lex_ctxt *lexic);
-tree_cell *nasl_cert_close (lex_ctxt *lexic);
-tree_cell *nasl_cert_query (lex_ctxt *lexic);
+#ifndef NASL_CERT_H
+#define NASL_CERT_H
 
+#include "nasl_lex_ctxt.h"
+
+tree_cell *
+nasl_cert_open (lex_ctxt *lexic);
+
+tree_cell *
+nasl_cert_close (lex_ctxt *lexic);
+
+tree_cell *
+nasl_cert_query (lex_ctxt *lexic);
 
 #endif /*NASL_CERT_H*/

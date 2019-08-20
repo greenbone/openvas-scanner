@@ -1,13 +1,8 @@
-/* openvas-scanner/nasl
- * $Id$
- * Description: Implementation of an API for ISOTIME values.
+/* Portions Copyright (C) 2012-2019 Greenbone Networks GmbH
+ * Based on work Copyright (C) 1998, 2002, 2007, 2011 Free Software Foundation,
+ * Inc.
  *
- * Authors:
- * Werner Koch <wk@gnupg.org>
- *
- * Copyright:
- * Copyright (C) 1998, 2002, 2007, 2011 Free Software Foundation, Inc.
- * Copyright (C) 2012 Greenbone Networks GmbH
+ * SPDX-License-Identifier: GPL-2.0-or-later
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -20,7 +15,8 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, see <http://www.gnu.org/licenses/>.
+ * along with this program; if not, write to the Free Software
+ * Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA 02110-1301 USA.
  */
 
 /* This code is based on code from GnuPG 2.x, file common/gettime.c,
@@ -50,52 +46,50 @@
  * soon.
  */
 
-#include <stdlib.h>
-#include <stdio.h>
-#include <string.h>
-#include <unistd.h>
-#include <ctype.h>
-#include <time.h>
-#include <glib.h>
-#include <glib/gstdio.h>
-
-#include "nasl_tree.h"
-#include "nasl_global_ctxt.h"
-#include "nasl_var.h"
-#include "nasl_lex_ctxt.h"
-#include "nasl_debug.h"
-
 #include "nasl_isotime.h"
 
+#include "nasl_debug.h"
+#include "nasl_global_ctxt.h"
+#include "nasl_lex_ctxt.h"
+#include "nasl_tree.h"
+#include "nasl_var.h"
+
+#include <ctype.h>
+#include <glib.h>
+#include <glib/gstdio.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <time.h>
+#include <unistd.h>
 
 #ifndef DIM
-# define DIM(v)		     (sizeof(v)/sizeof((v)[0]))
-# define DIMof(type,member)   DIM(((type *)0)->member)
+#define DIM(v) (sizeof (v) / sizeof ((v)[0]))
+#define DIMof(type, member) DIM (((type *) 0)->member)
 #endif
 
 /* The type used to represent the time here is a string with a fixed
    length.  */
-#define ISOTIME_SIZE 16
+#define ISOTIME_SIZE 19
 typedef char my_isotime_t[ISOTIME_SIZE];
 
 /* Correction used to map to real Julian days. */
 #define JD_DIFF 1721060L
 
 /* Useful helper macros to avoid problems with locales.  */
-#define spacep(p)   (*(p) == ' ' || *(p) == '\t')
-#define digitp(p)   (*(p) >= '0' && *(p) <= '9')
+#define spacep(p) (*(p) == ' ' || *(p) == '\t')
+#define digitp(p) (*(p) >= '0' && *(p) <= '9')
 
 /* The atoi macros assume that the buffer has only valid digits. */
-#define atoi_1(p)   (*(p) - '0' )
-#define atoi_2(p)   ((atoi_1(p) * 10) + atoi_1((p)+1))
-#define atoi_4(p)   ((atoi_2(p) * 100) + atoi_2((p)+2))
-
+#define atoi_1(p) (*(p) - '0')
+#define atoi_2(p) ((atoi_1 (p) * 10) + atoi_1 ((p) + 1))
+#define atoi_4(p) ((atoi_2 (p) * 100) + atoi_2 ((p) + 2))
 
 /* Convert an Epoch time to an ISO timestamp. */
 static void
 epoch2isotime (my_isotime_t timebuf, time_t atime)
 {
-  if (atime == (time_t)(-1))
+  if (atime == (time_t) (-1))
     *timebuf = 0;
   else
     {
@@ -103,8 +97,8 @@ epoch2isotime (my_isotime_t timebuf, time_t atime)
 
       tp = gmtime (&atime);
       snprintf (timebuf, ISOTIME_SIZE, "%04d%02d%02dT%02d%02d%02d",
-                1900 + tp->tm_year, tp->tm_mon+1, tp->tm_mday,
-                tp->tm_hour, tp->tm_min, tp->tm_sec);
+                1900 + tp->tm_year, tp->tm_mon + 1, tp->tm_mday, tp->tm_hour,
+                tp->tm_min, tp->tm_sec);
     }
 }
 
@@ -114,7 +108,6 @@ get_current_isotime (my_isotime_t timebuf)
 {
   epoch2isotime (timebuf, time (NULL));
 }
-
 
 /* Check that the 15 bytes in ATIME represent a valid ISO timestamp.
    Returns 0 if ATIME has a valid format.  Note that this function
@@ -129,17 +122,16 @@ check_isotime (const my_isotime_t atime)
   if (!*atime)
     return 1;
 
-  for (s=atime, i=0; i < 8; i++, s++)
+  for (s = atime, i = 0; i < 8; i++, s++)
     if (!digitp (s))
       return 1;
   if (*s != 'T')
     return 1;
-  for (s++, i=9; i < 15; i++, s++)
+  for (s++, i = 9; i < 15; i++, s++)
     if (!digitp (s))
       return 1;
   return 0;
 }
-
 
 /* Return true if STRING holds an isotime string.  The expected format is
      yyyymmddThhmmss
@@ -153,20 +145,19 @@ isotime_p (const char *string)
 
   if (!*string)
     return 0;
-  for (s=string, i=0; i < 8; i++, s++)
+  for (s = string, i = 0; i < 8; i++, s++)
     if (!digitp (s))
       return 0;
   if (*s != 'T')
-      return 0;
-  for (s++, i=9; i < 15; i++, s++)
+    return 0;
+  for (s++, i = 9; i < 15; i++, s++)
     if (!digitp (s))
       return 0;
-  if ( !(!*s || (isascii (*s) && isspace(*s)) || *s == ':' || *s == ','))
-    return 0;  /* Wrong delimiter.  */
+  if (!(!*s || (isascii (*s) && isspace (*s)) || *s == ':' || *s == ','))
+    return 0; /* Wrong delimiter.  */
 
   return 1;
 }
-
 
 /* Scan a string and return true if the string represents the human
    readable format of an ISO time.  This format is:
@@ -180,19 +171,19 @@ isotime_human_p (const char *string)
 
   if (!*string)
     return 0;
-  for (s=string, i=0; i < 4; i++, s++)
+  for (s = string, i = 0; i < 4; i++, s++)
     if (!digitp (s))
       return 0;
   if (*s != '-')
     return 0;
   s++;
-  if (!digitp (s) || !digitp (s+1) || s[2] != '-')
+  if (!digitp (s) || !digitp (s + 1) || s[2] != '-')
     return 0;
   i = atoi_2 (s);
   if (i < 1 || i > 12)
     return 0;
   s += 3;
-  if (!digitp (s) || !digitp (s+1))
+  if (!digitp (s) || !digitp (s + 1))
     return 0;
   i = atoi_2 (s);
   if (i < 1 || i > 31)
@@ -205,7 +196,7 @@ isotime_human_p (const char *string)
   s++;
   if (spacep (s))
     return 1; /* Okay, second space stops scanning.  */
-  if (!digitp (s) || !digitp (s+1))
+  if (!digitp (s) || !digitp (s + 1))
     return 0;
   i = atoi_2 (s);
   if (i < 0 || i > 23)
@@ -216,7 +207,7 @@ isotime_human_p (const char *string)
   if (*s != ':')
     return 0;
   s++;
-  if (!digitp (s) || !digitp (s+1))
+  if (!digitp (s) || !digitp (s + 1))
     return 0;
   i = atoi_2 (s);
   if (i < 0 || i > 59)
@@ -227,7 +218,7 @@ isotime_human_p (const char *string)
   if (*s != ':')
     return 0;
   s++;
-  if (!digitp (s) || !digitp (s+1))
+  if (!digitp (s) || !digitp (s + 1))
     return 0;
   i = atoi_2 (s);
   if (i < 0 || i > 60)
@@ -238,7 +229,6 @@ isotime_human_p (const char *string)
 
   return 0; /* Unexpected delimiter.  */
 }
-
 
 /* Convert a standard isotime or a human readable variant into an
    isotime structure.  The allowed formats are those described by
@@ -271,9 +261,9 @@ string2isotime (my_isotime_t atime, const char *string)
   atime[6] = string[8];
   atime[7] = string[9];
   atime[8] = 'T';
-  if (!spacep (string+10))
+  if (!spacep (string + 10))
     return 10;
-  if (spacep (string+11))
+  if (spacep (string + 11))
     return 11; /* As per def, second space stops scanning.  */
   atime[9] = string[11];
   atime[10] = string[12];
@@ -292,15 +282,14 @@ string2isotime (my_isotime_t atime, const char *string)
 static int
 days_per_year (int y)
 {
-  int s ;
+  int s;
 
   s = !(y % 4);
-  if ( !(y % 100))
-    if ((y%400))
+  if (!(y % 100))
+    if ((y % 400))
       s = 0;
   return s ? 366 : 365;
 }
-
 
 /* Helper for jd2date.  */
 static int
@@ -308,23 +297,31 @@ days_per_month (int y, int m)
 {
   int s;
 
-  switch(m)
+  switch (m)
     {
-      case 1: case 3: case 5: case 7: case 8: case 10: case 12:
-        return 31 ;
-      case 2:
-        s = !(y % 4);
-        if (!(y % 100))
-          if ((y % 400))
-            s = 0;
-        return s? 29 : 28 ;
-      case 4: case 6: case 9: case 11:
-        return 30;
-      default:
-        abort ();
+    case 1:
+    case 3:
+    case 5:
+    case 7:
+    case 8:
+    case 10:
+    case 12:
+      return 31;
+    case 2:
+      s = !(y % 4);
+      if (!(y % 100))
+        if ((y % 400))
+          s = 0;
+      return s ? 29 : 28;
+    case 4:
+    case 6:
+    case 9:
+    case 11:
+      return 30;
+    default:
+      abort ();
     }
 }
-
 
 /* Convert YEAR, MONTH and DAY into the Julian date.  We assume that
    it is already noon.  We do not support dates before 1582-10-15. */
@@ -333,17 +330,16 @@ date2jd (int year, int month, int day)
 {
   unsigned long jd;
 
-  jd = 365L * year + 31 * (month-1) + day + JD_DIFF;
+  jd = 365L * year + 31 * (month - 1) + day + JD_DIFF;
   if (month < 3)
-    year-- ;
+    year--;
   else
     jd -= (4 * month + 23) / 10;
 
-  jd += year / 4 - ((year / 100 + 1) *3) / 4;
+  jd += year / 4 - ((year / 100 + 1) * 3) / 4;
 
-  return jd ;
+  return jd;
 }
-
 
 /* Convert a Julian date back to YEAR, MONTH and DAY.  Return day of
    the year or 0 on error.  This function uses some more or less
@@ -356,7 +352,7 @@ jd2date (unsigned long jd, int *year, int *month, int *day)
   long delta;
 
   if (!jd)
-    return 0 ;
+    return 0;
   if (jd < 1721425 || jd > 2843085)
     return 0;
 
@@ -367,14 +363,14 @@ jd2date (unsigned long jd, int *year, int *month, int *day)
     y++;
 
   m = (delta / 31) + 1;
-  while( (delta = jd - date2jd (y, m, d)) > days_per_month (y,m))
+  while ((delta = jd - date2jd (y, m, d)) > days_per_month (y, m))
     if (++m > 12)
       {
         m = 1;
         y++;
       }
 
-  d = delta + 1 ;
+  d = delta + 1;
   if (d > days_per_month (y, m))
     {
       d = 1;
@@ -391,11 +387,10 @@ jd2date (unsigned long jd, int *year, int *month, int *day)
   if (month)
     *month = m;
   if (day)
-    *day = d ;
+    *day = d;
 
   return (jd - date2jd (y, 1, 1)) + 1;
 }
-
 
 /* Add SECONDS to ATIME.  SECONDS may not be negative and is limited
    to about the equivalent of 62 years which should be more then
@@ -409,42 +404,39 @@ add_seconds_to_isotime (my_isotime_t atime, int nseconds)
   if (check_isotime (atime))
     return 1;
 
-  if (nseconds < 0 || nseconds >= (0x7fffffff - 61) )
+  if (nseconds < 0 || nseconds >= (0x7fffffff - 61))
     return 1;
 
-  year  = atoi_4 (atime+0);
-  month = atoi_2 (atime+4);
-  day   = atoi_2 (atime+6);
-  hour  = atoi_2 (atime+9);
-  minute= atoi_2 (atime+11);
-  sec   = atoi_2 (atime+13);
+  year = atoi_4 (atime + 0);
+  month = atoi_2 (atime + 4);
+  day = atoi_2 (atime + 6);
+  hour = atoi_2 (atime + 9);
+  minute = atoi_2 (atime + 11);
+  sec = atoi_2 (atime + 13);
 
   /* The julian date functions don't support this. */
-  if (year < 1582
-      || (year == 1582 && month < 10)
+  if (year < 1582 || (year == 1582 && month < 10)
       || (year == 1582 && month == 10 && day < 15))
     return 1;
 
-  sec    += nseconds;
-  minute += sec/60;
-  sec    %= 60;
-  hour   += minute/60;
+  sec += nseconds;
+  minute += sec / 60;
+  sec %= 60;
+  hour += minute / 60;
   minute %= 60;
-  ndays  = hour/24;
-  hour   %= 24;
+  ndays = hour / 24;
+  hour %= 24;
 
   jd = date2jd (year, month, day) + ndays;
   jd2date (jd, &year, &month, &day);
 
-  if (year > 9999 || month > 12 || day > 31
-      || year < 0 || month < 1 || day < 1)
+  if (year > 9999 || month > 12 || day > 31 || year < 0 || month < 1 || day < 1)
     return 1;
 
-  snprintf (atime, ISOTIME_SIZE, "%04d%02d%02dT%02d%02d%02d",
-            year, month, day, hour, minute, sec);
+  snprintf (atime, ISOTIME_SIZE, "%04d%02d%02dT%02d%02d%02d", year, month, day,
+            hour, minute, sec);
   return 0;
 }
-
 
 /* Add NDAYS to ATIME.  Returns 0 on success.  */
 static int
@@ -456,34 +448,31 @@ add_days_to_isotime (my_isotime_t atime, int ndays)
   if (check_isotime (atime))
     return 1;
 
-  if (ndays < 0 || ndays >= 9999*366 )
+  if (ndays < 0 || ndays >= 9999 * 366)
     return 1;
 
-  year  = atoi_4 (atime+0);
-  month = atoi_2 (atime+4);
-  day   = atoi_2 (atime+6);
-  hour  = atoi_2 (atime+9);
-  minute= atoi_2 (atime+11);
-  sec   = atoi_2 (atime+13);
+  year = atoi_4 (atime + 0);
+  month = atoi_2 (atime + 4);
+  day = atoi_2 (atime + 6);
+  hour = atoi_2 (atime + 9);
+  minute = atoi_2 (atime + 11);
+  sec = atoi_2 (atime + 13);
 
   /* The julian date functions don't support this. */
-  if (year < 1582
-      || (year == 1582 && month < 10)
+  if (year < 1582 || (year == 1582 && month < 10)
       || (year == 1582 && month == 10 && day < 15))
     return 1;
 
   jd = date2jd (year, month, day) + ndays;
   jd2date (jd, &year, &month, &day);
 
-  if (year > 9999 || month > 12 || day > 31
-      || year < 0 || month < 1 || day < 1)
+  if (year > 9999 || month > 12 || day > 31 || year < 0 || month < 1 || day < 1)
     return 1;
 
-  snprintf (atime, ISOTIME_SIZE, "%04d%02d%02dT%02d%02d%02d",
-            year, month, day, hour, minute, sec);
+  snprintf (atime, ISOTIME_SIZE, "%04d%02d%02dT%02d%02d%02d", year, month, day,
+            hour, minute, sec);
   return 0;
 }
-
 
 /* Add NYEARS to ATIME.  Returns 0 on success.  */
 static int
@@ -495,36 +484,32 @@ add_years_to_isotime (my_isotime_t atime, int nyears)
   if (check_isotime (atime))
     return 1;
 
-  if (nyears < 0 || nyears >= 9999 )
+  if (nyears < 0 || nyears >= 9999)
     return 1;
 
-  year  = atoi_4 (atime+0);
-  month = atoi_2 (atime+4);
-  day   = atoi_2 (atime+6);
-  hour  = atoi_2 (atime+9);
-  minute= atoi_2 (atime+11);
-  sec   = atoi_2 (atime+13);
+  year = atoi_4 (atime + 0);
+  month = atoi_2 (atime + 4);
+  day = atoi_2 (atime + 6);
+  hour = atoi_2 (atime + 9);
+  minute = atoi_2 (atime + 11);
+  sec = atoi_2 (atime + 13);
 
   /* The julian date functions don't support this. */
-  if (year < 1582
-      || (year == 1582 && month < 10)
+  if (year < 1582 || (year == 1582 && month < 10)
       || (year == 1582 && month == 10 && day < 15))
     return 1;
 
   jd = date2jd (year + nyears, month, day);
   jd2date (jd, &year, &month, &day);
 
-  if (year > 9999 || month > 12 || day > 31
-      || year < 0 || month < 1 || day < 1)
+  if (year > 9999 || month > 12 || day > 31 || year < 0 || month < 1 || day < 1)
     return 1;
 
-  snprintf (atime, ISOTIME_SIZE, "%04d%02d%02dT%02d%02d%02d",
-            year, month, day, hour, minute, sec);
+  snprintf (atime, ISOTIME_SIZE, "%04d%02d%02dT%02d%02d%02d", year, month, day,
+            hour, minute, sec);
   return 0;
 }
 
-
-
 /**
  * @brief Return the current time in ISO format
  * @naslfn{isotime_now}
@@ -554,7 +539,6 @@ nasl_isotime_now (lex_ctxt *lexic)
   retc->size = strlen (timebuf);
   return retc;
 }
-
 
 /**
  * @brief Check whether an ISO time string is valid
@@ -592,7 +576,7 @@ nasl_isotime_is_valid (lex_ctxt *lexic)
           if (datalen < ISOTIME_SIZE - 1)
             break; /* Too short */
           memcpy (timebuf, string, ISOTIME_SIZE - 1);
-          timebuf[ISOTIME_SIZE -1] = 0;
+          timebuf[ISOTIME_SIZE - 1] = 0;
           string = timebuf;
           /* FALLTHRU */
         case VAR2_STRING:
@@ -608,7 +592,6 @@ nasl_isotime_is_valid (lex_ctxt *lexic)
   retc->x.i_val = result;
   return retc;
 }
-
 
 /**
  * @brief Convert a string into an ISO time string.
@@ -661,7 +644,6 @@ nasl_isotime_scan (lex_ctxt *lexic)
   return retc;
 }
 
-
 /**
  * @brief Convert an SIO time string into a better readable string
  * @naslfn{isotime_print}
@@ -688,15 +670,13 @@ nasl_isotime_print (lex_ctxt *lexic)
   if (!string || get_var_size_by_num (lexic, 0) < 15 || check_isotime (string))
     strcpy (helpbuf, "[none]");
   else
-    snprintf (helpbuf, sizeof helpbuf,
-              "%.4s-%.2s-%.2s %.2s:%.2s:%.2s",
-              string, string+4, string+6, string+9, string+11, string+13);
+    snprintf (helpbuf, sizeof helpbuf, "%.4s-%.2s-%.2s %.2s:%.2s:%.2s", string,
+              string + 4, string + 6, string + 9, string + 11, string + 13);
   retc = alloc_typed_cell (CONST_STR);
   retc->x.str_val = g_strdup (helpbuf);
   retc->size = strlen (helpbuf);
   return retc;
 }
-
 
 /**
  * @brief Add days or seconds to an ISO time string.
@@ -738,11 +718,10 @@ nasl_isotime_add (lex_ctxt *lexic)
   int nyears, ndays, nseconds;
 
   string = get_str_var_by_num (lexic, 0);
-  if (!string
-      || get_var_size_by_num (lexic, 0) < ISOTIME_SIZE -1
+  if (!string || get_var_size_by_num (lexic, 0) < ISOTIME_SIZE - 1
       || check_isotime (string))
     return NULL;
-  memcpy (timebuf, string, ISOTIME_SIZE -1);
+  memcpy (timebuf, string, ISOTIME_SIZE - 1);
   timebuf[ISOTIME_SIZE - 1] = 0;
 
   nyears = get_int_var_by_name (lexic, "years", 0);

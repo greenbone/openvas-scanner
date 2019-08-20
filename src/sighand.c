@@ -1,44 +1,33 @@
-/* OpenVAS
-* $Id$
-* Description: Provides signal handling functions.
-*
-* Authors: 
-* Renaud Deraison <deraison@nessus.org> (Original pre-fork development)
-* Tim Brown (Initial fork)
-* Laban Mwangi (Renaming work)
-* Tarik El-Yassem (Headers section)
-*
-* Copyright:
-* Portions Copyright (C) 2006 Software in the Public Interest, Inc.
-* Based on work Copyright (C) 1998 - 2006 Tenable Network Security, Inc.
-*
-* This program is free software; you can redistribute it and/or modify
-* it under the terms of the GNU General Public License version 2,
-* as published by the Free Software Foundation
-*
-* This program is distributed in the hope that it will be useful,
-* but WITHOUT ANY WARRANTY; without even the implied warranty of
-* MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-* GNU General Public License for more details.
-*
-* You should have received a copy of the GNU General Public License
-* along with this program; if not, write to the Free Software
-* Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA 02110-1301 USA.
-*/
+/* Portions Copyright (C) 2009-2019 Greenbone Networks GmbH
+ * Portions Copyright (C) 2006 Software in the Public Interest, Inc.
+ * Based on work Copyright (C) 1998 - 2006 Tenable Network Security, Inc.
+ *
+ * SPDX-License-Identifier: GPL-2.0-only
+ *
+ * This program is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU General Public License
+ * version 2 as published by the Free Software Foundation.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program; if not, write to the Free Software
+ * Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA 02110-1301 USA.
+ */
 
-#include <signal.h>     /* for kill() */
-#include <unistd.h>     /* for getpid() */
-#include <errno.h>      /* for errno() */
-#include <glib.h>       /* for G_LOG_DOMAIN, for g_critical() */
-#include <sys/wait.h>   /* for wait() */
-#include <sys/socket.h> /* for shutdown() */
-#include <execinfo.h>
+/**
+ * @file sighand.c
+ * @brief Provides signal handling functions.
+ */
 
-#include "sighand.h"
-#include "utils.h"
-#include "string.h"
-
-#include <gvm/base/pidfile.h>
+#include <execinfo.h> /* for backtrace() */
+#include <glib.h>     /* for G_LOG_DOMAIN, for g_critical() */
+#include <signal.h>   /* for kill() */
+#include <sys/wait.h> /* for waitpid() */
+#include <unistd.h>   /* for getpid() */
 
 #undef G_LOG_DOMAIN
 /**
@@ -54,7 +43,6 @@ let_em_die (int pid)
 
   waitpid (pid, &status, WNOHANG);
 }
-
 
 void
 make_em_die (int sig)
@@ -102,7 +90,7 @@ void (*openvas_signal (int signum, void (*handler) (int))) (int)
 
   /* Init new handler */
   sigfillset (&saNew.sa_mask);
-  sigdelset (&saNew.sa_mask, SIGALRM);  /* make sleep() work */
+  sigdelset (&saNew.sa_mask, SIGALRM); /* make sleep() work */
 
   saNew.sa_flags = 0;
   saNew.sa_handler = handler;
@@ -110,7 +98,6 @@ void (*openvas_signal (int signum, void (*handler) (int))) (int)
   sigaction (signum, &saNew, &saOld);
   return saOld.sa_handler;
 }
-
 
 void
 sighand_chld (pid_t pid)
@@ -133,7 +120,7 @@ print_trace ()
   strings = backtrace_symbols (array, ret);
   g_warning ("%s", message);
 
-  for (left = 0; left < 10 ; left++)
+  for (left = 0; left < 10; left++)
     g_warning ("%s\n", strings[left]);
 
   g_free (strings);
