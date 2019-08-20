@@ -121,6 +121,7 @@ else (NOT GCRYPT)
   if (GCRYPT_VERSION VERSION_LESS "1.6")
     message (SEND_ERROR "libgcrypt 1.6 or greater is required")
   endif (GCRYPT_VERSION VERSION_LESS "1.6")
+  string(REPLACE "-I" "" GCRYPT_INCLUDE_DIRS "${GCRYPT_CFLAGS}")
 endif (NOT GCRYPT)
 
 
@@ -196,7 +197,8 @@ include_directories (${GLIB_INCLUDE_DIRS}
                      ${LIBSSH_INCLUDE_DIRS}
                      ${LIBGVM_BASE_INCLUDE_DIRS}
                      ${LIBGVM_UTIL_INCLUDE_DIRS}
-                     ${KSBA_INCLUDE_DIRS})
+                     ${KSBA_INCLUDE_DIRS}
+                     ${GCRYPT_INCLUDE_DIRS})
 
 
 # Build shared 
