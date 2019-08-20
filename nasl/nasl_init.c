@@ -275,6 +275,8 @@ static init_func libfuncs[] = {
   {"aes128_gcm_encrypt", nasl_aes128_gcm_encrypt},
   {"aes256_gcm_encrypt", nasl_aes256_gcm_encrypt},
   {"des_ede_cbc_encrypt", nasl_des_ede_cbc_encrypt},
+  {"open_rc4_cipher", nasl_open_rc4_cipher},
+  {"close_stream_cipher", nasl_close_stream_cipher},
   {"dsa_do_verify", nasl_dsa_do_verify},
   {"pem_to_rsa", nasl_pem_to_rsa},
   {"pem_to_dsa", nasl_pem_to_dsa},

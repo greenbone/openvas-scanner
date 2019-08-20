@@ -41,12 +41,30 @@
 
 #define INTBLOB_LEN 20
 #define SIGBLOB_LEN (2 * INTBLOB_LEN)
+#define MAX_CIPHER_ID 32
 
 #undef G_LOG_DOMAIN
 /**
  * @brief GLib logging domain.
  */
 #define G_LOG_DOMAIN "lib  nasl"
+
+/**
+ * @brief List of open cipher handler.
+ */
+static GList *cipher_table = NULL;
+
+/**
+ * @brief Struct holding a cipher handler.
+ */
+struct cipher_table_item
+{
+  gcry_cipher_hd_t hd;
+  int id;
+};
+
+/* Type definitions */
+typedef struct cipher_table_item cipher_table_item_t;
 
 /**
  * @brief Prints a GnuTLS error.
@@ -69,6 +87,96 @@ print_gcrypt_error (lex_ctxt *lexic, char *function, int err)
 {
   nasl_perror (lexic, "%s failed: %s/%s\n", function, gcry_strsource (err),
                gcry_strerror (err));
+}
+
+/**
+ * @brief Helper function to find cipher id in the table
+ *
+ * @return 0 if the cipher id exits/is in used. -1 otherwise.
+ */
+static int
+find_cipher_hd (cipher_table_item_t *cipher_elem, int *id)
+{
+  if (cipher_elem->id == *id)
+    return 0;
+
+  return -1;
+}
+
+/**
+ * @brief Helper function to get a free id for a new cipher.
+ *
+ * @return Id for the new cipher.
+ */
+static int
+get_new_cipher_id (void)
+{
+  int cipher_id;
+
+  for (cipher_id = 0; cipher_id < MAX_CIPHER_ID; cipher_id++)
+    {
+      if (g_list_find_custom (cipher_table, &cipher_id,
+                              (GCompareFunc) find_cipher_hd)
+          == NULL)
+        return cipher_id;
+    }
+
+  return -1;
+}
+
+/**
+ * @brief Helper function to validate the cipher id.
+ *
+ * @param[in] cipher_id The cipher ID to validate.
+ * @return Handler on success, Null on error.
+ */
+static gcry_cipher_hd_t
+verify_cipher_id (lex_ctxt *lexic, int cipher_id)
+{
+  cipher_table_item_t *hd;
+  GList *hd_aux;
+
+  hd_aux = g_list_find_custom (cipher_table, &cipher_id,
+                               (GCompareFunc) find_cipher_hd);
+  if (!hd_aux)
+    {
+      nasl_perror (lexic, "Cipher handle %d not found.\n", cipher_id);
+      return NULL;
+    }
+  hd = (cipher_table_item_t *) hd_aux->data;
+
+  return hd->hd;
+}
+
+/**
+ * @brief Create a new cipher handler item parameter.
+ *
+ * @return New cipher handler item.
+ */
+static cipher_table_item_t *
+cipher_table_item_new (void)
+{
+  return g_malloc0 (sizeof (cipher_table_item_t));
+}
+
+/**
+ * @brief Free and remove a cipher handler from the cipher table.
+ *
+ * @param[in] cipher_id ID of the cipher handler to free and remove.
+ * @return 0 on success, -1 on error.
+ */
+static void
+delete_cipher_item (int cipher_id)
+{
+  GList *hd_item;
+  cipher_table_item_t *hd;
+
+  hd_item = g_list_find_custom (cipher_table, &cipher_id,
+                                (GCompareFunc) find_cipher_hd);
+  hd = (cipher_table_item_t *) hd_item->data;
+  gcry_cipher_close ((gcry_cipher_hd_t) hd->hd);
+  g_free (hd_item->data);
+  cipher_table = g_list_remove (cipher_table, hd_item->data);
 }
 
 /**
@@ -1412,6 +1520,162 @@ nasl_bf_cbc_decrypt (lex_ctxt *lexic)
   return nasl_bf_cbc (lexic, 0);
 }
 
+/**
+ * @brief Open a stream cipher. This function creates a context handle and
+ * stores it in a cipher table.
+ * Open cipher must be deleted with delete_cipher_item() at the end of the
+ * stream encryption.
+ * @param[in] cipher The cipher algorithm.
+ * @param[in] mode The cipher mode. Must be compatible with the algorithm.
+ * @return Returns the ID of the cipher handler on success. Otherwise NULL.
+ */
+static tree_cell *
+nasl_open_stream_cipher (lex_ctxt *lexic, int cipher, int mode)
+{
+  gcry_cipher_hd_t hd;
+  gcry_error_t error;
+  void *key, *iv;
+  size_t keylen, ivlen;
+  tree_cell *retc;
+  cipher_table_item_t *hd_item;
+  int cipher_id;
+
+  key = get_str_var_by_name (lexic, "key");
+  keylen = get_var_size_by_name (lexic, "key");
+  iv = get_str_var_by_name (lexic, "iv");
+  ivlen = get_var_size_by_name (lexic, "iv");
+
+  if (!key || keylen <= 0)
+    {
+      nasl_perror (lexic, "Syntax: encrypt_data: Missing data or key argument");
+      return NULL;
+    }
+
+  if ((error = gcry_cipher_open (&hd, cipher, mode, 0)))
+    {
+      nasl_perror (lexic, "gcry_cipher_open: %s", gcry_strerror (error));
+      gcry_cipher_close (hd);
+      return NULL;
+    }
+  if ((error = gcry_cipher_setkey (hd, key, keylen)))
+    {
+      nasl_perror (lexic, "gcry_cipher_setkey: %s", gcry_strerror (error));
+      gcry_cipher_close (hd);
+      return NULL;
+    }
+
+  if (iv && ivlen)
+    {
+      if ((error = gcry_cipher_setiv (hd, iv, ivlen)))
+        {
+          nasl_perror (lexic, "gcry_cipher_setiv: %s", gcry_strerror (error));
+          gcry_cipher_close (hd);
+          return NULL;
+        }
+    }
+
+  cipher_id = get_new_cipher_id ();
+  if (cipher_id == -1)
+    {
+      nasl_perror (lexic, "%s: No available slot for a new cipher.", __func__);
+      gcry_cipher_close (hd);
+      return NULL;
+    }
+
+  hd_item = cipher_table_item_new ();
+  hd_item->hd = hd;
+  hd_item->id = cipher_id;
+  cipher_table = g_list_append (cipher_table, hd_item);
+
+  retc = alloc_typed_cell (CONST_INT);
+  retc->x.i_val = hd_item->id;
+  return retc;
+}
+
+/**
+ * @brief Encrypt data using an existent cipher handle. As the handler is not
+ * close, the key is updated to encrypt the next block of the stream data.
+ *
+ * @param[in] cipher The cipher algorithm. It must be the same used for the
+ * handler. It is used to prepare the data. Only GCRY_CIPHER_ARCFOUR is
+ * currently supported.
+ * @return Returns the encrypted data on success. Otherwise NULL.
+ */
+static tree_cell *
+encrypt_stream_data (lex_ctxt *lexic, int cipher)
+{
+  gcry_cipher_hd_t hd;
+  gcry_error_t error;
+  void *result, *data, *tmp;
+  size_t resultlen, datalen, tmplen;
+  tree_cell *retc;
+  int cipher_id;
+
+  cipher_id = get_int_var_by_name (lexic, "hd", -1);
+  data = get_str_var_by_name (lexic, "data");
+  datalen = get_var_size_by_name (lexic, "data");
+
+  if (!data || datalen <= 0)
+    {
+      nasl_perror (lexic, "Syntax: encrypt_data: Missing data or key argument");
+      return NULL;
+    }
+
+  hd = verify_cipher_id (lexic, cipher_id);
+  if (hd == NULL)
+    return NULL;
+
+  if (cipher == GCRY_CIPHER_ARCFOUR)
+    {
+      resultlen = datalen;
+      tmp = g_memdup (data, datalen);
+      tmplen = datalen;
+    }
+
+  result = g_malloc0 (resultlen);
+  if ((error = gcry_cipher_encrypt (hd, result, resultlen, tmp, tmplen)))
+    {
+      g_message ("gcry_cipher_encrypt: %s", gcry_strerror (error));
+      delete_cipher_item (cipher_id);
+      g_free (result);
+      g_free (tmp);
+      return NULL;
+    }
+
+  g_free (tmp);
+  retc = alloc_typed_cell (CONST_DATA);
+  retc->x.str_val = result;
+  retc->size = resultlen;
+  return retc;
+}
+
+/**
+ * @brief Nasl function to delete a cipher item from the cipher table.
+ *
+ * @param[in] cipher The cipher algorithm. It must be the same used for the
+ * handler. It is used to prepare the data. Only GCRY_CIPHER_ARCFOUR is
+ * currently supported.
+ * @return Returns the encrypted data on success. Otherwise NULL.
+ */
+tree_cell *
+nasl_close_stream_cipher (lex_ctxt *lexic)
+{
+  tree_cell *retc;
+  int cipher_id;
+  gcry_cipher_hd_t hd;
+
+  cipher_id = get_int_var_by_name (lexic, "hd", 0);
+
+  hd = verify_cipher_id (lexic, cipher_id);
+  if (hd == NULL)
+    return NULL;
+
+  delete_cipher_item (cipher_id);
+  retc = alloc_typed_cell (CONST_INT);
+  retc->x.i_val = 0;
+  return retc;
+}
+
 static tree_cell *
 encrypt_data (lex_ctxt *lexic, int cipher, int mode)
 {
@@ -1517,10 +1781,48 @@ encrypt_data (lex_ctxt *lexic, int cipher, int mode)
   return retc;
 }
 
+/**
+ * @brief Nasl function to encrypt data with a RC4 cipher. If an hd param
+ * exist in the lexix context, it will use this handler to encrypt the data
+ * as part of a stream data.
+ * e.g.: rc4_encypt(data: data, hd: hd)
+ *
+ * Otherwise encrypts the data as block and the key is mandatory:
+ * e.g.: rc4_encypt(data: data, key: key)
+ *
+ * @return Returns the encrypted data on success. Otherwise NULL.
+ */
 tree_cell *
 nasl_rc4_encrypt (lex_ctxt *lexic)
 {
+  int cipher_id;
+  gcry_cipher_hd_t hd;
+  cipher_id = get_int_var_by_name (lexic, "hd", -1);
+
+  if (cipher_id >= 0)
+    {
+      hd = verify_cipher_id (lexic, cipher_id);
+      if (hd == NULL)
+        return NULL;
+      return encrypt_stream_data (lexic, GCRY_CIPHER_ARCFOUR);
+    }
+
   return encrypt_data (lexic, GCRY_CIPHER_ARCFOUR, GCRY_CIPHER_MODE_STREAM);
+}
+
+/**
+ * @brief Nasl function to open RC4 cipher to encrypt a stream of data.
+ * The handler can be used to encrypt stream data.
+ * Open cipher must be close with close_stream_cipher() when it is not usefull
+ * anymore.
+ * @return Returns the id of the cipher handler encrypted data on success.
+ * Otherwise NULL.
+ */
+tree_cell *
+nasl_open_rc4_cipher (lex_ctxt *lexic)
+{
+  return nasl_open_stream_cipher (lexic, GCRY_CIPHER_ARCFOUR,
+                                  GCRY_CIPHER_MODE_STREAM);
 }
 
 tree_cell *

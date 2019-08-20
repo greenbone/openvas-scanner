@@ -40,6 +40,12 @@ tree_cell *
 nasl_rsa_private_decrypt (lex_ctxt *);
 
 tree_cell *
+nasl_open_rc4_cipher (lex_ctxt *);
+
+tree_cell *
+nasl_close_stream_cipher (lex_ctxt *);
+
+tree_cell *
 nasl_rsa_public_decrypt (lex_ctxt *);
 
 tree_cell *
