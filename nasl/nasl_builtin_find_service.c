@@ -58,7 +58,7 @@ const char *oid;
 static void
 register_service (struct script_infos *desc, int port, const char *proto)
 {
-  char k[96];
+  char k[265];
 
   /* Old "magical" key set */
   snprintf (k, sizeof (k), "Services/%s", proto);
