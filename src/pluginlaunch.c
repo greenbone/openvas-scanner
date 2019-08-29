@@ -118,7 +118,7 @@ update_running_processes (kb_t kb)
                            oid ?: " ", processes[i].timeout);
                   kb_item_push_str (kb, "internal/results", msg);
 
-                  ret_terminate = terminate_process(processes[i].pid);
+                  ret_terminate = terminate_process (processes[i].pid);
                   if (ret_terminate == 0)
                     {
                       terminate_process (processes[i].pid * -1);
