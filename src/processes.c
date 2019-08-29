@@ -56,10 +56,15 @@ terminate_process (pid_t pid)
   if (ret == 0)
     {
       usleep (1000);
+
       if (waitpid (pid, NULL, WNOHANG) >= 0)
-        kill (pid, SIGKILL);
+        {
+          kill (pid, SIGKILL);
+          return -1;
+        }
     }
-  return -1;
+
+  return 0;
 }
 
 static void
