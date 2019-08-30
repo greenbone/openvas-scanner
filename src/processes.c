@@ -43,6 +43,17 @@
  */
 #define G_LOG_DOMAIN "sd   main"
 
+/**
+ * @brief Send SIGTERM to the pid process. Try to wait the
+ * the process. In case of the process has still not change
+   the state, it sends SIGKILL to the process and must be waited
+   later to avoid leaving a zombie process
+
+   @param[in] pid Process id to terminate.
+
+   @return 0 on success, -1 if the process was waited but not changed
+   the state
+ */
 int
 terminate_process (pid_t pid)
 {
