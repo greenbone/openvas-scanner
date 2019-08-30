@@ -94,6 +94,7 @@ update_running_processes (kb_t kb)
       if (processes[i].pid > 0)
         {
           int is_alive = process_alive (processes[i].pid);
+          int ret_terminate = 0;
 
           // If process dead or timed out
           if (!is_alive
@@ -116,6 +117,15 @@ update_running_processes (kb_t kb)
                            "NVT timed out after %d seconds.",
                            oid ?: " ", processes[i].timeout);
                   kb_item_push_str (kb, "internal/results", msg);
+
+                  ret_terminate = terminate_process (processes[i].pid);
+                  if (ret_terminate == 0)
+                    {
+                      terminate_process (processes[i].pid * -1);
+                      num_running_processes--;
+                      processes[i].plugin->running_state = PLUGIN_STATUS_DONE;
+                      bzero (&(processes[i]), sizeof (processes[i]));
+                    }
                 }
               else
                 {
@@ -143,11 +153,12 @@ update_running_processes (kb_t kb)
                       e = waitpid (processes[i].pid, NULL, 0);
                     }
                   while (e < 0 && errno == EINTR);
+
+                  terminate_process (processes[i].pid * -1);
+                  num_running_processes--;
+                  processes[i].plugin->running_state = PLUGIN_STATUS_DONE;
+                  bzero (&(processes[i]), sizeof (processes[i]));
                 }
-              terminate_process (processes[i].pid * -1);
-              num_running_processes--;
-              processes[i].plugin->running_state = PLUGIN_STATUS_DONE;
-              bzero (&(processes[i]), sizeof (processes[i]));
             }
         }
     }
