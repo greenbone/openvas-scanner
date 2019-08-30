@@ -1813,7 +1813,7 @@ nasl_rc4_encrypt (lex_ctxt *lexic)
 /**
  * @brief Nasl function to open RC4 cipher to encrypt a stream of data.
  * The handler can be used to encrypt stream data.
- * Open cipher must be close with close_stream_cipher() when it is not usefull
+ * Open cipher must be close with close_stream_cipher() when it is not useful
  * anymore.
  * @return Returns the id of the cipher handler encrypted data on success.
  * Otherwise NULL.
