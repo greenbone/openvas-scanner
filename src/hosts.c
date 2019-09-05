@@ -94,6 +94,7 @@ host_rm (struct host *h)
   if (h->prev != NULL)
     h->prev->next = h->next;
 
+  kb_lnk_reset (h->host_kb);
   g_free (h->name);
   g_free (h->ip);
   g_free (h);
