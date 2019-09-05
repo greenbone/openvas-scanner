@@ -27,17 +27,16 @@
 
 #include "network.h" // for OPENVAS_ENCAPS_IP
 
-#include <errno.h>    // for errno
-#include <stdio.h>    // for snprintf
-#include <stdlib.h>   // for exit
-#include <string.h>   // for strcmp
-#include <sys/wait.h> // for wait
-#include <unistd.h>   // for fork
-
+#include <errno.h>               // for errno
 #include <gvm/base/hosts.h>      // for g_vhost_t
 #include <gvm/base/networking.h> // for port_protocol_t
 #include <gvm/base/prefs.h>      // for prefs_get_bool
 #include <gvm/util/nvticache.h>  // for nvticache_initialized
+#include <stdio.h>               // for snprintf
+#include <stdlib.h>              // for exit
+#include <string.h>              // for strcmp
+#include <sys/wait.h>            // for wait
+#include <unistd.h>              // for fork
 
 #undef G_LOG_DOMAIN
 /**
