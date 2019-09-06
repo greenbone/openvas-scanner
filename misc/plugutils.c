@@ -25,28 +25,18 @@
 
 #include "plugutils.h"
 
-#include "network.h"
+#include "network.h" // for OPENVAS_ENCAPS_IP
 
-#include <ctype.h>
-#include <errno.h>
-#include <glib.h>
-#include <gvm/base/hosts.h>
-#include <gvm/base/logging.h>
-#include <gvm/base/networking.h>
-#include <gvm/base/prefs.h> /* for prefs_get_bool */
-#include <gvm/util/kb.h>
-#include <gvm/util/nvticache.h> /* for nvticache_get_by_oid() */
-#include <signal.h>
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-#include <sys/param.h>
-#include <sys/socket.h>
-#include <sys/stat.h>
-#include <sys/types.h>
-#include <sys/wait.h>
-#include <time.h>
-#include <unistd.h>
+#include <errno.h>               // for errno
+#include <gvm/base/hosts.h>      // for g_vhost_t
+#include <gvm/base/networking.h> // for port_protocol_t
+#include <gvm/base/prefs.h>      // for prefs_get_bool
+#include <gvm/util/nvticache.h>  // for nvticache_initialized
+#include <stdio.h>               // for snprintf
+#include <stdlib.h>              // for exit
+#include <string.h>              // for strcmp
+#include <sys/wait.h>            // for wait
+#include <unistd.h>              // for fork
 
 #undef G_LOG_DOMAIN
 /**
