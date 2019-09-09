@@ -297,8 +297,7 @@ plug_get_host_ip_str (struct script_infos *desc)
  * @brief Post a security message (e.g. LOG, NOTE, WARNING ...).
  *
  * @param oid   The oid of the NVT
- * @param desc  The script infos where to get the nvtichache from and some
- *              other settings and it is used to send the messages
+ * @param desc  The script infos where to get settings.
  * @param port  Port number related to the issue.
  * @param proto Protocol related to the issue (tcp or udp).
  * @param action The actual result text
@@ -308,15 +307,15 @@ void
 proto_post_wrapped (const char *oid, struct script_infos *desc, int port,
                     const char *proto, const char *action, const char *what)
 {
-  const char *prepend_tags, *append_tags, *hostname = "";
-  char *buffer, *data, **nvti_tags = NULL, port_s[16] = "general";
+  const char *hostname = "";
+  char *buffer, *data, port_s[16] = "general";
   char ip_str[INET6_ADDRSTRLEN];
   GString *action_str;
   gsize length;
   kb_t kb;
 
   /* Should not happen, just to avoid trouble stop here if no NVTI found */
-  if (!nvticache_initialized () || !oid)
+  if (!oid)
     return;
 
   if (action == NULL)
@@ -325,94 +324,6 @@ proto_post_wrapped (const char *oid, struct script_infos *desc, int port,
     {
       action_str = g_string_new (action);
       g_string_append (action_str, "\n");
-    }
-
-  prepend_tags = prefs_get ("result_prepend_tags");
-  append_tags = prefs_get ("result_append_tags");
-
-  if (prepend_tags || append_tags)
-    {
-      char *tags = nvticache_get_tags (oid);
-      nvti_tags = g_strsplit (tags, "|", 0);
-      g_free (tags);
-    }
-
-  /* This is convenience functionality in preparation for the breaking up of the
-   * NVT description block and adding proper handling of refined meta
-   * information all over the OpenVAS Framework.
-   */
-  if (nvti_tags != NULL)
-    {
-      if (prepend_tags != NULL)
-        {
-          gchar **tags = g_strsplit (prepend_tags, ",", 0);
-          int i = 0;
-          gchar *tag_prefix;
-          gchar *tag_value;
-          while (tags[i] != NULL)
-            {
-              int j = 0;
-              tag_value = NULL;
-              tag_prefix = g_strconcat (tags[i], "=", NULL);
-              while (nvti_tags[j] != NULL && tag_value == NULL)
-                {
-                  if (g_str_has_prefix (nvti_tags[j], tag_prefix))
-                    {
-                      tag_value = g_strstr_len (nvti_tags[j], -1, "=");
-                    }
-                  j++;
-                }
-              g_free (tag_prefix);
-
-              if (tag_value != NULL)
-                {
-                  tag_value = tag_value + 1;
-                  gchar *tag_line =
-                    g_strdup_printf ("%s:\n%s\n\n", tags[i], tag_value);
-                  g_string_prepend (action_str, tag_line);
-
-                  g_free (tag_line);
-                }
-              i++;
-            }
-          g_strfreev (tags);
-        }
-
-      if (append_tags != NULL)
-        {
-          gchar **tags = g_strsplit (append_tags, ",", 0);
-          int i = 0;
-          gchar *tag_prefix;
-          gchar *tag_value;
-
-          while (tags[i] != NULL)
-            {
-              int j = 0;
-              tag_value = NULL;
-              tag_prefix = g_strconcat (tags[i], "=", NULL);
-              while (nvti_tags[j] != NULL && tag_value == NULL)
-                {
-                  if (g_str_has_prefix (nvti_tags[j], tag_prefix))
-                    {
-                      tag_value = g_strstr_len (nvti_tags[j], -1, "=");
-                    }
-                  j++;
-                }
-              g_free (tag_prefix);
-
-              if (tag_value != NULL)
-                {
-                  tag_value = tag_value + 1;
-                  gchar *tag_line =
-                    g_strdup_printf ("%s:\n%s\n\n", tags[i], tag_value);
-                  g_string_append (action_str, tag_line);
-
-                  g_free (tag_line);
-                }
-              i++;
-            }
-          g_strfreev (tags);
-        }
     }
 
   if (port > 0)
