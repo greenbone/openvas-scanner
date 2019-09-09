@@ -1912,8 +1912,8 @@ plugin_do_run (struct script_infos *desc, GSList *h, int test_ssl)
                            && strstr (line, "smtp ") != NULL)
                     mark_smtp_server (desc, port, origline, trp);
                   else if (line[0] != '\0' && (strstr (buffer, "mysql") != NULL)
-                           && (regex_match (buffer,
-                                            "[0-9a-z]+@[0-9a-z]+ release")
+                           && (regex_match (
+                                 buffer, "[0-9.]+ [0-9a-z]+@[0-9a-z]+ release")
                                || regex_match (buffer,
                                                "([0-9.]+)-(id([0-9]+)-)?release"
                                                " \\(([0-9a-z\\-]+)\\)")))
