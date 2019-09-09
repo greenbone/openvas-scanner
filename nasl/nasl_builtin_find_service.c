@@ -27,6 +27,7 @@
 #include <errno.h> /* for errno() */
 #include <glib.h>
 #include <gvm/util/nvticache.h>
+#include <regex.h>     /* for regex_t */
 #include <signal.h>    /* for signal() */
 #include <stdio.h>     /* for snprintf() */
 #include <stdlib.h>    /* for atoi() */
@@ -79,6 +80,28 @@ register_service (struct script_infos *desc, int port, const char *proto)
    */
   snprintf (k, sizeof (k), "Known/tcp/%d", port);
   plug_replace_key (desc, k, ARG_STRING, (char *) proto);
+}
+
+/**
+ * @brief Compares string with the regular expression.
+ * @param[in] string  String to compare
+ * @param[in] pattern regular expression
+ *
+ * @return 1 if match, 0 if not match.
+ */
+static int
+regex_match (char *string, char *pattern)
+{
+  regex_t re;
+  int ret = 1;
+
+  if (regcomp (&re, pattern, REG_EXTENDED | REG_NOSUB | REG_ICASE))
+    ret = 0;
+  if (regexec (&re, string, 0, NULL, 0))
+    ret = 0;
+
+  regfree (&re);
+  return ret;
 }
 
 static void
@@ -370,6 +393,15 @@ mark_postgresql (struct script_infos *desc, int port)
   register_service (desc, port, "postgresql");
   /* if (port != 5432) */
   post_log (oid, desc, port, "A PostgreSQL server is running on this port");
+}
+
+void
+mark_sphinx (struct script_infos *desc, int port)
+{
+  register_service (desc, port, "sphinxql");
+  post_log (oid, desc, port,
+            "A Sphinx search server (MySQL listener)"
+            "seems to be running on this port");
 }
 
 void
@@ -1879,6 +1911,13 @@ plugin_do_run (struct script_infos *desc, GSList *h, int test_ssl)
                   else if (strncmp (line, "421", 3) == 0
                            && strstr (line, "smtp ") != NULL)
                     mark_smtp_server (desc, port, origline, trp);
+                  else if (line[0] != '\0' && (strstr (buffer, "mysql") != NULL)
+                           && (regex_match (buffer,
+                                            "[0-9a-z]+@[0-9a-z]+ release")
+                               || regex_match (buffer,
+                                               "([0-9.]+)-(id([0-9]+)-)?release"
+                                               " \\(([0-9a-z\\-]+)\\)")))
+                    mark_sphinx (desc, port);
                   else if (line[0] != '\0'
                            && ((strncmp (buffer + 1, "host '", 6) == 0)
                                || (strstr (buffer, "mysql") != NULL
