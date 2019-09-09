@@ -241,7 +241,7 @@ script_tag (lex_ctxt *lexic)
       nasl_perror (lexic, "%s tag contains | separator", name);
       return FAKE_CELL;
     }
-  plug_set_tag (script_infos, name, value);
+  nvti_add_tag (script_infos->nvti, name, value);
 
   return FAKE_CELL;
 }
