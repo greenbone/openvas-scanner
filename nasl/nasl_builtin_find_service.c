@@ -84,6 +84,7 @@ register_service (struct script_infos *desc, int port, const char *proto)
 
 /**
  * @brief Compares string with the regular expression.
+ *        Null characters in buffer are replaced by 'x'.
  * @param[in] string  String to compare
  * @param[in] pattern regular expression
  *
@@ -396,7 +397,7 @@ mark_postgresql (struct script_infos *desc, int port)
 }
 
 void
-mark_sphinx (struct script_infos *desc, int port)
+mark_sphinxql (struct script_infos *desc, int port)
 {
   register_service (desc, port, "sphinxql");
   post_log (oid, desc, port,
@@ -1911,14 +1912,17 @@ plugin_do_run (struct script_infos *desc, GSList *h, int test_ssl)
                   else if (strncmp (line, "421", 3) == 0
                            && strstr (line, "smtp ") != NULL)
                     mark_smtp_server (desc, port, origline, trp);
+                  // Null characters in buffer were replaced by 'x'.
                   else if ((line[0] != '\0'
                             || (strstr (buffer, "mysql") != NULL))
                            && (regex_match (
-                                 buffer, "[0-9.]+ [0-9a-z]+@[0-9a-z]+ release")
-                               || regex_match (buffer,
-                                               "[0-9.]+-id([0-9]+)-release"
-                                               " \\(([0-9a-z\\-]+)\\)")))
-                    mark_sphinx (desc, port);
+                                 buffer,
+                                 "^.x{3}\n[0-9.]+ [0-9a-z]+@[0-9a-z]+ release")
+                               || regex_match (
+                                    buffer,
+                                    "^.x{3}\n[0-9.]+-(id[0-9]+-)?release"
+                                    " \\([0-9a-z-]+\\)")))
+                    mark_sphinxql (desc, port);
                   else if (line[0] != '\0'
                            && ((strncmp (buffer + 1, "host '", 6) == 0)
                                || (strstr (buffer, "mysql") != NULL
