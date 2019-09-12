@@ -1659,6 +1659,7 @@ nasl_send_v6packet (lex_ctxt *lexic)
   struct in6_addr *dstip = plug_get_host_ip (script_infos);
   int offset = 1;
   char name[INET6_ADDRSTRLEN];
+  int allow_multicast = get_int_var_by_name (lexic, "allow_multicast", 0);
 
   if (dstip == NULL || (IN6_IS_ADDR_V4MAPPED (dstip) == 1))
     return NULL;
@@ -1688,7 +1689,26 @@ nasl_send_v6packet (lex_ctxt *lexic)
       bzero (&sockaddr, sizeof (struct sockaddr_in6));
       sockaddr.sin6_family = AF_INET6;
       sockaddr.sin6_addr = sip->ip6_dst;
-      if (dstip != NULL && !IN6_ARE_ADDR_EQUAL (&sockaddr.sin6_addr, dstip))
+
+      if (allow_multicast)
+        {
+          struct sockaddr_in6 multicast;
+
+          if (setsockopt (soc, SOL_SOCKET, SO_BROADCAST, &offset,
+                          sizeof (offset))
+              < 0)
+            perror ("setsockopt ");
+
+          bzero (&multicast, sizeof (struct sockaddr_in6));
+          sockaddr.sin6_family = AF_INET6;
+          inet_pton (AF_INET6, "ff02::1", &(multicast.sin6_addr));
+
+          if (!IN6_ARE_ADDR_EQUAL (&sockaddr.sin6_addr, &multicast.sin6_addr))
+            allow_multicast = 0;
+        }
+
+      if (dstip != NULL && !IN6_ARE_ADDR_EQUAL (&sockaddr.sin6_addr, dstip)
+          && !allow_multicast)
         {
           char txt1[64], txt2[64];
           strncpy (
