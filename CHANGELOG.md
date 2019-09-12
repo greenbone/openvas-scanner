@@ -49,6 +49,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 - Check cache/feed errors during plugin scheduling. [#358](https://github.com/greenbone/openvas/pull/358)
 - Vendor version is now an option in the config file. [#363](https://github.com/greenbone/openvas/pull/363)
 - Use API for accessing NVTI elements. [#365](https://github.com/greenbone/openvas/pull/365)
+- Allow send_packet() and send_v6packet() to send packets to broadcast/multicast.[#388](https://github.com/greenbone/openvas/pull/388)
+
 
 ### Fixed
 - An issue with stuck scans where only a single plugin is running and is beyond its timeout has been addressed. [#289](https://github.com/greenbone/openvas/pull/289)
