@@ -1409,6 +1409,7 @@ nasl_send_packet (lex_ctxt *lexic)
   struct script_infos *script_infos = lexic->script_infos;
   struct in6_addr *dstip = plug_get_host_ip (script_infos);
   struct in_addr inaddr;
+  int allow_broadcast = get_int_var_by_name (lexic, "allow_broadcast", 0);
 
   if (dstip == NULL || (IN6_IS_ADDR_V4MAPPED (dstip) != 1))
     return NULL;
@@ -1437,7 +1438,16 @@ nasl_send_packet (lex_ctxt *lexic)
       bzero (&sockaddr, sizeof (struct sockaddr_in));
       sockaddr.sin_family = AF_INET;
       sockaddr.sin_addr = sip->ip_dst;
-      if (sockaddr.sin_addr.s_addr != inaddr.s_addr)
+
+      if (allow_broadcast)
+        {
+          if (setsockopt (soc, SOL_SOCKET, SO_BROADCAST, &i, sizeof (i)) < 0)
+            perror ("setsockopt ");
+          if (sockaddr.sin_addr.s_addr != INADDR_BROADCAST)
+            allow_broadcast = 0;
+        }
+
+      if (sockaddr.sin_addr.s_addr != inaddr.s_addr && !allow_broadcast)
         {
           char txt1[64], txt2[64];
           strncpy (txt1, inet_ntoa (sockaddr.sin_addr), sizeof (txt1));
