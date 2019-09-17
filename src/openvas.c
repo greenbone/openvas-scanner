@@ -127,8 +127,6 @@ static openvas_option openvas_defaults[] = {
   {"vendor_version", "\0"},
   {NULL, NULL}};
 
-gchar *unix_socket_path = NULL;
-
 static void
 set_globals_from_preferences (void)
 {
@@ -482,8 +480,6 @@ openvas (int argc, char *argv[])
       exit (0);
     }
   tzset ();
-
-  unix_socket_path = g_build_filename (OPENVAS_RUN_DIR, "openvas.sock", NULL);
 
   if (!config_file)
     config_file = OPENVAS_CONF;
