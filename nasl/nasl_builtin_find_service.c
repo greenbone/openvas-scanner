@@ -2201,12 +2201,7 @@ plugin_do_run (struct script_infos *desc, GSList *h, int test_ssl)
                                  != NULL
                             && strstr ((char *) banner,
                                        "finger: HTTP/1.0: no such user")
-                                 != NULL)
-                           || strstr ((char *) banner,
-                                      "Login       Name               TTY      "
-                                      "   Idle    When    Where")
-                           || strstr ((char *) banner, "Line     User")
-                           || strstr ((char *) banner, "Login name: GET"))
+                                 != NULL))
                     {
                       char c = '\0';
                       if (p != NULL)
