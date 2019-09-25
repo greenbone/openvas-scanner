@@ -104,7 +104,7 @@ list_cmp1 (gconstpointer lelem, gconstpointer data)
  * @return 1 if the function is needed, 0 otherwise.
  */
 gint
-reverse_search (GSList **def_func_three, GSList *finfo)
+reverse_search (GSList **def_func_tree, GSList *finfo)
 {
   func_info *fdata = finfo->data;
   GSList *finfo_aux;
@@ -118,11 +118,11 @@ reverse_search (GSList **def_func_three, GSList *finfo)
   if (!g_strcmp0 (fdata->func_name, fdata->caller_func))
     return 0;
 
-  // I go up in the three of called and defined functions.
-  if ((finfo_aux = g_slist_find_custom (*def_func_three, fdata->caller_func,
+  // I go up in the tree of called and defined functions.
+  if ((finfo_aux = g_slist_find_custom (*def_func_tree, fdata->caller_func,
                                         (GCompareFunc) list_cmp1))
       != NULL)
-    if (reverse_search (def_func_three, finfo_aux))
+    if (reverse_search (def_func_tree, finfo_aux))
       return 1;
 
   return 0;
@@ -182,14 +182,14 @@ print_uncall_files (gpointer filename, gpointer lexic)
 }
 
 /**
- * @brief Loads all defined functions. Also, It constructs a three of called
+ * @brief Loads all defined functions. Also, It constructs a tree of called
  *        functions to help recognize a not defined function which is never
  *        called (nested functions).
  */
 tree_cell *
 nasl_lint_def (lex_ctxt *lexic, tree_cell *st, int lint_mode,
                GHashTable **include_files, GHashTable **func_fnames_tab,
-               gchar *err_fname, GSList **called_funcs, GSList **def_func_three)
+               gchar *err_fname, GSList **called_funcs, GSList **def_func_tree)
 {
   int i;
   tree_cell *ret = FAKE_CELL;
@@ -215,7 +215,7 @@ nasl_lint_def (lex_ctxt *lexic, tree_cell *st, int lint_mode,
       finfo->func_name = g_strdup (st->x.str_val);
       finfo->caller_file = g_strdup (err_fname ? err_fname : nasl_name);
       finfo->caller_func = g_strdup (current_fun_def);
-      *def_func_three = g_slist_prepend (*def_func_three, finfo);
+      *def_func_tree = g_slist_prepend (*def_func_tree, finfo);
     }
 
   switch (st->type)
@@ -249,7 +249,7 @@ nasl_lint_def (lex_ctxt *lexic, tree_cell *st, int lint_mode,
         if (st->link[i] != NULL && st->link[i] != FAKE_CELL)
           if ((ret = nasl_lint_def (lexic, st->link[i], lint_mode,
                                     include_files, func_fnames_tab, err_fname,
-                                    called_funcs, def_func_three))
+                                    called_funcs, def_func_tree))
               == NULL)
             return NULL;
 
@@ -269,7 +269,7 @@ nasl_lint_def (lex_ctxt *lexic, tree_cell *st, int lint_mode,
 tree_cell *
 nasl_lint_call (lex_ctxt *lexic, tree_cell *st, GHashTable **include_files,
                 GHashTable **func_fnames_tab, gchar *err_fname,
-                GSList **called_funcs, GSList **def_func_three)
+                GSList **called_funcs, GSList **def_func_tree)
 {
   int i;
   tree_cell *ret = FAKE_CELL;
@@ -309,10 +309,10 @@ nasl_lint_call (lex_ctxt *lexic, tree_cell *st, GHashTable **include_files,
           lexic->line_nb = st->line_nb;
 
           GSList *called_f_aux;
-          called_f_aux = g_slist_find_custom (*def_func_three, st->x.str_val,
+          called_f_aux = g_slist_find_custom (*def_func_tree, st->x.str_val,
                                               (GCompareFunc) list_cmp1);
           if (called_f_aux != NULL)
-            if (reverse_search (def_func_three, called_f_aux))
+            if (reverse_search (def_func_tree, called_f_aux))
               {
                 nasl_perror (lexic, "Undefined function '%s'\n", st->x.str_val);
                 return NULL;
@@ -336,7 +336,7 @@ nasl_lint_call (lex_ctxt *lexic, tree_cell *st, GHashTable **include_files,
         if (st->link[i] != NULL && st->link[i] != FAKE_CELL)
           if ((ret = nasl_lint_call (lexic, st->link[i], include_files,
                                      func_fnames_tab, err_fname, called_funcs,
-                                     def_func_three))
+                                     def_func_tree))
               == NULL)
             return NULL;
       return ret;
@@ -486,10 +486,10 @@ make_call_func_list (lex_ctxt *lexic, tree_cell *st, GSList **called_funcs)
 }
 
 /**
- * @brief Search for erros in a nasl script
+ * @brief Search for errors in a nasl script
  *
  * @param[in] lexic nasl context.
- * @param[in] st structure three of a nasl script.
+ * @param[in] st structure tree of a nasl script.
  *
  * @return FAKE_CELL if no error was found, NULL otherwise.
  */
@@ -503,7 +503,7 @@ nasl_lint (lex_ctxt *lexic, tree_cell *st)
   GHashTable *func_fnames_tab = NULL;
   GSList *unusedfiles = NULL;
   GSList *called_funcs = NULL;
-  GSList *def_func_three = NULL;
+  GSList *def_func_tree = NULL;
   gchar *err_fname = NULL;
 
   nasl_name = g_strdup (nasl_get_filename (st->x.str_val));
@@ -522,12 +522,12 @@ nasl_lint (lex_ctxt *lexic, tree_cell *st)
   /* Loads all defined functions. */
   if ((ret = nasl_lint_def (lexic_aux, st, lint_mode, &include_files,
                             &func_fnames_tab, err_fname, &called_funcs,
-                            &def_func_three))
+                            &def_func_tree))
       == NULL)
     goto fail;
   /* Check if a called function was defined. */
   if ((ret = nasl_lint_call (lexic_aux, st, &include_files, &func_fnames_tab,
-                             err_fname, &called_funcs, &def_func_three))
+                             err_fname, &called_funcs, &def_func_tree))
       == NULL)
     goto fail;
 
@@ -546,7 +546,7 @@ nasl_lint (lex_ctxt *lexic, tree_cell *st)
   lint_mode = 0;
   if ((ret =
          nasl_lint_def (lexic, st, lint_mode, &include_files, &func_fnames_tab,
-                        err_fname, &called_funcs, &def_func_three))
+                        err_fname, &called_funcs, &def_func_tree))
       == NULL)
     goto fail;
 
@@ -561,8 +561,8 @@ nasl_lint (lex_ctxt *lexic, tree_cell *st)
 fail:
   g_slist_free (called_funcs);
   called_funcs = NULL;
-  g_slist_free_full (def_func_three, (GDestroyNotify) free_list_func);
-  def_func_three = NULL;
+  g_slist_free_full (def_func_tree, (GDestroyNotify) free_list_func);
+  def_func_tree = NULL;
   g_hash_table_destroy (include_files);
   include_files = NULL;
   g_hash_table_destroy (func_fnames_tab);
