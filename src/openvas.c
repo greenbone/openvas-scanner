@@ -127,8 +127,6 @@ static openvas_option openvas_defaults[] = {
   {"vendor_version", "\0"},
   {NULL, NULL}};
 
-gchar *unix_socket_path = NULL;
-
 static void
 set_globals_from_preferences (void)
 {
@@ -252,6 +250,8 @@ load_scan_preferences (const char *scan_id)
     }
   snprintf (key, sizeof (key), "internal/%s", scan_id);
   kb_item_set_str (kb, key, "ready", 0);
+  kb_item_set_int (kb, "internal/ovas_pid", getpid ());
+
   g_debug ("End loading scan preferences.");
 
   kb_item_free (res);
@@ -387,9 +387,8 @@ stop_single_task_scan ()
   if (!global_scan_id)
     exit (1);
 
-  snprintf (key, sizeof (key), "internal/%s/scanprefs", global_scan_id);
+  snprintf (key, sizeof (key), "internal/%s", global_scan_id);
   kb = kb_find (prefs_get ("db_address"), key);
-
   if (!kb)
     exit (1);
 
@@ -482,8 +481,6 @@ openvas (int argc, char *argv[])
       exit (0);
     }
   tzset ();
-
-  unix_socket_path = g_build_filename (OPENVAS_RUN_DIR, "openvas.sock", NULL);
 
   if (!config_file)
     config_file = OPENVAS_CONF;

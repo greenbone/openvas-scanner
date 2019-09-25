@@ -18,6 +18,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 - The greenbone-nvt-sync script is not allowed to run as root. [#323](https://github.com/greenbone/openvas/pull/323)
 - OpenVAS Scanner has been renamed to OpenVAS (Open Vulnerability Assessment Scanner). [#337](https://github.com/greenbone/openvas/pull/337) [#343](https://github.com/greenbone/openvas/pull/343)
 - Retry until a host finishes and frees a db before running a new host scan, in case there is no free redis db. Therefore a infinite loop has been added when it call kb_new(). [#340](https://github.com/greenbone/openvas/pull/340)
+- Use new nvti_add_tag() instead of plug_set_tag() and remove plug_set_tag(). [#385](https://github.com/greenbone/openvas/pull/385)
+- Remove dead code about tags regarding former openvas settings "result_prepend_tags" and "result_append_tags". [#386](https://github.com/greenbone/openvas/pull/386)
 
 ### Fixed
 - An issue with stuck scans where only a single plugin is running and is beyond its timeout has been addressed. [#289](https://github.com/greenbone/openvas/pull/289)
@@ -25,6 +27,9 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 - An issue which caused falling back into a default port in get_ssh_port() has been fixed. [#342](https://github.com/greenbone/openvas/pull/342)
 - An issue which could have caused a truncated string in register_service() has been fixed. [#373](https://github.com/greenbone/openvas/pull/373)
 - Reset redis connection after the host scan finished. This avoids to leave open fd, which cause ulimit problems.[#384](https://github.com/greenbone/openvas/pull/384)
+- Fix mis-identification of Sphinx Search service. [#387](https://github.com/greenbone/openvas/pull/387)
+- Set a key in redis when the scan finishes and fix stop scan using the right pid.[#390](https://github.com/greenbone/openvas/pull/390)
+- Fix detection of finger service.[#391](https://github.com/greenbone/openvas/pull/391)
 
 ### Removed
 - Unused be_nice scan preferences has been removed. [#313](https://github.com/greenbone/openvas/pull/313)

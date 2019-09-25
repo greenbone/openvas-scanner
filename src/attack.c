@@ -124,6 +124,32 @@ set_kb_readable (int host_kb_index)
 }
 
 /**
+ * @brief Set scan status. This helps ospd-openvas to
+ * identify if a scan crashed or finished cleanly.
+ *
+ * @paramater[in] status Status to set.
+ */
+static void
+set_scan_status (char *status)
+{
+  int i = atoi (prefs_get ("ov_maindbid"));
+  kb_t main_kb = NULL;
+
+  main_kb = kb_direct_conn (prefs_get ("db_address"), i);
+  if (main_kb)
+    {
+      char buffer[96];
+      char *scan_id = kb_item_get_str (main_kb, ("internal/scanid"));
+
+      snprintf (buffer, sizeof (buffer), "internal/%s", scan_id);
+      kb_item_set_str (main_kb, buffer, status, 0);
+
+      return;
+    }
+  g_warning ("Not possible to set the scan as finished");
+}
+
+/**
  * @brief Sends the status of a host's scan.
  */
 static int
@@ -1167,6 +1193,7 @@ attack_network (struct scan_globals *globals, kb_t *network_kb)
   while (hosts_read () == 0)
     ;
   g_message ("Test complete");
+  set_scan_status ("finished");
 
 scan_stop:
   /* Free the memory used by the files uploaded by the user, if any. */
