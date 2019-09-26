@@ -127,7 +127,7 @@ set_kb_readable (int host_kb_index)
  * @brief Set scan status. This helps ospd-openvas to
  * identify if a scan crashed or finished cleanly.
  *
- * @paramater[in] status Status to set.
+ * @param[in] status Status to set.
  */
 static void
 set_scan_status (char *status)
