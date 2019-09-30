@@ -8,7 +8,11 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ### Added
 - An ID has been added to NVT preferences. [#282](https://github.com/greenbone/openvas/pull/282)
-- A new NVT cross references data handling has been added.[#317](https://github.com/greenbone/openvas/pull/317)
+- A new NVT cross references data handling has been added. [#317](https://github.com/greenbone/openvas/pull/317)
+- Add option --scan-stop. [#352](https://github.com/greenbone/openvas/pull/352)
+- Add support to open an rc4 stream cipher, the function to encrypt stream data using the cipher handle,
+  and the function to close a handler. [#354](https://github.com/greenbone/openvas/pull/354)
+- Add one single config for redis to config/redis-openvas.conf. [#370](https://github.com/greenbone/openvas/pull/370)
 
 ### Changes
 - Vendor version is now an option in the config file. [#363](https://github.com/greenbone/openvas/pull/363)
@@ -20,21 +24,26 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 - Retry until a host finishes and frees a db before running a new host scan, in case there is no free redis db. Therefore a infinite loop has been added when it call kb_new(). [#340](https://github.com/greenbone/openvas/pull/340)
 - Use new nvti_add_tag() instead of plug_set_tag() and remove plug_set_tag(). [#385](https://github.com/greenbone/openvas/pull/385)
 - Remove dead code about tags regarding former openvas settings "result_prepend_tags" and "result_append_tags". [#386](https://github.com/greenbone/openvas/pull/386)
+- Check cache/feed errors during plugin scheduling. [#358](https://github.com/greenbone/openvas/pull/358)
+- Vendor version is now an option in the config file. [#363](https://github.com/greenbone/openvas/pull/363)
+- Use API for accessing NVTI elements. [#365](https://github.com/greenbone/openvas/pull/365)
 
 ### Fixed
 - An issue with stuck scans where only a single plugin is running and is beyond its timeout has been addressed. [#289](https://github.com/greenbone/openvas/pull/289)
 - Fix a type mismatch. Use correct format specifier for size_t. [#299](https://github.com/greenbone/openvas/pull/299)
 - An issue which caused falling back into a default port in get_ssh_port() has been fixed. [#342](https://github.com/greenbone/openvas/pull/342)
 - An issue which could have caused a truncated string in register_service() has been fixed. [#373](https://github.com/greenbone/openvas/pull/373)
-- Reset redis connection after the host scan finished. This avoids to leave open fd, which cause ulimit problems.[#384](https://github.com/greenbone/openvas/pull/384)
+- Reset redis connection after the host scan finished. This avoids to leave open fd, which cause ulimit problems. [#384](https://github.com/greenbone/openvas/pull/384)
 - Fix mis-identification of Sphinx Search service. [#387](https://github.com/greenbone/openvas/pull/387)
-- Set a key in redis when the scan finishes and fix stop scan using the right pid.[#390](https://github.com/greenbone/openvas/pull/390)
-- Fix detection of finger service.[#391](https://github.com/greenbone/openvas/pull/391)
+- Set a key in redis when the scan finishes and fix stop scan using the right pid. [#390](https://github.com/greenbone/openvas/pull/390)
+- Fix detection of finger service. [#391](https://github.com/greenbone/openvas/pull/391)
+- Wait for zombie process in case of timed out nvts. [#379](https://github.com/greenbone/openvas/pull/379)
 
 ### Removed
 - Unused be_nice scan preferences has been removed. [#313](https://github.com/greenbone/openvas/pull/313)
-- OTP has been entirely removed in favor of using the ospd-openvas interface. [#337](https://github.com/greenbone/openvas/pull/337)
-- Daemon mode has been entirely removed. [#337](https://github.com/greenbone/openvas/pull/337)  [#341](https://github.com/greenbone/openvas/pull/341)
+- OTP has been entirely removed in favor of using the ospd-openvas interface. [#333](https://github.com/greenbone/openvas/pull/333) [#351](https://github.com/greenbone/openvas/pull/351)
+  [#337](https://github.com/greenbone/openvas/pull/337) [#389](https://github.com/greenbone/openvas/pull/389)
+- Daemon mode has been entirely removed. [#337](https://github.com/greenbone/openvas/pull/337) [#341](https://github.com/greenbone/openvas/pull/341)
 
 [Unreleased]: https://github.com/greenbone/openvas/compare/openvas-scanner-6.0...master
 
