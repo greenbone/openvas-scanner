@@ -26,8 +26,8 @@ if (NOT PKG_CONFIG_FOUND)
   message(FATAL_ERROR "pkg-config executable not found. Aborting.")
 endif (NOT PKG_CONFIG_FOUND)
 
-pkg_check_modules (LIBGVM_BASE REQUIRED libgvm_base>=11.0.0)
-pkg_check_modules (LIBGVM_UTIL REQUIRED libgvm_util>=11.0.0)
+pkg_check_modules (LIBGVM_BASE REQUIRED libgvm_base>=20.4)
+pkg_check_modules (LIBGVM_UTIL REQUIRED libgvm_util>=20.4)
 pkg_check_modules (GLIB REQUIRED glib-2.0>=2.42)
 
 # set NVTICACHE_STR with version.
