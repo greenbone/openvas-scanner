@@ -465,8 +465,8 @@ nasl_ereg (lex_ctxt *lexic)
 
   if (regcomp (&re, pattern, REG_EXTENDED | REG_NOSUB | copt))
     {
-      nasl_perror (
-        lexic, "ereg() : regcomp() failed for pattern '%s'.\n", pattern);
+      nasl_perror (lexic, "ereg() : regcomp() failed for pattern '%s'.\n",
+                   pattern);
       return NULL;
     }
 
@@ -808,8 +808,8 @@ nasl_eregmatch (lex_ctxt *lexic)
 
   if (regcomp (&re, pattern, REG_EXTENDED | copt))
     {
-      nasl_perror (
-        lexic, "regmatch() : regcomp() failed for pattern '%s'.\n", pattern);
+      nasl_perror (lexic, "regmatch() : regcomp() failed for pattern '%s'.\n",
+                   pattern);
       return NULL;
     }
 
