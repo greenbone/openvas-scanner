@@ -39,6 +39,7 @@
 #include "pluginlaunch.h"          /* for init_loading_shm */
 #include "processes.h"             /* for create_process */
 #include "sighand.h"               /* for openvas_signal */
+#include "utils.h"                 /* for store_file */
 
 #include <errno.h>  /* for errno() */
 #include <fcntl.h>  /* for open() */
@@ -221,17 +222,17 @@ reload_openvas ()
  *         the kb.
  */
 static int
-load_scan_preferences (const char *scan_id)
+load_scan_preferences (struct scan_globals *globals)
 {
   char key[1024];
   kb_t kb;
   struct kb_item *res = NULL;
 
   g_debug ("Start loading scan preferences.");
-  if (!scan_id)
+  if (!globals->scan_id)
     return -1;
 
-  snprintf (key, sizeof (key), "internal/%s/scanprefs", scan_id);
+  snprintf (key, sizeof (key), "internal/%s/scanprefs", globals->scan_id);
   kb = kb_find (prefs_get ("db_address"), key);
   if (!kb)
     return -1;
@@ -244,11 +245,31 @@ load_scan_preferences (const char *scan_id)
     {
       gchar **pref = g_strsplit (res->v_str, "|||", 2);
       if (pref[0])
-        prefs_set (pref[0], pref[1] ?: "");
+        {
+          gchar **pref_name = g_strsplit (pref[0], ":", 3);
+          if (pref_name[1] && pref_name[2]
+              && !strncmp (pref_name[2], "file", 4))
+            {
+              char *file_hash = gvm_uuid_make ();
+              int ret;
+              prefs_set (pref[0], file_hash);
+              ret = store_file (globals, pref[1], file_hash);
+              if (ret)
+                g_debug ("Load preference: Failed to upload file "
+                         "for nvt %s preference.",
+                         pref_name[0]);
+
+              g_free (file_hash);
+            }
+          else
+            prefs_set (pref[0], pref[1] ?: "");
+          g_strfreev (pref_name);
+        }
+
       g_strfreev (pref);
       res = res->next;
     }
-  snprintf (key, sizeof (key), "internal/%s", scan_id);
+  snprintf (key, sizeof (key), "internal/%s", globals->scan_id);
   kb_item_set_str (kb, key, "ready", 0);
   kb_item_set_int (kb, "internal/ovas_pid", getpid ());
 
@@ -264,7 +285,7 @@ handle_client (struct scan_globals *globals)
   kb_t net_kb = NULL;
 
   /* Load preferences from Redis. Scan started with a scan_id. */
-  if (load_scan_preferences (globals->scan_id))
+  if (load_scan_preferences (globals))
     {
       g_warning ("No preferences found for the scan %s", globals->scan_id);
       exit (0);
