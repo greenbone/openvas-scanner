@@ -221,17 +221,17 @@ reload_openvas ()
  *         the kb.
  */
 static int
-load_scan_preferences (const char *scan_id)
+load_scan_preferences (struct scan_globals *globals)
 {
   char key[1024];
   kb_t kb;
   struct kb_item *res = NULL;
 
   g_debug ("Start loading scan preferences.");
-  if (!scan_id)
+  if (!globals->scan_id)
     return -1;
 
-  snprintf (key, sizeof (key), "internal/%s/scanprefs", scan_id);
+  snprintf (key, sizeof (key), "internal/%s/scanprefs", globals->scan_id);
   kb = kb_find (prefs_get ("db_address"), key);
   if (!kb)
     return -1;
@@ -248,7 +248,7 @@ load_scan_preferences (const char *scan_id)
       g_strfreev (pref);
       res = res->next;
     }
-  snprintf (key, sizeof (key), "internal/%s", scan_id);
+  snprintf (key, sizeof (key), "internal/%s", globals->scan_id);
   kb_item_set_str (kb, key, "ready", 0);
   kb_item_set_int (kb, "internal/ovas_pid", getpid ());
 
@@ -264,7 +264,7 @@ handle_client (struct scan_globals *globals)
   kb_t net_kb = NULL;
 
   /* Load preferences from Redis. Scan started with a scan_id. */
-  if (load_scan_preferences (globals->scan_id))
+  if (load_scan_preferences (globals))
     {
       g_warning ("No preferences found for the scan %s", globals->scan_id);
       exit (0);
