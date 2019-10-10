@@ -25,12 +25,12 @@
 
 #include "../misc/scanneraux.h" /* for struct scan_globals */
 
-#include <errno.h>             /* for errno() */
-#include <gvm/base/prefs.h>    /* for prefs_get() */
-#include <stdlib.h>            /* for atoi() */
-#include <string.h>            /* for strcmp() */
-#include <sys/ioctl.h>         /* for ioctl() */
-#include <sys/wait.h>          /* for waitpid() */
+#include <errno.h>          /* for errno() */
+#include <gvm/base/prefs.h> /* for prefs_get() */
+#include <stdlib.h>         /* for atoi() */
+#include <string.h>         /* for strcmp() */
+#include <sys/ioctl.h>      /* for ioctl() */
+#include <sys/wait.h>       /* for waitpid() */
 
 extern int global_max_hosts;
 extern int global_max_checks;
@@ -40,7 +40,6 @@ extern int global_max_checks;
  * @brief GLib log domain.
  */
 #define G_LOG_DOMAIN "sd   main"
-
 
 /**
  * @brief Adds a 'translation' entry for a file sent by the client.
@@ -55,8 +54,8 @@ extern int global_max_checks;
  * @param contents   Contents of the file.
  */
 static void
-files_add_translation (struct scan_globals *globals,
-                       const char *file_hash, char *contents)
+files_add_translation (struct scan_globals *globals, const char *file_hash,
+                       char *contents)
 {
   GHashTable *trans = globals->files_translation;
   // Register the mapping table if none there yet
@@ -82,8 +81,8 @@ files_add_translation (struct scan_globals *globals,
  * @param filesize   Size of the file in bytes.
  */
 static void
-files_add_size_translation (struct scan_globals *globals,
-                            const char *file_hash, const long filesize)
+files_add_size_translation (struct scan_globals *globals, const char *file_hash,
+                            const long filesize)
 {
   GHashTable *trans = globals->files_size_translation;
   gchar *filesize_str = g_strdup_printf ("%ld", filesize);
@@ -99,7 +98,11 @@ files_add_size_translation (struct scan_globals *globals,
 }
 
 /**
- * @brief Stores a file type preference.
+ * @brief Stores a file type preference in a hash table.
+ *
+ * @param globals    Global struct.
+ * @param file       File content.
+ * @param file_hash  hash to reference the file.
  *
  * @return 0 if successful, -1 in case of errors.
  */
