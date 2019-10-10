@@ -244,7 +244,20 @@ load_scan_preferences (struct scan_globals *globals)
     {
       gchar **pref = g_strsplit (res->v_str, "|||", 2);
       if (pref[0])
-        prefs_set (pref[0], pref[1] ?: "");
+        {
+          gchar **pref_name = g_strsplit (pref[0], ":", 3);
+          if (pref_name[1] && pref_name[2] &&
+              !strncmp (pref_name[2], "file", 4))
+            {
+              char *file_hash = gvm_uuid_make ();
+              prefs_set (pref[0], file_hash);
+              store_file (globals, pref[1], file_hash);
+            }
+          else
+            prefs_set (pref[0], pref[1] ?: "");
+          g_strfreev (pref_name);
+        }
+
       g_strfreev (pref);
       res = res->next;
     }
