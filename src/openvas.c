@@ -39,6 +39,7 @@
 #include "pluginlaunch.h"          /* for init_loading_shm */
 #include "processes.h"             /* for create_process */
 #include "sighand.h"               /* for openvas_signal */
+#include "utils.h"                 /* for store_file */
 
 #include <errno.h>  /* for errno() */
 #include <fcntl.h>  /* for open() */
@@ -250,8 +251,14 @@ load_scan_preferences (struct scan_globals *globals)
               !strncmp (pref_name[2], "file", 4))
             {
               char *file_hash = gvm_uuid_make ();
+              int ret;
               prefs_set (pref[0], file_hash);
-              store_file (globals, pref[1], file_hash);
+              ret = store_file (globals, pref[1], file_hash);
+              if (ret)
+                g_debug ("Load preference: Failed to upload file "
+                         "for nvt %s preference.", pref_name[0]);
+
+              g_free(file_hash);
             }
           else
             prefs_set (pref[0], pref[1] ?: "");

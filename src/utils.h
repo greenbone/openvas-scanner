@@ -45,4 +45,7 @@ wait_for_children1 (void);
 int
 is_scanner_only_pref (const char *);
 
+int
+store_file (struct scan_globals *, const char *, const char *);
+
 #endif
