@@ -45,6 +45,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 - Set a key in redis when the scan finishes and fix stop scan using the right pid. [#390](https://github.com/greenbone/openvas/pull/390)
 - Fix detection of finger service. [#391](https://github.com/greenbone/openvas/pull/391)
 - Wait for zombie process in case of timed out nvts. [#379](https://github.com/greenbone/openvas/pull/379)
+- Fix handling of file type nvt preferences. [#399](https://github.com/greenbone/openvas/pull/399)
 
 ### Removed
 - Unused be_nice scan preferences has been removed. [#313](https://github.com/greenbone/openvas/pull/313)
