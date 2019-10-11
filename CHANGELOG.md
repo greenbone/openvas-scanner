@@ -4,7 +4,7 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
-## [Unreleased]
+## [7.0.0] (2019-10-11)
 
 ### Added
 - An ID has been added to NVT preferences. [#282](https://github.com/greenbone/openvas/pull/282)
@@ -46,7 +46,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
   [#337](https://github.com/greenbone/openvas/pull/337) [#389](https://github.com/greenbone/openvas/pull/389)
 - Daemon mode has been entirely removed. [#337](https://github.com/greenbone/openvas/pull/337) [#341](https://github.com/greenbone/openvas/pull/341)
 
-[Unreleased]: https://github.com/greenbone/openvas/compare/openvas-scanner-6.0...master
+[7.0.0]: https://github.com/greenbone/openvas/compare/v6.0.1...v7.0.0
 
 ## [6.0.2] (unreleased)
 
