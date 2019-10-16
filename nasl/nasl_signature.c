@@ -115,7 +115,7 @@ nasl_verify_signature (const char *filename, const char *fcontent, size_t flen)
   gchar *scontent = NULL;
   gchar *offset = NULL;
   gchar *endpos = NULL;
-  gchar *path = g_build_filename (OPENVAS_SYSCONF_DIR, "gnupg", NULL);
+  gchar *path = g_build_filename (OPENVAS_GPG_BASE_DIR, "gnupg", NULL);
   gboolean success;
   gpgme_error_t err;
   gpgme_ctx_t ctx = gvm_init_gpgme_ctx_from_dir (path);

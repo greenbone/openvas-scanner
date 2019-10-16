@@ -191,6 +191,7 @@ add_definitions (-DOPENVAS_STATE_DIR="${OPENVAS_STATE_DIR}")
 add_definitions (-DOPENVASLIB_VERSION="${NASL_VERSION_MAJOR}.${NASL_VERSION_MINOR}.${NASL_VERSION_PATCH}")
 add_definitions (-DOPENVAS_SYSCONF_DIR="${OPENVAS_SYSCONF_DIR}")
 add_definitions (-DOPENVAS_NASL_VERSION="${NASL_VERSION}")
+add_definitions (-DOPENVAS_GPG_BASE_DIR="${OPENVAS_GPG_BASE_DIR}")
 
 include_directories (${GLIB_INCLUDE_DIRS}
                      ${GPGME_INCLUDE_DIRS}
