@@ -247,8 +247,8 @@ load_scan_preferences (struct scan_globals *globals)
       if (pref[0])
         {
           gchar **pref_name = g_strsplit (pref[0], ":", 3);
-          if (pref_name[1] && pref_name[2]
-              && !strncmp (pref_name[2], "file", 4))
+          if (pref_name[1] && pref_name[2] && !strncmp (pref_name[2], "file", 4)
+              && strcmp (pref[1], ""))
             {
               char *file_hash = gvm_uuid_make ();
               int ret;
