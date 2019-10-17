@@ -12,7 +12,14 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 [Unreleased]: https://github.com/greenbone/openvas/compare/openvas-7.0...master
 
-## [7.0.0]
+## [7.0.1] (unreleased)
+
+### Fixed
+- Do not store in memory an empty file received as nvt preference. [#409](https://github.com/greenbone/openvas/pull/409)
+
+[7.0.1]: https://github.com/greenbone/openvas/compare/v7.0.0...openvas-7.0
+
+## [7.0.0] (2019-10-11)
 
 ### Added
 - An ID has been added to NVT preferences. [#282](https://github.com/greenbone/openvas/pull/282)
