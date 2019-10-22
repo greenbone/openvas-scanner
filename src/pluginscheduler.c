@@ -62,14 +62,15 @@ plugin_add (plugins_scheduler_t sched, GHashTable *oids_table,
   int category;
   nvti_t *nvti;
   int ret = 0;
+  gchar *tag_value;
+
   if (g_hash_table_lookup (oids_table, oid))
     return 0;
 
   /* Check if the plugin is deprecated */
   nvti = nvticache_get_nvt (oid);
-  if (nvti_tag (nvti)
-      && (g_str_has_prefix (nvti_tag (nvti), "deprecated=1")
-          || strstr (nvti_tag (nvti), "|deprecated=1")))
+  tag_value = nvti_get_tag (nvti, "deprecated");
+  if (tag_value && ! strcmp (tag_value, "1"))
     {
       if (prefs_get_bool ("log_whole_attack"))
         {
@@ -80,6 +81,7 @@ plugin_add (plugins_scheduler_t sched, GHashTable *oids_table,
           g_free (name);
         }
       nvti_free (nvti);
+      g_free (tag_value);
       return 0;
     }
 
