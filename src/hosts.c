@@ -30,10 +30,10 @@
 
 #include <errno.h>    /* for errno() */
 #include <glib.h>     /* for g_free() */
+#include <stdio.h>    /* for snprintf() */
 #include <string.h>   /* for strlen() */
 #include <sys/wait.h> /* for waitpid() */
 #include <unistd.h>   /* for close() */
-#include <stdio.h>    /* for snprintf() */
 
 #undef G_LOG_DOMAIN
 /**

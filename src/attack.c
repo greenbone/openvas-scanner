@@ -575,7 +575,8 @@ attack_host (struct scan_globals *globals, struct in6_addr *ip, GSList *vhosts,
                 }
             }
 
-          if ((cur_plug * 100) / num_plugs >= last_status && !scan_is_stopped ())
+          if ((cur_plug * 100) / num_plugs >= last_status
+              && !scan_is_stopped ())
             {
               last_status = (cur_plug * 100) / num_plugs + 2;
               if (comm_send_status (kb, ip_str, cur_plug, num_plugs) < 0)
@@ -956,7 +957,7 @@ handle_scan_stop_signal ()
   kb_lnk_reset (main_kb);
 
   if (atoi (pid) == getpid ())
-    hosts_stop_all();
+    hosts_stop_all ();
   else
     pluginlaunch_stop ();
 
