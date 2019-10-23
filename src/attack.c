@@ -744,11 +744,7 @@ attack_start (struct attack_start_args *args)
 
   if (!scan_is_stopped ())
     {
-      char key[1024];
       struct timeval now;
-
-      snprintf (key, sizeof (key), "internal/%s", globals->scan_id);
-      kb_item_set_str (kb, key, "finished", 0);
 
       gettimeofday (&now, NULL);
       if (now.tv_usec < then.tv_usec)
