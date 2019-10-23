@@ -414,7 +414,7 @@ stop_single_task_scan ()
     exit (1);
 
   pid = kb_item_get_int (kb, "internal/ovas_pid");
-  kill (pid, SIGUSR2);
+  kill (pid, SIGUSR1);
 
   exit (0);
 }
