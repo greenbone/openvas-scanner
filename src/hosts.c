@@ -30,6 +30,7 @@
 
 #include <errno.h>    /* for errno() */
 #include <glib.h>     /* for g_free() */
+#include <stdio.h>    /* for snprintf() */
 #include <string.h>   /* for strlen() */
 #include <sys/wait.h> /* for waitpid() */
 #include <unistd.h>   /* for close() */
@@ -87,14 +88,29 @@ host_rm (struct host *h)
     waitpid (h->pid, NULL, WNOHANG);
 
   if (!global_scan_stop)
-    host_set_time (h->host_kb, "internal/end_time");
+    {
+      char key[1024];
+      char *scan_id = kb_item_get_str (h->host_kb, "internal/scan_id");
+      snprintf (key, sizeof (key), "internal/%s", scan_id);
+      kb_item_set_str (h->host_kb, key, "finished", 0);
+
+      host_set_time (h->host_kb, "internal/end_time");
+      kb_lnk_reset (h->host_kb);
+      g_free (scan_id);
+    }
+
   if (h->next != NULL)
     h->next->prev = h->prev;
 
   if (h->prev != NULL)
     h->prev->next = h->next;
 
-  kb_lnk_reset (h->host_kb);
+  if (global_scan_stop == 1 && h->host_kb)
+    {
+      kb_delete (h->host_kb);
+      h->host_kb = NULL;
+    }
+
   g_free (h->name);
   g_free (h->ip);
   g_free (h);
@@ -188,7 +204,6 @@ hosts_stop_host (struct host *h)
 
   g_message ("Stopping host %s scan", h->name);
   kill (h->pid, SIGUSR1);
-  kb_delete (h->host_kb);
   return 0;
 }
 
