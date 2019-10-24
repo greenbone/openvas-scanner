@@ -8,6 +8,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ### Fixed
 - Do not store in memory an empty file received as nvt preference. [#409](https://github.com/greenbone/openvas/pull/409)
+- Fix stop scan. [#414](https://github.com/greenbone/openvas/pull/414)
 
 [7.0.1]: https://github.com/greenbone/openvas/compare/v7.0.0...openvas-7.0
 

@@ -229,14 +229,6 @@ scan_is_stopped ()
   return global_scan_stop;
 }
 
-int global_stop_all_scans = 0;
-
-static int
-all_scans_are_stopped ()
-{
-  return global_stop_all_scans;
-}
-
 /**
  * @brief Checks that an NVT category is safe.
  *
@@ -283,7 +275,7 @@ launch_plugin (struct scan_globals *globals, struct scheduler_plugin *plugin,
       plugin->running_state = PLUGIN_STATUS_DONE;
       goto finish_launch_plugin;
     }
-  if (scan_is_stopped () || all_scans_are_stopped ())
+  if (scan_is_stopped ())
     {
       if (nvti_category (nvti) != ACT_END)
         {
@@ -583,8 +575,8 @@ attack_host (struct scan_globals *globals, struct in6_addr *ip, GSList *vhosts,
                 }
             }
 
-          if ((cur_plug * 100) / num_plugs >= last_status && !scan_is_stopped ()
-              && !all_scans_are_stopped ())
+          if ((cur_plug * 100) / num_plugs >= last_status
+              && !scan_is_stopped ())
             {
               last_status = (cur_plug * 100) / num_plugs + 2;
               if (comm_send_status (kb, ip_str, cur_plug, num_plugs) < 0)
@@ -601,7 +593,7 @@ attack_host (struct scan_globals *globals, struct in6_addr *ip, GSList *vhosts,
     }
 
   pluginlaunch_wait (kb);
-  if (!scan_is_stopped () && !all_scans_are_stopped ())
+  if (!scan_is_stopped ())
     comm_send_status (kb, ip_str, num_plugs, num_plugs);
 
 host_died:
@@ -751,13 +743,9 @@ attack_start (struct attack_start_args *args)
   g_free (hostnames);
   attack_host (globals, &hostip, args->host->vhosts, args->sched, kb, net_kb);
 
-  if (!scan_is_stopped () && !all_scans_are_stopped ())
+  if (!scan_is_stopped ())
     {
-      char key[1024];
       struct timeval now;
-
-      snprintf (key, sizeof (key), "internal/%s", globals->scan_id);
-      kb_item_set_str (kb, key, "finished", 0);
 
       gettimeofday (&now, NULL);
       if (now.tv_usec < then.tv_usec)
@@ -959,15 +947,21 @@ check_kb_access ()
 static void
 handle_scan_stop_signal ()
 {
-  pluginlaunch_stop ();
-  global_scan_stop = 1;
-}
+  int i = atoi (prefs_get ("ov_maindbid"));
+  kb_t main_kb = NULL;
+  char *pid;
 
-static void
-handle_stop_all_scans_signal ()
-{
-  global_stop_all_scans = 1;
-  hosts_stop_all ();
+  global_scan_stop = 1;
+  main_kb = kb_direct_conn (prefs_get ("db_address"), i);
+  pid = kb_item_get_str (main_kb, ("internal/ovas_pid"));
+  kb_lnk_reset (main_kb);
+
+  if (atoi (pid) == getpid ())
+    hosts_stop_all ();
+  else
+    pluginlaunch_stop ();
+
+  g_free (pid);
 }
 
 /**
@@ -1111,8 +1105,7 @@ attack_network (struct scan_globals *globals, kb_t *network_kb)
    * Start the attack !
    */
   openvas_signal (SIGUSR1, handle_scan_stop_signal);
-  openvas_signal (SIGUSR2, handle_stop_all_scans_signal);
-  while (host && !scan_is_stopped () && !all_scans_are_stopped ())
+  while (host && !scan_is_stopped ())
     {
       int pid, rc;
       struct attack_start_args args;
@@ -1142,7 +1135,7 @@ attack_network (struct scan_globals *globals, kb_t *network_kb)
           goto scan_stop;
         }
 
-      if (scan_is_stopped () || all_scans_are_stopped ())
+      if (scan_is_stopped ())
         {
           g_free (host_str);
           continue;
@@ -1203,10 +1196,6 @@ scan_stop:
 
 stop:
 
-  if (all_scans_are_stopped ())
-    {
-    }
-
   gvm_hosts_free (hosts);
   g_free (globals->network_scan_status);
   g_free (globals->network_targets);
@@ -1217,7 +1206,6 @@ stop:
   g_message ("Total time to scan all hosts : %ld seconds",
              now.tv_sec - then.tv_sec);
 
-  if (do_network_scan && network_phase && !scan_is_stopped ()
-      && !all_scans_are_stopped ())
+  if (do_network_scan && network_phase && !scan_is_stopped ())
     attack_network (globals, network_kb);
 }
