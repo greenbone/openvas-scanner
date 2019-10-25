@@ -70,7 +70,7 @@ plugin_add (plugins_scheduler_t sched, GHashTable *oids_table,
   /* Check if the plugin is deprecated */
   nvti = nvticache_get_nvt (oid);
   tag_value = nvti_get_tag (nvti, "deprecated");
-  if (tag_value && ! strcmp (tag_value, "1"))
+  if (tag_value && !strcmp (tag_value, "1"))
     {
       if (prefs_get_bool ("log_whole_attack"))
         {
