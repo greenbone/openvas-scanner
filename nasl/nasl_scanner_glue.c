@@ -482,7 +482,7 @@ script_add_preference (lex_ctxt *lexic)
         }
       if (id == nvtpref_id (nvti_pref (script_infos->nvti, i)))
         {
-          nasl_perror (lexic, "Invalid or already existent preferences id\n");
+          nasl_perror (lexic, "Invalid or already existent preference id\n");
           return FAKE_CELL;
         }
     }
