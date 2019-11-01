@@ -417,7 +417,7 @@ pluginlaunch_wait_for_free_process (kb_t kb)
       sigemptyset (&mask);
       sigaddset (&mask, SIGCHLD);
       if (sigtimedwait (&mask, NULL, &ts) < 0 && errno != EAGAIN)
-        g_warning ("%s: %s", __FUNCTION__, strerror (errno));
+        g_warning ("%s: %s", __func__, strerror (errno));
       update_running_processes (kb);
     }
 }

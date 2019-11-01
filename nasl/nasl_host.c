@@ -120,7 +120,7 @@ add_hostname (lex_ctxt *lexic)
 
   if (!value)
     {
-      nasl_perror (lexic, "%s: Empty hostname\n", __FUNCTION__);
+      nasl_perror (lexic, "%s: Empty hostname\n", __func__);
       return NULL;
     }
   if (!source || !*source)
@@ -152,7 +152,7 @@ resolve_hostname (lex_ctxt *lexic)
 
   if (!value)
     {
-      nasl_perror (lexic, "%s: Empty hostname\n", __FUNCTION__);
+      nasl_perror (lexic, "%s: Empty hostname\n", __func__);
       return NULL;
     }
 
