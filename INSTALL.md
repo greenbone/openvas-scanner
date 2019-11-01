@@ -30,6 +30,9 @@ Prerequisites for building documentation:
 * xmltoman (optional, for building man page)
 * sqlfairy (optional, for producing database diagram)
 
+Prerequisites for building tests:
+* Cgreen (optional, for building tests)
+
 Recommended to have WMI support:
 * openvas-smb >= 1.0.1
 
@@ -74,6 +77,7 @@ Thereafter, the following commands are useful:
     make                # build the scanner
     make doc            # build the documentation
     make doc-full       # build more developer-oriented documentation
+    make tests          # build tests
     make install        # install the build
     make rebuild_cache  # rebuild the cmake cache
 
