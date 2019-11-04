@@ -958,7 +958,7 @@ v6_routethrough (struct in6_addr *dest, struct in6_addr *source)
   else
     g_message ("%s: Provided technique is neither proc route nor"
                " connect socket",
-               __FUNCTION__);
+               __func__);
   return NULL;
 }
 

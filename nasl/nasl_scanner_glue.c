@@ -458,8 +458,15 @@ script_add_preference (lex_ctxt *lexic)
 
   if (!script_infos->nvti)
     return FAKE_CELL;
-  if (id <= 0)
+  if (id < 0)
     id = nvti_pref_len (script_infos->nvti) + 1;
+  if (id == 0)
+    {
+      nasl_perror (lexic,
+                   "Invalid id or not allowed id value in the call to %s()\n",
+                   __func__);
+      return FAKE_CELL;
+    }
   if (!name || !type || !value)
     {
       nasl_perror (lexic,
@@ -471,6 +478,11 @@ script_add_preference (lex_ctxt *lexic)
       if (!strcmp (name, nvtpref_name (nvti_pref (script_infos->nvti, i))))
         {
           nasl_perror (lexic, "Preference '%s' already exists\n", name);
+          return FAKE_CELL;
+        }
+      if (id == nvtpref_id (nvti_pref (script_infos->nvti, i)))
+        {
+          nasl_perror (lexic, "Invalid or already existent preference id\n");
           return FAKE_CELL;
         }
     }

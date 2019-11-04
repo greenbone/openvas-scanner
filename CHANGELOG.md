@@ -9,10 +9,14 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 ### Changes
 - The logging of the NASL internal regexp functions was extended to include the pattern in case of a failed regcomp(). [#397](https://github.com/greenbone/openvas/pull/397)
 - Add config for gpg keyring path (OPENVAS_GPG_BASE_DIR) [#407](https://github.com/greenbone/openvas/pull/407)
+- Use __func__ instead of __FUNCTION__ [#419](https://github.com/greenbone/openvas/pull/419)
 
 [Unreleased]: https://github.com/greenbone/openvas/compare/openvas-7.0...master
 
 ## [7.0.1] (unreleased)
+
+### Changed
+- Improve handling of invalid or existent ids of nvt's preference id. [#416](https://github.com/greenbone/openvas/pull/416)
 
 ### Fixed
 - Do not store in memory an empty file received as nvt preference. [#409](https://github.com/greenbone/openvas/pull/409)

@@ -222,7 +222,7 @@ nasl_cert_open (lex_ctxt *lexic)
   obj = g_try_malloc (sizeof *obj);
   if (!obj)
     {
-      g_message ("malloc failed in %s", __FUNCTION__);
+      g_message ("malloc failed in %s", __func__);
       ksba_cert_release (cert);
       return NULL;
     }
