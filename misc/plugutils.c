@@ -181,7 +181,7 @@ plug_add_host_fqdn (struct script_infos *args, const char *hostname,
 
       if (!strcmp (tmp->value, hostname))
         {
-          g_warning ("%s: Value '%s' exists already", __FUNCTION__, hostname);
+          g_warning ("%s: Value '%s' exists already", __func__, hostname);
           return -1;
         }
       vhosts = vhosts->next;

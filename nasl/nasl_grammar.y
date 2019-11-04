@@ -625,7 +625,7 @@ load_checksums (kb_t kb)
   file = fopen (filename, "r");
   if (!file)
     {
-      g_warning ("%s: Couldn't read file %s", __FUNCTION__, filename);
+      g_warning ("%s: Couldn't read file %s", __func__, filename);
       return;
     }
   if (checksum_algorithm == GCRY_MD_MD5)
@@ -649,7 +649,7 @@ load_checksums (kb_t kb)
       splits = g_strsplit (buffer, "  ", -1);
       if (g_strv_length (splits) != 2)
         {
-          g_warning ("%s: Erroneous checksum entry %s", __FUNCTION__, buffer);
+          g_warning ("%s: Erroneous checksum entry %s", __func__, buffer);
           g_strfreev (splits);
           break;
         }

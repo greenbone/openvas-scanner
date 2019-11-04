@@ -191,7 +191,7 @@ nasl_pread (lex_ctxt *lexic)
     {
       if (error)
         {
-          g_warning ("%s: %s", __FUNCTION__, error->message);
+          g_warning ("%s: %s", __func__, error->message);
           g_error_free (error);
         }
       goto finish_pread;
