@@ -45,6 +45,7 @@ print_pcap_error (pcap_t *p, char *prefix)
 }
 
 /**
+ * @param iface Name of interface. String has to be freed by caller.
  * @return -1 in case of error, index of the opened pcap_t in pcaps
  *         otherwise.
  */
@@ -53,6 +54,7 @@ bpf_open_live (char *iface, char *filter)
 {
   char errbuf[PCAP_ERRBUF_SIZE];
   pcap_t *ret;
+  pcap_if_t *alldevsp = NULL; /* list of capture devices */
   bpf_u_int32 netmask, network;
   struct bpf_program filter_prog;
   int i;
@@ -67,7 +69,14 @@ bpf_open_live (char *iface, char *filter)
     }
 
   if (iface == NULL)
-    iface = pcap_lookupdev (errbuf);
+    {
+      if (pcap_findalldevs (&alldevsp, errbuf) == -1)
+        g_message ("Error for pcap_findalldevs(): %s", errbuf);
+      if (alldevsp != NULL)
+        /* get first device in list */
+        iface = g_strdup (alldevsp->name);
+      pcap_freealldevs (alldevsp);
+    }
 
   ret = pcap_open_live (iface, 1500, 0, 1, errbuf);
   if (ret == NULL)

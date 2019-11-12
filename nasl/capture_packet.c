@@ -48,6 +48,7 @@ init_capture_device (struct in_addr src, struct in_addr dest, char *filter)
   char *a_dst, *a_src;
   char errbuf[PCAP_ERRBUF_SIZE];
   int free_filter = 0;
+  pcap_if_t *alldevsp = NULL; /* list of capture devices */
 
   a_src = g_strdup (inet_ntoa (src));
   a_dst = g_strdup (inet_ntoa (dest));
@@ -72,12 +73,25 @@ init_capture_device (struct in_addr src, struct in_addr dest, char *filter)
   g_free (a_dst);
   g_free (a_src);
 
-  if ((interface = routethrough (&src, &dest))
-      || (interface = pcap_lookupdev (errbuf)))
-    ret = bpf_open_live (interface, filter);
+  if ((interface = routethrough (&src, &dest)))
+    {
+      ret = bpf_open_live (interface, filter);
+    }
+  else
+    {
+      if (pcap_findalldevs (&alldevsp, errbuf) == -1)
+        g_message ("Error for pcap_findalldevs(): %s", errbuf);
+      if (alldevsp != NULL)
+        /* get first device in list */
+        interface = g_strdup (alldevsp->name);
+      ret = bpf_open_live (interface, filter);
+      pcap_freealldevs (alldevsp);
+    }
 
   if (free_filter != 0)
     g_free (filter);
+
+  g_free (interface);
 
   return ret;
 }
@@ -148,6 +162,7 @@ init_v6_capture_device (struct in6_addr src, struct in6_addr dest, char *filter)
   int free_filter = 0;
   char name[INET6_ADDRSTRLEN];
   char errbuf[PCAP_ERRBUF_SIZE];
+  pcap_if_t *alldevsp = NULL; /* list of capture devices */
 
   a_src = g_strdup (inet_ntop (AF_INET6, &src, name, INET6_ADDRSTRLEN));
   a_dst = g_strdup (inet_ntop (AF_INET6, &dest, name, INET6_ADDRSTRLEN));
@@ -172,12 +187,25 @@ init_v6_capture_device (struct in6_addr src, struct in6_addr dest, char *filter)
   g_free (a_dst);
   g_free (a_src);
 
-  if ((interface = v6_routethrough (&src, &dest))
-      || (interface = pcap_lookupdev (errbuf)))
-    ret = bpf_open_live (interface, filter);
+  if ((interface = v6_routethrough (&src, &dest)))
+    {
+      ret = bpf_open_live (interface, filter);
+    }
+  else
+    {
+      if (pcap_findalldevs (&alldevsp, errbuf) == -1)
+        g_message ("Error for pcap_findalldevs(): %s", errbuf);
+      if (alldevsp != NULL)
+        /* get first device in list */
+        interface = g_strdup (alldevsp->name);
+      ret = bpf_open_live (interface, filter);
+      pcap_freealldevs (alldevsp);
+    }
 
   if (free_filter != 0)
     g_free (filter);
+
+  g_free (interface);
 
   return ret;
 }

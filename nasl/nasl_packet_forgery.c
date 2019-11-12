@@ -1509,6 +1509,7 @@ nasl_pcap_next (lex_ctxt *lexic)
   struct ip *ret = NULL;
   struct ip6_hdr *ret6 = NULL;
   char *filter = get_str_var_by_name (lexic, "pcap_filter");
+  pcap_if_t *alldevsp = NULL; /* list of capture devices */
   int timeout = get_int_var_by_name (lexic, "timeout", 5);
   tree_cell *retc;
   int sz;
@@ -1536,13 +1537,22 @@ nasl_pcap_next (lex_ctxt *lexic)
           interface = v6_routethrough (dst, &src);
         }
       if (interface == NULL)
-        interface = pcap_lookupdev (errbuf);
+        {
+          if (pcap_findalldevs (&alldevsp, errbuf) == -1)
+            g_message ("Error for pcap_findalldevs(): %s", errbuf);
+          if (alldevsp != NULL)
+            /* get first device in list */
+            interface = g_strdup (alldevsp->name);
+          pcap_freealldevs (alldevsp);
+        }
     }
 
   if (interface != NULL)
     {
       bpf = bpf_open_live (interface, filter);
     }
+  g_free (interface);
+
   if (bpf < 0)
     {
       nasl_perror (lexic, "pcap_next: Could not get a bpf\n");
@@ -1640,6 +1650,7 @@ nasl_send_capture (lex_ctxt *lexic)
   struct ip *ret = NULL;
   struct ip6_hdr *ret6 = NULL;
   char *filter = get_str_var_by_name (lexic, "pcap_filter");
+  pcap_if_t *alldevsp = NULL; /* list of capture devices */
   int timeout = get_int_var_by_name (lexic, "timeout", 5);
   tree_cell *retc;
   int sz;
@@ -1666,11 +1677,19 @@ nasl_send_capture (lex_ctxt *lexic)
           interface = v6_routethrough (dst, &src);
         }
       if (interface == NULL)
-        interface = pcap_lookupdev (errbuf);
+        {
+          if (pcap_findalldevs (&alldevsp, errbuf) == -1)
+            g_message ("Error for pcap_findalldevs(): %s", errbuf);
+          if (alldevsp != NULL)
+            /* get first device in list */
+            interface = g_strdup (alldevsp->name);
+          pcap_freealldevs (alldevsp);
+        }
     }
 
   if (interface != NULL)
     bpf = bpf_open_live (interface, filter);
+  g_free (interface);
 
   if (bpf < 0)
     {
