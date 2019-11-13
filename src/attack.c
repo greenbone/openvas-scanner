@@ -1186,7 +1186,6 @@ attack_network (struct scan_globals *globals, kb_t *network_kb)
   while (hosts_read () == 0)
     ;
   g_message ("Test complete");
-  set_scan_status ("finished");
 
 scan_stop:
   /* Free the memory used by the files uploaded by the user, if any. */
@@ -1208,4 +1207,6 @@ stop:
 
   if (do_network_scan && network_phase && !scan_is_stopped ())
     attack_network (globals, network_kb);
+  else
+    set_scan_status ("finished");
 }
