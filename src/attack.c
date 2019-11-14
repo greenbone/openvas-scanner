@@ -29,6 +29,7 @@
 #include "../misc/nvt_categories.h" /* for ACT_INIT */
 #include "../misc/pcap_openvas.h"   /* for v6_is_local_ip */
 #include "../nasl/nasl_debug.h"     /* for nasl_*_filename */
+#include "aliveservice.h"           /* for start_alive_detection */
 #include "hosts.h"
 #include "pluginlaunch.h"
 #include "pluginload.h"
@@ -338,6 +339,12 @@ launch_plugin (struct scan_globals *globals, struct scheduler_plugin *plugin,
   addr6_to_str (ip, ip_str);
   oid = plugin->oid;
   nvti = nvticache_get_nvt (oid);
+
+  /** for testing only: finish_launch_plugin, so we dont actually scan and only
+   * test**/
+  // g_message ("finish so we dont actually scan");
+  // plugin->running_state = PLUGIN_STATUS_DONE;
+  // goto finish_launch_plugin;
 
   /* eg. When NVT was moved/removed by a feed update during the scan. */
   if (!nvti)
@@ -1002,6 +1009,10 @@ handle_scan_stop_signal ()
   else
     pluginlaunch_stop ();
 
+#ifdef TEST_ALIVE_HOSTS_ONLY
+  kill_alive_detection_process ();
+#endif
+
   g_free (pid);
 }
 
@@ -1011,6 +1022,9 @@ handle_scan_stop_signal ()
 void
 attack_network (struct scan_globals *globals, kb_t *network_kb)
 {
+#ifdef TEST_ALIVE_HOSTS_ONLY
+  gvm_hosts_t *alive_hosts_list = NULL;
+#endif
   int max_hosts = 0, max_checks;
   const char *hostlist;
   gvm_host_t *host;
@@ -1169,6 +1183,21 @@ attack_network (struct scan_globals *globals, kb_t *network_kb)
   if (host == NULL)
     goto stop;
   hosts_init (max_hosts);
+
+#ifdef TEST_ALIVE_HOSTS_ONLY
+  hosts->current = 0;
+  set_alive_detection_pid (
+    create_process ((process_func_t) start_alive_detection, (void *) hosts));
+  g_debug ("%s: started alive detection.", __func__);
+  /* blocking call */
+  host = get_host_from_queue (TIMEOUT);
+  g_debug ("%s: Get very first host from Q. Host used for initialising "
+           "alive_hosts_list.",
+           __func__);
+
+  alive_hosts_list = gvm_hosts_new (gvm_host_value_str (host));
+#endif /* TEST_ALIVE_HOSTS_ONLY */
+
   /*
    * Start the attack !
    */
@@ -1245,7 +1274,15 @@ attack_network (struct scan_globals *globals, kb_t *network_kb)
           globals->network_scan_status = g_strdup ("done");
         }
       else
-        host = gvm_hosts_next (hosts);
+        {
+#ifdef TEST_ALIVE_HOSTS_ONLY
+          host = get_host_from_queue (TIMEOUT);
+          gvm_hosts_add (alive_hosts_list, host);
+          g_message ("%s: got new host from Queue in attack loop", __func__);
+#else
+          host = gvm_hosts_next (hosts);
+#endif /* TEST_ALIVE_HOSTS_ONLY */
+        }
       g_free (host_str);
     }
 
@@ -1262,6 +1299,33 @@ scan_stop:
     g_hash_table_destroy (files);
 
 stop:
+
+#ifdef TEST_ALIVE_HOSTS_ONLY
+  gvm_hosts_free (alive_hosts_list);
+  g_debug ("%s: freed alive detection data ", __func__);
+  /* need to wait for alive detection to finish */
+  /* fork should be finished because we got host == NULL which means either the
+   * detection is finished or a timeout was reached*/
+  /* if fork is still running it probably hangs unexpectedly and needs to be
+   * killed */
+  /* TODO: put waitpid() call in kill_alive_detection_process() */
+  g_info ("%s: waiting for alive detection fork to be finished...", __func__);
+  int ret = 1;
+  int status;
+  ret = waitpid (get_alive_detection_pid (), &status, WNOHANG);
+  g_debug ("%s: status of alive detection: %d. return value of waitpid: %d ",
+           __func__, status, ret);
+  if (ret == 0)
+    {
+      g_debug ("%s: child still running (%s). kill it explicitly", __func__,
+               strerror (errno));
+      kill_alive_detection_process ();
+    }
+  if (ret < 0)
+    g_debug ("%s: waitpid() failed. %s", __func__, strerror (errno));
+
+  g_info ("%s: finished waiting for alive detection fork.", __func__);
+#endif /* TEST_ALIVE_HOSTS_ONLY */
 
   gvm_hosts_free (hosts);
   g_free (globals->network_scan_status);

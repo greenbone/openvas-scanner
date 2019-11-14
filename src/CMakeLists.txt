@@ -58,7 +58,31 @@ else (NOT GCRYPT)
   string(REPLACE "-I" "" GCRYPT_INCLUDE_DIRS "${GCRYPT_CFLAGS}")
 endif (NOT GCRYPT)
 
-add_executable (openvas attack.c hosts.c
+message (STATUS "Looking for pcap...")
+find_library (PCAP pcap)
+message (STATUS "Looking for pcap... ${PCAP}")
+if (NOT PCAP)
+  message (SEND_ERROR "The pcap library is required.")
+endif (NOT PCAP)
+
+message (STATUS "Looking for pcap-config...")
+find_program (PCAP_CONFIG pcap-config)
+
+if (PCAP_CONFIG)
+  message (STATUS "Looking for pcap-config... ${PCAP_CONFIG}")
+  execute_process (COMMAND pcap-config --libs
+    OUTPUT_VARIABLE PCAP_LDFLAGS
+    OUTPUT_STRIP_TRAILING_WHITESPACE)
+  execute_process (COMMAND pcap-config --cflags
+    OUTPUT_VARIABLE PCAP_CFLAGS
+    OUTPUT_STRIP_TRAILING_WHITESPACE)
+else (PCAP_CONFIG)
+  message (STATUS "pcap-config not found, using defaults...")
+  set (PCAP_LDFLAGS "-L/usr/lib -lpcap")
+  set (PCAP_CFLAGS "-I/usr/include")
+endif (PCAP_CONFIG)
+
+add_executable (openvas aliveservice.c attack.c hosts.c
                 main.c nasl_plugins.c openvas.c
                 pluginlaunch.c pluginload.c
                 pluginscheduler.c plugs_req.c
@@ -140,20 +164,22 @@ if (CMAKE_SYSTEM_NAME MATCHES "FreeBSD")
   set (EXECINFO_LDFLAGS "execinfo")
 endif (CMAKE_SYSTEM_NAME MATCHES "FreeBSD")
 
+if (TEST_ALIVE_HOSTS_ONLY)
+  add_definitions (-DTEST_ALIVE_HOSTS_ONLY=${TEST_ALIVE_HOSTS_ONLY})
+endif (TEST_ALIVE_HOSTS_ONLY)
 
 target_link_libraries (openvas openvas_nasl_shared ${LIBOPENVAS_NASL_LDFLAGS}
                        ${LIBOPENVAS_MISC_LDFLAGS}
                        ${LIBGVM_BASE_LDFLAGS}
                        ${GLIB_LDFLAGS} ${GCRYPT_LDFLAGS}
-                       ${EXECINFO_LDFLAGS}
-                       ${LINKER_HARDENING_FLAGS})
+                       ${EXECINFO_LDFLAGS} ${PCAP_LDFLAGS}
+                       ${LINKER_HARDENING_FLAGS} -lpthread)
 
 ## Tests
 
 add_executable (attack-test
                 EXCLUDE_FROM_ALL
-                attack_tests.c
-
+                aliveservice.c attack_tests.c
                 hosts.c nasl_plugins.c openvas.c
                 pluginlaunch.c pluginload.c
                 pluginscheduler.c plugs_req.c
@@ -185,7 +211,7 @@ add_dependencies (check cppcheck)
 
 ## Tag files
 
-set (C_FILES "attack.c" "hosts.c"
+set (C_FILES "aliveservice.c" "attack.c" "hosts.c"
      "nasl_plugins.c" "openvas.c"
      "pluginlaunch.c" "pluginload.c"
      "pluginscheduler.c" "plugs_req.c"
