@@ -79,19 +79,18 @@ init_capture_device (struct in_addr src, struct in_addr dest, char *filter)
     }
   else
     {
-      if (pcap_findalldevs (&alldevsp, errbuf) == -1)
+      if (pcap_findalldevs (&alldevsp, errbuf) < 0)
         g_message ("Error for pcap_findalldevs(): %s", errbuf);
       if (alldevsp != NULL)
-        /* get first device in list */
-        interface = g_strdup (alldevsp->name);
+        interface = alldevsp->name;
       ret = bpf_open_live (interface, filter);
-      pcap_freealldevs (alldevsp);
     }
 
   if (free_filter != 0)
     g_free (filter);
 
-  g_free (interface);
+  if (alldevsp != NULL)
+    pcap_freealldevs (alldevsp);
 
   return ret;
 }
@@ -193,19 +192,18 @@ init_v6_capture_device (struct in6_addr src, struct in6_addr dest, char *filter)
     }
   else
     {
-      if (pcap_findalldevs (&alldevsp, errbuf) == -1)
+      if (pcap_findalldevs (&alldevsp, errbuf) < 0)
         g_message ("Error for pcap_findalldevs(): %s", errbuf);
       if (alldevsp != NULL)
-        /* get first device in list */
-        interface = g_strdup (alldevsp->name);
+        interface = alldevsp->name;
       ret = bpf_open_live (interface, filter);
-      pcap_freealldevs (alldevsp);
     }
 
   if (free_filter != 0)
     g_free (filter);
 
-  g_free (interface);
+  if (alldevsp != NULL)
+    pcap_freealldevs (alldevsp);
 
   return ret;
 }
