@@ -246,6 +246,72 @@ nvti_category_is_safe (int category)
   return 1;
 }
 
+static kb_t host_kb = NULL;
+static GSList *host_vhosts = NULL;
+static int check_new_vhosts_flag = 0;
+
+/**
+ * @brief Return check_new_vhosts_flag. After reading must be clean with
+ *        unset_check_new_vhosts_flag(), to avoid fetching unnecessarily.
+ * @return 1 means new vhosts must be fetched. 0 nothing to do.
+ */
+static int
+get_check_new_vhosts_flag ()
+{
+  return check_new_vhosts_flag;
+}
+
+/**
+ * @brief Set global check_new_vhosts_flag to indicate that new vhosts must be
+ *        fetched.
+ */
+static void
+set_check_new_vhosts_flag ()
+{
+  check_new_vhosts_flag = 1;
+}
+
+/**
+ * @brief Unset global check_new_vhosts_flag. Must be called once the
+ *        vhosts have been fetched.
+ */
+static void
+unset_check_new_vhosts_flag ()
+{
+  check_new_vhosts_flag = 0;
+}
+
+/**
+ * @brief Check if a plugin process pushed a new vhost value.
+ *
+ * @param kb        Host scan KB.
+ * @param vhosts    List of vhosts to add new vhosts to.
+ *
+ * @return New vhosts list.
+ */
+static void
+check_new_vhosts ()
+{
+  char *value;
+
+  if (get_check_new_vhosts_flag () == 0)
+    return;
+
+  while ((value = kb_item_pop_str (host_kb, "internal/vhosts")))
+    {
+      /* Get the source. */
+      char buffer[4096], *source;
+      gvm_vhost_t *vhost;
+
+      g_snprintf (buffer, sizeof (buffer), "internal/source/%s", value);
+      source = kb_item_pop_str (host_kb, buffer);
+      assert (source);
+      vhost = gvm_vhost_new (value, source);
+      host_vhosts = g_slist_append (host_vhosts, vhost);
+    }
+  unset_check_new_vhosts_flag ();
+}
+
 /**
  * @brief Launches a nvt. Respects safe check preference (i.e. does not try
  * @brief destructive nvt if save_checks is yes).
@@ -356,7 +422,8 @@ launch_plugin (struct scan_globals *globals, struct scheduler_plugin *plugin,
       goto finish_launch_plugin;
     }
 
-  /* Start the plugin */
+  /* Update vhosts list and start the plugin */
+  check_new_vhosts ();
   pid = plugin_launch (globals, plugin, ip, vhosts, kb, nvti);
   if (pid < 0)
     {
@@ -452,36 +519,6 @@ init_host_kb (struct scan_globals *globals, char *ip_str, kb_t *network_kb)
   return kb;
 }
 
-static kb_t host_kb = NULL;
-static GSList *host_vhosts = NULL;
-
-/**
- * @brief Check if a plugin process pushed a new vhost value.
- *
- * @param kb        Host scan KB.
- * @param vhosts    List of vhosts to add new vhosts to.
- *
- * @return New vhosts list.
- */
-static void
-check_new_vhosts ()
-{
-  char *value;
-
-  while ((value = kb_item_pop_str (host_kb, "internal/vhosts")))
-    {
-      /* Get the source. */
-      char buffer[4096], *source;
-      gvm_vhost_t *vhost;
-
-      g_snprintf (buffer, sizeof (buffer), "internal/source/%s", value);
-      source = kb_item_pop_str (host_kb, buffer);
-      assert (source);
-      vhost = gvm_vhost_new (value, source);
-      host_vhosts = g_slist_append (host_vhosts, vhost);
-    }
-}
-
 /**
  * @brief Attack one host.
  */
@@ -494,7 +531,7 @@ attack_host (struct scan_globals *globals, struct in6_addr *ip, GSList *vhosts,
   char ip_str[INET6_ADDRSTRLEN];
 
   addr6_to_str (ip, ip_str);
-  openvas_signal (SIGUSR2, check_new_vhosts);
+  openvas_signal (SIGUSR2, set_check_new_vhosts_flag);
   host_kb = kb;
   host_vhosts = vhosts;
   kb_item_set_str (kb, "internal/ip", ip_str, 0);
