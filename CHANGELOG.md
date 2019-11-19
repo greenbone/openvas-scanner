@@ -14,6 +14,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ### Fixed
 - Improve signal handling when update vhosts list. [#425](https://github.com/greenbone/openvas/pull/425)
+- Wait for all children instead of waiting just for one a time. [#428](https://github.com/greenbone/openvas/pull/428)
 
 [Unreleased]: https://github.com/greenbone/openvas/compare/openvas-7.0...master
 
