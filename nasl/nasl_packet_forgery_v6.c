@@ -1659,7 +1659,7 @@ nasl_send_v6packet (lex_ctxt *lexic)
   struct in6_addr *dstip = plug_get_host_ip (script_infos);
   int opt_on = 1;
   char name[INET6_ADDRSTRLEN];
-  int allow_multicast = get_int_var_by_name (lexic, "allow_multicast", 0);
+  int allow_multicast = 0;
 
   if (dstip == NULL || (IN6_IS_ADDR_V4MAPPED (dstip) == 1))
     return NULL;
@@ -1673,6 +1673,7 @@ nasl_send_v6packet (lex_ctxt *lexic)
     perror ("setsockopt");
   while ((ip = get_str_var_by_num (lexic, vi)) != NULL)
     {
+      allow_multicast = get_int_var_by_name (lexic, "allow_multicast", 0);
       int sz = get_var_size_by_num (lexic, vi);
       vi++;
 
