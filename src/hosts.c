@@ -226,8 +226,14 @@ static void
 hosts_read_data (void)
 {
   struct host *h = hosts;
+  int ret = 1;
 
-  waitpid (-1, NULL, WNOHANG);
+  while (ret > 0)
+    {
+      ret = waitpid (-1, NULL, WNOHANG);
+      if (ret < 0)
+        g_debug ("waitpid() failed. %s)", strerror (errno));
+    }
 
   if (h == NULL)
     return;
