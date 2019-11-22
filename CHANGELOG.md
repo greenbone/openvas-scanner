@@ -14,6 +14,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 - Fix stop scan. [#414](https://github.com/greenbone/openvas/pull/414)
 - Fix hanging scans. [#423](https://github.com/greenbone/openvas/pull/423)
 - Improve signal handling when update vhosts list. [#426](https://github.com/greenbone/openvas/pull/426)
+- Wait for all children instead of waiting just for one a time. [#429](https://github.com/greenbone/openvas/pull/429)
 
 [7.0.1]: https://github.com/greenbone/openvas/compare/v7.0.0...openvas-7.0
 
