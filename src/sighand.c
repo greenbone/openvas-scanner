@@ -100,7 +100,7 @@ void (*openvas_signal (int signum, void (*handler) (int))) (int)
 }
 
 void
-sighand_chld (pid_t pid)
+sighand_chld (int pid)
 {
   int status;
 

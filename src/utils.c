@@ -213,7 +213,8 @@ process_alive (pid_t pid)
   return kill (pid, 0) == 0;
 }
 
-int data_left (soc) int soc;
+int
+data_left (int soc)
 {
   int data = 0;
   ioctl (soc, FIONREAD, &data);
