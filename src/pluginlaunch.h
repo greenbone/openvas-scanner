@@ -35,7 +35,7 @@ void pluginlaunch_wait (kb_t);
 void pluginlaunch_wait_for_free_process (kb_t);
 
 void
-pluginlaunch_stop ();
+pluginlaunch_stop (void);
 
 int
 plugin_launch (struct scan_globals *, struct scheduler_plugin *,

@@ -224,7 +224,7 @@ network_scan_status (struct scan_globals *globals)
 int global_scan_stop = 0;
 
 static int
-scan_is_stopped ()
+scan_is_stopped (void)
 {
   return global_scan_stop;
 }
@@ -256,7 +256,7 @@ static int check_new_vhosts_flag = 0;
  * @return 1 means new vhosts must be fetched. 0 nothing to do.
  */
 static int
-get_check_new_vhosts_flag ()
+get_check_new_vhosts_flag (void)
 {
   return check_new_vhosts_flag;
 }
@@ -276,7 +276,7 @@ set_check_new_vhosts_flag ()
  *        vhosts have been fetched.
  */
 static void
-unset_check_new_vhosts_flag ()
+unset_check_new_vhosts_flag (void)
 {
   check_new_vhosts_flag = 0;
 }
@@ -290,7 +290,7 @@ unset_check_new_vhosts_flag ()
  * @return New vhosts list.
  */
 static void
-check_new_vhosts ()
+check_new_vhosts (void)
 {
   char *value;
 
@@ -911,7 +911,7 @@ iface_authorized (const char *iface)
  * unauthorized value, -2 if iface can't be used.
  */
 static int
-apply_source_iface_preference ()
+apply_source_iface_preference (void)
 {
   const char *source_iface = prefs_get ("source_iface");
   int ret;
@@ -967,7 +967,7 @@ apply_source_iface_preference ()
 }
 
 static int
-check_kb_access ()
+check_kb_access (void)
 {
   int rc;
   kb_t kb;

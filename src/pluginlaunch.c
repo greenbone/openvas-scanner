@@ -299,7 +299,7 @@ pluginlaunch_enable_parallel_checks (void)
 }
 
 void
-pluginlaunch_stop ()
+pluginlaunch_stop (void)
 {
   int i;
 
@@ -381,7 +381,7 @@ pluginlaunch_wait (kb_t kb)
  * @brief Return shortest timeout of the running processes.
  */
 static int
-timeout_running_processes ()
+timeout_running_processes (void)
 {
   int i, timeout = 0;
 

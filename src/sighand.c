@@ -108,7 +108,7 @@ sighand_chld (pid_t pid)
 }
 
 static void
-print_trace ()
+print_trace (void)
 {
   void *array[10];
   int ret = 0, left;

@@ -168,7 +168,7 @@ handle_termination_signal (int sig)
  * @brief Initializes main scanner process' signal handlers.
  */
 static void
-init_signal_handlers ()
+init_signal_handlers (void)
 {
   openvas_signal (SIGTERM, handle_termination_signal);
   openvas_signal (SIGINT, handle_termination_signal);
@@ -179,7 +179,7 @@ init_signal_handlers ()
 
 /* Restarts the scanner by reloading the configuration. */
 static void
-reload_openvas ()
+reload_openvas (void)
 {
   static gchar *rc_name = NULL;
   const char *config_file;
@@ -338,7 +338,7 @@ init_openvas (const char *config_file)
 }
 
 static int
-flush_all_kbs ()
+flush_all_kbs (void)
 {
   kb_t kb;
   int rc;
@@ -352,7 +352,7 @@ flush_all_kbs ()
 }
 
 static void
-gcrypt_init ()
+gcrypt_init (void)
 {
   if (gcry_control (GCRYCTL_ANY_INITIALIZATION_P))
     return;
@@ -364,7 +364,7 @@ gcrypt_init ()
 }
 
 void
-start_single_task_scan ()
+start_single_task_scan (void)
 {
   struct scan_globals *globals;
   int ret = 0;
@@ -399,7 +399,7 @@ start_single_task_scan ()
  * --scan-stop option.
  */
 static void
-stop_single_task_scan ()
+stop_single_task_scan (void)
 {
   char key[1024];
   kb_t kb;
