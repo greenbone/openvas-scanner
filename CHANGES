@@ -8,6 +8,11 @@ $ git clone https://github.com/greenbone/openvas-scanner.git
 $ cd openvas-scanner && git checkout openvas-scanner-5.1 && git log
 
 
+openvas-scanner 5.1.3 (unreleased)
+
+* Increase size of buffer for preferences to allow for up to 105K NVTs.
+
+
 openvas-scanner 5.1.3 (2018-08-29)
 
 This is the third maintenance release of the openvas-scanner 5.1 module
