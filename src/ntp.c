@@ -163,8 +163,9 @@ static int
 ntp_read_prefs (int soc)
 {
   char *input;
-  int input_sz = 1024 * 1024 * 2; /* this is sufficient for a plugin_set
-                                     for upto 69K OIDs */ 
+  int buffer_size_count = 0;
+  int input_sz = 1024 * 1024 * 3; /* this is sufficient for a plugin_set
+                                     for upto 105K OIDs */
 
   input = g_malloc0 (input_sz);
   for (;;)
@@ -179,6 +180,7 @@ ntp_read_prefs (int soc)
           exit (0);
         }
 
+      buffer_size_count = buffer_size_count + n;
       if (strstr (input, "<|> CLIENT") != NULL) /* finished = 1; */
         break;
       /* else */
@@ -208,6 +210,17 @@ ntp_read_prefs (int soc)
           }
       }
     }
+
+  if (buffer_size_count >= input_sz) /* finished = 1; */
+    {
+      log_write ("%s: The received plugin list is longer than expected.\n",
+                 __func__);
+    }
+
+#if DEBUGMORE
+  log_write ("%s: Received %d chars from the client as plugin list.\n",
+             __func__, buffer_size_count);
+#endif
 
   g_free (input);
   return (0);
