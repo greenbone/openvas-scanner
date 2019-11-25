@@ -164,8 +164,9 @@ static int
 ntp_read_prefs (int soc)
 {
   char *input;
-  int input_sz = 1024 * 1024 * 2; /* this is sufficient for a plugin_set
-                                     for up to 69K OIDs */
+  int buffer_size_count = 0;
+  int input_sz = 1024 * 1024 * 3; /* this is sufficient for a plugin_set
+                                     for up to 105K OIDs */
 
   input = g_malloc0 (input_sz);
   for (;;)
@@ -179,7 +180,7 @@ ntp_read_prefs (int soc)
           g_debug ("Empty data string -- closing comm. channel");
           exit (0);
         }
-
+      buffer_size_count = buffer_size_count + n;
       if (strstr (input, "<|> CLIENT") != NULL) /* finished = 1; */
         break;
       /* else */
@@ -209,6 +210,14 @@ ntp_read_prefs (int soc)
           }
       }
     }
+  if (buffer_size_count >= input_sz) /* finished = 1; */
+    {
+      g_critical ("%s: The received plugin list is longer than expected. ",
+                  __func__);
+    }
+
+  g_debug ("%s: Received %d chars from the client as plugin list. ",
+           __func__, buffer_size_count);
 
   g_free (input);
   return (0);
