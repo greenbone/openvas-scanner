@@ -66,6 +66,9 @@ Thanks for your help to keep the communication channels clean and consistent!
 
 **openvas-smb:**
 
+<!-- ospd-openvas is only necessary for GVM 11/openvas 7 -->
+**ospd-openvas:** (ospd-openvas --version)
+
 ### Environment
 
 **Operating system:**
