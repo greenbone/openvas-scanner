@@ -60,7 +60,7 @@ Thanks for your help to keep the communication channels clean and consistent!
 
 **gvm:** (gvmd --version)
 
-**openvas-scanner:** (openvassd --version)
+**openvas:** (openvas --version)
 
 **gvm-libs:**
 
