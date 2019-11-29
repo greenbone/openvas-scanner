@@ -50,6 +50,7 @@
 #include <gvm/base/nvti.h>      /* for prefs_get() */
 #include <gvm/base/prefs.h>     /* for prefs_get() */
 #include <gvm/base/proctitle.h> /* for proctitle_set */
+#include <gvm/base/version.h>   /* for gvm_libs_version */
 #include <gvm/util/kb.h>        /* for KB_PATH_DEFAULT */
 #include <gvm/util/nvticache.h> /* nvticache_free */
 #include <gvm/util/uuidutils.h> /* gvm_uuid_make */
@@ -485,6 +486,7 @@ openvas (int argc, char *argv[])
 #ifdef OPENVAS_GIT_REVISION
       printf ("GIT revision %s\n", OPENVAS_GIT_REVISION);
 #endif
+      printf ("gvm-libs %s\n", gvm_libs_version ());
       printf ("Most new code since 2005: (C) 2019 Greenbone Networks GmbH\n");
       printf (
         "Nessus origin: (C) 2004 Renaud Deraison <deraison@nessus.org>\n");
