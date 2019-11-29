@@ -6,6 +6,9 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ## [7.0.1] (unreleased)
 
+### Added
+- Display gvm-libs version in `openvas --version` output [#436](https://github.com/greenbone/openvas/pull/436)
+
 ### Changed
 - Improve handling of invalid or existent ids of nvt's preference id. [#416](https://github.com/greenbone/openvas/pull/416)
 
