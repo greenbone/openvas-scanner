@@ -19,6 +19,7 @@ Main changes compared to openvas-scanner 6.0.1:
   has been fixed.
 * Improve signal handling when update vhosts list.
 * Increase size of buffer for preferences to allow for up to 105K NVTs.
+* Perform the sca even if there are missing plugins in the nvticache.
 
 openvas-scanner 6.0.1 (2019-07-17)
 
