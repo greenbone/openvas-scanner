@@ -67,6 +67,12 @@ plugin_add (plugins_scheduler_t sched, GHashTable *oids_table,
 
   /* Check if the plugin is deprecated */
   nvti = nvticache_get_nvt (oid);
+  if (nvti == NULL)
+    {
+      g_warning ("The NVT with oid %s was not found in the nvticache.", oid);
+      return 1;
+    }
+
   if (nvti_tag (nvti)
       && (g_str_has_prefix (nvti_tag (nvti), "deprecated=1")
           || strstr (nvti_tag (nvti), "|deprecated=1")))
@@ -86,7 +92,7 @@ plugin_add (plugins_scheduler_t sched, GHashTable *oids_table,
   category = nvti_category (nvti);
   if (!(category >= ACT_INIT && category <= ACT_END))
     {
-      g_message ("The NVT with oid %s has no category assigned. This is "
+      g_warning ("The NVT with oid %s has no category assigned. This is "
                  "considered a fatal error, since the NVTI Cache "
                  "structure stored in Redis is out dated or corrupted.",
                  oid);
@@ -199,13 +205,12 @@ plugins_scheduler_fill_deps (plugins_scheduler_t sched, GHashTable *oids_table)
  * param[in]    oid_list    List of plugins to enable.
  * param[in]    autoload    Whether to autoload dependencies.
  */
-static int
+static void
 plugins_scheduler_enable (plugins_scheduler_t sched, const char *oid_list,
                           int autoload)
 {
   char *oids, *oid, *saveptr;
   GHashTable *oids_table, *names_table;
-  int ret = 0;
   static int error_counter = 0;
 
   oids_table = g_hash_table_new_full (g_str_hash, g_str_equal, NULL, NULL);
@@ -216,16 +221,8 @@ plugins_scheduler_enable (plugins_scheduler_t sched, const char *oid_list,
   oid = strtok_r (oids, ";", &saveptr);
   while (oid)
     {
-      ret = plugin_add (sched, oids_table, names_table, autoload, oid);
-      if (ret)
-        {
-          error_counter++;
-          if (error_counter >= 5)
-            {
-              g_message ("Stopped plugin scheduler: High number of errors.");
-              goto error;
-            }
-        }
+      error_counter +=
+        plugin_add (sched, oids_table, names_table, autoload, oid);
       oid = strtok_r (NULL, ";", &saveptr);
     }
 
@@ -233,11 +230,13 @@ plugins_scheduler_enable (plugins_scheduler_t sched, const char *oid_list,
   if (!autoload)
     plugins_scheduler_fill_deps (sched, oids_table);
 
-error:
+  if (error_counter > 0)
+    g_warning ("%s: %d errors were found during the plugin scheduling.",
+               __func__, error_counter);
+
   g_hash_table_destroy (oids_table);
   g_hash_table_destroy (names_table);
   g_free (oids);
-  return ret;
 }
 
 int
@@ -311,16 +310,11 @@ plugins_scheduler_init (const char *plugins_list, int autoload,
                         int only_network)
 {
   plugins_scheduler_t ret;
-  int i, err = 0;
+  int i;
 
   /* Fill our lists */
   ret = g_malloc0 (sizeof (*ret));
-  err = plugins_scheduler_enable (ret, plugins_list, autoload);
-  if (err)
-    {
-      plugins_scheduler_free (ret);
-      return NULL;
-    }
+  plugins_scheduler_enable (ret, plugins_list, autoload);
 
   if (only_network)
     {
