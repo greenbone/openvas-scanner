@@ -1074,13 +1074,30 @@ attack_network (struct scan_globals *globals, kb_t *network_kb)
     }
 
   /* Initialize the attack. */
+  int plugins_init_error = 0;
   sched = plugins_scheduler_init (prefs_get ("plugin_set"),
                                   prefs_get_bool ("auto_enable_dependencies"),
-                                  network_phase);
+                                  network_phase, &plugins_init_error);
   if (!sched)
     {
       g_message ("Couldn't initialize the plugin scheduler");
       return;
+    }
+
+  if (plugins_init_error > 0)
+    {
+      char buf[96];
+      int i = atoi (prefs_get ("ov_maindbid"));
+      kb_t main_kb = NULL;
+
+      sprintf (buf,
+               "%d errors were found during the plugin scheduling. "
+               "Some plugins have not been launched.",
+               plugins_init_error);
+
+      main_kb = kb_direct_conn (prefs_get ("db_address"), i);
+      error_message_to_client2 (main_kb, buf, NULL);
+      kb_lnk_reset (main_kb);
     }
 
   max_hosts = get_max_hosts_number ();
