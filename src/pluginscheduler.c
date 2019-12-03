@@ -204,14 +204,16 @@ plugins_scheduler_fill_deps (plugins_scheduler_t sched, GHashTable *oids_table)
  * param[in]    sched       Plugins scheduler.
  * param[in]    oid_list    List of plugins to enable.
  * param[in]    autoload    Whether to autoload dependencies.
+ *
+ * return       error_counter Number of errors found during the schecuduling.
  */
-static void
+static int
 plugins_scheduler_enable (plugins_scheduler_t sched, const char *oid_list,
                           int autoload)
 {
   char *oids, *oid, *saveptr;
   GHashTable *oids_table, *names_table;
-  static int error_counter = 0;
+  int error_counter = 0;
 
   oids_table = g_hash_table_new_full (g_str_hash, g_str_equal, NULL, NULL);
   names_table = g_hash_table_new_full (g_str_hash, g_str_equal, g_free, g_free);
@@ -237,6 +239,8 @@ plugins_scheduler_enable (plugins_scheduler_t sched, const char *oid_list,
   g_hash_table_destroy (oids_table);
   g_hash_table_destroy (names_table);
   g_free (oids);
+
+  return error_counter;
 }
 
 int
@@ -307,14 +311,14 @@ check_dependency_cycles (plugins_scheduler_t sched)
 
 plugins_scheduler_t
 plugins_scheduler_init (const char *plugins_list, int autoload,
-                        int only_network)
+                        int only_network, int *error)
 {
   plugins_scheduler_t ret;
   int i;
 
   /* Fill our lists */
   ret = g_malloc0 (sizeof (*ret));
-  plugins_scheduler_enable (ret, plugins_list, autoload);
+  *error = plugins_scheduler_enable (ret, plugins_list, autoload);
 
   if (only_network)
     {
