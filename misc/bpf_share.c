@@ -82,9 +82,9 @@ bpf_open_live (char *iface, char *filter)
       return -1;
     }
 
-  if (pcap_lookupnet (iface, &network, &netmask, 0) < 0)
+  if (pcap_lookupnet (iface, &network, &netmask, errbuf) < 0)
     {
-      g_message ("pcap_lookupnet failed");
+      g_message ("pcap_lookupnet failed: %s", errbuf);
       pcap_close (ret);
       return -1;
     }
