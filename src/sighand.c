@@ -100,11 +100,10 @@ void (*openvas_signal (int signum, void (*handler) (int))) (int)
 }
 
 void
-sighand_chld (int pid)
+sighand_chld (int sig)
 {
-  int status;
-
-  waitpid (pid, &status, WNOHANG);
+  (void) sig;
+  waitpid (-1, NULL, WNOHANG);
 }
 
 static void
