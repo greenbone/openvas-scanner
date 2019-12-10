@@ -26,6 +26,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ### Changed
 - Improve handling of invalid or existent ids of nvt's preference id. [#416](https://github.com/greenbone/openvas/pull/416)
+- Perform a scan even if there are missing plugins. [#439](https://github.com/greenbone/openvas/pull/439)
 
 ### Fixed
 - Do not store in memory an empty file received as nvt preference. [#409](https://github.com/greenbone/openvas/pull/409)
