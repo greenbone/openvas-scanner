@@ -17,7 +17,9 @@ Main changes compared to openvas-scanner 6.0.1:
   the symlink has been added in Debian Stretch with python-impacket 0.9.15-1.
 * An issue which could have caused a truncated string in register_service()
   has been fixed.
-
+* Improve signal handling when update vhosts list.
+* Increase size of buffer for preferences to allow for up to 105K NVTs.
+* Perform the sca even if there are missing plugins in the nvticache.
 
 openvas-scanner 6.0.1 (2019-07-17)
 
