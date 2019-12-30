@@ -100,7 +100,7 @@ check_dos_char_slowly_ntlmssp (uint16 c)
     {
       return 0;
     }
-  return (c == c2);
+  return c == c2;
 }
 
 /* We can parameterize this if someone complains.... JRA. */

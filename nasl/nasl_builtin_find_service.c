@@ -2336,7 +2336,7 @@ plugin_do_run (struct script_infos *desc, GSList *h, int test_ssl)
     }
   g_free (http_get);
 
-  return (0);
+  return 0;
 }
 
 #define MAX_SONS 128

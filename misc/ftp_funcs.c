@@ -35,7 +35,7 @@ ftp_log_in (int soc, char *username, char *passwd)
   buf[sizeof (buf) - 1] = '\0';
   n = recv_line (soc, buf, sizeof (buf) - 1);
   if (n <= 0)
-    return (1);
+    return 1;
 
   if (strncmp (buf, "220", 3) != 0)
     {

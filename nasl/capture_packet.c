@@ -136,7 +136,7 @@ capture_next_packet (int bpf, int timeout, int *sz)
       if (sz != NULL)
         *sz = len - dl_len;
     }
-  return ((struct ip *) ret);
+  return (struct ip *) ret;
 }
 
 int
@@ -237,5 +237,5 @@ capture_next_v6_packet (int bpf, int timeout, int *sz)
         *sz = len - dl_len;
     }
 
-  return ((struct ip6_hdr *) ret);
+  return (struct ip6_hdr *) ret;
 }
