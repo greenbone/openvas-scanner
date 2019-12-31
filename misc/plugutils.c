@@ -98,9 +98,9 @@ static int
 unscanned_ports_as_closed (port_protocol_t ptype)
 {
   if (ptype == PORT_PROTOCOL_UDP)
-    return (prefs_get_bool ("unscanned_closed_udp") ? 0 : 1);
+    return prefs_get_bool ("unscanned_closed_udp") ? 0 : 1;
 
-  return (prefs_get_bool ("unscanned_closed") ? 0 : 1);
+  return prefs_get_bool ("unscanned_closed") ? 0 : 1;
 }
 
 /**
@@ -153,13 +153,13 @@ host_get_port_state_proto (struct script_infos *args, int portnum, char *proto)
 int
 host_get_port_state (struct script_infos *plugdata, int portnum)
 {
-  return (host_get_port_state_proto (plugdata, portnum, "tcp"));
+  return host_get_port_state_proto (plugdata, portnum, "tcp");
 }
 
 int
 host_get_port_state_udp (struct script_infos *plugdata, int portnum)
 {
-  return (host_get_port_state_proto (plugdata, portnum, "udp"));
+  return host_get_port_state_proto (plugdata, portnum, "udp");
 }
 
 int

@@ -92,7 +92,7 @@ list_cmp1 (gconstpointer lelem, gconstpointer data)
   if (data)
     {
       gchar *lala = g_strdup (((func_info *) lelem)->func_name);
-      return (g_strcmp0 (lala, data));
+      return g_strcmp0 (lala, data);
     }
   return -1;
 }
@@ -140,7 +140,7 @@ gint
 list_cmp (gconstpointer lelem, gconstpointer data)
 {
   if (data)
-    return (g_strcmp0 (lelem, data));
+    return g_strcmp0 (lelem, data);
 
   return -1;
 }

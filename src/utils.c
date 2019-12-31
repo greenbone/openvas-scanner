@@ -163,7 +163,7 @@ get_max_hosts_number (void)
     }
   else
     max_hosts = global_max_hosts;
-  return (max_hosts);
+  return max_hosts;
 }
 
 /**
@@ -194,7 +194,7 @@ get_max_checks_number (void)
     }
   else
     max_checks = global_max_checks;
-  return (max_checks);
+  return max_checks;
 }
 
 /**

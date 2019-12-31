@@ -328,7 +328,7 @@ get_datalink_size (int datalink)
       offset = 0;
       break;
     }
-  return (offset);
+  return offset;
 }
 
 struct interface_info *

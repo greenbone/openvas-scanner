@@ -541,7 +541,7 @@ _regreplace (const char *pattern, const char *replace, const char *string,
 
       if (err && err != REG_NOMATCH)
         {
-          return (NULL);
+          return NULL;
         }
       if (!err)
         {
@@ -639,7 +639,7 @@ _regreplace (const char *pattern, const char *replace, const char *string,
   buf[new_l] = '\0';
   regfree (&re);
   /* whew. */
-  return (buf);
+  return buf;
 }
 
 tree_cell *
@@ -1199,7 +1199,7 @@ nasl_strstr (lex_ctxt *lexic)
  *
  * Returning NULL for "not found" is dangerous as automatic conversion to
  * to integer would change it into 0.
- * So we return (-1).
+ * So we return -1.
  *
  * @return -1 if string not found, otherwise index of substring.
  *

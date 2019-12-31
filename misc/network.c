@@ -1810,10 +1810,10 @@ open_sock_option (struct script_infos *args, unsigned int port, int type,
   if (!t)
     {
       g_message ("ERROR ! NO ADDRESS ASSOCIATED WITH NAME");
-      return (-1);
+      return -1;
     }
   if (IN6_ARE_ADDR_EQUAL (t, &in6addr_any))
-    return (-1);
+    return -1;
   if (IN6_IS_ADDR_V4MAPPED (t))
     {
       bzero ((void *) &addr, sizeof (addr));
@@ -2083,11 +2083,11 @@ qsort_compar (const void *a, const void *b)
   u_short *aa = (u_short *) a;
   u_short *bb = (u_short *) b;
   if (*aa == 0)
-    return (1);
+    return 1;
   else if (*bb == 0)
-    return (-1);
+    return -1;
   else
-    return (*aa - *bb);
+    return *aa - *bb;
 }
 
 /**
