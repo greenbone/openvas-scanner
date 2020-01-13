@@ -100,15 +100,14 @@ void (*openvas_signal (int signum, void (*handler) (int))) (int)
 }
 
 void
-sighand_chld (pid_t pid)
+sighand_chld (int sig)
 {
-  int status;
-
-  waitpid (pid, &status, WNOHANG);
+  (void) sig;
+  waitpid (-1, NULL, WNOHANG);
 }
 
 static void
-print_trace ()
+print_trace (void)
 {
   void *array[10];
   int ret = 0, left;

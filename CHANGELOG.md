@@ -10,19 +10,30 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 - The logging of the NASL internal regexp functions was extended to include the pattern in case of a failed regcomp(). [#397](https://github.com/greenbone/openvas/pull/397)
 - Add config for gpg keyring path (OPENVAS_GPG_BASE_DIR) [#407](https://github.com/greenbone/openvas/pull/407)
 - Use __func__ instead of __FUNCTION__ [#419](https://github.com/greenbone/openvas/pull/419)
-- Use pcap_findalldevs() instead of deprecated function pcap_lookupdev() [#422](https://github.com/greenbone/openvas/pull/422)
+- Use pcap_findalldevs() instead of deprecated function pcap_lookupdev() [#422](https://github.com/greenbone/openvas/pull/422) [#430](https://github.com/greenbone/openvas/pull/430)
+- add port-range option for openvas-nasl [#431](https://github.com/greenbone/openvas/pull/431)
+
+### Fixed
+- Improve signal handling when update vhosts list. [#425](https://github.com/greenbone/openvas/pull/425)
+- Wait for all children instead of waiting just for one a time. [#428](https://github.com/greenbone/openvas/pull/428)
 
 [Unreleased]: https://github.com/greenbone/openvas/compare/openvas-7.0...master
 
 ## [7.0.1] (unreleased)
 
+### Added
+- Display gvm-libs version in `openvas --version` output [#436](https://github.com/greenbone/openvas/pull/436)
+
 ### Changed
 - Improve handling of invalid or existent ids of nvt's preference id. [#416](https://github.com/greenbone/openvas/pull/416)
+- Perform a scan even if there are missing plugins. [#439](https://github.com/greenbone/openvas/pull/439)
 
 ### Fixed
 - Do not store in memory an empty file received as nvt preference. [#409](https://github.com/greenbone/openvas/pull/409)
 - Fix stop scan. [#414](https://github.com/greenbone/openvas/pull/414)
 - Fix hanging scans. [#423](https://github.com/greenbone/openvas/pull/423)
+- Improve signal handling when update vhosts list. [#426](https://github.com/greenbone/openvas/pull/426)
+- Wait for all children instead of waiting just for one a time. [#429](https://github.com/greenbone/openvas/pull/429)
 
 [7.0.1]: https://github.com/greenbone/openvas/compare/v7.0.0...openvas-7.0
 
@@ -70,7 +81,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
   [#337](https://github.com/greenbone/openvas/pull/337) [#389](https://github.com/greenbone/openvas/pull/389)
 - Daemon mode has been entirely removed. [#337](https://github.com/greenbone/openvas/pull/337) [#341](https://github.com/greenbone/openvas/pull/341)
 
-[7.0.0]: https://github.com/greenbone/openvas/compare/openvas-scanner-6.0...openvas-7.0
+[7.0.0]: https://github.com/greenbone/openvas/compare/v6.0.1...v7.0.0
 
 ## [6.0.2] (unreleased)
 

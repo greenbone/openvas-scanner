@@ -79,7 +79,7 @@ terminate_process (pid_t pid)
 }
 
 static void
-init_child_signal_handlers ()
+init_child_signal_handlers (void)
 {
   /* SIGHUP is only for reloading main scanner process. */
   openvas_signal (SIGHUP, SIG_IGN);

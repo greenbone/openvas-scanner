@@ -1553,12 +1553,10 @@ nasl_pcap_next (lex_ctxt *lexic)
         }
       if (interface == NULL)
         {
-          if (pcap_findalldevs (&alldevsp, errbuf) == -1)
+          if (pcap_findalldevs (&alldevsp, errbuf) < 0)
             g_message ("Error for pcap_findalldevs(): %s", errbuf);
           if (alldevsp != NULL)
-            /* get first device in list */
-            interface = g_strdup (alldevsp->name);
-          pcap_freealldevs (alldevsp);
+            interface = alldevsp->name;
         }
     }
 
@@ -1566,7 +1564,6 @@ nasl_pcap_next (lex_ctxt *lexic)
     {
       bpf = bpf_open_live (interface, filter);
     }
-  g_free (interface);
 
   if (bpf < 0)
     {
@@ -1652,6 +1649,9 @@ nasl_pcap_next (lex_ctxt *lexic)
     retc->x.str_val = (char *) ret6;
   retc->size = sz;
 
+  if (alldevsp != NULL)
+    pcap_freealldevs (alldevsp);
+
   return retc;
 }
 
@@ -1693,18 +1693,15 @@ nasl_send_capture (lex_ctxt *lexic)
         }
       if (interface == NULL)
         {
-          if (pcap_findalldevs (&alldevsp, errbuf) == -1)
+          if (pcap_findalldevs (&alldevsp, errbuf) < 0)
             g_message ("Error for pcap_findalldevs(): %s", errbuf);
           if (alldevsp != NULL)
-            /* get first device in list */
-            interface = g_strdup (alldevsp->name);
-          pcap_freealldevs (alldevsp);
+            interface = alldevsp->name;
         }
     }
 
   if (interface != NULL)
     bpf = bpf_open_live (interface, filter);
-  g_free (interface);
 
   if (bpf < 0)
     {
@@ -1788,6 +1785,9 @@ nasl_send_capture (lex_ctxt *lexic)
   else
     retc->x.str_val = (char *) ret6;
   retc->size = sz;
+
+  if (alldevsp != NULL)
+    pcap_freealldevs (alldevsp);
 
   return retc;
 }

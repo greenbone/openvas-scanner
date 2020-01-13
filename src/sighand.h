@@ -28,9 +28,11 @@
 
 void (*openvas_signal (int signum, void (*handler) (int))) (int);
 void
-sighand_chld ();
+
+sighand_chld (int sig);
+
 void
-sighand_segv ();
+sighand_segv (int sig);
 
 void
 let_em_die (int pid);

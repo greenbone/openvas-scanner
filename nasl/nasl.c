@@ -171,6 +171,7 @@ main (int argc, char **argv)
   static gchar *trace_file = NULL;
   static gchar *config_file = NULL;
   static gchar *source_iface = NULL;
+  static gchar *port_range = NULL;
   static gboolean with_safe_checks = FALSE;
   static gboolean signing_mode = FALSE;
   static gchar *include_dir = NULL;
@@ -211,6 +212,8 @@ main (int argc, char **argv)
      "Enable TLS debugging at <level>", "<level>"},
     {"kb", 'k', 0, G_OPTION_ARG_STRING_ARRAY, &kb_values,
      "Set KB key to value. Can be used multiple times", "<key=value>"},
+    {"port-range", 'r', 0, G_OPTION_ARG_STRING, &port_range,
+     "Set the <port-range> used by nasl scripts. ", "<port-range>"},
     {G_OPTION_REMAINING, 0, 0, G_OPTION_ARG_FILENAME_ARRAY, &nasl_filenames,
      "Absolute path to one or more nasl scripts", "NASL_FILE..."},
     {NULL, 0, 0, 0, NULL, NULL, NULL}};
@@ -331,6 +334,12 @@ main (int argc, char **argv)
 
   if (prefs_get ("vendor_version") != NULL)
     vendor_version_set (prefs_get ("vendor_version"));
+
+  if (port_range != NULL)
+    {
+      prefs_set ("port_range", port_range);
+      g_free (port_range);
+    }
 
   while ((host = gvm_hosts_next (hosts)))
     {
