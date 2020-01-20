@@ -1488,9 +1488,9 @@ plugin_do_run (struct script_infos *desc, GSList *h, int test_ssl)
 
   int rw_timeout = 20, cnx_timeout = 20, wrap_timeout = 20;
   int x, timeout;
-  char *rw_timeout_s = get_plugin_preference (oid, RW_TIMEOUT_PREF);
-  char *cnx_timeout_s = get_plugin_preference (oid, CNX_TIMEOUT_PREF);
-  char *wrap_timeout_s = get_plugin_preference (oid, WRAP_TIMEOUT_PREF);
+  char *rw_timeout_s = get_plugin_preference (oid, RW_TIMEOUT_PREF, -1);
+  char *cnx_timeout_s = get_plugin_preference (oid, CNX_TIMEOUT_PREF, -1);
+  char *wrap_timeout_s = get_plugin_preference (oid, WRAP_TIMEOUT_PREF, -1);
   unsigned char *p;
   fd_set rfds, wfds;
   struct timeval tv;
@@ -2386,11 +2386,11 @@ plugin_run_find_service (lex_ctxt *lexic)
   int port_per_son;
   int i;
   int test_ssl = 1;
-  char *key = get_plugin_preference (oid, KEY_FILE);
-  char *cert = get_plugin_preference (oid, CERT_FILE);
-  char *pempass = get_plugin_preference (oid, PEM_PASS);
-  char *cafile = get_plugin_preference (oid, CA_FILE);
-  char *test_ssl_s = get_plugin_preference (oid, TEST_SSL_PREF);
+  char *key = get_plugin_preference (oid, KEY_FILE, -1);
+  char *cert = get_plugin_preference (oid, CERT_FILE, -1);
+  char *pempass = get_plugin_preference (oid, PEM_PASS, -1);
+  char *cafile = get_plugin_preference (oid, CA_FILE, -1);
+  char *test_ssl_s = get_plugin_preference (oid, TEST_SSL_PREF, -1);
 
   if (key && key[0] != '\0')
     key = (char *) get_plugin_preference_fname (desc, key);
@@ -2429,7 +2429,7 @@ plugin_run_find_service (lex_ctxt *lexic)
 
   signal (SIGTERM, sigterm);
   signal (SIGCHLD, sigchld);
-  num_sons_s = get_plugin_preference (oid, NUM_CHILDREN);
+  num_sons_s = get_plugin_preference (oid, NUM_CHILDREN, -1);
   if (num_sons_s != NULL)
     num_sons = atoi (num_sons_s);
   g_free (num_sons_s);

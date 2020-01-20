@@ -11,6 +11,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 - Create greenbone-nvt-sync create lock file during feed sync.
   [#457](https://github.com/greenbone/openvas/pull/457)
   [#460](https://github.com/greenbone/openvas/pull/460)
+- Extend script_get_preference() to get the value by id. [#471](https://github.com/greenbone/openvas/pull/471)
 
 ### Changed
 - Improve handling of invalid or existent ids of nvt's preference id. [#416](https://github.com/greenbone/openvas/pull/416)
