@@ -548,7 +548,7 @@ nmap_create (lex_ctxt *lexic)
   nmap->oid = lexic->oid;
 
   /* import results from external file? */
-  pref = get_plugin_preference (lexic->oid, PREF_IMPORT_XML_FILE);
+  pref = get_plugin_preference (lexic->oid, PREF_IMPORT_XML_FILE, -1);
   if (!pref || !strlen (pref))
     {
       /* no: build command line to execute */
@@ -659,7 +659,7 @@ build_cmd_line (nmap_t *nmap)
     {
       gchar *optval;
 
-      optval = get_plugin_preference (nmap->oid, options[i].optname);
+      optval = get_plugin_preference (nmap->oid, options[i].optname, -1);
       if (!optval)
         continue;
 
@@ -877,7 +877,7 @@ add_scantype_arguments (nmap_t *nmap)
     {"SCTP Init", "-sY", FALSE}, {"SCTP COOKIE_ECHO", "-sZ", FALSE},
     {NULL, NULL, FALSE}};
 
-  scantype = get_plugin_preference (nmap->oid, PREF_TCP_SCANNING_TECHNIQUE);
+  scantype = get_plugin_preference (nmap->oid, PREF_TCP_SCANNING_TECHNIQUE, -1);
   if (!scantype)
     return -1;
 
@@ -906,7 +906,7 @@ add_timing_arguments (nmap_t *nmap)
     {"Aggressive", "-T4", FALSE}, {"Insane", "-T5", FALSE},
     {NULL, NULL, FALSE}};
 
-  timing = get_plugin_preference (nmap->oid, PREF_TIMING_POLICY);
+  timing = get_plugin_preference (nmap->oid, PREF_TIMING_POLICY, -1);
   if (!timing)
     return -1;
 
