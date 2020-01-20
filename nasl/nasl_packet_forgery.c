@@ -1405,10 +1405,11 @@ nasl_send_packet (lex_ctxt *lexic)
   int to = get_int_var_by_name (lexic, "pcap_timeout", 5);
   char *filter = get_str_var_by_name (lexic, "pcap_filter");
   int dfl_len = get_int_var_by_name (lexic, "length", -1);
-  int i = 1;
+  int opt_on = 1;
   struct script_infos *script_infos = lexic->script_infos;
   struct in6_addr *dstip = plug_get_host_ip (script_infos);
   struct in_addr inaddr;
+  int allow_broadcast = 0;
 
   if (dstip == NULL || (IN6_IS_ADDR_V4MAPPED (dstip) != 1))
     return NULL;
@@ -1416,11 +1417,14 @@ nasl_send_packet (lex_ctxt *lexic)
   soc = socket (AF_INET, SOCK_RAW, IPPROTO_RAW);
   if (soc < 0)
     return NULL;
-  if (setsockopt (soc, IPPROTO_IP, IP_HDRINCL, (char *) &i, sizeof (i)) < 0)
+  if (setsockopt (soc, IPPROTO_IP, IP_HDRINCL, (char *) &opt_on,
+                  sizeof (opt_on))
+      < 0)
     perror ("setsockopt ");
 
   while ((ip = get_str_var_by_num (lexic, vi)) != NULL)
     {
+      allow_broadcast = get_int_var_by_name (lexic, "allow_broadcast", 0);
       int sz = get_var_size_by_num (lexic, vi);
       vi++;
 
@@ -1437,7 +1441,18 @@ nasl_send_packet (lex_ctxt *lexic)
       bzero (&sockaddr, sizeof (struct sockaddr_in));
       sockaddr.sin_family = AF_INET;
       sockaddr.sin_addr = sip->ip_dst;
-      if (sockaddr.sin_addr.s_addr != inaddr.s_addr)
+
+      if (allow_broadcast)
+        {
+          if (setsockopt (soc, SOL_SOCKET, SO_BROADCAST, &opt_on,
+                          sizeof (opt_on))
+              < 0)
+            perror ("setsockopt ");
+          if (sockaddr.sin_addr.s_addr != INADDR_BROADCAST)
+            allow_broadcast = 0;
+        }
+
+      if (sockaddr.sin_addr.s_addr != inaddr.s_addr && !allow_broadcast)
         {
           char txt1[64], txt2[64];
           strncpy (txt1, inet_ntoa (sockaddr.sin_addr), sizeof (txt1));
