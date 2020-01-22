@@ -68,7 +68,7 @@ SELFTEST_FAIL=0
 # Port to use for synchronization. Default value is 24.
 PORT=24
 
-# Directory where the OpenVAS Scanner configuration is located
+# Directory where the OpenVAS configuration is located
 OPENVAS_SYSCONF_DIR="@OPENVAS_SYSCONF_DIR@"
 
 # Location of the GSF Access Key
@@ -133,7 +133,7 @@ stderr_write ()
 }
 
 # Read the general information about the feed origin from
-# the file "plugin_feed_infoc.inc" inside the feed directory.
+# the file "plugin_feed_info.inc" inside the feed directory.
 get_feed_info ()
 {
   INFOFILE="$NVT_DIR/plugin_feed_info.inc"
