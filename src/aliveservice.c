@@ -10,6 +10,7 @@
 #include <gvm/util/kb.h>         /* kb_t ... */
 #include <ifaddrs.h>             /* for getifaddrs() */
 #include <netinet/ip.h>
+#include <netinet/ip_icmp.h>
 #include <netinet/tcp.h>
 #include <pcap.h>    /* pcap functions*/
 #include <pthread.h> /* for threading */
@@ -22,7 +23,7 @@
 #define ASSTR(X) STR (X)
 /* packets are sent to port 9910*/
 #define FILTER_PORT 9910
-#define FILTER_STR "dst port " ASSTR (FILTER_PORT)
+#define FILTER_STR "ip and (icmp or dst port " ASSTR (FILTER_PORT) ")"
 
 enum alive_detection
 {
@@ -236,9 +237,7 @@ get_host_from_queue (int timeout)
 {
   /* default timeout is indef. (until alive detection process is finished) */
   if (timeout <= 0)
-    {
-      timeout = INT_MAX;
-    }
+    timeout = INT_MAX;
 
   char *host_str = NULL;
   int alive_detection_flag = 0;
@@ -388,9 +387,12 @@ my_tcp_ping (gvm_hosts_t *hosts)
   struct in6_addr *dst = &dst_p;
   struct in_addr inaddr;
   struct in_addr src;
-  u_char packet[sizeof (struct ip) + sizeof (struct tcphdr)];
+  u_char packet[sizeof (struct ip) + sizeof (struct tcphdr)]; // AA
+  // u_char packet[sizeof (struct ip) + sizeof (struct icmp)]; // AA
   struct ip *ip = (struct ip *) packet;
   struct tcphdr *tcp = (struct tcphdr *) (packet + sizeof (struct ip));
+  // struct icmp *icmp = (struct icmp *) (packet + sizeof (struct ip));
+
   struct sockaddr_in soca;
   int port = 0;
   int opt = 1;
@@ -425,7 +427,6 @@ my_tcp_ping (gvm_hosts_t *hosts)
 
   /* start new sniffer thread */
   pthread_create (&tid, NULL, sniffer_thread, NULL);
-  // pthread_detach (tid);
 
   /**
    * For all hosts construct packets an send them.
@@ -505,6 +506,40 @@ my_tcp_ping (gvm_hosts_t *hosts)
             "sleep for 1 sec after batch of packets was sent. time: %lu\n",
             (unsigned long) time (NULL));
         }
+
+      // /* icmp */
+      // {
+      //   bzero (packet, sizeof (packet));
+      //   /* IP */
+      //   ip->ip_hl = 5;
+      //   ip->ip_off = htons (0);
+      //   ip->ip_v = 4;
+      //   ip->ip_len = htons (40); // total length, maybe more
+      //   ip->ip_tos = 0;
+      //   ip->ip_p = IPPROTO_ICMP;
+      //   ip->ip_id = rand ();
+      //   ip->ip_ttl = 0x40;
+      //   ip->ip_src = src;
+      //   ip->ip_dst = inaddr;
+      //   ip->ip_sum = 0;
+      //   ip->ip_sum = np_in_cksum ((u_short *) ip, 20);
+
+      //   icmp->icmp_type = ICMP_ECHO;
+      //   icmp->icmp_code = 0;
+      //   icmp->icmp_id = rand (); //123; AA
+      //   icmp->icmp_seq = 0; // AA
+      //   icmp->icmp_cksum = 0;
+      //   icmp->icmp_cksum = np_in_cksum ((u_short *) icmp, sizeof(packet) -
+      //   sizeof(struct icmp));
+
+      //   bzero (&soca, sizeof (soca));
+      //   soca.sin_family = AF_INET;
+      //   soca.sin_addr = ip->ip_dst;
+      //   if (sendto (soc, (const void *) ip, 40, 0, (struct sockaddr *) &soca,
+      //               sizeof (soca))
+      //       < 0)
+      //     g_warning ("sendto: %s", strerror (errno));
+      // }
 
       /* for portrange in ports */
       for (long unsigned int i = 0; i < sizeof (ports) / sizeof (int); i++)
