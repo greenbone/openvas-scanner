@@ -17,6 +17,13 @@
 #include <sys/wait.h> /* for waitpid() */
 #include <unistd.h>
 
+/* for using int value in #defined string */
+#define STR(X) #X
+#define ASSTR(X) STR (X)
+/* packets are sent to port 9910*/
+#define FILTER_PORT 9910
+#define FILTER_STR "dst port " ASSTR (FILTER_PORT)
+
 enum alive_detection
 {
   ALIVE_DETECTION_FINISHED,
@@ -29,7 +36,8 @@ enum alive_detection
 /* TODO: use static kb_t. connect to it on start and link_reset on finish */
 pcap_t *handle;
 static kb_t main_kb;
-GHashTable *hashtable;
+GHashTable *alivehosts;
+GHashTable *targethosts;
 
 /**
  * @return pcap_t handle or NULL on error
@@ -323,11 +331,15 @@ got_packet (__attribute__ ((unused)) u_char *args,
   struct in_addr sniffed_addr;
   /* was +26 originally but was off by 2 somehow */
   memcpy (&sniffed_addr.s_addr, packet + 26 + 2, 4);
-  if (g_hash_table_insert (hashtable, inet_ntoa (sniffed_addr), NULL))
+  gchar *addr_str = inet_ntoa (sniffed_addr);
+  /* Do not put already found host on Queue and only put hosts on Queue we are
+   * seaching for. */
+  if (g_hash_table_insert (alivehosts, addr_str, NULL)
+      && g_hash_table_contains (targethosts, addr_str) == TRUE)
     {
       g_message ("%s: Thread sniffed unique address to put on queue: %s",
-                 __func__, inet_ntoa (sniffed_addr));
-      kb_item_push_str (main_kb, "alive_detection", inet_ntoa (sniffed_addr));
+                 __func__, addr_str);
+      kb_item_push_str (main_kb, "alive_detection", addr_str);
     }
 }
 
@@ -340,7 +352,7 @@ sniffer_thread (__attribute__ ((unused)) void *vargp)
 
   int ret;
   /* global hashtable of alive hosts */
-  hashtable = g_hash_table_new (g_str_hash, g_str_equal);
+  alivehosts = g_hash_table_new (g_str_hash, g_str_equal);
   g_message ("%s: start sniffing", __func__);
 
   /* reads packets until error or pcap_breakloop() */
@@ -354,52 +366,6 @@ sniffer_thread (__attribute__ ((unused)) void *vargp)
 
   kb_lnk_reset (main_kb);
   pthread_exit (0);
-}
-
-/**
- * @brief Create new filter for src host ip addresses given by a gvm_hosts_t
- * list. It can be specified how many ip addresses are used by the filter.
- *
- * makes filter of the form "ip and (src host 192.168.1.2 or 192.168.1.3 or
- * 192.168.1.4)"
- *
- * @param filter  this string is set with the GString to filter for
- * @param hosts   list of hosts to filter for
- * @param from    begin of 'slice' of hosts list we want to filter for
- * @param to     end of 'slice' of hosts list we want to filter for
- *
- */
-static void
-create_filter (GString *filter, gvm_hosts_t *hosts, int from, int to)
-{
-  gvm_host_t *host;
-
-  /* save current index of gvm_hosts_t */
-  int iter_index = hosts->current;
-  /* set iterator to where to start adding hosts to the filter */
-  if (from < (int) hosts->count && to < (int) hosts->count)
-    hosts->current = from;
-
-  g_string_append (filter, "ip and (src host ");
-  char *host_value_str;
-
-  host = gvm_hosts_next (hosts);
-  for (; from < to && host; from++)
-    {
-      host_value_str = gvm_host_value_str (host);
-      g_string_append (filter, host_value_str);
-      g_free (host_value_str);
-
-      host = gvm_hosts_next (hosts);
-      if (host && (from != to - 1))
-        g_string_append (filter, " or src host ");
-    }
-  g_string_append (filter, ")");
-
-  g_message ("%s: new filter: %s", __func__, filter->str);
-
-  /* get iterator into original state */
-  hosts->current = iter_index;
 }
 
 /**
@@ -454,12 +420,8 @@ my_tcp_ping (gvm_hosts_t *hosts)
       return -1;
     }
 
-  /* define filter of hosts in hosts_list */
-  GString *filter = g_string_new (NULL);
-  create_filter (filter, hosts, 0, hosts->count);
-
   /* get pcap handle */
-  handle = open_live (NULL, filter->str);
+  handle = open_live (NULL, FILTER_STR);
 
   /* start new sniffer thread */
   pthread_create (&tid, NULL, sniffer_thread, NULL);
@@ -563,7 +525,7 @@ my_tcp_ping (gvm_hosts_t *hosts)
           ip->ip_sum = np_in_cksum ((u_short *) ip, 20);
 
           /* TCP */
-          tcp->th_sport = htons (rand () % 65535 + 1024);
+          tcp->th_sport = htons (FILTER_PORT);
           tcp->th_flags = TH_SYN;
           tcp->th_dport = port ? htons (port) : htons (ports[i]);
           tcp->th_seq = rand ();
@@ -618,7 +580,6 @@ my_tcp_ping (gvm_hosts_t *hosts)
   g_message ("%s: waiting for replies is over", __func__);
 
   /* close everything */
-  g_string_free (filter, TRUE);
   /* TODO: may run into problems when calling pcap_breakloop in other thread */
   pcap_breakloop (handle);
   g_message ("%s: break_loop", __func__);
@@ -650,6 +611,17 @@ start_alive_detection (gvm_hosts_t *hosts)
   int scandb_id = atoi (prefs_get ("ov_maindbid"));
   /* This kb_t is only used once every alive detection process */
   kb_t main_kb = kb_direct_conn (prefs_get ("db_address"), scandb_id);
+
+  targethosts = g_hash_table_new (g_str_hash, g_str_equal);
+
+  /* put all hosts we want to ceck in hashtable */
+  gvm_host_t *host;
+  for (host = gvm_hosts_next (hosts); host; host = gvm_hosts_next (hosts))
+    {
+      g_hash_table_insert (targethosts, gvm_host_value_str (host), NULL);
+    }
+  /* reset iter */
+  hosts->current = 0;
 
   g_message ("%s: alive detection process started", __func__);
   /* blocks until detection process is finished */
