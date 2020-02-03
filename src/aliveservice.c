@@ -186,7 +186,7 @@ islocalhost (struct in_addr *addr)
  * @in: flag which is set to status of scan process
  * @out: host_string or NULL if no item present or finish signal
  */
-char *
+static char *
 get_alive_host_str (int *flag)
 {
   /* This kb_t is used at minimum once every second
@@ -378,7 +378,7 @@ sniffer_thread (__attribute__ ((unused)) void *vargp)
  * @in: gvm_hosts_t structure
  *
  */
-int
+static int
 my_tcp_ping (gvm_hosts_t *hosts)
 {
   if (!hosts)
