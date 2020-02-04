@@ -399,7 +399,7 @@ static void set_src_addr(struct in_addr *src){
     }
 }
 
-static void send_icmps(__attribute__ ((unused)) gpointer key,  gpointer value, gpointer user_data) {
+__attribute__ ((unused)) static void send_icmps(__attribute__ ((unused)) gpointer key,  gpointer value, gpointer user_data) {
 
   struct sockaddr_in soca;
   int soc = *((gint*)user_data);
@@ -506,6 +506,108 @@ void print_host_str(gpointer key, __attribute__ ((unused))  gpointer value,  __a
   g_message("host_str: %s", (gchar *)key);
 }
 
+void tcp_syns (__attribute__ ((unused)) gpointer key,  gpointer value,  gpointer user_data)
+{
+  struct sockaddr_in soca;
+  int soc = *((gint*)user_data);
+
+  u_char packet[sizeof (struct ip) + sizeof (struct tcphdr)];
+  struct ip *ip = (struct ip *) packet;
+  struct tcphdr *tcp = (struct tcphdr *) (packet + sizeof (struct ip));
+
+  struct in_addr inaddr;  /* ip dst */
+  struct in_addr src;     /* ip src */
+
+  struct in6_addr dst_p;
+  struct in6_addr *dst = &dst_p;
+
+  int port = 0;
+  int ports[] = {139, 135, 445,  80,    22,   515, 23,  21,  6000, 1025,
+                25,  111, 1028, 9100,  1029, 79,  497, 548, 5000, 1917,
+                53,  161, 9001, 65535, 443,  113, 993, 8080};
+
+  /* get dst address */
+  if (gvm_host_get_addr6 ((gvm_host_t *)value, dst) < 0)
+    g_message ("%s: Some error while gvm_host_get_addr6", __func__);
+  if (dst == NULL || (IN6_IS_ADDR_V4MAPPED (dst) != 1))
+    {
+      g_debug ("%s: is ipv6 addr", __func__);
+      /* TODO: ipv6 */
+      return;
+    }
+  inaddr.s_addr = dst->s6_addr32[3];
+
+  /* get src address */
+  if (islocalhost (&inaddr) > 0)
+    src.s_addr = dst->s6_addr32[3];
+  else
+    set_src_addr(&src);
+
+  /* for ports in portrange send packets */
+  for (long unsigned int i = 0; i < sizeof (ports) / sizeof (int); i++)
+    {
+      bzero (packet, sizeof (packet));
+      /* IP */
+      ip->ip_hl = 5;
+      ip->ip_off = htons (0);
+      ip->ip_v = 4;
+      ip->ip_len = htons (40);
+      ip->ip_tos = 0;
+      ip->ip_p = IPPROTO_TCP;
+      ip->ip_id = rand ();
+      ip->ip_ttl = 0x40;
+      ip->ip_src = src;
+      ip->ip_dst = inaddr;
+      ip->ip_sum = 0;
+      ip->ip_sum = np_in_cksum ((u_short *) ip, 20);
+
+      /* TCP */
+      tcp->th_sport = htons (FILTER_PORT);
+      tcp->th_flags = TH_SYN;
+      tcp->th_dport = port ? htons (port) : htons (ports[i]);
+      tcp->th_seq = rand ();
+      tcp->th_ack = 0;
+      tcp->th_x2 = 0;
+      tcp->th_off = 5;
+      tcp->th_win = 2048;
+      tcp->th_urp = 0;
+      tcp->th_sum = 0;
+
+      /* CKsum */
+      {
+        struct in_addr source, dest;
+        struct pseudohdr pseudoheader;
+        source.s_addr = ip->ip_src.s_addr;
+        dest.s_addr = ip->ip_dst.s_addr;
+
+        bzero (&pseudoheader,
+                12 + sizeof (struct tcphdr)); // bzero is deprecated. use
+                                              // memset(3) instead
+        pseudoheader.saddr.s_addr = source.s_addr;
+        pseudoheader.daddr.s_addr = dest.s_addr;
+
+        pseudoheader.protocol = 6;
+        pseudoheader.length = htons (sizeof (struct tcphdr));
+        bcopy (
+          (char *) tcp,
+          (char *) &pseudoheader.tcpheader, // bcopy is deprecated. use
+                                            // memcpy(3) or memmove(3) ?
+          sizeof (struct tcphdr));
+        tcp->th_sum = np_in_cksum ((unsigned short *) &pseudoheader,
+                                    12 + sizeof (struct tcphdr));
+      }
+
+      bzero (&soca, sizeof (soca));
+      soca.sin_family = AF_INET;
+      soca.sin_addr = ip->ip_dst;
+      if (sendto (soc, (const void *) ip, 40, 0, (struct sockaddr *) &soca,
+                  sizeof (soca))
+          < 0)
+        g_warning ("sendto: %s", strerror (errno));
+    }
+}
+
+
 static int
 ping(void)
 {
@@ -514,10 +616,10 @@ ping(void)
 
   handle = open_live (NULL, FILTER_STR);
   soc = get_socket();
+
+  /* ICMP */
   pthread_create (&tid, NULL, sniffer_thread, NULL);
 
-  /* for each host send icmp */
-  g_hash_table_foreach(targethosts, print_host_str, NULL);
   g_hash_table_foreach(targethosts, send_icmps, &soc);
 
   /* wait for replies and break loop */
@@ -530,12 +632,25 @@ ping(void)
     g_warning ("%s: got error from pthread_join", __func__);
   g_message ("%s: join thread", __func__);
   
-  /* we can delete found hosts from targetlist now */
   /* exclude alivehosts form targethosts so we dont test them again */
   g_hash_table_foreach(alivehosts, exclude, targethosts);
-  g_hash_table_foreach(alivehosts, print_host_str, NULL);
-  g_message("----");
-  g_hash_table_foreach(targethosts, print_host_str, NULL);
+
+  /* TCP SYN */
+  pthread_create (&tid, NULL, sniffer_thread, NULL);
+  g_hash_table_foreach(targethosts, tcp_syns, &soc);
+
+  /* wait for replies and break loop */
+  sleep(3);
+  pcap_breakloop (handle);
+  g_message ("%s: break_loop", __func__);
+
+  /* join thread*/
+  if (pthread_join (tid, NULL) != 0)
+    g_warning ("%s: got error from pthread_join", __func__);
+  g_message ("%s: join thread", __func__);
+
+  /* exclude alivehosts form targethosts so we dont test them again */
+  g_hash_table_foreach(alivehosts, exclude, targethosts);
 
   /* close handle */
   if (handle != NULL)
