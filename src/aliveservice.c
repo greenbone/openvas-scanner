@@ -30,6 +30,7 @@ enum alive_detection
   ALIVE_DETECTION_FINISHED,
   ALIVE_DETECTION_SCANNING,
   ALIVE_DETECTION_OK,
+  ALIVE_DETECTION_INIT,
   ALIVE_DETECTION_ERROR
 };
 
@@ -149,21 +150,21 @@ islocalhost (struct in_addr *addr)
 static char *
 get_alive_host_str (int *flag)
 {
-  /* This kb_t is used at minimum once every second
-   * and at most as often as new alive hosts arrive
-   * TODO: use global main_kb or other method */
-  kb_t main_kb;
   char *host = NULL;
+  /* handle race condition. main_kb may not yet be initialized */
+  /* TODO: find better solution  */
+  if (!main_kb)
+    {
+      *flag = ALIVE_DETECTION_INIT;
+      return NULL;
+    }
 
-  int scandb_id = atoi (prefs_get ("ov_maindbid"));
-  main_kb = kb_direct_conn (prefs_get ("db_address"), scandb_id);
   host = kb_item_pop_str (main_kb, ("alive_detection"));
   /* 3 if item is not found return NULL and set flag to ALIVE_DETECTION_SCANNING
    */
   if (host == NULL)
     {
       *flag = ALIVE_DETECTION_SCANNING;
-      kb_lnk_reset (main_kb);
       return NULL;
     }
   /* 3 if item is 'finish' return NULL and set flag to ALIVE_DETECTION_FINISHED
@@ -171,14 +172,12 @@ get_alive_host_str (int *flag)
   else if (host != NULL && (g_strcmp0 (host, "finish") == 0))
     {
       *flag = ALIVE_DETECTION_FINISHED;
-      kb_lnk_reset (main_kb);
       return NULL;
     }
   /* 3 if item is host_str return host_str and set flag to ALIVE_DETECTION_OK */
   else
     {
       *flag = ALIVE_DETECTION_OK;
-      kb_lnk_reset (main_kb);
       return host;
     }
 }
@@ -304,10 +303,6 @@ got_packet (__attribute__ ((unused)) u_char *args,
 static void *
 sniffer_thread (__attribute__ ((unused)) void *vargp)
 {
-  // static kb_t main_kb;
-  int scandb_id = atoi (prefs_get ("ov_maindbid"));
-  main_kb = kb_direct_conn (prefs_get ("db_address"), scandb_id);
-
   int ret;
   g_message ("%s: start sniffing", __func__);
 
@@ -320,7 +315,6 @@ sniffer_thread (__attribute__ ((unused)) void *vargp)
     g_message ("%s: Loop was succesfully broken after call to pcap_breakloop",
                __func__);
 
-  kb_lnk_reset (main_kb);
   pthread_exit (0);
 }
 
@@ -647,7 +641,7 @@ start_alive_detection (void *args)
   int err;
   int scandb_id = atoi (prefs_get ("ov_maindbid"));
   /* This kb_t is only used once every alive detection process */
-  kb_t main_kb = kb_direct_conn (prefs_get ("db_address"), scandb_id);
+  main_kb = kb_direct_conn (prefs_get ("db_address"), scandb_id);
 
   targethosts = g_hash_table_new_full (g_str_hash, g_str_equal, g_free, NULL);
   alivehosts = g_hash_table_new_full (g_str_hash, g_str_equal, g_free, NULL);
