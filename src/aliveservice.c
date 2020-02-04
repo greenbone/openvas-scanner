@@ -94,47 +94,6 @@ open_live (char *iface, char *filter)
   return ret;
 }
 
-/* pid of alive detection process*/
-static int alive_detection_pid = 0;
-
-/**
- * @brief returns pid of alive detection process
- * @out: pid of alive detection process
- */
-int
-get_alive_detection_pid (void)
-{
-  return alive_detection_pid;
-}
-/**
- * @brief set alive detection pid
- *
- * @in: pid to set
- */
-void
-set_alive_detection_pid (int pid)
-{
-  alive_detection_pid = pid;
-}
-
-/**
- * @brief kill alive detection process if pid is available
- * TODO: use waitpid to check status before killing
- */
-void
-kill_alive_detection_process (void)
-{
-  g_message ("we need to kill the microservice with pid: %d",
-             get_alive_detection_pid ());
-  if (!get_alive_detection_pid ())
-    return;
-  if (kill (get_alive_detection_pid (), SIGKILL) < 0)
-    {
-      g_message ("some error occured when trying to kill the alive detection "
-                 "child. maybe it already exited");
-    }
-}
-
 /**
  * @brief checks if addr is likely to be localhost
  *
@@ -672,9 +631,10 @@ ping(void)
  *
  * @in: gvm_hosts_t structure
  */
-void
-start_alive_detection (gvm_hosts_t *hosts)
+void *
+start_alive_detection (void *args)
 {
+  gvm_hosts_t *hosts = (gvm_hosts_t *)args;
   int err;
   int scandb_id = atoi (prefs_get ("ov_maindbid"));
   /* This kb_t is only used once every alive detection process */
@@ -712,5 +672,5 @@ start_alive_detection (gvm_hosts_t *hosts)
   g_hash_table_destroy(targethosts);
   g_hash_table_destroy(alivehosts);
 
-  return;
+  pthread_exit (0);
 }

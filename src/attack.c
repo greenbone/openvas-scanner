@@ -52,6 +52,7 @@
 #include <string.h>             /* for strlen() */
 #include <sys/wait.h>           /* for waitpid() */
 #include <unistd.h>             /* for close() */
+#include <pthread.h>
 
 #define ERR_HOST_DEAD -1
 #define ERR_CANT_FORK -2
@@ -993,6 +994,9 @@ check_kb_access (void)
   return rc;
 }
 
+/* TODO: put in other file, only access via functions */
+pthread_t alive_detection_tid;
+
 static void
 handle_scan_stop_signal ()
 {
@@ -1010,7 +1014,8 @@ handle_scan_stop_signal ()
     pluginlaunch_stop ();
 
 #ifdef TEST_ALIVE_HOSTS_ONLY
-  kill_alive_detection_process ();
+  if( pthread_kill(alive_detection_tid, 9) != 0)
+    g_debug("error trying to cancel thread");
 #endif
 
   g_free (pid);
@@ -1186,8 +1191,8 @@ attack_network (struct scan_globals *globals, kb_t *network_kb)
 
 #ifdef TEST_ALIVE_HOSTS_ONLY
   hosts->current = 0;
-  set_alive_detection_pid (
-    create_process ((process_func_t) start_alive_detection, (void *) hosts));
+
+  pthread_create (&alive_detection_tid, NULL, start_alive_detection, (void *)hosts);
   g_debug ("%s: started alive detection.", __func__);
   /* blocking call */
   host = get_host_from_queue (TIMEOUT);
@@ -1304,27 +1309,15 @@ stop:
   gvm_hosts_free (alive_hosts_list);
   g_debug ("%s: freed alive detection data ", __func__);
   /* need to wait for alive detection to finish */
-  /* fork should be finished because we got host == NULL which means either the
-   * detection is finished or a timeout was reached*/
-  /* if fork is still running it probably hangs unexpectedly and needs to be
-   * killed */
-  /* TODO: put waitpid() call in kill_alive_detection_process() */
-  g_info ("%s: waiting for alive detection fork to be finished...", __func__);
-  int ret = 1;
-  int status;
-  ret = waitpid (get_alive_detection_pid (), &status, WNOHANG);
-  g_debug ("%s: status of alive detection: %d. return value of waitpid: %d ",
-           __func__, status, ret);
-  if (ret == 0)
-    {
-      g_debug ("%s: child still running (%s). kill it explicitly", __func__,
-               strerror (errno));
-      kill_alive_detection_process ();
-    }
-  if (ret < 0)
-    g_debug ("%s: waitpid() failed. %s", __func__, strerror (errno));
+  /* thread should be finished because we got host == NULL which means either the
+   * detection is finished or a timeout was reached */
+  g_info ("%s: waiting for alive detection thread to be finished...", __func__);
+    /* join thread*/
+  if (pthread_join (alive_detection_tid, NULL) != 0)
+    g_warning ("%s: got error from pthread_join", __func__);
+  g_message ("%s: join thread: ", __func__);
 
-  g_info ("%s: finished waiting for alive detection fork.", __func__);
+  g_info ("%s: finished waiting for alive detection thread.", __func__);
 #endif /* TEST_ALIVE_HOSTS_ONLY */
 
   gvm_hosts_free (hosts);
