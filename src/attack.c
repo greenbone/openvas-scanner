@@ -48,11 +48,11 @@
 #include <gvm/base/prefs.h> /* for prefs_get() */
 #include <gvm/base/proctitle.h>
 #include <gvm/util/nvticache.h> /* for nvticache_t */
-#include <stdlib.h>             /* for exit() */
-#include <string.h>             /* for strlen() */
-#include <sys/wait.h>           /* for waitpid() */
-#include <unistd.h>             /* for close() */
 #include <pthread.h>
+#include <stdlib.h>   /* for exit() */
+#include <string.h>   /* for strlen() */
+#include <sys/wait.h> /* for waitpid() */
+#include <unistd.h>   /* for close() */
 
 #define ERR_HOST_DEAD -1
 #define ERR_CANT_FORK -2
@@ -1014,8 +1014,8 @@ handle_scan_stop_signal ()
     pluginlaunch_stop ();
 
 #ifdef TEST_ALIVE_HOSTS_ONLY
-  if( pthread_kill(alive_detection_tid, 9) != 0)
-    g_debug("error trying to cancel thread");
+  if (pthread_kill (alive_detection_tid, 9) != 0)
+    g_debug ("error trying to cancel thread");
 #endif
 
   g_free (pid);
@@ -1192,7 +1192,8 @@ attack_network (struct scan_globals *globals, kb_t *network_kb)
 #ifdef TEST_ALIVE_HOSTS_ONLY
   hosts->current = 0;
 
-  pthread_create (&alive_detection_tid, NULL, start_alive_detection, (void *)hosts);
+  pthread_create (&alive_detection_tid, NULL, start_alive_detection,
+                  (void *) hosts);
   g_debug ("%s: started alive detection.", __func__);
   /* blocking call */
   host = get_host_from_queue (TIMEOUT);
@@ -1309,10 +1310,10 @@ stop:
   gvm_hosts_free (alive_hosts_list);
   g_debug ("%s: freed alive detection data ", __func__);
   /* need to wait for alive detection to finish */
-  /* thread should be finished because we got host == NULL which means either the
-   * detection is finished or a timeout was reached */
+  /* thread should be finished because we got host == NULL which means either
+   * the detection is finished or a timeout was reached */
   g_info ("%s: waiting for alive detection thread to be finished...", __func__);
-    /* join thread*/
+  /* join thread*/
   if (pthread_join (alive_detection_tid, NULL) != 0)
     g_warning ("%s: got error from pthread_join", __func__);
   g_message ("%s: join thread: ", __func__);
