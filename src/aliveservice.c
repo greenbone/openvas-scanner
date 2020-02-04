@@ -37,8 +37,8 @@ enum alive_detection
 /* TODO: use static kb_t. connect to it on start and link_reset on finish */
 pcap_t *handle;
 static kb_t main_kb;
-GHashTable *alivehosts;
-GHashTable *targethosts;
+GHashTable *alivehosts;  /* (str, ?) */
+GHashTable *targethosts; /* (str, gvm_host_t) */
 
 /**
  * @return pcap_t handle or NULL on error
@@ -333,7 +333,7 @@ got_packet (__attribute__ ((unused)) u_char *args,
   gchar *addr_str = inet_ntoa (sniffed_addr);
   /* Do not put already found host on Queue and only put hosts on Queue we are
    * seaching for. */
-  if (g_hash_table_insert (alivehosts, addr_str, NULL)
+  if (g_hash_table_add (alivehosts, g_strdup(addr_str))
       && g_hash_table_contains (targethosts, addr_str) == TRUE)
     {
       g_message ("%s: Thread sniffed unique address to put on queue: %s",
@@ -350,8 +350,6 @@ sniffer_thread (__attribute__ ((unused)) void *vargp)
   main_kb = kb_direct_conn (prefs_get ("db_address"), scandb_id);
 
   int ret;
-  /* global hashtable of alive hosts */
-  alivehosts = g_hash_table_new (g_str_hash, g_str_equal);
   g_message ("%s: start sniffing", __func__);
 
   /* reads packets until error or pcap_breakloop() */
@@ -367,6 +365,192 @@ sniffer_thread (__attribute__ ((unused)) void *vargp)
   pthread_exit (0);
 }
 
+static void set_src_addr(struct in_addr *src){
+/* check if src addr already set. get host addr if not already set. */
+  gvm_source_addr (src);
+  if (src->s_addr)
+    {
+      g_debug ("%s: We use global_source_addr as src because it was "
+                "already set by apply_source_iface_preference",
+                __func__);
+    }
+  else
+    {
+      /* TODO: put in seperate function */
+      struct ifaddrs *ifaddr, *ifa;
+      if (getifaddrs (&ifaddr) == -1)
+        return; // better return value or message
+      for (ifa = ifaddr; ifa != NULL; ifa = ifa->ifa_next)
+        {
+          if (!ifa->ifa_addr)
+            {
+              continue;
+            }
+          if (ifa->ifa_addr->sa_family == AF_INET)
+            {
+              struct in_addr *addr =
+                &((struct sockaddr_in *) ifa->ifa_addr)->sin_addr;
+
+              memcpy (src, addr, sizeof (struct in_addr));
+            }
+          /* ipv6 */
+          /* else if (ifa->ifa_addr->sa_family == AF_INET6){} */
+        }
+    }
+}
+
+static void send_icmps(__attribute__ ((unused)) gpointer key,  gpointer value, gpointer user_data) {
+
+  struct sockaddr_in soca;
+  int soc = *((gint*)user_data);
+
+  u_char packet[sizeof (struct ip) + sizeof (struct icmp)];
+  struct ip *ip = (struct ip *) packet;
+  struct icmp *icmp = (struct icmp *) (packet + sizeof (struct ip));
+
+  struct in_addr inaddr;  /* ip dst */
+  struct in_addr src;     /* ip src */
+
+  struct in6_addr dst_p;
+  struct in6_addr *dst = &dst_p;
+
+  /* get dst address */
+  if (gvm_host_get_addr6 ((gvm_host_t *)value, dst) < 0)
+    g_message ("%s: Some error while gvm_host_get_addr6", __func__);
+  if (dst == NULL || (IN6_IS_ADDR_V4MAPPED (dst) != 1))
+    {
+      g_debug ("%s: is ipv6 addr", __func__);
+      /* TODO: ipv6 */
+      return;
+    }
+  inaddr.s_addr = dst->s6_addr32[3];
+
+  /* get src address */
+  if (islocalhost (&inaddr) > 0)
+    src.s_addr = dst->s6_addr32[3];
+  else
+    set_src_addr(&src);
+
+  /* construct packet */
+  bzero (packet, sizeof (packet));
+
+  /* IP */
+  ip->ip_hl = 5;
+  ip->ip_off = htons (0);
+  ip->ip_v = 4;
+  ip->ip_len = htons (40); // total length, maybe more
+  ip->ip_tos = 0;
+  ip->ip_p = IPPROTO_ICMP;
+  ip->ip_id = rand ();
+  ip->ip_ttl = 0x40;
+  ip->ip_src = src;
+  ip->ip_dst = inaddr;
+  ip->ip_sum = 0;
+  ip->ip_sum = np_in_cksum ((u_short *) ip, 20);
+  
+  /* icmp */
+  icmp->icmp_type = ICMP_ECHO;
+  icmp->icmp_code = 0;
+  icmp->icmp_id = rand (); //123; AA
+  icmp->icmp_seq = 0; // AA
+  icmp->icmp_cksum = 0;
+  icmp->icmp_cksum = np_in_cksum ((u_short *) icmp, sizeof(packet) -
+  sizeof(struct icmp));
+
+  /* send packet */
+  bzero (&soca, sizeof (soca));
+  soca.sin_family = AF_INET;
+  soca.sin_addr = ip->ip_dst;
+  if (sendto (soc, (const void *) ip, 40, 0, (struct sockaddr *) &soca,
+              sizeof (soca))
+      < 0)
+    g_warning ("sendto: %s", strerror (errno));
+
+}
+
+static int get_socket(void){
+  int soc;
+  int opt =1;
+  soc = socket (AF_INET, SOCK_RAW, IPPROTO_RAW);
+  if (soc < 0)
+    {
+      g_critical (
+        "%s: failed to set socket options on alive detection socket: %s",
+        __func__, strerror (errno));
+      return -1;
+    }
+  if (setsockopt (soc, IPPROTO_IP, IP_HDRINCL, (char *) &opt, sizeof (opt)) < 0)
+    {
+      g_critical (
+        "%s: failed to set socket options on alive detection socket: %s",
+        __func__, strerror (errno));
+      return -1;
+    }
+  return soc;
+}
+
+/**
+ * @brief Delete alive hosts from targethosts
+ * 
+ * @param targethosts   target_hosts hashtable
+ * 
+ */
+void exclude(gpointer key, __attribute__ ((unused))  gpointer value, gpointer targethosts)
+{
+  /* delte key from targethost*/
+  g_hash_table_remove(targethosts, (gchar *)key);
+}
+
+void print_host_str(gpointer key, __attribute__ ((unused))  gpointer value,  __attribute__ ((unused))gpointer user_data)
+{
+  g_message("host_str: %s", (gchar *)key);
+}
+
+static int
+ping(void)
+{
+  pthread_t tid;  /* thread id */
+  int soc;        /* socket */
+
+  handle = open_live (NULL, FILTER_STR);
+  soc = get_socket();
+  pthread_create (&tid, NULL, sniffer_thread, NULL);
+
+  /* for each host send icmp */
+  g_hash_table_foreach(targethosts, print_host_str, NULL);
+  g_hash_table_foreach(targethosts, send_icmps, &soc);
+
+  /* wait for replies and break loop */
+  sleep(3);
+  pcap_breakloop (handle);
+  g_message ("%s: break_loop", __func__);
+
+  /* join thread*/
+  if (pthread_join (tid, NULL) != 0)
+    g_warning ("%s: got error from pthread_join", __func__);
+  g_message ("%s: join thread", __func__);
+  
+  /* we can delete found hosts from targetlist now */
+  /* exclude alivehosts form targethosts so we dont test them again */
+  g_hash_table_foreach(alivehosts, exclude, targethosts);
+  g_hash_table_foreach(alivehosts, print_host_str, NULL);
+  g_message("----");
+  g_hash_table_foreach(targethosts, print_host_str, NULL);
+
+  /* close handle */
+  if (handle != NULL)
+    {
+      g_message ("%s: close pcap handle", __func__);
+      pcap_close (handle);
+    }
+
+  /* close socket */
+  close (soc);
+  g_message ("%s: close socket ", __func__);
+
+  return 0;
+}
+
 /**
  * @brief
  * - make pcap filter with all hosts we want to test
@@ -377,7 +561,7 @@ sniffer_thread (__attribute__ ((unused)) void *vargp)
  * @in: gvm_hosts_t structure
  *
  */
-static int
+__attribute__((unused)) static int
 my_tcp_ping (gvm_hosts_t *hosts)
 {
   if (!hosts)
@@ -647,20 +831,22 @@ start_alive_detection (gvm_hosts_t *hosts)
   /* This kb_t is only used once every alive detection process */
   kb_t main_kb = kb_direct_conn (prefs_get ("db_address"), scandb_id);
 
-  targethosts = g_hash_table_new (g_str_hash, g_str_equal);
+  targethosts = g_hash_table_new_full ( g_str_hash, g_str_equal, g_free, NULL);
+  alivehosts = g_hash_table_new_full ( g_str_hash, g_str_equal, g_free, NULL);
 
-  /* put all hosts we want to ceck in hashtable */
+  /* put all hosts we want to check in hashtable */
   gvm_host_t *host;
   for (host = gvm_hosts_next (hosts); host; host = gvm_hosts_next (hosts))
     {
-      g_hash_table_insert (targethosts, gvm_host_value_str (host), NULL);
+      g_hash_table_insert (targethosts, gvm_host_value_str(host), host);
     }
   /* reset iter */
   hosts->current = 0;
 
   g_message ("%s: alive detection process started", __func__);
   /* blocks until detection process is finished */
-  err = my_tcp_ping (hosts);
+  // err = my_tcp_ping (hosts);
+  err = ping ();
   if (err < 0)
     g_warning ("%s: pinger returned some error code", __func__);
 
@@ -675,6 +861,8 @@ start_alive_detection (gvm_hosts_t *hosts)
   // g_message ("%s sleep.", __func__);
   // sleep(50); // debugging process termination
   // g_message ("%s: slept.", __func__);
+  g_hash_table_destroy(targethosts);
+  g_hash_table_destroy(alivehosts);
 
   return;
 }
