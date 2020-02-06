@@ -9,9 +9,9 @@
 #include <gvm/base/prefs.h>      /* for prefs_get() */
 #include <gvm/util/kb.h>         /* kb_t ... */
 #include <ifaddrs.h>             /* for getifaddrs() */
+#include <netinet/icmp6.h>
 #include <netinet/ip.h>
 #include <netinet/ip6.h>
-#include <netinet/icmp6.h>
 #include <netinet/ip_icmp.h>
 #include <netinet/tcp.h>
 #include <pcap.h>    /* pcap functions*/
@@ -40,6 +40,37 @@ struct sockets
 {
   int ipv4soc;
   int ipv6soc;
+};
+
+struct v6pseudohdr
+{
+  struct in6_addr s6addr;
+  struct in6_addr d6addr;
+  u_short length;
+  u_char zero1;
+  u_char zero2;
+  u_char zero3;
+  u_char protocol;
+  struct tcphdr tcpheader;
+};
+
+struct pseudohdr
+{
+  struct in_addr saddr;
+  struct in_addr daddr;
+  u_char zero;
+  u_char protocol;
+  u_short length;
+  struct tcphdr tcpheader;
+};
+
+struct v6pseudo_icmp_hdr
+{
+  struct in6_addr s6addr;
+  struct in6_addr d6addr;
+  char proto;
+  unsigned short len;
+  struct icmp6_hdr icmpheader;
 };
 
 /* global phandle for alive detection */
@@ -103,7 +134,8 @@ open_live (char *iface, char *filter)
   return ret;
 }
 
-int islocalhost_v6(struct in6_addr *addr)
+int
+islocalhost_v6 (struct in6_addr *addr)
 {
   int ret = 0;
   if (!addr)
@@ -118,10 +150,9 @@ int islocalhost_v6(struct in6_addr *addr)
       if (!addr->s6_addr32[3])
         return 1;
     }
-  
+
   if (IN6_IS_ADDR_LOOPBACK (addr))
     return 1;
-
 
   struct ifaddrs *ifaddr, *ifa;
   if (getifaddrs (&ifaddr) == -1)
@@ -137,7 +168,7 @@ int islocalhost_v6(struct in6_addr *addr)
           addr2 = (struct sockaddr_in6 *) ifa->ifa_addr;
           // memcpy (&global_source_addr6.s6_addr, &addr2->sin6_addr,
           //         sizeof (struct in6_addr));
-          if (IN6_ARE_ADDR_EQUAL(addr2,addr))
+          if (IN6_ARE_ADDR_EQUAL (addr2, addr))
             ret = 1;
         }
     }
@@ -273,17 +304,6 @@ get_host_from_queue (int timeout)
   return host;
 }
 
-/* TODO: */
-struct pseudohdr
-{
-  struct in_addr saddr;
-  struct in_addr daddr;
-  u_char zero;
-  u_char protocol;
-  u_short length;
-  struct tcphdr tcpheader;
-};
-
 /*
  * Checksum routine for Internet Protocol family headers (C Version)
  * From ping examples in W.Richard Stevens "UNIX NETWORK PROGRAMMING" book.
@@ -314,21 +334,6 @@ int n;
   answer = (int) ~sum;                /* ones-complement, truncate */
   return (answer);
 }
-
-// // copy of function in attack.c
-// static void
-// fork_sleep (int n)
-// {
-//   time_t then, now;
-
-//   now = then = time (NULL);
-//   while (now - then < n)
-//     {
-//       waitpid (-1, NULL, WNOHANG);
-//       usleep (10000);
-//       now = time (NULL);
-//     }
-// }
 
 void
 got_packet (__attribute__ ((unused)) u_char *args,
@@ -376,14 +381,15 @@ set_src_addr_v6 (struct in6_addr *src)
   gvm_source_addr6 (src);
   /* check if src addr is not null */
   int addr_was_set = 0;
-  for (int i = 0; i < 16; ++i) {
-    addr_was_set |= src->s6_addr[i];
-  }
+  for (int i = 0; i < 16; ++i)
+    {
+      addr_was_set |= src->s6_addr[i];
+    }
   if (addr_was_set)
     {
       g_debug ("%s: We use global_source_addr as src because it was "
                "already set by apply_source_iface_preference: %s",
-               __func__, inet_ntop(AF_INET6, src, (char *)&buf, 400));
+               __func__, inet_ntop (AF_INET6, src, (char *) &buf, 400));
     }
   else
     {
@@ -406,6 +412,8 @@ set_src_addr_v6 (struct in6_addr *src)
             }
         }
     }
+  g_debug ("%s: address set to: %s", __func__,
+           inet_ntop (AF_INET6, src, (char *) &buf, 400));
 }
 
 static void
@@ -444,18 +452,12 @@ set_src_addr (struct in_addr *src)
     }
 }
 
-struct v6pseudo_icmp_hdr
+static void
+send_icmp_v6 (int soc, struct in6_addr dst)
 {
-  struct in6_addr s6addr;
-  struct in6_addr d6addr;
-  char proto;
-  unsigned short len;
-  struct icmp6_hdr icmpheader;
-};
+  g_message ("%s: send imcpv6", __func__);
+  struct sockaddr_in6 soca;
 
-static void send_icmp_v6(__attribute__ ((unused)) int soc, struct in6_addr dst)
-{
-  g_message("%s: ICMPV6", __func__);
   struct ip6_hdr iphdr;
   struct icmp6_hdr icmphdr;
 
@@ -480,32 +482,48 @@ static void send_icmp_v6(__attribute__ ((unused)) int soc, struct in6_addr dst)
   icmphdr.icmp6_seq = htons (0);
   icmphdr.icmp6_cksum = 0;
 
+  /* Checksum */
   struct v6pseudo_icmp_hdr pseudohdr;
-  char *icmpsumdata =
-    g_malloc0 (sizeof (struct v6pseudo_icmp_hdr) + 1);
+  g_message ("Size of struct v6pseudo_icmp_hdr: %lu",
+             sizeof (struct v6pseudo_icmp_hdr));
+  char *icmpsumdata = g_malloc0 (sizeof (struct v6pseudo_icmp_hdr));
 
   bzero (&pseudohdr, sizeof (struct v6pseudo_icmp_hdr));
   memcpy (&pseudohdr.s6addr, &iphdr.ip6_src, sizeof (struct in6_addr));
   memcpy (&pseudohdr.d6addr, &iphdr.ip6_dst, sizeof (struct in6_addr));
 
-  int ip6_sz = 40; /* ipv6 header size  */
-  int sz = 8; /* ICMP header size  */
-  int size = ip6_sz + sz; /* ipv6 header size + ICMP header size */
   pseudohdr.proto = 0x3a; /*ICMPv6 */
-  pseudohdr.len = htons (size - ip6_sz);
-  bcopy ((char *)&icmphdr, (char *) &pseudohdr.icmpheader, sz);
+  pseudohdr.len = htons (sizeof (struct ip6_hdr));
+  bcopy ((char *) &icmphdr, (char *) &pseudohdr.icmpheader,
+         sizeof (struct icmp6_hdr));
   bcopy ((char *) &pseudohdr, icmpsumdata, sizeof (pseudohdr));
-
-  icmphdr.icmp6_cksum =
-    np_in_cksum ((unsigned short *) icmpsumdata, size);
+  icmphdr.icmp6_cksum = np_in_cksum ((unsigned short *) icmpsumdata,
+                                     sizeof (struct v6pseudo_icmp_hdr));
   g_free (icmpsumdata);
+
+  /* send packet */
+  bzero (&soca, sizeof (struct sockaddr_in6));
+  soca.sin6_family = AF_INET6;
+  soca.sin6_addr = iphdr.ip6_dst;
+
+  char *str = g_malloc0 (INET6_ADDRSTRLEN);
+  inet_ntop (AF_INET6, &soca.sin6_addr, str, INET6_ADDRSTRLEN);
+  g_message ("%s: IP: %s", __func__, str);
+  g_free (str);
+
+  /* TODO: test */
+  if (sendto (soc, (const void *) &iphdr,
+              sizeof (struct icmp6_hdr) + sizeof (struct ip6_hdr), 0,
+              (struct sockaddr *) &soca, sizeof (struct sockaddr_in6))
+      < 0)
+    g_warning ("sendto: %s", strerror (errno));
 }
 
 static void
 send_icmp (__attribute__ ((unused)) gpointer key, gpointer value,
-            gpointer user_data)
-{  
-  g_message("%s: IN ICMP func", __func__);
+           gpointer user_data)
+{
+  g_message ("%s: IN ICMP func", __func__);
 
   struct sockaddr_in soca;
   struct sockets sockets = *((struct sockets *) user_data);
@@ -530,7 +548,7 @@ send_icmp (__attribute__ ((unused)) gpointer key, gpointer value,
   if (IN6_IS_ADDR_V4MAPPED (dst) != 1)
     {
       g_debug ("%s: is ipv6 addr", __func__);
-      send_icmp_v6(sockets.ipv6soc, *dst);
+      send_icmp_v6 (sockets.ipv6soc, *dst);
       return;
     }
   inaddr.s_addr = dst->s6_addr32[3];
@@ -585,9 +603,8 @@ get_socket (void)
   soc = socket (AF_INET, SOCK_RAW, IPPROTO_RAW);
   if (soc < 0)
     {
-      g_critical (
-        "%s: failed to open socker for alive detection: %s",
-        __func__, strerror (errno));
+      g_critical ("%s: failed to open socker for alive detection: %s", __func__,
+                  strerror (errno));
       return -1;
     }
   if (setsockopt (soc, IPPROTO_IP, IP_HDRINCL, (char *) &opt, sizeof (opt)) < 0)
@@ -600,19 +617,20 @@ get_socket (void)
   return soc;
 }
 
-static int get_socket_ipv6 (void)
+static int
+get_socket_ipv6 (void)
 {
   int soc;
   int opt = 1;
-  soc = socket(AF_INET6, SOCK_RAW, IPPROTO_RAW);
+  soc = socket (AF_INET6, SOCK_RAW, IPPROTO_RAW);
   if (soc < 0)
     {
-      g_critical (
-        "%s: failed to set ipv6socket for alive detection: %s",
-        __func__, strerror (errno));
+      g_critical ("%s: failed to set ipv6socket for alive detection: %s",
+                  __func__, strerror (errno));
       return -1;
     }
-  if ( setsockopt (soc, IPPROTO_IPV6, IP_HDRINCL, (char *) &opt, sizeof (opt)) < 0)
+  if (setsockopt (soc, IPPROTO_IPV6, IP_HDRINCL, (char *) &opt, sizeof (opt))
+      < 0)
     {
       g_critical (
         "%s: failed to set socket options on alive detection ipv6socket: %s",
@@ -643,12 +661,88 @@ print_host_str (gpointer key, __attribute__ ((unused)) gpointer value,
   g_message ("host_str: %s", (gchar *) key);
 }
 
-void
-tcp_syns (__attribute__ ((unused)) gpointer key, gpointer value,
-          gpointer user_data)
+static void
+send_syn_v6 (int soc, struct in6_addr dst)
 {
+  g_message ("%s:ipv6", __func__);
+  struct sockaddr_in6 soca;
+
+  u_char packet[sizeof (struct ip6_hdr) + sizeof (struct tcphdr)];
+  struct ip6_hdr *ip = (struct ip6_hdr *) packet;
+  struct tcphdr *tcp = (struct tcphdr *) (packet + sizeof (struct ip6_hdr));
+
+  struct in6_addr src;
+
+  int port = 0;
+  int ports[] = {139, 135, 445,  80,    22,   515, 23,  21,  6000, 1025,
+                 25,  111, 1028, 9100,  1029, 79,  497, 548, 5000, 1917,
+                 53,  161, 9001, 65535, 443,  113, 993, 8080};
+
+  if (islocalhost_v6 (&dst) > 0)
+    src = dst;
+  else
+    set_src_addr_v6 (&src);
+
+  /* for ports in portrange send packets */
+  for (long unsigned int i = 0; i < sizeof (ports) / sizeof (int); i++)
+    {
+      bzero (packet, sizeof (packet));
+      /* IPv6 */
+      int version = 0x60, tc = 0, fl = 0;
+      ip->ip6_flow = version | tc | fl;
+      ip->ip6_hlim = 0x40;
+      ip->ip6_src = src;
+      ip->ip6_dst = dst;
+      ip->ip6_plen = htons (sizeof (struct tcphdr));
+      ip->ip6_nxt = 0x06;
+
+      /* TCP */
+      tcp->th_sport = htons (FILTER_PORT);
+      tcp->th_flags = TH_SYN;
+      tcp->th_dport = port ? htons (port) : htons (ports[i]);
+      tcp->th_seq = rand ();
+      tcp->th_ack = 0;
+      tcp->th_x2 = 0;
+      tcp->th_off = 5;
+      tcp->th_win = htons (512);
+      tcp->th_urp = 0;
+      tcp->th_sum = 0;
+
+      /* CKsum */
+      {
+        struct v6pseudohdr pseudoheader;
+
+        bzero (&pseudoheader, 38 + sizeof (struct tcphdr));
+        memcpy (&pseudoheader.s6addr, &ip->ip6_src, sizeof (struct in6_addr));
+        memcpy (&pseudoheader.d6addr, &ip->ip6_dst, sizeof (struct in6_addr));
+
+        pseudoheader.protocol = IPPROTO_TCP;
+        pseudoheader.length = htons (sizeof (struct tcphdr));
+        bcopy ((char *) tcp, (char *) &pseudoheader.tcpheader,
+               sizeof (struct tcphdr));
+        tcp->th_sum = np_in_cksum ((unsigned short *) &pseudoheader,
+                                   38 + sizeof (struct tcphdr));
+      }
+
+      bzero (&soca, sizeof (soca));
+      soca.sin6_family = AF_INET6;
+      soca.sin6_addr = ip->ip6_dst;
+      if (sendto (soc, (const void *) ip,
+                  sizeof (struct tcphdr) + sizeof (struct ip6_hdr), 0,
+                  (struct sockaddr *) &soca, sizeof (struct sockaddr_in6))
+          < 0)
+        g_warning ("sendto: %s", strerror (errno));
+    }
+}
+
+void
+tcp_syn (__attribute__ ((unused)) gpointer key, gpointer value,
+         gpointer user_data)
+{
+  struct sockets sockets = *((struct sockets *) user_data);
+  int soc = sockets.ipv4soc;
+
   struct sockaddr_in soca;
-  int soc = *((gint *) user_data);
 
   u_char packet[sizeof (struct ip) + sizeof (struct tcphdr)];
   struct ip *ip = (struct ip *) packet;
@@ -671,7 +765,7 @@ tcp_syns (__attribute__ ((unused)) gpointer key, gpointer value,
   if (dst == NULL || (IN6_IS_ADDR_V4MAPPED (dst) != 1))
     {
       g_debug ("%s: is ipv6 addr", __func__);
-      /* TODO: ipv6 */
+      send_syn_v6 (sockets.ipv6soc, *dst);
       return;
     }
   inaddr.s_addr = dst->s6_addr32[3];
@@ -725,7 +819,7 @@ tcp_syns (__attribute__ ((unused)) gpointer key, gpointer value,
         pseudoheader.saddr.s_addr = source.s_addr;
         pseudoheader.daddr.s_addr = dest.s_addr;
 
-        pseudoheader.protocol = 6;
+        pseudoheader.protocol = 6; // IPPROTO_TCP
         pseudoheader.length = htons (sizeof (struct tcphdr));
         bcopy ((char *) tcp,
                (char *) &pseudoheader.tcpheader, // bcopy is deprecated. use
@@ -751,7 +845,8 @@ ping (void)
   pthread_t tid; /* thread id */
 
   handle = open_live (NULL, FILTER_STR);
-  struct sockets sockets = {.ipv4soc = get_socket(), .ipv6soc = get_socket_ipv6()};
+  struct sockets sockets = {.ipv4soc = get_socket (),
+                            .ipv6soc = get_socket_ipv6 ()};
 
   /* ICMP */
   pthread_create (&tid, NULL, sniffer_thread, NULL);
@@ -773,7 +868,7 @@ ping (void)
 
   /* TCP SYN */
   pthread_create (&tid, NULL, sniffer_thread, NULL);
-  g_hash_table_foreach (targethosts, tcp_syns, &sockets);
+  g_hash_table_foreach (targethosts, tcp_syn, &sockets);
 
   /* wait for replies and break loop */
   sleep (3);
