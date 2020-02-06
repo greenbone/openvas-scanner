@@ -10,6 +10,8 @@
 #include <gvm/util/kb.h>         /* kb_t ... */
 #include <ifaddrs.h>             /* for getifaddrs() */
 #include <netinet/ip.h>
+#include <netinet/ip6.h>
+#include <netinet/icmp6.h>
 #include <netinet/ip_icmp.h>
 #include <netinet/tcp.h>
 #include <pcap.h>    /* pcap functions*/
@@ -32,6 +34,12 @@ enum alive_detection
   ALIVE_DETECTION_OK,
   ALIVE_DETECTION_INIT,
   ALIVE_DETECTION_ERROR
+};
+
+struct sockets
+{
+  int ipv4soc;
+  int ipv6soc;
 };
 
 /* global phandle for alive detection */
@@ -92,6 +100,48 @@ open_live (char *iface, char *filter)
     }
   pcap_freecode (&filter_prog);
 
+  return ret;
+}
+
+int islocalhost_v6(struct in6_addr *addr)
+{
+  int ret = 0;
+  if (!addr)
+    return -1;
+
+  if (IN6_IS_ADDR_V4MAPPED (addr))
+    {
+      /* Adde starts with 127.0.0.1 */
+      if ((addr->s6_addr32[3] & htonl (0xFF000000)) == htonl (0x7F000000))
+        return 1;
+      /* Addr is 0.0.0.0 */
+      if (!addr->s6_addr32[3])
+        return 1;
+    }
+  
+  if (IN6_IS_ADDR_LOOPBACK (addr))
+    return 1;
+
+
+  struct ifaddrs *ifaddr, *ifa;
+  if (getifaddrs (&ifaddr) == -1)
+    return -1;
+
+  /* Search for the adequate interface/family. */
+  for (ifa = ifaddr; ifa != NULL; ifa = ifa->ifa_next)
+    {
+      if (ifa->ifa_addr->sa_family == AF_INET6)
+        {
+          struct sockaddr_in6 *addr2;
+
+          addr2 = (struct sockaddr_in6 *) ifa->ifa_addr;
+          // memcpy (&global_source_addr6.s6_addr, &addr2->sin6_addr,
+          //         sizeof (struct in6_addr));
+          if (IN6_ARE_ADDR_EQUAL(addr2,addr))
+            ret = 1;
+        }
+    }
+  freeifaddrs (ifaddr);
   return ret;
 }
 
@@ -319,6 +369,46 @@ sniffer_thread (__attribute__ ((unused)) void *vargp)
 }
 
 static void
+set_src_addr_v6 (struct in6_addr *src)
+{
+  /* check if src addr already set. get host addr if not already set. */
+  char buf[400];
+  gvm_source_addr6 (src);
+  /* check if src addr is not null */
+  int addr_was_set = 0;
+  for (int i = 0; i < 16; ++i) {
+    addr_was_set |= src->s6_addr[i];
+  }
+  if (addr_was_set)
+    {
+      g_debug ("%s: We use global_source_addr as src because it was "
+               "already set by apply_source_iface_preference: %s",
+               __func__, inet_ntop(AF_INET6, src, (char *)&buf, 400));
+    }
+  else
+    {
+      /* TODO: put in seperate function */
+      struct ifaddrs *ifaddr, *ifa;
+      if (getifaddrs (&ifaddr) == -1)
+        return;
+      for (ifa = ifaddr; ifa != NULL; ifa = ifa->ifa_next)
+        {
+          if (!ifa->ifa_addr)
+            {
+              continue;
+            }
+          if (ifa->ifa_addr->sa_family == AF_INET6)
+            {
+              struct sockaddr_in6 *addr2;
+
+              addr2 = (struct sockaddr_in6 *) ifa->ifa_addr;
+              memcpy (src, &addr2->sin6_addr, sizeof (struct in6_addr));
+            }
+        }
+    }
+}
+
+static void
 set_src_addr (struct in_addr *src)
 {
   /* check if src addr already set. get host addr if not already set. */
@@ -354,12 +444,72 @@ set_src_addr (struct in_addr *src)
     }
 }
 
-__attribute__ ((unused)) static void
-send_icmps (__attribute__ ((unused)) gpointer key, gpointer value,
-            gpointer user_data)
+struct v6pseudo_icmp_hdr
 {
+  struct in6_addr s6addr;
+  struct in6_addr d6addr;
+  char proto;
+  unsigned short len;
+  struct icmp6_hdr icmpheader;
+};
+
+static void send_icmp_v6(__attribute__ ((unused)) int soc, struct in6_addr dst)
+{
+  g_message("%s: ICMPV6", __func__);
+  struct ip6_hdr iphdr;
+  struct icmp6_hdr icmphdr;
+
+  struct in6_addr src;
+
+  /* get src address */
+  if (islocalhost_v6 (&dst) > 0)
+    src = dst;
+  else
+    set_src_addr_v6 (&src);
+
+  iphdr.ip6_flow = htonl ((6 << 28) | (0 << 20) | 0);
+  iphdr.ip6_plen = htons (8);
+  iphdr.ip6_nxt = IPPROTO_ICMPV6;
+  iphdr.ip6_hops = 255;
+  iphdr.ip6_src = src;
+  iphdr.ip6_dst = dst;
+
+  icmphdr.icmp6_type = ICMP6_ECHO_REQUEST;
+  icmphdr.icmp6_code = 0;
+  icmphdr.icmp6_id = rand ();
+  icmphdr.icmp6_seq = htons (0);
+  icmphdr.icmp6_cksum = 0;
+
+  struct v6pseudo_icmp_hdr pseudohdr;
+  char *icmpsumdata =
+    g_malloc0 (sizeof (struct v6pseudo_icmp_hdr) + 1);
+
+  bzero (&pseudohdr, sizeof (struct v6pseudo_icmp_hdr));
+  memcpy (&pseudohdr.s6addr, &iphdr.ip6_src, sizeof (struct in6_addr));
+  memcpy (&pseudohdr.d6addr, &iphdr.ip6_dst, sizeof (struct in6_addr));
+
+  int ip6_sz = 40; /* ipv6 header size  */
+  int sz = 8; /* ICMP header size  */
+  int size = ip6_sz + sz; /* ipv6 header size + ICMP header size */
+  pseudohdr.proto = 0x3a; /*ICMPv6 */
+  pseudohdr.len = htons (size - ip6_sz);
+  bcopy ((char *)&icmphdr, (char *) &pseudohdr.icmpheader, sz);
+  bcopy ((char *) &pseudohdr, icmpsumdata, sizeof (pseudohdr));
+
+  icmphdr.icmp6_cksum =
+    np_in_cksum ((unsigned short *) icmpsumdata, size);
+  g_free (icmpsumdata);
+}
+
+static void
+send_icmp (__attribute__ ((unused)) gpointer key, gpointer value,
+            gpointer user_data)
+{  
+  g_message("%s: IN ICMP func", __func__);
+
   struct sockaddr_in soca;
-  int soc = *((gint *) user_data);
+  struct sockets sockets = *((struct sockets *) user_data);
+  int soc = sockets.ipv4soc;
 
   u_char packet[sizeof (struct ip) + sizeof (struct icmp)];
   struct ip *ip = (struct ip *) packet;
@@ -374,10 +524,13 @@ send_icmps (__attribute__ ((unused)) gpointer key, gpointer value,
   /* get dst address */
   if (gvm_host_get_addr6 ((gvm_host_t *) value, dst) < 0)
     g_message ("%s: Some error while gvm_host_get_addr6", __func__);
-  if (dst == NULL || (IN6_IS_ADDR_V4MAPPED (dst) != 1))
+  if (dst == NULL)
+    return;
+  /* check if ipv6 or not */
+  if (IN6_IS_ADDR_V4MAPPED (dst) != 1)
     {
       g_debug ("%s: is ipv6 addr", __func__);
-      /* TODO: ipv6 */
+      send_icmp_v6(sockets.ipv6soc, *dst);
       return;
     }
   inaddr.s_addr = dst->s6_addr32[3];
@@ -395,7 +548,7 @@ send_icmps (__attribute__ ((unused)) gpointer key, gpointer value,
   ip->ip_hl = 5;
   ip->ip_off = htons (0);
   ip->ip_v = 4;
-  ip->ip_len = htons (40); // total length, maybe more
+  ip->ip_len = htons (40);
   ip->ip_tos = 0;
   ip->ip_p = IPPROTO_ICMP;
   ip->ip_id = rand ();
@@ -408,8 +561,8 @@ send_icmps (__attribute__ ((unused)) gpointer key, gpointer value,
   /* icmp */
   icmp->icmp_type = ICMP_ECHO;
   icmp->icmp_code = 0;
-  icmp->icmp_id = rand (); // 123; AA
-  icmp->icmp_seq = 0;      // AA
+  icmp->icmp_id = rand ();
+  icmp->icmp_seq = 0;
   icmp->icmp_cksum = 0;
   icmp->icmp_cksum =
     np_in_cksum ((u_short *) icmp, sizeof (packet) - sizeof (struct icmp));
@@ -433,7 +586,7 @@ get_socket (void)
   if (soc < 0)
     {
       g_critical (
-        "%s: failed to set socket options on alive detection socket: %s",
+        "%s: failed to open socker for alive detection: %s",
         __func__, strerror (errno));
       return -1;
     }
@@ -441,6 +594,28 @@ get_socket (void)
     {
       g_critical (
         "%s: failed to set socket options on alive detection socket: %s",
+        __func__, strerror (errno));
+      return -1;
+    }
+  return soc;
+}
+
+static int get_socket_ipv6 (void)
+{
+  int soc;
+  int opt = 1;
+  soc = socket(AF_INET6, SOCK_RAW, IPPROTO_RAW);
+  if (soc < 0)
+    {
+      g_critical (
+        "%s: failed to set ipv6socket for alive detection: %s",
+        __func__, strerror (errno));
+      return -1;
+    }
+  if ( setsockopt (soc, IPPROTO_IPV6, IP_HDRINCL, (char *) &opt, sizeof (opt)) < 0)
+    {
+      g_critical (
+        "%s: failed to set socket options on alive detection ipv6socket: %s",
         __func__, strerror (errno));
       return -1;
     }
@@ -574,15 +749,14 @@ static int
 ping (void)
 {
   pthread_t tid; /* thread id */
-  int soc;       /* socket */
 
   handle = open_live (NULL, FILTER_STR);
-  soc = get_socket ();
+  struct sockets sockets = {.ipv4soc = get_socket(), .ipv6soc = get_socket_ipv6()};
 
   /* ICMP */
   pthread_create (&tid, NULL, sniffer_thread, NULL);
 
-  g_hash_table_foreach (targethosts, send_icmps, &soc);
+  g_hash_table_foreach (targethosts, send_icmp, &sockets);
 
   /* wait for replies and break loop */
   sleep (3);
@@ -599,7 +773,7 @@ ping (void)
 
   /* TCP SYN */
   pthread_create (&tid, NULL, sniffer_thread, NULL);
-  g_hash_table_foreach (targethosts, tcp_syns, &soc);
+  g_hash_table_foreach (targethosts, tcp_syns, &sockets);
 
   /* wait for replies and break loop */
   sleep (3);
@@ -621,8 +795,9 @@ ping (void)
       pcap_close (handle);
     }
 
-  /* close socket */
-  close (soc);
+  /* close sockets */
+  close (sockets.ipv4soc);
+  close (sockets.ipv6soc);
   g_message ("%s: close socket ", __func__);
 
   return 0;
