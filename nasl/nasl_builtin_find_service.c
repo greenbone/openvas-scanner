@@ -1847,9 +1847,12 @@ plugin_do_run (struct script_infos *desc, GSList *h, int test_ssl)
                           && !(strncmp (line, "http/1.0 403 forbidden",
                                         strlen ("http/1.0 403 forbidden"))
                                  == 0
-                               && strstr (buffer, "server: adsubtract")
-                                    != NULL)
-                          && !(strstr (buffer, "it looks like you are trying to access mongodb over http on the native driver port.") != NULL
+                               && strstr (buffer, "server: adsubtract") != NULL)
+                          && !(strstr (
+                                 buffer,
+                                 "it looks like you are trying to access "
+                                 "mongodb over http on the native driver port.")
+                                 != NULL
                                && strstr (buffer, "content-length: 84")
                                     != NULL))
                         mark_http_server (desc, port, banner, trp);
@@ -2231,7 +2234,11 @@ plugin_do_run (struct script_infos *desc, GSList *h, int test_ssl)
                     mark_socks_proxy (desc, port, 5);
                   else if (banner[0] == 0 && banner[1] >= 90 && banner[1] <= 93)
                     mark_socks_proxy (desc, port, 4);
-                  else if (strstr (buffer, "it looks like you are trying to access mongodb over http on the native driver port.") != NULL)
+                  else if (strstr (
+                             buffer,
+                             "it looks like you are trying to access mongodb "
+                             "over http on the native driver port.")
+                           != NULL)
                     mark_mongodb (desc, port);
                   else
                     unindentified_service = !flg;
