@@ -25,7 +25,8 @@
 #define ASSTR(X) STR (X)
 /* packets are sent to port 9910*/
 #define FILTER_PORT 9910
-#define FILTER_STR "ip and (icmp or dst port " ASSTR (FILTER_PORT) ")"
+#define FILTER_STR \
+  "(ip6 or ip) and (icmp6 or icmp or dst port " ASSTR (FILTER_PORT) ")"
 
 enum alive_detection
 {
@@ -79,6 +80,15 @@ pcap_t *handle;
 static kb_t main_kb;
 GHashTable *alivehosts;  /* (str, ?) */
 GHashTable *targethosts; /* (str, gvm_host_t) */
+
+void
+printipv6 (void *ipv6)
+{
+  char *str = g_malloc0 (INET6_ADDRSTRLEN);
+  inet_ntop (AF_INET6, ipv6, str, INET6_ADDRSTRLEN);
+  g_message ("%s: IP: %s", __func__, str);
+  g_free (str);
+}
 
 /**
  * @return pcap_t handle or NULL on error
@@ -335,23 +345,57 @@ int n;
   return (answer);
 }
 
+/* TODO: simplify */
 void
 got_packet (__attribute__ ((unused)) u_char *args,
             __attribute__ ((unused)) const struct pcap_pkthdr *header,
             const u_char *packet)
 {
-  struct in_addr sniffed_addr;
-  /* was +26 originally but was off by 2 somehow */
-  memcpy (&sniffed_addr.s_addr, packet + 26 + 2, 4);
-  gchar *addr_str = inet_ntoa (sniffed_addr);
-  /* Do not put already found host on Queue and only put hosts on Queue we are
-   * seaching for. */
-  if (g_hash_table_add (alivehosts, g_strdup (addr_str))
-      && g_hash_table_contains (targethosts, addr_str) == TRUE)
+  g_message ("%s: sniffed some packet", __func__);
+
+  struct ip *ip = (struct ip *) (packet + 16); // why not 14(ethernet size)??
+  unsigned int version = ip->ip_v;
+  g_message ("IP version: %x", ip->ip_v);
+
+  if (version == 4)
     {
-      g_message ("%s: Thread sniffed unique address to put on queue: %s",
-                 __func__, addr_str);
-      kb_item_push_str (main_kb, "alive_detection", addr_str);
+      gchar addr_str[INET_ADDRSTRLEN];
+      struct in_addr sniffed_addr;
+      /* was +26 (14 ETH + 12 IP) originally but was off by 2 somehow */
+      memcpy (&sniffed_addr.s_addr, packet + 26 + 2, 4);
+      inet_ntop (AF_INET, (const char *) &sniffed_addr, addr_str,
+                 INET_ADDRSTRLEN);
+      g_message ("%s: IP version = 4, addr: %s", __func__, addr_str);
+
+      /* Do not put already found host on Queue and only put hosts on Queue we
+       * are seaching for. */
+      if (g_hash_table_add (alivehosts, g_strdup (addr_str))
+          && g_hash_table_contains (targethosts, addr_str) == TRUE)
+        {
+          g_message ("%s: Thread sniffed unique address to put on queue: %s",
+                     __func__, addr_str);
+          kb_item_push_str (main_kb, "alive_detection", addr_str);
+        }
+    }
+  else if (version == 6)
+    {
+      gchar addr_str[INET6_ADDRSTRLEN];
+      struct in6_addr sniffed_addr;
+      /* (14 ETH + 8 IP + offset 2)  */
+      memcpy (&sniffed_addr.s6_addr, packet + 24, 16);
+      inet_ntop (AF_INET6, (const char *) &sniffed_addr, addr_str,
+                 INET6_ADDRSTRLEN);
+      g_message ("%s: IP version = 6, addr: %s", __func__, addr_str);
+
+      /* Do not put already found host on Queue and only put hosts on Queue we
+       * are seaching for. */
+      if (g_hash_table_add (alivehosts, g_strdup (addr_str))
+          && g_hash_table_contains (targethosts, addr_str) == TRUE)
+        {
+          g_message ("%s: Thread sniffed unique address to put on queue: %s",
+                     __func__, addr_str);
+          kb_item_push_str (main_kb, "alive_detection", addr_str);
+        }
     }
 }
 
@@ -456,70 +500,33 @@ static void
 send_icmp_v6 (int soc, struct in6_addr dst)
 {
   g_message ("%s: send imcpv6", __func__);
+
   struct sockaddr_in6 soca;
+  char sendbuf[1500];
+  int len;
+  int datalen = 56;
+  struct icmp6_hdr *icmp6;
 
-  struct ip6_hdr iphdr;
-  struct icmp6_hdr icmphdr;
+  icmp6 = (struct icmp6_hdr *) sendbuf;
+  icmp6->icmp6_type = ICMP6_ECHO_REQUEST;
+  icmp6->icmp6_code = 0;
+  icmp6->icmp6_id = 234; //
+  icmp6->icmp6_seq = 0;  //
 
-  struct in6_addr src;
-
-  /* get src address */
-  if (islocalhost_v6 (&dst) > 0)
-    src = dst;
-  else
-    set_src_addr_v6 (&src);
-
-  iphdr.ip6_flow = htonl ((6 << 28) | (0 << 20) | 0);
-  iphdr.ip6_plen = htons (8);
-  iphdr.ip6_nxt = IPPROTO_ICMPV6;
-  iphdr.ip6_hops = 255;
-  iphdr.ip6_src = src;
-  iphdr.ip6_dst = dst;
-
-  icmphdr.icmp6_type = ICMP6_ECHO_REQUEST;
-  icmphdr.icmp6_code = 0;
-  icmphdr.icmp6_id = rand ();
-  icmphdr.icmp6_seq = htons (0);
-  icmphdr.icmp6_cksum = 0;
-
-  /* Checksum */
-  struct v6pseudo_icmp_hdr pseudohdr;
-  g_message ("Size of struct v6pseudo_icmp_hdr: %lu",
-             sizeof (struct v6pseudo_icmp_hdr));
-  char *icmpsumdata = g_malloc0 (sizeof (struct v6pseudo_icmp_hdr));
-
-  bzero (&pseudohdr, sizeof (struct v6pseudo_icmp_hdr));
-  memcpy (&pseudohdr.s6addr, &iphdr.ip6_src, sizeof (struct in6_addr));
-  memcpy (&pseudohdr.d6addr, &iphdr.ip6_dst, sizeof (struct in6_addr));
-
-  pseudohdr.proto = 0x3a; /*ICMPv6 */
-  pseudohdr.len = htons (sizeof (struct ip6_hdr));
-  bcopy ((char *) &icmphdr, (char *) &pseudohdr.icmpheader,
-         sizeof (struct icmp6_hdr));
-  bcopy ((char *) &pseudohdr, icmpsumdata, sizeof (pseudohdr));
-  icmphdr.icmp6_cksum = np_in_cksum ((unsigned short *) icmpsumdata,
-                                     sizeof (struct v6pseudo_icmp_hdr));
-  g_free (icmpsumdata);
+  memset ((icmp6 + 1), 0xa5, datalen);
+  gettimeofday ((struct timeval *) (icmp6 + 1), NULL); // only for testing
+  len = 8 + datalen;
 
   /* send packet */
   bzero (&soca, sizeof (struct sockaddr_in6));
   soca.sin6_family = AF_INET6;
-  soca.sin6_addr = iphdr.ip6_dst;
+  soca.sin6_addr = dst;
 
-  char *str = g_malloc0 (INET6_ADDRSTRLEN);
-  inet_ntop (AF_INET6, &soca.sin6_addr, str, INET6_ADDRSTRLEN);
-  g_message ("%s: IP: %s", __func__, str);
-  g_free (str);
-
-  /* TODO: test */
-  if (sendto (soc, (const void *) &iphdr,
-              sizeof (struct icmp6_hdr) + sizeof (struct ip6_hdr), 0,
-              (struct sockaddr *) &soca, sizeof (struct sockaddr_in6))
-      < 0)
-    g_warning ("sendto: %s", strerror (errno));
+  sendto (soc, sendbuf, len, 0, (struct sockaddr *) &soca,
+          sizeof (struct sockaddr_in6));
 }
 
-static void
+__attribute__ ((unused)) static void
 send_icmp (__attribute__ ((unused)) gpointer key, gpointer value,
            gpointer user_data)
 {
@@ -621,20 +628,11 @@ static int
 get_socket_ipv6 (void)
 {
   int soc;
-  int opt = 1;
-  soc = socket (AF_INET6, SOCK_RAW, IPPROTO_RAW);
+  soc = socket (AF_INET6, SOCK_RAW, IPPROTO_ICMPV6);
   if (soc < 0)
     {
       g_critical ("%s: failed to set ipv6socket for alive detection: %s",
                   __func__, strerror (errno));
-      return -1;
-    }
-  if (setsockopt (soc, IPPROTO_IPV6, IP_HDRINCL, (char *) &opt, sizeof (opt))
-      < 0)
-    {
-      g_critical (
-        "%s: failed to set socket options on alive detection ipv6socket: %s",
-        __func__, strerror (errno));
       return -1;
     }
   return soc;
@@ -662,7 +660,7 @@ print_host_str (gpointer key, __attribute__ ((unused)) gpointer value,
 }
 
 static void
-send_syn_v6 (int soc, struct in6_addr dst)
+send_tcp_syn_v6 (int soc, struct in6_addr dst)
 {
   g_message ("%s:ipv6", __func__);
   struct sockaddr_in6 soca;
@@ -736,8 +734,8 @@ send_syn_v6 (int soc, struct in6_addr dst)
 }
 
 void
-tcp_syn (__attribute__ ((unused)) gpointer key, gpointer value,
-         gpointer user_data)
+send_tcp_syn (__attribute__ ((unused)) gpointer key, gpointer value,
+              gpointer user_data)
 {
   struct sockets sockets = *((struct sockets *) user_data);
   int soc = sockets.ipv4soc;
@@ -850,6 +848,8 @@ ping (void)
 
   /* ICMP */
   pthread_create (&tid, NULL, sniffer_thread, NULL);
+  /* give sniffer thread time to start */
+  sleep (2);
 
   g_hash_table_foreach (targethosts, send_icmp, &sockets);
 
@@ -868,7 +868,9 @@ ping (void)
 
   /* TCP SYN */
   pthread_create (&tid, NULL, sniffer_thread, NULL);
-  g_hash_table_foreach (targethosts, tcp_syn, &sockets);
+  /* give sniffer thread time to start */
+  sleep (2);
+  g_hash_table_foreach (targethosts, send_tcp_syn, &sockets);
 
   /* wait for replies and break loop */
   sleep (3);
@@ -899,8 +901,8 @@ ping (void)
 }
 
 /**
- * @brief start the tcp_syn scan of all specified hosts in gvm_hosts_t list.
- * Finish signal is put on Queue if pinger returned.
+ * @brief start the send_tcp_syn scan of all specified hosts in gvm_hosts_t
+ * list. Finish signal is put on Queue if pinger returned.
  *
  * @in: gvm_hosts_t structure
  */
