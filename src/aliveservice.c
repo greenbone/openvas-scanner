@@ -68,6 +68,21 @@ struct pseudohdr
   struct tcphdr tcpheader;
 };
 
+/**
+ * @brief Alive tests.
+ *
+ * These numbers are used in the database, so if the number associated with
+ * any symbol changes then a migrator must be added to update existing data.
+ */
+typedef enum
+{
+  ALIVE_TEST_TCP_ACK_SERVICE = 1,
+  ALIVE_TEST_ICMP = 2,
+  ALIVE_TEST_ARP = 4,
+  ALIVE_TEST_CONSIDER_ALIVE = 8,
+  ALIVE_TEST_TCP_SYN_SERVICE = 16
+} alive_test_t;
+
 /* global phandle for alive detection */
 /* TODO: use static kb_t. connect to it on start and link_reset on finish */
 pcap_t *handle;
@@ -872,44 +887,65 @@ ping (void)
                             .icmpv4soc = get_icmpv4soc (),
                             .tcpv6soc = get_tcpv6soc ()};
 
-  /* ICMP */
-  pthread_create (&tid, NULL, sniffer_thread, NULL);
-  /* give sniffer thread time to start */
-  sleep (2);
+  // alive_test_t alive_test = atoi (prefs_get("alive_test"));
+  alive_test_t alive_test = ALIVE_TEST_ICMP;               /* for testing */
+  // alive_test_t alive_test = ALIVE_TEST_TCP_SYN_SERVICE; /* for testing */
+  if (alive_test
+      == (ALIVE_TEST_TCP_ACK_SERVICE | ALIVE_TEST_ICMP | ALIVE_TEST_ARP))
+    g_message ("%s: ICMP, TCP-ACK Service & ARP Ping", __func__);
+  else if (alive_test == (ALIVE_TEST_TCP_ACK_SERVICE | ALIVE_TEST_ARP))
+    g_message ("%s: TCP-ACK Service & ARP Ping", __func__);
+  else if (alive_test == (ALIVE_TEST_ICMP | ALIVE_TEST_ARP))
+    g_message ("%s: ICMP & ARP Ping", __func__);
+  else if (alive_test == (ALIVE_TEST_ICMP | ALIVE_TEST_TCP_ACK_SERVICE))
+    g_message ("%s: ICMP & TCP-ACK Service Ping", __func__);
+  else if (alive_test == (ALIVE_TEST_ARP))
+    g_message ("%s: ARP Ping", __func__);
+  else if (alive_test == (ALIVE_TEST_TCP_ACK_SERVICE))
+    g_message ("%s: TCP-ACK Service Ping", __func__);
+  else if (alive_test == (ALIVE_TEST_TCP_SYN_SERVICE))
+    {
+      g_message ("%s: TCP-SYN Service Ping", __func__);
+      pthread_create (&tid, NULL, sniffer_thread, NULL);
+      /* give sniffer thread time to start */
+      sleep (2);
+      g_hash_table_foreach (targethosts, send_tcp_syn, &sockets);
 
-  g_hash_table_foreach (targethosts, send_icmp, &sockets);
+      /* wait for replies and break loop */
+      sleep (3);
+      pcap_breakloop (handle);
+      g_message ("%s: break_loop", __func__);
 
-  /* wait for replies and break loop */
-  sleep (3);
-  pcap_breakloop (handle);
-  g_message ("%s: break_loop", __func__);
+      /* join thread*/
+      if (pthread_join (tid, NULL) != 0)
+        g_warning ("%s: got error from pthread_join", __func__);
+      g_message ("%s: join thread", __func__);
 
-  /* join thread*/
-  if (pthread_join (tid, NULL) != 0)
-    g_warning ("%s: got error from pthread_join", __func__);
-  g_message ("%s: join thread", __func__);
+      /* exclude alivehosts form targethosts so we dont test them again */
+      g_hash_table_foreach (alivehosts, exclude, targethosts);
+    }
+  else if (alive_test == (ALIVE_TEST_ICMP))
+    {
+      g_message ("%s: ICMP Ping", __func__);
+      pthread_create (&tid, NULL, sniffer_thread, NULL);
+      sleep (2);
+      g_hash_table_foreach (targethosts, send_icmp, &sockets);
 
-  /* exclude alivehosts form targethosts so we dont test them again */
-  g_hash_table_foreach (alivehosts, exclude, targethosts);
+      /* wait for replies and break loop */
+      sleep (3);
+      pcap_breakloop (handle);
+      g_message ("%s: break_loop", __func__);
 
-  /* TCP SYN */
-  pthread_create (&tid, NULL, sniffer_thread, NULL);
-  /* give sniffer thread time to start */
-  sleep (2);
-  g_hash_table_foreach (targethosts, send_tcp_syn, &sockets);
+      /* join thread*/
+      if (pthread_join (tid, NULL) != 0)
+        g_warning ("%s: got error from pthread_join", __func__);
+      g_message ("%s: join thread", __func__);
 
-  /* wait for replies and break loop */
-  sleep (3);
-  pcap_breakloop (handle);
-  g_message ("%s: break_loop", __func__);
-
-  /* join thread*/
-  if (pthread_join (tid, NULL) != 0)
-    g_warning ("%s: got error from pthread_join", __func__);
-  g_message ("%s: join thread", __func__);
-
-  /* exclude alivehosts form targethosts so we dont test them again */
-  g_hash_table_foreach (alivehosts, exclude, targethosts);
+      /* exclude alivehosts form targethosts so we dont test them again */
+      g_hash_table_foreach (alivehosts, exclude, targethosts);
+    }
+  else if (alive_test == (ALIVE_TEST_CONSIDER_ALIVE))
+    g_message ("%s: Consider Alive", __func__);
 
   /* close handle */
   if (handle != NULL)
@@ -923,8 +959,7 @@ ping (void)
   close (sockets.tcpv6soc);
   close (sockets.icmpv4soc);
   close (sockets.icmpv6soc);
-
-  g_message ("%s: close socket ", __func__);
+  g_message ("%s: close sockets ", __func__);
 
   return 0;
 }
@@ -939,7 +974,6 @@ void *
 start_alive_detection (void *args)
 {
   gvm_hosts_t *hosts = (gvm_hosts_t *) args;
-  int err;
   int scandb_id = atoi (prefs_get ("ov_maindbid"));
   /* This kb_t is only used once every alive detection process */
   main_kb = kb_direct_conn (prefs_get ("db_address"), scandb_id);
@@ -958,8 +992,7 @@ start_alive_detection (void *args)
 
   g_message ("%s: alive detection process started", __func__);
   /* blocks until detection process is finished */
-  err = ping ();
-  if (err < 0)
+  if (ping () < 0)
     g_warning ("%s: pinger returned some error code", __func__);
 
   /* put finish signal on Q if all packets were send and we waited long enough
