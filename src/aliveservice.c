@@ -37,10 +37,12 @@ enum alive_detection
   ALIVE_DETECTION_ERROR
 };
 
+/* TODO porbably not all needed*/
 struct sockets
 {
   int ipv4soc;
   int ipv6soc;
+  int icmpsoc;
 };
 
 struct v6pseudohdr
@@ -531,6 +533,59 @@ send_icmp (__attribute__ ((unused)) gpointer key, gpointer value,
            gpointer user_data)
 {
   g_message ("%s: IN ICMP func", __func__);
+  char sendbuf[1500];
+  struct sockaddr_in soca;
+  struct sockets sockets = *((struct sockets *) user_data);
+  int soc = sockets.icmpsoc;
+
+  int len;
+  int datalen = 56;
+  struct icmp *icmp;
+
+  icmp = (struct icmp *) sendbuf;
+  icmp->icmp_type = ICMP_ECHO;
+  icmp->icmp_code = 0;
+  icmp->icmp_id = 234;
+  icmp->icmp_seq = 0;
+  memset (icmp->icmp_data, 0xa5, datalen);
+
+  len = 8 + datalen;
+  icmp->icmp_cksum = 0;
+  icmp->icmp_cksum = np_in_cksum ((u_short *) icmp, len);
+
+  struct in6_addr dst_p;
+  struct in6_addr *dst = &dst_p;
+  struct in_addr inaddr; /* ip dst */
+
+  /* get dst address */
+  if (gvm_host_get_addr6 ((gvm_host_t *) value, dst) < 0)
+    g_message ("%s: Some error while gvm_host_get_addr6", __func__);
+  if (dst == NULL)
+    return;
+  /* check if ipv6 or not */
+  if (IN6_IS_ADDR_V4MAPPED (dst) != 1)
+    {
+      g_debug ("%s: is ipv6 addr", __func__);
+      send_icmp_v6 (sockets.ipv6soc, *dst);
+      return;
+    }
+  inaddr.s_addr = dst->s6_addr32[3];
+
+  bzero (&soca, sizeof (soca));
+  soca.sin_family = AF_INET;
+  soca.sin_addr = inaddr;
+
+  if (sendto (soc, sendbuf, len, 0, (const struct sockaddr *) &soca,
+              sizeof (struct sockaddr_in))
+      < 0)
+    g_warning ("sendto: %s", strerror (errno));
+}
+
+__attribute__ ((unused)) static void
+send_icmp_old (__attribute__ ((unused)) gpointer key, gpointer value,
+               gpointer user_data)
+{
+  g_message ("%s: IN ICMP func", __func__);
 
   struct sockaddr_in soca;
   struct sockets sockets = *((struct sockets *) user_data);
@@ -600,6 +655,20 @@ send_icmp (__attribute__ ((unused)) gpointer key, gpointer value,
               sizeof (soca))
       < 0)
     g_warning ("sendto: %s", strerror (errno));
+}
+
+static int
+get_icmposocket (void)
+{
+  int soc;
+  soc = socket (AF_INET, SOCK_RAW, IPPROTO_ICMP);
+  if (soc < 0)
+    {
+      g_critical ("%s: failed to set ipv6socket for alive detection: %s",
+                  __func__, strerror (errno));
+      return -1;
+    }
+  return soc;
 }
 
 static int
@@ -763,7 +832,7 @@ send_tcp_syn (__attribute__ ((unused)) gpointer key, gpointer value,
   if (dst == NULL || (IN6_IS_ADDR_V4MAPPED (dst) != 1))
     {
       g_debug ("%s: is ipv6 addr", __func__);
-      send_syn_v6 (sockets.ipv6soc, *dst);
+      send_tcp_syn_v6 (sockets.ipv6soc, *dst);
       return;
     }
   inaddr.s_addr = dst->s6_addr32[3];
@@ -844,7 +913,8 @@ ping (void)
 
   handle = open_live (NULL, FILTER_STR);
   struct sockets sockets = {.ipv4soc = get_socket (),
-                            .ipv6soc = get_socket_ipv6 ()};
+                            .ipv6soc = get_socket_ipv6 (),
+                            .icmpsoc = get_icmposocket ()};
 
   /* ICMP */
   pthread_create (&tid, NULL, sniffer_thread, NULL);
