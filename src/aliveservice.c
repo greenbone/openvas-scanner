@@ -547,7 +547,7 @@ send_icmp (__attribute__ ((unused)) gpointer key, gpointer value,
   char sendbuf[1500];
   struct sockaddr_in soca;
   struct sockets sockets = *((struct sockets *) user_data);
-  int soc = sockets.icmpsoc;
+  int soc = sockets.icmpv4soc;
 
   int len;
   int datalen = 56;
@@ -577,7 +577,7 @@ send_icmp (__attribute__ ((unused)) gpointer key, gpointer value,
   if (IN6_IS_ADDR_V4MAPPED (dst) != 1)
     {
       g_debug ("%s: is ipv6 addr", __func__);
-      send_icmp_v6 (sockets.ipv6soc, *dst);
+      send_icmp_v6 (sockets.icmpv6soc, *dst);
       return;
     }
   inaddr.s_addr = dst->s6_addr32[3];
@@ -929,7 +929,10 @@ ping (void)
 
   /* close sockets */
   close (sockets.tcpv4soc);
+  close (sockets.tcpv6soc);
+  close (sockets.icmpv4soc);
   close (sockets.icmpv6soc);
+
   g_message ("%s: close socket ", __func__);
 
   return 0;
