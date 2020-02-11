@@ -164,10 +164,6 @@ if (CMAKE_SYSTEM_NAME MATCHES "FreeBSD")
   set (EXECINFO_LDFLAGS "execinfo")
 endif (CMAKE_SYSTEM_NAME MATCHES "FreeBSD")
 
-if (TEST_ALIVE_HOSTS_ONLY)
-  add_definitions (-DTEST_ALIVE_HOSTS_ONLY=${TEST_ALIVE_HOSTS_ONLY})
-endif (TEST_ALIVE_HOSTS_ONLY)
-
 target_link_libraries (openvas openvas_nasl_shared ${LIBOPENVAS_NASL_LDFLAGS}
                        ${LIBOPENVAS_MISC_LDFLAGS}
                        ${LIBGVM_BASE_LDFLAGS}
