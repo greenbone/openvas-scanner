@@ -40,10 +40,10 @@ enum alive_detection
 /* TODO porbably not all needed*/
 struct sockets
 {
-  int ipv4soc;  /* is tcpv4soc */
-  int ipv6soc;  /* is icmpv6soc */
-  int icmpsoc;  /* is icmpv4soc */
-  int tcpv6soc; /* is tcpv6soc */
+  int tcpv4soc;
+  int tcpv6soc;
+  int icmpv4soc;
+  int icmpv6soc;
 };
 
 struct v6pseudohdr
@@ -594,7 +594,7 @@ send_icmp (__attribute__ ((unused)) gpointer key, gpointer value,
 }
 
 static int
-get_icmposocket (void)
+get_icmpv4soc (void)
 {
   int soc;
   soc = socket (AF_INET, SOCK_RAW, IPPROTO_ICMP);
@@ -608,7 +608,7 @@ get_icmposocket (void)
 }
 
 static int
-get_socket (void)
+get_tcpv4soc (void)
 {
   int soc;
   int opt = 1;
@@ -629,11 +629,8 @@ get_socket (void)
   return soc;
 }
 
-// TODO: problem. this func is used for icmpv6
-// and working for icmpv6 but not working for tcpv6
-// additional socket is needed
 static int
-get_socket_ipv6 (void)
+get_icmpv6soc (void)
 {
   int soc;
   soc = socket (AF_INET6, SOCK_RAW, IPPROTO_ICMPV6);
@@ -647,7 +644,7 @@ get_socket_ipv6 (void)
 }
 
 static int
-get_socket_tcpipv6 (void)
+get_tcpv6soc (void)
 {
   int soc;
   soc = socket (AF_INET6, SOCK_RAW, IPPROTO_RAW);
@@ -774,7 +771,7 @@ send_tcp_syn (__attribute__ ((unused)) gpointer key, gpointer value,
               gpointer user_data)
 {
   struct sockets sockets = *((struct sockets *) user_data);
-  int soc = sockets.ipv4soc;
+  int soc = sockets.tcpv4soc;
 
   struct sockaddr_in soca;
 
@@ -879,10 +876,10 @@ ping (void)
   pthread_t tid; /* thread id */
 
   handle = open_live (NULL, FILTER_STR);
-  struct sockets sockets = {.ipv4soc = get_socket (),
-                            .ipv6soc = get_socket_ipv6 (),
-                            .icmpsoc = get_icmposocket (),
-                            .tcpv6soc = get_socket_tcpipv6 ()};
+  struct sockets sockets = {.tcpv4soc = get_tcpv4soc (),
+                            .icmpv6soc = get_icmpv6soc (),
+                            .icmpv4soc = get_icmpv4soc (),
+                            .tcpv6soc = get_tcpv6soc ()};
 
   /* ICMP */
   pthread_create (&tid, NULL, sniffer_thread, NULL);
@@ -931,8 +928,8 @@ ping (void)
     }
 
   /* close sockets */
-  close (sockets.ipv4soc);
-  close (sockets.ipv6soc);
+  close (sockets.tcpv4soc);
+  close (sockets.icmpv6soc);
   g_message ("%s: close socket ", __func__);
 
   return 0;
