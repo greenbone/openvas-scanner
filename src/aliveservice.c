@@ -40,9 +40,10 @@ enum alive_detection
 /* TODO porbably not all needed*/
 struct sockets
 {
-  int ipv4soc;
-  int ipv6soc;
-  int icmpsoc;
+  int ipv4soc;  /* is tcpv4soc */
+  int ipv6soc;  /* is icmpv6soc */
+  int icmpsoc;  /* is icmpv4soc */
+  int tcpv6soc; /* is tcpv6soc */
 };
 
 struct v6pseudohdr
@@ -88,6 +89,15 @@ printipv6 (void *ipv6)
 {
   char *str = g_malloc0 (INET6_ADDRSTRLEN);
   inet_ntop (AF_INET6, ipv6, str, INET6_ADDRSTRLEN);
+  g_message ("%s: IP: %s", __func__, str);
+  g_free (str);
+}
+
+void
+printipv4 (void *ipv4)
+{
+  char *str = g_malloc0 (INET_ADDRSTRLEN);
+  inet_ntop (AF_INET, ipv4, str, INET_ADDRSTRLEN);
   g_message ("%s: IP: %s", __func__, str);
   g_free (str);
 }
@@ -524,6 +534,7 @@ send_icmp_v6 (int soc, struct in6_addr dst)
   soca.sin6_family = AF_INET6;
   soca.sin6_addr = dst;
 
+  printipv6 (&dst);
   sendto (soc, sendbuf, len, 0, (struct sockaddr *) &soca,
           sizeof (struct sockaddr_in6));
 }
@@ -575,6 +586,7 @@ send_icmp (__attribute__ ((unused)) gpointer key, gpointer value,
   soca.sin_family = AF_INET;
   soca.sin_addr = inaddr;
 
+  printipv4 (&inaddr);
   if (sendto (soc, sendbuf, len, 0, (const struct sockaddr *) &soca,
               sizeof (struct sockaddr_in))
       < 0)
@@ -693,6 +705,9 @@ get_socket (void)
   return soc;
 }
 
+// TODO: problem. this func is used for icmpv6
+// and working for icmpv6 but not working for tcpv6
+// additional socket is needed
 static int
 get_socket_ipv6 (void)
 {
@@ -702,6 +717,32 @@ get_socket_ipv6 (void)
     {
       g_critical ("%s: failed to set ipv6socket for alive detection: %s",
                   __func__, strerror (errno));
+      return -1;
+    }
+  return soc;
+}
+
+static int
+get_socket_tcpipv6 (void)
+{
+  int soc;
+  soc = socket (AF_INET6, SOCK_RAW, IPPROTO_RAW);
+  if (soc < 0)
+    {
+      g_critical ("%s: failed to set ipv6socket for alive detection: %s",
+                  __func__, strerror (errno));
+      return -1;
+    }
+
+  int opt_on = 1;
+  if (setsockopt (soc, IPPROTO_IPV6, IP_HDRINCL,
+                  (char *) &opt_on, // IPV6_HDRINCL
+                  sizeof (opt_on))
+      < 0)
+    {
+      g_critical (
+        "%s: failed to set socket options on alive detection socket: %s",
+        __func__, strerror (errno));
       return -1;
     }
   return soc;
@@ -755,24 +796,26 @@ send_tcp_syn_v6 (int soc, struct in6_addr dst)
     {
       bzero (packet, sizeof (packet));
       /* IPv6 */
-      int version = 0x60, tc = 0, fl = 0;
-      ip->ip6_flow = version | tc | fl;
-      ip->ip6_hlim = 0x40;
+      ip->ip6_flow = htonl ((6 << 28) | (0 << 20) | 0);
+      ip->ip6_plen = htons (20); // TCP_HDRLEN
+      ip->ip6_nxt = IPPROTO_TCP;
+      ip->ip6_hops = 255; // max value
+
+      printipv6 (&src);
+      printipv6 (&dst);
       ip->ip6_src = src;
       ip->ip6_dst = dst;
-      ip->ip6_plen = htons (sizeof (struct tcphdr));
-      ip->ip6_nxt = 0x06;
 
       /* TCP */
       tcp->th_sport = htons (FILTER_PORT);
-      tcp->th_flags = TH_SYN;
       tcp->th_dport = port ? htons (port) : htons (ports[i]);
-      tcp->th_seq = rand ();
-      tcp->th_ack = 0;
+      tcp->th_seq = htonl (0);
+      tcp->th_ack = htonl (0);
       tcp->th_x2 = 0;
-      tcp->th_off = 5;
-      tcp->th_win = htons (512);
-      tcp->th_urp = 0;
+      tcp->th_off = 20 / 4; // TCP_HDRLEN / 4 (size of tcphdr in 32 bit words)
+      tcp->th_flags = TH_SYN;
+      tcp->th_win = htons (65535);
+      tcp->th_urp = htons (0);
       tcp->th_sum = 0;
 
       /* CKsum */
@@ -793,10 +836,10 @@ send_tcp_syn_v6 (int soc, struct in6_addr dst)
 
       bzero (&soca, sizeof (soca));
       soca.sin6_family = AF_INET6;
-      soca.sin6_addr = ip->ip6_dst;
-      if (sendto (soc, (const void *) ip,
-                  sizeof (struct tcphdr) + sizeof (struct ip6_hdr), 0,
-                  (struct sockaddr *) &soca, sizeof (struct sockaddr_in6))
+      soca.sin6_addr = dst;
+      /*  TCP_HDRLEN(20) IP6_HDRLEN(40) */
+      if (sendto (soc, (const void *) ip, 40 + 20, 0, (struct sockaddr *) &soca,
+                  sizeof (struct sockaddr_in6))
           < 0)
         g_warning ("sendto: %s", strerror (errno));
     }
@@ -832,7 +875,7 @@ send_tcp_syn (__attribute__ ((unused)) gpointer key, gpointer value,
   if (dst == NULL || (IN6_IS_ADDR_V4MAPPED (dst) != 1))
     {
       g_debug ("%s: is ipv6 addr", __func__);
-      send_tcp_syn_v6 (sockets.ipv6soc, *dst);
+      send_tcp_syn_v6 (sockets.tcpv6soc, *dst);
       return;
     }
   inaddr.s_addr = dst->s6_addr32[3];
@@ -914,7 +957,8 @@ ping (void)
   handle = open_live (NULL, FILTER_STR);
   struct sockets sockets = {.ipv4soc = get_socket (),
                             .ipv6soc = get_socket_ipv6 (),
-                            .icmpsoc = get_icmposocket ()};
+                            .icmpsoc = get_icmposocket (),
+                            .tcpv6soc = get_socket_tcpipv6 ()};
 
   /* ICMP */
   pthread_create (&tid, NULL, sniffer_thread, NULL);
