@@ -68,15 +68,6 @@ struct pseudohdr
   struct tcphdr tcpheader;
 };
 
-struct v6pseudo_icmp_hdr
-{
-  struct in6_addr s6addr;
-  struct in6_addr d6addr;
-  char proto;
-  unsigned short len;
-  struct icmp6_hdr icmpheader;
-};
-
 /* global phandle for alive detection */
 /* TODO: use static kb_t. connect to it on start and link_reset on finish */
 pcap_t *handle;
@@ -508,91 +499,6 @@ set_src_addr (struct in_addr *src)
     }
 }
 
-static void
-send_icmp_v6 (int soc, struct in6_addr dst)
-{
-  g_message ("%s: send imcpv6", __func__);
-
-  struct sockaddr_in6 soca;
-  char sendbuf[1500];
-  int len;
-  int datalen = 56;
-  struct icmp6_hdr *icmp6;
-
-  icmp6 = (struct icmp6_hdr *) sendbuf;
-  icmp6->icmp6_type = ICMP6_ECHO_REQUEST;
-  icmp6->icmp6_code = 0;
-  icmp6->icmp6_id = 234; //
-  icmp6->icmp6_seq = 0;  //
-
-  memset ((icmp6 + 1), 0xa5, datalen);
-  gettimeofday ((struct timeval *) (icmp6 + 1), NULL); // only for testing
-  len = 8 + datalen;
-
-  /* send packet */
-  bzero (&soca, sizeof (struct sockaddr_in6));
-  soca.sin6_family = AF_INET6;
-  soca.sin6_addr = dst;
-
-  printipv6 (&dst);
-  sendto (soc, sendbuf, len, 0, (struct sockaddr *) &soca,
-          sizeof (struct sockaddr_in6));
-}
-
-__attribute__ ((unused)) static void
-send_icmp (__attribute__ ((unused)) gpointer key, gpointer value,
-           gpointer user_data)
-{
-  g_message ("%s: IN ICMP func", __func__);
-  char sendbuf[1500];
-  struct sockaddr_in soca;
-  struct sockets sockets = *((struct sockets *) user_data);
-  int soc = sockets.icmpv4soc;
-
-  int len;
-  int datalen = 56;
-  struct icmp *icmp;
-
-  icmp = (struct icmp *) sendbuf;
-  icmp->icmp_type = ICMP_ECHO;
-  icmp->icmp_code = 0;
-  icmp->icmp_id = 234;
-  icmp->icmp_seq = 0;
-  memset (icmp->icmp_data, 0xa5, datalen);
-
-  len = 8 + datalen;
-  icmp->icmp_cksum = 0;
-  icmp->icmp_cksum = np_in_cksum ((u_short *) icmp, len);
-
-  struct in6_addr dst_p;
-  struct in6_addr *dst = &dst_p;
-  struct in_addr inaddr; /* ip dst */
-
-  /* get dst address */
-  if (gvm_host_get_addr6 ((gvm_host_t *) value, dst) < 0)
-    g_message ("%s: Some error while gvm_host_get_addr6", __func__);
-  if (dst == NULL)
-    return;
-  /* check if ipv6 or not */
-  if (IN6_IS_ADDR_V4MAPPED (dst) != 1)
-    {
-      g_debug ("%s: is ipv6 addr", __func__);
-      send_icmp_v6 (sockets.icmpv6soc, *dst);
-      return;
-    }
-  inaddr.s_addr = dst->s6_addr32[3];
-
-  bzero (&soca, sizeof (soca));
-  soca.sin_family = AF_INET;
-  soca.sin_addr = inaddr;
-
-  printipv4 (&inaddr);
-  if (sendto (soc, sendbuf, len, 0, (const struct sockaddr *) &soca,
-              sizeof (struct sockaddr_in))
-      < 0)
-    g_warning ("sendto: %s", strerror (errno));
-}
-
 static int
 get_icmpv4soc (void)
 {
@@ -688,6 +594,91 @@ print_host_str (gpointer key, __attribute__ ((unused)) gpointer value,
                 __attribute__ ((unused)) gpointer user_data)
 {
   g_message ("host_str: %s", (gchar *) key);
+}
+
+static void
+send_icmp_v6 (int soc, struct in6_addr dst)
+{
+  g_message ("%s: send imcpv6", __func__);
+
+  struct sockaddr_in6 soca;
+  char sendbuf[1500];
+  int len;
+  int datalen = 56;
+  struct icmp6_hdr *icmp6;
+
+  icmp6 = (struct icmp6_hdr *) sendbuf;
+  icmp6->icmp6_type = ICMP6_ECHO_REQUEST;
+  icmp6->icmp6_code = 0;
+  icmp6->icmp6_id = 234; //
+  icmp6->icmp6_seq = 0;  //
+
+  memset ((icmp6 + 1), 0xa5, datalen);
+  gettimeofday ((struct timeval *) (icmp6 + 1), NULL); // only for testing
+  len = 8 + datalen;
+
+  /* send packet */
+  bzero (&soca, sizeof (struct sockaddr_in6));
+  soca.sin6_family = AF_INET6;
+  soca.sin6_addr = dst;
+
+  printipv6 (&dst);
+  sendto (soc, sendbuf, len, 0, (struct sockaddr *) &soca,
+          sizeof (struct sockaddr_in6));
+}
+
+__attribute__ ((unused)) static void
+send_icmp (__attribute__ ((unused)) gpointer key, gpointer value,
+           gpointer user_data)
+{
+  g_message ("%s: IN ICMP func", __func__);
+  char sendbuf[1500];
+  struct sockaddr_in soca;
+  struct sockets sockets = *((struct sockets *) user_data);
+  int soc = sockets.icmpv4soc;
+
+  int len;
+  int datalen = 56;
+  struct icmp *icmp;
+
+  icmp = (struct icmp *) sendbuf;
+  icmp->icmp_type = ICMP_ECHO;
+  icmp->icmp_code = 0;
+  icmp->icmp_id = 234;
+  icmp->icmp_seq = 0;
+  memset (icmp->icmp_data, 0xa5, datalen);
+
+  len = 8 + datalen;
+  icmp->icmp_cksum = 0;
+  icmp->icmp_cksum = np_in_cksum ((u_short *) icmp, len);
+
+  struct in6_addr dst_p;
+  struct in6_addr *dst = &dst_p;
+  struct in_addr inaddr; /* ip dst */
+
+  /* get dst address */
+  if (gvm_host_get_addr6 ((gvm_host_t *) value, dst) < 0)
+    g_message ("%s: Some error while gvm_host_get_addr6", __func__);
+  if (dst == NULL)
+    return;
+  /* check if ipv6 or not */
+  if (IN6_IS_ADDR_V4MAPPED (dst) != 1)
+    {
+      g_debug ("%s: is ipv6 addr", __func__);
+      send_icmp_v6 (sockets.icmpv6soc, *dst);
+      return;
+    }
+  inaddr.s_addr = dst->s6_addr32[3];
+
+  bzero (&soca, sizeof (soca));
+  soca.sin_family = AF_INET;
+  soca.sin_addr = inaddr;
+
+  printipv4 (&inaddr);
+  if (sendto (soc, sendbuf, len, 0, (const struct sockaddr *) &soca,
+              sizeof (struct sockaddr_in))
+      < 0)
+    g_warning ("sendto: %s", strerror (errno));
 }
 
 static void
