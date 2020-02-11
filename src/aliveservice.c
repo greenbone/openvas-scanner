@@ -612,7 +612,7 @@ print_host_str (gpointer key, __attribute__ ((unused)) gpointer value,
 }
 
 static void
-send_icmp_v6 (int soc, struct in6_addr dst)
+send_icmp_v6 (int soc, struct in6_addr *dst)
 {
   g_message ("%s: send imcpv6", __func__);
 
@@ -635,22 +635,19 @@ send_icmp_v6 (int soc, struct in6_addr dst)
   /* send packet */
   bzero (&soca, sizeof (struct sockaddr_in6));
   soca.sin6_family = AF_INET6;
-  soca.sin6_addr = dst;
+  soca.sin6_addr = *dst;
 
-  printipv6 (&dst);
+  printipv6 (dst);
   sendto (soc, sendbuf, len, 0, (struct sockaddr *) &soca,
           sizeof (struct sockaddr_in6));
 }
 
-__attribute__ ((unused)) static void
-send_icmp (__attribute__ ((unused)) gpointer key, gpointer value,
-           gpointer user_data)
+static void
+send_icmp_v4 (int soc, struct in_addr *dst)
 {
   g_message ("%s: IN ICMP func", __func__);
   char sendbuf[1500];
   struct sockaddr_in soca;
-  struct sockets sockets = *((struct sockets *) user_data);
-  int soc = sockets.icmpv4soc;
 
   int len;
   int datalen = 56;
@@ -667,33 +664,42 @@ send_icmp (__attribute__ ((unused)) gpointer key, gpointer value,
   icmp->icmp_cksum = 0;
   icmp->icmp_cksum = np_in_cksum ((u_short *) icmp, len);
 
-  struct in6_addr dst_p;
-  struct in6_addr *dst = &dst_p;
-  struct in_addr inaddr; /* ip dst */
-
-  /* get dst address */
-  if (gvm_host_get_addr6 ((gvm_host_t *) value, dst) < 0)
-    g_message ("%s: Some error while gvm_host_get_addr6", __func__);
-  if (dst == NULL)
-    return;
-  /* check if ipv6 or not */
-  if (IN6_IS_ADDR_V4MAPPED (dst) != 1)
-    {
-      g_debug ("%s: is ipv6 addr", __func__);
-      send_icmp_v6 (sockets.icmpv6soc, *dst);
-      return;
-    }
-  inaddr.s_addr = dst->s6_addr32[3];
-
   bzero (&soca, sizeof (soca));
   soca.sin_family = AF_INET;
-  soca.sin_addr = inaddr;
+  soca.sin_addr = *dst;
 
-  printipv4 (&inaddr);
+  printipv4 (dst);
   if (sendto (soc, sendbuf, len, 0, (const struct sockaddr *) &soca,
               sizeof (struct sockaddr_in))
       < 0)
     g_warning ("sendto: %s", strerror (errno));
+}
+
+/* check if ipv6 or ipv4, get correct socket and start ping function */
+static void
+send_icmp (__attribute__ ((unused)) gpointer key, gpointer value,
+           gpointer user_data)
+{
+  struct sockets sockets = *((struct sockets *) user_data);
+
+  struct in6_addr dst6;
+  struct in6_addr *dst6_p = &dst6;
+  struct in_addr dst4;
+  struct in_addr *dst4_p = &dst4;
+
+  if (gvm_host_get_addr6((gvm_host_t *)value, dst6_p) < 0) 
+    g_message("could not get addr6 from gvm_host_t");
+  if (dst6_p == NULL)
+    g_message("dst6_p == NULL");
+  if (IN6_IS_ADDR_V4MAPPED (dst6_p) != 1)
+    {
+      g_message("got ipv6 address to handle");
+      send_icmp_v6 (sockets.icmpv6soc, dst6_p);
+    }
+  else {
+    dst4.s_addr = dst6_p->s6_addr32[3];
+    send_icmp_v4(sockets.icmpv4soc, dst4_p);
+  }
 }
 
 static void
