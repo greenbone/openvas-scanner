@@ -37,19 +37,19 @@ enum alive_detection
   ALIVE_DETECTION_ERROR
 };
 
-/* TODO porbably not all needed*/
-struct sockets
-{
-  int icmpv4soc;
-  int icmpv6soc;
-};
-
 /* data for tcp_ping */
 struct tcp_ping
 {
   int tcpv4soc;     /* socket */
   int tcpv6soc;     /* socket */
   uint8_t tcp_flag; /* TH_SYN or TH_ACK from <netinet/tcp.h> */
+};
+
+/* data for icmp_ping */
+struct icmp_ping
+{
+  int icmpv4soc; /* socket */
+  int icmpv6soc; /* socket */
 };
 
 struct v6pseudohdr
@@ -686,7 +686,7 @@ static void
 send_icmp (__attribute__ ((unused)) gpointer key, gpointer value,
            gpointer user_data)
 {
-  struct sockets sockets = *((struct sockets *) user_data);
+  struct icmp_ping icmp_ping = *((struct icmp_ping *) user_data);
 
   struct in6_addr dst6;
   struct in6_addr *dst6_p = &dst6;
@@ -700,12 +700,12 @@ send_icmp (__attribute__ ((unused)) gpointer key, gpointer value,
   if (IN6_IS_ADDR_V4MAPPED (dst6_p) != 1)
     {
       g_message ("got ipv6 address to handle");
-      send_icmp_v6 (sockets.icmpv6soc, dst6_p);
+      send_icmp_v6 (icmp_ping.icmpv6soc, dst6_p);
     }
   else
     {
       dst4.s_addr = dst6_p->s6_addr32[3];
-      send_icmp_v4 (sockets.icmpv4soc, dst4_p);
+      send_icmp_v4 (icmp_ping.icmpv4soc, dst4_p);
     }
 }
 
@@ -907,8 +907,7 @@ ping (void)
   pthread_t tid; /* thread id */
 
   handle = open_live (NULL, FILTER_STR);
-  struct sockets sockets = {.icmpv6soc = get_icmpv6soc (),
-                            .icmpv4soc = get_icmpv4soc ()};
+
   // alive_test_t alive_test = atoi (prefs_get("alive_test"));
   alive_test_t alive_test = ALIVE_TEST_ICMP; /* for testing */
   // alive_test_t alive_test = ALIVE_TEST_TCP_SYN_SERVICE; /* for testing */
@@ -950,6 +949,7 @@ ping (void)
       g_hash_table_foreach (alivehosts, exclude, targethosts);
       close (tcp_ping.tcpv4soc);
       close (tcp_ping.tcpv6soc);
+      g_message ("%s: close tcp_ack_ping sockets ", __func__);
     }
   else if (alive_test == (ALIVE_TEST_TCP_SYN_SERVICE))
     {
@@ -978,13 +978,18 @@ ping (void)
 
       close (tcp_ping.tcpv4soc);
       close (tcp_ping.tcpv6soc);
+      g_message ("%s: close tcp_syn_ping sockets ", __func__);
     }
   else if (alive_test == (ALIVE_TEST_ICMP))
     {
       g_message ("%s: ICMP Ping", __func__);
+
+      struct icmp_ping icmp_ping = {.icmpv4soc = get_icmpv4soc (),
+                                    .icmpv6soc = get_icmpv6soc ()};
+
       pthread_create (&tid, NULL, sniffer_thread, NULL);
       sleep (2);
-      g_hash_table_foreach (targethosts, send_icmp, &sockets);
+      g_hash_table_foreach (targethosts, send_icmp, &icmp_ping);
 
       /* wait for replies and break loop */
       sleep (3);
@@ -998,6 +1003,11 @@ ping (void)
 
       /* exclude alivehosts form targethosts so we dont test them again */
       g_hash_table_foreach (alivehosts, exclude, targethosts);
+
+      close (icmp_ping.icmpv4soc);
+      close (icmp_ping.icmpv6soc);
+      g_message ("%s: close icmp_ping sockets ", __func__);
+
     }
   else if (alive_test == (ALIVE_TEST_CONSIDER_ALIVE))
     g_message ("%s: Consider Alive", __func__);
@@ -1008,11 +1018,6 @@ ping (void)
       g_message ("%s: close pcap handle", __func__);
       pcap_close (handle);
     }
-
-  /* close sockets */
-  close (sockets.icmpv4soc);
-  close (sockets.icmpv6soc);
-  g_message ("%s: close sockets ", __func__);
 
   return 0;
 }
