@@ -4,20 +4,23 @@
 // #include "../misc/bpf_share.h"
 
 #include <arpa/inet.h>
-#include <errno.h>               /* for errno */
+#include <errno.h>
 #include <gvm/base/networking.h> /* gvm_source_addr() */
-#include <gvm/base/prefs.h>      /* for prefs_get() */
-#include <gvm/util/kb.h>         /* kb_t ... */
-#include <ifaddrs.h>             /* for getifaddrs() */
+#include <gvm/base/prefs.h>      /* prefs_get() */
+#include <gvm/util/kb.h>         /* kb_t operations */
+#include <ifaddrs.h>             /* getifaddrs() */
+#include <net/ethernet.h>        /* struct ether_addr ether_hdr */
+#include <net/if.h>              /* IFF_LOOPBACK, if_nametoindex() */
 #include <netinet/icmp6.h>
 #include <netinet/ip.h>
 #include <netinet/ip6.h>
 #include <netinet/ip_icmp.h>
 #include <netinet/tcp.h>
-#include <pcap.h>    /* pcap functions*/
-#include <pthread.h> /* for threading */
+#include <netpacket/packet.h> /* struct sockaddr_ll */
+#include <pcap.h>
+#include <pthread.h>
 #include <sys/param.h>
-#include <sys/wait.h> /* for waitpid() */
+#include <sys/wait.h>
 #include <unistd.h>
 
 /* for using int value in #defined string */
@@ -25,8 +28,9 @@
 #define ASSTR(X) STR (X)
 /* packets are sent to port 9910*/
 #define FILTER_PORT 9910
-#define FILTER_STR \
-  "(ip6 or ip) and (icmp6 or icmp or dst port " ASSTR (FILTER_PORT) ")"
+#define FILTER_STR                                             \
+  "(ip6 or ip or arp) and (icmp6 or icmp or dst port " ASSTR ( \
+    FILTER_PORT) " or arp[6:2]=2)"
 
 enum alive_detection
 {
@@ -50,6 +54,35 @@ struct icmp_ping
 {
   int icmpv4soc; /* socket */
   int icmpv6soc; /* socket */
+};
+
+/* data for arp_ping */
+struct arp_ping
+{
+  int arpv4soc;
+  int arpv6soc; /* is icmpv6soc */
+  uint8_t src_mac[6];
+  uint8_t dst_mac[6];
+};
+
+struct arp_hdr
+{
+  uint16_t htype;
+  uint16_t ptype;
+  uint8_t hlen;
+  uint8_t plen;
+  uint16_t opcode;
+  uint8_t sender_mac[6];
+  uint8_t sender_ip[4];
+  uint8_t target_mac[6];
+  uint8_t target_ip[4];
+};
+
+struct sniff_ethernet
+{
+  u_char ether_dhost[ETHER_ADDR_LEN]; /* Destination host address */
+  u_char ether_shost[ETHER_ADDR_LEN]; /* Source host address */
+  u_short ether_type;                 /* IP? ARP? RARP? etc */
 };
 
 struct v6pseudohdr
@@ -362,6 +395,17 @@ got_packet (__attribute__ ((unused)) u_char *args,
 {
   g_message ("%s: sniffed some packet", __func__);
 
+  // gchar addr_str1[INET_ADDRSTRLEN];
+  // struct sniff_ethernet *ether = (struct sniff_ethernet *) (packet + 2);
+  // inet_ntop (AF_INET, (const char *) ether->ether_dhost, addr_str1,
+  //            INET_ADDRSTRLEN);
+  // g_message ("%s: IP version = 4, addr: %s", __func__, addr_str1);
+  // inet_ntop (AF_INET, (const char *) ether->ether_shost, addr_str1,
+  //            INET_ADDRSTRLEN);
+  // g_message ("%s: IP version = 4, addr: %s", __func__, addr_str1);
+  // // printipv4(ether->ether_dhost);
+  // // printipv4(ether->ether_shost);
+  // g_message ("%s: type:%x", __func__, (unsigned int) ether->ether_type);
   struct ip *ip = (struct ip *) (packet + 16); // why not 14(ethernet size)??
   unsigned int version = ip->ip_v;
   g_message ("IP version: %x", ip->ip_v);
@@ -506,6 +550,20 @@ set_src_addr (struct in_addr *src)
 }
 
 static int
+get_arpv4soc (void)
+{
+  int soc;
+  soc = socket (PF_PACKET, SOCK_RAW, htons (ETH_P_ALL));
+  if (soc < 0)
+    {
+      g_critical ("%s: failed to set arpv4soc for alive detection: %s",
+                  __func__, strerror (errno));
+      return -1;
+    }
+  return soc;
+}
+
+static int
 get_icmpv4soc (void)
 {
   int soc;
@@ -600,6 +658,52 @@ print_host_str (gpointer key, __attribute__ ((unused)) gpointer value,
                 __attribute__ ((unused)) gpointer user_data)
 {
   g_message ("host_str: %s", (gchar *) key);
+}
+
+/**
+ * @brief get the source mac address of the given interface
+ * or of the first non lo interface
+ */
+__attribute__ ((unused)) static int
+get_source_mac_addr (gchar *interface, uint8_t *mac)
+{
+  struct ifaddrs *ifaddr = NULL;
+  struct ifaddrs *ifa = NULL;
+  int interface_provided = 0;
+
+  if (interface)
+    interface_provided = 1;
+
+  if (getifaddrs (&ifaddr) == -1)
+    {
+      perror ("getifaddrs");
+    }
+  else
+    {
+      for (ifa = ifaddr; ifa != NULL; ifa = ifa->ifa_next)
+        {
+          if ((ifa->ifa_addr) && (ifa->ifa_addr->sa_family == AF_PACKET)
+              && !(ifa->ifa_flags & (IFF_LOOPBACK)))
+            {
+              if (interface_provided)
+                {
+                  if (g_strcmp0 (interface, ifa->ifa_name) == 0)
+                    {
+                      struct sockaddr_ll *s =
+                        (struct sockaddr_ll *) ifa->ifa_addr;
+                      memcpy (mac, s->sll_addr, 6 * sizeof (uint8_t));
+                    }
+                }
+              else
+                {
+                  struct sockaddr_ll *s = (struct sockaddr_ll *) ifa->ifa_addr;
+                  memcpy (mac, s->sll_addr, 6 * sizeof (uint8_t));
+                }
+            }
+        }
+      freeifaddrs (ifaddr);
+    }
+  return 0;
 }
 
 static void
@@ -886,6 +990,124 @@ send_tcp (__attribute__ ((unused)) gpointer key, gpointer value,
     }
 }
 
+void
+send_arp_v4 (__attribute__ ((unused)) int soc, struct in_addr *dst_p,
+             uint8_t *src_mac, __attribute__ ((unused)) uint8_t *dst_mac)
+{
+  g_message ("%s: SENDING ARP", __func__);
+  struct sockaddr_ll soca;
+  struct in_addr src;
+  struct arp_hdr arphdr;
+  int frame_length;
+  uint8_t *ether_frame;
+
+  /* get src address */
+  if (islocalhost (dst_p) > 0)
+    src.s_addr = dst_p->s_addr;
+  else
+    set_src_addr (&src);
+
+  /* sockaddr_ll */
+  /* TODO: get index of interface a other way */
+  memset (&soca, 0, sizeof (soca));
+  // soca.sll_ifindex = 1;
+  if ((soca.sll_ifindex = if_nametoindex ("enp0s3")) == 0)
+    {
+      perror ("if_nametoindex() failed to obtain interface index ");
+      exit (EXIT_FAILURE);
+    }
+  printf ("Index for interface  is %i\n", soca.sll_ifindex);
+  soca.sll_family = AF_PACKET;
+  memcpy (soca.sll_addr, src_mac, 6 * sizeof (uint8_t));
+  soca.sll_halen = 6;
+
+  /* IP addresses */
+  memcpy (&arphdr.target_ip, dst_p, 4 * sizeof (uint8_t));
+  memcpy (&arphdr.sender_ip, &src, 4 * sizeof (uint8_t));
+
+  // Hardware type (16 bits): 1 for ethernet
+  arphdr.htype = htons (1);
+  // Protocol type (16 bits): 2048 for IP
+  arphdr.ptype = htons (ETH_P_IP);
+  // Hardware address length (8 bits): 6 bytes for MAC address
+  arphdr.hlen = 6;
+  // Protocol address length (8 bits): 4 bytes for IPv4 address
+  arphdr.plen = 4;
+  // OpCode: 1 for ARP request
+  arphdr.opcode = htons (1);
+  // Sender hardware address (48 bits): MAC address
+  memcpy (&arphdr.sender_mac, src_mac, 6 * sizeof (uint8_t));
+  // Sender protocol address (32 bits)
+  // See getaddrinfo() resolution of src_ip.
+  // Target hardware address (48 bits): zero, since we don't know it yet.
+  memset (&arphdr.target_mac, 0, 6 * sizeof (uint8_t));
+
+  // Ethernet frame length = ethernet header (MAC + MAC + ethernet type) +
+  // ethernet data (ARP header)
+  frame_length = 6 + 6 + 2 + 28; /* ARP_HDRLEN = 28 */
+
+  // Destination and Source MAC addresses
+  ether_frame = g_malloc0 (IP_MAXPACKET); /* TODO: error handling */
+  memcpy (ether_frame, dst_mac, 6 * sizeof (uint8_t));
+  memcpy (ether_frame + 6, src_mac, 6 * sizeof (uint8_t));
+
+  // Next is ethernet type code (ETH_P_ARP for ARP).
+  // http://www.iana.org/assignments/ethernet-numbers
+  ether_frame[12] = ETH_P_ARP / 256;
+  ether_frame[13] = ETH_P_ARP % 256;
+
+  // ARP header
+  // ETH_HDRLEN = 14, ARP_HDRLEN = 28
+  memcpy (ether_frame + 14, &arphdr, 28 * sizeof (uint8_t));
+
+  // Send ethernet frame to socket.
+  if ((sendto (soc, ether_frame, frame_length, 0, (struct sockaddr *) &soca,
+               sizeof (soca)))
+      <= 0)
+    {
+      perror ("sendto() failed");
+      exit (EXIT_FAILURE);
+    }
+
+  g_free (ether_frame);
+
+  return;
+}
+
+/* check if ipv6 or ipv4, get correct socket and start ping function */
+static void
+send_arp (__attribute__ ((unused)) gpointer key, gpointer value,
+          gpointer user_data)
+{
+  g_message ("%s: check what ip received", __func__);
+
+  struct arp_ping arp_ping = *((struct arp_ping *) user_data);
+
+  struct in6_addr dst6;
+  struct in6_addr *dst6_p = &dst6;
+  struct in_addr dst4;
+  struct in_addr *dst4_p = &dst4;
+
+  if (gvm_host_get_addr6 ((gvm_host_t *) value, dst6_p) < 0)
+    g_message ("could not get addr6 from gvm_host_t");
+  if (dst6_p == NULL)
+    g_message ("dst6_p == NULL");
+  if (IN6_IS_ADDR_V4MAPPED (dst6_p) != 1)
+    {
+      g_message ("got ipv6 address to handle");
+      g_message ("Not implemented yet!");
+      // send_tcp_v
+      // (arp_ping.arpv6soc, dst6_p, arp_ping.tcp_flag);
+    }
+  else
+    {
+      dst4.s_addr = dst6_p->s6_addr32[3];
+      printipv4 (dst4_p);
+      send_arp_v4 (arp_ping.arpv4soc, dst4_p, arp_ping.src_mac,
+                   arp_ping.dst_mac);
+    }
+}
+
 static int
 ping (void)
 {
@@ -905,7 +1127,39 @@ ping (void)
   else if (alive_test == (ALIVE_TEST_ICMP | ALIVE_TEST_TCP_ACK_SERVICE))
     g_message ("%s: ICMP & TCP-ACK Service Ping", __func__);
   else if (alive_test == (ALIVE_TEST_ARP))
-    g_message ("%s: ARP Ping", __func__);
+    {
+      g_message ("%s: ARP Ping", __func__);
+      pthread_create (&tid, NULL, sniffer_thread, NULL);
+
+      struct arp_ping arp_ping = {.arpv4soc = get_arpv4soc (),
+                                  .arpv6soc = get_icmpv6soc ()};
+      bzero (&arp_ping.src_mac, 6 * sizeof (uint8_t));
+      memset (arp_ping.dst_mac, 0xff, 6 * sizeof (uint8_t));
+
+      get_source_mac_addr ("enp0s3", (unsigned char *) &arp_ping.src_mac);
+      g_message ("%02x:%02x:%02x:%02x:%02x:%02x", arp_ping.src_mac[0],
+                 arp_ping.src_mac[1], arp_ping.src_mac[2], arp_ping.src_mac[3],
+                 arp_ping.src_mac[4], arp_ping.src_mac[5]);
+      g_message ("%02x:%02x:%02x:%02x:%02x:%02x", arp_ping.dst_mac[0],
+                 arp_ping.dst_mac[1], arp_ping.dst_mac[2], arp_ping.dst_mac[3],
+                 arp_ping.dst_mac[4], arp_ping.dst_mac[5]);
+      sleep (2);
+      g_hash_table_foreach (targethosts, send_arp, &arp_ping);
+      // 3. get source address
+      /* wait for replies and break loop */
+      sleep (3);
+      pcap_breakloop (handle);
+      g_message ("%s: break_loop", __func__);
+
+      /* join thread */
+      if (pthread_join (tid, NULL) != 0)
+        g_warning ("%s: got error from pthread_join", __func__);
+      g_message ("%s: join thread", __func__);
+
+      close (arp_ping.arpv4soc);
+      close (arp_ping.arpv6soc);
+      g_message ("%s: close tcp_ack_ping sockets ", __func__);
+    }
   else if (alive_test == (ALIVE_TEST_TCP_ACK_SERVICE))
     {
       g_message ("%s: TCP-ACK Service Ping", __func__);
