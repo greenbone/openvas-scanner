@@ -11,6 +11,8 @@
 #include <ifaddrs.h>             /* getifaddrs() */
 #include <net/ethernet.h>        /* struct ether_addr ether_hdr */
 #include <net/if.h>              /* IFF_LOOPBACK, if_nametoindex() */
+#include <net/if_arp.h>
+// #include <net/if_packet.h>
 #include <netinet/icmp6.h>
 #include <netinet/ip.h>
 #include <netinet/ip6.h>
@@ -395,17 +397,6 @@ got_packet (__attribute__ ((unused)) u_char *args,
 {
   g_message ("%s: sniffed some packet", __func__);
 
-  // gchar addr_str1[INET_ADDRSTRLEN];
-  // struct sniff_ethernet *ether = (struct sniff_ethernet *) (packet + 2);
-  // inet_ntop (AF_INET, (const char *) ether->ether_dhost, addr_str1,
-  //            INET_ADDRSTRLEN);
-  // g_message ("%s: IP version = 4, addr: %s", __func__, addr_str1);
-  // inet_ntop (AF_INET, (const char *) ether->ether_shost, addr_str1,
-  //            INET_ADDRSTRLEN);
-  // g_message ("%s: IP version = 4, addr: %s", __func__, addr_str1);
-  // // printipv4(ether->ether_dhost);
-  // // printipv4(ether->ether_shost);
-  // g_message ("%s: type:%x", __func__, (unsigned int) ether->ether_type);
   struct ip *ip = (struct ip *) (packet + 16); // why not 14(ethernet size)??
   unsigned int version = ip->ip_v;
   g_message ("IP version: %x", ip->ip_v);
@@ -439,6 +430,30 @@ got_packet (__attribute__ ((unused)) u_char *args,
       inet_ntop (AF_INET6, (const char *) &sniffed_addr, addr_str,
                  INET6_ADDRSTRLEN);
       g_message ("%s: IP version = 6, addr: %s", __func__, addr_str);
+
+      /* Do not put already found host on Queue and only put hosts on Queue we
+       * are seaching for. */
+      if (g_hash_table_add (alivehosts, g_strdup (addr_str))
+          && g_hash_table_contains (targethosts, addr_str) == TRUE)
+        {
+          g_message ("%s: Thread sniffed unique address to put on queue: %s",
+                     __func__, addr_str);
+          kb_item_push_str (main_kb, "alive_detection", addr_str);
+        }
+    }
+  /* TODO: check collision situations. maybe we get more then arp reply. */
+  /* probably arp reply */
+  else
+    {
+      /* TODO: at the moment offset of 6 is set but arp header has variable
+       * sized field. */
+      /* read rfc https://tools.ietf.org/html/rfc826 for exact length or how to
+       * get it */
+      struct arphdr *arp =
+        (struct arphdr *) (packet + 14 + 2 + 6 + sizeof (struct arphdr));
+      gchar addr_str[INET_ADDRSTRLEN];
+      inet_ntop (AF_INET, (const char *) arp, addr_str, INET_ADDRSTRLEN);
+      g_message ("%s: ARP, IP addr: %s", __func__, addr_str);
 
       /* Do not put already found host on Queue and only put hosts on Queue we
        * are seaching for. */
