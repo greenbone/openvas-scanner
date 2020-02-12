@@ -74,21 +74,6 @@ struct pseudohdr
   struct tcphdr tcpheader;
 };
 
-/**
- * @brief Alive tests.
- *
- * These numbers are used in the database, so if the number associated with
- * any symbol changes then a migrator must be added to update existing data.
- */
-typedef enum
-{
-  ALIVE_TEST_TCP_ACK_SERVICE = 1,
-  ALIVE_TEST_ICMP = 2,
-  ALIVE_TEST_ARP = 4,
-  ALIVE_TEST_CONSIDER_ALIVE = 8,
-  ALIVE_TEST_TCP_SYN_SERVICE = 16
-} alive_test_t;
-
 /* global phandle for alive detection */
 /* TODO: use static kb_t. connect to it on start and link_reset on finish */
 pcap_t *handle;
@@ -908,10 +893,8 @@ ping (void)
 
   handle = open_live (NULL, FILTER_STR);
 
-  // alive_test_t alive_test = atoi (prefs_get("alive_test"));
-  alive_test_t alive_test = ALIVE_TEST_ICMP; /* for testing */
-  // alive_test_t alive_test = ALIVE_TEST_TCP_SYN_SERVICE; /* for testing */
-  // alive_test_t alive_test = ALIVE_TEST_TCP_ACK_SERVICE; /* for testing */
+  /* get ALIVE_TEST enum */
+  alive_test_t alive_test = atoi (prefs_get ("ALIVE_TEST"));
   if (alive_test
       == (ALIVE_TEST_TCP_ACK_SERVICE | ALIVE_TEST_ICMP | ALIVE_TEST_ARP))
     g_message ("%s: ICMP, TCP-ACK Service & ARP Ping", __func__);
@@ -940,7 +923,7 @@ ping (void)
       pcap_breakloop (handle);
       g_message ("%s: break_loop", __func__);
 
-      /* join thread*/
+      /* join thread */
       if (pthread_join (tid, NULL) != 0)
         g_warning ("%s: got error from pthread_join", __func__);
       g_message ("%s: join thread", __func__);
@@ -1007,7 +990,6 @@ ping (void)
       close (icmp_ping.icmpv4soc);
       close (icmp_ping.icmpv6soc);
       g_message ("%s: close icmp_ping sockets ", __func__);
-
     }
   else if (alive_test == (ALIVE_TEST_CONSIDER_ALIVE))
     g_message ("%s: Consider Alive", __func__);

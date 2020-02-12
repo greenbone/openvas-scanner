@@ -1043,7 +1043,7 @@ attack_network (struct scan_globals *globals, kb_t *network_kb)
   kb_t host_kb;
   GSList *unresolved;
 
-  int test_alive_hosts_only = prefs_get_bool ("test_alive_hosts_only");
+  gboolean test_alive_hosts_only = prefs_get_bool ("test_alive_hosts_only");
   gvm_hosts_t *alive_hosts_list = NULL;
 
   gettimeofday (&then, NULL);
