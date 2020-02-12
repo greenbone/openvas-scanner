@@ -40,10 +40,16 @@ enum alive_detection
 /* TODO porbably not all needed*/
 struct sockets
 {
-  int tcpv4soc;
-  int tcpv6soc;
   int icmpv4soc;
   int icmpv6soc;
+};
+
+/* data for tcp_ping */
+struct tcp_ping
+{
+  int tcpv4soc;     /* socket */
+  int tcpv6soc;     /* socket */
+  uint8_t tcp_flag; /* TH_SYN or TH_ACK from <netinet/tcp.h> */
 };
 
 struct v6pseudohdr
@@ -687,23 +693,24 @@ send_icmp (__attribute__ ((unused)) gpointer key, gpointer value,
   struct in_addr dst4;
   struct in_addr *dst4_p = &dst4;
 
-  if (gvm_host_get_addr6((gvm_host_t *)value, dst6_p) < 0) 
-    g_message("could not get addr6 from gvm_host_t");
+  if (gvm_host_get_addr6 ((gvm_host_t *) value, dst6_p) < 0)
+    g_message ("could not get addr6 from gvm_host_t");
   if (dst6_p == NULL)
-    g_message("dst6_p == NULL");
+    g_message ("dst6_p == NULL");
   if (IN6_IS_ADDR_V4MAPPED (dst6_p) != 1)
     {
-      g_message("got ipv6 address to handle");
+      g_message ("got ipv6 address to handle");
       send_icmp_v6 (sockets.icmpv6soc, dst6_p);
     }
-  else {
-    dst4.s_addr = dst6_p->s6_addr32[3];
-    send_icmp_v4(sockets.icmpv4soc, dst4_p);
-  }
+  else
+    {
+      dst4.s_addr = dst6_p->s6_addr32[3];
+      send_icmp_v4 (sockets.icmpv4soc, dst4_p);
+    }
 }
 
 static void
-send_tcp_syn_v6 (int soc, struct in6_addr dst)
+send_tcp_v6 (int soc, struct in6_addr *dst_p, uint8_t tcp_flag)
 {
   g_message ("%s:ipv6", __func__);
   struct sockaddr_in6 soca;
@@ -719,8 +726,8 @@ send_tcp_syn_v6 (int soc, struct in6_addr dst)
                  25,  111, 1028, 9100,  1029, 79,  497, 548, 5000, 1917,
                  53,  161, 9001, 65535, 443,  113, 993, 8080};
 
-  if (islocalhost_v6 (&dst) > 0)
-    src = dst;
+  if (islocalhost_v6 (dst_p) > 0)
+    src = *dst_p;
   else
     set_src_addr_v6 (&src);
 
@@ -735,9 +742,9 @@ send_tcp_syn_v6 (int soc, struct in6_addr dst)
       ip->ip6_hops = 255; // max value
 
       printipv6 (&src);
-      printipv6 (&dst);
+      printipv6 (dst_p);
       ip->ip6_src = src;
-      ip->ip6_dst = dst;
+      ip->ip6_dst = *dst_p;
 
       /* TCP */
       tcp->th_sport = htons (FILTER_PORT);
@@ -746,7 +753,7 @@ send_tcp_syn_v6 (int soc, struct in6_addr dst)
       tcp->th_ack = htonl (0);
       tcp->th_x2 = 0;
       tcp->th_off = 20 / 4; // TCP_HDRLEN / 4 (size of tcphdr in 32 bit words)
-      tcp->th_flags = TH_SYN;
+      tcp->th_flags = tcp_flag; // TH_SYN or TH_ACK
       tcp->th_win = htons (65535);
       tcp->th_urp = htons (0);
       tcp->th_sum = 0;
@@ -769,7 +776,7 @@ send_tcp_syn_v6 (int soc, struct in6_addr dst)
 
       bzero (&soca, sizeof (soca));
       soca.sin6_family = AF_INET6;
-      soca.sin6_addr = dst;
+      soca.sin6_addr = ip->ip6_dst;
       /*  TCP_HDRLEN(20) IP6_HDRLEN(40) */
       if (sendto (soc, (const void *) ip, 40 + 20, 0, (struct sockaddr *) &soca,
                   sizeof (struct sockaddr_in6))
@@ -779,43 +786,24 @@ send_tcp_syn_v6 (int soc, struct in6_addr dst)
 }
 
 void
-send_tcp_syn (__attribute__ ((unused)) gpointer key, gpointer value,
-              gpointer user_data)
+send_tcp_v4 (int soc, struct in_addr *dst_p, uint8_t tcp_flag)
 {
-  struct sockets sockets = *((struct sockets *) user_data);
-  int soc = sockets.tcpv4soc;
-
   struct sockaddr_in soca;
 
   u_char packet[sizeof (struct ip) + sizeof (struct tcphdr)];
   struct ip *ip = (struct ip *) packet;
   struct tcphdr *tcp = (struct tcphdr *) (packet + sizeof (struct ip));
 
-  struct in_addr inaddr; /* ip dst */
-  struct in_addr src;    /* ip src */
-
-  struct in6_addr dst_p;
-  struct in6_addr *dst = &dst_p;
+  struct in_addr src; /* ip src */
 
   int port = 0;
   int ports[] = {139, 135, 445,  80,    22,   515, 23,  21,  6000, 1025,
                  25,  111, 1028, 9100,  1029, 79,  497, 548, 5000, 1917,
                  53,  161, 9001, 65535, 443,  113, 993, 8080};
 
-  /* get dst address */
-  if (gvm_host_get_addr6 ((gvm_host_t *) value, dst) < 0)
-    g_message ("%s: Some error while gvm_host_get_addr6", __func__);
-  if (dst == NULL || (IN6_IS_ADDR_V4MAPPED (dst) != 1))
-    {
-      g_debug ("%s: is ipv6 addr", __func__);
-      send_tcp_syn_v6 (sockets.tcpv6soc, *dst);
-      return;
-    }
-  inaddr.s_addr = dst->s6_addr32[3];
-
   /* get src address */
-  if (islocalhost (&inaddr) > 0)
-    src.s_addr = dst->s6_addr32[3];
+  if (islocalhost (dst_p) > 0)
+    src.s_addr = dst_p->s_addr;
   else
     set_src_addr (&src);
 
@@ -833,13 +821,13 @@ send_tcp_syn (__attribute__ ((unused)) gpointer key, gpointer value,
       ip->ip_id = rand ();
       ip->ip_ttl = 0x40;
       ip->ip_src = src;
-      ip->ip_dst = inaddr;
+      ip->ip_dst = *dst_p;
       ip->ip_sum = 0;
       ip->ip_sum = np_in_cksum ((u_short *) ip, 20);
 
       /* TCP */
       tcp->th_sport = htons (FILTER_PORT);
-      tcp->th_flags = TH_SYN;
+      tcp->th_flags = tcp_flag; // TH_SYN TH_ACK;
       tcp->th_dport = port ? htons (port) : htons (ports[i]);
       tcp->th_seq = rand ();
       tcp->th_ack = 0;
@@ -882,20 +870,49 @@ send_tcp_syn (__attribute__ ((unused)) gpointer key, gpointer value,
     }
 }
 
+/* check if ipv6 or ipv4, get correct socket and start ping function */
+static void
+send_tcp (__attribute__ ((unused)) gpointer key, gpointer value,
+          gpointer user_data)
+{
+  g_message ("%s: try to send", __func__);
+
+  struct tcp_ping tcp_ping = *((struct tcp_ping *) user_data);
+
+  struct in6_addr dst6;
+  struct in6_addr *dst6_p = &dst6;
+  struct in_addr dst4;
+  struct in_addr *dst4_p = &dst4;
+
+  if (gvm_host_get_addr6 ((gvm_host_t *) value, dst6_p) < 0)
+    g_message ("could not get addr6 from gvm_host_t");
+  if (dst6_p == NULL)
+    g_message ("dst6_p == NULL");
+  if (IN6_IS_ADDR_V4MAPPED (dst6_p) != 1)
+    {
+      g_message ("got ipv6 address to handle");
+      send_tcp_v6 (tcp_ping.tcpv6soc, dst6_p, tcp_ping.tcp_flag);
+    }
+  else
+    {
+      dst4.s_addr = dst6_p->s6_addr32[3];
+      printipv4 (dst4_p);
+      send_tcp_v4 (tcp_ping.tcpv4soc, dst4_p, tcp_ping.tcp_flag);
+    }
+}
+
 static int
 ping (void)
 {
   pthread_t tid; /* thread id */
 
   handle = open_live (NULL, FILTER_STR);
-  struct sockets sockets = {.tcpv4soc = get_tcpv4soc (),
-                            .icmpv6soc = get_icmpv6soc (),
-                            .icmpv4soc = get_icmpv4soc (),
-                            .tcpv6soc = get_tcpv6soc ()};
-
+  struct sockets sockets = {.icmpv6soc = get_icmpv6soc (),
+                            .icmpv4soc = get_icmpv4soc ()};
   // alive_test_t alive_test = atoi (prefs_get("alive_test"));
-  alive_test_t alive_test = ALIVE_TEST_ICMP;               /* for testing */
+  alive_test_t alive_test = ALIVE_TEST_ICMP; /* for testing */
   // alive_test_t alive_test = ALIVE_TEST_TCP_SYN_SERVICE; /* for testing */
+  // alive_test_t alive_test = ALIVE_TEST_TCP_ACK_SERVICE; /* for testing */
   if (alive_test
       == (ALIVE_TEST_TCP_ACK_SERVICE | ALIVE_TEST_ICMP | ALIVE_TEST_ARP))
     g_message ("%s: ICMP, TCP-ACK Service & ARP Ping", __func__);
@@ -908,14 +925,16 @@ ping (void)
   else if (alive_test == (ALIVE_TEST_ARP))
     g_message ("%s: ARP Ping", __func__);
   else if (alive_test == (ALIVE_TEST_TCP_ACK_SERVICE))
-    g_message ("%s: TCP-ACK Service Ping", __func__);
-  else if (alive_test == (ALIVE_TEST_TCP_SYN_SERVICE))
     {
-      g_message ("%s: TCP-SYN Service Ping", __func__);
+      g_message ("%s: TCP-ACK Service Ping", __func__);
+      struct tcp_ping tcp_ping = {.tcpv4soc = get_tcpv4soc (),
+                                  .tcpv6soc = get_tcpv6soc (),
+                                  .tcp_flag = TH_ACK};
+
       pthread_create (&tid, NULL, sniffer_thread, NULL);
       /* give sniffer thread time to start */
       sleep (2);
-      g_hash_table_foreach (targethosts, send_tcp_syn, &sockets);
+      g_hash_table_foreach (targethosts, send_tcp, &tcp_ping);
 
       /* wait for replies and break loop */
       sleep (3);
@@ -929,6 +948,36 @@ ping (void)
 
       /* exclude alivehosts form targethosts so we dont test them again */
       g_hash_table_foreach (alivehosts, exclude, targethosts);
+      close (tcp_ping.tcpv4soc);
+      close (tcp_ping.tcpv6soc);
+    }
+  else if (alive_test == (ALIVE_TEST_TCP_SYN_SERVICE))
+    {
+      g_message ("%s: TCP-SYN Service Ping", __func__);
+      struct tcp_ping tcp_ping = {.tcpv4soc = get_tcpv4soc (),
+                                  .tcpv6soc = get_tcpv6soc (),
+                                  .tcp_flag = TH_SYN};
+
+      pthread_create (&tid, NULL, sniffer_thread, NULL);
+      /* give sniffer thread time to start */
+      sleep (2);
+      g_hash_table_foreach (targethosts, send_tcp, &tcp_ping);
+
+      /* wait for replies and break loop */
+      sleep (3);
+      pcap_breakloop (handle);
+      g_message ("%s: break_loop", __func__);
+
+      /* join thread*/
+      if (pthread_join (tid, NULL) != 0)
+        g_warning ("%s: got error from pthread_join", __func__);
+      g_message ("%s: join thread", __func__);
+
+      /* exclude alivehosts form targethosts so we dont test them again */
+      g_hash_table_foreach (alivehosts, exclude, targethosts);
+
+      close (tcp_ping.tcpv4soc);
+      close (tcp_ping.tcpv6soc);
     }
   else if (alive_test == (ALIVE_TEST_ICMP))
     {
@@ -961,8 +1010,6 @@ ping (void)
     }
 
   /* close sockets */
-  close (sockets.tcpv4soc);
-  close (sockets.tcpv6soc);
   close (sockets.icmpv4soc);
   close (sockets.icmpv6soc);
   g_message ("%s: close sockets ", __func__);
