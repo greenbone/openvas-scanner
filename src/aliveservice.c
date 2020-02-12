@@ -65,6 +65,7 @@ struct arp_ping
   int arpv6soc; /* is icmpv6soc */
   uint8_t src_mac[6];
   uint8_t dst_mac[6];
+  int arpv6flag; /* for icmpv6 */
 };
 
 struct arp_hdr
@@ -722,7 +723,7 @@ get_source_mac_addr (gchar *interface, uint8_t *mac)
 }
 
 static void
-send_icmp_v6 (int soc, struct in6_addr *dst)
+send_icmp_v6 (int soc, struct in6_addr *dst, int type)
 {
   g_message ("%s: send imcpv6", __func__);
 
@@ -733,10 +734,10 @@ send_icmp_v6 (int soc, struct in6_addr *dst)
   struct icmp6_hdr *icmp6;
 
   icmp6 = (struct icmp6_hdr *) sendbuf;
-  icmp6->icmp6_type = ICMP6_ECHO_REQUEST;
+  icmp6->icmp6_type = type; /* ND_NEIGHBOR_SOLICIT or ICMP6_ECHO_REQUEST */
   icmp6->icmp6_code = 0;
-  icmp6->icmp6_id = 234; //
-  icmp6->icmp6_seq = 0;  //
+  icmp6->icmp6_id = 234;
+  icmp6->icmp6_seq = 0;
 
   memset ((icmp6 + 1), 0xa5, datalen);
   gettimeofday ((struct timeval *) (icmp6 + 1), NULL); // only for testing
@@ -804,7 +805,7 @@ send_icmp (__attribute__ ((unused)) gpointer key, gpointer value,
   if (IN6_IS_ADDR_V4MAPPED (dst6_p) != 1)
     {
       g_message ("got ipv6 address to handle");
-      send_icmp_v6 (icmp_ping.icmpv6soc, dst6_p);
+      send_icmp_v6 (icmp_ping.icmpv6soc, dst6_p, ICMP6_ECHO_REQUEST);
     }
   else
     {
@@ -1110,9 +1111,8 @@ send_arp (__attribute__ ((unused)) gpointer key, gpointer value,
   if (IN6_IS_ADDR_V4MAPPED (dst6_p) != 1)
     {
       g_message ("got ipv6 address to handle");
-      g_message ("Not implemented yet!");
-      // send_tcp_v
-      // (arp_ping.arpv6soc, dst6_p, arp_ping.tcp_flag);
+      printipv6 (dst6_p);
+      send_icmp_v6 (arp_ping.arpv6soc, dst6_p, ND_NEIGHBOR_SOLICIT);
     }
   else
     {
