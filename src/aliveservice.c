@@ -179,7 +179,7 @@ open_live (char *iface, char *filter)
 
   /* iface, snapshot length of handle, promiscuous mode, packet buffer timeout
    * (ms), errbuff */
-  ret = pcap_open_live (iface, 1500, 1, 0, errbuf);
+  ret = pcap_open_live (iface, 1500, 0, 0, errbuf);
   if (ret == NULL)
     {
       g_message ("%s", errbuf);
