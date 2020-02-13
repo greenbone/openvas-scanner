@@ -1,7 +1,8 @@
 #include "aliveservice.h"
 
-// #include "../misc/pcap_openvas.h" /* islocalhost() */
+// #include "../misc/pcap_openvas.h" /* islocalhost_v4() */
 // #include "../misc/bpf_share.h"
+#include "../misc/pcap.c" /* routethrough functions */
 
 #include <arpa/inet.h>
 #include <errno.h>
@@ -54,11 +55,13 @@ struct scanner
   /* flags */
   uint8_t tcp_flag; /* TH_SYN or TH_ACK from <netinet/tcp.h> */
   /* arp */
+  int ifaceindex;
   uint8_t src_mac[6];
   uint8_t dst_mac[6];
   /* source addresses */
-  in_addr_t sourcev4;
-  struct in6_addr sourcev6;
+  struct in_addr *sourcev4;
+  struct in6_addr *sourcev6;
+  struct in_addr *sourcearpv4;
   /* redis connection */
   kb_t main_kb;
   pcap_t *pcap_handle;
@@ -257,7 +260,7 @@ islocalhost_v6 (struct in6_addr *addr)
  * ipv6islocalhost()
  */
 int
-islocalhost (struct in_addr *addr)
+islocalhost_v4 (struct in_addr *addr)
 {
   int ret = 0;
   if (!addr)
@@ -377,34 +380,40 @@ get_host_from_queue (int timeout)
   return host;
 }
 
-/*
- * Checksum routine for Internet Protocol family headers (C Version)
- * From ping examples in W.Richard Stevens "UNIX NETWORK PROGRAMMING" book.
- * TODO:
- */
-static int np_in_cksum (p, n) u_short *p;
-int n;
+/**
+ * From W.Richard Stevens "UNIX NETWORK PROGRAMMING" book. libfree/in_cksum.c
+ * TODO: Section 8.7 of TCPv2 has more efficient implementation
+ **/
+static uint16_t
+in_cksum (uint16_t *addr, int len)
 {
-  register u_short answer;
-  register long sum = 0;
-  u_short odd_byte = 0;
+  int nleft = len;
+  uint32_t sum = 0;
+  uint16_t *w = addr;
+  uint16_t answer = 0;
 
-  while (n > 1)
+  /*
+   * Our algorithm is simple, using a 32 bit accumulator (sum), we add
+   * sequential 16 bit words to it, and at the end, fold back all the
+   * carry bits from the top 16 bits into the lower 16 bits.
+   */
+  while (nleft > 1)
     {
-      sum += *p++;
-      n -= 2;
+      sum += *w++;
+      nleft -= 2;
     }
 
   /* mop up an odd byte, if necessary */
-  if (n == 1)
+  if (nleft == 1)
     {
-      *(u_char *) (&odd_byte) = *(u_char *) p;
-      sum += odd_byte;
+      *(unsigned char *) (&answer) = *(unsigned char *) w;
+      sum += answer;
     }
 
+  /* add back carry outs from top 16 bits to low 16 bits */
   sum = (sum >> 16) + (sum & 0xffff); /* add hi 16 to low 16 */
   sum += (sum >> 16);                 /* add carry */
-  answer = (int) ~sum;                /* ones-complement, truncate */
+  answer = ~sum;                      /* truncate to 16 bits */
   return (answer);
 }
 
@@ -508,7 +517,7 @@ sniffer_thread2 (__attribute__ ((unused)) void *vargp)
   pthread_exit (0);
 }
 
-static void
+__attribute__ ((unused)) static void
 set_src_addr_v6 (struct in6_addr *src)
 {
   /* check if src addr already set. get host addr if not already set. */
@@ -551,7 +560,7 @@ set_src_addr_v6 (struct in6_addr *src)
            inet_ntop (AF_INET6, src, (char *) &buf, 400));
 }
 
-static void
+__attribute__ ((unused)) static void
 set_src_addr (struct in_addr *src)
 {
   /* check if src addr already set. get host addr if not already set. */
@@ -705,7 +714,7 @@ send_icmp_v4 (int soc, struct in_addr *dst)
 
   len = 8 + datalen;
   icmp->icmp_cksum = 0;
-  icmp->icmp_cksum = np_in_cksum ((u_short *) icmp, len);
+  icmp->icmp_cksum = in_cksum ((u_short *) icmp, len);
 
   bzero (&soca, sizeof (soca));
   soca.sin_family = AF_INET;
@@ -762,10 +771,13 @@ send_tcp_v6 (int soc, struct in6_addr *dst_p, uint8_t tcp_flag)
                  25,  111, 1028, 9100,  1029, 79,  497, 548, 5000, 1917,
                  53,  161, 9001, 65535, 443,  113, 993, 8080};
 
-  if (islocalhost_v6 (dst_p) > 0)
-    src = *dst_p;
-  else
-    set_src_addr_v6 (&src);
+  if (scanner.sourcev6 == NULL)
+    {
+      gchar *interface = v6_routethrough (dst_p, &src);
+      g_message ("%s: interface to use: %s", __func__, interface);
+      scanner.sourcev6 = g_memdup (&src, sizeof (struct in6_addr));
+      printipv6 (scanner.sourcev6);
+    }
 
   /* for ports in portrange send packets */
   for (long unsigned int i = 0; i < sizeof (ports) / sizeof (int); i++)
@@ -779,7 +791,7 @@ send_tcp_v6 (int soc, struct in6_addr *dst_p, uint8_t tcp_flag)
 
       printipv6 (&src);
       printipv6 (dst_p);
-      ip->ip6_src = src;
+      ip->ip6_src = *scanner.sourcev6;
       ip->ip6_dst = *dst_p;
 
       /* TCP */
@@ -806,8 +818,8 @@ send_tcp_v6 (int soc, struct in6_addr *dst_p, uint8_t tcp_flag)
         pseudoheader.length = htons (sizeof (struct tcphdr));
         bcopy ((char *) tcp, (char *) &pseudoheader.tcpheader,
                sizeof (struct tcphdr));
-        tcp->th_sum = np_in_cksum ((unsigned short *) &pseudoheader,
-                                   38 + sizeof (struct tcphdr));
+        tcp->th_sum = in_cksum ((unsigned short *) &pseudoheader,
+                                38 + sizeof (struct tcphdr));
       }
 
       bzero (&soca, sizeof (soca));
@@ -838,10 +850,13 @@ send_tcp_v4 (int soc, struct in_addr *dst_p, uint8_t tcp_flag)
                  53,  161, 9001, 65535, 443,  113, 993, 8080};
 
   /* get src address */
-  if (islocalhost (dst_p) > 0)
-    src.s_addr = dst_p->s_addr;
-  else
-    set_src_addr (&src);
+  if (scanner.sourcev4 == NULL) // scanner.sourcev4 == NULL
+    {
+      gchar *interface = routethrough (dst_p, &src);
+      scanner.sourcev4 = g_memdup (&src, sizeof (struct in_addr));
+      g_message ("%s: interface to use: %s", __func__, interface);
+      printipv4 (scanner.sourcev4);
+    }
 
   /* for ports in portrange send packets */
   for (long unsigned int i = 0; i < sizeof (ports) / sizeof (int); i++)
@@ -856,10 +871,10 @@ send_tcp_v4 (int soc, struct in_addr *dst_p, uint8_t tcp_flag)
       ip->ip_p = IPPROTO_TCP;
       ip->ip_id = rand ();
       ip->ip_ttl = 0x40;
-      ip->ip_src = src;
+      ip->ip_src = *scanner.sourcev4;
       ip->ip_dst = *dst_p;
       ip->ip_sum = 0;
-      ip->ip_sum = np_in_cksum ((u_short *) ip, 20);
+      ip->ip_sum = in_cksum ((u_short *) ip, 20);
 
       /* TCP */
       tcp->th_sport = htons (FILTER_PORT);
@@ -892,9 +907,12 @@ send_tcp_v4 (int soc, struct in_addr *dst_p, uint8_t tcp_flag)
                (char *) &pseudoheader.tcpheader, // bcopy is deprecated. use
                                                  // memcpy(3) or memmove(3) ?
                sizeof (struct tcphdr));
-        tcp->th_sum = np_in_cksum ((unsigned short *) &pseudoheader,
-                                   12 + sizeof (struct tcphdr));
+        tcp->th_sum = in_cksum ((unsigned short *) &pseudoheader,
+                                12 + sizeof (struct tcphdr));
       }
+
+      printipv4 (&src);
+      printipv4 (dst_p);
 
       bzero (&soca, sizeof (soca));
       soca.sin_family = AF_INET;
@@ -947,21 +965,40 @@ send_arp_v4 (__attribute__ ((unused)) int soc, struct in_addr *dst_p,
   int frame_length;
   uint8_t *ether_frame;
 
-  /* get src address */
-  if (islocalhost (dst_p) > 0)
-    src.s_addr = dst_p->s_addr;
-  else
-    set_src_addr (&src);
-
-  /* sockaddr_ll */
-  /* TODO: get index of interface a other way */
   memset (&soca, 0, sizeof (soca));
-  // soca.sll_ifindex = 1;
-  if ((soca.sll_ifindex = if_nametoindex ("enp0s3")) == 0)
+
+  /* set up first time data */
+  if (scanner.sourcearpv4 == NULL)
     {
-      perror ("if_nametoindex() failed to obtain interface index ");
-      exit (EXIT_FAILURE);
+      /* src address */
+      gchar *interface = routethrough (dst_p, &src);
+      scanner.sourcearpv4 = g_memdup (&src, sizeof (struct in_addr));
+      g_message ("%s: interface to use: %s", __func__, interface);
+      printipv4 (scanner.sourcearpv4);
+      printipv4 (dst_p);
+
+      /* interface index */
+      if ((scanner.ifaceindex = if_nametoindex (interface)) == 0)
+        {
+          perror ("if_nametoindex() failed to obtain interface index ");
+          exit (EXIT_FAILURE);
+        }
+
+      /* mac addresses */
+      bzero (&scanner.src_mac, 6 * sizeof (uint8_t));
+      /* dst mac */
+      memset (scanner.dst_mac, 0xff, 6 * sizeof (uint8_t));
+      /* src mac */
+      get_source_mac_addr (interface, (unsigned char *) &scanner.src_mac);
+      g_message ("%02x:%02x:%02x:%02x:%02x:%02x", scanner.src_mac[0],
+                 scanner.src_mac[1], scanner.src_mac[2], scanner.src_mac[3],
+                 scanner.src_mac[4], scanner.src_mac[5]);
+      g_message ("%02x:%02x:%02x:%02x:%02x:%02x", scanner.dst_mac[0],
+                 scanner.dst_mac[1], scanner.dst_mac[2], scanner.dst_mac[3],
+                 scanner.dst_mac[4], scanner.dst_mac[5]);
     }
+  soca.sll_ifindex = scanner.ifaceindex;
+
   printf ("Index for interface  is %i\n", soca.sll_ifindex);
   soca.sll_family = AF_PACKET;
   memcpy (soca.sll_addr, src_mac, 6 * sizeof (uint8_t));
@@ -969,7 +1006,7 @@ send_arp_v4 (__attribute__ ((unused)) int soc, struct in_addr *dst_p,
 
   /* IP addresses */
   memcpy (&arphdr.target_ip, dst_p, 4 * sizeof (uint8_t));
-  memcpy (&arphdr.sender_ip, &src, 4 * sizeof (uint8_t));
+  memcpy (&arphdr.sender_ip, scanner.sourcearpv4, 4 * sizeof (uint8_t));
 
   // Hardware type (16 bits): 1 for ethernet
   arphdr.htype = htons (1);
@@ -1078,16 +1115,6 @@ scan (void)
   else if (alive_test == (ALIVE_TEST_ARP))
     {
       g_message ("%s: ARP Ping", __func__);
-      bzero (&scanner.src_mac, 6 * sizeof (uint8_t));
-      memset (scanner.dst_mac, 0xff, 6 * sizeof (uint8_t));
-
-      get_source_mac_addr ("enp0s3", (unsigned char *) &scanner.src_mac);
-      g_message ("%02x:%02x:%02x:%02x:%02x:%02x", scanner.src_mac[0],
-                 scanner.src_mac[1], scanner.src_mac[2], scanner.src_mac[3],
-                 scanner.src_mac[4], scanner.src_mac[5]);
-      g_message ("%02x:%02x:%02x:%02x:%02x:%02x", scanner.dst_mac[0],
-                 scanner.dst_mac[1], scanner.dst_mac[2], scanner.dst_mac[3],
-                 scanner.dst_mac[4], scanner.dst_mac[5]);
 
       g_hash_table_foreach (hosts_data.targethosts, send_arp, NULL);
     }
@@ -1237,24 +1264,6 @@ get_socket (enum socket_type socket_type)
   return soc;
 }
 
-/* dummy function */
-in_addr_t
-get_ipv4_source_addr (void)
-{
-  in_addr_t ret;
-  inet_pton (AF_INET, "192.168.10.130", &ret);
-  return ret;
-}
-
-/* dummy function */
-struct in6_addr
-get_ipv6_source_addr (void)
-{
-  struct in6_addr ret;
-  inet_pton (AF_INET6, "192.168.10.130", &ret);
-  return ret;
-}
-
 static int
 alive_detection_init (gvm_hosts_t *hosts)
 {
@@ -1269,8 +1278,9 @@ alive_detection_init (gvm_hosts_t *hosts)
   scanner.arpv4soc = get_socket (ARPV4);
   scanner.arpv6soc = get_socket (ARPV6);
   /* sources */
-  scanner.sourcev4 = get_ipv4_source_addr ();
-  scanner.sourcev6 = get_ipv6_source_addr ();
+  scanner.sourcev4 = NULL;
+  scanner.sourcev6 = NULL;
+  scanner.sourcearpv4 = NULL;
   /* kb_t redis connection */
   int scandb_id = atoi (prefs_get ("ov_maindbid"));
   scanner.main_kb = kb_direct_conn (prefs_get ("db_address"), scandb_id);
