@@ -25,15 +25,64 @@
 #include <sys/wait.h>
 #include <unistd.h>
 
+struct scanner scanner;
+struct hosts_data hosts_data;
+
 /* for using int value in #defined string */
 #define STR(X) #X
 #define ASSTR(X) STR (X)
 /* packets are sent to port 9910*/
 #define FILTER_PORT 9910
+/* TODO:
+  works: icmp[icmptype] != icmp-echo and icmp[icmptype] != icmp-echoreply
+  filter syntax error??: icmp6[icmp6type] != icmp6-echo and icmp6[icmp6type] !=
+  icmp6-echoreply
+*/
 #define FILTER_STR                                             \
   "(ip6 or ip or arp) and (icmp6 or icmp or dst port " ASSTR ( \
     FILTER_PORT) " or arp[6:2]=2)"
 
+struct scanner
+{
+  /* sockets */
+  int tcpv4soc;
+  int tcpv6soc;
+  int icmpv4soc;
+  int icmpv6soc;
+  int arpv4soc;
+  int arpv6soc;
+  /* flags */
+  uint8_t tcp_flag; /* TH_SYN or TH_ACK from <netinet/tcp.h> */
+  /* arp */
+  uint8_t src_mac[6];
+  uint8_t dst_mac[6];
+  /* source addresses */
+  in_addr_t sourcev4;
+  struct in6_addr sourcev6;
+  /* redis connection */
+  kb_t main_kb;
+  pcap_t *pcap_handle;
+};
+
+/* */
+struct hosts_data
+{
+  GHashTable *alivehosts;  /* (str, ?) */
+  GHashTable *targethosts; /* (str, gvm_host_t) */
+};
+
+/* type of socket */
+enum socket_type
+{
+  TCPV4,
+  TCPV6,
+  ICMPV4,
+  ICMPV6,
+  ARPV4,
+  ARPV6,
+};
+
+/* scaner status codes */
 enum alive_detection
 {
   ALIVE_DETECTION_FINISHED,
@@ -41,31 +90,6 @@ enum alive_detection
   ALIVE_DETECTION_OK,
   ALIVE_DETECTION_INIT,
   ALIVE_DETECTION_ERROR
-};
-
-/* data for tcp_ping */
-struct tcp_ping
-{
-  int tcpv4soc;     /* socket */
-  int tcpv6soc;     /* socket */
-  uint8_t tcp_flag; /* TH_SYN or TH_ACK from <netinet/tcp.h> */
-};
-
-/* data for icmp_ping */
-struct icmp_ping
-{
-  int icmpv4soc; /* socket */
-  int icmpv6soc; /* socket */
-};
-
-/* data for arp_ping */
-struct arp_ping
-{
-  int arpv4soc;
-  int arpv6soc; /* is icmpv6soc */
-  uint8_t src_mac[6];
-  uint8_t dst_mac[6];
-  int arpv6flag; /* for icmpv6 */
 };
 
 struct arp_hdr
@@ -109,13 +133,6 @@ struct pseudohdr
   u_short length;
   struct tcphdr tcpheader;
 };
-
-/* global phandle for alive detection */
-/* TODO: use static kb_t. connect to it on start and link_reset on finish */
-pcap_t *handle;
-static kb_t main_kb;
-GHashTable *alivehosts;  /* (str, ?) */
-GHashTable *targethosts; /* (str, gvm_host_t) */
 
 void
 printipv6 (void *ipv6)
@@ -289,13 +306,13 @@ get_alive_host_str (int *flag)
   char *host = NULL;
   /* handle race condition. main_kb may not yet be initialized */
   /* TODO: find better solution  */
-  if (!main_kb)
+  if (!scanner.main_kb)
     {
       *flag = ALIVE_DETECTION_INIT;
       return NULL;
     }
 
-  host = kb_item_pop_str (main_kb, ("alive_detection"));
+  host = kb_item_pop_str (scanner.main_kb, ("alive_detection"));
   /* 3 if item is not found return NULL and set flag to ALIVE_DETECTION_SCANNING
    */
   if (host == NULL)
@@ -329,6 +346,7 @@ get_alive_host_str (int *flag)
 gvm_host_t *
 get_host_from_queue (int timeout)
 {
+  g_message ("%s: get new host from Queue", __func__);
   /* default timeout is indef. (until alive detection process is finished) */
   if (timeout <= 0)
     timeout = INT_MAX;
@@ -396,7 +414,7 @@ got_packet (__attribute__ ((unused)) u_char *args,
             __attribute__ ((unused)) const struct pcap_pkthdr *header,
             const u_char *packet)
 {
-  g_message ("%s: sniffed some packet", __func__);
+  g_message ("%s: sniffed some packet in packet2", __func__);
 
   struct ip *ip = (struct ip *) (packet + 16); // why not 14(ethernet size)??
   unsigned int version = ip->ip_v;
@@ -414,12 +432,12 @@ got_packet (__attribute__ ((unused)) u_char *args,
 
       /* Do not put already found host on Queue and only put hosts on Queue we
        * are seaching for. */
-      if (g_hash_table_add (alivehosts, g_strdup (addr_str))
-          && g_hash_table_contains (targethosts, addr_str) == TRUE)
+      if (g_hash_table_add (hosts_data.alivehosts, g_strdup (addr_str))
+          && g_hash_table_contains (hosts_data.targethosts, addr_str) == TRUE)
         {
           g_message ("%s: Thread sniffed unique address to put on queue: %s",
                      __func__, addr_str);
-          kb_item_push_str (main_kb, "alive_detection", addr_str);
+          kb_item_push_str (scanner.main_kb, "alive_detection", addr_str);
         }
     }
   else if (version == 6)
@@ -434,12 +452,12 @@ got_packet (__attribute__ ((unused)) u_char *args,
 
       /* Do not put already found host on Queue and only put hosts on Queue we
        * are seaching for. */
-      if (g_hash_table_add (alivehosts, g_strdup (addr_str))
-          && g_hash_table_contains (targethosts, addr_str) == TRUE)
+      if (g_hash_table_add (hosts_data.alivehosts, g_strdup (addr_str))
+          && g_hash_table_contains (hosts_data.targethosts, addr_str) == TRUE)
         {
           g_message ("%s: Thread sniffed unique address to put on queue: %s",
                      __func__, addr_str);
-          kb_item_push_str (main_kb, "alive_detection", addr_str);
+          kb_item_push_str (scanner.main_kb, "alive_detection", addr_str);
         }
     }
   /* TODO: check collision situations. maybe we get more then arp reply. */
@@ -448,7 +466,8 @@ got_packet (__attribute__ ((unused)) u_char *args,
     {
       /* TODO: at the moment offset of 6 is set but arp header has variable
        * sized field. */
-      /* read rfc https://tools.ietf.org/html/rfc826 for exact length or how to
+      /* read rfc https://tools.ietf.org/html/rfc826 for exact length or how
+      to
        * get it */
       struct arphdr *arp =
         (struct arphdr *) (packet + 14 + 2 + 6 + sizeof (struct arphdr));
@@ -456,27 +475,30 @@ got_packet (__attribute__ ((unused)) u_char *args,
       inet_ntop (AF_INET, (const char *) arp, addr_str, INET_ADDRSTRLEN);
       g_message ("%s: ARP, IP addr: %s", __func__, addr_str);
 
-      /* Do not put already found host on Queue and only put hosts on Queue we
+      /* Do not put already found host on Queue and only put hosts on Queue
+      we
        * are seaching for. */
-      if (g_hash_table_add (alivehosts, g_strdup (addr_str))
-          && g_hash_table_contains (targethosts, addr_str) == TRUE)
+      if (g_hash_table_add (hosts_data.alivehosts, g_strdup (addr_str))
+          && g_hash_table_contains (hosts_data.targethosts, addr_str) == TRUE)
         {
           g_message ("%s: Thread sniffed unique address to put on queue: %s",
                      __func__, addr_str);
-          kb_item_push_str (main_kb, "alive_detection", addr_str);
+          kb_item_push_str (scanner.main_kb, "alive_detection", addr_str);
         }
     }
 }
 
 static void *
-sniffer_thread (__attribute__ ((unused)) void *vargp)
+sniffer_thread2 (__attribute__ ((unused)) void *vargp)
 {
   int ret;
   g_message ("%s: start sniffing", __func__);
 
   /* reads packets until error or pcap_breakloop() */
-  if ((ret = pcap_loop (handle, -1, got_packet, NULL)) == PCAP_ERROR)
-    g_warning ("%s: pcap_loop error %s", __func__, pcap_geterr (handle));
+  if ((ret = pcap_loop (scanner.pcap_handle, -1, got_packet, NULL))
+      == PCAP_ERROR)
+    g_warning ("%s: pcap_loop error %s", __func__,
+               pcap_geterr (scanner.pcap_handle));
   else if (ret == 0)
     g_warning ("%s: count of packets is exhausted", __func__);
   else if (ret == PCAP_ERROR_BREAK)
@@ -565,96 +587,6 @@ set_src_addr (struct in_addr *src)
     }
 }
 
-static int
-get_arpv4soc (void)
-{
-  int soc;
-  soc = socket (PF_PACKET, SOCK_RAW, htons (ETH_P_ALL));
-  if (soc < 0)
-    {
-      g_critical ("%s: failed to set arpv4soc for alive detection: %s",
-                  __func__, strerror (errno));
-      return -1;
-    }
-  return soc;
-}
-
-static int
-get_icmpv4soc (void)
-{
-  int soc;
-  soc = socket (AF_INET, SOCK_RAW, IPPROTO_ICMP);
-  if (soc < 0)
-    {
-      g_critical ("%s: failed to set ipv6socket for alive detection: %s",
-                  __func__, strerror (errno));
-      return -1;
-    }
-  return soc;
-}
-
-static int
-get_tcpv4soc (void)
-{
-  int soc;
-  int opt = 1;
-  soc = socket (AF_INET, SOCK_RAW, IPPROTO_RAW);
-  if (soc < 0)
-    {
-      g_critical ("%s: failed to open socker for alive detection: %s", __func__,
-                  strerror (errno));
-      return -1;
-    }
-  if (setsockopt (soc, IPPROTO_IP, IP_HDRINCL, (char *) &opt, sizeof (opt)) < 0)
-    {
-      g_critical (
-        "%s: failed to set socket options on alive detection socket: %s",
-        __func__, strerror (errno));
-      return -1;
-    }
-  return soc;
-}
-
-static int
-get_icmpv6soc (void)
-{
-  int soc;
-  soc = socket (AF_INET6, SOCK_RAW, IPPROTO_ICMPV6);
-  if (soc < 0)
-    {
-      g_critical ("%s: failed to set ipv6socket for alive detection: %s",
-                  __func__, strerror (errno));
-      return -1;
-    }
-  return soc;
-}
-
-static int
-get_tcpv6soc (void)
-{
-  int soc;
-  soc = socket (AF_INET6, SOCK_RAW, IPPROTO_RAW);
-  if (soc < 0)
-    {
-      g_critical ("%s: failed to set ipv6socket for alive detection: %s",
-                  __func__, strerror (errno));
-      return -1;
-    }
-
-  int opt_on = 1;
-  if (setsockopt (soc, IPPROTO_IPV6, IP_HDRINCL,
-                  (char *) &opt_on, // IPV6_HDRINCL
-                  sizeof (opt_on))
-      < 0)
-    {
-      g_critical (
-        "%s: failed to set socket options on alive detection socket: %s",
-        __func__, strerror (errno));
-      return -1;
-    }
-  return soc;
-}
-
 /**
  * @brief Delete alive hosts from targethosts
  *
@@ -680,7 +612,7 @@ print_host_str (gpointer key, __attribute__ ((unused)) gpointer value,
  * @brief get the source mac address of the given interface
  * or of the first non lo interface
  */
-__attribute__ ((unused)) static int
+static int
 get_source_mac_addr (gchar *interface, uint8_t *mac)
 {
   struct ifaddrs *ifaddr = NULL;
@@ -789,10 +721,8 @@ send_icmp_v4 (int soc, struct in_addr *dst)
 /* check if ipv6 or ipv4, get correct socket and start ping function */
 static void
 send_icmp (__attribute__ ((unused)) gpointer key, gpointer value,
-           gpointer user_data)
+           __attribute__ ((unused)) gpointer user_data)
 {
-  struct icmp_ping icmp_ping = *((struct icmp_ping *) user_data);
-
   struct in6_addr dst6;
   struct in6_addr *dst6_p = &dst6;
   struct in_addr dst4;
@@ -805,12 +735,13 @@ send_icmp (__attribute__ ((unused)) gpointer key, gpointer value,
   if (IN6_IS_ADDR_V4MAPPED (dst6_p) != 1)
     {
       g_message ("got ipv6 address to handle");
-      send_icmp_v6 (icmp_ping.icmpv6soc, dst6_p, ICMP6_ECHO_REQUEST);
+      send_icmp_v6 (scanner.icmpv6soc, dst6_p, ICMP6_ECHO_REQUEST);
     }
   else
     {
+      g_message ("got ipv4 address to handle");
       dst4.s_addr = dst6_p->s6_addr32[3];
-      send_icmp_v4 (icmp_ping.icmpv4soc, dst4_p);
+      send_icmp_v4 (scanner.icmpv4soc, dst4_p);
     }
 }
 
@@ -978,11 +909,9 @@ send_tcp_v4 (int soc, struct in_addr *dst_p, uint8_t tcp_flag)
 /* check if ipv6 or ipv4, get correct socket and start ping function */
 static void
 send_tcp (__attribute__ ((unused)) gpointer key, gpointer value,
-          gpointer user_data)
+          __attribute__ ((unused)) gpointer user_data)
 {
   g_message ("%s: try to send", __func__);
-
-  struct tcp_ping tcp_ping = *((struct tcp_ping *) user_data);
 
   struct in6_addr dst6;
   struct in6_addr *dst6_p = &dst6;
@@ -995,14 +924,15 @@ send_tcp (__attribute__ ((unused)) gpointer key, gpointer value,
     g_message ("dst6_p == NULL");
   if (IN6_IS_ADDR_V4MAPPED (dst6_p) != 1)
     {
-      g_message ("got ipv6 address to handle");
-      send_tcp_v6 (tcp_ping.tcpv6soc, dst6_p, tcp_ping.tcp_flag);
+      g_message ("%s: got ipv6 address to handle", __func__);
+      send_tcp_v6 (scanner.tcpv6soc, dst6_p, scanner.tcp_flag);
     }
   else
     {
+      g_message ("%s: got ipv4 address to handle", __func__);
       dst4.s_addr = dst6_p->s6_addr32[3];
-      printipv4 (dst4_p);
-      send_tcp_v4 (tcp_ping.tcpv4soc, dst4_p, tcp_ping.tcp_flag);
+      // printipv4 (dst4_p);
+      send_tcp_v4 (scanner.tcpv4soc, dst4_p, scanner.tcp_flag);
     }
 }
 
@@ -1093,11 +1023,9 @@ send_arp_v4 (__attribute__ ((unused)) int soc, struct in_addr *dst_p,
 /* check if ipv6 or ipv4, get correct socket and start ping function */
 static void
 send_arp (__attribute__ ((unused)) gpointer key, gpointer value,
-          gpointer user_data)
+          __attribute__ ((unused)) gpointer user_data)
 {
-  g_message ("%s: check what ip received", __func__);
-
-  struct arp_ping arp_ping = *((struct arp_ping *) user_data);
+  g_message ("%s: send_arp", __func__);
 
   struct in6_addr dst6;
   struct in6_addr *dst6_p = &dst6;
@@ -1112,24 +1040,30 @@ send_arp (__attribute__ ((unused)) gpointer key, gpointer value,
     {
       g_message ("got ipv6 address to handle");
       printipv6 (dst6_p);
-      send_icmp_v6 (arp_ping.arpv6soc, dst6_p, ND_NEIGHBOR_SOLICIT);
+      send_icmp_v6 (scanner.arpv6soc, dst6_p, ND_NEIGHBOR_SOLICIT);
     }
   else
     {
       dst4.s_addr = dst6_p->s6_addr32[3];
       printipv4 (dst4_p);
-      send_arp_v4 (arp_ping.arpv4soc, dst4_p, arp_ping.src_mac,
-                   arp_ping.dst_mac);
+      send_arp_v4 (scanner.arpv4soc, dst4_p, scanner.src_mac, scanner.dst_mac);
     }
 }
 
 static int
-ping (void)
+scan (void)
 {
+  g_message ("%s: ping start", __func__);
+
+  scanner.pcap_handle = open_live (NULL, FILTER_STR);
+
+  /* start sniffer thread and wait a bit for startup */
+  /* TODO: use mutex instead of sleep */
   pthread_t tid; /* thread id */
+  pthread_create (&tid, NULL, sniffer_thread2, NULL);
+  sleep (2);
 
-  handle = open_live (NULL, FILTER_STR);
-
+  g_message ("%s: get test method and start", __func__);
   /* get ALIVE_TEST enum */
   alive_test_t alive_test = atoi (prefs_get ("ALIVE_TEST"));
   if (alive_test
@@ -1144,131 +1078,242 @@ ping (void)
   else if (alive_test == (ALIVE_TEST_ARP))
     {
       g_message ("%s: ARP Ping", __func__);
-      pthread_create (&tid, NULL, sniffer_thread, NULL);
+      bzero (&scanner.src_mac, 6 * sizeof (uint8_t));
+      memset (scanner.dst_mac, 0xff, 6 * sizeof (uint8_t));
 
-      struct arp_ping arp_ping = {.arpv4soc = get_arpv4soc (),
-                                  .arpv6soc = get_icmpv6soc ()};
-      bzero (&arp_ping.src_mac, 6 * sizeof (uint8_t));
-      memset (arp_ping.dst_mac, 0xff, 6 * sizeof (uint8_t));
+      get_source_mac_addr ("enp0s3", (unsigned char *) &scanner.src_mac);
+      g_message ("%02x:%02x:%02x:%02x:%02x:%02x", scanner.src_mac[0],
+                 scanner.src_mac[1], scanner.src_mac[2], scanner.src_mac[3],
+                 scanner.src_mac[4], scanner.src_mac[5]);
+      g_message ("%02x:%02x:%02x:%02x:%02x:%02x", scanner.dst_mac[0],
+                 scanner.dst_mac[1], scanner.dst_mac[2], scanner.dst_mac[3],
+                 scanner.dst_mac[4], scanner.dst_mac[5]);
 
-      get_source_mac_addr ("enp0s3", (unsigned char *) &arp_ping.src_mac);
-      g_message ("%02x:%02x:%02x:%02x:%02x:%02x", arp_ping.src_mac[0],
-                 arp_ping.src_mac[1], arp_ping.src_mac[2], arp_ping.src_mac[3],
-                 arp_ping.src_mac[4], arp_ping.src_mac[5]);
-      g_message ("%02x:%02x:%02x:%02x:%02x:%02x", arp_ping.dst_mac[0],
-                 arp_ping.dst_mac[1], arp_ping.dst_mac[2], arp_ping.dst_mac[3],
-                 arp_ping.dst_mac[4], arp_ping.dst_mac[5]);
-      sleep (2);
-      g_hash_table_foreach (targethosts, send_arp, &arp_ping);
-      // 3. get source address
-      /* wait for replies and break loop */
-      sleep (3);
-      pcap_breakloop (handle);
-      g_message ("%s: break_loop", __func__);
-
-      /* join thread */
-      if (pthread_join (tid, NULL) != 0)
-        g_warning ("%s: got error from pthread_join", __func__);
-      g_message ("%s: join thread", __func__);
-
-      close (arp_ping.arpv4soc);
-      close (arp_ping.arpv6soc);
-      g_message ("%s: close tcp_ack_ping sockets ", __func__);
+      g_hash_table_foreach (hosts_data.targethosts, send_arp, NULL);
     }
   else if (alive_test == (ALIVE_TEST_TCP_ACK_SERVICE))
     {
+      scanner.tcp_flag = TH_ACK; // TH_SYN or TH_ACK
       g_message ("%s: TCP-ACK Service Ping", __func__);
-      struct tcp_ping tcp_ping = {.tcpv4soc = get_tcpv4soc (),
-                                  .tcpv6soc = get_tcpv6soc (),
-                                  .tcp_flag = TH_ACK};
-
-      pthread_create (&tid, NULL, sniffer_thread, NULL);
-      /* give sniffer thread time to start */
-      sleep (2);
-      g_hash_table_foreach (targethosts, send_tcp, &tcp_ping);
-
-      /* wait for replies and break loop */
-      sleep (3);
-      pcap_breakloop (handle);
-      g_message ("%s: break_loop", __func__);
-
-      /* join thread */
-      if (pthread_join (tid, NULL) != 0)
-        g_warning ("%s: got error from pthread_join", __func__);
-      g_message ("%s: join thread", __func__);
-
-      /* exclude alivehosts form targethosts so we dont test them again */
-      g_hash_table_foreach (alivehosts, exclude, targethosts);
-      close (tcp_ping.tcpv4soc);
-      close (tcp_ping.tcpv6soc);
-      g_message ("%s: close tcp_ack_ping sockets ", __func__);
+      g_hash_table_foreach (hosts_data.targethosts, send_tcp, NULL);
     }
   else if (alive_test == (ALIVE_TEST_TCP_SYN_SERVICE))
     {
       g_message ("%s: TCP-SYN Service Ping", __func__);
-      struct tcp_ping tcp_ping = {.tcpv4soc = get_tcpv4soc (),
-                                  .tcpv6soc = get_tcpv6soc (),
-                                  .tcp_flag = TH_SYN};
-
-      pthread_create (&tid, NULL, sniffer_thread, NULL);
-      /* give sniffer thread time to start */
-      sleep (2);
-      g_hash_table_foreach (targethosts, send_tcp, &tcp_ping);
-
-      /* wait for replies and break loop */
-      sleep (3);
-      pcap_breakloop (handle);
-      g_message ("%s: break_loop", __func__);
-
-      /* join thread*/
-      if (pthread_join (tid, NULL) != 0)
-        g_warning ("%s: got error from pthread_join", __func__);
-      g_message ("%s: join thread", __func__);
-
-      /* exclude alivehosts form targethosts so we dont test them again */
-      g_hash_table_foreach (alivehosts, exclude, targethosts);
-
-      close (tcp_ping.tcpv4soc);
-      close (tcp_ping.tcpv6soc);
-      g_message ("%s: close tcp_syn_ping sockets ", __func__);
+      scanner.tcp_flag = TH_SYN; // TH_SYN or TH_ACK
+      g_hash_table_foreach (hosts_data.targethosts, send_tcp, NULL);
     }
   else if (alive_test == (ALIVE_TEST_ICMP))
     {
       g_message ("%s: ICMP Ping", __func__);
-
-      struct icmp_ping icmp_ping = {.icmpv4soc = get_icmpv4soc (),
-                                    .icmpv6soc = get_icmpv6soc ()};
-
-      pthread_create (&tid, NULL, sniffer_thread, NULL);
-      sleep (2);
-      g_hash_table_foreach (targethosts, send_icmp, &icmp_ping);
-
-      /* wait for replies and break loop */
-      sleep (3);
-      pcap_breakloop (handle);
-      g_message ("%s: break_loop", __func__);
-
-      /* join thread*/
-      if (pthread_join (tid, NULL) != 0)
-        g_warning ("%s: got error from pthread_join", __func__);
-      g_message ("%s: join thread", __func__);
-
-      /* exclude alivehosts form targethosts so we dont test them again */
-      g_hash_table_foreach (alivehosts, exclude, targethosts);
-
-      close (icmp_ping.icmpv4soc);
-      close (icmp_ping.icmpv6soc);
-      g_message ("%s: close icmp_ping sockets ", __func__);
+      g_hash_table_foreach (hosts_data.targethosts, send_icmp, NULL);
     }
   else if (alive_test == (ALIVE_TEST_CONSIDER_ALIVE))
     g_message ("%s: Consider Alive", __func__);
 
+  g_message ("%s: pings sent", __func__);
+
+  // wait for last replies to be processed
+  sleep (3);
+  g_message ("%s: after sleep", __func__);
+
+  /* break sniffer loop */
+  /* TODO: research problems breaking loop form other thread*/
+  pcap_breakloop (scanner.pcap_handle);
+
+  /* join sniffer thread*/
+  if (pthread_join (tid, NULL) != 0)
+    g_warning ("%s: got error from pthread_join", __func__);
+  g_message ("%s: join thread", __func__);
+
   /* close handle */
-  if (handle != NULL)
+  if (scanner.pcap_handle != NULL)
     {
       g_message ("%s: close pcap handle", __func__);
-      pcap_close (handle);
+      pcap_close (scanner.pcap_handle);
     }
+
+  g_message ("%s: scan end", __func__);
+
+  return 0;
+}
+
+static int
+get_socket (enum socket_type socket_type)
+{
+  // socket()
+  int soc;
+  switch (socket_type)
+    {
+    case TCPV4:
+      g_message ("%s: TCPV4", __func__);
+      {
+        int opt = 1;
+        soc = socket (AF_INET, SOCK_RAW, IPPROTO_RAW);
+        if (soc < 0)
+          {
+            g_critical ("%s: failed to open socker for alive detection: %s",
+                        __func__, strerror (errno));
+            return -1;
+          }
+        if (setsockopt (soc, IPPROTO_IP, IP_HDRINCL, (char *) &opt,
+                        sizeof (opt))
+            < 0)
+          {
+            g_critical (
+              "%s: failed to set socket options on alive detection socket: %s",
+              __func__, strerror (errno));
+            return -1;
+          }
+      }
+      break;
+    case TCPV6:
+      {
+        g_message ("%s: TCPV6", __func__);
+        soc = socket (AF_INET6, SOCK_RAW, IPPROTO_RAW);
+        if (soc < 0)
+          {
+            g_critical ("%s: failed to set ipv6socket for alive detection: %s",
+                        __func__, strerror (errno));
+            return -1;
+          }
+
+        int opt_on = 1;
+        if (setsockopt (soc, IPPROTO_IPV6, IP_HDRINCL,
+                        (char *) &opt_on, // IPV6_HDRINCL
+                        sizeof (opt_on))
+            < 0)
+          {
+            g_critical (
+              "%s: failed to set socket options on alive detection socket: %s",
+              __func__, strerror (errno));
+            return -1;
+          }
+      }
+      break;
+    case ICMPV4:
+      g_message ("%s: ICMPV4", __func__);
+      {
+        soc = socket (AF_INET, SOCK_RAW, IPPROTO_ICMP);
+        if (soc < 0)
+          {
+            g_critical ("%s: failed to set ipv6socket for alive detection: %s",
+                        __func__, strerror (errno));
+            return -1;
+          }
+      }
+      break;
+    case ARPV6:
+    case ICMPV6:
+      g_message ("%s: ICMPV6", __func__);
+
+      {
+        soc = socket (AF_INET6, SOCK_RAW, IPPROTO_ICMPV6);
+        if (soc < 0)
+          {
+            g_critical ("%s: failed to set ipv6socket for alive detection: %s",
+                        __func__, strerror (errno));
+            return -1;
+          }
+      }
+      break;
+    case ARPV4:
+      g_message ("%s: ARPV4", __func__);
+      {
+        soc = socket (PF_PACKET, SOCK_RAW, htons (ETH_P_ALL));
+        if (soc < 0)
+          {
+            g_critical ("%s: failed to set arpv4soc for alive detection: %s",
+                        __func__, strerror (errno));
+            return -1;
+          }
+      }
+      break;
+    default:
+      g_message ("%s: default", __func__);
+      return -1;
+      break;
+    }
+  return soc;
+}
+
+/* dummy function */
+in_addr_t
+get_ipv4_source_addr (void)
+{
+  in_addr_t ret;
+  inet_pton (AF_INET, "192.168.10.130", &ret);
+  return ret;
+}
+
+/* dummy function */
+struct in6_addr
+get_ipv6_source_addr (void)
+{
+  struct in6_addr ret;
+  inet_pton (AF_INET6, "192.168.10.130", &ret);
+  return ret;
+}
+
+static int
+alive_detection_init (gvm_hosts_t *hosts)
+{
+  g_message ("%s: INIT start", __func__);
+
+  /* Scanner */
+  /* sockets */
+  scanner.tcpv4soc = get_socket (TCPV4);
+  scanner.tcpv6soc = get_socket (TCPV6);
+  scanner.icmpv4soc = get_socket (ICMPV4);
+  scanner.icmpv6soc = get_socket (ICMPV6);
+  scanner.arpv4soc = get_socket (ARPV4);
+  scanner.arpv6soc = get_socket (ARPV6);
+  /* sources */
+  scanner.sourcev4 = get_ipv4_source_addr ();
+  scanner.sourcev6 = get_ipv6_source_addr ();
+  /* kb_t redis connection */
+  int scandb_id = atoi (prefs_get ("ov_maindbid"));
+  scanner.main_kb = kb_direct_conn (prefs_get ("db_address"), scandb_id);
+  /* TODO: pcap handle */
+  // scanner.pcap_handle = open_live (NULL, FILTER_STR); //
+  scanner.pcap_handle = NULL; /* is set in ping function */
+
+  /* Results data */
+  /* hashtables */
+  hosts_data.alivehosts =
+    g_hash_table_new_full (g_str_hash, g_str_equal, g_free, NULL);
+  hosts_data.targethosts =
+    g_hash_table_new_full (g_str_hash, g_str_equal, g_free, NULL);
+  /* put all hosts we want to check in hashtable */
+  gvm_host_t *host;
+  for (host = gvm_hosts_next (hosts); host; host = gvm_hosts_next (hosts))
+    {
+      g_hash_table_insert (hosts_data.targethosts, gvm_host_value_str (host),
+                           host);
+    }
+  /* reset iter */
+  hosts->current = 0;
+
+  g_message ("%s: INIT fin", __func__);
+
+  return 0;
+}
+
+int
+alive_detection_free (void)
+{
+  close (scanner.tcpv4soc);
+  close (scanner.tcpv6soc);
+  close (scanner.icmpv4soc);
+  close (scanner.icmpv6soc);
+  close (scanner.arpv4soc);
+  close (scanner.arpv6soc);
+  /*pcap_close (scanner.pcap_handle); //pcap_handle is closed in ping/scan
+   * function for now */
+  kb_lnk_reset (scanner.main_kb);
+
+  g_hash_table_destroy (hosts_data.targethosts);
+  g_hash_table_destroy (hosts_data.alivehosts);
 
   return 0;
 }
@@ -1277,46 +1322,27 @@ ping (void)
  * @brief start the send_tcp_syn scan of all specified hosts in gvm_hosts_t
  * list. Finish signal is put on Queue if pinger returned.
  *
- * @in: gvm_hosts_t structure
+ * @in: gvm_hosts_t structure which is to be freed by caller
  */
 void *
 start_alive_detection (void *args)
 {
   gvm_hosts_t *hosts = (gvm_hosts_t *) args;
-  int scandb_id = atoi (prefs_get ("ov_maindbid"));
-  /* This kb_t is only used once every alive detection process */
-  main_kb = kb_direct_conn (prefs_get ("db_address"), scandb_id);
-
-  targethosts = g_hash_table_new_full (g_str_hash, g_str_equal, g_free, NULL);
-  alivehosts = g_hash_table_new_full (g_str_hash, g_str_equal, g_free, NULL);
-
-  /* put all hosts we want to check in hashtable */
-  gvm_host_t *host;
-  for (host = gvm_hosts_next (hosts); host; host = gvm_hosts_next (hosts))
-    {
-      g_hash_table_insert (targethosts, gvm_host_value_str (host), host);
-    }
-  /* reset iter */
-  hosts->current = 0;
+  alive_detection_init (hosts);
 
   g_message ("%s: alive detection process started", __func__);
   /* blocks until detection process is finished */
-  if (ping () < 0)
+  if (scan () < 0)
     g_warning ("%s: pinger returned some error code", __func__);
 
   /* put finish signal on Q if all packets were send and we waited long enough
    * for packets to arrive */
-  kb_item_push_str (main_kb, "alive_detection", "finish");
-  kb_lnk_reset (main_kb);
-
+  kb_item_push_str (scanner.main_kb, "alive_detection", "finish");
   g_message ("%s: alive detection process finished. finish signal put on Q.",
              __func__);
 
-  // g_message ("%s sleep.", __func__);
-  // sleep(50); // debugging process termination
-  // g_message ("%s: slept.", __func__);
-  g_hash_table_destroy (targethosts);
-  g_hash_table_destroy (alivehosts);
+  g_message ("%s: wait after finish signl", __func__);
+  alive_detection_free ();
 
   pthread_exit (0);
 }
