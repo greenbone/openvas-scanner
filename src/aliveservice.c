@@ -1321,6 +1321,10 @@ alive_detection_free (void)
   /*pcap_close (scanner.pcap_handle); //pcap_handle is closed in ping/scan
    * function for now */
   kb_lnk_reset (scanner.main_kb);
+  /* addresses */
+  g_free (scanner.sourcev4);
+  g_free (scanner.sourcev6);
+  g_free (scanner.sourcearpv4);
 
   g_hash_table_destroy (hosts_data.targethosts);
   g_hash_table_destroy (hosts_data.alivehosts);
