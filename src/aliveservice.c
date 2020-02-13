@@ -341,8 +341,8 @@ get_alive_host_str (int *flag)
 /**
  * @brief get new host from queue and put it into an gvm_host_t struct
  *
- * @in:  timeout for waiting for new alive host. If timout <= 0 we wait
- * 'indefinetly'(INT_MAX seconds)
+ * @in:  timeout for waiting for new alive host. If timout < 0 we wait
+ * indefinetly
  * @out: host structure from Queue
  *
  */
@@ -350,22 +350,19 @@ gvm_host_t *
 get_host_from_queue (int timeout)
 {
   g_message ("%s: get new host from Queue", __func__);
-  /* default timeout is indef. (until alive detection process is finished) */
-  if (timeout <= 0)
-    timeout = INT_MAX;
 
+  int count = 0;
   char *host_str = NULL;
   int alive_detection_flag = 0;
   gvm_host_t *host = NULL;
 
   g_message ("%s: get new host from Queue", __func__);
-  host_str = get_alive_host_str (
-    &alive_detection_flag); /* get host string from Queue or NULL*/
-
+  /* get host string from Queue or NULL*/
+  host_str = get_alive_host_str (&alive_detection_flag);
   if (host_str)
     host = gvm_host_from_str (host_str);
   while (!host && (alive_detection_flag != ALIVE_DETECTION_FINISHED)
-         && timeout--)
+         && timeout != count++)
     {
       sleep (1);
       host_str = get_alive_host_str (&alive_detection_flag);
