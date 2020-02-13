@@ -34,14 +34,9 @@ struct hosts_data hosts_data;
 #define ASSTR(X) STR (X)
 /* packets are sent to port 9910*/
 #define FILTER_PORT 9910
-/* TODO:
-  works: icmp[icmptype] != icmp-echo and icmp[icmptype] != icmp-echoreply
-  filter syntax error??: icmp6[icmp6type] != icmp6-echo and icmp6[icmp6type] !=
-  icmp6-echoreply
-*/
-#define FILTER_STR                                             \
-  "(ip6 or ip or arp) and (icmp6 or icmp or dst port " ASSTR ( \
-    FILTER_PORT) " or arp[6:2]=2)"
+#define FILTER_STR                                                           \
+  "(ip6 or ip or arp) and (ip6[40]=129 or icmp[icmptype] == icmp-echoreply " \
+  "or dst port " ASSTR (FILTER_PORT) " or arp[6:2]=2)"
 
 struct scanner
 {
@@ -136,6 +131,22 @@ struct pseudohdr
   u_short length;
   struct tcphdr tcpheader;
 };
+
+gchar *
+get_ipv6_str (void *ipv6)
+{
+  char *str = g_malloc0 (INET6_ADDRSTRLEN);
+  inet_ntop (AF_INET6, ipv6, str, INET6_ADDRSTRLEN);
+  return str;
+}
+
+gchar *
+get_ipv4_str (void *ipv4)
+{
+  char *str = g_malloc0 (INET_ADDRSTRLEN);
+  inet_ntop (AF_INET, ipv4, str, INET_ADDRSTRLEN);
+  return str;
+}
 
 void
 printipv6 (void *ipv6)
@@ -424,7 +435,6 @@ got_packet (__attribute__ ((unused)) u_char *args,
 
   struct ip *ip = (struct ip *) (packet + 16); // why not 14(ethernet size)??
   unsigned int version = ip->ip_v;
-  g_message ("IP version: %x", ip->ip_v);
 
   if (version == 4)
     {
@@ -434,7 +444,7 @@ got_packet (__attribute__ ((unused)) u_char *args,
       memcpy (&sniffed_addr.s_addr, packet + 26 + 2, 4);
       inet_ntop (AF_INET, (const char *) &sniffed_addr, addr_str,
                  INET_ADDRSTRLEN);
-      g_message ("%s: IP version = 4, addr: %s", __func__, addr_str);
+      // g_message ("%s: IP version = 4, addr: %s", __func__, addr_str);
 
       /* Do not put already found host on Queue and only put hosts on Queue we
        * are seaching for. */
@@ -454,7 +464,7 @@ got_packet (__attribute__ ((unused)) u_char *args,
       memcpy (&sniffed_addr.s6_addr, packet + 24, 16);
       inet_ntop (AF_INET6, (const char *) &sniffed_addr, addr_str,
                  INET6_ADDRSTRLEN);
-      g_message ("%s: IP version = 6, addr: %s", __func__, addr_str);
+      // g_message ("%s: IP version = 6, addr: %s", __func__, addr_str);
 
       /* Do not put already found host on Queue and only put hosts on Queue we
        * are seaching for. */
@@ -466,15 +476,16 @@ got_packet (__attribute__ ((unused)) u_char *args,
           kb_item_push_str (scanner.main_kb, "alive_detection", addr_str);
         }
     }
-  /* TODO: check collision situations. maybe we get more then arp reply. */
-  /* probably arp reply */
+  /* TODO: check collision situations.
+   * everything not ipv4/6 is regarded as arp.
+   * It may be possible to get other types then arp replies in which case the
+   * ip from inet_ntop should be bogus. */
   else
     {
       /* TODO: at the moment offset of 6 is set but arp header has variable
        * sized field. */
       /* read rfc https://tools.ietf.org/html/rfc826 for exact length or how
-      to
-       * get it */
+      to get it */
       struct arphdr *arp =
         (struct arphdr *) (packet + 14 + 2 + 6 + sizeof (struct arphdr));
       gchar addr_str[INET_ADDRSTRLEN];
@@ -482,8 +493,7 @@ got_packet (__attribute__ ((unused)) u_char *args,
       g_message ("%s: ARP, IP addr: %s", __func__, addr_str);
 
       /* Do not put already found host on Queue and only put hosts on Queue
-      we
-       * are seaching for. */
+      we are seaching for. */
       if (g_hash_table_add (hosts_data.alivehosts, g_strdup (addr_str))
           && g_hash_table_contains (hosts_data.targethosts, addr_str) == TRUE)
         {
@@ -512,85 +522,6 @@ sniffer_thread2 (__attribute__ ((unused)) void *vargp)
                __func__);
 
   pthread_exit (0);
-}
-
-__attribute__ ((unused)) static void
-set_src_addr_v6 (struct in6_addr *src)
-{
-  /* check if src addr already set. get host addr if not already set. */
-  char buf[400];
-  gvm_source_addr6 (src);
-  /* check if src addr is not null */
-  int addr_was_set = 0;
-  for (int i = 0; i < 16; ++i)
-    {
-      addr_was_set |= src->s6_addr[i];
-    }
-  if (addr_was_set)
-    {
-      g_debug ("%s: We use global_source_addr as src because it was "
-               "already set by apply_source_iface_preference: %s",
-               __func__, inet_ntop (AF_INET6, src, (char *) &buf, 400));
-    }
-  else
-    {
-      /* TODO: put in seperate function */
-      struct ifaddrs *ifaddr, *ifa;
-      if (getifaddrs (&ifaddr) == -1)
-        return;
-      for (ifa = ifaddr; ifa != NULL; ifa = ifa->ifa_next)
-        {
-          if (!ifa->ifa_addr)
-            {
-              continue;
-            }
-          if (ifa->ifa_addr->sa_family == AF_INET6)
-            {
-              struct sockaddr_in6 *addr2;
-
-              addr2 = (struct sockaddr_in6 *) ifa->ifa_addr;
-              memcpy (src, &addr2->sin6_addr, sizeof (struct in6_addr));
-            }
-        }
-    }
-  g_debug ("%s: address set to: %s", __func__,
-           inet_ntop (AF_INET6, src, (char *) &buf, 400));
-}
-
-__attribute__ ((unused)) static void
-set_src_addr (struct in_addr *src)
-{
-  /* check if src addr already set. get host addr if not already set. */
-  gvm_source_addr (src);
-  if (src->s_addr)
-    {
-      g_debug ("%s: We use global_source_addr as src because it was "
-               "already set by apply_source_iface_preference",
-               __func__);
-    }
-  else
-    {
-      /* TODO: put in seperate function */
-      struct ifaddrs *ifaddr, *ifa;
-      if (getifaddrs (&ifaddr) == -1)
-        return; // better return value or message
-      for (ifa = ifaddr; ifa != NULL; ifa = ifa->ifa_next)
-        {
-          if (!ifa->ifa_addr)
-            {
-              continue;
-            }
-          if (ifa->ifa_addr->sa_family == AF_INET)
-            {
-              struct in_addr *addr =
-                &((struct sockaddr_in *) ifa->ifa_addr)->sin_addr;
-
-              memcpy (src, addr, sizeof (struct in_addr));
-            }
-          /* ipv6 */
-          /* else if (ifa->ifa_addr->sa_family == AF_INET6){} */
-        }
-    }
 }
 
 /**
@@ -686,9 +617,17 @@ send_icmp_v6 (int soc, struct in6_addr *dst, int type)
   soca.sin6_family = AF_INET6;
   soca.sin6_addr = *dst;
 
-  printipv6 (dst);
-  sendto (soc, sendbuf, len, 0, (struct sockaddr *) &soca,
-          sizeof (struct sockaddr_in6));
+  if (sendto (soc, sendbuf, len, 0, (struct sockaddr *) &soca,
+              sizeof (struct sockaddr_in6))
+      < 0)
+    {
+      gchar *dst_str = get_ipv6_str (dst);
+      gchar *src_str = get_ipv6_str (scanner.sourcev6);
+      g_warning ("%s: sendto: dest addr: %s. src addr: %s. error: %s", __func__,
+                 dst_str, src_str, strerror (errno));
+      g_free (dst_str);
+      g_free (src_str);
+    }
 }
 
 static void
@@ -717,11 +656,17 @@ send_icmp_v4 (int soc, struct in_addr *dst)
   soca.sin_family = AF_INET;
   soca.sin_addr = *dst;
 
-  printipv4 (dst);
   if (sendto (soc, sendbuf, len, 0, (const struct sockaddr *) &soca,
               sizeof (struct sockaddr_in))
       < 0)
-    g_warning ("sendto: %s", strerror (errno));
+    {
+      gchar *dst_str = get_ipv4_str (dst);
+      gchar *src_str = get_ipv4_str (scanner.sourcev4);
+      g_warning ("%s: sendto: dest addr: %s. src addr: %s. error: %s", __func__,
+                 dst_str, src_str, strerror (errno));
+      g_free (dst_str);
+      g_free (src_str);
+    }
 }
 
 /* check if ipv6 or ipv4, get correct socket and start ping function */
@@ -741,11 +686,7 @@ send_icmp (__attribute__ ((unused)) gpointer key, gpointer value,
   static int count = 0;
   count++;
   if (count % BURST == 0)
-    {
-      g_message ("%s: BURST timeout start", __func__);
-      usleep (BURST_TIMEOUT);
-      g_message ("%s: BURST timeout end ", __func__);
-    }
+    usleep (BURST_TIMEOUT);
 
   if (gvm_host_get_addr6 ((gvm_host_t *) value, dst6_p) < 0)
     g_message ("could not get addr6 from gvm_host_t");
@@ -840,8 +781,6 @@ send_tcp_v6 (int soc, struct in6_addr *dst_p, uint8_t tcp_flag)
       ip->ip6_nxt = IPPROTO_TCP;
       ip->ip6_hops = 255; // max value
 
-      printipv6 (&src);
-      printipv6 (dst_p);
       ip->ip6_src = *scanner.sourcev6;
       ip->ip6_dst = *dst_p;
 
@@ -880,7 +819,14 @@ send_tcp_v6 (int soc, struct in6_addr *dst_p, uint8_t tcp_flag)
       if (sendto (soc, (const void *) ip, 40 + 20, 0, (struct sockaddr *) &soca,
                   sizeof (struct sockaddr_in6))
           < 0)
-        g_warning ("sendto: %s", strerror (errno));
+        {
+          gchar *dst_str = get_ipv6_str (dst_p);
+          gchar *src_str = get_ipv6_str (scanner.sourcev6);
+          g_warning ("%s: sendto: dest addr: %s. src addr: %s. error: %s",
+                     __func__, dst_str, src_str, strerror (errno));
+          g_free (dst_str);
+          g_free (src_str);
+        }
     }
 }
 
@@ -962,16 +908,20 @@ send_tcp_v4 (int soc, struct in_addr *dst_p, uint8_t tcp_flag)
                                 12 + sizeof (struct tcphdr));
       }
 
-      printipv4 (&src);
-      printipv4 (dst_p);
-
       bzero (&soca, sizeof (soca));
       soca.sin_family = AF_INET;
       soca.sin_addr = ip->ip_dst;
       if (sendto (soc, (const void *) ip, 40, 0, (struct sockaddr *) &soca,
                   sizeof (soca))
           < 0)
-        g_warning ("sendto: %s", strerror (errno));
+        {
+          gchar *dst_str = get_ipv4_str (dst_p);
+          gchar *src_str = get_ipv4_str (scanner.sourcev6);
+          g_warning ("%s: sendto: dest addr: %s. src addr: %s. error: %s",
+                     __func__, dst_str, src_str, strerror (errno));
+          g_free (dst_str);
+          g_free (src_str);
+        }
     }
 }
 
@@ -983,11 +933,7 @@ send_tcp (__attribute__ ((unused)) gpointer key, gpointer value,
   static int count = 0;
   count++;
   if (count % BURST == 0)
-    {
-      g_message ("%s: BURST timeout start", __func__);
-      usleep (BURST_TIMEOUT);
-      g_message ("%s: BURST timeout end ", __func__);
-    }
+    usleep (BURST_TIMEOUT);
 
   struct in6_addr dst6;
   struct in6_addr *dst6_p = &dst6;
@@ -1106,8 +1052,10 @@ send_arp_v4 (__attribute__ ((unused)) int soc, struct in_addr *dst_p,
                sizeof (soca)))
       <= 0)
     {
-      perror ("sendto() failed");
-      exit (EXIT_FAILURE);
+      gchar *src_str = get_ipv4_str (scanner.sourcearpv4);
+      g_warning ("%s: sendto: src addr: %s. error: %s", __func__, src_str,
+                 strerror (errno));
+      g_free (src_str);
     }
 
   g_free (ether_frame);
@@ -1128,11 +1076,7 @@ send_arp (__attribute__ ((unused)) gpointer key, gpointer value,
   static int count = 0;
   count++;
   if (count % BURST == 0)
-    {
-      g_message ("%s: BURST timeout start", __func__);
-      usleep (BURST_TIMEOUT);
-      g_message ("%s: BURST timeout end ", __func__);
-    }
+    usleep (BURST_TIMEOUT);
 
   if (gvm_host_get_addr6 ((gvm_host_t *) value, dst6_p) < 0)
     g_message ("%s:could not get addr6 from gvm_host_t", __func__);
@@ -1141,13 +1085,11 @@ send_arp (__attribute__ ((unused)) gpointer key, gpointer value,
   if (IN6_IS_ADDR_V4MAPPED (dst6_p) != 1)
     {
       g_message ("got ipv6 address to handle");
-      printipv6 (dst6_p);
       send_icmp_v6 (scanner.arpv6soc, dst6_p, ND_NEIGHBOR_SOLICIT);
     }
   else
     {
       dst4.s_addr = dst6_p->s6_addr32[3];
-      printipv4 (dst4_p);
       send_arp_v4 (scanner.arpv4soc, dst4_p, scanner.src_mac, scanner.dst_mac);
     }
 }
@@ -1203,15 +1145,15 @@ scan (void)
   else if (alive_test == (ALIVE_TEST_CONSIDER_ALIVE))
     g_message ("%s: Consider Alive", __func__);
 
-  g_message ("%s: pings sent", __func__);
-
+  g_message ("%s: pings sent, wait a bit for rest of replies", __func__);
   // wait for last replies to be processed
-  sleep (3);
-  g_message ("%s: after sleep", __func__);
+  sleep (5);
+  g_message ("%s: waited long enough", __func__);
 
   /* break sniffer loop */
-  /* TODO: research problems breaking loop form other thread*/
+  /* TODO: research problems breaking loop form other thread */
   pcap_breakloop (scanner.pcap_handle);
+  g_message ("%s: pcap_breakloop", __func__);
 
   /* join sniffer thread*/
   if (pthread_join (tid, NULL) != 0)
