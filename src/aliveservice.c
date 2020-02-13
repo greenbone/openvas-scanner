@@ -734,6 +734,15 @@ send_icmp (__attribute__ ((unused)) gpointer key, gpointer value,
   struct in_addr dst4;
   struct in_addr *dst4_p = &dst4;
 
+  static int count = 0;
+  count++;
+  if (count % BURST == 0)
+    {
+      g_message ("%s: BURST timeout start", __func__);
+      usleep (BURST_TIMEOUT);
+      g_message ("%s: BURST timeout end ", __func__);
+    }
+
   if (gvm_host_get_addr6 ((gvm_host_t *) value, dst6_p) < 0)
     g_message ("could not get addr6 from gvm_host_t");
   if (dst6_p == NULL)
@@ -926,7 +935,14 @@ static void
 send_tcp (__attribute__ ((unused)) gpointer key, gpointer value,
           __attribute__ ((unused)) gpointer user_data)
 {
-  g_message ("%s: try to send", __func__);
+  static int count = 0;
+  count++;
+  if (count % BURST == 0)
+    {
+      g_message ("%s: BURST timeout start", __func__);
+      usleep (BURST_TIMEOUT);
+      g_message ("%s: BURST timeout end ", __func__);
+    }
 
   struct in6_addr dst6;
   struct in6_addr *dst6_p = &dst6;
@@ -934,7 +950,7 @@ send_tcp (__attribute__ ((unused)) gpointer key, gpointer value,
   struct in_addr *dst4_p = &dst4;
 
   if (gvm_host_get_addr6 ((gvm_host_t *) value, dst6_p) < 0)
-    g_message ("could not get addr6 from gvm_host_t");
+    g_message ("%s: could not get addr6 from gvm_host_t", __func__);
   if (dst6_p == NULL)
     g_message ("dst6_p == NULL");
   if (IN6_IS_ADDR_V4MAPPED (dst6_p) != 1)
@@ -1059,15 +1075,22 @@ static void
 send_arp (__attribute__ ((unused)) gpointer key, gpointer value,
           __attribute__ ((unused)) gpointer user_data)
 {
-  g_message ("%s: send_arp", __func__);
-
   struct in6_addr dst6;
   struct in6_addr *dst6_p = &dst6;
   struct in_addr dst4;
   struct in_addr *dst4_p = &dst4;
 
+  static int count = 0;
+  count++;
+  if (count % BURST == 0)
+    {
+      g_message ("%s: BURST timeout start", __func__);
+      usleep (BURST_TIMEOUT);
+      g_message ("%s: BURST timeout end ", __func__);
+    }
+
   if (gvm_host_get_addr6 ((gvm_host_t *) value, dst6_p) < 0)
-    g_message ("could not get addr6 from gvm_host_t");
+    g_message ("%s:could not get addr6 from gvm_host_t", __func__);
   if (dst6_p == NULL)
     g_message ("dst6_p == NULL");
   if (IN6_IS_ADDR_V4MAPPED (dst6_p) != 1)

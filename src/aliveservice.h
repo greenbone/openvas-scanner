@@ -3,7 +3,13 @@
 
 #include <gvm/base/hosts.h>
 
+/* timeout (in sec) for waiting on queue for new entries. negative value for
+ * waiting forever or until error or other stop condition appears */
 #define TIMEOUT -1
+/* how many hosts packets are sent to at a time. value <= 0 for no rate limit */
+#define BURST 1
+/* how long (in msec) to wait until new BURST */
+#define BURST_TIMEOUT 1000000
 
 gvm_host_t *
 get_host_from_queue (int timeout);
