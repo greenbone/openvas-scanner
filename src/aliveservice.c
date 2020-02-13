@@ -734,6 +734,10 @@ send_icmp (__attribute__ ((unused)) gpointer key, gpointer value,
   struct in_addr dst4;
   struct in_addr *dst4_p = &dst4;
 
+  /* For setting the socket option SO_BINDTODEVICE only once */
+  static gboolean icmpv4socopt_set = FALSE;
+  static gboolean icmpv6socopt_set = FALSE;
+
   static int count = 0;
   count++;
   if (count % BURST == 0)
@@ -749,13 +753,54 @@ send_icmp (__attribute__ ((unused)) gpointer key, gpointer value,
     g_message ("dst6_p == NULL");
   if (IN6_IS_ADDR_V4MAPPED (dst6_p) != 1)
     {
-      g_message ("got ipv6 address to handle");
+      g_message ("%s got ipv6 address to handle", __func__);
+      /* set device for icmpv4 */
+      if (!icmpv6socopt_set)
+        g_message ("%s set icmpv6 socket option SO_BINDTODEVICE", __func__);
+      {
+        gchar *interface = v6_routethrough (dst6_p, NULL);
+        g_message ("%s: interface to use: %s", __func__, interface);
+        struct ifreq if_bind;
+        g_strlcpy (if_bind.ifr_name, interface, IFNAMSIZ);
+
+        if (setsockopt (scanner.icmpv6soc, SOL_SOCKET, SO_BINDTODEVICE,
+                        interface, IFNAMSIZ)
+            < 0)
+          {
+            g_critical ("%s: failed to set socket option SO_BINDTODEVICE: %s",
+                        __func__, strerror (errno));
+            return;
+          }
+        icmpv6socopt_set = TRUE;
+      }
+      /* send packets */
       send_icmp_v6 (scanner.icmpv6soc, dst6_p, ICMP6_ECHO_REQUEST);
     }
   else
     {
-      g_message ("got ipv4 address to handle");
+      g_message ("%s got ipv4 address to handle", __func__);
       dst4.s_addr = dst6_p->s6_addr32[3];
+
+      /* set device for icmpv6 */
+      if (!icmpv4socopt_set)
+        g_message ("%s set icmpv4 socket option SO_BINDTODEVICE", __func__);
+      {
+        gchar *interface = routethrough (dst4_p, NULL);
+        g_message ("%s: interface to use: %s", __func__, interface);
+        struct ifreq if_bind;
+        g_strlcpy (if_bind.ifr_name, interface, IFNAMSIZ);
+
+        if (setsockopt (scanner.icmpv4soc, SOL_SOCKET, SO_BINDTODEVICE,
+                        interface, IFNAMSIZ)
+            < 0)
+          {
+            g_critical ("%s: failed to set socket option SO_BINDTODEVICE: %s",
+                        __func__, strerror (errno));
+            return;
+          }
+        icmpv4socopt_set = TRUE;
+      }
+      /* send packets */
       send_icmp_v4 (scanner.icmpv4soc, dst4_p);
     }
 }
