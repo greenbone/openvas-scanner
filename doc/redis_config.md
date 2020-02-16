@@ -1,4 +1,10 @@
-# Redis KB server
+# Redis KB server <!-- omit in toc -->
+
+- [Presentation](#presentation)
+- [Connection](#connection)
+- [Database number](#database-number)
+- [Clients numbers](#clients-numbers)
+- [Debugging and monitoring a scan via redis](#debugging-and-monitoring-a-scan-via-redis)
 
 ## Presentation
 
