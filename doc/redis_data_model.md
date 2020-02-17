@@ -21,7 +21,7 @@ are never deleted or flushed by OpenVAS Scanner.
 
 ## DB 0: In-Use List
 
-In DB 0 there is only one hash type entry called “GVM.__GlobalDBIndex”. In this
+In DB 0 there is only one hash type entry called `GVM.__GlobalDBIndex`. In this
 hash is stored a list of in-use DBs. As this is the initial DB, OpenVAS Scanner
 never tries to take it for another purpose. Each time in which OpenVAS Scanner
 needs to set a new KB, it will start to search from DB 1.
@@ -45,9 +45,9 @@ redis /run/redis-openvas/redis.sock> HGETALL GVM.__GlobalDBIndex
 With the last command `HGETALL` we get the key-value tuples saved into the
 hash. In this case we can see that there is a key named “1” (item 1) and the
 value for this key is also “1” (item 2). All this means that the DB 1 is in
-use. Another way to see the same is using the command `HGET
-GVM.__GlobalDBIndex 1` to check directly if there is a key named “1” in the
-hash. If the key exist, we will get the value stored there.
+use. Another way to see the same is using the command
+ `HGET GVM.__GlobalDBIndex 1` to check directly if there is a key named “1” in
+the hash. If the key exist, we will get the value stored there.
 
 ```
 redis /run/redis-openvas/redis.sock> HGET GVM.__GlobalDBIndex 1
