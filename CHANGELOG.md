@@ -6,16 +6,17 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ## [Unreleased]
 
-### Changes
+### Changed
 - The logging of the NASL internal regexp functions was extended to include the pattern in case of a failed regcomp(). [#397](https://github.com/greenbone/openvas/pull/397)
 - Add config for gpg keyring path (OPENVAS_GPG_BASE_DIR) [#407](https://github.com/greenbone/openvas/pull/407)
 - Use __func__ instead of __FUNCTION__ [#419](https://github.com/greenbone/openvas/pull/419)
 - Use pcap_findalldevs() instead of deprecated function pcap_lookupdev() [#422](https://github.com/greenbone/openvas/pull/422) [#430](https://github.com/greenbone/openvas/pull/430)
-- add port-range option for openvas-nasl [#431](https://github.com/greenbone/openvas/pull/431)
+- Add port-range option for openvas-nasl [#431](https://github.com/greenbone/openvas/pull/431)
 
 ### Fixed
 - Improve signal handling when update vhosts list. [#425](https://github.com/greenbone/openvas/pull/425)
 - Wait for all children instead of waiting just for one a time. [#428](https://github.com/greenbone/openvas/pull/428)
+- Don't detect MongoDB as a HTTP service. [#447](https://github.com/greenbone/openvas/pull/447)
 
 [Unreleased]: https://github.com/greenbone/openvas/compare/openvas-7.0...master
 
@@ -47,7 +48,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
   and the function to close a handler. [#354](https://github.com/greenbone/openvas/pull/354)
 - Add one single config for redis to config/redis-openvas.conf. [#370](https://github.com/greenbone/openvas/pull/370)
 
-### Changes
+### Changed
 - Vendor version is now an option in the config file. [#363](https://github.com/greenbone/openvas/pull/363)
 - The NVT preference format has been changed. [#275](https://github.com/greenbone/openvas/pull/275)
 - Redis supported versions must be 3.2 or higher. [#287](https://github.com/greenbone/openvas/pull/287)
@@ -85,7 +86,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ## [6.0.2] (unreleased)
 
-### Changes
+### Changed
 - The call to wmiexec.py has been replaced with impacket-wmiexec, because the symlink has been added in Debian Stretch with python-impacket 0.9.15-1.
 
 [6.0.2]: https://github.com/greenbone/openvas/compare/v6.0.1...openvas-scanner-6.0
@@ -94,7 +95,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ### Added
 
-### Changes
+### Changed
 - Use lowercase for values added from add_host_name(). [#306](https://github.com/greenbone/openvas/pull/306)
 - Do not launch the scan if the nvticache is corrupted. [#309](https://github.com/greenbone/openvas/pull/310)
 - Separate each scan plugin process into its own process group. [#325](https://github.com/greenbone/openvas/pull/325)
