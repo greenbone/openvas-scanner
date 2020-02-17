@@ -29,15 +29,15 @@ needs to set a new KB, it will start to search from DB 1.
 We can see this with the command line client redis-cli:
 
 ```
-$ redis-cli -s /tmp/redis.sock
+$ redis-cli -s /run/redis-openvas/redis.sock
 
-redis /tmp/redis.sock> SELECT 0
+redis /run/redis-openvas/redis.sock> SELECT 0
 OK
 
-redis /tmp/redis.sock> KEYS *
+redis /run/redis-openvas/redis.sock> KEYS *
 1) "GVM.__GlobalDBIndex"
 
-redis /tmp/redis.sock> HGETALL GVM.__GlobalDBIndex
+redis /run/redis-openvas/redis.sock> HGETALL GVM.__GlobalDBIndex
 1) "1"
 2) "1"
 ```
@@ -50,10 +50,10 @@ GVM.__GlobalDBIndex 1` to check directly if there is a key named “1” in the
 hash. If the key exist, we will get the value stored there.
 
 ```
-redis /tmp/redis.sock> HGET GVM.__GlobalDBIndex 1
+redis /run/redis-openvas/redis.sock> HGET GVM.__GlobalDBIndex 1
 "1"
 
-redis /tmp/redis.sock> HGET GVM.__GlobalDBIndex 2
+redis /run/redis-openvas/redis.sock> HGET GVM.__GlobalDBIndex 2
 (nil)
 ```
 
@@ -66,10 +66,10 @@ other information such as NVT’s timestamps and Checksums, for signature
 verification.
 
 ```
-redis /tmp/redis.sock[3]> SELECT 1
+redis /run/redis-openvas/redis.sock[3]> SELECT 1
 OK
 
-redis /tmp/redis.sock[1]> KEYS *
+redis /run/redis-openvas/redis.sock[1]> KEYS *
      1) "nvt:1.3.6.1.4.1.25623.1.0.901173"
      2) "nvt:1.3.6.1.4.1.25623.1.0.120201"
      3) "filename:2017/gb_ubuntu_USN_3384_2.nasl:oid"
