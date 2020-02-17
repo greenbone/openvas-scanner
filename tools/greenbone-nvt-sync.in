@@ -399,7 +399,7 @@ do_wget_community_feed () {
 }
 
 do_curl_community_feed () {
-  TMP_NVT="$SYNC_TMP_DIR/gcf-feed-`date +%F`-$$.tar.bz2"
+  TMP_NVT="$SYNC_TMP_DIR/gcf-`date +%F`-$$.tar.bz2"
 
   log_info "Configured NVT http feed: $COMMUNITY_NVT_HTTP_FEED"
   log_info "Downloading to: $TMP_NVT"
