@@ -39,7 +39,7 @@ Multiple KBs can be served in parallel, for multiple hosts scanned by one or
 several tasks. This is done using redis databases, which are independent
 namepaces. The DB#0, which is where every new connected client starts, is
 reserved and used to schedule concurrent accesses to the available namespaces.
-It contains a single variable, called `OpenVAS.__GlobalDBIndex`. This variable
+It contains a single variable, called `GVM.__GlobalDBIndex`. This variable
 is a bitmap of the different namespaces. When opening a new DB, the scanner will
 look for the first bit that is not set, starting from 1 to the maximum number of
 available DBs. If none is found, the scanner will enter a wait and retry loop.
@@ -89,7 +89,7 @@ everything that happens during the execution.
 $ redis-cli -s <path to the redis server socket> MONITOR
 ```
 
-The default path is `/tmp/redis.sock`. Then start the scan or
+The default path is `/run/redis-openvas/redis.sock`. Then start the scan or
 openvas-nasl. You should be able to follow precisely the interactions
 between the scanner and the KB server.
 
@@ -101,10 +101,10 @@ To enter an interactive mode type
 ```
 $ redis-cli -s <path to the redis server socket>
 
-redis /tmp/redis.sock> keys *
+redis /run/redis-openvas/redis.sock> keys *
 1) "OpenVAS.__GlobalDBIndex"
 
-redis /tmp/redis.sock> select 1
+redis /run/redis-openvas/redis.sock> select 1
 OK
 ```
 
@@ -112,7 +112,7 @@ Then you can search for keys with a pattern (*"keys *"* will dump all
 keys present):
 
 ```
-redis /tmp/redis.sock[1]> keys "*ALARM*"
+redis /run/redis-openvas/redis.sock[1]> keys "*ALARM*"
 ```
 
 Note that keys will disappear once a scan of a host finished.
@@ -122,6 +122,6 @@ The keys contain sets, not strings. So instead of the `get` command
 you need to use `smembers` to view the content:
 
 ```
-redis /tmp/redis.sock[1]> smembers Sun/VirtualBox/Lin/Ver
+redis /run/redis-openvas/redis.sock[1]> smembers Sun/VirtualBox/Lin/Ver
 1) "4.3.12.93733"
 ```
