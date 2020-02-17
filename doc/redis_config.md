@@ -39,7 +39,7 @@ Multiple KBs can be served in parallel, for multiple hosts scanned by one or
 several tasks. This is done using redis databases, which are independent
 namepaces. The DB#0, which is where every new connected client starts, is
 reserved and used to schedule concurrent accesses to the available namespaces.
-It contains a single variable, called `OpenVAS.__GlobalDBIndex`. This variable
+It contains a single variable, called `GVM.__GlobalDBIndex`. This variable
 is a bitmap of the different namespaces. When opening a new DB, the scanner will
 look for the first bit that is not set, starting from 1 to the maximum number of
 available DBs. If none is found, the scanner will enter a wait and retry loop.
