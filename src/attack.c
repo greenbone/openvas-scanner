@@ -100,27 +100,38 @@ enum net_scan_status
                PRIVATE FUNCTIONS
 
 ********************************************************/
+/**
+ * @brief Connect to the main kb. Must be released with
+ *        kb_lnk_reset() after use.
+ *
+ * @param[out] main_kb The connection to the kb.
+ * @return 0 on success, -1 on failure.
+ */
+static int
+connect_main_kb (kb_t *main_kb)
+{
+  int i = atoi (prefs_get ("ov_maindbid"));
+
+  *main_kb = kb_direct_conn (prefs_get ("db_address"), i);
+  if (main_kb)
+    return 0;
+
+  g_warning ("Not possible to get the main kb connection.");
+  return -1;
+}
 
 /**
  * @brief Add the Host KB index to the list of readable KBs
  * used by ospd-openvas.
  */
-static int
+static void
 set_kb_readable (int host_kb_index)
 {
-  int i = atoi (prefs_get ("ov_maindbid"));
   kb_t main_kb = NULL;
 
-  main_kb = kb_direct_conn (prefs_get ("db_address"), i);
-  if (main_kb)
-    {
-      kb_item_add_int_unique (main_kb, "internal/dbindex", host_kb_index);
-      return 0;
-    }
-  g_warning ("Not possible to add the kb index %d to the list of "
-             "ready to read kb",
-             host_kb_index);
-  return -1;
+  connect_main_kb (&main_kb);
+  kb_item_add_int_unique (main_kb, "internal/dbindex", host_kb_index);
+  kb_lnk_reset (main_kb);
 }
 
 /**
@@ -132,21 +143,15 @@ set_kb_readable (int host_kb_index)
 static void
 set_scan_status (char *status)
 {
-  int i = atoi (prefs_get ("ov_maindbid"));
   kb_t main_kb = NULL;
+  char buffer[96];
+  char *scan_id = NULL;
 
-  main_kb = kb_direct_conn (prefs_get ("db_address"), i);
-  if (main_kb)
-    {
-      char buffer[96];
-      char *scan_id = kb_item_get_str (main_kb, ("internal/scanid"));
-
-      snprintf (buffer, sizeof (buffer), "internal/%s", scan_id);
-      kb_item_set_str (main_kb, buffer, status, 0);
-
-      return;
-    }
-  g_warning ("Not possible to set the scan as finished");
+  connect_main_kb (&main_kb);
+  scan_id = kb_item_get_str (main_kb, ("internal/scanid"));
+  snprintf (buffer, sizeof (buffer), "internal/%s", scan_id);
+  kb_item_set_str (main_kb, buffer, status, 0);
+  kb_lnk_reset (main_kb);
 }
 
 /**
@@ -984,12 +989,11 @@ check_kb_access (void)
 static void
 handle_scan_stop_signal ()
 {
-  int i = atoi (prefs_get ("ov_maindbid"));
   kb_t main_kb = NULL;
   char *pid;
 
   global_scan_stop = 1;
-  main_kb = kb_direct_conn (prefs_get ("db_address"), i);
+  connect_main_kb (&main_kb);
   pid = kb_item_get_str (main_kb, ("internal/ovas_pid"));
   kb_lnk_reset (main_kb);
 
@@ -1087,7 +1091,6 @@ attack_network (struct scan_globals *globals, kb_t *network_kb)
   if (plugins_init_error > 0)
     {
       char buf[96];
-      int i = atoi (prefs_get ("ov_maindbid"));
       kb_t main_kb = NULL;
 
       sprintf (buf,
@@ -1095,7 +1098,7 @@ attack_network (struct scan_globals *globals, kb_t *network_kb)
                "Some plugins have not been launched.",
                plugins_init_error);
 
-      main_kb = kb_direct_conn (prefs_get ("db_address"), i);
+      connect_main_kb (&main_kb);
       error_message_to_client2 (main_kb, buf, NULL);
       kb_lnk_reset (main_kb);
     }
