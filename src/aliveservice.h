@@ -7,7 +7,7 @@
  * waiting forever or until error or other stop condition appears */
 #define TIMEOUT -1
 /* how many hosts packets are sent to at a time. value <= 0 for no rate limit */
-#define BURST 10
+#define BURST 100
 /* how long (in msec) to wait until new BURST */
 #define BURST_TIMEOUT 100000
 

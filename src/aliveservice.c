@@ -132,22 +132,6 @@ struct pseudohdr
   struct tcphdr tcpheader;
 };
 
-gchar *
-get_ipv6_str (void *ipv6)
-{
-  char *str = g_malloc0 (INET6_ADDRSTRLEN);
-  inet_ntop (AF_INET6, ipv6, str, INET6_ADDRSTRLEN);
-  return str;
-}
-
-gchar *
-get_ipv4_str (void *ipv4)
-{
-  char *str = g_malloc0 (INET_ADDRSTRLEN);
-  inet_ntop (AF_INET, ipv4, str, INET_ADDRSTRLEN);
-  return str;
-}
-
 void
 printipv6 (void *ipv6)
 {
@@ -533,12 +517,7 @@ send_icmp_v6 (int soc, struct in6_addr *dst, int type)
               sizeof (struct sockaddr_in6))
       < 0)
     {
-      gchar *dst_str = get_ipv6_str (dst);
-      gchar *src_str = get_ipv6_str (scanner.sourcev6);
-      g_warning ("%s: sendto: dest addr: %s. src addr: %s. error: %s", __func__,
-                 dst_str, src_str, strerror (errno));
-      g_free (dst_str);
-      g_free (src_str);
+      g_warning ("%s: sendto: error: %s", __func__, strerror (errno));
     }
 }
 
@@ -572,12 +551,7 @@ send_icmp_v4 (int soc, struct in_addr *dst)
               sizeof (struct sockaddr_in))
       < 0)
     {
-      gchar *dst_str = get_ipv4_str (dst);
-      gchar *src_str = get_ipv4_str (scanner.sourcev4);
-      g_warning ("%s: sendto: dest addr: %s. src addr: %s. error: %s", __func__,
-                 dst_str, src_str, strerror (errno));
-      g_free (dst_str);
-      g_free (src_str);
+      g_warning ("%s: sendto: error: %s", __func__, strerror (errno));
     }
 }
 
@@ -732,12 +706,7 @@ send_tcp_v6 (int soc, struct in6_addr *dst_p, uint8_t tcp_flag)
                   sizeof (struct sockaddr_in6))
           < 0)
         {
-          gchar *dst_str = get_ipv6_str (dst_p);
-          gchar *src_str = get_ipv6_str (scanner.sourcev6);
-          g_warning ("%s: sendto: dest addr: %s. src addr: %s. error: %s",
-                     __func__, dst_str, src_str, strerror (errno));
-          g_free (dst_str);
-          g_free (src_str);
+          g_warning ("%s: sendto: error: %s", __func__, strerror (errno));
         }
     }
 }
@@ -827,12 +796,7 @@ send_tcp_v4 (int soc, struct in_addr *dst_p, uint8_t tcp_flag)
                   sizeof (soca))
           < 0)
         {
-          gchar *dst_str = get_ipv4_str (dst_p);
-          gchar *src_str = get_ipv4_str (scanner.sourcev6);
-          g_warning ("%s: sendto: dest addr: %s. src addr: %s. error: %s",
-                     __func__, dst_str, src_str, strerror (errno));
-          g_free (dst_str);
-          g_free (src_str);
+          g_warning ("%s: sendto: error: %s", __func__, strerror (errno));
         }
     }
 }
@@ -964,10 +928,7 @@ send_arp_v4 (__attribute__ ((unused)) int soc, struct in_addr *dst_p,
                sizeof (soca)))
       <= 0)
     {
-      gchar *src_str = get_ipv4_str (scanner.sourcearpv4);
-      g_warning ("%s: sendto: src addr: %s. error: %s", __func__, src_str,
-                 strerror (errno));
-      g_free (src_str);
+      g_warning ("%s: sendto: error: %s", __func__, strerror (errno));
     }
 
   g_free (ether_frame);
