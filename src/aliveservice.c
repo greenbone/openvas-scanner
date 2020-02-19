@@ -333,7 +333,7 @@ in_cksum (uint16_t *addr, int len)
   return (answer);
 }
 
-/* TODO: simplify */
+/* TODO: simplify and read https://tools.ietf.org/html/rfc826*/
 void
 got_packet (__attribute__ ((unused)) u_char *args,
             __attribute__ ((unused)) const struct pcap_pkthdr *header,
@@ -350,8 +350,10 @@ got_packet (__attribute__ ((unused)) u_char *args,
       struct in_addr sniffed_addr;
       /* was +26 (14 ETH + 12 IP) originally but was off by 2 somehow */
       memcpy (&sniffed_addr.s_addr, packet + 26 + 2, 4);
-      inet_ntop (AF_INET, (const char *) &sniffed_addr, addr_str,
-                 INET_ADDRSTRLEN);
+      if (inet_ntop (AF_INET, (const char *) &sniffed_addr, addr_str,
+                     INET_ADDRSTRLEN)
+          == NULL)
+        g_error ("%s: inet_ntop: %s", __func__, strerror (errno));
       // g_message ("%s: IP version = 4, addr: %s", __func__, addr_str);
 
       /* Do not put already found host on Queue and only put hosts on Queue we
@@ -359,9 +361,11 @@ got_packet (__attribute__ ((unused)) u_char *args,
       if (g_hash_table_add (hosts_data.alivehosts, g_strdup (addr_str))
           && g_hash_table_contains (hosts_data.targethosts, addr_str) == TRUE)
         {
-          g_message ("%s: Thread sniffed unique address to put on queue: %s",
-                     __func__, addr_str);
-          kb_item_push_str (scanner.main_kb, "alive_detection", addr_str);
+          g_debug ("%s: Thread sniffed unique address to put on queue: %s",
+                   __func__, addr_str);
+          if (kb_item_push_str (scanner.main_kb, "alive_detection", addr_str)
+              != 0)
+            g_error ("%s: kb_item_push_str() failed", __func__);
         }
     }
   else if (version == 6)
@@ -370,8 +374,10 @@ got_packet (__attribute__ ((unused)) u_char *args,
       struct in6_addr sniffed_addr;
       /* (14 ETH + 8 IP + offset 2)  */
       memcpy (&sniffed_addr.s6_addr, packet + 24, 16);
-      inet_ntop (AF_INET6, (const char *) &sniffed_addr, addr_str,
-                 INET6_ADDRSTRLEN);
+      if (inet_ntop (AF_INET6, (const char *) &sniffed_addr, addr_str,
+                     INET6_ADDRSTRLEN)
+          == NULL)
+        g_error ("%s: inet_ntop: %s", __func__, strerror (errno));
       // g_message ("%s: IP version = 6, addr: %s", __func__, addr_str);
 
       /* Do not put already found host on Queue and only put hosts on Queue we
@@ -379,9 +385,11 @@ got_packet (__attribute__ ((unused)) u_char *args,
       if (g_hash_table_add (hosts_data.alivehosts, g_strdup (addr_str))
           && g_hash_table_contains (hosts_data.targethosts, addr_str) == TRUE)
         {
-          g_message ("%s: Thread sniffed unique address to put on queue: %s",
-                     __func__, addr_str);
-          kb_item_push_str (scanner.main_kb, "alive_detection", addr_str);
+          g_debug ("%s: Thread sniffed unique address to put on queue: %s",
+                   __func__, addr_str);
+          if (kb_item_push_str (scanner.main_kb, "alive_detection", addr_str)
+              != 0)
+            g_error ("%s: kb_item_push_str() failed", __func__);
         }
     }
   /* TODO: check collision situations.
@@ -397,7 +405,9 @@ got_packet (__attribute__ ((unused)) u_char *args,
       struct arphdr *arp =
         (struct arphdr *) (packet + 14 + 2 + 6 + sizeof (struct arphdr));
       gchar addr_str[INET_ADDRSTRLEN];
-      inet_ntop (AF_INET, (const char *) arp, addr_str, INET_ADDRSTRLEN);
+      if (inet_ntop (AF_INET, (const char *) arp, addr_str, INET_ADDRSTRLEN)
+          == NULL)
+        g_error ("%s: inet_ntop: %s", __func__, strerror (errno));
       // g_message ("%s: ARP, IP addr: %s", __func__, addr_str);
 
       /* Do not put already found host on Queue and only put hosts on Queue
@@ -405,9 +415,11 @@ got_packet (__attribute__ ((unused)) u_char *args,
       if (g_hash_table_add (hosts_data.alivehosts, g_strdup (addr_str))
           && g_hash_table_contains (hosts_data.targethosts, addr_str) == TRUE)
         {
-          g_message ("%s: Thread sniffed unique address to put on queue: %s",
-                     __func__, addr_str);
-          kb_item_push_str (scanner.main_kb, "alive_detection", addr_str);
+          g_debug ("%s: Thread sniffed unique address to put on queue: %s",
+                   __func__, addr_str);
+          if (kb_item_push_str (scanner.main_kb, "alive_detection", addr_str)
+              != 0)
+            g_error ("%s: kb_item_push_str() failed", __func__);
         }
     }
 }
