@@ -65,7 +65,7 @@ struct scanner
 /* */
 struct hosts_data
 {
-  GHashTable *alivehosts;  /* (str, ?) */
+  GHashTable *alivehosts;  /* (str, str) */
   GHashTable *targethosts; /* (str, gvm_host_t) */
 };
 
@@ -159,39 +159,64 @@ open_live (char *iface, char *filter)
    * do not need to call pcap_lookupnet
    */
   char errbuf[PCAP_ERRBUF_SIZE];
-  pcap_t *ret;
+  pcap_t *pcap_handle;
   struct bpf_program filter_prog;
+
+  /* pcap version */
+  g_debug ("%s: pcap version: %s", __func__, pcap_lib_version ());
 
   /* iface, snapshot length of handle, promiscuous mode, packet buffer timeout
    * (ms), errbuff */
-  ret = pcap_open_live (iface, 1500, 0, 100, errbuf);
-  if (ret == NULL)
+  errbuf[0] = '\0';
+  pcap_handle = pcap_open_live (iface, 1500, 0, 100, errbuf);
+  if (pcap_handle == NULL)
     {
-      g_message ("%s", errbuf);
+      g_error ("%s: %s", __func__, errbuf);
+      return NULL;
+    }
+  if (g_utf8_strlen (errbuf, -1) != 0)
+    {
+      g_info ("%s: %s", __func__, errbuf);
+    }
+
+  /* TODO pcap_loop() and pcap_next() will not work in ''non-blocking'' mode.
+   * previously non-blocking mode was set to 1 */
+  if (pcap_setnonblock (pcap_handle, 0, errbuf) != 0)
+    {
+      g_error ("%s: %s", __func__, errbuf);
+    }
+
+  /* get current ''non-blocking'' state of the capture descriptor */
+  int non_blocking_state = -1;
+  if ((non_blocking_state = pcap_getnonblock (pcap_handle, errbuf)) < 0)
+    {
+      g_error ("%s: %s", __func__, errbuf);
+    }
+  else
+    {
+      g_debug ("%s: non-blocking state = %d", __func__, non_blocking_state);
+    }
+
+  /* handle, struct bpf_program *fp, int optimize, bpf_u_int32 netmask */
+  if (pcap_compile (pcap_handle, &filter_prog, filter, 1, PCAP_NETMASK_UNKNOWN)
+      < 0)
+    {
+      char *msg = pcap_geterr (pcap_handle);
+      g_error ("%s: %s", __func__, msg);
+      pcap_close (pcap_handle);
       return NULL;
     }
 
-  /* needed for our usage of pcap_break_loop() */
-  pcap_setnonblock (ret, 1, errbuf);
-
-  if (pcap_compile (ret, &filter_prog, filter, 1, 0) < 0)
+  if (pcap_setfilter (pcap_handle, &filter_prog) < 0)
     {
-      char *msg = pcap_geterr (ret);
-      g_message ("pcap_compile : %s", msg);
-      pcap_close (ret);
-      return NULL;
-    }
-
-  if (pcap_setfilter (ret, &filter_prog) < 0)
-    {
-      char *msg = pcap_geterr (ret);
-      g_message ("pcap_setfilter : %s", msg);
-      pcap_close (ret);
+      char *msg = pcap_geterr (pcap_handle);
+      g_error ("%s: %s", __func__, msg);
+      pcap_close (pcap_handle);
       return NULL;
     }
   pcap_freecode (&filter_prog);
 
-  return ret;
+  return pcap_handle;
 }
 
 gvm_host_t *
