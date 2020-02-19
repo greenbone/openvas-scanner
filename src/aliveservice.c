@@ -80,16 +80,6 @@ enum socket_type
   ARPV6,
 };
 
-/* scaner status codes */
-enum alive_detection
-{
-  ALIVE_DETECTION_FINISHED,
-  ALIVE_DETECTION_SCANNING,
-  ALIVE_DETECTION_OK,
-  ALIVE_DETECTION_INIT,
-  ALIVE_DETECTION_ERROR
-};
-
 struct arp_hdr
 {
   uint16_t htype;
@@ -204,84 +194,81 @@ open_live (char *iface, char *filter)
   return ret;
 }
 
-/**
- * @brief get new item from queue
- *
- * @in: flag which is set to status of scan process
- * @out: host_string or NULL if no item present or finish signal
- */
-static char *
-get_alive_host_str (int *flag)
-{
-  char *host = NULL;
-  /* handle race condition. main_kb may not yet be initialized */
-  /* TODO: find better solution  */
-  if (!scanner.main_kb)
-    {
-      *flag = ALIVE_DETECTION_INIT;
-      return NULL;
-    }
-
-  host = kb_item_pop_str (scanner.main_kb, ("alive_detection"));
-  /* 3 if item is not found return NULL and set flag to ALIVE_DETECTION_SCANNING
-   */
-  if (host == NULL)
-    {
-      *flag = ALIVE_DETECTION_SCANNING;
-      return NULL;
-    }
-  /* 3 if item is 'finish' return NULL and set flag to ALIVE_DETECTION_FINISHED
-   */
-  else if (host != NULL && (g_strcmp0 (host, "finish") == 0))
-    {
-      *flag = ALIVE_DETECTION_FINISHED;
-      return NULL;
-    }
-  /* 3 if item is host_str return host_str and set flag to ALIVE_DETECTION_OK */
-  else
-    {
-      *flag = ALIVE_DETECTION_OK;
-      return host;
-    }
-}
-
-/**
- * @brief get new host from queue and put it into an gvm_host_t struct
- *
- * @in:  timeout for waiting for new alive host. If timout < 0 we wait
- * indefinetly
- * @out: host structure from Queue
- *
- */
 gvm_host_t *
 get_host_from_queue (int timeout)
 {
   g_message ("%s: get new host from Queue", __func__);
 
+  /* timeout count in seconds */
   int count = 0;
-  char *host_str = NULL;
-  int alive_detection_flag = 0;
+  /* string representation of an ip address or "finish" */
+  gchar *host_str = NULL;
+  /* complete host to be returned */
   gvm_host_t *host = NULL;
 
-  g_message ("%s: get new host from Queue", __func__);
-  /* get host string from Queue or NULL*/
-  host_str = get_alive_host_str (&alive_detection_flag);
-  if (host_str)
-    host = gvm_host_from_str (host_str);
-  while (!host && (alive_detection_flag != ALIVE_DETECTION_FINISHED)
-         && timeout != count++)
+  /* poll redis message queue for new results until success, timout or error */
+  for (; !host && (timeout != count); count++)
     {
-      sleep (1);
-      host_str = get_alive_host_str (&alive_detection_flag);
-      host = gvm_host_from_str (host_str);
-    }
+      /* after the first try in getting a new host we wait for one second */
+      if (count)
+        sleep (1);
 
-  if (alive_detection_flag == ALIVE_DETECTION_FINISHED)
-    {
-      host = NULL;
+      /* redis connection not established yet */
+      if (!scanner.main_kb)
+        {
+          g_message (
+            "%s: ALIVE_DETECTION_INIT. db not yet init. try again in a sec",
+            __func__);
+          continue;
+        }
+
+      /* try to get item from db, string needs to be freed, NULL on empty or
+       * error
+       */
+      host_str = kb_item_pop_str (scanner.main_kb, ("alive_detection"));
+      if (!host_str)
+        {
+          g_message ("%s: ALIVE_DETECTION_SCANNING, no item found on queue(or "
+                     "error) but "
+                     "alive detection still ongoing, try again in a sec",
+                     __func__);
+          continue;
+        }
+      /* got some string from redis queue */
+      else
+        {
+          /* check for finish signal/string */
+          if (g_strcmp0 (host_str, "finish") == 0)
+            {
+              g_message ("%s: ALIVE_DETECTION_FINISHED, scan was finished. "
+                         "return NULL host",
+                         __func__);
+              g_free (host_str);
+              return NULL;
+            }
+          /* probably got host */
+          else
+            {
+              g_message ("%s: ALIVE_DETECTION_OK, got item from queue",
+                         __func__);
+              host = gvm_host_from_str (host_str);
+              if (!host)
+                {
+                  g_error (
+                    "%s: error in call to gvm_host_from_str() for host_str: %s",
+                    __func__, host_str);
+                  continue;
+                }
+              else
+                {
+                  g_free (host_str);
+                  return host;
+                }
+            }
+        }
     }
   g_free (host_str);
-  return host;
+  return NULL;
 }
 
 /**
@@ -327,7 +314,7 @@ got_packet (__attribute__ ((unused)) u_char *args,
             __attribute__ ((unused)) const struct pcap_pkthdr *header,
             const u_char *packet)
 {
-  g_message ("%s: sniffed some packet in packet2", __func__);
+  // g_message ("%s: sniffed some packet in packet2", __func__);
 
   struct ip *ip = (struct ip *) (packet + 16); // why not 14(ethernet size)??
   unsigned int version = ip->ip_v;
@@ -386,7 +373,7 @@ got_packet (__attribute__ ((unused)) u_char *args,
         (struct arphdr *) (packet + 14 + 2 + 6 + sizeof (struct arphdr));
       gchar addr_str[INET_ADDRSTRLEN];
       inet_ntop (AF_INET, (const char *) arp, addr_str, INET_ADDRSTRLEN);
-      g_message ("%s: ARP, IP addr: %s", __func__, addr_str);
+      // g_message ("%s: ARP, IP addr: %s", __func__, addr_str);
 
       /* Do not put already found host on Queue and only put hosts on Queue
       we are seaching for. */
@@ -490,7 +477,7 @@ get_source_mac_addr (gchar *interface, uint8_t *mac)
 static void
 send_icmp_v6 (int soc, struct in6_addr *dst, int type)
 {
-  g_message ("%s: send imcpv6", __func__);
+  // g_message ("%s: send imcpv6", __func__);
 
   struct sockaddr_in6 soca;
   char sendbuf[1500];
@@ -524,7 +511,7 @@ send_icmp_v6 (int soc, struct in6_addr *dst, int type)
 static void
 send_icmp_v4 (int soc, struct in_addr *dst)
 {
-  g_message ("%s: IN ICMP func", __func__);
+  // g_message ("%s: IN ICMP func", __func__);
   char sendbuf[1500];
   struct sockaddr_in soca;
 
@@ -580,13 +567,13 @@ send_icmp (__attribute__ ((unused)) gpointer key, gpointer value,
     g_message ("dst6_p == NULL");
   if (IN6_IS_ADDR_V4MAPPED (dst6_p) != 1)
     {
-      g_message ("%s got ipv6 address to handle", __func__);
+      // g_message ("%s got ipv6 address to handle", __func__);
       /* set device for icmpv4 */
       if (!icmpv6socopt_set)
         g_message ("%s set icmpv6 socket option SO_BINDTODEVICE", __func__);
       {
         gchar *interface = v6_routethrough (dst6_p, NULL);
-        g_message ("%s: interface to use: %s", __func__, interface);
+        // g_message ("%s: interface to use: %s", __func__, interface);
         struct ifreq if_bind;
         g_strlcpy (if_bind.ifr_name, interface, IFNAMSIZ);
 
@@ -605,7 +592,7 @@ send_icmp (__attribute__ ((unused)) gpointer key, gpointer value,
     }
   else
     {
-      g_message ("%s got ipv4 address to handle", __func__);
+      // g_message ("%s got ipv4 address to handle", __func__);
       dst4.s_addr = dst6_p->s6_addr32[3];
 
       /* set device for icmpv6 */
@@ -613,7 +600,7 @@ send_icmp (__attribute__ ((unused)) gpointer key, gpointer value,
         g_message ("%s set icmpv4 socket option SO_BINDTODEVICE", __func__);
       {
         gchar *interface = routethrough (dst4_p, NULL);
-        g_message ("%s: interface to use: %s", __func__, interface);
+        // g_message ("%s: interface to use: %s", __func__, interface);
         struct ifreq if_bind;
         g_strlcpy (if_bind.ifr_name, interface, IFNAMSIZ);
 
@@ -822,12 +809,12 @@ send_tcp (__attribute__ ((unused)) gpointer key, gpointer value,
     g_message ("dst6_p == NULL");
   if (IN6_IS_ADDR_V4MAPPED (dst6_p) != 1)
     {
-      g_message ("%s: got ipv6 address to handle", __func__);
+      // g_message ("%s: got ipv6 address to handle", __func__);
       send_tcp_v6 (scanner.tcpv6soc, dst6_p, scanner.tcp_flag);
     }
   else
     {
-      g_message ("%s: got ipv4 address to handle", __func__);
+      // g_message ("%s: got ipv4 address to handle", __func__);
       dst4.s_addr = dst6_p->s6_addr32[3];
       // printipv4 (dst4_p);
       send_tcp_v4 (scanner.tcpv4soc, dst4_p, scanner.tcp_flag);
@@ -957,7 +944,7 @@ send_arp (__attribute__ ((unused)) gpointer key, gpointer value,
     g_message ("dst6_p == NULL");
   if (IN6_IS_ADDR_V4MAPPED (dst6_p) != 1)
     {
-      g_message ("got ipv6 address to handle");
+      // g_message ("got ipv6 address to handle");
       send_icmp_v6 (scanner.arpv6soc, dst6_p, ND_NEIGHBOR_SOLICIT);
     }
   else
