@@ -425,21 +425,21 @@ got_packet (__attribute__ ((unused)) u_char *args,
 }
 
 static void *
-sniffer_thread2 (__attribute__ ((unused)) void *vargp)
+sniffer_thread (__attribute__ ((unused)) void *vargp)
 {
   int ret;
-  g_message ("%s: start sniffing", __func__);
+  g_info ("%s: start packet sniffing thread", __func__);
 
   /* reads packets until error or pcap_breakloop() */
   if ((ret = pcap_loop (scanner.pcap_handle, -1, got_packet, NULL))
       == PCAP_ERROR)
-    g_warning ("%s: pcap_loop error %s", __func__,
-               pcap_geterr (scanner.pcap_handle));
+    g_error ("%s: pcap_loop error %s", __func__,
+             pcap_geterr (scanner.pcap_handle));
   else if (ret == 0)
     g_warning ("%s: count of packets is exhausted", __func__);
   else if (ret == PCAP_ERROR_BREAK)
-    g_message ("%s: Loop was succesfully broken after call to pcap_breakloop",
-               __func__);
+    g_info ("%s: Loop was succesfully broken after call to pcap_breakloop",
+            __func__);
 
   pthread_exit (0);
 }
@@ -1001,7 +1001,7 @@ scan (void)
   /* start sniffer thread and wait a bit for startup */
   /* TODO: use mutex instead of sleep */
   pthread_t tid; /* thread id */
-  pthread_create (&tid, NULL, sniffer_thread2, NULL);
+  pthread_create (&tid, NULL, sniffer_thread, NULL);
   sleep (2);
 
   g_message ("%s: get test method and start", __func__);
