@@ -481,7 +481,8 @@ get_source_mac_addr (gchar *interface, uint8_t *mac)
 
   if (getifaddrs (&ifaddr) == -1)
     {
-      perror ("getifaddrs");
+      g_error ("%s: getifaddr failed: %s", __func__, strerror (errno));
+      return -1;
     }
   else
     {
@@ -533,7 +534,7 @@ send_icmp_v6 (int soc, struct in6_addr *dst, int type)
   len = 8 + datalen;
 
   /* send packet */
-  bzero (&soca, sizeof (struct sockaddr_in6));
+  memset (&soca, 0, sizeof (struct sockaddr_in6));
   soca.sin6_family = AF_INET6;
   soca.sin6_addr = *dst;
 
@@ -541,7 +542,7 @@ send_icmp_v6 (int soc, struct in6_addr *dst, int type)
               sizeof (struct sockaddr_in6))
       < 0)
     {
-      g_warning ("%s: sendto: error: %s", __func__, strerror (errno));
+      g_error ("%s: sendto(): %s", __func__, strerror (errno));
     }
 }
 
@@ -567,7 +568,7 @@ send_icmp_v4 (int soc, struct in_addr *dst)
   icmp->icmp_cksum = 0;
   icmp->icmp_cksum = in_cksum ((u_short *) icmp, len);
 
-  bzero (&soca, sizeof (soca));
+  memset (&soca, 0, sizeof (soca));
   soca.sin_family = AF_INET;
   soca.sin_addr = *dst;
 
@@ -575,7 +576,7 @@ send_icmp_v4 (int soc, struct in_addr *dst)
               sizeof (struct sockaddr_in))
       < 0)
     {
-      g_warning ("%s: sendto: error: %s", __func__, strerror (errno));
+      g_error ("%s: sendto(): %s", __func__, strerror (errno));
     }
 }
 
@@ -599,31 +600,37 @@ send_icmp (__attribute__ ((unused)) gpointer key, gpointer value,
     usleep (BURST_TIMEOUT);
 
   if (gvm_host_get_addr6 ((gvm_host_t *) value, dst6_p) < 0)
-    g_message ("could not get addr6 from gvm_host_t");
+    g_error ("%s: could not get addr6 from gvm_host_t", __func__);
   if (dst6_p == NULL)
-    g_message ("dst6_p == NULL");
+    {
+      g_error ("%s: destination address is NULL", __func__);
+      return;
+    }
   if (IN6_IS_ADDR_V4MAPPED (dst6_p) != 1)
     {
       // g_message ("%s got ipv6 address to handle", __func__);
       /* set device for icmpv4 */
       if (!icmpv6socopt_set)
-        g_message ("%s set icmpv6 socket option SO_BINDTODEVICE", __func__);
-      {
-        gchar *interface = v6_routethrough (dst6_p, NULL);
-        // g_message ("%s: interface to use: %s", __func__, interface);
-        struct ifreq if_bind;
-        g_strlcpy (if_bind.ifr_name, interface, IFNAMSIZ);
+        {
+          g_info ("%s: set icmpv6 socket option SO_BINDTODEVICE", __func__);
+          gchar *interface = v6_routethrough (dst6_p, NULL);
+          // g_message ("%s: interface to use: %s", __func__, interface);
+          if (!interface)
+            g_warning ("%s: no appropriate interface was found", __func__);
+          struct ifreq if_bind;
+          if (g_strlcpy (if_bind.ifr_name, interface, IFNAMSIZ) <= 0)
+            g_warning ("%s: copied 0 length interface", __func__);
 
-        if (setsockopt (scanner.icmpv6soc, SOL_SOCKET, SO_BINDTODEVICE,
-                        interface, IFNAMSIZ)
-            < 0)
-          {
-            g_critical ("%s: failed to set socket option SO_BINDTODEVICE: %s",
-                        __func__, strerror (errno));
-            return;
-          }
-        icmpv6socopt_set = TRUE;
-      }
+          if (setsockopt (scanner.icmpv6soc, SOL_SOCKET, SO_BINDTODEVICE,
+                          interface, IFNAMSIZ)
+              < 0)
+            {
+              g_error ("%s: failed to set socket option SO_BINDTODEVICE: %s",
+                       __func__, strerror (errno));
+              return;
+            }
+          icmpv6socopt_set = TRUE;
+        }
       /* send packets */
       send_icmp_v6 (scanner.icmpv6soc, dst6_p, ICMP6_ECHO_REQUEST);
     }
@@ -634,23 +641,26 @@ send_icmp (__attribute__ ((unused)) gpointer key, gpointer value,
 
       /* set device for icmpv6 */
       if (!icmpv4socopt_set)
-        g_message ("%s set icmpv4 socket option SO_BINDTODEVICE", __func__);
-      {
-        gchar *interface = routethrough (dst4_p, NULL);
-        // g_message ("%s: interface to use: %s", __func__, interface);
-        struct ifreq if_bind;
-        g_strlcpy (if_bind.ifr_name, interface, IFNAMSIZ);
+        {
+          g_message ("%s set icmpv4 socket option SO_BINDTODEVICE", __func__);
+          gchar *interface = routethrough (dst4_p, NULL);
+          if (!interface)
+            g_warning ("%s: no appropriate interface was found", __func__);
+          // g_message ("%s: interface to use: %s", __func__, interface);
+          struct ifreq if_bind;
+          g_strlcpy (if_bind.ifr_name, interface, IFNAMSIZ);
+          g_warning ("%s: copied 0 length interface", __func__);
 
-        if (setsockopt (scanner.icmpv4soc, SOL_SOCKET, SO_BINDTODEVICE,
-                        interface, IFNAMSIZ)
-            < 0)
-          {
-            g_critical ("%s: failed to set socket option SO_BINDTODEVICE: %s",
-                        __func__, strerror (errno));
-            return;
-          }
-        icmpv4socopt_set = TRUE;
-      }
+          if (setsockopt (scanner.icmpv4soc, SOL_SOCKET, SO_BINDTODEVICE,
+                          interface, IFNAMSIZ)
+              < 0)
+            {
+              g_error ("%s: failed to set socket option SO_BINDTODEVICE: %s",
+                       __func__, strerror (errno));
+              return;
+            }
+          icmpv4socopt_set = TRUE;
+        }
       /* send packets */
       send_icmp_v4 (scanner.icmpv4soc, dst4_p);
     }
@@ -659,7 +669,7 @@ send_icmp (__attribute__ ((unused)) gpointer key, gpointer value,
 static void
 send_tcp_v6 (int soc, struct in6_addr *dst_p, uint8_t tcp_flag)
 {
-  g_message ("%s:ipv6", __func__);
+  // g_message ("%s:ipv6", __func__);
   struct sockaddr_in6 soca;
 
   u_char packet[sizeof (struct ip6_hdr) + sizeof (struct tcphdr)];
@@ -676,7 +686,7 @@ send_tcp_v6 (int soc, struct in6_addr *dst_p, uint8_t tcp_flag)
   if (scanner.sourcev6 == NULL)
     {
       gchar *interface = v6_routethrough (dst_p, &src);
-      g_message ("%s: interface to use: %s", __func__, interface);
+      g_info ("%s: interface to use: %s", __func__, interface);
       scanner.sourcev6 = g_memdup (&src, sizeof (struct in6_addr));
       printipv6 (scanner.sourcev6);
     }
@@ -684,7 +694,7 @@ send_tcp_v6 (int soc, struct in6_addr *dst_p, uint8_t tcp_flag)
   /* for ports in portrange send packets */
   for (long unsigned int i = 0; i < sizeof (ports) / sizeof (int); i++)
     {
-      bzero (packet, sizeof (packet));
+      memset (packet, 0, sizeof (packet));
       /* IPv6 */
       ip->ip6_flow = htonl ((6 << 28) | (0 << 20) | 0);
       ip->ip6_plen = htons (20); // TCP_HDRLEN
@@ -710,19 +720,19 @@ send_tcp_v6 (int soc, struct in6_addr *dst_p, uint8_t tcp_flag)
       {
         struct v6pseudohdr pseudoheader;
 
-        bzero (&pseudoheader, 38 + sizeof (struct tcphdr));
+        memset (&pseudoheader, 0, 38 + sizeof (struct tcphdr));
         memcpy (&pseudoheader.s6addr, &ip->ip6_src, sizeof (struct in6_addr));
         memcpy (&pseudoheader.d6addr, &ip->ip6_dst, sizeof (struct in6_addr));
 
         pseudoheader.protocol = IPPROTO_TCP;
         pseudoheader.length = htons (sizeof (struct tcphdr));
-        bcopy ((char *) tcp, (char *) &pseudoheader.tcpheader,
-               sizeof (struct tcphdr));
+        memcpy ((char *) &pseudoheader.tcpheader, (char *) tcp,
+                sizeof (struct tcphdr));
         tcp->th_sum = in_cksum ((unsigned short *) &pseudoheader,
                                 38 + sizeof (struct tcphdr));
       }
 
-      bzero (&soca, sizeof (soca));
+      memset (&soca, 0, sizeof (soca));
       soca.sin6_family = AF_INET6;
       soca.sin6_addr = ip->ip6_dst;
       /*  TCP_HDRLEN(20) IP6_HDRLEN(40) */
@@ -730,7 +740,7 @@ send_tcp_v6 (int soc, struct in6_addr *dst_p, uint8_t tcp_flag)
                   sizeof (struct sockaddr_in6))
           < 0)
         {
-          g_warning ("%s: sendto: error: %s", __func__, strerror (errno));
+          g_error ("%s: sendto():  %s", __func__, strerror (errno));
         }
     }
 }
@@ -756,14 +766,14 @@ send_tcp_v4 (int soc, struct in_addr *dst_p, uint8_t tcp_flag)
     {
       gchar *interface = routethrough (dst_p, &src);
       scanner.sourcev4 = g_memdup (&src, sizeof (struct in_addr));
-      g_message ("%s: interface to use: %s", __func__, interface);
+      g_info ("%s: interface to use: %s", __func__, interface);
       printipv4 (scanner.sourcev4);
     }
 
   /* for ports in portrange send packets */
   for (long unsigned int i = 0; i < sizeof (ports) / sizeof (int); i++)
     {
-      bzero (packet, sizeof (packet));
+      memset (packet, 0, sizeof (packet));
       /* IP */
       ip->ip_hl = 5;
       ip->ip_off = htons (0);
@@ -797,30 +807,26 @@ send_tcp_v4 (int soc, struct in_addr *dst_p, uint8_t tcp_flag)
         source.s_addr = ip->ip_src.s_addr;
         dest.s_addr = ip->ip_dst.s_addr;
 
-        bzero (&pseudoheader,
-               12 + sizeof (struct tcphdr)); // bzero is deprecated. use
-                                             // memset(3) instead
+        memset (&pseudoheader, 0, 12 + sizeof (struct tcphdr));
         pseudoheader.saddr.s_addr = source.s_addr;
         pseudoheader.daddr.s_addr = dest.s_addr;
 
-        pseudoheader.protocol = 6; // IPPROTO_TCP
+        pseudoheader.protocol = IPPROTO_TCP;
         pseudoheader.length = htons (sizeof (struct tcphdr));
-        bcopy ((char *) tcp,
-               (char *) &pseudoheader.tcpheader, // bcopy is deprecated. use
-                                                 // memcpy(3) or memmove(3) ?
-               sizeof (struct tcphdr));
+        memcpy ((char *) &pseudoheader.tcpheader, (char *) tcp,
+                sizeof (struct tcphdr));
         tcp->th_sum = in_cksum ((unsigned short *) &pseudoheader,
                                 12 + sizeof (struct tcphdr));
       }
 
-      bzero (&soca, sizeof (soca));
+      memset (&soca, 0, sizeof (soca));
       soca.sin_family = AF_INET;
       soca.sin_addr = ip->ip_dst;
       if (sendto (soc, (const void *) ip, 40, 0, (struct sockaddr *) &soca,
                   sizeof (soca))
           < 0)
         {
-          g_warning ("%s: sendto: error: %s", __func__, strerror (errno));
+          g_error ("%s: sendto(): %s", __func__, strerror (errno));
         }
     }
 }
@@ -841,9 +847,12 @@ send_tcp (__attribute__ ((unused)) gpointer key, gpointer value,
   struct in_addr *dst4_p = &dst4;
 
   if (gvm_host_get_addr6 ((gvm_host_t *) value, dst6_p) < 0)
-    g_message ("%s: could not get addr6 from gvm_host_t", __func__);
+    g_error ("%s: could not get addr6 from gvm_host_t", __func__);
   if (dst6_p == NULL)
-    g_message ("dst6_p == NULL");
+    {
+      g_error ("%s: destination address is NULL", __func__);
+      return;
+    }
   if (IN6_IS_ADDR_V4MAPPED (dst6_p) != 1)
     {
       // g_message ("%s: got ipv6 address to handle", __func__);
@@ -853,7 +862,6 @@ send_tcp (__attribute__ ((unused)) gpointer key, gpointer value,
     {
       // g_message ("%s: got ipv4 address to handle", __func__);
       dst4.s_addr = dst6_p->s6_addr32[3];
-      // printipv4 (dst4_p);
       send_tcp_v4 (scanner.tcpv4soc, dst4_p, scanner.tcp_flag);
     }
 }
@@ -862,7 +870,7 @@ void
 send_arp_v4 (__attribute__ ((unused)) int soc, struct in_addr *dst_p,
              uint8_t *src_mac, __attribute__ ((unused)) uint8_t *dst_mac)
 {
-  g_message ("%s: SENDING ARP", __func__);
+  // g_message ("%s: SENDING ARP", __func__);
   struct sockaddr_ll soca;
   struct in_addr src;
   struct arp_hdr arphdr;
@@ -876,6 +884,8 @@ send_arp_v4 (__attribute__ ((unused)) int soc, struct in_addr *dst_p,
     {
       /* src address */
       gchar *interface = routethrough (dst_p, &src);
+      if (!interface)
+        g_warning ("%s: no appropriate interface was found", __func__);
       scanner.sourcearpv4 = g_memdup (&src, sizeof (struct in_addr));
       g_message ("%s: interface to use: %s", __func__, interface);
       printipv4 (scanner.sourcearpv4);
@@ -884,26 +894,27 @@ send_arp_v4 (__attribute__ ((unused)) int soc, struct in_addr *dst_p,
       /* interface index */
       if ((scanner.ifaceindex = if_nametoindex (interface)) == 0)
         {
-          perror ("if_nametoindex() failed to obtain interface index ");
-          exit (EXIT_FAILURE);
+          g_error ("%s: if_nametoindex: %s", __func__, strerror (errno));
         }
 
       /* mac addresses */
-      bzero (&scanner.src_mac, 6 * sizeof (uint8_t));
+      memset (&scanner.src_mac, 0, 6 * sizeof (uint8_t));
       /* dst mac */
       memset (scanner.dst_mac, 0xff, 6 * sizeof (uint8_t));
       /* src mac */
-      get_source_mac_addr (interface, (unsigned char *) &scanner.src_mac);
-      g_message ("%02x:%02x:%02x:%02x:%02x:%02x", scanner.src_mac[0],
-                 scanner.src_mac[1], scanner.src_mac[2], scanner.src_mac[3],
-                 scanner.src_mac[4], scanner.src_mac[5]);
-      g_message ("%02x:%02x:%02x:%02x:%02x:%02x", scanner.dst_mac[0],
-                 scanner.dst_mac[1], scanner.dst_mac[2], scanner.dst_mac[3],
-                 scanner.dst_mac[4], scanner.dst_mac[5]);
+      if (get_source_mac_addr (interface, (unsigned char *) &scanner.src_mac)
+          != 0)
+        g_error ("%s: get_source_mac_addr() returned error", __func__);
+      g_info ("%s: source mac address: %02x:%02x:%02x:%02x:%02x:%02x", __func__,
+              scanner.src_mac[0], scanner.src_mac[1], scanner.src_mac[2],
+              scanner.src_mac[3], scanner.src_mac[4], scanner.src_mac[5]);
+      g_info ("%s: source mac address: %02x:%02x:%02x:%02x:%02x:%02x", __func__,
+              scanner.dst_mac[0], scanner.dst_mac[1], scanner.dst_mac[2],
+              scanner.dst_mac[3], scanner.dst_mac[4], scanner.dst_mac[5]);
     }
   soca.sll_ifindex = scanner.ifaceindex;
 
-  printf ("Index for interface  is %i\n", soca.sll_ifindex);
+  g_info ("%s: Index for interface: %i", __func__, soca.sll_ifindex);
   soca.sll_family = AF_PACKET;
   memcpy (soca.sll_addr, src_mac, 6 * sizeof (uint8_t));
   soca.sll_halen = 6;
@@ -934,7 +945,7 @@ send_arp_v4 (__attribute__ ((unused)) int soc, struct in_addr *dst_p,
   frame_length = 6 + 6 + 2 + 28; /* ARP_HDRLEN = 28 */
 
   // Destination and Source MAC addresses
-  ether_frame = g_malloc0 (IP_MAXPACKET); /* TODO: error handling */
+  ether_frame = g_malloc0 (IP_MAXPACKET);
   memcpy (ether_frame, dst_mac, 6 * sizeof (uint8_t));
   memcpy (ether_frame + 6, src_mac, 6 * sizeof (uint8_t));
 
@@ -952,7 +963,7 @@ send_arp_v4 (__attribute__ ((unused)) int soc, struct in_addr *dst_p,
                sizeof (soca)))
       <= 0)
     {
-      g_warning ("%s: sendto: error: %s", __func__, strerror (errno));
+      g_error ("%s: sendto(): %s", __func__, strerror (errno));
     }
 
   g_free (ether_frame);
@@ -976,9 +987,12 @@ send_arp (__attribute__ ((unused)) gpointer key, gpointer value,
     usleep (BURST_TIMEOUT);
 
   if (gvm_host_get_addr6 ((gvm_host_t *) value, dst6_p) < 0)
-    g_message ("%s:could not get addr6 from gvm_host_t", __func__);
+    g_error ("%s: could not get addr6 from gvm_host_t", __func__);
   if (dst6_p == NULL)
-    g_message ("dst6_p == NULL");
+    {
+      g_error ("%s: destination address is NULL", __func__);
+      return;
+    }
   if (IN6_IS_ADDR_V4MAPPED (dst6_p) != 1)
     {
       // g_message ("got ipv6 address to handle");
@@ -994,77 +1008,85 @@ send_arp (__attribute__ ((unused)) gpointer key, gpointer value,
 static int
 scan (void)
 {
-  g_message ("%s: ping start", __func__);
+  g_message ("%s: scan for alive hosts started", __func__);
+  int err = -1;
 
   scanner.pcap_handle = open_live (NULL, FILTER_STR);
+  if (scanner.pcap_handle == NULL)
+    return -1;
 
   /* start sniffer thread and wait a bit for startup */
   /* TODO: use mutex instead of sleep */
   pthread_t tid; /* thread id */
-  pthread_create (&tid, NULL, sniffer_thread, NULL);
+  if ((err = pthread_create (&tid, NULL, sniffer_thread, NULL)) != 0)
+    {
+      g_error ("%s: pthread_create: %s", __func__, strerror (errno));
+    }
   sleep (2);
 
-  g_message ("%s: get test method and start", __func__);
+  g_info ("%s: get method of alive dettection", __func__);
   /* get ALIVE_TEST enum */
   alive_test_t alive_test = atoi (prefs_get ("ALIVE_TEST"));
   if (alive_test
       == (ALIVE_TEST_TCP_ACK_SERVICE | ALIVE_TEST_ICMP | ALIVE_TEST_ARP))
-    g_message ("%s: ICMP, TCP-ACK Service & ARP Ping", __func__);
+    g_info ("%s: ICMP, TCP-ACK Service & ARP Ping", __func__);
   else if (alive_test == (ALIVE_TEST_TCP_ACK_SERVICE | ALIVE_TEST_ARP))
-    g_message ("%s: TCP-ACK Service & ARP Ping", __func__);
+    g_info ("%s: TCP-ACK Service & ARP Ping", __func__);
   else if (alive_test == (ALIVE_TEST_ICMP | ALIVE_TEST_ARP))
-    g_message ("%s: ICMP & ARP Ping", __func__);
+    g_info ("%s: ICMP & ARP Ping", __func__);
   else if (alive_test == (ALIVE_TEST_ICMP | ALIVE_TEST_TCP_ACK_SERVICE))
-    g_message ("%s: ICMP & TCP-ACK Service Ping", __func__);
+    g_info ("%s: ICMP & TCP-ACK Service Ping", __func__);
   else if (alive_test == (ALIVE_TEST_ARP))
     {
-      g_message ("%s: ARP Ping", __func__);
+      g_info ("%s: ARP Ping", __func__);
 
       g_hash_table_foreach (hosts_data.targethosts, send_arp, NULL);
     }
   else if (alive_test == (ALIVE_TEST_TCP_ACK_SERVICE))
     {
       scanner.tcp_flag = TH_ACK; // TH_SYN or TH_ACK
-      g_message ("%s: TCP-ACK Service Ping", __func__);
+      g_info ("%s: TCP-ACK Service Ping", __func__);
       g_hash_table_foreach (hosts_data.targethosts, send_tcp, NULL);
     }
   else if (alive_test == (ALIVE_TEST_TCP_SYN_SERVICE))
     {
-      g_message ("%s: TCP-SYN Service Ping", __func__);
+      g_info ("%s: TCP-SYN Service Ping", __func__);
       scanner.tcp_flag = TH_SYN; // TH_SYN or TH_ACK
       g_hash_table_foreach (hosts_data.targethosts, send_tcp, NULL);
     }
   else if (alive_test == (ALIVE_TEST_ICMP))
     {
-      g_message ("%s: ICMP Ping", __func__);
+      g_info ("%s: ICMP Ping", __func__);
       g_hash_table_foreach (hosts_data.targethosts, send_icmp, NULL);
     }
   else if (alive_test == (ALIVE_TEST_CONSIDER_ALIVE))
-    g_message ("%s: Consider Alive", __func__);
+    g_info ("%s: Consider Alive", __func__);
 
-  g_message ("%s: pings sent, wait a bit for rest of replies", __func__);
-  // wait for last replies to be processed
+  g_info ("%s: all ping packets are sent, wait a bit for rest of replies",
+          __func__);
   sleep (5);
-  g_message ("%s: waited long enough", __func__);
+  g_info ("%s: finish waiting for replies", __func__);
 
   /* break sniffer loop */
   /* TODO: research problems breaking loop form other thread */
   pcap_breakloop (scanner.pcap_handle);
-  g_message ("%s: pcap_breakloop", __func__);
+  g_info ("%s: pcap_breakloop", __func__);
 
   /* join sniffer thread*/
-  if (pthread_join (tid, NULL) != 0)
-    g_warning ("%s: got error from pthread_join", __func__);
-  g_message ("%s: join thread", __func__);
+  if ((err = pthread_join (tid, NULL)) != 0)
+    {
+      g_error ("%s: pthread_join: %s", __func__, strerror (errno));
+    }
+  g_info ("%s: joined thread", __func__);
 
   /* close handle */
   if (scanner.pcap_handle != NULL)
     {
-      g_message ("%s: close pcap handle", __func__);
+      g_info ("%s: close pcap handle", __func__);
       pcap_close (scanner.pcap_handle);
     }
 
-  g_message ("%s: scan end", __func__);
+  g_info ("%s: scan for alive hosts ended", __func__);
 
   return 0;
 }
@@ -1072,40 +1094,36 @@ scan (void)
 static int
 get_socket (enum socket_type socket_type)
 {
-  // socket()
   int soc;
   switch (socket_type)
     {
     case TCPV4:
-      g_message ("%s: TCPV4", __func__);
       {
         int opt = 1;
         soc = socket (AF_INET, SOCK_RAW, IPPROTO_RAW);
         if (soc < 0)
           {
-            g_critical ("%s: failed to open socker for alive detection: %s",
-                        __func__, strerror (errno));
+            g_error ("%s: failed to open TCPV4 socket: %s", __func__,
+                     strerror (errno));
             return -1;
           }
         if (setsockopt (soc, IPPROTO_IP, IP_HDRINCL, (char *) &opt,
                         sizeof (opt))
             < 0)
           {
-            g_critical (
-              "%s: failed to set socket options on alive detection socket: %s",
-              __func__, strerror (errno));
+            g_error ("%s: failed to set socket options on TCPV4 socket: %s",
+                     __func__, strerror (errno));
             return -1;
           }
       }
       break;
     case TCPV6:
       {
-        g_message ("%s: TCPV6", __func__);
         soc = socket (AF_INET6, SOCK_RAW, IPPROTO_RAW);
         if (soc < 0)
           {
-            g_critical ("%s: failed to set ipv6socket for alive detection: %s",
-                        __func__, strerror (errno));
+            g_error ("%s: failed to open TCPV6 socket: %s", __func__,
+                     strerror (errno));
             return -1;
           }
 
@@ -1115,54 +1133,48 @@ get_socket (enum socket_type socket_type)
                         sizeof (opt_on))
             < 0)
           {
-            g_critical (
-              "%s: failed to set socket options on alive detection socket: %s",
-              __func__, strerror (errno));
+            g_error ("%s: failed to set socket options on TCPV6 socket: %s",
+                     __func__, strerror (errno));
             return -1;
           }
       }
       break;
     case ICMPV4:
-      g_message ("%s: ICMPV4", __func__);
       {
         soc = socket (AF_INET, SOCK_RAW, IPPROTO_ICMP);
         if (soc < 0)
           {
-            g_critical ("%s: failed to set ipv6socket for alive detection: %s",
-                        __func__, strerror (errno));
+            g_critical ("%s: failed to open ICMPV4 socket: %s", __func__,
+                        strerror (errno));
             return -1;
           }
       }
       break;
     case ARPV6:
     case ICMPV6:
-      g_message ("%s: ICMPV6", __func__);
-
       {
         soc = socket (AF_INET6, SOCK_RAW, IPPROTO_ICMPV6);
         if (soc < 0)
           {
-            g_critical ("%s: failed to set ipv6socket for alive detection: %s",
-                        __func__, strerror (errno));
+            g_critical ("%s: failed to open ARPV6/ICMPV6 socket: %s", __func__,
+                        strerror (errno));
             return -1;
           }
       }
       break;
     case ARPV4:
-      g_message ("%s: ARPV4", __func__);
       {
         soc = socket (PF_PACKET, SOCK_RAW, htons (ETH_P_ALL));
         if (soc < 0)
           {
-            g_critical ("%s: failed to set arpv4soc for alive detection: %s",
-                        __func__, strerror (errno));
+            g_critical ("%s: failed to open ARPV4 socket: %s", __func__,
+                        strerror (errno));
             return -1;
           }
       }
       break;
     default:
-      g_message ("%s: default", __func__);
-      return -1;
+      return -2;
       break;
     }
   return soc;
@@ -1171,23 +1183,31 @@ get_socket (enum socket_type socket_type)
 static int
 alive_detection_init (gvm_hosts_t *hosts)
 {
-  g_message ("%s: INIT start", __func__);
+  g_info ("%s: initialise alive scanner", __func__);
 
   /* Scanner */
   /* sockets */
-  scanner.tcpv4soc = get_socket (TCPV4);
-  scanner.tcpv6soc = get_socket (TCPV6);
-  scanner.icmpv4soc = get_socket (ICMPV4);
-  scanner.icmpv6soc = get_socket (ICMPV6);
-  scanner.arpv4soc = get_socket (ARPV4);
-  scanner.arpv6soc = get_socket (ARPV6);
+  if ((scanner.tcpv4soc = get_socket (TCPV4)) < 0)
+    return -1;
+  if ((scanner.tcpv6soc = get_socket (TCPV6)) < 0)
+    return -2;
+  if ((scanner.icmpv4soc = get_socket (ICMPV4)) < 0)
+    return -3;
+  if ((scanner.icmpv6soc = get_socket (ICMPV6)) < 0)
+    return -4;
+  if ((scanner.arpv4soc = get_socket (ARPV4)) < 0)
+    return -5;
+  if ((scanner.arpv6soc = get_socket (ARPV6)) < 0)
+    return -6;
   /* sources */
   scanner.sourcev4 = NULL;
   scanner.sourcev6 = NULL;
   scanner.sourcearpv4 = NULL;
   /* kb_t redis connection */
   int scandb_id = atoi (prefs_get ("ov_maindbid"));
-  scanner.main_kb = kb_direct_conn (prefs_get ("db_address"), scandb_id);
+  if ((scanner.main_kb = kb_direct_conn (prefs_get ("db_address"), scandb_id))
+      == NULL)
+    return -7;
   /* TODO: pcap handle */
   // scanner.pcap_handle = open_live (NULL, FILTER_STR); //
   scanner.pcap_handle = NULL; /* is set in ping function */
@@ -1205,10 +1225,10 @@ alive_detection_init (gvm_hosts_t *hosts)
       g_hash_table_insert (hosts_data.targethosts, gvm_host_value_str (host),
                            host);
     }
-  /* reset iter */
+  /* reset hosts iter */
   hosts->current = 0;
 
-  g_message ("%s: INIT fin", __func__);
+  g_info ("%s: initialisation of alive scanner finished", __func__);
 
   return 0;
 }
@@ -1216,24 +1236,56 @@ alive_detection_init (gvm_hosts_t *hosts)
 int
 alive_detection_free (void)
 {
-  close (scanner.tcpv4soc);
-  close (scanner.tcpv6soc);
-  close (scanner.icmpv4soc);
-  close (scanner.icmpv6soc);
-  close (scanner.arpv4soc);
-  close (scanner.arpv6soc);
+  int ret = 0;
+  if ((close (scanner.tcpv4soc)) != 0)
+    {
+      ret = -1;
+      g_error ("%s: close(): %s", __func__, strerror (errno));
+    }
+  if ((close (scanner.tcpv6soc)) != 0)
+    {
+      ret = -2;
+      g_error ("%s: close(): %s", __func__, strerror (errno));
+    }
+  if ((close (scanner.icmpv4soc)) != 0)
+    {
+      ret = -3;
+      g_error ("%s: close(): %s", __func__, strerror (errno));
+    }
+  if ((close (scanner.icmpv6soc)) != 0)
+    {
+      ret = -4;
+      g_error ("%s: close(): %s", __func__, strerror (errno));
+    }
+  if ((close (scanner.arpv4soc)) != 0)
+    {
+      ret = -5;
+      g_error ("%s: close(): %s", __func__, strerror (errno));
+    }
+  if ((close (scanner.arpv6soc)) != 0)
+    {
+      ret = -6;
+      g_error ("%s: close(): %s", __func__, strerror (errno));
+    }
   /*pcap_close (scanner.pcap_handle); //pcap_handle is closed in ping/scan
    * function for now */
-  kb_lnk_reset (scanner.main_kb);
+  if ((kb_lnk_reset (scanner.main_kb)) != 0)
+    {
+      ret = -7;
+      g_error ("%s: error in kb_lnk_reset()", __func__);
+    }
+
   /* addresses */
   g_free (scanner.sourcev4);
   g_free (scanner.sourcev6);
   g_free (scanner.sourcearpv4);
 
-  g_hash_table_destroy (hosts_data.targethosts);
   g_hash_table_destroy (hosts_data.alivehosts);
+  /* targethosts: (ipstr, gvm_host_t *)
+   * gvm_host_t are freed by caller of start_alive_detection()! */
+  g_hash_table_destroy (hosts_data.targethosts);
 
-  return 0;
+  return ret;
 }
 
 /**
@@ -1245,22 +1297,26 @@ alive_detection_free (void)
 void *
 start_alive_detection (void *args)
 {
+  int err;
   gvm_hosts_t *hosts = (gvm_hosts_t *) args;
-  alive_detection_init (hosts);
+  if ((err = alive_detection_init (hosts)) < 0)
+    g_error ("%s: error in alive_detection_init(): %d", __func__, err);
 
-  g_message ("%s: alive detection process started", __func__);
+  g_info ("%s: start scan()", __func__);
   /* blocks until detection process is finished */
   if (scan () < 0)
-    g_warning ("%s: pinger returned some error code", __func__);
+    g_error ("%s: error in scan()", __func__);
 
-  /* put finish signal on Q if all packets were send and we waited long enough
-   * for packets to arrive */
-  kb_item_push_str (scanner.main_kb, "alive_detection", "finish");
-  g_message ("%s: alive detection process finished. finish signal put on Q.",
-             __func__);
+  /* put finish signal on Queue if all packets were sent and we waited long
+   * enough for packets to arrive */
+  if ((kb_item_push_str (scanner.main_kb, "alive_detection", "finish")) != 0)
+    g_error ("%s: error in kb_item_push_str()", __func__);
+  else
+    g_info ("%s: alive detection process finished. finish signal put on Q.",
+            __func__);
 
-  g_message ("%s: wait after finish signl", __func__);
-  alive_detection_free ();
+  if ((err = alive_detection_free ()) < 0)
+    g_error ("%s: error in alive_detection_free(): %d", __func__, err);
 
   pthread_exit (0);
 }
