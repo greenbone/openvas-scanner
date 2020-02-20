@@ -2,6 +2,7 @@
 #define __ALIVE_SERVICE__
 
 #include <gvm/base/hosts.h>
+#include <gvm/util/kb.h>
 
 /* timeout (in sec) for waiting on queue for new entries. negative value for
  * waiting forever or until error or other stop condition appears */
@@ -12,7 +13,7 @@
 #define BURST_TIMEOUT 100000
 
 gvm_host_t *
-get_host_from_queue (int timeout);
+get_host_from_queue (kb_t alive_hosts_kb, int timeout);
 
 void *
 start_alive_detection (void *hosts);

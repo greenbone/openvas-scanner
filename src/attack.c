@@ -1046,6 +1046,9 @@ attack_network (struct scan_globals *globals, kb_t *network_kb)
 
   gboolean test_alive_hosts_only = prefs_get_bool ("test_alive_hosts_only");
   gvm_hosts_t *alive_hosts_list = NULL;
+  kb_t alive_hosts_kb = NULL;
+  if (test_alive_hosts_only)
+    connect_main_kb (&alive_hosts_kb);
 
   gettimeofday (&then, NULL);
 
@@ -1203,7 +1206,7 @@ attack_network (struct scan_globals *globals, kb_t *network_kb)
         g_error ("%s: pthread_create(): %d", __func__, err);
       g_debug ("%s: started alive detection.", __func__);
       /* blocks until we got new host, timeout or error */
-      host = get_host_from_queue (TIMEOUT);
+      host = get_host_from_queue (alive_hosts_kb, TIMEOUT);
       g_debug ("%s: Get first host to test from Queue. This host is used for "
                "initialising the alive_hosts_list.",
                __func__);
@@ -1290,7 +1293,7 @@ attack_network (struct scan_globals *globals, kb_t *network_kb)
         {
           if (test_alive_hosts_only)
             {
-              host = get_host_from_queue (TIMEOUT);
+              host = get_host_from_queue (alive_hosts_kb, TIMEOUT);
               if (host)
                 {
                   gvm_hosts_add (alive_hosts_list, host);
@@ -1326,6 +1329,7 @@ stop:
   if (test_alive_hosts_only)
     {
       gvm_hosts_free (alive_hosts_list);
+      kb_lnk_reset (alive_hosts_kb);
       g_debug ("%s: free alive detection data ", __func__);
       /* need to wait for alive detection to finish */
       /* thread should be finished because we got host == NULL which means

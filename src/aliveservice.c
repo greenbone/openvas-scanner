@@ -220,9 +220,16 @@ open_live (char *iface, char *filter)
 }
 
 gvm_host_t *
-get_host_from_queue (int timeout)
+get_host_from_queue (kb_t alive_hosts_kb, int timeout)
 {
   g_message ("%s: get new host from Queue", __func__);
+
+  /* redis connection not established yet */
+  if (!alive_hosts_kb)
+    {
+      g_error ("%s: connection to redis is not valid", __func__);
+      return NULL;
+    }
 
   /* timeout count in seconds */
   int count = 0;
@@ -238,19 +245,10 @@ get_host_from_queue (int timeout)
       if (count)
         sleep (1);
 
-      /* redis connection not established yet */
-      if (!scanner.main_kb)
-        {
-          g_message (
-            "%s: ALIVE_DETECTION_INIT. db not yet init. try again in a sec",
-            __func__);
-          continue;
-        }
-
       /* try to get item from db, string needs to be freed, NULL on empty or
        * error
        */
-      host_str = kb_item_pop_str (scanner.main_kb, ("alive_detection"));
+      host_str = kb_item_pop_str (alive_hosts_kb, ("alive_detection"));
       if (!host_str)
         {
           g_message ("%s: ALIVE_DETECTION_SCANNING, no item found on queue(or "
