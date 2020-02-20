@@ -1029,29 +1029,57 @@ scan (void)
   alive_test_t alive_test = atoi (prefs_get ("ALIVE_TEST"));
   if (alive_test
       == (ALIVE_TEST_TCP_ACK_SERVICE | ALIVE_TEST_ICMP | ALIVE_TEST_ARP))
-    g_info ("%s: ICMP, TCP-ACK Service & ARP Ping", __func__);
+    {
+      g_info ("%s: ICMP, TCP-ACK Service & ARP Ping", __func__);
+      g_info ("%s: TCP-ACK Service Ping", __func__);
+      scanner.tcp_flag = TH_ACK;
+      g_hash_table_foreach (hosts_data.targethosts, send_tcp, NULL);
+      g_info ("%s: ICMP Ping", __func__);
+      g_hash_table_foreach (hosts_data.targethosts, send_icmp, NULL);
+      g_info ("%s: ARP Ping", __func__);
+      g_hash_table_foreach (hosts_data.targethosts, send_arp, NULL);
+    }
   else if (alive_test == (ALIVE_TEST_TCP_ACK_SERVICE | ALIVE_TEST_ARP))
-    g_info ("%s: TCP-ACK Service & ARP Ping", __func__);
+    {
+      g_info ("%s: TCP-ACK Service Ping", __func__);
+      scanner.tcp_flag = TH_ACK;
+      g_hash_table_foreach (hosts_data.targethosts, send_tcp, NULL);
+      g_info ("%s: ARP Ping", __func__);
+      g_hash_table_foreach (hosts_data.targethosts, send_arp, NULL);
+      g_info ("%s: TCP-ACK Service & ARP Ping", __func__);
+    }
   else if (alive_test == (ALIVE_TEST_ICMP | ALIVE_TEST_ARP))
-    g_info ("%s: ICMP & ARP Ping", __func__);
+    {
+      g_info ("%s: ICMP & ARP Ping", __func__);
+      g_info ("%s: ICMP PING", __func__);
+      g_hash_table_foreach (hosts_data.targethosts, send_icmp, NULL);
+      g_info ("%s: ARP Ping", __func__);
+      g_hash_table_foreach (hosts_data.targethosts, send_arp, NULL);
+    }
   else if (alive_test == (ALIVE_TEST_ICMP | ALIVE_TEST_TCP_ACK_SERVICE))
-    g_info ("%s: ICMP & TCP-ACK Service Ping", __func__);
+    {
+      g_info ("%s: ICMP & TCP-ACK Service Ping", __func__);
+      g_info ("%s: ICMP PING", __func__);
+      g_hash_table_foreach (hosts_data.targethosts, send_icmp, NULL);
+      g_info ("%s: TCP-ACK Service Ping", __func__);
+      scanner.tcp_flag = TH_ACK;
+      g_hash_table_foreach (hosts_data.targethosts, send_tcp, NULL);
+    }
   else if (alive_test == (ALIVE_TEST_ARP))
     {
       g_info ("%s: ARP Ping", __func__);
-
       g_hash_table_foreach (hosts_data.targethosts, send_arp, NULL);
     }
   else if (alive_test == (ALIVE_TEST_TCP_ACK_SERVICE))
     {
-      scanner.tcp_flag = TH_ACK; // TH_SYN or TH_ACK
+      scanner.tcp_flag = TH_ACK;
       g_info ("%s: TCP-ACK Service Ping", __func__);
       g_hash_table_foreach (hosts_data.targethosts, send_tcp, NULL);
     }
   else if (alive_test == (ALIVE_TEST_TCP_SYN_SERVICE))
     {
       g_info ("%s: TCP-SYN Service Ping", __func__);
-      scanner.tcp_flag = TH_SYN; // TH_SYN or TH_ACK
+      scanner.tcp_flag = TH_SYN;
       g_hash_table_foreach (hosts_data.targethosts, send_tcp, NULL);
     }
   else if (alive_test == (ALIVE_TEST_ICMP))
