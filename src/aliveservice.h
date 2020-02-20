@@ -11,6 +11,8 @@
 #define BURST 100
 /* how long (in msec) to wait until new BURST */
 #define BURST_TIMEOUT 100000
+/* how tong (in sec) to wait for replies after last packet was sent */
+#define WAIT_FOR_REPLIES_TIMEOUT 5
 
 gvm_host_t *
 get_host_from_queue (kb_t alive_hosts_kb, int timeout);

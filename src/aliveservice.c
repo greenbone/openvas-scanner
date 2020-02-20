@@ -1091,7 +1091,7 @@ scan (void)
 
   g_info ("%s: all ping packets are sent, wait a bit for rest of replies",
           __func__);
-  sleep (5);
+  sleep (WAIT_FOR_REPLIES_TIMEOUT);
   g_info ("%s: finish waiting for replies", __func__);
 
   /* break sniffer loop */
