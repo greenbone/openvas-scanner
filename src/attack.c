@@ -1016,8 +1016,9 @@ handle_scan_stop_signal ()
 
   if (prefs_get_bool ("test_alive_hosts_only"))
     {
-      if (pthread_kill (alive_detection_tid, 9) != 0)
-        g_error ("%s: error in pthread_kill(): %s", __func__, strerror (errno));
+      int err;
+      if ((err = pthread_kill (alive_detection_tid, 9)) != 0)
+        g_error ("%s: error in pthread_kill(): %d", __func__, err);
     }
 
   g_free (pid);
@@ -1195,10 +1196,11 @@ attack_network (struct scan_globals *globals, kb_t *network_kb)
     {
       hosts->current = 0;
 
-      if ((pthread_create (&alive_detection_tid, NULL, start_alive_detection,
-                           (void *) hosts))
+      int err;
+      if ((err = pthread_create (&alive_detection_tid, NULL,
+                                 start_alive_detection, (void *) hosts))
           != 0)
-        g_error ("%s: pthread_create(): %s", __func__, strerror (errno));
+        g_error ("%s: pthread_create(): %d", __func__, err);
       g_debug ("%s: started alive detection.", __func__);
       /* blocks until we got new host, timeout or error */
       host = get_host_from_queue (TIMEOUT);
@@ -1331,9 +1333,9 @@ stop:
       g_info ("%s: waiting for alive detection thread to be finished...",
               __func__);
       /* join thread*/
-      if (pthread_join (alive_detection_tid, NULL) != 0)
-        g_error ("%s: got error from pthread_join(): %s", __func__,
-                 strerror (errno));
+      int err;
+      if ((err = pthread_join (alive_detection_tid, NULL)) != 0)
+        g_error ("%s: got error from pthread_join(): %d", __func__, err);
       g_info ("%s: finished waiting for alive detection thread.", __func__);
     }
 
