@@ -1139,7 +1139,7 @@ get_socket (enum socket_type socket_type)
           {
             g_error ("%s: failed to set socket options on TCPV4 socket: %s",
                      __func__, strerror (errno));
-            return -1;
+            return -2;
           }
       }
       break;
@@ -1150,7 +1150,7 @@ get_socket (enum socket_type socket_type)
           {
             g_error ("%s: failed to open TCPV6 socket: %s", __func__,
                      strerror (errno));
-            return -1;
+            return -3;
           }
 
         int opt_on = 1;
@@ -1161,7 +1161,7 @@ get_socket (enum socket_type socket_type)
           {
             g_error ("%s: failed to set socket options on TCPV6 socket: %s",
                      __func__, strerror (errno));
-            return -1;
+            return -4;
           }
       }
       break;
@@ -1172,7 +1172,7 @@ get_socket (enum socket_type socket_type)
           {
             g_critical ("%s: failed to open ICMPV4 socket: %s", __func__,
                         strerror (errno));
-            return -1;
+            return -5;
           }
       }
       break;
@@ -1184,7 +1184,7 @@ get_socket (enum socket_type socket_type)
           {
             g_critical ("%s: failed to open ARPV6/ICMPV6 socket: %s", __func__,
                         strerror (errno));
-            return -1;
+            return -6;
           }
       }
       break;
@@ -1195,12 +1195,12 @@ get_socket (enum socket_type socket_type)
           {
             g_critical ("%s: failed to open ARPV4 socket: %s", __func__,
                         strerror (errno));
-            return -1;
+            return -7;
           }
       }
       break;
     default:
-      return -2;
+      return -8;
       break;
     }
   return soc;
