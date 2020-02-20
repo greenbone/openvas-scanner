@@ -1074,6 +1074,17 @@ attack_network (struct scan_globals *globals, kb_t *network_kb)
   port_range = prefs_get ("port_range");
   if (validate_port_range (port_range))
     {
+      kb_t main_kb = NULL;
+
+      connect_main_kb (&main_kb);
+      error_message_to_client2 (
+        main_kb, "Invalid port list. Ports must be in the range [1-65535]",
+        NULL);
+      kb_lnk_reset (main_kb);
+      g_warning ("Invalid port list. Ports must be in the range [1-65535]. "
+                 "Scan terminated.");
+      set_scan_status ("finished");
+
       return;
     }
 
