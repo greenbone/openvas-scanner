@@ -179,9 +179,10 @@ open_live (char *iface, char *filter)
       g_info ("%s: %s", __func__, errbuf);
     }
 
-  /* TODO pcap_loop() and pcap_next() will not work in ''non-blocking'' mode.
-   * previously non-blocking mode was set to 1 */
-  if (pcap_setnonblock (pcap_handle, 0, errbuf) != 0)
+  /* TODO: documentation of pcap_setnonblock() says that pcap_loop() and
+   * pcap_next() will not work in ''non-blocking'' mode. But pcap_breakloop does
+   * only work reliably when setnonblock is set in this program. why? */
+  if (pcap_setnonblock (pcap_handle, 1, errbuf) != 0)
     {
       g_error ("%s: %s", __func__, errbuf);
     }
