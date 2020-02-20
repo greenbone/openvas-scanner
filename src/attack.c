@@ -995,8 +995,19 @@ check_kb_access (void)
   return rc;
 }
 
-/* TODO: put in other file, only access via functions */
-pthread_t alive_detection_tid;
+/* TODO: put in other file ?*/
+static pthread_t alive_detection_tid;
+
+static void
+set_alive_detection_tid (pthread_t tid)
+{
+  alive_detection_tid = tid;
+}
+static pthread_t
+get_alive_detection_tid ()
+{
+  return alive_detection_tid;
+}
 
 static void
 handle_scan_stop_signal ()
@@ -1200,10 +1211,12 @@ attack_network (struct scan_globals *globals, kb_t *network_kb)
       hosts->current = 0;
 
       int err;
-      if ((err = pthread_create (&alive_detection_tid, NULL,
-                                 start_alive_detection, (void *) hosts))
+      pthread_t tid;
+      if ((err =
+             pthread_create (&tid, NULL, start_alive_detection, (void *) hosts))
           != 0)
         g_error ("%s: pthread_create(): %d", __func__, err);
+      set_alive_detection_tid (tid);
       g_debug ("%s: started alive detection.", __func__);
       /* blocks until we got new host, timeout or error */
       host = get_host_from_queue (alive_hosts_kb, TIMEOUT);
@@ -1338,7 +1351,7 @@ stop:
               __func__);
       /* join thread*/
       int err;
-      if ((err = pthread_join (alive_detection_tid, NULL)) != 0)
+      if ((err = pthread_join (get_alive_detection_tid (), NULL)) != 0)
         g_error ("%s: got error from pthread_join(): %d", __func__, err);
       g_info ("%s: finished waiting for alive detection thread.", __func__);
     }
