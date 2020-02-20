@@ -1020,7 +1020,7 @@ scan (void)
   pthread_t tid; /* thread id */
   if ((err = pthread_create (&tid, NULL, sniffer_thread, NULL)) != 0)
     {
-      g_error ("%s: pthread_create: %s", __func__, strerror (errno));
+      g_error ("%s: pthread_create: %d", __func__, err);
     }
   sleep (2);
 
@@ -1103,7 +1103,7 @@ scan (void)
   /* join sniffer thread*/
   if ((err = pthread_join (tid, NULL)) != 0)
     {
-      g_error ("%s: pthread_join: %s", __func__, strerror (errno));
+      g_error ("%s: pthread_join: %d", __func__, err);
     }
   g_info ("%s: joined thread", __func__);
 
