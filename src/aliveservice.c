@@ -122,7 +122,7 @@ struct pseudohdr
   struct tcphdr tcpheader;
 };
 
-void
+static void
 printipv6 (void *ipv6)
 {
   char *str = g_malloc0 (INET6_ADDRSTRLEN);
@@ -131,7 +131,7 @@ printipv6 (void *ipv6)
   g_free (str);
 }
 
-void
+static void
 printipv4 (void *ipv4)
 {
   char *str = g_malloc0 (INET_ADDRSTRLEN);
@@ -143,7 +143,7 @@ printipv4 (void *ipv4)
 /**
  * @return pcap_t handle or NULL on error
  */
-pcap_t *
+static pcap_t *
 open_live (char *iface, char *filter)
 {
   /* iface considerations:
@@ -333,7 +333,7 @@ in_cksum (uint16_t *addr, int len)
 }
 
 /* TODO: simplify and read https://tools.ietf.org/html/rfc826*/
-void
+static void
 got_packet (__attribute__ ((unused)) u_char *args,
             __attribute__ ((unused)) const struct pcap_pkthdr *header,
             const u_char *packet)
@@ -449,7 +449,7 @@ sniffer_thread (__attribute__ ((unused)) void *vargp)
  * @param targethosts   target_hosts hashtable
  *
  */
-void
+__attribute__ ((unused)) static void
 exclude (gpointer key, __attribute__ ((unused)) gpointer value,
          gpointer targethosts)
 {
@@ -457,7 +457,7 @@ exclude (gpointer key, __attribute__ ((unused)) gpointer value,
   g_hash_table_remove (targethosts, (gchar *) key);
 }
 
-void
+__attribute__ ((unused)) static void
 print_host_str (gpointer key, __attribute__ ((unused)) gpointer value,
                 __attribute__ ((unused)) gpointer user_data)
 {
@@ -744,7 +744,7 @@ send_tcp_v6 (int soc, struct in6_addr *dst_p, uint8_t tcp_flag)
     }
 }
 
-void
+static void
 send_tcp_v4 (int soc, struct in_addr *dst_p, uint8_t tcp_flag)
 {
   struct sockaddr_in soca;
@@ -865,9 +865,8 @@ send_tcp (__attribute__ ((unused)) gpointer key, gpointer value,
     }
 }
 
-void
-send_arp_v4 (__attribute__ ((unused)) int soc, struct in_addr *dst_p,
-             uint8_t *src_mac, __attribute__ ((unused)) uint8_t *dst_mac)
+static void
+send_arp_v4 (int soc, struct in_addr *dst_p, uint8_t *src_mac, uint8_t *dst_mac)
 {
   // g_message ("%s: SENDING ARP", __func__);
   struct sockaddr_ll soca;
@@ -1260,7 +1259,7 @@ alive_detection_init (gvm_hosts_t *hosts)
   return 0;
 }
 
-int
+static int
 alive_detection_free (void)
 {
   int ret = 0;
