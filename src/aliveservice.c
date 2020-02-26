@@ -1242,6 +1242,27 @@ scan (void)
 }
 
 /**
+ * @brief Set the SO_BROADCAST socket option for given socket.
+ *
+ * @param socket  The socket to apply the option to.
+ * @return 0 on success, <0 on error.
+ */
+static int
+set_broadcast (int socket)
+{
+  int broadcast = 1;
+  if (setsockopt (socket, SOL_SOCKET, SO_BROADCAST, &broadcast,
+                  sizeof (broadcast))
+      < 0)
+    {
+      g_error ("%s: failed to set socket option SO_BROADCAST: %s", __func__,
+               strerror (errno));
+      return -1;
+    }
+  return 0;
+}
+
+/**
  * @brief Get a new socket.
  *
  * @param socket_type What type of socket to get.
@@ -1335,6 +1356,12 @@ get_socket (enum socket_type socket_type)
       return -8;
       break;
     }
+
+  /* set SO_BROADCAST socket option. If not set we get permission denied error
+   * on pinging broadcast address */
+  if ((set_broadcast (soc)) < 0)
+    return -9;
+
   return soc;
 }
 
