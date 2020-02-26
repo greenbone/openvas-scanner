@@ -84,7 +84,7 @@ endif (PCAP_CONFIG)
 
 find_package (Threads)
 
-add_executable (openvas aliveservice.c attack.c hosts.c
+add_executable (openvas alivedetection.c attack.c hosts.c
                 main.c nasl_plugins.c openvas.c
                 pluginlaunch.c pluginload.c
                 pluginscheduler.c plugs_req.c
@@ -177,7 +177,7 @@ target_link_libraries (openvas openvas_nasl_shared ${LIBOPENVAS_NASL_LDFLAGS}
 
 add_executable (attack-test
                 EXCLUDE_FROM_ALL
-                aliveservice.c attack_tests.c
+                alivedetection.c attack_tests.c
                 hosts.c nasl_plugins.c openvas.c
                 pluginlaunch.c pluginload.c
                 pluginscheduler.c plugs_req.c
@@ -209,7 +209,7 @@ add_dependencies (check cppcheck)
 
 ## Tag files
 
-set (C_FILES "aliveservice.c" "attack.c" "hosts.c"
+set (C_FILES "alivedetection.c" "attack.c" "hosts.c"
      "nasl_plugins.c" "openvas.c"
      "pluginlaunch.c" "pluginload.c"
      "pluginscheduler.c" "plugs_req.c"

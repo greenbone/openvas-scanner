@@ -1,5 +1,5 @@
-#ifndef __ALIVE_SERVICE__
-#define __ALIVE_SERVICE__
+#ifndef __ALIVE_DETECTION__
+#define __ALIVE_DETECTION__
 
 #include <gvm/base/hosts.h>
 #include <gvm/util/kb.h>

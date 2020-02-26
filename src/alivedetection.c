@@ -1,4 +1,4 @@
-#include "aliveservice.h"
+#include "alivedetection.h"
 
 #include "../misc/pcap.c" /* routethrough functions */
 
