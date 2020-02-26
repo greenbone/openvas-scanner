@@ -82,6 +82,8 @@ else (PCAP_CONFIG)
   set (PCAP_CFLAGS "-I/usr/include")
 endif (PCAP_CONFIG)
 
+find_package (Threads)
+
 add_executable (openvas aliveservice.c attack.c hosts.c
                 main.c nasl_plugins.c openvas.c
                 pluginlaunch.c pluginload.c
@@ -169,7 +171,7 @@ target_link_libraries (openvas openvas_nasl_shared ${LIBOPENVAS_NASL_LDFLAGS}
                        ${LIBGVM_BASE_LDFLAGS}
                        ${GLIB_LDFLAGS} ${GCRYPT_LDFLAGS}
                        ${EXECINFO_LDFLAGS} ${PCAP_LDFLAGS}
-                       ${LINKER_HARDENING_FLAGS} -lpthread)
+                       ${LINKER_HARDENING_FLAGS} ${CMAKE_THREAD_LIBS_INIT})
 
 ## Tests
 
