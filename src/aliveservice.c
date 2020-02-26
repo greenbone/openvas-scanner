@@ -244,7 +244,8 @@ open_live (char *iface, char *filter)
  *
  * @param alive_hosts_kb  Redis connection for accessing the queue on which the
  * alive detection scanner puts found hosts
- * @param timout  Timeout in second. How long to wait for alive hosts.
+ * @param timout  Timeout in second. How long to wait for alive hosts. If
+ * timeout <0 wait indefinitely.
  * @return  If valid alive host is found return a gvm_host_t. If alive scanner
  * finished, on error, or if timeout reached return NULL.
  */

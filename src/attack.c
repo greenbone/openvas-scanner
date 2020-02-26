@@ -1219,7 +1219,7 @@ attack_network (struct scan_globals *globals, kb_t *network_kb)
       set_alive_detection_tid (tid);
       g_debug ("%s: started alive detection.", __func__);
       /* blocks until we got new host, timeout or error */
-      host = get_host_from_queue (alive_hosts_kb, TIMEOUT);
+      host = get_host_from_queue (alive_hosts_kb, -1);
       g_debug ("%s: Get first host to test from Queue. This host is used for "
                "initialising the alive_hosts_list.",
                __func__);
@@ -1306,7 +1306,7 @@ attack_network (struct scan_globals *globals, kb_t *network_kb)
         {
           if (test_alive_hosts_only)
             {
-              host = get_host_from_queue (alive_hosts_kb, TIMEOUT);
+              host = get_host_from_queue (alive_hosts_kb, -1);
               if (host)
                 {
                   gvm_hosts_add (alive_hosts_list, host);
