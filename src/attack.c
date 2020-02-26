@@ -341,13 +341,6 @@ launch_plugin (struct scan_globals *globals, struct scheduler_plugin *plugin,
   oid = plugin->oid;
   nvti = nvticache_get_nvt (oid);
 
-  /** for testing only: finish_launch_plugin, so we dont actually scan and only
-   * test**/
-  // g_message ("finish so we dont actually scan");
-  // pluginlaunch_stop ();
-  // plugin->running_state = PLUGIN_STATUS_DONE;
-  // goto finish_launch_plugin;
-
   /* eg. When NVT was moved/removed by a feed update during the scan. */
   if (!nvti)
     {
@@ -1028,7 +1021,7 @@ handle_scan_stop_signal ()
   if (prefs_get_bool ("test_alive_hosts_only"))
     {
       int err;
-      if ((err = pthread_kill (alive_detection_tid, 9)) != 0)
+      if ((err = pthread_kill (get_alive_detection_tid (), 9)) != 0)
         g_error ("%s: error in pthread_kill(): %d", __func__, err);
     }
 
