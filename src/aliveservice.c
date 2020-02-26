@@ -1,25 +1,22 @@
 #include "aliveservice.h"
 
-// #include "../misc/pcap_openvas.h" /* islocalhost_v4() */
-// #include "../misc/bpf_share.h"
 #include "../misc/pcap.c" /* routethrough functions */
 
 #include <arpa/inet.h>
 #include <errno.h>
-#include <gvm/base/networking.h> /* gvm_source_addr() */
-#include <gvm/base/prefs.h>      /* prefs_get() */
-#include <gvm/util/kb.h>         /* kb_t operations */
-#include <ifaddrs.h>             /* getifaddrs() */
-#include <net/ethernet.h>        /* struct ether_addr ether_hdr */
-#include <net/if.h>              /* IFF_LOOPBACK, if_nametoindex() */
+#include <gvm/base/networking.h> /* for gvm_source_addr() */
+#include <gvm/base/prefs.h>      /* for prefs_get() */
+#include <gvm/util/kb.h>         /* for kb_t operations */
+#include <ifaddrs.h>             /* for getifaddrs() */
+#include <net/ethernet.h>
+#include <net/if.h> /* for if_nametoindex() */
 #include <net/if_arp.h>
-// #include <net/if_packet.h>
 #include <netinet/icmp6.h>
 #include <netinet/ip.h>
 #include <netinet/ip6.h>
 #include <netinet/ip_icmp.h>
 #include <netinet/tcp.h>
-#include <netpacket/packet.h> /* struct sockaddr_ll */
+#include <netpacket/packet.h> /* for sockaddr_ll */
 #include <pcap.h>
 #include <pthread.h>
 #include <sys/param.h>
@@ -38,6 +35,10 @@ struct hosts_data hosts_data;
   "(ip6 or ip or arp) and (ip6[40]=129 or icmp[icmptype] == icmp-echoreply " \
   "or dst port " ASSTR (FILTER_PORT) " or arp[6:2]=2)"
 
+/**
+ * @brief The scanner struct holds data which is used frequently by the alive
+ * detection thread.
+ */
 struct scanner
 {
   /* sockets */
@@ -48,28 +49,37 @@ struct scanner
   int arpv4soc;
   int arpv6soc;
   /* flags */
-  uint8_t tcp_flag; /* TH_SYN or TH_ACK from <netinet/tcp.h> */
+  uint8_t tcp_flag; /**< TH_SYN or TH_ACK flag */
   /* arp */
   int ifaceindex;
   uint8_t src_mac[6];
-  uint8_t dst_mac[6];
+  uint8_t dst_mac[6]; /* TODO: should not be part of the struct */
   /* source addresses */
   struct in_addr *sourcev4;
   struct in6_addr *sourcev6;
   struct in_addr *sourcearpv4;
   /* redis connection */
   kb_t main_kb;
+  /* pcap handle */
   pcap_t *pcap_handle;
 };
 
-/* */
+/**
+ * @brief The hosts_data struct holds the alive hosts and target hosts in
+ * seperate hashtables.
+ */
 struct hosts_data
 {
-  GHashTable *alivehosts;  /* (str, str) */
-  GHashTable *targethosts; /* (str, gvm_host_t) */
+  GHashTable *alivehosts; /**< Set of the form (ip_str, ip_str) */
+  GHashTable
+    *targethosts; /**< Hashtable of the form (ip_str, gvm_host_t *). The
+                     gvm_host_t pointer point to hosts which are to be freed by
+                     the caller of start_alive_detection(). */
 };
 
-/* type of socket */
+/**
+ * @brief type of sockets
+ */
 enum socket_type
 {
   TCPV4,
@@ -141,6 +151,11 @@ printipv4 (void *ipv4)
 }
 
 /**
+ * @brief open a new pcap handle ad set provided filter.
+ *
+ * @param iface interface to use.
+ * @param filter pcap filter to use.
+ *
  * @return pcap_t handle or NULL on error
  */
 static pcap_t *
@@ -220,6 +235,19 @@ open_live (char *iface, char *filter)
   return pcap_handle;
 }
 
+/**
+ * @brief Get new host from alive detection scanner.
+ *
+ * Check if an alive host was found by the alive detection scanner. If no alive
+ * host was found, retry every second for timeout seconds. Return null if
+ * timeout expired, if alive detection scanner finished or on error.
+ *
+ * @param alive_hosts_kb  Redis connection for accessing the queue on which the
+ * alive detection scanner puts found hosts
+ * @param timout  Timeout in second. How long to wait for alive hosts.
+ * @return  If valid alive host is found return a gvm_host_t. If alive scanner
+ * finished, on error, or if timeout reached return NULL.
+ */
 gvm_host_t *
 get_host_from_queue (kb_t alive_hosts_kb, int timeout)
 {
@@ -296,6 +324,8 @@ get_host_from_queue (kb_t alive_hosts_kb, int timeout)
 }
 
 /**
+ * @brief Checksum calculation.
+ *
  * From W.Richard Stevens "UNIX NETWORK PROGRAMMING" book. libfree/in_cksum.c
  * TODO: Section 8.7 of TCPv2 has more efficient implementation
  **/
@@ -332,7 +362,19 @@ in_cksum (uint16_t *addr, int len)
   return (answer);
 }
 
-/* TODO: simplify and read https://tools.ietf.org/html/rfc826*/
+/**
+ * @brief Processes single packets captured by pcap. Is a callback function.
+ *
+ * For every packet we check if it is ipv4 ipv6 or arp and extract the sender ip
+ * address. This ip address is then inserted into the alive_hosts table if not
+ * already present and if in the target table.
+ *
+ * @param args
+ * @param header
+ * @param packet  Packet to process.
+ *
+ * TODO: simplify and read https://tools.ietf.org/html/rfc826
+ */
 static void
 got_packet (__attribute__ ((unused)) u_char *args,
             __attribute__ ((unused)) const struct pcap_pkthdr *header,
@@ -423,6 +465,11 @@ got_packet (__attribute__ ((unused)) u_char *args,
     }
 }
 
+/**
+ * @brief Sniff packets by starting pcap_loop with callback function.
+ *
+ * @param vargp
+ */
 static void *
 sniffer_thread (__attribute__ ((unused)) void *vargp)
 {
@@ -444,17 +491,19 @@ sniffer_thread (__attribute__ ((unused)) void *vargp)
 }
 
 /**
- * @brief Delete alive hosts from targethosts
+ * @brief delete key from hashtable
  *
- * @param targethosts   target_hosts hashtable
+ * @param key Key to delete from hashtable
+ * @param value
+ * @param hashtable   table to remove keys from
  *
  */
 __attribute__ ((unused)) static void
 exclude (gpointer key, __attribute__ ((unused)) gpointer value,
-         gpointer targethosts)
+         gpointer hashtable)
 {
   /* delte key from targethost*/
-  g_hash_table_remove (targethosts, (gchar *) key);
+  g_hash_table_remove (hashtable, (gchar *) key);
 }
 
 __attribute__ ((unused)) static void
@@ -465,8 +514,14 @@ print_host_str (gpointer key, __attribute__ ((unused)) gpointer value,
 }
 
 /**
- * @brief get the source mac address of the given interface
- * or of the first non lo interface
+ * @brief Get the source mac address of the given interface
+ * or of the first non lo interface.
+ *
+ * @param interface Interface to get mac address from or NULL if first non lo
+ * interface should be used.
+ * @param[out]  mac Location where to store mac address.
+ *
+ * @return 0 on success, -1 on error.
  */
 static int
 get_source_mac_addr (gchar *interface, uint8_t *mac)
@@ -511,6 +566,13 @@ get_source_mac_addr (gchar *interface, uint8_t *mac)
   return 0;
 }
 
+/**
+ * @brief Send icmp ping.
+ *
+ * @param soc Socket to use for sending.
+ * @param dst Destination address to send to.
+ * @param type  Type of imcp. e.g. ND_NEIGHBOR_SOLICIT or ICMP6_ECHO_REQUEST.
+ */
 static void
 send_icmp_v6 (int soc, struct in6_addr *dst, int type)
 {
@@ -545,6 +607,12 @@ send_icmp_v6 (int soc, struct in6_addr *dst, int type)
     }
 }
 
+/**
+ * @brief Send icmp ping.
+ *
+ * @param soc Socket to use for sending.
+ * @param dst Destination address to send to.
+ */
 static void
 send_icmp_v4 (int soc, struct in_addr *dst)
 {
@@ -579,7 +647,14 @@ send_icmp_v4 (int soc, struct in_addr *dst)
     }
 }
 
-/* check if ipv6 or ipv4, get correct socket and start ping function */
+/**
+ * @brief Is called in g_hash_table_foreach(). Check if ipv6 or ipv4, get
+ * correct socket and start appropriate ping function.
+ *
+ * @param key Ip string.
+ * @param value Pointer to gvm_host_t.
+ * @param user_data
+ */
 static void
 send_icmp (__attribute__ ((unused)) gpointer key, gpointer value,
            __attribute__ ((unused)) gpointer user_data)
@@ -665,6 +740,13 @@ send_icmp (__attribute__ ((unused)) gpointer key, gpointer value,
     }
 }
 
+/**
+ * @brief Send tcp ping.
+ *
+ * @param soc Socket to use for sending.
+ * @param dst Destination address to send to.
+ * @param tcp_flag  TH_SYN or TH_ACK.
+ */
 static void
 send_tcp_v6 (int soc, struct in6_addr *dst_p, uint8_t tcp_flag)
 {
@@ -744,6 +826,13 @@ send_tcp_v6 (int soc, struct in6_addr *dst_p, uint8_t tcp_flag)
     }
 }
 
+/**
+ * @brief Send tcp ping.
+ *
+ * @param soc Socket to use for sending.
+ * @param dst Destination address to send to.
+ * @param tcp_flag  TH_SYN or TH_ACK.
+ */
 static void
 send_tcp_v4 (int soc, struct in_addr *dst_p, uint8_t tcp_flag)
 {
@@ -830,7 +919,14 @@ send_tcp_v4 (int soc, struct in_addr *dst_p, uint8_t tcp_flag)
     }
 }
 
-/* check if ipv6 or ipv4, get correct socket and start ping function */
+/**
+ * @brief Is called in g_hash_table_foreach(). Check if ipv6 or ipv4, get
+ * correct socket and start appropriate ping function.
+ *
+ * @param key Ip string.
+ * @param value Pointer to gvm_host_t.
+ * @param user_data
+ */
 static void
 send_tcp (__attribute__ ((unused)) gpointer key, gpointer value,
           __attribute__ ((unused)) gpointer user_data)
@@ -865,6 +961,14 @@ send_tcp (__attribute__ ((unused)) gpointer key, gpointer value,
     }
 }
 
+/**
+ * @brief Send arp ping.
+ *
+ * @param soc Socket to use for sending.
+ * @param dst Destination address to send to.
+ * @param src_mac Source mac address to use.
+ * @param dst_mac Destination mac address to use.
+ */
 static void
 send_arp_v4 (int soc, struct in_addr *dst_p, uint8_t *src_mac, uint8_t *dst_mac)
 {
@@ -969,7 +1073,14 @@ send_arp_v4 (int soc, struct in_addr *dst_p, uint8_t *src_mac, uint8_t *dst_mac)
   return;
 }
 
-/* check if ipv6 or ipv4, get correct socket and start ping function */
+/**
+ * @brief Is called in g_hash_table_foreach(). Check if ipv6 or ipv4, get
+ * correct socket and start appropriate ping function.
+ *
+ * @param key Ip string.
+ * @param value Pointer to gvm_host_t.
+ * @param user_data
+ */
 static void
 send_arp (__attribute__ ((unused)) gpointer key, gpointer value,
           __attribute__ ((unused)) gpointer user_data)
@@ -994,6 +1105,8 @@ send_arp (__attribute__ ((unused)) gpointer key, gpointer value,
   if (IN6_IS_ADDR_V4MAPPED (dst6_p) != 1)
     {
       // g_message ("got ipv6 address to handle");
+      /* IPv6 does simulate ARP by using the Neighbor Discovery Protocol with
+       * ICMPv6. */
       send_icmp_v6 (scanner.arpv6soc, dst6_p, ND_NEIGHBOR_SOLICIT);
     }
   else
@@ -1003,6 +1116,16 @@ send_arp (__attribute__ ((unused)) gpointer key, gpointer value,
     }
 }
 
+/**
+ * @brief Scan function starts a sniffing thread which waits for packets to
+ * arrive and sends pings to hosts we want to test. Blocks until Scan is
+ * finished or error occured.
+ *
+ * Start a sniffer thread. Get what method of alive detection to use. Send
+ * appropriate pings  for every host we want to test.
+ *
+ * @return 0 on success, -1 on failure.
+ */
 static int
 scan (void)
 {
@@ -1117,6 +1240,14 @@ scan (void)
   return 0;
 }
 
+/**
+ * @brief Get a new socket.
+ *
+ * @param socket_type What type of socket to get.
+ *
+ * @return A newly created socket for use. This sockets needs to be closed by
+ * the caller.
+ */
 static int
 get_socket (enum socket_type socket_type)
 {
@@ -1206,6 +1337,14 @@ get_socket (enum socket_type socket_type)
   return soc;
 }
 
+/**
+ * @brief Initialise the alive detection scanner.
+ *
+ * Fill scanner struct with appropriate values.
+ *
+ * @param hosts gvm_hosts_t list of hosts to alive test.
+ * @return 0 on success, <0 on error.
+ */
 static int
 alive_detection_init (gvm_hosts_t *hosts)
 {
@@ -1259,6 +1398,11 @@ alive_detection_init (gvm_hosts_t *hosts)
   return 0;
 }
 
+/**
+ * @brief Free all the data used by the alive detection scanner.
+ *
+ * @return 0 on success, <0 on error.
+ */
 static int
 alive_detection_free (void)
 {
@@ -1315,16 +1459,17 @@ alive_detection_free (void)
 }
 
 /**
- * @brief start the send_tcp_syn scan of all specified hosts in gvm_hosts_t
- * list. Finish signal is put on Queue if pinger returned.
+ * @brief Start the scan of all specified hosts in gvm_hosts_t
+ * list. Finish signal is put on Queue if scan is finished or err occured.
  *
- * @in: gvm_hosts_t structure which is to be freed by caller
+ * @param hosts_to_test gvm_hosts_t list of hosts to alive test. which is to be
+ * freed by caller.
  */
 void *
-start_alive_detection (void *args)
+start_alive_detection (void *hosts_to_test)
 {
   int err;
-  gvm_hosts_t *hosts = (gvm_hosts_t *) args;
+  gvm_hosts_t *hosts = (gvm_hosts_t *) hosts_to_test;
   if ((err = alive_detection_init (hosts)) < 0)
     g_error ("%s: error in alive_detection_init(): %d", __func__, err);
 
