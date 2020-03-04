@@ -71,6 +71,9 @@ PORT=24
 # Directory where the OpenVAS Scanner configuration is located
 OPENVAS_SYSCONF_DIR="@OPENVAS_SYSCONF_DIR@"
 
+# Directory where the feed update lock file will be placed.
+OPENVAS_RUN_DIR="@OPENVAS_RUN_DIR@"
+
 # Location of the GSF Access Key
 ACCESS_KEY="@GVM_ACCESS_KEY_DIR@/gsf-access-key"
 
@@ -632,6 +635,17 @@ do_feedversion () {
   fi
 }
 
+create_feed_lock_file ()
+{
+  if [ -f $OPENVAS_RUN_DIR/feed-update.lock ] ; then
+    stderr_write "Another process related to the feed update is already running"
+    FEED_LOCKED=1
+  else
+    touch $OPENVAS_RUN_DIR/feed-update.lock
+    FEED_LOCKED=0
+  fi
+}
+
 do_sync ()
 {
   do_self_test
@@ -643,7 +657,13 @@ do_sync ()
   then
     log_write "Feed is already current, skipping synchronization."
   else
+    create_feed_lock_file
+    if [ $FEED_LOCKED -eq 1 ] ; then
+       exit 1
+    fi
+
     sync_nvts
+    rm $OPENVAS_RUN_DIR/feed-update.lock
   fi
 }
 
