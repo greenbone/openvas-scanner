@@ -368,7 +368,6 @@ void
 start_single_task_scan ()
 {
   struct scan_globals *globals;
-  int ret = 0;
 
 #if GNUTLS_VERSION_NUMBER < 0x030300
   if (openvas_SSL_init () < 0)
@@ -382,10 +381,6 @@ start_single_task_scan ()
   g_message ("openvas %s started", OPENVAS_VERSION);
 #endif
 
-  openvas_signal (SIGHUP, SIG_IGN);
-  ret = plugins_init ();
-  if (ret)
-    exit (0);
   init_signal_handlers ();
 
   globals = g_malloc0 (sizeof (struct scan_globals));
