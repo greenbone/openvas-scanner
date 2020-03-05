@@ -6,12 +6,16 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ## [Unreleased]
 
+### Added
+- Create greenbone-nvt-sync create lock file during feed sync. [#458](https://github.com/greenbone/openvas/pull/458)
+
 ### Changed
 - The logging of the NASL internal regexp functions was extended to include the pattern in case of a failed regcomp(). [#397](https://github.com/greenbone/openvas/pull/397)
 - Add config for gpg keyring path (OPENVAS_GPG_BASE_DIR) [#407](https://github.com/greenbone/openvas/pull/407)
 - Use __func__ instead of __FUNCTION__ [#419](https://github.com/greenbone/openvas/pull/419)
 - Use pcap_findalldevs() instead of deprecated function pcap_lookupdev() [#422](https://github.com/greenbone/openvas/pull/422) [#430](https://github.com/greenbone/openvas/pull/430)
 - Add port-range option for openvas-nasl [#431](https://github.com/greenbone/openvas/pull/431)
+- Don't reload the plugins when start a new scan. [#458](https://github.com/greenbone/openvas/pull/458)
 
 ### Fixed
 - Improve signal handling when update vhosts list. [#425](https://github.com/greenbone/openvas/pull/425)
