@@ -638,7 +638,7 @@ do_feedversion () {
 create_feed_lock_file ()
 {
   if [ -f $OPENVAS_RUN_DIR/feed-update.lock ] ; then
-    stderr_write "Another process related to the feed update is already running"
+    log_warning "Another process related to the feed update is already running."
     FEED_LOCKED=1
   else
     touch $OPENVAS_RUN_DIR/feed-update.lock
