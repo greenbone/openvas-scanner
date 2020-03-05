@@ -351,6 +351,23 @@ include_dirs (void)
       g_strfreev (include_folders);
     }
 }
+/**
+ * @brief Main function for nvticache initialization without
+ *        loading the plugins
+ **/
+int
+plugins_cache_init (void)
+{
+  const char *plugins_folder = prefs_get ("plugins_folder");
+
+  if (nvticache_init (plugins_folder, prefs_get ("db_address")))
+    {
+      g_debug ("Failed to initialize nvti cache.");
+      return -1;
+    }
+  include_dirs ();
+  return 0;
+}
 
 /*
  * main function for loading all the plugins
@@ -362,12 +379,9 @@ plugins_init (void)
   pid_t child_pid;
   const char *plugins_folder = prefs_get ("plugins_folder");
 
-  if (nvticache_init (plugins_folder, prefs_get ("db_address")))
-    {
-      g_debug ("Failed to initialize nvti cache.");
-      return -1;
-    }
-  include_dirs ();
+  ret = plugins_cache_init ();
+  if (ret)
+    return ret;
 
   child_pid = create_process (plugins_reload_from_dir, (void *) plugins_folder);
   waitpid (child_pid, &ret, 0);
