@@ -34,6 +34,9 @@
 int
 plugins_init (void);
 
+int
+plugins_cache_init (void);
+
 void
 init_loading_shm (void);
 

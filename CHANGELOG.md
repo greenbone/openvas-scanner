@@ -7,7 +7,9 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 ## [Unreleased]
 
 ### Added
-- Create greenbone-nvt-sync create lock file during feed sync. [#458](https://github.com/greenbone/openvas/pull/458)
+- Create greenbone-nvt-sync create lock file during feed sync.
+  [#458](https://github.com/greenbone/openvas/pull/458)
+  [#459](https://github.com/greenbone/openvas/pull/459)
 
 ### Changed
 - The logging of the NASL internal regexp functions was extended to include the pattern in case of a failed regcomp(). [#397](https://github.com/greenbone/openvas/pull/397)

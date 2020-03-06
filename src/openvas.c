@@ -381,6 +381,11 @@ start_single_task_scan (void)
   g_message ("openvas %s started", OPENVAS_VERSION);
 #endif
 
+  if (plugins_cache_init ())
+    {
+      g_message ("Failed to initialize nvti cache.");
+      exit (1);
+    }
   init_signal_handlers ();
 
   globals = g_malloc0 (sizeof (struct scan_globals));
