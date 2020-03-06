@@ -8,7 +8,9 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ### Added
 - Display gvm-libs version in `openvas --version` output [#436](https://github.com/greenbone/openvas/pull/436)
-- Create greenbone-nvt-sync create lock file during feed sync. [#457](https://github.com/greenbone/openvas/pull/457)
+- Create greenbone-nvt-sync create lock file during feed sync.
+  [#457](https://github.com/greenbone/openvas/pull/457)
+  [#460](https://github.com/greenbone/openvas/pull/460)
 
 ### Changed
 - Improve handling of invalid or existent ids of nvt's preference id. [#416](https://github.com/greenbone/openvas/pull/416)
