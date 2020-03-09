@@ -96,9 +96,14 @@ epoch2isotime (my_isotime_t timebuf, time_t atime)
       struct tm *tp;
 
       tp = gmtime (&atime);
-      snprintf (timebuf, ISOTIME_SIZE, "%04d%02d%02dT%02d%02d%02d",
-                1900 + tp->tm_year, tp->tm_mon + 1, tp->tm_mday, tp->tm_hour,
-                tp->tm_min, tp->tm_sec);
+      if (snprintf (timebuf, ISOTIME_SIZE, "%04d%02d%02dT%02d%02d%02d",
+                    1900 + tp->tm_year, tp->tm_mon + 1, tp->tm_mday,
+                    tp->tm_hour, tp->tm_min, tp->tm_sec)
+          < 0)
+        {
+          *timebuf = '\0';
+          return;
+        }
     }
 }
 
@@ -433,8 +438,11 @@ add_seconds_to_isotime (my_isotime_t atime, int nseconds)
   if (year > 9999 || month > 12 || day > 31 || year < 0 || month < 1 || day < 1)
     return 1;
 
-  snprintf (atime, ISOTIME_SIZE, "%04d%02d%02dT%02d%02d%02d", year, month, day,
-            hour, minute, sec);
+  if (snprintf (atime, ISOTIME_SIZE, "%04d%02d%02dT%02d%02d%02d", year, month,
+                day, hour, minute, sec)
+      < 0)
+    return 1;
+
   return 0;
 }
 
@@ -469,8 +477,10 @@ add_days_to_isotime (my_isotime_t atime, int ndays)
   if (year > 9999 || month > 12 || day > 31 || year < 0 || month < 1 || day < 1)
     return 1;
 
-  snprintf (atime, ISOTIME_SIZE, "%04d%02d%02dT%02d%02d%02d", year, month, day,
-            hour, minute, sec);
+  if (snprintf (atime, ISOTIME_SIZE, "%04d%02d%02dT%02d%02d%02d", year, month,
+                day, hour, minute, sec)
+      < 0)
+    return 1;
   return 0;
 }
 
@@ -505,8 +515,11 @@ add_years_to_isotime (my_isotime_t atime, int nyears)
   if (year > 9999 || month > 12 || day > 31 || year < 0 || month < 1 || day < 1)
     return 1;
 
-  snprintf (atime, ISOTIME_SIZE, "%04d%02d%02dT%02d%02d%02d", year, month, day,
-            hour, minute, sec);
+  if (snprintf (atime, ISOTIME_SIZE, "%04d%02d%02dT%02d%02d%02d", year, month,
+                day, hour, minute, sec)
+      < 0)
+    return 1;
+
   return 0;
 }
 
