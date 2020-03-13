@@ -192,8 +192,8 @@ target_link_libraries (attack-test openvas_nasl_shared cgreen
                        ${LIBOPENVAS_MISC_LDFLAGS}
                        ${LIBGVM_BASE_LDFLAGS}
                        ${GLIB_LDFLAGS} ${GCRYPT_LDFLAGS}
-                       ${EXECINFO_LDFLAGS}
-                       ${LINKER_HARDENING_FLAGS}
+                       ${EXECINFO_LDFLAGS} ${PCAP_LDFLAGS}
+                       ${LINKER_HARDENING_FLAGS} ${CMAKE_THREAD_LIBS_INIT}
                        -Wl,--wrap=redis_push_str)
 
 add_custom_target (tests
