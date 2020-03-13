@@ -18,6 +18,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 - Use __func__ instead of __FUNCTION__ [#419](https://github.com/greenbone/openvas/pull/419)
 - Use pcap_findalldevs() instead of deprecated function pcap_lookupdev() [#422](https://github.com/greenbone/openvas/pull/422) [#430](https://github.com/greenbone/openvas/pull/430)
 - Add port-range option for openvas-nasl [#431](https://github.com/greenbone/openvas/pull/431)
+- Add test_alive_hosts_only feature. [#456](https://github.com/greenbone/openvas/pull/456)
 - Don't reload the plugins when start a new scan. [#458](https://github.com/greenbone/openvas/pull/458)
 
 ### Fixed

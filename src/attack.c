@@ -29,6 +29,7 @@
 #include "../misc/nvt_categories.h" /* for ACT_INIT */
 #include "../misc/pcap_openvas.h"   /* for v6_is_local_ip */
 #include "../nasl/nasl_debug.h"     /* for nasl_*_filename */
+#include "alivedetection.h"         /* for start_alive_detection */
 #include "hosts.h"
 #include "pluginlaunch.h"
 #include "pluginload.h"
@@ -47,10 +48,11 @@
 #include <gvm/base/prefs.h> /* for prefs_get() */
 #include <gvm/base/proctitle.h>
 #include <gvm/util/nvticache.h> /* for nvticache_t */
-#include <stdlib.h>             /* for exit() */
-#include <string.h>             /* for strlen() */
-#include <sys/wait.h>           /* for waitpid() */
-#include <unistd.h>             /* for close() */
+#include <pthread.h>
+#include <stdlib.h>   /* for exit() */
+#include <string.h>   /* for strlen() */
+#include <sys/wait.h> /* for waitpid() */
+#include <unistd.h>   /* for close() */
 
 #define ERR_HOST_DEAD -1
 #define ERR_CANT_FORK -2
@@ -986,6 +988,20 @@ check_kb_access (void)
   return rc;
 }
 
+/* TODO: put in other file ?*/
+static pthread_t alive_detection_tid;
+
+static void
+set_alive_detection_tid (pthread_t tid)
+{
+  alive_detection_tid = tid;
+}
+static pthread_t
+get_alive_detection_tid ()
+{
+  return alive_detection_tid;
+}
+
 static void
 handle_scan_stop_signal ()
 {
@@ -1001,6 +1017,13 @@ handle_scan_stop_signal ()
     hosts_stop_all ();
   else
     pluginlaunch_stop ();
+
+  if (prefs_get_bool ("test_alive_hosts_only"))
+    {
+      int err;
+      if ((err = pthread_kill (get_alive_detection_tid (), 9)) != 0)
+        g_error ("%s: error in pthread_kill(): %d", __func__, err);
+    }
 
   g_free (pid);
 }
@@ -1024,6 +1047,12 @@ attack_network (struct scan_globals *globals, kb_t *network_kb)
   gboolean do_network_scan = FALSE;
   kb_t host_kb;
   GSList *unresolved;
+
+  gboolean test_alive_hosts_only = prefs_get_bool ("test_alive_hosts_only");
+  gvm_hosts_t *alive_hosts_list = NULL;
+  kb_t alive_hosts_kb = NULL;
+  if (test_alive_hosts_only)
+    connect_main_kb (&alive_hosts_kb);
 
   gettimeofday (&then, NULL);
 
@@ -1169,6 +1198,28 @@ attack_network (struct scan_globals *globals, kb_t *network_kb)
   if (host == NULL)
     goto stop;
   hosts_init (max_hosts);
+
+  if (test_alive_hosts_only)
+    {
+      hosts->current = 0;
+
+      int err;
+      pthread_t tid;
+      if ((err =
+             pthread_create (&tid, NULL, start_alive_detection, (void *) hosts))
+          != 0)
+        g_error ("%s: pthread_create(): %d", __func__, err);
+      set_alive_detection_tid (tid);
+      g_debug ("%s: started alive detection.", __func__);
+      /* blocks until we got new host, timeout or error */
+      host = get_host_from_queue (alive_hosts_kb, -1);
+      g_debug ("%s: Get first host to test from Queue. This host is used for "
+               "initialising the alive_hosts_list.",
+               __func__);
+
+      alive_hosts_list = gvm_hosts_new (gvm_host_value_str (host));
+    }
+
   /*
    * Start the attack !
    */
@@ -1245,7 +1296,25 @@ attack_network (struct scan_globals *globals, kb_t *network_kb)
           globals->network_scan_status = g_strdup ("done");
         }
       else
-        host = gvm_hosts_next (hosts);
+        {
+          if (test_alive_hosts_only)
+            {
+              host = get_host_from_queue (alive_hosts_kb, -1);
+              if (host)
+                {
+                  gvm_hosts_add (alive_hosts_list, host);
+                  g_debug ("%s: got new host to test", __func__);
+                }
+              else
+                {
+                  g_debug ("%s: got NULL host, stop/finish scan", __func__);
+                }
+            }
+          else
+            {
+              host = gvm_hosts_next (hosts);
+            }
+        }
       g_free (host_str);
     }
 
@@ -1262,6 +1331,23 @@ scan_stop:
     g_hash_table_destroy (files);
 
 stop:
+
+  if (test_alive_hosts_only)
+    {
+      gvm_hosts_free (alive_hosts_list);
+      kb_lnk_reset (alive_hosts_kb);
+      g_debug ("%s: free alive detection data ", __func__);
+      /* need to wait for alive detection to finish */
+      /* thread should be finished because we got host == NULL which means
+       * either the detection is finished or a timeout was reached */
+      g_info ("%s: waiting for alive detection thread to be finished...",
+              __func__);
+      /* join thread*/
+      int err;
+      if ((err = pthread_join (get_alive_detection_tid (), NULL)) != 0)
+        g_error ("%s: got error from pthread_join(): %d", __func__, err);
+      g_info ("%s: finished waiting for alive detection thread.", __func__);
+    }
 
   gvm_hosts_free (hosts);
   g_free (globals->network_scan_status);
