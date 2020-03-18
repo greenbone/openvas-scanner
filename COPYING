@@ -17,6 +17,8 @@ tool with the following command:
 
 
 src/CMakeLists.txt: GPL-2+
+src/alivedetection.c: GPL-2+
+src/alivedetection.h: GPL-2+
 src/attack.c: GPL-2
 src/attack.h: GPL-2
 src/hosts.c: GPL-2
