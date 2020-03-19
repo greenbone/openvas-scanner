@@ -1162,30 +1162,41 @@ put_host_on_queue (gpointer key, __attribute__ ((unused)) gpointer value,
  * Start a sniffer thread. Get what method of alive detection to use. Send
  * appropriate pings  for every host we want to test.
  *
- * @return 0 on success, -1 on failure.
+ * @return 0 on success, <0 on failure.
  */
 static int
 scan (void)
 {
-  g_message ("%s: scan for alive hosts started", __func__);
-  int err = -1;
+  g_message ("%s: Start scanning for alive hosts.", __func__);
+  int err;
+  pthread_t tid; /* thread id */
+  const gchar *alive_test_pref_as_str;
+
+  alive_test_pref_as_str = prefs_get ("ALIVE_TEST");
+  if (alive_test_pref_as_str == NULL)
+    {
+      g_warning ("%s: No valid alive_test specified.", __func__);
+      return -1;
+    }
 
   scanner.pcap_handle = open_live (NULL, FILTER_STR);
   if (scanner.pcap_handle == NULL)
-    return -1;
+    {
+      g_warning ("%s: Unable to open valid pcap handle.", __func__);
+      return -2;
+    }
 
   /* start sniffer thread and wait a bit for startup */
   /* TODO: use mutex instead of sleep */
-  pthread_t tid; /* thread id */
   if ((err = pthread_create (&tid, NULL, sniffer_thread, NULL)) != 0)
     {
       g_warning ("%s: pthread_create: %d", __func__, err);
     }
   sleep (2);
 
-  g_info ("%s: get method of alive dettection", __func__);
+  g_info ("%s: Get method of alive detection.", __func__);
   /* get ALIVE_TEST enum */
-  alive_test_t alive_test = atoi (prefs_get ("ALIVE_TEST"));
+  alive_test_t alive_test = atoi (alive_test_pref_as_str);
   if (alive_test
       == (ALIVE_TEST_TCP_ACK_SERVICE | ALIVE_TEST_ICMP | ALIVE_TEST_ARP))
     {
