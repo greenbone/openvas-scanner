@@ -1137,6 +1137,23 @@ send_arp (__attribute__ ((unused)) gpointer key, gpointer value,
 }
 
 /**
+ * @brief Put host value string on queue of hosts to be considered as alive.
+ *
+ * @param key Host value string.
+ * @param value Pointer to gvm_host_t.
+ * @param user_data
+ */
+static void
+put_host_on_queue (gpointer key, __attribute__ ((unused)) gpointer value,
+                   __attribute__ ((unused)) gpointer user_data)
+{
+  if (kb_item_push_str (scanner.main_kb, "alive_detection", (char *) key) != 0)
+    g_debug ("%s: kb_item_push_str() failed. Could not push \"%s\" on queue of "
+             "hosts to be considered as alive.",
+             __func__, (char *) key);
+}
+
+/**
  * @brief Scan function starts a sniffing thread which waits for packets to
  * arrive and sends pings to hosts we want to test. Blocks until Scan is
  * finished or error occured.
@@ -1229,7 +1246,10 @@ scan (void)
       g_hash_table_foreach (hosts_data.targethosts, send_icmp, NULL);
     }
   else if (alive_test == (ALIVE_TEST_CONSIDER_ALIVE))
-    g_info ("%s: Consider Alive", __func__);
+    {
+      g_info ("%s: Consider Alive", __func__);
+      g_hash_table_foreach (hosts_data.targethosts, put_host_on_queue, NULL);
+    }
 
   g_info ("%s: all ping packets are sent, wait a bit for rest of replies",
           __func__);
