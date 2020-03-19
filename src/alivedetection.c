@@ -619,7 +619,7 @@ send_icmp_v6 (int soc, struct in6_addr *dst, int type)
   soca.sin6_family = AF_INET6;
   soca.sin6_addr = *dst;
 
-  if (sendto (soc, sendbuf, len, 0, (struct sockaddr *) &soca,
+  if (sendto (soc, sendbuf, len, MSG_NOSIGNAL, (struct sockaddr *) &soca,
               sizeof (struct sockaddr_in6))
       < 0)
     {
@@ -659,7 +659,7 @@ send_icmp_v4 (int soc, struct in_addr *dst)
   soca.sin_family = AF_INET;
   soca.sin_addr = *dst;
 
-  if (sendto (soc, sendbuf, len, 0, (const struct sockaddr *) &soca,
+  if (sendto (soc, sendbuf, len, MSG_NOSIGNAL, (const struct sockaddr *) &soca,
               sizeof (struct sockaddr_in))
       < 0)
     {
@@ -837,8 +837,8 @@ send_tcp_v6 (int soc, struct in6_addr *dst_p, uint8_t tcp_flag)
       soca.sin6_family = AF_INET6;
       soca.sin6_addr = ip->ip6_dst;
       /*  TCP_HDRLEN(20) IP6_HDRLEN(40) */
-      if (sendto (soc, (const void *) ip, 40 + 20, 0, (struct sockaddr *) &soca,
-                  sizeof (struct sockaddr_in6))
+      if (sendto (soc, (const void *) ip, 40 + 20, MSG_NOSIGNAL,
+                  (struct sockaddr *) &soca, sizeof (struct sockaddr_in6))
           < 0)
         {
           g_warning ("%s: sendto():  %s", __func__, strerror (errno));
@@ -930,8 +930,8 @@ send_tcp_v4 (int soc, struct in_addr *dst_p, uint8_t tcp_flag)
       memset (&soca, 0, sizeof (soca));
       soca.sin_family = AF_INET;
       soca.sin_addr = ip->ip_dst;
-      if (sendto (soc, (const void *) ip, 40, 0, (struct sockaddr *) &soca,
-                  sizeof (soca))
+      if (sendto (soc, (const void *) ip, 40, MSG_NOSIGNAL,
+                  (struct sockaddr *) &soca, sizeof (soca))
           < 0)
         {
           g_warning ("%s: sendto(): %s", __func__, strerror (errno));
@@ -1081,8 +1081,8 @@ send_arp_v4 (int soc, struct in_addr *dst_p, uint8_t *src_mac, uint8_t *dst_mac)
   memcpy (ether_frame + 14, &arphdr, 28 * sizeof (uint8_t));
 
   // Send ethernet frame to socket.
-  if ((sendto (soc, ether_frame, frame_length, 0, (struct sockaddr *) &soca,
-               sizeof (soca)))
+  if ((sendto (soc, ether_frame, frame_length, MSG_NOSIGNAL,
+               (struct sockaddr *) &soca, sizeof (soca)))
       <= 0)
     {
       g_warning ("%s: sendto(): %s", __func__, strerror (errno));
