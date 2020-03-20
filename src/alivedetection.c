@@ -197,7 +197,7 @@ open_live (char *iface, char *filter)
   struct bpf_program filter_prog;
 
   /* pcap version */
-  g_debug ("%s: pcap version: %s", __func__, pcap_lib_version ());
+  g_warning ("%s: pcap version: %s", __func__, pcap_lib_version ());
 
   /* iface, snapshot length of handle, promiscuous mode, packet buffer timeout
    * (ms), errbuff */
@@ -205,12 +205,12 @@ open_live (char *iface, char *filter)
   pcap_handle = pcap_open_live (iface, 1500, 0, 100, errbuf);
   if (pcap_handle == NULL)
     {
-      g_error ("%s: %s", __func__, errbuf);
+      g_warning ("%s: %s", __func__, errbuf);
       return NULL;
     }
   if (g_utf8_strlen (errbuf, -1) != 0)
     {
-      g_info ("%s: %s", __func__, errbuf);
+      g_warning ("%s: %s", __func__, errbuf);
     }
 
   /* TODO: documentation of pcap_setnonblock() says that pcap_loop() and
@@ -218,18 +218,18 @@ open_live (char *iface, char *filter)
    * only work reliably when setnonblock is set in this program. why? */
   if (pcap_setnonblock (pcap_handle, 1, errbuf) != 0)
     {
-      g_error ("%s: %s", __func__, errbuf);
+      g_warning ("%s: %s", __func__, errbuf);
     }
 
   /* get current ''non-blocking'' state of the capture descriptor */
   int non_blocking_state = -1;
   if ((non_blocking_state = pcap_getnonblock (pcap_handle, errbuf)) < 0)
     {
-      g_error ("%s: %s", __func__, errbuf);
+      g_warning ("%s: %s", __func__, errbuf);
     }
   else
     {
-      g_debug ("%s: non-blocking state = %d", __func__, non_blocking_state);
+      g_info ("%s: non-blocking state = %d", __func__, non_blocking_state);
     }
 
   /* handle, struct bpf_program *fp, int optimize, bpf_u_int32 netmask */
@@ -237,7 +237,7 @@ open_live (char *iface, char *filter)
       < 0)
     {
       char *msg = pcap_geterr (pcap_handle);
-      g_error ("%s: %s", __func__, msg);
+      g_warning ("%s: %s", __func__, msg);
       pcap_close (pcap_handle);
       return NULL;
     }
@@ -245,7 +245,7 @@ open_live (char *iface, char *filter)
   if (pcap_setfilter (pcap_handle, &filter_prog) < 0)
     {
       char *msg = pcap_geterr (pcap_handle);
-      g_error ("%s: %s", __func__, msg);
+      g_warning ("%s: %s", __func__, msg);
       pcap_close (pcap_handle);
       return NULL;
     }
@@ -276,7 +276,7 @@ get_host_from_queue (kb_t alive_hosts_kb, int timeout)
   /* redis connection not established yet */
   if (!alive_hosts_kb)
     {
-      g_error ("%s: connection to redis is not valid", __func__);
+      g_warning ("%s: connection to redis is not valid", __func__);
       return NULL;
     }
 
@@ -326,7 +326,7 @@ get_host_from_queue (kb_t alive_hosts_kb, int timeout)
               host = gvm_host_from_str (host_str);
               if (!host)
                 {
-                  g_error (
+                  g_warning (
                     "%s: error in call to gvm_host_from_str() for host_str: %s",
                     __func__, host_str);
                   continue;
@@ -414,7 +414,7 @@ got_packet (__attribute__ ((unused)) u_char *args,
       if (inet_ntop (AF_INET, (const char *) &sniffed_addr, addr_str,
                      INET_ADDRSTRLEN)
           == NULL)
-        g_error ("%s: inet_ntop: %s", __func__, strerror (errno));
+        g_warning ("%s: inet_ntop: %s", __func__, strerror (errno));
       // g_message ("%s: IP version = 4, addr: %s", __func__, addr_str);
 
       /* Do not put already found host on Queue and only put hosts on Queue we
@@ -422,11 +422,11 @@ got_packet (__attribute__ ((unused)) u_char *args,
       if (g_hash_table_add (hosts_data.alivehosts, g_strdup (addr_str))
           && g_hash_table_contains (hosts_data.targethosts, addr_str) == TRUE)
         {
-          g_debug ("%s: Thread sniffed unique address to put on queue: %s",
-                   __func__, addr_str);
+          g_warning ("%s: Thread sniffed unique address to put on queue: %s",
+                     __func__, addr_str);
           if (kb_item_push_str (scanner.main_kb, "alive_detection", addr_str)
               != 0)
-            g_error ("%s: kb_item_push_str() failed", __func__);
+            g_warning ("%s: kb_item_push_str() failed", __func__);
         }
     }
   else if (version == 6)
@@ -438,7 +438,7 @@ got_packet (__attribute__ ((unused)) u_char *args,
       if (inet_ntop (AF_INET6, (const char *) &sniffed_addr, addr_str,
                      INET6_ADDRSTRLEN)
           == NULL)
-        g_error ("%s: inet_ntop: %s", __func__, strerror (errno));
+        g_warning ("%s: inet_ntop: %s", __func__, strerror (errno));
       // g_message ("%s: IP version = 6, addr: %s", __func__, addr_str);
 
       /* Do not put already found host on Queue and only put hosts on Queue we
@@ -446,11 +446,11 @@ got_packet (__attribute__ ((unused)) u_char *args,
       if (g_hash_table_add (hosts_data.alivehosts, g_strdup (addr_str))
           && g_hash_table_contains (hosts_data.targethosts, addr_str) == TRUE)
         {
-          g_debug ("%s: Thread sniffed unique address to put on queue: %s",
-                   __func__, addr_str);
+          g_warning ("%s: Thread sniffed unique address to put on queue: %s",
+                     __func__, addr_str);
           if (kb_item_push_str (scanner.main_kb, "alive_detection", addr_str)
               != 0)
-            g_error ("%s: kb_item_push_str() failed", __func__);
+            g_warning ("%s: kb_item_push_str() failed", __func__);
         }
     }
   /* TODO: check collision situations.
@@ -468,7 +468,7 @@ got_packet (__attribute__ ((unused)) u_char *args,
       gchar addr_str[INET_ADDRSTRLEN];
       if (inet_ntop (AF_INET, (const char *) arp, addr_str, INET_ADDRSTRLEN)
           == NULL)
-        g_error ("%s: inet_ntop: %s", __func__, strerror (errno));
+        g_warning ("%s: inet_ntop: %s", __func__, strerror (errno));
       // g_message ("%s: ARP, IP addr: %s", __func__, addr_str);
 
       /* Do not put already found host on Queue and only put hosts on Queue
@@ -476,11 +476,11 @@ got_packet (__attribute__ ((unused)) u_char *args,
       if (g_hash_table_add (hosts_data.alivehosts, g_strdup (addr_str))
           && g_hash_table_contains (hosts_data.targethosts, addr_str) == TRUE)
         {
-          g_debug ("%s: Thread sniffed unique address to put on queue: %s",
-                   __func__, addr_str);
+          g_warning ("%s: Thread sniffed unique address to put on queue: %s",
+                     __func__, addr_str);
           if (kb_item_push_str (scanner.main_kb, "alive_detection", addr_str)
               != 0)
-            g_error ("%s: kb_item_push_str() failed", __func__);
+            g_warning ("%s: kb_item_push_str() failed", __func__);
         }
     }
 }
@@ -499,8 +499,8 @@ sniffer_thread (__attribute__ ((unused)) void *vargp)
   /* reads packets until error or pcap_breakloop() */
   if ((ret = pcap_loop (scanner.pcap_handle, -1, got_packet, NULL))
       == PCAP_ERROR)
-    g_error ("%s: pcap_loop error %s", __func__,
-             pcap_geterr (scanner.pcap_handle));
+    g_warning ("%s: pcap_loop error %s", __func__,
+               pcap_geterr (scanner.pcap_handle));
   else if (ret == 0)
     g_warning ("%s: count of packets is exhausted", __func__);
   else if (ret == PCAP_ERROR_BREAK)
@@ -555,7 +555,7 @@ get_source_mac_addr (gchar *interface, uint8_t *mac)
 
   if (getifaddrs (&ifaddr) == -1)
     {
-      g_error ("%s: getifaddr failed: %s", __func__, strerror (errno));
+      g_warning ("%s: getifaddr failed: %s", __func__, strerror (errno));
       return -1;
     }
   else
@@ -619,11 +619,11 @@ send_icmp_v6 (int soc, struct in6_addr *dst, int type)
   soca.sin6_family = AF_INET6;
   soca.sin6_addr = *dst;
 
-  if (sendto (soc, sendbuf, len, 0, (struct sockaddr *) &soca,
+  if (sendto (soc, sendbuf, len, MSG_NOSIGNAL, (struct sockaddr *) &soca,
               sizeof (struct sockaddr_in6))
       < 0)
     {
-      g_error ("%s: sendto(): %s", __func__, strerror (errno));
+      g_warning ("%s: sendto(): %s", __func__, strerror (errno));
     }
 }
 
@@ -659,11 +659,11 @@ send_icmp_v4 (int soc, struct in_addr *dst)
   soca.sin_family = AF_INET;
   soca.sin_addr = *dst;
 
-  if (sendto (soc, sendbuf, len, 0, (const struct sockaddr *) &soca,
+  if (sendto (soc, sendbuf, len, MSG_NOSIGNAL, (const struct sockaddr *) &soca,
               sizeof (struct sockaddr_in))
       < 0)
     {
-      g_error ("%s: sendto(): %s", __func__, strerror (errno));
+      g_warning ("%s: sendto(): %s", __func__, strerror (errno));
     }
 }
 
@@ -694,10 +694,10 @@ send_icmp (__attribute__ ((unused)) gpointer key, gpointer value,
     usleep (BURST_TIMEOUT);
 
   if (gvm_host_get_addr6 ((gvm_host_t *) value, dst6_p) < 0)
-    g_error ("%s: could not get addr6 from gvm_host_t", __func__);
+    g_warning ("%s: could not get addr6 from gvm_host_t", __func__);
   if (dst6_p == NULL)
     {
-      g_error ("%s: destination address is NULL", __func__);
+      g_warning ("%s: destination address is NULL", __func__);
       return;
     }
   if (IN6_IS_ADDR_V4MAPPED (dst6_p) != 1)
@@ -719,8 +719,8 @@ send_icmp (__attribute__ ((unused)) gpointer key, gpointer value,
                           interface, IFNAMSIZ)
               < 0)
             {
-              g_error ("%s: failed to set socket option SO_BINDTODEVICE: %s",
-                       __func__, strerror (errno));
+              g_warning ("%s: failed to set socket option SO_BINDTODEVICE: %s",
+                         __func__, strerror (errno));
               return;
             }
           icmpv6socopt_set = TRUE;
@@ -749,8 +749,8 @@ send_icmp (__attribute__ ((unused)) gpointer key, gpointer value,
                           interface, IFNAMSIZ)
               < 0)
             {
-              g_error ("%s: failed to set socket option SO_BINDTODEVICE: %s",
-                       __func__, strerror (errno));
+              g_warning ("%s: failed to set socket option SO_BINDTODEVICE: %s",
+                         __func__, strerror (errno));
               return;
             }
           icmpv4socopt_set = TRUE;
@@ -837,11 +837,11 @@ send_tcp_v6 (int soc, struct in6_addr *dst_p, uint8_t tcp_flag)
       soca.sin6_family = AF_INET6;
       soca.sin6_addr = ip->ip6_dst;
       /*  TCP_HDRLEN(20) IP6_HDRLEN(40) */
-      if (sendto (soc, (const void *) ip, 40 + 20, 0, (struct sockaddr *) &soca,
-                  sizeof (struct sockaddr_in6))
+      if (sendto (soc, (const void *) ip, 40 + 20, MSG_NOSIGNAL,
+                  (struct sockaddr *) &soca, sizeof (struct sockaddr_in6))
           < 0)
         {
-          g_error ("%s: sendto():  %s", __func__, strerror (errno));
+          g_warning ("%s: sendto():  %s", __func__, strerror (errno));
         }
     }
 }
@@ -930,11 +930,11 @@ send_tcp_v4 (int soc, struct in_addr *dst_p, uint8_t tcp_flag)
       memset (&soca, 0, sizeof (soca));
       soca.sin_family = AF_INET;
       soca.sin_addr = ip->ip_dst;
-      if (sendto (soc, (const void *) ip, 40, 0, (struct sockaddr *) &soca,
-                  sizeof (soca))
+      if (sendto (soc, (const void *) ip, 40, MSG_NOSIGNAL,
+                  (struct sockaddr *) &soca, sizeof (soca))
           < 0)
         {
-          g_error ("%s: sendto(): %s", __func__, strerror (errno));
+          g_warning ("%s: sendto(): %s", __func__, strerror (errno));
         }
     }
 }
@@ -962,10 +962,10 @@ send_tcp (__attribute__ ((unused)) gpointer key, gpointer value,
   struct in_addr *dst4_p = &dst4;
 
   if (gvm_host_get_addr6 ((gvm_host_t *) value, dst6_p) < 0)
-    g_error ("%s: could not get addr6 from gvm_host_t", __func__);
+    g_warning ("%s: could not get addr6 from gvm_host_t", __func__);
   if (dst6_p == NULL)
     {
-      g_error ("%s: destination address is NULL", __func__);
+      g_warning ("%s: destination address is NULL", __func__);
       return;
     }
   if (IN6_IS_ADDR_V4MAPPED (dst6_p) != 1)
@@ -1016,7 +1016,7 @@ send_arp_v4 (int soc, struct in_addr *dst_p, uint8_t *src_mac, uint8_t *dst_mac)
       /* interface index */
       if ((scanner.ifaceindex = if_nametoindex (interface)) == 0)
         {
-          g_error ("%s: if_nametoindex: %s", __func__, strerror (errno));
+          g_warning ("%s: if_nametoindex: %s", __func__, strerror (errno));
         }
 
       /* mac addresses */
@@ -1026,7 +1026,7 @@ send_arp_v4 (int soc, struct in_addr *dst_p, uint8_t *src_mac, uint8_t *dst_mac)
       /* src mac */
       if (get_source_mac_addr (interface, (unsigned char *) &scanner.src_mac)
           != 0)
-        g_error ("%s: get_source_mac_addr() returned error", __func__);
+        g_warning ("%s: get_source_mac_addr() returned error", __func__);
       g_info ("%s: source mac address: %02x:%02x:%02x:%02x:%02x:%02x", __func__,
               scanner.src_mac[0], scanner.src_mac[1], scanner.src_mac[2],
               scanner.src_mac[3], scanner.src_mac[4], scanner.src_mac[5]);
@@ -1081,11 +1081,11 @@ send_arp_v4 (int soc, struct in_addr *dst_p, uint8_t *src_mac, uint8_t *dst_mac)
   memcpy (ether_frame + 14, &arphdr, 28 * sizeof (uint8_t));
 
   // Send ethernet frame to socket.
-  if ((sendto (soc, ether_frame, frame_length, 0, (struct sockaddr *) &soca,
-               sizeof (soca)))
+  if ((sendto (soc, ether_frame, frame_length, MSG_NOSIGNAL,
+               (struct sockaddr *) &soca, sizeof (soca)))
       <= 0)
     {
-      g_error ("%s: sendto(): %s", __func__, strerror (errno));
+      g_warning ("%s: sendto(): %s", __func__, strerror (errno));
     }
 
   g_free (ether_frame);
@@ -1116,10 +1116,10 @@ send_arp (__attribute__ ((unused)) gpointer key, gpointer value,
     usleep (BURST_TIMEOUT);
 
   if (gvm_host_get_addr6 ((gvm_host_t *) value, dst6_p) < 0)
-    g_error ("%s: could not get addr6 from gvm_host_t", __func__);
+    g_warning ("%s: could not get addr6 from gvm_host_t", __func__);
   if (dst6_p == NULL)
     {
-      g_error ("%s: destination address is NULL", __func__);
+      g_warning ("%s: destination address is NULL", __func__);
       return;
     }
   if (IN6_IS_ADDR_V4MAPPED (dst6_p) != 1)
@@ -1148,9 +1148,10 @@ put_host_on_queue (gpointer key, __attribute__ ((unused)) gpointer value,
                    __attribute__ ((unused)) gpointer user_data)
 {
   if (kb_item_push_str (scanner.main_kb, "alive_detection", (char *) key) != 0)
-    g_debug ("%s: kb_item_push_str() failed. Could not push \"%s\" on queue of "
-             "hosts to be considered as alive.",
-             __func__, (char *) key);
+    g_warning (
+      "%s: kb_item_push_str() failed. Could not push \"%s\" on queue of "
+      "hosts to be considered as alive.",
+      __func__, (char *) key);
 }
 
 /**
@@ -1161,30 +1162,41 @@ put_host_on_queue (gpointer key, __attribute__ ((unused)) gpointer value,
  * Start a sniffer thread. Get what method of alive detection to use. Send
  * appropriate pings  for every host we want to test.
  *
- * @return 0 on success, -1 on failure.
+ * @return 0 on success, <0 on failure.
  */
 static int
 scan (void)
 {
-  g_message ("%s: scan for alive hosts started", __func__);
-  int err = -1;
+  g_message ("%s: Start scanning for alive hosts.", __func__);
+  int err;
+  pthread_t tid; /* thread id */
+  const gchar *alive_test_pref_as_str;
+
+  alive_test_pref_as_str = prefs_get ("ALIVE_TEST");
+  if (alive_test_pref_as_str == NULL)
+    {
+      g_warning ("%s: No valid alive_test specified.", __func__);
+      return -1;
+    }
 
   scanner.pcap_handle = open_live (NULL, FILTER_STR);
   if (scanner.pcap_handle == NULL)
-    return -1;
+    {
+      g_warning ("%s: Unable to open valid pcap handle.", __func__);
+      return -2;
+    }
 
   /* start sniffer thread and wait a bit for startup */
   /* TODO: use mutex instead of sleep */
-  pthread_t tid; /* thread id */
   if ((err = pthread_create (&tid, NULL, sniffer_thread, NULL)) != 0)
     {
-      g_error ("%s: pthread_create: %d", __func__, err);
+      g_warning ("%s: pthread_create: %d", __func__, err);
     }
   sleep (2);
 
-  g_info ("%s: get method of alive dettection", __func__);
+  g_info ("%s: Get method of alive detection.", __func__);
   /* get ALIVE_TEST enum */
-  alive_test_t alive_test = atoi (prefs_get ("ALIVE_TEST"));
+  alive_test_t alive_test = atoi (alive_test_pref_as_str);
   if (alive_test
       == (ALIVE_TEST_TCP_ACK_SERVICE | ALIVE_TEST_ICMP | ALIVE_TEST_ARP))
     {
@@ -1264,7 +1276,7 @@ scan (void)
   /* join sniffer thread*/
   if ((err = pthread_join (tid, NULL)) != 0)
     {
-      g_error ("%s: pthread_join: %d", __func__, err);
+      g_warning ("%s: pthread_join: %d", __func__, err);
     }
   g_info ("%s: joined thread", __func__);
 
@@ -1294,8 +1306,8 @@ set_broadcast (int socket)
                   sizeof (broadcast))
       < 0)
     {
-      g_error ("%s: failed to set socket option SO_BROADCAST: %s", __func__,
-               strerror (errno));
+      g_warning ("%s: failed to set socket option SO_BROADCAST: %s", __func__,
+                 strerror (errno));
       return -1;
     }
   return 0;
@@ -1321,16 +1333,16 @@ get_socket (enum socket_type socket_type)
         soc = socket (AF_INET, SOCK_RAW, IPPROTO_RAW);
         if (soc < 0)
           {
-            g_error ("%s: failed to open TCPV4 socket: %s", __func__,
-                     strerror (errno));
+            g_warning ("%s: failed to open TCPV4 socket: %s", __func__,
+                       strerror (errno));
             return -1;
           }
         if (setsockopt (soc, IPPROTO_IP, IP_HDRINCL, (char *) &opt,
                         sizeof (opt))
             < 0)
           {
-            g_error ("%s: failed to set socket options on TCPV4 socket: %s",
-                     __func__, strerror (errno));
+            g_warning ("%s: failed to set socket options on TCPV4 socket: %s",
+                       __func__, strerror (errno));
             return -2;
           }
       }
@@ -1340,8 +1352,8 @@ get_socket (enum socket_type socket_type)
         soc = socket (AF_INET6, SOCK_RAW, IPPROTO_RAW);
         if (soc < 0)
           {
-            g_error ("%s: failed to open TCPV6 socket: %s", __func__,
-                     strerror (errno));
+            g_warning ("%s: failed to open TCPV6 socket: %s", __func__,
+                       strerror (errno));
             return -3;
           }
 
@@ -1351,8 +1363,8 @@ get_socket (enum socket_type socket_type)
                         sizeof (opt_on))
             < 0)
           {
-            g_error ("%s: failed to set socket options on TCPV6 socket: %s",
-                     __func__, strerror (errno));
+            g_warning ("%s: failed to set socket options on TCPV6 socket: %s",
+                       __func__, strerror (errno));
             return -4;
           }
       }
@@ -1362,8 +1374,8 @@ get_socket (enum socket_type socket_type)
         soc = socket (AF_INET, SOCK_RAW, IPPROTO_ICMP);
         if (soc < 0)
           {
-            g_critical ("%s: failed to open ICMPV4 socket: %s", __func__,
-                        strerror (errno));
+            g_warning ("%s: failed to open ICMPV4 socket: %s", __func__,
+                       strerror (errno));
             return -5;
           }
       }
@@ -1374,8 +1386,8 @@ get_socket (enum socket_type socket_type)
         soc = socket (AF_INET6, SOCK_RAW, IPPROTO_ICMPV6);
         if (soc < 0)
           {
-            g_critical ("%s: failed to open ARPV6/ICMPV6 socket: %s", __func__,
-                        strerror (errno));
+            g_warning ("%s: failed to open ARPV6/ICMPV6 socket: %s", __func__,
+                       strerror (errno));
             return -6;
           }
       }
@@ -1385,8 +1397,8 @@ get_socket (enum socket_type socket_type)
         soc = socket (PF_PACKET, SOCK_RAW, htons (ETH_P_ALL));
         if (soc < 0)
           {
-            g_critical ("%s: failed to open ARPV4 socket: %s", __func__,
-                        strerror (errno));
+            g_warning ("%s: failed to open ARPV4 socket: %s", __func__,
+                       strerror (errno));
             return -7;
           }
       }
@@ -1477,39 +1489,39 @@ alive_detection_free (void)
   if ((close (scanner.tcpv4soc)) != 0)
     {
       ret = -1;
-      g_error ("%s: close(): %s", __func__, strerror (errno));
+      g_warning ("%s: close(): %s", __func__, strerror (errno));
     }
   if ((close (scanner.tcpv6soc)) != 0)
     {
       ret = -2;
-      g_error ("%s: close(): %s", __func__, strerror (errno));
+      g_warning ("%s: close(): %s", __func__, strerror (errno));
     }
   if ((close (scanner.icmpv4soc)) != 0)
     {
       ret = -3;
-      g_error ("%s: close(): %s", __func__, strerror (errno));
+      g_warning ("%s: close(): %s", __func__, strerror (errno));
     }
   if ((close (scanner.icmpv6soc)) != 0)
     {
       ret = -4;
-      g_error ("%s: close(): %s", __func__, strerror (errno));
+      g_warning ("%s: close(): %s", __func__, strerror (errno));
     }
   if ((close (scanner.arpv4soc)) != 0)
     {
       ret = -5;
-      g_error ("%s: close(): %s", __func__, strerror (errno));
+      g_warning ("%s: close(): %s", __func__, strerror (errno));
     }
   if ((close (scanner.arpv6soc)) != 0)
     {
       ret = -6;
-      g_error ("%s: close(): %s", __func__, strerror (errno));
+      g_warning ("%s: close(): %s", __func__, strerror (errno));
     }
   /*pcap_close (scanner.pcap_handle); //pcap_handle is closed in ping/scan
    * function for now */
   if ((kb_lnk_reset (scanner.main_kb)) != 0)
     {
       ret = -7;
-      g_error ("%s: error in kb_lnk_reset()", __func__);
+      g_warning ("%s: error in kb_lnk_reset()", __func__);
     }
 
   /* addresses */
@@ -1538,23 +1550,23 @@ start_alive_detection (void *hosts_to_test)
   int err;
   gvm_hosts_t *hosts = (gvm_hosts_t *) hosts_to_test;
   if ((err = alive_detection_init (hosts)) < 0)
-    g_error ("%s: error in alive_detection_init(): %d", __func__, err);
+    g_warning ("%s: error in alive_detection_init(): %d", __func__, err);
 
   g_info ("%s: start scan()", __func__);
   /* blocks until detection process is finished */
   if (scan () < 0)
-    g_error ("%s: error in scan()", __func__);
+    g_warning ("%s: error in scan()", __func__);
 
   /* put finish signal on Queue if all packets were sent and we waited long
    * enough for packets to arrive */
   if ((kb_item_push_str (scanner.main_kb, "alive_detection", "finish")) != 0)
-    g_error ("%s: error in kb_item_push_str()", __func__);
+    g_warning ("%s: error in kb_item_push_str()", __func__);
   else
     g_info ("%s: alive detection process finished. finish signal put on Q.",
             __func__);
 
   if ((err = alive_detection_free ()) < 0)
-    g_error ("%s: error in alive_detection_free(): %d", __func__, err);
+    g_warning ("%s: error in alive_detection_free(): %d", __func__, err);
 
   pthread_exit (0);
 }
