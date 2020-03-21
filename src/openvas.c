@@ -127,6 +127,7 @@ static openvas_option openvas_defaults[] = {
   {"report_host_details", "yes"},
   {"db_address", KB_PATH_DEFAULT},
   {"vendor_version", "\0"},
+  {"test_alive_hosts_only", "no"},
   {NULL, NULL}};
 
 static void
