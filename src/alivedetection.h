@@ -30,6 +30,10 @@
 #define BURST_TIMEOUT 100000
 /* how tong (in sec) to wait for replies after last packet was sent */
 #define WAIT_FOR_REPLIES_TIMEOUT 5
+/* Queue for communicating with openvas main process. */
+#define ALIVE_DETECTION_QUEUE "alive_detection"
+/* Finish signal to put on ALIVE_DETECTION_QUEUE. */
+#define ALIVE_DETECTION_FINISH "finish"
 
 gvm_host_t *
 get_host_from_queue (kb_t alive_hosts_kb, int timeout);
