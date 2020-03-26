@@ -1255,6 +1255,96 @@ send_arp (__attribute__ ((unused)) gpointer key, gpointer value,
 }
 
 /**
+ * @brief Send all dead hosts to ospd-openvas.
+ *
+ * All hosts which are not identified as alive are sent to ospd-openvas. This is
+ * needed for the calculation of the progress bar for gsa in ospd-openvas.
+ *
+ * @return 0 on success, <0 on failure.
+ */
+static void
+send_dead_hosts_to_ospd_openvas (void)
+{
+  kb_t main_kb = NULL;
+  int maindbid;
+  char buf[256];
+  int hosts_in_chunk = 0;
+
+  GHashTableIter target_hosts_iter;
+  gpointer host_str, value;
+  GString *chunked_hosts;
+
+  maindbid = atoi (prefs_get ("ov_maindbid"));
+  main_kb = kb_direct_conn (prefs_get ("db_address"), maindbid);
+
+  if (!main_kb)
+    {
+      g_warning ("%s: Could not connect to main_kb.", __func__);
+      return;
+    }
+
+  chunked_hosts = g_string_new (NULL);
+  for (g_hash_table_iter_init (&target_hosts_iter, hosts_data.targethosts);
+       g_hash_table_iter_next (&target_hosts_iter, &host_str, &value);)
+    {
+      /* If a host in the target hosts is not in the list of alive hosts we know
+       * it is dead and we have to send it to ospd-openvas */
+      if (!g_hash_table_contains (hosts_data.alivehosts, host_str))
+        {
+          g_string_append (chunked_hosts, host_str);
+          hosts_in_chunk++;
+
+          if (hosts_in_chunk == 1000)
+            {
+              /* Add start and end of message. */
+              g_string_prepend (chunked_hosts,
+                                "DEADHOST||| |||general/Host_Details|||");
+              g_string_append (chunked_hosts,
+                               "|||<host><detail><name>Host "
+                               "dead</name><value>1</value>source><description/"
+                               "><type/><name/></source></detail></host>");
+              g_debug ("%s: %s", __func__, chunked_hosts->str);
+              if (kb_item_push_str (main_kb, "internal/results",
+                                    chunked_hosts->str)
+                  != 0)
+                g_warning (
+                  "%s: kb_item_push_str() failed to push DEADHOST message.",
+                  __func__);
+              /* Delete contents of string. */
+              g_string_truncate (chunked_hosts, 0);
+              hosts_in_chunk = 0;
+            }
+          /* Add host string seperator. */
+          else
+            g_string_append (chunked_hosts, ",");
+        }
+      else
+        g_warning ("Not possible to get the main kb connection. Info about "
+                   "number of alive hosts could not be sent.");
+    }
+  /* Send rest of hosts. */
+  if (hosts_in_chunk)
+    {
+      /* Add start and end of message. */
+      g_string_prepend (chunked_hosts,
+                        "DEADHOST||| |||general/Host_Details|||");
+      g_string_append (chunked_hosts,
+                       "|||<host><detail><name>Host "
+                       "dead</name><value>1</value>source><description/><type/"
+                       "><name/></source></detail></host>");
+      g_debug ("%s: %s", __func__, buf);
+      if (kb_item_push_str (main_kb, "internal/results", chunked_hosts->str)
+          != 0)
+        g_warning ("%s: kb_item_push_str() failed to push DEADHOST message.",
+                   __func__);
+    }
+  /* Free GString. */
+  g_string_free (chunked_hosts, TRUE);
+
+  kb_lnk_reset (main_kb);
+}
+
+/**
  * @brief Scan function starts a sniffing thread which waits for packets to
  * arrive and sends pings to hosts we want to test. Blocks until Scan is
  * finished or error occured.
@@ -1504,6 +1594,9 @@ scan (void)
                    "number of alive hosts could not be sent.");
     }
 
+  /* Send info about dead hosts to ospd-openvas. This is needed for the
+   * calculation of the progress bar for gsa. */
+  send_dead_hosts_to_ospd_openvas ();
   g_info ("%s: scan for alive hosts ended", __func__);
 
   return 0;
