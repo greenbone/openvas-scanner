@@ -70,14 +70,9 @@ struct scanner
   int arpv6soc;
   /* flags */
   uint8_t tcp_flag; /**< TH_SYN or TH_ACK flag */
-  /* arp */
-  int ifaceindex;
-  uint8_t src_mac[6];
-  uint8_t dst_mac[6]; /* TODO: should not be part of the struct */
   /* source addresses */
   struct in_addr *sourcev4;
   struct in6_addr *sourcev6;
-  struct in_addr *sourcearpv4;
   /* redis connection */
   kb_t main_kb;
   /* pcap handle */
@@ -1104,107 +1099,92 @@ send_tcp (__attribute__ ((unused)) gpointer key, gpointer value,
  *
  * @param soc Socket to use for sending.
  * @param dst Destination address to send to.
- * @param src_mac Source mac address to use.
- * @param dst_mac Destination mac address to use.
  */
 static void
-send_arp_v4 (int soc, struct in_addr *dst_p, uint8_t *src_mac, uint8_t *dst_mac)
+send_arp_v4 (int soc, struct in_addr *dst_p)
 {
-  // g_message ("%s: SENDING ARP", __func__);
   struct sockaddr_ll soca;
-  struct in_addr src;
   struct arp_hdr arphdr;
   int frame_length;
   uint8_t *ether_frame;
 
+  static gboolean first_time_setup_done = FALSE;
+  static struct in_addr src;
+  static int ifaceindex;
+  static uint8_t src_mac[6];
+  static uint8_t dst_mac[6];
+
   memset (&soca, 0, sizeof (soca));
 
-  /* set up first time data */
-  if (scanner.sourcearpv4 == NULL)
+  /* Set up data which does not change between function calls. */
+  if (!first_time_setup_done)
     {
-      /* src address */
+      /* Set src address. */
       gchar *interface = routethrough (dst_p, &src);
       if (!interface)
         g_warning ("%s: no appropriate interface was found", __func__);
-      scanner.sourcearpv4 = g_memdup (&src, sizeof (struct in_addr));
-      g_message ("%s: interface to use: %s", __func__, interface);
-      printipv4 (scanner.sourcearpv4);
-      printipv4 (dst_p);
+      g_debug ("%s: interface to use: %s", __func__, interface);
 
-      /* interface index */
-      if ((scanner.ifaceindex = if_nametoindex (interface)) == 0)
-        {
-          g_warning ("%s: if_nametoindex: %s", __func__, strerror (errno));
-        }
+      /* Get interface index for sockaddr_ll. */
+      if ((ifaceindex = if_nametoindex (interface)) == 0)
+        g_warning ("%s: if_nametoindex: %s", __func__, strerror (errno));
 
-      /* mac addresses */
-      memset (&scanner.src_mac, 0, 6 * sizeof (uint8_t));
-      /* dst mac */
-      memset (scanner.dst_mac, 0xff, 6 * sizeof (uint8_t));
-      /* src mac */
-      if (get_source_mac_addr (interface, (unsigned char *) &scanner.src_mac)
-          != 0)
+      /* Set MAC addresses. */
+      memset (src_mac, 0, 6 * sizeof (uint8_t));
+      memset (dst_mac, 0xff, 6 * sizeof (uint8_t));
+      if (get_source_mac_addr (interface, (unsigned char *) src_mac) != 0)
         g_warning ("%s: get_source_mac_addr() returned error", __func__);
-      g_info ("%s: source mac address: %02x:%02x:%02x:%02x:%02x:%02x", __func__,
-              scanner.src_mac[0], scanner.src_mac[1], scanner.src_mac[2],
-              scanner.src_mac[3], scanner.src_mac[4], scanner.src_mac[5]);
-      g_info ("%s: source mac address: %02x:%02x:%02x:%02x:%02x:%02x", __func__,
-              scanner.dst_mac[0], scanner.dst_mac[1], scanner.dst_mac[2],
-              scanner.dst_mac[3], scanner.dst_mac[4], scanner.dst_mac[5]);
-    }
-  soca.sll_ifindex = scanner.ifaceindex;
 
-  g_info ("%s: Index for interface: %i", __func__, soca.sll_ifindex);
+      g_info ("%s: Source MAC address: %02x:%02x:%02x:%02x:%02x:%02x", __func__,
+              src_mac[0], src_mac[1], src_mac[2], src_mac[3], src_mac[4],
+              src_mac[5]);
+      g_info ("%s: Destination mac address: %02x:%02x:%02x:%02x:%02x:%02x",
+              __func__, dst_mac[0], dst_mac[1], dst_mac[2], dst_mac[3],
+              dst_mac[4], dst_mac[5]);
+
+      first_time_setup_done = TRUE;
+    }
+
+  /* Fill in sockaddr_ll.*/
+  soca.sll_ifindex = ifaceindex;
   soca.sll_family = AF_PACKET;
   memcpy (soca.sll_addr, src_mac, 6 * sizeof (uint8_t));
   soca.sll_halen = 6;
 
-  /* IP addresses */
+  /* Fill ARP header.*/
+  /* IP addresses. */
   memcpy (&arphdr.target_ip, dst_p, 4 * sizeof (uint8_t));
-  memcpy (&arphdr.sender_ip, scanner.sourcearpv4, 4 * sizeof (uint8_t));
-
-  // Hardware type (16 bits): 1 for ethernet
+  memcpy (&arphdr.sender_ip, &src, 4 * sizeof (uint8_t));
+  /* Hardware type ethernet.
+   * Protocol type IP.
+   * Hardware address lenth is MAC address length.
+   * Protocol address lenth is lenght of IPv4.
+   * OpCode is ARP request. */
   arphdr.htype = htons (1);
-  // Protocol type (16 bits): 2048 for IP
   arphdr.ptype = htons (ETH_P_IP);
-  // Hardware address length (8 bits): 6 bytes for MAC address
   arphdr.hlen = 6;
-  // Protocol address length (8 bits): 4 bytes for IPv4 address
   arphdr.plen = 4;
-  // OpCode: 1 for ARP request
   arphdr.opcode = htons (1);
-  // Sender hardware address (48 bits): MAC address
   memcpy (&arphdr.sender_mac, src_mac, 6 * sizeof (uint8_t));
-  // Sender protocol address (32 bits)
-  // See getaddrinfo() resolution of src_ip.
-  // Target hardware address (48 bits): zero, since we don't know it yet.
   memset (&arphdr.target_mac, 0, 6 * sizeof (uint8_t));
 
-  // Ethernet frame length = ethernet header (MAC + MAC + ethernet type) +
-  // ethernet data (ARP header)
-  frame_length = 6 + 6 + 2 + 28; /* ARP_HDRLEN = 28 */
-
-  // Destination and Source MAC addresses
+  /* Ethernet frame to send. */
   ether_frame = g_malloc0 (IP_MAXPACKET);
+  /* (MAC + MAC + ethernet type + ARP_HDRLEN) */
+  frame_length = 6 + 6 + 2 + 28;
+
   memcpy (ether_frame, dst_mac, 6 * sizeof (uint8_t));
   memcpy (ether_frame + 6, src_mac, 6 * sizeof (uint8_t));
-
-  // Next is ethernet type code (ETH_P_ARP for ARP).
-  // http://www.iana.org/assignments/ethernet-numbers
+  /* ethernet type code */
   ether_frame[12] = ETH_P_ARP / 256;
   ether_frame[13] = ETH_P_ARP % 256;
-
-  // ARP header
-  // ETH_HDRLEN = 14, ARP_HDRLEN = 28
+  /* ARP header.  ETH_HDRLEN = 14, ARP_HDRLEN = 28 */
   memcpy (ether_frame + 14, &arphdr, 28 * sizeof (uint8_t));
 
-  // Send ethernet frame to socket.
   if ((sendto (soc, ether_frame, frame_length, MSG_NOSIGNAL,
                (struct sockaddr *) &soca, sizeof (soca)))
       <= 0)
-    {
-      g_warning ("%s: sendto(): %s", __func__, strerror (errno));
-    }
+    g_warning ("%s: sendto(): %s", __func__, strerror (errno));
 
   g_free (ether_frame);
 
@@ -1250,7 +1230,7 @@ send_arp (__attribute__ ((unused)) gpointer key, gpointer value,
   else
     {
       dst4.s_addr = dst6_p->s6_addr32[3];
-      send_arp_v4 (scanner.arpv4soc, dst4_p, scanner.src_mac, scanner.dst_mac);
+      send_arp_v4 (scanner.arpv4soc, dst4_p);
     }
 }
 
@@ -1756,7 +1736,6 @@ alive_detection_init (gvm_hosts_t *hosts)
   /* sources */
   scanner.sourcev4 = NULL;
   scanner.sourcev6 = NULL;
-  scanner.sourcearpv4 = NULL;
   /* kb_t redis connection */
   int scandb_id = atoi (prefs_get ("ov_maindbid"));
   if ((scanner.main_kb = kb_direct_conn (prefs_get ("db_address"), scandb_id))
@@ -1851,7 +1830,6 @@ alive_detection_free (void)
   /* addresses */
   g_free (scanner.sourcev4);
   g_free (scanner.sourcev6);
-  g_free (scanner.sourcearpv4);
 
   g_hash_table_destroy (hosts_data.alivehosts);
   /* targethosts: (ipstr, gvm_host_t *)
