@@ -103,11 +103,16 @@ struct scan_restrictions
  */
 struct hosts_data
 {
-  GHashTable *alivehosts; /**< Set of the form (ip_str, ip_str) */
-  GHashTable
-    *targethosts; /**< Hashtable of the form (ip_str, gvm_host_t *). The
-                     gvm_host_t pointer point to hosts which are to be freed by
-                     the caller of start_alive_detection(). */
+  /* Set of the form (ip_str, ip_str).
+   * Hosts which passed our pcap filter. May include hosts which are alive but
+   * are not in the targethosts list */
+  GHashTable *alivehosts;
+  /* Hashtable of the form (ip_str, gvm_host_t *). The gvm_host_t pointers point
+   * to hosts which are to be freed by the caller of start_alive_detection(). */
+  GHashTable *targethosts;
+  /* Hosts which were detected as alive and are in the targetlist but are not
+   * sent to openvas because max_scan_hosts was reached. */
+  GHashTable *alivehosts_not_to_be_sent_to_openvas;
 };
 
 /**
@@ -477,6 +482,10 @@ handle_scan_restrictions (gchar *addr_str)
   /* Put alive hosts on queue as long as max_scan_hosts not reached. */
   if (!scan_restrictions.max_scan_hosts_reached)
     put_host_on_queue (addr_str, NULL, NULL);
+  else
+    g_hash_table_add (hosts_data.alivehosts_not_to_be_sent_to_openvas,
+                      addr_str);
+
   /* Put finish signal on queue if max_scan_hosts reached. */
   if (!scan_restrictions.max_scan_hosts_reached
       && (scan_restrictions.alive_hosts_count
@@ -1263,6 +1272,13 @@ send_dead_hosts_to_ospd_openvas (void)
       return;
     }
 
+  /* Delete all alive hosts which are not send to openvas because
+   * max_alive_hosts was reached, from the alivehosts list. These hosts are
+   * considered as dead by the progress bar of the openvas vuln scan because no
+   * vuln scan was ever started for them. */
+  g_hash_table_foreach (hosts_data.alivehosts_not_to_be_sent_to_openvas,
+                        exclude, hosts_data.alivehosts);
+
   chunked_hosts = g_string_new (NULL);
   for (g_hash_table_iter_init (&target_hosts_iter, hosts_data.targethosts);
        g_hash_table_iter_next (&target_hosts_iter, &host_str, &value);)
@@ -1751,6 +1767,9 @@ alive_detection_init (gvm_hosts_t *hosts)
     g_hash_table_new_full (g_str_hash, g_str_equal, g_free, NULL);
   hosts_data.targethosts =
     g_hash_table_new_full (g_str_hash, g_str_equal, g_free, NULL);
+  hosts_data.alivehosts_not_to_be_sent_to_openvas =
+    g_hash_table_new_full (g_str_hash, g_str_equal, g_free, NULL);
+
   /* put all hosts we want to check in hashtable */
   gvm_host_t *host;
   for (host = gvm_hosts_next (hosts); host; host = gvm_hosts_next (hosts))
@@ -1835,6 +1854,7 @@ alive_detection_free (void)
   /* targethosts: (ipstr, gvm_host_t *)
    * gvm_host_t are freed by caller of start_alive_detection()! */
   g_hash_table_destroy (hosts_data.targethosts);
+  g_hash_table_destroy (hosts_data.alivehosts_not_to_be_sent_to_openvas);
 
   return ret;
 }
