@@ -392,6 +392,18 @@ post_error (const char *oid, struct script_infos *desc, int port,
   proto_post_error (oid, desc, port, "tcp", action);
 }
 
+/**
+ * @brief Get the a plugins preference.
+ *
+ * Search in the preferences set by the client. If it is not
+ * present, search in redis cache for the default.
+ *
+ * @param[in] oid Script OID to get the preference from
+ * @param[in] name Name of the preference to get
+ * @param[in] pref_id Id of the preferences to get
+ *
+ * @return script preference on success, Null otherwise.
+ **/
 char *
 get_plugin_preference (const char *oid, const char *name, int pref_id)
 {
