@@ -117,7 +117,7 @@ _http_req (lex_ctxt *lexic, char *keyword)
         return NULL;
       /* global_settings.nasl */
       ua = get_plugin_preference ("1.3.6.1.4.1.25623.1.0.12288",
-                                  "HTTP User-Agent");
+                                  "HTTP User-Agent", -1);
       if (!ua || strlen (g_strstrip (ua)) == 0)
         {
           g_free (ua);
