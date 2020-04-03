@@ -153,7 +153,7 @@ char *
 plug_get_host_ip_str (struct script_infos *);
 
 char *
-get_plugin_preference (const char *, const char *);
+get_plugin_preference (const char *, const char *, int);
 
 const char *
 get_plugin_preference_fname (struct script_infos *, const char *);
