@@ -492,6 +492,16 @@ script_add_preference (lex_ctxt *lexic)
   return FAKE_CELL;
 }
 
+/**
+ * @brief Get a preferences of the current script.
+ *
+ * Search the preference by preference name or by preferences id.
+ *
+ * @param[in] lexic     NASL lexer.
+ *
+ * @return lex cell containing the preferences value as a string.
+ *         Fake cell otherwise
+ */
 tree_cell *
 script_get_preference (lex_ctxt *lexic)
 {
