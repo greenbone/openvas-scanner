@@ -232,25 +232,6 @@ open_live (char *iface, char *filter)
       g_warning ("%s: %s", __func__, errbuf);
     }
 
-  /* TODO: documentation of pcap_setnonblock() says that pcap_loop() and
-   * pcap_next() will not work in ''non-blocking'' mode. But pcap_breakloop does
-   * only work reliably when setnonblock is set in this program. why? */
-  if (pcap_setnonblock (pcap_handle, 1, errbuf) != 0)
-    {
-      g_warning ("%s: %s", __func__, errbuf);
-    }
-
-  /* get current ''non-blocking'' state of the capture descriptor */
-  int non_blocking_state = -1;
-  if ((non_blocking_state = pcap_getnonblock (pcap_handle, errbuf)) < 0)
-    {
-      g_warning ("%s: %s", __func__, errbuf);
-    }
-  else
-    {
-      g_info ("%s: non-blocking state = %d", __func__, non_blocking_state);
-    }
-
   /* handle, struct bpf_program *fp, int optimize, bpf_u_int32 netmask */
   if (pcap_compile (pcap_handle, &filter_prog, filter, 1, PCAP_NETMASK_UNKNOWN)
       < 0)
@@ -1356,7 +1337,8 @@ scan (void)
   g_message ("%s: Start scanning for alive hosts.", __func__);
   int number_of_targets, number_of_targets_checked = 0;
   int err;
-  pthread_t tid; /* thread id */
+  void *retval;
+  pthread_t sniffer_thread_id;
   const gchar *alive_test_pref_as_str;
   GHashTableIter target_hosts_iter;
   gpointer key, value;
@@ -1379,10 +1361,11 @@ scan (void)
 
   /* start sniffer thread and wait a bit for startup */
   /* TODO: use mutex instead of sleep */
-  if ((err = pthread_create (&tid, NULL, sniffer_thread, NULL)) != 0)
-    {
-      g_warning ("%s: pthread_create: %d", __func__, err);
-    }
+  err = pthread_create (&sniffer_thread_id, NULL, sniffer_thread, NULL);
+  if (err == EAGAIN)
+    g_warning ("%s: pthread_create() returned EAGAIN: Insufficient resources "
+               "to create thread.",
+               __func__);
   sleep (2);
 
   g_info ("%s: Get method of alive detection.", __func__);
@@ -1542,17 +1525,31 @@ scan (void)
   sleep (WAIT_FOR_REPLIES_TIMEOUT);
   g_info ("%s: finish waiting for replies", __func__);
 
-  /* break sniffer loop */
-  /* TODO: research problems breaking loop form other thread */
+  g_info ("%s: Try to stop thread which is sniffing for alive hosts. ",
+          __func__);
+  /* Try to break loop in sniffer thread. */
   pcap_breakloop (scanner.pcap_handle);
-  g_info ("%s: pcap_breakloop", __func__);
+  /* Give thread chance to exit on its own. */
+  sleep (2);
+
+  /* Cancel thread. May be necessary if pcap_breakloop() does not break the
+   * loop. */
+  err = pthread_cancel (sniffer_thread_id);
+  if (err == ESRCH)
+    g_warning ("%s: pthread_cancel() returned ESRCH; No thread with the supplied ID could be found.", __func__);
 
   /* join sniffer thread*/
-  if ((err = pthread_join (tid, NULL)) != 0)
-    {
-      g_warning ("%s: pthread_join: %d", __func__, err);
-    }
-  g_info ("%s: joined thread", __func__);
+  err = pthread_join (sniffer_thread_id, &retval);
+  if (err == EDEADLK)
+    g_warning ("%s: pthread_join() returned EDEADLK.", __func__);
+  if (err == EINVAL)
+    g_warning ("%s: pthread_join() returned EINVAL.", __func__);
+  if (err == ESRCH)
+    g_warning ("%s: pthread_join() returned ESRCH.", __func__);
+  if (retval == PTHREAD_CANCELED)
+    g_warning ("%s: pthread_join() returned PTHREAD_CANCELED.", __func__);
+
+  g_info ("%s: Stopped thread which was sniffing for alive hosts.", __func__);
 
   /* close handle */
   if (scanner.pcap_handle != NULL)
