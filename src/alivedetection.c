@@ -55,6 +55,11 @@ struct hosts_data hosts_data;
   "(ip6 or ip or arp) and (ip6[40]=129 or icmp[icmptype] == icmp-echoreply " \
   "or dst port " ASSTR (FILTER_PORT) " or arp[6:2]=2)"
 
+/* Conditional variable and mutex to make sure sniffer thread already started
+ * before sending out pings. */
+pthread_mutex_t mutex = PTHREAD_MUTEX_INITIALIZER;
+pthread_cond_t cond = PTHREAD_COND_INITIALIZER;
+
 /**
  * @brief The scanner struct holds data which is used frequently by the alive
  * detection thread.
@@ -598,6 +603,9 @@ sniffer_thread (__attribute__ ((unused)) void *vargp)
 {
   int ret;
   g_info ("%s: start packet sniffing thread", __func__);
+  pthread_mutex_lock (&mutex);
+  pthread_cond_signal (&cond);
+  pthread_mutex_unlock (&mutex);
 
   /* reads packets until error or pcap_breakloop() */
   if ((ret = pcap_loop (scanner.pcap_handle, -1, got_packet, NULL))
@@ -1366,6 +1374,13 @@ scan (void)
     g_warning ("%s: pthread_create() returned EAGAIN: Insufficient resources "
                "to create thread.",
                __func__);
+  /* Wait for other thread to start up before sending out pings. */
+  pthread_mutex_lock (&mutex);
+  pthread_cond_wait (&cond, &mutex);
+  pthread_mutex_unlock (&mutex);
+  /* Mutex and cond not needed anymore. */
+  pthread_mutex_destroy (&mutex);
+  pthread_cond_destroy (&cond);
   sleep (2);
 
   g_info ("%s: Get method of alive detection.", __func__);
@@ -1536,7 +1551,9 @@ scan (void)
    * loop. */
   err = pthread_cancel (sniffer_thread_id);
   if (err == ESRCH)
-    g_warning ("%s: pthread_cancel() returned ESRCH; No thread with the supplied ID could be found.", __func__);
+    g_warning ("%s: pthread_cancel() returned ESRCH; No thread with the "
+               "supplied ID could be found.",
+               __func__);
 
   /* join sniffer thread*/
   err = pthread_join (sniffer_thread_id, &retval);
