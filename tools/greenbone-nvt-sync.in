@@ -1,5 +1,5 @@
 #!/bin/sh
-# Copyright (C) 2009-2019 Greenbone Networks GmbH
+# Copyright (C) 2009-2020 Greenbone Networks GmbH
 #
 # SPDX-License-Identifier: GPL-2.0-or-later
 #
@@ -190,9 +190,9 @@ else
   RESTRICTED=0
 
   if [ -z "$COMMUNITY_NVT_RSYNC_FEED" ]; then
-    COMMUNITY_NVT_RSYNC_FEED=rsync://feed.openvas.org:/nvt-feed
+    COMMUNITY_NVT_RSYNC_FEED=rsync://feed.community.greenbone.net:/nvt-feed
     # An alternative syntax which might work if the above doesn't:
-    # COMMUNITY_NVT_RSYNC_FEED=rsync@feed.openvas.org::/nvt-feed
+    # COMMUNITY_NVT_RSYNC_FEED=rsync@feed.community.greenbone.net::/nvt-feed
   fi
 
   if [ -z "$COMMUNITY_NVT_HTTP_FEED" ]; then
@@ -370,7 +370,7 @@ is_feed_current () {
 }
 
 do_wget_community_feed () {
-  TMP_NVT="$SYNC_TMP_DIR/openvas-feed-`date +%F`-$$.tar.bz2"
+  TMP_NVT="$SYNC_TMP_DIR/gcf-`date +%F`-$$.tar.bz2"
 
   log_info "Configured NVT http feed: $COMMUNITY_NVT_HTTP_FEED"
   log_info "Downloading to: $TMP_NVT"
@@ -402,7 +402,7 @@ do_wget_community_feed () {
 }
 
 do_curl_community_feed () {
-  TMP_NVT="$SYNC_TMP_DIR/openvas-feed-`date +%F`-$$.tar.bz2"
+  TMP_NVT="$SYNC_TMP_DIR/gcf-`date +%F`-$$.tar.bz2"
 
   log_info "Configured NVT http feed: $COMMUNITY_NVT_HTTP_FEED"
   log_info "Downloading to: $TMP_NVT"
