@@ -190,7 +190,6 @@ else
 fi
 
 RSYNC=`command -v rsync`
-WGET=`command -v wget`
 CURL=`command -v curl`
 
 if [ -z "$TMPDIR" ]; then
@@ -361,38 +360,6 @@ is_feed_current () {
   return $FEED_CURRENT
 }
 
-do_wget_community_feed () {
-  TMP_NVT="$SYNC_TMP_DIR/gcf-`date +%F`-$$.tar.bz2"
-
-  log_info "Configured NVT http feed: $COMMUNITY_NVT_HTTP_FEED"
-  log_info "Downloading to: $TMP_NVT"
-  mkdir -p "$NVT_DIR"
-
-  wget "$COMMUNITY_NVT_HTTP_FEED" -O $TMP_NVT
-
-  if [ $? -ne 0 ]
-  then
-    rm -f $TMP_NVT
-    log_err "wget failed"
-    exit 1
-  else
-    log_info "Download complete"
-  fi
-
-  cd "$NVT_DIR" \
-    && tar xvjf $TMP_NVT
-
-  if [ $? -ne 0 ]
-  then
-    rm -f $TMP_NVT
-    log_err "tar extraction failed."
-    exit 1
-  else
-    rm -f $TMP_NVT
-    log_info "NVTs extracted successfully"
-  fi
-}
-
 do_curl_community_feed () {
   TMP_NVT="$SYNC_TMP_DIR/gcf-`date +%F`-$$.tar.bz2"
 
@@ -454,14 +421,6 @@ do_sync_community_feed () {
       log_info "Will use rsync"
       do_rsync_community_feed
     fi
-  elif [ "wget" = "$FIXED_METHOD" ] ; then
-    if [ -z "$WGET" ] ; then
-      log_err "wget requested but not found! Aborting synchronization."
-      exit 1
-    else
-      log_info "Will use wget"
-      do_wget_community_feed
-    fi
   elif [ "curl" = "$FIXED_METHOD" ] ; then
     if [ -z "$CURL" ] ; then
       log_err "curl requested but not found! Aborting synchronization."
@@ -476,19 +435,13 @@ do_sync_community_feed () {
     else
       log_warning "rsync not found!"
     fi
-    if [ -z "$WGET" ]; then
-      log_warning "GNU wget not found!"
-      if [ -z "$CURL" ]; then
-        log_warning "curl not found!"
-        log_err "no utility available in PATH environment variable to download plugins"
-        exit 1
-      else
-        log_info "Will use curl"
-        do_curl_community_feed
-      fi
+    if [ -z "$CURL" ]; then
+      log_warning "curl not found!"
+      log_err "no utility available in PATH environment variable to download plugins"
+      exit 1
     else
-      log_info "Will use wget"
-      do_wget_community_feed
+      log_info "Will use curl"
+      do_curl_community_feed
     fi
   else
     log_info "Will use rsync"
@@ -666,14 +619,13 @@ do_help () {
   echo " --selftest     perform self-test"
   echo " --verbose      makes the sync process print details"
   echo " --version      display version"
-  echo " --wget         only use wget to download feed files"
   echo ""
   echo ""
   echo "Environment variables:"
   echo "NVT_DIR         where to extract plugins (absolute path)"
   echo "PRIVATE_SUBDIR  subdirectory of \$NVT_DIR to exclude from synchronization"
   echo "TMPDIR          temporary directory used to download the files"
-  echo "Note that you can use standard ones as well (e.g. http_proxy) for wget/curl"
+  echo "Note that you can use standard ones as well (e.g. http_proxy) for curl"
   echo ""
   exit 0
 }
@@ -686,9 +638,6 @@ while test $# -gt 0; do
       ;;
     --rsync)
       FIXED_METHOD="rsync"
-      ;;
-    --wget)
-      FIXED_METHOD="wget"
       ;;
     --curl)
       FIXED_METHOD="curl"
