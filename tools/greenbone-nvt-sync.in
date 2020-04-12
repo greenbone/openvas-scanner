@@ -183,14 +183,9 @@ else
     # An alternative syntax which might work if the above doesn't:
     # COMMUNITY_NVT_RSYNC_FEED=rsync@feed.community.greenbone.net::/nvt-feed
   fi
-
-  if [ -z "$COMMUNITY_NVT_HTTP_FEED" ]; then
-    COMMUNITY_NVT_HTTP_FEED=http://dl.greenbone.net/community-nvt-feed-current.tar.bz2
-  fi
 fi
 
 RSYNC=`command -v rsync`
-CURL=`command -v curl`
 
 if [ -z "$TMPDIR" ]; then
   SYNC_TMP_DIR=/tmp
@@ -360,38 +355,6 @@ is_feed_current () {
   return $FEED_CURRENT
 }
 
-do_curl_community_feed () {
-  TMP_NVT="$SYNC_TMP_DIR/gcf-`date +%F`-$$.tar.bz2"
-
-  log_info "Configured NVT http feed: $COMMUNITY_NVT_HTTP_FEED"
-  log_info "Downloading to: $TMP_NVT"
-  mkdir -p "$NVT_DIR"
-
-  curl "$COMMUNITY_NVT_HTTP_FEED" -o $TMP_NVT
-
-  if [ $? -ne 0 ] || [ ! -f $TMP_NVT ]
-  then
-    rm -f $TMP_NVT
-    log_err "curl failed"
-    exit 1
-  else
-    log_info "Download complete"
-  fi
-
-  cd "$NVT_DIR" \
-    && tar xvjf $TMP_NVT
-
-  if [ $? -ne 0 ]
-  then
-    rm -f $TMP_NVT
-    log_err "tar extraction failed."
-    exit 1
-  else
-    rm -f $TMP_NVT
-    log_info "NVTs extracted successfully"
-  fi
-}
-
 do_rsync_community_feed () {
   if [ -z "$RSYNC" ]; then
     log_err "rsync not found!"
@@ -409,43 +372,6 @@ do_rsync_community_feed () {
       log_err "rsync failed."
       exit 1
     fi
-  fi
-}
-
-do_sync_community_feed () {
-  if [ "rsync" = "$FIXED_METHOD" ] ; then
-    if [ -z "$RSYNC" ] ; then
-      log_err "rsync requested but not found! Aborting synchronization."
-      exit 1
-    else
-      log_info "Will use rsync"
-      do_rsync_community_feed
-    fi
-  elif [ "curl" = "$FIXED_METHOD" ] ; then
-    if [ -z "$CURL" ] ; then
-      log_err "curl requested but not found! Aborting synchronization."
-      exit 1
-    else
-      log_info "Will use curl"
-      do_curl_community_feed
-    fi
-  elif [ -z "$RSYNC" ] || [ $FEED_PRESENT -eq 0 ] ; then
-    if [ $FEED_PRESENT -eq 0 ] ; then
-      log_notice "rsync is not recommended for the initial sync. Falling back on http."
-    else
-      log_warning "rsync not found!"
-    fi
-    if [ -z "$CURL" ]; then
-      log_warning "curl not found!"
-      log_err "no utility available in PATH environment variable to download plugins"
-      exit 1
-    else
-      log_info "Will use curl"
-      do_curl_community_feed
-    fi
-  else
-    log_info "Will use rsync"
-    do_rsync_community_feed
   fi
 }
 
@@ -549,7 +475,7 @@ sync_nvts(){
     fi
   else
     log_notice "No Greenbone Security Feed access key found, falling back to Greenbone Community Feed"
-    do_sync_community_feed
+    do_rsync_community_feed
   fi
 }
 
@@ -607,7 +533,6 @@ do_sync ()
 
 do_help () {
   echo "$0: Sync NVT data"
-  echo " --curl         only use curl to download feed files"
   echo " --describe     display current feed info"
   echo " --feedcurrent  just check if feed is up-to-date"
   echo " --feedversion  display version of this feed"
@@ -625,7 +550,6 @@ do_help () {
   echo "NVT_DIR         where to extract plugins (absolute path)"
   echo "PRIVATE_SUBDIR  subdirectory of \$NVT_DIR to exclude from synchronization"
   echo "TMPDIR          temporary directory used to download the files"
-  echo "Note that you can use standard ones as well (e.g. http_proxy) for curl"
   echo ""
   exit 0
 }
@@ -638,9 +562,6 @@ while test $# -gt 0; do
       ;;
     --rsync)
       FIXED_METHOD="rsync"
-      ;;
-    --curl)
-      FIXED_METHOD="curl"
       ;;
     --identify)
       echo "NVTSYNC|$SCRIPT_NAME|$VERSION|$FEED_NAME|$RESTRICTED|NVTSYNC"
@@ -683,4 +604,3 @@ done
 do_sync
 
 exit 0
-
