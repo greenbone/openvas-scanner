@@ -354,22 +354,17 @@ is_feed_current () {
 }
 
 do_rsync_community_feed () {
-  if [ -z "$RSYNC" ]; then
-    log_err "rsync not found!"
-  else
-    log_notice "Using rsync: $RSYNC"
-    log_notice "Configured NVT rsync feed: $COMMUNITY_NVT_RSYNC_FEED"
-    mkdir -p "$NVT_DIR"
-    eval "$RSYNC -ltvrP $RSYNC_DELETE \"$COMMUNITY_NVT_RSYNC_FEED\" \"$NVT_DIR\" --exclude=plugin_feed_info.inc"
-    if [ $? -ne 0 ] ; then
-      log_err "rsync failed."
-      exit 1
-    fi
-    eval "$RSYNC -ltvrP $RSYNC_DELETE \"$COMMUNITY_NVT_RSYNC_FEED/plugin_feed_info.inc\" \"$NVT_DIR\""
-    if [ $? -ne 0 ] ; then
-      log_err "rsync failed."
-      exit 1
-    fi
+  log_notice "Configured NVT rsync feed: $COMMUNITY_NVT_RSYNC_FEED"
+  mkdir -p "$NVT_DIR"
+  eval "$RSYNC -ltvrP $RSYNC_DELETE \"$COMMUNITY_NVT_RSYNC_FEED\" \"$NVT_DIR\" --exclude=plugin_feed_info.inc"
+  if [ $? -ne 0 ] ; then
+    log_err "rsync failed."
+    exit 1
+  fi
+  eval "$RSYNC -ltvrP $RSYNC_DELETE \"$COMMUNITY_NVT_RSYNC_FEED/plugin_feed_info.inc\" \"$NVT_DIR\""
+  if [ $? -ne 0 ] ; then
+    log_err "rsync failed."
+    exit 1
   fi
 }
 
@@ -536,7 +531,7 @@ do_help () {
   echo " --help         display this help"
   echo " --identify     display information"
   echo " --nvtdir dir   set dir as NVT directory"
-  echo " --selftest     perform self-test"
+  echo " --selftest     perform self-test and set exit code"
   echo " --verbose      makes the sync process print details"
   echo " --version      display version"
   echo ""
