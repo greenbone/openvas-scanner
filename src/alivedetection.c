@@ -262,19 +262,21 @@ open_live (char *iface, char *filter)
 /**
  * @brief Get new host from alive detection scanner.
  *
- * Check if an alive host was found by the alive detection scanner. If no alive
- * host was found, retry every second for timeout seconds. Return null if
- * timeout expired, if alive detection scanner finished or on error.
+ * Check if an alive host was found by the alive detection scanner. If an alive
+ * host is found it is packed into a gvm_host_t and returned. If no host was
+ * found or an error occurred NULL is returned. If alive detection finished
+ * scanning all hosts, NULL is returned and the status flag
+ * alive_detection_finished is set to TRUE.
  *
  * @param alive_hosts_kb  Redis connection for accessing the queue on which the
- * alive detection scanner puts found hosts
- * @param timout  Timeout in second. How long to wait for alive hosts. If
- * timeout <0 wait indefinitely.
+ * alive detection scanner puts found hosts.
+ * @param alive_deteciton_finished  Status of alive detection process.
  * @return  If valid alive host is found return a gvm_host_t. If alive scanner
- * finished, on error, or if timeout reached return NULL.
+ * finished NULL is returened and alive_deteciton_finished set. On error or if
+ * no host was found return NULL.
  */
 gvm_host_t *
-get_host_from_queue (kb_t alive_hosts_kb, int timeout)
+get_host_from_queue (kb_t alive_hosts_kb, gboolean *alive_deteciton_finished)
 {
   g_message ("%s: get new host from Queue", __func__);
 
@@ -285,95 +287,83 @@ get_host_from_queue (kb_t alive_hosts_kb, int timeout)
       return NULL;
     }
 
-  /* timeout count in seconds */
-  int count = 0;
   /* string representation of an ip address or "finish" */
   gchar *host_str = NULL;
   /* complete host to be returned */
   gvm_host_t *host = NULL;
 
-  /* poll redis message queue for new results until success, timout or error */
-  for (; !host && (timeout != count); count++)
+  /* try to get item from db, string needs to be freed, NULL on empty or
+   * error
+   */
+  host_str = kb_item_pop_str (alive_hosts_kb, (ALIVE_DETECTION_QUEUE));
+  if (!host_str)
     {
-      /* after the first try in getting a new host we wait for one second */
-      if (count)
-        sleep (1);
-
-      /* try to get item from db, string needs to be freed, NULL on empty or
-       * error
-       */
-      host_str = kb_item_pop_str (alive_hosts_kb, (ALIVE_DETECTION_QUEUE));
-      if (!host_str)
+      g_message ("%s: ALIVE_DETECTION_SCANNING, no item found on queue(or "
+                 "error) but "
+                 "alive detection still ongoing, try again in a sec",
+                 __func__);
+      return NULL;
+    }
+  /* got some string from redis queue */
+  else
+    {
+      /* check for finish signal/string */
+      if (g_strcmp0 (host_str, "finish") == 0)
         {
-          g_message ("%s: ALIVE_DETECTION_SCANNING, no item found on queue(or "
-                     "error) but "
-                     "alive detection still ongoing, try again in a sec",
-                     __func__);
-          continue;
-        }
-      /* got some string from redis queue */
-      else
-        {
-          /* check for finish signal/string */
-          if (g_strcmp0 (host_str, "finish") == 0)
+          /* Send Error message if max_scan_hosts was reached. */
+          if (scan_restrictions.max_scan_hosts_reached)
             {
-              /* Send Error message if max_scan_hosts was reached. */
-              if (scan_restrictions.max_scan_hosts_reached)
-                {
-                  kb_t main_kb = NULL;
-                  int i = atoi (prefs_get ("ov_maindbid"));
+              kb_t main_kb = NULL;
+              int i = atoi (prefs_get ("ov_maindbid"));
 
-                  if ((main_kb = kb_direct_conn (prefs_get ("db_address"), i)))
-                    {
-                      char buf[256];
-                      g_snprintf (
-                        buf, 256,
-                        "ERRMSG||| ||| ||| |||Maximum number of allowed scans "
-                        "reached. There are still %d alive hosts available "
-                        "which are not scanned.",
-                        scan_restrictions.alive_hosts_count
-                          - scan_restrictions.max_scan_hosts);
-                      if (kb_item_push_str (main_kb, "internal/results", buf)
-                          != 0)
-                        g_warning ("%s: kb_item_push_str() failed to push "
-                                   "error message.",
-                                   __func__);
-                      kb_lnk_reset (main_kb);
-                    }
-                  else
-                    g_warning ("Not possible to get the main kb "
-                               "connection. Info about "
-                               "number of alive hosts could not be sent.");
-                }
-              g_message ("%s: ALIVE_DETECTION_FINISHED, scan was finished. "
-                         "return NULL host",
-                         __func__);
-              g_free (host_str);
-              return NULL;
-            }
-          /* probably got host */
-          else
-            {
-              g_message ("%s: ALIVE_DETECTION_OK, got item from queue",
-                         __func__);
-              host = gvm_host_from_str (host_str);
-              if (!host)
+              if ((main_kb = kb_direct_conn (prefs_get ("db_address"), i)))
                 {
-                  g_warning (
-                    "%s: error in call to gvm_host_from_str() for host_str: %s",
-                    __func__, host_str);
-                  continue;
+                  char buf[256];
+                  g_snprintf (
+                    buf, 256,
+                    "ERRMSG||| ||| ||| |||Maximum number of allowed scans "
+                    "reached. There are still %d alive hosts available "
+                    "which are not scanned.",
+                    scan_restrictions.alive_hosts_count
+                      - scan_restrictions.max_scan_hosts);
+                  if (kb_item_push_str (main_kb, "internal/results", buf) != 0)
+                    g_warning ("%s: kb_item_push_str() failed to push "
+                               "error message.",
+                               __func__);
+                  kb_lnk_reset (main_kb);
                 }
               else
-                {
-                  g_free (host_str);
-                  return host;
-                }
+                g_warning ("Not possible to get the main kb "
+                           "connection. Info about "
+                           "number of alive hosts could not be sent.");
+            }
+          g_message ("%s: ALIVE_DETECTION_FINISHED, scan was finished. "
+                     "return NULL host",
+                     __func__);
+          g_free (host_str);
+          *alive_deteciton_finished = TRUE;
+          return NULL;
+        }
+      /* probably got host */
+      else
+        {
+          g_message ("%s: ALIVE_DETECTION_OK, got item from queue", __func__);
+          host = gvm_host_from_str (host_str);
+          g_free (host_str);
+
+          if (!host)
+            {
+              g_warning (
+                "%s: error in call to gvm_host_from_str() for host_str: %s",
+                __func__, host_str);
+              return NULL;
+            }
+          else
+            {
+              return host;
             }
         }
     }
-  g_free (host_str);
-  return NULL;
 }
 
 /**

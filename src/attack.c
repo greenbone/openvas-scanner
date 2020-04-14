@@ -1022,7 +1022,7 @@ handle_scan_stop_signal ()
     {
       int err;
       if ((err = pthread_kill (get_alive_detection_tid (), 9)) != 0)
-        g_error ("%s: error in pthread_kill(): %d", __func__, err);
+        g_warning ("%s: error in pthread_kill(): %d", __func__, err);
     }
 
   g_free (pid);
@@ -1203,6 +1203,8 @@ attack_network (struct scan_globals *globals, kb_t *network_kb)
     {
       hosts->current = 0;
 
+      /* Boolean signalling if alive detection finished. */
+      gboolean ad_finished = FALSE;
       int err;
       pthread_t tid;
       if ((err =
@@ -1211,8 +1213,14 @@ attack_network (struct scan_globals *globals, kb_t *network_kb)
         g_error ("%s: pthread_create(): %d", __func__, err);
       set_alive_detection_tid (tid);
       g_debug ("%s: started alive detection.", __func__);
-      /* blocks until we got new host, timeout or error */
-      host = get_host_from_queue (alive_hosts_kb, -1);
+
+      for (host = get_host_from_queue (alive_hosts_kb, &ad_finished);
+           !host && !ad_finished && !scan_is_stopped ();
+           host = get_host_from_queue (alive_hosts_kb, &ad_finished))
+        {
+          fork_sleep (1);
+        }
+      if (host)
       g_debug ("%s: Get first host to test from Queue. This host is used for "
                "initialising the alive_hosts_list.",
                __func__);
@@ -1299,17 +1307,19 @@ attack_network (struct scan_globals *globals, kb_t *network_kb)
         {
           if (test_alive_hosts_only)
             {
-              host = get_host_from_queue (alive_hosts_kb, -1);
-              if (host)
+              /* Boolean signalling if alive detection finished. */
+              gboolean ad_finished = FALSE;
+              for (host = get_host_from_queue (alive_hosts_kb, &ad_finished);
+                   !host && !ad_finished && !scan_is_stopped ();
+                   host = get_host_from_queue (alive_hosts_kb, &ad_finished))
                 {
-                  gvm_hosts_add (alive_hosts_list, host);
-                  g_debug ("%s: got new host to test", __func__);
+                  fork_sleep (1);
                 }
+              if (host)
+                  gvm_hosts_add (alive_hosts_list, host);
               else
-                {
                   g_debug ("%s: got NULL host, stop/finish scan", __func__);
                 }
-            }
           else
             {
               host = gvm_hosts_next (hosts);
