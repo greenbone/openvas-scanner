@@ -407,19 +407,36 @@ in_cksum (uint16_t *addr, int len)
 
 /**
  * @brief Put finish signal on alive detection queue.
+ *
+ * If the finish signal (a string) was already put on the queue it is not put on
+ * it again.
+ *
+ * @param error  Set to 0 on success. Is set to -1 if finish signal was already
+ * put on queue. Set to -2 if function was no able to push finish string on
+ * queue.
  */
-static int
-put_finish_signal_on_queue (void)
+static void
+put_finish_signal_on_queue (void *error)
 {
+  static gboolean fin_msg_already_on_queue = FALSE;
+  if (fin_msg_already_on_queue)
+    {
+      g_warning ("%s: Finish signal was already put on queue.", __func__);
+      *(int *) error = -1;
+      return;
+    }
   if ((kb_item_push_str (scanner.main_kb, ALIVE_DETECTION_QUEUE,
                          ALIVE_DETECTION_FINISH))
       != 0)
     {
-      g_warning ("%s: error in kb_item_push_str()", __func__);
-      return -1;
+      g_warning ("%s: Error in kb_item_push_str().", __func__);
+      *(int *) error = -2;
     }
   else
-    return 0;
+    {
+      *(int *) error = 0;
+      fin_msg_already_on_queue = TRUE;
+    }
 }
 
 /**
@@ -467,8 +484,12 @@ handle_scan_restrictions (gchar *addr_str)
       && (scan_restrictions.alive_hosts_count
           == scan_restrictions.max_scan_hosts))
     {
+      int err;
       scan_restrictions.max_scan_hosts_reached = TRUE;
-      put_finish_signal_on_queue ();
+      put_finish_signal_on_queue (&err);
+      if (err != 0)
+        g_warning ("%s: Error in put_finish_signal_on_queue(): %d ", __func__,
+                   err);
     }
   /* Thread which sends out new pings should stop sending when max_alive_hosts
    * is reached. */
@@ -1806,47 +1827,47 @@ alive_detection_init (gvm_hosts_t *hosts)
 /**
  * @brief Free all the data used by the alive detection scanner.
  *
- * @return 0 on success, <0 on error.
+ * @param error Set to 0 on success and <0 on failure.
  */
-static int
-alive_detection_free (void)
+static void
+alive_detection_free (void *error)
 {
-  int ret = 0;
+  *(int *) error = 0;
   if ((close (scanner.tcpv4soc)) != 0)
     {
-      ret = -1;
+      *(int *) error = -1;
       g_warning ("%s: close(): %s", __func__, strerror (errno));
     }
   if ((close (scanner.tcpv6soc)) != 0)
     {
-      ret = -2;
+      *(int *) error = -2;
       g_warning ("%s: close(): %s", __func__, strerror (errno));
     }
   if ((close (scanner.icmpv4soc)) != 0)
     {
-      ret = -3;
+      *(int *) error = -3;
       g_warning ("%s: close(): %s", __func__, strerror (errno));
     }
   if ((close (scanner.icmpv6soc)) != 0)
     {
-      ret = -4;
+      *(int *) error = -4;
       g_warning ("%s: close(): %s", __func__, strerror (errno));
     }
   if ((close (scanner.arpv4soc)) != 0)
     {
-      ret = -5;
+      *(int *) error = -5;
       g_warning ("%s: close(): %s", __func__, strerror (errno));
     }
   if ((close (scanner.arpv6soc)) != 0)
     {
-      ret = -6;
+      *(int *) error = -6;
       g_warning ("%s: close(): %s", __func__, strerror (errno));
     }
   /*pcap_close (scanner.pcap_handle); //pcap_handle is closed in ping/scan
    * function for now */
   if ((kb_lnk_reset (scanner.main_kb)) != 0)
     {
-      ret = -7;
+      *(int *) error = -7;
       g_warning ("%s: error in kb_lnk_reset()", __func__);
     }
 
@@ -1859,8 +1880,6 @@ alive_detection_free (void)
    * gvm_host_t are freed by caller of start_alive_detection()! */
   g_hash_table_destroy (hosts_data.targethosts);
   g_hash_table_destroy (hosts_data.alivehosts_not_to_be_sent_to_openvas);
-
-  return ret;
 }
 
 /**
@@ -1873,26 +1892,34 @@ alive_detection_free (void)
 void *
 start_alive_detection (void *hosts_to_test)
 {
-  int err;
-  gvm_hosts_t *hosts = (gvm_hosts_t *) hosts_to_test;
-  if ((err = alive_detection_init (hosts)) < 0)
-    g_warning ("%s: error in alive_detection_init(): %d", __func__, err);
+  int init_err;
+  int fin_err;
+  int free_err;
+  gvm_hosts_t *hosts;
 
-  g_info ("%s: start scan()", __func__);
-  /* blocks until detection process is finished */
+  hosts = (gvm_hosts_t *) hosts_to_test;
+  if ((init_err = alive_detection_init (hosts)) < 0)
+    g_warning ("%s: error in alive_detection_init(): %d", __func__, init_err);
+
+  g_info ("%s: Start Alive Detection", __func__);
+  /* If alive detection thread returns, is canceled or killed unexpectedly all
+   * used resources are freed and sockets, connections closed.*/
+  pthread_cleanup_push (alive_detection_free, &free_err);
+  /* If alive detection thread returns, is canceled or killed unexpectedly a
+   * finish signal is put on the queue for openvas to process.*/
+  pthread_cleanup_push (put_finish_signal_on_queue, &fin_err);
+  /* Start the scan. */
   if (scan () < 0)
     g_warning ("%s: error in scan()", __func__);
-
-  /* put finish signal on Queue if all packets were sent and we waited long
-   * enough for packets to arrive */
-  if (put_finish_signal_on_queue () != 0)
-    g_warning ("%s: Could not push finish signal on queue", __func__);
-  else
-    g_info ("%s: alive detection process finished. finish signal put on Q.",
-            __func__);
-
-  if ((err = alive_detection_free ()) < 0)
-    g_warning ("%s: error in alive_detection_free(): %d", __func__, err);
+  /* Put finish signal on queue. */
+  pthread_cleanup_pop (1);
+  /* Free memory, close sockets and connections. */
+  pthread_cleanup_pop (1);
+  if (free_err != 0)
+    g_warning ("%s: Error in trying to free resources and closing "
+               "sockets/connections: %d",
+               __func__, free_err);
+  g_info ("%s: Alive Detection finished. ", __func__);
 
   pthread_exit (0);
 }
