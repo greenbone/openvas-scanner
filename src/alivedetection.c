@@ -73,8 +73,10 @@ struct scanner
   int icmpv6soc;
   int arpv4soc;
   int arpv6soc;
-  /* flags */
-  uint8_t tcp_flag; /**< TH_SYN or TH_ACK flag */
+  /* TH_SYN or TH_ACK */
+  uint8_t tcp_flag;
+  /* ports used for TCP ACK/SYN */
+  GArray *ports;
   /* source addresses */
   struct in_addr *sourcev4;
   struct in6_addr *sourcev6;
@@ -901,11 +903,6 @@ send_tcp_v6 (int soc, struct in6_addr *dst_p, uint8_t tcp_flag)
 
   struct in6_addr src;
 
-  int port = 0;
-  int ports[] = {139, 135, 445,  80,    22,   515, 23,  21,  6000, 1025,
-                 25,  111, 1028, 9100,  1029, 79,  497, 548, 5000, 1917,
-                 53,  161, 9001, 65535, 443,  113, 993, 8080};
-
   if (scanner.sourcev6 == NULL)
     {
       gchar *interface = v6_routethrough (dst_p, &src);
@@ -914,8 +911,12 @@ send_tcp_v6 (int soc, struct in6_addr *dst_p, uint8_t tcp_flag)
       printipv6 (scanner.sourcev6);
     }
 
-  /* for ports in portrange send packets */
-  for (long unsigned int i = 0; i < sizeof (ports) / sizeof (int); i++)
+  /* No ports in portlist. */
+  if (scanner.ports->len == 0)
+    return;
+
+  /* For ports in ports array send packet. */
+  for (guint i = 0; i < scanner.ports->len; i++)
     {
       memset (packet, 0, sizeof (packet));
       /* IPv6 */
@@ -929,7 +930,7 @@ send_tcp_v6 (int soc, struct in6_addr *dst_p, uint8_t tcp_flag)
 
       /* TCP */
       tcp->th_sport = htons (FILTER_PORT);
-      tcp->th_dport = port ? htons (port) : htons (ports[i]);
+      tcp->th_dport = htons (g_array_index (scanner.ports, uint16_t, i));
       tcp->th_seq = htonl (0);
       tcp->th_ack = htonl (0);
       tcp->th_x2 = 0;
@@ -986,11 +987,6 @@ send_tcp_v4 (int soc, struct in_addr *dst_p, uint8_t tcp_flag)
 
   struct in_addr src; /* ip src */
 
-  int port = 0;
-  int ports[] = {139, 135, 445,  80,    22,   515, 23,  21,  6000, 1025,
-                 25,  111, 1028, 9100,  1029, 79,  497, 548, 5000, 1917,
-                 53,  161, 9001, 65535, 443,  113, 993, 8080};
-
   /* get src address */
   if (scanner.sourcev4 == NULL) // scanner.sourcev4 == NULL
     {
@@ -1000,8 +996,12 @@ send_tcp_v4 (int soc, struct in_addr *dst_p, uint8_t tcp_flag)
       printipv4 (scanner.sourcev4);
     }
 
-  /* for ports in portrange send packets */
-  for (long unsigned int i = 0; i < sizeof (ports) / sizeof (int); i++)
+  /* No ports in portlist. */
+  if (scanner.ports->len == 0)
+    return;
+
+  /* For ports in ports array send packet. */
+  for (guint i = 0; i < scanner.ports->len; i++)
     {
       memset (packet, 0, sizeof (packet));
       /* IP */
@@ -1021,7 +1021,7 @@ send_tcp_v4 (int soc, struct in_addr *dst_p, uint8_t tcp_flag)
       /* TCP */
       tcp->th_sport = htons (FILTER_PORT);
       tcp->th_flags = tcp_flag; // TH_SYN TH_ACK;
-      tcp->th_dport = port ? htons (port) : htons (ports[i]);
+      tcp->th_dport = htons (g_array_index (scanner.ports, uint16_t, i));
       tcp->th_seq = rand ();
       tcp->th_ack = 0;
       tcp->th_x2 = 0;
@@ -1748,6 +1748,41 @@ get_socket (enum socket_type socket_type)
 }
 
 /**
+ * @brief Put all ports of a given port range into the ports array.
+ *
+ * @param range Pointer to a range_t.
+ * @param ports_array Pointer to an GArray.
+ */
+static void
+fill_ports_array (gpointer range, gpointer ports_array)
+{
+  gboolean range_exclude;
+  uint16_t range_start;
+  uint16_t range_end;
+  uint16_t port;
+
+  range_start = ((range_t *) range)->start;
+  range_end = ((range_t *) range)->end;
+  range_exclude = ((range_t *) range)->exclude;
+
+  /* If range should be excluded do not use it. */
+  if (range_exclude)
+    return;
+
+  /* Only single port in range. */
+  if (range_end == 0 || (range_start == range_end))
+    {
+      g_array_append_val (ports_array, range_start);
+      return;
+    }
+  else
+    {
+      for (port = range_start; port <= range_end; port++)
+        g_array_append_val (ports_array, port);
+    }
+}
+
+/**
  * @brief Initialise the alive detection scanner.
  *
  * Fill scanner struct with appropriate values.
@@ -1759,6 +1794,10 @@ static int
 alive_detection_init (gvm_hosts_t *hosts)
 {
   g_info ("%s: initialise alive scanner", __func__);
+
+  /* Used for ports array initialisation. */
+  const gchar *port_list = NULL;
+  GPtrArray *portranges_array;
 
   /* Scanner */
   /* sockets */
@@ -1804,6 +1843,22 @@ alive_detection_init (gvm_hosts_t *hosts)
     }
   /* reset hosts iter */
   hosts->current = 0;
+
+  /* Init ports used for scanning. */
+  scanner.ports = NULL;
+  /* Port list was already validated by openvas so we don't do it here again. */
+  port_list = prefs_get ("port_range");
+  scanner.ports = g_array_new (FALSE, TRUE, sizeof (uint16_t));
+  if (port_list)
+    portranges_array = port_range_ranges (port_list);
+  else
+    g_warning (
+      "%s: Port list supplied by user is empty. Alive detection may not find "
+      "any alive hosts when using TCP ACK/SYN scanning methods. ",
+      __func__);
+  /* Fill ports array with ports from the ranges. */
+  g_ptr_array_foreach (portranges_array, fill_ports_array, scanner.ports);
+  array_free (portranges_array);
 
   /* Scan restrictions. max_scan_hosts and max_alive_hosts related. */
   const gchar *pref_str;
@@ -1874,6 +1929,9 @@ alive_detection_free (void *error)
   /* addresses */
   g_free (scanner.sourcev4);
   g_free (scanner.sourcev6);
+
+  /* Ports array. */
+  g_array_free (scanner.ports, TRUE);
 
   g_hash_table_destroy (hosts_data.alivehosts);
   /* targethosts: (ipstr, gvm_host_t *)
