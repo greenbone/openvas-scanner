@@ -104,7 +104,7 @@ struct scan_restrictions
 
 /**
  * @brief The hosts_data struct holds the alive hosts and target hosts in
- * seperate hashtables.
+ * separate hashtables.
  */
 struct hosts_data
 {
@@ -537,7 +537,7 @@ got_packet (__attribute__ ((unused)) u_char *args,
       // g_message ("%s: IP version = 4, addr: %s", __func__, addr_str);
 
       /* Do not put already found host on Queue and only put hosts on Queue we
-       * are seaching for. */
+       * are searching for. */
       if (g_hash_table_add (hosts_data.alivehosts, g_strdup (addr_str))
           && g_hash_table_contains (hosts_data.targethosts, addr_str) == TRUE)
         {
@@ -561,7 +561,7 @@ got_packet (__attribute__ ((unused)) u_char *args,
       // g_message ("%s: IP version = 6, addr: %s", __func__, addr_str);
 
       /* Do not put already found host on Queue and only put hosts on Queue we
-       * are seaching for. */
+       * are searching for. */
       if (g_hash_table_add (hosts_data.alivehosts, g_strdup (addr_str))
           && g_hash_table_contains (hosts_data.targethosts, addr_str) == TRUE)
         {
@@ -591,7 +591,7 @@ got_packet (__attribute__ ((unused)) u_char *args,
       // g_message ("%s: ARP, IP addr: %s", __func__, addr_str);
 
       /* Do not put already found host on Queue and only put hosts on Queue
-      we are seaching for. */
+      we are searching for. */
       if (g_hash_table_add (hosts_data.alivehosts, g_strdup (addr_str))
           && g_hash_table_contains (hosts_data.targethosts, addr_str) == TRUE)
         {
@@ -626,7 +626,7 @@ sniffer_thread (__attribute__ ((unused)) void *vargp)
   else if (ret == 0)
     g_warning ("%s: count of packets is exhausted", __func__);
   else if (ret == PCAP_ERROR_BREAK)
-    g_info ("%s: Loop was succesfully broken after call to pcap_breakloop",
+    g_info ("%s: Loop was successfully broken after call to pcap_breakloop",
             __func__);
 
   pthread_exit (0);
@@ -644,7 +644,7 @@ __attribute__ ((unused)) static void
 exclude (gpointer key, __attribute__ ((unused)) gpointer value,
          gpointer hashtable)
 {
-  /* delte key from targethost*/
+  /* delete key from targethost*/
   g_hash_table_remove (hashtable, (gchar *) key);
 }
 
@@ -1166,8 +1166,8 @@ send_arp_v4 (int soc, struct in_addr *dst_p)
   memcpy (&arphdr.sender_ip, &src, 4 * sizeof (uint8_t));
   /* Hardware type ethernet.
    * Protocol type IP.
-   * Hardware address lenth is MAC address length.
-   * Protocol address lenth is lenght of IPv4.
+   * Hardware address length is MAC address length.
+   * Protocol address length is length of IPv4.
    * OpCode is ARP request. */
   arphdr.htype = htons (1);
   arphdr.ptype = htons (ETH_P_IP);
@@ -1310,7 +1310,7 @@ send_dead_hosts_to_ospd_openvas (void)
               g_string_truncate (chunked_hosts, 0);
               hosts_in_chunk = 0;
             }
-          /* Add host string seperator. */
+          /* Add host string separator. */
           else
             g_string_append (chunked_hosts, ",");
         }
@@ -1343,7 +1343,7 @@ send_dead_hosts_to_ospd_openvas (void)
 /**
  * @brief Scan function starts a sniffing thread which waits for packets to
  * arrive and sends pings to hosts we want to test. Blocks until Scan is
- * finished or error occured.
+ * finished or error occurred.
  *
  * Start a sniffer thread. Get what method of alive detection to use. Send
  * appropriate pings  for every host we want to test.
@@ -1884,7 +1884,7 @@ alive_detection_free (void *error)
 
 /**
  * @brief Start the scan of all specified hosts in gvm_hosts_t
- * list. Finish signal is put on Queue if scan is finished or err occured.
+ * list. Finish signal is put on Queue if scan is finished or an error occurred.
  *
  * @param hosts_to_test gvm_hosts_t list of hosts to alive test. which is to be
  * freed by caller.
