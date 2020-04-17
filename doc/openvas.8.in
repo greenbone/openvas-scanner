@@ -87,7 +87,7 @@ change these to something else to reflect the policy of your site. The syntax of
 This is the default range of ports that the scanner plugins will probe. The syntax of this option is flexible, it can be a single range ("1-1500"), several ports ("21,23,80"), several ranges of ports ("1-1500,32000-33000"). Note that you can specify UDP and TCP ports by prefixing each range by T or U. For instance, the following range will make openvas scan UDP ports 1 to 1024 and TCP ports 1 to 65535 : "T:1-65535,U:1-1024".
 
 .IP test_alive_hosts_only
-If this option is set to 'yes', openvas will scan the target list for alive hosts in a seperate process while only testing those hosts which are identified as alive. This boosts the scan speed of target ranges with a high amount of dead hosts significantly.   
+If this option is set to 'yes', openvas will scan the target list for alive hosts in a separate process while only testing those hosts which are identified as alive. This boosts the scan speed of target ranges with a high amount of dead hosts significantly.   
 
 .IP optimize_test
 By default, openvas does not trust the remote host banners. It means that it will check a webserver claiming to be IIS for Apache flaws, and so on. This behavior might generate false positive and will slow the scan down somehow. If you are sure the banners of the remote host have not been tampered with, you can safely enable this option, which will force the plugins to perform their job only against the services they have been designed to check.
