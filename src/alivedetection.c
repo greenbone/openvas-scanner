@@ -1295,10 +1295,11 @@ send_dead_hosts_to_ospd_openvas (void)
               /* Add start and end of message. */
               g_string_prepend (chunked_hosts,
                                 "DEADHOST||| |||general/Host_Details|||");
-              g_string_append (chunked_hosts,
-                               "|||<host><detail><name>Host "
-                               "dead</name><value>1</value>source><description/"
-                               "><type/><name/></source></detail></host>");
+              g_string_append (
+                chunked_hosts,
+                "|||<host><detail><name>Host "
+                "dead</name><value>1</value><source><description/"
+                "><type/><name/></source></detail></host>");
               g_debug ("%s: %s", __func__, chunked_hosts->str);
               if (kb_item_push_str (main_kb, "internal/results",
                                     chunked_hosts->str)
@@ -1314,9 +1315,6 @@ send_dead_hosts_to_ospd_openvas (void)
           else
             g_string_append (chunked_hosts, ",");
         }
-      else
-        g_warning ("Not possible to get the main kb connection. Info about "
-                   "number of alive hosts could not be sent.");
     }
   /* Send rest of hosts. */
   if (hosts_in_chunk)
@@ -1326,7 +1324,7 @@ send_dead_hosts_to_ospd_openvas (void)
                         "DEADHOST||| |||general/Host_Details|||");
       g_string_append (chunked_hosts,
                        "|||<host><detail><name>Host "
-                       "dead</name><value>1</value>source><description/><type/"
+                       "dead</name><value>1</value><source><description/><type/"
                        "><name/></source></detail></host>");
       g_debug ("%s: %s", __func__, buf);
       if (kb_item_push_str (main_kb, "internal/results", chunked_hosts->str)
