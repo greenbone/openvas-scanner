@@ -280,7 +280,7 @@ open_live (char *iface, char *filter)
 gvm_host_t *
 get_host_from_queue (kb_t alive_hosts_kb, gboolean *alive_deteciton_finished)
 {
-  g_message ("%s: get new host from Queue", __func__);
+  g_debug ("%s: get new host from Queue", __func__);
 
   /* redis connection not established yet */
   if (!alive_hosts_kb)
@@ -300,10 +300,10 @@ get_host_from_queue (kb_t alive_hosts_kb, gboolean *alive_deteciton_finished)
   host_str = kb_item_pop_str (alive_hosts_kb, (ALIVE_DETECTION_QUEUE));
   if (!host_str)
     {
-      g_message ("%s: ALIVE_DETECTION_SCANNING, no item found on queue(or "
-                 "error) but "
-                 "alive detection still ongoing, try again in a sec",
-                 __func__);
+      g_debug ("%s: ALIVE_DETECTION_SCANNING, no item found on queue(or "
+               "error) but "
+               "alive detection still ongoing, try again in a sec",
+               __func__);
       return NULL;
     }
   /* got some string from redis queue */
@@ -349,7 +349,7 @@ get_host_from_queue (kb_t alive_hosts_kb, gboolean *alive_deteciton_finished)
       /* probably got host */
       else
         {
-          g_message ("%s: ALIVE_DETECTION_OK, got item from queue", __func__);
+          g_debug ("%s: ALIVE_DETECTION_OK, got item from queue", __func__);
           host = gvm_host_from_str (host_str);
           g_free (host_str);
 
