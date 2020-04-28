@@ -1284,25 +1284,25 @@ attack_network (struct scan_globals *globals, kb_t *network_kb)
         }
       hosts_set_pid (host_str, pid);
 
-          if (test_alive_hosts_only)
+      if (test_alive_hosts_only)
+        {
+          /* Boolean signalling if alive detection finished. */
+          gboolean ad_finished = FALSE;
+          for (host = get_host_from_queue (alive_hosts_kb, &ad_finished);
+               !host && !ad_finished && !scan_is_stopped ();
+               host = get_host_from_queue (alive_hosts_kb, &ad_finished))
             {
-              /* Boolean signalling if alive detection finished. */
-              gboolean ad_finished = FALSE;
-              for (host = get_host_from_queue (alive_hosts_kb, &ad_finished);
-                   !host && !ad_finished && !scan_is_stopped ();
-                   host = get_host_from_queue (alive_hosts_kb, &ad_finished))
-                {
-                  fork_sleep (1);
-                }
-              if (host)
-                gvm_hosts_add (alive_hosts_list, host);
-              else
-                g_debug ("%s: got NULL host, stop/finish scan", __func__);
+              fork_sleep (1);
             }
+          if (host)
+            gvm_hosts_add (alive_hosts_list, host);
           else
-            {
-              host = gvm_hosts_next (hosts);
-            }
+            g_debug ("%s: got NULL host, stop/finish scan", __func__);
+        }
+      else
+        {
+          host = gvm_hosts_next (hosts);
+        }
       g_free (host_str);
     }
 
