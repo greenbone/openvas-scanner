@@ -93,7 +93,6 @@ struct attack_start_args
 enum net_scan_status
 {
   NSS_NONE = 0,
-  NSS_BUSY,
   NSS_DONE,
 };
 
@@ -485,12 +484,6 @@ init_host_kb (char *ip_str, kb_t *network_kb)
       hostname_pattern = g_strdup_printf ("%s/*", ip_str);
       kb_duplicate (kb, *network_kb, hostname_pattern);
       g_free (hostname_pattern);
-      break;
-
-    case NSS_BUSY:
-      assert (network_kb != NULL);
-      assert (*network_kb != NULL);
-      kb = *network_kb;
       break;
 
     default:
