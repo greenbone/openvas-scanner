@@ -1083,7 +1083,6 @@ attack_network (struct scan_globals *globals, kb_t *network_kb)
   gvm_hosts_t *hosts;
   const gchar *network_targets, *port_range;
   gboolean network_phase = FALSE;
-  gboolean do_network_scan = FALSE;
   kb_t host_kb;
   GSList *unresolved;
 
@@ -1095,35 +1094,11 @@ attack_network (struct scan_globals *globals, kb_t *network_kb)
 
   gettimeofday (&then, NULL);
 
-  do_network_scan = FALSE;
-
   network_targets = prefs_get ("network_targets");
   if (network_targets != NULL)
     globals->network_targets = g_strdup (network_targets);
 
-  if (do_network_scan)
-    {
-      enum net_scan_status nss;
-
-      nss = network_scan_status (globals);
-      switch (nss)
-        {
-        case NSS_DONE:
-          network_phase = FALSE;
-          break;
-
-        case NSS_BUSY:
-          network_phase = TRUE;
-          break;
-
-        default:
-          globals->network_scan_status = g_strdup ("busy");
-          network_phase = TRUE;
-          break;
-        }
-    }
-  else
-    network_kb = NULL;
+  network_kb = NULL;
 
   if (check_kb_access ())
     return;
@@ -1421,8 +1396,5 @@ stop:
   g_message ("Total time to scan all hosts : %ld seconds",
              now.tv_sec - then.tv_sec);
 
-  if (do_network_scan && network_phase && !scan_is_stopped ())
-    attack_network (globals, network_kb);
-  else
-    set_scan_status ("finished");
+  set_scan_status ("finished");
 }
