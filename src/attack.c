@@ -93,7 +93,6 @@ struct attack_start_args
 enum net_scan_status
 {
   NSS_NONE = 0,
-  NSS_DONE,
 };
 
 /*******************************************************
@@ -430,7 +429,7 @@ finish_launch_plugin:
   return ret;
 }
 
-static int
+int
 kb_duplicate (kb_t dst, kb_t src, const gchar *filter)
 {
   struct kb_item *items, *p_itm;
@@ -457,15 +456,12 @@ kb_duplicate (kb_t dst, kb_t src, const gchar *filter)
  * Fills the knowledge base with host-specific login information for local
  * checks if defined.
  *
- * @param ip_str      IP string of target host.
- *
  * @return A knowledge base.
  */
 static kb_t
-init_host_kb (char *ip_str, kb_t *network_kb)
+init_host_kb (void)
 {
   kb_t kb;
-  gchar *hostname_pattern;
   enum net_scan_status nss;
   const gchar *kb_path = prefs_get ("db_address");
   int rc;
@@ -473,19 +469,6 @@ init_host_kb (char *ip_str, kb_t *network_kb)
   nss = NSS_NONE;
   switch (nss)
     {
-    case NSS_DONE:
-      rc = kb_new (&kb, kb_path);
-      if (rc)
-        {
-          report_kb_failure (rc);
-          return NULL;
-        }
-
-      hostname_pattern = g_strdup_printf ("%s/*", ip_str);
-      kb_duplicate (kb, *network_kb, hostname_pattern);
-      g_free (hostname_pattern);
-      break;
-
     default:
       rc = kb_new (&kb, kb_path);
       if (rc)
@@ -519,7 +502,7 @@ attack_host (struct scan_globals *globals, struct in6_addr *ip, GSList *vhosts,
   if (net_kb && *net_kb)
     {
       kb_delete (kb);
-      kb = init_host_kb (ip_str, net_kb);
+      kb = init_host_kb ();
       if (kb == NULL)
         return;
     }
