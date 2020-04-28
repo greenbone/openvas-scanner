@@ -90,11 +90,6 @@ struct attack_start_args
   gvm_host_t *host;
 };
 
-enum net_scan_status
-{
-  NSS_NONE = 0,
-};
-
 /*******************************************************
 
                PRIVATE FUNCTIONS
@@ -441,20 +436,14 @@ static kb_t
 init_host_kb (void)
 {
   kb_t kb;
-  enum net_scan_status nss;
   const gchar *kb_path = prefs_get ("db_address");
   int rc;
 
-  nss = NSS_NONE;
-  switch (nss)
+  rc = kb_new (&kb, kb_path);
+  if (rc)
     {
-    default:
-      rc = kb_new (&kb, kb_path);
-      if (rc)
-        {
-          report_kb_failure (rc);
-          return NULL;
-        }
+      report_kb_failure (rc);
+      return NULL;
     }
 
   return kb;
