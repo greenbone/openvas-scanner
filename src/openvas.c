@@ -115,7 +115,6 @@ static openvas_option openvas_defaults[] = {
   {"log_whole_attack", "no"},
   {"log_plugins_name_at_load", "no"},
   {"optimize_test", "yes"},
-  {"network_scan", "no"},
   {"non_simult_ports", "139, 445, 3389, Services/irc"},
   {"plugins_timeout", G_STRINGIFY (NVT_TIMEOUT)},
   {"scanner_plugins_timeout", G_STRINGIFY (SCANNER_NVT_TIMEOUT)},
