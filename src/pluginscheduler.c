@@ -313,22 +313,13 @@ check_dependency_cycles (plugins_scheduler_t sched)
 
 plugins_scheduler_t
 plugins_scheduler_init (const char *plugins_list, int autoload,
-                        int only_network, int *error)
+                        int *error)
 {
   plugins_scheduler_t ret;
-  int i;
 
   /* Fill our lists */
   ret = g_malloc0 (sizeof (*ret));
   *error = plugins_scheduler_enable (ret, plugins_list, autoload);
-
-  if (only_network)
-    {
-      for (i = ACT_GATHER_INFO; i <= ACT_END; i++)
-        {
-          ret->list[i] = NULL;
-        }
-    }
 
   if (check_dependency_cycles (ret))
     {

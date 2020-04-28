@@ -1131,7 +1131,7 @@ attack_network (struct scan_globals *globals, kb_t *network_kb)
   int plugins_init_error = 0;
   sched = plugins_scheduler_init (prefs_get ("plugin_set"),
                                   prefs_get_bool ("auto_enable_dependencies"),
-                                  FALSE, &plugins_init_error);
+                                  &plugins_init_error);
   if (!sched)
     {
       g_message ("Couldn't initialize the plugin scheduler");
