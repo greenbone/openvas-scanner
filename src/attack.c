@@ -211,23 +211,6 @@ fork_sleep (int n)
     }
 }
 
-static enum net_scan_status
-network_scan_status (struct scan_globals *globals)
-{
-  gchar *nss;
-
-  nss = globals->network_scan_status;
-  if (nss == NULL)
-    return NSS_NONE;
-
-  if (g_ascii_strcasecmp (nss, "busy") == 0)
-    return NSS_BUSY;
-  else if (g_ascii_strcasecmp (nss, "done") == 0)
-    return NSS_DONE;
-  else
-    return NSS_NONE;
-}
-
 int global_scan_stop = 0;
 
 static int
@@ -363,9 +346,6 @@ launch_plugin (struct scan_globals *globals, struct scheduler_plugin *plugin,
         }
     }
 
-  if (network_scan_status (globals) == NSS_BUSY)
-    network_scan = TRUE;
-
   if (prefs_get_bool ("safe_checks")
       && !nvti_category_is_safe (nvti_category (nvti)))
     {
@@ -478,13 +458,12 @@ kb_duplicate (kb_t dst, kb_t src, const gchar *filter)
  * Fills the knowledge base with host-specific login information for local
  * checks if defined.
  *
- * @param globals     Global preference struct.
  * @param ip_str      IP string of target host.
  *
  * @return A knowledge base.
  */
 static kb_t
-init_host_kb (struct scan_globals *globals, char *ip_str, kb_t *network_kb)
+init_host_kb (char *ip_str, kb_t *network_kb)
 {
   kb_t kb;
   gchar *hostname_pattern;
@@ -492,7 +471,7 @@ init_host_kb (struct scan_globals *globals, char *ip_str, kb_t *network_kb)
   const gchar *kb_path = prefs_get ("db_address");
   int rc;
 
-  nss = network_scan_status (globals);
+  nss = NSS_NONE;
   switch (nss)
     {
     case NSS_DONE:
@@ -547,7 +526,7 @@ attack_host (struct scan_globals *globals, struct in6_addr *ip, GSList *vhosts,
   if (net_kb && *net_kb)
     {
       kb_delete (kb);
-      kb = init_host_kb (globals, ip_str, net_kb);
+      kb = init_host_kb (ip_str, net_kb);
       if (kb == NULL)
         return;
     }

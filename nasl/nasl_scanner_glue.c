@@ -644,10 +644,7 @@ scan_phase (lex_ctxt *lexic)
   value = globals->network_scan_status;
   if (value)
     {
-      if (strcmp (value, "busy") == 0)
-        retc->x.i_val = 1;
-      else
-        retc->x.i_val = 2;
+      retc->x.i_val = 2;
     }
   else
     retc->x.i_val = 0;
