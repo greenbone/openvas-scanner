@@ -1095,10 +1095,7 @@ attack_network (struct scan_globals *globals, kb_t *network_kb)
 
   gettimeofday (&then, NULL);
 
-  if (prefs_get_bool ("network_scan"))
-    do_network_scan = TRUE;
-  else
-    do_network_scan = FALSE;
+  do_network_scan = FALSE;
 
   network_targets = prefs_get ("network_targets");
   if (network_targets != NULL)
