@@ -1082,7 +1082,6 @@ attack_network (struct scan_globals *globals, kb_t *network_kb)
   struct timeval then, now;
   gvm_hosts_t *hosts;
   const gchar *network_targets, *port_range;
-  gboolean network_phase = FALSE;
   kb_t host_kb;
   GSList *unresolved;
 
@@ -1132,7 +1131,7 @@ attack_network (struct scan_globals *globals, kb_t *network_kb)
   int plugins_init_error = 0;
   sched = plugins_scheduler_init (prefs_get ("plugin_set"),
                                   prefs_get_bool ("auto_enable_dependencies"),
-                                  network_phase, &plugins_init_error);
+                                  FALSE, &plugins_init_error);
   if (!sched)
     {
       g_message ("Couldn't initialize the plugin scheduler");
@@ -1157,36 +1156,9 @@ attack_network (struct scan_globals *globals, kb_t *network_kb)
   max_hosts = get_max_hosts_number ();
   max_checks = get_max_checks_number ();
 
-  if (network_phase)
-    {
-      if (network_targets == NULL)
-        {
-          g_warning (
-            "WARNING: In network phase, but without targets! Stopping.");
-          host = NULL;
-        }
-      else
-        {
-          int rc;
-
-          g_message ("Start a new scan. Target(s) : %s, "
-                     "in network phase with target %s",
-                     hostlist, network_targets);
-
-          rc = kb_new (network_kb, prefs_get ("db_address"));
-          if (rc)
-            {
-              report_kb_failure (rc);
-              host = NULL;
-            }
-          else
-            kb_lnk_reset (*network_kb);
-        }
-    }
-  else
-    g_message ("Starts a new scan. Target(s) : %s, with max_hosts = %d and "
-               "max_checks = %d",
-               hostlist, max_hosts, max_checks);
+  g_message ("Starts a new scan. Target(s) : %s, with max_hosts = %d and "
+             "max_checks = %d",
+             hostlist, max_hosts, max_checks);
 
   hosts = gvm_hosts_new (hostlist);
   unresolved = gvm_hosts_resolve (hosts);
@@ -1311,16 +1283,7 @@ attack_network (struct scan_globals *globals, kb_t *network_kb)
           goto forkagain;
         }
       hosts_set_pid (host_str, pid);
-      if (network_phase)
-        g_message ("Testing %s (network level) [%d]", network_targets, pid);
 
-      if (network_phase)
-        {
-          host = NULL;
-          globals->network_scan_status = g_strdup ("done");
-        }
-      else
-        {
           if (test_alive_hosts_only)
             {
               /* Boolean signalling if alive detection finished. */
@@ -1340,7 +1303,6 @@ attack_network (struct scan_globals *globals, kb_t *network_kb)
             {
               host = gvm_hosts_next (hosts);
             }
-        }
       g_free (host_str);
     }
 
