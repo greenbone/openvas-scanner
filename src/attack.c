@@ -310,7 +310,6 @@ launch_plugin (struct scan_globals *globals, struct scheduler_plugin *plugin,
 {
   int optimize = prefs_get_bool ("optimize_test"), pid, ret = 0;
   char *oid, *name, *error = NULL, ip_str[INET6_ADDRSTRLEN];
-  gboolean network_scan = FALSE;
   nvti_t *nvti;
 
   addr6_to_str (ip, ip_str);
@@ -354,29 +353,9 @@ launch_plugin (struct scan_globals *globals, struct scheduler_plugin *plugin,
       goto finish_launch_plugin;
     }
 
-  if (network_scan)
-    {
-      char asc_id[100];
-
-      assert (oid);
-      snprintf (asc_id, sizeof (asc_id), "Launched/%s", oid);
-
-      if (kb_item_get_int (kb, asc_id) > 0)
-        {
-          if (prefs_get_bool ("log_whole_attack"))
-            g_message ("Not launching %s against %s because it has already "
-                       "been lanched in the past (this is not an error)",
-                       oid, ip_str);
-          plugin->running_state = PLUGIN_STATUS_DONE;
-          goto finish_launch_plugin;
-        }
-      else
-        kb_item_set_int (kb, asc_id, 1);
-    }
-
   /* Do not launch NVT if mandatory key is missing (e.g. an important tool
-   * was not found). This is ignored during network wide scanning phases. */
-  if (!network_scan && !mandatory_requirements_met (kb, nvti))
+   * was not found). */
+  if (!mandatory_requirements_met (kb, nvti))
     error = "because a mandatory key is missing";
   if (error || (optimize && (error = requirements_plugin (kb, nvti))))
     {
