@@ -429,27 +429,6 @@ finish_launch_plugin:
   return ret;
 }
 
-int
-kb_duplicate (kb_t dst, kb_t src, const gchar *filter)
-{
-  struct kb_item *items, *p_itm;
-
-  items = kb_item_get_pattern (src, filter ? filter : "*");
-  for (p_itm = items; p_itm != NULL; p_itm = p_itm->next)
-    {
-      gchar *newname;
-
-      newname = strstr (p_itm->name, "/");
-      if (newname == NULL)
-        newname = p_itm->name;
-      else
-        newname += 1; /* Skip the '/' */
-
-      kb_item_add_str (dst, newname, p_itm->v_str, 0);
-    }
-  return 0;
-}
-
 /**
  * @brief Inits or loads the knowledge base for a single host.
  *
