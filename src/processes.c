@@ -90,6 +90,8 @@ init_child_signal_handlers (void)
   openvas_signal (SIGPIPE, SIG_IGN);
 }
 
+extern GMutex *logger_mutex;
+
 /**
  * @brief Create a new process (fork).
  */
@@ -98,7 +100,9 @@ create_process (process_func_t function, void *argument)
 {
   int pid;
 
+  g_mutex_lock (logger_mutex);
   pid = fork ();
+  g_mutex_unlock (logger_mutex);
 
   if (pid == 0)
     {
