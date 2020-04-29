@@ -1002,6 +1002,26 @@ get_alive_detection_tid ()
   return alive_detection_tid;
 }
 
+/**
+ * @brief Set and get if alive detection thread was already joined
+ * by main thread.
+ *
+ * The status can only be set to TRUE once in the lifetime of the program and
+ * retrieved as often as needed. After it is set to TRUE it can not be unset.
+ *
+ * @param joined  TRUE to set status to joined and FALSE to retrieve status of
+ * join.
+ * @return Returns true if thread was already joined.
+ */
+static gboolean
+ad_thread_joined (gboolean joined)
+{
+  static gboolean alive_detection_thread_already_joined = FALSE;
+  if (joined)
+    alive_detection_thread_already_joined = TRUE;
+  return alive_detection_thread_already_joined;
+}
+
 static void
 handle_scan_stop_signal ()
 {
@@ -1013,17 +1033,36 @@ handle_scan_stop_signal ()
   pid = kb_item_get_str (main_kb, ("internal/ovas_pid"));
   kb_lnk_reset (main_kb);
 
+  /* Stop all hosts and alive detection (if enabled) if we are in main.
+   * Else stop all running plugin processes for the current host fork. */
   if (atoi (pid) == getpid ())
-    hosts_stop_all ();
+    {
+      hosts_stop_all ();
+
+      /* Stop (cancel) alive detection if enabled and not already joined. */
+      if (prefs_get_bool ("test_alive_hosts_only"))
+        {
+          /* Alive detection thread was already joined by main thread. */
+          if (TRUE == ad_thread_joined (FALSE))
+            {
+              g_warning (
+                "Alive detection thread was already joined by other "
+                "thread. Cancel operation not permitted or not needed.");
+            }
+          else
+            {
+              int err;
+              err = pthread_cancel (get_alive_detection_tid ());
+              if (err == ESRCH)
+                g_warning (
+                  "%s: pthread_cancel() returned ESRCH; No thread with the "
+                  "supplied ID could be found.",
+                  __func__);
+            }
+        }
+    }
   else
     pluginlaunch_stop ();
-
-  if (prefs_get_bool ("test_alive_hosts_only"))
-    {
-      int err;
-      if ((err = pthread_kill (get_alive_detection_tid (), 9)) != 0)
-        g_error ("%s: error in pthread_kill(): %d", __func__, err);
-    }
 
   g_free (pid);
 }
@@ -1201,21 +1240,32 @@ attack_network (struct scan_globals *globals, kb_t *network_kb)
 
   if (test_alive_hosts_only)
     {
-      hosts->current = 0;
-
+      /* Boolean signalling if alive detection finished. */
+      gboolean ad_finished = FALSE;
       int err;
       pthread_t tid;
-      if ((err =
-             pthread_create (&tid, NULL, start_alive_detection, (void *) hosts))
-          != 0)
-        g_error ("%s: pthread_create(): %d", __func__, err);
+
+      /* Reset the iterator. */
+      hosts->current = 0;
+      err = pthread_create (&tid, NULL, start_alive_detection, (void *) hosts);
+      if (err == EAGAIN)
+        g_warning (
+          "%s: pthread_create() returned EAGAIN: Insufficient resources "
+          "to create thread.",
+          __func__);
       set_alive_detection_tid (tid);
       g_debug ("%s: started alive detection.", __func__);
-      /* blocks until we got new host, timeout or error */
-      host = get_host_from_queue (alive_hosts_kb, -1);
-      g_debug ("%s: Get first host to test from Queue. This host is used for "
-               "initialising the alive_hosts_list.",
-               __func__);
+
+      for (host = get_host_from_queue (alive_hosts_kb, &ad_finished);
+           !host && !ad_finished && !scan_is_stopped ();
+           host = get_host_from_queue (alive_hosts_kb, &ad_finished))
+        {
+          fork_sleep (1);
+        }
+      if (host)
+        g_debug ("%s: Get first host to test from Queue. This host is used for "
+                 "initialising the alive_hosts_list.",
+                 __func__);
 
       alive_hosts_list = gvm_hosts_new (gvm_host_value_str (host));
     }
@@ -1299,16 +1349,18 @@ attack_network (struct scan_globals *globals, kb_t *network_kb)
         {
           if (test_alive_hosts_only)
             {
-              host = get_host_from_queue (alive_hosts_kb, -1);
+              /* Boolean signalling if alive detection finished. */
+              gboolean ad_finished = FALSE;
+              for (host = get_host_from_queue (alive_hosts_kb, &ad_finished);
+                   !host && !ad_finished && !scan_is_stopped ();
+                   host = get_host_from_queue (alive_hosts_kb, &ad_finished))
+                {
+                  fork_sleep (1);
+                }
               if (host)
-                {
-                  gvm_hosts_add (alive_hosts_list, host);
-                  g_debug ("%s: got new host to test", __func__);
-                }
+                gvm_hosts_add (alive_hosts_list, host);
               else
-                {
-                  g_debug ("%s: got NULL host, stop/finish scan", __func__);
-                }
+                g_debug ("%s: got NULL host, stop/finish scan", __func__);
             }
           else
             {
@@ -1334,19 +1386,30 @@ stop:
 
   if (test_alive_hosts_only)
     {
+      int err;
+      void *retval;
+
       gvm_hosts_free (alive_hosts_list);
       kb_lnk_reset (alive_hosts_kb);
       g_debug ("%s: free alive detection data ", __func__);
+
       /* need to wait for alive detection to finish */
-      /* thread should be finished because we got host == NULL which means
-       * either the detection is finished or a timeout was reached */
       g_info ("%s: waiting for alive detection thread to be finished...",
               __func__);
-      /* join thread*/
-      int err;
-      if ((err = pthread_join (get_alive_detection_tid (), NULL)) != 0)
-        g_error ("%s: got error from pthread_join(): %d", __func__, err);
-      g_info ("%s: finished waiting for alive detection thread.", __func__);
+      /* Join alive detection thread. */
+      err = pthread_join (get_alive_detection_tid (), &retval);
+      if (err == EDEADLK)
+        g_warning ("%s: pthread_join() returned EDEADLK.", __func__);
+      if (err == EINVAL)
+        g_warning ("%s: pthread_join() returned EINVAL.", __func__);
+      if (err == ESRCH)
+        g_warning ("%s: pthread_join() returned ESRCH.", __func__);
+      if (retval == PTHREAD_CANCELED)
+        g_warning ("%s: pthread_join() returned PTHREAD_CANCELED.", __func__);
+      /* Set flag signaling that alive deteciton thread was joined. */
+      if (err == 0)
+        ad_thread_joined (TRUE);
+      g_info ("%s: Finished waiting for alive detection thread.", __func__);
     }
 
   gvm_hosts_free (hosts);

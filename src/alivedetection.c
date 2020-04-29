@@ -55,6 +55,11 @@ struct hosts_data hosts_data;
   "(ip6 or ip or arp) and (ip6[40]=129 or icmp[icmptype] == icmp-echoreply " \
   "or dst port " ASSTR (FILTER_PORT) " or arp[6:2]=2)"
 
+/* Conditional variable and mutex to make sure sniffer thread already started
+ * before sending out pings. */
+pthread_mutex_t mutex = PTHREAD_MUTEX_INITIALIZER;
+pthread_cond_t cond = PTHREAD_COND_INITIALIZER;
+
 /**
  * @brief The scanner struct holds data which is used frequently by the alive
  * detection thread.
@@ -68,8 +73,10 @@ struct scanner
   int icmpv6soc;
   int arpv4soc;
   int arpv6soc;
-  /* flags */
-  uint8_t tcp_flag; /**< TH_SYN or TH_ACK flag */
+  /* TH_SYN or TH_ACK */
+  uint8_t tcp_flag;
+  /* ports used for TCP ACK/SYN */
+  GArray *ports;
   /* source addresses */
   struct in_addr *sourcev4;
   struct in6_addr *sourcev6;
@@ -99,7 +106,7 @@ struct scan_restrictions
 
 /**
  * @brief The hosts_data struct holds the alive hosts and target hosts in
- * seperate hashtables.
+ * separate hashtables.
  */
 struct hosts_data
 {
@@ -232,25 +239,6 @@ open_live (char *iface, char *filter)
       g_warning ("%s: %s", __func__, errbuf);
     }
 
-  /* TODO: documentation of pcap_setnonblock() says that pcap_loop() and
-   * pcap_next() will not work in ''non-blocking'' mode. But pcap_breakloop does
-   * only work reliably when setnonblock is set in this program. why? */
-  if (pcap_setnonblock (pcap_handle, 1, errbuf) != 0)
-    {
-      g_warning ("%s: %s", __func__, errbuf);
-    }
-
-  /* get current ''non-blocking'' state of the capture descriptor */
-  int non_blocking_state = -1;
-  if ((non_blocking_state = pcap_getnonblock (pcap_handle, errbuf)) < 0)
-    {
-      g_warning ("%s: %s", __func__, errbuf);
-    }
-  else
-    {
-      g_info ("%s: non-blocking state = %d", __func__, non_blocking_state);
-    }
-
   /* handle, struct bpf_program *fp, int optimize, bpf_u_int32 netmask */
   if (pcap_compile (pcap_handle, &filter_prog, filter, 1, PCAP_NETMASK_UNKNOWN)
       < 0)
@@ -276,21 +264,23 @@ open_live (char *iface, char *filter)
 /**
  * @brief Get new host from alive detection scanner.
  *
- * Check if an alive host was found by the alive detection scanner. If no alive
- * host was found, retry every second for timeout seconds. Return null if
- * timeout expired, if alive detection scanner finished or on error.
+ * Check if an alive host was found by the alive detection scanner. If an alive
+ * host is found it is packed into a gvm_host_t and returned. If no host was
+ * found or an error occurred NULL is returned. If alive detection finished
+ * scanning all hosts, NULL is returned and the status flag
+ * alive_detection_finished is set to TRUE.
  *
  * @param alive_hosts_kb  Redis connection for accessing the queue on which the
- * alive detection scanner puts found hosts
- * @param timout  Timeout in second. How long to wait for alive hosts. If
- * timeout <0 wait indefinitely.
+ * alive detection scanner puts found hosts.
+ * @param alive_deteciton_finished  Status of alive detection process.
  * @return  If valid alive host is found return a gvm_host_t. If alive scanner
- * finished, on error, or if timeout reached return NULL.
+ * finished NULL is returened and alive_deteciton_finished set. On error or if
+ * no host was found return NULL.
  */
 gvm_host_t *
-get_host_from_queue (kb_t alive_hosts_kb, int timeout)
+get_host_from_queue (kb_t alive_hosts_kb, gboolean *alive_deteciton_finished)
 {
-  g_message ("%s: get new host from Queue", __func__);
+  g_debug ("%s: get new host from Queue", __func__);
 
   /* redis connection not established yet */
   if (!alive_hosts_kb)
@@ -299,95 +289,83 @@ get_host_from_queue (kb_t alive_hosts_kb, int timeout)
       return NULL;
     }
 
-  /* timeout count in seconds */
-  int count = 0;
   /* string representation of an ip address or "finish" */
   gchar *host_str = NULL;
   /* complete host to be returned */
   gvm_host_t *host = NULL;
 
-  /* poll redis message queue for new results until success, timout or error */
-  for (; !host && (timeout != count); count++)
+  /* try to get item from db, string needs to be freed, NULL on empty or
+   * error
+   */
+  host_str = kb_item_pop_str (alive_hosts_kb, (ALIVE_DETECTION_QUEUE));
+  if (!host_str)
     {
-      /* after the first try in getting a new host we wait for one second */
-      if (count)
-        sleep (1);
-
-      /* try to get item from db, string needs to be freed, NULL on empty or
-       * error
-       */
-      host_str = kb_item_pop_str (alive_hosts_kb, (ALIVE_DETECTION_QUEUE));
-      if (!host_str)
+      g_debug ("%s: ALIVE_DETECTION_SCANNING, no item found on queue(or "
+               "error) but "
+               "alive detection still ongoing, try again in a sec",
+               __func__);
+      return NULL;
+    }
+  /* got some string from redis queue */
+  else
+    {
+      /* check for finish signal/string */
+      if (g_strcmp0 (host_str, "finish") == 0)
         {
-          g_message ("%s: ALIVE_DETECTION_SCANNING, no item found on queue(or "
-                     "error) but "
-                     "alive detection still ongoing, try again in a sec",
-                     __func__);
-          continue;
-        }
-      /* got some string from redis queue */
-      else
-        {
-          /* check for finish signal/string */
-          if (g_strcmp0 (host_str, "finish") == 0)
+          /* Send Error message if max_scan_hosts was reached. */
+          if (scan_restrictions.max_scan_hosts_reached)
             {
-              /* Send Error message if max_scan_hosts was reached. */
-              if (scan_restrictions.max_scan_hosts_reached)
-                {
-                  kb_t main_kb = NULL;
-                  int i = atoi (prefs_get ("ov_maindbid"));
+              kb_t main_kb = NULL;
+              int i = atoi (prefs_get ("ov_maindbid"));
 
-                  if ((main_kb = kb_direct_conn (prefs_get ("db_address"), i)))
-                    {
-                      char buf[256];
-                      g_snprintf (
-                        buf, 256,
-                        "ERRMSG||| ||| ||| |||Maximum number of allowed scans "
-                        "reached. There are still %d alive hosts available "
-                        "which are not scanned.",
-                        scan_restrictions.alive_hosts_count
-                          - scan_restrictions.max_scan_hosts);
-                      if (kb_item_push_str (main_kb, "internal/results", buf)
-                          != 0)
-                        g_warning ("%s: kb_item_push_str() failed to push "
-                                   "error message.",
-                                   __func__);
-                      kb_lnk_reset (main_kb);
-                    }
-                  else
-                    g_warning ("Not possible to get the main kb "
-                               "connection. Info about "
-                               "number of alive hosts could not be sent.");
-                }
-              g_message ("%s: ALIVE_DETECTION_FINISHED, scan was finished. "
-                         "return NULL host",
-                         __func__);
-              g_free (host_str);
-              return NULL;
-            }
-          /* probably got host */
-          else
-            {
-              g_message ("%s: ALIVE_DETECTION_OK, got item from queue",
-                         __func__);
-              host = gvm_host_from_str (host_str);
-              if (!host)
+              if ((main_kb = kb_direct_conn (prefs_get ("db_address"), i)))
                 {
-                  g_warning (
-                    "%s: error in call to gvm_host_from_str() for host_str: %s",
-                    __func__, host_str);
-                  continue;
+                  char buf[256];
+                  g_snprintf (
+                    buf, 256,
+                    "ERRMSG||| ||| ||| |||Maximum number of allowed scans "
+                    "reached. There are still %d alive hosts available "
+                    "which are not scanned.",
+                    scan_restrictions.alive_hosts_count
+                      - scan_restrictions.max_scan_hosts);
+                  if (kb_item_push_str (main_kb, "internal/results", buf) != 0)
+                    g_warning ("%s: kb_item_push_str() failed to push "
+                               "error message.",
+                               __func__);
+                  kb_lnk_reset (main_kb);
                 }
               else
-                {
-                  g_free (host_str);
-                  return host;
-                }
+                g_warning ("Not possible to get the main kb "
+                           "connection. Info about "
+                           "number of alive hosts could not be sent.");
+            }
+          g_message ("%s: ALIVE_DETECTION_FINISHED, scan was finished. "
+                     "return NULL host",
+                     __func__);
+          g_free (host_str);
+          *alive_deteciton_finished = TRUE;
+          return NULL;
+        }
+      /* probably got host */
+      else
+        {
+          g_debug ("%s: ALIVE_DETECTION_OK, got item from queue", __func__);
+          host = gvm_host_from_str (host_str);
+          g_free (host_str);
+
+          if (!host)
+            {
+              g_warning (
+                "%s: error in call to gvm_host_from_str() for host_str: %s",
+                __func__, host_str);
+              return NULL;
+            }
+          else
+            {
+              return host;
             }
         }
     }
-  g_free (host_str);
-  return NULL;
 }
 
 /**
@@ -431,19 +409,36 @@ in_cksum (uint16_t *addr, int len)
 
 /**
  * @brief Put finish signal on alive detection queue.
+ *
+ * If the finish signal (a string) was already put on the queue it is not put on
+ * it again.
+ *
+ * @param error  Set to 0 on success. Is set to -1 if finish signal was already
+ * put on queue. Set to -2 if function was no able to push finish string on
+ * queue.
  */
-static int
-put_finish_signal_on_queue (void)
+static void
+put_finish_signal_on_queue (void *error)
 {
+  static gboolean fin_msg_already_on_queue = FALSE;
+  if (fin_msg_already_on_queue)
+    {
+      g_warning ("%s: Finish signal was already put on queue.", __func__);
+      *(int *) error = -1;
+      return;
+    }
   if ((kb_item_push_str (scanner.main_kb, ALIVE_DETECTION_QUEUE,
                          ALIVE_DETECTION_FINISH))
       != 0)
     {
-      g_warning ("%s: error in kb_item_push_str()", __func__);
-      return -1;
+      g_warning ("%s: Error in kb_item_push_str().", __func__);
+      *(int *) error = -2;
     }
   else
-    return 0;
+    {
+      *(int *) error = 0;
+      fin_msg_already_on_queue = TRUE;
+    }
 }
 
 /**
@@ -491,8 +486,12 @@ handle_scan_restrictions (gchar *addr_str)
       && (scan_restrictions.alive_hosts_count
           == scan_restrictions.max_scan_hosts))
     {
+      int err;
       scan_restrictions.max_scan_hosts_reached = TRUE;
-      put_finish_signal_on_queue ();
+      put_finish_signal_on_queue (&err);
+      if (err != 0)
+        g_warning ("%s: Error in put_finish_signal_on_queue(): %d ", __func__,
+                   err);
     }
   /* Thread which sends out new pings should stop sending when max_alive_hosts
    * is reached. */
@@ -540,7 +539,7 @@ got_packet (__attribute__ ((unused)) u_char *args,
       // g_message ("%s: IP version = 4, addr: %s", __func__, addr_str);
 
       /* Do not put already found host on Queue and only put hosts on Queue we
-       * are seaching for. */
+       * are searching for. */
       if (g_hash_table_add (hosts_data.alivehosts, g_strdup (addr_str))
           && g_hash_table_contains (hosts_data.targethosts, addr_str) == TRUE)
         {
@@ -564,7 +563,7 @@ got_packet (__attribute__ ((unused)) u_char *args,
       // g_message ("%s: IP version = 6, addr: %s", __func__, addr_str);
 
       /* Do not put already found host on Queue and only put hosts on Queue we
-       * are seaching for. */
+       * are searching for. */
       if (g_hash_table_add (hosts_data.alivehosts, g_strdup (addr_str))
           && g_hash_table_contains (hosts_data.targethosts, addr_str) == TRUE)
         {
@@ -594,7 +593,7 @@ got_packet (__attribute__ ((unused)) u_char *args,
       // g_message ("%s: ARP, IP addr: %s", __func__, addr_str);
 
       /* Do not put already found host on Queue and only put hosts on Queue
-      we are seaching for. */
+      we are searching for. */
       if (g_hash_table_add (hosts_data.alivehosts, g_strdup (addr_str))
           && g_hash_table_contains (hosts_data.targethosts, addr_str) == TRUE)
         {
@@ -617,6 +616,9 @@ sniffer_thread (__attribute__ ((unused)) void *vargp)
 {
   int ret;
   g_info ("%s: start packet sniffing thread", __func__);
+  pthread_mutex_lock (&mutex);
+  pthread_cond_signal (&cond);
+  pthread_mutex_unlock (&mutex);
 
   /* reads packets until error or pcap_breakloop() */
   if ((ret = pcap_loop (scanner.pcap_handle, -1, got_packet, NULL))
@@ -626,7 +628,7 @@ sniffer_thread (__attribute__ ((unused)) void *vargp)
   else if (ret == 0)
     g_warning ("%s: count of packets is exhausted", __func__);
   else if (ret == PCAP_ERROR_BREAK)
-    g_info ("%s: Loop was succesfully broken after call to pcap_breakloop",
+    g_info ("%s: Loop was successfully broken after call to pcap_breakloop",
             __func__);
 
   pthread_exit (0);
@@ -644,7 +646,7 @@ __attribute__ ((unused)) static void
 exclude (gpointer key, __attribute__ ((unused)) gpointer value,
          gpointer hashtable)
 {
-  /* delte key from targethost*/
+  /* delete key from targethost*/
   g_hash_table_remove (hashtable, (gchar *) key);
 }
 
@@ -901,11 +903,6 @@ send_tcp_v6 (int soc, struct in6_addr *dst_p, uint8_t tcp_flag)
 
   struct in6_addr src;
 
-  int port = 0;
-  int ports[] = {139, 135, 445,  80,    22,   515, 23,  21,  6000, 1025,
-                 25,  111, 1028, 9100,  1029, 79,  497, 548, 5000, 1917,
-                 53,  161, 9001, 65535, 443,  113, 993, 8080};
-
   if (scanner.sourcev6 == NULL)
     {
       gchar *interface = v6_routethrough (dst_p, &src);
@@ -914,8 +911,12 @@ send_tcp_v6 (int soc, struct in6_addr *dst_p, uint8_t tcp_flag)
       printipv6 (scanner.sourcev6);
     }
 
-  /* for ports in portrange send packets */
-  for (long unsigned int i = 0; i < sizeof (ports) / sizeof (int); i++)
+  /* No ports in portlist. */
+  if (scanner.ports->len == 0)
+    return;
+
+  /* For ports in ports array send packet. */
+  for (guint i = 0; i < scanner.ports->len; i++)
     {
       memset (packet, 0, sizeof (packet));
       /* IPv6 */
@@ -929,7 +930,7 @@ send_tcp_v6 (int soc, struct in6_addr *dst_p, uint8_t tcp_flag)
 
       /* TCP */
       tcp->th_sport = htons (FILTER_PORT);
-      tcp->th_dport = port ? htons (port) : htons (ports[i]);
+      tcp->th_dport = htons (g_array_index (scanner.ports, uint16_t, i));
       tcp->th_seq = htonl (0);
       tcp->th_ack = htonl (0);
       tcp->th_x2 = 0;
@@ -986,11 +987,6 @@ send_tcp_v4 (int soc, struct in_addr *dst_p, uint8_t tcp_flag)
 
   struct in_addr src; /* ip src */
 
-  int port = 0;
-  int ports[] = {139, 135, 445,  80,    22,   515, 23,  21,  6000, 1025,
-                 25,  111, 1028, 9100,  1029, 79,  497, 548, 5000, 1917,
-                 53,  161, 9001, 65535, 443,  113, 993, 8080};
-
   /* get src address */
   if (scanner.sourcev4 == NULL) // scanner.sourcev4 == NULL
     {
@@ -1000,8 +996,12 @@ send_tcp_v4 (int soc, struct in_addr *dst_p, uint8_t tcp_flag)
       printipv4 (scanner.sourcev4);
     }
 
-  /* for ports in portrange send packets */
-  for (long unsigned int i = 0; i < sizeof (ports) / sizeof (int); i++)
+  /* No ports in portlist. */
+  if (scanner.ports->len == 0)
+    return;
+
+  /* For ports in ports array send packet. */
+  for (guint i = 0; i < scanner.ports->len; i++)
     {
       memset (packet, 0, sizeof (packet));
       /* IP */
@@ -1021,7 +1021,7 @@ send_tcp_v4 (int soc, struct in_addr *dst_p, uint8_t tcp_flag)
       /* TCP */
       tcp->th_sport = htons (FILTER_PORT);
       tcp->th_flags = tcp_flag; // TH_SYN TH_ACK;
-      tcp->th_dport = port ? htons (port) : htons (ports[i]);
+      tcp->th_dport = htons (g_array_index (scanner.ports, uint16_t, i));
       tcp->th_seq = rand ();
       tcp->th_ack = 0;
       tcp->th_x2 = 0;
@@ -1166,8 +1166,8 @@ send_arp_v4 (int soc, struct in_addr *dst_p)
   memcpy (&arphdr.sender_ip, &src, 4 * sizeof (uint8_t));
   /* Hardware type ethernet.
    * Protocol type IP.
-   * Hardware address lenth is MAC address length.
-   * Protocol address lenth is lenght of IPv4.
+   * Hardware address length is MAC address length.
+   * Protocol address length is length of IPv4.
    * OpCode is ARP request. */
   arphdr.htype = htons (1);
   arphdr.ptype = htons (ETH_P_IP);
@@ -1295,10 +1295,11 @@ send_dead_hosts_to_ospd_openvas (void)
               /* Add start and end of message. */
               g_string_prepend (chunked_hosts,
                                 "DEADHOST||| |||general/Host_Details|||");
-              g_string_append (chunked_hosts,
-                               "|||<host><detail><name>Host "
-                               "dead</name><value>1</value>source><description/"
-                               "><type/><name/></source></detail></host>");
+              g_string_append (
+                chunked_hosts,
+                "|||<host><detail><name>Host "
+                "dead</name><value>1</value><source><description/"
+                "><type/><name/></source></detail></host>");
               g_debug ("%s: %s", __func__, chunked_hosts->str);
               if (kb_item_push_str (main_kb, "internal/results",
                                     chunked_hosts->str)
@@ -1310,13 +1311,10 @@ send_dead_hosts_to_ospd_openvas (void)
               g_string_truncate (chunked_hosts, 0);
               hosts_in_chunk = 0;
             }
-          /* Add host string seperator. */
+          /* Add host string separator. */
           else
             g_string_append (chunked_hosts, ",");
         }
-      else
-        g_warning ("Not possible to get the main kb connection. Info about "
-                   "number of alive hosts could not be sent.");
     }
   /* Send rest of hosts. */
   if (hosts_in_chunk)
@@ -1326,7 +1324,7 @@ send_dead_hosts_to_ospd_openvas (void)
                         "DEADHOST||| |||general/Host_Details|||");
       g_string_append (chunked_hosts,
                        "|||<host><detail><name>Host "
-                       "dead</name><value>1</value>source><description/><type/"
+                       "dead</name><value>1</value><source><description/><type/"
                        "><name/></source></detail></host>");
       g_debug ("%s: %s", __func__, buf);
       if (kb_item_push_str (main_kb, "internal/results", chunked_hosts->str)
@@ -1343,7 +1341,7 @@ send_dead_hosts_to_ospd_openvas (void)
 /**
  * @brief Scan function starts a sniffing thread which waits for packets to
  * arrive and sends pings to hosts we want to test. Blocks until Scan is
- * finished or error occured.
+ * finished or error occurred.
  *
  * Start a sniffer thread. Get what method of alive detection to use. Send
  * appropriate pings  for every host we want to test.
@@ -1356,7 +1354,8 @@ scan (void)
   g_message ("%s: Start scanning for alive hosts.", __func__);
   int number_of_targets, number_of_targets_checked = 0;
   int err;
-  pthread_t tid; /* thread id */
+  void *retval;
+  pthread_t sniffer_thread_id;
   const gchar *alive_test_pref_as_str;
   GHashTableIter target_hosts_iter;
   gpointer key, value;
@@ -1379,10 +1378,18 @@ scan (void)
 
   /* start sniffer thread and wait a bit for startup */
   /* TODO: use mutex instead of sleep */
-  if ((err = pthread_create (&tid, NULL, sniffer_thread, NULL)) != 0)
-    {
-      g_warning ("%s: pthread_create: %d", __func__, err);
-    }
+  err = pthread_create (&sniffer_thread_id, NULL, sniffer_thread, NULL);
+  if (err == EAGAIN)
+    g_warning ("%s: pthread_create() returned EAGAIN: Insufficient resources "
+               "to create thread.",
+               __func__);
+  /* Wait for other thread to start up before sending out pings. */
+  pthread_mutex_lock (&mutex);
+  pthread_cond_wait (&cond, &mutex);
+  pthread_mutex_unlock (&mutex);
+  /* Mutex and cond not needed anymore. */
+  pthread_mutex_destroy (&mutex);
+  pthread_cond_destroy (&cond);
   sleep (2);
 
   g_info ("%s: Get method of alive detection.", __func__);
@@ -1542,17 +1549,33 @@ scan (void)
   sleep (WAIT_FOR_REPLIES_TIMEOUT);
   g_info ("%s: finish waiting for replies", __func__);
 
-  /* break sniffer loop */
-  /* TODO: research problems breaking loop form other thread */
+  g_info ("%s: Try to stop thread which is sniffing for alive hosts. ",
+          __func__);
+  /* Try to break loop in sniffer thread. */
   pcap_breakloop (scanner.pcap_handle);
-  g_info ("%s: pcap_breakloop", __func__);
+  /* Give thread chance to exit on its own. */
+  sleep (2);
+
+  /* Cancel thread. May be necessary if pcap_breakloop() does not break the
+   * loop. */
+  err = pthread_cancel (sniffer_thread_id);
+  if (err == ESRCH)
+    g_warning ("%s: pthread_cancel() returned ESRCH; No thread with the "
+               "supplied ID could be found.",
+               __func__);
 
   /* join sniffer thread*/
-  if ((err = pthread_join (tid, NULL)) != 0)
-    {
-      g_warning ("%s: pthread_join: %d", __func__, err);
-    }
-  g_info ("%s: joined thread", __func__);
+  err = pthread_join (sniffer_thread_id, &retval);
+  if (err == EDEADLK)
+    g_warning ("%s: pthread_join() returned EDEADLK.", __func__);
+  if (err == EINVAL)
+    g_warning ("%s: pthread_join() returned EINVAL.", __func__);
+  if (err == ESRCH)
+    g_warning ("%s: pthread_join() returned ESRCH.", __func__);
+  if (retval == PTHREAD_CANCELED)
+    g_warning ("%s: pthread_join() returned PTHREAD_CANCELED.", __func__);
+
+  g_info ("%s: Stopped thread which was sniffing for alive hosts.", __func__);
 
   /* close handle */
   if (scanner.pcap_handle != NULL)
@@ -1723,6 +1746,41 @@ get_socket (enum socket_type socket_type)
 }
 
 /**
+ * @brief Put all ports of a given port range into the ports array.
+ *
+ * @param range Pointer to a range_t.
+ * @param ports_array Pointer to an GArray.
+ */
+static void
+fill_ports_array (gpointer range, gpointer ports_array)
+{
+  gboolean range_exclude;
+  uint16_t range_start;
+  uint16_t range_end;
+  uint16_t port;
+
+  range_start = ((range_t *) range)->start;
+  range_end = ((range_t *) range)->end;
+  range_exclude = ((range_t *) range)->exclude;
+
+  /* If range should be excluded do not use it. */
+  if (range_exclude)
+    return;
+
+  /* Only single port in range. */
+  if (range_end == 0 || (range_start == range_end))
+    {
+      g_array_append_val (ports_array, range_start);
+      return;
+    }
+  else
+    {
+      for (port = range_start; port <= range_end; port++)
+        g_array_append_val (ports_array, port);
+    }
+}
+
+/**
  * @brief Initialise the alive detection scanner.
  *
  * Fill scanner struct with appropriate values.
@@ -1734,6 +1792,10 @@ static int
 alive_detection_init (gvm_hosts_t *hosts)
 {
   g_info ("%s: initialise alive scanner", __func__);
+
+  /* Used for ports array initialisation. */
+  const gchar *port_list = NULL;
+  GPtrArray *portranges_array;
 
   /* Scanner */
   /* sockets */
@@ -1780,6 +1842,22 @@ alive_detection_init (gvm_hosts_t *hosts)
   /* reset hosts iter */
   hosts->current = 0;
 
+  /* Init ports used for scanning. */
+  scanner.ports = NULL;
+  /* Port list was already validated by openvas so we don't do it here again. */
+  port_list = prefs_get ("port_range");
+  scanner.ports = g_array_new (FALSE, TRUE, sizeof (uint16_t));
+  if (port_list)
+    portranges_array = port_range_ranges (port_list);
+  else
+    g_warning (
+      "%s: Port list supplied by user is empty. Alive detection may not find "
+      "any alive hosts when using TCP ACK/SYN scanning methods. ",
+      __func__);
+  /* Fill ports array with ports from the ranges. */
+  g_ptr_array_foreach (portranges_array, fill_ports_array, scanner.ports);
+  array_free (portranges_array);
+
   /* Scan restrictions. max_scan_hosts and max_alive_hosts related. */
   const gchar *pref_str;
   scan_restrictions.max_alive_hosts_reached = FALSE;
@@ -1802,47 +1880,47 @@ alive_detection_init (gvm_hosts_t *hosts)
 /**
  * @brief Free all the data used by the alive detection scanner.
  *
- * @return 0 on success, <0 on error.
+ * @param error Set to 0 on success and <0 on failure.
  */
-static int
-alive_detection_free (void)
+static void
+alive_detection_free (void *error)
 {
-  int ret = 0;
+  *(int *) error = 0;
   if ((close (scanner.tcpv4soc)) != 0)
     {
-      ret = -1;
+      *(int *) error = -1;
       g_warning ("%s: close(): %s", __func__, strerror (errno));
     }
   if ((close (scanner.tcpv6soc)) != 0)
     {
-      ret = -2;
+      *(int *) error = -2;
       g_warning ("%s: close(): %s", __func__, strerror (errno));
     }
   if ((close (scanner.icmpv4soc)) != 0)
     {
-      ret = -3;
+      *(int *) error = -3;
       g_warning ("%s: close(): %s", __func__, strerror (errno));
     }
   if ((close (scanner.icmpv6soc)) != 0)
     {
-      ret = -4;
+      *(int *) error = -4;
       g_warning ("%s: close(): %s", __func__, strerror (errno));
     }
   if ((close (scanner.arpv4soc)) != 0)
     {
-      ret = -5;
+      *(int *) error = -5;
       g_warning ("%s: close(): %s", __func__, strerror (errno));
     }
   if ((close (scanner.arpv6soc)) != 0)
     {
-      ret = -6;
+      *(int *) error = -6;
       g_warning ("%s: close(): %s", __func__, strerror (errno));
     }
   /*pcap_close (scanner.pcap_handle); //pcap_handle is closed in ping/scan
    * function for now */
   if ((kb_lnk_reset (scanner.main_kb)) != 0)
     {
-      ret = -7;
+      *(int *) error = -7;
       g_warning ("%s: error in kb_lnk_reset()", __func__);
     }
 
@@ -1850,18 +1928,19 @@ alive_detection_free (void)
   g_free (scanner.sourcev4);
   g_free (scanner.sourcev6);
 
+  /* Ports array. */
+  g_array_free (scanner.ports, TRUE);
+
   g_hash_table_destroy (hosts_data.alivehosts);
   /* targethosts: (ipstr, gvm_host_t *)
    * gvm_host_t are freed by caller of start_alive_detection()! */
   g_hash_table_destroy (hosts_data.targethosts);
   g_hash_table_destroy (hosts_data.alivehosts_not_to_be_sent_to_openvas);
-
-  return ret;
 }
 
 /**
  * @brief Start the scan of all specified hosts in gvm_hosts_t
- * list. Finish signal is put on Queue if scan is finished or err occured.
+ * list. Finish signal is put on Queue if scan is finished or an error occurred.
  *
  * @param hosts_to_test gvm_hosts_t list of hosts to alive test. which is to be
  * freed by caller.
@@ -1869,26 +1948,34 @@ alive_detection_free (void)
 void *
 start_alive_detection (void *hosts_to_test)
 {
-  int err;
-  gvm_hosts_t *hosts = (gvm_hosts_t *) hosts_to_test;
-  if ((err = alive_detection_init (hosts)) < 0)
-    g_warning ("%s: error in alive_detection_init(): %d", __func__, err);
+  int init_err;
+  int fin_err;
+  int free_err;
+  gvm_hosts_t *hosts;
 
-  g_info ("%s: start scan()", __func__);
-  /* blocks until detection process is finished */
+  hosts = (gvm_hosts_t *) hosts_to_test;
+  if ((init_err = alive_detection_init (hosts)) < 0)
+    g_warning ("%s: error in alive_detection_init(): %d", __func__, init_err);
+
+  g_info ("%s: Start Alive Detection", __func__);
+  /* If alive detection thread returns, is canceled or killed unexpectedly all
+   * used resources are freed and sockets, connections closed.*/
+  pthread_cleanup_push (alive_detection_free, &free_err);
+  /* If alive detection thread returns, is canceled or killed unexpectedly a
+   * finish signal is put on the queue for openvas to process.*/
+  pthread_cleanup_push (put_finish_signal_on_queue, &fin_err);
+  /* Start the scan. */
   if (scan () < 0)
     g_warning ("%s: error in scan()", __func__);
-
-  /* put finish signal on Queue if all packets were sent and we waited long
-   * enough for packets to arrive */
-  if (put_finish_signal_on_queue () != 0)
-    g_warning ("%s: Could not push finish signal on queue", __func__);
-  else
-    g_info ("%s: alive detection process finished. finish signal put on Q.",
-            __func__);
-
-  if ((err = alive_detection_free ()) < 0)
-    g_warning ("%s: error in alive_detection_free(): %d", __func__, err);
+  /* Put finish signal on queue. */
+  pthread_cleanup_pop (1);
+  /* Free memory, close sockets and connections. */
+  pthread_cleanup_pop (1);
+  if (free_err != 0)
+    g_warning ("%s: Error in trying to free resources and closing "
+               "sockets/connections: %d",
+               __func__, free_err);
+  g_info ("%s: Alive Detection finished. ", __func__);
 
   pthread_exit (0);
 }

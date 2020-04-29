@@ -36,7 +36,7 @@
 #define ALIVE_DETECTION_FINISH "finish"
 
 gvm_host_t *
-get_host_from_queue (kb_t alive_hosts_kb, int timeout);
+get_host_from_queue (kb_t alive_hosts_kb, gboolean *alive_detection_finished);
 
 void *
 start_alive_detection (void *hosts);
