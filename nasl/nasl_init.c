@@ -363,7 +363,6 @@ static init_func libfuncs[] = {
   {"plugin_run_find_service", plugin_run_find_service},
   {"plugin_run_openvas_tcp_scanner", plugin_run_openvas_tcp_scanner},
   {"plugin_run_synscan", plugin_run_synscan},
-  {"plugin_run_nmap", plugin_run_nmap},
   {"isotime_now", nasl_isotime_now},
   {"isotime_is_valid", nasl_isotime_is_valid},
   {"isotime_scan", nasl_isotime_scan},

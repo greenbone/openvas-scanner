@@ -1,4 +1,4 @@
-/* Copyright (C) 2010-2019 Greenbone Networks GmbH
+/* Copyright (C) 2010-2020 Greenbone Networks GmbH
  *
  * SPDX-License-Identifier: GPL-2.0-or-later
  *
@@ -33,8 +33,5 @@ plugin_run_openvas_tcp_scanner (lex_ctxt *);
 
 tree_cell *
 plugin_run_synscan (lex_ctxt *);
-
-tree_cell *
-plugin_run_nmap (lex_ctxt *);
 
 #endif /* not _NASL_BUILTIN_PLUGINS_H */
