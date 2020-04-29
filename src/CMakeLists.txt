@@ -175,6 +175,17 @@ target_link_libraries (openvas openvas_nasl_shared ${LIBOPENVAS_NASL_LDFLAGS}
 
 ## Tests
 
+add_executable (alivedetection-test
+                EXCLUDE_FROM_ALL
+                alivedetection_tests.c)
+add_test (alivedetection-test alivedetection-test)
+target_include_directories (alivedetection-test PRIVATE ${CGREEN_INCLUDE_DIRS})
+target_link_libraries (alivedetection-test openvas_nasl_shared cgreen
+                       ${LIBGVM_BASE_LDFLAGS}
+                       ${GLIB_LDFLAGS}
+                       ${PCAP_LDFLAGS}
+                       ${LINKER_HARDENING_FLAGS} ${CMAKE_THREAD_LIBS_INIT})
+
 add_executable (attack-test
                 EXCLUDE_FROM_ALL
                 alivedetection.c attack_tests.c
@@ -197,7 +208,7 @@ target_link_libraries (attack-test openvas_nasl_shared cgreen
                        -Wl,--wrap=redis_push_str)
 
 add_custom_target (tests
-                   DEPENDS attack-test)
+                   DEPENDS attack-test alivedetection-test)
 
 ## Static analysis
 
