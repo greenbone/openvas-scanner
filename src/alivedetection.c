@@ -1844,8 +1844,16 @@ alive_detection_init (gvm_hosts_t *hosts)
 
   /* Init ports used for scanning. */
   scanner.ports = NULL;
-  /* Port list was already validated by openvas so we don't do it here again. */
-  port_list = prefs_get ("port_range");
+  port_list = "80,137,587,3128,8081";
+  if (validate_port_range (port_list))
+    {
+      g_warning ("%s: Invalid port range supplied for alive detection module. "
+                 "Using global port range instead.",
+                 __func__);
+      /* This port list was already validated by openvas so we don't do it here
+       * again. */
+      port_list = prefs_get ("port_range");
+    }
   scanner.ports = g_array_new (FALSE, TRUE, sizeof (uint16_t));
   if (port_list)
     portranges_array = port_range_ranges (port_list);
@@ -1854,7 +1862,8 @@ alive_detection_init (gvm_hosts_t *hosts)
       "%s: Port list supplied by user is empty. Alive detection may not find "
       "any alive hosts when using TCP ACK/SYN scanning methods. ",
       __func__);
-  /* Fill ports array with ports from the ranges. */
+  /* Fill ports array with ports from the ranges. Duplicate ports are not
+   * removed. */
   g_ptr_array_foreach (portranges_array, fill_ports_array, scanner.ports);
   array_free (portranges_array);
 
