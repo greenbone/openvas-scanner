@@ -12,6 +12,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
   [#459](https://github.com/greenbone/openvas/pull/459)
 - Fix format-truncation warning in GCC 8.2 and later. [#461](https://github.com/greenbone/openvas/pull/461)
 - Extend script_get_preference() to get the value by id. [#470](https://github.com/greenbone/openvas/pull/470)
+- Add extended environmental variables info to greenbone-nvt-sync help text. [#488](https://github.com/greenbone/openvas/pull/488)
 
 ### Changed
 - The logging of the NASL internal regexp functions was extended to include the pattern in case of a failed regcomp(). [#397](https://github.com/greenbone/openvas/pull/397)
