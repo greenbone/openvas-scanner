@@ -281,8 +281,12 @@ load_scan_preferences (struct scan_globals *globals)
 }
 
 static void
-handle_client (struct scan_globals *globals)
+scanner_thread (struct scan_globals *globals)
 {
+  nvticache_reset ();
+
+  globals->scan_id = g_strdup (global_scan_id);
+
   /* Load preferences from Redis. Scan started with a scan_id. */
   if (load_scan_preferences (globals))
     {
@@ -291,16 +295,6 @@ handle_client (struct scan_globals *globals)
     }
 
   attack_network (globals);
-}
-
-static void
-scanner_thread (struct scan_globals *globals)
-{
-  nvticache_reset ();
-
-  globals->scan_id = g_strdup (global_scan_id);
-
-  handle_client (globals);
 
   exit (0);
 }
