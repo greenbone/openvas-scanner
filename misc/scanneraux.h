@@ -31,7 +31,6 @@
 
 struct scan_globals
 {
-  char *network_scan_status;
   GHashTable *files_translation;
   GHashTable *files_size_translation;
   char *scan_id;

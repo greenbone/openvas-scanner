@@ -1211,7 +1211,6 @@ stop:
     }
 
   gvm_hosts_free (hosts);
-  g_free (globals->network_scan_status);
 
   plugins_scheduler_free (sched);
 
