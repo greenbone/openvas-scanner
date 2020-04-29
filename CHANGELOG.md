@@ -26,6 +26,9 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 - Wait for all children instead of waiting just for one a time. [#429](https://github.com/greenbone/openvas/pull/429)
 - Fix format-truncation warning in GCC 8.2 and later. [#462](https://github.com/greenbone/openvas/pull/462)
 
+### Removed
+- Drop HTTP sync [#489](https://github.com/greenbone/openvas/pull/489)
+
 [7.0.1]: https://github.com/greenbone/openvas/compare/v7.0.0...openvas-7.0
 
 ## [7.0.0] (2019-10-11)
