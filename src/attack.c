@@ -1,4 +1,4 @@
-/* Portions Copyright (C) 2009-2019 Greenbone Networks GmbH
+/* Portions Copyright (C) 2009-2020 Greenbone Networks GmbH
  * Portions Copyright (C) 2006 Software in the Public Interest, Inc.
  * Based on work Copyright (C) 1998 - 2006 Tenable Network Security, Inc.
  *
@@ -85,7 +85,6 @@ struct attack_start_args
 {
   struct scan_globals *globals;
   plugins_scheduler_t sched;
-  kb_t *net_kb;
   kb_t host_kb;
   gvm_host_t *host;
 };
@@ -404,36 +403,11 @@ finish_launch_plugin:
 }
 
 /**
- * @brief Inits or loads the knowledge base for a single host.
- *
- * Fills the knowledge base with host-specific login information for local
- * checks if defined.
- *
- * @return A knowledge base.
- */
-static kb_t
-init_host_kb (void)
-{
-  kb_t kb;
-  const gchar *kb_path = prefs_get ("db_address");
-  int rc;
-
-  rc = kb_new (&kb, kb_path);
-  if (rc)
-    {
-      report_kb_failure (rc);
-      return NULL;
-    }
-
-  return kb;
-}
-
-/**
  * @brief Attack one host.
  */
 static void
 attack_host (struct scan_globals *globals, struct in6_addr *ip, GSList *vhosts,
-             plugins_scheduler_t sched, kb_t kb, kb_t *net_kb)
+             plugins_scheduler_t sched, kb_t kb)
 {
   /* Used for the status */
   int num_plugs, forks_retry = 0;
@@ -446,13 +420,6 @@ attack_host (struct scan_globals *globals, struct in6_addr *ip, GSList *vhosts,
   kb_item_set_str (kb, "internal/ip", ip_str, 0);
   kb_item_set_int (kb, "internal/hostpid", getpid ());
   proctitle_set ("openvas: testing %s", ip_str);
-  if (net_kb && *net_kb)
-    {
-      kb_delete (kb);
-      kb = init_host_kb ();
-      if (kb == NULL)
-        return;
-    }
   kb_lnk_reset (kb);
 
   /* launch the plugins */
@@ -652,7 +619,7 @@ attack_start (struct attack_start_args *args)
   char ip_str[INET6_ADDRSTRLEN], *hostnames;
   struct in6_addr hostip;
   struct timeval then;
-  kb_t *net_kb = args->net_kb, kb = args->host_kb;
+  kb_t kb = args->host_kb;
   int ret;
 
   nvticache_reset ();
@@ -687,7 +654,7 @@ attack_start (struct attack_start_args *args)
   else
     g_message ("Testing %s [%d]", ip_str, getpid ());
   g_free (hostnames);
-  attack_host (globals, &hostip, args->host->vhosts, args->sched, kb, net_kb);
+  attack_host (globals, &hostip, args->host->vhosts, args->sched, kb);
 
   if (!scan_is_stopped ())
     {
@@ -973,7 +940,7 @@ handle_scan_stop_signal ()
  * @brief Attack a whole network.
  */
 void
-attack_network (struct scan_globals *globals, kb_t *network_kb)
+attack_network (struct scan_globals *globals)
 {
   int max_hosts = 0, max_checks;
   const char *hostlist;
@@ -998,8 +965,6 @@ attack_network (struct scan_globals *globals, kb_t *network_kb)
   network_targets = prefs_get ("network_targets");
   if (network_targets != NULL)
     globals->network_targets = g_strdup (network_targets);
-
-  network_kb = NULL;
 
   if (check_kb_access ())
     return;
@@ -1160,7 +1125,6 @@ attack_network (struct scan_globals *globals, kb_t *network_kb)
       args.host = host;
       args.globals = globals;
       args.sched = sched;
-      args.net_kb = network_kb;
       args.host_kb = host_kb;
 
     forkagain:
