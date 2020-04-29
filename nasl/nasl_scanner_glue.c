@@ -652,27 +652,6 @@ scan_phase (lex_ctxt *lexic)
   return retc;
 }
 
-tree_cell *
-network_targets (lex_ctxt *lexic)
-{
-  struct script_infos *script_infos = lexic->script_infos;
-  struct scan_globals *globals = script_infos->globals;
-  char *value;
-  tree_cell *retc;
-
-  value = globals->network_targets;
-  retc = alloc_typed_cell (CONST_DATA);
-  if (value)
-    {
-      retc->x.str_val = strdup (value);
-      retc->size = strlen (value);
-    }
-  else
-    return NULL;
-
-  return retc;
-}
-
 /**
  * @brief Return the OID of the current script.
  *

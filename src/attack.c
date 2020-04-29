@@ -950,7 +950,7 @@ attack_network (struct scan_globals *globals)
   GHashTable *files;
   struct timeval then, now;
   gvm_hosts_t *hosts;
-  const gchar *network_targets, *port_range;
+  const gchar *port_range;
   kb_t host_kb;
   GSList *unresolved;
 
@@ -961,10 +961,6 @@ attack_network (struct scan_globals *globals)
     connect_main_kb (&alive_hosts_kb);
 
   gettimeofday (&then, NULL);
-
-  network_targets = prefs_get ("network_targets");
-  if (network_targets != NULL)
-    globals->network_targets = g_strdup (network_targets);
 
   if (check_kb_access ())
     return;
@@ -1216,7 +1212,6 @@ stop:
 
   gvm_hosts_free (hosts);
   g_free (globals->network_scan_status);
-  g_free (globals->network_targets);
 
   plugins_scheduler_free (sched);
 

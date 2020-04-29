@@ -359,7 +359,6 @@ static init_func libfuncs[] = {
   {"smb_file_trustee_rights", nasl_smb_file_trustee_rights},
   {"win_cmd_exec", nasl_win_cmd_exec},
   {"scan_phase", scan_phase},
-  {"network_targets", network_targets},
   {"plugin_run_find_service", plugin_run_find_service},
   {"plugin_run_openvas_tcp_scanner", plugin_run_openvas_tcp_scanner},
   {"plugin_run_synscan", plugin_run_synscan},
