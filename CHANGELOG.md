@@ -30,6 +30,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 - Set status finished and send a message if the port list is invalid. [#453](https://github.com/greenbone/openvas/pull/453)
 - Fix format-truncation warning in GCC 8.2 and later. [#461](https://github.com/greenbone/openvas/pull/461)
 - Clean the new kb when the scan was stopped and the host has not been started. [#494](https://github.com/greenbone/openvas/pull/494)
+- Prevent child deadlock. [#491](https://github.com/greenbone/openvas/pull/491)
 
 [Unreleased]: https://github.com/greenbone/openvas/compare/openvas-7.0...master
 
