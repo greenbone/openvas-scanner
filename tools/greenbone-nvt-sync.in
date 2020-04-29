@@ -540,6 +540,7 @@ do_help () {
   echo "NVT_DIR         where to extract plugins (absolute path)"
   echo "PRIVATE_SUBDIR  subdirectory of \$NVT_DIR to exclude from synchronization"
   echo "TMPDIR          temporary directory used to download the files"
+  echo "Note that you can use standard ones as well (e.g. RSYNC_PROXY) for rsync"
   echo ""
   exit 0
 }
