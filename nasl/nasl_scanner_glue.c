@@ -633,25 +633,6 @@ safe_checks (lex_ctxt *lexic)
   return retc;
 }
 
-tree_cell *
-scan_phase (lex_ctxt *lexic)
-{
-  struct script_infos *script_infos = lexic->script_infos;
-  struct scan_globals *globals = script_infos->globals;
-  char *value;
-  tree_cell *retc = alloc_typed_cell (CONST_INT);
-
-  value = globals->network_scan_status;
-  if (value)
-    {
-      retc->x.i_val = 2;
-    }
-  else
-    retc->x.i_val = 0;
-
-  return retc;
-}
-
 /**
  * @brief Return the OID of the current script.
  *
