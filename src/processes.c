@@ -37,6 +37,8 @@
 #include <time.h>     /* for time() */
 #include <unistd.h>   /* for fork() */
 
+#include <gvm/base/logging.h>      /* for gvm_log_lock/unlock() */
+
 #undef G_LOG_DOMAIN
 /**
  * @brief GLib log domain.
@@ -90,8 +92,6 @@ init_child_signal_handlers (void)
   openvas_signal (SIGPIPE, SIG_IGN);
 }
 
-extern GMutex *logger_mutex;
-
 /**
  * @brief Create a new process (fork).
  */
@@ -100,9 +100,9 @@ create_process (process_func_t function, void *argument)
 {
   int pid;
 
-  g_mutex_lock (logger_mutex);
+  gvm_log_lock ();
   pid = fork ();
-  g_mutex_unlock (logger_mutex);
+  gvm_log_unlock ();
 
   if (pid == 0)
     {

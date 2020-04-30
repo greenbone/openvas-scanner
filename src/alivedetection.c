@@ -46,7 +46,7 @@
 /**
  * @brief GLib log domain.
  */
-#define G_LOG_DOMAIN "alive detection"
+#define G_LOG_DOMAIN "alive scan"
 
 struct scanner scanner;
 struct scan_restrictions scan_restrictions;
