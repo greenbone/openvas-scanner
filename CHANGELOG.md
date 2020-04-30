@@ -32,6 +32,9 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 - Clean the new kb when the scan was stopped and the host has not been started. [#494](https://github.com/greenbone/openvas/pull/494)
 - Prevent child deadlock. [#491](https://github.com/greenbone/openvas/pull/491)
 
+### Removed
+- Removed "network scan" mode. This includes removal of NASL API methods "scan_phase()" and "network_targets()". Sending a "network_mode=yes" in a scanner configuration will have no effect anymore. [#493](https://github.com/greenbone/openvas/pull/493)
+
 [Unreleased]: https://github.com/greenbone/openvas/compare/openvas-7.0...master
 
 ## [7.0.1] (unreleased)
