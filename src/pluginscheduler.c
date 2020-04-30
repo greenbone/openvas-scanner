@@ -312,8 +312,7 @@ check_dependency_cycles (plugins_scheduler_t sched)
 }
 
 plugins_scheduler_t
-plugins_scheduler_init (const char *plugins_list, int autoload,
-                        int *error)
+plugins_scheduler_init (const char *plugins_list, int autoload, int *error)
 {
   plugins_scheduler_t ret;
 
