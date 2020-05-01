@@ -1022,6 +1022,31 @@ ad_thread_joined (gboolean joined)
   return alive_detection_thread_already_joined;
 }
 
+/**
+ * @brief Check configuration wether to use the boreas alive scanner.
+ *
+ * @return Returns true if boreas alive scanner should be used.
+ */
+static gboolean
+use_boreas (void)
+{
+  gboolean test_alive_hosts_only = prefs_get_bool ("test_alive_hosts_only");
+
+  /* In case the boreas alive scanner isn't already the default, activate
+   * it in case ICMP (and only ICMP) was selected. boreas alive scanner is
+   * therfore automtaically activated in case ICMP is specifically requested.
+   */
+  if (!test_alive_hosts_only)
+    {
+      const gchar *alive_test_pref_as_str = prefs_get ("ALIVE_TEST");
+
+      if (alive_test_pref_as_str && !strcmp ("2", alive_test_pref_as_str))
+        test_alive_hosts_only = TRUE;
+    }
+
+  return test_alive_hosts_only;
+}
+
 static void
 handle_scan_stop_signal ()
 {
@@ -1040,7 +1065,7 @@ handle_scan_stop_signal ()
       hosts_stop_all ();
 
       /* Stop (cancel) alive detection if enabled and not already joined. */
-      if (prefs_get_bool ("test_alive_hosts_only"))
+      if (use_boreas())
         {
           /* Alive detection thread was already joined by main thread. */
           if (TRUE == ad_thread_joined (FALSE))
@@ -1087,9 +1112,10 @@ attack_network (struct scan_globals *globals, kb_t *network_kb)
   kb_t host_kb;
   GSList *unresolved;
 
-  gboolean test_alive_hosts_only = prefs_get_bool ("test_alive_hosts_only");
+  gboolean test_alive_hosts_only = use_boreas ();
   gvm_hosts_t *alive_hosts_list = NULL;
   kb_t alive_hosts_kb = NULL;
+
   if (test_alive_hosts_only)
     connect_main_kb (&alive_hosts_kb);
 
