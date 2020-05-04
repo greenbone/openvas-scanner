@@ -27,8 +27,9 @@
 
 #include "sighand.h"
 
-#include <errno.h> /* for errno() */
-#include <glib.h>  /* for g_error */
+#include <errno.h>            /* for errno() */
+#include <glib.h>             /* for g_error */
+#include <gvm/base/logging.h> /* for gvm_log_lock/unlock() */
 #include <setjmp.h>
 #include <signal.h>   /* for kill() */
 #include <stdlib.h>   /* for exit() */
@@ -36,8 +37,6 @@
 #include <sys/wait.h> /* for waitpid() */
 #include <time.h>     /* for time() */
 #include <unistd.h>   /* for fork() */
-
-#include <gvm/base/logging.h>      /* for gvm_log_lock/unlock() */
 
 #undef G_LOG_DOMAIN
 /**
