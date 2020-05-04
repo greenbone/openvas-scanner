@@ -1217,12 +1217,13 @@ stop:
   gettimeofday (&now, NULL);
   if (alive_hosts_list)
     g_message ("Vulnerability scan %s finished in %ld seconds: "
-               "%d alive hosts of %d", globals->scan_id, now.tv_sec - then.tv_sec,
+               "%d alive hosts of %d",
+               globals->scan_id, now.tv_sec - then.tv_sec,
                gvm_hosts_count(alive_hosts_list), gvm_hosts_count(hosts));
   else
     g_message ("Vulnerability scan %s finished in %ld seconds: %d hosts",
                globals->scan_id, now.tv_sec - then.tv_sec,
-               gvm_hosts_count(hosts));
+               gvm_hosts_count (hosts));
 
   set_scan_status ("finished");
 }

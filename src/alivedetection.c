@@ -1326,7 +1326,7 @@ send_dead_hosts_to_ospd_openvas (void)
         {
           g_string_append (chunked_hosts, host_str);
           hosts_in_chunk++;
-          count_dead_ips ++;
+          count_dead_ips++;
 
           if (hosts_in_chunk == 1000)
             {
