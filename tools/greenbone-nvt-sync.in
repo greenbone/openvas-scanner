@@ -183,15 +183,9 @@ else
     # An alternative syntax which might work if the above doesn't:
     # COMMUNITY_NVT_RSYNC_FEED=rsync@feed.community.greenbone.net::/nvt-feed
   fi
-
-  if [ -z "$COMMUNITY_NVT_HTTP_FEED" ]; then
-    COMMUNITY_NVT_HTTP_FEED=http://dl.greenbone.net/community-nvt-feed-current.tar.bz2
-  fi
 fi
 
 RSYNC=`command -v rsync`
-WGET=`command -v wget`
-CURL=`command -v curl`
 
 if [ -z "$TMPDIR" ]; then
   SYNC_TMP_DIR=/tmp
@@ -267,17 +261,19 @@ is_feed_current () {
       return $FEED_CURRENT
     fi
 
+  if [ -z "$RSYNC" ]
+  then
+    log_notice "rsync not available, skipping feed version test"
+    FEED_CURRENT=0
+    rm -rf $FEED_INFO_TEMP_DIR
+    cleanup_temp_access_key
+    return 0
+  fi
+
     FEED_INFO_TEMP_DIR=`mktemp -d`
 
     if [ -e $ACCESS_KEY ]
     then
-      if [ -n "$FIXED_METHOD" ] && [ "rsync" != "$FIXED_METHOD" ]
-      then
-        log_err "Sync with access key must be run with rsync. Aborting synchronization."
-        stderr_write "Sync with access key must be run with rsync."
-        exit 1
-      fi
-
       gsmproxy=$(get_value proxy_feed | sed -r -e 's/^.*\/\///' -e 's/:([0-9]+)$/ \1/')
       syncport=$(get_value syncport)
       if [ "$syncport" ]
@@ -315,8 +311,7 @@ is_feed_current () {
         rm -rf "$FEED_INFO_TEMP_DIR"
         exit 1
       fi
-    elif [ -n "$RSYNC" ] && [ -z "$FIXED_METHOD" -o "$FIXED_METHOD" = "rsync" ]
-    then
+    else
       log_notice "No Greenbone Security Feed access key found, falling back to Greenbone Community Feed"
       eval "$RSYNC -ltvrP \"$COMMUNITY_NVT_RSYNC_FEED/plugin_feed_info.inc\" \"$FEED_INFO_TEMP_DIR\""
       if [ $? -ne 0 ]
@@ -325,17 +320,6 @@ is_feed_current () {
         rm -rf "$FEED_INFO_TEMP_DIR"
         exit 1
       fi
-    else
-      if [ -n "$FIXED_METHOD" ]
-      then
-        log_notice "non-rsync method selected, skipping feed version test"
-      else
-        log_notice "rsync not available, skipping feed version test"
-      fi
-      FEED_CURRENT=0
-      rm -rf $FEED_INFO_TEMP_DIR
-      cleanup_temp_access_key
-      return 0
     fi
 
     FEED_VERSION_SERVER=`grep PLUGIN_SET $FEED_INFO_TEMP_DIR/plugin_feed_info.inc | sed -e 's/[^0-9]//g'`
@@ -361,138 +345,18 @@ is_feed_current () {
   return $FEED_CURRENT
 }
 
-do_wget_community_feed () {
-  TMP_NVT="$SYNC_TMP_DIR/gcf-`date +%F`-$$.tar.bz2"
-
-  log_info "Configured NVT http feed: $COMMUNITY_NVT_HTTP_FEED"
-  log_info "Downloading to: $TMP_NVT"
-  mkdir -p "$NVT_DIR"
-
-  wget "$COMMUNITY_NVT_HTTP_FEED" -O $TMP_NVT
-
-  if [ $? -ne 0 ]
-  then
-    rm -f $TMP_NVT
-    log_err "wget failed"
-    exit 1
-  else
-    log_info "Download complete"
-  fi
-
-  cd "$NVT_DIR" \
-    && tar xvjf $TMP_NVT
-
-  if [ $? -ne 0 ]
-  then
-    rm -f $TMP_NVT
-    log_err "tar extraction failed."
-    exit 1
-  else
-    rm -f $TMP_NVT
-    log_info "NVTs extracted successfully"
-  fi
-}
-
-do_curl_community_feed () {
-  TMP_NVT="$SYNC_TMP_DIR/gcf-`date +%F`-$$.tar.bz2"
-
-  log_info "Configured NVT http feed: $COMMUNITY_NVT_HTTP_FEED"
-  log_info "Downloading to: $TMP_NVT"
-  mkdir -p "$NVT_DIR"
-
-  curl "$COMMUNITY_NVT_HTTP_FEED" -o $TMP_NVT
-
-  if [ $? -ne 0 ] || [ ! -f $TMP_NVT ]
-  then
-    rm -f $TMP_NVT
-    log_err "curl failed"
-    exit 1
-  else
-    log_info "Download complete"
-  fi
-
-  cd "$NVT_DIR" \
-    && tar xvjf $TMP_NVT
-
-  if [ $? -ne 0 ]
-  then
-    rm -f $TMP_NVT
-    log_err "tar extraction failed."
-    exit 1
-  else
-    rm -f $TMP_NVT
-    log_info "NVTs extracted successfully"
-  fi
-}
-
 do_rsync_community_feed () {
-  if [ -z "$RSYNC" ]; then
-    log_err "rsync not found!"
-  else
-    log_notice "Using rsync: $RSYNC"
-    log_notice "Configured NVT rsync feed: $COMMUNITY_NVT_RSYNC_FEED"
-    mkdir -p "$NVT_DIR"
-    eval "$RSYNC -ltvrP $RSYNC_DELETE \"$COMMUNITY_NVT_RSYNC_FEED\" \"$NVT_DIR\" --exclude=plugin_feed_info.inc"
-    if [ $? -ne 0 ] ; then
-      log_err "rsync failed."
-      exit 1
-    fi
-    eval "$RSYNC -ltvrP $RSYNC_DELETE \"$COMMUNITY_NVT_RSYNC_FEED/plugin_feed_info.inc\" \"$NVT_DIR\""
-    if [ $? -ne 0 ] ; then
-      log_err "rsync failed."
-      exit 1
-    fi
+  log_notice "Configured NVT rsync feed: $COMMUNITY_NVT_RSYNC_FEED"
+  mkdir -p "$NVT_DIR"
+  eval "$RSYNC -ltvrP $RSYNC_DELETE \"$COMMUNITY_NVT_RSYNC_FEED\" \"$NVT_DIR\" --exclude=plugin_feed_info.inc"
+  if [ $? -ne 0 ] ; then
+    log_err "rsync failed."
+    exit 1
   fi
-}
-
-do_sync_community_feed () {
-  if [ "rsync" = "$FIXED_METHOD" ] ; then
-    if [ -z "$RSYNC" ] ; then
-      log_err "rsync requested but not found! Aborting synchronization."
-      exit 1
-    else
-      log_info "Will use rsync"
-      do_rsync_community_feed
-    fi
-  elif [ "wget" = "$FIXED_METHOD" ] ; then
-    if [ -z "$WGET" ] ; then
-      log_err "wget requested but not found! Aborting synchronization."
-      exit 1
-    else
-      log_info "Will use wget"
-      do_wget_community_feed
-    fi
-  elif [ "curl" = "$FIXED_METHOD" ] ; then
-    if [ -z "$CURL" ] ; then
-      log_err "curl requested but not found! Aborting synchronization."
-      exit 1
-    else
-      log_info "Will use curl"
-      do_curl_community_feed
-    fi
-  elif [ -z "$RSYNC" ] || [ $FEED_PRESENT -eq 0 ] ; then
-    if [ $FEED_PRESENT -eq 0 ] ; then
-      log_notice "rsync is not recommended for the initial sync. Falling back on http."
-    else
-      log_warning "rsync not found!"
-    fi
-    if [ -z "$WGET" ]; then
-      log_warning "GNU wget not found!"
-      if [ -z "$CURL" ]; then
-        log_warning "curl not found!"
-        log_err "no utility available in PATH environment variable to download plugins"
-        exit 1
-      else
-        log_info "Will use curl"
-        do_curl_community_feed
-      fi
-    else
-      log_info "Will use wget"
-      do_wget_community_feed
-    fi
-  else
-    log_info "Will use rsync"
-    do_rsync_community_feed
+  eval "$RSYNC -ltvrP $RSYNC_DELETE \"$COMMUNITY_NVT_RSYNC_FEED/plugin_feed_info.inc\" \"$NVT_DIR\""
+  if [ $? -ne 0 ] ; then
+    log_err "rsync failed."
+    exit 1
   fi
 }
 
@@ -510,13 +374,6 @@ sync_nvts(){
 
   if [ -e $ACCESS_KEY ]
   then
-    if [ -n "$FIXED_METHOD" ] && [ "rsync" != "$FIXED_METHOD" ]
-    then
-      log_err "Sync with access key must be run with rsync. Aborting synchronization."
-      stderr_write "Sync with access key must be run with rsync."
-      exit 1
-    fi
-
     log_write "Synchronizing NVTs from the Greenbone Security Feed into $NVT_DIR..."
     if [ $FEED_PRESENT -eq 1 ] ; then
       FEEDCOUNT=`grep -E "nasl$|inc$" $NVT_DIR/md5sums | wc -l`
@@ -596,7 +453,7 @@ sync_nvts(){
     fi
   else
     log_notice "No Greenbone Security Feed access key found, falling back to Greenbone Community Feed"
-    do_sync_community_feed
+    do_rsync_community_feed
   fi
 }
 
@@ -607,12 +464,11 @@ do_self_test ()
     SELFTEST_FAIL=1
     stderr_write "The md5sum binary could not be found."
   fi
-  if [ -s $ACCESS_KEY ] ; then
-    RSYNC_AVAIL=`command -v rsync`
-    if [ $? -ne 0 ] ; then
-      SELFTEST_FAIL=1
-      stderr_write "The rsync binary could not be found."
-    fi
+
+  RSYNC_AVAIL=`command -v rsync`
+  if [ $? -ne 0 ] ; then
+    SELFTEST_FAIL=1
+    stderr_write "The rsync binary could not be found."
   fi
 }
 
@@ -654,7 +510,6 @@ do_sync ()
 
 do_help () {
   echo "$0: Sync NVT data"
-  echo " --curl         only use curl to download feed files"
   echo " --describe     display current feed info"
   echo " --feedcurrent  just check if feed is up-to-date"
   echo " --feedversion  display version of this feed"
@@ -662,18 +517,16 @@ do_help () {
   echo " --identify     display information"
   echo " --nvtdir dir   set dir as NVT directory"
   echo " --refresh      update OpenVAS Scanner without downloading new state"
-  echo " --rsync        only use rsync to download feed files"
-  echo " --selftest     perform self-test"
+  echo " --selftest     perform self-test and set exit code"
   echo " --verbose      makes the sync process print details"
   echo " --version      display version"
-  echo " --wget         only use wget to download feed files"
   echo ""
   echo ""
   echo "Environment variables:"
   echo "NVT_DIR         where to extract plugins (absolute path)"
   echo "PRIVATE_SUBDIR  subdirectory of \$NVT_DIR to exclude from synchronization"
   echo "TMPDIR          temporary directory used to download the files"
-  echo "Note that you can use standard ones as well (e.g. http_proxy) for wget/curl"
+  echo "Note that you can use standard ones as well (e.g. RSYNC_PROXY) for rsync"
   echo ""
   exit 0
 }
@@ -683,15 +536,6 @@ while test $# -gt 0; do
     --version)
       echo $VERSION
       exit 0
-      ;;
-    --rsync)
-      FIXED_METHOD="rsync"
-      ;;
-    --wget)
-      FIXED_METHOD="wget"
-      ;;
-    --curl)
-      FIXED_METHOD="curl"
       ;;
     --identify)
       echo "NVTSYNC|$SCRIPT_NAME|$VERSION|$FEED_NAME|$RESTRICTED|NVTSYNC"
@@ -734,4 +578,3 @@ done
 do_sync
 
 exit 0
-
