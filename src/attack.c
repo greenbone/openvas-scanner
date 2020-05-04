@@ -1300,12 +1300,14 @@ attack_network (struct scan_globals *globals, kb_t *network_kb)
       host_str = gvm_host_value_str (host);
       if (hosts_new (host_str, host_kb) < 0)
         {
+          kb_delete (host_kb);
           g_free (host_str);
           goto scan_stop;
         }
 
       if (scan_is_stopped ())
         {
+          kb_delete (host_kb);
           g_free (host_str);
           continue;
         }
