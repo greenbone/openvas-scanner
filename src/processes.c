@@ -27,8 +27,9 @@
 
 #include "sighand.h"
 
-#include <errno.h> /* for errno() */
-#include <glib.h>  /* for g_error */
+#include <errno.h>            /* for errno() */
+#include <glib.h>             /* for g_error */
+#include <gvm/base/logging.h> /* for gvm_log_lock/unlock() */
 #include <setjmp.h>
 #include <signal.h>   /* for kill() */
 #include <stdlib.h>   /* for exit() */
@@ -98,7 +99,9 @@ create_process (process_func_t function, void *argument)
 {
   int pid;
 
+  gvm_log_lock ();
   pid = fork ();
+  gvm_log_unlock ();
 
   if (pid == 0)
     {

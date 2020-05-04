@@ -42,6 +42,12 @@
 #include <sys/wait.h>
 #include <unistd.h>
 
+#undef G_LOG_DOMAIN
+/**
+ * @brief GLib log domain.
+ */
+#define G_LOG_DOMAIN "alive scan"
+
 struct scanner scanner;
 struct scan_restrictions scan_restrictions;
 struct hosts_data hosts_data;
