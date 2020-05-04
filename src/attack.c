@@ -1215,8 +1215,14 @@ stop:
   plugins_scheduler_free (sched);
 
   gettimeofday (&now, NULL);
-  g_message ("Total time to scan all hosts : %ld seconds",
-             now.tv_sec - then.tv_sec);
+  if (alive_hosts_list)
+    g_message ("Vulnerability scan %s finished in %ld seconds: "
+               "%d alive hosts of %d", globals->scan_id, now.tv_sec - then.tv_sec,
+               gvm_hosts_count(alive_hosts_list), gvm_hosts_count(hosts));
+  else
+    g_message ("Vulnerability scan %s finished in %ld seconds: %d hosts",
+               globals->scan_id, now.tv_sec - then.tv_sec,
+               gvm_hosts_count(hosts));
 
   set_scan_status ("finished");
 }
