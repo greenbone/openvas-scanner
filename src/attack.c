@@ -1065,7 +1065,7 @@ handle_scan_stop_signal ()
       hosts_stop_all ();
 
       /* Stop (cancel) alive detection if enabled and not already joined. */
-      if (use_boreas())
+      if (use_boreas ())
         {
           /* Alive detection thread was already joined by main thread. */
           if (TRUE == ad_thread_joined (FALSE))
