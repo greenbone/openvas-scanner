@@ -66,6 +66,9 @@ struct hosts_data hosts_data;
 pthread_mutex_t mutex = PTHREAD_MUTEX_INITIALIZER;
 pthread_cond_t cond = PTHREAD_COND_INITIALIZER;
 
+static boreas_error_t
+get_alive_test_methods (alive_test_t *alive_test);
+
 /**
  * @brief The scanner struct holds data which is used frequently by the alive
  * detection thread.
@@ -216,6 +219,9 @@ str_boreas_error (boreas_error_t boreas_error)
     case BOREAS_NO_VALID_ALIVE_TEST_SPECIFIED:
       msg =
         "No valid alive detction method was specified for Boreas by the user";
+      break;
+    case BOREAS_CLEANUP_ERROR:
+      msg = "Boreas encountered an error during clean up.";
       break;
     case NO_ERROR:
       msg = "No error was encountered by Boreas";
@@ -1642,7 +1648,7 @@ scan (alive_test_t alive_test)
  * @brief Set the SO_BROADCAST socket option for given socket.
  *
  * @param socket  The socket to apply the option to.
- * 
+ *
  * @return 0 on success, boreas_error_t on error.
  */
 static boreas_error_t
@@ -1665,7 +1671,7 @@ set_broadcast (int socket)
  * @brief Set a new socket of specified type.
  *
  * @param[in] socket_type  What type of socket to get.
- * 
+ *
  * @param[out] scanner_socket  Location to save the socket into.
  *
  * @return 0 on success, boreas_error_t on error.
@@ -1955,48 +1961,78 @@ alive_detection_init (gvm_hosts_t *hosts, alive_test_t alive_test)
 /**
  * @brief Free all the data used by the alive detection scanner.
  *
- * @param error Set to 0 on success and <0 on failure.
+ * @param[out] error Set to 0 on success, boreas_error_t on error.
  */
 static void
 alive_detection_free (void *error)
 {
-  *(int *) error = 0;
-  if ((close (scanner.tcpv4soc)) != 0)
+  boreas_error_t alive_test_err;
+  alive_test_t alive_test;
+
+  if ((alive_test_err = get_alive_test_methods (&alive_test)) != 0)
     {
-      *(int *) error = -1;
-      g_warning ("%s: close(): %s", __func__, strerror (errno));
+      g_warning ("%s: %s. Could not get info about which sockets to close.",
+                 __func__, str_boreas_error (alive_test_err));
+      *(int *) error = BOREAS_CLEANUP_ERROR;
     }
-  if ((close (scanner.tcpv6soc)) != 0)
+  else
     {
-      *(int *) error = -2;
-      g_warning ("%s: close(): %s", __func__, strerror (errno));
+      if (alive_test & ALIVE_TEST_ICMP)
+        {
+          if ((close (scanner.icmpv4soc)) != 0)
+            {
+              g_warning ("%s: Error in close(): %s", __func__,
+                         strerror (errno));
+              *(int *) error = BOREAS_CLEANUP_ERROR;
+            }
+          if ((close (scanner.icmpv6soc)) != 0)
+            {
+              g_warning ("%s: Error in close(): %s", __func__,
+                         strerror (errno));
+              *(int *) error = BOREAS_CLEANUP_ERROR;
+            }
+        }
+
+      if ((alive_test & ALIVE_TEST_TCP_ACK_SERVICE)
+          || (alive_test & ALIVE_TEST_TCP_SYN_SERVICE))
+        {
+          if ((close (scanner.tcpv4soc)) != 0)
+            {
+              g_warning ("%s: Error in close(): %s", __func__,
+                         strerror (errno));
+              *(int *) error = BOREAS_CLEANUP_ERROR;
+            }
+          if ((close (scanner.tcpv6soc)) != 0)
+            {
+              g_warning ("%s: Error in close(): %s", __func__,
+                         strerror (errno));
+              *(int *) error = BOREAS_CLEANUP_ERROR;
+            }
+        }
+
+      if ((alive_test & ALIVE_TEST_ARP))
+        {
+          if ((close (scanner.arpv4soc)) != 0)
+            {
+              g_warning ("%s: Error in close(): %s", __func__,
+                         strerror (errno));
+              *(int *) error = BOREAS_CLEANUP_ERROR;
+            }
+          if ((close (scanner.arpv6soc)) != 0)
+            {
+              g_warning ("%s: Error in close(): %s", __func__,
+                         strerror (errno));
+              *(int *) error = BOREAS_CLEANUP_ERROR;
+            }
+        }
     }
-  if ((close (scanner.icmpv4soc)) != 0)
-    {
-      *(int *) error = -3;
-      g_warning ("%s: close(): %s", __func__, strerror (errno));
-    }
-  if ((close (scanner.icmpv6soc)) != 0)
-    {
-      *(int *) error = -4;
-      g_warning ("%s: close(): %s", __func__, strerror (errno));
-    }
-  if ((close (scanner.arpv4soc)) != 0)
-    {
-      *(int *) error = -5;
-      g_warning ("%s: close(): %s", __func__, strerror (errno));
-    }
-  if ((close (scanner.arpv6soc)) != 0)
-    {
-      *(int *) error = -6;
-      g_warning ("%s: close(): %s", __func__, strerror (errno));
-    }
+
   /*pcap_close (scanner.pcap_handle); //pcap_handle is closed in ping/scan
    * function for now */
   if ((kb_lnk_reset (scanner.main_kb)) != 0)
     {
-      *(int *) error = -7;
       g_warning ("%s: error in kb_lnk_reset()", __func__);
+      *(int *) error = BOREAS_CLEANUP_ERROR;
     }
 
   /* addresses */
@@ -2052,11 +2088,10 @@ start_alive_detection (void *hosts_to_test)
   boreas_error_t init_err;
   boreas_error_t alive_test_err;
   int fin_err;
-  int free_err;
+  boreas_error_t free_err;
   gvm_hosts_t *hosts;
   alive_test_t alive_test;
 
-  hosts = (gvm_hosts_t *) hosts_to_test;
   if ((alive_test_err = get_alive_test_methods (&alive_test)) != 0)
     {
       g_warning ("%s: %s. Exit Boreas.", __func__,
@@ -2069,6 +2104,7 @@ start_alive_detection (void *hosts_to_test)
       pthread_exit (0);
     }
 
+  hosts = (gvm_hosts_t *) hosts_to_test;
   if ((init_err = alive_detection_init (hosts, alive_test)) != 0)
     {
       g_warning (
@@ -2097,9 +2133,8 @@ start_alive_detection (void *hosts_to_test)
   /* Free memory, close sockets and connections. */
   pthread_cleanup_pop (1);
   if (free_err != 0)
-    g_warning ("%s: Error in trying to free resources and closing "
-               "sockets/connections: %d",
-               __func__, free_err);
+    g_warning ("%s: %s. Exit Boreas thread none the less.", __func__,
+               str_boreas_error (free_err));
   g_info ("%s: Alive Detection finished. ", __func__);
 
   pthread_exit (0);
