@@ -30,10 +30,13 @@
 #define BURST_TIMEOUT 100000
 /* how tong (in sec) to wait for replies after last packet was sent */
 #define WAIT_FOR_REPLIES_TIMEOUT 5
-/* Queue for communicating with openvas main process. */
+
+/* Redis related */
+
+/* Queue (Redis list) for communicating with openvas main process. */
 #define ALIVE_DETECTION_QUEUE "alive_detection"
-/* Finish signal to put on ALIVE_DETECTION_QUEUE. */
-#define ALIVE_DETECTION_FINISH "finish"
+/* Signal to put on ALIVE_DETECTION_QUEUE if alive detection finished. */
+#define ALIVE_DETECTION_FINISHED "alive_detection_finished"
 
 gvm_host_t *
 get_host_from_queue (kb_t alive_hosts_kb, gboolean *alive_detection_finished);
@@ -55,5 +58,16 @@ typedef enum
   ALIVE_TEST_CONSIDER_ALIVE = 8,
   ALIVE_TEST_TCP_SYN_SERVICE = 16
 } alive_test_t;
+
+/**
+ * @brief Alive detection error codes.
+ */
+typedef enum
+{
+  BOREAS_OPENING_SOCKET_FAILED = -100,
+  BOREAS_SETTING_SOCKET_OPTION_FAILED,
+  BOREAS_NO_VALID_ALIVE_TEST_SPECIFIED,
+  NO_ERROR = 0,
+} boreas_error_t;
 
 #endif
