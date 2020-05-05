@@ -201,6 +201,31 @@ printipv4 (void *ipv4)
   g_free (str);
 }
 
+const char *
+str_boreas_error (boreas_error_t boreas_error)
+{
+  const gchar *msg;
+  switch (boreas_error)
+    {
+    case BOREAS_OPENING_SOCKET_FAILED:
+      msg = "Boreas was not able to open a new socket";
+      break;
+    case BOREAS_SETTING_SOCKET_OPTION_FAILED:
+      msg = "Boreas was not able to set socket option for socket";
+      break;
+    case BOREAS_NO_VALID_ALIVE_TEST_SPECIFIED:
+      msg =
+        "No valid alive detction method was specified for Boreas by the user";
+      break;
+    case NO_ERROR:
+      msg = "No error was encountered by Boreas";
+      break;
+    default:
+      break;
+    }
+  return msg;
+}
+
 /**
  * @brief open a new pcap handle ad set provided filter.
  *
@@ -295,7 +320,7 @@ get_host_from_queue (kb_t alive_hosts_kb, gboolean *alive_deteciton_finished)
       return NULL;
     }
 
-  /* string representation of an ip address or "finish" */
+  /* string representation of an ip address or ALIVE_DETECTION_FINISHED */
   gchar *host_str = NULL;
   /* complete host to be returned */
   gvm_host_t *host = NULL;
@@ -316,7 +341,7 @@ get_host_from_queue (kb_t alive_hosts_kb, gboolean *alive_deteciton_finished)
   else
     {
       /* check for finish signal/string */
-      if (g_strcmp0 (host_str, "finish") == 0)
+      if (g_strcmp0 (host_str, ALIVE_DETECTION_FINISHED) == 0)
         {
           /* Send Error message if max_scan_hosts was reached. */
           if (scan_restrictions.max_scan_hosts_reached)
@@ -434,7 +459,7 @@ put_finish_signal_on_queue (void *error)
       return;
     }
   if ((kb_item_push_str (scanner.main_kb, ALIVE_DETECTION_QUEUE,
-                         ALIVE_DETECTION_FINISH))
+                         ALIVE_DETECTION_FINISHED))
       != 0)
     {
       g_warning ("%s: Error in kb_item_push_str().", __func__);
@@ -1262,7 +1287,6 @@ send_dead_hosts_to_ospd_openvas (void)
 {
   kb_t main_kb = NULL;
   int maindbid;
-  char buf[256];
   int hosts_in_chunk = 0;
 
   GHashTableIter target_hosts_iter;
@@ -1306,7 +1330,6 @@ send_dead_hosts_to_ospd_openvas (void)
                 "|||<host><detail><name>Host "
                 "dead</name><value>1</value><source><description/"
                 "><type/><name/></source></detail></host>");
-              g_debug ("%s: %s", __func__, chunked_hosts->str);
               if (kb_item_push_str (main_kb, "internal/results",
                                     chunked_hosts->str)
                   != 0)
@@ -1332,7 +1355,6 @@ send_dead_hosts_to_ospd_openvas (void)
                        "|||<host><detail><name>Host "
                        "dead</name><value>1</value><source><description/><type/"
                        "><name/></source></detail></host>");
-      g_debug ("%s: %s", __func__, buf);
       if (kb_item_push_str (main_kb, "internal/results", chunked_hosts->str)
           != 0)
         g_warning ("%s: kb_item_push_str() failed to push DEADHOST message.",
@@ -1355,23 +1377,15 @@ send_dead_hosts_to_ospd_openvas (void)
  * @return 0 on success, <0 on failure.
  */
 static int
-scan (void)
+scan (alive_test_t alive_test)
 {
-  g_message ("%s: Start scanning for alive hosts.", __func__);
+  g_info ("%s: Start scanning for alive hosts.", __func__);
   int number_of_targets, number_of_targets_checked = 0;
   int err;
   void *retval;
   pthread_t sniffer_thread_id;
-  const gchar *alive_test_pref_as_str;
   GHashTableIter target_hosts_iter;
   gpointer key, value;
-
-  alive_test_pref_as_str = prefs_get ("ALIVE_TEST");
-  if (alive_test_pref_as_str == NULL)
-    {
-      g_warning ("%s: No valid alive_test specified.", __func__);
-      return -1;
-    }
 
   number_of_targets = g_hash_table_size (hosts_data.targethosts);
 
@@ -1382,14 +1396,13 @@ scan (void)
       return -2;
     }
 
-  /* start sniffer thread and wait a bit for startup */
-  /* TODO: use mutex instead of sleep */
+  /* Start sniffer thread. */
   err = pthread_create (&sniffer_thread_id, NULL, sniffer_thread, NULL);
   if (err == EAGAIN)
     g_warning ("%s: pthread_create() returned EAGAIN: Insufficient resources "
                "to create thread.",
                __func__);
-  /* Wait for other thread to start up before sending out pings. */
+  /* Wait for thread to start up before sending out pings. */
   pthread_mutex_lock (&mutex);
   pthread_cond_wait (&cond, &mutex);
   pthread_mutex_unlock (&mutex);
@@ -1398,13 +1411,11 @@ scan (void)
   pthread_cond_destroy (&cond);
   sleep (2);
 
-  g_info ("%s: Get method of alive detection.", __func__);
-  alive_test_t alive_test = atoi (alive_test_pref_as_str);
   if (alive_test
       == (ALIVE_TEST_TCP_ACK_SERVICE | ALIVE_TEST_ICMP | ALIVE_TEST_ARP))
     {
-      g_info ("%s: ICMP, TCP-ACK Service & ARP Ping", __func__);
-      g_info ("%s: TCP-ACK Service Ping", __func__);
+      g_debug ("%s: ICMP, TCP-ACK Service & ARP Ping", __func__);
+      g_debug ("%s: TCP-ACK Service Ping", __func__);
       scanner.tcp_flag = TH_ACK;
       for (g_hash_table_iter_init (&target_hosts_iter, hosts_data.targethosts);
            g_hash_table_iter_next (&target_hosts_iter, &key, &value)
@@ -1413,7 +1424,7 @@ scan (void)
           send_tcp (key, value, NULL);
           number_of_targets_checked++;
         }
-      g_info ("%s: ICMP Ping", __func__);
+      g_debug ("%s: ICMP Ping", __func__);
       for (g_hash_table_iter_init (&target_hosts_iter, hosts_data.targethosts);
            g_hash_table_iter_next (&target_hosts_iter, &key, &value)
            && !scan_restrictions.max_alive_hosts_reached;)
@@ -1421,7 +1432,7 @@ scan (void)
           send_icmp (key, value, NULL);
           number_of_targets_checked++;
         }
-      g_info ("%s: ARP Ping", __func__);
+      g_debug ("%s: ARP Ping", __func__);
       for (g_hash_table_iter_init (&target_hosts_iter, hosts_data.targethosts);
            g_hash_table_iter_next (&target_hosts_iter, &key, &value)
            && !scan_restrictions.max_alive_hosts_reached;)
@@ -1432,8 +1443,8 @@ scan (void)
     }
   else if (alive_test == (ALIVE_TEST_TCP_ACK_SERVICE | ALIVE_TEST_ARP))
     {
-      g_info ("%s: TCP-ACK Service & ARP Ping", __func__);
-      g_info ("%s: TCP-ACK Service Ping", __func__);
+      g_debug ("%s: TCP-ACK Service & ARP Ping", __func__);
+      g_debug ("%s: TCP-ACK Service Ping", __func__);
       scanner.tcp_flag = TH_ACK;
       for (g_hash_table_iter_init (&target_hosts_iter, hosts_data.targethosts);
            g_hash_table_iter_next (&target_hosts_iter, &key, &value)
@@ -1442,7 +1453,7 @@ scan (void)
           send_tcp (key, value, NULL);
           number_of_targets_checked++;
         }
-      g_info ("%s: ARP Ping", __func__);
+      g_debug ("%s: ARP Ping", __func__);
       for (g_hash_table_iter_init (&target_hosts_iter, hosts_data.targethosts);
            g_hash_table_iter_next (&target_hosts_iter, &key, &value)
            && !scan_restrictions.max_alive_hosts_reached;)
@@ -1453,8 +1464,8 @@ scan (void)
     }
   else if (alive_test == (ALIVE_TEST_ICMP | ALIVE_TEST_ARP))
     {
-      g_info ("%s: ICMP & ARP Ping", __func__);
-      g_info ("%s: ICMP PING", __func__);
+      g_debug ("%s: ICMP & ARP Ping", __func__);
+      g_debug ("%s: ICMP PING", __func__);
       for (g_hash_table_iter_init (&target_hosts_iter, hosts_data.targethosts);
            g_hash_table_iter_next (&target_hosts_iter, &key, &value)
            && !scan_restrictions.max_alive_hosts_reached;)
@@ -1462,7 +1473,7 @@ scan (void)
           send_icmp (key, value, NULL);
           number_of_targets_checked++;
         }
-      g_info ("%s: ARP Ping", __func__);
+      g_debug ("%s: ARP Ping", __func__);
       for (g_hash_table_iter_init (&target_hosts_iter, hosts_data.targethosts);
            g_hash_table_iter_next (&target_hosts_iter, &key, &value)
            && !scan_restrictions.max_alive_hosts_reached;)
@@ -1473,8 +1484,8 @@ scan (void)
     }
   else if (alive_test == (ALIVE_TEST_ICMP | ALIVE_TEST_TCP_ACK_SERVICE))
     {
-      g_info ("%s: ICMP & TCP-ACK Service Ping", __func__);
-      g_info ("%s: ICMP PING", __func__);
+      g_debug ("%s: ICMP & TCP-ACK Service Ping", __func__);
+      g_debug ("%s: ICMP PING", __func__);
       for (g_hash_table_iter_init (&target_hosts_iter, hosts_data.targethosts);
            g_hash_table_iter_next (&target_hosts_iter, &key, &value)
            && !scan_restrictions.max_alive_hosts_reached;)
@@ -1482,7 +1493,7 @@ scan (void)
           send_icmp (key, value, NULL);
           number_of_targets_checked++;
         }
-      g_info ("%s: TCP-ACK Service Ping", __func__);
+      g_debug ("%s: TCP-ACK Service Ping", __func__);
       scanner.tcp_flag = TH_ACK;
       for (g_hash_table_iter_init (&target_hosts_iter, hosts_data.targethosts);
            g_hash_table_iter_next (&target_hosts_iter, &key, &value)
@@ -1494,7 +1505,7 @@ scan (void)
     }
   else if (alive_test == (ALIVE_TEST_ARP))
     {
-      g_info ("%s: ARP Ping", __func__);
+      g_debug ("%s: ARP Ping", __func__);
       for (g_hash_table_iter_init (&target_hosts_iter, hosts_data.targethosts);
            g_hash_table_iter_next (&target_hosts_iter, &key, &value)
            && !scan_restrictions.max_alive_hosts_reached;)
@@ -1506,7 +1517,7 @@ scan (void)
   else if (alive_test == (ALIVE_TEST_TCP_ACK_SERVICE))
     {
       scanner.tcp_flag = TH_ACK;
-      g_info ("%s: TCP-ACK Service Ping", __func__);
+      g_debug ("%s: TCP-ACK Service Ping", __func__);
       for (g_hash_table_iter_init (&target_hosts_iter, hosts_data.targethosts);
            g_hash_table_iter_next (&target_hosts_iter, &key, &value)
            && !scan_restrictions.max_alive_hosts_reached;)
@@ -1517,7 +1528,7 @@ scan (void)
     }
   else if (alive_test == (ALIVE_TEST_TCP_SYN_SERVICE))
     {
-      g_info ("%s: TCP-SYN Service Ping", __func__);
+      g_debug ("%s: TCP-SYN Service Ping", __func__);
       scanner.tcp_flag = TH_SYN;
       for (g_hash_table_iter_init (&target_hosts_iter, hosts_data.targethosts);
            g_hash_table_iter_next (&target_hosts_iter, &key, &value)
@@ -1529,7 +1540,7 @@ scan (void)
     }
   else if (alive_test == (ALIVE_TEST_ICMP))
     {
-      g_info ("%s: ICMP Ping", __func__);
+      g_debug ("%s: ICMP Ping", __func__);
       for (g_hash_table_iter_init (&target_hosts_iter, hosts_data.targethosts);
            g_hash_table_iter_next (&target_hosts_iter, &key, &value)
            && !scan_restrictions.max_alive_hosts_reached;)
@@ -1540,7 +1551,7 @@ scan (void)
     }
   else if (alive_test == (ALIVE_TEST_CONSIDER_ALIVE))
     {
-      g_info ("%s: Consider Alive", __func__);
+      g_debug ("%s: Consider Alive", __func__);
       for (g_hash_table_iter_init (&target_hosts_iter, hosts_data.targethosts);
            g_hash_table_iter_next (&target_hosts_iter, &key, &value)
            && !scan_restrictions.max_alive_hosts_reached;)
@@ -1550,13 +1561,13 @@ scan (void)
         }
     }
 
-  g_info ("%s: all ping packets are sent, wait a bit for rest of replies",
-          __func__);
+  g_debug ("%s: all ping packets are sent, wait a bit for rest of replies",
+           __func__);
   sleep (WAIT_FOR_REPLIES_TIMEOUT);
-  g_info ("%s: finish waiting for replies", __func__);
+  g_debug ("%s: finish waiting for replies", __func__);
 
-  g_info ("%s: Try to stop thread which is sniffing for alive hosts. ",
-          __func__);
+  g_debug ("%s: Try to stop thread which is sniffing for alive hosts. ",
+           __func__);
   /* Try to break loop in sniffer thread. */
   pcap_breakloop (scanner.pcap_handle);
   /* Give thread chance to exit on its own. */
@@ -1581,12 +1592,12 @@ scan (void)
   if (retval == PTHREAD_CANCELED)
     g_warning ("%s: pthread_join() returned PTHREAD_CANCELED.", __func__);
 
-  g_info ("%s: Stopped thread which was sniffing for alive hosts.", __func__);
+  g_debug ("%s: Stopped thread which was sniffing for alive hosts.", __func__);
 
   /* close handle */
   if (scanner.pcap_handle != NULL)
     {
-      g_info ("%s: close pcap handle", __func__);
+      g_debug ("%s: close pcap handle", __func__);
       pcap_close (scanner.pcap_handle);
     }
 
@@ -1622,7 +1633,7 @@ scan (void)
   /* Send info about dead hosts to ospd-openvas. This is needed for the
    * calculation of the progress bar for gsa. */
   send_dead_hosts_to_ospd_openvas ();
-  g_info ("%s: scan for alive hosts ended", __func__);
+  g_info ("%s: Scan for alive hosts ended.", __func__);
 
   return 0;
 }
@@ -1631,11 +1642,13 @@ scan (void)
  * @brief Set the SO_BROADCAST socket option for given socket.
  *
  * @param socket  The socket to apply the option to.
- * @return 0 on success, <0 on error.
+ * 
+ * @return 0 on success, boreas_error_t on error.
  */
-static int
+static boreas_error_t
 set_broadcast (int socket)
 {
+  boreas_error_t error = NO_ERROR;
   int broadcast = 1;
   if (setsockopt (socket, SOL_SOCKET, SO_BROADCAST, &broadcast,
                   sizeof (broadcast))
@@ -1643,42 +1656,48 @@ set_broadcast (int socket)
     {
       g_warning ("%s: failed to set socket option SO_BROADCAST: %s", __func__,
                  strerror (errno));
-      return -1;
+      error = BOREAS_SETTING_SOCKET_OPTION_FAILED;
     }
-  return 0;
+  return error;
 }
 
 /**
- * @brief Get a new socket.
+ * @brief Set a new socket of specified type.
  *
- * @param socket_type What type of socket to get.
+ * @param[in] socket_type  What type of socket to get.
+ * 
+ * @param[out] scanner_socket  Location to save the socket into.
  *
- * @return A newly created socket for use. This sockets needs to be closed by
- * the caller.
+ * @return 0 on success, boreas_error_t on error.
  */
-static int
-get_socket (enum socket_type socket_type)
+static boreas_error_t
+set_socket (enum socket_type socket_type, int *scanner_socket)
 {
+  boreas_error_t error = NO_ERROR;
   int soc;
   switch (socket_type)
     {
     case TCPV4:
       {
-        int opt = 1;
         soc = socket (AF_INET, SOCK_RAW, IPPROTO_RAW);
         if (soc < 0)
           {
             g_warning ("%s: failed to open TCPV4 socket: %s", __func__,
                        strerror (errno));
-            return -1;
+            error = BOREAS_OPENING_SOCKET_FAILED;
           }
-        if (setsockopt (soc, IPPROTO_IP, IP_HDRINCL, (char *) &opt,
-                        sizeof (opt))
-            < 0)
+        else
           {
-            g_warning ("%s: failed to set socket options on TCPV4 socket: %s",
-                       __func__, strerror (errno));
-            return -2;
+            int opt = 1;
+            if (setsockopt (soc, IPPROTO_IP, IP_HDRINCL, (char *) &opt,
+                            sizeof (opt))
+                < 0)
+              {
+                g_warning (
+                  "%s: failed to set socket options on TCPV4 socket: %s",
+                  __func__, strerror (errno));
+                error = BOREAS_SETTING_SOCKET_OPTION_FAILED;
+              }
           }
       }
       break;
@@ -1689,18 +1708,21 @@ get_socket (enum socket_type socket_type)
           {
             g_warning ("%s: failed to open TCPV6 socket: %s", __func__,
                        strerror (errno));
-            return -3;
+            error = BOREAS_OPENING_SOCKET_FAILED;
           }
-
-        int opt_on = 1;
-        if (setsockopt (soc, IPPROTO_IPV6, IP_HDRINCL,
-                        (char *) &opt_on, // IPV6_HDRINCL
-                        sizeof (opt_on))
-            < 0)
+        else
           {
-            g_warning ("%s: failed to set socket options on TCPV6 socket: %s",
-                       __func__, strerror (errno));
-            return -4;
+            int opt_on = 1;
+            if (setsockopt (soc, IPPROTO_IPV6, IP_HDRINCL,
+                            (char *) &opt_on, // IPV6_HDRINCL
+                            sizeof (opt_on))
+                < 0)
+              {
+                g_warning (
+                  "%s: failed to set socket options on TCPV6 socket: %s",
+                  __func__, strerror (errno));
+                error = BOREAS_SETTING_SOCKET_OPTION_FAILED;
+              }
           }
       }
       break;
@@ -1711,7 +1733,7 @@ get_socket (enum socket_type socket_type)
           {
             g_warning ("%s: failed to open ICMPV4 socket: %s", __func__,
                        strerror (errno));
-            return -5;
+            error = BOREAS_OPENING_SOCKET_FAILED;
           }
       }
       break;
@@ -1723,7 +1745,7 @@ get_socket (enum socket_type socket_type)
           {
             g_warning ("%s: failed to open ARPV6/ICMPV6 socket: %s", __func__,
                        strerror (errno));
-            return -6;
+            error = BOREAS_OPENING_SOCKET_FAILED;
           }
       }
       break;
@@ -1734,21 +1756,64 @@ get_socket (enum socket_type socket_type)
           {
             g_warning ("%s: failed to open ARPV4 socket: %s", __func__,
                        strerror (errno));
-            return -7;
+            return BOREAS_OPENING_SOCKET_FAILED;
           }
       }
       break;
     default:
-      return -8;
+      error = BOREAS_OPENING_SOCKET_FAILED;
       break;
     }
 
   /* set SO_BROADCAST socket option. If not set we get permission denied error
    * on pinging broadcast address */
-  if ((set_broadcast (soc)) < 0)
-    return -9;
+  if (!error)
+    {
+      if ((error = set_broadcast (soc)) != 0)
+        return error;
+    }
 
-  return soc;
+  *scanner_socket = soc;
+  return error;
+}
+
+/**
+ * @brief Set all sockets needed for the chosen detection methods.
+ *
+ * @param alive_test  Methods of alive detection to use provided as bitflag.
+ *
+ * @return  0 on success, boreas_error_t on error.
+ */
+static boreas_error_t
+set_all_needed_sockets (alive_test_t alive_test)
+{
+  boreas_error_t error = NO_ERROR;
+  if (alive_test & ALIVE_TEST_ICMP)
+    {
+      if ((error = set_socket (ICMPV4, &scanner.icmpv4soc)) != 0)
+        return error;
+      if ((error = set_socket (ICMPV6, &scanner.icmpv6soc)) != 0)
+        return error;
+    }
+
+  if ((alive_test & ALIVE_TEST_TCP_ACK_SERVICE)
+      || (alive_test & ALIVE_TEST_TCP_SYN_SERVICE))
+    {
+      if ((error = set_socket (TCPV4, &scanner.tcpv4soc)) != 0)
+        return error;
+      if ((error = set_socket (TCPV6, &scanner.tcpv6soc)) != 0)
+        return error;
+    }
+
+  if ((alive_test & ALIVE_TEST_ARP))
+    {
+      if ((error = set_socket (ARPV4, &scanner.arpv4soc)) != 0)
+        return error;
+      if ((error = set_socket (ARPV6, &scanner.arpv6soc)) != 0)
+        return error;
+    }
+
+  return error;
 }
 
 /**
@@ -1792,31 +1857,26 @@ fill_ports_array (gpointer range, gpointer ports_array)
  * Fill scanner struct with appropriate values.
  *
  * @param hosts gvm_hosts_t list of hosts to alive test.
- * @return 0 on success, <0 on error.
+ * @param alive_test methods to use for alive detection.
+ *
+ * @return 0 on success, boreas_error_t on error.
  */
-static int
-alive_detection_init (gvm_hosts_t *hosts)
+static boreas_error_t
+alive_detection_init (gvm_hosts_t *hosts, alive_test_t alive_test)
 {
-  g_info ("%s: initialise alive scanner", __func__);
+  g_debug ("%s: Initialise alive scanner. ", __func__);
 
   /* Used for ports array initialisation. */
   const gchar *port_list = NULL;
   GPtrArray *portranges_array;
+  boreas_error_t error = NO_ERROR;
 
   /* Scanner */
-  /* sockets */
-  if ((scanner.tcpv4soc = get_socket (TCPV4)) < 0)
-    return -1;
-  if ((scanner.tcpv6soc = get_socket (TCPV6)) < 0)
-    return -2;
-  if ((scanner.icmpv4soc = get_socket (ICMPV4)) < 0)
-    return -3;
-  if ((scanner.icmpv6soc = get_socket (ICMPV6)) < 0)
-    return -4;
-  if ((scanner.arpv4soc = get_socket (ARPV4)) < 0)
-    return -5;
-  if ((scanner.arpv6soc = get_socket (ARPV6)) < 0)
-    return -6;
+
+  /* Sockets */
+  if ((error = set_all_needed_sockets (alive_test)) != 0)
+    return error;
+
   /* sources */
   scanner.sourcev4 = NULL;
   scanner.sourcev6 = NULL;
@@ -1887,9 +1947,9 @@ alive_detection_init (gvm_hosts_t *hosts)
   if (scan_restrictions.max_alive_hosts < scan_restrictions.max_scan_hosts)
     scan_restrictions.max_alive_hosts = scan_restrictions.max_scan_hosts;
 
-  g_info ("%s: initialisation of alive scanner finished", __func__);
+  g_debug ("%s: Initialisation of alive scanner finished.", __func__);
 
-  return 0;
+  return error;
 }
 
 /**
@@ -1954,6 +2014,32 @@ alive_detection_free (void *error)
 }
 
 /**
+ * @brief Get the bitflag which describes the methods to use for alive
+ * deteciton.
+ *
+ * @param[out]  alive_test  Bitflag of all specified alive detection methods.
+ *
+ * @return 0 on succes, boreas_error_t on failure.
+ */
+static boreas_error_t
+get_alive_test_methods (alive_test_t *alive_test)
+{
+  boreas_error_t error = NO_ERROR;
+  const gchar *alive_test_pref_as_str;
+
+  alive_test_pref_as_str = prefs_get ("ALIVE_TEST");
+  if (alive_test_pref_as_str == NULL)
+    {
+      g_warning ("%s: No valid alive_test specified.", __func__);
+      error = BOREAS_NO_VALID_ALIVE_TEST_SPECIFIED;
+    }
+
+  g_info ("%s: Get method of alive detection.", __func__);
+  *alive_test = atoi (alive_test_pref_as_str);
+  return error;
+}
+
+/**
  * @brief Start the scan of all specified hosts in gvm_hosts_t
  * list. Finish signal is put on Queue if scan is finished or an error occurred.
  *
@@ -1963,14 +2049,38 @@ alive_detection_free (void *error)
 void *
 start_alive_detection (void *hosts_to_test)
 {
-  int init_err;
+  boreas_error_t init_err;
+  boreas_error_t alive_test_err;
   int fin_err;
   int free_err;
   gvm_hosts_t *hosts;
+  alive_test_t alive_test;
 
   hosts = (gvm_hosts_t *) hosts_to_test;
-  if ((init_err = alive_detection_init (hosts)) < 0)
-    g_warning ("%s: error in alive_detection_init(): %d", __func__, init_err);
+  if ((alive_test_err = get_alive_test_methods (&alive_test)) != 0)
+    {
+      g_warning ("%s: %s. Exit Boreas.", __func__,
+                 str_boreas_error (alive_test_err));
+      put_finish_signal_on_queue (&fin_err);
+      if (fin_err != 0)
+        g_warning ("%s: Could not put finish signal on Queue. Openvas needs to "
+                   "be stopped manually. ",
+                   __func__);
+      pthread_exit (0);
+    }
+
+  if ((init_err = alive_detection_init (hosts, alive_test)) != 0)
+    {
+      g_warning (
+        "%s. Boreas could not initialise alive detection. %s. Exit Boreas.",
+        __func__, str_boreas_error (init_err));
+      put_finish_signal_on_queue (&fin_err);
+      if (fin_err != 0)
+        g_warning ("%s: Could not put finish signal on Queue. Openvas needs to "
+                   "be stopped manually. ",
+                   __func__);
+      pthread_exit (0);
+    }
 
   g_info ("%s: Start Alive Detection", __func__);
   /* If alive detection thread returns, is canceled or killed unexpectedly all
@@ -1980,7 +2090,7 @@ start_alive_detection (void *hosts_to_test)
    * finish signal is put on the queue for openvas to process.*/
   pthread_cleanup_push (put_finish_signal_on_queue, &fin_err);
   /* Start the scan. */
-  if (scan () < 0)
+  if (scan (alive_test) < 0)
     g_warning ("%s: error in scan()", __func__);
   /* Put finish signal on queue. */
   pthread_cleanup_pop (1);
