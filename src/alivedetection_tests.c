@@ -20,6 +20,7 @@
 #include "alivedetection.c"
 
 #include <cgreen/cgreen.h>
+#include <cgreen/mocks.h>
 
 Describe (alivedetection);
 BeforeEach (alivedetection)
@@ -67,6 +68,74 @@ Ensure (alivedetection, fill_ports_array)
   g_array_free (ports_garray, TRUE);
 }
 
+int g_sock_retval;
+int
+socket (__attribute__ ((unused)) int domain, __attribute__ ((unused)) int type,
+        __attribute__ ((unused)) int protocol)
+{
+  mock ();
+  return g_sock_retval;
+}
+
+int g_setsockopt_retval;
+int
+setsockopt (__attribute__ ((unused)) int sockfd,
+            __attribute__ ((unused)) int level,
+            __attribute__ ((unused)) int optname,
+            __attribute__ ((unused)) const void *optval,
+            __attribute__ ((unused)) socklen_t optlen)
+{
+  mock ();
+  return g_setsockopt_retval;
+}
+
+Ensure (alivedetection, set_all_needed_sockets)
+{
+  alive_test_t alive_test;
+  g_sock_retval = 5;
+  g_setsockopt_retval = 5;
+
+  /* All methods set. */
+  alive_test = ALIVE_TEST_TCP_ACK_SERVICE | ALIVE_TEST_ICMP | ALIVE_TEST_ARP
+               | ALIVE_TEST_CONSIDER_ALIVE | ALIVE_TEST_TCP_SYN_SERVICE;
+  expect (socket, times (6));
+  expect (setsockopt, times (8));
+  set_all_needed_sockets (alive_test);
+
+  /* Only one method set. */
+  alive_test = ALIVE_TEST_TCP_ACK_SERVICE;
+  expect (socket, times (2));
+  expect (setsockopt, times (4));
+  set_all_needed_sockets (alive_test);
+
+  /* ALIVE_TEST_CONSIDER_ALIVE set. */
+  alive_test = ALIVE_TEST_CONSIDER_ALIVE;
+  never_expect (socket);
+  never_expect (setsockopt);
+  never_expect (set_socket);
+  set_all_needed_sockets (alive_test);
+}
+
+Ensure (alivedetection, set_socket)
+{
+  int socket;
+
+  /* socket() successful. */
+  g_sock_retval = 5;
+  expect (socket);
+  expect (setsockopt);
+  expect (setsockopt);
+  assert_that (set_socket (TCPV4, &socket), is_equal_to (0));
+  assert_that (g_sock_retval, is_equal_to (5));
+
+  /* socket() error. */
+  g_sock_retval = -5;
+  expect (socket);
+  never_expect (setsockopt);
+  assert_that (set_socket (TCPV4, &socket),
+               is_equal_to (BOREAS_OPENING_SOCKET_FAILED));
+}
+
 int
 main (int argc, char **argv)
 {
@@ -75,6 +144,8 @@ main (int argc, char **argv)
   suite = create_test_suite ();
 
   add_test_with_context (suite, alivedetection, fill_ports_array);
+  add_test_with_context (suite, alivedetection, set_all_needed_sockets);
+  add_test_with_context (suite, alivedetection, set_socket);
 
   if (argc > 1)
     return run_single_test (suite, argv[1], create_text_reporter ());
