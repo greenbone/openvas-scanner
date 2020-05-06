@@ -186,24 +186,6 @@ struct pseudohdr
   struct tcphdr tcpheader;
 };
 
-static void
-printipv6 (void *ipv6)
-{
-  char *str = g_malloc0 (INET6_ADDRSTRLEN);
-  inet_ntop (AF_INET6, ipv6, str, INET6_ADDRSTRLEN);
-  g_message ("%s: IP: %s", __func__, str);
-  g_free (str);
-}
-
-static void
-printipv4 (void *ipv4)
-{
-  char *str = g_malloc0 (INET_ADDRSTRLEN);
-  inet_ntop (AF_INET, ipv4, str, INET_ADDRSTRLEN);
-  g_message ("%s: IP: %s", __func__, str);
-  g_free (str);
-}
-
 const char *
 str_boreas_error (boreas_error_t boreas_error)
 {
@@ -258,9 +240,6 @@ open_live (char *iface, char *filter)
   char errbuf[PCAP_ERRBUF_SIZE];
   pcap_t *pcap_handle;
   struct bpf_program filter_prog;
-
-  /* pcap version */
-  g_warning ("%s: pcap version: %s", __func__, pcap_lib_version ());
 
   /* iface, snapshot length of handle, promiscuous mode, packet buffer timeout
    * (ms), errbuff */
@@ -317,12 +296,10 @@ open_live (char *iface, char *filter)
 gvm_host_t *
 get_host_from_queue (kb_t alive_hosts_kb, gboolean *alive_deteciton_finished)
 {
-  g_debug ("%s: get new host from Queue", __func__);
-
   /* redis connection not established yet */
   if (!alive_hosts_kb)
     {
-      g_warning ("%s: connection to redis is not valid", __func__);
+      g_debug ("%s: connection to redis is not valid", __func__);
       return NULL;
     }
 
@@ -337,10 +314,6 @@ get_host_from_queue (kb_t alive_hosts_kb, gboolean *alive_deteciton_finished)
   host_str = kb_item_pop_str (alive_hosts_kb, (ALIVE_DETECTION_QUEUE));
   if (!host_str)
     {
-      g_debug ("%s: ALIVE_DETECTION_SCANNING, no item found on queue(or "
-               "error) but "
-               "alive detection still ongoing, try again in a sec",
-               __func__);
       return NULL;
     }
   /* got some string from redis queue */
@@ -372,13 +345,14 @@ get_host_from_queue (kb_t alive_hosts_kb, gboolean *alive_deteciton_finished)
                   kb_lnk_reset (main_kb);
                 }
               else
-                g_warning ("Not possible to get the main kb "
-                           "connection. Info about "
-                           "number of alive hosts could not be sent.");
+                g_warning (
+                  "%s: Boreas was unable to connect to the Redis db.Info about "
+                  "number of alive hosts could not be sent.",
+                  __func__);
             }
-          g_message ("%s: ALIVE_DETECTION_FINISHED, scan was finished. "
-                     "return NULL host",
-                     __func__);
+          g_debug ("%s: Boreas already finished scanning and we reached the "
+                   "end of the Queue of alive hosts.",
+                   __func__);
           g_free (host_str);
           *alive_deteciton_finished = TRUE;
           return NULL;
@@ -386,15 +360,14 @@ get_host_from_queue (kb_t alive_hosts_kb, gboolean *alive_deteciton_finished)
       /* probably got host */
       else
         {
-          g_debug ("%s: ALIVE_DETECTION_OK, got item from queue", __func__);
           host = gvm_host_from_str (host_str);
           g_free (host_str);
 
           if (!host)
             {
-              g_warning (
-                "%s: error in call to gvm_host_from_str() for host_str: %s",
-                __func__, host_str);
+              g_warning ("%s: Could not transform IP string \"%s\" into "
+                         "internal representation.",
+                         __func__, host_str);
               return NULL;
             }
           else
@@ -460,7 +433,7 @@ put_finish_signal_on_queue (void *error)
   static gboolean fin_msg_already_on_queue = FALSE;
   if (fin_msg_already_on_queue)
     {
-      g_warning ("%s: Finish signal was already put on queue.", __func__);
+      g_debug ("%s: Finish signal was already put on queue.", __func__);
       *(int *) error = -1;
       return;
     }
@@ -468,7 +441,9 @@ put_finish_signal_on_queue (void *error)
                          ALIVE_DETECTION_FINISHED))
       != 0)
     {
-      g_warning ("%s: Error in kb_item_push_str().", __func__);
+      g_debug ("%s: Could not push the Boreas finish signal on the alive "
+               "detection Queue.",
+               __func__);
       *(int *) error = -2;
     }
   else
@@ -491,10 +466,9 @@ put_host_on_queue (gpointer key, __attribute__ ((unused)) gpointer value,
 {
   if (kb_item_push_str (scanner.main_kb, ALIVE_DETECTION_QUEUE, (char *) key)
       != 0)
-    g_warning (
-      "%s: kb_item_push_str() failed. Could not push \"%s\" on queue of "
-      "hosts to be considered as alive.",
-      __func__, (char *) key);
+    g_debug ("%s: kb_item_push_str() failed. Could not push \"%s\" on queue of "
+             "hosts to be considered as alive.",
+             __func__, (char *) key);
 }
 
 /**
@@ -527,8 +501,8 @@ handle_scan_restrictions (gchar *addr_str)
       scan_restrictions.max_scan_hosts_reached = TRUE;
       put_finish_signal_on_queue (&err);
       if (err != 0)
-        g_warning ("%s: Error in put_finish_signal_on_queue(): %d ", __func__,
-                   err);
+        g_debug ("%s: Error in put_finish_signal_on_queue(): %d ", __func__,
+                 err);
     }
   /* Thread which sends out new pings should stop sending when max_alive_hosts
    * is reached. */
@@ -554,8 +528,6 @@ got_packet (__attribute__ ((unused)) u_char *args,
             __attribute__ ((unused)) const struct pcap_pkthdr *header,
             const u_char *packet)
 {
-  // g_message ("%s: sniffed some packet in packet2", __func__);
-
   struct ip *ip = (struct ip *) (packet + 16); // why not 14(ethernet size)??
   unsigned int version = ip->ip_v;
 
@@ -572,17 +544,15 @@ got_packet (__attribute__ ((unused)) u_char *args,
       if (inet_ntop (AF_INET, (const char *) &sniffed_addr, addr_str,
                      INET_ADDRSTRLEN)
           == NULL)
-        g_warning ("%s: inet_ntop: %s", __func__, strerror (errno));
-      // g_message ("%s: IP version = 4, addr: %s", __func__, addr_str);
+        g_debug (
+          "%s: Failed to transform IPv4 address into string representation: %s",
+          __func__, strerror (errno));
 
       /* Do not put already found host on Queue and only put hosts on Queue we
        * are searching for. */
       if (g_hash_table_add (hosts_data.alivehosts, g_strdup (addr_str))
           && g_hash_table_contains (hosts_data.targethosts, addr_str) == TRUE)
         {
-          g_warning ("%s: Thread sniffed unique address to put on queue: %s",
-                     __func__, addr_str);
-
           /* handle max_scan_hosts and max_alive_hosts related restrictions. */
           handle_scan_restrictions (addr_str);
         }
@@ -596,17 +566,14 @@ got_packet (__attribute__ ((unused)) u_char *args,
       if (inet_ntop (AF_INET6, (const char *) &sniffed_addr, addr_str,
                      INET6_ADDRSTRLEN)
           == NULL)
-        g_warning ("%s: inet_ntop: %s", __func__, strerror (errno));
-      // g_message ("%s: IP version = 6, addr: %s", __func__, addr_str);
+        g_debug ("%s: Failed to transform IPv6 into string representation: %s",
+                 __func__, strerror (errno));
 
       /* Do not put already found host on Queue and only put hosts on Queue we
        * are searching for. */
       if (g_hash_table_add (hosts_data.alivehosts, g_strdup (addr_str))
           && g_hash_table_contains (hosts_data.targethosts, addr_str) == TRUE)
         {
-          g_warning ("%s: Thread sniffed unique address to put on queue: %s",
-                     __func__, addr_str);
-
           /* handle max_scan_hosts and max_alive_hosts related restrictions. */
           handle_scan_restrictions (addr_str);
         }
@@ -626,17 +593,14 @@ got_packet (__attribute__ ((unused)) u_char *args,
       gchar addr_str[INET_ADDRSTRLEN];
       if (inet_ntop (AF_INET, (const char *) arp, addr_str, INET_ADDRSTRLEN)
           == NULL)
-        g_warning ("%s: inet_ntop: %s", __func__, strerror (errno));
-      // g_message ("%s: ARP, IP addr: %s", __func__, addr_str);
+        g_debug ("%s: Failed to transform IP into string representation: %s",
+                 __func__, strerror (errno));
 
       /* Do not put already found host on Queue and only put hosts on Queue
       we are searching for. */
       if (g_hash_table_add (hosts_data.alivehosts, g_strdup (addr_str))
           && g_hash_table_contains (hosts_data.targethosts, addr_str) == TRUE)
         {
-          g_warning ("%s: Thread sniffed unique address to put on queue: %s",
-                     __func__, addr_str);
-
           /* handle max_scan_hosts and max_alive_hosts related restrictions. */
           handle_scan_restrictions (addr_str);
         }
@@ -652,7 +616,6 @@ static void *
 sniffer_thread (__attribute__ ((unused)) void *vargp)
 {
   int ret;
-  g_info ("%s: start packet sniffing thread", __func__);
   pthread_mutex_lock (&mutex);
   pthread_cond_signal (&cond);
   pthread_mutex_unlock (&mutex);
@@ -660,13 +623,13 @@ sniffer_thread (__attribute__ ((unused)) void *vargp)
   /* reads packets until error or pcap_breakloop() */
   if ((ret = pcap_loop (scanner.pcap_handle, -1, got_packet, NULL))
       == PCAP_ERROR)
-    g_warning ("%s: pcap_loop error %s", __func__,
-               pcap_geterr (scanner.pcap_handle));
+    g_debug ("%s: pcap_loop error %s", __func__,
+             pcap_geterr (scanner.pcap_handle));
   else if (ret == 0)
-    g_warning ("%s: count of packets is exhausted", __func__);
+    g_debug ("%s: count of packets is exhausted", __func__);
   else if (ret == PCAP_ERROR_BREAK)
-    g_info ("%s: Loop was successfully broken after call to pcap_breakloop",
-            __func__);
+    g_debug ("%s: Loop was successfully broken after call to pcap_breakloop",
+             __func__);
 
   pthread_exit (0);
 }
@@ -679,7 +642,7 @@ sniffer_thread (__attribute__ ((unused)) void *vargp)
  * @param hashtable   table to remove keys from
  *
  */
-__attribute__ ((unused)) static void
+static void
 exclude (gpointer key, __attribute__ ((unused)) gpointer value,
          gpointer hashtable)
 {
@@ -716,7 +679,7 @@ get_source_mac_addr (gchar *interface, uint8_t *mac)
 
   if (getifaddrs (&ifaddr) == -1)
     {
-      g_warning ("%s: getifaddr failed: %s", __func__, strerror (errno));
+      g_debug ("%s: getifaddr failed: %s", __func__, strerror (errno));
       return -1;
     }
   else
@@ -757,8 +720,6 @@ get_source_mac_addr (gchar *interface, uint8_t *mac)
 static void
 send_icmp_v6 (int soc, struct in6_addr *dst, int type)
 {
-  // g_message ("%s: send imcpv6", __func__);
-
   struct sockaddr_in6 soca;
   char sendbuf[1500];
   int len;
@@ -797,7 +758,6 @@ send_icmp_v6 (int soc, struct in6_addr *dst, int type)
 static void
 send_icmp_v4 (int soc, struct in_addr *dst)
 {
-  // g_message ("%s: IN ICMP func", __func__);
   char sendbuf[1500];
   struct sockaddr_in soca;
 
@@ -863,18 +823,17 @@ send_icmp (__attribute__ ((unused)) gpointer key, gpointer value,
     }
   if (IN6_IS_ADDR_V4MAPPED (dst6_p) != 1)
     {
-      // g_message ("%s got ipv6 address to handle", __func__);
       /* set device for icmpv4 */
       if (!icmpv6socopt_set)
         {
-          g_info ("%s: set icmpv6 socket option SO_BINDTODEVICE", __func__);
-          gchar *interface = v6_routethrough (dst6_p, NULL);
-          // g_message ("%s: interface to use: %s", __func__, interface);
-          if (!interface)
-            g_warning ("%s: no appropriate interface was found", __func__);
           struct ifreq if_bind;
+          gchar *interface = NULL;
+
+          interface = v6_routethrough (dst6_p, NULL);
+          if (!interface)
+            g_debug ("%s: no appropriate interface was found", __func__);
           if (g_strlcpy (if_bind.ifr_name, interface, IFNAMSIZ) <= 0)
-            g_warning ("%s: copied 0 length interface", __func__);
+            g_debug ("%s: copied 0 length interface", __func__);
 
           if (setsockopt (scanner.icmpv6soc, SOL_SOCKET, SO_BINDTODEVICE,
                           interface, IFNAMSIZ)
@@ -891,20 +850,19 @@ send_icmp (__attribute__ ((unused)) gpointer key, gpointer value,
     }
   else
     {
-      // g_message ("%s got ipv4 address to handle", __func__);
       dst4.s_addr = dst6_p->s6_addr32[3];
 
       /* set device for icmpv6 */
       if (!icmpv4socopt_set)
         {
-          g_message ("%s set icmpv4 socket option SO_BINDTODEVICE", __func__);
-          gchar *interface = routethrough (dst4_p, NULL);
-          if (!interface)
-            g_warning ("%s: no appropriate interface was found", __func__);
-          // g_message ("%s: interface to use: %s", __func__, interface);
           struct ifreq if_bind;
-          g_strlcpy (if_bind.ifr_name, interface, IFNAMSIZ);
-          g_warning ("%s: copied 0 length interface", __func__);
+          gchar *interface;
+
+          interface = routethrough (dst4_p, NULL);
+          if (!interface)
+            g_debug ("%s: no appropriate interface was found", __func__);
+          if (g_strlcpy (if_bind.ifr_name, interface, IFNAMSIZ) <= 0)
+            g_debug ("%s: copied 0 length interface", __func__);
 
           if (setsockopt (scanner.icmpv4soc, SOL_SOCKET, SO_BINDTODEVICE,
                           interface, IFNAMSIZ)
@@ -931,7 +889,6 @@ send_icmp (__attribute__ ((unused)) gpointer key, gpointer value,
 static void
 send_tcp_v6 (int soc, struct in6_addr *dst_p, uint8_t tcp_flag)
 {
-  // g_message ("%s:ipv6", __func__);
   struct sockaddr_in6 soca;
 
   u_char packet[sizeof (struct ip6_hdr) + sizeof (struct tcphdr)];
@@ -942,10 +899,18 @@ send_tcp_v6 (int soc, struct in6_addr *dst_p, uint8_t tcp_flag)
 
   if (scanner.sourcev6 == NULL)
     {
+      gchar addr_str[INET6_ADDRSTRLEN];
       gchar *interface = v6_routethrough (dst_p, &src);
-      g_info ("%s: interface to use: %s", __func__, interface);
+      g_debug ("%s: interface to use: %s.", __func__, interface);
       scanner.sourcev6 = g_memdup (&src, sizeof (struct in6_addr));
-      printipv6 (scanner.sourcev6);
+
+      if (inet_ntop (AF_INET6, (const char *) &scanner.sourcev6, addr_str,
+                     INET6_ADDRSTRLEN)
+          == NULL)
+        g_debug ("%s: Failed to transform IPv6 into string representation: %s",
+                 __func__, strerror (errno));
+
+      g_debug ("%s: Use %s as source IP for IPv4 pings.", __func__, addr_str);
     }
 
   /* No ports in portlist. */
@@ -1025,12 +990,21 @@ send_tcp_v4 (int soc, struct in_addr *dst_p, uint8_t tcp_flag)
   struct in_addr src; /* ip src */
 
   /* get src address */
-  if (scanner.sourcev4 == NULL) // scanner.sourcev4 == NULL
+  if (scanner.sourcev4 == NULL)
     {
+      gchar addr_str[INET_ADDRSTRLEN];
       gchar *interface = routethrough (dst_p, &src);
       scanner.sourcev4 = g_memdup (&src, sizeof (struct in_addr));
-      g_info ("%s: interface to use: %s", __func__, interface);
-      printipv4 (scanner.sourcev4);
+      g_debug ("%s: interface to use: %s", __func__, interface);
+
+      if (inet_ntop (AF_INET, (const void *) scanner.sourcev4, addr_str,
+                     INET_ADDRSTRLEN)
+          == NULL)
+        g_debug (
+          "%s: Failed to transform IPv4 address into string representation: %s",
+          __func__, strerror (errno));
+
+      g_debug ("%s: Use %s as source IP for IPv4 pings.", __func__, addr_str);
     }
 
   /* No ports in portlist. */
@@ -1129,12 +1103,10 @@ send_tcp (__attribute__ ((unused)) gpointer key, gpointer value,
     }
   if (IN6_IS_ADDR_V4MAPPED (dst6_p) != 1)
     {
-      // g_message ("%s: got ipv6 address to handle", __func__);
       send_tcp_v6 (scanner.tcpv6soc, dst6_p, scanner.tcp_flag);
     }
   else
     {
-      // g_message ("%s: got ipv4 address to handle", __func__);
       dst4.s_addr = dst6_p->s6_addr32[3];
       send_tcp_v4 (scanner.tcpv4soc, dst4_p, scanner.tcp_flag);
     }
@@ -1181,12 +1153,12 @@ send_arp_v4 (int soc, struct in_addr *dst_p)
       if (get_source_mac_addr (interface, (unsigned char *) src_mac) != 0)
         g_warning ("%s: get_source_mac_addr() returned error", __func__);
 
-      g_info ("%s: Source MAC address: %02x:%02x:%02x:%02x:%02x:%02x", __func__,
-              src_mac[0], src_mac[1], src_mac[2], src_mac[3], src_mac[4],
-              src_mac[5]);
-      g_info ("%s: Destination mac address: %02x:%02x:%02x:%02x:%02x:%02x",
-              __func__, dst_mac[0], dst_mac[1], dst_mac[2], dst_mac[3],
-              dst_mac[4], dst_mac[5]);
+      g_debug ("%s: Source MAC address: %02x:%02x:%02x:%02x:%02x:%02x",
+               __func__, src_mac[0], src_mac[1], src_mac[2], src_mac[3],
+               src_mac[4], src_mac[5]);
+      g_debug ("%s: Destination mac address: %02x:%02x:%02x:%02x:%02x:%02x",
+               __func__, dst_mac[0], dst_mac[1], dst_mac[2], dst_mac[3],
+               dst_mac[4], dst_mac[5]);
 
       first_time_setup_done = TRUE;
     }
@@ -1268,7 +1240,6 @@ send_arp (__attribute__ ((unused)) gpointer key, gpointer value,
     }
   if (IN6_IS_ADDR_V4MAPPED (dst6_p) != 1)
     {
-      // g_message ("got ipv6 address to handle");
       /* IPv6 does simulate ARP by using the Neighbor Discovery Protocol with
        * ICMPv6. */
       send_icmp_v6 (scanner.arpv6soc, dst6_p, ND_NEIGHBOR_SOLICIT);
@@ -1305,7 +1276,9 @@ send_dead_hosts_to_ospd_openvas (void)
 
   if (!main_kb)
     {
-      g_warning ("%s: Could not connect to main_kb.", __func__);
+      g_debug ("%s: Could not connect to main_kb for sending dead hosts to "
+               "ospd-openvas.",
+               __func__);
       return -1;
     }
 
@@ -1341,9 +1314,8 @@ send_dead_hosts_to_ospd_openvas (void)
               if (kb_item_push_str (main_kb, "internal/results",
                                     chunked_hosts->str)
                   != 0)
-                g_warning (
-                  "%s: kb_item_push_str() failed to push DEADHOST message.",
-                  __func__);
+                g_warning ("%s: Failed to send dead hosts to ospd-openvas.",
+                           __func__);
               /* Delete contents of string. */
               g_string_truncate (chunked_hosts, 0);
               hosts_in_chunk = 0;
@@ -1365,8 +1337,7 @@ send_dead_hosts_to_ospd_openvas (void)
                        "><name/></source></detail></host>");
       if (kb_item_push_str (main_kb, "internal/results", chunked_hosts->str)
           != 0)
-        g_warning ("%s: kb_item_push_str() failed to push DEADHOST message.",
-                   __func__);
+        g_warning ("%s: Failed to send dead hosts to ospd-openvas.", __func__);
     }
   /* Free GString. */
   g_string_free (chunked_hosts, TRUE);
@@ -1389,7 +1360,6 @@ send_dead_hosts_to_ospd_openvas (void)
 static int
 scan (alive_test_t alive_test)
 {
-  g_info ("%s: Start scanning for alive hosts.", __func__);
   int number_of_targets, number_of_targets_checked = 0;
   int number_of_dead_hosts;
   int err;
@@ -1402,8 +1372,8 @@ scan (alive_test_t alive_test)
   int scandb_id = atoi (prefs_get ("ov_maindbid"));
   kb_t main_kb = NULL;
 
+  g_message ("Alive scan started");
   gettimeofday (&start_time, NULL);
-
   number_of_targets = g_hash_table_size (hosts_data.targethosts);
 
   scanner.pcap_handle = open_live (NULL, FILTER_STR);
@@ -1578,10 +1548,10 @@ scan (alive_test_t alive_test)
         }
     }
 
-  g_debug ("%s: all ping packets are sent, wait a bit for rest of replies",
-           __func__);
+  g_debug (
+    "%s: all ping packets have been sent, wait a bit for rest of replies.",
+    __func__);
   sleep (WAIT_FOR_REPLIES_TIMEOUT);
-  g_debug ("%s: finish waiting for replies", __func__);
 
   g_debug ("%s: Try to stop thread which is sniffing for alive hosts. ",
            __func__);
@@ -1594,9 +1564,9 @@ scan (alive_test_t alive_test)
    * loop. */
   err = pthread_cancel (sniffer_thread_id);
   if (err == ESRCH)
-    g_warning ("%s: pthread_cancel() returned ESRCH; No thread with the "
-               "supplied ID could be found.",
-               __func__);
+    g_debug ("%s: pthread_cancel() returned ESRCH; No thread with the "
+             "supplied ID could be found.",
+             __func__);
 
   /* join sniffer thread*/
   err = pthread_join (sniffer_thread_id, &retval);
@@ -1607,14 +1577,13 @@ scan (alive_test_t alive_test)
   if (err == ESRCH)
     g_warning ("%s: pthread_join() returned ESRCH.", __func__);
   if (retval == PTHREAD_CANCELED)
-    g_warning ("%s: pthread_join() returned PTHREAD_CANCELED.", __func__);
+    g_debug ("%s: pthread_join() returned PTHREAD_CANCELED.", __func__);
 
   g_debug ("%s: Stopped thread which was sniffing for alive hosts.", __func__);
 
   /* close handle */
   if (scanner.pcap_handle != NULL)
     {
-      g_debug ("%s: close pcap handle", __func__);
       pcap_close (scanner.pcap_handle);
     }
 
@@ -1635,13 +1604,18 @@ scan (alive_test_t alive_test)
                       "status will not be checked.",
                       not_checked);
           if (kb_item_push_str (main_kb, "internal/results", buf) != 0)
-            g_warning ("%s: kb_item_push_str() failed to push error message.",
+            g_warning ("%s: Failed to send message to ospd-openvas about "
+                       "max_alive_hosts reached and for how many host the "
+                       "alive status will not be checked.",
                        __func__);
           kb_lnk_reset (main_kb);
         }
       else
-        g_warning ("Not possible to get the main kb connection. Info about "
-                   "number of alive hosts could not be sent.");
+        g_warning (
+          "%s: Boreas was unable to connect to the Redis db. Failed to send "
+          "message to ospd-openvas that max_alive_hosts was reached and for "
+          "how many host the alive status will not be checked.",
+          __func__);
     }
 
   /* Send info about dead hosts to ospd-openvas. This is needed for the
@@ -2089,7 +2063,6 @@ get_alive_test_methods (alive_test_t *alive_test)
       error = BOREAS_NO_VALID_ALIVE_TEST_SPECIFIED;
     }
 
-  g_info ("%s: Get method of alive detection.", __func__);
   *alive_test = atoi (alive_test_pref_as_str);
   return error;
 }
@@ -2137,7 +2110,6 @@ start_alive_detection (void *hosts_to_test)
       pthread_exit (0);
     }
 
-  g_info ("%s: Start Alive Detection", __func__);
   /* If alive detection thread returns, is canceled or killed unexpectedly all
    * used resources are freed and sockets, connections closed.*/
   pthread_cleanup_push (alive_detection_free, &free_err);
@@ -2154,7 +2126,6 @@ start_alive_detection (void *hosts_to_test)
   if (free_err != 0)
     g_warning ("%s: %s. Exit Boreas thread none the less.", __func__,
                str_boreas_error (free_err));
-  g_info ("%s: Alive Detection finished. ", __func__);
 
   pthread_exit (0);
 }
