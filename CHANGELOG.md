@@ -22,6 +22,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 - Add test_alive_hosts_only feature. [#456](https://github.com/greenbone/openvas/pull/456)
 - Don't reload the plugins when start a new scan. [#458](https://github.com/greenbone/openvas/pull/458)
 - Drop http feed sync. [#478](https://github.com/greenbone/openvas/pull/478)
+- Add aligned summary to log at scan end. [#496](https://github.com/greenbone/openvas/pull/496)
 
 ### Fixed
 - Improve signal handling when update vhosts list. [#425](https://github.com/greenbone/openvas/pull/425)

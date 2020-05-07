@@ -1286,14 +1286,15 @@ send_arp (__attribute__ ((unused)) gpointer key, gpointer value,
  * All hosts which are not identified as alive are sent to ospd-openvas. This is
  * needed for the calculation of the progress bar for gsa in ospd-openvas.
  *
- * @return 0 on success, <0 on failure.
+ * @return number of dead IPs, or -1 in case of an error.
  */
-static void
+static int
 send_dead_hosts_to_ospd_openvas (void)
 {
   kb_t main_kb = NULL;
   int maindbid;
   int hosts_in_chunk = 0;
+  int count_dead_ips = 0;
 
   GHashTableIter target_hosts_iter;
   gpointer host_str, value;
@@ -1305,7 +1306,7 @@ send_dead_hosts_to_ospd_openvas (void)
   if (!main_kb)
     {
       g_warning ("%s: Could not connect to main_kb.", __func__);
-      return;
+      return -1;
     }
 
   /* Delete all alive hosts which are not send to openvas because
@@ -1325,6 +1326,7 @@ send_dead_hosts_to_ospd_openvas (void)
         {
           g_string_append (chunked_hosts, host_str);
           hosts_in_chunk++;
+          count_dead_ips++;
 
           if (hosts_in_chunk == 1000)
             {
@@ -1370,6 +1372,8 @@ send_dead_hosts_to_ospd_openvas (void)
   g_string_free (chunked_hosts, TRUE);
 
   kb_lnk_reset (main_kb);
+
+  return count_dead_ips;
 }
 
 /**
@@ -1387,11 +1391,18 @@ scan (alive_test_t alive_test)
 {
   g_info ("%s: Start scanning for alive hosts.", __func__);
   int number_of_targets, number_of_targets_checked = 0;
+  int number_of_dead_hosts;
   int err;
   void *retval;
   pthread_t sniffer_thread_id;
+  gchar *scan_id = NULL;
   GHashTableIter target_hosts_iter;
   gpointer key, value;
+  struct timeval start_time, end_time;
+  int scandb_id = atoi (prefs_get ("ov_maindbid"));
+  kb_t main_kb = NULL;
+
+  gettimeofday (&start_time, NULL);
 
   number_of_targets = g_hash_table_size (hosts_data.targethosts);
 
@@ -1610,10 +1621,7 @@ scan (alive_test_t alive_test)
   /* Send error message if max_alive_hosts was reached. */
   if (scan_restrictions.max_alive_hosts_reached)
     {
-      kb_t main_kb = NULL;
-      int i = atoi (prefs_get ("ov_maindbid"));
-
-      if ((main_kb = kb_direct_conn (prefs_get ("db_address"), i)))
+      if ((main_kb = kb_direct_conn (prefs_get ("db_address"), scandb_id)))
         {
           char buf[256];
           int not_checked;
@@ -1638,8 +1646,19 @@ scan (alive_test_t alive_test)
 
   /* Send info about dead hosts to ospd-openvas. This is needed for the
    * calculation of the progress bar for gsa. */
-  send_dead_hosts_to_ospd_openvas ();
-  g_info ("%s: Scan for alive hosts ended.", __func__);
+  number_of_dead_hosts = send_dead_hosts_to_ospd_openvas ();
+
+  gettimeofday (&end_time, NULL);
+  if ((main_kb = kb_direct_conn (prefs_get ("db_address"), scandb_id)))
+    {
+      scan_id = kb_item_get_str (main_kb, ("internal/scanid"));
+      kb_lnk_reset (main_kb);
+    }
+
+  g_message ("Alive scan %s finished in %ld seconds: %d alive hosts of %d.",
+             scan_id, end_time.tv_sec - start_time.tv_sec,
+             number_of_targets - number_of_dead_hosts, number_of_targets);
+  g_free (scan_id);
 
   return 0;
 }
