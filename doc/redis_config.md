@@ -53,8 +53,6 @@ be calculated using the following formula:
 #DB = 1 + (#of parallel tasks) * (#of parallel hosts)
 ```
 
-When using network scan, add one slot for the network DB.
-
 The desired/needed value should be set to redis.conf, as a `databases`
 directive.
 

@@ -1,4 +1,4 @@
-/* Portions Copyright (C) 2009-2019 Greenbone Networks GmbH
+/* Portions Copyright (C) 2009-2020 Greenbone Networks GmbH
  * Portions Copyright (C) 2006 Software in the Public Interest, Inc.
  * Based on work Copyright (C) 1998 - 2006 Tenable Network Security, Inc.
  *
@@ -85,16 +85,8 @@ struct attack_start_args
 {
   struct scan_globals *globals;
   plugins_scheduler_t sched;
-  kb_t *net_kb;
   kb_t host_kb;
   gvm_host_t *host;
-};
-
-enum net_scan_status
-{
-  NSS_NONE = 0,
-  NSS_BUSY,
-  NSS_DONE,
 };
 
 /*******************************************************
@@ -211,23 +203,6 @@ fork_sleep (int n)
     }
 }
 
-static enum net_scan_status
-network_scan_status (struct scan_globals *globals)
-{
-  gchar *nss;
-
-  nss = globals->network_scan_status;
-  if (nss == NULL)
-    return NSS_NONE;
-
-  if (g_ascii_strcasecmp (nss, "busy") == 0)
-    return NSS_BUSY;
-  else if (g_ascii_strcasecmp (nss, "done") == 0)
-    return NSS_DONE;
-  else
-    return NSS_NONE;
-}
-
 int global_scan_stop = 0;
 
 static int
@@ -334,7 +309,6 @@ launch_plugin (struct scan_globals *globals, struct scheduler_plugin *plugin,
 {
   int optimize = prefs_get_bool ("optimize_test"), pid, ret = 0;
   char *oid, *name, *error = NULL, ip_str[INET6_ADDRSTRLEN];
-  gboolean network_scan = FALSE;
   nvti_t *nvti;
 
   addr6_to_str (ip, ip_str);
@@ -363,9 +337,6 @@ launch_plugin (struct scan_globals *globals, struct scheduler_plugin *plugin,
         }
     }
 
-  if (network_scan_status (globals) == NSS_BUSY)
-    network_scan = TRUE;
-
   if (prefs_get_bool ("safe_checks")
       && !nvti_category_is_safe (nvti_category (nvti)))
     {
@@ -381,29 +352,9 @@ launch_plugin (struct scan_globals *globals, struct scheduler_plugin *plugin,
       goto finish_launch_plugin;
     }
 
-  if (network_scan)
-    {
-      char asc_id[100];
-
-      assert (oid);
-      snprintf (asc_id, sizeof (asc_id), "Launched/%s", oid);
-
-      if (kb_item_get_int (kb, asc_id) > 0)
-        {
-          if (prefs_get_bool ("log_whole_attack"))
-            g_message ("Not launching %s against %s because it has already "
-                       "been lanched in the past (this is not an error)",
-                       oid, ip_str);
-          plugin->running_state = PLUGIN_STATUS_DONE;
-          goto finish_launch_plugin;
-        }
-      else
-        kb_item_set_int (kb, asc_id, 1);
-    }
-
   /* Do not launch NVT if mandatory key is missing (e.g. an important tool
-   * was not found). This is ignored during network wide scanning phases. */
-  if (!network_scan && !mandatory_requirements_met (kb, nvti))
+   * was not found). */
+  if (!mandatory_requirements_met (kb, nvti))
     error = "because a mandatory key is missing";
   if (error || (optimize && (error = requirements_plugin (kb, nvti))))
     {
@@ -451,87 +402,12 @@ finish_launch_plugin:
   return ret;
 }
 
-static int
-kb_duplicate (kb_t dst, kb_t src, const gchar *filter)
-{
-  struct kb_item *items, *p_itm;
-
-  items = kb_item_get_pattern (src, filter ? filter : "*");
-  for (p_itm = items; p_itm != NULL; p_itm = p_itm->next)
-    {
-      gchar *newname;
-
-      newname = strstr (p_itm->name, "/");
-      if (newname == NULL)
-        newname = p_itm->name;
-      else
-        newname += 1; /* Skip the '/' */
-
-      kb_item_add_str (dst, newname, p_itm->v_str, 0);
-    }
-  return 0;
-}
-
-/**
- * @brief Inits or loads the knowledge base for a single host.
- *
- * Fills the knowledge base with host-specific login information for local
- * checks if defined.
- *
- * @param globals     Global preference struct.
- * @param ip_str      IP string of target host.
- *
- * @return A knowledge base.
- */
-static kb_t
-init_host_kb (struct scan_globals *globals, char *ip_str, kb_t *network_kb)
-{
-  kb_t kb;
-  gchar *hostname_pattern;
-  enum net_scan_status nss;
-  const gchar *kb_path = prefs_get ("db_address");
-  int rc;
-
-  nss = network_scan_status (globals);
-  switch (nss)
-    {
-    case NSS_DONE:
-      rc = kb_new (&kb, kb_path);
-      if (rc)
-        {
-          report_kb_failure (rc);
-          return NULL;
-        }
-
-      hostname_pattern = g_strdup_printf ("%s/*", ip_str);
-      kb_duplicate (kb, *network_kb, hostname_pattern);
-      g_free (hostname_pattern);
-      break;
-
-    case NSS_BUSY:
-      assert (network_kb != NULL);
-      assert (*network_kb != NULL);
-      kb = *network_kb;
-      break;
-
-    default:
-      rc = kb_new (&kb, kb_path);
-      if (rc)
-        {
-          report_kb_failure (rc);
-          return NULL;
-        }
-    }
-
-  return kb;
-}
-
 /**
  * @brief Attack one host.
  */
 static void
 attack_host (struct scan_globals *globals, struct in6_addr *ip, GSList *vhosts,
-             plugins_scheduler_t sched, kb_t kb, kb_t *net_kb)
+             plugins_scheduler_t sched, kb_t kb)
 {
   /* Used for the status */
   int num_plugs, forks_retry = 0;
@@ -544,13 +420,6 @@ attack_host (struct scan_globals *globals, struct in6_addr *ip, GSList *vhosts,
   kb_item_set_str (kb, "internal/ip", ip_str, 0);
   kb_item_set_int (kb, "internal/hostpid", getpid ());
   proctitle_set ("openvas: testing %s", ip_str);
-  if (net_kb && *net_kb)
-    {
-      kb_delete (kb);
-      kb = init_host_kb (globals, ip_str, net_kb);
-      if (kb == NULL)
-        return;
-    }
   kb_lnk_reset (kb);
 
   /* launch the plugins */
@@ -750,7 +619,7 @@ attack_start (struct attack_start_args *args)
   char ip_str[INET6_ADDRSTRLEN], *hostnames;
   struct in6_addr hostip;
   struct timeval then;
-  kb_t *net_kb = args->net_kb, kb = args->host_kb;
+  kb_t kb = args->host_kb;
   int ret;
 
   nvticache_reset ();
@@ -785,7 +654,7 @@ attack_start (struct attack_start_args *args)
   else
     g_message ("Testing %s [%d]", ip_str, getpid ());
   g_free (hostnames);
-  attack_host (globals, &hostip, args->host->vhosts, args->sched, kb, net_kb);
+  attack_host (globals, &hostip, args->host->vhosts, args->sched, kb);
 
   if (!scan_is_stopped ())
     {
@@ -1071,7 +940,7 @@ handle_scan_stop_signal ()
  * @brief Attack a whole network.
  */
 void
-attack_network (struct scan_globals *globals, kb_t *network_kb)
+attack_network (struct scan_globals *globals)
 {
   int max_hosts = 0, max_checks;
   const char *hostlist;
@@ -1081,9 +950,7 @@ attack_network (struct scan_globals *globals, kb_t *network_kb)
   GHashTable *files;
   struct timeval then, now;
   gvm_hosts_t *hosts;
-  const gchar *network_targets, *port_range;
-  gboolean network_phase = FALSE;
-  gboolean do_network_scan = FALSE;
+  const gchar *port_range;
   kb_t host_kb;
   GSList *unresolved;
 
@@ -1094,39 +961,6 @@ attack_network (struct scan_globals *globals, kb_t *network_kb)
     connect_main_kb (&alive_hosts_kb);
 
   gettimeofday (&then, NULL);
-
-  if (prefs_get_bool ("network_scan"))
-    do_network_scan = TRUE;
-  else
-    do_network_scan = FALSE;
-
-  network_targets = prefs_get ("network_targets");
-  if (network_targets != NULL)
-    globals->network_targets = g_strdup (network_targets);
-
-  if (do_network_scan)
-    {
-      enum net_scan_status nss;
-
-      nss = network_scan_status (globals);
-      switch (nss)
-        {
-        case NSS_DONE:
-          network_phase = FALSE;
-          break;
-
-        case NSS_BUSY:
-          network_phase = TRUE;
-          break;
-
-        default:
-          globals->network_scan_status = g_strdup ("busy");
-          network_phase = TRUE;
-          break;
-        }
-    }
-  else
-    network_kb = NULL;
 
   if (check_kb_access ())
     return;
@@ -1160,7 +994,7 @@ attack_network (struct scan_globals *globals, kb_t *network_kb)
   int plugins_init_error = 0;
   sched = plugins_scheduler_init (prefs_get ("plugin_set"),
                                   prefs_get_bool ("auto_enable_dependencies"),
-                                  network_phase, &plugins_init_error);
+                                  &plugins_init_error);
   if (!sched)
     {
       g_message ("Couldn't initialize the plugin scheduler");
@@ -1185,36 +1019,9 @@ attack_network (struct scan_globals *globals, kb_t *network_kb)
   max_hosts = get_max_hosts_number ();
   max_checks = get_max_checks_number ();
 
-  if (network_phase)
-    {
-      if (network_targets == NULL)
-        {
-          g_warning (
-            "WARNING: In network phase, but without targets! Stopping.");
-          host = NULL;
-        }
-      else
-        {
-          int rc;
-
-          g_message ("Start a new scan. Target(s) : %s, "
-                     "in network phase with target %s",
-                     hostlist, network_targets);
-
-          rc = kb_new (network_kb, prefs_get ("db_address"));
-          if (rc)
-            {
-              report_kb_failure (rc);
-              host = NULL;
-            }
-          else
-            kb_lnk_reset (*network_kb);
-        }
-    }
-  else
-    g_message ("Starts a new scan. Target(s) : %s, with max_hosts = %d and "
-               "max_checks = %d",
-               hostlist, max_hosts, max_checks);
+  g_message ("Starts a new scan. Target(s) : %s, with max_hosts = %d and "
+             "max_checks = %d",
+             hostlist, max_hosts, max_checks);
 
   hosts = gvm_hosts_new (hostlist);
   unresolved = gvm_hosts_resolve (hosts);
@@ -1314,7 +1121,6 @@ attack_network (struct scan_globals *globals, kb_t *network_kb)
       args.host = host;
       args.globals = globals;
       args.sched = sched;
-      args.net_kb = network_kb;
       args.host_kb = host_kb;
 
     forkagain:
@@ -1339,35 +1145,25 @@ attack_network (struct scan_globals *globals, kb_t *network_kb)
           goto forkagain;
         }
       hosts_set_pid (host_str, pid);
-      if (network_phase)
-        g_message ("Testing %s (network level) [%d]", network_targets, pid);
 
-      if (network_phase)
+      if (test_alive_hosts_only)
         {
-          host = NULL;
-          globals->network_scan_status = g_strdup ("done");
+          /* Boolean signalling if alive detection finished. */
+          gboolean ad_finished = FALSE;
+          for (host = get_host_from_queue (alive_hosts_kb, &ad_finished);
+               !host && !ad_finished && !scan_is_stopped ();
+               host = get_host_from_queue (alive_hosts_kb, &ad_finished))
+            {
+              fork_sleep (1);
+            }
+          if (host)
+            gvm_hosts_add (alive_hosts_list, host);
+          else
+            g_debug ("%s: got NULL host, stop/finish scan", __func__);
         }
       else
         {
-          if (test_alive_hosts_only)
-            {
-              /* Boolean signalling if alive detection finished. */
-              gboolean ad_finished = FALSE;
-              for (host = get_host_from_queue (alive_hosts_kb, &ad_finished);
-                   !host && !ad_finished && !scan_is_stopped ();
-                   host = get_host_from_queue (alive_hosts_kb, &ad_finished))
-                {
-                  fork_sleep (1);
-                }
-              if (host)
-                gvm_hosts_add (alive_hosts_list, host);
-              else
-                g_debug ("%s: got NULL host, stop/finish scan", __func__);
-            }
-          else
-            {
-              host = gvm_hosts_next (hosts);
-            }
+          host = gvm_hosts_next (hosts);
         }
       g_free (host_str);
     }
@@ -1415,8 +1211,6 @@ stop:
     }
 
   gvm_hosts_free (hosts);
-  g_free (globals->network_scan_status);
-  g_free (globals->network_targets);
 
   plugins_scheduler_free (sched);
 
@@ -1424,8 +1218,5 @@ stop:
   g_message ("Total time to scan all hosts : %ld seconds",
              now.tv_sec - then.tv_sec);
 
-  if (do_network_scan && network_phase && !scan_is_stopped ())
-    attack_network (globals, network_kb);
-  else
-    set_scan_status ("finished");
+  set_scan_status ("finished");
 }

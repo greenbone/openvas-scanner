@@ -49,7 +49,7 @@ typedef struct plugins_scheduler *plugins_scheduler_t;
 #define PLUG_RUNNING ((struct scheduler_plugin *) 0x02)
 
 plugins_scheduler_t
-plugins_scheduler_init (const char *, int, int, int *);
+plugins_scheduler_init (const char *, int, int *);
 
 struct scheduler_plugin *plugins_scheduler_next (plugins_scheduler_t);
 

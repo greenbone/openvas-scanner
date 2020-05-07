@@ -1,4 +1,4 @@
-/* Portions Copyright (C) 2009-2019 Greenbone Networks GmbH
+/* Portions Copyright (C) 2009-2020 Greenbone Networks GmbH
  * Portions Copyright (C) 2006 Software in the Public Interest, Inc.
  * Based on work Copyright (C) 1998 - 2006 Tenable Network Security, Inc.
  *
@@ -115,7 +115,6 @@ static openvas_option openvas_defaults[] = {
   {"log_whole_attack", "no"},
   {"log_plugins_name_at_load", "no"},
   {"optimize_test", "yes"},
-  {"network_scan", "no"},
   {"non_simult_ports", "139, 445, 3389, Services/irc"},
   {"plugins_timeout", G_STRINGIFY (NVT_TIMEOUT)},
   {"scanner_plugins_timeout", G_STRINGIFY (SCANNER_NVT_TIMEOUT)},
@@ -282,9 +281,11 @@ load_scan_preferences (struct scan_globals *globals)
 }
 
 static void
-handle_client (struct scan_globals *globals)
+scanner_thread (struct scan_globals *globals)
 {
-  kb_t net_kb = NULL;
+  nvticache_reset ();
+
+  globals->scan_id = g_strdup (global_scan_id);
 
   /* Load preferences from Redis. Scan started with a scan_id. */
   if (load_scan_preferences (globals))
@@ -293,22 +294,7 @@ handle_client (struct scan_globals *globals)
       exit (0);
     }
 
-  attack_network (globals, &net_kb);
-  if (net_kb != NULL)
-    {
-      kb_delete (net_kb);
-      net_kb = NULL;
-    }
-}
-
-static void
-scanner_thread (struct scan_globals *globals)
-{
-  nvticache_reset ();
-
-  globals->scan_id = g_strdup (global_scan_id);
-
-  handle_client (globals);
+  attack_network (globals);
 
   exit (0);
 }

@@ -65,7 +65,6 @@ nasl/nasl-lint.c: GPL-2+
 nasl/nasl.c: GPL-2
 nasl/nasl.h: GPL-2
 nasl/nasl_builtin_find_service.c: GPL-2
-nasl/nasl_builtin_nmap.c: GPL-2+
 nasl/nasl_builtin_openvas_tcp_scanner.c: GPL-2
 nasl/nasl_builtin_plugins.h: GPL-2+
 nasl/nasl_builtin_synscan.c: GPL-2
