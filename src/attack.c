@@ -650,9 +650,9 @@ attack_start (struct attack_start_args *args)
     }
   hostnames = vhosts_to_str (args->host->vhosts);
   if (hostnames)
-    g_message ("Testing %s (Vhosts: %s) [%d]", ip_str, hostnames, getpid ());
+    g_message ("Vulnerability scan %s started for host: %s (Vhosts: %s)", globals->scan_id, ip_str, hostnames);
   else
-    g_message ("Testing %s [%d]", ip_str, getpid ());
+    g_message ("Vulnerability scan %s started for host: %s", globals->scan_id, ip_str);
   g_free (hostnames);
   attack_host (globals, &hostip, args->host->vhosts, args->sched, kb);
 
@@ -666,7 +666,8 @@ attack_start (struct attack_start_args *args)
           then.tv_sec++;
           now.tv_usec += 1000000;
         }
-      g_message ("Finished testing %s. Time : %ld.%.2ld secs", ip_str,
+      g_message ("Vulnerability scan %s finished for host %s in %ld.%.2ld seconds",
+                 globals->scan_id, ip_str,
                  (long) (now.tv_sec - then.tv_sec),
                  (long) ((now.tv_usec - then.tv_usec) / 10000));
     }
@@ -1019,10 +1020,6 @@ attack_network (struct scan_globals *globals)
   max_hosts = get_max_hosts_number ();
   max_checks = get_max_checks_number ();
 
-  g_message ("Starts a new scan. Target(s) : %s, with max_hosts = %d and "
-             "max_checks = %d",
-             hostlist, max_hosts, max_checks);
-
   hosts = gvm_hosts_new (hostlist);
   unresolved = gvm_hosts_resolve (hosts);
   while (unresolved)
@@ -1044,6 +1041,11 @@ attack_network (struct scan_globals *globals)
   if (host == NULL)
     goto stop;
   hosts_init (max_hosts);
+
+  g_message ("Vulnerability scan %s started: Target has %d hosts",
+             globals->scan_id, gvm_hosts_count (hosts));
+  g_debug ("  Target(s): %s, with max_hosts = %d and max_checks = %d",
+           hostlist, max_hosts, max_checks);
 
   if (test_alive_hosts_only)
     {
@@ -1172,7 +1174,7 @@ attack_network (struct scan_globals *globals)
    * to terminate. */
   while (hosts_read () == 0)
     ;
-  g_message ("Test complete");
+  g_debug ("Test complete");
 
 scan_stop:
   /* Free the memory used by the files uploaded by the user, if any. */
