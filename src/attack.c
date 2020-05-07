@@ -650,9 +650,11 @@ attack_start (struct attack_start_args *args)
     }
   hostnames = vhosts_to_str (args->host->vhosts);
   if (hostnames)
-    g_message ("Vulnerability scan %s started for host: %s (Vhosts: %s)", globals->scan_id, ip_str, hostnames);
+    g_message ("Vulnerability scan %s started for host: %s (Vhosts: %s)",
+               globals->scan_id, ip_str, hostnames);
   else
-    g_message ("Vulnerability scan %s started for host: %s", globals->scan_id, ip_str);
+    g_message ("Vulnerability scan %s started for host: %s", globals->scan_id,
+               ip_str);
   g_free (hostnames);
   attack_host (globals, &hostip, args->host->vhosts, args->sched, kb);
 
@@ -666,10 +668,11 @@ attack_start (struct attack_start_args *args)
           then.tv_sec++;
           now.tv_usec += 1000000;
         }
-      g_message ("Vulnerability scan %s finished for host %s in %ld.%.2ld seconds",
-                 globals->scan_id, ip_str,
-                 (long) (now.tv_sec - then.tv_sec),
-                 (long) ((now.tv_usec - then.tv_usec) / 10000));
+      g_message (
+        "Vulnerability scan %s finished for host %s in %ld.%.2ld seconds",
+        globals->scan_id, ip_str,
+        (long) (now.tv_sec - then.tv_sec),
+        (long) ((now.tv_usec - then.tv_usec) / 10000));
     }
 }
 
@@ -1044,8 +1047,8 @@ attack_network (struct scan_globals *globals)
 
   g_message ("Vulnerability scan %s started: Target has %d hosts",
              globals->scan_id, gvm_hosts_count (hosts));
-  g_debug ("  Target(s): %s, with max_hosts = %d and max_checks = %d",
-           hostlist, max_hosts, max_checks);
+  g_debug ("  Target(s): %s, with max_hosts = %d and max_checks = %d", hostlist,
+           max_hosts, max_checks);
 
   if (test_alive_hosts_only)
     {
