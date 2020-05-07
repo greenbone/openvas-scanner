@@ -670,8 +670,7 @@ attack_start (struct attack_start_args *args)
         }
       g_message (
         "Vulnerability scan %s finished for host %s in %ld.%.2ld seconds",
-        globals->scan_id, ip_str,
-        (long) (now.tv_sec - then.tv_sec),
+        globals->scan_id, ip_str, (long) (now.tv_sec - then.tv_sec),
         (long) ((now.tv_usec - then.tv_usec) / 10000));
     }
 }
