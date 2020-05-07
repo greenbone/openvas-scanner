@@ -1192,22 +1192,22 @@ stop:
       g_debug ("%s: free alive detection data ", __func__);
 
       /* need to wait for alive detection to finish */
-      g_info ("%s: waiting for alive detection thread to be finished...",
-              __func__);
+      g_debug ("%s: waiting for alive detection thread to be finished...",
+               __func__);
       /* Join alive detection thread. */
       err = pthread_join (get_alive_detection_tid (), &retval);
       if (err == EDEADLK)
-        g_warning ("%s: pthread_join() returned EDEADLK.", __func__);
+        g_debug ("%s: pthread_join() returned EDEADLK.", __func__);
       if (err == EINVAL)
-        g_warning ("%s: pthread_join() returned EINVAL.", __func__);
+        g_debug ("%s: pthread_join() returned EINVAL.", __func__);
       if (err == ESRCH)
-        g_warning ("%s: pthread_join() returned ESRCH.", __func__);
+        g_debug ("%s: pthread_join() returned ESRCH.", __func__);
       if (retval == PTHREAD_CANCELED)
-        g_warning ("%s: pthread_join() returned PTHREAD_CANCELED.", __func__);
+        g_debug ("%s: pthread_join() returned PTHREAD_CANCELED.", __func__);
       /* Set flag signaling that alive deteciton thread was joined. */
       if (err == 0)
         ad_thread_joined (TRUE);
-      g_info ("%s: Finished waiting for alive detection thread.", __func__);
+      g_debug ("%s: Finished waiting for alive detection thread.", __func__);
     }
 
   gvm_hosts_free (hosts);
