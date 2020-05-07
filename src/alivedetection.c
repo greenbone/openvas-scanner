@@ -215,6 +215,28 @@ str_boreas_error (boreas_error_t boreas_error)
 }
 
 /**
+ * @brief Get the openvas scan id of the curent task.
+ *
+ * @param db_address  Address of the Redis db.
+ * @param db_id ID of the scan main db.
+ *
+ * @return Scan id of current task or NULL on error.
+ */
+static gchar *
+get_openvas_scan_id (const gchar *db_address, int db_id)
+{
+  kb_t main_kb = NULL;
+  gchar *scan_id;
+  if ((main_kb = kb_direct_conn (db_address, db_id)))
+    {
+      scan_id = kb_item_get_str (main_kb, ("internal/scanid"));
+      kb_lnk_reset (main_kb);
+      return scan_id;
+    }
+  return NULL;
+}
+
+/**
  * @brief open a new pcap handle ad set provided filter.
  *
  * @param iface interface to use.
@@ -1623,12 +1645,7 @@ scan (alive_test_t alive_test)
   number_of_dead_hosts = send_dead_hosts_to_ospd_openvas ();
 
   gettimeofday (&end_time, NULL);
-  if ((main_kb = kb_direct_conn (prefs_get ("db_address"), scandb_id)))
-    {
-      scan_id = kb_item_get_str (main_kb, ("internal/scanid"));
-      kb_lnk_reset (main_kb);
-    }
-
+  scan_id = get_openvas_scan_id (prefs_get ("db_address"), scandb_id);
   g_message ("Alive scan %s finished in %ld seconds: %d alive hosts of %d.",
              scan_id, end_time.tv_sec - start_time.tv_sec,
              number_of_targets - number_of_dead_hosts, number_of_targets);
