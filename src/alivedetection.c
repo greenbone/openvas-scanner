@@ -1349,14 +1349,13 @@ scan (alive_test_t alive_test)
   int err;
   void *retval;
   pthread_t sniffer_thread_id;
-  gchar *scan_id = NULL;
   GHashTableIter target_hosts_iter;
   gpointer key, value;
   struct timeval start_time, end_time;
   int scandb_id = atoi (prefs_get ("ov_maindbid"));
+  gchar *scan_id;
   kb_t main_kb = NULL;
 
-  g_message ("Alive scan started");
   gettimeofday (&start_time, NULL);
   number_of_targets = g_hash_table_size (hosts_data.targethosts);
 
@@ -1366,6 +1365,10 @@ scan (alive_test_t alive_test)
       g_warning ("%s: Unable to open valid pcap handle.", __func__);
       return -2;
     }
+
+  scan_id = get_openvas_scan_id(prefs_get("db_address"), scandb_id);
+  g_message ("Alive scan %s started: Target has %d hosts",
+             scan_id, number_of_targets);
 
   /* Start sniffer thread. */
   err = pthread_create (&sniffer_thread_id, NULL, sniffer_thread, NULL);
@@ -1607,7 +1610,7 @@ scan (alive_test_t alive_test)
   number_of_dead_hosts = send_dead_hosts_to_ospd_openvas ();
 
   gettimeofday (&end_time, NULL);
-  scan_id = get_openvas_scan_id (prefs_get ("db_address"), scandb_id);
+
   g_message ("Alive scan %s finished in %ld seconds: %d alive hosts of %d.",
              scan_id, end_time.tv_sec - start_time.tv_sec,
              number_of_targets - number_of_dead_hosts, number_of_targets);
