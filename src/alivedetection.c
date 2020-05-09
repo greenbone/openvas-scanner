@@ -1366,9 +1366,9 @@ scan (alive_test_t alive_test)
       return -2;
     }
 
-  scan_id = get_openvas_scan_id(prefs_get("db_address"), scandb_id);
-  g_message ("Alive scan %s started: Target has %d hosts",
-             scan_id, number_of_targets);
+  scan_id = get_openvas_scan_id(prefs_get ("db_address"), scandb_id);
+  g_message ("Alive scan %s started: Target has %d hosts", scan_id,
+             number_of_targets);
 
   /* Start sniffer thread. */
   err = pthread_create (&sniffer_thread_id, NULL, sniffer_thread, NULL);
