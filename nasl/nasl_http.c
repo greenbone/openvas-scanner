@@ -100,10 +100,6 @@ _http_req (lex_ctxt *lexic, char *keyword)
 
   kb = plug_get_kb (script_infos);
   g_snprintf (tmp, sizeof (tmp), "/tmp/http/auth/%d", port);
-  auth = kb_item_get_str (kb, tmp);
-
-  if (!auth)
-    auth = kb_item_get_str (kb, "http/auth");
 
   g_snprintf (tmp, sizeof (tmp), "http/%d", port);
   ver = kb_item_get_int (kb, tmp);
@@ -160,10 +156,15 @@ Accept-Charset: iso-8859-1,*,utf-8\r\n",
   else
     request = build_encode_URL (keyword, NULL, item, "HTTP/1.0\r\n");
 
+  auth = kb_item_get_str (kb, tmp);
+  if (!auth)
+    auth = kb_item_get_str (kb, "http/auth");
+
   if (auth)
     {
       char *tmp = g_strconcat (request, auth, "\r\n", NULL);
       g_free (request);
+      g_free (auth);
       request = tmp;
     }
   if (data)
