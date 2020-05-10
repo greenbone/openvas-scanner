@@ -709,6 +709,10 @@ socket_negotiate_ssl (int fd, openvas_encaps_t transport,
   if (open_SSL_connection (fp, cert, key, passwd, cafile, hostname) <= 0)
     {
       g_free (hostname);
+      g_free (cert);
+      g_free (key);
+      g_free (passwd);
+      g_free (cafile);
       g_message ("Function socket_negotiate_ssl called from %s: "
                  "SSL/TLS connection failed.",
                  nasl_get_plugin_filename ());
@@ -716,6 +720,10 @@ socket_negotiate_ssl (int fd, openvas_encaps_t transport,
       return -1;
     }
   g_free (hostname);
+  g_free (cert);
+  g_free (key);
+  g_free (passwd);
+  g_free (cafile);
   return fd;
 }
 
