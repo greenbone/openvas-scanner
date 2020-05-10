@@ -146,6 +146,7 @@ set_scan_status (char *status)
   snprintf (buffer, sizeof (buffer), "internal/%s", scan_id);
   kb_item_set_str (main_kb, buffer, status, 0);
   kb_lnk_reset (main_kb);
+  g_free (scan_id);
 }
 
 /**
