@@ -21,7 +21,7 @@ cmake_minimum_required (VERSION 3.0)
 message ("-- Configuring the Scanner...")
 
 project (openvas
-  VERSION 7.0.0
+  VERSION 7.0.1
   LANGUAGES C)
 
 if (POLICY CMP0005)
