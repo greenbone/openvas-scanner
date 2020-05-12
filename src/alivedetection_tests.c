@@ -127,12 +127,158 @@ Ensure (alivedetection, set_socket)
                is_equal_to (BOREAS_OPENING_SOCKET_FAILED));
 }
 
+/* If dst for routerhough() is localhost "lo" interface is returned. */
+Ensure (alivedetection, routethrough_dst_is_localhost)
+{
+  /* setup */
+  gchar *interface = NULL;
+  gchar *ipv4_str = "127.0.0.1";
+  gvm_host_t *gvm_host = NULL;
+  struct in6_addr dst6;
+  struct in6_addr *dst6_p = &dst6;
+  struct in_addr dst4;
+  struct in_addr *dst4_p = &dst4;
+  assert_that ((gvm_host = gvm_host_from_str (ipv4_str)), is_not_null);
+  assert_that (gvm_host_get_addr6 ((gvm_host_t *) gvm_host, dst6_p),
+               is_equal_to (0));
+  assert_that (dst6_p, is_not_null);
+  dst4.s_addr = dst6_p->s6_addr32[3];
+
+  expect (socket, when (domain, is_equal_to (2)), when (type, is_equal_to (2)),
+          when (protocol, is_equal_to (0)));
+
+  interface = routethrough (dst4_p, NULL);
+  (void) interface;
+
+  /* dependent on local environment */
+  // assert_that ((interface = routethrough (dst4_p, NULL)), is_not_null);
+  // assert_that (interface, is_equal_to_string ("lo"));
+}
+
+/* If dst is not null for routethough() then another interface than "lo" is
+ * returned. */
+Ensure (alivedetection, routethrough_dst_is_not_localhost)
+{
+  /* setup */
+  gchar *interface = NULL;
+  gchar *ipv4_str = "93.184.216.34"; /* example.com */
+  gvm_host_t *gvm_host = NULL;
+  struct in6_addr dst6;
+  struct in6_addr *dst6_p = &dst6;
+  struct in_addr dst4;
+  struct in_addr *dst4_p = &dst4;
+  assert_that ((gvm_host = gvm_host_from_str (ipv4_str)), is_not_null);
+  assert_that (gvm_host_get_addr6 ((gvm_host_t *) gvm_host, dst6_p),
+               is_equal_to (0));
+  assert_that (dst6_p, is_not_null);
+  dst4.s_addr = dst6_p->s6_addr32[3];
+
+  expect (socket, when (domain, is_equal_to (2)), when (type, is_equal_to (2)),
+          when (protocol, is_equal_to (0)), times (2));
+  interface = routethrough (dst4_p, NULL);
+  assert_that (interface, is_not_equal_to_string ("lo"));
+}
+
+/* If neither dst nor src address are given to routethrough NULL is returned. */
+Ensure (alivedetection, routethrough_no_src_dst_given)
+{
+  gchar *interface = NULL;
+  assert_that ((interface = routethrough (NULL, NULL)), is_null);
+}
+
+/* If global_source_addr is present then routethrough writes it into src. */
+Ensure (alivedetection, routethrough_src_globalsource_set)
+{
+  /* setup */
+  cgreen_mocks_are (learning_mocks);
+
+  struct in_addr src = {.s_addr = 0}; /* ip src */
+  gchar *interface = NULL;
+  struct in_addr dst;
+  inet_pton (AF_INET, "93.184.216.34", &(dst.s_addr));
+
+  /* global source address set */
+  gvm_source_iface_init ("lo"); // lo is set but not really used after being set
+  /* expects */
+  expect (socket, when (domain, is_equal_to (2)), when (type, is_equal_to (2)),
+          when (protocol, is_equal_to (0)));
+  /* dst not given */
+  assert_that ((interface = routethrough (NULL, &src)), is_null);
+  assert_that ((src.s_addr == INADDR_ANY));
+  /* dst localhost given */
+  src.s_addr = 0;
+
+  interface = routethrough (&dst, &src);
+  /* dependent on local environment */
+  // assert_that ((interface = routethrough (&dst, &src)), is_not_null);
+  assert_that (interface, is_not_equal_to_string ("lo"));
+  assert_that ((src.s_addr != INADDR_ANY));
+}
+
+/* If global_source_addr is not present then routethrough writes it into src. */
+Ensure (alivedetection, routethrough_src_globalsource_not_set)
+{
+  struct in_addr src = {.s_addr = 0}; /* ip src */
+  gchar *interface = NULL;
+  struct in_addr dst;
+  inet_pton (AF_INET, "127.0.0.1", &(dst.s_addr));
+
+  /* global source address not set */
+  gvm_source_iface_init (NULL);
+  expect (socket, when (domain, is_equal_to (2)), when (type, is_equal_to (2)),
+          when (protocol, is_equal_to (0)));
+  /* dst not given */
+  assert_that ((interface = routethrough (NULL, &src)), is_null);
+  assert_that ((src.s_addr == INADDR_ANY));
+  /* dst localhost given */
+  src.s_addr = 0;
+
+  interface = routethrough (&dst, &src);
+  /* dependent on local environment */
+  // assert_that ((interface = routethrough (&dst, &src)), is_not_null);
+  // assert_that (interface, is_equal_to_string ("lo"));
+  assert_that ((src.s_addr != INADDR_ANY));
+}
+
+Ensure (alivedetection, gvm_source_addr)
+{
+  struct in_addr src;
+
+  /* global source address not set */
+  gvm_source_iface_init (NULL);
+  gvm_source_addr (&src);
+  assert_that ((src.s_addr == INADDR_ANY));
+
+  /* global source address */
+  gvm_source_iface_init ("lo");
+  gvm_source_addr (&src);
+  assert_that ((src.s_addr != INADDR_ANY));
+}
+
+TestSuite *
+openvas_routethrough ()
+{
+  TestSuite *suite = create_test_suite ();
+  add_test_with_context (suite, alivedetection, gvm_source_addr);
+  add_test_with_context (suite, alivedetection, routethrough_dst_is_localhost);
+  add_test_with_context (suite, alivedetection,
+                         routethrough_dst_is_not_localhost);
+  add_test_with_context (suite, alivedetection, routethrough_no_src_dst_given);
+  add_test_with_context (suite, alivedetection,
+                         routethrough_src_globalsource_set);
+  add_test_with_context (suite, alivedetection,
+                         routethrough_src_globalsource_not_set);
+
+  return suite;
+}
+
 int
 main (int argc, char **argv)
 {
   TestSuite *suite;
 
   suite = create_test_suite ();
+  add_suite (suite, openvas_routethrough ());
 
   add_test_with_context (suite, alivedetection, fill_ports_array);
   add_test_with_context (suite, alivedetection, set_all_needed_sockets);
