@@ -7,7 +7,7 @@ or get the entire source code repository and view log history:
 $ git clone https://github.com/greenbone/openvas.git
 $ cd openvas && git checkout openvas-scanner-6.0 && git log
 
-openvas-scanner 6.0.2 (unreleased)
+openvas-scanner 6.0.2 (2020-05-12)
 
 This is the second patch release of the openvas-scanner module 6.0 for the
 Greenbone Vulnerability Management (GVM) framework.
@@ -19,8 +19,9 @@ Main changes compared to openvas-scanner 6.0.1:
   has been fixed.
 * Improve signal handling when update vhosts list.
 * Increase size of buffer for preferences to allow for up to 105K NVTs.
-* Perform the sca even if there are missing plugins in the nvticache.
+* Perform the scan even if there are missing plugins in the nvticache.
 * Drop HTTP sync.
+* Use new URL for GCF rsync.
 
 openvas-scanner 6.0.1 (2019-07-17)
 
