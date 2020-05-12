@@ -4,7 +4,7 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
-## [7.0.1] (unreleased)
+## [7.0.1] (2020-05-12)
 
 ### Added
 - Display gvm-libs version in `openvas --version` output [#436](https://github.com/greenbone/openvas/pull/436)
@@ -17,6 +17,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 - Improve handling of invalid or existent ids of nvt's preference id. [#416](https://github.com/greenbone/openvas/pull/416)
 - Perform a scan even if there are missing plugins. [#439](https://github.com/greenbone/openvas/pull/439)
 - Don't reload the plugins when start a new scan. [#457](https://github.com/greenbone/openvas/pull/457)
+- Use new URL for GCF rsync. [#474](https://github.com/greenbone/openvas/pull/474)
 
 ### Fixed
 - Do not store in memory an empty file received as nvt preference. [#409](https://github.com/greenbone/openvas/pull/409)
@@ -29,7 +30,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 ### Removed
 - Drop HTTP sync [#489](https://github.com/greenbone/openvas/pull/489)
 
-[7.0.1]: https://github.com/greenbone/openvas/compare/v7.0.0...openvas-7.0
+[7.0.1]: https://github.com/greenbone/openvas/compare/v7.0.1...v7.0.0
 
 ## [7.0.0] (2019-10-11)
 
