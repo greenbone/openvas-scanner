@@ -491,17 +491,6 @@ do_feedversion () {
   fi
 }
 
-create_feed_lock_file ()
-{
-  if [ -f $OPENVAS_RUN_DIR/feed-update.lock ] ; then
-    log_warning "Another process related to the feed update is already running"
-    FEED_LOCKED=1
-  else
-    touch $OPENVAS_RUN_DIR/feed-update.lock
-    FEED_LOCKED=0
-  fi
-}
-
 do_sync ()
 {
   do_self_test
@@ -513,13 +502,16 @@ do_sync ()
   then
     log_write "Feed is already current, skipping synchronization."
   else
-    create_feed_lock_file
-    if [ $FEED_LOCKED -eq 1 ] ; then
-       exit 1
-    fi
-
-    sync_nvts
-    rm $OPENVAS_RUN_DIR/feed-update.lock
+    (
+      flock -n 9
+      if [ $? -eq 1 ] ; then
+          log_warning "Another process related to the feed update is already running"
+          exit 1
+      fi
+      date > $OPENVAS_RUN_DIR/feed-update.lock
+      sync_nvts
+      echo -n $OPENVAS_RUN_DIR/feed-update.lock
+    )9>$OPENVAS_RUN_DIR/feed-update.lock
   fi
 }
 
