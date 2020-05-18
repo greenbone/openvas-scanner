@@ -184,7 +184,8 @@ target_link_libraries (alivedetection-test openvas_nasl_shared cgreen
                        ${LIBGVM_BASE_LDFLAGS}
                        ${GLIB_LDFLAGS}
                        ${PCAP_LDFLAGS}
-                       ${LINKER_HARDENING_FLAGS} ${CMAKE_THREAD_LIBS_INIT})
+                       ${LINKER_HARDENING_FLAGS} ${CMAKE_THREAD_LIBS_INIT} 
+                       -Wl,-wrap,socket,-wrap,setsockopt)
 
 add_executable (attack-test
                 EXCLUDE_FROM_ALL
