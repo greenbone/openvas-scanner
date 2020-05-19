@@ -82,7 +82,7 @@ __real_setsockopt (__attribute__ ((unused)) int sockfd,
 
 bool g_socket_use_real = true;
 int
-socket (__attribute__ ((unused)) int domain, __attribute__ ((unused)) int type,
+__wrap_socket (__attribute__ ((unused)) int domain, __attribute__ ((unused)) int type,
         __attribute__ ((unused)) int protocol)
 {
   if (g_socket_use_real)
@@ -115,19 +115,19 @@ Ensure (alivedetection, set_all_needed_sockets)
   /* All methods set. */
   alive_test = ALIVE_TEST_TCP_ACK_SERVICE | ALIVE_TEST_ICMP | ALIVE_TEST_ARP
                | ALIVE_TEST_CONSIDER_ALIVE | ALIVE_TEST_TCP_SYN_SERVICE;
-  expect (socket, will_return (5), times (6));
+  expect (__wrap_socket, will_return (5), times (6));
   expect (setsockopt, will_return (5), times (8));
   set_all_needed_sockets (alive_test);
 
   /* Only one method set. */
   alive_test = ALIVE_TEST_TCP_ACK_SERVICE;
-  expect (socket, will_return (5), times (2));
+  expect (__wrap_socket, will_return (5), times (2));
   expect (setsockopt, will_return (5), times (4));
   set_all_needed_sockets (alive_test);
 
   /* ALIVE_TEST_CONSIDER_ALIVE set. */
   alive_test = ALIVE_TEST_CONSIDER_ALIVE;
-  never_expect (socket);
+  never_expect (__wrap_socket);
   never_expect (setsockopt);
   never_expect (set_socket);
   set_all_needed_sockets (alive_test);
@@ -140,18 +140,18 @@ Ensure (alivedetection, set_socket)
 {
   g_setsockopt_use_real = false;
   g_socket_use_real = false;
-  int socket;
+  int socket_location;
 
   /* socket() successful. */
-  expect (socket, will_return (5));
+  expect (__wrap_socket, will_return (5));
   expect (setsockopt);
   expect (setsockopt);
-  assert_that (set_socket (TCPV4, &socket), is_equal_to (0));
+  assert_that (set_socket (TCPV4, &socket_location), is_equal_to (0));
 
   /* socket() error. */
-  expect (socket, will_return (-5));
+  expect (__wrap_socket, will_return (-5));
   never_expect (setsockopt);
-  assert_that (set_socket (TCPV4, &socket),
+  assert_that (set_socket (TCPV4, &socket_location),
                is_equal_to (BOREAS_OPENING_SOCKET_FAILED));
   g_socket_use_real = true;
   g_setsockopt_use_real = true;
@@ -175,7 +175,7 @@ Ensure (alivedetection, routethrough_dst_is_localhost)
   assert_that (dst6_p, is_not_null);
   dst4.s_addr = dst6_p->s6_addr32[3];
 
-  expect (socket, when (domain, is_equal_to (2)), when (type, is_equal_to (2)),
+  expect (__wrap_socket, when (domain, is_equal_to (2)), when (type, is_equal_to (2)),
           when (protocol, is_equal_to (0)));
 
   interface = routethrough (dst4_p, NULL);
@@ -206,7 +206,7 @@ Ensure (alivedetection, routethrough_dst_is_not_localhost)
   assert_that (dst6_p, is_not_null);
   dst4.s_addr = dst6_p->s6_addr32[3];
 
-  expect (socket, when (domain, is_equal_to (2)), when (type, is_equal_to (2)),
+  expect (__wrap_socket, when (domain, is_equal_to (2)), when (type, is_equal_to (2)),
           when (protocol, is_equal_to (0)), times (2));
   interface = routethrough (dst4_p, NULL);
   assert_that (interface, is_not_equal_to_string ("lo"));
@@ -235,7 +235,7 @@ Ensure (alivedetection, routethrough_src_globalsource_set)
   /* global source address set */
   gvm_source_iface_init ("lo"); // lo is set but not really used after being set
   /* expects */
-  expect (socket, when (domain, is_equal_to (2)), when (type, is_equal_to (2)),
+  expect (__wrap_socket, when (domain, is_equal_to (2)), when (type, is_equal_to (2)),
           when (protocol, is_equal_to (0)));
   /* dst not given */
   assert_that ((interface = routethrough (NULL, &src)), is_null);
@@ -263,7 +263,7 @@ Ensure (alivedetection, routethrough_src_globalsource_not_set)
 
   /* global source address not set */
   gvm_source_iface_init (NULL);
-  expect (socket, when (domain, is_equal_to (2)), when (type, is_equal_to (2)),
+  expect (__wrap_socket, when (domain, is_equal_to (2)), when (type, is_equal_to (2)),
           when (protocol, is_equal_to (0)));
   /* dst not given */
   assert_that ((interface = routethrough (NULL, &src)), is_null);
