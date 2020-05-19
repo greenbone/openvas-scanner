@@ -93,7 +93,7 @@ __wrap_socket (__attribute__ ((unused)) int domain, __attribute__ ((unused)) int
 
 bool g_setsockopt_use_real = true;
 int
-setsockopt (__attribute__ ((unused)) int sockfd,
+__wrap_setsockopt (__attribute__ ((unused)) int sockfd,
             __attribute__ ((unused)) int level,
             __attribute__ ((unused)) int optname,
             __attribute__ ((unused)) const void *optval,
@@ -116,19 +116,19 @@ Ensure (alivedetection, set_all_needed_sockets)
   alive_test = ALIVE_TEST_TCP_ACK_SERVICE | ALIVE_TEST_ICMP | ALIVE_TEST_ARP
                | ALIVE_TEST_CONSIDER_ALIVE | ALIVE_TEST_TCP_SYN_SERVICE;
   expect (__wrap_socket, will_return (5), times (6));
-  expect (setsockopt, will_return (5), times (8));
+  expect (__wrap_setsockopt, will_return (5), times (8));
   set_all_needed_sockets (alive_test);
 
   /* Only one method set. */
   alive_test = ALIVE_TEST_TCP_ACK_SERVICE;
   expect (__wrap_socket, will_return (5), times (2));
-  expect (setsockopt, will_return (5), times (4));
+  expect (__wrap_setsockopt, will_return (5), times (4));
   set_all_needed_sockets (alive_test);
 
   /* ALIVE_TEST_CONSIDER_ALIVE set. */
   alive_test = ALIVE_TEST_CONSIDER_ALIVE;
   never_expect (__wrap_socket);
-  never_expect (setsockopt);
+  never_expect (__wrap_setsockopt);
   never_expect (set_socket);
   set_all_needed_sockets (alive_test);
 
@@ -144,13 +144,13 @@ Ensure (alivedetection, set_socket)
 
   /* socket() successful. */
   expect (__wrap_socket, will_return (5));
-  expect (setsockopt);
-  expect (setsockopt);
+  expect (__wrap_setsockopt);
+  expect (__wrap_setsockopt);
   assert_that (set_socket (TCPV4, &socket_location), is_equal_to (0));
 
   /* socket() error. */
   expect (__wrap_socket, will_return (-5));
-  never_expect (setsockopt);
+  never_expect (__wrap_setsockopt);
   assert_that (set_socket (TCPV4, &socket_location),
                is_equal_to (BOREAS_OPENING_SOCKET_FAILED));
   g_socket_use_real = true;
