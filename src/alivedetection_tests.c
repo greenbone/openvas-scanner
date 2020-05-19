@@ -344,9 +344,8 @@ Ensure (alivedetection, islocalhost)
   // // assert_that (islocalhost (&addr), is_true);
 
   /* example.com */
-  // inet_pton (AF_INET, "93.184.216.34", &(addr.s_addr));
-  // int check = islocalhost (&addr);
-  // assert_that (check, is_false);
+  inet_pton (AF_INET, "93.184.216.34", &(addr.s_addr));
+  assert_that (islocalhost (&addr), is_false);
 }
 
 TestSuite *
