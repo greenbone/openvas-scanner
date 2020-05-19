@@ -294,6 +294,61 @@ Ensure (alivedetection, gvm_source_addr)
   assert_that ((src.s_addr != INADDR_ANY));
 }
 
+Ensure (alivedetection, v6_islocalhost)
+{
+  /* IPv4 */
+  struct in_addr addr;
+  struct sockaddr_in sin;
+  memset (&sin, 0, sizeof (struct sockaddr_in));
+  sin.sin_family = AF_INET;
+
+  /* example.com */
+  inet_pton (AF_INET, "93.184.216.34", &(addr.s_addr));
+
+  /* IPv6 */
+  struct in6_addr addr_6;
+
+  inet_pton (AF_INET6, "::FFFF:127.0.0.1", &(addr_6));
+  assert_that (v6_islocalhost (&addr_6), is_true);
+  inet_pton (AF_INET6, "::FFFF:0.0.0.0", &(addr_6));
+  assert_that (v6_islocalhost (&addr_6), is_true);
+  inet_pton (AF_INET6, "::FFFF:127.100.5.99", &(addr_6));
+  assert_that (v6_islocalhost (&addr_6), is_true);
+  /* loopback address */
+  inet_pton (AF_INET6, "0:0:0:0:0:0:0:1", &(addr_6));
+  assert_that (v6_islocalhost (&addr_6), is_true);
+
+  /* dependent on local environment */
+  // inet_pton (AF_INET6, <some local interface address>, &(addr_6));
+  // assert_that (v6_islocalhost (&addr_6), is_true);
+
+  /* example.com */
+  inet_pton (AF_INET6, "2606:2800:220:1:248:1893:25c8:1946", &(addr_6));
+  assert_that (v6_islocalhost (&addr_6), is_false);
+}
+
+Ensure (alivedetection, islocalhost)
+{
+  /* IPv4 */
+  struct in_addr addr;
+
+  inet_pton (AF_INET, "127.0.0.1", &(addr.s_addr));
+  assert_that (islocalhost (&addr), is_true);
+  inet_pton (AF_INET, "0.0.0.0", &(addr.s_addr));
+  assert_that (islocalhost (&addr), is_true);
+  inet_pton (AF_INET, "127.100.5.99", &(addr.s_addr));
+  assert_that (islocalhost (&addr), is_true);
+
+  /* dependent on local environment */
+  // // inet_pton (AF_INET, <some local interface address>, &(addr));
+  // // assert_that (islocalhost (&addr), is_true);
+
+  /* example.com */
+  // inet_pton (AF_INET, "93.184.216.34", &(addr.s_addr));
+  // int check = islocalhost (&addr);
+  // assert_that (check, is_false);
+}
+
 TestSuite *
 openvas_routethrough ()
 {
@@ -307,6 +362,8 @@ openvas_routethrough ()
                          routethrough_src_globalsource_set);
   add_test_with_context (suite, alivedetection,
                          routethrough_src_globalsource_not_set);
+  add_test_with_context (suite, alivedetection, v6_islocalhost);
+  add_test_with_context (suite, alivedetection, islocalhost);
 
   return suite;
 }
