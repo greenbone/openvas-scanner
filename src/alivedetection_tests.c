@@ -157,7 +157,7 @@ Ensure (alivedetection, set_socket)
   g_setsockopt_use_real = true;
 }
 
-/* If dst for routerhough() is localhost "lo" interface is returned. */
+/* If dst for routethrough() is localhost "lo" interface is returned. */
 Ensure (alivedetection, routethrough_dst_is_localhost)
 {
   /* setup */
@@ -187,7 +187,7 @@ Ensure (alivedetection, routethrough_dst_is_localhost)
   g_socket_use_real = true;
 }
 
-/* If dst is not null for routethough() then another interface than "lo" is
+/* If dst is not null for routethrough() then another interface than "lo" is
  * returned. */
 Ensure (alivedetection, routethrough_dst_is_not_localhost)
 {
