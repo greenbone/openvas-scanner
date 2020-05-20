@@ -170,11 +170,12 @@ comm_send_status (kb_t kb, char *hostname, int curr, int max)
 }
 
 static void
-error_message_to_client2 (kb_t kb, const char *msg, const char *port)
+error_message_to_client2 (kb_t kb, const char *msg, const char *ip_str, const char *port)
 {
   char buf[2048];
 
-  sprintf (buf, "ERRMSG||| |||%s||| |||%s", port ?: " ", msg ?: "No error.");
+  sprintf (buf, "ERRMSG|||%s|||%s||| |||%s", ip_str ?: "",
+           port ?: " ", msg ?: "No error.");
   kb_item_push_str (kb, "internal/results", buf);
 }
 
@@ -994,7 +995,7 @@ attack_network (struct scan_globals *globals)
       connect_main_kb (&main_kb);
       error_message_to_client2 (
         main_kb, "Invalid port list. Ports must be in the range [1-65535]",
-        NULL);
+        NULL, NULL);
       kb_lnk_reset (main_kb);
       g_warning ("Invalid port list. Ports must be in the range [1-65535]. "
                  "Scan terminated.");
@@ -1025,7 +1026,7 @@ attack_network (struct scan_globals *globals)
                plugins_init_error);
 
       connect_main_kb (&main_kb);
-      error_message_to_client2 (main_kb, buf, NULL);
+      error_message_to_client2 (main_kb, buf, NULL, NULL);
       kb_lnk_reset (main_kb);
     }
 
