@@ -591,15 +591,24 @@ check_host_authorization (gvm_host_t *host, const struct in6_addr *addr,
   hosts_deny = gvm_hosts_new (prefs_get ("hosts_deny"));
   if (!host_authorized (host, addr, hosts_allow, hosts_deny))
     {
-      error_message_to_client2 (kb, "Host access denied.", NULL);
+      char ip_str[INET6_ADDRSTRLEN];
+
+      addr6_to_str (addr, ip_str);
+      error_message_to_client2 (kb, "Host access denied.", ip_str, NULL);
+      kb_item_set_str (kb, "internal/host_deny", "True", 0);
       return -1;
     }
   sys_hosts_allow = gvm_hosts_new (prefs_get ("sys_hosts_allow"));
   sys_hosts_deny = gvm_hosts_new (prefs_get ("sys_hosts_deny"));
   if (!host_authorized (host, addr, sys_hosts_allow, sys_hosts_deny))
     {
+      char ip_str[INET6_ADDRSTRLEN];
+
+      addr6_to_str (addr, ip_str);
       error_message_to_client2 (
-        kb, "Host access denied (system-wide restriction.)", NULL);
+        kb, "Host access denied (system-wide restriction.)", ip_str,  NULL);
+      kb_item_set_str (kb, "internal/host_deny", "True", 0);
+
       return -1;
     }
 
