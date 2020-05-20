@@ -175,6 +175,8 @@ target_link_libraries (openvas openvas_nasl_shared ${LIBOPENVAS_NASL_LDFLAGS}
 
 ## Tests
 
+set (ALIVEDETECTION_TEST_LINKER_WRAP_OPTIONS
+     "-Wl,-wrap,socket,-wrap,setsockopt")
 add_executable (alivedetection-test
                 EXCLUDE_FROM_ALL
                 alivedetection_tests.c)
@@ -184,7 +186,8 @@ target_link_libraries (alivedetection-test openvas_nasl_shared cgreen
                        ${LIBGVM_BASE_LDFLAGS}
                        ${GLIB_LDFLAGS}
                        ${PCAP_LDFLAGS}
-                       ${LINKER_HARDENING_FLAGS} ${CMAKE_THREAD_LIBS_INIT})
+                       ${LINKER_HARDENING_FLAGS} ${CMAKE_THREAD_LIBS_INIT} 
+                       ${ALIVEDETECTION_TEST_LINKER_WRAP_OPTIONS})
 
 add_executable (attack-test
                 EXCLUDE_FROM_ALL
