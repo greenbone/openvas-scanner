@@ -82,8 +82,9 @@ __real_setsockopt (__attribute__ ((unused)) int sockfd,
 
 bool g_socket_use_real = true;
 int
-__wrap_socket (__attribute__ ((unused)) int domain, __attribute__ ((unused)) int type,
-        __attribute__ ((unused)) int protocol)
+__wrap_socket (__attribute__ ((unused)) int domain,
+               __attribute__ ((unused)) int type,
+               __attribute__ ((unused)) int protocol)
 {
   if (g_socket_use_real)
     return __real_socket (domain, type, protocol);
@@ -94,10 +95,10 @@ __wrap_socket (__attribute__ ((unused)) int domain, __attribute__ ((unused)) int
 bool g_setsockopt_use_real = true;
 int
 __wrap_setsockopt (__attribute__ ((unused)) int sockfd,
-            __attribute__ ((unused)) int level,
-            __attribute__ ((unused)) int optname,
-            __attribute__ ((unused)) const void *optval,
-            __attribute__ ((unused)) socklen_t optlen)
+                   __attribute__ ((unused)) int level,
+                   __attribute__ ((unused)) int optname,
+                   __attribute__ ((unused)) const void *optval,
+                   __attribute__ ((unused)) socklen_t optlen)
 {
   if (g_setsockopt_use_real)
     return __real_setsockopt (sockfd, level, optname, optval, optlen);
@@ -175,8 +176,8 @@ Ensure (alivedetection, routethrough_dst_is_localhost)
   assert_that (dst6_p, is_not_null);
   dst4.s_addr = dst6_p->s6_addr32[3];
 
-  expect (__wrap_socket, when (domain, is_equal_to (2)), when (type, is_equal_to (2)),
-          when (protocol, is_equal_to (0)));
+  expect (__wrap_socket, when (domain, is_equal_to (2)),
+          when (type, is_equal_to (2)), when (protocol, is_equal_to (0)));
 
   interface = routethrough (dst4_p, NULL);
   (void) interface;
@@ -206,8 +207,9 @@ Ensure (alivedetection, routethrough_dst_is_not_localhost)
   assert_that (dst6_p, is_not_null);
   dst4.s_addr = dst6_p->s6_addr32[3];
 
-  expect (__wrap_socket, when (domain, is_equal_to (2)), when (type, is_equal_to (2)),
-          when (protocol, is_equal_to (0)), times (2));
+  expect (__wrap_socket, when (domain, is_equal_to (2)),
+          when (type, is_equal_to (2)), when (protocol, is_equal_to (0)),
+          times (2));
   interface = routethrough (dst4_p, NULL);
   assert_that (interface, is_not_equal_to_string ("lo"));
   g_socket_use_real = true;
@@ -235,8 +237,8 @@ Ensure (alivedetection, routethrough_src_globalsource_set)
   /* global source address set */
   gvm_source_iface_init ("lo"); // lo is set but not really used after being set
   /* expects */
-  expect (__wrap_socket, when (domain, is_equal_to (2)), when (type, is_equal_to (2)),
-          when (protocol, is_equal_to (0)));
+  expect (__wrap_socket, when (domain, is_equal_to (2)),
+          when (type, is_equal_to (2)), when (protocol, is_equal_to (0)));
   /* dst not given */
   assert_that ((interface = routethrough (NULL, &src)), is_null);
   assert_that ((src.s_addr == INADDR_ANY));
@@ -263,8 +265,8 @@ Ensure (alivedetection, routethrough_src_globalsource_not_set)
 
   /* global source address not set */
   gvm_source_iface_init (NULL);
-  expect (__wrap_socket, when (domain, is_equal_to (2)), when (type, is_equal_to (2)),
-          when (protocol, is_equal_to (0)));
+  expect (__wrap_socket, when (domain, is_equal_to (2)),
+          when (type, is_equal_to (2)), when (protocol, is_equal_to (0)));
   /* dst not given */
   assert_that ((interface = routethrough (NULL, &src)), is_null);
   assert_that ((src.s_addr == INADDR_ANY));
