@@ -255,6 +255,7 @@ hosts_read_data (void)
 
       if (h->ip || host_deny)
         {
+          g_free (host_deny);
           if (kill (h->pid, 0) < 0) /* Process is dead */
             {
               if (!h->prev)
