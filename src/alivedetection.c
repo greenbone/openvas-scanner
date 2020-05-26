@@ -780,23 +780,21 @@ send_icmp_v6 (int soc, struct in6_addr *dst, int type)
 static void
 send_icmp_v4 (int soc, struct in_addr *dst)
 {
-  char sendbuf[1500];
+  /* datalen + MAXIPLEN + MAXICMPLEN */
+  char sendbuf[56 + 60 + 76];
   struct sockaddr_in soca;
 
   int len;
   int datalen = 56;
-  struct icmp *icmp;
+  struct icmphdr *icmp;
 
-  icmp = (struct icmp *) sendbuf;
-  icmp->icmp_type = ICMP_ECHO;
-  icmp->icmp_code = 0;
-  icmp->icmp_id = 234;
-  icmp->icmp_seq = 0;
-  memset (icmp->icmp_data, 0xa5, datalen);
+  icmp = (struct icmphdr *) sendbuf;
+  icmp->type = ICMP_ECHO;
+  icmp->code = 0;
 
   len = 8 + datalen;
-  icmp->icmp_cksum = 0;
-  icmp->icmp_cksum = in_cksum ((u_short *) icmp, len);
+  icmp->checksum = 0;
+  icmp->checksum = in_cksum ((u_short *) icmp, len);
 
   memset (&soca, 0, sizeof (soca));
   soca.sin_family = AF_INET;
