@@ -780,23 +780,21 @@ send_icmp_v6 (int soc, struct in6_addr *dst, int type)
 static void
 send_icmp_v4 (int soc, struct in_addr *dst)
 {
-  char sendbuf[1500];
+  /* datalen + MAXIPLEN + MAXICMPLEN */
+  char sendbuf[56 + 60 + 76];
   struct sockaddr_in soca;
 
   int len;
   int datalen = 56;
-  struct icmp *icmp;
+  struct icmphdr *icmp;
 
-  icmp = (struct icmp *) sendbuf;
-  icmp->icmp_type = ICMP_ECHO;
-  icmp->icmp_code = 0;
-  icmp->icmp_id = 234;
-  icmp->icmp_seq = 0;
-  memset (icmp->icmp_data, 0xa5, datalen);
+  icmp = (struct icmphdr *) sendbuf;
+  icmp->type = ICMP_ECHO;
+  icmp->code = 0;
 
   len = 8 + datalen;
-  icmp->icmp_cksum = 0;
-  icmp->icmp_cksum = in_cksum ((u_short *) icmp, len);
+  icmp->checksum = 0;
+  icmp->checksum = in_cksum ((u_short *) icmp, len);
 
   memset (&soca, 0, sizeof (soca));
   soca.sin_family = AF_INET;
@@ -826,13 +824,9 @@ send_icmp (__attribute__ ((unused)) gpointer key, gpointer value,
   struct in6_addr *dst6_p = &dst6;
   struct in_addr dst4;
   struct in_addr *dst4_p = &dst4;
+  static int count;
 
-  /* For setting the socket option SO_BINDTODEVICE only once */
-  static gboolean icmpv4socopt_set = FALSE;
-  static gboolean icmpv6socopt_set = FALSE;
-
-  static int count = 0;
-  count++;
+  count = 1;
   if (count % BURST == 0)
     usleep (BURST_TIMEOUT);
 
@@ -845,58 +839,11 @@ send_icmp (__attribute__ ((unused)) gpointer key, gpointer value,
     }
   if (IN6_IS_ADDR_V4MAPPED (dst6_p) != 1)
     {
-      /* set device for icmpv4 */
-      if (!icmpv6socopt_set)
-        {
-          struct ifreq if_bind;
-          gchar *interface = NULL;
-
-          interface = v6_routethrough (dst6_p, NULL);
-          if (!interface)
-            g_debug ("%s: no appropriate interface was found", __func__);
-          if (g_strlcpy (if_bind.ifr_name, interface, IFNAMSIZ) <= 0)
-            g_debug ("%s: copied 0 length interface", __func__);
-
-          if (setsockopt (scanner.icmpv6soc, SOL_SOCKET, SO_BINDTODEVICE,
-                          interface, IFNAMSIZ)
-              < 0)
-            {
-              g_warning ("%s: failed to set socket option SO_BINDTODEVICE: %s",
-                         __func__, strerror (errno));
-              return;
-            }
-          icmpv6socopt_set = TRUE;
-        }
-      /* send packets */
       send_icmp_v6 (scanner.icmpv6soc, dst6_p, ICMP6_ECHO_REQUEST);
     }
   else
     {
       dst4.s_addr = dst6_p->s6_addr32[3];
-
-      /* set device for icmpv6 */
-      if (!icmpv4socopt_set)
-        {
-          struct ifreq if_bind;
-          gchar *interface;
-
-          interface = routethrough (dst4_p, NULL);
-          if (!interface)
-            g_debug ("%s: no appropriate interface was found", __func__);
-          if (g_strlcpy (if_bind.ifr_name, interface, IFNAMSIZ) <= 0)
-            g_debug ("%s: copied 0 length interface", __func__);
-
-          if (setsockopt (scanner.icmpv4soc, SOL_SOCKET, SO_BINDTODEVICE,
-                          interface, IFNAMSIZ)
-              < 0)
-            {
-              g_warning ("%s: failed to set socket option SO_BINDTODEVICE: %s",
-                         __func__, strerror (errno));
-              return;
-            }
-          icmpv4socopt_set = TRUE;
-        }
-      /* send packets */
       send_icmp_v4 (scanner.icmpv4soc, dst4_p);
     }
 }
