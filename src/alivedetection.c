@@ -988,7 +988,6 @@ send_tcp_v4 (int soc, struct in_addr *dst_p, uint8_t tcp_flag)
       ip->ip_hl = 5;
       ip->ip_off = htons (0);
       ip->ip_v = 4;
-      ip->ip_len = htons (40);
       ip->ip_tos = 0;
       ip->ip_p = IPPROTO_TCP;
       ip->ip_id = rand ();
@@ -996,7 +995,6 @@ send_tcp_v4 (int soc, struct in_addr *dst_p, uint8_t tcp_flag)
       ip->ip_src = *scanner.sourcev4;
       ip->ip_dst = *dst_p;
       ip->ip_sum = 0;
-      ip->ip_sum = in_cksum ((u_short *) ip, 20);
 
       /* TCP */
       tcp->th_sport = htons (FILTER_PORT);
