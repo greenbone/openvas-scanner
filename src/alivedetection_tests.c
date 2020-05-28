@@ -82,8 +82,9 @@ __real_setsockopt (__attribute__ ((unused)) int sockfd,
 
 bool g_socket_use_real = true;
 int
-socket (__attribute__ ((unused)) int domain, __attribute__ ((unused)) int type,
-        __attribute__ ((unused)) int protocol)
+__wrap_socket (__attribute__ ((unused)) int domain,
+               __attribute__ ((unused)) int type,
+               __attribute__ ((unused)) int protocol)
 {
   if (g_socket_use_real)
     return __real_socket (domain, type, protocol);
@@ -93,11 +94,11 @@ socket (__attribute__ ((unused)) int domain, __attribute__ ((unused)) int type,
 
 bool g_setsockopt_use_real = true;
 int
-setsockopt (__attribute__ ((unused)) int sockfd,
-            __attribute__ ((unused)) int level,
-            __attribute__ ((unused)) int optname,
-            __attribute__ ((unused)) const void *optval,
-            __attribute__ ((unused)) socklen_t optlen)
+__wrap_setsockopt (__attribute__ ((unused)) int sockfd,
+                   __attribute__ ((unused)) int level,
+                   __attribute__ ((unused)) int optname,
+                   __attribute__ ((unused)) const void *optval,
+                   __attribute__ ((unused)) socklen_t optlen)
 {
   if (g_setsockopt_use_real)
     return __real_setsockopt (sockfd, level, optname, optval, optlen);
@@ -115,20 +116,20 @@ Ensure (alivedetection, set_all_needed_sockets)
   /* All methods set. */
   alive_test = ALIVE_TEST_TCP_ACK_SERVICE | ALIVE_TEST_ICMP | ALIVE_TEST_ARP
                | ALIVE_TEST_CONSIDER_ALIVE | ALIVE_TEST_TCP_SYN_SERVICE;
-  expect (socket, will_return (5), times (6));
-  expect (setsockopt, will_return (5), times (8));
+  expect (__wrap_socket, will_return (5), times (6));
+  expect (__wrap_setsockopt, will_return (5), times (8));
   set_all_needed_sockets (alive_test);
 
   /* Only one method set. */
   alive_test = ALIVE_TEST_TCP_ACK_SERVICE;
-  expect (socket, will_return (5), times (2));
-  expect (setsockopt, will_return (5), times (4));
+  expect (__wrap_socket, will_return (5), times (2));
+  expect (__wrap_setsockopt, will_return (5), times (4));
   set_all_needed_sockets (alive_test);
 
   /* ALIVE_TEST_CONSIDER_ALIVE set. */
   alive_test = ALIVE_TEST_CONSIDER_ALIVE;
-  never_expect (socket);
-  never_expect (setsockopt);
+  never_expect (__wrap_socket);
+  never_expect (__wrap_setsockopt);
   never_expect (set_socket);
   set_all_needed_sockets (alive_test);
 
@@ -140,18 +141,18 @@ Ensure (alivedetection, set_socket)
 {
   g_setsockopt_use_real = false;
   g_socket_use_real = false;
-  int socket;
+  int socket_location;
 
   /* socket() successful. */
-  expect (socket, will_return (5));
-  expect (setsockopt);
-  expect (setsockopt);
-  assert_that (set_socket (TCPV4, &socket), is_equal_to (0));
+  expect (__wrap_socket, will_return (5));
+  expect (__wrap_setsockopt);
+  expect (__wrap_setsockopt);
+  assert_that (set_socket (TCPV4, &socket_location), is_equal_to (0));
 
   /* socket() error. */
-  expect (socket, will_return (-5));
-  never_expect (setsockopt);
-  assert_that (set_socket (TCPV4, &socket),
+  expect (__wrap_socket, will_return (-5));
+  never_expect (__wrap_setsockopt);
+  assert_that (set_socket (TCPV4, &socket_location),
                is_equal_to (BOREAS_OPENING_SOCKET_FAILED));
   g_socket_use_real = true;
   g_setsockopt_use_real = true;
@@ -175,8 +176,8 @@ Ensure (alivedetection, routethrough_dst_is_localhost)
   assert_that (dst6_p, is_not_null);
   dst4.s_addr = dst6_p->s6_addr32[3];
 
-  expect (socket, when (domain, is_equal_to (2)), when (type, is_equal_to (2)),
-          when (protocol, is_equal_to (0)));
+  expect (__wrap_socket, when (domain, is_equal_to (2)),
+          when (type, is_equal_to (2)), when (protocol, is_equal_to (0)));
 
   interface = routethrough (dst4_p, NULL);
   (void) interface;
@@ -206,8 +207,9 @@ Ensure (alivedetection, routethrough_dst_is_not_localhost)
   assert_that (dst6_p, is_not_null);
   dst4.s_addr = dst6_p->s6_addr32[3];
 
-  expect (socket, when (domain, is_equal_to (2)), when (type, is_equal_to (2)),
-          when (protocol, is_equal_to (0)), times (2));
+  expect (__wrap_socket, when (domain, is_equal_to (2)),
+          when (type, is_equal_to (2)), when (protocol, is_equal_to (0)),
+          times (2));
   interface = routethrough (dst4_p, NULL);
   assert_that (interface, is_not_equal_to_string ("lo"));
   g_socket_use_real = true;
@@ -235,8 +237,8 @@ Ensure (alivedetection, routethrough_src_globalsource_set)
   /* global source address set */
   gvm_source_iface_init ("lo"); // lo is set but not really used after being set
   /* expects */
-  expect (socket, when (domain, is_equal_to (2)), when (type, is_equal_to (2)),
-          when (protocol, is_equal_to (0)));
+  expect (__wrap_socket, when (domain, is_equal_to (2)),
+          when (type, is_equal_to (2)), when (protocol, is_equal_to (0)));
   /* dst not given */
   assert_that ((interface = routethrough (NULL, &src)), is_null);
   assert_that ((src.s_addr == INADDR_ANY));
@@ -263,8 +265,8 @@ Ensure (alivedetection, routethrough_src_globalsource_not_set)
 
   /* global source address not set */
   gvm_source_iface_init (NULL);
-  expect (socket, when (domain, is_equal_to (2)), when (type, is_equal_to (2)),
-          when (protocol, is_equal_to (0)));
+  expect (__wrap_socket, when (domain, is_equal_to (2)),
+          when (type, is_equal_to (2)), when (protocol, is_equal_to (0)));
   /* dst not given */
   assert_that ((interface = routethrough (NULL, &src)), is_null);
   assert_that ((src.s_addr == INADDR_ANY));
@@ -294,6 +296,60 @@ Ensure (alivedetection, gvm_source_addr)
   assert_that ((src.s_addr != INADDR_ANY));
 }
 
+Ensure (alivedetection, v6_islocalhost)
+{
+  /* IPv4 */
+  struct in_addr addr;
+  struct sockaddr_in sin;
+  memset (&sin, 0, sizeof (struct sockaddr_in));
+  sin.sin_family = AF_INET;
+
+  /* example.com */
+  inet_pton (AF_INET, "93.184.216.34", &(addr.s_addr));
+
+  /* IPv6 */
+  struct in6_addr addr_6;
+
+  inet_pton (AF_INET6, "::FFFF:127.0.0.1", &(addr_6));
+  assert_that (v6_islocalhost (&addr_6), is_true);
+  inet_pton (AF_INET6, "::FFFF:0.0.0.0", &(addr_6));
+  assert_that (v6_islocalhost (&addr_6), is_true);
+  inet_pton (AF_INET6, "::FFFF:127.100.5.99", &(addr_6));
+  assert_that (v6_islocalhost (&addr_6), is_true);
+  /* loopback address */
+  inet_pton (AF_INET6, "0:0:0:0:0:0:0:1", &(addr_6));
+  assert_that (v6_islocalhost (&addr_6), is_true);
+
+  /* dependent on local environment */
+  // inet_pton (AF_INET6, <some local interface address>, &(addr_6));
+  // assert_that (v6_islocalhost (&addr_6), is_true);
+
+  /* example.com */
+  inet_pton (AF_INET6, "2606:2800:220:1:248:1893:25c8:1946", &(addr_6));
+  assert_that (v6_islocalhost (&addr_6), is_false);
+}
+
+Ensure (alivedetection, islocalhost)
+{
+  /* IPv4 */
+  struct in_addr addr;
+
+  inet_pton (AF_INET, "127.0.0.1", &(addr.s_addr));
+  assert_that (islocalhost (&addr), is_true);
+  inet_pton (AF_INET, "0.0.0.0", &(addr.s_addr));
+  assert_that (islocalhost (&addr), is_true);
+  inet_pton (AF_INET, "127.100.5.99", &(addr.s_addr));
+  assert_that (islocalhost (&addr), is_true);
+
+  /* dependent on local environment */
+  // // inet_pton (AF_INET, <some local interface address>, &(addr));
+  // // assert_that (islocalhost (&addr), is_true);
+
+  /* example.com */
+  inet_pton (AF_INET, "93.184.216.34", &(addr.s_addr));
+  assert_that (islocalhost (&addr), is_false);
+}
+
 TestSuite *
 openvas_routethrough ()
 {
@@ -307,6 +363,8 @@ openvas_routethrough ()
                          routethrough_src_globalsource_set);
   add_test_with_context (suite, alivedetection,
                          routethrough_src_globalsource_not_set);
+  add_test_with_context (suite, alivedetection, v6_islocalhost);
+  add_test_with_context (suite, alivedetection, islocalhost);
 
   return suite;
 }
