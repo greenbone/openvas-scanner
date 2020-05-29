@@ -1008,35 +1008,26 @@ send_tcp_v6 (int soc, struct in6_addr *dst_p, uint8_t tcp_flag)
 static void
 send_tcp_v4 (int soc, struct in_addr *dst_p, uint8_t tcp_flag)
 {
+  boreas_error_t error;
   struct sockaddr_in soca;
+  struct in_addr src;
 
   u_char packet[sizeof (struct ip) + sizeof (struct tcphdr)];
   struct ip *ip = (struct ip *) packet;
   struct tcphdr *tcp = (struct tcphdr *) (packet + sizeof (struct ip));
 
-  struct in_addr src; /* ip src */
-
-  /* get src address */
-  if (scanner.sourcev4 == NULL)
-    {
-      gchar addr_str[INET_ADDRSTRLEN];
-      gchar *interface = routethrough (dst_p, &src);
-      scanner.sourcev4 = g_memdup (&src, sizeof (struct in_addr));
-      g_debug ("%s: interface to use: %s", __func__, interface);
-
-      if (inet_ntop (AF_INET, (const void *) scanner.sourcev4, addr_str,
-                     INET_ADDRSTRLEN)
-          == NULL)
-        g_debug (
-          "%s: Failed to transform IPv4 address into string representation: %s",
-          __func__, strerror (errno));
-
-      g_debug ("%s: Use %s as source IP for IPv4 pings.", __func__, addr_str);
-    }
-
   /* No ports in portlist. */
   if (scanner.ports->len == 0)
     return;
+
+  /* Get source address for TCP header. */
+  if ((error = get_source_addr_v4 (&scanner.udpv4soc, dst_p, &src)) != 0)
+    {
+      char destination_str[INET_ADDRSTRLEN];
+      inet_ntop (AF_INET, &(dst_p->s_addr), destination_str, INET_ADDRSTRLEN);
+      g_debug ("%s: Destination: %s. %s", __func__, destination_str,
+               str_boreas_error (error));
+    }
 
   /* For ports in ports array send packet. */
   for (guint i = 0; i < scanner.ports->len; i++)
@@ -1050,7 +1041,7 @@ send_tcp_v4 (int soc, struct in_addr *dst_p, uint8_t tcp_flag)
       ip->ip_p = IPPROTO_TCP;
       ip->ip_id = rand ();
       ip->ip_ttl = 0x40;
-      ip->ip_src = *scanner.sourcev4;
+      ip->ip_src = src;
       ip->ip_dst = *dst_p;
       ip->ip_sum = 0;
 
