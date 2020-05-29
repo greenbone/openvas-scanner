@@ -116,14 +116,14 @@ Ensure (alivedetection, set_all_needed_sockets)
   /* All methods set. */
   alive_test = ALIVE_TEST_TCP_ACK_SERVICE | ALIVE_TEST_ICMP | ALIVE_TEST_ARP
                | ALIVE_TEST_CONSIDER_ALIVE | ALIVE_TEST_TCP_SYN_SERVICE;
-  expect (__wrap_socket, will_return (5), times (6));
-  expect (__wrap_setsockopt, will_return (5), times (8));
+  expect (__wrap_socket, will_return (5), times (7));
+  expect (__wrap_setsockopt, will_return (5), times (9));
   set_all_needed_sockets (alive_test);
 
   /* Only one method set. */
   alive_test = ALIVE_TEST_TCP_ACK_SERVICE;
-  expect (__wrap_socket, will_return (5), times (2));
-  expect (__wrap_setsockopt, will_return (5), times (4));
+  expect (__wrap_socket, will_return (5), times (3));
+  expect (__wrap_setsockopt, will_return (5), times (5));
   set_all_needed_sockets (alive_test);
 
   /* ALIVE_TEST_CONSIDER_ALIVE set. */
