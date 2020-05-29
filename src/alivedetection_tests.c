@@ -158,6 +158,31 @@ Ensure (alivedetection, set_socket)
   g_setsockopt_use_real = true;
 }
 
+Ensure (alivedetection, get_source_addr_v4)
+{
+  int udpv4soc;
+  struct in_addr dst;
+  struct in_addr src;
+
+  /* Open socket. */
+  set_socket (UDPV4, &udpv4soc);
+
+  /* Destination is localhost. */
+  src.s_addr = INADDR_ANY;
+  dst.s_addr = inet_addr ("127.0.0.1");
+  get_source_addr_v4 (&udpv4soc, &dst, &src);
+  assert_that (src.s_addr, is_not_equal_to (INADDR_ANY));
+
+  /* Destination is example.com. */
+  src.s_addr = INADDR_ANY;
+  dst.s_addr = inet_addr ("93.184.216.34");
+  get_source_addr_v4 (&udpv4soc, &dst, &src);
+  assert_that (src.s_addr, is_not_equal_to (INADDR_ANY));
+
+  /* Close socket. */
+  close (udpv4soc);
+}
+
 /* If dst for routethrough() is localhost "lo" interface is returned. */
 Ensure (alivedetection, routethrough_dst_is_localhost)
 {
@@ -380,6 +405,7 @@ main (int argc, char **argv)
   add_test_with_context (suite, alivedetection, fill_ports_array);
   add_test_with_context (suite, alivedetection, set_all_needed_sockets);
   add_test_with_context (suite, alivedetection, set_socket);
+  add_test_with_context (suite, alivedetection, get_source_addr_v4);
 
   if (argc > 1)
     return run_single_test (suite, argv[1], create_text_reporter ());
