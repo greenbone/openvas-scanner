@@ -133,20 +133,6 @@ struct hosts_data
   GHashTable *alivehosts_not_to_be_sent_to_openvas;
 };
 
-/**
- * @brief type of sockets
- */
-enum socket_type
-{
-  TCPV4,
-  TCPV6,
-  ICMPV4,
-  ICMPV6,
-  ARPV4,
-  ARPV6,
-  UDPV4,
-};
-
 struct arp_hdr
 {
   uint16_t htype;
@@ -1606,7 +1592,7 @@ set_broadcast (int socket)
  * @return 0 on success, boreas_error_t on error.
  */
 static boreas_error_t
-set_socket (enum socket_type socket_type, int *scanner_socket)
+set_socket (socket_type_t socket_type, int *scanner_socket)
 {
   boreas_error_t error = NO_ERROR;
   int soc;

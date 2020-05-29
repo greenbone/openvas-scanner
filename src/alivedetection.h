@@ -72,4 +72,18 @@ typedef enum
   NO_ERROR = 0,
 } boreas_error_t;
 
+/**
+ * @brief Type of socket.
+ */
+typedef enum
+{
+  TCPV4,
+  TCPV6,
+  ICMPV4,
+  ICMPV6,
+  ARPV4,
+  ARPV6,
+  UDPV4,
+} socket_type_t;
+
 #endif
