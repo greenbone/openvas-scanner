@@ -193,6 +193,8 @@ const char *
 str_boreas_error (boreas_error_t boreas_error)
 {
   const gchar *msg;
+
+  msg = NULL;
   switch (boreas_error)
     {
     case BOREAS_OPENING_SOCKET_FAILED:
@@ -207,6 +209,10 @@ str_boreas_error (boreas_error_t boreas_error)
       break;
     case BOREAS_CLEANUP_ERROR:
       msg = "Boreas encountered an error during clean up.";
+      break;
+    case BOREAS_NO_SRC_ADDR_FOUND:
+      msg = "Boreas was not able to determine a source address for the given "
+            "destination.";
       break;
     case NO_ERROR:
       msg = "No error was encountered by Boreas";
