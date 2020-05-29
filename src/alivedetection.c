@@ -69,6 +69,9 @@ pthread_cond_t cond = PTHREAD_COND_INITIALIZER;
 static boreas_error_t
 get_alive_test_methods (alive_test_t *alive_test);
 
+static boreas_error_t
+set_socket (socket_type_t socket_type, int *scanner_socket);
+
 /**
  * @brief The scanner struct holds data which is used frequently by the alive
  * detection thread.
@@ -841,6 +844,66 @@ send_icmp (__attribute__ ((unused)) gpointer key, gpointer value,
       dst4.s_addr = dst6_p->s6_addr32[3];
       send_icmp_v4 (scanner.icmpv4soc, dst4_p);
     }
+}
+
+/**
+ * @brief Figure out source address for given destination.
+ *
+ * This function uses a well known trick for getting the source address used
+ * for a given destination by calling connect() and getsockname() on an udp
+ * socket.
+ *
+ * @param[in]   udpv4sock Location of the socket to use.
+ * @param[in]   dst       Destination address.
+ * @param[out]  src       Source address.
+ *
+ * @return 0 on success, boreas_error_t on failure.
+ */
+static boreas_error_t
+get_source_addr_v4 (int *udpv4sock, struct in_addr *dst, struct in_addr *src)
+{
+  struct sockaddr_storage storage;
+  struct sockaddr_in sin;
+  socklen_t sock_len;
+  boreas_error_t error;
+
+  memset (&sin, 0, sizeof (struct sockaddr_in));
+  sin.sin_family = AF_INET;
+  sin.sin_addr.s_addr = dst->s_addr;
+  sin.sin_port = htons (9); /* discard port (see RFC 863) */
+  memcpy (&storage, &sin, sizeof (sin));
+
+  error = NO_ERROR;
+  sock_len = sizeof (storage);
+  if (connect (*udpv4sock, (const struct sockaddr *) &storage, sock_len) < 0)
+    {
+      g_warning ("%s: connect() on udpv4soc failed: %s", __func__,
+                 strerror (errno));
+      /* State of the socket is unspecified.  Close the socket and create a new
+       * one. */
+      if ((close (*udpv4sock)) != 0)
+        {
+          g_warning ("%s: Error in close(): %s", __func__, strerror (errno));
+        }
+      set_socket (UDPV4, udpv4sock);
+      error = BOREAS_NO_SRC_ADDR_FOUND;
+    }
+  else
+    {
+      if (getsockname (*udpv4sock, (struct sockaddr *) &storage, &sock_len) < 0)
+        {
+          g_warning ("%s: getsockname() on updv4soc failed: %s", __func__,
+                     strerror (errno));
+          error = BOREAS_NO_SRC_ADDR_FOUND;
+        }
+    }
+
+  /* Set source address if no errors occurred. */
+  if (!error)
+    memcpy (src, &((struct sockaddr_in *) (&storage))->sin_addr,
+            sizeof (struct in_addr));
+
+  return error;
 }
 
 /**
