@@ -1104,6 +1104,7 @@ send_tcp_v4 (int soc, struct in_addr *dst_p, uint8_t tcp_flag)
       inet_ntop (AF_INET, &(dst_p->s_addr), destination_str, INET_ADDRSTRLEN);
       g_debug ("%s: Destination: %s. %s", __func__, destination_str,
                str_boreas_error (error));
+      return;
     }
 
   /* For ports in ports array send packet. */
