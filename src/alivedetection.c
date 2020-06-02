@@ -999,28 +999,24 @@ get_source_addr_v6 (int *udpv6soc, struct in6_addr *dst, struct in6_addr *src)
 static void
 send_tcp_v6 (int soc, struct in6_addr *dst_p, uint8_t tcp_flag)
 {
+  boreas_error_t error;
   struct sockaddr_in6 soca;
+  struct in6_addr src;
 
   u_char packet[sizeof (struct ip6_hdr) + sizeof (struct tcphdr)];
   struct ip6_hdr *ip = (struct ip6_hdr *) packet;
   struct tcphdr *tcp = (struct tcphdr *) (packet + sizeof (struct ip6_hdr));
 
-  struct in6_addr src;
-
-  if (scanner.sourcev6 == NULL)
+  /* Get source address for TCP header. */
+  error = get_source_addr_v6 (&scanner.udpv6soc, dst_p, &src);
+  if (error)
     {
-      gchar addr_str[INET6_ADDRSTRLEN];
-      gchar *interface = v6_routethrough (dst_p, &src);
-      g_debug ("%s: interface to use: %s.", __func__, interface);
-      scanner.sourcev6 = g_memdup (&src, sizeof (struct in6_addr));
-
-      if (inet_ntop (AF_INET6, (const char *) &scanner.sourcev6, addr_str,
-                     INET6_ADDRSTRLEN)
-          == NULL)
-        g_debug ("%s: Failed to transform IPv6 into string representation: %s",
-                 __func__, strerror (errno));
-
-      g_debug ("%s: Use %s as source IP for IPv4 pings.", __func__, addr_str);
+      char destination_str[INET_ADDRSTRLEN];
+      inet_ntop (AF_INET6, (const void *) dst_p, destination_str,
+                 INET_ADDRSTRLEN);
+      g_debug ("%s: Destination: %s. %s", __func__, destination_str,
+               str_boreas_error (error));
+      return;
     }
 
   /* No ports in portlist. */
@@ -1037,7 +1033,7 @@ send_tcp_v6 (int soc, struct in6_addr *dst_p, uint8_t tcp_flag)
       ip->ip6_nxt = IPPROTO_TCP;
       ip->ip6_hops = 255; // max value
 
-      ip->ip6_src = *scanner.sourcev6;
+      ip->ip6_src = src;
       ip->ip6_dst = *dst_p;
 
       /* TCP */
