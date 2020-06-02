@@ -68,7 +68,22 @@ typedef enum
   BOREAS_SETTING_SOCKET_OPTION_FAILED,
   BOREAS_NO_VALID_ALIVE_TEST_SPECIFIED,
   BOREAS_CLEANUP_ERROR,
+  BOREAS_NO_SRC_ADDR_FOUND,
   NO_ERROR = 0,
 } boreas_error_t;
+
+/**
+ * @brief Type of socket.
+ */
+typedef enum
+{
+  TCPV4,
+  TCPV6,
+  ICMPV4,
+  ICMPV6,
+  ARPV4,
+  ARPV6,
+  UDPV4,
+} socket_type_t;
 
 #endif
