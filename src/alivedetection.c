@@ -87,6 +87,7 @@ struct scanner
   int arpv6soc;
   /* UDP socket needed for getting the source IP for the TCP header. */
   int udpv4soc;
+  int udpv6soc;
   /* TH_SYN or TH_ACK */
   uint8_t tcp_flag;
   /* ports used for TCP ACK/SYN */
@@ -1675,6 +1676,17 @@ set_socket (socket_type_t socket_type, int *scanner_socket)
           }
       }
       break;
+    case UDPV6:
+      {
+        soc = socket (AF_INET6, SOCK_DGRAM, IPPROTO_UDP);
+        if (soc < 0)
+          {
+            g_warning ("%s: failed to open UDPV4 socket: %s", __func__,
+                       strerror (errno));
+            error = BOREAS_OPENING_SOCKET_FAILED;
+          }
+      }
+      break;
     case TCPV4:
       {
         soc = socket (AF_INET, SOCK_RAW, IPPROTO_RAW);
@@ -1802,6 +1814,8 @@ set_all_needed_sockets (alive_test_t alive_test)
       if ((error = set_socket (TCPV6, &scanner.tcpv6soc)) != 0)
         return error;
       if ((error = set_socket (UDPV4, &scanner.udpv4soc)) != 0)
+        return error;
+      if ((error = set_socket (UDPV6, &scanner.udpv6soc)) != 0)
         return error;
     }
 
@@ -2003,6 +2017,12 @@ alive_detection_free (void *error)
               *(int *) error = BOREAS_CLEANUP_ERROR;
             }
           if ((close (scanner.udpv4soc)) != 0)
+            {
+              g_warning ("%s: Error in close(): %s", __func__,
+                         strerror (errno));
+              *(int *) error = BOREAS_CLEANUP_ERROR;
+            }
+          if ((close (scanner.udpv6soc)) != 0)
             {
               g_warning ("%s: Error in close(): %s", __func__,
                          strerror (errno));
