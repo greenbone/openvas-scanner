@@ -92,9 +92,6 @@ struct scanner
   uint8_t tcp_flag;
   /* ports used for TCP ACK/SYN */
   GArray *ports;
-  /* source addresses */
-  struct in_addr *sourcev4;
-  struct in6_addr *sourcev6;
   /* redis connection */
   kb_t main_kb;
   /* pcap handle */
@@ -1958,9 +1955,6 @@ alive_detection_init (gvm_hosts_t *hosts, alive_test_t alive_test)
   if ((error = set_all_needed_sockets (alive_test)) != 0)
     return error;
 
-  /* sources */
-  scanner.sourcev4 = NULL;
-  scanner.sourcev6 = NULL;
   /* kb_t redis connection */
   int scandb_id = atoi (prefs_get ("ov_maindbid"));
   if ((scanner.main_kb = kb_direct_conn (prefs_get ("db_address"), scandb_id))
@@ -2121,10 +2115,6 @@ alive_detection_free (void *error)
       g_warning ("%s: error in kb_lnk_reset()", __func__);
       *(int *) error = BOREAS_CLEANUP_ERROR;
     }
-
-  /* addresses */
-  g_free (scanner.sourcev4);
-  g_free (scanner.sourcev6);
 
   /* Ports array. */
   g_array_free (scanner.ports, TRUE);
