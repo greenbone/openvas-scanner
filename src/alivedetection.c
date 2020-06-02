@@ -1032,7 +1032,8 @@ send_tcp_v4 (int soc, struct in_addr *dst_p, uint8_t tcp_flag)
     return;
 
   /* Get source address for TCP header. */
-  if ((error = get_source_addr_v4 (&scanner.udpv4soc, dst_p, &src)) != 0)
+  error = get_source_addr_v4 (&scanner.udpv4soc, dst_p, &src);
+  if (error)
     {
       char destination_str[INET_ADDRSTRLEN];
       inet_ntop (AF_INET, &(dst_p->s_addr), destination_str, INET_ADDRSTRLEN);
