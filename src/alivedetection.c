@@ -919,6 +919,77 @@ get_source_addr_v4 (int *udpv4soc, struct in_addr *dst, struct in_addr *src)
 }
 
 /**
+ * @brief Figure out source address for given destination.
+ *
+ * This function uses a well known trick for getting the source address used
+ * for a given destination by calling connect() and getsockname() on an udp
+ * socket.
+ *
+ * @param[in]   udpv6soc  Location of the socket to use.
+ * @param[in]   dst       Destination address.
+ * @param[out]  src       Source address.
+ *
+ * @return 0 on success, boreas_error_t on failure.
+ */
+static boreas_error_t
+get_source_addr_v6 (int *udpv6soc, struct in6_addr *dst, struct in6_addr *src)
+{
+  struct sockaddr_storage storage;
+  struct sockaddr_in6 sin;
+  socklen_t sock_len;
+  boreas_error_t error;
+
+  memset (&sin, 0, sizeof (struct sockaddr_in6));
+  sin.sin6_family = AF_INET6;
+  sin.sin6_addr = *dst;
+  sin.sin6_port = htons (9); /* discard port (see RFC 863) */
+  memcpy (&storage, &sin, sizeof (sin));
+
+  error = NO_ERROR;
+  sock_len = sizeof (storage);
+  if (connect (*udpv6soc, (const struct sockaddr *) &storage, sock_len) < 0)
+    {
+      g_warning ("%s: connect() on udpv6soc failed: %s %d", __func__,
+                 strerror (errno), errno);
+      /* State of the socket is unspecified.  Close the socket and create a new
+       * one. */
+      if ((close (*udpv6soc)) != 0)
+        {
+          g_debug ("%s: Error in close(): %s", __func__, strerror (errno));
+        }
+      set_socket (UDPV6, udpv6soc);
+      error = BOREAS_NO_SRC_ADDR_FOUND;
+    }
+  else
+    {
+      if (getsockname (*udpv6soc, (struct sockaddr *) &storage, &sock_len) < 0)
+        {
+          g_debug ("%s: getsockname() on updv6soc failed: %s", __func__,
+                   strerror (errno));
+          error = BOREAS_NO_SRC_ADDR_FOUND;
+        }
+    }
+
+  if (!error)
+    {
+      /* Set source address. */
+      memcpy (src, &((struct sockaddr_in6 *) (&storage))->sin6_addr,
+              sizeof (struct in6_addr));
+
+      /* Dissolve association so we can connect() on same socket again in later
+       * call to get_source_addr_v4(). */
+      sin.sin6_family = AF_UNSPEC;
+      sock_len = sizeof (storage);
+      memcpy (&storage, &sin, sizeof (sin));
+      if (connect (*udpv6soc, (const struct sockaddr *) &storage, sock_len) < 0)
+        g_debug ("%s: connect() on udpv6soc to dissolve association failed: %s",
+                 __func__, strerror (errno));
+    }
+
+  return error;
+}
+
+/**
  * @brief Send tcp ping.
  *
  * @param soc Socket to use for sending.
