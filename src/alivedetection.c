@@ -19,11 +19,9 @@
 
 #include "alivedetection.h"
 
-#include "../misc/pcap.c" /* routethrough functions */
-
 #include <arpa/inet.h>
 #include <errno.h>
-#include <gvm/base/networking.h> /* for gvm_source_addr() */
+#include <gvm/base/networking.h> /* for gvm_source_addr(), gvm_routethrough() */
 #include <gvm/base/prefs.h>      /* for prefs_get() */
 #include <gvm/util/kb.h>         /* for kb_t operations */
 #include <ifaddrs.h>             /* for getifaddrs() */
@@ -38,6 +36,7 @@
 #include <netpacket/packet.h> /* for sockaddr_ll */
 #include <pcap.h>
 #include <pthread.h>
+#include <stdlib.h>
 #include <sys/param.h>
 #include <sys/wait.h>
 #include <unistd.h>
@@ -1231,8 +1230,25 @@ send_arp_v4 (int soc, struct in_addr *dst_p)
   /* Set up data which does not change between function calls. */
   if (!first_time_setup_done)
     {
-      /* Set src address. */
-      gchar *interface = routethrough (dst_p, &src);
+      struct sockaddr_storage storage_src;
+      struct sockaddr_storage storage_dst;
+      struct sockaddr_in sin_src;
+      struct sockaddr_in sin_dst;
+
+      memset (&sin_src, 0, sizeof (struct sockaddr_in));
+      memset (&sin_dst, 0, sizeof (struct sockaddr_in));
+      sin_src.sin_family = AF_INET;
+      sin_dst.sin_family = AF_INET;
+      sin_dst.sin_addr = *dst_p;
+      memcpy (&storage_dst, &sin_dst, sizeof (sin_dst));
+      memcpy (&storage_dst, &sin_src, sizeof (sin_src));
+
+      /* Get interface and set src addr. */
+      gchar *interface = gvm_routethrough (&storage_dst, &storage_src);
+      memcpy (&src, &((struct sockaddr_in *) (&storage_src))->sin_addr,
+              sizeof (struct in_addr));
+      g_warning ("%s: %s", __func__, inet_ntoa (src));
+
       if (!interface)
         g_warning ("%s: no appropriate interface was found", __func__);
       g_debug ("%s: interface to use: %s", __func__, interface);
