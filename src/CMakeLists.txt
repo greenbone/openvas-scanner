@@ -210,9 +210,6 @@ target_link_libraries (attack-test openvas_nasl_shared cgreen
                        ${LINKER_HARDENING_FLAGS} ${CMAKE_THREAD_LIBS_INIT}
                        -Wl,--wrap=redis_push_str)
 
-add_custom_target (tests
-                   DEPENDS attack-test alivedetection-test)
-
 ## Static analysis
 
 add_custom_target (cppcheck COMMENT "Running cppcheck..."
