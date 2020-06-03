@@ -158,4 +158,20 @@ install (DIRECTORY
 
 enable_testing ()
 
+set (ALIVEDETECTION_TEST_LINKER_WRAP_OPTIONS
+     "-Wl,-wrap,socket,-wrap,setsockopt")
+add_executable (pcap-test
+                EXCLUDE_FROM_ALL
+                pcap_tests.c)
+add_test (pcap-test pcap-test)
+target_include_directories (pcap-test PRIVATE ${CGREEN_INCLUDE_DIRS})
+target_link_libraries (pcap-test cgreen
+                       ${LIBGVM_BASE_LDFLAGS}
+                       ${GLIB_LDFLAGS}
+                       ${PCAP_LDFLAGS}
+                       ${LINKER_HARDENING_FLAGS} ${CMAKE_THREAD_LIBS_INIT}
+                       ${ALIVEDETECTION_TEST_LINKER_WRAP_OPTIONS})
+add_custom_target (tests-pcap
+                  DEPENDS pcap-test)
+
 ## End
