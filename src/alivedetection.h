@@ -84,6 +84,7 @@ typedef enum
   ARPV4,
   ARPV6,
   UDPV4,
+  UDPV6,
 } socket_type_t;
 
 #endif

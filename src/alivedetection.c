@@ -87,13 +87,11 @@ struct scanner
   int arpv6soc;
   /* UDP socket needed for getting the source IP for the TCP header. */
   int udpv4soc;
+  int udpv6soc;
   /* TH_SYN or TH_ACK */
   uint8_t tcp_flag;
   /* ports used for TCP ACK/SYN */
   GArray *ports;
-  /* source addresses */
-  struct in_addr *sourcev4;
-  struct in6_addr *sourcev6;
   /* redis connection */
   kb_t main_kb;
   /* pcap handle */
@@ -918,6 +916,77 @@ get_source_addr_v4 (int *udpv4soc, struct in_addr *dst, struct in_addr *src)
 }
 
 /**
+ * @brief Figure out source address for given destination.
+ *
+ * This function uses a well known trick for getting the source address used
+ * for a given destination by calling connect() and getsockname() on an udp
+ * socket.
+ *
+ * @param[in]   udpv6soc  Location of the socket to use.
+ * @param[in]   dst       Destination address.
+ * @param[out]  src       Source address.
+ *
+ * @return 0 on success, boreas_error_t on failure.
+ */
+static boreas_error_t
+get_source_addr_v6 (int *udpv6soc, struct in6_addr *dst, struct in6_addr *src)
+{
+  struct sockaddr_storage storage;
+  struct sockaddr_in6 sin;
+  socklen_t sock_len;
+  boreas_error_t error;
+
+  memset (&sin, 0, sizeof (struct sockaddr_in6));
+  sin.sin6_family = AF_INET6;
+  sin.sin6_addr = *dst;
+  sin.sin6_port = htons (9); /* discard port (see RFC 863) */
+  memcpy (&storage, &sin, sizeof (sin));
+
+  error = NO_ERROR;
+  sock_len = sizeof (storage);
+  if (connect (*udpv6soc, (const struct sockaddr *) &storage, sock_len) < 0)
+    {
+      g_warning ("%s: connect() on udpv6soc failed: %s %d", __func__,
+                 strerror (errno), errno);
+      /* State of the socket is unspecified.  Close the socket and create a new
+       * one. */
+      if ((close (*udpv6soc)) != 0)
+        {
+          g_debug ("%s: Error in close(): %s", __func__, strerror (errno));
+        }
+      set_socket (UDPV6, udpv6soc);
+      error = BOREAS_NO_SRC_ADDR_FOUND;
+    }
+  else
+    {
+      if (getsockname (*udpv6soc, (struct sockaddr *) &storage, &sock_len) < 0)
+        {
+          g_debug ("%s: getsockname() on updv6soc failed: %s", __func__,
+                   strerror (errno));
+          error = BOREAS_NO_SRC_ADDR_FOUND;
+        }
+    }
+
+  if (!error)
+    {
+      /* Set source address. */
+      memcpy (src, &((struct sockaddr_in6 *) (&storage))->sin6_addr,
+              sizeof (struct in6_addr));
+
+      /* Dissolve association so we can connect() on same socket again in later
+       * call to get_source_addr_v4(). */
+      sin.sin6_family = AF_UNSPEC;
+      sock_len = sizeof (storage);
+      memcpy (&storage, &sin, sizeof (sin));
+      if (connect (*udpv6soc, (const struct sockaddr *) &storage, sock_len) < 0)
+        g_debug ("%s: connect() on udpv6soc to dissolve association failed: %s",
+                 __func__, strerror (errno));
+    }
+
+  return error;
+}
+
+/**
  * @brief Send tcp ping.
  *
  * @param soc Socket to use for sending.
@@ -927,28 +996,24 @@ get_source_addr_v4 (int *udpv4soc, struct in_addr *dst, struct in_addr *src)
 static void
 send_tcp_v6 (int soc, struct in6_addr *dst_p, uint8_t tcp_flag)
 {
+  boreas_error_t error;
   struct sockaddr_in6 soca;
+  struct in6_addr src;
 
   u_char packet[sizeof (struct ip6_hdr) + sizeof (struct tcphdr)];
   struct ip6_hdr *ip = (struct ip6_hdr *) packet;
   struct tcphdr *tcp = (struct tcphdr *) (packet + sizeof (struct ip6_hdr));
 
-  struct in6_addr src;
-
-  if (scanner.sourcev6 == NULL)
+  /* Get source address for TCP header. */
+  error = get_source_addr_v6 (&scanner.udpv6soc, dst_p, &src);
+  if (error)
     {
-      gchar addr_str[INET6_ADDRSTRLEN];
-      gchar *interface = v6_routethrough (dst_p, &src);
-      g_debug ("%s: interface to use: %s.", __func__, interface);
-      scanner.sourcev6 = g_memdup (&src, sizeof (struct in6_addr));
-
-      if (inet_ntop (AF_INET6, (const char *) &scanner.sourcev6, addr_str,
-                     INET6_ADDRSTRLEN)
-          == NULL)
-        g_debug ("%s: Failed to transform IPv6 into string representation: %s",
-                 __func__, strerror (errno));
-
-      g_debug ("%s: Use %s as source IP for IPv4 pings.", __func__, addr_str);
+      char destination_str[INET_ADDRSTRLEN];
+      inet_ntop (AF_INET6, (const void *) dst_p, destination_str,
+                 INET_ADDRSTRLEN);
+      g_debug ("%s: Destination: %s. %s", __func__, destination_str,
+               str_boreas_error (error));
+      return;
     }
 
   /* No ports in portlist. */
@@ -965,7 +1030,7 @@ send_tcp_v6 (int soc, struct in6_addr *dst_p, uint8_t tcp_flag)
       ip->ip6_nxt = IPPROTO_TCP;
       ip->ip6_hops = 255; // max value
 
-      ip->ip6_src = *scanner.sourcev6;
+      ip->ip6_src = src;
       ip->ip6_dst = *dst_p;
 
       /* TCP */
@@ -1039,6 +1104,7 @@ send_tcp_v4 (int soc, struct in_addr *dst_p, uint8_t tcp_flag)
       inet_ntop (AF_INET, &(dst_p->s_addr), destination_str, INET_ADDRSTRLEN);
       g_debug ("%s: Destination: %s. %s", __func__, destination_str,
                str_boreas_error (error));
+      return;
     }
 
   /* For ports in ports array send packet. */
@@ -1675,6 +1741,17 @@ set_socket (socket_type_t socket_type, int *scanner_socket)
           }
       }
       break;
+    case UDPV6:
+      {
+        soc = socket (AF_INET6, SOCK_DGRAM, IPPROTO_UDP);
+        if (soc < 0)
+          {
+            g_warning ("%s: failed to open UDPV4 socket: %s", __func__,
+                       strerror (errno));
+            error = BOREAS_OPENING_SOCKET_FAILED;
+          }
+      }
+      break;
     case TCPV4:
       {
         soc = socket (AF_INET, SOCK_RAW, IPPROTO_RAW);
@@ -1803,6 +1880,8 @@ set_all_needed_sockets (alive_test_t alive_test)
         return error;
       if ((error = set_socket (UDPV4, &scanner.udpv4soc)) != 0)
         return error;
+      if ((error = set_socket (UDPV6, &scanner.udpv6soc)) != 0)
+        return error;
     }
 
   if ((alive_test & ALIVE_TEST_ARP))
@@ -1877,9 +1956,6 @@ alive_detection_init (gvm_hosts_t *hosts, alive_test_t alive_test)
   if ((error = set_all_needed_sockets (alive_test)) != 0)
     return error;
 
-  /* sources */
-  scanner.sourcev4 = NULL;
-  scanner.sourcev6 = NULL;
   /* kb_t redis connection */
   int scandb_id = atoi (prefs_get ("ov_maindbid"));
   if ((scanner.main_kb = kb_direct_conn (prefs_get ("db_address"), scandb_id))
@@ -2008,6 +2084,12 @@ alive_detection_free (void *error)
                          strerror (errno));
               *(int *) error = BOREAS_CLEANUP_ERROR;
             }
+          if ((close (scanner.udpv6soc)) != 0)
+            {
+              g_warning ("%s: Error in close(): %s", __func__,
+                         strerror (errno));
+              *(int *) error = BOREAS_CLEANUP_ERROR;
+            }
         }
 
       if ((alive_test & ALIVE_TEST_ARP))
@@ -2034,10 +2116,6 @@ alive_detection_free (void *error)
       g_warning ("%s: error in kb_lnk_reset()", __func__);
       *(int *) error = BOREAS_CLEANUP_ERROR;
     }
-
-  /* addresses */
-  g_free (scanner.sourcev4);
-  g_free (scanner.sourcev6);
 
   /* Ports array. */
   g_array_free (scanner.ports, TRUE);

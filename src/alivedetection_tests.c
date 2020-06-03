@@ -116,14 +116,14 @@ Ensure (alivedetection, set_all_needed_sockets)
   /* All methods set. */
   alive_test = ALIVE_TEST_TCP_ACK_SERVICE | ALIVE_TEST_ICMP | ALIVE_TEST_ARP
                | ALIVE_TEST_CONSIDER_ALIVE | ALIVE_TEST_TCP_SYN_SERVICE;
-  expect (__wrap_socket, will_return (5), times (7));
-  expect (__wrap_setsockopt, will_return (5), times (9));
+  expect (__wrap_socket, will_return (5), times (8));
+  expect (__wrap_setsockopt, will_return (5), times (10));
   set_all_needed_sockets (alive_test);
 
   /* Only one method set. */
   alive_test = ALIVE_TEST_TCP_ACK_SERVICE;
-  expect (__wrap_socket, will_return (5), times (3));
-  expect (__wrap_setsockopt, will_return (5), times (5));
+  expect (__wrap_socket, will_return (5), times (4));
+  expect (__wrap_setsockopt, will_return (5), times (6));
   set_all_needed_sockets (alive_test);
 
   /* ALIVE_TEST_CONSIDER_ALIVE set. */
@@ -181,6 +181,32 @@ Ensure (alivedetection, get_source_addr_v4)
 
   /* Close socket. */
   close (udpv4soc);
+}
+
+Ensure (alivedetection, get_source_addr_v6)
+{
+  int udpv6soc;
+  struct in6_addr dst;
+  struct in6_addr src;
+  boreas_error_t error;
+
+  /* Open socket. */
+  set_socket (UDPV6, &udpv6soc);
+
+  /* Localhost. */
+  inet_pton (AF_INET6, "::FFFF:127.0.0.1", &(dst));
+  error = get_source_addr_v6 (&udpv6soc, &dst, &src);
+  assert_that (error, is_equal_to (NO_ERROR));
+  assert_that (!IN6_IS_ADDR_UNSPECIFIED (&src));
+
+  /* Dependent on local IPv6 configuration. */
+  // inet_pton (AF_INET6, "2001:0db8:0:f101::2", &(dst));
+  // error = get_source_addr_v6 (&udpv6soc, &dst, &src);
+  // assert_that (error, is_equal_to (NO_ERROR));
+  // assert_that (!IN6_IS_ADDR_UNSPECIFIED (&src));
+
+  /* Close socket. */
+  close (udpv6soc);
 }
 
 /* If dst for routethrough() is localhost "lo" interface is returned. */
@@ -406,6 +432,7 @@ main (int argc, char **argv)
   add_test_with_context (suite, alivedetection, set_all_needed_sockets);
   add_test_with_context (suite, alivedetection, set_socket);
   add_test_with_context (suite, alivedetection, get_source_addr_v4);
+  add_test_with_context (suite, alivedetection, get_source_addr_v6);
 
   if (argc > 1)
     return run_single_test (suite, argv[1], create_text_reporter ());
