@@ -270,9 +270,11 @@ load_scan_preferences (struct scan_globals *globals)
       g_strfreev (pref);
       res = res->next;
     }
+  kb_del_items (kb, key);
   snprintf (key, sizeof (key), "internal/%s", globals->scan_id);
   kb_item_set_str (kb, key, "ready", 0);
   kb_item_set_int (kb, "internal/ovas_pid", getpid ());
+  kb_lnk_reset (kb);
 
   g_debug ("End loading scan preferences.");
 
