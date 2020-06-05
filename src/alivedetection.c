@@ -1921,9 +1921,9 @@ static void
 fill_ports_array (gpointer range, gpointer ports_array)
 {
   gboolean range_exclude;
-  uint16_t range_start;
-  uint16_t range_end;
-  uint16_t port;
+  int range_start;
+  int range_end;
+  int port;
 
   range_start = ((range_t *) range)->start;
   range_end = ((range_t *) range)->end;
@@ -1963,7 +1963,7 @@ alive_detection_init (gvm_hosts_t *hosts, alive_test_t alive_test)
 
   /* Used for ports array initialisation. */
   const gchar *port_list = NULL;
-  GPtrArray *portranges_array;
+  GPtrArray *portranges_array = NULL;
   boreas_error_t error = NO_ERROR;
 
   /* Scanner */
@@ -2012,7 +2012,7 @@ alive_detection_init (gvm_hosts_t *hosts, alive_test_t alive_test)
        * again. */
       port_list = prefs_get ("port_range");
     }
-  scanner.ports = g_array_new (FALSE, TRUE, sizeof (uint16_t));
+  scanner.ports = g_array_new (FALSE, TRUE, sizeof (int));
   if (port_list)
     portranges_array = port_range_ranges (port_list);
   else
