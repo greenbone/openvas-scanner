@@ -819,9 +819,9 @@ send_icmp (__attribute__ ((unused)) gpointer key, gpointer value,
   struct in6_addr *dst6_p = &dst6;
   struct in_addr dst4;
   struct in_addr *dst4_p = &dst4;
-  static int count;
+  static int count = 0;
 
-  count = 1;
+  count++;
   if (count % BURST == 0)
     usleep (BURST_TIMEOUT);
 
