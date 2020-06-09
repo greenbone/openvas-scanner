@@ -27,6 +27,7 @@ if (NOT PKG_CONFIG_FOUND)
 endif (NOT PKG_CONFIG_FOUND)
 
 pkg_check_modules (LIBGVM_BASE REQUIRED libgvm_base>=20.8)
+pkg_check_modules (LIBGVM_BOREAS REQUIRED libgvm_boreas>=20.8)
 pkg_check_modules (LIBGVM_UTIL REQUIRED libgvm_util>=20.8)
 pkg_check_modules (GLIB REQUIRED glib-2.0>=2.42)
 
@@ -84,7 +85,7 @@ endif (PCAP_CONFIG)
 
 find_package (Threads)
 
-add_executable (openvas alivedetection.c attack.c hosts.c
+add_executable (openvas attack.c hosts.c
                 main.c nasl_plugins.c openvas.c
                 pluginlaunch.c pluginload.c
                 pluginscheduler.c plugs_req.c
@@ -169,29 +170,16 @@ endif (CMAKE_SYSTEM_NAME MATCHES "FreeBSD")
 target_link_libraries (openvas openvas_nasl_shared ${LIBOPENVAS_NASL_LDFLAGS}
                        ${LIBOPENVAS_MISC_LDFLAGS}
                        ${LIBGVM_BASE_LDFLAGS}
+                       ${LIBGVM_BOREAS_LDFLAGS}
                        ${GLIB_LDFLAGS} ${GCRYPT_LDFLAGS}
                        ${EXECINFO_LDFLAGS} ${PCAP_LDFLAGS}
                        ${LINKER_HARDENING_FLAGS} ${CMAKE_THREAD_LIBS_INIT})
 
 ## Tests
 
-set (ALIVEDETECTION_TEST_LINKER_WRAP_OPTIONS
-     "-Wl,-wrap,socket,-wrap,setsockopt")
-add_executable (alivedetection-test
-                EXCLUDE_FROM_ALL
-                alivedetection_tests.c)
-add_test (alivedetection-test alivedetection-test)
-target_include_directories (alivedetection-test PRIVATE ${CGREEN_INCLUDE_DIRS})
-target_link_libraries (alivedetection-test openvas_nasl_shared cgreen
-                       ${LIBGVM_BASE_LDFLAGS}
-                       ${GLIB_LDFLAGS}
-                       ${PCAP_LDFLAGS}
-                       ${LINKER_HARDENING_FLAGS} ${CMAKE_THREAD_LIBS_INIT} 
-                       ${ALIVEDETECTION_TEST_LINKER_WRAP_OPTIONS})
-
 add_executable (attack-test
                 EXCLUDE_FROM_ALL
-                alivedetection.c attack_tests.c
+                attack_tests.c
                 hosts.c nasl_plugins.c openvas.c
                 pluginlaunch.c pluginload.c
                 pluginscheduler.c plugs_req.c
@@ -205,13 +193,11 @@ target_link_libraries (attack-test openvas_nasl_shared cgreen
                        ${LIBOPENVAS_NASL_LDFLAGS}
                        ${LIBOPENVAS_MISC_LDFLAGS}
                        ${LIBGVM_BASE_LDFLAGS}
+                       ${LIBGVM_BOREAS_LDFLAGS}
                        ${GLIB_LDFLAGS} ${GCRYPT_LDFLAGS}
                        ${EXECINFO_LDFLAGS} ${PCAP_LDFLAGS}
                        ${LINKER_HARDENING_FLAGS} ${CMAKE_THREAD_LIBS_INIT}
                        -Wl,--wrap=redis_push_str)
-
-add_custom_target (tests
-                   DEPENDS attack-test alivedetection-test)
 
 ## Static analysis
 
@@ -223,7 +209,7 @@ add_dependencies (check cppcheck)
 
 ## Tag files
 
-set (C_FILES "alivedetection.c" "attack.c" "hosts.c"
+set (C_FILES "attack.c" "hosts.c"
      "nasl_plugins.c" "openvas.c"
      "pluginlaunch.c" "pluginload.c"
      "pluginscheduler.c" "plugs_req.c"

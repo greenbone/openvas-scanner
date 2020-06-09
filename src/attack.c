@@ -29,7 +29,6 @@
 #include "../misc/nvt_categories.h" /* for ACT_INIT */
 #include "../misc/pcap_openvas.h"   /* for v6_is_local_ip */
 #include "../nasl/nasl_debug.h"     /* for nasl_*_filename */
-#include "alivedetection.h"         /* for start_alive_detection */
 #include "hosts.h"
 #include "pluginlaunch.h"
 #include "pluginload.h"
@@ -47,7 +46,8 @@
 #include <gvm/base/networking.h>
 #include <gvm/base/prefs.h> /* for prefs_get() */
 #include <gvm/base/proctitle.h>
-#include <gvm/util/nvticache.h> /* for nvticache_t */
+#include <gvm/boreas/alivedetection.h> /* for start_alive_detection */
+#include <gvm/util/nvticache.h>        /* for nvticache_t */
 #include <pthread.h>
 #include <stdlib.h>   /* for exit() */
 #include <string.h>   /* for strlen() */
