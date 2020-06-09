@@ -25,6 +25,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 - Add aligned summary to log at scan end. [#496](https://github.com/greenbone/openvas/pull/496)
 - Unify log messages about start/end of scan and of hosts. [#500](https://github.com/greenbone/openvas/pull/500)
 - Use flock to lock the feed lock file. [#507](https://github.com/greenbone/openvas/pull/507)
+- Move alive detection module (Boreas) into gvm-libs [#519](https://github.com/greenbone/openvas/pull/519)
 
 ### Fixed
 - Improve signal handling when update vhosts list. [#425](https://github.com/greenbone/openvas/pull/425)
