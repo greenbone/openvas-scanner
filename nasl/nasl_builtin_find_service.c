@@ -450,7 +450,8 @@ mark_wild_shell (struct script_infos *desc, int port)
 
   post_alarm (
     oid, desc, port,
-    "A shell seems to be running on this port ! (this is a possible backdoor)");
+    "A shell seems to be running on this port ! (this is a possible backdoor)",
+    NULL);
 }
 
 void
@@ -497,7 +498,7 @@ void
 mark_netbus_server (struct script_infos *desc, int port)
 {
   register_service (desc, port, "netbus");
-  post_alarm (oid, desc, port, "NetBus is running on this port");
+  post_alarm (oid, desc, port, "NetBus is running on this port", NULL);
 }
 
 void
@@ -1030,7 +1031,7 @@ mark_sub7_server (struct script_infos *desc, int port, int trp)
   register_service (desc, port, "sub7");
   snprintf (ban, sizeof (ban), "The Sub7 trojan is running on this port%s",
             get_encaps_through (trp));
-  post_alarm (oid, desc, port, ban);
+  post_alarm (oid, desc, port, ban, NULL);
 }
 
 /*
@@ -1107,7 +1108,7 @@ mark_fssniffer (struct script_infos *desc, int port, int trp)
     snprintf (ban, sizeof (ban),
               "A FsSniffer backdoor seems to be running on this port%s",
               get_encaps_through (trp));
-    post_alarm (oid, desc, port, ban);
+    post_alarm (oid, desc, port, ban, NULL);
   }
 }
 
