@@ -334,8 +334,9 @@ proto_post_wrapped (const char *oid, struct script_infos *desc, int port,
   else if (desc->vhosts)
     hostname = ((gvm_vhost_t *) desc->vhosts->data)->value;
   addr6_to_str (plug_get_host_ip (desc), ip_str);
-  buffer = g_strdup_printf ("%s|||%s|||%s/%s|||%s|||%s|||%s", what, hostname ?: " ",
-                            port_s, proto, oid, action_str->str, uri ?: "");
+  buffer =
+    g_strdup_printf ("%s|||%s|||%s/%s|||%s|||%s|||%s", what, hostname ?: " ",
+                     port_s, proto, oid, action_str->str, uri ?: "");
   /* Convert to UTF-8 before sending to Manager. */
   data = g_convert (buffer, -1, "UTF-8", "ISO_8859-1", NULL, &length, NULL);
   kb = plug_get_kb (desc);
@@ -384,11 +385,10 @@ post_log (const char *oid, struct script_infos *desc, int port,
  */
 void
 post_log_with_uri (const char *oid, struct script_infos *desc, int port,
-                        const char *action, const char *uri)
+                   const char *action, const char *uri)
 {
   proto_post_log (oid, desc, port, "tcp", action, uri);
 }
-
 
 void
 proto_post_error (const char *oid, struct script_infos *desc, int port,

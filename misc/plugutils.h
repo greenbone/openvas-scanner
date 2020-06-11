@@ -117,7 +117,7 @@ post_log (const char *, struct script_infos *, int, const char *);
 
 void
 post_log_with_uri (const char *, struct script_infos *, int, const char *,
-                        const char *);
+                   const char *);
 
 #define post_log_tcp post_log
 

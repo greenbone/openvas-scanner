@@ -853,7 +853,8 @@ set_kb_item (lex_ctxt *lexic)
  * Function is used when the script wants to report a problem back to openvas.
  */
 typedef void (*proto_post_something_t) (const char *, struct script_infos *,
-                                        int, const char *, const char *, const char *);
+                                        int, const char *, const char *,
+                                        const char *);
 /**
  * Function is used when the script wants to report a problem back to openvas.
  */
