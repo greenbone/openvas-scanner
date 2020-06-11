@@ -513,13 +513,12 @@ do_sync ()
   then
     log_write "Feed is already current, skipping synchronization."
   else
+    trap "rm $OPENVAS_RUN_DIR/feed-update.lock" EXIT HUP INT TRAP TERM
     create_feed_lock_file
     if [ $FEED_LOCKED -eq 1 ] ; then
        exit 1
     fi
-
     sync_nvts
-    rm $OPENVAS_RUN_DIR/feed-update.lock
   fi
 }
 
