@@ -46,7 +46,8 @@
 #include <gvm/base/networking.h>
 #include <gvm/base/prefs.h> /* for prefs_get() */
 #include <gvm/base/proctitle.h>
-#include <gvm/boreas/alivedetection.h> /* for start_alive_detection */
+#include <gvm/boreas/alivedetection.h> /* for start_alive_detection() */
+#include <gvm/boreas/boreas_io.h>      /* for get_host_from_queue() */
 #include <gvm/util/nvticache.h>        /* for nvticache_t */
 #include <pthread.h>
 #include <stdlib.h>   /* for exit() */
