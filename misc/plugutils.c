@@ -302,6 +302,7 @@ plug_get_host_ip_str (struct script_infos *desc)
  * @param proto Protocol related to the issue (tcp or udp).
  * @param action The actual result text
  * @param what   The type, like "LOG".
+ * @param uri   Location like file path or webservice URL.
  */
 void
 proto_post_wrapped (const char *oid, struct script_infos *desc, int port,
