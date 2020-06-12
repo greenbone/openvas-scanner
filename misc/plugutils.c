@@ -302,10 +302,12 @@ plug_get_host_ip_str (struct script_infos *desc)
  * @param proto Protocol related to the issue (tcp or udp).
  * @param action The actual result text
  * @param what   The type, like "LOG".
+ * @param uri   Location like file path or webservice URL.
  */
 void
 proto_post_wrapped (const char *oid, struct script_infos *desc, int port,
-                    const char *proto, const char *action, const char *what)
+                    const char *proto, const char *action, const char *what,
+                    const char *uri)
 {
   const char *hostname = "";
   char *buffer, *data, port_s[16] = "general";
@@ -333,8 +335,9 @@ proto_post_wrapped (const char *oid, struct script_infos *desc, int port,
   else if (desc->vhosts)
     hostname = ((gvm_vhost_t *) desc->vhosts->data)->value;
   addr6_to_str (plug_get_host_ip (desc), ip_str);
-  buffer = g_strdup_printf ("%s|||%s|||%s/%s|||%s|||%s", what, hostname ?: " ",
-                            port_s, proto, oid, action_str->str);
+  buffer =
+    g_strdup_printf ("%s|||%s|||%s/%s|||%s|||%s|||%s", what, hostname ?: " ",
+                     port_s, proto, oid, action_str->str, uri ?: "");
   /* Convert to UTF-8 before sending to Manager. */
   data = g_convert (buffer, -1, "UTF-8", "ISO_8859-1", NULL, &length, NULL);
   kb = plug_get_kb (desc);
@@ -346,16 +349,16 @@ proto_post_wrapped (const char *oid, struct script_infos *desc, int port,
 
 void
 proto_post_alarm (const char *oid, struct script_infos *desc, int port,
-                  const char *proto, const char *action)
+                  const char *proto, const char *action, const char *uri)
 {
-  proto_post_wrapped (oid, desc, port, proto, action, "ALARM");
+  proto_post_wrapped (oid, desc, port, proto, action, "ALARM", uri);
 }
 
 void
 post_alarm (const char *oid, struct script_infos *desc, int port,
-            const char *action)
+            const char *action, const char *uri)
 {
-  proto_post_alarm (oid, desc, port, "tcp", action);
+  proto_post_alarm (oid, desc, port, "tcp", action, uri);
 }
 
 /**
@@ -363,9 +366,9 @@ post_alarm (const char *oid, struct script_infos *desc, int port,
  */
 void
 proto_post_log (const char *oid, struct script_infos *desc, int port,
-                const char *proto, const char *action)
+                const char *proto, const char *action, const char *uri)
 {
-  proto_post_wrapped (oid, desc, port, proto, action, "LOG");
+  proto_post_wrapped (oid, desc, port, proto, action, "LOG", uri);
 }
 
 /**
@@ -375,21 +378,31 @@ void
 post_log (const char *oid, struct script_infos *desc, int port,
           const char *action)
 {
-  proto_post_log (oid, desc, port, "tcp", action);
+  proto_post_log (oid, desc, port, "tcp", action, NULL);
+}
+
+/**
+ * @brief Post a log message about a tcp port with a uri
+ */
+void
+post_log_with_uri (const char *oid, struct script_infos *desc, int port,
+                   const char *action, const char *uri)
+{
+  proto_post_log (oid, desc, port, "tcp", action, uri);
 }
 
 void
 proto_post_error (const char *oid, struct script_infos *desc, int port,
-                  const char *proto, const char *action)
+                  const char *proto, const char *action, const char *uri)
 {
-  proto_post_wrapped (oid, desc, port, proto, action, "ERRMSG");
+  proto_post_wrapped (oid, desc, port, proto, action, "ERRMSG", uri);
 }
 
 void
 post_error (const char *oid, struct script_infos *desc, int port,
-            const char *action)
+            const char *action, const char *uri)
 {
-  proto_post_error (oid, desc, port, "tcp", action);
+  proto_post_error (oid, desc, port, "tcp", action, uri);
 }
 
 /**

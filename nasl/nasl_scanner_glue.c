@@ -853,12 +853,13 @@ set_kb_item (lex_ctxt *lexic)
  * Function is used when the script wants to report a problem back to openvas.
  */
 typedef void (*proto_post_something_t) (const char *, struct script_infos *,
-                                        int, const char *, const char *);
+                                        int, const char *, const char *,
+                                        const char *);
 /**
  * Function is used when the script wants to report a problem back to openvas.
  */
 typedef void (*post_something_t) (const char *, struct script_infos *, int,
-                                  const char *);
+                                  const char *, const char *);
 
 static tree_cell *
 security_something (lex_ctxt *lexic, proto_post_something_t proto_post_func,
@@ -868,6 +869,7 @@ security_something (lex_ctxt *lexic, proto_post_something_t proto_post_func,
 
   char *proto = get_str_var_by_name (lexic, "protocol");
   char *data = get_str_var_by_name (lexic, "data");
+  char *uri = get_str_var_by_name (lexic, "uri");
   int port = get_int_var_by_name (lexic, "port", -1);
   char *dup = NULL;
 
@@ -899,18 +901,18 @@ security_something (lex_ctxt *lexic, proto_post_something_t proto_post_func,
   if (dup != NULL)
     {
       if (proto == NULL)
-        post_func (lexic->oid, script_infos, port, dup);
+        post_func (lexic->oid, script_infos, port, dup, uri);
       else
-        proto_post_func (lexic->oid, script_infos, port, proto, dup);
+        proto_post_func (lexic->oid, script_infos, port, proto, dup, uri);
 
       g_free (dup);
       return FAKE_CELL;
     }
 
   if (proto == NULL)
-    post_func (lexic->oid, script_infos, port, NULL);
+    post_func (lexic->oid, script_infos, port, NULL, uri);
   else
-    proto_post_func (lexic->oid, script_infos, port, proto, NULL);
+    proto_post_func (lexic->oid, script_infos, port, proto, NULL, uri);
 
   return FAKE_CELL;
 }
@@ -931,7 +933,7 @@ security_message (lex_ctxt *lexic)
 tree_cell *
 log_message (lex_ctxt *lexic)
 {
-  return security_something (lexic, proto_post_log, post_log);
+  return security_something (lexic, proto_post_log, post_log_with_uri);
 }
 
 tree_cell *
