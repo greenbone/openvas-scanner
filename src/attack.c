@@ -1198,7 +1198,6 @@ stop:
       int err;
       void *retval;
 
-      gvm_hosts_free (alive_hosts_list);
       kb_lnk_reset (alive_hosts_kb);
       g_debug ("%s: free alive detection data ", __func__);
 
@@ -1221,8 +1220,6 @@ stop:
       g_debug ("%s: Finished waiting for alive detection thread.", __func__);
     }
 
-  gvm_hosts_free (hosts);
-
   plugins_scheduler_free (sched);
 
   gettimeofday (&now, NULL);
@@ -1235,6 +1232,10 @@ stop:
     g_message ("Vulnerability scan %s finished in %ld seconds: %d hosts",
                globals->scan_id, now.tv_sec - then.tv_sec,
                gvm_hosts_count (hosts));
+
+  gvm_hosts_free (hosts);
+  if (test_alive_hosts_only)
+    gvm_hosts_free (alive_hosts_list);
 
   set_scan_status ("finished");
 }
