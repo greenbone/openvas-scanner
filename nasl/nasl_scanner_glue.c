@@ -763,6 +763,33 @@ get_kb_item (lex_ctxt *lexic)
   return retc;
 }
 
+/**
+ * @brief Get the kb index of the host running the current script.
+ *
+ * @param[in] lexic     NASL lexer.
+ *
+ * @return lex cell containing the host kb index value as positive integer.
+ *         NULL otherwise
+ */
+tree_cell *
+get_host_kb_index (lex_ctxt *lexic)
+{
+  struct script_infos *script_infos = lexic->script_infos;
+  int val;
+  tree_cell *retc;
+
+  val = kb_get_kb_index (script_infos->key);
+  if (val >= 0)
+    {
+      retc = alloc_typed_cell (CONST_INT);
+      retc->x.i_val = val;
+    }
+  else
+    return NULL;
+
+  return retc;
+}
+
 tree_cell *
 replace_kb_item (lex_ctxt *lexic)
 {
