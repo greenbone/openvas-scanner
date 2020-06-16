@@ -94,6 +94,7 @@ static init_func libfuncs[] = {
   {"set_kb_item", set_kb_item},
   {"get_kb_item", get_kb_item},
   {"get_kb_list", get_kb_list},
+  {"get_host_kb_index", get_host_kb_index},
   {"security_message", security_message},
   {"log_message", log_message},
   {"error_message", error_message},

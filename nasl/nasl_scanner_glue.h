@@ -94,6 +94,9 @@ tree_cell *
 get_script_oid (lex_ctxt *);
 
 tree_cell *
+get_host_kb_index (lex_ctxt *);
+
+tree_cell *
 get_kb_item (lex_ctxt *);
 
 tree_cell *
