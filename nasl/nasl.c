@@ -383,16 +383,17 @@ main (int argc, char **argv)
             }
           if (kb_values)
             {
-              while (*kb_values)
+              gchar **kb_values_aux = kb_values;
+              while (*kb_values_aux)
                 {
-                  gchar **splits = g_strsplit (*kb_values, "=", -1);
+                  gchar **splits = g_strsplit (*kb_values_aux, "=", -1);
                   if (splits[2] || !splits[1])
                     {
-                      fprintf (stderr, "Erroneous --kb entry %s\n", *kb_values);
+                      fprintf (stderr, "Erroneous --kb entry %s\n", *kb_values_aux);
                       exit (1);
                     }
                   kb_item_add_str_unique (kb, splits[0], splits[1], 0);
-                  kb_values++;
+                  kb_values_aux++;
                   g_strfreev (splits);
                 }
             }
