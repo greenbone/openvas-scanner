@@ -2,7 +2,7 @@
 .SH NAME
 openvas \- The Scanner of the Greenbone Vulnerability Management
 .SH SYNOPSIS
-.BI "openvas [\|-v\|] [\|-h\|]  [\|-c " config-file\| "] [\|--scan-start " scan-uuid\| "]
+.BI "openvas [\|-V\|] [\|-h\|]  [\|-c " config-file\| "] [\|--scan-start " scan-uuid\| "]
 .BI " [\|-u\|] [\|-s\|] [\|-y\|]"
 
 .SH DESCRIPTION
@@ -29,7 +29,7 @@ Use the alternate configuration file instead of
 .I @OPENVAS_CONF@
 
 .TP 
-.B "-v, --version"
+.B "-V, --version"
 Prints the version number and exits
 
 .TP
