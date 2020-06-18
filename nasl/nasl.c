@@ -389,7 +389,8 @@ main (int argc, char **argv)
                   gchar **splits = g_strsplit (*kb_values_aux, "=", -1);
                   if (splits[2] || !splits[1])
                     {
-                      fprintf (stderr, "Erroneous --kb entry %s\n", *kb_values_aux);
+                      fprintf (stderr, "Erroneous --kb entry %s\n",
+                               *kb_values_aux);
                       exit (1);
                     }
                   kb_item_add_str_unique (kb, splits[0], splits[1], 0);
