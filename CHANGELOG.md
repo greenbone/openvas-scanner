@@ -39,6 +39,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 - Prevent child deadlock. [#491](https://github.com/greenbone/openvas/pull/491)
 - Memleak fixes for kb_item_get_str(). [#502](https://github.com/greenbone/openvas/pull/502)
 - Fix denied hosts.  [#510](https://github.com/greenbone/openvas/pull/510)
+- Fix openvas-nasl. Add kb key/value for all vhosts. [#533](https://github.com/greenbone/openvas/pull/533)
 
 ### Removed
 - Removed "network scan" mode. This includes removal of NASL API methods "scan_phase()" and "network_targets()". Sending a "network_mode=yes" in a scanner configuration will have no effect anymore. [#493](https://github.com/greenbone/openvas/pull/493)
