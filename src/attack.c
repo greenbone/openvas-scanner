@@ -506,6 +506,8 @@ attack_host (struct scan_globals *globals, struct in6_addr *ip, GSList *vhosts,
         }
       else if (plugin == NULL)
         break;
+      else if (plugin != NULL && plugin == PLUG_RUNNING)
+        usleep (50000);
       pluginlaunch_wait_for_free_process (kb);
     }
 
