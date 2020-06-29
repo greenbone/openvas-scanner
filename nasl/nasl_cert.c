@@ -433,7 +433,7 @@ failure:
 }
 
 /* Given a CERT object, build an array with all hostnames identified
-   by the certifciate.  */
+   by the certificate.  */
 static tree_cell *
 build_hostname_list (ksba_cert_t cert)
 {
