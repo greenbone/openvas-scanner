@@ -91,7 +91,9 @@ bpf_open_live (char *iface, char *filter)
 
   if (pcap_compile (ret, &filter_prog, filter, 1, netmask) < 0)
     {
-      print_pcap_error (ret, "pcap_compile");
+      char buffer[2048];
+      snprintf (buffer, sizeof (buffer), "pcap_compile: Filter \"%s\"", filter);
+      print_pcap_error (ret, buffer);
       pcap_close (ret);
       return -1;
     }
