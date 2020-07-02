@@ -1,4 +1,4 @@
-# Copyright (C) 2011-2019 Greenbone Networks GmbH
+# Copyright (C) 2011-2020 Greenbone Networks GmbH
 #
 # SPDX-License-Identifier: GPL-2.0-or-later
 #
@@ -26,9 +26,9 @@ if (NOT PKG_CONFIG_FOUND)
   message(FATAL_ERROR "pkg-config executable not found. Aborting.")
 endif (NOT PKG_CONFIG_FOUND)
 
-pkg_check_modules (LIBGVM_BASE REQUIRED libgvm_base>=20.8)
-pkg_check_modules (LIBGVM_BOREAS REQUIRED libgvm_boreas>=20.8)
-pkg_check_modules (LIBGVM_UTIL REQUIRED libgvm_util>=20.8)
+pkg_check_modules (LIBGVM_BASE REQUIRED libgvm_base>=21.4)
+pkg_check_modules (LIBGVM_BOREAS REQUIRED libgvm_boreas>=21.4)
+pkg_check_modules (LIBGVM_UTIL REQUIRED libgvm_util>=21.4)
 pkg_check_modules (GLIB REQUIRED glib-2.0>=2.42)
 
 # set NVTICACHE_STR with version.

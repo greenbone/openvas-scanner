@@ -1,4 +1,4 @@
-# Copyright (C) 2011-2019 Greenbone Networks GmbH
+# Copyright (C) 2011-2020 Greenbone Networks GmbH
 #
 # SPDX-License-Identifier: GPL-2.0-or-later
 #
@@ -21,7 +21,7 @@ cmake_minimum_required (VERSION 3.0)
 message ("-- Configuring the Scanner...")
 
 project (openvas
-  VERSION 20.8
+  VERSION 21.4
   LANGUAGES C)
 
 if (POLICY CMP0005)
