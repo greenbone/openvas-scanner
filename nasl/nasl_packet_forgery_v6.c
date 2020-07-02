@@ -196,7 +196,7 @@ get_ipv6_element (lex_ctxt *lexic)
 
   if (ip6 == NULL)
     {
-      nasl_perror (lexic, "get_ipv6_element : no valid 'ip' argument!\n");
+      nasl_perror (lexic, "get_ipv6_element : no valid 'ipv6' argument!\n");
       return NULL;
     }
 
@@ -286,7 +286,7 @@ set_ipv6_elements (lex_ctxt *lexic)
 
   if (o_pkt == NULL)
     {
-      nasl_perror (lexic, "set_ip_elements: missing <ip> field\n");
+      nasl_perror (lexic, "set_ip_elements: missing <ip6> field\n");
       return NULL;
     }
 
@@ -461,7 +461,7 @@ forge_tcp_v6_packet (lex_ctxt *lexic)
   if (ip6 == NULL)
     {
       nasl_perror (lexic,
-                   "forge_tcp_packet : You must supply the 'ip' argument !");
+                   "forge_tcp_packet : You must supply the 'ip6' argument !");
       return NULL;
     }
 
