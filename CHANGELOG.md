@@ -4,7 +4,7 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
-## [Unreleased]
+## [20.08] (unreleased)
 
 ### Added
 - Create greenbone-nvt-sync create lock file during feed sync.
@@ -46,9 +46,9 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 ### Removed
 - Removed "network scan" mode. This includes removal of NASL API methods "scan_phase()" and "network_targets()". Sending a "network_mode=yes" in a scanner configuration will have no effect anymore. [#493](https://github.com/greenbone/openvas/pull/493)
 
-[Unreleased]: https://github.com/greenbone/openvas/compare/openvas-7.0...master
+[20.08]: https://github.com/greenbone/openvas/compare/openvas-7.0...openvas-20.08
 
-## [7.0.1] (unreleased)
+## [7.0.1]
 
 ### Added
 - Display gvm-libs version in `openvas --version` output [#436](https://github.com/greenbone/openvas/pull/436)
