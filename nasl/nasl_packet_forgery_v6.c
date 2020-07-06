@@ -196,13 +196,13 @@ get_ipv6_element (lex_ctxt *lexic)
 
   if (ip6 == NULL)
     {
-      nasl_perror (lexic, "get_ipv6_element : no valid 'ipv6' argument!\n");
+      nasl_perror (lexic, "get_ipv6_element: no valid 'ipv6' argument\n");
       return NULL;
     }
 
   if (element == NULL)
     {
-      nasl_perror (lexic, "get_ipv6_element : no valid 'element' argument!\n");
+      nasl_perror (lexic, "get_ipv6_element: no valid 'element' argument\n");
       return NULL;
     }
 
@@ -286,7 +286,7 @@ set_ipv6_elements (lex_ctxt *lexic)
 
   if (o_pkt == NULL)
     {
-      nasl_perror (lexic, "set_ip_elements: missing <ip6> field\n");
+      nasl_perror (lexic, "set_ipv6_elements: missing <ip6> field\n");
       return NULL;
     }
 
@@ -461,7 +461,7 @@ forge_tcp_v6_packet (lex_ctxt *lexic)
   if (ip6 == NULL)
     {
       nasl_perror (lexic,
-                   "forge_tcp_packet : You must supply the 'ip6' argument !");
+                   "forge_tcp_v6_packet: You must supply the 'ip6' argument\n");
       return NULL;
     }
 
@@ -547,8 +547,7 @@ get_tcp_v6_element (lex_ctxt *lexic)
 
   if (packet == NULL)
     {
-      nasl_perror (lexic,
-                   "get_tcp_element : Error ! No valid 'tcp' argument !\n");
+      nasl_perror (lexic, "get_tcp_v6_element: No valid 'tcp' argument\n");
       return NULL;
     }
 
@@ -563,8 +562,7 @@ get_tcp_v6_element (lex_ctxt *lexic)
   element = get_str_var_by_name (lexic, "element");
   if (!element)
     {
-      nasl_perror (lexic,
-                   "get_tcp_element : Error ! No valid 'element' argument !\n");
+      nasl_perror (lexic, "get_tcp_v6_element: No valid 'element' argument\n");
       return NULL;
     }
 
@@ -594,7 +592,9 @@ get_tcp_v6_element (lex_ctxt *lexic)
       retc->size = UNFIX (ip6->ip6_plen) - tcp->th_off * 4;
       if (retc->size <= 0 || retc->size > ipsz - 40 - tcp->th_off * 4)
         {
-          nasl_perror (lexic, "Erroneous tcp header offset %d", retc->size);
+          nasl_perror (lexic,
+                       "get_tcp_v6_element: Erroneous tcp header offset %d\n",
+                       retc->size);
           deref_cell (retc);
           return NULL;
         }
@@ -604,7 +604,8 @@ get_tcp_v6_element (lex_ctxt *lexic)
     }
   else
     {
-      nasl_perror (lexic, "Unknown tcp field %s\n", element);
+      nasl_perror (lexic, "get_tcp_v6_element: Unknown tcp field %s\n",
+                   element);
       return NULL;
     }
 
@@ -634,8 +635,8 @@ set_tcp_v6_elements (lex_ctxt *lexic)
 
   if (pkt == NULL)
     {
-      nasl_perror (lexic,
-                   "set_tcp_elements : Invalid value for the argument 'tcp'\n");
+      nasl_perror (
+        lexic, "set_tcp_v6_elements: Invalid value for the argument 'tcp'\n");
       return NULL;
     }
 
@@ -1682,7 +1683,7 @@ nasl_send_v6packet (lex_ctxt *lexic)
 
       if ((unsigned int) sz < sizeof (struct ip6_hdr))
         {
-          nasl_perror (lexic, "send_packet(): packet is too short!\n");
+          nasl_perror (lexic, "send_v6packet: packet is too short\n");
           continue;
         }
 
@@ -1724,7 +1725,7 @@ nasl_send_v6packet (lex_ctxt *lexic)
                    sizeof (txt2));
           txt2[sizeof (txt2) - 1] = '\0';
           nasl_perror (lexic,
-                       "send_packet: malicious or buggy script is trying to "
+                       "send_v6packet: malicious or buggy script is trying to "
                        "send packet to %s instead of designated target %s\n",
                        txt1, txt2);
           if (bpf >= 0)
