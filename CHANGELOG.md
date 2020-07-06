@@ -45,6 +45,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 - Fix openvas-nasl. Add kb key/value for all vhosts. [#533](https://github.com/greenbone/openvas/pull/533)
 - Wait for last plugin to finish before change to other category. [#534](https://github.com/greenbone/openvas/pull/534)
 - Corrected function parameter names in nasl_perror calls. [#539](https://github.com/greenbone/openvas/pull/539)
+- Various updates to the nasl_perror() error texts. [#539](https://github.com/greenbone/openvas/pull/542)
 - Fix icmp checksum calculation in openvas-nasl. [#543](https://github.com/greenbone/openvas/pull/543)
 
 ### Removed
