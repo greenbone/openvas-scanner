@@ -45,6 +45,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 - Fix openvas-nasl. Add kb key/value for all vhosts. [#533](https://github.com/greenbone/openvas/pull/533)
 - Wait for last plugin to finish before change to other category. [#534](https://github.com/greenbone/openvas/pull/534)
 - Corrected function parameter names in nasl_perror calls. [#539](https://github.com/greenbone/openvas/pull/539)
+- Fix icmp checksum calculation in openvas-nasl. [#543](https://github.com/greenbone/openvas/pull/543)
 
 ### Removed
 - Removed "network scan" mode. This includes removal of NASL API methods "scan_phase()" and "network_targets()". Sending a "network_mode=yes" in a scanner configuration will have no effect anymore. [#493](https://github.com/greenbone/openvas/pull/493)
