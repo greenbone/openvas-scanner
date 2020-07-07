@@ -1291,7 +1291,20 @@ forge_icmp_v6_packet (lex_ctxt *lexic)
           break;
         default:
           {
-            nasl_perror (lexic, "forge_icmp_v6_packet: unknown type\n");
+            if (t < 0 || t > 255)
+              {
+                nasl_perror (lexic, "forge_icmp_v6_packet: illegal type %d\n",
+                             t);
+              }
+            else
+              {
+                if (data != NULL)
+                  bcopy (data, &(p[8]), len);
+                icmp->icmp6_id = get_int_var_by_name (lexic, "icmp_id", 0);
+                icmp->icmp6_seq = get_int_var_by_name (lexic, "icmp_seq", 0);
+                size = ip6_sz + 8 + len;
+                sz = 8;
+              }
           }
         }
 
