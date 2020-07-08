@@ -147,7 +147,7 @@ forge_ipv6_packet (lex_ctxt *lexic)
   tc = get_int_var_by_name (lexic, "ip6_tc", 0);
   fl = get_int_var_by_name (lexic, "ip6_fl", 0);
 
-  pkt->ip6_ctlun.ip6_un1.ip6_un1_flow = version | tc | fl;
+  pkt->ip6_flow = htonl (version << 28 | tc << 20 | fl);
 
   pkt->ip6_plen = FIX (data_len); /* No extension headers ? */
   pkt->ip6_nxt = get_int_var_by_name (lexic, "ip6_p", 0);
