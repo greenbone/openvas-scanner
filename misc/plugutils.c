@@ -310,7 +310,7 @@ proto_post_wrapped (const char *oid, struct script_infos *desc, int port,
                     const char *uri)
 {
   const char *hostname = "";
-  char *buffer, *data, port_s[16] = "general";
+  char key[64], *buffer, *data, port_s[16] = "general";
   char ip_str[INET6_ADDRSTRLEN];
   GString *action_str;
   gsize length;
@@ -340,8 +340,9 @@ proto_post_wrapped (const char *oid, struct script_infos *desc, int port,
                      port_s, proto, oid, action_str->str, uri ?: "");
   /* Convert to UTF-8 before sending to Manager. */
   data = g_convert (buffer, -1, "UTF-8", "ISO_8859-1", NULL, &length, NULL);
-  kb = plug_get_kb (desc);
-  kb_item_push_str (kb, "internal/results", data);
+  kb = plug_get_results_kb (desc);
+  snprintf (key, sizeof (key), "internal/results%s%s", hostname ?"/": "", hostname ?: "");
+  kb_item_push_str (kb, key, data);
   g_free (data);
   g_free (buffer);
   g_string_free (action_str, TRUE);
@@ -671,6 +672,12 @@ kb_t
 plug_get_kb (struct script_infos *args)
 {
   return args->key;
+}
+
+kb_t
+plug_get_results_kb (struct script_infos *args)
+{
+  return args->results;
 }
 
 static void

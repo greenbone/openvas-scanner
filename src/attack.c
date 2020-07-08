@@ -87,6 +87,7 @@ struct attack_start_args
   struct scan_globals *globals;
   plugins_scheduler_t sched;
   kb_t host_kb;
+  kb_t main_kb;
   gvm_host_t *host;
 };
 
@@ -157,6 +158,7 @@ static int
 comm_send_status (kb_t kb, char *hostname, int curr, int max)
 {
   char buffer[2048];
+  char key[64];
 
   if (!hostname || !kb)
     return -1;
@@ -165,7 +167,8 @@ comm_send_status (kb_t kb, char *hostname, int curr, int max)
     return -1;
 
   snprintf (buffer, sizeof (buffer), "%d/%d", curr, max);
-  kb_item_push_str (kb, "internal/status", buffer);
+  snprintf (key, sizeof (buffer), "internal/status/%s", hostname);
+  kb_item_push_str (kb, key, buffer);
 
   return 0;
 }
@@ -175,10 +178,12 @@ error_message_to_client2 (kb_t kb, const char *msg, const char *ip_str,
                           const char *port)
 {
   char buf[2048];
-
+  char key[64];
+  
   sprintf (buf, "ERRMSG|||%s|||%s||| |||%s", ip_str ?: "", port ?: " ",
            msg ?: "No error.");
-  kb_item_push_str (kb, "internal/results", buf);
+  sprintf (key, "internal/results%s%s", ip_str ?"/": "", ip_str ?: "");
+  kb_item_push_str (kb, key, buf);
 }
 
 static void
@@ -309,7 +314,7 @@ check_new_vhosts (void)
  */
 static int
 launch_plugin (struct scan_globals *globals, struct scheduler_plugin *plugin,
-               struct in6_addr *ip, GSList *vhosts, kb_t kb)
+               struct in6_addr *ip, GSList *vhosts, kb_t kb, kb_t main_kb)
 {
   int optimize = prefs_get_bool ("optimize_test"), pid, ret = 0;
   char *oid, *name, *error = NULL, ip_str[INET6_ADDRSTRLEN];
@@ -386,7 +391,7 @@ launch_plugin (struct scan_globals *globals, struct scheduler_plugin *plugin,
 
   /* Update vhosts list and start the plugin */
   check_new_vhosts ();
-  pid = plugin_launch (globals, plugin, ip, vhosts, kb, nvti);
+  pid = plugin_launch (globals, plugin, ip, vhosts, kb, main_kb, nvti);
   if (pid < 0)
     {
       plugin->running_state = PLUGIN_STATUS_UNRUN;
@@ -411,7 +416,7 @@ finish_launch_plugin:
  */
 static void
 attack_host (struct scan_globals *globals, struct in6_addr *ip, GSList *vhosts,
-             plugins_scheduler_t sched, kb_t kb)
+             plugins_scheduler_t sched, kb_t kb, kb_t main_kb)
 {
   /* Used for the status */
   int num_plugs, forks_retry = 0;
@@ -451,7 +456,7 @@ attack_host (struct scan_globals *globals, struct in6_addr *ip, GSList *vhosts,
           static int last_status = 0, cur_plug = 0;
 
         again:
-          e = launch_plugin (globals, plugin, ip, host_vhosts, kb);
+          e = launch_plugin (globals, plugin, ip, host_vhosts, kb, main_kb);
           if (e < 0)
             {
               /*
@@ -460,6 +465,9 @@ attack_host (struct scan_globals *globals, struct in6_addr *ip, GSList *vhosts,
               if (e == ERR_HOST_DEAD)
                 {
                   char buffer[2048];
+                  char key[64];
+
+                  sprintf (key, "internal/results/%s", ip_str);
                   snprintf (
                     buffer, sizeof (buffer),
                     "LOG||| |||general/Host_Details||| |||<host><detail>"
@@ -469,9 +477,9 @@ attack_host (struct scan_globals *globals, struct in6_addr *ip, GSList *vhosts,
                   /* In case of a dead host, it sends max_ports = -1 to the
                      manager. The host will not be taken into account to
                      calculate the scan progress. */
-                  comm_send_status (kb, ip_str, 0, -1);
+                  comm_send_status (main_kb, ip_str, 0, -1);
 #endif
-                  kb_item_push_str (kb, "internal/results", buffer);
+                  kb_item_push_str (kb, key, buffer);
                   goto host_died;
                 }
               else if (e == ERR_CANT_FORK)
@@ -496,7 +504,7 @@ attack_host (struct scan_globals *globals, struct in6_addr *ip, GSList *vhosts,
               && !scan_is_stopped ())
             {
               last_status = (cur_plug * 100) / num_plugs + 2;
-              if (comm_send_status (kb, ip_str, cur_plug, num_plugs) < 0)
+              if (comm_send_status (main_kb, ip_str, cur_plug, num_plugs) < 0)
                 {
                   pluginlaunch_stop ();
                   goto host_died;
@@ -514,7 +522,7 @@ attack_host (struct scan_globals *globals, struct in6_addr *ip, GSList *vhosts,
 
   pluginlaunch_wait (kb);
   if (!scan_is_stopped ())
-    comm_send_status (kb, ip_str, num_plugs, num_plugs);
+    comm_send_status (main_kb, ip_str, num_plugs, num_plugs);
 
 host_died:
   pluginlaunch_stop ();
@@ -619,10 +627,12 @@ attack_start (struct attack_start_args *args)
   struct in6_addr hostip;
   struct timeval then;
   kb_t kb = args->host_kb;
+  kb_t main_kb = args->main_kb;
   int ret, ret_host_auth;
 
   nvticache_reset ();
   kb_lnk_reset (kb);
+  kb_lnk_reset (main_kb);
   gettimeofday (&then, NULL);
 
   kb_item_set_str (kb, "internal/scan_id", globals->scan_id, 0);
@@ -641,10 +651,10 @@ attack_start (struct attack_start_args *args)
   if (ret_host_auth < 0)
     {
       if (ret_host_auth == -1)
-        error_message_to_client2 (kb, "Host access denied.", ip_str, NULL);
+        error_message_to_client2 (main_kb, "Host access denied.", ip_str, NULL);
       else
         error_message_to_client2 (
-          kb, "Host access denied (system-wide restriction.)", ip_str, NULL);
+          main_kb, "Host access denied (system-wide restriction.)", ip_str, NULL);
 
       kb_item_set_str (kb, "internal/host_deny", "True", 0);
       g_warning ("Host %s access denied.", ip_str);
@@ -665,7 +675,7 @@ attack_start (struct attack_start_args *args)
     g_message ("Vulnerability scan %s started for host: %s", globals->scan_id,
                ip_str);
   g_free (hostnames);
-  attack_host (globals, &hostip, args->host->vhosts, args->sched, kb);
+  attack_host (globals, &hostip, args->host->vhosts, args->sched, kb, main_kb);
 
   if (!scan_is_stopped ())
     {
@@ -964,6 +974,7 @@ attack_network (struct scan_globals *globals)
   gvm_hosts_t *hosts;
   const gchar *port_range;
   kb_t host_kb;
+  kb_t main_kb;
   GSList *unresolved;
 
   gboolean test_alive_hosts_only = prefs_get_bool ("test_alive_hosts_only");
@@ -988,8 +999,6 @@ attack_network (struct scan_globals *globals)
   port_range = prefs_get ("port_range");
   if (validate_port_range (port_range))
     {
-      kb_t main_kb = NULL;
-
       connect_main_kb (&main_kb);
       error_message_to_client2 (
         main_kb, "Invalid port list. Ports must be in the range [1-65535]",
@@ -1132,10 +1141,13 @@ attack_network (struct scan_globals *globals)
           continue;
         }
 
+      connect_main_kb (&main_kb);
+      
       args.host = host;
       args.globals = globals;
       args.sched = sched;
       args.host_kb = host_kb;
+      args.main_kb = main_kb;
 
     forkagain:
       pid = create_process ((process_func_t) attack_start, &args);
