@@ -32,7 +32,7 @@ int
 hosts_init (int);
 
 int
-hosts_new (char *, kb_t);
+hosts_new (char *, kb_t, kb_t);
 
 int
 hosts_set_pid (char *, pid_t);

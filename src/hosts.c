@@ -50,6 +50,7 @@ struct host
   char *ip;
   pid_t pid;
   kb_t host_kb;
+  kb_t results_kb;
   struct host *next;
   struct host *prev;
 };
@@ -63,17 +64,14 @@ static int g_max_hosts = 15;
 extern int global_scan_stop;
 
 static void
-host_set_time (kb_t kb, char *key)
+host_set_time (kb_t kb, char *ip, char *key)
 {
   char timestr[1024];
-  char *tmp;
   time_t t;
   int len;
 
   t = time (NULL);
-  tmp = ctime (&t);
-  timestr[sizeof (timestr) - 1] = '\0';
-  strncpy (timestr, tmp, sizeof (timestr) - 1);
+  snprintf(timestr, sizeof (timestr), "%s/%s", ip, ctime (&t));
   len = strlen (timestr);
   if (timestr[len - 1] == '\n')
     timestr[len - 1] = '\0';
@@ -94,7 +92,7 @@ host_rm (struct host *h)
       snprintf (key, sizeof (key), "internal/%s", scan_id);
       kb_item_set_str (h->host_kb, key, "finished", 0);
 
-      host_set_time (h->host_kb, "internal/end_time");
+      host_set_time (h->results_kb, h->ip, "internal/end_time");
       kb_lnk_reset (h->host_kb);
       g_free (scan_id);
     }
@@ -157,7 +155,7 @@ hosts_init (int max_hosts)
 }
 
 int
-hosts_new (char *name, kb_t kb)
+hosts_new (char *name, kb_t kb, kb_t main_kb)
 {
   struct host *h;
 
@@ -173,6 +171,7 @@ hosts_new (char *name, kb_t kb)
   h->name = g_strdup (name);
   h->pid = 0;
   h->host_kb = kb;
+  h->results_kb = main_kb;
   if (hosts != NULL)
     hosts->prev = h;
   h->next = hosts;
@@ -247,7 +246,7 @@ hosts_read_data (void)
           /* Scan started. */
           h->ip = kb_item_get_str (h->host_kb, "internal/ip");
           if (h->ip)
-            host_set_time (h->host_kb, "internal/start_time");
+            host_set_time (h->results_kb, h->ip, "internal/start_time");
           else
             /* internal/host_deny is set during check_host_authorization() */
             host_deny = kb_item_get_str (h->host_kb, "internal/host_deny");

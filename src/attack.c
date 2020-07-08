@@ -1122,7 +1122,8 @@ attack_network (struct scan_globals *globals)
       while (1);
 
       host_str = gvm_host_value_str (host);
-      if (hosts_new (host_str, host_kb) < 0)
+      connect_main_kb (&main_kb);
+      if (hosts_new (host_str, host_kb, main_kb) < 0)
         {
           kb_delete (host_kb);
           g_free (host_str);
@@ -1135,8 +1136,6 @@ attack_network (struct scan_globals *globals)
           g_free (host_str);
           continue;
         }
-
-      connect_main_kb (&main_kb);
       
       args.host = host;
       args.globals = globals;
