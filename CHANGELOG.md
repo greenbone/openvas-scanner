@@ -47,6 +47,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 - Corrected function parameter names in nasl_perror calls. [#539](https://github.com/greenbone/openvas/pull/539)
 - Various updates to the nasl_perror() error texts. [#539](https://github.com/greenbone/openvas/pull/542)
 - Fix icmp checksum calculation in openvas-nasl. [#543](https://github.com/greenbone/openvas/pull/543)
+- Fix ipv6 flow label in nasl_packet_forgery_v6() for openvas-nasl. [#545](https://github.com/greenbone/openvas/pull/545)
 
 ### Removed
 - Removed "network scan" mode. This includes removal of NASL API methods "scan_phase()" and "network_targets()". Sending a "network_mode=yes" in a scanner configuration will have no effect anymore. [#493](https://github.com/greenbone/openvas/pull/493)
