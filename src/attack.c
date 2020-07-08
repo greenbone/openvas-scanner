@@ -158,7 +158,6 @@ static int
 comm_send_status (kb_t kb, char *hostname, int curr, int max)
 {
   char buffer[2048];
-  char key[64];
 
   if (!hostname || !kb)
     return -1;
@@ -166,9 +165,8 @@ comm_send_status (kb_t kb, char *hostname, int curr, int max)
   if (strlen (hostname) > (sizeof (buffer) - 50))
     return -1;
 
-  snprintf (buffer, sizeof (buffer), "%d/%d", curr, max);
-  snprintf (key, sizeof (buffer), "internal/status/%s", hostname);
-  kb_item_push_str (kb, key, buffer);
+  snprintf (buffer, sizeof (buffer), "%s/%d/%d", hostname, curr, max);
+  kb_item_push_str (kb, "internal/status", buffer);
 
   return 0;
 }
@@ -178,19 +176,10 @@ error_message_to_client2 (kb_t kb, const char *msg, const char *ip_str,
                           const char *port)
 {
   char buf[2048];
-  char key[64];
-  char *ipstr;
 
-  if (ip_str)
-    ipstr = g_strdup(ip_str);
-  else
-    ipstr = g_strdup("");
-
-  sprintf (buf, "ERRMSG|||%s|||%s|||%s||| |||%s", ipstr, ipstr, port ?: " ",
-           msg ?: "No error.");
-  sprintf (key, "internal/results%s%s", ip_str ?"/": "", ipstr);
-  kb_item_push_str (kb, key, buf);
-  g_free(ipstr);
+  sprintf (buf, "ERRMSG|||%s|||%s|||%s||| |||%s", ip_str ?: "", ip_str ?: "",
+           port ?: " ", msg ?: "No error.");
+  kb_item_push_str (kb, "internal/results", buf);
 }
 
 static void
@@ -472,9 +461,7 @@ attack_host (struct scan_globals *globals, struct in6_addr *ip, GSList *vhosts,
               if (e == ERR_HOST_DEAD)
                 {
                   char buffer[2048];
-                  char key[64];
 
-                  sprintf (key, "internal/results/%s", ip_str);
                   snprintf (
                     buffer, sizeof (buffer),
                     "LOG|||%s||| |||general/Host_Details||| |||<host><detail>"
@@ -487,7 +474,7 @@ attack_host (struct scan_globals *globals, struct in6_addr *ip, GSList *vhosts,
                      calculate the scan progress. */
                   comm_send_status (main_kb, ip_str, 0, -1);
 #endif
-                  kb_item_push_str (kb, key, buffer);
+                  kb_item_push_str (kb, "internal/results", buffer);
                   goto host_died;
                 }
               else if (e == ERR_CANT_FORK)

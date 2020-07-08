@@ -1785,7 +1785,6 @@ open_sock_tcp (struct script_infos *args, unsigned int port, int timeout)
           if (host_get_port_state (args, port) > 0)
             {
               char ip_str[INET6_ADDRSTRLEN];
-              char key[64];
 
               g_snprintf (buffer, sizeof (buffer), "Ports/tcp/%d", port);
               g_message ("open_sock_tcp: %s:%d too many timeouts. "
@@ -1798,8 +1797,7 @@ open_sock_tcp (struct script_infos *args, unsigned int port, int timeout)
                         "ERRMSG|||%s|||%s|||%d/tcp||| |||Too many timeouts. The port"
                         " was set to closed.",
                         ip_str, plug_current_vhost () ?: " ", port);
-              snprintf (key, sizeof (key), "internal/results/%s", ip_str);
-              kb_item_push_str (args->results, key, buffer);
+              kb_item_push_str (args->results, "internal/results", buffer);
             }
         }
       g_free (ip_str);

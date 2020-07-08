@@ -107,7 +107,6 @@ update_running_processes (kb_t kb)
               if (is_alive)
                 {
                   char msg[2048];
-                  char key[64];
                   
                   if (log_whole)
                     g_message ("%s (pid %d) is slow to finish - killing it",
@@ -118,8 +117,7 @@ update_running_processes (kb_t kb)
                            "NVT timed out after %d seconds.",
                            hostname, oid ?: " ", processes[i].timeout);
 
-                  sprintf (key, "internal/results/%s", hostname);
-                  kb_item_push_str (kb, key, msg);
+                  kb_item_push_str (kb, "internal/results", msg);
 
                   ret_terminate = terminate_process (processes[i].pid);
                   if (ret_terminate == 0)
