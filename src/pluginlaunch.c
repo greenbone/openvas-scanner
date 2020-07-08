@@ -114,9 +114,9 @@ update_running_processes (kb_t kb)
                                oid, processes[i].pid);
 
                   sprintf (msg,
-                           "ERRMSG||| |||general/tcp|||%s|||"
+                           "ERRMSG|||%s||| |||general/tcp|||%s|||"
                            "NVT timed out after %d seconds.",
-                           oid ?: " ", processes[i].timeout);
+                           hostname, oid ?: " ", processes[i].timeout);
 
                   sprintf (key, "internal/results/%s", hostname);
                   kb_item_push_str (kb, key, msg);

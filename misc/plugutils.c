@@ -336,12 +336,12 @@ proto_post_wrapped (const char *oid, struct script_infos *desc, int port,
     hostname = ((gvm_vhost_t *) desc->vhosts->data)->value;
   addr6_to_str (plug_get_host_ip (desc), ip_str);
   buffer =
-    g_strdup_printf ("%s|||%s|||%s/%s|||%s|||%s|||%s", what, hostname ?: " ",
+    g_strdup_printf ("%s|||%s|||%s|||%s/%s|||%s|||%s|||%s", what, ip_str, hostname ?: " ",
                      port_s, proto, oid, action_str->str, uri ?: "");
   /* Convert to UTF-8 before sending to Manager. */
   data = g_convert (buffer, -1, "UTF-8", "ISO_8859-1", NULL, &length, NULL);
   kb = plug_get_results_kb (desc);
-  snprintf (key, sizeof (key), "internal/results%s%s", hostname ?"/": "", hostname ?: "");
+  snprintf (key, sizeof (key), "internal/results%s%s", ip_str ?"/": "", ip_str ?: "");
   kb_item_push_str (kb, key, data);
   g_free (data);
   g_free (buffer);

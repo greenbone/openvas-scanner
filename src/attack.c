@@ -179,11 +179,18 @@ error_message_to_client2 (kb_t kb, const char *msg, const char *ip_str,
 {
   char buf[2048];
   char key[64];
-  
-  sprintf (buf, "ERRMSG|||%s|||%s||| |||%s", ip_str ?: "", port ?: " ",
+  char *ipstr;
+
+  if (ip_str)
+    ipstr = g_strdup(ip_str);
+  else
+    ipstr = g_strdup("");
+
+  sprintf (buf, "ERRMSG|||%s|||%s|||%s||| |||%s", ipstr, ipstr, port ?: " ",
            msg ?: "No error.");
-  sprintf (key, "internal/results%s%s", ip_str ?"/": "", ip_str ?: "");
+  sprintf (key, "internal/results%s%s", ip_str ?"/": "", ipstr);
   kb_item_push_str (kb, key, buf);
+  g_free(ipstr);
 }
 
 static void
@@ -470,9 +477,10 @@ attack_host (struct scan_globals *globals, struct in6_addr *ip, GSList *vhosts,
                   sprintf (key, "internal/results/%s", ip_str);
                   snprintf (
                     buffer, sizeof (buffer),
-                    "LOG||| |||general/Host_Details||| |||<host><detail>"
+                    "LOG|||%s||| |||general/Host_Details||| |||<host><detail>"
                     "<name>Host dead</name><value>1</value><source>"
-                    "<description/><type/><name/></source></detail></host>");
+                    "<description/><type/><name/></source></detail></host>",
+                    ip_str);
 #if (PROGRESS_BAR_STYLE == 1)
                   /* In case of a dead host, it sends max_ports = -1 to the
                      manager. The host will not be taken into account to
