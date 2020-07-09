@@ -98,17 +98,7 @@ host_rm (struct host *h)
   if (h->pid != 0)
     waitpid (h->pid, NULL, WNOHANG);
 
-  if (!global_scan_stop)
-    {
-      char key[1024];
-      char *scan_id = kb_item_get_str (h->host_kb, "internal/scan_id");
-      snprintf (key, sizeof (key), "internal/%s", scan_id);
-      kb_item_set_str (h->host_kb, key, "finished", 0);
-
-      host_set_time (h->results_kb, h->ip, "HOST_END");
-      kb_lnk_reset (h->host_kb);
-      g_free (scan_id);
-    }
+  host_set_time (h->results_kb, h->ip, "HOST_END");
 
   if (h->next != NULL)
     h->next->prev = h->prev;
@@ -116,7 +106,7 @@ host_rm (struct host *h)
   if (h->prev != NULL)
     h->prev->next = h->next;
 
-  if (global_scan_stop == 1 && h->host_kb)
+  if (h->host_kb)
     {
       kb_delete (h->host_kb);
       h->host_kb = NULL;
