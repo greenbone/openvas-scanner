@@ -63,20 +63,33 @@ static int g_max_hosts = 15;
 /*-------------------------------------------------------------------*/
 extern int global_scan_stop;
 
+/**
+ * @brief Add star_scan and end_scan results to the main kb.
+ *
+ * @param[in] kb    Main KB where results are stored.
+ * @param[in] ip    List of vhosts to add new vhosts to.
+ * @param[in] type  If it is start or end message.
+ *
+ */
 static void
-host_set_time (kb_t kb, char *ip, char *key)
+host_set_time (kb_t kb, char *ip, char *type)
 {
-  char timestr[1024];
+  char *timestr;
+  char log_msg[1024];
   time_t t;
   int len;
 
   t = time (NULL);
-  snprintf(timestr, sizeof (timestr), "%s/%s", ip, ctime (&t));
+  timestr = g_strdup (ctime (&t));
   len = strlen (timestr);
   if (timestr[len - 1] == '\n')
     timestr[len - 1] = '\0';
 
-  kb_item_push_str (kb, key, timestr);
+  snprintf (log_msg, sizeof (log_msg),
+           "%s|||%s||||||||| |||%s", type, ip, timestr);
+  g_free (timestr);
+
+  kb_item_push_str (kb, "internal/results", log_msg);
 }
 
 static void
@@ -92,7 +105,7 @@ host_rm (struct host *h)
       snprintf (key, sizeof (key), "internal/%s", scan_id);
       kb_item_set_str (h->host_kb, key, "finished", 0);
 
-      host_set_time (h->results_kb, h->ip, "internal/end_time");
+      host_set_time (h->results_kb, h->ip, "HOST_END");
       kb_lnk_reset (h->host_kb);
       g_free (scan_id);
     }
@@ -246,7 +259,7 @@ hosts_read_data (void)
           /* Scan started. */
           h->ip = kb_item_get_str (h->host_kb, "internal/ip");
           if (h->ip)
-            host_set_time (h->results_kb, h->ip, "internal/start_time");
+            host_set_time (h->results_kb, h->ip, "HOST_START");
           else
             /* internal/host_deny is set during check_host_authorization() */
             host_deny = kb_item_get_str (h->host_kb, "internal/host_deny");
