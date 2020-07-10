@@ -27,6 +27,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 - Wait for all children instead of waiting just for one a time. [#429](https://github.com/greenbone/openvas/pull/429)
 - Fix format-truncation warning in GCC 8.2 and later. [#462](https://github.com/greenbone/openvas/pull/462)
 - Fix issue which produced to not remove the feed lock file. [#527](https://github.com/greenbone/openvas/pull/527)
+- Fix icmp checksum calculation in openvas-nasl. [#547](https://github.com/greenbone/openvas/pull/547)
 
 ### Removed
 - Drop HTTP sync [#489](https://github.com/greenbone/openvas/pull/489)
