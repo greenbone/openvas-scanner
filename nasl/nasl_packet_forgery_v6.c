@@ -1127,8 +1127,11 @@ struct v6pseudo_icmp_hdr
 {
   struct in6_addr s6addr;
   struct in6_addr d6addr;
-  char proto;
   unsigned short len;
+  unsigned char zero1;
+  unsigned char zero2;
+  unsigned char zero3;
+  char proto;
   struct icmp6_hdr icmpheader;
 };
 

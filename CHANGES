@@ -22,6 +22,7 @@ Main changes compared to openvas-scanner 6.0.1:
 * Perform the scan even if there are missing plugins in the nvticache.
 * Drop HTTP sync.
 * Use new URL for GCF rsync.
+* Fix icmp checksum calculation in openvas-nasl.
 
 openvas-scanner 6.0.1 (2019-07-17)
 
