@@ -110,6 +110,7 @@ host_rm (struct host *h)
     {
       kb_delete (h->host_kb);
       h->host_kb = NULL;
+      kb_lnk_reset (h->results_kb);
     }
 
   g_free (h->name);
