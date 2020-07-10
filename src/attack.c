@@ -649,7 +649,8 @@ attack_start (struct attack_start_args *args)
         error_message_to_client2 (main_kb, "Host access denied.", ip_str, NULL);
       else
         error_message_to_client2 (
-          main_kb, "Host access denied (system-wide restriction.)", ip_str, NULL);
+          main_kb, "Host access denied (system-wide restriction.)", ip_str,
+          NULL);
 
       kb_item_set_str (kb, "internal/host_deny", "True", 0);
       g_warning ("Host %s access denied.", ip_str);
@@ -1136,7 +1137,7 @@ attack_network (struct scan_globals *globals)
           g_free (host_str);
           continue;
         }
-      
+
       args.host = host;
       args.globals = globals;
       args.sched = sched;

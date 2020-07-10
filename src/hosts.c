@@ -85,8 +85,8 @@ host_set_time (kb_t kb, char *ip, char *type)
   if (timestr[len - 1] == '\n')
     timestr[len - 1] = '\0';
 
-  snprintf (log_msg, sizeof (log_msg),
-           "%s|||%s||||||||| |||%s", type, ip, timestr);
+  snprintf (log_msg, sizeof (log_msg), "%s|||%s||||||||| |||%s", type, ip,
+            timestr);
   g_free (timestr);
 
   kb_item_push_str (kb, "internal/results", log_msg);

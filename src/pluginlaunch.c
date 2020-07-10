@@ -107,7 +107,7 @@ update_running_processes (kb_t kb)
               if (is_alive)
                 {
                   char msg[2048];
-                  
+
                   if (log_whole)
                     g_message ("%s (pid %d) is slow to finish - killing it",
                                oid, processes[i].pid);
@@ -342,7 +342,8 @@ plugin_timeout (nvti_t *nvti)
  */
 int
 plugin_launch (struct scan_globals *globals, struct scheduler_plugin *plugin,
-               struct in6_addr *ip, GSList *vhosts, kb_t kb, kb_t main_kb, nvti_t *nvti)
+               struct in6_addr *ip, GSList *vhosts, kb_t kb, kb_t main_kb,
+               nvti_t *nvti)
 {
   int p;
 
@@ -354,7 +355,8 @@ plugin_launch (struct scan_globals *globals, struct scheduler_plugin *plugin,
   processes[p].plugin = plugin;
   processes[p].timeout = plugin_timeout (nvti);
   gettimeofday (&(processes[p].start), NULL);
-  processes[p].pid = nasl_plugin_launch (globals, ip, vhosts, kb, main_kb, plugin->oid);
+  processes[p].pid =
+    nasl_plugin_launch (globals, ip, vhosts, kb, main_kb, plugin->oid);
 
   if (processes[p].pid > 0)
     num_running_processes++;
