@@ -750,8 +750,8 @@ dump_tcp_packet (lex_ctxt *lexic)
         printf (" (%d)", tcp->th_flags);
       printf ("\n");
       printf ("\tth_win   : %d\n", ntohs (tcp->th_win));
-      printf ("\tth_sum   : 0x%x\n", tcp->th_sum);
-      printf ("\tth_urp   : %d\n", tcp->th_urp);
+      printf ("\tth_sum   : 0x%x\n", ntohs (tcp->th_sum));
+      printf ("\tth_urp   : %d\n", ntohs (tcp->th_urp));
       printf ("\tData     : ");
       c = (char *) ((char *) tcp + sizeof (struct tcphdr));
       if (UNFIX (ip->ip_len) > (sizeof (struct ip) + sizeof (struct tcphdr)))
