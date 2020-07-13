@@ -4,7 +4,7 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
-## [Unreleased]
+## [20.08] (unreleased)
 
 ### Added
 - Create greenbone-nvt-sync create lock file during feed sync.
@@ -14,6 +14,9 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 - Add extended environmental variables info to greenbone-nvt-sync help text. [#488](https://github.com/greenbone/openvas/pull/488)
 - Extend nasl functions which generate results with optional "uri" parameter [#526](https://github.com/greenbone/openvas/pull/526)
 - Add nasl function to get the host kb index. [#530](https://github.com/greenbone/openvas/pull/530)
+- Print the filter used by pcap in the error message.
+  [#537](https://github.com/greenbone/openvas/pull/537)
+  [#540](https://github.com/greenbone/openvas/pull/540)
 
 ### Changed
 - The logging of the NASL internal regexp functions was extended to include the pattern in case of a failed regcomp(). [#397](https://github.com/greenbone/openvas/pull/397)
@@ -28,6 +31,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 - Unify log messages about start/end of scan and of hosts. [#500](https://github.com/greenbone/openvas/pull/500)
 - Use flock to lock the feed lock file. [#507](https://github.com/greenbone/openvas/pull/507)
 - Move alive detection module (Boreas) into gvm-libs [#519](https://github.com/greenbone/openvas/pull/519)
+- Allow to set all legal types of icmp v6 in icmp header in openvas-nasl. [#542](https://github.com/greenbone/openvas/pull/542)
 
 ### Fixed
 - Improve signal handling when update vhosts list. [#425](https://github.com/greenbone/openvas/pull/425)
@@ -40,14 +44,18 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 - Memleak fixes for kb_item_get_str(). [#502](https://github.com/greenbone/openvas/pull/502)
 - Fix denied hosts.  [#510](https://github.com/greenbone/openvas/pull/510)
 - Fix openvas-nasl. Add kb key/value for all vhosts. [#533](https://github.com/greenbone/openvas/pull/533)
-- Wait for last plugin to finish before change to other category. [#534](https://github.com/greenbone/openvas/pull/534) 
+- Wait for last plugin to finish before change to other category. [#534](https://github.com/greenbone/openvas/pull/534)
+- Corrected function parameter names in nasl_perror calls. [#539](https://github.com/greenbone/openvas/pull/539)
+- Various updates to the nasl_perror() error texts. [#539](https://github.com/greenbone/openvas/pull/542)
+- Fix icmp checksum calculation in openvas-nasl. [#543](https://github.com/greenbone/openvas/pull/543)
+- Fix ipv6 flow label in nasl_packet_forgery_v6() for openvas-nasl. [#545](https://github.com/greenbone/openvas/pull/545)
 
 ### Removed
 - Removed "network scan" mode. This includes removal of NASL API methods "scan_phase()" and "network_targets()". Sending a "network_mode=yes" in a scanner configuration will have no effect anymore. [#493](https://github.com/greenbone/openvas/pull/493)
 
-[Unreleased]: https://github.com/greenbone/openvas/compare/openvas-7.0...master
+[20.08]: https://github.com/greenbone/openvas/compare/openvas-7.0...openvas-20.08
 
-## [7.0.1] (unreleased)
+## [7.0.1]
 
 ### Added
 - Display gvm-libs version in `openvas --version` output [#436](https://github.com/greenbone/openvas/pull/436)

@@ -23,6 +23,8 @@
  * Eventually it needs to be analysed whether this makes sense
  * or can further be simplified. */
 
+#include "../nasl/nasl_debug.h" /* for nasl_*_filename */
+
 #include <gvm/base/logging.h>
 #include <pcap.h>
 
@@ -41,7 +43,7 @@ void
 print_pcap_error (pcap_t *p, char *prefix)
 {
   char *msg = pcap_geterr (p);
-  g_message ("%s : %s", prefix, msg);
+  g_message ("[%s] %s : %s", nasl_get_plugin_filename () ?: "", prefix, msg);
 }
 
 /**
@@ -91,7 +93,9 @@ bpf_open_live (char *iface, char *filter)
 
   if (pcap_compile (ret, &filter_prog, filter, 1, netmask) < 0)
     {
-      print_pcap_error (ret, "pcap_compile");
+      char buffer[2048];
+      snprintf (buffer, sizeof (buffer), "pcap_compile: Filter \"%s\"", filter);
+      print_pcap_error (ret, buffer);
       pcap_close (ret);
       return -1;
     }
