@@ -164,13 +164,13 @@ get_ip_element (lex_ctxt *lexic)
 
   if (ip == NULL)
     {
-      nasl_perror (lexic, "get_ip_element : no valid 'ip' argument!\n");
+      nasl_perror (lexic, "get_ip_element: no valid 'ip' argument\n");
       return NULL;
     }
 
   if (element == NULL)
     {
-      nasl_perror (lexic, "get_ip_element : no valid 'element' argument!\n");
+      nasl_perror (lexic, "get_ip_element: no valid 'element' argument\n");
       return NULL;
     }
 
@@ -437,7 +437,7 @@ forge_tcp_packet (lex_ctxt *lexic)
   if (ip == NULL)
     {
       nasl_perror (lexic,
-                   "forge_tcp_packet : You must supply the 'ip' argument !");
+                   "forge_tcp_packet: You must supply the 'ip' argument\n");
       return NULL;
     }
 
@@ -526,8 +526,7 @@ get_tcp_element (lex_ctxt *lexic)
 
   if (packet == NULL)
     {
-      nasl_perror (lexic,
-                   "get_tcp_element : Error ! No valid 'tcp' argument !\n");
+      nasl_perror (lexic, "get_tcp_element: No valid 'tcp' argument\n");
       return NULL;
     }
 
@@ -544,8 +543,7 @@ get_tcp_element (lex_ctxt *lexic)
   element = get_str_var_by_name (lexic, "element");
   if (!element)
     {
-      nasl_perror (lexic,
-                   "get_tcp_element : Error ! No valid 'element' argument !\n");
+      nasl_perror (lexic, "get_tcp_element: No valid 'element' argument\n");
       return NULL;
     }
 
@@ -579,7 +577,7 @@ get_tcp_element (lex_ctxt *lexic)
     }
   else
     {
-      nasl_perror (lexic, "Unknown tcp field %s\n", element);
+      nasl_perror (lexic, "get_tcp_element: Unknown tcp field %s\n", element);
       return NULL;
     }
 
@@ -603,7 +601,7 @@ set_tcp_elements (lex_ctxt *lexic)
   if (!ip)
     {
       nasl_perror (lexic,
-                   "set_tcp_elements : Invalid value for the argument 'tcp'\n");
+                   "set_tcp_elements: Invalid value for the argument 'tcp'\n");
       return NULL;
     }
 
@@ -1430,7 +1428,7 @@ nasl_send_packet (lex_ctxt *lexic)
 
       if ((unsigned int) sz < sizeof (struct ip))
         {
-          nasl_perror (lexic, "send_packet(): packet is too short!\n");
+          nasl_perror (lexic, "send_packet: packet is too short\n");
           continue;
         }
 
