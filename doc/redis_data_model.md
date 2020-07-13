@@ -103,6 +103,10 @@ and this KB is released once the complete scan ended. This means, when all
 single hosts in the target were scanned, the main kb data will be deleted
 and the in-use DB list inside the hash `GVM.__GlobalDBIndex` is updated.
 
+The task main KB is used for storing the results. Each result produced by a
+NVT for a host, will be stored in this KB, and the progress status of the
+current scanned hosts as well.
+
 ### Temporary KB for a single host
 Each host to be scanned takes a new DB for the KB. The host KB is used to
 store some scan preferences and results for this specific host. When the host
@@ -186,15 +190,13 @@ DB 2 -> 1) "internal/dbindex"
         2) "internal/ovas_pid"
         3) "internal/acc04534-54b4-4137-a78a-c3d4441ede37"
         4) "internal/scanid"
-        5) "internal/acc04534-54b4-4137-a78a-c3d4441ede37/scanprefs"
-        6) "internal/dd91d963-d71f-4c98-bc18-c6fae29633aa/globalscanid"
+        5) "internal/dd91d963-d71f-4c98-bc18-c6fae29633aa/globalscanid"
+        6) "internal/status"
+        7) "internal/results
 
 DB 3 -> 1) "Services/irc"
         2) "www/80/content/cgis//twiki/bin/rdiff/TWiki/TWikiSiteTools"
         3) "internal/ip"
-        4) "internal/start_time"
-        5) "internal/state"
-        6) "internal/results"
         .
         .
         .
@@ -234,15 +236,14 @@ DB 2 -> 1) "internal/dbindex"
         2) "internal/ovas_pid"
         3) "internal/acc04534-54b4-4137-a78a-c3d4441ede37"
         4) "internal/scanid"
-        5) "internal/acc04534-54b4-4137-a78a-c3d4441ede37/scanprefs"
-        6) "internal/dd91d963-d71f-4c98-bc18-c6fae29633aa/globalscanid"
+        5) "internal/dd91d963-d71f-4c98-bc18-c6fae29633aa/globalscanid"
+        6) "internal/status"
+        7) "internal/results
+
 
 DB 3 -> 1) "Services/irc"
         2) "www/80/content/cgis//twiki/bin/rdiff/TWiki/TWikiSiteTools"
         3) "internal/ip"
-        4) "internal/start_time"
-        5) "internal/state"
-        6) "internal/results"
         .
         .
         .
@@ -265,9 +266,6 @@ DB 4 -> 1) "Cache/80/URL_/doc/scripts.php"
         .
         1453) "internal/ip"
         1454) "HostDetails/NVT/1.3.6.1.4.1.25623.1.0.111068/OS"
-        1455) "internal/start_time"
-        1456) "internal/state"
-        1457) "internal/results"
         1458) "Cache/80/URL_/test/testoutput/readme.txt"
         1459) "Cache/80/URL_/cgilib/"
 ```
@@ -298,15 +296,13 @@ DB 2 -> 1) "internal/dbindex"
         2) "internal/ovas_pid"
         3) "internal/acc04534-54b4-4137-a78a-c3d4441ede37"
         4) "internal/scanid"
-        5) "internal/acc04534-54b4-4137-a78a-c3d4441ede37/scanprefs"
-        6) "internal/dd91d963-d71f-4c98-bc18-c6fae29633aa/globalscanid"
+        5) "internal/dd91d963-d71f-4c98-bc18-c6fae29633aa/globalscanid"
+        6) "internal/status"
+        7) "internal/results
 
 DB 3 -> 1) "Services/irc"
         2) "www/80/content/cgis//twiki/bin/rdiff/TWiki/TWikiSiteTools"
         3) "internal/ip"
-        4) "internal/start_time"
-        5) "internal/state"
-        6) "internal/results"
         .
         .
         .
@@ -324,8 +320,9 @@ DB 4 -> 1) "internal/dbindex"
         2) "internal/ovas_pid"
         3) "internal/da234534-54b4-4137-a78a-c3d4441edd42"
         4) "internal/scanid"
-        5) "internal/da234534-54b4-4137-a78a-c3d4441edd42/scanprefs"
-        6) "internal/91a1d963-d71f-4c98-bc18-c6fae296acd1/globalscanid"
+        5) "internal/91a1d963-d71f-4c98-bc18-c6fae296acd1/globalscanid"
+        6) "internal/status"
+        7) "internal/results
 
 
 DB 5 -> 1) "Cache/80/URL_/doc/scripts.php"
@@ -337,9 +334,6 @@ DB 5 -> 1) "Cache/80/URL_/doc/scripts.php"
         .
         1453) "internal/ip"
         1454) "HostDetails/NVT/1.3.6.1.4.1.25623.1.0.111068/OS"
-        1455) "internal/start_time"
-        1456) "internal/state"
-        1457) "internal/results"
         1458) "Cache/80/URL_/test/testoutput/readme.txt"
         1459) "Cache/80/URL_/cgilib/"
 ```
@@ -372,15 +366,13 @@ DB 2 -> 1) "internal/dbindex"
         2) "internal/ovas_pid"
         3) "internal/acc04534-54b4-4137-a78a-c3d4441ede37"
         4) "internal/scanid"
-        5) "internal/acc04534-54b4-4137-a78a-c3d4441ede37/scanprefs"
-        6) "internal/dd91d963-d71f-4c98-bc18-c6fae29633aa/globalscanid"
+        5) "internal/dd91d963-d71f-4c98-bc18-c6fae29633aa/globalscanid"
+        6) "internal/status"
+        7) "internal/results
 
 DB 3 -> 1) "Services/irc"
         2) "www/80/content/cgis//twiki/bin/rdiff/TWiki/TWikiSiteTools"
         3) "internal/ip"
-        4) "internal/start_time"
-        5) "internal/state"
-        6) "internal/results"
         .
         .
         .
@@ -403,9 +395,6 @@ DB 4 -> 1) "Cache/80/URL_/doc/scripts.php"
         .
         1453) "internal/ip"
         1454) "HostDetails/NVT/1.3.6.1.4.1.25623.1.0.111068/OS"
-        1455) "internal/start_time"
-        1456) "internal/state"
-        1457) "internal/results"
         1458) "Cache/80/URL_/test/testoutput/readme.txt"
         1459) "Cache/80/URL_/cgilib/"
 
@@ -413,15 +402,13 @@ DB 5 -> 1) "internal/dbindex"
         2) "internal/ovas_pid"
         3) "internal/da234534-54b4-4137-a78a-c3d4441edd42"
         4) "internal/scanid"
-        5) "internal/da234534-54b4-4137-a78a-c3d4441edd42/scanprefs"
-        6) "internal/91a1d963-d71f-4c98-bc18-c6fae296acd1/globalscanid"
+        5) "internal/91a1d963-d71f-4c98-bc18-c6fae296acd1/globalscanid"
+        6) "internal/status"
+        7) "internal/results
 
 DB 6 -> 1) "Services/irc"
         2) "www/80/content/cgis//twiki/bin/rdiff/TWiki/TWikiSiteTools"
         3) "internal/ip"
-        4) "internal/start_time"
-        5) "internal/state"
-        6) "internal/results"
         .
         .
         .
@@ -444,9 +431,6 @@ DB 7 -> 1) "Cache/80/URL_/doc/scripts.php"
         .
         1453) "internal/ip"
         1454) "HostDetails/NVT/1.3.6.1.4.1.25623.1.0.111068/OS"
-        1455) "internal/start_time"
-        1456) "internal/state"
-        1457) "internal/results"
         1458) "Cache/80/URL_/test/testoutput/readme.txt"
         1459) "Cache/80/URL_/cgilib/"
 ```
