@@ -334,7 +334,6 @@ dump_ipv6_packet (lex_ctxt *lexic)
           printf ("\tip6_tc: %d\n", (ntohl (ip6->ip6_flow) >> 20) & 0xff);
           printf ("\tip6_fl: %d\n", ntohl (ip6->ip6_flow) & 0x3ffff);
           printf ("\tip6_plen: %d\n", UNFIX (ip6->ip6_plen));
-          printf ("\tip6_nxt : %d\n", ip6->ip6_nxt);
           printf ("\tip6_hlim : %d\n", ip6->ip6_hlim);
           switch (ip6->ip6_nxt)
             {
