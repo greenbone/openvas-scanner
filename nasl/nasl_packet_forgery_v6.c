@@ -330,10 +330,10 @@ dump_ipv6_packet (lex_ctxt *lexic)
       else
         {
           printf ("------\n");
-          printf ("\tip6_v  : %d\n", ntohl (ip6->ip6_flow) >> 28);
-          printf ("\tip6_tc: %d\n", (ntohl (ip6->ip6_flow) >> 20) & 0xff);
-          printf ("\tip6_fl: %d\n", ntohl (ip6->ip6_flow) & 0x3ffff);
-          printf ("\tip6_plen: %d\n", UNFIX (ip6->ip6_plen));
+          printf ("\tip6_v    : %d\n", ntohl (ip6->ip6_flow) >> 28);
+          printf ("\tip6_tc   : %d\n", (ntohl (ip6->ip6_flow) >> 20) & 0xff);
+          printf ("\tip6_fl   : %d\n", ntohl (ip6->ip6_flow) & 0x3ffff);
+          printf ("\tip6_plen : %d\n", UNFIX (ip6->ip6_plen));
           printf ("\tip6_hlim : %d\n", ip6->ip6_hlim);
           switch (ip6->ip6_nxt)
             {
@@ -350,9 +350,9 @@ dump_ipv6_packet (lex_ctxt *lexic)
               printf ("\tip6_nxt  : %d\n", ip6->ip6_nxt);
               break;
             }
-          printf ("\tip6_src: %s\n",
+          printf ("\tip6_src  : %s\n",
                   inet_ntop (AF_INET6, &ip6->ip6_src, addr, sizeof (addr)));
-          printf ("\tip6_dst: %s\n",
+          printf ("\tip6_dst  : %s\n",
                   inet_ntop (AF_INET6, &ip6->ip6_dst, addr, sizeof (addr)));
           printf ("\n");
         }
