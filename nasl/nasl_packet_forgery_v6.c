@@ -330,13 +330,12 @@ dump_ipv6_packet (lex_ctxt *lexic)
       else
         {
           printf ("------\n");
-          printf ("\tip6_v  : %d\n", ip6->ip6_flow >> 28);
-          printf ("\tip6_tc: %d\n", (ip6->ip6_flow >> 20) & 0xff);
-          printf ("\tip6_fl: %d\n", (ip6->ip6_flow) & 0x3ffff);
+          printf ("\tip6_v  : %d\n", ntohl (ip6->ip6_flow) >> 28);
+          printf ("\tip6_tc: %d\n", (ntohl (ip6->ip6_flow) >> 20) & 0xff);
+          printf ("\tip6_fl: %d\n", ntohl (ip6->ip6_flow) & 0x3ffff);
           printf ("\tip6_plen: %d\n", UNFIX (ip6->ip6_plen));
-          printf ("\tip6_nxt : %d\n", ntohs (ip6->ip6_nxt));
-          printf ("\tip6_hlim : %d\n", ntohs (ip6->ip6_hlim));
-          switch (ip6->ip6_ctlun.ip6_un1.ip6_un1_nxt)
+          printf ("\tip6_hlim : %d\n", ip6->ip6_hlim);
+          switch (ip6->ip6_nxt)
             {
             case IPPROTO_TCP:
               printf ("\tip6_nxt  : IPPROTO_TCP (%d)\n", ip6->ip6_nxt);
@@ -344,8 +343,8 @@ dump_ipv6_packet (lex_ctxt *lexic)
             case IPPROTO_UDP:
               printf ("\tip6_nxt  : IPPROTO_UDP (%d)\n", ip6->ip6_nxt);
               break;
-            case IPPROTO_ICMP:
-              printf ("\tip6_nxt  : IPPROTO_ICMP (%d)\n", ip6->ip6_nxt);
+            case IPPROTO_ICMPV6:
+              printf ("\tip6_nxt  : IPPROTO_ICMPV6 (%d)\n", ip6->ip6_nxt);
               break;
             default:
               printf ("\tip6_nxt  : %d\n", ip6->ip6_nxt);
