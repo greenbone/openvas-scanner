@@ -379,31 +379,31 @@ dump_ip_packet (lex_ctxt *lexic)
       else
         {
           printf ("------\n");
-          printf ("\tip_hl : %d\n", ip->ip_hl);
-          printf ("\tip_v  : %d\n", ip->ip_v);
-          printf ("\tip_tos: %d\n", ip->ip_tos);
-          printf ("\tip_len: %d\n", UNFIX (ip->ip_len));
-          printf ("\tip_id : %d\n", ntohs (ip->ip_id));
-          printf ("\tip_off: %d\n", UNFIX (ip->ip_off));
-          printf ("\tip_ttl: %d\n", ip->ip_ttl);
+          printf ("\tip_hl  : %d\n", ip->ip_hl);
+          printf ("\tip_v   : %d\n", ip->ip_v);
+          printf ("\tip_tos : %d\n", ip->ip_tos);
+          printf ("\tip_len : %d\n", UNFIX (ip->ip_len));
+          printf ("\tip_id  : %d\n", ntohs (ip->ip_id));
+          printf ("\tip_off : %d\n", UNFIX (ip->ip_off));
+          printf ("\tip_ttl : %d\n", ip->ip_ttl);
           switch (ip->ip_p)
             {
             case IPPROTO_TCP:
-              printf ("\tip_p  : IPPROTO_TCP (%d)\n", ip->ip_p);
+              printf ("\tip_p   : IPPROTO_TCP (%d)\n", ip->ip_p);
               break;
             case IPPROTO_UDP:
-              printf ("\tip_p  : IPPROTO_UDP (%d)\n", ip->ip_p);
+              printf ("\tip_p   : IPPROTO_UDP (%d)\n", ip->ip_p);
               break;
             case IPPROTO_ICMP:
-              printf ("\tip_p  : IPPROTO_ICMP (%d)\n", ip->ip_p);
+              printf ("\tip_p   : IPPROTO_ICMP (%d)\n", ip->ip_p);
               break;
             default:
-              printf ("\tip_p  : %d\n", ip->ip_p);
+              printf ("\tip_p   : %d\n", ip->ip_p);
               break;
             }
-          printf ("\tip_sum: 0x%x\n", ntohs (ip->ip_sum));
-          printf ("\tip_src: %s\n", inet_ntoa (ip->ip_src));
-          printf ("\tip_dst: %s\n", inet_ntoa (ip->ip_dst));
+          printf ("\tip_sum : 0x%x\n", ntohs (ip->ip_sum));
+          printf ("\tip_src : %s\n", inet_ntoa (ip->ip_src));
+          printf ("\tip_dst : %s\n", inet_ntoa (ip->ip_dst));
           printf ("\n");
         }
     }
