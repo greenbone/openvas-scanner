@@ -423,8 +423,9 @@ attack_host (struct scan_globals *globals, struct in6_addr *ip, GSList *vhosts,
   openvas_signal (SIGUSR2, set_check_new_vhosts_flag);
   host_kb = kb;
   host_vhosts = vhosts;
-  kb_item_set_str (kb, "internal/ip", ip_str, 0);
   kb_item_set_int (kb, "internal/hostpid", getpid ());
+  host_set_time (main_kb, ip_str, "HOST_START");
+  kb_lnk_reset (main_kb);
   proctitle_set ("openvas: testing %s", ip_str);
   kb_lnk_reset (kb);
 
@@ -523,6 +524,7 @@ attack_host (struct scan_globals *globals, struct in6_addr *ip, GSList *vhosts,
 host_died:
   pluginlaunch_stop ();
   plugins_scheduler_free (sched);
+  host_set_time (main_kb, ip_str, "HOST_END");
 }
 
 /*

@@ -71,7 +71,7 @@ extern int global_scan_stop;
  * @param[in] type  If it is start or end message.
  *
  */
-static void
+void
 host_set_time (kb_t kb, char *ip, char *type)
 {
   char *timestr;
@@ -98,8 +98,6 @@ host_rm (struct host *h)
   if (h->pid != 0)
     waitpid (h->pid, NULL, WNOHANG);
 
-  host_set_time (h->results_kb, h->ip, "HOST_END");
-
   if (h->next != NULL)
     h->next->prev = h->prev;
 
@@ -114,7 +112,6 @@ host_rm (struct host *h)
     }
 
   g_free (h->name);
-  g_free (h->ip);
   g_free (h);
 }
 
@@ -243,31 +240,14 @@ hosts_read_data (void)
 
   while (h)
     {
-      char *host_deny = NULL;
-
-      if (!h->ip)
+      if (h->pid != 0 && kill (h->pid, 0) < 0) /* Process is dead */
         {
-          /* Scan started. */
-          h->ip = kb_item_get_str (h->host_kb, "internal/ip");
-          if (h->ip)
-            host_set_time (h->results_kb, h->ip, "HOST_START");
-          else
-            /* internal/host_deny is set during check_host_authorization() */
-            host_deny = kb_item_get_str (h->host_kb, "internal/host_deny");
-        }
-
-      if (h->ip || host_deny)
-        {
-          g_free (host_deny);
-          if (kill (h->pid, 0) < 0) /* Process is dead */
-            {
-              if (!h->prev)
-                hosts = hosts->next;
-              host_rm (h);
-              h = hosts;
-              if (!h)
-                break;
-            }
+          if (!h->prev)
+            hosts = hosts->next;
+          host_rm (h);
+          h = hosts;
+          if (!h)
+            break;
         }
       h = h->next;
     }
