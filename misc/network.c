@@ -1793,11 +1793,12 @@ open_sock_tcp (struct script_infos *args, unsigned int port, int timeout)
               kb_item_set_int (kb, buffer, 0);
 
               addr6_to_str (args->ip, ip_str);
-              snprintf (buffer, sizeof (buffer),
-                        "ERRMSG|||%s|||%d/tcp||| |||Too many timeouts. The port"
-                        " was set to closed.",
-                        plug_current_vhost () ?: " ", port);
-              kb_item_push_str (args->key, "internal/results", buffer);
+              snprintf (
+                buffer, sizeof (buffer),
+                "ERRMSG|||%s|||%s|||%d/tcp||| |||Too many timeouts. The port"
+                " was set to closed.",
+                ip_str, plug_current_vhost () ?: " ", port);
+              kb_item_push_str (args->results, "internal/results", buffer);
             }
         }
       g_free (ip_str);

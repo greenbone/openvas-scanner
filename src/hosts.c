@@ -50,6 +50,7 @@ struct host
   char *ip;
   pid_t pid;
   kb_t host_kb;
+  kb_t results_kb;
   struct host *next;
   struct host *prev;
 };
@@ -62,23 +63,33 @@ static int g_max_hosts = 15;
 /*-------------------------------------------------------------------*/
 extern int global_scan_stop;
 
-static void
-host_set_time (kb_t kb, char *key)
+/**
+ * @brief Add star_scan and end_scan results to the main kb.
+ *
+ * @param[in] kb    Main KB where results are stored.
+ * @param[in] ip    List of vhosts to add new vhosts to.
+ * @param[in] type  If it is start or end message.
+ *
+ */
+void
+host_set_time (kb_t kb, char *ip, char *type)
 {
-  char timestr[1024];
-  char *tmp;
+  char *timestr;
+  char log_msg[1024];
   time_t t;
   int len;
 
   t = time (NULL);
-  tmp = ctime (&t);
-  timestr[sizeof (timestr) - 1] = '\0';
-  strncpy (timestr, tmp, sizeof (timestr) - 1);
+  timestr = g_strdup (ctime (&t));
   len = strlen (timestr);
   if (timestr[len - 1] == '\n')
     timestr[len - 1] = '\0';
 
-  kb_item_push_str (kb, key, timestr);
+  snprintf (log_msg, sizeof (log_msg), "%s|||%s||||||||| |||%s", type, ip,
+            timestr);
+  g_free (timestr);
+
+  kb_item_push_str (kb, "internal/results", log_msg);
 }
 
 static void
@@ -87,32 +98,20 @@ host_rm (struct host *h)
   if (h->pid != 0)
     waitpid (h->pid, NULL, WNOHANG);
 
-  if (!global_scan_stop)
-    {
-      char key[1024];
-      char *scan_id = kb_item_get_str (h->host_kb, "internal/scan_id");
-      snprintf (key, sizeof (key), "internal/%s", scan_id);
-      kb_item_set_str (h->host_kb, key, "finished", 0);
-
-      host_set_time (h->host_kb, "internal/end_time");
-      kb_lnk_reset (h->host_kb);
-      g_free (scan_id);
-    }
-
   if (h->next != NULL)
     h->next->prev = h->prev;
 
   if (h->prev != NULL)
     h->prev->next = h->next;
 
-  if (global_scan_stop == 1 && h->host_kb)
+  if (h->host_kb)
     {
       kb_delete (h->host_kb);
       h->host_kb = NULL;
+      kb_lnk_reset (h->results_kb);
     }
 
   g_free (h->name);
-  g_free (h->ip);
   g_free (h);
 }
 
@@ -157,7 +156,7 @@ hosts_init (int max_hosts)
 }
 
 int
-hosts_new (char *name, kb_t kb)
+hosts_new (char *name, kb_t kb, kb_t main_kb)
 {
   struct host *h;
 
@@ -173,6 +172,7 @@ hosts_new (char *name, kb_t kb)
   h->name = g_strdup (name);
   h->pid = 0;
   h->host_kb = kb;
+  h->results_kb = main_kb;
   if (hosts != NULL)
     hosts->prev = h;
   h->next = hosts;
@@ -240,31 +240,14 @@ hosts_read_data (void)
 
   while (h)
     {
-      char *host_deny = NULL;
-
-      if (!h->ip)
+      if (h->pid != 0 && kill (h->pid, 0) < 0) /* Process is dead */
         {
-          /* Scan started. */
-          h->ip = kb_item_get_str (h->host_kb, "internal/ip");
-          if (h->ip)
-            host_set_time (h->host_kb, "internal/start_time");
-          else
-            /* internal/host_deny is set during check_host_authorization() */
-            host_deny = kb_item_get_str (h->host_kb, "internal/host_deny");
-        }
-
-      if (h->ip || host_deny)
-        {
-          g_free (host_deny);
-          if (kill (h->pid, 0) < 0) /* Process is dead */
-            {
-              if (!h->prev)
-                hosts = hosts->next;
-              host_rm (h);
-              h = hosts;
-              if (!h)
-                break;
-            }
+          if (!h->prev)
+            hosts = hosts->next;
+          host_rm (h);
+          h = hosts;
+          if (!h)
+            break;
         }
       h = h->next;
     }

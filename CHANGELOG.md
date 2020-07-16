@@ -4,6 +4,13 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [unreleased]
+
+### Changed
+-Store results in main_kb instead of host_kb. [#550](https://github.com/greenbone/openvas/pull/550)
+
+[unreleased]: https://github.com/greenbone/openvas/compare/openvas-20.08...master
+
 ## [20.08] (unreleased)
 
 ### Added

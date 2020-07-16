@@ -32,7 +32,7 @@ int
 hosts_init (int);
 
 int
-hosts_new (char *, kb_t);
+hosts_new (char *, kb_t, kb_t);
 
 int
 hosts_set_pid (char *, pid_t);
@@ -43,4 +43,6 @@ hosts_read (void);
 void
 hosts_stop_all (void);
 
+void
+host_set_time (kb_t, char *, char *);
 #endif

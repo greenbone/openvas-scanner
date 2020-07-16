@@ -150,6 +150,9 @@ plug_replace_key_len (struct script_infos *, char *, int, void *, size_t);
 kb_t
 plug_get_kb (struct script_infos *);
 
+kb_t
+plug_get_results_kb (struct script_infos *);
+
 void *
 plug_get_key (struct script_infos *, char *, int *, size_t *, int);
 
