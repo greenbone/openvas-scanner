@@ -103,9 +103,9 @@ and this KB is released once the complete scan ended. This means, when all
 single hosts in the target were scanned, the main kb data will be deleted
 and the in-use DB list inside the hash `GVM.__GlobalDBIndex` is updated.
 
-The task main KB is used for storing the results. Each result produced by a
-NVT for a host, will be stored in this KB, and the progress status of the
-current scanned hosts as well.
+The task main KB is used for storing the results. Each result produced by NVTs
+as well as the the progress status of the currently scanned hosts will be stored
+in this KB.
 
 ### Temporary KB for a single host
 Each host to be scanned takes a new DB for the KB. The host KB is used to
