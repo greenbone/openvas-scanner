@@ -570,7 +570,7 @@ get_tcp_element (lex_ctxt *lexic)
   else if (!strcmp (element, "data"))
     {
       retc = alloc_typed_cell (CONST_DATA);
-      retc->size = UNFIX (ip->ip_len) - tcp->th_off * 4;
+      retc->size = UNFIX (ip->ip_len) - (tcp->th_off + ip->ip_hl) * 4;
       retc->x.str_val = g_malloc0 (retc->size);
       bcopy ((char *) tcp + tcp->th_off * 4, retc->x.str_val, retc->size);
       return retc;
