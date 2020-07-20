@@ -33,6 +33,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 - Move alive detection module (Boreas) into gvm-libs [#519](https://github.com/greenbone/openvas/pull/519)
 - Allow to set all legal types of icmp v6 in icmp header in openvas-nasl. [#542](https://github.com/greenbone/openvas/pull/542)
 - The output of the NASL dump_* packet forgery functions was made consistent. [#555](https://github.com/greenbone/openvas/pull/555)
+- Make drop_privileges setting a scanner-only preference. [#557](https://github.com/greenbone/openvas/pull/557)
 
 ### Fixed
 - Improve signal handling when update vhosts list. [#425](https://github.com/greenbone/openvas/pull/425)

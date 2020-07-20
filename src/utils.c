@@ -256,6 +256,7 @@ is_scanner_only_pref (const char *pref)
       || !strcmp (pref, "log_plugins_name_at_load")
       || !strcmp (pref, "nasl_no_signature_check")
       || !strcmp (pref, "vendor_version")
+      || !strcmp (pref, "drop_privileges")
       /* Preferences starting with sys_ are scanner-side only. */
       || !strncmp (pref, "sys_", 4))
     return 1;
