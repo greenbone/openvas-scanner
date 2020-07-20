@@ -76,6 +76,17 @@ so you need to find a balance between these two options. Note that launching too
 .IP log_whole_attack
 If this option is set to 'yes', openvas will store the name, pid, date and target of each plugin launched. This is helpful for monitoring and debugging purpose, however this option might make openvas fill your disk rather quickly. 
 
+.IP debug_tls
+This is an scanner-only option which allows you to set the TLS log level.
+The level is an integer between 0 and 9. Higher values mean more verbosity and
+might make openvas fill your disk rather quickly.
+The default value is 0 (disabled).
+
+Larger values should only be used with care, since they may reveal sensitive
+information in the scanner logs.
+
+Use a debug level over 10 to enable all debugging options.
+
 .IP log_plugins_name_at_load
 If this option is set to 'yes', openvas will log the name of each plugin being loaded at startup, or each time it receives the HUP signal.
 
