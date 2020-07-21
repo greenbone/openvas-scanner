@@ -589,7 +589,7 @@ get_tcp_v6_element (lex_ctxt *lexic)
     {
       retc = alloc_typed_cell (CONST_DATA);
       retc->size = UNFIX (ip6->ip6_plen) - tcp->th_off * 4;
-      if (retc->size <= 0 || retc->size > ipsz - 40 - tcp->th_off * 4)
+      if (retc->size < 0 || retc->size > ipsz - 40 - tcp->th_off * 4)
         {
           nasl_perror (lexic,
                        "get_tcp_v6_element: Erroneous tcp header offset %d\n",
