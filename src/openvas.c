@@ -45,6 +45,7 @@
 #include <fcntl.h>  /* for open() */
 #include <gcrypt.h> /* for gcry_control */
 #include <glib.h>
+#include <gnutls/gnutls.h> /* for gnutls_global_set_log_*  */
 #include <grp.h>
 #include <gvm/base/logging.h> /* for setup_log_handler, load_log_configuration, free_log_configuration*/
 #include <gvm/base/nvti.h>      /* for prefs_get() */
@@ -127,7 +128,14 @@ static openvas_option openvas_defaults[] = {
   {"db_address", KB_PATH_DEFAULT},
   {"vendor_version", "\0"},
   {"test_alive_hosts_only", "no"},
+  {"debug_tls", "0"},
   {NULL, NULL}};
+
+static void
+my_gnutls_log_func (int level, const char *text)
+{
+  g_message ("(%d) %s", level, text);
+}
 
 static void
 set_globals_from_preferences (void)
@@ -362,6 +370,15 @@ start_single_task_scan (void)
   if (openvas_SSL_init () < 0)
     g_message ("Could not initialize openvas SSL!");
 #endif
+
+  if (prefs_get ("debug_tls") != NULL && atoi (prefs_get ("debug_tls")) > 0)
+    {
+      g_warning ("TLS debug is enabled and should only be used with care, "
+                 "since it may reveal sensitive information in the scanner "
+                 "logs and might make openvas fill your disk rather quickly.");
+      gnutls_global_set_log_function (my_gnutls_log_func);
+      gnutls_global_set_log_level (atoi (prefs_get ("debug_tls")));
+    }
 
 #ifdef OPENVAS_GIT_REVISION
   g_message ("openvas %s (GIT revision %s) started", OPENVAS_VERSION,
