@@ -401,7 +401,7 @@ mark_sphinxql (struct script_infos *desc, int port)
 {
   register_service (desc, port, "sphinxql");
   post_log (oid, desc, port,
-            "A Sphinx search server (MySQL listener)"
+            "A Sphinx search server (MySQL listener) "
             "seems to be running on this port");
 }
 
