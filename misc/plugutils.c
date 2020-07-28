@@ -473,7 +473,17 @@ get_plugin_preference (const char *oid, const char *name, int pref_id)
           if ((cname && !strcmp (cname, nvtpref_name (tmp->data)))
               || (pref_id >= 0 && pref_id == nvtpref_id (tmp->data)))
             {
-              retval = g_strdup (nvtpref_default (tmp->data));
+              if (!strcmp (nvtpref_type (tmp->data), "radio"))
+                {
+                  char **opts =
+                    g_strsplit (nvtpref_default (tmp->data), ";", -1);
+
+                  retval = g_strdup (opts[0]);
+                  g_strfreev (opts);
+                }
+              else
+                retval = g_strdup (nvtpref_default (tmp->data));
+
               break;
             }
           tmp = tmp->next;
