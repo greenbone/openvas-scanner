@@ -757,7 +757,7 @@ getipv6routes (struct myroute *myroutes, int *numroutes)
               }
           if (i == numinterfaces)
             g_message (
-              "Failed to find interface %s mentioned in /proc/net/route\n",
+              "Failed to find interface %s mentioned in /proc/net/ipv6_route\n",
               iface);
           (*numroutes)++;
           if (*numroutes >= MAXROUTES)
