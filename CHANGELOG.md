@@ -4,6 +4,13 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [20.08.1] (unreleased)
+
+### Fixed
+- Fork vhosts before creating the socket.[#576](https://github.com/greenbone/openvas/pull/576)
+
+[20.08]: https://github.com/greenbone/openvas/compare/v20.8.0...openvas-20.08
+
 ## [20.08] (2020-08-11)
 
 ### Added
