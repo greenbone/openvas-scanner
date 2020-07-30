@@ -512,7 +512,7 @@ do_sync ()
       date > $OPENVAS_RUN_DIR/feed-update.lock
       sync_nvts
       echo -n $OPENVAS_RUN_DIR/feed-update.lock
-    )9<$OPENVAS_RUN_DIR/feed-update.lock
+    )9>>$OPENVAS_RUN_DIR/feed-update.lock
   fi
 }
 
