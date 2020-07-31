@@ -503,6 +503,7 @@ do_sync ()
     log_write "Feed is already current, skipping synchronization."
   else
     (
+      chmod +660 $OPENVAS_RUN_DIR/feed-update.lock
       flock -n 9
       if [ $? -eq 1 ] ; then
           log_warning "Another process related to the feed update is already running"
@@ -511,7 +512,7 @@ do_sync ()
       date > $OPENVAS_RUN_DIR/feed-update.lock
       sync_nvts
       echo -n $OPENVAS_RUN_DIR/feed-update.lock
-    )9>$OPENVAS_RUN_DIR/feed-update.lock
+    )9>>$OPENVAS_RUN_DIR/feed-update.lock
   fi
 }
 
