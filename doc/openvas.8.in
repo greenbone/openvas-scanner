@@ -90,7 +90,7 @@ This is the default range of ports that the scanner plugins will probe. The synt
 If this option is set to 'yes', openvas will scan the target list for alive hosts in a separate process while only testing those hosts which are identified as alive. This boosts the scan speed of target ranges with a high amount of dead hosts significantly.   
 
 .IP optimize_test
-By default, openvas does not trust the remote host banners. It means that it will check a webserver claiming to be IIS for Apache flaws, and so on. This behavior might generate false positive and will slow the scan down somehow. If you are sure the banners of the remote host have not been tampered with, you can safely enable this option, which will force the plugins to perform their job only against the services they have been designed to check.
+By default, optimize_test is enabled which means openvas does trust the remote host banners and is only launching plugins against the services they have been designed to check. For example it will check a web server claiming to be IIS only for IIS related flaws but will skip plugins testing for Apache flaws, and so on. This default behavior is used to optimize the scanning performance and to avoid false positives. If you are not sure that the banners of the remote host have been tampered with, you can disable this option.
 
 .IP test_empty_vhost
 If set to yes, the scanner will also test the target by using empty vhost value in addition to the target's associated vhost values.
