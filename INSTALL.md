@@ -127,12 +127,7 @@ Setting up an openvas-scanner requires the following steps:
    This tool will use the Greenbone Security Feed in case a Greenbone
    subscription key is present. Else, the Community Feed will be used.
 
-   Please note that you will need at least one of the following tools for a
-   successful synchronization:
-
-   * `rsync`
-   * `wget`
-   * `curl`
+   Please note that you will need the `rsync` tool for a successful synchronization.
 
    NVT feeds are updated on a regular basis. Be sure to update your NVT collection
    regularly to detect the latest threats.
