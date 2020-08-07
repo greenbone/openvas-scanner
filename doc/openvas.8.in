@@ -218,20 +218,17 @@ The canonical places where you will find more information
 about OpenVAS are: 
 
 .RS
-.UR
-https://community.greenbone.net
+.UR https://community.greenbone.net
+Community site
 .UE
-(Community site)
 .br
-.UR
-https://github.com/greenbone/
+.UR https://github.com/greenbone
+Development site
 .UE
-(Development site)
 .br
-.UR
-https://www.openvas.org/
+.UR https://www.openvas.org
+Traditional home site
 .UE
-(Traditional home site)
 .RE
 	
 .SH AUTHORS
