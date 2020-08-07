@@ -212,18 +212,26 @@ all NASL scripts may result in 8 to 32 MB worth of traffic per scanned host.
 Reducing the amount of tested part and such will reduce the amount of data
 to be transferred significantly.
 
-.SH MORE INFORMATION ABOUT Greenbone Vulnerability Management
+.SH SEE ALSO
+.BR gvmd(8),
+.BR gsad(8),
+.BR ospd-openvas(8),
+.BR openvas-nasl(1),
+.BR openvas-nasl-lint(1),
+.BR greenbone-nvt-sync(8)
+
+.SH MORE INFORMATION
 
 The canonical places where you will find more information 
 about OpenVAS are: 
 
 .RS
 .UR https://community.greenbone.net
-Community site
+Community Portal
 .UE
 .br
 .UR https://github.com/greenbone
-Development site
+Development Platform
 .UE
 .br
 .UR https://www.openvas.org
