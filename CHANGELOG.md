@@ -4,7 +4,7 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
-## [20.08] (unreleased)
+## [20.08] (2020-08-11)
 
 ### Added
 - Create greenbone-nvt-sync create lock file during feed sync.
