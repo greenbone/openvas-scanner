@@ -20,8 +20,9 @@ cmake_minimum_required (VERSION 3.0)
 
 message ("-- Configuring the Scanner...")
 
+# VERSION: Always include major, minor and patch level.
 project (openvas
-  VERSION 21.4
+  VERSION 21.4.0
   LANGUAGES C)
 
 if (POLICY CMP0005)
@@ -60,27 +61,26 @@ else (CLANG_FORMAT)
   message (STATUS "clang-format not found...")
 endif (CLANG_FORMAT)
 
-# Set beta version if this is a beta release series,
-# unset if this is a stable release series.
-set (PROJECT_BETA_RELEASE 1)
-
 if (GIT_REVISION)
   set (PROJECT_VERSION_GIT "${GIT_REVISION}")
 else (GIT_REVISION)
   set (PROJECT_VERSION_GIT "~git")
 endif (GIT_REVISION)
 
-# If PROJECT_BETA_RELEASE is set, the version string will be set to:
-#   "major.minor+beta${PROJECT_BETA_RELEASE}"
-# If PROJECT_BETA_RELEASE is NOT set, the version string will be set to:
-#   "major.minor.patch"
-if (PROJECT_BETA_RELEASE)
-  set (PROJECT_VERSION_SUFFIX "+beta${PROJECT_BETA_RELEASE}")
-else (PROJECT_BETA_RELEASE)
-  set (PROJECT_VERSION_SUFFIX ".${PROJECT_VERSION_PATCH}")
-endif (PROJECT_BETA_RELEASE)
+# Set dev version if this is a development version and not a full release,
+# unset (put value 0 or delete line) before a full release and reset after.
+set (PROJECT_DEV_VERSION 1)
 
-set (PROJECT_VERSION_STRING "${PROJECT_VERSION_MAJOR}.${PROJECT_VERSION_MINOR}${PROJECT_VERSION_SUFFIX}")
+# If PROJECT_DEV_VERSION is set, the version string will be set to:
+#   "major.minor.patch~dev${PROJECT_DEV_VERSION}${GIT_REVISION}"
+# If PROJECT_DEV_VERSION is NOT set, the version string will be set to:
+#   "major.minor.patch${GIT_REVISION}"
+# For CMAKE_BUILD_TYPE "Release" the git revision will be empty.
+if (PROJECT_DEV_VERSION)
+  set (PROJECT_VERSION_SUFFIX "~dev${PROJECT_DEV_VERSION}")
+endif (PROJECT_DEV_VERSION)
+
+set (PROJECT_VERSION_STRING "${PROJECT_VERSION_MAJOR}.${PROJECT_VERSION_MINOR}.${PROJECT_VERSION_PATCH}${PROJECT_VERSION_SUFFIX}${GIT_REVISION}")
 
 ## CPack configuration
 
