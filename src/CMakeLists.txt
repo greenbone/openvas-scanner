@@ -31,12 +31,6 @@ pkg_check_modules (LIBGVM_BOREAS REQUIRED libgvm_boreas>=21.4)
 pkg_check_modules (LIBGVM_UTIL REQUIRED libgvm_util>=21.4)
 pkg_check_modules (GLIB REQUIRED glib-2.0>=2.42)
 
-# set NVTICACHE_STR with version.
-if (LIBGVM_UTIL_VERSION)
-  set (NVTICACHE_STR "nvticache${LIBGVM_UTIL_VERSION}")
-  add_definitions (-DNVTICACHE_STR="${NVTICACHE_STR}")
-endif (LIBGVM_UTIL_VERSION)
-
 message (STATUS "Looking for libgcrypt...")
 find_library (GCRYPT gcrypt)
 if (NOT GCRYPT)

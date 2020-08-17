@@ -12,6 +12,9 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 ### Changed
 -Store results in main_kb instead of host_kb. [#550](https://github.com/greenbone/openvas/pull/550)
 
+### Removed 
+- Use the nvticache name from gvm-libs, defined in nvticache.h. [#578](https://github.com/greenbone/openvas/pull/578)
+
 [unreleased]: https://github.com/greenbone/openvas/compare/openvas-20.08...master
 
 ## [20.08] (unreleased)
