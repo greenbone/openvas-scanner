@@ -12,7 +12,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ### Fixed
 
-- Fork vhosts before creating the socket.[#576](https://github.com/greenbone/openvas/pull/576)
+- Fork vhosts before creating the socket.[#579](https://github.com/greenbone/openvas/pull/579)
 
 ### Removed
 
