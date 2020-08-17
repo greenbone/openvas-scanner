@@ -119,6 +119,10 @@ if (OPENVAS_VERSION)
   add_definitions (-DOPENVAS_VERSION="${OPENVAS_VERSION}")
 endif (OPENVAS_VERSION)
 
+if (GIT_REVISION)
+  add_definitions (-DOPENVAS_GIT_REVISION="${GIT_REVISION}")
+endif (GIT_REVISION)
+
 add_definitions (-DPREFIX="${CMAKE_INSTALL_PREFIX}")
 
 if (OPENVAS_NVT_DIR)
