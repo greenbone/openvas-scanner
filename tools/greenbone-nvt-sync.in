@@ -136,7 +136,7 @@ stderr_write ()
 }
 
 # Read the general information about the feed origin from
-# the file "plugin_feed_infoc.inc" inside the feed directory.
+# the file "plugin_feed_info.inc" inside the feed directory.
 get_feed_info ()
 {
   INFOFILE="$NVT_DIR/plugin_feed_info.inc"
