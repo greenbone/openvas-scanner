@@ -61,12 +61,6 @@ else (CLANG_FORMAT)
   message (STATUS "clang-format not found...")
 endif (CLANG_FORMAT)
 
-if (GIT_REVISION)
-  set (PROJECT_VERSION_GIT "${GIT_REVISION}")
-else (GIT_REVISION)
-  set (PROJECT_VERSION_GIT "~git")
-endif (GIT_REVISION)
-
 # Set dev version if this is a development version and not a full release,
 # unset (put value 0 or delete line) before a full release and reset after.
 set (PROJECT_DEV_VERSION 1)
