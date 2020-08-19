@@ -91,32 +91,14 @@ set (FILES bpf_share.c ftp_funcs.c vendorversion.c network.c plugutils.c pcap.c
 # Also stack protection needs a shared library to work
 set (CMAKE_C_FLAGS              "${CMAKE_C_FLAGS} -Wall -Wextra -fPIC")
 
-## Project version
-# The following three variables should be set through the project command once
-# we require CMake >= 3.0
-set (MISC_VERSION_MAJOR 21)
-set (MISC_VERSION_MINOR 4)
-set (MISC_VERSION_PATCH 0)
-
-if (PROJECT_BETA_RELEASE)
-  set (MISC_VERSION_SUFFIX "+beta${PROJECT_BETA_RELEASE}")
-else (PROJECT_BETA_RELEASE)
-  set (MISC_VERSION_SUFFIX ".${PROJECT_VERSION_PATCH}")
-endif (PROJECT_BETA_RELEASE)
-
-set (MISC_VERSION_STRING "${MISC_VERSION_MAJOR}.${MISC_VERSION_MINOR}${MISC_VERSION_SUFFIX}")
-set (MISC_PACKAGE_VERSION "${MISC_VERSION_STRING}${PROJECT_VERSION_GIT}")
-set (MISC_VERSION "${MISC_VERSION_STRING}")
-
-
 # Build shared
 
 add_library (openvas_misc_shared SHARED ${FILES})
 
 set_target_properties (openvas_misc_shared PROPERTIES OUTPUT_NAME "openvas_misc")
 set_target_properties (openvas_misc_shared PROPERTIES CLEAN_DIRECT_OUTPUT 1)
-set_target_properties (openvas_misc_shared PROPERTIES SOVERSION "${MISC_VERSION_MAJOR}")
-set_target_properties (openvas_misc_shared PROPERTIES VERSION "${MISC_PACKAGE_VERSION}")
+set_target_properties (openvas_misc_shared PROPERTIES SOVERSION "${PROJECT_VERSION_MAJOR}")
+set_target_properties (openvas_misc_shared PROPERTIES VERSION "${PROJECT_VERSION_STRING}")
 
 target_link_libraries (openvas_misc_shared LINK_PRIVATE ${GNUTLS_LDFLAGS} ${UUID_LDFLAGS}
                        ${GLIB_LDFLAGS} ${PCAP_LDFLAGS}
