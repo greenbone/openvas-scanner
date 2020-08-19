@@ -162,18 +162,22 @@ host_get_port_state_udp (struct script_infos *plugdata, int portnum)
   return (host_get_port_state_proto (plugdata, portnum, "udp"));
 }
 
-int
-plug_add_host_fqdn (struct script_infos *args, const char *hostname,
-                    const char *source)
+/**
+ * @brief Check for  duplicated vhosts before inserting a new one.
+ *
+ * @param args script info structure
+ * @param hostname  hostname to check
+ *
+ * @return 0 if the vhosts was still not added. -1 if the vhosts already exists.
+ */
+static int
+check_duplicated_vhost (struct script_infos *args, const char *hostname)
 {
-  gvm_vhost_t *vhost;
-  GSList *vhosts;
-  char **excluded;
+  GSList *vhosts = NULL;
+  kb_t host_kb = NULL;
+  struct kb_item *current_vhosts = NULL;
 
-  if (!prefs_get_bool ("expand_vhosts") || !hostname || !source)
-    return -1;
-
-  /* Check for duplicate vhost value. */
+  /* Check for duplicate vhost value in args. */
   vhosts = args->vhosts;
   while (vhosts)
     {
@@ -186,6 +190,43 @@ plug_add_host_fqdn (struct script_infos *args, const char *hostname,
         }
       vhosts = vhosts->next;
     }
+
+  /* Check for duplicate vhost value already added by other forked child of the
+   * same plugin. */
+  host_kb = args->key;
+  current_vhosts = kb_item_get_all (host_kb, "internal/vhosts");
+  if (!current_vhosts)
+    return 0;
+
+  while (current_vhosts)
+    {
+      if (!strcmp (current_vhosts->v_str, hostname))
+        {
+          g_warning ("%s: Value '%s' exists already", __func__, hostname);
+          kb_item_free (current_vhosts);
+
+          return -1;
+        }
+      current_vhosts = current_vhosts->next;
+    }
+
+  kb_item_free (current_vhosts);
+  return 0;
+}
+
+int
+plug_add_host_fqdn (struct script_infos *args, const char *hostname,
+                    const char *source)
+{
+  gvm_vhost_t *vhost;
+  char **excluded;
+
+  if (!prefs_get_bool ("expand_vhosts") || !hostname || !source)
+    return -1;
+
+  if (check_duplicated_vhost (args, hostname))
+    return -1;
+
   /* Check for excluded vhost value. */
   if (prefs_get ("exclude_hosts"))
     {
