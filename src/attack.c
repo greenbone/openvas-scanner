@@ -278,23 +278,54 @@ unset_check_new_vhosts_flag (void)
 static void
 check_new_vhosts (void)
 {
-  char *value;
+  struct kb_item *current_vhosts = NULL;
 
   if (get_check_new_vhosts_flag () == 0)
     return;
 
-  while ((value = kb_item_pop_str (host_kb, "internal/vhosts")))
+  /* Check for duplicate vhost value already added by other forked child of the
+   * same plugin. */
+  current_vhosts = kb_item_get_all (host_kb, "internal/vhosts");
+  if (!current_vhosts)
     {
-      /* Get the source. */
-      char buffer[4096], *source;
+      unset_check_new_vhosts_flag ();
+      return;
+    }
+  while (current_vhosts)
+    {
+      GSList *vhosts = NULL;
+      char buffer[4096], *source, *value;
       gvm_vhost_t *vhost;
 
+      value = g_strdup (current_vhosts->v_str);
+
+      /* Check for duplicate vhost value in args. */
+      vhosts = host_vhosts;
+      while (vhosts)
+        {
+          gvm_vhost_t *tmp = vhosts->data;
+
+          if (!strcmp (tmp->value, value))
+            {
+              g_warning ("%s: Value '%s' exists already", __func__, value);
+              unset_check_new_vhosts_flag ();
+              kb_item_free (current_vhosts);
+              return;
+            }
+          vhosts = vhosts->next;
+        }
+
+      /* Get sources*/
       g_snprintf (buffer, sizeof (buffer), "internal/source/%s", value);
-      source = kb_item_pop_str (host_kb, buffer);
+      source = kb_item_get_str (host_kb, buffer);
       assert (source);
       vhost = gvm_vhost_new (value, source);
       host_vhosts = g_slist_append (host_vhosts, vhost);
+
+      current_vhosts = current_vhosts->next;
     }
+
+  kb_item_free (current_vhosts);
   unset_check_new_vhosts_flag ();
 }
 
