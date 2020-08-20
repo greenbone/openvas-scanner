@@ -13,6 +13,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 ### Fixed
 
 - Fork vhosts before creating the socket. [#579](https://github.com/greenbone/openvas/pull/579)
+- Check if another forked child has already added the same vhost. [#584](https://github.com/greenbone/openvas/pull/584)
 
 ### Removed
 
