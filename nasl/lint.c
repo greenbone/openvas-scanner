@@ -207,6 +207,31 @@ nasl_lint_def (lex_ctxt *lexic, tree_cell *st, int lint_mode,
                                g_strdup (err_fname));
         }
 
+      /* Check if function parameters are used multiple times. Only check
+       * this if we are in lint mode 1 to not check it multiple times. */
+      if (lint_mode == 1)
+        {
+          GSList *func_params = NULL;
+          tree_cell *args = st->link[0];
+          for (; args != NULL; args = args->link[1])
+            {
+              if (args->x.str_val)
+                {
+                  /* Check if param was already used */
+                  if (!g_slist_find_custom (func_params, args->x.str_val,
+                                            (GCompareFunc) list_cmp))
+                    func_params =
+                      g_slist_prepend (func_params, args->x.str_val);
+                  else
+                    nasl_perror (
+                      lexic,
+                      "function parameter \"%s\" was provided multiple times.",
+                      args->x.str_val);
+                }
+            }
+          g_slist_free (func_params);
+        }
+
       /* Save in a list the name of the called function, the file where it
          is called from, and the function where it is called from. This will
          help to know if a called function is really needed, or it was just
