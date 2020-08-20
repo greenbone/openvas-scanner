@@ -289,7 +289,6 @@ check_new_vhosts (void)
   if (!current_vhosts)
     {
       unset_check_new_vhosts_flag ();
-      g_message ("no current vhosts");
       return;
     }
   while (current_vhosts)
