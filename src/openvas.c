@@ -388,7 +388,7 @@ start_single_task_scan (void)
 }
 /**
  * @brief Search in redis the process ID of a running scan and
- * sends it the kill signal SIGUSR2, which will stop the scan.
+ * sends it the kill signal SIGUSR1, which will stop the scan.
  * To find the process ID, it uses the scan_id passed with the
  * --scan-stop option.
  */
