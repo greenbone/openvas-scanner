@@ -996,6 +996,7 @@ attack_network (struct scan_globals *globals)
   const gchar *port_range;
   kb_t host_kb;
   GSList *unresolved;
+  int duplicated_hosts;
 
   gboolean test_alive_hosts_only = prefs_get_bool ("test_alive_hosts_only");
   gvm_hosts_t *alive_hosts_list = NULL;
@@ -1064,6 +1065,15 @@ attack_network (struct scan_globals *globals)
 
   hosts = gvm_hosts_new (hostlist);
   unresolved = gvm_hosts_resolve (hosts);
+
+  /* Duplicated hosts are removed from the list and ospd-openvas
+     needs to know that less hosts will be scanned, for the scan progress
+     calculation. Sent the amount of duplicated hosts as dead hosts to not
+     be taken in account. */
+  duplicated_hosts = gvm_hosts_duplicated (hosts);
+  if (duplicated_hosts > 0)
+    send_dead_hosts_to_ospd_openvas (duplicated_hosts);
+
   while (unresolved)
     {
       g_warning ("Couldn't resolve hostname '%s'", (char *) unresolved->data);
