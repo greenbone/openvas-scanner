@@ -207,11 +207,22 @@ nasl_lint_def (lex_ctxt *lexic, tree_cell *st, int lint_mode,
                                g_strdup (err_fname));
         }
 
+      /* Save in a list the name of the called function, the file where it
+         is called from, and the function where it is called from. This will
+         help to know if a called function is really needed, or it was just
+         called by another defined function which is never called. */
+      func_info *finfo = g_malloc0 (sizeof (func_info));
+      finfo->func_name = g_strdup (st->x.str_val);
+      finfo->caller_file = g_strdup (err_fname ? err_fname : nasl_name);
+      finfo->caller_func = g_strdup (current_fun_def);
+      *def_func_tree = g_slist_prepend (*def_func_tree, finfo);
+
       /* Check if function parameters are used multiple times. Only check
        * this if we are in lint mode 1 to not check it multiple times. */
       if (lint_mode == 1)
         {
           GSList *func_params = NULL;
+          int linenum = st->line_nb;
           tree_cell *args = st->link[0];
           for (; args != NULL; args = args->link[1])
             {
@@ -223,24 +234,19 @@ nasl_lint_def (lex_ctxt *lexic, tree_cell *st, int lint_mode,
                     func_params =
                       g_slist_prepend (func_params, args->x.str_val);
                   else
-                    nasl_perror (
-                      lexic,
-                      "function parameter \"%s\" was provided multiple times.",
-                      args->x.str_val);
+                    {
+                      g_message ("%s: Error at or near line %d. "
+                                 "Parameter \"%s\" passed to function \"%s\" "
+                                 "was provided multiple times.",
+                                 finfo->caller_file, linenum, args->x.str_val,
+                                 finfo->func_name);
+                      g_slist_free (func_params);
+                      return NULL;
+                    }
                 }
             }
           g_slist_free (func_params);
         }
-
-      /* Save in a list the name of the called function, the file where it
-         is called from, and the function where it is called from. This will
-         help to know if a called function is really needed, or it was just
-         called by another defined function which is never called. */
-      func_info *finfo = g_malloc0 (sizeof (func_info));
-      finfo->func_name = g_strdup (st->x.str_val);
-      finfo->caller_file = g_strdup (err_fname ? err_fname : nasl_name);
-      finfo->caller_func = g_strdup (current_fun_def);
-      *def_func_tree = g_slist_prepend (*def_func_tree, finfo);
     }
 
   switch (st->type)
