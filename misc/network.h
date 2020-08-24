@@ -49,6 +49,7 @@ typedef enum openvas_encaps
   OPENVAS_ENCAPS_TLSv1,
   OPENVAS_ENCAPS_TLSv11,
   OPENVAS_ENCAPS_TLSv12,
+  OPENVAS_ENCAPS_TLSv13,
   OPENVAS_ENCAPS_TLScustom, /* SSL/TLS using custom priorities.  */
   OPENVAS_ENCAPS_MAX,
 } openvas_encaps_t;

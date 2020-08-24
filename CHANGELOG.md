@@ -8,6 +8,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ### Added
 - Extend nasl lint to detect if function parameter is used twice. [#590](https://github.com/greenbone/openvas/pull/590)
+- Add support for TLSv1.3. [#588](https://github.com/greenbone/openvas/pull/588)
 
 ### Fixed
 - Fork vhosts before creating the socket.[#576](https://github.com/greenbone/openvas/pull/576)
