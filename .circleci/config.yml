@@ -15,7 +15,7 @@ jobs:
       - run:
           working_directory: ~/gvm-libs
           name: Checkout gvm-libs
-          command: git clone --depth 1 https://github.com/greenbone/gvm-libs.git
+          command: git clone --depth 1 https://github.com/greenbone/gvm-libs.git -b gvm-libs-20.08
       - run:
           working_directory: ~/gvm-libs
           name: Configure and compile gvm-libs (Release)
@@ -31,7 +31,7 @@ jobs:
       - run:
           working_directory: ~/gvm-libs
           name: Checkout gvm-libs
-          command: git clone --depth 1 https://github.com/greenbone/gvm-libs.git
+          command: git clone --depth 1 https://github.com/greenbone/gvm-libs.git -b gvm-libs-20.08
       - run:
           working_directory: ~/gvm-libs
           name: Configure and compile gvm-libs
@@ -47,7 +47,7 @@ jobs:
       - run:
           working_directory: ~/gvm-libs
           name: Checkout gvm-libs
-          command: git clone --depth 1 https://github.com/greenbone/gvm-libs.git
+          command: git clone --depth 1 https://github.com/greenbone/gvm-libs.git -b gvm-libs-20.08
       - run:
           working_directory: ~/gvm-libs
           name: Configure and compile gvm-libs
