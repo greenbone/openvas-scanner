@@ -270,6 +270,10 @@ load_scan_preferences (struct scan_globals *globals)
 
               g_free (file_hash);
             }
+          else if (is_scanner_only_pref (pref[0]))
+            g_warning ("%s is a scanner only preference. It can not be written "
+                       "by the client and will be ignored.",
+                       pref_name[0]);
           else
             prefs_set (pref[0], pref[1] ?: "");
           g_strfreev (pref_name);
@@ -401,7 +405,7 @@ start_single_task_scan (void)
 }
 /**
  * @brief Search in redis the process ID of a running scan and
- * sends it the kill signal SIGUSR2, which will stop the scan.
+ * sends it the kill signal SIGUSR1, which will stop the scan.
  * To find the process ID, it uses the scan_id passed with the
  * --scan-stop option.
  */

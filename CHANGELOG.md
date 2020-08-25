@@ -12,12 +12,21 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 ### Changed
 -Store results in main_kb instead of host_kb. [#550](https://github.com/greenbone/openvas/pull/550)
 
-### Removed 
+### Removed
 - Use the nvticache name from gvm-libs, defined in nvticache.h. [#578](https://github.com/greenbone/openvas/pull/578)
 
 [unreleased]: https://github.com/greenbone/openvas/compare/openvas-20.08...master
 
-## [20.08] (unreleased)
+## [20.08.1] (unreleased)
+
+### Fixed
+- Fork vhosts before creating the socket.[#576](https://github.com/greenbone/openvas/pull/576)
+- Check if another forked child has already added the same vhost. [#581](https://github.com/greenbone/openvas/pull/581)
+- Send duplicated hosts as dead hosts to ospd, to adjust scan progress calculation. [#586](https://github.com/greenbone/openvas/pull/586)
+
+[20.08]: https://github.com/greenbone/openvas/compare/v20.8.0...openvas-20.08
+
+## [20.08] (2020-08-11)
 
 ### Added
 - Create greenbone-nvt-sync create lock file during feed sync.
@@ -45,6 +54,9 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 - Use flock to lock the feed lock file. [#507](https://github.com/greenbone/openvas/pull/507)
 - Move alive detection module (Boreas) into gvm-libs [#519](https://github.com/greenbone/openvas/pull/519)
 - Allow to set all legal types of icmp v6 in icmp header in openvas-nasl. [#542](https://github.com/greenbone/openvas/pull/542)
+- The output of the NASL dump_* packet forgery functions was made consistent. [#555](https://github.com/greenbone/openvas/pull/555)
+- Make drop_privileges setting a scanner-only preference. [#557](https://github.com/greenbone/openvas/pull/557)
+- Feed lock path is now configurable. [#574](https://github.com/greenbone/openvas/pull/574)
 
 ### Fixed
 - Improve signal handling when update vhosts list. [#425](https://github.com/greenbone/openvas/pull/425)
@@ -62,6 +74,11 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 - Various updates to the nasl_perror() error texts. [#539](https://github.com/greenbone/openvas/pull/542)
 - Fix icmp checksum calculation in openvas-nasl. [#543](https://github.com/greenbone/openvas/pull/543)
 - Fix ipv6 flow label in nasl_packet_forgery_v6() for openvas-nasl. [#545](https://github.com/greenbone/openvas/pull/545)
+- Fix name of NASL internal IPPROTO_IP variable. [#552](https://github.com/greenbone/openvas/pull/552)
+- Fix byte ordering and wrong PROTO identifier in dump_ipv6_packet() for openvas-nasl. [#549](https://github.com/greenbone/openvas/pull/549)
+- Fix size calculation which lead to alloc error in get_tcp_element() of openvas-nasl. [#546](https://github.com/greenbone/openvas/pull/546)
+- Fix filter out of default 'radio' type preferences [#560](https://github.com/greenbone/openvas/pull/560)
+- Allow group access to lockfile and fix empty timestamp [#562](https://github.com/greenbone/openvas/pull/562)
 
 ### Removed
 - Removed "network scan" mode. This includes removal of NASL API methods "scan_phase()" and "network_targets()". Sending a "network_mode=yes" in a scanner configuration will have no effect anymore. [#493](https://github.com/greenbone/openvas/pull/493)
