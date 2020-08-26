@@ -216,6 +216,37 @@ nasl_lint_def (lex_ctxt *lexic, tree_cell *st, int lint_mode,
       finfo->caller_file = g_strdup (err_fname ? err_fname : nasl_name);
       finfo->caller_func = g_strdup (current_fun_def);
       *def_func_tree = g_slist_prepend (*def_func_tree, finfo);
+
+      /* Check if function parameters are used multiple times. Only check
+       * this if we are in lint mode 1 to not check it multiple times. */
+      if (lint_mode == 1)
+        {
+          GSList *func_params = NULL;
+          int linenum = st->line_nb;
+          tree_cell *args = st->link[0];
+          for (; args != NULL; args = args->link[1])
+            {
+              if (args->x.str_val)
+                {
+                  /* Check if param was already used */
+                  if (!g_slist_find_custom (func_params, args->x.str_val,
+                                            (GCompareFunc) list_cmp))
+                    func_params =
+                      g_slist_prepend (func_params, args->x.str_val);
+                  else
+                    {
+                      g_message ("%s: Error at or near line %d. "
+                                 "Parameter \"%s\" passed to function \"%s\" "
+                                 "was provided multiple times.",
+                                 finfo->caller_file, linenum, args->x.str_val,
+                                 finfo->func_name);
+                      g_slist_free (func_params);
+                      return NULL;
+                    }
+                }
+            }
+          g_slist_free (func_params);
+        }
     }
 
   switch (st->type)
