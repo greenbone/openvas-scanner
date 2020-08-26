@@ -1,4 +1,4 @@
-/* Portions Copyright (C) 2009-2019 Greenbone Networks GmbH
+/* Portions Copyright (C) 2009-2020 Greenbone Networks GmbH
  * Based on work Copyright (C) 2002 Renaud Deraison
  *
  * SPDX-License-Identifier: GPL-2.0-only
@@ -401,7 +401,7 @@ mark_sphinxql (struct script_infos *desc, int port)
 {
   register_service (desc, port, "sphinxql");
   post_log (oid, desc, port,
-            "A Sphinx search server (MySQL listener)"
+            "A Sphinx search server (MySQL listener) "
             "seems to be running on this port");
 }
 

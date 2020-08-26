@@ -1,4 +1,4 @@
-/* Portions Copyright (C) 2009-2019 Greenbone Networks GmbH
+/* Portions Copyright (C) 2009-2020 Greenbone Networks GmbH
  * Based on work Copyright (C) 1998 - 2002 Renaud Deraison
  *               SSL Support Copyright (C) 2001 Michel Arboi
  *
@@ -901,6 +901,11 @@ open_stream_connection_ext (struct script_infos *args, unsigned int port,
   char *passwd = NULL;
   char *cafile = NULL;
   char *hostname = NULL;
+  char *hostname_aux = NULL;
+
+  /* Because plug_get_host_fqdn() forks for each vhost, we fork() before
+     creating the socket */
+  hostname_aux = plug_get_host_fqdn (args);
 
   if (!priority)
     priority = ""; /* To us an empty string is equivalent to NULL.  */
@@ -930,11 +935,16 @@ open_stream_connection_ext (struct script_infos *args, unsigned int port,
                  " layer %d passed by %s",
                  transport, args->name);
       errno = EINVAL;
+
+      g_free (hostname_aux);
       return -1;
     }
 
   if ((fd = get_connection_fd ()) < 0)
-    return -1;
+    {
+      g_free (hostname_aux);
+      return -1;
+    }
   fp = OVAS_CONNECTION_FROM_FD (fd);
 
   fp->transport = transport;
@@ -977,9 +987,9 @@ open_stream_connection_ext (struct script_infos *args, unsigned int port,
       /* We do not need a client certificate in this case */
       snprintf (buf, sizeof (buf), "Host/SNI/%d/force_disable", fp->port);
       if (kb_item_get_int (kb, buf) <= 0)
-        hostname = plug_get_host_fqdn (args);
+        hostname = hostname_aux;
+
       ret = open_SSL_connection (fp, cert, key, passwd, cafile, hostname);
-      g_free (hostname);
       g_free (cert);
       g_free (key);
       g_free (passwd);
@@ -988,6 +998,8 @@ open_stream_connection_ext (struct script_infos *args, unsigned int port,
         goto failed;
       break;
     }
+
+  g_free (hostname_aux);
 
   return fd;
 

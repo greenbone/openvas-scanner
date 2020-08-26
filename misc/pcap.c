@@ -1,4 +1,4 @@
-/* Portions Copyright (C) 2009-2019 Greenbone Networks GmbH
+/* Portions Copyright (C) 2009-2020 Greenbone Networks GmbH
  * Based on work Copyright (C) 1999 Renaud Deraison
  *
  * SPDX-License-Identifier: GPL-2.0-or-later
@@ -757,7 +757,7 @@ getipv6routes (struct myroute *myroutes, int *numroutes)
               }
           if (i == numinterfaces)
             g_message (
-              "Failed to find interface %s mentioned in /proc/net/route\n",
+              "Failed to find interface %s mentioned in /proc/net/ipv6_route\n",
               iface);
           (*numroutes)++;
           if (*numroutes >= MAXROUTES)

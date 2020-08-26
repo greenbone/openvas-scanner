@@ -72,7 +72,7 @@ PORT=24
 OPENVAS_SYSCONF_DIR="@OPENVAS_SYSCONF_DIR@"
 
 # Directory where the feed update lock file will be placed.
-OPENVAS_RUN_DIR="@OPENVAS_RUN_DIR@"
+OPENVAS_FEED_LOCK_PATH="@OPENVAS_FEED_LOCK_PATH@"
 
 # Location of the GSF Access Key
 ACCESS_KEY="@GVM_ACCESS_KEY_DIR@/gsf-access-key"
@@ -503,15 +503,16 @@ do_sync ()
     log_write "Feed is already current, skipping synchronization."
   else
     (
+      chmod +660 $OPENVAS_FEED_LOCK_PATH
       flock -n 9
       if [ $? -eq 1 ] ; then
           log_warning "Another process related to the feed update is already running"
           exit 1
       fi
-      date > $OPENVAS_RUN_DIR/feed-update.lock
+      date > $OPENVAS_FEED_LOCK_PATH
       sync_nvts
-      echo -n $OPENVAS_RUN_DIR/feed-update.lock
-    )9>$OPENVAS_RUN_DIR/feed-update.lock
+      echo -n $OPENVAS_FEED_LOCK_PATH
+    )9>>$OPENVAS_FEED_LOCK_PATH
   fi
 }
 
