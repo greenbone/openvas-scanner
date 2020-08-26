@@ -7,7 +7,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 ## [20.08.1] (unreleased)
 
 ### Added
-- Extend nasl lint to detect if function parameter is used twice. [#585](https://github.com/greenbone/openvas/pull/585)
+- Extend nasl lint to detect if function parameter is used twice. [#590](https://github.com/greenbone/openvas/pull/590)
 
 ### Fixed
 - Fork vhosts before creating the socket.[#576](https://github.com/greenbone/openvas/pull/576)
