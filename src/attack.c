@@ -208,7 +208,8 @@ fork_sleep (int n)
 }
 
 int global_scan_stop = 0;
-static void scan_stop_cleanup (void);
+static void
+scan_stop_cleanup (void);
 
 static int
 scan_is_stopped (void)
