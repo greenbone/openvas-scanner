@@ -289,6 +289,9 @@ load_scan_preferences (struct scan_globals *globals)
 static void
 scanner_thread (struct scan_globals *globals)
 {
+  /* Make process a group leader, to make it easier to cleanup forked
+   * processes & their children. */
+  setpgid (0, 0);
   nvticache_reset ();
 
   globals->scan_id = g_strdup (global_scan_id);
