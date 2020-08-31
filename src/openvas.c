@@ -418,7 +418,9 @@ stop_single_task_scan (void)
    */
   if (pid <= 0)
     return;
-  kill (pid, SIGUSR1);
+
+  /* Send the signal to the process group. */
+  killpg (pid, SIGUSR1);
 
   exit (0);
 }
