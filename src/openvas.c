@@ -408,6 +408,13 @@ stop_single_task_scan (void)
     exit (1);
 
   pid = kb_item_get_int (kb, "internal/ovas_pid");
+
+  /* Only send the signal if the pid is a positive value.
+     Since kb_item_get_int() will return -1 if the key does
+     not exist. killing with -1 pid will send the signal system wide.
+   */
+  if (pid <= 0)
+    return;
   kill (pid, SIGUSR1);
 
   exit (0);
