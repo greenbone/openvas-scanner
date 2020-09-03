@@ -208,10 +208,14 @@ fork_sleep (int n)
 }
 
 int global_scan_stop = 0;
+static void
+scan_stop_cleanup (void);
 
 static int
 scan_is_stopped (void)
 {
+  if (global_scan_stop == 1)
+    scan_stop_cleanup ();
   return global_scan_stop;
 }
 
@@ -937,10 +941,19 @@ ad_thread_joined (gboolean joined)
 static void
 handle_scan_stop_signal ()
 {
+  global_scan_stop = 1;
+}
+
+static void
+scan_stop_cleanup ()
+{
   kb_t main_kb = NULL;
   char *pid;
+  static int already_called = 0;
 
-  global_scan_stop = 1;
+  if (already_called == 1)
+    return;
+
   connect_main_kb (&main_kb);
   pid = kb_item_get_str (main_kb, ("internal/ovas_pid"));
   kb_lnk_reset (main_kb);
@@ -949,6 +962,7 @@ handle_scan_stop_signal ()
    * Else stop all running plugin processes for the current host fork. */
   if (atoi (pid) == getpid ())
     {
+      already_called = 1;
       hosts_stop_all ();
 
       /* Stop (cancel) alive detection if enabled and not already joined. */
@@ -974,6 +988,7 @@ handle_scan_stop_signal ()
         }
     }
   else
+    /* Current host process */
     pluginlaunch_stop ();
 
   g_free (pid);
