@@ -22,13 +22,62 @@
  * @brief Implementation of an API for SNMP used by NASL scripts.
  */
 
-#ifdef HAVE_NETSNMP
-
 #include "../misc/plugutils.h"
 #include "nasl_lex_ctxt.h"
 
 #include <assert.h>
 #include <gvm/base/logging.h>
+
+
+/*
+ * @brief Check that protocol value is valid.
+ *
+ * param[in]    proto   Protocol string.
+ *
+ * @return 1 if proto is udp, udp6, tcp or tcp6. 0 otherwise.
+ */
+static int
+proto_is_valid (const char *proto)
+{
+  if (strcmp (proto, "tcp") && strcmp (proto, "udp") && strcmp (proto, "tcp6")
+      && strcmp (proto, "udp6"))
+    return 0;
+  return 1;
+}
+
+/*
+ * @brief Create a NASL array from a snmp result.
+ *
+ * param[in]    ret     Return value.
+ * param[in]    result  Result string.
+ *
+ * @return NASL array.
+ */
+static tree_cell *
+array_from_snmp_result (int ret, char *result)
+{
+  anon_nasl_var v;
+
+  assert (result);
+  tree_cell *retc = alloc_typed_cell (DYN_ARRAY);
+  retc->x.ref_val = g_malloc0 (sizeof (nasl_array));
+  /* Return code */
+  memset (&v, 0, sizeof (v));
+  v.var_type = VAR2_INT;
+  v.v.v_int = ret;
+  add_var_to_list (retc->x.ref_val, 0, &v);
+  /* Return value */
+  memset (&v, 0, sizeof v);
+  v.var_type = VAR2_STRING;
+  v.v.v_str.s_val = (unsigned char *) result;
+  v.v.v_str.s_siz = strlen (result);
+  add_var_to_list (retc->x.ref_val, 1, &v);
+
+  return retc;
+}
+
+#ifdef HAVE_NETSNMP
+
 #include <net-snmp/net-snmp-config.h>
 #include <net-snmp/net-snmp-includes.h>
 
@@ -202,89 +251,6 @@ snmpv1v2c_get (const char *peername, const char *community, const char *oid_str,
   return snmp_get (&session, oid_str, result);
 }
 
-/*
- * @brief Check that protocol value is valid.
- *
- * param[in]    proto   Protocol string.
- *
- * @return 1 if proto is udp, udp6, tcp or tcp6. 0 otherwise.
- */
-static int
-proto_is_valid (const char *proto)
-{
-  if (strcmp (proto, "tcp") && strcmp (proto, "udp") && strcmp (proto, "tcp6")
-      && strcmp (proto, "udp6"))
-    return 0;
-  return 1;
-}
-
-/*
- * @brief Create a NASL array from a snmp result.
- *
- * param[in]    ret     Return value.
- * param[in]    result  Result string.
- *
- * @return NASL array.
- */
-static tree_cell *
-array_from_snmp_result (int ret, char *result)
-{
-  anon_nasl_var v;
-
-  assert (result);
-  tree_cell *retc = alloc_typed_cell (DYN_ARRAY);
-  retc->x.ref_val = g_malloc0 (sizeof (nasl_array));
-  /* Return code */
-  memset (&v, 0, sizeof (v));
-  v.var_type = VAR2_INT;
-  v.v.v_int = ret;
-  add_var_to_list (retc->x.ref_val, 0, &v);
-  /* Return value */
-  memset (&v, 0, sizeof v);
-  v.var_type = VAR2_STRING;
-  v.v.v_str.s_val = (unsigned char *) result;
-  v.v.v_str.s_siz = strlen (result);
-  add_var_to_list (retc->x.ref_val, 1, &v);
-
-  return retc;
-}
-
-tree_cell *
-nasl_snmpv1v2c_get (lex_ctxt *lexic, int version)
-{
-  const char *proto, *community, *oid_str;
-  char *result = NULL, peername[2048];
-  int port, ret;
-
-  port = get_int_var_by_name (lexic, "port", -1);
-  proto = get_str_var_by_name (lexic, "protocol");
-  community = get_str_var_by_name (lexic, "community");
-  oid_str = get_str_var_by_name (lexic, "oid");
-  if (!proto || !community || !oid_str)
-    return array_from_snmp_result (-2, "Missing function argument");
-  if (port < 0 || port > 65535)
-    return array_from_snmp_result (-2, "Invalid port value");
-  if (!proto_is_valid (proto))
-    return array_from_snmp_result (-2, "Invalid protocol value");
-
-  g_snprintf (peername, sizeof (peername), "%s:%s:%d", proto,
-              plug_get_host_ip_str (lexic->script_infos), port);
-  ret = snmpv1v2c_get (peername, community, oid_str, version, &result);
-  return array_from_snmp_result (ret, result);
-}
-
-tree_cell *
-nasl_snmpv1_get (lex_ctxt *lexic)
-{
-  return nasl_snmpv1v2c_get (lexic, SNMP_VERSION_1);
-}
-
-tree_cell *
-nasl_snmpv2c_get (lex_ctxt *lexic)
-{
-  return nasl_snmpv1v2c_get (lexic, SNMP_VERSION_2c);
-}
-
 tree_cell *
 nasl_snmpv3_get (lex_ctxt *lexic)
 {
@@ -332,4 +298,124 @@ nasl_snmpv3_get (lex_ctxt *lexic)
   return array_from_snmp_result (ret, result);
 }
 
+#else
+
+#include <string.h>
+#include <errno.h>
+#include <stdio.h>
+#include <unistd.h>
+
+#define SNMP_VERSION_1 0
+#define SNMP_VERSION_2c 1
+/*
+ * @brief SNMP v1 or v2c Get query value.
+ *
+ * param[in]    peername    Target host in [protocol:]address[:port] format.
+ * param[in]    community   SNMP community string.
+ * param[in]    oid_str     OID string of value to get.
+ * param[in]    version     SNMP_VERSION_1 or SNMP_VERSION_2c.
+ * param[out]   result      Result of query.
+ *
+ * @return 0 if success and result value, -1 otherwise.
+ */
+static int
+snmpv1v2c_get (const char *peername, const char *community, const char *oid_str,
+               int version, char **result)
+{
+  char *argv[7];
+  GError *err = NULL;
+  int sout, ret;
+  GString *string = NULL;
+
+  assert (peername);
+  assert (community);
+  assert (oid_str);
+  assert (version == SNMP_VERSION_1 || version == SNMP_VERSION_2c);
+
+  setenv ("MIBS", "", 1);
+
+  argv[0] = "snmpget";
+  argv[1] = (version == SNMP_VERSION_1) ? "-v1" : "-v2c";
+  argv[2] = "-c";
+  argv[3] = g_strdup (community);
+  argv[4] = g_strdup (peername);
+  argv[5] = g_strdup (oid_str);
+  argv[6] = NULL;
+  ret = g_spawn_async_with_pipes (NULL, argv, NULL, G_SPAWN_SEARCH_PATH, NULL,
+                                  NULL, NULL, NULL, &sout, NULL, &err);
+  g_free(argv[3]);
+  g_free(argv[4]);
+  g_free(argv[5]);
+
+  if (ret == FALSE)
+    {
+      g_warning ("snmpget: %s", err ? err->message : "Error");
+      if (err)
+        g_error_free (err);
+      return -1;
+    }
+
+  string = g_string_new ("");
+  while (1)
+    {
+      char buf[4096];
+      size_t bytes;
+
+      bytes = read (sout, buf, sizeof (buf));
+      if (!bytes)
+        break;
+      else if (bytes > 0)
+        g_string_append_len (string, buf, bytes);
+      else
+        {
+          g_warning ("snmpget: %s", strerror (errno));
+          g_string_free (string, TRUE);
+          close (sout);
+          return -1;
+        }
+    }
+
+  *result = g_strdup (string->str);
+  g_string_free (string, TRUE);
+
+  close (sout);
+  return 0;
+}
+
 #endif /* HAVE_NETSNMP */
+
+tree_cell *
+nasl_snmpv1v2c_get (lex_ctxt *lexic, int version)
+{
+  const char *proto, *community, *oid_str;
+  char *result = NULL, peername[2048];
+  int port, ret;
+
+  port = get_int_var_by_name (lexic, "port", -1);
+  proto = get_str_var_by_name (lexic, "protocol");
+  community = get_str_var_by_name (lexic, "community");
+  oid_str = get_str_var_by_name (lexic, "oid");
+  if (!proto || !community || !oid_str)
+    return array_from_snmp_result (-2, "Missing function argument");
+  if (port < 0 || port > 65535)
+    return array_from_snmp_result (-2, "Invalid port value");
+  if (!proto_is_valid (proto))
+    return array_from_snmp_result (-2, "Invalid protocol value");
+
+  g_snprintf (peername, sizeof (peername), "%s:%s:%d", proto,
+              plug_get_host_ip_str (lexic->script_infos), port);
+  ret = snmpv1v2c_get (peername, community, oid_str, version, &result);
+  return array_from_snmp_result (ret, result);
+}
+
+tree_cell *
+nasl_snmpv1_get (lex_ctxt *lexic)
+{
+  return nasl_snmpv1v2c_get (lexic, SNMP_VERSION_1);
+}
+
+tree_cell *
+nasl_snmpv2c_get (lex_ctxt *lexic)
+{
+  return nasl_snmpv1v2c_get (lexic, SNMP_VERSION_2c);
+}

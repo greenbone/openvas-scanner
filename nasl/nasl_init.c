@@ -287,9 +287,9 @@ static init_func libfuncs[] = {
   {"gzip", nasl_gzip},
   {"DES", nasl_cipher_des},
 
-#ifdef HAVE_NETSNMP
   {"snmpv1_get", nasl_snmpv1_get},
   {"snmpv2c_get", nasl_snmpv2c_get},
+#ifdef HAVE_NETSNMP
   {"snmpv3_get", nasl_snmpv3_get},
 #endif /* HAVE_NETSNMP */
 

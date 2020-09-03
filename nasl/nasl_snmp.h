@@ -22,13 +22,13 @@
  * @brief Headers of an API for SNMP used by NASL scripts.
  */
 
-#ifdef HAVE_NETSNMP
-
 tree_cell *
 nasl_snmpv1_get (lex_ctxt *);
 
 tree_cell *
 nasl_snmpv2c_get (lex_ctxt *);
+
+#ifdef HAVE_NETSNMP
 
 tree_cell *
 nasl_snmpv3_get (lex_ctxt *);
