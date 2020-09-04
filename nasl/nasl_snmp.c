@@ -28,7 +28,6 @@
 #include <assert.h>
 #include <gvm/base/logging.h>
 
-
 /*
  * @brief Check that protocol value is valid.
  *
@@ -300,13 +299,44 @@ nasl_snmpv3_get (lex_ctxt *lexic)
 
 #else
 
-#include <string.h>
 #include <errno.h>
 #include <stdio.h>
+#include <string.h>
 #include <unistd.h>
 
 #define SNMP_VERSION_1 0
 #define SNMP_VERSION_2c 1
+
+static int
+check_spwan_output (int fd, char **result)
+{
+  GString *string = NULL;
+
+  string = g_string_new ("");
+  while (1)
+    {
+      char buf[4096];
+      size_t bytes;
+
+      bytes = read (fd, buf, sizeof (buf));
+      if (!bytes)
+        break;
+      else if (bytes > 0)
+        g_string_append_len (string, buf, bytes);
+      else
+        {
+          g_warning ("snmpget: %s", strerror (errno));
+          g_string_free (string, TRUE);
+          return -1;
+        }
+    }
+
+  *result = g_strdup (string->str);
+  g_string_free (string, TRUE);
+
+  return 0;
+}
+
 /*
  * @brief SNMP v1 or v2c Get query value.
  *
@@ -324,8 +354,7 @@ snmpv1v2c_get (const char *peername, const char *community, const char *oid_str,
 {
   char *argv[7];
   GError *err = NULL;
-  int sout, ret;
-  GString *string = NULL;
+  int sout = 0, serr = 0, ret;
 
   assert (peername);
   assert (community);
@@ -342,10 +371,10 @@ snmpv1v2c_get (const char *peername, const char *community, const char *oid_str,
   argv[5] = g_strdup (oid_str);
   argv[6] = NULL;
   ret = g_spawn_async_with_pipes (NULL, argv, NULL, G_SPAWN_SEARCH_PATH, NULL,
-                                  NULL, NULL, NULL, &sout, NULL, &err);
-  g_free(argv[3]);
-  g_free(argv[4]);
-  g_free(argv[5]);
+                                  NULL, NULL, NULL, &sout, &serr, &err);
+  g_free (argv[3]);
+  g_free (argv[4]);
+  g_free (argv[5]);
 
   if (ret == FALSE)
     {
@@ -355,30 +384,24 @@ snmpv1v2c_get (const char *peername, const char *community, const char *oid_str,
       return -1;
     }
 
-  string = g_string_new ("");
-  while (1)
+  /* As we spawn the process asyncronously, we don't know the exit
+     status of the process. Therefore we need to check for errors in
+     the output.
+     We assume that if there is no erros, we have an output.
+  */
+  check_spwan_output (serr, result);
+  if (result && *result[0] != '\0')
     {
-      char buf[4096];
-      size_t bytes;
-
-      bytes = read (sout, buf, sizeof (buf));
-      if (!bytes)
-        break;
-      else if (bytes > 0)
-        g_string_append_len (string, buf, bytes);
-      else
-        {
-          g_warning ("snmpget: %s", strerror (errno));
-          g_string_free (string, TRUE);
-          close (sout);
-          return -1;
-        }
+      close (sout);
+      close (serr);
+      return -1;
     }
+  close (serr);
+  g_free (*result);
 
-  *result = g_strdup (string->str);
-  g_string_free (string, TRUE);
-
+  check_spwan_output (sout, result);
   close (sout);
+
   return 0;
 }
 
