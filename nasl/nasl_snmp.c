@@ -26,7 +26,12 @@
 #include "nasl_lex_ctxt.h"
 
 #include <assert.h>
+#include <errno.h>
 #include <gvm/base/logging.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <unistd.h>
 
 /*
  * @brief Check that protocol value is valid.
@@ -299,11 +304,6 @@ nasl_snmpv3_get (lex_ctxt *lexic)
 
 #else
 
-#include <errno.h>
-#include <stdio.h>
-#include <string.h>
-#include <unistd.h>
-
 #define SNMP_VERSION_1 0
 #define SNMP_VERSION_2c 1
 
@@ -319,14 +319,14 @@ parse_snmp_error (char **result)
 
   while (res_aux)
     {
-      /* There is no special reason, we return the whole error message 
+      /* There is no special reason, we return the whole error message
          but removing the new line char at the end.
        */
       if (*res_aux == NULL)
         {
           char *pos;
 
-          if ((pos=strchr(*result, '\n')) != NULL)
+          if ((pos = strchr (*result, '\n')) != NULL)
             *pos = '\0';
           break;
         }
@@ -391,7 +391,7 @@ static int
 snmpv1v2c_get (const char *peername, const char *community, const char *oid_str,
                int version, char **result)
 {
-  char *argv[7];
+  char *argv[7], *pos = NULL;
   GError *err = NULL;
   int sout = 0, serr = 0, ret;
 
@@ -441,6 +441,10 @@ snmpv1v2c_get (const char *peername, const char *community, const char *oid_str,
 
   check_spwan_output (sout, result);
   close (sout);
+
+  /* Remove new line char from the result */
+  if ((pos = strchr (*result, '\n')) != NULL)
+    *pos = '\0';
 
   return 0;
 }
