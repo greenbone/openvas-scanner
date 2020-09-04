@@ -307,6 +307,45 @@ nasl_snmpv3_get (lex_ctxt *lexic)
 #define SNMP_VERSION_1 0
 #define SNMP_VERSION_2c 1
 
+static void
+parse_snmp_error (char **result)
+{
+  gchar **res_split, **res_aux;
+
+  res_aux = res_split = g_strsplit (*result, "\n", 0);
+
+  if (!res_split)
+    return;
+
+  while (res_aux)
+    {
+      /* There is no special reason, we return the whole error message 
+         but removing the new line char at the end.
+       */
+      if (*res_aux == NULL)
+        {
+          char *pos;
+
+          if ((pos=strchr(*result, '\n')) != NULL)
+            *pos = '\0';
+          break;
+        }
+
+      /* Search for the reason */
+      *res_aux = g_strrstr (*res_aux, "Reason: ");
+      if (*res_aux)
+        {
+          g_free (*result);
+          *result = g_strdup (*res_aux + 8);
+          break;
+        }
+      res_aux += 1;
+    }
+
+  g_strfreev (res_split);
+  return;
+}
+
 static int
 check_spwan_output (int fd, char **result)
 {
@@ -392,6 +431,7 @@ snmpv1v2c_get (const char *peername, const char *community, const char *oid_str,
   check_spwan_output (serr, result);
   if (result && *result[0] != '\0')
     {
+      parse_snmp_error (result);
       close (sout);
       close (serr);
       return -1;
