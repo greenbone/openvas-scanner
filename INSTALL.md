@@ -39,7 +39,7 @@ Recommended for extended Windows support (e.g. automatically start the remote re
 * impacket-wmiexec of python-impacket >= 0.9.15 found within your PATH
 
 Recommended to have improved SNMP support:
-* netsnmp
+* netsnmp libraries or alternatively the snmpget binary.
 
 Install prerequisites on Debian GNU/Linux 'Buster' 10:
 
