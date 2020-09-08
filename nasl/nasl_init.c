@@ -130,6 +130,7 @@ static init_func libfuncs[] = {
   {"get_host_names", get_hostnames},
   {"get_host_name_source", get_hostname_source},
   {"resolve_host_name", resolve_hostname},
+  {"resolve_hostname_to_multiple_ips", resolve_hostname_to_multiple_ips},
   {"get_host_ip", get_host_ip},
   {"same_host", nasl_same_host},
   {"TARGET_IS_IPV6", nasl_target_is_ipv6},
