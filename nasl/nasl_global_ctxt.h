@@ -36,6 +36,9 @@ typedef struct
 int
 init_nasl_ctx (naslctxt *, const char *);
 
+int
+init_notus_vt_list (const kb_t, const char *, int);
+
 void
 nasl_clean_ctx (naslctxt *);
 

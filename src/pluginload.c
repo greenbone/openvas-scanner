@@ -97,7 +97,7 @@ collect_nvts (const char *folder, const char *subdir, GSList *files)
           if (new_subdir)
             g_free (new_subdir);
         }
-      else if (g_str_has_suffix (fname, ".nasl"))
+      else if (g_str_has_suffix (fname, ".nasl") || g_str_has_suffix (fname, ".csv" ))
         files = g_slist_prepend (files, g_build_filename (subdir, fname, NULL));
       g_free (path);
       fname = g_dir_read_name (dir);
@@ -307,7 +307,12 @@ plugins_reload_from_dir (void *folder)
           if (nasl_plugin_add (folder, name))
             err_count++;
         }
-
+      if (g_str_has_suffix (name, ".csv"))
+        {
+          if (add_notus_vt_plugins (folder, name))
+            err_count++;
+        }
+          
       if (err_count == 20)
         {
           g_debug ("Stopped loading plugins: High number of errors.");

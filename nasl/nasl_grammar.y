@@ -644,7 +644,8 @@ load_checksums (kb_t kb)
       if (!fgets (buffer, sizeof (buffer), file))
         break;
       if (strstr (buffer, ".asc")
-          || (!strstr (buffer, ".inc") && !strstr (buffer, ".nasl")))
+          || (!strstr (buffer, ".inc") && !strstr (buffer, ".nasl")
+          && !strstr (buffer, ".csv")))
         continue;
       splits = g_strsplit (buffer, "  ", -1);
       if (g_strv_length (splits) != 2)
@@ -694,6 +695,97 @@ file_checksum (const char *filename, int algorithm)
   return result;
 }
 
+
+int
+init_notus_vt_list (const kb_t cache_kb, const char *name, int always_signed)
+{
+  GSList *inc_dir = inc_dirs; // iterator for include directories
+  char *full_name = NULL, key_path[2048], *checksum;
+  gchar *buffer = NULL;
+  gsize flen;
+  time_t timestamp;
+
+  if (!inc_dirs)
+    add_nasl_inc_dir ("");
+
+  while (inc_dir != NULL)
+    {
+      if (full_name)
+        g_free (full_name);
+      full_name = g_build_filename (inc_dir->data, name, NULL);
+
+      if ((g_file_get_contents (full_name, &buffer, &flen, NULL)))
+        break;
+
+      inc_dir = g_slist_next (inc_dir);
+    }
+
+  if (!full_name || !buffer)
+    {
+      g_message ("%s: Not able to open nor to locate it in include paths",
+                 name);
+      g_free (full_name);
+      return -1;
+    }
+
+  if (always_signed)
+    {
+      g_free (full_name);
+      return 0;
+    }
+  snprintf (key_path, sizeof (key_path), "signaturecheck:%s", full_name);
+  timestamp = kb_item_get_int (cache_kb, key_path);
+  if (timestamp > 0)
+    {
+      struct stat file_stat;
+
+      if (stat (full_name, &file_stat) >= 0 && timestamp > file_stat.st_mtime)
+        {
+          /* Already checked. No need to check again. */
+          g_free (full_name);
+          return 0;
+        }
+    }
+
+  load_checksums (cache_kb);
+  if (checksum_algorithm == GCRY_MD_NONE)
+    return -1;
+  else if (checksum_algorithm == GCRY_MD_MD5)
+    snprintf (key_path, sizeof (key_path), "md5sums:%s", full_name);
+  else if (checksum_algorithm == GCRY_MD_SHA256)
+    snprintf (key_path, sizeof (key_path), "sha256sums:%s", full_name);
+  else
+    abort ();
+
+  checksum = kb_item_get_str (cache_kb, key_path);
+
+  if (!checksum)
+    {
+      g_warning ("No checksum for %s", full_name);
+      g_free (full_name);
+      return -1;
+    }
+  else
+    {
+      int ret;
+      char *check = file_checksum (full_name, checksum_algorithm);
+
+      ret = strcmp (check, checksum);
+      if (ret)
+        g_warning ("checksum for %s not matching", full_name);
+      else
+        {
+          snprintf (key_path, sizeof (key_path), "signaturecheck:%s", full_name);
+          kb_item_add_int (cache_kb, key_path, time (NULL));
+        }
+      g_free (full_name);
+      g_free (checksum);
+      g_free (check);
+      return ret;
+    }
+
+  return 0;
+}
 
 /**
  * @brief Initialize a NASL context for a NASL file.
