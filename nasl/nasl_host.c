@@ -342,6 +342,7 @@ nasl_this_host_name (lex_ctxt *lexic)
  *          - @a ENCAPS_TLSv1  TLS version 1.0
  *          - @a ENCAPS_TLSv11 TLS version 1.1
  *          - @a ENCAPS_TLSv12 TLS version 1.2
+ *          - @a ENCAPS_TLSv13 TLS version 1.3
  *          - @a ENCAPS_TLScustom SSL or TLS with custom priorities
  *
  * @nasluparam
