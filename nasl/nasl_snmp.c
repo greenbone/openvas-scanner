@@ -260,6 +260,11 @@ snmpv1v2c_get (const char *peername, const char *community, const char *oid_str,
 #define SNMP_VERSION_1 0
 #define SNMP_VERSION_2c 1
 
+/**
+ * @brief Parse the snmp error.
+ *
+ * @param result[in,out] The result error to be parsed.
+ */
 static void
 parse_snmp_error (char **result)
 {
@@ -299,6 +304,14 @@ parse_snmp_error (char **result)
   return;
 }
 
+/**
+ * @brief Read data from a file descriptor.
+ *
+ * @param fd[in] File descriptor to read from.
+ * @param result[out] String to write to.
+ *
+ * @return 0 success, -1 read error.
+ */
 static int
 check_spwan_output (int fd, char **result)
 {
@@ -329,7 +342,7 @@ check_spwan_output (int fd, char **result)
   return 0;
 }
 
-/*
+/**
  * @brief SNMP v1 or v2c Get query value.
  *
  * param[in]    peername    Target host in [protocol:]address[:port] format.
@@ -379,7 +392,7 @@ snmpv1v2c_get (const char *peername, const char *community, const char *oid_str,
   /* As we spawn the process asyncronously, we don't know the exit
      status of the process. Therefore we need to check for errors in
      the output.
-     We assume that if there is no erros, we have an output.
+     We assume a valid output if there is no erros.
   */
   check_spwan_output (serr, result);
   if (result && *result[0] != '\0')
@@ -402,7 +415,7 @@ snmpv1v2c_get (const char *peername, const char *community, const char *oid_str,
   return 0;
 }
 
-/*
+/**
  * @brief SNMPv3 Get query value.
  *
  * param[in]    peername    Target host in [protocol:]address[:port] format.
