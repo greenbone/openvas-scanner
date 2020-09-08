@@ -286,13 +286,9 @@ static init_func libfuncs[] = {
   {"gunzip", nasl_gunzip},
   {"gzip", nasl_gzip},
   {"DES", nasl_cipher_des},
-
-#ifdef HAVE_NETSNMP
   {"snmpv1_get", nasl_snmpv1_get},
   {"snmpv2c_get", nasl_snmpv2c_get},
   {"snmpv3_get", nasl_snmpv3_get},
-#endif /* HAVE_NETSNMP */
-
   {"ssh_connect", nasl_ssh_connect},
   {"ssh_disconnect", nasl_ssh_disconnect},
   {"ssh_session_id_from_sock", nasl_ssh_session_id_from_sock},
