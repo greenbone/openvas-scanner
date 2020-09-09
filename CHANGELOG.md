@@ -10,6 +10,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 - Extend nasl lint to detect if function parameter is used twice. [#590](https://github.com/greenbone/openvas/pull/590)
 - Add support for TLSv1.3. [#588](https://github.com/greenbone/openvas/pull/588)
 - Add alternative for supporting snmp during scans. [#594](https://github.com/greenbone/openvas/pull/594)
+- Add resolve_hostname_to_multiple_ips() NASL function. [#596](https://github.com/greenbone/openvas/pull/596)
 
 ### Fixed
 - Fork vhosts before creating the socket.[#576](https://github.com/greenbone/openvas/pull/576)

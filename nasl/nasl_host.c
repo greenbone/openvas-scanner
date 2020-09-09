@@ -144,6 +144,43 @@ end_add_hostname:
   return NULL;
 }
 
+/**
+ * @brief Resolve a hostname and return all ip addresses as nasl array.
+ *
+ */
+tree_cell *
+resolve_hostname_to_multiple_ips (lex_ctxt *lexic)
+{
+  GSList *list = NULL;
+  char *value = get_str_var_by_name (lexic, "hostname");
+  tree_cell *retc;
+  nasl_array *arr;
+  int i = 0;
+
+  if (!value)
+    {
+      nasl_perror (lexic, "%s: Empty hostname\n", __func__);
+      return NULL;
+    }
+
+  list = gvm_resolve_list (value);
+
+  retc = alloc_typed_cell (DYN_ARRAY);
+  retc->x.ref_val = arr = g_malloc0 (sizeof (nasl_array));
+  while (list)
+    {
+      anon_nasl_var var_aux;
+
+      var_aux.var_type = VAR2_DATA;
+      var_aux.v.v_str.s_siz = strlen (addr6_as_str (list->data));
+      var_aux.v.v_str.s_val = (unsigned char *) addr6_as_str (list->data);
+      add_var_to_list (arr, i++, &var_aux);
+      list = list->next;
+    }
+  g_slist_free_full (list, g_free);
+  return retc;
+}
+
 tree_cell *
 resolve_hostname (lex_ctxt *lexic)
 {
