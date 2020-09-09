@@ -202,7 +202,7 @@ hosts_stop_host (struct host *h)
   if (h == NULL)
     return -1;
 
-  g_message ("Stopping host %s scan", h->name);
+  g_message ("Stopping host %s scan (pid: %d)", h->name, h->pid);
   kill (h->pid, SIGUSR1);
   return 0;
 }

@@ -422,6 +422,9 @@ set_gnutls_protocol (gnutls_session_t session, openvas_encaps_t encaps,
     case OPENVAS_ENCAPS_TLSv12:
       priorities = "NORMAL:-VERS-TLS-ALL:+VERS-TLS1.2:+ARCFOUR-128:%COMPAT";
       break;
+    case OPENVAS_ENCAPS_TLSv13:
+      priorities = "NORMAL:-VERS-TLS-ALL:+VERS-TLS1.3:%COMPAT";
+      break;
     case OPENVAS_ENCAPS_SSLv23: /* Compatibility mode */
       priorities =
         "NORMAL:-VERS-TLS-ALL:+VERS-TLS1.0:+VERS-SSL3.0:+ARCFOUR-128:%COMPAT";
@@ -799,6 +802,8 @@ socket_get_ssl_version (int fd)
       return OPENVAS_ENCAPS_TLSv11;
     case GNUTLS_TLS1_2:
       return OPENVAS_ENCAPS_TLSv12;
+    case GNUTLS_TLS1_3:
+      return OPENVAS_ENCAPS_TLSv13;
     default:
       return -1;
     }
@@ -926,6 +931,7 @@ open_stream_connection_ext (struct script_infos *args, unsigned int port,
     case OPENVAS_ENCAPS_TLSv1:
     case OPENVAS_ENCAPS_TLSv11:
     case OPENVAS_ENCAPS_TLSv12:
+    case OPENVAS_ENCAPS_TLSv13:
     case OPENVAS_ENCAPS_TLScustom:
     case OPENVAS_ENCAPS_SSLv2:
       break;
@@ -974,6 +980,7 @@ open_stream_connection_ext (struct script_infos *args, unsigned int port,
     case OPENVAS_ENCAPS_TLSv1:
     case OPENVAS_ENCAPS_TLSv11:
     case OPENVAS_ENCAPS_TLSv12:
+    case OPENVAS_ENCAPS_TLSv13:
     case OPENVAS_ENCAPS_TLScustom:
       cert = kb_item_get_str (kb, "SSL/cert");
       key = kb_item_get_str (kb, "SSL/key");
@@ -1154,6 +1161,7 @@ read_stream_connection_unbuffered (int fd, void *buf0, int min_len, int max_len)
     case OPENVAS_ENCAPS_TLSv1:
     case OPENVAS_ENCAPS_TLSv11:
     case OPENVAS_ENCAPS_TLSv12:
+    case OPENVAS_ENCAPS_TLSv13:
     case OPENVAS_ENCAPS_TLScustom:
       if (getpid () != fp->pid)
         {
@@ -1340,6 +1348,7 @@ write_stream_connection4 (int fd, void *buf0, int n, int i_opt)
     case OPENVAS_ENCAPS_TLSv1:
     case OPENVAS_ENCAPS_TLSv11:
     case OPENVAS_ENCAPS_TLSv12:
+    case OPENVAS_ENCAPS_TLSv13:
     case OPENVAS_ENCAPS_TLScustom:
 
       /* i_opt ignored for SSL */
@@ -1584,6 +1593,8 @@ get_encaps_name (openvas_encaps_t code)
       return "TLSv11";
     case OPENVAS_ENCAPS_TLSv12:
       return "TLSv12";
+    case OPENVAS_ENCAPS_TLSv13:
+      return "TLSv13";
     case OPENVAS_ENCAPS_TLScustom:
       return "TLScustom";
     default:
@@ -1607,6 +1618,7 @@ get_encaps_through (openvas_encaps_t code)
     case OPENVAS_ENCAPS_TLSv1:
     case OPENVAS_ENCAPS_TLSv11:
     case OPENVAS_ENCAPS_TLSv12:
+    case OPENVAS_ENCAPS_TLSv13:
     case OPENVAS_ENCAPS_TLScustom:
       return " through SSL";
     default:

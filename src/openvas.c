@@ -297,6 +297,9 @@ load_scan_preferences (struct scan_globals *globals)
 static void
 scanner_thread (struct scan_globals *globals)
 {
+  /* Make process a group leader, to make it easier to cleanup forked
+   * processes & their children. */
+  setpgid (0, 0);
   nvticache_reset ();
 
   globals->scan_id = g_strdup (global_scan_id);
@@ -425,7 +428,16 @@ stop_single_task_scan (void)
     exit (1);
 
   pid = kb_item_get_int (kb, "internal/ovas_pid");
-  kill (pid, SIGUSR1);
+
+  /* Only send the signal if the pid is a positive value.
+     Since kb_item_get_int() will return -1 if the key does
+     not exist. killing with -1 pid will send the signal system wide.
+   */
+  if (pid <= 0)
+    return;
+
+  /* Send the signal to the process group. */
+  killpg (pid, SIGUSR1);
 
   exit (0);
 }
