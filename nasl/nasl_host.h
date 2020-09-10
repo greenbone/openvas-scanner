@@ -38,6 +38,9 @@ tree_cell *
 resolve_hostname (lex_ctxt *);
 
 tree_cell *
+resolve_hostname_to_multiple_ips (lex_ctxt *);
+
+tree_cell *
 get_host_ip (lex_ctxt *);
 
 tree_cell *
