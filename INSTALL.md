@@ -23,7 +23,7 @@ Prerequisites:
 * redis >= 3.2.0
 * libssh >= 0.6.0
 * libksba >= 1.0.7
-* libgnutls >= 3.2.15
+* libgnutls >= 3.6.4
 
 Prerequisites for building documentation:
 * Doxygen
