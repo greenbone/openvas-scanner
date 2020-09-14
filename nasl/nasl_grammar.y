@@ -695,9 +695,20 @@ file_checksum (const char *filename, int algorithm)
   return result;
 }
 
-
+/**
+ * @brief Checksum check for csv file.
+ *
+ * @param cache_kb Main kb.
+ * @param name The filename of the csv file
+ * @param always_signed If the file must be check or not.
+ *
+ * @return    0  in case of success. -1 if either the filename was
+ *            not found/accessible or the signature verification failed
+ *            (provided signature checking is enabled).
+ */
 int
-init_notus_vt_list (const kb_t cache_kb, const char *name, int always_signed)
+csv_vt_list_checksum_check (const kb_t cache_kb, const char *name,
+                            int always_signed)
 {
   GSList *inc_dir = inc_dirs; // iterator for include directories
   char *full_name = NULL, key_path[2048], *checksum;
@@ -775,7 +786,8 @@ init_notus_vt_list (const kb_t cache_kb, const char *name, int always_signed)
         g_warning ("checksum for %s not matching", full_name);
       else
         {
-          snprintf (key_path, sizeof (key_path), "signaturecheck:%s", full_name);
+          snprintf (key_path, sizeof (key_path), "signaturecheck:%s",
+                    full_name);
           kb_item_add_int (cache_kb, key_path, time (NULL));
         }
       g_free (full_name);

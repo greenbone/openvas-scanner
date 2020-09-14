@@ -19,6 +19,7 @@
 #ifndef _NASL_CTX_H
 #define _NASL_CTX_H
 
+#include "../nasl/nasl_lex_ctxt.h" /* for tree_cell */
 /* for FILE */
 #include <gvm/util/kb.h>
 #include <stdio.h>
@@ -37,7 +38,7 @@ int
 init_nasl_ctx (naslctxt *, const char *);
 
 int
-init_notus_vt_list (const kb_t, const char *, int);
+csv_vt_list_checksum_check (const kb_t, const char *, int);
 
 void
 nasl_clean_ctx (naslctxt *);

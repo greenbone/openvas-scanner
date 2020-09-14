@@ -54,7 +54,7 @@ int
 nasl_plugin_add (char *, char *);
 
 int
-add_notus_vt_plugins (char *, char *);
+csv_vt_list_add (char *, char *);
 
 int
 nasl_plugin_launch (struct scan_globals *, struct in6_addr *, GSList *, kb_t,
