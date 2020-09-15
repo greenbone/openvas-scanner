@@ -9,6 +9,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 ### Added
 - Add scanner-only option to enable tls debugging. [#558](https://github.com/greenbone/openvas/pull/558)
 - Extend nasl lint to detect if function parameter is used twice. [#585](https://github.com/greenbone/openvas/pull/585)
+- Consider .csv files for checksum check and upload in redis cache. [#599](https://github.com/greenbone/openvas/pull/599)
 
 ### Changed
 -Store results in main_kb instead of host_kb. [#550](https://github.com/greenbone/openvas/pull/550)
