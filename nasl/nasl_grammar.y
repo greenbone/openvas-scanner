@@ -725,7 +725,7 @@ csv_vt_list_checksum_check (const kb_t cache_kb, const char *name,
         g_free (full_name);
       full_name = g_build_filename (inc_dir->data, name, NULL);
 
-      if ((g_file_get_contents (full_name, &buffer, &flen, NULL)))
+      if (g_file_get_contents (full_name, &buffer, &flen, NULL))
         break;
 
       inc_dir = g_slist_next (inc_dir);
@@ -738,6 +738,7 @@ csv_vt_list_checksum_check (const kb_t cache_kb, const char *name,
       g_free (full_name);
       return -1;
     }
+  g_free (buffer);
 
   if (always_signed)
     {
