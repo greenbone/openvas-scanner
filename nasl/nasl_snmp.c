@@ -464,7 +464,7 @@ snmpv3_get (const char *peername, const char *username, const char *authpass,
       argv[12] = "-x";
       argv[13] = privproto ? "AES" : "DES";
       argv[14] = "-X";
-      argv[15] = g_strdup (privpass);
+      argv[15] = g_strdup (authpass);
       argv[16] = NULL;
     }
   else
