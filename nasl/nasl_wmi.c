@@ -244,10 +244,16 @@ nasl_wmi_query (lex_ctxt *lexic)
   retc->size = 0;
 
   value = wmi_query (handle, query, &res);
-
-  if ((value == -1) || (res == NULL))
+  if ((value == -1) && (res != NULL))
     {
-      g_message ("wmi_query: WMI query failed '%s'", query);
+      g_message ("wmi_query: WMI query failed '%s' with error: '%s'", query,
+                 res);
+      g_free (res);
+      return NULL;
+    }
+  else if ((value == -1) && (res == NULL))
+    {
+      g_debug ("wmi_query: WMI query failed '%s'", query);
       return NULL;
     }
 
@@ -346,9 +352,16 @@ nasl_wmi_query_rsop (lex_ctxt *lexic)
   retc->size = 0;
 
   value = wmi_query_rsop (handle, query, &res);
-  if ((value == -1) || (res == NULL))
+  if ((value == -1) && (res != NULL))
     {
-      g_message ("wmi_query_rsop: WMI query failed");
+      g_message ("wmi_query_rsop: WMI query failed '%s' with error: '%s'",
+                 query, res);
+      g_free (res);
+      return NULL;
+    }
+  else if ((value == -1) && (res == NULL))
+    {
+      g_debug ("wmi_query_rsop: WMI query failed");
       return NULL;
     }
   retc->x.str_val = strdup (res);
