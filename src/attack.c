@@ -1023,7 +1023,7 @@ attack_network (struct scan_globals *globals)
   kb_t main_kb;
   GSList *unresolved;
   int duplicated_hosts;
-  int allow_scan_many_ips_same_hosts;
+  int allow_simult_ips_same_hosts;
 
   gboolean test_alive_hosts_only = prefs_get_bool ("test_alive_hosts_only");
   gvm_hosts_t *alive_hosts_list = NULL;
@@ -1167,7 +1167,7 @@ attack_network (struct scan_globals *globals)
       struct attack_start_args args;
       char *host_str;
 
-      if (!allow_scan_many_ips_same_hosts
+      if (!allow_simult_ips_same_hosts
           && host_is_currently_scanned (host)
           && !test_alive_hosts_only)
         {
@@ -1243,18 +1243,32 @@ attack_network (struct scan_globals *globals)
 
       if (test_alive_hosts_only)
         {
-          /* Boolean signalling if alive detection finished. */
-          gboolean ad_finished = FALSE;
-          for (host = get_host_from_queue (alive_hosts_kb, &ad_finished);
-               !host && !ad_finished && !scan_is_stopped ();
-               host = get_host_from_queue (alive_hosts_kb, &ad_finished))
+          while (host == NULL)
             {
-              fork_sleep (1);
+              /* Boolean signalling if alive detection finished. */
+              gboolean ad_finished = FALSE;
+              for (host = get_host_from_queue (alive_hosts_kb, &ad_finished);
+                   !host && !ad_finished && !scan_is_stopped ();
+                   host = get_host_from_queue (alive_hosts_kb, &ad_finished))
+                {
+                  fork_sleep (1);
+                }
+              
+              if (host && !allow_simult_ips_same_hosts
+                  && host_is_currently_scanned (host))
+                {
+                  // Re-add host at the end of the queue.
+                  put_host_on_queue (alive_hosts_kb, gvm_host_value_str(host));
+                  realloc_finish_signal_on_queue (alive_hosts_kb);
+                }
+              else if (host)
+                gvm_hosts_add (alive_hosts_list, host);
+              else
+                {
+                  g_debug ("%s: got NULL host, stop/finish scan", __func__);
+                  break;
+                }
             }
-          if (host)
-            gvm_hosts_add (alive_hosts_list, host);
-          else
-            g_debug ("%s: got NULL host, stop/finish scan", __func__);
         }
       else
         {
