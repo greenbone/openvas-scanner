@@ -1167,9 +1167,8 @@ attack_network (struct scan_globals *globals)
       struct attack_start_args args;
       char *host_str;
 
-      if (!allow_simult_ips_same_host
-          && host_is_currently_scanned (host)
-          && !test_alive_hosts_only)
+      if (!test_alive_hosts_only
+          && (!allow_simult_ips_same_host && host_is_currently_scanned (host)))
         {
           sleep (1);
           // Re-add host at the end of the list
@@ -1243,7 +1242,7 @@ attack_network (struct scan_globals *globals)
 
       if (test_alive_hosts_only)
         {
-          while (host == NULL)
+          while (1)
             {
               /* Boolean signalling if alive detection finished. */
               gboolean ad_finished = FALSE;
@@ -1257,23 +1256,30 @@ attack_network (struct scan_globals *globals)
               if (host && !allow_simult_ips_same_host
                   && host_is_currently_scanned (host))
                 {
+                  struct in6_addr hostip;
+                  char ip_str[INET6_ADDRSTRLEN];
+
+                  gvm_host_get_addr6 (host, &hostip);
+                  addr6_to_str (&hostip, ip_str);
+
                   // Re-add host at the end of the queue and reallocate the flag if
                   // it was already set.
                   int flag_set = finish_signal_on_queue (alive_hosts_kb);
 
-                  put_host_on_queue (alive_hosts_kb, gvm_host_value_str(host));
+                  put_host_on_queue (alive_hosts_kb, ip_str);
                   gvm_host_free (host);
+                  host = NULL;
+
                   if (flag_set)
                     realloc_finish_signal_on_queue (alive_hosts_kb);
                 }
-              else if (host)
-                gvm_hosts_add (alive_hosts_list, host);
               else
-                {
-                  g_debug ("%s: got NULL host, stop/finish scan", __func__);
-                  break;
-                }
+                break;
             }
+          if (host)
+            gvm_hosts_add (alive_hosts_list, host);
+          else
+            g_debug ("%s: got NULL host, stop/finish scan", __func__);
         }
       else
         {
