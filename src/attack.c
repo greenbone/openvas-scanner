@@ -1253,13 +1253,17 @@ attack_network (struct scan_globals *globals)
                 {
                   fork_sleep (1);
                 }
-              
+
               if (host && !allow_simult_ips_same_host
                   && host_is_currently_scanned (host))
                 {
-                  // Re-add host at the end of the queue.
+                  // Re-add host at the end of the queue and reallocate the flag if
+                  // it was already set.
+                  int flag_set = finish_signal_on_queue (alive_hosts_kb);
+
                   put_host_on_queue (alive_hosts_kb, gvm_host_value_str(host));
-                  realloc_finish_signal_on_queue (alive_hosts_kb);
+                  if (flag_set)
+                    realloc_finish_signal_on_queue (alive_hosts_kb);
                 }
               else if (host)
                 gvm_hosts_add (alive_hosts_list, host);
