@@ -1262,6 +1262,7 @@ attack_network (struct scan_globals *globals)
                   int flag_set = finish_signal_on_queue (alive_hosts_kb);
 
                   put_host_on_queue (alive_hosts_kb, gvm_host_value_str(host));
+                  gvm_host_free (host);
                   if (flag_set)
                     realloc_finish_signal_on_queue (alive_hosts_kb);
                 }
