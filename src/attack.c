@@ -1023,7 +1023,7 @@ attack_network (struct scan_globals *globals)
   kb_t main_kb;
   GSList *unresolved;
   int duplicated_hosts;
-  int allow_simult_ips_same_hosts;
+  int allow_simult_ips_same_host;
 
   gboolean test_alive_hosts_only = prefs_get_bool ("test_alive_hosts_only");
   gvm_hosts_t *alive_hosts_list = NULL;
@@ -1159,7 +1159,7 @@ attack_network (struct scan_globals *globals)
   /*
    * Start the attack !
    */
-  allow_simult_ips_same_hosts = prefs_get_bool ("allow_simult_ips_same_host");
+  allow_simult_ips_same_host = prefs_get_bool ("allow_simult_ips_same_host");
   openvas_signal (SIGUSR1, handle_scan_stop_signal);
   while (host && !scan_is_stopped ())
     {
@@ -1167,7 +1167,7 @@ attack_network (struct scan_globals *globals)
       struct attack_start_args args;
       char *host_str;
 
-      if (!allow_simult_ips_same_hosts
+      if (!allow_simult_ips_same_host
           && host_is_currently_scanned (host)
           && !test_alive_hosts_only)
         {
@@ -1254,7 +1254,7 @@ attack_network (struct scan_globals *globals)
                   fork_sleep (1);
                 }
               
-              if (host && !allow_simult_ips_same_hosts
+              if (host && !allow_simult_ips_same_host
                   && host_is_currently_scanned (host))
                 {
                   // Re-add host at the end of the queue.
