@@ -27,6 +27,7 @@
 #define HOSTS_H
 
 #include "../misc/scanneraux.h"
+
 #include <gvm/base/hosts.h> /* for gvm_host_t */
 
 int

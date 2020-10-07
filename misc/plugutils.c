@@ -659,7 +659,7 @@ plug_set_key_len (struct script_infos *args, char *name, int type,
                   const void *value, size_t len)
 {
   kb_t kb = plug_get_kb (args);
-  int pos = 0; //Append the item on the right position of the list
+  int pos = 0; // Append the item on the right position of the list
 
   if (name == NULL || value == NULL)
     return;

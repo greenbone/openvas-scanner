@@ -341,7 +341,7 @@ main (int argc, char **argv)
       g_free (port_range);
     }
 
-  pos = 0; //Append the item on the right side of the list
+  pos = 0; // Append the item on the right side of the list
   while ((host = gvm_hosts_next (hosts)))
     {
       struct in6_addr ip6;

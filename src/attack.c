@@ -1262,8 +1262,8 @@ attack_network (struct scan_globals *globals)
                   gvm_host_get_addr6 (host, &hostip);
                   addr6_to_str (&hostip, ip_str);
 
-                  // Re-add host at the end of the queue and reallocate the flag if
-                  // it was already set.
+                  // Re-add host at the end of the queue and reallocate the flag
+                  // if it was already set.
                   int flag_set = finish_signal_on_queue (alive_hosts_kb);
 
                   put_host_on_queue (alive_hosts_kb, ip_str);

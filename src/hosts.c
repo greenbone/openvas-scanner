@@ -28,13 +28,13 @@
 #include "../misc/network.h" /* for internal_recv */
 #include "utils.h"           /* for data_left() */
 
+#include <errno.h>               /* for errno() */
+#include <glib.h>                /* for g_free() */
 #include <gvm/base/networking.h> /* for gvm_resolve_list */
-#include <errno.h>    /* for errno() */
-#include <glib.h>     /* for g_free() */
-#include <stdio.h>    /* for snprintf() */
-#include <string.h>   /* for strlen() */
-#include <sys/wait.h> /* for waitpid() */
-#include <unistd.h>   /* for close() */
+#include <stdio.h>               /* for snprintf() */
+#include <string.h>              /* for strlen() */
+#include <sys/wait.h>            /* for waitpid() */
+#include <unistd.h>              /* for close() */
 
 #undef G_LOG_DOMAIN
 /**
@@ -284,14 +284,14 @@ host_is_currently_scanned (gvm_host_t *host_to_check)
   GSList *list, *tmp;
   char *vhost = NULL;
 
-  hosts_read();
+  hosts_read ();
 
   if (h == NULL)
-      return 0;
+    return 0;
 
   vhost = gvm_host_reverse_lookup (host_to_check);
   if (!vhost)
-      return 0;
+    return 0;
 
   list = tmp = gvm_resolve_list (vhost);
   g_free (vhost);
