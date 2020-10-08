@@ -1009,9 +1009,9 @@ attack_network (struct scan_globals *globals)
   struct timeval then, now;
   gvm_hosts_t *hosts;
   const gchar *port_range;
-  kb_t host_kb;
+  kb_t host_kb, main_kb;
   GSList *unresolved;
-  int duplicated_hosts;
+  char buf[96];
 
   gboolean test_alive_hosts_only = prefs_get_bool ("test_alive_hosts_only");
   gvm_hosts_t *alive_hosts_list = NULL;
@@ -1035,8 +1035,6 @@ attack_network (struct scan_globals *globals)
   port_range = prefs_get ("port_range");
   if (validate_port_range (port_range))
     {
-      kb_t main_kb = NULL;
-
       connect_main_kb (&main_kb);
       message_to_client (
         main_kb, "Invalid port list. Ports must be in the range [1-65535]",
@@ -1062,9 +1060,6 @@ attack_network (struct scan_globals *globals)
 
   if (plugins_init_error > 0)
     {
-      char buf[96];
-      kb_t main_kb = NULL;
-
       sprintf (buf,
                "%d errors were found during the plugin scheduling. "
                "Some plugins have not been launched.",
@@ -1081,20 +1076,20 @@ attack_network (struct scan_globals *globals)
   hosts = gvm_hosts_new (hostlist);
   unresolved = gvm_hosts_resolve (hosts);
 
-  /* Duplicated hosts are removed from the list and ospd-openvas
-     needs to know that less hosts will be scanned, for the scan progress
-     calculation. Sent the amount of duplicated hosts as dead hosts to not
-     be taken in account. */
-  duplicated_hosts = gvm_hosts_duplicated (hosts);
-  if (duplicated_hosts > 0)
-    send_dead_hosts_to_ospd_openvas (duplicated_hosts);
-
   while (unresolved)
     {
       g_warning ("Couldn't resolve hostname '%s'", (char *) unresolved->data);
       unresolved = unresolved->next;
     }
   g_slist_free_full (unresolved, g_free);
+
+  /* Send the hosts count to the client, after removing duplicated and
+   * unresolved hosts.*/
+  sprintf (buf, "%d", gvm_hosts_count (hosts));
+  connect_main_kb (&main_kb);
+  message_to_client (main_kb, buf, NULL, NULL, "HOSTS_COUNT");
+  kb_lnk_reset (main_kb);
+
   /* Apply Hosts preferences. */
   apply_hosts_preferences (hosts);
 
