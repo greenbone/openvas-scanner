@@ -171,12 +171,12 @@ comm_send_status (kb_t kb, char *hostname, int curr, int max)
 }
 
 static void
-error_message_to_client2 (kb_t kb, const char *msg, const char *ip_str,
-                          const char *port)
+message_to_client (kb_t kb, const char *msg, const char *ip_str,
+                         const char *port, const char *type)
 {
   char buf[2048];
 
-  sprintf (buf, "ERRMSG|||%s|||%s||| |||%s", ip_str ?: "", port ?: " ",
+  sprintf (buf, "%s|||%s|||%s||| |||%s", type, ip_str ?: "", port ?: " ",
            msg ?: "No error.");
   kb_item_push_str (kb, "internal/results", buf);
 }
@@ -676,10 +676,10 @@ attack_start (struct attack_start_args *args)
   if (ret_host_auth < 0)
     {
       if (ret_host_auth == -1)
-        error_message_to_client2 (kb, "Host access denied.", ip_str, NULL);
+        message_to_client (kb, "Host access denied.", ip_str, NULL, "ERRMSG");
       else
-        error_message_to_client2 (
-          kb, "Host access denied (system-wide restriction.)", ip_str, NULL);
+        message_to_client (
+          kb, "Host access denied (system-wide restriction.)", ip_str, NULL, "ERRMSG");
 
       kb_item_set_str (kb, "internal/host_deny", "True", 0);
       g_warning ("Host %s access denied.", ip_str);
@@ -1038,9 +1038,9 @@ attack_network (struct scan_globals *globals)
       kb_t main_kb = NULL;
 
       connect_main_kb (&main_kb);
-      error_message_to_client2 (
+      message_to_client (
         main_kb, "Invalid port list. Ports must be in the range [1-65535]",
-        NULL, NULL);
+        NULL, NULL, "ERRMSG");
       kb_lnk_reset (main_kb);
       g_warning ("Invalid port list. Ports must be in the range [1-65535]. "
                  "Scan terminated.");
@@ -1071,7 +1071,7 @@ attack_network (struct scan_globals *globals)
                plugins_init_error);
 
       connect_main_kb (&main_kb);
-      error_message_to_client2 (main_kb, buf, NULL, NULL);
+      message_to_client (main_kb, buf, NULL, NULL, "ERRMSG");
       kb_lnk_reset (main_kb);
     }
 
