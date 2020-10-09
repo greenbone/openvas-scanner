@@ -172,7 +172,7 @@ comm_send_status (kb_t kb, char *hostname, int curr, int max)
 
 static void
 message_to_client (kb_t kb, const char *msg, const char *ip_str,
-                         const char *port, const char *type)
+                   const char *port, const char *type)
 {
   char buf[2048];
 
@@ -678,8 +678,8 @@ attack_start (struct attack_start_args *args)
       if (ret_host_auth == -1)
         message_to_client (kb, "Host access denied.", ip_str, NULL, "ERRMSG");
       else
-        message_to_client (
-          kb, "Host access denied (system-wide restriction.)", ip_str, NULL, "ERRMSG");
+        message_to_client (kb, "Host access denied (system-wide restriction.)",
+                           ip_str, NULL, "ERRMSG");
 
       kb_item_set_str (kb, "internal/host_deny", "True", 0);
       g_warning ("Host %s access denied.", ip_str);
