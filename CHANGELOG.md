@@ -11,6 +11,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 - Add support for TLSv1.3. [#588](https://github.com/greenbone/openvas/pull/588)[#598](https://github.com/greenbone/openvas/pull/598)
 - Add alternative for supporting snmp during scans. [#594](https://github.com/greenbone/openvas/pull/594)
 - Add resolve_hostname_to_multiple_ips() NASL function. [#596](https://github.com/greenbone/openvas/pull/596)
+- Send message to the client with hosts count. [#606](https://github.com/greenbone/openvas/pull/606)
 
 ### Changed
 - Downgrade wmi queries log level for common errors. [#602](https://github.com/greenbone/openvas/pull/602)
