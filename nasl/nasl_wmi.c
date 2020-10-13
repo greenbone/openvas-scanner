@@ -256,6 +256,8 @@ nasl_wmi_query (lex_ctxt *lexic)
       g_debug ("wmi_query: WMI query failed '%s'", query);
       return NULL;
     }
+  else if (res == NULL)
+    return NULL;
 
   retc->x.str_val = strdup (res);
   retc->size = strlen (res);
@@ -364,6 +366,9 @@ nasl_wmi_query_rsop (lex_ctxt *lexic)
       g_debug ("wmi_query_rsop: WMI query failed");
       return NULL;
     }
+  else if (res == NULL)
+    return NULL;
+
   retc->x.str_val = strdup (res);
   retc->size = strlen (res);
 

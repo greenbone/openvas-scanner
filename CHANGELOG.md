@@ -14,7 +14,9 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 - Send message to the client with hosts count. [#606](https://github.com/greenbone/openvas/pull/606)
 
 ### Changed
-- Downgrade wmi queries log level for common errors. [#602](https://github.com/greenbone/openvas/pull/602)
+- Downgrade wmi queries log level for common errors.
+  [#602](https://github.com/greenbone/openvas/pull/602)
+  [#607](https://github.com/greenbone/openvas/pull/607)
 
 ### Fixed
 - Fork vhosts before creating the socket.[#576](https://github.com/greenbone/openvas/pull/576)
