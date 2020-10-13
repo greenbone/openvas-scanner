@@ -171,12 +171,12 @@ comm_send_status (kb_t kb, char *hostname, int curr, int max)
 }
 
 static void
-error_message_to_client2 (kb_t kb, const char *msg, const char *ip_str,
-                          const char *port)
+message_to_client (kb_t kb, const char *msg, const char *ip_str,
+                   const char *port, const char *type)
 {
   char buf[2048];
 
-  sprintf (buf, "ERRMSG|||%s|||%s||| |||%s", ip_str ?: "", port ?: " ",
+  sprintf (buf, "%s|||%s|||%s||| |||%s", type, ip_str ?: "", port ?: " ",
            msg ?: "No error.");
   kb_item_push_str (kb, "internal/results", buf);
 }
@@ -676,10 +676,10 @@ attack_start (struct attack_start_args *args)
   if (ret_host_auth < 0)
     {
       if (ret_host_auth == -1)
-        error_message_to_client2 (kb, "Host access denied.", ip_str, NULL);
+        message_to_client (kb, "Host access denied.", ip_str, NULL, "ERRMSG");
       else
-        error_message_to_client2 (
-          kb, "Host access denied (system-wide restriction.)", ip_str, NULL);
+        message_to_client (kb, "Host access denied (system-wide restriction.)",
+                           ip_str, NULL, "ERRMSG");
 
       kb_item_set_str (kb, "internal/host_deny", "True", 0);
       g_warning ("Host %s access denied.", ip_str);
@@ -1009,9 +1009,9 @@ attack_network (struct scan_globals *globals)
   struct timeval then, now;
   gvm_hosts_t *hosts;
   const gchar *port_range;
-  kb_t host_kb;
+  kb_t host_kb, main_kb;
   GSList *unresolved;
-  int duplicated_hosts;
+  char buf[96];
 
   gboolean test_alive_hosts_only = prefs_get_bool ("test_alive_hosts_only");
   gvm_hosts_t *alive_hosts_list = NULL;
@@ -1035,12 +1035,10 @@ attack_network (struct scan_globals *globals)
   port_range = prefs_get ("port_range");
   if (validate_port_range (port_range))
     {
-      kb_t main_kb = NULL;
-
       connect_main_kb (&main_kb);
-      error_message_to_client2 (
+      message_to_client (
         main_kb, "Invalid port list. Ports must be in the range [1-65535]",
-        NULL, NULL);
+        NULL, NULL, "ERRMSG");
       kb_lnk_reset (main_kb);
       g_warning ("Invalid port list. Ports must be in the range [1-65535]. "
                  "Scan terminated.");
@@ -1062,16 +1060,13 @@ attack_network (struct scan_globals *globals)
 
   if (plugins_init_error > 0)
     {
-      char buf[96];
-      kb_t main_kb = NULL;
-
       sprintf (buf,
                "%d errors were found during the plugin scheduling. "
                "Some plugins have not been launched.",
                plugins_init_error);
 
       connect_main_kb (&main_kb);
-      error_message_to_client2 (main_kb, buf, NULL, NULL);
+      message_to_client (main_kb, buf, NULL, NULL, "ERRMSG");
       kb_lnk_reset (main_kb);
     }
 
@@ -1081,20 +1076,20 @@ attack_network (struct scan_globals *globals)
   hosts = gvm_hosts_new (hostlist);
   unresolved = gvm_hosts_resolve (hosts);
 
-  /* Duplicated hosts are removed from the list and ospd-openvas
-     needs to know that less hosts will be scanned, for the scan progress
-     calculation. Sent the amount of duplicated hosts as dead hosts to not
-     be taken in account. */
-  duplicated_hosts = gvm_hosts_duplicated (hosts);
-  if (duplicated_hosts > 0)
-    send_dead_hosts_to_ospd_openvas (duplicated_hosts);
-
   while (unresolved)
     {
       g_warning ("Couldn't resolve hostname '%s'", (char *) unresolved->data);
       unresolved = unresolved->next;
     }
   g_slist_free_full (unresolved, g_free);
+
+  /* Send the hosts count to the client, after removing duplicated and
+   * unresolved hosts.*/
+  sprintf (buf, "%d", gvm_hosts_count (hosts));
+  connect_main_kb (&main_kb);
+  message_to_client (main_kb, buf, NULL, NULL, "HOSTS_COUNT");
+  kb_lnk_reset (main_kb);
+
   /* Apply Hosts preferences. */
   apply_hosts_preferences (hosts);
 
