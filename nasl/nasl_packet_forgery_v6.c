@@ -893,7 +893,7 @@ forge_udp_v6_packet (lex_ctxt *lexic)
       return retc;
     }
   else
-    printf ("Error ! You must supply the 'ip6' argument !\n");
+    nasl_perror (lexic, "forge_udp_v6_packet:'ip6' argument missing. \n");
 
   return NULL;
 }
@@ -921,8 +921,9 @@ get_udp_v6_element (lex_ctxt *lexic)
   element = get_str_var_by_name (lexic, "element");
   if (udp == NULL || element == NULL)
     {
-      printf ("get_udp_v6_element() usage :\n");
-      printf ("element = get_udp_v6_element(udp:<udp>,element:<element>\n");
+      nasl_perror (
+        lexic, "get_udp_v6_element() usage :\n"
+               "element = get_udp_v6_element(udp:<udp>,element:<element>\n");
       return NULL;
     }
 
@@ -954,7 +955,7 @@ get_udp_v6_element (lex_ctxt *lexic)
     }
   else
     {
-      printf ("%s is not a value of a udp packet\n", element);
+      nasl_perror (lexic, "%s is not a value of a udp packet\n", element);
       return NULL;
     }
 
@@ -1504,6 +1505,8 @@ forge_igmp_v6_packet (lex_ctxt *lexic)
       retc->size = 40 + sizeof (struct igmp6_hdr) + len;
       return retc;
     }
+  else
+    nasl_perror (lexic, "forge_igmp_v6_packet: missing 'ip6' parameter\n");
 
   return NULL;
 }

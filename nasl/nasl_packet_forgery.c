@@ -100,7 +100,11 @@ forge_ip_packet (lex_ctxt *lexic)
   dst_addr = plug_get_host_ip (script_infos);
 
   if (dst_addr == NULL || (IN6_IS_ADDR_V4MAPPED (dst_addr) != 1))
-    return NULL;
+    {
+      nasl_perror (lexic, "forge_ip_packet: No valid dst_addr could be "
+                          "determined via call to plug_get_host_ip().\n");
+      return NULL;
+    }
 
   data = get_str_var_by_name (lexic, "data");
   data_len = get_var_size_by_name (lexic, "data");
@@ -856,7 +860,8 @@ forge_udp_packet (lex_ctxt *lexic)
       return retc;
     }
   else
-    printf ("Error ! You must supply the 'ip' argument !\n");
+    nasl_perror (lexic,
+                 "forge_udp_packet: Invalid value for the argument 'ip'\n");
 
   return NULL;
 }
@@ -878,8 +883,8 @@ get_udp_element (lex_ctxt *lexic)
   element = get_str_var_by_name (lexic, "element");
   if (udp == NULL || element == NULL)
     {
-      printf ("get_udp_element() usage :\n");
-      printf ("element = get_udp_element(udp:<udp>,element:<element>\n");
+      nasl_perror (lexic, "get_udp_element: usage :\nelement = "
+                          "get_udp_element(udp:<udp>,element:<element>\n");
       return NULL;
     }
   ip = (struct ip *) udp;
@@ -1022,7 +1027,8 @@ set_udp_elements (lex_ctxt *lexic)
       return retc;
     }
   else
-    printf ("Error ! You must supply the 'udp' argument !\n");
+    nasl_perror (lexic,
+                 "set_udp_elements:  Invalid value for the argument 'udp'.");
 
   return NULL;
 }
@@ -1140,7 +1146,11 @@ get_icmp_element (lex_ctxt *lexic)
       icmp = (struct icmp *) (p + ip->ip_hl * 4);
 
       if (elem == NULL)
-        return NULL;
+        {
+          nasl_perror (lexic,
+                       "get_icmp_element: missing 'element' parameter\n");
+          return NULL;
+        }
 
       if (!strcmp (elem, "icmp_id"))
         value = ntohs (icmp->icmp_id);
@@ -1168,12 +1178,18 @@ get_icmp_element (lex_ctxt *lexic)
           return retc;
         }
       else
-        return NULL;
+        {
+          nasl_perror (
+            lexic, "get_icmp_element: No valid 'element' to get provided.\n");
+          return NULL;
+        }
 
       retc = alloc_typed_cell (CONST_INT);
       retc->x.i_val = value;
       return retc;
     }
+  else
+    nasl_perror (lexic, "get_icmp_element: missing 'icmp' parameter\n");
 
   return NULL;
 }
@@ -1242,6 +1258,8 @@ forge_igmp_packet (lex_ctxt *lexic)
       retc->size = ip->ip_hl * 4 + sizeof (struct igmp) + len;
       return retc;
     }
+  else
+    nasl_perror (lexic, "forge_igmp_packet: missing 'ip' parameter\n");
 
   return NULL;
 }
