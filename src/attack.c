@@ -1171,9 +1171,8 @@ attack_network (struct scan_globals *globals)
           && (!allow_simult_ips_same_host && host_is_currently_scanned (host)))
         {
           sleep (1);
-          // Re-add host at the end of the list
-          gvm_hosts_add (hosts, host);
-          // set next host
+          // move the host at the end of the list and get the next host.
+          gvm_hosts_move_current_host_to_end (hosts);
           host = gvm_hosts_next (hosts);
           continue;
         }
