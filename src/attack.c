@@ -1023,6 +1023,7 @@ attack_network (struct scan_globals *globals)
   kb_t main_kb;
   GSList *unresolved;
   int duplicated_hosts;
+  int allow_simult_ips_same_host;
 
   gboolean test_alive_hosts_only = prefs_get_bool ("test_alive_hosts_only");
   gvm_hosts_t *alive_hosts_list = NULL;
@@ -1158,12 +1159,23 @@ attack_network (struct scan_globals *globals)
   /*
    * Start the attack !
    */
+  allow_simult_ips_same_host = prefs_get_bool ("allow_simult_ips_same_host");
   openvas_signal (SIGUSR1, handle_scan_stop_signal);
   while (host && !scan_is_stopped ())
     {
       int pid, rc;
       struct attack_start_args args;
       char *host_str;
+
+      if (!test_alive_hosts_only
+          && (!allow_simult_ips_same_host && host_is_currently_scanned (host)))
+        {
+          sleep (1);
+          // move the host at the end of the list and get the next host.
+          gvm_hosts_move_current_host_to_end (hosts);
+          host = gvm_hosts_next (hosts);
+          continue;
+        }
 
       do
         {
@@ -1229,13 +1241,39 @@ attack_network (struct scan_globals *globals)
 
       if (test_alive_hosts_only)
         {
-          /* Boolean signalling if alive detection finished. */
-          gboolean ad_finished = FALSE;
-          for (host = get_host_from_queue (alive_hosts_kb, &ad_finished);
-               !host && !ad_finished && !scan_is_stopped ();
-               host = get_host_from_queue (alive_hosts_kb, &ad_finished))
+          while (1)
             {
-              fork_sleep (1);
+              /* Boolean signalling if alive detection finished. */
+              gboolean ad_finished = FALSE;
+              for (host = get_host_from_queue (alive_hosts_kb, &ad_finished);
+                   !host && !ad_finished && !scan_is_stopped ();
+                   host = get_host_from_queue (alive_hosts_kb, &ad_finished))
+                {
+                  fork_sleep (1);
+                }
+
+              if (host && !allow_simult_ips_same_host
+                  && host_is_currently_scanned (host))
+                {
+                  struct in6_addr hostip;
+                  char ip_str[INET6_ADDRSTRLEN];
+
+                  gvm_host_get_addr6 (host, &hostip);
+                  addr6_to_str (&hostip, ip_str);
+
+                  // Re-add host at the end of the queue and reallocate the flag
+                  // if it was already set.
+                  int flag_set = finish_signal_on_queue (alive_hosts_kb);
+
+                  put_host_on_queue (alive_hosts_kb, ip_str);
+                  gvm_host_free (host);
+                  host = NULL;
+
+                  if (flag_set)
+                    realloc_finish_signal_on_queue (alive_hosts_kb);
+                }
+              else
+                break;
             }
           if (host)
             gvm_hosts_add (alive_hosts_list, host);

@@ -129,6 +129,7 @@ static openvas_option openvas_defaults[] = {
   {"vendor_version", "\0"},
   {"test_alive_hosts_only", "no"},
   {"debug_tls", "0"},
+  {"allow_simult_ips_same_host", "yes"},
   {NULL, NULL}};
 
 static void

@@ -28,12 +28,13 @@
 #include "../misc/network.h" /* for internal_recv */
 #include "utils.h"           /* for data_left() */
 
-#include <errno.h>    /* for errno() */
-#include <glib.h>     /* for g_free() */
-#include <stdio.h>    /* for snprintf() */
-#include <string.h>   /* for strlen() */
-#include <sys/wait.h> /* for waitpid() */
-#include <unistd.h>   /* for close() */
+#include <errno.h>               /* for errno() */
+#include <glib.h>                /* for g_free() */
+#include <gvm/base/networking.h> /* for gvm_resolve_list */
+#include <stdio.h>               /* for snprintf() */
+#include <string.h>              /* for strlen() */
+#include <sys/wait.h>            /* for waitpid() */
+#include <unistd.h>              /* for close() */
 
 #undef G_LOG_DOMAIN
 /**
@@ -266,5 +267,52 @@ hosts_read (void)
   hosts_read_data ();
   usleep (500000);
 
+  return 0;
+}
+
+/**
+ * @brief Returns 1 if the host is being scanned. 0 otherwhise.
+ *
+ * It checks not only the main IP of the host, but also the ips
+ * that a dns-lookup returns.
+ */
+int
+host_is_currently_scanned (gvm_host_t *host_to_check)
+{
+  struct host *h = hosts;
+
+  GSList *list, *tmp;
+  char *vhost = NULL;
+
+  hosts_read ();
+
+  if (h == NULL)
+    return 0;
+
+  vhost = gvm_host_reverse_lookup (host_to_check);
+  if (!vhost)
+    return 0;
+
+  list = tmp = gvm_resolve_list (vhost);
+  g_free (vhost);
+  while (tmp)
+    {
+      h = hosts;
+      char buffer[INET6_ADDRSTRLEN];
+      addr6_to_str (tmp->data, buffer);
+
+      while (h != NULL)
+        {
+          if (!strcasecmp (h->name, buffer))
+            {
+              g_slist_free_full (list, g_free);
+              return 1;
+            }
+          h = h->next;
+        }
+      tmp = tmp->next;
+    }
+
+  g_slist_free_full (list, g_free);
   return 0;
 }
