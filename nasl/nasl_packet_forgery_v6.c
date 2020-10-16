@@ -268,7 +268,7 @@ get_ipv6_element (lex_ctxt *lexic)
 
   if (flag == 0)
     {
-      printf ("%s : unknown element\n", element);
+      nasl_perror (lexic, "%s : unknown element '%s'\n", __func__, element);
       return NULL;
     }
 
@@ -1141,7 +1141,8 @@ set_udp_v6_elements (lex_ctxt *lexic)
       return retc;
     }
   else
-    nasl_perror ("set_udp_v6_elements: You must supply the 'udp' argument !\n");
+    nasl_perror (lexic,
+                 "set_udp_v6_elements: You must supply the 'udp' argument !\n");
 
   return NULL;
 }
