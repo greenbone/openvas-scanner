@@ -276,7 +276,7 @@ get_ip_element (lex_ctxt *lexic)
 
   if (flag == 0)
     {
-      printf ("%s : unknown element\n", element);
+      nasl_perror (lexic, "%s: unknown element '%s'\n", __func__, element);
       return NULL;
     }
 
@@ -1084,7 +1084,8 @@ get_udp_element (lex_ctxt *lexic)
     }
   else
     {
-      printf ("%s is not a value of a udp packet\n", element);
+      nasl_perror (lexic, "%s: '%s' is not a value of a udp packet\n", __func__,
+                   element);
       return NULL;
     }
 
@@ -1390,7 +1391,9 @@ get_icmp_element (lex_ctxt *lexic)
       else
         {
           nasl_perror (
-            lexic, "get_icmp_element: No valid 'element' to get provided.\n");
+            lexic,
+            "get_icmp_element: Element '%s' is not a valid element to get.\n",
+            elem);
           return NULL;
         }
 

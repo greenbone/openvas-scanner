@@ -1489,7 +1489,10 @@ get_icmp_v6_element (lex_ctxt *lexic)
       icmp = (struct icmp6_hdr *) (p + 40);
 
       if (elem == NULL)
-        return NULL;
+        {
+          nasl_perror (lexic, "%s: Missing 'element' argument\n", __func__);
+          return NULL;
+        }
 
       else if (!strcmp (elem, "icmp_code"))
         value = icmp->icmp6_code;
@@ -1515,12 +1518,18 @@ get_icmp_v6_element (lex_ctxt *lexic)
           return retc;
         }
       else
-        return NULL;
+        {
+          nasl_perror (lexic, "%s: '%s' not a valid 'element' argument\n",
+                       __func__, elem);
+          return NULL;
+        }
 
       retc = alloc_typed_cell (CONST_INT);
       retc->x.i_val = value;
       return retc;
     }
+  else
+    nasl_perror (lexic, "%s: missing 'icmp' parameter\n", __func__);
 
   return NULL;
 }
