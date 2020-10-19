@@ -1433,6 +1433,44 @@ get_icmp_v6_element (lex_ctxt *lexic)
   return NULL;
 }
 
+/**
+ * @brief Dump the ICMP part of a IP Datagram.
+ *
+ * @param[in] lexic   Lexical context of NASL interpreter.
+ * @param[in] ...     IP datagrams to dump the ICMP part from.
+ */
+tree_cell *
+dump_icmp_v6_packet (lex_ctxt *lexic)
+{
+  int i = 0;
+  u_char *pkt;
+  while ((pkt = (u_char *) get_str_var_by_num (lexic, i++)) != NULL)
+    {
+      unsigned int j;
+      unsigned int limit;
+      char *c;
+      struct ip6_hdr *ip6 = (struct ip6_hdr *) pkt;
+      struct icmp6_hdr *icmp;
+      icmp = (struct icmp6_hdr *) (pkt + 40);
+      limit = get_var_size_by_num (lexic, i - 1);
+      printf ("------\n");
+      printf ("\ticmp6_id    : %d\n", ntohs (icmp->icmp6_id));
+      printf ("\ticmp6_code  : %d\n", icmp->icmp6_code);
+      printf ("\ticmp6_type  : %u\n", icmp->icmp6_type);
+      printf ("\ticmp6_seq   : %u\n", ntohs (icmp->icmp6_seq));
+      printf ("\ticmp6_cksum : %d\n", ntohs (icmp->icmp6_cksum));
+      printf ("\tData        : ");
+      c = (char *) ((char *) icmp + sizeof (struct icmp6_hdr));
+      if (UNFIX (ip6->ip6_plen) > (sizeof (struct icmp6_hdr)))
+        for (j = 0;
+             j < UNFIX (ip6->ip6_plen) - sizeof (struct icmp6_hdr) && j < limit;
+             j++)
+          printf ("%c", isprint (c[j]) ? c[j] : '.');
+      printf ("\n");
+    }
+  return NULL;
+}
+
 /*--------------[  IGMP  ]--------------------------------------------*/
 /*
  * @brief Forge v6 IGMP packet.
