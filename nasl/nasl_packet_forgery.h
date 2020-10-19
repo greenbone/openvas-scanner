@@ -53,6 +53,8 @@ tree_cell *
 forge_icmp_packet (lex_ctxt *);
 tree_cell *
 get_icmp_element (lex_ctxt *);
+tree_cell *
+dump_icmp_packet (lex_ctxt *);
 
 tree_cell *
 forge_igmp_packet (lex_ctxt *);

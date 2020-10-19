@@ -1178,6 +1178,34 @@ get_icmp_element (lex_ctxt *lexic)
   return NULL;
 }
 
+/**
+ * @brief Dump the ICMP part of a IP Datagram.
+ *
+ * @param[in] lexic   Lexical context of NASL interpreter.
+ * @param[in] ...     IP datagrams to dump the ICMP part from.
+ */
+tree_cell *
+dump_icmp_packet (lex_ctxt *lexic)
+{
+  int i = 0;
+  u_char *pkt;
+  while ((pkt = (u_char *) get_str_var_by_num (lexic, i++)) != NULL)
+    {
+      struct ip *ip = (struct ip *) pkt;
+      struct icmp *icmp;
+      icmp = (struct icmp *) (pkt + ip->ip_hl * 4);
+      printf ("------\n");
+      printf ("\ticmp_id    : %d\n", ntohs (icmp->icmp_id));
+      printf ("\ticmp_code  : %d\n", icmp->icmp_code);
+      printf ("\ticmp_type  : %u\n", icmp->icmp_type);
+      printf ("\ticmp_seq   : %u\n", ntohs (icmp->icmp_seq));
+      printf ("\ticmp_cksum : %d\n", ntohs (icmp->icmp_cksum));
+      printf ("\tData       : %s\n", icmp->icmp_data);
+      printf ("\n");
+    }
+  return NULL;
+}
+
 /*--------------[  IGMP  ]--------------------------------------------*/
 
 struct igmp
