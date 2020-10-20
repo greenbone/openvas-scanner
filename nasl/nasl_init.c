@@ -225,6 +225,8 @@ static init_func libfuncs[] = {
   {"forge_icmp_v6_packet", forge_icmp_v6_packet},
   {"get_icmp_element", get_icmp_element},
   {"get_icmp_v6_element", get_icmp_v6_element},
+  {"dump_icmp_packet", dump_icmp_packet},
+  {"dump_icmp_v6_packet", dump_icmp_v6_packet},
   {"forge_igmp_packet", forge_igmp_packet},
   {"forge_igmp_v6_packet", forge_igmp_v6_packet},
   {"send_packet", nasl_send_packet},
