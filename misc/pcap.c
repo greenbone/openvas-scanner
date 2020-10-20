@@ -983,6 +983,7 @@ routethrough (struct in_addr *dest, struct in_addr *source)
     struct interface_info *dev;
     unsigned long mask;
     unsigned long dest;
+    unsigned long metric;
   } myroutes[MAXROUTES];
   int numinterfaces = 0;
   char *p, *endptr;
@@ -1040,7 +1041,7 @@ routethrough (struct in_addr *dest, struct in_addr *source)
                     "Failed to determine Destination from /proc/net/route");
                   continue;
                 }
-              for (i = 0; i < 6; i++)
+              for (i = 0; i < 5; i++)
                 {
                   p = strtok (NULL, " \t\n");
                   if (!p)
@@ -1053,6 +1054,14 @@ routethrough (struct in_addr *dest, struct in_addr *source)
                              i + 2);
                   continue;
                 }
+              endptr = NULL;
+              myroutes[numroutes].metric = strtol (p, &endptr, 10);
+              if (!endptr || *endptr)
+                {
+                  g_message ("Failed to determine metric from /proc/net/route");
+                  continue;
+                }
+              p = strtok (NULL, " \t\n");
               endptr = NULL;
               myroutes[numroutes].mask = strtoul (p, &endptr, 16);
               if (!endptr || *endptr)
