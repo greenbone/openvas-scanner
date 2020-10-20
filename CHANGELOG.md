@@ -12,6 +12,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 - Add alternative for supporting snmp during scans. [#594](https://github.com/greenbone/openvas/pull/594)
 - Add resolve_hostname_to_multiple_ips() NASL function. [#596](https://github.com/greenbone/openvas/pull/596)
 - Send message to the client with hosts count. [#606](https://github.com/greenbone/openvas/pull/606)
+- Use nasl_perror on invalid input and add more documentation. [#608](https://github.com/greenbone/openvas/pull/608)
 
 ### Changed
 - Downgrade wmi queries log level for common errors.
