@@ -11,8 +11,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 - Extend nasl lint to detect if function parameter is used twice. [#585](https://github.com/greenbone/openvas/pull/585)
 - Consider .csv files for checksum check and upload in redis cache. [#599](https://github.com/greenbone/openvas/pull/599)
 - Add option to specify if a host can be scanned through its IPv4 and IPv6 in parallel. [#604](https://github.com/greenbone/openvas/pull/604)
+
 ### Changed
--Store results in main_kb instead of host_kb. [#550](https://github.com/greenbone/openvas/pull/550)
+- Store results in main_kb instead of host_kb. [#550](https://github.com/greenbone/openvas/pull/550)
+- Also use internal function name in some nasl log messages. [#611](https://github.com/greenbone/openvas/pull/611)
 
 ### Removed
 - Use the nvticache name from gvm-libs, defined in nvticache.h. [#578](https://github.com/greenbone/openvas/pull/578)
