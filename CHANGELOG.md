@@ -25,16 +25,24 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ### Added
 - Extend nasl lint to detect if function parameter is used twice. [#590](https://github.com/greenbone/openvas/pull/590)
-- Add support for TLSv1.3. [#588](https://github.com/greenbone/openvas/pull/588)
+- Add support for TLSv1.3. [#588](https://github.com/greenbone/openvas/pull/588)[#598](https://github.com/greenbone/openvas/pull/598)
 - Add alternative for supporting snmp during scans. [#594](https://github.com/greenbone/openvas/pull/594)
 - Add resolve_hostname_to_multiple_ips() NASL function. [#596](https://github.com/greenbone/openvas/pull/596)
 - Add dump_icmp_packet() and dump_icmp_v6_packet() nasl functions. [#609](https://github.com/greenbone/openvas/pull/609)
+- Send message to the client with hosts count. [#606](https://github.com/greenbone/openvas/pull/606)
+- Use nasl_perror on invalid input and add more documentation. [#608](https://github.com/greenbone/openvas/pull/608)
+
+### Changed
+- Downgrade wmi queries log level for common errors.
+  [#602](https://github.com/greenbone/openvas/pull/602)
+  [#607](https://github.com/greenbone/openvas/pull/607)
 
 ### Fixed
 - Fork vhosts before creating the socket.[#576](https://github.com/greenbone/openvas/pull/576)
 - Check if another forked child has already added the same vhost. [#581](https://github.com/greenbone/openvas/pull/581)
 - Send duplicated hosts as dead hosts to ospd, to adjust scan progress calculation. [#586](https://github.com/greenbone/openvas/pull/586)
 - Only send the signal if the pid is a positive value. [#593](https://github.com/greenbone/openvas/pull/593)
+- When routes with same mask are found the route with the better metric is chosen. [#593](https://github.com/greenbone/openvas/pull/593)
 
 [20.08]: https://github.com/greenbone/openvas/compare/v20.8.0...openvas-20.08
 

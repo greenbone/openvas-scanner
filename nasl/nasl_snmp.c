@@ -389,10 +389,10 @@ snmpv1v2c_get (const char *peername, const char *community, const char *oid_str,
       return -1;
     }
 
-  /* As we spawn the process asyncronously, we don't know the exit
+  /* As we spawn the process asynchronously, we don't know the exit
      status of the process. Therefore we need to check for errors in
      the output.
-     We assume a valid output if there is no erros.
+     We assume a valid output if there is no errors.
   */
   check_spwan_output (serr, result);
   if (result && *result[0] != '\0')
