@@ -1121,8 +1121,7 @@ routethrough (struct in_addr *dest, struct in_addr *source)
   for (i = 0; i < numroutes; i++)
     {
       /* Matching route found */
-      if ((dest->s_addr & myroutes[i].mask)
-          == myroutes[i].dest)
+      if ((dest->s_addr & myroutes[i].mask) == myroutes[i].dest)
         {
           /* First time a match is found */
           if (-1 == best_match)
