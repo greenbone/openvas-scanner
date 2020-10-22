@@ -24,6 +24,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 - Check if another forked child has already added the same vhost. [#581](https://github.com/greenbone/openvas/pull/581)
 - Send duplicated hosts as dead hosts to ospd, to adjust scan progress calculation. [#586](https://github.com/greenbone/openvas/pull/586)
 - Only send the signal if the pid is a positive value. [#593](https://github.com/greenbone/openvas/pull/593)
+- When routes with same mask are found the route with the better metric is chosen. [#593](https://github.com/greenbone/openvas/pull/593)
 
 [20.08]: https://github.com/greenbone/openvas/compare/v20.8.0...openvas-20.08
 
