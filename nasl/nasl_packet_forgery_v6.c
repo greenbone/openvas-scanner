@@ -228,22 +228,22 @@ get_ipv6_element (lex_ctxt *lexic)
 
   if (!strcmp (element, "ip6_v"))
     {
-      ret_int = (ip6->ip6_flow & 0x3ffff);
+      ret_int = ntohl (ip6->ip6_flow) >> 28;
       flag++;
     }
   else if (!strcmp (element, "ip6_tc"))
     {
-      ret_int = (ip6->ip6_flow >> 20) & 0xff;
+      ret_int = (ntohl (ip6->ip6_flow) >> 20) & 0xff;
       flag++;
     }
   else if (!strcmp (element, "ip6_fl"))
     {
-      ret_int = ip6->ip6_flow >> 28;
+      ret_int = ntohl (ip6->ip6_flow) & 0x3ffff;
       flag++;
     }
   else if (!strcmp (element, "ip6_plen"))
     {
-      ret_int = (ip6->ip6_plen);
+      ret_int = UNFIX (ip6->ip6_plen);
       flag++;
     }
   else if (!strcmp (element, "ip6_nxt"))
