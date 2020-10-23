@@ -983,14 +983,14 @@ routethrough (struct in_addr *dest, struct in_addr *source)
     struct interface_info *dev;
     unsigned long mask;
     unsigned long dest;
+    unsigned long metric;
   } myroutes[MAXROUTES];
   int numinterfaces = 0;
   char *p, *endptr;
   char iface[64];
   static int numroutes = 0;
   FILE *routez;
-  long match = -1;
-  unsigned long bestmatch = 0;
+  long best_match = -1;
 
   struct in_addr src;
 
@@ -1040,7 +1040,7 @@ routethrough (struct in_addr *dest, struct in_addr *source)
                     "Failed to determine Destination from /proc/net/route");
                   continue;
                 }
-              for (i = 0; i < 6; i++)
+              for (i = 0; i < 5; i++)
                 {
                   p = strtok (NULL, " \t\n");
                   if (!p)
@@ -1053,6 +1053,14 @@ routethrough (struct in_addr *dest, struct in_addr *source)
                              i + 2);
                   continue;
                 }
+              endptr = NULL;
+              myroutes[numroutes].metric = strtol (p, &endptr, 10);
+              if (!endptr || *endptr)
+                {
+                  g_message ("Failed to determine metric from /proc/net/route");
+                  continue;
+                }
+              p = strtok (NULL, " \t\n");
               endptr = NULL;
               myroutes[numroutes].mask = strtoul (p, &endptr, 16);
               if (!endptr || *endptr)
@@ -1112,21 +1120,40 @@ routethrough (struct in_addr *dest, struct in_addr *source)
 
   for (i = 0; i < numroutes; i++)
     {
-      if ((dest->s_addr & myroutes[i].mask) == myroutes[i].dest
-          && myroutes[i].mask >= bestmatch)
+      /* Matching route found */
+      if ((dest->s_addr & myroutes[i].mask) == myroutes[i].dest)
         {
-          if (source)
+          /* First time a match is found */
+          if (-1 == best_match)
             {
-              if (src.s_addr != INADDR_ANY)
-                source->s_addr = src.s_addr;
-              else
-                source->s_addr = myroutes[i].dev->addr.s_addr;
+              best_match = i;
             }
-          match = i;
-          bestmatch = myroutes[i].mask;
+          else
+            {
+              /* Better match found */
+              if (myroutes[i].mask > myroutes[best_match].mask)
+                {
+                  best_match = i;
+                }
+              /* Match with equal mask and smaller (better) metric found */
+              else if ((myroutes[i].mask == myroutes[best_match].mask)
+                       && (myroutes[i].metric < myroutes[best_match].metric))
+                {
+                  best_match = i;
+                }
+            }
         }
     }
-  if (match != -1)
-    return myroutes[match].dev->name;
+  /* Set source */
+  if (source)
+    {
+      if (src.s_addr != INADDR_ANY)
+        source->s_addr = src.s_addr;
+      else
+        source->s_addr = myroutes[best_match].dev->addr.s_addr;
+    }
+
+  if (best_match != -1)
+    return myroutes[best_match].dev->name;
   return NULL;
 }
