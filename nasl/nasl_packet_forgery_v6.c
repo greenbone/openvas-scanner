@@ -190,7 +190,7 @@ forge_ipv6_packet (lex_ctxt *lexic)
  * @brief Obtain IPv6 header element.
  *
  * @param[in] lexic   Lexical context of NASL interpreter.
- * @param[in] ipv6    IP v6 header
+ * @param[in] ip6     IPv6 header.
  * @param[in] element Element to extract from the header.
  *
  * @return tree_cell with the IP header element.
@@ -199,16 +199,25 @@ tree_cell *
 get_ipv6_element (lex_ctxt *lexic)
 {
   tree_cell *retc;
-  struct ip6_hdr *ip6 = (struct ip6_hdr *) get_str_var_by_name (lexic, "ipv6");
   char *element = get_str_var_by_name (lexic, "element");
   char ret_ascii[INET6_ADDRSTRLEN];
   int ret_int = 0;
   int flag = 0;
+  struct ip6_hdr *ip6;
 
+  /* Parameter name 'ipv6' was renamed to 'ip6' for consistency.
+   * For backwards compatibility reasons we still need to consider the 'ipv6'
+   * argument.
+   */
+  ip6 = (struct ip6_hdr *) get_str_var_by_name (lexic, "ipv6");
   if (ip6 == NULL)
     {
-      nasl_perror (lexic, "get_ipv6_element: no valid 'ipv6' argument\n");
-      return NULL;
+      ip6 = (struct ip6_hdr *) get_str_var_by_name (lexic, "ip6");
+      if (ip6 == NULL)
+        {
+          nasl_perror (lexic, "get_ipv6_element: no valid 'ip6' argument\n");
+          return NULL;
+        }
     }
 
   if (element == NULL)
