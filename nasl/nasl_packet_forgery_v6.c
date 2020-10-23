@@ -125,7 +125,7 @@ int n;
  * @return Forged IP packet.
  */
 tree_cell *
-forge_ipv6_packet (lex_ctxt *lexic)
+forge_ip_v6_packet (lex_ctxt *lexic)
 {
   tree_cell *retc;
   struct ip6_hdr *pkt;
@@ -196,7 +196,7 @@ forge_ipv6_packet (lex_ctxt *lexic)
  * @return tree_cell with the IP header element.
  */
 tree_cell *
-get_ipv6_element (lex_ctxt *lexic)
+get_ip_v6_element (lex_ctxt *lexic)
 {
   tree_cell *retc;
   char *element = get_str_var_by_name (lexic, "element");
@@ -215,14 +215,14 @@ get_ipv6_element (lex_ctxt *lexic)
       ip6 = (struct ip6_hdr *) get_str_var_by_name (lexic, "ip6");
       if (ip6 == NULL)
         {
-          nasl_perror (lexic, "get_ipv6_element: no valid 'ip6' argument\n");
+          nasl_perror (lexic, "%s: no valid 'ip6' argument\n", __func__);
           return NULL;
         }
     }
 
   if (element == NULL)
     {
-      nasl_perror (lexic, "get_ipv6_element: no valid 'element' argument\n");
+      nasl_perror (lexic, "%s: no valid 'element' argument\n", __func__);
       return NULL;
     }
 
@@ -301,7 +301,7 @@ get_ipv6_element (lex_ctxt *lexic)
  * @return tree_cell with the forged IP packet.
  */
 tree_cell *
-set_ipv6_elements (lex_ctxt *lexic)
+set_ip_v6_elements (lex_ctxt *lexic)
 {
   struct ip6_hdr *o_pkt = (struct ip6_hdr *) get_str_var_by_name (lexic, "ip6");
   int size = get_var_size_by_name (lexic, "ip6");
@@ -311,7 +311,7 @@ set_ipv6_elements (lex_ctxt *lexic)
 
   if (o_pkt == NULL)
     {
-      nasl_perror (lexic, "set_ipv6_elements: missing <ip6> field\n");
+      nasl_perror (lexic, "%s: missing <ip6> field\n", __func__);
       return NULL;
     }
 
@@ -342,7 +342,7 @@ set_ipv6_elements (lex_ctxt *lexic)
  * @return Print and returns FAKE_CELL.
  */
 tree_cell *
-dump_ipv6_packet (lex_ctxt *lexic)
+dump_ip_v6_packet (lex_ctxt *lexic)
 {
   int i;
   char addr[INET6_ADDRSTRLEN];
@@ -400,7 +400,7 @@ dump_ipv6_packet (lex_ctxt *lexic)
  * @return the modified datagram.
  */
 tree_cell *
-insert_ipv6_options (lex_ctxt *lexic)
+insert_ip_v6_options (lex_ctxt *lexic)
 {
   struct ip6_hdr *ip6 = (struct ip6_hdr *) get_str_var_by_name (lexic, "ip6");
   int code = get_int_var_by_name (lexic, "code", 0);
@@ -419,8 +419,10 @@ insert_ipv6_options (lex_ctxt *lexic)
 
   if (ip6 == NULL)
     {
-      nasl_perror (lexic, "Usage : insert_ipv6_options(ip6:<ip6>, code:<code>, "
-                          "length:<len>, value:<value>\n");
+      nasl_perror (lexic,
+                   "Usage : %s(ip6:<ip6>, code:<code>, "
+                   "length:<len>, value:<value>\n",
+                   __func__);
       return NULL;
     }
 
