@@ -273,8 +273,6 @@ main (int argc, char **argv)
           nasl_trace_fp = fp;
         }
     }
-  if (with_safe_checks)
-    prefs_set ("safe_checks", "yes");
 
   gcrypt_init ();
   openvas_SSL_init ();
@@ -340,6 +338,9 @@ main (int argc, char **argv)
       prefs_set ("port_range", port_range);
       g_free (port_range);
     }
+
+  if (with_safe_checks)
+    prefs_set ("safe_checks", "yes");
 
   pos = 0; // Append the item on the right side of the list
   while ((host = gvm_hosts_next (hosts)))

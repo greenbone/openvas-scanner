@@ -107,29 +107,16 @@ typedef struct
 
 /**
  * @brief Default values for scanner options. Must be NULL terminated.
+ *
+ * Only include options which are dependent on CMake variables.
+ * Empty options must be "\0", not NULL, to match the behavior of prefs_init.
  */
 static openvas_option openvas_defaults[] = {
   {"plugins_folder", OPENVAS_NVT_DIR},
   {"include_folders", OPENVAS_NVT_DIR},
-  {"max_hosts", "30"},
-  {"max_checks", "10"},
-  {"log_whole_attack", "no"},
-  {"log_plugins_name_at_load", "no"},
-  {"optimize_test", "yes"},
-  {"non_simult_ports", "139, 445, 3389, Services/irc"},
   {"plugins_timeout", G_STRINGIFY (NVT_TIMEOUT)},
   {"scanner_plugins_timeout", G_STRINGIFY (SCANNER_NVT_TIMEOUT)},
-  {"safe_checks", "yes"},
-  {"auto_enable_dependencies", "yes"},
-  {"drop_privileges", "no"},
-  // Empty options must be "\0", not NULL, to match the behavior of
-  // prefs_init.
-  {"report_host_details", "yes"},
   {"db_address", KB_PATH_DEFAULT},
-  {"vendor_version", "\0"},
-  {"test_alive_hosts_only", "no"},
-  {"debug_tls", "0"},
-  {"allow_simult_ips_same_host", "yes"},
   {NULL, NULL}};
 
 static void
