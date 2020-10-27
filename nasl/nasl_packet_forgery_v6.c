@@ -189,9 +189,10 @@ forge_ip_v6_packet (lex_ctxt *lexic)
 /**
  * @brief Obtain IPv6 header element.
  *
- * @param[in] lexic   Lexical context of NASL interpreter.
- * @param[in] ip6     IPv6 header.
- * @param[in] element Element to extract from the header.
+ * @param[in] lexic      Lexical context of NASL interpreter.
+ * @param[in] ipv6       IPv6 header. TODO: Once versions older than 20.08 are
+ * no longer in use the parameter name can be changed to 'ip6'.
+ * @param[in] element    Element to extract from the header.
  *
  * @return tree_cell with the IP header element.
  */

@@ -194,7 +194,9 @@ static init_func libfuncs[] = {
   {"isnull", nasl_isnull},
   {"defined_func", nasl_defined_func},
 
-  /* Following 5 entries needed for backwards compatibility */
+  /* Following 5 entries needed for backwards compatibility.
+   * TODO: Once versions older than 20.08 are no longer in use these 5 entries
+   * can be deleted. */
   {"forge_ipv6_packet", forge_ip_v6_packet},
   {"get_ipv6_element", get_ip_v6_element},
   {"set_ipv6_elements", set_ip_v6_elements},
