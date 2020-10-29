@@ -294,7 +294,7 @@ get_ip_v6_element (lex_ctxt *lexic)
  *
  * @param[in] lexic     Lexical context of NASL interpreter.
  * @param[in] ip6       IP v6 header.
- * @param[in] ip6_plen  Payload lenght.
+ * @param[in] ip6_plen  Payload length.
  * @param[in] ip6_hlim  Hop limit. Max. 255
  * @param[in] ip6_nxt   Next packet.
  * @param[in] ip6_src   Source address
@@ -395,7 +395,7 @@ dump_ip_v6_packet (lex_ctxt *lexic)
  * @param[in] ip6     IPv6 packet.
  * @param[in] data    Data payload.
  * @param[in] code    Code of option.
- * @param[in] lenght  Length of value.
+ * @param[in] length  Length of value.
  * @param[in] value   Value of the option.
  *
  * @return the modified datagram.
@@ -1779,7 +1779,7 @@ nasl_tcp_v6_ping (lex_ctxt *lexic)
  * @param[in] pcap_active     TRUE by default. Otherwise, NASL does not listen
  * for the answers.
  * @param[in] pcap_filter     BPF filter.
- * @param[in] pcap_timeout    Capture timout. 5 by default.
+ * @param[in] pcap_timeout    Capture timeout. 5 by default.
  * @param[in] allow_multicast Default 0.
  *
  * @return tree_cell with the response to the sent packet.
