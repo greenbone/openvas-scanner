@@ -18,6 +18,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 - Downgrade wmi queries log level for common errors.
   [#602](https://github.com/greenbone/openvas/pull/602)
   [#607](https://github.com/greenbone/openvas/pull/607)
+- Rename some nasl functions and func parameters for consistency and fix byte oder issue in get_ipv6_element. [#613](https://github.com/greenbone/openvas/pull/613)
 
 ### Fixed
 - Fork vhosts before creating the socket.[#576](https://github.com/greenbone/openvas/pull/576)

@@ -25,15 +25,15 @@
 #ifndef NASL_PACKET_FORGERY_H
 
 tree_cell *
-forge_ipv6_packet (lex_ctxt *);
+forge_ip_v6_packet (lex_ctxt *);
 tree_cell *
-set_ipv6_elements (lex_ctxt *);
+set_ip_v6_elements (lex_ctxt *);
 tree_cell *
-get_ipv6_element (lex_ctxt *);
+get_ip_v6_element (lex_ctxt *);
 tree_cell *
-dump_ipv6_packet (lex_ctxt *);
+dump_ip_v6_packet (lex_ctxt *);
 tree_cell *
-insert_ipv6_options (lex_ctxt *);
+insert_ip_v6_options (lex_ctxt *);
 
 tree_cell *
 forge_tcp_v6_packet (lex_ctxt *);
