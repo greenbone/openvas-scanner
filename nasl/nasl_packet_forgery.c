@@ -930,7 +930,7 @@ struct pseudo_udp_hdr
  order if necessary. 0 by default.
  * @param[in] uh_sport      Source port. NASL will convert it into network order
  if necessary. 0 by default.
- * @param[in] uh_sum        UDP checksum. Although it is not compulsary, the
+ * @param[in] uh_sum        UDP checksum. Although it is not compulsory, the
  right value is computed by default.
  * @param[in] uh_ulen       Data length. By default it is set to the length of
  the data argument plus the size of the UDP header.
@@ -1503,7 +1503,7 @@ forge_igmp_packet (lex_ctxt *lexic)
  * @param[in] port    Port to ping. Internal list of common ports is used as
  * default.
  *
- * @return 1 if Ping was successul, 0 else.
+ * @return 1 if Ping was successful, 0 else.
  */
 tree_cell *
 nasl_tcp_ping (lex_ctxt *lexic)
@@ -1654,7 +1654,7 @@ nasl_tcp_ping (lex_ctxt *lexic)
  * @param[in] pcap_active     TRUE by default. Otherwise, NASL does not listen
  * for the answers.
  * @param[in] pcap_filter     BPF filter.
- * @param[in] pcap_timeout    Capture timout. 5 by default.
+ * @param[in] pcap_timeout    Capture timeout. 5 by default.
  * @param[in] allow_broadcast Default 0.
  *
  * @return block made of all the sniffed “answers”.
