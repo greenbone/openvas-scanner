@@ -210,6 +210,7 @@ static init_func libfuncs[] = {
   {"set_tcp_elements", set_tcp_elements},
   {"set_tcp_v6_elements", set_tcp_v6_elements},
   {"insert_tcp_options", insert_tcp_options},
+  {"insert_tcp_v6_options", insert_tcp_v6_options},
   {"dump_tcp_packet", dump_tcp_packet},
   {"dump_tcp_v6_packet", dump_tcp_v6_packet},
   {"tcp_ping", nasl_tcp_ping},
