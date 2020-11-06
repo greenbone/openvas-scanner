@@ -493,7 +493,8 @@ struct tcp_opt_tstamp
 {
   uint8_t kind; // 8
   uint8_t len;  // 10
-  double tstamp;
+  uint32_t tstamp;
+  uint32_t e_tstamp;
 };
 
 /**
@@ -797,10 +798,12 @@ set_tcp_v6_elements (lex_ctxt *lexic)
 /**
  * @brief Add options to a TCP segment header.
  * Possible options are:
- *   MSS 2, values between 536 and 65535
- *   Window Scale 3, with values between 0 and 14
- *   Sack permitted 4, no value requiered.
- *   TimeStamp, 8 bytes value for timestamp and echo timestamp.
+ *   TCPOPT_MAXSEG (2), values between 536 and 65535
+ *   TCPOPT_WINDOW (3), with values between 0 and 14
+ *   TCPOPT_SACK_PERMITTED (4), no value requiered.
+ *   TCPOPT_TIMESTAMP (8), 8 bytes value for timestamp
+ *   and echo timestamp, 4 bytes each one.
+ *
  * @param[in] lexic   Lexical context of NASL interpreter.
  * @param[in] tcp       IP datagram.
  * @param[in] data      (optional) TCP data payload.
@@ -820,7 +823,8 @@ insert_tcp_v6_options (lex_ctxt *lexic)
   char *data = get_str_var_by_name (lexic, "data");
   int data_len = get_var_size_by_name (lexic, "data");
   char *npkt;
-  int tcp_opt, tcp_opt_val, current_opt_len, total_opt_len, opt_size_allocated;
+  int tcp_opt, tcp_opt_val, tcp_opt_val2;
+  int current_opt_len, total_opt_len, opt_size_allocated;
   char *opts, *ptr_opts_pos;
   uint8_t eol, nop;
   int i;
@@ -927,7 +931,8 @@ insert_tcp_v6_options (lex_ctxt *lexic)
           break;
         case TCPOPT_TIMESTAMP:
           tcp_opt_val = get_int_var_by_num (lexic, i + 1, -1);
-          i++;
+          tcp_opt_val2 = get_int_var_by_num (lexic, i + 2, -1);
+          i = i + 2;
           if (tcp_opt_val < 0)
             nasl_perror (lexic, "%s: Invalid value for TCP option Timestamp'\n",
                          __func__);
@@ -936,6 +941,7 @@ insert_tcp_v6_options (lex_ctxt *lexic)
           opt_tstamp->kind = TCPOPT_TIMESTAMP;
           opt_tstamp->len = TCPOLEN_TIMESTAMP;
           opt_tstamp->tstamp = FIX (tcp_opt_val);
+          opt_tstamp->e_tstamp = FIX (tcp_opt_val2);
 
           // Need reallocated memory because options requires it.
           if (total_opt_len > opt_size_allocated)
