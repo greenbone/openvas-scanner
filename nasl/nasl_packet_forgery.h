@@ -38,6 +38,8 @@ get_tcp_element (lex_ctxt *);
 tree_cell *
 set_tcp_elements (lex_ctxt *);
 tree_cell *
+insert_tcp_options (lex_ctxt *);
+tree_cell *
 dump_tcp_packet (lex_ctxt *);
 
 tree_cell *
