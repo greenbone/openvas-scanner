@@ -525,6 +525,14 @@ struct tcp_opt_tstamp
   uint32_t e_tstamp;
 } __attribute__ ((packed));
 
+struct tcp_options
+{
+  struct tcp_opt_mss mss;
+  struct tcp_opt_wscale wscale;
+  struct tcp_opt_sack_perm sack_perm;
+  struct tcp_opt_tstamp tstamp;
+} __attribute__ ((packed));
+
 /**
  * @brief Fills an IP datagram with TCP data. Note that the ip_p field is not
  updated. It returns the modified IP datagram. Its arguments are:
@@ -721,6 +729,176 @@ get_tcp_element (lex_ctxt *lexic)
 
   retc = alloc_typed_cell (CONST_INT);
   retc->x.i_val = ret;
+  return retc;
+}
+
+/**
+ * @brief Extract all TCP option from an IP datagram.
+ *
+ * @param[in] options All options present in the TCP segment.
+ * @param[out] tcp_all_options Container for the options to return.
+ */
+static void
+get_tcp_options (char *options, struct tcp_options *tcp_all_options)
+{
+  uint8_t *opt_kind;
+  if (options == NULL)
+    return;
+
+  opt_kind = (uint8_t *) options;
+
+  while (*opt_kind != 0)
+    {
+      switch (*opt_kind)
+        {
+        case TCPOPT_MAXSEG:
+          tcp_all_options->mss.kind = *opt_kind;
+          tcp_all_options->mss.len = *(opt_kind + 1);
+          tcp_all_options->mss.mss = *((uint16_t *) (opt_kind + 2));
+          opt_kind = opt_kind + *(opt_kind + 1);
+          break;
+        case TCPOPT_WINDOW:
+          tcp_all_options->wscale.kind = *opt_kind;
+          tcp_all_options->wscale.len = *(opt_kind + 1);
+          tcp_all_options->wscale.wscale = (uint8_t) * (opt_kind + 2);
+          opt_kind = opt_kind + *(opt_kind + 1);
+          break;
+        case TCPOPT_SACK_PERMITTED:
+          tcp_all_options->sack_perm.kind = *opt_kind;
+          tcp_all_options->sack_perm.len = *(opt_kind + 1);
+          opt_kind = opt_kind + *(opt_kind + 1);
+          break;
+        case TCPOPT_TIMESTAMP:
+          tcp_all_options->tstamp.kind = *opt_kind;
+          tcp_all_options->tstamp.len = *(opt_kind + 1);
+          tcp_all_options->tstamp.tstamp = *((uint32_t *) (opt_kind + 2));
+          tcp_all_options->tstamp.e_tstamp = *((uint32_t *) (opt_kind + 6));
+          opt_kind = opt_kind + *(opt_kind + 1);
+          break;
+        case TCPOPT_EOL:
+        case TCPOPT_NOP:
+          opt_kind++;
+          break;
+        case TCPOPT_SACK: // Not supported
+          opt_kind = opt_kind + *(opt_kind + 1);
+          break;
+        default:
+          g_debug ("%s: Unsupported %u tcp option. "
+                   "Not all options are returned",
+                   __func__, *opt_kind);
+          *opt_kind = 0;
+          break;
+        }
+    }
+}
+
+/**
+ * @brief Get a TCP option from an IP datagram if present.
+ *
+ * @param[in] lexic   Lexical context of NASL interpreter.
+ * @param[in] tcp     The full IP datagram (IP + TCP).
+ * @param[in] option  Option to get.
+ *
+ * @return  Integer or array given the case..
+ */
+tree_cell *
+get_tcp_option (lex_ctxt *lexic)
+{
+  u_char *packet = (u_char *) get_str_var_by_name (lexic, "tcp");
+  struct ip *ip;
+  int ipsz;
+  struct tcphdr *tcp;
+  char *options;
+  int opt;
+  tree_cell *retc;
+  nasl_array *arr;
+  anon_nasl_var v;
+
+  struct tcp_options *tcp_all_options = NULL;
+
+  ipsz = get_var_size_by_name (lexic, "tcp");
+
+  if (packet == NULL)
+    {
+      nasl_perror (lexic, "get_tcp_element: No valid 'tcp' argument\n");
+      return NULL;
+    }
+
+  opt = get_int_var_by_name (lexic, "option", -1);
+  if (opt < 0)
+    {
+      nasl_perror (lexic,
+                   "%s: No options\n."
+                   "Usage: get_tcp_option (tcp:tcp, option: TCPOPT_MAXSEG)",
+                   __func__);
+      return NULL;
+    }
+
+  ip = (struct ip *) packet;
+
+  if (ip->ip_hl * 4 > ipsz)
+    return NULL; /* Invalid packet */
+
+  if (UNFIX (ip->ip_len) > ipsz)
+    return NULL; /* Invalid packet */
+
+  tcp = (struct tcphdr *) (packet + ip->ip_hl * 4);
+
+  if (tcp->th_off <= 5)
+    return NULL;
+
+  // Get options from the segment
+  options = (char *) g_malloc0 (sizeof (uint8_t) * 4 * (tcp->th_off - 5));
+  memcpy (options, (char *) tcp + 20, (tcp->th_off - 5) * 4);
+
+  tcp_all_options = g_malloc0 (sizeof (struct tcp_options));
+  get_tcp_options (options, tcp_all_options);
+  if (tcp_all_options == NULL)
+    {
+      nasl_perror (lexic, "%s: No options\n", __func__);
+
+      g_free (options);
+      return NULL;
+    }
+
+  opt = get_int_var_by_name (lexic, "option", -1);
+  retc = NULL;
+  switch (opt)
+    {
+    case TCPOPT_MAXSEG:
+      retc = alloc_typed_cell (CONST_INT);
+      retc->x.i_val = ntohs ((uint16_t) tcp_all_options->mss.mss);
+      break;
+    case TCPOPT_WINDOW:
+      retc = alloc_typed_cell (CONST_INT);
+      retc->x.i_val = tcp_all_options->wscale.wscale;
+      break;
+    case TCPOPT_SACK_PERMITTED:
+      retc = alloc_typed_cell (CONST_INT);
+      retc->x.i_val = tcp_all_options->sack_perm.kind ? 1 : 0;
+      break;
+    case TCPOPT_TIMESTAMP:
+      retc = alloc_typed_cell (DYN_ARRAY);
+      retc->x.ref_val = arr = g_malloc0 (sizeof (nasl_array));
+
+      memset (&v, 0, sizeof (v));
+      v.var_type = VAR2_INT;
+      v.v.v_int = ntohl ((uint32_t) tcp_all_options->tstamp.tstamp);
+      add_var_to_array (arr, "timestamp", &v);
+
+      memset (&v, 0, sizeof (v));
+      v.var_type = VAR2_INT;
+      v.v.v_int = ntohl ((uint32_t) tcp_all_options->tstamp.e_tstamp);
+      add_var_to_array (arr, "echo_timestamp", &v);
+      break;
+    default:
+      nasl_perror (lexic, "%s: Invalid value for TCP option Timestamp'\n",
+                   __func__);
+      break;
+    }
+
+  g_free (tcp_all_options);
+  g_free (options);
   return retc;
 }
 
@@ -1196,11 +1374,43 @@ dump_tcp_packet (lex_ctxt *lexic)
       printf ("\tth_win   : %d\n", ntohs (tcp->th_win));
       printf ("\tth_sum   : 0x%x\n", ntohs (tcp->th_sum));
       printf ("\tth_urp   : %d\n", ntohs (tcp->th_urp));
-      printf ("\tData     : ");
-      c = (char *) ((char *) tcp + sizeof (struct tcphdr));
+
+      if (tcp->th_off > 5) // Options presents
+        {
+          char *options;
+          struct tcp_options *tcp_all_options;
+
+          options =
+            (char *) g_malloc0 (sizeof (uint8_t) * 4 * (tcp->th_off - 5));
+          memcpy (options, (char *) tcp + 20, (tcp->th_off - 5) * 4);
+
+          tcp_all_options = g_malloc0 (sizeof (struct tcp_options));
+          get_tcp_options (options, tcp_all_options);
+          if (tcp_all_options != NULL)
+            {
+              printf ("\tTCP Options:\n");
+              printf ("\t\tTCPOPT_MAXSEG %u:\n",
+                      ntohs ((uint16_t) tcp_all_options->mss.mss));
+              printf ("\t\tTCPOPT_WINDOW %u:\n",
+                      tcp_all_options->wscale.wscale);
+              printf ("\t\tTCPOPT_SACK_PERMITTED %u:\n",
+                      tcp_all_options->sack_perm.kind ? 1 : 0);
+              printf ("\t\tTCPOPT_TIMESTAMP TSval %u:\n",
+                      ntohl ((uint32_t) tcp_all_options->tstamp.tstamp));
+              printf ("\t\tTCPOPT_TIMESTAMP TSecr %u:\n",
+                      ntohl ((uint32_t) tcp_all_options->tstamp.e_tstamp));
+            }
+          g_free (options);
+          g_free (tcp_all_options);
+        }
+
+      printf ("\n\tData     : ");
+      c = (char *) ((char *) tcp + sizeof (struct tcphdr)
+                    + sizeof (uint8_t) * 4 * (tcp->th_off - 5));
       if (UNFIX (ip->ip_len) > (sizeof (struct ip) + sizeof (struct tcphdr)))
         for (j = 0; j < UNFIX (ip->ip_len) - sizeof (struct ip)
                           - sizeof (struct tcphdr)
+                          - sizeof (uint8_t) * 4 * (tcp->th_off - 5)
                     && j < limit;
              j++)
           printf ("%c", isprint (c[j]) ? c[j] : '.');
