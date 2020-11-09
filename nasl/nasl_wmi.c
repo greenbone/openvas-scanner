@@ -821,7 +821,7 @@ nasl_wmi_reg_set_dword_val (lex_ctxt *lexic)
   char *key = get_str_var_by_name (lexic, "key"); // REGISTRY KEY
   char *val_name =
     get_str_var_by_name (lexic, "val_name");      // REGISTRY VALUE NAME
-  char *val = get_str_var_by_name (lexic, "val"); // REGISTERY VALUE TO SET
+  char *val = get_str_var_by_name (lexic, "val"); // REGISTRY VALUE TO SET
 
   uint32_t val1;
   int value;
@@ -871,7 +871,7 @@ nasl_wmi_reg_set_qword_val (lex_ctxt *lexic)
   char *key = get_str_var_by_name (lexic, "key"); // REGISTRY KEY
   char *val_name =
     get_str_var_by_name (lexic, "val_name");      // REGISTRY VALUE NAME
-  char *val = get_str_var_by_name (lexic, "val"); // REGISTERY VALUE TO SET
+  char *val = get_str_var_by_name (lexic, "val"); // REGISTRY VALUE TO SET
 
   uint64_t val1;
   int value;
@@ -921,7 +921,7 @@ nasl_wmi_reg_set_ex_string_val (lex_ctxt *lexic)
   char *key = get_str_var_by_name (lexic, "key"); // REGISTRY KEY
   char *val_name =
     get_str_var_by_name (lexic, "val_name");      // REGISTRY VALUE NAME
-  char *val = get_str_var_by_name (lexic, "val"); // REGISTERY VALUE TO SET
+  char *val = get_str_var_by_name (lexic, "val"); // REGISTRY VALUE TO SET
 
   int value;
 
@@ -933,7 +933,7 @@ nasl_wmi_reg_set_ex_string_val (lex_ctxt *lexic)
   if (value == -1)
     {
       g_message (
-        "nasl_wmi_reg_set_ex_string_val: WMI registery set operation failed");
+        "nasl_wmi_reg_set_ex_string_val: WMI registry set operation failed");
       return NULL;
     }
   return retc;
@@ -963,7 +963,7 @@ nasl_wmi_reg_set_string_val (lex_ctxt *lexic)
   char *key = get_str_var_by_name (lexic, "key"); // REGISTRY KEY
   char *val_name =
     get_str_var_by_name (lexic, "val_name");      // REGISTRY VALUE NAME
-  char *val = get_str_var_by_name (lexic, "val"); // REGISTERY VALUE TO SET
+  char *val = get_str_var_by_name (lexic, "val"); // REGISTRY VALUE TO SET
 
   int value;
 
@@ -974,7 +974,7 @@ nasl_wmi_reg_set_string_val (lex_ctxt *lexic)
 
   if (value == -1)
     {
-      g_message ("nasl_wmi_reg_set_string_val: WMI registery"
+      g_message ("nasl_wmi_reg_set_string_val: WMI registry"
                  " set operation failed");
       return NULL;
     }
@@ -1011,7 +1011,7 @@ nasl_wmi_reg_create_key (lex_ctxt *lexic)
 
   if (value == -1)
     {
-      g_message ("nasl_wmi_reg_create_key: WMI registery key create"
+      g_message ("nasl_wmi_reg_create_key: WMI registry key create"
                  " operation failed");
       return NULL;
     }
@@ -1050,7 +1050,7 @@ nasl_wmi_reg_delete_key (lex_ctxt *lexic)
 
   if (value == -1)
     {
-      g_message ("nasl_wmi_reg_delete_key: WMI registery key"
+      g_message ("nasl_wmi_reg_delete_key: WMI registry key"
                  " delete operation failed");
       return NULL;
     }
