@@ -1088,19 +1088,19 @@ insert_tcp_options (lex_ctxt *lexic)
   source.s_addr = ip->ip_src.s_addr;
   dest.s_addr = ip->ip_dst.s_addr;
 
-  bzero (&pseudoheader, sizeof (pseudoheader));
+  memset (&pseudoheader, 0, sizeof (pseudoheader));
   pseudoheader.saddr.s_addr = source.s_addr;
   pseudoheader.daddr.s_addr = dest.s_addr;
 
   pseudoheader.protocol = IPPROTO_TCP;
   pseudoheader.length =
     htons (sizeof (struct tcphdr) + opt_size_allocated + data_len);
-  bcopy ((char *) tcp, (char *) &pseudoheader.tcpheader,
+  memcpy ((char *) &pseudoheader.tcpheader, (char *) tcp,
          sizeof (struct tcphdr));
   /* fill tcpsumdata with data to checksum */
-  bcopy ((char *) &pseudoheader, tcpsumdata, sizeof (struct pseudohdr));
+  memcpy (tcpsumdata, (char *) &pseudoheader, sizeof (struct pseudohdr));
   memcpy (tcpsumdata, opts, opt_size_allocated);
-  bcopy ((char *) data, tcpsumdata + sizeof (struct pseudohdr), data_len);
+  memcpy (tcpsumdata + sizeof (struct pseudohdr), (char *) data, data_len);
   tcp->th_sum =
     np_in_cksum ((unsigned short *) tcpsumdata,
                  sizeof (pseudoheader) + opt_size_allocated, data_len);

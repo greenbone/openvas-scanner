@@ -1005,7 +1005,7 @@ insert_tcp_v6_options (lex_ctxt *lexic)
 
   // Alloc enough memory to hold the options
   npkt = g_malloc0 (40 + tcp->th_off * 4 + opt_size_allocated + data_len);
-  bcopy (pkt, npkt, UNFIX (ip6->ip6_plen) + 40);
+  memcpy (npkt, pkt, UNFIX (ip6->ip6_plen) + 40);
   ip6 = (struct ip6_hdr *) (npkt);
   tcp = (struct tcphdr *) (npkt + 40);
 
@@ -1013,7 +1013,7 @@ insert_tcp_v6_options (lex_ctxt *lexic)
   memcpy ((char *) tcp + tcp->th_off * 4, opts, opt_size_allocated);
   tcp->th_off = tcp->th_off + (opt_size_allocated / 4);
 
-  bcopy (data, (char *) tcp + tcp->th_off * 4, data_len);
+  memcpy ((char *) tcp + tcp->th_off * 4, data, data_len);
 
   ip6->ip6_plen = tcp->th_off * 4 + data_len;
 
@@ -1021,19 +1021,19 @@ insert_tcp_v6_options (lex_ctxt *lexic)
   char *tcpsumdata =
     g_malloc0 (sizeof (struct v6pseudohdr) + opt_size_allocated + data_len + 1);
 
-  bzero (&pseudoheader, 38 + sizeof (struct tcphdr));
+  memset (&pseudoheader, 0, 38 + sizeof (struct tcphdr));
   memcpy (&pseudoheader.s6addr, &ip6->ip6_src, sizeof (struct in6_addr));
   memcpy (&pseudoheader.d6addr, &ip6->ip6_dst, sizeof (struct in6_addr));
 
   pseudoheader.protocol = IPPROTO_TCP;
   pseudoheader.length = htons (sizeof (struct tcphdr) + data_len);
-  bcopy ((char *) tcp, (char *) &pseudoheader.tcpheader,
-         sizeof (struct tcphdr));
+  memcpy ((char *) &pseudoheader.tcpheader, (char *) tcp,
+          sizeof (struct tcphdr));
   /* fill tcpsumdata with data to checksum */
-  bcopy ((char *) &pseudoheader, tcpsumdata, sizeof (struct v6pseudohdr));
+  memcpy (tcpsumdata, (char *) &pseudoheader, sizeof (struct v6pseudohdr));
   memcpy (tcpsumdata, opts, opt_size_allocated);
   if (data != NULL)
-    bcopy ((char *) data, tcpsumdata + sizeof (struct v6pseudohdr), data_len);
+    memcpy (tcpsumdata + sizeof (struct v6pseudohdr), (char *) data, data_len);
   tcp->th_sum =
     np_in_cksum ((unsigned short *) tcpsumdata,
                  38 + sizeof (struct tcphdr) + opt_size_allocated + data_len);
