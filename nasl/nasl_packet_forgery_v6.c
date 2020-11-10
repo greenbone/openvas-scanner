@@ -1026,14 +1026,22 @@ insert_tcp_v6_options (lex_ctxt *lexic)
   memcpy (&pseudoheader.d6addr, &ip6->ip6_dst, sizeof (struct in6_addr));
 
   pseudoheader.protocol = IPPROTO_TCP;
-  pseudoheader.length = htons (sizeof (struct tcphdr) + data_len);
+  pseudoheader.length =
+    htons (sizeof (struct tcphdr) + opt_size_allocated + data_len);
+
+  // Set th_sum to Zero, necessary for the new checksum calculation
+  tcp->th_sum = 0;
+
   memcpy ((char *) &pseudoheader.tcpheader, (char *) tcp,
           sizeof (struct tcphdr));
+
   /* fill tcpsumdata with data to checksum */
   memcpy (tcpsumdata, (char *) &pseudoheader, sizeof (struct v6pseudohdr));
-  memcpy (tcpsumdata, opts, opt_size_allocated);
+  memcpy (tcpsumdata + sizeof (struct v6pseudohdr), (char *) opts,
+          opt_size_allocated);
   if (data != NULL)
-    memcpy (tcpsumdata + sizeof (struct v6pseudohdr), (char *) data, data_len);
+    memcpy (tcpsumdata + sizeof (struct v6pseudohdr) + opt_size_allocated,
+            (char *) data, data_len);
   tcp->th_sum =
     np_in_cksum ((unsigned short *) tcpsumdata,
                  38 + sizeof (struct tcphdr) + opt_size_allocated + data_len);

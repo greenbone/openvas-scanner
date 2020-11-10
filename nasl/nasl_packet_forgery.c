@@ -1087,22 +1087,30 @@ insert_tcp_options (lex_ctxt *lexic)
   source.s_addr = ip->ip_src.s_addr;
   dest.s_addr = ip->ip_dst.s_addr;
 
-  memset (&pseudoheader, 0, sizeof (pseudoheader));
+  memset (&pseudoheader, 0, sizeof (struct pseudohdr));
   pseudoheader.saddr.s_addr = source.s_addr;
   pseudoheader.daddr.s_addr = dest.s_addr;
 
   pseudoheader.protocol = IPPROTO_TCP;
+  // TCP length is tcpheader + options + data
   pseudoheader.length =
     htons (sizeof (struct tcphdr) + opt_size_allocated + data_len);
+
+  // Set th_sum to Zero, necessary for the new checksum calculation
+  tcp->th_sum = 0;
+
   memcpy ((char *) &pseudoheader.tcpheader, (char *) tcp,
-         sizeof (struct tcphdr));
+          sizeof (struct tcphdr));
+
   /* fill tcpsumdata with data to checksum */
   memcpy (tcpsumdata, (char *) &pseudoheader, sizeof (struct pseudohdr));
-  memcpy (tcpsumdata, opts, opt_size_allocated);
-  memcpy (tcpsumdata + sizeof (struct pseudohdr), (char *) data, data_len);
+  memcpy (tcpsumdata + sizeof (struct pseudohdr), (char *) opts,
+          opt_size_allocated);
+  memcpy (tcpsumdata + sizeof (struct pseudohdr) + opt_size_allocated,
+          (char *) data, data_len);
   tcp->th_sum =
     np_in_cksum ((unsigned short *) tcpsumdata,
-                 sizeof (pseudoheader) + opt_size_allocated, data_len);
+                 sizeof (struct pseudohdr) + opt_size_allocated + data_len);
   g_free (opts);
   g_free (tcpsumdata);
 
