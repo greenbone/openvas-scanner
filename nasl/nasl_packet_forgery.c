@@ -1050,7 +1050,10 @@ insert_tcp_options (lex_ctxt *lexic)
     tcp = (struct tcphdr *) (pkt + ip->ip_hl * 4);
 
   if (pktsz < UNFIX (ip->ip_len))
-    return NULL;
+    {
+      g_free (opts);
+      return NULL;
+    }
 
   if (data_len == 0)
     {

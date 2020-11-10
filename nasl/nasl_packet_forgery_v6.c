@@ -992,7 +992,10 @@ insert_tcp_v6_options (lex_ctxt *lexic)
   tcp = (struct tcphdr *) (pkt + 40);
 
   if (pktsz < UNFIX (ip6->ip6_plen))
-    return NULL;
+    {
+      g_free (opts);
+      return NULL;
+    }
 
   if (data_len == 0)
     {
