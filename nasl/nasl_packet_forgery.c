@@ -852,7 +852,7 @@ set_tcp_elements (lex_ctxt *lexic)
  * Possible options are:
  *   TCPOPT_MAXSEG (2), values between 536 and 65535
  *   TCPOPT_WINDOW (3), with values between 0 and 14
- *   TCPOPT_SACK_PERMITTED (4), no value requiered.
+ *   TCPOPT_SACK_PERMITTED (4), no value required.
  *   TCPOPT_TIMESTAMP (8), 8 bytes value for timestamp
  *   and echo timestamp, 4 bytes each one.
  *
@@ -912,7 +912,7 @@ insert_tcp_options (lex_ctxt *lexic)
           i++;
           if (tcp_opt_val < (int) TCP_MSS_DEFAULT || tcp_opt_val > 65535)
             {
-              nasl_perror (lexic, "%s: Invalid value for TCP option MSS'\n",
+              nasl_perror (lexic, "%s: Invalid value for TCP option MSS\n",
                            __func__);
               break;
             }
@@ -940,7 +940,7 @@ insert_tcp_options (lex_ctxt *lexic)
           i++;
           if (tcp_opt_val < 0 || tcp_opt_val > 14)
             {
-              nasl_perror (lexic, "%s: Invalid value for TCP option WScale'\n",
+              nasl_perror (lexic, "%s: Invalid value for TCP option WScale\n",
                            __func__);
               break;
             }
@@ -987,7 +987,7 @@ insert_tcp_options (lex_ctxt *lexic)
           tcp_opt_val2 = get_int_var_by_num (lexic, i + 2, -1);
           i = i + 2;
           if (tcp_opt_val < 0)
-            nasl_perror (lexic, "%s: Invalid value for TCP option Timestamp'\n",
+            nasl_perror (lexic, "%s: Invalid value for TCP option Timestamp\n",
                          __func__);
           opt_tstamp = g_malloc0 (sizeof (struct tcp_opt_tstamp));
           total_opt_len += TCPOLEN_TIMESTAMP;
