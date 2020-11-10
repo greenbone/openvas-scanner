@@ -1043,9 +1043,8 @@ insert_tcp_options (lex_ctxt *lexic)
   memcpy (ptr_opts_pos, &eol, 1);
 
   if (ip->ip_hl * 4 > pktsz)
-    tcp =
-      (struct tcphdr *) (pkt
-                         + 20); /* ip->ip_hl is bogus, we work around that */
+    // ip->ip_hl is bogus, we work around that
+    tcp = (struct tcphdr *) (pkt + 20);
   else
     tcp = (struct tcphdr *) (pkt + ip->ip_hl * 4);
 
