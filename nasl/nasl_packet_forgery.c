@@ -502,20 +502,20 @@ struct tcp_opt_mss
   uint8_t kind; // 2
   uint8_t len;  // 4
   uint16_t mss;
-};
+}__attribute__((packed));
 
 struct tcp_opt_wscale
 {
   uint8_t kind; // 3
   uint8_t len;  // 3
   uint8_t wscale;
-};
+}__attribute__((packed));
 
 struct tcp_opt_sack_perm
 {
   uint8_t kind; // 4
   uint8_t len;  // 2
-};
+}__attribute__((packed));
 
 struct tcp_opt_tstamp
 {
@@ -523,7 +523,7 @@ struct tcp_opt_tstamp
   uint8_t len;  // 10
   uint32_t tstamp;
   uint32_t e_tstamp;
-};
+} __attribute__((packed));
 
 /**
  * @brief Fills an IP datagram with TCP data. Note that the ip_p field is not
@@ -993,8 +993,8 @@ insert_tcp_options (lex_ctxt *lexic)
           total_opt_len += TCPOLEN_TIMESTAMP;
           opt_tstamp->kind = TCPOPT_TIMESTAMP;
           opt_tstamp->len = TCPOLEN_TIMESTAMP;
-          opt_tstamp->tstamp = FIX (tcp_opt_val);
-          opt_tstamp->e_tstamp = FIX (tcp_opt_val2);
+          opt_tstamp->tstamp = htonl (tcp_opt_val);
+          opt_tstamp->e_tstamp = htonl (tcp_opt_val2);
 
           // Need reallocated memory because options requires it.
           if (total_opt_len > opt_size_allocated)
