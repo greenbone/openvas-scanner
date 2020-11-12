@@ -494,7 +494,7 @@ struct pseudohdr
   u_char protocol;
   u_short length;
   struct tcphdr tcpheader;
-};
+} __attribute__ ((packed));
 
 // TCP options
 struct tcp_opt_mss
@@ -502,20 +502,20 @@ struct tcp_opt_mss
   uint8_t kind; // 2
   uint8_t len;  // 4
   uint16_t mss;
-}__attribute__((packed));
+} __attribute__ ((packed));
 
 struct tcp_opt_wscale
 {
   uint8_t kind; // 3
   uint8_t len;  // 3
   uint8_t wscale;
-}__attribute__((packed));
+} __attribute__ ((packed));
 
 struct tcp_opt_sack_perm
 {
   uint8_t kind; // 4
   uint8_t len;  // 2
-}__attribute__((packed));
+} __attribute__ ((packed));
 
 struct tcp_opt_tstamp
 {
@@ -523,7 +523,7 @@ struct tcp_opt_tstamp
   uint8_t len;  // 10
   uint32_t tstamp;
   uint32_t e_tstamp;
-} __attribute__((packed));
+} __attribute__ ((packed));
 
 /**
  * @brief Fills an IP datagram with TCP data. Note that the ip_p field is not
