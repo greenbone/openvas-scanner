@@ -1222,7 +1222,7 @@ struct v6pseudo_icmp_hdr
  * @param[in] icmp_code         0 by default.
  * @param[in] icmp_id           0 by default.
  * @param[in] icmp_seq
- * @param[in] reacheable_time
+ * @param[in] reachable_time
  * @param[in] retransmit_timer
  * @param[in] flags
  * @param[in] target
@@ -1320,7 +1320,7 @@ forge_icmp_v6_packet (lex_ctxt *lexic)
             ra->icmp6_code = icmp->icmp6_code;
             ra->icmp6_cksum = icmp->icmp6_cksum;
             routeradvert->nd_ra_reachable =
-              get_int_var_by_name (lexic, "reacheable_time", 0);
+              get_int_var_by_name (lexic, "reachable_time", 0);
             routeradvert->nd_ra_retransmit =
               get_int_var_by_name (lexic, "retransmit_timer", 0);
             routeradvert->nd_ra_curhoplimit = ip6_icmp->ip6_hlim;
