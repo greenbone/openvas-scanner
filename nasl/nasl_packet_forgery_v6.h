@@ -40,6 +40,8 @@ forge_tcp_v6_packet (lex_ctxt *);
 tree_cell *
 get_tcp_v6_element (lex_ctxt *);
 tree_cell *
+get_tcp_v6_option (lex_ctxt *);
+tree_cell *
 set_tcp_v6_elements (lex_ctxt *);
 tree_cell *
 insert_tcp_v6_options (lex_ctxt *);
