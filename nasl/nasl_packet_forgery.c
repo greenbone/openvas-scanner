@@ -1260,8 +1260,9 @@ dump_udp_packet (lex_ctxt *lexic)
  * @param[in] icmp_code     ICMP code. 0 by default.
  * @param[in] icmp_id       ICMP ID. 0 by default.
  * @param[in] icmp_seq      ICMP sequence number.
- * @param[in] icmp_type     ICMP type. 0  * @param[in]  update_ip_len Flag (TRUE
- * by default). If set, NASL will recompute the size field of the IP datagram.
+ * @param[in] icmp_type     ICMP type. 0 by default.
+ * @param[in] update_ip_len Flag (TRUE by default). If set, NASL will recompute
+ * the size field of the IP datagram.
  *
  * @return Modified IP datagram.
  */
