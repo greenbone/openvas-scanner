@@ -1243,6 +1243,7 @@ dump_tcp_v6_packet (lex_ctxt *lexic)
 {
   int i = 0;
   u_char *pkt;
+  int options_len = 0;
 
   while ((pkt = (u_char *) get_str_var_by_num (lexic, i++)) != NULL)
     {
@@ -1311,12 +1312,42 @@ dump_tcp_v6_packet (lex_ctxt *lexic)
       printf ("\tth_win   : %d\n", ntohs (tcp->th_win));
       printf ("\tth_sum   : 0x%x\n", tcp->th_sum);
       printf ("\tth_urp   : %d\n", tcp->th_urp);
-      printf ("\tData     : ");
-      c = (char *) ((char *) tcp + sizeof (struct tcphdr));
-      if (UNFIX (ip6->ip6_plen)
-          > (sizeof (struct ip6_hdr) + sizeof (struct tcphdr)))
+
+      options_len = sizeof (uint8_t) * 4 * (tcp->th_off - 5);
+
+      if (options_len > 5) // Options presents
+        {
+          char *options;
+          struct tcp_options *tcp_all_options;
+
+          options = (char *) g_malloc0 (options_len);
+          memcpy (options, (char *) tcp + 20, options_len);
+
+          tcp_all_options = g_malloc0 (sizeof (struct tcp_options));
+          get_tcp_options (options, tcp_all_options);
+          if (tcp_all_options != NULL)
+            {
+              printf ("\tTCP Options:\n");
+              printf ("\t\tTCPOPT_MAXSEG %u:\n",
+                      ntohs ((uint16_t) tcp_all_options->mss.mss));
+              printf ("\t\tTCPOPT_WINDOW %u:\n",
+                      tcp_all_options->wscale.wscale);
+              printf ("\t\tTCPOPT_SACK_PERMITTED %u:\n",
+                      tcp_all_options->sack_perm.kind ? 1 : 0);
+              printf ("\t\tTCPOPT_TIMESTAMP TSval %u:\n",
+                      ntohl ((uint32_t) tcp_all_options->tstamp.tstamp));
+              printf ("\t\tTCPOPT_TIMESTAMP TSecr %u:\n",
+                      ntohl ((uint32_t) tcp_all_options->tstamp.e_tstamp));
+            }
+          g_free (options);
+          g_free (tcp_all_options);
+        }
+      printf ("\n\tData     : ");
+      c = (char *) ((char *) tcp + sizeof (struct tcphdr) + options_len);
+      if (UNFIX (ip6->ip6_plen) > (sizeof (struct tcphdr) + options_len))
         for (j = 0;
-             j < UNFIX (ip6->ip6_plen) - sizeof (struct tcphdr) && j < limit;
+             j < UNFIX (ip6->ip6_plen) - sizeof (struct tcphdr) - options_len
+             && j < limit;
              j++)
           printf ("%c", isprint (c[j]) ? c[j] : '.');
       printf ("\n");
