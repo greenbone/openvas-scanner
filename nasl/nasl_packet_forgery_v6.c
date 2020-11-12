@@ -763,7 +763,7 @@ set_tcp_v6_elements (lex_ctxt *lexic)
 
   if (get_int_var_by_name (lexic, "update_ip_len", 1) != 0)
     {
-      ip6->ip6_plen = tcp->th_off * 4 + data_len;
+      ip6->ip6_plen = FIX (tcp->th_off * 4 + data_len);
     }
 
   if (tcp->th_sum == 0)
@@ -1015,7 +1015,7 @@ insert_tcp_v6_options (lex_ctxt *lexic)
 
   memcpy ((char *) tcp + tcp->th_off * 4, data, data_len);
 
-  ip6->ip6_plen = tcp->th_off * 4 + data_len;
+  ip6->ip6_plen = FIX (tcp->th_off * 4 + data_len);
 
   struct v6pseudohdr pseudoheader;
   char *tcpsumdata =
