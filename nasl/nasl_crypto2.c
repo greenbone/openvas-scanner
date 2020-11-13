@@ -607,7 +607,7 @@ ret:
 /**
  * nasl function
  *
- *    DH_compute_key(p:mpi_p, g:mpi_g, dh_server_pub:mpi_server_pub,
+ *    dh_compute_key(p:mpi_p, g:mpi_g, dh_server_pub:mpi_server_pub,
  *                   pub_key:mpi_client_pub, priv_key:mpi_client_priv)
  *
  * Computes the Diffie-Hellman shared secret key from the shared
@@ -761,7 +761,7 @@ strip_pkcs1_padding (tree_cell *retc)
 /**
  * nasl function
  *
- *  rsa_public_encrypt(data:data, e:mpi_e, n:mpi_n, padd:<TRUE:FALSE>)
+ *  rsa_public_encrypt(data:data, e:mpi_e, n:mpi_n, pad:<TRUE:FALSE>)
  *
  * Encrypt the provided data  with the public RSA key given by its parameters e
  * and n. The return value is the encrypted data.
@@ -853,7 +853,7 @@ ret:
 /**
  * nasl function
  *
- *  rsa_private_decrypt(data:data, d:mpi_d, e:mpi_e, n:mpi_n, padd:<TRUE:FALSE>)
+ *  rsa_private_decrypt(data:data, d:mpi_d, e:mpi_e, n:mpi_n, pad:<TRUE:FALSE>)
  *
  * Decrypt the provided data with the private RSA key given by its parameters
  * d, e and n. The return value is the decrypted data in plaintext format.
@@ -1547,7 +1547,8 @@ nasl_open_stream_cipher (lex_ctxt *lexic, int cipher, int mode)
 
   if (!key || keylen <= 0)
     {
-      nasl_perror (lexic, "Syntax: encrypt_data: Missing data or key argument");
+      nasl_perror (lexic, "Syntax: open_stream_cipher (called from "
+                          "open_rc4_cipher): Missing key argument");
       return NULL;
     }
 
@@ -1617,7 +1618,8 @@ encrypt_stream_data (lex_ctxt *lexic, int cipher)
 
   if (!data || datalen <= 0)
     {
-      nasl_perror (lexic, "Syntax: encrypt_data: Missing data or key argument");
+      nasl_perror (lexic, "Syntax: encrypt_stream_data (called from "
+                          "rc4_encrypt): Missing data argument");
       return NULL;
     }
 
@@ -1785,10 +1787,10 @@ encrypt_data (lex_ctxt *lexic, int cipher, int mode)
  * @brief Nasl function to encrypt data with a RC4 cipher. If an hd param
  * exist in the lexix context, it will use this handler to encrypt the data
  * as part of a stream data.
- * e.g.: rc4_encypt(data: data, hd: hd)
+ * e.g.: rc4_encrypt(data: data, hd: hd)
  *
  * Otherwise encrypts the data as block and the key is mandatory:
- * e.g.: rc4_encypt(data: data, key: key)
+ * e.g.: rc4_encrypt(data: data, key: key)
  *
  * @return Returns the encrypted data on success. Otherwise NULL.
  */
