@@ -783,8 +783,8 @@ get_tcp_options (char *options, struct tcp_options *tcp_all_options)
           opt_kind = opt_kind + *(opt_kind + 1);
           break;
         default:
-          g_debug ("%s: Unsupported %u tcp option. "
-                   "Not all options are returned",
+          g_debug ("%s: Unsupported %u TCP option. "
+                   "Not all options are returned.",
                    __func__, *opt_kind);
           *opt_kind = 0;
           break;
@@ -794,12 +794,18 @@ get_tcp_options (char *options, struct tcp_options *tcp_all_options)
 
 /**
  * @brief Get a TCP option from an IP datagram if present.
+ * Possible options are:
+ *   TCPOPT_MAXSEG (2), values between 536 and 65535
+ *   TCPOPT_WINDOW (3), with values between 0 and 14
+ *   TCPOPT_SACK_PERMITTED (4), no value required.
+ *   TCPOPT_TIMESTAMP (8), 8 bytes value for timestamp
+ *   and echo timestamp, 4 bytes each one.
  *
  * @param[in] lexic   Lexical context of NASL interpreter.
  * @param[in] tcp     The full IP datagram (IP + TCP).
  * @param[in] option  Option to get.
  *
- * @return  Integer or array given the case..
+ * @return  Integer or array given the case.
  */
 tree_cell *
 get_tcp_option (lex_ctxt *lexic)
@@ -816,11 +822,9 @@ get_tcp_option (lex_ctxt *lexic)
 
   struct tcp_options *tcp_all_options = NULL;
 
-  ipsz = get_var_size_by_name (lexic, "tcp");
-
   if (packet == NULL)
     {
-      nasl_perror (lexic, "get_tcp_element: No valid 'tcp' argument\n");
+      nasl_perror (lexic, "%s: No valid 'tcp' argument passed.\n", __func__);
       return NULL;
     }
 
@@ -829,13 +833,14 @@ get_tcp_option (lex_ctxt *lexic)
     {
       nasl_perror (lexic,
                    "%s: No options\n."
-                   "Usage: get_tcp_option (tcp:tcp, option: TCPOPT_MAXSEG)",
-                   __func__);
+                   "Usage: %s(tcp:<tcp>, option:<TCPOPT>)",
+                   __func__, __func__);
       return NULL;
     }
 
   ip = (struct ip *) packet;
 
+  ipsz = get_var_size_by_name (lexic, "tcp");
   if (ip->ip_hl * 4 > ipsz)
     return NULL; /* Invalid packet */
 
@@ -855,7 +860,8 @@ get_tcp_option (lex_ctxt *lexic)
   get_tcp_options (options, tcp_all_options);
   if (tcp_all_options == NULL)
     {
-      nasl_perror (lexic, "%s: No options\n", __func__);
+      nasl_perror (lexic, "%s: No TCP options found in passed TCP packet.\n",
+                   __func__);
 
       g_free (options);
       return NULL;
@@ -892,8 +898,7 @@ get_tcp_option (lex_ctxt *lexic)
       add_var_to_array (arr, "echo_timestamp", &v);
       break;
     default:
-      nasl_perror (lexic, "%s: Invalid value for TCP option Timestamp'\n",
-                   __func__);
+      nasl_perror (lexic, "%s: Invalid TCP option passed.\n", __func__);
       break;
     }
 
@@ -1375,7 +1380,7 @@ dump_tcp_packet (lex_ctxt *lexic)
       printf ("\tth_sum   : 0x%x\n", ntohs (tcp->th_sum));
       printf ("\tth_urp   : %d\n", ntohs (tcp->th_urp));
 
-      if (tcp->th_off > 5) // Options presents
+      if (tcp->th_off > 5) // Options present
         {
           char *options;
           struct tcp_options *tcp_all_options;
@@ -1389,15 +1394,15 @@ dump_tcp_packet (lex_ctxt *lexic)
           if (tcp_all_options != NULL)
             {
               printf ("\tTCP Options:\n");
-              printf ("\t\tTCPOPT_MAXSEG %u:\n",
+              printf ("\t\tTCPOPT_MAXSEG: %u\n",
                       ntohs ((uint16_t) tcp_all_options->mss.mss));
-              printf ("\t\tTCPOPT_WINDOW %u:\n",
+              printf ("\t\tTCPOPT_WINDOW: %u\n",
                       tcp_all_options->wscale.wscale);
-              printf ("\t\tTCPOPT_SACK_PERMITTED %u:\n",
+              printf ("\t\tTCPOPT_SACK_PERMITTED: %u\n",
                       tcp_all_options->sack_perm.kind ? 1 : 0);
-              printf ("\t\tTCPOPT_TIMESTAMP TSval %u:\n",
+              printf ("\t\tTCPOPT_TIMESTAMP TSval: %u\n",
                       ntohl ((uint32_t) tcp_all_options->tstamp.tstamp));
-              printf ("\t\tTCPOPT_TIMESTAMP TSecr %u:\n",
+              printf ("\t\tTCPOPT_TIMESTAMP TSecr: %u\n",
                       ntohl ((uint32_t) tcp_all_options->tstamp.e_tstamp));
             }
           g_free (options);
