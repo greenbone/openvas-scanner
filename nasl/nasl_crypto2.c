@@ -1527,10 +1527,13 @@ nasl_bf_cbc_decrypt (lex_ctxt *lexic)
  * stream encryption.
  * @param[in] cipher The cipher algorithm.
  * @param[in] mode The cipher mode. Must be compatible with the algorithm.
+ * @param[in] caller_func Name of the caller function to be logged in case
+ * of error.
  * @return Returns the ID of the cipher handler on success. Otherwise NULL.
  */
 static tree_cell *
-nasl_open_stream_cipher (lex_ctxt *lexic, int cipher, int mode)
+nasl_open_stream_cipher (lex_ctxt *lexic, int cipher, int mode,
+                         const char *caller_func)
 {
   gcry_cipher_hd_t hd;
   gcry_error_t error;
@@ -1547,8 +1550,10 @@ nasl_open_stream_cipher (lex_ctxt *lexic, int cipher, int mode)
 
   if (!key || keylen <= 0)
     {
-      nasl_perror (lexic, "Syntax: open_stream_cipher (called from "
-                          "open_rc4_cipher): Missing key argument");
+      nasl_perror (lexic,
+                   "Syntax: open_stream_cipher (called from "
+                   "%s): Missing key argument",
+                   caller_func);
       return NULL;
     }
 
@@ -1600,10 +1605,12 @@ nasl_open_stream_cipher (lex_ctxt *lexic, int cipher, int mode)
  * @param[in] cipher The cipher algorithm. It must be the same used for the
  * handler. It is used to prepare the data. Only GCRY_CIPHER_ARCFOUR is
  * currently supported.
+ * @param[in] caller_func Name of the caller function to be logged in case
+ * of error.
  * @return Returns the encrypted data on success. Otherwise NULL.
  */
 static tree_cell *
-encrypt_stream_data (lex_ctxt *lexic, int cipher)
+encrypt_stream_data (lex_ctxt *lexic, int cipher, const char *caller_func)
 {
   gcry_cipher_hd_t hd;
   gcry_error_t error;
@@ -1618,8 +1625,10 @@ encrypt_stream_data (lex_ctxt *lexic, int cipher)
 
   if (!data || datalen <= 0)
     {
-      nasl_perror (lexic, "Syntax: encrypt_stream_data (called from "
-                          "rc4_encrypt): Missing data argument");
+      nasl_perror (lexic,
+                   "Syntax: encrypt_stream_data (called from "
+                   "%s): Missing data argument",
+                   caller_func);
       return NULL;
     }
 
@@ -1806,7 +1815,7 @@ nasl_rc4_encrypt (lex_ctxt *lexic)
       hd = verify_cipher_id (lexic, cipher_id);
       if (hd == NULL)
         return NULL;
-      return encrypt_stream_data (lexic, GCRY_CIPHER_ARCFOUR);
+      return encrypt_stream_data (lexic, GCRY_CIPHER_ARCFOUR, "rc4_encrypt");
     }
 
   return encrypt_data (lexic, GCRY_CIPHER_ARCFOUR, GCRY_CIPHER_MODE_STREAM);
@@ -1824,7 +1833,7 @@ tree_cell *
 nasl_open_rc4_cipher (lex_ctxt *lexic)
 {
   return nasl_open_stream_cipher (lexic, GCRY_CIPHER_ARCFOUR,
-                                  GCRY_CIPHER_MODE_STREAM);
+                                  GCRY_CIPHER_MODE_STREAM, "open_rc4_cipher");
 }
 
 tree_cell *
