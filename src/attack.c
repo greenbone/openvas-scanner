@@ -1076,9 +1076,9 @@ attack_network (struct scan_globals *globals)
   hosts = gvm_hosts_new (hostlist);
   if (hosts == NULL)
     {
+      sprintf (buf, "Invalid target list: %s.", hostlist);
       connect_main_kb (&main_kb);
-      message_to_client (
-        main_kb, "Invalid target list.", NULL, NULL, "ERRMSG");
+      message_to_client (main_kb, buf, NULL, NULL, "ERRMSG");
       kb_lnk_reset (main_kb);
       g_warning ("Invalid target list. Scan terminated.");
       set_scan_status ("finished");
