@@ -1074,8 +1074,18 @@ attack_network (struct scan_globals *globals)
   max_checks = get_max_checks_number ();
 
   hosts = gvm_hosts_new (hostlist);
-  unresolved = gvm_hosts_resolve (hosts);
+  if (hosts == NULL)
+    {
+      connect_main_kb (&main_kb);
+      message_to_client (
+        main_kb, "Invalid target list.", NULL, NULL, "ERRMSG");
+      kb_lnk_reset (main_kb);
+      g_warning ("Invalid target list. Scan terminated.");
+      set_scan_status ("finished");
+      goto stop;
+    }
 
+  unresolved = gvm_hosts_resolve (hosts);
   while (unresolved)
     {
       g_warning ("Couldn't resolve hostname '%s'", (char *) unresolved->data);
