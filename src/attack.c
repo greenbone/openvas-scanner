@@ -174,11 +174,12 @@ static void
 message_to_client (kb_t kb, const char *msg, const char *ip_str,
                    const char *port, const char *type)
 {
-  char buf[2048];
+  char *buf;
 
-  sprintf (buf, "%s|||%s|||%s||| |||%s", type, ip_str ?: "", port ?: " ",
-           msg ?: "No error.");
+  buf = g_strdup_printf ("%s|||%s|||%s||| |||%s", type, ip_str ?: "",
+                         port ?: " ", msg ?: "No error.");
   kb_item_push_str (kb, "internal/results", buf);
+  g_free (buf);
 }
 
 static void
@@ -1074,8 +1075,20 @@ attack_network (struct scan_globals *globals)
   max_checks = get_max_checks_number ();
 
   hosts = gvm_hosts_new (hostlist);
-  unresolved = gvm_hosts_resolve (hosts);
+  if (hosts == NULL)
+    {
+      char *buffer;
+      buffer = g_strdup_printf ("Invalid target list: %s.", hostlist);
+      connect_main_kb (&main_kb);
+      message_to_client (main_kb, buffer, NULL, NULL, "ERRMSG");
+      g_free (buffer);
+      kb_lnk_reset (main_kb);
+      g_warning ("Invalid target list. Scan terminated.");
+      set_scan_status ("finished");
+      goto stop;
+    }
 
+  unresolved = gvm_hosts_resolve (hosts);
   while (unresolved)
     {
       g_warning ("Couldn't resolve hostname '%s'", (char *) unresolved->data);
