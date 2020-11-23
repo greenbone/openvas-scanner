@@ -207,6 +207,8 @@ static init_func libfuncs[] = {
   {"forge_tcp_v6_packet", forge_tcp_v6_packet},
   {"get_tcp_element", get_tcp_element},
   {"get_tcp_v6_element", get_tcp_v6_element},
+  {"get_tcp_option", get_tcp_option},
+  {"get_tcp_v6_option", get_tcp_v6_option},
   {"set_tcp_elements", set_tcp_elements},
   {"set_tcp_v6_elements", set_tcp_v6_elements},
   {"insert_tcp_options", insert_tcp_options},
