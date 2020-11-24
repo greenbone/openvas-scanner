@@ -19,6 +19,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
   [#602](https://github.com/greenbone/openvas/pull/602)
   [#607](https://github.com/greenbone/openvas/pull/607)
 - Rename some nasl functions and func parameters for consistency and fix byte order issue in get_ipv6_element. [#613](https://github.com/greenbone/openvas/pull/613)
+- Change log level from debug to message to show max_host and max_scan during scan start. [#626](https://github.com/greenbone/openvas/pull/626)
 
 ### Fixed
 - Fork vhosts before creating the socket.[#576](https://github.com/greenbone/openvas/pull/576)
