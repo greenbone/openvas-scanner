@@ -1117,10 +1117,10 @@ attack_network (struct scan_globals *globals)
     goto stop;
   hosts_init (max_hosts);
 
-  g_message ("Vulnerability scan %s started: Target has %d hosts",
-             globals->scan_id, gvm_hosts_count (hosts));
-  g_debug ("  Target(s): %s, with max_hosts = %d and max_checks = %d", hostlist,
-           max_hosts, max_checks);
+  g_message ("Vulnerability scan %s started: Target has %d hosts: "
+             "%s, with max_hosts = %d and max_checks = %d",
+             globals->scan_id, gvm_hosts_count (hosts), hostlist, max_hosts,
+             max_checks);
 
   if (test_alive_hosts_only)
     {
