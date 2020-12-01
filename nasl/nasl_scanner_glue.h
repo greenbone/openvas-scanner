@@ -97,6 +97,9 @@ tree_cell *
 get_host_kb_index (lex_ctxt *);
 
 tree_cell *
+get_scan_main_kb_index (lex_ctxt *);
+
+tree_cell *
 get_kb_item (lex_ctxt *);
 
 tree_cell *

@@ -790,6 +790,33 @@ get_host_kb_index (lex_ctxt *lexic)
   return retc;
 }
 
+/**
+ * @brief Get the main kb index of the current running scan.
+ *
+ * @param[in] lexic     NASL lexer.
+ *
+ * @return lex cell containing the scan main kb index as positive integer.
+ *         NULL otherwise
+ */
+tree_cell *
+get_scan_main_kb_index (lex_ctxt *lexic)
+{
+  struct script_infos *script_infos = lexic->script_infos;
+  int val;
+  tree_cell *retc;
+
+  val = kb_get_kb_index (script_infos->results);
+  if (val >= 0)
+    {
+      retc = alloc_typed_cell (CONST_INT);
+      retc->x.i_val = val;
+    }
+  else
+    return NULL;
+
+  return retc;
+}
+
 tree_cell *
 replace_kb_item (lex_ctxt *lexic)
 {
