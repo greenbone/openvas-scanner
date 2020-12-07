@@ -321,6 +321,9 @@ is_feed_current () {
       exit 1
     fi
   else
+    # Sleep for five seconds (a previous feed might have been synced a few seconds before) to prevent
+    # IP blocking due to network equipment in between keeping the previous connection too long open.
+    sleep 5
     log_notice "No Greenbone Security Feed access key found, falling back to Greenbone Community Feed"
     eval "$RSYNC -ltvrP \"$COMMUNITY_NVT_RSYNC_FEED/plugin_feed_info.inc\" \"$FEED_INFO_TEMP_DIR\""
     if [ $? -ne 0 ]
@@ -354,6 +357,9 @@ is_feed_current () {
 }
 
 do_rsync_community_feed () {
+  # Sleep for five seconds (a previous feed might have been synced a few seconds before) to prevent
+  # IP blocking due to network equipment in between keeping the previous connection too long open.
+  sleep 5
   log_notice "Configured NVT rsync feed: $COMMUNITY_NVT_RSYNC_FEED"
   mkdir -p "$NVT_DIR"
   eval "$RSYNC -ltvrP $RSYNC_DELETE \"$COMMUNITY_NVT_RSYNC_FEED\" \"$NVT_DIR\" --exclude=plugin_feed_info.inc"
@@ -361,6 +367,9 @@ do_rsync_community_feed () {
     log_err "rsync failed."
     exit 1
   fi
+  # Sleep for five seconds (after the above rsync call) to prevent IP blocking due
+  # to network equipment in between keeping the previous connection too long open.
+  sleep 5
   eval "$RSYNC -ltvrP $RSYNC_DELETE \"$COMMUNITY_NVT_RSYNC_FEED/plugin_feed_info.inc\" \"$NVT_DIR\""
   if [ $? -ne 0 ] ; then
     log_err "rsync failed."
