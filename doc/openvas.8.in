@@ -42,7 +42,7 @@ ID for a single scan task. The scanner will start the scan with the data already
 
 .TP
 .BI "--scan-stop=" <scan-uuid>
-ID for a single scan task. The scanner will search the redis kb associated to the given scan_id. It takes the pid from the kb and sends the SIGUSR2 kill signal to stop the scan.
+ID for a single scan task. The scanner will search the redis kb associated to the given scan_id. It takes the pid from the kb and sends the SIGUSR1 kill signal to stop the scan.
 
 .TP
 .B "-u, --update-vt-info"
