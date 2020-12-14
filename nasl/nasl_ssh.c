@@ -222,6 +222,9 @@ extern int lowest_socket;
  *
  * - @a scciphers SSH server-to-client ciphers.
  *
+ * - @a timeout Set a timeout for the connection in seconds. Defaults to 10
+ * seconds (defined by libssh internally) if not given.
+ *
  * @naslret An integer to identify the ssh session. Zero on error.
  *
  * @param[in] lexic Lexical context of NASL interpreter.
@@ -268,10 +271,11 @@ nasl_ssh_connect (lex_ctxt *lexic)
   if (timeout > 0)
     if (ssh_options_set (session, SSH_OPTIONS_TIMEOUT, &timeout))
       {
-        g_message ("Function %s called from %s: "
-                   "Failed to set SSH Connection Timeout to %ld seconds: %s",
-                   nasl_get_function_name (), nasl_get_plugin_filename (), timeout,
-                   ssh_get_error (session));
+        g_message (
+          "Function %s called from %s: "
+          "Failed to set the SSH connection timeout to %ld seconds: %s",
+          nasl_get_function_name (), nasl_get_plugin_filename (), timeout,
+          ssh_get_error (session));
         ssh_free (session);
         return NULL;
       }
