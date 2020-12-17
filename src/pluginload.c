@@ -98,7 +98,8 @@ collect_nvts (const char *folder, const char *subdir, GSList *files)
             g_free (new_subdir);
         }
       else if (g_str_has_suffix (fname, ".nasl")
-               || g_str_has_suffix (fname, ".csv"))
+               || ((g_str_has_suffix (fname, ".csv")
+                    && prefs_get_bool ("table_drive_lsc"))))
         files = g_slist_prepend (files, g_build_filename (subdir, fname, NULL));
       g_free (path);
       fname = g_dir_read_name (dir);
@@ -308,7 +309,9 @@ plugins_reload_from_dir (void *folder)
           if (nasl_plugin_add (folder, name))
             err_count++;
         }
-      if (g_str_has_suffix (name, ".csv"))
+      /* Perform integrity check of csv files if table_driven_lsc
+       * is enabled. */
+      if (g_str_has_suffix (name, ".csv") && prefs_get_bool ("table_drive_lsc"))
         {
           if (csv_vt_list_add (folder, name))
             err_count++;

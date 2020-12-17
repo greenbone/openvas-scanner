@@ -257,6 +257,8 @@ is_scanner_only_pref (const char *pref)
       || !strcmp (pref, "nasl_no_signature_check")
       || !strcmp (pref, "vendor_version") || !strcmp (pref, "drop_privileges")
       || !strcmp (pref, "debug_tls")
+      /* Enable/disable table driven local security checks via Notus scanner. */
+      || !strcmp (pref, "table_driven_lsc")
       /* Preferences starting with sys_ are scanner-side only. */
       || !strncmp (pref, "sys_", 4))
     return 1;
