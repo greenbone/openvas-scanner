@@ -91,7 +91,7 @@ Use a debug level over 10 to enable all debugging options.
 If this option is set to 'yes', openvas will log the name of each plugin being loaded at startup, or each time it receives the HUP signal.
 
 .IP table_driven_lsc
-If this options is set to 'yes', openvas enables the local security security checks via the table-drive Notus scanner.
+If this options is set to 'yes', openvas enables the local security checks via the table-driven Notus scanner, perfoming the Notus metadata checksum check which allows the metadata upload into redis.
 
 .IP cgi_path
 By default, openvas looks for default CGIs in /cgi-bin and /scripts. You may
