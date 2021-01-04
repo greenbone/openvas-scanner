@@ -177,8 +177,8 @@ message_to_client (kb_t kb, const char *msg, const char *ip_str,
 {
   char *buf;
 
-  buf = g_strdup_printf ("%s|||%s|||%s|||%s||| |||%s", type, ip_str ?: "", ip_str ?: "",
-                         port ?: " ", msg ?: "No error.");
+  buf = g_strdup_printf ("%s|||%s|||%s|||%s||| |||%s", type, ip_str ?: "",
+                         ip_str ?: "", port ?: " ", msg ?: "No error.");
   kb_item_push_str (kb, "internal/results", buf);
   g_free (buf);
 }
