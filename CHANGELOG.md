@@ -36,11 +36,14 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 - Add dump_icmp_packet() and dump_icmp_v6_packet() nasl functions. [#609](https://github.com/greenbone/openvas/pull/609)
 - Send message to the client with hosts count. [#606](https://github.com/greenbone/openvas/pull/606)
 - Use nasl_perror on invalid input and add more documentation. [#608](https://github.com/greenbone/openvas/pull/608)
+- Add timeout argument to ssh_connect() nasl function to set the connection timeout. [631](https://github.com/greenbone/openvas/pull/631)
 
 ### Changed
 - Downgrade wmi queries log level for common errors.
   [#602](https://github.com/greenbone/openvas/pull/602)
   [#607](https://github.com/greenbone/openvas/pull/607)
+- Rename some nasl functions and func parameters for consistency and fix byte order issue in get_ipv6_element. [#613](https://github.com/greenbone/openvas/pull/613)
+- Change log level from debug to message to show max_host and max_scan during scan start. [#626](https://github.com/greenbone/openvas/pull/626)
 
 ### Fixed
 - Fork vhosts before creating the socket.[#576](https://github.com/greenbone/openvas/pull/576)
@@ -48,6 +51,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 - Send duplicated hosts as dead hosts to ospd, to adjust scan progress calculation. [#586](https://github.com/greenbone/openvas/pull/586)
 - Only send the signal if the pid is a positive value. [#593](https://github.com/greenbone/openvas/pull/593)
 - When routes with same mask are found the route with the better metric is chosen. [#593](https://github.com/greenbone/openvas/pull/593)
+- Fix malformed target. [#625](https://github.com/greenbone/openvas/pull/625)
+- Fix snmp result. Only return the value and do not stop at the first \n. [#627](https://github.com/greenbone/openvas/pull/627)
 
 [20.08]: https://github.com/greenbone/openvas/compare/v20.8.0...openvas-20.08
 
