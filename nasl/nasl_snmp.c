@@ -357,7 +357,7 @@ static int
 snmpv1v2c_get (const char *peername, const char *community, const char *oid_str,
                int version, char **result)
 {
-  char *argv[7], *pos = NULL;
+  char *argv[8], *pos = NULL;
   GError *err = NULL;
   int sout = 0, serr = 0, ret;
 
@@ -370,16 +370,17 @@ snmpv1v2c_get (const char *peername, const char *community, const char *oid_str,
 
   argv[0] = "snmpget";
   argv[1] = (version == SNMP_VERSION_1) ? "-v1" : "-v2c";
-  argv[2] = "-c";
-  argv[3] = g_strdup (community);
-  argv[4] = g_strdup (peername);
-  argv[5] = g_strdup (oid_str);
-  argv[6] = NULL;
+  argv[2] = "-Oqv";
+  argv[3] = "-c";
+  argv[4] = g_strdup (community);
+  argv[5] = g_strdup (peername);
+  argv[6] = g_strdup (oid_str);
+  argv[7] = NULL;
   ret = g_spawn_async_with_pipes (NULL, argv, NULL, G_SPAWN_SEARCH_PATH, NULL,
                                   NULL, NULL, NULL, &sout, &serr, &err);
-  g_free (argv[3]);
   g_free (argv[4]);
   g_free (argv[5]);
+  g_free (argv[6]);
 
   if (ret == FALSE)
     {
@@ -408,9 +409,13 @@ snmpv1v2c_get (const char *peername, const char *community, const char *oid_str,
   check_spwan_output (sout, result);
   close (sout);
 
-  /* Remove new line char from the result */
-  if ((pos = strchr (*result, '\n')) != NULL)
-    *pos = '\0';
+  /* Remove the last new line char from the result */
+  if ((pos = strchr (*result, '\0')) != NULL)
+    {
+      pos--;
+      if (pos[0] == '\n')
+        *pos = '\0';
+    }
 
   return 0;
 }
@@ -434,7 +439,7 @@ snmpv3_get (const char *peername, const char *username, const char *authpass,
             int authproto, const char *privpass, int privproto,
             const char *oid_str, char **result)
 {
-  char *argv[17], *pos = NULL;
+  char *argv[18], *pos = NULL;
   GError *err = NULL;
   int sout = 0, serr = 0, ret;
 
@@ -449,39 +454,40 @@ snmpv3_get (const char *peername, const char *username, const char *authpass,
 
   argv[0] = "snmpget";
   argv[1] = "-v3";
-  argv[2] = "-u";
-  argv[3] = g_strdup (username);
-  argv[4] = "-A";
-  argv[5] = g_strdup (authpass);
-  argv[6] = "-l";
-  argv[7] = privpass ? "authPriv" : "authNoPriv";
-  argv[8] = "-a";
-  argv[9] = authproto ? "SHA" : "MD5";
+  argv[2] = "-Oqv";
+  argv[3] = "-u";
+  argv[4] = g_strdup (username);
+  argv[5] = "-A";
+  argv[6] = g_strdup (authpass);
+  argv[7] = "-l";
+  argv[8] = privpass ? "authPriv" : "authNoPriv";
+  argv[9] = "-a";
+  argv[10] = authproto ? "SHA" : "MD5";
   if (privpass)
     {
-      argv[10] = g_strdup (peername);
-      argv[11] = g_strdup (oid_str);
-      argv[12] = "-x";
-      argv[13] = privproto ? "AES" : "DES";
-      argv[14] = "-X";
-      argv[15] = g_strdup (privpass);
-      argv[16] = NULL;
+      argv[11] = g_strdup (peername);
+      argv[12] = g_strdup (oid_str);
+      argv[13] = "-x";
+      argv[14] = privproto ? "AES" : "DES";
+      argv[15] = "-X";
+      argv[16] = g_strdup (privpass);
+      argv[17] = NULL;
     }
   else
     {
-      argv[10] = g_strdup (peername);
-      argv[11] = g_strdup (oid_str);
-      argv[12] = NULL;
+      argv[11] = g_strdup (peername);
+      argv[12] = g_strdup (oid_str);
+      argv[13] = NULL;
     }
 
   ret = g_spawn_async_with_pipes (NULL, argv, NULL, G_SPAWN_SEARCH_PATH, NULL,
                                   NULL, NULL, NULL, &sout, &serr, &err);
-  g_free (argv[3]);
-  g_free (argv[5]);
-  g_free (argv[10]);
+  g_free (argv[4]);
+  g_free (argv[6]);
   g_free (argv[11]);
+  g_free (argv[12]);
   if (privpass)
-    g_free (argv[15]);
+    g_free (argv[16]);
 
   if (ret == FALSE)
     {
@@ -505,9 +511,13 @@ snmpv3_get (const char *peername, const char *username, const char *authpass,
   check_spwan_output (sout, result);
   close (sout);
 
-  /* Remove new line char from the result */
-  if ((pos = strchr (*result, '\n')) != NULL)
-    *pos = '\0';
+  /* Remove the last new line char from the result */
+  if ((pos = strchr (*result, '\0')) != NULL)
+    {
+      pos--;
+      if (pos[0] == '\n')
+        *pos = '\0';
+    }
 
   return 0;
 }
