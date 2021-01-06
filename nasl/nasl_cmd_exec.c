@@ -31,16 +31,16 @@
 #include "nasl_tree.h"
 #include "nasl_var.h"
 
+#include <errno.h>                    /* for errno */
+#include <fcntl.h>                    /* for open */
+#include <glib.h>                     /* for g_get_tmp_dir */
 #include <gvm/base/drop_privileges.h> /* for drop_privileges */
-#include <errno.h>     /* for errno */
-#include <fcntl.h>     /* for open */
-#include <glib.h>      /* for g_get_tmp_dir */
-#include <signal.h>    /* for kill */
-#include <string.h>    /* for strncpy */
-#include <sys/param.h> /* for MAXPATHLEN */
-#include <sys/stat.h>  /* for stat */
-#include <sys/wait.h>  /* for waitpid */
-#include <unistd.h>    /* for getcwd */
+#include <signal.h>                   /* for kill */
+#include <string.h>                   /* for strncpy */
+#include <sys/param.h>                /* for MAXPATHLEN */
+#include <sys/stat.h>                 /* for stat */
+#include <sys/wait.h>                 /* for waitpid */
+#include <unistd.h>                   /* for getcwd */
 
 /* MAXPATHLEN doesn't exist on some architectures like hurd i386 */
 #ifndef MAXPATHLEN
@@ -95,6 +95,16 @@ pread_streams (int fdout, int fderr)
 }
 
 /** @todo Suspects to glib replacements, all path related stuff. */
+/**
+ * @brief Spawn a process
+ *
+ * @param[in] lexic   Lexical context of NASL interpreter.
+ * @param[in] cmd Command to be run.
+ * @param[in] argv List of arguments.
+ * @param[in] drop_privileges Owner of the spawned process.
+ *
+ * @return The content of stderr or stdout written by the spawn process or Null
+ */
 tree_cell *
 nasl_pread (lex_ctxt *lexic)
 {
@@ -115,7 +125,7 @@ nasl_pread (lex_ctxt *lexic)
   new_user = get_str_var_by_name (lexic, "drop_privileges");
   if (new_user)
     {
-      if (drop_privileges(new_user, &error))
+      if (drop_privileges (new_user, &error))
         {
           if (error)
             {
