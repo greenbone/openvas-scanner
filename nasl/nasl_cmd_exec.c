@@ -31,6 +31,7 @@
 #include "nasl_tree.h"
 #include "nasl_var.h"
 
+#include <gvm/base/drop_privileges.h> /* for drop_privileges */
 #include <errno.h>     /* for errno */
 #include <fcntl.h>     /* for open */
 #include <glib.h>      /* for g_get_tmp_dir */
@@ -101,7 +102,7 @@ nasl_pread (lex_ctxt *lexic)
   anon_nasl_var *v;
   nasl_array *av;
   int i, j, n, cd, fdout = 0, fderr = 0;
-  char **args = NULL, *cmd, *str;
+  char **args = NULL, *cmd, *str, *new_user;
   char cwd[MAXPATHLEN], newdir[MAXPATHLEN];
   GError *error = NULL;
 
@@ -109,6 +110,20 @@ nasl_pread (lex_ctxt *lexic)
     {
       nasl_perror (lexic, "nasl_pread is not reentrant!\n");
       return NULL;
+    }
+
+  new_user = get_str_var_by_name (lexic, "drop_privileges");
+  if (new_user)
+    {
+      if (drop_privileges(new_user, &error))
+        {
+          if (error)
+            {
+              nasl_perror (lexic, "%s: %s\n", __func__, error->message);
+              g_error_free (error);
+            }
+          return NULL;
+        }
     }
 
   a = get_variable_by_name (lexic, "argv");
