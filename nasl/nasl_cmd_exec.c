@@ -99,11 +99,11 @@ pread_streams (int fdout, int fderr)
  * @brief Spawn a process
  *
  * @param[in] lexic   Lexical context of NASL interpreter.
- * @param[in] cmd Command to be run.
+ * @param[in] cmd Command to run.
  * @param[in] argv List of arguments.
- * @param[in] drop_privileges Owner of the spawned process.
+ * @param[in] drop_privileges_user Owner of the spawned process.
  *
- * @return The content of stderr or stdout written by the spawn process or Null
+ * @return The content of stderr or stdout written by the spawn process or NULL.
  */
 tree_cell *
 nasl_pread (lex_ctxt *lexic)
@@ -122,7 +122,7 @@ nasl_pread (lex_ctxt *lexic)
       return NULL;
     }
 
-  new_user = get_str_var_by_name (lexic, "drop_privileges");
+  new_user = get_str_var_by_name (lexic, "drop_privileges_user");
   if (new_user)
     {
       if (drop_privileges (new_user, &error))
