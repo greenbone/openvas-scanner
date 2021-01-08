@@ -182,7 +182,7 @@ v6_ipaddr2devname (char *dev, int sz, struct in6_addr *addr)
     {
       char addr1[INET6_ADDRSTRLEN];
       char addr2[INET6_ADDRSTRLEN];
-      g_debug ("comparing addresses %s and %s\n",
+      g_debug ("comparing addresses %s and %s",
                inet_ntop (AF_INET6, addr, addr1, sizeof (addr1)),
                inet_ntop (AF_INET6, &mydevs[i].addr6, addr2, sizeof (addr2)));
       if (IN6_ARE_ADDR_EQUAL (addr, &mydevs[i].addr6))
@@ -365,10 +365,10 @@ v6_getinterfaces (int *howmany)
               mydevs[numinterfaces].mask.s6_addr32[1] = 0;
               mydevs[numinterfaces].mask.s6_addr32[2] = htonl (0xffff);
               mydevs[numinterfaces].mask.s6_addr32[3] = saddr->sin_addr.s_addr;
-              g_debug ("interface name is %s\n", ifa->ifa_name);
-              g_debug ("\tAF_INET family\n");
-              g_debug ("\taddress is %s\n", inet_ntoa (saddr->sin_addr));
-              g_debug ("\tnetmask is %s\n", inet_ntoa (saddr->sin_addr));
+              g_debug ("interface name is %s", ifa->ifa_name);
+              g_debug ("\tAF_INET family");
+              g_debug ("\taddress is %s", inet_ntoa (saddr->sin_addr));
+              g_debug ("\tnetmask is %s", inet_ntoa (saddr->sin_addr));
               numinterfaces++;
             }
           else if (family == AF_INET6)
@@ -384,14 +384,14 @@ v6_getinterfaces (int *howmany)
               memcpy (&(mydevs[numinterfaces].mask),
                       (char *) &(s6addr->sin6_addr), sizeof (struct in6_addr));
               numinterfaces++;
-              g_debug ("\tAF_INET6 family\n");
-              g_debug ("interface name is %s\n", ifa->ifa_name);
-              g_debug ("\taddress is %s\n",
+              g_debug ("\tAF_INET6 family");
+              g_debug ("interface name is %s", ifa->ifa_name);
+              g_debug ("\taddress is %s",
                        inet_ntop (AF_INET6, &s6addr->sin6_addr, ipaddr,
                                   sizeof (ipaddr)));
             }
           else
-            g_debug ("\tfamily is %d\n", ifa->ifa_addr->sa_family);
+            g_debug ("\tfamily is %d", ifa->ifa_addr->sa_family);
         }
       *howmany = numinterfaces;
 
@@ -516,7 +516,7 @@ v6_getsourceip (struct in6_addr *src, struct in6_addr *dst)
       src->s6_addr32[1] = 0;
       src->s6_addr32[2] = htonl (0xffff);
       src->s6_addr32[3] = sock.sin_addr.s_addr;
-      g_debug ("source address is %s\n",
+      g_debug ("source address is %s",
                inet_ntop (AF_INET6, src, name, sizeof (name)));
       close (sd);
     }
@@ -557,7 +557,7 @@ v6_getsourceip (struct in6_addr *src, struct in6_addr *dst)
       src->s6_addr32[2] = sock6.sin6_addr.s6_addr32[2];
       src->s6_addr32[3] = sock6.sin6_addr.s6_addr32[3];
       memcpy (src, &sock6.sin6_addr, sizeof (struct in6_addr));
-      g_debug ("source addrss is %s\n",
+      g_debug ("source addrss is %s",
                inet_ntop (AF_INET6, src, name, sizeof (name)));
       close (sd);
     }
@@ -613,7 +613,7 @@ getipv4routes (struct myroute *myroutes, int *numroutes)
           p = strtok (NULL, " \t\n");
           endptr = NULL;
           dest = strtoul (p, &endptr, 16);
-          g_debug ("ipv4 dest is %s\n", p);
+          g_debug ("ipv4 dest is %s", p);
           if (!endptr || *endptr)
             {
               g_message ("Failed to determine Destination from"
@@ -645,7 +645,7 @@ getipv4routes (struct myroute *myroutes, int *numroutes)
           while (mask & (1 << i++) && i < 32)
             ones++;
           myroutes[*numroutes].mask = ones + 96;
-          g_debug ("mask is %lu\n", myroutes[*numroutes].mask);
+          g_debug ("mask is %lu", myroutes[*numroutes].mask);
           if (!endptr || *endptr)
             {
               g_message ("Failed to determine mask from"
@@ -653,7 +653,7 @@ getipv4routes (struct myroute *myroutes, int *numroutes)
               continue;
             }
 
-          g_debug ("#%d: for dev %s, The dest is %lX and the mask is %lX\n",
+          g_debug ("#%d: for dev %s, The dest is %lX and the mask is %lX",
                    *numroutes, iface, myroutes[*numroutes].dest,
                    myroutes[*numroutes].mask);
           for (i = 0; i < numinterfaces; i++)
@@ -709,7 +709,7 @@ getipv6routes (struct myroute *myroutes, int *numroutes)
           token = strtok (buf, " \t\n");
           if (token)
             {
-              g_debug ("first token is %s\n", token);
+              g_debug ("first token is %s", token);
               strncpy (destaddr, token, sizeof (destaddr) - 1);
               len = strlen (destaddr);
               for (i = 0, j = 0; j < len; j++)
@@ -719,7 +719,7 @@ getipv6routes (struct myroute *myroutes, int *numroutes)
                     v6addr[i++] = ':';
                 }
               v6addr[--i] = '\0';
-              g_debug ("ipv6 dest is %s\n", v6addr);
+              g_debug ("ipv6 dest is %s", v6addr);
               if (inet_pton (AF_INET6, v6addr, &in6addr) <= 0)
                 {
                   g_message ("invalid ipv6 addressd");
@@ -755,7 +755,7 @@ getipv6routes (struct myroute *myroutes, int *numroutes)
               }
           if (i == numinterfaces)
             g_message (
-              "Failed to find interface %s mentioned in /proc/net/ipv6_route\n",
+              "Failed to find interface %s mentioned in /proc/net/ipv6_route",
               iface);
           (*numroutes)++;
           if (*numroutes >= MAXROUTES)
@@ -889,7 +889,7 @@ v6_routethrough (struct in6_addr *dest, struct in6_addr *source)
             network.s6_addr[i] = dest->s6_addr[i] & mask.s6_addr[i];
 
           g_debug (
-            "comparing addresses %s and %s\n",
+            "comparing addresses %s and %s",
             inet_ntop (AF_INET6, &network, addr1, sizeof (addr1)),
             inet_ntop (AF_INET6, &myroutes[i].dest6, addr2, sizeof (addr2)));
           if (IN6_ARE_ADDR_EQUAL (&network, &myroutes[i].dest6))
@@ -902,10 +902,10 @@ v6_routethrough (struct in6_addr *dest, struct in6_addr *source)
                     {
                       if (myroutes[i].dev != NULL)
                         {
-                          g_debug ("copying address %s\n",
+                          g_debug ("copying address %s",
                                    inet_ntop (AF_INET6, &myroutes[i].dev->addr6,
                                               addr1, sizeof (addr1)));
-                          g_debug ("dev name is %s\n", myroutes[i].dev->name);
+                          g_debug ("dev name is %s", myroutes[i].dev->name);
                           memcpy (source, &myroutes[i].dev->addr6,
                                   sizeof (struct in6_addr));
                         }
@@ -947,7 +947,7 @@ v6_routethrough (struct in6_addr *dest, struct in6_addr *source)
           char addr2[INET6_ADDRSTRLEN];
 
           g_debug (
-            "comparing addresses %s and %s\n",
+            "comparing addresses %s and %s",
             inet_ntop (AF_INET6, &mydevs[i].addr6, addr1, sizeof (addr1)),
             inet_ntop (AF_INET6, &addy, addr2, sizeof (addr2)));
           if (IN6_ARE_ADDR_EQUAL (&mydevs[i].addr6, &addy))
@@ -1076,7 +1076,7 @@ routethrough (struct in_addr *dest, struct in_addr *source)
                   continue;
                 }
 
-              g_debug ("#%d: for dev %s, The dest is %lX and the mask is %lX\n",
+              g_debug ("#%d: for dev %s, The dest is %lX and the mask is %lX",
                        numroutes, iface, myroutes[numroutes].dest,
                        myroutes[numroutes].mask);
               for (i = 0; i < numinterfaces; i++)
