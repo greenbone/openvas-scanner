@@ -70,47 +70,41 @@ v6_getinterfaces (int *howmany);
 int
 getipv6routes (struct myroute *myroutes, int *numroutes);
 
-static void
-ipv6addrmask (struct in6_addr *in6addr, int mask)
+/**
+ * @brief Generate an ipv6 mask from the given ipv6 prefix.
+ *
+ * This function is a copy of the function ipv6_prefix_to_mask() obtained from
+ * GPL-2.0 licensed https://gitlab.com/ipcalc/ipcalc/-/blob/master/ipcalc.c.
+ *
+ * @param[in]   prefix  The ipv6 prefix.
+ * @param[out]  mask    The mask corresponding to the prefix.
+ *
+ * @return 0 on success, -1 on error.
+ **/
+int
+ipv6_prefix_to_mask (unsigned prefix, struct in6_addr *mask)
 {
-  int wordmask;
-  int word;
-  uint32_t *ptr;
-  uint32_t addr;
+  struct in6_addr in6;
+  int i, j;
 
-  word = mask / 32;
-  wordmask = mask % 32;
-  ptr = (uint32_t *) in6addr;
-  switch (word)
+  if (prefix > 128)
+    return -1;
+
+  memset (&in6, 0x0, sizeof (in6));
+  for (i = prefix, j = 0; i > 0; i -= 8, j++)
     {
-    case 0:
-      ptr[1] = ptr[2] = ptr[3] = 0;
-      addr = ptr[0];
-      addr = ntohl (addr) >> (32 - wordmask);
-      addr = htonl (addr << (32 - wordmask));
-      ptr[0] = addr;
-      break;
-    case 1:
-      ptr[2] = ptr[3] = 0;
-      addr = ptr[1];
-      addr = ntohl (addr) >> (32 - wordmask);
-      addr = htonl (addr << (32 - wordmask));
-      ptr[1] = addr;
-      break;
-    case 2:
-      ptr[3] = 0;
-      addr = ptr[2];
-      addr = ntohl (addr) >> (32 - wordmask);
-      addr = htonl (addr << (32 - wordmask));
-      ptr[2] = addr;
-      break;
-    case 3:
-      addr = ptr[3];
-      addr = ntohl (addr) >> (32 - wordmask);
-      addr = htonl (addr << (32 - wordmask));
-      ptr[3] = addr;
-      break;
+      if (i >= 8)
+        {
+          in6.s6_addr[j] = 0xff;
+        }
+      else
+        {
+          in6.s6_addr[j] = (unsigned long) (0xffU << (8 - i));
+        }
     }
+
+  memcpy (mask, &in6, sizeof (*mask));
+  return 0;
 }
 
 int
