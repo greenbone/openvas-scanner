@@ -798,7 +798,8 @@ v6_routethrough (struct in6_addr *dest, struct in6_addr *source)
   static struct myroute myroutes[MAXROUTES];
   int numinterfaces = 0;
   static int numroutes = 0;
-  struct in6_addr in6addr;
+  struct in6_addr mask;
+  struct in6_addr network;
   struct in6_addr src;
 
   if (!dest)
@@ -878,13 +879,20 @@ v6_routethrough (struct in6_addr *dest, struct in6_addr *source)
           char addr1[INET6_ADDRSTRLEN];
           char addr2[INET6_ADDRSTRLEN];
 
-          memcpy (&in6addr, dest, sizeof (struct in6_addr));
-          ipv6addrmask (&in6addr, myroutes[i].mask);
+          if (ipv6_prefix_to_mask (myroutes[i].mask, &mask) == -1)
+            {
+              g_warning ("error creating IPv6 mask from prefix: %ld",
+                         myroutes[i].mask);
+              return NULL;
+            }
+          for (int i = 0; i < (int) sizeof (struct in6_addr); i++)
+            network.s6_addr[i] = dest->s6_addr[i] & mask.s6_addr[i];
+
           g_debug (
             "comparing addresses %s and %s\n",
-            inet_ntop (AF_INET6, &in6addr, addr1, sizeof (addr1)),
+            inet_ntop (AF_INET6, &network, addr1, sizeof (addr1)),
             inet_ntop (AF_INET6, &myroutes[i].dest6, addr2, sizeof (addr2)));
-          if (IN6_ARE_ADDR_EQUAL (&in6addr, &myroutes[i].dest6))
+          if (IN6_ARE_ADDR_EQUAL (&network, &myroutes[i].dest6))
             {
               if (source)
                 {
@@ -912,7 +920,7 @@ v6_routethrough (struct in6_addr *dest, struct in6_addr *source)
     {
       if (!v6_getsourceip (&addy, dest))
         return NULL;
-      if (IN6_ARE_ADDR_EQUAL (&addy, &in6addr))
+      if (IN6_ARE_ADDR_EQUAL (&addy, &network))
         {
           struct hostent *myhostent = NULL;
           char myname[MAXHOSTNAMELEN + 1];
