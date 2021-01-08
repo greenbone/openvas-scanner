@@ -115,7 +115,8 @@ v6_is_local_ip (struct in6_addr *addr)
   int i;
   static struct myroute myroutes[MAXROUTES];
   int numroutes = 0;
-  struct in6_addr in6addr;
+  struct in6_addr network;
+  struct in6_addr mask;
 
   if ((ifs = v6_getinterfaces (&ifaces)) == NULL)
     return -1;
@@ -144,13 +145,16 @@ v6_is_local_ip (struct in6_addr *addr)
               char addr1[INET6_ADDRSTRLEN];
               char addr2[INET6_ADDRSTRLEN];
 
-              memcpy (&in6addr, addr, sizeof (struct in6_addr));
-              ipv6addrmask (&in6addr, myroutes[i].mask);
-              g_debug ("comparing addresses %s and %s\n",
-                       inet_ntop (AF_INET6, &in6addr, addr1, sizeof (addr1)),
+              if (ipv6_prefix_to_mask (myroutes[i].mask, &mask) == -1)
+                return -1;
+              for (int i = 0; i < (int) sizeof (struct in6_addr); i++)
+                network.s6_addr[i] = addr->s6_addr[i] & mask.s6_addr[i];
+
+              g_debug ("comparing addresses %s and %s",
+                       inet_ntop (AF_INET6, &network, addr1, sizeof (addr1)),
                        inet_ntop (AF_INET6, &myroutes[i].dest6, addr2,
                                   sizeof (addr2)));
-              if (IN6_ARE_ADDR_EQUAL (&in6addr, &myroutes[i].dest6))
+              if (IN6_ARE_ADDR_EQUAL (&network, &myroutes[i].dest6))
                 {
                   return 1;
                 }
