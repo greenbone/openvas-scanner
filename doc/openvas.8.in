@@ -222,7 +222,7 @@ the default value of this preference is 'no', meaning no change in behaviour.
 If a user is set, NASL functions can use this user to drop its root privilege.
 The new process owner is set only for those process calling a nasl function
 which supports a drop privileges action.
-This preference must not be mixed with 'drop_privileges'. If drop privileges is
+This preference must not be mixed with 'drop_privileges'. If 'drop_privileges' is
 enabled, this option should not be used, as drop_privileges sets the owner to
 'nobody'.
 
