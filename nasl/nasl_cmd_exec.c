@@ -102,7 +102,8 @@ pread_streams (int fdout, int fderr)
  * @param[in] lexic   Lexical context of NASL interpreter.
  * @param[in] cmd Command to run.
  * @param[in] argv List of arguments.
- * @param[in] cd If set to TRUE the scanner will change it's current directory to the directory where the command was found.
+ * @param[in] cd If set to TRUE the scanner will change it's current directory
+ * to the directory where the command was found.
  * @param[in] drop_privileges_user Owner of the spawned process.
  *
  * @return The content of stderr or stdout written by the spawn process or NULL.
