@@ -20,14 +20,14 @@
 
 #include <cgreen/cgreen.h>
 #include <cgreen/mocks.h>
-#include <gvm/boreas/alivedetection.h>
+#include <gvm/base/hosts.h>
 
-Describe (alivedetection);
-BeforeEach (alivedetection)
+Describe (pcap);
+BeforeEach (pcap)
 {
   cgreen_mocks_are (loose_mocks);
 }
-AfterEach (alivedetection)
+AfterEach (pcap)
 {
 }
 
@@ -70,7 +70,7 @@ __wrap_setsockopt (__attribute__ ((unused)) int sockfd,
 }
 
 /* If dst for routethrough() is localhost "lo" interface is returned. */
-Ensure (alivedetection, routethrough_dst_is_localhost)
+Ensure (pcap, routethrough_dst_is_localhost)
 {
   /* setup */
   g_socket_use_real = false;
@@ -98,7 +98,7 @@ Ensure (alivedetection, routethrough_dst_is_localhost)
 
 /* If dst is not null for routethrough() then another interface than "lo" is
  * returned. */
-Ensure (alivedetection, routethrough_dst_is_not_localhost)
+Ensure (pcap, routethrough_dst_is_not_localhost)
 {
   g_socket_use_real = false;
   /* setup */
@@ -121,14 +121,14 @@ Ensure (alivedetection, routethrough_dst_is_not_localhost)
 }
 
 /* If neither dst nor src address are given to routethrough NULL is returned. */
-Ensure (alivedetection, routethrough_no_src_dst_given)
+Ensure (pcap, routethrough_no_src_dst_given)
 {
   gchar *interface = NULL;
   assert_that ((interface = routethrough (NULL, NULL)), is_null);
 }
 
 /* If global_source_addr is present then routethrough writes it into src. */
-Ensure (alivedetection, routethrough_src_globalsource_set)
+Ensure (pcap, routethrough_src_globalsource_set)
 {
   /* setup */
   g_socket_use_real = false;
@@ -156,7 +156,7 @@ Ensure (alivedetection, routethrough_src_globalsource_set)
 }
 
 /* If global_source_addr is not present then routethrough writes it into src. */
-Ensure (alivedetection, routethrough_src_globalsource_not_set)
+Ensure (pcap, routethrough_src_globalsource_not_set)
 {
   g_socket_use_real = false;
 
@@ -181,7 +181,7 @@ Ensure (alivedetection, routethrough_src_globalsource_not_set)
   g_socket_use_real = true;
 }
 
-Ensure (alivedetection, v6_islocalhost)
+Ensure (pcap, v6_islocalhost)
 {
   /* IPv4 */
   struct in_addr addr;
@@ -214,7 +214,7 @@ Ensure (alivedetection, v6_islocalhost)
   assert_that (v6_islocalhost (&addr_6), is_false);
 }
 
-Ensure (alivedetection, islocalhost)
+Ensure (pcap, islocalhost)
 {
   /* IPv4 */
   struct in_addr addr;
@@ -235,20 +235,65 @@ Ensure (alivedetection, islocalhost)
   assert_that (islocalhost (&addr), is_false);
 }
 
+/**
+ * @brief Apply mask to dest addr.
+ *
+ * @param[out]  network   Masked dest addr.
+ * @param[in]   dest      Destination addr.
+ * @param[in]   mask      Mask to apply.
+ */
+static void
+apply_ipv6_mask (struct in6_addr *network, struct in6_addr *dest,
+                 struct in6_addr *mask)
+{
+  for (int i = 0; i < (int) sizeof (struct in6_addr); i++)
+    network->s6_addr[i] = dest->s6_addr[i] & mask->s6_addr[i];
+}
+
+Ensure (pcap, ipv6_prefix_to_mask)
+{
+  struct in6_addr dest;
+  struct in6_addr result;
+  struct in6_addr mask;
+  struct in6_addr network;
+  const uint8_t byte_options[9] = {0xFF, 0x00, 0x80, 0xC0, 0xE0,
+                                   0xF0, 0xF8, 0xFC, 0xFE};
+
+  // create dst addr
+  const uint8_t addr_in[16] = {0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF,
+                               0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF};
+  memcpy (dest.s6_addr, addr_in, sizeof addr_in);
+  // create expected result addr
+  const uint8_t result_in[16] = {0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF,
+                                 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF,
+                                 0xFF, 0xFF, 0xFF, 0xFF};
+  memcpy (result.s6_addr, result_in, sizeof result_in);
+
+  // check every possible bit mask
+  for (int i = 128; i > 0; i--)
+    {
+      ipv6_prefix_to_mask (i, &mask);
+      apply_ipv6_mask (&network, &dest, &mask);
+      int byte_to_modify = i / 8;
+      if (byte_to_modify != 16)
+        result.s6_addr[byte_to_modify] = byte_options[(i % 8) + 1];
+
+      assert_that (IN6_ARE_ADDR_EQUAL (&network, &result));
+    }
+}
+
 TestSuite *
 openvas_routethrough ()
 {
   TestSuite *suite = create_test_suite ();
-  add_test_with_context (suite, alivedetection, routethrough_dst_is_localhost);
-  add_test_with_context (suite, alivedetection,
-                         routethrough_dst_is_not_localhost);
-  add_test_with_context (suite, alivedetection, routethrough_no_src_dst_given);
-  add_test_with_context (suite, alivedetection,
-                         routethrough_src_globalsource_set);
-  add_test_with_context (suite, alivedetection,
-                         routethrough_src_globalsource_not_set);
-  add_test_with_context (suite, alivedetection, v6_islocalhost);
-  add_test_with_context (suite, alivedetection, islocalhost);
+  add_test_with_context (suite, pcap, routethrough_dst_is_localhost);
+  add_test_with_context (suite, pcap, routethrough_dst_is_not_localhost);
+  add_test_with_context (suite, pcap, routethrough_no_src_dst_given);
+  add_test_with_context (suite, pcap, routethrough_src_globalsource_set);
+  add_test_with_context (suite, pcap, routethrough_src_globalsource_not_set);
+  add_test_with_context (suite, pcap, v6_islocalhost);
+  add_test_with_context (suite, pcap, islocalhost);
+  add_test_with_context (suite, pcap, ipv6_prefix_to_mask);
 
   return suite;
 }

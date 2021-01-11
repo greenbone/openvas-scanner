@@ -93,7 +93,7 @@ pread_streams (int fdout, int fderr)
   return g_string_free (str, FALSE);
 }
 
-/** @todo Supspects to glib replacements, all path related stuff. */
+/** @todo Suspects to glib replacements, all path related stuff. */
 tree_cell *
 nasl_pread (lex_ctxt *lexic)
 {
