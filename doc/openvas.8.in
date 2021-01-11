@@ -215,7 +215,7 @@ Notice that OpenVAS will spawn max_hosts * max_checks processes.
 
 .IP drop_privileges
 If this preference is set to 'yes', OpenVAS will attempt to drop its
-root privilege before launching any NVT and the new process owner is 'nobody';
+root privilege before launching any VT and the new process owner is 'nobody';
 the default value of this preference is 'no', meaning no change in behaviour.
 
 .IP nasl_drop_privileges_user
