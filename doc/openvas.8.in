@@ -219,7 +219,7 @@ root privilege before launching any VT and the new process owner is 'nobody';
 the default value of this preference is 'no', meaning no change in behaviour.
 
 .IP nasl_drop_privileges_user
-If a user is set, some nasl function can use this user to drop its root privilege.
+If a user is set, NASL functions can use this user to drop its root privilege.
 The new process owner is set only for those process calling a nasl function
 which supports a drop privileges action.
 This preference must not be mixed with 'drop_privileges'. If drop privileges is
