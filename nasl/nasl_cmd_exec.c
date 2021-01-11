@@ -31,15 +31,17 @@
 #include "nasl_tree.h"
 #include "nasl_var.h"
 
-#include <errno.h>     /* for errno */
-#include <fcntl.h>     /* for open */
-#include <glib.h>      /* for g_get_tmp_dir */
-#include <signal.h>    /* for kill */
-#include <string.h>    /* for strncpy */
-#include <sys/param.h> /* for MAXPATHLEN */
-#include <sys/stat.h>  /* for stat */
-#include <sys/wait.h>  /* for waitpid */
-#include <unistd.h>    /* for getcwd */
+#include <errno.h>                    /* for errno */
+#include <fcntl.h>                    /* for open */
+#include <glib.h>                     /* for g_get_tmp_dir */
+#include <gvm/base/drop_privileges.h> /* for drop_privileges */
+#include <gvm/base/prefs.h>           /* for prefs_get_bool() */
+#include <signal.h>                   /* for kill */
+#include <string.h>                   /* for strncpy */
+#include <sys/param.h>                /* for MAXPATHLEN */
+#include <sys/stat.h>                 /* for stat */
+#include <sys/wait.h>                 /* for waitpid */
+#include <unistd.h>                   /* for getcwd */
 
 /* MAXPATHLEN doesn't exist on some architectures like hurd i386 */
 #ifndef MAXPATHLEN
@@ -94,6 +96,18 @@ pread_streams (int fdout, int fderr)
 }
 
 /** @todo Suspects to glib replacements, all path related stuff. */
+/**
+ * @brief Spawn a process
+ *
+ * @param[in] lexic   Lexical context of NASL interpreter.
+ * @param[in] cmd Command to run.
+ * @param[in] argv List of arguments.
+ * @param[in] cd If set to TRUE the scanner will change it's current directory
+ * to the directory where the command was found.
+ * @param[in] drop_privileges_user Owner of the spawned process.
+ *
+ * @return The content of stderr or stdout written by the spawn process or NULL.
+ */
 tree_cell *
 nasl_pread (lex_ctxt *lexic)
 {
@@ -101,7 +115,7 @@ nasl_pread (lex_ctxt *lexic)
   anon_nasl_var *v;
   nasl_array *av;
   int i, j, n, cd, fdout = 0, fderr = 0;
-  char **args = NULL, *cmd, *str;
+  char **args = NULL, *cmd, *str, *new_user;
   char cwd[MAXPATHLEN], newdir[MAXPATHLEN];
   GError *error = NULL;
 
@@ -109,6 +123,20 @@ nasl_pread (lex_ctxt *lexic)
     {
       nasl_perror (lexic, "nasl_pread is not reentrant!\n");
       return NULL;
+    }
+
+  new_user = get_str_var_by_name (lexic, "drop_privileges_user");
+  if (new_user && !prefs_get_bool ("drop_privileges"))
+    {
+      if (drop_privileges (new_user, &error))
+        {
+          if (error)
+            {
+              nasl_perror (lexic, "%s: %s\n", __func__, error->message);
+              g_error_free (error);
+            }
+          return NULL;
+        }
     }
 
   a = get_variable_by_name (lexic, "argv");

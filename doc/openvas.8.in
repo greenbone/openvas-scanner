@@ -213,6 +213,19 @@ to be and it will also reduce network load and improve performance
 (obviously 1 is the minimum)
 Notice that OpenVAS will spawn max_hosts * max_checks processes.
 
+.IP drop_privileges
+If this preference is set to 'yes', OpenVAS will attempt to drop its
+root privilege before launching any VT and the new process owner is 'nobody';
+the default value of this preference is 'no', meaning no change in behaviour.
+
+.IP nasl_drop_privileges_user
+If a user is set, NASL functions can use this user to drop its root privilege.
+The new process owner is set only for those process calling a nasl function
+which supports a drop privileges action.
+This preference must not be mixed with 'drop_privileges'. If 'drop_privileges' is
+enabled, this option should not be used, as 'drop_privileges' sets the owner to
+'nobody'.
+
 .IP vendor_version
 Use the alternate vendor instead of the default one during scans.
 
