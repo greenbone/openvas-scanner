@@ -30,6 +30,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 - When routes with same mask are found the route with the better metric is chosen. [#593](https://github.com/greenbone/openvas/pull/593)
 - Fix malformed target. [#625](https://github.com/greenbone/openvas/pull/625)
 - Fix snmp result. Only return the value and do not stop at the first \n. [#627](https://github.com/greenbone/openvas/pull/627)
+- Fix masking of IPv6 addresses. [#635](https://github.com/greenbone/openvas/pull/635)
 
 [20.08]: https://github.com/greenbone/openvas/compare/v20.8.0...openvas-20.08
 
