@@ -478,7 +478,44 @@ struct v6pseudohdr
   u_char zero3;
   u_char protocol;
   struct tcphdr tcpheader;
-};
+} __attribute__ ((packed));
+
+// TCP options
+struct tcp_opt_mss
+{
+  uint8_t kind; // 2
+  uint8_t len;  // 4
+  uint16_t mss;
+} __attribute__ ((packed));
+
+struct tcp_opt_wscale
+{
+  uint8_t kind; // 3
+  uint8_t len;  // 3
+  uint8_t wscale;
+} __attribute__ ((packed));
+
+struct tcp_opt_sack_perm
+{
+  uint8_t kind; // 4
+  uint8_t len;  // 2
+} __attribute__ ((packed));
+
+struct tcp_opt_tstamp
+{
+  uint8_t kind; // 8
+  uint8_t len;  // 10
+  uint32_t tstamp;
+  uint32_t e_tstamp;
+} __attribute__ ((packed));
+
+struct tcp_options
+{
+  struct tcp_opt_mss mss;
+  struct tcp_opt_wscale wscale;
+  struct tcp_opt_sack_perm sack_perm;
+  struct tcp_opt_tstamp tstamp;
+} __attribute__ ((packed));
 
 /**
  * @brief Forge TCP packet.
@@ -670,6 +707,179 @@ get_tcp_v6_element (lex_ctxt *lexic)
 }
 
 /**
+ * @brief Extract all TCP option from an IP datagram.
+ *
+ * @param[in] options All options present in the TCP segment.
+ * @param[out] tcp_all_options Container for the options to return.
+ */
+static void
+get_tcp_options (char *options, struct tcp_options *tcp_all_options)
+{
+  uint8_t *opt_kind;
+  if (options == NULL)
+    return;
+
+  opt_kind = (uint8_t *) options;
+
+  while (*opt_kind != 0)
+    {
+      switch (*opt_kind)
+        {
+        case TCPOPT_MAXSEG:
+          tcp_all_options->mss.kind = *opt_kind;
+          tcp_all_options->mss.len = *(opt_kind + 1);
+          tcp_all_options->mss.mss = *((uint16_t *) (opt_kind + 2));
+          opt_kind = opt_kind + *(opt_kind + 1);
+          break;
+        case TCPOPT_WINDOW:
+          tcp_all_options->wscale.kind = *opt_kind;
+          tcp_all_options->wscale.len = *(opt_kind + 1);
+          tcp_all_options->wscale.wscale = (uint8_t) * (opt_kind + 2);
+          opt_kind = opt_kind + *(opt_kind + 1);
+          break;
+        case TCPOPT_SACK_PERMITTED:
+          tcp_all_options->sack_perm.kind = *opt_kind;
+          tcp_all_options->sack_perm.len = *(opt_kind + 1);
+          opt_kind = opt_kind + *(opt_kind + 1);
+          break;
+        case TCPOPT_TIMESTAMP:
+          tcp_all_options->tstamp.kind = *opt_kind;
+          tcp_all_options->tstamp.len = *(opt_kind + 1);
+          tcp_all_options->tstamp.tstamp = *((uint32_t *) (opt_kind + 2));
+          tcp_all_options->tstamp.e_tstamp = *((uint32_t *) (opt_kind + 6));
+          opt_kind = opt_kind + *(opt_kind + 1);
+          break;
+        case TCPOPT_EOL:
+        case TCPOPT_NOP:
+          opt_kind++;
+          break;
+        case TCPOPT_SACK: // Not supported
+          opt_kind = opt_kind + *(opt_kind + 1);
+          break;
+        default:
+          g_debug ("%s: Unsupported %u TCP option. "
+                   "Not all options are returned.",
+                   __func__, *opt_kind);
+          *opt_kind = 0;
+          break;
+        }
+    }
+}
+
+/**
+ * @brief Get a TCP option from an IP datagram if present.
+ * Possible options are:
+ *   TCPOPT_MAXSEG (2), values between 536 and 65535
+ *   TCPOPT_WINDOW (3), with values between 0 and 14
+ *   TCPOPT_SACK_PERMITTED (4), no value required.
+ *   TCPOPT_TIMESTAMP (8), 8 bytes value for timestamp
+ *   and echo timestamp, 4 bytes each one.
+ *
+ * @param[in] lexic   Lexical context of NASL interpreter.
+ * @param[in] tcp     The full IP datagram (IP + TCP).
+ * @param[in] option  Option to get.
+ *
+ * @return  Integer or array given the case.
+ */
+tree_cell *
+get_tcp_v6_option (lex_ctxt *lexic)
+{
+  u_char *packet = (u_char *) get_str_var_by_name (lexic, "tcp");
+  struct ip6_hdr *ip6;
+  int ipsz;
+  struct tcphdr *tcp;
+  char *options;
+  int opt;
+  tree_cell *retc;
+  nasl_array *arr;
+  anon_nasl_var v;
+
+  struct tcp_options *tcp_all_options = NULL;
+
+  if (packet == NULL)
+    {
+      nasl_perror (lexic, "%s: No valid 'tcp' argument passed.\n", __func__);
+      return NULL;
+    }
+
+  opt = get_int_var_by_name (lexic, "option", -1);
+  if (opt < 0)
+    {
+      nasl_perror (lexic,
+                   "%s: No 'option' argument passed but required.\n."
+                   "Usage: %s(tcp:<tcp>, option:<TCPOPT>)",
+                   __func__, __func__);
+      return NULL;
+    }
+
+  ip6 = (struct ip6_hdr *) packet;
+
+  /* valid ipv6 header check */
+  ipsz = get_var_size_by_name (lexic, "tcp");
+  if (UNFIX (ip6->ip6_plen) > ipsz)
+    return NULL; /* Invalid packet */
+
+  tcp = (struct tcphdr *) (packet + 40);
+
+  if (tcp->th_off <= 5)
+    return NULL;
+
+  // Get options from the segment
+  options = (char *) g_malloc0 (sizeof (uint8_t) * 4 * (tcp->th_off - 5));
+  memcpy (options, (char *) tcp + 20, (tcp->th_off - 5) * 4);
+
+  tcp_all_options = g_malloc0 (sizeof (struct tcp_options));
+  get_tcp_options (options, tcp_all_options);
+  if (tcp_all_options == NULL)
+    {
+      nasl_perror (lexic, "%s: No TCP options found in passed TCP packet.\n",
+                   __func__);
+
+      g_free (options);
+      return NULL;
+    }
+
+  opt = get_int_var_by_name (lexic, "option", -1);
+  retc = NULL;
+  switch (opt)
+    {
+    case TCPOPT_MAXSEG:
+      retc = alloc_typed_cell (CONST_INT);
+      retc->x.i_val = ntohs ((uint16_t) tcp_all_options->mss.mss);
+      break;
+    case TCPOPT_WINDOW:
+      retc = alloc_typed_cell (CONST_INT);
+      retc->x.i_val = tcp_all_options->wscale.wscale;
+      break;
+    case TCPOPT_SACK_PERMITTED:
+      retc = alloc_typed_cell (CONST_INT);
+      retc->x.i_val = tcp_all_options->sack_perm.kind ? 1 : 0;
+      break;
+    case TCPOPT_TIMESTAMP:
+      retc = alloc_typed_cell (DYN_ARRAY);
+      retc->x.ref_val = arr = g_malloc0 (sizeof (nasl_array));
+
+      memset (&v, 0, sizeof (v));
+      v.var_type = VAR2_INT;
+      v.v.v_int = ntohl ((uint32_t) tcp_all_options->tstamp.tstamp);
+      add_var_to_array (arr, "timestamp", &v);
+
+      memset (&v, 0, sizeof (v));
+      v.var_type = VAR2_INT;
+      v.v.v_int = ntohl ((uint32_t) tcp_all_options->tstamp.e_tstamp);
+      add_var_to_array (arr, "echo_timestamp", &v);
+      break;
+    default:
+      nasl_perror (lexic, "%s: Invalid TCP option passed.\n", __func__);
+      break;
+    }
+
+  g_free (tcp_all_options);
+  g_free (options);
+  return retc;
+}
+
+/**
  * @brief Set TCP Header element.
  *
  * @param[in] lexic     Lexical context of NASL interpreter.
@@ -746,7 +956,7 @@ set_tcp_v6_elements (lex_ctxt *lexic)
 
   if (get_int_var_by_name (lexic, "update_ip_len", 1) != 0)
     {
-      ip6->ip6_plen = tcp->th_off * 4 + data_len;
+      ip6->ip6_plen = FIX (tcp->th_off * 4 + data_len);
     }
 
   if (tcp->th_sum == 0)
@@ -779,6 +989,265 @@ set_tcp_v6_elements (lex_ctxt *lexic)
 }
 
 /**
+ * @brief Add options to a TCP segment header.
+ * Possible options are:
+ *   TCPOPT_MAXSEG (2), values between 536 and 65535
+ *   TCPOPT_WINDOW (3), with values between 0 and 14
+ *   TCPOPT_SACK_PERMITTED (4), no value required.
+ *   TCPOPT_TIMESTAMP (8), 8 bytes value for timestamp
+ *   and echo timestamp, 4 bytes each one.
+ *
+ * @param[in] lexic   Lexical context of NASL interpreter.
+ * @param[in] tcp       IP datagram.
+ * @param[in] data      (optional) TCP data payload.
+ * @param[in]           unnamed option.
+ * @param[in]           Value for unnamed option if required.
+ *
+ * @return The modified IP datagram.
+ */
+tree_cell *
+insert_tcp_v6_options (lex_ctxt *lexic)
+{
+  char *pkt = get_str_var_by_name (lexic, "tcp");
+  struct ip6_hdr *ip6 = (struct ip6_hdr *) pkt;
+  int pktsz = get_var_size_by_name (lexic, "tcp");
+  struct tcphdr *tcp;
+  tree_cell *retc;
+  char *data = get_str_var_by_name (lexic, "data");
+  int data_len = get_var_size_by_name (lexic, "data");
+  char *npkt;
+  int tcp_opt, tcp_opt_val, tcp_opt_val2;
+  int current_opt_len, total_opt_len, opt_size_allocated;
+  char *opts, *ptr_opts_pos;
+  uint8_t eol, nop;
+  int i;
+
+  struct tcp_opt_mss *opt_mss;
+  struct tcp_opt_wscale *opt_wscale;
+  struct tcp_opt_sack_perm *opt_sack_perm;
+  struct tcp_opt_tstamp *opt_tstamp;
+
+  if (pkt == NULL)
+    {
+      nasl_perror (
+        lexic, "set_tcp_v6_elements: Invalid value for the argument 'tcp'\n");
+      return NULL;
+    }
+  opts = g_malloc0 (sizeof (char) * 4);
+  ptr_opts_pos = opts;
+  opt_size_allocated = 4; // 4 bytes
+  total_opt_len = 0;
+  for (i = 0;; i++)
+    {
+      tcp_opt = get_int_var_by_num (lexic, i, -1);
+      current_opt_len = total_opt_len;
+
+      if (tcp_opt == -1)
+        break;
+
+      switch (tcp_opt)
+        {
+        case TCPOPT_MAXSEG:
+          tcp_opt_val = get_int_var_by_num (lexic, i + 1, -1);
+          i++;
+          if (tcp_opt_val < (int) TCP_MSS_DESIRED || tcp_opt_val > 65535)
+            {
+              nasl_perror (lexic, "%s: Invalid value for TCP option MSS\n",
+                           __func__);
+              break;
+            }
+          opt_mss = g_malloc0 (sizeof (struct tcp_opt_mss));
+          total_opt_len += TCPOLEN_MAXSEG;
+          opt_mss->kind = TCPOPT_MAXSEG;
+          opt_mss->len = TCPOLEN_MAXSEG;
+          opt_mss->mss = FIX (tcp_opt_val);
+
+          // Need reallocated memory because options requires it.
+          if (total_opt_len > opt_size_allocated)
+            {
+              opt_size_allocated = ((total_opt_len / 4) + 1) * 4;
+              opts = g_realloc (opts, sizeof (char) * opt_size_allocated);
+              ptr_opts_pos = opts + current_opt_len;
+            }
+
+          memcpy (ptr_opts_pos, (u_char *) opt_mss,
+                  sizeof (struct tcp_opt_mss));
+          ptr_opts_pos = ptr_opts_pos + sizeof (struct tcp_opt_mss);
+          g_free (opt_mss);
+          break;
+        case TCPOPT_WINDOW:
+          tcp_opt_val = get_int_var_by_num (lexic, i + 1, -1);
+          i++;
+          if (tcp_opt_val < 0 || tcp_opt_val > 14)
+            {
+              nasl_perror (lexic, "%s: Invalid value for TCP option WScale\n",
+                           __func__);
+              break;
+            }
+          opt_wscale = g_malloc0 (sizeof (struct tcp_opt_wscale));
+          total_opt_len += TCPOLEN_WINDOW;
+          opt_wscale->kind = TCPOPT_WINDOW;
+          opt_wscale->len = TCPOLEN_WINDOW;
+          opt_wscale->wscale = tcp_opt_val;
+
+          // Need reallocated memory because options requires it.
+          if (total_opt_len > opt_size_allocated)
+            {
+              opt_size_allocated = ((total_opt_len / 4) + 1) * 4;
+              opts = g_realloc (opts, sizeof (char) * opt_size_allocated);
+              ptr_opts_pos = opts + current_opt_len;
+            }
+
+          memcpy (ptr_opts_pos, (u_char *) opt_wscale,
+                  sizeof (struct tcp_opt_wscale));
+          ptr_opts_pos = ptr_opts_pos + sizeof (struct tcp_opt_wscale);
+          g_free (opt_wscale);
+          break;
+        case TCPOPT_SACK_PERMITTED:
+          opt_sack_perm = g_malloc0 (sizeof (struct tcp_opt_sack_perm));
+          total_opt_len += TCPOLEN_SACK_PERMITTED;
+          opt_sack_perm->kind = TCPOPT_SACK_PERMITTED;
+          opt_sack_perm->len = TCPOLEN_SACK_PERMITTED;
+
+          // Need reallocated memory because options requires it.
+          if (total_opt_len > opt_size_allocated)
+            {
+              opt_size_allocated = ((total_opt_len / 4) + 1) * 4;
+              opts = g_realloc (opts, sizeof (char) * opt_size_allocated);
+              ptr_opts_pos = opts + current_opt_len;
+            }
+
+          memcpy (ptr_opts_pos, (u_char *) opt_sack_perm,
+                  sizeof (struct tcp_opt_sack_perm));
+          ptr_opts_pos = ptr_opts_pos + sizeof (struct tcp_opt_sack_perm);
+          g_free (opt_sack_perm);
+          break;
+        case TCPOPT_TIMESTAMP:
+          tcp_opt_val = get_int_var_by_num (lexic, i + 1, -1);
+          tcp_opt_val2 = get_int_var_by_num (lexic, i + 2, -1);
+          i = i + 2;
+          if (tcp_opt_val < 0)
+            nasl_perror (lexic, "%s: Invalid value for TCP option Timestamp\n",
+                         __func__);
+          opt_tstamp = g_malloc0 (sizeof (struct tcp_opt_tstamp));
+          total_opt_len += TCPOLEN_TIMESTAMP;
+          opt_tstamp->kind = TCPOPT_TIMESTAMP;
+          opt_tstamp->len = TCPOLEN_TIMESTAMP;
+          opt_tstamp->tstamp = htonl (tcp_opt_val);
+          opt_tstamp->e_tstamp = htonl (tcp_opt_val2);
+
+          // Need reallocated memory because options requires it.
+          if (total_opt_len > opt_size_allocated)
+            {
+              opt_size_allocated = ((total_opt_len / 4) + 1) * 4;
+              opts = g_realloc (opts, sizeof (char) * opt_size_allocated);
+              ptr_opts_pos = opts + current_opt_len;
+            }
+
+          memcpy (ptr_opts_pos, (u_char *) opt_tstamp,
+                  sizeof (struct tcp_opt_tstamp));
+          ptr_opts_pos = ptr_opts_pos + sizeof (struct tcp_opt_tstamp);
+          g_free (opt_tstamp);
+          break;
+        case TCPOPT_NOP:
+        case TCPOPT_EOL:
+        case TCPOPT_SACK: /* Experimental, not supported */
+        default:
+          nasl_perror (lexic, "%s: TCP option %d not supported\n", __func__,
+                       tcp_opt);
+          break;
+        }
+    }
+
+  // Add NOP padding and End Of Option list kinds.
+  current_opt_len = total_opt_len;
+  eol = TCPOPT_EOL;
+  nop = TCPOPT_NOP;
+  if (total_opt_len % 4 == 0)
+    {
+      opt_size_allocated = opt_size_allocated + 4;
+      opts = g_realloc (opts, sizeof (char) * opt_size_allocated);
+      ptr_opts_pos = opts + total_opt_len;
+    }
+  if (current_opt_len < opt_size_allocated - 1)
+    {
+      // Add NOPs
+      for (i = current_opt_len; i < opt_size_allocated - 1; i++)
+        {
+          memcpy (ptr_opts_pos, &nop, 1);
+          total_opt_len++;
+          ptr_opts_pos++;
+        }
+    }
+  // Add EOL
+  memcpy (ptr_opts_pos, &eol, 1);
+
+  tcp = (struct tcphdr *) (pkt + 40);
+
+  if (pktsz < UNFIX (ip6->ip6_plen))
+    {
+      g_free (opts);
+      return NULL;
+    }
+
+  if (data_len == 0)
+    {
+      data_len = UNFIX (ip6->ip6_plen) - (tcp->th_off * 4);
+      data = (char *) ((char *) tcp + tcp->th_off * 4);
+    }
+
+  // Alloc enough memory to hold the options
+  npkt = g_malloc0 (40 + tcp->th_off * 4 + opt_size_allocated + data_len);
+  memcpy (npkt, pkt, UNFIX (ip6->ip6_plen) + 40);
+  ip6 = (struct ip6_hdr *) (npkt);
+  tcp = (struct tcphdr *) (npkt + 40);
+
+  // copy options
+  memcpy ((char *) tcp + tcp->th_off * 4, opts, opt_size_allocated);
+  tcp->th_off = tcp->th_off + (opt_size_allocated / 4);
+
+  memcpy ((char *) tcp + tcp->th_off * 4, data, data_len);
+
+  ip6->ip6_plen = FIX (tcp->th_off * 4 + data_len);
+
+  struct v6pseudohdr pseudoheader;
+  char *tcpsumdata =
+    g_malloc0 (sizeof (struct v6pseudohdr) + opt_size_allocated + data_len + 1);
+
+  memset (&pseudoheader, 0, 38 + sizeof (struct tcphdr));
+  memcpy (&pseudoheader.s6addr, &ip6->ip6_src, sizeof (struct in6_addr));
+  memcpy (&pseudoheader.d6addr, &ip6->ip6_dst, sizeof (struct in6_addr));
+
+  pseudoheader.protocol = IPPROTO_TCP;
+  pseudoheader.length =
+    htons (sizeof (struct tcphdr) + opt_size_allocated + data_len);
+
+  // Set th_sum to Zero, necessary for the new checksum calculation
+  tcp->th_sum = 0;
+
+  memcpy ((char *) &pseudoheader.tcpheader, (char *) tcp,
+          sizeof (struct tcphdr));
+
+  /* fill tcpsumdata with data to checksum */
+  memcpy (tcpsumdata, (char *) &pseudoheader, sizeof (struct v6pseudohdr));
+  memcpy (tcpsumdata + sizeof (struct v6pseudohdr), (char *) opts,
+          opt_size_allocated);
+  if (data != NULL)
+    memcpy (tcpsumdata + sizeof (struct v6pseudohdr) + opt_size_allocated,
+            (char *) data, data_len);
+  tcp->th_sum =
+    np_in_cksum ((unsigned short *) tcpsumdata,
+                 38 + sizeof (struct tcphdr) + opt_size_allocated + data_len);
+  g_free (opts);
+  g_free (tcpsumdata);
+
+  retc = alloc_typed_cell (CONST_DATA);
+  retc->size = 40 + (tcp->th_off * 4) + data_len;
+  retc->x.str_val = npkt;
+  return retc;
+}
+
+/**
  * @brief Dump TCP part of an IPv6 Datagram.
  *
  * @param[in] lexic   Lexical context of NASL interpreter.
@@ -791,6 +1260,7 @@ dump_tcp_v6_packet (lex_ctxt *lexic)
 {
   int i = 0;
   u_char *pkt;
+  int options_len = 0;
 
   while ((pkt = (u_char *) get_str_var_by_num (lexic, i++)) != NULL)
     {
@@ -859,12 +1329,42 @@ dump_tcp_v6_packet (lex_ctxt *lexic)
       printf ("\tth_win   : %d\n", ntohs (tcp->th_win));
       printf ("\tth_sum   : 0x%x\n", tcp->th_sum);
       printf ("\tth_urp   : %d\n", tcp->th_urp);
-      printf ("\tData     : ");
-      c = (char *) ((char *) tcp + sizeof (struct tcphdr));
-      if (UNFIX (ip6->ip6_plen)
-          > (sizeof (struct ip6_hdr) + sizeof (struct tcphdr)))
+
+      options_len = sizeof (uint8_t) * 4 * (tcp->th_off - 5);
+
+      if (options_len > 5) // Options present
+        {
+          char *options;
+          struct tcp_options *tcp_all_options;
+
+          options = (char *) g_malloc0 (options_len);
+          memcpy (options, (char *) tcp + 20, options_len);
+
+          tcp_all_options = g_malloc0 (sizeof (struct tcp_options));
+          get_tcp_options (options, tcp_all_options);
+          if (tcp_all_options != NULL)
+            {
+              printf ("\tTCP Options:\n");
+              printf ("\t\tTCPOPT_MAXSEG: %u\n",
+                      ntohs ((uint16_t) tcp_all_options->mss.mss));
+              printf ("\t\tTCPOPT_WINDOW: %u\n",
+                      tcp_all_options->wscale.wscale);
+              printf ("\t\tTCPOPT_SACK_PERMITTED: %u\n",
+                      tcp_all_options->sack_perm.kind ? 1 : 0);
+              printf ("\t\tTCPOPT_TIMESTAMP TSval: %u\n",
+                      ntohl ((uint32_t) tcp_all_options->tstamp.tstamp));
+              printf ("\t\tTCPOPT_TIMESTAMP TSecr: %u\n",
+                      ntohl ((uint32_t) tcp_all_options->tstamp.e_tstamp));
+            }
+          g_free (options);
+          g_free (tcp_all_options);
+        }
+      printf ("\n\tData     : ");
+      c = (char *) ((char *) tcp + sizeof (struct tcphdr) + options_len);
+      if (UNFIX (ip6->ip6_plen) > (sizeof (struct tcphdr) + options_len))
         for (j = 0;
-             j < UNFIX (ip6->ip6_plen) - sizeof (struct tcphdr) && j < limit;
+             j < UNFIX (ip6->ip6_plen) - sizeof (struct tcphdr) - options_len
+             && j < limit;
              j++)
           printf ("%c", isprint (c[j]) ? c[j] : '.');
       printf ("\n");
@@ -1543,6 +2043,44 @@ get_icmp_v6_element (lex_ctxt *lexic)
   else
     nasl_perror (lexic, "%s: missing 'icmp' parameter\n", __func__);
 
+  return NULL;
+}
+
+/**
+ * @brief Dump the ICMP part of a IP Datagram.
+ *
+ * @param[in] lexic   Lexical context of NASL interpreter.
+ * @param[in] ...     IP datagrams to dump the ICMP part from.
+ */
+tree_cell *
+dump_icmp_v6_packet (lex_ctxt *lexic)
+{
+  int i = 0;
+  u_char *pkt;
+  while ((pkt = (u_char *) get_str_var_by_num (lexic, i++)) != NULL)
+    {
+      unsigned int j;
+      unsigned int limit;
+      char *c;
+      struct ip6_hdr *ip6 = (struct ip6_hdr *) pkt;
+      struct icmp6_hdr *icmp;
+      icmp = (struct icmp6_hdr *) (pkt + 40);
+      limit = get_var_size_by_num (lexic, i - 1);
+      printf ("------\n");
+      printf ("\ticmp6_id    : %d\n", ntohs (icmp->icmp6_id));
+      printf ("\ticmp6_code  : %d\n", icmp->icmp6_code);
+      printf ("\ticmp6_type  : %u\n", icmp->icmp6_type);
+      printf ("\ticmp6_seq   : %u\n", ntohs (icmp->icmp6_seq));
+      printf ("\ticmp6_cksum : %d\n", ntohs (icmp->icmp6_cksum));
+      printf ("\tData        : ");
+      c = (char *) ((char *) icmp + sizeof (struct icmp6_hdr));
+      if (UNFIX (ip6->ip6_plen) > (sizeof (struct icmp6_hdr)))
+        for (j = 0;
+             j < UNFIX (ip6->ip6_plen) - sizeof (struct icmp6_hdr) && j < limit;
+             j++)
+          printf ("%c", isprint (c[j]) ? c[j] : '.');
+      printf ("\n");
+    }
   return NULL;
 }
 

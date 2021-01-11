@@ -1222,10 +1222,10 @@ read_stream_connection_unbuffered (int fd, void *buf0, int min_len, int max_len)
 
     default:
       if (fp->transport || fp->fd != 0)
-        g_message ("Function %s called from %s: "
+        g_message ("Function %s (calling internal function %s) called from %s: "
                    "Severe bug! Unhandled transport layer %d (fd=%d).",
-                   nasl_get_function_name (), nasl_get_plugin_filename (),
-                   fp->transport, fd);
+                   nasl_get_function_name () ?: "script_main_function",
+                   __func__, nasl_get_plugin_filename (), fp->transport, fd);
       else
         g_message ("read_stream_connection_unbuffered: "
                    "fd=%d is closed",
@@ -1403,10 +1403,10 @@ write_stream_connection4 (int fd, void *buf0, int n, int i_opt)
 
     default:
       if (fp->transport || fp->fd != 0)
-        g_message ("Function %s called from %s: "
+        g_message ("Function %s (calling internal function %s) called from %s: "
                    "Severe bug! Unhandled transport layer %d (fd=%d).",
-                   nasl_get_function_name (), nasl_get_plugin_filename (),
-                   fp->transport, fd);
+                   nasl_get_function_name () ?: "script_main_function",
+                   __func__, nasl_get_plugin_filename (), fp->transport, fd);
       else
         g_message ("read_stream_connection_unbuffered: fd=%d is "
                    "closed",
@@ -1817,11 +1817,12 @@ open_sock_tcp (struct script_infos *args, unsigned int port, int timeout)
               kb_item_set_int (kb, buffer, 0);
 
               addr6_to_str (args->ip, ip_str);
-              snprintf (buffer, sizeof (buffer),
-                        "ERRMSG|||%s|||%d/tcp||| |||Too many timeouts. The port"
-                        " was set to closed.",
-                        plug_current_vhost () ?: " ", port);
-              kb_item_push_str (args->key, "internal/results", buffer);
+              snprintf (
+                buffer, sizeof (buffer),
+                "ERRMSG|||%s|||%s|||%d/tcp||| |||Too many timeouts. The port"
+                " was set to closed.",
+                ip_str, plug_current_vhost () ?: " ", port);
+              kb_item_push_str (args->results, "internal/results", buffer);
             }
         }
       g_free (ip_str);

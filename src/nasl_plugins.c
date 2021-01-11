@@ -26,6 +26,7 @@
 #include "../misc/network.h"
 #include "../misc/plugutils.h" /* for plug_set_launch */
 #include "../nasl/nasl.h"
+#include "../nasl/nasl_global_ctxt.h"
 #include "pluginlaunch.h"
 #include "pluginload.h"
 #include "pluginscheduler.h"
@@ -141,6 +142,55 @@ nasl_plugin_add (char *folder, char *filename)
   return 0;
 }
 
+/**
+ * @brief Load a .csv file to the cache.
+ *
+ * @param folder  Path to the plugin folder.
+ * @param filename    File-name of the csv file
+ *
+ * @return 0 on success, -1 on error.
+ */
+int
+csv_vt_list_add (char *folder, char *filename)
+{
+  char fullname[PATH_MAX + 1];
+  int always_signed;
+
+  snprintf (fullname, sizeof (fullname), "%s/%s", folder, filename);
+
+  always_signed = 0;
+  if (prefs_get_bool ("nasl_no_signature_check"))
+    always_signed = 1;
+
+  if (!nvticache_check (filename))
+    {
+      time_t now;
+      struct utimbuf updated_timestamp;
+      kb_t nvti_cache_kb = nvticache_get_kb ();
+      char timestamp_str[16];
+      char kb_key[256];
+
+      if (csv_vt_list_checksum_check (nvti_cache_kb, fullname, always_signed)
+          < 0)
+        {
+          kb_lnk_reset (nvti_cache_kb);
+          return -1;
+        }
+
+      now = time (NULL) - 1;
+      updated_timestamp.actime = now;
+      updated_timestamp.modtime = now;
+      utime (fullname, &updated_timestamp);
+
+      snprintf (timestamp_str, sizeof (timestamp_str), "%lu", time (NULL));
+      snprintf (kb_key, sizeof (kb_key), "filename:%s", filename);
+      kb_del_items (nvti_cache_kb, kb_key);
+      kb_item_add_str (nvti_cache_kb, kb_key, timestamp_str, 0);
+    }
+
+  return 0;
+}
+
 static void
 nasl_thread (struct script_infos *);
 
@@ -149,7 +199,7 @@ nasl_thread (struct script_infos *);
  */
 int
 nasl_plugin_launch (struct scan_globals *globals, struct in6_addr *ip,
-                    GSList *vhosts, kb_t kb, const char *oid)
+                    GSList *vhosts, kb_t kb, kb_t main_kb, const char *oid)
 {
   int module;
   struct script_infos infos;
@@ -159,6 +209,7 @@ nasl_plugin_launch (struct scan_globals *globals, struct in6_addr *ip,
   infos.vhosts = vhosts;
   infos.globals = globals;
   infos.key = kb;
+  infos.results = main_kb;
   infos.oid = (char *) oid;
   infos.name = nvticache_get_src (oid);
 

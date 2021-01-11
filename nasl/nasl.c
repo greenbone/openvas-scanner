@@ -158,7 +158,7 @@ main (int argc, char **argv)
   gvm_host_t *host;
   static gchar *target = NULL;
   gchar *default_target = "127.0.0.1";
-  int mode = 0, err = 0;
+  int mode = 0, err = 0, pos;
   extern int global_nasl_debug;
   GSList *unresolved;
 
@@ -273,8 +273,6 @@ main (int argc, char **argv)
           nasl_trace_fp = fp;
         }
     }
-  if (with_safe_checks)
-    prefs_set ("safe_checks", "yes");
 
   gcrypt_init ();
   openvas_SSL_init ();
@@ -341,6 +339,10 @@ main (int argc, char **argv)
       g_free (port_range);
     }
 
+  if (with_safe_checks)
+    prefs_set ("safe_checks", "yes");
+
+  pos = 0; // Append the item on the right side of the list
   while ((host = gvm_hosts_next (hosts)))
     {
       struct in6_addr ip6;
@@ -393,7 +395,7 @@ main (int argc, char **argv)
                                *kb_values_aux);
                       exit (1);
                     }
-                  kb_item_add_str_unique (kb, splits[0], splits[1], 0);
+                  kb_item_add_str_unique (kb, splits[0], splits[1], 0, pos);
                   kb_values_aux++;
                   g_strfreev (splits);
                 }

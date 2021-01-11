@@ -1,4 +1,4 @@
-# Copyright (C) 2010-2019 Greenbone Networks GmbH
+# Copyright (C) 2010-2020 Greenbone Networks GmbH
 #
 # SPDX-License-Identifier: GPL-2.0-or-later
 #
@@ -28,8 +28,8 @@ endif (NOT PKG_CONFIG_FOUND)
 pkg_check_modules (GLIB REQUIRED glib-2.0>=2.42)
 pkg_check_modules (GNUTLS REQUIRED gnutls>=3.6.4)
 
-pkg_check_modules (LIBGVM_BASE REQUIRED libgvm_base>=20.8)
-pkg_check_modules (LIBGVM_UTIL REQUIRED libgvm_util>=20.8)
+pkg_check_modules (LIBGVM_BASE REQUIRED libgvm_base>=21.4)
+pkg_check_modules (LIBGVM_UTIL REQUIRED libgvm_util>=21.4)
 
 pkg_check_modules (OPENVAS_WMICLIENT libopenvas_wmiclient>=1.0.5)
 pkg_check_modules (OPENVAS_WINCMD libopenvas_wincmd>=1.0.5)
@@ -91,36 +91,14 @@ set (FILES bpf_share.c ftp_funcs.c vendorversion.c network.c plugutils.c pcap.c
 # Also stack protection needs a shared library to work
 set (CMAKE_C_FLAGS              "${CMAKE_C_FLAGS} -Wall -Wextra -fPIC")
 
-## Project version
-# The following three variables should be set through the project command once
-# we require CMake >= 3.0
-set (MISC_VERSION_MAJOR 20)
-set (MISC_VERSION_MINOR 8)
-set (MISC_VERSION_PATCH 0)
-
-if (PROJECT_BETA_RELEASE)
-  set (MISC_VERSION_SUFFIX "+beta${PROJECT_BETA_RELEASE}")
-else (PROJECT_BETA_RELEASE)
-  set (MISC_VERSION_SUFFIX ".${PROJECT_VERSION_PATCH}")
-endif (PROJECT_BETA_RELEASE)
-
-set (MISC_VERSION_STRING "${MISC_VERSION_MAJOR}.${MISC_VERSION_MINOR}${MISC_VERSION_SUFFIX}")
-if (PROJECT_BETA_RELEASE)
-  set (MISC_PACKAGE_VERSION "${MISC_VERSION_STRING}${PROJECT_VERSION_GIT}")
-else (PROJECT_BETA_RELEASE)
-  set (MISC_PACKAGE_VERSION "${MISC_VERSION_STRING}")
-endif (PROJECT_BETA_RELEASE)
-set (MISC_VERSION "${MISC_VERSION_STRING}")
-
-
 # Build shared
 
 add_library (openvas_misc_shared SHARED ${FILES})
 
 set_target_properties (openvas_misc_shared PROPERTIES OUTPUT_NAME "openvas_misc")
 set_target_properties (openvas_misc_shared PROPERTIES CLEAN_DIRECT_OUTPUT 1)
-set_target_properties (openvas_misc_shared PROPERTIES SOVERSION "${MISC_VERSION_MAJOR}")
-set_target_properties (openvas_misc_shared PROPERTIES VERSION "${MISC_PACKAGE_VERSION}")
+set_target_properties (openvas_misc_shared PROPERTIES SOVERSION "${PROJECT_VERSION_MAJOR}")
+set_target_properties (openvas_misc_shared PROPERTIES VERSION "${PROJECT_VERSION_STRING}")
 
 target_link_libraries (openvas_misc_shared LINK_PRIVATE ${GNUTLS_LDFLAGS} ${UUID_LDFLAGS}
                        ${GLIB_LDFLAGS} ${PCAP_LDFLAGS}

@@ -18,30 +18,6 @@
 
 ## Config
 
-## Project version
-# The following three variables should be set through the project command once
-# we require CMake >= 3.0
-set (NASL_VERSION_MAJOR 20)
-set (NASL_VERSION_MINOR 8)
-set (NASL_VERSION_PATCH 0)
-
-if (PROJECT_BETA_RELEASE)
-  set (NASL_VERSION_SUFFIX "+beta${PROJECT_BETA_RELEASE}")
-else (PROJECT_BETA_RELEASE)
-  set (NASL_VERSION_SUFFIX ".${PROJECT_VERSION_PATCH}")
-endif (PROJECT_BETA_RELEASE)
-
-set (NASL_VERSION_STRING "${NASL_VERSION_MAJOR}.${NASL_VERSION_MINOR}${NASL_VERSION_SUFFIX}")
-
-
-if (PROJECT_BETA_RELEASE)
-  set (NASL_PACKAGE_VERSION "${NASL_VERSION_STRING}${PROJECT_VERSION_GIT}")
-else (PROJECT_BETA_RELEASE)
-  set (NASL_PACKAGE_VERSION "${NASL_VERSION_STRING}")
-endif (PROJECT_BETA_RELEASE)
-
-set (NASL_VERSION "${NASL_VERSION_STRING}")
-
 include (FindPkgConfig)
 
 if (NOT PKG_CONFIG_FOUND)
@@ -51,8 +27,8 @@ endif (NOT PKG_CONFIG_FOUND)
 pkg_check_modules (GLIB REQUIRED glib-2.0>=2.42)
 pkg_check_modules (GIO REQUIRED gio-2.0)
 pkg_check_modules (GNUTLS REQUIRED gnutls>=3.2.15)
-pkg_check_modules (LIBGVM_BASE REQUIRED libgvm_base>=20.8)
-pkg_check_modules (LIBGVM_UTIL REQUIRED libgvm_util>=20.8)
+pkg_check_modules (LIBGVM_BASE REQUIRED libgvm_base>=21.4)
+pkg_check_modules (LIBGVM_UTIL REQUIRED libgvm_util>=21.4)
 
 pkg_check_modules (OPENVAS_WMICLIENT libopenvas_wmiclient>=1.0.5)
 pkg_check_modules (OPENVAS_WINCMD libopenvas_wincmd>=1.0.5)
@@ -195,9 +171,9 @@ set_source_files_properties (nasl_grammar.tab.c GENERATED)
 
 ## Pass-throughs
 add_definitions (-DOPENVAS_STATE_DIR="${OPENVAS_STATE_DIR}")
-add_definitions (-DOPENVASLIB_VERSION="${NASL_VERSION_MAJOR}.${NASL_VERSION_MINOR}.${NASL_VERSION_PATCH}")
+add_definitions (-DOPENVASLIB_VERSION="${PROJECT_VERSION_MAJOR}.${PROJECT_VERSION_MINOR}.${PROJECT_VERSION_PATCH}")
 add_definitions (-DOPENVAS_SYSCONF_DIR="${OPENVAS_SYSCONF_DIR}")
-add_definitions (-DOPENVAS_NASL_VERSION="${NASL_VERSION}")
+add_definitions (-DOPENVAS_NASL_VERSION="${PROJECT_VERSION_STRING}")
 add_definitions (-DOPENVAS_GPG_BASE_DIR="${OPENVAS_GPG_BASE_DIR}")
 
 include_directories (${GLIB_INCLUDE_DIRS}
@@ -213,8 +189,8 @@ include_directories (${GLIB_INCLUDE_DIRS}
 add_library (openvas_nasl_shared SHARED ${FILES})
 set_target_properties (openvas_nasl_shared PROPERTIES OUTPUT_NAME "openvas_nasl")
 set_target_properties (openvas_nasl_shared PROPERTIES CLEAN_DIRECT_OUTPUT 1)
-set_target_properties (openvas_nasl_shared PROPERTIES SOVERSION "${NASL_VERSION_MAJOR}")
-set_target_properties (openvas_nasl_shared PROPERTIES VERSION "${NASL_PACKAGE_VERSION}")
+set_target_properties (openvas_nasl_shared PROPERTIES SOVERSION "${PROJECT_VERSION_MAJOR}")
+set_target_properties (openvas_nasl_shared PROPERTIES VERSION "${PROJECT_VERSION_STRING}")
 # line below is needed so it also works with no-undefined which is e.g. used by Mandriva
 target_link_libraries (openvas_nasl_shared openvas_misc_shared ${GLIB_LDFLAGS}
                          ${GCRYPT_LDFLAGS} ${GPGME_LDFLAGS} m

@@ -4,6 +4,28 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [unreleased]
+
+### Added
+- Add scanner-only option to enable tls debugging. [#558](https://github.com/greenbone/openvas/pull/558)
+- Extend nasl lint to detect if function parameter is used twice. [#585](https://github.com/greenbone/openvas/pull/585)
+- Consider .csv files for checksum check and upload in redis cache. [#599](https://github.com/greenbone/openvas/pull/599)
+- Add option to specify if a host can be scanned through its IPv4 and IPv6 in parallel. [#604](https://github.com/greenbone/openvas/pull/604)
+- Add insert_tcp_options and insert_tcp_v6_options nasl functions. [#618](https://github.com/greenbone/openvas/pull/618)
+- Add get_tcp_option and extend dump_tcp_packet nasl functions. [#621](https://github.com/greenbone/openvas/pull/621)
+- Add nasl function to get the scan main kb index. [#628](https://github.com/greenbone/openvas/pull/628)
+- Add new scanner only option to enable the table driven lsc. [#632](https://github.com/greenbone/openvas/pull/632)
+
+### Changed
+- Store results in main_kb instead of host_kb. [#550](https://github.com/greenbone/openvas/pull/550)
+- Also use internal function name in some nasl log messages. [#611](https://github.com/greenbone/openvas/pull/611)
+- Move more scanner preferences to gvm-libs to make them available for openvas-nasl. [#614](https://github.com/greenbone/openvas/pull/614)
+
+### Removed
+- Use the nvticache name from gvm-libs, defined in nvticache.h. [#578](https://github.com/greenbone/openvas/pull/578)
+
+[unreleased]: https://github.com/greenbone/openvas/compare/openvas-20.08...master
+
 ## [20.08.1] (unreleased)
 
 ### Added
@@ -11,6 +33,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 - Add support for TLSv1.3. [#588](https://github.com/greenbone/openvas/pull/588)[#598](https://github.com/greenbone/openvas/pull/598)
 - Add alternative for supporting snmp during scans. [#594](https://github.com/greenbone/openvas/pull/594)
 - Add resolve_hostname_to_multiple_ips() NASL function. [#596](https://github.com/greenbone/openvas/pull/596)
+- Add dump_icmp_packet() and dump_icmp_v6_packet() nasl functions. [#609](https://github.com/greenbone/openvas/pull/609)
 - Send message to the client with hosts count. [#606](https://github.com/greenbone/openvas/pull/606)
 - Use nasl_perror on invalid input and add more documentation. [#608](https://github.com/greenbone/openvas/pull/608)
 - Add timeout argument to ssh_connect() nasl function to set the connection timeout. [631](https://github.com/greenbone/openvas/pull/631)
