@@ -35,6 +35,7 @@
 #include <fcntl.h>                    /* for open */
 #include <glib.h>                     /* for g_get_tmp_dir */
 #include <gvm/base/drop_privileges.h> /* for drop_privileges */
+#include <gvm/base/prefs.h>           /* for prefs_get_bool() */
 #include <signal.h>                   /* for kill */
 #include <string.h>                   /* for strncpy */
 #include <sys/param.h>                /* for MAXPATHLEN */
@@ -123,7 +124,7 @@ nasl_pread (lex_ctxt *lexic)
     }
 
   new_user = get_str_var_by_name (lexic, "drop_privileges_user");
-  if (new_user)
+  if (new_user && !prefs_get_bool ("drop_privileges"))
     {
       if (drop_privileges (new_user, &error))
         {
