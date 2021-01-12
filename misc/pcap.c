@@ -913,8 +913,8 @@ v6_routethrough (struct in6_addr *dest, struct in6_addr *source)
                 }
               return myroutes[i].dev->name;
             }
-          technique = connectsockettechnique;
         }
+      technique = connectsockettechnique;
     }
   if (technique == connectsockettechnique)
     {
