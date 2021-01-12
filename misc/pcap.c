@@ -858,6 +858,7 @@ v6_routethrough (struct in6_addr *dest, struct in6_addr *source)
   struct in6_addr mask;
   struct in6_addr network;
   struct in6_addr src;
+  long best_match = -1;
 
   if (!dest)
     {
@@ -931,11 +932,10 @@ v6_routethrough (struct in6_addr *dest, struct in6_addr *source)
 
   if (technique == procroutetechnique)
     {
+      char addr1[INET6_ADDRSTRLEN];
+      char addr2[INET6_ADDRSTRLEN];
       for (i = 0; i < numroutes; i++)
         {
-          char addr1[INET6_ADDRSTRLEN];
-          char addr2[INET6_ADDRSTRLEN];
-
           if (ipv6_prefix_to_mask (myroutes[i].mask, &mask) == -1)
             {
               g_warning ("error creating IPv6 mask from prefix: %ld",
@@ -949,28 +949,53 @@ v6_routethrough (struct in6_addr *dest, struct in6_addr *source)
             "comparing addresses %s and %s",
             inet_ntop (AF_INET6, &network, addr1, sizeof (addr1)),
             inet_ntop (AF_INET6, &myroutes[i].dest6, addr2, sizeof (addr2)));
+          /* matching route found */
           if (IN6_ARE_ADDR_EQUAL (&network, &myroutes[i].dest6))
             {
-              if (source)
+              /* First time a match is found */
+              if (-1 == best_match)
                 {
-                  if (!IN6_ARE_ADDR_EQUAL (&src, &in6addr_any))
-                    memcpy (source, &src, sizeof (struct in6_addr));
-                  else
+                  best_match = i;
+                }
+              else
+                {
+                  /* Better match found */
+                  if (myroutes[i].mask > myroutes[best_match].mask)
                     {
-                      if (myroutes[i].dev != NULL)
-                        {
-                          g_debug ("copying address %s",
-                                   inet_ntop (AF_INET6, &myroutes[i].dev->addr6,
-                                              addr1, sizeof (addr1)));
-                          g_debug ("dev name is %s", myroutes[i].dev->name);
-                          memcpy (source, &myroutes[i].dev->addr6,
-                                  sizeof (struct in6_addr));
-                        }
+                      best_match = i;
+                    }
+                  /* Match with equal mask and smaller (better) metric found */
+                  else if ((myroutes[i].mask == myroutes[best_match].mask)
+                           && (myroutes[i].metric
+                               < myroutes[best_match].metric))
+                    {
+                      best_match = i;
                     }
                 }
-              return myroutes[i].dev->name;
             }
         }
+      if (source)
+        {
+          if (!IN6_ARE_ADDR_EQUAL (&src, &in6addr_any))
+            memcpy (source, &src, sizeof (struct in6_addr));
+          else
+            {
+              if (myroutes[best_match].dev != NULL)
+                {
+                  memcpy (source, &myroutes[best_match].dev->addr6,
+                          sizeof (struct in6_addr));
+                }
+            }
+        }
+      g_debug (
+        "%s: Best matching route with dst '%s' metric '%ld' and interface '%s'",
+        __func__,
+        inet_ntop (AF_INET6, &myroutes[best_match].dest6, addr1,
+                   sizeof (addr1)),
+        myroutes[best_match].mask, myroutes[best_match].dev->name);
+      if (best_match != -1)
+        return myroutes[best_match].dev->name;
+
       technique = connectsockettechnique;
     }
   if (technique == connectsockettechnique)
