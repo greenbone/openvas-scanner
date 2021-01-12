@@ -55,12 +55,17 @@ struct interface_info
   struct in6_addr mask;
 };
 
+/**
+ * Only used for v6_routethrough() and not routethrough().
+ * routethrough() uses a local version of the myroutes struct.
+ */
 struct myroute
 {
   struct interface_info *dev;
   struct in6_addr dest6;
   unsigned long mask;
   unsigned long dest;
+  unsigned long metric;
 };
 
 struct interface_info *
@@ -564,6 +569,18 @@ v6_getsourceip (struct in6_addr *src, struct in6_addr *dst)
   return 1; /* Calling function responsible for checking validity */
 }
 
+/**
+ * @brief Get the ipv4 routes and number of routes.
+ *
+ * This function is only used for getting the ipv4 routes in v6_routethrough().
+ * routethrough() overwrites the global myroutes struct with a local version
+ * and uses its own logic for getting the routes from /proc/net/route.
+ *
+ * @param[out] myroutes Array of routes.
+ * @param[out] numroutes Number of routes in myroutes.
+ *
+ * @return 0 on success, -1 on error.
+ **/
 int
 getipv4routes (struct myroute *myroutes, int *numroutes)
 {
@@ -625,7 +642,7 @@ getipv4routes (struct myroute *myroutes, int *numroutes)
           myroutes[*numroutes].dest6.s6_addr32[1] = 0;
           myroutes[*numroutes].dest6.s6_addr32[2] = htonl (0xffff);
           myroutes[*numroutes].dest6.s6_addr32[3] = inaddr.s_addr;
-          for (i = 0; i < 6; i++)
+          for (i = 0; i < 5; i++)
             {
               p = strtok (NULL, " \t\n");
               if (!p)
@@ -638,6 +655,16 @@ getipv4routes (struct myroute *myroutes, int *numroutes)
                          i + 2);
               continue;
             }
+          /* set metric */
+          endptr = NULL;
+          myroutes[*numroutes].metric = strtol (p, &endptr, 10);
+          if (!endptr || *endptr)
+            {
+              g_message ("%s: Failed to determine metric from /proc/net/route",
+                         __func__);
+              continue;
+            }
+          p = strtok (NULL, " \t\n");
           endptr = NULL;
           mask = strtoul (p, &endptr, 16);
           ones = 0;
