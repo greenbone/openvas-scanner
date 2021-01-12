@@ -707,6 +707,17 @@ getipv4routes (struct myroute *myroutes, int *numroutes)
     return -1;
 }
 
+/**
+ * @brief Get the IPv6 routes and number of routes.
+ *
+ * This function parses the /proc/net/ipv6_route file into an array of
+ * myroute structs.
+ *
+ * @param[out] myroutes Array of routes.
+ * @param[out] numroutes Number of routes in myroutes.
+ *
+ * @return 0 on success, -1 when no routes are found.
+ */
 int
 getipv6routes (struct myroute *myroutes, int *numroutes)
 {
@@ -761,14 +772,33 @@ getipv6routes (struct myroute *myroutes, int *numroutes)
               endptr = NULL;
               myroutes[*numroutes].mask = strtoul (token, &endptr, 16);
             }
-          cnt = 7;
+
+          /* set metric */
+          cnt = 4;
           while (cnt--)
             {
               token = strtok (NULL, " \t\n");
               if (!token)
                 g_message ("getipv6routes error");
             }
+          endptr = NULL;
+          myroutes[*numroutes].metric = strtoul (token, &endptr, 16);
+          if (!endptr || *endptr)
+            {
+              g_message (
+                "%s: Failed to determine metric from /proc/net/ipv6_route",
+                __func__);
+              continue;
+            }
 
+          /* set interface name */
+          cnt = 3;
+          while (cnt--)
+            {
+              token = strtok (NULL, " \t\n");
+              if (!token)
+                g_message ("getipv6routes error");
+            }
           bzero (iface, sizeof (iface));
           token = strtok (NULL, " \t\n");
           if (token)
