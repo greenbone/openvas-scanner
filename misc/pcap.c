@@ -55,12 +55,17 @@ struct interface_info
   struct in6_addr mask;
 };
 
+/**
+ * Only used for v6_routethrough() and not routethrough().
+ * routethrough() uses a local version of the myroutes struct.
+ */
 struct myroute
 {
   struct interface_info *dev;
   struct in6_addr dest6;
   unsigned long mask;
   unsigned long dest;
+  unsigned long metric;
 };
 
 struct interface_info *
@@ -564,6 +569,18 @@ v6_getsourceip (struct in6_addr *src, struct in6_addr *dst)
   return 1; /* Calling function responsible for checking validity */
 }
 
+/**
+ * @brief Get the ipv4 routes and number of routes.
+ *
+ * This function is only used for getting the ipv4 routes in v6_routethrough().
+ * routethrough() overwrites the global myroutes struct with a local version
+ * and uses its own logic for getting the routes from /proc/net/route.
+ *
+ * @param[out] myroutes Array of routes.
+ * @param[out] numroutes Number of routes in myroutes.
+ *
+ * @return 0 on success, -1 on error.
+ **/
 int
 getipv4routes (struct myroute *myroutes, int *numroutes)
 {
@@ -625,7 +642,7 @@ getipv4routes (struct myroute *myroutes, int *numroutes)
           myroutes[*numroutes].dest6.s6_addr32[1] = 0;
           myroutes[*numroutes].dest6.s6_addr32[2] = htonl (0xffff);
           myroutes[*numroutes].dest6.s6_addr32[3] = inaddr.s_addr;
-          for (i = 0; i < 6; i++)
+          for (i = 0; i < 5; i++)
             {
               p = strtok (NULL, " \t\n");
               if (!p)
@@ -638,6 +655,16 @@ getipv4routes (struct myroute *myroutes, int *numroutes)
                          i + 2);
               continue;
             }
+          /* set metric */
+          endptr = NULL;
+          myroutes[*numroutes].metric = strtol (p, &endptr, 10);
+          if (!endptr || *endptr)
+            {
+              g_message ("%s: Failed to determine metric from /proc/net/route",
+                         __func__);
+              continue;
+            }
+          p = strtok (NULL, " \t\n");
           endptr = NULL;
           mask = strtoul (p, &endptr, 16);
           ones = 0;
@@ -680,6 +707,17 @@ getipv4routes (struct myroute *myroutes, int *numroutes)
     return -1;
 }
 
+/**
+ * @brief Get the IPv6 routes and number of routes.
+ *
+ * This function parses the /proc/net/ipv6_route file into an array of
+ * myroute structs.
+ *
+ * @param[out] myroutes Array of routes.
+ * @param[out] numroutes Number of routes in myroutes.
+ *
+ * @return 0 on success, -1 when no routes are found.
+ */
 int
 getipv6routes (struct myroute *myroutes, int *numroutes)
 {
@@ -734,14 +772,33 @@ getipv6routes (struct myroute *myroutes, int *numroutes)
               endptr = NULL;
               myroutes[*numroutes].mask = strtoul (token, &endptr, 16);
             }
-          cnt = 7;
+
+          /* set metric */
+          cnt = 4;
           while (cnt--)
             {
               token = strtok (NULL, " \t\n");
               if (!token)
                 g_message ("getipv6routes error");
             }
+          endptr = NULL;
+          myroutes[*numroutes].metric = strtoul (token, &endptr, 16);
+          if (!endptr || *endptr)
+            {
+              g_message (
+                "%s: Failed to determine metric from /proc/net/ipv6_route",
+                __func__);
+              continue;
+            }
 
+          /* set interface name */
+          cnt = 3;
+          while (cnt--)
+            {
+              token = strtok (NULL, " \t\n");
+              if (!token)
+                g_message ("getipv6routes error");
+            }
           bzero (iface, sizeof (iface));
           token = strtok (NULL, " \t\n");
           if (token)
@@ -801,6 +858,7 @@ v6_routethrough (struct in6_addr *dest, struct in6_addr *source)
   struct in6_addr mask;
   struct in6_addr network;
   struct in6_addr src;
+  long best_match = -1;
 
   if (!dest)
     {
@@ -874,11 +932,10 @@ v6_routethrough (struct in6_addr *dest, struct in6_addr *source)
 
   if (technique == procroutetechnique)
     {
+      char addr1[INET6_ADDRSTRLEN];
+      char addr2[INET6_ADDRSTRLEN];
       for (i = 0; i < numroutes; i++)
         {
-          char addr1[INET6_ADDRSTRLEN];
-          char addr2[INET6_ADDRSTRLEN];
-
           if (ipv6_prefix_to_mask (myroutes[i].mask, &mask) == -1)
             {
               g_warning ("error creating IPv6 mask from prefix: %ld",
@@ -892,28 +949,53 @@ v6_routethrough (struct in6_addr *dest, struct in6_addr *source)
             "comparing addresses %s and %s",
             inet_ntop (AF_INET6, &network, addr1, sizeof (addr1)),
             inet_ntop (AF_INET6, &myroutes[i].dest6, addr2, sizeof (addr2)));
+          /* matching route found */
           if (IN6_ARE_ADDR_EQUAL (&network, &myroutes[i].dest6))
             {
-              if (source)
+              /* First time a match is found */
+              if (-1 == best_match)
                 {
-                  if (!IN6_ARE_ADDR_EQUAL (&src, &in6addr_any))
-                    memcpy (source, &src, sizeof (struct in6_addr));
-                  else
+                  best_match = i;
+                }
+              else
+                {
+                  /* Better match found */
+                  if (myroutes[i].mask > myroutes[best_match].mask)
                     {
-                      if (myroutes[i].dev != NULL)
-                        {
-                          g_debug ("copying address %s",
-                                   inet_ntop (AF_INET6, &myroutes[i].dev->addr6,
-                                              addr1, sizeof (addr1)));
-                          g_debug ("dev name is %s", myroutes[i].dev->name);
-                          memcpy (source, &myroutes[i].dev->addr6,
-                                  sizeof (struct in6_addr));
-                        }
+                      best_match = i;
+                    }
+                  /* Match with equal mask and smaller (better) metric found */
+                  else if ((myroutes[i].mask == myroutes[best_match].mask)
+                           && (myroutes[i].metric
+                               < myroutes[best_match].metric))
+                    {
+                      best_match = i;
                     }
                 }
-              return myroutes[i].dev->name;
             }
         }
+      if (source)
+        {
+          if (!IN6_ARE_ADDR_EQUAL (&src, &in6addr_any))
+            memcpy (source, &src, sizeof (struct in6_addr));
+          else
+            {
+              if (myroutes[best_match].dev != NULL)
+                {
+                  memcpy (source, &myroutes[best_match].dev->addr6,
+                          sizeof (struct in6_addr));
+                }
+            }
+        }
+      g_debug (
+        "%s: Best matching route with dst '%s' metric '%ld' and interface '%s'",
+        __func__,
+        inet_ntop (AF_INET6, &myroutes[best_match].dest6, addr1,
+                   sizeof (addr1)),
+        myroutes[best_match].mask, myroutes[best_match].dev->name);
+      if (best_match != -1)
+        return myroutes[best_match].dev->name;
+
       technique = connectsockettechnique;
     }
   if (technique == connectsockettechnique)
