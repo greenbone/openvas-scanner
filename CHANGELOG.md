@@ -14,7 +14,6 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 - Add insert_tcp_options and insert_tcp_v6_options nasl functions. [#618](https://github.com/greenbone/openvas/pull/618)
 - Add get_tcp_option and extend dump_tcp_packet nasl functions. [#621](https://github.com/greenbone/openvas/pull/621)
 - Add nasl function to get the scan main kb index. [#628](https://github.com/greenbone/openvas/pull/628)
-- Add new scanner only option to enable the table driven lsc. [#632](https://github.com/greenbone/openvas/pull/632)
 - Add new scanner only option for spawning NASL functions with a different owner. [#634](https://github.com/greenbone/openvas/pull/634)
 
 ### Changed
