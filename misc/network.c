@@ -1,4 +1,4 @@
-/* Portions Copyright (C) 2009-2020 Greenbone Networks GmbH
+/* Portions Copyright (C) 2009-2021 Greenbone Networks GmbH
  * Based on work Copyright (C) 1998 - 2002 Renaud Deraison
  *               SSL Support Copyright (C) 2001 Michel Arboi
  *
