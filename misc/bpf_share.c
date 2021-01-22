@@ -1,4 +1,4 @@
-/* Portions Copyright (C) 2009-2020 Greenbone Networks GmbH
+/* Portions Copyright (C) 2009-2021 Greenbone Networks GmbH
  * Copyright (C) 2003 Renaud Deraison
  *
  * SPDX-License-Identifier: GPL-2.0-only

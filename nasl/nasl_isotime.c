@@ -1,4 +1,4 @@
-/* Portions Copyright (C) 2012-2019 Greenbone Networks GmbH
+/* Portions Copyright (C) 2012-2021 Greenbone Networks GmbH
  * Based on work Copyright (C) 1998, 2002, 2007, 2011 Free Software Foundation,
  * Inc.
  *
