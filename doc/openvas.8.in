@@ -124,7 +124,7 @@ Whether to expand the target host's list of vhosts with values gathered from sou
 .IP non_simult_ports
 Some services (in particular SMB) do not appreciate multiple connections at the same time coming from the same host. This option allows you to prevent openvas to make two connections on the same given ports at the same time. The syntax of this option is "port1[, port2....]". Note that you can use the KB notation of openvas to designate a service formally. Ex: "139, Services/www", will prevent openvas from making two connections at the same time on port 139 and on every port which hosts a web server.
 
-.IP allow_simult_ips_same_host
+.IP allow_simultaneous_ips
 If set to no, this option prevent openvas to scan more than one different IPs (e.g. the IPv4 and IPv6 addresses) which belong to the same host at the same time. Default, yes.
 
 .IP plugins_timeout

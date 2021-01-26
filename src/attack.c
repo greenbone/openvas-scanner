@@ -1019,7 +1019,7 @@ attack_network (struct scan_globals *globals)
   struct timeval then, now;
   gvm_hosts_t *hosts;
   const gchar *port_range;
-  int allow_simult_ips_same_host;
+  int allow_simultaneous_ips;
   kb_t host_kb, main_kb;
   GSList *unresolved;
   char buf[96];
@@ -1167,7 +1167,7 @@ attack_network (struct scan_globals *globals)
   /*
    * Start the attack !
    */
-  allow_simult_ips_same_host = prefs_get_bool ("allow_simult_ips_same_host");
+  allow_simultaneous_ips = prefs_get_bool ("allow_simultaneous_ips");
   openvas_signal (SIGUSR1, handle_scan_stop_signal);
   while (host && !scan_is_stopped ())
     {
@@ -1176,7 +1176,7 @@ attack_network (struct scan_globals *globals)
       char *host_str;
 
       if (!test_alive_hosts_only
-          && (!allow_simult_ips_same_host && host_is_currently_scanned (host)))
+          && (!allow_simultaneous_ips && host_is_currently_scanned (host)))
         {
           sleep (1);
           // move the host at the end of the list and get the next host.
@@ -1260,7 +1260,7 @@ attack_network (struct scan_globals *globals)
                   fork_sleep (1);
                 }
 
-              if (host && !allow_simult_ips_same_host
+              if (host && !allow_simultaneous_ips
                   && host_is_currently_scanned (host))
                 {
                   struct in6_addr hostip;
