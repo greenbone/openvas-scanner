@@ -34,6 +34,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 - Fix snmp result. Only return the value and do not stop at the first \n. [#627](https://github.com/greenbone/openvas/pull/627)
 - Fix masking of IPv6 addresses. [#635](https://github.com/greenbone/openvas/pull/635)
 - Fix technique switch for getting the appropriate interface to use for IPv6 dst addr. [#636](https://github.com/greenbone/openvas/pull/636)
+- Fix host count. Set to -1 when the target string is invalid. [#646](https://github.com/greenbone/openvas/pull/646)
 
 [20.08]: https://github.com/greenbone/openvas/compare/v20.8.0...openvas-20.08
 
