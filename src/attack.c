@@ -71,6 +71,10 @@
  * process bar.
  */
 #define PROGRESS_BAR_STYLE 1
+/**
+ * Define value to be sent to the client for invalid target list.
+ **/
+#define INVALID_TARGET_LIST "-1"
 
 #undef G_LOG_DOMAIN
 /**
@@ -1082,9 +1086,12 @@ attack_network (struct scan_globals *globals)
       connect_main_kb (&main_kb);
       message_to_client (main_kb, buffer, NULL, NULL, "ERRMSG");
       g_free (buffer);
+      /* Send the hosts count to the client as -1,
+       * because the invalid target list.*/
+      message_to_client (main_kb, INVALID_TARGET_LIST, NULL, NULL,
+                         "HOSTS_COUNT");
       kb_lnk_reset (main_kb);
       g_warning ("Invalid target list. Scan terminated.");
-      set_scan_status ("finished");
       goto stop;
     }
 
