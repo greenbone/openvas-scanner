@@ -4,7 +4,7 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
-## [20.08.1] (unreleased)
+## [20.08.1] (2021.02.01)
 
 ### Added
 - Extend nasl lint to detect if function parameter is used twice. [#590](https://github.com/greenbone/openvas/pull/590)
@@ -36,7 +36,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 - Fix technique switch for getting the appropriate interface to use for IPv6 dst addr. [#636](https://github.com/greenbone/openvas/pull/636)
 - Fix host count. Set to -1 when the target string is invalid. [#646](https://github.com/greenbone/openvas/pull/646)
 
-[20.08]: https://github.com/greenbone/openvas/compare/v20.8.0...openvas-20.08
+[20.08.1]: https://github.com/greenbone/openvas/compare/v20.8.0...v20.8.1
 
 ## [20.08] (2020-08-11)
 
