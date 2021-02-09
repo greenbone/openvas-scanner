@@ -637,11 +637,13 @@ nasl_lint (lex_ctxt *lexic, tree_cell *st)
   lexic_aux->oid = lexic->oid;
 
   /* Check description block sanity. Limite the search to the description
-   * block only */
+   * block only. Include files don't have a description block and won't be
+   * checked */
   desc_block = find_description_block (lexic_aux, st);
-  /* FAKE_CELL if success, NULL otherwhise */
-  if ((ret = check_description_block (lexic_aux, desc_block)) == NULL)
-    goto fail;
+  if (desc_block != NULL && desc_block != FAKE_CELL)
+    /* FAKE_CELL if success, NULL otherwhise which counts as error */
+    if ((ret = check_description_block (lexic_aux, desc_block)) == NULL)
+      goto fail;
 
   /* Make a list of all called functions */
   make_call_func_list (lexic_aux, st, &called_funcs);
