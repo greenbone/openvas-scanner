@@ -549,7 +549,7 @@ check_description_block_xref (lex_ctxt *lexic, tree_cell *st)
 
 /**
  * @brief Sanity check of the description block
- * @return FAKE_CELL if success, NULL otherwhise.
+ * @return FAKE_CELL if success, NULL otherwise.
  */
 tree_cell *
 check_description_block (lex_ctxt *lexic, tree_cell *st)
@@ -636,12 +636,12 @@ nasl_lint (lex_ctxt *lexic, tree_cell *st)
   lexic_aux->script_infos = lexic->script_infos;
   lexic_aux->oid = lexic->oid;
 
-  /* Check description block sanity. Limite the search to the description
+  /* Check description block sanity. Limit the search to the description
    * block only. Include files don't have a description block and won't be
    * checked */
   desc_block = find_description_block (lexic_aux, st);
   if (desc_block != NULL && desc_block != FAKE_CELL)
-    /* FAKE_CELL if success, NULL otherwhise which counts as error */
+    /* FAKE_CELL if success, NULL otherwise which counts as error */
     if ((ret = check_description_block (lexic_aux, desc_block)) == NULL)
       goto fail;
 
