@@ -458,7 +458,10 @@ getinterfaces (int *howmany)
       /* In case it is a stinkin' alias */
       if ((p = strchr (ifr->ifr_name, ':')))
         *p = '\0';
-      strncpy (mydevs[numinterfaces].name, ifr->ifr_name, 63);
+      #pragma GCC diagnostic push
+      #pragma GCC diagnostic ignored "-Wstringop-truncation"
+        strncpy (mydevs[numinterfaces].name, ifr->ifr_name, 63);
+      #pragma GCC diagnostic pop
       mydevs[numinterfaces].name[63] = '\0';
       numinterfaces++;
       if (numinterfaces == 1023)
@@ -622,7 +625,10 @@ getipv4routes (struct myroute *myroutes, int *numroutes)
                          " /proc/net/route line");
               continue;
             }
-          strncpy (iface, p, sizeof (iface));
+          #pragma GCC diagnostic push
+          #pragma GCC diagnostic ignored "-Wstringop-truncation"
+            strncpy (iface, p, sizeof (iface));
+          #pragma GCC diagnostic pop
           if ((p = strchr (iface, ':')))
             {
               *p = '\0'; /* To support IP aliasing */
@@ -1114,7 +1120,10 @@ routethrough (struct in_addr *dest, struct in_addr *source)
                              " /proc/net/route line");
                   continue;
                 }
-              strncpy (iface, p, sizeof (iface));
+              #pragma GCC diagnostic push
+              #pragma GCC diagnostic ignored "-Wstringop-truncation"
+                strncpy (iface, p, sizeof (iface));
+              #pragma GCC diagnostic pop
               if ((p = strchr (iface, ':')))
                 {
                   *p = '\0'; /* To support IP aliasing */
