@@ -62,10 +62,10 @@ nasl_get_plugin_filename ()
 void
 nasl_set_plugin_filename (const char *filename)
 {
-  #pragma GCC diagnostic push
-  #pragma GCC diagnostic ignored "-Wstringop-truncation"
-    strncpy (debug_plugin_filename, filename, sizeof (debug_plugin_filename));
-  #pragma GCC diagnostic pop
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wstringop-truncation"
+  strncpy (debug_plugin_filename, filename, sizeof (debug_plugin_filename));
+#pragma GCC diagnostic pop
 }
 
 const char *
