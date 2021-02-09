@@ -7,6 +7,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 ## [20.08.2] (unreleased)
 
 ### Added
+- Check for wrong names or values in the script_xrefs params. [#650](https://github.com/greenbone/openvas/pull/650)
+
 ### Changed
 ### Fixed
 ### Removed

@@ -1,4 +1,5 @@
-/* Copyright (C) 2004 Michel Arboi
+/* Portions Copyright (C) 2009-2021 Greenbone Networks GmbH
+ * Base on work Copyright (C) 2004 Michel Arboi
  *
  * SPDX-License-Identifier: GPL-2.0-only
  *
@@ -26,6 +27,7 @@
 #include "nasl_var.h"
 
 #include <string.h>
+#include <unistd.h>
 
 #undef G_LOG_DOMAIN
 /**
@@ -517,6 +519,92 @@ make_call_func_list (lex_ctxt *lexic, tree_cell *st, GSList **called_funcs)
 }
 
 /**
+ * @brief Sanity check of the script_xref parameters in the description block
+ */
+tree_cell *
+check_description_block_xref (lex_ctxt *lexic, tree_cell *st)
+{
+  int i;
+  tree_cell *ret = FAKE_CELL;
+
+  switch (st->type)
+    {
+    case CONST_STR:
+      if (g_strrstr (st->x.str_val, ",") != NULL)
+        {
+          g_message ("%s: An error in script_xrefs function was found. "
+                     "Comma is not allow in xrefs names or values: '%s'",
+                     nasl_get_filename (st->x.str_val), st->x.str_val);
+          return NULL;
+        }
+      /* fallthrough */
+    default:
+      for (i = 0; i < 4; i++)
+        if (st->link[i] != NULL && st->link[i] != FAKE_CELL)
+          if ((ret = check_description_block_xref (lexic, st->link[i])) == NULL)
+            return NULL;
+    }
+  return ret;
+}
+
+/**
+ * @brief Sanity check of the description block
+ * @return FAKE_CELL if success, NULL otherwise.
+ */
+tree_cell *
+check_description_block (lex_ctxt *lexic, tree_cell *st)
+{
+  int i;
+  tree_cell *ret = FAKE_CELL;
+
+  if (st->type == NODE_FUN_CALL)
+    if (!g_strcmp0 (st->x.str_val, "script_xref"))
+      if ((ret = check_description_block_xref (lexic, st)) == NULL)
+        return NULL;
+
+  for (i = 0; i < 4; i++)
+    if (st->link[i] != NULL && st->link[i] != FAKE_CELL)
+      if ((ret = check_description_block (lexic, st->link[i])) == NULL)
+        return NULL;
+
+  return ret;
+}
+
+/**
+ * @brief Sanity check of the description block
+ *
+ * @return pointer to the description block tree cell.
+ */
+tree_cell *
+find_description_block (lex_ctxt *lexic, tree_cell *st)
+{
+  int i;
+  tree_cell *ret = FAKE_CELL;
+  tree_cell *st_aux = NULL;
+
+  if (st && st->type == NODE_IF_ELSE)
+    {
+      for (i = 0; i < 4; i++)
+        if (st->link[i] != NULL && st->link[i] != FAKE_CELL)
+          {
+            st_aux = st->link[i];
+            if (st_aux->type == NODE_VAR
+                && !g_strcmp0 (st_aux->x.str_val, "description"))
+              return st;
+          }
+    }
+  else
+    for (i = 0; i < 4; i++)
+      {
+        if (st->link[i] != NULL && st->link[i] != FAKE_CELL)
+          if ((ret = find_description_block (lexic, st->link[i])) == NULL)
+            return NULL;
+        return ret;
+      }
+  return NULL;
+}
+
+/**
  * @brief Search for errors in a nasl script
  *
  * @param[in] lexic nasl context.
@@ -536,6 +624,7 @@ nasl_lint (lex_ctxt *lexic, tree_cell *st)
   GSList *called_funcs = NULL;
   GSList *def_func_tree = NULL;
   gchar *err_fname = NULL;
+  tree_cell *desc_block = FAKE_CELL;
 
   nasl_name = g_strdup (nasl_get_filename (st->x.str_val));
   include_files =
@@ -546,6 +635,15 @@ nasl_lint (lex_ctxt *lexic, tree_cell *st)
   lexic_aux = init_empty_lex_ctxt ();
   lexic_aux->script_infos = lexic->script_infos;
   lexic_aux->oid = lexic->oid;
+
+  /* Check description block sanity. Limit the search to the description
+   * block only. Include files don't have a description block and won't be
+   * checked */
+  desc_block = find_description_block (lexic_aux, st);
+  if (desc_block != NULL && desc_block != FAKE_CELL)
+    /* FAKE_CELL if success, NULL otherwise which counts as error */
+    if ((ret = check_description_block (lexic_aux, desc_block)) == NULL)
+      goto fail;
 
   /* Make a list of all called functions */
   make_call_func_list (lexic_aux, st, &called_funcs);
