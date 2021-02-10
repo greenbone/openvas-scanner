@@ -94,7 +94,6 @@ int global_max_checks = 10;
  */
 GSList *log_config = NULL;
 
-static volatile int loading_stop_signal = 0;
 static volatile int termination_signal = 0;
 static char *global_scan_id = NULL;
 

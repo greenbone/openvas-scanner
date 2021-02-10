@@ -13,6 +13,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ### Changed
 ### Fixed
+- Fix issues discovered with clang compiler.   [#654](https://github.com/greenbone/openvas/pull/654)
 - Fix gcc-9 adn gcc-10 warnings. [#655](https://github.com/greenbone/openvas/pull/655)
 
 ### Removed
