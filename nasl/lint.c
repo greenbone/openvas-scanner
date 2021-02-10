@@ -530,10 +530,11 @@ check_description_block_xref (lex_ctxt *lexic, tree_cell *st)
   switch (st->type)
     {
     case CONST_STR:
-      if (g_strrstr (st->x.str_val, ",") != NULL)
+      if (g_strrstr (st->x.str_val, ", ") != NULL)
         {
           g_message ("%s: An error in script_xrefs function was found. "
-                     "Comma is not allow in xrefs names or values: '%s'",
+                     "Spaces after a comma are not allow in xrefs names "
+                     "or values: '%s'",
                      nasl_get_filename (st->x.str_val), st->x.str_val);
           return NULL;
         }
