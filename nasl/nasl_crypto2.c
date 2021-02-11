@@ -1626,9 +1626,9 @@ encrypt_stream_data (lex_ctxt *lexic, int cipher, const char *caller_func)
   if (!data || datalen <= 0)
     {
       nasl_perror (lexic,
-                   "Syntax: encrypt_stream_data (called from "
+                   "Syntax: %s (called from "
                    "%s): Missing data argument",
-                   caller_func);
+                   __func__, caller_func);
       return NULL;
     }
 
@@ -1642,7 +1642,14 @@ encrypt_stream_data (lex_ctxt *lexic, int cipher, const char *caller_func)
       tmp = g_memdup (data, datalen);
       tmplen = datalen;
     }
-
+  else
+    {
+      nasl_perror (lexic,
+                   "Syntax: %s (called from "
+                   "%s): invalid cipher",
+                   __func__, caller_func);
+      return NULL;
+    }
   result = g_malloc0 (resultlen);
   if ((error = gcry_cipher_encrypt (hd, result, resultlen, tmp, tmplen)))
     {
@@ -1663,10 +1670,9 @@ encrypt_stream_data (lex_ctxt *lexic, int cipher, const char *caller_func)
 /**
  * @brief Nasl function to delete a cipher item from the cipher table.
  *
- * @param[in] cipher The cipher algorithm. It must be the same used for the
- * handler. It is used to prepare the data. Only GCRY_CIPHER_ARCFOUR is
- * currently supported.
- * @return Returns the encrypted data on success. Otherwise NULL.
+ * @param[in] cipher_id The cipher id to close
+ *
+ * @return Returns zero on success. Otherwise NULL.
  */
 tree_cell *
 nasl_close_stream_cipher (lex_ctxt *lexic)
