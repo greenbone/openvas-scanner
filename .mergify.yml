@@ -1,0 +1,57 @@
+pull_request_rules:
+  # backports from master branch
+  - name: backport master patches to 21.04 branch
+    conditions:
+      - base=master
+      - label=backport-to-21.04
+    actions:
+      backport:
+        branches:
+          - openvas-21.04
+
+  - name: backport master patches to 20.08 branch
+    conditions:
+      - base=master
+      - label=backport-to-20.08
+    actions:
+      backport:
+        branches:
+          - openvas-20.08
+
+  # backports from upcoming release branch
+  - name: backport 21.04 patches to master branch
+    conditions:
+      - base=openvas-21.04
+      - label=backport-to-master
+    actions:
+      backport:
+        branches:
+          - master
+
+  - name: backport 21.04 patches to master branch
+    conditions:
+      - base=openvas-21.04
+      - label=backport-to-20.08
+    actions:
+      backport:
+        branches:
+          - openvas-20.08
+
+  # backports from current release branch
+  - name: backport 20.08 patches to master branch
+    conditions:
+      - base=openvas-20.08
+      - label=backport-to-master
+    actions:
+      backport:
+        branches:
+          - master
+
+  - name: backport 20.08 patches to 21.04 branch
+    conditions:
+      - base=openvas-20.08
+      - label=backport-to-21.04
+    actions:
+      backport:
+        branches:
+          - openvas-21.04
