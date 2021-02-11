@@ -63,6 +63,7 @@ void
 nasl_set_plugin_filename (const char *filename)
 {
   strncpy (debug_plugin_filename, filename, sizeof (debug_plugin_filename));
+  debug_plugin_filename[PATH_MAX - 1] = '\0';
 }
 
 const char *

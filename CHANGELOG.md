@@ -13,6 +13,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ### Changed
 ### Fixed
+- Fix gcc-9 adn gcc-10 warnings. [#655](https://github.com/greenbone/openvas/pull/655)
+
 ### Removed
 
 [20.08.2]: https://github.com/greenbone/openvas/compare/v20.8.0...openvas-20.08
