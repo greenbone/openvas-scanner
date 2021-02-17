@@ -113,6 +113,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 - Fix size calculation which lead to alloc error in get_tcp_element() of openvas-nasl. [#546](https://github.com/greenbone/openvas/pull/546)
 - Fix filter out of default 'radio' type preferences [#560](https://github.com/greenbone/openvas/pull/560)
 - Allow group access to lockfile and fix empty timestamp [#562](https://github.com/greenbone/openvas/pull/562)
+- Do not simply abort when log file is not writable but print err msg and shutdown gracefully instead. [#661](https://github.com/greenbone/openvas/pull/661)
 
 ### Removed
 - Removed "network scan" mode. This includes removal of NASL API methods "scan_phase()" and "network_targets()". Sending a "network_mode=yes" in a scanner configuration will have no effect anymore. [#493](https://github.com/greenbone/openvas/pull/493)

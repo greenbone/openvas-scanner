@@ -314,6 +314,7 @@ init_openvas (const char *config_file)
 {
   static gchar *rc_name = NULL;
   int i;
+  int err;
 
   for (i = 0; openvas_defaults[i].option != NULL; i++)
     prefs_set (openvas_defaults[i].option, openvas_defaults[i].value);
@@ -323,8 +324,16 @@ init_openvas (const char *config_file)
   rc_name = g_build_filename (OPENVAS_SYSCONF_DIR, "openvas_log.conf", NULL);
   if (g_file_test (rc_name, G_FILE_TEST_EXISTS))
     log_config = load_log_configuration (rc_name);
+  err = setup_log_handlers (log_config);
+  if (err)
+    {
+      g_warning ("%s: Can not open or create log file or directory. "
+                 "Please check permissions of log files listed in %s.",
+                 __func__, rc_name);
+      g_free (rc_name);
+      return -1;
+    }
   g_free (rc_name);
-  setup_log_handlers (log_config);
   set_globals_from_preferences ();
 
   return 0;
