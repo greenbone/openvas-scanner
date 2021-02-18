@@ -244,7 +244,7 @@ nasl_end_denial (lex_ctxt *lexic)
   int to = lexic->recv_timeout;
   struct script_infos *script_infos = lexic->script_infos;
   tree_cell *retc = NULL;
-  char bogus_data[64];
+  char *bogus_data;
 
   /*
    * We must wait the time the DoS does its effect
@@ -272,15 +272,16 @@ nasl_end_denial (lex_ctxt *lexic)
       if (soc > 0)
         {
           /* Send some data */
-          snprintf (bogus_data, sizeof (bogus_data),
-                    "Network Security Scan In Progress run by %s",
-                    vendor_version_get ());
+          bogus_data = g_strdup_printf (
+            "Network Security Scan by %s in progress", vendor_version_get ());
           if ((nsend (soc, bogus_data, strlen (bogus_data), 0)) >= 0)
             {
+              g_free (bogus_data);
               retc->x.i_val = 1;
               close_stream_connection (soc);
               return retc;
             }
+          g_free (bogus_data);
         }
     }
 
