@@ -23,9 +23,10 @@
 
 #include "nasl_misc_funcs.h"
 
-#include "../misc/ftp_funcs.h" /* for ftp_log_in */
-#include "../misc/network.h"   /* read_stream_connection_min */
-#include "../misc/plugutils.h" /* plug_get_host_open_port */
+#include "../misc/ftp_funcs.h"     /* for ftp_log_in */
+#include "../misc/network.h"       /* read_stream_connection_min */
+#include "../misc/plugutils.h"     /* plug_get_host_open_port */
+#include "../misc/vendorversion.h" /* for vendor_version_get */
 #include "byteorder.h"
 #include "exec.h"
 #include "nasl_debug.h"
@@ -243,6 +244,7 @@ nasl_end_denial (lex_ctxt *lexic)
   int to = lexic->recv_timeout;
   struct script_infos *script_infos = lexic->script_infos;
   tree_cell *retc = NULL;
+  char bogus_data[64];
 
   /*
    * We must wait the time the DoS does its effect
@@ -270,8 +272,10 @@ nasl_end_denial (lex_ctxt *lexic)
       if (soc > 0)
         {
           /* Send some data */
-#define BOGUS "are you dead ?"
-          if ((nsend (soc, BOGUS, sizeof (BOGUS) - 1, 0)) >= 0)
+          snprintf (bogus_data, sizeof (bogus_data),
+                    "Network Security Scan In Progress run by %s",
+                    vendor_version_get ());
+          if ((nsend (soc, bogus_data, strlen (bogus_data), 0)) >= 0)
             {
               retc->x.i_val = 1;
               close_stream_connection (soc);
