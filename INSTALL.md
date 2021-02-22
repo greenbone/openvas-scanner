@@ -20,7 +20,7 @@ Prerequisites:
 * pkg-config
 * libpcap
 * libgpgme >= 1.1.2
-* redis >= 3.2.0
+* redis >= 5.0.3
 * libssh >= 0.6.0
 * libksba >= 1.0.7
 * libgnutls >= 3.6.4
