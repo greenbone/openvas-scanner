@@ -47,9 +47,14 @@
  */
 #define G_LOG_DOMAIN "lib  misc"
 
+/**
+ * @brief Maximum length of an interface's name
+ */
+#define MAX_IFACE_NAME_LEN 64
+
 struct interface_info
 {
-  char name[64];
+  char name[MAX_IFACE_NAME_LEN];
   struct in_addr addr;
   struct in6_addr addr6;
   struct in6_addr mask;
@@ -458,8 +463,14 @@ getinterfaces (int *howmany)
       /* In case it is a stinkin' alias */
       if ((p = strchr (ifr->ifr_name, ':')))
         *p = '\0';
-      strncpy (mydevs[numinterfaces].name, ifr->ifr_name, 63);
-      mydevs[numinterfaces].name[63] = '\0';
+
+      memset (mydevs[numinterfaces].name, '\0', MAX_IFACE_NAME_LEN);
+      if (strlen (ifr->ifr_name) < MAX_IFACE_NAME_LEN)
+        memcpy (mydevs[numinterfaces].name, ifr->ifr_name,
+                strlen (ifr->ifr_name));
+      else
+        memcpy (mydevs[numinterfaces].name, ifr->ifr_name,
+                MAX_IFACE_NAME_LEN - 1);
       numinterfaces++;
       if (numinterfaces == 1023)
         {
@@ -589,7 +600,7 @@ getipv4routes (struct myroute *myroutes, int *numroutes)
   int numinterfaces;
   char buf[1024];
   char *p, *endptr;
-  char iface[64];
+  char iface[MAX_IFACE_NAME_LEN];
   FILE *routez;
   unsigned long dest;
   struct in_addr inaddr;
@@ -623,6 +634,7 @@ getipv4routes (struct myroute *myroutes, int *numroutes)
               continue;
             }
           strncpy (iface, p, sizeof (iface));
+          iface[MAX_IFACE_NAME_LEN - 1] = '\0';
           if ((p = strchr (iface, ':')))
             {
               *p = '\0'; /* To support IP aliasing */
@@ -1075,7 +1087,7 @@ routethrough (struct in_addr *dest, struct in_addr *source)
   } myroutes[MAXROUTES];
   int numinterfaces = 0;
   char *p, *endptr;
-  char iface[64];
+  char iface[MAX_IFACE_NAME_LEN];
   static int numroutes = 0;
   FILE *routez;
   long best_match = -1;
@@ -1115,6 +1127,7 @@ routethrough (struct in_addr *dest, struct in_addr *source)
                   continue;
                 }
               strncpy (iface, p, sizeof (iface));
+              iface[MAX_IFACE_NAME_LEN - 1] = '\0';
               if ((p = strchr (iface, ':')))
                 {
                   *p = '\0'; /* To support IP aliasing */

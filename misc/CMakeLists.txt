@@ -91,6 +91,28 @@ set (FILES bpf_share.c ftp_funcs.c vendorversion.c network.c plugutils.c pcap.c
 # Also stack protection needs a shared library to work
 set (CMAKE_C_FLAGS              "${CMAKE_C_FLAGS} -Wall -Wextra -fPIC")
 
+## Project version
+# The following three variables should be set through the project command once
+# we require CMake >= 3.0
+set (MISC_VERSION_MAJOR 20)
+set (MISC_VERSION_MINOR 8)
+set (MISC_VERSION_PATCH 2)
+
+if (PROJECT_BETA_RELEASE)
+  set (MISC_VERSION_SUFFIX "+beta${PROJECT_BETA_RELEASE}")
+else (PROJECT_BETA_RELEASE)
+  set (MISC_VERSION_SUFFIX ".${PROJECT_VERSION_PATCH}")
+endif (PROJECT_BETA_RELEASE)
+
+set (MISC_VERSION_STRING "${MISC_VERSION_MAJOR}.${MISC_VERSION_MINOR}${MISC_VERSION_SUFFIX}")
+if (PROJECT_BETA_RELEASE)
+  set (MISC_PACKAGE_VERSION "${MISC_VERSION_STRING}${PROJECT_VERSION_GIT}")
+else (PROJECT_BETA_RELEASE)
+  set (MISC_PACKAGE_VERSION "${MISC_VERSION_STRING}")
+endif (PROJECT_BETA_RELEASE)
+set (MISC_VERSION "${MISC_VERSION_STRING}")
+
+
 # Build shared
 
 add_library (openvas_misc_shared SHARED ${FILES})

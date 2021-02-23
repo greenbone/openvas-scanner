@@ -4,12 +4,12 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
-## [unreleased]
+## [21.04.0] (unreleased)
 
 ### Added
 - Add scanner-only option to enable tls debugging. [#558](https://github.com/greenbone/openvas/pull/558)
 - Extend nasl lint to detect if function parameter is used twice. [#585](https://github.com/greenbone/openvas/pull/585)
-- Add option to specify if a host can be scanned through its IPv4 and IPv6 in parallel. 
+- Add option to specify if a host can be scanned through its IPv4 and IPv6 in parallel.
   [#604](https://github.com/greenbone/openvas/pull/604)
   [#645](https://github.com/greenbone/openvas/pull/645)
 - Add insert_tcp_options and insert_tcp_v6_options nasl functions. [#618](https://github.com/greenbone/openvas/pull/618)
@@ -24,9 +24,27 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 ### Removed
 - Use the nvticache name from gvm-libs, defined in nvticache.h. [#578](https://github.com/greenbone/openvas/pull/578)
 
-[unreleased]: https://github.com/greenbone/openvas/compare/openvas-20.08...master
+[21.04.0]: https://github.com/greenbone/openvas/compare/openvas-20.08...master
 
-## [20.08.1] (unreleased)
+## [20.08.2] (unreleased)
+
+### Added
+- Check for wrong names or values in the script_xrefs params.
+  [#650](https://github.com/greenbone/openvas/pull/650)
+  [#653](https://github.com/greenbone/openvas/pull/653)
+
+### Changed
+- Replace bogus data with a better message and the vendor. [#665](https://github.com/greenbone/openvas/pull/665)
+### Fixed
+- Fix issues discovered with clang compiler. [#654](https://github.com/greenbone/openvas/pull/654)
+- Fix gcc-9 and gcc-10 warnings. [#655](https://github.com/greenbone/openvas/pull/655)
+- Fix double free in nasl_cert_query. [#658](https://github.com/greenbone/openvas/pull/658)
+
+### Removed
+
+[20.08.2]: https://github.com/greenbone/openvas/compare/v20.8.0...openvas-20.08
+
+## [20.08.1] (2021.02.01)
 
 ### Added
 - Extend nasl lint to detect if function parameter is used twice. [#590](https://github.com/greenbone/openvas/pull/590)
@@ -57,8 +75,9 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 - Fix snmp result. Only return the value and do not stop at the first \n. [#627](https://github.com/greenbone/openvas/pull/627)
 - Fix masking of IPv6 addresses. [#635](https://github.com/greenbone/openvas/pull/635)
 - Fix technique switch for getting the appropriate interface to use for IPv6 dst addr. [#636](https://github.com/greenbone/openvas/pull/636)
+- Fix host count. Set to -1 when the target string is invalid. [#646](https://github.com/greenbone/openvas/pull/646)
 
-[20.08]: https://github.com/greenbone/openvas/compare/v20.8.0...openvas-20.08
+[20.08.1]: https://github.com/greenbone/openvas/compare/v20.8.0...v20.8.1
 
 ## [20.08] (2020-08-11)
 
