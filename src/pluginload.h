@@ -1,4 +1,4 @@
-/* Portions Copyright (C) 2009-2020 Greenbone Networks GmbH
+/* Portions Copyright (C) 2009-2021 Greenbone Networks GmbH
  * Portions Copyright (C) 2006 Software in the Public Interest, Inc.
  * Based on work Copyright (C) 1998 - 2006 Tenable Network Security, Inc.
  *
@@ -52,9 +52,6 @@ total_loading_plugins (void);
 /* From nasl_plugins.c */
 int
 nasl_plugin_add (char *, char *);
-
-int
-csv_vt_list_add (char *, char *);
 
 int
 nasl_plugin_launch (struct scan_globals *, struct in6_addr *, GSList *, kb_t,

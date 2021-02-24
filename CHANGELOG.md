@@ -4,17 +4,16 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
-## [unreleased]
+## [21.04.0] (unreleased)
 
 ### Added
 - Add scanner-only option to enable tls debugging. [#558](https://github.com/greenbone/openvas/pull/558)
 - Extend nasl lint to detect if function parameter is used twice. [#585](https://github.com/greenbone/openvas/pull/585)
-- Consider .csv files for checksum check and upload in redis cache. [#599](https://github.com/greenbone/openvas/pull/599)
-- Add option to specify if a host can be scanned through its IPv4 and IPv6 in parallel. [#604](https://github.com/greenbone/openvas/pull/604)
+- Add option to specify if a host can be scanned through its IPv4 and IPv6 in parallel.
+  [#604](https://github.com/greenbone/openvas/pull/604)
+  [#645](https://github.com/greenbone/openvas/pull/645)
 - Add insert_tcp_options and insert_tcp_v6_options nasl functions. [#618](https://github.com/greenbone/openvas/pull/618)
 - Add get_tcp_option and extend dump_tcp_packet nasl functions. [#621](https://github.com/greenbone/openvas/pull/621)
-- Add nasl function to get the scan main kb index. [#628](https://github.com/greenbone/openvas/pull/628)
-- Add new scanner only option to enable the table driven lsc. [#632](https://github.com/greenbone/openvas/pull/632)
 - Add new scanner only option for spawning NASL functions with a different owner. [#634](https://github.com/greenbone/openvas/pull/634)
 
 ### Changed
@@ -25,9 +24,27 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 ### Removed
 - Use the nvticache name from gvm-libs, defined in nvticache.h. [#578](https://github.com/greenbone/openvas/pull/578)
 
-[unreleased]: https://github.com/greenbone/openvas/compare/openvas-20.08...master
+[21.04.0]: https://github.com/greenbone/openvas/compare/openvas-20.08...master
 
-## [20.08.1] (unreleased)
+## [20.08.2] (unreleased)
+
+### Added
+- Check for wrong names or values in the script_xrefs params.
+  [#650](https://github.com/greenbone/openvas/pull/650)
+  [#653](https://github.com/greenbone/openvas/pull/653)
+
+### Changed
+- Replace bogus data with a better message and the vendor. [#665](https://github.com/greenbone/openvas/pull/665)
+### Fixed
+- Fix issues discovered with clang compiler. [#654](https://github.com/greenbone/openvas/pull/654)
+- Fix gcc-9 and gcc-10 warnings. [#655](https://github.com/greenbone/openvas/pull/655)
+- Fix double free in nasl_cert_query. [#658](https://github.com/greenbone/openvas/pull/658)
+
+### Removed
+
+[20.08.2]: https://github.com/greenbone/openvas/compare/v20.8.0...openvas-20.08
+
+## [20.08.1] (2021.02.01)
 
 ### Added
 - Extend nasl lint to detect if function parameter is used twice. [#590](https://github.com/greenbone/openvas/pull/590)
@@ -52,11 +69,16 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 - Check if another forked child has already added the same vhost. [#581](https://github.com/greenbone/openvas/pull/581)
 - Send duplicated hosts as dead hosts to ospd, to adjust scan progress calculation. [#586](https://github.com/greenbone/openvas/pull/586)
 - Only send the signal if the pid is a positive value. [#593](https://github.com/greenbone/openvas/pull/593)
-- When routes with same mask are found the route with the better metric is chosen. [#593](https://github.com/greenbone/openvas/pull/593)
+- When routes with same mask are found the route with the better metric is chosen.
+  [#593](https://github.com/greenbone/openvas/pull/593)
+  [#639](https://github.com/greenbone/openvas/pull/639)
 - Fix malformed target. [#625](https://github.com/greenbone/openvas/pull/625)
 - Fix snmp result. Only return the value and do not stop at the first \n. [#627](https://github.com/greenbone/openvas/pull/627)
+- Fix masking of IPv6 addresses. [#635](https://github.com/greenbone/openvas/pull/635)
+- Fix technique switch for getting the appropriate interface to use for IPv6 dst addr. [#636](https://github.com/greenbone/openvas/pull/636)
+- Fix host count. Set to -1 when the target string is invalid. [#646](https://github.com/greenbone/openvas/pull/646)
 
-[20.08]: https://github.com/greenbone/openvas/compare/v20.8.0...openvas-20.08
+[20.08.1]: https://github.com/greenbone/openvas/compare/v20.8.0...v20.8.1
 
 ## [20.08] (2020-08-11)
 
@@ -111,6 +133,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 - Fix size calculation which lead to alloc error in get_tcp_element() of openvas-nasl. [#546](https://github.com/greenbone/openvas/pull/546)
 - Fix filter out of default 'radio' type preferences [#560](https://github.com/greenbone/openvas/pull/560)
 - Allow group access to lockfile and fix empty timestamp [#562](https://github.com/greenbone/openvas/pull/562)
+- Do not simply abort when log file is not writable but print err msg and shutdown gracefully instead. [#661](https://github.com/greenbone/openvas/pull/661)
 
 ### Removed
 - Removed "network scan" mode. This includes removal of NASL API methods "scan_phase()" and "network_targets()". Sending a "network_mode=yes" in a scanner configuration will have no effect anymore. [#493](https://github.com/greenbone/openvas/pull/493)

@@ -1,4 +1,4 @@
-/* Portions Copyright (C) 2009-2020 Greenbone Networks GmbH
+/* Portions Copyright (C) 2009-2021 Greenbone Networks GmbH
  * Portions Copyright (C) 2006 Software in the Public Interest, Inc.
  * Based on work Copyright (C) 1998 - 2006 Tenable Network Security, Inc.
  *
@@ -71,6 +71,10 @@
  * process bar.
  */
 #define PROGRESS_BAR_STYLE 1
+/**
+ * Define value to be sent to the client for invalid target list.
+ **/
+#define INVALID_TARGET_LIST "-1"
 
 #undef G_LOG_DOMAIN
 /**
@@ -1019,7 +1023,7 @@ attack_network (struct scan_globals *globals)
   struct timeval then, now;
   gvm_hosts_t *hosts;
   const gchar *port_range;
-  int allow_simult_ips_same_host;
+  int allow_simultaneous_ips;
   kb_t host_kb, main_kb;
   GSList *unresolved;
   char buf[96];
@@ -1092,9 +1096,12 @@ attack_network (struct scan_globals *globals)
       connect_main_kb (&main_kb);
       message_to_client (main_kb, buffer, NULL, NULL, "ERRMSG");
       g_free (buffer);
+      /* Send the hosts count to the client as -1,
+       * because the invalid target list.*/
+      message_to_client (main_kb, INVALID_TARGET_LIST, NULL, NULL,
+                         "HOSTS_COUNT");
       kb_lnk_reset (main_kb);
       g_warning ("Invalid target list. Scan terminated.");
-      set_scan_status ("finished");
       goto stop;
     }
 
@@ -1167,7 +1174,7 @@ attack_network (struct scan_globals *globals)
   /*
    * Start the attack !
    */
-  allow_simult_ips_same_host = prefs_get_bool ("allow_simult_ips_same_host");
+  allow_simultaneous_ips = prefs_get_bool ("allow_simultaneous_ips");
   openvas_signal (SIGUSR1, handle_scan_stop_signal);
   while (host && !scan_is_stopped ())
     {
@@ -1176,7 +1183,7 @@ attack_network (struct scan_globals *globals)
       char *host_str;
 
       if (!test_alive_hosts_only
-          && (!allow_simult_ips_same_host && host_is_currently_scanned (host)))
+          && (!allow_simultaneous_ips && host_is_currently_scanned (host)))
         {
           sleep (1);
           // move the host at the end of the list and get the next host.
@@ -1260,7 +1267,7 @@ attack_network (struct scan_globals *globals)
                   fork_sleep (1);
                 }
 
-              if (host && !allow_simult_ips_same_host
+              if (host && !allow_simultaneous_ips
                   && host_is_currently_scanned (host))
                 {
                   struct in6_addr hostip;

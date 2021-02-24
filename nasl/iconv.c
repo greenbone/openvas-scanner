@@ -1,4 +1,4 @@
-/* Portions Copyright (C) 2009-2020 Greenbone Networks GmbH
+/* Portions Copyright (C) 2009-2021 Greenbone Networks GmbH
  * Copyright (C) Andrew Tridgell 2001
  * Copyright (C) Jelmer Vernooij 2002,2003
  *

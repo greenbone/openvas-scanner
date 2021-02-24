@@ -1,4 +1,4 @@
-/* Portions Copyright (C) 2009-2020 Greenbone Networks GmbH
+/* Portions Copyright (C) 2009-2021 Greenbone Networks GmbH
  * Portions Copyright (C) 2006 Software in the Public Interest, Inc.
  * Based on work Copyright (C) 1998 - 2006 Tenable Network Security, Inc.
  *
@@ -258,8 +258,6 @@ is_scanner_only_pref (const char *pref)
       || !strcmp (pref, "vendor_version") || !strcmp (pref, "drop_privileges")
       || !strcmp (pref, "nasl_drop_privileges_user")
       || !strcmp (pref, "debug_tls")
-      /* Enable/disable table driven local security checks via Notus scanner. */
-      || !strcmp (pref, "table_driven_lsc")
       /* Preferences starting with sys_ are scanner-side only. */
       || !strncmp (pref, "sys_", 4))
     return 1;

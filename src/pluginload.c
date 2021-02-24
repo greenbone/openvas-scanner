@@ -1,4 +1,4 @@
-/* Portions Copyright (C) 2009-2020 Greenbone Networks GmbH
+/* Portions Copyright (C) 2009-2021 Greenbone Networks GmbH
  * Portions Copyright (C) 2006 Software in the Public Interest, Inc.
  * Based on work Copyright (C) 1998 - 2006 Tenable Network Security, Inc.
  *
@@ -97,9 +97,7 @@ collect_nvts (const char *folder, const char *subdir, GSList *files)
           if (new_subdir)
             g_free (new_subdir);
         }
-      else if (g_str_has_suffix (fname, ".nasl")
-               || ((g_str_has_suffix (fname, ".csv")
-                    && prefs_get_bool ("table_driven_lsc"))))
+      else if (g_str_has_suffix (fname, ".nasl"))
         files = g_slist_prepend (files, g_build_filename (subdir, fname, NULL));
       g_free (path);
       fname = g_dir_read_name (dir);
@@ -307,14 +305,6 @@ plugins_reload_from_dir (void *folder)
       if (g_str_has_suffix (name, ".nasl"))
         {
           if (nasl_plugin_add (folder, name))
-            err_count++;
-        }
-      /* Perform integrity check of csv files if table_driven_lsc
-       * is enabled. */
-      if (g_str_has_suffix (name, ".csv")
-          && prefs_get_bool ("table_driven_lsc"))
-        {
-          if (csv_vt_list_add (folder, name))
             err_count++;
         }
 

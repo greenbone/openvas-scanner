@@ -1,4 +1,4 @@
-.TH OpenVAS 8 "June 2019" "Greenbone Vulnerability Management" "User Manuals"
+.TH OpenVAS 20.8.1 "February 2021" "Greenbone Vulnerability Management" "User Manuals"
 .SH NAME
 openvas \- The Scanner of the Greenbone Vulnerability Management
 .SH SYNOPSIS
@@ -90,9 +90,6 @@ Use a debug level over 10 to enable all debugging options.
 .IP log_plugins_name_at_load
 If this option is set to 'yes', openvas will log the name of each plugin being loaded at startup, or each time it receives the HUP signal.
 
-.IP table_driven_lsc
-If this options is set to 'yes', openvas enables the local security checks via the table-driven Notus scanner, perfoming the Notus metadata checksum check which allows the metadata upload into redis.
-
 .IP cgi_path
 By default, openvas looks for default CGIs in /cgi-bin and /scripts. You may
 change these to something else to reflect the policy of your site. The syntax of this option is the same as the shell $PATH variable: path1:path2:...
@@ -127,7 +124,7 @@ Whether to expand the target host's list of vhosts with values gathered from sou
 .IP non_simult_ports
 Some services (in particular SMB) do not appreciate multiple connections at the same time coming from the same host. This option allows you to prevent openvas to make two connections on the same given ports at the same time. The syntax of this option is "port1[, port2....]". Note that you can use the KB notation of openvas to designate a service formally. Ex: "139, Services/www", will prevent openvas from making two connections at the same time on port 139 and on every port which hosts a web server.
 
-.IP allow_simult_ips_same_host
+.IP allow_simultaneous_ips
 If set to no, this option prevent openvas to scan more than one different IPs (e.g. the IPv4 and IPv6 addresses) which belong to the same host at the same time. Default, yes.
 
 .IP plugins_timeout
