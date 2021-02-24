@@ -271,7 +271,7 @@ hosts_read (void)
 }
 
 /**
- * @brief Returns 1 if the host is being scanned. 0 otherwhise.
+ * @brief Returns 1 if the host is being scanned. 0 otherwise.
  *
  * It checks not only the main IP of the host, but also the ips
  * that a dns-lookup returns.
