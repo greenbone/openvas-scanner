@@ -13,6 +13,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ### Changed
 - Replace bogus data with a better message and the vendor. [#665](https://github.com/greenbone/openvas/pull/665)
+- Improve log message for WMI connect failed or missing WMI support. [#670](https://github.com/greenbone/openvas/pull/670)
+
 ### Fixed
 - Fix issues discovered with clang compiler. [#654](https://github.com/greenbone/openvas/pull/654)
 - Fix gcc-9 and gcc-10 warnings. [#655](https://github.com/greenbone/openvas/pull/655)
