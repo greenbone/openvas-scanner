@@ -28,8 +28,8 @@ endif (NOT PKG_CONFIG_FOUND)
 pkg_check_modules (GLIB REQUIRED glib-2.0>=2.42)
 pkg_check_modules (GNUTLS REQUIRED gnutls>=3.6.4)
 
-pkg_check_modules (LIBGVM_BASE REQUIRED libgvm_base>=20.8)
-pkg_check_modules (LIBGVM_UTIL REQUIRED libgvm_util>=20.8)
+pkg_check_modules (LIBGVM_BASE REQUIRED libgvm_base>=21.4)
+pkg_check_modules (LIBGVM_UTIL REQUIRED libgvm_util>=21.4)
 
 pkg_check_modules (OPENVAS_WMICLIENT libopenvas_wmiclient>=1.0.5)
 pkg_check_modules (OPENVAS_WINCMD libopenvas_wincmd>=1.0.5)
@@ -119,8 +119,8 @@ add_library (openvas_misc_shared SHARED ${FILES})
 
 set_target_properties (openvas_misc_shared PROPERTIES OUTPUT_NAME "openvas_misc")
 set_target_properties (openvas_misc_shared PROPERTIES CLEAN_DIRECT_OUTPUT 1)
-set_target_properties (openvas_misc_shared PROPERTIES SOVERSION "${MISC_VERSION_MAJOR}")
-set_target_properties (openvas_misc_shared PROPERTIES VERSION "${MISC_PACKAGE_VERSION}")
+set_target_properties (openvas_misc_shared PROPERTIES SOVERSION "${PROJECT_VERSION_MAJOR}")
+set_target_properties (openvas_misc_shared PROPERTIES VERSION "${PROJECT_VERSION_STRING}")
 
 target_link_libraries (openvas_misc_shared LINK_PRIVATE ${GNUTLS_LDFLAGS} ${UUID_LDFLAGS}
                        ${GLIB_LDFLAGS} ${PCAP_LDFLAGS}

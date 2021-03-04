@@ -96,7 +96,7 @@ Ensure (attack, comm_send_status_sends_correct_text)
   expect (__wrap_redis_push_str);
   assert_that (comm_send_status (kb, "127.0.0.1", 11, 67), is_equal_to (0));
   assert_that (strcmp (given_name, "internal/status"), is_equal_to (0));
-  assert_that (strcmp (given_value, "11/67"), is_equal_to (0));
+  assert_that (strcmp (given_value, "127.0.0.1/11/67"), is_equal_to (0));
 
   g_free (given_name);
   g_free (given_value);

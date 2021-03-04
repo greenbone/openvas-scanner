@@ -376,12 +376,12 @@ proto_post_wrapped (const char *oid, struct script_infos *desc, int port,
   else if (desc->vhosts)
     hostname = ((gvm_vhost_t *) desc->vhosts->data)->value;
   addr6_to_str (plug_get_host_ip (desc), ip_str);
-  buffer =
-    g_strdup_printf ("%s|||%s|||%s/%s|||%s|||%s|||%s", what, hostname ?: " ",
-                     port_s, proto, oid, action_str->str, uri ?: "");
+  buffer = g_strdup_printf ("%s|||%s|||%s|||%s/%s|||%s|||%s|||%s", what, ip_str,
+                            hostname ?: " ", port_s, proto, oid,
+                            action_str->str, uri ?: "");
   /* Convert to UTF-8 before sending to Manager. */
   data = g_convert (buffer, -1, "UTF-8", "ISO_8859-1", NULL, &length, NULL);
-  kb = plug_get_kb (desc);
+  kb = plug_get_results_kb (desc);
   kb_item_push_str (kb, "internal/results", data);
   g_free (data);
   g_free (buffer);
@@ -659,12 +659,13 @@ plug_set_key_len (struct script_infos *args, char *name, int type,
                   const void *value, size_t len)
 {
   kb_t kb = plug_get_kb (args);
+  int pos = 0; // Append the item on the right position of the list
 
   if (name == NULL || value == NULL)
     return;
 
   if (type == ARG_STRING)
-    kb_item_add_str_unique (kb, name, value, len);
+    kb_item_add_str_unique (kb, name, value, len, pos);
   else if (type == ARG_INT)
     kb_item_add_int_unique (kb, name, GPOINTER_TO_SIZE (value));
   if (global_nasl_debug == 1)
@@ -722,6 +723,12 @@ kb_t
 plug_get_kb (struct script_infos *args)
 {
   return args->key;
+}
+
+kb_t
+plug_get_results_kb (struct script_infos *args)
+{
+  return args->results;
 }
 
 static void

@@ -26,16 +26,10 @@ if (NOT PKG_CONFIG_FOUND)
   message(FATAL_ERROR "pkg-config executable not found. Aborting.")
 endif (NOT PKG_CONFIG_FOUND)
 
-pkg_check_modules (LIBGVM_BASE REQUIRED libgvm_base>=20.8)
-pkg_check_modules (LIBGVM_BOREAS REQUIRED libgvm_boreas>=20.8)
-pkg_check_modules (LIBGVM_UTIL REQUIRED libgvm_util>=20.8)
+pkg_check_modules (LIBGVM_BASE REQUIRED libgvm_base>=21.4)
+pkg_check_modules (LIBGVM_BOREAS REQUIRED libgvm_boreas>=21.4)
+pkg_check_modules (LIBGVM_UTIL REQUIRED libgvm_util>=21.4)
 pkg_check_modules (GLIB REQUIRED glib-2.0>=2.42)
-
-# set NVTICACHE_STR with version.
-if (LIBGVM_UTIL_VERSION)
-  set (NVTICACHE_STR "nvticache${LIBGVM_UTIL_VERSION}")
-  add_definitions (-DNVTICACHE_STR="${NVTICACHE_STR}")
-endif (LIBGVM_UTIL_VERSION)
 
 message (STATUS "Looking for libgcrypt...")
 find_library (GCRYPT gcrypt)
@@ -124,6 +118,10 @@ set (CMAKE_C_FLAGS_DEBUG        "${CMAKE_C_FLAGS_DEBUG} -Werror -Wextra")
 if (OPENVAS_VERSION)
   add_definitions (-DOPENVAS_VERSION="${OPENVAS_VERSION}")
 endif (OPENVAS_VERSION)
+
+if (GIT_REVISION)
+  add_definitions (-DOPENVAS_GIT_REVISION="${GIT_REVISION}")
+endif (GIT_REVISION)
 
 add_definitions (-DPREFIX="${CMAKE_INSTALL_PREFIX}")
 

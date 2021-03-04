@@ -4,6 +4,28 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [21.04.0] (unreleased)
+
+### Added
+- Add scanner-only option to enable tls debugging. [#558](https://github.com/greenbone/openvas/pull/558)
+- Extend nasl lint to detect if function parameter is used twice. [#585](https://github.com/greenbone/openvas/pull/585)
+- Add option to specify if a host can be scanned through its IPv4 and IPv6 in parallel.
+  [#604](https://github.com/greenbone/openvas/pull/604)
+  [#645](https://github.com/greenbone/openvas/pull/645)
+- Add insert_tcp_options and insert_tcp_v6_options nasl functions. [#618](https://github.com/greenbone/openvas/pull/618)
+- Add get_tcp_option and extend dump_tcp_packet nasl functions. [#621](https://github.com/greenbone/openvas/pull/621)
+- Add new scanner only option for spawning NASL functions with a different owner. [#634](https://github.com/greenbone/openvas/pull/634)
+
+### Changed
+- Store results in main_kb instead of host_kb. [#550](https://github.com/greenbone/openvas/pull/550)
+- Also use internal function name in some nasl log messages. [#611](https://github.com/greenbone/openvas/pull/611)
+- Move more scanner preferences to gvm-libs to make them available for openvas-nasl. [#614](https://github.com/greenbone/openvas/pull/614)
+
+### Removed
+- Use the nvticache name from gvm-libs, defined in nvticache.h. [#578](https://github.com/greenbone/openvas/pull/578)
+
+[21.04.0]: https://github.com/greenbone/openvas/compare/openvas-20.08...master
+
 ## [20.08.2] (unreleased)
 
 ### Added
@@ -29,6 +51,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 - Add support for TLSv1.3. [#588](https://github.com/greenbone/openvas/pull/588)[#598](https://github.com/greenbone/openvas/pull/598)
 - Add alternative for supporting snmp during scans. [#594](https://github.com/greenbone/openvas/pull/594)
 - Add resolve_hostname_to_multiple_ips() NASL function. [#596](https://github.com/greenbone/openvas/pull/596)
+- Add dump_icmp_packet() and dump_icmp_v6_packet() nasl functions. [#609](https://github.com/greenbone/openvas/pull/609)
 - Send message to the client with hosts count. [#606](https://github.com/greenbone/openvas/pull/606)
 - Use nasl_perror on invalid input and add more documentation. [#608](https://github.com/greenbone/openvas/pull/608)
 - Add timeout argument to ssh_connect() nasl function to set the connection timeout. [631](https://github.com/greenbone/openvas/pull/631)
@@ -39,6 +62,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
   [#607](https://github.com/greenbone/openvas/pull/607)
 - Rename some nasl functions and func parameters for consistency and fix byte order issue in get_ipv6_element. [#613](https://github.com/greenbone/openvas/pull/613)
 - Change log level from debug to message to show max_host and max_scan during scan start. [#626](https://github.com/greenbone/openvas/pull/626)
+- Changed the redis-openvas.conf, so that it is compliant with the 5.0+ version(s) of redis. [#668](https://github.com/greenbone/openvas/pull/668)
 
 ### Fixed
 - Fork vhosts before creating the socket.[#576](https://github.com/greenbone/openvas/pull/576)
@@ -109,6 +133,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 - Fix size calculation which lead to alloc error in get_tcp_element() of openvas-nasl. [#546](https://github.com/greenbone/openvas/pull/546)
 - Fix filter out of default 'radio' type preferences [#560](https://github.com/greenbone/openvas/pull/560)
 - Allow group access to lockfile and fix empty timestamp [#562](https://github.com/greenbone/openvas/pull/562)
+- Do not simply abort when log file is not writable but print err msg and shutdown gracefully instead. [#661](https://github.com/greenbone/openvas/pull/661)
 
 ### Removed
 - Removed "network scan" mode. This includes removal of NASL API methods "scan_phase()" and "network_targets()". Sending a "network_mode=yes" in a scanner configuration will have no effect anymore. [#493](https://github.com/greenbone/openvas/pull/493)

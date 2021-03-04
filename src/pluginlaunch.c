@@ -113,9 +113,10 @@ update_running_processes (kb_t kb)
                                oid, processes[i].pid);
 
                   sprintf (msg,
-                           "ERRMSG||| |||general/tcp|||%s|||"
+                           "ERRMSG|||%s||| |||general/tcp|||%s|||"
                            "NVT timed out after %d seconds.",
-                           oid ?: " ", processes[i].timeout);
+                           hostname, oid ?: " ", processes[i].timeout);
+
                   kb_item_push_str (kb, "internal/results", msg);
 
                   ret_terminate = terminate_process (processes[i].pid);
@@ -341,19 +342,21 @@ plugin_timeout (nvti_t *nvti)
  */
 int
 plugin_launch (struct scan_globals *globals, struct scheduler_plugin *plugin,
-               struct in6_addr *ip, GSList *vhosts, kb_t kb, nvti_t *nvti)
+               struct in6_addr *ip, GSList *vhosts, kb_t kb, kb_t main_kb,
+               nvti_t *nvti)
 {
   int p;
 
   /* Wait for a free slot */
-  pluginlaunch_wait_for_free_process (kb);
-  p = next_free_process (kb, plugin);
+  pluginlaunch_wait_for_free_process (main_kb);
+  p = next_free_process (main_kb, plugin);
   if (p < 0)
     return -1;
   processes[p].plugin = plugin;
   processes[p].timeout = plugin_timeout (nvti);
   gettimeofday (&(processes[p].start), NULL);
-  processes[p].pid = nasl_plugin_launch (globals, ip, vhosts, kb, plugin->oid);
+  processes[p].pid =
+    nasl_plugin_launch (globals, ip, vhosts, kb, main_kb, plugin->oid);
 
   if (processes[p].pid > 0)
     num_running_processes++;

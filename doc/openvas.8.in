@@ -76,6 +76,17 @@ so you need to find a balance between these two options. Note that launching too
 .IP log_whole_attack
 If this option is set to 'yes', openvas will store the name, pid, date and target of each plugin launched. This is helpful for monitoring and debugging purpose, however this option might make openvas fill your disk rather quickly. 
 
+.IP debug_tls
+This is an scanner-only option which allows you to set the TLS log level.
+The level is an integer between 0 and 9. Higher values mean more verbosity and
+might make openvas fill your disk rather quickly.
+The default value is 0 (disabled).
+
+Larger values should only be used with care, since they may reveal sensitive
+information in the scanner logs.
+
+Use a debug level over 10 to enable all debugging options.
+
 .IP log_plugins_name_at_load
 If this option is set to 'yes', openvas will log the name of each plugin being loaded at startup, or each time it receives the HUP signal.
 
@@ -112,6 +123,9 @@ Whether to expand the target host's list of vhosts with values gathered from sou
 
 .IP non_simult_ports
 Some services (in particular SMB) do not appreciate multiple connections at the same time coming from the same host. This option allows you to prevent openvas to make two connections on the same given ports at the same time. The syntax of this option is "port1[, port2....]". Note that you can use the KB notation of openvas to designate a service formally. Ex: "139, Services/www", will prevent openvas from making two connections at the same time on port 139 and on every port which hosts a web server.
+
+.IP allow_simultaneous_ips
+If set to no, this option prevent openvas to scan more than one different IPs (e.g. the IPv4 and IPv6 addresses) which belong to the same host at the same time. Default, yes.
 
 .IP plugins_timeout
 This is the maximum lifetime, in seconds of a plugin. It may happen that some plugins are slow because of the way they are written or the way the remote server behaves. This option allows you to make sure your scan is never caught in an endless loop because of a non-finishing plugin. Doesn't affect ACT_SCANNER plugins.
@@ -195,6 +209,19 @@ Number of checks to test at the same time it can be as low as you want it
 to be and it will also reduce network load and improve performance
 (obviously 1 is the minimum)
 Notice that OpenVAS will spawn max_hosts * max_checks processes.
+
+.IP drop_privileges
+If this preference is set to 'yes', OpenVAS will attempt to drop its
+root privilege before launching any VT and the new process owner is 'nobody';
+the default value of this preference is 'no', meaning no change in behaviour.
+
+.IP nasl_drop_privileges_user
+If a user is set, NASL functions can use this user to drop its root privilege.
+The new process owner is set only for those process calling a nasl function
+which supports a drop privileges action.
+This preference must not be mixed with 'drop_privileges'. If 'drop_privileges' is
+enabled, this option should not be used, as 'drop_privileges' sets the owner to
+'nobody'.
 
 .IP vendor_version
 Use the alternate vendor instead of the default one during scans.

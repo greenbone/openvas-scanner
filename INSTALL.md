@@ -11,7 +11,7 @@ Prerequisites for openvas
 Prerequisites:
 * a C compiler (e.g. gcc)
 * cmake >= 3.0
-* libgvm_base, libgvm_util >= 20.8
+* libgvm_base, libgvm_util >= 21.4
 * glib-2.0 >= 2.42
 * gio-2.0
 * bison
@@ -20,7 +20,7 @@ Prerequisites:
 * pkg-config
 * libpcap
 * libgpgme >= 1.1.2
-* redis >= 3.2.0
+* redis >= 5.0.3
 * libssh >= 0.6.0
 * libksba >= 1.0.7
 * libgnutls >= 3.6.4

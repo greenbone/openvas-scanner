@@ -45,6 +45,7 @@
 #include <fcntl.h>  /* for open() */
 #include <gcrypt.h> /* for gcry_control */
 #include <glib.h>
+#include <gnutls/gnutls.h> /* for gnutls_global_set_log_*  */
 #include <grp.h>
 #include <gvm/base/logging.h> /* for setup_log_handler, load_log_configuration, free_log_configuration*/
 #include <gvm/base/nvti.h>      /* for prefs_get() */
@@ -105,28 +106,23 @@ typedef struct
 
 /**
  * @brief Default values for scanner options. Must be NULL terminated.
+ *
+ * Only include options which are dependent on CMake variables.
+ * Empty options must be "\0", not NULL, to match the behavior of prefs_init.
  */
 static openvas_option openvas_defaults[] = {
   {"plugins_folder", OPENVAS_NVT_DIR},
   {"include_folders", OPENVAS_NVT_DIR},
-  {"max_hosts", "30"},
-  {"max_checks", "10"},
-  {"log_whole_attack", "no"},
-  {"log_plugins_name_at_load", "no"},
-  {"optimize_test", "yes"},
-  {"non_simult_ports", "139, 445, 3389, Services/irc"},
   {"plugins_timeout", G_STRINGIFY (NVT_TIMEOUT)},
   {"scanner_plugins_timeout", G_STRINGIFY (SCANNER_NVT_TIMEOUT)},
-  {"safe_checks", "yes"},
-  {"auto_enable_dependencies", "yes"},
-  {"drop_privileges", "no"},
-  // Empty options must be "\0", not NULL, to match the behavior of
-  // prefs_init.
-  {"report_host_details", "yes"},
   {"db_address", KB_PATH_DEFAULT},
-  {"vendor_version", "\0"},
-  {"test_alive_hosts_only", "no"},
   {NULL, NULL}};
+
+static void
+my_gnutls_log_func (int level, const char *text)
+{
+  g_message ("(%d) %s", level, text);
+}
 
 static void
 set_globals_from_preferences (void)
@@ -317,6 +313,7 @@ init_openvas (const char *config_file)
 {
   static gchar *rc_name = NULL;
   int i;
+  int err;
 
   for (i = 0; openvas_defaults[i].option != NULL; i++)
     prefs_set (openvas_defaults[i].option, openvas_defaults[i].value);
@@ -326,8 +323,16 @@ init_openvas (const char *config_file)
   rc_name = g_build_filename (OPENVAS_SYSCONF_DIR, "openvas_log.conf", NULL);
   if (g_file_test (rc_name, G_FILE_TEST_EXISTS))
     log_config = load_log_configuration (rc_name);
+  err = setup_log_handlers (log_config);
+  if (err)
+    {
+      g_warning ("%s: Can not open or create log file or directory. "
+                 "Please check permissions of log files listed in %s.",
+                 __func__, rc_name);
+      g_free (rc_name);
+      return -1;
+    }
   g_free (rc_name);
-  setup_log_handlers (log_config);
   set_globals_from_preferences ();
 
   return 0;
@@ -368,6 +373,15 @@ start_single_task_scan (void)
   if (openvas_SSL_init () < 0)
     g_message ("Could not initialize openvas SSL!");
 #endif
+
+  if (prefs_get ("debug_tls") != NULL && atoi (prefs_get ("debug_tls")) > 0)
+    {
+      g_warning ("TLS debug is enabled and should only be used with care, "
+                 "since it may reveal sensitive information in the scanner "
+                 "logs and might make openvas fill your disk rather quickly.");
+      gnutls_global_set_log_function (my_gnutls_log_func);
+      gnutls_global_set_log_level (atoi (prefs_get ("debug_tls")));
+    }
 
 #ifdef OPENVAS_GIT_REVISION
   g_message ("openvas %s (GIT revision %s) started", OPENVAS_VERSION,
