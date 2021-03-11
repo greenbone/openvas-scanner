@@ -499,6 +499,140 @@ kb_duplicate(kb_t dst, kb_t src, const gchar *filter)
   return 0;
 }
 
+/**
+ * @brief Attack all vhost.
+ *
+ * Duplicate the host kb and prepare a shorted plugin list to be launched
+ * against each vhost in the vhosts list.
+ */
+static void
+attack_vhosts (struct scan_globals *globals, struct in6_addr *ip,
+               GSList *vhosts, kb_t kb, kb_t main_kb)
+{
+  int plugins_init_error = 0;
+  int no_plug_dependencies = 0;
+  char ip_str[INET6_ADDRSTRLEN], *plug_list;
+  gvm_vhost_t *current_vhost;
+  int forks_retry = 0;
+
+  addr6_to_str (ip, ip_str);
+  host_kb = kb;
+
+  if (!vhosts || !prefs_get_bool("expand_vhosts"))
+      return;
+
+  plug_list = prepare_vhosts_plugin_list (ip_str, main_kb);
+  while (vhosts)
+    {
+      int rc;
+      kb_t vhost_kb;
+      plugins_scheduler_t sched = NULL;
+      int num_plugs;
+      int scheduler_phase_reset = 1;
+      if (plug_list)
+        {
+          sched = plugins_scheduler_init (plug_list,
+                                           no_plug_dependencies,
+                                           &plugins_init_error);
+        }
+      else
+        return;
+
+      if (!sched)
+        {
+          g_free(plug_list);
+          return;
+        }
+
+      rc = kb_new (&vhost_kb, prefs_get ("db_address"));
+      if (rc < 0 && rc != -2)
+        {
+          report_kb_failure (rc);
+          //TODO juan handle this case
+          return;
+        }
+      else if (rc == -2)
+        {
+          sleep (KB_RETRY_DELAY);
+          continue;
+        }
+      kb_duplicate(vhost_kb, kb, "*");
+      kb_lnk_reset (kb);
+
+      current_vhost = vhosts->data;
+      plug_set_current_vhost(current_vhost);
+      proctitle_set ("openvas: testing %s (%s)", ip_str, current_vhost->value);
+
+      g_message("%s: Scanning vhosts %s found in %s", globals->scan_id,
+                current_vhost->value, current_vhost->source);
+
+      num_plugs = plugins_scheduler_count_active (sched);
+      plugins_scheduler_next (sched, scheduler_phase_reset);
+      for (;;)
+        {
+          struct scheduler_plugin *plugin;
+          pid_t parent;
+
+          /* Check that our father is still alive */
+          parent = getppid ();
+          if (parent <= 1 || process_alive (parent) == 0)
+            {
+              pluginlaunch_stop ();
+              return;
+            }
+
+          if (scan_is_stopped ())
+            plugins_scheduler_stop (sched);
+
+          scheduler_phase_reset = 0;
+          plugin = plugins_scheduler_next (sched, scheduler_phase_reset);
+
+          if (plugin != NULL && plugin != PLUG_RUNNING)
+            {
+              int e;
+              char *oid, *name;
+
+            again:
+              oid = plugin->oid;
+              name = nvticache_get_filename (oid);
+
+              if (prefs_get_bool ("log_whole_attack"))
+                {
+                  g_message ("Launching %s (%s) against %s",name,
+                             oid, current_vhost->value);
+                }
+
+              e = launch_plugin (globals, plugin, ip, host_vhosts,
+                                 vhost_kb, main_kb);
+              if (e == ERR_CANT_FORK)
+                {
+                  if (forks_retry < MAX_FORK_RETRIES)
+                    {
+                      forks_retry++;
+                      g_message ("fork() failed - sleeping %d seconds (%s)",
+                               forks_retry, strerror (errno));
+                      fork_sleep (forks_retry);
+                      goto again;
+                    }
+                  else
+                    {
+                      g_message ("fork() failed too many times - aborting");
+                      kb_delete (vhost_kb);
+                      break;
+                    }
+                }
+            }
+          else if (plugin == NULL)
+            break;
+          pluginlaunch_wait_for_free_process (kb);
+        }
+      g_debug ("%s: vhost %s finished", globals->scan_id, current_vhost->value);
+      kb_delete (vhost_kb);
+      vhosts = vhosts->next;
+      plugins_scheduler_free (sched);
+    }
+
+}
 
 /**
  * @brief Attack one host.
