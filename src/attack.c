@@ -483,6 +483,23 @@ prepare_vhosts_plugin_list (char *ip_str, kb_t main_kb)
   return plugin_set;
 }
 
+static int
+kb_duplicate(kb_t dst, kb_t src, const gchar *filter)
+{
+  struct kb_item *items, *p_itm;
+
+  items = kb_item_get_pattern(src, filter ? filter : "*");
+  for (p_itm = items; p_itm != NULL; p_itm = p_itm->next)
+    {
+      gchar *newname;
+
+      newname = p_itm->name;
+      kb_item_add_str(dst, newname, p_itm->v_str, 0);
+    }
+  return 0;
+}
+
+
 /**
  * @brief Attack one host.
  */
