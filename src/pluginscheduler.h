@@ -54,7 +54,8 @@ plugins_scheduler_init (const char *, int, int *);
 int
 current_category (int, int);
 
-struct scheduler_plugin *plugins_scheduler_next (plugins_scheduler_t, int);
+struct scheduler_plugin *
+plugins_scheduler_next (plugins_scheduler_t, int);
 
 int plugins_scheduler_count_active (plugins_scheduler_t);
 

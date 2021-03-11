@@ -267,7 +267,6 @@ plug_add_host_fqdn (struct script_infos *args, const char *hostname,
 char *
 plug_get_host_fqdn (struct script_infos *args)
 {
-
   static char oid[64] = "";
 
   if (oid[0] == 0)
@@ -278,7 +277,8 @@ plug_get_host_fqdn (struct script_infos *args)
       g_snprintf (oid, sizeof (oid), "%s", args->oid);
       /* stores the plugin oid, to be launch again for all vhosts associated
        * to this host */
-      buffer = g_strdup_printf("internal/vhostplugins/%s", addr6_as_str (args->ip));
+      buffer =
+        g_strdup_printf ("internal/vhostplugins/%s", addr6_as_str (args->ip));
       kb_item_add_str_unique (args->results, buffer, args->oid, len, pos);
       g_free (buffer);
     }

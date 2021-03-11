@@ -315,7 +315,7 @@ plugins_scheduler_t
 plugins_scheduler_init (const char *plugins_list, int autoload, int *error)
 {
   plugins_scheduler_t ret;
-  
+
   /* Fill our lists */
   ret = g_malloc0 (sizeof (*ret));
   *error = plugins_scheduler_enable (ret, plugins_list, autoload);
@@ -339,8 +339,6 @@ plugins_scheduler_count_active (plugins_scheduler_t sched)
     ret += g_slist_length (sched->list[i]);
   return ret;
 }
-
-
 
 static struct scheduler_plugin *
 plugins_next_unrun (GSList *plugins)
@@ -436,7 +434,7 @@ int
 current_category (int category, int set_category)
 {
   static int cur_cat = 0;
-  
+
   if (set_category)
     cur_cat = category;
 
@@ -449,19 +447,19 @@ plugins_scheduler_next (plugins_scheduler_t h, int phase_reset)
   struct scheduler_plugin *ret;
   static int scheduler_phase = 0;
   int set_cat = 1;
-      
+
   if (phase_reset)
     {
       scheduler_phase = 0;
       return NULL;
     }
-  
+
   if (h == NULL)
-      return NULL;
+    return NULL;
 
   if (scheduler_phase == 0)
     {
-      ret = get_next_in_range (h, ACT_INIT, ACT_INIT); //0
+      ret = get_next_in_range (h, ACT_INIT, ACT_INIT); // 0
       if (ret)
         return ret;
       scheduler_phase = 1;
@@ -469,7 +467,7 @@ plugins_scheduler_next (plugins_scheduler_t h, int phase_reset)
     }
   if (scheduler_phase <= 1)
     {
-      ret = get_next_in_range (h, ACT_SCANNER, ACT_SCANNER);//1
+      ret = get_next_in_range (h, ACT_SCANNER, ACT_SCANNER); // 1
       if (ret)
         return ret;
       scheduler_phase = 2;
@@ -477,7 +475,7 @@ plugins_scheduler_next (plugins_scheduler_t h, int phase_reset)
     }
   if (scheduler_phase <= 2)
     {
-      ret = get_next_in_range (h, ACT_SETTINGS, ACT_GATHER_INFO); //2-3
+      ret = get_next_in_range (h, ACT_SETTINGS, ACT_GATHER_INFO); // 2-3
       if (ret)
         return ret;
       scheduler_phase = 3;
@@ -485,7 +483,7 @@ plugins_scheduler_next (plugins_scheduler_t h, int phase_reset)
     }
   if (scheduler_phase <= 3)
     {
-      ret = get_next_in_range (h, ACT_ATTACK, ACT_FLOOD); //4-9
+      ret = get_next_in_range (h, ACT_ATTACK, ACT_FLOOD); // 4-9
       if (ret)
         return ret;
       scheduler_phase = 4;
