@@ -430,6 +430,17 @@ scheduler_phase_cleanup (plugins_scheduler_t sched, int start, int end)
   malloc_trim (0);
 }
 
+int
+current_category (int category, int set_category)
+{
+  static int cur_cat = 0;
+  
+  if (set_category)
+    cur_cat = category;
+
+  return cur_cat;
+}
+
 struct scheduler_plugin *
 plugins_scheduler_next (plugins_scheduler_t h)
 {
