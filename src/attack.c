@@ -522,8 +522,8 @@ attack_vhosts (struct scan_globals *globals, struct in6_addr *ip,
       int rc;
       kb_t vhost_kb;
       plugins_scheduler_t sched = NULL;
-      int num_plugs;
       int scheduler_phase_reset = 1;
+
       if (plug_list)
         {
           sched = plugins_scheduler_init (plug_list, no_plug_dependencies,
@@ -560,7 +560,6 @@ attack_vhosts (struct scan_globals *globals, struct in6_addr *ip,
       g_message ("%s: Scanning vhosts %s found in %s", globals->scan_id,
                  current_vhost->value, current_vhost->source);
 
-      num_plugs = plugins_scheduler_count_active (sched);
       plugins_scheduler_next (sched, scheduler_phase_reset);
       for (;;)
         {
