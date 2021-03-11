@@ -442,17 +442,24 @@ current_category (int category, int set_category)
 }
 
 struct scheduler_plugin *
-plugins_scheduler_next (plugins_scheduler_t h)
+plugins_scheduler_next (plugins_scheduler_t h, int phase_reset)
 {
   struct scheduler_plugin *ret;
   static int scheduler_phase = 0;
-
+  int set_cat = 1;
+      
+  if (phase_reset)
+    {
+      scheduler_phase = 0;
+      return NULL;
+    }
+  
   if (h == NULL)
-    return NULL;
+      return NULL;
 
   if (scheduler_phase == 0)
     {
-      ret = get_next_in_range (h, ACT_INIT, ACT_INIT);
+      ret = get_next_in_range (h, ACT_INIT, ACT_INIT); //0
       if (ret)
         return ret;
       scheduler_phase = 1;
@@ -460,7 +467,7 @@ plugins_scheduler_next (plugins_scheduler_t h)
     }
   if (scheduler_phase <= 1)
     {
-      ret = get_next_in_range (h, ACT_SCANNER, ACT_SCANNER);
+      ret = get_next_in_range (h, ACT_SCANNER, ACT_SCANNER);//1
       if (ret)
         return ret;
       scheduler_phase = 2;
@@ -468,7 +475,7 @@ plugins_scheduler_next (plugins_scheduler_t h)
     }
   if (scheduler_phase <= 2)
     {
-      ret = get_next_in_range (h, ACT_SETTINGS, ACT_GATHER_INFO);
+      ret = get_next_in_range (h, ACT_SETTINGS, ACT_GATHER_INFO); //2-3
       if (ret)
         return ret;
       scheduler_phase = 3;
@@ -476,7 +483,7 @@ plugins_scheduler_next (plugins_scheduler_t h)
     }
   if (scheduler_phase <= 3)
     {
-      ret = get_next_in_range (h, ACT_ATTACK, ACT_FLOOD);
+      ret = get_next_in_range (h, ACT_ATTACK, ACT_FLOOD); //4-9
       if (ret)
         return ret;
       scheduler_phase = 4;
@@ -484,7 +491,8 @@ plugins_scheduler_next (plugins_scheduler_t h)
     }
   if (scheduler_phase <= 4)
     {
-      ret = get_next_in_range (h, ACT_END, ACT_END);
+      current_category (ACT_END, set_cat);
+      ret = get_next_in_range (h, ACT_END, ACT_END); // 10
       if (ret)
         return ret;
       scheduler_phase = 5;
