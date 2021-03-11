@@ -644,6 +644,7 @@ attack_host (struct scan_globals *globals, struct in6_addr *ip, GSList *vhosts,
   /* Used for the status */
   int num_plugs, forks_retry = 0;
   char ip_str[INET6_ADDRSTRLEN];
+  int vhosts_attacked = 0;
 
   addr6_to_str (ip, ip_str);
   openvas_signal (SIGUSR2, set_check_new_vhosts_flag);
@@ -673,7 +674,14 @@ attack_host (struct scan_globals *globals, struct in6_addr *ip, GSList *vhosts,
 
       if (scan_is_stopped ())
         plugins_scheduler_stop (sched);
-      plugin = plugins_scheduler_next (sched);
+      plugin = plugins_scheduler_next (sched, 0);
+
+      if (current_category (0,0) && vhosts_attacked == 0)
+        {
+          attack_vhosts(globals, ip, host_vhosts, kb, main_kb);
+          vhosts_attacked = 1;
+        }
+
       if (plugin != NULL && plugin != PLUG_RUNNING)
         {
           int e;
@@ -890,6 +898,7 @@ attack_start (struct attack_start_args *args)
       gvm_vhost_t *vhost =
         gvm_vhost_new (g_strdup (ip_str), g_strdup ("IP-address"));
       args->host->vhosts = g_slist_prepend (args->host->vhosts, vhost);
+      plug_set_current_vhost(vhost);
     }
   hostnames = vhosts_to_str (args->host->vhosts);
   if (hostnames)
