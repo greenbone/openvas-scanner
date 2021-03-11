@@ -28,7 +28,8 @@
 
 #include "scanneraux.h" /* for struct script_infos */
 
-#include <gvm/base/nvti.h> /* for nvti_t */
+#include <gvm/base/nvti.h>  /* for nvti_t */
+#include <gvm/base/hosts.h> /* for g_vhost_t */
 
 #define ARG_STRING 1
 #define ARG_INT 2
@@ -180,5 +181,8 @@ get_plugin_preference_file_content (struct script_infos *, const char *);
 
 long
 get_plugin_preference_file_size (struct script_infos *, const char *);
+
+void
+plug_set_current_vhost(gvm_vhost_t *);
 
 #endif

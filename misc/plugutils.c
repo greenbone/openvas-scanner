@@ -214,6 +214,17 @@ check_duplicated_vhost (struct script_infos *args, const char *hostname)
   return 0;
 }
 
+/**
+ * @brief Set the the value of the current vhost being scanned.
+ *
+ * @param vhost gvm_vhost structure with value and source.
+ */
+void
+plug_set_current_vhost(gvm_vhost_t *vhost)
+{
+  current_vhost = vhost;
+}
+
 int
 plug_add_host_fqdn (struct script_infos *args, const char *hostname,
                     const char *source)
