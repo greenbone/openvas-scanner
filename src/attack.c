@@ -28,7 +28,9 @@
 #include "../misc/network.h"        /* for auth_printf */
 #include "../misc/nvt_categories.h" /* for ACT_INIT */
 #include "../misc/pcap_openvas.h"   /* for v6_is_local_ip */
+#include "../misc/plugutils.h"     /* for set_current_vhost */
 #include "../nasl/nasl_debug.h"     /* for nasl_*_filename */
+
 #include "hosts.h"
 #include "pluginlaunch.h"
 #include "pluginload.h"
@@ -446,6 +448,39 @@ launch_plugin (struct scan_globals *globals, struct scheduler_plugin *plugin,
 finish_launch_plugin:
   nvti_free (nvti);
   return ret;
+}
+
+static char *
+prepare_vhosts_plugin_list (char *ip_str, kb_t main_kb)
+{
+  gchar *plugin_set, *plugin_set2, plugin_key[64];
+  struct kb_item *res;
+ 
+  res = NULL;
+  
+  g_snprintf (plugin_key, sizeof(plugin_key), "internal/vhostplugins/%s", ip_str);
+  g_message ("Accessing %s", plugin_key );
+  res = kb_item_get_all (main_kb, plugin_key);
+  if (res == NULL)
+    {
+      g_message ("no plugins to run against vhosts");
+      return NULL;
+    }
+  
+  plugin_set = res->v_str;
+  res = res->next;
+  plugin_set2 = NULL;
+  while (res)
+    {
+      plugin_set2 = g_strdup_printf ("%s;%s", plugin_set, res->v_str);
+      g_free(plugin_set);
+      plugin_set = plugin_set2;
+      res = res->next;
+    }
+  g_message ("The vhosts plugin set %s", plugin_set);
+  kb_item_free (res);
+
+  return plugin_set;
 }
 
 /**
