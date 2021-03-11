@@ -315,7 +315,7 @@ plugins_scheduler_t
 plugins_scheduler_init (const char *plugins_list, int autoload, int *error)
 {
   plugins_scheduler_t ret;
-
+  
   /* Fill our lists */
   ret = g_malloc0 (sizeof (*ret));
   *error = plugins_scheduler_enable (ret, plugins_list, autoload);
@@ -339,6 +339,8 @@ plugins_scheduler_count_active (plugins_scheduler_t sched)
     ret += g_slist_length (sched->list[i]);
   return ret;
 }
+
+
 
 static struct scheduler_plugin *
 plugins_next_unrun (GSList *plugins)
