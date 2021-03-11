@@ -28,7 +28,6 @@
 #include "network.h" // for OPENVAS_ENCAPS_IP
 
 #include <errno.h>               // for errno
-#include <gvm/base/hosts.h>      // for g_vhost_t
 #include <gvm/base/networking.h> // for port_protocol_t
 #include <gvm/base/prefs.h>      // for prefs_get_bool
 #include <gvm/util/nvticache.h>  // for nvticache_initialized
@@ -220,7 +219,7 @@ check_duplicated_vhost (struct script_infos *args, const char *hostname)
  * @param vhost gvm_vhost structure with value and source.
  */
 void
-plug_set_current_vhost(gvm_vhost_t *vhost)
+plug_set_current_vhost (gvm_vhost_t *vhost)
 {
   current_vhost = vhost;
 }
@@ -259,32 +258,35 @@ plug_add_host_fqdn (struct script_infos *args, const char *hostname,
   return 0;
 }
 
+/**
+ * @brief Get the fqdn of the current vhost.
+ *
+ * @Return Returns the fqdn of the host being scanned if it was already set,
+ * otherwise the ip address as string.
+ */
 char *
 plug_get_host_fqdn (struct script_infos *args)
 {
-  GSList *vhosts = args->vhosts;
 
-  if (!args->vhosts)
-    return addr6_as_str (args->ip);
+  static char oid[64] = "";
 
-  /* Workaround for rapid growth of forked processes ie. http_get() calls
-   * within foreach() loops. */
+  if (oid[0] == 0)
+    {
+      char *buffer;
+      int len = 0, pos = 0;
+
+      g_snprintf (oid, sizeof (oid), "%s", args->oid);
+      /* stores the plugin oid, to be launch again for all vhosts associated
+       * to this host */
+      buffer = g_strdup_printf("internal/vhostplugins/%s", addr6_as_str (args->ip));
+      kb_item_add_str_unique (args->results, buffer, args->oid, len, pos);
+      g_free (buffer);
+    }
+
   if (current_vhost)
     return g_strdup (current_vhost->value);
-  while (vhosts)
-    {
-      pid_t pid = plug_fork_child (args->key);
 
-      if (pid == 0)
-        {
-          current_vhost = vhosts->data;
-          return g_strdup (current_vhost->value);
-        }
-      else if (pid == -1)
-        return NULL;
-      vhosts = vhosts->next;
-    }
-  exit (0);
+  return addr6_as_str (args->ip);
 }
 
 GSList *
