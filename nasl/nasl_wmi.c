@@ -180,7 +180,8 @@ nasl_wmi_connect (lex_ctxt *lexic)
   handle = wmi_connect (argc, argv);
   if (!handle)
     {
-      g_message ("nasl_wmi_connect: WMI Connect failed");
+      g_message ("nasl_wmi_connect: WMI Connect failed or missing WMI support "
+                 "for the scanner");
       return NULL;
     }
 
@@ -320,7 +321,8 @@ nasl_wmi_connect_rsop (lex_ctxt *lexic)
   handle = wmi_connect_rsop (argc, argv);
   if (!handle)
     {
-      g_message ("nasl_wmi_connect_rsop: WMI Connect failed");
+      g_message ("nasl_wmi_connect_rsop: WMI Connect failed or missing WMI "
+                 "support for the scanner");
       return NULL;
     }
 
@@ -430,7 +432,8 @@ nasl_wmi_connect_reg (lex_ctxt *lexic)
   handle = wmi_connect_reg (argc, argv);
   if (!handle)
     {
-      g_message ("nasl_wmi_connect_reg: WMI Connect failed");
+      g_message ("nasl_wmi_connect_reg: WMI Connect failed or missing WMI "
+                 "support for the scanner");
       return NULL;
     }
 
