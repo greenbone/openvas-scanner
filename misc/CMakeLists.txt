@@ -94,9 +94,9 @@ set (CMAKE_C_FLAGS              "${CMAKE_C_FLAGS} -Wall -Wextra -fPIC")
 ## Project version
 # The following three variables should be set through the project command once
 # we require CMake >= 3.0
-set (MISC_VERSION_MAJOR 20)
-set (MISC_VERSION_MINOR 8)
-set (MISC_VERSION_PATCH 2)
+set (MISC_VERSION_MAJOR 21)
+set (MISC_VERSION_MINOR 4)
+set (MISC_VERSION_PATCH 0)
 
 if (PROJECT_BETA_RELEASE)
   set (MISC_VERSION_SUFFIX "+beta${PROJECT_BETA_RELEASE}")
