@@ -4,6 +4,15 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [21.10] (unreleased)
+
+### Added
+### Changed
+### Removed
+### Fixed
+
+[21.10]: https://github.com/greenbone/openvas-scanner/compare/openvas-21.04...master
+
 ## [21.04.0] (unreleased)
 
 ### Added
