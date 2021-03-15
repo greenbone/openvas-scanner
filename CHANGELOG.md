@@ -7,6 +7,9 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 ## [21.10] (unreleased)
 
 ### Added
+
+- Add support for volatile keys. [#682](https://github.com/greenbone/openvas/pull/682)
+
 ### Changed
 ### Removed
 ### Fixed
