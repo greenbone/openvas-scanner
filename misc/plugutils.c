@@ -684,6 +684,57 @@ plug_set_key (struct script_infos *args, char *name, int type,
   plug_set_key_len (args, name, type, value, 0);
 }
 
+/**
+ * @brief Set volatile key with expire.
+ *
+ * @param args    Script infos.
+ * @param name    Key name.
+ * @param type    Key type.
+ * @param value   Key value.
+ * @param expire  Key expire in seconds.
+ * @param len     Len of value.
+ */
+void
+plug_set_key_len_volatile (struct script_infos *args, char *name, int type,
+                           const void *value, int expire, size_t len)
+{
+  kb_t kb = plug_get_kb (args);
+  int pos = 0; // Append the item on the right position of the list
+
+  if (name == NULL || value == NULL || expire == -1)
+    return;
+
+  if (type == ARG_STRING)
+    kb_add_str_unique_volatile (kb, name, value, expire, len, pos);
+  else if (type == ARG_INT)
+    kb_add_int_unique_volatile (kb, name, GPOINTER_TO_SIZE (value),
+                                GPOINTER_TO_SIZE (expire));
+  if (global_nasl_debug == 1)
+    {
+      if (type == ARG_STRING)
+        g_message ("set volatile key %s -> %s", name, (char *) value);
+      else if (type == ARG_INT)
+        g_message ("set volatile key %s -> %d", name,
+                   (int) GPOINTER_TO_SIZE (value));
+    }
+}
+
+/**
+ * @brief Set volatile key with expire.
+ *
+ * @param args  Script infos.
+ * @param name  Key name.
+ * @param type  Key type.
+ * @param value Key value.
+ * @param expire Key expire in seconds.
+ */
+void
+plug_set_key_volatile (struct script_infos *args, char *name, int type,
+                       const void *value, int expire)
+{
+  plug_set_key_len_volatile (args, name, type, value, expire, 0);
+}
+
 void
 plug_replace_key_len (struct script_infos *args, char *name, int type,
                       void *value, size_t len)

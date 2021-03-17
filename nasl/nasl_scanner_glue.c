@@ -832,12 +832,84 @@ replace_kb_item (lex_ctxt *lexic)
   return FAKE_CELL;
 }
 
+/**
+ * @brief Set a volate kb item.
+ *
+ * @param[in]  lexic  NASL lexer.
+ * @param[in]  name Name of Item.
+ * @param[in]  value Value of Item.
+ * @param[in]  expire Optional expire for item in seconds.
+ *
+ * @return FAKE_CELL
+ */
+tree_cell *
+set_kb_item_volatile (lex_ctxt *lexic)
+{
+  struct script_infos *script_infos = lexic->script_infos;
+  char *name = get_str_var_by_name (lexic, "name");
+  int type = get_var_type_by_name (lexic, "value");
+  int expire = get_int_var_by_name (lexic, "expire", -1);
+
+  if (name == NULL)
+    {
+      nasl_perror (lexic, "Syntax error with set_kb_item() [null name]\n",
+                   name);
+      return FAKE_CELL;
+    }
+
+  if (type == VAR2_INT)
+    {
+      int value = get_int_var_by_name (lexic, "value", -1);
+      if (value != -1 && expire != -1)
+        plug_set_key_volatile (script_infos, name, ARG_INT,
+                               GSIZE_TO_POINTER (value), expire);
+      else
+        nasl_perror (lexic,
+                     "Syntax error with set_kb_item() [value=-1 or expire=-1 "
+                     "for name '%s']\n",
+                     name);
+    }
+  else
+    {
+      char *value = get_str_var_by_name (lexic, "value");
+      int len = get_var_size_by_name (lexic, "value");
+      if (value == NULL || expire == -1)
+        {
+          nasl_perror (lexic,
+                       "Syntax error with set_kb_item() [null value or "
+                       "expire=-1 for name '%s']\n",
+                       name);
+          return FAKE_CELL;
+        }
+      plug_set_key_len_volatile (script_infos, name, ARG_STRING, value, expire,
+                                 len);
+    }
+
+  return FAKE_CELL;
+}
+
+/**
+ * @brief Set a kb item.
+ *
+ * If expire is set the key will be removed after it expired.
+ *
+ * @param[in]  lexic  NASL lexer.
+ * @param[in]  name Name of Item.
+ * @param[in]  value Value of Item.
+ * @param[in]  expire Optional expire for item in seconds.
+ *
+ * @return FAKE_CELL
+ */
 tree_cell *
 set_kb_item (lex_ctxt *lexic)
 {
   struct script_infos *script_infos = lexic->script_infos;
   char *name = get_str_var_by_name (lexic, "name");
   int type = get_var_type_by_name (lexic, "value");
+  int expire = get_int_var_by_name (lexic, "expire", -1);
+
+  if (expire != -1)
+    return set_kb_item_volatile (lexic);
 
   if (name == NULL)
     {

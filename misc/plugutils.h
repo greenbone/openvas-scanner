@@ -142,6 +142,13 @@ void
 plug_set_key_len (struct script_infos *, char *, int, const void *, size_t);
 
 void
+plug_set_key_volatile (struct script_infos *, char *, int, const void *, int);
+
+void
+plug_set_key_len_volatile (struct script_infos *, char *, int, const void *,
+                           int, size_t);
+
+void
 plug_replace_key (struct script_infos *, char *, int, void *);
 
 void
