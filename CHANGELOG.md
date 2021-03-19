@@ -15,6 +15,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 - Add insert_tcp_options and insert_tcp_v6_options nasl functions. [#618](https://github.com/greenbone/openvas/pull/618)
 - Add get_tcp_option and extend dump_tcp_packet nasl functions. [#621](https://github.com/greenbone/openvas/pull/621)
 - Add new scanner only option for spawning NASL functions with a different owner. [#634](https://github.com/greenbone/openvas/pull/634)
+- Add debug logs for allow_simultaneous_ips=no. [#685](https://github.com/greenbone/openvas/pull/685)
 
 ### Changed
 - Store results in main_kb instead of host_kb. [#550](https://github.com/greenbone/openvas/pull/550)
