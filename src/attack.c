@@ -1272,20 +1272,27 @@ attack_network (struct scan_globals *globals)
                 {
                   struct in6_addr hostip;
                   char ip_str[INET6_ADDRSTRLEN];
+                  int flag_set;
 
                   gvm_host_get_addr6 (host, &hostip);
                   addr6_to_str (&hostip, ip_str);
 
                   // Re-add host at the end of the queue and reallocate the flag
                   // if it was already set.
-                  int flag_set = finish_signal_on_queue (alive_hosts_kb);
+                  flag_set = finish_signal_on_queue (alive_hosts_kb);
 
                   put_host_on_queue (alive_hosts_kb, ip_str);
+                  g_debug ("Reallocating the host %s at the end of the queue",
+                           ip_str);
+
                   gvm_host_free (host);
                   host = NULL;
 
                   if (flag_set)
-                    realloc_finish_signal_on_queue (alive_hosts_kb);
+                    {
+                      g_debug ("Reallocating finish signal in the host queue");
+                      realloc_finish_signal_on_queue (alive_hosts_kb);
+                    }
                 }
               else
                 break;
