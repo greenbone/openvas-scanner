@@ -4,6 +4,7 @@
 - [Connection](#connection)
 - [Database number](#database-number)
 - [Clients numbers](#clients-numbers)
+- [Volatile keys](#volatile-keys)
 - [Debugging and monitoring a scan via redis](#debugging-and-monitoring-a-scan-via-redis)
 
 ## Presentation
@@ -77,6 +78,23 @@ For instance:
 ```
 maxclients    512
 ```
+
+## Volatile keys
+
+An expire may be set by openvas for keys which may not be absolutely necessary.
+
+A `maxmemory-policy` can be chosen in conjunction with `maxmemory`.
+When the memory limit is reached Redis will try to remove keys according
+to the eviction policy selected. Both options can be set via the redis.conf
+file. See [the reference config](https://github.com/redis/redis/blob/5.0/redis.conf)
+for further documentation of these options.
+
+If no `maxmemory` and `maxmemory-policy` is chosen the redis memory may
+increase until the OS runs out of memory.
+
+Only downside of these options is that when `maxmemory` is reached and there
+are no more keys to evict then no keys are added to redis anymore.
+This is done without notice and may lead to missing or incomplete results.
 
 ## Debugging and monitoring a scan via redis
 
