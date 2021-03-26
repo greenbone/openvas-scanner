@@ -333,20 +333,6 @@ init_openvas (const char *config_file)
   return 0;
 }
 
-static int
-flush_all_kbs (void)
-{
-  kb_t kb;
-  int rc;
-
-  rc = kb_new (&kb, prefs_get ("db_address"));
-  if (rc)
-    return rc;
-
-  rc = kb_flush (kb, NVTICACHE_STR);
-  return rc;
-}
-
 static void
 gcrypt_init (void)
 {
@@ -546,8 +532,6 @@ openvas (int argc, char *argv[])
       prefs_dump ();
       exit (0);
     }
-  if (flush_all_kbs ())
-    exit (1);
 
 #if GNUTLS_VERSION_NUMBER < 0x030300
   if (openvas_SSL_init () < 0)
