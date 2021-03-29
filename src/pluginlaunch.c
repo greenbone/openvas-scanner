@@ -347,9 +347,9 @@ get_available_memory ()
   size_t len;
 
   fd = fopen ("/proc/meminfo", "r");
-  len = fread (buf, 1, sizeof(buf) - 1, fd);
+  len = fread (buf, 1, sizeof (buf) - 1, fd);
   fclose (fd);
-  if ( len == 0)
+  if (len == 0)
     {
       g_warning ("Couldn't read /proc/meminfo");
       return 0;
@@ -461,9 +461,9 @@ pluginlaunch_wait_for_free_process (kb_t kb)
   update_running_processes (kb);
   /* Max number of processes are still running, wait for a child to exit or
    * to timeout. */
-  while ((num_running_processes == max_running_processes)
-          || (num_running_processes > 0
-         && (check_memory () || check_sysload())))
+  while (
+    (num_running_processes == max_running_processes)
+    || (num_running_processes > 0 && (check_memory () || check_sysload ())))
     {
       sigset_t mask;
       struct timespec ts = {0, 0};
