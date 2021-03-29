@@ -258,6 +258,8 @@ is_scanner_only_pref (const char *pref)
       || !strcmp (pref, "vendor_version") || !strcmp (pref, "drop_privileges")
       || !strcmp (pref, "nasl_drop_privileges_user")
       || !strcmp (pref, "debug_tls")
+      || !strcmp (pref, "min_free_mem")
+      || !strcmp (pref, "max_sysload")
       /* Preferences starting with sys_ are scanner-side only. */
       || !strncmp (pref, "sys_", 4))
     return 1;
