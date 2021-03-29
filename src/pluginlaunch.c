@@ -68,6 +68,9 @@ struct running
                 * (NVT preference). If -1, never kill. it*/
 };
 
+extern int global_min_memory;
+extern int global_max_sysload;
+
 static struct running processes[MAX_PROCESSES];
 static int num_running_processes;
 static int max_running_processes;
@@ -336,6 +339,54 @@ plugin_timeout (nvti_t *nvti)
   return timeout;
 }
 
+static int
+get_available_memory ()
+{
+  char buf[8192], *hit;
+  FILE *fd;
+  size_t len;
+
+  fd = fopen ("/proc/meminfo", "r");
+  len = fread (buf, 1, sizeof(buf) - 1, fd);
+  fclose (fd);
+  if ( len == 0)
+    {
+      g_warning ("Couldn't read /proc/meminfo");
+      return 0;
+    }
+  hit = strstr (buf, "MemAvailable:");
+  if (!hit)
+    return 0;
+
+  return atoi (hit + 14) / 1000;
+}
+
+static int
+check_memory ()
+{
+  int available_mem;
+
+  if (global_min_memory <= 0)
+    return 0;
+
+  available_mem = get_available_memory ();
+  if (available_mem == 0 || available_mem > global_min_memory)
+    return 0;
+  return 1;
+}
+
+int
+check_sysload ()
+{
+  double sysload;
+
+  if (global_max_sysload <= 0)
+    return 0;
+  if (getloadavg (&sysload, 1) < 0 || sysload <= global_max_sysload)
+    return 0;
+  return 1;
+}
+
 /**
  * @return PID of process that is connected to the plugin as returned by plugin
  *         classes pl_launch function (<=0 means there was a problem).
@@ -410,7 +461,9 @@ pluginlaunch_wait_for_free_process (kb_t kb)
   update_running_processes (kb);
   /* Max number of processes are still running, wait for a child to exit or
    * to timeout. */
-  if (num_running_processes == max_running_processes)
+  while ((num_running_processes == max_running_processes)
+          || (num_running_processes > 0
+         && (check_memory () || check_sysload())))
     {
       sigset_t mask;
       struct timespec ts = {0, 0};
