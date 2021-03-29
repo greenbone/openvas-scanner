@@ -159,7 +159,6 @@ set_globals_from_preferences (void)
       if (global_min_memory <= 0)
         global_min_memory = 0;
     }
-
 }
 
 static void
