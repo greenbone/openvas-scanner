@@ -90,6 +90,9 @@
 int global_max_hosts = 15;
 int global_max_checks = 10;
 
+int global_min_memory = 0;
+int global_max_sysload = 0;
+
 /**
  * @brief Logging parameters, as passed to setup_log_handlers.
  */
@@ -141,6 +144,20 @@ set_globals_from_preferences (void)
       global_max_checks = atoi (str);
       if (global_max_checks <= 0)
         global_max_checks = 10;
+    }
+
+  if ((str = prefs_get ("max_sysload")) != NULL)
+    {
+      global_max_sysload = atoi (str);
+      if (global_max_sysload <= 0)
+        global_max_sysload = 0;
+    }
+
+  if ((str = prefs_get ("min_free_mem")) != NULL)
+    {
+      global_min_memory = atoi (str);
+      if (global_min_memory <= 0)
+        global_min_memory = 0;
     }
 }
 

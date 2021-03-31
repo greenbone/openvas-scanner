@@ -174,6 +174,12 @@ Like hosts_allow. Can't be overridden by the client.
 .IP sys_hosts_deny
 Like hosts_deny. Can't be overridden by the client.
 
+.IP max_sysload
+Maximum load on the system. Once this load is reached, no further VTs are started until the load drops below this value again.
+
+.IP min_free_mem
+Minimum available memory (in MB) which should be kept free on the system. Once this limit is reached, no further VTs are started until sufficient memory is available again.
+
 The other options in this file can usually be redefined by the client.
 
 .SH NETWORK USAGE
