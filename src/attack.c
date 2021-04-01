@@ -884,7 +884,7 @@ apply_source_iface_preference (void)
     {
       gchar *msg =
         g_strdup_printf ("Erroneous source interface: %s", source_iface);
-      g_debug ("source_iface: Error with %s interface.", source_iface);
+      g_warning ("source_iface: Error with %s interface.", source_iface);
 
       g_free (msg);
       return -2;
