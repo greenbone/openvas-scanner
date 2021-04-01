@@ -19,6 +19,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 - Fix issues discovered with clang compiler. [#654](https://github.com/greenbone/openvas/pull/654)
 - Fix gcc-9 and gcc-10 warnings. [#655](https://github.com/greenbone/openvas/pull/655)
 - Fix double free in nasl_cert_query. [#658](https://github.com/greenbone/openvas/pull/658)
+- Fix message to the client if there is a iface problem. [#695](https://github.com/greenbone/openvas/pull/695)
 
 ### Removed
 - Remove code from the openvas daemon era. Do not flushall redis. [#689](https://github.com/greenbone/openvas/pull/689)
