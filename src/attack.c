@@ -888,7 +888,6 @@ apply_source_iface_preference (void)
 
       g_free (ipstr);
       g_free (ip6str);
-      ret = 0;
     }
 
   if (msg)
