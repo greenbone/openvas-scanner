@@ -842,45 +842,43 @@ static int
 apply_source_iface_preference (void)
 {
   const char *source_iface = prefs_get ("source_iface");
-  int ret;
+  int ret_iface_auth, ret;
+  gchar *msg;
 
+  ret = 0;
   if (source_iface == NULL)
-    return 0;
+    return ret;
 
-  ret = iface_authorized (source_iface);
-  if (ret == -1)
+  msg = NULL;
+  ret_iface_auth = iface_authorized (source_iface);
+  if (ret_iface_auth == -1)
     {
-      gchar *msg =
-        g_strdup_printf ("Unauthorized source interface: %s", source_iface);
+      msg = g_strdup_printf ("Unauthorized source interface: %s", source_iface);
       g_warning ("source_iface: Unauthorized source interface %s.",
                  source_iface);
 
-      g_free (msg);
-      return -1;
+      ret = -1;
     }
-  else if (ret == -2)
+  else if (ret_iface_auth == -2)
     {
-      gchar *msg = g_strdup_printf ("Unauthorized source interface: %s"
-                                    " (system-wide restriction.)",
-                                    source_iface);
+      msg = g_strdup_printf ("Unauthorized source interface: %s"
+                             " (system-wide restriction.)",
+                             source_iface);
       g_warning ("source_iface: Unauthorized source interface %s."
                  " (sys_* preference restriction.)",
                  source_iface);
 
-      g_free (msg);
-      return -1;
+      ret = -1;
     }
 
   if (gvm_source_iface_init (source_iface))
     {
-      gchar *msg =
-        g_strdup_printf ("Erroneous source interface: %s", source_iface);
-      g_debug ("source_iface: Error with %s interface.", source_iface);
+      msg = g_strdup_printf ("Erroneous source interface: %s", source_iface);
+      g_warning ("source_iface: Error with %s interface.", source_iface);
 
-      g_free (msg);
-      return -2;
+      ret = -2;
     }
-  else
+  else if (ret == 0)
     {
       char *ipstr, *ip6str;
       ipstr = gvm_source_addr_str ();
@@ -890,8 +888,19 @@ apply_source_iface_preference (void)
 
       g_free (ipstr);
       g_free (ip6str);
-      return 0;
     }
+
+  if (msg)
+    {
+      kb_t main_kb = NULL;
+
+      connect_main_kb (&main_kb);
+      message_to_client (main_kb, msg, NULL, NULL, "ERRMSG");
+      kb_lnk_reset (main_kb);
+      g_free (msg);
+    }
+
+  return ret;
 }
 
 static int
