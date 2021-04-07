@@ -18,7 +18,7 @@
 # Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA 02110-1301 USA.
 
 # This script updates the local Network Vulnerability Tests (NVTs) from the
-# Greenbone Security Feed (GSF) or the Greenbone Community Feed (GCF).
+# Greenbone Security Feed (GSF) or the Greenbone Community Feed (GCF). 
 
 VERSION=@OPENVAS_VERSION@
 
@@ -87,16 +87,17 @@ ENABLED=1
 LOG_CMD="logger -t $SCRIPT_NAME"
 
 check_logger () {
-  logger --socket-error=on -p daemon.info -t $SCRIPT_NAME "Checking logger" --no-act 1>/dev/null 2>&1 || {
+  logger --socket-error=on -p daemon.info -t $SCRIPT_NAME "Checking logger" --no-act 1>/dev/null 2>&1
+  if [ $? -gt 0 ]
+  then
     LOG_CMD="logger --socket-error=off -s -t $SCRIPT_NAME"
     $LOG_CMD -p daemon.warning "The log facility is not working as expected. All messages will be written to the standard error stream."
-  }
+  fi
 }
 check_logger
 
 
 # Source configuration file if it is readable
-# shellcheck source=/dev/null
 [ -r $OPENVAS_SYSCONF_DIR/greenbone-nvt-sync.conf ] && . $OPENVAS_SYSCONF_DIR/greenbone-nvt-sync.conf
 
 # NVT_DIR is the place where the NVTs are located.
@@ -106,7 +107,7 @@ then
 fi
 
 log_write () {
-  $LOG_CMD -p daemon.notice "$1"
+  $LOG_CMD -p daemon.notice $1
 }
 
 log_debug () {
@@ -140,10 +141,10 @@ get_feed_info ()
 {
   INFOFILE="$NVT_DIR/plugin_feed_info.inc"
   if [ -r $INFOFILE ] ; then
-    FEED_VERSION=$(grep PLUGIN_SET $INFOFILE | sed -e 's/[^0-9]//g')
-    FEED_NAME=$(awk -F\" '/PLUGIN_FEED/ { print $2 }' $INFOFILE)
-    FEED_VENDOR=$(awk -F\" '/FEED_VENDOR/ { print $2 }' $INFOFILE)
-    FEED_HOME=$(awk -F\" '/FEED_HOME/ { print $2 }' $INFOFILE)
+    FEED_VERSION=`grep PLUGIN_SET $INFOFILE | sed -e 's/[^0-9]//g'`
+    FEED_NAME=`awk -F\" '/PLUGIN_FEED/ { print $2 }' $INFOFILE`
+    FEED_VENDOR=`awk -F\" '/FEED_VENDOR/ { print $2 }' $INFOFILE`
+    FEED_HOME=`awk -F\" '/FEED_HOME/ { print $2 }' $INFOFILE`
     FEED_PRESENT=1
   else
     FEED_PRESENT=0
@@ -163,7 +164,7 @@ get_feed_info ()
 }
 
 # Prevent that root executes this script
-if [ "$(id -u)" -eq "0" ]
+if [ "`id -u`" -eq "0" ]
 then
   stderr_write "$0 must not be executed as privileged user root"
   stderr_write
@@ -195,14 +196,14 @@ else
   fi
 fi
 
-RSYNC=$(command -v rsync)
+RSYNC=`command -v rsync`
 
 if [ -z "$TMPDIR" ]; then
   SYNC_TMP_DIR=/tmp
   # If we have mktemp, create a temporary dir (safer)
-  if [ -n "$(which mktemp)" ]; then
-    SYNC_TMP_DIR=$(mktemp -t -d greenbone-nvt-sync.XXXXXXXXXX) || { echo "ERROR: Cannot create temporary directory for file download" >&2; exit 1 ; }
-    trap 'rm -rf $SYNC_TMP_DIR' EXIT HUP INT TRAP TERM
+  if [ -n "`which mktemp`" ]; then
+    SYNC_TMP_DIR=`mktemp -t -d greenbone-nvt-sync.XXXXXXXXXX` || { echo "ERROR: Cannot create temporary directory for file download" >&2; exit 1 ; }
+    trap "rm -rf $SYNC_TMP_DIR" EXIT HUP INT TRAP TERM
   fi
 else
   SYNC_TMP_DIR="$TMPDIR"
@@ -237,11 +238,11 @@ get_value ()
 setup_temp_access_key () {
   if [ -e "$ACCESS_KEY" ]
   then
-    FILE_ACCESS=$(stat -c%a "$ACCESS_KEY" | cut -c2-)
+    FILE_ACCESS=`stat -c%a "$ACCESS_KEY" | cut -c2-`
   fi
   if [ -n "$FILE_ACCESS" ] && [ "00" != "$FILE_ACCESS" ]
   then
-    TEMP_ACCESS_KEY_DIR=$(mktemp -d)
+    TEMP_ACCESS_KEY_DIR=`mktemp -d`
     TEMP_ACCESS_KEY="$TEMP_ACCESS_KEY_DIR/gsf-access-key"
     cp "$ACCESS_KEY" "$TEMP_ACCESS_KEY"
     chmod 400 "$TEMP_ACCESS_KEY"
@@ -273,12 +274,12 @@ is_feed_current () {
   then
     log_notice "rsync not available, skipping feed version test"
     FEED_CURRENT=0
-    rm -rf "$FEED_INFO_TEMP_DIR"
+    rm -rf $FEED_INFO_TEMP_DIR
     cleanup_temp_access_key
     return 0
   fi
 
-  FEED_INFO_TEMP_DIR=$(mktemp -d)
+  FEED_INFO_TEMP_DIR=`mktemp -d`
 
   if [ -e $ACCESS_KEY ]
   then
@@ -289,8 +290,8 @@ is_feed_current () {
       PORT="$syncport"
     fi
 
-    read -r feeduser < $ACCESS_KEY
-    custid=$(awk -F@ 'NR > 1 { exit }; { print $1 }' $ACCESS_KEY)
+    read feeduser < $ACCESS_KEY
+    custid=`awk -F@ 'NR > 1 { exit }; { print $1 }' $ACCESS_KEY`
     if [ -z "$feeduser" ] || [ -z "$custid" ]
     then
       log_err "Could not determine credentials, aborting synchronization."
@@ -311,7 +312,9 @@ is_feed_current () {
       fi
     fi
 
-    if ! rsync -e "ssh $RSYNC_SSH_OPTS $RSYNC_SSH_PROXY_CMD -p $PORT -i $TEMP_ACCESS_KEY" "$RSYNC_OPTIONS" "$RSYNC_DELETE" $RSYNC_COMPRESS "$RSYNC_CHMOD" "$feeduser"plugin_feed_info.inc "$FEED_INFO_TEMP_DIR"
+    rsync -e "ssh $RSYNC_SSH_OPTS $RSYNC_SSH_PROXY_CMD -p $PORT -i $TEMP_ACCESS_KEY" $RSYNC_OPTIONS $RSYNC_DELETE $RSYNC_COMPRESS $RSYNC_CHMOD "$feeduser"plugin_feed_info.inc $FEED_INFO_TEMP_DIR
+
+    if [ $? -ne 0 ]
     then
       log_err "Error: rsync failed."
       rm -rf "$FEED_INFO_TEMP_DIR"
@@ -322,24 +325,26 @@ is_feed_current () {
     # IP blocking due to network equipment in between keeping the previous connection too long open.
     sleep 5
     log_notice "No Greenbone Security Feed access key found, falling back to Greenbone Community Feed"
-    eval "$RSYNC -ltvrP \"$COMMUNITY_NVT_RSYNC_FEED/plugin_feed_info.inc\" \"$FEED_INFO_TEMP_DIR\"" || {
+    eval "$RSYNC -ltvrP \"$COMMUNITY_NVT_RSYNC_FEED/plugin_feed_info.inc\" \"$FEED_INFO_TEMP_DIR\""
+    if [ $? -ne 0 ]
+    then
       log_err "rsync failed, aborting synchronization."
       rm -rf "$FEED_INFO_TEMP_DIR"
       exit 1
-    }
+    fi
   fi
 
-  FEED_VERSION_SERVER=$(grep PLUGIN_SET "$FEED_INFO_TEMP_DIR"/plugin_feed_info.inc | sed -e 's/[^0-9]//g')
+  FEED_VERSION_SERVER=`grep PLUGIN_SET $FEED_INFO_TEMP_DIR/plugin_feed_info.inc | sed -e 's/[^0-9]//g'`
 
   if [ -z "$FEED_VERSION_SERVER" ]
   then
     log_err "Could not determine server feed version."
-    rm -rf "$FEED_INFO_TEMP_DIR"
+    rm -rf $FEED_INFO_TEMP_DIR
     cleanup_temp_access_key
     exit 1
   fi
   # Check against FEED_VERSION
-  if [ "$FEED_VERSION" -lt "$FEED_VERSION_SERVER" ] ; then
+  if [ $FEED_VERSION -lt $FEED_VERSION_SERVER ] ; then
     FEED_CURRENT=0
   else
     FEED_CURRENT=1
@@ -357,17 +362,19 @@ do_rsync_community_feed () {
   sleep 5
   log_notice "Configured NVT rsync feed: $COMMUNITY_NVT_RSYNC_FEED"
   mkdir -p "$NVT_DIR"
-  eval "$RSYNC -ltvrP $RSYNC_DELETE \"$COMMUNITY_NVT_RSYNC_FEED\" \"$NVT_DIR\" --exclude=plugin_feed_info.inc" || {
+  eval "$RSYNC -ltvrP $RSYNC_DELETE \"$COMMUNITY_NVT_RSYNC_FEED\" \"$NVT_DIR\" --exclude=plugin_feed_info.inc"
+  if [ $? -ne 0 ] ; then
     log_err "rsync failed."
     exit 1
-  }
+  fi
   # Sleep for five seconds (after the above rsync call) to prevent IP blocking due
   # to network equipment in between keeping the previous connection too long open.
   sleep 5
-  eval "$RSYNC -ltvrP $RSYNC_DELETE \"$COMMUNITY_NVT_RSYNC_FEED/plugin_feed_info.inc\" \"$NVT_DIR\"" || {
+  eval "$RSYNC -ltvrP $RSYNC_DELETE \"$COMMUNITY_NVT_RSYNC_FEED/plugin_feed_info.inc\" \"$NVT_DIR\""
+  if [ $? -ne 0 ] ; then
     log_err "rsync failed."
     exit 1
-  }
+  fi
 }
 
 sync_nvts(){
@@ -381,7 +388,7 @@ sync_nvts(){
   then
     log_write "Synchronizing NVTs from the Greenbone Security Feed into $NVT_DIR..."
     if [ $FEED_PRESENT -eq 1 ] ; then
-      FEEDCOUNT=$(grep -Ec "nasl$|inc$" $NVT_DIR/md5sums)
+      FEEDCOUNT=`grep -E "nasl$|inc$" $NVT_DIR/md5sums | wc -l`
       log_write "Current status: Using $FEED_NAME at version $FEED_VERSION ($FEEDCOUNT NVTs)"
     else
       log_write "Current status: No feed installed."
@@ -390,8 +397,8 @@ sync_nvts(){
     retried=0
 
     mkdir -p "$NVT_DIR"
-    read -r feeduser < $ACCESS_KEY
-    custid=$(awk -F@ 'NR > 1 { exit }; { print $1 }' $ACCESS_KEY)
+    read feeduser < $ACCESS_KEY
+    custid=`awk -F@ 'NR > 1 { exit }; { print $1 }' $ACCESS_KEY`
     if [ -z "$feeduser" ] || [ -z "$custid" ]
     then
       log_err "Could not determine credentials, aborting synchronization."
@@ -420,16 +427,18 @@ sync_nvts(){
           RSYNC_SSH_PROXY_CMD="-o \"ProxyCommand corkscrew $gsmproxy %h %p\""
         fi
       fi
-      rsync -e "ssh $RSYNC_SSH_OPTS $RSYNC_SSH_PROXY_CMD -p $PORT -i $TEMP_ACCESS_KEY" --exclude=plugin_feed_info.inc "$RSYNC_OPTIONS" "$RSYNC_DELETE" $RSYNC_COMPRESS "$RSYNC_CHMOD" "$feeduser" $NVT_DIR || {
+      rsync -e "ssh $RSYNC_SSH_OPTS $RSYNC_SSH_PROXY_CMD -p $PORT -i $TEMP_ACCESS_KEY" --exclude=plugin_feed_info.inc $RSYNC_OPTIONS $RSYNC_DELETE $RSYNC_COMPRESS $RSYNC_CHMOD $feeduser $NVT_DIR
+      if [ $? -ne 0 ]  ; then
         log_err "rsync failed, aborting synchronization."
         exit 1
-      }
-      rsync -e "ssh $RSYNC_SSH_OPTS $RSYNC_SSH_PROXY_CMD -p $PORT -i $TEMP_ACCESS_KEY" "$RSYNC_OPTIONS" "$RSYNC_DELETE" $RSYNC_COMPRESS "$RSYNC_CHMOD" "$feeduser"plugin_feed_info.inc $NVT_DIR || {
+      fi
+      rsync -e "ssh $RSYNC_SSH_OPTS $RSYNC_SSH_PROXY_CMD -p $PORT -i $TEMP_ACCESS_KEY" $RSYNC_OPTIONS $RSYNC_DELETE $RSYNC_COMPRESS $RSYNC_CHMOD "$feeduser"plugin_feed_info.inc $NVT_DIR
+      if [ $? -ne 0 ]  ; then
         log_err "rsync failed, aborting synchronization."
         exit 1
-      }
-      if ! eval "cd \"$NVT_DIR\" ; md5sum -c --status \"$NVT_DIR/md5sums\""
-      then
+      fi
+      eval "cd \"$NVT_DIR\" ; md5sum -c --status \"$NVT_DIR/md5sums\""
+      if [ $? -ne 0 ]  ; then
         if [ -n "$retried" ]
         then
           log_err "Feed integrity check failed twice, aborting synchronization."
@@ -449,7 +458,7 @@ sync_nvts(){
     log_write "Synchronization with the Greenbone Security Feed successful."
     get_feed_info
     if [ $FEED_PRESENT -eq 1 ] ; then
-      FEEDCOUNT=$(grep -Ec "nasl$|inc$" $NVT_DIR/md5sums)
+      FEEDCOUNT=`grep -E "nasl$|inc$" $NVT_DIR/md5sums | wc -l`
       log_write "Current status: Using $FEED_NAME at version $FEED_VERSION ($FEEDCOUNT NVTs)"
     else
       log_write "Current status: No feed installed."
@@ -462,17 +471,17 @@ sync_nvts(){
 
 do_self_test ()
 {
-  export MD5SUM_AVAIL
-  MD5SUM_AVAIL=$(command -v md5sum) || {
+  MD5SUM_AVAIL=`command -v md5sum`
+  if [ $? -ne 0 ] ; then
     SELFTEST_FAIL=1
     stderr_write "The md5sum binary could not be found."
-  }
+  fi
 
-  export RSYNC_AVAIL
-  RSYNC_AVAIL=$(command -v rsync) || {
+  RSYNC_AVAIL=`command -v rsync`
+  if [ $? -ne 0 ] ; then
     SELFTEST_FAIL=1
     stderr_write "The rsync binary could not be found."
-  }
+  fi
 }
 
 do_describe ()
@@ -484,7 +493,7 @@ do_describe ()
 
 do_feedversion () {
   if [ $FEED_PRESENT -eq 1 ] ; then
-    echo "$FEED_VERSION"
+    echo $FEED_VERSION
   else
     stderr_write "The file containing the feed version could not be found."
     exit 1
@@ -511,8 +520,8 @@ do_sync ()
       fi
       date > $OPENVAS_FEED_LOCK_PATH
       sync_nvts
-      printf "%s" "$OPENVAS_FEED_LOCK_PATH"
-    )9>>"$OPENVAS_FEED_LOCK_PATH"
+      echo -n $OPENVAS_FEED_LOCK_PATH
+    )9>>$OPENVAS_FEED_LOCK_PATH
   fi
 }
 
