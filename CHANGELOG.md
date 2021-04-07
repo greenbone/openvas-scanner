@@ -34,7 +34,6 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 - Store results in main_kb instead of host_kb. [#550](https://github.com/greenbone/openvas/pull/550)
 - Also use internal function name in some nasl log messages. [#611](https://github.com/greenbone/openvas/pull/611)
 - Move more scanner preferences to gvm-libs to make them available for openvas-nasl. [#614](https://github.com/greenbone/openvas/pull/614)
-- Made shell script POSIX compliant. [#693](https://github.com/greenbone/openvas-scanner/pull/693)
 
 ### Removed
 - Use the nvticache name from gvm-libs, defined in nvticache.h. [#578](https://github.com/greenbone/openvas/pull/578)
