@@ -541,11 +541,16 @@ attack_host (struct scan_globals *globals, struct in6_addr *ip, GSList *vhosts,
               && !scan_is_stopped ())
             {
               last_status = (cur_plug * 100) / num_plugs + 2;
+<<<<<<< HEAD
               if (comm_send_status (main_kb, ip_str, cur_plug, num_plugs) < 0)
                 {
                   pluginlaunch_stop ();
                   goto host_died;
                 }
+=======
+              if (comm_send_status (kb, ip_str, cur_plug, num_plugs) < 0)
+                goto host_died;
+>>>>>>> de757bd8... Do not call pluginlaunch_stop() twice.
             }
           cur_plug++;
         }
