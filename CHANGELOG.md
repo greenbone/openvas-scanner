@@ -46,6 +46,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 - Check for wrong names or values in the script_xrefs params.
   [#650](https://github.com/greenbone/openvas/pull/650)
   [#653](https://github.com/greenbone/openvas/pull/653)
+- Log a message if the scanner did not launch all plugins against a host. [#700](https://github.com/greenbone/openvas/pull/700)
 
 ### Changed
 - Replace bogus data with a better message and the vendor. [#665](https://github.com/greenbone/openvas/pull/665)
