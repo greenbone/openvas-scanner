@@ -456,7 +456,7 @@ attack_host (struct scan_globals *globals, struct in6_addr *ip, GSList *vhosts,
              plugins_scheduler_t sched, kb_t kb, kb_t main_kb)
 {
   /* Used for the status */
-  int num_plugs, forks_retry = 0;
+  int num_plugs, forks_retry = 0, all_plugs_launched = 0;
   char ip_str[INET6_ADDRSTRLEN];
 
   addr6_to_str (ip, ip_str);
@@ -559,9 +559,22 @@ attack_host (struct scan_globals *globals, struct in6_addr *ip, GSList *vhosts,
 
   pluginlaunch_wait (kb);
   if (!scan_is_stopped ())
+<<<<<<< HEAD
     comm_send_status (main_kb, ip_str, num_plugs, num_plugs);
+=======
+    {
+      int ret;
+      ret = comm_send_status (kb, ip_str, num_plugs, num_plugs);
+      if (ret == 0)
+        all_plugs_launched = 1;
+    }
+>>>>>>> 9338f10d... Log a message if the scanner did not launch all plugins against a host.
 
 host_died:
+  if (all_plugs_launched == 0 && !scan_is_stopped ())
+    g_message ("Vulnerability scan %s started for host %s: not all plugins "
+               "were launched",
+               globals->scan_id, ip_str);
   pluginlaunch_stop ();
   plugins_scheduler_free (sched);
   host_set_time (main_kb, ip_str, "HOST_END");
