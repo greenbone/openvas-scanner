@@ -537,10 +537,7 @@ attack_host (struct scan_globals *globals, struct in6_addr *ip, GSList *vhosts,
             {
               last_status = (cur_plug * 100) / num_plugs + 2;
               if (comm_send_status (kb, ip_str, cur_plug, num_plugs) < 0)
-                {
-                  pluginlaunch_stop ();
-                  goto host_died;
-                }
+                goto host_died;
             }
           cur_plug++;
         }
