@@ -541,16 +541,8 @@ attack_host (struct scan_globals *globals, struct in6_addr *ip, GSList *vhosts,
               && !scan_is_stopped ())
             {
               last_status = (cur_plug * 100) / num_plugs + 2;
-<<<<<<< HEAD
               if (comm_send_status (main_kb, ip_str, cur_plug, num_plugs) < 0)
-                {
-                  pluginlaunch_stop ();
-                  goto host_died;
-                }
-=======
-              if (comm_send_status (kb, ip_str, cur_plug, num_plugs) < 0)
                 goto host_died;
->>>>>>> de757bd8... Do not call pluginlaunch_stop() twice.
             }
           cur_plug++;
         }
@@ -564,16 +556,12 @@ attack_host (struct scan_globals *globals, struct in6_addr *ip, GSList *vhosts,
 
   pluginlaunch_wait (kb);
   if (!scan_is_stopped ())
-<<<<<<< HEAD
-    comm_send_status (main_kb, ip_str, num_plugs, num_plugs);
-=======
     {
       int ret;
-      ret = comm_send_status (kb, ip_str, num_plugs, num_plugs);
+      ret = comm_send_status (main_kb, ip_str, num_plugs, num_plugs);
       if (ret == 0)
         all_plugs_launched = 1;
     }
->>>>>>> 9338f10d... Log a message if the scanner did not launch all plugins against a host.
 
 host_died:
   if (all_plugs_launched == 0 && !scan_is_stopped ())
