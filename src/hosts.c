@@ -90,11 +90,13 @@ host_rm (struct host *h)
   if (!global_scan_stop)
     {
       char key[1024];
-      char *scan_id = kb_item_get_str (h->host_kb, "internal/scan_id");
-      snprintf (key, sizeof (key), "internal/%s", scan_id);
-      kb_item_set_str (h->host_kb, key, "finished", 0);
+      char *scan_id;
 
       host_set_time (h->host_kb, "internal/end_time");
+
+      scan_id = kb_item_get_str (h->host_kb, "internal/scan_id");
+      snprintf (key, sizeof (key), "internal/%s", scan_id);
+      kb_item_set_str (h->host_kb, key, "finished", 0);
       kb_lnk_reset (h->host_kb);
       g_free (scan_id);
     }
