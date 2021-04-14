@@ -1260,7 +1260,10 @@ routethrough (struct in_addr *dest, struct in_addr *source)
         {
           /* Assigned first route in the table */
           if (myroutes[0].dev)
-            source->s_addr = myroutes[0].dev->addr.s_addr;
+            {
+              source->s_addr = myroutes[0].dev->addr.s_addr;
+              best_match = 0;
+            }
           /* or any */
           else
             source->s_addr = INADDR_ANY;
