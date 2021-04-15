@@ -4,7 +4,7 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
-## [21.04.0] (unreleased)
+## [21.04.0] (2021-04-15)
 
 ### Added
 - Add scanner-only option to enable tls debugging. [#558](https://github.com/greenbone/openvas/pull/558)
@@ -26,7 +26,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 ### Removed
 - Use the nvticache name from gvm-libs, defined in nvticache.h. [#578](https://github.com/greenbone/openvas/pull/578)
 
-[21.04.0]: https://github.com/greenbone/openvas/compare/openvas-20.08...master
+[21.04.0]: https://github.com/greenbone/openvas/compare/openvas-20.08...v21.4.0
 
 ## [20.08.2] (unreleased)
 
