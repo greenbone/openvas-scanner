@@ -1255,8 +1255,8 @@ attack_network (struct scan_globals *globals)
           if (fork_retries > MAX_FORK_RETRIES)
             {
               /* Forking failed - we go to the wait queue. */
-              g_debug ("fork() failed - %s. %s won't be tested",
-                       strerror (errno), host_str);
+              g_warning ("fork() failed - %s. %s won't be tested",
+                         strerror (errno), host_str);
               g_free (host_str);
               goto stop;
             }
