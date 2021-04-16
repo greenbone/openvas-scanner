@@ -1245,13 +1245,29 @@ routethrough (struct in_addr *dest, struct in_addr *source)
             }
         }
     }
+
   /* Set source */
   if (source)
     {
+      /* Source address is given */
       if (src.s_addr != INADDR_ANY)
         source->s_addr = src.s_addr;
-      else
+      /* Source address is INADDR_ANY and there is a good route */
+      else if (best_match != -1)
         source->s_addr = myroutes[best_match].dev->addr.s_addr;
+      /* No best route found and no default */
+      else
+        {
+          /* Assigned first route in the table */
+          if (myroutes[0].dev)
+            {
+              source->s_addr = myroutes[0].dev->addr.s_addr;
+              best_match = 0;
+            }
+          /* or any */
+          else
+            source->s_addr = INADDR_ANY;
+        }
     }
 
   if (best_match != -1)
