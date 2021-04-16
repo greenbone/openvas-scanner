@@ -4,6 +4,16 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [21.04.1] (unreleased)
+
+### Added
+### Changed
+### Fixed
+### Removed
+
+[21.04.1]: https://github.com/greenbone/openvas/compare/v21.4.0...openvas-21.04
+
+
 ## [21.04.0] (2021-04-15)
 
 ### Added
