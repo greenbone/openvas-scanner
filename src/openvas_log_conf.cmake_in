@@ -10,7 +10,35 @@ prepend_time_format=%Y-%m-%d %Hh%M.%S %Z
 file=${GVM_LOG_DIR}/openvas.log
 level=127
 
-[alive scan]
+[lib  misc]
+prepend=%t %s %p
+separator=:
+prepend_time_format=%Y-%m-%d %Hh%M.%S %Z
+file=${GVM_LOG_DIR}/openvas.log
+level=127
+
+[lib  nasl]
+prepend=%t %s %p
+separator=:
+prepend_time_format=%Y-%m-%d %Hh%M.%S %Z
+file=${GVM_LOG_DIR}/openvas.log
+level=127
+
+[libgvm base]
+prepend=%t %s %p
+separator=:
+prepend_time_format=%Y-%m-%d %Hh%M.%S %Z
+file=${GVM_LOG_DIR}/openvas.log
+level=127
+
+[libgvm boreas]
+prepend=%t %s %p
+separator=:
+prepend_time_format=%Y-%m-%d %Hh%M.%S %Z
+file=${GVM_LOG_DIR}/openvas.log
+level=127
+
+[libgvm util]
 prepend=%t %s %p
 separator=:
 prepend_time_format=%Y-%m-%d %Hh%M.%S %Z
