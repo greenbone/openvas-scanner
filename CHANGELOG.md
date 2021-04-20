@@ -11,6 +11,12 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 - Add support for volatile keys. [#682](https://github.com/greenbone/openvas/pull/682)
 
 ### Changed
+<<<<<<< HEAD
+=======
+- Update default log config [#711][(https://github.com/greenbone/openvas-scanner/pull/711)
+
+### Fixed
+>>>>>>> be4bf7d5... Add log config update to CHANGELOG
 ### Removed
 ### Fixed
 
