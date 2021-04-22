@@ -7,16 +7,26 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 ## [21.10] (unreleased)
 
 ### Added
-
 - Add support for volatile keys. [#682](https://github.com/greenbone/openvas/pull/682)
 
 ### Changed
-### Removed
 ### Fixed
+### Removed
 
 [21.10]: https://github.com/greenbone/openvas-scanner/compare/openvas-21.04...master
 
-## [21.04.0] (unreleased)
+## [21.04.1] (unreleased)
+
+### Added
+### Changed
+- Update default log config [#711][(https://github.com/greenbone/openvas-scanner/pull/711)
+
+### Fixed
+### Removed
+
+[21.04.1]: https://github.com/greenbone/openvas/compare/v21.4.0...openvas-21.04
+
+## [21.04.0] (2021-04-15)
 
 ### Added
 - Add scanner-only option to enable tls debugging. [#558](https://github.com/greenbone/openvas/pull/558)
