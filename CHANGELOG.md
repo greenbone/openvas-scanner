@@ -8,6 +8,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ### Added
 ### Changed
+- Update default log config [#711][(https://github.com/greenbone/openvas-scanner/pull/711)
+
 ### Fixed
 ### Removed
 
