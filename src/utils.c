@@ -245,8 +245,7 @@ is_scanner_only_pref (const char *pref)
 {
   if (pref == NULL)
     return 0;
-  if (!strcmp (pref, "logfile") || !strcmp (pref, "config_file")
-      || !strcmp (pref, "plugins_folder")
+  if (!strcmp (pref, "config_file") || !strcmp (pref, "plugins_folder")
       || !strcmp (
            pref,
            "kb_location") // old name of db_address, ignore from old conf's
