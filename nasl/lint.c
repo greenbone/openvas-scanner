@@ -373,6 +373,7 @@ validate_script_xref(lex_ctxt *lexic, tree_cell *st)
 tree_cell *
 validate_function(lex_ctxt *lexic, tree_cell *st)
 {
+  lexic->line_nb = st->line_nb;
   if(st != NULL)
     {
       if(!g_strcmp0(st->x.str_val, "script_xref"))
