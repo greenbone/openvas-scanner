@@ -8,6 +8,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ### Added
 - Add support for volatile keys. [#682](https://github.com/greenbone/openvas/pull/682)
+- Extend nasl lint to check Syntax for Arguments for script_xref() function. [#714](https://github.com/greenbone/openvas/pull/714)
 
 ### Changed
 ### Fixed
