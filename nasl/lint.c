@@ -369,7 +369,7 @@ validate_script_xref (lex_ctxt *lexic, tree_cell *st)
  * @brief Check if a function has valid parameters
  *
  * @param lexic
- * @param st 
+ * @param st
  * @return tree_cell * NULL if it is invalid, FAKE_CELL if it is valid
  */
 tree_cell *
