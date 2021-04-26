@@ -298,42 +298,43 @@ nasl_lint_def (lex_ctxt *lexic, tree_cell *st, int lint_mode,
 
 /**
  * @brief Checks if a given Arguments is within a given Argument List
- * 
+ *
  * @param st Argument List, should be of Type NODE_ARG
  * @param name Name of the Argument to search for
  * @return char* Value of the given Argument name
  */
 char *
-get_argument_by_name(tree_cell *st, char *name)
+get_argument_by_name (tree_cell *st, char *name)
 {
-  if(st == NULL)
+  if (st == NULL)
     return NULL;
-  
-  if(st->type != NODE_ARG)
+
+  if (st->type != NODE_ARG)
     return NULL;
 
   tree_cell *cp;
-  for(cp = st; cp != NULL; cp = cp->link[1])
-  {
-    if(!g_strcmp0(cp->x.str_val, name))
-      return cp->link[0]->x.str_val;
-  }
+  for (cp = st; cp != NULL; cp = cp->link[1])
+    {
+      if (!g_strcmp0 (cp->x.str_val, name))
+        return cp->link[0]->x.str_val;
+    }
 
   return NULL;
 }
 
 /**
  * @brief Validates parameters of a script_xref function call
- * 
+ *
+ * @param lexic
  * @param st Function Parameters should be of type NODE_ARG
- * @return tree_cell* 
+ * @return tree_cell*
  */
 tree_cell *
-validate_script_xref(lex_ctxt *lexic, tree_cell *st)
+validate_script_xref (lex_ctxt *lexic, tree_cell *st)
 {
-  char *name = get_argument_by_name(st, "name");
-  char *value = get_argument_by_name(st, "value");
-  char *csv = get_argument_by_name(st, "csv");
+  char *name = get_argument_by_name (st, "name");
+  char *value = get_argument_by_name (st, "value");
+  char *csv = get_argument_by_name (st, "csv");
 
   if (((value == NULL) && (csv == NULL)) || name == NULL)
     {
@@ -366,22 +367,22 @@ validate_script_xref(lex_ctxt *lexic, tree_cell *st)
 
 /**
  * @brief Check if a function has valid parameters
- * 
+ *
+ * @param lexic
  * @param st 
- * @return tree_cell* NULL if it is invalid, FAKE_CELL if it is valid
+ * @return tree_cell * NULL if it is invalid, FAKE_CELL if it is valid
  */
 tree_cell *
-validate_function(lex_ctxt *lexic, tree_cell *st)
+validate_function (lex_ctxt *lexic, tree_cell *st)
 {
   lexic->line_nb = st->line_nb;
-  if(st != NULL)
+  if (st != NULL)
     {
-      if(!g_strcmp0(st->x.str_val, "script_xref"))
-        return validate_script_xref(lexic, st->link[0]);
+      if (!g_strcmp0 (st->x.str_val, "script_xref"))
+        return validate_script_xref (lexic, st->link[0]);
     }
   else
     return NULL;
-
 
   return FAKE_CELL;
 }
@@ -444,7 +445,7 @@ nasl_lint_call (lex_ctxt *lexic, tree_cell *st, GHashTable **include_files,
       else
         {
           // Check if function parameters are right
-          if(validate_function(lexic, st) == NULL)
+          if (validate_function (lexic, st) == NULL)
             return NULL;
         }
       if (*include_files && st->x.str_val)
