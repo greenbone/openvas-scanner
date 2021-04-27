@@ -111,6 +111,6 @@ create_process (process_func_t function, void *argument)
       exit (0);
     }
   if (pid < 0)
-    g_error ("Error : could not fork ! Error : %s", strerror (errno));
+    g_warning ("Error : could not fork ! Error : %s", strerror (errno));
   return pid;
 }
