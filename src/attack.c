@@ -755,9 +755,6 @@ apply_hosts_excluded (gvm_hosts_t *hosts)
       if (ret < 0)
         g_message ("exclude_hosts: Error.");
     }
-
-  if (hosts == NULL)
-    return;
 }
 
 static void
