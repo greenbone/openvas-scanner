@@ -297,6 +297,97 @@ nasl_lint_def (lex_ctxt *lexic, tree_cell *st, int lint_mode,
 }
 
 /**
+ * @brief Checks if a given Arguments is within a given Argument List
+ *
+ * @param st Argument List, should be of Type NODE_ARG
+ * @param name Name of the Argument to search for
+ * @return char* Value of the given Argument name
+ */
+char *
+get_argument_by_name (tree_cell *st, char *name)
+{
+  if (st == NULL)
+    return NULL;
+
+  if (st->type != NODE_ARG)
+    return NULL;
+
+  tree_cell *cp;
+  for (cp = st; cp != NULL; cp = cp->link[1])
+    {
+      if (!g_strcmp0 (cp->x.str_val, name))
+        return cp->link[0]->x.str_val;
+    }
+
+  return NULL;
+}
+
+/**
+ * @brief Validates parameters of a script_xref function call
+ *
+ * @param lexic
+ * @param st Function Parameters should be of type NODE_ARG
+ * @return tree_cell*
+ */
+tree_cell *
+validate_script_xref (lex_ctxt *lexic, tree_cell *st)
+{
+  char *name = get_argument_by_name (st, "name");
+  char *value = get_argument_by_name (st, "value");
+  char *csv = get_argument_by_name (st, "csv");
+
+  if (((value == NULL) && (csv == NULL)) || name == NULL)
+    {
+      nasl_perror (lexic,
+                   "script_xref() syntax error - should be"
+                   " script_xref(name:<name>, value:<value>) or"
+                   " script_xref(name:<name>, value:<value>, csv:<CSVs>) or"
+                   " script_xref(name:<name>, csv:<CSVs>)\n");
+      if (name == NULL)
+        {
+          nasl_perror (lexic, "  <name> is empty\n");
+        }
+      else
+        {
+          nasl_perror (lexic, "  <name> is %s\n", name);
+        }
+      if ((value == NULL) && (csv == NULL))
+        {
+          nasl_perror (lexic, "  <value> and <csv> is empty)\n");
+        }
+      else
+        {
+          nasl_perror (lexic, "  <value> is %s\n)", value);
+          nasl_perror (lexic, "  <csv> is %s\n)", csv);
+        }
+      return NULL;
+    }
+  return FAKE_CELL;
+}
+
+/**
+ * @brief Check if a function has valid parameters
+ *
+ * @param lexic
+ * @param st
+ * @return tree_cell * NULL if it is invalid, FAKE_CELL if it is valid
+ */
+tree_cell *
+validate_function (lex_ctxt *lexic, tree_cell *st)
+{
+  lexic->line_nb = st->line_nb;
+  if (st != NULL)
+    {
+      if (!g_strcmp0 (st->x.str_val, "script_xref"))
+        return validate_script_xref (lexic, st->link[0]);
+    }
+  else
+    return NULL;
+
+  return FAKE_CELL;
+}
+
+/**
  * @brief Check if a called function was defined.
  */
 tree_cell *
@@ -350,6 +441,12 @@ nasl_lint_call (lex_ctxt *lexic, tree_cell *st, GHashTable **include_files,
                 nasl_perror (lexic, "Undefined function '%s'\n", st->x.str_val);
                 return NULL;
               }
+        }
+      else
+        {
+          // Check if function parameters are right
+          if (validate_function (lexic, st) == NULL)
+            return NULL;
         }
       if (*include_files && st->x.str_val)
         {
