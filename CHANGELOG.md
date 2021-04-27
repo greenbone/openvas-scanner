@@ -62,6 +62,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 ### Changed
 - Replace bogus data with a better message and the vendor. [#665](https://github.com/greenbone/openvas/pull/665)
 - Improve log message for WMI connect failed or missing WMI support. [#670](https://github.com/greenbone/openvas/pull/670)
+- Don't use g_error. Use g_warning instead and let the scanner to continue. [#710](https://github.com/greenbone/openvas/pull/710)
 
 ### Fixed
 - Fix issues discovered with clang compiler. [#654](https://github.com/greenbone/openvas/pull/654)
@@ -72,6 +73,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ### Removed
 - Remove code from the openvas daemon era. Do not flushall redis. [#689](https://github.com/greenbone/openvas/pull/689)
+- Remove deprecated option logfile. [#713](https://github.com/greenbone/openvas/pull/713)
 
 [20.08.2]: https://github.com/greenbone/openvas/compare/v20.8.0...openvas-20.08
 
