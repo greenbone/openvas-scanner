@@ -740,13 +740,27 @@ attack_start (struct attack_start_args *args)
 }
 
 static void
-apply_hosts_preferences (gvm_hosts_t *hosts)
+apply_hosts_excluded (gvm_hosts_t *hosts)
 {
-  const char *ordering = prefs_get ("hosts_ordering"),
-             *exclude_hosts = prefs_get ("exclude_hosts");
+  const char *exclude_hosts = prefs_get ("exclude_hosts");
 
-  if (hosts == NULL)
-    return;
+  /* Exclude hosts ? */
+  if (exclude_hosts)
+    {
+      /* Exclude hosts, resolving hostnames. */
+      int ret = gvm_hosts_exclude (hosts, exclude_hosts);
+
+      if (ret > 0)
+        g_message ("exclude_hosts: Skipped %d host(s).", ret);
+      if (ret < 0)
+        g_message ("exclude_hosts: Error.");
+    }
+}
+
+static void
+apply_hosts_preferences_ordering (gvm_hosts_t *hosts)
+{
+  const char *ordering = prefs_get ("hosts_ordering");
 
   /* Hosts ordering strategy: sequential, random, reversed... */
   if (ordering)
@@ -764,19 +778,11 @@ apply_hosts_preferences (gvm_hosts_t *hosts)
     }
   else
     g_debug ("hosts_ordering: Sequential.");
+}
 
-  /* Exclude hosts ? */
-  if (exclude_hosts)
-    {
-      /* Exclude hosts, resolving hostnames. */
-      int ret = gvm_hosts_exclude (hosts, exclude_hosts);
-
-      if (ret > 0)
-        g_message ("exclude_hosts: Skipped %d host(s).", ret);
-      if (ret < 0)
-        g_message ("exclude_hosts: Error.");
-    }
-
+static void
+apply_hosts_reverse_lookup_preferences (gvm_hosts_t *hosts)
+{
   /* Reverse-lookup unify ? */
   if (prefs_get_bool ("reverse_lookup_unify"))
     g_debug ("reverse_lookup_unify: Skipped %d host(s).",
@@ -1128,6 +1134,10 @@ attack_network (struct scan_globals *globals)
     }
   g_slist_free_full (unresolved, g_free);
 
+  /* Apply Hosts preferences. */
+  apply_hosts_preferences_ordering (hosts);
+  apply_hosts_reverse_lookup_preferences (hosts);
+
   /* Send the hosts count to the client, after removing duplicated and
    * unresolved hosts.*/
   sprintf (buf, "%d", gvm_hosts_count (hosts));
@@ -1135,8 +1145,7 @@ attack_network (struct scan_globals *globals)
   message_to_client (main_kb, buf, NULL, NULL, "HOSTS_COUNT");
   kb_lnk_reset (main_kb);
 
-  /* Apply Hosts preferences. */
-  apply_hosts_preferences (hosts);
+  apply_hosts_excluded (hosts);
 
   /* Don't start if the provided interface is unauthorized. */
   if (apply_source_iface_preference () != 0)
