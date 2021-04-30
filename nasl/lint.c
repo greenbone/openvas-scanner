@@ -521,9 +521,13 @@ nasl_lint_defvar (lex_ctxt *lexic, tree_cell *st, GHashTable **include_files,
        || st->type == NODE_PLUS_EQ)
       && defined_var_mode == 0)
     defined_var_mode = 1;
-  else if ((st->type == NODE_FUN_DEF || st->type == NODE_LOCAL)
+  else if ((st->type == NODE_FUN_DEF || st->type == NODE_LOCAL
+            || st->type == NODE_FUN_CALL)
            && defined_fn_mode == 0)
-    defined_fn_mode = 1;
+    {
+      defined_fn_mode = 1;
+      defined_var_mode = 0;
+    }
 
   else if (st->type == NODE_GLOBAL)
     def_glob_var = 1;
