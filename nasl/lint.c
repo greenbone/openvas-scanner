@@ -366,7 +366,7 @@ validate_script_xref (lex_ctxt *lexic, tree_cell *st)
 }
 
 /**
- * @brief Check if a function has valid parameters
+ * @brief Validate functions
  *
  * @param lexic
  * @param st
@@ -380,6 +380,14 @@ validate_function (lex_ctxt *lexic, tree_cell *st)
     {
       if (!g_strcmp0 (st->x.str_val, "script_xref"))
         return validate_script_xref (lexic, st->link[0]);
+      if (!g_strcmp0 (st->x.str_val, "script_bugtraq_id"))
+        {
+          nasl_perror (lexic,
+                       "WARNING: use of unsupported function"
+                       " script_bugtraq_id() - please use"
+                       " script_xref(name:\"URL\", value:\"\") instead.\n");
+          return FAKE_CELL;
+        }
     }
   else
     return NULL;

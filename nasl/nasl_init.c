@@ -83,7 +83,9 @@ static init_func libfuncs[] = {
   {"script_get_preference_file_location", script_get_preference_file_location},
   {"script_oid", script_oid},
   {"script_cve_id", script_cve_id},
-  {"script_bugtraq_id", script_bugtraq_id},
+  {"script_bugtraq_id",
+   script_bugtraq_id_dummy}, // Replace orginal script_bugtraq_id to
+                             // ignore it
   {"script_xref", script_xref},
   {"script_tag", script_tag},
   {"vendor_version", nasl_vendor_version},

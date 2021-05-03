@@ -134,6 +134,12 @@ script_bugtraq_id (lex_ctxt *lexic)
   return FAKE_CELL;
 }
 
+tree_cell *
+script_bugtraq_id_dummy ()
+{
+  return FAKE_CELL;
+}
+
 /**
  * @brief Add a cross reference to the meta data.
  *

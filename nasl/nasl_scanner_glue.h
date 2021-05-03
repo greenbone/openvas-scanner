@@ -34,6 +34,9 @@ tree_cell *
 script_bugtraq_id (lex_ctxt *);
 
 tree_cell *
+script_bugtraq_id_dummy ();
+
+tree_cell *
 script_xref (lex_ctxt *);
 
 tree_cell *
