@@ -1169,6 +1169,7 @@ attack_network (struct scan_globals *globals)
       gboolean ad_finished = FALSE;
       int err;
       pthread_t tid;
+      struct in6_addr tmpaddr;
 
       /* Reset the iterator. */
       hosts->current = 0;
@@ -1187,11 +1188,16 @@ attack_network (struct scan_globals *globals)
         {
           fork_sleep (1);
         }
-      if (host)
-        g_debug ("%s: Get first host to test from Queue. This host is used for "
-                 "initialising the alive_hosts_list.",
-                 __func__);
 
+      if (gvm_host_get_addr6 (host, &tmpaddr) == 0)
+        host = gvm_host_find_in_hosts (host, &tmpaddr, hosts);
+      if (host)
+        {
+          g_debug (
+            "%s: Get first host to test from Queue. This host is used for "
+            "initialising the alive_hosts_list.",
+            __func__);
+        }
       alive_hosts_list = gvm_hosts_new (gvm_host_value_str (host));
     }
 
@@ -1280,6 +1286,8 @@ attack_network (struct scan_globals *globals)
 
       if (test_alive_hosts_only)
         {
+          struct in6_addr tmpaddr;
+
           while (1)
             {
               /* Boolean signalling if alive detection finished. */
@@ -1321,8 +1329,14 @@ attack_network (struct scan_globals *globals)
               else
                 break;
             }
+
+          if (gvm_host_get_addr6 (host, &tmpaddr) == 0)
+            host = gvm_host_find_in_hosts (host, &tmpaddr, hosts);
+
           if (host)
-            gvm_hosts_add (alive_hosts_list, host);
+            {
+              gvm_hosts_add (alive_hosts_list, host);
+            }
           else
             g_debug ("%s: got NULL host, stop/finish scan", __func__);
         }
