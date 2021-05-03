@@ -552,16 +552,32 @@ nasl_lint_defvar (lex_ctxt *lexic, tree_cell *st, GHashTable **include_files,
   else if (st->type == NODE_DECL && st->x.str_val != NULL)
     {
       if (defined_fn_mode == 1)
-        local_var_list = g_slist_prepend (local_var_list, st->x.str_val);
+        {
+          local_var_list = g_slist_prepend (local_var_list, st->x.str_val);
+          // g_warning("2: local variable: %s", st->x.str_val);
+        }
       if (def_glob_var == 1)
-        *defined_var = g_slist_prepend (*defined_var, st->x.str_val);
+        {
+          *defined_var = g_slist_prepend (*defined_var, st->x.str_val);
+          // g_warning("3: variable: %s", st->x.str_val);
+        }
     }
   /* Special case foreach. */
   else if (st->type == NODE_FOREACH)
     {
-      if (st->x.str_val != NULL)
-        *defined_var = g_slist_prepend (*defined_var, st->x.str_val);
+      // Hacky way of checking if we are in a function definition by checking
+      // if local_var_list is non empty. Otherwise all variables declared in a
+      // foreach call are considered file scope which leads to false negatives.
+      if (st->x.str_val != NULL && local_var_list != NULL)
+        {
+          local_var_list = g_slist_prepend (local_var_list, st->x.str_val);
+        }
+      else if (st->x.str_val != NULL)
+        {
+          *defined_var = g_slist_prepend (*defined_var, st->x.str_val);
+        }
     }
+
   // The variable is used. It checks if the variable was defined
   else if (st->type == NODE_VAR && defined_var_mode == 0)
     {
