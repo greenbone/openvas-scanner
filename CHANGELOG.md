@@ -4,6 +4,47 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+<<<<<<< HEAD
+=======
+## [21.04.1] (unreleased)
+
+### Added
+### Changed
+- Update default log config [#711](https://github.com/greenbone/openvas-scanner/pull/711)
+
+### Fixed
+- Use host from the orignal hosts list when boreas is enabled. [#725](https://github.com/greenbone/openvas/pull/725)
+
+### Removed
+
+[21.04.1]: https://github.com/greenbone/openvas/compare/v21.4.0...openvas-21.04
+
+
+## [21.04.0] (2021-04-15)
+
+### Added
+- Add scanner-only option to enable tls debugging. [#558](https://github.com/greenbone/openvas/pull/558)
+- Extend nasl lint to detect if function parameter is used twice. [#585](https://github.com/greenbone/openvas/pull/585)
+- Add option to specify if a host can be scanned through its IPv4 and IPv6 in parallel.
+  [#604](https://github.com/greenbone/openvas/pull/604)
+  [#645](https://github.com/greenbone/openvas/pull/645)
+- Add insert_tcp_options and insert_tcp_v6_options nasl functions. [#618](https://github.com/greenbone/openvas/pull/618)
+- Add get_tcp_option and extend dump_tcp_packet nasl functions. [#621](https://github.com/greenbone/openvas/pull/621)
+- Add new scanner only option for spawning NASL functions with a different owner. [#634](https://github.com/greenbone/openvas/pull/634)
+- Add debug logs for allow_simultaneous_ips=no. [#685](https://github.com/greenbone/openvas/pull/685)
+- Add min_free_mem and max_sysload scanner only options. [#690](https://github.com/greenbone/openvas/pull/690)
+
+### Changed
+- Store results in main_kb instead of host_kb. [#550](https://github.com/greenbone/openvas/pull/550)
+- Also use internal function name in some nasl log messages. [#611](https://github.com/greenbone/openvas/pull/611)
+- Move more scanner preferences to gvm-libs to make them available for openvas-nasl. [#614](https://github.com/greenbone/openvas/pull/614)
+
+### Removed
+- Use the nvticache name from gvm-libs, defined in nvticache.h. [#578](https://github.com/greenbone/openvas/pull/578)
+
+[21.04.0]: https://github.com/greenbone/openvas/compare/openvas-20.08...v21.4.0
+
+>>>>>>> 60c9777f... Use host from the orignal hosts list when boreas is enabled
 ## [20.08.2] (unreleased)
 
 ### Added
