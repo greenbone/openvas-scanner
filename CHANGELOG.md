@@ -24,6 +24,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 - Update default log config [#711](https://github.com/greenbone/openvas-scanner/pull/711)
 
 ### Fixed
+- Use host from the orignal hosts list when boreas is enabled. [#725](https://github.com/greenbone/openvas/pull/725)
+
 ### Removed
 
 [21.04.1]: https://github.com/greenbone/openvas/compare/v21.4.0...openvas-21.04
