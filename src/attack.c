@@ -1263,17 +1263,13 @@ attack_network (struct scan_globals *globals)
 
       if (test_alive_hosts_only)
         {
-<<<<<<< HEAD
+          struct in6_addr tmpaddr;
+
           /* Boolean signalling if alive detection finished. */
           gboolean ad_finished = FALSE;
           for (host = get_host_from_queue (alive_hosts_kb, &ad_finished);
                !host && !ad_finished && !scan_is_stopped ();
                host = get_host_from_queue (alive_hosts_kb, &ad_finished))
-=======
-          struct in6_addr tmpaddr;
-
-          while (1)
->>>>>>> 60c9777f... Use host from the orignal hosts list when boreas is enabled
             {
               fork_sleep (1);
             }
