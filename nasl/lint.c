@@ -474,7 +474,10 @@ nasl_lint_defvar (lex_ctxt *lexic, tree_cell *st, GHashTable **include_files,
     }
 
   // The variable is used. It checks if the variable was defined
-  else if (st->type == NODE_VAR && defined_var_mode == 0)
+  // Also check for NODE_ARRAY_EL to catch use of undeclared array.
+  // E.g "if(foo[0]) {}" and foo was not declared previously.
+  else if ((st->type == NODE_VAR || st->type == NODE_ARRAY_EL)
+           && defined_var_mode == 0)
     {
       if (!g_slist_find_custom (*defined_var, st->x.str_val,
                                 (GCompareFunc) list_cmp)
