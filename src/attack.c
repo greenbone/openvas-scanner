@@ -551,10 +551,10 @@ attack_host (struct scan_globals *globals, struct in6_addr *ip, GSList *vhosts,
       else if (plugin != NULL && plugin == PLUG_RUNNING)
         /* 50 milliseconds. */
         usleep (50000);
-      pluginlaunch_wait_for_free_process (kb);
+      pluginlaunch_wait_for_free_process (main_kb, kb);
     }
 
-  pluginlaunch_wait (kb);
+  pluginlaunch_wait (main_kb, kb);
   if (!scan_is_stopped ())
     {
       int ret;

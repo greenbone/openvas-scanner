@@ -82,11 +82,12 @@ const char *hostname = NULL;
  *
  */
 static void
-update_running_processes (kb_t kb)
+update_running_processes (kb_t main_kb, kb_t kb)
 {
   int i;
   struct timeval now;
   int log_whole = prefs_get_bool ("log_whole_attack");
+  (void) kb;
 
   if (num_running_processes == 0)
     return;
@@ -110,7 +111,6 @@ update_running_processes (kb_t kb)
               if (is_alive)
                 {
                   char msg[2048];
-
                   if (log_whole)
                     g_message ("%s (pid %d) is slow to finish - killing it",
                                oid, processes[i].pid);
@@ -120,7 +120,7 @@ update_running_processes (kb_t kb)
                            "NVT timed out after %d seconds.",
                            hostname, oid ?: " ", processes[i].timeout);
 
-                  kb_item_push_str (kb, "internal/results", msg);
+                  kb_item_push_str (main_kb, "internal/results", msg);
 
                   ret_terminate = terminate_process (processes[i].pid);
                   if (ret_terminate == 0)
@@ -243,7 +243,7 @@ simult_ports (const char *oid, const char *next_oid)
  *          in the processes array otherwise.
  */
 static int
-next_free_process (kb_t kb, struct scheduler_plugin *upcoming)
+next_free_process (kb_t main_kb, kb_t kb, struct scheduler_plugin *upcoming)
 {
   int r;
 
@@ -254,7 +254,7 @@ next_free_process (kb_t kb, struct scheduler_plugin *upcoming)
         {
           while (process_alive (processes[r].pid))
             {
-              update_running_processes (kb);
+              update_running_processes (main_kb, kb);
               usleep (250000);
             }
         }
@@ -399,8 +399,8 @@ plugin_launch (struct scan_globals *globals, struct scheduler_plugin *plugin,
   int p;
 
   /* Wait for a free slot */
-  pluginlaunch_wait_for_free_process (main_kb);
-  p = next_free_process (main_kb, plugin);
+  pluginlaunch_wait_for_free_process (main_kb, kb);
+  p = next_free_process (main_kb, kb, plugin);
   if (p < 0)
     return -1;
   processes[p].plugin = plugin;
@@ -421,11 +421,11 @@ plugin_launch (struct scan_globals *globals, struct scheduler_plugin *plugin,
  * @brief Waits and 'pushes' processes until num_running_processes is 0.
  */
 void
-pluginlaunch_wait (kb_t kb)
+pluginlaunch_wait (kb_t main_kb, kb_t kb)
 {
   while (num_running_processes)
     {
-      update_running_processes (kb);
+      update_running_processes (main_kb, kb);
       if (num_running_processes)
         waitpid (-1, NULL, 0);
     }
@@ -454,11 +454,11 @@ timeout_running_processes (void)
  *        changed.
  */
 void
-pluginlaunch_wait_for_free_process (kb_t kb)
+pluginlaunch_wait_for_free_process (kb_t main_kb, kb_t kb)
 {
   if (!num_running_processes)
     return;
-  update_running_processes (kb);
+  update_running_processes (main_kb, kb);
   /* Max number of processes are still running, wait for a child to exit or
    * to timeout. */
   while (
@@ -474,6 +474,6 @@ pluginlaunch_wait_for_free_process (kb_t kb)
       sigaddset (&mask, SIGCHLD);
       if (sigtimedwait (&mask, NULL, &ts) < 0 && errno != EAGAIN)
         g_warning ("%s: %s", __func__, strerror (errno));
-      update_running_processes (kb);
+      update_running_processes (main_kb, kb);
     }
 }
