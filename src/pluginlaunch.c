@@ -37,6 +37,7 @@
 #include <errno.h>          /* for errno() */
 #include <gvm/base/prefs.h> /* for prefs_get_bool() */
 #include <gvm/util/nvticache.h>
+#include <gvm/boreas/hostalivedetection.h> /* for is_host_alive() */
 #include <stdio.h>  /* for perror() */
 #include <stdlib.h> /* for atoi() */
 #include <string.h>
@@ -79,6 +80,33 @@ static GSList *non_simult_ports = NULL;
 const char *hostname = NULL;
 
 /**
+ * @brief Check if the hosts is still alive and set it as dead if not.
+ *
+ * @param kb Host kb where the host is set as dead.
+ */
+static void
+check_host_still_alive (kb_t kb)
+{
+  int is_alive = 0;
+  boreas_error_t alive_err;
+
+  alive_err = is_host_alive (hostname, &is_alive);
+  if (alive_err)
+    {
+      g_warning ("%s: Heartbeat check failed for %s with error %d.",
+                 __func__, hostname, alive_err);
+      return;
+    }
+
+  if (is_alive == 0)
+    {
+      g_message("%s: Heartbeat check was not successful. The host %s has"
+                " been set as dead.", __func__, hostname);
+      kb_item_set_int (kb, "Host/dead", 1);
+    }
+}
+
+/**
  *
  */
 static void
@@ -119,8 +147,9 @@ update_running_processes (kb_t main_kb, kb_t kb)
                            "ERRMSG|||%s||| |||general/tcp|||%s|||"
                            "NVT timed out after %d seconds.",
                            hostname, oid ?: " ", processes[i].timeout);
-
                   kb_item_push_str (main_kb, "internal/results", msg);
+
+                  check_host_still_alive (kb);
 
                   ret_terminate = terminate_process (processes[i].pid);
                   if (ret_terminate == 0)
