@@ -25,12 +25,13 @@
 
 #include "../misc/scanneraux.h" /* for struct scan_globals */
 
-#include <errno.h>          /* for errno() */
-#include <gvm/base/prefs.h> /* for prefs_get() */
-#include <stdlib.h>         /* for atoi() */
-#include <string.h>         /* for strcmp() */
-#include <sys/ioctl.h>      /* for ioctl() */
-#include <sys/wait.h>       /* for waitpid() */
+#include <errno.h>                         /* for errno() */
+#include <gvm/base/prefs.h>                /* for prefs_get() */
+#include <gvm/boreas/hostalivedetection.h> /* for is_host_alive() */
+#include <stdlib.h>                        /* for atoi() */
+#include <string.h>                        /* for strcmp() */
+#include <sys/ioctl.h>                     /* for ioctl() */
+#include <sys/wait.h>                      /* for waitpid() */
 
 extern int global_max_hosts;
 extern int global_max_checks;
@@ -219,6 +220,56 @@ data_left (int soc)
   int data = 0;
   ioctl (soc, FIONREAD, &data);
   return data;
+}
+
+/**
+ * @brief Check if the hosts is still alive and set it as dead if not.
+ *
+ * @param kb Host kb where the host is set as dead.
+ *
+ * @return 1 if considered alive, 0 if it is dead. -1 on error
+ * or option disabled.
+ */
+int
+check_host_still_alive (kb_t kb, const char *hostname)
+{
+  static int heartbeat_counter = 0;
+  int heartbeat_enabled = 0;
+  const gchar *heartbeat_pref = NULL;
+  int is_alive = 0;
+  boreas_error_t alive_err;
+
+  if ((heartbeat_pref = prefs_get ("heartbeat_enabled")) == NULL)
+    {
+      g_debug ("%s: HEARTBEAT not set.", __func__);
+      return -1;
+    }
+  heartbeat_enabled = atoi (heartbeat_pref);
+  if (heartbeat_enabled <= 0)
+    {
+      g_debug ("%s: HEARTBEAT disabled", __func__);
+      return -1;
+    }
+
+  alive_err = is_host_alive (hostname, &is_alive);
+  if (alive_err)
+    {
+      g_warning ("%s: Heartbeat check failed for %s with error %d.", __func__,
+                 hostname, alive_err);
+      return -1;
+    }
+
+  heartbeat_counter++;
+  if (is_alive == 0 && heartbeat_counter >= heartbeat_enabled)
+    {
+      g_message ("%s: Heartbeat check was not successful. The host %s has"
+                 " been set as dead.",
+                 __func__, hostname);
+      kb_item_set_int (kb, "Host/dead", 1);
+      return 0;
+    }
+
+  return 1;
 }
 
 void
