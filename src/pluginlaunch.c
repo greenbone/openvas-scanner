@@ -121,7 +121,17 @@ update_running_processes (kb_t main_kb, kb_t kb)
                            hostname, oid ?: " ", processes[i].timeout);
                   kb_item_push_str (main_kb, "internal/results", msg);
 
-                  check_host_still_alive (kb, hostname);
+                  /* Check if host is still alive and send a message
+                     if it is dead. */
+                  if (check_host_still_alive (kb, hostname) == 0)
+                    {
+                      sprintf (msg,
+                               "ERRMSG|||%s||| |||general/tcp||| |||"
+                               "Host has been marked as dead. Too many "
+                               "NVT_TIMEOUTs.",
+                               hostname);
+                      kb_item_push_str (main_kb, "internal/results", msg);
+                    }
 
                   ret_terminate = terminate_process (processes[i].pid);
                   if (ret_terminate == 0)
