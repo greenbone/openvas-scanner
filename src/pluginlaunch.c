@@ -122,8 +122,9 @@ update_running_processes (kb_t main_kb, kb_t kb)
                   kb_item_push_str (main_kb, "internal/results", msg);
 
                   /* Check if host is still alive and send a message
-                     if it is dead. */
-                  if (check_host_still_alive (kb, hostname) == 0)
+                     if it is dead. Only if Boreas enabled. */
+                  if ((check_host_still_alive (kb, hostname) == 0)
+                      && prefs_get_bool ("test_alive_hosts_only"))
                     {
                       sprintf (msg,
                                "ERRMSG|||%s||| |||general/tcp||| |||"
