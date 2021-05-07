@@ -1618,7 +1618,8 @@ nasl_lint (lex_ctxt *, tree_cell *);
  *                          parse-only, always-signed, command-line, lint)
  *
  * @return 0 if the script was executed successfully, negative values if an
- * error occurred.
+ * error occurred. Return number of errors if mode is NASL_LINT and no none
+ * linting errors occured.
  */
 int
 exec_nasl_script (struct script_infos *script_infos, int mode)
@@ -1698,8 +1699,18 @@ exec_nasl_script (struct script_infos *script_infos, int mode)
   process_id = getpid ();
   if (mode & NASL_LINT)
     {
-      if (nasl_lint (lexic, ctx.tree) == NULL)
+      /* ret is set to the number of errors the linter finds.
+      ret will be overwritten with -1 if any erros occur in the steps
+      after linting so we do not break other behaviour dependent on a
+      negative return value when doing more than just linting. */
+      tree_cell *ret = nasl_lint (lexic, ctx.tree);
+      if (ret == NULL)
         err--;
+      else if (ret != FAKE_CELL && ret->x.i_val > 0)
+        {
+          err = ret->x.i_val;
+          g_free (ret);
+        }
     }
   else if (!(mode & NASL_EXEC_PARSE_ONLY))
     {
