@@ -627,6 +627,47 @@ vhosts_to_str (GSList *list)
   return g_string_free (string, FALSE);
 }
 
+/**
+ * @brief Check if any deprecated prefs are in pref table and print warning.
+ *
+ * @return True if deprecated prefs are in preference table. Else False.
+ */
+gboolean
+check_deprecated_prefs ()
+{
+  gboolean ret = FALSE;
+
+  const gchar *source_iface = prefs_get ("source_iface");
+  const gchar *ifaces_allow = prefs_get ("ifaces_allow");
+  const gchar *ifaces_deny = prefs_get ("ifaces_deny");
+  const gchar *sys_ifaces_allow = prefs_get ("sys_ifaces_allow");
+  const gchar *sys_ifaces_deny = prefs_get ("sys_ifaces_deny");
+
+  if (source_iface || ifaces_allow || ifaces_deny || sys_ifaces_allow
+      || sys_ifaces_deny)
+    {
+      ret = TRUE;
+      kb_t main_kb = NULL;
+      gchar *msg = NULL;
+
+      msg = g_strdup_printf (
+        "The following provided settings are deprecated since the 21.10 "
+        "release and will be ignored: %s%s%s%s%s",
+        source_iface ? "source_iface (task setting) " : "",
+        ifaces_allow ? "ifaces_allow (user setting) " : "",
+        ifaces_deny ? "ifaces_deny (user setting) " : "",
+        sys_ifaces_allow ? "sys_ifaces_allow (scanner only setting) " : "",
+        sys_ifaces_deny ? "sys_ifaces_deny (scanner only setting)" : "");
+      g_warning ("%s: %s", __func__, msg);
+
+      connect_main_kb (&main_kb);
+      message_to_client (main_kb, msg, NULL, NULL, "ERRMSG");
+      kb_lnk_reset (main_kb);
+      g_free (msg);
+    }
+  return ret;
+}
+
 /*
  * Check if a scan is authorized on a host.
  *
@@ -918,6 +959,8 @@ attack_network (struct scan_globals *globals)
   kb_t host_kb, main_kb;
   GSList *unresolved;
   char buf[96];
+
+  check_deprecated_prefs ();
 
   gboolean test_alive_hosts_only = prefs_get_bool ("test_alive_hosts_only");
   gvm_hosts_t *alive_hosts_list = NULL;
