@@ -239,6 +239,23 @@ check_host_still_alive (kb_t kb, const char *hostname)
   int is_alive = 0;
   boreas_error_t alive_err;
 
+  /* Heartbeat will work only with boreas enabled. We check if we
+     have all what we need before running a heartbeat check. */
+  if (prefs_get_bool ("test_alive_hosts_only"))
+    {
+      const gchar *alive_test_str = prefs_get ("ALIVE_TEST");
+
+      /* Don't perfom a hearbeat check if the host is always considered
+         alive or the alive test is not valid. */
+      if (!(alive_test_str
+            && atoi (alive_test_str) >= ALIVE_TEST_TCP_ACK_SERVICE
+            && atoi (alive_test_str) < 32 // max value for alive test combi.
+            && !((atoi (alive_test_str)) & ALIVE_TEST_CONSIDER_ALIVE)))
+        return -1;
+    }
+  else
+    return -1;
+
   if ((heartbeat_pref = prefs_get ("heartbeat_enabled")) == NULL)
     {
       g_debug ("%s: HEARTBEAT not set.", __func__);
