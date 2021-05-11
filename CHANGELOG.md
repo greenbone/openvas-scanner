@@ -20,6 +20,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 ## [21.04.1] (unreleased)
 
 ### Added
+- Improve nasl linter to catch more cases of undeclared variables. [#728][(https://github.com/greenbone/openvas-scanner/pull/728)
+
 ### Changed
 - Update default log config [#711](https://github.com/greenbone/openvas-scanner/pull/711)
 
