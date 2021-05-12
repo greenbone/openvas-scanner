@@ -14,6 +14,7 @@ Prerequisites:
 * libgvm_base, libgvm_util >= 21.10
 * glib-2.0 >= 2.42
 * gio-2.0
+* json-glib-1.0 >= 1.4.4
 * bison
 * flex
 * libgcrypt >= 1.6
@@ -44,8 +45,8 @@ Recommended to have improved SNMP support:
 Install prerequisites on Debian GNU/Linux 'Buster' 10:
 
     apt-get install gcc pkg-config libssh-gcrypt-dev libgnutls28-dev \
-    libglib2.0-dev libpcap-dev libgpgme-dev bison libksba-dev libsnmp-dev \
-    libgcrypt20-dev redis-server
+    libglib2.0-dev libjson-glib-dev libpcap-dev libgpgme-dev bison libksba-dev \
+    libsnmp-dev libgcrypt20-dev redis-server
 
 
 Compiling openvas
