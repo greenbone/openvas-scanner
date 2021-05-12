@@ -252,7 +252,12 @@ check_host_still_alive (kb_t kb, const char *hostname)
         return -1;
     }
   else
-    return -1;
+     {
+      g_warning ("%s: Max VTs timeout has been reached, but Boreas is not "
+                 "enabled. Heartbeat check for %s will not be perfomed",
+                 __func__, hostname);
+      return -1;
+     }
 
   alive_err = is_host_alive (hostname, &is_alive);
   if (alive_err)
