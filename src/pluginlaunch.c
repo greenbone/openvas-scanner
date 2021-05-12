@@ -78,6 +78,42 @@ static int old_max_running_processes;
 static GSList *non_simult_ports = NULL;
 const char *hostname = NULL;
 
+
+/**
+ * @brief Check if max_nvt_timeouts is set and if has been reached
+ *
+ * @return 1 if reached, 0 if not reached or no set.
+ */
+static int
+max_nvt_timeouts_reached ()
+{
+  static int heartbeat_counter = 0;
+  int heartbeat_enabled = 0;
+  const gchar *heartbeat_pref = NULL;
+
+  /* Check if set */
+  if ((heartbeat_pref = prefs_get ("heartbeat_enabled")) == NULL)
+    {
+      g_debug ("%s: HEARTBEAT not set.", __func__);
+      return 0;
+    }
+
+  /* Check if enabled and valid value */
+  heartbeat_enabled = atoi (heartbeat_pref);
+  if (heartbeat_enabled <= 0)
+    {
+      g_debug ("%s: HEARTBEAT disabled", __func__);
+      return 0;
+    }
+  
+  heartbeat_counter++;
+  /* Check if reached */
+  if (heartbeat_counter >= heartbeat_enabled)
+    return 1;
+
+  return 0;
+}
+
 /**
  *
  */
@@ -120,16 +156,20 @@ update_running_processes (kb_t main_kb, kb_t kb)
                            hostname, oid ?: " ", processes[i].timeout);
                   kb_item_push_str (main_kb, "internal/results", msg);
 
-                  /* Check if host is still alive and send a message
-                     if it is dead. */
-                  if (check_host_still_alive (kb, hostname) == 0)
+                  /* Check for max VTs timeouts */
+                  if (max_nvt_timeouts_reached ()) 
                     {
-                      g_snprintf (msg, sizeof (msg),
-                               "ERRMSG|||%s||| |||general/tcp||| |||"
-                               "Host has been marked as dead. Too many "
-                               "NVT_TIMEOUTs.",
-                               hostname);
-                      kb_item_push_str (main_kb, "internal/results", msg);
+                      /* Check if host is still alive and send a message
+                         if it is dead. */
+                      if (check_host_still_alive (kb, hostname) == 0)
+                        {
+                          g_snprintf (msg, sizeof (msg),
+                                      "ERRMSG|||%s||| |||general/tcp||| |||"
+                                      "Host has been marked as dead. Too many "
+                                      "NVT_TIMEOUTs.",
+                                      hostname);
+                          kb_item_push_str (main_kb, "internal/results", msg);
+                        }
                     }
 
                   ret_terminate = terminate_process (processes[i].pid);

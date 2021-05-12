@@ -233,9 +233,7 @@ data_left (int soc)
 int
 check_host_still_alive (kb_t kb, const char *hostname)
 {
-  static int heartbeat_counter = 0;
-  int heartbeat_enabled = 0;
-  const gchar *heartbeat_pref = NULL;
+ 
   int is_alive = 0;
   boreas_error_t alive_err;
 
@@ -256,18 +254,6 @@ check_host_still_alive (kb_t kb, const char *hostname)
   else
     return -1;
 
-  if ((heartbeat_pref = prefs_get ("heartbeat_enabled")) == NULL)
-    {
-      g_debug ("%s: HEARTBEAT not set.", __func__);
-      return -1;
-    }
-  heartbeat_enabled = atoi (heartbeat_pref);
-  if (heartbeat_enabled <= 0)
-    {
-      g_debug ("%s: HEARTBEAT disabled", __func__);
-      return -1;
-    }
-
   alive_err = is_host_alive (hostname, &is_alive);
   if (alive_err)
     {
@@ -275,9 +261,8 @@ check_host_still_alive (kb_t kb, const char *hostname)
                  hostname, alive_err);
       return -1;
     }
-
-  heartbeat_counter++;
-  if (is_alive == 0 && heartbeat_counter >= heartbeat_enabled)
+ 
+  if (is_alive == 0)
     {
       g_message ("%s: Heartbeat check was not successful. The host %s has"
                  " been set as dead.",
