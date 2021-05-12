@@ -25,13 +25,13 @@
 
 #include "../misc/scanneraux.h" /* for struct scan_globals */
 
-#include <errno.h>                         /* for errno() */
-#include <gvm/base/prefs.h>                /* for prefs_get() */
-#include <gvm/boreas/cli.h>                /* for is_host_alive() */
-#include <stdlib.h>                        /* for atoi() */
-#include <string.h>                        /* for strcmp() */
-#include <sys/ioctl.h>                     /* for ioctl() */
-#include <sys/wait.h>                      /* for waitpid() */
+#include <errno.h>          /* for errno() */
+#include <gvm/base/prefs.h> /* for prefs_get() */
+#include <gvm/boreas/cli.h> /* for is_host_alive() */
+#include <stdlib.h>         /* for atoi() */
+#include <string.h>         /* for strcmp() */
+#include <sys/ioctl.h>      /* for ioctl() */
+#include <sys/wait.h>       /* for waitpid() */
 
 extern int global_max_hosts;
 extern int global_max_checks;
@@ -233,7 +233,6 @@ data_left (int soc)
 int
 check_host_still_alive (kb_t kb, const char *hostname)
 {
- 
   int is_alive = 0;
   boreas_error_t alive_err;
 
@@ -252,12 +251,12 @@ check_host_still_alive (kb_t kb, const char *hostname)
         return -1;
     }
   else
-     {
+    {
       g_warning ("%s: Max VTs timeout has been reached, but Boreas is not "
                  "enabled. Heartbeat check for %s will not be perfomed",
                  __func__, hostname);
       return -1;
-     }
+    }
 
   alive_err = is_host_alive (hostname, &is_alive);
   if (alive_err)
@@ -266,7 +265,7 @@ check_host_still_alive (kb_t kb, const char *hostname)
                  hostname, alive_err);
       return -1;
     }
- 
+
   if (is_alive == 0)
     {
       g_message ("%s: Heartbeat check was not successful. The host %s has"

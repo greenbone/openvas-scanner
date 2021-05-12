@@ -78,7 +78,6 @@ static int old_max_running_processes;
 static GSList *non_simult_ports = NULL;
 const char *hostname = NULL;
 
-
 /**
  * @brief Check if max_nvt_timeouts is set and if has been reached
  *
@@ -105,7 +104,7 @@ max_nvt_timeouts_reached ()
       g_debug ("%s: max_vts_timeouts disabled", __func__);
       return 0;
     }
-  
+
   vts_timeouts_counter++;
   /* Check if reached */
   if (vts_timeouts_counter >= max_vts_timeouts)
@@ -151,13 +150,13 @@ update_running_processes (kb_t main_kb, kb_t kb)
                                oid, processes[i].pid);
 
                   g_snprintf (msg, sizeof (msg),
-                           "ERRMSG|||%s||| |||general/tcp|||%s|||"
-                           "NVT timed out after %d seconds.",
-                           hostname, oid ?: " ", processes[i].timeout);
+                              "ERRMSG|||%s||| |||general/tcp|||%s|||"
+                              "NVT timed out after %d seconds.",
+                              hostname, oid ?: " ", processes[i].timeout);
                   kb_item_push_str (main_kb, "internal/results", msg);
 
                   /* Check for max VTs timeouts */
-                  if (max_nvt_timeouts_reached ()) 
+                  if (max_nvt_timeouts_reached ())
                     {
                       /* Check if host is still alive and send a message
                          if it is dead. */
