@@ -87,28 +87,28 @@ const char *hostname = NULL;
 static int
 max_nvt_timeouts_reached ()
 {
-  static int heartbeat_counter = 0;
-  int heartbeat_enabled = 0;
-  const gchar *heartbeat_pref = NULL;
+  static int vts_timeouts_counter = 0;
+  int max_vts_timeouts = 0;
+  const gchar *max_vts_timeouts_str = NULL;
 
   /* Check if set */
-  if ((heartbeat_pref = prefs_get ("heartbeat_enabled")) == NULL)
+  if ((max_vts_timeouts_str = prefs_get ("max_vts_timeouts")) == NULL)
     {
-      g_debug ("%s: HEARTBEAT not set.", __func__);
+      g_debug ("%s: max_vts_timeouts not set.", __func__);
       return 0;
     }
 
   /* Check if enabled and valid value */
-  heartbeat_enabled = atoi (heartbeat_pref);
-  if (heartbeat_enabled <= 0)
+  max_vts_timeouts = atoi (max_vts_timeouts_str);
+  if (max_vts_timeouts <= 0)
     {
-      g_debug ("%s: HEARTBEAT disabled", __func__);
+      g_debug ("%s: max_vts_timeouts disabled", __func__);
       return 0;
     }
   
-  heartbeat_counter++;
+  vts_timeouts_counter++;
   /* Check if reached */
-  if (heartbeat_counter >= heartbeat_enabled)
+  if (vts_timeouts_counter >= max_vts_timeouts)
     return 1;
 
   return 0;
