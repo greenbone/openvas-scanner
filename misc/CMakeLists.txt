@@ -26,6 +26,7 @@ if (NOT PKG_CONFIG_FOUND)
 endif (NOT PKG_CONFIG_FOUND)
 
 pkg_check_modules (GLIB REQUIRED glib-2.0>=2.42)
+pkg_check_modules (GLIB_JSON REQUIRED json-glib-1.0>=1.4.4)
 pkg_check_modules (GNUTLS REQUIRED gnutls>=3.6.4)
 
 pkg_check_modules (LIBGVM_BASE REQUIRED libgvm_base>=21.10)
@@ -77,7 +78,7 @@ set (CMAKE_C_FLAGS_DEBUG "${CMAKE_C_FLAGS_DEBUG} -Werror")
 
 ## Pass-throughs
 
-include_directories (${GLIB_INCLUDE_DIRS}
+include_directories (${GLIB_INCLUDE_DIRS} ${GLIB_JSON_INCLUDE_DIRS}
                      ${LIBGVM_BASE_INCLUDE_DIRS}
                      ${GNUTLS_INCLUDE_DIRS})
 
@@ -123,7 +124,7 @@ set_target_properties (openvas_misc_shared PROPERTIES SOVERSION "${PROJECT_VERSI
 set_target_properties (openvas_misc_shared PROPERTIES VERSION "${PROJECT_VERSION_STRING}")
 
 target_link_libraries (openvas_misc_shared LINK_PRIVATE ${GNUTLS_LDFLAGS} ${UUID_LDFLAGS}
-                       ${GLIB_LDFLAGS} ${PCAP_LDFLAGS}
+                       ${GLIB_LDFLAGS} ${GLIB_JSON_LDFLAGS} ${PCAP_LDFLAGS}
                        ${LINKER_HARDENING_FLAGS})
 
 if (OPENVAS_STATE_DIR)
