@@ -87,7 +87,6 @@ update_running_processes (kb_t main_kb, kb_t kb)
   int i;
   struct timeval now;
   int log_whole = prefs_get_bool ("log_whole_attack");
-  (void) kb;
 
   if (num_running_processes == 0)
     return;
