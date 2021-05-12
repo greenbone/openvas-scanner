@@ -651,8 +651,8 @@ check_deprecated_prefs ()
       gchar *msg = NULL;
 
       msg = g_strdup_printf (
-        "The following provided settings are deprecated since the 21.10 "
-        "release and will be ignored: %s%s%s%s%s",
+        "The following provided settings are deprecated and will be ignored "
+        "starting with the upcoming release 21.10: %s%s%s%s%s",
         source_iface ? "source_iface (task setting) " : "",
         ifaces_allow ? "ifaces_allow (user setting) " : "",
         ifaces_deny ? "ifaces_deny (user setting) " : "",
