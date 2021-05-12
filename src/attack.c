@@ -629,14 +629,10 @@ vhosts_to_str (GSList *list)
 
 /**
  * @brief Check if any deprecated prefs are in pref table and print warning.
- *
- * @return True if deprecated prefs are in preference table. Else False.
  */
-gboolean
+static void
 check_deprecated_prefs ()
 {
-  gboolean ret = FALSE;
-
   const gchar *source_iface = prefs_get ("source_iface");
   const gchar *ifaces_allow = prefs_get ("ifaces_allow");
   const gchar *ifaces_deny = prefs_get ("ifaces_deny");
@@ -646,7 +642,6 @@ check_deprecated_prefs ()
   if (source_iface || ifaces_allow || ifaces_deny || sys_ifaces_allow
       || sys_ifaces_deny)
     {
-      ret = TRUE;
       kb_t main_kb = NULL;
       gchar *msg = NULL;
 
@@ -665,7 +660,6 @@ check_deprecated_prefs ()
       kb_lnk_reset (main_kb);
       g_free (msg);
     }
-  return ret;
 }
 
 /*
