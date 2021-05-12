@@ -133,6 +133,9 @@ This is the maximum lifetime, in seconds of a plugin. It may happen that some pl
 .IP scanner_plugins_timeout
 Like plugins_timeout, but for ACT_SCANNER plugins.
 
+.IP max_vts_timeouts
+During a scan it might happen that a host unexpectedly shuts down, a firewall blocks the traffic, a network device issue break the connection, etc. This leads to many NVT timeouts and long scan durations. This option checks the alive status of the host again after the provided amount of max NVT timeouts are reached. If the host is considered dead the scan will be stopped for this host. Otherwise the scan will continue. This option requires Boreas alive test to be enabled. Default: option not set, disabled.
+
 .IP safe_checks
 Most of the time, openvas attempts to reproduce an exceptional condition to determine if the remote services are vulnerable to certain flaws. This includes the reproduction of buffer overflows or format strings, which may make the remote server crash. If you set this option to 'yes', openvas will disable the plugins which have the potential to crash the remote services, and will at the same time make several checks rely on the banner of the service tested instead of its behavior towards a certain input. This reduces false positives and makes openvas nicer towards your network, however this may make you miss important vulnerabilities (as a vulnerability affecting a given service may also affect another one).
 
