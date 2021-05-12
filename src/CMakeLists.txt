@@ -79,7 +79,7 @@ endif (PCAP_CONFIG)
 
 find_package (Threads)
 
-add_executable (openvas attack.c hosts.c
+add_executable (openvas attack.c debug_utils.c hosts.c
                 main.c nasl_plugins.c openvas.c
                 pluginlaunch.c pluginload.c
                 pluginscheduler.c plugs_req.c
@@ -177,7 +177,7 @@ target_link_libraries (openvas openvas_nasl_shared ${LIBOPENVAS_NASL_LDFLAGS}
 
 add_executable (attack-test
                 EXCLUDE_FROM_ALL
-                attack_tests.c
+                attack_tests.c debug_utils.c
                 hosts.c nasl_plugins.c openvas.c
                 pluginlaunch.c pluginload.c
                 pluginscheduler.c plugs_req.c
@@ -211,7 +211,8 @@ set (C_FILES "attack.c" "hosts.c"
      "nasl_plugins.c" "openvas.c"
      "pluginlaunch.c" "pluginload.c"
      "pluginscheduler.c" "plugs_req.c"
-     "processes.c" "sighand.c" "utils.c")
+     "processes.c" "sighand.c" "utils.c"
+     "debug_utils.c")
 add_custom_target (etags COMMENT "Building TAGS..."
                    COMMAND etags ${C_FILES})
 add_custom_target (ctags COMMENT "Building tags..."
