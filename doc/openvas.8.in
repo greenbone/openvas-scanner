@@ -142,23 +142,6 @@ Most of the time, openvas attempts to reproduce an exceptional condition to dete
 .IP auto_enable_dependencies
 OpenVAS plugins use the result of each other to execute their job. For instance, a plugin which logs into the remote SMB registry will need the results of the plugin which finds the SMB name of the remote host and the results of the plugin which attempts to log into the remote host. If you want to only select a subset of the plugins available, tracking the dependencies can quickly become tiresome. If you set this option to 'yes', openvas will automatically enable the plugins that are depended on.
 
-.IP source_iface
-Name of the network interface that will be used as the source of connections
-established by OpenVAS. The scan won't be launched if the value isn't authorized
-according to (sys_)ifaces_allow / (sys_)ifaces_deny if present.
-
-.IP ifaces_allow
-Comma-separated list of interfaces names that are authorized as source_iface values.
-
-.IP ifaces_deny
-Comma-separated list of interfaces names that are not authorized as source_iface values.
-
-.IP sys_ifaces_allow
-Like ifaces_allow. Can't be overridden by the client.
-
-.IP sys_ifaces_deny
-Like ifaces_deny. Can't be overridden by the client.
-
 .IP hosts_allow
 Comma-separated list of the only targets that are authorized to be scanned.
 Supports the same syntax as the list targets. Both target hostnames and the
