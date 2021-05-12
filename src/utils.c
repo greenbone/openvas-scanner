@@ -27,7 +27,7 @@
 
 #include <errno.h>                         /* for errno() */
 #include <gvm/base/prefs.h>                /* for prefs_get() */
-#include <gvm/boreas/hostalivedetection.h> /* for is_host_alive() */
+#include <gvm/boreas/cli.h>                /* for is_host_alive() */
 #include <stdlib.h>                        /* for atoi() */
 #include <string.h>                        /* for strcmp() */
 #include <sys/ioctl.h>                     /* for ioctl() */
