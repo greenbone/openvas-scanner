@@ -13,7 +13,9 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 ### Changed
 - function script_bugtraq_id getting skipped, linter warns. [#724](https://github.com/greenbone/openvas/pull/724)
 ### Fixed
+
 ### Removed
+- Remove handling of source_iface related preferences. [#730](https://github.com/greenbone/openvas/pull/730)
 
 [21.10]: https://github.com/greenbone/openvas-scanner/compare/openvas-21.04...master
 

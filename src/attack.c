@@ -627,6 +627,41 @@ vhosts_to_str (GSList *list)
   return g_string_free (string, FALSE);
 }
 
+/**
+ * @brief Check if any deprecated prefs are in pref table and print warning.
+ */
+static void
+check_deprecated_prefs ()
+{
+  const gchar *source_iface = prefs_get ("source_iface");
+  const gchar *ifaces_allow = prefs_get ("ifaces_allow");
+  const gchar *ifaces_deny = prefs_get ("ifaces_deny");
+  const gchar *sys_ifaces_allow = prefs_get ("sys_ifaces_allow");
+  const gchar *sys_ifaces_deny = prefs_get ("sys_ifaces_deny");
+
+  if (source_iface || ifaces_allow || ifaces_deny || sys_ifaces_allow
+      || sys_ifaces_deny)
+    {
+      kb_t main_kb = NULL;
+      gchar *msg = NULL;
+
+      msg = g_strdup_printf (
+        "The following provided settings are deprecated since the 21.10 "
+        "release and will be ignored: %s%s%s%s%s",
+        source_iface ? "source_iface (task setting) " : "",
+        ifaces_allow ? "ifaces_allow (user setting) " : "",
+        ifaces_deny ? "ifaces_deny (user setting) " : "",
+        sys_ifaces_allow ? "sys_ifaces_allow (scanner only setting) " : "",
+        sys_ifaces_deny ? "sys_ifaces_deny (scanner only setting)" : "");
+      g_warning ("%s: %s", __func__, msg);
+
+      connect_main_kb (&main_kb);
+      message_to_client (main_kb, msg, NULL, NULL, "ERRMSG");
+      kb_lnk_reset (main_kb);
+      g_free (msg);
+    }
+}
+
 /*
  * Check if a scan is authorized on a host.
  *
@@ -795,136 +830,6 @@ apply_hosts_reverse_lookup_preferences (gvm_hosts_t *hosts)
 }
 
 static int
-str_in_comma_list (const char *str, const char *comma_list)
-{
-  gchar **element, **split;
-
-  if (str == NULL || comma_list == NULL)
-    return 0;
-
-  split = g_strsplit (comma_list, ",", 0);
-  element = split;
-  while (*element)
-    {
-      gchar *stripped = g_strstrip (*element);
-
-      if (stripped && strcmp (stripped, str) == 0)
-        {
-          g_strfreev (split);
-          return 1;
-        }
-
-      element++;
-    }
-
-  g_strfreev (split);
-  return 0;
-}
-
-/*
- * Checks if a network interface is authorized to be used as source interface.
- *
- * @return 0 if iface is NULL, -1 if unauthorized by ifaces_deny/ifaces_allow,
- * -2 if by sys_ifaces_deny/sys_ifaces_allow, 1 otherwise.
- */
-static int
-iface_authorized (const char *iface)
-{
-  const char *ifaces_list;
-
-  if (iface == NULL)
-    return 0;
-
-  ifaces_list = prefs_get ("ifaces_deny");
-  if (ifaces_list && str_in_comma_list (iface, ifaces_list))
-    return -1;
-  ifaces_list = prefs_get ("ifaces_allow");
-  if (ifaces_list && !str_in_comma_list (iface, ifaces_list))
-    return -1;
-  /* sys_* preferences are similar, but can't be overridden by the client. */
-  ifaces_list = prefs_get ("sys_ifaces_deny");
-  if (ifaces_list && str_in_comma_list (iface, ifaces_list))
-    return -2;
-  ifaces_list = prefs_get ("sys_ifaces_allow");
-  if (ifaces_list && !str_in_comma_list (iface, ifaces_list))
-    return -2;
-
-  return 1;
-}
-
-/*
- * Applies the source_iface scanner preference, if allowed by ifaces_allow and
- * ifaces_deny preferences.
- *
- * @return 0 if source_iface preference applied or not found, -1 if
- * unauthorized value, -2 if iface can't be used.
- */
-static int
-apply_source_iface_preference (void)
-{
-  const char *source_iface = prefs_get ("source_iface");
-  int ret_iface_auth, ret;
-  gchar *msg;
-
-  ret = 0;
-  if (source_iface == NULL)
-    return ret;
-
-  msg = NULL;
-  ret_iface_auth = iface_authorized (source_iface);
-  if (ret_iface_auth == -1)
-    {
-      msg = g_strdup_printf ("Unauthorized source interface: %s", source_iface);
-      g_warning ("source_iface: Unauthorized source interface %s.",
-                 source_iface);
-
-      ret = -1;
-    }
-  else if (ret_iface_auth == -2)
-    {
-      msg = g_strdup_printf ("Unauthorized source interface: %s"
-                             " (system-wide restriction.)",
-                             source_iface);
-      g_warning ("source_iface: Unauthorized source interface %s."
-                 " (sys_* preference restriction.)",
-                 source_iface);
-
-      ret = -1;
-    }
-
-  if (gvm_source_iface_init (source_iface))
-    {
-      msg = g_strdup_printf ("Erroneous source interface: %s", source_iface);
-      g_warning ("source_iface: Error with %s interface.", source_iface);
-
-      ret = -2;
-    }
-  else if (ret == 0)
-    {
-      char *ipstr, *ip6str;
-      ipstr = gvm_source_addr_str ();
-      ip6str = gvm_source_addr6_str ();
-      g_debug ("source_iface: Using %s (%s / %s).", source_iface, ipstr,
-               ip6str);
-
-      g_free (ipstr);
-      g_free (ip6str);
-    }
-
-  if (msg)
-    {
-      kb_t main_kb = NULL;
-
-      connect_main_kb (&main_kb);
-      message_to_client (main_kb, msg, NULL, NULL, "ERRMSG");
-      kb_lnk_reset (main_kb);
-      g_free (msg);
-    }
-
-  return ret;
-}
-
-static int
 check_kb_access (void)
 {
   int rc;
@@ -1049,6 +954,8 @@ attack_network (struct scan_globals *globals)
   GSList *unresolved;
   char buf[96];
 
+  check_deprecated_prefs ();
+
   gboolean test_alive_hosts_only = prefs_get_bool ("test_alive_hosts_only");
   gvm_hosts_t *alive_hosts_list = NULL;
   kb_t alive_hosts_kb = NULL;
@@ -1147,12 +1054,6 @@ attack_network (struct scan_globals *globals)
 
   apply_hosts_excluded (hosts);
 
-  /* Don't start if the provided interface is unauthorized. */
-  if (apply_source_iface_preference () != 0)
-    {
-      gvm_hosts_free (hosts);
-      return;
-    }
   host = gvm_hosts_next (hosts);
   if (host == NULL)
     goto stop;
