@@ -565,7 +565,7 @@ attack_host (struct scan_globals *globals, struct in6_addr *ip, GSList *vhosts,
 
 host_died:
   if (all_plugs_launched == 0 && !scan_is_stopped ())
-    g_message ("Vulnerability scan %s started for host %s: not all plugins "
+    g_message ("Vulnerability scan %s for host %s: not all plugins "
                "were launched",
                globals->scan_id, ip_str);
   pluginlaunch_stop ();
