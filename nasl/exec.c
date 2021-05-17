@@ -1619,7 +1619,7 @@ nasl_lint (lex_ctxt *, tree_cell *);
  *
  * @return 0 if the script was executed successfully, negative values if an
  * error occurred. Return number of errors if mode is NASL_LINT and no none
- * linting errors occured.
+ * linting errors occurred.
  */
 int
 exec_nasl_script (struct script_infos *script_infos, int mode)
@@ -1700,7 +1700,7 @@ exec_nasl_script (struct script_infos *script_infos, int mode)
   if (mode & NASL_LINT)
     {
       /* ret is set to the number of errors the linter finds.
-      ret will be overwritten with -1 if any erros occur in the steps
+      ret will be overwritten with -1 if any errors occur in the steps
       after linting so we do not break other behaviour dependent on a
       negative return value when doing more than just linting. */
       tree_cell *ret = nasl_lint (lexic, ctx.tree);
