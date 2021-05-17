@@ -15,6 +15,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ### Fixed
 - Use host from the orignal hosts list when boreas is enabled. [#725](https://github.com/greenbone/openvas/pull/725)
+- Initialize the the kb to store results for openvas-nasl [#735](https://github.com/greenbone/openvas/pull/735)
 
 ### Removed
 
