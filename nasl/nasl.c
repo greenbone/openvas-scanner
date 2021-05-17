@@ -81,6 +81,7 @@ init (struct in6_addr *ip, GSList *vhosts, kb_t kb)
 
   infos->standalone = 1;
   infos->key = kb;
+  infos->results = kb;
   infos->ip = ip;
   infos->vhosts = vhosts;
   if (prefs_get_bool ("test_empty_vhost"))
