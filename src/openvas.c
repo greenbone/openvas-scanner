@@ -36,11 +36,11 @@
 #include "../misc/plugutils.h"     /* nvticache_free */
 #include "../misc/vendorversion.h" /* for vendor_version_set */
 #include "attack.h"                /* for attack_network */
+#include "debug_utils.h"           /* for init_sentry */
 #include "pluginlaunch.h"          /* for init_loading_shm */
 #include "processes.h"             /* for create_process */
 #include "sighand.h"               /* for openvas_signal */
 #include "utils.h"                 /* for store_file */
-#include "debug_utils.h"           /* for init_sentry */
 
 #include <errno.h>  /* for errno() */
 #include <fcntl.h>  /* for open() */
@@ -424,7 +424,7 @@ stop_single_task_scan (void)
 
   if (!global_scan_id)
     {
-      gvm_close_sentry();
+      gvm_close_sentry ();
       exit (1);
     }
 
@@ -432,7 +432,7 @@ stop_single_task_scan (void)
   kb = kb_find (prefs_get ("db_address"), key);
   if (!kb)
     {
-      gvm_close_sentry();
+      gvm_close_sentry ();
       exit (1);
     }
 
@@ -448,7 +448,7 @@ stop_single_task_scan (void)
   /* Send the signal to the process group. */
   killpg (pid, SIGUSR1);
 
-  gvm_close_sentry();
+  gvm_close_sentry ();
   exit (0);
 }
 
@@ -543,15 +543,15 @@ openvas (int argc, char *argv[])
     {
       if (init_openvas (config_file))
         {
-          gvm_close_sentry();
+          gvm_close_sentry ();
           return 1;
         }
       if (plugins_init ())
         {
-          gvm_close_sentry();
+          gvm_close_sentry ();
           return 1;
         }
-      gvm_close_sentry();
+      gvm_close_sentry ();
       return 0;
     }
 
@@ -572,7 +572,7 @@ openvas (int argc, char *argv[])
     {
       global_scan_id = g_strdup (scan_id);
       start_single_task_scan ();
-      gvm_close_sentry();
+      gvm_close_sentry ();
       exit (0);
     }
 

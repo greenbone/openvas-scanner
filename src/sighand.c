@@ -24,6 +24,7 @@
  */
 
 #include "debug_utils.h"
+
 #include <execinfo.h> /* for backtrace() */
 #include <glib.h>     /* for G_LOG_DOMAIN, for g_critical() */
 #include <signal.h>   /* for kill() */

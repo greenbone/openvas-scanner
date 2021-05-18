@@ -25,8 +25,8 @@
 
 #include "processes.h"
 
-#include "sighand.h"
 #include "debug_utils.h" /* for init_sentry() */
+#include "sighand.h"
 
 #include <errno.h>            /* for errno() */
 #include <glib.h>             /* for g_error */
