@@ -356,6 +356,7 @@ proto_post_wrapped (const char *oid, struct script_infos *desc, int port,
   GString *action_str;
   gsize length;
   kb_t kb;
+  mqtt_t *mqtt = NULL;
 
   /* Should not happen, just to avoid trouble stop here if no NVTI found */
   if (!oid)
@@ -381,6 +382,14 @@ proto_post_wrapped (const char *oid, struct script_infos *desc, int port,
                             action_str->str, uri ?: "");
   /* Convert to UTF-8 before sending to Manager. */
   data = g_convert (buffer, -1, "UTF-8", "ISO_8859-1", NULL, &length, NULL);
+
+  mqtt = plug_get_mqtt (desc);
+  if (NULL == mqtt)
+    g_warning ("%s: MQTT not initialized! Can not send results via MQTT.",
+               __func__);
+  else
+    mqtt_publish (mqtt, "scanner/results", data);
+
   kb = plug_get_results_kb (desc);
   kb_item_push_str (kb, "internal/results", data);
   g_free (data);
@@ -780,6 +789,12 @@ kb_t
 plug_get_results_kb (struct script_infos *args)
 {
   return args->results;
+}
+
+mqtt_t *
+plug_get_mqtt (struct script_infos *args)
+{
+  return args->mqtt;
 }
 
 static void

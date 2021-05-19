@@ -160,6 +160,9 @@ plug_get_kb (struct script_infos *);
 kb_t
 plug_get_results_kb (struct script_infos *);
 
+mqtt_t *
+plug_get_mqtt (struct script_infos *);
+
 void *
 plug_get_key (struct script_infos *, char *, int *, size_t *, int);
 

@@ -48,7 +48,8 @@
 #include <gvm/base/proctitle.h>
 #include <gvm/boreas/alivedetection.h> /* for start_alive_detection() */
 #include <gvm/boreas/boreas_io.h>      /* for get_host_from_queue() */
-#include <gvm/util/nvticache.h>        /* for nvticache_t */
+#include <gvm/util/mqtt.h>
+#include <gvm/util/nvticache.h> /* for nvticache_t */
 #include <pthread.h>
 #include <stdlib.h>   /* for exit() */
 #include <string.h>   /* for strlen() */
@@ -92,6 +93,7 @@ struct attack_start_args
   plugins_scheduler_t sched;
   kb_t host_kb;
   kb_t main_kb;
+  mqtt_t *mqtt;
   gvm_host_t *host;
 };
 
@@ -350,7 +352,8 @@ check_new_vhosts (void)
  */
 static int
 launch_plugin (struct scan_globals *globals, struct scheduler_plugin *plugin,
-               struct in6_addr *ip, GSList *vhosts, kb_t kb, kb_t main_kb)
+               struct in6_addr *ip, GSList *vhosts, kb_t kb, kb_t main_kb,
+               mqtt_t *mqtt)
 {
   int optimize = prefs_get_bool ("optimize_test"), pid, ret = 0;
   char *oid, *name, *error = NULL, ip_str[INET6_ADDRSTRLEN];
@@ -428,7 +431,7 @@ launch_plugin (struct scan_globals *globals, struct scheduler_plugin *plugin,
 
   /* Update vhosts list and start the plugin */
   check_new_vhosts ();
-  pid = plugin_launch (globals, plugin, ip, vhosts, kb, main_kb, nvti);
+  pid = plugin_launch (globals, plugin, ip, vhosts, kb, main_kb, mqtt, nvti);
   if (pid < 0)
     {
       plugin->running_state = PLUGIN_STATUS_UNRUN;
@@ -453,7 +456,7 @@ finish_launch_plugin:
  */
 static void
 attack_host (struct scan_globals *globals, struct in6_addr *ip, GSList *vhosts,
-             plugins_scheduler_t sched, kb_t kb, kb_t main_kb)
+             plugins_scheduler_t sched, kb_t kb, kb_t main_kb, mqtt_t *mqtt)
 {
   /* Used for the status */
   int num_plugs, forks_retry = 0, all_plugs_launched = 0;
@@ -468,6 +471,8 @@ attack_host (struct scan_globals *globals, struct in6_addr *ip, GSList *vhosts,
   kb_lnk_reset (main_kb);
   proctitle_set ("openvas: testing %s", ip_str);
   kb_lnk_reset (kb);
+
+  mqtt = mqtt_connect (prefs_get ("mqtt_server_uri"));
 
   /* launch the plugins */
   pluginlaunch_init (ip_str);
@@ -494,7 +499,8 @@ attack_host (struct scan_globals *globals, struct in6_addr *ip, GSList *vhosts,
           static int last_status = 0, cur_plug = 0;
 
         again:
-          e = launch_plugin (globals, plugin, ip, host_vhosts, kb, main_kb);
+          e =
+            launch_plugin (globals, plugin, ip, host_vhosts, kb, main_kb, mqtt);
           if (e < 0)
             {
               /*
@@ -708,6 +714,7 @@ attack_start (struct attack_start_args *args)
   kb_t kb = args->host_kb;
   kb_t main_kb = args->main_kb;
   int ret, ret_host_auth;
+  mqtt_t *mqtt = args->mqtt;
 
   nvticache_reset ();
   kb_lnk_reset (kb);
@@ -754,7 +761,8 @@ attack_start (struct attack_start_args *args)
     g_message ("Vulnerability scan %s started for host: %s", globals->scan_id,
                ip_str);
   g_free (hostnames);
-  attack_host (globals, &hostip, args->host->vhosts, args->sched, kb, main_kb);
+  attack_host (globals, &hostip, args->host->vhosts, args->sched, kb, main_kb,
+               mqtt);
   kb_lnk_reset (main_kb);
 
   if (!scan_is_stopped ())
@@ -953,6 +961,7 @@ attack_network (struct scan_globals *globals)
   kb_t host_kb, main_kb;
   GSList *unresolved;
   char buf[96];
+  mqtt_t *mqtt = NULL;
 
   check_deprecated_prefs ();
 
@@ -1161,6 +1170,7 @@ attack_network (struct scan_globals *globals)
       args.sched = sched;
       args.host_kb = host_kb;
       args.main_kb = main_kb;
+      args.mqtt = mqtt;
 
     forkagain:
       pid = create_process ((process_func_t) attack_start, &args);
