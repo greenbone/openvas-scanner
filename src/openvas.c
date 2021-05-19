@@ -352,8 +352,9 @@ init_openvas (const char *config_file)
     }
   g_free (rc_name);
 
-  init_sentry ();
-  g_message ("Sentry is enabled. This can log sensitive information.");
+  if (init_sentry ())
+    g_message ("Sentry is enabled. This can log sensitive information.");
+
   set_globals_from_preferences ();
 
   return 0;
