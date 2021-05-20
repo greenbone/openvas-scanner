@@ -11,9 +11,11 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 - Extend nasl lint to check Syntax for Arguments for script_xref() function. [#714](https://github.com/greenbone/openvas/pull/714)
 - Recheck alive status of host with specified amount of NVT timeouts. [#729](https://github.com/greenbone/openvas/pull/729)
 - Integrate sentry for debugging purposes [#742](https://github.com/greenbone/openvas/pull/742)
+- Add support for non-interactive shell to nasl_ssh_shell_open(). [#744](https://github.com/greenbone/openvas/pull/744)
 
 ### Changed
 - function script_bugtraq_id getting skipped, linter warns. [#724](https://github.com/greenbone/openvas/pull/724)
+
 ### Fixed
 
 ### Removed
