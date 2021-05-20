@@ -1653,19 +1653,25 @@ request_ssh_shell_alarm (int signal)
  * @return 0 if success, -1 if error.
  */
 static int
-request_ssh_shell (ssh_channel channel)
+request_ssh_shell (ssh_channel channel, int pty)
 {
   assert (channel);
 
   /* Work-around for LibSSH calling poll() with an infinite timeout. */
   signal (SIGALRM, request_ssh_shell_alarm);
   alarm (30);
-  if (ssh_channel_request_pty (channel))
-    return -1;
-  if (ssh_channel_change_pty_size (channel, 80, 24))
-    return -1;
+
+  if (pty == 1)
+    {
+      if (ssh_channel_request_pty (channel))
+        return -1;
+
+      if (ssh_channel_change_pty_size (channel, 80, 24))
+        return -1;
+    }
   if (ssh_channel_request_shell (channel))
     return -1;
+
   alarm (0);
   signal (SIGALRM, _exit);
 
@@ -1689,12 +1695,14 @@ request_ssh_shell (ssh_channel channel)
 tree_cell *
 nasl_ssh_shell_open (lex_ctxt *lexic)
 {
-  int tbl_slot, session_id;
+  int tbl_slot, session_id, pty;
   ssh_channel channel;
   ssh_session session;
   tree_cell *retc;
 
   session_id = get_int_var_by_num (lexic, 0, -1);
+  pty = get_int_var_by_name (lexic, "pty", 1);
+
   if (!verify_session_id (session_id, "ssh_shell_open", &tbl_slot, lexic))
     return NULL;
   session = session_table[tbl_slot].session;
@@ -1711,7 +1719,7 @@ nasl_ssh_shell_open (lex_ctxt *lexic)
       return NULL;
     }
 
-  if (request_ssh_shell (channel))
+  if (request_ssh_shell (channel, pty))
     {
       g_message ("Function %s (calling internal function %s) called from %s: "
                  "request_ssh_shell: %s",
