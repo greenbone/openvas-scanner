@@ -242,7 +242,7 @@ check_host_still_alive (kb_t kb, const char *hostname)
     {
       const gchar *alive_test_str = prefs_get ("ALIVE_TEST");
 
-      /* Don't perfom a hearbeat check if the host is always considered
+      /* Don't perform a hearbeat check if the host is always considered
          alive or the alive test is not valid. */
       if (!(alive_test_str
             && atoi (alive_test_str) >= ALIVE_TEST_TCP_ACK_SERVICE
@@ -253,7 +253,7 @@ check_host_still_alive (kb_t kb, const char *hostname)
   else
     {
       g_warning ("%s: Max VTs timeout has been reached, but Boreas is not "
-                 "enabled. Heartbeat check for %s will not be perfomed",
+                 "enabled. Heartbeat check for %s will not be performed",
                  __func__, hostname);
       return -1;
     }
