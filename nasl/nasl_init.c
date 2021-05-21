@@ -84,7 +84,7 @@ static init_func libfuncs[] = {
   {"script_oid", script_oid},
   {"script_cve_id", script_cve_id},
   {"script_bugtraq_id",
-   script_bugtraq_id_dummy}, // Replace orginal script_bugtraq_id to
+   script_bugtraq_id_dummy}, // Replace original script_bugtraq_id to
                              // ignore it
   {"script_xref", script_xref},
   {"script_tag", script_tag},
