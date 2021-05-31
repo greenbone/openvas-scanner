@@ -351,6 +351,7 @@ proto_post_wrapped (const char *oid, struct script_infos *desc, int port,
                     const char *uri)
 {
   const char *hostname = "";
+  const char *mqtt_server_uri;
   char *buffer, *data, port_s[16] = "general";
   char ip_str[INET6_ADDRSTRLEN];
   GString *action_str;
@@ -383,15 +384,23 @@ proto_post_wrapped (const char *oid, struct script_infos *desc, int port,
   /* Convert to UTF-8 before sending to Manager. */
   data = g_convert (buffer, -1, "UTF-8", "ISO_8859-1", NULL, &length, NULL);
 
+  // Having the pref in the openvas.conf means we want to use MQTT
+  mqtt_server_uri = prefs_get ("mqtt_server_uri");
   mqtt = plug_get_mqtt (desc);
-  if (NULL == mqtt)
-    g_warning ("%s: MQTT not initialized! Can not send results via MQTT.",
-               __func__);
+  if (mqtt_server_uri)
+    {
+      if (NULL == mqtt)
+        g_warning ("%s: MQTT not initialized! Can not send results via MQTT.",
+                   __func__);
+      else
+        mqtt_publish (mqtt, "scanner/results", data);
+    }
   else
-    mqtt_publish (mqtt, "scanner/results", data);
+    {
+      kb = plug_get_results_kb (desc);
+      kb_item_push_str (kb, "internal/results", data);
+    }
 
-  kb = plug_get_results_kb (desc);
-  kb_item_push_str (kb, "internal/results", data);
   g_free (data);
   g_free (buffer);
   g_string_free (action_str, TRUE);

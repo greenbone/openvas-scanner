@@ -461,6 +461,7 @@ attack_host (struct scan_globals *globals, struct in6_addr *ip, GSList *vhosts,
   /* Used for the status */
   int num_plugs, forks_retry = 0, all_plugs_launched = 0;
   char ip_str[INET6_ADDRSTRLEN];
+  const char *mqtt_server_uri;
 
   addr6_to_str (ip, ip_str);
   openvas_signal (SIGUSR2, set_check_new_vhosts_flag);
@@ -472,7 +473,19 @@ attack_host (struct scan_globals *globals, struct in6_addr *ip, GSList *vhosts,
   proctitle_set ("openvas: testing %s", ip_str);
   kb_lnk_reset (kb);
 
-  mqtt = mqtt_connect (prefs_get ("mqtt_server_uri"));
+  // Having the pref in the openvas.conf means we want to use MQTT
+  mqtt_server_uri = prefs_get ("mqtt_server_uri");
+  if (mqtt_server_uri)
+    {
+      g_debug ("%s: mqtt_server_uri provided. Attempting to use MQTT...",
+               __func__);
+      if (!gvm_has_mqtt_support ())
+        g_warning (
+          "%s: Gvm-libs not build with MQTT support. MQTT not available.",
+          __func__);
+      else
+        mqtt = mqtt_connect (mqtt_server_uri);
+    }
 
   /* launch the plugins */
   pluginlaunch_init (ip_str);
