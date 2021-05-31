@@ -389,17 +389,19 @@ proto_post_wrapped (const char *oid, struct script_infos *desc, int port,
   mqtt = plug_get_mqtt (desc);
   if (mqtt_server_uri)
     {
-      if (NULL == mqtt)
+      if (!gvm_has_mqtt_support ())
+        g_warning (
+          "%s: Gvm-libs not build with MQTT support. MQTT not available.",
+          __func__);
+      else if (NULL == mqtt)
         g_warning ("%s: MQTT not initialized! Can not send results via MQTT.",
                    __func__);
       else
         mqtt_publish (mqtt, "scanner/results", data);
     }
-  else
-    {
-      kb = plug_get_results_kb (desc);
-      kb_item_push_str (kb, "internal/results", data);
-    }
+
+  kb = plug_get_results_kb (desc);
+  kb_item_push_str (kb, "internal/results", data);
 
   g_free (data);
   g_free (buffer);
