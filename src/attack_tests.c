@@ -45,6 +45,14 @@ __wrap_redis_push_str (kb_t kb, const char *name, const char *value)
   return 0;
 }
 
+int
+__wrap_redis_lnk_reset (kb_t kb)
+{
+  (void) kb; /* Used. */
+  mock ();
+  return 0;
+}
+
 Ensure (attack, comm_send_status_returns_neg1_for_null_args)
 {
   struct kb kb_struct;
@@ -91,9 +99,11 @@ Ensure (attack, comm_send_status_sends_correct_text)
   /* We can't wrap kb_item_push_str because it is inline, so we have to do
    * a little hacking. */
   kb_ops_struct.kb_push_str = __wrap_redis_push_str;
+  kb_ops_struct.kb_lnk_reset = __wrap_redis_lnk_reset;
   kb->kb_ops = &kb_ops_struct;
 
   expect (__wrap_redis_push_str);
+  expect (__wrap_redis_lnk_reset);
   assert_that (comm_send_status (kb, "127.0.0.1", 11, 67), is_equal_to (0));
   assert_that (strcmp (given_name, "internal/status"), is_equal_to (0));
   assert_that (strcmp (given_value, "127.0.0.1/11/67"), is_equal_to (0));
