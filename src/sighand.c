@@ -23,6 +23,8 @@
  * @brief Provides signal handling functions.
  */
 
+#include "debug_utils.h"
+
 #include <execinfo.h> /* for backtrace() */
 #include <glib.h>     /* for G_LOG_DOMAIN, for g_critical() */
 #include <signal.h>   /* for kill() */
@@ -131,6 +133,7 @@ sighand_segv (int given_signal)
   signal (SIGSEGV, _exit);
   print_trace ();
   make_em_die (SIGTERM);
+  gvm_close_sentry ();
   /* Raise signal again, to exit with the correct return value,
    * and to enable core dumping. */
   openvas_signal (given_signal, SIG_DFL);

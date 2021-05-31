@@ -11,6 +11,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 - Extend nasl lint to check Syntax for Arguments for script_xref() function. [#714](https://github.com/greenbone/openvas/pull/714)
 - Recheck alive status of host with specified amount of NVT timeouts. [#729](https://github.com/greenbone/openvas/pull/729)
 - Add json-glib support for creating JSON result strings. [#739](https://github.com/greenbone/openvas/pull/739)
+- Integrate sentry for debugging purposes [#742](https://github.com/greenbone/openvas/pull/742)
 
 ### Changed
 - function script_bugtraq_id getting skipped, linter warns. [#724](https://github.com/greenbone/openvas/pull/724)

@@ -25,6 +25,7 @@
 
 #include "processes.h"
 
+#include "debug_utils.h" /* for init_sentry() */
 #include "sighand.h"
 
 #include <errno.h>            /* for errno() */
@@ -106,8 +107,10 @@ create_process (process_func_t function, void *argument)
   if (pid == 0)
     {
       init_child_signal_handlers ();
+      init_sentry ();
       srand48 (getpid () + getppid () + (long) time (NULL));
       (*function) (argument);
+      gvm_close_sentry ();
       exit (0);
     }
   if (pid < 0)

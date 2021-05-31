@@ -36,6 +36,7 @@
 #include "../misc/plugutils.h"     /* nvticache_free */
 #include "../misc/vendorversion.h" /* for vendor_version_set */
 #include "attack.h"                /* for attack_network */
+#include "debug_utils.h"           /* for init_sentry */
 #include "pluginlaunch.h"          /* for init_loading_shm */
 #include "processes.h"             /* for create_process */
 #include "sighand.h"               /* for openvas_signal */
@@ -350,6 +351,10 @@ init_openvas (const char *config_file)
       return -1;
     }
   g_free (rc_name);
+
+  if (init_sentry ())
+    g_message ("Sentry is enabled. This can log sensitive information.");
+
   set_globals_from_preferences ();
 
   return 0;
@@ -419,12 +424,18 @@ stop_single_task_scan (void)
   int pid;
 
   if (!global_scan_id)
-    exit (1);
+    {
+      gvm_close_sentry ();
+      exit (1);
+    }
 
   snprintf (key, sizeof (key), "internal/%s", global_scan_id);
   kb = kb_find (prefs_get ("db_address"), key);
   if (!kb)
-    exit (1);
+    {
+      gvm_close_sentry ();
+      exit (1);
+    }
 
   pid = kb_item_get_int (kb, "internal/ovas_pid");
 
@@ -438,6 +449,7 @@ stop_single_task_scan (void)
   /* Send the signal to the process group. */
   killpg (pid, SIGUSR1);
 
+  gvm_close_sentry ();
   exit (0);
 }
 
@@ -531,9 +543,16 @@ openvas (int argc, char *argv[])
   if (update_vt_info)
     {
       if (init_openvas (config_file))
-        return 1;
+        {
+          gvm_close_sentry ();
+          return 1;
+        }
       if (plugins_init ())
-        return 1;
+        {
+          gvm_close_sentry ();
+          return 1;
+        }
+      gvm_close_sentry ();
       return 0;
     }
 
@@ -554,6 +573,7 @@ openvas (int argc, char *argv[])
     {
       global_scan_id = g_strdup (scan_id);
       start_single_task_scan ();
+      gvm_close_sentry ();
       exit (0);
     }
 
