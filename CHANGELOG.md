@@ -77,6 +77,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 - Replace bogus data with a better message and the vendor. [#665](https://github.com/greenbone/openvas/pull/665)
 - Improve log message for WMI connect failed or missing WMI support. [#670](https://github.com/greenbone/openvas/pull/670)
 - Don't use g_error. Use g_warning instead and let the scanner to continue. [#710](https://github.com/greenbone/openvas/pull/710)
+- Update COPYING file. [#750](https://github.com/greenbone/openvas/pull/750)
 
 ### Fixed
 - Fix issues discovered with clang compiler. [#654](https://github.com/greenbone/openvas/pull/654)
