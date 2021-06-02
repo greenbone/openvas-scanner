@@ -7,8 +7,9 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 ## [21.04.1] (unreleased)
 
 ### Added
-- Improve nasl linter to catch more cases of undeclared variables. [#728][(https://github.com/greenbone/openvas-scanner/pull/728)
-- Add deprecation warning for source_iface related settings which will be removed with the 21.10 release. [#732][(https://github.com/greenbone/openvas-scanner/pull/732)
+- Improve nasl linter to catch more cases of undeclared variables. [#728](https://github.com/greenbone/openvas-scanner/pull/728)
+- Add deprecation warning for source_iface related settings which will be removed with the 21.10 release. [#732](https://github.com/greenbone/openvas-scanner/pull/732)
+- New Credentials for SSH to get su privileges. Backport of [#744](https://github.com/greenbone/openvas-scanner/pull/744). [#753](https://github.com/greenbone/openvas-scanner/pull/753)
 
 ### Changed
 - Update default log config [#711](https://github.com/greenbone/openvas-scanner/pull/711)
