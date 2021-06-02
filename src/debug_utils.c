@@ -34,12 +34,7 @@ init_sentry (void)
   char *sentry_dsn_openvas = NULL;
   char version[96];
 
-#ifdef OPENVAS_GIT_REVISION
-  snprintf (version, sizeof (version), "openvas@%s%s", OPENVAS_VERSION,
-            OPENVAS_GIT_REVISION);
-#else
   snprintf (version, sizeof (version), "openvas@%s", OPENVAS_VERSION);
-#endif
 
   sentry_dsn_openvas = getenv ("SENTRY_DSN_OPENVAS");
   if (gvm_has_sentry_support () && sentry_dsn_openvas && *sentry_dsn_openvas)
