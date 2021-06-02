@@ -4,34 +4,12 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
-<<<<<<< HEAD
-=======
-## [21.10] (unreleased)
-
-### Added
-- Add support for volatile keys. [#682](https://github.com/greenbone/openvas/pull/682)
-- Extend nasl lint to check Syntax for Arguments for script_xref() function. [#714](https://github.com/greenbone/openvas/pull/714)
-- Recheck alive status of host with specified amount of NVT timeouts. [#729](https://github.com/greenbone/openvas/pull/729)
-- Add json-glib support for creating JSON result strings. [#739](https://github.com/greenbone/openvas/pull/739)
-- Integrate sentry for debugging purposes [#742](https://github.com/greenbone/openvas/pull/742)
-- Add support for non-interactive shell to nasl_ssh_shell_open(). [#744](https://github.com/greenbone/openvas/pull/744)
-
-### Changed
-- function script_bugtraq_id getting skipped, linter warns. [#724](https://github.com/greenbone/openvas/pull/724)
-
-### Fixed
-
-### Removed
-- Remove handling of source_iface related preferences. [#730](https://github.com/greenbone/openvas/pull/730)
-
-[21.10]: https://github.com/greenbone/openvas-scanner/compare/openvas-21.04...master
-
->>>>>>> 9cf482ef (Update Changelog)
 ## [21.04.1] (unreleased)
 
 ### Added
-- Improve nasl linter to catch more cases of undeclared variables. [#728][(https://github.com/greenbone/openvas-scanner/pull/728)
-- Add deprecation warning for source_iface related settings which will be removed with the 21.10 release. [#732][(https://github.com/greenbone/openvas-scanner/pull/732)
+- Improve nasl linter to catch more cases of undeclared variables. [#728](https://github.com/greenbone/openvas-scanner/pull/728)
+- Add deprecation warning for source_iface related settings which will be removed with the 21.10 release. [#732](https://github.com/greenbone/openvas-scanner/pull/732)
+- New Credentials for SSH to get su privileges. Backport of [#744](https://github.com/greenbone/openvas-scanner/pull/744). [#753](https://github.com/greenbone/openvas-scanner/pull/753)
 
 ### Changed
 - Update default log config [#711](https://github.com/greenbone/openvas-scanner/pull/711)
