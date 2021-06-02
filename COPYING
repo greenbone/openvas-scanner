@@ -17,14 +17,15 @@ tool with the following command:
 
 
 src/CMakeLists.txt: GPL-2+
-src/alivedetection.c: GPL-2+
-src/alivedetection.h: GPL-2+
 src/attack.c: GPL-2
 src/attack.h: GPL-2
+src/attack_tests.c: GPL-2+
 src/hosts.c: GPL-2
 src/hosts.h: GPL-2
+src/main.c: GPL-2+
 src/nasl_plugins.c: GPL-2
 src/openvas.c: GPL-2
+src/openvas.h: GPL-2+
 src/pluginlaunch.c: GPL-2
 src/pluginlaunch.h: GPL-2
 src/pluginload.c: GPL-2
@@ -160,6 +161,7 @@ misc/network.h: GPL-2+
 misc/nvt_categories.h: GPL-2+
 misc/pcap.c: GPL-2+
 misc/pcap_openvas.h: GPL-2+
+misc/pcap_tests.c: GPL-2+
 misc/plugutils.c: GPL-2+
 misc/plugutils.h: GPL-2+
 misc/scanneraux.h: GPL-2+
