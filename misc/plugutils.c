@@ -479,7 +479,7 @@ proto_post_wrapped (const char *oid, struct script_infos *desc, int port,
           if (json == NULL)
             g_warning ("%s: Error while creating JSON.", __func__);
           else
-            mqtt_publish (mqtt, "scanner/results", data);
+            mqtt_publish (mqtt, "scanner/results", json);
           g_free (json);
         }
     }
