@@ -19,11 +19,8 @@ src/CMakeLists.txt: GPL-2+
 src/attack.c: GPL-2
 src/attack.h: GPL-2
 src/attack_tests.c: GPL-2+
-<<<<<<< HEAD
 src/debug_utils.c: GPL-2+
 src/debug_utils.h: GPL-2+
-=======
->>>>>>> f5ac0200 (Update files list)
 src/hosts.c: GPL-2
 src/hosts.h: GPL-2
 src/main.c: GPL-2+
