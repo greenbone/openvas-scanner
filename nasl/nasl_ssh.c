@@ -1686,8 +1686,10 @@ request_ssh_shell (ssh_channel channel, int pty)
  * @nasluparam
  *
  * - An ssh session id.
- * - Named param 'pty' to enable/disable the interactive shell. Default is 1
- *   interactive.
+ *
+ * @naslnparam
+ *
+ * - @a pty To enable/disable the interactive shell. Default is 1 (interactive).
  *
  * @naslret An int on success or NULL on error.
  *
