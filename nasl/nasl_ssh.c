@@ -1813,7 +1813,10 @@ nasl_ssh_shell_read (lex_ctxt *lexic)
  * @nasluparam
  *
  * - An ssh session id.
- * - A string to write to shell.
+ *
+ * @naslnparam
+ *
+ * - @a cmd A string to write to shell.
  *
  * @naslret An integer: 0 on success, -1 on failure.
  *
