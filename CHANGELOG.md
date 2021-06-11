@@ -14,7 +14,9 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
   [#739](https://github.com/greenbone/openvas/pull/739)
   [#754](https://github.com/greenbone/openvas/pull/754)
 - Integrate sentry for debugging purposes [#742](https://github.com/greenbone/openvas/pull/742)
-- Add support for non-interactive shell to nasl_ssh_shell_open(). [#744](https://github.com/greenbone/openvas/pull/744)
+- Add support for non-interactive shell to nasl_ssh_shell_open().
+  [#744](https://github.com/greenbone/openvas/pull/744)
+  [#757](https://github.com/greenbone/openvas/pull/757)
 
 ### Changed
 - function script_bugtraq_id getting skipped, linter warns. [#724](https://github.com/greenbone/openvas/pull/724)
