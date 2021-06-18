@@ -38,16 +38,16 @@ jobs:
     - name: Find openvas-scanner reference branch
       run: |
         if [ -n "$GITHUB_BASE_REF" ];                          \
-        then echo "GVMD_REF=$GITHUB_BASE_REF" >> $GITHUB_ENV;  \
-        else echo "GVMD_REF=$GITHUB_REF" >> $GITHUB_ENV;       \
+        then echo "OPENVAS_REF=$GITHUB_BASE_REF" >> $GITHUB_ENV;  \
+        else echo "OPENVAS_REF=$GITHUB_REF" >> $GITHUB_ENV;       \
         fi
     - name: Select gvm-libs branch
       run: |
-        if [ $GVMD_REF = "master" ];                           \
+        if [ $OPENVAS_REF = "master" ];                           \
           then GVM_LIBS_REF="master";                          \
-          else GVM_LIBS_REF=$(echo "$GVMD_REF"                 \
+          else GVM_LIBS_REF=$(echo "$OPENVAS_REF"                 \
                               | sed 's/refs\/.*\///g'          \
-                              | sed 's/gvmd-/gvm-libs-/g' -);  \
+                              | sed 's/openvas-/gvm-libs-/g' -);  \
           fi;                                                  \
         echo "GVM_LIBS_REF=$GVM_LIBS_REF" >> $GITHUB_ENV
     - name: Check out gvm-libs
