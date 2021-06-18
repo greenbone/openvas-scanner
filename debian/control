@@ -1,0 +1,24 @@
+Source: openvas-scanner
+Maintainer: arcticwolf
+Section: net
+Priority: optional
+Standards-Version: 4.1.5
+Build-Depends: debhelper (>= 9)
+
+Package: openvas-scanner
+Architecture: any
+Depends: ${misc:Depends},
+         ${shlibs:Depends},
+         libssl1.1,
+         redis,
+         openvas,
+Description: remote network security auditor - scanner
+ The Open Vulnerability Assessment System is a modular security auditing
+ tool, used for testing remote systems for vulnerabilities that should be
+ fixed.
+ .
+ It is made up of two parts: a scan server, and a client. The scanner/daemon,
+ openvassd, is in charge of the attacks, whereas the client,
+ OpenVAS-Client, provides an X11/GTK+ user interface.
+ .
+ This package provides the scanner.

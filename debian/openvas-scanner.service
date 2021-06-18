@@ -1,0 +1,21 @@
+[Unit]
+Description=OpenVAS Scanner
+Documentation=man:openvassd(8) http://www.openvas.org/
+After=redis-server.service
+Requires=redis-server.service
+Before=openvas-manager.service
+
+[Service]
+Type=forking
+PIDFile=/var/run/openvassd.pid
+ExecStart=/usr/sbin/openvassd --unix-socket=/var/run/openvassd.sock
+KillMode=mixed
+Restart=always
+RestartSec=1
+User=root
+Group=root
+TimeoutStartSec=20
+TimeoutStopSec=20
+
+[Install]
+WantedBy=multi-user.target

@@ -1,0 +1,2 @@
+openvassd.conf /usr/etc/openvas
+redis-openvas.conf /etc/redis
