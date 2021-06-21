@@ -1,0 +1,201 @@
+name: "Build and Test"
+
+on:
+  push:
+    branches: [ master, openvas-21.04, openvas-20.08 ]
+  pull_request:
+    branches: [ master, openvas-21.04, openvas-20.08 ]
+
+jobs:
+  check-format:
+    name: Check formatting
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out openvas-scanner
+        uses: actions/checkout@v2
+      - name: Check Source Format
+        run: |
+          clang-format -i -style=file src/*.{c,h} misc/*.{c,h} nasl/*.{c,h} && git diff --exit-code
+  gen_xml_doc:
+    name: Build XML documentation
+    runs-on: ubuntu-latest
+    container: greenbone/code-metrics-doxygen-debian-stretch
+    steps:
+      - name: Check out openvas-scanner
+        uses: actions/checkout@v2
+      - name: Generate documentation (XML)
+        run: |
+             mkdir build && cd build/ && cmake -DSKIP_SRC=1 .. \
+             && make doc-xml 2> ~/doxygen-stderr.txt
+      - name: Upload doxygen error output as artifact
+        uses: actions/upload-artifact@v2
+        with:
+          name: doxygen-stderr.txt
+          path: ~/doxygen-stderr.txt
+      - name: Upload XML documentation as artifact
+        uses: actions/upload-artifact@v2
+        with:
+          name: xml-doc
+          path: build/doc/generated/xml/
+
+  doc-coverage:
+    name: Upload doc coverage to Codecov
+    needs: gen_xml_doc
+    runs-on: ubuntu-latest
+    container: greenbone/build-env-openvas-scanner-master-debian-buster-clang-core
+    steps:
+      - name: Check out openvas-scanner
+        uses: actions/checkout@v2
+      - name: Install coverxygen and codecov
+        run: |
+            apt-get update && apt-get --assume-yes install python3-venv curl
+            python3 -m venv venv
+            . venv/bin/activate
+            pip install setuptools --upgrade
+            pip install 'coverxygen>=1.3.1' codecov
+      - name: Download XML documentation artifact
+        id: xml-doc-download
+        uses: actions/download-artifact@v2
+        with:
+          name: xml-doc
+          path: /tmp/xml-doc
+      - name: Establish documentation coverage
+        run: |
+            . venv/bin/activate
+            python -m coverxygen --src-dir ${{ github.workspace }}      \
+            --xml-dir ${{steps.xml-doc-download.outputs.download-path}} \
+            --output lcov.info
+      - uses: codecov/codecov-action@v1
+        with:
+          files: lcov.info
+
+  build:
+    name: Build various configs
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        build_type:
+          - Debug
+          - Release
+        docker_base:
+          - greenbone/build-env-openvas-scanner-master-debian-buster-clang-core
+          - greenbone/build-env-openvas-scanner-master-debian-buster-gcc-core
+    container: ${{ matrix.docker_base }}
+    env:
+      BUILD_TYPE: ${{ matrix.build_type }}
+    steps:
+      - name: Check out openvas-scanner
+        uses: actions/checkout@v2
+      - name: Find openvas-scanner reference branch
+        run: |
+          if [ -n "$GITHUB_BASE_REF" ];                          \
+          then echo "OPENVAS_REF=$GITHUB_BASE_REF" >> $GITHUB_ENV;  \
+          else echo "OPENVAS_REF=$GITHUB_REF" >> $GITHUB_ENV;       \
+          fi
+      - name: Select gvm-libs branch
+        run: |
+          if [ $OPENVAS_REF = "master" ];                           \
+            then GVM_LIBS_REF="master";                          \
+            else GVM_LIBS_REF=$(echo "$OPENVAS_REF"                 \
+                                | sed 's/refs\/.*\///g'          \
+                                | sed 's/openvas-/gvm-libs-/g' -);  \
+            fi;                                                  \
+          echo "GVM_LIBS_REF=$GVM_LIBS_REF" >> $GITHUB_ENV
+      - name: Check out gvm-libs
+        uses: actions/checkout@v2
+        with:
+          repository: greenbone/gvm-libs
+          ref: ${{ env.GVM_LIBS_REF }}
+          path: gvm-libs
+      - name: Configure and compile gvm-libs (${{ env.BUILD_TYPE }})
+        working-directory: gvm-libs
+        run: |
+          mkdir build && cd build/ &&                \
+          cmake -DCMAKE_BUILD_TYPE=$BUILD_TYPE .. && \
+          make install
+      - name: Configure and compile gvmd
+        run: |
+          mkdir build && cd build/ &&                \
+          cmake -DCMAKE_BUILD_TYPE=$BUILD_TYPE .. && \
+          make install
+  scan-build:
+    name: Scan-build (clang static analyzer)
+    runs-on: ubuntu-latest
+    container: greenbone/build-env-openvas-scanner-master-debian-buster-clang-core
+    steps:
+      - name: Check out openvas-scanner
+        uses: actions/checkout@v2
+      - name: Find openvas-scanner reference branch
+        run: |
+          if [ -n "$GITHUB_BASE_REF" ];                          \
+          then echo "OPENVAS_REF=$GITHUB_BASE_REF" >> $GITHUB_ENV;  \
+          else echo "OPENVAS_REF=$GITHUB_REF" >> $GITHUB_ENV;       \
+          fi
+      - name: Select gvm-libs branch
+        run: |
+          if [ $OPENVAS_REF = "master" ];                           \
+            then GVM_LIBS_REF="master";                          \
+            else GVM_LIBS_REF=$(echo "$OPENVAS_REF"                 \
+                                | sed 's/refs\/.*\///g'          \
+                                | sed 's/openvas-/gvm-libs-/g' -);  \
+            fi;                                                  \
+          echo "GVM_LIBS_REF=$GVM_LIBS_REF" >> $GITHUB_ENV
+      - name: Check out gvm-libs
+        uses: actions/checkout@v2
+        with:
+          repository: greenbone/gvm-libs
+          ref: ${{ env.GVM_LIBS_REF }}
+          path: gvm-libs
+      - name: Configure and compile gvm-libs (Debug)
+        working-directory: gvm-libs
+        run: |
+          mkdir build && cd build/ &&                \
+          cmake -DCMAKE_BUILD_TYPE=$BUILD_TYPE .. && \
+          make install
+      - name: Configure and Scan Build
+        run: |
+          mkdir build && cd build/ && scan-build cmake -DCMAKE_BUILD_TYPE=Debug .. && scan-build -o ~/scan-build-report make
+      - name: Upload scan-build report
+        if: failure()
+        uses: actions/upload-artifact@v2
+        with:
+          name: scan-build-report
+          path: ~/scan-build-report/
+
+  test-units:
+    name: Build and run unit tests
+    runs-on: ubuntu-latest
+    container: greenbone/build-env-openvas-scanner-master-debian-buster-gcc-core
+    steps:
+      - name: Check out openvas-scanner
+        uses: actions/checkout@v2
+      - name: Find openvas-scanner reference branch
+        run: |
+          if [ -n "$GITHUB_BASE_REF" ];                          \
+          then echo "OPENVAS_REF=$GITHUB_BASE_REF" >> $GITHUB_ENV;  \
+          else echo "OPENVAS_REF=$GITHUB_REF" >> $GITHUB_ENV;       \
+          fi
+      - name: Select gvm-libs branch
+        run: |
+          if [ $OPENVAS_REF = "master" ];                           \
+            then GVM_LIBS_REF="master";                          \
+            else GVM_LIBS_REF=$(echo "$OPENVAS_REF"                 \
+                                | sed 's/refs\/.*\///g'          \
+                                | sed 's/openvas-/gvm-libs-/g' -);  \
+            fi;                                                  \
+          echo "GVM_LIBS_REF=$GVM_LIBS_REF" >> $GITHUB_ENV
+      - name: Check out gvm-libs
+        uses: actions/checkout@v2
+        with:
+          repository: greenbone/gvm-libs
+          ref: ${{ env.GVM_LIBS_REF }}
+          path: gvm-libs
+      - name: Configure and compile gvm-libs (Debug)
+        working-directory: gvm-libs
+        run: |
+          mkdir build && cd build/ &&                \
+          cmake -DCMAKE_BUILD_TYPE=$BUILD_TYPE .. && \
+          make install
+      - name: Configure and run unit tests
+        run: |
+          mkdir build && cd build/ && cmake -DCMAKE_BUILD_TYPE=Release .. && make tests && CTEST_OUTPUT_ON_FAILURE=1 make test
