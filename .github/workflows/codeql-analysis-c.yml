@@ -5,9 +5,6 @@ on:
     branches: [ master, openvas-20.08, openvas-21.04 ]
   pull_request:
     branches: [ master, openvas-20.08, openvas-21.04 ]
-    paths-ignore:
-      - '**/*.md'
-      - '**/*.txt'
   schedule:
     - cron: '30 5 * * 0' # 5:30h on Sundays
 
