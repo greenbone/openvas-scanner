@@ -94,7 +94,7 @@ jobs:
           fi
       - name: Select gvm-libs branch
         run: |
-          if [ $GVMD_REF = "master" ];                           \
+          if [ $OPENVAS_REF = "master" ];                           \
             then GVM_LIBS_REF="master";                          \
             else GVM_LIBS_REF=$(echo "$OPENVAS_REF"                 \
                                 | sed 's/refs\/.*\///g'          \
@@ -113,7 +113,7 @@ jobs:
           mkdir build && cd build/ &&                \
           cmake -DCMAKE_BUILD_TYPE=$BUILD_TYPE .. && \
           make install
-      - name: Configure and compile gvmd
+      - name: Configure and compile openvas-scanner
         run: |
           mkdir build && cd build/ &&                \
           cmake -DCMAKE_BUILD_TYPE=$BUILD_TYPE .. && \
@@ -133,7 +133,7 @@ jobs:
           fi
       - name: Select gvm-libs branch
         run: |
-          if [ $GVMD_REF = "master" ];                           \
+          if [ $OPENVAS_REF = "master" ];                           \
             then GVM_LIBS_REF="master";                          \
             else GVM_LIBS_REF=$(echo "$OPENVAS_REF"                 \
                                 | sed 's/refs\/.*\///g'          \
@@ -177,7 +177,7 @@ jobs:
           fi
       - name: Select gvm-libs branch
         run: |
-          if [ $GVMD_REF = "master" ];                           \
+          if [ $OPENVAS_REF = "master" ];                           \
             then GVM_LIBS_REF="master";                          \
             else GVM_LIBS_REF=$(echo "$OPENVAS_REF"                 \
                                 | sed 's/refs\/.*\///g'          \
