@@ -113,7 +113,7 @@ jobs:
           mkdir build && cd build/ &&                \
           cmake -DCMAKE_BUILD_TYPE=$BUILD_TYPE .. && \
           make install
-      - name: Configure and compile gvmd
+      - name: Configure and compile openvas-scanner
         run: |
           mkdir build && cd build/ &&                \
           cmake -DCMAKE_BUILD_TYPE=$BUILD_TYPE .. && \
