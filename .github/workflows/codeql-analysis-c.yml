@@ -1,0 +1,71 @@
+name: "CodeQL"
+
+on:
+  push:
+    branches: [ master, openvas-20.08, openvas-21.04 ]
+  pull_request:
+    branches: [ master, openvas-20.08, openvas-21.04 ]
+    paths-ignore:
+      - '**/*.md'
+      - '**/*.txt'
+  schedule:
+    - cron: '30 5 * * 0' # 5:30h on Sundays
+
+jobs:
+  analyze:
+    name: Analyze
+    runs-on: ubuntu-latest
+    permissions:
+      actions: read
+      contents: read
+      security-events: write
+    container: greenbone/build-env-openvas-scanner-master-debian-buster-gcc-core
+
+    strategy:
+      fail-fast: false
+      matrix:
+        language: [ 'c' ]
+
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v2
+
+    - name: Initialize CodeQL
+      uses: github/codeql-action/init@v1
+      with:
+        languages: ${{ matrix.language }}
+      # build between init and analyze ...
+    - name: Find openvas-scanner reference branch
+      run: |
+        if [ -n "$GITHUB_BASE_REF" ];                          \
+        then echo "GVMD_REF=$GITHUB_BASE_REF" >> $GITHUB_ENV;  \
+        else echo "GVMD_REF=$GITHUB_REF" >> $GITHUB_ENV;       \
+        fi
+    - name: Select gvm-libs branch
+      run: |
+        if [ $GVMD_REF = "master" ];                           \
+          then GVM_LIBS_REF="master";                          \
+          else GVM_LIBS_REF=$(echo "$GVMD_REF"                 \
+                              | sed 's/refs\/.*\///g'          \
+                              | sed 's/gvmd-/gvm-libs-/g' -);  \
+          fi;                                                  \
+        echo "GVM_LIBS_REF=$GVM_LIBS_REF" >> $GITHUB_ENV
+    - name: Check out gvm-libs
+      uses: actions/checkout@v2
+      with:
+        repository: greenbone/gvm-libs
+        ref: ${{ env.GVM_LIBS_REF }}
+        path: gvm-libs
+    - name: Configure and compile gvm-libs (${{ env.BUILD_TYPE }})
+      working-directory: gvm-libs
+      run: |
+        mkdir build && cd build/ &&                \
+        cmake -DCMAKE_BUILD_TYPE=Debug .. && \
+        make install
+    - name: Configure and Compile openvas-scanner
+      run: |
+        mkdir build && cd build/ && cmake \
+        -DCMAKE_BUILD_TYPE=Release .. && make install
+      working-directory: ${{ github.WORKSPACE }}
+    - name: Perform CodeQL Analysis
+      uses: github/codeql-action/analyze@v1
