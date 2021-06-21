@@ -88,18 +88,18 @@ jobs:
         uses: actions/checkout@v2
       - name: Find openvas-scanner reference branch
         run: |
-          if [ -n "$GITHUB_BASE_REF" ];                          \
+          if [ -n "$GITHUB_BASE_REF" ];                             \
           then echo "OPENVAS_REF=$GITHUB_BASE_REF" >> $GITHUB_ENV;  \
           else echo "OPENVAS_REF=$GITHUB_REF" >> $GITHUB_ENV;       \
           fi
       - name: Select gvm-libs branch
         run: |
           if [ $OPENVAS_REF = "master" ];                           \
-            then GVM_LIBS_REF="master";                          \
+            then GVM_LIBS_REF="master";                             \
             else GVM_LIBS_REF=$(echo "$OPENVAS_REF"                 \
-                                | sed 's/refs\/.*\///g'          \
+                                | sed 's/refs\/.*\///g'             \
                                 | sed 's/openvas-/gvm-libs-/g' -);  \
-            fi;                                                  \
+            fi;                                                     \
           echo "GVM_LIBS_REF=$GVM_LIBS_REF" >> $GITHUB_ENV
       - name: Check out gvm-libs
         uses: actions/checkout@v2
@@ -113,7 +113,7 @@ jobs:
           mkdir build && cd build/ &&                \
           cmake -DCMAKE_BUILD_TYPE=$BUILD_TYPE .. && \
           make install
-      - name: Configure and compile gvmd
+      - name: Configure and compile openvas-scanner
         run: |
           mkdir build && cd build/ &&                \
           cmake -DCMAKE_BUILD_TYPE=$BUILD_TYPE .. && \
@@ -127,18 +127,18 @@ jobs:
         uses: actions/checkout@v2
       - name: Find openvas-scanner reference branch
         run: |
-          if [ -n "$GITHUB_BASE_REF" ];                          \
+          if [ -n "$GITHUB_BASE_REF" ];                             \
           then echo "OPENVAS_REF=$GITHUB_BASE_REF" >> $GITHUB_ENV;  \
           else echo "OPENVAS_REF=$GITHUB_REF" >> $GITHUB_ENV;       \
           fi
       - name: Select gvm-libs branch
         run: |
           if [ $OPENVAS_REF = "master" ];                           \
-            then GVM_LIBS_REF="master";                          \
+            then GVM_LIBS_REF="master";                             \
             else GVM_LIBS_REF=$(echo "$OPENVAS_REF"                 \
-                                | sed 's/refs\/.*\///g'          \
+                                | sed 's/refs\/.*\///g'             \
                                 | sed 's/openvas-/gvm-libs-/g' -);  \
-            fi;                                                  \
+            fi;                                                     \
           echo "GVM_LIBS_REF=$GVM_LIBS_REF" >> $GITHUB_ENV
       - name: Check out gvm-libs
         uses: actions/checkout@v2
@@ -171,18 +171,18 @@ jobs:
         uses: actions/checkout@v2
       - name: Find openvas-scanner reference branch
         run: |
-          if [ -n "$GITHUB_BASE_REF" ];                          \
+          if [ -n "$GITHUB_BASE_REF" ];                             \
           then echo "OPENVAS_REF=$GITHUB_BASE_REF" >> $GITHUB_ENV;  \
           else echo "OPENVAS_REF=$GITHUB_REF" >> $GITHUB_ENV;       \
           fi
       - name: Select gvm-libs branch
         run: |
           if [ $OPENVAS_REF = "master" ];                           \
-            then GVM_LIBS_REF="master";                          \
+            then GVM_LIBS_REF="master";                             \
             else GVM_LIBS_REF=$(echo "$OPENVAS_REF"                 \
-                                | sed 's/refs\/.*\///g'          \
+                                | sed 's/refs\/.*\///g'             \
                                 | sed 's/openvas-/gvm-libs-/g' -);  \
-            fi;                                                  \
+            fi;                                                     \
           echo "GVM_LIBS_REF=$GVM_LIBS_REF" >> $GITHUB_ENV
       - name: Check out gvm-libs
         uses: actions/checkout@v2
