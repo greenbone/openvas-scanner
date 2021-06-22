@@ -72,6 +72,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 - Fix message to the client if there is a iface problem. [#695](https://github.com/greenbone/openvas/pull/695)
 - Fix SIGSEGV when no best route is found. [#702](https://github.com/greenbone/openvas/pull/702)
 - Fix host count when reverse_lookup_only is enabled. [#715](https://github.com/greenbone/openvas/pull/715)
+- Use host from the orignal hosts list when boreas is enabled. Backport of [PR #727](https://github.com/greenbone/openvas/pull/727). [#725](https://github.com/greenbone/openvas/pull/725)
+- The function description of nasl_ssh_shell_read() has been fixed. [#755](https://github.com/greenbone/openvas/pull/755)
 
 ### Removed
 - Remove code from the openvas daemon era. Do not flushall redis. [#689](https://github.com/greenbone/openvas/pull/689)
