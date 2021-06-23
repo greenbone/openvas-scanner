@@ -4,7 +4,7 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
-## [21.4.1] (unreleased)
+## [21.4.1] - 2021-06-23
 
 ### Added
 - Improve nasl linter to catch more cases of undeclared variables. [#728](https://github.com/greenbone/openvas-scanner/pull/728)
@@ -22,7 +22,6 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 ### Removed
 
 [21.4.1]: https://github.com/greenbone/openvas/compare/v21.4.1...openvas-21.04
-
 
 ## [21.4.0] (2021-04-15)
 
