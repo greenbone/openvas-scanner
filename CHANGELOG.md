@@ -4,7 +4,7 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
-## [21.04.1] (unreleased)
+## [21.4.1] (unreleased)
 
 ### Added
 - Improve nasl linter to catch more cases of undeclared variables. [#728](https://github.com/greenbone/openvas-scanner/pull/728)
@@ -21,10 +21,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ### Removed
 
-[21.04.1]: https://github.com/greenbone/openvas/compare/v21.4.0...openvas-21.04
+[21.4.1]: https://github.com/greenbone/openvas/compare/v21.4.1...openvas-21.04
 
 
-## [21.04.0] (2021-04-15)
+## [21.4.0] (2021-04-15)
 
 ### Added
 - Add scanner-only option to enable tls debugging. [#558](https://github.com/greenbone/openvas/pull/558)
@@ -46,9 +46,9 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 ### Removed
 - Use the nvticache name from gvm-libs, defined in nvticache.h. [#578](https://github.com/greenbone/openvas/pull/578)
 
-[21.04.0]: https://github.com/greenbone/openvas/compare/openvas-20.08...v21.4.0
+[21.4.0]: https://github.com/greenbone/openvas/compare/openvas-20.08...v21.4.0
 
-## [20.08.2] (unreleased)
+## [20.8.2] - 2021-06-23
 
 ### Added
 - Check for wrong names or values in the script_xrefs params.
@@ -79,9 +79,9 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 - Remove code from the openvas daemon era. Do not flushall redis. [#689](https://github.com/greenbone/openvas/pull/689)
 - Remove deprecated option logfile. [#713](https://github.com/greenbone/openvas/pull/713)
 
-[20.08.2]: https://github.com/greenbone/openvas/compare/v20.8.0...openvas-20.08
+[20.8.2]: https://github.com/greenbone/openvas/compare/v20.8.1...openvas-20.08
 
-## [20.08.1] (2021.02.01)
+## [20.8.1] (2021.02.01)
 
 ### Added
 - Extend nasl lint to detect if function parameter is used twice. [#590](https://github.com/greenbone/openvas/pull/590)
@@ -115,9 +115,9 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 - Fix technique switch for getting the appropriate interface to use for IPv6 dst addr. [#636](https://github.com/greenbone/openvas/pull/636)
 - Fix host count. Set to -1 when the target string is invalid. [#646](https://github.com/greenbone/openvas/pull/646)
 
-[20.08.1]: https://github.com/greenbone/openvas/compare/v20.8.0...v20.8.1
+[20.8.1]: https://github.com/greenbone/openvas/compare/v20.8.0...v20.8.1
 
-## [20.08] (2020-08-11)
+## [20.8] (2020-08-11)
 
 ### Added
 - Create greenbone-nvt-sync create lock file during feed sync.
