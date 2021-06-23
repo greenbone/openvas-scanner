@@ -45,5 +45,5 @@ jobs:
         pontos-release prepare --patch
     - name: Release with pontos
       run: |
-        . venv/bin/activate
+        . .venv/bin/activate
         pontos-release release
