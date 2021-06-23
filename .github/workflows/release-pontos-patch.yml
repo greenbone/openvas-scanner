@@ -1,0 +1,49 @@
+name: Release Python package with pontos
+
+on:
+  pull_request:
+    types: [closed]
+    branches: [ 'openvas-21.04', 'openvas-20.08' ]
+
+jobs:
+  release-patch:
+    env:
+      GITHUB_USER: ${{ secrets.GREENBONE_BOT }}
+      GITHUB_MAIL: ${{ secrets.GREENBONE_BOT_MAIL }}
+      GITHUB_TOKEN: ${{ secrets.GREENBONE_BOT_TOKEN }}
+    name: Release patch with pontos
+    # If the label 'make patch release' is set. If PR is closed because of an merge
+    if: contains( github.event.pull_request.labels.*.name, 'make patch release') && github.event.pull_request.merged == true
+    runs-on: 'ubuntu-latest'
+    steps:
+    - uses: actions/checkout@v2
+      with:
+        persist-credentials: false
+    - name: Set up Python
+      uses: actions/setup-python@v2
+      with:
+        python-version: 3.8
+    - name: Install pontos
+      run: |
+        apt-get update && apt-get --assume-yes install python3-venv
+        python3 -m venv venv
+        . venv/bin/activate
+        python -m pip install --upgrade pip
+        python -m pip install --upgrade pontos
+    - name: Tell git who I am
+      run: |
+        git config --global user.name "${{ env.GITHUB_USER }}"
+        git config --global user.email "${{ env.GITHUB_MAIL }}"
+        git remote set-url origin https://${{ env.GITHUB_TOKEN }}@github.com/${{ github.repository }}
+      
+    - name: Print base branch
+      # we always should've checked out the correct branch'
+      run: echo "Current Branch is $GITHUB_BASE_REF"
+    - name: Prepare patch release with pontos
+      run: |
+        . venv/bin/activate
+        pontos-release prepare --patch
+    - name: Release with pontos
+      run: |
+        . venv/bin/activate
+        pontos-release release
