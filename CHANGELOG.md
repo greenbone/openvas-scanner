@@ -4,7 +4,7 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
-## [20.08.2] (unreleased)
+## [20.8.2] (unreleased)
 
 ### Added
 - Check for wrong names or values in the script_xrefs params.
@@ -35,9 +35,9 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 - Remove code from the openvas daemon era. Do not flushall redis. [#689](https://github.com/greenbone/openvas/pull/689)
 - Remove deprecated option logfile. [#713](https://github.com/greenbone/openvas/pull/713)
 
-[20.08.2]: https://github.com/greenbone/openvas/compare/v20.8.0...openvas-20.08
+[20.8.2]: https://github.com/greenbone/openvas/compare/v20.8.1...openvas-20.08
 
-## [20.08.1] (2021.02.01)
+## [20.8.1] (2021.02.01)
 
 ### Added
 - Extend nasl lint to detect if function parameter is used twice. [#590](https://github.com/greenbone/openvas/pull/590)
@@ -69,9 +69,9 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 - Fix technique switch for getting the appropriate interface to use for IPv6 dst addr. [#636](https://github.com/greenbone/openvas/pull/636)
 - Fix host count. Set to -1 when the target string is invalid. [#646](https://github.com/greenbone/openvas/pull/646)
 
-[20.08.1]: https://github.com/greenbone/openvas/compare/v20.8.0...v20.8.1
+[20.8.1]: https://github.com/greenbone/openvas/compare/v20.8.0...v20.8.1
 
-## [20.08] (2020-08-11)
+## [20.8.0] (2020-08-11)
 
 ### Added
 - Create greenbone-nvt-sync create lock file during feed sync.
@@ -128,7 +128,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 ### Removed
 - Removed "network scan" mode. This includes removal of NASL API methods "scan_phase()" and "network_targets()". Sending a "network_mode=yes" in a scanner configuration will have no effect anymore. [#493](https://github.com/greenbone/openvas/pull/493)
 
-[20.08]: https://github.com/greenbone/openvas/compare/openvas-7.0...openvas-20.08
+[20.8.0]: https://github.com/greenbone/openvas/compare/openvas-7.0...v20.8.0
 
 ## [7.0.1]
 
