@@ -1,4 +1,4 @@
-name: Release Python package with pontos
+name: Release patch version with pontos
 
 on:
   pull_request:
@@ -26,8 +26,8 @@ jobs:
     - name: Install pontos
       run: |
         apt-get update && apt-get --assume-yes install python3-venv
-        python3 -m venv venv
-        . venv/bin/activate
+        python3 -m venv .venv
+        . .venv/bin/activate
         python -m pip install --upgrade pip
         python -m pip install --upgrade pontos
     - name: Tell git who I am
@@ -41,9 +41,9 @@ jobs:
       run: echo "Current Branch is $GITHUB_BASE_REF"
     - name: Prepare patch release with pontos
       run: |
-        . venv/bin/activate
+        . .venv/bin/activate
         pontos-release prepare --patch
     - name: Release with pontos
       run: |
-        . venv/bin/activate
+        . .venv/bin/activate
         pontos-release release
