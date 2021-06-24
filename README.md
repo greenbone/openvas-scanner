@@ -8,8 +8,12 @@
 [![CircleCI](https://circleci.com/gh/greenbone/openvas/tree/openvas-20.08.svg?style=svg)](https://circleci.com/gh/greenbone/openvas/tree/openvas-20.08)
 =======
 [![Code Documentation Coverage](https://img.shields.io/codecov/c/github/greenbone/openvas.svg?label=Doc%20Coverage&logo=codecov)](https://codecov.io/gh/greenbone/openvas)
+<<<<<<< HEAD
 [![Build and test](https://github.com/greenbone/openvas-scanner/actions/workflows/ci-c.yml/badge.svgg)](https://github.com/greenbone/openvas-scanner/actions/workflows/ci-c.yml)
 >>>>>>> 6f7a87c0 (fix badge)
+=======
+[![Build and test](https://github.com/greenbone/openvas-scanner/actions/workflows/ci-c.yml/badge.svg)](https://github.com/greenbone/openvas-scanner/actions/workflows/ci-c.yml)
+>>>>>>> 7ff3eb5c (Update README.md)
 
 This is the Open Vulnerability Assessment Scanner (OpenVAS) of the
 Greenbone Vulnerability Management (GVM) Solution.
