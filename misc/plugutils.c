@@ -32,11 +32,12 @@
 #include <gvm/base/networking.h> // for port_protocol_t
 #include <gvm/base/prefs.h>      // for prefs_get_bool
 #include <gvm/util/nvticache.h>  // for nvticache_initialized
-#include <stdio.h>               // for snprintf
-#include <stdlib.h>              // for exit
-#include <string.h>              // for strcmp
-#include <sys/wait.h>            // for wait
-#include <unistd.h>              // for fork
+#include <json-glib/json-glib.h>
+#include <stdio.h>    // for snprintf
+#include <stdlib.h>   // for exit
+#include <string.h>   // for strcmp
+#include <sys/wait.h> // for wait
+#include <unistd.h>   // for fork
 
 #undef G_LOG_DOMAIN
 /**
@@ -335,6 +336,79 @@ plug_get_host_ip_str (struct script_infos *desc)
 }
 
 /**
+ * @brief Build a json representation of a result.
+ *
+ * JSON result consists of scan_id, message type, host ip,  hostname, port
+ * together with proto, OID, result message and uri.
+ *
+ * @param scan_id     Scan Id.
+ * @param type        Type of result, like "LOG".
+ * @param ip_str      IP string of host.
+ * @param hostname    Name of host.
+ * @param port_s      Port string.
+ * @param proto       Protocol related to the issue (tcp or udp).
+ * @param action_str  The actual result text.
+ * @param uri         Location like file path or webservice URL.
+ *
+ * @return JSON string on success. Must be freed by caller. NULL on error.
+ */
+gchar *
+make_result_json_str (const gchar *scan_id, const gchar *type,
+                      const gchar *ip_str, const gchar *hostname,
+                      const gchar *port_s, const gchar *proto, const gchar *oid,
+                      const gchar *action_str, const gchar *uri)
+{
+  JsonBuilder *builder;
+  JsonGenerator *gen;
+  JsonNode *root;
+  gchar *port;
+  gchar *json_str;
+
+  builder = json_builder_new ();
+
+  json_builder_begin_object (builder);
+
+  json_builder_set_member_name (builder, "scan_id");
+  builder = json_builder_add_string_value (builder, scan_id);
+
+  json_builder_set_member_name (builder, "type");
+  builder = json_builder_add_string_value (builder, type);
+
+  json_builder_set_member_name (builder, "host_ip");
+  json_builder_add_string_value (builder, ip_str);
+
+  json_builder_set_member_name (builder, "hostname");
+  json_builder_add_string_value (builder, hostname);
+
+  port = g_strdup_printf ("%s/%s", port_s, proto);
+  json_builder_set_member_name (builder, "port");
+  json_builder_add_string_value (builder, port);
+  g_free (port);
+
+  json_builder_set_member_name (builder, "OID");
+  json_builder_add_string_value (builder, oid);
+
+  json_builder_set_member_name (builder, "value");
+  json_builder_add_string_value (builder, action_str);
+
+  json_builder_set_member_name (builder, "uri");
+  json_builder_add_string_value (builder, uri);
+
+  json_builder_end_object (builder);
+
+  gen = json_generator_new ();
+  root = json_builder_get_root (builder);
+  json_generator_set_root (gen, root);
+  json_str = json_generator_to_data (gen, NULL);
+
+  json_node_free (root);
+  g_object_unref (gen);
+  g_object_unref (builder);
+
+  return json_str;
+}
+
+/**
  * @brief Post a security message (e.g. LOG, NOTE, WARNING ...).
  *
  * @param oid   The oid of the NVT
@@ -351,11 +425,13 @@ proto_post_wrapped (const char *oid, struct script_infos *desc, int port,
                     const char *uri)
 {
   const char *hostname = "";
+  const char *mqtt_server_uri;
   char *buffer, *data, port_s[16] = "general";
   char ip_str[INET6_ADDRSTRLEN];
   GString *action_str;
   gsize length;
   kb_t kb;
+  mqtt_t *mqtt = NULL;
 
   /* Should not happen, just to avoid trouble stop here if no NVTI found */
   if (!oid)
@@ -381,8 +457,36 @@ proto_post_wrapped (const char *oid, struct script_infos *desc, int port,
                             action_str->str, uri ?: "");
   /* Convert to UTF-8 before sending to Manager. */
   data = g_convert (buffer, -1, "UTF-8", "ISO_8859-1", NULL, &length, NULL);
+
+  // Having the pref in the openvas.conf means we want to use MQTT
+  mqtt_server_uri = prefs_get ("mqtt_server_uri");
+  mqtt = plug_get_mqtt (desc);
+  if (mqtt_server_uri)
+    {
+      if (!gvm_has_mqtt_support ())
+        g_warning (
+          "%s: Gvm-libs not build with MQTT support. MQTT not available.",
+          __func__);
+      else if (NULL == mqtt)
+        g_warning ("%s: MQTT not initialized! Can not send results via MQTT.",
+                   __func__);
+      else
+        {
+          gchar *json;
+          json = make_result_json_str (desc->globals->scan_id, what, ip_str,
+                                       hostname ?: " ", port_s, proto, oid,
+                                       action_str->str, uri ?: "");
+          if (json == NULL)
+            g_warning ("%s: Error while creating JSON.", __func__);
+          else
+            mqtt_publish (mqtt, "scanner/results", json);
+          g_free (json);
+        }
+    }
+
   kb = plug_get_results_kb (desc);
   kb_item_push_str (kb, "internal/results", data);
+
   g_free (data);
   g_free (buffer);
   g_string_free (action_str, TRUE);
@@ -780,6 +884,12 @@ kb_t
 plug_get_results_kb (struct script_infos *args)
 {
   return args->results;
+}
+
+mqtt_t *
+plug_get_mqtt (struct script_infos *args)
+{
+  return args->mqtt;
 }
 
 static void
