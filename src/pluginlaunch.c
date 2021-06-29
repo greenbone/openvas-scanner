@@ -443,7 +443,7 @@ check_sysload ()
 int
 plugin_launch (struct scan_globals *globals, struct scheduler_plugin *plugin,
                struct in6_addr *ip, GSList *vhosts, kb_t kb, kb_t main_kb,
-               nvti_t *nvti)
+               mqtt_t *mqtt, nvti_t *nvti)
 {
   int p;
 
@@ -456,7 +456,7 @@ plugin_launch (struct scan_globals *globals, struct scheduler_plugin *plugin,
   processes[p].timeout = plugin_timeout (nvti);
   gettimeofday (&(processes[p].start), NULL);
   processes[p].pid =
-    nasl_plugin_launch (globals, ip, vhosts, kb, main_kb, plugin->oid);
+    nasl_plugin_launch (globals, ip, vhosts, kb, main_kb, mqtt, plugin->oid);
 
   if (processes[p].pid > 0)
     num_running_processes++;
