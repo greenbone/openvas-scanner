@@ -39,7 +39,7 @@ pluginlaunch_stop (void);
 
 int
 plugin_launch (struct scan_globals *, struct scheduler_plugin *,
-               struct in6_addr *, GSList *, kb_t, kb_t, nvti_t *);
+               struct in6_addr *, GSList *, kb_t, kb_t, mqtt_t *, nvti_t *);
 
 void
 pluginlaunch_disable_parallel_checks (void);
