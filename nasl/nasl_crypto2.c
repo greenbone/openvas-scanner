@@ -175,8 +175,8 @@ delete_cipher_item (int cipher_id)
                                 (GCompareFunc) find_cipher_hd);
   hd = (cipher_table_item_t *) hd_item->data;
   gcry_cipher_close ((gcry_cipher_hd_t) hd->hd);
-  g_free (hd_item->data);
   cipher_table = g_list_remove (cipher_table, hd_item->data);
+  g_free (hd_item->data);
 }
 
 /**
