@@ -1339,7 +1339,8 @@ nasl_ssh_request_exec (lex_ctxt *lexic)
   int verbose;
   char *cmd;
   int rc;
-  GString *response, *compat_buf;
+  GString *response;
+  GString *compat_buf = NULL;
   size_t len = 0;
   tree_cell *retc;
   char *p;
@@ -1380,7 +1381,6 @@ nasl_ssh_request_exec (lex_ctxt *lexic)
   if (to_stderr < 0)
     to_stderr = 0;
 
-  memset (&compat_buf, '\0', sizeof (compat_buf));
   /* Allocate some space in advance.  Most commands won't output too
      much and thus 512 bytes (6 standard terminal lines) should often
      be sufficient.  */
