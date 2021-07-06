@@ -861,9 +861,9 @@ plug_get_key (struct script_infos *args, char *name, int *type, size_t *len,
   if (kb == NULL)
     return NULL;
 
-  if (single && *type != KB_TYPE_INT)
+  if (single && type != NULL && *type != KB_TYPE_INT)
     res = kb_item_get_single (kb, name, KB_TYPE_UNSPEC);
-  else if (*type == KB_TYPE_INT)
+  else if (type != NULL && *type == KB_TYPE_INT)
     res = kb_item_get_single (kb, name, KB_TYPE_INT);
   else
     res = kb_item_get_all (kb, name);

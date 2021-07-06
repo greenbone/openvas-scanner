@@ -116,7 +116,7 @@ store_file (struct scan_globals *globals, const char *file,
 
   size_t bytes = 0;
 
-  if (!file_hash && *file_hash == '\0')
+  if (!file_hash || *file_hash == '\0')
     return -1;
 
   origname = g_strdup (file_hash);
