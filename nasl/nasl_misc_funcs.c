@@ -628,7 +628,10 @@ nasl_sort_array (lex_ctxt *lexic)
   if (retc != NULL)
     {
       a = retc->x.ref_val;
-      qsort (a->num_elt, a->max_idx, sizeof (a->num_elt[0]), var_cmp);
+      if (a->num_elt != NULL)
+        {
+          qsort (a->num_elt, a->max_idx, sizeof (a->num_elt[0]), var_cmp);
+        }
     }
   mylexic = NULL;
   return retc;
