@@ -868,7 +868,7 @@ v6_routethrough (struct in6_addr *dest, struct in6_addr *source)
   int numinterfaces = 0;
   static int numroutes = 0;
   struct in6_addr mask;
-  struct in6_addr network;
+  struct in6_addr network = {0};
   struct in6_addr src;
   long best_match = -1;
 
