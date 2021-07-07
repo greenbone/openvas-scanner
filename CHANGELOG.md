@@ -44,6 +44,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ## [21.04.0] (2021-04-15)
 
+<<<<<<< HEAD
 ### Added
 - Add scanner-only option to enable tls debugging. [#558](https://github.com/greenbone/openvas/pull/558)
 - Extend nasl lint to detect if function parameter is used twice. [#585](https://github.com/greenbone/openvas/pull/585)
@@ -63,6 +64,11 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ### Removed
 - Use the nvticache name from gvm-libs, defined in nvticache.h. [#578](https://github.com/greenbone/openvas/pull/578)
+=======
+- Fix clang-analyzer warnings. [#791](https://github.com/greenbone/openvas/pull/791)
+
+[Unreleased]: https://github.com/greenbone/openvas-scanner/compare/v20.8.2...HEAD
+>>>>>>> 93511d3b (Add changelog entry)
 
 [21.04.0]: https://github.com/greenbone/openvas/compare/openvas-20.08...master
 
