@@ -11,7 +11,13 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 ### Removed
 ### Fixed
 
+<<<<<<< HEAD
 [Unreleased]: https://github.com/greenbone/openvas-scanner/compare/v21.4.1...HEAD
+=======
+- Fix clang-analyzer warnings. [#791](https://github.com/greenbone/openvas/pull/791)
+
+[Unreleased]: https://github.com/greenbone/openvas-scanner/compare/v20.8.2...HEAD
+>>>>>>> 93511d3b (Add changelog entry)
 
 
 ## [21.4.1] - 2021-06-23
