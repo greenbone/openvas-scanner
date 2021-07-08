@@ -86,38 +86,12 @@ jobs:
     steps:
       - name: Check out openvas-scanner
         uses: actions/checkout@v2
-      - name: Find openvas-scanner reference branch
-        run: |
-          if [ -n "$GITHUB_BASE_REF" ];                             \
-          then echo "OPENVAS_REF=$GITHUB_BASE_REF" >> $GITHUB_ENV;  \
-          else echo "OPENVAS_REF=$GITHUB_REF" >> $GITHUB_ENV;       \
-          fi
-      - name: Select gvm-libs branch
-        run: |
-          if [ $OPENVAS_REF = "master" ];                           \
-            then GVM_LIBS_REF="master";                             \
-            else GVM_LIBS_REF=$(echo "$OPENVAS_REF"                 \
-                                | sed 's/refs\/.*\///g'             \
-                                | sed 's/openvas-/gvm-libs-/g' -);  \
-            fi;                                                     \
-          echo "GVM_LIBS_REF=$GVM_LIBS_REF" >> $GITHUB_ENV
-      - name: Check out gvm-libs
-        uses: actions/checkout@v2
-        with:
-          repository: greenbone/gvm-libs
-          ref: ${{ env.GVM_LIBS_REF }}
-          path: gvm-libs
-      - name: Configure and compile gvm-libs (${{ env.BUILD_TYPE }})
-        working-directory: gvm-libs
-        run: |
-          mkdir build && cd build/ &&                \
-          cmake -DCMAKE_BUILD_TYPE=$BUILD_TYPE .. && \
-          make install
       - name: Configure and compile openvas-scanner
         run: |
           mkdir build && cd build/ &&                \
           cmake -DCMAKE_BUILD_TYPE=$BUILD_TYPE .. && \
           make install
+
   scan-build:
     name: Scan-build (clang static analyzer)
     runs-on: ubuntu-latest
@@ -125,37 +99,10 @@ jobs:
     steps:
       - name: Check out openvas-scanner
         uses: actions/checkout@v2
-      - name: Find openvas-scanner reference branch
-        run: |
-          if [ -n "$GITHUB_BASE_REF" ];                             \
-          then echo "OPENVAS_REF=$GITHUB_BASE_REF" >> $GITHUB_ENV;  \
-          else echo "OPENVAS_REF=$GITHUB_REF" >> $GITHUB_ENV;       \
-          fi
-      - name: Select gvm-libs branch
-        run: |
-          if [ $OPENVAS_REF = "master" ];                           \
-            then GVM_LIBS_REF="master";                             \
-            else GVM_LIBS_REF=$(echo "$OPENVAS_REF"                 \
-                                | sed 's/refs\/.*\///g'             \
-                                | sed 's/openvas-/gvm-libs-/g' -);  \
-            fi;                                                     \
-          echo "GVM_LIBS_REF=$GVM_LIBS_REF" >> $GITHUB_ENV
-      - name: Check out gvm-libs
-        uses: actions/checkout@v2
-        with:
-          repository: greenbone/gvm-libs
-          ref: ${{ env.GVM_LIBS_REF }}
-          path: gvm-libs
-      - name: Configure and compile gvm-libs (Debug)
-        working-directory: gvm-libs
-        run: |
-          mkdir build && cd build/ &&                \
-          cmake -DCMAKE_BUILD_TYPE=$BUILD_TYPE .. && \
-          make install
       - name: Configure and Scan Build
         run: |
           mkdir build && cd build/ &&                      \
-          scan-build cmake -DCMAKE_BUILD_TYPE=Debug .. &&  \
+          scan-build cmake -DCMAKE_BUILD_TYPE=Release .. &&  \
           scan-build -o ~/scan-build-report make
       - name: Upload scan-build report
         if: failure()
@@ -171,33 +118,6 @@ jobs:
     steps:
       - name: Check out openvas-scanner
         uses: actions/checkout@v2
-      - name: Find openvas-scanner reference branch
-        run: |
-          if [ -n "$GITHUB_BASE_REF" ];                             \
-          then echo "OPENVAS_REF=$GITHUB_BASE_REF" >> $GITHUB_ENV;  \
-          else echo "OPENVAS_REF=$GITHUB_REF" >> $GITHUB_ENV;       \
-          fi
-      - name: Select gvm-libs branch
-        run: |
-          if [ $OPENVAS_REF = "master" ];                           \
-            then GVM_LIBS_REF="master";                             \
-            else GVM_LIBS_REF=$(echo "$OPENVAS_REF"                 \
-                                | sed 's/refs\/.*\///g'             \
-                                | sed 's/openvas-/gvm-libs-/g' -);  \
-            fi;                                                     \
-          echo "GVM_LIBS_REF=$GVM_LIBS_REF" >> $GITHUB_ENV
-      - name: Check out gvm-libs
-        uses: actions/checkout@v2
-        with:
-          repository: greenbone/gvm-libs
-          ref: ${{ env.GVM_LIBS_REF }}
-          path: gvm-libs
-      - name: Configure and compile gvm-libs (Debug)
-        working-directory: gvm-libs
-        run: |
-          mkdir build && cd build/ &&                \
-          cmake -DCMAKE_BUILD_TYPE=$BUILD_TYPE .. && \
-          make install
       - name: Configure and run unit tests
         run: |
           mkdir build && cd build/ &&             \
