@@ -1698,7 +1698,8 @@ encrypt_data (lex_ctxt *lexic, int cipher, int mode)
 {
   gcry_cipher_hd_t hd;
   gcry_error_t error;
-  void *result, *data, *key, *tmp, *iv;
+  void *result, *data, *key, *iv;
+  void *tmp = NULL;
   size_t resultlen, datalen, keylen, tmplen, ivlen;
   tree_cell *retc;
 
@@ -1776,6 +1777,7 @@ encrypt_data (lex_ctxt *lexic, int cipher, int mode)
       if ((error = gcry_cipher_setiv (hd, iv, ivlen)))
         {
           nasl_perror (lexic, "gcry_cipher_setiv: %s", gcry_strerror (error));
+          g_free (tmp);
           return NULL;
         }
     }
