@@ -42,7 +42,7 @@ jobs:
     name: Upload doc coverage to Codecov
     needs: gen_xml_doc
     runs-on: ubuntu-latest
-    container: greenbone/build-env-openvas-scanner-master-debian-buster-clang-core
+    container: greenbone/openvas-scanner-21.04-clang-testing
     steps:
       - name: Check out openvas-scanner
         uses: actions/checkout@v2
@@ -78,8 +78,8 @@ jobs:
           - Debug
           - Release
         docker_base:
-          - greenbone/build-env-openvas-scanner-master-debian-buster-clang-core
-          - greenbone/build-env-openvas-scanner-master-debian-buster-gcc-core
+          - greenbone/openvas-scanner-21.04-clang-testing
+          - greenbone/openvas-scanner-21.04-gcc-testing
     container: ${{ matrix.docker_base }}
     env:
       BUILD_TYPE: ${{ matrix.build_type }}
@@ -121,7 +121,7 @@ jobs:
   scan-build:
     name: Scan-build (clang static analyzer)
     runs-on: ubuntu-latest
-    container: greenbone/build-env-openvas-scanner-master-debian-buster-clang-core
+    container: greenbone/openvas-scanner-21.04-clang-testing
     steps:
       - name: Check out openvas-scanner
         uses: actions/checkout@v2
@@ -167,7 +167,7 @@ jobs:
   test-units:
     name: Build and run unit tests
     runs-on: ubuntu-latest
-    container: greenbone/build-env-openvas-scanner-master-debian-buster-gcc-core
+    container: greenbone/openvas-scanner-21.04-gcc-testing
     steps:
       - name: Check out openvas-scanner
         uses: actions/checkout@v2
