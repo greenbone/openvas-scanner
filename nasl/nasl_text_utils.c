@@ -725,6 +725,7 @@ nasl_egrep (lex_ctxt *lexic)
           {
             nasl_perror (
               lexic, "egrep() : regcomp() failed for pattern '%s'.\n", pattern);
+            g_free (rets);
             return NULL;
           }
 
