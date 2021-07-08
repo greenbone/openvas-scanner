@@ -1436,24 +1436,40 @@ nasl_socket_cert_verify (lex_ctxt *lexic)
   for (i = 0; i < cert_n; i++)
     {
       if (gnutls_x509_crt_init (&cert[i]) != GNUTLS_E_SUCCESS)
-        return NULL;
+        {
+          g_free (cert);
+          return NULL;
+        }
       if (gnutls_x509_crt_import (cert[i], &certs[i], GNUTLS_X509_FMT_DER)
           != GNUTLS_E_SUCCESS)
-        return NULL;
+        {
+          g_free (cert);
+          return NULL;
+        }
     }
 
   /* Init ca_list and load system CA trust list */
   if ((ret = gnutls_x509_trust_list_init (&ca_list, ca_list_size)) < 0)
-    return NULL;
+    {
+      g_free (cert);
+      return NULL;
+    }
   ret = gnutls_x509_trust_list_add_system_trust (ca_list, 0, 0);
   if (ret < 0)
-    return NULL;
+    {
+      g_free (cert);
+      return NULL;
+    }
 
   /* Certificate verification against a trust list*/
   if (gnutls_x509_trust_list_verify_crt (ca_list, cert, cert_n, 0, &voutput,
                                          NULL)
       != GNUTLS_E_SUCCESS)
-    return NULL;
+    {
+      g_free (cert);
+      return NULL;
+    }
+  g_free (cert);
 
   ret = voutput;
 
