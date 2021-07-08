@@ -542,6 +542,7 @@ _regreplace (const char *pattern, const char *replace, const char *string,
 
       if (err && err != REG_NOMATCH)
         {
+          g_free (buf);
           return (NULL);
         }
       if (!err)
