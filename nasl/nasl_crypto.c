@@ -417,7 +417,10 @@ tls_prf (const void *secret, size_t secret_len, const void *seed,
 
   Ai = hmac_func (secret, secret_len, lseed, lslen);
   if (!Ai)
-    return NULL;
+    {
+      g_free (lseed);
+      return NULL;
+    }
 
   result = g_malloc0 (outlen);
   while (pos < outlen)
