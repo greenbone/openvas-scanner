@@ -21,6 +21,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 ### Fixed
 
 <<<<<<< HEAD
+<<<<<<< HEAD
 ### Removed
 - Remove handling of source_iface related preferences. [#730](https://github.com/greenbone/openvas/pull/730)
 =======
@@ -32,6 +33,9 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 [Unreleased]: https://github.com/greenbone/openvas-scanner/compare/v20.8.2...HEAD
 >>>>>>> 93511d3b (Add changelog entry)
 >>>>>>> d86a27ee (Add changelog entry)
+=======
+[Unreleased]: https://github.com/greenbone/openvas-scanner/compare/v21.4.1...HEAD
+>>>>>>> cffb4866 (Fix changelog)
 
 [21.10]: https://github.com/greenbone/openvas-scanner/compare/openvas-21.04...master
 
@@ -76,7 +80,24 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 [21.04.0]: https://github.com/greenbone/openvas/compare/openvas-20.08...master
 
+<<<<<<< HEAD
 ## [20.08.2] (unreleased)
+=======
+
+## [20.8.3] - Unreleased
+
+### Added
+### Changed
+### Deprecated
+### Removed
+### Fixed
+
+- Fix clang-analyzer warnings. [#791](https://github.com/greenbone/openvas/pull/791)
+
+[20.8.3]: https://github.com/greenbone/openvas/compare/v20.8.2...openvas-20.08
+
+## [20.8.2] - 2021-06-23
+>>>>>>> cffb4866 (Fix changelog)
 
 ### Added
 - Check for wrong names or values in the script_xrefs params.
