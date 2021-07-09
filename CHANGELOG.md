@@ -66,6 +66,18 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 [21.04.0]: https://github.com/greenbone/openvas/compare/openvas-20.08...master
 
+## [20.8.3] - Unreleased
+
+### Added
+### Changed
+### Deprecated
+### Removed
+### Fixed
+
+- Fix clang-analyzer warnings. [#791](https://github.com/greenbone/openvas/pull/791)
+
+[20.8.3]: https://github.com/greenbone/openvas/compare/v20.8.2...openvas-20.08
+
 ## [20.08.2] (unreleased)
 
 ### Added
