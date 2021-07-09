@@ -1380,7 +1380,7 @@ nasl_exec (lex_ctxt *lexic, tree_cell *st)
             }
 
           if (len2 == 0 || len1 < len2
-              || (p = memmem (p1, len1, p2, len2)) == NULL)
+              || (p1 != NULL && (p = memmem (p1, len1, p2, len2)) == NULL))
             {
               s3 = g_malloc0 (len1 + 1);
               memcpy (s3, p1, len1);

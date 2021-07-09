@@ -542,6 +542,7 @@ _regreplace (const char *pattern, const char *replace, const char *string,
 
       if (err && err != REG_NOMATCH)
         {
+          g_free (buf);
           return (NULL);
         }
       if (!err)
@@ -725,6 +726,7 @@ nasl_egrep (lex_ctxt *lexic)
           {
             nasl_perror (
               lexic, "egrep() : regcomp() failed for pattern '%s'.\n", pattern);
+            g_free (rets);
             return NULL;
           }
 

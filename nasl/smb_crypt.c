@@ -539,6 +539,8 @@ NTLMv2_generate_response_ntlmssp (const uchar ntlm_v2_hash[16],
   memcpy (nt_response, ntlmv2_response, sizeof (ntlmv2_response));
   memcpy (nt_response + sizeof (ntlmv2_response), ntlmv2_client_data,
           client_data_len);
+
+  g_free (ntlmv2_client_data);
 }
 
 void

@@ -11,7 +11,9 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 ### Removed
 ### Fixed
 
-- Fix clang-analyzer warnings. [#791](https://github.com/greenbone/openvas/pull/791)
+- Fix clang-analyzer warnings.
+  [#791](https://github.com/greenbone/openvas/pull/791)
+  [#795](https://github.com/greenbone/openvas/pull/795)
 
 [Unreleased]: https://github.com/greenbone/openvas-scanner/compare/v20.8.2...HEAD
 
