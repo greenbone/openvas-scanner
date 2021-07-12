@@ -182,8 +182,11 @@ nasl_func_call (lex_ctxt *lexic, const nasl_func *f, tree_cell *arg_list)
         nasl_trace (lexic, "NASL> %s)\n", trace_buf);
       else
         nasl_trace (lexic, "NASL> %s ...)\n", trace_buf);
-      g_free (trace_buf);
     }
+  /* trace_buf freed here because nasl_trace_fp might get set to NULL during the
+   * execution of nasl_func_call and therefore not get freed if we only free in
+   * the previous if block. This is done to make static analyzer happy. */
+  g_free (trace_buf);
 
   /* 4. Chain new context to old (lexic) */
   lexic2->up_ctxt = lexic;
