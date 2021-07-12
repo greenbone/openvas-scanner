@@ -419,7 +419,7 @@ make_result_json_str (const gchar *scan_id, const gchar *type,
  * @param what   The type, like "LOG".
  * @param uri   Location like file path or webservice URL.
  */
-void
+static void
 proto_post_wrapped (const char *oid, struct script_infos *desc, int port,
                     const char *proto, const char *action, const char *what,
                     const char *uri)
@@ -463,11 +463,7 @@ proto_post_wrapped (const char *oid, struct script_infos *desc, int port,
   mqtt = plug_get_mqtt (desc);
   if (mqtt_server_uri)
     {
-      if (!gvm_has_mqtt_support ())
-        g_warning (
-          "%s: Gvm-libs not build with MQTT support. MQTT not available.",
-          __func__);
-      else if (NULL == mqtt)
+      if (NULL == mqtt)
         g_warning ("%s: MQTT not initialized! Can not send results via MQTT.",
                    __func__);
       else

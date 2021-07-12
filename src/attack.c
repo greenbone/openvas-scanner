@@ -479,12 +479,7 @@ attack_host (struct scan_globals *globals, struct in6_addr *ip, GSList *vhosts,
     {
       g_debug ("%s: mqtt_server_uri provided. Attempting to use MQTT...",
                __func__);
-      if (!gvm_has_mqtt_support ())
-        g_warning (
-          "%s: Gvm-libs not build with MQTT support. MQTT not available.",
-          __func__);
-      else
-        mqtt = mqtt_connect (mqtt_server_uri);
+      mqtt = mqtt_connect (mqtt_server_uri);
     }
 
   /* launch the plugins */
