@@ -202,7 +202,7 @@ if [ -z "$TMPDIR" ]; then
   SYNC_TMP_DIR=/tmp
   # If we have mktemp, create a temporary dir (safer)
   if [ -n "`which mktemp`" ]; then
-    SYNC_TMP_DIR=`mktemp -t -d greenbone-nvt-sync.XXXXXXXXXX` || { echo "ERROR: Cannot create temporary directory for file download" >&2; exit 1 ; }
+    SYNC_TMP_DIR=`mktemp -d -t greenbone-nvt-sync.XXXXXXXXXX` || { echo "ERROR: Cannot create temporary directory for file download" >&2; exit 1 ; }
     trap "rm -rf $SYNC_TMP_DIR" EXIT HUP INT TRAP TERM
   fi
 else
@@ -512,7 +512,7 @@ do_sync ()
     log_write "Feed is already current, skipping synchronization."
   else
     (
-      chmod +660 $OPENVAS_FEED_LOCK_PATH
+      chmod 660 $OPENVAS_FEED_LOCK_PATH
       flock -n 9
       if [ $? -eq 1 ] ; then
           log_warning "Another process related to the feed update is already running"
