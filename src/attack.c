@@ -28,6 +28,7 @@
 #include "../misc/network.h"        /* for auth_printf */
 #include "../misc/nvt_categories.h" /* for ACT_INIT */
 #include "../misc/pcap_openvas.h"   /* for v6_is_local_ip */
+#include "../misc/plugutils.h"      /* for set_current_vhost */
 #include "../nasl/nasl_debug.h"     /* for nasl_*_filename */
 #include "hosts.h"
 #include "pluginlaunch.h"
@@ -448,6 +449,183 @@ finish_launch_plugin:
   return ret;
 }
 
+static char *
+prepare_vhosts_plugin_list (char *ip_str, kb_t main_kb)
+{
+  gchar *plugin_set, *plugin_set2, plugin_key[64];
+  struct kb_item *res;
+
+  res = NULL;
+
+  g_snprintf (plugin_key, sizeof (plugin_key), "internal/vhostplugins/%s",
+              ip_str);
+  res = kb_item_get_all (main_kb, plugin_key);
+  if (res == NULL)
+    return NULL;
+
+  plugin_set = res->v_str;
+  res = res->next;
+  plugin_set2 = NULL;
+  while (res)
+    {
+      plugin_set2 = g_strdup_printf ("%s;%s", plugin_set, res->v_str);
+      g_free (plugin_set);
+      plugin_set = plugin_set2;
+      res = res->next;
+    }
+  kb_item_free (res);
+
+  return plugin_set;
+}
+
+static int
+kb_duplicate (kb_t dst, kb_t src, const gchar *filter)
+{
+  struct kb_item *items, *p_itm;
+
+  items = kb_item_get_pattern (src, filter ? filter : "*");
+  for (p_itm = items; p_itm != NULL; p_itm = p_itm->next)
+    {
+      gchar *newname;
+
+      newname = p_itm->name;
+      kb_item_add_str (dst, newname, p_itm->v_str, 0);
+    }
+  return 0;
+}
+
+/**
+ * @brief Attack all vhost.
+ *
+ * Duplicate the host kb and prepare a shorted plugin list to be launched
+ * against each vhost in the vhosts list.
+ */
+static void
+attack_vhosts (struct scan_globals *globals, struct in6_addr *ip,
+               GSList *vhosts, kb_t kb, kb_t main_kb)
+{
+  int plugins_init_error = 0;
+  int no_plug_dependencies = 0;
+  char ip_str[INET6_ADDRSTRLEN], *plug_list;
+  gvm_vhost_t *current_vhost;
+  int forks_retry = 0;
+
+  addr6_to_str (ip, ip_str);
+  host_kb = kb;
+
+  if (!vhosts || !prefs_get_bool ("expand_vhosts"))
+    return;
+
+  plug_list = prepare_vhosts_plugin_list (ip_str, main_kb);
+  while (vhosts)
+    {
+      int rc;
+      kb_t vhost_kb;
+      plugins_scheduler_t sched = NULL;
+      int scheduler_phase_reset = 1;
+
+      if (plug_list)
+        {
+          sched = plugins_scheduler_init (plug_list, no_plug_dependencies,
+                                          &plugins_init_error);
+        }
+      else
+        return;
+
+      if (!sched)
+        {
+          g_free (plug_list);
+          return;
+        }
+
+      rc = kb_new (&vhost_kb, prefs_get ("db_address"));
+      if (rc < 0 && rc != -2)
+        {
+          report_kb_failure (rc);
+          // TODO: handle this case
+          return;
+        }
+      else if (rc == -2)
+        {
+          sleep (KB_RETRY_DELAY);
+          continue;
+        }
+      kb_duplicate (vhost_kb, kb, "*");
+      kb_lnk_reset (kb);
+
+      current_vhost = vhosts->data;
+      plug_set_current_vhost (current_vhost);
+      proctitle_set ("openvas: testing %s (%s)", ip_str, current_vhost->value);
+
+      g_message ("%s: Scanning vhosts %s found in %s", globals->scan_id,
+                 current_vhost->value, current_vhost->source);
+
+      plugins_scheduler_next (sched, scheduler_phase_reset);
+      for (;;)
+        {
+          struct scheduler_plugin *plugin;
+          pid_t parent;
+
+          /* Check that our father is still alive */
+          parent = getppid ();
+          if (parent <= 1 || process_alive (parent) == 0)
+            {
+              pluginlaunch_stop ();
+              return;
+            }
+
+          if (scan_is_stopped ())
+            plugins_scheduler_stop (sched);
+
+          scheduler_phase_reset = 0;
+          plugin = plugins_scheduler_next (sched, scheduler_phase_reset);
+
+          if (plugin != NULL && plugin != PLUG_RUNNING)
+            {
+              int e;
+              char *oid, *name;
+
+            again:
+              oid = plugin->oid;
+              name = nvticache_get_filename (oid);
+
+              if (prefs_get_bool ("log_whole_attack"))
+                {
+                  g_message ("Launching %s (%s) against %s", name, oid,
+                             current_vhost->value);
+                }
+
+              e = launch_plugin (globals, plugin, ip, host_vhosts, vhost_kb,
+                                 main_kb);
+              if (e == ERR_CANT_FORK)
+                {
+                  if (forks_retry < MAX_FORK_RETRIES)
+                    {
+                      forks_retry++;
+                      g_message ("fork() failed - sleeping %d seconds (%s)",
+                                 forks_retry, strerror (errno));
+                      fork_sleep (forks_retry);
+                      goto again;
+                    }
+                  else
+                    {
+                      g_message ("fork() failed too many times - aborting");
+                      kb_delete (vhost_kb);
+                      break;
+                    }
+                }
+            }
+          else if (plugin == NULL)
+            break;
+          pluginlaunch_wait_for_free_process (kb);
+        }
+      g_debug ("%s: vhost %s finished", globals->scan_id, current_vhost->value);
+      kb_delete (vhost_kb);
+      vhosts = vhosts->next;
+      plugins_scheduler_free (sched);
+    }
+}
+
 /**
  * @brief Attack one host.
  */
@@ -458,6 +636,7 @@ attack_host (struct scan_globals *globals, struct in6_addr *ip, GSList *vhosts,
   /* Used for the status */
   int num_plugs, forks_retry = 0, all_plugs_launched = 0;
   char ip_str[INET6_ADDRSTRLEN];
+  int vhosts_attacked = 0;
 
   addr6_to_str (ip, ip_str);
   openvas_signal (SIGUSR2, set_check_new_vhosts_flag);
@@ -487,7 +666,14 @@ attack_host (struct scan_globals *globals, struct in6_addr *ip, GSList *vhosts,
 
       if (scan_is_stopped ())
         plugins_scheduler_stop (sched);
-      plugin = plugins_scheduler_next (sched);
+      plugin = plugins_scheduler_next (sched, 0);
+
+      if (current_category (0, 0) && vhosts_attacked == 0)
+        {
+          attack_vhosts (globals, ip, host_vhosts, kb, main_kb);
+          vhosts_attacked = 1;
+        }
+
       if (plugin != NULL && plugin != PLUG_RUNNING)
         {
           int e;
@@ -745,6 +931,7 @@ attack_start (struct attack_start_args *args)
       gvm_vhost_t *vhost =
         gvm_vhost_new (g_strdup (ip_str), g_strdup ("IP-address"));
       args->host->vhosts = g_slist_prepend (args->host->vhosts, vhost);
+      plug_set_current_vhost (vhost);
     }
   hostnames = vhosts_to_str (args->host->vhosts);
   if (hostnames)
