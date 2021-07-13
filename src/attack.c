@@ -48,7 +48,9 @@
 #include <gvm/base/proctitle.h>
 #include <gvm/boreas/alivedetection.h> /* for start_alive_detection() */
 #include <gvm/boreas/boreas_io.h>      /* for get_host_from_queue() */
-#include <gvm/util/nvticache.h>        /* for nvticache_t */
+#include <gvm/util/mqtt.h>
+#include <gvm/util/nvticache.h> /* for nvticache_t */
+#include <json-glib/json-glib.h>
 #include <pthread.h>
 #include <stdlib.h>   /* for exit() */
 #include <string.h>   /* for strlen() */
@@ -340,6 +342,89 @@ check_new_vhosts (void)
 }
 
 /**
+ * @brief Publish the necessary data to start a Table driven LSC scan.
+ *
+ * If the gather-package-list.nasl plugin was launched, and it generated
+ * a valid package list for a supported OS, the table driven LSC scan
+ * which is subscribed to the topic will perform a scan an publish the
+ * the results to be handle by the sensor/client.
+ */
+static void
+run_table_driven_lsc (const char *scan_id, kb_t kb, const char *ip_str,
+                      const char *hostname)
+{
+  JsonBuilder *builder;
+  JsonGenerator *gen;
+  JsonNode *root;
+  gchar *json_str;
+  gchar *package_list;
+  gchar *os_release;
+  gchar **module;
+  int err;
+
+  /* Get the OS release. TODO: have a list with supported OS. */
+  os_release = kb_item_get_str (kb, "ssh/login/release_notus");
+  if (NULL == os_release)
+    return;
+
+  /* Get the package list.*/
+  package_list = kb_item_get_str (kb, "ssh/login/rpms_notus");
+  if (NULL == package_list)
+    return;
+
+  /* Build the message in json format to be published. */
+  builder = json_builder_new ();
+
+  json_builder_begin_object (builder);
+
+  json_builder_set_member_name (builder, "scan_id");
+  builder = json_builder_add_string_value (builder, scan_id);
+
+  json_builder_set_member_name (builder, "host");
+  json_builder_add_string_value (builder, ip_str);
+
+  json_builder_set_member_name (builder, "hostname");
+  json_builder_add_string_value (builder, hostname);
+
+  /* Extract the OS name from the OS release.
+   * E.g. Debian 10 (Buster) -> Debian */
+  module = g_strsplit (os_release, " ", 0);
+  json_builder_set_member_name (builder, "module_name");
+  json_builder_add_string_value (builder, module[0]);
+
+  json_builder_set_member_name (builder, "os_release");
+  json_builder_add_string_value (builder, os_release);
+
+  json_builder_set_member_name (builder, "package_list");
+  json_builder_add_string_value (builder, package_list);
+
+  json_builder_end_object (builder);
+
+  gen = json_generator_new ();
+  root = json_builder_get_root (builder);
+  json_generator_set_root (gen, root);
+  json_str = json_generator_to_data (gen, NULL);
+
+  g_free (package_list);
+  g_free (os_release);
+  g_strfreev (module);
+  json_node_free (root);
+  g_object_unref (gen);
+  g_object_unref (builder);
+
+  err = 0;
+  if (json_str == NULL)
+    g_warning ("%s: Error while creating JSON.", __func__);
+  else
+    err = mqtt_publish ("notus/start", json_str);
+
+  if (err)
+    g_warning ("%s: Error publishing message for Notus.", __func__);
+
+  g_free (json_str);
+}
+
+/**
  * @brief Launches a nvt. Respects safe check preference (i.e. does not try
  * @brief destructive nvt if save_checks is yes).
  *
@@ -355,6 +440,7 @@ launch_plugin (struct scan_globals *globals, struct scheduler_plugin *plugin,
   int optimize = prefs_get_bool ("optimize_test"), pid, ret = 0;
   char *oid, *name, *error = NULL, ip_str[INET6_ADDRSTRLEN];
   nvti_t *nvti;
+  int nvti_cat;
 
   kb_lnk_reset (main_kb);
   addr6_to_str (ip, ip_str);
@@ -368,9 +454,11 @@ launch_plugin (struct scan_globals *globals, struct scheduler_plugin *plugin,
       plugin->running_state = PLUGIN_STATUS_DONE;
       goto finish_launch_plugin;
     }
+
+  nvti_cat = nvti_category (nvti);
   if (scan_is_stopped ())
     {
-      if (nvti_category (nvti) != ACT_END)
+      if (nvti_cat != ACT_END)
         {
           plugin->running_state = PLUGIN_STATUS_DONE;
           goto finish_launch_plugin;
@@ -383,8 +471,7 @@ launch_plugin (struct scan_globals *globals, struct scheduler_plugin *plugin,
         }
     }
 
-  if (prefs_get_bool ("safe_checks")
-      && !nvti_category_is_safe (nvti_category (nvti)))
+  if (prefs_get_bool ("safe_checks") && !nvti_category_is_safe (nvti_cat))
     {
       if (prefs_get_bool ("log_whole_attack"))
         {
@@ -555,6 +642,12 @@ attack_host (struct scan_globals *globals, struct in6_addr *ip, GSList *vhosts,
         /* 50 milliseconds. */
         usleep (50000);
       pluginlaunch_wait_for_free_process (main_kb, kb);
+    }
+
+  if (prefs_get_bool ("table_driven_lsc"))
+    {
+      g_message ("Running LSC via Notus for %s", ip_str);
+      run_table_driven_lsc (globals->scan_id, kb, ip_str, NULL);
     }
 
   pluginlaunch_wait (main_kb, kb);
