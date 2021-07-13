@@ -149,8 +149,7 @@ nasl_thread (struct script_infos *);
  */
 int
 nasl_plugin_launch (struct scan_globals *globals, struct in6_addr *ip,
-                    GSList *vhosts, kb_t kb, kb_t main_kb, mqtt_t *mqtt,
-                    const char *oid)
+                    GSList *vhosts, kb_t kb, kb_t main_kb, const char *oid)
 {
   int module;
   struct script_infos infos;
@@ -161,7 +160,6 @@ nasl_plugin_launch (struct scan_globals *globals, struct in6_addr *ip,
   infos.globals = globals;
   infos.key = kb;
   infos.results = main_kb;
-  infos.mqtt = mqtt;
   infos.oid = (char *) oid;
   infos.name = nvticache_get_src (oid);
 

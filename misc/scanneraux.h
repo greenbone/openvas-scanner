@@ -28,7 +28,6 @@
 #include <glib.h>
 #include <gvm/base/nvti.h>
 #include <gvm/util/kb.h>
-#include <gvm/util/mqtt.h>
 
 struct scan_globals
 {
@@ -44,7 +43,6 @@ struct script_infos
   struct scan_globals *globals;
   kb_t key;
   kb_t results;
-  mqtt_t *mqtt;
   nvti_t *nvti;
   char *oid;
   char *name;
