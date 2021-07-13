@@ -31,6 +31,7 @@
 #include <gvm/base/hosts.h>      // for g_vhost_t
 #include <gvm/base/networking.h> // for port_protocol_t
 #include <gvm/base/prefs.h>      // for prefs_get_bool
+#include <gvm/util/mqtt.h>       // for mqtt_reset
 #include <gvm/util/nvticache.h>  // for nvticache_initialized
 #include <json-glib/json-glib.h>
 #include <stdio.h>    // for snprintf
@@ -909,6 +910,7 @@ plug_fork_child (kb_t kb)
   if ((pid = fork ()) == 0)
     {
       sig_term (_exit);
+      mqtt_reset ();
       kb_lnk_reset (kb);
       nvticache_reset ();
       srand48 (getpid () + getppid () + time (NULL));

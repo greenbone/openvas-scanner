@@ -31,6 +31,7 @@
 #include <errno.h>            /* for errno() */
 #include <glib.h>             /* for g_error */
 #include <gvm/base/logging.h> /* for gvm_log_lock/unlock() */
+#include <gvm/util/mqtt.h>    /* for mqtt_reset() */
 #include <setjmp.h>
 #include <signal.h>   /* for kill() */
 #include <stdlib.h>   /* for exit() */
@@ -106,6 +107,7 @@ create_process (process_func_t function, void *argument)
 
   if (pid == 0)
     {
+      mqtt_reset ();
       init_child_signal_handlers ();
       init_sentry ();
       srand48 (getpid () + getppid () + (long) time (NULL));
