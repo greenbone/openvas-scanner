@@ -16,7 +16,7 @@ jobs:
       actions: read
       contents: read
       security-events: write
-    container: greenbone/build-env-openvas-scanner-master-debian-buster-gcc-core
+    container: greenbone/openvas-scanner-middleware-clang-testing
 
     strategy:
       fail-fast: false
