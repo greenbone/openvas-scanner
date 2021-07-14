@@ -512,7 +512,7 @@ openvas (int argc, char *argv[])
       exit (0);
     }
 
-  /* --version */
+  /* Handle --version */
   if (display_version)
     {
       printf ("OpenVAS %s\n", OPENVAS_VERSION);
