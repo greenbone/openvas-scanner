@@ -40,6 +40,7 @@
 #include <gvm/base/nvti.h>
 #include <gvm/base/prefs.h> /* for prefs_get */
 #include <gvm/util/kb.h>    /* for kb_new */
+#include <gvm/util/mqtt.h>  /* for mqtt_init */
 #include <libssh/libssh.h>  /* for ssh_version */
 #include <signal.h>         /* for SIGINT */
 #include <stdlib.h>         /* for exit */
@@ -160,6 +161,7 @@ main (int argc, char **argv)
   gvm_host_t *host;
   static gchar *target = NULL;
   gchar *default_target = "127.0.0.1";
+  const gchar *mqtt_server_uri;
   int mode = 0, err = 0, pos;
   extern int global_nasl_debug;
   GSList *unresolved;
@@ -344,6 +346,20 @@ main (int argc, char **argv)
   if (with_safe_checks)
     prefs_set ("safe_checks", "yes");
 
+  /**
+   * Init MQTT communication
+   *
+   * TODO: Result sending via MQTT does only work with -B option. Fix that.
+   */
+  mqtt_server_uri = prefs_get ("mqtt_server_uri");
+  if (mqtt_server_uri)
+    {
+      if ((mqtt_init (mqtt_server_uri)) != 0)
+        g_message ("%s: INIT MQTT: FAIL", __func__);
+      else
+        g_message ("%s:INIT MQTT: SUCCESS", __func__);
+    }
+
   pos = 0; // Append the item on the right side of the list
   while ((host = gvm_hosts_next (hosts)))
     {
@@ -405,6 +421,7 @@ main (int argc, char **argv)
 
           if ((pid = fork ()) == 0)
             {
+              mqtt_reset ();
               if (exec_nasl_script (script_infos, mode) < 0)
                 exit (1);
               else

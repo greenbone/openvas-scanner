@@ -54,6 +54,7 @@
 #include <gvm/base/proctitle.h> /* for proctitle_set */
 #include <gvm/base/version.h>   /* for gvm_libs_version */
 #include <gvm/util/kb.h>        /* for KB_PATH_DEFAULT */
+#include <gvm/util/mqtt.h>      /* for mqtt_init */
 #include <gvm/util/nvticache.h> /* nvticache_free */
 #include <gvm/util/uuidutils.h> /* gvm_uuid_make */
 #include <netdb.h>              /* for addrinfo */
@@ -462,6 +463,7 @@ int
 openvas (int argc, char *argv[])
 {
   int ret;
+  const char *mqtt_server_uri;
 
   proctitle_init (argc, argv);
   gcrypt_init ();
@@ -558,6 +560,16 @@ openvas (int argc, char *argv[])
 
   if (init_openvas (config_file))
     return 1;
+
+  /* Init MQTT communication */
+  mqtt_server_uri = prefs_get ("mqtt_server_uri");
+  if (mqtt_server_uri)
+    {
+      if ((mqtt_init (mqtt_server_uri)) != 0)
+        g_message ("%s: INIT MQTT: FAIL", __func__);
+      else
+        g_message ("%s: INIT MQTT: SUCCESS", __func__);
+    }
 
   if (prefs_get ("vendor_version") != NULL)
     vendor_version_set (prefs_get ("vendor_version"));
