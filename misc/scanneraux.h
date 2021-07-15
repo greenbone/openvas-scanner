@@ -44,7 +44,6 @@ struct script_infos
   struct scan_globals *globals;
   kb_t key;
   kb_t results;
-  mqtt_t *mqtt;
   nvti_t *nvti;
   char *oid;
   char *name;

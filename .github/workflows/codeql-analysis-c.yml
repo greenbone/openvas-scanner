@@ -16,7 +16,7 @@ jobs:
       actions: read
       contents: read
       security-events: write
-    container: greenbone/build-env-openvas-scanner-master-debian-buster-gcc-core
+    container: greenbone/openvas-scanner-middleware-clang-testing
 
     strategy:
       fail-fast: false
@@ -32,33 +32,6 @@ jobs:
       with:
         languages: ${{ matrix.language }}
       # build between init and analyze ...
-    - name: Find openvas-scanner reference branch
-      run: |
-        if [ -n "$GITHUB_BASE_REF" ];                             \
-        then echo "OPENVAS_REF=$GITHUB_BASE_REF" >> $GITHUB_ENV;  \
-        else echo "OPENVAS_REF=$GITHUB_REF" >> $GITHUB_ENV;       \
-        fi
-    - name: Select gvm-libs branch
-      run: |
-        if [ $OPENVAS_REF = "master" ];                           \
-          then GVM_LIBS_REF="master";                             \
-          else GVM_LIBS_REF=$(echo "$OPENVAS_REF"                 \
-                              | sed 's/refs\/.*\///g'             \
-                              | sed 's/openvas-/gvm-libs-/g' -);  \
-          fi;                                                     \
-        echo "GVM_LIBS_REF=$GVM_LIBS_REF" >> $GITHUB_ENV
-    - name: Check out gvm-libs
-      uses: actions/checkout@v2
-      with:
-        repository: greenbone/gvm-libs
-        ref: ${{ env.GVM_LIBS_REF }}
-        path: gvm-libs
-    - name: Configure and compile gvm-libs (${{ env.BUILD_TYPE }})
-      working-directory: gvm-libs
-      run: |
-        mkdir build && cd build/ &&          \
-        cmake -DCMAKE_BUILD_TYPE=Debug .. && \
-        make install
     - name: Configure and Compile openvas-scanner
       run: |
         mkdir build && cd build/ && cmake \
