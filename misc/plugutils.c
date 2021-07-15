@@ -335,6 +335,49 @@ plug_get_host_ip_str (struct script_infos *desc)
 }
 
 /**
+ * @brief Return string representation of the given msg_t.
+ *
+ * @param msg msg_t to transform
+ *
+ * @return string representation of the given msg_t if successful, else NULL.
+ */
+static const char *
+msg_type_to_str (msg_t type)
+{
+  gchar *type_str;
+
+  switch (type)
+    {
+    case ERRMSG:
+      type_str = "ERRMSG";
+      break;
+    case HOST_START:
+      type_str = "HOST_START";
+      break;
+    case HOST_END:
+      type_str = "HOST_END";
+      break;
+    case LOG:
+      type_str = "LOG";
+      break;
+    case HOST_DETAIL:
+      type_str = "HOST_DETAIL";
+      break;
+    case ALARM:
+      type_str = "ALARM";
+      break;
+    case DEADHOST:
+      type_str = "DEADHOST";
+      break;
+    default:
+      return NULL;
+      break;
+    }
+
+  return type_str;
+}
+
+/**
  * @brief Post a security message (e.g. LOG, NOTE, WARNING ...).
  *
  * @param oid   The oid of the NVT
@@ -342,12 +385,12 @@ plug_get_host_ip_str (struct script_infos *desc)
  * @param port  Port number related to the issue.
  * @param proto Protocol related to the issue (tcp or udp).
  * @param action The actual result text
- * @param what   The type, like "LOG".
+ * @param msg_type   The message type.
  * @param uri   Location like file path or webservice URL.
  */
-void
+static void
 proto_post_wrapped (const char *oid, struct script_infos *desc, int port,
-                    const char *proto, const char *action, const char *what,
+                    const char *proto, const char *action, msg_t msg_type,
                     const char *uri)
 {
   const char *hostname = "";
@@ -376,9 +419,9 @@ proto_post_wrapped (const char *oid, struct script_infos *desc, int port,
   else if (desc->vhosts)
     hostname = ((gvm_vhost_t *) desc->vhosts->data)->value;
   addr6_to_str (plug_get_host_ip (desc), ip_str);
-  buffer = g_strdup_printf ("%s|||%s|||%s|||%s/%s|||%s|||%s|||%s", what, ip_str,
-                            hostname ?: " ", port_s, proto, oid,
-                            action_str->str, uri ?: "");
+  buffer = g_strdup_printf ("%s|||%s|||%s|||%s/%s|||%s|||%s|||%s",
+                            msg_type_to_str (msg_type), ip_str, hostname ?: " ",
+                            port_s, proto, oid, action_str->str, uri ?: "");
   /* Convert to UTF-8 before sending to Manager. */
   data = g_convert (buffer, -1, "UTF-8", "ISO_8859-1", NULL, &length, NULL);
   kb = plug_get_results_kb (desc);
@@ -392,7 +435,7 @@ void
 proto_post_alarm (const char *oid, struct script_infos *desc, int port,
                   const char *proto, const char *action, const char *uri)
 {
-  proto_post_wrapped (oid, desc, port, proto, action, "ALARM", uri);
+  proto_post_wrapped (oid, desc, port, proto, action, ALARM, uri);
 }
 
 void
@@ -409,7 +452,7 @@ void
 proto_post_log (const char *oid, struct script_infos *desc, int port,
                 const char *proto, const char *action, const char *uri)
 {
-  proto_post_wrapped (oid, desc, port, proto, action, "LOG", uri);
+  proto_post_wrapped (oid, desc, port, proto, action, LOG, uri);
 }
 
 /**
@@ -436,7 +479,7 @@ void
 proto_post_error (const char *oid, struct script_infos *desc, int port,
                   const char *proto, const char *action, const char *uri)
 {
-  proto_post_wrapped (oid, desc, port, proto, action, "ERRMSG", uri);
+  proto_post_wrapped (oid, desc, port, proto, action, ERRMSG, uri);
 }
 
 void
