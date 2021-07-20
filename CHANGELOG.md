@@ -14,6 +14,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 - Add support for non-interactive shell to nasl_ssh_shell_open().
   [#744](https://github.com/greenbone/openvas/pull/744)
   [#757](https://github.com/greenbone/openvas/pull/757)
+- Add message type validation for proto_post_wrapped. [#805](https://github.com/greenbone/openvas/pull/805)
 
 ### Changed
 - function script_bugtraq_id getting skipped, linter warns. [#724](https://github.com/greenbone/openvas/pull/724)
