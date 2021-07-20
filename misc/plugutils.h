@@ -82,6 +82,10 @@ plug_get_port_transport (struct script_infos *, int);
 struct script_infos *
 plug_create_from_nvti_and_prefs (const nvti_t *);
 
+gchar *
+make_table_driven_lsc_info_json_str (const char *, const char *, const char *,
+                                     const char *, const char *, const char *);
+
 /*
  * Reporting functions
  */

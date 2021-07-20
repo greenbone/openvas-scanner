@@ -28,6 +28,7 @@
 #include "../misc/network.h"        /* for auth_printf */
 #include "../misc/nvt_categories.h" /* for ACT_INIT */
 #include "../misc/pcap_openvas.h"   /* for v6_is_local_ip */
+#include "../misc/plugutils.h"      /*for make_table_driven_lsc_info_json_str */
 #include "../nasl/nasl_debug.h"     /* for nasl_*_filename */
 #include "hosts.h"
 #include "pluginlaunch.h"
@@ -48,7 +49,8 @@
 #include <gvm/base/proctitle.h>
 #include <gvm/boreas/alivedetection.h> /* for start_alive_detection() */
 #include <gvm/boreas/boreas_io.h>      /* for get_host_from_queue() */
-#include <gvm/util/nvticache.h>        /* for nvticache_t */
+#include <gvm/util/mqtt.h>
+#include <gvm/util/nvticache.h> /* for nvticache_t */
 #include <pthread.h>
 #include <stdlib.h>   /* for exit() */
 #include <string.h>   /* for strlen() */
@@ -340,6 +342,62 @@ check_new_vhosts (void)
 }
 
 /**
+ * @brief Publish the necessary data to start a Table driven LSC scan.
+ *
+ * If the gather-package-list.nasl plugin was launched, and it generated
+ * a valid package list for a supported OS, the table driven LSC scan
+ * which is subscribed to the topic will perform a scan an publish the
+ * the results to be handle by the sensor/client.
+ *
+ * @param scan_id     Scan Id.
+ * @param kb
+ * @param ip_str      IP string of host.
+ * @param hostname    Name of host.
+ *
+ * @return 0 on success, less than 0 on error.
+ */
+static int
+run_table_driven_lsc (const char *scan_id, kb_t kb, const char *ip_str,
+                      const char *hostname)
+{
+  gchar *json_str;
+  gchar *package_list;
+  gchar *os_release;
+  gchar **module;
+  int err = 0;
+
+  /* Get the OS release. TODO: have a list with supported OS. */
+  os_release = kb_item_get_str (kb, "ssh/login/release_notus");
+  if (NULL == os_release)
+    return err;
+
+  /* Get the package list. Currently only rpm support*/
+  package_list = kb_item_get_str (kb, "ssh/login/rpms_notus");
+  if (NULL == package_list)
+    return err;
+
+  /* Extract the OS name from the OS release.
+   * E.g. Debian 10 (Buster) -> Debian */
+  module = g_strsplit (os_release, " ", 0);
+
+  json_str = make_table_driven_lsc_info_json_str (
+    scan_id, ip_str, hostname, module[0], os_release, package_list);
+  g_free (package_list);
+  g_free (os_release);
+  g_strfreev (module);
+
+  if (json_str == NULL)
+    return -1;
+
+  err = mqtt_publish ("notus/start", json_str);
+  if (err != 0)
+    g_warning ("%s: Error publishing message for Notus.", __func__);
+
+  g_free (json_str);
+  return err;
+}
+
+/**
  * @brief Launches a nvt. Respects safe check preference (i.e. does not try
  * @brief destructive nvt if save_checks is yes).
  *
@@ -555,6 +613,12 @@ attack_host (struct scan_globals *globals, struct in6_addr *ip, GSList *vhosts,
         /* 50 milliseconds. */
         usleep (50000);
       pluginlaunch_wait_for_free_process (main_kb, kb);
+    }
+
+  if (prefs_get_bool ("table_driven_lsc"))
+    {
+      g_message ("Running LSC via Notus for %s", ip_str);
+      run_table_driven_lsc (globals->scan_id, kb, ip_str, NULL);
     }
 
   pluginlaunch_wait (main_kb, kb);

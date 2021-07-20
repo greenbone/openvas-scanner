@@ -337,6 +337,75 @@ plug_get_host_ip_str (struct script_infos *desc)
 }
 
 /**
+ * @brief Build a json object with data necessary to start a table drive LSC
+ *
+ * JSON result consists of scan_id, message type, host ip,  hostname, port
+ * together with proto, OID, result message and uri.
+ *
+ * @param scan_id     Scan Id.
+ * @param kb
+ * @param ip_str      IP string of host.
+ * @param hostname    Name of host.
+ * @param module      Module to be used. The OS base name or package manager
+ * name
+ * @param os_release  OS release
+ * @param package_list The installed package list in the target system to be
+ * evaluated
+ *
+ * @return JSON string on success. Must be freed by caller. NULL on error.
+ */
+gchar *
+make_table_driven_lsc_info_json_str (const char *scan_id, const char *ip_str,
+                                     const char *hostname, const char *module,
+                                     const char *os_release,
+                                     const char *package_list)
+{
+  JsonBuilder *builder;
+  JsonGenerator *gen;
+  JsonNode *root;
+  gchar *json_str;
+
+  /* Build the message in json format to be published. */
+  builder = json_builder_new ();
+
+  json_builder_begin_object (builder);
+
+  json_builder_set_member_name (builder, "scan_id");
+  builder = json_builder_add_string_value (builder, scan_id);
+
+  json_builder_set_member_name (builder, "host");
+  json_builder_add_string_value (builder, ip_str);
+
+  json_builder_set_member_name (builder, "hostname");
+  json_builder_add_string_value (builder, hostname);
+
+  json_builder_set_member_name (builder, "module_name");
+  json_builder_add_string_value (builder, module);
+
+  json_builder_set_member_name (builder, "os_release");
+  json_builder_add_string_value (builder, os_release);
+
+  json_builder_set_member_name (builder, "package_list");
+  json_builder_add_string_value (builder, package_list);
+
+  json_builder_end_object (builder);
+
+  gen = json_generator_new ();
+  root = json_builder_get_root (builder);
+  json_generator_set_root (gen, root);
+  json_str = json_generator_to_data (gen, NULL);
+
+  json_node_free (root);
+  g_object_unref (gen);
+  g_object_unref (builder);
+
+  if (json_str == NULL)
+    g_warning ("%s: Error while creating JSON.", __func__);
+
+  return json_str;
+}
+
+/**
  * @brief Build a json representation of a result.
  *
  * JSON result consists of scan_id, message type, host ip,  hostname, port
