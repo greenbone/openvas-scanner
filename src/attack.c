@@ -64,14 +64,6 @@
  */
 #define KB_RETRY_DELAY 3 /*In sec*/
 /**
- * It switches progress bar styles.
- * If set to 1, time oriented style and it take into account only alive host.
- * If set to 0, it not reflect progress adequately in case of dead host,
- * which will take into account with 0% processed, producing jumps in the
- * process bar.
- */
-#define PROGRESS_BAR_STYLE 1
-/**
  * Define value to be sent to the client for invalid target list.
  **/
 #define INVALID_TARGET_LIST "-1"
@@ -557,10 +549,9 @@ attack_host (struct scan_globals *globals, struct in6_addr *ip, GSList *vhosts,
                     "<name>Host dead</name><value>1</value><source>"
                     "<description/><type/><name/></source></detail></host>",
                     ip_str);
-#if (PROGRESS_BAR_STYLE == 1)
-                  comm_send_status_host_dead (main_kb, ip_str);
-#endif
                   kb_item_push_str (main_kb, "internal/results", buffer);
+
+                  comm_send_status_host_dead (main_kb, ip_str);
                   goto host_died;
                 }
               else if (e == ERR_CANT_FORK)
