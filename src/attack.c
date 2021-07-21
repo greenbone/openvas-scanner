@@ -156,22 +156,69 @@ set_scan_status (char *status)
 }
 
 /**
- * @brief Sends the status of a host's scan.
+ * @brief Send status to the client that the host is dead
+ *
+ * Originally the progress status is of the format
+ * "current_host/launched/total". Current host is the ip_str of the current host
+ * which is vulnerability tested. Launched is the number of plguins(VTs) which
+ * got already started. Total is the total number of plugins which will be
+ * started for the current host. But here we use the format "current_host/0/-1"
+ * for implicit singalling that the host ist dead.
+ *
+ * @param main_kb Kb to use
+ * @param ip_str str representation of host ip
+ *
+ * @return 0 on success, -1 on failure.
  */
 static int
-comm_send_status (kb_t main_kb, char *hostname, int curr, int max)
+comm_send_status_host_dead (kb_t main_kb, char *ip_str)
 {
-  char buffer[2048];
+  // implicit status code. Originally launched/total plugins
+  const gchar *host_dead_status_code = "0/-1";
+  const gchar *topic = "internal/status";
+  gchar *status;
 
-  if (!hostname || !main_kb)
+  // exact same restriction as comm_send_status() just to make it consistent
+  if (strlen (ip_str) > 1998)
+    return -1;
+  status = g_strjoin ("/", ip_str, host_dead_status_code, NULL);
+  kb_item_push_str (main_kb, topic, status);
+  g_free (status);
+
+  return 0;
+}
+
+/**
+ * @brief Sends the progress status of of a host's scan.
+ *
+ * Status format "current_host/launched/total".
+ * Current host is the ip_str of the current host which is vulnerability tested.
+ * Launched is the number of plguins(VTs) which got already started.
+ * Total is the total number of plugins which will be started for the current
+ * host.
+ *
+ * @param main_kb Kb to use.
+ * @param ip_str str representation of host ip
+ * @param curr  Currently launched plugins (VTs) for the host
+ * @param max   Maximum number of plugins which will be launched for the host
+ *
+ * @return 0 on success, -1 on error.
+ */
+static int
+comm_send_status (kb_t main_kb, char *ip_str, int curr, int max)
+{
+  char status_buf[2048];
+
+  if (!ip_str || !main_kb)
     return -1;
 
-  if (strlen (hostname) > (sizeof (buffer) - 50))
+  if (strlen (ip_str) > (sizeof (status_buf) - 50))
     return -1;
 
-  snprintf (buffer, sizeof (buffer), "%s/%d/%d", hostname, curr, max);
-  kb_item_push_str (main_kb, "internal/status", buffer);
+  snprintf (status_buf, sizeof (status_buf), "%s/%d/%d", ip_str, curr, max);
+  kb_item_push_str (main_kb, "internal/status", status_buf);
   kb_lnk_reset (main_kb);
+
   return 0;
 }
 
@@ -511,10 +558,7 @@ attack_host (struct scan_globals *globals, struct in6_addr *ip, GSList *vhosts,
                     "<description/><type/><name/></source></detail></host>",
                     ip_str);
 #if (PROGRESS_BAR_STYLE == 1)
-                  /* In case of a dead host, it sends max_ports = -1 to the
-                     manager. The host will not be taken into account to
-                     calculate the scan progress. */
-                  comm_send_status (main_kb, ip_str, 0, -1);
+                  comm_send_status_host_dead (main_kb, ip_str);
 #endif
                   kb_item_push_str (main_kb, "internal/results", buffer);
                   goto host_died;
