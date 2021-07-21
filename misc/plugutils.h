@@ -90,6 +90,18 @@ make_table_driven_lsc_info_json_str (const char *, const char *, const char *,
  * Reporting functions
  */
 
+typedef enum
+{
+  ERRMSG,
+  HOST_START,
+  HOST_END,
+  LOG,
+  HOST_DETAIL,
+  ALARM,
+  DEADHOST,
+  HOSTS_COUNT
+} msg_t;
+
 void
 proto_post_alarm (const char *, struct script_infos *, int, const char *,
                   const char *, const char *);
