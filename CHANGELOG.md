@@ -22,6 +22,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
   Reintroduction after Rebase with
   [#788](https://github.com/greenbone/openvas/pull/788)
 - Add message type validation for proto_post_wrapped. [#805](https://github.com/greenbone/openvas/pull/805)
+- Add nvti info to openvas results. [#809](https://github.com/greenbone/openvas/pull/809)
 
 ### Changed
 - function script_bugtraq_id getting skipped, linter warns. [#724](https://github.com/greenbone/openvas/pull/724)
