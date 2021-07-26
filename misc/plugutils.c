@@ -26,14 +26,15 @@
 #include "plugutils.h"
 
 #include "network.h" // for OPENVAS_ENCAPS_IP
+#include "nvt_qod.h" // for qod_str2val
 
 #include <errno.h>               // for errno
 #include <gvm/base/cvss.h>       // for get_cvss_score_from_base_metrics
 #include <gvm/base/hosts.h>      // for g_vhost_t
 #include <gvm/base/networking.h> // for port_protocol_t
 #include <gvm/base/prefs.h>      // for prefs_get_bool
-#include <gvm/util/mqtt.h>      // for mqtt_reset
-#include <gvm/util/nvticache.h> // for nvticache_initialized
+#include <gvm/util/mqtt.h>       // for mqtt_reset
+#include <gvm/util/nvticache.h>  // for nvticache_initialized
 #include <json-glib/json-glib.h>
 #include <stdio.h>    // for snprintf
 #include <stdlib.h>   // for exit
@@ -434,6 +435,35 @@ get_severity_score_from_vt (nvti_t *nvti)
 }
 
 /**
+ * @brief Get the nvti's QoD and return the value as
+ * string.
+ *
+ * @param[in] nvti The nvti where to get the QoD from.
+ *
+ * @return string representing an integer value, NULL on error.
+ *  Must be free()'d by the caller.
+ */
+static gchar *
+get_qod_from_vt (nvti_t *nvti)
+{
+  int qod;
+  gchar *qod_str, *qod_type;
+
+  qod_str = NULL;
+  qod_type = nvti_get_tag (nvti, "qod_type");
+  if (qod_type)
+    {
+      qod = qod_type2val (qod_type);
+      qod_str = g_strdup_printf ("%i", qod);
+      g_free (qod_type);
+      return qod_str;
+    }
+
+  qod_str = nvti_get_tag (nvti, "qod");
+  return qod_str;
+}
+
+/**
  * @brief Build a json representation of the part related to nvti information
  * of a result.
  *
@@ -449,6 +479,7 @@ add_nvti_info_into_json_builder (const char *oid, JsonBuilder *builder)
 {
   nvti_t *nvti;
   gchar *score_str;
+  gchar *qod;
 
   nvti = nvticache_get_nvt (oid);
 
@@ -461,8 +492,10 @@ add_nvti_info_into_json_builder (const char *oid, JsonBuilder *builder)
   json_builder_set_member_name (builder, "name");
   builder = json_builder_add_string_value (builder, nvti_name (nvti));
 
+  qod = get_qod_from_vt (nvti);
   json_builder_set_member_name (builder, "qod");
-  builder = json_builder_add_string_value (builder, nvti_qod (nvti));
+  builder = json_builder_add_string_value (builder, qod);
+  g_free (qod);
 
   score_str = get_severity_score_from_vt (nvti);
   json_builder_set_member_name (builder, "severity");
