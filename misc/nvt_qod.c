@@ -1,5 +1,4 @@
-/* Portions Copyright (C) 2009-2021 Greenbone Networks GmbH
- * Based on work Copyright (C) 1998 - 2007 Tenable Network Security, Inc.
+/* Copyright (C) 2009-2021 Greenbone Networks GmbH
  *
  * SPDX-License-Identifier: GPL-2.0-or-later
  *
@@ -54,19 +53,17 @@ static const struct {
 };
 
 /**
- * @brief Converts a qod_type string into it value
+ * @brief Converts a qod_type string into int value
  *
  * @param[in] qod_type String containing the qod type
  *
  * @return The value corresponding to the given qod type. Defaults to 70 if
- * the given type does not exist. -1 if a  null pointer was given.
+ * the given type does not exist. -1 if a null pointer was given.
  */
 int
 qod_type2val (const char *qod_type)
 {
   unsigned int i;
-
-  g_message ("GGGGG %s",qod_type);
 
   if (!qod_type)
     return -1;

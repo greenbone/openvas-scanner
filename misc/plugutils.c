@@ -438,10 +438,14 @@ get_severity_score_from_vt (nvti_t *nvti)
  * @brief Get the nvti's QoD and return the value as
  * string.
  *
+ * We check first for qod_type in the nvti's tag list, which has
+ * priority. If it is not present. we check for 'qod' tag.
+ *
  * @param[in] nvti The nvti where to get the QoD from.
  *
- * @return string representing an integer value, NULL on error.
- *  Must be free()'d by the caller.
+ * @return string representing an integer value, NULL if no
+ * QoD was set for the nvti, or on error.
+ * Must be free()'d by the caller.
  */
 static gchar *
 get_qod_from_vt (nvti_t *nvti)
@@ -473,9 +477,10 @@ get_qod_from_vt (nvti_t *nvti)
  * @param[in]  oid     The oid of the NVT.
  * @param[out] builder Json builder to add data to.
  *
+ * @return Json builder, NULL on error.
  */
-static void
-add_nvti_info_into_json_builder (const char *oid, JsonBuilder *builder)
+static JsonBuilder *
+add_nvti_info_into_json_builder (JsonBuilder *builder, const char *oid)
 {
   nvti_t *nvti;
   gchar *score_str;
@@ -486,7 +491,7 @@ add_nvti_info_into_json_builder (const char *oid, JsonBuilder *builder)
   if (!nvti)
     {
       g_warning ("%s: Plugin '%s' missing from nvticache.", __func__, oid);
-      return;
+      return NULL;
     }
 
   json_builder_set_member_name (builder, "name");
@@ -503,6 +508,8 @@ add_nvti_info_into_json_builder (const char *oid, JsonBuilder *builder)
   g_free (score_str);
 
   nvti_free (nvti);
+
+  return builder;
 }
 
 /**
@@ -559,7 +566,7 @@ make_result_json_str (const gchar *scan_id, const gchar *type,
   json_builder_add_string_value (builder, oid);
 
   if (oid != NULL && oid[0] != '\0')
-    add_nvti_info_into_json_builder (oid, builder);
+    add_nvti_info_into_json_builder (builder, oid);
 
   json_builder_set_member_name (builder, "value");
   json_builder_add_string_value (builder, action_str);

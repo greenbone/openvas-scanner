@@ -1,5 +1,4 @@
-/* Portions Copyright (C) 2009-2021 Greenbone Networks GmbH
- * Based on work Copyright (C) 1998 - 2007 Tenable Network Security, Inc.
+/* Copyright (C) 2009-2021 Greenbone Networks GmbH
  *
  * SPDX-License-Identifier: GPL-2.0-or-later
  *
