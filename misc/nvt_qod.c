@@ -18,12 +18,13 @@
  */
 
 /**
- * @file 
+ * @file
  * @brief Converts a qod_type string into a QoD value.
  *
  */
 
 #include "nvt_qod.h"
+
 #include <glib.h>
 
 #undef G_LOG_DOMAIN
@@ -32,25 +33,25 @@
  */
 #define G_LOG_DOMAIN "lib  misc"
 
-static const struct {
+static const struct
+{
   qod_val val;
   const char *type;
 } qod_types[] = {
-                 {EXPLOIT, "exploit"},
-                 {REMOTE_VUL, "remote_vul"},
-                 {REMOTE_APP, "remote_app"},
-                 {PACKAGE, "package"},
-                 {REGISTRY, "registry"},
-                 {REMOTE_ACTIVE, "remote_active"},
-                 {REMOTE_BANNER, "remote_banner"},
-                 {EXECUTABLE_VERSION, "executable_version"},
-                 {REMOTE_ANALYSIS, "remote_analysis"},
-                 {REMOTE_PROBE, "remote_probe"},
-                 {REMOTE_BANNER_UNRELIABLE, "remote_banner_unreliable"},
-                 {EXECUTABLE_VERSION_UNRELIABLE, "executable_version_unreliable"},
-                 {GENERAL_NOTE, "general_note"},
-                 {DEFAULT, "default"}
-};
+  {EXPLOIT, "exploit"},
+  {REMOTE_VUL, "remote_vul"},
+  {REMOTE_APP, "remote_app"},
+  {PACKAGE, "package"},
+  {REGISTRY, "registry"},
+  {REMOTE_ACTIVE, "remote_active"},
+  {REMOTE_BANNER, "remote_banner"},
+  {EXECUTABLE_VERSION, "executable_version"},
+  {REMOTE_ANALYSIS, "remote_analysis"},
+  {REMOTE_PROBE, "remote_probe"},
+  {REMOTE_BANNER_UNRELIABLE, "remote_banner_unreliable"},
+  {EXECUTABLE_VERSION_UNRELIABLE, "executable_version_unreliable"},
+  {GENERAL_NOTE, "general_note"},
+  {DEFAULT, "default"}};
 
 /**
  * @brief Converts a qod_type string into int value
@@ -67,10 +68,10 @@ qod_type2val (const char *qod_type)
 
   if (!qod_type)
     return -1;
-  
+
   for (i = 0; i < sizeof (qod_types) / sizeof (qod_types[i]); i++)
     {
-      if (!g_strcmp0(qod_types[i].type, qod_type))
+      if (!g_strcmp0 (qod_types[i].type, qod_type))
         return qod_types[i].val;
     }
   return DEFAULT;
