@@ -85,7 +85,7 @@ host_set_time (kb_t kb, char *ip, char *type)
   len = strlen (timestr);
   if (timestr[len - 1] == '\n')
     timestr[len - 1] = '\0';
-
+  /** TODO: send timestr msg via @mqtt if needed **/
   snprintf (log_msg, sizeof (log_msg), "%s|||%s||||||||| |||%s", type, ip,
             timestr);
   g_free (timestr);

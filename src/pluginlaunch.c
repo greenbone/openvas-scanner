@@ -148,7 +148,7 @@ update_running_processes (kb_t main_kb, kb_t kb)
                   if (log_whole)
                     g_message ("%s (pid %d) is slow to finish - killing it",
                                oid, processes[i].pid);
-
+                  /** TODO: send ERRMSG via @mqtt if needed **/
                   g_snprintf (msg, sizeof (msg),
                               "ERRMSG|||%s||| |||general/tcp|||%s|||"
                               "NVT timed out after %d seconds.",
@@ -162,6 +162,7 @@ update_running_processes (kb_t main_kb, kb_t kb)
                          if it is dead. */
                       if (check_host_still_alive (kb, hostname) == 0)
                         {
+                          /** TODO: send ERRMSG via @mqtt if needed **/
                           g_snprintf (msg, sizeof (msg),
                                       "ERRMSG|||%s||| |||general/tcp||| |||"
                                       "Host has been marked as dead. Too many "

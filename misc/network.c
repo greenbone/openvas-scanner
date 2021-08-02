@@ -1817,12 +1817,28 @@ open_sock_tcp (struct script_infos *args, unsigned int port, int timeout)
               kb_item_set_int (kb, buffer, 0);
 
               addr6_to_str (args->ip, ip_str);
-              snprintf (
-                buffer, sizeof (buffer),
-                "ERRMSG|||%s|||%s|||%d/tcp||| |||Too many timeouts. The port"
-                " was set to closed.",
-                ip_str, plug_current_vhost () ?: " ", port);
-              kb_item_push_str (args->results, "internal/results", buffer);
+              if (mqtt_is_initialized ())
+                {
+                  const gchar *result_json;
+                  gchar port_s[16] = "general";
+                  if (port > 0)
+                    snprintf (port_s, sizeof (port_s), "%d", port);
+                  result_json = make_result_json_str (
+                    args->globals->scan_id, "ERRMSG", ip_str,
+                    plug_current_vhost () ?: " ", port_s, "tcp", NULL,
+                    "Too many timeouts. The port was set to closed.", NULL);
+                  mqtt_publish ("internal/results", result_json);
+                  g_free (result_json);
+                }
+              else
+                {
+                  snprintf (buffer, sizeof (buffer),
+                            "ERRMSG|||%s|||%s|||%d/tcp||| |||Too many "
+                            "timeouts. The port"
+                            " was set to closed.",
+                            ip_str, plug_current_vhost () ?: " ", port);
+                  kb_item_push_str (args->results, "internal/results", buffer);
+                }
             }
         }
       g_free (ip_str);

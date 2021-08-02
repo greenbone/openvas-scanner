@@ -503,7 +503,7 @@ add_nvti_info_into_json_builder (JsonBuilder *builder, const char *oid)
   g_free (qod);
 
   score_str = get_severity_score_from_vt (nvti);
-  json_builder_set_member_name (builder, "severity");
+  json_builder_set_member_name (builder, "score");
   builder = json_builder_add_string_value (builder, score_str);
   g_free (score_str);
 
@@ -548,23 +548,32 @@ make_result_json_str (const gchar *scan_id, const gchar *type,
   json_builder_set_member_name (builder, "scan_id");
   builder = json_builder_add_string_value (builder, scan_id);
 
-  json_builder_set_member_name (builder, "type");
+  json_builder_set_member_name (builder, "result_type");
   builder = json_builder_add_string_value (builder, type);
 
-  json_builder_set_member_name (builder, "host_ip");
+  json_builder_set_member_name (builder, "host");
   json_builder_add_string_value (builder, ip_str);
 
   json_builder_set_member_name (builder, "hostname");
   json_builder_add_string_value (builder, hostname);
 
-  port = g_strdup_printf ("%s/%s", port_s, proto);
-  json_builder_set_member_name (builder, "port");
-  json_builder_add_string_value (builder, port);
-  g_free (port);
+  if (port_s && proto)
+    {
+      port = g_strdup_printf ("%s/%s", port_s ?: " ", proto ?: " ");
+      json_builder_set_member_name (builder, "port");
+      json_builder_add_string_value (builder, port);
+      g_free (port);
+    }
+  else
+    {
+      json_builder_set_member_name (builder, "port");
+      json_builder_add_string_value (builder, " ");
+    }
 
-  json_builder_set_member_name (builder, "OID");
+  json_builder_set_member_name (builder, "oid");
   json_builder_add_string_value (builder, oid);
 
+  /* Add VT name, qod and score*/
   if (oid != NULL && oid[0] != '\0')
     add_nvti_info_into_json_builder (builder, oid);
 
@@ -681,18 +690,23 @@ proto_post_wrapped (const char *oid, struct script_infos *desc, int port,
   data = g_convert (buffer, -1, "UTF-8", "ISO_8859-1", NULL, &length, NULL);
 
   /* Send result via MQTT. */
-  json = make_result_json_str (
-    desc->globals->scan_id, msg_type_to_str (msg_type), ip_str, hostname ?: " ",
-    port_s, proto, oid, action_str->str, uri ?: "");
-  if (json == NULL)
-    g_warning ("%s: Error while creating JSON.", __func__);
+  if (mqtt_is_initialized ())
+    {
+      json = make_result_json_str (
+        desc->globals->scan_id, msg_type_to_str (msg_type), ip_str,
+        hostname ?: " ", port_s, proto, oid, action_str->str, uri ?: "");
+      if (json == NULL)
+        g_warning ("%s: Error while creating JSON.", __func__);
+      else
+        mqtt_publish ("scanner/results", json);
+      g_free (json);
+    }
   else
-    mqtt_publish ("scanner/results", json);
-  g_free (json);
-
-  /* Send result via Redis. */
-  kb = plug_get_results_kb (desc);
-  kb_item_push_str (kb, "internal/results", data);
+    {
+      /* Send result via Redis. */
+      kb = plug_get_results_kb (desc);
+      kb_item_push_str (kb, "internal/results", data);
+    }
 
   g_free (data);
   g_free (buffer);

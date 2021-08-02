@@ -137,6 +137,11 @@ post_log_with_uri (const char *, struct script_infos *, int, const char *,
 
 #define post_log_tcp post_log
 
+gchar *
+make_result_json_str (const gchar *, const gchar *, const gchar *,
+                      const gchar *, const gchar *, const gchar *,
+                      const gchar *, const gchar *, const gchar *);
+
 /*
  * Management of the portlists
  */

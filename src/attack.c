@@ -128,6 +128,7 @@ set_kb_readable (int host_kb_index)
   kb_lnk_reset (main_kb);
 }
 
+/** TODO: send status via @mqtt **/
 /**
  * @brief Set scan status. This helps ospd-openvas to
  * identify if a scan crashed or finished cleanly.
@@ -176,6 +177,7 @@ comm_send_status_host_dead (kb_t main_kb, char *ip_str)
   if (strlen (ip_str) > 1998)
     return -1;
   status = g_strjoin ("/", ip_str, host_dead_status_code, NULL);
+  /** TODO: send status via @mqtt **/
   kb_item_push_str (main_kb, topic, status);
   g_free (status);
 
@@ -216,16 +218,28 @@ comm_send_status (kb_t main_kb, char *ip_str, int curr, int max)
   return 0;
 }
 
+/** TODO: send message_to_client via @mqtt */
 static void
-message_to_client (kb_t kb, const char *msg, const char *ip_str,
-                   const char *port, const char *type)
+message_to_client (kb_t kb, const char *scan_id, const char *msg,
+                   const char *ip_str, const char *type)
 {
-  char *buf;
-
-  buf = g_strdup_printf ("%s|||%s|||%s|||%s||| |||%s", type, ip_str ?: "",
-                         ip_str ?: "", port ?: " ", msg ?: "No error.");
-  kb_item_push_str (kb, "internal/results", buf);
-  g_free (buf);
+  if (mqtt_is_initialized ())
+    {
+      const gchar *result_json;
+      result_json = make_result_json_str (
+        scan_id, "ERRMSG", ip_str ?: "", ip_str ?: "", NULL, NULL, NULL,
+        msg ?: "No error.", NULL);
+      mqtt_publish ("internal/results", result_json);
+      g_free (result_json);
+    }
+  else
+    {
+      char *buf;
+      buf = g_strdup_printf ("%s|||%s|||%s|||%s||| |||%s", type, ip_str ?: "",
+                             ip_str ?: "", " ", msg ?: "No error.");
+      kb_item_push_str (kb, "internal/results", buf);
+      g_free (buf);
+    }
 }
 
 static void
@@ -545,9 +559,6 @@ finish_launch_plugin:
   return ret;
 }
 
-/***
- * TODO: @mqtt
- */
 /**
  * @brief Attack one host.
  */
@@ -610,6 +621,7 @@ attack_host (struct scan_globals *globals, struct in6_addr *ip, GSList *vhosts,
                     "<name>Host dead</name><value>1</value><source>"
                     "<description/><type/><name/></source></detail></host>",
                     ip_str);
+                  /** TODO: send result via @mqtt **/
                   kb_item_push_str (main_kb, "internal/results", buffer);
 
                   comm_send_status_host_dead (main_kb, ip_str);
@@ -733,7 +745,7 @@ vhosts_to_str (GSList *list)
  * @brief Check if any deprecated prefs are in pref table and print warning.
  */
 static void
-check_deprecated_prefs ()
+check_deprecated_prefs (struct scan_globals *globals)
 {
   const gchar *source_iface = prefs_get ("source_iface");
   const gchar *ifaces_allow = prefs_get ("ifaces_allow");
@@ -758,7 +770,7 @@ check_deprecated_prefs ()
       g_warning ("%s: %s", __func__, msg);
 
       connect_main_kb (&main_kb);
-      message_to_client (main_kb, msg, NULL, NULL, "ERRMSG");
+      message_to_client (main_kb, globals->scan_id, msg, NULL, NULL, "ERRMSG");
       kb_lnk_reset (main_kb);
       g_free (msg);
     }
@@ -832,9 +844,11 @@ attack_start (struct attack_start_args *args)
   if (ret_host_auth < 0)
     {
       if (ret_host_auth == -1)
-        message_to_client (kb, "Host access denied.", ip_str, NULL, "ERRMSG");
+        message_to_client (kb, globals->scan_id, "Host access denied.", ip_str,
+                           NULL, "ERRMSG");
       else
-        message_to_client (kb, "Host access denied (system-wide restriction.)",
+        message_to_client (kb, globals->scan_id,
+                           "Host access denied (system-wide restriction.)",
                            ip_str, NULL, "ERRMSG");
 
       kb_item_set_str (kb, "internal/host_deny", "True", 0);
@@ -1056,7 +1070,7 @@ attack_network (struct scan_globals *globals)
   GSList *unresolved;
   char buf[96];
 
-  check_deprecated_prefs ();
+  check_deprecated_prefs (globals);
 
   gboolean test_alive_hosts_only = prefs_get_bool ("test_alive_hosts_only");
   gvm_hosts_t *alive_hosts_list = NULL;
@@ -1082,8 +1096,9 @@ attack_network (struct scan_globals *globals)
     {
       connect_main_kb (&main_kb);
       message_to_client (
-        main_kb, "Invalid port list. Ports must be in the range [1-65535]",
-        NULL, NULL, "ERRMSG");
+        main_kb, globals->scan_id,
+        "Invalid port list. Ports must be in the range [1-65535]", NULL, NULL,
+        "ERRMSG");
       kb_lnk_reset (main_kb);
       g_warning ("Invalid port list. Ports must be in the range [1-65535]. "
                  "Scan terminated.");
@@ -1111,7 +1126,7 @@ attack_network (struct scan_globals *globals)
                plugins_init_error);
 
       connect_main_kb (&main_kb);
-      message_to_client (main_kb, buf, NULL, NULL, "ERRMSG");
+      message_to_client (main_kb, globals->scan_id, buf, NULL, NULL, "ERRMSG");
       kb_lnk_reset (main_kb);
     }
 
@@ -1124,12 +1139,13 @@ attack_network (struct scan_globals *globals)
       char *buffer;
       buffer = g_strdup_printf ("Invalid target list: %s.", hostlist);
       connect_main_kb (&main_kb);
-      message_to_client (main_kb, buffer, NULL, NULL, "ERRMSG");
+      message_to_client (main_kb, globals->scan_id, buffer, NULL, NULL,
+                         "ERRMSG");
       g_free (buffer);
       /* Send the hosts count to the client as -1,
        * because the invalid target list.*/
-      message_to_client (main_kb, INVALID_TARGET_LIST, NULL, NULL,
-                         "HOSTS_COUNT");
+      message_to_client (main_kb, globals->scan_id, INVALID_TARGET_LIST, NULL,
+                         NULL, "HOSTS_COUNT");
       kb_lnk_reset (main_kb);
       g_warning ("Invalid target list. Scan terminated.");
       goto stop;
@@ -1151,7 +1167,7 @@ attack_network (struct scan_globals *globals)
    * unresolved hosts.*/
   sprintf (buf, "%d", gvm_hosts_count (hosts));
   connect_main_kb (&main_kb);
-  message_to_client (main_kb, buf, NULL, NULL, "HOSTS_COUNT");
+  message_to_client (main_kb, globals->scan_id, buf, NULL, NULL, "HOSTS_COUNT");
   kb_lnk_reset (main_kb);
 
   apply_hosts_excluded (hosts);
