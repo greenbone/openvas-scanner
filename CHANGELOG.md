@@ -19,6 +19,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 ### Changed
 - function script_bugtraq_id getting skipped, linter warns. [#724](https://github.com/greenbone/openvas/pull/724)
 - Refactor dead host status sending. [#807](https://github.com/greenbone/openvas/pull/807)
+- Refactor openvas.c. [#810](https://github.com/greenbone/openvas/pull/810)
 
 ### Fixed
 
