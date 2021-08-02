@@ -229,7 +229,6 @@ overwrite_openvas_prefs_with_prefs_from_client (struct scan_globals *globals)
       if (pref[0])
         {
           gchar **pref_name = g_strsplit (pref[0], ":", 3);
-          /** TODO: Is this file handling still needed? */
           if (pref_name[1] && pref_name[2] && !strncmp (pref_name[2], "file", 4)
               && strcmp (pref[1], ""))
             {
@@ -402,15 +401,16 @@ attack_network_init (struct scan_globals *globals, const gchar *config_file)
   if (plugins_cache_init ())
     {
       g_message ("Failed to initialize nvti cache.");
+      nvticache_reset ();
       exit (1);
     }
+  nvticache_reset ();
 
   init_signal_handlers ();
 
   /* Make process a group leader, to make it easier to cleanup forked
    * processes & their children. */
   setpgid (0, 0);
-  nvticache_reset (); /** TODO: Is this still needed? */
 
   if (overwrite_openvas_prefs_with_prefs_from_client (globals))
     {
@@ -521,6 +521,7 @@ openvas (int argc, char *argv[])
       prefs_config (config_file);
       set_globals_from_preferences ();
       err = plugins_init ();
+      nvticache_reset ();
       gvm_close_sentry ();
       return err ? -1 : 0;
     }
