@@ -354,6 +354,8 @@ include_dirs (void)
 /**
  * @brief Main function for nvticache initialization without
  *        loading the plugins
+ *
+ * @return 0 on success, -1 on failure.
  **/
 int
 plugins_cache_init (void)
@@ -369,8 +371,10 @@ plugins_cache_init (void)
   return 0;
 }
 
-/*
- * main function for loading all the plugins
+/**
+ * @brief main function for loading all the plugins
+ *
+ * @return 0 on success, !=0 on failure.
  */
 int
 plugins_init (void)
