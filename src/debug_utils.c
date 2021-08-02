@@ -28,6 +28,11 @@
 #include <stdio.h> /* for snprintf */
 #include <stdlib.h>
 
+/**
+ * @brief Init sentry.
+ *
+ * @return 0 on success, -1 on error.
+ */
 int
 init_sentry (void)
 {
@@ -37,10 +42,15 @@ init_sentry (void)
   snprintf (version, sizeof (version), "openvas@%s", OPENVAS_VERSION);
 
   sentry_dsn_openvas = getenv ("SENTRY_DSN_OPENVAS");
-  if (gvm_has_sentry_support () && sentry_dsn_openvas && *sentry_dsn_openvas)
+  if (FALSE
+      == (gvm_has_sentry_support () && sentry_dsn_openvas
+          && *sentry_dsn_openvas))
+    {
+      return -1;
+    }
+  else
     {
       gvm_sentry_init (sentry_dsn_openvas, version);
-      return 1;
+      return 0;
     }
-  return 0;
 }
