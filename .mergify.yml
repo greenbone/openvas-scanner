@@ -18,6 +18,15 @@ pull_request_rules:
         branches:
           - openvas-20.08
 
+  - name: backport master patches to middleware branch
+    conditions:
+      - base=master
+      - label=backport-to-middleware
+    actions:
+      backport:
+        branches:
+          - middleware
+
   # backports from upcoming release branch
   - name: backport 21.04 patches to master branch
     conditions:
@@ -37,6 +46,15 @@ pull_request_rules:
         branches:
           - openvas-20.08
 
+  - name: backport 21.04 patches to middleware branch
+    conditions:
+      - base=openvas-21.04
+      - label=backport-to-middleware
+    actions:
+      backport:
+        branches:
+          - middleware
+
   # backports from current release branch
   - name: backport 20.08 patches to master branch
     conditions:
@@ -55,3 +73,12 @@ pull_request_rules:
       backport:
         branches:
           - openvas-21.04
+
+  - name: backport 20.08 patches to middleware branch
+    conditions:
+      - base=openvas-20.08
+      - label=backport-to-middleware
+    actions:
+      backport:
+        branches:
+          - middleware
