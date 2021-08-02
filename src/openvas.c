@@ -122,6 +122,16 @@ static openvas_option openvas_defaults[] = {
   {"db_address", KB_PATH_DEFAULT},
   {NULL, NULL}};
 
+/**
+ * @brief Set the prefs from the openvas_defaults array.
+ */
+static void
+set_default_openvas_prefs ()
+{
+  for (int i = 0; openvas_defaults[i].option != NULL; i++)
+    prefs_set (openvas_defaults[i].option, openvas_defaults[i].value);
+}
+
 static void
 my_gnutls_log_func (int level, const char *text)
 {
@@ -163,16 +173,6 @@ set_globals_from_preferences (void)
 }
 
 static void
-reload_openvas (void);
-
-static void
-handle_reload_signal (int sig)
-{
-  (void) sig;
-  reload_openvas ();
-}
-
-static void
 handle_termination_signal (int sig)
 {
   termination_signal = sig;
@@ -187,56 +187,24 @@ init_signal_handlers (void)
   openvas_signal (SIGTERM, handle_termination_signal);
   openvas_signal (SIGINT, handle_termination_signal);
   openvas_signal (SIGQUIT, handle_termination_signal);
-  openvas_signal (SIGHUP, handle_reload_signal);
   openvas_signal (SIGCHLD, sighand_chld);
-}
-
-/* Restarts the scanner by reloading the configuration. */
-static void
-reload_openvas (void)
-{
-  static gchar *rc_name = NULL;
-  const char *config_file;
-  int i, ret;
-
-  /* Ignore SIGHUP while reloading. */
-  openvas_signal (SIGHUP, SIG_IGN);
-
-  proctitle_set (PROCTITLE_RELOADING);
-  /* Setup logging. */
-  rc_name = g_build_filename (OPENVAS_SYSCONF_DIR, "openvas_log.conf", NULL);
-  if (g_file_test (rc_name, G_FILE_TEST_EXISTS))
-    log_config = load_log_configuration (rc_name);
-  g_free (rc_name);
-  setup_log_handlers (log_config);
-  g_message ("Reloading the scanner.\n");
-
-  /* Reload config file. */
-  config_file = prefs_get ("config_file");
-  for (i = 0; openvas_defaults[i].option != NULL; i++)
-    prefs_set (openvas_defaults[i].option, openvas_defaults[i].value);
-  prefs_config (config_file);
-
-  /* Reload the plugins */
-  ret = plugins_init ();
-  set_globals_from_preferences ();
-
-  g_message ("Finished reloading the scanner.");
-  openvas_signal (SIGHUP, handle_reload_signal);
-  proctitle_set (PROCTITLE_WAITING);
-  if (ret)
-    exit (1);
 }
 
 /**
  * @brief Read the scan preferences from redis
- * @input scan_id Scan ID used as key to find the corresponding KB where
- *                to take the preferences from.
+ *
+ * Adds preferences to the global_prefs.
+ * If preference already exists in global_prefs they will be overwritten by
+ * prefs from client.
+ *
+ * @param globals Scan ID of globals used as key to find the corresponding KB
+ * where to take the preferences from. Globals also used for file upload.
+ *
  * @return 0 on success, -1 if the kb is not found or no prefs are found in
  *         the kb.
  */
 static int
-load_scan_preferences (struct scan_globals *globals)
+overwrite_openvas_prefs_with_prefs_from_client (struct scan_globals *globals)
 {
   char key[1024];
   kb_t kb;
@@ -261,19 +229,20 @@ load_scan_preferences (struct scan_globals *globals)
       if (pref[0])
         {
           gchar **pref_name = g_strsplit (pref[0], ":", 3);
+          /** TODO: Is this file handling still needed? */
           if (pref_name[1] && pref_name[2] && !strncmp (pref_name[2], "file", 4)
               && strcmp (pref[1], ""))
             {
-              char *file_hash = gvm_uuid_make ();
+              char *file_uuid = gvm_uuid_make ();
               int ret;
-              prefs_set (pref[0], file_hash);
-              ret = store_file (globals, pref[1], file_hash);
+              prefs_set (pref[0], file_uuid);
+              ret = store_file (globals, pref[1], file_uuid);
               if (ret)
                 g_debug ("Load preference: Failed to upload file "
                          "for nvt %s preference.",
                          pref_name[0]);
 
-              g_free (file_hash);
+              g_free (file_uuid);
             }
           else if (is_scanner_only_pref (pref[0]))
             g_warning ("%s is a scanner only preference. It can not be written "
@@ -299,63 +268,31 @@ load_scan_preferences (struct scan_globals *globals)
   return 0;
 }
 
-static void
-scanner_thread (struct scan_globals *globals)
-{
-  /* Make process a group leader, to make it easier to cleanup forked
-   * processes & their children. */
-  setpgid (0, 0);
-  nvticache_reset ();
-
-  globals->scan_id = g_strdup (global_scan_id);
-
-  /* Load preferences from Redis. Scan started with a scan_id. */
-  if (load_scan_preferences (globals))
-    {
-      g_warning ("No preferences found for the scan %s", globals->scan_id);
-      exit (0);
-    }
-
-  attack_network (globals);
-
-  exit (0);
-}
-
 /**
- * @brief Initialize everything.
+ * @brief Init logging.
  *
- * @param config_file Path to config file for initialization
+ * @return 0 on success, -1 on error.
  */
 static int
-init_openvas (const char *config_file)
+init_logging ()
 {
-  static gchar *rc_name = NULL;
-  int i;
+  static gchar *log_config_file_name = NULL;
   int err;
 
-  for (i = 0; openvas_defaults[i].option != NULL; i++)
-    prefs_set (openvas_defaults[i].option, openvas_defaults[i].value);
-  prefs_config (config_file);
-
-  /* Setup logging. */
-  rc_name = g_build_filename (OPENVAS_SYSCONF_DIR, "openvas_log.conf", NULL);
-  if (g_file_test (rc_name, G_FILE_TEST_EXISTS))
-    log_config = load_log_configuration (rc_name);
+  log_config_file_name =
+    g_build_filename (OPENVAS_SYSCONF_DIR, "openvas_log.conf", NULL);
+  if (g_file_test (log_config_file_name, G_FILE_TEST_EXISTS))
+    log_config = load_log_configuration (log_config_file_name);
   err = setup_log_handlers (log_config);
   if (err)
     {
       g_warning ("%s: Can not open or create log file or directory. "
                  "Please check permissions of log files listed in %s.",
-                 __func__, rc_name);
-      g_free (rc_name);
+                 __func__, log_config_file_name);
+      g_free (log_config_file_name);
       return -1;
     }
-  g_free (rc_name);
-
-  if (init_sentry ())
-    g_message ("Sentry is enabled. This can log sensitive information.");
-
-  set_globals_from_preferences ();
+  g_free (log_config_file_name);
 
   return 0;
 }
@@ -372,11 +309,12 @@ gcrypt_init (void)
   gcry_control (GCRYCTL_INITIALIZATION_FINISHED);
 }
 
-void
-start_single_task_scan (void)
+/**
+ * @brief Check TLS.
+ */
+static void
+check_tls ()
 {
-  struct scan_globals *globals;
-
 #if GNUTLS_VERSION_NUMBER < 0x030300
   if (openvas_SSL_init () < 0)
     g_message ("Could not initialize openvas SSL!");
@@ -390,26 +328,22 @@ start_single_task_scan (void)
       gnutls_global_set_log_function (my_gnutls_log_func);
       gnutls_global_set_log_level (atoi (prefs_get ("debug_tls")));
     }
+}
 
+/**
+ * @brief Print start message.
+ */
+static void
+openvas_print_start_msg ()
+{
 #ifdef OPENVAS_GIT_REVISION
   g_message ("openvas %s (GIT revision %s) started", OPENVAS_VERSION,
              OPENVAS_GIT_REVISION);
 #else
   g_message ("openvas %s started", OPENVAS_VERSION);
 #endif
-
-  if (plugins_cache_init ())
-    {
-      g_message ("Failed to initialize nvti cache.");
-      exit (1);
-    }
-  init_signal_handlers ();
-
-  globals = g_malloc0 (sizeof (struct scan_globals));
-
-  scanner_thread (globals);
-  exit (0);
 }
+
 /**
  * @brief Search in redis the process ID of a running scan and
  * sends it the kill signal SIGUSR1, which will stop the scan.
@@ -425,7 +359,6 @@ stop_single_task_scan (void)
 
   if (!global_scan_id)
     {
-      gvm_close_sentry ();
       exit (1);
     }
 
@@ -433,7 +366,6 @@ stop_single_task_scan (void)
   kb = kb_find (prefs_get ("db_address"), key);
   if (!kb)
     {
-      gvm_close_sentry ();
       exit (1);
     }
 
@@ -448,9 +380,43 @@ stop_single_task_scan (void)
 
   /* Send the signal to the process group. */
   killpg (pid, SIGUSR1);
+}
 
-  gvm_close_sentry ();
-  exit (0);
+/**
+ * @brief Set up data needed for attack_network().
+ *
+ * @param globals scan_globals needed for client preference handling.
+ * @param config_file Used for config preference handling.
+ */
+void
+attack_network_init (struct scan_globals *globals, const gchar *config_file)
+{
+  set_default_openvas_prefs ();
+  prefs_config (config_file);
+
+  if (prefs_get ("vendor_version") != NULL)
+    vendor_version_set (prefs_get ("vendor_version"));
+  check_tls ();
+  openvas_print_start_msg ();
+
+  if (plugins_cache_init ())
+    {
+      g_message ("Failed to initialize nvti cache.");
+      exit (1);
+    }
+
+  init_signal_handlers ();
+
+  /* Make process a group leader, to make it easier to cleanup forked
+   * processes & their children. */
+  setpgid (0, 0);
+  nvticache_reset (); /** TODO: Is this still needed? */
+
+  if (overwrite_openvas_prefs_with_prefs_from_client (globals))
+    {
+      g_warning ("No preferences found for the scan %s", globals->scan_id);
+      exit (0);
+    }
 }
 
 /**
@@ -461,7 +427,7 @@ stop_single_task_scan (void)
 int
 openvas (int argc, char *argv[])
 {
-  int ret;
+  int err;
 
   proctitle_init (argc, argv);
   gcrypt_init ();
@@ -538,63 +504,59 @@ openvas (int argc, char *argv[])
     }
   tzset ();
 
+  if ((err = init_logging ()) != 0)
+    return -1;
+
+  err = init_sentry ();
+  err ? /* Sentry is optional */
+      : g_message ("Sentry is enabled. This can log sensitive information.");
+
+  /* Config file location */
   if (!config_file)
     config_file = OPENVAS_CONF;
+
   if (update_vt_info)
     {
-      if (init_openvas (config_file))
-        {
-          gvm_close_sentry ();
-          return 1;
-        }
-      if (plugins_init ())
-        {
-          gvm_close_sentry ();
-          return 1;
-        }
+      set_default_openvas_prefs ();
+      prefs_config (config_file);
+      set_globals_from_preferences ();
+      err = plugins_init ();
       gvm_close_sentry ();
-      return 0;
+      return err ? -1 : 0;
     }
 
-  if (init_openvas (config_file))
-    return 1;
-
-  if (prefs_get ("vendor_version") != NULL)
-    vendor_version_set (prefs_get ("vendor_version"));
-
+  /* openvas --scan-stop */
   if (stop_scan_id)
     {
       global_scan_id = g_strdup (stop_scan_id);
       stop_single_task_scan ();
-      exit (0);
-    }
-
-  if (scan_id)
-    {
-      global_scan_id = g_strdup (scan_id);
-      start_single_task_scan ();
       gvm_close_sentry ();
       exit (0);
     }
 
-  /* special treatment */
-  if (print_specs)
+  /* openvas --scan-start */
+  if (scan_id)
     {
-      prefs_dump ();
+      struct scan_globals *globals;
+      global_scan_id = g_strdup (scan_id);
+      globals = g_malloc0 (sizeof (struct scan_globals));
+      globals->scan_id = g_strdup (global_scan_id);
+
+      attack_network_init (globals, config_file);
+      attack_network (globals);
+
+      gvm_close_sentry ();
       exit (0);
     }
 
-#if GNUTLS_VERSION_NUMBER < 0x030300
-  if (openvas_SSL_init () < 0)
-    g_message ("Could not initialize openvas SSL!");
-#endif
-
-  /* Ignore SIGHUP while reloading. */
-  openvas_signal (SIGHUP, SIG_IGN);
-
-  ret = plugins_init ();
-  if (ret)
-    return 1;
+  if (print_specs)
+    {
+      set_default_openvas_prefs ();
+      prefs_config (config_file);
+      prefs_dump ();
+      gvm_close_sentry ();
+      exit (0);
+    }
 
   exit (0);
 }
