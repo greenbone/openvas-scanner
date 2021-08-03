@@ -4,15 +4,8 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
-## [Unreleased]
-### Added
-### Changed
-### Deprecated
-### Removed
-### Fixed
-
-[Unreleased]: https://github.com/greenbone/openvas-scanner/compare/v21.4.1...HEAD
-
+## [21.4.2] - 2021-08-03
+[21.4.2]: https://github.com/greenbone/openvas-scanner/compare/v21.4.1...v21.4.2
 
 ## [21.4.1] - 2021-06-23
 
@@ -58,19 +51,16 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 [21.4.0]: https://github.com/greenbone/openvas/compare/openvas-20.08...v21.4.0
 
 
-## [20.8.3] - Unreleased
-
-### Added
-### Changed
-### Deprecated
-### Removed
-### Fixed
+## [21.4.2] - 2021-08-03
+## [20.8.3] - Unreleased - 2021-08-03### Fixed
 
 - Fix clang-analyzer warnings.
   [#791](https://github.com/greenbone/openvas/pull/791)
   [#795](https://github.com/greenbone/openvas/pull/795)
 
 [20.8.3]: https://github.com/greenbone/openvas/compare/v20.8.2...openvas-20.08
+
+[21.4.2]: https://github.com/greenbone/openvas-scanner/compare/v21.4.1...v21.4.2
 
 ## [20.8.2] - 2021-06-23
 
@@ -266,12 +256,23 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 [7.0.0]: https://github.com/greenbone/openvas/compare/v6.0.1...v7.0.0
 
-## [6.0.2] (unreleased)
+## [21.4.2] - 2021-08-03
+## [20.8.3] - Unreleased - 2021-08-03## [21.4.2] - 2021-08-03### Fixed
+
+- Fix clang-analyzer warnings.
+  [#791](https://github.com/greenbone/openvas/pull/791)
+  [#795](https://github.com/greenbone/openvas/pull/795)
+
+[20.8.3]: https://github.com/greenbone/openvas/compare/v20.8.2...openvas-20.08
+
+
 
 ### Changed
 - The call to wmiexec.py has been replaced with impacket-wmiexec, because the symlink has been added in Debian Stretch with python-impacket 0.9.15-1.
 
 [6.0.2]: https://github.com/greenbone/openvas/compare/v6.0.1...openvas-scanner-6.0
+
+[21.4.2]: https://github.com/greenbone/openvas-scanner/compare/v21.4.1...v21.4.2
 
 ## [6.0.1] (2019-07-17)
 
