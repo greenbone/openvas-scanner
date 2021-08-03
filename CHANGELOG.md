@@ -4,19 +4,14 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
-## [Unreleased]
-### Added
-### Changed
-### Deprecated
-### Removed
+## [20.8.3] - 2021-08-03
 ### Fixed
 
 - Fix clang-analyzer warnings.
   [#791](https://github.com/greenbone/openvas/pull/791)
   [#795](https://github.com/greenbone/openvas/pull/795)
 
-[Unreleased]: https://github.com/greenbone/openvas-scanner/compare/v20.8.2...HEAD
-
+[20.8.3]: https://github.com/greenbone/openvas-scanner/compare/v20.8.2...v20.8.3
 
 ## [20.8.2] - 2021-06-23
 
@@ -209,12 +204,24 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 [7.0.0]: https://github.com/greenbone/openvas/compare/v6.0.1...v7.0.0
 
-## [6.0.2] (unreleased)
+## [20.8.3] - 2021-08-03
+## [20.8.3] - 2021-08-03### Fixed
+
+- Fix clang-analyzer warnings.
+  [#791](https://github.com/greenbone/openvas/pull/791)
+  [#795](https://github.com/greenbone/openvas/pull/795)
+
+
+
+
+
 
 ### Changed
 - The call to wmiexec.py has been replaced with impacket-wmiexec, because the symlink has been added in Debian Stretch with python-impacket 0.9.15-1.
 
 [6.0.2]: https://github.com/greenbone/openvas/compare/v6.0.1...openvas-scanner-6.0
+
+[20.8.3]: https://github.com/greenbone/openvas-scanner/compare/v20.8.2...v20.8.3
 
 ## [6.0.1] (2019-07-17)
 
