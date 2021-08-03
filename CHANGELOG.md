@@ -4,6 +4,16 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [Unreleased]
+### Added
+### Changed
+### Deprecated
+### Removed
+### Fixed
+
+[Unreleased]: https://github.com/greenbone/openvas-scanner/compare/v21.4.2...HEAD
+
+
 ## [21.4.2] - 2021-08-03
 [21.4.2]: https://github.com/greenbone/openvas-scanner/compare/v21.4.1...v21.4.2
 
@@ -49,6 +59,16 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 - Use the nvticache name from gvm-libs, defined in nvticache.h. [#578](https://github.com/greenbone/openvas/pull/578)
 
 [21.4.0]: https://github.com/greenbone/openvas/compare/openvas-20.08...v21.4.0
+
+
+## [Unreleased]
+### Added
+### Changed
+### Deprecated
+### Removed
+### Fixed
+
+[Unreleased]: https://github.com/greenbone/openvas-scanner/compare/v21.4.2...HEAD
 
 
 ## [21.4.2] - 2021-08-03
@@ -255,6 +275,16 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 - Daemon mode has been entirely removed. [#337](https://github.com/greenbone/openvas/pull/337) [#341](https://github.com/greenbone/openvas/pull/341)
 
 [7.0.0]: https://github.com/greenbone/openvas/compare/v6.0.1...v7.0.0
+
+## [Unreleased]
+### Added
+### Changed
+### Deprecated
+### Removed
+### Fixed
+
+[Unreleased]: https://github.com/greenbone/openvas-scanner/compare/v21.4.2...HEAD
+
 
 ## [21.4.2] - 2021-08-03
 ## [20.8.3] - Unreleased - 2021-08-03## [21.4.2] - 2021-08-03### Fixed
