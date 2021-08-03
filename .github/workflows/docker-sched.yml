@@ -1,4 +1,4 @@
-name: [Scheduled] Build and upload docker images
+name: "[Scheduled] Build and upload docker images"
 
 on:
   schedule:
