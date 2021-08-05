@@ -4,7 +4,7 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
-## [20.8.4]
+## [20.8.4] (unreleased)
 ### Added
 ### Changed
 - Changed defaults for installation locations [#826](https://github.com/greenbone/openvas-scanner/pull/826)
@@ -35,7 +35,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 - Check for wrong names or values in the script_xrefs params.
   [#650](https://github.com/greenbone/openvas/pull/650)
   [#653](https://github.com/greenbone/openvas/pull/653)
-- Log a message if the scanner did not launch all plugins against a host. 
+- Log a message if the scanner did not launch all plugins against a host.
   [#700](https://github.com/greenbone/openvas/pull/700)
   [#734](https://github.com/greenbone/openvas/pull/734)
 
@@ -60,9 +60,9 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 - Remove code from the openvas daemon era. Do not flushall redis. [#689](https://github.com/greenbone/openvas/pull/689)
 - Remove deprecated option logfile. [#713](https://github.com/greenbone/openvas/pull/713)
 
-[20.8.2]: https://github.com/greenbone/openvas/compare/v20.8.1...openvas-20.08
+[20.8.2]: https://github.com/greenbone/openvas/compare/v20.8.1...v20.8.2
 
-## [20.8.1] (2021.02.01)
+## [20.8.1] - 2021-02-01
 
 ### Added
 - Extend nasl lint to detect if function parameter is used twice. [#590](https://github.com/greenbone/openvas/pull/590)
@@ -96,7 +96,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 [20.8.1]: https://github.com/greenbone/openvas/compare/v20.8.0...v20.8.1
 
-## [20.8.0] (2020-08-11)
+## [20.8.0] - 2020-08-11
 
 ### Added
 - Create greenbone-nvt-sync create lock file during feed sync.
@@ -219,45 +219,6 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 - Daemon mode has been entirely removed. [#337](https://github.com/greenbone/openvas/pull/337) [#341](https://github.com/greenbone/openvas/pull/341)
 
 [7.0.0]: https://github.com/greenbone/openvas/compare/v6.0.1...v7.0.0
-
-## [Unreleased]
-### Added
-### Changed
-### Deprecated
-### Removed
-### Fixed
-
-[Unreleased]: https://github.com/greenbone/openvas-scanner/compare/v20.8.3...HEAD
-
-
-## [20.8.3] - 2021-08-03
-## [Unreleased]
-### Added
-### Changed
-### Deprecated
-### Removed
-### Fixed
-
-[Unreleased]: https://github.com/greenbone/openvas-scanner/compare/v20.8.3...HEAD
-
-
-## [20.8.3] - 2021-08-03### Fixed
-
-- Fix clang-analyzer warnings.
-  [#791](https://github.com/greenbone/openvas/pull/791)
-  [#795](https://github.com/greenbone/openvas/pull/795)
-
-
-
-
-
-
-### Changed
-- The call to wmiexec.py has been replaced with impacket-wmiexec, because the symlink has been added in Debian Stretch with python-impacket 0.9.15-1.
-
-[6.0.2]: https://github.com/greenbone/openvas/compare/v6.0.1...openvas-scanner-6.0
-
-[20.8.3]: https://github.com/greenbone/openvas-scanner/compare/v20.8.2...v20.8.3
 
 ## [6.0.1] (2019-07-17)
 
