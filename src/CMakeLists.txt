@@ -198,6 +198,7 @@ target_link_libraries (attack-test openvas_nasl_shared cgreen
                        ${GLIB_LDFLAGS} ${GCRYPT_LDFLAGS}
                        ${EXECINFO_LDFLAGS} ${PCAP_LDFLAGS}
                        ${LINKER_HARDENING_FLAGS} ${CMAKE_THREAD_LIBS_INIT}
+                       ${GLIB_JSON_LDFLAGS}
                        -Wl,--wrap=redis_push_str)
 
 ## Static analysis
