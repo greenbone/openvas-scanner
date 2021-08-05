@@ -1139,7 +1139,7 @@ attack_network (struct scan_globals *globals)
       g_warning ("%s", buf);
       message_to_client (main_kb, buf, NULL, NULL, "ERRMSG");
       kb_lnk_reset (main_kb);
-    };
+    }
   max_hosts = get_max_hosts_number ();
   max_checks = get_max_checks_number ();
   hosts = gvm_hosts_new (hostlist);
