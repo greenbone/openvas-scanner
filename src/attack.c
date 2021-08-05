@@ -110,7 +110,7 @@ connect_main_kb (kb_t *main_kb)
       g_message ("No main db found, creating new one");
       if (kb_new (main_kb, prefs_get ("db_address") ?: KB_PATH_DEFAULT))
         {
-          g_error ("Unable to create main_db");
+          g_warning ("Unable to create main_db");
           return -1;
         }
       int i = kb_get_kb_index (*main_kb);
@@ -1083,14 +1083,14 @@ attack_network (struct scan_globals *globals)
   gettimeofday (&then, NULL);
   if (check_kb_access ())
     {
-      g_error ("No access to redis kb");
+      g_warning ("No access to redis kb");
       return;
     }
   /* Init and check Target List */
   hostlist = prefs_get ("TARGET");
   if (hostlist == NULL)
     {
-      g_error ("Target list is empty");
+      g_warning ("Target list is empty");
       return;
     }
   /* Verify the port range is a valid one */
@@ -1102,8 +1102,8 @@ attack_network (struct scan_globals *globals)
         main_kb, "Invalid port list. Ports must be in the range [1-65535]",
         NULL, NULL, "ERRMSG");
       kb_lnk_reset (main_kb);
-      g_error ("Invalid port list. Ports must be in the range [1-65535]. "
-               "Scan terminated.");
+      g_warning ("Invalid port list. Ports must be in the range [1-65535]. "
+                 "Scan terminated.");
       set_scan_status ("finished");
 
       return;
@@ -1126,7 +1126,7 @@ attack_network (struct scan_globals *globals)
                plugins_init_error);
 
       connect_main_kb (&main_kb);
-      g_error ("%s", buf);
+      g_warning ("%s", buf);
       message_to_client (main_kb, buf, NULL, NULL, "ERRMSG");
       kb_lnk_reset (main_kb);
     };
@@ -1138,7 +1138,7 @@ attack_network (struct scan_globals *globals)
       char *buffer;
       buffer = g_strdup_printf ("Invalid target list: %s.", hostlist);
       connect_main_kb (&main_kb);
-      g_error ("%s", buffer);
+      g_warning ("%s", buffer);
       message_to_client (main_kb, buffer, NULL, NULL, "ERRMSG");
       g_free (buffer);
       /* Send the hosts count to the client as -1,
