@@ -1120,10 +1120,10 @@ attack_network (struct scan_globals *globals)
     }
   if (plugins_init_error > 0)
     {
-      sprintf (buf,
-               "%d errors were found during the plugin scheduling. "
-               "Some plugins have not been launched.",
-               plugins_init_error);
+      snprintf (buf, 96,
+                "%d errors were found during the plugin scheduling. "
+                "Some plugins have not been launched.",
+                plugins_init_error);
 
       connect_main_kb (&main_kb);
       g_warning ("%s", buf);
@@ -1162,7 +1162,7 @@ attack_network (struct scan_globals *globals)
 
   /* Send the hosts count to the client, after removing duplicated and
    * unresolved hosts.*/
-  sprintf (buf, "%d", gvm_hosts_count (hosts));
+  snprintf (buf, 96, "%d", gvm_hosts_count (hosts));
   connect_main_kb (&main_kb);
   message_to_client (main_kb, buf, NULL, NULL, "HOSTS_COUNT");
   kb_lnk_reset (main_kb);
@@ -1421,11 +1421,9 @@ stop:
   // if (test_alive_hosts_only)
   //   gvm_hosts_free (alive_hosts_list);
 
-  printf ("free maindb\n");
   if (prefs_get_bool ("maindb_set"))
     {
       kb_delete (alive_hosts_kb);
     }
-  printf ("set scan status as finished\n");
   set_scan_status ("finished");
 }

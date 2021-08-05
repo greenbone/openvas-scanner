@@ -194,7 +194,7 @@ init_signal_handlers (void)
 }
 
 /**
- * @brief Read preferences from json recursively
+ * @brief Read preferences from json
  *
  * Adds preferences from a json string to the global_prefs.
  * If preference already exists in global_prefs they will be overwritten by
@@ -206,7 +206,7 @@ init_signal_handlers (void)
  * @return int 0 on success, -1 if json is empty or format is invalid.
  */
 static int
-write_json_preferences_recursive (char *json)
+write_json_preferences (char *json)
 {
   JsonParser *parser;
   JsonReader *reader;
@@ -239,46 +239,34 @@ write_json_preferences_recursive (char *json)
       if (!strcmp (key, "created") || !strcmp (key, "message_type")
           || !strcmp (key, "group_id") || !strcmp (key, "message_id"))
         {
+          g_message ("skipped");
           continue;
         }
       json_reader_read_member (reader, key);
-      // key-value (e.g. for optional preferences)
+      // key-value preferences
       if (json_reader_is_value (reader))
         {
-          JsonNode *node_value;
-          char *write;
-          GType type;
-          node_value = json_reader_get_value (reader);
-          type = json_node_get_value_type (node_value);
+          const char *value;
+
+          JsonNode *node_value = json_reader_get_value (reader);
+          GType type = json_node_get_value_type (node_value);
 
           if (type == G_TYPE_STRING)
             {
-              const char *value = json_reader_get_string_value (reader);
-              int len = strlen (value);
-              write = (char *) (malloc (sizeof (char) * len + 1));
-              sprintf (write, "%s", value);
+              value = json_reader_get_string_value (reader);
             }
           if (type == G_TYPE_BOOLEAN)
             {
-              const int value = json_reader_get_boolean_value (reader);
-              write = value ? "yes\0" : "no\0";
+              value = json_reader_get_boolean_value (reader) ? "yes\0" : "no\0";
             }
           if (type == G_TYPE_INT64 || type == G_TYPE_INT)
             {
-              const int value = json_reader_get_int_value (reader);
-              int buf = value;
-              int len = 0;
-              do
-                {
-                  buf /= 10;
-                  len++;
-                }
-              while (buf);
-              write = (char *) (malloc (sizeof (char) * len + 1));
-              sprintf (write, "%d", value);
+              char buf[20];
+              snprintf (buf, 20, "%ld", json_reader_get_int_value (reader));
+              value = buf;
             }
-          g_debug ("%s -> %s", key, write);
-          prefs_set (key, write);
+          g_debug ("%s -> %s", key, value);
+          prefs_set (key, value);
         }
       // list (ports, hosts)
       // parse list comma separated into single string
@@ -306,7 +294,7 @@ write_json_preferences_recursive (char *json)
               value = json_reader_get_string_value (reader);
               len = strlen (value);
               values = (char *) (malloc (sizeof (char) * len + 1));
-              sprintf (values, "%s", value);
+              snprintf (values, len + 1, "%s", value);
               json_reader_end_element (reader);
 
               // Concatinate all other ellements comma separated
@@ -317,52 +305,59 @@ write_json_preferences_recursive (char *json)
                   len += strlen (value);
                   char *buf = values;
                   values = (char *) (malloc (sizeof (char) * len + 1));
-                  sprintf (values, "%s,%s", buf, value);
+                  snprintf (values, len + 1, "%s,%s", buf, value);
                   free (buf);
                   json_reader_end_element (reader);
                 }
               g_debug ("%s -> %s", key, values);
               prefs_set (key, values);
+              free (values);
             }
         }
-      // dictionary
-      // credentials, script preferences
+      // dictionary (plugins)
+      // parse list semicolon separated into single string
       if (json_reader_is_object (reader))
         {
           if (!strcmp (key, "plugins"))
             {
-              const char *plugin;
-              char *plugins;
-              int len, j;
+              const char *value;
+              char *values;
+              int len, j, num_plugins;
+
               json_reader_read_member (reader, "single_vts");
-              int num_plugins = json_reader_count_elements (reader);
+              num_plugins = json_reader_count_elements (reader);
+
               key = "plugin_set";
 
               if (num_plugins > 0)
                 {
+                  // Write first plugin oid
                   json_reader_read_element (reader, 0);
                   json_reader_read_member (reader, "oid");
-                  plugin = json_reader_get_string_value (reader);
-                  len = strlen (plugin);
-                  plugins = (char *) (malloc (sizeof (char) * len + 1));
-                  sprintf (plugins, "%s", plugin);
+                  value = json_reader_get_string_value (reader);
+                  len = strlen (value);
+                  values = (char *) (malloc (sizeof (char) * len + 1));
+                  snprintf (values, len + 1, "%s", value);
                   json_reader_end_member (reader);
                   json_reader_end_element (reader);
+
+                  // Append all otherplugins semicolon separated
                   for (j = 1; j < num_plugins; j++)
                     {
                       json_reader_read_element (reader, j);
                       json_reader_read_member (reader, "oid");
-                      plugin = json_reader_get_string_value (reader);
-                      len += strlen (plugin);
-                      char *buf = plugins;
-                      plugins = (char *) (malloc (sizeof (char) * len + 1));
-                      sprintf (plugins, "%s;%s", buf, plugin);
+                      value = json_reader_get_string_value (reader);
+                      len += strlen (value);
+                      char *buf = values;
+                      values = (char *) (malloc (sizeof (char) * len + 1));
+                      snprintf (values, len + 1, "%s;%s", buf, value);
                       free (buf);
                       json_reader_end_member (reader);
                       json_reader_end_element (reader);
                     }
-                  g_debug ("%s -> %s", key, plugins);
-                  prefs_set (key, plugins);
+                  g_debug ("%s -> %s", key, values);
+                  prefs_set (key, values);
+                  free (values);
                 }
               json_reader_end_member (reader);
             }
@@ -413,7 +408,7 @@ overwrite_openvas_prefs_with_prefs_from_client (struct scan_globals *globals)
   prefs_set ("ALIVE_TEST", "2");
 
   // Subscribe to topic
-  sprintf (topic_sub, "%s/scan/info", context);
+  snprintf (topic_sub, 128, "%s/scan/info", context);
   if (mqtt_subscribe (topic_sub))
     {
       g_message ("Subscription to %s failed", topic_sub);
@@ -426,22 +421,23 @@ overwrite_openvas_prefs_with_prefs_from_client (struct scan_globals *globals)
   seconds = time (NULL); // TODO: Get time in Nanoseconds?
   scan_id = globals->scan_id;
 
-  sprintf (topic_send, "%s/scan/cmd/director", context);
-  sprintf (msg_send,
-           "{\"message_id\":\"%s\","
-           "\"group_id\":\"%s\","
-           "\"message_type\":\"get.scan\","
-           "\"created\":%d,"
-           "\"id\":\"%s\"}",
-           msg_id, group_id, (int) seconds, scan_id);
+  snprintf (topic_send, 128, "%s/scan/cmd/director", context);
+  snprintf (msg_send, 1024,
+            "{\"message_id\":\"%s\","
+            "\"group_id\":\"%s\","
+            "\"message_type\":\"get.scan\","
+            "\"created\":%d,"
+            "\"id\":\"%s\"}",
+            msg_id, group_id, (int) seconds, scan_id);
 
   mqtt_publish (topic_send, msg_send);
   // Wait for incomming data
   mqtt_retrieve_message (&topic_recv, &topic_len, &msg_recv, &msg_len);
 
-  ret = write_json_preferences_recursive (msg_recv);
+  ret = write_json_preferences (msg_recv);
 
   free (msg_id);
+  free (group_id);
   free (topic_recv);
   free (msg_recv);
   return ret;
