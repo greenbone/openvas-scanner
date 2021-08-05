@@ -4,28 +4,23 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
-## [20.8.4]
+## [21.4.3] - Unreleased
 ### Added
 ### Changed
-- Changed defaults for installation locations [#826](https://github.com/greenbone/openvas-scanner/pull/826)
-  - SYSCONFDIR is /etc by default now
-  - LOCALSTATEDIR is /var by default now
-  - OPENVAS_RUN_DIR is /run/ospd by default now
-  - OPENVAS_FEED_LOOK_PATH is /var/lib/openvas/feed-update.lock by default now
-
 ### Deprecated
 ### Removed
 ### Fixed
 
-<<<<<<< HEAD
-[Unreleased]: https://github.com/greenbone/openvas-scanner/compare/v21.4.2...HEAD
-=======
-[20.8.4]: https://github.com/greenbone/openvas-scanner/compare/v20.8.3...openvas-20.08
->>>>>>> 661c372c (Add changelog entry)
-
+[21.4.3]: https://github.com/greenbone/openvas-scanner/compare/v21.4.2...gvmd-21.04
 
 ## [21.4.2] - 2021-08-03
+### Fixed
+- Fix clang-analyzer warnings.
+  [#791](https://github.com/greenbone/openvas/pull/791)
+  [#795](https://github.com/greenbone/openvas/pull/795)
+
 [21.4.2]: https://github.com/greenbone/openvas-scanner/compare/v21.4.1...v21.4.2
+
 
 ## [21.4.1] - 2021-06-23
 
@@ -71,18 +66,23 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 [21.4.0]: https://github.com/greenbone/openvas/compare/openvas-20.08...v21.4.0
 
 
-## [Unreleased]
+## [20.8.4]
 ### Added
 ### Changed
+- Changed defaults for installation locations [#826](https://github.com/greenbone/openvas-scanner/pull/826)
+  - SYSCONFDIR is /etc by default now
+  - LOCALSTATEDIR is /var by default now
+  - OPENVAS_RUN_DIR is /run/ospd by default now
+  - OPENVAS_FEED_LOOK_PATH is /var/lib/openvas/feed-update.lock by default now
+
 ### Deprecated
 ### Removed
 ### Fixed
 
-[Unreleased]: https://github.com/greenbone/openvas-scanner/compare/v21.4.2...HEAD
+[20.8.4]: https://github.com/greenbone/openvas-scanner/compare/v20.8.3...openvas-20.08
 
-
-## [21.4.2] - 2021-08-03
-## [20.8.3] - Unreleased - 2021-08-03### Fixed
+## [20.8.3] - 2021-08-03
+### Fixed
 
 - Fix clang-analyzer warnings.
   [#791](https://github.com/greenbone/openvas/pull/791)
@@ -90,15 +90,13 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 [20.8.3]: https://github.com/greenbone/openvas/compare/v20.8.2...openvas-20.08
 
-[21.4.2]: https://github.com/greenbone/openvas-scanner/compare/v21.4.1...v21.4.2
-
 ## [20.8.2] - 2021-06-23
 
 ### Added
 - Check for wrong names or values in the script_xrefs params.
   [#650](https://github.com/greenbone/openvas/pull/650)
   [#653](https://github.com/greenbone/openvas/pull/653)
-- Log a message if the scanner did not launch all plugins against a host. 
+- Log a message if the scanner did not launch all plugins against a host.
   [#700](https://github.com/greenbone/openvas/pull/700)
   [#734](https://github.com/greenbone/openvas/pull/734)
 
