@@ -194,90 +194,6 @@ init_signal_handlers (void)
 }
 
 /**
- * @brief Read the scan preferences from redis
- *
- * Adds preferences to the global_prefs.
- * If preference already exists in global_prefs they will be overwritten by
- * prefs from client.
- *
- * @param globals Scan ID of globals used as key to find the corresponding KB
- * where to take the preferences from. Globals also used for file upload.
- *
- * @return 0 on success, -1 if the kb is not found or no prefs are found in
- *         the kb.
- */
-// static int
-// overwrite_openvas_prefs_with_prefs_from_client (struct scan_globals *globals)
-// {
-//   char key[1024];
-//   kb_t kb;
-//   struct kb_item *res = NULL;
-
-//   g_debug ("Start loading scan preferences.");
-//   if (!globals->scan_id)
-//     return -1;
-
-//   snprintf (key, sizeof (key), "internal/%s/scanprefs", globals->scan_id);
-//   kb = kb_find (prefs_get ("db_address"), key);
-//   if (!kb)
-//     return -1;
-
-//   res = kb_item_get_all (kb, key);
-//   if (!res)
-//     return -1;
-
-//   while (res)
-//     {
-//       g_message ("Processing %s", res->v_str);
-//       gchar **pref = g_strsplit (res->v_str, "|||", 2);
-//       if (pref[0])
-//         {
-//           gchar **pref_name = g_strsplit (pref[0], ":", 3);
-//           if (pref_name[1] && pref_name[2] && !strncmp (pref_name[2], "file",
-//           4)
-//               && strcmp (pref[1], ""))
-//             {
-//               char *file_uuid = gvm_uuid_make ();
-//               int ret;
-//               g_message ("%s -> %s\n", pref[0], file_uuid);
-//               prefs_set (pref[0], file_uuid);
-//               ret = store_file (globals, pref[1], file_uuid);
-//               if (ret)
-//                 g_debug ("Load preference: Failed to upload file "
-//                          "for nvt %s preference.",
-//                          pref_name[0]);
-
-//               g_free (file_uuid);
-//             }
-//           else if (is_scanner_only_pref (pref[0]))
-//             g_warning ("%s is a scanner only preference. It can not be
-//             written "
-//                        "by the client and will be ignored.",
-//                        pref_name[0]);
-//           else
-//             {
-//               g_message ("%s -> %s\n", pref[0], pref[1] ?: "");
-//               prefs_set (pref[0], pref[1] ?: "");
-//             }
-//           g_strfreev (pref_name);
-//         }
-
-//       g_strfreev (pref);
-//       res = res->next;
-//     }
-//   kb_del_items (kb, key);
-//   snprintf (key, sizeof (key), "internal/%s", globals->scan_id);
-//   kb_item_set_str (kb, key, "ready", 0);
-//   kb_item_set_int (kb, "internal/ovas_pid", getpid ());
-//   kb_lnk_reset (kb);
-
-//   g_debug ("End loading scan preferences.");
-
-//   kb_item_free (res);
-//   return 0;
-// }
-
-/**
  * @brief Read preferences from json recursively
  *
  * Adds preferences from a json string to the global_prefs.
@@ -361,7 +277,7 @@ write_json_preferences_recursive (char *json)
               write = (char *) (malloc (sizeof (char) * len + 1));
               sprintf (write, "%d", value);
             }
-          g_message ("%s -> %s", key, write);
+          g_debug ("%s -> %s", key, write);
           prefs_set (key, write);
         }
       // list (ports, hosts)
@@ -405,7 +321,7 @@ write_json_preferences_recursive (char *json)
                   free (buf);
                   json_reader_end_element (reader);
                 }
-              g_message ("%s -> %s", key, values);
+              g_debug ("%s -> %s", key, values);
               prefs_set (key, values);
             }
         }
@@ -445,7 +361,7 @@ write_json_preferences_recursive (char *json)
                       json_reader_end_member (reader);
                       json_reader_end_element (reader);
                     }
-                  g_message ("%s -> %s", key, plugins);
+                  g_debug ("%s -> %s", key, plugins);
                   prefs_set (key, plugins);
                 }
               json_reader_end_member (reader);
@@ -493,6 +409,7 @@ overwrite_openvas_prefs_with_prefs_from_client (struct scan_globals *globals)
   int ret;
 
   // Set a few defaults
+  // TODO: Get alive test via mqtt
   prefs_set ("ALIVE_TEST", "2");
 
   // Subscribe to topic
