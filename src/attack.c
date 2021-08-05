@@ -104,7 +104,24 @@ struct attack_start_args
 static int
 connect_main_kb (kb_t *main_kb)
 {
-  int i = atoi (prefs_get ("ov_maindbid"));
+  const gchar *ov_maindb = prefs_get ("ov_maindbid");
+  if (!ov_maindb)
+    {
+      g_message ("No main db found, creating new one");
+      if (kb_new (main_kb, prefs_get ("db_address") ?: KB_PATH_DEFAULT))
+        {
+          g_error ("Unable to create main_db");
+          return -1;
+        }
+      int i = kb_get_kb_index (*main_kb);
+      char id[5];
+      snprintf (id, 5, "%d", i);
+      g_message ("Created new main db with id %d", i);
+      prefs_set ("ov_maindbid", id);
+      prefs_set ("maindb_set", "yes");
+      return 0;
+    }
+  int i = atoi (ov_maindb);
 
   *main_kb = kb_direct_conn (prefs_get ("db_address"), i);
   if (main_kb)
@@ -1055,7 +1072,6 @@ attack_network (struct scan_globals *globals)
   kb_t host_kb, main_kb;
   GSList *unresolved;
   char buf[96];
-
   check_deprecated_prefs ();
 
   gboolean test_alive_hosts_only = prefs_get_bool ("test_alive_hosts_only");
@@ -1065,17 +1081,18 @@ attack_network (struct scan_globals *globals)
     connect_main_kb (&alive_hosts_kb);
 
   gettimeofday (&then, NULL);
-
   if (check_kb_access ())
-    return;
-
+    {
+      g_error ("No access to redis kb");
+      return;
+    }
   /* Init and check Target List */
   hostlist = prefs_get ("TARGET");
   if (hostlist == NULL)
     {
+      g_error ("Target list is empty");
       return;
     }
-
   /* Verify the port range is a valid one */
   port_range = prefs_get ("port_range");
   if (validate_port_range (port_range))
@@ -1085,13 +1102,12 @@ attack_network (struct scan_globals *globals)
         main_kb, "Invalid port list. Ports must be in the range [1-65535]",
         NULL, NULL, "ERRMSG");
       kb_lnk_reset (main_kb);
-      g_warning ("Invalid port list. Ports must be in the range [1-65535]. "
-                 "Scan terminated.");
+      g_error ("Invalid port list. Ports must be in the range [1-65535]. "
+               "Scan terminated.");
       set_scan_status ("finished");
 
       return;
     }
-
   /* Initialize the attack. */
   int plugins_init_error = 0;
   sched = plugins_scheduler_init (prefs_get ("plugin_set"),
@@ -1102,7 +1118,6 @@ attack_network (struct scan_globals *globals)
       g_message ("Couldn't initialize the plugin scheduler");
       return;
     }
-
   if (plugins_init_error > 0)
     {
       sprintf (buf,
@@ -1111,19 +1126,19 @@ attack_network (struct scan_globals *globals)
                plugins_init_error);
 
       connect_main_kb (&main_kb);
+      g_error ("%s", buf);
       message_to_client (main_kb, buf, NULL, NULL, "ERRMSG");
       kb_lnk_reset (main_kb);
-    }
-
+    };
   max_hosts = get_max_hosts_number ();
   max_checks = get_max_checks_number ();
-
   hosts = gvm_hosts_new (hostlist);
   if (hosts == NULL)
     {
       char *buffer;
       buffer = g_strdup_printf ("Invalid target list: %s.", hostlist);
       connect_main_kb (&main_kb);
+      g_error ("%s", buffer);
       message_to_client (main_kb, buffer, NULL, NULL, "ERRMSG");
       g_free (buffer);
       /* Send the hosts count to the client as -1,
@@ -1134,7 +1149,6 @@ attack_network (struct scan_globals *globals)
       g_warning ("Invalid target list. Scan terminated.");
       goto stop;
     }
-
   unresolved = gvm_hosts_resolve (hosts);
   while (unresolved)
     {
@@ -1142,7 +1156,6 @@ attack_network (struct scan_globals *globals)
       unresolved = unresolved->next;
     }
   g_slist_free_full (unresolved, g_free);
-
   /* Apply Hosts preferences. */
   apply_hosts_preferences_ordering (hosts);
   apply_hosts_reverse_lookup_preferences (hosts);
@@ -1405,8 +1418,14 @@ stop:
                gvm_hosts_count (hosts));
 
   gvm_hosts_free (hosts);
-  if (test_alive_hosts_only)
-    gvm_hosts_free (alive_hosts_list);
+  // if (test_alive_hosts_only)
+  //   gvm_hosts_free (alive_hosts_list);
 
+  printf ("free maindb\n");
+  if (prefs_get_bool ("maindb_set"))
+    {
+      kb_delete (alive_hosts_kb);
+    }
+  printf ("set scan status as finished\n");
   set_scan_status ("finished");
 }
