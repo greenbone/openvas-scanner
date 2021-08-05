@@ -37,11 +37,9 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 - Initialize the the kb to store results for openvas-nasl [#735](https://github.com/greenbone/openvas/pull/735)
 - Fix unittest. Mock kb_lnk_reset. [#748](https://github.com/greenbone/openvas/pull/748)
 
-### Removed
+[21.4.1]: https://github.com/greenbone/openvas/compare/v21.4.0...v21.4.1
 
-[21.4.1]: https://github.com/greenbone/openvas/compare/v21.4.1...openvas-21.04
-
-## [21.4.0] (2021-04-15)
+## [21.4.0] - 2021-04-15
 
 ### Added
 - Add scanner-only option to enable tls debugging. [#558](https://github.com/greenbone/openvas/pull/558)
@@ -66,7 +64,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 [21.4.0]: https://github.com/greenbone/openvas/compare/openvas-20.08...v21.4.0
 
 
-## [20.8.4]
+## [20.8.4] (unreleased)
 ### Added
 ### Changed
 - Changed defaults for installation locations [#826](https://github.com/greenbone/openvas-scanner/pull/826)
@@ -88,7 +86,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
   [#791](https://github.com/greenbone/openvas/pull/791)
   [#795](https://github.com/greenbone/openvas/pull/795)
 
-[20.8.3]: https://github.com/greenbone/openvas/compare/v20.8.2...openvas-20.08
+[20.8.3]: https://github.com/greenbone/openvas/compare/v20.8.2...v20.8.3
 
 ## [20.8.2] - 2021-06-23
 
@@ -121,9 +119,9 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 - Remove code from the openvas daemon era. Do not flushall redis. [#689](https://github.com/greenbone/openvas/pull/689)
 - Remove deprecated option logfile. [#713](https://github.com/greenbone/openvas/pull/713)
 
-[20.8.2]: https://github.com/greenbone/openvas/compare/v20.8.1...openvas-20.08
+[20.8.2]: https://github.com/greenbone/openvas/compare/v20.8.1...v20.8.2
 
-## [20.8.1] (2021.02.01)
+## [20.8.1] - 2021-02-01
 
 ### Added
 - Extend nasl lint to detect if function parameter is used twice. [#590](https://github.com/greenbone/openvas/pull/590)
@@ -159,7 +157,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 [20.8.1]: https://github.com/greenbone/openvas/compare/v20.8.0...v20.8.1
 
-## [20.8] (2020-08-11)
+## [20.8.0] - 2020-08-11
 
 ### Added
 - Create greenbone-nvt-sync create lock file during feed sync.
@@ -217,7 +215,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 ### Removed
 - Removed "network scan" mode. This includes removal of NASL API methods "scan_phase()" and "network_targets()". Sending a "network_mode=yes" in a scanner configuration will have no effect anymore. [#493](https://github.com/greenbone/openvas/pull/493)
 
-[20.08]: https://github.com/greenbone/openvas/compare/openvas-7.0...openvas-20.08
+[20.8.0]: https://github.com/greenbone/openvas/compare/openvas-7.0...v20.8.0
 
 ## [7.0.1]
 
@@ -284,35 +282,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 [7.0.0]: https://github.com/greenbone/openvas/compare/v6.0.1...v7.0.0
 
-## [Unreleased]
-### Added
-### Changed
-### Deprecated
-### Removed
-### Fixed
-
-[Unreleased]: https://github.com/greenbone/openvas-scanner/compare/v21.4.2...HEAD
-
-
-## [21.4.2] - 2021-08-03
-## [20.8.3] - Unreleased - 2021-08-03## [21.4.2] - 2021-08-03### Fixed
-
-- Fix clang-analyzer warnings.
-  [#791](https://github.com/greenbone/openvas/pull/791)
-  [#795](https://github.com/greenbone/openvas/pull/795)
-
-[20.8.3]: https://github.com/greenbone/openvas/compare/v20.8.2...openvas-20.08
-
-
-
-### Changed
-- The call to wmiexec.py has been replaced with impacket-wmiexec, because the symlink has been added in Debian Stretch with python-impacket 0.9.15-1.
-
-[6.0.2]: https://github.com/greenbone/openvas/compare/v6.0.1...openvas-scanner-6.0
-
-[21.4.2]: https://github.com/greenbone/openvas-scanner/compare/v21.4.1...v21.4.2
-
-## [6.0.1] (2019-07-17)
+## [6.0.1] - 2019-07-17
 
 ### Added
 
@@ -334,7 +304,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 [6.0.1]: https://github.com/greenbone/openvas/compare/v6.0.0...openvas-scanner-6.0
 
-## [6.0.0] (2019-04-05)
+## [6.0.0] - 2019-04-05
 
 ### Added
 - Function to get the currently running script filename has been added.
