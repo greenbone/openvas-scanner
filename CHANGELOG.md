@@ -4,6 +4,7 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+<<<<<<< HEAD
 ## [middleware] (unreleased)
 
 ### Added
@@ -18,6 +19,9 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ## [21.10] (unreleased)
 
+=======
+## [20.8.4]
+>>>>>>> 661c372c (Add changelog entry)
 ### Added
 - Add support for volatile keys. [#682](https://github.com/greenbone/openvas/pull/682)
 - Extend nasl lint to check Syntax for Arguments for script_xref() function. [#714](https://github.com/greenbone/openvas/pull/714)
@@ -29,6 +33,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 - Add message type validation for proto_post_wrapped. [#805](https://github.com/greenbone/openvas/pull/805)
 
 ### Changed
+<<<<<<< HEAD
 - function script_bugtraq_id getting skipped, linter warns. [#724](https://github.com/greenbone/openvas/pull/724)
 - Refactor dead host status sending. [#807](https://github.com/greenbone/openvas/pull/807)
 - Refactor openvas.c.
@@ -37,6 +42,15 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ### Fixed
 
+=======
+- Changed defaults for installation locations [#826](https://github.com/greenbone/openvas-scanner/pull/826)
+  - SYSCONFDIR is /etc by default now
+  - LOCALSTATEDIR is /var by default now
+  - OPENVAS_RUN_DIR is /run/ospd by default now
+  - OPENVAS_FEED_LOOK_PATH is /var/lib/openvas/feed-update.lock by default now
+
+### Deprecated
+>>>>>>> 661c372c (Add changelog entry)
 ### Removed
 - Remove handling of source_iface related preferences. [#730](https://github.com/greenbone/openvas/pull/730)
 
@@ -78,8 +92,12 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 - Also use internal function name in some nasl log messages. [#611](https://github.com/greenbone/openvas/pull/611)
 - Move more scanner preferences to gvm-libs to make them available for openvas-nasl. [#614](https://github.com/greenbone/openvas/pull/614)
 
+<<<<<<< HEAD
 ### Removed
 - Use the nvticache name from gvm-libs, defined in nvticache.h. [#578](https://github.com/greenbone/openvas/pull/578)
+=======
+[20.8.4]: https://github.com/greenbone/openvas-scanner/compare/v20.8.3...openvas-20.08
+>>>>>>> 661c372c (Add changelog entry)
 
 [21.04.0]: https://github.com/greenbone/openvas/compare/openvas-20.08...master
 
