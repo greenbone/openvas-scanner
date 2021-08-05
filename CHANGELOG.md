@@ -4,14 +4,24 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
-## [Unreleased]
+## [20.8.4]
 ### Added
 ### Changed
+- Changed defaults for installation locations [#826](https://github.com/greenbone/openvas-scanner/pull/826)
+  - SYSCONFDIR is /etc by default now
+  - LOCALSTATEDIR is /var by default now
+  - OPENVAS_RUN_DIR is /run/ospd by default now
+  - OPENVAS_FEED_LOOK_PATH is /var/lib/openvas/feed-update.lock by default now
+
 ### Deprecated
 ### Removed
 ### Fixed
 
+<<<<<<< HEAD
 [Unreleased]: https://github.com/greenbone/openvas-scanner/compare/v21.4.2...HEAD
+=======
+[20.8.4]: https://github.com/greenbone/openvas-scanner/compare/v20.8.3...openvas-20.08
+>>>>>>> 661c372c (Add changelog entry)
 
 
 ## [21.4.2] - 2021-08-03
