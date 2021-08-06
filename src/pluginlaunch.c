@@ -239,7 +239,7 @@ simult_ports (const char *oid, const char *next_oid)
 /**
  * If another NVT with same port requirements is running, wait.
  *
- * @return -1 if MAX_PROCESSES are running, the index of the first free "slot"
+ * @return ERR_NO_FREE_SLOT if MAX_PROCESSES are running, the index of the first free "slot"
  *          in the processes array otherwise.
  */
 static int
@@ -262,7 +262,7 @@ next_free_process (kb_t kb, struct scheduler_plugin *upcoming)
   for (r = 0; r < MAX_PROCESSES; r++)
     if (processes[r].pid <= 0)
       return r;
-  return -1;
+  return ERR_NO_FREE_SLOT;
 }
 
 void
@@ -402,7 +402,15 @@ plugin_launch (struct scan_globals *globals, struct scheduler_plugin *plugin,
   pluginlaunch_wait_for_free_process (main_kb);
   p = next_free_process (main_kb, plugin);
   if (p < 0)
-    return -1;
+    {
+      g_debug ("There are currently no free slot for running a new plugins, "
+               "probably because the parallel check is temporally disabled. "
+               "Current parallel checks: %d. Old parallel checks: %d",
+               max_running_processes, old_max_running_processes);
+      usleep(250000);
+      return ERR_NO_FREE_SLOT;
+    }
+
   processes[p].plugin = plugin;
   processes[p].timeout = plugin_timeout (nvti);
   gettimeofday (&(processes[p].start), NULL);
