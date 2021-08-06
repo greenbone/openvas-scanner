@@ -407,7 +407,13 @@ pluginlaunch_wait_for_free_process (kb_t kb)
   update_running_processes (kb);
   /* Max number of processes are still running, wait for a child to exit or
    * to timeout. */
+<<<<<<< HEAD
   if (num_running_processes == max_running_processes)
+=======
+  while (
+    (num_running_processes >= max_running_processes)
+    || (num_running_processes > 0 && (check_memory () || check_sysload ())))
+>>>>>>> dd3e46dd (Check if the max running process was reached or even exceed.)
     {
       sigset_t mask;
       struct timespec ts = {0, 0};
