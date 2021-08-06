@@ -103,24 +103,7 @@ struct attack_start_args
 static int
 connect_main_kb (kb_t *main_kb)
 {
-  const gchar *ov_maindb = prefs_get ("ov_maindbid");
-  if (!ov_maindb)
-    {
-      g_message ("No main db found, creating new one");
-      if (kb_new (main_kb, prefs_get ("db_address") ?: KB_PATH_DEFAULT))
-        {
-          g_warning ("Unable to create main_db");
-          return -1;
-        }
-      int i = kb_get_kb_index (*main_kb);
-      char id[5];
-      snprintf (id, 5, "%d", i);
-      g_message ("Created new main db with id %d", i);
-      prefs_set ("ov_maindbid", id);
-      prefs_set ("maindb_set", "yes");
-      return 0;
-    }
-  int i = atoi (ov_maindb);
+  int i = atoi (prefs_get ("ov_maindbid"));
 
   *main_kb = kb_direct_conn (prefs_get ("db_address"), i);
   if (main_kb)
@@ -1431,9 +1414,5 @@ stop:
   // if (test_alive_hosts_only)
   //   gvm_hosts_free (alive_hosts_list);
 
-  if (prefs_get_bool ("maindb_set"))
-    {
-      kb_delete (alive_hosts_kb);
-    }
   set_scan_status ("finished");
 }
