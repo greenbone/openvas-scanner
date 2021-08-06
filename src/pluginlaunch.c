@@ -408,8 +408,17 @@ pluginlaunch_wait_for_free_process (kb_t kb)
   /* Max number of processes are still running, wait for a child to exit or
    * to timeout. */
 <<<<<<< HEAD
+<<<<<<< HEAD
   if (num_running_processes == max_running_processes)
 =======
+=======
+
+  if (num_running_processes >= max_running_processes)
+    g_debug ("%s. Number of running processes >= maximum running processes (%d >= %d). "
+             "Waitting for free slot for processes.",
+        __func__, num_running_processes, max_running_processes);
+
+>>>>>>> 17b38c08 (Add a debug message for this especial case.)
   while (
     (num_running_processes >= max_running_processes)
     || (num_running_processes > 0 && (check_memory () || check_sysload ())))
