@@ -29,6 +29,11 @@
 #include "pluginload.h"      /* for struct pl_class_t */
 #include "pluginscheduler.h" /* for struct plugins_scheduler_t */
 
+/**
+ * @brief Error for max. number of concurrent plugins per host reached.
+ */
+#define ERR_NO_FREE_SLOT -99
+
 void
 pluginlaunch_init (const char *);
 void pluginlaunch_wait (kb_t);
