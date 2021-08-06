@@ -403,9 +403,9 @@ plugin_launch (struct scan_globals *globals, struct scheduler_plugin *plugin,
   p = next_free_process (main_kb, plugin);
   if (p < 0)
     {
-      g_debug ("There are currently no free slot for running a new plugins, "
-               "probably because the parallel check is temporally disabled. "
-               "Current parallel checks: %d. Old parallel checks: %d",
+      g_debug ("There is currently no free slot available for starting a new "
+               "plugin, probably because the parallel check is temporarily "
+               "disabled. Current parallel checks: %d. Old parallel checks: %d",
                max_running_processes, old_max_running_processes);
       usleep (250000);
       return ERR_NO_FREE_SLOT;
@@ -473,7 +473,7 @@ pluginlaunch_wait_for_free_process (kb_t kb)
   if (num_running_processes >= max_running_processes)
     g_debug ("%s. Number of running processes >= maximum running processes (%d "
              ">= %d). "
-             "Waitting for free slot for processes.",
+             "Waiting for free slot for processes.",
              __func__, num_running_processes, max_running_processes);
 
   while (

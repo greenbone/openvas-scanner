@@ -525,7 +525,7 @@ attack_host (struct scan_globals *globals, struct in6_addr *ip, GSList *vhosts,
               else if (e == ERR_NO_FREE_SLOT)
                 {
                   g_debug (
-                    "fork() failed for %s. Not free slot to run a plugin.",
+                    "fork() failed for %s. No free slot to run a plugin.",
                     plugin->oid);
                   goto again;
                 }
