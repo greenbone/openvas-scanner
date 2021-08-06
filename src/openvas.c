@@ -196,12 +196,10 @@ init_signal_handlers (void)
 /**
  * @brief Read preferences from json
  *
- * Adds preferences from a json string to the global_prefs.
+ * Adds preferences from a json string into the global_prefs.
  * If preference already exists in global_prefs they will be overwritten by
  * prefs from json.
  *
- * @param globals Scan ID of globals used as key to find the corresponding KB
- * where to take the preferences from. Globals also used for file upload.
  * @param json String in which preferences are stored.
  * @return int 0 on success, -1 if json is empty or format is invalid.
  */
@@ -235,11 +233,11 @@ write_json_preferences (char *json)
   for (i = 0; i < num_member; i++)
     {
       gchar *key = members[i];
-      g_message ("PROCESSING %s", key);
+      g_debug ("PROCESSING %s", key);
       if (!strcmp (key, "created") || !strcmp (key, "message_type")
           || !strcmp (key, "group_id") || !strcmp (key, "message_id"))
         {
-          g_message ("skipped");
+          g_debug ("skipped");
           continue;
         }
       json_reader_read_member (reader, key);
@@ -372,6 +370,19 @@ write_json_preferences (char *json)
 }
 
 /**
+ * @brief Get the current time in milliseconds
+ *
+ * @return long time in milliseconds
+ */
+long
+get_timestamp ()
+{
+  struct timespec spec;
+  clock_gettime (CLOCK_REALTIME, &spec);
+  return spec.tv_sec * 1000 + spec.tv_nsec / 1000000;
+}
+
+/**
  * @brief Read the scan preferences from mqtt
  *
  * Adds preferences to the global_prefs.
@@ -379,7 +390,7 @@ write_json_preferences (char *json)
  * prefs from client.
  *
  * @param globals Scan ID of globals used as key to find the corresponding KB
- * where to take the preferences from. Globals also used for file upload.
+ * where to take the preferences from.
  *
  * @return 0 on success, -1 if the kb is not found or no prefs are found in
  *         the kb.
@@ -389,18 +400,15 @@ overwrite_openvas_prefs_with_prefs_from_client (struct scan_globals *globals)
 {
   char *msg_id;
   char *group_id;
-  char *context = "eulabeia"; // TODO: get from prefs
+  char *context = "eulabeia"; // TODO: get from config
   char *scan_id;
-  time_t seconds;
   char topic_send[128];
   char msg_send[1024];
-
   char topic_sub[128];
   char *topic_recv;
   char *msg_recv;
   int topic_len;
   int msg_len;
-
   int ret;
 
   // Set a few defaults
@@ -418,7 +426,6 @@ overwrite_openvas_prefs_with_prefs_from_client (struct scan_globals *globals)
   // Sned Get Scan
   msg_id = gvm_uuid_make ();
   group_id = gvm_uuid_make ();
-  seconds = time (NULL); // TODO: Get time in Nanoseconds?
   scan_id = globals->scan_id;
 
   snprintf (topic_send, 128, "%s/scan/cmd/director", context);
@@ -426,9 +433,9 @@ overwrite_openvas_prefs_with_prefs_from_client (struct scan_globals *globals)
             "{\"message_id\":\"%s\","
             "\"group_id\":\"%s\","
             "\"message_type\":\"get.scan\","
-            "\"created\":%d,"
+            "\"created\":%ld,"
             "\"id\":\"%s\"}",
-            msg_id, group_id, (int) seconds, scan_id);
+            msg_id, group_id, get_timestamp (), scan_id);
 
   mqtt_publish (topic_send, msg_send);
   // Wait for incomming data
@@ -558,6 +565,48 @@ stop_single_task_scan (void)
 }
 
 /**
+ * @brief Creates the main kb and inserts the scan id
+ *
+ * @param scan_id
+ * @return int 0 on success, -1 on failure
+ */
+int
+create_main_kb (const char *scan_id)
+{
+  kb_t main_kb;
+  printf ("db_address: %s\n", prefs_get ("db_address"));
+  if (kb_new (&main_kb, prefs_get ("db_address") ?: KB_PATH_DEFAULT))
+    {
+      return -1;
+    }
+  int i = kb_get_kb_index (main_kb);
+  char id[5];
+  snprintf (id, 5, "%d", i);
+  g_debug ("Created new main db with id %d", i);
+  prefs_set ("ov_maindbid", id);
+
+  kb_item_add_str_unique (main_kb, "internal/scanid", scan_id, strlen (scan_id),
+                          0);
+  return 0;
+}
+
+/**
+ * @brief Deletes the main kb
+ *
+ * @return int 0 on success, non-null on error
+ */
+int
+delete_main_kb ()
+{
+  kb_t main_kb;
+  int i = atoi (prefs_get ("ov_maindbid"));
+
+  main_kb = kb_direct_conn (prefs_get ("db_address"), i);
+
+  return kb_delete (main_kb);
+}
+
+/**
  * @brief Set up data needed for attack_network().
  *
  * @param globals scan_globals needed for client preference handling.
@@ -570,6 +619,12 @@ attack_network_init (struct scan_globals *globals, const gchar *config_file)
 
   set_default_openvas_prefs ();
   prefs_config (config_file);
+
+  if (create_main_kb (globals->scan_id))
+    {
+      g_warning ("%s: Failed to create main db.", __func__);
+      exit (1);
+    }
 
   /* Init MQTT communication */
   mqtt_server_uri = prefs_get ("mqtt_server_uri");
@@ -605,6 +660,12 @@ attack_network_init (struct scan_globals *globals, const gchar *config_file)
       g_warning ("No preferences found for the scan %s", globals->scan_id);
       exit (0);
     }
+}
+
+void
+attack_network_cleanup ()
+{
+  delete_main_kb ();
 }
 
 /**
@@ -734,6 +795,7 @@ openvas (int argc, char *argv[])
       attack_network_init (globals, config_file);
       g_message ("attack_network_init successfully executed");
       attack_network (globals);
+      attack_network_cleanup ();
 
       gvm_close_sentry ();
       exit (0);
