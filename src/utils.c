@@ -320,3 +320,16 @@ is_scanner_only_pref (const char *pref)
     return 1;
   return 0;
 }
+
+/**
+ * @brief Get the current time in milliseconds
+ *
+ * @return long time in milliseconds
+ */
+long
+get_timestamp ()
+{
+  struct timespec spec;
+  clock_gettime (CLOCK_REALTIME, &spec);
+  return spec.tv_sec * 1000 + spec.tv_nsec / 1000000;
+}

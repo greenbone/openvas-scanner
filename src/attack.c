@@ -51,6 +51,7 @@
 #include <gvm/boreas/boreas_io.h>      /* for get_host_from_queue() */
 #include <gvm/util/mqtt.h>
 #include <gvm/util/nvticache.h> /* for nvticache_t */
+#include <gvm/util/uuidutils.h> /* gvm_uuid_make */
 #include <pthread.h>
 #include <stdlib.h>   /* for exit() */
 #include <string.h>   /* for strlen() */
@@ -128,24 +129,39 @@ set_kb_readable (int host_kb_index)
 }
 
 /**
- * @brief Set scan status. This helps ospd-openvas to
- * identify if a scan crashed or finished cleanly.
+ * @brief Set scan status via mqtt. This helps to identify the state of the
+ * scan.
  *
  * @param[in] status Status to set.
  */
 static void
 set_scan_status (char *status)
 {
-  kb_t main_kb = NULL;
-  char buffer[96];
-  char *scan_id = NULL;
+  char msg_send[1024];
+  char topic_send[128];
+  char *context = "eulabeia"; // TODO: set context with config
 
+  kb_t main_kb = NULL;
+  char *msg_id = gvm_uuid_make ();
+  char *group_id = gvm_uuid_make ();
   connect_main_kb (&main_kb);
-  scan_id = kb_item_get_str (main_kb, ("internal/scanid"));
-  snprintf (buffer, sizeof (buffer), "internal/%s", scan_id);
-  kb_item_set_str (main_kb, buffer, status, 0);
-  kb_lnk_reset (main_kb);
-  g_free (scan_id);
+  char *scan_id = kb_item_get_str (main_kb, ("internal/scanid"));
+
+  snprintf (topic_send, 128, "%s/scan/info", context);
+
+  snprintf (msg_send, 1024,
+            "{\"message_id\":\"%s\","
+            "\"group_id\":\"%s\","
+            "\"message_type\":\"scan.status\","
+            "\"created\":%ld,"
+            "\"id\":\"%s\","
+            "\"status\":\"%s\"}",
+            msg_id, group_id, get_timestamp (), scan_id, status);
+
+  mqtt_publish (topic_send, msg_send);
+
+  free (msg_id);
+  free (group_id);
 }
 
 /**
@@ -1171,6 +1187,8 @@ attack_network (struct scan_globals *globals)
              "%s, with max_hosts = %d and max_checks = %d",
              globals->scan_id, gvm_hosts_count (hosts), hostlist, max_hosts,
              max_checks);
+
+  set_scan_status ("running");
 
   if (test_alive_hosts_only)
     {
