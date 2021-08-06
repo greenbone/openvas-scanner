@@ -462,7 +462,7 @@ pluginlaunch_wait_for_free_process (kb_t kb)
   /* Max number of processes are still running, wait for a child to exit or
    * to timeout. */
   while (
-    (num_running_processes == max_running_processes)
+    (num_running_processes >= max_running_processes)
     || (num_running_processes > 0 && (check_memory () || check_sysload ())))
     {
       sigset_t mask;
