@@ -7,6 +7,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 ## [middleware] (unreleased)
 
 ### Added
+<<<<<<< HEAD
 - Add MQTT and json support.
   Original
   [#739](https://github.com/greenbone/openvas/pull/739)
@@ -17,6 +18,13 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 - Add nvti info to openvas results. [#809](https://github.com/greenbone/openvas/pull/809)
 
 ## [21.10] (unreleased)
+=======
+### Changed
+### Deprecated
+### Removed
+### Fixed
+Fix interrupted scan, when the process table is full. [#832](https://github.com/greenbone/openvas-scanner/pull/832)
+>>>>>>> 0dbce72d (Add Changelog and fix format.)
 
 ### Added
 - Add support for volatile keys. [#682](https://github.com/greenbone/openvas/pull/682)
