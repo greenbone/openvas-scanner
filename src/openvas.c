@@ -204,7 +204,7 @@ init_signal_handlers (void)
  * @return int 0 on success, -1 if json is empty or format is invalid.
  */
 static int
-write_json_preferences (char *json)
+write_json_to_preferences (char *json)
 {
   JsonParser *parser;
   JsonReader *reader;
@@ -233,11 +233,11 @@ write_json_preferences (char *json)
   for (i = 0; i < num_member; i++)
     {
       gchar *key = members[i];
-      g_debug ("PROCESSING %s", key);
+      g_debug ("%s: processing %s", __func__, key);
       if (!strcmp (key, "created") || !strcmp (key, "message_type")
           || !strcmp (key, "group_id") || !strcmp (key, "message_id"))
         {
-          g_debug ("skipped");
+          g_debug ("%s: skipped", __func__);
           continue;
         }
       json_reader_read_member (reader, key);
@@ -263,7 +263,7 @@ write_json_preferences (char *json)
               snprintf (buf, 20, "%ld", json_reader_get_int_value (reader));
               value = buf;
             }
-          g_debug ("%s -> %s", key, value);
+          g_debug ("%s: %s -> %s", __func__, key, value);
           prefs_set (key, value);
         }
       // list (ports, hosts)
@@ -307,7 +307,7 @@ write_json_preferences (char *json)
                   free (buf);
                   json_reader_end_element (reader);
                 }
-              g_debug ("%s -> %s", key, values);
+              g_debug ("%s: %s -> %s", __func__, key, values);
               prefs_set (key, values);
               free (values);
             }
@@ -353,7 +353,7 @@ write_json_preferences (char *json)
                       json_reader_end_member (reader);
                       json_reader_end_element (reader);
                     }
-                  g_debug ("%s -> %s", key, values);
+                  g_debug ("%s: %s -> %s", __func__, key, values);
                   prefs_set (key, values);
                   free (values);
                 }
@@ -367,19 +367,6 @@ write_json_preferences (char *json)
   g_object_unref (parser);
   g_free (members);
   return 0;
-}
-
-/**
- * @brief Get the current time in milliseconds
- *
- * @return long time in milliseconds
- */
-long
-get_timestamp ()
-{
-  struct timespec spec;
-  clock_gettime (CLOCK_REALTIME, &spec);
-  return spec.tv_sec * 1000 + spec.tv_nsec / 1000000;
 }
 
 /**
@@ -441,7 +428,7 @@ overwrite_openvas_prefs_with_prefs_from_client (struct scan_globals *globals)
   // Wait for incomming data
   mqtt_retrieve_message (&topic_recv, &topic_len, &msg_recv, &msg_len);
 
-  ret = write_json_preferences (msg_recv);
+  ret = write_json_to_preferences (msg_recv);
 
   free (msg_id);
   free (group_id);
