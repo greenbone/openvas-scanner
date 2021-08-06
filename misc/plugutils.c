@@ -649,6 +649,8 @@ proto_post_wrapped (const char *oid, struct script_infos *desc, int port,
 {
   const char *hostname = "";
   char *buffer, *data, port_s[16] = "general";
+  char topic[128];
+  const char *context;
   gchar *json;
   char ip_str[INET6_ADDRSTRLEN];
   GString *action_str;
@@ -681,13 +683,15 @@ proto_post_wrapped (const char *oid, struct script_infos *desc, int port,
   data = g_convert (buffer, -1, "UTF-8", "ISO_8859-1", NULL, &length, NULL);
 
   /* Send result via MQTT. */
+  context = prefs_get ("mqtt_context");
+  snprintf (topic, 128, "%s/scan/info", context);
   json = make_result_json_str (
     desc->globals->scan_id, msg_type_to_str (msg_type), ip_str, hostname ?: " ",
     port_s, proto, oid, action_str->str, uri ?: "");
   if (json == NULL)
     g_warning ("%s: Error while creating JSON.", __func__);
   else
-    mqtt_publish ("scanner/results", json);
+    mqtt_publish (topic, json);
   g_free (json);
 
   /* Send result via Redis. */

@@ -123,6 +123,7 @@ static openvas_option openvas_defaults[] = {
   {"plugins_timeout", G_STRINGIFY (NVT_TIMEOUT)},
   {"scanner_plugins_timeout", G_STRINGIFY (SCANNER_NVT_TIMEOUT)},
   {"db_address", KB_PATH_DEFAULT},
+  {"mqtt_context", "eulabeia"},
   {NULL, NULL}};
 
 /**
@@ -204,20 +205,23 @@ init_signal_handlers (void)
  * @return int 0 on success, -1 if json is empty or format is invalid.
  */
 static int
-write_json_to_preferences (char *json)
+write_json_to_preferences (char *json, int len)
 {
   JsonParser *parser;
   JsonReader *reader;
 
   gint num_member;
   gchar **members;
+  GError *err = NULL;
 
   int i;
 
   // Build json tree struct
   parser = json_parser_new ();
-  if (!json_parser_load_from_data (parser, json, -1, NULL))
+  if (!json_parser_load_from_data (parser, json, len, &err))
     {
+      g_warning ("%s: Unable to parse json. Reason: %s", __func__,
+                 err->message);
       return -1;
     }
   reader = json_reader_new (json_parser_get_root (parser));
@@ -225,6 +229,7 @@ write_json_to_preferences (char *json)
   num_member = json_reader_count_members (reader);
   if (num_member < 1)
     {
+      g_warning ("%s: Empty json.", __func__);
       return -1;
     }
 
@@ -385,22 +390,14 @@ write_json_to_preferences (char *json)
 static int
 overwrite_openvas_prefs_with_prefs_from_client (struct scan_globals *globals)
 {
-  char *msg_id;
-  char *group_id;
-  char *context = "eulabeia"; // TODO: get from config
-  char *scan_id;
-  char topic_send[128];
-  char msg_send[1024];
-  char topic_sub[128];
-  char *topic_recv;
-  char *msg_recv;
-  int topic_len;
-  int msg_len;
-  int ret;
+  char *msg_id, *group_id, *scan_id, *topic_recv, *msg_recv, topic_send[128],
+    msg_send[1024], topic_sub[128];
+  const char *context;
+  int topic_len, msg_len, ret;
 
-  // Set a few defaults
   // TODO: Get alive test via mqtt
   prefs_set ("ALIVE_TEST", "2");
+  context = prefs_get ("mqtt_context");
 
   // Subscribe to topic
   snprintf (topic_sub, 128, "%s/scan/info", context);
@@ -428,7 +425,7 @@ overwrite_openvas_prefs_with_prefs_from_client (struct scan_globals *globals)
   // Wait for incomming data
   mqtt_retrieve_message (&topic_recv, &topic_len, &msg_recv, &msg_len);
 
-  ret = write_json_to_preferences (msg_recv);
+  ret = write_json_to_preferences (msg_recv, msg_len);
 
   free (msg_id);
   free (group_id);

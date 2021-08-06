@@ -140,8 +140,8 @@ set_scan_status (char *status)
 {
   char msg_send[1024];
   char topic_send[128];
-  char *context = "eulabeia"; // TODO: set context with config
 
+  const char *context = prefs_get ("mqtt_context");
   kb_t main_kb = NULL;
   char *msg_id = gvm_uuid_make ();
   char *group_id = gvm_uuid_make ();
@@ -1419,6 +1419,8 @@ stop:
                gvm_hosts_count (hosts));
 
   gvm_hosts_free (hosts);
+  // TODO: this causes a free(): invalid pointer
+  // Further investigation necessary
   // if (test_alive_hosts_only)
   //   gvm_hosts_free (alive_hosts_list);
 
