@@ -432,7 +432,10 @@ launch_plugin (struct scan_globals *globals, struct scheduler_plugin *plugin,
   if (pid < 0)
     {
       plugin->running_state = PLUGIN_STATUS_UNRUN;
-      ret = ERR_CANT_FORK;
+      if (pid == ERR_NO_FREE_SLOT )
+        ret = ERR_NO_FREE_SLOT;
+      else
+        ret = ERR_CANT_FORK;
       goto finish_launch_plugin;
     }
 
@@ -519,13 +522,19 @@ attack_host (struct scan_globals *globals, struct in6_addr *ip, GSList *vhosts,
                   kb_item_push_str (main_kb, "internal/results", buffer);
                   goto host_died;
                 }
+              else if (e == ERR_NO_FREE_SLOT)
+                {
+                  g_debug ("fork() failed for %s. Not free slot to run a plugin.",
+                           plugin->oid);
+                  goto again;
+                }
               else if (e == ERR_CANT_FORK)
                 {
                   if (forks_retry < MAX_FORK_RETRIES)
                     {
                       forks_retry++;
-                      g_debug ("fork() failed - sleeping %d seconds (%s)",
-                               forks_retry, strerror (errno));
+                      g_debug ("fork() failed for %s - sleeping %d seconds (%s)",
+                               plugin->oid, forks_retry, strerror (errno));
                       fork_sleep (forks_retry);
                       goto again;
                     }
