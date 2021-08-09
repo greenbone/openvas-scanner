@@ -7,7 +7,6 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 ## [middleware] (unreleased)
 
 ### Added
-<<<<<<< HEAD
 - Add MQTT and json support.
   Original
   [#739](https://github.com/greenbone/openvas/pull/739)
@@ -18,13 +17,6 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 - Add nvti info to openvas results. [#809](https://github.com/greenbone/openvas/pull/809)
 
 ## [21.10] (unreleased)
-=======
-### Changed
-### Deprecated
-### Removed
-### Fixed
-Fix interrupted scan, when the process table is full. [#832](https://github.com/greenbone/openvas-scanner/pull/832)
->>>>>>> 0dbce72d (Add Changelog and fix format.)
 
 ### Added
 - Add support for volatile keys. [#682](https://github.com/greenbone/openvas/pull/682)
@@ -44,16 +36,34 @@ Fix interrupted scan, when the process table is full. [#832](https://github.com/
   [#811](https://github.com/greenbone/openvas/pull/811)
 
 ### Fixed
-
 ### Removed
 - Remove handling of source_iface related preferences. [#730](https://github.com/greenbone/openvas/pull/730)
 
 [21.10]: https://github.com/greenbone/openvas-scanner/compare/openvas-21.04...master
 
-## [21.04.1] (unreleased)
-
+## [21.4.3] (unreleased)
 ### Added
-- Improve nasl linter to catch more cases of undeclared variables. [#728][(https://github.com/greenbone/openvas-scanner/pull/728)
+### Changed
+### Deprecated
+### Removed
+### Fixed
+Fix interrupted scan, when the process table is full. [#832](https://github.com/greenbone/openvas-scanner/pull/832)
+
+[21.4.3]: https://github.com/greenbone/openvas-scanner/compare/v21.4.2...gvmd-21.04
+
+## [21.4.2] - 2021-08-03
+### Fixed
+- Fix clang-analyzer warnings.
+  [#791](https://github.com/greenbone/openvas/pull/791)
+  [#795](https://github.com/greenbone/openvas/pull/795)
+
+[21.4.2]: https://github.com/greenbone/openvas-scanner/compare/v21.4.1...v21.4.2
+
+## [21.4.1] - 2021-06-23
+### Added
+- Improve nasl linter to catch more cases of undeclared variables. [#728](https://github.com/greenbone/openvas-scanner/pull/728)
+- Add deprecation warning for source_iface related settings which will be removed with the 21.10 release. [#732](https://github.com/greenbone/openvas-scanner/pull/732)
+- New Credentials for SSH to get su privileges. Backport of [#744](https://github.com/greenbone/openvas-scanner/pull/744). [#753](https://github.com/greenbone/openvas-scanner/pull/753)
 
 ### Changed
 - Update default log config [#711](https://github.com/greenbone/openvas-scanner/pull/711)
@@ -65,7 +75,7 @@ Fix interrupted scan, when the process table is full. [#832](https://github.com/
 
 ### Removed
 
-[21.04.1]: https://github.com/greenbone/openvas/compare/v21.4.0...openvas-21.04
+[21.4.1]: https://github.com/greenbone/openvas/compare/v21.4.1...openvas-21.04
 
 ## [21.04.0] (2021-04-15)
 
