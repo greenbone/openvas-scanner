@@ -4,70 +4,7 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
-<<<<<<< HEAD
-=======
-## [21.4.3] - Unreleased
-### Added
-### Changed
-### Deprecated
-### Removed
-### Fixed
-Fix interrupted scan, when the process table is full. [#832](https://github.com/greenbone/openvas-scanner/pull/832)
 
-[21.4.3]: https://github.com/greenbone/openvas-scanner/compare/v21.4.2...gvmd-21.04
-
-## [21.4.2] - 2021-08-03
-### Fixed
-- Fix clang-analyzer warnings.
-  [#791](https://github.com/greenbone/openvas/pull/791)
-  [#795](https://github.com/greenbone/openvas/pull/795)
-
-[21.4.2]: https://github.com/greenbone/openvas-scanner/compare/v21.4.1...v21.4.2
-
-
-## [21.4.1] - 2021-06-23
-
-### Added
-- Improve nasl linter to catch more cases of undeclared variables. [#728](https://github.com/greenbone/openvas-scanner/pull/728)
-- Add deprecation warning for source_iface related settings which will be removed with the 21.10 release. [#732](https://github.com/greenbone/openvas-scanner/pull/732)
-- New Credentials for SSH to get su privileges. Backport of [#744](https://github.com/greenbone/openvas-scanner/pull/744). [#753](https://github.com/greenbone/openvas-scanner/pull/753)
-
-### Changed
-- Update default log config [#711](https://github.com/greenbone/openvas-scanner/pull/711)
-
-### Fixed
-- Use host from the original hosts list when boreas is enabled. [#725](https://github.com/greenbone/openvas/pull/725)
-- Initialize the the kb to store results for openvas-nasl [#735](https://github.com/greenbone/openvas/pull/735)
-- Fix unittest. Mock kb_lnk_reset. [#748](https://github.com/greenbone/openvas/pull/748)
-
-[21.4.1]: https://github.com/greenbone/openvas/compare/v21.4.0...v21.4.1
-
-## [21.4.0] - 2021-04-15
-
-### Added
-- Add scanner-only option to enable tls debugging. [#558](https://github.com/greenbone/openvas/pull/558)
-- Extend nasl lint to detect if function parameter is used twice. [#585](https://github.com/greenbone/openvas/pull/585)
-- Add option to specify if a host can be scanned through its IPv4 and IPv6 in parallel.
-  [#604](https://github.com/greenbone/openvas/pull/604)
-  [#645](https://github.com/greenbone/openvas/pull/645)
-- Add insert_tcp_options and insert_tcp_v6_options nasl functions. [#618](https://github.com/greenbone/openvas/pull/618)
-- Add get_tcp_option and extend dump_tcp_packet nasl functions. [#621](https://github.com/greenbone/openvas/pull/621)
-- Add new scanner only option for spawning NASL functions with a different owner. [#634](https://github.com/greenbone/openvas/pull/634)
-- Add debug logs for allow_simultaneous_ips=no. [#685](https://github.com/greenbone/openvas/pull/685)
-- Add min_free_mem and max_sysload scanner only options. [#690](https://github.com/greenbone/openvas/pull/690)
-
-### Changed
-- Store results in main_kb instead of host_kb. [#550](https://github.com/greenbone/openvas/pull/550)
-- Also use internal function name in some nasl log messages. [#611](https://github.com/greenbone/openvas/pull/611)
-- Move more scanner preferences to gvm-libs to make them available for openvas-nasl. [#614](https://github.com/greenbone/openvas/pull/614)
-
-### Removed
-- Use the nvticache name from gvm-libs, defined in nvticache.h. [#578](https://github.com/greenbone/openvas/pull/578)
-
-[21.4.0]: https://github.com/greenbone/openvas/compare/openvas-20.08...v21.4.0
-
-
->>>>>>> 0dbce72d (Add Changelog and fix format.)
 ## [20.8.4] (unreleased)
 ### Added
 ### Changed
@@ -80,6 +17,7 @@ Fix interrupted scan, when the process table is full. [#832](https://github.com/
 ### Deprecated
 ### Removed
 ### Fixed
+Backport #832. Fix interrupted scan, when the process table is full. [#835](https://github.com/greenbone/openvas-scanner/pull/835)
 
 [20.8.4]: https://github.com/greenbone/openvas-scanner/compare/v20.8.3...openvas-20.08
 

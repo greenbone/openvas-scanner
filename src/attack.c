@@ -426,15 +426,9 @@ launch_plugin (struct scan_globals *globals, struct scheduler_plugin *plugin,
 
   /* Update vhosts list and start the plugin */
   check_new_vhosts ();
-<<<<<<< HEAD
-  pid = plugin_launch (globals, plugin, ip, vhosts, kb, nvti);
-  if (pid < 0)
-=======
   launch_error = 0;
-  pid = plugin_launch (globals, plugin, ip, vhosts, kb, main_kb, nvti,
-                       &launch_error);
+  pid = plugin_launch (globals, plugin, ip, vhosts, kb, nvti, &launch_error);
   if (launch_error == ERR_NO_FREE_SLOT || launch_error == ERR_CANT_FORK)
->>>>>>> b43156e8 (Improve error handling for plugin_launch.)
     {
       plugin->running_state = PLUGIN_STATUS_UNRUN;
       ret = launch_error;

@@ -48,11 +48,7 @@ pluginlaunch_stop (void);
 
 int
 plugin_launch (struct scan_globals *, struct scheduler_plugin *,
-<<<<<<< HEAD
-               struct in6_addr *, GSList *, kb_t, nvti_t *);
-=======
-               struct in6_addr *, GSList *, kb_t, kb_t, nvti_t *, int *);
->>>>>>> b43156e8 (Improve error handling for plugin_launch.)
+               struct in6_addr *, GSList *, kb_t, nvti_t *, int *);
 
 void
 pluginlaunch_disable_parallel_checks (void);

@@ -348,12 +348,8 @@ plugin_timeout (nvti_t *nvti)
  */
 int
 plugin_launch (struct scan_globals *globals, struct scheduler_plugin *plugin,
-<<<<<<< HEAD
-               struct in6_addr *ip, GSList *vhosts, kb_t kb, nvti_t *nvti)
-=======
-               struct in6_addr *ip, GSList *vhosts, kb_t kb, kb_t main_kb,
-               nvti_t *nvti, int *error)
->>>>>>> b43156e8 (Improve error handling for plugin_launch.)
+               struct in6_addr *ip, GSList *vhosts, kb_t kb, nvti_t *nvti,
+               int *error)
 {
   int p;
 
@@ -428,26 +424,15 @@ pluginlaunch_wait_for_free_process (kb_t kb)
   update_running_processes (kb);
   /* Max number of processes are still running, wait for a child to exit or
    * to timeout. */
-<<<<<<< HEAD
-<<<<<<< HEAD
-  if (num_running_processes == max_running_processes)
-=======
-=======
 
   if (num_running_processes >= max_running_processes)
-    g_debug ("%s. Number of running processes >= maximum running processes (%d "
-             ">= %d). "
-             "Waiting for free slot for processes.",
-             __func__, num_running_processes, max_running_processes);
-
->>>>>>> 17b38c08 (Add a debug message for this especial case.)
-  while (
-    (num_running_processes >= max_running_processes)
-    || (num_running_processes > 0 && (check_memory () || check_sysload ())))
->>>>>>> dd3e46dd (Check if the max running process was reached or even exceed.)
     {
       sigset_t mask;
       struct timespec ts = {0, 0};
+
+      g_debug ("%s. Number of running processes >= maximum running processes "
+               "(%d >= %d). Waiting for free slot for processes.",
+               __func__, num_running_processes, max_running_processes);
 
       ts.tv_sec = timeout_running_processes ();
       assert (ts.tv_sec);
