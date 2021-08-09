@@ -854,7 +854,7 @@ nasl_ssh_userauth (lex_ctxt *lexic)
       privkeypass = kb_item_get_str (kb, "Secret/SSH/passphrase");
     }
 
-  /* Get the authentication methods onlye once per session.  */
+  /* Get the authentication methods only once per session.  */
   if (!session_table[tbl_slot].authmethods_valid)
     {
       if (!get_authmethods (tbl_slot))
@@ -1035,7 +1035,7 @@ nasl_ssh_login_interactive (lex_ctxt *lexic)
   if (!session_table[tbl_slot].user_set && !nasl_ssh_set_login (lexic))
     return NULL;
 
-  /* Get the authentication methods onlye once per session.  */
+  /* Get the authentication methods only once per session.  */
   if (!session_table[tbl_slot].authmethods_valid)
     {
       if (!get_authmethods (tbl_slot))
