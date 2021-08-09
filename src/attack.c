@@ -58,7 +58,6 @@
 #include <unistd.h>   /* for close() */
 
 #define ERR_HOST_DEAD -1
-#define ERR_CANT_FORK -2
 
 #define MAX_FORK_RETRIES 10
 /**
@@ -443,13 +442,14 @@ run_table_driven_lsc (const char *scan_id, kb_t kb, const char *ip_str,
  * Does not launch a plugin twice if !save_kb_replay.
  *
  * @return ERR_HOST_DEAD if host died, ERR_CANT_FORK if forking failed,
- *         0 otherwise.
+ *         ERR_NO_FREE_SLOT if the process table is full, 0 otherwise.
  */
 static int
 launch_plugin (struct scan_globals *globals, struct scheduler_plugin *plugin,
                struct in6_addr *ip, GSList *vhosts, kb_t kb, kb_t main_kb)
 {
-  int optimize = prefs_get_bool ("optimize_test"), pid, ret = 0;
+  int optimize = prefs_get_bool ("optimize_test");
+  int launch_error, pid, ret = 0;
   char *oid, *name, *error = NULL, ip_str[INET6_ADDRSTRLEN];
   nvti_t *nvti;
 
@@ -525,14 +525,13 @@ launch_plugin (struct scan_globals *globals, struct scheduler_plugin *plugin,
 
   /* Update vhosts list and start the plugin */
   check_new_vhosts ();
-  pid = plugin_launch (globals, plugin, ip, vhosts, kb, main_kb, nvti);
-  if (pid < 0)
+  launch_error = 0;
+  pid = plugin_launch (globals, plugin, ip, vhosts, kb, main_kb, nvti,
+                       &launch_error);
+  if (launch_error == ERR_NO_FREE_SLOT || launch_error == ERR_CANT_FORK)
     {
       plugin->running_state = PLUGIN_STATUS_UNRUN;
-      if (pid == ERR_NO_FREE_SLOT)
-        ret = ERR_NO_FREE_SLOT;
-      else
-        ret = ERR_CANT_FORK;
+      ret = launch_error;
       goto finish_launch_plugin;
     }
 
@@ -620,17 +619,23 @@ attack_host (struct scan_globals *globals, struct in6_addr *ip, GSList *vhosts,
                 }
               else if (e == ERR_NO_FREE_SLOT)
                 {
-                  g_debug (
-                    "fork() failed for %s. No free slot to run a plugin.",
-                    plugin->oid);
-                  goto again;
+                  if (forks_retry < MAX_FORK_RETRIES)
+                    {
+                      forks_retry++;
+                      g_warning ("Launch failed for %s. No free slot available "
+                                 "in the internal process table for starting a "
+                                 "plugin.",
+                                 plugin->oid);
+                      fork_sleep (forks_retry);
+                      goto again;
+                    }
                 }
               else if (e == ERR_CANT_FORK)
                 {
                   if (forks_retry < MAX_FORK_RETRIES)
                     {
                       forks_retry++;
-                      g_debug (
+                      g_warning (
                         "fork() failed for %s - sleeping %d seconds (%s)",
                         plugin->oid, forks_retry, strerror (errno));
                       fork_sleep (forks_retry);
@@ -638,7 +643,7 @@ attack_host (struct scan_globals *globals, struct in6_addr *ip, GSList *vhosts,
                     }
                   else
                     {
-                      g_debug ("fork() failed too many times - aborting");
+                      g_warning ("fork() failed too many times - aborting");
                       goto host_died;
                     }
                 }
