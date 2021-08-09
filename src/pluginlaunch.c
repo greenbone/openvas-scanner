@@ -239,8 +239,8 @@ simult_ports (const char *oid, const char *next_oid)
 /**
  * If another NVT with same port requirements is running, wait.
  *
- * @return -1 if MAX_PROCESSES are running, the index of the first free "slot"
- *          in the processes array otherwise.
+ * @return ERR_NO_FREE_SLOT if MAX_PROCESSES are running, the index of the first
+ * free "slot" in the processes array otherwise.
  */
 static int
 next_free_process (kb_t kb, struct scheduler_plugin *upcoming)
@@ -262,7 +262,7 @@ next_free_process (kb_t kb, struct scheduler_plugin *upcoming)
   for (r = 0; r < MAX_PROCESSES; r++)
     if (processes[r].pid <= 0)
       return r;
-  return -1;
+  return ERR_NO_FREE_SLOT;
 }
 
 void
@@ -388,13 +388,20 @@ check_sysload ()
 }
 
 /**
+ * @brief Start a plugin.
+ *
+ * Check for free slots available in the process table. Set error with
+ * ERR_NO_FREE_SLOT if the process table is full. Set error with ERR_CANT_FORK
+ * if was not possible to fork() a new child.
+ *
  * @return PID of process that is connected to the plugin as returned by plugin
- *         classes pl_launch function (<=0 means there was a problem).
+ *         classes pl_launch function. Less than 0 means there was a problem,
+ *         but error param should be checked.
  */
 int
 plugin_launch (struct scan_globals *globals, struct scheduler_plugin *plugin,
                struct in6_addr *ip, GSList *vhosts, kb_t kb, kb_t main_kb,
-               nvti_t *nvti)
+               nvti_t *nvti, int *error)
 {
   int p;
 
@@ -402,7 +409,14 @@ plugin_launch (struct scan_globals *globals, struct scheduler_plugin *plugin,
   pluginlaunch_wait_for_free_process (main_kb);
   p = next_free_process (main_kb, plugin);
   if (p < 0)
-    return -1;
+    {
+      g_warning ("%s. There is currently no free slot available for starting a "
+                 "new plugin.",
+                 __func__);
+      *error = ERR_NO_FREE_SLOT;
+      return -1;
+    }
+
   processes[p].plugin = plugin;
   processes[p].timeout = plugin_timeout (nvti);
   gettimeofday (&(processes[p].start), NULL);
@@ -412,8 +426,10 @@ plugin_launch (struct scan_globals *globals, struct scheduler_plugin *plugin,
   if (processes[p].pid > 0)
     num_running_processes++;
   else
-    processes[p].plugin->running_state = PLUGIN_STATUS_UNRUN;
-
+    {
+      processes[p].plugin->running_state = PLUGIN_STATUS_UNRUN;
+      *error = ERR_CANT_FORK;
+    }
   return processes[p].pid;
 }
 
@@ -461,8 +477,15 @@ pluginlaunch_wait_for_free_process (kb_t kb)
   update_running_processes (kb);
   /* Max number of processes are still running, wait for a child to exit or
    * to timeout. */
+
+  if (num_running_processes >= max_running_processes)
+    g_debug ("%s. Number of running processes >= maximum running processes (%d "
+             ">= %d). "
+             "Waiting for free slot for processes.",
+             __func__, num_running_processes, max_running_processes);
+
   while (
-    (num_running_processes == max_running_processes)
+    (num_running_processes >= max_running_processes)
     || (num_running_processes > 0 && (check_memory () || check_sysload ())))
     {
       sigset_t mask;
