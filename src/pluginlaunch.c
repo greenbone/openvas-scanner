@@ -336,12 +336,24 @@ plugin_timeout (nvti_t *nvti)
 }
 
 /**
+ * @brief Start a plugin.
+ *
+ * Check for free slots available in the process table. Set error with
+ * ERR_NO_FREE_SLOT if the process table is full. Set error with ERR_CANT_FORK
+ * if was not possible to fork() a new child.
+ *
  * @return PID of process that is connected to the plugin as returned by plugin
- *         classes pl_launch function (<=0 means there was a problem).
+ *         classes pl_launch function. Less than 0 means there was a problem,
+ *         but error param should be checked.
  */
 int
 plugin_launch (struct scan_globals *globals, struct scheduler_plugin *plugin,
+<<<<<<< HEAD
                struct in6_addr *ip, GSList *vhosts, kb_t kb, nvti_t *nvti)
+=======
+               struct in6_addr *ip, GSList *vhosts, kb_t kb, kb_t main_kb,
+               nvti_t *nvti, int *error)
+>>>>>>> b43156e8 (Improve error handling for plugin_launch.)
 {
   int p;
 
@@ -350,12 +362,11 @@ plugin_launch (struct scan_globals *globals, struct scheduler_plugin *plugin,
   p = next_free_process (kb, plugin);
   if (p < 0)
     {
-      g_debug ("There is currently no free slot available for starting a new "
-               "plugin, probably because the parallel check is temporarily "
-               "disabled. Current parallel checks: %d. Old parallel checks: %d",
-               max_running_processes, old_max_running_processes);
-      usleep (250000);
-      return ERR_NO_FREE_SLOT;
+      g_warning ("%s. There is currently no free slot available for starting a "
+                 "new plugin.",
+                 __func__);
+      *error = ERR_NO_FREE_SLOT;
+      return -1;
     }
 
   processes[p].plugin = plugin;
@@ -366,8 +377,10 @@ plugin_launch (struct scan_globals *globals, struct scheduler_plugin *plugin,
   if (processes[p].pid > 0)
     num_running_processes++;
   else
-    processes[p].plugin->running_state = PLUGIN_STATUS_UNRUN;
-
+    {
+      processes[p].plugin->running_state = PLUGIN_STATUS_UNRUN;
+      *error = ERR_CANT_FORK;
+    }
   return processes[p].pid;
 }
 

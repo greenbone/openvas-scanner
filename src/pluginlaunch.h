@@ -30,7 +30,11 @@
 #include "pluginscheduler.h" /* for struct plugins_scheduler_t */
 
 /**
- * @brief Error for max. number of concurrent plugins per host reached.
+ * @brief Error for when it is not possible to fork a new plugin process.
+ */
+#define ERR_CANT_FORK -2
+/**
+ * @brief Error for when the process table is full
  */
 #define ERR_NO_FREE_SLOT -99
 
@@ -44,7 +48,11 @@ pluginlaunch_stop (void);
 
 int
 plugin_launch (struct scan_globals *, struct scheduler_plugin *,
+<<<<<<< HEAD
                struct in6_addr *, GSList *, kb_t, nvti_t *);
+=======
+               struct in6_addr *, GSList *, kb_t, kb_t, nvti_t *, int *);
+>>>>>>> b43156e8 (Improve error handling for plugin_launch.)
 
 void
 pluginlaunch_disable_parallel_checks (void);
