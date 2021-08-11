@@ -29,6 +29,15 @@
 #include "pluginload.h"      /* for struct pl_class_t */
 #include "pluginscheduler.h" /* for struct plugins_scheduler_t */
 
+/**
+ * @brief Error for when it is not possible to fork a new plugin process.
+ */
+#define ERR_CANT_FORK -2
+/**
+ * @brief Error for when the process table is full
+ */
+#define ERR_NO_FREE_SLOT -99
+
 void
 pluginlaunch_init (const char *);
 void pluginlaunch_wait (kb_t);
@@ -39,7 +48,7 @@ pluginlaunch_stop (void);
 
 int
 plugin_launch (struct scan_globals *, struct scheduler_plugin *,
-               struct in6_addr *, GSList *, kb_t, kb_t, nvti_t *);
+               struct in6_addr *, GSList *, kb_t, kb_t, nvti_t *, int *);
 
 void
 pluginlaunch_disable_parallel_checks (void);
