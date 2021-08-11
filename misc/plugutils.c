@@ -373,10 +373,10 @@ make_table_driven_lsc_info_json_str (const char *scan_id, const char *ip_str,
   json_builder_set_member_name (builder, "scan_id");
   builder = json_builder_add_string_value (builder, scan_id);
 
-  json_builder_set_member_name (builder, "host");
+  json_builder_set_member_name (builder, "host_ip");
   json_builder_add_string_value (builder, ip_str);
 
-  json_builder_set_member_name (builder, "hostname");
+  json_builder_set_member_name (builder, "host_name");
   json_builder_add_string_value (builder, hostname);
 
   json_builder_set_member_name (builder, "module_name");
@@ -441,13 +441,13 @@ make_result_json_str (const gchar *scan_id, const gchar *type,
   json_builder_set_member_name (builder, "scan_id");
   builder = json_builder_add_string_value (builder, scan_id);
 
-  json_builder_set_member_name (builder, "type");
+  json_builder_set_member_name (builder, "result_type");
   builder = json_builder_add_string_value (builder, type);
 
   json_builder_set_member_name (builder, "host_ip");
   json_builder_add_string_value (builder, ip_str);
 
-  json_builder_set_member_name (builder, "hostname");
+  json_builder_set_member_name (builder, "host_name");
   json_builder_add_string_value (builder, hostname);
 
   port = g_strdup_printf ("%s/%s", port_s, proto);
@@ -455,7 +455,7 @@ make_result_json_str (const gchar *scan_id, const gchar *type,
   json_builder_add_string_value (builder, port);
   g_free (port);
 
-  json_builder_set_member_name (builder, "OID");
+  json_builder_set_member_name (builder, "oid");
   json_builder_add_string_value (builder, oid);
 
   json_builder_set_member_name (builder, "value");
