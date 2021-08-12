@@ -37,7 +37,7 @@ rsa_key_plain = string(
 "CsEnYYrHm6FwUDLHAPFFj/ycMPguH3XjUtUaHpQs\n",
 "-----END RSA PRIVATE KEY-----\n");
 
-# public key parameters corrsponding to rsa_key_plain
+# public key parameters corresponding to rsa_key_plain
 e = raw_string(0x23);
 n = raw_string(0x00, 0x98, 0x0b, 0x4c, 0x64, 0x1d, 0x60, 0x7e,
 	       0xee, 0x04, 0x34, 0x4c, 0x92, 0x1a, 0x04, 0x96,
