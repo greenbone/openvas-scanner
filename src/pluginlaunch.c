@@ -376,7 +376,15 @@ plugin_timeout (nvti_t *nvti)
   assert (nvti);
   timeout = prefs_nvt_timeout (nvti_oid (nvti));
   if (timeout == 0)
-    timeout = nvti_timeout (nvti);
+    {
+      const nvtpref_t *timeout_pref;
+      gchar *timeout_str;
+
+      timeout_pref = nvti_pref (nvti, NVTPREF_TIMEOUT_ID);
+      timeout = 0;
+      if ((timeout_str = nvtpref_default (timeout_pref)) != NULL)
+        timeout = atoi (timeout_str);
+    }
   if (timeout == 0)
     {
       if (nvti_category (nvti) == ACT_SCANNER)
