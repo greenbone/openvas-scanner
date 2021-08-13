@@ -33,6 +33,7 @@
 #include <gvm/base/prefs.h>      // for prefs_get_bool
 #include <gvm/util/mqtt.h>       // for mqtt_reset
 #include <gvm/util/nvticache.h>  // for nvticache_initialized
+#include <gvm/util/uuidutils.h>  /* gvm_uuid_make */
 #include <json-glib/json-glib.h>
 #include <stdio.h>    // for snprintf
 #include <stdlib.h>   // for exit
@@ -359,17 +360,35 @@ make_result_json_str (const gchar *scan_id, const gchar *type,
                       const gchar *port_s, const gchar *proto, const gchar *oid,
                       const gchar *action_str, const gchar *uri)
 {
+  // TODO replace with eulabeia c client
   JsonBuilder *builder;
   JsonGenerator *gen;
   JsonNode *root;
   gchar *port;
   gchar *json_str;
+  gchar *msg_id = gvm_uuid_make ();
+  // TODO make group_id setable
+  gchar *group_id = gvm_uuid_make ();
+  // TODO fix when using eulabeia-client; leave until then
+  long created = 0;
 
   builder = json_builder_new ();
 
   json_builder_begin_object (builder);
 
-  json_builder_set_member_name (builder, "scan_id");
+  json_builder_set_member_name (builder, "message_id");
+  builder = json_builder_add_string_value (builder, msg_id);
+
+  json_builder_set_member_name (builder, "message_type");
+  builder = json_builder_add_string_value (builder, "result.scan");
+
+  json_builder_set_member_name (builder, "group_id");
+  builder = json_builder_add_string_value (builder, group_id);
+
+  json_builder_set_member_name (builder, "created");
+  builder = json_builder_add_int_value (builder, created);
+
+  json_builder_set_member_name (builder, "id");
   builder = json_builder_add_string_value (builder, scan_id);
 
   json_builder_set_member_name (builder, "result_type");
@@ -403,6 +422,8 @@ make_result_json_str (const gchar *scan_id, const gchar *type,
   json_str = json_generator_to_data (gen, NULL);
 
   json_node_free (root);
+  g_free (msg_id);
+  g_free (group_id);
   g_object_unref (gen);
   g_object_unref (builder);
 

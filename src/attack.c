@@ -142,6 +142,7 @@ set_scan_status (char *status)
 
   const char *context = prefs_get ("mqtt_context");
   kb_t main_kb = NULL;
+  // TODO replace with eulabeia_c library
   char *msg_id = gvm_uuid_make ();
   char *group_id = gvm_uuid_make ();
   connect_main_kb (&main_kb);
