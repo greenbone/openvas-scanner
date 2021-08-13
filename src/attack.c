@@ -152,7 +152,7 @@ set_scan_status (char *status)
   snprintf (msg_send, 1024,
             "{\"message_id\":\"%s\","
             "\"group_id\":\"%s\","
-            "\"message_type\":\"scan.status\","
+            "\"message_type\":\"status.scan\","
             "\"created\":%ld,"
             "\"id\":\"%s\","
             "\"status\":\"%s\"}",
