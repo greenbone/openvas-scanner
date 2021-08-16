@@ -376,8 +376,9 @@ plugin_timeout (nvti_t *nvti)
   gchar *timeout_str;
 
   timeout = 0;
-  if ((timeout_str = get_plugin_preference (nvti_oid (nvti), "timeout", 0)) != NULL)
-        timeout = atoi (timeout_str);
+  if ((timeout_str = get_plugin_preference (nvti_oid (nvti), "timeout", 0))
+      != NULL)
+    timeout = atoi (timeout_str);
 
   if (timeout == 0)
     {
