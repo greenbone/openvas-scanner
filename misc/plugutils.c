@@ -669,12 +669,12 @@ get_plugin_preference (const char *oid, const char *name, int pref_id)
   char prefix[1024], suffix[1024];
 
   prefs = preferences_get ();
-  if (!prefs || !nvticache_initialized () || !oid || (!name && pref_id < 1))
+  if (!prefs || !nvticache_initialized () || !oid || (!name && pref_id < 0))
     return NULL;
 
   g_hash_table_iter_init (&iter, prefs);
 
-  if (pref_id > 0)
+  if (pref_id >= 0)
     {
       snprintf (prefix, sizeof (prefix), "%s:%d:", oid, pref_id);
       while (g_hash_table_iter_next (&iter, &itername, &itervalue))
