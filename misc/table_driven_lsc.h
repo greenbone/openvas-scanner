@@ -29,6 +29,6 @@
 
 gchar *
 make_table_driven_lsc_info_json_str (const char *, const char *, const char *,
-                                     const char *, const char *, const char *);
+                                     const char *, const char *);
 
 #endif // TABLE_DRIVEN_LSC_H

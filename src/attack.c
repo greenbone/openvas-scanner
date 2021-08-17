@@ -401,7 +401,6 @@ run_table_driven_lsc (const char *scan_id, kb_t kb, const char *ip_str,
   gchar *json_str;
   gchar *package_list;
   gchar *os_release;
-  gchar **module;
   int err = 0;
 
   /* Get the OS release. TODO: have a list with supported OS. */
@@ -414,15 +413,10 @@ run_table_driven_lsc (const char *scan_id, kb_t kb, const char *ip_str,
   if (NULL == package_list)
     return err;
 
-  /* Extract the OS name from the OS release.
-   * E.g. Debian 10 (Buster) -> Debian */
-  module = g_strsplit (os_release, " ", 0);
-
-  json_str = make_table_driven_lsc_info_json_str (
-    scan_id, ip_str, hostname, module[0], os_release, package_list);
+  json_str = make_table_driven_lsc_info_json_str (scan_id, ip_str, hostname,
+                                                  os_release, package_list);
   g_free (package_list);
   g_free (os_release);
-  g_strfreev (module);
 
   if (json_str == NULL)
     return -1;

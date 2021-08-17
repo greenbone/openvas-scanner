@@ -88,7 +88,7 @@ add_packages_str_to_list (JsonBuilder *builder, const gchar *packages)
  */
 gchar *
 make_table_driven_lsc_info_json_str (const char *scan_id, const char *ip_str,
-                                     const char *hostname, const char *module,
+                                     const char *hostname,
                                      const char *os_release,
                                      const char *package_list)
 {
@@ -122,9 +122,6 @@ make_table_driven_lsc_info_json_str (const char *scan_id, const char *ip_str,
 
   json_builder_set_member_name (builder, "host_name");
   json_builder_add_string_value (builder, hostname);
-
-  json_builder_set_member_name (builder, "module_name");
-  json_builder_add_string_value (builder, module);
 
   json_builder_set_member_name (builder, "os_release");
   json_builder_add_string_value (builder, os_release);
