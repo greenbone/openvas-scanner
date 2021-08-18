@@ -32,6 +32,8 @@ pkg_check_modules (LIBGVM_UTIL REQUIRED libgvm_util>=21.10)
 pkg_check_modules (GLIB REQUIRED glib-2.0>=2.42)
 pkg_check_modules (GLIB_JSON REQUIRED json-glib-1.0>=1.4.4)
 
+find_package(Eulabeia REQUIRED)
+
 message (STATUS "Looking for libgcrypt...")
 find_library (GCRYPT gcrypt)
 if (NOT GCRYPT)
@@ -169,6 +171,7 @@ endif (CMAKE_SYSTEM_NAME MATCHES "FreeBSD")
 
 target_link_libraries (openvas openvas_nasl_shared ${LIBOPENVAS_NASL_LDFLAGS}
                        ${LIBOPENVAS_MISC_LDFLAGS}
+                       Eulabeia::Eulabeia 
                        ${LIBGVM_BASE_LDFLAGS}
                        ${LIBGVM_BOREAS_LDFLAGS}
                        ${GLIB_LDFLAGS} ${GCRYPT_LDFLAGS}
@@ -193,6 +196,7 @@ add_test (attack-test attack-test)
 target_link_libraries (attack-test openvas_nasl_shared cgreen
                        ${LIBOPENVAS_NASL_LDFLAGS}
                        ${LIBOPENVAS_MISC_LDFLAGS}
+                       Eulabeia::Eulabeia 
                        ${LIBGVM_BASE_LDFLAGS}
                        ${LIBGVM_BOREAS_LDFLAGS}
                        ${GLIB_LDFLAGS} ${GCRYPT_LDFLAGS}

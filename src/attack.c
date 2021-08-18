@@ -41,6 +41,9 @@
 
 #include <arpa/inet.h> /* for inet_ntoa() */
 #include <errno.h>     /* for errno() */
+#include <eulabeia/client.h>
+#include <eulabeia/json.h>
+#include <eulabeia/types.h>
 #include <fcntl.h>
 #include <glib.h>
 #include <gvm/base/hosts.h>
@@ -128,6 +131,49 @@ set_kb_readable (int host_kb_index)
   kb_lnk_reset (main_kb);
 }
 
+static void
+send_failure (char *error)
+{
+  char *topic_send = NULL, *msg_send = NULL;
+  struct EulabeiaMessage *msg = NULL;
+
+  const char *context;
+
+  int rc;
+  struct EulabeiaFailure failure;
+
+  context = prefs_get ("mqtt_context");
+  kb_t main_kb = NULL;
+  connect_main_kb (&main_kb);
+  char *scan_id = kb_item_get_str (main_kb, ("internal/scanid"));
+  if (scan_id == NULL)
+    {
+      goto exit;
+    }
+  msg = eulabeia_initialize_message (EULABEIA_INFO_STATUS, EULABEIA_SCAN, NULL);
+  failure.id = scan_id;
+  failure.error = error;
+
+  topic_send = eulabeia_calculate_topic (EULABEIA_INFO_START_FAILURE,
+                                         EULABEIA_SCAN, context, NULL);
+
+  if ((msg_send = eulabeia_failure_message_to_json (msg, &failure)) == NULL)
+    {
+      g_warning ("%s: unable to create failure.start.scan json message",
+                 __func__);
+      goto exit;
+    }
+
+  if ((rc = mqtt_publish (topic_send, msg_send)) != 0)
+    g_warning ("%s: publish of status.scan failed (%d)", __func__, rc);
+
+exit:
+  eulabeia_message_destroy (&msg);
+  g_free (scan_id);
+  g_free (topic_send);
+  g_free (msg_send);
+}
+
 /**
  * @brief Set scan status via mqtt. This helps to identify the state of the
  * scan.
@@ -137,32 +183,43 @@ set_kb_readable (int host_kb_index)
 static void
 set_scan_status (char *status)
 {
-  char msg_send[1024];
-  char topic_send[128];
+  char *topic_send = NULL, *msg_send = NULL;
+  struct EulabeiaMessage *msg = NULL;
 
-  const char *context = prefs_get ("mqtt_context");
+  const char *context;
+
+  int rc;
+  struct EulabeiaStatus estatus;
+
+  context = prefs_get ("mqtt_context");
   kb_t main_kb = NULL;
-  // TODO replace with eulabeia_c library
-  char *msg_id = gvm_uuid_make ();
-  char *group_id = gvm_uuid_make ();
   connect_main_kb (&main_kb);
   char *scan_id = kb_item_get_str (main_kb, ("internal/scanid"));
+  if (scan_id == NULL)
+    {
+      goto exit;
+    }
+  msg = eulabeia_initialize_message (EULABEIA_INFO_STATUS, EULABEIA_SCAN, NULL);
+  estatus.id = scan_id;
+  estatus.status = status;
 
-  snprintf (topic_send, 128, "%s/scan/info", context);
+  topic_send = eulabeia_calculate_topic (EULABEIA_INFO_STATUS, EULABEIA_SCAN,
+                                         context, NULL);
 
-  snprintf (msg_send, 1024,
-            "{\"message_id\":\"%s\","
-            "\"group_id\":\"%s\","
-            "\"message_type\":\"status.scan\","
-            "\"created\":%ld,"
-            "\"id\":\"%s\","
-            "\"status\":\"%s\"}",
-            msg_id, group_id, get_timestamp (), scan_id, status);
+  if ((msg_send = eulabeia_status_message_to_json (msg, &estatus)) == NULL)
+    {
+      g_warning ("%s: unable to create status.scan json message", __func__);
+      goto exit;
+    }
 
-  mqtt_publish (topic_send, msg_send);
+  if ((rc = mqtt_publish (topic_send, msg_send)) != 0)
+    g_warning ("%s: publish of status.scan failed (%d)", __func__, rc);
 
-  free (msg_id);
-  free (group_id);
+exit:
+  eulabeia_message_destroy (&msg);
+  g_free (scan_id);
+  g_free (topic_send);
+  g_free (msg_send);
 }
 
 /**
@@ -1114,7 +1171,7 @@ attack_network (struct scan_globals *globals)
       kb_lnk_reset (main_kb);
       g_warning ("Invalid port list. Ports must be in the range [1-65535]. "
                  "Scan terminated.");
-      set_scan_status ("finished");
+      send_failure ("Invalid port list. Ports must be in the range [1-65535]");
 
       return;
     }

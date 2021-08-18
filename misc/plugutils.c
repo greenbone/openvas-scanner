@@ -28,6 +28,7 @@
 #include "network.h" // for OPENVAS_ENCAPS_IP
 
 #include <errno.h>               // for errno
+#include <eulabeia/types.h>
 #include <gvm/base/hosts.h>      // for g_vhost_t
 #include <gvm/base/networking.h> // for port_protocol_t
 #include <gvm/base/prefs.h>      // for prefs_get_bool
@@ -40,6 +41,8 @@
 #include <string.h>   // for strcmp
 #include <sys/wait.h> // for wait
 #include <unistd.h>   // for fork
+
+#include <eulabeia/json.h>
 
 #undef G_LOG_DOMAIN
 /**
@@ -360,72 +363,30 @@ make_result_json_str (const gchar *scan_id, const gchar *type,
                       const gchar *port_s, const gchar *proto, const gchar *oid,
                       const gchar *action_str, const gchar *uri)
 {
-  // TODO replace with eulabeia c client
-  JsonBuilder *builder;
-  JsonGenerator *gen;
-  JsonNode *root;
+  struct EulabeiaMessage *msg;
+  struct EulabeiaScanResult result;
+
   gchar *port;
   gchar *json_str;
-  gchar *msg_id = gvm_uuid_make ();
-  // TODO make group_id setable
-  gchar *group_id = gvm_uuid_make ();
-  // TODO fix when using eulabeia-client; leave until then
-  long created = 0;
 
-  builder = json_builder_new ();
-
-  json_builder_begin_object (builder);
-
-  json_builder_set_member_name (builder, "message_id");
-  builder = json_builder_add_string_value (builder, msg_id);
-
-  json_builder_set_member_name (builder, "message_type");
-  builder = json_builder_add_string_value (builder, "result.scan");
-
-  json_builder_set_member_name (builder, "group_id");
-  builder = json_builder_add_string_value (builder, group_id);
-
-  json_builder_set_member_name (builder, "created");
-  builder = json_builder_add_int_value (builder, created);
-
-  json_builder_set_member_name (builder, "id");
-  builder = json_builder_add_string_value (builder, scan_id);
-
-  json_builder_set_member_name (builder, "result_type");
-  builder = json_builder_add_string_value (builder, type);
-
-  json_builder_set_member_name (builder, "host_ip");
-  json_builder_add_string_value (builder, ip_str);
-
-  json_builder_set_member_name (builder, "host_name");
-  json_builder_add_string_value (builder, hostname);
-
+  if ((msg = eulabeia_initialize_message(EULABEIA_INFO_SCAN_RESULT, EULABEIA_SCAN, NULL)) == NULL){
+	  g_warning("%s: unable to initialize start.scan message", __func__);
+	  return NULL;
+  }
   port = g_strdup_printf ("%s/%s", port_s, proto);
-  json_builder_set_member_name (builder, "port");
-  json_builder_add_string_value (builder, port);
+  result.message = msg;
+  result.result_type = (char*) type;
+  result.id = (char*) scan_id;
+  result.host_ip = (char*) ip_str;
+  result.host_name = (char*) hostname;
+  result.port = port;
+  result.value = (char*) action_str;
+  result.oid = (char*) oid;
+  result.uri = (char*) uri;
+
+  json_str = eulabeia_scan_result_message_to_json(msg, &result);
+  eulabeia_message_destroy(&msg);
   g_free (port);
-
-  json_builder_set_member_name (builder, "oid");
-  json_builder_add_string_value (builder, oid);
-
-  json_builder_set_member_name (builder, "value");
-  json_builder_add_string_value (builder, action_str);
-
-  json_builder_set_member_name (builder, "uri");
-  json_builder_add_string_value (builder, uri);
-
-  json_builder_end_object (builder);
-
-  gen = json_generator_new ();
-  root = json_builder_get_root (builder);
-  json_generator_set_root (gen, root);
-  json_str = json_generator_to_data (gen, NULL);
-
-  json_node_free (root);
-  g_free (msg_id);
-  g_free (group_id);
-  g_object_unref (gen);
-  g_object_unref (builder);
 
   return json_str;
 }
