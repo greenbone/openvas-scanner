@@ -21,6 +21,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ### Changed
 - Revert [#809](https://github.com/greenbone/openvas/pull/809) and adjust json result format and json lsc info format. [#837](https://github.com/greenbone/openvas/pull/837)
+- Handle script timeout as script preference with ID 0 [#841](https://github.com/greenbone/gvm-libs/pull/841)
 
 ## [21.10] (unreleased)
 
