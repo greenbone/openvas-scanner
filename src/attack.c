@@ -25,11 +25,11 @@
 
 #include "attack.h"
 
-#include "../misc/network.h"        /* for auth_printf */
-#include "../misc/nvt_categories.h" /* for ACT_INIT */
-#include "../misc/pcap_openvas.h"   /* for v6_is_local_ip */
-#include "../misc/plugutils.h"      /*for make_table_driven_lsc_info_json_str */
-#include "../nasl/nasl_debug.h"     /* for nasl_*_filename */
+#include "../misc/network.h"          /* for auth_printf */
+#include "../misc/nvt_categories.h"   /* for ACT_INIT */
+#include "../misc/pcap_openvas.h"     /* for v6_is_local_ip */
+#include "../misc/table_driven_lsc.h" /*for make_table_driven_lsc_info_json_str */
+#include "../nasl/nasl_debug.h"       /* for nasl_*_filename */
 #include "hosts.h"
 #include "pluginlaunch.h"
 #include "pluginload.h"
@@ -401,7 +401,6 @@ run_table_driven_lsc (const char *scan_id, kb_t kb, const char *ip_str,
   gchar *json_str;
   gchar *package_list;
   gchar *os_release;
-  gchar **module;
   int err = 0;
 
   /* Get the OS release. TODO: have a list with supported OS. */
@@ -414,20 +413,15 @@ run_table_driven_lsc (const char *scan_id, kb_t kb, const char *ip_str,
   if (NULL == package_list)
     return err;
 
-  /* Extract the OS name from the OS release.
-   * E.g. Debian 10 (Buster) -> Debian */
-  module = g_strsplit (os_release, " ", 0);
-
-  json_str = make_table_driven_lsc_info_json_str (
-    scan_id, ip_str, hostname, module[0], os_release, package_list);
+  json_str = make_table_driven_lsc_info_json_str (scan_id, ip_str, hostname,
+                                                  os_release, package_list);
   g_free (package_list);
   g_free (os_release);
-  g_strfreev (module);
 
   if (json_str == NULL)
     return -1;
 
-  err = mqtt_publish ("notus/start", json_str);
+  err = mqtt_publish ("scanner/start", json_str);
   if (err != 0)
     g_warning ("%s: Error publishing message for Notus.", __func__);
 

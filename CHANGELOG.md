@@ -15,6 +15,9 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
   Reintroduction after Rebase with
   [#788](https://github.com/greenbone/openvas/pull/788)
 - Add nvti info to openvas results. [#809](https://github.com/greenbone/openvas/pull/809)
+- Notus integration mqtt. 
+  [#806](https://github.com/greenbone/openvas/pull/806)
+  [#843](https://github.com/greenbone/openvas/pull/843)
 
 ### Changed
 - Revert [#809](https://github.com/greenbone/openvas/pull/809) and adjust json result format and json lsc info format. [#837](https://github.com/greenbone/openvas/pull/837)
