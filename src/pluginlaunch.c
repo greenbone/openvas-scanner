@@ -27,6 +27,7 @@
 
 #include "../misc/network.h"
 #include "../misc/nvt_categories.h" /* for ACT_SCANNER */
+#include "../misc/plugutils.h"      /* for get_plugin_preference */
 #include "pluginload.h"
 #include "pluginscheduler.h"
 #include "plugs_req.h"
@@ -372,11 +373,13 @@ static int
 plugin_timeout (nvti_t *nvti)
 {
   int timeout;
+  gchar *timeout_str;
 
-  assert (nvti);
-  timeout = prefs_nvt_timeout (nvti_oid (nvti));
-  if (timeout == 0)
-    timeout = nvti_timeout (nvti);
+  timeout = 0;
+  if ((timeout_str = get_plugin_preference (nvti_oid (nvti), "timeout", 0))
+      != NULL)
+    timeout = atoi (timeout_str);
+
   if (timeout == 0)
     {
       if (nvti_category (nvti) == ACT_SCANNER)
