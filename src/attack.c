@@ -137,6 +137,7 @@ send_failure (char *error)
   char *topic_send = NULL, *msg_send = NULL;
   struct EulabeiaMessage *msg = NULL;
 
+  g_warning ("%s: send failure %s", __func__, error);
   const char *context;
 
   int rc;
@@ -1164,14 +1165,12 @@ attack_network (struct scan_globals *globals)
   port_range = prefs_get ("port_range");
   if (validate_port_range (port_range))
     {
+      send_failure ("Invalid port list. Ports must be in the range [1-65535]");
       connect_main_kb (&main_kb);
       message_to_client (
         main_kb, "Invalid port list. Ports must be in the range [1-65535]",
         NULL, NULL, "ERRMSG");
       kb_lnk_reset (main_kb);
-      g_warning ("Invalid port list. Ports must be in the range [1-65535]. "
-                 "Scan terminated.");
-      send_failure ("Invalid port list. Ports must be in the range [1-65535]");
 
       return;
     }
