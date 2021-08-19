@@ -1486,10 +1486,8 @@ stop:
                gvm_hosts_count (hosts));
 
   gvm_hosts_free (hosts);
-  // TODO: this causes a free(): invalid pointer
-  // Further investigation necessary
-  // if (test_alive_hosts_only)
-  //   gvm_hosts_free (alive_hosts_list);
+  if (alive_hosts_list)
+     gvm_hosts_free (alive_hosts_list);
 
   set_scan_status ("finished");
 }
