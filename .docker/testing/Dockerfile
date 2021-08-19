@@ -11,7 +11,6 @@ RUN apt-get update \
     ca-certificates \
     build-essential \
     cmake \
-    clang-tools \
     git \
     libglib2.0-dev \
     libgnutls28-dev \
