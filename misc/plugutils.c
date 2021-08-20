@@ -341,6 +341,233 @@ plug_get_host_ip_str (struct script_infos *desc)
 }
 
 /**
+ * @brief Build a json representation of a result.
+ *
+ * JSON result consists of scan_id, message type, host ip,  hostname, port
+ * together with proto, OID, result message and uri.
+ *
+ * @param scan_id     Scan Id.
+ * @param type        Type of result, like "LOG".
+ * @param ip_str      IP string of host.
+ * @param hostname    Name of host.
+ * @param port_s      Port string.
+ * @param proto       Protocol related to the issue (tcp or udp).
+ * @param action_str  The actual result text.
+ * @param uri         Location like file path or webservice URL.
+ *
+ * @return JSON string on success. Must be freed by caller. NULL on error.
+ */
+gchar *
+make_result_json_str (const gchar *scan_id, const gchar *type,
+                      const gchar *ip_str, const gchar *hostname,
+                      const gchar *port_s, const gchar *proto, const gchar *oid,
+                      const gchar *action_str, const gchar *uri)
+{
+  struct EulabeiaMessage *msg;
+  struct EulabeiaScanResult result;
+
+  gchar *port;
+  gchar *json_str;
+
+  if ((msg = eulabeia_initialize_message (EULABEIA_INFO_SCAN_RESULT,
+                                          EULABEIA_SCAN, NULL))
+      == NULL)
+    {
+      g_warning ("%s: unable to initialize start.scan message", __func__);
+      return NULL;
+    }
+  port = g_strdup_printf ("%s/%s", port_s, proto);
+  result.message = msg;
+  result.result_type = (char *) type;
+  result.id = (char *) scan_id;
+  result.host_ip = (char *) ip_str;
+  result.host_name = (char *) hostname;
+  result.port = port;
+  result.value = (char *) action_str;
+  result.oid = (char *) oid;
+  result.uri = (char *) uri;
+
+  json_str = eulabeia_scan_result_message_to_json (msg, &result);
+  eulabeia_message_destroy (&msg);
+  g_free (port);
+
+  return json_str;
+}
+
+/**
+ * @brief Return string representation of the given msg_t.
+ *
+ * @param msg msg_t to transform
+ *
+ * @return string representation of the given msg_t if successful, else NULL.
+ */
+static const char *
+msg_type_to_str (msg_t type)
+{
+  gchar *type_str;
+
+  switch (type)
+    {
+    case ERRMSG:
+      type_str = "ERRMSG";
+      break;
+    case HOST_START:
+      type_str = "HOST_START";
+      break;
+    case HOST_END:
+      type_str = "HOST_END";
+      break;
+    case LOG:
+      type_str = "LOG";
+      break;
+    case HOST_DETAIL:
+      type_str = "HOST_DETAIL";
+      break;
+    case ALARM:
+      type_str = "ALARM";
+      break;
+    case DEADHOST:
+      type_str = "DEADHOST";
+      break;
+    default:
+      return NULL;
+      break;
+    }
+
+  return type_str;
+}
+
+/**
+ * @brief Post a security message (e.g. LOG, NOTE, WARNING ...).
+ *
+ * @param oid   The oid of the NVT
+ * @param desc  The script infos where to get settings.
+ * @param port  Port number related to the issue.
+ * @param proto Protocol related to the issue (tcp or udp).
+ * @param action The actual result text
+ * @param msg_type   The message type.
+ * @param uri   Location like file path or webservice URL.
+ */
+static void
+proto_post_wrapped (const char *oid, struct script_infos *desc, int port,
+                    const char *proto, const char *action, msg_t msg_type,
+                    const char *uri)
+{
+  const char *hostname = "";
+  char *buffer, *data, port_s[16] = "general";
+  char topic[128];
+  const char *context;
+  gchar *json;
+  char ip_str[INET6_ADDRSTRLEN];
+  GString *action_str;
+  gsize length;
+  kb_t kb;
+
+  /* Should not happen, just to avoid trouble stop here if no NVTI found */
+  if (!oid)
+    return;
+
+  if (action == NULL)
+    action_str = g_string_new ("");
+  else
+    {
+      action_str = g_string_new (action);
+      g_string_append (action_str, "\n");
+    }
+
+  if (port > 0)
+    snprintf (port_s, sizeof (port_s), "%d", port);
+  if (current_vhost)
+    hostname = current_vhost->value;
+  else if (desc->vhosts)
+    hostname = ((gvm_vhost_t *) desc->vhosts->data)->value;
+  addr6_to_str (plug_get_host_ip (desc), ip_str);
+  buffer = g_strdup_printf ("%s|||%s|||%s|||%s/%s|||%s|||%s|||%s",
+                            msg_type_to_str (msg_type), ip_str, hostname ?: " ",
+                            port_s, proto, oid, action_str->str, uri ?: "");
+  /* Convert to UTF-8 before sending to Manager. */
+  data = g_convert (buffer, -1, "UTF-8", "ISO_8859-1", NULL, &length, NULL);
+
+  /* Send result via MQTT. */
+  context = prefs_get ("mqtt_context");
+  snprintf (topic, 128, "%s/scan/info", context);
+  json = make_result_json_str (
+    desc->globals->scan_id, msg_type_to_str (msg_type), ip_str, hostname ?: " ",
+    port_s, proto, oid, action_str->str, uri ?: "");
+  if (json == NULL)
+    g_warning ("%s: Error while creating JSON.", __func__);
+  else
+    mqtt_publish (topic, json);
+  g_free (json);
+
+  /* Send result via Redis. */
+  kb = plug_get_results_kb (desc);
+  kb_item_push_str (kb, "internal/results", data);
+
+  g_free (data);
+  g_free (buffer);
+  g_string_free (action_str, TRUE);
+}
+
+void
+proto_post_alarm (const char *oid, struct script_infos *desc, int port,
+                  const char *proto, const char *action, const char *uri)
+{
+  proto_post_wrapped (oid, desc, port, proto, action, ALARM, uri);
+}
+
+void
+post_alarm (const char *oid, struct script_infos *desc, int port,
+            const char *action, const char *uri)
+{
+  proto_post_alarm (oid, desc, port, "tcp", action, uri);
+}
+
+/**
+ * @brief Post a log message
+ */
+void
+proto_post_log (const char *oid, struct script_infos *desc, int port,
+                const char *proto, const char *action, const char *uri)
+{
+  proto_post_wrapped (oid, desc, port, proto, action, LOG, uri);
+}
+
+/**
+ * @brief Post a log message about a tcp port.
+ */
+void
+post_log (const char *oid, struct script_infos *desc, int port,
+          const char *action)
+{
+  proto_post_log (oid, desc, port, "tcp", action, NULL);
+}
+
+/**
+ * @brief Post a log message about a tcp port with a uri
+ */
+void
+post_log_with_uri (const char *oid, struct script_infos *desc, int port,
+                   const char *action, const char *uri)
+{
+  proto_post_log (oid, desc, port, "tcp", action, uri);
+}
+
+void
+proto_post_error (const char *oid, struct script_infos *desc, int port,
+                  const char *proto, const char *action, const char *uri)
+{
+  proto_post_wrapped (oid, desc, port, proto, action, ERRMSG, uri);
+}
+
+void
+post_error (const char *oid, struct script_infos *desc, int port,
+            const char *action, const char *uri)
+{
+  proto_post_error (oid, desc, port, "tcp", action, uri);
+}
+
+/**
  * @brief Get the a plugins preference.
  *
  * Search in the preferences set by the client. If it is not
