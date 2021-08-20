@@ -27,7 +27,8 @@
 
 #include "network.h" // for OPENVAS_ENCAPS_IP
 
-#include <errno.h>               // for errno
+#include <errno.h> // for errno
+#include <eulabeia/json.h>
 #include <eulabeia/types.h>
 #include <gvm/base/hosts.h>      // for g_vhost_t
 #include <gvm/base/networking.h> // for port_protocol_t
@@ -41,8 +42,6 @@
 #include <string.h>   // for strcmp
 #include <sys/wait.h> // for wait
 #include <unistd.h>   // for fork
-
-#include <eulabeia/json.h>
 
 #undef G_LOG_DOMAIN
 /**
@@ -369,23 +368,26 @@ make_result_json_str (const gchar *scan_id, const gchar *type,
   gchar *port;
   gchar *json_str;
 
-  if ((msg = eulabeia_initialize_message(EULABEIA_INFO_SCAN_RESULT, EULABEIA_SCAN, NULL)) == NULL){
-	  g_warning("%s: unable to initialize start.scan message", __func__);
-	  return NULL;
-  }
+  if ((msg = eulabeia_initialize_message (EULABEIA_INFO_SCAN_RESULT,
+                                          EULABEIA_SCAN, NULL))
+      == NULL)
+    {
+      g_warning ("%s: unable to initialize start.scan message", __func__);
+      return NULL;
+    }
   port = g_strdup_printf ("%s/%s", port_s, proto);
   result.message = msg;
-  result.result_type = (char*) type;
-  result.id = (char*) scan_id;
-  result.host_ip = (char*) ip_str;
-  result.host_name = (char*) hostname;
+  result.result_type = (char *) type;
+  result.id = (char *) scan_id;
+  result.host_ip = (char *) ip_str;
+  result.host_name = (char *) hostname;
   result.port = port;
-  result.value = (char*) action_str;
-  result.oid = (char*) oid;
-  result.uri = (char*) uri;
+  result.value = (char *) action_str;
+  result.oid = (char *) oid;
+  result.uri = (char *) uri;
 
-  json_str = eulabeia_scan_result_message_to_json(msg, &result);
-  eulabeia_message_destroy(&msg);
+  json_str = eulabeia_scan_result_message_to_json (msg, &result);
+  eulabeia_message_destroy (&msg);
   g_free (port);
 
   return json_str;

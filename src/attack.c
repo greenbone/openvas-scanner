@@ -1487,7 +1487,7 @@ stop:
 
   gvm_hosts_free (hosts);
   if (alive_hosts_list)
-     gvm_hosts_free (alive_hosts_list);
+    gvm_hosts_free (alive_hosts_list);
 
   set_scan_status ("finished");
 }

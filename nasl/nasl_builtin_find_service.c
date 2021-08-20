@@ -1934,8 +1934,9 @@ plugin_do_run (struct script_infos *desc, GSList *h, int test_ssl)
                                  buffer,
                                  "^.x{3}\n[0-9.]+ [0-9a-z]+@[0-9a-z]+ release")
                                || regex_match (
-                                 buffer, "^.x{3}\n[0-9.]+-(id[0-9]+-)?release"
-                                         " \\([0-9a-z-]+\\)")))
+                                    buffer,
+                                    "^.x{3}\n[0-9.]+-(id[0-9]+-)?release"
+                                    " \\([0-9a-z-]+\\)")))
                     mark_sphinxql (desc, port);
                   else if (line[0] != '\0'
                            && ((strncmp (buffer + 1, "host '", 6) == 0)
@@ -2025,8 +2026,8 @@ plugin_do_run (struct script_infos *desc, GSList *h, int test_ssl)
                             && strstr (buffer, "error.host\t1") != NULL)
                            || (buffer[0] == '3'
                                && strstr (
-                                 buffer,
-                                 "That item is not currently available")))
+                                    buffer,
+                                    "That item is not currently available")))
                     mark_gopher_server (desc, port);
                   else if (strstr (buffer,
                                    "www-authenticate: basic realm=\"swat\""))
