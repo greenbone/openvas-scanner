@@ -1,8 +1,4 @@
-# Dockerfile for openvas-scanner-$VERSION-$COMPILER-build
-
-# Define ARG we use through the build
 ARG VERSION=master
-ARG BUILD_TYPE=Debug
 ARG COMPILER=gcc
 
 FROM greenbone/openvas-scanner-$VERSION-$COMPILER-testing
@@ -17,5 +13,5 @@ WORKDIR /usr/local/src
  RUN cd openvas-scanner && \
     mkdir build && \
     cd build && \
-    cmake -DCMAKE_BUILD_TYPE=Release .. && \
+    cmake -DCMAKE_BUILD_TYPE=Release -DCMAKE_MODULE_PATH=/usr/lib/x86_64-linux-gnu/cmake/ .. && \
     make install
