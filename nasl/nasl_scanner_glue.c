@@ -30,6 +30,7 @@
 #include "../misc/network.h"       /* for getpts */
 #include "../misc/plugutils.h"     /* for plug_set_id */
 #include "../misc/vendorversion.h" /* for vendor_version_get */
+#include "../misc/reporting.h"
 #include "nasl_debug.h"
 #include "nasl_func.h"
 #include "nasl_global_ctxt.h"
