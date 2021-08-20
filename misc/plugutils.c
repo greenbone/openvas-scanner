@@ -60,7 +60,9 @@ gvm_vhost_t *current_vhost = NULL;
 const char *
 plug_current_vhost (void)
 {
-  return current_vhost->value;
+  if (current_vhost)
+    return current_vhost->value;
+  return NULL;
 }
 
 static int plug_fork_child (kb_t);
