@@ -39,6 +39,19 @@ typedef enum
 } msg_t;
 
 
+/* 
+ *  Messages generated from scan process.
+ */
+
+
+
+/* 
+ * Messages generated from host processes.
+ */
+void
+host_message_nvt_timeout ();
+
+
 
 /*
  * Messages generated from plugin processes.

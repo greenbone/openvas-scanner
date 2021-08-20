@@ -136,6 +136,60 @@ make_result_json_str (const gchar *scan_id, msg_t type,
 
 
 //############################################
+// Messages generated from scan process.
+//############################################
+
+
+
+//############################################
+// Messages generated from host processes.
+//############################################
+static void
+host_message_send (const gchar *message)
+{
+  char topic[128];
+  const char *context;
+
+  context = prefs_get ("mqtt_context");
+  snprintf (topic, sizeof(topic), "%s/scan/info", context);
+
+  mqtt_publish (topic, message);
+}
+
+/**
+ * @brief Host process sends a message regarding a pluging
+ *
+ * @description: The plugin timeouts and the host process, which controls
+ * each single plugin process detects that the plugins reached run time limit.
+ * Send the message to the client, informing about the NVT.
+ *
+ * @param host_ip Host IP which the plugin timed out against to.
+ * @param oid   The oid of the NVT which timed out
+ * @param timeout The timeout value.
+ *
+ **/
+void
+host_message_nvt_timeout (const gchar *host_ip, const gchar *oid, const int timeout)
+{
+  gchar *json_str = NULL;
+  char msg[2048];
+
+  g_snprintf (msg, sizeof (msg), "NVT timed out after %d seconds.",
+              timeout);
+
+  json_str = make_result_json_str (NULL, ERRMSG,
+                                   host_ip, NULL,
+                                   NULL,  NULL, oid,
+                                   msg, NULL);
+  if (json_str)
+    host_message_send(json_str);
+
+  g_free (json_str);
+
+}
+
+
+//############################################
 // Messages generated from plugin processes.
 //############################################
 /**
