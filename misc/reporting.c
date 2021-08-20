@@ -22,21 +22,20 @@
  * @brief Reporting function.
  */
 #include "reporting.h"
-#include "plugutils.h"
-#include <eulabeia/types.h>
-#include <eulabeia/json.h>
-#include <gvm/util/uuidutils.h>
-#include <gvm/base/hosts.h>      // for g_vhost_t
-#include <gvm/base/prefs.h>      // for prefs_get
-#include <gvm/base/networking.h> // for port_protocol_t
 
+#include "plugutils.h"
+
+#include <eulabeia/json.h>
+#include <eulabeia/types.h>
+#include <glib.h>
+#include <gvm/base/hosts.h>      // for g_vhost_t
+#include <gvm/base/networking.h> // for port_protocol_t
+#include <gvm/base/prefs.h>      // for prefs_get
+#include <gvm/util/uuidutils.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <time.h>
-
-#include <glib.h>
-
 
 static const char *
 msg_type_to_str (msg_t type)
@@ -74,7 +73,6 @@ msg_type_to_str (msg_t type)
   return type_str;
 }
 
-
 /**
  * @brief Build a json representation of a result.
  *
@@ -93,9 +91,9 @@ msg_type_to_str (msg_t type)
  * @return JSON string on success. Must be freed by caller. NULL on error.
  */
 gchar *
-make_result_json_str (const gchar *scan_id, msg_t type,
-                      const gchar *ip_str, const gchar *hostname,
-                      const gchar *port_s, const gchar *proto, const gchar *oid,
+make_result_json_str (const gchar *scan_id, msg_t type, const gchar *ip_str,
+                      const gchar *hostname, const gchar *port_s,
+                      const gchar *proto, const gchar *oid,
                       const gchar *action_str, const gchar *uri)
 {
   struct EulabeiaMessage *msg;
@@ -106,19 +104,23 @@ make_result_json_str (const gchar *scan_id, msg_t type,
 
   global_scan_id = scan_id ? scan_id : prefs_get ("global_scan_id");
 
-  if (!global_scan_id || !(type >= ERRMSG && type <= HOSTS_COUNT) || !action_str)
+  if (!global_scan_id || !(type >= ERRMSG && type <= HOSTS_COUNT)
+      || !action_str)
     return NULL;
 
-  if ((msg = eulabeia_initialize_message(EULABEIA_INFO_SCAN_RESULT, EULABEIA_SCAN, NULL)) == NULL){
-	  g_warning("%s: unable to initialize start.scan message", __func__);
-	  return NULL;
-  }
+  if ((msg = eulabeia_initialize_message (EULABEIA_INFO_SCAN_RESULT,
+                                          EULABEIA_SCAN, NULL))
+      == NULL)
+    {
+      g_warning ("%s: unable to initialize start.scan message", __func__);
+      return NULL;
+    }
   port = NULL;
   if (port_s && proto)
     port = g_strdup_printf ("%s/%s", port_s, proto);
 
   result->message = msg;
-  result->result_type = g_strdup (msg_type_to_str(type));
+  result->result_type = g_strdup (msg_type_to_str (type));
   result->id = g_strdup (global_scan_id);
   result->host_ip = ip_str ? g_strdup (ip_str) : NULL;
   result->host_name = hostname ? g_strdup (hostname) : NULL;
@@ -127,19 +129,16 @@ make_result_json_str (const gchar *scan_id, msg_t type,
   result->oid = oid ? g_strdup (oid) : NULL;
   result->uri = uri ? g_strdup (uri) : NULL;
 
-  json_str = eulabeia_scan_result_message_to_json(msg, result);
-  eulabeia_message_destroy(&msg);
-  eulabeia_scan_result_destroy(&result);
+  json_str = eulabeia_scan_result_message_to_json (msg, result);
+  eulabeia_message_destroy (&msg);
+  eulabeia_scan_result_destroy (&result);
 
   return json_str;
 }
 
-
 //############################################
 // Messages generated from scan process.
 //############################################
-
-
 
 //############################################
 // Messages generated from host processes.
@@ -151,7 +150,7 @@ host_message_send (const gchar *message)
   const char *context;
 
   context = prefs_get ("mqtt_context");
-  snprintf (topic, sizeof(topic), "%s/scan/info", context);
+  snprintf (topic, sizeof (topic), "%s/scan/info", context);
 
   mqtt_publish (topic, message);
 }
@@ -169,25 +168,21 @@ host_message_send (const gchar *message)
  *
  **/
 void
-host_message_nvt_timeout (const gchar *host_ip, const gchar *oid, const int timeout)
+host_message_nvt_timeout (const gchar *host_ip, const gchar *oid,
+                          const int timeout)
 {
   gchar *json_str = NULL;
   char msg[2048];
 
-  g_snprintf (msg, sizeof (msg), "NVT timed out after %d seconds.",
-              timeout);
+  g_snprintf (msg, sizeof (msg), "NVT timed out after %d seconds.", timeout);
 
-  json_str = make_result_json_str (NULL, ERRMSG,
-                                   host_ip, NULL,
-                                   NULL,  NULL, oid,
+  json_str = make_result_json_str (NULL, ERRMSG, host_ip, NULL, NULL, NULL, oid,
                                    msg, NULL);
   if (json_str)
-    host_message_send(json_str);
+    host_message_send (json_str);
 
   g_free (json_str);
-
 }
-
 
 //############################################
 // Messages generated from plugin processes.
@@ -231,7 +226,7 @@ proto_post_wrapped (const char *oid, struct script_infos *desc, int port,
 
   if (port > 0)
     snprintf (port_s, sizeof (port_s), "%d", port);
-  if ((hostname = plug_current_vhost()) == NULL && (desc->vhosts))
+  if ((hostname = plug_current_vhost ()) == NULL && (desc->vhosts))
     hostname = ((gvm_vhost_t *) desc->vhosts->data)->value;
   addr6_to_str (plug_get_host_ip (desc), ip_str);
   buffer = g_strdup_printf ("%s|||%s|||%s|||%s/%s|||%s|||%s|||%s",
@@ -243,9 +238,9 @@ proto_post_wrapped (const char *oid, struct script_infos *desc, int port,
   /* Send result via MQTT. */
   context = prefs_get ("mqtt_context");
   snprintf (topic, 128, "%s/scan/info", context);
-  json = make_result_json_str (
-    desc->globals->scan_id, msg_type, ip_str, hostname ?: " ",
-    port_s, proto, oid, action_str->str, uri ?: "");
+  json = make_result_json_str (desc->globals->scan_id, msg_type, ip_str,
+                               hostname ?: " ", port_s, proto, oid,
+                               action_str->str, uri ?: "");
   if (json == NULL)
     g_warning ("%s: Error while creating JSON.", __func__);
   else
