@@ -999,6 +999,7 @@ openvas (int argc, char *argv[])
       global_scan_id = g_strdup (scan_id);
       globals = g_malloc0 (sizeof (struct scan_globals));
       globals->scan_id = g_strdup (global_scan_id);
+      prefs_set ("global_scan_id", global_scan_id);
 
       attack_network_init (globals, config_file);
       g_message ("attack_network_init successfully executed");
