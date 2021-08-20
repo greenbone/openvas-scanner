@@ -154,7 +154,7 @@ update_running_processes (kb_t main_kb, kb_t kb)
                   g_snprintf (msg, sizeof (msg),
                               "NVT timed out after %d seconds.",
                               processes[i].timeout);
-                  host_message_nvt_timeout (ERRMSG, hostname, oid, msg);
+                  host_message_nvt_timeout (hostname, oid, msg);
 
                   /* Check for max VTs timeouts */
                   if (max_nvt_timeouts_reached ())
