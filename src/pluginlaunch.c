@@ -28,6 +28,7 @@
 #include "../misc/network.h"
 #include "../misc/nvt_categories.h" /* for ACT_SCANNER */
 #include "../misc/plugutils.h"      /* for get_plugin_preference */
+#include "../misc/reporting.h"
 #include "pluginload.h"
 #include "pluginscheduler.h"
 #include "plugs_req.h"
@@ -151,10 +152,9 @@ update_running_processes (kb_t main_kb, kb_t kb)
                                oid, processes[i].pid);
 
                   g_snprintf (msg, sizeof (msg),
-                              "ERRMSG|||%s||| |||general/tcp|||%s|||"
                               "NVT timed out after %d seconds.",
-                              hostname, oid ?: " ", processes[i].timeout);
-                  kb_item_push_str (main_kb, "internal/results", msg);
+                              processes[i].timeout);
+                  host_message_nvt_timeout (ERRMSG, hostname, oid, msg);
 
                   /* Check for max VTs timeouts */
                   if (max_nvt_timeouts_reached ())
