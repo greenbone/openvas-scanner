@@ -168,13 +168,9 @@ host_message_send (const gchar *message)
  *
  **/
 void
-host_message_nvt_timeout (const gchar *host_ip, const gchar *oid,
-                          const int timeout)
+host_message_nvt_timeout (const gchar *host_ip, const gchar *oid, const gchar *msg)
 {
   gchar *json_str = NULL;
-  char msg[2048];
-
-  g_snprintf (msg, sizeof (msg), "NVT timed out after %d seconds.", timeout);
 
   json_str = make_result_json_str (NULL, ERRMSG, host_ip, NULL, NULL, NULL, oid,
                                    msg, NULL);
@@ -183,6 +179,31 @@ host_message_nvt_timeout (const gchar *host_ip, const gchar *oid,
 
   g_free (json_str);
 }
+
+/**
+ * @brief Function to send a message to the client from a host process.
+ *
+ * @description: In general, host process only send a message informing the host_ip
+ * the and the message with a message type.
+ *
+ * @param type  Message type ERRMSG, HOST_START, HOST_END, LOG, DEAD_HOST.
+ * @param host_ip Host IP which the plugin timed out against to.
+ * @param msg   The message to be sent
+ *
+ **/
+void
+host_message (msg_t type, const gchar *host_ip, const gchar *msg)
+{
+  gchar *json_str = NULL;
+
+  json_str = make_result_json_str (NULL, type, host_ip, NULL, NULL, NULL, NULL,
+                                   msg, NULL);
+  if (json_str)
+    host_message_send (json_str);
+
+  g_free (json_str);
+}
+
 
 //############################################
 // Messages generated from plugin processes.

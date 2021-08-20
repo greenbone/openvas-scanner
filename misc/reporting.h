@@ -46,7 +46,11 @@ typedef enum
  * Messages generated from host processes.
  */
 void
-host_message_nvt_timeout ();
+host_message_nvt_timeout (const gchar*, const gchar*, const gchar*);
+
+void
+host_message (msg_t, const gchar*, const gchar*);
+
 
 /*
  * Messages generated from plugin processes.
