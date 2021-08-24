@@ -195,7 +195,7 @@ init_signal_handlers (void)
 }
 
 /**
- * @brief Read preferences from json
+ * @brief Write preferences from json into globals
  *
  * Adds preferences from a json string into the global_prefs.
  * If preference already exists in global_prefs they will be overwritten by
@@ -375,22 +375,20 @@ write_json_to_preferences (char *json, int len)
 }
 
 /**
- * @brief Read the scan preferences from mqtt
+ * @brief Ask for start scan data.
  *
- * Adds preferences to the global_prefs.
- * If preference already exists in global_prefs they will be overwritten by
- * prefs from client.
+ * Sends a message to the director via mqtt asking for the necessary 
+ * information to start a scan.
  *
- * @param globals Scan ID of globals used as key to find the corresponding KB
- * where to take the preferences from.
+ * @param[in] scan_id Scan ID used to get the preferences.
  *
  * @return 0 on success, -1 if the kb is not found or no prefs are found in
  *         the kb.
  */
 static int
-overwrite_openvas_prefs_with_prefs_from_client (struct scan_globals *globals)
+ask_for_scan_prefs_from_client (static char *scan_id)
 {
-  char *msg_id, *group_id, *scan_id, topic_send[128], msg_send[1024], topic_sub[128];
+  char *msg_id, *group_id, topic_send[128], msg_send[1024], topic_sub[128];
   const char *context;
   int ret;
 
@@ -410,7 +408,6 @@ overwrite_openvas_prefs_with_prefs_from_client (struct scan_globals *globals)
   // Sned Get Scan
   msg_id = gvm_uuid_make ();
   group_id = gvm_uuid_make ();
-  scan_id = globals->scan_id;
 
   snprintf (topic_send, 128, "%s/scan/cmd/director", context);
   snprintf (msg_send, 1024,
@@ -636,7 +633,7 @@ attack_network_init (struct scan_globals *globals, const gchar *config_file)
    * processes & their children. */
   setpgid (0, 0);
 
-  if (overwrite_openvas_prefs_with_prefs_from_client (globals))
+  if (ask_for_scan_prefs_from_client (globals->scan_id))
     {
       g_warning ("No preferences found for the scan %s", globals->scan_id);
       //TODO: Send message to the client/sensor/director to handle the failure
