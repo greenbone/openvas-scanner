@@ -404,6 +404,7 @@ overwrite_openvas_prefs_with_prefs_from_client (struct scan_globals *globals)
   if (mqtt_subscribe (topic_sub))
     {
       g_message ("Subscription to %s failed", topic_sub);
+      return -1;
     }
   g_message ("Successfully subscribed to %s", topic_sub);
 
@@ -421,7 +422,9 @@ overwrite_openvas_prefs_with_prefs_from_client (struct scan_globals *globals)
             "\"id\":\"%s\"}",
             msg_id, group_id, get_timestamp (), scan_id);
 
-  mqtt_publish (topic_send, msg_send);
+  if ((ret = mqtt_publish (topic_send, msg_send)) < 0)
+    g_warning ("%s Publish to %s failed", __func__, topic_send);
+
   // Wait for incomming data
   mqtt_retrieve_message (&topic_recv, &topic_len, &msg_recv, &msg_len);
 
