@@ -596,8 +596,8 @@ attack_network_init (struct scan_globals *globals, const gchar *config_file)
 {
   const char *mqtt_server_uri;
   char *topic_recv, *msg_recv;
-  int topic_len, msg_len;
-  
+  int topic_len, msg_len, ret = 0;
+
   set_default_openvas_prefs ();
   prefs_config (config_file);
 
@@ -644,11 +644,14 @@ attack_network_init (struct scan_globals *globals, const gchar *config_file)
     }
  // Wait for incomming data and store it in globals
   mqtt_retrieve_message (&topic_recv, &topic_len, &msg_recv, &msg_len);
-  ret = write_json_to_preferences (msg_recv, msg_len);
 
+  if ((ret = write_json_to_preferences (msg_recv, msg_len)) < 0)
+    g_warning ("%s: Write preferences failed", __func__);
   free (topic_recv);
   free (msg_recv);
 
+  if (ret)
+    exit(0);
 }
 
 void
