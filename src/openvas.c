@@ -390,10 +390,9 @@ write_json_to_preferences (char *json, int len)
 static int
 overwrite_openvas_prefs_with_prefs_from_client (struct scan_globals *globals)
 {
-  char *msg_id, *group_id, *scan_id, *topic_recv, *msg_recv, topic_send[128],
-    msg_send[1024], topic_sub[128];
+  char *msg_id, *group_id, *scan_id, topic_send[128], msg_send[1024], topic_sub[128];
   const char *context;
-  int topic_len, msg_len, ret;
+  int ret;
 
   // TODO: Get alive test via mqtt
   prefs_set ("ALIVE_TEST", "2");
@@ -425,15 +424,8 @@ overwrite_openvas_prefs_with_prefs_from_client (struct scan_globals *globals)
   if ((ret = mqtt_publish (topic_send, msg_send)) < 0)
     g_warning ("%s Publish to %s failed", __func__, topic_send);
 
-  // Wait for incomming data
-  mqtt_retrieve_message (&topic_recv, &topic_len, &msg_recv, &msg_len);
-
-  ret = write_json_to_preferences (msg_recv, msg_len);
-
   free (msg_id);
   free (group_id);
-  free (topic_recv);
-  free (msg_recv);
   return ret;
 }
 
@@ -603,7 +595,9 @@ void
 attack_network_init (struct scan_globals *globals, const gchar *config_file)
 {
   const char *mqtt_server_uri;
-
+  char *topic_recv, *msg_recv;
+  int topic_len, msg_len;
+  
   set_default_openvas_prefs ();
   prefs_config (config_file);
 
@@ -645,8 +639,16 @@ attack_network_init (struct scan_globals *globals, const gchar *config_file)
   if (overwrite_openvas_prefs_with_prefs_from_client (globals))
     {
       g_warning ("No preferences found for the scan %s", globals->scan_id);
+      //TODO: Send message to the client/sensor/director to handle the failure
       exit (0);
     }
+ // Wait for incomming data and store it in globals
+  mqtt_retrieve_message (&topic_recv, &topic_len, &msg_recv, &msg_len);
+  ret = write_json_to_preferences (msg_recv, msg_len);
+
+  free (topic_recv);
+  free (msg_recv);
+
 }
 
 void
