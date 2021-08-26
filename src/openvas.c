@@ -204,6 +204,15 @@ validate_pref_type_value (gchar *type, gchar *value)
   (void *) value;
   return TRUE;
 }
+
+static void
+write_json_credentials_to_preferences (struct scan_globals *globals,
+                                       JsonReader *credentials_reader)
+{
+  (void *) globals;
+  (void *) credentials_reader;
+}
+
 #pragma GCC diagnostic pop
 static void
 get_pref_key_name (GSList *nprefs, gchar *id, gchar **name, gchar **type)
@@ -479,6 +488,8 @@ write_json_to_preferences (struct scan_globals *globals, char *json, int len)
         {
           if (!strcmp (key, "plugins"))
             write_json_plugins_to_preferences (globals, reader);
+          else if (!strcmp (key, "credentials"))
+            write_json_credentials_to_preferences (globals, reader);
         }
       json_reader_end_member (reader);
     }
