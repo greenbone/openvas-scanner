@@ -226,7 +226,6 @@ static void
 write_json_credentials_to_preferences (JsonReader *credentials_reader)
 {
   // TODO: handle credentials
-  (void *) globals;
   (void *) credentials_reader;
 }
 
@@ -243,7 +242,6 @@ static void
 write_json_alive_test_to_preferences (JsonReader *alive_test_reader)
 {
   // TODO: handle alive tests
-  (void *) globals;
   (void *) alive_test_reader;
 }
 #pragma GCC diagnostic pop
@@ -279,7 +277,6 @@ get_pref_name_components (GSList *nprefs, gchar *id, gchar **name, gchar **type)
       pref_tmp = pref_tmp->next;
     }
 }
-
 
 /**
  * @brief Get the value which the json reader is pointing to
@@ -356,7 +353,7 @@ write_json_plugin_prefs_to_preferences (struct scan_globals *globals,
                                         JsonReader *single_vt_reader,
                                         const gchar *oid)
 {
-  //TODO: better error handling for non-existing preferences/plugins
+  // TODO: better error handling for non-existing preferences/plugins
   // Plugins can be removed from redis and no preferences will be found.
 
   gchar **members;
@@ -582,9 +579,9 @@ write_json_to_preferences (struct scan_globals *globals, char *json, int len)
           if (!strcmp (key, "plugins"))
             write_json_plugins_to_preferences (globals, reader);
           else if (!strcmp (key, "credentials"))
-            write_json_credentials_to_preferences (globals, reader);
+            write_json_credentials_to_preferences (reader);
           else if (!strcmp (key, "alive"))
-            write_json_alive_test_to_preferences (globals, reader);
+            write_json_alive_test_to_preferences (reader);
           else
             g_warning ("%s: unknown object %s", __func__, key);
         }
