@@ -247,7 +247,25 @@ get_json_value (JsonReader *value_reader)
 }
 
 static void
-write_json_plugin_prefs_to_preferences (JsonReader *single_vt_reader,
+prefs_store_file (struct scan_globals *globals, const gchar *key_name,
+                  const gchar *file)
+{
+  char *file_uuid = gvm_uuid_make ();
+  int ret;
+
+  prefs_set (key_name, file_uuid);
+  ret = store_file (globals, file, file_uuid);
+  if (ret)
+    g_debug ("Load preference: Failed to upload file "
+             "for nvt %s preference.",
+             key_name);
+
+  g_free (file_uuid);
+}
+
+static void
+write_json_plugin_prefs_to_preferences (struct scan_globals *globals,
+                                        JsonReader *single_vt_reader,
                                         const gchar *oid)
 {
   gchar **members;
@@ -283,7 +301,11 @@ write_json_plugin_prefs_to_preferences (JsonReader *single_vt_reader,
               gchar *key_name;
 
               key_name = g_strdup_printf ("%s:%s:%s:%s", oid, key, type, name);
-              prefs_set (key_name, value);
+              // handle special case for file type
+              if (!g_strcmp0 (type, "file"))
+                prefs_store_file (globals, key_name, value);
+              else
+                prefs_set (key_name, value);
               g_free (key_name);
             }
           g_free (value);
@@ -295,7 +317,8 @@ write_json_plugin_prefs_to_preferences (JsonReader *single_vt_reader,
 }
 
 static void
-write_json_plugins_to_preferences (JsonReader *reader)
+write_json_plugins_to_preferences (struct scan_globals *globals,
+                                   JsonReader *reader)
 {
   const char *value;
   char *values, *key;
@@ -331,7 +354,7 @@ write_json_plugins_to_preferences (JsonReader *reader)
           json_reader_end_member (reader);
 
           // Write this pluginpreferences
-          write_json_plugin_prefs_to_preferences (reader, value);
+          write_json_plugin_prefs_to_preferences (globals, reader, value);
 
           json_reader_end_element (reader);
         }
@@ -353,7 +376,7 @@ write_json_plugins_to_preferences (JsonReader *reader)
  * @return int 0 on success, -1 if json is empty or format is invalid.
  */
 static int
-write_json_to_preferences (char *json, int len)
+write_json_to_preferences (struct scan_globals *globals, char *json, int len)
 {
   JsonParser *parser;
   JsonReader *reader;
@@ -455,7 +478,7 @@ write_json_to_preferences (char *json, int len)
       if (json_reader_is_object (reader))
         {
           if (!strcmp (key, "plugins"))
-            write_json_plugins_to_preferences (reader);
+            write_json_plugins_to_preferences (globals, reader);
         }
       json_reader_end_member (reader);
     }
@@ -734,7 +757,7 @@ attack_network_init (struct scan_globals *globals, const gchar *config_file)
   // Wait for incomming data and store it in globals
   mqtt_retrieve_message (&topic_recv, &topic_len, &msg_recv, &msg_len);
 
-  if ((ret = write_json_to_preferences (msg_recv, msg_len)) < 0)
+  if ((ret = write_json_to_preferences (globals, msg_recv, msg_len)) < 0)
     g_warning ("%s: Write preferences failed", __func__);
   free (topic_recv);
   free (msg_recv);
