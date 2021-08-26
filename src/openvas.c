@@ -196,6 +196,14 @@ init_signal_handlers (void)
 
 #pragma GCC diagnostic push
 #pragma GCC diagnostic warning "-Wunused-value"
+/**
+ * @brief Check if the preference value matches with the type
+ *
+ * @param type preference type
+ * @param value preference value
+ *
+ * @return True if value is the type of "type". False otherwise.
+ */
 static gboolean
 validate_pref_type_value (gchar *type, gchar *value)
 {
@@ -205,25 +213,57 @@ validate_pref_type_value (gchar *type, gchar *value)
   return TRUE;
 }
 
+/**
+ * @brief Store credentials as preferences.
+ *
+ * @details Credentials are received as json object but must be
+ * stored either as plugin preferences or boreas preferences.
+ *
+ * @param alive_test_reader Json reader pointing to the object with
+ * alive test preferences.
+ */
 static void
-write_json_credentials_to_preferences (struct scan_globals *globals,
-                                       JsonReader *credentials_reader)
+write_json_credentials_to_preferences (JsonReader *credentials_reader)
 {
+  // TODO: handle credentials
   (void *) globals;
   (void *) credentials_reader;
 }
 
+/**
+ * @brief Store alive test as preferences.
+ *
+ * @details Alive tests are received as json object but must be
+ * stored either as plugin preferences or boreas preferences.
+ *
+ * @param alive_test_reader Json reader pointing to the object with
+ * alive test preferences.
+ */
 static void
-write_json_alive_test_to_preferences (struct scan_globals *globals,
-                                      JsonReader *alive_test_reader)
+write_json_alive_test_to_preferences (JsonReader *alive_test_reader)
 {
+  // TODO: handle alive tests
   (void *) globals;
   (void *) alive_test_reader;
 }
-
 #pragma GCC diagnostic pop
+
+/**
+ * @brief Get the type and the name of a plugin preferences.
+ *
+ * @details Plugins preferences key name have the form
+ * OID:PrefID:Type:Name.
+ * Only the ID is received in the json object (in addtion to the value).
+ * This function retrieves the missing components necessary to form the
+ * preference's key name.
+ *
+ * @param[in] nprefs List of preferences which belong to the plugin.
+ * @param[in] id Preference ID which name and type are seek.
+ * @param[out] name The preference name
+ * @param[out] type The preference type
+ */
 static void
-get_pref_key_name (GSList *nprefs, gchar *id, gchar **name, gchar **type)
+get_pref_name_components (GSList *nprefs, gchar *id, gchar **name, gchar **type)
 {
   GSList *pref_tmp;
 
@@ -240,6 +280,16 @@ get_pref_key_name (GSList *nprefs, gchar *id, gchar **name, gchar **type)
     }
 }
 
+
+/**
+ * @brief Get the value which the json reader is pointing to
+ *
+ * @details Check for the value type and store the value.
+ *
+ * @param value_reader Json reader pointing to the value.
+ *
+ * @return Value as string. Null otherwise.
+ */
 static gchar *
 get_json_value (JsonReader *value_reader)
 {
@@ -263,6 +313,16 @@ get_json_value (JsonReader *value_reader)
   return value;
 }
 
+/**
+ * @brief Stores a file type plugin preference
+ *
+ * @details File types are stored in a hash list and only the file
+ * name is stored as preference.
+ *
+ * @param globals Scan_globals struct to stored the file content.
+ * @param key_name The preference key name (OID:PrefID:Type:Name)
+ * @param file The file content to be stored.
+ */
 static void
 prefs_store_file (struct scan_globals *globals, const gchar *key_name,
                   const gchar *file)
@@ -280,11 +340,25 @@ prefs_store_file (struct scan_globals *globals, const gchar *key_name,
   g_free (file_uuid);
 }
 
+/**
+ * @brief Store plugin preferences in the right form.
+ *
+ * @details Only the id is received (besides the value). This functions
+ * created the key_name of the preferences, and validate the value with the
+ * type. Also handle the special "file" type preference.
+ *
+ * @param globals Scan_globals struct. Used only to store the file types.
+ * @param single_vt_reader Json reader pointing to a single vt plugins
+ * @param oid OID of the plugins which the preferences to be handle belongs to.
+ */
 static void
 write_json_plugin_prefs_to_preferences (struct scan_globals *globals,
                                         JsonReader *single_vt_reader,
                                         const gchar *oid)
 {
+  //TODO: better error handling for non-existing preferences/plugins
+  // Plugins can be removed from redis and no preferences will be found.
+
   gchar **members;
   int j, num_plug_prefs;
   GSList *nprefs;
@@ -310,7 +384,7 @@ write_json_plugin_prefs_to_preferences (struct scan_globals *globals,
           /* Only got the id and value. We need now the
            * name and type.
            */
-          get_pref_key_name (nprefs, key, &name, &type);
+          get_pref_name_components (nprefs, key, &name, &type);
           value = get_json_value (single_vt_reader);
 
           if (value && validate_pref_type_value (type, value))
@@ -333,6 +407,17 @@ write_json_plugin_prefs_to_preferences (struct scan_globals *globals,
   g_slist_free_full (nprefs, (void (*) (void *)) nvtpref_free);
 }
 
+/**
+ * @brief Store plugins list and  preferences in the right form.
+ *
+ * @details An array of plugins struct (oid + preferences) arrives as json
+ * object.
+ * This function preapres the "TARGET" string, concatenating the plugins oids.
+ * Also, preapres the handle the plugin preferences
+ *
+ * @param globals Scan_globals struct. Used only to store the file types.
+ * @param reader Json reader pointing to a list of plugins
+ */
 static void
 write_json_plugins_to_preferences (struct scan_globals *globals,
                                    JsonReader *reader)
