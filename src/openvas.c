@@ -213,6 +213,14 @@ write_json_credentials_to_preferences (struct scan_globals *globals,
   (void *) credentials_reader;
 }
 
+static void
+write_json_alive_test_to_preferences (struct scan_globals *globals,
+                                      JsonReader *alive_test_reader)
+{
+  (void *) globals;
+  (void *) alive_test_reader;
+}
+
 #pragma GCC diagnostic pop
 static void
 get_pref_key_name (GSList *nprefs, gchar *id, gchar **name, gchar **type)
@@ -490,6 +498,10 @@ write_json_to_preferences (struct scan_globals *globals, char *json, int len)
             write_json_plugins_to_preferences (globals, reader);
           else if (!strcmp (key, "credentials"))
             write_json_credentials_to_preferences (globals, reader);
+          else if (!strcmp (key, "alive"))
+            write_json_alive_test_to_preferences (globals, reader);
+          else
+            g_warning ("%s: unknown object %s", __func__, key);
         }
       json_reader_end_member (reader);
     }
