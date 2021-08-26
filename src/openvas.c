@@ -195,6 +195,35 @@ init_signal_handlers (void)
 }
 
 static void
+write_json_plugin_prefs_to_preferences (JsonReader *single_vt_reader)
+{
+  gchar **members;
+  int j, num_plug_prefs;
+
+  json_reader_read_member (single_vt_reader, "prefs_by_id");
+  g_assert_true (json_reader_is_object (single_vt_reader));
+  num_plug_prefs = json_reader_count_members (single_vt_reader);
+  members = json_reader_list_members (single_vt_reader);
+
+  for (j = 0; j < num_plug_prefs; j++)
+    {
+      gchar *key = members[j];
+
+      json_reader_read_member (single_vt_reader, key);
+      if (json_reader_is_value (single_vt_reader))
+        {
+          gchar *value;
+
+          value = get_json_value (single_vt_reader);
+          handle_prefs (key, value);
+          g_free (value);
+        }
+      json_reader_end_member (single_vt_reader);
+    }
+  json_reader_end_member (single_vt_reader);
+}
+
+static void
 write_json_plugins_to_preferences (JsonReader *reader)
 {
   const char *value;
