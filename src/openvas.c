@@ -194,6 +194,29 @@ init_signal_handlers (void)
   openvas_signal (SIGCHLD, sighand_chld);
 }
 
+static gchar *
+get_json_value (JsonReader *value_reader)
+{
+  JsonNode *node_value = json_reader_get_value (value_reader);
+  GType type = json_node_get_value_type (node_value);
+  gchar *value = NULL;
+
+  if (type == G_TYPE_STRING)
+    {
+      value = g_strdup (json_reader_get_string_value (value_reader));
+    }
+  if (type == G_TYPE_BOOLEAN)
+    {
+      value = g_strdup (json_reader_get_boolean_value (value_reader) ? "yes\0"
+                                                                     : "no\0");
+    }
+  if (type == G_TYPE_INT64 || type == G_TYPE_INT)
+    {
+      value = g_strdup_printf ("%ld", json_reader_get_int_value (value_reader));
+    }
+  return value;
+}
+
 static void
 write_json_plugin_prefs_to_preferences (JsonReader *single_vt_reader)
 {
@@ -326,27 +349,12 @@ write_json_to_preferences (char *json, int len)
       // key-value preferences
       if (json_reader_is_value (reader))
         {
-          const char *value;
+          char *value;
 
-          JsonNode *node_value = json_reader_get_value (reader);
-          GType type = json_node_get_value_type (node_value);
-
-          if (type == G_TYPE_STRING)
-            {
-              value = json_reader_get_string_value (reader);
-            }
-          if (type == G_TYPE_BOOLEAN)
-            {
-              value = json_reader_get_boolean_value (reader) ? "yes\0" : "no\0";
-            }
-          if (type == G_TYPE_INT64 || type == G_TYPE_INT)
-            {
-              char buf[20];
-              snprintf (buf, 20, "%ld", json_reader_get_int_value (reader));
-              value = buf;
-            }
+          value = get_json_value (reader);
           g_debug ("%s: %s -> %s", __func__, key, value);
           prefs_set (key, value);
+          g_free (value);
         }
       // list (ports, hosts)
       // parse list comma separated into single string
