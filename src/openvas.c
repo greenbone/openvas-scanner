@@ -195,14 +195,33 @@ init_signal_handlers (void)
 }
 
 #pragma GCC diagnostic push
-static void
-handle_prefs (gchar *key, gchar *val)
-{
 #pragma GCC diagnostic warning "-Wunused-value"
-  (void *) key;
-  (void *) val;
+static gboolean
+validate_pref_type_value (gchar *type, gchar *value)
+{
+  // TODO: validate types
+  (void *) type;
+  (void *) value;
+  return TRUE;
 }
 #pragma GCC diagnostic pop
+static void
+get_pref_key_name (GSList *nprefs, gchar *id, gchar **name, gchar **type)
+{
+  GSList *pref_tmp;
+
+  pref_tmp = nprefs;
+  while (pref_tmp)
+    {
+      if (atoi (id) == nvtpref_id (pref_tmp->data))
+        {
+          *type = nvtpref_type (pref_tmp->data);
+          *name = nvtpref_name (pref_tmp->data);
+          break;
+        }
+      pref_tmp = pref_tmp->next;
+    }
+}
 
 static gchar *
 get_json_value (JsonReader *value_reader)
@@ -228,15 +247,21 @@ get_json_value (JsonReader *value_reader)
 }
 
 static void
-write_json_plugin_prefs_to_preferences (JsonReader *single_vt_reader)
+write_json_plugin_prefs_to_preferences (JsonReader *single_vt_reader,
+                                        const gchar *oid)
 {
   gchar **members;
   int j, num_plug_prefs;
+  GSList *nprefs;
 
   json_reader_read_member (single_vt_reader, "prefs_by_id");
   g_assert_true (json_reader_is_object (single_vt_reader));
   num_plug_prefs = json_reader_count_members (single_vt_reader);
   members = json_reader_list_members (single_vt_reader);
+
+  // Get nvt preferences list, to get the key name by id
+  // Done here, to don't query redis for each plugin's preference list
+  nprefs = nvticache_get_prefs (oid);
 
   for (j = 0; j < num_plug_prefs; j++)
     {
@@ -245,15 +270,28 @@ write_json_plugin_prefs_to_preferences (JsonReader *single_vt_reader)
       json_reader_read_member (single_vt_reader, key);
       if (json_reader_is_value (single_vt_reader))
         {
-          gchar *value;
+          gchar *value, *name = NULL, *type = NULL;
 
+          /* Only got the id and value. We need now the
+           * name and type.
+           */
+          get_pref_key_name (nprefs, key, &name, &type);
           value = get_json_value (single_vt_reader);
-          handle_prefs (key, value);
+
+          if (value && validate_pref_type_value (type, value))
+            {
+              gchar *key_name;
+
+              key_name = g_strdup_printf ("%s:%s:%s:%s", oid, key, type, name);
+              prefs_set (key_name, value);
+              g_free (key_name);
+            }
           g_free (value);
         }
       json_reader_end_member (single_vt_reader);
     }
   json_reader_end_member (single_vt_reader);
+  g_slist_free_full (nprefs, (void (*) (void *)) nvtpref_free);
 }
 
 static void
@@ -293,7 +331,7 @@ write_json_plugins_to_preferences (JsonReader *reader)
           json_reader_end_member (reader);
 
           // Write this pluginpreferences
-          write_json_plugin_prefs_to_preferences (reader);
+          write_json_plugin_prefs_to_preferences (reader, value);
 
           json_reader_end_element (reader);
         }
