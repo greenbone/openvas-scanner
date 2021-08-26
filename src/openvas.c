@@ -194,6 +194,54 @@ init_signal_handlers (void)
   openvas_signal (SIGCHLD, sighand_chld);
 }
 
+static void
+write_json_plugins_to_preferences (JsonReader *reader)
+{
+  const char *value;
+  char *values, *key;
+  int len, j, num_plugins;
+
+  json_reader_read_member (reader, "single_vts");
+  num_plugins = json_reader_count_elements (reader);
+
+  key = "plugin_set";
+
+  if (num_plugins > 0)
+    {
+      for (j = 0; j < num_plugins; j++)
+        {
+          json_reader_read_element (reader, j);
+          json_reader_read_member (reader, "oid");
+
+          value = json_reader_get_string_value (reader);
+          if (j == 0) // first element
+            {
+              len = strlen (value);
+              values = (char *) (malloc (sizeof (char) * len + 1));
+              snprintf (values, len + 1, "%s", value);
+            }
+          else // Other elements
+            {
+              len += strlen (value);
+              char *buf = values;
+              values = (char *) (malloc (sizeof (char) * len + 1));
+              snprintf (values, len + 1, "%s;%s", buf, value);
+              free (buf);
+            }
+          json_reader_end_member (reader);
+
+          // Write this pluginpreferences
+          write_json_plugin_prefs_to_preferences (reader);
+
+          json_reader_end_element (reader);
+        }
+      g_debug ("%s: %s -> %s", __func__, key, values);
+      prefs_set (key, values);
+      free (values);
+    }
+  json_reader_end_member (reader);
+}
+
 /**
  * @brief Write preferences from json into globals
  *
@@ -322,48 +370,7 @@ write_json_to_preferences (char *json, int len)
       if (json_reader_is_object (reader))
         {
           if (!strcmp (key, "plugins"))
-            {
-              const char *value;
-              char *values;
-              int len, j, num_plugins;
-
-              json_reader_read_member (reader, "single_vts");
-              num_plugins = json_reader_count_elements (reader);
-
-              key = "plugin_set";
-
-              if (num_plugins > 0)
-                {
-                  // Write first plugin oid
-                  json_reader_read_element (reader, 0);
-                  json_reader_read_member (reader, "oid");
-                  value = json_reader_get_string_value (reader);
-                  len = strlen (value);
-                  values = (char *) (malloc (sizeof (char) * len + 1));
-                  snprintf (values, len + 1, "%s", value);
-                  json_reader_end_member (reader);
-                  json_reader_end_element (reader);
-
-                  // Append all otherplugins semicolon separated
-                  for (j = 1; j < num_plugins; j++)
-                    {
-                      json_reader_read_element (reader, j);
-                      json_reader_read_member (reader, "oid");
-                      value = json_reader_get_string_value (reader);
-                      len += strlen (value);
-                      char *buf = values;
-                      values = (char *) (malloc (sizeof (char) * len + 1));
-                      snprintf (values, len + 1, "%s;%s", buf, value);
-                      free (buf);
-                      json_reader_end_member (reader);
-                      json_reader_end_element (reader);
-                    }
-                  g_debug ("%s: %s -> %s", __func__, key, values);
-                  prefs_set (key, values);
-                  free (values);
-                }
-              json_reader_end_member (reader);
-            }
+            write_json_plugins_to_preferences (reader);
         }
       json_reader_end_member (reader);
     }
@@ -377,7 +384,7 @@ write_json_to_preferences (char *json, int len)
 /**
  * @brief Ask for start scan data.
  *
- * Sends a message to the director via mqtt asking for the necessary 
+ * Sends a message to the director via mqtt asking for the necessary
  * information to start a scan.
  *
  * @param[in] scan_id Scan ID used to get the preferences.
@@ -386,7 +393,7 @@ write_json_to_preferences (char *json, int len)
  *         the kb.
  */
 static int
-ask_for_scan_prefs_from_client (static char *scan_id)
+ask_for_scan_prefs_from_client (const char *scan_id)
 {
   char *msg_id, *group_id, topic_send[128], msg_send[1024], topic_sub[128];
   const char *context;
@@ -636,10 +643,10 @@ attack_network_init (struct scan_globals *globals, const gchar *config_file)
   if (ask_for_scan_prefs_from_client (globals->scan_id))
     {
       g_warning ("No preferences found for the scan %s", globals->scan_id);
-      //TODO: Send message to the client/sensor/director to handle the failure
+      // TODO: Send message to the client/sensor/director to handle the failure
       exit (0);
     }
- // Wait for incomming data and store it in globals
+  // Wait for incomming data and store it in globals
   mqtt_retrieve_message (&topic_recv, &topic_len, &msg_recv, &msg_len);
 
   if ((ret = write_json_to_preferences (msg_recv, msg_len)) < 0)
@@ -648,7 +655,7 @@ attack_network_init (struct scan_globals *globals, const gchar *config_file)
   free (msg_recv);
 
   if (ret)
-    exit(0);
+    exit (0);
 }
 
 void
