@@ -194,6 +194,16 @@ init_signal_handlers (void)
   openvas_signal (SIGCHLD, sighand_chld);
 }
 
+#pragma GCC diagnostic push
+static void
+handle_prefs (gchar *key, gchar *val)
+{
+#pragma GCC diagnostic warning "-Wunused-value"
+  (void *) key;
+  (void *) val;
+}
+#pragma GCC diagnostic pop
+
 static gchar *
 get_json_value (JsonReader *value_reader)
 {
