@@ -582,7 +582,6 @@ write_json_to_preferences (struct scan_globals *globals, char *json, int len)
                   free (buf);
                   json_reader_end_element (reader);
                 }
-              g_debug ("%s: %s -> %s", __func__, key, values);
               prefs_set (key, values);
               free (values);
             }
