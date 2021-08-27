@@ -401,6 +401,7 @@ write_json_plugin_prefs_to_preferences (struct scan_globals *globals,
                 prefs_store_file (globals, key_name, value);
               else
                 prefs_set (key_name, value);
+
               g_free (key_name);
             }
           g_free (value);
@@ -501,6 +502,7 @@ write_json_to_preferences (struct scan_globals *globals, char *json, int len)
                  err->message);
       return -1;
     }
+
   reader = json_reader_new (json_parser_get_root (parser));
 
   num_member = json_reader_count_members (reader);
@@ -868,13 +870,15 @@ attack_network_init (struct scan_globals *globals, const gchar *config_file)
   setpgid (0, 0);
 
   if (ask_for_scan_prefs_from_client (globals->scan_id))
-    {
-      g_warning ("No preferences found for the scan %s", globals->scan_id);
-      // TODO: Send message to the client/sensor/director to handle the failure
-      exit (0);
-    }
+    exit (0);
+
   // Wait for incomming data and store it in globals
+  msg_len = 0;
   mqtt_retrieve_message (&topic_recv, &topic_len, &msg_recv, &msg_len);
+
+  if (msg_len == 0)
+    // TODO: Send message to the client/sensor/director to handle the failure
+    g_warning ("No preferences found for the scan %s", globals->scan_id);
 
   if ((ret = write_json_to_preferences (globals, msg_recv, msg_len)) < 0)
     g_warning ("%s: Write preferences failed", __func__);
