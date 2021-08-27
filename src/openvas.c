@@ -382,8 +382,15 @@ write_json_plugin_prefs_to_preferences (struct scan_globals *globals,
            * name and type.
            */
           get_pref_name_components (nprefs, key, &name, &type);
+          if (name == NULL || type == NULL)
+            {
+              g_warning ("%s: Preference with ID %s was not found for %s. "
+                         "Preference will not be loaded.",
+                         __func__, key, oid);
+              json_reader_end_member (single_vt_reader);
+              continue;
+            }
           value = get_json_value (single_vt_reader);
-
           if (value && validate_pref_type_value (type, value))
             {
               gchar *key_name;
