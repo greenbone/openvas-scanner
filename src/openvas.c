@@ -515,6 +515,14 @@ write_json_to_preferences (struct scan_globals *globals, char *json, int len)
           g_debug ("%s: skipped", __func__);
           continue;
         }
+      else if (is_scanner_only_pref (key))
+        {
+          g_warning ("%s is a scanner only preference. It can not be written "
+                     "by the client and will be ignored.",
+                     key);
+          continue;
+        }
+
       json_reader_read_member (reader, key);
       // key-value preferences
       if (json_reader_is_value (reader))
