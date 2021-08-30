@@ -613,7 +613,7 @@ ask_for_scan_prefs_from_client (const char *scan_id)
   context = prefs_get ("mqtt_context");
 
   // Subscribe to topic
-  snprintf (topic_sub, sizeof (topic_sub), "%s/scan/info", context);
+  g_snprintf (topic_sub, sizeof (topic_sub), "%s/scan/info", context);
   if (mqtt_subscribe (topic_sub))
     {
       g_message ("Subscription to %s failed", topic_sub);
@@ -625,14 +625,14 @@ ask_for_scan_prefs_from_client (const char *scan_id)
   msg_id = gvm_uuid_make ();
   group_id = gvm_uuid_make ();
 
-  snprintf (topic_send, sizeof (topic_send), "%s/scan/cmd/director", context);
-  snprintf (msg_send, sizeof (msg_send),
-            "{\"message_id\":\"%s\","
-            "\"group_id\":\"%s\","
-            "\"message_type\":\"get.scan\","
-            "\"created\":%ld,"
-            "\"id\":\"%s\"}",
-            msg_id, group_id, get_timestamp (), scan_id);
+  g_snprintf (topic_send, sizeof (topic_send), "%s/scan/cmd/director", context);
+  g_snprintf (msg_send, sizeof (msg_send),
+              "{\"message_id\":\"%s\","
+              "\"group_id\":\"%s\","
+              "\"message_type\":\"get.scan\","
+              "\"created\":%ld,"
+              "\"id\":\"%s\"}",
+              msg_id, group_id, get_timestamp (), scan_id);
 
   if ((ret = mqtt_publish (topic_send, msg_send)) < 0)
     g_warning ("%s Publish to %s failed", __func__, topic_send);
@@ -736,7 +736,7 @@ stop_single_task_scan (void)
       exit (1);
     }
 
-  snprintf (key, sizeof (key), "internal/%s", global_scan_id);
+  g_snprintf (key, sizeof (key), "internal/%s", global_scan_id);
   kb = kb_find (prefs_get ("db_address"), key);
   if (!kb)
     {
@@ -772,8 +772,9 @@ create_main_kb (const char *scan_id)
       return -1;
     }
   int i = kb_get_kb_index (main_kb);
-  char id[5];
-  snprintf (id, sizeof (id), "%d", i);
+  char id[6]; // max ID to be stored 99999 + \0
+
+  g_snprintf (id, sizeof (id), "%d", i);
   g_debug ("Created new main db with id %d", i);
   prefs_set ("ov_maindbid", id);
 
