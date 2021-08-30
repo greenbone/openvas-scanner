@@ -30,10 +30,30 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 [21.10]: https://github.com/greenbone/openvas-scanner/compare/openvas-21.04...master
 
-## [21.04.1] (unreleased)
+## [21.4.3] (unreleased)
+### Added
+### Changed
+### Deprecated
+### Removed
+### Fixed
+Fix interrupted scan, when the process table is full. [#832](https://github.com/greenbone/openvas-scanner/pull/832)
+
+[21.4.3]: https://github.com/greenbone/openvas-scanner/compare/v21.4.2...gvmd-21.04
+
+## [21.4.2] - 2021-08-03
+### Fixed
+- Fix clang-analyzer warnings.
+  [#791](https://github.com/greenbone/openvas/pull/791)
+  [#795](https://github.com/greenbone/openvas/pull/795)
+
+[21.4.2]: https://github.com/greenbone/openvas-scanner/compare/v21.4.1...v21.4.2
+
+## [21.4.1] - 2021-06-23
 
 ### Added
-- Improve nasl linter to catch more cases of undeclared variables. [#728][(https://github.com/greenbone/openvas-scanner/pull/728)
+- Improve nasl linter to catch more cases of undeclared variables. [#728](https://github.com/greenbone/openvas-scanner/pull/728)
+- Add deprecation warning for source_iface related settings which will be removed with the 21.10 release. [#732](https://github.com/greenbone/openvas-scanner/pull/732)
+- New Credentials for SSH to get su privileges. Backport of [#744](https://github.com/greenbone/openvas-scanner/pull/744). [#753](https://github.com/greenbone/openvas-scanner/pull/753)
 
 ### Changed
 - Update default log config [#711](https://github.com/greenbone/openvas-scanner/pull/711)
@@ -45,9 +65,9 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ### Removed
 
-[21.04.1]: https://github.com/greenbone/openvas/compare/v21.4.0...openvas-21.04
+[21.4.1]: https://github.com/greenbone/openvas/compare/v21.4.1...openvas-21.04
 
-## [21.04.0] (2021-04-15)
+## [21.4.0] - 2021-04-15
 
 ### Added
 - Add scanner-only option to enable tls debugging. [#558](https://github.com/greenbone/openvas/pull/558)
@@ -69,29 +89,39 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 ### Removed
 - Use the nvticache name from gvm-libs, defined in nvticache.h. [#578](https://github.com/greenbone/openvas/pull/578)
 
-[21.04.0]: https://github.com/greenbone/openvas/compare/openvas-20.08...master
+[21.4.0]: https://github.com/greenbone/openvas/compare/openvas-20.08...v21.4.0
 
-## [20.8.3] - Unreleased
-
+## [20.8.4] (unreleased)
 ### Added
 ### Changed
+- Changed defaults for installation locations [#826](https://github.com/greenbone/openvas-scanner/pull/826)
+  - SYSCONFDIR is /etc by default now
+  - LOCALSTATEDIR is /var by default now
+  - OPENVAS_RUN_DIR is /run/ospd by default now
+  - OPENVAS_FEED_LOOK_PATH is /var/lib/openvas/feed-update.lock by default now
+
 ### Deprecated
 ### Removed
+### Fixed
+
+[20.8.4]: https://github.com/greenbone/openvas-scanner/compare/v20.8.3...openvas-20.08
+
+## [20.8.3] - 2021-08-03
 ### Fixed
 
 - Fix clang-analyzer warnings.
   [#791](https://github.com/greenbone/openvas/pull/791)
   [#795](https://github.com/greenbone/openvas/pull/795)
 
-[20.8.3]: https://github.com/greenbone/openvas/compare/v20.8.2...openvas-20.08
+[20.8.3]: https://github.com/greenbone/openvas/compare/v20.8.2...v20.8.3
 
-## [20.08.2] (unreleased)
+## [20.8.2] - 2021-06-23
 
 ### Added
 - Check for wrong names or values in the script_xrefs params.
   [#650](https://github.com/greenbone/openvas/pull/650)
   [#653](https://github.com/greenbone/openvas/pull/653)
-- Log a message if the scanner did not launch all plugins against a host. 
+- Log a message if the scanner did not launch all plugins against a host.
   [#700](https://github.com/greenbone/openvas/pull/700)
   [#734](https://github.com/greenbone/openvas/pull/734)
 
@@ -109,16 +139,16 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 - Fix message to the client if there is a iface problem. [#695](https://github.com/greenbone/openvas/pull/695)
 - Fix SIGSEGV when no best route is found. [#702](https://github.com/greenbone/openvas/pull/702)
 - Fix host count when reverse_lookup_only is enabled. [#715](https://github.com/greenbone/openvas/pull/715)
-- Use host from the orignal hosts list when boreas is enabled. Backport of [PR #727](https://github.com/greenbone/openvas/pull/727). [#725](https://github.com/greenbone/openvas/pull/725)
+- Use host from the original hosts list when boreas is enabled. Backport of [PR #727](https://github.com/greenbone/openvas/pull/727). [#725](https://github.com/greenbone/openvas/pull/725)
 - The function description of nasl_ssh_shell_read() has been fixed. [#755](https://github.com/greenbone/openvas/pull/755)
 
 ### Removed
 - Remove code from the openvas daemon era. Do not flushall redis. [#689](https://github.com/greenbone/openvas/pull/689)
 - Remove deprecated option logfile. [#713](https://github.com/greenbone/openvas/pull/713)
 
-[20.08.2]: https://github.com/greenbone/openvas/compare/v20.8.0...openvas-20.08
+[20.8.2]: https://github.com/greenbone/openvas/compare/v20.8.1...v20.8.2
 
-## [20.08.1] (2021.02.01)
+## [20.8.1] - 2021-02-01
 
 ### Added
 - Extend nasl lint to detect if function parameter is used twice. [#590](https://github.com/greenbone/openvas/pull/590)
@@ -154,7 +184,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 [20.08.1]: https://github.com/greenbone/openvas/compare/v20.8.0...v20.8.1
 
-## [20.08] (2020-08-11)
+## [20.8.0] - 2020-08-11
 
 ### Added
 - Create greenbone-nvt-sync create lock file during feed sync.
@@ -212,7 +242,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 ### Removed
 - Removed "network scan" mode. This includes removal of NASL API methods "scan_phase()" and "network_targets()". Sending a "network_mode=yes" in a scanner configuration will have no effect anymore. [#493](https://github.com/greenbone/openvas/pull/493)
 
-[20.08]: https://github.com/greenbone/openvas/compare/openvas-7.0...openvas-20.08
+[20.8.1]: https://github.com/greenbone/openvas/compare/openvas-7.0...v20.8.1
 
 ## [7.0.1]
 
