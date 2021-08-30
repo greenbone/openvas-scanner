@@ -546,7 +546,7 @@ write_json_to_preferences (struct scan_globals *globals, char *json, int len)
               key = "port_range";
             }
           const char *value;
-          GString *values;
+          GString *values = NULL;
           int j, elements;
 
           elements = json_reader_count_elements (reader);
