@@ -283,7 +283,7 @@ comm_send_status (kb_t main_kb, char *ip_str, int curr, int max)
   if (strlen (ip_str) > (sizeof (status_buf) - 50))
     return -1;
 
-  snprintf (status_buf, sizeof (status_buf), "%s/%d/%d", ip_str, curr, max);
+  g_snprintf (status_buf, sizeof (status_buf), "%s/%d/%d", ip_str, curr, max);
   kb_item_push_str (main_kb, "internal/status", status_buf);
   kb_lnk_reset (main_kb);
 
@@ -675,7 +675,7 @@ attack_host (struct scan_globals *globals, struct in6_addr *ip, GSList *vhosts,
                 {
                   char buffer[2048];
 
-                  snprintf (
+                  g_snprintf (
                     buffer, sizeof (buffer),
                     "LOG|||%s||| |||general/Host_Details||| |||<host><detail>"
                     "<name>Host dead</name><value>1</value><source>"
@@ -1186,10 +1186,10 @@ attack_network (struct scan_globals *globals)
     }
   if (plugins_init_error > 0)
     {
-      snprintf (buf, 96,
-                "%d errors were found during the plugin scheduling. "
-                "Some plugins have not been launched.",
-                plugins_init_error);
+      g_snprintf (buf, sizeof (buf),
+                  "%d errors were found during the plugin scheduling. "
+                  "Some plugins have not been launched.",
+                  plugins_init_error);
 
       connect_main_kb (&main_kb);
       g_warning ("%s", buf);
@@ -1228,7 +1228,7 @@ attack_network (struct scan_globals *globals)
 
   /* Send the hosts count to the client, after removing duplicated and
    * unresolved hosts.*/
-  snprintf (buf, 96, "%d", gvm_hosts_count (hosts));
+  g_snprintf (buf, sizeof (buf), "%d", gvm_hosts_count (hosts));
   connect_main_kb (&main_kb);
   message_to_client (main_kb, buf, NULL, NULL, "HOSTS_COUNT");
   kb_lnk_reset (main_kb);

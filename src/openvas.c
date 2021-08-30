@@ -770,10 +770,10 @@ create_main_kb (const char *scan_id)
   char id[6]; // max ID 99999 + \0
 
   if (kb_new (&main_kb, prefs_get ("db_address")))
-      return -1;
+    return -1;
 
   i = kb_get_kb_index (main_kb);
-    
+
   g_snprintf (id, sizeof (id), "%d", i);
   g_debug ("Created new main db with id %d", i);
   prefs_set ("ov_maindbid", id);

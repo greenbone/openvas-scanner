@@ -488,7 +488,7 @@ proto_post_wrapped (const char *oid, struct script_infos *desc, int port,
 
   /* Send result via MQTT. */
   context = prefs_get ("mqtt_context");
-  g_snprintf (topic, sizeof(topic), "%s/scan/info", context);
+  g_snprintf (topic, sizeof (topic), "%s/scan/info", context);
   json = make_result_json_str (
     desc->globals->scan_id, msg_type_to_str (msg_type), ip_str, hostname ?: " ",
     port_s, proto, oid, action_str->str, uri ?: "");
