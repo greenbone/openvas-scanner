@@ -734,7 +734,7 @@ attack_host (struct scan_globals *globals, struct in6_addr *ip, GSList *vhosts,
       else if (plugin != NULL && plugin == PLUG_RUNNING)
         /* 50 milliseconds. */
         usleep (50000);
-      pluginlaunch_wait_for_free_process (main_kb, kb);
+      pluginlaunch_wait_for_free_process (kb);
     }
 
   if (prefs_get_bool ("table_driven_lsc"))
@@ -743,7 +743,7 @@ attack_host (struct scan_globals *globals, struct in6_addr *ip, GSList *vhosts,
       run_table_driven_lsc (globals->scan_id, kb, ip_str, NULL);
     }
 
-  pluginlaunch_wait (main_kb, kb);
+  pluginlaunch_wait (kb);
   if (!scan_is_stopped ())
     {
       int ret;
