@@ -150,7 +150,7 @@ host_message_send (const gchar *message)
   const char *context;
 
   context = prefs_get ("mqtt_context");
-  snprintf (topic, sizeof (topic), "%s/scan/info", context);
+  g_snprintf (topic, sizeof (topic), "%s/scan/info", context);
 
   mqtt_publish (topic, message);
 }
@@ -246,7 +246,7 @@ proto_post_wrapped (const char *oid, struct script_infos *desc, int port,
     }
 
   if (port > 0)
-    snprintf (port_s, sizeof (port_s), "%d", port);
+    g_snprintf (port_s, sizeof (port_s), "%d", port);
   if ((hostname = plug_current_vhost ()) == NULL && (desc->vhosts))
     hostname = ((gvm_vhost_t *) desc->vhosts->data)->value;
   addr6_to_str (plug_get_host_ip (desc), ip_str);
@@ -258,7 +258,7 @@ proto_post_wrapped (const char *oid, struct script_infos *desc, int port,
 
   /* Send result via MQTT. */
   context = prefs_get ("mqtt_context");
-  snprintf (topic, 128, "%s/scan/info", context);
+  g_snprintf (topic, sizeof (topic), "%s/scan/info", context);
   json = make_result_json_str (desc->globals->scan_id, msg_type, ip_str,
                                hostname ?: " ", port_s, proto, oid,
                                action_str->str, uri ?: "");

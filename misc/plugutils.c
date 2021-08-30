@@ -24,9 +24,9 @@
  */
 
 #include "plugutils.h"
-#include "reporting.h"
 
 #include "network.h" // for OPENVAS_ENCAPS_IP
+#include "reporting.h"
 
 #include <errno.h> // for errno
 #include <eulabeia/json.h>
