@@ -45,6 +45,7 @@ endif (NOT PCAP)
 message (STATUS "Looking for pcap-config...")
 find_program (PCAP_CONFIG pcap-config)
 
+find_package(Eulabeia REQUIRED)
 if (PCAP_CONFIG)
   message (STATUS "Looking for pcap-config... ${PCAP_CONFIG}")
   execute_process (COMMAND pcap-config --libs
@@ -124,7 +125,7 @@ set_target_properties (openvas_misc_shared PROPERTIES SOVERSION "${PROJECT_VERSI
 set_target_properties (openvas_misc_shared PROPERTIES VERSION "${PROJECT_VERSION_STRING}")
 
 target_link_libraries (openvas_misc_shared LINK_PRIVATE ${GNUTLS_LDFLAGS} ${UUID_LDFLAGS}
-                       ${GLIB_LDFLAGS} ${GLIB_JSON_LDFLAGS} ${PCAP_LDFLAGS}
+                       ${GLIB_LDFLAGS}  Eulabeia::Eulabeia ${GLIB_JSON_LDFLAGS} ${PCAP_LDFLAGS}
                        ${LINKER_HARDENING_FLAGS})
 
 if (OPENVAS_STATE_DIR)

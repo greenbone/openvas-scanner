@@ -57,7 +57,8 @@
 #include <gvm/util/mqtt.h>      /* for mqtt_init */
 #include <gvm/util/nvticache.h> /* nvticache_free */
 #include <gvm/util/uuidutils.h> /* gvm_uuid_make */
-#include <netdb.h>              /* for addrinfo */
+#include <json-glib/json-glib.h>
+#include <netdb.h> /* for addrinfo */
 #include <pwd.h>
 #include <signal.h> /* for SIGTERM */
 #include <stdio.h>  /* for fflush() */
@@ -65,7 +66,8 @@
 #include <sys/stat.h>
 #include <sys/un.h>
 #include <sys/wait.h> /* for waitpid */
-#include <unistd.h>   /* for close() */
+#include <time.h>
+#include <unistd.h> /* for close() */
 
 #ifdef GIT_REV_AVAILABLE
 #include "gitrevision.h"
@@ -121,6 +123,7 @@ static openvas_option openvas_defaults[] = {
   {"plugins_timeout", G_STRINGIFY (NVT_TIMEOUT)},
   {"scanner_plugins_timeout", G_STRINGIFY (SCANNER_NVT_TIMEOUT)},
   {"db_address", KB_PATH_DEFAULT},
+  {"mqtt_context", "eulabeia"},
   {NULL, NULL}};
 
 /**
@@ -191,81 +194,452 @@ init_signal_handlers (void)
   openvas_signal (SIGCHLD, sighand_chld);
 }
 
+#pragma GCC diagnostic push
+#pragma GCC diagnostic warning "-Wunused-value"
 /**
- * @brief Read the scan preferences from redis
+ * @brief Check if the preference value matches with the type
  *
- * Adds preferences to the global_prefs.
+ * @param type preference type
+ * @param value preference value
+ *
+ * @return True if value is the type of "type". False otherwise.
+ */
+static gboolean
+validate_pref_type_value (gchar *type, gchar *value)
+{
+  // TODO: validate types
+  (void *) type;
+  (void *) value;
+  return TRUE;
+}
+
+/**
+ * @brief Store credentials as preferences.
+ *
+ * @details Credentials are received as json object but must be
+ * stored either as plugin preferences or boreas preferences.
+ *
+ * @param alive_test_reader Json reader pointing to the object with
+ * alive test preferences.
+ */
+static void
+write_json_credentials_to_preferences (JsonReader *credentials_reader)
+{
+  // TODO: handle credentials
+  (void *) credentials_reader;
+}
+
+/**
+ * @brief Store alive test as preferences.
+ *
+ * @details Alive tests are received as json object but must be
+ * stored either as plugin preferences or boreas preferences.
+ *
+ * @param alive_test_reader Json reader pointing to the object with
+ * alive test preferences.
+ */
+static void
+write_json_alive_test_to_preferences (JsonReader *alive_test_reader)
+{
+  // TODO: handle alive tests
+  (void *) alive_test_reader;
+}
+#pragma GCC diagnostic pop
+
+/**
+ * @brief Get the type and the name of a plugin preferences.
+ *
+ * @details Plugins preferences key name have the form
+ * OID:PrefID:Type:Name.
+ * Only the ID is received in the json object (in addtion to the value).
+ * This function retrieves the missing components necessary to form the
+ * preference's key name.
+ *
+ * @param[in] nprefs List of preferences which belong to the plugin.
+ * @param[in] id Preference ID which name and type are seek.
+ * @param[out] name The preference name
+ * @param[out] type The preference type
+ */
+static void
+get_pref_name_components (GSList *nprefs, gchar *id, gchar **name, gchar **type)
+{
+  GSList *pref_tmp;
+
+  pref_tmp = nprefs;
+  while (pref_tmp)
+    {
+      if (atoi (id) == nvtpref_id (pref_tmp->data))
+        {
+          *type = nvtpref_type (pref_tmp->data);
+          *name = nvtpref_name (pref_tmp->data);
+          break;
+        }
+      pref_tmp = pref_tmp->next;
+    }
+}
+
+/**
+ * @brief Get the value which the json reader is pointing to
+ *
+ * @details Check for the value type and store the value.
+ *
+ * @param value_reader Json reader pointing to the value.
+ *
+ * @return Value as string. Null otherwise.
+ */
+static gchar *
+get_json_value (JsonReader *value_reader)
+{
+  JsonNode *node_value = json_reader_get_value (value_reader);
+  GType type = json_node_get_value_type (node_value);
+  gchar *value = NULL;
+
+  if (type == G_TYPE_STRING)
+    {
+      value = g_strdup (json_reader_get_string_value (value_reader));
+    }
+  if (type == G_TYPE_BOOLEAN)
+    {
+      value =
+        g_strdup (json_reader_get_boolean_value (value_reader) ? "yes" : "no");
+    }
+  if (type == G_TYPE_INT64 || type == G_TYPE_INT)
+    {
+      value = g_strdup_printf ("%ld", json_reader_get_int_value (value_reader));
+    }
+  return value;
+}
+
+/**
+ * @brief Stores a file type plugin preference
+ *
+ * @details File types are stored in a hash list and only the file
+ * name is stored as preference.
+ *
+ * @param globals Scan_globals struct to stored the file content.
+ * @param key_name The preference key name (OID:PrefID:Type:Name)
+ * @param file The file content to be stored.
+ */
+static void
+prefs_store_file (struct scan_globals *globals, const gchar *key_name,
+                  const gchar *file)
+{
+  char *file_uuid = gvm_uuid_make ();
+  int ret;
+
+  prefs_set (key_name, file_uuid);
+  ret = store_file (globals, file, file_uuid);
+  if (ret)
+    g_debug ("Load preference: Failed to upload file "
+             "for nvt %s preference.",
+             key_name);
+
+  g_free (file_uuid);
+}
+
+/**
+ * @brief Store plugin preferences in the right form.
+ *
+ * @details Only the id is received (besides the value). This functions
+ * created the key_name of the preferences, and validate the value with the
+ * type. Also handle the special "file" type preference.
+ *
+ * @param globals Scan_globals struct. Used only to store the file types.
+ * @param single_vt_reader Json reader pointing to a single vt plugins
+ * @param oid OID of the plugins which the preferences to be handle belongs to.
+ */
+static void
+write_json_plugin_prefs_to_preferences (struct scan_globals *globals,
+                                        JsonReader *single_vt_reader,
+                                        const gchar *oid)
+{
+  // TODO: better error handling for non-existing preferences/plugins
+  // Plugins can be removed from redis and no preferences will be found.
+
+  gchar **members;
+  int j, num_plug_prefs;
+  GSList *nprefs;
+
+  json_reader_read_member (single_vt_reader, "prefs_by_id");
+  g_assert_true (json_reader_is_object (single_vt_reader));
+  num_plug_prefs = json_reader_count_members (single_vt_reader);
+  members = json_reader_list_members (single_vt_reader);
+
+  // Get nvt preferences list, to get the key name by id
+  // Done here, to don't query redis for each plugin's preference list
+  nprefs = nvticache_get_prefs (oid);
+
+  for (j = 0; j < num_plug_prefs; j++)
+    {
+      gchar *key = members[j];
+
+      json_reader_read_member (single_vt_reader, key);
+      if (json_reader_is_value (single_vt_reader))
+        {
+          gchar *value, *name = NULL, *type = NULL;
+
+          /* Only got the id and value. We need now the
+           * name and type.
+           */
+          get_pref_name_components (nprefs, key, &name, &type);
+          if (name == NULL || type == NULL)
+            {
+              g_warning ("%s: Preference with ID %s was not found for %s. "
+                         "Preference will not be loaded.",
+                         __func__, key, oid);
+              json_reader_end_member (single_vt_reader);
+              continue;
+            }
+          value = get_json_value (single_vt_reader);
+          if (value && validate_pref_type_value (type, value))
+            {
+              gchar *key_name;
+
+              key_name = g_strdup_printf ("%s:%s:%s:%s", oid, key, type, name);
+              // handle special case for file type
+              if (!g_strcmp0 (type, "file"))
+                prefs_store_file (globals, key_name, value);
+              else
+                prefs_set (key_name, value);
+
+              g_free (key_name);
+            }
+          g_free (value);
+        }
+      json_reader_end_member (single_vt_reader);
+    }
+  json_reader_end_member (single_vt_reader);
+  g_slist_free_full (nprefs, (void (*) (void *)) nvtpref_free);
+}
+
+/**
+ * @brief Store plugins list and  preferences in the right form.
+ *
+ * @details An array of plugins struct (oid + preferences) arrives as json
+ * object.
+ * This function preapres the "TARGET" string, concatenating the plugins oids.
+ * Also, preapres the handle the plugin preferences
+ *
+ * @param globals Scan_globals struct. Used only to store the file types.
+ * @param reader Json reader pointing to a list of plugins
+ */
+static void
+write_json_plugins_to_preferences (struct scan_globals *globals,
+                                   JsonReader *reader)
+{
+  const char *value;
+  char *key;
+  int j, num_plugins;
+  GString *values = NULL;
+
+  json_reader_read_member (reader, "single_vts");
+  num_plugins = json_reader_count_elements (reader);
+
+  key = "plugin_set";
+
+  if (num_plugins > 0)
+    {
+      for (j = 0; j < num_plugins; j++)
+        {
+          json_reader_read_element (reader, j);
+          json_reader_read_member (reader, "oid");
+
+          value = json_reader_get_string_value (reader);
+          if (j == 0) // first plugin
+            values = g_string_append (values, value);
+          else // Other plugins
+            g_string_append_printf (values, ";%s", value);
+          json_reader_end_member (reader);
+
+          // Write this plugin preferences
+          write_json_plugin_prefs_to_preferences (globals, reader, value);
+
+          json_reader_end_element (reader);
+        }
+      prefs_set (key, values->str);
+      g_string_free (values, TRUE);
+    }
+  json_reader_end_member (reader);
+}
+
+/**
+ * @brief Write preferences from json into globals
+ *
+ * Adds preferences from a json string into the global_prefs.
  * If preference already exists in global_prefs they will be overwritten by
- * prefs from client.
+ * prefs from json.
  *
- * @param globals Scan ID of globals used as key to find the corresponding KB
- * where to take the preferences from. Globals also used for file upload.
+ * @param json String in which preferences are stored.
+ * @return int 0 on success, -1 if json is empty or format is invalid.
+ */
+static int
+write_json_to_preferences (struct scan_globals *globals, char *json, int len)
+{
+  JsonParser *parser;
+  JsonReader *reader;
+
+  gint num_member;
+  gchar **members;
+  GError *err = NULL;
+
+  int i;
+
+  // Build json tree struct
+  parser = json_parser_new ();
+  if (!json_parser_load_from_data (parser, json, len, &err))
+    {
+      g_warning ("%s: Unable to parse json. Reason: %s", __func__,
+                 err->message);
+      return -1;
+    }
+
+  reader = json_reader_new (json_parser_get_root (parser));
+
+  num_member = json_reader_count_members (reader);
+  if (num_member < 1)
+    {
+      g_warning ("%s: Empty json.", __func__);
+      return -1;
+    }
+
+  members = json_reader_list_members (reader);
+
+  for (i = 0; i < num_member; i++)
+    {
+      gchar *key = members[i];
+      g_debug ("%s: processing %s", __func__, key);
+      if (!strcmp (key, "created") || !strcmp (key, "message_type")
+          || !strcmp (key, "group_id") || !strcmp (key, "message_id"))
+        {
+          g_debug ("%s: skipped", __func__);
+          continue;
+        }
+      else if (is_scanner_only_pref (key))
+        {
+          g_warning ("%s is a scanner only preference. It can not be written "
+                     "by the client and will be ignored.",
+                     key);
+          continue;
+        }
+
+      json_reader_read_member (reader, key);
+      // key-value preferences
+      if (json_reader_is_value (reader))
+        {
+          char *value;
+
+          value = get_json_value (reader);
+          g_debug ("%s: %s -> %s", __func__, key, value);
+          prefs_set (key, value);
+          g_free (value);
+        }
+      // list (ports, hosts)
+      // parse list comma separated into single string
+      if (json_reader_is_array (reader))
+        {
+          if (!strcmp (key, "hosts"))
+            {
+              key = "TARGET";
+            }
+          if (!strcmp (key, "ports"))
+            {
+              key = "port_range";
+            }
+          const char *value;
+          GString *values = NULL;
+          int j, elements;
+
+          elements = json_reader_count_elements (reader);
+
+          // Read first element
+          if (elements > 0)
+            {
+              for (j = 0; j < elements; j++)
+                {
+                  json_reader_read_element (reader, j);
+                  value = json_reader_get_string_value (reader);
+                  if (j == 0) // first element
+                    values = g_string_append (values, value);
+                  else // Other elements
+                    g_string_append_printf (values, ";%s", value);
+                  json_reader_end_element (reader);
+                }
+              prefs_set (key, values->str);
+              g_string_free (values, TRUE);
+            }
+        }
+      // dictionary (plugins)
+      // parse list semicolon separated into single string
+      if (json_reader_is_object (reader))
+        {
+          if (!strcmp (key, "plugins"))
+            write_json_plugins_to_preferences (globals, reader);
+          else if (!strcmp (key, "credentials"))
+            write_json_credentials_to_preferences (reader);
+          else if (!strcmp (key, "alive"))
+            write_json_alive_test_to_preferences (reader);
+          else
+            g_warning ("%s: unknown object %s", __func__, key);
+        }
+      json_reader_end_member (reader);
+    }
+
+  g_object_unref (reader);
+  g_object_unref (parser);
+  g_free (members);
+  return 0;
+}
+
+/**
+ * @brief Ask for start scan data.
+ *
+ * Sends a message to the director via mqtt asking for the necessary
+ * information to start a scan.
+ *
+ * @param[in] scan_id Scan ID used to get the preferences.
  *
  * @return 0 on success, -1 if the kb is not found or no prefs are found in
  *         the kb.
  */
 static int
-overwrite_openvas_prefs_with_prefs_from_client (struct scan_globals *globals)
+ask_for_scan_prefs_from_client (const char *scan_id)
 {
-  char key[1024];
-  kb_t kb;
-  struct kb_item *res = NULL;
+  char *msg_id, *group_id, topic_send[128], msg_send[1024], topic_sub[128];
+  const char *context;
+  int ret;
 
-  g_debug ("Start loading scan preferences.");
-  if (!globals->scan_id)
-    return -1;
+  // TODO: Get alive test via mqtt
+  prefs_set ("ALIVE_TEST", "2");
+  context = prefs_get ("mqtt_context");
 
-  snprintf (key, sizeof (key), "internal/%s/scanprefs", globals->scan_id);
-  kb = kb_find (prefs_get ("db_address"), key);
-  if (!kb)
-    return -1;
-
-  res = kb_item_get_all (kb, key);
-  if (!res)
-    return -1;
-
-  while (res)
+  // Subscribe to topic
+  g_snprintf (topic_sub, sizeof (topic_sub), "%s/scan/info", context);
+  if (mqtt_subscribe (topic_sub))
     {
-      gchar **pref = g_strsplit (res->v_str, "|||", 2);
-      if (pref[0])
-        {
-          gchar **pref_name = g_strsplit (pref[0], ":", 3);
-          if (pref_name[1] && pref_name[2] && !strncmp (pref_name[2], "file", 4)
-              && strcmp (pref[1], ""))
-            {
-              char *file_uuid = gvm_uuid_make ();
-              int ret;
-              prefs_set (pref[0], file_uuid);
-              ret = store_file (globals, pref[1], file_uuid);
-              if (ret)
-                g_debug ("Load preference: Failed to upload file "
-                         "for nvt %s preference.",
-                         pref_name[0]);
-
-              g_free (file_uuid);
-            }
-          else if (is_scanner_only_pref (pref[0]))
-            g_warning ("%s is a scanner only preference. It can not be written "
-                       "by the client and will be ignored.",
-                       pref_name[0]);
-          else
-            prefs_set (pref[0], pref[1] ?: "");
-          g_strfreev (pref_name);
-        }
-
-      g_strfreev (pref);
-      res = res->next;
+      g_message ("Subscription to %s failed", topic_sub);
+      return -1;
     }
-  kb_del_items (kb, key);
-  snprintf (key, sizeof (key), "internal/%s", globals->scan_id);
-  kb_item_set_str (kb, key, "ready", 0);
-  kb_item_set_int (kb, "internal/ovas_pid", getpid ());
-  kb_lnk_reset (kb);
+  g_message ("Successfully subscribed to %s", topic_sub);
 
-  g_debug ("End loading scan preferences.");
+  // Sned Get Scan
+  msg_id = gvm_uuid_make ();
+  group_id = gvm_uuid_make ();
 
-  kb_item_free (res);
-  return 0;
+  g_snprintf (topic_send, sizeof (topic_send), "%s/scan/cmd/director", context);
+  g_snprintf (msg_send, sizeof (msg_send),
+              "{\"message_id\":\"%s\","
+              "\"group_id\":\"%s\","
+              "\"message_type\":\"get.scan\","
+              "\"created\":%ld,"
+              "\"id\":\"%s\"}",
+              msg_id, group_id, get_timestamp (), scan_id);
+
+  if ((ret = mqtt_publish (topic_send, msg_send)) < 0)
+    g_warning ("%s Publish to %s failed", __func__, topic_send);
+
+  free (msg_id);
+  free (group_id);
+  return ret;
 }
 
 /**
@@ -362,7 +736,7 @@ stop_single_task_scan (void)
       exit (1);
     }
 
-  snprintf (key, sizeof (key), "internal/%s", global_scan_id);
+  g_snprintf (key, sizeof (key), "internal/%s", global_scan_id);
   kb = kb_find (prefs_get ("db_address"), key);
   if (!kb)
     {
@@ -383,6 +757,49 @@ stop_single_task_scan (void)
 }
 
 /**
+ * @brief Creates the main kb and inserts the scan id
+ *
+ * @param scan_id
+ * @return int 0 on success, -1 on failure
+ */
+int
+create_main_kb (const char *scan_id)
+{
+  kb_t main_kb;
+  int i;
+  char id[6]; // max ID 99999 + \0
+
+  if (kb_new (&main_kb, prefs_get ("db_address")))
+    return -1;
+
+  i = kb_get_kb_index (main_kb);
+
+  g_snprintf (id, sizeof (id), "%d", i);
+  g_debug ("Created new main db with id %d", i);
+  prefs_set ("ov_maindbid", id);
+
+  kb_item_add_str_unique (main_kb, "internal/scanid", scan_id, strlen (scan_id),
+                          0);
+  return 0;
+}
+
+/**
+ * @brief Deletes the main kb
+ *
+ * @return int 0 on success, non-null on error
+ */
+int
+delete_main_kb ()
+{
+  kb_t main_kb;
+  int i = atoi (prefs_get ("ov_maindbid"));
+
+  main_kb = kb_direct_conn (prefs_get ("db_address"), i);
+
+  return kb_delete (main_kb);
+}
+
+/**
  * @brief Set up data needed for attack_network().
  *
  * @param globals scan_globals needed for client preference handling.
@@ -392,9 +809,17 @@ void
 attack_network_init (struct scan_globals *globals, const gchar *config_file)
 {
   const char *mqtt_server_uri;
+  char *topic_recv, *msg_recv;
+  int topic_len, msg_len, ret = 0;
 
   set_default_openvas_prefs ();
   prefs_config (config_file);
+
+  if (create_main_kb (globals->scan_id))
+    {
+      g_warning ("%s: Failed to create main db.", __func__);
+      exit (1);
+    }
 
   /* Init MQTT communication */
   mqtt_server_uri = prefs_get ("mqtt_server_uri");
@@ -425,11 +850,30 @@ attack_network_init (struct scan_globals *globals, const gchar *config_file)
    * processes & their children. */
   setpgid (0, 0);
 
-  if (overwrite_openvas_prefs_with_prefs_from_client (globals))
-    {
-      g_warning ("No preferences found for the scan %s", globals->scan_id);
-      exit (0);
-    }
+  if (ask_for_scan_prefs_from_client (globals->scan_id))
+    exit (0);
+
+  // Wait for incomming data and store it in globals
+  msg_len = 0;
+  mqtt_retrieve_message (&topic_recv, &topic_len, &msg_recv, &msg_len);
+
+  if (msg_len == 0)
+    // TODO: Send message to the client/sensor/director to handle the failure
+    g_warning ("No preferences found for the scan %s", globals->scan_id);
+
+  if ((ret = write_json_to_preferences (globals, msg_recv, msg_len)) < 0)
+    g_warning ("%s: Write preferences failed", __func__);
+  free (topic_recv);
+  free (msg_recv);
+
+  if (ret)
+    exit (0);
+}
+
+void
+attack_network_cleanup ()
+{
+  delete_main_kb ();
 }
 
 /**
@@ -557,7 +1001,9 @@ openvas (int argc, char *argv[])
       globals->scan_id = g_strdup (global_scan_id);
 
       attack_network_init (globals, config_file);
+      g_message ("attack_network_init successfully executed");
       attack_network (globals);
+      attack_network_cleanup ();
 
       gvm_close_sentry ();
       exit (0);
