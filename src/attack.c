@@ -496,7 +496,7 @@ run_table_driven_lsc (const char *scan_id, kb_t kb, const char *ip_str,
   if (json_str == NULL)
     return -1;
 
-  err = mqtt_publish ("scanner/start", json_str);
+  err = mqtt_publish ("scanner/package/cmd/notus", json_str);
   if (err != 0)
     g_warning ("%s: Error publishing message for Notus.", __func__);
 
