@@ -14,6 +14,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
   [#743](https://github.com/greenbone/openvas/pull/743).
   Reintroduction after Rebase with
   [#788](https://github.com/greenbone/openvas/pull/788)
+- Get preferences via mqtt instead of redis [#842](https://github.com/greenbone/openvas/pull/842)
 - Add nvti info to openvas results. [#809](https://github.com/greenbone/openvas/pull/809)
 - Notus integration mqtt. 
   [#806](https://github.com/greenbone/openvas/pull/806)
@@ -22,6 +23,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 ### Changed
 - Revert [#809](https://github.com/greenbone/openvas/pull/809) and adjust json result format and json lsc info format. [#837](https://github.com/greenbone/openvas/pull/837)
 - Handle script timeout as script preference with ID 0 [#841](https://github.com/greenbone/gvm-libs/pull/841)
+- Integrate eulabeia [842](https://github.com/greenbone/openvas-scanner/pull/842)
 
 ## [21.10] (unreleased)
 
