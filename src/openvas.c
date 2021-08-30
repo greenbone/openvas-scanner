@@ -300,8 +300,8 @@ get_json_value (JsonReader *value_reader)
     }
   if (type == G_TYPE_BOOLEAN)
     {
-      value = g_strdup (json_reader_get_boolean_value (value_reader) ? "yes\0"
-                                                                     : "no\0");
+      value =
+        g_strdup (json_reader_get_boolean_value (value_reader) ? "yes" : "no");
     }
   if (type == G_TYPE_INT64 || type == G_TYPE_INT)
     {
@@ -428,8 +428,9 @@ write_json_plugins_to_preferences (struct scan_globals *globals,
                                    JsonReader *reader)
 {
   const char *value;
-  char *values, *key;
-  int len, j, num_plugins;
+  char *key;
+  int j, num_plugins;
+  GString *values = NULL;
 
   json_reader_read_member (reader, "single_vts");
   num_plugins = json_reader_count_elements (reader);
@@ -444,30 +445,19 @@ write_json_plugins_to_preferences (struct scan_globals *globals,
           json_reader_read_member (reader, "oid");
 
           value = json_reader_get_string_value (reader);
-          if (j == 0) // first element
-            {
-              len = strlen (value);
-              values = (char *) (malloc (sizeof (char) * len + 1));
-              snprintf (values, len + 1, "%s", value);
-            }
-          else // Other elements
-            {
-              len += strlen (value);
-              char *buf = values;
-              values = (char *) (malloc (sizeof (char) * len + 1));
-              snprintf (values, len + 1, "%s;%s", buf, value);
-              free (buf);
-            }
+          if (j == 0) // first plugin
+            values = g_string_append (values, value);
+          else // Other plugins
+            g_string_append_printf (values, ";%s", value);
           json_reader_end_member (reader);
 
-          // Write this pluginpreferences
+          // Write this plugin preferences
           write_json_plugin_prefs_to_preferences (globals, reader, value);
 
           json_reader_end_element (reader);
         }
-      g_debug ("%s: %s -> %s", __func__, key, values);
-      prefs_set (key, values);
-      free (values);
+      prefs_set (key, values->str);
+      g_string_free (values, TRUE);
     }
   json_reader_end_member (reader);
 }
@@ -556,36 +546,26 @@ write_json_to_preferences (struct scan_globals *globals, char *json, int len)
               key = "port_range";
             }
           const char *value;
-          char *values;
-          int j;
-          int len;
+          GString *values;
+          int j, elements;
 
-          int elements = json_reader_count_elements (reader);
+          elements = json_reader_count_elements (reader);
 
           // Read first element
           if (elements > 0)
             {
-              json_reader_read_element (reader, 0);
-              value = json_reader_get_string_value (reader);
-              len = strlen (value);
-              values = (char *) (malloc (sizeof (char) * len + 1));
-              snprintf (values, len + 1, "%s", value);
-              json_reader_end_element (reader);
-
-              // Concatinate all other ellements comma separated
-              for (j = 1; j < elements; j++)
+              for (j = 0; j < elements; j++)
                 {
                   json_reader_read_element (reader, j);
                   value = json_reader_get_string_value (reader);
-                  len += strlen (value);
-                  char *buf = values;
-                  values = (char *) (malloc (sizeof (char) * len + 1));
-                  snprintf (values, len + 1, "%s,%s", buf, value);
-                  free (buf);
+                  if (j == 0) // first element
+                    values = g_string_append (values, value);
+                  else // Other elements
+                    g_string_append_printf (values, ";%s", value);
                   json_reader_end_element (reader);
                 }
-              prefs_set (key, values);
-              free (values);
+              prefs_set (key, values->str);
+              g_string_free (values, TRUE);
             }
         }
       // dictionary (plugins)
@@ -633,7 +613,7 @@ ask_for_scan_prefs_from_client (const char *scan_id)
   context = prefs_get ("mqtt_context");
 
   // Subscribe to topic
-  snprintf (topic_sub, 128, "%s/scan/info", context);
+  snprintf (topic_sub, sizeof (topic_sub), "%s/scan/info", context);
   if (mqtt_subscribe (topic_sub))
     {
       g_message ("Subscription to %s failed", topic_sub);
@@ -645,8 +625,8 @@ ask_for_scan_prefs_from_client (const char *scan_id)
   msg_id = gvm_uuid_make ();
   group_id = gvm_uuid_make ();
 
-  snprintf (topic_send, 128, "%s/scan/cmd/director", context);
-  snprintf (msg_send, 1024,
+  snprintf (topic_send, sizeof (topic_send), "%s/scan/cmd/director", context);
+  snprintf (msg_send, sizeof (msg_send),
             "{\"message_id\":\"%s\","
             "\"group_id\":\"%s\","
             "\"message_type\":\"get.scan\","
@@ -793,7 +773,7 @@ create_main_kb (const char *scan_id)
     }
   int i = kb_get_kb_index (main_kb);
   char id[5];
-  snprintf (id, 5, "%d", i);
+  snprintf (id, sizeof (id), "%d", i);
   g_debug ("Created new main db with id %d", i);
   prefs_set ("ov_maindbid", id);
 
