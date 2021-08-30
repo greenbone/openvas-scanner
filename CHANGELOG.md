@@ -14,6 +14,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
   [#743](https://github.com/greenbone/openvas/pull/743).
   Reintroduction after Rebase with
   [#788](https://github.com/greenbone/openvas/pull/788)
+- Get preferences via mqtt instead of redis [#842](https://github.com/greenbone/openvas/pull/842)
 - Add nvti info to openvas results. [#809](https://github.com/greenbone/openvas/pull/809)
 - Notus integration mqtt. 
   [#806](https://github.com/greenbone/openvas/pull/806)
@@ -42,7 +43,6 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 - Refactor openvas.c.
   [#810](https://github.com/greenbone/openvas/pull/810)
   [#811](https://github.com/greenbone/openvas/pull/811)
-- Get preferences via mqtt instead of redis [#838](https://github.com/greenbone/openvas/pull/838)
 
 ### Fixed
 ### Removed
