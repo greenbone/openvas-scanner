@@ -27,6 +27,7 @@
 #include "nasl_text_utils.h"
 
 #include "../misc/strutils.h" /* for str_match */
+#include "../src/macros.h"
 #include "exec.h"
 #include "nasl_debug.h"
 #include "nasl_func.h"
@@ -551,7 +552,7 @@ _regreplace (const char *pattern, const char *replace, const char *string,
              1) find out how long the string will be, and allocate buf
              2) copy the part before match, replacement and backrefs to buf
 
-             Jaakko Hyv‰tti <Jaakko.Hyvatti@iki.fi>
+             Jaakko Hyv√§tti <Jaakko.Hyvatti@iki.fi>
            */
 
           new_l = strlen (buf) + subs[0].rm_so; /* part before the match */

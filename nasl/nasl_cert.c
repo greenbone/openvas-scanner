@@ -29,6 +29,7 @@
 #ifdef HAVE_LIBKSBA
 #include "nasl_cert.h"
 
+#include "../src/macros.h"
 #include "nasl_debug.h"
 #include "nasl_func.h"
 #include "nasl_global_ctxt.h"

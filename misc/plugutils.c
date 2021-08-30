@@ -25,6 +25,7 @@
 
 #include "plugutils.h"
 
+#include "../src/macros.h"
 #include "network.h" // for OPENVAS_ENCAPS_IP
 
 #include <errno.h> // for errno

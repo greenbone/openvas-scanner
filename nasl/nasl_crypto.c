@@ -25,6 +25,7 @@
 
 #include "nasl_crypto.h"
 
+#include "../src/macros.h"
 #include "exec.h"
 #include "hmacmd5.h"
 #include "nasl_debug.h"
