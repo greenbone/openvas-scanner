@@ -25,6 +25,7 @@
 #include "nasl_crypto2.h"
 
 #include "../misc/strutils.h"
+#include "../src/macros.h"
 #include "nasl_debug.h"
 #include "nasl_func.h"
 #include "nasl_global_ctxt.h"

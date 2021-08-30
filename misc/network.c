@@ -25,11 +25,11 @@
  */
 
 #include "../nasl/nasl_debug.h" /* for nasl_*_filename */
+#include "../src/macros.h"
 
 #include <arpa/inet.h> /* for inet_pton */
 #include <errno.h>
 #include <fcntl.h>
-#include <glib.h>
 #include <gnutls/gnutls.h>
 #include <gnutls/x509.h>
 #include <gvm/base/logging.h>

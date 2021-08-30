@@ -27,6 +27,7 @@
 #include "../misc/network.h"       /* read_stream_connection_min */
 #include "../misc/plugutils.h"     /* plug_get_host_open_port */
 #include "../misc/vendorversion.h" /* for vendor_version_get */
+#include "../src/macros.h"
 #include "byteorder.h"
 #include "exec.h"
 #include "nasl_debug.h"

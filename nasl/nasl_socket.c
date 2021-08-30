@@ -30,6 +30,7 @@
 /*--------------------------------------------------------------------------*/
 #include "../misc/network.h"
 #include "../misc/plugutils.h" /* for plug_get_host_ip */
+#include "../src/macros.h"
 #include "exec.h"
 #include "nasl.h"
 #include "nasl_debug.h"

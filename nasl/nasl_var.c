@@ -18,6 +18,7 @@
 
 #include "nasl_var.h"
 
+#include "../src/macros.h"
 #include "exec.h"
 #include "nasl_debug.h"
 #include "nasl_func.h"
