@@ -37,7 +37,6 @@
 #include <gvm/util/nvticache.h>  // for nvticache_initialized
 #include <gvm/util/uuidutils.h>  /* gvm_uuid_make */
 #include <json-glib/json-glib.h>
-#include <stdio.h>    // for snprintf
 #include <stdlib.h>   // for exit
 #include <string.h>   // for strcmp
 #include <sys/wait.h> // for wait
@@ -90,7 +89,7 @@ void
 host_add_port_proto (struct script_infos *args, int portnum, char *proto)
 {
   char port_s[255];
-  snprintf (port_s, sizeof (port_s), "Ports/%s/%d", proto, portnum);
+  g_snprintf (port_s, sizeof (port_s), "Ports/%s/%d", proto, portnum);
   plug_set_key (args, port_s, ARG_INT, (void *) 1);
 }
 
@@ -145,7 +144,7 @@ kb_get_port_state_proto (kb_t kb, int portnum, char *proto)
   array_free (port_ranges);
 
   /* Ok, we scanned it. What is its state ? */
-  snprintf (port_s, sizeof (port_s), "Ports/%s/%d", proto, portnum);
+  g_snprintf (port_s, sizeof (port_s), "Ports/%s/%d", proto, portnum);
   return kb_item_get_int (kb, port_s) > 0;
 }
 
@@ -475,7 +474,7 @@ proto_post_wrapped (const char *oid, struct script_infos *desc, int port,
     }
 
   if (port > 0)
-    snprintf (port_s, sizeof (port_s), "%d", port);
+    g_snprintf (port_s, sizeof (port_s), "%d", port);
   if (current_vhost)
     hostname = current_vhost->value;
   else if (desc->vhosts)
@@ -489,7 +488,7 @@ proto_post_wrapped (const char *oid, struct script_infos *desc, int port,
 
   /* Send result via MQTT. */
   context = prefs_get ("mqtt_context");
-  snprintf (topic, 128, "%s/scan/info", context);
+  g_snprintf (topic, sizeof(topic), "%s/scan/info", context);
   json = make_result_json_str (
     desc->globals->scan_id, msg_type_to_str (msg_type), ip_str, hostname ?: " ",
     port_s, proto, oid, action_str->str, uri ?: "");
@@ -595,7 +594,7 @@ get_plugin_preference (const char *oid, const char *name, int pref_id)
 
   if (pref_id >= 0)
     {
-      snprintf (prefix, sizeof (prefix), "%s:%d:", oid, pref_id);
+      g_snprintf (prefix, sizeof (prefix), "%s:%d:", oid, pref_id);
       while (g_hash_table_iter_next (&iter, &itername, &itervalue))
         {
           if (g_str_has_prefix (itername, prefix))
@@ -609,8 +608,8 @@ get_plugin_preference (const char *oid, const char *name, int pref_id)
     {
       cname = g_strdup (name);
       g_strchomp (cname);
-      snprintf (prefix, sizeof (prefix), "%s:", oid);
-      snprintf (suffix, sizeof (suffix), ":%s", cname);
+      g_snprintf (prefix, sizeof (prefix), "%s:", oid);
+      g_snprintf (suffix, sizeof (suffix), ":%s", cname);
       /* NVT preferences received in OID:PrefID:PrefType:PrefName form */
       while (g_hash_table_iter_next (&iter, &itername, &itervalue))
         {
@@ -1116,7 +1115,7 @@ plug_set_port_transport (struct script_infos *args, int port, int tr)
 {
   char s[256];
 
-  snprintf (s, sizeof (s), "Transports/TCP/%d", port);
+  g_snprintf (s, sizeof (s), "Transports/TCP/%d", port);
   plug_set_key (args, s, ARG_INT, GSIZE_TO_POINTER (tr));
 }
 
@@ -1130,7 +1129,7 @@ plug_get_port_transport (struct script_infos *args, int port)
   char s[256];
   int trp;
 
-  snprintf (s, sizeof (s), "Transports/TCP/%d", port);
+  g_snprintf (s, sizeof (s), "Transports/TCP/%d", port);
   trp = kb_item_get_int (plug_get_kb (args), s);
   if (trp >= 0)
     return trp;
@@ -1144,7 +1143,7 @@ static void
 plug_set_ssl_item (struct script_infos *args, char *item, char *itemfname)
 {
   char s[256];
-  snprintf (s, sizeof (s), "SSL/%s", item);
+  g_snprintf (s, sizeof (s), "SSL/%s", item);
   plug_set_key (args, s, ARG_STRING, itemfname);
 }
 
