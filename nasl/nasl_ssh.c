@@ -48,6 +48,7 @@
 #include <gvm/base/networking.h>
 #include <gvm/base/prefs.h> /* for prefs_get() */
 #include <gvm/util/kb.h>
+#include <libssh/sftp.h>
 #include <netinet/in.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -1895,4 +1896,64 @@ nasl_ssh_shell_close (lex_ctxt *lexic)
     }
 
   return NULL;
+}
+
+/*
+ * NASL SFTP
+ */
+
+/**
+ * @brief Check if SFTP is enabled.
+ * @naslfn{sftp_enabled_check}
+ *
+ * @nasluparam
+ *
+ * - An ssh session id.
+ *
+ * @naslret An integer: 0 on success, -1 (SSH_ERROR) on Channel request
+ * subsystem failure. Greather than 0 means an error during SFTP init.
+ *
+ * @param[in] lexic Lexical context of NASL interpreter.
+ */
+tree_cell *
+nasl_sftp_enabled_check (lex_ctxt *lexic)
+{
+  int tbl_slot, session_id;
+  tree_cell *retc;
+  sftp_session sftp;
+  ssh_session session;
+  int rc;
+
+  session_id = get_int_var_by_num (lexic, 0, -1);
+  if (!verify_session_id (session_id, "sftp_enabled_check", &tbl_slot, lexic))
+    return NULL;
+  session = session_table[tbl_slot].session;
+
+  sftp = sftp_new (session);
+  if (sftp == NULL)
+    {
+      g_message (
+        "Function %s (calling internal function %s) called from %s: %s",
+        nasl_get_function_name () ?: "script_main_function", __func__,
+        nasl_get_plugin_filename (),
+        ssh_get_error (session_table[tbl_slot].session));
+      rc = SSH_ERROR;
+      goto write_ret;
+    }
+
+  rc = sftp_init (sftp);
+  if (rc != SSH_OK)
+    g_message (
+      "Function %s (calling internal function %s) called from %s: %s. Code %d",
+      nasl_get_function_name () ?: "script_main_function", __func__,
+      nasl_get_plugin_filename (),
+      ssh_get_error (session_table[tbl_slot].session), sftp_get_error (sftp));
+
+  sftp_free (sftp);
+
+write_ret:
+
+  retc = alloc_typed_cell (CONST_INT);
+  retc->x.i_val = rc;
+  return retc;
 }
