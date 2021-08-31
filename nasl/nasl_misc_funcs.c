@@ -41,6 +41,7 @@
 #include <glib.h>
 #include <gvm/util/compressutils.h> /* for gvm_uncompress */
 #include <gvm/util/kb.h>            /* for KB_TYPE_STR */
+#include <stdbool.h>                /* for boolean */
 #include <stdlib.h>                 /* for lrand48 */
 #include <string.h>                 /* for bzero */
 #include <sys/time.h>               /* for gettimeofday */
@@ -672,23 +673,35 @@ tree_cell *
 nasl_localtime (lex_ctxt *lexic)
 {
   tree_cell *retc;
-  struct tm *ptm;
+  struct tm ptm;
   time_t tictac;
   int utc;
   nasl_array *a;
   anon_nasl_var v;
+  bool success;
 
   tictac = get_int_var_by_num (lexic, 0, 0);
   if (tictac == 0)
     tictac = time (NULL);
   utc = get_int_var_by_name (lexic, "utc", 0);
 
+  success = false;
   if (utc)
-    ptm = gmtime (&tictac);
+  {
+    if (gmtime_r (&tictac, &ptm) == NULL)
+    {
+      success = true;
+    }
+  }
   else
-    ptm = localtime (&tictac);
+  {
+    if (localtime_r (&tictac, &ptm) == NULL)
+    {
+      success = true;
+    }
+  }
 
-  if (ptm == NULL)
+  if (!success)
     {
       nasl_perror (lexic, "localtime(%d,utc=%d): %s\n", tictac, utc,
                    strerror (errno));
@@ -700,23 +713,23 @@ nasl_localtime (lex_ctxt *lexic)
   memset (&v, 0, sizeof (v));
   v.var_type = VAR2_INT;
 
-  v.v.v_int = ptm->tm_sec;
+  v.v.v_int = ptm.tm_sec;
   add_var_to_array (a, "sec", &v); /* seconds */
-  v.v.v_int = ptm->tm_min;
+  v.v.v_int = ptm.tm_min;
   add_var_to_array (a, "min", &v); /* minutes */
-  v.v.v_int = ptm->tm_hour;
+  v.v.v_int = ptm.tm_hour;
   add_var_to_array (a, "hour", &v); /* hours */
-  v.v.v_int = ptm->tm_mday;
+  v.v.v_int = ptm.tm_mday;
   add_var_to_array (a, "mday", &v); /* day of the month */
-  v.v.v_int = ptm->tm_mon + 1;
+  v.v.v_int = ptm.tm_mon + 1;
   add_var_to_array (a, "mon", &v); /* month */
-  v.v.v_int = ptm->tm_year + 1900;
+  v.v.v_int = ptm.tm_year + 1900;
   add_var_to_array (a, "year", &v); /* year */
-  v.v.v_int = ptm->tm_wday;
+  v.v.v_int = ptm.tm_wday;
   add_var_to_array (a, "wday", &v); /* day of the week */
-  v.v.v_int = ptm->tm_yday + 1;
+  v.v.v_int = ptm.tm_yday + 1;
   add_var_to_array (a, "yday", &v); /* day in the year */
-  v.v.v_int = ptm->tm_isdst;
+  v.v.v_int = ptm.tm_isdst;
   add_var_to_array (a, "isdst", &v); /* daylight saving time */
 
   return retc;
