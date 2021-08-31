@@ -3,8 +3,6 @@ name: "[Scheduled] Build and upload docker images"
 on:
   schedule:
     - cron: '0 */3 * * 0' # every 2h
-  pull_request:
-    branches: [ master ]
 
 jobs:
   upload-testing:
