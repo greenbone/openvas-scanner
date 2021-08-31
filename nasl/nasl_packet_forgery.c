@@ -1897,8 +1897,13 @@ get_icmp_element (lex_ctxt *lexic)
           retc->size =
             get_var_size_by_name (lexic, "icmp") - (ip->ip_hl * 4) - 8;
           if (retc->size > 0)
-            retc->x.str_val =
-              g_memdup (&(p[ip->ip_hl * 4 + 8]), retc->size + 1);
+            {
+#pragma GCC diagnostic push
+#pragma GCC diagnostic warning "-Wdeprecated-declarations"
+              retc->x.str_val =
+                g_memdup (&(p[ip->ip_hl * 4 + 8]), retc->size + 1);
+#pragma GCC diagnostic pop
+            }
           else
             {
               retc->x.str_val = NULL;

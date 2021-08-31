@@ -165,10 +165,16 @@ add_udp_data (struct script_infos *script_infos, int soc, char *data, int len)
 {
   GHashTable *udp_data = script_infos->udp_data;
   struct udp_record *data_record = g_malloc0 (sizeof (struct udp_record));
+#pragma GCC diagnostic push
+#pragma GCC diagnostic warning "-Wdeprecated-declarations"
   int *key = g_memdup (&soc, sizeof (int));
+#pragma GCC diagnostic pop
 
   data_record->len = len;
+#pragma GCC diagnostic push
+#pragma GCC diagnostic warning "-Wdeprecated-declarations"
   data_record->data = g_memdup ((gconstpointer) data, (guint) len);
+#pragma GCC diagnostic pop
 
   if (udp_data == NULL)
     {
@@ -779,7 +785,10 @@ nasl_recv (lex_ctxt *lexic)
   if (new_len > 0)
     {
       tree_cell *retc = alloc_typed_cell (CONST_DATA);
+#pragma GCC diagnostic push
+#pragma GCC diagnostic warning "-Wdeprecated-declarations"
       retc->x.str_val = g_memdup (data, new_len);
+#pragma GCC diagnostic pop
       retc->size = new_len;
       g_free (data);
       return retc;
@@ -848,7 +857,10 @@ nasl_recv_line (lex_ctxt *lexic)
 
   retc = alloc_typed_cell (CONST_DATA);
   retc->size = new_len;
+#pragma GCC diagnostic push
+#pragma GCC diagnostic warning "-Wdeprecated-declarations"
   retc->x.str_val = g_memdup (data, new_len + 1);
+#pragma GCC diagnostic pop
 
   g_free (data);
 
