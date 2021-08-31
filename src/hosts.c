@@ -81,7 +81,10 @@ host_set_time (kb_t kb, char *ip, char *type)
   int len;
 
   t = time (NULL);
-  timestr = g_strdup (ctime (&t));
+  char ts[26];
+  char *ts_ptr = ts;
+  ctime_r (&t, ts_ptr);
+  timestr = g_strdup (ts_ptr);
   len = strlen (timestr);
   if (timestr[len - 1] == '\n')
     timestr[len - 1] = '\0';
