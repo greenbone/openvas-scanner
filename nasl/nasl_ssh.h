@@ -70,4 +70,11 @@ nasl_ssh_get_auth_methods (lex_ctxt *lexic);
 tree_cell *
 nasl_ssh_get_host_key (lex_ctxt *lexic);
 
+/*
+ * NASL SFTP
+ */
+
+tree_cell *
+nasl_sftp_enabled_check (lex_ctxt *);
+
 #endif /*NASL_SSH_H*/
