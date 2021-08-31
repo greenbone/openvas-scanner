@@ -151,7 +151,8 @@ send_failure (char *error)
     {
       goto exit;
     }
-  msg = eulabeia_initialize_message (EULABEIA_INFO_STATUS, EULABEIA_SCAN, NULL);
+  msg = eulabeia_initialize_message (EULABEIA_INFO_STATUS, EULABEIA_SCAN, NULL,
+                                     NULL);
   failure.id = scan_id;
   failure.error = error;
 
@@ -200,7 +201,8 @@ set_scan_status (char *status)
     {
       goto exit;
     }
-  msg = eulabeia_initialize_message (EULABEIA_INFO_STATUS, EULABEIA_SCAN, NULL);
+  msg = eulabeia_initialize_message (EULABEIA_INFO_STATUS, EULABEIA_SCAN, NULL,
+                                     NULL);
   estatus.id = scan_id;
   estatus.status = status;
 

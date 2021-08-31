@@ -369,7 +369,7 @@ make_result_json_str (const gchar *scan_id, const gchar *type,
   gchar *json_str;
 
   if ((msg = eulabeia_initialize_message (EULABEIA_INFO_SCAN_RESULT,
-                                          EULABEIA_SCAN, NULL))
+                                          EULABEIA_SCAN, NULL, NULL))
       == NULL)
     {
       g_warning ("%s: unable to initialize start.scan message", __func__);
