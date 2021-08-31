@@ -18,7 +18,6 @@
 
 #include "nasl_var.h"
 
-#include "../src/macros.h"
 #include "exec.h"
 #include "nasl_debug.h"
 #include "nasl_func.h"
@@ -1088,8 +1087,11 @@ get_variable_by_name (lex_ctxt *ctxt, const char *name)
        break;
      case VAR2_STRING:
      case VAR2_DATA:
+#pragma GCC diagnostic push
+#pragma GCC diagnostic warning "-Wdeprecated-declarations"
        v->string_form =
          g_memdup ((char *) v->v.v_str.s_val ?: "", v->v.v_str.s_siz + 1);
+#pragma GCC diagnostic pop
        break;
      case VAR2_UNDEF:
        break;

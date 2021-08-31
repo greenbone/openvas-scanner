@@ -51,7 +51,6 @@
 #include "../misc/bpf_share.h"    /* for bpf_open_live */
 #include "../misc/pcap_openvas.h" /* for routethrough */
 #include "../misc/plugutils.h"    /* plug_get_host_ip */
-#include "../src/macros.h"
 #include "capture_packet.h"
 #include "exec.h"
 #include "nasl_debug.h"
@@ -2026,7 +2025,12 @@ get_icmp_v6_element (lex_ctxt *lexic)
           retc = alloc_typed_cell (CONST_DATA);
           retc->size = get_var_size_by_name (lexic, "icmp") - 40 - 8;
           if (retc->size > 0)
-            retc->x.str_val = g_memdup (&(p[40 + 8]), retc->size + 1);
+            {
+#pragma GCC diagnostic push
+#pragma GCC diagnostic warning "-Wdeprecated-declarations"
+              retc->x.str_val = g_memdup (&(p[40 + 8]), retc->size + 1);
+#pragma GCC diagnostic pop
+            }
           else
             {
               retc->x.str_val = NULL;

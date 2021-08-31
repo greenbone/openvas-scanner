@@ -25,7 +25,6 @@
 #include "nasl_crypto2.h"
 
 #include "../misc/strutils.h"
-#include "../src/macros.h"
 #include "nasl_debug.h"
 #include "nasl_func.h"
 #include "nasl_global_ctxt.h"
@@ -1640,7 +1639,10 @@ encrypt_stream_data (lex_ctxt *lexic, int cipher, const char *caller_func)
   if (cipher == GCRY_CIPHER_ARCFOUR)
     {
       resultlen = datalen;
+#pragma GCC diagnostic push
+#pragma GCC diagnostic warning "-Wdeprecated-declarations"
       tmp = g_memdup (data, datalen);
+#pragma GCC diagnostic pop
       tmplen = datalen;
     }
   else
@@ -1733,7 +1735,10 @@ encrypt_data (lex_ctxt *lexic, int cipher, int mode)
   if (cipher == GCRY_CIPHER_ARCFOUR)
     {
       resultlen = datalen;
+#pragma GCC diagnostic push
+#pragma GCC diagnostic warning "-Wdeprecated-declarations"
       tmp = g_memdup (data, datalen);
+#pragma GCC diagnostic pop
       tmplen = datalen;
     }
   else if (cipher == GCRY_CIPHER_3DES)
