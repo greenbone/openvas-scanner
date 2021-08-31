@@ -3,6 +3,8 @@ name: Build and upload docker images
 on:
   schedule:
     - cron: '0 */2 * * 0' # every 2h
+  pull_request:
+    branches: [ master ]
 
 jobs:
   upload-testing:
@@ -28,21 +30,20 @@ jobs:
           password: ${{ secrets.DOCKERHUB_TOKEN }}
       - name: Find version
         run: |
-          if [ ${{matrix.branches}} = "master" ];                         \
-          then VERSION=master;                                            \
-          elif [ ${{matrix.branches}} = "middleware" ];                   \
-          then VERSION=middleware;                                        \
-          else VERSION=$(echo "$BRANCH" | sed 's/openvas-scanner-//g' -); \
+          if [ ${{ matrix.branches }} = "master" ];                              \
+          then VERSION=master;                                                   \
+          elif [ ${{ matrix.branches }} = "middleware" ];                        \
+          then VERSION=middleware;                                               \
+          else VERSION=$(echo "${{ matrix.branches }}" | sed 's/openvas-//g' -); \
           fi;
           echo "VERSION=$VERSION" >> $GITHUB_ENV
-          echo ${{ env.VERSION }}
-      - run: echo "Build and push ${{ github.repository }}-${{ matrix.branches }}-${{matrix.compiler}}-testing"
+      - run: echo "Build and push ${{ github.repository }}-${{ env.VERSION }}-${{matrix.compiler}}-testing"
       - name: Build and push
         uses: docker/build-push-action@v2.5.0
         with:
           context: .
           push: true
-          tags: ${{ github.repository }}-${{ matrix.branches }}-${{matrix.compiler}}-testing
+          tags: ${{ github.repository }}-${{ env.VERSION }}-${{matrix.compiler}}-testing
           file: .docker/testing/Dockerfile
           build-args: |
             VERSION=${{ env.VERSION }}
@@ -71,21 +72,20 @@ jobs:
           password: ${{ secrets.DOCKERHUB_TOKEN }}
       - name: Find version
         run: |
-          if [ ${{matrix.branches}} = "master" ];                         \
-          then VERSION=master;                                            \
-          elif [ ${{matrix.branches}} = "middleware" ];                   \
-          then VERSION=middleware;                                        \
-          else VERSION=$(echo "$BRANCH" | sed 's/openvas-scanner-//g' -); \
+          if [ ${{ matrix.branches }} = "master" ];                              \
+          then VERSION=master;                                                   \
+          elif [ ${{ matrix.branches }} = "middleware" ];                        \
+          then VERSION=middleware;                                               \
+          else VERSION=$(echo "${{ matrix.branches }}" | sed 's/openvas-//g' -); \
           fi;
           echo "VERSION=$VERSION" >> $GITHUB_ENV
-          echo ${{ env.VERSION }}
-      - run: echo "Build and push ${{ github.repository }}-${{ matrix.branches }}-${{matrix.compiler}}-build"
+      - run: echo "Build and push ${{ github.repository }}-${{ env.VERSION }}-${{matrix.compiler}}-build"
       - name: Build and push
         uses: docker/build-push-action@v2.5.0
         with:
           context: .
           push: true
-          tags: ${{ github.repository }}-${{ matrix.branches }}-${{matrix.compiler}}-build
+          tags: ${{ github.repository }}-${{ env.VERSION }}-${{matrix.compiler}}-build
           file: .docker/build/Dockerfile
           build-args: |
             VERSION=${{ env.VERSION }}
