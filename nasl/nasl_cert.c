@@ -29,7 +29,6 @@
 #ifdef HAVE_LIBKSBA
 #include "nasl_cert.h"
 
-#include "../src/macros.h"
 #include "nasl_debug.h"
 #include "nasl_func.h"
 #include "nasl_global_ctxt.h"
@@ -911,7 +910,10 @@ nasl_cert_query (lex_ctxt *lexic)
 
       retc = alloc_typed_cell (CONST_DATA);
       retc->size = m.size;
+#pragma GCC diagnostic push
+#pragma GCC diagnostic warning "-Wdeprecated-declarations"
       retc->x.str_val = g_memdup (m.data, m.size);
+#pragma GCC diagnostic pop
       gnutls_free (m.data);
       gnutls_free (e.data);
       gnutls_x509_crt_deinit (cert);
@@ -935,7 +937,10 @@ nasl_cert_query (lex_ctxt *lexic)
 
       retc = alloc_typed_cell (CONST_DATA);
       retc->size = e.size;
+#pragma GCC diagnostic push
+#pragma GCC diagnostic warning "-Wdeprecated-declarations"
       retc->x.str_val = g_memdup (e.data, e.size);
+#pragma GCC diagnostic pop
       gnutls_free (m.data);
       gnutls_free (e.data);
       gnutls_x509_crt_deinit (cert);

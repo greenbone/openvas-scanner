@@ -27,7 +27,6 @@
 #include "../misc/network.h"       /* read_stream_connection_min */
 #include "../misc/plugutils.h"     /* plug_get_host_open_port */
 #include "../misc/vendorversion.h" /* for vendor_version_get */
-#include "../src/macros.h"
 #include "byteorder.h"
 #include "exec.h"
 #include "nasl_debug.h"
@@ -195,7 +194,10 @@ nasl_telnet_init (lex_ctxt *lexic)
     n += n2;
   retc = alloc_typed_cell (CONST_DATA);
   retc->size = n;
+#pragma GCC diagnostic push
+#pragma GCC diagnostic warning "-Wdeprecated-declarations"
   retc->x.str_val = g_memdup (buffer, n + 1);
+#pragma GCC diagnostic pop
 #undef iac
 #undef data
 #undef option

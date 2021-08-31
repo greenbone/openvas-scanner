@@ -25,7 +25,6 @@
 
 #include "nasl_crypto.h"
 
-#include "../src/macros.h"
 #include "exec.h"
 #include "hmacmd5.h"
 #include "nasl_debug.h"
@@ -101,7 +100,10 @@ nasl_gcrypt_hash (lex_ctxt *lexic, int algorithm, void *data, size_t datalen,
   gcry_md_write (hd, data, datalen);
 
   retc = alloc_typed_cell (CONST_DATA);
+#pragma GCC diagnostic push
+#pragma GCC diagnostic warning "-Wdeprecated-declarations"
   retc->x.str_val = g_memdup (gcry_md_read (hd, algorithm), dlen + 1);
+#pragma GCC diagnostic pop
   retc->size = dlen;
 
   gcry_md_close (hd);
@@ -341,7 +343,10 @@ hmac_sha384 (const void *key, int keylen, const void *buf, int buflen)
     }
 
   gcry_md_write (hd, buf, buflen);
+#pragma GCC diagnostic push
+#pragma GCC diagnostic warning "-Wdeprecated-declarations"
   ret = g_memdup (gcry_md_read (hd, 0), 48);
+#pragma GCC diagnostic pop
   gcry_md_close (hd);
   return ret;
 }
@@ -831,7 +836,10 @@ nasl_lm_owf_gen (lex_ctxt *lexic)
 
   retc = alloc_typed_cell (CONST_DATA);
   retc->size = 16;
+#pragma GCC diagnostic push
+#pragma GCC diagnostic warning "-Wdeprecated-declarations"
   retc->x.str_val = g_memdup (p16, 16);
+#pragma GCC diagnostic pop
   return retc;
 }
 
