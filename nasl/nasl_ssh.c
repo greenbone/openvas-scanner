@@ -1903,7 +1903,7 @@ nasl_ssh_shell_close (lex_ctxt *lexic)
  */
 
 /**
- * @brief Check if SFTP is enabled.
+ * @brief Check if the SFTP subsystem is enabled on the remote SSH server.
  * @naslfn{sftp_enabled_check}
  *
  * @nasluparam
@@ -1911,7 +1911,8 @@ nasl_ssh_shell_close (lex_ctxt *lexic)
  * - An SSH session id.
  *
  * @naslret An integer: 0 on success, -1 (SSH_ERROR) on Channel request
- * subsystem failure. Greather than 0 means an error during SFTP init.
+ * subsystem failure. Greater than 0 means an error during SFTP init. NULL
+ * indicates a failure during session id verification.
  *
  * @param[in] lexic Lexical context of NASL interpreter.
  */
