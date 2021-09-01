@@ -40,8 +40,8 @@
 
 void
 pluginlaunch_init (const char *);
-void pluginlaunch_wait (kb_t, kb_t);
-void pluginlaunch_wait_for_free_process (kb_t, kb_t);
+void pluginlaunch_wait (kb_t);
+void pluginlaunch_wait_for_free_process (kb_t);
 
 void
 pluginlaunch_stop (void);

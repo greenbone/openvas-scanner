@@ -1000,6 +1000,9 @@ openvas (int argc, char *argv[])
       globals = g_malloc0 (sizeof (struct scan_globals));
       globals->scan_id = g_strdup (global_scan_id);
 
+      // TODO: improve the storage of the global_scan_id. Avoid global prefs.
+      prefs_set ("global_scan_id", global_scan_id);
+
       attack_network_init (globals, config_file);
       g_message ("attack_network_init successfully executed");
       attack_network (globals);

@@ -28,6 +28,7 @@
 #include "../misc/network.h"
 #include "../misc/nvt_categories.h" /* for ACT_SCANNER */
 #include "../misc/plugutils.h"      /* for get_plugin_preference */
+#include "../misc/reporting.h"
 #include "pluginload.h"
 #include "pluginscheduler.h"
 #include "plugs_req.h"
@@ -118,7 +119,7 @@ max_nvt_timeouts_reached ()
  *
  */
 static void
-update_running_processes (kb_t main_kb, kb_t kb)
+update_running_processes (kb_t kb)
 {
   int i;
   struct timeval now;
@@ -151,10 +152,9 @@ update_running_processes (kb_t main_kb, kb_t kb)
                                oid, processes[i].pid);
 
                   g_snprintf (msg, sizeof (msg),
-                              "ERRMSG|||%s||| |||general/tcp|||%s|||"
                               "NVT timed out after %d seconds.",
-                              hostname, oid ?: " ", processes[i].timeout);
-                  kb_item_push_str (main_kb, "internal/results", msg);
+                              processes[i].timeout);
+                  host_message_nvt_timeout (hostname, oid, msg);
 
                   /* Check for max VTs timeouts */
                   if (max_nvt_timeouts_reached ())
@@ -162,14 +162,9 @@ update_running_processes (kb_t main_kb, kb_t kb)
                       /* Check if host is still alive and send a message
                          if it is dead. */
                       if (check_host_still_alive (kb, hostname) == 0)
-                        {
-                          g_snprintf (msg, sizeof (msg),
-                                      "ERRMSG|||%s||| |||general/tcp||| |||"
-                                      "Host has been marked as dead. Too many "
-                                      "NVT_TIMEOUTs.",
-                                      hostname);
-                          kb_item_push_str (main_kb, "internal/results", msg);
-                        }
+                        host_message (ERRMSG, hostname,
+                                      "Host has been marked as dead. "
+                                      "Too many NVT_TIMEOUTs.");
                     }
 
                   ret_terminate = terminate_process (processes[i].pid);
@@ -293,7 +288,7 @@ simult_ports (const char *oid, const char *next_oid)
  * free "slot" in the processes array otherwise.
  */
 static int
-next_free_process (kb_t main_kb, kb_t kb, struct scheduler_plugin *upcoming)
+next_free_process (kb_t kb, struct scheduler_plugin *upcoming)
 {
   int r;
 
@@ -304,7 +299,7 @@ next_free_process (kb_t main_kb, kb_t kb, struct scheduler_plugin *upcoming)
         {
           while (process_alive (processes[r].pid))
             {
-              update_running_processes (main_kb, kb);
+              update_running_processes (kb);
               usleep (250000);
             }
         }
@@ -458,8 +453,8 @@ plugin_launch (struct scan_globals *globals, struct scheduler_plugin *plugin,
   int p;
 
   /* Wait for a free slot */
-  pluginlaunch_wait_for_free_process (main_kb, kb);
-  p = next_free_process (main_kb, kb, plugin);
+  pluginlaunch_wait_for_free_process (kb);
+  p = next_free_process (kb, plugin);
   if (p < 0)
     {
       g_warning ("%s. There is currently no free slot available for starting a "
@@ -489,11 +484,11 @@ plugin_launch (struct scan_globals *globals, struct scheduler_plugin *plugin,
  * @brief Waits and 'pushes' processes until num_running_processes is 0.
  */
 void
-pluginlaunch_wait (kb_t main_kb, kb_t kb)
+pluginlaunch_wait (kb_t kb)
 {
   while (num_running_processes)
     {
-      update_running_processes (main_kb, kb);
+      update_running_processes (kb);
       if (num_running_processes)
         waitpid (-1, NULL, 0);
     }
@@ -522,11 +517,11 @@ timeout_running_processes (void)
  *        changed.
  */
 void
-pluginlaunch_wait_for_free_process (kb_t main_kb, kb_t kb)
+pluginlaunch_wait_for_free_process (kb_t kb)
 {
   if (!num_running_processes)
     return;
-  update_running_processes (main_kb, kb);
+  update_running_processes (kb);
   /* Max number of processes are still running, wait for a child to exit or
    * to timeout. */
 
@@ -549,6 +544,6 @@ pluginlaunch_wait_for_free_process (kb_t main_kb, kb_t kb)
       sigaddset (&mask, SIGCHLD);
       if (sigtimedwait (&mask, NULL, &ts) < 0 && errno != EAGAIN)
         g_warning ("%s: %s", __func__, strerror (errno));
-      update_running_processes (main_kb, kb);
+      update_running_processes (kb);
     }
 }
