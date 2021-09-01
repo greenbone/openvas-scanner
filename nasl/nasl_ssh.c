@@ -504,7 +504,7 @@ do_nasl_ssh_disconnect (int tbl_slot)
  *
  * @nasluparam
  *
- * - An ssh session id.  A value of 0 is allowed and acts as a NOP.
+ * - An SSH session id.  A value of 0 is allowed and acts as a NOP.
  *
  * @naslret Nothing
  *
@@ -612,7 +612,7 @@ nasl_ssh_session_id_from_sock (lex_ctxt *lexic)
  *
  * @nasluparam
  *
- * - An ssh session id.
+ * - An SSH session id.
  *
  * @naslret An integer representing the socket or -1 on error.
  *
@@ -715,7 +715,7 @@ leave:
  *
  * @nasluparam
  *
- * - An ssh session id.
+ * - An SSH session id.
  *
  * @naslnparam
  *
@@ -801,7 +801,7 @@ nasl_ssh_set_login (lex_ctxt *lexic)
  *
  * @nasluparam
  *
- * - An ssh session id.
+ * - An SSH session id.
  *
  * @naslnparam
  *
@@ -1000,7 +1000,7 @@ leave:
  *
  * @nasluparam
  *
- * - An ssh session id.
+ * - An SSH session id.
  *
  * @naslnparam
  *
@@ -1112,7 +1112,7 @@ leave:
  *
  * @nasluparam
  *
- * - An ssh session id.
+ * - An SSH session id.
  *
  * @naslnparam
  *
@@ -1321,7 +1321,7 @@ exec_err:
  *
  * @nasluparam
  *
- * - An ssh session id.
+ * - An SSH session id.
  *
  * @naslnparam
  *
@@ -1454,7 +1454,7 @@ nasl_ssh_request_exec (lex_ctxt *lexic)
  *
  * @nasluparam
  *
- * - An ssh session id.
+ * - An SSH session id.
  *
  * @naslret A data block on success or NULL on error.
  *
@@ -1504,7 +1504,7 @@ nasl_ssh_get_issue_banner (lex_ctxt *lexic)
  *
  * @nasluparam
  *
- * - An ssh session id.
+ * - An SSH session id.
  *
  * @naslret A data block on success or NULL on error.
  *
@@ -1545,7 +1545,7 @@ nasl_ssh_get_server_banner (lex_ctxt *lexic)
  *
  * @nasluparam
  *
- * - An ssh session id.
+ * - An SSH session id.
  *
  * @naslret A data block on success or NULL on error.
  *
@@ -1589,7 +1589,7 @@ nasl_ssh_get_host_key (lex_ctxt *lexic)
  *
  * @nasluparam
  *
- * - An ssh session id.
+ * - An SSH session id.
  *
  * @naslret A string on success or NULL on error.
  *
@@ -1686,7 +1686,7 @@ request_ssh_shell (ssh_channel channel, int pty)
  *
  * @nasluparam
  *
- * - An ssh session id.
+ * - An SSH session id.
  *
  * @naslnparam
  *
@@ -1779,7 +1779,7 @@ read_ssh_nonblocking (ssh_channel channel, GString *response)
  *
  * @nasluparam
  *
- * - An ssh session id.
+ * - An SSH session id.
  *
  * @naslret A string on success or NULL on error.
  *
@@ -1815,7 +1815,7 @@ nasl_ssh_shell_read (lex_ctxt *lexic)
  *
  * @nasluparam
  *
- * - An ssh session id.
+ * - An SSH session id.
  *
  * @naslnparam
  *
@@ -1877,7 +1877,7 @@ write_ret:
  *
  * @nasluparam
  *
- * - An ssh session id.
+ * - An SSH session id.
  *
  * @param[in] lexic Lexical context of NASL interpreter.
  */
@@ -1908,7 +1908,7 @@ nasl_ssh_shell_close (lex_ctxt *lexic)
  *
  * @nasluparam
  *
- * - An ssh session id.
+ * - An SSH session id.
  *
  * @naslret An integer: 0 on success, -1 (SSH_ERROR) on Channel request
  * subsystem failure. Greather than 0 means an error during SFTP init.
