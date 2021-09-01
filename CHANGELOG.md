@@ -4,44 +4,15 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
-<<<<<<< HEAD
 ## [21.4.3] - Unreleased
-=======
-## [21.10] (unreleased)
-
 ### Added
-- Add support for volatile keys. [#682](https://github.com/greenbone/openvas/pull/682)
-- Extend nasl lint to check Syntax for Arguments for script_xref() function. [#714](https://github.com/greenbone/openvas/pull/714)
-- Recheck alive status of host with specified amount of NVT timeouts. [#729](https://github.com/greenbone/openvas/pull/729)
-- Integrate sentry for debugging purposes [#742](https://github.com/greenbone/openvas/pull/742)
-- Add support for non-interactive shell to nasl_ssh_shell_open().
-  [#744](https://github.com/greenbone/openvas/pull/744)
-  [#757](https://github.com/greenbone/openvas/pull/757)
-- Add message type validation for proto_post_wrapped. [#805](https://github.com/greenbone/openvas/pull/805)
 - Add nasl function sftp_enabled_check() to check if sftp subsystem is enabled in the target [#853](https://github.com/greenbone/openvas/pull/853)
 
-### Changed
-- function script_bugtraq_id getting skipped, linter warns. [#724](https://github.com/greenbone/openvas/pull/724)
-- Refactor dead host status sending. [#807](https://github.com/greenbone/openvas/pull/807)
-- Refactor openvas.c.
-  [#810](https://github.com/greenbone/openvas/pull/810)
-  [#811](https://github.com/greenbone/openvas/pull/811)
-
-### Fixed
-
-### Removed
-- Remove handling of source_iface related preferences. [#730](https://github.com/greenbone/openvas/pull/730)
-
-[21.10]: https://github.com/greenbone/openvas-scanner/compare/openvas-21.04...master
-
-## [21.4.3] (unreleased)
->>>>>>> 02a72bd3 (Add nasl function sftp_enabled_check())
-### Added
 ### Changed
 ### Deprecated
 ### Removed
 ### Fixed
-Fix interrupted scan, when the process table is full. [#832](https://github.com/greenbone/openvas-scanner/pull/832)
+- Fix interrupted scan, when the process table is full. [#832](https://github.com/greenbone/openvas-scanner/pull/832)
 
 [21.4.3]: https://github.com/greenbone/openvas-scanner/compare/v21.4.2...gvmd-21.04
 
