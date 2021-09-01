@@ -112,7 +112,7 @@ make_result_json_str (const gchar *scan_id, msg_t type, const gchar *ip_str,
                                           EULABEIA_SCAN, NULL, NULL))
       == NULL)
     {
-      g_warning ("%s: unable to initialize start.scan message", __func__);
+      g_warning ("%s: unable to initialize result.scan message", __func__);
       return NULL;
     }
   port = NULL;
@@ -156,7 +156,7 @@ host_message_send (const gchar *message)
 }
 
 /**
- * @brief Host process sends a message regarding a pluging
+ * @brief Host process sends a message regarding a plugin.
  *
  * @description: The plugin timeouts and the host process, which controls
  * each single plugin process detects that the plugins reached run time limit.
