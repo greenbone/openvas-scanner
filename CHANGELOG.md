@@ -6,11 +6,13 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ## [21.4.3] - Unreleased
 ### Added
+- Add nasl function sftp_enabled_check() to check if sftp subsystem is enabled in the target [#853](https://github.com/greenbone/openvas/pull/853)
+
 ### Changed
 ### Deprecated
 ### Removed
 ### Fixed
-Fix interrupted scan, when the process table is full. [#832](https://github.com/greenbone/openvas-scanner/pull/832)
+- Fix interrupted scan, when the process table is full. [#832](https://github.com/greenbone/openvas-scanner/pull/832)
 
 [21.4.3]: https://github.com/greenbone/openvas-scanner/compare/v21.4.2...gvmd-21.04
 
