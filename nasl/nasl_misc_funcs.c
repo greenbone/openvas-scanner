@@ -685,21 +685,21 @@ nasl_localtime (lex_ctxt *lexic)
     tictac = time (NULL);
   utc = get_int_var_by_name (lexic, "utc", 0);
 
-  success = false;
+  success = true;
   if (utc)
-  {
-    if (gmtime_r (&tictac, &ptm) == NULL)
     {
-      success = true;
+      if (gmtime_r (&tictac, &ptm) == NULL)
+        {
+          success = false;
+        }
     }
-  }
   else
-  {
-    if (localtime_r (&tictac, &ptm) == NULL)
     {
-      success = true;
+      if (localtime_r (&tictac, &ptm) == NULL)
+        {
+          success = false;
+        }
     }
-  }
 
   if (!success)
     {

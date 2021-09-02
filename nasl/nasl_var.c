@@ -876,7 +876,8 @@ get_variable_by_name (lex_ctxt *ctxt, const char *name)
        ret->type = CONST_INT;
        ret->x.i_val = v->v.v_int;
        if (nasl_trace_enabled ())
-         nasl_trace (lexic, "NASL> %s -> %lu\n", get_var_name (v), ret->x.i_val);
+         nasl_trace (lexic, "NASL> %s -> %lu\n", get_var_name (v),
+                     ret->x.i_val);
        return ret;
 
      case VAR2_STRING:

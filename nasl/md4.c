@@ -149,9 +149,9 @@ mdfour64_ntlmssp (uint32 *M)
   D &= 0xFFFFFFFF;
 
   for (size_t i = 0; i < sizeof (X); i++)
-  {
-    *(volatile char *)(X + i) = '\0';
-  }
+    {
+      *(volatile char *) (X + i) = '\0';
+    }
 }
 
 static void
