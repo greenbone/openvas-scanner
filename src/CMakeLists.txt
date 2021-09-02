@@ -30,6 +30,9 @@ pkg_check_modules (LIBGVM_BASE REQUIRED libgvm_base>=21.10)
 pkg_check_modules (LIBGVM_BOREAS REQUIRED libgvm_boreas>=21.10)
 pkg_check_modules (LIBGVM_UTIL REQUIRED libgvm_util>=21.10)
 pkg_check_modules (GLIB REQUIRED glib-2.0>=2.42)
+pkg_check_modules (GLIB_JSON REQUIRED json-glib-1.0>=1.4.4)
+
+find_package(Eulabeia REQUIRED)
 
 message (STATUS "Looking for libgcrypt...")
 find_library (GCRYPT gcrypt)
@@ -90,7 +93,8 @@ set_target_properties (openvas PROPERTIES LINKER_LANGUAGE C)
 include_directories (${GLIB_INCLUDE_DIRS} ${LIBOPENVAS_NASL_INCLUDE_DIRS}
                      ${LIBGVM_BASE_INCLUDE_DIRS}
                      ${LIBOPENVAS_MISC_INCLUDE_DIRS}
-                     ${GCRYPT_INCLUDE_DIRS})
+                     ${GCRYPT_INCLUDE_DIRS}
+                     ${GLIB_JSON_INCLUDE_DIRS})
 
 if (NOT CMAKE_BUILD_TYPE MATCHES "Release")
   # If we got GIT_REVISION at configure time,
@@ -167,11 +171,13 @@ endif (CMAKE_SYSTEM_NAME MATCHES "FreeBSD")
 
 target_link_libraries (openvas openvas_nasl_shared ${LIBOPENVAS_NASL_LDFLAGS}
                        ${LIBOPENVAS_MISC_LDFLAGS}
+                       Eulabeia::Eulabeia 
                        ${LIBGVM_BASE_LDFLAGS}
                        ${LIBGVM_BOREAS_LDFLAGS}
                        ${GLIB_LDFLAGS} ${GCRYPT_LDFLAGS}
                        ${EXECINFO_LDFLAGS} ${PCAP_LDFLAGS}
-                       ${LINKER_HARDENING_FLAGS} ${CMAKE_THREAD_LIBS_INIT})
+                       ${LINKER_HARDENING_FLAGS} ${CMAKE_THREAD_LIBS_INIT}
+                       ${GLIB_JSON_LDFLAGS})
 
 ## Tests
 
@@ -190,11 +196,13 @@ add_test (attack-test attack-test)
 target_link_libraries (attack-test openvas_nasl_shared cgreen
                        ${LIBOPENVAS_NASL_LDFLAGS}
                        ${LIBOPENVAS_MISC_LDFLAGS}
+                       Eulabeia::Eulabeia 
                        ${LIBGVM_BASE_LDFLAGS}
                        ${LIBGVM_BOREAS_LDFLAGS}
                        ${GLIB_LDFLAGS} ${GCRYPT_LDFLAGS}
                        ${EXECINFO_LDFLAGS} ${PCAP_LDFLAGS}
                        ${LINKER_HARDENING_FLAGS} ${CMAKE_THREAD_LIBS_INIT}
+                       ${GLIB_JSON_LDFLAGS}
                        -Wl,--wrap=redis_push_str)
 
 ## Static analysis

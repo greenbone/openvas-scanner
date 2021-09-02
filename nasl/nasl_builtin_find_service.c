@@ -21,6 +21,7 @@
 
 #include "../misc/network.h"   /* for get_encaps_through */
 #include "../misc/plugutils.h" /* for OPENVAS_ENCAPS_IP */
+#include "../misc/reporting.h"
 #include "nasl_lex_ctxt.h"
 
 #include <ctype.h> /* for tolower() */

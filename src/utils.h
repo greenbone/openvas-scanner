@@ -50,4 +50,7 @@ store_file (struct scan_globals *, const char *, const char *);
 
 int
 check_host_still_alive (kb_t, const char *);
+
+long
+get_timestamp ();
 #endif

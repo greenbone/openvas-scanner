@@ -25,11 +25,11 @@
 
 #include "attack.h"
 
-#include "../misc/network.h"        /* for auth_printf */
-#include "../misc/nvt_categories.h" /* for ACT_INIT */
-#include "../misc/pcap_openvas.h"   /* for v6_is_local_ip */
-#include "../misc/plugutils.h"      /*for make_table_driven_lsc_info_json_str */
-#include "../nasl/nasl_debug.h"     /* for nasl_*_filename */
+#include "../misc/network.h"          /* for auth_printf */
+#include "../misc/nvt_categories.h"   /* for ACT_INIT */
+#include "../misc/pcap_openvas.h"     /* for v6_is_local_ip */
+#include "../misc/table_driven_lsc.h" /*for make_table_driven_lsc_info_json_str */
+#include "../nasl/nasl_debug.h"       /* for nasl_*_filename */
 #include "hosts.h"
 #include "pluginlaunch.h"
 #include "pluginload.h"
@@ -41,6 +41,9 @@
 
 #include <arpa/inet.h> /* for inet_ntoa() */
 #include <errno.h>     /* for errno() */
+#include <eulabeia/client.h>
+#include <eulabeia/json.h>
+#include <eulabeia/types.h>
 #include <fcntl.h>
 #include <glib.h>
 #include <gvm/base/hosts.h>
@@ -51,6 +54,7 @@
 #include <gvm/boreas/boreas_io.h>      /* for get_host_from_queue() */
 #include <gvm/util/mqtt.h>
 #include <gvm/util/nvticache.h> /* for nvticache_t */
+#include <gvm/util/uuidutils.h> /* gvm_uuid_make */
 #include <pthread.h>
 #include <stdlib.h>   /* for exit() */
 #include <string.h>   /* for strlen() */
@@ -58,7 +62,6 @@
 #include <unistd.h>   /* for close() */
 
 #define ERR_HOST_DEAD -1
-#define ERR_CANT_FORK -2
 
 #define MAX_FORK_RETRIES 10
 /**
@@ -128,25 +131,98 @@ set_kb_readable (int host_kb_index)
   kb_lnk_reset (main_kb);
 }
 
+static void
+send_failure (char *error)
+{
+  char *topic_send = NULL, *msg_send = NULL;
+  struct EulabeiaMessage *msg = NULL;
+
+  g_warning ("%s: send failure %s", __func__, error);
+  const char *context;
+
+  int rc;
+  struct EulabeiaFailure failure;
+
+  context = prefs_get ("mqtt_context");
+  kb_t main_kb = NULL;
+  connect_main_kb (&main_kb);
+  char *scan_id = kb_item_get_str (main_kb, ("internal/scanid"));
+  if (scan_id == NULL)
+    {
+      goto exit;
+    }
+  msg = eulabeia_initialize_message (EULABEIA_INFO_STATUS, EULABEIA_SCAN, NULL,
+                                     NULL);
+  failure.id = scan_id;
+  failure.error = error;
+
+  topic_send = eulabeia_calculate_topic (EULABEIA_INFO_START_FAILURE,
+                                         EULABEIA_SCAN, context, NULL);
+
+  if ((msg_send = eulabeia_failure_message_to_json (msg, &failure)) == NULL)
+    {
+      g_warning ("%s: unable to create failure.start.scan json message",
+                 __func__);
+      goto exit;
+    }
+
+  if ((rc = mqtt_publish (topic_send, msg_send)) != 0)
+    g_warning ("%s: publish of status.scan failed (%d)", __func__, rc);
+
+exit:
+  eulabeia_message_destroy (&msg);
+  g_free (scan_id);
+  g_free (topic_send);
+  g_free (msg_send);
+}
+
 /**
- * @brief Set scan status. This helps ospd-openvas to
- * identify if a scan crashed or finished cleanly.
+ * @brief Set scan status via mqtt. This helps to identify the state of the
+ * scan.
  *
  * @param[in] status Status to set.
  */
 static void
 set_scan_status (char *status)
 {
-  kb_t main_kb = NULL;
-  char buffer[96];
-  char *scan_id = NULL;
+  char *topic_send = NULL, *msg_send = NULL;
+  struct EulabeiaMessage *msg = NULL;
 
+  const char *context;
+
+  int rc;
+  struct EulabeiaStatus estatus;
+
+  context = prefs_get ("mqtt_context");
+  kb_t main_kb = NULL;
   connect_main_kb (&main_kb);
-  scan_id = kb_item_get_str (main_kb, ("internal/scanid"));
-  snprintf (buffer, sizeof (buffer), "internal/%s", scan_id);
-  kb_item_set_str (main_kb, buffer, status, 0);
-  kb_lnk_reset (main_kb);
+  char *scan_id = kb_item_get_str (main_kb, ("internal/scanid"));
+  if (scan_id == NULL)
+    {
+      goto exit;
+    }
+  msg = eulabeia_initialize_message (EULABEIA_INFO_STATUS, EULABEIA_SCAN, NULL,
+                                     NULL);
+  estatus.id = scan_id;
+  estatus.status = status;
+
+  topic_send = eulabeia_calculate_topic (EULABEIA_INFO_STATUS, EULABEIA_SCAN,
+                                         context, NULL);
+
+  if ((msg_send = eulabeia_status_message_to_json (msg, &estatus)) == NULL)
+    {
+      g_warning ("%s: unable to create status.scan json message", __func__);
+      goto exit;
+    }
+
+  if ((rc = mqtt_publish (topic_send, msg_send)) != 0)
+    g_warning ("%s: publish of status.scan failed (%d)", __func__, rc);
+
+exit:
+  eulabeia_message_destroy (&msg);
   g_free (scan_id);
+  g_free (topic_send);
+  g_free (msg_send);
 }
 
 /**
@@ -209,7 +285,7 @@ comm_send_status (kb_t main_kb, char *ip_str, int curr, int max)
   if (strlen (ip_str) > (sizeof (status_buf) - 50))
     return -1;
 
-  snprintf (status_buf, sizeof (status_buf), "%s/%d/%d", ip_str, curr, max);
+  g_snprintf (status_buf, sizeof (status_buf), "%s/%d/%d", ip_str, curr, max);
   kb_item_push_str (main_kb, "internal/status", status_buf);
   kb_lnk_reset (main_kb);
 
@@ -402,7 +478,6 @@ run_table_driven_lsc (const char *scan_id, kb_t kb, const char *ip_str,
   gchar *json_str;
   gchar *package_list;
   gchar *os_release;
-  gchar **module;
   int err = 0;
 
   /* Get the OS release. TODO: have a list with supported OS. */
@@ -415,20 +490,15 @@ run_table_driven_lsc (const char *scan_id, kb_t kb, const char *ip_str,
   if (NULL == package_list)
     return err;
 
-  /* Extract the OS name from the OS release.
-   * E.g. Debian 10 (Buster) -> Debian */
-  module = g_strsplit (os_release, " ", 0);
-
-  json_str = make_table_driven_lsc_info_json_str (
-    scan_id, ip_str, hostname, module[0], os_release, package_list);
+  json_str = make_table_driven_lsc_info_json_str (scan_id, ip_str, hostname,
+                                                  os_release, package_list);
   g_free (package_list);
   g_free (os_release);
-  g_strfreev (module);
 
   if (json_str == NULL)
     return -1;
 
-  err = mqtt_publish ("notus/start", json_str);
+  err = mqtt_publish ("scanner/package/cmd/notus", json_str);
   if (err != 0)
     g_warning ("%s: Error publishing message for Notus.", __func__);
 
@@ -443,13 +513,14 @@ run_table_driven_lsc (const char *scan_id, kb_t kb, const char *ip_str,
  * Does not launch a plugin twice if !save_kb_replay.
  *
  * @return ERR_HOST_DEAD if host died, ERR_CANT_FORK if forking failed,
- *         0 otherwise.
+ *         ERR_NO_FREE_SLOT if the process table is full, 0 otherwise.
  */
 static int
 launch_plugin (struct scan_globals *globals, struct scheduler_plugin *plugin,
                struct in6_addr *ip, GSList *vhosts, kb_t kb, kb_t main_kb)
 {
-  int optimize = prefs_get_bool ("optimize_test"), pid, ret = 0;
+  int optimize = prefs_get_bool ("optimize_test");
+  int launch_error, pid, ret = 0;
   char *oid, *name, *error = NULL, ip_str[INET6_ADDRSTRLEN];
   nvti_t *nvti;
 
@@ -525,11 +596,13 @@ launch_plugin (struct scan_globals *globals, struct scheduler_plugin *plugin,
 
   /* Update vhosts list and start the plugin */
   check_new_vhosts ();
-  pid = plugin_launch (globals, plugin, ip, vhosts, kb, main_kb, nvti);
-  if (pid < 0)
+  launch_error = 0;
+  pid = plugin_launch (globals, plugin, ip, vhosts, kb, main_kb, nvti,
+                       &launch_error);
+  if (launch_error == ERR_NO_FREE_SLOT || launch_error == ERR_CANT_FORK)
     {
       plugin->running_state = PLUGIN_STATUS_UNRUN;
-      ret = ERR_CANT_FORK;
+      ret = launch_error;
       goto finish_launch_plugin;
     }
 
@@ -604,7 +677,7 @@ attack_host (struct scan_globals *globals, struct in6_addr *ip, GSList *vhosts,
                 {
                   char buffer[2048];
 
-                  snprintf (
+                  g_snprintf (
                     buffer, sizeof (buffer),
                     "LOG|||%s||| |||general/Host_Details||| |||<host><detail>"
                     "<name>Host dead</name><value>1</value><source>"
@@ -615,19 +688,33 @@ attack_host (struct scan_globals *globals, struct in6_addr *ip, GSList *vhosts,
                   comm_send_status_host_dead (main_kb, ip_str);
                   goto host_died;
                 }
+              else if (e == ERR_NO_FREE_SLOT)
+                {
+                  if (forks_retry < MAX_FORK_RETRIES)
+                    {
+                      forks_retry++;
+                      g_warning ("Launch failed for %s. No free slot available "
+                                 "in the internal process table for starting a "
+                                 "plugin.",
+                                 plugin->oid);
+                      fork_sleep (forks_retry);
+                      goto again;
+                    }
+                }
               else if (e == ERR_CANT_FORK)
                 {
                   if (forks_retry < MAX_FORK_RETRIES)
                     {
                       forks_retry++;
-                      g_debug ("fork() failed - sleeping %d seconds (%s)",
-                               forks_retry, strerror (errno));
+                      g_warning (
+                        "fork() failed for %s - sleeping %d seconds (%s)",
+                        plugin->oid, forks_retry, strerror (errno));
                       fork_sleep (forks_retry);
                       goto again;
                     }
                   else
                     {
-                      g_debug ("fork() failed too many times - aborting");
+                      g_warning ("fork() failed too many times - aborting");
                       goto host_died;
                     }
                 }
@@ -647,7 +734,7 @@ attack_host (struct scan_globals *globals, struct in6_addr *ip, GSList *vhosts,
       else if (plugin != NULL && plugin == PLUG_RUNNING)
         /* 50 milliseconds. */
         usleep (50000);
-      pluginlaunch_wait_for_free_process (main_kb, kb);
+      pluginlaunch_wait_for_free_process (kb);
     }
 
   if (prefs_get_bool ("table_driven_lsc"))
@@ -656,7 +743,7 @@ attack_host (struct scan_globals *globals, struct in6_addr *ip, GSList *vhosts,
       run_table_driven_lsc (globals->scan_id, kb, ip_str, NULL);
     }
 
-  pluginlaunch_wait (main_kb, kb);
+  pluginlaunch_wait (kb);
   if (!scan_is_stopped ())
     {
       int ret;
@@ -1055,7 +1142,6 @@ attack_network (struct scan_globals *globals)
   kb_t host_kb, main_kb;
   GSList *unresolved;
   char buf[96];
-
   check_deprecated_prefs ();
 
   gboolean test_alive_hosts_only = prefs_get_bool ("test_alive_hosts_only");
@@ -1065,33 +1151,31 @@ attack_network (struct scan_globals *globals)
     connect_main_kb (&alive_hosts_kb);
 
   gettimeofday (&then, NULL);
-
   if (check_kb_access ())
-    return;
-
+    {
+      g_warning ("No access to redis kb");
+      return;
+    }
   /* Init and check Target List */
   hostlist = prefs_get ("TARGET");
   if (hostlist == NULL)
     {
+      g_warning ("Target list is empty");
       return;
     }
-
   /* Verify the port range is a valid one */
   port_range = prefs_get ("port_range");
   if (validate_port_range (port_range))
     {
+      send_failure ("Invalid port list. Ports must be in the range [1-65535]");
       connect_main_kb (&main_kb);
       message_to_client (
         main_kb, "Invalid port list. Ports must be in the range [1-65535]",
         NULL, NULL, "ERRMSG");
       kb_lnk_reset (main_kb);
-      g_warning ("Invalid port list. Ports must be in the range [1-65535]. "
-                 "Scan terminated.");
-      set_scan_status ("finished");
 
       return;
     }
-
   /* Initialize the attack. */
   int plugins_init_error = 0;
   sched = plugins_scheduler_init (prefs_get ("plugin_set"),
@@ -1102,28 +1186,27 @@ attack_network (struct scan_globals *globals)
       g_message ("Couldn't initialize the plugin scheduler");
       return;
     }
-
   if (plugins_init_error > 0)
     {
-      sprintf (buf,
-               "%d errors were found during the plugin scheduling. "
-               "Some plugins have not been launched.",
-               plugins_init_error);
+      g_snprintf (buf, sizeof (buf),
+                  "%d errors were found during the plugin scheduling. "
+                  "Some plugins have not been launched.",
+                  plugins_init_error);
 
       connect_main_kb (&main_kb);
+      g_warning ("%s", buf);
       message_to_client (main_kb, buf, NULL, NULL, "ERRMSG");
       kb_lnk_reset (main_kb);
     }
-
   max_hosts = get_max_hosts_number ();
   max_checks = get_max_checks_number ();
-
   hosts = gvm_hosts_new (hostlist);
   if (hosts == NULL)
     {
       char *buffer;
       buffer = g_strdup_printf ("Invalid target list: %s.", hostlist);
       connect_main_kb (&main_kb);
+      g_warning ("%s", buffer);
       message_to_client (main_kb, buffer, NULL, NULL, "ERRMSG");
       g_free (buffer);
       /* Send the hosts count to the client as -1,
@@ -1134,7 +1217,6 @@ attack_network (struct scan_globals *globals)
       g_warning ("Invalid target list. Scan terminated.");
       goto stop;
     }
-
   unresolved = gvm_hosts_resolve (hosts);
   while (unresolved)
     {
@@ -1142,14 +1224,13 @@ attack_network (struct scan_globals *globals)
       unresolved = unresolved->next;
     }
   g_slist_free_full (unresolved, g_free);
-
   /* Apply Hosts preferences. */
   apply_hosts_preferences_ordering (hosts);
   apply_hosts_reverse_lookup_preferences (hosts);
 
   /* Send the hosts count to the client, after removing duplicated and
    * unresolved hosts.*/
-  sprintf (buf, "%d", gvm_hosts_count (hosts));
+  g_snprintf (buf, sizeof (buf), "%d", gvm_hosts_count (hosts));
   connect_main_kb (&main_kb);
   message_to_client (main_kb, buf, NULL, NULL, "HOSTS_COUNT");
   kb_lnk_reset (main_kb);
@@ -1165,6 +1246,8 @@ attack_network (struct scan_globals *globals)
              "%s, with max_hosts = %d and max_checks = %d",
              globals->scan_id, gvm_hosts_count (hosts), hostlist, max_hosts,
              max_checks);
+
+  set_scan_status ("running");
 
   if (test_alive_hosts_only)
     {
@@ -1405,7 +1488,7 @@ stop:
                gvm_hosts_count (hosts));
 
   gvm_hosts_free (hosts);
-  if (test_alive_hosts_only)
+  if (alive_hosts_list)
     gvm_hosts_free (alive_hosts_list);
 
   set_scan_status ("finished");

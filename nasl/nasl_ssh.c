@@ -48,6 +48,7 @@
 #include <gvm/base/networking.h>
 #include <gvm/base/prefs.h> /* for prefs_get() */
 #include <gvm/util/kb.h>
+#include <libssh/sftp.h>
 #include <netinet/in.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -503,7 +504,7 @@ do_nasl_ssh_disconnect (int tbl_slot)
  *
  * @nasluparam
  *
- * - An ssh session id.  A value of 0 is allowed and acts as a NOP.
+ * - An SSH session id.  A value of 0 is allowed and acts as a NOP.
  *
  * @naslret Nothing
  *
@@ -611,7 +612,7 @@ nasl_ssh_session_id_from_sock (lex_ctxt *lexic)
  *
  * @nasluparam
  *
- * - An ssh session id.
+ * - An SSH session id.
  *
  * @naslret An integer representing the socket or -1 on error.
  *
@@ -714,7 +715,7 @@ leave:
  *
  * @nasluparam
  *
- * - An ssh session id.
+ * - An SSH session id.
  *
  * @naslnparam
  *
@@ -800,7 +801,7 @@ nasl_ssh_set_login (lex_ctxt *lexic)
  *
  * @nasluparam
  *
- * - An ssh session id.
+ * - An SSH session id.
  *
  * @naslnparam
  *
@@ -854,7 +855,7 @@ nasl_ssh_userauth (lex_ctxt *lexic)
       privkeypass = kb_item_get_str (kb, "Secret/SSH/passphrase");
     }
 
-  /* Get the authentication methods onlye once per session.  */
+  /* Get the authentication methods only once per session.  */
   if (!session_table[tbl_slot].authmethods_valid)
     {
       if (!get_authmethods (tbl_slot))
@@ -999,7 +1000,7 @@ leave:
  *
  * @nasluparam
  *
- * - An ssh session id.
+ * - An SSH session id.
  *
  * @naslnparam
  *
@@ -1035,7 +1036,7 @@ nasl_ssh_login_interactive (lex_ctxt *lexic)
   if (!session_table[tbl_slot].user_set && !nasl_ssh_set_login (lexic))
     return NULL;
 
-  /* Get the authentication methods onlye once per session.  */
+  /* Get the authentication methods only once per session.  */
   if (!session_table[tbl_slot].authmethods_valid)
     {
       if (!get_authmethods (tbl_slot))
@@ -1111,7 +1112,7 @@ leave:
  *
  * @nasluparam
  *
- * - An ssh session id.
+ * - An SSH session id.
  *
  * @naslnparam
  *
@@ -1320,7 +1321,7 @@ exec_err:
  *
  * @nasluparam
  *
- * - An ssh session id.
+ * - An SSH session id.
  *
  * @naslnparam
  *
@@ -1453,7 +1454,7 @@ nasl_ssh_request_exec (lex_ctxt *lexic)
  *
  * @nasluparam
  *
- * - An ssh session id.
+ * - An SSH session id.
  *
  * @naslret A data block on success or NULL on error.
  *
@@ -1503,7 +1504,7 @@ nasl_ssh_get_issue_banner (lex_ctxt *lexic)
  *
  * @nasluparam
  *
- * - An ssh session id.
+ * - An SSH session id.
  *
  * @naslret A data block on success or NULL on error.
  *
@@ -1544,7 +1545,7 @@ nasl_ssh_get_server_banner (lex_ctxt *lexic)
  *
  * @nasluparam
  *
- * - An ssh session id.
+ * - An SSH session id.
  *
  * @naslret A data block on success or NULL on error.
  *
@@ -1588,7 +1589,7 @@ nasl_ssh_get_host_key (lex_ctxt *lexic)
  *
  * @nasluparam
  *
- * - An ssh session id.
+ * - An SSH session id.
  *
  * @naslret A string on success or NULL on error.
  *
@@ -1685,7 +1686,7 @@ request_ssh_shell (ssh_channel channel, int pty)
  *
  * @nasluparam
  *
- * - An ssh session id.
+ * - An SSH session id.
  *
  * @naslnparam
  *
@@ -1778,7 +1779,7 @@ read_ssh_nonblocking (ssh_channel channel, GString *response)
  *
  * @nasluparam
  *
- * - An ssh session id.
+ * - An SSH session id.
  *
  * @naslret A string on success or NULL on error.
  *
@@ -1814,7 +1815,7 @@ nasl_ssh_shell_read (lex_ctxt *lexic)
  *
  * @nasluparam
  *
- * - An ssh session id.
+ * - An SSH session id.
  *
  * @naslnparam
  *
@@ -1876,7 +1877,7 @@ write_ret:
  *
  * @nasluparam
  *
- * - An ssh session id.
+ * - An SSH session id.
  *
  * @param[in] lexic Lexical context of NASL interpreter.
  */
@@ -1895,4 +1896,65 @@ nasl_ssh_shell_close (lex_ctxt *lexic)
     }
 
   return NULL;
+}
+
+/*
+ * NASL SFTP
+ */
+
+/**
+ * @brief Check if the SFTP subsystem is enabled on the remote SSH server.
+ * @naslfn{sftp_enabled_check}
+ *
+ * @nasluparam
+ *
+ * - An SSH session id.
+ *
+ * @naslret An integer: 0 on success, -1 (SSH_ERROR) on Channel request
+ * subsystem failure. Greater than 0 means an error during SFTP init. NULL
+ * indicates a failure during session id verification.
+ *
+ * @param[in] lexic Lexical context of NASL interpreter.
+ */
+tree_cell *
+nasl_sftp_enabled_check (lex_ctxt *lexic)
+{
+  int tbl_slot, session_id;
+  tree_cell *retc;
+  sftp_session sftp;
+  ssh_session session;
+  int rc;
+
+  session_id = get_int_var_by_num (lexic, 0, -1);
+  if (!verify_session_id (session_id, "sftp_enabled_check", &tbl_slot, lexic))
+    return NULL;
+  session = session_table[tbl_slot].session;
+
+  sftp = sftp_new (session);
+  if (sftp == NULL)
+    {
+      g_message (
+        "Function %s (calling internal function %s) called from %s: %s",
+        nasl_get_function_name () ?: "script_main_function", __func__,
+        nasl_get_plugin_filename (),
+        ssh_get_error (session_table[tbl_slot].session));
+      rc = SSH_ERROR;
+      goto write_ret;
+    }
+
+  rc = sftp_init (sftp);
+  if (rc != SSH_OK)
+    g_message (
+      "Function %s (calling internal function %s) called from %s: %s. Code %d",
+      nasl_get_function_name () ?: "script_main_function", __func__,
+      nasl_get_plugin_filename (),
+      ssh_get_error (session_table[tbl_slot].session), sftp_get_error (sftp));
+
+  sftp_free (sftp);
+
+write_ret:
+
+  retc = alloc_typed_cell (CONST_INT);
+  retc->x.i_val = rc;
+  return retc;
 }

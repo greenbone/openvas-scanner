@@ -18,34 +18,17 @@
  */
 
 /**
- * @file nvt_qod_types.h
- * @brief QOD_TYPES definitions.
- *
- * This file contains defines for the QoD types of NVTs.
+ * @file table_drive_lsc.h
+ * @brief Header file for module table_driven_lsc.
  */
 
-#ifndef _NVT_QOD_H
-#define _NVT_QOD_H
+#ifndef TABLE_DRIVEN_LSC_H
+#define TABLE_DRIVEN_LSC_H
 
-typedef enum
-{
-  EXPLOIT = 100,
-  REMOTE_VUL = 99,
-  REMOTE_APP = 98,
-  PACKAGE = 97,
-  REGISTRY = 97,
-  REMOTE_ACTIVE = 95,
-  REMOTE_BANNER = 80,
-  EXECUTABLE_VERSION = 80,
-  REMOTE_ANALYSIS = 70,
-  REMOTE_PROBE = 50,
-  REMOTE_BANNER_UNRELIABLE = 30,
-  EXECUTABLE_VERSION_UNRELIABLE = 30,
-  GENERAL_NOTE = 1,
-  DEFAULT = 70,
-} qod_val;
+#include <glib.h>
 
-int
-qod_type2val (const char *);
+gchar *
+make_table_driven_lsc_info_json_str (const char *, const char *, const char *,
+                                     const char *, const char *);
 
-#endif /* _NVT_QOD_H */
+#endif // TABLE_DRIVEN_LSC_H

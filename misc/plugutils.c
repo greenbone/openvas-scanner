@@ -26,17 +26,18 @@
 #include "plugutils.h"
 
 #include "network.h" // for OPENVAS_ENCAPS_IP
-#include "nvt_qod.h" // for qod_str2val
+#include "reporting.h"
 
-#include <errno.h>               // for errno
-#include <gvm/base/cvss.h>       // for get_cvss_score_from_base_metrics
+#include <errno.h> // for errno
+#include <eulabeia/json.h>
+#include <eulabeia/types.h>
 #include <gvm/base/hosts.h>      // for g_vhost_t
 #include <gvm/base/networking.h> // for port_protocol_t
 #include <gvm/base/prefs.h>      // for prefs_get_bool
 #include <gvm/util/mqtt.h>       // for mqtt_reset
 #include <gvm/util/nvticache.h>  // for nvticache_initialized
+#include <gvm/util/uuidutils.h>  /* gvm_uuid_make */
 #include <json-glib/json-glib.h>
-#include <stdio.h>    // for snprintf
 #include <stdlib.h>   // for exit
 #include <string.h>   // for strcmp
 #include <sys/wait.h> // for wait
@@ -60,7 +61,9 @@ gvm_vhost_t *current_vhost = NULL;
 const char *
 plug_current_vhost (void)
 {
-  return current_vhost->value;
+  if (current_vhost)
+    return current_vhost->value;
+  return NULL;
 }
 
 static int plug_fork_child (kb_t);
@@ -89,7 +92,7 @@ void
 host_add_port_proto (struct script_infos *args, int portnum, char *proto)
 {
   char port_s[255];
-  snprintf (port_s, sizeof (port_s), "Ports/%s/%d", proto, portnum);
+  g_snprintf (port_s, sizeof (port_s), "Ports/%s/%d", proto, portnum);
   plug_set_key (args, port_s, ARG_INT, (void *) 1);
 }
 
@@ -144,7 +147,7 @@ kb_get_port_state_proto (kb_t kb, int portnum, char *proto)
   array_free (port_ranges);
 
   /* Ok, we scanned it. What is its state ? */
-  snprintf (port_s, sizeof (port_s), "Ports/%s/%d", proto, portnum);
+  g_snprintf (port_s, sizeof (port_s), "Ports/%s/%d", proto, portnum);
   return kb_item_get_int (kb, port_s) > 0;
 }
 
@@ -339,425 +342,6 @@ plug_get_host_ip_str (struct script_infos *desc)
 }
 
 /**
- * @brief Build a json object with data necessary to start a table drive LSC
- *
- * JSON result consists of scan_id, message type, host ip,  hostname, port
- * together with proto, OID, result message and uri.
- *
- * @param scan_id     Scan Id.
- * @param kb
- * @param ip_str      IP string of host.
- * @param hostname    Name of host.
- * @param module      Module to be used. The OS base name or package manager
- * name
- * @param os_release  OS release
- * @param package_list The installed package list in the target system to be
- * evaluated
- *
- * @return JSON string on success. Must be freed by caller. NULL on error.
- */
-gchar *
-make_table_driven_lsc_info_json_str (const char *scan_id, const char *ip_str,
-                                     const char *hostname, const char *module,
-                                     const char *os_release,
-                                     const char *package_list)
-{
-  JsonBuilder *builder;
-  JsonGenerator *gen;
-  JsonNode *root;
-  gchar *json_str;
-
-  /* Build the message in json format to be published. */
-  builder = json_builder_new ();
-
-  json_builder_begin_object (builder);
-
-  json_builder_set_member_name (builder, "scan_id");
-  builder = json_builder_add_string_value (builder, scan_id);
-
-  json_builder_set_member_name (builder, "host");
-  json_builder_add_string_value (builder, ip_str);
-
-  json_builder_set_member_name (builder, "hostname");
-  json_builder_add_string_value (builder, hostname);
-
-  json_builder_set_member_name (builder, "module_name");
-  json_builder_add_string_value (builder, module);
-
-  json_builder_set_member_name (builder, "os_release");
-  json_builder_add_string_value (builder, os_release);
-
-  json_builder_set_member_name (builder, "package_list");
-  json_builder_add_string_value (builder, package_list);
-
-  json_builder_end_object (builder);
-
-  gen = json_generator_new ();
-  root = json_builder_get_root (builder);
-  json_generator_set_root (gen, root);
-  json_str = json_generator_to_data (gen, NULL);
-
-  json_node_free (root);
-  g_object_unref (gen);
-  g_object_unref (builder);
-
-  if (json_str == NULL)
-    g_warning ("%s: Error while creating JSON.", __func__);
-
-  return json_str;
-}
-
-/**
- * @brief Get the nvti's severity vector and return the score as string.
- *
- * @param[in] nvti     The nvti where to get the severity vector from.
- *
- * @return string representing a float value, with max 1 decimal. Eg. -1, 3.2.
- * NULL otherwise. Must be free()'d by the caller.
- */
-static gchar *
-get_severity_score_from_vt (nvti_t *nvti)
-{
-  gchar *vector;
-  gchar *score_str;
-  double score;
-
-  vector = nvti_severity_vector_from_tag (nvti);
-  if (!vector)
-    return NULL;
-
-  score = get_cvss_score_from_base_metrics (vector);
-  g_free (vector);
-
-  score_str = g_strdup_printf ("%.1f", score);
-
-  return score_str;
-}
-
-/**
- * @brief Get the nvti's QoD and return the value as
- * string.
- *
- * We check first for qod_type in the nvti's tag list, which has
- * priority. If it is not present. we check for 'qod' tag.
- *
- * @param[in] nvti The nvti where to get the QoD from.
- *
- * @return string representing an integer value, NULL if no
- * QoD was set for the nvti, or on error.
- * Must be free()'d by the caller.
- */
-static gchar *
-get_qod_from_vt (nvti_t *nvti)
-{
-  int qod;
-  gchar *qod_str, *qod_type;
-
-  qod_str = NULL;
-  qod_type = nvti_get_tag (nvti, "qod_type");
-  if (qod_type)
-    {
-      qod = qod_type2val (qod_type);
-      qod_str = g_strdup_printf ("%i", qod);
-      g_free (qod_type);
-      return qod_str;
-    }
-
-  qod_str = nvti_get_tag (nvti, "qod");
-  return qod_str;
-}
-
-/**
- * @brief Build a json representation of the part related to nvti information
- * of a result.
- *
- * OpenVAS result contains also the nvti name, QoD and score, which need to be
- * taken from redis and the score must be calculated from the vector
- *
- * @param[in]  oid     The oid of the NVT.
- * @param[out] builder Json builder to add data to.
- *
- * @return Json builder, NULL on error.
- */
-static JsonBuilder *
-add_nvti_info_into_json_builder (JsonBuilder *builder, const char *oid)
-{
-  nvti_t *nvti;
-  gchar *score_str;
-  gchar *qod;
-
-  nvti = nvticache_get_nvt (oid);
-
-  if (!nvti)
-    {
-      g_warning ("%s: Plugin '%s' missing from nvticache.", __func__, oid);
-      return NULL;
-    }
-
-  json_builder_set_member_name (builder, "name");
-  builder = json_builder_add_string_value (builder, nvti_name (nvti));
-
-  qod = get_qod_from_vt (nvti);
-  json_builder_set_member_name (builder, "qod");
-  builder = json_builder_add_string_value (builder, qod);
-  g_free (qod);
-
-  score_str = get_severity_score_from_vt (nvti);
-  json_builder_set_member_name (builder, "severity");
-  builder = json_builder_add_string_value (builder, score_str);
-  g_free (score_str);
-
-  nvti_free (nvti);
-
-  return builder;
-}
-
-/**
- * @brief Build a json representation of a result.
- *
- * JSON result consists of scan_id, message type, host ip,  hostname, port
- * together with proto, OID, result message and uri.
- *
- * @param scan_id     Scan Id.
- * @param type        Type of result, like "LOG".
- * @param ip_str      IP string of host.
- * @param hostname    Name of host.
- * @param port_s      Port string.
- * @param proto       Protocol related to the issue (tcp or udp).
- * @param action_str  The actual result text.
- * @param uri         Location like file path or webservice URL.
- *
- * @return JSON string on success. Must be freed by caller. NULL on error.
- */
-gchar *
-make_result_json_str (const gchar *scan_id, const gchar *type,
-                      const gchar *ip_str, const gchar *hostname,
-                      const gchar *port_s, const gchar *proto, const gchar *oid,
-                      const gchar *action_str, const gchar *uri)
-{
-  JsonBuilder *builder;
-  JsonGenerator *gen;
-  JsonNode *root;
-  gchar *port;
-  gchar *json_str;
-
-  builder = json_builder_new ();
-
-  json_builder_begin_object (builder);
-
-  json_builder_set_member_name (builder, "scan_id");
-  builder = json_builder_add_string_value (builder, scan_id);
-
-  json_builder_set_member_name (builder, "type");
-  builder = json_builder_add_string_value (builder, type);
-
-  json_builder_set_member_name (builder, "host_ip");
-  json_builder_add_string_value (builder, ip_str);
-
-  json_builder_set_member_name (builder, "hostname");
-  json_builder_add_string_value (builder, hostname);
-
-  port = g_strdup_printf ("%s/%s", port_s, proto);
-  json_builder_set_member_name (builder, "port");
-  json_builder_add_string_value (builder, port);
-  g_free (port);
-
-  json_builder_set_member_name (builder, "OID");
-  json_builder_add_string_value (builder, oid);
-
-  if (oid != NULL && oid[0] != '\0')
-    add_nvti_info_into_json_builder (builder, oid);
-
-  json_builder_set_member_name (builder, "value");
-  json_builder_add_string_value (builder, action_str);
-
-  json_builder_set_member_name (builder, "uri");
-  json_builder_add_string_value (builder, uri);
-
-  json_builder_end_object (builder);
-
-  gen = json_generator_new ();
-  root = json_builder_get_root (builder);
-  json_generator_set_root (gen, root);
-  json_str = json_generator_to_data (gen, NULL);
-
-  json_node_free (root);
-  g_object_unref (gen);
-  g_object_unref (builder);
-
-  return json_str;
-}
-
-/**
- * @brief Return string representation of the given msg_t.
- *
- * @param msg msg_t to transform
- *
- * @return string representation of the given msg_t if successful, else NULL.
- */
-static const char *
-msg_type_to_str (msg_t type)
-{
-  gchar *type_str;
-
-  switch (type)
-    {
-    case ERRMSG:
-      type_str = "ERRMSG";
-      break;
-    case HOST_START:
-      type_str = "HOST_START";
-      break;
-    case HOST_END:
-      type_str = "HOST_END";
-      break;
-    case LOG:
-      type_str = "LOG";
-      break;
-    case HOST_DETAIL:
-      type_str = "HOST_DETAIL";
-      break;
-    case ALARM:
-      type_str = "ALARM";
-      break;
-    case DEADHOST:
-      type_str = "DEADHOST";
-      break;
-    default:
-      return NULL;
-      break;
-    }
-
-  return type_str;
-}
-
-/**
- * @brief Post a security message (e.g. LOG, NOTE, WARNING ...).
- *
- * @param oid   The oid of the NVT
- * @param desc  The script infos where to get settings.
- * @param port  Port number related to the issue.
- * @param proto Protocol related to the issue (tcp or udp).
- * @param action The actual result text
- * @param msg_type   The message type.
- * @param uri   Location like file path or webservice URL.
- */
-static void
-proto_post_wrapped (const char *oid, struct script_infos *desc, int port,
-                    const char *proto, const char *action, msg_t msg_type,
-                    const char *uri)
-{
-  const char *hostname = "";
-  char *buffer, *data, port_s[16] = "general";
-  gchar *json;
-  char ip_str[INET6_ADDRSTRLEN];
-  GString *action_str;
-  gsize length;
-  kb_t kb;
-
-  /* Should not happen, just to avoid trouble stop here if no NVTI found */
-  if (!oid)
-    return;
-
-  if (action == NULL)
-    action_str = g_string_new ("");
-  else
-    {
-      action_str = g_string_new (action);
-      g_string_append (action_str, "\n");
-    }
-
-  if (port > 0)
-    snprintf (port_s, sizeof (port_s), "%d", port);
-  if (current_vhost)
-    hostname = current_vhost->value;
-  else if (desc->vhosts)
-    hostname = ((gvm_vhost_t *) desc->vhosts->data)->value;
-  addr6_to_str (plug_get_host_ip (desc), ip_str);
-  buffer = g_strdup_printf ("%s|||%s|||%s|||%s/%s|||%s|||%s|||%s",
-                            msg_type_to_str (msg_type), ip_str, hostname ?: " ",
-                            port_s, proto, oid, action_str->str, uri ?: "");
-  /* Convert to UTF-8 before sending to Manager. */
-  data = g_convert (buffer, -1, "UTF-8", "ISO_8859-1", NULL, &length, NULL);
-
-  /* Send result via MQTT. */
-  json = make_result_json_str (
-    desc->globals->scan_id, msg_type_to_str (msg_type), ip_str, hostname ?: " ",
-    port_s, proto, oid, action_str->str, uri ?: "");
-  if (json == NULL)
-    g_warning ("%s: Error while creating JSON.", __func__);
-  else
-    mqtt_publish ("scanner/results", json);
-  g_free (json);
-
-  /* Send result via Redis. */
-  kb = plug_get_results_kb (desc);
-  kb_item_push_str (kb, "internal/results", data);
-
-  g_free (data);
-  g_free (buffer);
-  g_string_free (action_str, TRUE);
-}
-
-void
-proto_post_alarm (const char *oid, struct script_infos *desc, int port,
-                  const char *proto, const char *action, const char *uri)
-{
-  proto_post_wrapped (oid, desc, port, proto, action, ALARM, uri);
-}
-
-void
-post_alarm (const char *oid, struct script_infos *desc, int port,
-            const char *action, const char *uri)
-{
-  proto_post_alarm (oid, desc, port, "tcp", action, uri);
-}
-
-/**
- * @brief Post a log message
- */
-void
-proto_post_log (const char *oid, struct script_infos *desc, int port,
-                const char *proto, const char *action, const char *uri)
-{
-  proto_post_wrapped (oid, desc, port, proto, action, LOG, uri);
-}
-
-/**
- * @brief Post a log message about a tcp port.
- */
-void
-post_log (const char *oid, struct script_infos *desc, int port,
-          const char *action)
-{
-  proto_post_log (oid, desc, port, "tcp", action, NULL);
-}
-
-/**
- * @brief Post a log message about a tcp port with a uri
- */
-void
-post_log_with_uri (const char *oid, struct script_infos *desc, int port,
-                   const char *action, const char *uri)
-{
-  proto_post_log (oid, desc, port, "tcp", action, uri);
-}
-
-void
-proto_post_error (const char *oid, struct script_infos *desc, int port,
-                  const char *proto, const char *action, const char *uri)
-{
-  proto_post_wrapped (oid, desc, port, proto, action, ERRMSG, uri);
-}
-
-void
-post_error (const char *oid, struct script_infos *desc, int port,
-            const char *action, const char *uri)
-{
-  proto_post_error (oid, desc, port, "tcp", action, uri);
-}
-
-/**
  * @brief Get the a plugins preference.
  *
  * Search in the preferences set by the client. If it is not
@@ -779,14 +363,14 @@ get_plugin_preference (const char *oid, const char *name, int pref_id)
   char prefix[1024], suffix[1024];
 
   prefs = preferences_get ();
-  if (!prefs || !nvticache_initialized () || !oid || (!name && pref_id < 1))
+  if (!prefs || !nvticache_initialized () || !oid || (!name && pref_id < 0))
     return NULL;
 
   g_hash_table_iter_init (&iter, prefs);
 
-  if (pref_id > 0)
+  if (pref_id >= 0)
     {
-      snprintf (prefix, sizeof (prefix), "%s:%d:", oid, pref_id);
+      g_snprintf (prefix, sizeof (prefix), "%s:%d:", oid, pref_id);
       while (g_hash_table_iter_next (&iter, &itername, &itervalue))
         {
           if (g_str_has_prefix (itername, prefix))
@@ -800,8 +384,8 @@ get_plugin_preference (const char *oid, const char *name, int pref_id)
     {
       cname = g_strdup (name);
       g_strchomp (cname);
-      snprintf (prefix, sizeof (prefix), "%s:", oid);
-      snprintf (suffix, sizeof (suffix), ":%s", cname);
+      g_snprintf (prefix, sizeof (prefix), "%s:", oid);
+      g_snprintf (suffix, sizeof (suffix), ":%s", cname);
       /* NVT preferences received in OID:PrefID:PrefType:PrefName form */
       while (g_hash_table_iter_next (&iter, &itername, &itervalue))
         {
@@ -1190,7 +774,10 @@ plug_get_key (struct script_infos *args, char *name, int *type, size_t *len,
         {
           if (type != NULL)
             *type = KB_TYPE_INT;
+#pragma GCC diagnostic push
+#pragma GCC diagnostic warning "-Wdeprecated-declarations"
           ret = g_memdup (&res->v_int, sizeof (res->v_int));
+#pragma GCC diagnostic pop
         }
       else
         {
@@ -1198,7 +785,10 @@ plug_get_key (struct script_infos *args, char *name, int *type, size_t *len,
             *type = KB_TYPE_STR;
           if (len)
             *len = res->len;
+#pragma GCC diagnostic push
+#pragma GCC diagnostic warning "-Wdeprecated-declarations"
           ret = g_memdup (res->v_str, res->len + 1);
+#pragma GCC diagnostic pop
         }
       kb_item_free (res);
       return ret;
@@ -1220,7 +810,10 @@ plug_get_key (struct script_infos *args, char *name, int *type, size_t *len,
             {
               if (type != NULL)
                 *type = KB_TYPE_INT;
+#pragma GCC diagnostic push
+#pragma GCC diagnostic warning "-Wdeprecated-declarations"
               ret = g_memdup (&res->v_int, sizeof (res->v_int));
+#pragma GCC diagnostic pop
             }
           else
             {
@@ -1228,7 +821,10 @@ plug_get_key (struct script_infos *args, char *name, int *type, size_t *len,
                 *type = KB_TYPE_STR;
               if (len)
                 *len = res->len;
+#pragma GCC diagnostic push
+#pragma GCC diagnostic warning "-Wdeprecated-declarations"
               ret = g_memdup (res->v_str, res->len + 1);
+#pragma GCC diagnostic pop
             }
           kb_item_free (res_list);
           return ret;
@@ -1307,7 +903,7 @@ plug_set_port_transport (struct script_infos *args, int port, int tr)
 {
   char s[256];
 
-  snprintf (s, sizeof (s), "Transports/TCP/%d", port);
+  g_snprintf (s, sizeof (s), "Transports/TCP/%d", port);
   plug_set_key (args, s, ARG_INT, GSIZE_TO_POINTER (tr));
 }
 
@@ -1321,7 +917,7 @@ plug_get_port_transport (struct script_infos *args, int port)
   char s[256];
   int trp;
 
-  snprintf (s, sizeof (s), "Transports/TCP/%d", port);
+  g_snprintf (s, sizeof (s), "Transports/TCP/%d", port);
   trp = kb_item_get_int (plug_get_kb (args), s);
   if (trp >= 0)
     return trp;
@@ -1335,7 +931,7 @@ static void
 plug_set_ssl_item (struct script_infos *args, char *item, char *itemfname)
 {
   char s[256];
-  snprintf (s, sizeof (s), "SSL/%s", item);
+  g_snprintf (s, sizeof (s), "SSL/%s", item);
   plug_set_key (args, s, ARG_STRING, itemfname);
 }
 
