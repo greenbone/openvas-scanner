@@ -118,7 +118,7 @@ make_result_json_str (const gchar *scan_id, msg_t type, const gchar *ip_str,
   port = NULL;
   if (port_s && proto)
     port = g_strdup_printf ("%s/%s", port_s, proto);
-
+  result = g_malloc0 (sizeof (*result));
   result->message = msg;
   result->result_type = g_strdup (msg_type_to_str (type));
   result->id = g_strdup (global_scan_id);
