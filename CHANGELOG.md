@@ -62,11 +62,16 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 ### Removed
 >>>>>>> 8eb804d5 (Fix changelog)
 ### Fixed
+<<<<<<< HEAD
 - Use fchmod to change file permission instead of on open to prevent race conditions [#854](https://github.com/greenbone/openvas-scanner/pull/854)
 - Several minor potential security risks in different files, spotted by Code QL [#854](https://github.com/greenbone/openvas-scanner/pull/854)
 
 ### Removed
 - Remove handling of source_iface related preferences. [#730](https://github.com/greenbone/openvas/pull/730)
+=======
+- Fix interrupted scan, when the process table is full. [#832](https://github.com/greenbone/openvas-scanner/pull/832)
+- Use fchmod to change file permission instead of on open to prevent race conditions [854](https://github.com/greenbone/openvas-scanner/pull/854)
+>>>>>>> 5e6b219e (Fix: security check that open is called basedd on previous lstat check)
 
 [21.10]: https://github.com/greenbone/openvas-scanner/compare/openvas-21.04...master
 
