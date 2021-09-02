@@ -429,7 +429,7 @@ nasl_file_open (lex_ctxt *lexic)
 {
   tree_cell *retc;
   char *fname, *mode;
-  struct stat lstat_info, fstat_info;
+  struct stat fstat_info;
   int fd;
   int imode = O_RDONLY;
 
@@ -458,48 +458,20 @@ nasl_file_open (lex_ctxt *lexic)
   else if (strcmp (mode, "a+") == 0)
     imode = O_RDWR | O_APPEND | O_CREAT;
 
-  if (lstat (fname, &lstat_info) == -1)
+  fd = open (fname, imode, 0600);
+  if (fd < 0)
     {
-      if (errno != ENOENT)
-        {
-          nasl_perror (lexic, "file_open: %s: %s\n", fname, strerror (errno));
-          return NULL;
-        }
-      fd = open (fname, imode, 0600);
-      if (fd < 0)
-        {
-          nasl_perror (lexic, "file_open: %s: %s\n", fname, strerror (errno));
-          return NULL;
-        }
+      nasl_perror (lexic, "file_open: %s: possible symlink attack!?! %s\n",
+                   fname, strerror (errno));
+      return NULL;
     }
-  else
+
+  if (fstat (fd, &fstat_info) == -1)
     {
-      fd = open (fname, imode, 0600);
-      if (fd < 0)
-        {
-          nasl_perror (lexic, "file_open: %s: possible symlink attack!?! %s\n",
-                       fname, strerror (errno));
-          return NULL;
-        }
-      if (fstat (fd, &fstat_info) == -1)
-        {
-          close (fd);
-          nasl_perror (lexic, "fread: %s: possible symlink attack!?! %s\n",
-                       fname, strerror (errno));
-          return NULL;
-        }
-      else
-        {
-          if (lstat_info.st_mode != fstat_info.st_mode
-              || lstat_info.st_ino != fstat_info.st_ino
-              || lstat_info.st_dev != fstat_info.st_dev)
-            {
-              close (fd);
-              nasl_perror (lexic, "fread: %s: possible symlink attack!?!\n",
-                           fname);
-              return NULL;
-            }
-        }
+      close (fd);
+      nasl_perror (lexic, "fread: %s: possible symlink attack!?! %s\n", fname,
+                   strerror (errno));
+      return NULL;
     }
 
   retc = alloc_typed_cell (CONST_INT);

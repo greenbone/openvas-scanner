@@ -147,7 +147,11 @@ mdfour64_ntlmssp (uint32 *M)
   B &= 0xFFFFFFFF;
   C &= 0xFFFFFFFF;
   D &= 0xFFFFFFFF;
-  memset (X, '\0', sizeof (X));
+
+  for (size_t i = 0; i < sizeof (X); i++)
+    {
+      *(volatile char *) (X + i) = '\0';
+    }
 }
 
 static void
