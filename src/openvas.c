@@ -42,7 +42,8 @@
 #include "sighand.h"               /* for openvas_signal */
 #include "utils.h"                 /* for store_file */
 
-#include <errno.h>  /* for errno() */
+#include <errno.h> /* for errno() */
+#include <eulabeia/client.h>
 #include <fcntl.h>  /* for open() */
 #include <gcrypt.h> /* for gcry_control */
 #include <glib.h>
@@ -359,10 +360,16 @@ write_json_plugin_prefs_to_preferences (struct scan_globals *globals,
   gchar **members;
   int j, num_plug_prefs;
   GSList *nprefs;
+  g_debug ("%s: entered", __func__);
 
   json_reader_read_member (single_vt_reader, "prefs_by_id");
-  g_assert_true (json_reader_is_object (single_vt_reader));
+  if (!json_reader_is_object (single_vt_reader))
+    {
+      // we ignore prefs_by_id when it is not an object (e.g. when NULL)
+      return;
+    }
   num_plug_prefs = json_reader_count_members (single_vt_reader);
+  g_debug ("%s: amount of plug preferences: %d", __func__, num_plug_prefs);
   members = json_reader_list_members (single_vt_reader);
 
   // Get nvt preferences list, to get the key name by id
@@ -431,34 +438,36 @@ write_json_plugins_to_preferences (struct scan_globals *globals,
   char *key;
   int j, num_plugins;
   GString *values = NULL;
+  g_debug ("%s: entered", __func__);
 
   json_reader_read_member (reader, "single_vts");
   num_plugins = json_reader_count_elements (reader);
 
   key = "plugin_set";
+  g_debug ("%s: number of plugins %d", __func__, num_plugins);
 
-  if (num_plugins > 0)
+  for (j = 0; j < num_plugins; j++)
     {
-      for (j = 0; j < num_plugins; j++)
-        {
-          json_reader_read_element (reader, j);
-          json_reader_read_member (reader, "oid");
+      json_reader_read_element (reader, j);
+      json_reader_read_member (reader, "oid");
 
-          value = json_reader_get_string_value (reader);
+      value = json_reader_get_string_value (reader);
+      g_debug ("%s: value %s", __func__, value);
+      if (value)
+        {
           if (j == 0) // first plugin
-            values = g_string_append (values, value);
+            values = g_string_new (value);
           else // Other plugins
             g_string_append_printf (values, ";%s", value);
-          json_reader_end_member (reader);
-
           // Write this plugin preferences
           write_json_plugin_prefs_to_preferences (globals, reader, value);
-
-          json_reader_end_element (reader);
         }
-      prefs_set (key, values->str);
-      g_string_free (values, TRUE);
+      json_reader_end_member (reader);
+      json_reader_end_element (reader);
     }
+  g_debug ("%s: add %s (%s)", __func__, key, values->str);
+  prefs_set (key, values->str);
+  g_string_free (values, TRUE);
   json_reader_end_member (reader);
 }
 
@@ -552,21 +561,26 @@ write_json_to_preferences (struct scan_globals *globals, char *json, int len)
           elements = json_reader_count_elements (reader);
 
           // Read first element
-          if (elements > 0)
+          for (j = 0; j < elements; j++)
             {
-              for (j = 0; j < elements; j++)
+              if (json_reader_read_element (reader, j))
                 {
-                  json_reader_read_element (reader, j);
                   value = json_reader_get_string_value (reader);
-                  if (j == 0) // first element
-                    values = g_string_append (values, value);
-                  else // Other elements
-                    g_string_append_printf (values, ";%s", value);
+                  if (value)
+                    {
+                      if (j == 0) // first element
+                        values = g_string_new (value);
+                      else // Other elements
+                        g_string_append_printf (values, ";%s", value);
+                    }
                   json_reader_end_element (reader);
                 }
-              prefs_set (key, values->str);
-              g_string_free (values, TRUE);
             }
+
+          g_debug ("%s: adding elements for %s (%s)", __func__, key,
+                   values->str);
+          prefs_set (key, values->str);
+          g_string_free (values, TRUE);
         }
       // dictionary (plugins)
       // parse list semicolon separated into single string
@@ -587,6 +601,7 @@ write_json_to_preferences (struct scan_globals *globals, char *json, int len)
   g_object_unref (reader);
   g_object_unref (parser);
   g_free (members);
+  g_debug ("%s: leaving.", __func__);
   return 0;
 }
 
@@ -604,22 +619,13 @@ write_json_to_preferences (struct scan_globals *globals, char *json, int len)
 static int
 ask_for_scan_prefs_from_client (const char *scan_id)
 {
-  char *msg_id, *group_id, topic_send[128], msg_send[1024], topic_sub[128];
+  char *msg_id, *group_id, topic_send[128], msg_send[1024];
   const char *context;
   int ret;
 
   // TODO: Get alive test via mqtt
   prefs_set ("ALIVE_TEST", "2");
   context = prefs_get ("mqtt_context");
-
-  // Subscribe to topic
-  g_snprintf (topic_sub, sizeof (topic_sub), "%s/scan/info", context);
-  if (mqtt_subscribe (topic_sub))
-    {
-      g_message ("Subscription to %s failed", topic_sub);
-      return -1;
-    }
-  g_message ("Successfully subscribed to %s", topic_sub);
 
   // Sned Get Scan
   msg_id = gvm_uuid_make ();
@@ -808,9 +814,10 @@ delete_main_kb ()
 void
 attack_network_init (struct scan_globals *globals, const gchar *config_file)
 {
-  const char *mqtt_server_uri;
+  const char *mqtt_server_uri, *mqtt_context;
   char *topic_recv, *msg_recv;
   int topic_len, msg_len, ret = 0;
+  struct EulabeiaCRUDProgress get_progress;
 
   set_default_openvas_prefs ();
   prefs_config (config_file);
@@ -823,14 +830,18 @@ attack_network_init (struct scan_globals *globals, const gchar *config_file)
 
   /* Init MQTT communication */
   mqtt_server_uri = prefs_get ("mqtt_server_uri");
-  if (mqtt_server_uri)
+  if (!mqtt_server_uri)
     {
-      if ((mqtt_init (mqtt_server_uri)) != 0)
-        g_message ("%s: Failed init of MQTT communication.", __func__);
-      else
-        g_message ("%s: Successful init of MQTT communication.", __func__);
+      g_warning ("%s: Unable to get mqtt_uri; aborting.", __func__);
+      exit (1);
     }
 
+  mqtt_context = prefs_get ("mqtt_context");
+  if (!mqtt_context)
+    {
+      g_warning ("%s: Unable to get mqtt_context; aborting.", __func__);
+      exit (1);
+    }
   if (prefs_get ("vendor_version") != NULL)
     vendor_version_set (prefs_get ("vendor_version"));
   check_tls ();
@@ -849,23 +860,54 @@ attack_network_init (struct scan_globals *globals, const gchar *config_file)
   /* Make process a group leader, to make it easier to cleanup forked
    * processes & their children. */
   setpgid (0, 0);
+  struct EulabeiaClient *ec = eulabeia_initialize (mqtt_server_uri, NULL);
+  if (ec == NULL)
+    {
+      g_warning ("%s: Unable to initialize eulabeia_client; aborting",
+                 __func__);
+      exit (1);
+    }
 
   if (ask_for_scan_prefs_from_client (globals->scan_id))
     exit (0);
 
   // Wait for incomming data and store it in globals
   msg_len = 0;
-  mqtt_retrieve_message (&topic_recv, &topic_len, &msg_recv, &msg_len);
+  get_progress.status = EULABEIA_CRUD_REQUESTED;
+  int rc;
+  while (get_progress.status != EULABEIA_CRUD_SUCCESS
+         && get_progress.status != EULABEIA_CRUD_FAILED)
+    {
+      if ((rc =
+             ec->retrieve (&topic_recv, &topic_len, &msg_recv, &msg_len, NULL))
+          == -1)
+        {
+          g_warning ("%s: Unable to retrieve mqtt_message; aborting", __func__);
+          exit (1);
+        }
+      if (rc == 0)
+        {
+          if ((rc = eulabeia_crud_progress (msg_recv, globals->scan_id,
+                                            EULABEIA_INFO_GOT, &get_progress))
+              == 0)
+            {
+              g_message ("%s: got response (%s) for %s", __func__, msg_recv,
+                         globals->scan_id);
+              if ((ret = write_json_to_preferences (globals, msg_recv, msg_len))
+                  < 0)
+                g_warning ("%s: Write preferences failed", __func__);
+            }
+          if (msg_recv != NULL)
+            free (msg_recv);
+          if (topic_recv != NULL)
+            free (topic_recv);
 
-  if (msg_len == 0)
-    // TODO: Send message to the client/sensor/director to handle the failure
-    g_warning ("No preferences found for the scan %s", globals->scan_id);
+          msg_recv = NULL;
+          topic_recv = NULL;
+        }
+    }
 
-  if ((ret = write_json_to_preferences (globals, msg_recv, msg_len)) < 0)
-    g_warning ("%s: Write preferences failed", __func__);
-  free (topic_recv);
-  free (msg_recv);
-
+  eulabeia_destroy (ec);
   if (ret)
     exit (0);
 }
