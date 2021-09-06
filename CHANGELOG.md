@@ -15,7 +15,9 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
   [#744](https://github.com/greenbone/openvas/pull/744)
   [#757](https://github.com/greenbone/openvas/pull/757)
 - Add message type validation for proto_post_wrapped. [#805](https://github.com/greenbone/openvas/pull/805)
-- Add nasl function sftp_enabled_check() to check if sftp subsystem is enabled in the target [#853](https://github.com/greenbone/openvas/pull/853)
+- Add nasl function sftp_enabled_check() to check if sftp subsystem is enabled in the target.
+  - [#853](https://github.com/greenbone/openvas/pull/853)
+  - [#862](https://github.com/greenbone/openvas/pull/862)
 
 ### Changed
 - function script_bugtraq_id getting skipped, linter warns. [#724](https://github.com/greenbone/openvas/pull/724)
