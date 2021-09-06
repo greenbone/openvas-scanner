@@ -37,13 +37,24 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ## [21.4.3] (unreleased)
 ### Added
+- Add nasl function sftp_enabled_check() to check if sftp subsystem is enabled in the target.
+  - [#853](https://github.com/greenbone/openvas/pull/853)
+  - [#862](https://github.com/greenbone/openvas/pull/862)
+
 ### Changed
+- Changed defaults for installation locations [#826](https://github.com/greenbone/openvas-scanner/pull/826)
+  - SYSCONFDIR is /etc by default now
+  - LOCALSTATEDIR is /var by default now
+  - OPENVAS_RUN_DIR is /run/ospd by default now
+  - OPENVAS_FEED_LOCK_PATH is /var/lib/openvas/feed-update.lock by default now
+
 ### Deprecated
 ### Removed
 ### Fixed
-Fix interrupted scan, when the process table is full. [#832](https://github.com/greenbone/openvas-scanner/pull/832)
+- Fix interrupted scan, when the process table is full. [#832](https://github.com/greenbone/openvas-scanner/pull/832)
+- Use fchmod to change file permission instead of on open to prevent race conditions [854](https://github.com/greenbone/openvas-scanner/pull/854)
 
-[21.4.3]: https://github.com/greenbone/openvas-scanner/compare/v21.4.2...gvmd-21.04
+[21.4.3]: https://github.com/greenbone/openvas-scanner/compare/v21.4.2...openvas-21.04
 
 ## [21.4.2] - 2021-08-03
 ### Fixed
@@ -103,7 +114,7 @@ Fix interrupted scan, when the process table is full. [#832](https://github.com/
   - SYSCONFDIR is /etc by default now
   - LOCALSTATEDIR is /var by default now
   - OPENVAS_RUN_DIR is /run/ospd by default now
-  - OPENVAS_FEED_LOOK_PATH is /var/lib/openvas/feed-update.lock by default now
+  - OPENVAS_FEED_LOCK_PATH is /var/lib/openvas/feed-update.lock by default now
 
 ### Deprecated
 ### Removed
