@@ -9,6 +9,12 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 - Add nasl function sftp_enabled_check() to check if sftp subsystem is enabled in the target [#853](https://github.com/greenbone/openvas/pull/853)
 
 ### Changed
+- Changed defaults for installation locations [#826](https://github.com/greenbone/openvas-scanner/pull/826)
+  - SYSCONFDIR is /etc by default now
+  - LOCALSTATEDIR is /var by default now
+  - OPENVAS_RUN_DIR is /run/ospd by default now
+  - OPENVAS_FEED_LOCK_PATH is /var/lib/openvas/feed-update.lock by default now
+
 ### Deprecated
 ### Removed
 ### Fixed
@@ -74,7 +80,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
   - SYSCONFDIR is /etc by default now
   - LOCALSTATEDIR is /var by default now
   - OPENVAS_RUN_DIR is /run/ospd by default now
-  - OPENVAS_FEED_LOOK_PATH is /var/lib/openvas/feed-update.lock by default now
+  - OPENVAS_FEED_LOCK_PATH is /var/lib/openvas/feed-update.lock by default now
 
 ### Deprecated
 ### Removed
