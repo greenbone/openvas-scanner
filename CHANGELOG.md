@@ -6,7 +6,9 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ## [21.4.3] - Unreleased
 ### Added
-- Add nasl function sftp_enabled_check() to check if sftp subsystem is enabled in the target [#853](https://github.com/greenbone/openvas/pull/853)
+- Add nasl function sftp_enabled_check() to check if sftp subsystem is enabled in the target.
+  - Backport [#853](https://github.com/greenbone/openvas/pull/853)
+  - Backport [#862](https://github.com/greenbone/openvas/pull/862)
 
 ### Changed
 - Changed defaults for installation locations [#826](https://github.com/greenbone/openvas-scanner/pull/826)
