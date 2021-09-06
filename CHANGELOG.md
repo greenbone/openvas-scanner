@@ -6,7 +6,21 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ## [21.4.3] - Unreleased
 ### Added
+<<<<<<< HEAD
 - Add nasl function sftp_enabled_check() to check if sftp subsystem is enabled in the target [#853](https://github.com/greenbone/openvas/pull/853)
+=======
+- Add support for volatile keys. [#682](https://github.com/greenbone/openvas/pull/682)
+- Extend nasl lint to check Syntax for Arguments for script_xref() function. [#714](https://github.com/greenbone/openvas/pull/714)
+- Recheck alive status of host with specified amount of NVT timeouts. [#729](https://github.com/greenbone/openvas/pull/729)
+- Integrate sentry for debugging purposes [#742](https://github.com/greenbone/openvas/pull/742)
+- Add support for non-interactive shell to nasl_ssh_shell_open().
+  [#744](https://github.com/greenbone/openvas/pull/744)
+  [#757](https://github.com/greenbone/openvas/pull/757)
+- Add message type validation for proto_post_wrapped. [#805](https://github.com/greenbone/openvas/pull/805)
+- Add nasl function sftp_enabled_check() to check if sftp subsystem is enabled in the target.
+  - [#853](https://github.com/greenbone/openvas/pull/853)
+  - [#862](https://github.com/greenbone/openvas/pull/862)
+>>>>>>> 710122e9 (Improve logging.)
 
 ### Changed
 ### Deprecated
