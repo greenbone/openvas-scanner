@@ -21,6 +21,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
   [#843](https://github.com/greenbone/openvas/pull/843)
 
 ### Changed
+<<<<<<< HEAD
 - Revert [#809](https://github.com/greenbone/openvas/pull/809) and adjust json result format and json lsc info format. [#837](https://github.com/greenbone/openvas/pull/837)
 - Handle script timeout as script preference with ID 0 [#841](https://github.com/greenbone/gvm-libs/pull/841)
 - Integrate eulabeia [842](https://github.com/greenbone/openvas-scanner/pull/842)
@@ -50,6 +51,16 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
   [#810](https://github.com/greenbone/openvas/pull/810)
   [#811](https://github.com/greenbone/openvas/pull/811)
 
+=======
+- Changed defaults for installation locations [#826](https://github.com/greenbone/openvas-scanner/pull/826)
+  - SYSCONFDIR is /etc by default now
+  - LOCALSTATEDIR is /var by default now
+  - OPENVAS_RUN_DIR is /run/ospd by default now
+  - OPENVAS_FEED_LOCK_PATH is /var/lib/openvas/feed-update.lock by default now
+
+### Deprecated
+### Removed
+>>>>>>> 8eb804d5 (Fix changelog)
 ### Fixed
 - Use fchmod to change file permission instead of on open to prevent race conditions [#854](https://github.com/greenbone/openvas-scanner/pull/854)
 - Several minor potential security risks in different files, spotted by Code QL [#854](https://github.com/greenbone/openvas-scanner/pull/854)
@@ -117,7 +128,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
   - SYSCONFDIR is /etc by default now
   - LOCALSTATEDIR is /var by default now
   - OPENVAS_RUN_DIR is /run/ospd by default now
-  - OPENVAS_FEED_LOOK_PATH is /var/lib/openvas/feed-update.lock by default now
+  - OPENVAS_FEED_LOCK_PATH is /var/lib/openvas/feed-update.lock by default now
 
 ### Deprecated
 ### Removed
