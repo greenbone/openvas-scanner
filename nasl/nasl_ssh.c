@@ -1923,33 +1923,41 @@ nasl_sftp_enabled_check (lex_ctxt *lexic)
   tree_cell *retc;
   sftp_session sftp;
   ssh_session session;
-  int rc;
+  int rc, verbose = 0;
 
   session_id = get_int_var_by_num (lexic, 0, -1);
   if (!verify_session_id (session_id, "sftp_enabled_check", &tbl_slot, lexic))
     return NULL;
+
   session = session_table[tbl_slot].session;
+  verbose = session_table[tbl_slot].verbose;
 
   sftp = sftp_new (session);
   if (sftp == NULL)
     {
-      g_message (
-        "Function %s (calling internal function %s) called from %s: %s",
-        nasl_get_function_name () ?: "script_main_function", __func__,
-        nasl_get_plugin_filename (),
-        ssh_get_error (session_table[tbl_slot].session));
+      if (verbose)
+        g_message (
+          "Function %s (calling internal function %s) called from %s: %s",
+          nasl_get_function_name () ?: "script_main_function", __func__,
+          nasl_get_plugin_filename (),
+          ssh_get_error (session_table[tbl_slot].session));
       rc = SSH_ERROR;
       goto write_ret;
     }
 
   rc = sftp_init (sftp);
   if (rc != SSH_OK)
-    g_message (
-      "Function %s (calling internal function %s) called from %s: %s. Code %d",
-      nasl_get_function_name () ?: "script_main_function", __func__,
-      nasl_get_plugin_filename (),
-      ssh_get_error (session_table[tbl_slot].session), sftp_get_error (sftp));
-
+    {
+      if (verbose)
+        {
+          g_message ("Function %s (calling internal function %s) called from "
+                     "%s: %s. Code %d",
+                     nasl_get_function_name () ?: "script_main_function",
+                     __func__, nasl_get_plugin_filename (),
+                     ssh_get_error (session_table[tbl_slot].session),
+                     sftp_get_error (sftp));
+        }
+    }
   sftp_free (sftp);
 
 write_ret:
