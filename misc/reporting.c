@@ -155,28 +155,24 @@ exit:
  * @param[in] error The error message to be sent.
  */
  void
- send_failure (const char *global_scan_id, char *error)
+ send_failure (const char *global_scan_id, const char *error)
 {
   struct EulabeiaMessage *msg = NULL;
-  struct EulabeiaFailure failure;
+  struct EulabeiaFailure *failure;
   const char *context;
-  char *topic_send = NULL, *msg_send = NULL, *scan_id = NULL;
+  char *topic_send = NULL, *msg_send = NULL;
   int rc;
 
-  g_warning ("%s: send failure %s", __func__, error);
-
-  scan_id = g_strdup (global_scan_id);
   context = prefs_get ("mqtt_context");
-
   msg = eulabeia_initialize_message (EULABEIA_INFO_STATUS, EULABEIA_SCAN, NULL,
                                      NULL);
-  failure.id = scan_id;
-  failure.error = error;
+  failure->id = g_strdup (global_scan_id);
+  failure->error = g_strdup (error);
 
   topic_send = eulabeia_calculate_topic (EULABEIA_INFO_START_FAILURE,
                                          EULABEIA_SCAN, context, NULL);
 
-  if ((msg_send = eulabeia_failure_message_to_json (msg, &failure)) == NULL)
+  if ((msg_send = eulabeia_failure_message_to_json (msg, failure)) == NULL)
     {
       g_warning ("%s: unable to create failure.start.scan json message",
                  __func__);
@@ -188,7 +184,7 @@ exit:
 
 exit:
   eulabeia_message_destroy (&msg);
-  g_free (scan_id);
+  eulabeia_failure_destroy (&failure);
   g_free (topic_send);
   g_free (msg_send);
 }
