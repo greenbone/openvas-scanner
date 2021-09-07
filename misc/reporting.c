@@ -82,8 +82,13 @@ make_result_json_str (const char *scan_id, enum eulabeia_result_type type, const
       return NULL;
     }
   port = NULL;
-  if (port_s && proto)
-    port = g_strdup_printf ("%s/%s", port_s, proto);
+  if (port_s)
+    {
+      if (proto)
+        port = g_strdup_printf ("%s/%s", port_s, proto);
+      else
+        port = g_strdup (port_s);
+    }
   result = g_malloc0 (sizeof (*result));
   result->message = msg;
   result->result_type = g_strdup (eulabeia_result_type_to_str (type));
@@ -250,7 +255,35 @@ host_message_nvt_timeout (const char *host_ip, const char *oid,
 {
   char *json_str = NULL;
 
-  json_str = make_result_json_str (NULL, EULABEIA_RESULT_TYPE_ERRMSG, host_ip, NULL, NULL, NULL, oid,
+  json_str = make_result_json_str (NULL, EULABEIA_RESULT_TYPE_ERRMSG, host_ip, NULL, NULL, NULL, oid, msg, NULL);
+  if (json_str)
+    host_message_send (json_str);
+
+  g_free (json_str);
+}
+
+
+/**
+ * @brief Host process sends a message about a dead host.
+ *
+ * @description: The host is not reachable. Send the message to
+ * the client, informing about the dead host.
+ * Dead hosts message are LOG types, which contains a host details
+ * xml message.
+ *
+ * @param scan_id Scan ID.
+ * @param host_ip Host IP which the plugin timed out against to.
+ *
+ **/
+void
+host_message_host_dead (const char *scan_id, const char *host_ip)
+{
+  char *json_str = NULL;
+  char msg[128] = "<host><detail><name>Host dead</name><value>1</value><source><description/><type/><name/></source></detail></host>";
+
+  json_str = make_result_json_str (scan_id,
+                                   EULABEIA_RESULT_TYPE_LOG,
+                                   host_ip, NULL, "general/Host_Details", NULL, NULL,
                                    msg, NULL);
   if (json_str)
     host_message_send (json_str);
@@ -281,6 +314,8 @@ host_message (enum eulabeia_result_type type, const char *host_ip, const char *m
 
   g_free (json_str);
 }
+
+
 
 //############################################
 // Messages generated from plugin processes.

@@ -48,6 +48,9 @@ host_message_nvt_timeout (const char *, const char *, const char *);
 void
 host_message (enum eulabeia_result_type, const char *, const char *);
 
+void
+host_message_host_dead (const char *, const char *);
+
 /*
  * Messages generated from plugin processes.
  */
