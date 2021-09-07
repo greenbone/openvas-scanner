@@ -41,6 +41,8 @@ typedef enum
 /*
  *  Messages generated from scan process.
  */
+void
+set_scan_status (const char *, char *);
 
 /*
  * Messages generated from host processes.

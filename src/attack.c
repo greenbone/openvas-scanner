@@ -29,6 +29,7 @@
 #include "../misc/nvt_categories.h"   /* for ACT_INIT */
 #include "../misc/pcap_openvas.h"     /* for v6_is_local_ip */
 #include "../misc/table_driven_lsc.h" /*for make_table_driven_lsc_info_json_str */
+#include "../misc/reporting.h"        /* set_scan_status */
 #include "../nasl/nasl_debug.h"       /* for nasl_*_filename */
 #include "hosts.h"
 #include "pluginlaunch.h"
@@ -163,55 +164,6 @@ send_failure (char *error)
     {
       g_warning ("%s: unable to create failure.start.scan json message",
                  __func__);
-      goto exit;
-    }
-
-  if ((rc = mqtt_publish (topic_send, msg_send)) != 0)
-    g_warning ("%s: publish of status.scan failed (%d)", __func__, rc);
-
-exit:
-  eulabeia_message_destroy (&msg);
-  g_free (scan_id);
-  g_free (topic_send);
-  g_free (msg_send);
-}
-
-/**
- * @brief Set scan status via mqtt. This helps to identify the state of the
- * scan.
- *
- * @param[in] status Status to set.
- */
-static void
-set_scan_status (char *status)
-{
-  char *topic_send = NULL, *msg_send = NULL;
-  struct EulabeiaMessage *msg = NULL;
-
-  const char *context;
-
-  int rc;
-  struct EulabeiaStatus estatus;
-
-  context = prefs_get ("mqtt_context");
-  kb_t main_kb = NULL;
-  connect_main_kb (&main_kb);
-  char *scan_id = kb_item_get_str (main_kb, ("internal/scanid"));
-  if (scan_id == NULL)
-    {
-      goto exit;
-    }
-  msg = eulabeia_initialize_message (EULABEIA_INFO_STATUS, EULABEIA_SCAN, NULL,
-                                     NULL);
-  estatus.id = scan_id;
-  estatus.status = status;
-
-  topic_send = eulabeia_calculate_topic (EULABEIA_INFO_STATUS, EULABEIA_SCAN,
-                                         context, NULL);
-
-  if ((msg_send = eulabeia_status_message_to_json (msg, &estatus)) == NULL)
-    {
-      g_warning ("%s: unable to create status.scan json message", __func__);
       goto exit;
     }
 
@@ -1247,7 +1199,7 @@ attack_network (struct scan_globals *globals)
              globals->scan_id, gvm_hosts_count (hosts), hostlist, max_hosts,
              max_checks);
 
-  set_scan_status ("running");
+  set_scan_status (globals->scan_id, "running");
 
   if (test_alive_hosts_only)
     {
@@ -1491,5 +1443,5 @@ stop:
   if (alive_hosts_list)
     gvm_hosts_free (alive_hosts_list);
 
-  set_scan_status ("finished");
+  set_scan_status (globals->scan_id, "finished");
 }

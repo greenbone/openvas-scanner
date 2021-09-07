@@ -27,6 +27,7 @@
 
 #include <eulabeia/json.h>
 #include <eulabeia/types.h>
+#include <eulabeia/client.h>
 #include <glib.h>
 #include <gvm/base/hosts.h>      // for g_vhost_t
 #include <gvm/base/networking.h> // for port_protocol_t
@@ -139,6 +140,50 @@ make_result_json_str (const gchar *scan_id, msg_t type, const gchar *ip_str,
 //############################################
 // Messages generated from scan process.
 //############################################
+
+/**
+ * @brief Set scan status via mqtt. This helps to identify the state of the
+ * scan.
+ *
+ * @param[in] status Status to set.
+ */
+void
+set_scan_status (const char *global_scan_id, char *status)
+{
+  char *topic_send = NULL, *msg_send = NULL;
+  char *scan_id = NULL;
+  struct EulabeiaMessage *msg = NULL;
+
+  const char *context;
+
+  int rc;
+  struct EulabeiaStatus estatus;
+
+  context = prefs_get ("mqtt_context");
+  msg = eulabeia_initialize_message (EULABEIA_INFO_STATUS, EULABEIA_SCAN, NULL,
+                                     NULL);
+  scan_id = g_strdup (global_scan_id);
+  estatus.id = scan_id;
+  estatus.status = status;
+
+  topic_send = eulabeia_calculate_topic (EULABEIA_INFO_STATUS, EULABEIA_SCAN,
+                                         context, NULL);
+
+  if ((msg_send = eulabeia_status_message_to_json (msg, &estatus)) == NULL)
+    {
+      g_warning ("%s: unable to create status.scan json message", __func__);
+      goto exit;
+    }
+
+  if ((rc = mqtt_publish (topic_send, msg_send)) != 0)
+    g_warning ("%s: publish of status.scan failed (%d)", __func__, rc);
+
+exit:
+  eulabeia_message_destroy (&msg);
+  g_free (scan_id);
+  g_free (topic_send);
+  g_free (msg_send);
+}
 
 //############################################
 // Messages generated from host processes.
