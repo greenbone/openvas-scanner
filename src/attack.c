@@ -1111,10 +1111,7 @@ attack_network (struct scan_globals *globals)
       g_free (buffer);
       /* Send the hosts count to the client as -1,
        * because the invalid target list.*/
-      connect_main_kb (&main_kb);
-      message_to_client (main_kb, INVALID_TARGET_LIST, NULL, NULL,
-                         "HOSTS_COUNT");
-      kb_lnk_reset (main_kb);
+      send_host_count (globals->scan_id, INVALID_TARGET_LIST);
       g_warning ("Invalid target list. Scan terminated.");
       goto stop;
     }
@@ -1132,10 +1129,7 @@ attack_network (struct scan_globals *globals)
   /* Send the hosts count to the client, after removing duplicated and
    * unresolved hosts.*/
   g_snprintf (buf, sizeof (buf), "%d", gvm_hosts_count (hosts));
-  connect_main_kb (&main_kb);
-  message_to_client (main_kb, buf, NULL, NULL, "HOSTS_COUNT");
-  kb_lnk_reset (main_kb);
-
+  send_host_count (globals->scan_id, buf);
   apply_hosts_excluded (hosts);
 
   host = gvm_hosts_next (hosts);
