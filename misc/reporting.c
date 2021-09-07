@@ -191,13 +191,16 @@ exit:
 static void
 host_message_send (const gchar *message)
 {
-  char topic[128];
-  const char *context;
-
+  gchar *topic = NULL;
+  const gchar *context;
+  
   context = prefs_get ("mqtt_context");
-  g_snprintf (topic, sizeof (topic), "%s/scan/info", context);
+  topic = eulabeia_calculate_topic (EULABEIA_INFO_SCAN_RESULT, EULABEIA_SCAN,
+                                    context, NULL);
 
   mqtt_publish (topic, message);
+  g_free (topic)
+  g_free (message);
 }
 
 /**
