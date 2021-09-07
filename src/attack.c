@@ -570,16 +570,7 @@ attack_host (struct scan_globals *globals, struct in6_addr *ip, GSList *vhosts,
                */
               if (e == ERR_HOST_DEAD)
                 {
-                  char buffer[2048];
-
-                  g_snprintf (
-                    buffer, sizeof (buffer),
-                    "LOG|||%s||| |||general/Host_Details||| |||<host><detail>"
-                    "<name>Host dead</name><value>1</value><source>"
-                    "<description/><type/><name/></source></detail></host>",
-                    ip_str);
-                  kb_item_push_str (main_kb, "internal/results", buffer);
-
+                  host_message_host_dead (globals->scan_id, ip_str);
                   comm_send_status_host_dead (main_kb, ip_str);
                   goto host_died;
                 }
