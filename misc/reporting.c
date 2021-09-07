@@ -239,7 +239,7 @@ host_message_nvt_timeout (const char *host_ip, const char *oid,
  * @description: In general, host process only send a message informing the
  *host_ip the and the message with a message type.
  *
- * @param type  Message type ERRMSG, HOST_START, HOST_END, LOG, DEAD_HOST.
+ * @param type  An Eulabeia Result Type EULABEIA_RESULT_TYPE_*
  * @param host_ip Host IP which the plugin timed out against to.
  * @param msg   The message to be sent
  *
