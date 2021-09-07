@@ -727,7 +727,7 @@ vhosts_to_str (GSList *list)
  * @brief Check if any deprecated prefs are in pref table and print warning.
  */
 static void
-check_deprecated_prefs ()
+check_deprecated_prefs (const char *scan_id)
 {
   const gchar *source_iface = prefs_get ("source_iface");
   const gchar *ifaces_allow = prefs_get ("ifaces_allow");
@@ -738,7 +738,6 @@ check_deprecated_prefs ()
   if (source_iface || ifaces_allow || ifaces_deny || sys_ifaces_allow
       || sys_ifaces_deny)
     {
-      kb_t main_kb = NULL;
       gchar *msg = NULL;
 
       msg = g_strdup_printf (
@@ -751,9 +750,7 @@ check_deprecated_prefs ()
         sys_ifaces_deny ? "sys_ifaces_deny (scanner only setting)" : "");
       g_warning ("%s: %s", __func__, msg);
 
-      connect_main_kb (&main_kb);
-      message_to_client (main_kb, msg, NULL, NULL, "ERRMSG");
-      kb_lnk_reset (main_kb);
+      send_failure (scan_id, msg);
       g_free (msg);
     }
 }
@@ -1049,7 +1046,8 @@ attack_network (struct scan_globals *globals)
   kb_t host_kb, main_kb;
   GSList *unresolved;
   char buf[96];
-  check_deprecated_prefs ();
+
+  check_deprecated_prefs (globals->scan_id);
 
   gboolean test_alive_hosts_only = prefs_get_bool ("test_alive_hosts_only");
   gvm_hosts_t *alive_hosts_list = NULL;
@@ -1061,6 +1059,8 @@ attack_network (struct scan_globals *globals)
   if (check_kb_access ())
     {
       g_warning ("No access to redis kb");
+      send_failure (globals->scan_id, "No access to redis kb");
+     
       return;
     }
   /* Init and check Target List */
@@ -1068,18 +1068,16 @@ attack_network (struct scan_globals *globals)
   if (hostlist == NULL)
     {
       g_warning ("Target list is empty");
+      send_failure (globals->scan_id, "Target list is empty");
+
       return;
     }
   /* Verify the port range is a valid one */
   port_range = prefs_get ("port_range");
   if (validate_port_range (port_range))
     {
+      g_warning ("%s: send failure %s", __func__, "Invalid port list. Ports must be in the range [1-65535]");
       send_failure (globals->scan_id, "Invalid port list. Ports must be in the range [1-65535]");
-      connect_main_kb (&main_kb);
-      message_to_client (
-        main_kb, "Invalid port list. Ports must be in the range [1-65535]",
-        NULL, NULL, "ERRMSG");
-      kb_lnk_reset (main_kb);
 
       return;
     }
@@ -1100,10 +1098,8 @@ attack_network (struct scan_globals *globals)
                   "Some plugins have not been launched.",
                   plugins_init_error);
 
-      connect_main_kb (&main_kb);
       g_warning ("%s", buf);
-      message_to_client (main_kb, buf, NULL, NULL, "ERRMSG");
-      kb_lnk_reset (main_kb);
+      send_failure (globals->scan_id, buf);
     }
   max_hosts = get_max_hosts_number ();
   max_checks = get_max_checks_number ();
@@ -1112,12 +1108,12 @@ attack_network (struct scan_globals *globals)
     {
       char *buffer;
       buffer = g_strdup_printf ("Invalid target list: %s.", hostlist);
-      connect_main_kb (&main_kb);
       g_warning ("%s", buffer);
-      message_to_client (main_kb, buffer, NULL, NULL, "ERRMSG");
+      send_failure (globals->scan_id, buf);
       g_free (buffer);
       /* Send the hosts count to the client as -1,
        * because the invalid target list.*/
+      connect_main_kb (&main_kb);
       message_to_client (main_kb, INVALID_TARGET_LIST, NULL, NULL,
                          "HOSTS_COUNT");
       kb_lnk_reset (main_kb);
