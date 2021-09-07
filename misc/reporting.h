@@ -25,18 +25,7 @@
 #define OPENVAS_REPORTING_H
 
 #include "scanneraux.h" /* for struct script_infos */
-
-typedef enum
-{
-  ERRMSG,
-  HOST_START,
-  HOST_END,
-  LOG,
-  HOST_DETAIL,
-  ALARM,
-  DEADHOST,
-  HOSTS_COUNT
-} msg_t;
+#include <eulabeia/types.h> /* for EULABEIA_RESULT_TYPE_* */
 
 /*
  *  Messages generated from scan process.
@@ -51,7 +40,7 @@ void
 host_message_nvt_timeout (const gchar *, const gchar *, const gchar *);
 
 void
-host_message (msg_t, const gchar *, const gchar *);
+host_message (enum eulabeia_result_type, const gchar *, const gchar *);
 
 /*
  * Messages generated from plugin processes.
