@@ -180,7 +180,7 @@ exit:
     }
 
   if ((rc = mqtt_publish (topic_send, msg_send)) != 0)
-    g_warning ("%s: publish of status.scan failed (%d)", __func__, rc);
+    g_warning ("%s: publish of failure failed (%d)", __func__, rc);
 
 exit:
   eulabeia_message_destroy (&msg);
@@ -189,6 +189,31 @@ exit:
   g_free (msg_send);
 }
 
+/**
+ * @brief Send host count message to the client
+ *
+ * @param[in] global_scan_id The scan ID.
+ * @param[in] host_count The error message to be sent.
+ */
+ void
+ send_host_count (const char *global_scan_id, const char *count)
+{
+  char *json_str = NULL;
+  char *topic = NULL;
+  const char *context;
+  int rc = 0;
+  context = prefs_get ("mqtt_context");
+  topic = eulabeia_calculate_topic (EULABEIA_INFO_SCAN_RESULT, EULABEIA_SCAN,
+                                    context, NULL);
+
+  json_str = make_result_json_str (global_scan_id, EULABEIA_RESULT_TYPE_HOST_COUNT, NULL, NULL, NULL, NULL, NULL, count, NULL);
+  if (json_str && topic)
+    if ((rc = mqtt_publish (topic, json_str)) != 0)
+      g_warning ("%s: publish of host count failed (%d)", __func__, rc);
+
+  g_free (json_str);
+  g_free (topic);
+}
 
 //############################################
 // Messages generated from host processes.
