@@ -31,7 +31,7 @@
  *  Messages generated from scan process.
  */
 void
-set_scan_status (const char *, char *);
+set_scan_status (const char *, const char *);
 
  void
  send_failure (const char *, char *);

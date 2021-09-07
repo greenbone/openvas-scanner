@@ -114,28 +114,25 @@ make_result_json_str (const char *scan_id, enum eulabeia_result_type type, const
  * @param[in] status Status to set.
  */
 void
-set_scan_status (const char *global_scan_id, char *status)
+set_scan_status (const char *global_scan_id, const char *status)
 {
   char *topic_send = NULL, *msg_send = NULL;
-  char *scan_id = NULL;
   struct EulabeiaMessage *msg = NULL;
-
+  struct EulabeiaStatus *estatus = NULL;
   const char *context;
-
   int rc;
-  struct EulabeiaStatus estatus;
 
   context = prefs_get ("mqtt_context");
   msg = eulabeia_initialize_message (EULABEIA_INFO_STATUS, EULABEIA_SCAN, NULL,
                                      NULL);
-  scan_id = g_strdup (global_scan_id);
-  estatus.id = scan_id;
-  estatus.status = status;
+  
+  estatus->id = g_strdup (global_scan_id);
+  estatus->status = g_strdup (status);
 
   topic_send = eulabeia_calculate_topic (EULABEIA_INFO_STATUS, EULABEIA_SCAN,
                                          context, NULL);
 
-  if ((msg_send = eulabeia_status_message_to_json (msg, &estatus)) == NULL)
+  if ((msg_send = eulabeia_status_message_to_json (msg, estatus)) == NULL)
     {
       g_warning ("%s: unable to create status.scan json message", __func__);
       goto exit;
@@ -146,7 +143,7 @@ set_scan_status (const char *global_scan_id, char *status)
 
 exit:
   eulabeia_message_destroy (&msg);
-  g_free (scan_id);
+  eulabeia_status_destroy (&estatus);
   g_free (topic_send);
   g_free (msg_send);
 }
