@@ -823,11 +823,9 @@ attack_start (struct attack_start_args *args)
   if (ret_host_auth < 0)
     {
       if (ret_host_auth == -1)
-        message_to_client (kb, "Host access denied.", ip_str, NULL, "ERRMSG");
+        host_message (EULABEIA_RESULT_TYPE_ERRMSG, ip_str, "Host access denied.");
       else
-        message_to_client (kb, "Host access denied (system-wide restriction.)",
-                           ip_str, NULL, "ERRMSG");
-
+        host_message (EULABEIA_RESULT_TYPE_ERRMSG, ip_str, "Host access denied (system-wide restriction.)");
       kb_item_set_str (kb, "internal/host_deny", "True", 0);
       g_warning ("Host %s access denied.", ip_str);
       return;
