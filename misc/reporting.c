@@ -110,6 +110,7 @@ make_result_json_str (const gchar *scan_id, enum eulabeia_result_type type, cons
  * @brief Set scan status via mqtt. This helps to identify the state of the
  * scan.
  *
+ * @param[in] global_scan_id The scan ID.
  * @param[in] status Status to set.
  */
 void
@@ -149,6 +150,52 @@ exit:
   g_free (topic_send);
   g_free (msg_send);
 }
+
+/**
+ * @brief Send failure message to the client
+ *
+ * @param[in] global_scan_id The scan ID.
+ * @param[in] error The error message to be sent.
+ */
+ void
+ send_failure (const char *global_scan_id, char *error)
+{
+  struct EulabeiaMessage *msg = NULL;
+  struct EulabeiaFailure failure;
+  const char *context;
+  char *topic_send = NULL, *msg_send = NULL, *scan_id = NULL;
+  int rc;
+
+  g_warning ("%s: send failure %s", __func__, error);
+
+  scan_id = g_strdup (global_scan_id);
+  context = prefs_get ("mqtt_context");
+
+  msg = eulabeia_initialize_message (EULABEIA_INFO_STATUS, EULABEIA_SCAN, NULL,
+                                     NULL);
+  failure.id = scan_id;
+  failure.error = error;
+
+  topic_send = eulabeia_calculate_topic (EULABEIA_INFO_START_FAILURE,
+                                         EULABEIA_SCAN, context, NULL);
+
+  if ((msg_send = eulabeia_failure_message_to_json (msg, &failure)) == NULL)
+    {
+      g_warning ("%s: unable to create failure.start.scan json message",
+                 __func__);
+      goto exit;
+    }
+
+  if ((rc = mqtt_publish (topic_send, msg_send)) != 0)
+    g_warning ("%s: publish of status.scan failed (%d)", __func__, rc);
+
+exit:
+  eulabeia_message_destroy (&msg);
+  g_free (scan_id);
+  g_free (topic_send);
+  g_free (msg_send);
+}
+
 
 //############################################
 // Messages generated from host processes.

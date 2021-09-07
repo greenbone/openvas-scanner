@@ -33,6 +33,8 @@
 void
 set_scan_status (const char *, char *);
 
+ void
+ send_failure (const char *, char *);
 /*
  * Messages generated from host processes.
  */

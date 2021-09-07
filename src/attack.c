@@ -132,51 +132,6 @@ set_kb_readable (int host_kb_index)
   kb_lnk_reset (main_kb);
 }
 
-static void
-send_failure (char *error)
-{
-  char *topic_send = NULL, *msg_send = NULL;
-  struct EulabeiaMessage *msg = NULL;
-
-  g_warning ("%s: send failure %s", __func__, error);
-  const char *context;
-
-  int rc;
-  struct EulabeiaFailure failure;
-
-  context = prefs_get ("mqtt_context");
-  kb_t main_kb = NULL;
-  connect_main_kb (&main_kb);
-  char *scan_id = kb_item_get_str (main_kb, ("internal/scanid"));
-  if (scan_id == NULL)
-    {
-      goto exit;
-    }
-  msg = eulabeia_initialize_message (EULABEIA_INFO_STATUS, EULABEIA_SCAN, NULL,
-                                     NULL);
-  failure.id = scan_id;
-  failure.error = error;
-
-  topic_send = eulabeia_calculate_topic (EULABEIA_INFO_START_FAILURE,
-                                         EULABEIA_SCAN, context, NULL);
-
-  if ((msg_send = eulabeia_failure_message_to_json (msg, &failure)) == NULL)
-    {
-      g_warning ("%s: unable to create failure.start.scan json message",
-                 __func__);
-      goto exit;
-    }
-
-  if ((rc = mqtt_publish (topic_send, msg_send)) != 0)
-    g_warning ("%s: publish of status.scan failed (%d)", __func__, rc);
-
-exit:
-  eulabeia_message_destroy (&msg);
-  g_free (scan_id);
-  g_free (topic_send);
-  g_free (msg_send);
-}
-
 /**
  * @brief Send status to the client that the host is dead
  *
@@ -1119,7 +1074,7 @@ attack_network (struct scan_globals *globals)
   port_range = prefs_get ("port_range");
   if (validate_port_range (port_range))
     {
-      send_failure ("Invalid port list. Ports must be in the range [1-65535]");
+      send_failure (globals->scan_id, "Invalid port list. Ports must be in the range [1-65535]");
       connect_main_kb (&main_kb);
       message_to_client (
         main_kb, "Invalid port list. Ports must be in the range [1-65535]",
