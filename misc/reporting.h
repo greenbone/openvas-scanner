@@ -39,10 +39,10 @@ set_scan_status (const char *, char *);
  * Messages generated from host processes.
  */
 void
-host_message_nvt_timeout (const gchar *, const gchar *, const gchar *);
+host_message_nvt_timeout (const char *, const char *, const char *);
 
 void
-host_message (enum eulabeia_result_type, const gchar *, const gchar *);
+host_message (enum eulabeia_result_type, const char *, const char *);
 
 /*
  * Messages generated from plugin processes.

@@ -56,17 +56,17 @@
  *
  * @return JSON string on success. Must be freed by caller. NULL on error.
  */
-gchar *
-make_result_json_str (const gchar *scan_id, enum eulabeia_result_type type, const gchar *ip_str,
-                      const gchar *hostname, const gchar *port_s,
-                      const gchar *proto, const gchar *oid,
-                      const gchar *action_str, const gchar *uri)
+char *
+make_result_json_str (const char *scan_id, enum eulabeia_result_type type, const char *ip_str,
+                      const char *hostname, const char *port_s,
+                      const char *proto, const char *oid,
+                      const char *action_str, const char *uri)
 {
   struct EulabeiaMessage *msg;
   struct EulabeiaScanResult *result;
-  const gchar *global_scan_id = NULL;
-  gchar *json_str = NULL;
-  gchar *port = NULL;
+  const char *global_scan_id = NULL;
+  char *json_str = NULL;
+  char *port = NULL;
 
   global_scan_id = scan_id ? scan_id : prefs_get ("global_scan_id");
 
@@ -201,10 +201,10 @@ exit:
 // Messages generated from host processes.
 //############################################
 static void
-host_message_send (const gchar *message)
+host_message_send (const char *message)
 {
-  gchar *topic = NULL;
-  const gchar *context;
+  char *topic = NULL;
+  const char *context;
   
   context = prefs_get ("mqtt_context");
   topic = eulabeia_calculate_topic (EULABEIA_INFO_SCAN_RESULT, EULABEIA_SCAN,
@@ -227,10 +227,10 @@ host_message_send (const gchar *message)
  *
  **/
 void
-host_message_nvt_timeout (const gchar *host_ip, const gchar *oid,
-                          const gchar *msg)
+host_message_nvt_timeout (const char *host_ip, const char *oid,
+                          const char *msg)
 {
-  gchar *json_str = NULL;
+  char *json_str = NULL;
 
   json_str = make_result_json_str (NULL, EULABEIA_RESULT_TYPE_ERRMSG, host_ip, NULL, NULL, NULL, oid,
                                    msg, NULL);
@@ -252,9 +252,9 @@ host_message_nvt_timeout (const gchar *host_ip, const gchar *oid,
  *
  **/
 void
-host_message (enum eulabeia_result_type type, const gchar *host_ip, const gchar *msg)
+host_message (enum eulabeia_result_type type, const char *host_ip, const char *msg)
 {
-  gchar *json_str = NULL;
+  char *json_str = NULL;
 
   json_str = make_result_json_str (NULL, type, host_ip, NULL, NULL, NULL, NULL,
                                    msg, NULL);
@@ -287,7 +287,7 @@ proto_post_wrapped (const char *oid, struct script_infos *desc, int port,
   char *buffer, *data, port_s[16] = "general";
   char topic[128];
   const char *context;
-  gchar *json;
+  char *json;
   char ip_str[INET6_ADDRSTRLEN];
   GString *action_str;
   gsize length;
