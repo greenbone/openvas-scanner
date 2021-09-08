@@ -181,7 +181,7 @@ set_scan_status (const char *global_scan_id, const char *status)
   context = prefs_get ("mqtt_context");
   msg = eulabeia_initialize_message (EULABEIA_INFO_STATUS, EULABEIA_SCAN, NULL,
                                      NULL);
-  
+
   estatus->id = g_strdup (global_scan_id);
   estatus->status = g_strdup (status);
 
@@ -279,7 +279,7 @@ host_message_send (const char *message)
 {
   char *topic = NULL;
   const char *context;
-  
+
   context = prefs_get ("mqtt_context");
   topic = eulabeia_calculate_topic (EULABEIA_INFO_SCAN_RESULT, EULABEIA_SCAN,
                                     context, NULL);
@@ -366,6 +366,38 @@ host_message (enum eulabeia_result_type type, const char *host_ip, const char *m
   g_free (json_str);
 }
 
+/**
+ * @brief Send host progress for progress calculation
+ *
+ * @param[in] global_scan_id The scan ID.
+ * @param[in] host_count The error message to be sent.
+ *
+ * @return 0 on success, -1 on error.
+ */
+ int
+ send_host_progress (const char *global_scan_id, const char *host_ip, int progress)
+{
+  char *json_str = NULL;
+  char *topic = NULL;
+  char progress_str[4];
+  const char *context;
+  int rc = 1;
+
+  context = prefs_get ("mqtt_context");
+  topic = eulabeia_calculate_topic (EULABEIA_INFO_STATUS, EULABEIA_SCAN,
+                                    context, NULL);
+
+  g_snprintf(progress_str, sizeof(progress_str), "%d", progress);
+  json_str = make_host_status_json_str (global_scan_id, EULABEIA_HOST_STATUS_TYPE_HOST_STATUS, host_ip, progress_str);
+  if (json_str && topic)
+    if ((rc = mqtt_publish (topic, json_str)) != 0)
+      g_warning ("%s: publish of host count failed (%d)", __func__, rc);
+
+  g_free (json_str);
+  g_free (topic);
+
+  return rc;
+}
 
 
 //############################################

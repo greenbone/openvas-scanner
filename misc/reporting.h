@@ -33,8 +33,8 @@
 void
 set_scan_status (const char *, const char *);
 
- void
- send_failure (const char *, const char *);
+void
+send_failure (const char *, const char *);
 
 void
 send_host_count (const char *, const char *);
@@ -51,6 +51,8 @@ host_message (enum eulabeia_result_type, const char *, const char *);
 void
 host_message_host_dead (const char *, const char *);
 
+int
+send_host_progress (const char *, const char *, int);
 /*
  * Messages generated from plugin processes.
  */
