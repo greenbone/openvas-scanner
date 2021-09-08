@@ -134,39 +134,6 @@ set_kb_readable (int host_kb_index)
   kb_lnk_reset (main_kb);
 }
 
-/**
- * @brief Send status to the client that the host is dead
- *
- * Originally the progress status is of the format
- * "current_host/launched/total". Current host is the ip_str of the current host
- * which is vulnerability tested. Launched is the number of plguins(VTs) which
- * got already started. Total is the total number of plugins which will be
- * started for the current host. But here we use the format "current_host/0/-1"
- * for implicit singalling that the host ist dead.
- *
- * @param main_kb Kb to use
- * @param ip_str str representation of host ip
- *
- * @return 0 on success, -1 on failure.
- */
-static int
-comm_send_status_host_dead (kb_t main_kb, char *ip_str)
-{
-  // implicit status code. Originally launched/total plugins
-  const gchar *host_dead_status_code = "0/-1";
-  const gchar *topic = "internal/status";
-  gchar *status;
-
-  // exact same restriction as comm_send_status() just to make it consistent
-  if (strlen (ip_str) > 1998)
-    return -1;
-  status = g_strjoin ("/", ip_str, host_dead_status_code, NULL);
-  kb_item_push_str (main_kb, topic, status);
-  g_free (status);
-
-  return 0;
-}
-
 static void
 report_kb_failure (int errcode)
 {

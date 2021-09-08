@@ -369,8 +369,13 @@ host_message (enum eulabeia_result_type type, const char *host_ip, const char *m
 /**
  * @brief Send host progress for progress calculation
  *
+ * @description Send the progress to the client. The progress
+ *              is the percentage of plugins which have been launch (0-100%)
+ *              -1 can be received for dead hosts.
+ *
  * @param[in] global_scan_id The scan ID.
- * @param[in] host_count The error message to be sent.
+ * @param[in] host_ip The host's IP address.
+ * @param[in] host_progress Host progress.
  *
  * @return 0 on success, -1 on error.
  */
