@@ -64,6 +64,8 @@
 
 #define ERR_HOST_DEAD -1
 
+#define HOST_DEAD_PROGRESS_CODE -1
+
 #define MAX_FORK_RETRIES 10
 /**
  * Wait KB_RETRY_DELAY seconds until trying again to get a new kb.
@@ -537,7 +539,7 @@ attack_host (struct scan_globals *globals, struct in6_addr *ip, GSList *vhosts,
               if (e == ERR_HOST_DEAD)
                 {
                   host_message_host_dead (globals->scan_id, ip_str);
-                  comm_send_status_host_dead (main_kb, ip_str);
+                  send_host_progress (globals->scan_id, ip_str, HOST_DEAD_PROGRESS_CODE);
                   goto host_died;
                 }
               else if (e == ERR_NO_FREE_SLOT)
