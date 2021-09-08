@@ -124,7 +124,7 @@ static openvas_option openvas_defaults[] = {
   {"plugins_timeout", G_STRINGIFY (NVT_TIMEOUT)},
   {"scanner_plugins_timeout", G_STRINGIFY (SCANNER_NVT_TIMEOUT)},
   {"db_address", KB_PATH_DEFAULT},
-  {"mqtt_context", "eulabeia"},
+  {"mqtt_context", "scanner"},
   {NULL, NULL}};
 
 /**
