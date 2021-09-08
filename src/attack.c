@@ -610,7 +610,7 @@ attack_host (struct scan_globals *globals, struct in6_addr *ip, GSList *vhosts,
               && !scan_is_stopped ())
             {
               last_status = (cur_plug * 100) / num_plugs + 2;
-              if (comm_send_status (main_kb, ip_str, cur_plug, num_plugs) < 0)
+              if (send_host_progress(globals->scan_id, ip_str, (cur_plug * 100) / num_plugs) < 0)
                 goto host_died;
             }
           cur_plug++;
@@ -633,7 +633,7 @@ attack_host (struct scan_globals *globals, struct in6_addr *ip, GSList *vhosts,
   if (!scan_is_stopped ())
     {
       int ret;
-      ret = comm_send_status (main_kb, ip_str, num_plugs, num_plugs);
+      ret = send_host_progress (globals->scan_id, ip_str, 100);
       if (ret == 0)
         all_plugs_launched = 1;
     }
@@ -1037,7 +1037,7 @@ attack_network (struct scan_globals *globals)
     {
       g_warning ("No access to redis kb");
       send_failure (globals->scan_id, "No access to redis kb");
-     
+
       return;
     }
   /* Init and check Target List */
