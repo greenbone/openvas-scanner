@@ -26,6 +26,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 - Handle script timeout as script preference with ID 0 [#841](https://github.com/greenbone/gvm-libs/pull/841)
 - Integrate eulabeia [842](https://github.com/greenbone/openvas-scanner/pull/842)
 - Set deprecated g_memdup as WARNING instead of ERROR for glib versions above 2.68 [852](https://github.com/greenbone/openvas-scanner/pull/852)
+- Use mqtt to send messages to the client. [#869](https://github.com/greenbone/openvas/pull/869)
+
 ### Fixed
 - Use fchmod to change file permission instead of on open to prevent race conditions [860](https://github.com/greenbone/openvas-scanner/pull/860)
 
