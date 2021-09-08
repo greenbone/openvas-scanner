@@ -737,6 +737,21 @@ get_name (const char *string)
  *
  * - @a image       Return the entire certificate as binary data.
  *
+ * - @a algorithm-name: Return the algorithm name. Get the OID of
+ *                      the digest algorithm and translated to a name
+ *                      from a list from Wireshark.
+ *                      See epan/dissectors/packet-pkcs1.c
+ *
+ * - @a modulus:     Return the RSA public key's modulus found in the
+ *                   structure of the given cert.
+ *
+ * - @a exponent:   Return the RSA public key's exponent found in
+ *                  the structure of the given cert.
+ *
+ * - @a key-size    Return the size to hold the parameters size in bits.
+ *                  For RSA the bits returned is the modulus.
+ *                  For DSA the bits returned are of the public exponent.
+ *
  * @nasluparam
  *
  * - Object id of the certificate.
