@@ -107,6 +107,57 @@ make_result_json_str (const char *scan_id, enum eulabeia_result_type type, const
   return json_str;
 }
 
+
+/**
+ * @brief Build a json representation of a host status message.
+ *
+ * JSON host status consists of scan_id, message type, host ip, result message.
+ *
+ * @param scan_id     Scan Id. Mandatory
+ * @param type        Type of host status messages, like DEADHOST. Mandatory
+ * @param ip_str      IP string of host.
+ * @param action_str  The actual result text. Mandatory
+ *
+ * @return JSON string on success. Must be freed by caller. NULL on error.
+ */
+char *
+make_host_status_json_str (const char *scan_id, enum eulabeia_host_status_type type,
+                           const char *ip_str, const char *action_str)
+{
+  struct EulabeiaMessage *msg;
+  struct EulabeiaHostStatus *status;
+  const char *global_scan_id = NULL;
+  char *json_str = NULL;
+
+  global_scan_id = scan_id ? scan_id : prefs_get ("global_scan_id");
+
+  if (!global_scan_id || !(type >= EULABEIA_HOST_STATUS_TYPE_UNKNOWN && type <= EULABEIA_HOST_STATUS_TYPE_ERRMSG)
+      || !action_str)
+    return NULL;
+
+  if ((msg = eulabeia_initialize_message (EULABEIA_INFO_STATUS,
+                                          EULABEIA_SCAN, NULL, NULL))
+      == NULL)
+    {
+      g_warning ("%s: unable to initialize result.scan message", __func__);
+      return NULL;
+    }
+
+  status = g_malloc0 (sizeof (*status));
+  status->message = msg;
+  status->host_status_type = type;
+  status->id = g_strdup (global_scan_id);
+  status->host_ip = ip_str ? g_strdup (ip_str) : NULL;
+  status->value = action_str ? g_strdup (action_str) : NULL;
+
+  json_str = eulabeia_host_status_message_to_json (msg, status);
+  eulabeia_message_destroy (&msg);
+  eulabeia_host_status_destroy (&status);
+
+  return json_str;
+}
+
+
 //############################################
 // Messages generated from scan process.
 //############################################
@@ -211,7 +262,7 @@ exit:
   topic = eulabeia_calculate_topic (EULABEIA_INFO_SCAN_RESULT, EULABEIA_SCAN,
                                     context, NULL);
 
-  json_str = make_result_json_str (global_scan_id, EULABEIA_RESULT_TYPE_HOST_COUNT, NULL, NULL, NULL, NULL, NULL, count, NULL);
+  json_str = make_host_status_json_str (global_scan_id, EULABEIA_HOST_STATUS_TYPE_HOST_COUNT, NULL, count);
   if (json_str && topic)
     if ((rc = mqtt_publish (topic, json_str)) != 0)
       g_warning ("%s: publish of host count failed (%d)", __func__, rc);
