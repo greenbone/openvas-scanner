@@ -28,8 +28,8 @@
 #include "../misc/network.h"          /* for auth_printf */
 #include "../misc/nvt_categories.h"   /* for ACT_INIT */
 #include "../misc/pcap_openvas.h"     /* for v6_is_local_ip */
-#include "../misc/table_driven_lsc.h" /*for make_table_driven_lsc_info_json_str */
 #include "../misc/reporting.h"        /* set_scan_status */
+#include "../misc/table_driven_lsc.h" /*for make_table_driven_lsc_info_json_str */
 #include "../nasl/nasl_debug.h"       /* for nasl_*_filename */
 #include "hosts.h"
 #include "pluginlaunch.h"
@@ -506,7 +506,8 @@ attack_host (struct scan_globals *globals, struct in6_addr *ip, GSList *vhosts,
               if (e == ERR_HOST_DEAD)
                 {
                   host_message_host_dead (globals->scan_id, ip_str);
-                  send_host_progress (globals->scan_id, ip_str, HOST_DEAD_PROGRESS_CODE);
+                  send_host_progress (globals->scan_id, ip_str,
+                                      HOST_DEAD_PROGRESS_CODE);
                   goto host_died;
                 }
               else if (e == ERR_NO_FREE_SLOT)
@@ -545,7 +546,9 @@ attack_host (struct scan_globals *globals, struct in6_addr *ip, GSList *vhosts,
               && !scan_is_stopped ())
             {
               last_status = (cur_plug * 100) / num_plugs + 2;
-              if (send_host_progress(globals->scan_id, ip_str, (cur_plug * 100) / num_plugs) < 0)
+              if (send_host_progress (globals->scan_id, ip_str,
+                                      (cur_plug * 100) / num_plugs)
+                  < 0)
                 goto host_died;
             }
           cur_plug++;
@@ -581,7 +584,6 @@ host_died:
   pluginlaunch_stop ();
   plugins_scheduler_free (sched);
   send_host_end (globals->scan_id, ip_str);
-
 }
 
 /*
@@ -738,9 +740,11 @@ attack_start (struct attack_start_args *args)
   if (ret_host_auth < 0)
     {
       if (ret_host_auth == -1)
-        host_message (EULABEIA_RESULT_TYPE_ERRMSG, ip_str, "Host access denied.");
+        host_message (EULABEIA_RESULT_TYPE_ERRMSG, ip_str,
+                      "Host access denied.");
       else
-        host_message (EULABEIA_RESULT_TYPE_ERRMSG, ip_str, "Host access denied (system-wide restriction.)");
+        host_message (EULABEIA_RESULT_TYPE_ERRMSG, ip_str,
+                      "Host access denied (system-wide restriction.)");
       kb_item_set_str (kb, "internal/host_deny", "True", 0);
       g_warning ("Host %s access denied.", ip_str);
       return;
@@ -989,8 +993,10 @@ attack_network (struct scan_globals *globals)
   port_range = prefs_get ("port_range");
   if (validate_port_range (port_range))
     {
-      g_warning ("%s: send failure %s", __func__, "Invalid port list. Ports must be in the range [1-65535]");
-      send_failure (globals->scan_id, "Invalid port list. Ports must be in the range [1-65535]");
+      g_warning ("%s: send failure %s", __func__,
+                 "Invalid port list. Ports must be in the range [1-65535]");
+      send_failure (globals->scan_id,
+                    "Invalid port list. Ports must be in the range [1-65535]");
 
       return;
     }

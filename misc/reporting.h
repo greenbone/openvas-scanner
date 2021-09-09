@@ -25,6 +25,7 @@
 #define OPENVAS_REPORTING_H
 
 #include "scanneraux.h" /* for struct script_infos */
+
 #include <eulabeia/types.h> /* for EULABEIA_RESULT_TYPE_* */
 
 /*

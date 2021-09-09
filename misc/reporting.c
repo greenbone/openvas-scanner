@@ -25,9 +25,9 @@
 
 #include "plugutils.h"
 
+#include <eulabeia/client.h>
 #include <eulabeia/json.h>
 #include <eulabeia/types.h>
-#include <eulabeia/client.h>
 #include <glib.h>
 #include <gvm/base/hosts.h>      // for g_vhost_t
 #include <gvm/base/networking.h> // for port_protocol_t
@@ -37,7 +37,6 @@
 #include <stdlib.h>
 #include <string.h>
 #include <time.h>
-
 
 /**
  * @brief Build a json representation of a result.
@@ -57,9 +56,9 @@
  * @return JSON string on success. Must be freed by caller. NULL on error.
  */
 char *
-make_result_json_str (const char *scan_id, enum eulabeia_result_type type, const char *ip_str,
-                      const char *hostname, const char *port_s,
-                      const char *proto, const char *oid,
+make_result_json_str (const char *scan_id, enum eulabeia_result_type type,
+                      const char *ip_str, const char *hostname,
+                      const char *port_s, const char *proto, const char *oid,
                       const char *action_str, const char *uri)
 {
   struct EulabeiaMessage *msg;
@@ -70,7 +69,9 @@ make_result_json_str (const char *scan_id, enum eulabeia_result_type type, const
 
   global_scan_id = scan_id ? scan_id : prefs_get ("global_scan_id");
 
-  if (!global_scan_id || !(type >= EULABEIA_RESULT_TYPE_UNKNOWN && type <= EULABEIA_RESULT_TYPE_ALARM)
+  if (!global_scan_id
+      || !(type >= EULABEIA_RESULT_TYPE_UNKNOWN
+           && type <= EULABEIA_RESULT_TYPE_ALARM)
       || !action_str)
     return NULL;
 
@@ -107,7 +108,6 @@ make_result_json_str (const char *scan_id, enum eulabeia_result_type type, const
   return json_str;
 }
 
-
 /**
  * @brief Build a json representation of a host status message.
  *
@@ -121,7 +121,8 @@ make_result_json_str (const char *scan_id, enum eulabeia_result_type type, const
  * @return JSON string on success. Must be freed by caller. NULL on error.
  */
 char *
-make_host_status_json_str (const char *scan_id, enum eulabeia_host_status_type type,
+make_host_status_json_str (const char *scan_id,
+                           enum eulabeia_host_status_type type,
                            const char *ip_str, const char *action_str)
 {
   struct EulabeiaMessage *msg;
@@ -131,12 +132,14 @@ make_host_status_json_str (const char *scan_id, enum eulabeia_host_status_type t
 
   global_scan_id = scan_id ? scan_id : prefs_get ("global_scan_id");
 
-  if (!global_scan_id || !(type >= EULABEIA_HOST_STATUS_TYPE_UNKNOWN && type <= EULABEIA_HOST_STATUS_TYPE_ERRMSG)
+  if (!global_scan_id
+      || !(type >= EULABEIA_HOST_STATUS_TYPE_UNKNOWN
+           && type <= EULABEIA_HOST_STATUS_TYPE_ERRMSG)
       || !action_str)
     return NULL;
 
-  if ((msg = eulabeia_initialize_message (EULABEIA_INFO_STATUS,
-                                          EULABEIA_SCAN, NULL, NULL))
+  if ((msg = eulabeia_initialize_message (EULABEIA_INFO_STATUS, EULABEIA_SCAN,
+                                          NULL, NULL))
       == NULL)
     {
       g_warning ("%s: unable to initialize result.scan message", __func__);
@@ -156,7 +159,6 @@ make_host_status_json_str (const char *scan_id, enum eulabeia_host_status_type t
 
   return json_str;
 }
-
 
 //############################################
 // Messages generated from scan process.
@@ -210,8 +212,8 @@ exit:
  * @param[in] global_scan_id The scan ID.
  * @param[in] error The error message to be sent.
  */
- void
- send_failure (const char *global_scan_id, const char *error)
+void
+send_failure (const char *global_scan_id, const char *error)
 {
   struct EulabeiaMessage *msg = NULL;
   struct EulabeiaFailure *failure;
@@ -251,8 +253,8 @@ exit:
  * @param[in] global_scan_id The scan ID.
  * @param[in] host_count The error message to be sent.
  */
- void
- send_host_count (const char *global_scan_id, const char *count)
+void
+send_host_count (const char *global_scan_id, const char *count)
 {
   char *json_str = NULL;
   char *topic = NULL;
@@ -262,7 +264,8 @@ exit:
   topic = eulabeia_calculate_topic (EULABEIA_INFO_SCAN_RESULT, EULABEIA_SCAN,
                                     context, NULL);
 
-  json_str = make_host_status_json_str (global_scan_id, EULABEIA_HOST_STATUS_TYPE_HOST_COUNT, NULL, count);
+  json_str = make_host_status_json_str (
+    global_scan_id, EULABEIA_HOST_STATUS_TYPE_HOST_COUNT, NULL, count);
   if (json_str && topic)
     if ((rc = mqtt_publish (topic, json_str)) != 0)
       g_warning ("%s: publish of host count failed (%d)", __func__, rc);
@@ -301,18 +304,17 @@ host_message_send (const char *message)
  *
  **/
 void
-host_message_nvt_timeout (const char *host_ip, const char *oid,
-                          const char *msg)
+host_message_nvt_timeout (const char *host_ip, const char *oid, const char *msg)
 {
   char *json_str = NULL;
 
-  json_str = make_result_json_str (NULL, EULABEIA_RESULT_TYPE_ERRMSG, host_ip, NULL, NULL, NULL, oid, msg, NULL);
+  json_str = make_result_json_str (NULL, EULABEIA_RESULT_TYPE_ERRMSG, host_ip,
+                                   NULL, NULL, NULL, oid, msg, NULL);
   if (json_str)
     host_message_send (json_str);
 
   g_free (json_str);
 }
-
 
 /**
  * @brief Host process sends a message about a dead host.
@@ -330,12 +332,13 @@ void
 host_message_host_dead (const char *scan_id, const char *host_ip)
 {
   char *json_str = NULL;
-  char msg[128] = "<host><detail><name>Host dead</name><value>1</value><source><description/><type/><name/></source></detail></host>";
+  char msg[128] = "<host><detail><name>Host "
+                  "dead</name><value>1</value><source><description/><type/"
+                  "><name/></source></detail></host>";
 
-  json_str = make_result_json_str (scan_id,
-                                   EULABEIA_RESULT_TYPE_LOG,
-                                   host_ip, NULL, "general/Host_Details", NULL, NULL,
-                                   msg, NULL);
+  json_str =
+    make_result_json_str (scan_id, EULABEIA_RESULT_TYPE_LOG, host_ip, NULL,
+                          "general/Host_Details", NULL, NULL, msg, NULL);
   if (json_str)
     host_message_send (json_str);
 
@@ -354,7 +357,8 @@ host_message_host_dead (const char *scan_id, const char *host_ip)
  *
  **/
 void
-host_message (enum eulabeia_result_type type, const char *host_ip, const char *msg)
+host_message (enum eulabeia_result_type type, const char *host_ip,
+              const char *msg)
 {
   char *json_str = NULL;
 
@@ -379,8 +383,9 @@ host_message (enum eulabeia_result_type type, const char *host_ip, const char *m
  *
  * @return 0 on success, -1 on error.
  */
- int
- send_host_progress (const char *global_scan_id, const char *host_ip, int progress)
+int
+send_host_progress (const char *global_scan_id, const char *host_ip,
+                    int progress)
 {
   char *json_str = NULL;
   char *topic = NULL;
@@ -392,8 +397,10 @@ host_message (enum eulabeia_result_type type, const char *host_ip, const char *m
   topic = eulabeia_calculate_topic (EULABEIA_INFO_STATUS, EULABEIA_SCAN,
                                     context, NULL);
 
-  g_snprintf(progress_str, sizeof(progress_str), "%d", progress);
-  json_str = make_host_status_json_str (global_scan_id, EULABEIA_HOST_STATUS_TYPE_HOST_STATUS, host_ip, progress_str);
+  g_snprintf (progress_str, sizeof (progress_str), "%d", progress);
+  json_str = make_host_status_json_str (global_scan_id,
+                                        EULABEIA_HOST_STATUS_TYPE_HOST_STATUS,
+                                        host_ip, progress_str);
   if (json_str && topic)
     if ((rc = mqtt_publish (topic, json_str)) != 0)
       g_warning ("%s: publish of host count failed (%d)", __func__, rc);
@@ -404,7 +411,6 @@ host_message (enum eulabeia_result_type type, const char *host_ip, const char *m
   return rc;
 }
 
-
 /**
  * @brief Create the time stamp witht the right format for
  *        host_start and host_end results.
@@ -413,7 +419,8 @@ host_message (enum eulabeia_result_type type, const char *host_ip, const char *m
  */
 
 static void
-host_send_start_end_message (const char *scan_id, const char *host_ip, enum eulabeia_result_type type)
+host_send_start_end_message (const char *scan_id, const char *host_ip,
+                             enum eulabeia_result_type type)
 {
   char *timestr;
   time_t t;
@@ -426,15 +433,15 @@ host_send_start_end_message (const char *scan_id, const char *host_ip, enum eula
   if (timestr[len - 1] == '\n')
     timestr[len - 1] = '\0';
 
-  json_str = make_result_json_str (scan_id, type, host_ip, NULL, NULL, NULL, NULL, timestr, NULL);
-  
+  json_str = make_result_json_str (scan_id, type, host_ip, NULL, NULL, NULL,
+                                   NULL, timestr, NULL);
+
   if (json_str)
     host_message_send (json_str);
 
   g_free (timestr);
   g_free (json_str);
 }
-
 
 /**
  * @brief Send host_start result to the client.
@@ -449,7 +456,8 @@ host_send_start_end_message (const char *scan_id, const char *host_ip, enum eula
 void
 send_host_start (const char *scan_id, const char *host_ip)
 {
-  host_send_start_end_message (scan_id, host_ip, EULABEIA_RESULT_TYPE_HOST_START);
+  host_send_start_end_message (scan_id, host_ip,
+                               EULABEIA_RESULT_TYPE_HOST_START);
 }
 
 /**
@@ -484,8 +492,8 @@ send_host_end (const char *scan_id, const char *host_ip)
  */
 static void
 proto_post_wrapped (const char *oid, struct script_infos *desc, int port,
-                    const char *proto, const char *action, enum eulabeia_result_type msg_type,
-                    const char *uri)
+                    const char *proto, const char *action,
+                    enum eulabeia_result_type msg_type, const char *uri)
 {
   const char *hostname = "";
   char *buffer, *data, port_s[16] = "general";
@@ -514,8 +522,9 @@ proto_post_wrapped (const char *oid, struct script_infos *desc, int port,
     hostname = ((gvm_vhost_t *) desc->vhosts->data)->value;
   addr6_to_str (plug_get_host_ip (desc), ip_str);
   buffer = g_strdup_printf ("%s|||%s|||%s|||%s/%s|||%s|||%s|||%s",
-                            eulabeia_result_type_to_str (msg_type), ip_str, hostname ?: " ",
-                            port_s, proto, oid, action_str->str, uri ?: "");
+                            eulabeia_result_type_to_str (msg_type), ip_str,
+                            hostname ?: " ", port_s, proto, oid,
+                            action_str->str, uri ?: "");
   /* Convert to UTF-8 before sending to Manager. */
   data = g_convert (buffer, -1, "UTF-8", "ISO_8859-1", NULL, &length, NULL);
 
@@ -540,7 +549,8 @@ void
 proto_post_alarm (const char *oid, struct script_infos *desc, int port,
                   const char *proto, const char *action, const char *uri)
 {
-  proto_post_wrapped (oid, desc, port, proto, action, EULABEIA_RESULT_TYPE_ALARM, uri);
+  proto_post_wrapped (oid, desc, port, proto, action,
+                      EULABEIA_RESULT_TYPE_ALARM, uri);
 }
 
 void
@@ -557,7 +567,8 @@ void
 proto_post_log (const char *oid, struct script_infos *desc, int port,
                 const char *proto, const char *action, const char *uri)
 {
-  proto_post_wrapped (oid, desc, port, proto, action, EULABEIA_RESULT_TYPE_LOG, uri);
+  proto_post_wrapped (oid, desc, port, proto, action, EULABEIA_RESULT_TYPE_LOG,
+                      uri);
 }
 
 /**
@@ -584,7 +595,8 @@ void
 proto_post_error (const char *oid, struct script_infos *desc, int port,
                   const char *proto, const char *action, const char *uri)
 {
-  proto_post_wrapped (oid, desc, port, proto, action, EULABEIA_RESULT_TYPE_ERRMSG, uri);
+  proto_post_wrapped (oid, desc, port, proto, action,
+                      EULABEIA_RESULT_TYPE_ERRMSG, uri);
 }
 
 void
