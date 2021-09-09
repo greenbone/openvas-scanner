@@ -215,6 +215,7 @@ validate_pref_type_value (gchar *type, gchar *value)
   (void *) value;
   return TRUE;
 }
+#pragma GCC diagnostic pop
 
 /**
  * @brief Store alive test as preferences.
@@ -228,10 +229,51 @@ validate_pref_type_value (gchar *type, gchar *value)
 static void
 write_json_alive_test_to_preferences (JsonReader *alive_test_reader)
 {
-  // TODO: handle alive tests
-  (void *) alive_test_reader;
+  gboolean test_alive_hosts_only = FALSE;
+  int alive_test_bitflag = 0;
+  char at_bitflag_str[12];
+  GString *ports_string = NULL;
+  int j, num_ports, port;
+
+  // 1. Set test_alive_hosts_only
+  json_reader_read_member (alive_test_reader, "test_alive_hosts_only");
+  test_alive_hosts_only = json_reader_get_boolean_value (alive_test_reader);
+  prefs_set ("test_alive_hosts_only", test_alive_hosts_only ? "yes" : "no");
+  json_reader_end_member (alive_test_reader);
+
+  // 2. Set alive detection method
+  json_reader_read_member (alive_test_reader, "methods_bitflag");
+  alive_test_bitflag = json_reader_get_int_value (alive_test_reader);
+  g_snprintf (at_bitflag_str, sizeof (at_bitflag_str), "%d",
+              alive_test_bitflag);
+  prefs_set ("ALIVE_TEST", at_bitflag_str);
+  json_reader_end_member (alive_test_reader);
+
+  // 3. Set port list
+  json_reader_read_member (alive_test_reader, "ports");
+  num_ports = json_reader_count_elements (alive_test_reader);
+  for (j = 0; j < num_ports; j++)
+    {
+      json_reader_read_element (alive_test_reader, j);
+      port = json_reader_get_int_value (alive_test_reader);
+      if (port)
+        {
+          if (j == 0)
+            {
+              ports_string = g_string_new (NULL);
+              g_string_append_printf (ports_string, "%d", port);
+            }
+          else
+            {
+              g_string_append_printf (ports_string, ";%d", port);
+            }
+        }
+      json_reader_end_element (alive_test_reader);
+    }
+  prefs_set ("ALIVE_TEST_PORTS", ports_string->str);
+  g_string_free (ports_string, TRUE);
+  json_reader_end_member (alive_test_reader);
 }
-#pragma GCC diagnostic pop
 
 /**
  * @brief Get the type and the name of a plugin preferences.
@@ -549,7 +591,7 @@ write_json_to_preferences (struct scan_globals *globals, char *json, int len)
             write_json_plugins_to_preferences (globals, reader);
           else if (!strcmp (key, "credentials"))
             write_json_credentials_to_preferences (globals, reader);
-          else if (!strcmp (key, "alive"))
+          else if (!strcmp (key, "alive_test"))
             write_json_alive_test_to_preferences (reader);
           else
             g_warning ("%s: unknown object %s", __func__, key);
@@ -582,8 +624,6 @@ ask_for_scan_prefs_from_client (const char *scan_id)
   const char *context;
   int ret;
 
-  // TODO: Get alive test via mqtt
-  prefs_set ("ALIVE_TEST", "2");
   context = prefs_get ("mqtt_context");
 
   // Sned Get Scan
