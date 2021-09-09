@@ -467,7 +467,7 @@ attack_host (struct scan_globals *globals, struct in6_addr *ip, GSList *vhosts,
   host_kb = kb;
   host_vhosts = vhosts;
   kb_item_set_int (kb, "internal/hostpid", getpid ());
-  host_set_time (main_kb, ip_str, "HOST_START");
+  send_host_start (globals->scan_id, ip_str);
   kb_lnk_reset (main_kb);
   proctitle_set ("openvas: testing %s", ip_str);
   kb_lnk_reset (kb);
@@ -580,7 +580,8 @@ host_died:
                globals->scan_id, ip_str);
   pluginlaunch_stop ();
   plugins_scheduler_free (sched);
-  host_set_time (main_kb, ip_str, "HOST_END");
+  send_host_end (globals->scan_id, ip_str);
+
 }
 
 /*
