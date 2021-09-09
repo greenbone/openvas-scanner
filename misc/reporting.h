@@ -53,6 +53,13 @@ host_message_host_dead (const char *, const char *);
 
 int
 send_host_progress (const char *, const char *, int);
+
+void
+send_host_start (const char *, const char *);
+
+void
+send_host_end (const char *, const char *);
+
 /*
  * Messages generated from plugin processes.
  */

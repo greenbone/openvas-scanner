@@ -405,6 +405,69 @@ host_message (enum eulabeia_result_type type, const char *host_ip, const char *m
 }
 
 
+/**
+ * @brief Create the time stamp witht the right format for
+ *        host_start and host_end results.
+ *
+ * @return string with the timestamp in the expected format.
+ */
+
+static void
+host_send_start_end_message (const char *scan_id, const char *host_ip, enum eulabeia_result_type type)
+{
+  char *timestr;
+  time_t t;
+  int len;
+  char *json_str = NULL;
+
+  t = time (NULL);
+  timestr = g_strdup (ctime (&t));
+  len = strlen (timestr);
+  if (timestr[len - 1] == '\n')
+    timestr[len - 1] = '\0';
+
+  json_str = make_result_json_str (scan_id, type, host_ip, NULL, NULL, NULL, NULL, timestr, NULL);
+  
+  if (json_str)
+    host_message_send (json_str);
+
+  g_free (timestr);
+  g_free (json_str);
+}
+
+
+/**
+ * @brief Send host_start result to the client.
+ *
+ * @description This is a host process level message and the client
+ *              use it to know when the scan started for the given host.
+ *
+ * @param[in] global_scan_id The scan ID.
+ * @param[in] host_ip The host's IP address.
+ *
+ */
+void
+send_host_start (const char *scan_id, const char *host_ip)
+{
+  host_send_start_end_message (scan_id, host_ip, EULABEIA_RESULT_TYPE_HOST_START);
+}
+
+/**
+ * @brief Send host_end result to the client.
+ *
+ * @description This is a host process level message and the client
+ *              use it to know when the scan started for the given host.
+ *
+ * @param[in] global_scan_id The scan ID.
+ * @param[in] host_ip The host's IP address.
+ *
+ */
+void
+send_host_end (const char *scan_id, const char *host_ip)
+{
+  host_send_start_end_message (scan_id, host_ip, EULABEIA_RESULT_TYPE_HOST_END);
+}
+
 //############################################
 // Messages generated from plugin processes.
 //############################################
