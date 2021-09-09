@@ -64,35 +64,6 @@ static int g_max_hosts = 15;
 /*-------------------------------------------------------------------*/
 extern int global_scan_stop;
 
-/**
- * @brief Add star_scan and end_scan results to the main kb.
- *
- * @param[in] kb    Main KB where results are stored.
- * @param[in] ip    List of vhosts to add new vhosts to.
- * @param[in] type  If it is start or end message.
- *
- */
-void
-host_set_time (kb_t kb, char *ip, char *type)
-{
-  char *timestr;
-  char log_msg[1024];
-  time_t t;
-  int len;
-
-  t = time (NULL);
-  timestr = g_strdup (ctime (&t));
-  len = strlen (timestr);
-  if (timestr[len - 1] == '\n')
-    timestr[len - 1] = '\0';
-
-  snprintf (log_msg, sizeof (log_msg), "%s|||%s||||||||| |||%s", type, ip,
-            timestr);
-  g_free (timestr);
-
-  kb_item_push_str (kb, "internal/results", log_msg);
-}
-
 static void
 host_rm (struct host *h)
 {
