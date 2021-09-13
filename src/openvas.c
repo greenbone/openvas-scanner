@@ -850,6 +850,7 @@ attack_network_init (struct scan_globals *globals, const gchar *config_file)
   if (plugins_cache_init ())
     {
       g_message ("Failed to initialize nvti cache.");
+      send_failure ("Failed to initialize nvti cache.");
       nvticache_reset ();
       exit (1);
     }

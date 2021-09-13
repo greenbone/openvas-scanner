@@ -360,6 +360,7 @@ include_dirs (void)
 int
 plugins_cache_init (void)
 {
+  int ret;
   const char *plugins_folder = prefs_get ("plugins_folder");
 
   if (nvticache_init (plugins_folder, prefs_get ("db_address")))
@@ -368,6 +369,10 @@ plugins_cache_init (void)
       return -1;
     }
   include_dirs ();
+  ret = nasl_file_check (plugins_folder, "plugin_feed_info.inc");
+  if (ret)
+    return -1;
+
   return 0;
 }
 
