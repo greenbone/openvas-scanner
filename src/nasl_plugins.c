@@ -84,11 +84,44 @@ check_nvti (const char *filename, nvti_t *nvt)
 }
 
 /**
+ * @brief Check a single .nasl/.inc file.
+ *
+ * @param folder  Path to the plugin folder.
+ * @param filename    File-name of the plugin
+ *
+ * @return 0 on success, -1 on error.
+ */
+int
+nasl_file_check (const char *folder, const char *filename)
+{
+  char fullname[PATH_MAX + 1];
+  int nasl_mode;
+  struct script_infos *args;
+
+  snprintf (fullname, sizeof (fullname), "%s/%s", folder, filename);
+  nasl_mode = NASL_EXEC_DESCR;
+  if (prefs_get_bool ("nasl_no_signature_check"))
+    nasl_mode |= NASL_ALWAYS_SIGNED;
+
+  args = g_malloc0 (sizeof (struct script_infos));
+  args->key = nvticache_get_kb ();
+  args->nvti = NULL;
+  args->name = fullname;
+  if (exec_nasl_script (args, nasl_mode) < 0)
+    {
+      g_debug ("%s: Checksum check failed", fullname);
+      g_free (args);
+      return -1;
+    }
+  g_free (args);
+
+  return 0;
+}
+
+/**
  * @brief Add *one* .nasl plugin to the plugin list.
  *
- * The plugin is first attempted to be loaded from the cache.
- * If that fails, it is parsed (via exec_nasl_script) and
- * added to the cache.
+ * It is parsed (via exec_nasl_script) and added to the cache
  *
  * @param folder  Path to the plugin folder.
  * @param filename    File-name of the plugin
@@ -100,44 +133,38 @@ nasl_plugin_add (char *folder, char *filename)
 {
   char fullname[PATH_MAX + 1];
   int nasl_mode;
-  nasl_mode = NASL_EXEC_DESCR;
+  nvti_t *new_nvti;
+  struct script_infos *args;
+  time_t now;
+  struct utimbuf updated_timestamp;
 
   snprintf (fullname, sizeof (fullname), "%s/%s", folder, filename);
-
+  nasl_mode = NASL_EXEC_DESCR;
   if (prefs_get_bool ("nasl_no_signature_check"))
-    {
-      nasl_mode |= NASL_ALWAYS_SIGNED;
-    }
+    nasl_mode |= NASL_ALWAYS_SIGNED;
 
-  if (!nvticache_check (filename))
+  args = g_malloc0 (sizeof (struct script_infos));
+  args->key = nvticache_get_kb ();
+  new_nvti = nvti_new ();
+  args->nvti = new_nvti;
+  args->name = fullname;
+  if (exec_nasl_script (args, nasl_mode) < 0)
     {
-      nvti_t *new_nvti;
-      struct script_infos *args;
-      time_t now;
-      struct utimbuf updated_timestamp;
-
-      args = g_malloc0 (sizeof (struct script_infos));
-      args->key = nvticache_get_kb ();
-      new_nvti = nvti_new ();
-      args->nvti = new_nvti;
-      args->name = fullname;
-      if (exec_nasl_script (args, nasl_mode) < 0)
-        {
-          g_debug ("%s: Could not be loaded", fullname);
-          g_free (args);
-          return -1;
-        }
+      g_debug ("%s: Could not be loaded", fullname);
       g_free (args);
-
-      now = time (NULL) - 1;
-      updated_timestamp.actime = now;
-      updated_timestamp.modtime = now;
-      utime (fullname, &updated_timestamp);
-
-      if (!check_nvti (filename, new_nvti))
-        nvticache_add (new_nvti, filename);
-      nvti_free (new_nvti);
+      return -1;
     }
+  g_free (args);
+
+  now = time (NULL) - 1;
+  updated_timestamp.actime = now;
+  updated_timestamp.modtime = now;
+  utime (fullname, &updated_timestamp);
+
+  if (!check_nvti (filename, new_nvti))
+    nvticache_add (new_nvti, filename);
+  nvti_free (new_nvti);
+
   return 0;
 }
 
