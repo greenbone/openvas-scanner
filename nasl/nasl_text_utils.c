@@ -786,8 +786,21 @@ nasl_egrep (lex_ctxt *lexic)
 
 /**
  * @brief Does extended regular expression pattern matching.
+ * @naslfn{eregmatch}
  *
- * In NASL, this function returns an array.
+ * @nasluparam
+ *
+ * - @a pattern An regex pattern
+ * - @a string A string
+ * - @a icase Boolean, for case sensitve
+ * - @a find_all Boolean, to find all matches
+ *
+ * @naslret An array with the first match (find_all: False)
+ *          or an array with all matches (find_all: TRUE).
+ *          NULL or empty if no match was found.
+ *
+ * @param[in] lexic Lexical context of NASL interpreter.
+ *
  */
 tree_cell *
 nasl_eregmatch (lex_ctxt *lexic)
