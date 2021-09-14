@@ -18,6 +18,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 - Add nasl function sftp_enabled_check() to check if sftp subsystem is enabled in the target.
   - [#853](https://github.com/greenbone/openvas/pull/853)
   - [#862](https://github.com/greenbone/openvas/pull/862)
+- Add `find_all` to eregmatch() nasl function. Backport PR #875. [#876](https://github.com/greenbone/openvas/pull/876)
 
 ### Changed
 - function script_bugtraq_id getting skipped, linter warns. [#724](https://github.com/greenbone/openvas/pull/724)
