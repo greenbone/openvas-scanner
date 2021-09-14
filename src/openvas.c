@@ -368,6 +368,20 @@ gcrypt_init (void)
 }
 
 void
+send_message_to_client_and_finish_scan (const char *msg)
+{
+  char key[1024];
+  kb_t kb;
+
+  snprintf (key, sizeof (key), "internal/%s/scanprefs", global_scan_id);
+  kb = kb_find (prefs_get ("db_address"), key);
+  kb_item_push_str (kb, "internal/results", msg);
+  snprintf (key, sizeof (key), "internal/%s", global_scan_id);
+  kb_item_set_str (kb, key, "finished", 0);
+  kb_lnk_reset (kb);
+}
+
+void
 start_single_task_scan (void)
 {
   struct scan_globals *globals;
@@ -396,6 +410,8 @@ start_single_task_scan (void)
   if (plugins_cache_init ())
     {
       g_message ("Failed to initialize nvti cache.");
+      send_message_to_client_and_finish_scan (
+        "ERRMSG||||||||||||NVTI cache initialization failed");
       exit (1);
     }
   init_signal_handlers ();
