@@ -795,7 +795,8 @@ nasl_eregmatch (lex_ctxt *lexic)
   char *pattern = get_str_var_by_name (lexic, "pattern");
   char *string = get_str_var_by_name (lexic, "string");
   int icase = get_int_var_by_name (lexic, "icase", 0);
-  int copt = 0, i;
+  int find_all = get_int_var_by_name (lexic, "find_all", 0);
+  int copt = 0;
   tree_cell *retc;
   regex_t re;
   regmatch_t subs[NS];
@@ -814,24 +815,63 @@ nasl_eregmatch (lex_ctxt *lexic)
                    pattern);
       return NULL;
     }
-
-  if (regexec (&re, string, (size_t) NS, subs, 0) != 0)
-    {
-      regfree (&re);
-      return NULL;
-    }
-
   retc = alloc_typed_cell (DYN_ARRAY);
   retc->x.ref_val = a = g_malloc0 (sizeof (nasl_array));
 
-  for (i = 0; i < NS; i++)
-    if (subs[i].rm_so != -1)
-      {
-        v.var_type = VAR2_DATA;
-        v.v.v_str.s_siz = subs[i].rm_eo - subs[i].rm_so;
-        v.v.v_str.s_val = (unsigned char *) string + subs[i].rm_so;
-        (void) add_var_to_list (a, i, &v);
-      }
+  if (find_all == 0)
+    {
+      if (regexec (&re, string, (size_t) NS, subs, 0) != 0)
+        {
+          regfree (&re);
+          return NULL;
+        }
+
+      int i;
+      for (i = 0; i < NS; i++)
+        if (subs[i].rm_so != -1)
+          {
+            v.var_type = VAR2_DATA;
+            v.v.v_str.s_siz = subs[i].rm_eo - subs[i].rm_so;
+            v.v.v_str.s_val = (unsigned char *) string + subs[i].rm_so;
+            (void) add_var_to_list (a, i, &v);
+          }
+    }
+  else
+    {
+      int index = 0;
+      char *current_pos;
+      current_pos = string;
+      while (1)
+        {
+          if (regexec (&re, current_pos, (size_t) NS, subs, 0) != 0)
+            {
+              regfree (&re);
+              break;
+            }
+
+          unsigned int offset = 0, i = 0;
+          for (i = 0; i < NS; i++)
+            {
+              char current_pos_cp[strlen (current_pos) + 1];
+
+              if (subs[i].rm_so == -1)
+                break;
+
+              if (i == 0)
+                offset = subs[i].rm_eo;
+
+              strcpy (current_pos_cp, current_pos);
+              current_pos_cp[subs[i].rm_eo] = 0;
+              v.var_type = VAR2_DATA;
+              v.v.v_str.s_siz = subs[i].rm_eo - subs[i].rm_so;
+              v.v.v_str.s_val =
+                (unsigned char *) current_pos_cp + subs[i].rm_so;
+              (void) add_var_to_list (a, index, &v);
+              index++;
+            }
+          current_pos += offset;
+        }
+    }
 
   regfree (&re);
   return retc;
