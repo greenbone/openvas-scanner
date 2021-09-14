@@ -382,6 +382,25 @@ stop_single_task_scan (void)
 }
 
 /**
+ * @brief Send a failure message and set the scan as finished.
+ *
+ * @param msg Message to send to the client.
+ */
+void
+send_message_to_client_and_finish_scan (const char *msg)
+{
+  char key[1024];
+  kb_t kb;
+
+  snprintf (key, sizeof (key), "internal/%s/scanprefs", global_scan_id);
+  kb = kb_find (prefs_get ("db_address"), key);
+  kb_item_push_str (kb, "internal/results", msg);
+  snprintf (key, sizeof (key), "internal/%s", global_scan_id);
+  kb_item_set_str (kb, key, "finished", 0);
+  kb_lnk_reset (kb);
+}
+
+/**
  * @brief Set up data needed for attack_network().
  *
  * @param globals scan_globals needed for client preference handling.
@@ -401,6 +420,8 @@ attack_network_init (struct scan_globals *globals, const gchar *config_file)
   if (plugins_cache_init ())
     {
       g_message ("Failed to initialize nvti cache.");
+      send_message_to_client_and_finish_scan (
+        "ERRMSG||||||||||||NVTI cache initialization failed");
       nvticache_reset ();
       exit (1);
     }
