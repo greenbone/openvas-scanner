@@ -422,13 +422,13 @@ static void
 host_send_start_end_message (const char *scan_id, const char *host_ip,
                              enum eulabeia_result_type type)
 {
-  char *timestr;
+  char timestr[64];
   time_t t;
   int len;
   char *json_str = NULL;
 
   t = time (NULL);
-  timestr = g_strdup (ctime (&t));
+  ctime_r (&t, timestr);
   len = strlen (timestr);
   if (timestr[len - 1] == '\n')
     timestr[len - 1] = '\0';
@@ -439,7 +439,6 @@ host_send_start_end_message (const char *scan_id, const char *host_ip,
   if (json_str)
     host_message_send (json_str);
 
-  g_free (timestr);
   g_free (json_str);
 }
 
