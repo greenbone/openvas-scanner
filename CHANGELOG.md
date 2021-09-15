@@ -9,6 +9,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 - Add nasl function sftp_enabled_check() to check if sftp subsystem is enabled in the target.
   - Backport [#853](https://github.com/greenbone/openvas/pull/853)
   - Backport [#862](https://github.com/greenbone/openvas/pull/862)
+  - Add `find_all` to eregmatch() nasl function [#875](https://github.com/greenbone/openvas/pull/875)
 
 ### Changed
 - Changed defaults for installation locations [#826](https://github.com/greenbone/openvas-scanner/pull/826)
