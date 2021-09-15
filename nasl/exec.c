@@ -1657,6 +1657,8 @@ exec_nasl_script (struct script_infos *script_infos, int mode)
   bzero (&ctx, sizeof (ctx));
   if (mode & NASL_ALWAYS_SIGNED)
     ctx.always_signed = 1;
+  if ((mode & NASL_EXEC_DESCR) != 0)
+    ctx.exec_descr = 1;
   if (nvticache_initialized ())
     ctx.kb = nvticache_get_kb ();
   else

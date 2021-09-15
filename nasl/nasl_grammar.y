@@ -316,6 +316,7 @@ inc: INCLUDE '(' string ')'
 
           bzero (&subctx, sizeof (subctx));
           subctx.always_signed = ((naslctxt*)parm)->always_signed;
+          subctx.exec_descr = ((naslctxt*)parm)->exec_descr;
           subctx.kb = ((naslctxt *) parm)->kb;
           subctx.tree = ((naslctxt*) parm)->tree;
           $$ = NULL;
@@ -763,7 +764,12 @@ init_nasl_ctx(naslctxt* pc, const char* name)
     filename = full_name;
   snprintf (key_path, sizeof (key_path), "signaturecheck:%s", filename);
   timestamp = kb_item_get_int (pc->kb, key_path);
-  if (timestamp > 0)
+
+  /* We never use the mtime of a .nasl/.inc file as integrity check during
+   * the script load up. A complete verification is done in this case.
+   * Once it has been uploaded in the nvticache it is enough to just check
+   * the mtime. */
+  if (timestamp > 0 && pc->exec_descr == 0)
     {
       struct stat file_stat;
 
@@ -796,14 +802,19 @@ init_nasl_ctx(naslctxt* pc, const char* name)
       int ret;
       char *check = file_checksum (full_name, checksum_algorithm);
 
+      snprintf (key_path, sizeof (key_path), "signaturecheck:%s", filename);
       ret = strcmp (check, checksum);
       if (ret)
-        g_warning ("checksum for %s not matching", full_name);
+        {
+          kb_del_items (pc->kb, key_path);
+          g_warning ("checksum for %s not matching", full_name);
+        }
       else
         {
-          snprintf (key_path, sizeof (key_path), "signaturecheck:%s", filename);
+          kb_del_items (pc->kb, key_path);
           kb_item_add_int (pc->kb, key_path, time (NULL));
         }
+
       g_free (full_name);
       g_free (checksum);
       g_free (check);

@@ -52,6 +52,8 @@ total_loading_plugins (void);
 /* From nasl_plugins.c */
 int
 nasl_plugin_add (char *, char *);
+int
+nasl_file_check (const char *, const char *);
 
 int
 nasl_plugin_launch (struct scan_globals *, struct in6_addr *, GSList *, kb_t,
