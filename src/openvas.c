@@ -216,6 +216,33 @@ validate_pref_type_value (gchar *type, gchar *value)
 }
 
 /**
+ * @brief Stores a file type plugin preference
+ *
+ * @details File types are stored in a hash list and only the file
+ * name is stored as preference.
+ *
+ * @param globals Scan_globals struct to stored the file content.
+ * @param key_name The preference key name (OID:PrefID:Type:Name)
+ * @param file The file content to be stored.
+ */
+static void
+prefs_store_file (struct scan_globals *globals, const gchar *key_name,
+                  const gchar *file)
+{
+  char *file_uuid = gvm_uuid_make ();
+  int ret;
+
+  prefs_set (key_name, file_uuid);
+  ret = store_file (globals, file, file_uuid);
+  if (ret)
+    g_debug ("Load preference: Failed to upload file "
+             "for nvt %s preference.",
+             key_name);
+
+  g_free (file_uuid);
+}
+
+/**
  * @brief Store credentials as preferences.
  *
  * @details Credentials are received as json object but must be
@@ -225,10 +252,141 @@ validate_pref_type_value (gchar *type, gchar *value)
  * alive test preferences.
  */
 static void
-write_json_credentials_to_preferences (JsonReader *credentials_reader)
+write_json_credentials_to_preferences (struct scan_globals *globals,
+                                       JsonReader *credentials_reader)
 {
-  // TODO: handle credentials
-  (void *) credentials_reader;
+  int j, num_cred;
+
+  num_cred = json_reader_count_elements (credentials_reader);
+  for (j = 0; j < num_cred; j++)
+    {
+      const char *service = NULL;
+      const char *username = NULL;
+      const char *password = NULL;
+
+      json_reader_read_element (credentials_reader, j);
+      service = json_reader_get_string_value (credentials_reader);
+
+      json_reader_read_member (credentials_reader, "username");
+      username = json_reader_get_string_value (credentials_reader);
+      json_reader_end_member (credentials_reader);
+
+      json_reader_read_member (credentials_reader, "password");
+      password = json_reader_get_string_value (credentials_reader);
+      json_reader_end_member (credentials_reader);
+
+      // SSH Service
+      if (!g_strcmp0 (service, "ssh"))
+        {
+          int port;
+          char portstr[6];
+          const char *priv_username;
+          const char *priv_password;
+
+          json_reader_read_member (credentials_reader, "username");
+          priv_username = json_reader_get_string_value (credentials_reader);
+          json_reader_end_member (credentials_reader);
+
+          json_reader_read_member (credentials_reader, "password");
+          priv_password = json_reader_get_string_value (credentials_reader);
+          json_reader_end_member (credentials_reader);
+
+          // SSH port
+          if (json_reader_read_member (credentials_reader, "port"))
+            {
+              port = json_reader_get_int_value (credentials_reader);
+              if (port > 65535 || port < 1)
+                {
+                  g_warning ("Port for SSH is out of range (1-65535): %d",
+                             port);
+                  json_reader_end_member (
+                    credentials_reader); // close port node
+                  json_reader_end_member (
+                    credentials_reader); // close service node
+                  continue;
+                }
+            }
+          else
+            {
+              port = 22;
+              g_warning ("Missing port number for ssh credentials. Using "
+                         "default port 22.");
+            }
+          json_reader_end_member (credentials_reader); // close port node
+
+          g_snprintf (portstr, sizeof (portstr), "%d", port);
+          prefs_set ("auth_port_ssh", portstr);
+
+          // Credential type
+          if (json_reader_read_member (credentials_reader, "credential_type"))
+            {
+              const char *cred_type = NULL;
+              int err = 0;
+              cred_type = json_reader_get_string_value (credentials_reader);
+
+              if (!g_strcmp0 (cred_type, "up"))
+                {
+                  prefs_set ("1.3.6.1.4.1.25623.1.0.103591:3:password:SSH "
+                             "password (unsafe!):",
+                             password ? password : "");
+                }
+              else if (!g_strcmp0 (cred_type, "usk"))
+                {
+                  const char *private;
+
+                  json_reader_read_member (credentials_reader, "private");
+                private
+                  = json_reader_get_string_value (credentials_reader);
+                  json_reader_end_member (credentials_reader);
+
+                  prefs_set ("1.3.6.1.4.1.25623.1.0.103591:2:password:SSH key "
+                             "passphrase:",
+                             password ? password : "");
+                  prefs_store_file (
+                    globals,
+                    "1.3.6.1.4.1.25623.1.0.103591:4:file:SSH private key:",
+                    private ? private : "");
+                }
+              else if (cred_type)
+                {
+                  g_warning (
+                    "Unknown Credential Type for SSH: %s Use 'up' for Username "
+                    "+ Password or 'usk' for Username + SSH Key.",
+                    cred_type);
+                  err = 1;
+                }
+              else
+                {
+                  g_warning (
+                    "Missing Credential Type for SSH. Use 'up' for Username + "
+                    "Password or 'usk' for Username + SSH Key.");
+                  err = 1;
+                }
+              // close credential type node
+              json_reader_end_member (credentials_reader);
+              if (err == 1)
+                {
+                  json_reader_end_member (
+                    credentials_reader); // close service node
+                  continue;
+                }
+
+              prefs_set ("1.3.6.1.4.1.25623.1.0.103591:1:entry:SSH login:",
+                         username ? username : "");
+              prefs_set ("1.3.6.1.4.1.25623.1.0.103591:7:entry:SSH privilege "
+                         "login name:",
+                         priv_username ? priv_username : "");
+              prefs_set ("1.3.6.1.4.1.25623.1.0.103591:8:password:SSH "
+                         "privilege password:",
+                         priv_password ? priv_password : "");
+
+              // close service node
+              json_reader_end_member (credentials_reader);
+            }
+        }
+
+      json_reader_end_element (credentials_reader);
+    }
 }
 
 /**
@@ -310,33 +468,6 @@ get_json_value (JsonReader *value_reader)
       value = g_strdup_printf ("%ld", json_reader_get_int_value (value_reader));
     }
   return value;
-}
-
-/**
- * @brief Stores a file type plugin preference
- *
- * @details File types are stored in a hash list and only the file
- * name is stored as preference.
- *
- * @param globals Scan_globals struct to stored the file content.
- * @param key_name The preference key name (OID:PrefID:Type:Name)
- * @param file The file content to be stored.
- */
-static void
-prefs_store_file (struct scan_globals *globals, const gchar *key_name,
-                  const gchar *file)
-{
-  char *file_uuid = gvm_uuid_make ();
-  int ret;
-
-  prefs_set (key_name, file_uuid);
-  ret = store_file (globals, file, file_uuid);
-  if (ret)
-    g_debug ("Load preference: Failed to upload file "
-             "for nvt %s preference.",
-             key_name);
-
-  g_free (file_uuid);
 }
 
 /**
@@ -590,7 +721,7 @@ write_json_to_preferences (struct scan_globals *globals, char *json, int len)
           if (!strcmp (key, "plugins"))
             write_json_plugins_to_preferences (globals, reader);
           else if (!strcmp (key, "credentials"))
-            write_json_credentials_to_preferences (reader);
+            write_json_credentials_to_preferences (globals, reader);
           else if (!strcmp (key, "alive"))
             write_json_alive_test_to_preferences (reader);
           else
