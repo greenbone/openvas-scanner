@@ -26,30 +26,40 @@
 
 #include "scanneraux.h" /* for struct script_infos */
 
-typedef enum
-{
-  ERRMSG,
-  HOST_START,
-  HOST_END,
-  LOG,
-  HOST_DETAIL,
-  ALARM,
-  DEADHOST,
-  HOSTS_COUNT
-} msg_t;
+#include <eulabeia/types.h> /* for EULABEIA_RESULT_TYPE_* */
 
 /*
  *  Messages generated from scan process.
  */
+void
+set_scan_status (const char *, const char *);
+
+void
+send_failure (const char *, const char *);
+
+void
+send_host_count (const char *, const char *);
 
 /*
  * Messages generated from host processes.
  */
 void
-host_message_nvt_timeout (const gchar *, const gchar *, const gchar *);
+host_message_nvt_timeout (const char *, const char *, const char *);
 
 void
-host_message (msg_t, const gchar *, const gchar *);
+host_message (enum eulabeia_result_type, const char *, const char *);
+
+void
+host_message_host_dead (const char *, const char *);
+
+int
+send_host_progress (const char *, const char *, int);
+
+void
+send_host_start (const char *, const char *);
+
+void
+send_host_end (const char *, const char *);
 
 /*
  * Messages generated from plugin processes.

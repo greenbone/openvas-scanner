@@ -162,7 +162,7 @@ update_running_processes (kb_t kb)
                       /* Check if host is still alive and send a message
                          if it is dead. */
                       if (check_host_still_alive (kb, hostname) == 0)
-                        host_message (ERRMSG, hostname,
+                        host_message (EULABEIA_RESULT_TYPE_ERRMSG, hostname,
                                       "Host has been marked as dead. "
                                       "Too many NVT_TIMEOUTs.");
                     }

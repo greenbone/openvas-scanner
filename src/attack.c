@@ -28,6 +28,7 @@
 #include "../misc/network.h"          /* for auth_printf */
 #include "../misc/nvt_categories.h"   /* for ACT_INIT */
 #include "../misc/pcap_openvas.h"     /* for v6_is_local_ip */
+#include "../misc/reporting.h"        /* set_scan_status */
 #include "../misc/table_driven_lsc.h" /*for make_table_driven_lsc_info_json_str */
 #include "../nasl/nasl_debug.h"       /* for nasl_*_filename */
 #include "hosts.h"
@@ -62,6 +63,8 @@
 #include <unistd.h>   /* for close() */
 
 #define ERR_HOST_DEAD -1
+
+#define HOST_DEAD_PROGRESS_CODE -1
 
 #define MAX_FORK_RETRIES 10
 /**
@@ -129,179 +132,6 @@ set_kb_readable (int host_kb_index)
   connect_main_kb (&main_kb);
   kb_item_add_int_unique (main_kb, "internal/dbindex", host_kb_index);
   kb_lnk_reset (main_kb);
-}
-
-static void
-send_failure (char *error)
-{
-  char *topic_send = NULL, *msg_send = NULL;
-  struct EulabeiaMessage *msg = NULL;
-
-  g_warning ("%s: send failure %s", __func__, error);
-  const char *context;
-
-  int rc;
-  struct EulabeiaFailure failure;
-
-  context = prefs_get ("mqtt_context");
-  kb_t main_kb = NULL;
-  connect_main_kb (&main_kb);
-  char *scan_id = kb_item_get_str (main_kb, ("internal/scanid"));
-  if (scan_id == NULL)
-    {
-      goto exit;
-    }
-  msg = eulabeia_initialize_message (EULABEIA_INFO_STATUS, EULABEIA_SCAN, NULL,
-                                     NULL);
-  failure.id = scan_id;
-  failure.error = error;
-
-  topic_send = eulabeia_calculate_topic (EULABEIA_INFO_START_FAILURE,
-                                         EULABEIA_SCAN, context, NULL);
-
-  if ((msg_send = eulabeia_failure_message_to_json (msg, &failure)) == NULL)
-    {
-      g_warning ("%s: unable to create failure.start.scan json message",
-                 __func__);
-      goto exit;
-    }
-
-  if ((rc = mqtt_publish (topic_send, msg_send)) != 0)
-    g_warning ("%s: publish of status.scan failed (%d)", __func__, rc);
-
-exit:
-  eulabeia_message_destroy (&msg);
-  g_free (scan_id);
-  g_free (topic_send);
-  g_free (msg_send);
-}
-
-/**
- * @brief Set scan status via mqtt. This helps to identify the state of the
- * scan.
- *
- * @param[in] status Status to set.
- */
-static void
-set_scan_status (char *status)
-{
-  char *topic_send = NULL, *msg_send = NULL;
-  struct EulabeiaMessage *msg = NULL;
-
-  const char *context;
-
-  int rc;
-  struct EulabeiaStatus estatus;
-
-  context = prefs_get ("mqtt_context");
-  kb_t main_kb = NULL;
-  connect_main_kb (&main_kb);
-  char *scan_id = kb_item_get_str (main_kb, ("internal/scanid"));
-  if (scan_id == NULL)
-    {
-      goto exit;
-    }
-  msg = eulabeia_initialize_message (EULABEIA_INFO_STATUS, EULABEIA_SCAN, NULL,
-                                     NULL);
-  estatus.id = scan_id;
-  estatus.status = status;
-
-  topic_send = eulabeia_calculate_topic (EULABEIA_INFO_STATUS, EULABEIA_SCAN,
-                                         context, NULL);
-
-  if ((msg_send = eulabeia_status_message_to_json (msg, &estatus)) == NULL)
-    {
-      g_warning ("%s: unable to create status.scan json message", __func__);
-      goto exit;
-    }
-
-  if ((rc = mqtt_publish (topic_send, msg_send)) != 0)
-    g_warning ("%s: publish of status.scan failed (%d)", __func__, rc);
-
-exit:
-  eulabeia_message_destroy (&msg);
-  g_free (scan_id);
-  g_free (topic_send);
-  g_free (msg_send);
-}
-
-/**
- * @brief Send status to the client that the host is dead
- *
- * Originally the progress status is of the format
- * "current_host/launched/total". Current host is the ip_str of the current host
- * which is vulnerability tested. Launched is the number of plguins(VTs) which
- * got already started. Total is the total number of plugins which will be
- * started for the current host. But here we use the format "current_host/0/-1"
- * for implicit singalling that the host ist dead.
- *
- * @param main_kb Kb to use
- * @param ip_str str representation of host ip
- *
- * @return 0 on success, -1 on failure.
- */
-static int
-comm_send_status_host_dead (kb_t main_kb, char *ip_str)
-{
-  // implicit status code. Originally launched/total plugins
-  const gchar *host_dead_status_code = "0/-1";
-  const gchar *topic = "internal/status";
-  gchar *status;
-
-  // exact same restriction as comm_send_status() just to make it consistent
-  if (strlen (ip_str) > 1998)
-    return -1;
-  status = g_strjoin ("/", ip_str, host_dead_status_code, NULL);
-  kb_item_push_str (main_kb, topic, status);
-  g_free (status);
-
-  return 0;
-}
-
-/**
- * @brief Sends the progress status of of a host's scan.
- *
- * Status format "current_host/launched/total".
- * Current host is the ip_str of the current host which is vulnerability tested.
- * Launched is the number of plguins(VTs) which got already started.
- * Total is the total number of plugins which will be started for the current
- * host.
- *
- * @param main_kb Kb to use.
- * @param ip_str str representation of host ip
- * @param curr  Currently launched plugins (VTs) for the host
- * @param max   Maximum number of plugins which will be launched for the host
- *
- * @return 0 on success, -1 on error.
- */
-static int
-comm_send_status (kb_t main_kb, char *ip_str, int curr, int max)
-{
-  char status_buf[2048];
-
-  if (!ip_str || !main_kb)
-    return -1;
-
-  if (strlen (ip_str) > (sizeof (status_buf) - 50))
-    return -1;
-
-  g_snprintf (status_buf, sizeof (status_buf), "%s/%d/%d", ip_str, curr, max);
-  kb_item_push_str (main_kb, "internal/status", status_buf);
-  kb_lnk_reset (main_kb);
-
-  return 0;
-}
-
-static void
-message_to_client (kb_t kb, const char *msg, const char *ip_str,
-                   const char *port, const char *type)
-{
-  char *buf;
-
-  buf = g_strdup_printf ("%s|||%s|||%s|||%s||| |||%s", type, ip_str ?: "",
-                         ip_str ?: "", port ?: " ", msg ?: "No error.");
-  kb_item_push_str (kb, "internal/results", buf);
-  g_free (buf);
 }
 
 static void
@@ -637,7 +467,7 @@ attack_host (struct scan_globals *globals, struct in6_addr *ip, GSList *vhosts,
   host_kb = kb;
   host_vhosts = vhosts;
   kb_item_set_int (kb, "internal/hostpid", getpid ());
-  host_set_time (main_kb, ip_str, "HOST_START");
+  send_host_start (globals->scan_id, ip_str);
   kb_lnk_reset (main_kb);
   proctitle_set ("openvas: testing %s", ip_str);
   kb_lnk_reset (kb);
@@ -675,17 +505,9 @@ attack_host (struct scan_globals *globals, struct in6_addr *ip, GSList *vhosts,
                */
               if (e == ERR_HOST_DEAD)
                 {
-                  char buffer[2048];
-
-                  g_snprintf (
-                    buffer, sizeof (buffer),
-                    "LOG|||%s||| |||general/Host_Details||| |||<host><detail>"
-                    "<name>Host dead</name><value>1</value><source>"
-                    "<description/><type/><name/></source></detail></host>",
-                    ip_str);
-                  kb_item_push_str (main_kb, "internal/results", buffer);
-
-                  comm_send_status_host_dead (main_kb, ip_str);
+                  host_message_host_dead (globals->scan_id, ip_str);
+                  send_host_progress (globals->scan_id, ip_str,
+                                      HOST_DEAD_PROGRESS_CODE);
                   goto host_died;
                 }
               else if (e == ERR_NO_FREE_SLOT)
@@ -724,7 +546,9 @@ attack_host (struct scan_globals *globals, struct in6_addr *ip, GSList *vhosts,
               && !scan_is_stopped ())
             {
               last_status = (cur_plug * 100) / num_plugs + 2;
-              if (comm_send_status (main_kb, ip_str, cur_plug, num_plugs) < 0)
+              if (send_host_progress (globals->scan_id, ip_str,
+                                      (cur_plug * 100) / num_plugs)
+                  < 0)
                 goto host_died;
             }
           cur_plug++;
@@ -747,7 +571,7 @@ attack_host (struct scan_globals *globals, struct in6_addr *ip, GSList *vhosts,
   if (!scan_is_stopped ())
     {
       int ret;
-      ret = comm_send_status (main_kb, ip_str, num_plugs, num_plugs);
+      ret = send_host_progress (globals->scan_id, ip_str, 100);
       if (ret == 0)
         all_plugs_launched = 1;
     }
@@ -759,7 +583,7 @@ host_died:
                globals->scan_id, ip_str);
   pluginlaunch_stop ();
   plugins_scheduler_free (sched);
-  host_set_time (main_kb, ip_str, "HOST_END");
+  send_host_end (globals->scan_id, ip_str);
 }
 
 /*
@@ -820,7 +644,7 @@ vhosts_to_str (GSList *list)
  * @brief Check if any deprecated prefs are in pref table and print warning.
  */
 static void
-check_deprecated_prefs ()
+check_deprecated_prefs (const char *scan_id)
 {
   const gchar *source_iface = prefs_get ("source_iface");
   const gchar *ifaces_allow = prefs_get ("ifaces_allow");
@@ -831,7 +655,6 @@ check_deprecated_prefs ()
   if (source_iface || ifaces_allow || ifaces_deny || sys_ifaces_allow
       || sys_ifaces_deny)
     {
-      kb_t main_kb = NULL;
       gchar *msg = NULL;
 
       msg = g_strdup_printf (
@@ -844,9 +667,7 @@ check_deprecated_prefs ()
         sys_ifaces_deny ? "sys_ifaces_deny (scanner only setting)" : "");
       g_warning ("%s: %s", __func__, msg);
 
-      connect_main_kb (&main_kb);
-      message_to_client (main_kb, msg, NULL, NULL, "ERRMSG");
-      kb_lnk_reset (main_kb);
+      send_failure (scan_id, msg);
       g_free (msg);
     }
 }
@@ -919,11 +740,11 @@ attack_start (struct attack_start_args *args)
   if (ret_host_auth < 0)
     {
       if (ret_host_auth == -1)
-        message_to_client (kb, "Host access denied.", ip_str, NULL, "ERRMSG");
+        host_message (EULABEIA_RESULT_TYPE_ERRMSG, ip_str,
+                      "Host access denied.");
       else
-        message_to_client (kb, "Host access denied (system-wide restriction.)",
-                           ip_str, NULL, "ERRMSG");
-
+        host_message (EULABEIA_RESULT_TYPE_ERRMSG, ip_str,
+                      "Host access denied (system-wide restriction.)");
       kb_item_set_str (kb, "internal/host_deny", "True", 0);
       g_warning ("Host %s access denied.", ip_str);
       return;
@@ -1142,7 +963,8 @@ attack_network (struct scan_globals *globals)
   kb_t host_kb, main_kb;
   GSList *unresolved;
   char buf[96];
-  check_deprecated_prefs ();
+
+  check_deprecated_prefs (globals->scan_id);
 
   gboolean test_alive_hosts_only = prefs_get_bool ("test_alive_hosts_only");
   gvm_hosts_t *alive_hosts_list = NULL;
@@ -1154,6 +976,8 @@ attack_network (struct scan_globals *globals)
   if (check_kb_access ())
     {
       g_warning ("No access to redis kb");
+      send_failure (globals->scan_id, "No access to redis kb");
+
       return;
     }
   /* Init and check Target List */
@@ -1161,18 +985,18 @@ attack_network (struct scan_globals *globals)
   if (hostlist == NULL)
     {
       g_warning ("Target list is empty");
+      send_failure (globals->scan_id, "Target list is empty");
+
       return;
     }
   /* Verify the port range is a valid one */
   port_range = prefs_get ("port_range");
   if (validate_port_range (port_range))
     {
-      send_failure ("Invalid port list. Ports must be in the range [1-65535]");
-      connect_main_kb (&main_kb);
-      message_to_client (
-        main_kb, "Invalid port list. Ports must be in the range [1-65535]",
-        NULL, NULL, "ERRMSG");
-      kb_lnk_reset (main_kb);
+      g_warning ("%s: send failure %s", __func__,
+                 "Invalid port list. Ports must be in the range [1-65535]");
+      send_failure (globals->scan_id,
+                    "Invalid port list. Ports must be in the range [1-65535]");
 
       return;
     }
@@ -1193,10 +1017,8 @@ attack_network (struct scan_globals *globals)
                   "Some plugins have not been launched.",
                   plugins_init_error);
 
-      connect_main_kb (&main_kb);
       g_warning ("%s", buf);
-      message_to_client (main_kb, buf, NULL, NULL, "ERRMSG");
-      kb_lnk_reset (main_kb);
+      send_failure (globals->scan_id, buf);
     }
   max_hosts = get_max_hosts_number ();
   max_checks = get_max_checks_number ();
@@ -1205,15 +1027,12 @@ attack_network (struct scan_globals *globals)
     {
       char *buffer;
       buffer = g_strdup_printf ("Invalid target list: %s.", hostlist);
-      connect_main_kb (&main_kb);
       g_warning ("%s", buffer);
-      message_to_client (main_kb, buffer, NULL, NULL, "ERRMSG");
+      send_failure (globals->scan_id, buf);
       g_free (buffer);
       /* Send the hosts count to the client as -1,
        * because the invalid target list.*/
-      message_to_client (main_kb, INVALID_TARGET_LIST, NULL, NULL,
-                         "HOSTS_COUNT");
-      kb_lnk_reset (main_kb);
+      send_host_count (globals->scan_id, INVALID_TARGET_LIST);
       g_warning ("Invalid target list. Scan terminated.");
       goto stop;
     }
@@ -1231,10 +1050,7 @@ attack_network (struct scan_globals *globals)
   /* Send the hosts count to the client, after removing duplicated and
    * unresolved hosts.*/
   g_snprintf (buf, sizeof (buf), "%d", gvm_hosts_count (hosts));
-  connect_main_kb (&main_kb);
-  message_to_client (main_kb, buf, NULL, NULL, "HOSTS_COUNT");
-  kb_lnk_reset (main_kb);
-
+  send_host_count (globals->scan_id, buf);
   apply_hosts_excluded (hosts);
 
   host = gvm_hosts_next (hosts);
@@ -1247,7 +1063,7 @@ attack_network (struct scan_globals *globals)
              globals->scan_id, gvm_hosts_count (hosts), hostlist, max_hosts,
              max_checks);
 
-  set_scan_status ("running");
+  set_scan_status (globals->scan_id, "running");
 
   if (test_alive_hosts_only)
     {
@@ -1491,5 +1307,5 @@ stop:
   if (alive_hosts_list)
     gvm_hosts_free (alive_hosts_list);
 
-  set_scan_status ("finished");
+  set_scan_status (globals->scan_id, "finished");
 }
