@@ -181,30 +181,6 @@ target_link_libraries (openvas openvas_nasl_shared ${LIBOPENVAS_NASL_LDFLAGS}
 
 ## Tests
 
-add_executable (attack-test
-                EXCLUDE_FROM_ALL
-                attack_tests.c debug_utils.c
-                hosts.c nasl_plugins.c openvas.c
-                pluginlaunch.c pluginload.c
-                pluginscheduler.c plugs_req.c
-                processes.c sighand.c utils.c)
-
-set_target_properties (attack-test PROPERTIES LINKER_LANGUAGE C)
-
-add_test (attack-test attack-test)
-
-target_link_libraries (attack-test openvas_nasl_shared cgreen
-                       ${LIBOPENVAS_NASL_LDFLAGS}
-                       ${LIBOPENVAS_MISC_LDFLAGS}
-                       Eulabeia::Eulabeia 
-                       ${LIBGVM_BASE_LDFLAGS}
-                       ${LIBGVM_BOREAS_LDFLAGS}
-                       ${GLIB_LDFLAGS} ${GCRYPT_LDFLAGS}
-                       ${EXECINFO_LDFLAGS} ${PCAP_LDFLAGS}
-                       ${LINKER_HARDENING_FLAGS} ${CMAKE_THREAD_LIBS_INIT}
-                       ${GLIB_JSON_LDFLAGS}
-                       -Wl,--wrap=redis_push_str)
-
 ## Static analysis
 
 add_custom_target (cppcheck COMMENT "Running cppcheck..."
