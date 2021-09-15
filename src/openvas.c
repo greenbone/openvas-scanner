@@ -34,6 +34,7 @@
  */
 
 #include "../misc/plugutils.h"     /* nvticache_free */
+#include "../misc/reporting.h"     /* for send_failure */
 #include "../misc/vendorversion.h" /* for vendor_version_set */
 #include "attack.h"                /* for attack_network */
 #include "debug_utils.h"           /* for init_sentry */
@@ -850,6 +851,7 @@ attack_network_init (struct scan_globals *globals, const gchar *config_file)
   if (plugins_cache_init ())
     {
       g_message ("Failed to initialize nvti cache.");
+      send_failure (globals->scan_id, "Failed to initialize nvti cache.");
       nvticache_reset ();
       exit (1);
     }
