@@ -383,7 +383,16 @@ write_json_credentials_to_preferences (struct scan_globals *globals,
               // close service node
               json_reader_end_member (credentials_reader);
             }
-        }
+        } // End SSH Service
+
+      // SMB Service
+      else if (!g_strcmp0 (service, "smb"))
+        {
+          prefs_set ("1.3.6.1.4.1.25623.1.0.90023:1:entry:SMB login:",
+                     username ? username : "");
+          prefs_set ("1.3.6.1.4.1.25623.1.0.90023:2:password:SMB password:",
+                     password ? password : "");
+        } // End SMB Service
 
       json_reader_end_element (credentials_reader);
     }
