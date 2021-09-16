@@ -86,6 +86,7 @@ add_executable (openvas attack.c debug_utils.c hosts.c
                 main.c nasl_plugins.c openvas.c
                 pluginlaunch.c pluginload.c
                 pluginscheduler.c plugs_req.c
+                preference_handler.c
                 processes.c sighand.c utils.c)
 
 set_target_properties (openvas PROPERTIES LINKER_LANGUAGE C)
