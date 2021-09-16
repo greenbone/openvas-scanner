@@ -284,11 +284,11 @@ write_json_credentials_to_preferences (struct scan_globals *globals,
           const char *priv_username;
           const char *priv_password;
 
-          json_reader_read_member (credentials_reader, "username");
+          json_reader_read_member (credentials_reader, "priv_username");
           priv_username = json_reader_get_string_value (credentials_reader);
           json_reader_end_member (credentials_reader);
 
-          json_reader_read_member (credentials_reader, "password");
+          json_reader_read_member (credentials_reader, "priv_password");
           priv_password = json_reader_get_string_value (credentials_reader);
           json_reader_end_member (credentials_reader);
 
