@@ -264,6 +264,7 @@ write_json_credentials_to_preferences (struct scan_globals *globals,
       const char *username = NULL;
       const char *password = NULL;
 
+      // Read service element
       json_reader_read_element (credentials_reader, j);
       service = json_reader_get_string_value (credentials_reader);
 
