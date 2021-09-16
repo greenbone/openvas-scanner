@@ -380,9 +380,6 @@ write_json_credentials_to_preferences (struct scan_globals *globals,
               prefs_set ("1.3.6.1.4.1.25623.1.0.103591:8:password:SSH "
                          "privilege password:",
                          priv_password ? priv_password : "");
-
-              // close service node
-              json_reader_end_member (credentials_reader);
             }
         } // End SSH Service
 
