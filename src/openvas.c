@@ -402,7 +402,87 @@ write_json_credentials_to_preferences (struct scan_globals *globals,
             password ? password : "");
         } // End ESXi Service
 
-      json_reader_end_element (credentials_reader);
+      // SNMP Service
+      else if (!g_strcmp0 (service, "snmp"))
+        {
+          const char *community;
+          const char *auth_algorithm;
+          const char *privacy_password;
+          const char *privacy_algorithm;
+
+          json_reader_read_member (credentials_reader, "privacy_algorithm");
+          privacy_algorithm = json_reader_get_string_value (credentials_reader);
+          json_reader_end_member (credentials_reader);
+
+          json_reader_read_member (credentials_reader, "privacy_password");
+          privacy_password = json_reader_get_string_value (credentials_reader);
+          json_reader_end_member (credentials_reader);
+
+          json_reader_read_member (credentials_reader, "auth_algorithm");
+          auth_algorithm = json_reader_get_string_value (credentials_reader);
+          json_reader_end_member (credentials_reader);
+
+          json_reader_read_member (credentials_reader, "community");
+          community = json_reader_get_string_value (credentials_reader);
+          json_reader_end_member (credentials_reader);
+
+          if (privacy_algorithm == NULL && privacy_password != NULL)
+            {
+              g_warning ("When no privacy algorithm is used, the privacy "
+                         "password also has to be empty.");
+              json_reader_end_member (credentials_reader); // close service node
+              continue;
+            }
+          else if (g_strcmp0 (privacy_algorithm, "aes")
+                   && g_strcmp0 (privacy_algorithm, "aes"))
+            {
+              g_warning ("Unknown privacy algorithm used: %s. Use 'aes', 'des' "
+                         "or '' (none).",
+                         privacy_algorithm);
+              json_reader_end_member (credentials_reader); // close service node
+              continue;
+            }
+
+          if (auth_algorithm == NULL)
+            {
+              g_warning ("Missing authentication algorithm for SNMP. Use 'md5' "
+                         "or 'sha1'.");
+              json_reader_end_member (credentials_reader); // close service node
+              continue;
+            }
+          else if (g_strcmp0 (auth_algorithm, "md5")
+                   && g_strcmp0 (auth_algorithm, "sha1"))
+            {
+              g_warning (
+                "Unknown authentication algorithm: %s. Use 'md5' or 'sha1'.",
+                auth_algorithm);
+              json_reader_end_member (credentials_reader); // close service node
+              continue;
+            }
+
+          prefs_set ("1.3.6.1.4.1.25623.1.0.105076:1:password:SNMP Community:",
+                     community ? community : "");
+          prefs_set ("1.3.6.1.4.1.25623.1.0.105076:2:entry:SNMPv3 Username:",
+                     username ? username : "");
+          prefs_set ("1.3.6.1.4.1.25623.1.0.105076:3:password:SNMPv3 Password:",
+                     password ? password : "");
+          prefs_set ("1.3.6.1.4.1.25623.1.0.105076:4:radio:SNMPv3 "
+                     "Authentication Algorithm:",
+                     auth_algorithm ? auth_algorithm : "");
+          prefs_set (
+            "1.3.6.1.4.1.25623.1.0.105076:5:password:SNMPv3 Privacy Password:",
+            privacy_password ? privacy_password : "");
+          prefs_set (
+            "1.3.6.1.4.1.25623.1.0.105076:6:password:SNMPv3 Privacy Algorithm:",
+            privacy_algorithm ? privacy_algorithm : "");
+        } // End SNMP Service
+      else if (service != NULL)
+        g_warning ("Unknown service type for credential: %s.", service);
+      else
+        g_warning ("Missing service type for credential.");
+
+      // close service node
+      json_reader_end_member (credentials_reader);
     }
 }
 
