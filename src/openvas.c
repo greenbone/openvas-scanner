@@ -394,6 +394,16 @@ write_json_credentials_to_preferences (struct scan_globals *globals,
                      password ? password : "");
         } // End SMB Service
 
+      // ESXi Service
+      else if (!g_strcmp0 (service, "esxi"))
+        {
+          prefs_set ("1.3.6.1.4.1.25623.1.0.105058:1:entry:ESXi login name:",
+                     username ? username : "");
+          prefs_set (
+            "1.3.6.1.4.1.25623.1.0.105058:2:password:ESXi login password:",
+            password ? password : "");
+        } // End ESXi Service
+
       json_reader_end_element (credentials_reader);
     }
 }
