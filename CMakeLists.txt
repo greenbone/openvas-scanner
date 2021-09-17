@@ -201,6 +201,13 @@ configure_file (VERSION.in VERSION @ONLY)
 configure_file (tools/greenbone-nvt-sync.in tools/greenbone-nvt-sync @ONLY)
 configure_file (src/openvas_log_conf.cmake_in src/openvas_log.conf)
 
+## Testing
+
+enable_testing ()
+
+add_custom_target (tests
+                   DEPENDS pref-handler-test pcap-test)
+
 ## Program
 
 if (ENABLE_COVERAGE)
