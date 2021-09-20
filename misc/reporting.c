@@ -184,6 +184,7 @@ set_scan_status (const char *global_scan_id, const char *status)
   msg = eulabeia_initialize_message (EULABEIA_INFO_STATUS, EULABEIA_SCAN, NULL,
                                      NULL);
 
+  estatus = g_malloc0 (sizeof (*estatus));
   estatus->id = g_strdup (global_scan_id);
   estatus->status = g_strdup (status);
 
@@ -221,6 +222,7 @@ send_failure (const char *global_scan_id, const char *error)
   char *topic_send = NULL, *msg_send = NULL;
   int rc;
 
+  failure = g_malloc0 (sizeof (*failure));
   context = prefs_get ("mqtt_context");
   msg = eulabeia_initialize_message (EULABEIA_INFO_STATUS, EULABEIA_SCAN, NULL,
                                      NULL);
