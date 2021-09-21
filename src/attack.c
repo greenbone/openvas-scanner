@@ -1058,10 +1058,10 @@ attack_network (struct scan_globals *globals)
     goto stop;
   hosts_init (max_hosts);
 
-  g_message ("Vulnerability scan %s started: Target has %d hosts: "
-             "%s, with max_hosts = %d and max_checks = %d",
-             globals->scan_id, gvm_hosts_count (hosts), hostlist, max_hosts,
-             max_checks);
+  g_debug ("Vulnerability scan %s started: Target has %d hosts: "
+           "%s, with max_hosts = %d and max_checks = %d.",
+           globals->scan_id, gvm_hosts_count (hosts), hostlist, max_hosts,
+           max_checks);
 
   set_scan_status (globals->scan_id, "running");
 
@@ -1082,7 +1082,6 @@ attack_network (struct scan_globals *globals)
           "to create thread.",
           __func__);
       set_alive_detection_tid (tid);
-      g_debug ("%s: started alive detection.", __func__);
 
       for (host = get_host_from_queue (alive_hosts_kb, &ad_finished);
            !host && !ad_finished && !scan_is_stopped ();
