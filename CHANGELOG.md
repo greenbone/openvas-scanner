@@ -25,6 +25,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 - Use fchmod to change file permission instead of on open to prevent race conditions [854](https://github.com/greenbone/openvas-scanner/pull/854)
 - Fix plugins upload [#878](https://github.com/greenbone/openvas/pull/878)
 - Fix Error Message when NVTI chache init failed [#885](https://github.com/greenbone/openvas/pull/885)
+- Fix potential segfault.[#884](https://github.com/greenbone/openvas/pull/884)
 
 [21.4.3]: https://github.com/greenbone/openvas-scanner/compare/v21.4.2...gvmd-21.04
 
