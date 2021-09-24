@@ -31,6 +31,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 - Use fchmod to change file permission instead of on open to prevent race conditions [854](https://github.com/greenbone/openvas-scanner/pull/854)
 - Several minor potential security risks in different files, spotted by Code QL [854](https://github.com/greenbone/openvas-scanner/pull/854)
 - Fix plugins upload. Backport #878 [#880](https://github.com/greenbone/openvas/pull/880)
+- Fix Error Message when NVTI chache init failed. Backport #885 [#887](https://github.com/greenbone/openvas/pull/887)
 
 ### Removed
 - Remove handling of source_iface related preferences. [#730](https://github.com/greenbone/openvas/pull/730)
@@ -55,6 +56,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 ### Fixed
 - Fix interrupted scan, when the process table is full. [#832](https://github.com/greenbone/openvas-scanner/pull/832)
 - Use fchmod to change file permission instead of on open to prevent race conditions [854](https://github.com/greenbone/openvas-scanner/pull/854)
+- Fix plugins upload [#878](https://github.com/greenbone/openvas/pull/878)
+- Fix Error Message when NVTI chache init failed [#885](https://github.com/greenbone/openvas/pull/885)
 
 [21.4.3]: https://github.com/greenbone/openvas-scanner/compare/v21.4.2...openvas-21.04
 

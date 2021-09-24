@@ -421,7 +421,7 @@ attack_network_init (struct scan_globals *globals, const gchar *config_file)
     {
       g_message ("Failed to initialize nvti cache.");
       send_message_to_client_and_finish_scan (
-        "ERRMSG||||||||||||NVTI cache initialization failed");
+        "ERRMSG||| ||| ||| ||| |||NVTI cache initialization failed");
       nvticache_reset ();
       exit (1);
     }
