@@ -341,6 +341,23 @@ openvas_print_start_msg ()
 #else
   g_message ("openvas %s started", OPENVAS_VERSION);
 #endif
+<<<<<<< HEAD
+=======
+
+  if (plugins_cache_init ())
+    {
+      g_message ("Failed to initialize nvti cache.");
+      send_message_to_client_and_finish_scan (
+        "ERRMSG||| ||| ||| ||| |||NVTI cache initialization failed");
+      exit (1);
+    }
+  init_signal_handlers ();
+
+  globals = g_malloc0 (sizeof (struct scan_globals));
+
+  scanner_thread (globals);
+  exit (0);
+>>>>>>> a15e58d3 (fix error msg)
 }
 
 /**
