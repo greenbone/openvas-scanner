@@ -411,7 +411,7 @@ start_single_task_scan (void)
     {
       g_message ("Failed to initialize nvti cache.");
       send_message_to_client_and_finish_scan (
-        "ERRMSG||||||||||||NVTI cache initialization failed");
+        "ERRMSG||| ||| ||| ||| |||NVTI cache initialization failed");
       exit (1);
     }
   init_signal_handlers ();
