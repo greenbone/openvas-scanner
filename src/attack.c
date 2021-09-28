@@ -1294,7 +1294,7 @@ attack_network (struct scan_globals *globals)
 
           if (host)
             {
-              gvm_hosts_add (alive_hosts_list, host);
+              gvm_hosts_add (alive_hosts_list, gvm_duplicate_host (host));
             }
           else
             g_debug ("%s: got NULL host, stop/finish scan", __func__);
