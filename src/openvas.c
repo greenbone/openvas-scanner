@@ -215,6 +215,22 @@ validate_pref_type_value (gchar *type, gchar *value)
   (void *) value;
   return TRUE;
 }
+
+/**
+ * @brief Store VT preferences for host_alive_detection.nasl.
+ *
+ * @details Store VT preferences which are used by host_alive_detection.nasl to
+ * determine the method which was responsible for the alive detection.
+ *
+ * @param alive_test_bitflag Methods of alive detection.
+ */
+static void
+write_alive_test_vt_preferences (int alive_test_bitflag)
+{
+  // TODO: Set the vt preferences
+  (void) alive_test_bitflag;
+}
+
 #pragma GCC diagnostic pop
 
 /**
@@ -273,6 +289,9 @@ write_json_alive_test_to_preferences (JsonReader *alive_test_reader)
   prefs_set ("ALIVE_TEST_PORTS", ports_string->str);
   g_string_free (ports_string, TRUE);
   json_reader_end_member (alive_test_reader);
+
+  // 4. Write vt preferences for host_alive_detection.nasl
+  write_alive_test_vt_preferences (alive_test_bitflag);
 }
 
 /**
