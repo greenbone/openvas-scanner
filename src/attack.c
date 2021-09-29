@@ -1279,6 +1279,7 @@ attack_network (struct scan_globals *globals)
       if (test_alive_hosts_only)
         {
           struct in6_addr tmpaddr;
+          gvm_host_t *buf;
 
           /* Boolean signalling if alive detection finished. */
           gboolean ad_finished = FALSE;
@@ -1289,13 +1290,16 @@ attack_network (struct scan_globals *globals)
               fork_sleep (1);
             }
 
-          if (gvm_host_get_addr6 (host, &tmpaddr) == 0)
-            host = gvm_host_find_in_hosts (host, &tmpaddr, hosts);
+          if (host && gvm_host_get_addr6 (host, &tmpaddr) == 0)
+            {
+              buf = host;
+              host = gvm_host_find_in_hosts (host, &tmpaddr, hosts);
+              gvm_host_free (buf);
+              buf = NULL;
+            }
 
           if (host)
-            {
-              gvm_hosts_add (alive_hosts_list, gvm_duplicate_host (host));
-            }
+            gvm_hosts_add (alive_hosts_list, gvm_duplicate_host (host));
           else
             g_debug ("%s: got NULL host, stop/finish scan", __func__);
         }
