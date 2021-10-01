@@ -79,7 +79,7 @@ write_json_credentials_to_preferences (struct scan_globals *globals,
 {
   int j, num_cred;
 
-  num_cred = json_reader_count_elements (credentials_reader);
+  num_cred = json_reader_count_members (credentials_reader);
   for (j = 0; j < num_cred; j++)
     {
       const char *service = NULL;
@@ -88,7 +88,7 @@ write_json_credentials_to_preferences (struct scan_globals *globals,
 
       // Read service element
       json_reader_read_element (credentials_reader, j);
-      service = json_reader_get_string_value (credentials_reader);
+      service = json_reader_get_member_name (credentials_reader);
 
       json_reader_read_member (credentials_reader, "username");
       username = json_reader_get_string_value (credentials_reader);
