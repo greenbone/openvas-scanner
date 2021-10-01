@@ -41,7 +41,7 @@ AfterEach (Handler)
 /* Json Strings for testing */
 static const gchar *g_json_str =
   "{\"ssh\": {\r\n   \"username\": \"some_username\",\r\n   \"password\": "
-  "\"super_secret\",\r\n   \"crdential_type\": \"us\",\r\n   \"port\": "
+  "\"super_secret\",\r\n   \"credential_type\": \"up\",\r\n   \"port\": "
   "22022\r\n   },\r\n \"smb\": {\r\n   \"username\": \"some_username\",\r\n   "
   "\"password\": \"super_secret\"\r\n  }\r\n}";
 
@@ -81,25 +81,43 @@ __wrap_prefs_store_file (struct scan_globals *globals, const gchar *key_name,
 Ensure (Handler, credentials_error)
 {
   struct scan_globals *globals = NULL;
-  JsonNode *j_node_credentials = NULL;
+  JsonParser *parser;
   JsonReader *cred_reader = NULL;
+
+  parser = json_parser_new ();
+  json_parser_load_from_data (parser, g_json_str, strlen(g_json_str), NULL);
+  cred_reader = json_reader_new (json_parser_get_root (parser));
+
+  assert_true (json_reader_is_object (cred_reader));
   store_file_use_real = 0;
   store_prefs_use_real = 0;
-  GError *error = NULL;
-
-  j_node_credentials = json_from_string (g_json_str, &error);
-  assert_not_equal (j_node_credentials, NULL);
-
-  if (error != NULL)
-    {
-      fprintf (stderr, "Unable to read file: %s\n", error->message);
-      g_error_free (error);
-    }
-  cred_reader = json_reader_new (j_node_credentials);
 
   write_json_credentials_to_preferences (globals, cred_reader);
-
   assert_that (prefs_get ("auth_port_ssh"), is_equal_to_string ("22022"));
+}
+
+
+static const gchar *g_json_str_port_error =
+  "{\"ssh\": {\r\n   \"username\": \"some_username\",\r\n   \"password\": "
+  "\"super_secret\",\r\n   \"credential_type\": \"up\",\r\n   \"port\": "
+  "66600\r\n   },\r\n \"smb\": {\r\n   \"username\": \"some_username\",\r\n   "
+  "\"password\": \"super_secret\"\r\n  }\r\n}";
+Ensure (Handler, ssh_credentials_port_error)
+{
+  struct scan_globals *globals = NULL;
+  JsonParser *parser;
+  JsonReader *cred_reader = NULL;
+
+  parser = json_parser_new ();
+  json_parser_load_from_data (parser, g_json_str_port_error, strlen(g_json_str_port_error), NULL);
+  cred_reader = json_reader_new (json_parser_get_root (parser));
+
+  assert_true (json_reader_is_object (cred_reader));
+  store_file_use_real = 0;
+  store_prefs_use_real = 0;
+
+  write_json_credentials_to_preferences (globals, cred_reader);
+  assert_that (prefs_get ("auth_port_ssh"), is_null);
 }
 
 TestSuite *
@@ -107,6 +125,8 @@ handler_preferences_tests ()
 {
   TestSuite *suite = create_test_suite ();
   add_test_with_context (suite, Handler, credentials_error);
+  add_test_with_context (suite, Handler, ssh_credentials_port_error);
+
   return suite;
 }
 
