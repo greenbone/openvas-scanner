@@ -185,7 +185,7 @@ target_link_libraries (openvas openvas_nasl_shared ${LIBOPENVAS_NASL_LDFLAGS}
 enable_testing ()
 
 set (PREF_HANDLER_TEST_LINKER_WRAP_OPTIONS
-  "-Wl,-wrap,prefs_store_file,--wrap=store_file")
+  "-Wl,--wrap,prefs_store_file,--wrap=store_file,--wrap,nvticache_initialized")
 
 add_executable (pref-handler-test
                 EXCLUDE_FROM_ALL
