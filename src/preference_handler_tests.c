@@ -47,9 +47,6 @@ static const gchar *g_json_str =
   "22022\r\n   },\r\n \"smb\": {\r\n   \"username\": \"some_username\",\r\n   "
   "\"password\": \"super_secret\"\r\n  }\r\n}";
 
-#define SUCCESS 1
-#define FAILURE 0
-
 /* Wrap store_file */
 __attribute__ ((weak)) int
 __real_store_file (__attribute__ ((unused)) struct scan_globals *globals,
