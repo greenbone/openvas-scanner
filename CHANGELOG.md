@@ -19,7 +19,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
   - [#853](https://github.com/greenbone/openvas/pull/853)
   - [#862](https://github.com/greenbone/openvas/pull/862)
 - Add `find_all` to eregmatch() nasl function. Backport PR #875. [#876](https://github.com/greenbone/openvas/pull/876)
-- Fix Segmentation fault when freeing hosts and alive hosts [#888](https://github.com/greenbone/openvas/pull/888)
+- Add nasl functions for checking ssl/tls secure renegotiation and performing re-handshake. [#889](https://github.com/greenbone/openvas/pull/889)
 
 ### Changed
 - function script_bugtraq_id getting skipped, linter warns. [#724](https://github.com/greenbone/openvas/pull/724)
@@ -33,6 +33,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 - Several minor potential security risks in different files, spotted by Code QL [854](https://github.com/greenbone/openvas-scanner/pull/854)
 - Fix plugins upload. Backport #878 [#880](https://github.com/greenbone/openvas/pull/880)
 - Fix Error Message when NVTI chache init failed. Backport #885 [#887](https://github.com/greenbone/openvas/pull/887)
+- Fix Segmentation fault when freeing hosts and alive hosts [#888](https://github.com/greenbone/openvas/pull/888)
 
 ### Removed
 - Remove handling of source_iface related preferences. [#730](https://github.com/greenbone/openvas/pull/730)

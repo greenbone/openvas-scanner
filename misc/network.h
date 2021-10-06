@@ -160,6 +160,11 @@ int
 stream_set_timeout (int, int);
 
 int
+socket_ssl_safe_renegotiation_status (int);
+int
+socket_ssl_do_handshake (int);
+
+int
 socket_negotiate_ssl (int, openvas_encaps_t, struct script_infos *);
 
 void
