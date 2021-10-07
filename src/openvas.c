@@ -39,6 +39,7 @@
 #include "attack.h"                /* for attack_network */
 #include "debug_utils.h"           /* for init_sentry */
 #include "pluginlaunch.h"          /* for init_loading_shm */
+#include "preference_handler.h"    /* write_json_*_to_preferences */
 #include "processes.h"             /* for create_process */
 #include "sighand.h"               /* for openvas_signal */
 #include "utils.h"                 /* for store_file */
@@ -216,22 +217,6 @@ validate_pref_type_value (gchar *type, gchar *value)
 }
 
 /**
- * @brief Store credentials as preferences.
- *
- * @details Credentials are received as json object but must be
- * stored either as plugin preferences or boreas preferences.
- *
- * @param alive_test_reader Json reader pointing to the object with
- * alive test preferences.
- */
-static void
-write_json_credentials_to_preferences (JsonReader *credentials_reader)
-{
-  // TODO: handle credentials
-  (void *) credentials_reader;
-}
-
-/**
  * @brief Store alive test as preferences.
  *
  * @details Alive tests are received as json object but must be
@@ -310,33 +295,6 @@ get_json_value (JsonReader *value_reader)
       value = g_strdup_printf ("%ld", json_reader_get_int_value (value_reader));
     }
   return value;
-}
-
-/**
- * @brief Stores a file type plugin preference
- *
- * @details File types are stored in a hash list and only the file
- * name is stored as preference.
- *
- * @param globals Scan_globals struct to stored the file content.
- * @param key_name The preference key name (OID:PrefID:Type:Name)
- * @param file The file content to be stored.
- */
-static void
-prefs_store_file (struct scan_globals *globals, const gchar *key_name,
-                  const gchar *file)
-{
-  char *file_uuid = gvm_uuid_make ();
-  int ret;
-
-  prefs_set (key_name, file_uuid);
-  ret = store_file (globals, file, file_uuid);
-  if (ret)
-    g_debug ("Load preference: Failed to upload file "
-             "for nvt %s preference.",
-             key_name);
-
-  g_free (file_uuid);
 }
 
 /**
@@ -590,7 +548,7 @@ write_json_to_preferences (struct scan_globals *globals, char *json, int len)
           if (!strcmp (key, "plugins"))
             write_json_plugins_to_preferences (globals, reader);
           else if (!strcmp (key, "credentials"))
-            write_json_credentials_to_preferences (reader);
+            write_json_credentials_to_preferences (globals, reader);
           else if (!strcmp (key, "alive"))
             write_json_alive_test_to_preferences (reader);
           else
