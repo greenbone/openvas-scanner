@@ -31,6 +31,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 ### Fixed
 - Use fchmod to change file permission instead of on open to prevent race conditions [860](https://github.com/greenbone/openvas-scanner/pull/860)
 - Fix plugins upload. Backport #878. [#879](https://github.com/greenbone/openvas/pull/879)
+- Fix Segmentation fault when freeing hosts and alive hosts [#888](https://github.com/greenbone/openvas/pull/888)
 
 ## [21.10] (unreleased)
 
