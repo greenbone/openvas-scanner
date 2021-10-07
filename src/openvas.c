@@ -197,8 +197,6 @@ init_signal_handlers (void)
   openvas_signal (SIGCHLD, sighand_chld);
 }
 
-#pragma GCC diagnostic push
-#pragma GCC diagnostic warning "-Wunused-value"
 /**
  * @brief Check if the preference value matches with the type
  *
@@ -211,12 +209,10 @@ static gboolean
 validate_pref_type_value (gchar *type, gchar *value)
 {
   // TODO: validate types
-  (void *) type;
-  (void *) value;
+  (void) type;
+  (void) value;
   return TRUE;
 }
-
-#pragma GCC diagnostic pop
 
 /**
  * @brief Get the type and the name of a plugin preferences.
@@ -310,6 +306,7 @@ write_json_plugin_prefs_to_preferences (struct scan_globals *globals,
   if (!json_reader_is_object (single_vt_reader))
     {
       // we ignore prefs_by_id when it is not an object (e.g. when NULL)
+      json_reader_end_member (single_vt_reader);
       return;
     }
   num_plug_prefs = json_reader_count_members (single_vt_reader);
@@ -384,7 +381,6 @@ write_json_plugins_to_preferences (struct scan_globals *globals,
   GString *values = NULL;
   g_debug ("%s: entered", __func__);
 
-  json_reader_read_member (reader, "single_vts");
   num_plugins = json_reader_count_elements (reader);
 
   key = "plugin_set";
@@ -490,6 +486,11 @@ write_json_to_preferences (struct scan_globals *globals, char *json, int len)
       // parse list comma separated into single string
       if (json_reader_is_array (reader))
         {
+          if (!strcmp (key, "plugins"))
+            {
+              write_json_plugins_to_preferences (globals, reader);
+              continue;
+            }
           if (!strcmp (key, "hosts"))
             {
               key = "TARGET";
@@ -530,9 +531,7 @@ write_json_to_preferences (struct scan_globals *globals, char *json, int len)
       // parse list semicolon separated into single string
       if (json_reader_is_object (reader))
         {
-          if (!strcmp (key, "plugins"))
-            write_json_plugins_to_preferences (globals, reader);
-          else if (!strcmp (key, "credentials"))
+          if (!strcmp (key, "credentials"))
             write_json_credentials_to_preferences (globals, reader);
           else if (!strcmp (key, "alive_test"))
             write_json_alive_test_to_preferences (reader);
@@ -573,7 +572,7 @@ ask_for_scan_prefs_from_client (const char *scan_id)
   msg_id = gvm_uuid_make ();
   group_id = gvm_uuid_make ();
 
-  g_snprintf (topic_send, sizeof (topic_send), "%s/scan/cmd/director", context);
+  g_snprintf (topic_send, sizeof (topic_send), "%s/scan/cmd/+", context);
   g_snprintf (msg_send, sizeof (msg_send),
               "{\"message_id\":\"%s\","
               "\"group_id\":\"%s\","
