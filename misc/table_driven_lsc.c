@@ -1,5 +1,4 @@
-/* Portions Copyright (C) 2009-2021 Greenbone Networks GmbH
- * Based on work Copyright (C) 1998 - 2003 Renaud Deraison
+/* Copyright (C) 2021 Greenbone Networks GmbH
  *
  * SPDX-License-Identifier: GPL-2.0-or-later
  *
@@ -20,7 +19,10 @@
 
 /**
  * @file table_drive_lsc.c
- * @brief Function to start a table driven lsc.
+ * @brief Functions related to table driven lsc (local security checks).
+ *
+ * Functions needed for creating a json string with all the neccessary data
+ * for starting a table driven lsc.
  */
 
 #include "table_driven_lsc.h"
@@ -74,15 +76,12 @@ add_packages_str_to_list (JsonBuilder *builder, const gchar *packages)
  * JSON result consists of scan_id, message type, host ip,  hostname, port
  * together with proto, OID, result message and uri.
  *
- * @param scan_id     Scan Id.
- * @param kb
+ * @param scan_id     ID of the scan.
  * @param ip_str      IP string of host.
- * @param hostname    Name of host.
- * @param module      Module to be used. The OS base name or package manager
- * name
- * @param os_release  OS release
+ * @param hostname    DNS name of the host to scan.
+ * @param os_release  Name of the Operating System of the host.
  * @param package_list The installed package list in the target system to be
- * evaluated
+ * evaluated.
  *
  * @return JSON string on success. Must be freed by caller. NULL on error.
  */
