@@ -86,6 +86,7 @@ add_executable (openvas attack.c debug_utils.c hosts.c
                 main.c nasl_plugins.c openvas.c
                 pluginlaunch.c pluginload.c
                 pluginscheduler.c plugs_req.c
+                preference_handler.c
                 processes.c sighand.c utils.c)
 
 set_target_properties (openvas PROPERTIES LINKER_LANGUAGE C)
@@ -180,6 +181,27 @@ target_link_libraries (openvas openvas_nasl_shared ${LIBOPENVAS_NASL_LDFLAGS}
                        ${GLIB_JSON_LDFLAGS})
 
 ## Tests
+
+enable_testing ()
+
+set (PREF_HANDLER_TEST_LINKER_WRAP_OPTIONS
+  "-Wl,--wrap,prefs_store_file,--wrap=store_file,--wrap,nvticache_initialized")
+
+add_executable (pref-handler-test
+                EXCLUDE_FROM_ALL
+                preference_handler_tests.c)
+add_test (pref-handler-test pref-handler-test)
+target_include_directories (pref-handler-test PRIVATE ${CGREEN_INCLUDE_DIRS})
+target_link_libraries (pref-handler-test cgreen
+  ${PREF_HANDLER_TEST_LINKER_WRAP_OPTIONS}
+                       ${LIBGVM_BASE_LDFLAGS}
+                       ${LIBGVM_UTIL_LDFLAGS}
+                       ${GLIB_LDFLAGS}
+                       ${GLIB_JSON_LDFLAGS}
+                       ${LINKER_HARDENING_FLAGS})
+
+add_custom_target (tests-pref-handler
+  DEPENDS pref-handler-test)
 
 ## Static analysis
 

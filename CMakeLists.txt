@@ -231,6 +231,6 @@ add_subdirectory (doc)
 enable_testing ()
 
 add_custom_target (tests
-                   DEPENDS pcap-test)
+                   DEPENDS pref-handler-test pcap-test)
 
 ## End
