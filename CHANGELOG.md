@@ -19,6 +19,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 ### Fixed
 - Backport #832. Fix interrupted scan, when the process table is full. [#835](https://github.com/greenbone/openvas-scanner/pull/835)
 - Fix Segmentation fault when freeing hosts and alive hosts [#893](https://github.com/greenbone/openvas/pull/893)
+- Backport #884. Fix potential segfault.[#892](https://github.com/greenbone/openvas/pull/892)
 
 [20.8.4]: https://github.com/greenbone/openvas-scanner/compare/v20.8.3...openvas-20.08
 
