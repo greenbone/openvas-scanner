@@ -4,7 +4,7 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
-## [21.4.3] - Unreleased
+## [21.4.3] - Unreleased - 2021-10-11
 ### Added
 - Add nasl function sftp_enabled_check() to check if sftp subsystem is enabled in the target.
   - Backport [#853](https://github.com/greenbone/openvas/pull/853)
@@ -19,8 +19,6 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
   - OPENVAS_RUN_DIR is /run/ospd by default now
   - OPENVAS_FEED_LOCK_PATH is /var/lib/openvas/feed-update.lock by default now
 
-### Deprecated
-### Removed
 ### Fixed
 - Fix interrupted scan, when the process table is full. [#832](https://github.com/greenbone/openvas-scanner/pull/832)
 - Use fchmod to change file permission instead of on open to prevent race conditions [854](https://github.com/greenbone/openvas-scanner/pull/854)
