@@ -1354,7 +1354,7 @@ stop:
                gvm_hosts_count (hosts));
 
   gvm_hosts_free (hosts);
-  if (test_alive_hosts_only)
+  if (alive_hosts_list)
     gvm_hosts_free (alive_hosts_list);
 
   set_scan_status ("finished");
