@@ -5,8 +5,7 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 
-## [20.8.4] (unreleased)
-### Added
+## [20.8.4] - 2021-10-11
 ### Changed
 - Changed defaults for installation locations [#826](https://github.com/greenbone/openvas-scanner/pull/826)
   - SYSCONFDIR is /etc by default now
@@ -14,15 +13,12 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
   - OPENVAS_RUN_DIR is /run/ospd by default now
   - OPENVAS_FEED_LOCK_PATH is /var/lib/openvas/feed-update.lock by default now
 
-### Deprecated
-### Removed
 ### Fixed
 - Backport #832. Fix interrupted scan, when the process table is full. [#835](https://github.com/greenbone/openvas-scanner/pull/835)
 - Fix Segmentation fault when freeing hosts and alive hosts [#893](https://github.com/greenbone/openvas/pull/893)
 - Backport #884. Fix potential segfault.[#892](https://github.com/greenbone/openvas/pull/892)
 
 [20.8.4]: https://github.com/greenbone/openvas-scanner/compare/v20.8.3...openvas-20.08
-
 
 ## [20.8.3] - 2021-08-03
 ### Fixed
