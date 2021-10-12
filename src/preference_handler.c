@@ -306,3 +306,81 @@ write_json_credentials_to_preferences (struct scan_globals *globals,
       json_reader_end_member (credentials_reader);
     }
 }
+
+/**
+ * @brief Store VT preferences for host_alive_detection.nasl.
+ *
+ * @details Store VT preferences which are used by host_alive_detection.nasl to
+ * determine the method which was responsible for the alive detection.
+ *
+ * @param alive_test_bitflag Methods of alive detection.
+ */
+static void
+write_alive_test_vt_preferences (int alive_test_bitflag)
+{
+  // TODO: Set the vt preferences
+  (void) alive_test_bitflag;
+}
+
+/**
+ * @brief Store alive test as preferences.
+ *
+ * @details Alive tests are received as json object but must be
+ * stored either as plugin preferences or boreas preferences.
+ *
+ * @param alive_test_reader Json reader pointing to the object with
+ * alive test preferences.
+ */
+void
+write_json_alive_test_to_preferences (JsonReader *alive_test_reader)
+{
+  gboolean test_alive_hosts_only = TRUE;
+  int alive_test_bitflag = 2; // default ICMP
+  char at_bitflag_str[12];
+  GString *ports_string = NULL;
+  int j, num_ports, port;
+
+  // 1. Set test_alive_hosts_only
+  json_reader_read_member (alive_test_reader, "test_alive_hosts_only");
+  test_alive_hosts_only = json_reader_get_boolean_value (alive_test_reader);
+  prefs_set ("test_alive_hosts_only", test_alive_hosts_only ? "yes" : "no");
+  json_reader_end_member (alive_test_reader);
+
+  // 2. Set alive detection method
+  json_reader_read_member (alive_test_reader, "methods_bitflag");
+  alive_test_bitflag = json_reader_get_int_value (alive_test_reader);
+  g_snprintf (at_bitflag_str, sizeof (at_bitflag_str), "%d",
+              alive_test_bitflag);
+  prefs_set ("ALIVE_TEST", at_bitflag_str);
+  json_reader_end_member (alive_test_reader);
+
+  // 3. Set port list
+  if (json_reader_read_member (alive_test_reader, "ports"))
+    {
+      num_ports = json_reader_count_elements (alive_test_reader);
+      for (j = 0; j < num_ports; j++)
+        {
+          json_reader_read_element (alive_test_reader, j);
+          port = json_reader_get_int_value (alive_test_reader);
+          if (port)
+            {
+              if (j == 0)
+                {
+                  ports_string = g_string_new (NULL);
+                  g_string_append_printf (ports_string, "%d", port);
+                }
+              else
+                {
+                  g_string_append_printf (ports_string, ",%d", port);
+                }
+            }
+          json_reader_end_element (alive_test_reader);
+        }
+      prefs_set ("ALIVE_TEST_PORTS", ports_string->str);
+      g_string_free (ports_string, TRUE);
+    }
+  json_reader_end_member (alive_test_reader);
+
+  // 4. Write vt preferences for host_alive_detection.nasl
+  write_alive_test_vt_preferences (alive_test_bitflag);
+}
