@@ -26,7 +26,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 - Fix Error Message when NVTI chache init failed [#885](https://github.com/greenbone/openvas/pull/885)
 - Fix potential segfault.[#884](https://github.com/greenbone/openvas/pull/884)
 
-[21.4.3]: https://github.com/greenbone/openvas-scanner/compare/v21.4.2...gvmd-21.04
+[21.4.3]: https://github.com/greenbone/openvas-scanner/compare/v21.4.2...stable
 
 ## [21.4.2] - 2021-08-03
 ### Fixed
@@ -52,7 +52,9 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 - Initialize the the kb to store results for openvas-nasl [#735](https://github.com/greenbone/openvas/pull/735)
 - Fix unittest. Mock kb_lnk_reset. [#748](https://github.com/greenbone/openvas/pull/748)
 
-[21.4.1]: https://github.com/greenbone/openvas/compare/v21.4.0...v21.4.1
+### Removed
+
+[21.4.1]: https://github.com/greenbone/openvas/compare/v21.4.1...stable
 
 ## [21.4.0] - 2021-04-15
 
@@ -76,7 +78,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 ### Removed
 - Use the nvticache name from gvm-libs, defined in nvticache.h. [#578](https://github.com/greenbone/openvas/pull/578)
 
-[21.4.0]: https://github.com/greenbone/openvas/compare/openvas-20.08...v21.4.0
+[21.4.0]: https://github.com/greenbone/openvas/compare/oldstable...v21.4.0
 
 
 ## [20.8.4] (unreleased)
@@ -92,7 +94,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 ### Removed
 ### Fixed
 
-[20.8.4]: https://github.com/greenbone/openvas-scanner/compare/v20.8.3...openvas-20.08
+[20.8.4]: https://github.com/greenbone/openvas-scanner/compare/v20.8.3...oldstable
 
 ## [20.8.3] - 2021-08-03
 ### Fixed
