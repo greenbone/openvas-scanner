@@ -1,26 +1,26 @@
 pull_request_rules:
-  # backports from master branch
-  - name: backport master patches to 21.04 branch
+  # backports from main branch
+  - name: backport main patches to stable branch
     conditions:
-      - base=master
-      - label=backport-to-21.04
+      - base=main
+      - label=backport-to-stable
     actions:
       backport:
         branches:
-          - openvas-21.04
+          - stable
 
-  - name: backport master patches to 20.08 branch
+  - name: backport main patches to oldstable branch
     conditions:
-      - base=master
-      - label=backport-to-20.08
+      - base=main
+      - label=backport-to-oldstable
     actions:
       backport:
         branches:
-          - openvas-20.08
+          - oldstable
 
-  - name: backport master patches to middleware branch
+  - name: backport main patches to middleware branch
     conditions:
-      - base=master
+      - base=main
       - label=backport-to-middleware
     actions:
       backport:
@@ -28,27 +28,27 @@ pull_request_rules:
           - middleware
 
   # backports from upcoming release branch
-  - name: backport 21.04 patches to master branch
+  - name: backport stable patches to main branch
     conditions:
-      - base=openvas-21.04
-      - label=backport-to-master
+      - base=stable
+      - label=backport-to-main
     actions:
       backport:
         branches:
-          - master
+          - main
 
-  - name: backport 21.04 patches to 20.08 branch
+  - name: backport stable patches to oldstable branch
     conditions:
-      - base=openvas-21.04
-      - label=backport-to-20.08
+      - base=stable
+      - label=backport-to-oldstable
     actions:
       backport:
         branches:
-          - openvas-20.08
+          - oldstable
 
-  - name: backport 21.04 patches to middleware branch
+  - name: backport stable patches to middleware branch
     conditions:
-      - base=openvas-21.04
+      - base=stable
       - label=backport-to-middleware
     actions:
       backport:
@@ -56,27 +56,27 @@ pull_request_rules:
           - middleware
 
   # backports from current release branch
-  - name: backport 20.08 patches to master branch
+  - name: backport oldstable patches to main branch
     conditions:
-      - base=openvas-20.08
-      - label=backport-to-master
+      - base=oldstable
+      - label=backport-to-main
     actions:
       backport:
         branches:
-          - master
+          - main
 
-  - name: backport 20.08 patches to 21.04 branch
+  - name: backport oldstable patches to stable branch
     conditions:
-      - base=openvas-20.08
-      - label=backport-to-21.04
+      - base=oldstable
+      - label=backport-to-stable
     actions:
       backport:
         branches:
-          - openvas-21.04
+          - stable
 
-  - name: backport 20.08 patches to middleware branch
+  - name: backport oldstable patches to middleware branch
     conditions:
-      - base=openvas-20.08
+      - base=oldstable
       - label=backport-to-middleware
     actions:
       backport:
