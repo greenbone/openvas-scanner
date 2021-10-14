@@ -2,9 +2,9 @@ name: "CodeQL"
 
 on:
   push:
-    branches: [ master, openvas-20.08, openvas-21.04 ]
+    branches: [ main, oldstable, stable, middleware ]
   pull_request:
-    branches: [ master, openvas-20.08, openvas-21.04 ]
+    branches: [ main, oldstable, stable, middleware ]
   schedule:
     - cron: '30 5 * * 0' # 5:30h on Sundays
 
@@ -16,7 +16,7 @@ jobs:
       actions: read
       contents: read
       security-events: write
-    container: greenbone/build-env-openvas-scanner-master-debian-buster-gcc-core
+    container: greenbone/build-env-openvas-scanner-main-debian-buster-gcc-core
 
     strategy:
       fail-fast: false
@@ -40,8 +40,8 @@ jobs:
         fi
     - name: Select gvm-libs branch
       run: |
-        if [ $OPENVAS_REF = "master" ];                           \
-          then GVM_LIBS_REF="master";                             \
+        if [ $OPENVAS_REF = "main" ];                           \
+          then GVM_LIBS_REF="main";                             \
           else GVM_LIBS_REF=$(echo "$OPENVAS_REF"                 \
                               | sed 's/refs\/.*\///g'             \
                               | sed 's/openvas-/gvm-libs-/g' -);  \

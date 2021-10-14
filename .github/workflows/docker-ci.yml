@@ -2,7 +2,7 @@ name: Build and upload docker images
 
 on:
   push:
-    branches: [ master, openvas-20.08, openvas-21.04 ]
+    branches: [ main, stable, oldstable, middleware ]
 
 jobs:
   upload-testing:
@@ -21,17 +21,9 @@ jobs:
           echo $GITHUB_BASE_REF
           echo $GITHUB_REF
           if [ -n "$GITHUB_BASE_REF" ];                              \
-          then echo "BRANCH=${GITHUB_BASE_REF##*/}" >> $GITHUB_ENV;  \
-          else echo "BRANCH=${GITHUB_REF##*/}" >> $GITHUB_ENV;       \
+          then echo "VERSION=${GITHUB_BASE_REF##*/}" >> $GITHUB_ENV;  \
+          else echo "VERSION=${GITHUB_REF##*/}" >> $GITHUB_ENV;       \
           fi;                                                        \
-      - name: Find version
-        run: |
-          echo $BRANCH
-          if [ $BRANCH = "master" ];                                 \
-          then VERSION=master;                                       \
-          else VERSION=$(echo "$BRANCH" | sed 's/openvas-//g' -);       \
-          fi;
-          echo "VERSION=$VERSION" >> $GITHUB_ENV
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v1
       - name: Login to DockerHub
@@ -69,17 +61,9 @@ jobs:
           echo $GITHUB_BASE_REF
           echo $GITHUB_REF
           if [ -n "$GITHUB_BASE_REF" ];                              \
-          then echo "BRANCH=${GITHUB_BASE_REF##*/}" >> $GITHUB_ENV;  \
-          else echo "BRANCH=${GITHUB_REF##*/}" >> $GITHUB_ENV;       \
+          then echo "VERSION=${GITHUB_BASE_REF##*/}" >> $GITHUB_ENV;  \
+          else echo "VERSION=${GITHUB_REF##*/}" >> $GITHUB_ENV;       \
           fi;                                                        \
-      - name: Find version
-        run: |
-          echo $BRANCH
-          if [ $BRANCH = "master" ];                                 \
-          then VERSION=master;                                       \
-          else VERSION=$(echo "$BRANCH" | sed 's/openvas-//g' -);       \
-          fi;
-          echo "VERSION=$VERSION" >> $GITHUB_ENV
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v1
       - name: Login to DockerHub

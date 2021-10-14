@@ -1,7 +1,7 @@
 # Dockerfile for openvas-scanner-$VERSION-$COMPILER-testing
 
 # Define ARG we use through the build
-ARG VERSION=master
+ARG VERSION=main
 ARG BUILD_TYPE=Debug
 ARG COMPILER=gcc
 
