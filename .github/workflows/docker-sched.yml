@@ -13,7 +13,7 @@ jobs:
         compiler:
           - gcc
           - clang
-        branches: [ master, openvas-20.08, openvas-21.04, middleware ]
+        branches: [ main, oldstable, stable, middleware ]
     steps:
       - name: Checkout
         uses: actions/checkout@v2
@@ -26,26 +26,17 @@ jobs:
         with:
           username: ${{ secrets.DOCKERHUB_USERNAME }}
           password: ${{ secrets.DOCKERHUB_TOKEN }}
-      - name: Find version
-        run: |
-          if [ ${{ matrix.branches }} = "master" ];                              \
-          then VERSION=master;                                                   \
-          elif [ ${{ matrix.branches }} = "middleware" ];                        \
-          then VERSION=middleware;                                               \
-          else VERSION=$(echo "${{ matrix.branches }}" | sed 's/openvas-//g' -); \
-          fi;
-          echo "VERSION=$VERSION" >> $GITHUB_ENV
-      - run: echo "Build and push ${{ github.repository }}-${{ env.VERSION }}-${{matrix.compiler}}-testing"
+      - run: echo "Build and push ${{ github.repository }}-${{  matrix.branches  }}-${{ matrix.compiler }}-testing"
       - name: Build and push
         uses: docker/build-push-action@v2.5.0
         with:
           context: .
           push: true
-          tags: ${{ github.repository }}-${{ env.VERSION }}-${{matrix.compiler}}-testing
+          tags: ${{ github.repository }}-${{  matrix.branches  }}-${{ matrix.compiler }}-testing
           file: .docker/testing/Dockerfile
           build-args: |
-            VERSION=${{ env.VERSION }}
-            COMPILER=${{matrix.compiler}}
+            VERSION=${{ matrix.branches }}
+            COMPILER=${{ matrix.compiler }}
   upload-build:
     needs: upload-testing
     name: "Upload build docker images"
@@ -55,7 +46,7 @@ jobs:
         compiler:
           - gcc
           - clang
-        branches: [ master, openvas-20.08, openvas-21.04, middleware ]
+        branches: [ main, oldstable, stable, middleware ]
     steps:
       - name: Checkout
         uses: actions/checkout@v2
@@ -68,23 +59,14 @@ jobs:
         with:
           username: ${{ secrets.DOCKERHUB_USERNAME }}
           password: ${{ secrets.DOCKERHUB_TOKEN }}
-      - name: Find version
-        run: |
-          if [ ${{ matrix.branches }} = "master" ];                              \
-          then VERSION=master;                                                   \
-          elif [ ${{ matrix.branches }} = "middleware" ];                        \
-          then VERSION=middleware;                                               \
-          else VERSION=$(echo "${{ matrix.branches }}" | sed 's/openvas-//g' -); \
-          fi;
-          echo "VERSION=$VERSION" >> $GITHUB_ENV
-      - run: echo "Build and push ${{ github.repository }}-${{ env.VERSION }}-${{matrix.compiler}}-build"
+      - run: echo "Build and push ${{ github.repository }}-${{ matrix.branches }}-${{matrix.compiler}}-build"
       - name: Build and push
         uses: docker/build-push-action@v2.5.0
         with:
           context: .
           push: true
-          tags: ${{ github.repository }}-${{ env.VERSION }}-${{matrix.compiler}}-build
+          tags: ${{ github.repository }}-${{ matrix.branches }}-${{matrix.compiler}}-build
           file: .docker/build/Dockerfile
           build-args: |
-            VERSION=${{ env.VERSION }}
+            VERSION=${{ matrix.branches }}
             COMPILER=${{matrix.compiler}}
