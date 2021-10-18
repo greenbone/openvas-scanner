@@ -37,4 +37,7 @@ prefs_store_file (struct scan_globals *, const gchar *, const gchar *);
 void
 write_json_credentials_to_preferences (struct scan_globals *, JsonReader *);
 
+void
+write_json_alive_test_to_preferences (JsonReader *);
+
 #endif // PREFERENCE_HANDLER_H

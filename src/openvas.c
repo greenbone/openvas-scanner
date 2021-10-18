@@ -216,21 +216,6 @@ validate_pref_type_value (gchar *type, gchar *value)
   return TRUE;
 }
 
-/**
- * @brief Store alive test as preferences.
- *
- * @details Alive tests are received as json object but must be
- * stored either as plugin preferences or boreas preferences.
- *
- * @param alive_test_reader Json reader pointing to the object with
- * alive test preferences.
- */
-static void
-write_json_alive_test_to_preferences (JsonReader *alive_test_reader)
-{
-  // TODO: handle alive tests
-  (void *) alive_test_reader;
-}
 #pragma GCC diagnostic pop
 
 /**
@@ -549,7 +534,7 @@ write_json_to_preferences (struct scan_globals *globals, char *json, int len)
             write_json_plugins_to_preferences (globals, reader);
           else if (!strcmp (key, "credentials"))
             write_json_credentials_to_preferences (globals, reader);
-          else if (!strcmp (key, "alive"))
+          else if (!strcmp (key, "alive_test"))
             write_json_alive_test_to_preferences (reader);
           else
             g_warning ("%s: unknown object %s", __func__, key);
@@ -582,8 +567,6 @@ ask_for_scan_prefs_from_client (const char *scan_id)
   const char *context;
   int ret;
 
-  // TODO: Get alive test via mqtt
-  prefs_set ("ALIVE_TEST", "2");
   context = prefs_get ("mqtt_context");
 
   // Sned Get Scan

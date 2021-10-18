@@ -20,6 +20,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
   [#806](https://github.com/greenbone/openvas/pull/806)
   [#843](https://github.com/greenbone/openvas/pull/843)
 - Add `find_all` to eregmatch() nasl function. Backport PR #875. [#877](https://github.com/greenbone/openvas/pull/877)
+- Implement setting of alive test prefs from json. [#874](https://github.com/greenbone/openvas/pull/874)
 
 ### Changed
 - Revert [#809](https://github.com/greenbone/openvas/pull/809) and adjust json result format and json lsc info format. [#837](https://github.com/greenbone/openvas/pull/837)
