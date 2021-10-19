@@ -82,16 +82,33 @@ isalldigit (char *str, int len)
  * scanner.
  */
 
+/**
+ * @brief Add timeout preference to VT preferences
+ *
+ * VT timeout is handled as normal VT preference.
+ * Because of backward compatibility issues the timeout preference is always
+ * located at the VT pref location with id NVTPREF_TIMEOUT_ID.
+ *
+ * @param[in] lexic   lexic
+ * @param[in] to      script timeout
+ *
+ * @return FAKE_CELL
+ */
 tree_cell *
 script_timeout (lex_ctxt *lexic)
 {
   nvti_t *nvti = lexic->script_infos->nvti;
   int to = get_int_var_by_num (lexic, 0, -65535);
+  nvtpref_t *np;
+  gchar *timeout;
 
   if (to == -65535)
     return FAKE_CELL;
 
-  nvti_set_timeout (nvti, to ? to : -1);
+  timeout = g_strdup_printf ("%d", to);
+
+  np = nvtpref_new (NVTPREF_TIMEOUT_ID, "timeout", "entry", timeout);
+  nvti_add_pref (nvti, np);
   return FAKE_CELL;
 }
 
