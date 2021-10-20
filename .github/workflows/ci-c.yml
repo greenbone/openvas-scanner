@@ -78,14 +78,18 @@ jobs:
           - Debug
           - Release
         docker_base:
-          - greenbone/openvas-scanner-main-clang-testing
-          - greenbone/openvas-scanner-main-gcc-testing
+          - greenbone/gvm-libs-main-clang-build
+          - greenbone/gvm-libs-main-gcc-build
     container: ${{ matrix.docker_base }}
     env:
       BUILD_TYPE: ${{ matrix.build_type }}
     steps:
       - name: Check out openvas-scanner
         uses: actions/checkout@v2
+      - name: install dependencies
+        run: |
+          apt-get update
+          apt-get install -y bison libksba-dev libpcap-dev libjson-glib-dev
       - name: Configure and compile openvas-scanner
         run: |
           mkdir build && cd build/ &&                \
@@ -95,10 +99,14 @@ jobs:
   scan-build:
     name: Scan-build (clang static analyzer)
     runs-on: ubuntu-latest
-    container: greenbone/openvas-scanner-main-clang-testing
+    container: greenbone/gvm-libs-main-clang-build
     steps:
       - name: Check out openvas-scanner
         uses: actions/checkout@v2
+      - name: install dependencies
+        run: |
+          apt-get update
+          apt-get install -y bison libksba-dev libpcap-dev libjson-glib-dev
       - name: Configure and Scan Build
         run: |
           mkdir build && cd build/ &&                      \
@@ -114,10 +122,14 @@ jobs:
   test-units:
     name: Build and run unit tests
     runs-on: ubuntu-latest
-    container: greenbone/openvas-scanner-main-gcc-testing
+    container: greenbone/gvm-libs-main-gcc-build
     steps:
       - name: Check out openvas-scanner
         uses: actions/checkout@v2
+      - name: install dependencies
+        run: |
+          apt-get update
+          apt-get install -y bison libksba-dev libpcap-dev libjson-glib-dev
       - name: Configure and run unit tests
         run: |
           mkdir build && cd build/ &&             \
