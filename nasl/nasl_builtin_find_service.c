@@ -26,6 +26,7 @@
 #include <ctype.h> /* for tolower() */
 #include <errno.h> /* for errno() */
 #include <glib.h>
+#include <gvm/util/mqtt.h>
 #include <gvm/util/nvticache.h>
 #include <regex.h>     /* for regex_t */
 #include <signal.h>    /* for signal() */
@@ -2528,6 +2529,7 @@ plugin_run_find_service (lex_ctxt *lexic)
           if (sons[i] == 0)
             {
               kb_lnk_reset (kb);
+              mqtt_reset ();
               nvticache_reset ();
               signal (SIGTERM, _exit);
               plugin_do_run (desc, sons_args[i], test_ssl);

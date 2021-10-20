@@ -54,6 +54,7 @@
 #include <gvm/base/proctitle.h> /* for proctitle_set */
 #include <gvm/base/version.h>   /* for gvm_libs_version */
 #include <gvm/util/kb.h>        /* for KB_PATH_DEFAULT */
+#include <gvm/util/mqtt.h>      /* for mqtt_init */
 #include <gvm/util/nvticache.h> /* nvticache_free */
 #include <gvm/util/uuidutils.h> /* gvm_uuid_make */
 #include <netdb.h>              /* for addrinfo */
@@ -409,6 +410,8 @@ send_message_to_client_and_finish_scan (const char *msg)
 void
 attack_network_init (struct scan_globals *globals, const gchar *config_file)
 {
+  const char *mqtt_server_uri;
+
   set_default_openvas_prefs ();
   prefs_config (config_file);
 
@@ -426,6 +429,22 @@ attack_network_init (struct scan_globals *globals, const gchar *config_file)
       exit (1);
     }
   nvticache_reset ();
+
+  /* Init MQTT communication */
+  mqtt_server_uri = prefs_get ("mqtt_server_uri");
+  if (mqtt_server_uri)
+    {
+      if ((mqtt_init (mqtt_server_uri)) != 0)
+        {
+          g_message ("%s: INIT MQTT: FAIL", __func__);
+          send_message_to_client_and_finish_scan (
+            "ERRMSG||| ||| ||| ||| |||MQTT initialization failed");
+        }
+      else
+        {
+          g_message ("%s: INIT MQTT: SUCCESS", __func__);
+        }
+   }
 
   init_signal_handlers ();
 
@@ -531,7 +550,7 @@ openvas (int argc, char *argv[])
   err = init_sentry ();
   err ? /* Sentry is optional */
       : g_message ("Sentry is enabled. This can log sensitive information.");
-
+  
   /* Config file location */
   if (!config_file)
     config_file = OPENVAS_CONF;
