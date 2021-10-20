@@ -20,6 +20,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
   - [#862](https://github.com/greenbone/openvas/pull/862)
 - Add `find_all` to eregmatch() nasl function. Backport PR #875. [#876](https://github.com/greenbone/openvas/pull/876)
 - Add nasl functions for checking ssl/tls secure renegotiation and performing re-handshake. [#889](https://github.com/greenbone/openvas/pull/889)
+- Fix Segmentation fault when freeing hosts and alive hosts [#888](https://github.com/greenbone/openvas/pull/888)
+- Add Notus support via mqtt [#903](https://github.com/greenbone/openvas/pull/903)
 
 ### Changed
 - function script_bugtraq_id getting skipped, linter warns. [#724](https://github.com/greenbone/openvas/pull/724)

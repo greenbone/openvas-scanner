@@ -444,7 +444,7 @@ attack_network_init (struct scan_globals *globals, const gchar *config_file)
         {
           g_message ("%s: INIT MQTT: SUCCESS", __func__);
         }
-   }
+    }
 
   init_signal_handlers ();
 
@@ -550,7 +550,7 @@ openvas (int argc, char *argv[])
   err = init_sentry ();
   err ? /* Sentry is optional */
       : g_message ("Sentry is enabled. This can log sensitive information.");
-  
+
   /* Config file location */
   if (!config_file)
     config_file = OPENVAS_CONF;

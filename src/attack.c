@@ -25,11 +25,11 @@
 
 #include "attack.h"
 
-#include "../misc/network.h"        /* for auth_printf */
-#include "../misc/nvt_categories.h" /* for ACT_INIT */
-#include "../misc/pcap_openvas.h"   /* for v6_is_local_ip */
+#include "../misc/network.h"          /* for auth_printf */
+#include "../misc/nvt_categories.h"   /* for ACT_INIT */
+#include "../misc/pcap_openvas.h"     /* for v6_is_local_ip */
 #include "../misc/table_driven_lsc.h" /*for make_table_driven_lsc_info_json_str */
-#include "../nasl/nasl_debug.h"     /* for nasl_*_filename */
+#include "../nasl/nasl_debug.h"       /* for nasl_*_filename */
 #include "hosts.h"
 #include "pluginlaunch.h"
 #include "pluginload.h"
@@ -49,8 +49,8 @@
 #include <gvm/base/proctitle.h>
 #include <gvm/boreas/alivedetection.h> /* for start_alive_detection() */
 #include <gvm/boreas/boreas_io.h>      /* for get_host_from_queue() */
-#include <gvm/util/nvticache.h>        /* for nvticache_t */
 #include <gvm/util/mqtt.h>
+#include <gvm/util/nvticache.h> /* for nvticache_t */
 #include <pthread.h>
 #include <stdlib.h>   /* for exit() */
 #include <string.h>   /* for strlen() */
