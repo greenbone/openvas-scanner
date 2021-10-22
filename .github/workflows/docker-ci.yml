@@ -32,13 +32,13 @@ jobs:
           username: ${{ secrets.DOCKERHUB_USERNAME }}
           password: ${{ secrets.DOCKERHUB_TOKEN }}
         # this only works with github.ref on push not on pull_request. ;)
-      - run: echo "Build and push ${{ github.repository }}-${{ matrix.compiler }}-testing:${{ matrix.branches }}"
+      - run: echo "Build and push ${{ github.repository }}-${{ matrix.compiler }}-testing:${{ env.VERSION }}"
       - name: Build and push
         uses: docker/build-push-action@v2.5.0
         with:
           context: .
           push: true
-          tags: ${{ github.repository }}-${{ matrix.compiler }}-testing:${{ matrix.branches }}
+          tags: ${{ github.repository }}-${{ matrix.compiler }}-testing:${{ env.VERSION }}
           file: .docker/testing/Dockerfile
           build-args: |
             VERSION=${{ env.VERSION }}
@@ -72,13 +72,13 @@ jobs:
           username: ${{ secrets.DOCKERHUB_USERNAME }}
           password: ${{ secrets.DOCKERHUB_TOKEN }}
         # this only works with github.ref on push not on pull_request. ;)
-      - run: echo "Build and push ${{ github.repository }}-${{ matrix.compiler }}-build:${{ matrix.branches }}"
+      - run: echo "Build and push ${{ github.repository }}-${{ matrix.compiler }}-build:${{ env.VERSION }}"
       - name: Build and push
         uses: docker/build-push-action@v2.5.0
         with:
           context: .
           push: true
-          tags: ${{ github.repository }}-${{ matrix.compiler }}-build:${{ matrix.branches }}
+          tags: ${{ github.repository }}-${{ matrix.compiler }}-build:${{ env.VERSION }}
           file: .docker/build/Dockerfile
           build-args: |
             VERSION=${{ env.VERSION }}
