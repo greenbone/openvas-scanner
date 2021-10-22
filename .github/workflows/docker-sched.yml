@@ -1,8 +1,6 @@
-name: "[Scheduled] Build and upload docker images"
+name: "[Triggered] Build and upload docker images"
 
-on:
-  schedule:
-    - cron: '0 */3 * * *' # every 3h
+on: [repository_dispatch]
 
 jobs:
   upload-testing:
@@ -16,6 +14,7 @@ jobs:
         branches: [ main, oldstable, stable, middleware ]
     steps:
       - name: Checkout
+        if: github.event.action == 'update-images'
         uses: actions/checkout@v2
         with:
           ref: ${{matrix.branches}}
@@ -26,17 +25,18 @@ jobs:
         with:
           username: ${{ secrets.DOCKERHUB_USERNAME }}
           password: ${{ secrets.DOCKERHUB_TOKEN }}
-      - run: echo "Build and push ${{ github.repository }}-${{  matrix.branches  }}-${{ matrix.compiler }}-testing"
+      - run: echo "Build and push ${{ github.repository }}-${{ matrix.compiler }}-testing:${{ matrix.branches }}"
       - name: Build and push
         uses: docker/build-push-action@v2.5.0
         with:
           context: .
           push: true
-          tags: ${{ github.repository }}-${{  matrix.branches  }}-${{ matrix.compiler }}-testing
+          tags: ${{ github.repository }}-${{ matrix.compiler }}-testing:${{ matrix.branches }}
           file: .docker/testing/Dockerfile
           build-args: |
             VERSION=${{ matrix.branches }}
             COMPILER=${{ matrix.compiler }}
+
   upload-build:
     needs: upload-testing
     name: "Upload build docker images"
@@ -49,6 +49,7 @@ jobs:
         branches: [ main, oldstable, stable, middleware ]
     steps:
       - name: Checkout
+        if: github.event.action == 'update-images'
         uses: actions/checkout@v2
         with:
           ref: ${{matrix.branches}}
@@ -59,14 +60,14 @@ jobs:
         with:
           username: ${{ secrets.DOCKERHUB_USERNAME }}
           password: ${{ secrets.DOCKERHUB_TOKEN }}
-      - run: echo "Build and push ${{ github.repository }}-${{ matrix.branches }}-${{matrix.compiler}}-build"
+      - run: echo "Build and push ${{ github.repository }}-${{matrix.compiler}}-build:${{ matrix.branches }}"
       - name: Build and push
         uses: docker/build-push-action@v2.5.0
         with:
           context: .
           push: true
-          tags: ${{ github.repository }}-${{ matrix.branches }}-${{matrix.compiler}}-build
+          tags: ${{ github.repository }}-${{matrix.compiler}}-build:${{ matrix.branches }}
           file: .docker/build/Dockerfile
           build-args: |
             VERSION=${{ matrix.branches }}
-            COMPILER=${{matrix.compiler}}
+            COMPILER=${{ matrix.compiler }}
