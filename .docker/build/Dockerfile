@@ -5,7 +5,7 @@ ARG VERSION=master
 ARG BUILD_TYPE=Debug
 ARG COMPILER=gcc
 
-FROM greenbone/openvas-scanner-$VERSION-$COMPILER-testing
+FROM greenbone/openvas-scanner-$COMPILER-testing:$VERSION
 
 # This will make apt-get install without question
 ARG DEBIAN_FRONTEND=noninteractive
