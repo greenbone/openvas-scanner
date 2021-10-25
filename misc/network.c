@@ -643,7 +643,6 @@ open_SSL_connection (openvas_connection *fp, const char *cert, const char *key,
                    gnutls_strerror (err));
           return -1;
         }
-
       FD_ZERO (&fdr);
       FD_SET (fp->fd, &fdr);
       FD_ZERO (&fdw);
@@ -673,8 +672,110 @@ open_SSL_connection (openvas_connection *fp, const char *cert, const char *key,
     }
 }
 
-/*
- * @brief Upgrade an ENCAPS_IP socket to an SSL/TLS encapsulated one.
+/**
+ * @brief Check if Secure Renegotiation is supported in the server side.
+ *
+ * @param[in]   fd          Socket file descriptor.
+ *
+ * @return 1 if supported, 0 if not supported and less than 0 on error.
+ **/
+int
+socket_ssl_safe_renegotiation_status (int fd)
+{
+  openvas_connection *fp;
+
+  if (!fd_is_stream (fd))
+    {
+      g_message ("%s: Socket %d is not stream", __func__, fd);
+      return -1;
+    }
+  fp = OVAS_CONNECTION_FROM_FD (fd);
+
+  return gnutls_safe_renegotiation_status (fp->tls_session);
+}
+
+/** @brief Do a re-handshake of the TLS/SSL protocol.
+ *
+ * @param[in]   fd          Socket file descriptor.
+ *
+ * @return 1 on success, less than 0 on failure or error.
+ */
+int
+socket_ssl_do_handshake (int fd)
+{
+  int err, d, ret;
+  openvas_connection *fp;
+  time_t tictac;
+  fd_set fdw, fdr;
+  struct timeval to;
+
+  if (!fd_is_stream (fd))
+    {
+      g_message ("%s: Socket %d is not stream", __func__, fd);
+      return -1;
+    }
+  fp = OVAS_CONNECTION_FROM_FD (fd);
+
+  tictac = time (NULL);
+
+  for (;;)
+    {
+      err = gnutls_handshake (fp->tls_session);
+
+      if (err == 0)
+        {
+          g_debug ("no error during handshake");
+          return 1;
+        }
+      if (err != GNUTLS_E_INTERRUPTED && err != GNUTLS_E_AGAIN
+          && err != GNUTLS_E_WARNING_ALERT_RECEIVED)
+        {
+          g_debug ("[%d] %s: %s", getpid (), __func__, gnutls_strerror (err));
+          return -1;
+        }
+      else if (err == GNUTLS_E_WARNING_ALERT_RECEIVED)
+        {
+          int last_alert;
+
+          last_alert = gnutls_alert_get (fp->tls_session);
+          g_debug ("[%d] %s: %s", getpid (), __func__, gnutls_strerror (err));
+
+          g_debug ("* Received alert '%d': %s.\n", last_alert,
+                   gnutls_alert_get_name (last_alert));
+          return err;
+        }
+      FD_ZERO (&fdr);
+      FD_SET (fp->fd, &fdr);
+      FD_ZERO (&fdw);
+      FD_SET (fp->fd, &fdw);
+
+      do
+        {
+          d = tictac + fp->timeout - time (NULL);
+          if (d <= 0)
+            {
+              fp->last_err = ETIMEDOUT;
+              g_debug ("%s: time out", __func__);
+              return -1;
+            }
+          to.tv_sec = d;
+          to.tv_usec = 0;
+          errno = 0;
+          if ((ret = select (fp->fd + 1, &fdr, &fdw, NULL, &to)) <= 0)
+            pid_perror ("select");
+        }
+      while (ret < 0 && errno == EINTR);
+
+      if (ret <= 0)
+        {
+          fp->last_err = ETIMEDOUT;
+          g_debug ("%s: time out", __func__);
+          return -1;
+        }
+    }
+}
+
+/** @brief Upgrade an ENCAPS_IP socket to an SSL/TLS encapsulated one.
  *
  * @param[in]   fd          Socket file descriptor.
  * @param[in]   transport   Encapsulation type.

@@ -7,12 +7,47 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 ## [21.4.3] - Unreleased - 2021-10-11
 ### Added
 - Add nasl function sftp_enabled_check() to check if sftp subsystem is enabled in the target.
+<<<<<<< HEAD
   - Backport [#853](https://github.com/greenbone/openvas/pull/853)
   - Backport [#862](https://github.com/greenbone/openvas/pull/862)
   - Add `find_all` to eregmatch() nasl function [#875](https://github.com/greenbone/openvas/pull/875)
 - Fix Segmentation fault when freeing hosts and alive hosts [#888](https://github.com/greenbone/openvas/pull/888)
 
 ### Changed
+=======
+  - [#853](https://github.com/greenbone/openvas/pull/853)
+  - [#862](https://github.com/greenbone/openvas/pull/862)
+- Add `find_all` to eregmatch() nasl function. Backport PR #875. [#876](https://github.com/greenbone/openvas/pull/876)
+- Add nasl functions for checking ssl/tls secure renegotiation and performing re-handshake. [#889](https://github.com/greenbone/openvas/pull/889)
+
+### Changed
+- function script_bugtraq_id getting skipped, linter warns. [#724](https://github.com/greenbone/openvas/pull/724)
+- Refactor dead host status sending. [#807](https://github.com/greenbone/openvas/pull/807)
+- Refactor openvas.c.
+  [#810](https://github.com/greenbone/openvas/pull/810)
+  [#811](https://github.com/greenbone/openvas/pull/811)
+- Handle script timeout as script preference with ID 0 [#844](https://github.com/greenbone/gvm-libs/pull/844)
+
+### Fixed
+- Use fchmod to change file permission instead of on open to prevent race conditions [854](https://github.com/greenbone/openvas-scanner/pull/854)
+- Several minor potential security risks in different files, spotted by Code QL [854](https://github.com/greenbone/openvas-scanner/pull/854)
+- Fix plugins upload. Backport #878 [#880](https://github.com/greenbone/openvas/pull/880)
+- Fix Error Message when NVTI chache init failed. Backport #885 [#887](https://github.com/greenbone/openvas/pull/887)
+- Fix Segmentation fault when freeing hosts and alive hosts [#888](https://github.com/greenbone/openvas/pull/888)
+
+### Removed
+- Remove handling of source_iface related preferences. [#730](https://github.com/greenbone/openvas/pull/730)
+
+[21.10]: https://github.com/greenbone/openvas-scanner/compare/stable...main
+
+## [21.4.3] (unreleased)
+### Added
+- Add nasl function sftp_enabled_check() to check if sftp subsystem is enabled in the target.
+  - [#853](https://github.com/greenbone/openvas/pull/853)
+  - [#862](https://github.com/greenbone/openvas/pull/862)
+
+### Changed
+>>>>>>> 641ab331 (Add: Add nasl functions for checking ssl/tls secure renegotiation and performing re-handshake. (#889))
 - Changed defaults for installation locations [#826](https://github.com/greenbone/openvas-scanner/pull/826)
   - SYSCONFDIR is /etc by default now
   - LOCALSTATEDIR is /var by default now
