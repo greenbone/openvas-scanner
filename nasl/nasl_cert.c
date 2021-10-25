@@ -568,8 +568,20 @@ get_oid_name (const char *oid)
     return "dhpublicnumber";
   else if (!strcmp ("2.16.840.1.101.2.1.1.22", oid))
     return "id-keyExchangeAlgorithm";
+  else if (!strcmp ("1.2.840.10045.1.1", oid))
+    return "prime-field";
   else if (!strcmp ("1.2.840.10045.2.1", oid))
     return "id-ecPublicKey";
+  else if (!strcmp ("1.2.840.10045.4.1", oid))
+    return "ecdsa-with-SHA1";
+  else if (!strcmp ("1.2.840.10045.4.3.1", oid))
+    return "ecdsa-with-SHA224";
+  else if (!strcmp ("1.2.840.10045.4.3.2", oid))
+    return "ecdsa-with-SHA256";
+  else if (!strcmp ("1.2.840.10045.4.3.3", oid))
+    return "ecdsa-with-SHA384";
+  else if (!strcmp ("1.2.840.10045.4.3.4", oid))
+    return "ecdsa-with-SHA512";
   else if (!strcmp ("1.3.132.1.12", oid))
     return "id-ecDH";
   else if (!strcmp ("1.2.840.10045.2.13", oid))
@@ -634,6 +646,18 @@ get_oid_name (const char *oid)
     return "sect571k1";
   else if (!strcmp ("1.3.132.0.39", oid))
     return "sect571r1";
+  else if (!strcmp ("2.16.840.1.101.3.4.3.1", oid))
+    return "id-dsa-with-sha224";
+  else if (!strcmp ("2.16.840.1.101.3.4.3.2", oid))
+    return "id-dsa-with-sha256";
+  else if (!strcmp ("2.16.840.1.101.3.4.2.1", oid))
+    return "sha256";
+  else if (!strcmp ("2.16.840.1.101.3.4.2.2", oid))
+    return "sha384";
+  else if (!strcmp ("2.16.840.1.101.3.4.2.3", oid))
+    return "sha512";
+  else if (!strcmp ("2.16.840.1.101.3.4.2.4", oid))
+    return "sha224";
   else
     return NULL;
 }
