@@ -195,7 +195,10 @@ nasl_telnet_init (lex_ctxt *lexic)
     n += n2;
   retc = alloc_typed_cell (CONST_DATA);
   retc->size = n;
+#pragma GCC diagnostic push
+#pragma GCC diagnostic warning "-Wdeprecated-declarations"
   retc->x.str_val = g_memdup (buffer, n + 1);
+#pragma GCC diagnostic pop
 #undef iac
 #undef data
 #undef option

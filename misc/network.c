@@ -838,6 +838,7 @@ socket_negotiate_ssl (int fd, openvas_encaps_t transport,
  * @param[out]  cert    Memory pointer to fill cert pointer.
  * @param[out]  certlen Size of cert.
  */
+
 void
 socket_get_cert (int fd, void **cert, int *certlen)
 {
@@ -864,7 +865,10 @@ socket_get_cert (int fd, void **cert, int *certlen)
   if (cert_list_len == 0)
     return;
   *certlen = cert_list[0].size;
+#pragma GCC diagnostic push
+#pragma GCC diagnostic warning "-Wdeprecated-declarations"
   *cert = g_memdup (cert_list[0].data, *certlen);
+#pragma GCC diagnostic pop
 }
 
 /*

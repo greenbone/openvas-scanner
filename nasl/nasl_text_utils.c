@@ -405,7 +405,10 @@ nasl_tolower (lex_ctxt *lexic)
   if (str == NULL)
     return NULL;
 
+#pragma GCC diagnostic push
+#pragma GCC diagnostic warning "-Wdeprecated-declarations"
   str = g_memdup (str, str_len + 1);
+#pragma GCC diagnostic pop
   for (i = 0; i < str_len; i++)
     str[i] = tolower (str[i]);
 
@@ -427,7 +430,10 @@ nasl_toupper (lex_ctxt *lexic)
   if (str == NULL)
     return NULL;
 
+#pragma GCC diagnostic push
+#pragma GCC diagnostic warning "-Wdeprecated-declarations"
   str = g_memdup (str, str_len + 1);
+#pragma GCC diagnostic pop
   for (i = 0; i < str_len; i++)
     str[i] = toupper (str[i]);
 
@@ -1248,7 +1254,10 @@ nasl_strstr (lex_ctxt *lexic)
 
   retc = alloc_typed_cell (CONST_DATA);
   retc->size = sz_a - (c - a);
+#pragma GCC diagnostic push
+#pragma GCC diagnostic warning "-Wdeprecated-declarations"
   retc->x.str_val = g_memdup (c, retc->size + 1);
+#pragma GCC diagnostic pop
   return retc;
 }
 
