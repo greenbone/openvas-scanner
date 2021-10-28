@@ -31,4 +31,8 @@ gchar *
 make_table_driven_lsc_info_json_str (const char *, const char *, const char *,
                                      const char *, const char *);
 
+gchar *
+get_status_of_table_driven_lsc_from_json (const char *, const char *,
+                                          const char *, int);
+
 #endif // TABLE_DRIVEN_LSC_H
