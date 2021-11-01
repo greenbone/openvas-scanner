@@ -63,6 +63,12 @@
 #include <time.h>
 #include <unistd.h>
 
+#undef G_LOG_DOMAIN
+/**
+ * @brief GLib logging domain.
+ */
+#define G_LOG_DOMAIN "lib  nasl"
+
 #ifndef DIM
 #define DIM(v) (sizeof (v) / sizeof ((v)[0]))
 #define DIMof(type, member) DIM (((type *) 0)->member)
