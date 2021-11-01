@@ -76,7 +76,7 @@
 
 /* The type used to represent the time here is a string with a fixed
    length.  */
-#define ISOTIME_SIZE 19
+#define ISOTIME_SIZE 16
 typedef char my_isotime_t[ISOTIME_SIZE];
 
 /* Correction used to map to real Julian days. */
