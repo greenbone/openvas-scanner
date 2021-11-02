@@ -1274,3 +1274,47 @@ routethrough (struct in_addr *dest, struct in_addr *source)
     return myroutes[best_match].dev->name;
   return NULL;
 }
+
+/** @brief Given an IP address, determines which interface belongs to.
+ *
+ * @param local_ip IP address.
+ *
+ * @return Iface name if found, Null otherwise.
+ */
+char *
+get_iface_from_ip (const char *local_ip)
+{
+  char errbuf[PCAP_ERRBUF_SIZE];
+  pcap_if_t *alldevsp1 = NULL, *devs_aux = NULL;
+  char *ip_str, *if_name = NULL;
+
+  if (pcap_findalldevs (&alldevsp1, errbuf) == -1)
+    g_debug ("Error for pcap_findalldevs(): %s", errbuf);
+
+  devs_aux = alldevsp1;
+  while (devs_aux)
+    {
+      pcap_addr_t *addr_aux = NULL;
+
+      addr_aux = devs_aux->addresses;
+      while (addr_aux)
+        {
+          ip_str =
+            inet_ntoa (((struct sockaddr_in *) addr_aux->addr)->sin_addr);
+          if (!g_strcmp0 (ip_str, local_ip))
+            {
+              if_name = g_strdup (devs_aux->name);
+              break;
+            }
+          addr_aux = addr_aux->next;
+        }
+
+      if (if_name)
+        break;
+      devs_aux = devs_aux->next;
+    }
+  pcap_freealldevs (alldevsp1);
+  g_debug ("returning %s as device", if_name);
+
+  return if_name;
+}
