@@ -1286,7 +1286,7 @@ get_iface_from_ip (const char *local_ip)
 {
   char errbuf[PCAP_ERRBUF_SIZE];
   pcap_if_t *alldevsp1 = NULL, *devs_aux = NULL;
-  char *ip_str, *if_name = NULL;
+  char *if_name = NULL;
 
   if (pcap_findalldevs (&alldevsp1, errbuf) == -1)
     g_debug ("Error for pcap_findalldevs(): %s", errbuf);
@@ -1299,12 +1299,31 @@ get_iface_from_ip (const char *local_ip)
       addr_aux = devs_aux->addresses;
       while (addr_aux)
         {
-          ip_str =
-            inet_ntoa (((struct sockaddr_in *) addr_aux->addr)->sin_addr);
-          if (!g_strcmp0 (ip_str, local_ip))
+          if (((struct sockaddr *) addr_aux->addr)->sa_family == AF_INET)
             {
-              if_name = g_strdup (devs_aux->name);
-              break;
+              char *ip_str;
+
+              ip_str =
+                inet_ntoa (((struct sockaddr_in *) addr_aux->addr)->sin_addr);
+              if (!g_strcmp0 (ip_str, local_ip))
+                {
+                  if_name = g_strdup (devs_aux->name);
+                  break;
+                }
+            }
+          else if (((struct sockaddr *) addr_aux->addr)->sa_family == AF_INET6)
+            {
+              struct sockaddr_in6 *addr6 =
+                (struct sockaddr_in6 *) &addr_aux->addr;
+              char buffer[INET6_ADDRSTRLEN];
+
+              inet_ntop (AF_INET6, &addr6, buffer, INET6_ADDRSTRLEN);
+
+              if (!g_strcmp0 (buffer, local_ip))
+                {
+                  if_name = g_strdup (devs_aux->name);
+                  break;
+                }
             }
           addr_aux = addr_aux->next;
         }
