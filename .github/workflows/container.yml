@@ -1,0 +1,55 @@
+name: Build and upload docker images
+
+on:
+  push:
+    branches: [ main, stable, oldstable, middleware ]
+
+jobs:
+  main:
+    needs: build
+    name: "Upload production image"
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v2
+      - name: Find reference version
+        uses: greenbone/actions/reference-version@v1
+      - name: Login to DockerHub
+        uses: docker/login-action@v1
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+      - name: Build and push
+        uses: docker/build-push-action@v2.5.0
+        with:
+          context: .
+          push: true
+          tags: ${{ github.repository }}:${{ env.VERSION }}
+          file: .docker/main.Dockerfile
+          build-args: |
+            VERSION=${{ env.VERSION }}
+            REPOSITORY=${{ github.repository }}
+
+  build:
+    name: "Upload build image"
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v2
+      - name: Find reference version
+        uses: greenbone/actions/reference-version@v1
+      - name: Login to DockerHub
+        uses: docker/login-action@v1
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+        # this only works with github.ref on push not on pull_request. ;)
+      - name: Build and push
+        uses: docker/build-push-action@v2.5.0
+        with:
+          context: .
+          push: true
+          tags: ${{ github.repository }}-build:${{ env.VERSION }}
+          file: .docker/build.Dockerfile
+          build-args: |
+            VERSION=${{ env.VERSION }}
