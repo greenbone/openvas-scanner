@@ -1,4 +1,4 @@
-name: "Build and Test"
+name: "Compile & Unit Tests"
 
 on:
   push:
@@ -69,9 +69,10 @@ jobs:
         with:
           files: lcov.info
 
-  build:
-    name: Build various configs
+  compile:
+    name: scan-build (clang static analyzer)
     runs-on: ubuntu-latest
+<<<<<<< HEAD
     strategy:
       matrix:
         build_type:
@@ -99,11 +100,16 @@ jobs:
     steps:
       - name: Check out openvas-scanner
         uses: actions/checkout@v2
+=======
+    container: ${{ github.repository }}-build:main
+    steps:
+      - name: Check out openvas-scanner
+        uses: actions/checkout@v2
+>>>>>>> 303a063b (Refactor: change ci to use new images)
       - name: Configure and Scan Build
         run: |
-          mkdir build && cd build/ &&                      \
-          scan-build cmake -DCMAKE_BUILD_TYPE=Release .. &&  \
-          scan-build -o ~/scan-build-report make
+          cmake -Bbuild -DCMAKE_BUILD_TYPE=Release &&  \
+          scan-build -o ~/scan-build-report cmake --build build
       - name: Upload scan-build report
         if: failure()
         uses: actions/upload-artifact@v2
@@ -111,15 +117,18 @@ jobs:
           name: scan-build-report
           path: ~/scan-build-report/
 
-  test-units:
-    name: Build and run unit tests
+  unit-tests:
+    name: Unit Tests
     runs-on: ubuntu-latest
+<<<<<<< HEAD
     container: greenbone/openvas-scanner-middleware-gcc-testing
+=======
+    container: ${{ github.repository }}-build:main
+>>>>>>> 303a063b (Refactor: change ci to use new images)
     steps:
       - name: Check out openvas-scanner
         uses: actions/checkout@v2
       - name: Configure and run unit tests
         run: |
-          mkdir build && cd build/ &&             \
-          cmake -DCMAKE_BUILD_TYPE=Release .. &&  \
-          make tests && CTEST_OUTPUT_ON_FAILURE=1 make test
+          cmake -Bbuild -DCMAKE_BUILD_TYPE=Release &&  \
+          CTEST_OUTPUT_ON_FAILURE=1 cmake --build build -- tests test
