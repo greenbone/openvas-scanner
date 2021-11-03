@@ -1299,31 +1299,21 @@ get_iface_from_ip (const char *local_ip)
       addr_aux = devs_aux->addresses;
       while (addr_aux)
         {
+          char buffer[INET6_ADDRSTRLEN];
+
           if (((struct sockaddr *) addr_aux->addr)->sa_family == AF_INET)
-            {
-              char *ip_str;
-
-              ip_str =
-                inet_ntoa (((struct sockaddr_in *) addr_aux->addr)->sin_addr);
-              if (!g_strcmp0 (ip_str, local_ip))
-                {
-                  if_name = g_strdup (devs_aux->name);
-                  break;
-                }
-            }
+            inet_ntop (AF_INET,
+                       &(((struct sockaddr_in *) addr_aux->addr)->sin_addr),
+                       buffer, INET_ADDRSTRLEN);
           else if (((struct sockaddr *) addr_aux->addr)->sa_family == AF_INET6)
+            inet_ntop (AF_INET6,
+                       &(((struct sockaddr_in6 *) addr_aux->addr)->sin6_addr),
+                       buffer, INET6_ADDRSTRLEN);
+
+          if (!g_strcmp0 (buffer, local_ip))
             {
-              struct sockaddr_in6 *addr6 =
-                (struct sockaddr_in6 *) &addr_aux->addr;
-              char buffer[INET6_ADDRSTRLEN];
-
-              inet_ntop (AF_INET6, &addr6, buffer, INET6_ADDRSTRLEN);
-
-              if (!g_strcmp0 (buffer, local_ip))
-                {
-                  if_name = g_strdup (devs_aux->name);
-                  break;
-                }
+              if_name = g_strdup (devs_aux->name);
+              break;
             }
           addr_aux = addr_aux->next;
         }
