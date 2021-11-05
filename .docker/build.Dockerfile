@@ -9,6 +9,8 @@ RUN apt-get update && apt-get install --no-install-recommends --no-install-sugge
     clang-format \
     clang-tools \
     cmake \
+    lcov \
+    libcgreen1-dev \
     libgnutls28-dev \
     libgpgme-dev \
     libjson-glib-dev \
