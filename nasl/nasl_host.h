@@ -73,4 +73,7 @@ nasl_same_host (lex_ctxt *);
 tree_cell *
 nasl_target_is_ipv6 (lex_ctxt *lexic);
 
+tree_cell *
+nasl_get_local_mac_address_from_ip (lex_ctxt *);
+
 #endif
