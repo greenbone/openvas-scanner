@@ -54,4 +54,7 @@ v6_routethrough (struct in6_addr *, struct in6_addr *);
 int
 v6_getsourceip (struct in6_addr *, struct in6_addr *);
 
+char *
+get_iface_from_ip (const char *);
+
 #endif
