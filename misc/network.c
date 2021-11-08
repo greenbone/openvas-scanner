@@ -792,6 +792,7 @@ socket_negotiate_ssl (int fd, openvas_encaps_t transport,
   openvas_connection *fp;
   kb_t kb;
   char buf[1024];
+  static gboolean connection_failed_msg_sent = FALSE; // send msg only once
 
   if (!fd_is_stream (fd))
     {
@@ -817,9 +818,13 @@ socket_negotiate_ssl (int fd, openvas_encaps_t transport,
       g_free (key);
       g_free (passwd);
       g_free (cafile);
-      g_message ("Function socket_negotiate_ssl called from %s: "
-                 "SSL/TLS connection failed.",
-                 nasl_get_plugin_filename ());
+      if (!connection_failed_msg_sent)
+        {
+          g_message ("Function socket_negotiate_ssl called from %s: "
+                     "SSL/TLS connection failed.",
+                     nasl_get_plugin_filename ());
+          connection_failed_msg_sent = TRUE;
+        }
       release_connection_fd (fd, 0);
       return -1;
     }
