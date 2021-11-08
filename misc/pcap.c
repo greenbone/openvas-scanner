@@ -1274,3 +1274,56 @@ routethrough (struct in_addr *dest, struct in_addr *source)
     return myroutes[best_match].dev->name;
   return NULL;
 }
+
+/** @brief Given an IP address, determines which interface belongs to.
+ *
+ * @param local_ip IP address.
+ *
+ * @return Iface name if found, Null otherwise.
+ */
+char *
+get_iface_from_ip (const char *local_ip)
+{
+  char errbuf[PCAP_ERRBUF_SIZE];
+  pcap_if_t *alldevsp1 = NULL, *devs_aux = NULL;
+  char *if_name = NULL;
+
+  if (pcap_findalldevs (&alldevsp1, errbuf) == -1)
+    g_debug ("Error for pcap_findalldevs(): %s", errbuf);
+
+  devs_aux = alldevsp1;
+  while (devs_aux)
+    {
+      pcap_addr_t *addr_aux = NULL;
+
+      addr_aux = devs_aux->addresses;
+      while (addr_aux)
+        {
+          char buffer[INET6_ADDRSTRLEN];
+
+          if (((struct sockaddr *) addr_aux->addr)->sa_family == AF_INET)
+            inet_ntop (AF_INET,
+                       &(((struct sockaddr_in *) addr_aux->addr)->sin_addr),
+                       buffer, INET_ADDRSTRLEN);
+          else if (((struct sockaddr *) addr_aux->addr)->sa_family == AF_INET6)
+            inet_ntop (AF_INET6,
+                       &(((struct sockaddr_in6 *) addr_aux->addr)->sin6_addr),
+                       buffer, INET6_ADDRSTRLEN);
+
+          if (!g_strcmp0 (buffer, local_ip))
+            {
+              if_name = g_strdup (devs_aux->name);
+              break;
+            }
+          addr_aux = addr_aux->next;
+        }
+
+      if (if_name)
+        break;
+      devs_aux = devs_aux->next;
+    }
+  pcap_freealldevs (alldevsp1);
+  g_debug ("returning %s as device", if_name);
+
+  return if_name;
+}

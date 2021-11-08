@@ -137,6 +137,7 @@ static init_func libfuncs[] = {
   {"resolve_host_name", resolve_hostname},
   {"resolve_hostname_to_multiple_ips", resolve_hostname_to_multiple_ips},
   {"get_host_ip", get_host_ip},
+  {"get_local_mac_address_from_ip", nasl_get_local_mac_address_from_ip},
   {"same_host", nasl_same_host},
   {"TARGET_IS_IPV6", nasl_target_is_ipv6},
   {"get_host_open_port", get_host_open_port},

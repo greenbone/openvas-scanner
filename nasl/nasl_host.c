@@ -41,10 +41,13 @@
 #include <arpa/inet.h> /* for inet_aton */
 #include <gvm/base/networking.h>
 #include <gvm/util/kb.h>
+#include <net/if.h>
+#include <net/if_arp.h>
 #include <netdb.h>      /* for gethostbyaddr */
 #include <netinet/in.h> /* for in_addr */
 #include <string.h>     /* for strlen */
-#include <unistd.h>     /* for gethostname */
+#include <sys/ioctl.h>
+#include <unistd.h> /* for gethostname */
 
 tree_cell *
 get_hostnames (lex_ctxt *lexic)
@@ -574,6 +577,62 @@ nasl_target_is_ipv6 (lex_ctxt *lexic)
     retc->x.i_val = 0;
   else
     retc->x.i_val = 1;
+
+  return retc;
+}
+
+/**
+ * @brief Get the MAC address of host
+ *
+ * @param[in] lexic   Lexical context of NASL interpreter.
+ * @param[in] ip_address    Local IP address
+ *
+ * @return The MAC address of the host. NULL otherwise
+ */
+tree_cell *
+nasl_get_local_mac_address_from_ip (lex_ctxt *lexic)
+{
+  tree_cell *retc;
+  struct ifreq ifr;
+  int sock;
+  char *if_name = NULL, *buffer = NULL;
+  const unsigned char *mac;
+
+  char *ip_address = get_str_var_by_num (lexic, 0);
+
+  if_name = get_iface_from_ip (ip_address);
+  if (!if_name)
+    {
+      nasl_perror (lexic, "Missing interface name\n");
+      return NULL;
+    }
+
+  strncpy (ifr.ifr_name, if_name, sizeof (ifr.ifr_name) - 1);
+  g_free (if_name);
+  ifr.ifr_name[sizeof (ifr.ifr_name) - 1] = '\0';
+
+  sock = socket (PF_INET, SOCK_STREAM, 0);
+  if (-1 == sock)
+    {
+      perror ("socket() ");
+      return NULL;
+    }
+
+  if (-1 == ioctl (sock, SIOCGIFHWADDR, &ifr))
+    {
+      perror ("ioctl(SIOCGIFHWADDR) ");
+      return NULL;
+    }
+
+  mac = (unsigned char *) ifr.ifr_hwaddr.sa_data;
+  buffer = g_strdup_printf ("%02x:%02x:%02x:%02x:%02x:%02x", mac[0], mac[1],
+                            mac[2], mac[3], mac[4], mac[5]);
+
+  close (sock);
+
+  retc = alloc_typed_cell (CONST_DATA);
+  retc->x.str_val = buffer;
+  retc->size = 17;
 
   return retc;
 }
