@@ -1439,7 +1439,7 @@ nasl_get_sock_info (lex_ctxt *lexic)
  *
  * - @a socket A NASL socket.
  *
- * @naslret 0 in case of successfully verification. A positive integer in
+ * @naslret 0 in case of successfully verification. A negative integer in
  * case of verification error or NULL on other errors.
  *
  * @param[in] lexic  Lexical context of the NASL interpreter.
