@@ -1447,9 +1447,9 @@ nasl_get_sock_info (lex_ctxt *lexic)
  * This function is used to retrieve and verify a certificate from an
  * active socket. It requires the NASL socket number.
  *
- * @nasluparam
+ * @naslnparam
  *
- * - A NASL socket.
+ * - @a socket A NASL socket.
  *
  * @naslret 0 in case of successfully verification. A positive integer in
  * case of verification error or NULL on other errors.
