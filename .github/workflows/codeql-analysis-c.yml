@@ -16,7 +16,7 @@ jobs:
       actions: read
       contents: read
       security-events: write
-    container: greenbone/openvas-scanner-oldstable-gcc-testing
+    container: ${{ github.repository }}-build:oldstable
 
     strategy:
       fail-fast: false
