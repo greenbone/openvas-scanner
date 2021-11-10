@@ -95,6 +95,56 @@ init_capture_device (struct in_addr src, struct in_addr dest, char *filter)
   return ret;
 }
 
+struct ether_header *
+capture_next_frame (int bpf, int timeout, int *sz)
+{
+  int len;
+  int dl_len;
+  char *frame = NULL;
+  char *ret = NULL;
+  struct timeval past, now, then;
+  struct timezone tz;
+
+  if (bpf < 0)
+    return NULL;
+
+  dl_len = get_datalink_size (bpf_datalink (bpf));
+  bzero (&past, sizeof (past));
+  bzero (&now, sizeof (now));
+  gettimeofday (&then, &tz);
+  for (;;)
+    {
+      bcopy (&then, &past, sizeof (then));
+      frame = (char *) bpf_next (bpf, &len);
+      if (frame != NULL)
+        break;
+      gettimeofday (&now, &tz);
+
+      if (now.tv_usec < past.tv_usec)
+        {
+          past.tv_sec++;
+          now.tv_usec += 1000000;
+        }
+
+      if (timeout > 0)
+        {
+          if ((now.tv_sec - past.tv_sec) >= timeout)
+            break;
+        }
+      else
+        break;
+    }
+
+  if (frame != NULL)
+    {
+      ret = g_malloc0 (dl_len);
+      memcpy (ret, frame, dl_len);
+      if (sz != NULL)
+        *sz = dl_len;
+    }
+  return ((struct ether_header *) ret);
+}
+
 struct ip *
 capture_next_packet (int bpf, int timeout, int *sz)
 {
@@ -138,6 +188,7 @@ capture_next_packet (int bpf, int timeout, int *sz)
   if (packet != NULL)
     {
       struct ip *ip;
+
       ip = (struct ip *) (packet + dl_len);
 #ifdef BSD_BYTE_ORDERING
       ip->ip_len = ntohs (ip->ip_len);
