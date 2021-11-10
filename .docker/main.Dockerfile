@@ -1,4 +1,4 @@
-ARG VERSION=main
+ARG VERSION=unstable
 # this allows to work on forked repository
 ARG REPOSITORY=greenbone/openvas-scanner
 FROM ${REPOSITORY}-build:$VERSION AS build
