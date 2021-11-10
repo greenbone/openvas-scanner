@@ -42,7 +42,6 @@ jobs:
     name: Upload doc coverage to Codecov
     needs: gen_xml_doc
     runs-on: ubuntu-latest
-    container: greenbone/openvas-scanner-main-clang-testing
     steps:
       - name: Check out openvas-scanner
         uses: actions/checkout@v2
@@ -72,7 +71,7 @@ jobs:
   compile:
     name: scan-build (clang static analyzer)
     runs-on: ubuntu-latest
-    container: ${{ github.repository }}-build:main
+    container: ${{ github.repository }}-build:unstable
     steps:
       - name: Check out openvas-scanner
         uses: actions/checkout@v2
@@ -90,7 +89,7 @@ jobs:
   unit-tests:
     name: Unit Tests
     runs-on: ubuntu-latest
-    container: ${{ github.repository }}-build:main
+    container: ${{ github.repository }}-build:unstable
     steps:
       - name: Check out openvas-scanner
         uses: actions/checkout@v2
