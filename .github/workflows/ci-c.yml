@@ -1,10 +1,10 @@
-name: "Build and Test"
+name: "Compile & Unit Tests"
 
 on:
   push:
-    branches: [ master, openvas-21.04, openvas-20.08, middleware ]
+    branches: [ main, stable, oldstable, middleware ]
   pull_request:
-    branches: [ master, openvas-21.04, openvas-20.08, middleware ]
+    branches: [ main, stable, oldstable, middleware ]
 
 jobs:
   check-format:
@@ -19,7 +19,7 @@ jobs:
   gen_xml_doc:
     name: Build XML documentation
     runs-on: ubuntu-latest
-    container: greenbone/code-metrics-doxygen-debian-stretch
+    container: greenbone/doxygen
     steps:
       - name: Check out openvas-scanner
         uses: actions/checkout@v2
@@ -42,7 +42,6 @@ jobs:
     name: Upload doc coverage to Codecov
     needs: gen_xml_doc
     runs-on: ubuntu-latest
-    container: greenbone/openvas-scanner-middleware-clang-testing
     steps:
       - name: Check out openvas-scanner
         uses: actions/checkout@v2
@@ -69,41 +68,17 @@ jobs:
         with:
           files: lcov.info
 
-  build:
-    name: Build various configs
+  compile:
+    name: scan-build (clang static analyzer)
     runs-on: ubuntu-latest
-    strategy:
-      matrix:
-        build_type:
-          - Debug
-          - Release
-        docker_base:
-          - greenbone/openvas-scanner-middleware-clang-testing
-          - greenbone/openvas-scanner-middleware-gcc-testing
-    container: ${{ matrix.docker_base }}
-    env:
-      BUILD_TYPE: ${{ matrix.build_type }}
-    steps:
-      - name: Check out openvas-scanner
-        uses: actions/checkout@v2
-      - name: Configure and compile openvas-scanner
-        run: |
-          mkdir build && cd build/ &&                \
-          cmake -DCMAKE_BUILD_TYPE=$BUILD_TYPE .. && \
-          make install
-
-  scan-build:
-    name: Scan-build (clang static analyzer)
-    runs-on: ubuntu-latest
-    container: greenbone/openvas-scanner-middleware-clang-testing
+    container: ${{ github.repository }}-build:unstable
     steps:
       - name: Check out openvas-scanner
         uses: actions/checkout@v2
       - name: Configure and Scan Build
         run: |
-          mkdir build && cd build/ &&                      \
-          scan-build cmake -DCMAKE_BUILD_TYPE=Release .. &&  \
-          scan-build -o ~/scan-build-report make
+          cmake -Bbuild -DCMAKE_BUILD_TYPE=Release &&  \
+          scan-build -o ~/scan-build-report cmake --build build
       - name: Upload scan-build report
         if: failure()
         uses: actions/upload-artifact@v2
@@ -111,15 +86,14 @@ jobs:
           name: scan-build-report
           path: ~/scan-build-report/
 
-  test-units:
-    name: Build and run unit tests
+  unit-tests:
+    name: Unit Tests
     runs-on: ubuntu-latest
-    container: greenbone/openvas-scanner-middleware-gcc-testing
+    container: ${{ github.repository }}-build:unstable
     steps:
       - name: Check out openvas-scanner
         uses: actions/checkout@v2
       - name: Configure and run unit tests
         run: |
-          mkdir build && cd build/ &&             \
-          cmake -DCMAKE_BUILD_TYPE=Release .. &&  \
-          make tests && CTEST_OUTPUT_ON_FAILURE=1 make test
+          cmake -Bbuild -DCMAKE_BUILD_TYPE=Release &&  \
+          CTEST_OUTPUT_ON_FAILURE=1 cmake --build build -- tests test

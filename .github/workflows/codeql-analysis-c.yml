@@ -2,9 +2,9 @@ name: "CodeQL"
 
 on:
   push:
-    branches: [ master, openvas-20.08, openvas-21.04, middleware ]
+    branches: [ main, oldstable, stable, middleware ]
   pull_request:
-    branches: [ master, openvas-20.08, openvas-21.04, middleware ]
+    branches: [ main, oldstable, stable, middleware ]
   schedule:
     - cron: '30 5 * * 0' # 5:30h on Sundays
 
@@ -16,7 +16,7 @@ jobs:
       actions: read
       contents: read
       security-events: write
-    container: greenbone/openvas-scanner-middleware-clang-testing
+    container: ${{ github.repository }}-build:unstable
 
     strategy:
       fail-fast: false
