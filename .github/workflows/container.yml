@@ -1,8 +1,12 @@
 name: Container
 
 on:
+  pull_request:
+    branches: [ main ]
   push:
     branches: [ main, stable, oldstable, middleware ]
+    tags: ["v*"]
+  workflow_dispatch:
 
 jobs:
   main:
