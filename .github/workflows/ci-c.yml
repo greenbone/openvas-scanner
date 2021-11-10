@@ -19,7 +19,7 @@ jobs:
   gen_xml_doc:
     name: Build XML documentation
     runs-on: ubuntu-latest
-    container: greenbone/code-metrics-doxygen-debian-stretch
+    container: greenbone/doxygen
     steps:
       - name: Check out openvas-scanner
         uses: actions/checkout@v2
