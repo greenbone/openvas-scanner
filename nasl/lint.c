@@ -132,8 +132,7 @@ reverse_search (GSList **def_func_tree, GSList *finfo)
   GSList *finfo_aux;
 
   // The file name is the original file to be tested. It is not an include.
-  if (!g_strcmp0 (fdata->caller_file, nasl_name)
-      && !g_str_has_suffix (nasl_name, ".inc"))
+  if (!g_strcmp0 (fdata->caller_file, nasl_name))
     return 1;
 
   // The function is it self.
