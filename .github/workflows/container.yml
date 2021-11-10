@@ -5,6 +5,7 @@ on:
     branches: [ main, stable, oldstable, middleware ]
     tags: ["v*"]
   workflow_dispatch:
+  repository_dispatch:
 
 jobs:
   main:
