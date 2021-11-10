@@ -1,0 +1,5 @@
+.docker/
+.github/
+.vscode/
+.mergify.yml
+build/
