@@ -41,13 +41,19 @@
  */
 #define G_LOG_DOMAIN "lib  misc"
 
+
 /**
  * @brief Send an arp request to an IP host.
  *
- * @param[in] lexic   Lexical context of NASL interpreter.
- * @param[in] host    Target's IPv4 address
+ * @naslnparam
  *
- * @return The MAC address of the host. NULL otherwise
+ * - @a host    Target's IPv4 address
+ *
+ * @naslret The MAC address of the host. NULL otherwise
+ *
+ * @param[in] lexic   Lexical context of NASL interpreter.
+ *
+ * @return A tree cell.
  */
 tree_cell *
 nasl_send_arp_request (lex_ctxt *lexic)

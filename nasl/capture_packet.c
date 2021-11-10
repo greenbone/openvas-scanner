@@ -95,6 +95,15 @@ init_capture_device (struct in_addr src, struct in_addr dest, char *filter)
   return ret;
 }
 
+/**
+ * @brief Capture a link layer frame.
+ *
+ * @param[in] bpf bpf handler
+ * @param[in] timeout the timeout
+ * @param[out] sz size of the frame
+ *
+ * @return the link layer frame.
+ */
 struct ether_header *
 capture_next_frame (int bpf, int timeout, int *sz)
 {
