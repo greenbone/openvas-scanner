@@ -41,7 +41,6 @@
  */
 #define G_LOG_DOMAIN "lib  misc"
 
-
 /**
  * @brief Send an arp request to an IP host.
  *
@@ -53,12 +52,12 @@
  *
  * @param[in] lexic   Lexical context of NASL interpreter.
  *
- * @return A tree cell.
+ * @return A tree cell or NULL.
  */
 tree_cell *
 nasl_send_arp_request (lex_ctxt *lexic)
 {
-  tree_cell *retc;
+  tree_cell *retc = NULL;
   struct in6_addr *dst = plug_get_host_ip (lexic->script_infos);
   struct in_addr inaddr;
   char ip_str[INET6_ADDRSTRLEN];
@@ -68,13 +67,17 @@ nasl_send_arp_request (lex_ctxt *lexic)
   u_int8_t mac_broadcast_addr[6] = {0xff, 0xff, 0xff, 0xff, 0xff, 0xff};
   u_int8_t mac_zero_addr[6] = {0x0, 0x0, 0x0, 0x0, 0x0, 0x0};
   struct libnet_ether_addr *src_mac_addr;
-  int bytes_written;
+  int bytes_written, bpf = -1;
+  char filter[255];
+  struct ether_header *answer;
+  int answer_sz;
+  int to = get_int_var_by_name (lexic, "pcap_timeout", 5);
 
   l = libnet_init (LIBNET_LINK, NULL, errbuf);
   if (l == NULL)
     {
-      fprintf (stderr, "libnet_init() failed: %s\n", errbuf);
-      exit (EXIT_FAILURE);
+      g_message ("%s: libnet_init() failed: %s\n", __func__, errbuf);
+      return retc;
     }
 
   /* Getting our own MAC and IP addresses */
@@ -82,33 +85,33 @@ nasl_send_arp_request (lex_ctxt *lexic)
   src_ip_addr = libnet_get_ipaddr4 (l);
   if (src_ip_addr == (u_int32_t) -1)
     {
-      fprintf (stderr, "Couldn't get own IP address: %s\n",
-               libnet_geterror (l));
+      g_message ("%s: Couldn't get own IP address: %s\n", __func__,
+                 libnet_geterror (l));
       libnet_destroy (l);
-      exit (EXIT_FAILURE);
+      return NULL;
     }
 
   src_mac_addr = libnet_get_hwaddr (l);
   if (src_mac_addr == NULL)
     {
-      fprintf (stderr, "Couldn't get own IP address: %s\n",
-               libnet_geterror (l));
+      g_message ("%s: Couldn't get own IP address: %s\n", __func__,
+                 libnet_geterror (l));
       libnet_destroy (l);
-      exit (EXIT_FAILURE);
+      return NULL;
     }
 
   /* Getting target IP address */
   if (dst == NULL || (IN6_IS_ADDR_V4MAPPED (dst) != 1))
-    return NULL;
+    return retc;
   inaddr.s_addr = dst->s6_addr32[3];
   addr6_to_str (dst, ip_str);
   target_ip_addr = libnet_name2addr4 (l, ip_str, LIBNET_DONT_RESOLVE);
 
   if (target_ip_addr == (u_int32_t) -1)
     {
-      fprintf (stderr, "Error converting IP address.\n");
+      g_message ("%s: Error converting IP address.\n", __func__);
       libnet_destroy (l);
-      exit (EXIT_FAILURE);
+      return retc;
     }
 
   /* Building ARP header */
@@ -118,9 +121,10 @@ nasl_send_arp_request (lex_ctxt *lexic)
                             (u_int8_t *) (&target_ip_addr), l)
       == -1)
     {
-      fprintf (stderr, "Error building ARP header: %s\n", libnet_geterror (l));
+      g_message ("%s: Error building ARP header: %s\n", __func__,
+                 libnet_geterror (l));
       libnet_destroy (l);
-      exit (EXIT_FAILURE);
+      return retc;
     }
 
   /* Building Ethernet header */
@@ -130,16 +134,10 @@ nasl_send_arp_request (lex_ctxt *lexic)
       fprintf (stderr, "Error building Ethernet header: %s\n",
                libnet_geterror (l));
       libnet_destroy (l);
-      exit (EXIT_FAILURE);
+      return retc;
     }
 
   /* Prepare filter and init capture */
-  int bpf = -1;
-  char filter[255];
-  struct ether_header *answer;
-  int answer_sz;
-  int to = get_int_var_by_name (lexic, "pcap_timeout", 5);
-
   snprintf (filter, sizeof (filter), "arp and src host %s", inet_ntoa (inaddr));
   bpf = init_capture_device (inaddr, inaddr, filter);
 
@@ -164,20 +162,14 @@ nasl_send_arp_request (lex_ctxt *lexic)
           retc = alloc_typed_cell (CONST_DATA);
           retc->x.str_val = daddr;
           retc->size = strlen (daddr);
-          if (bpf >= 0)
-            bpf_close (bpf);
-          return retc;
         }
     }
   else
     fprintf (stderr, "Error writing packet: %s\n", libnet_geterror (l));
 
   libnet_destroy (l);
-
   if (bpf >= 0)
     bpf_close (bpf);
 
-  retc = alloc_typed_cell (CONST_INT);
-  retc->x.i_val = bytes_written;
   return retc;
 }
