@@ -76,10 +76,17 @@ add_packages_str_to_list (JsonBuilder *builder, const gchar *packages)
  * JSON result consists of scan_id, message type, host ip,  hostname, port
  * together with proto, OID, result message and uri.
  *
+<<<<<<< HEAD
  * @param scan_id     ID of the scan.
  * @param ip_str      IP string of host.
  * @param hostname    DNS name of the host to scan.
  * @param os_release  Name of the Operating System of the host.
+=======
+ * @param scan_id     Scan Id.
+ * @param ip_str      IP string of host.
+ * @param hostname    Name of host.
+ * @param os_release  OS release
+>>>>>>> 4abc01f7 (Add: wait for notus to finish (#917))
  * @param package_list The installed package list in the target system to be
  * evaluated.
  *
@@ -142,4 +149,79 @@ make_table_driven_lsc_info_json_str (const char *scan_id, const char *ip_str,
     g_warning ("%s: Error while creating JSON.", __func__);
 
   return json_str;
+}
+
+/**
+ * @brief Get the status of table driven lsc from json object
+ *
+ * Checks for the corresponding status inside the JSON. If the status does not
+ * belong the the scan or host, NULL is returned instead. NULL is also returned
+ * if message JSON cannot be parsed correctly. Return value has to be freed by
+ * caller.
+ *
+ * @param scan_id id of scan
+ * @param host_ip ip of host
+ * @param json json to get information from
+ * @param len length of json
+ * @return gchar* Status of table driven lsc or NULL
+ */
+gchar *
+get_status_of_table_driven_lsc_from_json (const char *scan_id,
+                                          const char *host_ip, const char *json,
+                                          int len)
+{
+  JsonParser *parser;
+  JsonReader *reader;
+
+  GError *err = NULL;
+  gchar *ret = NULL;
+
+  parser = json_parser_new ();
+  if (!json_parser_load_from_data (parser, json, len, &err))
+    {
+      goto cleanup;
+    }
+
+  reader = json_reader_new (json_parser_get_root (parser));
+
+  // Check for Scan ID
+  if (!json_reader_read_member (reader, "scan_id"))
+    {
+      goto cleanup;
+    }
+  if (g_strcmp0 (json_reader_get_string_value (reader), scan_id))
+    {
+      goto cleanup;
+    }
+  json_reader_end_member (reader);
+
+  // Check Host IP
+  if (!json_reader_read_member (reader, "host_ip"))
+    {
+      goto cleanup;
+    }
+  if (g_strcmp0 (json_reader_get_string_value (reader), host_ip))
+    {
+      goto cleanup;
+    }
+  json_reader_end_member (reader);
+
+  // Check Status
+  if (!json_reader_read_member (reader, "status"))
+    {
+      goto cleanup;
+    }
+  ret = g_strdup (json_reader_get_string_value (reader));
+
+  json_reader_end_member (reader);
+
+cleanup:
+  g_object_unref (reader);
+  g_object_unref (parser);
+  if (err != NULL)
+    {
+      g_warning ("%s: Unable to parse json. Reason: %s", __func__,
+                 err->message);
+    }
+  return ret;
 }

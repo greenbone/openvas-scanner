@@ -308,31 +308,122 @@ run_table_driven_lsc (const char *scan_id, kb_t kb, const char *ip_str,
   gchar *json_str;
   gchar *package_list;
   gchar *os_release;
+  gchar *topic;
+  gchar *payload;
+  gchar *status = NULL;
+  int topic_len;
+  int payload_len;
   int err = 0;
 
+  // Subscribe to status topic
+  err = mqtt_subscribe ("scanner/status");
+  if (err)
+    {
+      g_warning ("%s: Error starting lsc. Unable to subscribe", __func__);
+      return -1;
+    }
   /* Get the OS release. TODO: have a list with supported OS. */
   os_release = kb_item_get_str (kb, "ssh/login/release_notus");
-  if (NULL == os_release)
-    return err;
-
-  /* Get the package list. Currently only rpm support*/
+  /* Get the package list. Currently only rpm support */
   package_list = kb_item_get_str (kb, "ssh/login/rpms_notus");
-  if (NULL == package_list)
-    return err;
+  if (!os_release || !package_list)
+    return 0;
 
   json_str = make_table_driven_lsc_info_json_str (scan_id, ip_str, hostname,
                                                   os_release, package_list);
   g_free (package_list);
   g_free (os_release);
 
+  // Run table driven lsc
   if (json_str == NULL)
     return -1;
-
   err = mqtt_publish ("scanner/package/cmd/notus", json_str);
-  if (err != 0)
-    g_warning ("%s: Error publishing message for Notus.", __func__);
+  if (err)
+    {
+      g_warning ("%s: Error publishing message for Notus.", __func__);
+      g_free (json_str);
+      return -1;
+    }
 
   g_free (json_str);
+
+  // Wait for Notus scanner to start or interrupt
+  while (!status)
+    {
+      err = mqtt_retrieve_message (&topic, &topic_len, &payload, &payload_len,
+                                   60000);
+      if (err == -1)
+        {
+          g_warning ("%s: Unable to retrieve status message from notus.",
+                     __func__);
+          return -1;
+        }
+      if (err == 1)
+        {
+          g_warning ("%s: Unablet to retrieve message. Timeout after 60s.",
+                     __func__);
+          return -1;
+        }
+
+      // Get status if it belongs to corresponding scan and host
+      // Else wait for next status message
+      status = get_status_of_table_driven_lsc_from_json (scan_id, ip_str,
+                                                         payload, payload_len);
+
+      g_free (topic);
+      g_free (payload);
+    }
+  // If started wait for it to finish or interrupt
+  if (!g_strcmp0 (status, "running"))
+    {
+      g_debug ("%s: table driven LSC with scan id %s succesfully started "
+               "for host %s",
+               __func__, scan_id, ip_str);
+      g_free (status);
+      status = NULL;
+      while (!status)
+        {
+          err = mqtt_retrieve_message (&topic, &topic_len, &payload,
+                                       &payload_len, 60000);
+          if (err == -1)
+            {
+              g_warning ("%s: Unable to retrieve status message from notus.",
+                         __func__);
+              return -1;
+            }
+          if (err == 1)
+            {
+              g_warning ("%s: Unablet to retrieve message. Timeout after 60s.",
+                         __func__);
+              return -1;
+            }
+
+          status = get_status_of_table_driven_lsc_from_json (
+            scan_id, ip_str, payload, payload_len);
+          g_free (topic);
+          g_free (payload);
+        }
+    }
+  else
+    {
+      g_warning ("%s: Unable to start lsc. Got status: %s", __func__, status);
+      g_free (status);
+      return -1;
+    }
+
+  if (g_strcmp0 (status, "finished"))
+    {
+      g_warning (
+        "%s: table driven lsc with scan id %s did not finish successfully "
+        "for host %s. Last status was %s",
+        __func__, scan_id, ip_str, status);
+      err = -1;
+    }
+  else
+    g_debug ("%s: table driven lsc with scan id %s succesfully finished "
+             "for host %s",
+             __func__, scan_id, ip_str);
+  g_free (status);
   return err;
 }
 
@@ -564,7 +655,16 @@ attack_host (struct scan_globals *globals, struct in6_addr *ip, GSList *vhosts,
   if (prefs_get_bool ("table_driven_lsc"))
     {
       g_message ("Running LSC via Notus for %s", ip_str);
-      run_table_driven_lsc (globals->scan_id, kb, ip_str, NULL);
+      if (run_table_driven_lsc (globals->scan_id, kb, ip_str, NULL))
+        {
+          char buffer[2048];
+          snprintf (
+            buffer, sizeof (buffer),
+            "ERRMSG|||%s||| ||| ||| ||| Unable to launch table driven lsc",
+            ip_str);
+          kb_item_push_str (main_kb, "internal/results", buffer);
+          g_warning ("%s: Unable to launch table driven LSC", __func__);
+        }
     }
 
   pluginlaunch_wait (kb);
