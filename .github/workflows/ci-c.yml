@@ -16,7 +16,8 @@ jobs:
       - name: Check Source Format
         run: |
           clang-format -i -style=file src/*.{c,h} misc/*.{c,h} nasl/*.{c,h} && git diff --exit-code
-  gen_xml_doc:
+
+  generate-xml-doc:
     name: Build XML documentation
     runs-on: ubuntu-latest
     container: greenbone/doxygen
@@ -40,7 +41,7 @@ jobs:
 
   doc-coverage:
     name: Upload doc coverage to Codecov
-    needs: gen_xml_doc
+    needs: generate-xml-doc
     runs-on: ubuntu-latest
     steps:
       - name: Check out openvas-scanner
@@ -71,7 +72,7 @@ jobs:
   compile:
     name: scan-build (clang static analyzer)
     runs-on: ubuntu-latest
-    container: ${{ github.repository }}-build:unstable
+    container: ${{ github.repository }}-build:middleware
     steps:
       - name: Check out openvas-scanner
         uses: actions/checkout@v2
@@ -89,7 +90,7 @@ jobs:
   unit-tests:
     name: Unit Tests
     runs-on: ubuntu-latest
-    container: ${{ github.repository }}-build:unstable
+    container: ${{ github.repository }}-build:middleware
     steps:
       - name: Check out openvas-scanner
         uses: actions/checkout@v2

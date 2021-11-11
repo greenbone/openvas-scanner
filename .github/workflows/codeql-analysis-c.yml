@@ -16,7 +16,7 @@ jobs:
       actions: read
       contents: read
       security-events: write
-    container: ${{ github.repository }}-build:unstable
+    container: ${{ github.repository }}-build:middleware
 
     strategy:
       fail-fast: false
