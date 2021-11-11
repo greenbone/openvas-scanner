@@ -46,6 +46,12 @@ tree_cell *
 nasl_send (lex_ctxt *);
 tree_cell *
 nasl_socket_negotiate_ssl (lex_ctxt *);
+
+tree_cell *
+nasl_socket_check_ssl_safe_renegotiation (lex_ctxt *);
+tree_cell *
+nasl_socket_ssl_do_handshake (lex_ctxt *);
+
 tree_cell *
 nasl_recv (lex_ctxt *);
 tree_cell *
