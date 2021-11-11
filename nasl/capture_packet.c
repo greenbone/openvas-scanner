@@ -25,7 +25,6 @@
 #include <glib.h>      /* for gfree */
 #include <netinet/ip.h>
 #include <pcap.h>
-#include <string.h> /* for bcopy */
 #include <sys/param.h>
 #ifdef __FreeBSD__
 #include <sys/socket.h>
@@ -118,12 +117,12 @@ capture_next_frame (int bpf, int timeout, int *sz)
     return NULL;
 
   dl_len = get_datalink_size (bpf_datalink (bpf));
-  bzero (&past, sizeof (past));
-  bzero (&now, sizeof (now));
+  memset (&past, '\0', sizeof (past));
+  memset (&now, '\0', sizeof (now));
   gettimeofday (&then, &tz);
   for (;;)
     {
-      bcopy (&then, &past, sizeof (then));
+      memcpy (&past, &then, sizeof (then));
       frame = (char *) bpf_next (bpf, &len);
       if (frame != NULL)
         break;
@@ -168,12 +167,12 @@ capture_next_packet (int bpf, int timeout, int *sz)
     return NULL;
 
   dl_len = get_datalink_size (bpf_datalink (bpf));
-  bzero (&past, sizeof (past));
-  bzero (&now, sizeof (now));
+  memset (&past, '\0', sizeof (past));
+  memset (&now, '\0', sizeof (now));
   gettimeofday (&then, &tz);
   for (;;)
     {
-      bcopy (&then, &past, sizeof (then));
+      memcpy (&past, &then, sizeof (then));
       packet = (char *) bpf_next (bpf, &len);
       if (packet != NULL)
         break;
@@ -205,7 +204,7 @@ capture_next_packet (int bpf, int timeout, int *sz)
 #endif
       ip->ip_id = ntohs (ip->ip_id);
       ret = g_malloc0 (len - dl_len);
-      bcopy (ip, ret, len - dl_len);
+      memcpy (ret, ip, len - dl_len);
       if (sz != NULL)
         *sz = len - dl_len;
     }
@@ -282,13 +281,13 @@ capture_next_v6_packet (int bpf, int timeout, int *sz)
     return NULL;
 
   dl_len = get_datalink_size (bpf_datalink (bpf));
-  bzero (&past, sizeof (past));
-  bzero (&now, sizeof (now));
+  memset (&past, '\0', sizeof (past));
+  memset (&now, '\0', sizeof (now));
   gettimeofday (&then, &tz);
 
   for (;;)
     {
-      bcopy (&then, &past, sizeof (then));
+      memcpy (&past, &then, sizeof (then));
       packet = (char *) bpf_next (bpf, &len);
 
       if (packet != NULL)
@@ -318,7 +317,7 @@ capture_next_v6_packet (int bpf, int timeout, int *sz)
       ip6->ip6_plen = ntohs (ip6->ip6_plen);
 #endif
       ret = g_malloc0 (len - dl_len);
-      bcopy (ip6, ret, len - dl_len);
+      memcpy (ret, ip6, len - dl_len);
       if (sz != NULL)
         *sz = len - dl_len;
     }
