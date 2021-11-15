@@ -28,7 +28,7 @@ jobs:
           context: .
           push: true
           tags: ${{ steps.container.outputs.image-tags }}
-          file: .docker/main.Dockerfile
+          file: .docker/stable.Dockerfile
           build-args: |
             REPOSITORY=${{ github.repository }}
 
