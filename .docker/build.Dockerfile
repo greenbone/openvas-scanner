@@ -1,4 +1,4 @@
-ARG VERSION=unstable
+ARG VERSION=oldstable
 
 FROM greenbone/eulabeia-c-lib:$VERSION
 
