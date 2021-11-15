@@ -26,6 +26,7 @@
 #include "nasl_crypto.h"
 #include "nasl_crypto2.h"
 #include "nasl_debug.h"
+#include "nasl_frame_forgery.h"
 #include "nasl_func.h"
 #include "nasl_global_ctxt.h"
 #include "nasl_host.h"
@@ -251,6 +252,7 @@ static init_func libfuncs[] = {
   {"forge_igmp_v6_packet", forge_igmp_v6_packet},
   {"send_packet", nasl_send_packet},
   {"send_v6packet", nasl_send_v6packet},
+  {"send_arp_request", nasl_send_arp_request},
   {"pcap_next", nasl_pcap_next},
   {"send_capture", nasl_send_capture},
   {"MD2", nasl_md2},
