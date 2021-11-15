@@ -131,8 +131,8 @@ nasl_send_arp_request (lex_ctxt *lexic)
 
   if (libnet_autobuild_ethernet (mac_broadcast_addr, ETHERTYPE_ARP, l) == -1)
     {
-      fprintf (stderr, "Error building Ethernet header: %s\n",
-               libnet_geterror (l));
+      g_message ("%s: Error building Ethernet header: %s\n", __func__,
+                 libnet_geterror (l));
       libnet_destroy (l);
       return retc;
     }
@@ -165,7 +165,7 @@ nasl_send_arp_request (lex_ctxt *lexic)
         }
     }
   else
-    fprintf (stderr, "Error writing packet: %s\n", libnet_geterror (l));
+    g_message ("%s: Error writing packet: %s\n", __func__, libnet_geterror (l));
 
   libnet_destroy (l);
   if (bpf >= 0)
