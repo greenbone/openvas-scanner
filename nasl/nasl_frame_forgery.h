@@ -1,10 +1,11 @@
-/* Copyright (C) 2002 - 2003 Michel Arboi and Renaud Deraison
+/* Copyright (C) 2021 Greenbone Networks GmbH
  *
- * SPDX-License-Identifier: GPL-2.0-only
+ * SPDX-License-Identifier: GPL-2.0-or-later
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
- * version 2 as published by the Free Software Foundation.
+ * as published by the Free Software Foundation; either version 2
+ * of the License, or (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -16,25 +17,17 @@
  * Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA 02110-1301 USA.
  */
 
-#ifndef CAPTURE_PACKET_H
-#define CAPTURE_PACKET_H
+/**
+ * @file nasl_frame_forgery.h
+ * @brief Header file for module nasl_frame_forgery.
+ */
 
-#include <netinet/in.h>
-#include <netinet/ip6.h>
+#ifndef NASL_FRAME_FORGERY_H
+#define NASL_FRAME_FORGERY_H
 
-int
-init_capture_device (struct in_addr, struct in_addr, char *);
+#include "nasl_lex_ctxt.h"
 
-struct ip *
-capture_next_packet (int, int, int *);
+tree_cell *
+nasl_send_arp_request (lex_ctxt *);
 
-struct ether_header *
-capture_next_frame (int, int, int *);
-
-int
-init_v6_capture_device (struct in6_addr, struct in6_addr, char *);
-
-struct ip6_hdr *
-capture_next_v6_packet (int, int, int *);
-
-#endif
+#endif // NASL_FRAME_FORGERY_H
