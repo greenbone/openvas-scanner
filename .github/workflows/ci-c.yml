@@ -62,7 +62,7 @@ jobs:
           path: /tmp/xml-doc
       - name: Establish documentation coverage
         run: |
-            . venv/bin/activate
+            . .venv/bin/activate
             python -m coverxygen --src-dir ${{ github.workspace }} --xml-dir \
             ${{steps.xml-doc.outputs.download-path}} --output lcov.info
       - uses: codecov/codecov-action@v1
