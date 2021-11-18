@@ -379,3 +379,36 @@ nasl_send_frame (lex_ctxt *lexic)
 
   return retc;
 }
+
+/** @brief Dump a datalink layer frame
+ *
+ * @naslparam
+ *
+ * - @n frame The frame to be dumped.
+ *
+ * @param lexic Lexical context of NASL interpreter.
+ *
+ * @return Null
+ */
+tree_cell *
+nasl_dump_frame (lex_ctxt *lexic)
+{
+  u_char *frame = (u_char *) get_str_var_by_name (lexic, "frame");
+  int frame_sz = get_var_size_by_name (lexic, "frame");
+  int f = 0;
+
+  if (frame_sz == 0)
+    return NULL;
+
+  printf ("\nThe Frame:\n");
+  while (f < frame_sz)
+    {
+      printf ("%02x%02x ", ((u_char *) frame)[f], ((u_char *) frame)[f + 1]);
+      f += 2;
+      if (f % 16 == 0)
+        printf ("\n");
+    }
+  printf ("\n\n");
+
+  return NULL;
+}
