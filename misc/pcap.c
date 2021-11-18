@@ -1327,3 +1327,54 @@ get_iface_from_ip (const char *local_ip)
 
   return if_name;
 }
+
+/** @brief Get the interface index depending on the target's IP
+ *
+ * @param[in] ipaddr The ip address of the target.
+ * @param[out] ifindex the index of the selected iface
+ *
+ * @return 0 on success, otherwise -1.
+ */
+int
+get_iface_index (struct in6_addr *ipaddr, int *ifindex)
+{
+  struct in6_addr src_addr;
+  struct ifreq ifr;
+  char *if_name, *ip_address;
+  int soc;
+
+  // We get the local address to use, with the remote address.
+  memset (&src_addr, '\0', sizeof (struct in6_addr));
+  v6_getsourceip (&src_addr, ipaddr);
+  ip_address = addr6_as_str (&src_addr);
+
+  // Once with the local ip address, we get the source iface name
+  if_name = get_iface_from_ip (ip_address);
+  g_free (ip_address);
+  if (!if_name)
+    {
+      g_debug ("%s: Missing interface name", __func__);
+      return -1;
+    }
+
+  // Create the raw socket
+  soc = socket (AF_INET, SOCK_DGRAM, 0);
+  if (soc == -1)
+    {
+      g_debug ("%s: %s", __func__, strerror (errno));
+      return -1;
+    }
+  // Get the interface index using the iface name
+  memcpy (ifr.ifr_name, if_name, strlen (if_name));
+  g_free (if_name);
+  if (ioctl (soc, SIOCGIFINDEX, &ifr) == -1)
+    {
+      g_debug ("%s: %s", __func__, strerror (errno));
+      close (soc);
+      return -1;
+    }
+  *ifindex = ifr.ifr_ifindex;
+
+  close (soc);
+  return 0;
+}
