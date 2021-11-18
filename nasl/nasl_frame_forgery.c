@@ -41,6 +41,13 @@
  */
 #define G_LOG_DOMAIN "lib  misc"
 
+struct pseudo_frame
+{
+  struct ethhdr framehdr;
+  u_char *payload;
+  int payload_sz;
+} __attribute__ ((packed));
+
 /**
  * @brief Send an arp request to an IP host.
  *
