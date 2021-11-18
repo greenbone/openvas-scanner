@@ -270,7 +270,7 @@ nasl_forge_frame (lex_ctxt *lexic)
   frame->payload = payload;
 
   frame_sz = ETH_HLEN + payload_sz;
-  memcpy ((char *) frame + ETH_HLEN, payload, frame_sz);
+  memcpy ((char *) frame + ETH_HLEN, payload, payload_sz);
 
   retc = alloc_typed_cell (CONST_DATA);
   retc->x.str_val = (char *) frame;
