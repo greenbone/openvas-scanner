@@ -25,12 +25,17 @@
 #include "nasl_frame_forgery.h"
 
 #include "../misc/bpf_share.h" /* for bpf_open_live */
+#include "../misc/pcap_openvas.h"
+#include "../misc/pcap_openvas.h" /* for get_iface_from_ip */
 #include "../misc/plugutils.h"
 #include "capture_packet.h"
+#include "nasl_debug.h"
 
 #include <gvm/base/networking.h>
 #include <libnet.h>
+#include <linux/if_packet.h>
 #include <net/ethernet.h>
+#include <netinet/if_ether.h>
 #include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -180,5 +185,51 @@ nasl_send_arp_request (lex_ctxt *lexic)
   if (bpf >= 0)
     bpf_close (bpf);
 
+  return retc;
+}
+
+/*----------------------------------------------------------------------------*/
+/** @brief Forge a datalink layer frame
+ *
+ * @naslparams
+ *
+ * - @n src_haddr     Source MAC address to use.
+ * - @n dst_haddr     Destination MAC address to use.
+ * - @n ether_proto   Ethernet type integer in hex format. Default 0x0800
+ * (ETHER_P_IP)
+ * - @n payload       Payload to be attached to the frame. E.g a forged tcp
+ * datagram.
+ *
+ * - @naslreturn the forged frame.
+ *
+ * @param lexic Lexical context of NASL interpreter.
+ *
+ * @return tree_cell element or null.
+ */
+tree_cell *
+nasl_forge_frame (lex_ctxt *lexic)
+{
+  tree_cell *retc;
+  struct pseudo_frame *frame;
+  u_char *payload = (u_char *) get_str_var_by_name (lexic, "payload");
+  int payload_sz = get_var_size_by_name (lexic, "payload");
+  int frame_sz;
+  char *ether_src_addr = get_str_var_by_name (lexic, "src_haddr");
+  char *ether_dst_addr = get_str_var_by_name (lexic, "dst_haddr");
+  int ether_proto = get_int_var_by_name (lexic, "ether_proto", 0x0800);
+
+  frame = (struct pseudo_frame *) g_malloc0 (sizeof (struct pseudo_frame)
+                                             + payload_sz);
+  memcpy (frame->framehdr.h_dest, ether_dst_addr, ETHER_ADDR_LEN);
+  memcpy (frame->framehdr.h_source, ether_src_addr, ETHER_ADDR_LEN);
+  frame->framehdr.h_proto = htons (ether_proto);
+  frame->payload = payload;
+
+  frame_sz = ETH_HLEN + payload_sz;
+  memcpy ((char *) frame + ETH_HLEN, payload, frame_sz);
+
+  retc = alloc_typed_cell (CONST_DATA);
+  retc->x.str_val = (char *) frame;
+  retc->size = frame_sz;
   return retc;
 }

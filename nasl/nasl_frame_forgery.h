@@ -30,4 +30,7 @@
 tree_cell *
 nasl_send_arp_request (lex_ctxt *);
 
+tree_cell *
+nasl_forge_frame (lex_ctxt *);
+
 #endif // NASL_FRAME_FORGERY_H
