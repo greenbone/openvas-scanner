@@ -72,6 +72,7 @@ nasl_send_arp_request (lex_ctxt *lexic)
   struct ether_header *answer;
   int answer_sz;
   int to = get_int_var_by_name (lexic, "pcap_timeout", 5);
+  int dl_layer_only = 0;
 
   l = libnet_init (LIBNET_LINK, NULL, errbuf);
   if (l == NULL)
@@ -146,7 +147,8 @@ nasl_send_arp_request (lex_ctxt *lexic)
   if (bytes_written != -1)
     {
       if (bpf >= 0)
-        answer = capture_next_frame (bpf, to, &answer_sz);
+        answer = (struct ether_header *) capture_next_frame (
+          bpf, to, &answer_sz, dl_layer_only);
 
       if (answer)
         {

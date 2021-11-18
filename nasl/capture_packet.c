@@ -100,11 +100,12 @@ init_capture_device (struct in_addr src, struct in_addr dest, char *filter)
  * @param[in] bpf bpf handler
  * @param[in] timeout the timeout
  * @param[out] sz size of the frame
+ * @param[in] dl_layer_only If the answer should include the payload.
  *
  * @return the link layer frame.
  */
-struct ether_header *
-capture_next_frame (int bpf, int timeout, int *sz)
+char *
+capture_next_frame (int bpf, int timeout, int *sz, int dl_layer_only)
 {
   int len;
   int dl_len;
@@ -145,12 +146,23 @@ capture_next_frame (int bpf, int timeout, int *sz)
 
   if (frame != NULL)
     {
-      ret = g_malloc0 (dl_len);
-      memcpy (ret, frame, dl_len);
-      if (sz != NULL)
-        *sz = dl_len;
+      if (dl_layer_only == 1)
+        {
+          ret = g_malloc0 (dl_len);
+          memcpy (ret, frame, dl_len);
+          if (sz != NULL)
+            *sz = dl_len;
+        }
+      else
+        {
+          ret = g_malloc0 (len);
+          memcpy (ret, frame, len);
+          if (sz != NULL)
+            *sz = len;
+        }
     }
-  return ((struct ether_header *) ret);
+
+  return ret;
 }
 
 struct ip *
