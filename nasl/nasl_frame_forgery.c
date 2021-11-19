@@ -317,6 +317,35 @@ send_frame (const u_char *frame, int frame_sz, int use_pcap, int timeout,
 
 /** @brief Forge a datalink layer frame
  *
+ * @param[in] src_haddr     Source MAC address to use.
+ * @param[in] dst_haddr     Destination MAC address to use.
+ * @param[in] ether_proto   Ethernet type integer in hex format. Default 0x0800 (ETHER_P_IP)
+ * @param[in] payload       Payload to be attached to the frame. E.g a forged tcp
+ * datagram, or arp header
+ * @param[out] frame the forge frame
+ *
+ * @return the forged frame size.
+ */
+static int
+forge_frame (char *ether_src_addr,  char *ether_dst_addr, int ether_proto, u_char *payload, int payload_sz, struct pseudo_frame **frame)
+{
+  int frame_sz;
+
+  *frame = (struct pseudo_frame *) g_malloc0 (sizeof (struct pseudo_frame)
+                                             + payload_sz);
+  memcpy ((*frame)->framehdr.h_dest, ether_dst_addr, ETHER_ADDR_LEN);
+  memcpy ((*frame)->framehdr.h_source, ether_src_addr, ETHER_ADDR_LEN);
+  (*frame)->framehdr.h_proto = htons (ether_proto);
+  (*frame)->payload = payload;
+
+  frame_sz = ETH_HLEN + payload_sz;
+  memcpy ((char *) *frame + ETH_HLEN, payload, payload_sz);
+
+  return frame_sz;
+}
+
+/** @brief Forge a datalink layer frame
+ *
  * @naslparams
  *
  * - @n src_haddr     Source MAC address to use.
@@ -337,22 +366,14 @@ nasl_forge_frame (lex_ctxt *lexic)
 {
   tree_cell *retc;
   struct pseudo_frame *frame;
+  int frame_sz;
   u_char *payload = (u_char *) get_str_var_by_name (lexic, "payload");
   int payload_sz = get_var_size_by_name (lexic, "payload");
-  int frame_sz;
   char *ether_src_addr = get_str_var_by_name (lexic, "src_haddr");
   char *ether_dst_addr = get_str_var_by_name (lexic, "dst_haddr");
   int ether_proto = get_int_var_by_name (lexic, "ether_proto", 0x0800);
 
-  frame = (struct pseudo_frame *) g_malloc0 (sizeof (struct pseudo_frame)
-                                             + payload_sz);
-  memcpy (frame->framehdr.h_dest, ether_dst_addr, ETHER_ADDR_LEN);
-  memcpy (frame->framehdr.h_source, ether_src_addr, ETHER_ADDR_LEN);
-  frame->framehdr.h_proto = htons (ether_proto);
-  frame->payload = payload;
-
-  frame_sz = ETH_HLEN + payload_sz;
-  memcpy ((char *) frame + ETH_HLEN, payload, payload_sz);
+  frame_sz = forge_frame (ether_src_addr, ether_dst_addr, ether_proto, payload, payload_sz, &frame);
 
   retc = alloc_typed_cell (CONST_DATA);
   retc->x.str_val = (char *) frame;
