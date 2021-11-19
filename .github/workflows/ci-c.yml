@@ -18,53 +18,30 @@ jobs:
           clang-format -i -style=file {src,misc,nasl}/*.{c,h}
           git diff --exit-code
 
-  generate-xml-doc:
+  generate-doc-and-upload-coverage:
     name: Build XML documentation
     runs-on: ubuntu-latest
     container: greenbone/doxygen
     steps:
       - name: Check out openvas-scanner
         uses: actions/checkout@v2
-      - name: Generate documentation (XML)
-        run: |
-            mkdir build && cd build/ && cmake -DSKIP_SRC=1 ..
-            make doc-xml 2> ~/doxygen-stderr.txt
-      - name: Upload doxygen error output as artifact
-        uses: actions/upload-artifact@v2
-        with:
-          name: doxygen-stderr.txt
-          path: ~/doxygen-stderr.txt
-      - name: Upload XML documentation as artifact
-        uses: actions/upload-artifact@v2
-        with:
-          name: xml-doc
-          path: build/doc/generated/xml/
-
-  doc-coverage:
-    name: Upload doc coverage to Codecov
-    needs: generate-xml-doc
-    runs-on: ubuntu-latest
-    steps:
-      - name: Check out openvas-scanner
-        uses: actions/checkout@v2
       - name: Install coverxygen and codecov
         run: |
-            apt-get update && apt-get --assume-yes install python3-venv curl
             python3 -m venv .venv
             . .venv/bin/activate
             pip install setuptools --upgrade
             pip install 'coverxygen>=1.3.1' codecov
-      - name: Download XML documentation artifact
-        id: xml-doc
-        uses: actions/download-artifact@v2
-        with:
-          name: xml-doc
-          path: /tmp/xml-doc
+      - name: Generate documentation (XML)
+        run: |
+          mkdir build
+          cd build
+          cmake -DSKIP_SRC=1 ..
+          make doc-xml
       - name: Establish documentation coverage
         run: |
             . .venv/bin/activate
-            python -m coverxygen --src-dir ${{ github.workspace }} --xml-dir \
-            ${{steps.xml-doc.outputs.download-path}} --output lcov.info
+            python -m coverxygen --src-dir ${{ github.workspace }} \
+            --xml-dir build/doc/generated/xml/ --output lcov.info
       - uses: codecov/codecov-action@v1
         with:
           files: lcov.info
@@ -80,12 +57,13 @@ jobs:
         run: |
           cmake -Bbuild -DCMAKE_BUILD_TYPE=Release
           scan-build -o ~/scan-build-report cmake --build build
-      - name: Upload scan-build report
-        if: failure()
-        uses: actions/upload-artifact@v2
-        with:
-          name: scan-build-report
-          path: ~/scan-build-report/
+      # We do not use this upload ...
+      # - name: Upload scan-build report
+      #   if: failure()
+      #   uses: actions/upload-artifact@v2
+      #   with:
+      #     name: scan-build-report
+      #     path: ~/scan-build-report/
 
   unit-tests:
     name: Unit Tests
