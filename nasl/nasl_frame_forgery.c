@@ -231,6 +231,91 @@ prepare_message (struct msghdr *message, struct sockaddr_ll *soc_addr_ll,
   message->msg_controllen = 0;
 }
 
+
+/** @brief Send a frame and listen to the answer
+ *
+ * @param[in]frame         The frame to be sent.
+ * @param[in]frame_sz      The frame's size.
+ * @param[in]pcap_active   TRUE by default. Otherwise, NASL does not listen
+ *                         for the answers.
+ * @param[in]pcap_filter   BPF filter.
+ * @param[in]pcap_timeout  Capture timeout. 5 by default.
+ * @param[in]ipaddr        Destination address, used for calculating the
+ *                         ethernet index
+ * @param[out]answer       Sniffed answer.
+ *
+ * @return Bits received in the answer or 0 on success, -1 on error.
+ */
+static int
+send_frame (const u_char *frame, int frame_sz, int use_pcap, int timeout,
+            char *filter, struct in6_addr *ipaddr, u_char **answer)
+{
+  int soc;
+  struct msghdr message;
+  int ifindex;
+  int bpf = -1;
+  int frame_and_payload = 0;
+  int answer_sz = 0;
+
+  // Create the raw socket
+  soc = socket (AF_PACKET, SOCK_RAW, htons (ETH_P_ALL));
+  if (soc == -1)
+    {
+      g_debug ("%s: %s", __func__, strerror (errno));
+      return -1;
+    }
+
+  // We will need the eth index. We get it depending on the target's IP..
+  if (get_iface_index (ipaddr, &ifindex) < 0)
+    {
+      g_debug ("%s: Missing interface index\n", __func__);
+      return -1;
+    }
+
+  // Preapre sockaddr_ll. This is necessary for further captures
+  unsigned char dst_haddr[ETHER_ADDR_LEN];
+  memcpy (&dst_haddr, (struct pseudo_frame *) frame, ETHER_ADDR_LEN);
+
+  struct sockaddr_ll soc_addr;
+  memset (&soc_addr, '\0', sizeof (struct sockaddr_ll));
+  prepare_sockaddr_ll (&soc_addr, ifindex, dst_haddr);
+
+  /* Init capture */
+  if (use_pcap != 0 && bpf < 0)
+    {
+      struct in_addr sin, this_host;
+      memset (&sin, '\0', sizeof (struct in_addr));
+      memset (&this_host, '\0', sizeof (struct in_addr));
+      if (IN6_IS_ADDR_V4MAPPED (ipaddr))
+        {
+          sin.s_addr = ipaddr->s6_addr32[3];
+          bpf = init_capture_device (sin, this_host, filter);
+        }
+      else
+        {
+          g_debug ("%s: Error. Only IPv4 is supported for starting a capture.",
+                   __func__);
+          return -1;
+        }
+    }
+
+  // Prepare the message and send it
+  memset (&message, '\0', sizeof (struct msghdr));
+  prepare_message (&message, &soc_addr, (u_char *) frame, frame_sz);
+
+  int b = sendmsg (soc, &message, 0);
+  if (b == -1)
+    {
+      g_debug ("%s: Error sending message: %s", __func__, strerror (errno));
+      return -1;
+    }
+  if (bpf >= 0)
+    *answer = (u_char *) capture_next_frame (bpf, timeout, &answer_sz,
+                                             frame_and_payload);
+
+  return answer_sz;
+}
+
 /** @brief Forge a datalink layer frame
  *
  * @naslparams
@@ -295,9 +380,7 @@ nasl_forge_frame (lex_ctxt *lexic)
 tree_cell *
 nasl_send_frame (lex_ctxt *lexic)
 {
-  int soc;
-  tree_cell *retc = FAKE_CELL;
-  struct msghdr message;
+  tree_cell *retc = NULL;
   struct script_infos *script_infos = lexic->script_infos;
   struct in6_addr *ipaddr = plug_get_host_ip (script_infos);
   u_char *frame = (u_char *) get_str_var_by_name (lexic, "frame");
@@ -305,75 +388,23 @@ nasl_send_frame (lex_ctxt *lexic)
   int use_pcap = get_int_var_by_name (lexic, "pcap_active", 1);
   int to = get_int_var_by_name (lexic, "pcap_timeout", 5);
   char *filter = get_str_var_by_name (lexic, "pcap_filter");
-  int ifindex;
   u_char *answer = NULL;
-  int answer_sz = 0;
-  int bpf = -1;
-  int frame_and_payload = 0;
+  int answer_sz;
 
-  // Create the raw socket
-  soc = socket (AF_PACKET, SOCK_RAW, htons (ETH_P_ALL));
-  if (soc == -1)
+  answer_sz =
+    send_frame (frame, frame_sz, use_pcap, to, filter, ipaddr, &answer);
+  if (answer_sz == -1)
     {
-      nasl_perror (lexic, "%s: %s", __func__, strerror (errno));
+      g_message ("%s: Not possible to send the frame", __func__);
       return NULL;
     }
 
-  // We will need the eth index. We get it depending on the target's IP..
-  if (get_iface_index (ipaddr, &ifindex) < 0)
-    {
-      nasl_perror (lexic, "%s: Missing interface index\n", __func__);
-      return NULL;
-    }
-
-  // Preapre sockaddr_ll. This is necessary for further captures
-  unsigned char dst_haddr[ETHER_ADDR_LEN];
-  memcpy (&dst_haddr, (struct pseudo_frame *) frame, ETHER_ADDR_LEN);
-
-  struct sockaddr_ll soc_addr;
-  memset (&soc_addr, '\0', sizeof (struct sockaddr_ll));
-  prepare_sockaddr_ll (&soc_addr, ifindex, dst_haddr);
-
-  /* Init capture */
-  if (use_pcap != 0 && bpf < 0)
-    {
-      struct in_addr sin, this_host;
-      memset (&sin, '\0', sizeof (struct in_addr));
-      memset (&this_host, '\0', sizeof (struct in_addr));
-      if (IN6_IS_ADDR_V4MAPPED (ipaddr))
-        {
-          sin.s_addr = ipaddr->s6_addr32[3];
-          bpf = init_capture_device (sin, this_host, filter);
-        }
-      else
-        nasl_perror (
-          lexic, "%s: Error. Only IPv4 is supported for starting a capture.",
-          __func__);
-    }
-
-  // Prepare the message and send it
-  memset (&message, '\0', sizeof (struct msghdr));
-  prepare_message (&message, &soc_addr, (u_char *) frame, frame_sz);
-
-  int b = sendmsg (soc, &message, 0);
-  if (b == -1)
-    nasl_perror (lexic, "%s: Error sending message: %s", __func__,
-                 strerror (errno));
-
-  if (bpf >= 0)
-    answer =
-      (u_char *) capture_next_frame (bpf, to, &answer_sz, frame_and_payload);
-
-  if (answer)
+  if (answer && answer_sz >= -1)
     {
       retc = alloc_typed_cell (CONST_DATA);
       retc->x.str_val = (char *) answer;
       retc->size = answer_sz;
     }
-
-  if (bpf >= 0)
-    bpf_close (bpf);
-  close (soc);
 
   return retc;
 }
