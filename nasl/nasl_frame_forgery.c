@@ -31,6 +31,7 @@
 #include "capture_packet.h"
 #include "nasl_debug.h"
 
+#include <errno.h>
 #include <gvm/base/networking.h>
 #include <libnet.h>
 #include <linux/if_packet.h>
@@ -200,9 +201,6 @@ static void
 prepare_sockaddr_ll (struct sockaddr_ll *soc_addr_ll, int ifindex,
                      const unsigned char *ether_dst_addr)
 {
-  //  const unsigned char ether_dst_addr[]=
-  //    {0x54,0xe1,0xad,0xd4,0xed,0x74};
-
   soc_addr_ll->sll_family = AF_PACKET;
   soc_addr_ll->sll_ifindex = ifindex;
   soc_addr_ll->sll_halen = ETHER_ADDR_LEN;
