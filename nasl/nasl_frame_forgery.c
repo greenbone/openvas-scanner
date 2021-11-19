@@ -231,7 +231,6 @@ prepare_message (struct msghdr *message, struct sockaddr_ll *soc_addr_ll,
   message->msg_controllen = 0;
 }
 
-
 /** @brief Send a frame and listen to the answer
  *
  * @param[in]frame         The frame to be sent.
@@ -445,26 +444,22 @@ nasl_dump_frame (lex_ctxt *lexic)
 /**
  * @brief Get the MAC address of host
  *
- * @param[in] lexic   Lexical context of NASL interpreter.
  * @param[in] ip_address    Local IP address
  *
  * @return The MAC address of the host. NULL otherwise
  */
-tree_cell *
-nasl_get_local_mac_address_from_ip (lex_ctxt *lexic)
+static unsigned char *
+get_local_mac_address_from_ip (char *ip_address)
 {
-  tree_cell *retc;
   struct ifreq ifr;
   int sock;
-  char *if_name = NULL, *buffer = NULL;
-  const unsigned char *mac;
-
-  char *ip_address = get_str_var_by_num (lexic, 0);
+  char *if_name = NULL;
+  unsigned char *mac;
 
   if_name = get_iface_from_ip (ip_address);
   if (!if_name)
     {
-      nasl_perror (lexic, "Missing interface name\n");
+      g_debug ("%s: Missing interface name", __func__);
       return NULL;
     }
 
@@ -481,19 +476,47 @@ nasl_get_local_mac_address_from_ip (lex_ctxt *lexic)
 
   if (-1 == ioctl (sock, SIOCGIFHWADDR, &ifr))
     {
-      perror ("ioctl(SIOCGIFHWADDR) ");
+      g_debug ("%s: ioctl(SIOCGIFHWADDR)", __func__);
       return NULL;
     }
 
   mac = (unsigned char *) ifr.ifr_hwaddr.sa_data;
-  buffer = g_strdup_printf ("%02x:%02x:%02x:%02x:%02x:%02x", mac[0], mac[1],
-                            mac[2], mac[3], mac[4], mac[5]);
-
   close (sock);
 
-  retc = alloc_typed_cell (CONST_DATA);
-  retc->x.str_val = buffer;
-  retc->size = 17;
+  return mac;
+}
+
+/**
+ * @brief Get the MAC address of host
+ *
+ * @naslparam
+ *
+ * - @a ip_address    Local IP address
+ *
+ *  @naslreturn The MAC address of the host. NULL otherwise
+ *
+ * @param[in] lexic   Lexical context of NASL interpreter.
+ *
+ **/
+tree_cell *
+nasl_get_local_mac_address_from_ip (lex_ctxt *lexic)
+{
+  tree_cell *retc = NULL;
+  char *buffer = NULL;
+  unsigned char *mac;
+
+  char *ip_address = get_str_var_by_num (lexic, 0);
+
+  mac = get_local_mac_address_from_ip (ip_address);
+  if (mac != NULL)
+    {
+      buffer = g_strdup_printf ("%02x:%02x:%02x:%02x:%02x:%02x", mac[0], mac[1],
+                                mac[2], mac[3], mac[4], mac[5]);
+
+      retc = alloc_typed_cell (CONST_DATA);
+      retc->x.str_val = buffer;
+      retc->size = 17;
+    }
 
   return retc;
 }
