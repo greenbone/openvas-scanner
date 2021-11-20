@@ -19,32 +19,12 @@ jobs:
           git diff --exit-code
 
   generate-doc-and-upload-coverage:
-    name: Build XML documentation
+    name: Build XML documentation and upload coverage
     runs-on: ubuntu-latest
     container: greenbone/doxygen
     steps:
-      - name: Check out openvas-scanner
-        uses: actions/checkout@v2
-      - name: Install coverxygen and codecov
-        run: |
-            python3 -m venv .venv
-            . .venv/bin/activate
-            pip install setuptools --upgrade
-            pip install 'coverxygen>=1.3.1' codecov
-      - name: Generate documentation (XML)
-        run: |
-          mkdir build
-          cd build
-          cmake -DSKIP_SRC=1 ..
-          make doc-xml
-      - name: Establish documentation coverage
-        run: |
-            . .venv/bin/activate
-            python -m coverxygen --src-dir ${{ github.workspace }} \
-            --xml-dir build/doc/generated/xml/ --output lcov.info
-      - uses: codecov/codecov-action@v1
-        with:
-          files: lcov.info
+      - name: Run the c lang coverage action
+        uses: greenbone/actions/doc-coverage-clang@v1
 
   compile:
     name: scan-build (clang static analyzer)
