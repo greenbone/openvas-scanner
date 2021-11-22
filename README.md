@@ -1,9 +1,11 @@
-![Greenbone Logo](https://www.greenbone.net/wp-content/uploads/gb_logo_resilience_horizontal.png)
+![Greenbone Logo](https://www.greenbone.net/wp-content/uploads/gb_new-logo_horizontal_rgb_small.png)
 
 # OpenVAS
 
-[![GitHub releases](https://img.shields.io/github/release/greenbone/openvas.svg)](https://github.com/greenbone/openvas/releases)
-[![Code Documentation Coverage](https://img.shields.io/codecov/c/github/greenbone/openvas.svg?label=Doc%20Coverage&logo=codecov)](https://codecov.io/gh/greenbone/openvas)
+[![GitHub releases](https://img.shields.io/github/release/greenbone/openvas-scanner.svg)](https://github.com/greenbone/openvas-scanner/releases)
+[![Code Documentation Coverage](https://img.shields.io/codecov/c/github/greenbone/openvas-scanner.svg?label=Doc%20Coverage&logo=codecov)](https://codecov.io/gh/greenbone/openvas-scanner)
+[![Docker Pulls](https://img.shields.io/docker/pulls/greenbone/openvas-scanner.svg)](https://hub.docker.com/r/greenbone/openvas-scanner/)
+[![Docker Image Size](https://img.shields.io/docker/image-size/greenbone/openvas-scanner.svg?maxAge=2592000)](https://hub.docker.com/r/greenbone/openvas-scanner/)
 [![Build and test](https://github.com/greenbone/openvas-scanner/actions/workflows/ci-c.yml/badge.svg?branch=main)](https://github.com/greenbone/openvas-scanner/actions/workflows/ci-c.yml?query=branch%3Amain++)
 
 This is the Open Vulnerability Assessment Scanner (OpenVAS) of the
