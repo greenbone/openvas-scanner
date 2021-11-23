@@ -299,7 +299,7 @@ nasl_send_frame (lex_ctxt *lexic)
       return NULL;
     }
 
-  if (answer && answer_sz >= -1)
+  if (answer && answer_sz > -1)
     {
       retc = alloc_typed_cell (CONST_DATA);
       retc->x.str_val = (char *) answer;
