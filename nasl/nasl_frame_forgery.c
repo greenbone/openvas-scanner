@@ -251,6 +251,15 @@ nasl_forge_frame (lex_ctxt *lexic)
   char *ether_dst_addr = get_str_var_by_name (lexic, "dst_haddr");
   int ether_proto = get_int_var_by_name (lexic, "ether_proto", 0x0800);
 
+  if (ether_src_addr == NULL || ether_dst_addr == NULL || payload == NULL)
+    {
+      nasl_perror (lexic,
+                   "%s usage: payload, src_haddr and dst_haddr are mandatory "
+                   "parameters.\n",
+                   __func__);
+      return NULL;
+    }
+
   frame_sz = forge_frame ((u_char *) ether_src_addr, (u_char *) ether_dst_addr,
                           ether_proto, payload, payload_sz, &frame);
 
@@ -290,6 +299,13 @@ nasl_send_frame (lex_ctxt *lexic)
   u_char *answer = NULL;
   int answer_sz;
 
+  if (frame == NULL || frame_sz <= 0)
+    {
+      nasl_perror (lexic, "%s usage: frame is a mandatory parameters.\n",
+                   __func__);
+      return NULL;
+    }
+
   answer_sz =
     send_frame (frame, frame_sz, use_pcap, to, filter, ipaddr, &answer);
   if (answer_sz == -1)
@@ -324,6 +340,13 @@ nasl_dump_frame (lex_ctxt *lexic)
   u_char *frame = (u_char *) get_str_var_by_name (lexic, "frame");
   int frame_sz = get_var_size_by_name (lexic, "frame");
   int f = 0;
+
+  if (frame == NULL || frame_sz <= 0)
+    {
+      nasl_perror (lexic, "%s usage: frame is a mandatory parameters.\n",
+                   __func__);
+      return NULL;
+    }
 
   if (frame_sz == 0)
     return NULL;
@@ -424,11 +447,7 @@ nasl_get_local_mac_address_from_ip (lex_ctxt *lexic)
 /**
  * @brief Send an arp request to an IP host.
  *
- * @naslnparam
- *
- * - @a host    Target's IPv4 address
- *
- * @naslret The MAC address of the host. NULL otherwise
+ * @naslret The MAC address of the target. NULL otherwise
  *
  * @param[in] lexic   Lexical context of NASL interpreter.
  *
