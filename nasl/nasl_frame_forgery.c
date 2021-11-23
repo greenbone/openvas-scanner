@@ -63,7 +63,6 @@ struct pseudo_frame
 {
   struct ethhdr framehdr;
   u_char *payload;
-  int payload_sz;
 } __attribute__ ((packed));
 
 /** @brief Prepare message header to be sent with sendmsg().
