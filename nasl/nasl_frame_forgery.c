@@ -117,7 +117,8 @@ prepare_message (struct msghdr *message, struct sockaddr_ll *soc_addr_ll,
  *                         ethernet index
  * @param[out]answer       Sniffed answer.
  *
- * @return Bits received in the answer or 0 on success, -1 on error.
+ * @return Bits received in the answer or 0 on success, -1 if no answer, -2
+ * error sending the message.
  */
 static int
 send_frame (const u_char *frame, int frame_sz, int use_pcap, int timeout,
@@ -180,12 +181,12 @@ send_frame (const u_char *frame, int frame_sz, int use_pcap, int timeout,
   if (b == -1)
     {
       g_debug ("%s: Error sending message: %s", __func__, strerror (errno));
-      return -1;
+      return -2;
     }
   if (bpf >= 0)
     {
       *answer = (u_char *) capture_next_frame (bpf, timeout, &answer_sz,
-                                             frame_and_payload);
+                                               frame_and_payload);
       bpf_close (bpf);
       close (soc);
       return answer_sz;
@@ -314,7 +315,7 @@ nasl_send_frame (lex_ctxt *lexic)
 
   answer_sz =
     send_frame (frame, frame_sz, use_pcap, to, filter, ipaddr, &answer);
-  if (answer_sz == -1)
+  if (answer_sz == -2)
     {
       g_message ("%s: Not possible to send the frame", __func__);
       return NULL;
@@ -521,7 +522,7 @@ nasl_send_arp_request (lex_ctxt *lexic)
 
   answer_sz =
     send_frame ((const u_char *) frame, frame_sz, 1, to, filter, dst, &answer);
-  if (answer_sz == -1)
+  if (answer_sz == -2)
     {
       g_message ("%s: Not possible to send the frame", __func__);
       return NULL;
