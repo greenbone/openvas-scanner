@@ -36,6 +36,8 @@
 #include <libnet.h>
 #include <linux/if_packet.h>
 #include <net/ethernet.h>
+#include <net/if_arp.h>
+#include <netinet/ether.h>
 #include <netinet/if_ether.h>
 #include <stdint.h>
 #include <stdio.h>
@@ -46,6 +48,16 @@
  * @brief GLib logging domain.
  */
 #define G_LOG_DOMAIN "lib  misc"
+
+struct pseudo_eth_arp
+{
+  struct arphdr arp_header;
+  u_char __ar_sha[ETH_ALEN]; /* Sender hardware address.  */
+  u_char __ar_sip[4];        /* Sender IP address.  */
+  u_char __ar_tha[ETH_ALEN]; /* Target hardware address.  */
+  u_char __ar_tip[4];        /* Target IP address.  */
+  u_char __zero_padding[18];
+} __attribute__ ((packed));
 
 struct pseudo_frame
 {
