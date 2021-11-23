@@ -474,6 +474,7 @@ nasl_send_arp_request (lex_ctxt *lexic)
    */
   if (dst == NULL || (IN6_IS_ADDR_V4MAPPED (dst) != 1))
     return retc;
+
   memset (&dst_inaddr, '\0', sizeof (struct in_addr));
   dst_inaddr.s_addr = dst->s6_addr32[3];
   routethrough (&dst_inaddr, &src_inaddr);
@@ -531,13 +532,13 @@ nasl_send_arp_request (lex_ctxt *lexic)
         (u_int) answer_aux->ether_shost[1], (u_int) answer_aux->ether_shost[2],
         (u_int) answer_aux->ether_shost[3], (u_int) answer_aux->ether_shost[4],
         (u_int) answer_aux->ether_shost[5]);
-      retc = alloc_typed_cell (CONST_DATA);
+
       retc = alloc_typed_cell (CONST_DATA);
       retc->x.str_val = daddr;
       retc->size = strlen (daddr);
     }
   else
-    g_message ("%s: Error sending message.", __func__);
+    g_debug ("%s: No answer received.", __func__);
 
   return retc;
 }
