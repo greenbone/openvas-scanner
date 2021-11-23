@@ -157,19 +157,19 @@ send_frame (const u_char *frame, int frame_sz, int use_pcap, int timeout,
   /* Init capture */
   if (use_pcap != 0 && bpf < 0)
     {
-      struct in_addr sin, this_host;
-      memset (&sin, '\0', sizeof (struct in_addr));
-      memset (&this_host, '\0', sizeof (struct in_addr));
       if (IN6_IS_ADDR_V4MAPPED (ipaddr))
         {
+          struct in_addr sin, this_host;
+          memset (&sin, '\0', sizeof (struct in_addr));
+          memset (&this_host, '\0', sizeof (struct in_addr));
           sin.s_addr = ipaddr->s6_addr32[3];
           bpf = init_capture_device (sin, this_host, filter);
         }
       else
         {
-          g_debug ("%s: Error. Only IPv4 is supported for starting a capture.",
-                   __func__);
-          return -1;
+          struct in6_addr this_host;
+          memset (&this_host, '\0', sizeof (struct in6_addr));
+          bpf = init_v6_capture_device (*ipaddr, this_host, filter);
         }
     }
 
