@@ -128,7 +128,7 @@ send_frame (const u_char *frame, int frame_sz, int use_pcap, int timeout,
   int ifindex;
   int bpf = -1;
   int frame_and_payload = 0;
-  int answer_sz = 0;
+  int answer_sz = -1;
 
   // Create the raw socket
   soc = socket (AF_PACKET, SOCK_RAW, htons (ETH_P_ALL));
@@ -183,10 +183,16 @@ send_frame (const u_char *frame, int frame_sz, int use_pcap, int timeout,
       return -1;
     }
   if (bpf >= 0)
-    *answer = (u_char *) capture_next_frame (bpf, timeout, &answer_sz,
+    {
+      *answer = (u_char *) capture_next_frame (bpf, timeout, &answer_sz,
                                              frame_and_payload);
+      bpf_close (bpf);
+      close (soc);
+      return answer_sz;
+    }
 
-  return answer_sz;
+  close (soc);
+  return 0;
 }
 
 /** @brief Forge a datalink layer frame

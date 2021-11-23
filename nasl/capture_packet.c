@@ -99,7 +99,7 @@ init_capture_device (struct in_addr src, struct in_addr dest, char *filter)
  *
  * @param[in] bpf bpf handler
  * @param[in] timeout the timeout
- * @param[out] sz size of the frame
+ * @param[out] sz size of the frame, -1 if no frame was received.
  * @param[in] dl_layer_only If the answer should include the payload.
  *
  * @return the link layer frame.
