@@ -66,143 +66,6 @@ struct pseudo_frame
   int payload_sz;
 } __attribute__ ((packed));
 
-/**
- * @brief Send an arp request to an IP host.
- *
- * @naslnparam
- *
- * - @a host    Target's IPv4 address
- *
- * @naslret The MAC address of the host. NULL otherwise
- *
- * @param[in] lexic   Lexical context of NASL interpreter.
- *
- * @return A tree cell or NULL.
- */
-tree_cell *
-nasl_send_arp_request (lex_ctxt *lexic)
-{
-  tree_cell *retc = NULL;
-  struct in6_addr *dst = plug_get_host_ip (lexic->script_infos);
-  struct in_addr inaddr;
-  char ip_str[INET6_ADDRSTRLEN];
-  libnet_t *l; /* the libnet context */
-  char errbuf[LIBNET_ERRBUF_SIZE];
-  u_int32_t target_ip_addr, src_ip_addr;
-  u_int8_t mac_broadcast_addr[6] = {0xff, 0xff, 0xff, 0xff, 0xff, 0xff};
-  u_int8_t mac_zero_addr[6] = {0x0, 0x0, 0x0, 0x0, 0x0, 0x0};
-  struct libnet_ether_addr *src_mac_addr;
-  int bytes_written, bpf = -1;
-  char filter[255];
-  struct ether_header *answer;
-  int answer_sz;
-  int to = get_int_var_by_name (lexic, "pcap_timeout", 5);
-  int dl_layer_only = 0;
-
-  l = libnet_init (LIBNET_LINK, NULL, errbuf);
-  if (l == NULL)
-    {
-      g_message ("%s: libnet_init() failed: %s\n", __func__, errbuf);
-      return retc;
-    }
-
-  /* Getting our own MAC and IP addresses */
-
-  src_ip_addr = libnet_get_ipaddr4 (l);
-  if (src_ip_addr == (u_int32_t) -1)
-    {
-      g_message ("%s: Couldn't get own IP address: %s\n", __func__,
-                 libnet_geterror (l));
-      libnet_destroy (l);
-      return NULL;
-    }
-
-  src_mac_addr = libnet_get_hwaddr (l);
-  if (src_mac_addr == NULL)
-    {
-      g_message ("%s: Couldn't get own IP address: %s\n", __func__,
-                 libnet_geterror (l));
-      libnet_destroy (l);
-      return NULL;
-    }
-
-  /* Getting target IP address */
-  if (dst == NULL || (IN6_IS_ADDR_V4MAPPED (dst) != 1))
-    return retc;
-  inaddr.s_addr = dst->s6_addr32[3];
-  addr6_to_str (dst, ip_str);
-  target_ip_addr = libnet_name2addr4 (l, ip_str, LIBNET_DONT_RESOLVE);
-
-  if (target_ip_addr == (u_int32_t) -1)
-    {
-      g_message ("%s: Error converting IP address.\n", __func__);
-      libnet_destroy (l);
-      return retc;
-    }
-
-  /* Building ARP header */
-
-  if (libnet_autobuild_arp (ARPOP_REQUEST, src_mac_addr->ether_addr_octet,
-                            (u_int8_t *) (&src_ip_addr), mac_zero_addr,
-                            (u_int8_t *) (&target_ip_addr), l)
-      == -1)
-    {
-      g_message ("%s: Error building ARP header: %s\n", __func__,
-                 libnet_geterror (l));
-      libnet_destroy (l);
-      return retc;
-    }
-
-  /* Building Ethernet header */
-
-  if (libnet_autobuild_ethernet (mac_broadcast_addr, ETHERTYPE_ARP, l) == -1)
-    {
-      g_message ("%s: Error building Ethernet header: %s\n", __func__,
-                 libnet_geterror (l));
-      libnet_destroy (l);
-      return retc;
-    }
-
-  /* Prepare filter and init capture */
-  snprintf (filter, sizeof (filter), "arp and src host %s", inet_ntoa (inaddr));
-  bpf = init_capture_device (inaddr, inaddr, filter);
-
-  /* Writing packet */
-  bytes_written = libnet_write (l);
-  if (bytes_written != -1)
-    {
-      if (bpf >= 0)
-        answer = (struct ether_header *) capture_next_frame (
-          bpf, to, &answer_sz, dl_layer_only);
-
-      if (answer)
-        {
-          char *daddr;
-          daddr = g_strdup_printf ("%02x:%02x:%02x:%02x:%02x:%02x",
-                                   (unsigned int) answer->ether_shost[0],
-                                   (unsigned int) answer->ether_shost[1],
-                                   (unsigned int) answer->ether_shost[2],
-                                   (unsigned int) answer->ether_shost[3],
-                                   (unsigned int) answer->ether_shost[4],
-                                   (unsigned int) answer->ether_shost[5]);
-          retc = alloc_typed_cell (CONST_DATA);
-          retc = alloc_typed_cell (CONST_DATA);
-          retc->x.str_val = daddr;
-          retc->size = strlen (daddr);
-        }
-    }
-  else
-    g_message ("%s: Error writing packet: %s\n", __func__, libnet_geterror (l));
-
-  libnet_destroy (l);
-  if (bpf >= 0)
-    bpf_close (bpf);
-
-  return retc;
-}
-
-/*----------------------------------------------------------------------------*/
-
 /** @brief Prepare message header to be sent with sendmsg().
  *
  * @param[out] soc_addr_ll The sockaddr_ll structure to be prepared
@@ -550,6 +413,108 @@ nasl_get_local_mac_address_from_ip (lex_ctxt *lexic)
       retc->x.str_val = buffer;
       retc->size = 17;
     }
+
+  return retc;
+}
+
+/**
+ * @brief Send an arp request to an IP host.
+ *
+ * @naslnparam
+ *
+ * - @a host    Target's IPv4 address
+ *
+ * @naslret The MAC address of the host. NULL otherwise
+ *
+ * @param[in] lexic   Lexical context of NASL interpreter.
+ *
+ * @return A tree cell or NULL.
+ */
+tree_cell *
+nasl_send_arp_request (lex_ctxt *lexic)
+{
+  tree_cell *retc = NULL;
+  struct in6_addr src, *dst = plug_get_host_ip (lexic->script_infos);
+  struct in_addr dst_inaddr, src_inaddr;
+  struct pseudo_eth_arp eth_arp;
+  struct pseudo_frame *frame;
+  int frame_sz;
+  char ip_src_str[INET6_ADDRSTRLEN];
+  u_char mac_broadcast_addr[6] = {0xff, 0xff, 0xff, 0xff, 0xff, 0xff};
+  u_char mac[6], *mac_aux;
+  char filter[255];
+  u_char *answer;
+  int answer_sz;
+  int to = get_int_var_by_name (lexic, "pcap_timeout", 5);
+
+  /* Get source IP address via routethrough. We need it to find our mac address.
+   */
+  if (dst == NULL || (IN6_IS_ADDR_V4MAPPED (dst) != 1))
+    return retc;
+  memset (&dst_inaddr, '\0', sizeof (struct in_addr));
+  dst_inaddr.s_addr = dst->s6_addr32[3];
+  routethrough (&dst_inaddr, &src_inaddr);
+  ipv4_as_ipv6 (&src_inaddr, &src);
+
+  /* Getting target IP address  as string, to get the mac address */
+  addr6_to_str (&src, ip_src_str);
+
+  //  mac = (u_char *) g_malloc0 (sizeof(u_char) * 6);
+  mac_aux = get_local_mac_address_from_ip (ip_src_str);
+  mac[0] = mac_aux[0];
+  mac[1] = mac_aux[1];
+  mac[2] = mac_aux[2];
+  mac[3] = mac_aux[3];
+  mac[4] = mac_aux[4];
+  mac[5] = mac_aux[5];
+
+  /* Building ARP header */
+  memset (&eth_arp, '\0', sizeof (struct pseudo_eth_arp));
+  eth_arp.arp_header.ar_hrd = htons (ARPHRD_ETHER);
+  eth_arp.arp_header.ar_pro = htons (ETHERTYPE_IP);
+  eth_arp.arp_header.ar_hln = ETH_ALEN;
+  eth_arp.arp_header.ar_pln = 4;
+  eth_arp.arp_header.ar_op = htons (ARPOP_REQUEST);
+
+  memcpy (&(eth_arp.__ar_sha), mac, ETH_ALEN);
+  memcpy (&(eth_arp.__ar_sip), &src_inaddr, 4);
+  memcpy (&(eth_arp.__ar_tha), mac_broadcast_addr, ETH_ALEN);
+  memcpy (&(eth_arp.__ar_tip), &dst_inaddr, 4);
+
+  frame_sz =
+    forge_frame (mac, mac_broadcast_addr, ETH_P_ARP, (u_char *) &eth_arp,
+                 sizeof (struct pseudo_eth_arp), &frame);
+
+  /* Prepare filter */
+  snprintf (filter, sizeof (filter), "arp and src host %s",
+            inet_ntoa (dst_inaddr));
+
+  answer_sz =
+    send_frame ((const u_char *) frame, frame_sz, 1, to, filter, dst, &answer);
+  if (answer_sz == -1)
+    {
+      g_message ("%s: Not possible to send the frame", __func__);
+      return NULL;
+    }
+
+  if (answer && answer_sz > -1)
+    {
+      char *daddr;
+      struct ether_header *answer_aux;
+
+      answer_aux = (struct ether_header *) answer;
+      daddr = g_strdup_printf (
+        "%02x:%02x:%02x:%02x:%02x:%02x", (u_int) answer_aux->ether_shost[0],
+        (u_int) answer_aux->ether_shost[1], (u_int) answer_aux->ether_shost[2],
+        (u_int) answer_aux->ether_shost[3], (u_int) answer_aux->ether_shost[4],
+        (u_int) answer_aux->ether_shost[5]);
+      retc = alloc_typed_cell (CONST_DATA);
+      retc = alloc_typed_cell (CONST_DATA);
+      retc->x.str_val = daddr;
+      retc->size = strlen (daddr);
+    }
+  else
+    g_message ("%s: Error sending message.", __func__);
 
   return retc;
 }
