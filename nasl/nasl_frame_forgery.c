@@ -74,7 +74,7 @@ struct pseudo_frame
  */
 static void
 prepare_sockaddr_ll (struct sockaddr_ll *soc_addr_ll, int ifindex,
-                     const unsigned char *ether_dst_addr)
+                     const u_char *ether_dst_addr)
 {
   soc_addr_ll->sll_family = AF_PACKET;
   soc_addr_ll->sll_ifindex = ifindex;
@@ -147,7 +147,7 @@ send_frame (const u_char *frame, int frame_sz, int use_pcap, int timeout,
     }
 
   // Preapre sockaddr_ll. This is necessary for further captures
-  unsigned char dst_haddr[ETHER_ADDR_LEN];
+  u_char dst_haddr[ETHER_ADDR_LEN];
   memcpy (&dst_haddr, (struct pseudo_frame *) frame, ETHER_ADDR_LEN);
 
   struct sockaddr_ll soc_addr;
@@ -194,20 +194,24 @@ send_frame (const u_char *frame, int frame_sz, int use_pcap, int timeout,
  *
  * @param[in] src_haddr     Source MAC address to use.
  * @param[in] dst_haddr     Destination MAC address to use.
- * @param[in] ether_proto   Ethernet type integer in hex format. Default 0x0800 (ETHER_P_IP)
- * @param[in] payload       Payload to be attached to the frame. E.g a forged tcp
- * datagram, or arp header
+ * @param[in] ether_proto   Ethernet type integer in hex format. Default 0x0800
+ * (ETHER_P_IP)
+ * @param[in] payload       Payload to be attached to the frame. E.g a forged
+ * tcp datagram, or arp header
  * @param[out] frame the forge frame
  *
  * @return the forged frame size.
  */
 static int
-forge_frame (char *ether_src_addr,  char *ether_dst_addr, int ether_proto, u_char *payload, int payload_sz, struct pseudo_frame **frame)
+forge_frame (const u_char *ether_src_addr, const u_char *ether_dst_addr,
+             int ether_proto, u_char *payload, int payload_sz,
+             struct pseudo_frame **frame)
 {
   int frame_sz;
 
   *frame = (struct pseudo_frame *) g_malloc0 (sizeof (struct pseudo_frame)
-                                             + payload_sz);
+                                              + payload_sz);
+
   memcpy ((*frame)->framehdr.h_dest, ether_dst_addr, ETHER_ADDR_LEN);
   memcpy ((*frame)->framehdr.h_source, ether_src_addr, ETHER_ADDR_LEN);
   (*frame)->framehdr.h_proto = htons (ether_proto);
@@ -248,7 +252,8 @@ nasl_forge_frame (lex_ctxt *lexic)
   char *ether_dst_addr = get_str_var_by_name (lexic, "dst_haddr");
   int ether_proto = get_int_var_by_name (lexic, "ether_proto", 0x0800);
 
-  frame_sz = forge_frame (ether_src_addr, ether_dst_addr, ether_proto, payload, payload_sz, &frame);
+  frame_sz = forge_frame ((u_char *) ether_src_addr, (u_char *) ether_dst_addr,
+                          ether_proto, payload, payload_sz, &frame);
 
   retc = alloc_typed_cell (CONST_DATA);
   retc->x.str_val = (char *) frame;
@@ -344,13 +349,13 @@ nasl_dump_frame (lex_ctxt *lexic)
  *
  * @return The MAC address of the host. NULL otherwise
  */
-static unsigned char *
+static u_char *
 get_local_mac_address_from_ip (char *ip_address)
 {
   struct ifreq ifr;
   int sock;
   char *if_name = NULL;
-  unsigned char *mac;
+  u_char *mac;
 
   if_name = get_iface_from_ip (ip_address);
   if (!if_name)
@@ -376,7 +381,7 @@ get_local_mac_address_from_ip (char *ip_address)
       return NULL;
     }
 
-  mac = (unsigned char *) ifr.ifr_hwaddr.sa_data;
+  mac = (u_char *) ifr.ifr_hwaddr.sa_data;
   close (sock);
 
   return mac;
@@ -399,7 +404,7 @@ nasl_get_local_mac_address_from_ip (lex_ctxt *lexic)
 {
   tree_cell *retc = NULL;
   char *buffer = NULL;
-  unsigned char *mac;
+  u_char *mac;
 
   char *ip_address = get_str_var_by_num (lexic, 0);
 
