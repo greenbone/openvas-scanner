@@ -24,6 +24,7 @@
 #include "support.h"
 
 #include <arpa/inet.h>
+#include <errno.h>
 #include <gvm/base/logging.h>
 #include <gvm/base/networking.h>
 #include <ifaddrs.h>
