@@ -1,0 +1,14 @@
+name: 'Build Documentation'
+
+on:
+  push:
+    branches: [ main, stable, oldstable, middleware ]
+
+jobs:
+  generate-doc-and-upload-coverage:
+    name: Build XML documentation and upload coverage
+    runs-on: ubuntu-latest
+    container: greenbone/doxygen
+    steps:
+      - name: Run the c lang coverage action
+        uses: greenbone/actions/doc-coverage-clang@v1
