@@ -28,8 +28,8 @@ init_capture_device (struct in_addr, struct in_addr, char *);
 struct ip *
 capture_next_packet (int, int, int *);
 
-struct ether_header *
-capture_next_frame (int, int, int *);
+char *
+capture_next_frame (int, int, int *, int);
 
 int
 init_v6_capture_device (struct in6_addr, struct in6_addr, char *);
