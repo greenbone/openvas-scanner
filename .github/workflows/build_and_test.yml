@@ -1,0 +1,50 @@
+name: "Compile & Unit Tests"
+
+on:
+  push:
+    branches: [ main, stable, oldstable, middleware ]
+  pull_request:
+    branches: [ main, stable, oldstable, middleware ]
+
+jobs:
+  check-format:
+    name: Check formatting
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out openvas-scanner
+        uses: actions/checkout@v2
+      - name: Check Source Format
+        run: |
+          clang-format -i -style=file {src,misc,nasl}/*.{c,h}
+          git diff --exit-code
+
+  compile:
+    name: scan-build (clang static analyzer)
+    runs-on: ubuntu-latest
+    container: ${{ github.repository }}-build:unstable
+    steps:
+      - name: Check out openvas-scanner
+        uses: actions/checkout@v2
+      - name: Configure and Scan Build
+        run: |
+          cmake -Bbuild -DCMAKE_BUILD_TYPE=Release
+          scan-build -o ~/scan-build-report cmake --build build
+      - name: Upload scan-build report
+        if: failure()
+        uses: actions/upload-artifact@v2
+        with:
+          name: scan-build-report
+          path: ~/scan-build-report/
+          retention-days: 7
+
+  unit-tests:
+    name: Unit Tests
+    runs-on: ubuntu-latest
+    container: ${{ github.repository }}-build:unstable
+    steps:
+      - name: Check out openvas-scanner
+        uses: actions/checkout@v2
+      - name: Configure and run unit tests
+        run: |
+          cmake -Bbuild -DCMAKE_BUILD_TYPE=Release
+          CTEST_OUTPUT_ON_FAILURE=1 cmake --build build -- tests test
