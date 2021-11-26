@@ -30,4 +30,19 @@
 tree_cell *
 nasl_send_arp_request (lex_ctxt *);
 
+<<<<<<< HEAD
+=======
+tree_cell *
+nasl_get_local_mac_address_from_ip (lex_ctxt *);
+
+tree_cell *
+nasl_forge_frame (lex_ctxt *);
+
+tree_cell *
+nasl_send_frame (lex_ctxt *);
+
+tree_cell *
+nasl_dump_frame (lex_ctxt *);
+
+>>>>>>> 6d3a797d (Code improvements for frame forgery and arp request. (#961))
 #endif // NASL_FRAME_FORGERY_H

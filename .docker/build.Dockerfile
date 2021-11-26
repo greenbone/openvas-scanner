@@ -15,7 +15,11 @@ RUN apt-get update && apt-get install --no-install-recommends --no-install-sugge
     libgpgme-dev \
     libjson-glib-dev \
     libksba-dev \
+<<<<<<< HEAD
     libnet1-dev \
+=======
+    libpaho-mqtt-dev \
+>>>>>>> 6d3a797d (Code improvements for frame forgery and arp request. (#961))
     libpcap-dev \
     libssh-gcrypt-dev \
     && rm -rf /var/lib/apt/lists/*

@@ -57,30 +57,6 @@ pkg_check_modules (LIBGVM_UTIL REQUIRED libgvm_util>=21.4.1)
 pkg_check_modules (OPENVAS_WMICLIENT libopenvas_wmiclient>=1.0.5)
 pkg_check_modules (OPENVAS_WINCMD libopenvas_wincmd>=1.0.5)
 
-## Check for libnet
-message (STATUS "Looking for libnet...")
-find_library (NET net)
-message (STATUS "Looking for net... ${NET}")
-if (NOT NET)
-  message (SEND_ERROR "The net library is required.")
-endif (NOT NET)
-message (STATUS "Looking for libnet-config...")
-find_program (LIBNET_CONFIG libnet-config)
-
-if (LIBNET_CONFIG)
-  message (STATUS "Looking for libnet-config... ${LIBNET_CONFIG}")
-  execute_process (COMMAND libnet-config --libs
-    OUTPUT_VARIABLE LIBNET_LDFLAGS
-    OUTPUT_STRIP_TRAILING_WHITESPACE)
-  execute_process (COMMAND libnet-config --cflags
-    OUTPUT_VARIABLE LIBNET_CFLAGS
-    OUTPUT_STRIP_TRAILING_WHITESPACE)
-else (LIBNET_CONFIG)
-  message (STATUS "libnet-config not found, using defaults...")
-  set (LIBNET_LDFLAGS "-L/usr/lib -lnet")
-  set (LIBNET_CFLAGS "-I/usr/include")
-endif (LIBNET_CONFIG)
-
 # for 'nasl' binary
 pkg_check_modules (LIBSSH REQUIRED libssh>=0.6.0)
 
