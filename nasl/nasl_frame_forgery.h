@@ -31,6 +31,9 @@ tree_cell *
 nasl_send_arp_request (lex_ctxt *);
 
 tree_cell *
+nasl_get_local_mac_address_from_ip (lex_ctxt *);
+
+tree_cell *
 nasl_forge_frame (lex_ctxt *);
 
 tree_cell *
