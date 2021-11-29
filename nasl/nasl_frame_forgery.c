@@ -33,15 +33,17 @@
 
 #include <errno.h>
 #include <gvm/base/networking.h>
-#include <libnet.h>
 #include <linux/if_packet.h>
 #include <net/ethernet.h>
+#include <net/if.h>
 #include <net/if_arp.h>
 #include <netinet/ether.h>
 #include <netinet/if_ether.h>
 #include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <sys/ioctl.h>
+#include <unistd.h>
 
 #undef G_LOG_DOMAIN
 /**
