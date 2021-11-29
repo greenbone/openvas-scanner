@@ -33,13 +33,20 @@
 
 #include <errno.h>
 #include <gvm/base/networking.h>
-#include <libnet.h>
 #include <linux/if_packet.h>
 #include <net/ethernet.h>
+<<<<<<< HEAD
+=======
+#include <net/if.h>
+#include <net/if_arp.h>
+#include <netinet/ether.h>
+>>>>>>> 41729b2a (Remove libnet.h include no longer required. Then, include the necessary missing headers. (#969))
 #include <netinet/if_ether.h>
 #include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <sys/ioctl.h>
+#include <unistd.h>
 
 #undef G_LOG_DOMAIN
 /**
