@@ -2,5 +2,5 @@
 *                 @greenbone/openvas-scanner-maintainers
 
 # devops
-.github/         @greenbone/devops
-.docker/         @greenbone/devops
+.github/          @greenbone/devops
+.docker/          @greenbone/devops
