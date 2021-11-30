@@ -377,22 +377,23 @@ nasl_dump_frame (lex_ctxt *lexic)
  * @brief Get the MAC address of host
  *
  * @param[in] ip_address    Local IP address
+ * @param[out] mac          The MAC address
  *
- * @return The MAC address of the host. NULL otherwise
+ * @return 0 on success. MAC address is put into buffer. -1 on error.
+
  */
-static u_char *
-get_local_mac_address_from_ip (char *ip_address)
+static int
+get_local_mac_address_from_ip (char *ip_address, u_char *mac)
 {
   struct ifreq ifr;
   int sock;
   char *if_name = NULL;
-  u_char *mac;
 
   if_name = get_iface_from_ip (ip_address);
   if (!if_name)
     {
       g_debug ("%s: Missing interface name", __func__);
-      return NULL;
+      return -1;
     }
 
   strncpy (ifr.ifr_name, if_name, sizeof (ifr.ifr_name) - 1);
@@ -403,19 +404,19 @@ get_local_mac_address_from_ip (char *ip_address)
   if (-1 == sock)
     {
       perror ("socket() ");
-      return NULL;
+      return -1;
     }
 
   if (-1 == ioctl (sock, SIOCGIFHWADDR, &ifr))
     {
       g_debug ("%s: ioctl(SIOCGIFHWADDR)", __func__);
-      return NULL;
+      return -1;
     }
 
-  mac = (u_char *) ifr.ifr_hwaddr.sa_data;
+  memcpy (mac, (u_char *) ifr.ifr_hwaddr.sa_data, ETHER_ADDR_LEN);
   close (sock);
 
-  return mac;
+  return 0;
 }
 
 /**
@@ -439,12 +440,13 @@ nasl_get_local_mac_address_from_ip (lex_ctxt *lexic)
 
   char *ip_address = get_str_var_by_num (lexic, 0);
 
-  mac = get_local_mac_address_from_ip (ip_address);
+  mac = g_malloc0 (sizeof (u_char) * ETHER_ADDR_LEN);
+  get_local_mac_address_from_ip (ip_address, mac);
   if (mac != NULL)
     {
       buffer = g_strdup_printf ("%02x:%02x:%02x:%02x:%02x:%02x", mac[0], mac[1],
                                 mac[2], mac[3], mac[4], mac[5]);
-
+      g_free (mac);
       retc = alloc_typed_cell (CONST_DATA);
       retc->x.str_val = buffer;
       retc->size = 17;
@@ -492,14 +494,15 @@ nasl_send_arp_request (lex_ctxt *lexic)
   /* Getting target IP address  as string, to get the mac address */
   addr6_to_str (&src, ip_src_str);
 
-  //  mac = (u_char *) g_malloc0 (sizeof(u_char) * 6);
-  mac_aux = get_local_mac_address_from_ip (ip_src_str);
+  mac_aux = (u_char *) g_malloc0 (sizeof (u_char) * 6);
+  get_local_mac_address_from_ip (ip_src_str, mac_aux);
   mac[0] = mac_aux[0];
   mac[1] = mac_aux[1];
   mac[2] = mac_aux[2];
   mac[3] = mac_aux[3];
   mac[4] = mac_aux[4];
   mac[5] = mac_aux[5];
+  g_free (mac_aux);
 
   /* Building ARP header */
   memset (&eth_arp, '\0', sizeof (struct pseudo_eth_arp));
