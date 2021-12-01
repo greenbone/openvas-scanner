@@ -117,17 +117,17 @@ static void
 prepare_message (u_char *msg, struct sockaddr_ll *soc_addr_ll,
                  u_char *payload, int payload_sz)
 {
-  struct iovec iov[1];
+  struct iovec iov;
   struct msghdr *message;
 
-  iov[0].iov_base = payload;
-  iov[0].iov_len = payload_sz;
+  iov.iov_base = payload;
+  iov.iov_len = payload_sz;
 
   message = g_malloc0 (sizeof (struct msghdr) + payload_sz);
 
   message->msg_name = soc_addr_ll;
   message->msg_namelen = sizeof (struct sockaddr_ll);
-  message->msg_iov = iov;
+  message->msg_iov = &iov;
   message->msg_iovlen = 1;
   message->msg_control = 0;
   message->msg_controllen = 0;
