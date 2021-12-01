@@ -67,6 +67,28 @@ struct pseudo_frame
   u_char *payload;
 } __attribute__ ((packed));
 
+/** @brief Dump a datalink layer frame
+ *
+ * @param frame    The frame to be dumped.
+ * @param frame_sz The frame's size.
+ *
+ */
+static void
+dump_frame (const u_char *frame, int frame_sz)
+{
+  int f = 0;
+
+  printf ("\nThe Frame:\n");
+  while (f < frame_sz)
+    {
+      printf ("%02x%02x ", ((u_char *) frame)[f], ((u_char *) frame)[f + 1]);
+      f += 2;
+      if (f % 16 == 0)
+        printf ("\n");
+    }
+  printf ("\n\n");
+}
+
 /** @brief Prepare message header to be sent with sendmsg().
  *
  * @param[out] soc_addr_ll The sockaddr_ll structure to be prepared
@@ -86,25 +108,32 @@ prepare_sockaddr_ll (struct sockaddr_ll *soc_addr_ll, int ifindex,
 
 /** @brief Prepare message header to be sent with sendmsg().
  *
- * @param[out] message The packaged messages to be sent
+ * @param[out] msg The packaged messages to be sent
  * @param[in] soc_addr_ll The sockaddr_ll structure for capturing
  * @param[in] payload The payload, a datalink layer frame with payload
  * @param[in] payload_sz The payload size.
  */
 static void
-prepare_message (struct msghdr *message, struct sockaddr_ll *soc_addr_ll,
-                 u_char *payload, int payload_sz)
+prepare_message (u_char *msg, struct sockaddr_ll *soc_addr_ll, u_char *payload,
+                 int payload_sz)
 {
-  struct iovec iov[1];
-  iov[0].iov_base = payload;
-  iov[0].iov_len = payload_sz;
+  struct iovec iov;
+  struct msghdr *message;
+
+  iov.iov_base = payload;
+  iov.iov_len = payload_sz;
+
+  message = g_malloc0 (sizeof (struct msghdr) + payload_sz);
 
   message->msg_name = soc_addr_ll;
   message->msg_namelen = sizeof (struct sockaddr_ll);
-  message->msg_iov = iov;
+  message->msg_iov = &iov;
   message->msg_iovlen = 1;
   message->msg_control = 0;
   message->msg_controllen = 0;
+
+  memcpy (msg, (u_char *) message, sizeof (struct msghdr) + payload_sz);
+  g_free (message);
 }
 
 /** @brief Send a frame and listen to the answer
@@ -127,7 +156,7 @@ send_frame (const u_char *frame, int frame_sz, int use_pcap, int timeout,
             char *filter, struct in6_addr *ipaddr, u_char **answer)
 {
   int soc;
-  struct msghdr message;
+  u_char *message;
   int ifindex;
   int bpf = -1;
   int frame_and_payload = 0;
@@ -144,7 +173,7 @@ send_frame (const u_char *frame, int frame_sz, int use_pcap, int timeout,
   // We will need the eth index. We get it depending on the target's IP..
   if (get_iface_index (ipaddr, &ifindex) < 0)
     {
-      g_debug ("%s: Missing interface index\n", __func__);
+      g_message ("%s: Missing interface index\n", __func__);
       return -1;
     }
 
@@ -176,13 +205,14 @@ send_frame (const u_char *frame, int frame_sz, int use_pcap, int timeout,
     }
 
   // Prepare the message and send it
-  memset (&message, '\0', sizeof (struct msghdr));
-  prepare_message (&message, &soc_addr, (u_char *) frame, frame_sz);
+  message = g_malloc0 (sizeof (struct msghdr) + frame_sz);
+  prepare_message (message, &soc_addr, (u_char *) frame, frame_sz);
 
-  int b = sendmsg (soc, &message, 0);
+  int b = sendmsg (soc, (struct msghdr *) message, 0);
+  g_free (message);
   if (b == -1)
     {
-      g_debug ("%s: Error sending message: %s", __func__, strerror (errno));
+      g_message ("%s: Error sending message: %s", __func__, strerror (errno));
       return -2;
     }
   if (bpf >= 0)
@@ -348,7 +378,6 @@ nasl_dump_frame (lex_ctxt *lexic)
 {
   u_char *frame = (u_char *) get_str_var_by_name (lexic, "frame");
   int frame_sz = get_var_size_by_name (lexic, "frame");
-  int f = 0;
 
   if (frame == NULL || frame_sz <= 0)
     {
@@ -357,19 +386,7 @@ nasl_dump_frame (lex_ctxt *lexic)
       return NULL;
     }
 
-  if (frame_sz == 0)
-    return NULL;
-
-  printf ("\nThe Frame:\n");
-  while (f < frame_sz)
-    {
-      printf ("%02x%02x ", ((u_char *) frame)[f], ((u_char *) frame)[f + 1]);
-      f += 2;
-      if (f % 16 == 0)
-        printf ("\n");
-    }
-  printf ("\n\n");
-
+  dump_frame (frame, frame_sz);
   return NULL;
 }
 
@@ -377,22 +394,23 @@ nasl_dump_frame (lex_ctxt *lexic)
  * @brief Get the MAC address of host
  *
  * @param[in] ip_address    Local IP address
+ * @param[out] mac          The MAC address
  *
- * @return The MAC address of the host. NULL otherwise
+ * @return 0 on success. MAC address is put into buffer. -1 on error.
+
  */
-static u_char *
-get_local_mac_address_from_ip (char *ip_address)
+static int
+get_local_mac_address_from_ip (char *ip_address, u_char *mac)
 {
   struct ifreq ifr;
   int sock;
   char *if_name = NULL;
-  u_char *mac;
 
   if_name = get_iface_from_ip (ip_address);
   if (!if_name)
     {
       g_debug ("%s: Missing interface name", __func__);
-      return NULL;
+      return -1;
     }
 
   strncpy (ifr.ifr_name, if_name, sizeof (ifr.ifr_name) - 1);
@@ -403,19 +421,19 @@ get_local_mac_address_from_ip (char *ip_address)
   if (-1 == sock)
     {
       perror ("socket() ");
-      return NULL;
+      return -1;
     }
 
   if (-1 == ioctl (sock, SIOCGIFHWADDR, &ifr))
     {
       g_debug ("%s: ioctl(SIOCGIFHWADDR)", __func__);
-      return NULL;
+      return -1;
     }
 
-  mac = (u_char *) ifr.ifr_hwaddr.sa_data;
+  memcpy (mac, (u_char *) ifr.ifr_hwaddr.sa_data, ETHER_ADDR_LEN);
   close (sock);
 
-  return mac;
+  return 0;
 }
 
 /**
@@ -439,12 +457,13 @@ nasl_get_local_mac_address_from_ip (lex_ctxt *lexic)
 
   char *ip_address = get_str_var_by_num (lexic, 0);
 
-  mac = get_local_mac_address_from_ip (ip_address);
+  mac = g_malloc0 (sizeof (u_char) * ETHER_ADDR_LEN);
+  get_local_mac_address_from_ip (ip_address, mac);
   if (mac != NULL)
     {
       buffer = g_strdup_printf ("%02x:%02x:%02x:%02x:%02x:%02x", mac[0], mac[1],
                                 mac[2], mac[3], mac[4], mac[5]);
-
+      g_free (mac);
       retc = alloc_typed_cell (CONST_DATA);
       retc->x.str_val = buffer;
       retc->size = 17;
@@ -492,14 +511,15 @@ nasl_send_arp_request (lex_ctxt *lexic)
   /* Getting target IP address  as string, to get the mac address */
   addr6_to_str (&src, ip_src_str);
 
-  //  mac = (u_char *) g_malloc0 (sizeof(u_char) * 6);
-  mac_aux = get_local_mac_address_from_ip (ip_src_str);
+  mac_aux = (u_char *) g_malloc0 (sizeof (u_char) * 6);
+  get_local_mac_address_from_ip (ip_src_str, mac_aux);
   mac[0] = mac_aux[0];
   mac[1] = mac_aux[1];
   mac[2] = mac_aux[2];
   mac[3] = mac_aux[3];
   mac[4] = mac_aux[4];
   mac[5] = mac_aux[5];
+  g_free (mac_aux);
 
   /* Building ARP header */
   memset (&eth_arp, '\0', sizeof (struct pseudo_eth_arp));
