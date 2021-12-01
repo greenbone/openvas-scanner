@@ -175,7 +175,7 @@ send_frame (const u_char *frame, int frame_sz, int use_pcap, int timeout,
   // We will need the eth index. We get it depending on the target's IP..
   if (get_iface_index (ipaddr, &ifindex) < 0)
     {
-      g_debug ("%s: Missing interface index\n", __func__);
+      g_message ("%s: Missing interface index\n", __func__);
       return -1;
     }
 
@@ -214,7 +214,7 @@ send_frame (const u_char *frame, int frame_sz, int use_pcap, int timeout,
   g_free (message);
   if (b == -1)
     {
-      g_debug ("%s: Error sending message: %s", __func__, strerror (errno));
+      g_message ("%s: Error sending message: %s", __func__, strerror (errno));
       return -2;
     }
   if (bpf >= 0)
