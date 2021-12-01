@@ -114,8 +114,8 @@ prepare_sockaddr_ll (struct sockaddr_ll *soc_addr_ll, int ifindex,
  * @param[in] payload_sz The payload size.
  */
 static void
-prepare_message (u_char *msg, struct sockaddr_ll *soc_addr_ll,
-                 u_char *payload, int payload_sz)
+prepare_message (u_char *msg, struct sockaddr_ll *soc_addr_ll, u_char *payload,
+                 int payload_sz)
 {
   struct iovec iov;
   struct msghdr *message;
@@ -134,7 +134,6 @@ prepare_message (u_char *msg, struct sockaddr_ll *soc_addr_ll,
 
   memcpy (msg, (u_char *) message, sizeof (struct msghdr) + payload_sz);
   g_free (message);
-
 }
 
 /** @brief Send a frame and listen to the answer
