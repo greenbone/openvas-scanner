@@ -31,6 +31,7 @@ jobs:
           file: .docker/prod.Dockerfile
           build-args: |
             REPOSITORY=${{ github.repository }}
+            VERSION=middleware
 
   build:
     name: "Upload images for building openvas-scanner"
@@ -58,3 +59,6 @@ jobs:
           push: true
           tags: ${{ steps.container.outputs.image-tags }}
           file: .docker/build.Dockerfile
+          build-args: |
+            REPOSITORY=greenbone/eulabeia-c-lib
+            VERSION=unstable

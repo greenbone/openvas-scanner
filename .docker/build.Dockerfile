@@ -1,6 +1,7 @@
 ARG VERSION=unstable
-
-FROM greenbone/eulabeia-c-lib:$VERSION
+# this allows to work on forked repository
+ARG REPOSITORY=greenbone/openvas-scanner
+FROM $REPOSITORY:$VERSION
 
 RUN apt-get update && apt-get install --no-install-recommends --no-install-suggests -y \
     bison \
