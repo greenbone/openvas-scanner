@@ -34,9 +34,6 @@ jobs:
         git config --global user.name "${{ env.GITHUB_USER }}"
         git config --global user.email "${{ env.GITHUB_MAIL }}"
         git remote set-url origin https://${{ env.GITHUB_TOKEN }}@github.com/${{ github.repository }}
-    - name: Print base branch
-      # we always should've checked out the correct branch'
-      run: echo "Current Branch is $GITHUB_BASE_REF"
     - name: Prepare patch release with pontos
       run: |
         . .venv/bin/activate
@@ -49,16 +46,10 @@ jobs:
     - name: Import key from secrets
       run: |
         echo -e "${{ env.GPG_KEY }}" >> tmp.file
-        gpg                                        \
-          --pinentry-mode loopback                 \
-          --passphrase ${{ env.GPG_PASSPHRASE }}   \
-          --import tmp.file
+        gpg --pinentry-mode loopback --passphrase ${{ env.GPG_PASSPHRASE }} --import tmp.file
         rm tmp.file
     - name: Sign with pontos-release sign
       run: |
         echo "Signing assets for ${{env.VERSION}}"
         . .venv/bin/activate
-        pontos-release sign                        \
-          --signing-key ${{ env.GPG_FINGERPRINT }} \
-          --passphrase ${{ env.GPG_PASSPHRASE }}   \
-          --release-version ${{ env.VERSION }}
+        pontos-release sign --signing-key ${{ env.GPG_FINGERPRINT }} --passphrase ${{ env.GPG_PASSPHRASE }} --release-version ${{ env.VERSION }}
