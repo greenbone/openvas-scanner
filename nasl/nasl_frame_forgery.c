@@ -86,18 +86,22 @@ prepare_sockaddr_ll (struct sockaddr_ll *soc_addr_ll, int ifindex,
 
 /** @brief Prepare message header to be sent with sendmsg().
  *
- * @param[out] message The packaged messages to be sent
+ * @param[out] msg The packaged messages to be sent
  * @param[in] soc_addr_ll The sockaddr_ll structure for capturing
  * @param[in] payload The payload, a datalink layer frame with payload
  * @param[in] payload_sz The payload size.
  */
 static void
-prepare_message (struct msghdr *message, struct sockaddr_ll *soc_addr_ll,
+prepare_message (u_char *msg, struct sockaddr_ll *soc_addr_ll,
                  u_char *payload, int payload_sz)
 {
   struct iovec iov[1];
+  struct msghdr *message;
+
   iov[0].iov_base = payload;
   iov[0].iov_len = payload_sz;
+
+  message = g_malloc0 (sizeof (struct msghdr) + payload_sz);
 
   message->msg_name = soc_addr_ll;
   message->msg_namelen = sizeof (struct sockaddr_ll);
@@ -105,6 +109,10 @@ prepare_message (struct msghdr *message, struct sockaddr_ll *soc_addr_ll,
   message->msg_iovlen = 1;
   message->msg_control = 0;
   message->msg_controllen = 0;
+
+  memcpy (msg, (u_char *) message, sizeof (struct msghdr) + payload_sz);
+  g_free (message);
+
 }
 
 /** @brief Send a frame and listen to the answer
@@ -127,7 +135,7 @@ send_frame (const u_char *frame, int frame_sz, int use_pcap, int timeout,
             char *filter, struct in6_addr *ipaddr, u_char **answer)
 {
   int soc;
-  struct msghdr message;
+  u_char *message;
   int ifindex;
   int bpf = -1;
   int frame_and_payload = 0;
@@ -176,10 +184,11 @@ send_frame (const u_char *frame, int frame_sz, int use_pcap, int timeout,
     }
 
   // Prepare the message and send it
-  memset (&message, '\0', sizeof (struct msghdr));
-  prepare_message (&message, &soc_addr, (u_char *) frame, frame_sz);
+  message = g_malloc0 (sizeof (struct msghdr) + frame_sz);
+  prepare_message (message, &soc_addr, (u_char *) frame, frame_sz);
 
-  int b = sendmsg (soc, &message, 0);
+  int b = sendmsg (soc, (struct msghdr *) message, 0);
+  g_free (message);
   if (b == -1)
     {
       g_debug ("%s: Error sending message: %s", __func__, strerror (errno));
