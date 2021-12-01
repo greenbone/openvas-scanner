@@ -1,6 +1,4 @@
-ARG VERSION=unstable
-
-FROM greenbone/eulabeia-c-lib:$VERSION
+FROM greenbone/eulabeia-c-lib:unstable
 
 RUN apt-get update && apt-get install --no-install-recommends --no-install-suggests -y \
     bison \
