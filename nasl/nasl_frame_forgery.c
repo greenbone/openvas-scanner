@@ -72,7 +72,6 @@ struct pseudo_frame
  * @param frame    The frame to be dumped.
  * @param frame_sz The frame's size.
  *
- * @return Null
  */
 static void
 dump_frame (const u_char *frame, int frame_sz)
