@@ -1340,9 +1340,7 @@ int
 get_iface_index (struct in6_addr *ipaddr, int *ifindex)
 {
   struct in6_addr src_addr;
-  struct ifreq ifr;
   char *if_name, *ip_address;
-  int soc;
 
   // We get the local address to use, with the remote address.
   memset (&src_addr, '\0', sizeof (struct in6_addr));
@@ -1358,24 +1356,7 @@ get_iface_index (struct in6_addr *ipaddr, int *ifindex)
       return -1;
     }
 
-  // Create the raw socket
-  soc = socket (AF_INET, SOCK_DGRAM, 0);
-  if (soc == -1)
-    {
-      g_debug ("%s: %s", __func__, strerror (errno));
-      return -1;
-    }
-  // Get the interface index using the iface name
-  memcpy (ifr.ifr_name, if_name, strlen (if_name));
-  g_free (if_name);
-  if (ioctl (soc, SIOCGIFINDEX, &ifr) == -1)
-    {
-      g_debug ("%s: %s", __func__, strerror (errno));
-      close (soc);
-      return -1;
-    }
-  *ifindex = ifr.ifr_ifindex;
+  *ifindex = if_nametoindex (if_name);
 
-  close (soc);
   return 0;
 }
