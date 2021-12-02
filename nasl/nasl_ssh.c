@@ -1759,20 +1759,21 @@ read_ssh_blocking (ssh_channel channel, GString *response, int timeout)
   int rc;
   char buffer[4096];
 
-  rc = SSH_AGAIN;
-  while (rc > 0 || rc == SSH_AGAIN)
+  /* Read stderr */
+  do
     {
       if ((rc = ssh_channel_read_timeout (channel, buffer, sizeof (buffer), 1,
                                           timeout))
           > 0)
         g_string_append_len (response, buffer, rc);
+
       else if (rc == SSH_ERROR)
         goto exec_err;
-      else if (rc == SSH_AGAIN)
-        continue;
     }
-  rc = 1;
-  while (rc > 0 || rc == SSH_AGAIN)
+  while (rc > 0 || rc == SSH_AGAIN);
+
+  /* Read stdout */
+  do
     {
       if ((rc = ssh_channel_read_timeout (channel, buffer, sizeof (buffer), 0,
                                           timeout))
@@ -1782,6 +1783,7 @@ read_ssh_blocking (ssh_channel channel, GString *response, int timeout)
       else if (rc == SSH_ERROR)
         goto exec_err;
     }
+  while (rc > 0 || rc == SSH_AGAIN);
   rc = SSH_OK;
 
 exec_err:
