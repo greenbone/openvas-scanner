@@ -1744,6 +1744,53 @@ nasl_ssh_shell_open (lex_ctxt *lexic)
 }
 
 /**
+ * @brief read from an ssh channel until timeouts or there is no bytes left to
+ * read.
+ *
+ * @param[in]   channel     SSH Channel.
+ * @param[out]  response    Buffer to store response in.
+ * @param[in]   timeout     Timeout in milliseconds.
+ *
+ * @return 0 if success, -1 if error.
+ */
+static int
+read_ssh_blocking (ssh_channel channel, GString *response, int timeout)
+{
+  int rc;
+  char buffer[4096];
+
+  /* Read stderr */
+  do
+    {
+      if ((rc = ssh_channel_read_timeout (channel, buffer, sizeof (buffer), 1,
+                                          timeout))
+          > 0)
+        g_string_append_len (response, buffer, rc);
+
+      else if (rc == SSH_ERROR)
+        goto exec_err;
+    }
+  while (rc > 0 || rc == SSH_AGAIN);
+
+  /* Read stdout */
+  do
+    {
+      if ((rc = ssh_channel_read_timeout (channel, buffer, sizeof (buffer), 0,
+                                          timeout))
+          > 0)
+        g_string_append_len (response, buffer, rc);
+
+      else if (rc == SSH_ERROR)
+        goto exec_err;
+    }
+  while (rc > 0 || rc == SSH_AGAIN);
+  rc = SSH_OK;
+
+exec_err:
+  return rc;
+}
+
+/**
  * @brief read from an ssh channel without blocking.
  *
  * @param[in]   channel     SSH Channel.
@@ -1781,6 +1828,11 @@ read_ssh_nonblocking (ssh_channel channel, GString *response)
  *
  * - An SSH session id.
  *
+ * @naslparam timeout
+ *
+ * - Enable the blocking ssh read until it gives the timeout or there is no
+ * bytes left to read.
+ *
  * @naslret A string on success or NULL on error.
  *
  * @param[in] lexic Lexical context of NASL interpreter.
@@ -1794,6 +1846,7 @@ nasl_ssh_shell_read (lex_ctxt *lexic)
   ssh_channel channel;
   tree_cell *retc;
   GString *response;
+  int timeout;
 
   session_id = get_int_var_by_num (lexic, 0, -1);
   if (!verify_session_id (session_id, "ssh_shell_read", &tbl_slot, lexic))
@@ -1801,8 +1854,19 @@ nasl_ssh_shell_read (lex_ctxt *lexic)
   channel = session_table[tbl_slot].channel;
 
   response = g_string_new (NULL);
-  if (read_ssh_nonblocking (channel, response))
-    return NULL;
+
+  timeout = get_int_var_by_name (lexic, "timeout", 0);
+
+  if (timeout > 0)
+    {
+      if (read_ssh_blocking (channel, response, timeout))
+        return NULL;
+    }
+  else
+    {
+      if (read_ssh_nonblocking (channel, response))
+        return NULL;
+    }
   retc = alloc_typed_cell (CONST_DATA);
   retc->size = response->len;
   retc->x.str_val = g_string_free (response, FALSE);
