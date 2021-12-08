@@ -761,15 +761,21 @@ get_name (const char *string)
  *
  * - @a image       Return the entire certificate as binary data.
  *
- * - @a algorithm-name: Return the algorithm name. Get the OID of
- *                      the digest algorithm and translated to a name
- *                      from a list from Wireshark.
- *                      See epan/dissectors/packet-pkcs1.c
+ * - @a algorithm-name  Same as signature-algorithm-name. TODO: Remove it and
+ *                      leave only signature-algorithm-name.
  *
- * - @a modulus:     Return the RSA public key's modulus found in the
+ * - @a signature-algorithm-name  Return the algorithm name used to sign the
+ *                                certificate. Get the OID of the digest
+ *                                algorithm and translated to a name from a
+ *                                list from Wireshark.
+ *                                See epan/dissectors/packet-pkcs1.c
+ *
+ * - @a public-key-algorithm-name  Return the algorithm name of the public key.
+ *
+ * - @a modulus      Return the RSA public key's modulus found in the
  *                   structure of the given cert.
  *
- * - @a exponent:   Return the RSA public key's exponent found in
+ * - @a exponent    Return the RSA public key's exponent found in
  *                  the structure of the given cert.
  *
  * - @a key-size    Return the size to hold the parameters size in bits.
@@ -917,7 +923,8 @@ nasl_cert_query (lex_ctxt *lexic)
           memcpy (retc->x.str_val, der, derlen);
         }
     }
-  else if (!strcmp (command, "algorithm-name"))
+  else if (!strcmp (command, "algorithm-name")
+           || !strcmp (command, "signature-algorithm-name"))
     {
       const char *digest = ksba_cert_get_digest_algo (obj->cert);
       if (digest)
@@ -929,6 +936,35 @@ nasl_cert_query (lex_ctxt *lexic)
           retc->x.str_val = g_strdup (name);
           retc->size = strlen (name);
         }
+    }
+  else if (!strcmp (command, "public-key-algorithm-name"))
+    {
+      gnutls_datum_t datum;
+      gnutls_x509_crt_t cert = NULL;
+      int algo;
+      char *algo_name;
+
+      datum.data =
+        (void *) ksba_cert_get_image (obj->cert, (size_t *) &datum.size);
+      if (!datum.data)
+        return NULL;
+      if (gnutls_x509_crt_init (&cert) != GNUTLS_E_SUCCESS)
+        return NULL;
+      if (gnutls_x509_crt_import (cert, &datum, GNUTLS_X509_FMT_DER)
+          != GNUTLS_E_SUCCESS)
+        return NULL;
+      if ((algo = gnutls_x509_crt_get_pk_algorithm (cert, NULL)) < 0)
+        {
+          g_message ("%s: Error getting the public key algorithm name.",
+                     __func__);
+          return NULL;
+        }
+      algo_name = gnutls_pk_algorithm_get_name (algo)
+                    ? g_strdup (gnutls_pk_algorithm_get_name (algo))
+                    : g_strdup ("unknown");
+      retc = alloc_typed_cell (CONST_DATA);
+      retc->size = strlen (algo_name);
+      retc->x.str_val = algo_name;
     }
   else if (!strcmp (command, "modulus"))
     {
