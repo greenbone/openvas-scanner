@@ -353,6 +353,7 @@ proto_post_wrapped (const char *oid, struct script_infos *desc, int port,
   const char *hostname = "";
   char *buffer, *data, port_s[16] = "general";
   char ip_str[INET6_ADDRSTRLEN];
+  GError *err = NULL;
   GString *action_str;
   gsize length;
   kb_t kb;
@@ -380,7 +381,15 @@ proto_post_wrapped (const char *oid, struct script_infos *desc, int port,
                             hostname ?: " ", port_s, proto, oid,
                             action_str->str, uri ?: "");
   /* Convert to UTF-8 before sending to Manager. */
-  data = g_convert (buffer, -1, "UTF-8", "ISO_8859-1", NULL, &length, NULL);
+  data = g_convert (buffer, -1, "UTF-8", "ISO_8859-1", NULL, &length, &err);
+  if (!data)
+    {
+      g_warning ("%s: Error converting to UTF-8: %s\nOriginal string: %s",
+                 __func__, err->message, buffer);
+      g_free (buffer);
+      g_string_free (action_str, TRUE);
+      return;
+    }
   kb = plug_get_results_kb (desc);
   kb_item_push_str (kb, "internal/results", data);
   g_free (data);
