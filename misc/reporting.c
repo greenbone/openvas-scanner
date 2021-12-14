@@ -503,6 +503,7 @@ proto_post_wrapped (const char *oid, struct script_infos *desc, int port,
   char *json;
   char ip_str[INET6_ADDRSTRLEN];
   GString *action_str;
+  GError *err = NULL;
   gsize length;
 
   /* Should not happen, just to avoid trouble stop here if no NVTI found */
@@ -527,7 +528,15 @@ proto_post_wrapped (const char *oid, struct script_infos *desc, int port,
                             hostname ?: " ", port_s, proto, oid,
                             action_str->str, uri ?: "");
   /* Convert to UTF-8 before sending to Manager. */
-  data = g_convert (buffer, -1, "UTF-8", "ISO_8859-1", NULL, &length, NULL);
+  data = g_convert (buffer, -1, "UTF-8", "ISO_8859-1", NULL, &length, &err);
+  if (!data)
+    {
+      g_warning ("%s: Error converting to UTF-8: %s\nOriginal string: %s",
+                 __func__, err->message, buffer);
+      g_free (buffer);
+      g_string_free (action_str, TRUE);
+      return;
+    }
 
   /* Send result via MQTT. */
   context = prefs_get ("mqtt_context");
