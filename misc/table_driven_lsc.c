@@ -76,17 +76,10 @@ add_packages_str_to_list (JsonBuilder *builder, const gchar *packages)
  * JSON result consists of scan_id, message type, host ip,  hostname, port
  * together with proto, OID, result message and uri.
  *
-<<<<<<< HEAD
  * @param scan_id     ID of the scan.
  * @param ip_str      IP string of host.
  * @param hostname    DNS name of the host to scan.
  * @param os_release  Name of the Operating System of the host.
-=======
- * @param scan_id     Scan Id.
- * @param ip_str      IP string of host.
- * @param hostname    Name of host.
- * @param os_release  OS release
->>>>>>> 4abc01f7 (Add: wait for notus to finish (#917))
  * @param package_list The installed package list in the target system to be
  * evaluated.
  *
