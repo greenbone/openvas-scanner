@@ -418,7 +418,7 @@ run_table_driven_lsc (const char *scan_id, kb_t kb, const char *ip_str,
   /* Get the OS release. TODO: have a list with supported OS. */
   os_release = kb_item_get_str (kb, "ssh/login/release_notus");
   /* Get the package list. Currently only rpm support */
-  package_list = kb_item_get_str (kb, "ssh/login/rpms_notus");
+  package_list = kb_item_get_str (kb, "ssh/login/package_list_notus");
   if (!os_release || !package_list)
     return 0;
 
