@@ -405,10 +405,7 @@ nasl_tolower (lex_ctxt *lexic)
   if (str == NULL)
     return NULL;
 
-#pragma GCC diagnostic push
-#pragma GCC diagnostic warning "-Wdeprecated-declarations"
-  str = g_memdup (str, str_len + 1);
-#pragma GCC diagnostic pop
+  str = g_memdup2 (str, str_len + 1);
   for (i = 0; i < str_len; i++)
     str[i] = tolower (str[i]);
 
@@ -430,10 +427,7 @@ nasl_toupper (lex_ctxt *lexic)
   if (str == NULL)
     return NULL;
 
-#pragma GCC diagnostic push
-#pragma GCC diagnostic warning "-Wdeprecated-declarations"
-  str = g_memdup (str, str_len + 1);
-#pragma GCC diagnostic pop
+  str = g_memdup2 (str, str_len + 1);
   for (i = 0; i < str_len; i++)
     str[i] = toupper (str[i]);
 
@@ -557,7 +551,7 @@ _regreplace (const char *pattern, const char *replace, const char *string,
              1) find out how long the string will be, and allocate buf
              2) copy the part before match, replacement and backrefs to buf
 
-             Jaakko Hyvätti <Jaakko.Hyvatti@iki.fi>
+             Jaakko Hyv?tti <Jaakko.Hyvatti@iki.fi>
            */
 
           new_l = strlen (buf) + subs[0].rm_so; /* part before the match */
@@ -1254,10 +1248,7 @@ nasl_strstr (lex_ctxt *lexic)
 
   retc = alloc_typed_cell (CONST_DATA);
   retc->size = sz_a - (c - a);
-#pragma GCC diagnostic push
-#pragma GCC diagnostic warning "-Wdeprecated-declarations"
-  retc->x.str_val = g_memdup (c, retc->size + 1);
-#pragma GCC diagnostic pop
+  retc->x.str_val = g_memdup2 (c, retc->size + 1);
   return retc;
 }
 
