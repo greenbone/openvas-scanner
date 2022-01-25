@@ -1,4 +1,4 @@
-/* Portions Copyright (C) 2009-2021 Greenbone Networks GmbH
+/* Portions Copyright (C) 2009-2022 Greenbone Networks GmbH
  * Base on work Copyright (C) 2004 Michel Arboi
  *
  * SPDX-License-Identifier: GPL-2.0-only
