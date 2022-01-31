@@ -576,6 +576,7 @@ openvas (int argc, char *argv[])
           g_message ("Failed to initialize nvti cache. Not possible to "
                      "stop the scan");
           nvticache_reset ();
+          gvm_close_sentry ();
           exit (1);
         }
       nvticache_reset ();
