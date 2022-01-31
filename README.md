@@ -38,6 +38,19 @@ that you use the Greenbone Security Manager TRIAL (GSM TRIAL), a prepared virtua
 machine with a readily available setup. Information regarding the virtual machine
 is available at <https://www.greenbone.net/en/testnow>.
 
+## Docker
+
+If you want to use the docker files provided in this repository you can pull them 
+from [here](https://hub.docker.com/r/greenbone/openvas-scanner). You can also locally 
+build them using:
+```
+docker build -t <openvas-tag> .docker/prod.Dockerfile .
+```
+For more information about building docker images, see 
+[official man](https://docs.docker.com/engine/reference/commandline/build/).
+
+>Please beware: The Greenbone docker environment is currently under developement.
+
 ## Support
 
 For any question on the usage of `openvas` please use the [Greenbone
