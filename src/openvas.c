@@ -569,6 +569,17 @@ openvas (int argc, char *argv[])
   /* openvas --scan-stop */
   if (stop_scan_id)
     {
+      set_default_openvas_prefs ();
+      prefs_config (config_file);
+      if (plugins_cache_init ())
+        {
+          g_message ("Failed to initialize nvti cache. Not possible to "
+                     "stop the scan");
+          nvticache_reset ();
+          exit (1);
+        }
+      nvticache_reset ();
+
       global_scan_id = g_strdup (stop_scan_id);
       stop_single_task_scan ();
       gvm_close_sentry ();
