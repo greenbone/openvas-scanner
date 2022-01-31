@@ -44,7 +44,7 @@ If you want to use the docker files provided in this repository you can pull the
 from [here](https://hub.docker.com/r/greenbone/openvas-scanner). You can also locally 
 build them using:
 ```
-docker build -t <openvas-tag> .docker/prod.Dockerfile .
+docker build -t <image-name> .docker/prod.Dockerfile .
 ```
 For more information about building docker images, see 
 [official man](https://docs.docker.com/engine/reference/commandline/build/).
