@@ -657,8 +657,17 @@ open_SSL_connection (openvas_connection *fp, const char *cert, const char *key,
       if (err == 0)
         return 1;
 
-      if (err != GNUTLS_E_INTERRUPTED && err != GNUTLS_E_AGAIN
-          && err != GNUTLS_E_WARNING_ALERT_RECEIVED)
+      /* Set min number of bits for Deffie-Hellman prime
+         to force a connection to a legacy server. */
+      if (err == GNUTLS_E_DH_PRIME_UNACCEPTABLE
+          && fp->transport == OPENVAS_ENCAPS_TLScustom)
+        {
+          g_message ("[%d] gnutls_handshake: %s", getpid (),
+                     gnutls_strerror (err));
+          return -2;
+        }
+      else if (err != GNUTLS_E_INTERRUPTED && err != GNUTLS_E_AGAIN
+               && err != GNUTLS_E_WARNING_ALERT_RECEIVED)
         {
           g_debug ("[%d] gnutls_handshake: %s", getpid (),
                    gnutls_strerror (err));
@@ -1032,7 +1041,7 @@ open_stream_connection_ext (struct script_infos *args, unsigned int port,
                             int transport, int timeout, const char *priority,
                             int flags)
 {
-  int fd;
+  int fd, ret;
   openvas_connection *fp;
   char *cert = NULL;
   char *key = NULL;
@@ -1055,6 +1064,7 @@ open_stream_connection_ext (struct script_infos *args, unsigned int port,
   if (timeout == -2)
     timeout = TIMEOUT;
 
+  ret = -1;
   switch (transport)
     {
     case OPENVAS_ENCAPS_IP:
@@ -1076,13 +1086,13 @@ open_stream_connection_ext (struct script_infos *args, unsigned int port,
       errno = EINVAL;
 
       g_free (hostname_aux);
-      return -1;
+      return ret;
     }
 
   if ((fd = get_connection_fd ()) < 0)
     {
       g_free (hostname_aux);
-      return -1;
+      return ret;
     }
   fp = OVAS_CONNECTION_FROM_FD (fd);
 
@@ -1103,7 +1113,6 @@ open_stream_connection_ext (struct script_infos *args, unsigned int port,
   kb_t kb = plug_get_kb (args);
   switch (transport)
     {
-      int ret;
       char buf[1024];
 
     case OPENVAS_ENCAPS_IP:
@@ -1146,7 +1155,7 @@ open_stream_connection_ext (struct script_infos *args, unsigned int port,
 
 failed:
   release_connection_fd (fd, 0);
-  return -1;
+  return ret;
 }
 
 int
