@@ -1000,12 +1000,14 @@ socket_get_ssl_ciphersuite (int fd)
 }
 
 /* Extended version of open_stream_connection to allow passing a
-   priority string.
+   priority string and a bit flag variable for setting extra options
+   which can't be set via the priority string.
 
    ABI_BREAK_NOTE: Merge this with open_stream_connection.  */
 int
 open_stream_connection_ext (struct script_infos *args, unsigned int port,
-                            int transport, int timeout, const char *priority)
+                            int transport, int timeout, const char *priority,
+                            int flags)
 {
   int fd;
   openvas_connection *fp;

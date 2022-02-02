@@ -89,7 +89,7 @@ open_stream_connection (struct script_infos *, unsigned int, int, int);
 
 int
 open_stream_connection_ext (struct script_infos *, unsigned int, int, int,
-                            const char *);
+                            const char *, int);
 
 int
 open_stream_auto_encaps_ext (struct script_infos *, unsigned int port,
