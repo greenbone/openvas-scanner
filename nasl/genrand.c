@@ -153,8 +153,8 @@ do_reseed_ntlmssp (bool use_fd, int fd)
 
   GetTimeOfDay_ntlmssp (&tval);
   mypid = getpid ();
-  v1 = (counter++) + mypid + tval.tv_sec;
-  v2 = (counter++) * mypid + tval.tv_usec;
+  v1 = (counter++) + mypid + (uint32) tval.tv_sec;
+  v2 = (counter++) * mypid + (uint32) tval.tv_usec;
 
   SIVAL (seed_inbuf, 32, v1 ^ IVAL (seed_inbuf, 32));
   SIVAL (seed_inbuf, 36, v2 ^ IVAL (seed_inbuf, 36));
