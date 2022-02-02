@@ -1,0 +1,20 @@
+name: File Header Copyright Year Updater
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: '0 0 1 1 *' # At 00:00 on day-of-month 1 in January.
+
+jobs:
+  update-header:
+    name: Update file header year
+    runs-on: 'ubuntu-latest'
+    steps:
+    - name: Run update header
+      uses: greenbone/actions/update-header@v1
+      with:
+        github-user: ${{ secrets.GREENBONE_BOT }}
+        github-user-mail: ${{ secrets.GREENBONE_BOT_MAIL }}
+        github-user-token: ${{ secrets.GREENBONE_BOT_TOKEN }}
+        directories: nasl misc src tools
+        target: main
