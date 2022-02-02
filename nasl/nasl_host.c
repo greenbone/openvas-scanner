@@ -487,7 +487,7 @@ nasl_same_host (lex_ctxt *lexic)
               for (n[i] = 0; ((struct in_addr **) h->h_addr_list)[n[i]] != NULL;
                    n[i]++)
                 ;
-              a[i] = g_malloc0 (h->h_length * n[i]);
+              a[i] = g_malloc0 ((gsize) h->h_length * n[i]);
               for (j = 0; j < n[i]; j++)
                 a[i][j] = *((struct in_addr **) h->h_addr_list)[j];
             }
@@ -519,7 +519,7 @@ nasl_same_host (lex_ctxt *lexic)
               for (n[i] = 0; ((struct in_addr **) h->h_addr_list)[n[i]] != NULL;
                    n[i]++)
                 ;
-              a[i] = g_malloc0 (h->h_length * n[i]);
+              a[i] = g_malloc0 ((gsize) h->h_length * n[i]);
               for (j = 0; j < n[i]; j++)
                 a[i][j] = *((struct in_addr **) h->h_addr_list)[j];
             }
