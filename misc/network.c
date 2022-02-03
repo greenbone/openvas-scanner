@@ -575,6 +575,9 @@ is_ip_address (const char *str)
  * @param cafile The CA file
  * @param hostname Targets hostname
  * @param flags Extra options which can not be set via the priority string
+ *              Supported flags are:
+ *              - NO_PRIORITY_FLAGS
+ *              - INSECURE_DH_PRIME_BITS
  *
  * @return 1 on success. -1 on general error or timeout. -2 if DH prime bits on
  * server side are lower than minimum allowed.
