@@ -49,7 +49,7 @@ docker build -t <image-name> .docker/prod.Dockerfile .
 For more information about building docker images, see 
 [official man](https://docs.docker.com/engine/reference/commandline/build/).
 
->Please beware: The Greenbone docker environment is currently under developement.
+>Please beware: The Greenbone docker environment is currently under development.
 
 ## Support
 

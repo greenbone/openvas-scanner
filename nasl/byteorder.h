@@ -67,8 +67,8 @@ then to extract a uint16 value at offset 25 in a buffer you do this:
 char *buffer = foo_bar();
 uint16 xx = SVAL(buffer,25);
 
-We are using the byteoder independence of the ANSI C bitshifts to do
-the work. A good optimising compiler should turn this into efficient
+We are using the byteorder independence of the ANSI C bitshifts to do
+the work. A good optimizing compiler should turn this into efficient
 code, especially if it happens to have the right byteorder :-)
 
 I know these macros can be made a bit tidier by removing some of the
