@@ -156,7 +156,7 @@ set_scan_status (char *status)
  * which is vulnerability tested. Launched is the number of plguins(VTs) which
  * got already started. Total is the total number of plugins which will be
  * started for the current host. But here we use the format "current_host/0/-1"
- * for implicit singalling that the host ist dead.
+ * for implicit singalling that the host is dead.
  *
  * @param main_kb Kb to use
  * @param ip_str str representation of host ip
@@ -469,7 +469,7 @@ run_table_driven_lsc (const char *scan_id, kb_t kb, const char *ip_str,
   // If started wait for it to finish or interrupt
   if (!g_strcmp0 (status, "running"))
     {
-      g_debug ("%s: table driven LSC with scan id %s succesfully started "
+      g_debug ("%s: table driven LSC with scan id %s successfully started "
                "for host %s",
                __func__, scan_id, ip_str);
       g_free (status);
@@ -513,7 +513,7 @@ run_table_driven_lsc (const char *scan_id, kb_t kb, const char *ip_str,
       err = -1;
     }
   else
-    g_debug ("%s: table driven lsc with scan id %s succesfully finished "
+    g_debug ("%s: table driven lsc with scan id %s successfully finished "
              "for host %s",
              __func__, scan_id, ip_str);
   g_free (status);

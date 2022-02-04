@@ -177,7 +177,7 @@ send_frame (const u_char *frame, int frame_sz, int use_pcap, int timeout,
       return -1;
     }
 
-  // Preapre sockaddr_ll. This is necessary for further captures
+  // Prepare sockaddr_ll. This is necessary for further captures
   u_char dst_haddr[ETHER_ADDR_LEN];
   memcpy (&dst_haddr, (struct pseudo_frame *) frame, ETHER_ADDR_LEN);
 
