@@ -56,7 +56,7 @@
 /**
  * Returns 0 if any alphabets are present
  */
-int
+static int
 check_alpha (char *val)
 {
   int i, val_len;
@@ -77,7 +77,7 @@ check_alpha (char *val)
 /**
  * Convert string to unsign int 32 bit
  */
-uint32_t
+static uint32_t
 stoi_uint32_t (char *s)
 {
   uint32_t v;
@@ -88,7 +88,7 @@ stoi_uint32_t (char *s)
 /**
  * Convert string to unsign int 64 bit
  */
-uint64_t
+static uint64_t
 stoi_uint64_t (char *s)
 {
   uint64_t v;

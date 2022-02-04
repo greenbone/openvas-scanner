@@ -19,6 +19,7 @@
 
 #ifndef NASL_SIGNATURE_H
 #define NASL_SIGNATURE_H
+#include <stddef.h>
 
 int
 nasl_verify_signature (const char *, const char *, size_t);

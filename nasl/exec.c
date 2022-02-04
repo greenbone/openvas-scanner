@@ -1705,13 +1705,13 @@ exec_nasl_script (struct script_infos *script_infos, int mode)
       ret will be overwritten with -1 if any errors occur in the steps
       after linting so we do not break other behaviour dependent on a
       negative return value when doing more than just linting. */
-      tree_cell *ret = nasl_lint (lexic, ctx.tree);
-      if (ret == NULL)
+      tree_cell *lintret = nasl_lint (lexic, ctx.tree);
+      if (lintret == NULL)
         err--;
-      else if (ret != FAKE_CELL && ret->x.i_val > 0)
+      else if (lintret != FAKE_CELL && lintret->x.i_val > 0)
         {
-          err = ret->x.i_val;
-          g_free (ret);
+          err = lintret->x.i_val;
+          g_free (lintret);
         }
     }
   else if (!(mode & NASL_EXEC_PARSE_ONLY))

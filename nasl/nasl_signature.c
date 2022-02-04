@@ -17,6 +17,8 @@
  * Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA 02110-1301 USA.
  */
 
+#include "nasl_signature.h"
+
 #include "nasl_debug.h"
 #include "nasl_func.h"
 #include "nasl_lex_ctxt.h"

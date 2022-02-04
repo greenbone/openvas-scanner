@@ -60,7 +60,7 @@
 extern char *
 nasl_version (void);
 
-void
+static void
 sighandler ()
 {
   exit (0);
@@ -74,7 +74,7 @@ my_gnutls_log_func (int level, const char *text)
     putc ('\n', stderr);
 }
 
-struct script_infos *
+static struct script_infos *
 init (struct in6_addr *ip, GSList *vhosts, kb_t kb)
 {
   struct script_infos *infos = g_malloc0 (sizeof (struct script_infos));
@@ -330,7 +330,7 @@ main (int argc, char **argv)
       add_nasl_inc_dir (include_dir);
     }
 
-  prefs_config (config_file ?: OPENVAS_CONF);
+  prefs_config (config_file ? config_file : OPENVAS_CONF);
 
   if (prefs_get ("vendor_version") != NULL)
     vendor_version_set (prefs_get ("vendor_version"));
@@ -355,7 +355,8 @@ main (int argc, char **argv)
         gvm_host_add_reverse_lookup (host);
       gvm_vhosts_exclude (host, prefs_get ("exclude_hosts"));
       gvm_host_get_addr6 (host, &ip6);
-      rc = kb_new (&kb, prefs_get ("db_address") ?: KB_PATH_DEFAULT);
+      rc = kb_new (&kb, prefs_get ("db_address") ? prefs_get ("db_address")
+                                                 : KB_PATH_DEFAULT);
       if (rc)
         exit (1);
 

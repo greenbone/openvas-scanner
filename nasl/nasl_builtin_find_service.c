@@ -21,6 +21,7 @@
 
 #include "../misc/network.h"   /* for get_encaps_through */
 #include "../misc/plugutils.h" /* for OPENVAS_ENCAPS_IP */
+#include "nasl_builtin_plugins.h"
 #include "nasl_lex_ctxt.h"
 
 #include <ctype.h> /* for tolower() */
@@ -113,14 +114,14 @@ mark_chargen_server (struct script_infos *desc, int port)
   post_log (oid, desc, port, "Chargen is running on this port");
 }
 
-void
+static void
 mark_echo_server (struct script_infos *desc, int port)
 {
   register_service (desc, port, "echo");
   post_log (oid, desc, port, "An echo server is running on this port");
 }
 
-void
+static void
 mark_ncacn_http_server (struct script_infos *desc, int port, char *buffer)
 {
   char ban[256];
@@ -138,7 +139,7 @@ mark_ncacn_http_server (struct script_infos *desc, int port, char *buffer)
     }
 }
 
-void
+static void
 mark_vnc_server (struct script_infos *desc, int port, char *buffer)
 {
   char ban[512];
@@ -147,7 +148,7 @@ mark_vnc_server (struct script_infos *desc, int port, char *buffer)
   plug_replace_key (desc, ban, ARG_STRING, buffer);
 }
 
-void
+static void
 mark_nntp_server (struct script_infos *desc, int port, char *buffer, int trp)
 {
   char ban[512];
@@ -159,19 +160,19 @@ mark_nntp_server (struct script_infos *desc, int port, char *buffer, int trp)
   post_log (oid, desc, port, ban);
 }
 
-void
+static void
 mark_swat_server (struct script_infos *desc, int port)
 {
   register_service (desc, port, "swat");
 }
 
-void
+static void
 mark_vqserver (struct script_infos *desc, int port)
 {
   register_service (desc, port, "vqServer-admin");
 }
 
-void
+static void
 mark_mldonkey (struct script_infos *desc, int port)
 {
   char ban[512];
@@ -180,7 +181,7 @@ mark_mldonkey (struct script_infos *desc, int port)
   post_log (oid, desc, port, ban);
 }
 
-void
+static void
 mark_http_server (struct script_infos *desc, int port, unsigned char *buffer,
                   int trp)
 {
@@ -193,7 +194,7 @@ mark_http_server (struct script_infos *desc, int port, unsigned char *buffer,
   post_log (oid, desc, port, ban);
 }
 
-void
+static void
 mark_locked_adsubtract_server (struct script_infos *desc, int port,
                                unsigned char *buffer, int trp)
 {
@@ -214,7 +215,7 @@ mark_gopher_server (struct script_infos *desc, int port)
   post_log (oid, desc, port, "A gopher server is running on this port");
 }
 
-void
+static void
 mark_rmserver (struct script_infos *desc, int port, char *buffer, int trp)
 {
   char ban[512];
@@ -227,7 +228,7 @@ mark_rmserver (struct script_infos *desc, int port, char *buffer, int trp)
   post_log (oid, desc, port, ban);
 }
 
-void
+static void
 mark_smtp_server (struct script_infos *desc, int port, char *buffer, int trp)
 {
   char ban[512];
@@ -252,7 +253,7 @@ Here is its banner : \n%s",
   }
 }
 
-void
+static void
 mark_snpp_server (struct script_infos *desc, int port, char *buffer, int trp)
 {
   char ban[512], *report, *t;
@@ -272,7 +273,7 @@ Here is its banner : \n%s",
   g_free (report);
 }
 
-void
+static void
 mark_ftp_server (struct script_infos *desc, int port, char *buffer, int trp)
 {
   register_service (desc, port, "ftp");
@@ -307,7 +308,7 @@ Here is its banner : \n%s",
     }
 }
 
-void
+static void
 mark_ssh_server (struct script_infos *desc, int port, char *buffer)
 {
   register_service (desc, port, "ssh");
@@ -317,7 +318,7 @@ mark_ssh_server (struct script_infos *desc, int port, char *buffer)
   post_log (oid, desc, port, "An ssh server is running on this port");
 }
 
-void
+static void
 mark_http_proxy (struct script_infos *desc, int port, int trp)
 {
   char ban[512];
@@ -328,7 +329,7 @@ mark_http_proxy (struct script_infos *desc, int port, int trp)
   post_log (oid, desc, port, ban);
 }
 
-void
+static void
 mark_pop_server (struct script_infos *desc, int port, char *buffer)
 {
   char *c = strchr (buffer, '\n');
@@ -364,7 +365,7 @@ mark_pop_server (struct script_infos *desc, int port, char *buffer)
   g_free (buffer2);
 }
 
-void
+static void
 mark_imap_server (struct script_infos *desc, int port, char *buffer, int trp)
 {
   char ban[512];
@@ -378,7 +379,7 @@ mark_imap_server (struct script_infos *desc, int port, char *buffer, int trp)
   }
 }
 
-void
+static void
 mark_auth_server (struct script_infos *desc, int port)
 {
   register_service (desc, port, "auth");
@@ -389,7 +390,7 @@ mark_auth_server (struct script_infos *desc, int port)
  * Postgres, MySQL & CVS pserver detection by Vincent Renardias
  * <vincent@strongholdnet.com>
  */
-void
+static void
 mark_postgresql (struct script_infos *desc, int port)
 {
   register_service (desc, port, "postgresql");
@@ -397,7 +398,7 @@ mark_postgresql (struct script_infos *desc, int port)
   post_log (oid, desc, port, "A PostgreSQL server is running on this port");
 }
 
-void
+static void
 mark_sphinxql (struct script_infos *desc, int port)
 {
   register_service (desc, port, "sphinxql");
@@ -406,7 +407,7 @@ mark_sphinxql (struct script_infos *desc, int port)
             "seems to be running on this port");
 }
 
-void
+static void
 mark_mysql (struct script_infos *desc, int port)
 {
   register_service (desc, port, "mysql");
@@ -414,7 +415,7 @@ mark_mysql (struct script_infos *desc, int port)
   post_log (oid, desc, port, "A MySQL server is running on this port");
 }
 
-void
+static void
 mark_cvspserver (struct script_infos *desc, int port)
 {
   register_service (desc, port, "cvspserver");
@@ -422,14 +423,14 @@ mark_cvspserver (struct script_infos *desc, int port)
   post_log (oid, desc, port, "A CVS pserver server is running on this port");
 }
 
-void
+static void
 mark_cvsupserver (struct script_infos *desc, int port)
 {
   register_service (desc, port, "cvsup");
   post_log (oid, desc, port, "A CVSup server is running on this port");
 }
 
-void
+static void
 mark_cvslockserver (struct script_infos *desc, int port)
 {
   register_service (desc, port, "cvslockserver");
@@ -437,14 +438,14 @@ mark_cvslockserver (struct script_infos *desc, int port)
   post_log (oid, desc, port, "A CVSLock server server is running on this port");
 }
 
-void
+static void
 mark_rsync (struct script_infos *desc, int port)
 {
   register_service (desc, port, "rsync");
   post_log (oid, desc, port, "A rsync server is running on this port");
 }
 
-void
+static void
 mark_wild_shell (struct script_infos *desc, int port)
 {
   register_service (desc, port, "wild_shell");
@@ -455,7 +456,7 @@ mark_wild_shell (struct script_infos *desc, int port)
     NULL);
 }
 
-void
+static void
 mark_telnet_server (struct script_infos *desc, int port, int trp)
 {
   char ban[255];
@@ -468,7 +469,7 @@ mark_telnet_server (struct script_infos *desc, int port, int trp)
   }
 }
 
-void
+static void
 mark_gnome14_server (struct script_infos *desc, int port, int trp)
 {
   char ban[255];
@@ -481,7 +482,7 @@ mark_gnome14_server (struct script_infos *desc, int port, int trp)
   }
 }
 
-void
+static void
 mark_eggdrop_server (struct script_infos *desc, int port, int trp)
 {
   char ban[255];
@@ -495,14 +496,14 @@ mark_eggdrop_server (struct script_infos *desc, int port, int trp)
   }
 }
 
-void
+static void
 mark_netbus_server (struct script_infos *desc, int port)
 {
   register_service (desc, port, "netbus");
   post_alarm (oid, desc, port, "NetBus is running on this port", NULL);
 }
 
-void
+static void
 mark_linuxconf (struct script_infos *desc, int port, unsigned char *buffer)
 {
   char ban[512];
@@ -927,7 +928,7 @@ mark_nagiosd_server (struct script_infos *desc, int port, int trp)
 }
 
 /*
- * Sig from  Michael Löffler <nimrod@n1mrod.de>
+ * Sig from  Michael L?ffler <nimrod@n1mrod.de>
  *
  * 00: 5b 54 53 5d 0a 65 72 72 6f 72 0a                   [TS].error.
  *
@@ -1087,7 +1088,7 @@ mark_stonegate_auth_server (struct script_infos *desc, int port, int trp)
   post_log (oid, desc, port, ban);
 }
 
-void
+static void
 mark_listserv_server (struct script_infos *desc, int port, int trp)
 {
   char ban[255];
@@ -1100,7 +1101,7 @@ mark_listserv_server (struct script_infos *desc, int port, int trp)
   }
 }
 
-void
+static void
 mark_fssniffer (struct script_infos *desc, int port, int trp)
 {
   char ban[255];
@@ -1113,7 +1114,7 @@ mark_fssniffer (struct script_infos *desc, int port, int trp)
   }
 }
 
-void
+static void
 mark_remote_nc_server (struct script_infos *desc, int port, int trp)
 {
   char ban[255];
@@ -1529,7 +1530,7 @@ plugin_do_run (struct script_infos *desc, GSList *h, int test_ssl)
           char buffer[2049];
           unsigned char *banner = NULL, *bannerHex = NULL;
           size_t banner_len, i;
-          int port = atoi (h->data + len_head);
+          int port = atoi ((const char *) h->data + len_head);
           int flg = 0;
           int unindentified_service = 0;
           int three_digits = 0;
@@ -1550,13 +1551,13 @@ plugin_do_run (struct script_infos *desc, GSList *h, int test_ssl)
           if (type == ARG_STRING && bannerHex != NULL && bannerHex[0] != '\0')
             {
               int c1, c2;
-              unsigned int i;
+              unsigned int j;
               banner_len = strlen ((char *) bannerHex) / 2;
               if (banner_len >= sizeof (buffer))
                 banner_len = sizeof (buffer) - 1;
-              for (i = 0; i < banner_len; i++)
+              for (j = 0; j < banner_len; j++)
                 {
-                  c1 = bannerHex[2 * i];
+                  c1 = bannerHex[2 * j];
                   if (c1 >= 0 && c1 <= 9)
                     c1 -= '0';
                   else if (c1 >= 'a' && c1 <= 'f')
@@ -1565,7 +1566,7 @@ plugin_do_run (struct script_infos *desc, GSList *h, int test_ssl)
                     c1 -= 'A';
                   else
                     banner_len = 0; /* Invalid value */
-                  c2 = bannerHex[2 * i + 1];
+                  c2 = bannerHex[2 * j + 1];
                   if (c2 >= 0 && c2 <= 9)
                     c2 -= '0';
                   else if (c2 >= 'a' && c2 <= 'f')
@@ -1574,9 +1575,9 @@ plugin_do_run (struct script_infos *desc, GSList *h, int test_ssl)
                     c2 -= 'A';
                   else
                     banner_len = 0; /* Invalid value */
-                  buffer[i] = c1 << 4 | c2;
+                  buffer[j] = c1 << 4 | c2;
                 }
-              buffer[i] = '\0';
+              buffer[j] = '\0';
               if (banner_len > 0)
                 banner = (unsigned char *) buffer;
             }
@@ -2277,7 +2278,7 @@ plugin_do_run (struct script_infos *desc, GSList *h, int test_ssl)
                                  * OPENVAS_ENCAPS_IP &&
                                  wrap_timeout > 0 */ )
                 {
-                  int nfd, fd, x, flag = 0;
+                  int nfd, fd, wx, flag = 0;
                   char b;
 
                   nfd = open_stream_connection (desc, port, OPENVAS_ENCAPS_IP,
@@ -2294,20 +2295,20 @@ plugin_do_run (struct script_infos *desc, GSList *h, int test_ssl)
                       signal (SIGALRM, SIG_IGN);
 
                       (void) gettimeofday (&tv1, NULL);
-                      x = select (fd + 1, &rfds, NULL, NULL, &tv);
+                      wx = select (fd + 1, &rfds, NULL, NULL, &tv);
                       (void) gettimeofday (&tv2, NULL);
                       diff_tv2 = DIFFTV1000 (tv2, tv1);
-                      if (x < 0)
+                      if (wx < 0)
                         {
                           if (errno == EINTR)
                             goto select_again2;
                           perror ("select");
                         }
-                      else if (x > 0)
+                      else if (wx > 0)
                         {
                           errno = 0;
-                          x = recv (fd, &b, 1, MSG_DONTWAIT);
-                          if (x == 0 || (x < 0 && errno == EPIPE))
+                          wx = recv (fd, &b, 1, MSG_DONTWAIT);
+                          if (wx == 0 || (wx < 0 && errno == EPIPE))
                             {
                               /*
                                * If the service quickly closes the connection

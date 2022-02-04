@@ -48,18 +48,18 @@ typedef struct st_func_info
 char *nasl_name;
 
 int errors_cnt;
-void
+static void
 init_errors_cnt ()
 {
   errors_cnt = 0;
 }
-void
+static void
 inc_errors_cnt ()
 {
   errors_cnt++;
   return;
 }
-int
+static int
 get_errors_cnt ()
 {
   return errors_cnt;
@@ -71,7 +71,7 @@ get_errors_cnt ()
  * @param[in] defined_var List with all defined variables
  *
  */
-void
+static void
 free_list_func (func_info *data)
 {
   g_free (data->func_name);
@@ -86,7 +86,7 @@ free_list_func (func_info *data)
  * @param[in,out] defined_var List with all defined variables
  *
  */
-void
+static void
 add_predef_varname (GSList **defined_var)
 {
   int i;
@@ -106,7 +106,7 @@ add_predef_varname (GSList **defined_var)
  *
  * @return 0 on success, non 0 otherwise.
  */
-gint
+static gint
 list_cmp1 (gconstpointer lelem, gconstpointer data)
 {
   if (data)
@@ -123,7 +123,7 @@ list_cmp1 (gconstpointer lelem, gconstpointer data)
  *        neested and defined function but never called.
  * @return 1 if the function is needed, 0 otherwise.
  */
-gint
+static gint
 reverse_search (GSList **def_func_tree, GSList *finfo)
 {
   func_info *fdata = finfo->data;
@@ -156,7 +156,7 @@ reverse_search (GSList **def_func_tree, GSList *finfo)
  *
  * @return 0 on success, non 0 otherwise.
  */
-gint
+static gint
 list_cmp (gconstpointer lelem, gconstpointer data)
 {
   if (!lelem || !data)
@@ -175,7 +175,7 @@ list_cmp (gconstpointer lelem, gconstpointer data)
  * @param[in] unusedfiles List with unused .inc files.
  *
  */
-void
+static void
 check_called_files (gpointer key, gpointer value, GSList **unusedfiles)
 {
   if (key != NULL)
@@ -190,7 +190,7 @@ check_called_files (gpointer key, gpointer value, GSList **unusedfiles)
  * @param[in] lexic nasl context.
  *
  */
-void
+static void
 print_uncall_files (gpointer filename, gpointer lexic)
 {
   if (filename != NULL)
@@ -207,7 +207,7 @@ print_uncall_files (gpointer filename, gpointer lexic)
  *        functions to help recognize a not defined function which is never
  *        called (nested functions).
  */
-tree_cell *
+static tree_cell *
 nasl_lint_def (lex_ctxt *lexic, tree_cell *st, int lint_mode,
                GHashTable **include_files, GHashTable **func_fnames_tab,
                gchar *err_fname, GSList **called_funcs, GSList **def_func_tree)
@@ -322,7 +322,7 @@ nasl_lint_def (lex_ctxt *lexic, tree_cell *st, int lint_mode,
  * @param name Name of the Argument to search for
  * @return char* Value of the given Argument name
  */
-char *
+static char *
 get_argument_by_name (tree_cell *st, char *name)
 {
   if (st == NULL)
@@ -348,7 +348,7 @@ get_argument_by_name (tree_cell *st, char *name)
  * @param st Function Parameters should be of type NODE_ARG
  * @return tree_cell*
  */
-tree_cell *
+static tree_cell *
 validate_script_xref (lex_ctxt *lexic, tree_cell *st)
 {
   char *name = get_argument_by_name (st, "name");
@@ -391,7 +391,7 @@ validate_script_xref (lex_ctxt *lexic, tree_cell *st)
  * @param st
  * @return tree_cell * NULL if it is invalid, FAKE_CELL if it is valid
  */
-tree_cell *
+static tree_cell *
 validate_function (lex_ctxt *lexic, tree_cell *st)
 {
   lexic->line_nb = st->line_nb;
@@ -417,7 +417,7 @@ validate_function (lex_ctxt *lexic, tree_cell *st)
 /**
  * @brief Check if a called function was defined.
  */
-tree_cell *
+static tree_cell *
 nasl_lint_call (lex_ctxt *lexic, tree_cell *st, GHashTable **include_files,
                 GHashTable **func_fnames_tab, gchar *err_fname,
                 GSList **called_funcs, GSList **def_func_tree)
@@ -456,7 +456,8 @@ nasl_lint_call (lex_ctxt *lexic, tree_cell *st, GHashTable **include_files,
       if (pf == NULL)
         {
           incname = g_hash_table_lookup (*func_fnames_tab, st->x.str_val);
-          incname ? nasl_set_filename (incname) : "unknown";
+
+          nasl_set_filename (incname ? incname : "unknown");
           lexic->line_nb = st->line_nb;
 
           GSList *called_f_aux;
@@ -505,7 +506,7 @@ nasl_lint_call (lex_ctxt *lexic, tree_cell *st, GHashTable **include_files,
  *        If a variable is read, it checks if it was previously added to the
  *        list.
  */
-tree_cell *
+static tree_cell *
 nasl_lint_defvar (lex_ctxt *lexic, tree_cell *st, GHashTable **include_files,
                   GHashTable **func_fnames_tab, gchar *err_fname,
                   GSList **defined_var, GSList **called_funcs)
@@ -635,7 +636,7 @@ nasl_lint_defvar (lex_ctxt *lexic, tree_cell *st, GHashTable **include_files,
 /**
  * @brief Make a list of all called functions.
  */
-tree_cell *
+static tree_cell *
 make_call_func_list (lex_ctxt *lexic, tree_cell *st, GSList **called_funcs)
 {
   int i;
@@ -666,7 +667,7 @@ make_call_func_list (lex_ctxt *lexic, tree_cell *st, GSList **called_funcs)
 /**
  * @brief Sanity check of the script_xref parameters in the description block
  */
-tree_cell *
+static tree_cell *
 check_description_block_xref (lex_ctxt *lexic, tree_cell *st)
 {
   int i;
@@ -697,7 +698,7 @@ check_description_block_xref (lex_ctxt *lexic, tree_cell *st)
  * @brief Sanity check of the description block
  * @return FAKE_CELL if success, NULL otherwise.
  */
-tree_cell *
+static tree_cell *
 check_description_block (lex_ctxt *lexic, tree_cell *st)
 {
   int i;
@@ -721,7 +722,7 @@ check_description_block (lex_ctxt *lexic, tree_cell *st)
  *
  * @return pointer to the description block tree cell.
  */
-tree_cell *
+static tree_cell *
 find_description_block (lex_ctxt *lexic, tree_cell *st)
 {
   int i;
@@ -749,6 +750,10 @@ find_description_block (lex_ctxt *lexic, tree_cell *st)
       }
   return NULL;
 }
+
+// also used in exec.c maybe put in header
+tree_cell *
+nasl_lint (lex_ctxt *lexic, tree_cell *st);
 
 /**
  * @brief Search for errors in a nasl script

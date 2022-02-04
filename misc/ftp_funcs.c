@@ -18,8 +18,9 @@
  * Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA 02110-1301 USA.
  */
 
-#include "network.h"
 #include "ftp_funcs.h"
+
+#include "network.h"
 
 #include <netinet/in.h>
 #include <stdio.h>

@@ -31,6 +31,7 @@
 #include "../misc/network.h"      /* for getpts */
 #include "../misc/pcap_openvas.h" /* for get_datalink_size */
 #include "../misc/plugutils.h"    /* for scanner_add_port */
+#include "nasl_builtin_plugins.h"
 #include "nasl_lex_ctxt.h"
 
 #include <arpa/inet.h> /* for AF_INET */
@@ -88,7 +89,7 @@ in_cksum (u_short *p, int n)
   return (answer);
 }
 
-unsigned long
+static unsigned long
 maketime ()
 {
   struct timeval tv;
@@ -101,7 +102,7 @@ maketime ()
   return htonl (ret);
 }
 
-struct timeval
+static struct timeval
 timeval (unsigned long val)
 {
   struct timeval ret;
@@ -128,7 +129,7 @@ timeval (unsigned long val)
   return ret;
 }
 
-unsigned long
+static unsigned long
 compute_rtt (unsigned long then)
 {
   unsigned long now = maketime ();
@@ -149,7 +150,7 @@ compute_rtt (unsigned long then)
   return htonl (res);
 }
 
-int
+static int
 packetdead (unsigned long then)
 {
   unsigned long now = maketime ();
@@ -168,7 +169,7 @@ packetdead (unsigned long then)
 /**
  * @brief Opens and returns a raw socket.
  */
-int
+static int
 rawsocket (int family)
 {
   int soc;
@@ -223,7 +224,7 @@ rawsocket (int family)
  * @return A bpf that listens to tcp packets coming from \p dst to port
  *         \p magic.
  */
-int
+static int
 openbpf (struct in_addr dst, struct in_addr *src, int magic)
 {
   char *iface;
@@ -237,7 +238,7 @@ openbpf (struct in_addr dst, struct in_addr *src, int magic)
   return bpf;
 }
 
-int
+static int
 v6_openbpf (struct in6_addr *dst, struct in6_addr *src, int magic)
 {
   char *iface;
@@ -269,7 +270,7 @@ struct list
  * @return First pointer to list in l with the given \p dport , NULL if no
  *         such list item could be found.
  */
-struct list *
+static struct list *
 get_packet (struct list *l, unsigned short dport)
 {
   while (l != NULL)
@@ -286,7 +287,7 @@ get_packet (struct list *l, unsigned short dport)
  * @brief If no packet with \p dport is in list, prepends a "packet" to the
  * @brief list \p l.
  */
-struct list *
+static struct list *
 add_packet (struct list *l, unsigned short dport, unsigned long ack)
 {
   struct list *ret;
@@ -314,7 +315,7 @@ add_packet (struct list *l, unsigned short dport, unsigned long ack)
   return ret;
 }
 
-struct list *
+static struct list *
 rm_packet (struct list *l, unsigned short dport)
 {
   struct list *ret = l;
@@ -334,7 +335,7 @@ rm_packet (struct list *l, unsigned short dport)
   return ret;
 }
 
-struct list *
+static struct list *
 rm_dead_packets (struct list *l, int *retry)
 {
   struct list *ret = l;
@@ -375,7 +376,7 @@ rm_dead_packets (struct list *l, int *retry)
 
 /*-----------------------------------------------------------------------------*/
 
-struct tcphdr *
+static struct tcphdr *
 extracttcp (char *pkt, unsigned int len)
 {
   struct ip *ip;
@@ -389,7 +390,7 @@ extracttcp (char *pkt, unsigned int len)
   return tcp;
 }
 
-struct tcphdr *
+static struct tcphdr *
 v6_extracttcp (char *pkt)
 {
   struct tcphdr *tcp;
@@ -397,7 +398,7 @@ v6_extracttcp (char *pkt)
   return tcp;
 }
 
-unsigned long
+static unsigned long
 extractack (char *pkt, int len, int family)
 {
   unsigned long ret;
@@ -414,7 +415,7 @@ extractack (char *pkt, int len, int family)
   return ret;
 }
 
-unsigned short
+static unsigned short
 extractsport (char *pkt, int len, int family)
 {
   struct tcphdr *tcp;
@@ -430,7 +431,7 @@ extractsport (char *pkt, int len, int family)
   return ntohs (tcp->th_sport);
 }
 
-int
+static int
 issynack (char *pkt, int len, int family)
 {
   struct tcphdr *tcp;
@@ -446,7 +447,7 @@ issynack (char *pkt, int len, int family)
   return tcp->th_flags == (TH_SYN | TH_ACK);
 }
 
-char *
+static char *
 mktcp (struct in_addr src, int sport, struct in_addr dst, int dport,
        unsigned long th_ack, unsigned char flag)
 {
@@ -495,7 +496,7 @@ mktcp (struct in_addr src, int sport, struct in_addr dst, int dport,
   return pkt;
 }
 
-char *
+static char *
 mktcpv6 (int sport, int dport, unsigned long th_ack, unsigned char flag)
 {
   static char pkt[sizeof (struct tcphdr)];
@@ -520,7 +521,7 @@ mktcpv6 (int sport, int dport, unsigned long th_ack, unsigned char flag)
  * @param sniff If != 0, "sniff" (listen to incoming packages), else just
  *              add packet.
  */
-struct list *
+static struct list *
 sendpacket (int soc, int bpf, int skip, struct in_addr dst, struct in_addr src,
             int dport, int magic, struct list *packets, unsigned long *rtt,
             int sniff, struct script_infos *env)
@@ -602,7 +603,7 @@ sendpacket (int soc, int bpf, int skip, struct in_addr dst, struct in_addr src,
   return packets;
 }
 
-struct list *
+static struct list *
 v6_sendpacket (int soc, int bpf, int skip, struct in6_addr *dst, int dport,
                int magic, struct list *packets, unsigned long *rtt, int sniff,
                struct script_infos *env)
@@ -676,7 +677,7 @@ v6_sendpacket (int soc, int bpf, int skip, struct in6_addr *dst, int dport,
 /**
  * @return -1 if the socket could not be opened (error), 0 otherwise.
  */
-int
+static int
 scan (struct script_infos *env, char *portrange, struct in6_addr *dst6,
       unsigned long rtt)
 {

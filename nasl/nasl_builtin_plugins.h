@@ -24,7 +24,8 @@
 
 #ifndef _NASL_BUILTIN_PLUGINS_H
 #define _NASL_BUILTIN_PLUGINS_H
-
+#include "nasl_lex_ctxt.h"
+#include "nasl_tree.h"
 tree_cell *
 plugin_run_find_service (lex_ctxt *);
 

@@ -18,6 +18,7 @@
 
 #include "../misc/network.h"
 #include "../misc/plugutils.h"
+#include "nasl_builtin_plugins.h"
 #include "nasl_lex_ctxt.h"
 
 #include <errno.h> /* for errno() */
@@ -998,17 +999,17 @@ banner_grab (const struct in6_addr *pia, const char *portrange,
     if (rtt_nb[i] > 0)
       {
         char rep[64];
-        double mean, sd = -1.0, emax = -1.0;
+        double crtt_mean, crtt_sd = -1.0, crtt_emax = -1.0;
 
         /* Convert from micro-seconds to seconds */
         rtt_sum[i] /= 1e6;
         rtt_sum2[i] /= 1e12;
 
-        mean = rtt_sum[i] / rtt_nb[i];
-        snprintf (rep, sizeof (rep), "%6g", mean);
+        crtt_mean = rtt_sum[i] / rtt_nb[i];
+        snprintf (rep, sizeof (rep), "%6g", crtt_mean);
         snprintf (kb, sizeof (kb), "TCPScanner/%s/MeanRTT", rtt_type[i]);
         plug_set_key (desc, kb, ARG_STRING, rep);
-        x = floor (mean * 1000 + 0.5);
+        x = floor (crtt_mean * 1000 + 0.5);
         snprintf (kb, sizeof (kb), "TCPScanner/%s/MeanRTT1000", rtt_type[i]);
         plug_set_key (desc, kb, ARG_INT, GSIZE_TO_POINTER (x));
         /* rtt_max is integer (uS) */
@@ -1021,20 +1022,20 @@ banner_grab (const struct in6_addr *pia, const char *portrange,
         plug_set_key (desc, kb, ARG_STRING, rep);
         if (rtt_nb[i] > 1)
           {
-            sd = sqrt ((rtt_sum2[i] / rtt_nb[i] - mean * mean) * rtt_nb[i]
-                       / (rtt_nb[i] - 1));
-            emax = mean + 3 * sd;
-            snprintf (rep, sizeof (rep), "%6g", sd);
+            crtt_sd = sqrt ((rtt_sum2[i] / rtt_nb[i] - crtt_mean * crtt_mean)
+                            * rtt_nb[i] / (rtt_nb[i] - 1));
+            crtt_emax = crtt_mean + 3 * crtt_sd;
+            snprintf (rep, sizeof (rep), "%6g", crtt_sd);
             snprintf (kb, sizeof (kb), "TCPScanner/%s/SDRTT", rtt_type[i]);
             plug_set_key (desc, kb, ARG_STRING, rep);
-            x = floor (sd * 1000 + 0.5);
+            x = floor (crtt_sd * 1000 + 0.5);
             snprintf (kb, sizeof (kb), "TCPScanner/%s/SDRTT1000", rtt_type[i]);
             plug_set_key (desc, kb, ARG_INT, GSIZE_TO_POINTER (x));
-            snprintf (rep, sizeof (rep), "%6g", emax);
+            snprintf (rep, sizeof (rep), "%6g", crtt_emax);
             snprintf (kb, sizeof (kb), "TCPScanner/%s/EstimatedMaxRTT",
                       rtt_type[i]);
             plug_set_key (desc, kb, ARG_STRING, rep);
-            x = floor (emax * 1000 + 0.5);
+            x = floor (crtt_emax * 1000 + 0.5);
             snprintf (kb, sizeof (kb), "TCPScanner/%s/EstimatedMaxRTT1000",
                       rtt_type[i]);
             plug_set_key (desc, kb, ARG_INT, GSIZE_TO_POINTER (x));

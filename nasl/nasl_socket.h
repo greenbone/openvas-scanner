@@ -27,6 +27,9 @@
 #ifndef NASL_SOCKET_H
 #define NASL_SOCKET_H
 
+#include "nasl_lex_ctxt.h"
+#include "nasl_tree.h"
+
 tree_cell *
 nasl_open_sock_tcp (lex_ctxt *);
 tree_cell *

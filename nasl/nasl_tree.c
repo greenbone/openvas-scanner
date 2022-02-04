@@ -30,7 +30,7 @@
 #include <stdlib.h> /* for abort */
 #include <string.h> /* for memcpy */
 
-tree_cell *
+static tree_cell *
 alloc_tree_cell ()
 {
   return g_malloc0 (sizeof (tree_cell));
@@ -376,7 +376,7 @@ nasl_type_name (int t)
 void
 nasl_dump_tree (const tree_cell *c)
 {
-  printf ("^^^^ %p ^^^^^\n", c);
+  printf ("^^^^ %p ^^^^^\n", (void *) c);
   if (c == NULL)
     puts ("NULL CELL");
   else if (c == FAKE_CELL)

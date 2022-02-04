@@ -34,7 +34,7 @@
  Convert a wchar to upper case.
 ********************************************************************/
 
-smb_ucs2_t
+static smb_ucs2_t
 toupper_w (smb_ucs2_t val)
 {
   return UCS2_CHAR (islower (val) ? toupper (val) : val);
@@ -44,6 +44,9 @@ toupper_w (smb_ucs2_t val)
  Convert a string to upper case.
  return True if any char is converted
 ********************************************************************/
+#pragma GCC diagnostic push
+#pragma GCC diagnostic warning "-Wmissing-prototypes"
+// cannot include header due to SMBOWFencrypt_ntv2_ntlmssp
 int
 strupper_w (smb_ucs2_t *s)
 {
@@ -60,8 +63,12 @@ strupper_w (smb_ucs2_t *s)
     }
   return ret;
 }
+#pragma GCC diagnostic pop
 
 /* Does the md5 encryption from the NT hash for NTLMv2. */
+#pragma GCC diagnostic push
+#pragma GCC diagnostic warning "-Wmissing-prototypes"
+// The header definition is defined as [16] not char * set as warning for now
 void
 SMBOWFencrypt_ntv2_ntlmssp (const uchar *kr, const uchar *srv_chal_data,
                             int srv_chal_len, const uchar *cli_chal_data,
@@ -74,7 +81,7 @@ SMBOWFencrypt_ntv2_ntlmssp (const uchar *kr, const uchar *srv_chal_data,
   hmac_md5_update (cli_chal_data, cli_chal_len, &ctx);
   hmac_md5_final (resp_buf, &ctx);
 }
-
+#pragma GCC diagnostic pop
 /* Example:
 
 -smb_session_setup_NTLMv1()

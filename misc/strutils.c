@@ -16,8 +16,9 @@
  * Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA 02110-1301 USA.
  */
 
-#include <glib.h>
 #include "strutils.h"
+
+#include <glib.h>
 
 /**
  * @brief Matches a string against a pattern.

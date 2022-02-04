@@ -27,6 +27,7 @@
 /*MODIFICATION: minor changes for OpenVAS*/
 
 #include "byteorder.h"
+#include "proto.h"
 #include "smb.h"
 
 #include <limits.h>
@@ -60,7 +61,7 @@
  *  Put a 8 byte filetime from a struct timespec. Uses GMT.
  *  ****************************************************************************/
 
-void
+static void
 unix_timespec_to_nt_time_ntlmssp (NTTIME *nt, struct timespec ts)
 {
   uint64_t d;
@@ -109,7 +110,7 @@ GetTimeOfDay_ntlmssp (struct timeval *tval)
  pointed to by p.
 ****************************************************************************/
 
-void
+static void
 put_long_date_timespec_ntlmssp (char *p, struct timespec ts)
 {
   NTTIME nt;

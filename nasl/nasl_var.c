@@ -215,7 +215,7 @@ get_variable_by_name (lex_ctxt *ctxt, const char *name)
    if (v->av_name != NULL)
      return v->av_name;
 #endif
-   snprintf (str, sizeof (str), "[%p]", v);
+   snprintf (str, sizeof (str), "[%p]", (void *) v);
    return str;
  }
 
@@ -414,7 +414,7 @@ get_variable_by_name (lex_ctxt *ctxt, const char *name)
    g_free (v);
  }
 
- void
+ static void
  clear_anon_var (anon_nasl_var *v)
  {
    if (v == NULL)
@@ -1089,7 +1089,8 @@ get_variable_by_name (lex_ctxt *ctxt, const char *name)
      case VAR2_STRING:
      case VAR2_DATA:
        v->string_form = g_malloc0 (v->v.v_str.s_siz + 1);
-       memcpy (v->string_form, (char *) v->v.v_str.s_val ?: "",
+       memcpy (v->string_form,
+               (char *) v->v.v_str.s_val ? (char *) v->v.v_str.s_val : "",
                v->v.v_str.s_siz + 1);
        break;
      case VAR2_UNDEF:

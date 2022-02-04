@@ -27,6 +27,7 @@
 #include "iconv.h"
 
 #include "charset.h"
+#include "proto.h"
 #include "smb.h"
 
 #include <glib.h>

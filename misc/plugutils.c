@@ -423,8 +423,9 @@ proto_post_wrapped (const char *oid, struct script_infos *desc, int port,
     hostname = ((gvm_vhost_t *) desc->vhosts->data)->value;
   addr6_to_str (plug_get_host_ip (desc), ip_str);
   buffer = g_strdup_printf ("%s|||%s|||%s|||%s/%s|||%s|||%s|||%s",
-                            msg_type_to_str (msg_type), ip_str, hostname ? hostname : " ",
-                            port_s, proto, oid, action_str->str, uri ? uri : "");
+                            msg_type_to_str (msg_type), ip_str,
+                            hostname ? hostname : " ", port_s, proto, oid,
+                            action_str->str, uri ? uri : "");
   /* Convert to UTF-8 before sending to Manager. */
   data = g_convert (buffer, -1, "UTF-8", "ISO_8859-1", NULL, &length, &err);
   if (!data)
@@ -836,7 +837,6 @@ plug_get_results_kb (struct script_infos *args)
   return args->results;
 }
 
-
 static void
 plug_get_key_sigchld ()
 {
@@ -863,7 +863,7 @@ plug_fork_child (kb_t kb)
 
   if ((pid = fork ()) == 0)
     {
-	  sig_n (SIGTERM, _exit);
+      sig_n (SIGTERM, _exit);
       mqtt_reset ();
       kb_lnk_reset (kb);
       nvticache_reset ();

@@ -555,6 +555,9 @@ static GSList * inc_dirs = NULL;
  *         -2 if the given directory path was not a directory.
  */
 int
+add_nasl_inc_dir (const char * dir);
+
+int
 add_nasl_inc_dir (const char * dir)
 {
   if (dir == NULL)
@@ -828,6 +831,9 @@ nasl_clean_ctx(naslctxt* c)
   deref_cell(c->tree);
   g_free (c->buffer);
 }
+
+void
+nasl_clean_inc (void);
 
 void
 nasl_clean_inc (void)

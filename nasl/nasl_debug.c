@@ -16,6 +16,8 @@
  * Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA 02110-1301 USA.
  */
 
+#include "nasl_debug.h"
+
 #include "../misc/plugutils.h"
 #include "exec.h"
 #include "nasl_func.h"
@@ -73,7 +75,7 @@ nasl_get_filename (const char *function)
 
   if (functions_filenames && function)
     ret = g_hash_table_lookup (functions_filenames, function);
-  return ret ?: debug_filename;
+  return ret ? ret : debug_filename;
 }
 
 /* For debug purposes, the non internal function name is saved to

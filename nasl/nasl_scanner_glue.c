@@ -35,6 +35,7 @@
 #include "nasl_func.h"
 #include "nasl_global_ctxt.h"
 #include "nasl_lex_ctxt.h"
+#include "nasl_scanner_glue.h"
 #include "nasl_tree.h"
 #include "nasl_var.h"
 
@@ -152,11 +153,15 @@ script_bugtraq_id (lex_ctxt *lexic)
   return FAKE_CELL;
 }
 
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wmissing-prototypes"
+// The unspecific () is on purpose, therefore ignoring missing_prototype
 tree_cell *
 script_bugtraq_id_dummy ()
 {
   return FAKE_CELL;
 }
+#pragma GCC diagnostic pop
 
 /**
  * @brief Add a cross reference to the meta data.
@@ -866,7 +871,7 @@ replace_kb_item (lex_ctxt *lexic)
  *
  * @return FAKE_CELL
  */
-tree_cell *
+static tree_cell *
 set_kb_item_volatile (lex_ctxt *lexic)
 {
   struct script_infos *script_infos = lexic->script_infos;

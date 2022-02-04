@@ -22,6 +22,8 @@
  * @brief Implementation of an API for SNMP used by NASL scripts.
  */
 
+#include "nasl_snmp.h"
+
 #include "../misc/plugutils.h"
 #include "nasl_lex_ctxt.h"
 
@@ -524,7 +526,7 @@ snmpv3_get (const char *peername, const char *username, const char *authpass,
 
 #endif /* HAVE_NETSNMP */
 
-tree_cell *
+static tree_cell *
 nasl_snmpv1v2c_get (lex_ctxt *lexic, int version)
 {
   const char *proto, *community, *oid_str;

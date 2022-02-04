@@ -58,7 +58,9 @@
  * Checksum routine for Internet Protocol family headers (C Version)
  * From ping examples in W.Richard Stevens "UNIX NETWORK PROGRAMMING" book.
  */
-static int np_in_cksum (p, n) u_short *p;
+static int
+np_in_cksum (p, n)
+u_short *p;
 int n;
 {
   register u_short answer;
@@ -2025,8 +2027,8 @@ forge_igmp_packet (lex_ctxt *lexic)
       igmp->cksum = np_in_cksum ((u_short *) igmp, sizeof (struct igmp));
       if (data != NULL)
         {
-          char *p = (char *) (pkt + ip->ip_hl * 4 + sizeof (struct igmp));
-          bcopy (p, data, len);
+          char *ptmp = (char *) (pkt + ip->ip_hl * 4 + sizeof (struct igmp));
+          bcopy (ptmp, data, len);
         }
       retc = alloc_typed_cell (CONST_DATA);
       retc->x.str_val = (char *) pkt;

@@ -28,6 +28,8 @@
  */
 
 /*--------------------------------------------------------------------------*/
+#include "nasl_socket.h"
+
 #include "../misc/network.h"
 #include "../misc/plugutils.h" /* for plug_get_host_ip */
 #include "../misc/support.h"   /* for the g_memdup2 workaround */
@@ -802,10 +804,10 @@ nasl_recv (lex_ctxt *lexic)
 
           if (select (soc + 1, &rd, NULL, NULL, &tv) > 0)
             {
-              int e;
-              e = recv (soc, data + new_len, len - new_len, 0);
+              int alen;
+              alen = recv (soc, data + new_len, len - new_len, 0);
 
-              if (e <= 0)
+              if (alen <= 0)
                 {
                   if (!new_len)
                     {
@@ -814,19 +816,19 @@ nasl_recv (lex_ctxt *lexic)
                     }
                 }
               else
-                new_len += e;
+                new_len += alen;
 
               break; /* UDP data is never fragmented */
             }
           else
             {
               /* The packet may have been lost en route - we resend it */
-              char *data;
-              int len;
+              char *udata;
+              int dlen;
 
-              data = get_udp_data (lexic->script_infos, soc, &len);
-              if (data != NULL)
-                send (soc, data, len, 0);
+              udata = get_udp_data (lexic->script_infos, soc, &dlen);
+              if (udata != NULL)
+                send (soc, udata, dlen, 0);
               tv.tv_sec = to / retries;
               tv.tv_usec = (to % retries) * 100000;
             }
