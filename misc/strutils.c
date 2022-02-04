@@ -17,6 +17,7 @@
  */
 
 #include <glib.h>
+#include "strutils.h"
 
 /**
  * @brief Matches a string against a pattern.

@@ -19,6 +19,7 @@
  */
 
 #include "network.h"
+#include "ftp_funcs.h"
 
 #include <netinet/in.h>
 #include <stdio.h>
