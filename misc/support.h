@@ -32,4 +32,13 @@
 #endif // __APPLE__ || __FreeBSD__
 #endif // !s6_addr32
 
+// Add backward compatibility for systems with older glib version
+// which still support g_memdup
+// TODO: Remove once our reference system supports g_memdup2
+
+#include <glib.h>
+#if GLIB_MAJOR_VERSION >= 2 && GLIB_MINOR_VERSION < 68
+#define g_memdup2 g_memdup
+#endif
+
 #endif /* not _OPENVAS_MISC_SUPPORT_H */
