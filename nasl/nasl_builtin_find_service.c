@@ -928,7 +928,7 @@ mark_nagiosd_server (struct script_infos *desc, int port, int trp)
 }
 
 /*
- * Sig from  Michael L?ffler <nimrod@n1mrod.de>
+ * Sig from  Michael Löffler <nimrod@n1mrod.de>
  *
  * 00: 5b 54 53 5d 0a 65 72 72 6f 72 0a                   [TS].error.
  *

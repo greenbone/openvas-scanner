@@ -26,6 +26,8 @@
 #ifndef _OPENVAS_UTILS_H
 #define _OPENVAS_UTILS_H
 
+#include "../misc/scanneraux.h"
+
 #include <sys/types.h> /* for pid_t */
 
 int
@@ -46,7 +48,8 @@ int
 is_scanner_only_pref (const char *);
 
 int
-store_file (struct scan_globals *, const char *, const char *);
+store_file (struct scan_globals *globals, const char *file,
+            const char *file_hash);
 
 int
 check_host_still_alive (kb_t, const char *);

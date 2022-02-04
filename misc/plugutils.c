@@ -108,7 +108,7 @@ unscanned_ports_as_closed (port_protocol_t ptype)
 /**
  * @param proto Protocol (udp/tcp). If NULL, "tcp" will be used.
  */
-static int
+int
 kb_get_port_state_proto (kb_t kb, int portnum, char *proto)
 {
   char port_s[255], *kbstr;

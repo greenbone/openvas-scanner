@@ -23,6 +23,8 @@
  * @brief A bunch of miscellaneous functions, mostly file conversions.
  */
 
+#include "utils.h"
+
 #include "../misc/scanneraux.h" /* for struct scan_globals */
 
 #include <errno.h>          /* for errno() */

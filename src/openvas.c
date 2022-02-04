@@ -33,6 +33,8 @@
  * OpenVAS main module, runs the scanner.
  */
 
+#include "openvas.h"
+
 #include "../misc/plugutils.h"     /* nvticache_free */
 #include "../misc/vendorversion.h" /* for vendor_version_set */
 #include "attack.h"                /* for attack_network */
@@ -249,7 +251,7 @@ overwrite_openvas_prefs_with_prefs_from_client (struct scan_globals *globals)
                        "by the client and will be ignored.",
                        pref_name[0]);
           else
-            prefs_set (pref[0], pref[1] ?: "");
+            prefs_set (pref[0], pref[1] ? pref[1] : "");
           g_strfreev (pref_name);
         }
 
@@ -387,7 +389,7 @@ stop_single_task_scan (void)
  *
  * @param msg Message to send to the client.
  */
-void
+static void
 send_message_to_client_and_finish_scan (const char *msg)
 {
   char key[1024];
@@ -407,7 +409,7 @@ send_message_to_client_and_finish_scan (const char *msg)
  * @param globals scan_globals needed for client preference handling.
  * @param config_file Used for config preference handling.
  */
-void
+static void
 attack_network_init (struct scan_globals *globals, const gchar *config_file)
 {
   const char *mqtt_server_uri;
@@ -548,8 +550,10 @@ openvas (int argc, char *argv[])
     return -1;
 
   err = init_sentry ();
-  err ? /* Sentry is optional */
-      : g_message ("Sentry is enabled. This can log sensitive information.");
+  if (!err)
+    {
+      g_message ("Sentry is enabled. This can log sensitive information.");
+    }
 
   /* Config file location */
   if (!config_file)
