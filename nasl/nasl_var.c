@@ -1087,8 +1087,14 @@ get_variable_by_name (lex_ctxt *ctxt, const char *name)
        break;
      case VAR2_STRING:
      case VAR2_DATA:
+<<<<<<< HEAD
        v->string_form =
          g_memdup ((char *) v->v.v_str.s_val ?: "", v->v.v_str.s_siz + 1);
+=======
+       v->string_form = g_malloc0 (v->v.v_str.s_siz + 1);
+       memcpy (v->string_form, (char *) v->v.v_str.s_val ?: "",
+               v->v.v_str.s_siz + 1);
+>>>>>>> ca12c694 (Fix possible g_memdup() silent memory truncation. (#1024))
        break;
      case VAR2_UNDEF:
        break;

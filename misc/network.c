@@ -905,7 +905,11 @@ socket_get_cert (int fd, void **cert, int *certlen)
   if (cert_list_len == 0)
     return;
   *certlen = cert_list[0].size;
+<<<<<<< HEAD
   *cert = g_memdup (cert_list[0].data, *certlen);
+=======
+  *cert = g_memdup2 (cert_list[0].data, *certlen);
+>>>>>>> ca12c694 (Fix possible g_memdup() silent memory truncation. (#1024))
 }
 
 /*

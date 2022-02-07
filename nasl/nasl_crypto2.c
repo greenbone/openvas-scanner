@@ -1639,7 +1639,12 @@ encrypt_stream_data (lex_ctxt *lexic, int cipher, const char *caller_func)
   if (cipher == GCRY_CIPHER_ARCFOUR)
     {
       resultlen = datalen;
+<<<<<<< HEAD
       tmp = g_memdup (data, datalen);
+=======
+      tmp = g_malloc0 (datalen);
+      memcpy (tmp, data, datalen);
+>>>>>>> ca12c694 (Fix possible g_memdup() silent memory truncation. (#1024))
       tmplen = datalen;
     }
   else
@@ -1732,7 +1737,12 @@ encrypt_data (lex_ctxt *lexic, int cipher, int mode)
   if (cipher == GCRY_CIPHER_ARCFOUR)
     {
       resultlen = datalen;
+<<<<<<< HEAD
       tmp = g_memdup (data, datalen);
+=======
+      tmp = g_malloc0 (datalen);
+      memcpy (tmp, data, datalen);
+>>>>>>> ca12c694 (Fix possible g_memdup() silent memory truncation. (#1024))
       tmplen = datalen;
     }
   else if (cipher == GCRY_CIPHER_3DES)
