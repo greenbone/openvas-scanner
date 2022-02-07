@@ -121,13 +121,11 @@ ipv6_prefix_to_mask (unsigned prefix, struct in6_addr *mask)
 int
 v6_is_local_ip (struct in6_addr *addr)
 {
-  int ifaces;
+  int i, j, ifaces, numroutes = 0;
   struct interface_info *ifs;
-  int i;
   static struct myroute myroutes[MAXROUTES];
-  int numroutes = 0;
-  struct in6_addr network;
-  struct in6_addr mask;
+  struct in6_addr network, mask;
+  bpf_u_int32 v4mappednet, v4mappedmask;
 
   if ((ifs = v6_getinterfaces (&ifaces)) == NULL)
     return -1;
@@ -136,10 +134,10 @@ v6_is_local_ip (struct in6_addr *addr)
     {
       for (i = 0; i < ifaces; i++)
         {
-          bpf_u_int32 net, v4mappedmask;
           char errbuf[PCAP_ERRBUF_SIZE];
-          pcap_lookupnet (ifs[i].name, &net, &v4mappedmask, errbuf);
-          if ((net & v4mappedmask) == (addr->s6_addr32[3] & v4mappedmask))
+          pcap_lookupnet (ifs[i].name, &v4mappednet, &v4mappedmask, errbuf);
+          if ((v4mappednet & v4mappedmask)
+              == (addr->s6_addr32[3] & v4mappedmask))
             return 1;
         }
     }
@@ -158,7 +156,7 @@ v6_is_local_ip (struct in6_addr *addr)
 
               if (ipv6_prefix_to_mask (myroutes[i].mask, &mask) == -1)
                 return -1;
-              for (int j = 0; j < (int) sizeof (struct in6_addr); j++)
+              for (j = 0; j < (int) sizeof (struct in6_addr); j++)
                 network.s6_addr[j] = addr->s6_addr[j] & mask.s6_addr[j];
 
               g_debug ("comparing addresses %s and %s",
