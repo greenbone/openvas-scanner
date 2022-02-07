@@ -764,7 +764,8 @@ nasl_socket_get_ssl_ciphersuite (lex_ctxt *lexic)
 tree_cell *
 nasl_recv (lex_ctxt *lexic)
 {
-  char *data;
+  char *data, *resend_data;
+  int rd_len;
   int len = get_int_var_by_name (lexic, "length", -1);
   int min_len = get_int_var_by_name (lexic, "min", -1);
   int soc = get_int_var_by_name (lexic, "socket", 0);
@@ -823,12 +824,10 @@ nasl_recv (lex_ctxt *lexic)
           else
             {
               /* The packet may have been lost en route - we resend it */
-              char *udata;
-              int dlen;
 
-              udata = get_udp_data (lexic->script_infos, soc, &dlen);
-              if (udata != NULL)
-                send (soc, udata, dlen, 0);
+              resend_data = get_udp_data (lexic->script_infos, soc, &rd_len);
+              if (resend_data != NULL)
+                send (soc, resend_data, rd_len, 0);
               tv.tv_sec = to / retries;
               tv.tv_usec = (to % retries) * 100000;
             }
