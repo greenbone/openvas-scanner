@@ -22,6 +22,7 @@
 #include "exec.h"
 
 #include "../misc/plugutils.h"
+#include "lint.h"
 #include "nasl.h"
 #include "nasl_debug.h"
 #include "nasl_func.h"
@@ -1602,9 +1603,6 @@ nasl_exec (lex_ctxt *lexic, tree_cell *st)
       return NULL;
     }
 }
-
-extern tree_cell *
-nasl_lint (lex_ctxt *, tree_cell *);
 
 /**
  * @brief Execute a NASL script.

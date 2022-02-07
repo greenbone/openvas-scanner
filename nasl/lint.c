@@ -16,6 +16,8 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA 02110-1301 USA.
  */
+#include "lint.h"
+
 #include "exec.h"
 #include "nasl.h"
 #include "nasl_debug.h"
@@ -750,10 +752,6 @@ find_description_block (lex_ctxt *lexic, tree_cell *st)
       }
   return NULL;
 }
-
-// also used in exec.c maybe put in header
-tree_cell *
-nasl_lint (lex_ctxt *lexic, tree_cell *st);
 
 /**
  * @brief Search for errors in a nasl script
