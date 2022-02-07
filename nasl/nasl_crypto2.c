@@ -1639,10 +1639,8 @@ encrypt_stream_data (lex_ctxt *lexic, int cipher, const char *caller_func)
   if (cipher == GCRY_CIPHER_ARCFOUR)
     {
       resultlen = datalen;
-#pragma GCC diagnostic push
-#pragma GCC diagnostic warning "-Wdeprecated-declarations"
-      tmp = g_memdup (data, datalen);
-#pragma GCC diagnostic pop
+      tmp = g_malloc0 (datalen);
+      memcpy (tmp, data, datalen);
       tmplen = datalen;
     }
   else
@@ -1735,10 +1733,8 @@ encrypt_data (lex_ctxt *lexic, int cipher, int mode)
   if (cipher == GCRY_CIPHER_ARCFOUR)
     {
       resultlen = datalen;
-#pragma GCC diagnostic push
-#pragma GCC diagnostic warning "-Wdeprecated-declarations"
-      tmp = g_memdup (data, datalen);
-#pragma GCC diagnostic pop
+      tmp = g_malloc0 (datalen);
+      memcpy (tmp, data, datalen);
       tmplen = datalen;
     }
   else if (cipher == GCRY_CIPHER_3DES)
