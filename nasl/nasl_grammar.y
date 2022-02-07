@@ -1,4 +1,4 @@
-%pure-parser
+%define api.pure
 %parse-param {naslctxt * parm}
 %lex-param {naslctxt * parm}
 %expect 1
