@@ -1151,7 +1151,7 @@ attack_network (struct scan_globals *globals)
   gvm_hosts_t *hosts;
   const gchar *port_range;
   int allow_simultaneous_ips;
-  kb_t lhost_kb, main_kb;
+  kb_t arg_host_kb, main_kb;
   GSList *unresolved;
   char buf[96];
 
@@ -1326,7 +1326,7 @@ attack_network (struct scan_globals *globals)
 
       do
         {
-          rc = kb_new (&lhost_kb, prefs_get ("db_address"));
+          rc = kb_new (&arg_host_kb, prefs_get ("db_address"));
           if (rc < 0 && rc != -2)
             {
               report_kb_failure (rc);
@@ -1343,16 +1343,16 @@ attack_network (struct scan_globals *globals)
 
       host_str = gvm_host_value_str (host);
       connect_main_kb (&main_kb);
-      if (hosts_new (host_str, lhost_kb, main_kb) < 0)
+      if (hosts_new (host_str, arg_host_kb, main_kb) < 0)
         {
-          kb_delete (lhost_kb);
+          kb_delete (arg_host_kb);
           g_free (host_str);
           goto scan_stop;
         }
 
       if (scan_is_stopped ())
         {
-          kb_delete (lhost_kb);
+          kb_delete (arg_host_kb);
           g_free (host_str);
           continue;
         }
@@ -1360,7 +1360,7 @@ attack_network (struct scan_globals *globals)
       args.host = host;
       args.globals = globals;
       args.sched = sched;
-      args.host_kb = lhost_kb;
+      args.host_kb = arg_host_kb;
       args.main_kb = main_kb;
 
     forkagain:
