@@ -402,7 +402,7 @@ ovas_get_tlssession_from_connection (int fd)
  */
 static int
 set_gnutls_protocol (gnutls_session_t session, openvas_encaps_t encaps,
-                     const char *priority)
+                     const char *priority, unsigned int flags)
 {
   const char *priorities;
   const char *errloc;
@@ -444,6 +444,11 @@ set_gnutls_protocol (gnutls_session_t session, openvas_encaps_t encaps,
                  errloc, gnutls_strerror (err));
       return -1;
     }
+
+  /* Set extra priorities from flags.
+     Only for encaps == OPENVAS_ENCAPS_TLScustom. */
+  if (encaps == OPENVAS_ENCAPS_TLScustom && flags & INSECURE_DH_PRIME_BITS)
+    gnutls_dh_set_prime_bits (session, 128);
 
   return 0;
 }
@@ -560,10 +565,28 @@ is_ip_address (const char *str)
   return inet_pton (AF_INET6, str, &(sa6.sin6_addr)) == 1;
 }
 
+/**
+ * @brief Open an TLS/SSL connection.
+ *
+ * @param fp File structure for a the openvas connection
+ * @param cert The certificate.
+ * @param key The key
+ * @param passwd The password
+ * @param cafile The CA file
+ * @param hostname Targets hostname
+ * @param flags Extra options which can not be set via the priority string
+ *              Supported flags are:
+ *              - NO_PRIORITY_FLAGS
+ *              - INSECURE_DH_PRIME_BITS
+ *
+ * @return 1 on success. -1 on general error or timeout. -2 if DH prime bits on
+ * server side are lower than minimum allowed.
+ *
+ */
 static int
 open_SSL_connection (openvas_connection *fp, const char *cert, const char *key,
                      const char *passwd, const char *cafile,
-                     const char *hostname)
+                     const char *hostname, unsigned int flags)
 {
   int ret, err, d;
   time_t tictac;
@@ -584,7 +607,8 @@ open_SSL_connection (openvas_connection *fp, const char *cert, const char *key,
    * OPENVAS_ENCAPS_SSLv2, so it should never end up calling
    * open_SSL_connection with OPENVAS_ENCAPS_SSLv2.
    */
-  if (set_gnutls_protocol (fp->tls_session, fp->transport, fp->priority) < 0)
+  if (set_gnutls_protocol (fp->tls_session, fp->transport, fp->priority, flags)
+      < 0)
     return -1;
 
   if (hostname && !is_ip_address (hostname))
@@ -636,8 +660,17 @@ open_SSL_connection (openvas_connection *fp, const char *cert, const char *key,
       if (err == 0)
         return 1;
 
-      if (err != GNUTLS_E_INTERRUPTED && err != GNUTLS_E_AGAIN
-          && err != GNUTLS_E_WARNING_ALERT_RECEIVED)
+      /* Set min number of bits for Deffie-Hellman prime
+         to force a connection to a legacy server. */
+      if (err == GNUTLS_E_DH_PRIME_UNACCEPTABLE
+          && fp->transport == OPENVAS_ENCAPS_TLScustom)
+        {
+          g_message ("[%d] gnutls_handshake: %s", getpid (),
+                     gnutls_strerror (err));
+          return -2;
+        }
+      else if (err != GNUTLS_E_INTERRUPTED && err != GNUTLS_E_AGAIN
+               && err != GNUTLS_E_WARNING_ALERT_RECEIVED)
         {
           g_debug ("[%d] gnutls_handshake: %s", getpid (),
                    gnutls_strerror (err));
@@ -811,7 +844,9 @@ socket_negotiate_ssl (int fd, openvas_encaps_t transport,
 
   fp->transport = transport;
   fp->priority = NULL;
-  if (open_SSL_connection (fp, cert, key, passwd, cafile, hostname) <= 0)
+  if (open_SSL_connection (fp, cert, key, passwd, cafile, hostname,
+                           NO_PRIORITY_FLAGS)
+      <= 0)
     {
       g_free (cert);
       g_free (key);
@@ -1000,14 +1035,16 @@ socket_get_ssl_ciphersuite (int fd)
 }
 
 /* Extended version of open_stream_connection to allow passing a
-   priority string.
+   priority string and a bit flag variable for setting extra options
+   which can't be set via the priority string.
 
    ABI_BREAK_NOTE: Merge this with open_stream_connection.  */
 int
 open_stream_connection_ext (struct script_infos *args, unsigned int port,
-                            int transport, int timeout, const char *priority)
+                            int transport, int timeout, const char *priority,
+                            int flags)
 {
-  int fd;
+  int fd, ret;
   openvas_connection *fp;
   char *cert = NULL;
   char *key = NULL;
@@ -1030,6 +1067,7 @@ open_stream_connection_ext (struct script_infos *args, unsigned int port,
   if (timeout == -2)
     timeout = TIMEOUT;
 
+  ret = -1;
   switch (transport)
     {
     case OPENVAS_ENCAPS_IP:
@@ -1051,13 +1089,13 @@ open_stream_connection_ext (struct script_infos *args, unsigned int port,
       errno = EINVAL;
 
       g_free (hostname_aux);
-      return -1;
+      return ret;
     }
 
   if ((fd = get_connection_fd ()) < 0)
     {
       g_free (hostname_aux);
-      return -1;
+      return ret;
     }
   fp = OVAS_CONNECTION_FROM_FD (fd);
 
@@ -1078,7 +1116,6 @@ open_stream_connection_ext (struct script_infos *args, unsigned int port,
   kb_t kb = plug_get_kb (args);
   switch (transport)
     {
-      int ret;
       char buf[1024];
 
     case OPENVAS_ENCAPS_IP:
@@ -1104,7 +1141,8 @@ open_stream_connection_ext (struct script_infos *args, unsigned int port,
       if (kb_item_get_int (kb, buf) <= 0)
         hostname = hostname_aux;
 
-      ret = open_SSL_connection (fp, cert, key, passwd, cafile, hostname);
+      ret =
+        open_SSL_connection (fp, cert, key, passwd, cafile, hostname, flags);
       g_free (cert);
       g_free (key);
       g_free (passwd);
@@ -1120,7 +1158,7 @@ open_stream_connection_ext (struct script_infos *args, unsigned int port,
 
 failed:
   release_connection_fd (fd, 0);
-  return -1;
+  return ret;
 }
 
 int
@@ -1128,7 +1166,8 @@ open_stream_connection (struct script_infos *args, unsigned int port,
                         int transport, int timeout)
 {
   return open_stream_connection_ext (args, port, transport, timeout,
-                                     "NORMAL:+ARCFOUR-128:%COMPAT");
+                                     "NORMAL:+ARCFOUR-128:%COMPAT",
+                                     NO_PRIORITY_FLAGS);
 }
 
 /* Same as open_stream_auto_encaps but allows to force auto detection
