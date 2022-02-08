@@ -1606,7 +1606,16 @@ plugin_do_run (struct script_infos *desc, GSList *h, int test_ssl)
                 trp = OPENVAS_ENCAPS_IP;
               gettimeofday (&tv1, NULL);
               cnx = open_stream_connection (desc, port, trp, cnx_timeout);
-              if (cnx < 0 && test_ssl)
+              if (cnx == -2 && test_ssl)
+                {
+                  unsigned int flags = INSECURE_DH_PRIME_BITS;
+
+                  gettimeofday (&tv1, NULL);
+                  cnx = open_stream_connection_ext (
+                    desc, port, trp, cnx_timeout, "NORMAL:+ARCFOUR-128:%COMPAT",
+                    flags);
+                }
+              else if (cnx < 0 && test_ssl)
                 {
                   trp = OPENVAS_ENCAPS_IP;
                   gettimeofday (&tv1, NULL);
