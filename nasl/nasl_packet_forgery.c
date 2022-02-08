@@ -1897,15 +1897,10 @@ get_icmp_element (lex_ctxt *lexic)
           retc->size =
             get_var_size_by_name (lexic, "icmp") - (ip->ip_hl * 4) - 8;
           if (retc->size > 0)
-<<<<<<< HEAD
-            retc->x.str_val =
-              g_memdup (&(p[ip->ip_hl * 4 + 8]), retc->size + 1);
-=======
             {
               retc->x.str_val = g_malloc0 (retc->size + 1);
               memcpy (retc->x.str_val, &(p[ip->ip_hl * 4 + 8]), retc->size + 1);
             }
->>>>>>> ca12c694 (Fix possible g_memdup() silent memory truncation. (#1024))
           else
             {
               retc->x.str_val = NULL;

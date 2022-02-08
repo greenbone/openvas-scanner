@@ -837,11 +837,7 @@ plug_get_key (struct script_infos *args, char *name, int *type, size_t *len,
         {
           if (type != NULL)
             *type = KB_TYPE_INT;
-<<<<<<< HEAD
-          ret = g_memdup (&res->v_int, sizeof (res->v_int));
-=======
           ret = g_memdup2 (&res->v_int, sizeof (res->v_int));
->>>>>>> ca12c694 (Fix possible g_memdup() silent memory truncation. (#1024))
         }
       else
         {
@@ -849,13 +845,9 @@ plug_get_key (struct script_infos *args, char *name, int *type, size_t *len,
             *type = KB_TYPE_STR;
           if (len)
             *len = res->len;
-<<<<<<< HEAD
-          ret = g_memdup (res->v_str, res->len + 1);
-=======
 
           ret = g_malloc0 (res->len + 1);
           memcpy (ret, res->v_str, res->len + 1);
->>>>>>> ca12c694 (Fix possible g_memdup() silent memory truncation. (#1024))
         }
       kb_item_free (res);
       return ret;
@@ -877,11 +869,7 @@ plug_get_key (struct script_infos *args, char *name, int *type, size_t *len,
             {
               if (type != NULL)
                 *type = KB_TYPE_INT;
-<<<<<<< HEAD
-              ret = g_memdup (&res->v_int, sizeof (res->v_int));
-=======
               ret = g_memdup2 (&res->v_int, sizeof (res->v_int));
->>>>>>> ca12c694 (Fix possible g_memdup() silent memory truncation. (#1024))
             }
           else
             {
@@ -889,13 +877,9 @@ plug_get_key (struct script_infos *args, char *name, int *type, size_t *len,
                 *type = KB_TYPE_STR;
               if (len)
                 *len = res->len;
-<<<<<<< HEAD
-              ret = g_memdup (res->v_str, res->len + 1);
-=======
 
               ret = g_malloc0 (res->len + 1);
               memcpy (ret, res->v_str, res->len + 1);
->>>>>>> ca12c694 (Fix possible g_memdup() silent memory truncation. (#1024))
             }
           kb_item_free (res_list);
           return ret;

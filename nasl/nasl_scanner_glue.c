@@ -906,12 +906,8 @@ security_something (lex_ctxt *lexic, proto_post_something_t proto_post_func,
       int len = get_var_size_by_name (lexic, "data");
       int i;
 
-<<<<<<< HEAD
-      dup = g_memdup (data, len + 1);
-=======
       dup = g_memdup2 (data, len + 1);
 
->>>>>>> ca12c694 (Fix possible g_memdup() silent memory truncation. (#1024))
       for (i = 0; i < len; i++)
         if (dup[i] == 0)
           dup[i] = ' ';

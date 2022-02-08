@@ -194,12 +194,8 @@ nasl_telnet_init (lex_ctxt *lexic)
     n += n2;
   retc = alloc_typed_cell (CONST_DATA);
   retc->size = n;
-<<<<<<< HEAD
-  retc->x.str_val = g_memdup (buffer, n + 1);
-=======
   retc->x.str_val = g_malloc0 (n + 1);
   memcpy (retc->x.str_val, buffer, n + 1);
->>>>>>> ca12c694 (Fix possible g_memdup() silent memory truncation. (#1024))
 #undef iac
 #undef data
 #undef option

@@ -405,13 +405,9 @@ nasl_tolower (lex_ctxt *lexic)
   if (str == NULL)
     return NULL;
 
-<<<<<<< HEAD
-  str = g_memdup (str, str_len + 1);
-=======
   ret = g_malloc0 (str_len + 1);
   memcpy (ret, str, str_len + 1);
 
->>>>>>> ca12c694 (Fix possible g_memdup() silent memory truncation. (#1024))
   for (i = 0; i < str_len; i++)
     ret[i] = tolower (ret[i]);
 
@@ -433,13 +429,9 @@ nasl_toupper (lex_ctxt *lexic)
   if (str == NULL)
     return NULL;
 
-<<<<<<< HEAD
-  str = g_memdup (str, str_len + 1);
-=======
   ret = g_malloc0 (str_len + 1);
   memcpy (ret, str, str_len + 1);
 
->>>>>>> ca12c694 (Fix possible g_memdup() silent memory truncation. (#1024))
   for (i = 0; i < str_len; i++)
     ret[i] = toupper (ret[i]);
 
@@ -1260,14 +1252,9 @@ nasl_strstr (lex_ctxt *lexic)
 
   retc = alloc_typed_cell (CONST_DATA);
   retc->size = sz_a - (c - a);
-<<<<<<< HEAD
-  retc->x.str_val = g_memdup (c, retc->size + 1);
-=======
-
   retc->x.str_val = g_malloc0 (retc->size + 1);
   memcpy (retc->x.str_val, c, retc->size + 1);
 
->>>>>>> ca12c694 (Fix possible g_memdup() silent memory truncation. (#1024))
   return retc;
 }
 
