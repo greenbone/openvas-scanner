@@ -465,8 +465,8 @@ nasl_open_sock_tcp_bufsz (lex_ctxt *lexic, int bufsz)
   else if (transport == 0)
     soc = open_stream_auto_encaps_ext (script_infos, port, to, 1);
   else
-    soc =
-      open_stream_connection_ext (script_infos, port, transport, to, priority);
+    soc = open_stream_connection_ext (script_infos, port, transport, to,
+                                      priority, NO_PRIORITY_FLAGS);
   if (bufsz > 0 && soc >= 0)
     {
       if (stream_set_buffer (soc, bufsz) < 0)
