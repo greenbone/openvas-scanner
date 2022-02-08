@@ -26,11 +26,8 @@
 #include "plugutils.h"
 
 #include "network.h" // for OPENVAS_ENCAPS_IP
-<<<<<<< HEAD
 #include "reporting.h"
-=======
 #include "support.h" // for g_memdup2 workaround
->>>>>>> ca12c694 (Fix possible g_memdup() silent memory truncation. (#1024))
 
 #include <errno.h> // for errno
 #include <eulabeia/json.h>

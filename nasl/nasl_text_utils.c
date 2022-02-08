@@ -1252,7 +1252,6 @@ nasl_strstr (lex_ctxt *lexic)
 
   retc = alloc_typed_cell (CONST_DATA);
   retc->size = sz_a - (c - a);
-
   retc->x.str_val = g_malloc0 (retc->size + 1);
   memcpy (retc->x.str_val, c, retc->size + 1);
 

@@ -27,15 +27,10 @@
 
 #include "nasl_scanner_glue.h"
 
-<<<<<<< HEAD
 #include "../misc/network.h"   /* for getpts */
 #include "../misc/plugutils.h" /* for plug_set_id */
 #include "../misc/reporting.h"
-=======
-#include "../misc/network.h"       /* for getpts */
-#include "../misc/plugutils.h"     /* for plug_set_id */
 #include "../misc/support.h"       /* for the g_memdup2 workaround */
->>>>>>> ca12c694 (Fix possible g_memdup() silent memory truncation. (#1024))
 #include "../misc/vendorversion.h" /* for vendor_version_get */
 #include "nasl_debug.h"
 #include "nasl_func.h"
