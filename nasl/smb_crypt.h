@@ -79,7 +79,7 @@ SamOEMhash (uchar *data, const uchar *key, int val);
 
 /* Does the md5 encryption from the Key Response for NTLMv2. */
 void
-SMBOWFencrypt_ntv2_ntlmssp (const uchar kr[16], const uint8_t *srv_chal,
+SMBOWFencrypt_ntv2_ntlmssp (const uchar *kr, const uint8_t *srv_chal,
                             int srv_chal_len, const uint8_t *cli_chal,
                             int cli_chal_len, uchar resp_buf[16]);
 
