@@ -985,7 +985,9 @@ nasl_cert_query (lex_ctxt *lexic)
 
       retc = alloc_typed_cell (CONST_DATA);
       retc->size = m.size;
-      retc->x.str_val = g_memdup (m.data, m.size);
+      retc->x.str_val = g_malloc0 (m.size);
+      memcpy (retc->x.str_val, m.data, m.size);
+
       gnutls_free (m.data);
       gnutls_free (e.data);
       gnutls_x509_crt_deinit (cert);
@@ -1009,7 +1011,9 @@ nasl_cert_query (lex_ctxt *lexic)
 
       retc = alloc_typed_cell (CONST_DATA);
       retc->size = e.size;
-      retc->x.str_val = g_memdup (e.data, e.size);
+      retc->x.str_val = g_malloc0 (e.size);
+      memcpy (retc->x.str_val, e.data, e.size);
+
       gnutls_free (m.data);
       gnutls_free (e.data);
       gnutls_x509_crt_deinit (cert);
