@@ -748,7 +748,7 @@ attack_host (struct scan_globals *globals, struct in6_addr *ip, GSList *vhosts,
       pluginlaunch_wait_for_free_process (main_kb, kb);
     }
 
-  if (prefs_get_bool ("table_driven_lsc"))
+  if (!scan_is_stopped () && prefs_get_bool ("table_driven_lsc"))
     {
       g_message ("Running LSC via Notus for %s", ip_str);
       if (run_table_driven_lsc (globals->scan_id, kb, ip_str, NULL))
