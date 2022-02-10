@@ -1087,11 +1087,9 @@ get_variable_by_name (lex_ctxt *ctxt, const char *name)
        break;
      case VAR2_STRING:
      case VAR2_DATA:
-#pragma GCC diagnostic push
-#pragma GCC diagnostic warning "-Wdeprecated-declarations"
-       v->string_form =
-         g_memdup ((char *) v->v.v_str.s_val ?: "", v->v.v_str.s_siz + 1);
-#pragma GCC diagnostic pop
+       v->string_form = g_malloc0 (v->v.v_str.s_siz + 1);
+       memcpy (v->string_form, (char *) v->v.v_str.s_val ?: "",
+               v->v.v_str.s_siz + 1);
        break;
      case VAR2_UNDEF:
        break;
