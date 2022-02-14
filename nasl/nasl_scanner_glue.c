@@ -35,7 +35,6 @@
 #include "nasl_func.h"
 #include "nasl_global_ctxt.h"
 #include "nasl_lex_ctxt.h"
-#include "nasl_scanner_glue.h"
 #include "nasl_tree.h"
 #include "nasl_var.h"
 
