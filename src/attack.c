@@ -552,17 +552,8 @@ launch_plugin (struct scan_globals *globals, struct scheduler_plugin *plugin,
     }
   if (scan_is_stopped ())
     {
-      if (nvti_category (nvti) != ACT_END)
-        {
-          plugin->running_state = PLUGIN_STATUS_DONE;
-          goto finish_launch_plugin;
-        }
-      else
-        {
-          name = nvticache_get_filename (oid);
-          g_message ("Stopped scan wrap-up: Launching %s (%s)", name, oid);
-          g_free (name);
-        }
+      plugin->running_state = PLUGIN_STATUS_DONE;
+      goto finish_launch_plugin;
     }
 
   if (prefs_get_bool ("safe_checks")
