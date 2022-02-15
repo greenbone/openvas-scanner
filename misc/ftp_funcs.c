@@ -117,7 +117,7 @@ ftp_get_pasv_address (int soc, struct sockaddr_in *addr)
   char buf[512];
   char *t, *s;
   unsigned char l[6];
-  unsigned long *a;
+  uint32_t *a;
   unsigned short *p;
 
   snprintf (buf, 7, "PASV\r\n");
@@ -171,7 +171,7 @@ ftp_get_pasv_address (int soc, struct sockaddr_in *addr)
     return 1;
   t[0] = 0;
   l[5] = (unsigned char) atoi (s);
-  a = (unsigned long *) l;
+  a = (uint32_t *) l;
   p = (unsigned short *) (l + 4);
 
   addr->sin_addr.s_addr = *a;
