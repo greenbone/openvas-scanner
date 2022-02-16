@@ -105,7 +105,7 @@ check_dos_char_slowly_ntlmssp (uint16 c)
 
 /* We can parameterize this if someone complains.... JRA. */
 
-char
+static char
 lp_failed_convert_char_ntlmssp (void)
 {
   return '_';
@@ -130,7 +130,7 @@ static smb_iconv_t conv_handles_ntlmssp[NUM_CHARSETS][NUM_CHARSETS];
 static bool
   conv_silent_ntlmssp; /* Should we do a debug if the conversion fails ? */
 
-void
+static void
 init_valid_table_ntlmssp (void)
 {
   static int mapped_file;
@@ -171,7 +171,7 @@ init_valid_table_ntlmssp (void)
  *  Count the number of characters in a uint16_t string.
  *  ********************************************************************/
 
-size_t
+static size_t
 strlen_w_ntlmssp (const uint16 *src)
 {
   size_t len;

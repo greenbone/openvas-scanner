@@ -279,7 +279,7 @@ str_to_key (const uchar *str, uchar *key)
     }
 }
 
-void
+static void
 smbhash (uchar *out, const uchar *in, const uchar *key, int forw)
 {
   int i;

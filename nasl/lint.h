@@ -1,11 +1,12 @@
-/* Copyright (C) 2014-2021 Greenbone Networks GmbH
+/* Portions Copyright (C) 2009-2022 Greenbone Networks GmbH
+ * Portions Copyright (C) 2006 Software in the Public Interest, Inc.
+ * Based on work Copyright (C) 1998 - 2006 Tenable Network Security, Inc.
  *
- * SPDX-License-Identifier: GPL-2.0-or-later
+ * SPDX-License-Identifier: GPL-2.0-only
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * version 2 as published by the Free Software Foundation.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -17,21 +18,12 @@
  * Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA 02110-1301 USA.
  */
 
-/**
- * @file nasl_snmp.h
- * @brief Headers of an API for SNMP used by NASL scripts.
- */
-#ifndef NASL_SNMP_H
-#define NASL_SNMP_H
+#ifndef LINT_H_INCLUDED
+#define LINT_H_INCLUDED
+
 #include "nasl_lex_ctxt.h"
-#include "nasl_tree.h"
-tree_cell *
-nasl_snmpv1_get (lex_ctxt *);
 
 tree_cell *
-nasl_snmpv2c_get (lex_ctxt *);
-
-tree_cell *
-nasl_snmpv3_get (lex_ctxt *);
+nasl_lint (lex_ctxt *lexic, tree_cell *st);
 
 #endif

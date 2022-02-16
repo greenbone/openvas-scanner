@@ -18,6 +18,9 @@
 
 #ifndef NASL_INIT_H
 #define NASL_INIT_H
+#include "nasl_lex_ctxt.h"
+
+#include <glib.h>
 
 void
 init_nasl_library (lex_ctxt *);

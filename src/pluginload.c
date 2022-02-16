@@ -64,7 +64,7 @@
  *         "folder" and its subdirectories. Not added are directory names.
  *         NVT files are identified by the defined filename suffixes.
  */
-GSList *
+static GSList *
 collect_nvts (const char *folder, const char *subdir, GSList *files)
 {
   GDir *dir;
@@ -107,7 +107,7 @@ collect_nvts (const char *folder, const char *subdir, GSList *files)
   return files;
 }
 
-int
+static int
 calculate_eta (struct timeval start_time, int loaded, int total)
 {
   struct timeval current_time;
@@ -202,7 +202,7 @@ total_loading_plugins (void)
  *
  * @param[in]   current Number of loaded plugins.
  */
-void
+static void
 set_current_loading_plugins (int current)
 {
   if (loading_shm)
@@ -214,7 +214,7 @@ set_current_loading_plugins (int current)
  *
  * @param[in]   total Total number of plugins
  */
-void
+static void
 set_total_loading_plugins (int total)
 {
   if (loading_shm)

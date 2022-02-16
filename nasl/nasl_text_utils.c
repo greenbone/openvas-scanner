@@ -555,7 +555,7 @@ _regreplace (const char *pattern, const char *replace, const char *string,
              1) find out how long the string will be, and allocate buf
              2) copy the part before match, replacement and backrefs to buf
 
-             Jaakko Hyvätti <Jaakko.Hyvatti@iki.fi>
+             Jaakko Hyv?tti <Jaakko.Hyvatti@iki.fi>
            */
 
           new_l = strlen (buf) + subs[0].rm_so; /* part before the match */
@@ -736,15 +736,15 @@ nasl_egrep (lex_ctxt *lexic)
 
         if (regexec (&re, s, (size_t) NS, subs, 0) == 0)
           {
-            char *t = strchr (s, '\n');
+            char *rt = strchr (s, '\n');
 
-            if (t != NULL)
-              t[0] = '\0';
+            if (rt != NULL)
+              rt[0] = '\0';
 
             strcat (rets, s);
             strcat (rets, "\n");
-            if (t != NULL)
-              t[0] = '\n';
+            if (rt != NULL)
+              rt[0] = '\n';
           }
 
         regfree (&re);

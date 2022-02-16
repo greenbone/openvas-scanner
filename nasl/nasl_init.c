@@ -16,6 +16,8 @@
  * Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA 02110-1301 USA.
  */
 
+#include "nasl_init.h"
+
 #include "../misc/network.h"        /* for OPENVAS_ENCAPS_* */
 #include "../misc/nvt_categories.h" /* for ACT_INIT */
 #include "exec.h"

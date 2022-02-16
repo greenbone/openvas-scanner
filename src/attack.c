@@ -221,8 +221,9 @@ message_to_client (kb_t kb, const char *msg, const char *ip_str,
 {
   char *buf;
 
-  buf = g_strdup_printf ("%s|||%s|||%s|||%s||| |||%s", type, ip_str ?: "",
-                         ip_str ?: "", port ?: " ", msg ?: "No error.");
+  buf = g_strdup_printf ("%s|||%s|||%s|||%s||| |||%s", type,
+                         ip_str ? ip_str : "", ip_str ? ip_str : "",
+                         port ? port : " ", msg ? msg : "No error.");
   kb_item_push_str (kb, "internal/results", buf);
   g_free (buf);
 }
@@ -1150,7 +1151,7 @@ attack_network (struct scan_globals *globals)
   gvm_hosts_t *hosts;
   const gchar *port_range;
   int allow_simultaneous_ips;
-  kb_t host_kb, main_kb;
+  kb_t arg_host_kb, main_kb;
   GSList *unresolved;
   char buf[96];
 
@@ -1325,7 +1326,7 @@ attack_network (struct scan_globals *globals)
 
       do
         {
-          rc = kb_new (&host_kb, prefs_get ("db_address"));
+          rc = kb_new (&arg_host_kb, prefs_get ("db_address"));
           if (rc < 0 && rc != -2)
             {
               report_kb_failure (rc);
@@ -1342,16 +1343,16 @@ attack_network (struct scan_globals *globals)
 
       host_str = gvm_host_value_str (host);
       connect_main_kb (&main_kb);
-      if (hosts_new (host_str, host_kb, main_kb) < 0)
+      if (hosts_new (host_str, arg_host_kb, main_kb) < 0)
         {
-          kb_delete (host_kb);
+          kb_delete (arg_host_kb);
           g_free (host_str);
           goto scan_stop;
         }
 
       if (scan_is_stopped ())
         {
-          kb_delete (host_kb);
+          kb_delete (arg_host_kb);
           g_free (host_str);
           continue;
         }
@@ -1359,7 +1360,7 @@ attack_network (struct scan_globals *globals)
       args.host = host;
       args.globals = globals;
       args.sched = sched;
-      args.host_kb = host_kb;
+      args.host_kb = arg_host_kb;
       args.main_kb = main_kb;
 
     forkagain:
@@ -1388,7 +1389,7 @@ attack_network (struct scan_globals *globals)
       if (test_alive_hosts_only)
         {
           struct in6_addr tmpaddr;
-          gvm_host_t *buf;
+          gvm_host_t *alive_buf;
 
           while (1)
             {
@@ -1434,10 +1435,10 @@ attack_network (struct scan_globals *globals)
 
           if (host && gvm_host_get_addr6 (host, &tmpaddr) == 0)
             {
-              buf = host;
+              alive_buf = host;
               host = gvm_host_find_in_hosts (host, &tmpaddr, hosts);
-              gvm_host_free (buf);
-              buf = NULL;
+              gvm_host_free (alive_buf);
+              alive_buf = NULL;
             }
 
           if (host)

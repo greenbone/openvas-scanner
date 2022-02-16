@@ -23,6 +23,8 @@
  * Eventually it needs to be analysed whether this makes sense
  * or can further be simplified. */
 
+#include "bpf_share.h"
+
 #include "../nasl/nasl_debug.h" /* for nasl_*_filename */
 
 #include <gvm/base/logging.h>
@@ -39,11 +41,13 @@
 /** Shared pcap_t's. */
 static pcap_t *pcaps[NUM_CLIENTS];
 
-void
+static void
 print_pcap_error (pcap_t *p, char *prefix)
 {
   char *msg = pcap_geterr (p);
-  g_message ("[%s] %s : %s", nasl_get_plugin_filename () ?: "", prefix, msg);
+  g_message ("[%s] %s : %s",
+             nasl_get_plugin_filename () ? nasl_get_plugin_filename () : "",
+             prefix, msg);
 }
 
 /**

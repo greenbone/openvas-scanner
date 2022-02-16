@@ -71,7 +71,7 @@ typedef struct cipher_table_item cipher_table_item_t;
  *
  * The parameter err should be the GnuTLS error code
  */
-void
+static void
 print_tls_error (lex_ctxt *lexic, char *txt, int err)
 {
   nasl_perror (lexic, "%s: %s (%d)\n", txt, gnutls_strerror (err), err);
@@ -82,7 +82,7 @@ print_tls_error (lex_ctxt *lexic, char *txt, int err)
  *
  * The parameter err should be the libgcrypt error code
  */
-void
+static void
 print_gcrypt_error (lex_ctxt *lexic, char *function, int err)
 {
   nasl_perror (lexic, "%s failed: %s/%s\n", function, gcry_strsource (err),
@@ -403,7 +403,7 @@ fail:
 /**
  * @brief Implements the nasl functions pem_to_rsa and pem_to_dsa.
  */
-tree_cell *
+static tree_cell *
 nasl_pem_to (lex_ctxt *lexic, int type)
 {
   tree_cell *retc = NULL;
@@ -1358,7 +1358,7 @@ fail:
 /**
  * @brief Implements the nasl functions bf_cbc_encrypt and bf_cbc_decrypt.
  */
-tree_cell *
+static tree_cell *
 nasl_bf_cbc (lex_ctxt *lexic, int enc)
 {
   tree_cell *retc = NULL;

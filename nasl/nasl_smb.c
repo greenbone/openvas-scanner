@@ -425,7 +425,7 @@ nasl_win_cmd_exec (lex_ctxt *lexic)
     {
       /* UTF-16 case. */
       size_t length, diff;
-      GError *err = NULL;
+      err = NULL;
       char *tmp;
 
       diff = unicode - string->str + 1;

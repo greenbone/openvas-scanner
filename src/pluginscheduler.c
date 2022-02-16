@@ -245,7 +245,7 @@ plugins_scheduler_enable (plugins_scheduler_t sched, const char *oid_list,
   return error_counter;
 }
 
-int
+static int
 find_plugin_in_deps (GHashTable *checked, struct scheduler_plugin **array,
                      int pos)
 {
@@ -272,7 +272,7 @@ find_plugin_in_deps (GHashTable *checked, struct scheduler_plugin **array,
   return -1;
 }
 
-int
+static int
 check_dependency_cycles (plugins_scheduler_t sched)
 {
   int i, j;
@@ -509,7 +509,7 @@ plugins_scheduler_stop (plugins_scheduler_t sched)
   sched->stopped = 1;
 }
 
-void
+static void
 scheduler_plugin_free (void *data)
 {
   struct scheduler_plugin *plugin;

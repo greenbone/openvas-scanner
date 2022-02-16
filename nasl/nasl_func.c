@@ -195,7 +195,12 @@ nasl_func_call (lex_ctxt *lexic, const nasl_func *f, tree_cell *arg_list)
   nasl_set_filename (nasl_get_filename (f->func_name));
   if (func_is_internal (f->func_name))
     {
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wpedantic"
+      // unless it is arcane system this void casting should work
+      // therefore ignoring pedantic here.
       tree_cell *(*pf2) (lex_ctxt *) = f->block;
+#pragma GCC diagnostic pop
       retc = pf2 (lexic2);
     }
   else

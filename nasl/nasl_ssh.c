@@ -264,8 +264,9 @@ nasl_ssh_connect (lex_ctxt *lexic)
     {
       g_message ("Function %s (calling internal function %s) called from %s: "
                  "Failed to allocate a new SSH session",
-                 nasl_get_function_name () ?: "script_main_function", __func__,
-                 nasl_get_plugin_filename ());
+                 nasl_get_function_name () ? nasl_get_function_name ()
+                                           : "script_main_function",
+                 __func__, nasl_get_plugin_filename ());
       return NULL;
     }
 
@@ -297,8 +298,10 @@ nasl_ssh_connect (lex_ctxt *lexic)
     {
       g_message ("Function %s (calling internal function %s) called from %s: "
                  "Failed to set SSH hostname '%s': %s",
-                 nasl_get_function_name () ?: "script_main_function", __func__,
-                 nasl_get_plugin_filename (), ip_str, ssh_get_error (session));
+                 nasl_get_function_name () ? nasl_get_function_name ()
+                                           : "script_main_function",
+                 __func__, nasl_get_plugin_filename (), ip_str,
+                 ssh_get_error (session));
       ssh_free (session);
       return NULL;
     }
@@ -307,8 +310,10 @@ nasl_ssh_connect (lex_ctxt *lexic)
     {
       g_message ("Function %s (calling internal function %s) called from %s: "
                  "Failed to disable SSH known_hosts: %s",
-                 nasl_get_function_name () ?: "script_main_function", __func__,
-                 nasl_get_plugin_filename (), ssh_get_error (session));
+                 nasl_get_function_name () ? nasl_get_function_name ()
+                                           : "script_main_function",
+                 __func__, nasl_get_plugin_filename (),
+                 ssh_get_error (session));
       ssh_free (session);
       return NULL;
     }
@@ -319,8 +324,9 @@ nasl_ssh_connect (lex_ctxt *lexic)
     {
       g_message ("Function %s (calling internal function %s) called from %s: "
                  "Failed to set SSH key type '%s': %s",
-                 nasl_get_function_name () ?: "script_main_function", __func__,
-                 nasl_get_plugin_filename (), key_type,
+                 nasl_get_function_name () ? nasl_get_function_name ()
+                                           : "script_main_function",
+                 __func__, nasl_get_plugin_filename (), key_type,
                  ssh_get_error (session));
       ssh_free (session);
       return NULL;
@@ -332,8 +338,9 @@ nasl_ssh_connect (lex_ctxt *lexic)
     {
       g_message ("Function %s (calling internal function %s) called from %s: "
                  "Failed to set SSH client to server ciphers '%s': %s",
-                 nasl_get_function_name () ?: "script_main_function", __func__,
-                 nasl_get_plugin_filename (), csciphers,
+                 nasl_get_function_name () ? nasl_get_function_name ()
+                                           : "script_main_function",
+                 __func__, nasl_get_plugin_filename (), csciphers,
                  ssh_get_error (session));
       ssh_free (session);
       return NULL;
@@ -344,8 +351,9 @@ nasl_ssh_connect (lex_ctxt *lexic)
     {
       g_message ("Function %s (calling internal function %s) called from %s: "
                  "Failed to set SSH server to client ciphers '%s': %s",
-                 nasl_get_function_name () ?: "script_main_function", __func__,
-                 nasl_get_plugin_filename (), scciphers,
+                 nasl_get_function_name () ? nasl_get_function_name ()
+                                           : "script_main_function",
+                 __func__, nasl_get_plugin_filename (), scciphers,
                  ssh_get_error (session));
       ssh_free (session);
       return NULL;
@@ -360,8 +368,10 @@ nasl_ssh_connect (lex_ctxt *lexic)
           g_message (
             "Function %s (calling internal function %s) called from %s: "
             "Failed to set SSH port for '%s' to %d: %s",
-            nasl_get_function_name () ?: "script_main_function", __func__,
-            nasl_get_plugin_filename (), ip_str, port, ssh_get_error (session));
+            nasl_get_function_name () ? nasl_get_function_name ()
+                                      : "script_main_function",
+            __func__, nasl_get_plugin_filename (), ip_str, port,
+            ssh_get_error (session));
           ssh_free (session);
           return NULL;
         }
@@ -378,8 +388,9 @@ nasl_ssh_connect (lex_ctxt *lexic)
           g_message (
             "Function %s (calling internal function %s) called from %s: "
             "Failed to set SSH fd for '%s' to %d (NASL sock=%d): %s",
-            nasl_get_function_name () ?: "script_main_function", __func__,
-            nasl_get_plugin_filename (), ip_str, my_fd, sock,
+            nasl_get_function_name () ? nasl_get_function_name ()
+                                      : "script_main_function",
+            __func__, nasl_get_plugin_filename (), ip_str, my_fd, sock,
             ssh_get_error (session));
           ssh_free (session);
           return NULL;
@@ -753,8 +764,10 @@ nasl_ssh_set_login (lex_ctxt *lexic)
           g_message (
             "Function %s (calling internal function %s) called from %s: "
             "Failed to set SSH username '%s': %s",
-            nasl_get_function_name () ?: "script_main_function", __func__,
-            nasl_get_plugin_filename (), username, ssh_get_error (session));
+            nasl_get_function_name () ? nasl_get_function_name ()
+                                      : "script_main_function",
+            __func__, nasl_get_plugin_filename (), username,
+            ssh_get_error (session));
           g_free (username);
           return NULL; /* Ooops.  */
         }
@@ -1226,8 +1239,10 @@ exec_ssh_cmd (ssh_session session, char *cmd, int verbose, int compat_mode,
     {
       g_message ("Function %s (calling internal function %s) called from %s: "
                  "ssh_channel_new failed: %s",
-                 nasl_get_function_name () ?: "script_main_function", __func__,
-                 nasl_get_plugin_filename (), ssh_get_error (session));
+                 nasl_get_function_name () ? nasl_get_function_name ()
+                                           : "script_main_function",
+                 __func__, nasl_get_plugin_filename (),
+                 ssh_get_error (session));
       return SSH_ERROR;
     }
 
@@ -1368,8 +1383,9 @@ nasl_ssh_request_exec (lex_ctxt *lexic)
     {
       g_message ("Function %s (calling internal function %s) called from %s: "
                  "No command passed",
-                 nasl_get_function_name () ?: "script_main_function", __func__,
-                 nasl_get_plugin_filename ());
+                 nasl_get_function_name () ? nasl_get_function_name ()
+                                           : "script_main_function",
+                 __func__, nasl_get_plugin_filename ());
       return NULL;
     }
 
@@ -1434,8 +1450,9 @@ nasl_ssh_request_exec (lex_ctxt *lexic)
     {
       g_message ("Function %s (calling internal function %s) called from %s: "
                  "memory problem: %s",
-                 nasl_get_function_name () ?: "script_main_function", __func__,
-                 nasl_get_plugin_filename (), strerror (-1));
+                 nasl_get_function_name () ? nasl_get_function_name ()
+                                           : "script_main_function",
+                 __func__, nasl_get_plugin_filename (), strerror (-1));
       return NULL;
     }
 
@@ -1719,8 +1736,10 @@ nasl_ssh_shell_open (lex_ctxt *lexic)
     {
       g_message ("Function %s (calling internal function %s) called from %s: "
                  "ssh_channel_open_session: %s",
-                 nasl_get_function_name () ?: "script_main_function", __func__,
-                 nasl_get_plugin_filename (), ssh_get_error (session));
+                 nasl_get_function_name () ? nasl_get_function_name ()
+                                           : "script_main_function",
+                 __func__, nasl_get_plugin_filename (),
+                 ssh_get_error (session));
       ssh_channel_free (channel);
       return NULL;
     }
@@ -1729,8 +1748,10 @@ nasl_ssh_shell_open (lex_ctxt *lexic)
     {
       g_message ("Function %s (calling internal function %s) called from %s: "
                  "request_ssh_shell: %s",
-                 nasl_get_function_name () ?: "script_main_function", __func__,
-                 nasl_get_plugin_filename (), ssh_get_error (session));
+                 nasl_get_function_name () ? nasl_get_function_name ()
+                                           : "script_main_function",
+                 __func__, nasl_get_plugin_filename (),
+                 ssh_get_error (session));
       ssh_channel_free (channel);
       return NULL;
     }
@@ -1913,8 +1934,9 @@ nasl_ssh_shell_write (lex_ctxt *lexic)
     {
       g_message ("Function %s (calling internal function %s) called from %s: "
                  "No command passed",
-                 nasl_get_function_name () ?: "script_main_function", __func__,
-                 nasl_get_plugin_filename ());
+                 nasl_get_function_name () ? nasl_get_function_name ()
+                                           : "script_main_function",
+                 __func__, nasl_get_plugin_filename ());
       goto write_ret;
     }
   len = strlen (cmd);
@@ -1922,8 +1944,9 @@ nasl_ssh_shell_write (lex_ctxt *lexic)
     {
       g_message (
         "Function %s (calling internal function %s) called from %s: %s",
-        nasl_get_function_name () ?: "script_main_function", __func__,
-        nasl_get_plugin_filename (),
+        nasl_get_function_name () ? nasl_get_function_name ()
+                                  : "script_main_function",
+        __func__, nasl_get_plugin_filename (),
         ssh_get_error (session_table[tbl_slot].session));
       goto write_ret;
     }
@@ -2002,8 +2025,9 @@ nasl_sftp_enabled_check (lex_ctxt *lexic)
       if (verbose)
         g_message (
           "Function %s (calling internal function %s) called from %s: %s",
-          nasl_get_function_name () ?: "script_main_function", __func__,
-          nasl_get_plugin_filename (),
+          nasl_get_function_name () ? nasl_get_function_name ()
+                                    : "script_main_function",
+          __func__, nasl_get_plugin_filename (),
           ssh_get_error (session_table[tbl_slot].session));
       rc = SSH_ERROR;
       goto write_ret;
@@ -2016,7 +2040,8 @@ nasl_sftp_enabled_check (lex_ctxt *lexic)
         {
           g_message ("Function %s (calling internal function %s) called from "
                      "%s: %s. Code %d",
-                     nasl_get_function_name () ?: "script_main_function",
+                     nasl_get_function_name () ? nasl_get_function_name ()
+                                               : "script_main_function",
                      __func__, nasl_get_plugin_filename (),
                      ssh_get_error (session_table[tbl_slot].session),
                      sftp_get_error (sftp));

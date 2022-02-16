@@ -2159,8 +2159,8 @@ forge_igmp_v6_packet (lex_ctxt *lexic)
       igmp->cksum = np_in_cksum ((u_short *) igmp, sizeof (struct igmp6_hdr));
       if (data != NULL)
         {
-          char *p = (char *) (pkt + 40 + sizeof (struct igmp6_hdr));
-          bcopy (p, data, len);
+          char *ptmp = (char *) (pkt + 40 + sizeof (struct igmp6_hdr));
+          bcopy (ptmp, data, len);
         }
       retc = alloc_typed_cell (CONST_DATA);
       retc->x.str_val = (char *) pkt;

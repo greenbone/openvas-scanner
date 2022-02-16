@@ -162,26 +162,26 @@ Accept-Charset: iso-8859-1,*,utf-8\r\n",
 
   if (auth)
     {
-      char *tmp = g_strconcat (request, auth, "\r\n", NULL);
+      char *authntmp = g_strconcat (request, auth, "\r\n", NULL);
       g_free (request);
       g_free (auth);
-      request = tmp;
+      request = authntmp;
     }
   if (data)
     {
-      char content_length[128], *tmp;
+      char content_length[128], *data_tmp;
 
       g_snprintf (content_length, sizeof (content_length),
                   "Content-Length: %zu\r\n\r\n", strlen (data));
-      tmp = g_strconcat (request, content_length, data, NULL);
+      data_tmp = g_strconcat (request, content_length, data, NULL);
       g_free (request);
-      request = tmp;
+      request = data_tmp;
     }
   else
     {
-      char *tmp = g_strconcat (request, "\r\n", NULL);
+      char *no_data_tmp = g_strconcat (request, "\r\n", NULL);
       g_free (request);
-      request = tmp;
+      request = no_data_tmp;
     }
 
   retc = alloc_typed_cell (CONST_DATA);

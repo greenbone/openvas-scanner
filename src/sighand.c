@@ -23,6 +23,8 @@
  * @brief Provides signal handling functions.
  */
 
+#include "sighand.h"
+
 #include "debug_utils.h"
 
 #include <execinfo.h> /* for backtrace() */

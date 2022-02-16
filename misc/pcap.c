@@ -92,7 +92,7 @@ getipv6routes (struct myroute *myroutes, int *numroutes);
  *
  * @return 0 on success, -1 on error.
  **/
-int
+static int
 ipv6_prefix_to_mask (unsigned prefix, struct in6_addr *mask)
 {
   struct in6_addr in6;
@@ -121,13 +121,11 @@ ipv6_prefix_to_mask (unsigned prefix, struct in6_addr *mask)
 int
 v6_is_local_ip (struct in6_addr *addr)
 {
-  int ifaces;
+  int i, j, ifaces, numroutes = 0;
   struct interface_info *ifs;
-  int i;
   static struct myroute myroutes[MAXROUTES];
-  int numroutes = 0;
-  struct in6_addr network;
-  struct in6_addr mask;
+  struct in6_addr network, mask;
+  bpf_u_int32 v4mappednet, v4mappedmask;
 
   if ((ifs = v6_getinterfaces (&ifaces)) == NULL)
     return -1;
@@ -136,10 +134,10 @@ v6_is_local_ip (struct in6_addr *addr)
     {
       for (i = 0; i < ifaces; i++)
         {
-          bpf_u_int32 net, mask;
           char errbuf[PCAP_ERRBUF_SIZE];
-          pcap_lookupnet (ifs[i].name, &net, &mask, errbuf);
-          if ((net & mask) == (addr->s6_addr32[3] & mask))
+          pcap_lookupnet (ifs[i].name, &v4mappednet, &v4mappedmask, errbuf);
+          if ((v4mappednet & v4mappedmask)
+              == (addr->s6_addr32[3] & v4mappedmask))
             return 1;
         }
     }
@@ -158,8 +156,8 @@ v6_is_local_ip (struct in6_addr *addr)
 
               if (ipv6_prefix_to_mask (myroutes[i].mask, &mask) == -1)
                 return -1;
-              for (int i = 0; i < (int) sizeof (struct in6_addr); i++)
-                network.s6_addr[i] = addr->s6_addr[i] & mask.s6_addr[i];
+              for (j = 0; j < (int) sizeof (struct in6_addr); j++)
+                network.s6_addr[j] = addr->s6_addr[j] & mask.s6_addr[j];
 
               g_debug ("comparing addresses %s and %s",
                        inet_ntop (AF_INET6, &network, addr1, sizeof (addr1)),
@@ -178,7 +176,7 @@ v6_is_local_ip (struct in6_addr *addr)
 /*
  * Taken straight out of Fyodor's Nmap
  */
-int
+static int
 v6_ipaddr2devname (char *dev, int sz, struct in6_addr *addr)
 {
   struct interface_info *mydevs;
@@ -209,7 +207,7 @@ v6_ipaddr2devname (char *dev, int sz, struct in6_addr *addr)
 /*
  * Taken straight out of Fyodor's Nmap
  */
-int
+static int
 ipaddr2devname (char *dev, int sz, struct in_addr *addr)
 {
   struct interface_info *mydevs;
@@ -593,7 +591,7 @@ v6_getsourceip (struct in6_addr *src, struct in6_addr *dst)
  *
  * @return 0 on success, -1 on error.
  **/
-int
+static int
 getipv4routes (struct myroute *myroutes, int *numroutes)
 {
   struct interface_info *mydevs;
@@ -955,8 +953,8 @@ v6_routethrough (struct in6_addr *dest, struct in6_addr *source)
                          myroutes[i].mask);
               return NULL;
             }
-          for (int i = 0; i < (int) sizeof (struct in6_addr); i++)
-            network.s6_addr[i] = dest->s6_addr[i] & mask.s6_addr[i];
+          for (int j = 0; j < (int) sizeof (struct in6_addr); j++)
+            network.s6_addr[j] = dest->s6_addr[j] & mask.s6_addr[j];
 
           g_debug (
             "comparing addresses %s and %s",

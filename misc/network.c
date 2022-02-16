@@ -332,7 +332,7 @@ block_socket (int soc)
  * default value: 1 according to SVID 3, BSD 4.3, ISO 9899 :-(
  */
 
-void
+static void
 tlserror (char *txt, int err)
 {
   g_message ("[%d] %s: %s", getpid (), txt, gnutls_strerror (err));
@@ -1371,7 +1371,8 @@ read_stream_connection_unbuffered (int fd, void *buf0, int min_len, int max_len)
       if (fp->transport || fp->fd != 0)
         g_message ("Function %s (calling internal function %s) called from %s: "
                    "Severe bug! Unhandled transport layer %d (fd=%d).",
-                   nasl_get_function_name () ?: "script_main_function",
+                   nasl_get_function_name () ? nasl_get_function_name ()
+                                             : "script_main_function",
                    __func__, nasl_get_plugin_filename (), fp->transport, fd);
       else
         g_message ("read_stream_connection_unbuffered: "
@@ -1552,7 +1553,8 @@ write_stream_connection4 (int fd, void *buf0, int n, int i_opt)
       if (fp->transport || fp->fd != 0)
         g_message ("Function %s (calling internal function %s) called from %s: "
                    "Severe bug! Unhandled transport layer %d (fd=%d).",
-                   nasl_get_function_name () ?: "script_main_function",
+                   nasl_get_function_name () ? nasl_get_function_name ()
+                                             : "script_main_function",
                    __func__, nasl_get_plugin_filename (), fp->transport, fd);
       else
         g_message ("read_stream_connection_unbuffered: fd=%d is "
@@ -1955,20 +1957,21 @@ open_sock_tcp (struct script_infos *args, unsigned int port, int timeout)
            */
           if (host_get_port_state (args, port) > 0)
             {
-              char ip_str[INET6_ADDRSTRLEN];
+              char host_port_ip_str[INET6_ADDRSTRLEN];
 
               g_snprintf (buffer, sizeof (buffer), "Ports/tcp/%d", port);
               g_message ("open_sock_tcp: %s:%d too many timeouts. "
                          "This port will be set to closed.",
-                         ip_str, port);
+                         host_port_ip_str, port);
               kb_item_set_int (kb, buffer, 0);
 
-              addr6_to_str (args->ip, ip_str);
+              addr6_to_str (args->ip, host_port_ip_str);
               snprintf (
                 buffer, sizeof (buffer),
                 "ERRMSG|||%s|||%s|||%d/tcp||| |||Too many timeouts. The port"
                 " was set to closed.",
-                ip_str, plug_current_vhost () ?: " ", port);
+                host_port_ip_str,
+                plug_current_vhost () ? plug_current_vhost () : " ", port);
               kb_item_push_str (args->results, "internal/results", buffer);
             }
         }
@@ -2031,7 +2034,6 @@ recv_line (int soc, char *buf, size_t bufsiz)
   /* Dirty SSL hack */
   if (OPENVAS_STREAM (soc))
     {
-      unsigned int ret = 0;
       buf[0] = '\0';
 
       do

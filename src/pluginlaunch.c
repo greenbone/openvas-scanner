@@ -153,7 +153,7 @@ update_running_processes (kb_t main_kb, kb_t kb)
                   g_snprintf (msg, sizeof (msg),
                               "ERRMSG|||%s||| |||general/tcp|||%s|||"
                               "NVT timed out after %d seconds.",
-                              hostname, oid ?: " ", processes[i].timeout);
+                              hostname, oid ? oid : " ", processes[i].timeout);
                   kb_item_push_str (main_kb, "internal/results", msg);
 
                   /* Check for max VTs timeouts */
@@ -372,7 +372,7 @@ pluginlaunch_stop (void)
 static int
 plugin_timeout (nvti_t *nvti)
 {
-  int timeout;
+  int timeout, tmp;
   gchar *timeout_str;
 
   timeout = 0;
@@ -383,10 +383,15 @@ plugin_timeout (nvti_t *nvti)
   if (timeout == 0)
     {
       if (nvti_category (nvti) == ACT_SCANNER)
-        timeout =
-          atoi (prefs_get ("scanner_plugins_timeout")) ?: SCANNER_NVT_TIMEOUT;
+        {
+          tmp = atoi (prefs_get ("scanner_plugins_timeout"));
+          timeout = tmp ? tmp : SCANNER_NVT_TIMEOUT;
+        }
       else
-        timeout = atoi (prefs_get ("plugins_timeout")) ?: NVT_TIMEOUT;
+        {
+          tmp = atoi (prefs_get ("plugins_timeout"));
+          timeout = tmp ? tmp : NVT_TIMEOUT;
+        }
     }
   return timeout;
 }
@@ -427,7 +432,7 @@ check_memory ()
   return 1;
 }
 
-int
+static int
 check_sysload ()
 {
   double sysload;

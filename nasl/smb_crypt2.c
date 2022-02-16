@@ -27,6 +27,7 @@
  */
 
 #include "hmacmd5.h"
+#include "smb_crypt.h"
 
 #include <ctype.h>
 
@@ -34,7 +35,7 @@
  Convert a wchar to upper case.
 ********************************************************************/
 
-smb_ucs2_t
+static smb_ucs2_t
 toupper_w (smb_ucs2_t val)
 {
   return UCS2_CHAR (islower (val) ? toupper (val) : val);
