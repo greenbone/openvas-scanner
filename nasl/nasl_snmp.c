@@ -25,6 +25,7 @@
 #include "nasl_snmp.h"
 
 #include "../misc/plugutils.h"
+#include "nasl_debug.h"
 #include "nasl_lex_ctxt.h"
 
 #include <assert.h>
@@ -34,6 +35,9 @@
 #include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
+
+#define SNMP_VERSION_1 0
+#define SNMP_VERSION_2c 1
 
 /*
  * @brief Check that protocol value is valid.
@@ -87,17 +91,22 @@ array_from_snmp_result (int ret, char *result)
 #include <net-snmp/net-snmp-config.h>
 #include <net-snmp/net-snmp-includes.h>
 
+#define NASL_SNMP_GET SNMP_MSG_GET
+#define NASL_SNMP_GETNEXT SNMP_MSG_GETNEXT
+
 /*
- * @brief SNMP Get query value.
+ * @brief SNMP Get query value with a specified action.
  *
  * param[in]    session     SNMP session.
  * param[in]    oid_str     OID string.
+ * param[in]    action      Action to perform to get entry.
  * param[out]   result      Result of query.
  *
  * @return 0 if success and result value, -1 otherwise.
  */
 static int
-snmp_get (struct snmp_session *session, const char *oid_str, char **result)
+snmp_get (struct snmp_session *session, const char *oid_str, u_char action,
+          char **result)
 {
   struct snmp_session *ss;
   struct snmp_pdu *query, *response;
@@ -111,7 +120,7 @@ snmp_get (struct snmp_session *session, const char *oid_str, char **result)
       snmp_error (session, &status, &status, result);
       return -1;
     }
-  query = snmp_pdu_create (SNMP_MSG_GET);
+  query = snmp_pdu_create (action);
   read_objid (oid_str, oid_buf, &oid_size);
   snmp_add_null_var (query, oid_buf, oid_size);
   status = snmp_synch_response (ss, query, &response);
@@ -141,7 +150,7 @@ snmp_get (struct snmp_session *session, const char *oid_str, char **result)
 }
 
 /*
- * @brief SNMPv3 Get query value.
+ * @brief SNMPv3 Get query value with specified action.
  *
  * param[in]    peername    Target host in [protocol:]address[:port] format.
  * param[in]    username    Username value.
@@ -150,14 +159,16 @@ snmp_get (struct snmp_session *session, const char *oid_str, char **result)
  * param[in]    privpass    Privacy password.
  * param[in]    privproto   Privacy protocol. 0 for des, 1 for aes.
  * param[in]    oid_str     OID of value to get.
+ * param[in]    action      Action to perform to get entry
  * param[out]   result      Result of query.
  *
  * @return 0 if success and result value, -1 otherwise.
  */
 static int
-snmpv3_get (const char *peername, const char *username, const char *authpass,
-            int authproto, const char *privpass, int privproto,
-            const char *oid_str, char **result)
+snmpv3_get_action (const char *peername, const char *username,
+                   const char *authpass, int authproto, const char *privpass,
+                   int privproto, const char *oid_str, u_char action,
+                   char **result)
 {
   struct snmp_session session;
 
@@ -222,23 +233,71 @@ snmpv3_get (const char *peername, const char *username, const char *authpass,
         }
     }
 
-  return snmp_get (&session, oid_str, result);
+  return snmp_get (&session, oid_str, action, result);
 }
 
 /*
- * @brief SNMP v1 or v2c Get query value.
+ * @brief SNMPv3 Get query value of the current entry.
  *
  * param[in]    peername    Target host in [protocol:]address[:port] format.
- * param[in]    community   SNMP community string.
- * param[in]    oid_str     OID string of value to get.
- * param[in]    version     SNMP_VERSION_1 or SNMP_VERSION_2c.
+ * param[in]    username    Username value.
+ * param[in]    authpass    Authentication password.
+ * param[in]    authproto   Authentication protocol. 0 for md5, 1 for sha1.
+ * param[in]    privpass    Privacy password.
+ * param[in]    privproto   Privacy protocol. 0 for des, 1 for aes.
+ * param[in]    oid_str     OID of value to get.
  * param[out]   result      Result of query.
  *
  * @return 0 if success and result value, -1 otherwise.
  */
 static int
-snmpv1v2c_get (const char *peername, const char *community, const char *oid_str,
-               int version, char **result)
+snmpv3_get (const char *peername, const char *username, const char *authpass,
+            int authproto, const char *privpass, int privproto,
+            const char *oid_str, char **result)
+{
+  return snmpv3_get_action (peername, username, authpass, authproto, privpass,
+                            privproto, oid_str, NASL_SNMP_GET, result);
+}
+
+/*
+ * @brief SNMPv3 Get query value of the next entry.
+ *
+ * param[in]    peername    Target host in [protocol:]address[:port] format.
+ * param[in]    username    Username value.
+ * param[in]    authpass    Authentication password.
+ * param[in]    authproto   Authentication protocol. 0 for md5, 1 for sha1.
+ * param[in]    privpass    Privacy password.
+ * param[in]    privproto   Privacy protocol. 0 for des, 1 for aes.
+ * param[in]    oid_str     OID of value to get.
+ * param[out]   result      Result of query.
+ *
+ * @return 0 if success and result value, -1 otherwise.
+ */
+static int
+snmpv3_getnext (const char *peername, const char *username,
+                const char *authpass, int authproto, const char *privpass,
+                int privproto, const char *oid_str, char **result)
+{
+  return snmpv3_get_action (peername, username, authpass, authproto, privpass,
+                            privproto, oid_str, NASL_SNMP_GETNEXT, result);
+}
+
+/*
+ * @brief SNMP v1 or v2c Get query value with specified action.
+ *
+ * param[in]    peername    Target host in [protocol:]address[:port] format.
+ * param[in]    community   SNMP community string.
+ * param[in]    oid_str     OID string of value to get.
+ * param[in]    version     SNMP_VERSION_1 or SNMP_VERSION_2c.
+ * param[in]    action      Action to perform to get entry
+ * param[out]   result      Result of query.
+ *
+ * @return 0 if success and result value, -1 otherwise.
+ */
+static int
+snmpv1v2c_get_action (const char *peername, const char *community,
+                      const char *oid_str, int version, u_char action,
+                      char **result)
 {
   struct snmp_session session;
 
@@ -254,13 +313,51 @@ snmpv1v2c_get (const char *peername, const char *community, const char *oid_str,
   session.community = (u_char *) community;
   session.community_len = strlen (community);
 
-  return snmp_get (&session, oid_str, result);
+  return snmp_get (&session, oid_str, action, result);
+}
+
+/*
+ * @brief SNMP v1 or v2c Get query value of the current entry.
+ *
+ * param[in]    peername    Target host in [protocol:]address[:port] format.
+ * param[in]    community   SNMP community string.
+ * param[in]    oid_str     OID string of value to get.
+ * param[in]    version     SNMP_VERSION_1 or SNMP_VERSION_2c.
+ * param[out]   result      Result of query.
+ *
+ * @return 0 if success and result value, -1 otherwise.
+ */
+static int
+snmpv1v2c_get (const char *peername, const char *community, const char *oid_str,
+               int version, char **result)
+{
+  return snmpv1v2c_get_action (peername, community, oid_str, version,
+                               NASL_SNMP_GET, result);
+}
+
+/*
+ * @brief SNMP v1 or v2c Get query value of the next entry.
+ *
+ * param[in]    peername    Target host in [protocol:]address[:port] format.
+ * param[in]    community   SNMP community string.
+ * param[in]    oid_str     OID string of value to get.
+ * param[in]    version     SNMP_VERSION_1 or SNMP_VERSION_2c.
+ * param[out]   result      Result of query.
+ *
+ * @return 0 if success and result value, -1 otherwise.
+ */
+static int
+snmpv1v2c_getnext (const char *peername, const char *community,
+                   const char *oid_str, int version, char **result)
+{
+  return snmpv1v2c_get_action (peername, community, oid_str, version,
+                               NASL_SNMP_GETNEXT, result);
 }
 
 #else
 
-#define SNMP_VERSION_1 0
-#define SNMP_VERSION_2c 1
+#define NASL_SNMP_GET 0
+#define NASL_SNMP_GETNEXT 1
 
 /**
  * @brief Parse the snmp error.
@@ -527,7 +624,7 @@ snmpv3_get (const char *peername, const char *username, const char *authpass,
 #endif /* HAVE_NETSNMP */
 
 static tree_cell *
-nasl_snmpv1v2c_get (lex_ctxt *lexic, int version)
+nasl_snmpv1v2c_get (lex_ctxt *lexic, int version, u_char action)
 {
   const char *proto, *community, *oid_str;
   char *result = NULL, peername[2048];
@@ -546,24 +643,53 @@ nasl_snmpv1v2c_get (lex_ctxt *lexic, int version)
 
   g_snprintf (peername, sizeof (peername), "%s:%s:%d", proto,
               plug_get_host_ip_str (lexic->script_infos), port);
-  ret = snmpv1v2c_get (peername, community, oid_str, version, &result);
+  if (action == NASL_SNMP_GET)
+    {
+      ret = snmpv1v2c_get (peername, community, oid_str, version, &result);
+    }
+  else if (action == NASL_SNMP_GETNEXT)
+    {
+#ifdef HAVE_NETSNMP
+      ret = snmpv1v2c_getnext (peername, community, oid_str, version, &result);
+#else
+      nasl_perror (lexic,
+                   "The SNMP function getnext is only available with libsnmp.");
+      return NULL;
+#endif /* HAVE_NETSNMP */
+    }
+  else
+    {
+      nasl_perror (lexic, "Unsupported SNMP function.");
+    }
   return array_from_snmp_result (ret, result);
 }
 
 tree_cell *
 nasl_snmpv1_get (lex_ctxt *lexic)
 {
-  return nasl_snmpv1v2c_get (lexic, SNMP_VERSION_1);
+  return nasl_snmpv1v2c_get (lexic, SNMP_VERSION_1, NASL_SNMP_GET);
+}
+
+tree_cell *
+nasl_snmpv1_getnext (lex_ctxt *lexic)
+{
+  return nasl_snmpv1v2c_get (lexic, SNMP_VERSION_1, NASL_SNMP_GETNEXT);
 }
 
 tree_cell *
 nasl_snmpv2c_get (lex_ctxt *lexic)
 {
-  return nasl_snmpv1v2c_get (lexic, SNMP_VERSION_2c);
+  return nasl_snmpv1v2c_get (lexic, SNMP_VERSION_2c, NASL_SNMP_GET);
 }
 
 tree_cell *
-nasl_snmpv3_get (lex_ctxt *lexic)
+nasl_snmpv2c_getnext (lex_ctxt *lexic)
+{
+  return nasl_snmpv1v2c_get (lexic, SNMP_VERSION_2c, NASL_SNMP_GETNEXT);
+}
+
+static tree_cell *
+nasl_snmpv3_get_action (lex_ctxt *lexic, u_char action)
 {
   const char *proto, *username, *authpass, *authproto, *oid_str;
   const char *privpass, *privproto;
@@ -604,7 +730,38 @@ nasl_snmpv3_get (lex_ctxt *lexic)
 
   g_snprintf (peername, sizeof (peername), "%s:%s:%d", proto,
               plug_get_host_ip_str (lexic->script_infos), port);
-  ret = snmpv3_get (peername, username, authpass, aproto, privpass, pproto,
-                    oid_str, &result);
+
+  if (action == NASL_SNMP_GET)
+    {
+      ret = snmpv3_get (peername, username, authpass, aproto, privpass, pproto,
+                        oid_str, &result);
+    }
+  else if (action == NASL_SNMP_GETNEXT)
+    {
+#ifdef HAVE_NETSNMP
+      ret = snmpv3_getnext (peername, username, authpass, aproto, privpass,
+                            pproto, oid_str, &result);
+#else
+      nasl_perror (lexic,
+                   "The SNMP function getnext is only available with libsnmp.");
+      return NULL;
+#endif /* HAVE_NETSNMP */
+    }
+  else
+    {
+      nasl_perror (lexic, "Unsupported SNMP function.");
+    }
   return array_from_snmp_result (ret, result);
+}
+
+tree_cell *
+nasl_snmpv3_get (lex_ctxt *lexic)
+{
+  return nasl_snmpv3_get_action (lexic, NASL_SNMP_GET);
+}
+
+tree_cell *
+nasl_snmpv3_getnext (lex_ctxt *lexic)
+{
+  return nasl_snmpv3_get_action (lexic, NASL_SNMP_GETNEXT);
 }
