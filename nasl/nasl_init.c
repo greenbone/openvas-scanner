@@ -111,6 +111,7 @@ static init_func libfuncs[] = {
   {"recv", nasl_recv},
   {"recv_line", nasl_recv_line},
   {"send", nasl_send},
+  {"get_mtu", nasl_get_mtu},
   {"socket_negotiate_ssl", nasl_socket_negotiate_ssl},
   {"socket_check_ssl_safe_renegotiation",
    nasl_socket_check_ssl_safe_renegotiation},
