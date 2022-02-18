@@ -46,6 +46,9 @@ tree_cell *
 nasl_open_priv_sock_udp (lex_ctxt *);
 
 tree_cell *
+nasl_get_mtu (lex_ctxt *);
+
+tree_cell *
 nasl_send (lex_ctxt *);
 tree_cell *
 nasl_socket_negotiate_ssl (lex_ctxt *);

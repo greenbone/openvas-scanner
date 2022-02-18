@@ -31,8 +31,9 @@
 #include "nasl_socket.h"
 
 #include "../misc/network.h"
-#include "../misc/plugutils.h" /* for plug_get_host_ip */
-#include "../misc/support.h"   /* for the g_memdup2 workaround */
+#include "../misc/pcap_openvas.h" // for routethrough
+#include "../misc/plugutils.h"    /* for plug_get_host_ip */
+#include "../misc/support.h"      /* for the g_memdup2 workaround */
 #include "exec.h"
 #include "nasl.h"
 #include "nasl_debug.h"
@@ -50,9 +51,11 @@
 #include <gvm/base/logging.h>
 #include <gvm/base/networking.h> /* for gvm_source_set_socket */
 #include <gvm/base/prefs.h>      /* for prefs_get */
-#include <netinet/in.h>          /* for sockaddr_in */
-#include <stdlib.h>              /* for atoi() */
-#include <string.h>              /* for bzero */
+#include <net/if.h>
+#include <netinet/in.h> /* for sockaddr_in */
+#include <stdlib.h>     /* for atoi() */
+#include <string.h>     /* for bzero */
+#include <sys/ioctl.h>
 #include <sys/time.h>
 #include <unistd.h> /* for close */
 
@@ -919,6 +922,54 @@ nasl_recv_line (lex_ctxt *lexic)
 
 /*---------------------------------------------------------------------*/
 
+static int
+get_mtu (struct in6_addr *dst)
+{
+  char *device;
+  int r = -1;
+  struct ifreq ifr;
+  int sd;
+  if ((device = v6_routethrough (dst, NULL)) == NULL)
+    goto exit;
+  memcpy (ifr.ifr_name, device, sizeof (ifr.ifr_name));
+  if ((sd = socket (AF_INET, SOCK_DGRAM, 0)) < 0)
+    goto exit;
+  if (ioctl (sd, SIOCGIFMTU, &ifr) < 0)
+    goto cexit;
+  r = ifr.ifr_mtu;
+cexit:
+  close (sd);
+exit:
+  return r;
+}
+
+static int
+get_udp_payload_size (struct in6_addr *dst)
+{
+  int r = 0;
+  // the ip header maximum size is 60 and a UDP header contains 8 bytes
+  if ((r = get_mtu (dst) - 60 - 8) < 0)
+    return -1;
+  return r;
+}
+
+tree_cell *
+nasl_get_mtu (lex_ctxt *lexic)
+{
+  int mtu;
+  if ((mtu = get_mtu (plug_get_host_ip (lexic->script_infos))) == -1)
+    {
+      nasl_perror (
+        lexic,
+        "Unable to get MTU of used interface. get_mtu is not available.\n");
+    }
+  tree_cell *retc;
+  retc = alloc_typed_cell (CONST_INT);
+  retc->x.i_val = mtu;
+
+  return retc;
+}
+
 tree_cell *
 nasl_send (lex_ctxt *lexic)
 {
@@ -928,6 +979,7 @@ nasl_send (lex_ctxt *lexic)
   int length = get_int_var_by_name (lexic, "length", 0);
   int data_length = get_var_size_by_name (lexic, "data");
   int n;
+  int mtu = -1;
   tree_cell *retc;
   int type;
   unsigned int type_len = sizeof (type);
@@ -947,6 +999,13 @@ nasl_send (lex_ctxt *lexic)
       && getsockopt (soc, SOL_SOCKET, SO_TYPE, &type, &type_len) == 0
       && type == SOCK_DGRAM)
     {
+      if ((mtu = get_udp_payload_size (plug_get_host_ip (lexic->script_infos)))
+            > 0
+          && mtu < length)
+        nasl_perror (lexic,
+                     "data payload is larger (%d) than max udp payload (%d)\n",
+                     length, mtu);
+
       n = send (soc, data, length, option);
       add_udp_data (lexic->script_infos, soc, data, length);
     }
