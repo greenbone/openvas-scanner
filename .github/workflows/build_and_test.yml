@@ -35,7 +35,7 @@ jobs:
         with:
           name: scan-build-report
           path: ~/scan-build-report/
-          retention-days: 7
+          retention-days: 3
 
   unit-tests:
     name: Unit Tests
