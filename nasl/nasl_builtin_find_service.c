@@ -1617,6 +1617,14 @@ plugin_do_run (struct script_infos *desc, GSList *h, int test_ssl)
                 }
               else if (cnx < 0 && test_ssl)
                 {
+                  if (cnx == -3)
+                    {
+                      host_fqdn = plug_get_host_fqdn (desc);
+                      g_message ("%s: A TLS fatal alert has been received "
+                                 "during the handshake with %s:%d",
+                                 __func__, host_fqdn, port);
+                      g_free (host_fqdn);
+                    }
                   trp = OPENVAS_ENCAPS_IP;
                   gettimeofday (&tv1, NULL);
                   cnx = open_stream_connection (desc, port, trp, cnx_timeout);
