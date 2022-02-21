@@ -580,7 +580,8 @@ is_ip_address (const char *str)
  *              - INSECURE_DH_PRIME_BITS
  *
  * @return 1 on success. -1 on general error or timeout. -2 if DH prime bits on
- * server side are lower than minimum allowed.
+ * server side are lower than minimum allowed. -3 on Fatal alert received from
+ * server
  *
  */
 static int
@@ -669,13 +670,20 @@ open_SSL_connection (openvas_connection *fp, const char *cert, const char *key,
                      gnutls_strerror (err));
           return -2;
         }
-      else if (err != GNUTLS_E_INTERRUPTED && err != GNUTLS_E_AGAIN
-               && err != GNUTLS_E_WARNING_ALERT_RECEIVED)
+      else if (err == GNUTLS_E_FATAL_ALERT_RECEIVED)
         {
           g_debug ("[%d] gnutls_handshake: %s", getpid (),
                    gnutls_strerror (err));
+          return -3;
+        }
+      else if (err != GNUTLS_E_INTERRUPTED && err != GNUTLS_E_AGAIN
+               && err != GNUTLS_E_WARNING_ALERT_RECEIVED)
+        {
+          g_debug ("[%d] gnutls_handshake: %s, %d", getpid (),
+                   gnutls_strerror (err), err);
           return -1;
         }
+
       FD_ZERO (&fdr);
       FD_SET (fp->fd, &fdr);
       FD_ZERO (&fdw);
