@@ -29,8 +29,8 @@ pkg_check_modules (GLIB REQUIRED glib-2.0>=2.42)
 pkg_check_modules (GLIB_JSON REQUIRED json-glib-1.0>=1.4.4)
 pkg_check_modules (GNUTLS REQUIRED gnutls>=3.6.4)
 
-pkg_check_modules (LIBGVM_BASE REQUIRED libgvm_base>=21.10)
-pkg_check_modules (LIBGVM_UTIL REQUIRED libgvm_util>=21.10)
+pkg_check_modules (LIBGVM_BASE REQUIRED libgvm_base>=22.4)
+pkg_check_modules (LIBGVM_UTIL REQUIRED libgvm_util>=22.4)
 
 pkg_check_modules (OPENVAS_WMICLIENT libopenvas_wmiclient>=1.0.5)
 pkg_check_modules (OPENVAS_WINCMD libopenvas_wincmd>=1.0.5)

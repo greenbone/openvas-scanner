@@ -4,7 +4,7 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
-## [21.10] (unreleased)
+## [22.4] (unreleased)
 
 ### Added
 - Add support for volatile keys. [#682](https://github.com/greenbone/openvas/pull/682)
@@ -40,7 +40,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 ### Removed
 - Remove handling of source_iface related preferences. [#730](https://github.com/greenbone/openvas/pull/730)
 
-[21.10]: https://github.com/greenbone/openvas-scanner/compare/stable...main
+[22.4]: https://github.com/greenbone/openvas-scanner/compare/stable...main
 
 ## [21.4.3] (unreleased)
 ### Added
@@ -78,7 +78,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ### Added
 - Improve nasl linter to catch more cases of undeclared variables. [#728](https://github.com/greenbone/openvas-scanner/pull/728)
-- Add deprecation warning for source_iface related settings which will be removed with the 21.10 release. [#732](https://github.com/greenbone/openvas-scanner/pull/732)
+- Add deprecation warning for source_iface related settings which will be removed with the 22.4 release. [#732](https://github.com/greenbone/openvas-scanner/pull/732)
 - New Credentials for SSH to get su privileges. Backport of [#744](https://github.com/greenbone/openvas-scanner/pull/744). [#753](https://github.com/greenbone/openvas-scanner/pull/753)
 
 ### Changed

@@ -11,7 +11,7 @@ Prerequisites for openvas
 Prerequisites:
 * a C compiler (e.g. gcc)
 * cmake >= 3.0
-* libgvm_base, libgvm_util >= 21.10
+* libgvm_base, libgvm_util >= 22.4
 * glib-2.0 >= 2.42
 * gio-2.0
 * json-glib-1.0 >= 1.4.4
