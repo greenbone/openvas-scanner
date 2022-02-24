@@ -787,16 +787,13 @@ nasl_lint (lex_ctxt *lexic, tree_cell *st)
   lexic_aux->script_infos = lexic->script_infos;
   lexic_aux->oid = lexic->oid;
 
-  /* Check description block sanity. Limit the search to the description
-   * block only. Include files don't have a description block and won't be
-   * checked */
+  /* Check description block sanity. */
   desc_block = find_description_block (lexic_aux, st);
   if (desc_block != NULL && desc_block != FAKE_CELL)
     /* FAKE_CELL if success, NULL otherwise which counts as error */
     if ((ret = check_description_block (lexic_aux, desc_block)) == NULL)
       {
         inc_errors_cnt ();
-        goto fail;
       }
 
   /* Make a list of all called functions */
@@ -809,7 +806,6 @@ nasl_lint (lex_ctxt *lexic, tree_cell *st)
       == NULL)
     {
       inc_errors_cnt ();
-      goto fail;
     }
   /* Check if a called function was defined. */
   if ((ret = nasl_lint_call (lexic_aux, st, &include_files, &func_fnames_tab,
@@ -817,7 +813,6 @@ nasl_lint (lex_ctxt *lexic, tree_cell *st)
       == NULL)
     {
       inc_errors_cnt ();
-      goto fail;
     }
 
   /* Check if the included files are used or not. */
@@ -827,8 +822,7 @@ nasl_lint (lex_ctxt *lexic, tree_cell *st)
     g_slist_foreach (unusedfiles, (GFunc) print_uncall_files, lexic_aux);
   if ((g_slist_length (unusedfiles)) > 0)
     {
-      ret = NULL;
-      goto fail;
+      inc_errors_cnt ();
     }
 
   /* Now check that each function was loaded just once. */
@@ -839,7 +833,6 @@ nasl_lint (lex_ctxt *lexic, tree_cell *st)
       == NULL)
     {
       inc_errors_cnt ();
-      goto fail;
     }
 
   /* Check if a variable was declared. */
@@ -850,7 +843,6 @@ nasl_lint (lex_ctxt *lexic, tree_cell *st)
   g_slist_free (defined_var);
   defined_var = NULL;
 
-fail:
   g_slist_free (called_funcs);
   called_funcs = NULL;
   g_slist_free_full (def_func_tree, (GDestroyNotify) free_list_func);
