@@ -456,6 +456,8 @@ nasl_ereg (lex_ctxt *lexic)
   char *string = get_str_var_by_name (lexic, "string");
   int icase = get_int_var_by_name (lexic, "icase", 0);
   int multiline = get_int_var_by_name (lexic, "multiline", 0);
+  int replace_nul = get_int_var_by_name (lexic, "rnul", 0);
+  int max_size = get_var_size_by_name (lexic, "string");
   char *s;
   int copt = 0;
   tree_cell *retc;
@@ -475,7 +477,12 @@ nasl_ereg (lex_ctxt *lexic)
     }
 
   retc = alloc_typed_cell (CONST_INT);
-  string = g_strdup (string);
+
+  if (replace_nul)
+    string = g_regex_escape_nul (string, max_size);
+  else
+    string = g_strdup (string);
+
   if (multiline)
     s = NULL;
   else
@@ -692,6 +699,7 @@ nasl_egrep (lex_ctxt *lexic)
   char *pattern = get_str_var_by_name (lexic, "pattern");
   char *string = get_str_var_by_name (lexic, "string");
   int icase = get_int_var_by_name (lexic, "icase", 0);
+  int replace_nul = get_int_var_by_name (lexic, "rnul", 0);
   tree_cell *retc;
   regex_t re;
   regmatch_t subs[NS];
@@ -712,7 +720,10 @@ nasl_egrep (lex_ctxt *lexic)
     copt = 0;
 
   rets = g_malloc0 (max_size + 2);
-  string = g_strdup (string);
+  if (replace_nul)
+    string = g_regex_escape_nul (string, max_size);
+  else
+    string = g_strdup (string);
 
   s = string;
   while (s[0] == '\n')
@@ -813,6 +824,8 @@ nasl_eregmatch (lex_ctxt *lexic)
   char *string = get_str_var_by_name (lexic, "string");
   int icase = get_int_var_by_name (lexic, "icase", 0);
   int find_all = get_int_var_by_name (lexic, "find_all", 0);
+  int replace_nul = get_int_var_by_name (lexic, "rnul", 0);
+  int max_size = get_var_size_by_name (lexic, "string");
   int copt = 0;
   tree_cell *retc;
   regex_t re;
@@ -825,6 +838,11 @@ nasl_eregmatch (lex_ctxt *lexic)
 
   if (pattern == NULL || string == NULL)
     return NULL;
+
+  if (replace_nul)
+    string = g_regex_escape_nul (string, max_size);
+  else
+    string = g_strdup (string);
 
   if (regcomp (&re, pattern, REG_EXTENDED | copt))
     {
