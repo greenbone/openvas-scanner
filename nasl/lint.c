@@ -181,7 +181,7 @@ static void
 check_called_files (gpointer key, gpointer value, GSList **unusedfiles)
 {
   if (key != NULL)
-    if (!g_strcmp0 (value, "NO"))
+    if (g_strcmp0 (value, "YES") != 0)
       *unusedfiles = g_slist_prepend (*unusedfiles, key);
 }
 
@@ -239,7 +239,6 @@ nasl_lint_def (lex_ctxt *lexic, tree_cell *st, int lint_mode,
       finfo->caller_file = g_strdup (err_fname ? err_fname : nasl_name);
       finfo->caller_func = g_strdup (current_fun_def);
       *def_func_tree = g_slist_prepend (*def_func_tree, finfo);
-
       /* Check if function parameters are used multiple times. Only check
        * this if we are in lint mode 1 to not check it multiple times. */
       if (lint_mode == 1)
@@ -417,6 +416,28 @@ validate_function (lex_ctxt *lexic, tree_cell *st)
 }
 
 /**
+ * @brief Returns 1 if the function is at least sued once by another caller than
+ * filename otherwise 0.
+ */
+static int
+is_deffunc_used (const char *funcname, const char *filename,
+                 GSList *def_func_tree)
+{
+  func_info *element;
+  GSList *current = def_func_tree;
+  do
+    {
+      element = current->data;
+      if (g_strcmp0 (element->func_name, funcname) == 0
+          && g_strcmp0 (element->caller_file, filename) != 0)
+        return 1;
+      current = current->next;
+    }
+  while (current->next != NULL);
+  return 0;
+}
+
+/**
  * @brief Check if a called function was defined.
  */
 static tree_cell *
@@ -484,7 +505,11 @@ nasl_lint_call (lex_ctxt *lexic, tree_cell *st, GHashTable **include_files,
                                    nasl_get_filename (st->x.str_val)))
             {
               incname = g_strdup (nasl_get_filename (st->x.str_val));
-              g_hash_table_replace (*include_files, incname, g_strdup ("YES"));
+              if (is_deffunc_used (st->x.str_val, incname, *def_func_tree))
+                {
+                  g_hash_table_replace (*include_files, incname,
+                                        g_strdup ("YES"));
+                }
             }
         }
       if (g_strcmp0 (st->x.str_val, "defined_func") == 0)
