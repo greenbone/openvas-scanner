@@ -218,7 +218,6 @@ set_target_properties (openvas_nasl_shared PROPERTIES VERSION "${PROJECT_VERSION
 target_link_libraries (openvas_nasl_shared openvas_misc_shared ${GLIB_LDFLAGS}
                          ${GCRYPT_LDFLAGS} ${GPGME_LDFLAGS} m
                          ${LIBGVM_BASE_LDFLAGS}
-                         ${LIBNET_LDFLAGS}
                          ${LIBGVM_UTIL_LDFLAGS}
                          ${OPENVAS_WMICLIENT_LDFLAGS} ${OPENVAS_WINCMD_LDFLAGS}
                          ${GNUTLS_LDFLAGS} ${PCAP_LDFLAGS} ${LIBSSH_LDFLAGS}
