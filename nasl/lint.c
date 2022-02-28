@@ -416,7 +416,7 @@ validate_function (lex_ctxt *lexic, tree_cell *st)
 }
 
 /**
- * @brief Returns 1 if the function is at least sued once by another caller than
+ * @brief Returns 1 if the function is at least used once by another caller than
  * filename otherwise 0.
  */
 static int
