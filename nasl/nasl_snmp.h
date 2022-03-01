@@ -29,9 +29,18 @@ tree_cell *
 nasl_snmpv1_get (lex_ctxt *);
 
 tree_cell *
+nasl_snmpv1_getnext (lex_ctxt *);
+
+tree_cell *
 nasl_snmpv2c_get (lex_ctxt *);
 
 tree_cell *
+nasl_snmpv2c_getnext (lex_ctxt *);
+
+tree_cell *
 nasl_snmpv3_get (lex_ctxt *);
+
+tree_cell *
+nasl_snmpv3_getnext (lex_ctxt *);
 
 #endif
