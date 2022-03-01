@@ -121,7 +121,7 @@ print_trace (void)
   strings = backtrace_symbols (array, ret);
   g_warning ("%s", message);
 
-  for (left = 0; left < 10; left++)
+  for (left = 0; left < ret; left++)
     g_warning ("%s\n", strings[left]);
 
   g_free (strings);
