@@ -1,6 +1,6 @@
 %define api.pure
-%parse-param {naslctxt * parm}
-%lex-param {naslctxt * parm}
+%parse-param {naslctxt * parm}{int * err_c}
+%lex-param {naslctxt * parm}{int * err_c}
 %expect 1
 %{
 /* Based on work Copyright (C) 2002 - 2004 Michel Arboi and Renaud Deraison
@@ -23,6 +23,8 @@
 
 #define YYPARSE_PARAM parm
 #define YYLEX_PARAM parm
+#define YYPARSE_ERRC err_c
+#define YYLEX_ERRC err_c
 
 #define LNB	(((naslctxt*)parm)->line_nb)
 
@@ -51,7 +53,7 @@ static char *parse_buffer = NULL;
 
 static int parse_len = 0;
 
-static void naslerror(naslctxt *, const char *);
+static void naslerror(naslctxt *, int *, const char *);
 
 GHashTable *includes_hash = NULL;
 
@@ -69,7 +71,7 @@ GHashTable *includes_hash = NULL;
 }
 
 %{
-static int nasllex(YYSTYPE * lvalp, void * parm);
+static int nasllex(YYSTYPE * lvalp, void * parm, int * err_c);
 %}
 
 %token IF
@@ -216,7 +218,9 @@ instr_list: instr
 	} ;
 
 /* Instructions */
-instr: simple_instr ';' { $$ = $1; } | block | if_block | loop ;
+instr: simple_instr ';' { $$ = $1; } | block | if_block | loop
+        | error ';' {yyerrok;}
+        ;
 
 /* "simple" instruction */
 simple_instr : aff | post_pre_incr | rep
@@ -313,6 +317,11 @@ inc: INCLUDE '(' string ')'
 	{
           char *tmp;
 	  naslctxt	subctx;
+  #pragma GCC diagnostic push
+  #pragma GCC diagnostic ignored "-Wunused-but-set-variable"
+          int * error_counter;
+  #pragma GCC diagnostic pop
+          error_counter = (int*)err_c;
 
           bzero (&subctx, sizeof (subctx));
           subctx.always_signed = ((naslctxt*)parm)->always_signed;
@@ -335,7 +344,7 @@ inc: INCLUDE '(' string ')'
             }
           else if (init_nasl_ctx (&subctx, $3) >= 0)
             {
-              if (!naslparse (&subctx))
+              if (!naslparse (&subctx, err_c))
                 {
                   $$ = subctx.tree;
                   g_hash_table_insert (includes_hash, $3, $$);
@@ -535,10 +544,12 @@ glob: GLOBAL arg_decl
 #include <gcrypt.h>
 
 static void
-naslerror(naslctxt *parm, const char *s)
+naslerror(naslctxt *parm, int *error_counter, const char *s)
 {
   (void) parm;
-  g_message ("%s", s);
+  (*error_counter)++;
+  g_message ("Parse error at or near line %d:", LNB);
+  g_message ("    %s", s);
 }
 
 static GSList * inc_dirs = NULL;
@@ -1439,8 +1450,12 @@ mylex (YYSTYPE *lvalp, void *parm)
 }
 
 static int
-nasllex(YYSTYPE * lvalp, void * parm)
+nasllex(YYSTYPE * lvalp, void * parm, int * err_c)
 {
+  #pragma GCC diagnostic push
+  #pragma GCC diagnostic ignored "-Wunused-parameter"
+  (void) err_c;
+  #pragma GCC diagnostic pop
   int	x = mylex (lvalp, parm);
   return x;
 }
