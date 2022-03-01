@@ -548,8 +548,8 @@ naslerror(naslctxt *parm, int *error_counter, const char *s)
 {
   (void) parm;
   (*error_counter)++;
-  g_message ("%s", s);
-  g_message ("Parse error at or near line %d", LNB);
+  g_message ("Parse error at or near line %d:", LNB);
+  g_message ("    %s", s);
 }
 
 static GSList * inc_dirs = NULL;
