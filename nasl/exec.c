@@ -49,7 +49,7 @@
 #define G_LOG_DOMAIN "lib  nasl"
 
 extern int
-naslparse (naslctxt *);
+naslparse (naslctxt *, int *);
 
 static int
 cell2bool (lex_ctxt *lexic, tree_cell *c)
@@ -1634,6 +1634,7 @@ exec_nasl_script (struct script_infos *script_infos, int mode)
   tree_cell tc;
   const char *str, *name = script_infos->name, *oid = script_infos->oid;
   gchar *short_name = g_path_get_basename (name);
+  int error_counter = 0;
 
   nasl_set_plugin_filename (short_name);
   g_free (short_name);
@@ -1666,9 +1667,10 @@ exec_nasl_script (struct script_infos *script_infos, int mode)
 
   if (init_nasl_ctx (&ctx, name) == 0)
     {
-      if (naslparse (&ctx))
+      err = naslparse (&ctx, &error_counter);
+      if (err != 0 || error_counter > 0)
         {
-          g_message ("%s: Parse error at or near line %d", name, ctx.line_nb);
+          g_message ("%s. There were %d parse errors.\n", name, error_counter);
           nasl_clean_ctx (&ctx);
           g_chdir (old_dir);
           g_free (old_dir);
