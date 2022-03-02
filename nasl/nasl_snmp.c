@@ -268,33 +268,31 @@ snmpv3_get (const struct snmpv3_request *request, char **result)
 /*
  * @brief SNMP v1 or v2c Get query value.
  *
- * param[in]    peername    Target host in [protocol:]address[:port] format.
- * param[in]    community   SNMP community string.
- * param[in]    oid_str     OID string of value to get.
- * param[in]    version     SNMP_VERSION_1 or SNMP_VERSION_2c.
+ * param[in]    request     Contains all necessary information for SNMPv1 or
+ *                          SNMPv2 query.
  * param[out]   result      Result of query.
  *
  * @return 0 if success and result value, -1 otherwise.
  */
 static int
-snmpv1v2c_get (const char *peername, const char *community, const char *oid_str,
-               int version, char **result)
+snmpv1v2c_get (const struct snmpv1v2_request *request, char **result)
 {
   struct snmp_session session;
 
-  assert (peername);
-  assert (community);
-  assert (oid_str);
-  assert (version == SNMP_VERSION_1 || version == SNMP_VERSION_2c);
+  assert (request);
+  assert (request->peername);
+  assert (request->community);
+  assert (request->oid_str);
+  assert (request->version == SNMP_VERSION_1 || request->version == SNMP_VERSION_2c);
 
   setenv ("MIBS", "", 1);
   snmp_sess_init (&session);
-  session.version = version;
-  session.peername = (char *) peername;
-  session.community = (u_char *) community;
-  session.community_len = strlen (community);
+  session.version = request->version;
+  session.peername = (char *) request->peername;
+  session.community = (u_char *) request->community;
+  session.community_len = strlen (request->community);
 
-  return snmp_get (&session, oid_str, result);
+  return snmp_get (&session, request->oid_str, request->action, result);
 }
 
 #else //no libnet. snmpget cmd wrap-up
