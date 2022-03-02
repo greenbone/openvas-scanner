@@ -257,7 +257,7 @@ snmpv1v2c_get (const char *peername, const char *community, const char *oid_str,
   return snmp_get (&session, oid_str, result);
 }
 
-#else
+#else //no libnet. snmpget cmd wrap-up
 
 #define SNMP_VERSION_1 0
 #define SNMP_VERSION_2c 1
@@ -345,7 +345,7 @@ check_spwan_output (int fd, char **result)
 }
 
 /**
- * @brief SNMP v1 or v2c Get query value.
+ * @brief SNMP v1 or v2c Get query value. snmpget cmd wrapper
  *
  * param[in]    peername    Target host in [protocol:]address[:port] format.
  * param[in]    community   SNMP community string.
@@ -423,7 +423,7 @@ snmpv1v2c_get (const char *peername, const char *community, const char *oid_str,
 }
 
 /**
- * @brief SNMPv3 Get query value.
+ * @brief SNMPv3 Get query value. snmpget cmd wrapper.
  *
  * param[in]    peername    Target host in [protocol:]address[:port] format.
  * param[in]    username    Username value.
