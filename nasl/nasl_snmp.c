@@ -63,6 +63,21 @@ struct snmpv1v2_request
   u_char action;   /**< snmp get or getnext action. */
 };
 
+/**
+ * @brief SNMP Request struct for snmp v3
+ */
+struct snmpv3_request
+{
+  char *peername;  /**< snmp peer name. */
+  char *username; /**< snmp username. */
+  char *authpass; /**< snmp authorization password. */
+  char *privpass; /**< snmp private password. */
+  char *oid_str;   /**< snmp oid to search for. */
+  int authproto;     /**< snmp authorization protocol. 0 for md5, 1 for sha1. */
+  int privproto;     /**< snmp private protocol. 0 for des, 1 for aes. */
+  u_char action;   /**< snmp get or getnext action. */
+};
+
 /*
  * @brief Check that protocol value is valid.
  *
