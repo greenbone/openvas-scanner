@@ -186,44 +186,38 @@ snmp_get (struct snmp_session *session, const char *oid_str, char **result)
 /*
  * @brief SNMPv3 Get query value.
  *
- * param[in]    peername    Target host in [protocol:]address[:port] format.
- * param[in]    username    Username value.
- * param[in]    authpass    Authentication password.
- * param[in]    authproto   Authentication protocol. 0 for md5, 1 for sha1.
- * param[in]    privpass    Privacy password.
- * param[in]    privproto   Privacy protocol. 0 for des, 1 for aes.
- * param[in]    oid_str     OID of value to get.
+ * param[in]    request     Contains all necessary information for SNMPv3 query.
  * param[out]   result      Result of query.
  *
  * @return 0 if success and result value, -1 otherwise.
  */
 static int
-snmpv3_get (const char *peername, const char *username, const char *authpass,
-            int authproto, const char *privpass, int privproto,
-            const char *oid_str, char **result)
+snmpv3_get (const struct snmpv3_request *request, char **result)
 {
   struct snmp_session session;
 
-  assert (peername);
-  assert (username);
-  assert (authpass);
-  assert (authproto == 0 || authproto == 1);
-  assert (oid_str);
+  assert (request);
+  assert (request->peername);
+  assert (request->username);
+  assert (request->authpass);
+  assert (request->authproto == 0 || request->authproto == 1);
+  assert (request->oid_str);
+  assert (request->action);
   assert (result);
 
   setenv ("MIBS", "", 1);
   init_snmp ("openvas");
   snmp_sess_init (&session);
   session.version = SNMP_VERSION_3;
-  session.peername = (char *) peername;
-  session.securityName = (char *) username;
+  session.peername = (char *) request->peername;
+  session.securityName = (char *) request->username;
   session.securityNameLen = strlen (session.securityName);
 
-  if (privpass)
+  if (request->privpass)
     session.securityLevel = SNMP_SEC_LEVEL_AUTHPRIV;
   else
     session.securityLevel = SNMP_SEC_LEVEL_AUTHNOPRIV;
-  if (authproto == 0)
+  if (request->authproto == 0)
     {
       session.securityAuthProto = usmHMACMD5AuthProtocol;
       session.securityAuthProtoLen = USM_AUTH_PROTO_MD5_LEN;
@@ -235,16 +229,16 @@ snmpv3_get (const char *peername, const char *username, const char *authpass,
     }
   session.securityAuthKeyLen = USM_AUTH_KU_LEN;
   if (generate_Ku (session.securityAuthProto, session.securityAuthProtoLen,
-                   (u_char *) authpass, strlen (authpass),
+                   (u_char *) request->authpass, strlen (request->authpass),
                    session.securityAuthKey, &session.securityAuthKeyLen)
       != SNMPERR_SUCCESS)
     {
       *result = g_strdup ("generate_Ku: Error");
       return -1;
     }
-  if (privpass)
+  if (request->privpass)
     {
-      if (privproto)
+      if (request->privproto)
         {
           session.securityPrivProto = usmAESPrivProtocol;
           session.securityPrivProtoLen = USM_PRIV_PROTO_AES_LEN;
@@ -256,7 +250,7 @@ snmpv3_get (const char *peername, const char *username, const char *authpass,
         }
       session.securityPrivKeyLen = USM_PRIV_KU_LEN;
       if (generate_Ku (session.securityAuthProto, session.securityAuthProtoLen,
-                       (unsigned char *) privpass, strlen (privpass),
+                       (unsigned char *) request->privpass, strlen (request->privpass),
                        session.securityPrivKey, &session.securityPrivKeyLen)
           != SNMPERR_SUCCESS)
         {
@@ -265,7 +259,7 @@ snmpv3_get (const char *peername, const char *username, const char *authpass,
         }
     }
 
-  return snmp_get (&session, oid_str, result);
+  return snmp_get (&session, request->oid_str, request->action, result);
 }
 
 /*
