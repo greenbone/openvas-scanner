@@ -138,12 +138,13 @@ array_from_snmp_result (int ret, char *result)
  *
  * param[in]    session     SNMP session.
  * param[in]    oid_str     OID string.
+ * param[in]    action      Action to perform to get entry
  * param[out]   result      Result of query.
  *
  * @return 0 if success and result value, -1 otherwise.
  */
 static int
-snmp_get (struct snmp_session *session, const char *oid_str, char **result)
+snmp_get (struct snmp_session *session, const char *oid_str, const u_char action, char **result)
 {
   struct snmp_session *ss;
   struct snmp_pdu *query, *response;
@@ -157,7 +158,7 @@ snmp_get (struct snmp_session *session, const char *oid_str, char **result)
       snmp_error (session, &status, &status, result);
       return -1;
     }
-  query = snmp_pdu_create (SNMP_MSG_GET);
+  query = snmp_pdu_create (action);
   read_objid (oid_str, oid_buf, &oid_size);
   snmp_add_null_var (query, oid_buf, oid_size);
   status = snmp_synch_response (ss, query, &response);
