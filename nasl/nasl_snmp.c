@@ -527,7 +527,7 @@ snmpv3_get (const char *peername, const char *username, const char *authpass,
 #endif /* HAVE_NETSNMP */
 
 static tree_cell *
-nasl_snmpv1v2c_get (lex_ctxt *lexic, int version)
+nasl_snmpv1v2c_get (lex_ctxt *lexic, int version, u_char action)
 {
   const char *proto, *community, *oid_str;
   char *result = NULL, peername[2048];
@@ -553,13 +553,25 @@ nasl_snmpv1v2c_get (lex_ctxt *lexic, int version)
 tree_cell *
 nasl_snmpv1_get (lex_ctxt *lexic)
 {
-  return nasl_snmpv1v2c_get (lexic, SNMP_VERSION_1);
+  return nasl_snmpv1v2c_get (lexic, SNMP_VERSION_1, NASL_SNMP_GET);
+}
+
+tree_cell *
+nasl_snmpv1_getnext (lex_ctxt *lexic)
+{
+  return nasl_snmpv1v2c_get (lexic, SNMP_VERSION_1, NASL_SNMP_GETNEXT);
 }
 
 tree_cell *
 nasl_snmpv2c_get (lex_ctxt *lexic)
 {
-  return nasl_snmpv1v2c_get (lexic, SNMP_VERSION_2c);
+  return nasl_snmpv1v2c_get (lexic, SNMP_VERSION_2c, NASL_SNMP_GET);
+}
+
+tree_cell *
+nasl_snmpv2c_getnext (lex_ctxt *lexic)
+{
+  return nasl_snmpv1v2c_get (lexic, SNMP_VERSION_2c, NASL_SNMP_GETNEXT);
 }
 
 tree_cell *
