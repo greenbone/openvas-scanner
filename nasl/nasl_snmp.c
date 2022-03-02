@@ -41,6 +41,16 @@
  */
 #define G_LOG_DOMAIN "lib  nasl"
 
+/**
+ * @brief SNMP V1
+ */
+#define SNMP_VERSION_1 0
+
+/**
+ * @brief SNMP V2c
+ */
+#define SNMP_VERSION_2c 1
+
 /*
  * @brief Check that protocol value is valid.
  *
