@@ -387,36 +387,37 @@ check_spwan_output (int fd, char **result)
 /**
  * @brief SNMP v1 or v2c Get query value. snmpget cmd wrapper
  *
- * param[in]    peername    Target host in [protocol:]address[:port] format.
- * param[in]    community   SNMP community string.
- * param[in]    oid_str     OID string of value to get.
- * param[in]    version     SNMP_VERSION_1 or SNMP_VERSION_2c.
+ * param[in]    request     Contains all necessary information for SNMPv1 or
+ *                          SNMPv2 query.
  * param[out]   result      Result of query.
  *
  * @return 0 if success and result value, -1 otherwise.
  */
 static int
-snmpv1v2c_get (const char *peername, const char *community, const char *oid_str,
-               int version, char **result)
+snmpv1v2c_get (const struct snmpv1v2_request *request, char **result)
 {
   char *argv[8], *pos = NULL;
   GError *err = NULL;
   int sout = 0, serr = 0, ret;
 
-  assert (peername);
-  assert (community);
-  assert (oid_str);
-  assert (version == SNMP_VERSION_1 || version == SNMP_VERSION_2c);
+  assert (request);
+  assert (request->peername);
+  assert (request->community);
+  assert (request->oid_str);
+  assert (request->version == SNMP_VERSION_1
+          || request->version == SNMP_VERSION_2c);
+  assert (request->action == NASL_SNMP_GET
+          || request->action == NASL_SNMP_GETNEXT);
 
   setenv ("MIBS", "", 1);
 
-  argv[0] = "snmpget";
-  argv[1] = (version == SNMP_VERSION_1) ? "-v1" : "-v2c";
+  argv[0] = (request->action == NASL_SNMP_GET) ? "snmpget" : "snmpgetnext";
+  argv[1] = (request->version == SNMP_VERSION_1) ? "-v1" : "-v2c";
   argv[2] = "-Oqv";
   argv[3] = "-c";
-  argv[4] = g_strdup (community);
-  argv[5] = g_strdup (peername);
-  argv[6] = g_strdup (oid_str);
+  argv[4] = g_strdup (request->community);
+  argv[5] = g_strdup (request->peername);
+  argv[6] = g_strdup (request->oid_str);
   argv[7] = NULL;
   ret = g_spawn_async_with_pipes (NULL, argv, NULL, G_SPAWN_SEARCH_PATH, NULL,
                                   NULL, NULL, NULL, &sout, &serr, &err);
