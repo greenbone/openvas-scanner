@@ -562,15 +562,19 @@ snmpv3_get (const struct snmpv3_request *request, char **result)
 static tree_cell *
 nasl_snmpv1v2c_get (lex_ctxt *lexic, int version, u_char action)
 {
-  const char *proto, *community, *oid_str;
-  char *result = NULL, peername[2048];
+  const char *proto;
+  char peername[2048];
+  char *result = NULL;
   int port, ret;
+  struct snmpv1v2_request request;
 
+  request.version = version;
+  request.action = action;
   port = get_int_var_by_name (lexic, "port", -1);
   proto = get_str_var_by_name (lexic, "protocol");
-  community = get_str_var_by_name (lexic, "community");
-  oid_str = get_str_var_by_name (lexic, "oid");
-  if (!proto || !community || !oid_str)
+  request.community = get_str_var_by_name (lexic, "community");
+  request.oid_str = get_str_var_by_name (lexic, "oid");
+  if (!proto || !request.community || !request.oid_str)
     return array_from_snmp_result (-2, "Missing function argument");
   if (port < 0 || port > 65535)
     return array_from_snmp_result (-2, "Invalid port value");
@@ -579,7 +583,8 @@ nasl_snmpv1v2c_get (lex_ctxt *lexic, int version, u_char action)
 
   g_snprintf (peername, sizeof (peername), "%s:%s:%d", proto,
               plug_get_host_ip_str (lexic->script_infos), port);
-  ret = snmpv1v2c_get (peername, community, oid_str, version, &result);
+  request.peername = peername;
+  ret = snmpv1v2c_get (&request, &result);
   return array_from_snmp_result (ret, result);
 }
 
