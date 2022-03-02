@@ -462,60 +462,53 @@ snmpv1v2c_get (const char *peername, const char *community, const char *oid_str,
 /**
  * @brief SNMPv3 Get query value. snmpget cmd wrapper.
  *
- * param[in]    peername    Target host in [protocol:]address[:port] format.
- * param[in]    username    Username value.
- * param[in]    authpass    Authentication password.
- * param[in]    authproto   Authentication protocol. 0 for md5, 1 for sha1.
- * param[in]    privpass    Privacy password.
- * param[in]    privproto   Privacy protocol. 0 for des, 1 for aes.
- * param[in]    oid_str     OID of value to get.
+ * param[in]    request     Contains all necessary information for SNMPv3 query.
  * param[out]   result      Result of query.
  *
  * @return 0 if success and result value, -1 otherwise.
  */
 static int
-snmpv3_get (const char *peername, const char *username, const char *authpass,
-            int authproto, const char *privpass, int privproto,
-            const char *oid_str, char **result)
+snmpv3_get (const struct snmpv3_request *request, char **result)
 {
   char *argv[18], *pos = NULL;
   GError *err = NULL;
   int sout = 0, serr = 0, ret;
 
-  assert (peername);
-  assert (username);
-  assert (authpass);
-  assert (authproto == 0 || authproto == 1);
-  assert (oid_str);
+  assert (request);
+  assert (request->peername);
+  assert (request->username);
+  assert (request->authpass);
+  assert (request->authproto == 0 || request->authproto == 1);
+  assert (request->oid_str);
   assert (result);
 
   setenv ("MIBS", "", 1);
 
-  argv[0] = "snmpget";
+  argv[0] = (request->action == NASL_SNMP_GET) ? "snmpget" : "snmpgetnext";
   argv[1] = "-v3";
   argv[2] = "-Oqv";
   argv[3] = "-u";
-  argv[4] = g_strdup (username);
+  argv[4] = g_strdup (request->username);
   argv[5] = "-A";
-  argv[6] = g_strdup (authpass);
+  argv[6] = g_strdup (request->authpass);
   argv[7] = "-l";
-  argv[8] = privpass ? "authPriv" : "authNoPriv";
+  argv[8] = request->privpass ? "authPriv" : "authNoPriv";
   argv[9] = "-a";
-  argv[10] = authproto ? "SHA" : "MD5";
-  if (privpass)
+  argv[10] = request->authproto ? "SHA" : "MD5";
+  if (request->privpass)
     {
-      argv[11] = g_strdup (peername);
-      argv[12] = g_strdup (oid_str);
+      argv[11] = g_strdup (request->peername);
+      argv[12] = g_strdup (request->oid_str);
       argv[13] = "-x";
-      argv[14] = privproto ? "AES" : "DES";
+      argv[14] = request->privproto ? "AES" : "DES";
       argv[15] = "-X";
-      argv[16] = g_strdup (privpass);
+      argv[16] = g_strdup (request->privpass);
       argv[17] = NULL;
     }
   else
     {
-      argv[11] = g_strdup (peername);
-      argv[12] = g_strdup (oid_str);
+      argv[11] = g_strdup (request->peername);
+      argv[12] = g_strdup (request->oid_str);
       argv[13] = NULL;
     }
 
@@ -525,12 +518,12 @@ snmpv3_get (const char *peername, const char *username, const char *authpass,
   g_free (argv[6]);
   g_free (argv[11]);
   g_free (argv[12]);
-  if (privpass)
+  if (request->privpass)
     g_free (argv[16]);
 
   if (ret == FALSE)
     {
-      g_warning ("snmpget: %s", err ? err->message : "Error");
+      g_warning ("%s: %s", argv[0], err ? err->message : "Error");
       if (err)
         g_error_free (err);
       return -1;
