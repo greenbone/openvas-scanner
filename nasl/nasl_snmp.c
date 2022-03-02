@@ -563,7 +563,7 @@ nasl_snmpv2c_get (lex_ctxt *lexic)
 }
 
 tree_cell *
-nasl_snmpv3_get (lex_ctxt *lexic)
+nasl_snmpv3_get_action (lex_ctxt *lexic, u_char action)
 {
   const char *proto, *username, *authpass, *authproto, *oid_str;
   const char *privpass, *privproto;
@@ -607,4 +607,16 @@ nasl_snmpv3_get (lex_ctxt *lexic)
   ret = snmpv3_get (peername, username, authpass, aproto, privpass, pproto,
                     oid_str, &result);
   return array_from_snmp_result (ret, result);
+}
+
+tree_cell *
+nasl_snmpv3_get (lex_ctxt *lexic)
+{
+  return nasl_snmpv3_get_action (lexic, NASL_SNMP_GET);
+}
+
+tree_cell *
+nasl_snmpv3_getnext (lex_ctxt *lexic)
+{
+  return nasl_snmpv3_get_action (lexic, NASL_SNMP_GETNEXT);
 }
