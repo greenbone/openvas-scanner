@@ -130,6 +130,9 @@ array_from_snmp_result (int ret, char *result)
 #include <net-snmp/net-snmp-config.h>
 #include <net-snmp/net-snmp-includes.h>
 
+#define NASL_SNMP_GET SNMP_MSG_GET
+#define NASL_SNMP_GETNEXT SNMP_MSG_GETNEXT
+
 /*
  * @brief SNMP Get query value.
  *
@@ -296,8 +299,8 @@ snmpv1v2c_get (const char *peername, const char *community, const char *oid_str,
 
 #else //no libnet. snmpget cmd wrap-up
 
-#define SNMP_VERSION_1 0
-#define SNMP_VERSION_2c 1
+#define NASL_SNMP_GET 0
+#define NASL_SNMP_GETNEXT 1
 
 /**
  * @brief Parse the snmp error.
