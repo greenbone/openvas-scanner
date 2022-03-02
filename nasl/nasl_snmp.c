@@ -35,6 +35,12 @@
 #include <string.h>
 #include <unistd.h>
 
+#undef G_LOG_DOMAIN
+/**
+ * @brief GLib logging domain.
+ */
+#define G_LOG_DOMAIN "lib  nasl"
+
 /*
  * @brief Check that protocol value is valid.
  *
