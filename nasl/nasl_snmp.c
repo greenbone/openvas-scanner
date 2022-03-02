@@ -51,6 +51,18 @@
  */
 #define SNMP_VERSION_2c 1
 
+/**
+ * @brief SNMP Request struct for snmp v1 and v2c
+ */
+struct snmpv1v2_request
+{
+  char *peername;  /**< snmp peer name. */
+  char *community; /**< snmp community name. */
+  char *oid_str;   /**< snmp oid to search for. */
+  int version;     /**< snmp version. */
+  u_char action;   /**< snmp get or getnext action. */
+};
+
 /*
  * @brief Check that protocol value is valid.
  *
