@@ -78,6 +78,12 @@ struct snmpv3_request
   u_char action;   /**< snmp get or getnext action. */
 };
 
+struct snmp_result
+{
+  char *oid_str; /**< oid. */
+  char *name;  /**< value in stored under the oid. */
+};
+
 /*
  * @brief Check that protocol value is valid.
  *
