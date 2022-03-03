@@ -144,6 +144,29 @@ array_from_snmp_result (int ret, const struct snmp_result *result)
   return retc;
 }
 
+static tree_cell *
+array_from_snmp_error (int ret, const char *err)
+{
+  anon_nasl_var v;
+
+  assert (err);
+  tree_cell *retc = alloc_typed_cell (DYN_ARRAY);
+  retc->x.ref_val = g_malloc0 (sizeof (nasl_array));
+  /* Return code */
+  memset (&v, 0, sizeof (v));
+  v.var_type = VAR2_INT;
+  v.v.v_int = ret;
+  add_var_to_list (retc->x.ref_val, 0, &v);
+  /* Return error */
+  memset (&v, 0, sizeof v);
+  v.var_type = VAR2_STRING;
+  v.v.v_str.s_val = (unsigned char *) err;
+  v.v.v_str.s_siz = strlen (err);
+  add_var_to_list (retc->x.ref_val, 1, &v);
+
+  return retc;
+}
+
 #ifdef HAVE_NETSNMP
 
 #include <net-snmp/net-snmp-config.h>
