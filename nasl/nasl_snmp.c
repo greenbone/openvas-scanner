@@ -186,7 +186,7 @@ array_from_snmp_error (int ret, const char *err)
  * @return 0 if success and result value, -1 otherwise.
  */
 static int
-snmp_get (struct snmp_session *session, const char *oid_str, const u_char action, char **result)
+snmp_get (struct snmp_session *session, const char *oid_str, const u_char action, struct snmp_result *result)
 {
   struct snmp_session *ss;
   struct snmp_pdu *query, *response;
@@ -197,7 +197,7 @@ snmp_get (struct snmp_session *session, const char *oid_str, const u_char action
   ss = snmp_open (session);
   if (!ss)
     {
-      snmp_error (session, &status, &status, result);
+      snmp_error (session, &status, &status, &(result->name));
       return -1;
     }
   query = snmp_pdu_create (action);
@@ -206,7 +206,7 @@ snmp_get (struct snmp_session *session, const char *oid_str, const u_char action
   status = snmp_synch_response (ss, query, &response);
   if (status != STAT_SUCCESS)
     {
-      snmp_error (ss, &status, &status, result);
+      snmp_error (ss, &status, &status, &(result->name));
       snmp_close (ss);
       return -1;
     }
@@ -215,16 +215,20 @@ snmp_get (struct snmp_session *session, const char *oid_str, const u_char action
   if (response->errstat == SNMP_ERR_NOERROR)
     {
       struct variable_list *vars = response->variables;
-      size_t res_len = 0, buf_len = 0;
+      size_t res_len = 0, buf_len = 0, res_len1 = 0, buf_len1 = 0;
 
       netsnmp_ds_set_boolean (NETSNMP_DS_LIBRARY_ID, NETSNMP_DS_LIB_QUICK_PRINT,
                               1);
-      sprint_realloc_value ((u_char **) result, &buf_len, &res_len, 1,
+      sprint_realloc_value ((u_char **) &(result->name), &buf_len, &res_len, 1,
                             vars->name, vars->name_length, vars);
+      sprint_realloc_objid ((u_char **) &(result->oid_str), &buf_len1,
+                            &res_len1, 1, vars->name, vars->name_length);
+
       snmp_free_pdu (response);
       return 0;
     }
-  *result = g_strdup (snmp_errstring (response->errstat));
+
+  result->name = g_strdup (snmp_errstring (response->errstat));
   snmp_free_pdu (response);
   return -1;
 }
@@ -238,7 +242,7 @@ snmp_get (struct snmp_session *session, const char *oid_str, const u_char action
  * @return 0 if success and result value, -1 otherwise.
  */
 static int
-snmpv3_get (const struct snmpv3_request *request, char **result)
+snmpv3_get (const struct snmpv3_request *request, struct snmp_result *result)
 {
   struct snmp_session session;
 
@@ -249,7 +253,6 @@ snmpv3_get (const struct snmpv3_request *request, char **result)
   assert (request->authproto == 0 || request->authproto == 1);
   assert (request->oid_str);
   assert (request->action);
-  assert (result);
 
   setenv ("MIBS", "", 1);
   init_snmp ("openvas");
@@ -279,7 +282,7 @@ snmpv3_get (const struct snmpv3_request *request, char **result)
                    session.securityAuthKey, &session.securityAuthKeyLen)
       != SNMPERR_SUCCESS)
     {
-      *result = g_strdup ("generate_Ku: Error");
+      result->name = g_strdup ("generate_Ku: Error");
       return -1;
     }
   if (request->privpass)
@@ -300,7 +303,7 @@ snmpv3_get (const struct snmpv3_request *request, char **result)
                        session.securityPrivKey, &session.securityPrivKeyLen)
           != SNMPERR_SUCCESS)
         {
-          *result = g_strdup ("generate_Ku: Error");
+          result->name = g_strdup ("generate_Ku: Error");
           return -1;
         }
     }
@@ -318,7 +321,7 @@ snmpv3_get (const struct snmpv3_request *request, char **result)
  * @return 0 if success and result value, -1 otherwise.
  */
 static int
-snmpv1v2c_get (const struct snmpv1v2_request *request, char **result)
+snmpv1v2c_get (const struct snmpv1v2_request *request, struct snmp_result *result)
 {
   struct snmp_session session;
 
@@ -349,11 +352,11 @@ snmpv1v2c_get (const struct snmpv1v2_request *request, char **result)
  * @param result[in,out] The result error to be parsed.
  */
 static void
-parse_snmp_error (char **result)
+parse_snmp_error (struct snmp_result *result)
 {
   gchar **res_split, **res_aux;
 
-  res_aux = res_split = g_strsplit (*result, "\n", 0);
+  res_aux = res_split = g_strsplit (result->name, "\n", 0);
 
   if (!res_split)
     return;
@@ -367,7 +370,7 @@ parse_snmp_error (char **result)
         {
           char *pos;
 
-          if ((pos = strchr (*result, '\n')) != NULL)
+          if ((pos = strchr (result->name, '\n')) != NULL)
             *pos = '\0';
           break;
         }
@@ -376,8 +379,8 @@ parse_snmp_error (char **result)
       *res_aux = g_strrstr (*res_aux, "Reason: ");
       if (*res_aux)
         {
-          g_free (*result);
-          *result = g_strdup (*res_aux + 8);
+          g_free (result->name);
+          result->name = g_strdup (*res_aux + 8);
           break;
         }
       res_aux += 1;
@@ -396,7 +399,7 @@ parse_snmp_error (char **result)
  * @return 0 success, -1 read error.
  */
 static int
-check_spwan_output (int fd, char **result)
+check_spwan_output (int fd, struct snmp_result *result)
 {
   GString *string = NULL;
 
@@ -419,7 +422,7 @@ check_spwan_output (int fd, char **result)
         }
     }
 
-  *result = g_strdup (string->str);
+  result->name = g_strdup (string->str);
   g_string_free (string, TRUE);
 
   return 0;
@@ -435,7 +438,7 @@ check_spwan_output (int fd, char **result)
  * @return 0 if success and result value, -1 otherwise.
  */
 static int
-snmpv1v2c_get (const struct snmpv1v2_request *request, char **result)
+snmpv1v2c_get (const struct snmpv1v2_request *request, struct snmp_result *result)
 {
   char *argv[8], *pos = NULL;
   GError *err = NULL;
@@ -480,7 +483,7 @@ snmpv1v2c_get (const struct snmpv1v2_request *request, char **result)
      We assume a valid output if there is no errors.
   */
   check_spwan_output (serr, result);
-  if (result && *result[0] != '\0')
+  if (result->name && result->name[0] != '\0')
     {
       parse_snmp_error (result);
       close (sout);
@@ -488,13 +491,13 @@ snmpv1v2c_get (const struct snmpv1v2_request *request, char **result)
       return -1;
     }
   close (serr);
-  g_free (*result);
+  g_free (result->name);
 
   check_spwan_output (sout, result);
   close (sout);
 
   /* Remove the last new line char from the result */
-  if ((pos = strchr (*result, '\0')) != NULL)
+  if ((pos = strchr (result->name, '\0')) != NULL)
     {
       pos--;
       if (pos[0] == '\n')
@@ -513,7 +516,7 @@ snmpv1v2c_get (const struct snmpv1v2_request *request, char **result)
  * @return 0 if success and result value, -1 otherwise.
  */
 static int
-snmpv3_get (const struct snmpv3_request *request, char **result)
+snmpv3_get (const struct snmpv3_request *request, struct snmp_result *result)
 {
   char *argv[18], *pos = NULL;
   GError *err = NULL;
@@ -575,7 +578,7 @@ snmpv3_get (const struct snmpv3_request *request, char **result)
     }
 
   check_spwan_output (serr, result);
-  if (result && *result[0] != '\0')
+  if (result->name && result->name[0] != '\0')
     {
       parse_snmp_error (result);
       close (sout);
@@ -583,13 +586,13 @@ snmpv3_get (const struct snmpv3_request *request, char **result)
       return -1;
     }
   close (serr);
-  g_free (*result);
+  g_free (result->name);
 
   check_spwan_output (sout, result);
   close (sout);
 
   /* Remove the last new line char from the result */
-  if ((pos = strchr (*result, '\0')) != NULL)
+  if ((pos = strchr (result->name, '\0')) != NULL)
     {
       pos--;
       if (pos[0] == '\n')
@@ -606,10 +609,13 @@ nasl_snmpv1v2c_get (lex_ctxt *lexic, int version, u_char action)
 {
   const char *proto;
   char peername[2048];
-  char *result = NULL;
   int port, ret;
   struct snmpv1v2_request request;
-
+  struct snmp_result result;
+  
+  result.name = NULL;
+  result.oid_str = NULL;
+  
   request.version = version;
   request.action = action;
   port = get_int_var_by_name (lexic, "port", -1);
@@ -617,17 +623,17 @@ nasl_snmpv1v2c_get (lex_ctxt *lexic, int version, u_char action)
   request.community = get_str_var_by_name (lexic, "community");
   request.oid_str = get_str_var_by_name (lexic, "oid");
   if (!proto || !request.community || !request.oid_str)
-    return array_from_snmp_result (-2, "Missing function argument");
+    return array_from_snmp_error (-2, "Missing function argument");
   if (port < 0 || port > 65535)
-    return array_from_snmp_result (-2, "Invalid port value");
+    return array_from_snmp_error (-2, "Invalid port value");
   if (!proto_is_valid (proto))
-    return array_from_snmp_result (-2, "Invalid protocol value");
+    return array_from_snmp_error (-2, "Invalid protocol value");
 
   g_snprintf (peername, sizeof (peername), "%s:%s:%d", proto,
               plug_get_host_ip_str (lexic->script_infos), port);
   request.peername = peername;
   ret = snmpv1v2c_get (&request, &result);
-  return array_from_snmp_result (ret, result);
+  return array_from_snmp_result (ret, &result);
 }
 
 tree_cell *
@@ -662,7 +668,7 @@ nasl_snmpv3_get_action (lex_ctxt *lexic, u_char action)
   char peername[2048];
   int port, ret;
   struct snmpv3_request request;
-  char *result = NULL;
+  struct snmp_result result;
     
   request.action = action;
   port = get_int_var_by_name (lexic, "port", -1);
@@ -675,19 +681,19 @@ nasl_snmpv3_get_action (lex_ctxt *lexic, u_char action)
   privproto = get_str_var_by_name (lexic, "privproto");
   if (!proto || !request.username || !request.authpass || !request.oid_str
       || !authproto)
-    return array_from_snmp_result (-2, "Missing function argument");
+    return array_from_snmp_error (-2, "Missing function argument");
   if (port < 0 || port > 65535)
-    return array_from_snmp_result (-2, "Invalid port value");
+    return array_from_snmp_error (-2, "Invalid port value");
   if (!proto_is_valid (proto))
-    return array_from_snmp_result (-2, "Invalid protocol value");
+    return array_from_snmp_error (-2, "Invalid protocol value");
   if (!privproto || !request.privpass)
-    return array_from_snmp_result (-2, "Missing privproto or privpass");
+    return array_from_snmp_error (-2, "Missing privproto or privpass");
   if (!strcasecmp (authproto, "md5"))
     request.authproto = 0;
   else if (!strcasecmp (authproto, "sha1"))
     request.authproto = 1;
   else
-    return array_from_snmp_result (-2, "authproto should be md5 or sha1");
+    return array_from_snmp_error (-2, "authproto should be md5 or sha1");
   if (privproto)
     {
       if (!strcasecmp (privproto, "des"))
@@ -695,14 +701,14 @@ nasl_snmpv3_get_action (lex_ctxt *lexic, u_char action)
       else if (!strcasecmp (privproto, "aes"))
         request.privproto = 1;
       else
-        return array_from_snmp_result (-2, "privproto should be des or aes");
+        return array_from_snmp_error (-2, "privproto should be des or aes");
     }
 
   g_snprintf (peername, sizeof (peername), "%s:%s:%d", proto,
               plug_get_host_ip_str (lexic->script_infos), port);
   request.peername = peername;
   ret = snmpv3_get (&request, &result);
-  return array_from_snmp_result (ret, result);
+  return array_from_snmp_result (ret, &result);
 }
 
 tree_cell *
