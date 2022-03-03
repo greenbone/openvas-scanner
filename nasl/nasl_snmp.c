@@ -109,11 +109,12 @@ proto_is_valid (const char *proto)
  * @return NASL array.
  */
 static tree_cell *
-array_from_snmp_result (int ret, char *result)
+array_from_snmp_result (int ret, const struct snmp_result *result)
 {
   anon_nasl_var v;
 
   assert (result);
+  assert (result->name);
   tree_cell *retc = alloc_typed_cell (DYN_ARRAY);
   retc->x.ref_val = g_malloc0 (sizeof (nasl_array));
   /* Return code */
@@ -121,12 +122,24 @@ array_from_snmp_result (int ret, char *result)
   v.var_type = VAR2_INT;
   v.v.v_int = ret;
   add_var_to_list (retc->x.ref_val, 0, &v);
-  /* Return value */
+  /* Name */
   memset (&v, 0, sizeof v);
   v.var_type = VAR2_STRING;
-  v.v.v_str.s_val = (unsigned char *) result;
-  v.v.v_str.s_siz = strlen (result);
+  v.v.v_str.s_val = (unsigned char *) result->name;
+  v.v.v_str.s_siz = strlen (result->name);
   add_var_to_list (retc->x.ref_val, 1, &v);
+  /* OID */
+  if (result->oid_str != NULL)
+    {
+      memset (&v, 0, sizeof v);
+      v.var_type = VAR2_STRING;
+      // Hack the OID string to adjust format
+      result->oid_str[1] = '.';
+      result->oid_str[2] = '1';
+      v.v.v_str.s_val = (unsigned char *) result->oid_str + 1;
+      v.v.v_str.s_siz = strlen (result->oid_str) - 1;
+      add_var_to_list (retc->x.ref_val, 2, &v);
+    }
 
   return retc;
 }
