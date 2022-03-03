@@ -68,20 +68,20 @@ struct snmpv1v2_request
  */
 struct snmpv3_request
 {
-  char *peername;  /**< snmp peer name. */
+  char *peername; /**< snmp peer name. */
   char *username; /**< snmp username. */
   char *authpass; /**< snmp authorization password. */
   char *privpass; /**< snmp private password. */
-  char *oid_str;   /**< snmp oid to search for. */
-  int authproto;     /**< snmp authorization protocol. 0 for md5, 1 for sha1. */
-  int privproto;     /**< snmp private protocol. 0 for des, 1 for aes. */
-  u_char action;   /**< snmp get or getnext action. */
+  char *oid_str;  /**< snmp oid to search for. */
+  int authproto;  /**< snmp authorization protocol. 0 for md5, 1 for sha1. */
+  int privproto;  /**< snmp private protocol. 0 for des, 1 for aes. */
+  u_char action;  /**< snmp get or getnext action. */
 };
 
 struct snmp_result
 {
   char *oid_str; /**< oid. */
-  char *name;  /**< value in stored under the oid. */
+  char *name;    /**< value in stored under the oid. */
 };
 
 /*
@@ -186,7 +186,8 @@ array_from_snmp_error (int ret, const char *err)
  * @return 0 if success and result value, -1 otherwise.
  */
 static int
-snmp_get (struct snmp_session *session, const char *oid_str, const u_char action, struct snmp_result *result)
+snmp_get (struct snmp_session *session, const char *oid_str,
+          const u_char action, struct snmp_result *result)
 {
   struct snmp_session *ss;
   struct snmp_pdu *query, *response;
@@ -299,8 +300,9 @@ snmpv3_get (const struct snmpv3_request *request, struct snmp_result *result)
         }
       session.securityPrivKeyLen = USM_PRIV_KU_LEN;
       if (generate_Ku (session.securityAuthProto, session.securityAuthProtoLen,
-                       (unsigned char *) request->privpass, strlen (request->privpass),
-                       session.securityPrivKey, &session.securityPrivKeyLen)
+                       (unsigned char *) request->privpass,
+                       strlen (request->privpass), session.securityPrivKey,
+                       &session.securityPrivKeyLen)
           != SNMPERR_SUCCESS)
         {
           result->name = g_strdup ("generate_Ku: Error");
@@ -321,7 +323,8 @@ snmpv3_get (const struct snmpv3_request *request, struct snmp_result *result)
  * @return 0 if success and result value, -1 otherwise.
  */
 static int
-snmpv1v2c_get (const struct snmpv1v2_request *request, struct snmp_result *result)
+snmpv1v2c_get (const struct snmpv1v2_request *request,
+               struct snmp_result *result)
 {
   struct snmp_session session;
 
@@ -329,7 +332,8 @@ snmpv1v2c_get (const struct snmpv1v2_request *request, struct snmp_result *resul
   assert (request->peername);
   assert (request->community);
   assert (request->oid_str);
-  assert (request->version == SNMP_VERSION_1 || request->version == SNMP_VERSION_2c);
+  assert (request->version == SNMP_VERSION_1
+          || request->version == SNMP_VERSION_2c);
 
   setenv ("MIBS", "", 1);
   snmp_sess_init (&session);
@@ -341,7 +345,7 @@ snmpv1v2c_get (const struct snmpv1v2_request *request, struct snmp_result *resul
   return snmp_get (&session, request->oid_str, request->action, result);
 }
 
-#else //no libnet. snmpget cmd wrap-up
+#else // no libnet. snmpget cmd wrap-up
 
 #define NASL_SNMP_GET 0
 #define NASL_SNMP_GETNEXT 1
@@ -438,7 +442,8 @@ check_spwan_output (int fd, struct snmp_result *result)
  * @return 0 if success and result value, -1 otherwise.
  */
 static int
-snmpv1v2c_get (const struct snmpv1v2_request *request, struct snmp_result *result)
+snmpv1v2c_get (const struct snmpv1v2_request *request,
+               struct snmp_result *result)
 {
   char *argv[8], *pos = NULL;
   GError *err = NULL;
@@ -612,10 +617,10 @@ nasl_snmpv1v2c_get (lex_ctxt *lexic, int version, u_char action)
   int port, ret;
   struct snmpv1v2_request request;
   struct snmp_result result;
-  
+
   result.name = NULL;
   result.oid_str = NULL;
-  
+
   request.version = version;
   request.action = action;
   port = get_int_var_by_name (lexic, "port", -1);
@@ -660,7 +665,6 @@ nasl_snmpv2c_getnext (lex_ctxt *lexic)
   return nasl_snmpv1v2c_get (lexic, SNMP_VERSION_2c, NASL_SNMP_GETNEXT);
 }
 
-
 static tree_cell *
 nasl_snmpv3_get_action (lex_ctxt *lexic, u_char action)
 {
@@ -669,7 +673,7 @@ nasl_snmpv3_get_action (lex_ctxt *lexic, u_char action)
   int port, ret;
   struct snmpv3_request request;
   struct snmp_result result;
-    
+
   request.action = action;
   port = get_int_var_by_name (lexic, "port", -1);
   proto = get_str_var_by_name (lexic, "protocol");
