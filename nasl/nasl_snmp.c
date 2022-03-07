@@ -80,6 +80,8 @@ struct snmpv3_request
   u_char action;  /**< snmp get or getnext action. */
 };
 
+typedef struct snmpv3_request * snmpv3_request_t;
+
 struct snmp_result
 {
   char *oid_str; /**< oid. */
