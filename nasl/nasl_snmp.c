@@ -111,7 +111,7 @@ proto_is_valid (const char *proto)
  * @return NASL array.
  */
 static tree_cell *
-array_from_snmp_result (int ret, const struct snmp_result *result)
+array_from_snmp_result (int ret, const snmp_result_t result)
 {
   anon_nasl_var v;
 
@@ -189,7 +189,7 @@ array_from_snmp_error (int ret, const char *err)
  */
 static int
 snmp_get (struct snmp_session *session, const char *oid_str,
-          const u_char action, struct snmp_result *result)
+          const u_char action, snmp_result_t result)
 {
   struct snmp_session *ss;
   struct snmp_pdu *query, *response;
@@ -245,7 +245,7 @@ snmp_get (struct snmp_session *session, const char *oid_str,
  * @return 0 if success and result value, -1 otherwise.
  */
 static int
-snmpv3_get (const struct snmpv3_request *request, struct snmp_result *result)
+snmpv3_get (const struct snmpv3_request *request, snmp_result_t result)
 {
   struct snmp_session session;
 
@@ -326,7 +326,7 @@ snmpv3_get (const struct snmpv3_request *request, struct snmp_result *result)
  */
 static int
 snmpv1v2c_get (const struct snmpv1v2_request *request,
-               struct snmp_result *result)
+               snmp_result_t result)
 {
   struct snmp_session session;
 
@@ -358,7 +358,7 @@ snmpv1v2c_get (const struct snmpv1v2_request *request,
  * @param result[in,out] The result error to be parsed.
  */
 static void
-parse_snmp_error (struct snmp_result *result)
+parse_snmp_error (snmp_result_t result)
 {
   gchar **res_split, **res_aux;
 
@@ -405,7 +405,7 @@ parse_snmp_error (struct snmp_result *result)
  * @return 0 success, -1 read error.
  */
 static int
-check_spwan_output (int fd, struct snmp_result *result)
+check_spwan_output (int fd, snmp_result_t result)
 {
   GString *string = NULL;
 
@@ -445,7 +445,7 @@ check_spwan_output (int fd, struct snmp_result *result)
  */
 static int
 snmpv1v2c_get (const struct snmpv1v2_request *request,
-               struct snmp_result *result)
+               snmp_result_t result)
 {
   char *argv[8], *pos = NULL;
   GError *err = NULL;
@@ -523,7 +523,7 @@ snmpv1v2c_get (const struct snmpv1v2_request *request,
  * @return 0 if success and result value, -1 otherwise.
  */
 static int
-snmpv3_get (const struct snmpv3_request *request, struct snmp_result *result)
+snmpv3_get (const struct snmpv3_request *request, snmp_result_t result)
 {
   char *argv[18], *pos = NULL;
   GError *err = NULL;
@@ -618,10 +618,9 @@ nasl_snmpv1v2c_get (lex_ctxt *lexic, int version, u_char action)
   char peername[2048];
   int port, ret;
   struct snmpv1v2_request request;
-  struct snmp_result result;
+  snmp_result_t result;
 
-  result.name = NULL;
-  result.oid_str = NULL;
+  result = g_malloc0 (sizeof (snmp_result_t));
 
   request.version = version;
   request.action = action;
@@ -639,8 +638,8 @@ nasl_snmpv1v2c_get (lex_ctxt *lexic, int version, u_char action)
   g_snprintf (peername, sizeof (peername), "%s:%s:%d", proto,
               plug_get_host_ip_str (lexic->script_infos), port);
   request.peername = peername;
-  ret = snmpv1v2c_get (&request, &result);
-  return array_from_snmp_result (ret, &result);
+  ret = snmpv1v2c_get (&request, result);
+  return array_from_snmp_result (ret, result);
 }
 
 tree_cell *
@@ -674,7 +673,7 @@ nasl_snmpv3_get_action (lex_ctxt *lexic, u_char action)
   char peername[2048];
   int port, ret;
   struct snmpv3_request request;
-  struct snmp_result result;
+  snmp_result_t result = g_malloc0 (sizeof (snmp_result_t));
 
   request.action = action;
   port = get_int_var_by_name (lexic, "port", -1);
@@ -713,8 +712,8 @@ nasl_snmpv3_get_action (lex_ctxt *lexic, u_char action)
   g_snprintf (peername, sizeof (peername), "%s:%s:%d", proto,
               plug_get_host_ip_str (lexic->script_infos), port);
   request.peername = peername;
-  ret = snmpv3_get (&request, &result);
-  return array_from_snmp_result (ret, &result);
+  ret = snmpv3_get (&request, result);
+  return array_from_snmp_result (ret, result);
 }
 
 tree_cell *
