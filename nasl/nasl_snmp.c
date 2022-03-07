@@ -63,6 +63,8 @@ struct snmpv1v2_request
   u_char action;   /**< snmp get or getnext action. */
 };
 
+typedef struct snmpv1v2_request * snmpv1v2_request_t;
+
 /**
  * @brief SNMP Request struct for snmp v3
  */
