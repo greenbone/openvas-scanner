@@ -327,7 +327,7 @@ snmpv3_get (const struct snmpv3_request *request, snmp_result_t result)
  * @return 0 if success and result value, -1 otherwise.
  */
 static int
-snmpv1v2c_get (const struct snmpv1v2_request *request,
+snmpv1v2c_get (const snmpv1v2_request_t request,
                snmp_result_t result)
 {
   struct snmp_session session;
@@ -446,7 +446,7 @@ check_spwan_output (int fd, snmp_result_t result)
  * @return 0 if success and result value, -1 otherwise.
  */
 static int
-snmpv1v2c_get (const struct snmpv1v2_request *request,
+snmpv1v2c_get (const snmpv1v2_request_t request,
                snmp_result_t result)
 {
   char *argv[8], *pos = NULL;
@@ -619,18 +619,19 @@ nasl_snmpv1v2c_get (lex_ctxt *lexic, int version, u_char action)
   const char *proto;
   char peername[2048];
   int port, ret;
-  struct snmpv1v2_request request;
+  snmpv1v2_request_t request;
   snmp_result_t result;
 
-  result = g_malloc0 (sizeof (snmp_result_t));
+  request = g_malloc0 (sizeof (struct snmpv1v2_request));
+  result = g_malloc0 (sizeof (struct snmp_result));
 
-  request.version = version;
-  request.action = action;
+  request->version = version;
+  request->action = action;
   port = get_int_var_by_name (lexic, "port", -1);
   proto = get_str_var_by_name (lexic, "protocol");
-  request.community = get_str_var_by_name (lexic, "community");
-  request.oid_str = get_str_var_by_name (lexic, "oid");
-  if (!proto || !request.community || !request.oid_str)
+  request->community = get_str_var_by_name (lexic, "community");
+  request->oid_str = get_str_var_by_name (lexic, "oid");
+  if (!proto || !request->community || !request->oid_str)
     return array_from_snmp_error (-2, "Missing function argument");
   if (port < 0 || port > 65535)
     return array_from_snmp_error (-2, "Invalid port value");
@@ -639,8 +640,8 @@ nasl_snmpv1v2c_get (lex_ctxt *lexic, int version, u_char action)
 
   g_snprintf (peername, sizeof (peername), "%s:%s:%d", proto,
               plug_get_host_ip_str (lexic->script_infos), port);
-  request.peername = peername;
-  ret = snmpv1v2c_get (&request, result);
+  request->peername = peername;
+  ret = snmpv1v2c_get (request, result);
   return array_from_snmp_result (ret, result);
 }
 
