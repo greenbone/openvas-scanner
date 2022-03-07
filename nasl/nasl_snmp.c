@@ -84,6 +84,8 @@ struct snmp_result
   char *name;    /**< value in stored under the oid. */
 };
 
+typedef struct snmp_result * snmp_result_t;
+
 /*
  * @brief Check that protocol value is valid.
  *
