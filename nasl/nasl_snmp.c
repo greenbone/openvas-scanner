@@ -63,7 +63,7 @@ struct snmpv1v2_request
   u_char action;   /**< snmp get or getnext action. */
 };
 
-typedef struct snmpv1v2_request * snmpv1v2_request_t;
+typedef struct snmpv1v2_request *snmpv1v2_request_t;
 
 /**
  * @brief SNMP Request struct for snmp v3
@@ -80,7 +80,7 @@ struct snmpv3_request
   u_char action;  /**< snmp get or getnext action. */
 };
 
-typedef struct snmpv3_request * snmpv3_request_t;
+typedef struct snmpv3_request *snmpv3_request_t;
 
 struct snmp_result
 {
@@ -88,7 +88,7 @@ struct snmp_result
   char *name;    /**< value in stored under the oid. */
 };
 
-typedef struct snmp_result * snmp_result_t;
+typedef struct snmp_result *snmp_result_t;
 
 /*
  * @brief Check that protocol value is valid.
@@ -207,6 +207,7 @@ snmp_get (struct snmp_session *session, const char *oid_str,
       snmp_error (session, &status, &status, &(result->name));
       return -1;
     }
+
   query = snmp_pdu_create (action);
   read_objid (oid_str, oid_buf, &oid_size);
   snmp_add_null_var (query, oid_buf, oid_size);
@@ -329,8 +330,7 @@ snmpv3_get (const snmpv3_request_t request, snmp_result_t result)
  * @return 0 if success and result value, -1 otherwise.
  */
 static int
-snmpv1v2c_get (const snmpv1v2_request_t request,
-               snmp_result_t result)
+snmpv1v2c_get (const snmpv1v2_request_t request, snmp_result_t result)
 {
   struct snmp_session session;
 
@@ -448,8 +448,7 @@ check_spwan_output (int fd, snmp_result_t result)
  * @return 0 if success and result value, -1 otherwise.
  */
 static int
-snmpv1v2c_get (const snmpv1v2_request_t request,
-               snmp_result_t result)
+snmpv1v2c_get (const snmpv1v2_request_t request, snmp_result_t result)
 {
   char *argv[8], *pos = NULL;
   GError *err = NULL;
@@ -696,13 +695,13 @@ nasl_snmpv3_get_action (lex_ctxt *lexic, u_char action)
   if (!proto || !request->username || !request->authpass || !request->oid_str
       || !authproto)
     return array_from_snmp_error (-2, "Missing function argument");
-  
+
   if (port < 0 || port > 65535)
     return array_from_snmp_error (-2, "Invalid port value");
-  
+
   if (!proto_is_valid (proto))
     return array_from_snmp_error (-2, "Invalid protocol value");
-  
+
   if (!privproto || !request->privpass)
     return array_from_snmp_error (-2, "Missing privproto or privpass");
 
