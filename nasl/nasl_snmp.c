@@ -249,7 +249,7 @@ snmp_get (struct snmp_session *session, const char *oid_str,
  * @return 0 if success and result value, -1 otherwise.
  */
 static int
-snmpv3_get (const struct snmpv3_request *request, snmp_result_t result)
+snmpv3_get (const snmpv3_request_t request, snmp_result_t result)
 {
   struct snmp_session session;
 
@@ -527,7 +527,7 @@ snmpv1v2c_get (const snmpv1v2_request_t request,
  * @return 0 if success and result value, -1 otherwise.
  */
 static int
-snmpv3_get (const struct snmpv3_request *request, snmp_result_t result)
+snmpv3_get (const snmpv3_request_t request, snmp_result_t result)
 {
   char *argv[18], *pos = NULL;
   GError *err = NULL;
@@ -677,47 +677,57 @@ nasl_snmpv3_get_action (lex_ctxt *lexic, u_char action)
   const char *proto, *authproto, *privproto;
   char peername[2048];
   int port, ret;
-  struct snmpv3_request request;
-  snmp_result_t result = g_malloc0 (sizeof (snmp_result_t));
+  snmpv3_request_t request;
+  snmp_result_t result;
 
-  request.action = action;
+  result = g_malloc0 (sizeof (struct snmp_result));
+  request = g_malloc0 (sizeof (struct snmpv3_request));
+
+  request->action = action;
   port = get_int_var_by_name (lexic, "port", -1);
   proto = get_str_var_by_name (lexic, "protocol");
-  request.username = get_str_var_by_name (lexic, "username");
-  request.authpass = get_str_var_by_name (lexic, "authpass");
-  request.oid_str = get_str_var_by_name (lexic, "oid");
+  request->username = get_str_var_by_name (lexic, "username");
+  request->authpass = get_str_var_by_name (lexic, "authpass");
+  request->oid_str = get_str_var_by_name (lexic, "oid");
   authproto = get_str_var_by_name (lexic, "authproto");
-  request.privpass = get_str_var_by_name (lexic, "privpass");
+  request->privpass = get_str_var_by_name (lexic, "privpass");
   privproto = get_str_var_by_name (lexic, "privproto");
-  if (!proto || !request.username || !request.authpass || !request.oid_str
+
+  if (!proto || !request->username || !request->authpass || !request->oid_str
       || !authproto)
     return array_from_snmp_error (-2, "Missing function argument");
+  
   if (port < 0 || port > 65535)
     return array_from_snmp_error (-2, "Invalid port value");
+  
   if (!proto_is_valid (proto))
     return array_from_snmp_error (-2, "Invalid protocol value");
-  if (!privproto || !request.privpass)
+  
+  if (!privproto || !request->privpass)
     return array_from_snmp_error (-2, "Missing privproto or privpass");
+
   if (!strcasecmp (authproto, "md5"))
-    request.authproto = 0;
+    request->authproto = 0;
   else if (!strcasecmp (authproto, "sha1"))
-    request.authproto = 1;
+    request->authproto = 1;
   else
     return array_from_snmp_error (-2, "authproto should be md5 or sha1");
+
   if (privproto)
     {
       if (!strcasecmp (privproto, "des"))
-        request.privproto = 0;
+        request->privproto = 0;
       else if (!strcasecmp (privproto, "aes"))
-        request.privproto = 1;
+        request->privproto = 1;
       else
         return array_from_snmp_error (-2, "privproto should be des or aes");
     }
 
   g_snprintf (peername, sizeof (peername), "%s:%s:%d", proto,
               plug_get_host_ip_str (lexic->script_infos), port);
-  request.peername = peername;
-  ret = snmpv3_get (&request, result);
+  request->peername = peername;
+  ret = snmpv3_get (request, result);
+
   return array_from_snmp_result (ret, result);
 }
 
