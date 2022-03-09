@@ -51,7 +51,6 @@
  */
 #define SNMP_VERSION_2c 1
 
-
 #define FD_STDERR_FLAG 1
 #define FD_STDOUT_FLAG 0
 
@@ -433,8 +432,8 @@ check_spwan_output (int fd, snmp_result_t result, int fd_flag)
         }
     }
 
-  //Split the result and store the oid and name
-  //in the result struct if there is a result
+  // Split the result and store the oid and name
+  // in the result struct if there is a result
   if (fd_flag == FD_STDOUT_FLAG)
     {
       gchar **oid_and_name;
@@ -442,7 +441,7 @@ check_spwan_output (int fd, snmp_result_t result, int fd_flag)
       oid_and_name = g_strsplit (string->str, " ", 2);
       result->oid_str = g_strdup (oid_and_name[0]);
       result->name = g_strdup (oid_and_name[1]);
-      g_strfreev(oid_and_name);
+      g_strfreev (oid_and_name);
     }
   else // STDERR, no oid
     result->name = g_strdup (string->str);
@@ -650,9 +649,9 @@ nasl_snmpv1v2c_get (lex_ctxt *lexic, int version, u_char action)
 
   oid_str = get_str_var_by_name (lexic, "oid");
   if (action == NASL_SNMP_GETNEXT && oid_str == NULL && next_oid_str != NULL)
-      request->oid_str = next_oid_str;
+    request->oid_str = next_oid_str;
   else
-      request->oid_str = oid_str;
+    request->oid_str = oid_str;
 
   if (!proto || !request->community || !request->oid_str)
     return array_from_snmp_error (-2, "Missing function argument");
@@ -666,7 +665,6 @@ nasl_snmpv1v2c_get (lex_ctxt *lexic, int version, u_char action)
   request->peername = peername;
   ret = snmpv1v2c_get (request, result);
 
-
   // Hack the OID string to adjust format. Replace 'iso.' with '.1.'
   // This Allows to call getnext without an oid, since the last oid
   // is stored.
@@ -674,7 +672,7 @@ nasl_snmpv1v2c_get (lex_ctxt *lexic, int version, u_char action)
     {
       next_oid_str = result->oid_str + 2;
       next_oid_str[0] = '1';
-      result->oid_str = g_strdup(next_oid_str);
+      result->oid_str = g_strdup (next_oid_str);
     }
   else if (result->oid_str != NULL)
     next_oid_str = result->oid_str;
@@ -729,9 +727,9 @@ nasl_snmpv3_get_action (lex_ctxt *lexic, u_char action)
   oid_str = get_str_var_by_name (lexic, "oid");
 
   if (action == NASL_SNMP_GETNEXT && oid_str == NULL && next_oid_str != NULL)
-      request->oid_str = next_oid_str;
+    request->oid_str = next_oid_str;
   else
-      request->oid_str = oid_str;
+    request->oid_str = oid_str;
 
   authproto = get_str_var_by_name (lexic, "authproto");
   request->privpass = get_str_var_by_name (lexic, "privpass");
@@ -779,8 +777,8 @@ nasl_snmpv3_get_action (lex_ctxt *lexic, u_char action)
     {
       next_oid_str = result->oid_str + 2;
       next_oid_str[0] = '1';
-      result->oid_str = g_strdup(next_oid_str);
-     }
+      result->oid_str = g_strdup (next_oid_str);
+    }
   else if (result->oid_str != NULL)
     next_oid_str = result->oid_str;
 
