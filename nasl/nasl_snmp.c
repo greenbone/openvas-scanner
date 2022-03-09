@@ -139,11 +139,8 @@ array_from_snmp_result (int ret, const snmp_result_t result)
     {
       memset (&v, 0, sizeof v);
       v.var_type = VAR2_STRING;
-      // Hack the OID string to adjust format
-      result->oid_str[1] = '.';
-      result->oid_str[2] = '1';
-      v.v.v_str.s_val = (unsigned char *) result->oid_str + 1;
-      v.v.v_str.s_siz = strlen (result->oid_str) - 1;
+      v.v.v_str.s_val = (unsigned char *) result->oid_str;
+      v.v.v_str.s_siz = strlen (result->oid_str);
       add_var_to_list (retc->x.ref_val, 2, &v);
     }
 
@@ -622,6 +619,8 @@ nasl_snmpv1v2c_get (lex_ctxt *lexic, int version, u_char action)
   int port, ret;
   snmpv1v2_request_t request;
   snmp_result_t result;
+  char *oid_str;
+  static char *next_oid_str;
 
   request = g_malloc0 (sizeof (struct snmpv1v2_request));
   result = g_malloc0 (sizeof (struct snmp_result));
@@ -631,7 +630,13 @@ nasl_snmpv1v2c_get (lex_ctxt *lexic, int version, u_char action)
   port = get_int_var_by_name (lexic, "port", -1);
   proto = get_str_var_by_name (lexic, "protocol");
   request->community = get_str_var_by_name (lexic, "community");
-  request->oid_str = get_str_var_by_name (lexic, "oid");
+
+  oid_str = get_str_var_by_name (lexic, "oid");
+  if (action == NASL_SNMP_GETNEXT && oid_str == NULL && next_oid_str != NULL)
+      request->oid_str = next_oid_str;
+  else
+      request->oid_str = oid_str;
+
   if (!proto || !request->community || !request->oid_str)
     return array_from_snmp_error (-2, "Missing function argument");
   if (port < 0 || port > 65535)
@@ -643,6 +648,20 @@ nasl_snmpv1v2c_get (lex_ctxt *lexic, int version, u_char action)
               plug_get_host_ip_str (lexic->script_infos), port);
   request->peername = peername;
   ret = snmpv1v2c_get (request, result);
+
+
+  // Hack the OID string to adjust format. Replace 'iso.' with '.1.'
+  // This Allows to call getnext without an oid, since the last oid
+  // is stored.
+  if (result->oid_str != NULL && g_strstr_len (result->oid_str, 3, "iso"))
+    {
+      next_oid_str = result->oid_str + 2;
+      next_oid_str[0] = '1';
+      result->oid_str = g_strdup(next_oid_str);
+    }
+  else if (result->oid_str != NULL)
+    next_oid_str = result->oid_str;
+
   return array_from_snmp_result (ret, result);
 }
 
@@ -678,6 +697,8 @@ nasl_snmpv3_get_action (lex_ctxt *lexic, u_char action)
   int port, ret;
   snmpv3_request_t request;
   snmp_result_t result;
+  char *oid_str;
+  static char *next_oid_str;
 
   result = g_malloc0 (sizeof (struct snmp_result));
   request = g_malloc0 (sizeof (struct snmpv3_request));
@@ -687,7 +708,14 @@ nasl_snmpv3_get_action (lex_ctxt *lexic, u_char action)
   proto = get_str_var_by_name (lexic, "protocol");
   request->username = get_str_var_by_name (lexic, "username");
   request->authpass = get_str_var_by_name (lexic, "authpass");
-  request->oid_str = get_str_var_by_name (lexic, "oid");
+
+  oid_str = get_str_var_by_name (lexic, "oid");
+
+  if (action == NASL_SNMP_GETNEXT && oid_str == NULL && next_oid_str != NULL)
+      request->oid_str = next_oid_str;
+  else
+      request->oid_str = oid_str;
+
   authproto = get_str_var_by_name (lexic, "authproto");
   request->privpass = get_str_var_by_name (lexic, "privpass");
   privproto = get_str_var_by_name (lexic, "privproto");
@@ -726,6 +754,18 @@ nasl_snmpv3_get_action (lex_ctxt *lexic, u_char action)
               plug_get_host_ip_str (lexic->script_infos), port);
   request->peername = peername;
   ret = snmpv3_get (request, result);
+
+  // Hack the OID string to adjust format. Replace 'iso.' with '.1.'
+  // This Allows to call getnext without an oid, since the last oid
+  // is stored.
+  if (result->oid_str != NULL && g_strstr_len (result->oid_str, 3, "iso"))
+    {
+      next_oid_str = result->oid_str + 2;
+      next_oid_str[0] = '1';
+      result->oid_str = g_strdup(next_oid_str);
+     }
+  else if (result->oid_str != NULL)
+    next_oid_str = result->oid_str;
 
   return array_from_snmp_result (ret, result);
 }
