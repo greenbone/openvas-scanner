@@ -51,6 +51,10 @@
  */
 #define SNMP_VERSION_2c 1
 
+
+#define FD_STDERR_FLAG 1
+#define FD_STDOUT_FLAG 0
+
 /**
  * @brief SNMP Request struct for snmp v1 and v2c
  */
@@ -406,7 +410,7 @@ parse_snmp_error (snmp_result_t result)
  * @return 0 success, -1 read error.
  */
 static int
-check_spwan_output (int fd, snmp_result_t result)
+check_spwan_output (int fd, snmp_result_t result, int fd_flag)
 {
   GString *string = NULL;
 
@@ -429,7 +433,20 @@ check_spwan_output (int fd, snmp_result_t result)
         }
     }
 
-  result->name = g_strdup (string->str);
+  //Split the result and store the oid and name
+  //in the result struct if there is a result
+  if (fd_flag == FD_STDOUT_FLAG)
+    {
+      gchar **oid_and_name;
+
+      oid_and_name = g_strsplit (string->str, " ", 2);
+      result->oid_str = g_strdup (oid_and_name[0]);
+      result->name = g_strdup (oid_and_name[1]);
+      g_strfreev(oid_and_name);
+    }
+  else // STDERR, no oid
+    result->name = g_strdup (string->str);
+
   g_string_free (string, TRUE);
 
   return 0;
@@ -489,7 +506,7 @@ snmpv1v2c_get (const snmpv1v2_request_t request, snmp_result_t result)
      the output.
      We assume a valid output if there is no errors.
   */
-  check_spwan_output (serr, result);
+  check_spwan_output (serr, result, FD_STDERR_FLAG);
   if (result->name && result->name[0] != '\0')
     {
       parse_snmp_error (result);
@@ -500,7 +517,7 @@ snmpv1v2c_get (const snmpv1v2_request_t request, snmp_result_t result)
   close (serr);
   g_free (result->name);
 
-  check_spwan_output (sout, result);
+  check_spwan_output (sout, result, FD_STDOUT_FLAG);
   close (sout);
 
   /* Remove the last new line char from the result */
@@ -584,7 +601,7 @@ snmpv3_get (const snmpv3_request_t request, snmp_result_t result)
       return -1;
     }
 
-  check_spwan_output (serr, result);
+  check_spwan_output (serr, result, FD_STDERR_FLAG);
   if (result->name && result->name[0] != '\0')
     {
       parse_snmp_error (result);
@@ -595,7 +612,7 @@ snmpv3_get (const snmpv3_request_t request, snmp_result_t result)
   close (serr);
   g_free (result->name);
 
-  check_spwan_output (sout, result);
+  check_spwan_output (sout, result, FD_STDOUT_FLAG);
   close (sout);
 
   /* Remove the last new line char from the result */
