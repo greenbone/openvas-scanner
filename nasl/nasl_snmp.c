@@ -464,7 +464,7 @@ snmpv1v2c_get (const snmpv1v2_request_t request, snmp_result_t result)
 
   argv[0] = (request->action == NASL_SNMP_GET) ? "snmpget" : "snmpgetnext";
   argv[1] = (request->version == SNMP_VERSION_1) ? "-v1" : "-v2c";
-  argv[2] = "-Oqv";
+  argv[2] = "-Oqn";
   argv[3] = "-c";
   argv[4] = g_strdup (request->community);
   argv[5] = g_strdup (request->peername);
@@ -541,7 +541,7 @@ snmpv3_get (const snmpv3_request_t request, snmp_result_t result)
 
   argv[0] = (request->action == NASL_SNMP_GET) ? "snmpget" : "snmpgetnext";
   argv[1] = "-v3";
-  argv[2] = "-Oqv";
+  argv[2] = "-Oqn";
   argv[3] = "-u";
   argv[4] = g_strdup (request->username);
   argv[5] = "-A";
