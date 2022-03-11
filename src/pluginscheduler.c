@@ -325,7 +325,10 @@ plugins_scheduler_init (const char *plugins_list, int autoload, int *error)
       plugins_scheduler_free (ret);
       return NULL;
     }
+
+#ifdef __GLIBC__
   malloc_trim (0);
+#endif
   return ret;
 }
 
@@ -427,7 +430,9 @@ scheduler_phase_cleanup (plugins_scheduler_t sched, int start, int end)
           element = element->next;
         }
     }
+#ifdef __GLIBC__
   malloc_trim (0);
+#endif
 }
 
 struct scheduler_plugin *
