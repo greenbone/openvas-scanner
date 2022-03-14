@@ -65,6 +65,12 @@ RSYNC_OPTIONS="--links --times --omit-dir-times $RSYNC_VERBOSE --recursive --par
 # Script name which will be used for logging
 SCRIPT_NAME="greenbone-nvt-sync"
 
+# RSYNC_COMMUNITY_BASE_URL defines the base rsync URL for the community feed.
+RSYNC_COMMUNITY_BASE_URL="rsync://feed.community.greenbone.net/"
+
+# RSYNC_COMMUNITY_VT_DATA_URL defines the rsync URL for the community VT-DATA feed.
+RSYNC_COMMUNITY_VT_DATA_URL="${RSYNC_COMMUNITY_BASE_URL}/vulnerability-feed/@VERSION_SHORT@/vt-data/"
+
 # Result of selftest () is stored here. If it is not 0, the selftest has failed
 # and the sync script is unlikely to work.
 SELFTEST_FAIL=0
@@ -194,9 +200,7 @@ else
   RESTRICTED=0
 
   if [ -z "$COMMUNITY_NVT_RSYNC_FEED" ]; then
-    COMMUNITY_NVT_RSYNC_FEED=rsync://feed.community.greenbone.net:/nvt-feed
-    # An alternative syntax which might work if the above doesn't:
-    # COMMUNITY_NVT_RSYNC_FEED=rsync@feed.community.greenbone.net::/nvt-feed
+    COMMUNITY_NVT_RSYNC_FEED="$RSYNC_COMMUNITY_VT_DATA_URL"
   fi
 fi
 
