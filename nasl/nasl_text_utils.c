@@ -456,7 +456,7 @@ nasl_ereg (lex_ctxt *lexic)
   char *string = get_str_var_by_name (lexic, "string");
   int icase = get_int_var_by_name (lexic, "icase", 0);
   int multiline = get_int_var_by_name (lexic, "multiline", 0);
-  int replace_nul = get_int_var_by_name (lexic, "rnul", 0);
+  int replace_nul = get_int_var_by_name (lexic, "rnul", 1);
   int max_size = get_var_size_by_name (lexic, "string");
   char *s;
   int copt = 0;
@@ -699,7 +699,7 @@ nasl_egrep (lex_ctxt *lexic)
   char *pattern = get_str_var_by_name (lexic, "pattern");
   char *string = get_str_var_by_name (lexic, "string");
   int icase = get_int_var_by_name (lexic, "icase", 0);
-  int replace_nul = get_int_var_by_name (lexic, "rnul", 0);
+  int replace_nul = get_int_var_by_name (lexic, "rnul", 1);
   tree_cell *retc;
   regex_t re;
   regmatch_t subs[NS];
@@ -824,7 +824,7 @@ nasl_eregmatch (lex_ctxt *lexic)
   char *string = get_str_var_by_name (lexic, "string");
   int icase = get_int_var_by_name (lexic, "icase", 0);
   int find_all = get_int_var_by_name (lexic, "find_all", 0);
-  int replace_nul = get_int_var_by_name (lexic, "rnul", 0);
+  int replace_nul = get_int_var_by_name (lexic, "rnul", 1);
   int max_size = get_var_size_by_name (lexic, "string");
   int copt = 0;
   tree_cell *retc;
