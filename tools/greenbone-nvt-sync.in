@@ -149,7 +149,7 @@ stderr_write ()
 # the file "plugin_feed_info.inc" inside the feed directory.
 get_feed_info ()
 {
-  INFOFILE="$NVT_DIR/plugin_feed_info.inc"
+  INFOFILE="$NVT_DIR/vt-data/plugin_feed_info.inc"
   if [ -r $INFOFILE ] ; then
     FEED_VERSION=`grep PLUGIN_SET $INFOFILE | sed -e 's/[^0-9]//g'`
     FEED_NAME=`awk -F\" '/PLUGIN_FEED/ { print $2 }' $INFOFILE`
@@ -320,7 +320,7 @@ is_feed_current () {
       fi
     fi
 
-    rsync -e "ssh $RSYNC_SSH_OPTS $RSYNC_SSH_PROXY_CMD -p $PORT -i $TEMP_ACCESS_KEY" $RSYNC_OPTIONS $RSYNC_DELETE $RSYNC_COMPRESS $RSYNC_CHMOD "$feeduser"plugin_feed_info.inc $FEED_INFO_TEMP_DIR
+    rsync -e "ssh $RSYNC_SSH_OPTS $RSYNC_SSH_PROXY_CMD -p $PORT -i $TEMP_ACCESS_KEY" $RSYNC_OPTIONS $RSYNC_DELETE $RSYNC_COMPRESS $RSYNC_CHMOD "$feeduser"vt-data/plugin_feed_info.inc $FEED_INFO_TEMP_DIR
 
     if [ $? -ne 0 ]
     then
@@ -333,7 +333,7 @@ is_feed_current () {
     # IP blocking due to network equipment in between keeping the previous connection too long open.
     sleep 5
     log_notice "No Greenbone Security Feed access key found, falling back to Greenbone Community Feed"
-    eval "$RSYNC -ltvrP $RSYNC_CHMOD \"$COMMUNITY_NVT_RSYNC_FEED/plugin_feed_info.inc\" \"$FEED_INFO_TEMP_DIR\""
+    eval "$RSYNC -ltvrP $RSYNC_CHMOD \"$COMMUNITY_NVT_RSYNC_FEED/vt-data/plugin_feed_info.inc\" \"$FEED_INFO_TEMP_DIR\""
     if [ $? -ne 0 ]
     then
       log_err "rsync failed, aborting synchronization."
@@ -342,7 +342,7 @@ is_feed_current () {
     fi
   fi
 
-  FEED_VERSION_SERVER=`grep PLUGIN_SET $FEED_INFO_TEMP_DIR/plugin_feed_info.inc | sed -e 's/[^0-9]//g'`
+  FEED_VERSION_SERVER=`grep PLUGIN_SET $FEED_INFO_TEMP_DIR/vt-data/plugin_feed_info.inc | sed -e 's/[^0-9]//g'`
 
   if [ -z "$FEED_VERSION_SERVER" ]
   then
@@ -370,7 +370,7 @@ do_rsync_community_feed () {
   sleep 5
   log_notice "Configured NVT rsync feed: $COMMUNITY_NVT_RSYNC_FEED"
   mkdir -p "$NVT_DIR"
-  eval "$RSYNC -ltvrP $RSYNC_DELETE $RSYNC_CHMOD \"$COMMUNITY_NVT_RSYNC_FEED\" \"$NVT_DIR\" --exclude=plugin_feed_info.inc"
+  eval "$RSYNC -ltvrP $RSYNC_DELETE $RSYNC_CHMOD \"$COMMUNITY_NVT_RSYNC_FEED\" \"$NVT_DIR\" --exclude=vt-data/plugin_feed_info.inc"
   if [ $? -ne 0 ] ; then
     log_err "rsync failed."
     exit 1
@@ -378,7 +378,7 @@ do_rsync_community_feed () {
   # Sleep for five seconds (after the above rsync call) to prevent IP blocking due
   # to network equipment in between keeping the previous connection too long open.
   sleep 5
-  eval "$RSYNC -ltvrP $RSYNC_DELETE $RSYNC_CHMOD \"$COMMUNITY_NVT_RSYNC_FEED/plugin_feed_info.inc\" \"$NVT_DIR\""
+  eval "$RSYNC -ltvrP $RSYNC_DELETE $RSYNC_CHMOD \"$COMMUNITY_NVT_RSYNC_FEED/vt-data/plugin_feed_info.inc\" \"$NVT_DIR/vt-data/\""
   if [ $? -ne 0 ] ; then
     log_err "rsync failed."
     exit 1
@@ -396,7 +396,7 @@ sync_nvts(){
   then
     log_write "Synchronizing NVTs from the Greenbone Security Feed into $NVT_DIR..."
     if [ $FEED_PRESENT -eq 1 ] ; then
-      FEEDCOUNT=`grep -E "nasl$|inc$" $NVT_DIR/md5sums | wc -l`
+      FEEDCOUNT=`grep -E "nasl$|inc$" $NVT_DIR/vt-data/md5sums | wc -l`
       log_write "Current status: Using $FEED_NAME at version $FEED_VERSION ($FEEDCOUNT NVTs)"
     else
       log_write "Current status: No feed installed."
@@ -435,17 +435,17 @@ sync_nvts(){
           RSYNC_SSH_PROXY_CMD="-o \"ProxyCommand corkscrew $gsmproxy %h %p\""
         fi
       fi
-      rsync -e "ssh $RSYNC_SSH_OPTS $RSYNC_SSH_PROXY_CMD -p $PORT -i $TEMP_ACCESS_KEY" --exclude=plugin_feed_info.inc $RSYNC_OPTIONS $RSYNC_DELETE $RSYNC_COMPRESS $RSYNC_CHMOD $feeduser $NVT_DIR
+      rsync -e "ssh $RSYNC_SSH_OPTS $RSYNC_SSH_PROXY_CMD -p $PORT -i $TEMP_ACCESS_KEY" --exclude=vt-data/plugin_feed_info.inc $RSYNC_OPTIONS $RSYNC_DELETE $RSYNC_COMPRESS $RSYNC_CHMOD $feeduser $NVT_DIR
       if [ $? -ne 0 ]  ; then
         log_err "rsync failed, aborting synchronization."
         exit 1
       fi
-      rsync -e "ssh $RSYNC_SSH_OPTS $RSYNC_SSH_PROXY_CMD -p $PORT -i $TEMP_ACCESS_KEY" $RSYNC_OPTIONS $RSYNC_DELETE $RSYNC_COMPRESS $RSYNC_CHMOD "$feeduser"plugin_feed_info.inc $NVT_DIR
+      rsync -e "ssh $RSYNC_SSH_OPTS $RSYNC_SSH_PROXY_CMD -p $PORT -i $TEMP_ACCESS_KEY" $RSYNC_OPTIONS $RSYNC_DELETE $RSYNC_COMPRESS $RSYNC_CHMOD "$feeduser"vt-data/plugin_feed_info.inc $NVT_DIR
       if [ $? -ne 0 ]  ; then
         log_err "rsync failed, aborting synchronization."
         exit 1
       fi
-      eval "cd \"$NVT_DIR\" ; md5sum -c --status \"$NVT_DIR/md5sums\""
+      eval "cd \"$NVT_DIR\" ; md5sum -c --status \"$NVT_DIR/vt-data/md5sums\""
       if [ $? -ne 0 ]  ; then
         if [ -n "$retried" ]
         then
@@ -466,7 +466,7 @@ sync_nvts(){
     log_write "Synchronization with the Greenbone Security Feed successful."
     get_feed_info
     if [ $FEED_PRESENT -eq 1 ] ; then
-      FEEDCOUNT=`grep -E "nasl$|inc$" $NVT_DIR/md5sums | wc -l`
+      FEEDCOUNT=`grep -E "nasl$|inc$" $NVT_DIR/vt-data/md5sums | wc -l`
       log_write "Current status: Using $FEED_NAME at version $FEED_VERSION ($FEEDCOUNT NVTs)"
     else
       log_write "Current status: No feed installed."
