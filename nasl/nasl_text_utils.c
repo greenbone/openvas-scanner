@@ -443,12 +443,21 @@ nasl_toupper (lex_ctxt *lexic)
 
 /*---------------------------------------------------------------------*/
 
-/*
- * regex syntax :
+/**
+ * @brief Matches a string against a regular expression.
+ * @naslfn{egrep}
  *
- *	ereg(pattern, string)
+ * @naslnparam
+ * - @a string  String to search the pattern in
+ * - @a pattern the patern that should be matched
+ * - @a icase   case insensitive flag
+ * - @a rnul    replace the null char in the string. Default TRUE.
+ * - @a multiline Is FALSE by default (string is truncated at the first
+ *                “end of line”), and can be set to TRUE for multiline search.
+ * @naslret The first found pattern.
+ *
+ * @param[in] lexic Lexical context of NASL interpreter.
  */
-
 tree_cell *
 nasl_ereg (lex_ctxt *lexic)
 {
@@ -655,6 +664,21 @@ _regreplace (const char *pattern, const char *replace, const char *string,
   return (buf);
 }
 
+/**
+ * @brief Search for a pattern in a string and replace it
+ * @naslfn{ereg_replace}
+ *
+ * @naslnparam
+ * - @a string  String to search the pattern in
+ * - @a pattern patern to search in the string for
+ * - @a replace string to replace the pattern with
+ * - @a icase   case insensitive flag
+ * - @a rnul    replace the null char in the string. Default TRUE.
+ *
+ * @naslret The new string with the pattern replaced with replace
+ *
+ * @param[in] lexic Lexical context of NASL interpreter.
+ */
 tree_cell *
 nasl_ereg_replace (lex_ctxt *lexic)
 {
@@ -696,10 +720,19 @@ nasl_ereg_replace (lex_ctxt *lexic)
 
 /*---------------------------------------------------------------------*/
 
-/*
- * regex syntax :
+/**
+ * @brief looks for a pattern in a string, line by line.
+ * @naslfn{egrep}
  *
- *	egrep(pattern, string)
+ * @naslnparam
+ * - @a string  String to search the pattern in
+ * - @a pattern the patern that should be matched
+ * - @a icase   case insensitive flag
+ * - @a rnul    replace the null char in the string. Default TRUE.
+ *
+ * @naslret  The concatenation of all lines that match. Null otherwise.
+ *
+ * @param[in] lexic Lexical context of NASL interpreter.
  */
 tree_cell *
 nasl_egrep (lex_ctxt *lexic)
@@ -817,6 +850,7 @@ nasl_egrep (lex_ctxt *lexic)
  * - @a string A string
  * - @a icase Boolean, for case sensitve
  * - @a find_all Boolean, to find all matches
+ * - @a rnul replace the null char in the string. Default TRUE.
  *
  * @naslret An array with the first match (find_all: False)
  *          or an array with all matches (find_all: TRUE).
