@@ -662,6 +662,9 @@ nasl_ereg_replace (lex_ctxt *lexic)
   char *replace = get_str_var_by_name (lexic, "replace");
   char *string = get_str_var_by_name (lexic, "string");
   int icase = get_int_var_by_name (lexic, "icase", 0);
+  int replace_nul = get_int_var_by_name (lexic, "rnul", 1);
+  int max_size = get_var_size_by_name (lexic, "string");
+
   char *r;
   tree_cell *retc;
 
@@ -674,6 +677,11 @@ nasl_ereg_replace (lex_ctxt *lexic)
     }
   if (string == NULL)
     return NULL;
+
+  if (replace_nul)
+    string = g_regex_escape_nul (string, max_size);
+  else
+    string = g_strdup (string);
 
   r = _regreplace (pattern, replace, string, icase, 1);
   if (r == NULL)
