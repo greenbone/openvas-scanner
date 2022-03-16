@@ -27,6 +27,7 @@
 #define YYLEX_ERRC err_c
 
 #define LNB	(((naslctxt*)parm)->line_nb)
+#define ERRC	err_c
 
 #include <ctype.h> /* for isalpha */
 #include <pcap.h> /* for islocalhost */
@@ -460,8 +461,8 @@ expr: '(' expr ')' { $$ = $2; }
 	| post_pre_incr
 	| expr MATCH expr { $$ = alloc_expr_cell(LNB, COMP_MATCH, $1, $3); }
 	| expr NOMATCH expr { $$ = alloc_expr_cell(LNB, COMP_NOMATCH, $1, $3); }
-	| expr RE_MATCH string { $$ = alloc_RE_cell(LNB, COMP_RE_MATCH, $1, $3); }
-	| expr RE_NOMATCH string { $$ = alloc_RE_cell(LNB, COMP_RE_NOMATCH, $1, $3); }
+	| expr RE_MATCH string { $$ = alloc_RE_cell(LNB, COMP_RE_MATCH, $1, $3, ERRC); }
+	| expr RE_NOMATCH string { $$ = alloc_RE_cell(LNB, COMP_RE_NOMATCH, $1, $3, ERRC); }
 	| expr '<' expr { $$ = alloc_expr_cell(LNB, COMP_LT, $1, $3); }
 	| expr '>' expr { $$ = alloc_expr_cell(LNB, COMP_GT, $1, $3); }
 	| expr EQ expr  { $$ = alloc_expr_cell(LNB, COMP_EQ, $1, $3); }
