@@ -443,12 +443,21 @@ nasl_toupper (lex_ctxt *lexic)
 
 /*---------------------------------------------------------------------*/
 
-/*
- * regex syntax :
+/**
+ * @brief Matches a string against a regular expression.
+ * @naslfn{egrep}
  *
- *	ereg(pattern, string)
+ * @naslnparam
+ * - @a string  String to search the pattern in
+ * - @a pattern the patern that should be matched
+ * - @a icase   case insensitive flag
+ * - @a rnul    replace the null char in the string. Default TRUE.
+ * - @a multiline Is FALSE by default (string is truncated at the first
+ *                “end of line”), and can be set to TRUE for multiline search.
+ * @naslret The first found pattern.
+ *
+ * @param[in] lexic Lexical context of NASL interpreter.
  */
-
 tree_cell *
 nasl_ereg (lex_ctxt *lexic)
 {
@@ -456,6 +465,8 @@ nasl_ereg (lex_ctxt *lexic)
   char *string = get_str_var_by_name (lexic, "string");
   int icase = get_int_var_by_name (lexic, "icase", 0);
   int multiline = get_int_var_by_name (lexic, "multiline", 0);
+  int replace_nul = get_int_var_by_name (lexic, "rnul", 1);
+  int max_size = get_var_size_by_name (lexic, "string");
   char *s;
   int copt = 0;
   tree_cell *retc;
@@ -475,7 +486,12 @@ nasl_ereg (lex_ctxt *lexic)
     }
 
   retc = alloc_typed_cell (CONST_INT);
-  string = g_strdup (string);
+
+  if (replace_nul)
+    string = g_regex_escape_nul (string, max_size);
+  else
+    string = g_strdup (string);
+
   if (multiline)
     s = NULL;
   else
@@ -648,6 +664,21 @@ _regreplace (const char *pattern, const char *replace, const char *string,
   return (buf);
 }
 
+/**
+ * @brief Search for a pattern in a string and replace it
+ * @naslfn{ereg_replace}
+ *
+ * @naslnparam
+ * - @a string  String to search the pattern in
+ * - @a pattern patern to search in the string for
+ * - @a replace string to replace the pattern with
+ * - @a icase   case insensitive flag
+ * - @a rnul    replace the null char in the string. Default TRUE.
+ *
+ * @naslret The new string with the pattern replaced with replace
+ *
+ * @param[in] lexic Lexical context of NASL interpreter.
+ */
 tree_cell *
 nasl_ereg_replace (lex_ctxt *lexic)
 {
@@ -655,6 +686,9 @@ nasl_ereg_replace (lex_ctxt *lexic)
   char *replace = get_str_var_by_name (lexic, "replace");
   char *string = get_str_var_by_name (lexic, "string");
   int icase = get_int_var_by_name (lexic, "icase", 0);
+  int replace_nul = get_int_var_by_name (lexic, "rnul", 1);
+  int max_size = get_var_size_by_name (lexic, "string");
+
   char *r;
   tree_cell *retc;
 
@@ -667,6 +701,11 @@ nasl_ereg_replace (lex_ctxt *lexic)
     }
   if (string == NULL)
     return NULL;
+
+  if (replace_nul)
+    string = g_regex_escape_nul (string, max_size);
+  else
+    string = g_strdup (string);
 
   r = _regreplace (pattern, replace, string, icase, 1);
   if (r == NULL)
@@ -681,10 +720,19 @@ nasl_ereg_replace (lex_ctxt *lexic)
 
 /*---------------------------------------------------------------------*/
 
-/*
- * regex syntax :
+/**
+ * @brief looks for a pattern in a string, line by line.
+ * @naslfn{egrep}
  *
- *	egrep(pattern, string)
+ * @naslnparam
+ * - @a string  String to search the pattern in
+ * - @a pattern the patern that should be matched
+ * - @a icase   case insensitive flag
+ * - @a rnul    replace the null char in the string. Default TRUE.
+ *
+ * @naslret  The concatenation of all lines that match. Null otherwise.
+ *
+ * @param[in] lexic Lexical context of NASL interpreter.
  */
 tree_cell *
 nasl_egrep (lex_ctxt *lexic)
@@ -692,6 +740,7 @@ nasl_egrep (lex_ctxt *lexic)
   char *pattern = get_str_var_by_name (lexic, "pattern");
   char *string = get_str_var_by_name (lexic, "string");
   int icase = get_int_var_by_name (lexic, "icase", 0);
+  int replace_nul = get_int_var_by_name (lexic, "rnul", 1);
   tree_cell *retc;
   regex_t re;
   regmatch_t subs[NS];
@@ -712,7 +761,10 @@ nasl_egrep (lex_ctxt *lexic)
     copt = 0;
 
   rets = g_malloc0 (max_size + 2);
-  string = g_strdup (string);
+  if (replace_nul)
+    string = g_regex_escape_nul (string, max_size);
+  else
+    string = g_strdup (string);
 
   s = string;
   while (s[0] == '\n')
@@ -798,6 +850,7 @@ nasl_egrep (lex_ctxt *lexic)
  * - @a string A string
  * - @a icase Boolean, for case sensitve
  * - @a find_all Boolean, to find all matches
+ * - @a rnul replace the null char in the string. Default TRUE.
  *
  * @naslret An array with the first match (find_all: False)
  *          or an array with all matches (find_all: TRUE).
@@ -813,6 +866,8 @@ nasl_eregmatch (lex_ctxt *lexic)
   char *string = get_str_var_by_name (lexic, "string");
   int icase = get_int_var_by_name (lexic, "icase", 0);
   int find_all = get_int_var_by_name (lexic, "find_all", 0);
+  int replace_nul = get_int_var_by_name (lexic, "rnul", 1);
+  int max_size = get_var_size_by_name (lexic, "string");
   int copt = 0;
   tree_cell *retc;
   regex_t re;
@@ -825,6 +880,11 @@ nasl_eregmatch (lex_ctxt *lexic)
 
   if (pattern == NULL || string == NULL)
     return NULL;
+
+  if (replace_nul)
+    string = g_regex_escape_nul (string, max_size);
+  else
+    string = g_strdup (string);
 
   if (regcomp (&re, pattern, REG_EXTENDED | copt))
     {
