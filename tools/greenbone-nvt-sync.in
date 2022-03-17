@@ -388,7 +388,7 @@ sync_nvts(){
   then
     log_write "Synchronizing NVTs from the Greenbone Security Feed into $NVT_DIR..."
     if [ $FEED_PRESENT -eq 1 ] ; then
-      FEEDCOUNT=`grep -E "nasl$|inc$" $NVT_DIR/md5sums | wc -l`
+      FEEDCOUNT=`grep -E "nasl$|inc$" $NVT_DIR/sha256sums | wc -l`
       log_write "Current status: Using $FEED_NAME at version $FEED_VERSION ($FEEDCOUNT NVTs)"
     else
       log_write "Current status: No feed installed."
@@ -437,7 +437,7 @@ sync_nvts(){
         log_err "rsync failed, aborting synchronization."
         exit 1
       fi
-      eval "cd \"$NVT_DIR\" ; md5sum -c --status \"$NVT_DIR/md5sums\""
+      eval "cd \"$NVT_DIR\" ; sha256sum -c --status \"$NVT_DIR/sha256sums\""
       if [ $? -ne 0 ]  ; then
         if [ -n "$retried" ]
         then
@@ -458,7 +458,7 @@ sync_nvts(){
     log_write "Synchronization with the Greenbone Security Feed successful."
     get_feed_info
     if [ $FEED_PRESENT -eq 1 ] ; then
-      FEEDCOUNT=`grep -E "nasl$|inc$" $NVT_DIR/md5sums | wc -l`
+      FEEDCOUNT=`grep -E "nasl$|inc$" $NVT_DIR/sha256sums | wc -l`
       log_write "Current status: Using $FEED_NAME at version $FEED_VERSION ($FEEDCOUNT NVTs)"
     else
       log_write "Current status: No feed installed."
@@ -471,10 +471,10 @@ sync_nvts(){
 
 do_self_test ()
 {
-  MD5SUM_AVAIL=`command -v md5sum`
+  SHA256SUM_AVAIL=`command -v sha256sum`
   if [ $? -ne 0 ] ; then
     SELFTEST_FAIL=1
-    stderr_write "The md5sum binary could not be found."
+    stderr_write "The sha256sum binary could not be found."
   fi
 
   RSYNC_AVAIL=`command -v rsync`
