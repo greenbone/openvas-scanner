@@ -122,7 +122,7 @@ typedef struct TC
 tree_cell *
 alloc_expr_cell (int, int, tree_cell *, tree_cell *);
 tree_cell *
-alloc_RE_cell (int, int, tree_cell *, char *);
+alloc_RE_cell (int, int, tree_cell *, char *, int *);
 tree_cell *
 alloc_typed_cell (int);
 int
