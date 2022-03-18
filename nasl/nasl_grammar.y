@@ -601,12 +601,6 @@ load_checksums (kb_t kb)
   snprintf (filename, sizeof (filename), "%s/sha256sums", base);
   if (g_file_get_contents (filename, &fbuffer, &flen, NULL))
     checksum_algorithm = GCRY_MD_SHA256;
-  else
-    {
-      snprintf (filename, sizeof (filename), "%s/md5sums", base);
-      if (g_file_get_contents (filename, &fbuffer, &flen, NULL))
-        checksum_algorithm = GCRY_MD_MD5;
-    }
   if (checksum_algorithm == GCRY_MD_NONE)
     {
       g_warning ("No plugins checksums file");
@@ -629,12 +623,7 @@ load_checksums (kb_t kb)
       g_warning ("%s: Couldn't read file %s", __func__, filename);
       return;
     }
-  if (checksum_algorithm == GCRY_MD_MD5)
-    {
-      kb_del_items (kb, "md5sums:*");
-      prefix = "md5sums";
-    }
-  else
+  if (checksum_algorithm == GCRY_MD_SHA256)
     {
       kb_del_items (kb, "sha256sums:*");
       prefix = "sha256sums";
@@ -681,7 +670,7 @@ file_checksum (const char *filename, int algorithm)
   char *content = NULL, digest[128], *result;
   size_t len = 0, i, alglen;
 
-  assert (algorithm == GCRY_MD_MD5 || algorithm == GCRY_MD_SHA256);
+  assert (algorithm == GCRY_MD_SHA256);
   if (!filename || !g_file_get_contents (filename, &content, &len, NULL))
     return NULL;
 
@@ -784,8 +773,6 @@ init_nasl_ctx(naslctxt* pc, const char* name)
   load_checksums (pc->kb);
   if (checksum_algorithm == GCRY_MD_NONE)
     return -1;
-  else if (checksum_algorithm == GCRY_MD_MD5)
-    snprintf (key_path, sizeof (key_path), "md5sums:%s", filename);
   else if (checksum_algorithm == GCRY_MD_SHA256)
     snprintf (key_path, sizeof (key_path), "sha256sums:%s", filename);
   else
