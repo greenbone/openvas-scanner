@@ -677,6 +677,10 @@ nasl_snmpv1v2c_get (lex_ctxt *lexic, int version, u_char action)
   else if (result->oid_str != NULL)
     next_oid_str = result->oid_str;
 
+  /* Free request only, since members are pointers to the nasl lexic context
+     which will be free()'d later */
+  g_free (request);
+
   return array_from_snmp_result (ret, result);
 }
 
@@ -781,6 +785,10 @@ nasl_snmpv3_get_action (lex_ctxt *lexic, u_char action)
     }
   else if (result->oid_str != NULL)
     next_oid_str = result->oid_str;
+
+  /* Free request only, since members are pointers to the nasl lexic context
+     which will be free()'d later */
+  g_free (request);
 
   return array_from_snmp_result (ret, result);
 }
