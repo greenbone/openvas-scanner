@@ -1,12 +1,6 @@
-<<<<<<< HEAD
-%pure-parser
-%parse-param {naslctxt * parm}
-%lex-param {naslctxt * parm}
-=======
 %define api.pure
 %parse-param {naslctxt * parm}{int * err_c}
 %lex-param {naslctxt * parm}{int * err_c}
->>>>>>> b55ffd58 (Change: support error recovery during nasl parsing (#1042))
 %expect 1
 %{
 /* Based on work Copyright (C) 2002 - 2004 Michel Arboi and Renaud Deraison
