@@ -363,8 +363,6 @@ main (int argc, char **argv)
       script_infos = init (&ip6, host->vhosts, kb);
       while (nasl_filenames[i])
         {
-          pid_t pid;
-
           script_infos->name = nasl_filenames[i];
           if (both_modes || with_safe_checks)
             {
@@ -404,25 +402,8 @@ main (int argc, char **argv)
                 }
             }
 
-          if ((pid = fork ()) == 0)
-            {
-              if (exec_nasl_script (script_infos, mode) < 0)
-                exit (1);
-              else
-                exit (0);
-            }
-          else if (pid < 0)
-            {
-              fprintf (stderr, "fork(): %s\n", strerror (errno));
-              exit (1);
-            }
-          else
-            {
-              int status;
-              waitpid (pid, &status, 0);
-              if (status)
-                err++;
-            }
+          if (exec_nasl_script (script_infos, mode) < 0)
+            err++;
           i++;
         }
       g_free (script_infos->globals);
