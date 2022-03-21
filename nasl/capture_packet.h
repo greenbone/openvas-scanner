@@ -1,4 +1,3 @@
-
 /* Copyright (C) 2002 - 2003 Michel Arboi and Renaud Deraison
  *
  * SPDX-License-Identifier: GPL-2.0-only
