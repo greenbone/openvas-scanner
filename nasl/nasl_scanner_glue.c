@@ -354,7 +354,8 @@ script_require_keys (lex_ctxt *lexic)
   if (keys == NULL)
     {
       nasl_perror (lexic, "Argument error in function script_require_keys()\n");
-      nasl_perror (lexic, "Function usage is : script_require_keys(<name>)\n");
+      nasl_perror (lexic,
+                   "Function usage is : script_require_keys(<name>...)\n");
       nasl_perror (lexic, "Where <name> is the name of a key\n");
       return FAKE_CELL;
     }
@@ -379,9 +380,10 @@ script_mandatory_keys (lex_ctxt *lexic)
     {
       nasl_perror (lexic,
                    "Argument error in function script_mandatory_keys()\n");
-      nasl_perror (lexic,
-                   "Function usage is : script_mandatory_keys(<name>)\n");
-      nasl_perror (lexic, "Where <name> is the name of a key\n");
+      nasl_perror (lexic, "Function usage is: script_mandatory_keys(<name>... "
+                          "[, re: '<name>=<regex>'])\n");
+      nasl_perror (lexic, "Where <name> is the name of a key and <regex> is a "
+                          "regular expression for a value of a key.\n");
       return FAKE_CELL;
     }
 
