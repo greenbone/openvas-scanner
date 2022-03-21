@@ -221,7 +221,7 @@ main (int argc, char **argv)
   if (nvt_files != NULL)
     err += process_files (nvt_files, mode, script_infos);
 
-  g_print ("%d errors found\n", err);
+  g_print ("%d scripts with one or more errors found\n", err);
 
   g_free (script_infos);
 
