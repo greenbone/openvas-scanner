@@ -251,8 +251,8 @@ cleanup_leftovers (int num_files)
   g_slist_free_full (oids, g_free);
 }
 
-static void
-plugins_reload_from_dir (void *folder)
+static int
+plugins_reload_from_dir (const char *folder)
 {
   GSList *files = NULL, *f;
   int loaded_files = 0, num_files = 0;
@@ -265,7 +265,7 @@ plugins_reload_from_dir (void *folder)
       g_debug ("Could not determine the value of <plugins_folder>. "
                " Check %s\n",
                (char *) prefs_get ("config_file"));
-      exit (1);
+      return 1;
     }
 
   files = collect_nvts (folder, "", files);
@@ -304,7 +304,7 @@ plugins_reload_from_dir (void *folder)
         g_message ("Loading %s", name);
       if (g_str_has_suffix (name, ".nasl"))
         {
-          if (nasl_plugin_add (folder, name))
+          if (nasl_plugin_add ((char *) folder, name))
             err_count++;
         }
 
@@ -313,7 +313,7 @@ plugins_reload_from_dir (void *folder)
           g_debug ("Stopped loading plugins: High number of errors.");
           proctitle_set ("openvas: Error loading NVTs.");
           g_slist_free_full (files, g_free);
-          exit (1);
+          return 1;
         }
       f = g_slist_next (f);
     }
@@ -324,7 +324,7 @@ plugins_reload_from_dir (void *folder)
 
   proctitle_set ("openvas: Reloaded all the NVTs.");
 
-  exit (0);
+  return 0;
 }
 
 static void
@@ -385,15 +385,13 @@ int
 plugins_init (void)
 {
   int ret = 0;
-  pid_t child_pid;
   const char *plugins_folder = prefs_get ("plugins_folder");
 
   ret = plugins_cache_init ();
   if (ret)
     return ret;
 
-  child_pid = create_process (plugins_reload_from_dir, (void *) plugins_folder);
-  waitpid (child_pid, &ret, 0);
+  ret = plugins_reload_from_dir (plugins_folder);
   nvticache_save ();
   return ret;
 }
