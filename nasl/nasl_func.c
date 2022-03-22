@@ -18,6 +18,7 @@
 
 #include "nasl_func.h"
 
+#include "../misc/plugutils.h"
 #include "exec.h"
 #include "nasl_debug.h"
 #include "nasl_global_ctxt.h"
@@ -202,6 +203,16 @@ nasl_func_call (lex_ctxt *lexic, const nasl_func *f, tree_cell *arg_list)
       tree_cell *(*pf2) (lex_ctxt *) = f->block;
 #pragma GCC diagnostic pop
       retc = pf2 (lexic2);
+
+      // ignore when parent and plugin_util got forked
+      if (pu_is_parent ())
+        {
+          g_debug ("%s: setting return value to FAKE_CELL because it is parent "
+                   "of forked child processes\n",
+                   __func__);
+          retc = FAKE_CELL;
+          lexic2->ret_val = FAKE_CELL;
+        }
     }
   else
     {

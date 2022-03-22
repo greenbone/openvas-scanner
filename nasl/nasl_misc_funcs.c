@@ -226,6 +226,11 @@ nasl_start_denial (lex_ctxt *lexic)
 
           return FAKE_CELL;
         }
+      else
+        {
+          if (pu_is_parent ())
+            return NULL;
+        }
     }
 
   p = nasl_tcp_ping (lexic);
@@ -789,6 +794,8 @@ nasl_open_sock_kdc (lex_ctxt *lexic)
 
   port_aux = (unsigned short *) plug_get_key (script_infos, "Secret/kdc_port",
                                               &forced_type, NULL, 0);
+  if (pu_is_parent ())
+    return NULL;
   if (port_aux)
     {
       port = *port_aux;
@@ -798,6 +805,8 @@ nasl_open_sock_kdc (lex_ctxt *lexic)
     return NULL;
 
   tcp_str = plug_get_key (script_infos, "Secret/kdc_use_tcp", &type, NULL, 0);
+  if (pu_is_parent ())
+    return NULL;
   tcp = GPOINTER_TO_SIZE (tcp_str);
   g_free (tcp_str);
   if (tcp < 0 || type != KB_TYPE_INT)

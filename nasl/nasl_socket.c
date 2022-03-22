@@ -473,6 +473,8 @@ nasl_open_sock_tcp_bufsz (lex_ctxt *lexic, int bufsz)
         nasl_perror (lexic, "stream_set_buffer: soc=%d,bufsz=%d\n", soc, bufsz);
     }
 
+  if (pu_is_parent ())
+    return NULL;
   retc = alloc_typed_cell (CONST_INT);
   retc->x.i_val = soc < 0 ? 0 : soc;
 

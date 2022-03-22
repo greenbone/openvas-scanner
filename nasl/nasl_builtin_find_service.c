@@ -1488,6 +1488,7 @@ may_be_time (time_t *rtime)
     return 0;
 }
 
+// that forks like crazy
 static int
 plugin_do_run (struct script_infos *desc, GSList *h, int test_ssl)
 {
@@ -1507,6 +1508,8 @@ plugin_do_run (struct script_infos *desc, GSList *h, int test_ssl)
   char k[32], *http_get;
 
   host_fqdn = plug_get_host_fqdn (desc);
+  if (pu_is_parent ())
+    return -1;
   http_get = g_strdup_printf ("GET / HTTP/1.0\r\nHost: %s\r\n\r\n", host_fqdn);
   g_free (host_fqdn);
 

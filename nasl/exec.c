@@ -41,6 +41,7 @@
 #include <stdlib.h> /* for srand48 */
 #include <string.h> /* for strlen */
 #include <string.h> /* for memmem */
+#include <sys/wait.h>
 #include <unistd.h> /* for getpid */
 
 #undef G_LOG_DOMAIN
@@ -1757,6 +1758,13 @@ exec_nasl_script (struct script_infos *script_infos, int mode)
 
   nasl_clean_ctx (&ctx);
   free_lex_ctxt (lexic);
+  if (pu_is_parent ())
+    {
+      while (waitpid (-1, NULL, WNOHANG) != -1 || errno == EINTR)
+        {
+          // wait for script childs to finish
+        };
+    }
   if (process_id != getpid ())
     exit (0);
 

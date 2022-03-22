@@ -196,4 +196,16 @@ get_plugin_preference_file_size (struct script_infos *, const char *);
 int
 kb_get_port_state_proto (kb_t kb, int portnum, char *proto);
 
+/*
+ * @brief retrieves spawned pids plug_utils
+ *
+ * This function needs to be called after nasl func is finished.
+ * It must be done to ensure that each spawned process of plugutils is done as
+ * well otherwise it can happen that results vanishes.
+ *
+ * @return 1 if it spawns children within plugutils otherwise 0
+ */
+int
+pu_is_parent (void);
+
 #endif

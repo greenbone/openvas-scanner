@@ -280,19 +280,6 @@ check_host_still_alive (kb_t kb, const char *hostname)
   return 1;
 }
 
-void
-wait_for_children1 (void)
-{
-  int e, n = 0;
-  do
-    {
-      errno = 0;
-      e = waitpid (-1, NULL, WNOHANG);
-      n++;
-    }
-  while ((e > 0 || errno == EINTR) && n < 20);
-}
-
 /*
  * @brief Checks if a provided preference is scanner-only and can't be
  * read/written by the client.

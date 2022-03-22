@@ -41,9 +41,6 @@ int process_alive (pid_t);
 int
 data_left (int);
 
-void
-wait_for_children1 (void);
-
 int
 is_scanner_only_pref (const char *);
 

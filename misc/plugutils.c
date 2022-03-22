@@ -254,6 +254,7 @@ char *
 plug_get_host_fqdn (struct script_infos *args)
 {
   GSList *vhosts = args->vhosts;
+  pid_t pid;
 
   if (!args->vhosts)
     return addr6_as_str (args->ip);
@@ -262,9 +263,10 @@ plug_get_host_fqdn (struct script_infos *args)
    * within foreach() loops. */
   if (current_vhost)
     return g_strdup (current_vhost->value);
+
   while (vhosts)
     {
-      pid_t pid = plug_fork_child (args->key);
+      pid = plug_fork_child (args->key);
 
       if (pid == 0)
         {
@@ -275,7 +277,7 @@ plug_get_host_fqdn (struct script_infos *args)
         return NULL;
       vhosts = vhosts->next;
     }
-  exit (0);
+  return NULL;
 }
 
 GSList *
@@ -321,6 +323,9 @@ plug_get_host_source (struct script_infos *args, const char *hostname)
    * multiple vhosts.) */
   if (!current_vhost)
     g_free (plug_get_host_fqdn (args));
+  // skip parent due to forks
+  if (pu_is_parent ())
+    return NULL;
   return g_strdup (current_vhost->source);
 }
 
@@ -856,6 +861,14 @@ sig_n (int signo, void (*fnc) (int))
   sigaction (signo, &sa, (struct sigaction *) 0);
 }
 
+int is_parent = 0;
+
+int
+pu_is_parent (void)
+{
+  return is_parent;
+}
+
 static int
 plug_fork_child (kb_t kb)
 {
@@ -863,21 +876,22 @@ plug_fork_child (kb_t kb)
 
   if ((pid = fork ()) == 0)
     {
+      is_parent = 0;
       sig_n (SIGTERM, _exit);
       mqtt_reset ();
       kb_lnk_reset (kb);
       nvticache_reset ();
       srand48 (getpid () + getppid () + time (NULL));
-      return 0;
     }
   else if (pid < 0)
     {
       g_warning ("%s(): fork() failed (%s)", __func__, strerror (errno));
-      return -1;
     }
   else
-    waitpid (pid, NULL, 0);
-  return 1;
+    {
+      is_parent = 1;
+    }
+  return pid;
 }
 
 /**
@@ -974,7 +988,8 @@ plug_get_key (struct script_infos *args, char *name, int *type, size_t *len,
       res = res->next;
     }
   kb_item_free (res_list);
-  exit (0);
+
+  return NULL;
 }
 
 /**

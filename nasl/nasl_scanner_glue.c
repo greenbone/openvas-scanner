@@ -764,6 +764,8 @@ get_kb_item (lex_ctxt *lexic)
     return NULL;
 
   val = plug_get_key (script_infos, kb_entry, &type, &len, !!single);
+  if (pu_is_parent ())
+    return NULL;
 
   if (val == NULL && type == -1)
     return NULL;
@@ -1018,7 +1020,7 @@ security_something (lex_ctxt *lexic, proto_post_something_t proto_post_func,
     {
       if (data != NULL)
         fprintf (stdout, "%s\n", dup);
-      else
+      else if (!pu_is_parent ())
         fprintf (stdout, "Success\n");
     }
 

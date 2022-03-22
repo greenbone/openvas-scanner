@@ -255,7 +255,11 @@ nasl_ssh_connect (lex_ctxt *lexic)
     {
       port = get_int_var_by_name (lexic, "port", 0);
       if (port <= 0)
-        port = get_ssh_port (lexic);
+        {
+          port = get_ssh_port (lexic);
+          if (pu_is_parent ())
+            return NULL;
+        }
     }
 
   addr6_to_str (plug_get_host_ip (lexic->script_infos), ip_str);

@@ -848,7 +848,12 @@ socket_negotiate_ssl (int fd, openvas_encaps_t transport,
   cafile = kb_item_get_str (kb, "SSL/CA");
   snprintf (buf, sizeof (buf), "Host/SNI/%d/force_disable", fp->port);
   if (kb_item_get_int (kb, buf) <= 0)
-    hostname = plug_get_host_fqdn (args);
+    {
+      hostname = plug_get_host_fqdn (args);
+      // skip parent due to fork
+      if (pu_is_parent ())
+        return -1;
+    }
 
   fp->transport = transport;
   fp->priority = NULL;
@@ -1064,6 +1069,9 @@ open_stream_connection_ext (struct script_infos *args, unsigned int port,
   /* Because plug_get_host_fqdn() forks for each vhost, we fork() before
      creating the socket */
   hostname_aux = plug_get_host_fqdn (args);
+  // skip parent due to fork
+  if (pu_is_parent ())
+    return -1;
 
   if (!priority)
     priority = ""; /* To us an empty string is equivalent to NULL.  */
