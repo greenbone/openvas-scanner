@@ -58,9 +58,7 @@
  * Checksum routine for Internet Protocol family headers (C Version)
  * From ping examples in W.Richard Stevens "UNIX NETWORK PROGRAMMING" book.
  */
-static int
-np_in_cksum (p, n)
-u_short *p;
+static int np_in_cksum (p, n) u_short *p;
 
 int n;
 {
