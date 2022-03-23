@@ -1758,7 +1758,7 @@ exec_nasl_script (struct script_infos *script_infos, int mode)
 
   nasl_clean_ctx (&ctx);
   free_lex_ctxt (lexic);
-  if (pu_is_parent ())
+  if (plug_is_parent ())
     {
       while (waitpid (-1, NULL, WNOHANG) != -1 || errno == EINTR)
         {

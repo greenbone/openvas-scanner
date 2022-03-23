@@ -206,6 +206,6 @@ kb_get_port_state_proto (kb_t kb, int portnum, char *proto);
  * @return 1 if it spawns children within plugutils otherwise 0
  */
 int
-pu_is_parent (void);
+plug_is_parent (void);
 
 #endif

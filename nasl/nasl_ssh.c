@@ -257,7 +257,7 @@ nasl_ssh_connect (lex_ctxt *lexic)
       if (port <= 0)
         {
           port = get_ssh_port (lexic);
-          if (pu_is_parent ())
+          if (plug_is_parent ())
             return NULL;
         }
     }

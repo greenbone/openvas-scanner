@@ -851,7 +851,7 @@ socket_negotiate_ssl (int fd, openvas_encaps_t transport,
     {
       hostname = plug_get_host_fqdn (args);
       // skip parent due to fork
-      if (pu_is_parent ())
+      if (plug_is_parent ())
         return -1;
     }
 
@@ -1070,7 +1070,7 @@ open_stream_connection_ext (struct script_infos *args, unsigned int port,
      creating the socket */
   hostname_aux = plug_get_host_fqdn (args);
   // skip parent due to fork
-  if (pu_is_parent ())
+  if (plug_is_parent ())
     return -1;
 
   if (!priority)

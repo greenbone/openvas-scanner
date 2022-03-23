@@ -205,7 +205,7 @@ nasl_func_call (lex_ctxt *lexic, const nasl_func *f, tree_cell *arg_list)
       retc = pf2 (lexic2);
 
       // ignore when parent and plugin_util got forked
-      if (pu_is_parent ())
+      if (plug_is_parent ())
         {
           g_debug ("%s: setting return value to FAKE_CELL because it is parent "
                    "of forked child processes\n",

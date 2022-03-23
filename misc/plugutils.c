@@ -324,7 +324,7 @@ plug_get_host_source (struct script_infos *args, const char *hostname)
   if (!current_vhost)
     g_free (plug_get_host_fqdn (args));
   // skip parent due to forks
-  if (pu_is_parent ())
+  if (plug_is_parent ())
     return NULL;
   return g_strdup (current_vhost->source);
 }
@@ -864,7 +864,7 @@ sig_n (int signo, void (*fnc) (int))
 int is_parent = 0;
 
 int
-pu_is_parent (void)
+plug_is_parent (void)
 {
   return is_parent;
 }
