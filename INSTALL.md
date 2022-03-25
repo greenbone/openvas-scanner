@@ -2,7 +2,7 @@ INSTALLATION INSTRUCTIONS FOR OPENVAS
 =====================================
 
 Please note: The reference system used by most of the developers is Debian
-GNU/Linux 'Buster' 10. The build might fail on any other system. Also, it is
+Stable. The build might fail on any other system. Also, it is
 necessary to install dependent development packages.
 
 Prerequisites for openvas
