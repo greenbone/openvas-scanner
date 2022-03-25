@@ -150,6 +150,7 @@ nasl_wmi_connect (lex_ctxt *lexic)
   IMPORT (username);
   IMPORT (password);
   IMPORT (ns);
+  IMPORT (options);
 
   if (ns == NULL)
     ns = "root\\cimv2";
@@ -172,10 +173,10 @@ nasl_wmi_connect (lex_ctxt *lexic)
   argv[0] = g_strdup ("wmic");
   argv[1] = g_strdup ("-U");
   argv[2] = g_strdup_printf ("%s%%%s", username, password);
-  argv[3] = g_strdup_printf ("//%s", ip);
+  argv[3] = g_strdup_printf ("//%s%s", ip, options ? options : "");
   argv[4] = g_strdup (ns);
   g_free (ip);
-
+  g_message ("Using sign option!!!");
   tree_cell *retc = alloc_typed_cell (CONST_INT);
   handle = wmi_connect (argc, argv);
   if (!handle)
@@ -292,6 +293,8 @@ nasl_wmi_connect_rsop (lex_ctxt *lexic)
   char *ip;
   IMPORT (username);
   IMPORT (password);
+  IMPORT (options);
+
   char *argv[4];
   WMI_HANDLE handle;
   int argc = 4;
@@ -314,7 +317,7 @@ nasl_wmi_connect_rsop (lex_ctxt *lexic)
   argv[0] = g_strdup ("wmic");
   argv[1] = g_strdup ("-U");
   argv[2] = g_strdup_printf ("%s%%%s", username, password);
-  argv[3] = g_strdup_printf ("//%s", ip);
+  argv[3] = g_strdup_printf ("//%s%s", ip, options ? options : "");
   g_free (ip);
 
   tree_cell *retc = alloc_typed_cell (CONST_INT);
@@ -403,6 +406,8 @@ nasl_wmi_connect_reg (lex_ctxt *lexic)
   char *ip;
   IMPORT (username);
   IMPORT (password);
+  IMPORT (options);
+
   char *argv[4];
   WMI_HANDLE handle;
   int argc = 4;
@@ -425,7 +430,7 @@ nasl_wmi_connect_reg (lex_ctxt *lexic)
   argv[0] = g_strdup ("wmic");
   argv[1] = g_strdup ("-U");
   argv[2] = g_strdup_printf ("%s%%%s", username, password);
-  argv[3] = g_strdup_printf ("//%s", ip);
+  argv[3] = g_strdup_printf ("//%s%s", ip, options ? options : "");
   g_free (ip);
 
   tree_cell *retc = alloc_typed_cell (CONST_INT);
