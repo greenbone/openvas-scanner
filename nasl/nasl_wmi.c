@@ -176,7 +176,7 @@ nasl_wmi_connect (lex_ctxt *lexic)
   argv[3] = g_strdup_printf ("//%s%s", ip, options ? options : "");
   argv[4] = g_strdup (ns);
   g_free (ip);
-  g_message ("Using sign option!!!");
+
   tree_cell *retc = alloc_typed_cell (CONST_INT);
   handle = wmi_connect (argc, argv);
   if (!handle)
