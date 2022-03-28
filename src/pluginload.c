@@ -304,7 +304,7 @@ plugins_reload_from_dir (const char *folder)
         g_message ("Loading %s", name);
       if (g_str_has_suffix (name, ".nasl"))
         {
-          if (nasl_plugin_add ((char *) folder, name))
+          if (nasl_plugin_add (folder, name))
             err_count++;
         }
 
