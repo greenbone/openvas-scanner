@@ -446,16 +446,10 @@ run_table_driven_lsc (const char *scan_id, kb_t kb, const char *ip_str,
     {
       err = mqtt_retrieve_message (&topic, &topic_len, &payload, &payload_len,
                                    60000);
-      if (err == -1)
+      if (err == -1 || err == 1)
         {
-          g_warning ("%s: Unable to retrieve status message from notus.",
-                     __func__);
-          return -1;
-        }
-      if (err == 1)
-        {
-          g_warning ("%s: Unablet to retrieve message. Timeout after 60s.",
-                     __func__);
+          g_warning ("%s: Unable to retrieve status message from notus. %s",
+                     __func__, err == 1 ? "Timeout after 60 s." : "");
           return -1;
         }
 
