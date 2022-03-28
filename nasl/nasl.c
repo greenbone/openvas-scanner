@@ -1,4 +1,4 @@
-/* Portions Copyright (C) 2009-2021 Greenbone Networks GmbH
+/* Portions Copyright (C) 2009-2022 Greenbone Networks GmbH
  * Based on work Copyright (C) 2002 - 2005 Tenable Network Security
  *
  * SPDX-License-Identifier: GPL-2.0-only
@@ -245,7 +245,7 @@ main (int argc, char **argv)
       else
         putchar ('\n');
       printf ("Copyright (C) 2002 - 2004 Tenable Network Security\n");
-      printf ("Copyright (C) 2021 Greenbone Networks GmbH\n\n");
+      printf ("Copyright (C) 2022 Greenbone Networks GmbH\n\n");
       exit (0);
     }
   if (nasl_debug)

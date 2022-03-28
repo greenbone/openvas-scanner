@@ -1,4 +1,5 @@
-/* Based on work Copyright (C) 2002 - 2003 Michel Arboi and Renaud Deraison
+/* Portions Copyright (C) 2009-2022 Greenbone Networks GmbH
+ * Based on work Copyright (C) 2002 - 2003 Michel Arboi and Renaud Deraison
  *
  * SPDX-License-Identifier: GPL-2.0-only
  *

@@ -1,4 +1,4 @@
-/* Portions Copyright (C) 2021 Greenbone Networks GmbH
+/* Portions Copyright (C) 2021-2022 Greenbone Networks GmbH
  *
  * SPDX-License-Identifier: GPL-2.0-or-later
  *
