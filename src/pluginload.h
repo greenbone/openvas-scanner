@@ -51,7 +51,7 @@ total_loading_plugins (void);
 
 /* From nasl_plugins.c */
 int
-nasl_plugin_add (char *, char *);
+nasl_plugin_add (const char *, char *);
 int
 nasl_file_check (const char *, const char *);
 

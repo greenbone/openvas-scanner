@@ -129,7 +129,7 @@ nasl_file_check (const char *folder, const char *filename)
  * @return 0 on success, -1 on error.
  */
 int
-nasl_plugin_add (char *folder, char *filename)
+nasl_plugin_add (const char *folder, char *filename)
 {
   char fullname[PATH_MAX + 1];
   int nasl_mode;
