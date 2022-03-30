@@ -44,7 +44,5 @@ char *
 smb_file_GroupSID (SMB_HANDLE, const char *);
 char *
 smb_file_TrusteeRights (SMB_HANDLE, const char *);
-int
-wincmd (int argc, char *argv[], char **res);
 
 #endif
