@@ -295,7 +295,8 @@ simult_ports (const char *oid, const char *next_oid)
  * free "slot" in the processes array otherwise.
  */
 static int
-next_free_process (struct scan_globals *globals, kb_t main_kb, kb_t kb, struct scheduler_plugin *upcoming)
+next_free_process (struct scan_globals *globals, kb_t main_kb, kb_t kb,
+                   struct scheduler_plugin *upcoming)
 {
   int r;
 
@@ -529,7 +530,8 @@ timeout_running_processes (void)
  *        changed.
  */
 void
-pluginlaunch_wait_for_free_process (struct scan_globals *globals, kb_t main_kb, kb_t kb)
+pluginlaunch_wait_for_free_process (struct scan_globals *globals, kb_t main_kb,
+                                    kb_t kb)
 {
   if (!num_running_processes)
     return;
