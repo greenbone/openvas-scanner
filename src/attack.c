@@ -135,13 +135,19 @@ set_kb_readable (int host_kb_index)
  * @param[in] status Status to set.
  */
 static void
-set_scan_status (char *status)
+set_scan_status (struct scan_globals *globals, char *status)
 {
   kb_t main_kb = NULL;
   char buffer[96];
   char *scan_id = NULL;
 
   connect_main_kb (&main_kb);
+
+  if (check_kb_inconsistency (globals, main_kb) != 0)  
+    {
+        kb_lnk_reset (main_kb);
+        return;
+    }
   scan_id = kb_item_get_str (main_kb, ("internal/scanid"));
   snprintf (buffer, sizeof (buffer), "internal/%s", scan_id);
   kb_item_set_str (main_kb, buffer, status, 0);
@@ -1184,7 +1190,7 @@ attack_network (struct scan_globals *globals)
       kb_lnk_reset (main_kb);
       g_warning ("Invalid port list. Ports must be in the range [1-65535]. "
                  "Scan terminated.");
-      set_scan_status ("finished");
+      set_scan_status (globals, "finished");
 
       return;
     }
@@ -1509,5 +1515,6 @@ stop:
   if (alive_hosts_list)
     gvm_hosts_free (alive_hosts_list);
 
-  set_scan_status ("finished");
+  set_scan_status (globals, "finished");
 }
+
