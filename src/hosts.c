@@ -27,7 +27,7 @@
 
 #include "../misc/network.h" /* for internal_recv */
 #include "../misc/plugutils.h"
-#include "utils.h"           /* for data_left() */
+#include "utils.h" /* for data_left() */
 
 #include <errno.h>               /* for errno() */
 #include <glib.h>                /* for g_free() */

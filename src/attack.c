@@ -25,10 +25,10 @@
 
 #include "attack.h"
 
-#include "../misc/network.h"          /* for auth_printf */
+#include "../misc/network.h"        /* for auth_printf */
+#include "../misc/nvt_categories.h" /* for ACT_INIT */
+#include "../misc/pcap_openvas.h"   /* for v6_is_local_ip */
 #include "../misc/plugutils.h"
-#include "../misc/nvt_categories.h"   /* for ACT_INIT */
-#include "../misc/pcap_openvas.h"     /* for v6_is_local_ip */
 #include "../misc/table_driven_lsc.h" /*for make_table_driven_lsc_info_json_str */
 #include "../nasl/nasl_debug.h"       /* for nasl_*_filename */
 #include "hosts.h"
@@ -143,10 +143,10 @@ set_scan_status (struct scan_globals *globals, char *status)
 
   connect_main_kb (&main_kb);
 
-  if (check_kb_inconsistency (globals, main_kb) != 0)  
+  if (check_kb_inconsistency (globals, main_kb) != 0)
     {
-        kb_lnk_reset (main_kb);
-        return;
+      kb_lnk_reset (main_kb);
+      return;
     }
   scan_id = kb_item_get_str (main_kb, ("internal/scanid"));
   snprintf (buffer, sizeof (buffer), "internal/%s", scan_id);
@@ -223,8 +223,8 @@ comm_send_status (kb_t main_kb, char *ip_str, int curr, int max)
 }
 
 static void
-message_to_client (struct scan_globals *globals, kb_t kb, const char *msg, const char *ip_str,
-                   const char *port, const char *type)
+message_to_client (struct scan_globals *globals, kb_t kb, const char *msg,
+                   const char *ip_str, const char *port, const char *type)
 {
   char *buf;
 
@@ -935,9 +935,11 @@ attack_start (struct attack_start_args *args)
   if (ret_host_auth < 0)
     {
       if (ret_host_auth == -1)
-        message_to_client (globals, kb, "Host access denied.", ip_str, NULL, "ERRMSG");
+        message_to_client (globals, kb, "Host access denied.", ip_str, NULL,
+                           "ERRMSG");
       else
-        message_to_client (globals, kb, "Host access denied (system-wide restriction.)",
+        message_to_client (globals, kb,
+                           "Host access denied (system-wide restriction.)",
                            ip_str, NULL, "ERRMSG");
 
       kb_item_set_str (kb, "internal/host_deny", "True", 0);
@@ -1185,8 +1187,9 @@ attack_network (struct scan_globals *globals)
     {
       connect_main_kb (&main_kb);
       message_to_client (
-                         globals, main_kb, "Invalid port list. Ports must be in the range [1-65535]",
-        NULL, NULL, "ERRMSG");
+        globals, main_kb,
+        "Invalid port list. Ports must be in the range [1-65535]", NULL, NULL,
+        "ERRMSG");
       kb_lnk_reset (main_kb);
       g_warning ("Invalid port list. Ports must be in the range [1-65535]. "
                  "Scan terminated.");
@@ -1517,4 +1520,3 @@ stop:
 
   set_scan_status (globals, "finished");
 }
-
