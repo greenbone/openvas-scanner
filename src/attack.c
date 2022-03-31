@@ -26,6 +26,7 @@
 #include "attack.h"
 
 #include "../misc/network.h"          /* for auth_printf */
+#include "../misc/plugutils.h"
 #include "../misc/nvt_categories.h"   /* for ACT_INIT */
 #include "../misc/pcap_openvas.h"     /* for v6_is_local_ip */
 #include "../misc/table_driven_lsc.h" /*for make_table_driven_lsc_info_json_str */
@@ -216,11 +217,13 @@ comm_send_status (kb_t main_kb, char *ip_str, int curr, int max)
 }
 
 static void
-message_to_client (kb_t kb, const char *msg, const char *ip_str,
+message_to_client (struct scan_globals *globals, kb_t kb, const char *msg, const char *ip_str,
                    const char *port, const char *type)
 {
   char *buf;
 
+  if (check_kb_inconsistency (globals, kb) != 0)
+    return;
   buf = g_strdup_printf ("%s|||%s|||%s|||%s||| |||%s", type,
                          ip_str ? ip_str : "", ip_str ? ip_str : "",
                          port ? port : " ", msg ? msg : "No error.");
@@ -634,7 +637,7 @@ attack_host (struct scan_globals *globals, struct in6_addr *ip, GSList *vhosts,
   host_kb = kb;
   host_vhosts = vhosts;
   kb_item_set_int (kb, "internal/hostpid", getpid ());
-  host_set_time (main_kb, ip_str, "HOST_START");
+  host_set_time (globals, main_kb, ip_str, "HOST_START");
   kb_lnk_reset (main_kb);
   setproctitle ("openvas: testing %s", ip_str);
   kb_lnk_reset (kb);
@@ -731,7 +734,7 @@ attack_host (struct scan_globals *globals, struct in6_addr *ip, GSList *vhosts,
       else if (plugin != NULL && plugin == PLUG_RUNNING)
         /* 50 milliseconds. */
         usleep (50000);
-      pluginlaunch_wait_for_free_process (main_kb, kb);
+      pluginlaunch_wait_for_free_process (globals, main_kb, kb);
     }
 
   if (!scan_is_stopped () && prefs_get_bool ("table_driven_lsc")
@@ -750,7 +753,7 @@ attack_host (struct scan_globals *globals, struct in6_addr *ip, GSList *vhosts,
         }
     }
 
-  pluginlaunch_wait (main_kb, kb);
+  pluginlaunch_wait (globals, main_kb, kb);
   if (!scan_is_stopped ())
     {
       int ret;
@@ -766,7 +769,7 @@ host_died:
                globals->scan_id, ip_str);
   pluginlaunch_stop ();
   plugins_scheduler_free (sched);
-  host_set_time (main_kb, ip_str, "HOST_END");
+  host_set_time (globals, main_kb, ip_str, "HOST_END");
 }
 
 /*
@@ -827,7 +830,7 @@ vhosts_to_str (GSList *list)
  * @brief Check if any deprecated prefs are in pref table and print warning.
  */
 static void
-check_deprecated_prefs ()
+check_deprecated_prefs (struct scan_globals *globals)
 {
   const gchar *source_iface = prefs_get ("source_iface");
   const gchar *ifaces_allow = prefs_get ("ifaces_allow");
@@ -852,7 +855,7 @@ check_deprecated_prefs ()
       g_warning ("%s: %s", __func__, msg);
 
       connect_main_kb (&main_kb);
-      message_to_client (main_kb, msg, NULL, NULL, "ERRMSG");
+      message_to_client (globals, main_kb, msg, NULL, NULL, "ERRMSG");
       kb_lnk_reset (main_kb);
       g_free (msg);
     }
@@ -926,9 +929,9 @@ attack_start (struct attack_start_args *args)
   if (ret_host_auth < 0)
     {
       if (ret_host_auth == -1)
-        message_to_client (kb, "Host access denied.", ip_str, NULL, "ERRMSG");
+        message_to_client (globals, kb, "Host access denied.", ip_str, NULL, "ERRMSG");
       else
-        message_to_client (kb, "Host access denied (system-wide restriction.)",
+        message_to_client (globals, kb, "Host access denied (system-wide restriction.)",
                            ip_str, NULL, "ERRMSG");
 
       kb_item_set_str (kb, "internal/host_deny", "True", 0);
@@ -1150,7 +1153,7 @@ attack_network (struct scan_globals *globals)
   GSList *unresolved;
   char buf[96];
 
-  check_deprecated_prefs ();
+  check_deprecated_prefs (globals);
 
   gboolean test_alive_hosts_only = prefs_get_bool ("test_alive_hosts_only");
   gvm_hosts_t *alive_hosts_list = NULL;
@@ -1176,7 +1179,7 @@ attack_network (struct scan_globals *globals)
     {
       connect_main_kb (&main_kb);
       message_to_client (
-        main_kb, "Invalid port list. Ports must be in the range [1-65535]",
+                         globals, main_kb, "Invalid port list. Ports must be in the range [1-65535]",
         NULL, NULL, "ERRMSG");
       kb_lnk_reset (main_kb);
       g_warning ("Invalid port list. Ports must be in the range [1-65535]. "
@@ -1205,7 +1208,7 @@ attack_network (struct scan_globals *globals)
                plugins_init_error);
 
       connect_main_kb (&main_kb);
-      message_to_client (main_kb, buf, NULL, NULL, "ERRMSG");
+      message_to_client (globals, main_kb, buf, NULL, NULL, "ERRMSG");
       kb_lnk_reset (main_kb);
     }
 
@@ -1218,11 +1221,11 @@ attack_network (struct scan_globals *globals)
       char *buffer;
       buffer = g_strdup_printf ("Invalid target list: %s.", hostlist);
       connect_main_kb (&main_kb);
-      message_to_client (main_kb, buffer, NULL, NULL, "ERRMSG");
+      message_to_client (globals, main_kb, buffer, NULL, NULL, "ERRMSG");
       g_free (buffer);
       /* Send the hosts count to the client as -1,
        * because the invalid target list.*/
-      message_to_client (main_kb, INVALID_TARGET_LIST, NULL, NULL,
+      message_to_client (globals, main_kb, INVALID_TARGET_LIST, NULL, NULL,
                          "HOSTS_COUNT");
       kb_lnk_reset (main_kb);
       g_warning ("Invalid target list. Scan terminated.");
@@ -1245,7 +1248,7 @@ attack_network (struct scan_globals *globals)
    * unresolved hosts.*/
   sprintf (buf, "%d", gvm_hosts_count (hosts));
   connect_main_kb (&main_kb);
-  message_to_client (main_kb, buf, NULL, NULL, "HOSTS_COUNT");
+  message_to_client (globals, main_kb, buf, NULL, NULL, "HOSTS_COUNT");
   kb_lnk_reset (main_kb);
 
   apply_hosts_excluded (hosts);

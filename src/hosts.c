@@ -26,6 +26,7 @@
 #include "hosts.h" /* for hosts_new() */
 
 #include "../misc/network.h" /* for internal_recv */
+#include "../misc/plugutils.h"
 #include "utils.h"           /* for data_left() */
 
 #include <errno.h>               /* for errno() */
@@ -73,12 +74,15 @@ extern int global_scan_stop;
  *
  */
 void
-host_set_time (kb_t kb, char *ip, char *type)
+host_set_time (struct scan_globals *globals, kb_t kb, char *ip, char *type)
 {
   char *timestr;
   char log_msg[1024];
   time_t t;
   int len;
+
+  if (check_kb_inconsistency (globals, kb) != 0)
+    return;
 
   t = time (NULL);
   char ts[26];
