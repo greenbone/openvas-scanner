@@ -46,7 +46,7 @@ void
 hosts_stop_all (void);
 
 void
-host_set_time (kb_t, char *, char *);
+host_set_time (struct scan_globals *, kb_t, char *, char *);
 
 int
 host_is_currently_scanned (gvm_host_t *);

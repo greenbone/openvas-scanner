@@ -118,7 +118,7 @@ max_nvt_timeouts_reached ()
  *
  */
 static void
-update_running_processes (kb_t main_kb, kb_t kb)
+update_running_processes (struct scan_globals *globals, kb_t main_kb, kb_t kb)
 {
   int i;
   struct timeval now;
@@ -143,7 +143,7 @@ update_running_processes (kb_t main_kb, kb_t kb)
             {
               char *oid = processes[i].plugin->oid;
 
-              if (is_alive)
+              if (is_alive) // Alive and timed out
                 {
                   char msg[2048];
                   if (log_whole)
@@ -154,7 +154,8 @@ update_running_processes (kb_t main_kb, kb_t kb)
                               "ERRMSG|||%s||| |||general/tcp|||%s|||"
                               "NVT timed out after %d seconds.",
                               hostname, oid ? oid : " ", processes[i].timeout);
-                  kb_item_push_str (main_kb, "internal/results", msg);
+                  if (check_kb_inconsistency (globals, main_kb) == 0)
+                    kb_item_push_str (main_kb, "internal/results", msg);
 
                   /* Check for max VTs timeouts */
                   if (max_nvt_timeouts_reached ())
@@ -168,7 +169,8 @@ update_running_processes (kb_t main_kb, kb_t kb)
                                       "Host has been marked as dead. Too many "
                                       "NVT_TIMEOUTs.",
                                       hostname);
-                          kb_item_push_str (main_kb, "internal/results", msg);
+                          if (check_kb_inconsistency (globals, main_kb) == 0)
+                            kb_item_push_str (main_kb, "internal/results", msg);
                         }
                     }
 
@@ -293,7 +295,7 @@ simult_ports (const char *oid, const char *next_oid)
  * free "slot" in the processes array otherwise.
  */
 static int
-next_free_process (kb_t main_kb, kb_t kb, struct scheduler_plugin *upcoming)
+next_free_process (struct scan_globals *globals, kb_t main_kb, kb_t kb, struct scheduler_plugin *upcoming)
 {
   int r;
 
@@ -304,7 +306,7 @@ next_free_process (kb_t main_kb, kb_t kb, struct scheduler_plugin *upcoming)
         {
           while (process_alive (processes[r].pid))
             {
-              update_running_processes (main_kb, kb);
+              update_running_processes (globals, main_kb, kb);
               usleep (250000);
             }
         }
@@ -463,8 +465,8 @@ plugin_launch (struct scan_globals *globals, struct scheduler_plugin *plugin,
   int p;
 
   /* Wait for a free slot */
-  pluginlaunch_wait_for_free_process (main_kb, kb);
-  p = next_free_process (main_kb, kb, plugin);
+  pluginlaunch_wait_for_free_process (globals, main_kb, kb);
+  p = next_free_process (globals, main_kb, kb, plugin);
   if (p < 0)
     {
       g_warning ("%s. There is currently no free slot available for starting a "
@@ -494,11 +496,11 @@ plugin_launch (struct scan_globals *globals, struct scheduler_plugin *plugin,
  * @brief Waits and 'pushes' processes until num_running_processes is 0.
  */
 void
-pluginlaunch_wait (kb_t main_kb, kb_t kb)
+pluginlaunch_wait (struct scan_globals *globals, kb_t main_kb, kb_t kb)
 {
   while (num_running_processes)
     {
-      update_running_processes (main_kb, kb);
+      update_running_processes (globals, main_kb, kb);
       if (num_running_processes)
         waitpid (-1, NULL, 0);
     }
@@ -527,11 +529,11 @@ timeout_running_processes (void)
  *        changed.
  */
 void
-pluginlaunch_wait_for_free_process (kb_t main_kb, kb_t kb)
+pluginlaunch_wait_for_free_process (struct scan_globals *globals, kb_t main_kb, kb_t kb)
 {
   if (!num_running_processes)
     return;
-  update_running_processes (main_kb, kb);
+  update_running_processes (globals, main_kb, kb);
   /* Max number of processes are still running, wait for a child to exit or
    * to timeout. */
 
@@ -554,6 +556,6 @@ pluginlaunch_wait_for_free_process (kb_t main_kb, kb_t kb)
       sigaddset (&mask, SIGCHLD);
       if (sigtimedwait (&mask, NULL, &ts) < 0 && errno != EAGAIN)
         g_warning ("%s: %s", __func__, strerror (errno));
-      update_running_processes (main_kb, kb);
+      update_running_processes (globals, main_kb, kb);
     }
 }

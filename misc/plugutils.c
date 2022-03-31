@@ -472,8 +472,10 @@ proto_post_wrapped (const char *oid, struct script_infos *desc, int port,
       g_string_free (action_str, TRUE);
       return;
     }
+
   kb = plug_get_results_kb (desc);
-  kb_item_push_str (kb, "internal/results", data);
+  if (check_kb_inconsistency (desc->globals, kb) == 0)
+    kb_item_push_str (kb, "internal/results", data);
   g_free (data);
   g_free (buffer);
   g_string_free (action_str, TRUE);
