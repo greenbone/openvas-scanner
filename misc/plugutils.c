@@ -380,6 +380,42 @@ msg_type_to_str (msg_t type)
 }
 
 /**
+ * @brief Check if the current main kb corresponds to the
+ *        original scan main kb.
+ * @description Compares the scan id in globals, set at the beginning
+ *              of the scan, with the one found in the main kb.
+ *              It helps to detect that the kb was not taken by another
+ *              task/scan, and that the current plugins does not stores
+ *              results in a wrong kb.
+ *
+ * @param desc    The script infos where to get settings.
+ * @param main_kb Current main kb.
+ *
+ * @return 0 on success, -1 on inconsistency.
+ */
+
+int
+check_kb_inconsistency (struct scan_globals *globals, kb_t main_kb)
+{
+  const char *original_scan_id;
+  char *current_scan_id;
+
+  original_scan_id = globals->scan_id;
+  current_scan_id = kb_item_get_str (main_kb, ("internal/scanid"));
+
+  if (!g_strcmp0 (original_scan_id, current_scan_id))
+    {
+      g_free (current_scan_id);
+      return 0;
+    }
+
+  g_warning ("KB inconsitency. %s writing into %s KB", original_scan_id,
+             current_scan_id);
+  g_free (current_scan_id);
+  return -1;
+}
+
+/**
  * @brief Post a security message (e.g. LOG, NOTE, WARNING ...).
  *
  * @param oid   The oid of the NVT
