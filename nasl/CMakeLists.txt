@@ -55,7 +55,6 @@ pkg_check_modules (LIBGVM_BASE REQUIRED libgvm_base>=22.4)
 pkg_check_modules (LIBGVM_UTIL REQUIRED libgvm_util>=22.4)
 
 pkg_check_modules (OPENVAS_WMICLIENT libopenvas_wmiclient>=1.0.5)
-pkg_check_modules (OPENVAS_WINCMD libopenvas_wincmd>=1.0.5)
 
 # for 'nasl' binary
 pkg_check_modules (LIBSSH REQUIRED libssh>=0.6.0)
@@ -178,10 +177,6 @@ if (NOT OPENVAS_WMICLIENT_FOUND)
   set (FILES smb_interface_stub.c wmi_interface_stub.c ${FILES})
 endif (NOT OPENVAS_WMICLIENT_FOUND)
 
-if (NOT OPENVAS_WINCMD_FOUND)
-  set (FILES smb_interface_stub.c ${FILES})
-endif (NOT OPENVAS_WINCMD_FOUND)
-
 if (KSBA)
   add_definitions (-DHAVE_LIBKSBA)
 endif (KSBA)
@@ -219,7 +214,7 @@ target_link_libraries (openvas_nasl_shared openvas_misc_shared ${GLIB_LDFLAGS}
                          ${GCRYPT_LDFLAGS} ${GPGME_LDFLAGS} m
                          ${LIBGVM_BASE_LDFLAGS}
                          ${LIBGVM_UTIL_LDFLAGS}
-                         ${OPENVAS_WMICLIENT_LDFLAGS} ${OPENVAS_WINCMD_LDFLAGS}
+                         ${OPENVAS_WMICLIENT_LDFLAGS}
                          ${GNUTLS_LDFLAGS} ${PCAP_LDFLAGS} ${LIBSSH_LDFLAGS}
                          ${KSBA_LDFLAGS} ${SNMP_LDFLAGS}
                          ${LINKER_HARDENING_FLAGS})

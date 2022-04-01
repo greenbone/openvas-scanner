@@ -33,7 +33,6 @@ pkg_check_modules (LIBGVM_BASE REQUIRED libgvm_base>=22.4)
 pkg_check_modules (LIBGVM_UTIL REQUIRED libgvm_util>=22.4)
 
 pkg_check_modules (OPENVAS_WMICLIENT libopenvas_wmiclient>=1.0.5)
-pkg_check_modules (OPENVAS_WINCMD libopenvas_wincmd>=1.0.5)
 
 message (STATUS "Looking for pcap...")
 find_library (PCAP pcap)
