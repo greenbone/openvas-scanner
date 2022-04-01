@@ -151,21 +151,3 @@ smb_file_TrusteeRights (SMB_HANDLE handle, const char *filename)
   (void) filename;
   return NULL;
 }
-
-/**
- * @brief Command Execution in Windows
- *
- * @param[in] argc - Connection strings
- *
- * @param[in] argv - Number of arguments
- *
- * @return, 0 on success, -1 on failure
- */
-int
-wincmd (int argc, char *argv[], char **res)
-{
-  (void) argc;
-  (void) argv;
-  (void) res;
-  return -1;
-}
