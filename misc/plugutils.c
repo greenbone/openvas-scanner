@@ -388,7 +388,7 @@ msg_type_to_str (msg_t type)
  *              task/scan, and that the current plugins does not stores
  *              results in a wrong kb.
  *
- * @param desc    The script infos where to get settings.
+ * @param globals The script infos where to get settings.
  * @param main_kb Current main kb.
  *
  * @return 0 on success, -1 on inconsistency.
