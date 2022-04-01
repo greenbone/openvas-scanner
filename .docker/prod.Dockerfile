@@ -13,6 +13,10 @@ RUN apt-get update && apt-get install --no-install-recommends --no-install-sugge
     bison \
     libjson-glib-1.0-0 \
     libksba8 \
+    nmap \
+    snmp \
+    netdiag \
+    pnscan \
     && rm -rf /var/lib/apt/lists/*
 COPY --from=feed /opt/greenbone/feed/plugins /var/lib/openvas/plugins
 COPY --from=build /install/ /
