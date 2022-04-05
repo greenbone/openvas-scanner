@@ -122,7 +122,7 @@ list_cmp1 (gconstpointer lelem, gconstpointer data)
 /**
  * @brief Check if an undefined called function is needed or not.
  *        This is the case in which the function is called from a
- *        neested and defined function but never called.
+ *        nested and defined function but never called.
  * @return 1 if the function is needed, 0 otherwise.
  */
 static gint
