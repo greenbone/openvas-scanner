@@ -161,10 +161,9 @@ reverse_search (GSList **def_func_tree, GSList *finfo)
 static gint
 list_cmp (gconstpointer lelem, gconstpointer data)
 {
-  if (!lelem || !data)
-    return -1;
-
-  return (strcasecmp (lelem, data));
+  if (data)
+    return (g_strcmp0 (lelem, data));
+  return -1;
 }
 
 /**
