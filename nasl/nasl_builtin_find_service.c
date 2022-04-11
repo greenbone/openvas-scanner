@@ -50,6 +50,10 @@
 
 #define NUM_CHILDREN "Number of connections done in parallel : "
 
+// we cannot use the GNU ones due to number mismatch
+#define TLS_PRIME_UNACCEPTABLE -2
+#define TLS_FATAL_ALERT -3
+
 #undef G_LOG_DOMAIN
 /**
  * @brief GLib logging domain.
@@ -1489,6 +1493,63 @@ may_be_time (time_t *rtime)
 }
 
 static int
+retry_stream_connection (int test_ssl, struct script_infos *desc, int port,
+                         int timeout)
+{
+  const char *p = "NORMAL:+ARCFOUR-128:%COMPAT";
+  const char *lp = "LEGACY:%COMPAT:%UNSAFE_RENEGOTIATION";
+  int cnx, trp;
+
+  if (test_ssl)
+    trp = OPENVAS_ENCAPS_TLScustom;
+  else
+    trp = OPENVAS_ENCAPS_IP;
+
+  cnx = open_stream_connection (desc, port, trp, timeout);
+  if (test_ssl)
+    {
+      switch (cnx)
+        {
+        case TLS_PRIME_UNACCEPTABLE:
+          // retry with insecure bit
+          g_debug ("%s: NO_PRIORITY_FLAGS failed, retrying with "
+                   "INSECURE_DH_PRIME_BITS",
+                   __func__);
+          cnx = open_stream_connection_ext (desc, port, trp, timeout, p,
+                                            INSECURE_DH_PRIME_BITS);
+          if (cnx >= 0)
+            {
+              open_stream_tls_default_priorities (p, INSECURE_DH_PRIME_BITS);
+            }
+          break;
+        case TLS_FATAL_ALERT:
+          // retry with legacy option
+          g_debug ("%s: %s failed, retrying with %s", __func__, p, lp);
+          cnx = open_stream_connection_ext (desc, port, trp, timeout, lp,
+                                            NO_PRIORITY_FLAGS);
+          if (cnx >= 0)
+            {
+              open_stream_tls_default_priorities (lp, NO_PRIORITY_FLAGS);
+            }
+          break;
+        default:
+          // do nothing
+          break;
+        }
+      // verify if retries went successful and if not retry without tls
+      if (cnx < 0)
+        {
+          g_debug ("%s: unable to establish a TLS connection to %s; falling "
+                   "back to unencrypted connection",
+                   __func__, plug_get_host_fqdn (desc));
+          cnx = open_stream_connection (desc, port, OPENVAS_ENCAPS_IP, timeout);
+        }
+    }
+
+  return cnx;
+}
+
+static int
 plugin_do_run (struct script_infos *desc, GSList *h, int test_ssl)
 {
   char *head = "Ports/tcp/", *host_fqdn;
@@ -1601,36 +1662,8 @@ plugin_do_run (struct script_infos *desc, GSList *h, int test_ssl)
                   g_free (banner);
                   banner = NULL;
                 }
-              /* If test_ssl is set, try with TLS first. */
-              if (test_ssl)
-                trp = OPENVAS_ENCAPS_TLScustom;
-              else
-                trp = OPENVAS_ENCAPS_IP;
               gettimeofday (&tv1, NULL);
-              cnx = open_stream_connection (desc, port, trp, cnx_timeout);
-              if (cnx == -2 && test_ssl)
-                {
-                  unsigned int flags = INSECURE_DH_PRIME_BITS;
-
-                  gettimeofday (&tv1, NULL);
-                  cnx = open_stream_connection_ext (
-                    desc, port, trp, cnx_timeout, "NORMAL:+ARCFOUR-128:%COMPAT",
-                    flags);
-                }
-              else if (cnx < 0 && test_ssl)
-                {
-                  if (cnx == -3)
-                    {
-                      host_fqdn = plug_get_host_fqdn (desc);
-                      g_message ("%s: A TLS fatal alert has been received "
-                                 "during the handshake with %s:%d",
-                                 __func__, host_fqdn, port);
-                      g_free (host_fqdn);
-                    }
-                  trp = OPENVAS_ENCAPS_IP;
-                  gettimeofday (&tv1, NULL);
-                  cnx = open_stream_connection (desc, port, trp, cnx_timeout);
-                }
+              cnx = retry_stream_connection (test_ssl, desc, port, cnx_timeout);
               gettimeofday (&tv2, NULL);
               diff_tv = DIFFTV1000 (tv2, tv1);
             }
@@ -2045,6 +2078,7 @@ plugin_do_run (struct script_infos *desc, GSList *h, int test_ssl)
                                && strstr (
                                  buffer,
                                  "That item is not currently available")))
+
                     mark_gopher_server (desc, port);
                   else if (strstr (buffer,
                                    "www-authenticate: basic realm=\"swat\""))

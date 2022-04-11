@@ -84,6 +84,9 @@ get_sock_infos (int sock, int *r_transport, void **r_tls_session);
 unsigned short *
 getpts (char *, int *);
 
+void
+open_stream_tls_default_priorities (const char *p, const int pflag);
+
 int
 open_stream_connection (struct script_infos *, unsigned int, int, int);
 
