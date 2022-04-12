@@ -120,7 +120,7 @@ list_cmp1 (gconstpointer lelem, gconstpointer data)
 /**
  * @brief Check if an undefined called function is needed or not.
  *        This is the case in which the function is called from a
- *        neested and defined function but never called.
+ *        nested and defined function but never called.
  * @return 1 if the function is needed, 0 otherwise.
  */
 gint
@@ -159,10 +159,9 @@ reverse_search (GSList **def_func_tree, GSList *finfo)
 gint
 list_cmp (gconstpointer lelem, gconstpointer data)
 {
-  if (!lelem || !data)
-    return -1;
-
-  return (strcasecmp (lelem, data));
+  if (data)
+    return (g_strcmp0 (lelem, data));
+  return -1;
 }
 
 /**
