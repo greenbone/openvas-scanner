@@ -72,10 +72,13 @@ process_file (const gchar *filepath, int mode, struct script_infos *script_args)
   ret = exec_nasl_script (script_args, mode);
   if (ret != 0)
     {
-      g_print ("Error while processing %s.\n", filepath);
       if (ret == -1)
-        return 1;
-      return ret;
+        {
+          g_print ("Error while processing %s.\n", filepath);
+          return 1;
+        }
+      g_print ("%d errors while processing %s.\n", ret, filepath);
+      return ret != 0;
     }
   return 0;
 }
