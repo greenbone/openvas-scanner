@@ -1731,48 +1731,22 @@ encrypt_data (lex_ctxt *lexic, int cipher, int mode)
     }
 
   if (cipher == GCRY_CIPHER_ARCFOUR)
-    {
-      resultlen = datalen;
-      tmp = g_malloc0 (datalen);
-      memcpy (tmp, data, datalen);
-      tmplen = datalen;
-    }
+    resultlen = datalen;
   else if (cipher == GCRY_CIPHER_3DES)
-    {
-      if (datalen % 8 == 0)
-        resultlen = datalen;
-      else
-        resultlen = ((datalen / 8) + 1) * 8;
-      tmp = g_malloc0 (resultlen);
-      tmplen = resultlen;
-      memcpy (tmp, data, datalen);
-    }
+    resultlen = ((datalen / 8) + 1) * 8;
   else if (cipher == GCRY_CIPHER_AES128)
-    {
-      if (datalen % 16 == 0)
-        resultlen = datalen;
-      else
-        resultlen = ((datalen / 16) + 1) * 16;
-      tmp = g_malloc0 (resultlen);
-      tmplen = resultlen;
-      memcpy (tmp, data, datalen);
-    }
+    resultlen = ((datalen / 16) + 1) * 16;
   else if (cipher == GCRY_CIPHER_AES256)
-    {
-      if (datalen % 32 == 0)
-        resultlen = datalen;
-      else
-        resultlen = ((datalen / 32) + 1) * 32;
-      tmp = g_malloc0 (resultlen);
-      tmplen = resultlen;
-      memcpy (tmp, data, datalen);
-    }
+    resultlen = ((datalen / 32) + 1) * 32;
   else
     {
       nasl_perror (lexic, "encrypt_data: Unknown cipher %d", cipher);
       gcry_cipher_close (hd);
       return NULL;
     }
+  tmp = g_malloc0 (resultlen);
+  tmplen = resultlen;
+  memcpy (tmp, data, datalen);
 
   if (iv && ivlen)
     {
