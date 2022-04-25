@@ -1911,6 +1911,13 @@ nasl_aes128_gcm_encrypt (lex_ctxt *lexic)
 }
 
 tree_cell *
+nasl_aes128_gcm_decrypt (lex_ctxt *lexic)
+{
+  return crypt_data (lexic, GCRY_CIPHER_AES128, GCRY_CIPHER_MODE_GCM,
+                     NASL_DECRYPT);
+}
+
+tree_cell *
 nasl_aes256_gcm_encrypt (lex_ctxt *lexic)
 {
   return crypt_data (lexic, GCRY_CIPHER_AES256, GCRY_CIPHER_MODE_GCM,

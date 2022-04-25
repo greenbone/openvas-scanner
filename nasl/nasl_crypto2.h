@@ -91,6 +91,9 @@ tree_cell *
 nasl_aes128_gcm_encrypt (lex_ctxt *lexic);
 
 tree_cell *
+nasl_aes128_gcm_decrypt (lex_ctxt *lexic);
+
+tree_cell *
 nasl_aes256_gcm_encrypt (lex_ctxt *lexic);
 
 tree_cell *
