@@ -42,6 +42,8 @@
 #define INTBLOB_LEN 20
 #define SIGBLOB_LEN (2 * INTBLOB_LEN)
 #define MAX_CIPHER_ID 32
+#define NASL_ENCRYPT 1
+#define NASL_DECRYPT 2
 
 #undef G_LOG_DOMAIN
 /**
@@ -1695,7 +1697,7 @@ nasl_close_stream_cipher (lex_ctxt *lexic)
 }
 
 static tree_cell *
-encrypt_data (lex_ctxt *lexic, int cipher, int mode)
+crypt_data (lex_ctxt *lexic, int cipher, int mode, int crypt)
 {
   gcry_cipher_hd_t hd;
   gcry_error_t error;
@@ -1759,9 +1761,31 @@ encrypt_data (lex_ctxt *lexic, int cipher, int mode)
     }
 
   result = g_malloc0 (resultlen);
-  if ((error = gcry_cipher_encrypt (hd, result, resultlen, tmp, tmplen)))
+  if (crypt == NASL_ENCRYPT)
     {
-      g_message ("gcry_cipher_encrypt: %s", gcry_strerror (error));
+      if ((error = gcry_cipher_encrypt (hd, result, resultlen, tmp, tmplen)))
+        {
+          g_message ("gcry_cipher_encrypt: %s", gcry_strerror (error));
+          gcry_cipher_close (hd);
+          g_free (result);
+          g_free (tmp);
+          return NULL;
+        }
+    }
+  else if (crypt == NASL_DECRYPT)
+    {
+      if ((error = gcry_cipher_decrypt (hd, result, resultlen, tmp, tmplen)))
+        {
+          g_message ("gcry_cipher_decrypt: %s", gcry_strerror (error));
+          gcry_cipher_close (hd);
+          g_free (result);
+          g_free (tmp);
+          return NULL;
+        }
+    }
+  else
+    {
+      g_message ("crypt_data: invalid crypt value");
       gcry_cipher_close (hd);
       g_free (result);
       g_free (tmp);
@@ -1772,7 +1796,7 @@ encrypt_data (lex_ctxt *lexic, int cipher, int mode)
   gcry_cipher_close (hd);
   retc = alloc_typed_cell (CONST_DATA);
   retc->x.str_val = result;
-  retc->size = resultlen;
+  retc->size = strlen (result);
   return retc;
 }
 
@@ -1802,7 +1826,8 @@ nasl_rc4_encrypt (lex_ctxt *lexic)
       return encrypt_stream_data (lexic, GCRY_CIPHER_ARCFOUR, "rc4_encrypt");
     }
 
-  return encrypt_data (lexic, GCRY_CIPHER_ARCFOUR, GCRY_CIPHER_MODE_STREAM);
+  return crypt_data (lexic, GCRY_CIPHER_ARCFOUR, GCRY_CIPHER_MODE_STREAM,
+                     NASL_ENCRYPT);
 }
 
 /**
@@ -1823,41 +1848,48 @@ nasl_open_rc4_cipher (lex_ctxt *lexic)
 tree_cell *
 nasl_aes128_cbc_encrypt (lex_ctxt *lexic)
 {
-  return encrypt_data (lexic, GCRY_CIPHER_AES128, GCRY_CIPHER_MODE_CBC);
+  return crypt_data (lexic, GCRY_CIPHER_AES128, GCRY_CIPHER_MODE_CBC,
+                     NASL_ENCRYPT);
 }
 
 tree_cell *
 nasl_aes256_cbc_encrypt (lex_ctxt *lexic)
 {
-  return encrypt_data (lexic, GCRY_CIPHER_AES256, GCRY_CIPHER_MODE_CBC);
+  return crypt_data (lexic, GCRY_CIPHER_AES256, GCRY_CIPHER_MODE_CBC,
+                     NASL_ENCRYPT);
 }
 
 tree_cell *
 nasl_aes128_ctr_encrypt (lex_ctxt *lexic)
 {
-  return encrypt_data (lexic, GCRY_CIPHER_AES128, GCRY_CIPHER_MODE_CTR);
+  return crypt_data (lexic, GCRY_CIPHER_AES128, GCRY_CIPHER_MODE_CTR,
+                     NASL_ENCRYPT);
 }
 
 tree_cell *
 nasl_aes256_ctr_encrypt (lex_ctxt *lexic)
 {
-  return encrypt_data (lexic, GCRY_CIPHER_AES256, GCRY_CIPHER_MODE_CTR);
+  return crypt_data (lexic, GCRY_CIPHER_AES256, GCRY_CIPHER_MODE_CTR,
+                     NASL_ENCRYPT);
 }
 
 tree_cell *
 nasl_des_ede_cbc_encrypt (lex_ctxt *lexic)
 {
-  return encrypt_data (lexic, GCRY_CIPHER_3DES, GCRY_CIPHER_MODE_CBC);
+  return crypt_data (lexic, GCRY_CIPHER_3DES, GCRY_CIPHER_MODE_CBC,
+                     NASL_ENCRYPT);
 }
 
 tree_cell *
 nasl_aes128_gcm_encrypt (lex_ctxt *lexic)
 {
-  return encrypt_data (lexic, GCRY_CIPHER_AES128, GCRY_CIPHER_MODE_GCM);
+  return crypt_data (lexic, GCRY_CIPHER_AES128, GCRY_CIPHER_MODE_GCM,
+                     NASL_ENCRYPT);
 }
 
 tree_cell *
 nasl_aes256_gcm_encrypt (lex_ctxt *lexic)
 {
-  return encrypt_data (lexic, GCRY_CIPHER_AES256, GCRY_CIPHER_MODE_GCM);
+  return crypt_data (lexic, GCRY_CIPHER_AES256, GCRY_CIPHER_MODE_GCM,
+                     NASL_ENCRYPT);
 }
