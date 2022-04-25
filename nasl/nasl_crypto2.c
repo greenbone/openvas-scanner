@@ -1702,8 +1702,7 @@ crypt_data (lex_ctxt *lexic, int cipher, int mode, int crypt)
   gcry_cipher_hd_t hd;
   gcry_error_t error;
   void *result, *data, *key, *iv;
-  void *tmp = NULL;
-  size_t resultlen, datalen, keylen, tmplen, ivlen;
+  size_t resultlen, datalen, keylen, ivlen;
   tree_cell *retc;
 
   data = get_str_var_by_name (lexic, "data");
@@ -1713,9 +1712,9 @@ crypt_data (lex_ctxt *lexic, int cipher, int mode, int crypt)
   iv = get_str_var_by_name (lexic, "iv");
   ivlen = get_var_size_by_name (lexic, "iv");
 
-  if (!data || datalen <= 0 || !key || keylen <= 0)
+  if (!data || datalen == 0 || !key || keylen == 0)
     {
-      nasl_perror (lexic, "Syntax: encrypt_data: Missing data or key argument");
+      nasl_perror (lexic, "Syntax: crypt_data: Missing data or key argument");
       return NULL;
     }
 
@@ -1725,11 +1724,22 @@ crypt_data (lex_ctxt *lexic, int cipher, int mode, int crypt)
       gcry_cipher_close (hd);
       return NULL;
     }
+
   if ((error = gcry_cipher_setkey (hd, key, keylen)))
     {
       nasl_perror (lexic, "gcry_cipher_setkey: %s", gcry_strerror (error));
       gcry_cipher_close (hd);
       return NULL;
+    }
+
+  if (iv && ivlen)
+    {
+      if ((error = gcry_cipher_setiv (hd, iv, ivlen)))
+        {
+          nasl_perror (lexic, "gcry_cipher_setiv: %s", gcry_strerror (error));
+          gcry_cipher_close (hd);
+          return NULL;
+        }
     }
 
   if (cipher == GCRY_CIPHER_ARCFOUR)
@@ -1746,16 +1756,31 @@ crypt_data (lex_ctxt *lexic, int cipher, int mode, int crypt)
       gcry_cipher_close (hd);
       return NULL;
     }
-  tmp = g_malloc0 (resultlen);
-  tmplen = resultlen;
-  memcpy (tmp, data, datalen);
 
-  if (iv && ivlen)
+  if (mode == GCRY_CIPHER_MODE_CCM)
     {
-      if ((error = gcry_cipher_setiv (hd, iv, ivlen)))
+      if (crypt == NASL_DECRYPT)
         {
-          nasl_perror (lexic, "gcry_cipher_setiv: %s", gcry_strerror (error));
-          g_free (tmp);
+          resultlen = get_int_var_by_name (lexic, "len", 0);
+          if (resultlen == 0)
+            {
+              nasl_perror (lexic, "Syntax: crypt_data: Missing or invalid "
+                                  "message length required "
+                                  "for CCM decryption");
+              return NULL;
+            }
+        }
+      else
+        resultlen = datalen;
+
+      u_int64_t params[3];
+      params[0] = datalen;
+      params[1] = 0;
+      params[2] = 10;
+      if ((error = gcry_cipher_ctl (hd, GCRYCTL_SET_CCM_LENGTHS, params,
+                                    sizeof (params))))
+        {
+          nasl_perror (lexic, "gcry_cipher_ctl: %s", gcry_strerror (error));
           return NULL;
         }
     }
@@ -1763,23 +1788,23 @@ crypt_data (lex_ctxt *lexic, int cipher, int mode, int crypt)
   result = g_malloc0 (resultlen);
   if (crypt == NASL_ENCRYPT)
     {
-      if ((error = gcry_cipher_encrypt (hd, result, resultlen, tmp, tmplen)))
+      if ((error =
+             gcry_cipher_encrypt (hd, result, resultlen, data, resultlen)))
         {
           g_message ("gcry_cipher_encrypt: %s", gcry_strerror (error));
           gcry_cipher_close (hd);
           g_free (result);
-          g_free (tmp);
           return NULL;
         }
     }
   else if (crypt == NASL_DECRYPT)
     {
-      if ((error = gcry_cipher_decrypt (hd, result, resultlen, tmp, tmplen)))
+      if ((error =
+             gcry_cipher_decrypt (hd, result, resultlen, data, resultlen)))
         {
           g_message ("gcry_cipher_decrypt: %s", gcry_strerror (error));
           gcry_cipher_close (hd);
           g_free (result);
-          g_free (tmp);
           return NULL;
         }
     }
@@ -1788,11 +1813,9 @@ crypt_data (lex_ctxt *lexic, int cipher, int mode, int crypt)
       g_message ("crypt_data: invalid crypt value");
       gcry_cipher_close (hd);
       g_free (result);
-      g_free (tmp);
       return NULL;
     }
 
-  g_free (tmp);
   gcry_cipher_close (hd);
   retc = alloc_typed_cell (CONST_DATA);
   retc->x.str_val = result;
@@ -1892,4 +1915,18 @@ nasl_aes256_gcm_encrypt (lex_ctxt *lexic)
 {
   return crypt_data (lexic, GCRY_CIPHER_AES256, GCRY_CIPHER_MODE_GCM,
                      NASL_ENCRYPT);
+}
+
+tree_cell *
+nasl_aes128_ccm_encrypt (lex_ctxt *lexic)
+{
+  return crypt_data (lexic, GCRY_CIPHER_AES128, GCRY_CIPHER_MODE_CCM,
+                     NASL_ENCRYPT);
+}
+
+tree_cell *
+nasl_aes128_ccm_decrypt (lex_ctxt *lexic)
+{
+  return crypt_data (lexic, GCRY_CIPHER_AES128, GCRY_CIPHER_MODE_CCM,
+                     NASL_DECRYPT);
 }
