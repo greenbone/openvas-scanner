@@ -13,7 +13,15 @@ RUN apt-get update && apt-get install --no-install-recommends --no-install-sugge
     bison \
     libjson-glib-1.0-0 \
     libksba8 \
+<<<<<<< HEAD
     libnet1 \
+=======
+    nmap \
+    libcap2-bin \
+    snmp \
+    netdiag \
+    pnscan \
+>>>>>>> 02071b5c (add libcap2-bin for setcap command)
     && rm -rf /var/lib/apt/lists/*
 COPY --from=feed /opt/greenbone/feed/plugins /var/lib/openvas/plugins
 COPY --from=build /install/ /
