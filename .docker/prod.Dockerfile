@@ -21,3 +21,5 @@ RUN apt-get update && apt-get install --no-install-recommends --no-install-sugge
 COPY --from=feed /opt/greenbone/feed/plugins /var/lib/openvas/plugins
 COPY --from=build /install/ /
 RUN ldconfig
+# allow openvas to access raw sockets and all kind of network related tasks
+RUN setcap cap_net_raw,cap_net_admin+eip /usr/local/sbin/openvas
