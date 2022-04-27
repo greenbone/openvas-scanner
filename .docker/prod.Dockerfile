@@ -14,6 +14,7 @@ RUN apt-get update && apt-get install --no-install-recommends --no-install-sugge
     libjson-glib-1.0-0 \
     libksba8 \
     nmap \
+    libcap2-bin \
     snmp \
     netdiag \
     pnscan \
