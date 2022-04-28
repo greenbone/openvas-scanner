@@ -18,7 +18,7 @@ RUN apt-get update && apt-get install --no-install-recommends --no-install-sugge
     snmp \
     netdiag \
     pnscan \
-    libbsd \
+    libbsd0 \
     && rm -rf /var/lib/apt/lists/*
 COPY --from=feed /opt/greenbone/feed/plugins /var/lib/openvas/plugins
 COPY --from=build /install/ /
