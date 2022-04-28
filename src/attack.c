@@ -40,13 +40,13 @@
 #include "utils.h"
 
 #include <arpa/inet.h> /* for inet_ntoa() */
-#include <errno.h>     /* for errno() */
+#include <bsd/unistd.h>
+#include <errno.h> /* for errno() */
 #include <fcntl.h>
 #include <glib.h>
 #include <gvm/base/hosts.h>
 #include <gvm/base/networking.h>
-#include <gvm/base/prefs.h> /* for prefs_get() */
-#include <gvm/base/proctitle.h>
+#include <gvm/base/prefs.h>            /* for prefs_get() */
 #include <gvm/boreas/alivedetection.h> /* for start_alive_detection() */
 #include <gvm/boreas/boreas_io.h>      /* for get_host_from_queue() */
 #include <gvm/util/mqtt.h>
@@ -636,7 +636,7 @@ attack_host (struct scan_globals *globals, struct in6_addr *ip, GSList *vhosts,
   kb_item_set_int (kb, "internal/hostpid", getpid ());
   host_set_time (main_kb, ip_str, "HOST_START");
   kb_lnk_reset (main_kb);
-  proctitle_set ("openvas: testing %s", ip_str);
+  setproctitle ("openvas: testing %s", ip_str);
   kb_lnk_reset (kb);
 
   /* launch the plugins */

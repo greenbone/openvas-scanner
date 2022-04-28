@@ -30,6 +30,7 @@ pkg_check_modules (LIBGVM_BASE REQUIRED libgvm_base>=22.4)
 pkg_check_modules (LIBGVM_BOREAS REQUIRED libgvm_boreas>=22.4)
 pkg_check_modules (LIBGVM_UTIL REQUIRED libgvm_util>=22.4)
 pkg_check_modules (GLIB REQUIRED glib-2.0>=2.42)
+pkg_check_modules (LIBBSD REQUIRED libbsd)
 
 message (STATUS "Looking for libgcrypt...")
 find_library (GCRYPT gcrypt)
@@ -87,7 +88,9 @@ add_executable (openvas attack.c debug_utils.c hosts.c
 
 set_target_properties (openvas PROPERTIES LINKER_LANGUAGE C)
 
-include_directories (${GLIB_INCLUDE_DIRS} ${LIBOPENVAS_NASL_INCLUDE_DIRS}
+include_directories (${GLIB_INCLUDE_DIRS}
+                     ${LIBBSD_INCLUDE_DIRS}
+                     ${LIBOPENVAS_NASL_INCLUDE_DIRS}
                      ${LIBGVM_BASE_INCLUDE_DIRS}
                      ${LIBOPENVAS_MISC_INCLUDE_DIRS}
                      ${GCRYPT_INCLUDE_DIRS})
@@ -169,7 +172,7 @@ target_link_libraries (openvas openvas_nasl_shared ${LIBOPENVAS_NASL_LDFLAGS}
                        ${LIBOPENVAS_MISC_LDFLAGS}
                        ${LIBGVM_BASE_LDFLAGS}
                        ${LIBGVM_BOREAS_LDFLAGS}
-                       ${GLIB_LDFLAGS} ${GCRYPT_LDFLAGS}
+                       ${LIBBSD_LDFLAGS} ${GLIB_LDFAGS} ${GCRYPT_LDFLAGS}
                        ${EXECINFO_LDFLAGS} ${PCAP_LDFLAGS}
                        ${LINKER_HARDENING_FLAGS} ${CMAKE_THREAD_LIBS_INIT})
 
@@ -192,7 +195,7 @@ target_link_libraries (attack-test openvas_nasl_shared cgreen
                        ${LIBOPENVAS_MISC_LDFLAGS}
                        ${LIBGVM_BASE_LDFLAGS}
                        ${LIBGVM_BOREAS_LDFLAGS}
-                       ${GLIB_LDFLAGS} ${GCRYPT_LDFLAGS}
+                       ${LIBBSD_LDFLAGS} ${GLIB_LDFAGS} ${GCRYPT_LDFLAGS}
                        ${EXECINFO_LDFLAGS} ${PCAP_LDFLAGS}
                        ${LINKER_HARDENING_FLAGS} ${CMAKE_THREAD_LIBS_INIT}
                        -Wl,--wrap=redis_push_str)

@@ -26,6 +26,6 @@
 #define _OPENVAS_H
 
 int
-openvas (int, char **);
+openvas (int, char **, char **);
 
 #endif /* not _OPENVAS_H */
