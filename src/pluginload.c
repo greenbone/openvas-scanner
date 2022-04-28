@@ -30,10 +30,10 @@
 #include "sighand.h"
 #include "utils.h"
 
+#include <bsd/unistd.h>
 #include <errno.h>
 #include <glib.h>
-#include <gvm/base/prefs.h> /* for prefs_get() */
-#include <gvm/base/proctitle.h>
+#include <gvm/base/prefs.h>     /* for prefs_get() */
 #include <gvm/util/nvticache.h> /* for nvticache_new */
 #include <stdio.h>
 #include <stdlib.h>
@@ -232,7 +232,7 @@ cleanup_leftovers (int num_files)
   size_t count;
   GSList *oids, *element;
 
-  proctitle_set ("openvas: Cleaning leftover NVTs.");
+  setproctitle ("openvas: Cleaning leftover NVTs.");
 
   count = nvticache_count ();
   if ((int) count <= num_files)
@@ -295,10 +295,10 @@ plugins_reload_from_dir (const char *folder)
           set_current_loading_plugins (loaded_files);
           percentile = (loaded_files * 100) / num_files;
           eta = calculate_eta (start_time, loaded_files, num_files);
-          proctitle_set ("openvas: Reloaded %d of %d NVTs"
-                         " (%d%% / ETA: %02d:%02d)",
-                         loaded_files, num_files, percentile, eta / 60,
-                         eta % 60);
+          setproctitle ("openvas: Reloaded %d of %d NVTs"
+                        " (%d%% / ETA: %02d:%02d)",
+                        loaded_files, num_files, percentile, eta / 60,
+                        eta % 60);
         }
       if (prefs_get_bool ("log_plugins_name_at_load"))
         g_message ("Loading %s", name);
@@ -311,7 +311,7 @@ plugins_reload_from_dir (const char *folder)
       if (err_count == 20)
         {
           g_debug ("Stopped loading plugins: High number of errors.");
-          proctitle_set ("openvas: Error loading NVTs.");
+          setproctitle ("openvas: Error loading NVTs.");
           g_slist_free_full (files, g_free);
           return 1;
         }
@@ -322,7 +322,7 @@ plugins_reload_from_dir (const char *folder)
   g_slist_free_full (files, g_free);
   nasl_clean_inc ();
 
-  proctitle_set ("openvas: Reloaded all the NVTs.");
+  setproctitle ("openvas: Reloaded all the NVTs.");
 
   return 0;
 }

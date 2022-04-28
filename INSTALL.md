@@ -25,6 +25,7 @@ Prerequisites:
 * libssh >= 0.6.0
 * libksba >= 1.0.7
 * libgnutls >= 3.6.4
+* libbsd
 
 Prerequisites for building documentation:
 * Doxygen
@@ -42,11 +43,11 @@ Recommended for extended Windows support (e.g. automatically start the remote re
 Recommended to have improved SNMP support:
 * netsnmp libraries or alternatively the snmpget binary.
 
-Install prerequisites on Debian GNU/Linux 'Buster' 10:
+Install prerequisites on Debian GNU/Linux 'Bullseye' 11:
 
     apt-get install gcc pkg-config libssh-gcrypt-dev libgnutls28-dev \
     libglib2.0-dev libjson-glib-dev libpcap-dev libgpgme-dev bison libksba-dev \
-    libsnmp-dev libgcrypt20-dev redis-server
+    libsnmp-dev libgcrypt20-dev redis-server libbsd-dev
 
 
 Compiling openvas

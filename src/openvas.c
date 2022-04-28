@@ -44,16 +44,16 @@
 #include "sighand.h"               /* for openvas_signal */
 #include "utils.h"                 /* for store_file */
 
-#include <errno.h>  /* for errno() */
-#include <fcntl.h>  /* for open() */
-#include <gcrypt.h> /* for gcry_control */
+#include <bsd/unistd.h> /* for proctitle_init */
+#include <errno.h>      /* for errno() */
+#include <fcntl.h>      /* for open() */
+#include <gcrypt.h>     /* for gcry_control */
 #include <glib.h>
 #include <gnutls/gnutls.h> /* for gnutls_global_set_log_*  */
 #include <grp.h>
 #include <gvm/base/logging.h> /* for setup_log_handler, load_log_configuration, free_log_configuration*/
 #include <gvm/base/nvti.h>      /* for prefs_get() */
 #include <gvm/base/prefs.h>     /* for prefs_get() */
-#include <gvm/base/proctitle.h> /* for proctitle_set */
 #include <gvm/base/version.h>   /* for gvm_libs_version */
 #include <gvm/util/kb.h>        /* for KB_PATH_DEFAULT */
 #include <gvm/util/mqtt.h>      /* for mqtt_init */
@@ -467,11 +467,11 @@ attack_network_init (struct scan_globals *globals, const gchar *config_file)
  * @param argv Argument vector.
  */
 int
-openvas (int argc, char *argv[])
+openvas (int argc, char *argv[], char *env[])
 {
   int err;
 
-  proctitle_init (argc, argv);
+  setproctitle_init (argc, argv, env);
   gcrypt_init ();
 
   static gboolean display_version = FALSE;
