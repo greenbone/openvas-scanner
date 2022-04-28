@@ -445,6 +445,7 @@ attack_network_init (struct scan_globals *globals, const gchar *config_file)
       else
         {
           g_message ("%s: INIT MQTT: SUCCESS", __func__);
+          prefs_set ("mqtt_enabled", "yes");
         }
     }
 
