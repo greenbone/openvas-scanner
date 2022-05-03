@@ -38,6 +38,7 @@
 #include <gnutls/gnutls.h>
 #include <gnutls/x509.h>
 #include <gvm/base/logging.h>
+#include <stddef.h>
 
 #define INTBLOB_LEN 20
 #define SIGBLOB_LEN (2 * INTBLOB_LEN)
@@ -1866,6 +1867,93 @@ nasl_open_rc4_cipher (lex_ctxt *lexic)
 {
   return nasl_open_stream_cipher (lexic, GCRY_CIPHER_ARCFOUR,
                                   GCRY_CIPHER_MODE_STREAM, "open_rc4_cipher");
+}
+
+static int
+hmac_aes_cbc (const char *key, const size_t key_len, const char *msg,
+              const size_t msg_len, char **output, size_t *outputlen)
+{
+  gcry_mac_hd_t hd;
+  int result = 0;
+
+  if (!gcry_control (GCRYCTL_ANY_INITIALIZATION_P))
+    {
+      return -1;
+    }
+  // GCRY_MAC_CMAC_AES is capable of handling multiple key lengths
+  // https://github.com/gpg/libgcrypt/blob/master/cipher/mac-cmac.c#L306
+  // for more details
+  if (gcry_mac_open (&hd, GCRY_MAC_CMAC_AES, GCRY_MAC_FLAG_SECURE, NULL))
+    {
+      return -2;
+    }
+
+  if (gcry_mac_setkey (hd, key, (size_t) key_len))
+    {
+      result = -3;
+    }
+  else if (gcry_mac_write (hd, msg, msg_len))
+    {
+      result = -4;
+    }
+  else
+    {
+      *outputlen = gcry_mac_get_algo_maclen (GCRY_MAC_CMAC_AES);
+      if ((*output = calloc (*outputlen, sizeof (**output))) == NULL)
+        {
+          result = -5;
+        }
+      else if (gcry_mac_read (hd, *output, outputlen))
+        {
+          result = -6;
+          free (*output);
+          *output = NULL;
+        }
+    }
+  gcry_mac_close (hd);
+  return result;
+}
+
+tree_cell *
+nasl_aes_cmac_cbc (lex_ctxt *lexic)
+{
+  tree_cell *retc = NULL;
+  char *data, *key;
+  char *result = NULL;
+  size_t datalen, keylen, resultlen;
+
+  data = get_str_var_by_name (lexic, "data");
+  datalen = get_var_size_by_name (lexic, "data");
+  key = get_str_var_by_name (lexic, "key");
+  keylen = get_var_size_by_name (lexic, "key");
+
+  switch (hmac_aes_cbc (key, keylen, data, datalen, &result, &resultlen))
+    {
+    case 0:
+      retc = alloc_typed_cell (CONST_DATA);
+      retc->x.str_val = result;
+      retc->size = resultlen;
+      nasl_trace (lexic, "created hash: %s (%lu)", result, resultlen);
+      break;
+    case -1:
+      nasl_perror (lexic, "gcrypt is not initialized");
+      break;
+    case -2:
+      nasl_perror (lexic, "gcrypt version does not support MAC_CMAC_AES");
+      break;
+    case -3:
+      nasl_perror (lexic, "MAC_CMAC_AES does not support keylen %lu", keylen);
+      break;
+    case -4:
+      nasl_perror (lexic, "MAC_CMAC_AES unable to write hash");
+      break;
+    case -5:
+      nasl_perror (lexic, "insufficient memory to allocate result");
+      break;
+    case -6:
+      nasl_perror (lexic, "unable to get hash");
+    }
+  return retc;
 }
 
 tree_cell *
