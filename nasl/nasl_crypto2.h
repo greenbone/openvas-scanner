@@ -102,6 +102,9 @@ nasl_aes128_ccm_encrypt (lex_ctxt *lexic);
 tree_cell *
 nasl_aes128_ccm_decrypt (lex_ctxt *lexic);
 
+tree_cell *
+nasl_smb3kdf (lex_ctxt *lexic);
+
 int
 generate_script_signature (char *);
 #endif

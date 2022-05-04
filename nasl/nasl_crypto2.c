@@ -1937,3 +1937,106 @@ nasl_aes128_ccm_decrypt (lex_ctxt *lexic)
   return crypt_data (lexic, GCRY_CIPHER_AES128, GCRY_CIPHER_MODE_CCM,
                      NASL_DECRYPT);
 }
+
+/**
+ * @brief Add the SMB3KDF as specified in [SP800-108] section 5.1
+ *
+ * @param lexic
+ * @return tree_cell*
+ */
+tree_cell *
+nasl_smb3kdf (lex_ctxt *lexic)
+{
+  gcry_mac_hd_t hd;
+  gcry_error_t error;
+  void *result, *key, *label, *context, *buf;
+  u_char *tmp;
+  size_t resultlen, keylen, labellen, contextlen, buflen, r = 4;
+  long lvalue;
+  int i = 1;
+  tree_cell *retc;
+
+  key = get_str_var_by_name (lexic, "key");
+  keylen = get_var_size_by_name (lexic, "key");
+  label = get_str_var_by_name (lexic, "label");
+  labellen = get_var_size_by_name (lexic, "label");
+  context = get_str_var_by_name (lexic, "ctx");
+  contextlen = get_var_size_by_name (lexic, "ctx");
+  lvalue = get_int_var_by_name (lexic, "lvalue", 0);
+
+  if (!key || keylen <= 0 || !label || labellen <= 0 || !context
+      || contextlen <= 0)
+    {
+      nasl_perror (
+        lexic, "Syntax: nasl_smb3kdf: Missing key, label or context argument");
+      return NULL;
+    }
+
+  if (lvalue != 128 && lvalue != 256)
+    {
+      nasl_perror (lexic,
+                   "nasl_smb3kdf: lvalue must have a value of 128 or 256");
+      return NULL;
+    }
+
+  if ((error = gcry_mac_open (&hd, GCRY_MAC_HMAC_SHA256, 0, NULL)))
+    {
+      nasl_perror (lexic, "gcry_mac_open: %s", gcry_strerror (error));
+      gcry_mac_close (hd);
+      return NULL;
+    }
+
+  if ((error = gcry_mac_setkey (hd, key, keylen)))
+    {
+      nasl_perror (lexic, "gcry_mac_setkey: %s", gcry_strerror (error));
+      gcry_mac_close (hd);
+      return NULL;
+    }
+
+  // Prepare buffer as in [SP800-108] section 5.1
+  // [i]2 || Label || 0x00 || Context || [L]2
+  // [i]2 is the binary presentation of the iteration. Allways 1
+  // Label is given by caller
+  // 0x00 is a byte set to 0
+  // Context is given by caller
+  // L is a integer set to 128 or 256 for smb3kdf
+  buflen = r + labellen + 1 + contextlen + 4;
+  buf = g_malloc0 (buflen);
+  tmp = buf;
+
+  memcpy (tmp, &i, r);
+  tmp = tmp + r;
+  memcpy (tmp, label, labellen);
+  tmp = tmp + labellen;
+  *tmp = 0;
+  tmp = tmp + 1;
+  memcpy (tmp, context, contextlen);
+  tmp = tmp + contextlen;
+  memcpy (tmp, &lvalue, 4);
+
+  if ((error = gcry_mac_write (hd, buf, buflen)))
+    {
+      g_message ("gcry_mac_write: %s", gcry_strerror (error));
+      gcry_mac_close (hd);
+      g_free (buf);
+      return NULL;
+    }
+
+  resultlen = lvalue;
+  result = g_malloc0 (resultlen);
+  if ((error = gcry_mac_read (hd, result, &resultlen)))
+    {
+      g_message ("gcry_mac_read: %s", gcry_strerror (error));
+      gcry_mac_close (hd);
+      g_free (buf);
+      g_free (result);
+      return NULL;
+    }
+
+  g_free (buf);
+  gcry_mac_close (hd);
+  retc = alloc_typed_cell (CONST_DATA);
+  retc->x.str_val = result;
+  retc->size = resultlen;
+  return retc;
+}
