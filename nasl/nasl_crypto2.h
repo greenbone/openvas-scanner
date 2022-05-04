@@ -91,7 +91,16 @@ tree_cell *
 nasl_aes128_gcm_encrypt (lex_ctxt *lexic);
 
 tree_cell *
+nasl_aes128_gcm_decrypt (lex_ctxt *lexic);
+
+tree_cell *
 nasl_aes256_gcm_encrypt (lex_ctxt *lexic);
+
+tree_cell *
+nasl_aes128_ccm_encrypt (lex_ctxt *lexic);
+
+tree_cell *
+nasl_aes128_ccm_decrypt (lex_ctxt *lexic);
 
 int
 generate_script_signature (char *);

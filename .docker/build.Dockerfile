@@ -18,4 +18,5 @@ RUN apt-get update && apt-get install --no-install-recommends --no-install-sugge
     libpaho-mqtt-dev \
     libpcap-dev \
     libssh-gcrypt-dev \
+    libbsd-dev \
     && rm -rf /var/lib/apt/lists/*
