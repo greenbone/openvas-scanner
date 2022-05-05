@@ -46,6 +46,9 @@ tree_cell *
 nasl_sha256 (lex_ctxt *);
 
 tree_cell *
+nasl_sha512 (lex_ctxt *);
+
+tree_cell *
 nasl_ripemd160 (lex_ctxt *);
 
 tree_cell *
