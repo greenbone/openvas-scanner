@@ -266,6 +266,7 @@ static init_func libfuncs[] = {
   {"MD5", nasl_md5},
   {"SHA1", nasl_sha1},
   {"SHA256", nasl_sha256},
+  {"SHA512", nasl_sha512},
   {"RIPEMD160", nasl_ripemd160},
   {"HMAC_MD2", nasl_hmac_md2},
   {"HMAC_MD5", nasl_hmac_md5},
