@@ -18,6 +18,8 @@
 
 #include "strutils.h"
 
+#include "support.h"
+
 #include <glib.h>
 
 /**
@@ -38,12 +40,12 @@ str_match (const gchar *string, const gchar *pattern, int icase)
   if (icase)
     {
       patt = g_pattern_spec_new (g_ascii_strdown (pattern, -1));
-      res = g_pattern_match_string (patt, g_ascii_strdown (string, -1));
+      res = g_pattern_spec_match_string (patt, g_ascii_strdown (string, -1));
     }
   else
     {
       patt = g_pattern_spec_new (pattern);
-      res = g_pattern_match_string (patt, string);
+      res = g_pattern_spec_match_string (patt, string);
     }
   g_pattern_spec_free (patt);
   return res;
