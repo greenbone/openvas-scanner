@@ -20,17 +20,21 @@
 #define _NASL_CTX_H
 
 /* for FILE */
+#include "nasl_tree.h"
+
 #include <gvm/util/kb.h>
 #include <stdio.h>
 
 typedef struct
 {
   int line_nb;
+  char *name;
   int always_signed; /**< If set disable signature check during scans and feed
                         upload. */
   int exec_descr; /**< Tell grammar that is a feed upload process or a running a
                      scan process. */
   int index;
+  unsigned int include_order;
   tree_cell *tree;
   char *buffer;
   kb_t kb;

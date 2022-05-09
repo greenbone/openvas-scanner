@@ -105,8 +105,10 @@ typedef struct TC
 {
   short type;
   short line_nb;
+  char *name;
   short ref_count; /* Cell is freed when count reaches zero */
   int size;
+  int include_order;
   union
   {
     char *str_val;
