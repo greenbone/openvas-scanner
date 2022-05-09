@@ -1930,7 +1930,7 @@ crypt_data (lex_ctxt *lexic, int cipher, int mode, int crypt)
 }
 
 tree_cell *
-nasl_aes_cmac_cbc (lex_ctxt *lexic)
+nasl_aes_mac_cbc (lex_ctxt *lexic)
 {
   return nasl_mac (lexic, GCRY_MAC_CMAC_AES, GCRY_MAC_FLAG_SECURE);
 }
