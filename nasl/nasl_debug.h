@@ -48,6 +48,9 @@ nasl_get_filename (const char *);
 void
 nasl_set_function_name (const char *);
 
+int
+nasl_get_include_order (const char *);
+
 const char *
 nasl_get_function_name (void);
 #endif

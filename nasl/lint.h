@@ -23,6 +23,15 @@
 
 #include "nasl_lex_ctxt.h"
 
+enum nasl_lint_feature_flags
+{
+  NLFF_NONE = 0,
+  NLFF_STRICT_INCLUDES = 1
+};
+
+void
+nasl_lint_feature_flags (int flags);
+
 tree_cell *
 nasl_lint (lex_ctxt *lexic, tree_cell *st);
 

@@ -28,6 +28,7 @@
 #include "nasl_tree.h"
 #include "nasl_var.h"
 
+#include <stdio.h>
 #include <string.h>
 #include <unistd.h>
 
@@ -436,6 +437,14 @@ is_deffunc_used (const char *funcname, const char *filename,
   return 0;
 }
 
+int features = 0;
+
+void
+nasl_lint_feature_flags (int flag)
+{
+  features = flag;
+}
+
 /**
  * @brief Check if a called function was defined.
  */
@@ -448,6 +457,7 @@ nasl_lint_call (lex_ctxt *lexic, tree_cell *st, GHashTable **include_files,
   tree_cell *ret = FAKE_CELL;
   nasl_func *pf;
   char *incname = NULL;
+  int f_inc_ord, c_inc_order, rc = 0;
   static int defined_flag = 0;
 
   /** This checks if a defined function is called. If it is never called
@@ -475,6 +485,7 @@ nasl_lint_call (lex_ctxt *lexic, tree_cell *st, GHashTable **include_files,
 
     case NODE_FUN_CALL:
       pf = get_func_ref_by_name (lexic, st->x.str_val);
+
       if (pf == NULL)
         {
           incname = g_hash_table_lookup (*func_fnames_tab, st->x.str_val);
@@ -486,14 +497,38 @@ nasl_lint_call (lex_ctxt *lexic, tree_cell *st, GHashTable **include_files,
           called_f_aux = g_slist_find_custom (*def_func_tree, st->x.str_val,
                                               (GCompareFunc) list_cmp1);
           if (called_f_aux != NULL)
-            if (reverse_search (def_func_tree, called_f_aux))
-              {
-                nasl_perror (lexic, "Undefined function '%s'\n", st->x.str_val);
-                return NULL;
-              }
+            {
+              if (reverse_search (def_func_tree, called_f_aux))
+                {
+                  nasl_perror (lexic, "Undefined function '%s'\n",
+                               st->x.str_val);
+                  return NULL;
+                }
+            }
         }
       else
         {
+          // only check functions that are not internal
+          if ((features & NLFF_STRICT_INCLUDES)
+              && func_is_internal (st->x.str_val) == NULL)
+            {
+              // get incname verify include order when not 0
+              incname = (char *) nasl_get_filename (st->x.str_val);
+              if (incname != NULL)
+                {
+                  f_inc_ord = nasl_get_include_order (incname);
+                  c_inc_order = nasl_get_include_order (st->name);
+                  // if caller definition is not the main file but included
+                  // before the function definition warn about an include error
+                  if (c_inc_order > 0 && c_inc_order < f_inc_ord)
+                    {
+                      nasl_perror (
+                        lexic, "%s must be included after %s (usage of %s).",
+                        st->name, incname, st->x.str_val);
+                      rc = -1;
+                    }
+                }
+            }
           // Check if function parameters are right
           if (validate_function (lexic, st) == NULL)
             return NULL;
@@ -523,7 +558,7 @@ nasl_lint_call (lex_ctxt *lexic, tree_cell *st, GHashTable **include_files,
                                      def_func_tree))
               == NULL)
             return NULL;
-      return ret;
+      return rc == 0 ? ret : NULL;
     }
 }
 

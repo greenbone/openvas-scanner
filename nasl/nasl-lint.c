@@ -22,6 +22,7 @@
  * @brief Source of the NASL linter of OpenVAS.
  */
 
+#include "lint.h"
 #include "nasl.h" /* exec_nasl_script */
 
 #include <gio/gio.h> /* g_file_... */
@@ -165,13 +166,16 @@ main (int argc, char **argv)
 {
   int mode = 0;
   int err = 0;
+  int fflag = 0;
   static gboolean debug = FALSE;
   static gchar *include_dir = NULL;
   static gchar *nvt_file_list = NULL;
+  static unsigned char strict_includes = 0;
   static const gchar **nvt_files = NULL;
   struct script_infos *script_infos = g_malloc0 (sizeof (struct script_infos));
   GError *error = NULL;
   GOptionContext *option_context;
+
   static GOptionEntry entries[] = {
     {"debug", 'd', 0, G_OPTION_ARG_NONE, &debug, "Output debug log messages.",
      NULL},
@@ -181,6 +185,8 @@ main (int argc, char **argv)
      "Search for includes in <dir>", "<dir>"},
     {G_OPTION_REMAINING, 0, 0, G_OPTION_ARG_FILENAME_ARRAY, &nvt_files,
      "Absolute path to one or more nasl scripts", "NASL_FILE..."},
+    {"strict-includes", 0, 0, G_OPTION_ARG_NONE, &strict_includes,
+     "Enables check for strict include order.", NULL},
     {NULL, 0, 0, 0, NULL, NULL, NULL}};
 
   option_context =
@@ -191,6 +197,8 @@ main (int argc, char **argv)
       g_error ("%s\n\n", error->message);
     }
   g_option_context_free (option_context);
+  fflag |= strict_includes;
+  nasl_lint_feature_flags (fflag);
 
   mode |= NASL_COMMAND_LINE;
   /* signing mode */
