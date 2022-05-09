@@ -1672,6 +1672,51 @@ encrypt_stream_data (lex_ctxt *lexic, int cipher, const char *caller_func)
 }
 
 /**
+ * @brief Nasl function to encrypt data with a RC4 cipher. If an hd param
+ * exist in the lexix context, it will use this handler to encrypt the data
+ * as part of a stream data.
+ * e.g.: rc4_encrypt(data: data, hd: hd)
+ *
+ * Otherwise encrypts the data as block and the key is mandatory:
+ * e.g.: rc4_encrypt(data: data, key: key)
+ *
+ * @return Returns the encrypted data on success. Otherwise NULL.
+ */
+tree_cell *
+nasl_rc4_encrypt (lex_ctxt *lexic)
+{
+  int cipher_id;
+  gcry_cipher_hd_t hd;
+  cipher_id = get_int_var_by_name (lexic, "hd", -1);
+
+  if (cipher_id >= 0)
+    {
+      hd = verify_cipher_id (lexic, cipher_id);
+      if (hd == NULL)
+        return NULL;
+      return encrypt_stream_data (lexic, GCRY_CIPHER_ARCFOUR, "rc4_encrypt");
+    }
+
+  return crypt_data (lexic, GCRY_CIPHER_ARCFOUR, GCRY_CIPHER_MODE_STREAM,
+                     NASL_ENCRYPT);
+}
+
+/**
+ * @brief Nasl function to open RC4 cipher to encrypt a stream of data.
+ * The handler can be used to encrypt stream data.
+ * Open cipher must be close with close_stream_cipher() when it is not useful
+ * anymore.
+ * @return Returns the id of the cipher handler encrypted data on success.
+ * Otherwise NULL.
+ */
+tree_cell *
+nasl_open_rc4_cipher (lex_ctxt *lexic)
+{
+  return nasl_open_stream_cipher (lexic, GCRY_CIPHER_ARCFOUR,
+                                  GCRY_CIPHER_MODE_STREAM, "open_rc4_cipher");
+}
+
+/**
  * @brief Nasl function to delete a cipher item from the cipher table.
  *
  * @param[in] cipher_id The cipher id to close
@@ -1694,6 +1739,66 @@ nasl_close_stream_cipher (lex_ctxt *lexic)
   delete_cipher_item (cipher_id);
   retc = alloc_typed_cell (CONST_INT);
   retc->x.i_val = 0;
+  return retc;
+}
+
+static tree_cell *
+nasl_mac (lex_ctxt *lexic, int algo, int flags)
+{
+  gcry_mac_hd_t hd;
+  gcry_error_t error;
+
+  char *data, *key;
+  char *result = NULL;
+  size_t datalen, keylen, resultlen;
+  tree_cell *retc = NULL;
+
+  data = get_str_var_by_name (lexic, "data");
+  datalen = get_var_size_by_name (lexic, "data");
+  key = get_str_var_by_name (lexic, "key");
+  keylen = get_var_size_by_name (lexic, "key");
+
+  if (!key || keylen <= 0 || !data || datalen <= 0)
+    {
+      nasl_perror (lexic, "Syntax: nasl_mac: Missing key, or data argument");
+      return NULL;
+    }
+
+  if ((error = gcry_mac_open (&hd, algo, flags, NULL)))
+    {
+      nasl_perror (lexic, "gcry_mac_open: %s", gcry_strerror (error));
+      return NULL;
+    }
+
+  if ((error = gcry_mac_setkey (hd, key, keylen)))
+    {
+      nasl_perror (lexic, "gcry_mac_setkey: %s", gcry_strerror (error));
+      gcry_cipher_close (hd);
+      return NULL;
+    }
+
+  if ((error = gcry_mac_write (hd, msg, msg_len)))
+    {
+      nasl_perror (lexic, "gcry_mac_write: %s", gcry_strerror (error));
+      gcry_cipher_close (hd);
+      return NULL;
+    }
+
+  resultlen = gcry_mac_get_algo_maclen (algo);
+  result = g_malloc0 (resultlen);
+
+  if ((error = gcry_mac_read (hd, result, resultlen)))
+    {
+      nasl_perror (lexic, "gcry_mac_write: %s", gcry_strerror (error));
+      gcry_cipher_close (hd);
+      g_free (result);
+      return NULL;
+    }
+
+  gcry_cipher_close (hd);
+  retc = alloc_typed_cell (CONST_DATA);
+  retc->x.str_val = result;
+  retc->size = strlen (resultlen);
   return retc;
 }
 
@@ -1824,136 +1929,10 @@ crypt_data (lex_ctxt *lexic, int cipher, int mode, int crypt)
   return retc;
 }
 
-/**
- * @brief Nasl function to encrypt data with a RC4 cipher. If an hd param
- * exist in the lexix context, it will use this handler to encrypt the data
- * as part of a stream data.
- * e.g.: rc4_encrypt(data: data, hd: hd)
- *
- * Otherwise encrypts the data as block and the key is mandatory:
- * e.g.: rc4_encrypt(data: data, key: key)
- *
- * @return Returns the encrypted data on success. Otherwise NULL.
- */
-tree_cell *
-nasl_rc4_encrypt (lex_ctxt *lexic)
-{
-  int cipher_id;
-  gcry_cipher_hd_t hd;
-  cipher_id = get_int_var_by_name (lexic, "hd", -1);
-
-  if (cipher_id >= 0)
-    {
-      hd = verify_cipher_id (lexic, cipher_id);
-      if (hd == NULL)
-        return NULL;
-      return encrypt_stream_data (lexic, GCRY_CIPHER_ARCFOUR, "rc4_encrypt");
-    }
-
-  return crypt_data (lexic, GCRY_CIPHER_ARCFOUR, GCRY_CIPHER_MODE_STREAM,
-                     NASL_ENCRYPT);
-}
-
-/**
- * @brief Nasl function to open RC4 cipher to encrypt a stream of data.
- * The handler can be used to encrypt stream data.
- * Open cipher must be close with close_stream_cipher() when it is not useful
- * anymore.
- * @return Returns the id of the cipher handler encrypted data on success.
- * Otherwise NULL.
- */
-tree_cell *
-nasl_open_rc4_cipher (lex_ctxt *lexic)
-{
-  return nasl_open_stream_cipher (lexic, GCRY_CIPHER_ARCFOUR,
-                                  GCRY_CIPHER_MODE_STREAM, "open_rc4_cipher");
-}
-
-static int
-hmac_aes_cbc (const char *key, const size_t key_len, const char *msg,
-              const size_t msg_len, char **output, size_t *outputlen)
-{
-  gcry_mac_hd_t hd;
-  int result = 0;
-
-  if (!gcry_control (GCRYCTL_ANY_INITIALIZATION_P))
-    {
-      return -1;
-    }
-  // GCRY_MAC_CMAC_AES is capable of handling multiple key lengths
-  // https://github.com/gpg/libgcrypt/blob/master/cipher/mac-cmac.c#L306
-  // for more details
-  if (gcry_mac_open (&hd, GCRY_MAC_CMAC_AES, GCRY_MAC_FLAG_SECURE, NULL))
-    {
-      return -2;
-    }
-
-  if (gcry_mac_setkey (hd, key, (size_t) key_len))
-    {
-      result = -3;
-    }
-  else if (gcry_mac_write (hd, msg, msg_len))
-    {
-      result = -4;
-    }
-  else
-    {
-      *outputlen = gcry_mac_get_algo_maclen (GCRY_MAC_CMAC_AES);
-      if ((*output = calloc (*outputlen, sizeof (**output))) == NULL)
-        {
-          result = -5;
-        }
-      else if (gcry_mac_read (hd, *output, outputlen))
-        {
-          result = -6;
-          free (*output);
-          *output = NULL;
-        }
-    }
-  gcry_mac_close (hd);
-  return result;
-}
-
 tree_cell *
 nasl_aes_cmac_cbc (lex_ctxt *lexic)
 {
-  tree_cell *retc = NULL;
-  char *data, *key;
-  char *result = NULL;
-  size_t datalen, keylen, resultlen;
-
-  data = get_str_var_by_name (lexic, "data");
-  datalen = get_var_size_by_name (lexic, "data");
-  key = get_str_var_by_name (lexic, "key");
-  keylen = get_var_size_by_name (lexic, "key");
-
-  switch (hmac_aes_cbc (key, keylen, data, datalen, &result, &resultlen))
-    {
-    case 0:
-      retc = alloc_typed_cell (CONST_DATA);
-      retc->x.str_val = result;
-      retc->size = resultlen;
-      nasl_trace (lexic, "created hash: %s (%lu)", result, resultlen);
-      break;
-    case -1:
-      nasl_perror (lexic, "gcrypt is not initialized");
-      break;
-    case -2:
-      nasl_perror (lexic, "gcrypt version does not support MAC_CMAC_AES");
-      break;
-    case -3:
-      nasl_perror (lexic, "MAC_CMAC_AES does not support keylen %lu", keylen);
-      break;
-    case -4:
-      nasl_perror (lexic, "MAC_CMAC_AES unable to write hash");
-      break;
-    case -5:
-      nasl_perror (lexic, "insufficient memory to allocate result");
-      break;
-    case -6:
-      nasl_perror (lexic, "unable to get hash");
-    }
-  return retc;
+  return nasl_mac (lexic, GCRY_MAC_CMAC_AES, GCRY_MAC_FLAG_SECURE);
 }
 
 tree_cell *
