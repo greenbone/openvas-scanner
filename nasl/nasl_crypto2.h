@@ -76,7 +76,11 @@ tree_cell *
 nasl_aes128_cbc_encrypt (lex_ctxt *lexic);
 
 tree_cell *
-nasl_aes_cmac_cbc (lex_ctxt *lexic);
+nasl_aes_mac_cbc (lex_ctxt *lexic);
+
+tree_cell *
+nasl_aes_mac_gmac (lex_ctxt *lexic);
+
 tree_cell *
 nasl_aes256_cbc_encrypt (lex_ctxt *lexic);
 
