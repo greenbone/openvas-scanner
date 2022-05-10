@@ -181,7 +181,9 @@ static void
 check_called_files (gpointer key, gpointer value, GSList **unusedfiles)
 {
   if (key != NULL)
-    if (g_strcmp0 (value, "YES") != 0)
+    // only check for includes not for main file
+    if (nasl_get_include_order ((const char *) key) > 0
+        && g_strcmp0 (value, "YES") != 0)
       *unusedfiles = g_slist_prepend (*unusedfiles, key);
 }
 
@@ -433,7 +435,7 @@ is_deffunc_used (const char *funcname, const char *filename,
         return 1;
       current = current->next;
     }
-  while (current->next != NULL);
+  while (current != NULL && current->next != NULL);
   return 0;
 }
 
