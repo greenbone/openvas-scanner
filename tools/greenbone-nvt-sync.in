@@ -198,17 +198,6 @@ fi
 
 RSYNC=`command -v rsync`
 
-if [ -z "$TMPDIR" ]; then
-  SYNC_TMP_DIR=/tmp
-  # If we have mktemp, create a temporary dir (safer)
-  if [ -n "`which mktemp`" ]; then
-    SYNC_TMP_DIR=`mktemp -t -d greenbone-nvt-sync.XXXXXXXXXX` || { echo "ERROR: Cannot create temporary directory for file download" >&2; exit 1 ; }
-    trap "rm -rf $SYNC_TMP_DIR" EXIT HUP INT TRAP TERM
-  fi
-else
-  SYNC_TMP_DIR="$TMPDIR"
-fi
-
 # Initialize this indicator variable with default assuming the
 # feed is not up-to-date.
 FEED_CURRENT=0
@@ -541,7 +530,6 @@ do_help () {
   echo "Environment variables:"
   echo "NVT_DIR         where to extract plugins (absolute path)"
   echo "PRIVATE_SUBDIR  subdirectory of \$NVT_DIR to exclude from synchronization"
-  echo "TMPDIR          temporary directory used to download the files"
   echo "Note that you can use standard ones as well (e.g. RSYNC_PROXY) for rsync"
   echo ""
   exit 0
