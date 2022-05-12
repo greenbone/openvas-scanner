@@ -106,6 +106,7 @@ typedef struct TC
   short type;
   short line_nb;
   short ref_count; /* Cell is freed when count reaches zero */
+  unsigned int cache_index; /* internally used to identify on cleanup */
   int size;
   union
   {
@@ -125,6 +126,10 @@ tree_cell *
 alloc_RE_cell (int, int, tree_cell *, char *, int *);
 tree_cell *
 alloc_typed_cell (int);
+
+void
+clean_up_tree_cells (void);
+
 int
 nasl_is_leaf (const tree_cell *);
 char *

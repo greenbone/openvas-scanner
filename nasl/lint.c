@@ -666,7 +666,6 @@ static tree_cell *
 make_call_func_list (lex_ctxt *lexic, tree_cell *st, GSList **called_funcs)
 {
   int i;
-  tree_cell *ret = FAKE_CELL;
   nasl_func *pf = NULL;
 
   switch (st->type)
@@ -681,12 +680,12 @@ make_call_func_list (lex_ctxt *lexic, tree_cell *st, GSList **called_funcs)
       /* fallthrough */
 
     default:
-      for (i = 0; i < 4; i++)
+      for (i = 0; i < 4; i++) {
+		  printf("%s: checking %d\n", __func__, i);
         if (st->link[i] != NULL && st->link[i] != FAKE_CELL)
-          if ((ret = make_call_func_list (lexic, st->link[i], called_funcs))
-              == NULL)
-            return NULL;
-      return ret;
+          make_call_func_list (lexic, st->link[i], called_funcs);
+	  }
+      return FAKE_CELL;
     }
 }
 
@@ -884,6 +883,7 @@ nasl_lint (lex_ctxt *lexic, tree_cell *st)
     {
       ret = alloc_typed_cell (NODE_VAR);
       ret->x.i_val = get_errors_cnt ();
+	  ret->x.str_val = NULL;
     }
 
   return ret;

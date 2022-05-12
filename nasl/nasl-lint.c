@@ -23,6 +23,7 @@
  */
 
 #include "nasl.h" /* exec_nasl_script */
+#include "nasl_tree.h"
 
 #include <gio/gio.h> /* g_file_... */
 #include <glib.h>    /* gchar, g_malloc, g_error, g_print, ... */
@@ -67,7 +68,7 @@ process_file (const gchar *filepath, int mode, struct script_infos *script_args)
 {
   int ret;
 
-  g_debug ("Processing %s", filepath);
+  printf ("Processing %s\n", filepath);
   script_args->name = (char *) filepath;
   ret = exec_nasl_script (script_args, mode);
   if (ret != 0)
@@ -119,6 +120,7 @@ process_file_list (const gchar *list_file, int mode,
     }
   g_object_unref (nvt_list);
 
+
   return err;
 }
 
@@ -129,14 +131,14 @@ process_file_list (const gchar *list_file, int mode,
  * @return The amount of errors found in the given scripts
  */
 static int
-process_files (const gchar **files, int mode, struct script_infos *script_args)
+process_files (gchar **files, int mode, struct script_infos *script_args)
 {
   int n = 0;
   int err = 0;
   while (files[n])
     {
       err += process_file (files[n], mode, script_args);
-      n++;
+      g_free(files[n++]);
     }
   return err;
 }
@@ -168,7 +170,7 @@ main (int argc, char **argv)
   static gboolean debug = FALSE;
   static gchar *include_dir = NULL;
   static gchar *nvt_file_list = NULL;
-  static const gchar **nvt_files = NULL;
+  static gchar **nvt_files = NULL;
   struct script_infos *script_infos = g_malloc0 (sizeof (struct script_infos));
   GError *error = NULL;
   GOptionContext *option_context;
@@ -221,8 +223,10 @@ main (int argc, char **argv)
     err += process_file_list (nvt_file_list, mode, script_infos);
 
   /* process the files from the command line */
-  if (nvt_files != NULL)
+  if (nvt_files != NULL) {
     err += process_files (nvt_files, mode, script_infos);
+	g_free(nvt_files);
+  }
 
   g_print ("%d scripts with one or more errors found\n", err);
 

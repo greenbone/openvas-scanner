@@ -27,13 +27,39 @@
 
 #include <glib.h> /* for g_free */
 #include <regex.h>
+#include <stdio.h>
 #include <stdlib.h> /* for abort */
 #include <string.h> /* for memcpy */
+
+// Currently there is a massive mismatch of allocated and free cells
+// To have a possibility to cleanup cells when a run is finished without having
+// to through all cases we implement a small cache of references which we can
+// iterate through on nasl_tree_cleanup.
+struct tree_cell_cache
+{
+  unsigned int size;
+  unsigned int cap;
+  tree_cell **cells;
+};
+
+static struct tree_cell_cache tcc;
 
 static tree_cell *
 alloc_tree_cell ()
 {
-  return g_malloc0 (sizeof (tree_cell));
+  tree_cell *tmp;
+  if (tcc.size == tcc.cap || tcc.cap == 0)
+    {
+      tcc.cap += 10;
+      // TODO check for success
+      tcc.cells = realloc (tcc.cells, sizeof (**tcc.cells) * tcc.cap);
+      memset ((tcc.cells + (tcc.cap - 10)), 0, sizeof (**tcc.cells) * 10);
+    }
+  tmp = g_malloc0 (sizeof (*tmp));
+  tmp->cache_index = tcc.size;
+  tcc.cells[tcc.size] = tmp;
+  tcc.size++;
+  return tmp;
 }
 
 tree_cell *
@@ -121,6 +147,7 @@ free_tree (tree_cell *c)
 {
   int i;
   nasl_array *a;
+  tcc.cells[c->cache_index] = NULL;
 
   if (c == NULL || c == FAKE_CELL)
     return;
@@ -138,6 +165,7 @@ free_tree (tree_cell *c)
           memset (c->x.str_val, 0xFF, c->size);
 #endif
         g_free (c->x.str_val);
+		c->x.str_val = NULL;
         break;
 
       case CONST_REGEX:
@@ -195,6 +223,8 @@ deref_cell (tree_cell *c)
   if (c == NULL || c == FAKE_CELL)
     return;
   if (--c->ref_count < 0)
+    // enhance tree with index variable
+    // and set the index to NULL
     free_tree (c);
 }
 
@@ -422,4 +452,27 @@ nasl_is_leaf (const tree_cell *pc)
      return 0;
    else
      return c->type;
+ }
+
+ void
+ clean_up_tree_cells (void)
+ {
+   for (unsigned int i = 0; i < tcc.size; i++)
+     {
+       if (tcc.cells[i] != NULL)
+         {
+           for (int j = 0; j < 4; j++)
+             {
+               tcc.cells[i]->link[j] = NULL;
+             }
+           free_tree (tcc.cells[i]);
+         }
+       else
+         {
+         }
+     }
+   free (tcc.cells);
+   tcc.size = 0;
+   tcc.cap = 0;
+   tcc.cells = NULL;
  }

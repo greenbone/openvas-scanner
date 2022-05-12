@@ -1711,7 +1711,7 @@ exec_nasl_script (struct script_infos *script_infos, int mode)
       else if (lintret != FAKE_CELL && lintret->x.i_val > 0)
         {
           err = lintret->x.i_val;
-          g_free (lintret);
+		  //deref_cell(lintret);
         }
     }
   else if (!(mode & NASL_EXEC_PARSE_ONLY))
@@ -1756,7 +1756,9 @@ exec_nasl_script (struct script_infos *script_infos, int mode)
   g_free (old_dir);
 
   nasl_clean_ctx (&ctx);
+  // TODO move to process_file of lint to have a litner only integration
   free_lex_ctxt (lexic);
+  clean_up_tree_cells();
   if (process_id != getpid ())
     exit (0);
 
