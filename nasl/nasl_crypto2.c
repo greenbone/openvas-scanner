@@ -25,6 +25,7 @@
 #include "nasl_crypto2.h"
 
 #include "../misc/strutils.h"
+#include "nasl_crypto_helper.h"
 #include "nasl_debug.h"
 #include "nasl_func.h"
 #include "nasl_global_ctxt.h"
@@ -37,8 +38,10 @@
 #include <gcrypt.h>
 #include <gnutls/gnutls.h>
 #include <gnutls/x509.h>
+#include <gpg-error.h>
 #include <gvm/base/logging.h>
 #include <stddef.h>
+#include <stdlib.h>
 
 #define INTBLOB_LEN 20
 #define SIGBLOB_LEN (2 * INTBLOB_LEN)
@@ -1700,7 +1703,6 @@ nasl_close_stream_cipher (lex_ctxt *lexic)
 static tree_cell *
 nasl_mac (lex_ctxt *lexic, int algo, int flags)
 {
-  gcry_mac_hd_t hd;
   gcry_error_t error;
 
   char *data, *key, *iv;
@@ -1715,57 +1717,22 @@ nasl_mac (lex_ctxt *lexic, int algo, int flags)
   iv = get_str_var_by_name (lexic, "iv");
   ivlen = get_var_size_by_name (lexic, "iv");
 
-  if (!key || keylen <= 0 || !data || datalen <= 0)
+  switch ((error = mac (key, keylen, data, datalen, iv, ivlen, algo, flags,
+                        &result, &resultlen)))
     {
+    case GPG_ERR_NO_ERROR:
+      retc = alloc_typed_cell (CONST_DATA);
+      retc->x.str_val = result;
+      retc->size = resultlen;
+      break;
+    case GPG_ERR_MISSING_KEY:
+    case GPG_ERR_MISSING_VALUE:
       nasl_perror (lexic, "Syntax: nasl_mac: Missing key, or data argument");
-      return NULL;
+      break;
+    default:
+      nasl_perror (lexic, "Internal: %s.", gcry_strerror (error));
     }
 
-  if ((error = gcry_mac_open (&hd, algo, flags, NULL)))
-    {
-      nasl_perror (lexic, "gcry_mac_open: %s", gcry_strerror (error));
-      return NULL;
-    }
-
-  if ((error = gcry_mac_setkey (hd, key, keylen)))
-    {
-      nasl_perror (lexic, "gcry_mac_setkey: %s", gcry_strerror (error));
-      gcry_mac_close (hd);
-      return NULL;
-    }
-
-  if (iv)
-    {
-      if ((error = gcry_mac_setiv (hd, iv, ivlen)))
-        {
-          nasl_perror (lexic, "gcry_mac_setiv: %s", gcry_strerror (error));
-          gcry_mac_close (hd);
-          return NULL;
-        }
-    }
-
-  if ((error = gcry_mac_write (hd, data, datalen)))
-    {
-      nasl_perror (lexic, "gcry_mac_write: %s", gcry_strerror (error));
-      gcry_mac_close (hd);
-      return NULL;
-    }
-
-  resultlen = gcry_mac_get_algo_maclen (algo);
-  result = g_malloc0 (resultlen);
-
-  if ((error = gcry_mac_read (hd, result, &resultlen)))
-    {
-      nasl_perror (lexic, "gcry_mac_write: %s", gcry_strerror (error));
-      gcry_mac_close (hd);
-      g_free (result);
-      return NULL;
-    }
-
-  gcry_mac_close (hd);
-  retc = alloc_typed_cell (CONST_DATA);
-  retc->x.str_val = result;
-  retc->size = resultlen;
   return retc;
 }
 

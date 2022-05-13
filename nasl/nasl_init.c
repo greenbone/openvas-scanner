@@ -291,6 +291,8 @@ static init_func libfuncs[] = {
   {"dec2str", nasl_dec2str},
   {"get_signature", nasl_get_sign},
   {"get_smb2_signature", nasl_get_smb2_sign},
+  {"smb_cmac_aes_signature", nasl_smb_cmac_aes_sign},
+  {"smb_gmac_aes_signature", nasl_smb_gmac_aes_sign},
   {"dh_generate_key", nasl_dh_generate_key},
   {"bn_random", nasl_bn_random},
   {"bn_cmp", nasl_bn_cmp},

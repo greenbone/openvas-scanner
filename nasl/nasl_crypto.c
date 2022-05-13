@@ -28,6 +28,7 @@
 #include "../misc/support.h"
 #include "exec.h"
 #include "hmacmd5.h"
+#include "nasl_crypto_helper.h"
 #include "nasl_debug.h"
 #include "nasl_func.h"
 #include "nasl_global_ctxt.h"
@@ -44,6 +45,7 @@
 #include <gcrypt.h>
 #include <glib.h>
 #include <gvm/base/logging.h>
+#include <stddef.h>
 #include <stdlib.h>
 
 #ifndef uchar
@@ -276,83 +278,6 @@ nasl_get_sign (lex_ctxt *lexic)
   return retc;
 }
 
-static void *
-hmac_md5_for_prf (const void *key, int keylen, const void *buf, int buflen)
-{
-  void *signature = g_malloc0 (16);
-  gsize signlen = 16;
-  GHmac *hmac;
-
-  hmac = g_hmac_new (G_CHECKSUM_MD5, key, keylen);
-  g_hmac_update (hmac, buf, buflen);
-  g_hmac_get_digest (hmac, signature, &signlen);
-  g_hmac_unref (hmac);
-  return signature;
-}
-
-static void *
-hmac_sha1 (const void *key, int keylen, const void *buf, int buflen)
-{
-  void *signature = g_malloc0 (20);
-  gsize signlen = 20;
-  GHmac *hmac;
-
-  hmac = g_hmac_new (G_CHECKSUM_SHA1, key, keylen);
-  g_hmac_update (hmac, buf, buflen);
-  g_hmac_get_digest (hmac, signature, &signlen);
-  g_hmac_unref (hmac);
-  return signature;
-}
-
-static void *
-hmac_sha256 (const void *key, int keylen, const void *buf, int buflen)
-{
-  void *signature = g_malloc0 (32);
-  gsize signlen = 32;
-  GHmac *hmac;
-
-  hmac = g_hmac_new (G_CHECKSUM_SHA256, key, keylen);
-  g_hmac_update (hmac, buf, buflen);
-  g_hmac_get_digest (hmac, signature, &signlen);
-  g_hmac_unref (hmac);
-  return signature;
-}
-
-static void *
-hmac_sha384 (const void *key, int keylen, const void *buf, int buflen)
-{
-  gcry_md_hd_t hd;
-  gcry_error_t err;
-  void *ret;
-
-  if (!buf || buflen <= 0)
-    return NULL;
-
-  err = gcry_md_open (&hd, GCRY_MD_SHA384, key ? GCRY_MD_FLAG_HMAC : 0);
-  if (err)
-    {
-      g_message ("nasl_gcrypt_hash(): gcry_md_open failed: %s/%s",
-                 gcry_strsource (err), gcry_strerror (err));
-      return NULL;
-    }
-
-  if (key)
-    {
-      err = gcry_md_setkey (hd, key, keylen);
-      if (err)
-        {
-          g_message ("nasl_gcrypt_hash(): gcry_md_setkey failed: %s/%s",
-                     gcry_strsource (err), gcry_strerror (err));
-          return NULL;
-        }
-    }
-
-  gcry_md_write (hd, buf, buflen);
-  ret = g_memdup2 (gcry_md_read (hd, 0), 48);
-  gcry_md_close (hd);
-  return ret;
-}
-
 tree_cell *
 nasl_hmac_sha256 (lex_ctxt *lexic)
 {
@@ -581,38 +506,19 @@ nasl_hmac_sha512 (lex_ctxt *lexic)
 tree_cell *
 nasl_get_smb2_sign (lex_ctxt *lexic)
 {
-  void *key, *buf, *signature, *ret;
-  int keylen, buflen;
-  tree_cell *retc;
+  return nasl_smb_sign (G_CHECKSUM_SHA256, lexic);
+}
 
-  key = get_str_var_by_name (lexic, "key");
-  buf = get_str_var_by_name (lexic, "buf");
-  keylen = get_var_size_by_name (lexic, "key");
-  buflen = get_var_size_by_name (lexic, "buf");
-  if (!key || !buf || keylen <= 0)
-    {
-      nasl_perror (lexic, "Syntax : get_smb2_signature(buf:<b>, key:<k>)");
-      return NULL;
-    }
-  if (buflen < 64)
-    {
-      nasl_perror (lexic, "get_smb2_sign: Buffer length < 64");
-      return NULL;
-    }
+tree_cell *
+nasl_smb_cmac_aes_sign (lex_ctxt *lexic)
+{
+  return nasl_smb_sign (GCRY_MAC_CMAC_AES, lexic);
+}
 
-  /* Zero the SMB2 signature field, then calculate signature */
-  memset ((char *) buf + 48, 0, 16);
-  signature = hmac_sha256 (key, keylen, buf, buflen);
-
-  /* Return the header with signature included. */
-  ret = g_malloc0 (buflen);
-  memcpy (ret, buf, buflen);
-  memcpy ((char *) ret + 48, signature, 16);
-  g_free (signature);
-  retc = alloc_typed_cell (CONST_DATA);
-  retc->size = buflen;
-  retc->x.str_val = (char *) ret;
-  return retc;
+tree_cell *
+nasl_smb_gmac_aes_sign (lex_ctxt *lexic)
+{
+  return nasl_smb_sign (GCRY_MAC_GMAC_AES, lexic);
 }
 
 tree_cell *

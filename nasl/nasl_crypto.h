@@ -124,6 +124,12 @@ tree_cell *
 nasl_get_smb2_sign (lex_ctxt *lexic);
 
 tree_cell *
+nasl_smb_cmac_aes_sign (lex_ctxt *lexic);
+
+tree_cell *
+nasl_smb_gmac_aes_sign (lex_ctxt *lexic);
+
+tree_cell *
 nasl_hmac_sha256 (lex_ctxt *lexic);
 
 tree_cell *
