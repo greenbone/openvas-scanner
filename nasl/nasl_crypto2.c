@@ -35,6 +35,7 @@
 #include "nasl_tree.h"
 #include "nasl_var.h"
 
+#include <arpa/inet.h>
 #include <gcrypt.h>
 #include <gnutls/gnutls.h>
 #include <gnutls/x509.h>
@@ -2066,6 +2067,8 @@ nasl_smb3kdf (lex_ctxt *lexic)
       return NULL;
     }
 
+  resultlen = lvalue / 8;
+
   // Prepare buffer as in [SP800-108] section 5.1
   // [i]2 || Label || 0x00 || Context || [L]2
   // [i]2 is the binary presentation of the iteration. Allways 1
@@ -2077,14 +2080,20 @@ nasl_smb3kdf (lex_ctxt *lexic)
   buf = g_malloc0 (buflen);
   tmp = buf;
 
+  // We need bytes in big endian, but they are currently stored as little endian
+  i = htonl (i);
   memcpy (tmp, &i, r);
   tmp = tmp + r;
+
   memcpy (tmp, label, labellen);
   tmp = tmp + labellen;
   *tmp = 0;
   tmp = tmp + 1;
   memcpy (tmp, context, contextlen);
   tmp = tmp + contextlen;
+
+  // We need bytes in big endian, but they are currently stored as little endian
+  lvalue = htonl (lvalue);
   memcpy (tmp, &lvalue, 4);
 
   if ((error = gcry_mac_write (hd, buf, buflen)))
@@ -2095,7 +2104,6 @@ nasl_smb3kdf (lex_ctxt *lexic)
       return NULL;
     }
 
-  resultlen = lvalue / 8;
   result = g_malloc0 (resultlen);
   if ((error = gcry_mac_read (hd, result, &resultlen)))
     {
