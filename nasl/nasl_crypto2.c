@@ -1871,7 +1871,7 @@ crypt_data (lex_ctxt *lexic, int cipher, int mode, int crypt)
   gcry_cipher_close (hd);
   retc = alloc_typed_cell (CONST_DATA);
   retc->x.str_val = result;
-  retc->size = strlen (result);
+  retc->size = resultlen;
   return retc;
 }
 
