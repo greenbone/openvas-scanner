@@ -2095,7 +2095,7 @@ nasl_smb3kdf (lex_ctxt *lexic)
       return NULL;
     }
 
-  resultlen = lvalue;
+  resultlen = lvalue / 8;
   result = g_malloc0 (resultlen);
   if ((error = gcry_mac_read (hd, result, &resultlen)))
     {
