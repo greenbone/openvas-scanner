@@ -22,11 +22,8 @@ RUN apt-get update && apt-get install --no-install-recommends --no-install-sugge
     snmp \
     netdiag \
     pnscan \
-<<<<<<< HEAD
     libbsd0 \
-=======
     rsync \
->>>>>>> f4e29a0c (Install rsync in container)
     && rm -rf /var/lib/apt/lists/*
 
 COPY .docker/openvas.conf /etc/openvas/
