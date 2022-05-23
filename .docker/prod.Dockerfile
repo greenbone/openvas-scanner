@@ -19,7 +19,6 @@ RUN apt-get update && apt-get install --no-install-recommends --no-install-sugge
     pnscan \
     rsync \
     && rm -rf /var/lib/apt/lists/*
-COPY --from=feed /opt/greenbone/feed/plugins /var/lib/openvas/plugins
 COPY --from=build /install/ /
 RUN ldconfig
 # allow openvas to access raw sockets and all kind of network related tasks
