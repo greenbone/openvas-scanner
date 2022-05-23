@@ -9,11 +9,6 @@ COPY . /source
 RUN cmake -DCMAKE_BUILD_TYPE=Release -B/build /source
 RUN DESTDIR=/install cmake --build /build -- install
 
-<<<<<<< HEAD
-FROM greenbone/community-feed-vts AS feed
-
-=======
->>>>>>> edb32544 (Don't add VTs from an experimental image (#1111))
 FROM greenbone/gvm-libs:$VERSION
 
 RUN apt-get update && apt-get install --no-install-recommends --no-install-suggests -y \
