@@ -23,9 +23,12 @@ RUN apt-get update && apt-get install --no-install-recommends --no-install-sugge
     libbsd0 \
     rsync \
     && rm -rf /var/lib/apt/lists/*
+<<<<<<< HEAD
 
 COPY .docker/openvas.conf /etc/openvas/
 COPY --from=feed /opt/greenbone/feed/plugins /var/lib/openvas/plugins
+=======
+>>>>>>> 3579e771 (remove the COPY command to fix #1111)
 COPY --from=build /install/ /
 
 RUN ldconfig
