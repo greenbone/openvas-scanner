@@ -97,25 +97,49 @@ tree_cell *
 nasl_aes128_gcm_encrypt (lex_ctxt *lexic);
 
 tree_cell *
+nasl_aes128_gcm_encrypt_auth (lex_ctxt *lexic);
+
+tree_cell *
 nasl_aes128_gcm_decrypt (lex_ctxt *lexic);
+
+tree_cell *
+nasl_aes128_gcm_decrypt_auth (lex_ctxt *lexic);
 
 tree_cell *
 nasl_aes256_gcm_encrypt (lex_ctxt *lexic);
 
 tree_cell *
+nasl_aes256_gcm_encrypt_auth (lex_ctxt *lexic);
+
+tree_cell *
 nasl_aes256_gcm_decrypt (lex_ctxt *lexic);
+
+tree_cell *
+nasl_aes256_gcm_decrypt_auth (lex_ctxt *lexic);
 
 tree_cell *
 nasl_aes128_ccm_encrypt (lex_ctxt *lexic);
 
 tree_cell *
+nasl_aes128_ccm_encrypt_auth (lex_ctxt *lexic);
+
+tree_cell *
 nasl_aes128_ccm_decrypt (lex_ctxt *lexic);
+
+tree_cell *
+nasl_aes128_ccm_decrypt_auth (lex_ctxt *lexic);
 
 tree_cell *
 nasl_aes256_ccm_encrypt (lex_ctxt *lexic);
 
 tree_cell *
+nasl_aes256_ccm_encrypt_auth (lex_ctxt *lexic);
+
+tree_cell *
 nasl_aes256_ccm_decrypt (lex_ctxt *lexic);
+
+tree_cell *
+nasl_aes256_ccm_decrypt_auth (lex_ctxt *lexic);
 
 tree_cell *
 nasl_smb3kdf (lex_ctxt *lexic);
