@@ -25,7 +25,6 @@ RUN apt-get update && apt-get install --no-install-recommends --no-install-sugge
     && rm -rf /var/lib/apt/lists/*
 
 COPY .docker/openvas.conf /etc/openvas/
-COPY --from=feed /opt/greenbone/feed/plugins /var/lib/openvas/plugins
 COPY --from=build /install/ /
 
 RUN ldconfig
