@@ -47,8 +47,9 @@
 #define INTBLOB_LEN 20
 #define SIGBLOB_LEN (2 * INTBLOB_LEN)
 #define MAX_CIPHER_ID 32
-#define NASL_ENCRYPT 1
-#define NASL_DECRYPT 2
+#define NASL_ENCRYPT 0
+#define NASL_DECRYPT 1
+#define NASL_AAD 2
 
 #undef G_LOG_DOMAIN
 /**
@@ -1750,12 +1751,13 @@ nasl_aes_mac_gcm (lex_ctxt *lexic)
 }
 
 static tree_cell *
-crypt_data (lex_ctxt *lexic, int cipher, int mode, int crypt)
+crypt_data (lex_ctxt *lexic, int cipher, int mode, int flags)
 {
   gcry_cipher_hd_t hd;
   gcry_error_t error;
-  void *result, *data, *key, *iv;
-  size_t resultlen, datalen, keylen, ivlen;
+  void *data, *key, *iv, *aad;
+  unsigned char *result = NULL, *auth = NULL;
+  size_t resultlen, datalen, keylen, ivlen, aadlen, authlen, len;
   tree_cell *retc;
 
   data = get_str_var_by_name (lexic, "data");
@@ -1764,10 +1766,20 @@ crypt_data (lex_ctxt *lexic, int cipher, int mode, int crypt)
   keylen = get_var_size_by_name (lexic, "key");
   iv = get_str_var_by_name (lexic, "iv");
   ivlen = get_var_size_by_name (lexic, "iv");
+  aad = get_str_var_by_name (lexic, "aad");
+  aadlen = get_var_size_by_name (lexic, "aad");
+  len = get_int_var_by_name (lexic, "len", 0);
 
   if (!data || datalen == 0 || !key || keylen == 0)
     {
       nasl_perror (lexic, "Syntax: crypt_data: Missing data or key argument");
+      return NULL;
+    }
+
+  if (flags & NASL_DECRYPT && len <= 0)
+    {
+      nasl_perror (lexic,
+                   "Syntax: crypt_data: Missing or invalid len argument");
       return NULL;
     }
 
@@ -1795,62 +1807,63 @@ crypt_data (lex_ctxt *lexic, int cipher, int mode, int crypt)
         }
     }
 
-  if (cipher == GCRY_CIPHER_ARCFOUR)
-    resultlen = datalen;
-  else if (cipher == GCRY_CIPHER_3DES)
-    resultlen = ((datalen / 8) + 1) * 8;
-  else if (cipher == GCRY_CIPHER_AES128)
-    resultlen = ((datalen / 16) + 1) * 16;
-  else if (cipher == GCRY_CIPHER_AES256)
-    resultlen = ((datalen / 32) + 1) * 32;
+  if (flags & NASL_DECRYPT)
+    {
+      resultlen = len;
+    }
   else
     {
-      nasl_perror (lexic, "encrypt_data: Unknown cipher %d", cipher);
-      gcry_cipher_close (hd);
-      return NULL;
+      if (cipher == GCRY_CIPHER_ARCFOUR || mode == GCRY_CIPHER_MODE_CCM)
+        resultlen = datalen;
+      else if (cipher == GCRY_CIPHER_3DES)
+        resultlen = ((datalen / 8) + 1) * 8;
+      else if (cipher == GCRY_CIPHER_AES128)
+        resultlen = ((datalen / 16) + 1) * 16;
+      else if (cipher == GCRY_CIPHER_AES256)
+        resultlen = ((datalen / 32) + 1) * 32;
+      else
+        {
+          nasl_perror (lexic, "encrypt_data: Unknown cipher %d", cipher);
+          gcry_cipher_close (hd);
+          return NULL;
+        }
     }
 
   if (mode == GCRY_CIPHER_MODE_CCM)
     {
-      if (crypt == NASL_DECRYPT)
-        {
-          resultlen = get_int_var_by_name (lexic, "len", 0);
-          if (resultlen == 0)
-            {
-              nasl_perror (lexic, "Syntax: crypt_data: Missing or invalid "
-                                  "message length required "
-                                  "for CCM decryption");
-              return NULL;
-            }
-        }
-      else
-        resultlen = datalen;
-
       u_int64_t params[3];
       params[0] = datalen;
-      params[1] = 0;
-      params[2] = 10;
+      params[1] = aadlen;
+      params[2] = 16;
       if ((error = gcry_cipher_ctl (hd, GCRYCTL_SET_CCM_LENGTHS, params,
                                     sizeof (params))))
         {
           nasl_perror (lexic, "gcry_cipher_ctl: %s", gcry_strerror (error));
+          gcry_cipher_close (hd);
+          return NULL;
+        }
+    }
+  if (flags & NASL_AAD)
+    {
+      if (!aad || aadlen == 0)
+        {
+          nasl_perror (
+            lexic, "Syntax: crypt_data: Missing or invalid aad value required");
+          gcry_cipher_close (hd);
+          return NULL;
+        }
+
+      if ((error = gcry_cipher_authenticate (hd, aad, aadlen)))
+        {
+          nasl_perror (lexic, "gcry_cipher_authenticate: %s",
+                       gcry_strerror (error));
+          gcry_cipher_close (hd);
           return NULL;
         }
     }
 
   result = g_malloc0 (resultlen);
-  if (crypt == NASL_ENCRYPT)
-    {
-      if ((error =
-             gcry_cipher_encrypt (hd, result, resultlen, data, resultlen)))
-        {
-          g_message ("gcry_cipher_encrypt: %s", gcry_strerror (error));
-          gcry_cipher_close (hd);
-          g_free (result);
-          return NULL;
-        }
-    }
-  else if (crypt == NASL_DECRYPT)
+  if (flags & NASL_DECRYPT)
     {
       if ((error =
              gcry_cipher_decrypt (hd, result, resultlen, data, resultlen)))
@@ -1863,15 +1876,49 @@ crypt_data (lex_ctxt *lexic, int cipher, int mode, int crypt)
     }
   else
     {
-      g_message ("crypt_data: invalid crypt value");
+      if ((error =
+             gcry_cipher_encrypt (hd, result, resultlen, data, resultlen)))
+        {
+          g_message ("gcry_cipher_encrypt: %s", gcry_strerror (error));
+          gcry_cipher_close (hd);
+          g_free (result);
+          return NULL;
+        }
+    }
+  authlen = 16;
+  auth = g_malloc0 (authlen);
+  if (flags & NASL_AAD)
+    {
+      if ((error = gcry_cipher_gettag (hd, auth, authlen)))
+        {
+          g_message ("gcry_cipher_gettag: %s", gcry_strerror (error));
+          gcry_cipher_close (hd);
+          g_free (result);
+          g_free (auth);
+          return NULL;
+        }
       gcry_cipher_close (hd);
-      g_free (result);
-      return NULL;
+
+      anon_nasl_var v;
+      retc = alloc_typed_cell (DYN_ARRAY);
+      retc->x.ref_val = g_malloc0 (sizeof (nasl_array));
+      memset (&v, 0, sizeof (v));
+      v.var_type = VAR2_DATA;
+      v.v.v_str.s_val = result;
+      v.v.v_str.s_siz = resultlen;
+      add_var_to_list (retc->x.ref_val, 0, &v);
+
+      memset (&v, 0, sizeof (v));
+      v.var_type = VAR2_DATA;
+      v.v.v_str.s_val = auth;
+      v.v.v_str.s_siz = authlen;
+      add_var_to_list (retc->x.ref_val, 1, &v);
+      return retc;
     }
 
   gcry_cipher_close (hd);
   retc = alloc_typed_cell (CONST_DATA);
-  retc->x.str_val = result;
+  retc->x.str_val = (char *) result;
   retc->size = resultlen;
   return retc;
 }
@@ -1964,10 +2011,23 @@ nasl_aes128_gcm_encrypt (lex_ctxt *lexic)
 }
 
 tree_cell *
+nasl_aes128_gcm_encrypt_auth (lex_ctxt *lexic)
+{
+  return crypt_data (lexic, GCRY_CIPHER_AES128, GCRY_CIPHER_MODE_GCM, NASL_AAD);
+}
+
+tree_cell *
 nasl_aes128_gcm_decrypt (lex_ctxt *lexic)
 {
   return crypt_data (lexic, GCRY_CIPHER_AES128, GCRY_CIPHER_MODE_GCM,
                      NASL_DECRYPT);
+}
+
+tree_cell *
+nasl_aes128_gcm_decrypt_auth (lex_ctxt *lexic)
+{
+  return crypt_data (lexic, GCRY_CIPHER_AES128, GCRY_CIPHER_MODE_GCM,
+                     NASL_AAD | NASL_DECRYPT);
 }
 
 tree_cell *
@@ -1978,10 +2038,23 @@ nasl_aes256_gcm_encrypt (lex_ctxt *lexic)
 }
 
 tree_cell *
+nasl_aes256_gcm_encrypt_auth (lex_ctxt *lexic)
+{
+  return crypt_data (lexic, GCRY_CIPHER_AES256, GCRY_CIPHER_MODE_GCM, NASL_AAD);
+}
+
+tree_cell *
 nasl_aes256_gcm_decrypt (lex_ctxt *lexic)
 {
   return crypt_data (lexic, GCRY_CIPHER_AES256, GCRY_CIPHER_MODE_GCM,
                      NASL_DECRYPT);
+}
+
+tree_cell *
+nasl_aes256_gcm_decrypt_auth (lex_ctxt *lexic)
+{
+  return crypt_data (lexic, GCRY_CIPHER_AES256, GCRY_CIPHER_MODE_GCM,
+                     NASL_AAD | NASL_DECRYPT);
 }
 
 tree_cell *
@@ -1992,10 +2065,23 @@ nasl_aes128_ccm_encrypt (lex_ctxt *lexic)
 }
 
 tree_cell *
+nasl_aes128_ccm_encrypt_auth (lex_ctxt *lexic)
+{
+  return crypt_data (lexic, GCRY_CIPHER_AES128, GCRY_CIPHER_MODE_CCM, NASL_AAD);
+}
+
+tree_cell *
 nasl_aes128_ccm_decrypt (lex_ctxt *lexic)
 {
   return crypt_data (lexic, GCRY_CIPHER_AES128, GCRY_CIPHER_MODE_CCM,
                      NASL_DECRYPT);
+}
+
+tree_cell *
+nasl_aes128_ccm_decrypt_auth (lex_ctxt *lexic)
+{
+  return crypt_data (lexic, GCRY_CIPHER_AES128, GCRY_CIPHER_MODE_CCM,
+                     NASL_AAD | NASL_DECRYPT);
 }
 
 tree_cell *
@@ -2006,10 +2092,23 @@ nasl_aes256_ccm_encrypt (lex_ctxt *lexic)
 }
 
 tree_cell *
+nasl_aes256_ccm_encrypt_auth (lex_ctxt *lexic)
+{
+  return crypt_data (lexic, GCRY_CIPHER_AES256, GCRY_CIPHER_MODE_CCM, NASL_AAD);
+}
+
+tree_cell *
 nasl_aes256_ccm_decrypt (lex_ctxt *lexic)
 {
   return crypt_data (lexic, GCRY_CIPHER_AES256, GCRY_CIPHER_MODE_CCM,
                      NASL_DECRYPT);
+}
+
+tree_cell *
+nasl_aes256_ccm_decrypt_auth (lex_ctxt *lexic)
+{
+  return crypt_data (lexic, GCRY_CIPHER_AES256, GCRY_CIPHER_MODE_CCM,
+                     NASL_AAD | NASL_DECRYPT);
 }
 
 /**
