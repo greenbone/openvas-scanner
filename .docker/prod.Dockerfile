@@ -23,6 +23,7 @@ RUN apt-get update && apt-get install --no-install-recommends --no-install-sugge
     netdiag \
     pnscan \
     libbsd0 \
+    rsync \
     && rm -rf /var/lib/apt/lists/*
 
 COPY .docker/openvas.conf /etc/openvas/
