@@ -33,7 +33,7 @@ For detailed installation requirements and instructions, please see the file
 `openvas` and for making the scanner available to other GVM modules.
 
 If you are not familiar or comfortable building from source code, we recommend
-that you use the Greenbone Security Manager TRIAL (GSM TRIAL), a prepared virtual
+that you use the Greenbone Enerprise TRIAL, a prepared virtual
 machine with a readily available setup. Information regarding the virtual machine
 is available at <https://www.greenbone.net/en/testnow>.
 
@@ -53,7 +53,7 @@ For more information about building docker images, see
 ## Support
 
 For any question on the usage of `openvas` please use the [Greenbone
-Community Portal](https://community.greenbone.net/c/gse). If you found a problem
+Community Portal](https://community.greenbone.net/). If you found a problem
 with the software, please [create an
 issue](https://github.com/greenbone/openvas-scanner/issues) on GitHub. If you
 are a Greenbone customer you may alternatively or additionally forward your
@@ -66,9 +66,9 @@ This project is maintained by [Greenbone Networks GmbH](https://www.greenbone.ne
 ## Contributing
 
 Your contributions are highly appreciated. Please [create a pull
-request](https://github.com/greenbone/openvas/pulls) on GitHub. Bigger
+request](https://github.com/greenbone/openvas-scanner/pulls) on GitHub. Bigger
 changes need to be discussed with the development team via the [issues section
-at GitHub](https://github.com/greenbone/openvas/issues) first.
+at GitHub](https://github.com/greenbone/openvas-scanner/issues) first.
 
 ## License
 
