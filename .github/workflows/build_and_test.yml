@@ -31,7 +31,7 @@ jobs:
           scan-build -o ~/scan-build-report cmake --build build
       - name: Upload scan-build report
         if: failure()
-        uses: actions/upload-artifact@v2
+        uses: actions/upload-artifact@v3
         with:
           name: scan-build-report
           path: ~/scan-build-report/
