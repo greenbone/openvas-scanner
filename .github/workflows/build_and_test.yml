@@ -12,7 +12,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Check out openvas-scanner
-        uses: actions/checkout@v2
+        uses: actions/checkout@v3
       - name: Check Source Format
         run: |
           clang-format -i -style=file {src,misc,nasl}/*.{c,h}
@@ -24,7 +24,7 @@ jobs:
     container: ${{ github.repository }}-build:unstable
     steps:
       - name: Check out openvas-scanner
-        uses: actions/checkout@v2
+        uses: actions/checkout@v3
       - name: Configure and Scan Build
         run: |
           cmake -Bbuild -DCMAKE_BUILD_TYPE=Release
@@ -43,7 +43,7 @@ jobs:
     container: ${{ github.repository }}-build:unstable
     steps:
       - name: Check out openvas-scanner
-        uses: actions/checkout@v2
+        uses: actions/checkout@v3
       - name: Configure and run unit tests
         run: |
           cmake -Bbuild -DCMAKE_BUILD_TYPE=Release
