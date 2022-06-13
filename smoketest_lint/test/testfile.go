@@ -2,6 +2,7 @@ package test
 
 import (
 	"bufio"
+	"errors"
 	"fmt"
 	"os"
 	"os/exec"
@@ -63,14 +64,18 @@ func testFileFromPath(path string, info os.FileInfo) (testFile, error) {
 // test tests the openvas-nasl-lint with file t. Note that file t must be
 // parsed first. test return a list of unexpected events that occurred
 // as a list of errors
-func (t testFile) Test() []error {
+func (t testFile) Test(openvasExe string) []error {
 	errs := make([]error, 0)
 	// run openvas-nasl-lint and collect output
-	cmd := exec.Command("openvas-nasl-lint", t.Name)
+	cmd := exec.Command(openvasExe, t.Name)
 	cmd.Dir = t.dir
-	// Ignoring error as openvas-nasl-lint does not exit with 0 when errors
+	// Ignoring ExitErrors as openvas-nasl-lint does not exit with 0 when errors
 	// were found
-	out, _ := cmd.CombinedOutput()
+	out, err := cmd.CombinedOutput()
+	var target *exec.ExitError
+	if err != nil && !errors.As(err, &target) {
+		panic(fmt.Sprintf("Unable to run openvas-nasl-lint: %s", err))
+	}
 
 	// test output line by line
 	lines := strings.Split(string(out), "\n")

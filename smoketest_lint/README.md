@@ -13,3 +13,7 @@ To verify in your local environment you need to have `go` installed:
 ```
 make all
 ```
+
+The current version supports two arguments:
+- openvasDir - Location of the openvas-nasl-lint executable, has to be absolute or relative to test files directory. If `openvas-nasl-lint` is located within `$PATH` It can be left empty
+- testFiles - Folder containing the nasl test files.
