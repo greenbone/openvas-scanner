@@ -40,6 +40,13 @@ Recommended for extended Windows support (e.g. automatically start the remote re
 
 Recommended to have improved SNMP support:
 * netsnmp libraries or alternatively the snmpget binary.
+* snmp client
+
+Recommended for port scanning and service detection based on nmap.
+* nmap
+
+Recommended for port scanning based on pnscan.
+* pnscan
 
 Install prerequisites on Debian GNU/Linux 'Buster' 10:
 
