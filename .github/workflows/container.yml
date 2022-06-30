@@ -33,7 +33,7 @@ jobs:
           context: .
           push: true
           tags: ${{ steps.container.outputs.image-tags }}
-          # platforms: linux/amd64,linux/arm64
+          platforms: linux/amd64,linux/arm64
           file: .docker/prod.Dockerfile
           build-args: |
             REPOSITORY=${{ github.repository }}
@@ -65,5 +65,5 @@ jobs:
           context: .
           push: true
           tags: ${{ steps.container.outputs.image-tags }}
-          # platforms: linux/amd64,linux/arm64
+          platforms: linux/amd64,linux/arm64
           file: .docker/build.Dockerfile
