@@ -868,9 +868,12 @@ socket_negotiate_ssl (int fd, openvas_encaps_t transport,
       if (!connection_failed_msg_sent)
         {
           g_message ("Function socket_negotiate_ssl called from %s: "
-                     "SSL/TLS connection (host: %s) failed.",
+                     "SSL/TLS connection (host: %s, ip: %s) failed.",
                      nasl_get_plugin_filename (),
-                     hostname ? hostname : "unknown");
+                     plug_get_host_fqdn (args) ? plug_get_host_fqdn (args)
+                                               : "unknown",
+                     plug_get_host_ip_str (args) ? plug_get_host_ip_str (args)
+                                                 : "unknown");
           connection_failed_msg_sent = TRUE;
         }
       g_free (hostname);
