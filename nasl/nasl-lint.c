@@ -61,7 +61,7 @@ get_DIS_from_filename (const gchar *filename)
  * @brief Process a file through the linter
  * @param filepath the path of the file to be processed
  * @param mode,script_args The parameters to be given to the linter
- * @return Number of errors in script
+ * @return 0 if no error was found, 1 if errors were found.
  */
 static int
 process_file (const gchar *filepath, int mode, struct script_infos *script_args)
@@ -73,13 +73,12 @@ process_file (const gchar *filepath, int mode, struct script_infos *script_args)
   ret = exec_nasl_script (script_args, mode);
   if (ret != 0)
     {
-      if (ret == -1)
-        {
-          g_print ("Error while processing %s.\n", filepath);
-          return 1;
-        }
-      g_print ("%d errors while processing %s.\n", ret, filepath);
-      return ret != 0;
+      // Although there is a technical difference between negative and
+      // positive ret value we do not make a distinction in this error message
+      // because details are already provided in exec_nasl_script()
+      g_print ("%d errors while processing %s.\n", ret == -1 ? 1 : ret,
+               filepath);
+      return 1;
     }
   return 0;
 }
@@ -89,7 +88,7 @@ process_file (const gchar *filepath, int mode, struct script_infos *script_args)
  * @param list_file the path to a text file containing path to the files to
  *        process, one per line
  * @param mode,script_args Parameters for the linter
- * @return The amount of errors found in the given scripts
+ * @return The amount of scripts with errors
  */
 static int
 process_file_list (const gchar *list_file, int mode,
@@ -127,7 +126,7 @@ process_file_list (const gchar *list_file, int mode,
  * @brief Process each given files through the linter
  * @param files The path to the files to be processed
  * @param mode,script_args Parameters to be given to the linter
- * @return The amount of errors found in the given scripts
+ * @return The amount scripts with errors
  */
 static int
 process_files (const gchar **files, int mode, struct script_infos *script_args)

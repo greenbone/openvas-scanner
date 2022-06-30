@@ -1668,7 +1668,7 @@ exec_nasl_script (struct script_infos *script_infos, int mode)
       err = naslparse (&ctx, &error_counter);
       if (err != 0 || error_counter > 0)
         {
-          g_message ("%s. There were %d parse errors.\n", name, error_counter);
+          g_message ("%s. There were %d parse errors.", name, error_counter);
           nasl_clean_ctx (&ctx);
           g_chdir (old_dir);
           g_free (old_dir);
