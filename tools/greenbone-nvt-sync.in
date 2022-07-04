@@ -91,7 +91,7 @@ ENABLED=1
 # disabled.
 LOG_CMD="logger -t $SCRIPT_NAME"
 
-[ -z "$DATA_BASE_PATH" ] && DATA_BASE_PATH="/community/community/vulnerability-feed/$VERSION_SHORT"
+[ -z "$DATA_BASE_PATH" ] && DATA_BASE_PATH="/community/vulnerability-feed/$VERSION_SHORT"
 [ -z "$NASL_DATA_PATH" ] && NASL_DATA_PATH="$DATA_BASE_PATH/vt-data/nasl/"
 [ -z "$NOTUS_DATA_PATH" ] && NOTUS_DATA_PATH="$DATA_BASE_PATH/vt-data/notus/"
 
@@ -117,7 +117,7 @@ then
   NVT_DIR="@OPENVAS_NVT_DIR@"
 fi
 
-[ -z "$NOTUS_DIR" ] && NOTUS_DIR="/var/lib/notus"
+[ -z "$NOTUS_DIR" ] && NOTUS_DIR="@LOCALSTATEDIR@/lib/notus"
 
 log_write () {
   $LOG_CMD -p daemon.notice $1
@@ -538,16 +538,16 @@ do_sync ()
 
 do_help () {
   echo "$0: Sync NVT data"
-  echo " --describe     display current feed info"
-  echo " --feedcurrent  just check if feed is up-to-date"
-  echo " --feedversion  display version of this feed"
-  echo " --help         display this help"
-  echo " --identify     display information"
-  echo " --nvtdir dir   set dir as NVT directory"
-  echo " --notusdir dir   set dir as NOTUS directory"
-  echo " --selftest     perform self-test and set exit code"
-  echo " --verbose      makes the sync process print details"
-  echo " --version      display version"
+  echo " --describe      display current feed info"
+  echo " --feedcurrent   just check if feed is up-to-date"
+  echo " --feedversion   display version of this feed"
+  echo " --help          display this help"
+  echo " --identify      display information"
+  echo " --nvt-dir dir   set dir as NVT directory"
+  echo " --notus-dir dir set dir as NOTUS directory"
+  echo " --selftest      perform self-test and set exit code"
+  echo " --verbose       makes the sync process print details"
+  echo " --version       display version"
   echo ""
   echo ""
   echo "Environment variables:"
