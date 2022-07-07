@@ -148,7 +148,7 @@ mdfour64_ntlmssp (uint32 *M)
   C &= 0xFFFFFFFF;
   D &= 0xFFFFFFFF;
 
-  for (size_t i = 0; i < sizeof (X); i++)
+  for (size_t i = 0; i < 16; i++)
     {
       *(volatile char *) (X + i) = '\0';
     }
