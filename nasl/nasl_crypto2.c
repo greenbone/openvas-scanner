@@ -1818,9 +1818,9 @@ crypt_data (lex_ctxt *lexic, int cipher, int mode, int flags)
       else if (cipher == GCRY_CIPHER_3DES)
         resultlen = ((datalen / 8) + 1) * 8;
       else if (cipher == GCRY_CIPHER_AES128)
-        resultlen = ((datalen / 16) + 1) * 16;
+        resultlen = datalen;
       else if (cipher == GCRY_CIPHER_AES256)
-        resultlen = ((datalen / 32) + 1) * 32;
+        resultlen = datalen;
       else
         {
           nasl_perror (lexic, "encrypt_data: Unknown cipher %d", cipher);
