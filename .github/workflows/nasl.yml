@@ -1,0 +1,23 @@
+name: "NASL"
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  nasl-test:
+    name: Test
+    runs-on: ubuntu-latest
+    container: ${{ github.repository }}-build:unstable
+    steps:
+      - uses: actions/checkout@v3
+      - name: build
+        run: |
+          cmake -Bbuild -DCMAKE_BUILD_TYPE=Release
+          cmake --build build
+      - name: run
+        run: |
+          cd nasl/tests
+          OPENVAS_NASL=../../build/nasl/openvas-nasl make check
