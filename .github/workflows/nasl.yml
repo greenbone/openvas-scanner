@@ -17,6 +17,11 @@ jobs:
         run: |
           cmake -Bbuild -DCMAKE_BUILD_TYPE=Release
           cmake --build build
+      - name: redis
+        run: |
+          apt-get update && apt-get install --no-install-recommends --no-install-suggests -y redis
+          mkdir /run/redis
+          redis-server .github/redis.conf || exit 1 
       - name: run
         run: |
           cd nasl/tests
