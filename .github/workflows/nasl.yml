@@ -20,9 +20,11 @@ jobs:
       - name: redis
         run: |
           apt-get update && apt-get install --no-install-recommends --no-install-suggests -y redis
-          mkdir /run/redis
-          redis-server .github/redis.conf || exit 1 
+          mkdir /run/redis-openvas
+          redis-server config/redis-openvas.conf || exit 1
       - name: run
         run: |
+          mkdir -p /etc/openvas
+          echo "db_address = /run/redis-openvas/redis.sock" >> /etc/openvas/openvas.conf
           cd nasl/tests
           OPENVAS_NASL=../../build/nasl/openvas-nasl make check
