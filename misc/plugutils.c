@@ -393,7 +393,6 @@ msg_type_to_str (msg_t type)
  *
  * @return 0 on success, -1 on inconsistency.
  */
-
 int
 check_kb_inconsistency (struct scan_globals *globals, kb_t main_kb)
 {

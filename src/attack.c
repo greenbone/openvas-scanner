@@ -53,7 +53,7 @@
 #include <gvm/util/mqtt.h>
 #include <gvm/util/nvticache.h> /* for nvticache_t */
 #include <pthread.h>
-#include <stdlib.h>   /* for exit() */
+#include <signal.h>
 #include <string.h>   /* for strlen() */
 #include <sys/wait.h> /* for waitpid() */
 #include <unistd.h>   /* for close() */
@@ -426,6 +426,7 @@ run_table_driven_lsc (const char *scan_id, kb_t kb, const char *ip_str,
       return -1;
     }
   /* Get the OS release. TODO: have a list with supported OS. */
+
   os_release = kb_item_get_str (kb, "ssh/login/release_notus");
   /* Get the package list. Currently only rpm support */
   package_list = kb_item_get_str (kb, "ssh/login/package_list_notus");
@@ -637,6 +638,8 @@ attack_host (struct scan_globals *globals, struct in6_addr *ip, GSList *vhosts,
   /* Used for the status */
   int num_plugs, forks_retry = 0, all_plugs_launched = 0;
   char ip_str[INET6_ADDRSTRLEN];
+  struct scheduler_plugin *plugin;
+  pid_t parent, me;
 
   addr6_to_str (ip, ip_str);
   openvas_signal (SIGUSR2, set_check_new_vhosts_flag);
@@ -653,9 +656,6 @@ attack_host (struct scan_globals *globals, struct in6_addr *ip, GSList *vhosts,
   num_plugs = plugins_scheduler_count_active (sched);
   for (;;)
     {
-      struct scheduler_plugin *plugin;
-      pid_t parent;
-
       /* Check that our father is still alive */
       parent = getppid ();
       if (parent <= 1 || process_alive (parent) == 0)
@@ -664,8 +664,22 @@ attack_host (struct scan_globals *globals, struct in6_addr *ip, GSList *vhosts,
           return;
         }
 
+      if (check_kb_inconsistency (globals, main_kb) != 0)
+        {
+          // As long as we don't have a proper communication channel
+          // to our ancestors we just kill our parent and ourselves
+          // (but let our grandparents live).
+          // To prevent duplicate results we don't let ACT_END run.
+          me = getpid ();
+          kill (parent, SIGTERM);
+          // just in case
+          raise(SIGTERM);
+          return;
+        }
+
       if (scan_is_stopped ())
         plugins_scheduler_stop (sched);
+
       plugin = plugins_scheduler_next (sched);
       if (plugin != NULL && plugin != PLUG_RUNNING)
         {
