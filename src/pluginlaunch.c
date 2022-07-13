@@ -133,7 +133,6 @@ update_running_processes (kb_t main_kb, kb_t kb)
       if (processes[i].pid > 0)
         {
           int is_alive = process_alive (processes[i].pid);
-          int ret_terminate = 0;
 
           // If process dead or timed out
           if (!is_alive
@@ -172,14 +171,11 @@ update_running_processes (kb_t main_kb, kb_t kb)
                         }
                     }
 
-                  ret_terminate = terminate_process (processes[i].pid);
-                  if (ret_terminate == 0)
-                    {
-                      terminate_process (processes[i].pid * -1);
-                      num_running_processes--;
-                      processes[i].plugin->running_state = PLUGIN_STATUS_DONE;
-                      bzero (&(processes[i]), sizeof (processes[i]));
-                    }
+                  terminate_child (processes[i].pid);
+
+                  num_running_processes--;
+                  processes[i].plugin->running_state = PLUGIN_STATUS_DONE;
+                  bzero (&(processes[i]), sizeof (processes[i]));
                 }
               else
                 {
@@ -208,7 +204,7 @@ update_running_processes (kb_t main_kb, kb_t kb)
                     }
                   while (e < 0 && errno == EINTR);
 
-                  terminate_process (processes[i].pid * -1);
+                  terminate_child (processes[i].pid);
                   num_running_processes--;
                   processes[i].plugin->running_state = PLUGIN_STATUS_DONE;
                   bzero (&(processes[i]), sizeof (processes[i]));
@@ -361,7 +357,7 @@ pluginlaunch_stop (void)
     {
       if (processes[i].pid > 0)
         {
-          terminate_process (processes[i].pid * -1);
+          terminate_child (processes[i].pid);
           num_running_processes--;
           processes[i].plugin->running_state = PLUGIN_STATUS_DONE;
           bzero (&(processes[i]), sizeof (struct running));

@@ -258,7 +258,6 @@ plugins_reload_from_dir (const char *folder)
   int loaded_files = 0, num_files = 0;
   struct timeval start_time;
 
-  openvas_signal (SIGTERM, SIG_DFL);
   if (folder == NULL)
     {
       g_debug ("%s:%d : folder == NULL", __FILE__, __LINE__);

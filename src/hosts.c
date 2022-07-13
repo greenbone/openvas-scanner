@@ -143,7 +143,7 @@ static struct host *
 hosts_get (char *name)
 {
   struct host *h = hosts;
-  while (h != NULL)
+  while (h)
     {
       if (strcmp (h->name, name) == 0)
         return h;
@@ -177,7 +177,7 @@ hosts_new (char *name, kb_t kb, kb_t main_kb)
   h->pid = 0;
   h->host_kb = kb;
   h->results_kb = main_kb;
-  if (hosts != NULL)
+  if (hosts)
     hosts->prev = h;
   h->next = hosts;
   h->prev = NULL;
@@ -189,7 +189,7 @@ int
 hosts_set_pid (char *name, pid_t pid)
 {
   struct host *h = hosts_get (name);
-  if (h == NULL)
+  if (!h)
     {
       g_debug ("host_set_pid() failed!\n");
       return -1;
@@ -203,7 +203,7 @@ hosts_set_pid (char *name, pid_t pid)
 static int
 hosts_stop_host (struct host *h)
 {
-  if (h == NULL)
+  if (!h)
     return -1;
 
   g_message ("Stopping host %s scan (pid: %d)", h->name, h->pid);
@@ -239,7 +239,7 @@ hosts_read_data (void)
         g_debug ("waitpid() failed. %s)", strerror (errno));
     }
 
-  if (h == NULL)
+  if (!h)
     return;
 
   while (h)
@@ -264,7 +264,7 @@ hosts_read_data (void)
 int
 hosts_read (void)
 {
-  if (hosts == NULL)
+  if (!hosts)
     return -1;
 
   hosts_read_data ();

@@ -20,7 +20,14 @@
 
 /**
  * @file sighand.c
- * @brief Provides signal handling functions.
+ * @brief Provides a specialized signal handling.
+ *
+ * Expands standard signal handling by adding the possibility to chain handlers
+ * for signals. This will allow to call several handlers for a single signal.
+ * Additionally data can be provided for the handler to be called with. Some
+ * keywords also allows to controll the flow of handlers and how many times a
+ * handler will be called. When no handlers are added, each singlan will have
+ * the default handler, except for SIGSEGV.
  */
 
 #include "sighand.h"
@@ -39,62 +46,40 @@
  */
 #define G_LOG_DOMAIN "sd   main"
 
-/* do not leave a zombie, hanging around if possible */
-void
-let_em_die (int pid)
+/**
+ * @brief struct to save information about a handler.
+ *
+ */
+typedef struct handler_entry
 {
-  int status;
+  void (*handler) ();
+  void *data;
+  int stop;
+  int n;
+  struct handler_entry *next;
+} handler_entry;
 
-  waitpid (pid, &status, WNOHANG);
-}
+/**
+ * @brief list of available signals and their handling chains
+ *
+ */
+static handler_entry *signals[31];
 
-void
-make_em_die (int sig)
-{
-  /* number of times, the sig is sent at most */
-  int n = 3;
-
-  /* leave if we are session leader */
-  if (getpgrp () != getpid ())
-    return;
-
-  /* quickly send signals and check the result */
-  if (kill (0, sig) < 0)
-    return;
-  let_em_die (0);
-  if (kill (0, 0) < 0)
-    return;
-
-  do
-    {
-      /* send the signal to everybody in the group */
-      if (kill (0, sig) < 0)
-        return;
-      sleep (1);
-      /* do not leave a zombie, hanging around if possible */
-      let_em_die (0);
-    }
-  while (--n > 0);
-
-  if (kill (0, 0) < 0)
-    return;
-
-  kill (0, SIGKILL);
-  sleep (1);
-  let_em_die (0);
-}
-
-/*
+/**
+ * @brief
+ *
+ * @param signum
+ * @param handler
+ *
  *  Replacement for the signal() function, written
  *  by Sagi Zeevi <sagiz@yahoo.com>
  */
-void (*openvas_signal (int signum, void (*handler) (int))) (int)
+static void (*openvas_signal (int signum, void (*handler) (int))) (int)
 {
   struct sigaction saNew, saOld;
 
   /* Init new handler */
   sigfillset (&saNew.sa_mask);
-  sigdelset (&saNew.sa_mask, SIGALRM); /* make sleep() work */
 
   saNew.sa_flags = 0;
   saNew.sa_handler = handler;
@@ -103,15 +88,58 @@ void (*openvas_signal (int signum, void (*handler) (int))) (int)
   return saOld.sa_handler;
 }
 
-void
-sighand_chld (int sig)
+/**
+ * @brief Handles all signals by calling the specified handler chain.
+ *
+ * @param sig Incoming signal
+ */
+static void
+signal_handler (int sig)
 {
-  (void) sig;
-  waitpid (-1, NULL, WNOHANG);
+  handler_entry *current, *last = NULL, *buf;
+  int stop;
+
+  g_message ("Signal %d occurred", sig);
+  current = signals[sig];
+
+  while (current)
+    {
+      current->handler (current->data);
+      stop = current->stop;
+      if (current->n > 0)
+        current->n--;
+      buf = current;
+      current = current->next;
+      if (!buf->n)
+        {
+          if (last)
+            {
+              last->next = current;
+            }
+          else
+            {
+              signals[sig] = current;
+            }
+          free (buf);
+        }
+      else
+        {
+          last = buf;
+        }
+      if (stop)
+        break;
+    }
+
+  if (!signals[sig])
+    openvas_signal (sig, SIG_DFL);
 }
 
+/**
+ * @brief Used to print backtrace in case of a SIGSEGV.
+ *
+ */
 static void
-print_trace (void)
+print_trace ()
 {
   void *array[10];
   int ret = 0, left;
@@ -129,15 +157,128 @@ print_trace (void)
   g_free (strings);
 }
 
-void
-sighand_segv (int given_signal)
+/**
+ * @brief handler for SIGSEGV
+ *
+ */
+static void
+sighand_segv ()
 {
-  signal (SIGSEGV, _exit);
   print_trace ();
-  make_em_die (SIGTERM);
   gvm_close_sentry ();
-  /* Raise signal again, to exit with the correct return value,
-   * and to enable core dumping. */
-  openvas_signal (given_signal, SIG_DFL);
-  raise (given_signal);
+}
+
+/**
+ * @brief Frees all handlers of a single signal
+ *
+ * @param sig signal
+ */
+static void
+free_single_signal_handler (int sig)
+{
+  handler_entry *current, *next;
+  current = signals[sig];
+  signals[sig] = NULL;
+  while (current)
+    {
+      next = current->next;
+      free (current);
+      current = next;
+    }
+  openvas_signal (sig, SIG_DFL);
+}
+
+/**
+ * @brief Frees all handlers for all signals
+ *
+ */
+static void
+free_all_signal_handlers ()
+{
+  int i;
+
+  for (i = 0; i < 31; i++)
+    {
+      free_single_signal_handler (i);
+    }
+  openvas_signal (SIGSEGV, sighand_segv);
+}
+
+/**
+ * @brief Initializes signal handling. free_signal_handler must be called to
+ * free resources again
+ *
+ */
+void
+init_signal_handlers ()
+{
+  int i;
+  static int init = 0;
+
+  if (init)
+    return;
+
+  init = 1;
+
+  for (i = 0; i < 31; i++)
+    {
+      signals[i] = NULL;
+    }
+  openvas_signal (SIGSEGV, sighand_segv);
+}
+
+/**
+ * @brief Resets a handler for a given Signal and frees resources. SIG_ALL will
+ * reset all signal handler. Must be called in order to free resources.
+ *
+ * @param sig
+ */
+void
+free_signal_handler (int sig)
+{
+  if (sig == OVAS_SIG_ALL)
+    free_all_signal_handlers ();
+  else
+    free_single_signal_handler (sig);
+}
+
+/**
+ * @brief Adds a handler to react to specified signal. Behavior can be modified.
+ *
+ * @param sig Specifies on which signal handler will be called
+ * @param handler Will be called when specified Signal arrives
+ * @param data Additional data with which the handler will be called
+ * @param stop modifies behavior
+ * @param n max number handler will be called
+ *
+ * This will add a handler for the specified signal. The added handler is added
+ * at the beginning of the handler chain. This means the provided handler will
+ * be called first when a signal arrives. In order for the handler to be able to
+ * tidy up or process data, such can be provided. Each handler also consinst of
+ * a behavior which determines the flow of action. If set to SIG_STOP no other
+ * handler will be called after that. In order to prevent the default handler to
+ * be called at least one handler must have this set. A handler with behavior
+ * SIG_NONE will just call the next handler in chain.
+ * All signals have the default handler by default.
+ */
+void
+add_handler (int sig, void (*handler) (), void *data, int stop, int n)
+{
+  if (handler == SIG_IGN || handler == SIG_DFL)
+    {
+      free_single_signal_handler (sig);
+      openvas_signal (sig, handler);
+      return;
+    }
+
+  handler_entry *new;
+  new = malloc (sizeof (handler_entry));
+  new->data = data;
+  new->handler = handler;
+  new->stop = stop;
+  new->n = n;
+  new->next = signals[sig];
+
+  signals[sig] = new;
+  openvas_signal (sig, signal_handler);
 }

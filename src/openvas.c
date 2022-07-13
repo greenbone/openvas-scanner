@@ -102,7 +102,6 @@ int global_max_sysload = 0;
  */
 GSList *log_config = NULL;
 
-static volatile int termination_signal = 0;
 static char *global_scan_id = NULL;
 
 typedef struct
@@ -173,24 +172,6 @@ set_globals_from_preferences (void)
       if (global_min_memory <= 0)
         global_min_memory = 0;
     }
-}
-
-static void
-handle_termination_signal (int sig)
-{
-  termination_signal = sig;
-}
-
-/**
- * @brief Initializes main scanner process' signal handlers.
- */
-static void
-init_signal_handlers (void)
-{
-  openvas_signal (SIGTERM, handle_termination_signal);
-  openvas_signal (SIGINT, handle_termination_signal);
-  openvas_signal (SIGQUIT, handle_termination_signal);
-  openvas_signal (SIGCHLD, sighand_chld);
 }
 
 /**
@@ -381,7 +362,7 @@ stop_single_task_scan (void)
     return;
 
   /* Send the signal to the process group. */
-  killpg (pid, SIGUSR1);
+  kill (pid, SIGUSR1);
 }
 
 /**
@@ -449,8 +430,6 @@ attack_network_init (struct scan_globals *globals, const gchar *config_file)
         }
     }
 
-  init_signal_handlers ();
-
   /* Make process a group leader, to make it easier to cleanup forked
    * processes & their children. */
   setpgid (0, 0);
@@ -460,6 +439,8 @@ attack_network_init (struct scan_globals *globals, const gchar *config_file)
       g_warning ("No preferences found for the scan %s", globals->scan_id);
       exit (0);
     }
+
+  init_procs (get_max_hosts_number ());
 }
 
 /**
@@ -596,6 +577,9 @@ openvas (int argc, char *argv[], char *env[])
   if (scan_id)
     {
       struct scan_globals *globals;
+      init_signal_handlers ();
+      add_handler (SIGUSR1, handle_scan_stop_signal, NULL, 1, OVAS_SIG_ALWAYS);
+      add_handler (SIGTERM, terminate_childs, NULL, 0, OVAS_SIG_ALWAYS);
       global_scan_id = g_strdup (scan_id);
       globals = g_malloc0 (sizeof (struct scan_globals));
       globals->scan_id = g_strdup (global_scan_id);

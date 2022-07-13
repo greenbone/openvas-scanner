@@ -88,6 +88,14 @@ struct attack_start_args
   gvm_host_t *host;
 };
 
+int global_scan_stop = 0;
+
+void
+handle_scan_stop_signal ()
+{
+  global_scan_stop = 1;
+}
+
 /*******************************************************
 
                PRIVATE FUNCTIONS
@@ -240,21 +248,6 @@ report_kb_failure (int errcode)
   g_free (msg);
 }
 
-static void
-fork_sleep (int n)
-{
-  time_t then, now;
-
-  now = then = time (NULL);
-  while (now - then < n)
-    {
-      waitpid (-1, NULL, WNOHANG);
-      usleep (10000);
-      now = time (NULL);
-    }
-}
-
-int global_scan_stop = 0;
 static void
 scan_stop_cleanup (void);
 
@@ -630,7 +623,6 @@ attack_host (struct scan_globals *globals, struct in6_addr *ip, GSList *vhosts,
   char ip_str[INET6_ADDRSTRLEN];
 
   addr6_to_str (ip, ip_str);
-  openvas_signal (SIGUSR2, set_check_new_vhosts_flag);
   host_kb = kb;
   host_vhosts = vhosts;
   kb_item_set_int (kb, "internal/hostpid", getpid ());
@@ -640,20 +632,12 @@ attack_host (struct scan_globals *globals, struct in6_addr *ip, GSList *vhosts,
   kb_lnk_reset (kb);
 
   /* launch the plugins */
+  // add_handler (SIGUSR1, terminate_childs, NULL);
   pluginlaunch_init (ip_str);
   num_plugs = plugins_scheduler_count_active (sched);
   for (;;)
     {
       struct scheduler_plugin *plugin;
-      pid_t parent;
-
-      /* Check that our father is still alive */
-      parent = getppid ();
-      if (parent <= 1 || process_alive (parent) == 0)
-        {
-          pluginlaunch_stop ();
-          return;
-        }
 
       if (scan_is_stopped ())
         plugins_scheduler_stop (sched);
@@ -717,8 +701,7 @@ attack_host (struct scan_globals *globals, struct in6_addr *ip, GSList *vhosts,
                 }
             }
 
-          if ((cur_plug * 100) / num_plugs >= last_status
-              && !scan_is_stopped ())
+          if ((cur_plug * 100) / num_plugs >= last_status)
             {
               last_status = (cur_plug * 100) / num_plugs + 2;
               if (comm_send_status (main_kb, ip_str, cur_plug, num_plugs) < 0)
@@ -905,6 +888,8 @@ attack_start (struct attack_start_args *args)
   kb_t main_kb = args->main_kb;
   int ret, ret_host_auth;
 
+  add_handler (SIGUSR1, handle_scan_stop_signal, NULL, 1, OVAS_SIG_ALWAYS);
+  add_handler (SIGUSR2, set_check_new_vhosts_flag, NULL, 1, OVAS_SIG_ALWAYS);
   nvticache_reset ();
   kb_lnk_reset (kb);
   kb_lnk_reset (main_kb);
@@ -1075,12 +1060,6 @@ ad_thread_joined (gboolean joined)
 }
 
 static void
-handle_scan_stop_signal ()
-{
-  global_scan_stop = 1;
-}
-
-static void
 scan_stop_cleanup ()
 {
   kb_t main_kb = NULL;
@@ -1090,6 +1069,7 @@ scan_stop_cleanup ()
   if (already_called == 1)
     return;
 
+  already_called = 1;
   connect_main_kb (&main_kb);
   pid = kb_item_get_str (main_kb, ("internal/ovas_pid"));
   kb_lnk_reset (main_kb);
@@ -1098,7 +1078,6 @@ scan_stop_cleanup ()
    * Else stop all running plugin processes for the current host fork. */
   if (atoi (pid) == getpid ())
     {
-      already_called = 1;
       hosts_stop_all ();
 
       /* Stop (cancel) alive detection if enabled and not already joined. */
@@ -1170,7 +1149,7 @@ attack_network (struct scan_globals *globals)
       return;
     }
 
-  /* Verify the port range is a valid one */
+  /* Verify the port range is valid */
   port_range = prefs_get ("port_range");
   if (validate_port_range (port_range))
     {
@@ -1283,7 +1262,7 @@ attack_network (struct scan_globals *globals)
            !host && !ad_finished && !scan_is_stopped ();
            host = get_host_from_queue (alive_hosts_kb, &ad_finished))
         {
-          fork_sleep (1);
+          sleep (1);
         }
 
       if (gvm_host_get_addr6 (host, &tmpaddr) == 0)
@@ -1302,7 +1281,6 @@ attack_network (struct scan_globals *globals)
    * Start the attack !
    */
   allow_simultaneous_ips = prefs_get_bool ("allow_simultaneous_ips");
-  openvas_signal (SIGUSR1, handle_scan_stop_signal);
   while (host && !scan_is_stopped ())
     {
       int pid, rc;

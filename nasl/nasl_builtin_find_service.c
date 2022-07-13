@@ -2415,32 +2415,6 @@ plugin_do_run (struct script_infos *desc, GSList *h, int test_ssl)
 
 static pid_t sons[MAX_SONS];
 
-static void
-sigterm (int s)
-{
-  int i;
-
-  (void) s;
-  for (i = 0; i < MAX_SONS; i++)
-    {
-      if (sons[i] != 0)
-        kill (sons[i], SIGTERM);
-    }
-  _exit (0);
-}
-
-static void
-sigchld (int s)
-{
-  int i;
-
-  (void) s;
-  for (i = 0; i < MAX_SONS; i++)
-    {
-      waitpid (sons[i], NULL, WNOHANG);
-    }
-}
-
 tree_cell *
 plugin_run_find_service (lex_ctxt *lexic)
 {
@@ -2499,8 +2473,6 @@ plugin_run_find_service (lex_ctxt *lexic)
   if (cafile != NULL)
     plug_set_ssl_CA_file (desc, cafile);
 
-  signal (SIGTERM, sigterm);
-  signal (SIGCHLD, sigchld);
   num_sons_s = get_plugin_preference (oid, NUM_CHILDREN, -1);
   if (num_sons_s != NULL)
     num_sons = atoi (num_sons_s);
@@ -2583,7 +2555,6 @@ plugin_run_find_service (lex_ctxt *lexic)
               kb_lnk_reset (kb);
               mqtt_reset ();
               nvticache_reset ();
-              signal (SIGTERM, _exit);
               plugin_do_run (desc, sons_args[i], test_ssl);
               exit (0);
             }

@@ -33,4 +33,7 @@
 void
 attack_network (struct scan_globals *);
 
+void
+handle_scan_stop_signal (void);
+
 #endif

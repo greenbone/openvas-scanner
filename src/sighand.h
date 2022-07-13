@@ -26,16 +26,15 @@
 #ifndef _OPENVAS_SIGHAND_H
 #define _OPENVAS_SIGHAND_H
 
-void (*openvas_signal (int signum, void (*handler) (int))) (int);
-void
-
-sighand_chld (int sig);
+#define OVAS_SIG_ALWAYS -1
+#define OVAS_SIG_ALL -1
 
 void
-sighand_segv (int sig);
+init_signal_handlers (void);
 
 void
-let_em_die (int pid);
+free_signal_handler (int sig);
+
 void
-make_em_die (int sig);
+add_handler (int sig, void (*handler) (), void *data, int stop, int n);
 #endif

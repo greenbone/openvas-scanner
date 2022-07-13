@@ -51,6 +51,9 @@ int
 store_file (struct scan_globals *globals, const char *file,
             const char *file_hash);
 
+void
+fork_sleep (int n);
+
 int
 check_host_still_alive (kb_t, const char *);
 #endif

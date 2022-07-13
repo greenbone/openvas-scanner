@@ -34,6 +34,7 @@
 #include <string.h>         /* for strcmp() */
 #include <sys/ioctl.h>      /* for ioctl() */
 #include <sys/wait.h>       /* for waitpid() */
+#include <unistd.h>
 
 extern int global_max_hosts;
 extern int global_max_checks;
@@ -137,6 +138,24 @@ store_file (struct scan_globals *globals, const char *file,
 
   g_free (origname);
   return 0;
+}
+
+/**
+ * @brief Sleeps for n seconds, continues after signal handler
+ *
+ * @param n time in seconds
+ */
+void
+fork_sleep (int n)
+{
+  time_t then, now;
+
+  now = then = time (NULL);
+  while (now - then < n)
+    {
+      usleep (10000);
+      now = time (NULL);
+    }
 }
 
 /**
