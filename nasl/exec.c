@@ -1624,7 +1624,7 @@ exec_nasl_script (struct script_infos *script_infos, int mode)
 {
   naslctxt ctx;
   nasl_func *pf;
-  int err = 0, to, process_id;
+  int err = 0, to;
   tree_cell *ret;
   lex_ctxt *lexic;
   gchar *old_dir;
@@ -1698,7 +1698,6 @@ exec_nasl_script (struct script_infos *script_infos, int mode)
 
   lexic->recv_timeout = to;
 
-  process_id = getpid ();
   if (mode & NASL_LINT)
     {
       /* ret is set to the number of errors the linter finds.
@@ -1757,8 +1756,5 @@ exec_nasl_script (struct script_infos *script_infos, int mode)
 
   nasl_clean_ctx (&ctx);
   free_lex_ctxt (lexic);
-  if (process_id != getpid ())
-    exit (0);
-
   return err;
 }

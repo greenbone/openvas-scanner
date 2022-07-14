@@ -349,7 +349,7 @@ main (int argc, char **argv)
     {
       struct in6_addr ip6;
       kb_t kb;
-      int rc, i = 0;
+      int rc;
 
       if (prefs_get_bool ("expand_vhosts"))
         gvm_host_add_reverse_lookup (host);
@@ -361,7 +361,7 @@ main (int argc, char **argv)
         exit (1);
 
       script_infos = init (&ip6, host->vhosts, kb);
-      while (nasl_filenames[i])
+      for (int i = 0; nasl_filenames[i] != NULL; i++)
         {
           script_infos->name = nasl_filenames[i];
           if (both_modes || with_safe_checks)
@@ -370,7 +370,6 @@ main (int argc, char **argv)
               if (!nvti)
                 {
                   err++;
-                  i++;
                   continue;
                 }
               else if (with_safe_checks
@@ -379,7 +378,6 @@ main (int argc, char **argv)
                   printf ("%s isn't safe\n", nasl_filenames[i]);
                   nvti_free (nvti);
                   err++;
-                  i++;
                   continue;
                 }
               nvti_free (nvti);
@@ -404,7 +402,6 @@ main (int argc, char **argv)
 
           if (exec_nasl_script (script_infos, mode) < 0)
             err++;
-          i++;
         }
       g_free (script_infos->globals);
       g_free (script_infos);
