@@ -2,15 +2,15 @@ name: "SmokeTest"
 
 on:
   push:
-    branches: [ main ]
+    branches: [ stable ]
   pull_request:
-    branches: [ main ]
+    branches: [ stable ]
 
 jobs:
   nasl-lint:
     name: Smoketest openvas-nasl-lint
     runs-on: ubuntu-latest
-    container: ${{ github.repository }}-build:unstable
+    container: ${{ github.repository }}-build:stable
     steps:
       - name: Check out openvas-scanner
         uses: actions/checkout@v3
