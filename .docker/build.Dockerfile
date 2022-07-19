@@ -1,4 +1,4 @@
-ARG VERSION=stable
+ARG VERSION=oldstable
 
 FROM greenbone/gvm-libs:$VERSION
 
