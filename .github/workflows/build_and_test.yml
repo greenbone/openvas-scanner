@@ -21,7 +21,7 @@ jobs:
   compile:
     name: scan-build (clang static analyzer)
     runs-on: ubuntu-latest
-    container: ${{ github.repository }}-build:stable
+    container: ${{ github.repository }}-build:oldstable
     steps:
       - name: Check out openvas-scanner
         uses: actions/checkout@v2
@@ -40,7 +40,7 @@ jobs:
   unit-tests:
     name: Unit Tests
     runs-on: ubuntu-latest
-    container: ${{ github.repository }}-build:stable
+    container: ${{ github.repository }}-build:oldstable
     steps:
       - name: Check out openvas-scanner
         uses: actions/checkout@v2

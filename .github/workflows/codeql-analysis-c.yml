@@ -16,7 +16,7 @@ jobs:
       actions: read
       contents: read
       security-events: write
-    container: ${{ github.repository }}-build:stable
+    container: ${{ github.repository }}-build:oldstable
 
     strategy:
       fail-fast: false
