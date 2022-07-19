@@ -2,15 +2,15 @@ name: "NASL"
 
 on:
   push:
-    branches: [ main ]
+    branches: [ stable ]
   pull_request:
-    branches: [ main ]
+    branches: [ stable ]
 
 jobs:
   nasl-test:
     name: Test
     runs-on: ubuntu-latest
-    container: ${{ github.repository }}-build:unstable
+    container: ${{ github.repository }}-build:stable
     steps:
       - uses: actions/checkout@v3
       - name: build

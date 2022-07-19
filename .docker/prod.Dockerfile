@@ -1,4 +1,4 @@
-ARG VERSION=unstable
+ARG VERSION=stable
 # this allows to work on forked repository
 ARG REPOSITORY=greenbone/openvas-scanner
 
