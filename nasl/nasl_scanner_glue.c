@@ -136,32 +136,6 @@ script_cve_id (lex_ctxt *lexic)
   return FAKE_CELL;
 }
 
-tree_cell *
-script_bugtraq_id (lex_ctxt *lexic)
-{
-  struct script_infos *script_infos = lexic->script_infos;
-  char *bid = get_str_var_by_num (lexic, 0);
-  int i;
-
-  for (i = 0; bid != NULL; i++)
-    {
-      nvti_add_vtref (script_infos->nvti, vtref_new ("bid", bid, ""));
-      bid = get_str_var_by_num (lexic, i + 1);
-    }
-
-  return FAKE_CELL;
-}
-
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Wmissing-prototypes"
-// The unspecific () is on purpose, therefore ignoring missing_prototype
-tree_cell *
-script_bugtraq_id_dummy ()
-{
-  return FAKE_CELL;
-}
-#pragma GCC diagnostic pop
-
 /**
  * @brief Add a cross reference to the meta data.
  *
@@ -171,17 +145,11 @@ script_bugtraq_id_dummy ()
  * Alternative to "value", "csv" can be used with a
  * list of comma-separated values.
  *
- * In fact, if name is "cve" or "bid", it is equivalent
- * to call script_cve_id() or script_bugtraq_id(), for example
+ * In fact, if name is "cve", it is equivalent
+ * to call script_cve_id(), for example
  * script_cve_id ("CVE-2019-12345");
  * is identical to
  * script_xref (name: "cve", value: "CVE-2019-12345");
- *
- * And also:
- * script_bugtraq_id (12345);
- * is identical to
- * script_xref (name: "bid", value: "12345");
- * (watch out that the number now needs to be a string).
  *
  * This even works with multiple comma-separated elements like
  * script_xref (name: "cve", csv: "CVE-2019-12345,CVE-2019-54321");
