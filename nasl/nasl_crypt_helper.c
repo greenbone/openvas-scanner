@@ -129,7 +129,7 @@ cexit:
 
 static gcry_error_t
 smb_sign (const int algo, const char *key, const size_t key_len, char *buf,
-          const size_t buf_len, char **out)
+          const size_t buf_len, const char *iv, const size_t iv_len, char **out)
 {
   gcry_error_t error = GPG_ERR_NO_ERROR;
   char *signature = NULL;
@@ -144,6 +144,10 @@ smb_sign (const int algo, const char *key, const size_t key_len, char *buf,
   switch (algo)
     {
     case GCRY_MAC_GMAC_AES:
+      if ((error = mac (key, key_len, buf, buf_len, iv, iv_len, algo,
+                        GCRY_MAC_FLAG_SECURE, &signature, &signature_len)))
+        goto exit;
+      break;
     case GCRY_MAC_CMAC_AES:
       if ((error = mac (key, key_len, buf, buf_len, NULL, 0, algo,
                         GCRY_MAC_FLAG_SECURE, &signature, &signature_len)))
@@ -169,17 +173,19 @@ exit:
 tree_cell *
 nasl_smb_sign (const int algo, lex_ctxt *lexic)
 {
-  char *key, *buf, *res;
-  int keylen, buflen;
+  char *key, *buf, *iv, *res;
+  int keylen, buflen, ivlen;
   gcry_error_t error;
   tree_cell *retc = NULL;
 
   key = get_str_var_by_name (lexic, "key");
   buf = get_str_var_by_name (lexic, "buf");
+  iv = get_str_var_by_name (lexic, "iv");
   keylen = get_var_size_by_name (lexic, "key");
   buflen = get_var_size_by_name (lexic, "buf");
+  ivlen = get_var_size_by_name (lexic, "iv");
 
-  switch ((error = smb_sign (algo, key, keylen, buf, buflen, &res)))
+  switch ((error = smb_sign (algo, key, keylen, buf, buflen, iv, ivlen, &res)))
     {
     case GPG_ERR_NO_ERROR:
       retc = alloc_typed_cell (CONST_DATA);

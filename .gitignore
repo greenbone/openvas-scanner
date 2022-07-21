@@ -3,3 +3,4 @@ nasl/nasl_grammar.output
 nasl/nasl_grammar.tab.c
 nasl/nasl_grammar.tab.h
 .cache/
+testsuiterun.nasl
