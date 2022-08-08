@@ -37,7 +37,7 @@ that you use the Greenbone Enerprise TRIAL, a prepared virtual
 machine with a readily available setup. Information regarding the virtual machine
 is available at <https://www.greenbone.net/en/testnow>.
 
-## Docker, [Greenbone Community Containers](https://greenbone.github.io/docs/latest/21.04/container/)
+## Docker, [Greenbone Community Containers](https://greenbone.github.io/docs/latest/22.4/container/)
 
 If you want to use the docker files provided in this repository you can pull them 
 from [here](https://hub.docker.com/r/greenbone/openvas-scanner). You can also locally 
@@ -48,7 +48,7 @@ docker build -t <image-name> -f .docker/prod.Dockerfile .
 For more information about building docker images, see 
 [official man](https://docs.docker.com/engine/reference/commandline/build/).
 We also provide a [fully containerized 
-solution](https://greenbone.github.io/docs/latest/21.04/container/) 
+solution](https://greenbone.github.io/docs/latest/22.4/container/)
 for the Greenbone Community Edition.
 
 > Please beware: The Greenbone Community Container are currently under development.
