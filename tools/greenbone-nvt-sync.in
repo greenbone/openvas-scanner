@@ -95,6 +95,10 @@ LOG_CMD="logger -t $SCRIPT_NAME"
 [ -z "$NASL_DATA_PATH" ] && NASL_DATA_PATH="$DATA_BASE_PATH/vt-data/nasl/"
 [ -z "$NOTUS_DATA_PATH" ] && NOTUS_DATA_PATH="$DATA_BASE_PATH/vt-data/notus/"
 
+[ -z "$GSF_DATA_BASE_PATH" ] && GSF_DATA_BASE_PATH="/vulnerability-feed/$VERSION_SHORT"
+[ -z "$GSF_NASL_DATA_PATH" ] && GSF_NASL_DATA_PATH="$GSF_DATA_BASE_PATH/vt-data/nasl/"
+[ -z "$GSF_NOTUS_DATA_PATH" ] && GSF_NOTUS_DATA_PATH="$GSF_DATA_BASE_PATH/vt-data/notus/"
+
 [ -z "$RSYNC_DOMAIN" ] && RSYNC_DOMAIN=feed.community.greenbone.net
 
 check_logger () {
@@ -438,12 +442,18 @@ sync_nvts(){
           RSYNC_SSH_PROXY_CMD="-o \"ProxyCommand corkscrew $gsmproxy %h %p\""
         fi
       fi
-      rsync -e "ssh $RSYNC_SSH_OPTS $RSYNC_SSH_PROXY_CMD -p $PORT -i $TEMP_ACCESS_KEY" --exclude=plugin_feed_info.inc $RSYNC_OPTIONS $RSYNC_DELETE $RSYNC_COMPRESS $RSYNC_CHMOD $feeduser $NVT_DIR
+      rsync -e "ssh $RSYNC_SSH_OPTS $RSYNC_SSH_PROXY_CMD -p $PORT -i $TEMP_ACCESS_KEY" --exclude=plugin_feed_info.inc $RSYNC_OPTIONS $RSYNC_DELETE $RSYNC_COMPRESS $RSYNC_CHMOD $feeduser$GSF_NASL_DATA_PATH $NVT_DIR
       if [ $? -ne 0 ]  ; then
         log_err "rsync failed, aborting synchronization."
         exit 1
       fi
-      rsync -e "ssh $RSYNC_SSH_OPTS $RSYNC_SSH_PROXY_CMD -p $PORT -i $TEMP_ACCESS_KEY" $RSYNC_OPTIONS $RSYNC_DELETE $RSYNC_COMPRESS $RSYNC_CHMOD "$feeduser"plugin_feed_info.inc $NVT_DIR
+      rsync -e "ssh $RSYNC_SSH_OPTS $RSYNC_SSH_PROXY_CMD -p $PORT -i $TEMP_ACCESS_KEY" $RSYNC_OPTIONS $RSYNC_DELETE $RSYNC_COMPRESS $RSYNC_CHMOD $feeduser$GSF_NOTUS_DATA_PATH $NOTUS_DIR
+      if [ $? -ne 0 ] ; then
+          log_err "rsync for notus failed."
+          exit 1
+      fi
+
+      rsync -e "ssh $RSYNC_SSH_OPTS $RSYNC_SSH_PROXY_CMD -p $PORT -i $TEMP_ACCESS_KEY" $RSYNC_OPTIONS $RSYNC_DELETE $RSYNC_COMPRESS $RSYNC_CHMOD "$feeduser"/"$GSF_NASL_DATA_PATH"plugin_feed_info.inc $NVT_DIR
       if [ $? -ne 0 ]  ; then
         log_err "rsync failed, aborting synchronization."
         exit 1
