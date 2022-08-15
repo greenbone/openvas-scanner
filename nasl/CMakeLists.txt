@@ -21,9 +21,9 @@
 ## Project version
 # The following three variables should be set through the project command once
 # we require CMake >= 3.0
-set (NASL_VERSION_MAJOR 21)
-set (NASL_VERSION_MINOR 10)
-set (NASL_VERSION_PATCH 0)
+set (NASL_VERSION_MAJOR 22)
+set (NASL_VERSION_MINOR 4)
+set (NASL_VERSION_PATCH 1)
 
 if (PROJECT_BETA_RELEASE)
   set (NASL_VERSION_SUFFIX "+beta${PROJECT_BETA_RELEASE}")
