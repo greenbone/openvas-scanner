@@ -510,7 +510,7 @@ openvas (int argc, char *argv[], char *env[])
   if (!g_option_context_parse (option_context, &argc, &argv, &error))
     {
       g_print ("%s\n\n", error->message);
-      exit (0);
+      return EXIT_SUCCESS;
     }
   g_option_context_free (option_context);
 
@@ -518,7 +518,7 @@ openvas (int argc, char *argv[], char *env[])
   if (print_sysconfdir)
     {
       g_print ("%s\n", SYSCONFDIR);
-      exit (0);
+      return EXIT_SUCCESS;
     }
 
   /* --version */
@@ -536,19 +536,19 @@ openvas (int argc, char *argv[], char *env[])
       printf (
         "This is free software: you are free to change and redistribute it.\n"
         "There is NO WARRANTY, to the extent permitted by law.\n\n");
-      exit (0);
+      return EXIT_SUCCESS;
     }
 
   /* Switch to UTC so that OTP times are always in UTC. */
   if (setenv ("TZ", "utc 0", 1) == -1)
     {
       g_print ("%s\n\n", strerror (errno));
-      exit (0);
+      return EXIT_SUCCESS;
     }
   tzset ();
 
   if ((err = init_logging ()) != 0)
-    return -1;
+    return EXIT_FAILURE;
 
   err = init_sentry ();
   if (!err)
@@ -568,7 +568,7 @@ openvas (int argc, char *argv[], char *env[])
       err = plugins_init ();
       nvticache_reset ();
       gvm_close_sentry ();
-      return err ? -1 : 0;
+      return err ? EXIT_FAILURE : EXIT_SUCCESS;
     }
 
   /* openvas --scan-stop */
@@ -582,14 +582,14 @@ openvas (int argc, char *argv[], char *env[])
                      "stop the scan");
           nvticache_reset ();
           gvm_close_sentry ();
-          exit (1);
+          return EXIT_FAILURE;
         }
       nvticache_reset ();
 
       global_scan_id = g_strdup (stop_scan_id);
       stop_single_task_scan ();
       gvm_close_sentry ();
-      exit (0);
+      return EXIT_SUCCESS;
     }
 
   /* openvas --scan-start */
@@ -604,7 +604,7 @@ openvas (int argc, char *argv[], char *env[])
       attack_network (globals);
 
       gvm_close_sentry ();
-      exit (0);
+      return EXIT_SUCCESS;
     }
 
   if (print_specs)
@@ -613,8 +613,7 @@ openvas (int argc, char *argv[], char *env[])
       prefs_config (config_file);
       prefs_dump ();
       gvm_close_sentry ();
-      exit (0);
     }
 
-  exit (0);
+  return EXIT_SUCCESS;
 }
