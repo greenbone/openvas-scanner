@@ -351,8 +351,10 @@ openvas_print_start_msg ()
  * sends it the kill signal SIGUSR1, which will stop the scan.
  * To find the process ID, it uses the scan_id passed with the
  * --scan-stop option.
+ *
+ * @return 0 on success, 1 otherwise.
  */
-static void
+static int
 stop_single_task_scan (void)
 {
   char key[1024];
@@ -360,28 +362,26 @@ stop_single_task_scan (void)
   int pid;
 
   if (!global_scan_id)
-    {
-      exit (1);
-    }
+    return 1;
 
   snprintf (key, sizeof (key), "internal/%s", global_scan_id);
   kb = kb_find (prefs_get ("db_address"), key);
   if (!kb)
-    {
-      exit (1);
-    }
+    return 1;
 
   pid = kb_item_get_int (kb, "internal/ovas_pid");
 
   /* Only send the signal if the pid is a positive value.
      Since kb_item_get_int() will return -1 if the key does
-     not exist. killing with -1 pid will send the signal system wide.
+     not exist.
+     Warning: killing with -1 pid will send the signal system wide.
    */
   if (pid <= 0)
-    return;
+    return 1;
 
   /* Send the signal to the process group. */
   killpg (pid, SIGUSR1);
+  return 0;
 }
 
 /**
@@ -591,9 +591,9 @@ openvas (int argc, char *argv[], char *env[])
       nvticache_reset ();
 
       global_scan_id = g_strdup (stop_scan_id);
-      stop_single_task_scan ();
+      err = stop_single_task_scan ();
       gvm_close_sentry ();
-      return EXIT_SUCCESS;
+      return err ? EXIT_FAILURE : EXIT_SUCCESS;
     }
 
   /* openvas --scan-start */
