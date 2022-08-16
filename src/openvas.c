@@ -408,8 +408,10 @@ send_message_to_client_and_finish_scan (const char *msg)
  *
  * @param globals scan_globals needed for client preference handling.
  * @param config_file Used for config preference handling.
+ *
+ * @return 0 on success, 1 otherwise.
  */
-static void
+static int
 attack_network_init (struct scan_globals *globals, const gchar *config_file)
 {
   const char *mqtt_server_uri;
@@ -428,7 +430,7 @@ attack_network_init (struct scan_globals *globals, const gchar *config_file)
       send_message_to_client_and_finish_scan (
         "ERRMSG||| ||| ||| ||| |||NVTI cache initialization failed");
       nvticache_reset ();
-      exit (1);
+      return 1;
     }
   nvticache_reset ();
 
@@ -458,8 +460,10 @@ attack_network_init (struct scan_globals *globals, const gchar *config_file)
   if (overwrite_openvas_prefs_with_prefs_from_client (globals))
     {
       g_warning ("No preferences found for the scan %s", globals->scan_id);
-      exit (0);
+      return 1;
     }
+
+  return 0;
 }
 
 /**
@@ -600,7 +604,9 @@ openvas (int argc, char *argv[], char *env[])
       globals = g_malloc0 (sizeof (struct scan_globals));
       globals->scan_id = g_strdup (global_scan_id);
 
-      attack_network_init (globals, config_file);
+      if ((err = attack_network_init (globals, config_file)) != 0)
+        return EXIT_FAILURE;
+
       attack_network (globals);
 
       gvm_close_sentry ();
