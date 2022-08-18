@@ -26,6 +26,7 @@
 #include "plugutils.h"
 
 #include "network.h" // for OPENVAS_ENCAPS_IP
+#include "scan_id.h"
 #include "support.h" // for g_memdup2 workaround
 
 #include <errno.h>               // for errno
@@ -382,25 +383,29 @@ msg_type_to_str (msg_t type)
 /**
  * @brief Check if the current main kb corresponds to the
  *        original scan main kb.
- * @description Compares the scan id in globals, set at the beginning
+ * @description Compares the scan id in get_scan_id, set at the beginning
  *              of the scan, with the one found in the main kb.
  *              It helps to detect that the kb was not taken by another
  *              task/scan, and that the current plugins does not stores
  *              results in a wrong kb.
  *
- * @param globals The script infos where to get settings.
  * @param main_kb Current main kb.
  *
- * @return 0 on success, -1 on inconsistency.
+ * @return 0 on success, -1 on missing global scan_id, -2 on missing
+ * current_scan_id, -3 when inconsistent.
  */
 int
-check_kb_inconsistency (struct scan_globals *globals, kb_t main_kb)
+check_kb_inconsistency (kb_t main_kb)
 {
   const char *original_scan_id;
   char *current_scan_id;
 
-  original_scan_id = globals->scan_id;
+  original_scan_id = get_scan_id ();
+  if (original_scan_id == NULL)
+    return -1;
   current_scan_id = kb_item_get_str (main_kb, ("internal/scanid"));
+  if (current_scan_id == NULL)
+    return -2;
 
   if (!g_strcmp0 (original_scan_id, current_scan_id))
     {
@@ -411,7 +416,186 @@ check_kb_inconsistency (struct scan_globals *globals, kb_t main_kb)
   g_warning ("KB inconsitency. %s writing into %s KB", original_scan_id,
              current_scan_id);
   g_free (current_scan_id);
-  return -1;
+  return -3;
+}
+
+/**
+ * @brief calls check_kb_inconsistency and logs as debug when local scan_id is
+ missing.
+
+ * @description Compares the scan id in get_scan_id, set at the beginning
+ *              of the scan, with the one found in the main kb.
+ *              It helps to detect that the kb was not taken by another
+ *              task/scan, and that the current plugins does not stores
+ *              results in a wrong kb.
+ *
+ * @param main_kb Current main kb.
+ * @param name key name to be used in the kb
+ *
+ * @return 0 on success, -1 on inconsistency.
+ */
+static int
+check_kb_inconsistency_log (kb_t kb, const char *name)
+{
+  char *current_scan_id;
+  int result = check_kb_inconsistency (kb);
+  switch (result)
+    {
+    case -3:
+      current_scan_id = kb_item_get_str (kb, ("internal/scanid"));
+      g_warning (
+        "%s: scan_id (%s) does not match global scan_id (%s); will not "
+        "store %s in kb.",
+        __func__, current_scan_id, get_scan_id (), name);
+      g_free (current_scan_id);
+      return -1;
+    case -1:
+      // a call without global scan id can happen in e.g. nasl-lint or
+      // openvas-nasl calls
+      break;
+    case -2:
+      g_debug ("%s: No internal/scanid; this indicates wrongful usage",
+               __func__);
+      break;
+    default:
+      {
+        // nothing
+      }
+    }
+  return 0;
+}
+
+/**
+ * @brief Check if the current kb corresponds to the
+ *        original scanid, if it matches it kb_item_push_str.
+ * @description Compares the scan id in get_scan_id, set at the beginning
+ *              of the scan, with the one found in the main kb.
+ *              It helps to detect that the kb was not taken by another
+ *              task/scan, and that the current plugins does not stores
+ *              results in a wrong kb.
+ *
+ * @param kb Current main kb.
+ * @param name key for the given value.
+ * @param value to store under key within kb.
+ *
+ * @return 0 on success, -1 on inconsistency.
+ */
+int
+kb_check_push_str (kb_t kb, const char *name, const char *value)
+{
+  int result = check_kb_inconsistency_log (kb, name);
+  return result == 0 ? kb_item_push_str (kb, name, value) : -1;
+}
+
+/**
+ * @brief Check if the current kb corresponds to the
+ *        original scanid, if it matches it call kb_item_set_str.
+ * @description Compares the scan id in get_scan_id, set at the beginning
+ *              of the scan, with the one found in the main kb.
+ *              It helps to detect that the kb was not taken by another
+ *              task/scan, and that the current plugins does not stores
+ *              results in a wrong kb.
+ *
+ * @param kb Current main kb.
+ * @param name key for the given value.
+ * @param value to store under key within kb.
+ *
+ * @return 0 on success, -1 on inconsistency.
+ */
+int
+kb_check_set_str (kb_t kb, const char *name, const char *value, size_t len)
+{
+  int result = check_kb_inconsistency_log (kb, name);
+  return result == 0 ? kb_item_set_str (kb, name, value, len) : -1;
+}
+
+/**
+ * @brief Check if the current kb corresponds to the
+ *        original scanid, if it matches it call kb_item_add_str_unique.
+ * @description Compares the scan id in get_scan_id, set at the beginning
+ *              of the scan, with the one found in the main kb.
+ *              It helps to detect that the kb was not taken by another
+ *              task/scan, and that the current plugins does not stores
+ *              results in a wrong kb.
+ *
+ * @param kb Current main kb.
+ * @param name key for the given value.
+ * @param value to store under key within kb.
+ *
+ * @return 0 on success, -1 on inconsistency.
+ */
+int
+kb_check_add_str_unique (kb_t kb, const char *name, const char *value,
+                         size_t len, int pos)
+{
+  int result = check_kb_inconsistency_log (kb, name);
+  return result == 0 ? kb_item_add_str_unique (kb, name, value, len, pos) : -1;
+}
+
+/**
+ * @brief Check if the current kb corresponds to the
+ *        original scanid, if it matches it call kb_item_set_int.
+ * @description Compares the scan id in get_scan_id, set at the beginning
+ *              of the scan, with the one found in the main kb.
+ *              It helps to detect that the kb was not taken by another
+ *              task/scan, and that the current plugins does not stores
+ *              results in a wrong kb.
+ *
+ * @param kb Current main kb.
+ * @param name key for the given value.
+ * @param value to store under key within kb.
+ *
+ * @return 0 on success, -1 on inconsistency.
+ */
+int
+kb_check_set_int (kb_t kb, const char *name, int value)
+{
+  int result = check_kb_inconsistency_log (kb, name);
+  return result == 0 ? kb_item_set_int (kb, name, value) : -1;
+}
+
+/**
+ * @brief Check if the current kb corresponds to the
+ *        original scanid, if it matches it call kb_item_add_int.
+ * @description Compares the scan id in get_scan_id, add at the beginning
+ *              of the scan, with the one found in the main kb.
+ *              It helps to detect that the kb was not taken by another
+ *              task/scan, and that the current plugins does not stores
+ *              results in a wrong kb.
+ *
+ * @param kb Current main kb.
+ * @param name key for the given value.
+ * @param value to store under key within kb.
+ *
+ * @return 0 on success, -1 on inconsistency.
+ */
+int
+kb_check_add_int (kb_t kb, const char *name, int value)
+{
+  int result = check_kb_inconsistency_log (kb, name);
+  return result == 0 ? kb_item_add_int (kb, name, value) : -1;
+}
+
+/**
+ * @brief Check if the current kb corresponds to the
+ *        original scanid, if it matches it call kb_item_add_int_unique.
+ * @description Compares the scan id in get_scan_id, add at the beginning
+ *              of the scan, with the one found in the main kb.
+ *              It helps to detect that the kb was not taken by another
+ *              task/scan, and that the current plugins does not stores
+ *              results in a wrong kb.
+ *
+ * @param kb Current main kb.
+ * @param name key for the given value.
+ * @param value to store under key within kb.
+ *
+ * @return 0 on success, -1 on inconsistency.
+ */
+int
+kb_check_add_int_unique (kb_t kb, const char *name, int value)
+{
+  int result = check_kb_inconsistency_log (kb, name);
+  return result == 0 ? kb_item_add_int_unique (kb, name, value) : -1;
 }
 
 /**
@@ -473,8 +657,7 @@ proto_post_wrapped (const char *oid, struct script_infos *desc, int port,
     }
 
   kb = plug_get_results_kb (desc);
-  if (check_kb_inconsistency (desc->globals, kb) == 0)
-    kb_item_push_str (kb, "internal/results", data);
+  kb_check_push_str (kb, "internal/results", data);
   g_free (data);
   g_free (buffer);
   g_string_free (action_str, TRUE);
@@ -837,7 +1020,7 @@ plug_replace_key_len (struct script_infos *args, char *name, int type,
     return;
 
   if (type == ARG_STRING)
-    kb_item_set_str (kb, name, value, len);
+    kb_check_set_str (kb, name, value, len);
   else if (type == ARG_INT)
     kb_item_set_int (kb, name, GPOINTER_TO_SIZE (value));
   if (global_nasl_debug == 1)

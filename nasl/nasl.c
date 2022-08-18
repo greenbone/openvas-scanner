@@ -26,6 +26,7 @@
 
 #include "../misc/network.h"
 #include "../misc/nvt_categories.h"
+#include "../misc/plugutils.h"
 #include "../misc/vendorversion.h"
 #include "exec.h"
 #include "nasl_lex_ctxt.h"
@@ -386,7 +387,7 @@ main (int argc, char **argv)
                                *kb_values_aux);
                       exit (1);
                     }
-                  kb_item_add_str_unique (kb, splits[0], splits[1], 0, pos);
+                  kb_check_add_str_unique (kb, splits[0], splits[1], 0, pos);
                   kb_values_aux++;
                   g_strfreev (splits);
                 }

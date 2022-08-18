@@ -25,6 +25,7 @@
 
 #include "utils.h"
 
+#include "../misc/plugutils.h"  /* for kb_check_set_int */
 #include "../misc/scanneraux.h" /* for struct scan_globals */
 
 #include <errno.h>          /* for errno() */
@@ -273,7 +274,7 @@ check_host_still_alive (kb_t kb, const char *hostname)
       g_message ("%s: Heartbeat check was not successful. The host %s has"
                  " been set as dead.",
                  __func__, hostname);
-      kb_item_set_int (kb, "Host/dead", 1);
+      kb_check_set_int (kb, "Host/dead", 1);
       return 0;
     }
 

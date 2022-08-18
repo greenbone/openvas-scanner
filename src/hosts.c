@@ -74,15 +74,12 @@ extern int global_scan_stop;
  *
  */
 void
-host_set_time (struct scan_globals *globals, kb_t kb, char *ip, char *type)
+host_set_time (kb_t kb, char *ip, char *type)
 {
   char *timestr;
   char log_msg[1024];
   time_t t;
   int len;
-
-  if (check_kb_inconsistency (globals, kb) != 0)
-    return;
 
   t = time (NULL);
   char ts[26];
@@ -97,7 +94,7 @@ host_set_time (struct scan_globals *globals, kb_t kb, char *ip, char *type)
             timestr);
   g_free (timestr);
 
-  kb_item_push_str (kb, "internal/results", log_msg);
+  kb_check_push_str (kb, "internal/results", log_msg);
 }
 
 static void

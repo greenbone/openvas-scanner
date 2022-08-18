@@ -124,7 +124,7 @@ set_kb_readable (int host_kb_index)
   kb_t main_kb = NULL;
 
   connect_main_kb (&main_kb);
-  kb_item_add_int_unique (main_kb, "internal/dbindex", host_kb_index);
+  kb_check_add_int_unique (main_kb, "internal/dbindex", host_kb_index);
   kb_lnk_reset (main_kb);
 }
 
@@ -135,7 +135,7 @@ set_kb_readable (int host_kb_index)
  * @param[in] status Status to set.
  */
 static void
-set_scan_status (struct scan_globals *globals, char *status)
+set_scan_status (char *status)
 {
   kb_t main_kb = NULL;
   char buffer[96];
@@ -143,14 +143,14 @@ set_scan_status (struct scan_globals *globals, char *status)
 
   connect_main_kb (&main_kb);
 
-  if (check_kb_inconsistency (globals, main_kb) != 0)
+  if (check_kb_inconsistency (main_kb) != 0)
     {
       kb_lnk_reset (main_kb);
       return;
     }
   scan_id = kb_item_get_str (main_kb, ("internal/scanid"));
   snprintf (buffer, sizeof (buffer), "internal/%s", scan_id);
-  kb_item_set_str (main_kb, buffer, status, 0);
+  kb_check_set_str (main_kb, buffer, status, 0);
   kb_lnk_reset (main_kb);
   g_free (scan_id);
 }
@@ -182,7 +182,7 @@ comm_send_status_host_dead (kb_t main_kb, char *ip_str)
   if (strlen (ip_str) > 1998)
     return -1;
   status = g_strjoin ("/", ip_str, host_dead_status_code, NULL);
-  kb_item_push_str (main_kb, topic, status);
+  kb_check_push_str (main_kb, topic, status);
   g_free (status);
 
   return 0;
@@ -216,24 +216,22 @@ comm_send_status (kb_t main_kb, char *ip_str, int curr, int max)
     return -1;
 
   snprintf (status_buf, sizeof (status_buf), "%s/%d/%d", ip_str, curr, max);
-  kb_item_push_str (main_kb, "internal/status", status_buf);
+  kb_check_push_str (main_kb, "internal/status", status_buf);
   kb_lnk_reset (main_kb);
 
   return 0;
 }
 
 static void
-message_to_client (struct scan_globals *globals, kb_t kb, const char *msg,
-                   const char *ip_str, const char *port, const char *type)
+message_to_client (kb_t kb, const char *msg, const char *ip_str,
+                   const char *port, const char *type)
 {
   char *buf;
 
-  if (check_kb_inconsistency (globals, kb) != 0)
-    return;
   buf = g_strdup_printf ("%s|||%s|||%s|||%s||| |||%s", type,
                          ip_str ? ip_str : "", ip_str ? ip_str : "",
                          port ? port : " ", msg ? msg : "No error.");
-  kb_item_push_str (kb, "internal/results", buf);
+  kb_check_push_str (kb, "internal/results", buf);
   g_free (buf);
 }
 
@@ -639,14 +637,14 @@ attack_host (struct scan_globals *globals, struct in6_addr *ip, GSList *vhosts,
   int num_plugs, forks_retry = 0, all_plugs_launched = 0;
   char ip_str[INET6_ADDRSTRLEN];
   struct scheduler_plugin *plugin;
-  pid_t parent, me;
+  pid_t parent;
 
   addr6_to_str (ip, ip_str);
   openvas_signal (SIGUSR2, set_check_new_vhosts_flag);
   host_kb = kb;
   host_vhosts = vhosts;
-  kb_item_set_int (kb, "internal/hostpid", getpid ());
-  host_set_time (globals, main_kb, ip_str, "HOST_START");
+  kb_check_set_int (kb, "internal/hostpid", getpid ());
+  host_set_time (main_kb, ip_str, "HOST_START");
   kb_lnk_reset (main_kb);
   setproctitle ("openvas: testing %s", ip_str);
   kb_lnk_reset (kb);
@@ -664,16 +662,15 @@ attack_host (struct scan_globals *globals, struct in6_addr *ip, GSList *vhosts,
           return;
         }
 
-      if (check_kb_inconsistency (globals, main_kb) != 0)
+      if (check_kb_inconsistency (main_kb) != 0)
         {
           // As long as we don't have a proper communication channel
           // to our ancestors we just kill our parent and ourselves
           // (but let our grandparents live).
           // To prevent duplicate results we don't let ACT_END run.
-          me = getpid ();
           kill (parent, SIGTERM);
           // just in case
-          raise(SIGTERM);
+          raise (SIGTERM);
           return;
         }
 
@@ -703,7 +700,7 @@ attack_host (struct scan_globals *globals, struct in6_addr *ip, GSList *vhosts,
                     "<name>Host dead</name><value>1</value><source>"
                     "<description/><type/><name/></source></detail></host>",
                     ip_str);
-                  kb_item_push_str (main_kb, "internal/results", buffer);
+                  kb_check_push_str (main_kb, "internal/results", buffer);
 
                   comm_send_status_host_dead (main_kb, ip_str);
                   goto host_died;
@@ -754,7 +751,7 @@ attack_host (struct scan_globals *globals, struct in6_addr *ip, GSList *vhosts,
       else if (plugin != NULL && plugin == PLUG_RUNNING)
         /* 50 milliseconds. */
         usleep (50000);
-      pluginlaunch_wait_for_free_process (globals, main_kb, kb);
+      pluginlaunch_wait_for_free_process (main_kb, kb);
     }
 
   if (!scan_is_stopped () && prefs_get_bool ("table_driven_lsc")
@@ -768,12 +765,12 @@ attack_host (struct scan_globals *globals, struct in6_addr *ip, GSList *vhosts,
             buffer, sizeof (buffer),
             "ERRMSG|||%s||| ||| ||| ||| Unable to launch table driven lsc",
             ip_str);
-          kb_item_push_str (main_kb, "internal/results", buffer);
+          kb_check_push_str (main_kb, "internal/results", buffer);
           g_warning ("%s: Unable to launch table driven LSC", __func__);
         }
     }
 
-  pluginlaunch_wait (globals, main_kb, kb);
+  pluginlaunch_wait (main_kb, kb);
   if (!scan_is_stopped ())
     {
       int ret;
@@ -789,7 +786,7 @@ host_died:
                globals->scan_id, ip_str);
   pluginlaunch_stop ();
   plugins_scheduler_free (sched);
-  host_set_time (globals, main_kb, ip_str, "HOST_END");
+  host_set_time (main_kb, ip_str, "HOST_END");
 }
 
 /*
@@ -850,7 +847,7 @@ vhosts_to_str (GSList *list)
  * @brief Check if any deprecated prefs are in pref table and print warning.
  */
 static void
-check_deprecated_prefs (struct scan_globals *globals)
+check_deprecated_prefs (void)
 {
   const gchar *source_iface = prefs_get ("source_iface");
   const gchar *ifaces_allow = prefs_get ("ifaces_allow");
@@ -875,7 +872,7 @@ check_deprecated_prefs (struct scan_globals *globals)
       g_warning ("%s: %s", __func__, msg);
 
       connect_main_kb (&main_kb);
-      message_to_client (globals, main_kb, msg, NULL, NULL, "ERRMSG");
+      message_to_client (main_kb, msg, NULL, NULL, "ERRMSG");
       kb_lnk_reset (main_kb);
       g_free (msg);
     }
@@ -933,7 +930,7 @@ attack_start (struct attack_start_args *args)
   kb_lnk_reset (main_kb);
   gettimeofday (&then, NULL);
 
-  kb_item_set_str (kb, "internal/scan_id", globals->scan_id, 0);
+  kb_check_set_str (kb, "internal/scan_id", globals->scan_id, 0);
   set_kb_readable (kb_get_kb_index (kb));
 
   /* The reverse lookup is delayed to this step in order to not slow down the
@@ -949,14 +946,12 @@ attack_start (struct attack_start_args *args)
   if (ret_host_auth < 0)
     {
       if (ret_host_auth == -1)
-        message_to_client (globals, kb, "Host access denied.", ip_str, NULL,
-                           "ERRMSG");
+        message_to_client (kb, "Host access denied.", ip_str, NULL, "ERRMSG");
       else
-        message_to_client (globals, kb,
-                           "Host access denied (system-wide restriction.)",
+        message_to_client (kb, "Host access denied (system-wide restriction.)",
                            ip_str, NULL, "ERRMSG");
 
-      kb_item_set_str (kb, "internal/host_deny", "True", 0);
+      kb_check_set_str (kb, "internal/host_deny", "True", 0);
       g_warning ("Host %s access denied.", ip_str);
       return;
     }
@@ -1175,7 +1170,7 @@ attack_network (struct scan_globals *globals)
   GSList *unresolved;
   char buf[96];
 
-  check_deprecated_prefs (globals);
+  check_deprecated_prefs ();
 
   gboolean test_alive_hosts_only = prefs_get_bool ("test_alive_hosts_only");
   gvm_hosts_t *alive_hosts_list = NULL;
@@ -1201,13 +1196,12 @@ attack_network (struct scan_globals *globals)
     {
       connect_main_kb (&main_kb);
       message_to_client (
-        globals, main_kb,
-        "Invalid port list. Ports must be in the range [1-65535]", NULL, NULL,
-        "ERRMSG");
+        main_kb, "Invalid port list. Ports must be in the range [1-65535]",
+        NULL, NULL, "ERRMSG");
       kb_lnk_reset (main_kb);
       g_warning ("Invalid port list. Ports must be in the range [1-65535]. "
                  "Scan terminated.");
-      set_scan_status (globals, "finished");
+      set_scan_status ("finished");
 
       return;
     }
@@ -1231,7 +1225,7 @@ attack_network (struct scan_globals *globals)
                plugins_init_error);
 
       connect_main_kb (&main_kb);
-      message_to_client (globals, main_kb, buf, NULL, NULL, "ERRMSG");
+      message_to_client (main_kb, buf, NULL, NULL, "ERRMSG");
       kb_lnk_reset (main_kb);
     }
 
@@ -1244,11 +1238,11 @@ attack_network (struct scan_globals *globals)
       char *buffer;
       buffer = g_strdup_printf ("Invalid target list: %s.", hostlist);
       connect_main_kb (&main_kb);
-      message_to_client (globals, main_kb, buffer, NULL, NULL, "ERRMSG");
+      message_to_client (main_kb, buffer, NULL, NULL, "ERRMSG");
       g_free (buffer);
       /* Send the hosts count to the client as -1,
        * because the invalid target list.*/
-      message_to_client (globals, main_kb, INVALID_TARGET_LIST, NULL, NULL,
+      message_to_client (main_kb, INVALID_TARGET_LIST, NULL, NULL,
                          "HOSTS_COUNT");
       kb_lnk_reset (main_kb);
       g_warning ("Invalid target list. Scan terminated.");
@@ -1271,7 +1265,7 @@ attack_network (struct scan_globals *globals)
    * unresolved hosts.*/
   sprintf (buf, "%d", gvm_hosts_count (hosts));
   connect_main_kb (&main_kb);
-  message_to_client (globals, main_kb, buf, NULL, NULL, "HOSTS_COUNT");
+  message_to_client (main_kb, buf, NULL, NULL, "HOSTS_COUNT");
   kb_lnk_reset (main_kb);
 
   apply_hosts_excluded (hosts);
@@ -1534,5 +1528,5 @@ stop:
   if (alive_hosts_list)
     gvm_hosts_free (alive_hosts_list);
 
-  set_scan_status (globals, "finished");
+  set_scan_status ("finished");
 }
