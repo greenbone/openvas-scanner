@@ -18,9 +18,6 @@
 
 ## Config
 
-## Project version
-# The following three variables should be set through the project command once
-# we require CMake >= 3.0
 
 include (FindPkgConfig)
 
