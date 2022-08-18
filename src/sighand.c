@@ -132,7 +132,6 @@ print_trace (void)
 void
 sighand_segv (int given_signal)
 {
-  signal (SIGSEGV, _exit);
   print_trace ();
   make_em_die (SIGTERM);
   gvm_close_sentry ();

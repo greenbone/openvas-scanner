@@ -113,7 +113,7 @@ create_process (process_func_t function, void *argument)
       srand48 (getpid () + getppid () + (long) time (NULL));
       (*function) (argument);
       gvm_close_sentry ();
-      exit (0);
+      _exit (0);
     }
   if (pid < 0)
     g_warning ("Error : could not fork ! Error : %s", strerror (errno));
