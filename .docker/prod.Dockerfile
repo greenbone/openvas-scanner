@@ -30,3 +30,6 @@ COPY --from=build /install/ /
 RUN ldconfig
 # allow openvas to access raw sockets and all kind of network related tasks
 RUN setcap cap_net_raw,cap_net_admin+eip /usr/local/sbin/openvas
+# allow nmap to run UDP propes without root permissions
+ENV NMAP_PRIVILEGED=1
+RUN setcap cap_net_raw,cap_net_admin,cap_net_bind_service+eip /usr/bin/nmap
