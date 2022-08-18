@@ -61,12 +61,6 @@ extern char *
 nasl_version (void);
 
 static void
-sighandler ()
-{
-  exit (0);
-}
-
-static void
 my_gnutls_log_func (int level, const char *text)
 {
   fprintf (stderr, "[%d] (%d) %s", getpid (), level, text);
@@ -289,8 +283,6 @@ main (int argc, char **argv)
       fprintf (stderr, "** WARNING : packet forgery will not work\n");
       fprintf (stderr, "** as NASL is not running as root\n");
     }
-  signal (SIGINT, sighandler);
-  signal (SIGTERM, sighandler);
   signal (SIGPIPE, SIG_IGN);
 
   if (source_iface && gvm_source_iface_init (source_iface))

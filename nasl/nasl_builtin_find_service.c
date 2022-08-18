@@ -2585,7 +2585,7 @@ plugin_run_find_service (lex_ctxt *lexic)
               nvticache_reset ();
               signal (SIGTERM, _exit);
               plugin_do_run (desc, sons_args[i], test_ssl);
-              exit (0);
+              _exit (0);
             }
           else
             {

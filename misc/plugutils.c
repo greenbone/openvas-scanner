@@ -264,18 +264,18 @@ plug_get_host_fqdn (struct script_infos *args)
     return g_strdup (current_vhost->value);
   while (vhosts)
     {
-      pid_t pid = plug_fork_child (args->key);
+      int ret = plug_fork_child (args->key);
 
-      if (pid == 0)
+      if (ret == 0)
         {
           current_vhost = vhosts->data;
           return g_strdup (current_vhost->value);
         }
-      else if (pid == -1)
+      else if (ret == -1)
         return NULL;
       vhosts = vhosts->next;
     }
-  exit (0);
+  _exit (0);
 }
 
 GSList *
@@ -856,6 +856,14 @@ sig_n (int signo, void (*fnc) (int))
   sigaction (signo, &sa, (struct sigaction *) 0);
 }
 
+/**
+ * @brief Spawns a new child process. Setups everything that is needed for a new
+ * process. Child must be handled by caller
+ *
+ * @param kb for redis connection
+ * @return int 0 for the child process, 1 for the parent process and -1 on
+ * failure
+ */
 static int
 plug_fork_child (kb_t kb)
 {
@@ -943,9 +951,9 @@ plug_get_key (struct script_infos *args, char *name, int *type, size_t *len,
   res_list = res;
   while (res)
     {
-      pid_t pid = plug_fork_child (kb);
+      int pret = plug_fork_child (kb);
 
-      if (pid == 0)
+      if (pret == 0)
         {
           /* Forked child. */
           void *ret;
@@ -969,12 +977,12 @@ plug_get_key (struct script_infos *args, char *name, int *type, size_t *len,
           kb_item_free (res_list);
           return ret;
         }
-      else if (pid == -1)
+      else if (pret == -1)
         return NULL;
       res = res->next;
     }
   kb_item_free (res_list);
-  exit (0);
+  _exit (0);
 }
 
 /**
