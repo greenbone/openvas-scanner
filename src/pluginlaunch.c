@@ -556,7 +556,7 @@ pluginlaunch_wait_for_free_process (kb_t main_kb, kb_t kb)
 
       int sig = sigtimedwait (&mask, NULL, &ts);
       if (sig < 0 && errno != EAGAIN)
-        g_warning ("%s: %s", __func__, strerror (errno));
+        g_warning ("%s: %s (%d)", __func__, strerror (errno), errno);
       else if (sig == SIGUSR1)
         {
           /* SIGUSR1 signal is sent during scan stop to all host processes.

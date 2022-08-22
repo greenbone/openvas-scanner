@@ -1089,6 +1089,7 @@ plug_fork_child (kb_t kb)
 {
   pid_t pid;
 
+  // TODO change forking to official channels
   if ((pid = fork ()) == 0)
     {
       sig_n (SIGTERM, _exit);
@@ -1104,6 +1105,8 @@ plug_fork_child (kb_t kb)
       return -1;
     }
   else
+    // the parent waits for the spawned process to finish to prevent DDOS on a
+    // host when multiple vhosts got spawned
     waitpid (pid, NULL, 0);
   return 1;
 }
