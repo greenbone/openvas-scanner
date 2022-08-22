@@ -13,12 +13,6 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
-<<<<<<< HEAD
-        uses: actions/checkout@v2
-      - name: Gather container image tags
-        uses: greenbone/actions/container-image-tags@v1
-        id: container
-=======
         uses: actions/checkout@v3
       - name: Setup container meta information
         id: meta
@@ -38,7 +32,6 @@ jobs:
             type=raw,value=oldstable,enable=${{ github.ref == format('refs/heads/{0}', 'oldstable') }}
             # use unstable for main branch
             type=raw,value=unstable,enable={{is_default_branch}}
->>>>>>> 3c086d2b (Change: Use docker/meta-action for container tags and labels)
       - name: Login to DockerHub
         uses: docker/login-action@v1
         with:
@@ -65,17 +58,10 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
-<<<<<<< HEAD
-        uses: actions/checkout@v2
-      - name: Find reference branch
-        uses: greenbone/actions/container-image-tags@v1
-        id: container
-=======
         uses: actions/checkout@v3
       - name: Setup container meta information
         id: meta
         uses: docker/metadata-action@v4
->>>>>>> 3c086d2b (Change: Use docker/meta-action for container tags and labels)
         with:
           images: greenbone/openvas-scanner-build
           labels: |
