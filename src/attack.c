@@ -1451,7 +1451,9 @@ attack_network (struct scan_globals *globals)
   /* Every host is being tested... We have to wait for the processes
    * to terminate. */
   while (hosts_read () == 0)
-    ;
+    if (scan_is_stopped () == 1)
+      killpg (getpid (), SIGUSR1);
+
   g_debug ("Test complete");
 
 scan_stop:
