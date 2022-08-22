@@ -26,11 +26,21 @@
 #ifndef _OPENVAS_THREADS_H
 #define _OPENVAS_THREADS_H
 
+#include "../misc/ipc.h"
+
+#include "../misc/ipc.h"
+
 #include <sys/types.h> /* for pid_t */
 
 typedef void (*process_func_t) (void *);
 pid_t
+<<<<<<< HEAD
 create_process (process_func_t, void *);
 int terminate_process (pid_t);
+=======
+create_ipc_process (ipc_process_func func, void *args);
+const struct ipc_contexts *
+procs_get_ipc_contexts (void);
+>>>>>>> e3716515 (Add: inter process communication)
 
 #endif

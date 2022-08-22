@@ -25,6 +25,7 @@
 
 #include "attack.h"
 
+#include "../misc/ipc_openvas.h"
 #include "../misc/network.h"        /* for auth_printf */
 #include "../misc/nvt_categories.h" /* for ACT_INIT */
 #include "../misc/pcap_openvas.h"   /* for v6_is_local_ip */
@@ -83,9 +84,10 @@
 struct attack_start_args
 {
   struct scan_globals *globals;
-  plugins_scheduler_t sched;
-  kb_t host_kb;
   kb_t main_kb;
+  kb_t host_kb;
+  struct ipc_context *ipc_context; // use dto communicate with parent
+  plugins_scheduler_t sched;
   gvm_host_t *host;
 };
 
@@ -292,99 +294,28 @@ nvti_category_is_safe (int category)
 
 static kb_t host_kb = NULL;
 static GSList *host_vhosts = NULL;
-static int check_new_vhosts_flag = 0;
 
-/**
- * @brief Return check_new_vhosts_flag. After reading must be clean with
- *        unset_check_new_vhosts_flag(), to avoid fetching unnecessarily.
- * @return 1 means new vhosts must be fetched. 0 nothing to do.
- */
-static int
-get_check_new_vhosts_flag (void)
-{
-  return check_new_vhosts_flag;
-}
-
-/**
- * @brief Set global check_new_vhosts_flag to indicate that new vhosts must be
- *        fetched.
- */
 static void
-set_check_new_vhosts_flag ()
+append_vhost (const char *vhost, const char *source)
 {
-  check_new_vhosts_flag = 1;
-}
-
-/**
- * @brief Unset global check_new_vhosts_flag. Must be called once the
- *        vhosts have been fetched.
- */
-static void
-unset_check_new_vhosts_flag (void)
-{
-  check_new_vhosts_flag = 0;
-}
-
-/**
- * @brief Check if a plugin process pushed a new vhost value.
- *
- * @param kb        Host scan KB.
- * @param vhosts    List of vhosts to add new vhosts to.
- *
- * @return New vhosts list.
- */
-static void
-check_new_vhosts (void)
-{
-  struct kb_item *current_vhosts = NULL;
-
-  if (get_check_new_vhosts_flag () == 0)
-    return;
-
-  /* Check for duplicate vhost value already added by other forked child of the
-   * same plugin. */
-  current_vhosts = kb_item_get_all (host_kb, "internal/vhosts");
-  if (!current_vhosts)
+  GSList *vhosts = NULL;
+  vhosts = host_vhosts;
+  assert (source);
+  assert (vhost);
+  while (vhosts)
     {
-      unset_check_new_vhosts_flag ();
-      return;
-    }
-  while (current_vhosts)
-    {
-      GSList *vhosts = NULL;
-      char buffer[4096], *source, *value;
-      gvm_vhost_t *vhost;
+      gvm_vhost_t *tmp = vhosts->data;
 
-      value = g_strdup (current_vhosts->v_str);
-
-      /* Check for duplicate vhost value in args. */
-      vhosts = host_vhosts;
-      while (vhosts)
+      if (!strcmp (tmp->value, vhost))
         {
-          gvm_vhost_t *tmp = vhosts->data;
-
-          if (!strcmp (tmp->value, value))
-            {
-              g_warning ("%s: Value '%s' exists already", __func__, value);
-              unset_check_new_vhosts_flag ();
-              kb_item_free (current_vhosts);
-              return;
-            }
-          vhosts = vhosts->next;
+          g_info ("%s: vhost '%s' exists already", __func__, vhost);
+          return;
         }
-
-      /* Get sources*/
-      g_snprintf (buffer, sizeof (buffer), "internal/source/%s", value);
-      source = kb_item_get_str (host_kb, buffer);
-      assert (source);
-      vhost = gvm_vhost_new (value, source);
-      host_vhosts = g_slist_append (host_vhosts, vhost);
-
-      current_vhosts = current_vhosts->next;
+      vhosts = vhosts->next;
     }
-
-  kb_item_free (current_vhosts);
-  unset_check_new_vhosts_flag ();
+  host_vhosts = g_slist_append (
+    host_vhosts, gvm_vhost_new (g_strdup (vhost), g_strdup (source)));
+  g_info ("%s: add vhost '%s' from '%s'", __func__, vhost, source);
 }
 
 /**
@@ -523,6 +454,31 @@ run_table_driven_lsc (const char *scan_id, kb_t kb, const char *ip_str,
   return err;
 }
 
+static void
+read_ipc (struct ipc_context *ctx)
+{
+  char *result;
+  struct ipc_data *idata;
+  struct ipc_hostname *ihost;
+  while ((result = ipc_retrieve (ctx, IPC_MAIN)) != NULL)
+    {
+      if ((idata = ipc_data_from_json (result, strlen (result))) != NULL)
+        {
+          switch (idata->type)
+            {
+            case IPC_DT_HOSTNAME:
+              if ((ihost = (struct ipc_hostname *) idata->data) == NULL)
+                g_warning ("%s: ihost data is NULL ignoring new vhost",
+                           __func__);
+              else
+                append_vhost (ihost->hostname, ihost->source);
+              break;
+            }
+          ipc_data_destroy (idata);
+        }
+    }
+}
+
 /**
  * @brief Launches a nvt. Respects safe check preference (i.e. does not try
  * @brief destructive nvt if save_checks is yes).
@@ -605,7 +561,13 @@ launch_plugin (struct scan_globals *globals, struct scheduler_plugin *plugin,
     }
 
   /* Update vhosts list and start the plugin */
-  check_new_vhosts ();
+  if (procs_get_ipc_contexts () != NULL)
+    {
+      for (int i = 0; i < procs_get_ipc_contexts ()->len; i++)
+        {
+          read_ipc (&procs_get_ipc_contexts ()->ctxs[i]);
+        }
+    }
   launch_error = 0;
   pid = plugin_launch (globals, plugin, ip, vhosts, args->host_kb,
                        args->main_kb, nvti, &launch_error);
@@ -642,7 +604,6 @@ attack_host (struct scan_globals *globals, struct in6_addr *ip,
   pid_t parent;
 
   addr6_to_str (ip, ip_str);
-  openvas_signal (SIGUSR2, set_check_new_vhosts_flag);
   host_kb = args->host_kb;
   host_vhosts = args->host->vhosts;
   globals->host_pid = getpid ();
@@ -914,8 +875,9 @@ check_host_authorization (gvm_host_t *host, const struct in6_addr *addr)
 /**
  * @brief Set up some data and jump into attack_host()
  */
+// TODO change signature based on FT
 static void
-attack_start (struct attack_start_args *args)
+attack_start (struct ipc_context *ipcc, struct attack_start_args *args)
 {
   struct scan_globals *globals = args->globals;
   char ip_str[INET6_ADDRSTRLEN], *hostnames;
@@ -924,6 +886,7 @@ attack_start (struct attack_start_args *args)
   kb_t kb = args->host_kb;
   kb_t main_kb = args->main_kb;
   int ret, ret_host_auth;
+  args->ipc_context = ipcc;
 
   nvticache_reset ();
   kb_lnk_reset (kb);
@@ -1379,7 +1342,7 @@ attack_network (struct scan_globals *globals)
       args.main_kb = main_kb;
 
     forkagain:
-      pid = create_process ((process_func_t) attack_start, &args);
+      pid = create_ipc_process ((ipc_process_func) attack_start, &args);
       /* Close child process' socket. */
       if (pid < 0)
         {

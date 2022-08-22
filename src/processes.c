@@ -46,6 +46,7 @@
  */
 #define G_LOG_DOMAIN "sd   main"
 
+<<<<<<< HEAD
 /**
  * @brief Send SIGTERM to the pid process. Try to wait the
  * the process. In case of the process has still not change
@@ -53,6 +54,48 @@
    later to avoid leaving a zombie process
 
    @param[in] pid Process id to terminate.
+=======
+static struct ipc_contexts *ipcc = NULL;
+
+/**
+ * @brief Function for handling SIGCHLD to clear procs
+ *
+ */
+static void
+clear_child ()
+{
+  if (ipcc == NULL)
+    return;
+
+  pid_t pid;
+  // In case we receive multiple SIGCHLD at once
+  while ((pid = waitpid (-1, NULL, WNOHANG)) > 0)
+    {
+      g_message ("Ending child with pid %d", pid);
+      for (int i = 0; i < ipcc->len; i++)
+        {
+          // skip when it is set to NULL or not the wanted pid
+          if (ipcc->ctxs[i].pid != pid)
+            continue;
+          if (ipcc->ctxs[i].closed == 0)
+            ipc_close (&ipcc->ctxs[i]);
+          break;
+        }
+    }
+}
+
+/**
+ * @brief Cleans the process list and frees memory. This will not terminate
+ * child processes. Is primarily used after fork.
+ *
+ */
+static void
+clean_procs ()
+{
+  ipc_destroy_contexts (ipcc);
+  ipcc = NULL;
+}
+>>>>>>> e3716515 (Add: inter process communication)
 
    @return 0 on success, -1 if the process was waited but not changed
    the state
@@ -60,6 +103,7 @@
 int
 terminate_process (pid_t pid)
 {
+<<<<<<< HEAD
   int ret;
 
   if (pid == 0)
@@ -79,6 +123,79 @@ terminate_process (pid_t pid)
     }
 
   return 0;
+=======
+  if (ipcc != NULL)
+    {
+      for (int i = 0; i < ipcc->len; i++)
+        {
+          if (ipcc->ctxs[i].pid == pid)
+            {
+              kill (pid, SIGTERM);
+              usleep (10000);
+              if (!ipcc->ctxs[i].closed)
+                kill (pid, SIGKILL);
+              return 0;
+            }
+        }
+      return NOCHILD;
+    }
+  else
+    {
+      kill (pid, SIGTERM);
+      usleep (10000);
+      if (waitpid (pid, NULL, WNOHANG))
+        kill (pid, SIGKILL);
+      return 0;
+    }
+}
+
+/**
+ * @brief This function terminates all processes spawned with create_process.
+ * Calls terminate_child for each process active. In case init_procs was not
+ * called this function does nothing.
+ *
+ */
+void
+procs_terminate_childs ()
+{
+  if (ipcc != NULL)
+    return;
+
+  for (int i = 0; i < ipcc->len; i++)
+    {
+      if (!ipcc->ctxs[i].closed)
+        terminate_process (ipcc->ctxs[i].pid);
+    }
+}
+
+/**
+ * @brief Handler for a termination signal. This will terminate all childs and
+ * calls SIGTERM for itself afterwards.
+ *
+ */
+static void
+terminate ()
+{
+  procs_terminate_childs ();
+
+  openvas_signal (SIGTERM, SIG_DFL);
+  raise (SIGTERM);
+}
+
+/**
+ * @brief Init procs, must be called once per process
+ *
+ * @param max
+ */
+void
+procs_init (int max)
+{
+  ipcc = ipc_contexts_init (max);
+  openvas_signal (SIGCHLD, clear_child);
+  openvas_signal (SIGTERM, terminate);
+  openvas_signal (SIGINT, terminate);
+  openvas_signal (SIGQUIT, terminate);
+>>>>>>> e3716515 (Add: inter process communication)
 }
 
 static void
@@ -93,7 +210,35 @@ init_child_signal_handlers (void)
   openvas_signal (SIGPIPE, SIG_IGN);
 }
 
+static void
+pre_fork_fun_call (struct ipc_context *ctx, void *args)
+{
+  (void) ctx;
+  (void) args;
+  // in a chuld we clean up every preexisting context
+  ipc_destroy_contexts (ipcc);
+  ipcc = ipc_contexts_init (0);
+  g_debug ("%s: called", __func__);
+  usleep (1000);
+  init_child_signal_handlers ();
+  clean_procs ();
+  mqtt_reset ();
+  init_sentry ();
+  srand48 (getpid () + getppid () + (long) time (NULL));
+  g_debug ("%s: exit", __func__);
+}
+
+static void
+post_fork_fun_call (struct ipc_context *ctx, void *args)
+{
+  (void) ctx;
+  (void) args;
+  g_debug ("%s: called", __func__);
+  gvm_close_sentry ();
+}
+
 /**
+<<<<<<< HEAD
  * @brief Create a new process (fork).
  */
 pid_t
@@ -118,4 +263,41 @@ create_process (process_func_t function, void *argument)
   if (pid < 0)
     g_warning ("Error : could not fork ! Error : %s", strerror (errno));
   return pid;
+=======
+ * @brief initializes a communication channels and calls a function with a new
+ * process
+ *
+ * @param func Function to call
+ * @param args arguments
+ * @return pid of spawned process on success or one of the following errors:
+ * FORKFAILED
+ */
+pid_t
+create_ipc_process (ipc_process_func func, void *args)
+{
+  struct ipc_context *pctx = NULL;
+  struct ipc_exec_context ec;
+  // previously init call, we want to store the contexts without making
+  // assumptions about signal handlung
+  if (ipcc == NULL)
+    ipcc = ipc_contexts_init (0);
+
+  ec.pre_func = (ipc_process_func) &pre_fork_fun_call;
+  ec.post_func = (ipc_process_func) &post_fork_fun_call;
+  ec.func = (ipc_process_func) func;
+  ec.func_arg = args;
+  if ((pctx = ipc_exec_as_process (IPC_PIPE, &ec)) == NULL)
+    {
+      g_warning ("Error : could not fork ! Error : %s", strerror (errno));
+      return FORKFAILED;
+    }
+  ipc_add_context (ipcc, pctx);
+  return pctx->pid;
+}
+
+const struct ipc_contexts *
+procs_get_ipc_contexts (void)
+{
+  return ipcc;
+>>>>>>> e3716515 (Add: inter process communication)
 }
