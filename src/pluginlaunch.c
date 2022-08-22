@@ -552,8 +552,20 @@ pluginlaunch_wait_for_free_process (kb_t main_kb, kb_t kb)
       assert (ts.tv_sec);
       sigemptyset (&mask);
       sigaddset (&mask, SIGCHLD);
-      if (sigtimedwait (&mask, NULL, &ts) < 0 && errno != EAGAIN)
+      sigaddset (&mask, SIGUSR1);
+
+      int sig = sigtimedwait (&mask, NULL, &ts);
+      if (sig < 0 && errno != EAGAIN)
         g_warning ("%s: %s", __func__, strerror (errno));
+      else if (sig == SIGUSR1)
+        {
+          /* SIGUSR1 signal is sent during scan stop to all host processes.
+             Therefore pluginlaunch_stop() is called here, for the
+             special case in which we are waiting for the last plugin, of the
+             last host, to finish.
+          */
+          pluginlaunch_stop ();
+        }
       update_running_processes (main_kb, kb);
     }
 }
