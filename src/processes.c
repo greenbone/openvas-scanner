@@ -204,6 +204,8 @@ procs_init (int max)
   num_procs = 0;
   openvas_signal (SIGCHLD, clear_child);
   openvas_signal (SIGTERM, terminate);
+  openvas_signal (SIGINT, terminate);
+  openvas_signal (SIGQUIT, terminate);
   initialized = 1;
 }
 
@@ -212,6 +214,9 @@ init_child_signal_handlers (void)
 {
   /* SIGHUP is only for reloading main scanner process. */
   openvas_signal (SIGHUP, SIG_IGN);
+  openvas_signal (SIGTERM, make_em_die);
+  openvas_signal (SIGINT, make_em_die);
+  openvas_signal (SIGQUIT, make_em_die);
   openvas_signal (SIGSEGV, sighand_segv);
   openvas_signal (SIGPIPE, SIG_IGN);
 }
@@ -236,7 +241,9 @@ create_process (process_func_t func, void *args)
       while (!procs[++pos].terminated)
         ;
     }
+  gvm_log_lock ();
   pid_t pid = fork ();
+  gvm_log_unlock ();
   if (!pid)
     {
       initialized = 0;
