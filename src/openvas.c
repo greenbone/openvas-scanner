@@ -611,6 +611,7 @@ openvas (int argc, char *argv[], char *env[])
       attack_network (globals);
 
       gvm_close_sentry ();
+      g_free (globals);
       return EXIT_SUCCESS;
     }
 
