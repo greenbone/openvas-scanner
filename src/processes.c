@@ -46,39 +46,167 @@
  */
 #define G_LOG_DOMAIN "sd   main"
 
+typedef struct proc_entry
+{
+  pid_t pid;
+  int terminated;
+} proc_entry;
+
+static proc_entry *procs = NULL;
+static int initialized = 0;
+static int max_procs;
+static int num_procs;
+
 /**
- * @brief Send SIGTERM to the pid process. Try to wait the
- * the process. In case of the process has still not change
-   the state, it sends SIGKILL to the process and must be waited
-   later to avoid leaving a zombie process
+ * @brief Function for handling SIGCHLD to clear procs
+ *
+ */
+static void
+clear_child ()
+{
+  if (!initialized)
+    return;
 
-   @param[in] pid Process id to terminate.
+  pid_t pid;
+  // In case we receive multiple SIGCHLD at once
+  while ((pid = waitpid (-1, NULL, WNOHANG)) > 0)
+    {
+      g_message ("Ending child with pid %d", pid);
+      for (int i = 0; i < max_procs; i++)
+        {
+          if (procs[i].pid != pid)
+            continue;
+          procs[i].terminated = 1;
+          num_procs--;
+          break;
+        }
+    }
+}
 
-   @return 0 on success, -1 if the process was waited but not changed
-   the state
+/**
+ * @brief checks for empty space in process list
+ *
+ * @return int 1 if full, 0 when empty
+ */
+static int
+max_procs_reached ()
+{
+  return num_procs == max_procs;
+}
+
+/**
+ * @brief Cleans the process list and frees memory. This will not terminate
+ * child processes. Is primarily used after fork.
+ *
+ */
+static void
+clean_procs ()
+{
+  initialized = 0;
+  g_free (procs);
+  procs = NULL;
+}
+
+/**
+ * @brief Terminates a given process. If termination does not work, the process
+ * will get killed. In case init_procs was called, only direct child processes
+ * can be terminated
+ *
+ * @param pid id of the child process
+ * @return int 0 on success, NOCHILD if child does not exist, NOINIT if not
+ * initialized
  */
 int
 terminate_process (pid_t pid)
 {
-  int ret;
-
-  if (pid == 0)
-    return 0;
-
-  ret = kill (pid, SIGTERM);
-
-  if (ret == 0)
+  if (initialized)
     {
-      usleep (1000);
-
-      if (waitpid (pid, NULL, WNOHANG) >= 0)
+      for (int i = 0; i < max_procs; i++)
         {
-          kill (pid, SIGKILL);
-          return -1;
+          if (procs[i].pid == pid)
+            {
+              kill (pid, SIGTERM);
+              usleep (10000);
+              if (!procs[i].terminated)
+                kill (pid, SIGKILL);
+              return 0;
+            }
         }
+      return NOCHILD;
+    }
+  else
+    {
+      kill (pid, SIGTERM);
+      usleep (10000);
+      if (waitpid (pid, NULL, WNOHANG))
+        kill (pid, SIGKILL);
+      return 0;
+    }
+}
+
+/**
+ * @brief This function terminates all processes spawned with create_process.
+ * Calls terminate_child for each process active. In case init_procs was not
+ * called this function does nothing.
+ *
+ */
+void
+procs_terminate_childs ()
+{
+  if (!initialized)
+    return;
+
+  for (int i = 0; i < max_procs; i++)
+    {
+      if (!procs[i].terminated)
+        terminate_process (procs[i].pid);
+    }
+}
+
+/**
+ * @brief Handler for a termination signal. This will terminate all childs and
+ * calls SIGTERM for itself afterwards.
+ *
+ */
+static void
+terminate ()
+{
+  if (!initialized)
+    return;
+
+  int tries = 5;
+  procs_terminate_childs ();
+
+  while (num_procs && tries--)
+    {
+      sleep (1);
     }
 
-  return 0;
+  clean_procs ();
+  openvas_signal (SIGTERM, SIG_DFL);
+  raise (SIGTERM);
+}
+
+/**
+ * @brief Init procs, must be called once per process
+ *
+ * @param max
+ */
+void
+procs_init (int max)
+{
+  procs = g_malloc (max * sizeof (proc_entry));
+  for (int i = 0; i < max; i++)
+    {
+      procs[i].terminated = 1;
+    }
+  max_procs = max;
+  num_procs = 0;
+  openvas_signal (SIGCHLD, clear_child);
+  openvas_signal (SIGTERM, terminate);
+  openvas_signal (SIGINT, terminate);
+  openvas_signal (SIGQUIT, terminate);
+  initialized = 1;
 }
 
 static void
@@ -94,28 +222,51 @@ init_child_signal_handlers (void)
 }
 
 /**
- * @brief Create a new process (fork).
+ * @brief Calls a function with a new process
+ *
+ * @param func Function to call
+ * @param args arguments
+ * @return pid of spawned process on success or one of the following errors:
+ * FORKFAILED, NOINIT, PROCSFULL
  */
 pid_t
-create_process (process_func_t function, void *argument)
+create_process (process_func_t func, void *args)
 {
-  int pid;
-
-  gvm_log_lock ();
-  pid = fork ();
-  gvm_log_unlock ();
-
-  if (pid == 0)
+  int pos = -1;
+  if (initialized)
     {
-      mqtt_reset ();
+      if (max_procs_reached ())
+        return PROCSFULL;
+
+      while (!procs[++pos].terminated)
+        ;
+    }
+  gvm_log_lock ();
+  pid_t pid = fork ();
+  gvm_log_unlock ();
+  if (!pid)
+    {
+      initialized = 0;
+      usleep (1000);
       init_child_signal_handlers ();
+      clean_procs ();
+      mqtt_reset ();
       init_sentry ();
       srand48 (getpid () + getppid () + (long) time (NULL));
-      (*function) (argument);
+      (*func) (args);
       gvm_close_sentry ();
       _exit (0);
     }
+
   if (pid < 0)
-    g_warning ("Error : could not fork ! Error : %s", strerror (errno));
+    {
+      return FORKFAILED;
+    }
+  if (initialized)
+    {
+      procs[pos].pid = pid;
+      procs[pos].terminated = 0;
+      num_procs++;
+    }
   return pid;
 }

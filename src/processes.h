@@ -28,9 +28,23 @@
 
 #include <sys/types.h> /* for pid_t */
 
+#define FORKFAILED -1
+#define NOINIT -2
+#define PROCSFULL -3
+#define NOCHILD -4
+
 typedef void (*process_func_t) (void *);
+
+void
+procs_init (int max);
+
+void
+procs_terminate_childs (void);
+
+int
+terminate_process (pid_t pid);
+
 pid_t
 create_process (process_func_t, void *);
-int terminate_process (pid_t);
 
 #endif
