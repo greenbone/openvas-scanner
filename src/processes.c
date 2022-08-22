@@ -46,16 +46,7 @@
  */
 #define G_LOG_DOMAIN "sd   main"
 
-typedef struct proc_entry
-{
-  pid_t pid;
-  int terminated;
-} proc_entry;
-
-static proc_entry *procs = NULL;
-static int initialized = 0;
-static int max_procs;
-static int num_procs;
+static struct ipc_contexts *ipcc = NULL;
 
 /**
  * @brief Function for handling SIGCHLD to clear procs
@@ -64,7 +55,7 @@ static int num_procs;
 static void
 clear_child ()
 {
-  if (!initialized)
+  if (ipcc == NULL)
     return;
 
   pid_t pid;
@@ -72,26 +63,16 @@ clear_child ()
   while ((pid = waitpid (-1, NULL, WNOHANG)) > 0)
     {
       g_message ("Ending child with pid %d", pid);
-      for (int i = 0; i < max_procs; i++)
+      for (int i = 0; i < ipcc->len; i++)
         {
-          if (procs[i].pid != pid)
+          // skip when it is set to NULL or not the wanted pid
+          if (ipcc->ctxs[i].pid != pid)
             continue;
-          procs[i].terminated = 1;
-          num_procs--;
+          if (ipcc->ctxs[i].closed == 0)
+            ipc_close (&ipcc->ctxs[i]);
           break;
         }
     }
-}
-
-/**
- * @brief checks for empty space in process list
- *
- * @return int 1 if full, 0 when empty
- */
-static int
-max_procs_reached ()
-{
-  return num_procs == max_procs;
 }
 
 /**
@@ -102,9 +83,8 @@ max_procs_reached ()
 static void
 clean_procs ()
 {
-  initialized = 0;
-  g_free (procs);
-  procs = NULL;
+  ipc_destroy_contexts (ipcc);
+  ipcc = NULL;
 }
 
 /**
@@ -119,15 +99,15 @@ clean_procs ()
 int
 terminate_process (pid_t pid)
 {
-  if (initialized)
+  if (ipcc != NULL)
     {
-      for (int i = 0; i < max_procs; i++)
+      for (int i = 0; i < ipcc->len; i++)
         {
-          if (procs[i].pid == pid)
+          if (ipcc->ctxs[i].pid == pid)
             {
               kill (pid, SIGTERM);
               usleep (10000);
-              if (!procs[i].terminated)
+              if (!ipcc->ctxs[i].closed)
                 kill (pid, SIGKILL);
               return 0;
             }
@@ -153,13 +133,13 @@ terminate_process (pid_t pid)
 void
 procs_terminate_childs ()
 {
-  if (!initialized)
+  if (ipcc != NULL)
     return;
 
-  for (int i = 0; i < max_procs; i++)
+  for (int i = 0; i < ipcc->len; i++)
     {
-      if (!procs[i].terminated)
-        terminate_process (procs[i].pid);
+      if (!ipcc->ctxs[i].closed)
+        terminate_process (ipcc->ctxs[i].pid);
     }
 }
 
@@ -171,18 +151,8 @@ procs_terminate_childs ()
 static void
 terminate ()
 {
-  if (!initialized)
-    return;
-
-  int tries = 5;
   procs_terminate_childs ();
 
-  while (num_procs && tries--)
-    {
-      sleep (1);
-    }
-
-  clean_procs ();
   openvas_signal (SIGTERM, SIG_DFL);
   raise (SIGTERM);
 }
@@ -195,18 +165,11 @@ terminate ()
 void
 procs_init (int max)
 {
-  procs = g_malloc (max * sizeof (proc_entry));
-  for (int i = 0; i < max; i++)
-    {
-      procs[i].terminated = 1;
-    }
-  max_procs = max;
-  num_procs = 0;
+  ipcc = ipc_contexts_init (max);
   openvas_signal (SIGCHLD, clear_child);
   openvas_signal (SIGTERM, terminate);
   openvas_signal (SIGINT, terminate);
   openvas_signal (SIGQUIT, terminate);
-  initialized = 1;
 }
 
 static void
@@ -221,52 +184,67 @@ init_child_signal_handlers (void)
   openvas_signal (SIGPIPE, SIG_IGN);
 }
 
+static void
+pre_fork_fun_call (struct ipc_context *ctx, void *args)
+{
+  (void) ctx;
+  (void) args;
+  // in a chuld we clean up every preexisting context
+  ipc_destroy_contexts (ipcc);
+  ipcc = ipc_contexts_init (0);
+  g_debug ("%s: called", __func__);
+  usleep (1000);
+  init_child_signal_handlers ();
+  clean_procs ();
+  mqtt_reset ();
+  init_sentry ();
+  srand48 (getpid () + getppid () + (long) time (NULL));
+  g_debug ("%s: exit", __func__);
+}
+
+static void
+post_fork_fun_call (struct ipc_context *ctx, void *args)
+{
+  (void) ctx;
+  (void) args;
+  g_debug ("%s: called", __func__);
+  gvm_close_sentry ();
+}
+
 /**
- * @brief Calls a function with a new process
+ * @brief initializes a communication channels and calls a function with a new
+ * process
  *
  * @param func Function to call
  * @param args arguments
  * @return pid of spawned process on success or one of the following errors:
- * FORKFAILED, NOINIT, PROCSFULL
+ * FORKFAILED
  */
 pid_t
-create_process (process_func_t func, void *args)
+create_ipc_process (ipc_process_func func, void *args)
 {
-  int pos = -1;
-  if (initialized)
-    {
-      if (max_procs_reached ())
-        return PROCSFULL;
+  struct ipc_context *pctx = NULL;
+  struct ipc_exec_context ec;
+  // previously init call, we want to store the contexts without making
+  // assumptions about signal handlung
+  if (ipcc == NULL)
+    ipcc = ipc_contexts_init (0);
 
-      while (!procs[++pos].terminated)
-        ;
-    }
-  gvm_log_lock ();
-  pid_t pid = fork ();
-  gvm_log_unlock ();
-  if (!pid)
+  ec.pre_func = (ipc_process_func) &pre_fork_fun_call;
+  ec.post_func = (ipc_process_func) &post_fork_fun_call;
+  ec.func = (ipc_process_func) func;
+  ec.func_arg = args;
+  if ((pctx = ipc_exec_as_process (IPC_PIPE, &ec)) == NULL)
     {
-      initialized = 0;
-      usleep (1000);
-      init_child_signal_handlers ();
-      clean_procs ();
-      mqtt_reset ();
-      init_sentry ();
-      srand48 (getpid () + getppid () + (long) time (NULL));
-      (*func) (args);
-      gvm_close_sentry ();
-      _exit (0);
-    }
-
-  if (pid < 0)
-    {
+      g_warning ("Error : could not fork ! Error : %s", strerror (errno));
       return FORKFAILED;
     }
-  if (initialized)
-    {
-      procs[pos].pid = pid;
-      procs[pos].terminated = 0;
-      num_procs++;
-    }
-  return pid;
+  ipc_add_context (ipcc, pctx);
+  return pctx->pid;
+}
+
+const struct ipc_contexts *
+procs_get_ipc_contexts (void)
+{
+  return ipcc;
 }
