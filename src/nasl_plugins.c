@@ -169,7 +169,7 @@ nasl_plugin_add (const char *folder, char *filename)
 }
 
 static void
-nasl_thread (struct script_infos *);
+nasl_thread (struct ipc_context *, struct script_infos *);
 
 /**
  * @brief Launch a NASL plugin.
@@ -182,6 +182,7 @@ nasl_plugin_launch (struct scan_globals *globals, struct in6_addr *ip,
   struct script_infos infos;
 
   memset (&infos, '\0', sizeof (infos));
+  // extend here, maybe create struct to simplify calls
   infos.ip = ip;
   infos.vhosts = vhosts;
   infos.globals = globals;
@@ -189,19 +190,21 @@ nasl_plugin_launch (struct scan_globals *globals, struct in6_addr *ip,
   infos.results = main_kb;
   infos.oid = (char *) oid;
   infos.name = nvticache_get_src (oid);
+  infos.ipc_context = NULL;
 
-  module = create_process ((process_func_t) nasl_thread, &infos);
+  module = create_ipc_process ((ipc_process_func) nasl_thread, &infos);
   g_free (infos.name);
   return module;
 }
 
 static void
-nasl_thread (struct script_infos *args)
+nasl_thread (struct ipc_context *ipcc, struct script_infos *args)
 {
   char ip_str[INET6_ADDRSTRLEN];
   int nasl_mode = 0;
   kb_t kb;
   GError *error = NULL;
+  args->ipc_context = ipcc;
 
   /* Make plugin process a group leader, to make it easier to cleanup forked
    * processes & their children. */
@@ -210,6 +213,7 @@ nasl_thread (struct script_infos *args)
   kb = args->key;
   kb_lnk_reset (kb);
   addr6_to_str (args->ip, ip_str);
+  // TODO extend sript_infos here
   setproctitle ("openvas: testing %s (%s)", ip_str, args->name);
 
   if (prefs_get_bool ("nasl_no_signature_check"))

@@ -28,7 +28,6 @@
 #include <glib.h>
 #include <gvm/base/nvti.h>
 #include <gvm/util/kb.h>
-
 struct scan_globals
 {
   GHashTable *files_translation;
@@ -42,6 +41,7 @@ struct host_info;
 struct script_infos
 {
   struct scan_globals *globals;
+  struct ipc_context *ipc_context;
   kb_t key;
   kb_t results;
   nvti_t *nvti;
