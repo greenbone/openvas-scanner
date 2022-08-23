@@ -4,13 +4,23 @@ on:
   push:
     branches: [ main, stable, oldstable, middleware ]
     tags: ["v*"]
+    paths:
+      - .github/workflows/build-container.yml
+      - .docker/build.Dockerfile
   pull_request:
     branches: [ main, stable, oldstable, middleware ]
+    paths:
+      - .github/workflows/build-container.yml
+      - .docker/build.Dockerfile
   workflow_dispatch:
+  repository_dispatch:
+  schedule:
+    # rebuild image every sunday
+    - cron: "0 0 * * 0"
 
 jobs:
-  main:
-    name: "Upload production image"
+  build:
+    name: "Upload images for building openvas-scanner"
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
@@ -19,7 +29,7 @@ jobs:
         id: meta
         uses: docker/metadata-action@v4
         with:
-          images: ${{ github.repository }}
+          images: ${{ github.repository }}-build
           labels: |
             org.opencontainers.image.vendor=Greenbone
             org.opencontainers.image.base.name=greenbone/gvm-libs
@@ -35,15 +45,12 @@ jobs:
             # use unstable for main branch
             type=raw,value=unstable,enable={{is_default_branch}}
       - name: Login to DockerHub
-<<<<<<< HEAD
-        uses: docker/login-action@v1
-=======
         if: github.event_name != 'pull_request'
         uses: docker/login-action@v2
->>>>>>> 54da5972 (Change: Build container images for pull requests too)
         with:
           username: ${{ secrets.DOCKERHUB_USERNAME }}
           password: ${{ secrets.DOCKERHUB_TOKEN }}
+      - run: echo "Build and push ${{ steps.meta.outputs.tags }}"
       - name: Set up QEMU
         uses: docker/setup-qemu-action@v2
       - name: Set up Docker Buildx
@@ -53,9 +60,7 @@ jobs:
         with:
           context: .
           push: ${{ github.event_name != 'pull_request' }}
-          file: .docker/prod.Dockerfile
-          build-args: |
-            REPOSITORY=${{ github.repository }}
+          file: .docker/build.Dockerfile
           platforms: linux/amd64,linux/arm64
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
