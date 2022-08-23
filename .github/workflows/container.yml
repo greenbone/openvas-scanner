@@ -4,6 +4,8 @@ on:
   push:
     branches: [ main, stable, oldstable, middleware ]
     tags: ["v*"]
+  pull_request:
+    branches: [ main, stable, oldstable, middleware ]
   workflow_dispatch:
   repository_dispatch:
 
@@ -19,14 +21,15 @@ jobs:
         id: meta
         uses: docker/metadata-action@v4
         with:
-          images: greenbone/openvas-scanner
+          images: ${{ github.repository }}
           labels: |
             org.opencontainers.image.vendor=Greenbone
-            org.opencontainers.image.base.name=debian/stable-slim
+            org.opencontainers.image.base.name=greenbone/gvm-libs
           flavor: latest=false # no latest container tag for git tags
           tags: |
             # create container tag for git tags
             type=ref,event=tag
+            type=ref,event=pr
             # use latest for stable branch
             type=raw,value=latest,enable=${{ github.ref == format('refs/heads/{0}', 'stable') }}
             type=raw,value=stable,enable=${{ github.ref == format('refs/heads/{0}', 'stable') }}
@@ -34,6 +37,7 @@ jobs:
             # use unstable for main branch
             type=raw,value=unstable,enable={{is_default_branch}}
       - name: Login to DockerHub
+        if: github.event_name != 'pull_request'
         uses: docker/login-action@v2
         with:
           username: ${{ secrets.DOCKERHUB_USERNAME }}
@@ -46,7 +50,7 @@ jobs:
         uses: docker/build-push-action@v3
         with:
           context: .
-          push: true
+          push: ${{ github.event_name != 'pull_request' }}
           file: .docker/prod.Dockerfile
           build-args: |
             REPOSITORY=${{ github.repository }}
@@ -64,14 +68,15 @@ jobs:
         id: meta
         uses: docker/metadata-action@v4
         with:
-          images: greenbone/openvas-scanner-build
+          images: ${{ github.repository }}-build
           labels: |
             org.opencontainers.image.vendor=Greenbone
-            org.opencontainers.image.base.name=debian/stable-slim
+            org.opencontainers.image.base.name=greenbone/gvm-libs
           flavor: latest=false # no latest container tag for git tags
           tags: |
             # create container tag for git tags
             type=ref,event=tag
+            type=ref,event=pr
             # use latest for stable branch
             type=raw,value=latest,enable=${{ github.ref == format('refs/heads/{0}', 'stable') }}
             type=raw,value=stable,enable=${{ github.ref == format('refs/heads/{0}', 'stable') }}
@@ -79,6 +84,7 @@ jobs:
             # use unstable for main branch
             type=raw,value=unstable,enable={{is_default_branch}}
       - name: Login to DockerHub
+        if: github.event_name != 'pull_request'
         uses: docker/login-action@v2
         with:
           username: ${{ secrets.DOCKERHUB_USERNAME }}
@@ -92,7 +98,7 @@ jobs:
         uses: docker/build-push-action@v3
         with:
           context: .
-          push: true
+          push: ${{ github.event_name != 'pull_request' }}
           file: .docker/build.Dockerfile
           platforms: linux/amd64,linux/arm64
           tags: ${{ steps.meta.outputs.tags }}
