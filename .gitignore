@@ -2,4 +2,10 @@ build/
 nasl/nasl_grammar.output
 nasl/nasl_grammar.tab.c
 nasl/nasl_grammar.tab.h
+<<<<<<< HEAD
 .venv
+=======
+.cache/
+testsuiterun.nasl
+.vscode
+>>>>>>> e7007c38 (Ignore vscode settings from git)
