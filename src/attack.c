@@ -668,10 +668,7 @@ attack_host (struct scan_globals *globals, struct in6_addr *ip, GSList *vhosts,
           // to our ancestors we just kill our parent and ourselves
           // (but let our grandparents live).
           // To prevent duplicate results we don't let ACT_END run.
-          kill (parent, SIGTERM);
-          // just in case
-          raise (SIGTERM);
-          return;
+          killpg (parent, SIGUSR1);
         }
 
       if (scan_is_stopped ())
