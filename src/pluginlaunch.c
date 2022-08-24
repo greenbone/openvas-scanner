@@ -143,7 +143,7 @@ update_running_processes (kb_t main_kb, kb_t kb)
             {
               char *oid = processes[i].plugin->oid;
 
-              if (is_alive)
+              if (is_alive) // Alive and timed out
                 {
                   char msg[2048];
                   if (log_whole)
@@ -154,7 +154,7 @@ update_running_processes (kb_t main_kb, kb_t kb)
                               "ERRMSG|||%s||| |||general/tcp|||%s|||"
                               "NVT timed out after %d seconds.",
                               hostname, oid ? oid : " ", processes[i].timeout);
-                  kb_item_push_str (main_kb, "internal/results", msg);
+                  kb_check_push_str (main_kb, "internal/results", msg);
 
                   /* Check for max VTs timeouts */
                   if (max_nvt_timeouts_reached ())
@@ -168,7 +168,7 @@ update_running_processes (kb_t main_kb, kb_t kb)
                                       "Host has been marked as dead. Too many "
                                       "NVT_TIMEOUTs.",
                                       hostname);
-                          kb_item_push_str (main_kb, "internal/results", msg);
+                          kb_check_push_str (main_kb, "internal/results", msg);
                         }
                     }
 

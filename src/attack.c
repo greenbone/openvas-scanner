@@ -25,9 +25,10 @@
 
 #include "attack.h"
 
-#include "../misc/network.h"          /* for auth_printf */
-#include "../misc/nvt_categories.h"   /* for ACT_INIT */
-#include "../misc/pcap_openvas.h"     /* for v6_is_local_ip */
+#include "../misc/network.h"        /* for auth_printf */
+#include "../misc/nvt_categories.h" /* for ACT_INIT */
+#include "../misc/pcap_openvas.h"   /* for v6_is_local_ip */
+#include "../misc/plugutils.h"
 #include "../misc/table_driven_lsc.h" /*for make_table_driven_lsc_info_json_str */
 #include "../nasl/nasl_debug.h"       /* for nasl_*_filename */
 #include "hosts.h"
@@ -52,7 +53,7 @@
 #include <gvm/util/mqtt.h>
 #include <gvm/util/nvticache.h> /* for nvticache_t */
 #include <pthread.h>
-#include <stdlib.h>   /* for exit() */
+#include <signal.h>
 #include <string.h>   /* for strlen() */
 #include <sys/wait.h> /* for waitpid() */
 #include <unistd.h>   /* for close() */
@@ -123,7 +124,7 @@ set_kb_readable (int host_kb_index)
   kb_t main_kb = NULL;
 
   connect_main_kb (&main_kb);
-  kb_item_add_int_unique (main_kb, "internal/dbindex", host_kb_index);
+  kb_check_add_int_unique (main_kb, "internal/dbindex", host_kb_index);
   kb_lnk_reset (main_kb);
 }
 
@@ -141,9 +142,15 @@ set_scan_status (char *status)
   char *scan_id = NULL;
 
   connect_main_kb (&main_kb);
+
+  if (check_kb_inconsistency (main_kb) != 0)
+    {
+      kb_lnk_reset (main_kb);
+      return;
+    }
   scan_id = kb_item_get_str (main_kb, ("internal/scanid"));
   snprintf (buffer, sizeof (buffer), "internal/%s", scan_id);
-  kb_item_set_str (main_kb, buffer, status, 0);
+  kb_check_set_str (main_kb, buffer, status, 0);
   kb_lnk_reset (main_kb);
   g_free (scan_id);
 }
@@ -175,7 +182,7 @@ comm_send_status_host_dead (kb_t main_kb, char *ip_str)
   if (strlen (ip_str) > 1998)
     return -1;
   status = g_strjoin ("/", ip_str, host_dead_status_code, NULL);
-  kb_item_push_str (main_kb, topic, status);
+  kb_check_push_str (main_kb, topic, status);
   g_free (status);
 
   return 0;
@@ -209,7 +216,7 @@ comm_send_status (kb_t main_kb, char *ip_str, int curr, int max)
     return -1;
 
   snprintf (status_buf, sizeof (status_buf), "%s/%d/%d", ip_str, curr, max);
-  kb_item_push_str (main_kb, "internal/status", status_buf);
+  kb_check_push_str (main_kb, "internal/status", status_buf);
   kb_lnk_reset (main_kb);
 
   return 0;
@@ -224,7 +231,7 @@ message_to_client (kb_t kb, const char *msg, const char *ip_str,
   buf = g_strdup_printf ("%s|||%s|||%s|||%s||| |||%s", type,
                          ip_str ? ip_str : "", ip_str ? ip_str : "",
                          port ? port : " ", msg ? msg : "No error.");
-  kb_item_push_str (kb, "internal/results", buf);
+  kb_check_push_str (kb, "internal/results", buf);
   g_free (buf);
 }
 
@@ -417,6 +424,7 @@ run_table_driven_lsc (const char *scan_id, kb_t kb, const char *ip_str,
       return -1;
     }
   /* Get the OS release. TODO: have a list with supported OS. */
+
   os_release = kb_item_get_str (kb, "ssh/login/release_notus");
   /* Get the package list. Currently only rpm support */
   package_list = kb_item_get_str (kb, "ssh/login/package_list_notus");
@@ -628,12 +636,14 @@ attack_host (struct scan_globals *globals, struct in6_addr *ip, GSList *vhosts,
   /* Used for the status */
   int num_plugs, forks_retry = 0, all_plugs_launched = 0;
   char ip_str[INET6_ADDRSTRLEN];
+  struct scheduler_plugin *plugin;
+  pid_t parent;
 
   addr6_to_str (ip, ip_str);
   openvas_signal (SIGUSR2, set_check_new_vhosts_flag);
   host_kb = kb;
   host_vhosts = vhosts;
-  kb_item_set_int (kb, "internal/hostpid", getpid ());
+  kb_check_set_int (kb, "internal/hostpid", getpid ());
   host_set_time (main_kb, ip_str, "HOST_START");
   kb_lnk_reset (main_kb);
   setproctitle ("openvas: testing %s", ip_str);
@@ -644,9 +654,6 @@ attack_host (struct scan_globals *globals, struct in6_addr *ip, GSList *vhosts,
   num_plugs = plugins_scheduler_count_active (sched);
   for (;;)
     {
-      struct scheduler_plugin *plugin;
-      pid_t parent;
-
       /* Check that our father is still alive */
       parent = getppid ();
       if (parent <= 1 || process_alive (parent) == 0)
@@ -655,8 +662,18 @@ attack_host (struct scan_globals *globals, struct in6_addr *ip, GSList *vhosts,
           return;
         }
 
+      if (check_kb_inconsistency (main_kb) != 0)
+        {
+          // As long as we don't have a proper communication channel
+          // to our ancestors we just kill our parent and ourselves
+          // (but let our grandparents live).
+          // To prevent duplicate results we don't let ACT_END run.
+          killpg (parent, SIGUSR1);
+        }
+
       if (scan_is_stopped ())
         plugins_scheduler_stop (sched);
+
       plugin = plugins_scheduler_next (sched);
       if (plugin != NULL && plugin != PLUG_RUNNING)
         {
@@ -680,7 +697,7 @@ attack_host (struct scan_globals *globals, struct in6_addr *ip, GSList *vhosts,
                     "<name>Host dead</name><value>1</value><source>"
                     "<description/><type/><name/></source></detail></host>",
                     ip_str);
-                  kb_item_push_str (main_kb, "internal/results", buffer);
+                  kb_check_push_str (main_kb, "internal/results", buffer);
 
                   comm_send_status_host_dead (main_kb, ip_str);
                   goto host_died;
@@ -745,7 +762,7 @@ attack_host (struct scan_globals *globals, struct in6_addr *ip, GSList *vhosts,
             buffer, sizeof (buffer),
             "ERRMSG|||%s||| ||| ||| ||| Unable to launch table driven lsc",
             ip_str);
-          kb_item_push_str (main_kb, "internal/results", buffer);
+          kb_check_push_str (main_kb, "internal/results", buffer);
           g_warning ("%s: Unable to launch table driven LSC", __func__);
         }
     }
@@ -827,7 +844,7 @@ vhosts_to_str (GSList *list)
  * @brief Check if any deprecated prefs are in pref table and print warning.
  */
 static void
-check_deprecated_prefs ()
+check_deprecated_prefs (void)
 {
   const gchar *source_iface = prefs_get ("source_iface");
   const gchar *ifaces_allow = prefs_get ("ifaces_allow");
@@ -910,7 +927,7 @@ attack_start (struct attack_start_args *args)
   kb_lnk_reset (main_kb);
   gettimeofday (&then, NULL);
 
-  kb_item_set_str (kb, "internal/scan_id", globals->scan_id, 0);
+  kb_check_set_str (kb, "internal/scan_id", globals->scan_id, 0);
   set_kb_readable (kb_get_kb_index (kb));
 
   /* The reverse lookup is delayed to this step in order to not slow down the
@@ -931,7 +948,7 @@ attack_start (struct attack_start_args *args)
         message_to_client (kb, "Host access denied (system-wide restriction.)",
                            ip_str, NULL, "ERRMSG");
 
-      kb_item_set_str (kb, "internal/host_deny", "True", 0);
+      kb_check_set_str (kb, "internal/host_deny", "True", 0);
       g_warning ("Host %s access denied.", ip_str);
       return;
     }
@@ -1096,7 +1113,7 @@ scan_stop_cleanup ()
 
   /* Stop all hosts and alive detection (if enabled) if we are in main.
    * Else stop all running plugin processes for the current host fork. */
-  if (atoi (pid) == getpid ())
+  if (pid && (atoi (pid) == getpid ()))
     {
       already_called = 1;
       hosts_stop_all ();

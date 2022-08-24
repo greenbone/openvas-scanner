@@ -147,6 +147,26 @@ host_get_port_state_udp (struct script_infos *, int);
  * Inter Plugins Communication functions
  */
 
+int check_kb_inconsistency (kb_t);
+
+int
+kb_check_push_str (kb_t, const char *, const char *);
+
+int
+kb_check_set_str (kb_t, const char *, const char *, size_t);
+
+int
+kb_check_add_str_unique (kb_t, const char *, const char *, size_t, int);
+
+int
+kb_check_set_int (kb_t, const char *, int);
+
+int
+kb_check_add_int (kb_t, const char *, int);
+
+int
+kb_check_add_int_unique (kb_t, const char *, int);
+
 void
 plug_set_key (struct script_infos *, char *, int, const void *);
 
