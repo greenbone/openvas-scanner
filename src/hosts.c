@@ -26,7 +26,8 @@
 #include "hosts.h" /* for hosts_new() */
 
 #include "../misc/network.h" /* for internal_recv */
-#include "utils.h"           /* for data_left() */
+#include "../misc/plugutils.h"
+#include "utils.h" /* for data_left() */
 
 #include <errno.h>               /* for errno() */
 #include <glib.h>                /* for g_free() */
@@ -93,7 +94,7 @@ host_set_time (kb_t kb, char *ip, char *type)
             timestr);
   g_free (timestr);
 
-  kb_item_push_str (kb, "internal/results", log_msg);
+  kb_check_push_str (kb, "internal/results", log_msg);
 }
 
 static void
