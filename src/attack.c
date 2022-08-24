@@ -1113,7 +1113,7 @@ scan_stop_cleanup ()
 
   /* Stop all hosts and alive detection (if enabled) if we are in main.
    * Else stop all running plugin processes for the current host fork. */
-  if (atoi (pid) == getpid ())
+  if (pid && (atoi (pid) == getpid ()))
     {
       already_called = 1;
       hosts_stop_all ();
