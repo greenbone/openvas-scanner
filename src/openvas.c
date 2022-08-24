@@ -36,6 +36,7 @@
 #include "openvas.h"
 
 #include "../misc/plugutils.h"     /* nvticache_free */
+#include "../misc/scan_id.h"       /* to manage global scan_id */
 #include "../misc/vendorversion.h" /* for vendor_version_set */
 #include "attack.h"                /* for attack_network */
 #include "debug_utils.h"           /* for init_sentry */
@@ -103,7 +104,7 @@ int global_max_sysload = 0;
 GSList *log_config = NULL;
 
 static volatile int termination_signal = 0;
-static char *global_scan_id = NULL;
+// static char *global_scan_id = NULL;
 
 typedef struct
 {
@@ -260,8 +261,8 @@ overwrite_openvas_prefs_with_prefs_from_client (struct scan_globals *globals)
     }
   kb_del_items (kb, key);
   snprintf (key, sizeof (key), "internal/%s", globals->scan_id);
-  kb_item_set_str (kb, key, "ready", 0);
-  kb_item_set_int (kb, "internal/ovas_pid", getpid ());
+  kb_check_set_str (kb, key, "ready", 0);
+  kb_check_set_int (kb, "internal/ovas_pid", getpid ());
   kb_lnk_reset (kb);
 
   g_debug ("End loading scan preferences.");
@@ -361,10 +362,10 @@ stop_single_task_scan (void)
   kb_t kb;
   int pid;
 
-  if (!global_scan_id)
+  if (!get_scan_id ())
     return 1;
 
-  snprintf (key, sizeof (key), "internal/%s", global_scan_id);
+  snprintf (key, sizeof (key), "internal/%s", get_scan_id ());
   kb = kb_find (prefs_get ("db_address"), key);
   if (!kb)
     return 1;
@@ -395,11 +396,11 @@ send_message_to_client_and_finish_scan (const char *msg)
   char key[1024];
   kb_t kb;
 
-  snprintf (key, sizeof (key), "internal/%s/scanprefs", global_scan_id);
+  snprintf (key, sizeof (key), "internal/%s/scanprefs", get_scan_id ());
   kb = kb_find (prefs_get ("db_address"), key);
-  kb_item_push_str (kb, "internal/results", msg);
-  snprintf (key, sizeof (key), "internal/%s", global_scan_id);
-  kb_item_set_str (kb, key, "finished", 0);
+  kb_check_push_str (kb, "internal/results", msg);
+  snprintf (key, sizeof (key), "internal/%s", get_scan_id ());
+  kb_check_set_str (kb, key, "finished", 0);
   kb_lnk_reset (kb);
 }
 
@@ -590,7 +591,7 @@ openvas (int argc, char *argv[], char *env[])
         }
       nvticache_reset ();
 
-      global_scan_id = g_strdup (stop_scan_id);
+      set_scan_id (g_strdup (stop_scan_id));
       err = stop_single_task_scan ();
       gvm_close_sentry ();
       return err ? EXIT_FAILURE : EXIT_SUCCESS;
@@ -600,9 +601,9 @@ openvas (int argc, char *argv[], char *env[])
   if (scan_id)
     {
       struct scan_globals *globals;
-      global_scan_id = g_strdup (scan_id);
+      set_scan_id (g_strdup (scan_id));
       globals = g_malloc0 (sizeof (struct scan_globals));
-      globals->scan_id = g_strdup (global_scan_id);
+      globals->scan_id = g_strdup (get_scan_id ());
 
       if ((err = attack_network_init (globals, config_file)) != 0)
         return EXIT_FAILURE;

@@ -96,7 +96,7 @@ Ensure (attack, comm_send_status_sends_correct_text)
   /* Create a dummy kb. */
   kb = &kb_struct;
 
-  /* We can't wrap kb_item_push_str because it is inline, so we have to do
+  /* We can't wrap kb_check_push_str because it is inline, so we have to do
    * a little hacking. */
   kb_ops_struct.kb_push_str = __wrap_redis_push_str;
   kb_ops_struct.kb_lnk_reset = __wrap_redis_lnk_reset;
