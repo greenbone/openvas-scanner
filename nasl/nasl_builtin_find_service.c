@@ -1494,18 +1494,18 @@ may_be_time (time_t *rtime)
 
 static int
 retry_stream_connection (int test_ssl, struct script_infos *desc, int port,
-                         int timeout)
+                         int timeout, int *trp)
 {
   const char *p = "NORMAL:+ARCFOUR-128:%COMPAT";
   const char *lp = "LEGACY:%COMPAT:%UNSAFE_RENEGOTIATION";
-  int cnx, trp;
+  int cnx;
 
   if (test_ssl)
-    trp = OPENVAS_ENCAPS_TLScustom;
+    *trp = OPENVAS_ENCAPS_TLScustom;
   else
-    trp = OPENVAS_ENCAPS_IP;
+    *trp = OPENVAS_ENCAPS_IP;
 
-  cnx = open_stream_connection (desc, port, trp, timeout);
+  cnx = open_stream_connection (desc, port, *trp, timeout);
   if (test_ssl)
     {
       switch (cnx)
@@ -1515,7 +1515,7 @@ retry_stream_connection (int test_ssl, struct script_infos *desc, int port,
           g_debug ("%s: NO_PRIORITY_FLAGS failed, retrying with "
                    "INSECURE_DH_PRIME_BITS",
                    __func__);
-          cnx = open_stream_connection_ext (desc, port, trp, timeout, p,
+          cnx = open_stream_connection_ext (desc, port, *trp, timeout, p,
                                             INSECURE_DH_PRIME_BITS);
           if (cnx >= 0)
             {
@@ -1525,7 +1525,7 @@ retry_stream_connection (int test_ssl, struct script_infos *desc, int port,
         case TLS_FATAL_ALERT:
           // retry with legacy option
           g_debug ("%s: %s failed, retrying with %s", __func__, p, lp);
-          cnx = open_stream_connection_ext (desc, port, trp, timeout, lp,
+          cnx = open_stream_connection_ext (desc, port, *trp, timeout, lp,
                                             NO_PRIORITY_FLAGS);
           if (cnx >= 0)
             {
@@ -1663,7 +1663,8 @@ plugin_do_run (struct script_infos *desc, GSList *h, int test_ssl)
                   banner = NULL;
                 }
               gettimeofday (&tv1, NULL);
-              cnx = retry_stream_connection (test_ssl, desc, port, cnx_timeout);
+              cnx = retry_stream_connection (test_ssl, desc, port, cnx_timeout,
+                                             &trp);
               gettimeofday (&tv2, NULL);
               diff_tv = DIFFTV1000 (tv2, tv1);
             }
