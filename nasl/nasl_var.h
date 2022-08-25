@@ -16,8 +16,8 @@
  * Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA 02110-1301 USA.
  */
 
-#ifndef NASL_VAR_H_INCLUDED
-#define NASL_VAR_H_INCLUDED
+#ifndef NASL_NASL_VAR_H
+#define NASL_NASL_VAR_H
 
 #include "nasl_tree.h"
 

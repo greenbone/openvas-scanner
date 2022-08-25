@@ -23,8 +23,8 @@
  * @brief plugs_req.c header.
  */
 
-#ifndef PLUGINS_REQUIREMENTS_H__
-#define PLUGINS_REQUIREMENTS_H__
+#ifndef OPENVAS_PLUGS_REQ_H
+#define OPENVAS_PLUGS_REQ_H
 
 #include <gvm/util/kb.h> /* for struct kb_item */
 

@@ -23,8 +23,8 @@
  * @brief processes.c header.
  */
 
-#ifndef _OPENVAS_THREADS_H
-#define _OPENVAS_THREADS_H
+#ifndef OPENVAS_PROCESSES_H
+#define OPENVAS_PROCESSES_H
 
 #include "../misc/ipc.h"
 

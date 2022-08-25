@@ -22,8 +22,8 @@
  * @brief Auxiliary structures for scanner.
  */
 
-#ifndef _OPENVAS_SCANNERAUX_H
-#define _OPENVAS_SCANNERAUX_H
+#ifndef MISC_SCANNERAUX_H
+#define MISC_SCANNERAUX_H
 
 #include <glib.h>
 #include <gvm/base/nvti.h>
@@ -54,4 +54,4 @@ struct script_infos
   int denial_port;
   int alive;
 };
-#endif /* not _OPENVAS_SCANNERAUX_H */
+#endif /* not MISC_SCANNERAUX_H */

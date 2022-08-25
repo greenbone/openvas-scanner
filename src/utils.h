@@ -23,8 +23,8 @@
  * @brief utils.c headerfile.
  */
 
-#ifndef _OPENVAS_UTILS_H
-#define _OPENVAS_UTILS_H
+#ifndef OPENVAS_UTILS_H
+#define OPENVAS_UTILS_H
 
 #include "../misc/scanneraux.h"
 

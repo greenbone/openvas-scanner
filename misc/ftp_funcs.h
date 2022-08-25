@@ -23,8 +23,8 @@
  * @brief Header file for module ftp_funcs.
  */
 
-#ifndef OPENVAS_FTP_FUNCS_H
-#define OPENVAS_FTP_FUNCS_H
+#ifndef MISC_FTP_FUNCS_H
+#define MISC_FTP_FUNCS_H
 
 #include <arpa/inet.h>
 #include <sys/param.h>

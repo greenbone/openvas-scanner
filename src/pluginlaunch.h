@@ -23,8 +23,8 @@
  * @brief pluginlaunch.c header.
  */
 
-#ifndef __PLUGINLAUNCH_H__
-#define __PLUGINLAUNCH_H__
+#ifndef OPENVAS_PLUGINLAUNCH_H
+#define OPENVAS_PLUGINLAUNCH_H
 
 #include "pluginload.h"      /* for struct pl_class_t */
 #include "pluginscheduler.h" /* for struct plugins_scheduler_t */

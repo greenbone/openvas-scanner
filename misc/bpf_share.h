@@ -23,8 +23,8 @@
  * @brief Header file for module bpf_share.
  */
 
-#ifndef OPENVAS_BPF_SHARE_H
-#define OPENVAS_BPF_SHARE_H
+#ifndef MISC_BPF_SHARE_H
+#define MISC_BPF_SHARE_H
 
 #include <sys/types.h>
 
