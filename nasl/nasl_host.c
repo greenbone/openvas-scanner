@@ -135,9 +135,10 @@ add_hostname (lex_ctxt *lexic)
     goto end_add_hostname;
 
   /* Push to KB. Signal host process to fetch it. */
-  kb_item_push_str (lexic->script_infos->key, "internal/vhosts", lower);
+
+  kb_check_push_str (lexic->script_infos->key, "internal/vhosts", lower);
   snprintf (buffer, sizeof (buffer), "internal/source/%s", lower);
-  kb_item_push_str (lexic->script_infos->key, buffer, source);
+  kb_check_push_str (lexic->script_infos->key, buffer, source);
   host_pid = kb_item_get_int (lexic->script_infos->key, "internal/hostpid");
   if (host_pid > 0)
     kill (host_pid, SIGUSR2);
