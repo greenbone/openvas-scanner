@@ -534,14 +534,15 @@ run_table_driven_lsc (const char *scan_id, kb_t kb, const char *ip_str,
  */
 static int
 launch_plugin (struct scan_globals *globals, struct scheduler_plugin *plugin,
-               struct in6_addr *ip, GSList *vhosts, kb_t kb, kb_t main_kb)
+               struct in6_addr *ip, GSList *vhosts,
+               struct attack_start_args *args)
 {
   int optimize = prefs_get_bool ("optimize_test");
   int launch_error, pid, ret = 0;
   char *oid, *name, *error = NULL, ip_str[INET6_ADDRSTRLEN];
   nvti_t *nvti;
 
-  kb_lnk_reset (main_kb);
+  kb_lnk_reset (args->main_kb);
   addr6_to_str (ip, ip_str);
   oid = plugin->oid;
   nvti = nvticache_get_nvt (oid);
@@ -576,9 +577,10 @@ launch_plugin (struct scan_globals *globals, struct scheduler_plugin *plugin,
 
   /* Do not launch NVT if mandatory key is missing (e.g. an important tool
    * was not found). */
-  if (!mandatory_requirements_met (kb, nvti))
+  if (!mandatory_requirements_met (args->host_kb, nvti))
     error = "because a mandatory key is missing";
-  if (error || (optimize && (error = requirements_plugin (kb, nvti))))
+  if (error
+      || (optimize && (error = requirements_plugin (args->host_kb, nvti))))
     {
       plugin->running_state = PLUGIN_STATUS_DONE;
       if (prefs_get_bool ("log_whole_attack"))
@@ -593,7 +595,7 @@ launch_plugin (struct scan_globals *globals, struct scheduler_plugin *plugin,
     }
 
   /* Stop the test if the host is 'dead' */
-  if (kb_item_get_int (kb, "Host/dead") > 0)
+  if (kb_item_get_int (args->host_kb, "Host/dead") > 0)
     {
       g_message ("The remote host %s is dead", ip_str);
       pluginlaunch_stop ();
@@ -605,8 +607,8 @@ launch_plugin (struct scan_globals *globals, struct scheduler_plugin *plugin,
   /* Update vhosts list and start the plugin */
   check_new_vhosts ();
   launch_error = 0;
-  pid = plugin_launch (globals, plugin, ip, vhosts, kb, main_kb, nvti,
-                       &launch_error);
+  pid = plugin_launch (globals, plugin, ip, vhosts, args->host_kb,
+                       args->main_kb, nvti, &launch_error);
   if (launch_error == ERR_NO_FREE_SLOT || launch_error == ERR_CANT_FORK)
     {
       plugin->running_state = PLUGIN_STATUS_UNRUN;
@@ -630,8 +632,8 @@ finish_launch_plugin:
  * @brief Attack one host.
  */
 static void
-attack_host (struct scan_globals *globals, struct in6_addr *ip, GSList *vhosts,
-             plugins_scheduler_t sched, kb_t kb, kb_t main_kb)
+attack_host (struct scan_globals *globals, struct in6_addr *ip,
+             struct attack_start_args *args)
 {
   /* Used for the status */
   int num_plugs, forks_retry = 0, all_plugs_launched = 0;
@@ -641,17 +643,17 @@ attack_host (struct scan_globals *globals, struct in6_addr *ip, GSList *vhosts,
 
   addr6_to_str (ip, ip_str);
   openvas_signal (SIGUSR2, set_check_new_vhosts_flag);
-  host_kb = kb;
-  host_vhosts = vhosts;
+  host_kb = args->host_kb;
+  host_vhosts = args->host->vhosts;
   globals->host_pid = getpid ();
-  host_set_time (main_kb, ip_str, "HOST_START");
-  kb_lnk_reset (main_kb);
+  host_set_time (args->main_kb, ip_str, "HOST_START");
+  kb_lnk_reset (args->main_kb);
   setproctitle ("openvas: testing %s", ip_str);
-  kb_lnk_reset (kb);
+  kb_lnk_reset (args->host_kb);
 
   /* launch the plugins */
   pluginlaunch_init (ip_str);
-  num_plugs = plugins_scheduler_count_active (sched);
+  num_plugs = plugins_scheduler_count_active (args->sched);
   for (;;)
     {
       /* Check that our father is still alive */
@@ -662,7 +664,7 @@ attack_host (struct scan_globals *globals, struct in6_addr *ip, GSList *vhosts,
           return;
         }
 
-      if (check_kb_inconsistency (main_kb) != 0)
+      if (check_kb_inconsistency (args->main_kb) != 0)
         {
           // As long as we don't have a proper communication channel
           // to our ancestors we just kill our parent and ourselves
@@ -672,16 +674,16 @@ attack_host (struct scan_globals *globals, struct in6_addr *ip, GSList *vhosts,
         }
 
       if (scan_is_stopped ())
-        plugins_scheduler_stop (sched);
+        plugins_scheduler_stop (args->sched);
 
-      plugin = plugins_scheduler_next (sched);
+      plugin = plugins_scheduler_next (args->sched);
       if (plugin != NULL && plugin != PLUG_RUNNING)
         {
           int e;
           static int last_status = 0, cur_plug = 0;
 
         again:
-          e = launch_plugin (globals, plugin, ip, host_vhosts, kb, main_kb);
+          e = launch_plugin (globals, plugin, ip, host_vhosts, args);
           if (e < 0)
             {
               /*
@@ -697,9 +699,9 @@ attack_host (struct scan_globals *globals, struct in6_addr *ip, GSList *vhosts,
                     "<name>Host dead</name><value>1</value><source>"
                     "<description/><type/><name/></source></detail></host>",
                     ip_str);
-                  kb_check_push_str (main_kb, "internal/results", buffer);
+                  kb_check_push_str (args->main_kb, "internal/results", buffer);
 
-                  comm_send_status_host_dead (main_kb, ip_str);
+                  comm_send_status_host_dead (args->main_kb, ip_str);
                   goto host_died;
                 }
               else if (e == ERR_NO_FREE_SLOT)
@@ -738,7 +740,8 @@ attack_host (struct scan_globals *globals, struct in6_addr *ip, GSList *vhosts,
               && !scan_is_stopped ())
             {
               last_status = (cur_plug * 100) / num_plugs + 2;
-              if (comm_send_status (main_kb, ip_str, cur_plug, num_plugs) < 0)
+              if (comm_send_status (args->main_kb, ip_str, cur_plug, num_plugs)
+                  < 0)
                 goto host_died;
             }
           cur_plug++;
@@ -748,30 +751,30 @@ attack_host (struct scan_globals *globals, struct in6_addr *ip, GSList *vhosts,
       else if (plugin != NULL && plugin == PLUG_RUNNING)
         /* 50 milliseconds. */
         usleep (50000);
-      pluginlaunch_wait_for_free_process (main_kb, kb);
+      pluginlaunch_wait_for_free_process (args->main_kb, args->host_kb);
     }
 
   if (!scan_is_stopped () && prefs_get_bool ("table_driven_lsc")
       && prefs_get_bool ("mqtt_enabled"))
     {
       g_message ("Running LSC via Notus for %s", ip_str);
-      if (run_table_driven_lsc (globals->scan_id, kb, ip_str, NULL))
+      if (run_table_driven_lsc (globals->scan_id, args->host_kb, ip_str, NULL))
         {
           char buffer[2048];
           snprintf (
             buffer, sizeof (buffer),
             "ERRMSG|||%s||| ||| ||| ||| Unable to launch table driven lsc",
             ip_str);
-          kb_check_push_str (main_kb, "internal/results", buffer);
+          kb_check_push_str (args->main_kb, "internal/results", buffer);
           g_warning ("%s: Unable to launch table driven LSC", __func__);
         }
     }
 
-  pluginlaunch_wait (main_kb, kb);
+  pluginlaunch_wait (args->main_kb, args->host_kb);
   if (!scan_is_stopped ())
     {
       int ret;
-      ret = comm_send_status (main_kb, ip_str, num_plugs, num_plugs);
+      ret = comm_send_status (args->main_kb, ip_str, num_plugs, num_plugs);
       if (ret == 0)
         all_plugs_launched = 1;
     }
@@ -782,8 +785,8 @@ host_died:
                "were launched",
                globals->scan_id, ip_str);
   pluginlaunch_stop ();
-  plugins_scheduler_free (sched);
-  host_set_time (main_kb, ip_str, "HOST_END");
+  plugins_scheduler_free (args->sched);
+  host_set_time (args->main_kb, ip_str, "HOST_END");
 }
 
 /*
@@ -967,7 +970,7 @@ attack_start (struct attack_start_args *args)
     g_message ("Vulnerability scan %s started for host: %s", globals->scan_id,
                ip_str);
   g_free (hostnames);
-  attack_host (globals, &hostip, args->host->vhosts, args->sched, kb, main_kb);
+  attack_host (globals, &hostip, args);
   kb_lnk_reset (main_kb);
 
   if (!scan_is_stopped ())
