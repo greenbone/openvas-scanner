@@ -24,8 +24,8 @@
  *----------------------------------------------------------------------*/
 
 /*--------------------------------------------------------------------------*/
-#ifndef NASL_SOCKET_H
-#define NASL_SOCKET_H
+#ifndef NASL_NASL_SOCKET_H
+#define NASL_NASL_SOCKET_H
 
 #include "nasl_lex_ctxt.h"
 #include "nasl_tree.h"

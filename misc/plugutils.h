@@ -23,8 +23,8 @@
  * @brief Header file for module plugutils.
  */
 
-#ifndef OPENVAS_PLUGUTILS_H
-#define OPENVAS_PLUGUTILS_H
+#ifndef MISC_PLUGUTILS_H
+#define MISC_PLUGUTILS_H
 
 #include "scanneraux.h" /* for struct script_infos */
 

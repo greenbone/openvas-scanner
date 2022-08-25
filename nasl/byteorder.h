@@ -22,8 +22,8 @@
  * @brief Unix SMB/CIFS implementation. SMB Byte handling
  */
 
-#ifndef _BYTEORDER_H
-#define _BYTEORDER_H
+#ifndef NASL_BYTEORDER_H
+#define NASL_BYTEORDER_H
 
 /*
    This file implements macros for machine independent short and
@@ -179,4 +179,4 @@ it also defines lots of intermediate macros, just ignore those :-)
 #define ALIGN4(p, base) ((p) + ((4 - (PTR_DIFF ((p), (base)) & 3)) & 3))
 #define ALIGN2(p, base) ((p) + ((2 - (PTR_DIFF ((p), (base)) & 1)) & 1))
 
-#endif /* _BYTEORDER_H */
+#endif /* NASL_BYTEORDER_H */

@@ -22,8 +22,8 @@
  * @brief debug_utils.c headerfile.
  */
 
-#ifndef _OPENVAS_DEBUG_UTILS_H
-#define _OPENVAS_DEBUG_UTILS_H
+#ifndef OPENVAS_DEBUG_UTILS_H
+#define OPENVAS_DEBUG_UTILS_H
 
 #include <gvm/base/gvm_sentry.h> /* for gvm_sentry_init */
 

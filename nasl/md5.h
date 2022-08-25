@@ -18,8 +18,8 @@
 /* This code slightly modified to fit into Samba by
    abartlet@samba.org Jun 2001 */
 
-#ifndef MD5_H
-#define MD5_H
+#ifndef NASL_MD5_H
+#define NASL_MD5_H
 #ifndef HEADER_MD5_H
 /* Try to avoid clashes with OpenSSL */
 #define HEADER_MD5_H
@@ -57,4 +57,4 @@ MD5Update (struct MD5Context *context, unsigned char const *buf, unsigned len);
 void
 MD5Final (unsigned char digest[16], struct MD5Context *context);
 
-#endif /* !MD5_H */
+#endif /* !NASL_MD5_H */
