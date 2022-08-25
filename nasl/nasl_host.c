@@ -139,7 +139,7 @@ add_hostname (lex_ctxt *lexic)
   kb_check_push_str (lexic->script_infos->key, "internal/vhosts", lower);
   snprintf (buffer, sizeof (buffer), "internal/source/%s", lower);
   kb_check_push_str (lexic->script_infos->key, buffer, source);
-  host_pid = kb_item_get_int (lexic->script_infos->key, "internal/hostpid");
+  host_pid = lexic->script_infos->globals->host_pid;
   if (host_pid > 0)
     kill (host_pid, SIGUSR2);
 

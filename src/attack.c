@@ -643,7 +643,7 @@ attack_host (struct scan_globals *globals, struct in6_addr *ip, GSList *vhosts,
   openvas_signal (SIGUSR2, set_check_new_vhosts_flag);
   host_kb = kb;
   host_vhosts = vhosts;
-  kb_check_set_int (kb, "internal/hostpid", getpid ());
+  globals->host_pid = getpid ();
   host_set_time (main_kb, ip_str, "HOST_START");
   kb_lnk_reset (main_kb);
   setproctitle ("openvas: testing %s", ip_str);
