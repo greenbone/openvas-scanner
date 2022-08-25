@@ -16,8 +16,8 @@
  * Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA 02110-1301 USA.
  */
 
-#ifndef __LIB_NASL_H__
-#define __LIB_NASL_H__
+#ifndef NASL_H
+#define NASL_H
 
 #include "../misc/scanneraux.h"
 

@@ -24,8 +24,8 @@
  * This file contains the protos for \ref nasl_cert.c
  */
 
-#ifndef NASL_CERT_H
-#define NASL_CERT_H
+#ifndef NASL_NASL_CERT_H
+#define NASL_NASL_CERT_H
 
 #include "nasl_lex_ctxt.h"
 
@@ -38,4 +38,4 @@ nasl_cert_close (lex_ctxt *lexic);
 tree_cell *
 nasl_cert_query (lex_ctxt *lexic);
 
-#endif /*NASL_CERT_H*/
+#endif /*NASL_NASL_CERT_H*/

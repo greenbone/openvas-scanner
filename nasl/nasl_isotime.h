@@ -24,8 +24,8 @@
  * This file contains the protos for \ref nasl_isotime.c
  */
 
-#ifndef NASL_ISOTIME_H
-#define NASL_ISOTIME_H
+#ifndef NASL_NASL_ISOTIME_H
+#define NASL_NASL_ISOTIME_H
 
 #include "nasl_lex_ctxt.h"
 
@@ -44,4 +44,4 @@ nasl_isotime_print (lex_ctxt *lexic);
 tree_cell *
 nasl_isotime_add (lex_ctxt *lexic);
 
-#endif /*NASL_ISOTIME_H*/
+#endif /*NASL_NASL_ISOTIME_H*/

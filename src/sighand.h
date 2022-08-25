@@ -23,8 +23,8 @@
  * @brief headerfile for sighand.c.
  */
 
-#ifndef _OPENVAS_SIGHAND_H
-#define _OPENVAS_SIGHAND_H
+#ifndef OPENVAS_SIGHAND_H
+#define OPENVAS_SIGHAND_H
 
 void (*openvas_signal (int signum, void (*handler) (int))) (int);
 void

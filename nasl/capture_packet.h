@@ -16,8 +16,8 @@
  * Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA 02110-1301 USA.
  */
 
-#ifndef CAPTURE_PACKET_H
-#define CAPTURE_PACKET_H
+#ifndef NASL_CAPTURE_PACKET_H
+#define NASL_CAPTURE_PACKET_H
 
 #include <netinet/in.h>
 #include <netinet/ip6.h>

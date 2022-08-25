@@ -27,8 +27,8 @@
  * ACT_SCANNER are in principle executed first).
  */
 
-#ifndef _NVT_CATEGORIES_H
-#define _NVT_CATEGORIES_H
+#ifndef MISC_NVT_CATEGORIES_H
+#define MISC_NVT_CATEGORIES_H
 
 /**
  * @brief NVT 'Categories', influence execution order of NVTs.
@@ -48,4 +48,4 @@ typedef enum
   ACT_END,
 } nvt_category;
 
-#endif /* _NVT_CATEGORIES_H */
+#endif /* MISC_NVT_CATEGORIES_H */

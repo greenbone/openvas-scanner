@@ -22,10 +22,10 @@
  * @brief Headers for OpenVAS entry point.
  */
 
-#ifndef _OPENVAS_H
-#define _OPENVAS_H
+#ifndef OPENVAS_H
+#define OPENVAS_H
 
 int
 openvas (int, char **, char **);
 
-#endif /* not _OPENVAS_H */
+#endif /* not OPENVAS_H */

@@ -24,8 +24,8 @@
  * This file contains the protos for \ref nasl_smb.c
  */
 
-#ifndef _NASL_NASL_SMB_H
-#define _NASL_NASL_SMB_H
+#ifndef NASL_NASL_SMB_H
+#define NASL_NASL_SMB_H
 
 /* for lex_ctxt */
 #include "nasl_lex_ctxt.h"
