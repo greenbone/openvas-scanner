@@ -25,8 +25,8 @@
 
 /* MODIFICATION: This has only those functions that cater to the requirements of
  * OpenVAS, remaining functions are removed*/
-#ifndef __CHARSET_H__
-#define __CHARSET_H__
+#ifndef NASL_CHARSET_H
+#define NASL_CHARSET_H
 
 #include "smb.h"
 

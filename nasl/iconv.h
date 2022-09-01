@@ -22,8 +22,8 @@
  * @brief Unix SMB/CIFS implementation. iconv memory system include wrappers
  */
 
-#ifndef _system_iconv_h
-#define _system_iconv_h
+#ifndef NASL_ICONV_H
+#define NASL_ICONV_H
 
 #if !defined(HAVE_ICONV) && defined(HAVE_ICONV_H)
 #define HAVE_ICONV

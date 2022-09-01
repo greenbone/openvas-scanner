@@ -23,8 +23,8 @@
  * @brief attack.c header.
  */
 
-#ifndef __OPENVAS_ATTACK_H__
-#define __OPENVAS_ATTACK_H__
+#ifndef OPENVAS_ATTACK_H
+#define OPENVAS_ATTACK_H
 
 #include "../misc/scanneraux.h"
 

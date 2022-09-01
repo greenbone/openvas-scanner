@@ -22,8 +22,8 @@
  * @brief Support macros for special platforms.
  */
 
-#ifndef _OPENVAS_MISC_SUPPORT_H
-#define _OPENVAS_MISC_SUPPORT_H
+#ifndef MISC_SUPPORT_H
+#define MISC_SUPPORT_H
 
 // This structure does not exist on MacOS or FreeBSD systems
 #ifndef s6_addr32
@@ -44,4 +44,4 @@
 #define g_pattern_spec_match_string g_pattern_match_string
 #endif
 
-#endif /* not _OPENVAS_MISC_SUPPORT_H */
+#endif /* not MISC_SUPPORT_H */

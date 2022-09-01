@@ -23,8 +23,8 @@
  * @brief hosts.c header.
  */
 
-#ifndef HOSTS_H
-#define HOSTS_H
+#ifndef OPENVAS_HOSTS_H
+#define OPENVAS_HOSTS_H
 
 #include "../misc/scanneraux.h"
 

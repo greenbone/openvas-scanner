@@ -22,8 +22,8 @@
  * @brief Header file: vendor version functions prototypes.
  */
 
-#ifndef _OPENVAS_VENDORVERSION_H
-#define _OPENVAS_VENDORVERSION_H
+#ifndef MISC_VENDORVERSION_H
+#define MISC_VENDORVERSION_H
 
 #include <glib.h>
 
@@ -33,4 +33,4 @@ vendor_version_get (void);
 void
 vendor_version_set (const gchar *);
 
-#endif /* not _OPENVAS_VENDORVERSION_H */
+#endif /* not MISC_VENDORVERSION_H */

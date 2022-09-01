@@ -16,8 +16,8 @@
  * Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA 02110-1301 USA.
  */
 
-#ifndef MISC2_STRUTILS_H__
-#define MISC2_STRUTILS_H__
+#ifndef MISC_STRUTILS_H
+#define MISC_STRUTILS_H
 
 #include <glib.h>
 

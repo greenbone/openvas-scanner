@@ -30,8 +30,8 @@
    implementation
 */
 
-#ifndef _SMB_SIGNING_H
-#define _SMB_SIGNING_H
+#ifndef NASL_SMB_SIGNING_H
+#define NASL_SMB_SIGNING_H
 
 #include "byteorder.h"
 #include "md5.h"

@@ -25,8 +25,8 @@
  * interface implementation.
  */
 
-#ifndef _NASL_OPENVAS_SMB_INTERFACE_H
-#define _NASL_OPENVAS_SMB_INTERFACE_H
+#ifndef NASL_OPENVAS_SMB_INTERFACE_H
+#define NASL_OPENVAS_SMB_INTERFACE_H
 
 typedef long int SMB_HANDLE;
 

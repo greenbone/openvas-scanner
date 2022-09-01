@@ -22,8 +22,8 @@
  * @brief Header file for built-in plugins.
  */
 
-#ifndef _NASL_BUILTIN_PLUGINS_H
-#define _NASL_BUILTIN_PLUGINS_H
+#ifndef NASL_NASL_BUILTIN_PLUGINS_H
+#define NASL_NASL_BUILTIN_PLUGINS_H
 #include "nasl_lex_ctxt.h"
 #include "nasl_tree.h"
 tree_cell *
@@ -35,4 +35,4 @@ plugin_run_openvas_tcp_scanner (lex_ctxt *);
 tree_cell *
 plugin_run_synscan (lex_ctxt *);
 
-#endif /* not _NASL_BUILTIN_PLUGINS_H */
+#endif /* not NASL_NASL_BUILTIN_PLUGINS_H */
