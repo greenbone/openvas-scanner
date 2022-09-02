@@ -234,7 +234,7 @@ create_ipc_process (ipc_process_func func, void *args)
   ec.post_func = (ipc_process_func) &post_fork_fun_call;
   ec.func = (ipc_process_func) func;
   ec.func_arg = args;
-  if ((pctx = ipc_exec_as_process (IPC_PIPE, &ec)) == NULL)
+  if ((pctx = ipc_exec_as_process (IPC_PIPE, ec)) == NULL)
     {
       g_warning ("Error : could not fork ! Error : %s", strerror (errno));
       return FORKFAILED;
