@@ -28,8 +28,6 @@
 
 #include "../misc/ipc.h"
 
-#include "../misc/ipc.h"
-
 #include <sys/types.h> /* for pid_t */
 
 #define FORKFAILED -1

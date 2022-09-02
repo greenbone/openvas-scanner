@@ -115,11 +115,11 @@ exit:
 }
 
 struct ipc_context *
-ipc_exec_as_process (enum ipc_protocol type, struct ipc_exec_context *exec_ctx)
+ipc_exec_as_process (enum ipc_protocol type, struct ipc_exec_context exec_ctx)
 {
   struct ipc_context *pctx = NULL, *cctx = NULL;
   pid_t pid;
-  if (exec_ctx == NULL || exec_ctx->func == NULL)
+  if (exec_ctx.func == NULL)
     return NULL;
   switch (type)
     {
@@ -147,19 +147,17 @@ ipc_exec_as_process (enum ipc_protocol type, struct ipc_exec_context *exec_ctx)
           exit (1);
         }
 
-      if (exec_ctx->pre_func != NULL)
-        (*exec_ctx->pre_func) (cctx, exec_ctx->pre_arg);
-      (*exec_ctx->func) (cctx, exec_ctx->func_arg);
-      if (exec_ctx->post_func != NULL)
-        (*exec_ctx->post_func) (cctx, exec_ctx->pre_arg);
+      if (exec_ctx.pre_func != NULL)
+        (*exec_ctx.pre_func) (cctx, exec_ctx.pre_arg);
+      (*exec_ctx.func) (cctx, exec_ctx.func_arg);
+      if (exec_ctx.post_func != NULL)
+        (*exec_ctx.post_func) (cctx, exec_ctx.pre_arg);
       switch (type)
         {
         case IPC_PIPE:
           ipc_destroy (pctx);
           break;
         }
-      free (exec_ctx);
-      // we want to cleanup file handle
       exit (0);
     }
 
@@ -171,7 +169,7 @@ ipc_exec_as_process (enum ipc_protocol type, struct ipc_exec_context *exec_ctx)
         }
       pctx->relation = IPC_MAIN;
       pctx->type = type;
-      pctx->context = exec_ctx->shared_context;
+      pctx->context = exec_ctx.shared_context;
     }
   // we are the parent process and return the id of the child process for
   // observation
