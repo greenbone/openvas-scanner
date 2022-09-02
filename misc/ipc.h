@@ -72,7 +72,7 @@ ipc_close (struct ipc_context *context);
 
 struct ipc_context *
 ipc_exec_as_process (enum ipc_protocol type,
-                     struct ipc_exec_context *exec_context);
+                     struct ipc_exec_context exec_context);
 
 struct ipc_context *
 ipc_init (enum ipc_protocol protocol, enum ipc_relation relation);
