@@ -23,14 +23,26 @@
 // default preallocation length for ipc_contexts
 #define IPC_CONTEXTS_CAP_STEP 10
 
+/**
+ * @brief sends given msg to the target based on the given context
+ *
+ * @param context the ipc_context to be used; must be previously
+ * initialized via ipc_init.
+ *
+ * @param to the target direction of the message when it is supported by the
+ * given ipc_context.
+ * @param msg the message to send
+ * @param len the length of msg
+ *
+ * @return bytes written, -2 when the context or msg or context type is unknown,
+ * -1 on write error
+ */
 int
 ipc_send (struct ipc_context *context, enum ipc_relation to, const char *msg,
           size_t len)
 {
   (void) to;
-  if (context == NULL)
-    return -3;
-  if (msg == NULL)
+  if (context == NULL || msg == NULL)
     return -2;
   switch (context->type)
     {
@@ -40,6 +52,13 @@ ipc_send (struct ipc_context *context, enum ipc_relation to, const char *msg,
   return -2;
 }
 
+/**
+ * @brief destroys given context
+ *
+ * @param context the ipc_context to be destroyed.
+ *
+ * @return 0 on success, -1 on context null or failure to destroy
+ */
 int
 ipc_destroy (struct ipc_context *context)
 {
@@ -57,6 +76,17 @@ ipc_destroy (struct ipc_context *context)
   return rc;
 }
 
+/**
+ * @brief retrieves data for the relation based on the context
+ *
+ * @param context the ipc_context to be used; must be previously
+ * initialized via ipc_init.
+ *
+ * @param to the recieving direction of the message when it is supported by the
+ * given ipc_context.
+ *
+ * @return a heap initialized data or NULL
+ */
 char *
 ipc_retrieve (struct ipc_context *context, enum ipc_relation from)
 {
@@ -71,6 +101,13 @@ ipc_retrieve (struct ipc_context *context, enum ipc_relation from)
   return NULL;
 }
 
+/**
+ * @brief closes given context
+ *
+ * @param context the ipc_context to be  closed
+ *
+ * @return -1 when context is either NULL or already closed or 0 on success.
+ */
 int
 ipc_close (struct ipc_context *context)
 {
@@ -87,6 +124,14 @@ ipc_close (struct ipc_context *context)
   return rc;
 }
 
+/**
+ * @brief initializes a new context.
+ *
+ * @param type the protocol type to be initialized
+ * @param relation the relation of the context to be initialized when supported by the type.
+ *
+ * @return a heap initialized context or NULL on failure.
+ */
 struct ipc_context *
 ipc_init (enum ipc_protocol type, enum ipc_relation relation)
 {
@@ -114,6 +159,14 @@ exit:
   return NULL;
 }
 
+/**
+ * @brief runs given functions with the given protocol type.
+ *
+ * @param type the protocol type to be initialized
+ * @param exec_ctx the execution context to be executed.
+ *
+ * @return a heap initialized context or NULL on failure.
+ */
 struct ipc_context *
 ipc_exec_as_process (enum ipc_protocol type, struct ipc_exec_context exec_ctx)
 {
@@ -177,6 +230,13 @@ ipc_exec_as_process (enum ipc_protocol type, struct ipc_exec_context exec_ctx)
   return pctx;
 }
 
+/**
+ * @brief initializes ipc_contexts with a given preallocated capacity.
+ *
+ * @param cap to size to be preallocated, if 0 it will not preallocate but allocate on each enw entry.
+ *
+ * @return a heap initialized contexts or NULL on failure.
+ */
 struct ipc_contexts *
 ipc_contexts_init (int cap)
 {
@@ -195,6 +255,14 @@ free_and_exit:
   return NULL;
 }
 
+/**
+ * @brief adds a given context to contexts
+ *
+ * @param ctxs the context holder array to be used to add a new ctx
+ * @param ctx the context to be added to ctxs
+ *
+ * @return a pointer to the given ctxs or NULL on failure.
+ */
 struct ipc_contexts *
 ipc_add_context (struct ipc_contexts *ctxs, struct ipc_context *ctx)
 {
@@ -219,6 +287,13 @@ exit_error:
   return NULL;
 }
 
+/**
+ * @brief destroys given contexts
+ *
+ * @param ctxs the context holder array to be destroyed.
+ *
+ * @return 0 on success or -1 on failure.
+ */
 int
 ipc_destroy_contexts (struct ipc_contexts *ctxs)
 {
