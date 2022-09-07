@@ -47,6 +47,7 @@
 #define G_LOG_DOMAIN "sd   main"
 
 <<<<<<< HEAD
+<<<<<<< HEAD
 /**
  * @brief Send SIGTERM to the pid process. Try to wait the
  * the process. In case of the process has still not change
@@ -55,6 +56,10 @@
 
    @param[in] pid Process id to terminate.
 =======
+=======
+// holds all used ipc_contexts; it will be initialized and managed by
+// create_ipc_process.
+>>>>>>> 2ab611cf (Refactor: add license header)
 static struct ipc_contexts *ipcc = NULL;
 
 /**
