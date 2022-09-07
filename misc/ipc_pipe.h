@@ -1,5 +1,5 @@
-#ifndef IPC_PIPE_H
-#define IPC_PIPE_H
+#ifndef MISC_IPC_PIPE_H
+#define MISC_IPC_PIPE_H
 
 struct ipc_pipe_context
 {
