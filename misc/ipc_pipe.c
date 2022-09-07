@@ -11,6 +11,17 @@
 
 #define IPC_MAX_BUFFER 4096
 
+/**
+ * @brief sends given msg via the given context. Do not use this method directly, use ipc_send of ipc.h instead.
+ *
+ * @param context the ipc_pipe_context to be used; must be previously
+ * initialized via ipc_pipe_init.
+ *
+ * @param msg the message to send
+ * @param len the length of msg
+ *
+ * @return bytes written, 1 on write error
+ */
 int
 ipc_pipe_send (struct ipc_pipe_context *context, const char *msg, int len)
 {
@@ -20,12 +31,19 @@ ipc_pipe_send (struct ipc_pipe_context *context, const char *msg, int len)
   return wr;
 }
 
+/**
+ * @brief retrieves message from the given context. Do not use this method directly, use ipc_retrieve of ipc.h instead.
+ *
+ * @param context the ipc_pipe_context to be used; must be previously
+ * initialized via ipc_pipe_init.
+ *
+ * @return a heap allocated char array or NULL on failure.
+ */
 char *
 ipc_pipe_retrieve (struct ipc_pipe_context *context)
 {
   char *result = NULL;
   int rfd, rr, pf;
-  // 0 means parent, everything else child
   rfd = context->fd[0];
   pf = fcntl (rfd, F_GETFL, 0);
   if (pf < 0 && errno != EBADF)
@@ -47,6 +65,13 @@ ipc_pipe_retrieve (struct ipc_pipe_context *context)
     }
 }
 
+/**
+ * @brief closes given context. Do not use this method directly, use ipc_close of ipc.h instead.
+ *
+ * @param context the ipc_pipe_context to be closed.
+ *
+ * @return 0 on success, -1 on failure.
+ */
 int
 ipc_pipe_close (struct ipc_pipe_context *context)
 {
@@ -64,6 +89,13 @@ exit:
   return rc;
 }
 
+/**
+ * @brief destroys given context. Do not use this method directly, use ipc_destroy of ipc.h instead.
+ *
+ * @param context the ipc_pipe_context to be destroyed.
+ *
+ * @return 0 on success, -1 on failure.
+ */
 int
 ipc_pipe_destroy (struct ipc_pipe_context *context)
 {
@@ -80,6 +112,11 @@ exit:
   return rc;
 }
 
+/**
+ * @brief initializes a new context. Do not use this method directly, use ipc_init of ipc.h instead.
+ *
+ * @return a heap allocated ipc_pipe_context or NULL on failure.
+ */
 struct ipc_pipe_context *
 ipc_init_pipe (void)
 {
