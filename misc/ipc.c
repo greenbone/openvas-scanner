@@ -128,7 +128,8 @@ ipc_close (struct ipc_context *context)
  * @brief initializes a new context.
  *
  * @param type the protocol type to be initialized
- * @param relation the relation of the context to be initialized when supported by the type.
+ * @param relation the relation of the context to be initialized when supported
+ * by the type.
  *
  * @return a heap initialized context or NULL on failure.
  */
@@ -233,7 +234,8 @@ ipc_exec_as_process (enum ipc_protocol type, struct ipc_exec_context exec_ctx)
 /**
  * @brief initializes ipc_contexts with a given preallocated capacity.
  *
- * @param cap to size to be preallocated, if 0 it will not preallocate but allocate on each enw entry.
+ * @param cap to size to be preallocated, if 0 it will not preallocate but
+ * allocate on each enw entry.
  *
  * @return a heap initialized contexts or NULL on failure.
  */

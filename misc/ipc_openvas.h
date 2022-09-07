@@ -28,9 +28,6 @@ ipc_data_type_from_hostname (const char *source, size_t source_len,
                              const char *hostname, size_t hostname_len);
 
 void
-ipc_hostname_destroy (struct ipc_hostname *data);
-
-void
 ipc_data_destroy (struct ipc_data *data);
 
 const char *
