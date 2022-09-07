@@ -150,7 +150,6 @@ add_hostname (lex_ctxt *lexic)
     g_warning ("Unable to send %s to host process", lower);
 
 end_add_hostname:
-  ipc_data_destroy (hn);
   g_free (lower);
   g_free ((void *) json);
   return NULL;
