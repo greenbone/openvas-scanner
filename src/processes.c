@@ -243,6 +243,11 @@ create_ipc_process (ipc_process_func func, void *args)
   return pctx->pid;
 }
 
+/**
+ * @brief returns ipc_contexts.
+ *
+ * @return the globally hold array of all ipc_context; do not manipulate them.
+ */
 const struct ipc_contexts *
 procs_get_ipc_contexts (void)
 {
