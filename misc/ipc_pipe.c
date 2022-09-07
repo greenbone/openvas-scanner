@@ -15,8 +15,6 @@ int
 ipc_pipe_send (struct ipc_pipe_context *context, const char *msg, int len)
 {
   int wfd, wr;
-
-  // 0 means parent, everything else child
   wfd = context->fd[1];
   wr = write (wfd, msg, len);
   return wr;
