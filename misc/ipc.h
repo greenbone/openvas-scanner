@@ -1,5 +1,5 @@
-#ifndef IPC_H
-#define IPC_H
+#ifndef MISC_IPC_H
+#define MISC_IPC_H
 
 #include <sys/types.h>
 
