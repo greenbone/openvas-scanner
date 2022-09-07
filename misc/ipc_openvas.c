@@ -8,6 +8,14 @@
  */
 #define G_LOG_DOMAIN "lib  misc"
 
+/**
+ * @brief initializes ipc_data for a hostname data.
+ *
+ * @param source the source of the hostname
+ * @param hostname the name of the host
+ *
+ * @return a heap initialized ipc_data or NULL on failure.
+ */
 struct ipc_data *
 ipc_data_type_from_hostname (const char *source, size_t source_len,
                              const char *hostname, size_t hostname_len)
@@ -32,7 +40,7 @@ failure_exit:
   return NULL;
 }
 
-void
+static void
 ipc_hostname_destroy (struct ipc_hostname *data)
 {
   if (data == NULL)
@@ -42,6 +50,12 @@ ipc_hostname_destroy (struct ipc_hostname *data)
   g_free (data);
 }
 
+/**
+ * @brief destroys ipc_data.
+ *
+ * @param data the ipc_data to be destroyed.
+ *
+ */
 void
 ipc_data_destroy (struct ipc_data *data)
 {
@@ -56,6 +70,13 @@ ipc_data_destroy (struct ipc_data *data)
   g_free (data);
 }
 
+/**
+ * @brief transforms ipc_data to a json string
+ *
+ * @param data the ipc_data to be transformed.
+ *
+ * @return a heap allocated achar array containing the json or NULL on failure.
+ */
 const char *
 ipc_data_to_json (struct ipc_data *data)
 {
@@ -102,6 +123,14 @@ ipc_data_to_json (struct ipc_data *data)
   return json_str;
 }
 
+/**
+ * @brief transforms json string to a ipc_data struct
+ *
+ * @param json the json representation to be transformed.
+ * @param len the length of the json representation
+ *
+ * @return a heap allocated ipc_data or NULL on failure.
+ */
 struct ipc_data *
 ipc_data_from_json (const char *json, size_t len)
 {

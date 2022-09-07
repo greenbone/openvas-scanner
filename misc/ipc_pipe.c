@@ -12,7 +12,8 @@
 #define IPC_MAX_BUFFER 4096
 
 /**
- * @brief sends given msg via the given context. Do not use this method directly, use ipc_send of ipc.h instead.
+ * @brief sends given msg via the given context. Do not use this method
+ * directly, use ipc_send of ipc.h instead.
  *
  * @param context the ipc_pipe_context to be used; must be previously
  * initialized via ipc_pipe_init.
@@ -32,7 +33,8 @@ ipc_pipe_send (struct ipc_pipe_context *context, const char *msg, int len)
 }
 
 /**
- * @brief retrieves message from the given context. Do not use this method directly, use ipc_retrieve of ipc.h instead.
+ * @brief retrieves message from the given context. Do not use this method
+ * directly, use ipc_retrieve of ipc.h instead.
  *
  * @param context the ipc_pipe_context to be used; must be previously
  * initialized via ipc_pipe_init.
@@ -66,7 +68,8 @@ ipc_pipe_retrieve (struct ipc_pipe_context *context)
 }
 
 /**
- * @brief closes given context. Do not use this method directly, use ipc_close of ipc.h instead.
+ * @brief closes given context. Do not use this method directly, use ipc_close
+ * of ipc.h instead.
  *
  * @param context the ipc_pipe_context to be closed.
  *
@@ -90,7 +93,8 @@ exit:
 }
 
 /**
- * @brief destroys given context. Do not use this method directly, use ipc_destroy of ipc.h instead.
+ * @brief destroys given context. Do not use this method directly, use
+ * ipc_destroy of ipc.h instead.
  *
  * @param context the ipc_pipe_context to be destroyed.
  *
@@ -113,7 +117,8 @@ exit:
 }
 
 /**
- * @brief initializes a new context. Do not use this method directly, use ipc_init of ipc.h instead.
+ * @brief initializes a new context. Do not use this method directly, use
+ * ipc_init of ipc.h instead.
  *
  * @return a heap allocated ipc_pipe_context or NULL on failure.
  */
