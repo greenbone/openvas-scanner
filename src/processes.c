@@ -46,6 +46,8 @@
  */
 #define G_LOG_DOMAIN "sd   main"
 
+// holds all used ipc_contexts; it will be initialized and managed by
+// create_ipc_process.
 static struct ipc_contexts *ipcc = NULL;
 
 /**
