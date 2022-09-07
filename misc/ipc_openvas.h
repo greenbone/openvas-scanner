@@ -1,5 +1,5 @@
-#ifndef IPC_OPENVAS_H
-#define IPC_OPENVAS_H
+#ifndef MISC_IPC_OPENVAS_H
+#define MISC_IPC_OPENVAS_H
 #include "ipc.h"
 
 // ipc_hostname is used to send / retrieve new hostnames.
