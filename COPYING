@@ -59,6 +59,7 @@ nasl/hmacmd5.h: GPL-2+
 nasl/iconv.c: GPL-2+
 nasl/iconv.h: GPL-2+
 nasl/lint.c: GPL-2
+nasl/lint.h: GPL-2
 nasl/md4.c: GPL-2+
 nasl/md4.h: GPL-2+
 nasl/md5.c: public-domain
@@ -74,12 +75,16 @@ nasl/nasl_cert.c: GPL-2+
 nasl/nasl_cert.h: GPL-2+
 nasl/nasl_cmd_exec.c: GPL-2
 nasl/nasl_cmd_exec.h: GPL-2
+nasl/nasl_crypt_helper.c: GPL-2
+nasl/nasl_crypto_helper.h: GPL-2
 nasl/nasl_crypto.c: GPL-2
 nasl/nasl_crypto.h: GPL-2
 nasl/nasl_crypto2.c: GPL-2
 nasl/nasl_crypto2.h: GPL-2
 nasl/nasl_debug.c: GPL-2
 nasl/nasl_debug.h: GPL-2
+nasl/nasl_frame_forgery.c: GPL-2+
+nasl/nasl_frame_forgery.h: GPL-2+
 nasl/nasl_func.c: GPL-2
 nasl/nasl_func.h: GPL-2
 nasl/nasl_global_ctxt.h: GPL-2
@@ -140,6 +145,7 @@ nasl/tests/Makefile: GPL-2+
 nasl/tests/signed.nasl: GPL-2+
 nasl/tests/test_blowfish.nasl: GPL-2+
 nasl/tests/test_bn.nasl: GPL-2+
+nasl/tests/test_crypt_data_aes.nasl: GPL-2+
 nasl/tests/test_dh.nasl: GPL-2+
 nasl/tests/test_dsa.nasl: GPL-2+
 nasl/tests/test_hexstr.nasl: GPL-2+
@@ -147,7 +153,6 @@ nasl/tests/test_isotime.nasl: GPL-2+
 nasl/tests/test_md.nasl: GPL-2+
 nasl/tests/test_privkey.nasl: GPL-2+
 nasl/tests/test_rsa.nasl: GPL-2+
-nasl/tests/test_script_signing.sh: GPL-2+
 nasl/tests/test_socket.nasl: GPL-2+
 nasl/tests/testsuiteinit.nasl: GPL-2+
 nasl/tests/testsuitesummary.nasl: GPL-2+
@@ -157,6 +162,12 @@ misc/bpf_share.c: GPL-2
 misc/bpf_share.h: GPL-2+
 misc/ftp_funcs.c: GPL-2+
 misc/ftp_funcs.h: GPL-2+
+misc/ipc.c: GPL-2+
+misc/ipc.h: GPL-2+
+misc/ipc_openvas.c: GPL-2+
+misc/ipc_openvas.h: GPL-2+
+misc/ipc_pipe.c: GPL-2+
+misc/ipc_pipe.h: GPL-2+
 misc/network.c: GPL-2+
 misc/network.h: GPL-2+
 misc/nvt_categories.h: GPL-2+
@@ -165,9 +176,13 @@ misc/pcap_openvas.h: GPL-2+
 misc/pcap_tests.c: GPL-2+
 misc/plugutils.c: GPL-2+
 misc/plugutils.h: GPL-2+
+misc/scan_id.c: GPL-2+
+misc/scan_id.h: GPL-2+
 misc/scanneraux.h: GPL-2+
 misc/strutils.c: GPL-2+
 misc/strutils.h: GPL-2+
 misc/support.h: GPL-2+
+misc/table_driven_lsc.c: GPL-2+
+misc/table_driven_lsc.h: GPL-2+
 misc/vendorversion.c: GPL-2+
 misc/vendorversion.h: GPL-2+
