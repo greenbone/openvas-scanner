@@ -1542,7 +1542,8 @@ retry_stream_connection (int test_ssl, struct script_infos *desc, int port,
           g_debug ("%s: unable to establish a TLS connection to %s; falling "
                    "back to unencrypted connection",
                    __func__, plug_get_host_fqdn (desc));
-          cnx = open_stream_connection (desc, port, OPENVAS_ENCAPS_IP, timeout);
+          *trp = OPENVAS_ENCAPS_IP;
+          cnx = open_stream_connection (desc, port, *trp, timeout);
         }
     }
 
