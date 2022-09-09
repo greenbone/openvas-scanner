@@ -1,0 +1,109 @@
+/* Copyright (C) 2009-2022 Greenbone Networks GmbH
+ *
+ * SPDX-License-Identifier: GPL-2.0-or-later
+ *
+ * This program is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU General Public License
+ * as published by the Free Software Foundation; either version 2
+ * of the License, or (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program; if not, write to the Free Software
+ * Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA 02110-1301 USA.
+ */
+
+/**
+ * @file user_agent.c
+ * @brief Functions to set and get the User-Agent.
+ */
+
+#include "user_agent.h"
+
+#include "vendorversion.h"
+#include "plugutils.h"    /* plug_get_host_fqdn */
+#include "ipc_openvas.h"
+
+#include <gvm/base/prefs.h> /* for prefs_get */
+#include <glib.h>
+
+/**
+ * @brief user-agent, or NULL.
+ */
+static gchar *user_agent = NULL;
+
+
+/**
+ * @brief Create and set the global User-Agent variable.
+ *
+ * @description Gets the User-Agent from the globals_settings.nasl
+ * script preferences. If it is not set, it uses the Vendor version.
+ * In case that there is no Vendor version, it creates one with a fix string
+ * and the nasl library version.
+ */
+static void
+user_agent_create ()
+{
+  gchar *ua = NULL;
+  
+  ua = get_plugin_preference ("1.3.6.1.4.1.25623.1.0.12288",
+                                  "HTTP User-Agent", -1);
+  if (!ua || strlen (g_strstrip (ua)) == 0)
+    {
+      g_free (ua);
+      if (!vendor_version_get () || *vendor_version_get () == '\0')
+        ua = g_strdup_printf ("Mozilla/5.0 [en] (X11, U; OpenVAS-VT %s)",
+                              OPENVAS_MISC_VERSION);
+      else
+        ua = g_strdup_printf ("Mozilla/5.0 [en] (X11, U; %s)",
+                              vendor_version_get ());
+    }
+
+  user_agent = ua;
+}
+
+/**
+ * @brief Set user-agent
+ *
+ * Set the global user agent. 
+ * This function overwrite the existing UA.
+ * Null or empty string are not allowed.
+ *
+ * @param[in]  ua  user-agent to be set.
+ *
+ * Return the old User-Agent. It must be free by the caller
+ */
+gchar *
+user_agent_set (const gchar *ua)
+{
+  gchar *ua_aux = NULL;
+
+  ua_aux = g_strdup (user_agent);
+  if (!ua || strlen (ua) == 0)
+    {
+      g_free (user_agent);
+      user_agent = g_strdup (ua);
+    }
+  
+  g_message ("The User-Agent %s has been overwritten with %s", ua_aux, user_agent);
+
+  return ua_aux;
+}
+
+/**
+ * @brief Get user-agent.
+ *
+ * @return Get user-agent.
+ */
+const gchar *
+user_agent_get ()
+{
+  if (!user_agent || user_agent[0] == '\0') 
+    user_agent_create ();
+  
+  return user_agent ? user_agent : "";
+}
