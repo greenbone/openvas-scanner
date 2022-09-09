@@ -18,8 +18,8 @@
 
 #include "nasl_http.h"
 
-#include "../misc/plugutils.h"     /* plug_get_host_fqdn */
-#include "../misc/vendorversion.h" /* for vendor_version_get */
+#include "../misc/plugutils.h"    /* plug_get_host_fqdn */
+#include "../misc/user_agent.h" /* for user_agent_get */
 #include "exec.h"
 #include "nasl_debug.h"
 #include "nasl_func.h"
@@ -110,20 +110,8 @@ _http_req (lex_ctxt *lexic, char *keyword)
       hostname = plug_get_host_fqdn (script_infos);
       if (hostname == NULL)
         return NULL;
-      /* global_settings.nasl */
-      ua = get_plugin_preference ("1.3.6.1.4.1.25623.1.0.12288",
-                                  "HTTP User-Agent", -1);
-      if (!ua || strlen (g_strstrip (ua)) == 0)
-        {
-          g_free (ua);
-          if (!vendor_version_get () || *vendor_version_get () == '\0')
-            ua = g_strdup_printf ("Mozilla/5.0 [en] (X11, U; OpenVAS-VT %s)",
-                                  OPENVAS_NASL_VERSION);
-          else
-            ua = g_strdup_printf ("Mozilla/5.0 [en] (X11, U; %s)",
-                                  vendor_version_get ());
-        }
 
+      ua = g_strdup (user_agent_get ());
       /* Servers should not have a problem with port 80 or 443 appended.
        * RFC2616 allows to omit the port in which case the default port for
        * that service is assumed.
