@@ -76,6 +76,7 @@ set (CMAKE_C_FLAGS_DEBUG "${CMAKE_C_FLAGS_DEBUG} -Werror")
 
 
 ## Pass-throughs
+add_definitions (-DOPENVAS_MISC_VERSION="${PROJECT_VERSION_STRING}")
 
 include_directories (${GLIB_INCLUDE_DIRS} ${GLIB_JSON_INCLUDE_DIRS}
                      ${LIBGVM_BASE_INCLUDE_DIRS}
@@ -84,7 +85,8 @@ include_directories (${GLIB_INCLUDE_DIRS} ${GLIB_JSON_INCLUDE_DIRS}
 # Library
 
 set (FILES bpf_share.c ftp_funcs.c vendorversion.c network.c plugutils.c pcap.c
-     scan_id.c strutils.c table_driven_lsc.c ipc.c ipc_pipe.c ipc_openvas.c)
+     scan_id.c strutils.c table_driven_lsc.c ipc.c ipc_openvas.c ipc_pipe.c
+     user_agent.c)
 
 
 # On windows we are always PIC and stack-protector is replaces by DEP
