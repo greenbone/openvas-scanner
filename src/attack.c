@@ -459,35 +459,35 @@ static void
 read_ipc (struct ipc_context *ctx)
 {
   char *result;
-  struct ipc_data *idata;
-  struct ipc_hostname *ihost;
-  struct ipc_user_agent *iuser_agent;
+  ipc_data_t *idata;
 
   while ((result = ipc_retrieve (ctx, IPC_MAIN)) != NULL)
     {
       if ((idata = ipc_data_from_json (result, strlen (result))) != NULL)
         {
-          switch (idata->type)
+          switch (ipc_get_data_type_from_data (idata))
             {
             case IPC_DT_HOSTNAME:
-              if ((ihost = idata->ipc_hostname) == NULL)
+              if (ipc_get_hostname_from_data (idata) == NULL)
                 g_warning ("%s: ihost data is NULL ignoring new vhost",
                            __func__);
               else
-                append_vhost (ihost->hostname, ihost->source);
+                append_vhost (ipc_get_hostname_from_data (idata),
+                              ipc_get_hostname_source_from_data (idata));
               break;
             case IPC_DT_USER_AGENT:
-              if ((iuser_agent = idata->ipc_user_agent) == NULL)
+              if (ipc_get_user_agent_from_data (idata) == NULL)
                 g_warning (
                   "%s: iuser_agent data is NULL, ignoring new user agent",
                   __func__);
               else
                 {
                   gchar *old_ua = NULL;
-                  old_ua = user_agent_set (iuser_agent->user_agent);
+                  old_ua =
+                    user_agent_set (ipc_get_user_agent_from_data (idata));
                   g_message (
                     "%s: The User-Agent %s has been overwritten with %s",
-                    __func__, old_ua, iuser_agent->user_agent);
+                    __func__, old_ua, ipc_get_user_agent_from_data (idata));
                   g_free (old_ua);
                 }
               break;

@@ -19,13 +19,69 @@
  */
 #include "ipc_openvas.h"
 
-#include <glib.h> /* for g_error */
 #include <json-glib/json-glib.h>
 #undef G_LOG_DOMAIN
 /**
  * @brief GLib logging domain.
  */
 #define G_LOG_DOMAIN "lib  misc"
+
+// Data types definitions
+
+// ipc_hostname is used to send / retrieve new hostnames.
+struct ipc_hostname
+{
+  char *source;        // source value
+  char *hostname;      // hostname value
+  size_t source_len;   // length of source
+  size_t hostname_len; // length of hostname
+};
+
+typedef struct ipc_hostname ipc_hostname_t;
+
+// ipc_user_agent is used to send / retrieve the User-Agent.
+struct ipc_user_agent
+{
+  char *user_agent;      // user_agent value
+  size_t user_agent_len; // length of user_agent
+};
+
+typedef struct ipc_user_agent ipc_user_agent_t;
+
+struct ipc_data
+{
+  enum ipc_data_type type;
+  union
+  {
+    ipc_user_agent_t *ipc_user_agent;
+    ipc_hostname_t *ipc_hostname;
+  };
+};
+
+// Functions to access the structures
+enum ipc_data_type
+ipc_get_data_type_from_data (ipc_data_t *data)
+{
+  return data->type;
+}
+
+gchar *
+ipc_get_hostname_from_data (ipc_data_t *data)
+{
+  return data->ipc_hostname->hostname;
+}
+
+gchar *
+ipc_get_hostname_source_from_data (ipc_data_t *data)
+{
+  return data->ipc_hostname->source;
+}
+
+gchar *
+ipc_get_user_agent_from_data (ipc_data_t *data)
+{
+  return data->ipc_user_agent->user_agent;
+}
 
 // Hostname
 
@@ -233,7 +289,6 @@ ipc_data_from_json (const char *json, size_t len)
 
   enum ipc_data_type type = -1;
 
-
   if ((ret = calloc (1, sizeof (*ret))) == NULL)
     goto cleanup;
 
@@ -249,7 +304,7 @@ ipc_data_from_json (const char *json, size_t len)
     {
       goto cleanup;
     }
-  
+
   type = json_reader_get_int_value (reader);
   json_reader_end_member (reader);
 
