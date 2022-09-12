@@ -36,7 +36,20 @@
  */
 static gchar *user_agent = NULL;
 
+static void
+send_user_agent_via_ipc (struct ipc_context *ipc_context)
+{
+  struct ipc_data *ua = NULL;
+  const char *json = NULL;
 
+  ua = ipc_data_type_from_user_agent (user_agent, strlen (user_agent));
+  json = ipc_data_to_json (ua);
+  ipc_data_destroy (ua);
+  if (ipc_send (ipc_context, IPC_MAIN, json, strlen (json))
+      < 0)
+    g_warning ("Unable to send %s to host process", user_agent);
+
+}
 /**
  * @brief Create and set the global User-Agent variable.
  *
@@ -89,8 +102,6 @@ user_agent_set (const gchar *ua)
       user_agent = g_strdup (ua);
     }
   
-  g_message ("The User-Agent %s has been overwritten with %s", ua_aux, user_agent);
-
   return ua_aux;
 }
 
@@ -100,10 +111,15 @@ user_agent_set (const gchar *ua)
  * @return Get user-agent.
  */
 const gchar *
-user_agent_get ()
+user_agent_get (struct ipc_context *ipc_context)
 {
+
+  g_usleep(20*1000*1000);
   if (!user_agent || user_agent[0] == '\0') 
-    user_agent_create ();
+    {
+      user_agent_create ();
+      send_user_agent_via_ipc (ipc_context);
+    }
   
   return user_agent ? user_agent : "";
 }

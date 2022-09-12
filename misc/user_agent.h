@@ -25,10 +25,12 @@
 #ifndef MISC_USERAGENT_H
 #define MISC_USERAGENT_H
 
+#include "ipc.h"
+
 #include <glib.h>
 
 const gchar *
-user_agent_get (void);
+user_agent_get (struct ipc_context *);
 
 gchar *
 user_agent_set (const gchar *);
