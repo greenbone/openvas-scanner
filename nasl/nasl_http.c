@@ -18,7 +18,7 @@
 
 #include "nasl_http.h"
 
-#include "../misc/plugutils.h"    /* plug_get_host_fqdn */
+#include "../misc/plugutils.h"  /* plug_get_host_fqdn */
 #include "../misc/user_agent.h" /* for user_agent_get */
 #include "exec.h"
 #include "nasl_debug.h"
@@ -111,7 +111,7 @@ _http_req (lex_ctxt *lexic, char *keyword)
       if (hostname == NULL)
         return NULL;
 
-      ua = g_strdup (user_agent_get ());
+      ua = g_strdup (user_agent_get (lexic->script_infos->ipc_context));
       /* Servers should not have a problem with port 80 or 443 appended.
        * RFC2616 allows to omit the port in which case the default port for
        * that service is assumed.
