@@ -279,7 +279,7 @@ ipc_data_to_json (struct ipc_data *data)
 struct ipc_data *
 ipc_data_from_json (const char *json, size_t len)
 {
-  JsonParser *parser;
+  JsonParser *parser = NULL;
   JsonReader *reader = NULL;
 
   GError *err = NULL;
