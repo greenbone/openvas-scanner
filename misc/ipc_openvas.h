@@ -11,12 +11,16 @@ struct ipc_hostname
   size_t hostname_len; // length of hostname
 };
 
+typedef struct ipc_hostname ipc_hostname_t;
+
 // ipc_user_agent is used to send / retrieve the User-Agent.
 struct ipc_user_agent
 {
   char *user_agent;      // user_agent value
   size_t user_agent_len; // length of user_agent
 };
+
+typedef struct ipc_user_agent ipc_user_agent_t;
 
 // ipc_data_type defines
 enum ipc_data_type

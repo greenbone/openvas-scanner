@@ -42,7 +42,7 @@ ipc_data_type_from_hostname (const char *source, size_t source_len,
                              const char *hostname, size_t hostname_len)
 {
   struct ipc_data *data = NULL;
-  struct ipc_hostname *hnd = NULL;
+  ipc_hostname_t *hnd = NULL;
   if (source == NULL || hostname == NULL)
     return NULL;
   if ((data = calloc (1, sizeof (*data))) == NULL)
@@ -62,7 +62,7 @@ failure_exit:
 }
 
 static void
-ipc_hostname_destroy (struct ipc_hostname *data)
+ipc_hostname_destroy (ipc_hostname_t *data)
 {
   if (data == NULL)
     return;
@@ -85,7 +85,7 @@ struct ipc_data *
 ipc_data_type_from_user_agent (const char *user_agent, size_t user_agent_len)
 {
   struct ipc_data *data = NULL;
-  struct ipc_user_agent *uad = NULL;
+  ipc_user_agent_t *uad = NULL;
   gchar *ua_str = NULL;
 
   if (user_agent == NULL)
@@ -116,7 +116,7 @@ failure_exit:
  * @param data The user agent data structure to be free()'ed
  */
 static void
-ipc_user_agent_destroy (struct ipc_user_agent *data)
+ipc_user_agent_destroy (ipc_user_agent_t *data)
 {
   if (data == NULL)
     return;
@@ -163,8 +163,8 @@ ipc_data_to_json (struct ipc_data *data)
   JsonGenerator *gen;
   JsonNode *root;
   gchar *json_str;
-  struct ipc_hostname *hn = NULL;
-  struct ipc_user_agent *ua = NULL;
+  ipc_hostname_t *hn = NULL;
+  ipc_user_agent_t *ua = NULL;
 
   if (data == NULL)
     return NULL;
@@ -229,8 +229,8 @@ ipc_data_from_json (const char *json, size_t len)
   GError *err = NULL;
   struct ipc_data *ret = NULL;
   void *data = NULL;
-  struct ipc_user_agent *ua;
-  struct ipc_hostname *hn;
+  ipc_user_agent_t *ua;
+  ipc_hostname_t *hn;
 
   enum ipc_data_type type = -1;
 
