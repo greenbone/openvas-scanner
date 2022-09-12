@@ -30,7 +30,8 @@
 #include "../misc/nvt_categories.h" /* for ACT_INIT */
 #include "../misc/pcap_openvas.h"   /* for v6_is_local_ip */
 #include "../misc/plugutils.h"
-#include "../misc/table_driven_lsc.h" /*for make_table_driven_lsc_info_json_str */
+#include "../misc/table_driven_lsc.h" /* for make_table_driven_lsc_info_json_str */
+#include "../misc/user_agent.h"       /* for user_agent_set */
 #include "../nasl/nasl_debug.h"       /* for nasl_*_filename */
 #include "hosts.h"
 #include "pluginlaunch.h"
@@ -460,6 +461,8 @@ read_ipc (struct ipc_context *ctx)
   char *result;
   struct ipc_data *idata;
   struct ipc_hostname *ihost;
+  struct ipc_user_agent *iuser_agent;
+
   while ((result = ipc_retrieve (ctx, IPC_MAIN)) != NULL)
     {
       if ((idata = ipc_data_from_json (result, strlen (result))) != NULL)
@@ -472,6 +475,19 @@ read_ipc (struct ipc_context *ctx)
                            __func__);
               else
                 append_vhost (ihost->hostname, ihost->source);
+              break;
+            case IPC_DT_USER_AGENT:
+              if ((iuser_agent = (struct ipc_user_agent *) idata->data) == NULL)
+                g_warning ("%s: iuser_agent data is NULL, ignoring new user agent",
+                           __func__);
+              else
+                {
+                  gchar *old_ua = NULL;
+                  old_ua = user_agent_set (iuser_agent->user_agent);
+                  g_message ("%s: The User-Agent %s has been overwritten with %s", __func__,
+                             old_ua, iuser_agent->user_agent);
+                  g_free (old_ua);
+                }
               break;
             }
           ipc_data_destroy (idata);
