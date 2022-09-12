@@ -54,7 +54,7 @@ ipc_data_type_from_hostname (const char *source, size_t source_len,
   hnd->source = g_strdup (source);
   hnd->hostname_len = hostname_len;
   hnd->source_len = source_len;
-  data->data = hnd;
+  data->ipc_hostname = hnd;
   return data;
 failure_exit:
   free (data);
@@ -102,7 +102,7 @@ ipc_data_type_from_user_agent (const char *user_agent, size_t user_agent_len)
   uad->user_agent = ua_str;
   uad->user_agent_len = user_agent_len;
 
-  data->data = uad;
+  data->ipc_user_agent = uad;
   return data;
 
 failure_exit:
@@ -140,10 +140,10 @@ ipc_data_destroy (struct ipc_data *data)
   switch (data->type)
     {
     case IPC_DT_HOSTNAME:
-      ipc_hostname_destroy (data->data);
+      ipc_hostname_destroy (data->ipc_hostname);
       break;
     case IPC_DT_USER_AGENT:
-      ipc_user_agent_destroy (data->data);
+      ipc_user_agent_destroy (data->ipc_user_agent);
       break;
     }
   g_free (data);
@@ -178,7 +178,7 @@ ipc_data_to_json (struct ipc_data *data)
   switch (data->type)
     {
     case IPC_DT_HOSTNAME:
-      hn = data->data;
+      hn = data->ipc_hostname;
       json_builder_set_member_name (builder, "source");
       builder = json_builder_add_string_value (builder, hn->source);
       json_builder_set_member_name (builder, "hostname");
@@ -188,7 +188,7 @@ ipc_data_to_json (struct ipc_data *data)
 
     case IPC_DT_USER_AGENT:
 
-      ua = data->data;
+      ua = data->ipc_user_agent;
       json_builder_set_member_name (builder, "user-agent");
       builder = json_builder_add_string_value (builder, ua->user_agent);
 
@@ -228,11 +228,14 @@ ipc_data_from_json (const char *json, size_t len)
 
   GError *err = NULL;
   struct ipc_data *ret = NULL;
-  void *data = NULL;
   ipc_user_agent_t *ua;
   ipc_hostname_t *hn;
 
   enum ipc_data_type type = -1;
+
+
+  if ((ret = calloc (1, sizeof (*ret))) == NULL)
+    goto cleanup;
 
   parser = json_parser_new ();
   if (!json_parser_load_from_data (parser, json, len, &err))
@@ -246,8 +249,11 @@ ipc_data_from_json (const char *json, size_t len)
     {
       goto cleanup;
     }
+  
   type = json_reader_get_int_value (reader);
   json_reader_end_member (reader);
+
+  ret->type = type;
   switch (type)
     {
     case IPC_DT_HOSTNAME:
@@ -267,7 +273,7 @@ ipc_data_from_json (const char *json, size_t len)
       hn->source = g_strdup (json_reader_get_string_value (reader));
       hn->source_len = strlen (hn->source);
       json_reader_end_member (reader);
-      data = hn;
+      ret->ipc_hostname = hn;
       break;
 
     case IPC_DT_USER_AGENT:
@@ -281,14 +287,10 @@ ipc_data_from_json (const char *json, size_t len)
       ua->user_agent = g_strdup (json_reader_get_string_value (reader));
       ua->user_agent_len = strlen (ua->user_agent);
       json_reader_end_member (reader);
-      data = ua;
+      ret->ipc_user_agent = ua;
       break;
     }
 
-  if ((ret = calloc (1, sizeof (*ret))) == NULL)
-    goto cleanup;
-  ret->type = type;
-  ret->data = data;
 cleanup:
   if (reader)
     g_object_unref (reader);

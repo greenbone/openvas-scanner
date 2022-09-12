@@ -470,14 +470,14 @@ read_ipc (struct ipc_context *ctx)
           switch (idata->type)
             {
             case IPC_DT_HOSTNAME:
-              if ((ihost = (struct ipc_hostname *) idata->data) == NULL)
+              if ((ihost = idata->ipc_hostname) == NULL)
                 g_warning ("%s: ihost data is NULL ignoring new vhost",
                            __func__);
               else
                 append_vhost (ihost->hostname, ihost->source);
               break;
             case IPC_DT_USER_AGENT:
-              if ((iuser_agent = (struct ipc_user_agent *) idata->data) == NULL)
+              if ((iuser_agent = idata->ipc_user_agent) == NULL)
                 g_warning (
                   "%s: iuser_agent data is NULL, ignoring new user agent",
                   __func__);

@@ -32,7 +32,11 @@ enum ipc_data_type
 struct ipc_data
 {
   enum ipc_data_type type;
-  void *data;
+  union {
+    ipc_user_agent_t *ipc_user_agent;
+    ipc_hostname_t *ipc_hostname;
+
+  };
 };
 
 struct ipc_data *
