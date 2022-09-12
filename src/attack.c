@@ -478,14 +478,16 @@ read_ipc (struct ipc_context *ctx)
               break;
             case IPC_DT_USER_AGENT:
               if ((iuser_agent = (struct ipc_user_agent *) idata->data) == NULL)
-                g_warning ("%s: iuser_agent data is NULL, ignoring new user agent",
-                           __func__);
+                g_warning (
+                  "%s: iuser_agent data is NULL, ignoring new user agent",
+                  __func__);
               else
                 {
                   gchar *old_ua = NULL;
                   old_ua = user_agent_set (iuser_agent->user_agent);
-                  g_message ("%s: The User-Agent %s has been overwritten with %s", __func__,
-                             old_ua, iuser_agent->user_agent);
+                  g_message (
+                    "%s: The User-Agent %s has been overwritten with %s",
+                    __func__, old_ua, iuser_agent->user_agent);
                   g_free (old_ua);
                 }
               break;

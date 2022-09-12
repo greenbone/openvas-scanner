@@ -18,7 +18,6 @@ struct ipc_user_agent
   size_t user_agent_len; // length of user_agent
 };
 
-
 // ipc_data_type defines
 enum ipc_data_type
 {

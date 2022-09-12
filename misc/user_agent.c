@@ -24,12 +24,12 @@
 
 #include "user_agent.h"
 
-#include "vendorversion.h"
-#include "plugutils.h"    /* plug_get_host_fqdn */
 #include "ipc_openvas.h"
+#include "plugutils.h" /* plug_get_host_fqdn */
+#include "vendorversion.h"
 
-#include <gvm/base/prefs.h> /* for prefs_get */
 #include <glib.h>
+#include <gvm/base/prefs.h> /* for prefs_get */
 
 /**
  * @brief user-agent, or NULL.
@@ -45,10 +45,8 @@ send_user_agent_via_ipc (struct ipc_context *ipc_context)
   ua = ipc_data_type_from_user_agent (user_agent, strlen (user_agent));
   json = ipc_data_to_json (ua);
   ipc_data_destroy (ua);
-  if (ipc_send (ipc_context, IPC_MAIN, json, strlen (json))
-      < 0)
+  if (ipc_send (ipc_context, IPC_MAIN, json, strlen (json)) < 0)
     g_warning ("Unable to send %s to host process", user_agent);
-
 }
 /**
  * @brief Create and set the global User-Agent variable.
@@ -62,9 +60,9 @@ static void
 user_agent_create ()
 {
   gchar *ua = NULL;
-  
-  ua = get_plugin_preference ("1.3.6.1.4.1.25623.1.0.12288",
-                                  "HTTP User-Agent", -1);
+
+  ua = get_plugin_preference ("1.3.6.1.4.1.25623.1.0.12288", "HTTP User-Agent",
+                              -1);
   if (!ua || strlen (g_strstrip (ua)) == 0)
     {
       g_free (ua);
@@ -82,7 +80,7 @@ user_agent_create ()
 /**
  * @brief Set user-agent
  *
- * Set the global user agent. 
+ * Set the global user agent.
  * This function overwrite the existing UA.
  * Null or empty string are not allowed.
  *
@@ -101,7 +99,7 @@ user_agent_set (const gchar *ua)
       g_free (user_agent);
       user_agent = g_strdup (ua);
     }
-  
+
   return ua_aux;
 }
 
@@ -113,13 +111,12 @@ user_agent_set (const gchar *ua)
 const gchar *
 user_agent_get (struct ipc_context *ipc_context)
 {
-
-  g_usleep(20*1000*1000);
-  if (!user_agent || user_agent[0] == '\0') 
+  g_usleep (20 * 1000 * 1000);
+  if (!user_agent || user_agent[0] == '\0')
     {
       user_agent_create ();
       send_user_agent_via_ipc (ipc_context);
     }
-  
+
   return user_agent ? user_agent : "";
 }

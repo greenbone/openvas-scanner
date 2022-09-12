@@ -27,7 +27,6 @@
  */
 #define G_LOG_DOMAIN "lib  misc"
 
-
 // Hostname
 
 /**
@@ -71,7 +70,6 @@ ipc_hostname_destroy (struct ipc_hostname *data)
   g_free (data->source);
   g_free (data);
 }
-
 
 // User-Agent
 
@@ -125,7 +123,6 @@ ipc_user_agent_destroy (struct ipc_user_agent *data)
   g_free (data->user_agent);
   g_free (data);
 }
-
 
 // General IPC data functios
 
