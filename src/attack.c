@@ -488,9 +488,9 @@ read_ipc (struct ipc_context *ctx)
                   gchar *old_ua = NULL;
                   old_ua =
                     user_agent_set (ipc_get_user_agent_from_data (idata));
-                  g_message (
-                    "%s: The User-Agent %s has been overwritten with %s",
-                    __func__, old_ua, ipc_get_user_agent_from_data (idata));
+                  g_debug ("%s: The User-Agent %s has been overwritten with %s",
+                           __func__, old_ua,
+                           ipc_get_user_agent_from_data (idata));
                   g_free (old_ua);
                 }
               break;
