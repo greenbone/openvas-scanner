@@ -78,18 +78,27 @@ ipc_get_data_type_from_data (ipc_data_t *data)
 gchar *
 ipc_get_hostname_from_data (ipc_data_t *data)
 {
+  if (data == NULL || (ipc_get_data_type_from_data (data) != IPC_DT_HOSTNAME))
+    return NULL;
+
   return data->ipc_hostname->hostname;
 }
 
 gchar *
 ipc_get_hostname_source_from_data (ipc_data_t *data)
 {
+  if (data == NULL || (ipc_get_data_type_from_data (data) != IPC_DT_HOSTNAME))
+    return NULL;
+
   return data->ipc_hostname->source;
 }
 
 gchar *
 ipc_get_user_agent_from_data (ipc_data_t *data)
 {
+  if (data == NULL || (ipc_get_data_type_from_data (data) != IPC_DT_USER_AGENT))
+    return NULL;
+
   return data->ipc_user_agent->user_agent;
 }
 
