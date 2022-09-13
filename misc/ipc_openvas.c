@@ -48,6 +48,7 @@ struct ipc_user_agent
 
 typedef struct ipc_user_agent ipc_user_agent_t;
 
+// ipc_data is used to send / retrieve a given data of the union member
 struct ipc_data
 {
   enum ipc_data_type type;
@@ -75,6 +76,13 @@ ipc_get_data_type_from_data (ipc_data_t *data)
   return IPC_DT_ERROR;
 }
 
+/**
+ * @brief Get the hostname from IPC data
+ *
+ * @param data Data structure of IPC_DT_HOSNAME type.
+ *
+ * @Return a string containing the hostname, NULL on error.
+ */
 gchar *
 ipc_get_hostname_from_data (ipc_data_t *data)
 {
@@ -84,6 +92,13 @@ ipc_get_hostname_from_data (ipc_data_t *data)
   return data->ipc_hostname->hostname;
 }
 
+/**
+ * @brief Get the vhost hostname source from IPC data.
+ *
+ * @param data Data structure of IPC_DT_HOSNAME type.
+ *
+ * @Return a string containing the vhost hostname source, NULL on error.
+ */
 gchar *
 ipc_get_hostname_source_from_data (ipc_data_t *data)
 {
@@ -93,6 +108,13 @@ ipc_get_hostname_source_from_data (ipc_data_t *data)
   return data->ipc_hostname->source;
 }
 
+/**
+ * @brief Get the User-Agent from IPC data
+ *
+ * @param data Data structure of IPC_DT_USER_AGENT type.
+ *
+ * @Return a string containing the User-Agent, NULL on error.
+ */
 gchar *
 ipc_get_user_agent_from_data (ipc_data_t *data)
 {
@@ -136,6 +158,11 @@ failure_exit:
   return NULL;
 }
 
+/**
+ * @brief Free ipc_hostname_t data
+ *
+ * @param data The hostname data structure to be free()'ed
+ */
 static void
 ipc_hostname_destroy (ipc_hostname_t *data)
 {
