@@ -59,10 +59,20 @@ struct ipc_data
 };
 
 // Functions to access the structures
+
+/**
+ * @brief Get the data type in data
+ *
+ * @param data Structure containing the data and data type
+ *
+ * @Return The corresponding ipc_data_type, IPC_DT_ERROR on error.
+ */
 enum ipc_data_type
 ipc_get_data_type_from_data (ipc_data_t *data)
 {
-  return data->type;
+  if (data != NULL)
+    return data->type;
+  return IPC_DT_ERROR;
 }
 
 gchar *
@@ -201,6 +211,8 @@ ipc_data_destroy (struct ipc_data *data)
     case IPC_DT_USER_AGENT:
       ipc_user_agent_destroy (data->ipc_user_agent);
       break;
+    case IPC_DT_ERROR:
+      return;
     }
   g_free (data);
 }
@@ -221,8 +233,12 @@ ipc_data_to_json (struct ipc_data *data)
   gchar *json_str;
   ipc_hostname_t *hn = NULL;
   ipc_user_agent_t *ua = NULL;
+  enum ipc_data_type type = IPC_DT_ERROR;
 
   if (data == NULL)
+    return NULL;
+
+  if ((type = ipc_get_data_type_from_data (data)) == IPC_DT_ERROR)
     return NULL;
 
   builder = json_builder_new ();
@@ -230,8 +246,8 @@ ipc_data_to_json (struct ipc_data *data)
   json_builder_begin_object (builder);
 
   json_builder_set_member_name (builder, "type");
-  builder = json_builder_add_int_value (builder, data->type);
-  switch (data->type)
+  builder = json_builder_add_int_value (builder, type);
+  switch (type)
     {
     case IPC_DT_HOSTNAME:
       hn = data->ipc_hostname;
@@ -239,16 +255,16 @@ ipc_data_to_json (struct ipc_data *data)
       builder = json_builder_add_string_value (builder, hn->source);
       json_builder_set_member_name (builder, "hostname");
       builder = json_builder_add_string_value (builder, hn->hostname);
-
       break;
 
     case IPC_DT_USER_AGENT:
-
       ua = data->ipc_user_agent;
       json_builder_set_member_name (builder, "user-agent");
       builder = json_builder_add_string_value (builder, ua->user_agent);
-
       break;
+
+    default:
+      g_warning ("%s: Unknown data type %d.", __func__, type);
     }
 
   json_builder_end_object (builder);
@@ -287,7 +303,7 @@ ipc_data_from_json (const char *json, size_t len)
   ipc_user_agent_t *ua;
   ipc_hostname_t *hn;
 
-  enum ipc_data_type type = -1;
+  enum ipc_data_type type = IPC_DT_ERROR;
 
   if ((ret = calloc (1, sizeof (*ret))) == NULL)
     goto cleanup;
@@ -311,6 +327,8 @@ ipc_data_from_json (const char *json, size_t len)
   ret->type = type;
   switch (type)
     {
+    case IPC_DT_ERROR:
+      goto cleanup;
     case IPC_DT_HOSTNAME:
       if ((hn = calloc (1, sizeof (*hn))) == NULL)
         goto cleanup;

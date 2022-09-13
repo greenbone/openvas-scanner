@@ -467,6 +467,9 @@ read_ipc (struct ipc_context *ctx)
         {
           switch (ipc_get_data_type_from_data (idata))
             {
+            case IPC_DT_ERROR:
+              g_warning ("%s: Unknown data type.", __func__);
+              break;
             case IPC_DT_HOSTNAME:
               if (ipc_get_hostname_from_data (idata) == NULL)
                 g_warning ("%s: ihost data is NULL ignoring new vhost",

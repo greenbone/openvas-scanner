@@ -8,7 +8,8 @@
 // ipc_data_type defines
 enum ipc_data_type
 {
-  IPC_DT_HOSTNAME,
+  IPC_DT_ERROR = -1,
+  IPC_DT_HOSTNAME = 0,
   IPC_DT_USER_AGENT,
 };
 
