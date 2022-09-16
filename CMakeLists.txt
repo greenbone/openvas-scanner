@@ -193,13 +193,11 @@ message ("-- Install prefix: ${CMAKE_INSTALL_PREFIX}")
 set (OPENVAS_VERSION "${PROJECT_VERSION_STRING}")
 
 # Configure Doxyfile with version number
-configure_file (doc/Doxyfile.in doc/Doxyfile @ONLY)
-configure_file (doc/Doxyfile_full.in doc/Doxyfile_full @ONLY)
-configure_file (doc/Doxyfile_xml.in doc/Doxyfile_xml @ONLY)
-configure_file (doc/openvas.8.in doc/openvas.8 @ONLY)
+configure_file (doc/man/openvas.8.in doc/man/openvas.8 @ONLY)
 configure_file (VERSION.in VERSION @ONLY)
 configure_file (tools/greenbone-nvt-sync.in tools/greenbone-nvt-sync @ONLY)
 configure_file (src/openvas_log_conf.cmake_in src/openvas_log.conf)
+
 
 ## Testing
 

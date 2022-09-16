@@ -238,12 +238,12 @@ install (FILES ${CMAKE_BINARY_DIR}/tools/greenbone-nvt-sync
          PERMISSIONS OWNER_EXECUTE OWNER_READ OWNER_WRITE
                      GROUP_READ GROUP_EXECUTE WORLD_READ WORLD_EXECUTE)
 
-install (FILES ${CMAKE_BINARY_DIR}/doc/openvas.8
-         DESTINATION ${DATADIR}/man/man8 )
-
-
-install (FILES ${CMAKE_SOURCE_DIR}/doc/greenbone-nvt-sync.8
-         DESTINATION ${DATADIR}/man/man8 )
+install (FILES ${CMAKE_BINARY_DIR}/doc/man/openvas.8
+                     DESTINATION ${DATADIR}/man/man8 )
+            
+            
+install (FILES ${CMAKE_SOURCE_DIR}/doc/man/greenbone-nvt-sync.8
+                     DESTINATION ${DATADIR}/man/man8 )
 
 install (DIRECTORY DESTINATION ${OPENVAS_NVT_DIR})
 
