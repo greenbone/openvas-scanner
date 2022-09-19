@@ -2,9 +2,12 @@ ARG VERSION=unstable
 # this allows to work on forked repository
 ARG REPOSITORY=greenbone/openvas-scanner
 
+FROM greenbone/openvas-smb AS openvas-smb
+
 FROM ${REPOSITORY}-build:$VERSION AS build
 
 COPY . /source
+COPY --from=openvas-smb /usr/local/lib/ /usr/local/lib/
 
 RUN cmake -DCMAKE_BUILD_TYPE=Release -B/build /source
 RUN DESTDIR=/install cmake --build /build -- install
