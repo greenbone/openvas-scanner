@@ -16,8 +16,8 @@
  * Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA 02110-1301 USA.
  */
 
-#ifndef NASL_FUNC_H_INCLUDED
-#define NASL_FUNC_H_INCLUDED
+#ifndef NASL_NASL_FUNC_H
+#define NASL_NASL_FUNC_H
 
 /**
  * Type for a built-in nasl function.

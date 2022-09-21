@@ -16,8 +16,8 @@
  * Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA 02110-1301 USA.
  */
 
-#ifndef OPENVAS_RAW_H
-#define OPENVAS_RAW_H
+#ifndef NASL_NASL_RAW_H
+#define NASL_NASL_RAW_H
 
 #ifdef __linux__
 #ifndef __BSD_SOURCE

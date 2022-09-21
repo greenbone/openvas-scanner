@@ -16,8 +16,8 @@
  * Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA 02110-1301 USA.
  */
 
-#ifndef NASLTREE_H_INCLUDED
-#define NASLTREE_H_INCLUDED
+#ifndef NASL_NASL_TREE_H
+#define NASL_NASL_TREE_H
 
 enum node_type
 {

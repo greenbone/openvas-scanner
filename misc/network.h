@@ -23,8 +23,8 @@
  * @brief Header file for module network.
  */
 
-#ifndef OPENVAS_NETWORK_H
-#define OPENVAS_NETWORK_H
+#ifndef MISC_NETWORK_H
+#define MISC_NETWORK_H
 
 #include "scanneraux.h"
 

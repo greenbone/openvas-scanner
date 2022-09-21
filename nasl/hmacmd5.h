@@ -26,8 +26,8 @@
  * for ntlmv2.
  */
 
-#ifndef _HMAC_MD5_H
-#define _HMAC_MD5_H
+#ifndef NASL_HMACMD5_H
+#define NASL_HMACMD5_H
 
 #include "md5.h"
 
@@ -83,4 +83,4 @@ hmac_md5_final (uchar *digest, HMACMD5Context *ctx);
 void
 hmac_md5 (uchar key[16], uchar *data, int data_len, uchar *digest);
 
-#endif /* _HMAC_MD5_H */
+#endif /* NASL_HMACMD5_H */

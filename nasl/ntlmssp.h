@@ -23,8 +23,8 @@
  * (NTLMv2, NTLM2, NTLM, KEY GEN)
  */
 
-#ifndef _NTLMSSP_H_
-#define _NTLMSSP_H_
+#ifndef NASL_NTLMSSP_H
+#define NASL_NTLMSSP_H
 #include "byteorder.h"
 #include "hmacmd5.h"
 #include "md5.h"

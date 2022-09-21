@@ -21,8 +21,9 @@
  * @file nasl_snmp.h
  * @brief Headers of an API for SNMP used by NASL scripts.
  */
-#ifndef NASL_SNMP_H
-#define NASL_SNMP_H
+#ifndef NASL_NASL_SNMP_H
+#define NASL_NASL_SNMP_H
+
 #include "nasl_lex_ctxt.h"
 #include "nasl_tree.h"
 tree_cell *

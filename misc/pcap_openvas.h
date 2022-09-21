@@ -23,8 +23,8 @@
  * @brief Header file for module pcap.
  */
 
-#ifndef OPENVAS_PCAP_H
-#define OPENVAS_PCAP_H
+#ifndef MISC_PCAP_OPENVAS_H
+#define MISC_PCAP_OPENVAS_H
 
 #include <arpa/inet.h>
 #include <pcap.h>

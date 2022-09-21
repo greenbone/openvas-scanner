@@ -22,7 +22,8 @@
  * Srinivas NL <nl.srinivas@gmail.com>
  */
 
-#ifndef NASL_PACKET_FORGERY_H
+#ifndef NASL_NASL_PACKET_FORGERY_V6_H
+#define NASL_NASL_PACKET_FORGERY_V6_H
 
 tree_cell *
 forge_ip_v6_packet (lex_ctxt *);

@@ -16,6 +16,8 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA 02110-1301 USA.
  */
+#ifndef NASL_PROTO_H
+#define NASL_PROTO_H
 
 #include <sys/param.h>
 #include <time.h>
@@ -51,3 +53,5 @@ void
 lazy_initialize_conv_ntlmssp (void);
 void
 init_iconv_ntlmssp (void);
+
+#endif

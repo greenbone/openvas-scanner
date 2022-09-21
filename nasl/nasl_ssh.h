@@ -24,8 +24,8 @@
  * This file contains the protos for \ref nasl_ssh.c
  */
 
-#ifndef NASL_SSH_H
-#define NASL_SSH_H
+#ifndef NASL_NASL_SSH_H
+#define NASL_NASL_SSH_H
 
 #include "nasl_lex_ctxt.h"
 
@@ -77,4 +77,4 @@ nasl_ssh_get_host_key (lex_ctxt *lexic);
 tree_cell *
 nasl_sftp_enabled_check (lex_ctxt *);
 
-#endif /*NASL_SSH_H*/
+#endif /*NASL_NASL_SSH_H*/

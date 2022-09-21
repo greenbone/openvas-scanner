@@ -22,8 +22,8 @@
  * @brief Header file for module table_driven_lsc.
  */
 
-#ifndef TABLE_DRIVEN_LSC_H
-#define TABLE_DRIVEN_LSC_H
+#ifndef MISC_TABLE_DRIVEN_LSC_H
+#define MISC_TABLE_DRIVEN_LSC_H
 
 #include <glib.h>
 
@@ -35,4 +35,4 @@ gchar *
 get_status_of_table_driven_lsc_from_json (const char *, const char *,
                                           const char *, int);
 
-#endif // TABLE_DRIVEN_LSC_H
+#endif // MISC_TABLE_DRIVEN_LSC_H

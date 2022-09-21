@@ -23,8 +23,8 @@
  * @brief pluginload.c header.
  */
 
-#ifndef _OPENVAS_PLUGINLOAD_H
-#define _OPENVAS_PLUGINLOAD_H
+#ifndef OPENVAS_PLUGINLOAD_H
+#define OPENVAS_PLUGINLOAD_H
 
 #include "../misc/network.h"
 #include "../misc/scanneraux.h"

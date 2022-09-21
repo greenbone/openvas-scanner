@@ -22,8 +22,8 @@
  * @brief Header file for module nasl_frame_forgery.
  */
 
-#ifndef NASL_FRAME_FORGERY_H
-#define NASL_FRAME_FORGERY_H
+#ifndef NASL_NASL_FRAME_FORGERY_H
+#define NASL_NASL_FRAME_FORGERY_H
 
 #include "nasl_lex_ctxt.h"
 
@@ -42,4 +42,4 @@ nasl_send_frame (lex_ctxt *);
 tree_cell *
 nasl_dump_frame (lex_ctxt *);
 
-#endif // NASL_FRAME_FORGERY_H
+#endif // NASL_NASL_FRAME_FORGERY_H

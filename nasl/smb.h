@@ -33,8 +33,8 @@
  *  2. malloc_ changes to malloc in SMB_MALLOC_P
  */
 
-#ifndef _SMB_H
-#define _SMB_H
+#ifndef NASL_SMB_H
+#define NASL_SMB_H
 
 #include "charset.h"
 
@@ -202,4 +202,4 @@ typedef uint64_t NTTIME;
 #endif
 /*---------------------------------------------------------------------------------*/
 
-#endif /* _SMB_H */
+#endif /* NASL_SMB_H */

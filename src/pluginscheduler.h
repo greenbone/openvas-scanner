@@ -23,8 +23,8 @@
  * @brief header for pluginscheduler.c
  */
 
-#ifndef PLUGINSCHEDULER_H
-#define PLUGINSCHEDULER_H
+#ifndef OPENVAS_PLUGINSCHEDULER_H
+#define OPENVAS_PLUGINSCHEDULER_H
 
 #include <glib.h>
 
