@@ -76,6 +76,37 @@ clear_child ()
         }
     }
 }
+/**
+ * @brief iterates through ipcc and verify if a child is stopped or killed to
+ * free the file handler.
+ * @return the amount of freed file handler or -1 on ipcc not initialized
+ */
+static int
+close_ipc_fd_on_unnoticed_exit ()
+{
+  int freed = 0, i, status;
+  pid_t pid;
+  if (ipcc == NULL)
+    return -1;
+  g_debug ("%s: checking %d ipc.", __func__, ipcc->len);
+  for (i = 0; i < ipcc->len; i++)
+    {
+      if (ipcc->ctxs[i].closed)
+        {
+          continue;
+        }
+      pid = waitpid (ipcc->ctxs[i].pid, &status, WNOHANG);
+      if ((pid < 0)
+          || ((pid == ipcc->ctxs[i].pid)
+              && (WIFEXITED (status) || WIFSTOPPED (status)
+                  || WIFSIGNALED (status))))
+        {
+          freed++;
+          ipc_close (&ipcc->ctxs[i]);
+        }
+    }
+  return freed;
+}
 
 /**
  * @brief Cleans the process list and frees memory. This will not terminate
@@ -213,6 +244,26 @@ post_fork_fun_call (struct ipc_context *ctx, void *args)
   gvm_close_sentry ();
 }
 
+static void
+reuse_or_add_context (struct ipc_context *ctx)
+{
+  if (ipcc == NULL)
+    return;
+  for (int i = 0; i < ipcc->len; i++)
+    {
+      if (ipcc->ctxs[i].closed == 1)
+        {
+          ipcc->ctxs[i].context = ctx->context;
+          ipcc->ctxs[i].pid = ctx->pid;
+          ipcc->ctxs[i].relation = ctx->relation;
+          ipcc->ctxs[i].type = ctx->type;
+          ipcc->ctxs[i].closed = 0;
+          return;
+        }
+    }
+  ipc_add_context (ipcc, ctx);
+}
+
 /**
  * @brief initializes a communication channels and calls a function with a new
  * process
@@ -227,6 +278,7 @@ create_ipc_process (ipc_process_func func, void *args)
 {
   struct ipc_context *pctx = NULL;
   struct ipc_exec_context ec;
+  pid_t child_pid;
   // previously init call, we want to store the contexts without making
   // assumptions about signal handlung
   if (ipcc == NULL)
@@ -236,13 +288,32 @@ create_ipc_process (ipc_process_func func, void *args)
   ec.post_func = (ipc_process_func) &post_fork_fun_call;
   ec.func = (ipc_process_func) func;
   ec.func_arg = args;
+  ec.parent = getpid ();
+  // check for exited processes and clean file descriptor
+  // we do it twice, before forking and when forking fails with EMFILE or EAGAIN
+  g_debug ("%s: closed %d fd due to premature exit.", __func__,
+           close_ipc_fd_on_unnoticed_exit ());
+retry:
   if ((pctx = ipc_exec_as_process (IPC_PIPE, ec)) == NULL)
     {
-      g_warning ("Error : could not fork ! Error : %s", strerror (errno));
+      if (errno == EMFILE || errno == EAGAIN)
+        {
+          g_debug (
+            "%s: could not fork: %s (%d) retrying after trying to close fd.",
+            __func__, strerror (errno), errno);
+          g_debug ("%s: closed %d fd due to premature exit.", __func__,
+                   close_ipc_fd_on_unnoticed_exit ());
+          goto retry;
+        }
+      g_warning ("%s: could not fork: %s (%d)", __func__, strerror (errno),
+                 errno);
       return FORKFAILED;
     }
-  ipc_add_context (ipcc, pctx);
-  return pctx->pid;
+  reuse_or_add_context (pctx);
+  child_pid = pctx->pid;
+  // ipcc works uses copies of pctx therefore we free it
+  free (pctx);
+  return child_pid;
 }
 
 /**
