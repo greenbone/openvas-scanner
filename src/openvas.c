@@ -180,6 +180,7 @@ static void
 handle_termination_signal (int sig)
 {
   termination_signal = sig;
+  procs_terminate_childs ();
 }
 
 /**

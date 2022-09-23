@@ -51,38 +51,12 @@
 static struct ipc_contexts *ipcc = NULL;
 
 /**
- * @brief Function for handling SIGCHLD to clear procs
- *
- */
-static void
-clear_child ()
-{
-  if (ipcc == NULL)
-    return;
-
-  pid_t pid;
-  // In case we receive multiple SIGCHLD at once
-  while ((pid = waitpid (-1, NULL, WNOHANG)) > 0)
-    {
-      g_message ("Ending child with pid %d", pid);
-      for (int i = 0; i < ipcc->len; i++)
-        {
-          // skip when it is set to NULL or not the wanted pid
-          if (ipcc->ctxs[i].pid != pid)
-            continue;
-          if (ipcc->ctxs[i].closed == 0)
-            ipc_close (&ipcc->ctxs[i]);
-          break;
-        }
-    }
-}
-/**
  * @brief iterates through ipcc and verify if a child is stopped or killed to
  * free the file handler.
  * @return the amount of freed file handler or -1 on ipcc not initialized
  */
-static int
-close_ipc_fd_on_unnoticed_exit ()
+int
+procs_cleanup_children (void)
 {
   int freed = 0, i, status;
   pid_t pid;
@@ -177,32 +151,14 @@ procs_terminate_childs ()
 }
 
 /**
- * @brief Handler for a termination signal. This will terminate all childs and
- * calls SIGTERM for itself afterwards.
- *
- */
-static void
-terminate ()
-{
-  procs_terminate_childs ();
-
-  openvas_signal (SIGTERM, SIG_DFL);
-  raise (SIGTERM);
-}
-
-/**
  * @brief Init procs, must be called once per process
  *
  * @param max
  */
 void
-procs_init (int max)
+procs_init (int cap)
 {
-  ipcc = ipc_contexts_init (max);
-  openvas_signal (SIGCHLD, clear_child);
-  openvas_signal (SIGTERM, terminate);
-  openvas_signal (SIGINT, terminate);
-  openvas_signal (SIGQUIT, terminate);
+  ipcc = ipc_contexts_init (cap);
 }
 
 static void
@@ -282,18 +238,16 @@ create_ipc_process (ipc_process_func func, void *args)
   // previously init call, we want to store the contexts without making
   // assumptions about signal handlung
   if (ipcc == NULL)
-    ipcc = ipc_contexts_init (0);
+    ipcc = ipc_contexts_init (10);
 
   ec.pre_func = (ipc_process_func) &pre_fork_fun_call;
   ec.post_func = (ipc_process_func) &post_fork_fun_call;
   ec.func = (ipc_process_func) func;
   ec.func_arg = args;
-  ec.parent = getpid ();
   // check for exited processes and clean file descriptor
   // we do it twice, before forking and when forking fails with EMFILE or EAGAIN
-  g_debug ("%s: closed %d fd due to premature exit.", __func__,
-           close_ipc_fd_on_unnoticed_exit ());
 retry:
+  g_debug ("%s: closed %d fd.", __func__, procs_cleanup_children ());
   if ((pctx = ipc_exec_as_process (IPC_PIPE, ec)) == NULL)
     {
       if (errno == EMFILE || errno == EAGAIN)
@@ -301,8 +255,6 @@ retry:
           g_debug (
             "%s: could not fork: %s (%d) retrying after trying to close fd.",
             __func__, strerror (errno), errno);
-          g_debug ("%s: closed %d fd due to premature exit.", __func__,
-                   close_ipc_fd_on_unnoticed_exit ());
           goto retry;
         }
       g_warning ("%s: could not fork: %s (%d)", __func__, strerror (errno),

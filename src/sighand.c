@@ -26,6 +26,7 @@
 #include "sighand.h"
 
 #include "debug_utils.h"
+#include "processes.h"
 
 #include <execinfo.h> /* for backtrace() */
 #include <glib.h>     /* for G_LOG_DOMAIN, for g_critical() */
@@ -107,6 +108,8 @@ void
 sighand_chld (int sig)
 {
   (void) sig;
+  // if we call multiple times waitpid it will disturb the attack loop.
+  // therefore we cannot cleanup multiple ipc here
   waitpid (-1, NULL, WNOHANG);
 }
 
