@@ -211,7 +211,6 @@ ipc_exec_as_process (enum ipc_protocol type, struct ipc_exec_context exec_ctx)
           ipc_destroy (pctx);
           break;
         }
-      kill (exec_ctx.parent, SIGCHLD);
       exit (0);
     }
 

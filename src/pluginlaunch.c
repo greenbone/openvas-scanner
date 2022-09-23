@@ -566,6 +566,8 @@ pluginlaunch_wait_for_free_process (kb_t main_kb, kb_t kb)
           */
           pluginlaunch_stop ();
         }
+      // cleanup ipcc cache
+      procs_cleanup_children ();
       update_running_processes (main_kb, kb);
     }
 }
