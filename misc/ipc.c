@@ -117,9 +117,8 @@ ipc_close (struct ipc_context *context)
   switch (context->type)
     {
     case IPC_PIPE:
+      rc = ipc_pipe_close (context->context);
       context->closed = 1;
-      if ((rc = ipc_pipe_close (context->context)) > -1)
-        context->closed = 1;
     }
   return rc;
 }

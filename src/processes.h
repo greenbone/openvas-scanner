@@ -38,7 +38,7 @@
 typedef void (*process_func_t) (void *);
 
 void
-procs_init (int max);
+procs_init (int cap);
 
 void
 procs_terminate_childs (void);
@@ -50,5 +50,8 @@ pid_t
 create_ipc_process (ipc_process_func func, void *args);
 const struct ipc_contexts *
 procs_get_ipc_contexts (void);
+
+int
+procs_cleanup_children (void);
 
 #endif
