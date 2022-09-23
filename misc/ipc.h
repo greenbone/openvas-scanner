@@ -53,7 +53,6 @@ struct ipc_exec_context
   void *func_arg;       // argument for func
   void *post_arg;       // argument for post_func
   void *shared_context; // context to be included in ipc_context
-  pid_t parent;
 };
 
 // ipc_process_func is a type for the function to be executed.
