@@ -225,6 +225,69 @@ ipc_user_agent_destroy (ipc_user_agent_t *data)
   g_free (data);
 }
 
+// Table driven LSC
+
+/**
+ * @brief initializes ipc_data for the table driven LSC.
+ *
+ * @param package_list      The package list.
+ * @param package_list_len  The length of the package list.
+ * @param os_release        The OS release
+ * @param os_release_len    The length of the OS release.
+ *
+ * @return a heap initialized ipc_data or NULL on failure.
+ */
+ipc_data_t *
+ipc_data_type_from_lsc (const char *package_list, size_t package_list_len,
+                        const char *os_release, size_t os_release_len)
+{
+  struct ipc_data *data = NULL;
+  ipc_lsc_t *lscd = NULL;
+  gchar *package_list_str = NULL;
+  gchar *os_release_str = NULL;
+
+  if (package_list == NULL || os_release == NULL)
+    return NULL;
+
+  if ((data = calloc (1, sizeof (*data))) == NULL)
+    return NULL;
+  data->type = IPC_DT_LSC;
+
+  if ((lscd = calloc (1, sizeof (*lscd))) == NULL)
+    goto failure_exit;
+
+  package_list_str = g_strdup (package_list);
+  lscd->package_list = package_list_str;
+  lscd->package_list_len = package_list_len;
+
+  os_release_str = g_strdup (os_release);
+  lscd->os_release = os_release_str;
+  lscd->os_release_len = os_release_len;
+
+  data->ipc_lsc = lscd;
+  return data;
+
+failure_exit:
+  free (data);
+  return NULL;
+}
+
+/**
+ * @brief Free a LSC data structure
+ *
+ * @param data The lsc data structure to be free()'ed
+ */
+static void
+ipc_lsc_destroy (ipc_lsc_t *data)
+{
+  if (data == NULL)
+    return;
+  g_free (data->package_list);
+  g_free (data->os_release);
+  g_free (data);
+}
+
+
 // General IPC data functios
 
 /**

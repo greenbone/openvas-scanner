@@ -42,6 +42,10 @@ ipc_data_type_from_hostname (const char *source, size_t source_len,
 ipc_data_t *
 ipc_data_type_from_user_agent (const char *user_agent, size_t user_agent_len);
 
+ipc_data_t *
+ipc_data_type_from_lsc (const char *package_list, size_t package_list_len,
+                        const char *os_release, size_t os_release_len);
+
 void
 ipc_data_destroy (ipc_data_t **data);
 
