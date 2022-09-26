@@ -19,13 +19,112 @@
  */
 #include "ipc_openvas.h"
 
-#include <glib.h> /* for g_error */
 #include <json-glib/json-glib.h>
 #undef G_LOG_DOMAIN
 /**
  * @brief GLib logging domain.
  */
 #define G_LOG_DOMAIN "lib  misc"
+
+// Data types definitions
+
+// ipc_hostname is used to send / retrieve new hostnames.
+struct ipc_hostname
+{
+  char *source;        // source value
+  char *hostname;      // hostname value
+  size_t source_len;   // length of source
+  size_t hostname_len; // length of hostname
+};
+
+typedef struct ipc_hostname ipc_hostname_t;
+
+// ipc_user_agent is used to send / retrieve the User-Agent.
+struct ipc_user_agent
+{
+  char *user_agent;      // user_agent value
+  size_t user_agent_len; // length of user_agent
+};
+
+typedef struct ipc_user_agent ipc_user_agent_t;
+
+// ipc_data is used to send / retrieve a given data of the union member
+struct ipc_data
+{
+  enum ipc_data_type type;
+  union
+  {
+    ipc_user_agent_t *ipc_user_agent;
+    ipc_hostname_t *ipc_hostname;
+  };
+};
+
+// Functions to access the structures
+
+/**
+ * @brief Get the data type in data
+ *
+ * @param data Structure containing the data and data type
+ *
+ * @Return The corresponding ipc_data_type, IPC_DT_ERROR on error.
+ */
+enum ipc_data_type
+ipc_get_data_type_from_data (ipc_data_t *data)
+{
+  if (data != NULL)
+    return data->type;
+  return IPC_DT_ERROR;
+}
+
+/**
+ * @brief Get the hostname from IPC data
+ *
+ * @param data Data structure of IPC_DT_HOSNAME type.
+ *
+ * @Return a string containing the hostname, NULL on error.
+ */
+gchar *
+ipc_get_hostname_from_data (ipc_data_t *data)
+{
+  if (data == NULL || (ipc_get_data_type_from_data (data) != IPC_DT_HOSTNAME))
+    return NULL;
+
+  return data->ipc_hostname->hostname;
+}
+
+/**
+ * @brief Get the vhost hostname source from IPC data.
+ *
+ * @param data Data structure of IPC_DT_HOSNAME type.
+ *
+ * @Return a string containing the vhost hostname source, NULL on error.
+ */
+gchar *
+ipc_get_hostname_source_from_data (ipc_data_t *data)
+{
+  if (data == NULL || (ipc_get_data_type_from_data (data) != IPC_DT_HOSTNAME))
+    return NULL;
+
+  return data->ipc_hostname->source;
+}
+
+/**
+ * @brief Get the User-Agent from IPC data
+ *
+ * @param data Data structure of IPC_DT_USER_AGENT type.
+ *
+ * @Return a string containing the User-Agent, NULL on error.
+ */
+gchar *
+ipc_get_user_agent_from_data (ipc_data_t *data)
+{
+  if (data == NULL || (ipc_get_data_type_from_data (data) != IPC_DT_USER_AGENT))
+    return NULL;
+
+  return data->ipc_user_agent->user_agent;
+}
+
+// Hostname
 
 /**
  * @brief initializes ipc_data for a hostname data.
@@ -40,7 +139,7 @@ ipc_data_type_from_hostname (const char *source, size_t source_len,
                              const char *hostname, size_t hostname_len)
 {
   struct ipc_data *data = NULL;
-  struct ipc_hostname *hnd = NULL;
+  ipc_hostname_t *hnd = NULL;
   if (source == NULL || hostname == NULL)
     return NULL;
   if ((data = calloc (1, sizeof (*data))) == NULL)
@@ -52,15 +151,20 @@ ipc_data_type_from_hostname (const char *source, size_t source_len,
   hnd->source = g_strdup (source);
   hnd->hostname_len = hostname_len;
   hnd->source_len = source_len;
-  data->data = hnd;
+  data->ipc_hostname = hnd;
   return data;
 failure_exit:
   free (data);
   return NULL;
 }
 
+/**
+ * @brief Free ipc_hostname_t data
+ *
+ * @param data The hostname data structure to be free()'ed
+ */
 static void
-ipc_hostname_destroy (struct ipc_hostname *data)
+ipc_hostname_destroy (ipc_hostname_t *data)
 {
   if (data == NULL)
     return;
@@ -68,6 +172,61 @@ ipc_hostname_destroy (struct ipc_hostname *data)
   g_free (data->source);
   g_free (data);
 }
+
+// User-Agent
+
+/**
+ * @brief initializes ipc_data for the User-Agent.
+ *
+ * @param user_agent The User-Agent
+ * @param user_agent_len Length of the user agent string.
+ *
+ * @return a heap initialized ipc_data or NULL on failure.
+ */
+struct ipc_data *
+ipc_data_type_from_user_agent (const char *user_agent, size_t user_agent_len)
+{
+  struct ipc_data *data = NULL;
+  ipc_user_agent_t *uad = NULL;
+  gchar *ua_str = NULL;
+
+  if (user_agent == NULL)
+    return NULL;
+
+  if ((data = calloc (1, sizeof (*data))) == NULL)
+    return NULL;
+  data->type = IPC_DT_USER_AGENT;
+
+  if ((uad = calloc (1, sizeof (*uad))) == NULL)
+    goto failure_exit;
+
+  ua_str = g_strdup (user_agent);
+  uad->user_agent = ua_str;
+  uad->user_agent_len = user_agent_len;
+
+  data->ipc_user_agent = uad;
+  return data;
+
+failure_exit:
+  free (data);
+  return NULL;
+}
+
+/**
+ * @brief Free a user agent data structure
+ *
+ * @param data The user agent data structure to be free()'ed
+ */
+static void
+ipc_user_agent_destroy (ipc_user_agent_t *data)
+{
+  if (data == NULL)
+    return;
+  g_free (data->user_agent);
+  g_free (data);
+}
+
+// General IPC data functios
 
 /**
  * @brief destroys ipc_data.
@@ -83,8 +242,13 @@ ipc_data_destroy (struct ipc_data *data)
   switch (data->type)
     {
     case IPC_DT_HOSTNAME:
-      ipc_hostname_destroy (data->data);
+      ipc_hostname_destroy (data->ipc_hostname);
       break;
+    case IPC_DT_USER_AGENT:
+      ipc_user_agent_destroy (data->ipc_user_agent);
+      break;
+    case IPC_DT_ERROR:
+      return;
     }
   g_free (data);
 }
@@ -103,8 +267,14 @@ ipc_data_to_json (struct ipc_data *data)
   JsonGenerator *gen;
   JsonNode *root;
   gchar *json_str;
-  struct ipc_hostname *hn = NULL;
+  ipc_hostname_t *hn = NULL;
+  ipc_user_agent_t *ua = NULL;
+  enum ipc_data_type type = IPC_DT_ERROR;
+
   if (data == NULL)
+    return NULL;
+
+  if ((type = ipc_get_data_type_from_data (data)) == IPC_DT_ERROR)
     return NULL;
 
   builder = json_builder_new ();
@@ -112,17 +282,25 @@ ipc_data_to_json (struct ipc_data *data)
   json_builder_begin_object (builder);
 
   json_builder_set_member_name (builder, "type");
-  builder = json_builder_add_int_value (builder, data->type);
-  switch (data->type)
+  builder = json_builder_add_int_value (builder, type);
+  switch (type)
     {
     case IPC_DT_HOSTNAME:
-      hn = data->data;
+      hn = data->ipc_hostname;
       json_builder_set_member_name (builder, "source");
       builder = json_builder_add_string_value (builder, hn->source);
       json_builder_set_member_name (builder, "hostname");
       builder = json_builder_add_string_value (builder, hn->hostname);
-
       break;
+
+    case IPC_DT_USER_AGENT:
+      ua = data->ipc_user_agent;
+      json_builder_set_member_name (builder, "user-agent");
+      builder = json_builder_add_string_value (builder, ua->user_agent);
+      break;
+
+    default:
+      g_warning ("%s: Unknown data type %d.", __func__, type);
     }
 
   json_builder_end_object (builder);
@@ -153,15 +331,18 @@ ipc_data_to_json (struct ipc_data *data)
 struct ipc_data *
 ipc_data_from_json (const char *json, size_t len)
 {
-  JsonParser *parser;
+  JsonParser *parser = NULL;
   JsonReader *reader = NULL;
 
   GError *err = NULL;
   struct ipc_data *ret = NULL;
-  void *data = NULL;
-  struct ipc_hostname *hn;
+  ipc_user_agent_t *ua;
+  ipc_hostname_t *hn;
 
-  enum ipc_data_type type = -1;
+  enum ipc_data_type type = IPC_DT_ERROR;
+
+  if ((ret = calloc (1, sizeof (*ret))) == NULL)
+    goto cleanup;
 
   parser = json_parser_new ();
   if (!json_parser_load_from_data (parser, json, len, &err))
@@ -175,10 +356,15 @@ ipc_data_from_json (const char *json, size_t len)
     {
       goto cleanup;
     }
+
   type = json_reader_get_int_value (reader);
   json_reader_end_member (reader);
+
+  ret->type = type;
   switch (type)
     {
+    case IPC_DT_ERROR:
+      goto cleanup;
     case IPC_DT_HOSTNAME:
       if ((hn = calloc (1, sizeof (*hn))) == NULL)
         goto cleanup;
@@ -196,13 +382,24 @@ ipc_data_from_json (const char *json, size_t len)
       hn->source = g_strdup (json_reader_get_string_value (reader));
       hn->source_len = strlen (hn->source);
       json_reader_end_member (reader);
-      data = hn;
+      ret->ipc_hostname = hn;
+      break;
+
+    case IPC_DT_USER_AGENT:
+
+      if ((ua = calloc (1, sizeof (*ua))) == NULL)
+        goto cleanup;
+      if (!json_reader_read_member (reader, "user-agent"))
+        {
+          goto cleanup;
+        }
+      ua->user_agent = g_strdup (json_reader_get_string_value (reader));
+      ua->user_agent_len = strlen (ua->user_agent);
+      json_reader_end_member (reader);
+      ret->ipc_user_agent = ua;
       break;
     }
-  if ((ret = calloc (1, sizeof (*ret))) == NULL)
-    goto cleanup;
-  ret->type = type;
-  ret->data = data;
+
 cleanup:
   if (reader)
     g_object_unref (reader);
@@ -213,16 +410,7 @@ cleanup:
                  err->message);
     }
   if (ret == NULL)
-    {
-      if (data != NULL)
-        {
-          switch (type)
-            {
-            case IPC_DT_HOSTNAME:
-              ipc_hostname_destroy (data);
-              break;
-            }
-        }
-    }
+    ipc_data_destroy (ret);
+
   return ret;
 }
