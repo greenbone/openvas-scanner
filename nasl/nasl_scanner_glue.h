@@ -115,4 +115,7 @@ nasl_scanner_status (lex_ctxt *);
 tree_cell *
 nasl_vendor_version (lex_ctxt *);
 
+tree_cell *
+nasl_update_table_driven_lsc_data(lex_ctxt *);
+
 #endif
