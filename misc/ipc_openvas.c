@@ -34,6 +34,18 @@ struct ipc_user_agent
 
 typedef struct ipc_user_agent ipc_user_agent_t;
 
+// ipc_lsc is used to send / retrieve the table driven LSC data.
+struct ipc_lsc
+{
+  char *package_list;      // package list
+  size_t package_list_len; // length of package list
+  char *os_release;        // OS release
+  size_t os_release_len;        // len of OS release
+};
+
+typedef struct ipc_lsc ipc_lsc_t;
+
+
 // ipc_data is used to send / retrieve a given data of the union member
 struct ipc_data
 {
@@ -42,6 +54,7 @@ struct ipc_data
   {
     ipc_user_agent_t *ipc_user_agent;
     ipc_hostname_t *ipc_hostname;
+    ipc_lsc_t *ipc_lsc;
   };
 };
 

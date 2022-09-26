@@ -16,6 +16,7 @@ enum ipc_data_type
   IPC_DT_ERROR = -1,
   IPC_DT_HOSTNAME = 0,
   IPC_DT_USER_AGENT,
+  IPC_DT_LSC,
 };
 
 typedef struct ipc_data ipc_data_t;
