@@ -123,6 +123,39 @@ ipc_get_user_agent_from_data (ipc_data_t *data)
   return data->ipc_user_agent->user_agent;
 }
 
+/**
+ * @brief Get the package list from LSC IPC data
+ *
+ * @param data Data structure of IPC_DT_LSC type.
+ *
+ * @Return a string containing the package list, NULL on error.
+ */
+gchar *
+ipc_get_lsc_package_list_from_data (ipc_data_t *data)
+{
+  if (data == NULL || (ipc_get_data_type_from_data (data) != IPC_DT_LSC))
+    return NULL;
+
+  return data->ipc_lsc->package_list;
+}
+
+/**
+ * @brief Get the OS release from LSC IPC data
+ *
+ * @param data Data structure of IPC_DT_LSC type.
+ *
+ * @Return a string containing the OS release, NULL on error.
+ */
+gchar *
+ipc_get_lsc_os_release_from_data (ipc_data_t *data)
+{
+  if (data == NULL || (ipc_get_data_type_from_data (data) != IPC_DT_LSC))
+    return NULL;
+
+  return data->ipc_lsc->os_release;
+}
+
+
 // Hostname
 
 /**

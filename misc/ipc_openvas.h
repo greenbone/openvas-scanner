@@ -34,6 +34,13 @@ ipc_get_hostname_source_from_data (ipc_data_t *data);
 gchar *
 ipc_get_user_agent_from_data (ipc_data_t *data);
 
+gchar *
+ipc_get_lsc_package_list_from_data (ipc_data_t *data);
+
+gchar *
+ipc_get_lsc_os_release_from_data (ipc_data_t *data);
+
+
 // prototypes for handling of ipc_data_t and json
 ipc_data_t *
 ipc_data_type_from_hostname (const char *source, size_t source_len,
