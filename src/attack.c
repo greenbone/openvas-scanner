@@ -18,8 +18,8 @@
 #include "../misc/nvt_categories.h" /* for ACT_INIT */
 #include "../misc/pcap_openvas.h"   /* for v6_is_local_ip */
 #include "../misc/plugutils.h"
-#include "../misc/table_driven_lsc.h" /* for make_table_driven_lsc_info_json_str */
 #include "../misc/user_agent.h"       /* for user_agent_set */
+#include "../misc/table_driven_lsc.h" /*for run_table_driven_lsc */
 #include "../nasl/nasl_debug.h"       /* for nasl_*_filename */
 #include "hosts.h"
 #include "pluginlaunch.h"
@@ -310,144 +310,6 @@ append_vhost (const char *vhost, const char *source)
   host_vhosts = g_slist_append (
     host_vhosts, gvm_vhost_new (g_strdup (vhost), g_strdup (source)));
   g_info ("%s: add vhost '%s' from '%s'", __func__, vhost, source);
-}
-
-/**
- * @brief Publish the necessary data to start a Table driven LSC scan.
- *
- * If the gather-package-list.nasl plugin was launched, and it generated
- * a valid package list for a supported OS, the table driven LSC scan
- * which is subscribed to the topic will perform a scan an publish the
- * the results to be handle by the sensor/client.
- *
- * @param scan_id     Scan Id.
- * @param kb
- * @param ip_str      IP string of host.
- * @param hostname    Name of host.
- *
- * @return 0 on success, less than 0 on error.
- */
-static int
-run_table_driven_lsc (const char *scan_id, kb_t kb, const char *ip_str,
-                      const char *hostname)
-{
-  gchar *json_str;
-  gchar *package_list;
-  gchar *os_release;
-  gchar *topic;
-  gchar *payload;
-  gchar *status = NULL;
-  int topic_len;
-  int payload_len;
-  int err = 0;
-
-  // Subscribe to status topic
-  err = mqtt_subscribe ("scanner/status");
-  if (err)
-    {
-      g_warning ("%s: Error starting lsc. Unable to subscribe", __func__);
-      return -1;
-    }
-  /* Get the OS release. TODO: have a list with supported OS. */
-
-  os_release = kb_item_get_str (kb, "ssh/login/release_notus");
-  /* Get the package list. Currently only rpm support */
-  package_list = kb_item_get_str (kb, "ssh/login/package_list_notus");
-  if (!os_release || !package_list)
-    return 0;
-
-  json_str = make_table_driven_lsc_info_json_str (scan_id, ip_str, hostname,
-                                                  os_release, package_list);
-  g_free (package_list);
-  g_free (os_release);
-
-  // Run table driven lsc
-  if (json_str == NULL)
-    return -1;
-
-  g_message ("Running Notus for %s", ip_str);
-  err = mqtt_publish ("scanner/package/cmd/notus", json_str);
-  if (err)
-    {
-      g_warning ("%s: Error publishing message for Notus.", __func__);
-      g_free (json_str);
-      return -1;
-    }
-
-  g_free (json_str);
-
-  // Wait for Notus scanner to start or interrupt
-  while (!status)
-    {
-      err = mqtt_retrieve_message (&topic, &topic_len, &payload, &payload_len,
-                                   60000);
-      if (err == -1 || err == 1)
-        {
-          g_warning ("%s: Unable to retrieve status message from notus. %s",
-                     __func__, err == 1 ? "Timeout after 60 s." : "");
-          return -1;
-        }
-
-      // Get status if it belongs to corresponding scan and host
-      // Else wait for next status message
-      status = get_status_of_table_driven_lsc_from_json (scan_id, ip_str,
-                                                         payload, payload_len);
-
-      g_free (topic);
-      g_free (payload);
-    }
-  // If started wait for it to finish or interrupt
-  if (!g_strcmp0 (status, "running"))
-    {
-      g_debug ("%s: table driven LSC with scan id %s successfully started "
-               "for host %s",
-               __func__, scan_id, ip_str);
-      g_free (status);
-      status = NULL;
-      while (!status)
-        {
-          err = mqtt_retrieve_message (&topic, &topic_len, &payload,
-                                       &payload_len, 60000);
-          if (err == -1)
-            {
-              g_warning ("%s: Unable to retrieve status message from notus.",
-                         __func__);
-              return -1;
-            }
-          if (err == 1)
-            {
-              g_warning ("%s: Unablet to retrieve message. Timeout after 60s.",
-                         __func__);
-              return -1;
-            }
-
-          status = get_status_of_table_driven_lsc_from_json (
-            scan_id, ip_str, payload, payload_len);
-          g_free (topic);
-          g_free (payload);
-        }
-    }
-  else
-    {
-      g_warning ("%s: Unable to start lsc. Got status: %s", __func__, status);
-      g_free (status);
-      return -1;
-    }
-
-  if (g_strcmp0 (status, "finished"))
-    {
-      g_warning (
-        "%s: table driven lsc with scan id %s did not finish successfully "
-        "for host %s. Last status was %s",
-        __func__, scan_id, ip_str, status);
-      err = -1;
-    }
-  else
-    g_debug ("%s: table driven lsc with scan id %s successfully finished "
-             "for host %s",
-             __func__, scan_id, ip_str);
-  g_free (status);
-  return err;
 }
 
 static void
