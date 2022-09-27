@@ -18,8 +18,8 @@
 #include "../misc/nvt_categories.h" /* for ACT_INIT */
 #include "../misc/pcap_openvas.h"   /* for v6_is_local_ip */
 #include "../misc/plugutils.h"
-#include "../misc/user_agent.h"       /* for user_agent_set */
 #include "../misc/table_driven_lsc.h" /*for run_table_driven_lsc */
+#include "../misc/user_agent.h"       /* for user_agent_set */
 #include "../nasl/nasl_debug.h"       /* for nasl_*_filename */
 #include "hosts.h"
 #include "pluginlaunch.h"
@@ -417,7 +417,6 @@ read_ipc (struct attack_start_args *args)
         }
     }
 }
-
 /**
  * @brief Launches a nvt. Respects safe check preference (i.e. does not try
  * @brief destructive nvt if save_checks is yes).
@@ -499,14 +498,10 @@ launch_plugin (struct scan_globals *globals, struct scheduler_plugin *plugin,
       goto finish_launch_plugin;
     }
 
-  /* Update vhosts list and start the plugin */
-  if (procs_get_ipc_contexts () != NULL)
-    {
-      for (int i = 0; i < procs_get_ipc_contexts ()->len; i++)
-        {
-          read_ipc (&procs_get_ipc_contexts ()->ctxs[i], args);
-        }
-    }
+  /* Read the pipes */
+  read_ipc (args);
+
+  /* Start the plugin */
   launch_error = 0;
   pid = plugin_launch (globals, plugin, ip, vhosts, args->host_kb,
                        get_main_kb (), nvti, &launch_error);
