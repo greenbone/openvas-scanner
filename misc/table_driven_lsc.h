@@ -23,6 +23,7 @@ get_status_of_table_driven_lsc_from_json (const char *, const char *,
                                           const char *, int);
 
 int
-run_table_driven_lsc (const char *, kb_t, const char *, const char *);
+run_table_driven_lsc (const char *, const char *, const char *,
+                      const char *, const char *);
 
 #endif // MISC_TABLE_DRIVEN_LSC_H

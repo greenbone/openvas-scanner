@@ -220,12 +220,11 @@ cleanup:
  * @return 0 on success, less than 0 on error.
  */
 int
-run_table_driven_lsc (const char *scan_id, kb_t kb, const char *ip_str,
-                      const char *hostname)
+run_table_driven_lsc (const char *scan_id, const char *ip_str,
+                      const char *hostname, const char *package_list,
+                      const char *os_release)
 {
   gchar *json_str;
-  gchar *package_list;
-  gchar *os_release;
   gchar *topic;
   gchar *payload;
   gchar *status = NULL;
@@ -240,18 +239,12 @@ run_table_driven_lsc (const char *scan_id, kb_t kb, const char *ip_str,
       g_warning ("%s: Error starting lsc. Unable to subscribe", __func__);
       return -1;
     }
-  /* Get the OS release. TODO: have a list with supported OS. */
 
-  os_release = kb_item_get_str (kb, "ssh/login/release_notus");
-  /* Get the package list. Currently only rpm support */
-  package_list = kb_item_get_str (kb, "ssh/login/package_list_notus");
   if (!os_release || !package_list)
-    return 0;
+    return -1;
 
   json_str = make_table_driven_lsc_info_json_str (scan_id, ip_str, hostname,
                                                   os_release, package_list);
-  g_free (package_list);
-  g_free (os_release);
 
   // Run table driven lsc
   if (json_str == NULL)
