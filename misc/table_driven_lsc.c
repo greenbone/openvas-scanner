@@ -68,7 +68,7 @@ add_packages_str_to_list (JsonBuilder *builder, const gchar *packages)
  *
  * @return JSON string on success. Must be freed by caller. NULL on error.
  */
-gchar *
+static gchar *
 make_table_driven_lsc_info_json_str (const char *scan_id, const char *ip_str,
                                      const char *hostname,
                                      const char *os_release,
@@ -141,7 +141,7 @@ make_table_driven_lsc_info_json_str (const char *scan_id, const char *ip_str,
  * @param len length of json
  * @return gchar* Status of table driven lsc or NULL
  */
-gchar *
+static gchar *
 get_status_of_table_driven_lsc_from_json (const char *scan_id,
                                           const char *host_ip, const char *json,
                                           int len)
@@ -202,7 +202,6 @@ cleanup:
     }
   return ret;
 }
-
 
 /**
  * @brief Publish the necessary data to start a Table driven LSC scan.

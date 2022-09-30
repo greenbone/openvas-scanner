@@ -12,18 +12,10 @@
 #define MISC_TABLE_DRIVEN_LSC_H
 
 #include <glib.h>
-#include <gvm/util/kb.h>      // for kb_t
-
-gchar *
-make_table_driven_lsc_info_json_str (const char *, const char *, const char *,
-                                     const char *, const char *);
-
-gchar *
-get_status_of_table_driven_lsc_from_json (const char *, const char *,
-                                          const char *, int);
+#include <gvm/util/kb.h> // for kb_t
 
 int
-run_table_driven_lsc (const char *, const char *, const char *,
-                      const char *, const char *);
+run_table_driven_lsc (const char *, const char *, const char *, const char *,
+                      const char *);
 
 #endif // MISC_TABLE_DRIVEN_LSC_H
