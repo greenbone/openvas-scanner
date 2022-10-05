@@ -15,11 +15,11 @@
 
 #include "nasl_scanner_glue.h"
 
+#include "../misc/ipc_openvas.h"   /* for ipc_* */
 #include "../misc/network.h"       /* for getpts */
 #include "../misc/plugutils.h"     /* for plug_set_id */
 #include "../misc/support.h"       /* for the g_memdup2 workaround */
 #include "../misc/vendorversion.h" /* for vendor_version_get */
-#include "../misc/ipc_openvas.h"   /* for ipc_* */
 #include "nasl_debug.h"
 #include "nasl_func.h"
 #include "nasl_global_ctxt.h"
@@ -1068,35 +1068,25 @@ nasl_vendor_version (lex_ctxt *lexic)
 }
 
 /**
- * @brief Send the necessary data for starting a table driven LSC
- *        to the parent process
+ * @brief Communicate to the parent process that LSC data is ready
+ *        for use in the host kb
  *
  * @naslfn{update_table_driven_lsc_data}
- * Takes a package list and and an OS release
- *
- * @naslnparam
- * - @a pkg_list String containing the gathered package list.
- * - @a os_release The OS release.
  *
  * @param[in] lexic  Lexical context of the NASL interpreter.
  *
  * @return NULL
  */
 tree_cell *
-nasl_update_table_driven_lsc_data(lex_ctxt *lexic)
+nasl_update_table_driven_lsc_data (lex_ctxt *lexic)
 {
-  struct ipc_data *lsc = NULL;
+  ipc_data_t *lsc = NULL;
   const char *json = NULL;
-  char *package_list = get_str_var_by_name (lexic, "pkg_list");
-  char *os_release = get_str_var_by_name (lexic, "os_release");
 
-  if (!package_list || !os_release)
-     {
-      nasl_perror (lexic, "%s: Missing package list or OS release\n", __func__);
-      return NULL;
-    }
+  lsc = ipc_data_type_from_lsc (TRUE);
+  if (!lsc)
+    return NULL;
 
-  lsc = ipc_data_type_from_lsc (package_list, strlen (package_list), os_release, strlen (os_release));
   json = ipc_data_to_json (lsc);
   ipc_data_destroy (lsc);
   if (ipc_send (lexic->script_infos->ipc_context, IPC_MAIN, json, strlen (json))
