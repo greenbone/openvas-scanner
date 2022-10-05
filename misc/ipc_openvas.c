@@ -37,14 +37,10 @@ typedef struct ipc_user_agent ipc_user_agent_t;
 // ipc_lsc is used to send / retrieve the table driven LSC data.
 struct ipc_lsc
 {
-  char *package_list;      // package list
-  size_t package_list_len; // length of package list
-  char *os_release;        // OS release
-  size_t os_release_len;        // len of OS release
+  gboolean data_ready; // flag indicating that lsc data is in the kb
 };
 
 typedef struct ipc_lsc ipc_lsc_t;
-
 
 // ipc_data is used to send / retrieve a given data of the union member
 struct ipc_data
@@ -128,33 +124,16 @@ ipc_get_user_agent_from_data (ipc_data_t *data)
  *
  * @param data Data structure of IPC_DT_LSC type.
  *
- * @Return a string containing the package list, NULL on error.
+ * @Return True if the data is ready for running with LSC, False otherwise.
  */
-gchar *
-ipc_get_lsc_package_list_from_data (ipc_data_t *data)
+gboolean
+ipc_get_lsc_data_ready_flag (ipc_data_t *data)
 {
   if (data == NULL || (ipc_get_data_type_from_data (data) != IPC_DT_LSC))
-    return NULL;
+    return FALSE;
 
-  return data->ipc_lsc->package_list;
+  return data->ipc_lsc->data_ready;
 }
-
-/**
- * @brief Get the OS release from LSC IPC data
- *
- * @param data Data structure of IPC_DT_LSC type.
- *
- * @Return a string containing the OS release, NULL on error.
- */
-gchar *
-ipc_get_lsc_os_release_from_data (ipc_data_t *data)
-{
-  if (data == NULL || (ipc_get_data_type_from_data (data) != IPC_DT_LSC))
-    return NULL;
-
-  return data->ipc_lsc->os_release;
-}
-
 
 // Hostname
 
@@ -166,11 +145,11 @@ ipc_get_lsc_os_release_from_data (ipc_data_t *data)
  *
  * @return a heap initialized ipc_data or NULL on failure.
  */
-struct ipc_data *
+ipc_data_t *
 ipc_data_type_from_hostname (const char *source, size_t source_len,
                              const char *hostname, size_t hostname_len)
 {
-  struct ipc_data *data = NULL;
+  ipc_data_t *data = NULL;
   ipc_hostname_t *hnd = NULL;
   if (source == NULL || hostname == NULL)
     return NULL;
@@ -215,10 +194,10 @@ ipc_hostname_destroy (ipc_hostname_t *data)
  *
  * @return a heap initialized ipc_data or NULL on failure.
  */
-struct ipc_data *
+ipc_data_t *
 ipc_data_type_from_user_agent (const char *user_agent, size_t user_agent_len)
 {
-  struct ipc_data *data = NULL;
+  ipc_data_t *data = NULL;
   ipc_user_agent_t *uad = NULL;
   gchar *ua_str = NULL;
 
@@ -263,23 +242,17 @@ ipc_user_agent_destroy (ipc_user_agent_t *data)
 /**
  * @brief initializes ipc_data for the table driven LSC.
  *
- * @param package_list      The package list.
- * @param package_list_len  The length of the package list.
  * @param os_release        The OS release
- * @param os_release_len    The length of the OS release.
  *
  * @return a heap initialized ipc_data or NULL on failure.
  */
 ipc_data_t *
-ipc_data_type_from_lsc (const char *package_list, size_t package_list_len,
-                        const char *os_release, size_t os_release_len)
+ipc_data_type_from_lsc (gboolean data_ready)
 {
-  struct ipc_data *data = NULL;
+  ipc_data_t *data = NULL;
   ipc_lsc_t *lscd = NULL;
-  gchar *package_list_str = NULL;
-  gchar *os_release_str = NULL;
 
-  if (package_list == NULL || os_release == NULL)
+  if (data_ready != FALSE && data_ready != TRUE)
     return NULL;
 
   if ((data = calloc (1, sizeof (*data))) == NULL)
@@ -289,14 +262,7 @@ ipc_data_type_from_lsc (const char *package_list, size_t package_list_len,
   if ((lscd = calloc (1, sizeof (*lscd))) == NULL)
     goto failure_exit;
 
-  package_list_str = g_strdup (package_list);
-  lscd->package_list = package_list_str;
-  lscd->package_list_len = package_list_len;
-
-  os_release_str = g_strdup (os_release);
-  lscd->os_release = os_release_str;
-  lscd->os_release_len = os_release_len;
-
+  lscd->data_ready = data_ready;
   data->ipc_lsc = lscd;
   return data;
 
@@ -313,13 +279,8 @@ failure_exit:
 static void
 ipc_lsc_destroy (ipc_lsc_t *data)
 {
-  if (data == NULL)
-    return;
-  g_free (data->package_list);
-  g_free (data->os_release);
   g_free (data);
 }
-
 
 // General IPC data functios
 
@@ -330,26 +291,25 @@ ipc_lsc_destroy (ipc_lsc_t *data)
  *
  */
 void
-ipc_data_destroy (ipc_data_t **data)
+ipc_data_destroy (ipc_data_t *data)
 {
-  if (*data == NULL)
+  if (data == NULL)
     return;
-  switch ((*data)->type)
+  switch (data->type)
     {
     case IPC_DT_HOSTNAME:
-      ipc_hostname_destroy ((*data)->ipc_hostname);
+      ipc_hostname_destroy (data->ipc_hostname);
       break;
     case IPC_DT_USER_AGENT:
-      ipc_user_agent_destroy ((*data)->ipc_user_agent);
+      ipc_user_agent_destroy (data->ipc_user_agent);
       break;
     case IPC_DT_LSC:
       ipc_lsc_destroy (data->ipc_lsc);
       break;
     case IPC_DT_ERROR:
-      break;
+      return;
     }
-  g_free (*data);
-  *data = NULL;
+  g_free (data);
 }
 
 /**
@@ -360,7 +320,7 @@ ipc_data_destroy (ipc_data_t **data)
  * @return a heap allocated achar array containing the json or NULL on failure.
  */
 const char *
-ipc_data_to_json (struct ipc_data *data)
+ipc_data_to_json (ipc_data_t *data)
 {
   JsonBuilder *builder;
   JsonGenerator *gen;
@@ -401,10 +361,8 @@ ipc_data_to_json (struct ipc_data *data)
 
     case IPC_DT_LSC:
       lsc = data->ipc_lsc;
-      json_builder_set_member_name (builder, "package_list");
-      builder = json_builder_add_string_value (builder, lsc->package_list);
-      json_builder_set_member_name (builder, "os_release");
-      builder = json_builder_add_string_value (builder, lsc->os_release);
+      json_builder_set_member_name (builder, "data_ready");
+      builder = json_builder_add_boolean_value (builder, lsc->data_ready);
       break;
 
     default:
@@ -436,7 +394,7 @@ ipc_data_to_json (struct ipc_data *data)
  *
  * @return a heap allocated ipc_data or NULL on failure.
  */
-struct ipc_data *
+ipc_data_t *
 ipc_data_from_json (const char *json, size_t len)
 {
   JsonParser *parser = NULL;
@@ -518,19 +476,11 @@ ipc_data_from_json (const char *json, size_t len)
     case IPC_DT_LSC:
       if ((lsc = calloc (1, sizeof (*lsc))) == NULL)
         goto cleanup;
-      if (!json_reader_read_member (reader, "package_list"))
+      if (!json_reader_read_member (reader, "data_ready"))
         {
           goto cleanup;
         }
-      lsc->package_list = g_strdup (json_reader_get_string_value (reader));
-      lsc->package_list_len = strlen (lsc->package_list);
-      json_reader_end_member (reader);
-      if (!json_reader_read_member (reader, "os_release"))
-        {
-          goto cleanup;
-        }
-      lsc->os_release = g_strdup (json_reader_get_string_value (reader));
-      lsc->os_release_len = strlen (lsc->os_release);
+      lsc->data_ready = json_reader_get_boolean_value (reader);
       json_reader_end_member (reader);
       ret->ipc_lsc = lsc;
       break;

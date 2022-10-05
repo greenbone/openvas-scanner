@@ -34,12 +34,11 @@ ipc_get_hostname_source_from_data (ipc_data_t *data);
 gchar *
 ipc_get_user_agent_from_data (ipc_data_t *data);
 
-gchar *
-ipc_get_lsc_package_list_from_data (ipc_data_t *data);
+gboolean
+ipc_get_lsc_data_ready_flag (ipc_data_t *data);
 
 gchar *
 ipc_get_lsc_os_release_from_data (ipc_data_t *data);
-
 
 // prototypes for handling of ipc_data_t and json
 ipc_data_t *
@@ -50,11 +49,10 @@ ipc_data_t *
 ipc_data_type_from_user_agent (const char *user_agent, size_t user_agent_len);
 
 ipc_data_t *
-ipc_data_type_from_lsc (const char *package_list, size_t package_list_len,
-                        const char *os_release, size_t os_release_len);
+ipc_data_type_from_lsc (gboolean data_ready);
 
 void
-ipc_data_destroy (ipc_data_t **data);
+ipc_data_destroy (ipc_data_t *data);
 
 const char *
 ipc_data_to_json (ipc_data_t *data);
