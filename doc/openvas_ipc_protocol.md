@@ -13,16 +13,18 @@ struct ipc_data
   {
     ipc_user_agent_t *ipc_user_agent;
     ipc_hostname_t *ipc_hostname;
+    ipc_lsc_t *ipc_lsc;
   };
 };
 ```
 
 ### Data types
 
-Currently, there are 2 supported data types
+Currently, the following data types are supported
 
 - **User-Agent:** First time that the User-Agent is used during a scan, it will be sent to the parent process and stored for further usage.
 - **Hostname:** Hostnames which are found for a plugin are communicated the parent process and added to the vhost list. Later launched plugins know the updated list.
+- **LSC:** The gather-package-list.nasl nasl script gathered the necessary data for running a LSC scan. The parent process is told to run the scan.
 
 The `enum ipc_data_type` has also the IPC_DT_ERROR definition for unknown types.
 
@@ -32,12 +34,13 @@ enum ipc_data_type
   IPC_DT_ERROR = -1,
   IPC_DT_HOSTNAME = 0,
   IPC_DT_USER_AGENT,
+  IPC_DT_LSC,
 };
 ```
 
 ### Data
 
-Currently, there are two data holders, which correspond to the supported data types. This data is not directly accessible, and functions must be used to set/get the data.
+Currently, there are three data holders, which correspond to the supported data types. This data is not directly accessible, and functions must be used to set/get the data.
 
 - **ipc_hostname:** used to send / retrieve new hostnames.
 
@@ -61,6 +64,16 @@ struct ipc_user_agent
 };
 ```
 
+- **ipc_lsc:** used to send/retrieve the LSC data_ready flag.
+
+``` c
+struct ipc_lsc
+{
+  gboolean data_ready; // flag indicating that lsc data is in the kb
+};
+```
+
+
 ## Messages
 
 Before sending a message to another process, the message must be created in the right json format.
@@ -81,6 +94,15 @@ The following examples show how the Json message looks like for the different da
 {
   "type":1,
   "user-agent":"Orange Agent"
+}
+  
+```
+
+- *ipc_lsc:*
+```
+{
+  "type":2,
+  "data_ready":"True"
 }
   
 ```
