@@ -370,6 +370,7 @@ ipc_data_from_json (const char *json, size_t len)
         goto cleanup;
       if (!json_reader_read_member (reader, "hostname"))
         {
+          g_free (hn);
           goto cleanup;
         }
       hn->hostname = g_strdup (json_reader_get_string_value (reader));
@@ -377,6 +378,7 @@ ipc_data_from_json (const char *json, size_t len)
       json_reader_end_member (reader);
       if (!json_reader_read_member (reader, "source"))
         {
+          ipc_hostname_destroy (hn);
           goto cleanup;
         }
       hn->source = g_strdup (json_reader_get_string_value (reader));
@@ -391,6 +393,7 @@ ipc_data_from_json (const char *json, size_t len)
         goto cleanup;
       if (!json_reader_read_member (reader, "user-agent"))
         {
+          g_free (ua);
           goto cleanup;
         }
       ua->user_agent = g_strdup (json_reader_get_string_value (reader));
