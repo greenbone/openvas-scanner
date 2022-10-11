@@ -114,7 +114,7 @@ mac (const char *key, const size_t key_len, const char *data,
     goto cexit;
 
   *out_len = gcry_mac_get_algo_maclen (algo);
-  if ((*out = calloc (*out_len, sizeof (*out))) == NULL)
+  if ((*out = g_malloc0 (*out_len * sizeof (*out))) == NULL)
     {
       result = GPG_ERR_ENOMEM;
       goto cexit;
