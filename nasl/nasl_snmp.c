@@ -93,6 +93,16 @@ struct snmp_result
 
 typedef struct snmp_result *snmp_result_t;
 
+static void
+destroy_snmp_result (snmp_result_t result)
+{
+  if (result == NULL)
+    return;
+  g_free (result->name);
+  g_free (result->oid_str);
+  g_free (result);
+}
+
 /*
  * @brief Check that protocol value is valid.
  *
@@ -134,7 +144,7 @@ array_from_snmp_result (int ret, const snmp_result_t result)
   /* Name */
   memset (&v, 0, sizeof v);
   v.var_type = VAR2_STRING;
-  v.v.v_str.s_val = (unsigned char *) result->name;
+  v.v.v_str.s_val = (unsigned char *) g_strdup (result->name);
   v.v.v_str.s_siz = strlen (result->name);
   add_var_to_list (retc->x.ref_val, 1, &v);
   /* OID */
@@ -142,7 +152,7 @@ array_from_snmp_result (int ret, const snmp_result_t result)
     {
       memset (&v, 0, sizeof v);
       v.var_type = VAR2_STRING;
-      v.v.v_str.s_val = (unsigned char *) result->oid_str;
+      v.v.v_str.s_val = (unsigned char *) g_strdup (result->oid_str);
       v.v.v_str.s_siz = strlen (result->oid_str);
       add_var_to_list (retc->x.ref_val, 2, &v);
     }
@@ -630,6 +640,7 @@ snmpv3_get (const snmpv3_request_t request, snmp_result_t result)
 static tree_cell *
 nasl_snmpv1v2c_get (lex_ctxt *lexic, int version, u_char action)
 {
+  tree_cell *retc = NULL;
   const char *proto;
   char peername[2048];
   int port, ret;
@@ -691,7 +702,9 @@ nasl_snmpv1v2c_get (lex_ctxt *lexic, int version, u_char action)
      which will be free()'d later */
   g_free (request);
 
-  return array_from_snmp_result (ret, result);
+  retc = array_from_snmp_result (ret, result);
+  destroy_snmp_result (result);
+  return retc;
 }
 
 tree_cell *
@@ -721,6 +734,7 @@ nasl_snmpv2c_getnext (lex_ctxt *lexic)
 static tree_cell *
 nasl_snmpv3_get_action (lex_ctxt *lexic, u_char action)
 {
+  tree_cell *retc = NULL;
   const char *proto, *authproto, *privproto;
   char peername[2048];
   int port, ret;
@@ -811,7 +825,9 @@ nasl_snmpv3_get_action (lex_ctxt *lexic, u_char action)
      which will be free()'d later */
   g_free (request);
 
-  return array_from_snmp_result (ret, result);
+  retc = array_from_snmp_result (ret, result);
+  destroy_snmp_result (result);
+  return retc;
 }
 
 tree_cell *
