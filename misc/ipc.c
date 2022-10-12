@@ -186,8 +186,10 @@ ipc_exec_as_process (enum ipc_protocol type, struct ipc_exec_context exec_ctx)
   gvm_log_lock ();
   pid = fork ();
   gvm_log_unlock ();
+  /* fork error */
   if (pid < 0)
     {
+      ipc_destroy (pctx);
       return NULL;
     }
   // we are the child process and execute given function
