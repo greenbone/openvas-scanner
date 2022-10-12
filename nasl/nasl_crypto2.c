@@ -1885,10 +1885,12 @@ crypt_data (lex_ctxt *lexic, int cipher, int mode, int flags)
           return NULL;
         }
     }
-  authlen = 16;
-  auth = g_malloc0 (authlen);
+
   if (flags & NASL_AAD)
     {
+      authlen = 16;
+      auth = g_malloc0 (authlen);
+
       if ((error = gcry_cipher_gettag (hd, auth, authlen)))
         {
           g_message ("gcry_cipher_gettag: %s", gcry_strerror (error));
