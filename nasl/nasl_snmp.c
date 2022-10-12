@@ -719,7 +719,6 @@ nasl_snmpv3_get_action (lex_ctxt *lexic, u_char action)
   char *oid_str;
   static char *next_oid_str;
 
-  result = g_malloc0 (sizeof (struct snmp_result));
   request = g_malloc0 (sizeof (struct snmpv3_request));
 
   request->action = action;
@@ -782,6 +781,8 @@ nasl_snmpv3_get_action (lex_ctxt *lexic, u_char action)
   g_snprintf (peername, sizeof (peername), "%s:%s:%d", proto,
               plug_get_host_ip_str (lexic->script_infos), port);
   request->peername = peername;
+
+  result = g_malloc0 (sizeof (struct snmp_result));
   ret = snmpv3_get (request, result);
 
   // Hack the OID string to adjust format. Replace 'iso.' with '.1.'
