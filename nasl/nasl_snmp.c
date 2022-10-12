@@ -790,7 +790,10 @@ nasl_snmpv3_get_action (lex_ctxt *lexic, u_char action)
   else if (!strcasecmp (authproto, "sha1"))
     request->authproto = 1;
   else
-    return array_from_snmp_error (-2, "authproto should be md5 or sha1");
+    {
+      g_free (request);
+      return array_from_snmp_error (-2, "authproto should be md5 or sha1");
+    }
 
   if (privproto)
     {
@@ -799,7 +802,10 @@ nasl_snmpv3_get_action (lex_ctxt *lexic, u_char action)
       else if (!strcasecmp (privproto, "aes"))
         request->privproto = 1;
       else
-        return array_from_snmp_error (-2, "privproto should be des or aes");
+        {
+          g_free (request);
+          return array_from_snmp_error (-2, "privproto should be des or aes");
+        }
     }
 
   g_snprintf (peername, sizeof (peername), "%s:%s:%d", proto,
