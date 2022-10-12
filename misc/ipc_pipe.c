@@ -73,7 +73,8 @@ ipc_pipe_retrieve (struct ipc_pipe_context *context)
   fcntl (rfd, F_SETFL, pf | O_NONBLOCK);
   if ((result = calloc (1, IPC_MAX_BUFFER)) == NULL)
     return NULL;
-  if ((rr = read (rfd, result, IPC_MAX_BUFFER)) > 0)
+  rr = read (rfd, result, IPC_MAX_BUFFER);
+  if (rr > 0)
     {
       return result;
     }
