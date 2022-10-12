@@ -544,6 +544,7 @@ nasl_send_arp_request (lex_ctxt *lexic)
 
   answer_sz =
     send_frame ((const u_char *) frame, frame_sz, 1, to, filter, dst, &answer);
+  g_free (frame);
   if (answer_sz == -2)
     {
       g_message ("%s: Not possible to send the frame", __func__);
