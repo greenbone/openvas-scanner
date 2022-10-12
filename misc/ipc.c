@@ -253,7 +253,7 @@ ipc_contexts_init (int cap)
 exit:
   return ctxs;
 free_and_exit:
-  if (ctxs == NULL)
+  if (ctxs != NULL)
     free (ctxs);
   return NULL;
 }
