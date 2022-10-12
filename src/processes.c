@@ -233,7 +233,7 @@ pid_t
 create_ipc_process (ipc_process_func func, void *args)
 {
   struct ipc_context *pctx = NULL;
-  struct ipc_exec_context ec;
+  struct ipc_exec_context ec = {0};
   pid_t child_pid;
   // previously init call, we want to store the contexts without making
   // assumptions about signal handlung
