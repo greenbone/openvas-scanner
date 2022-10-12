@@ -741,17 +741,27 @@ nasl_snmpv3_get_action (lex_ctxt *lexic, u_char action)
 
   if (!proto || !request->username || !request->authpass || !request->oid_str
       || !authproto)
-    return array_from_snmp_error (-2, "Missing function argument");
-
+    {
+      g_free (request);
+      return array_from_snmp_error (-2, "Missing function argument");
+    }
   if (port < 0 || port > 65535)
-    return array_from_snmp_error (-2, "Invalid port value");
-
+    {
+      g_free (request);
+      return array_from_snmp_error (-2, "Invalid port value");
+    }
   if (!proto_is_valid (proto))
-    return array_from_snmp_error (-2, "Invalid protocol value");
-
+    {
+      g_free (request);
+      return array_from_snmp_error (-2, "Invalid protocol value");
+    }
+  
   if (!privproto || !request->privpass)
-    return array_from_snmp_error (-2, "Missing privproto or privpass");
-
+    {
+      g_free (request);
+      return array_from_snmp_error (-2, "Missing privproto or privpass");
+    }
+  
   if (!strcasecmp (authproto, "md5"))
     request->authproto = 0;
   else if (!strcasecmp (authproto, "sha1"))
