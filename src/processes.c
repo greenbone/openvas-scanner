@@ -140,7 +140,7 @@ terminate_process (pid_t pid)
 void
 procs_terminate_childs ()
 {
-  if (ipcc != NULL)
+  if (ipcc == NULL)
     return;
 
   for (int i = 0; i < ipcc->len; i++)
