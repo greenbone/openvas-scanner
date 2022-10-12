@@ -639,7 +639,6 @@ nasl_snmpv1v2c_get (lex_ctxt *lexic, int version, u_char action)
   static char *next_oid_str;
 
   request = g_malloc0 (sizeof (struct snmpv1v2_request));
-  result = g_malloc0 (sizeof (struct snmp_result));
 
   request->version = version;
   request->action = action;
@@ -654,15 +653,26 @@ nasl_snmpv1v2c_get (lex_ctxt *lexic, int version, u_char action)
     request->oid_str = oid_str;
 
   if (!proto || !request->community || !request->oid_str)
-    return array_from_snmp_error (-2, "Missing function argument");
+    {
+      g_free (request);
+      return array_from_snmp_error (-2, "Missing function argument");
+    }
   if (port < 0 || port > 65535)
-    return array_from_snmp_error (-2, "Invalid port value");
+    {
+      g_free (request);
+      return array_from_snmp_error (-2, "Invalid port value");
+    }
   if (!proto_is_valid (proto))
-    return array_from_snmp_error (-2, "Invalid protocol value");
+    {
+      g_free (request);
+      return array_from_snmp_error (-2, "Invalid protocol value");
+    }
 
   g_snprintf (peername, sizeof (peername), "%s:%s:%d", proto,
               plug_get_host_ip_str (lexic->script_infos), port);
   request->peername = peername;
+
+  result = g_malloc0 (sizeof (struct snmp_result));
   ret = snmpv1v2c_get (request, result);
 
   // Hack the OID string to adjust format. Replace 'iso.' with '.1.'
