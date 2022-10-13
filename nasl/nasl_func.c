@@ -239,6 +239,7 @@ nasl_func_call (lex_ctxt *lexic, const nasl_func *f, tree_cell *arg_list)
   return retc;
 
 error:
+  g_free (trace_buf)
   free_lex_ctxt (lexic2);
   return NULL;
 }
