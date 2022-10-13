@@ -27,10 +27,9 @@ jobs:
         uses: actions/checkout@v3
       - name: Configure and Scan Build
         run: |
-          cmake -Bbuild -DCMAKE_BUILD_TYPE=Release
+          cmake -Bbuild -DCMAKE_C_COMPILER=/usr/share/clang/scan-build-11/libexec/ccc-analyzer
           scan-build -o ~/scan-build-report cmake --build build
       - name: Upload scan-build report
-        if: failure()
         uses: actions/upload-artifact@v3
         with:
           name: scan-build-report
