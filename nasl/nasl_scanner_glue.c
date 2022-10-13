@@ -975,10 +975,11 @@ security_something (lex_ctxt *lexic, proto_post_something_t proto_post_func,
       int len = get_var_size_by_name (lexic, "data");
       int i;
 
-      dup = g_memdup2 (data, len + 1);
+      dup = g_malloc0 ((len + 1) * sizeof (char *));
+      memcpy (dup, data, len + 1);
 
       for (i = 0; i < len; i++)
-        if (dup[i] == 0)
+        if (dup[i] == '\0')
           dup[i] = ' ';
     }
 
