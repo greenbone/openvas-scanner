@@ -71,8 +71,7 @@ ipc_destroy (struct ipc_context *context)
       rc = ipc_pipe_destroy (context->context);
       break;
     }
-  if (rc > -1)
-    free (context);
+  g_free (context);
   return rc;
 }
 
