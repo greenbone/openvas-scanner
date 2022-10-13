@@ -175,6 +175,9 @@ update_running_processes (kb_t main_kb, kb_t kb)
                   ret_terminate = terminate_process (processes[i].pid);
                   if (ret_terminate == 0)
                     {
+                      /* Since the plugin process is a group leader process
+                       * we can send the signal to -PID process to kill
+                       * also the plugin's child processes. */
                       terminate_process (processes[i].pid * -1);
                       num_running_processes--;
                       processes[i].plugin->running_state = PLUGIN_STATUS_DONE;
@@ -208,6 +211,9 @@ update_running_processes (kb_t main_kb, kb_t kb)
                     }
                   while (e < 0 && errno == EINTR);
 
+                  /* Since the plugin process is a group leader process
+                   * we can send the signal to -PID process to kill
+                   * also the plugin's child processes. */
                   terminate_process (processes[i].pid * -1);
                   num_running_processes--;
                   processes[i].plugin->running_state = PLUGIN_STATUS_DONE;
@@ -361,6 +367,9 @@ pluginlaunch_stop (void)
     {
       if (processes[i].pid > 0)
         {
+          /* Since the plugin process is a group leader process
+           * we can send the signal to -PID process to kill
+           * also the plugin's child processes. */
           terminate_process (processes[i].pid * -1);
           num_running_processes--;
           processes[i].plugin->running_state = PLUGIN_STATUS_DONE;
@@ -541,6 +550,9 @@ pluginlaunch_wait_for_free_process (kb_t main_kb, kb_t kb)
              "Waiting for free slot for processes.",
              __func__, num_running_processes, max_running_processes);
 
+  /* Be careful with changing the max_running_process value.
+   * The plugin scheduler can change this value for running one plugin at
+   * time. */
   while (
     (num_running_processes >= max_running_processes)
     || (num_running_processes > 0 && (check_memory () || check_sysload ())))
@@ -553,7 +565,9 @@ pluginlaunch_wait_for_free_process (kb_t main_kb, kb_t kb)
       sigemptyset (&mask);
       sigaddset (&mask, SIGCHLD);
       sigaddset (&mask, SIGUSR1);
-
+      /* Wait here for the shortest plugins timeout or for a child which ended.
+       * Also, it handles signal SIGUSR1 to stop a scan. Otherwise the signa is
+       * ignored, the plugin is never stopped and the scanner keeps waiting. */
       int sig = sigtimedwait (&mask, NULL, &ts);
       if (sig < 0 && errno != EAGAIN)
         g_warning ("%s: %s (%d)", __func__, strerror (errno), errno);
