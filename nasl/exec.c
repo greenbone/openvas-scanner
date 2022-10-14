@@ -1381,11 +1381,14 @@ nasl_exec (lex_ctxt *lexic, tree_cell *st)
               len2 = (s2 == NULL ? 0 : strlen (s2));
             }
 
+          /* if p1 is null, last condition p=memem() will not be evaluated
+           * and p remains NULL */
           if (len2 == 0 || len1 < len2
               || (p1 != NULL && (p = memmem (p1, len1, p2, len2)) == NULL))
             {
               s3 = g_malloc0 (len1 + 1);
-              memcpy (s3, p1, len1);
+              if (p1 != NULL)
+                memcpy (s3, p1, len1);
               ret = alloc_typed_cell (flag);
               ret->x.str_val = s3;
               ret->size = len1;
@@ -1403,7 +1406,7 @@ nasl_exec (lex_ctxt *lexic, tree_cell *st)
                   s3 = g_malloc0 (sz + 1);
                   if (p - p1 > 0)
                     memcpy (s3, p1, p - p1);
-                  if (sz > p - p1)
+                  if (sz > p - p1 && p != NULL)
                     memcpy (s3 + (p - p1), p + len2, sz - (p - p1));
                 }
               ret = alloc_typed_cell (flag);
