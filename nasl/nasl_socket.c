@@ -1569,7 +1569,8 @@ nasl_socket_cert_verify (lex_ctxt *lexic)
     }
 
   /* Init ca_list and load system CA trust list */
-  if ((ret = gnutls_x509_trust_list_init (&ca_list, ca_list_size)) < 0)
+  ret = gnutls_x509_trust_list_init (&ca_list, ca_list_size);
+  if (ret < 0)
     {
       g_free (cert);
       return NULL;
