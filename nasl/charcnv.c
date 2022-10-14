@@ -91,7 +91,7 @@ check_dos_char_slowly_ntlmssp (uint16 c)
 
   len1 = convert_string_ntlmssp (CH_UTF16LE, CH_DOS, &c, 2, buf, sizeof (buf),
                                  False);
-  if (len1 == 0)
+  if (len1 <= 0)
     {
       return 0;
     }
