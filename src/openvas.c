@@ -554,7 +554,8 @@ openvas (int argc, char *argv[], char *env[])
     }
   tzset ();
 
-  if ((err = init_logging ()) != 0)
+  err = init_logging ();
+  if (err != 0)
     return EXIT_FAILURE;
 
   err = init_sentry ();
