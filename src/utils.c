@@ -94,7 +94,7 @@ files_add_size_translation (struct scan_globals *globals, const char *file_hash,
   // Register the mapping table if none there yet
   if (trans == NULL)
     {
-      trans = g_hash_table_new_full (g_str_hash, g_str_equal, g_free, NULL);
+      trans = g_hash_table_new_full (g_str_hash, g_str_equal, g_free, g_free);
       globals->files_size_translation = trans;
     }
 
