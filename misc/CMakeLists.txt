@@ -86,7 +86,7 @@ include_directories (${GLIB_INCLUDE_DIRS} ${GLIB_JSON_INCLUDE_DIRS}
 
 set (FILES bpf_share.c ftp_funcs.c vendorversion.c network.c plugutils.c pcap.c
      scan_id.c strutils.c table_driven_lsc.c ipc.c ipc_openvas.c ipc_pipe.c
-     user_agent.c)
+     user_agent.c scanneraux.c)
 
 
 # On windows we are always PIC and stack-protector is replaces by DEP
