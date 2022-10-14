@@ -1645,8 +1645,8 @@ exec_nasl_script (struct script_infos *script_infos, int mode)
 
   if (g_chdir (newdir) != 0)
     {
-      g_message ("%s: Not able to open nor to locate it in include paths",
-                 newdir);
+      g_message ("%s: Not able to change working directory to %s (%d [%s]).",
+                 __func__, newdir, errno, strerror (errno));
       g_free (old_dir);
       g_free (newdir);
       return -1;
