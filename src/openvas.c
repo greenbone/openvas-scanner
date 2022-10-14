@@ -610,12 +610,14 @@ openvas (int argc, char *argv[], char *env[])
       
       err = attack_network_init (globals, config_file);
       if (err != 0)
-        return EXIT_FAILURE;
-
+        {
+          destroy_scan_globals (globals);
+          return EXIT_FAILURE;
+        }
       attack_network (globals);
 
       gvm_close_sentry ();
-      g_free (globals);
+      destroy_scan_globals (globals);
       return EXIT_SUCCESS;
     }
 

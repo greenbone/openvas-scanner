@@ -28,6 +28,7 @@
 #include <glib.h>
 #include <gvm/base/nvti.h>
 #include <gvm/util/kb.h>
+
 struct scan_globals
 {
   GHashTable *files_translation;
@@ -54,4 +55,8 @@ struct script_infos
   int denial_port;
   int alive;
 };
+
+void
+destroy_scan_globals (struct scan_globals *);
+
 #endif /* not MISC_SCANNERAUX_H */
