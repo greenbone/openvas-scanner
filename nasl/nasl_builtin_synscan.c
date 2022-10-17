@@ -365,8 +365,15 @@ rm_dead_packets (struct list *l, int *retry)
               if (p->prev != NULL)
                 p->prev->next = p->next;
               else
-                ret = p->next;
-              g_free (p);
+                {
+                  if (p->next == NULL)
+                    {
+                      g_free (p);
+                      return NULL;
+                    }
+                  ret = p->next;
+                  g_free (p);
+                }
             }
         }
       p = next;
