@@ -420,6 +420,7 @@ attack_network_init (struct scan_globals *globals, const gchar *config_file)
 
   set_default_openvas_prefs ();
   prefs_config (config_file);
+  set_globals_from_preferences ();
 
   if (prefs_get ("vendor_version") != NULL)
     vendor_version_set (prefs_get ("vendor_version"));
