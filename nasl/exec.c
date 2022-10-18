@@ -32,6 +32,7 @@
 #include "nasl_tree.h"
 #include "nasl_var.h"
 
+#include <errno.h>       /* for errno */
 #include <glib.h>        /* for g_get_current_dir and others */
 #include <glib/gstdio.h> /* for g_chdir */
 #include <gvm/base/logging.h>
