@@ -847,27 +847,29 @@ nasl_lint (lex_ctxt *lexic, tree_cell *st)
   /* Check description block sanity. */
   desc_block = find_description_block (lexic_aux, st);
   if (desc_block != NULL && desc_block != FAKE_CELL)
-    /* FAKE_CELL if success, NULL otherwise which counts as error */
-    if ((ret = check_description_block (lexic_aux, desc_block)) == NULL)
-      {
-        inc_errors_cnt ();
-      }
-
+    {
+      /* FAKE_CELL if success, NULL otherwise which counts as error */
+      ret = check_description_block (lexic_aux, desc_block);
+      if (ret == NULL)
+        {
+          inc_errors_cnt ();
+        }
+    }
   /* Make a list of all called functions */
   make_call_func_list (lexic_aux, st, &called_funcs);
 
   /* Loads all defined functions. */
-  if ((ret = nasl_lint_def (lexic_aux, st, lint_mode, &include_files,
-                            &func_fnames_tab, err_fname, &called_funcs,
-                            &def_func_tree))
-      == NULL)
+  ret = nasl_lint_def (lexic_aux, st, lint_mode, &include_files,
+                        &func_fnames_tab, err_fname, &called_funcs,
+                        &def_func_tree);
+  if (ret == NULL)
     {
       inc_errors_cnt ();
     }
   /* Check if a called function was defined. */
-  if ((ret = nasl_lint_call (lexic_aux, st, &include_files, &func_fnames_tab,
-                             err_fname, &called_funcs, &def_func_tree))
-      == NULL)
+  ret = nasl_lint_call (lexic_aux, st, &include_files, &func_fnames_tab,
+                        err_fname, &called_funcs, &def_func_tree);
+  if (ret == NULL)
     {
       inc_errors_cnt ();
     }
@@ -884,10 +886,10 @@ nasl_lint (lex_ctxt *lexic, tree_cell *st)
 
   /* Now check that each function was loaded just once. */
   lint_mode = 0;
-  if ((ret =
-         nasl_lint_def (lexic, st, lint_mode, &include_files, &func_fnames_tab,
-                        err_fname, &called_funcs, &def_func_tree))
-      == NULL)
+  ret = nasl_lint_def (lexic, st, lint_mode, &include_files,
+                       &func_fnames_tab, err_fname, &called_funcs,
+                       &def_func_tree);
+  if (ret == NULL)
     {
       inc_errors_cnt ();
     }
