@@ -419,6 +419,10 @@ is_deffunc_used (const char *funcname, const char *filename,
 {
   func_info *element;
   GSList *current = def_func_tree;
+
+  if (current == NULL)
+    return 0;
+
   do
     {
       element = current->data;
