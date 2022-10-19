@@ -778,13 +778,13 @@ nasl_snmpv3_get_action (lex_ctxt *lexic, u_char action)
       g_free (request);
       return array_from_snmp_error (-2, "Invalid protocol value");
     }
-  
+
   if (!privproto || !request->privpass)
     {
       g_free (request);
       return array_from_snmp_error (-2, "Missing privproto or privpass");
     }
-  
+
   if (!strcasecmp (authproto, "md5"))
     request->authproto = 0;
   else if (!strcasecmp (authproto, "sha1"))
