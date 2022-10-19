@@ -43,8 +43,8 @@ struct script_infos
 {
   struct scan_globals *globals;
   struct ipc_context *ipc_context;
-  kb_t key;
-  kb_t results;
+  kb_t key;     // nvt_kb
+  kb_t results; // main_kb
   nvti_t *nvti;
   char *oid;
   char *name;

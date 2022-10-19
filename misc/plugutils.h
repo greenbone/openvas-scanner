@@ -146,8 +146,11 @@ host_get_port_state_udp (struct script_infos *, int);
 /*
  * Inter Plugins Communication functions
  */
-
 int check_kb_inconsistency (kb_t);
+
+void set_main_kb (kb_t);
+kb_t
+get_main_kb (void);
 
 int
 kb_check_push_str (kb_t, const char *, const char *);
