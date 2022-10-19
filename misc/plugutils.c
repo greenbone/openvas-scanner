@@ -25,6 +25,7 @@
 
 #include "plugutils.h"
 
+#include "kb_cache.h"
 #include "network.h" // for OPENVAS_ENCAPS_IP
 #include "scan_id.h"
 #include "support.h" // for g_memdup2 workaround
@@ -265,7 +266,7 @@ plug_get_host_fqdn (struct script_infos *args)
     return g_strdup (current_vhost->value);
   while (vhosts)
     {
-      int ret = plug_fork_child (args->results, args->key);
+      int ret = plug_fork_child (get_main_kb (), args->key);
 
       if (ret == 0)
         {
@@ -419,39 +420,6 @@ check_kb_inconsistency (kb_t main_kb)
              current_scan_id);
   g_free (current_scan_id);
   return -3;
-}
-
-// shared database between openvas and ospd.
-kb_t main_kb = NULL;
-
-/**
- * @brief sets the shared database between ospd and openvas as a main_kb for
- * further usage.
- * @description this sets the given kb as a main_kb global variable. It is NOT
- * threadsafe and must be called after each reconnect or fork.
- *
- * @param main_kb Current main kb.
- *
- */
-void
-set_main_kb (kb_t kb)
-{
-  main_kb = kb;
-}
-
-/**
- * @brief gets the main_kb.
- * @description returns the previously set main_kb; when asserts are enabled it
- * will abort when main_kb is not set. However each usage must check if the
- * return is NULL or not.
- *
- * @return the set main_kb
- */
-kb_t
-get_main_kb (void)
-{
-  assert (main_kb);
-  return main_kb;
 }
 
 /**
@@ -673,7 +641,6 @@ proto_post_wrapped (const char *oid, struct script_infos *desc, int port,
   GError *err = NULL;
   GString *action_str;
   gsize length;
-  kb_t kb;
 
   /* Should not happen, just to avoid trouble stop here if no NVTI found */
   if (!oid)
@@ -709,8 +676,8 @@ proto_post_wrapped (const char *oid, struct script_infos *desc, int port,
       return;
     }
 
-  kb = plug_get_results_kb (desc);
-  kb_item_push_str_with_main_kb_check (kb, "internal/results", data);
+
+  kb_item_push_str_with_main_kb_check (get_main_kb (), "internal/results", data);
   g_free (data);
   g_free (buffer);
   g_string_free (action_str, TRUE);
@@ -1104,12 +1071,6 @@ plug_get_kb (struct script_infos *args)
   return args->key;
 }
 
-kb_t
-plug_get_results_kb (struct script_infos *args)
-{
-  return args->results;
-}
-
 static void
 plug_get_key_sigchld ()
 {
@@ -1228,7 +1189,7 @@ plug_get_key (struct script_infos *args, char *name, int *type, size_t *len,
   res_list = res;
   while (res)
     {
-      int pret = plug_fork_child (args->results, kb);
+      int pret = plug_fork_child (get_main_kb (), kb);
 
       if (pret == 0)
         {
