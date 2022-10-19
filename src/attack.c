@@ -111,7 +111,9 @@ connect_main_kb (kb_t *main_kb)
 
   *main_kb = kb_direct_conn (prefs_get ("db_address"), i);
   if (main_kb)
-    return 0;
+    {
+      return 0;
+    }
 
   g_warning ("Not possible to get the main kb connection.");
   return -1;

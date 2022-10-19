@@ -62,7 +62,7 @@ plug_current_vhost (void)
   return current_vhost->value;
 }
 
-static int plug_fork_child (kb_t);
+static int plug_fork_child (kb_t, kb_t);
 
 void
 plug_set_dep (struct script_infos *args, const char *depname)
@@ -265,7 +265,7 @@ plug_get_host_fqdn (struct script_infos *args)
     return g_strdup (current_vhost->value);
   while (vhosts)
     {
-      int ret = plug_fork_child (args->key);
+      int ret = plug_fork_child (args->results, args->key);
 
       if (ret == 0)
         {
@@ -419,6 +419,39 @@ check_kb_inconsistency (kb_t main_kb)
   return -3;
 }
 
+// shared database between openvas and ospd.
+kb_t main_kb = NULL;
+
+/**
+ * @brief sets the shared database between ospd and openvas as a main_kb for
+ * further usage.
+ * @description this sets the given kb as a main_kb global variable. It is NOT
+ * threadsafe and must be called after each reconnect or fork.
+ *
+ * @param main_kb Current main kb.
+ *
+ */
+void
+set_main_kb (kb_t kb)
+{
+  main_kb = kb;
+}
+
+/**
+ * @brief gets the main_kb.
+ * @description returns the previously set main_kb; when asserts are enabled it
+ * will abort when main_kb is not set. However each usage must check if the
+ * return is NULL or not.
+ *
+ * @return the set main_kb
+ */
+kb_t
+get_main_kb (void)
+{
+  assert (main_kb);
+  return main_kb;
+}
+
 /**
  * @brief calls check_kb_inconsistency and logs as debug when local scan_id is
  missing.
@@ -435,9 +468,10 @@ check_kb_inconsistency (kb_t main_kb)
  * @return 0 on success, -1 on inconsistency.
  */
 static int
-check_kb_inconsistency_log (kb_t kb, const char *name)
+check_kb_inconsistency_log (const char *name)
 {
   char *current_scan_id;
+  kb_t kb = get_main_kb ();
   int result = check_kb_inconsistency (kb);
   switch (result)
     {
@@ -454,8 +488,8 @@ check_kb_inconsistency_log (kb_t kb, const char *name)
       // openvas-nasl calls
       break;
     case -2:
-      g_debug ("%s: No internal/scanid; this indicates wrongful usage",
-               __func__);
+      g_warning ("%s: No internal/scanid found.", __func__);
+      return -1;
       break;
     default:
       {
@@ -483,7 +517,7 @@ check_kb_inconsistency_log (kb_t kb, const char *name)
 int
 kb_check_push_str (kb_t kb, const char *name, const char *value)
 {
-  int result = check_kb_inconsistency_log (kb, name);
+  int result = check_kb_inconsistency_log (name);
   return result == 0 ? kb_item_push_str (kb, name, value) : -1;
 }
 
@@ -505,7 +539,7 @@ kb_check_push_str (kb_t kb, const char *name, const char *value)
 int
 kb_check_set_str (kb_t kb, const char *name, const char *value, size_t len)
 {
-  int result = check_kb_inconsistency_log (kb, name);
+  int result = check_kb_inconsistency_log (name);
   return result == 0 ? kb_item_set_str (kb, name, value, len) : -1;
 }
 
@@ -528,7 +562,7 @@ int
 kb_check_add_str_unique (kb_t kb, const char *name, const char *value,
                          size_t len, int pos)
 {
-  int result = check_kb_inconsistency_log (kb, name);
+  int result = check_kb_inconsistency_log (name);
   return result == 0 ? kb_item_add_str_unique (kb, name, value, len, pos) : -1;
 }
 
@@ -550,7 +584,7 @@ kb_check_add_str_unique (kb_t kb, const char *name, const char *value,
 int
 kb_check_set_int (kb_t kb, const char *name, int value)
 {
-  int result = check_kb_inconsistency_log (kb, name);
+  int result = check_kb_inconsistency_log (name);
   return result == 0 ? kb_item_set_int (kb, name, value) : -1;
 }
 
@@ -572,7 +606,7 @@ kb_check_set_int (kb_t kb, const char *name, int value)
 int
 kb_check_add_int (kb_t kb, const char *name, int value)
 {
-  int result = check_kb_inconsistency_log (kb, name);
+  int result = check_kb_inconsistency_log (name);
   return result == 0 ? kb_item_add_int (kb, name, value) : -1;
 }
 
@@ -594,7 +628,7 @@ kb_check_add_int (kb_t kb, const char *name, int value)
 int
 kb_check_add_int_unique (kb_t kb, const char *name, int value)
 {
-  int result = check_kb_inconsistency_log (kb, name);
+  int result = check_kb_inconsistency_log (name);
   return result == 0 ? kb_item_add_int_unique (kb, name, value) : -1;
 }
 
@@ -1085,7 +1119,7 @@ sig_n (int signo, void (*fnc) (int))
  * failure
  */
 static int
-plug_fork_child (kb_t kb)
+plug_fork_child (kb_t main, kb_t kb)
 {
   pid_t pid;
 
@@ -1095,6 +1129,7 @@ plug_fork_child (kb_t kb)
       sig_n (SIGTERM, _exit);
       mqtt_reset ();
       kb_lnk_reset (kb);
+      kb_lnk_reset (main);
       nvticache_reset ();
       srand48 (getpid () + getppid () + time (NULL));
       return 0;
@@ -1174,7 +1209,7 @@ plug_get_key (struct script_infos *args, char *name, int *type, size_t *len,
   res_list = res;
   while (res)
     {
-      int pret = plug_fork_child (kb);
+      int pret = plug_fork_child (args->results, kb);
 
       if (pret == 0)
         {
