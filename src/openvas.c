@@ -607,7 +607,7 @@ openvas (int argc, char *argv[], char *env[])
       set_scan_id (g_strdup (scan_id));
       globals = g_malloc0 (sizeof (struct scan_globals));
       globals->scan_id = g_strdup (get_scan_id ());
-      
+
       err = attack_network_init (globals, config_file);
       if (err != 0)
         {

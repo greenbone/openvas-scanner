@@ -554,15 +554,15 @@ nasl_same_host (lex_ctxt *lexic)
 
   for (i = 0; i < 2; i++)
     g_free (a[i]);
-  //if (cmp_hostname)
+  // if (cmp_hostname)
   //  {
-      for (i = 0; i < 2; i++)
-        {
-          for (j = 0; j < names_nb[i]; j++)
-            g_free (names[i][j]);
-          g_free (names[i]);
-        }
-      // }
+  for (i = 0; i < 2; i++)
+    {
+      for (j = 0; j < names_nb[i]; j++)
+        g_free (names[i][j]);
+      g_free (names[i]);
+    }
+  // }
   return retc;
 }
 
